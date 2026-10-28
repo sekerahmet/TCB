@@ -8,26 +8,26 @@
 
 # 13'te sayılara uyguladığımız fonksiyonlar tensörde her elemana ayrı ayrı uygulanır.
 # Sonuç yeni bir tensördür; .değer onu TR listesine çevirir.
-TR_var x = TR_tensor([0.0, 1.0, 2.0])
+TR_var x = TR_Tensor([0.0, 1.0, 2.0])
 TR_print("exp:", TR_exp(x).TR_tolist)
 TR_print("log:", TR_log(x + 1).TR_tolist)
 TR_print("sin:", TR_sin(x).TR_tolist, "cos:", TR_cos(x).TR_tolist)
-TR_print("tan:", TR_tan(TR_tensor([0.0, 1.0])).TR_tolist)
-TR_print("asin:", TR_asin(TR_tensor([0.0, 0.5])).TR_tolist, "acos:", TR_acos(TR_tensor([1.0, -1.0])).TR_tolist)
-TR_print("atan:", TR_atan(TR_tensor([0.0, 1.0])).TR_tolist)
-TR_print("atan2:", TR_atan2(TR_tensor([1.0, -1.0]), TR_tensor([0.0])).TR_tolist) # yayınlama: (y, x) çiftleri
-TR_print("sinh/cosh:", TR_sinh(TR_tensor([0.0, 1.0])).TR_tolist, TR_cosh(TR_tensor([0.0, 1.0])).TR_tolist)
-TR_print("log2/log10:", TR_log2(TR_tensor([1.0, 1024.0])).TR_tolist, TR_log10(TR_tensor([1.0, 100.0])).TR_tolist)
-TR_print("küçük sayıda hassas log ve üstel:", TR_log1p(TR_tensor([0.0, 1.0])).TR_tolist, TR_expm1(TR_tensor([0.0, 1.0])).TR_tolist)
+TR_print("tan:", TR_tan(TR_Tensor([0.0, 1.0])).TR_tolist)
+TR_print("asin:", TR_asin(TR_Tensor([0.0, 0.5])).TR_tolist, "acos:", TR_acos(TR_Tensor([1.0, -1.0])).TR_tolist)
+TR_print("atan:", TR_atan(TR_Tensor([0.0, 1.0])).TR_tolist)
+TR_print("atan2:", TR_atan2(TR_Tensor([1.0, -1.0]), TR_Tensor([0.0])).TR_tolist) # yayınlama: (y, x) çiftleri
+TR_print("sinh/cosh:", TR_sinh(TR_Tensor([0.0, 1.0])).TR_tolist, TR_cosh(TR_Tensor([0.0, 1.0])).TR_tolist)
+TR_print("log2/log10:", TR_log2(TR_Tensor([1.0, 1024.0])).TR_tolist, TR_log10(TR_Tensor([1.0, 100.0])).TR_tolist)
+TR_print("küçük sayıda hassas log ve üstel:", TR_log1p(TR_Tensor([0.0, 1.0])).TR_tolist, TR_expm1(TR_Tensor([0.0, 1.0])).TR_tolist)
 
 # Etkinleştirme fonksiyonları: silu x · sigmoid(x) hesaplar; log_softmax softmax'ın logaritmasını
 # sayısal olarak kararlı biçimde verir.
-TR_print("silu:", TR_silu(TR_tensor([-1.0, 0.0, 2.0])).TR_tolist)
-TR_print("log_softmax:", TR_log_softmax(TR_tensor([1.0, 2.0, 3.0])).TR_tolist)
+TR_print("silu:", TR_silu(TR_Tensor([-1.0, 0.0, 2.0])).TR_tolist)
+TR_print("log_softmax:", TR_log_softmax(TR_Tensor([1.0, 2.0, 3.0])).TR_tolist)
 
 # Eksen boyunca indirgeme: eksen: -1 son eksen demektir.
 # boyutu_koru: doğru indirgenen ekseni 1 uzunlukta tutar; sonuç girdiye yayınlanabilir.
-TR_var m = TR_tensor([[1, 2], [3, 4]])
+TR_var m = TR_Tensor([[1, 2], [3, 4]])
 TR_print(TR_sum(m, TR_dim: -1).TR_shape, TR_sum(m, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
 TR_print(TR_sum(m, TR_dim: 0).TR_tolist, TR_mean(m, TR_dim: -1).TR_tolist)
 

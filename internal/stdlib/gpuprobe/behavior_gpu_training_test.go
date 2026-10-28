@@ -28,14 +28,14 @@ TR_var V = 16
 TR_var tohum_sayacı = 0
 TR_func ağırlık(şekil, ölçek) {
     tohum_sayacı += 1
-    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
+    TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
 }
 TR_func başlar(x) { TR_return x.TR_reshape([B, T, H, Dh]).TR_permute([0, 2, 1, 3]) }
 TR_func eğit(cihaz) {
     TR_default_device(cihaz)
     tohum_sayacı = 0
     TR_var E = ağırlık([V, D], 0.02)
-    TR_var g1 = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
+    TR_var g1 = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
     TR_var Wq = ağırlık([D, D], 0.2)
     TR_var Wk = ağırlık([D, D], 0.2)
     TR_var Wv = ağırlık([D, D], 0.2)
@@ -51,10 +51,10 @@ TR_func eğit(cihaz) {
     TR_var son_x = TR_none
     TR_var son_k = TR_none
     TR_for adım TR_in 0..3 {
-        TR_var xg = TR_tensor(girdiler[adım])
-        TR_var yh = TR_tensor(hedefler[adım])
+        TR_var xg = TR_Tensor(girdiler[adım])
+        TR_var yh = TR_Tensor(hedefler[adım])
         op.TR_zero_grad()
-        TR_var x = TR_embedding(E, xg)
+        TR_var x = TR_embedding_lookup(E, xg)
         TR_var h = TR_rms_norm(x, g1)
         TR_var y = TR_attention(başlar(h @ Wq), başlar(h @ Wk), başlar(h @ Wv), TR_causal: TR_true)
         TR_var s = x + y.TR_permute([0, 2, 1, 3]).TR_reshape([B, T, D])

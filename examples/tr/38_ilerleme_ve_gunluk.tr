@@ -7,15 +7,15 @@
 # Günlük dosyası geçici klasöre yazılır (program bitince silinir).
 
 # günlük(yol) bir günlük dosyası açar; ekle(sözlük) her çağrıda dosyaya bir JSON satırı ekler.
-TR_var dosya = TR_path(TR_temp_dir(), "günlük.jsonl")
-TR_var kayıt_defteri = TR_logger(dosya)
-TR_print(TR_type(kayıt_defteri) == TR_Logger)
+TR_var dosya = TR_Path(TR_temp_dir(), "günlük.jsonl")
+TR_var kayıt_defteri = TR_Logger(dosya)
+TR_print(TR_Type(kayıt_defteri) == TR_Logger)
 kayıt_defteri.TR_append({"step": 0, "loss": 9.5})
 
 # ilerleme(toplam) bir ilerleme çubuğu açar (standart hataya yazar: adım, kayıp, hız, kalan süre).
 # günlük: verilirse çubuğun her güncellemesi aynı zamanda günlüğe yazılır.
-TR_var çubuk = TR_progress(5, TR_log: kayıt_defteri)
-TR_print(TR_type(çubuk) == TR_Progress)
+TR_var çubuk = TR_Progress(5, TR_log: kayıt_defteri)
+TR_print(TR_Type(çubuk) == TR_Progress)
 TR_for i TR_in 1..=5 {
     TR_sleep(0.01) # asıl işin yerini tutar
     çubuk.TR_update({"loss": 10.0 / (i + 1)}, TR_step: i)

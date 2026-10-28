@@ -159,8 +159,8 @@ func TestDecodeTensor(t *testing.T) {
 	m := mustRun(t, `
 TR_var p = TR_load_tokenizer("`+bpePath+`")
 TR_var k = p.TR_encode("bir iki")
-TR_var tek = p.TR_decode(TR_tensor(k))
-TR_var iki = p.TR_decode(TR_tensor([k, k]))
+TR_var tek = p.TR_decode(TR_Tensor(k))
+TR_var iki = p.TR_decode(TR_Tensor([k, k]))
 `)
 	if got := al(t, m, "tek").Inspect(); got != "bir iki" {
 		t.Fatalf("tek: %q", got)
@@ -272,7 +272,7 @@ func TestLoadErrors(t *testing.T) {
 		{`TR_load_tokenizer("` + bpePath + `").TR_encode("a", TR_special_tokens: 1)`, messages.H7905},
 		{`TR_load_tokenizer("` + bpePath + `").TR_encode(["a"], TR_pair: ["b", "c"])`, messages.H5628},
 		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, "a"])`, messages.H5639},
-		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_tensor([[[1]]]))`, messages.H5636},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_Tensor([[[1]]]))`, messages.H5636},
 		{`TR_load_tokenizer("` + bpePath + `").çözz([1])`, messages.H7903},
 	}
 	for _, dd := range cases {

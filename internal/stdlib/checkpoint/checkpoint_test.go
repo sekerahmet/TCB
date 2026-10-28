@@ -58,24 +58,24 @@ TR_var D = 16
 TR_var sayaç = 0
 TR_func parametre(şekil, ölçek) {
     sayaç += 1
-    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
+    TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }
 TR_var model = {"E": parametre([V, D], 0.1), "W": parametre([D, V], 0.1)}
 TR_var ikinci = [parametre([D], 1.0)]
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01)
 TR_var op2 = TR_SGD(ikinci, TR_lr: 0.1, TR_momentum: 0.9)
-TR_var küme = TR_dataset(%q)
+TR_var küme = TR_Dataset(%q)
 TR_var ö = küme.TR_sampler(TR_batch_size: 4, TR_context: 8, TR_seed: 5)
 TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 8)
-TR_var g = TR_logger(TR_path(KOŞU, "metrics.jsonl"))
+TR_var g = TR_Logger(TR_Path(KOŞU, "metrics.jsonl"))
 TR_var izlenen = {"en_iyi": 99.0, "geçmiş": [], "son_sıralı": TR_none}
-TR_var kn = TR_checkpoint(KOŞU, {"model": model, "op": op, "ikinci": ikinci, "op2": op2, "ö": ö, "s": s, "g": g, "izlenen": izlenen}%s)
-TR_var ç = TR_progress(%d, TR_log: g)
+TR_var kn = TR_Checkpoint(KOŞU, {"model": model, "op": op, "ikinci": ikinci, "op2": op2, "ö": ö, "s": s, "g": g, "izlenen": izlenen}%s)
+TR_var ç = TR_Progress(%d, TR_log: g)
 TR_for adım TR_in kn.TR_resume_step..%d {
     TR_var giriş, hedef = ö.TR_next()
     op.TR_zero_grad()
     op2.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(TR_embedding(model["E"], giriş) @ model["W"], hedef) + TR_sum(ikinci[0] * ikinci[0]) * 0.01
+    TR_var kayıp = TR_cross_entropy(TR_embedding_lookup(model["E"], giriş) @ model["W"], hedef) + TR_sum(ikinci[0] * ikinci[0]) * 0.01
     TR_backward(kayıp)
     op.TR_step()
     op2.TR_step()
@@ -86,9 +86,9 @@ TR_for adım TR_in kn.TR_resume_step..%d {
     ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
     kn.TR_update(adım + 1)
 }
-TR_save_tensors(TR_path(KOŞU, "son.trt"), TR_parameters([model, ikinci], TR_named: TR_true))
-TR_save_tensors(TR_path(KOŞU, "op.trt"), op.TR_state)
-TR_save_tensors(TR_path(KOŞU, "op2.trt"), op2.TR_state)
+TR_save_tensors(TR_Path(KOŞU, "son.trt"), TR_parameters([model, ikinci], TR_named: TR_true))
+TR_save_tensors(TR_Path(KOŞU, "op.trt"), op.TR_state)
+TR_save_tensors(TR_Path(KOŞU, "op2.trt"), op2.TR_state)
 TR_print("izlenen:", izlenen)
 TR_print("ö:", ö.TR_state)
 `, trPath(runDir), trPath(filepath.Join(reporoot.Root(), "tests", "data", "text")), extraOption, total, stop)
@@ -155,9 +155,9 @@ func TestRenameErrorDoesNotStopTraining(t *testing.T) {
 	runDir := t.TempDir()
 	program := func(n int, brokenSteps string) string {
 		return fmt.Sprintf(`
-TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_SGD([w], TR_lr: 0.1)
-TR_var kn = TR_checkpoint(%q, {"w": w, "op": op}, TR_every_minutes: 0)
+TR_var kn = TR_Checkpoint(%q, {"w": w, "op": op}, TR_every_minutes: 0)
 TR_var sonuçlar = []
 TR_for adım TR_in kn.TR_resume_step..%d {
     TR_backward(TR_sum(w * w))
@@ -178,7 +178,7 @@ TR_print("sonuçlar:", sonuçlar)
 		t.Fatalf("iki başarısızlık eğitimi durdurmamalıydı: %v\n%s", err, output)
 	}
 	if !strings.Contains(output, "sonuçlar: [true, true, false, false, true, true]") ||
-		strings.Count(output, "Uyarı: kontrol_noktası: ") != 2 ||
+		strings.Count(output, "Uyarı: KontrolNoktası: ") != 2 ||
 		!strings.Contains(output, "(1/3; eğitim sürüyor") || !strings.Contains(output, "Son geçerli nokta: adım 2") ||
 		!strings.Contains(output, "yerel diske kaydedip") {
 		t.Fatalf("beklenen uyarılar ve sonuçlar none:\n%s", output)

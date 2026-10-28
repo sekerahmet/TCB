@@ -75,7 +75,7 @@ var clashPlaces = []clashPlace{
 	{name: "metot", namespaces: member, main: "TR_struct P {\n    a\n    TR_func ad_1() {\n        TR_return TR_self.a + 1\n    }\n}\nTR_print(P(a: 1).ad_1())\n"},
 	{name: "üye", namespaces: member, main: "TR_print([1, 2].ad_1)\n", neutralFails: true},
 	{name: "sözlük_anahtarı", namespaces: member, main: "TR_var d = {\"ad_1\": 1}\nTR_print(d, d.ad_1)\n"},
-	{name: "adlı_argüman", namespaces: []codes.Namespace{codes.NamespaceParam}, main: "TR_print(TR_sum(TR_tensor([1.0, 2.0]), ad_1: 0))\n", neutralFails: true},
+	{name: "adlı_argüman", namespaces: []codes.Namespace{codes.NamespaceParam}, main: "TR_print(TR_sum(TR_Tensor([1.0, 2.0]), ad_1: 0))\n", neutralFails: true},
 	// Kullanıcı fonksiyonuna verilen adlı argüman serbesttir; parametrenin tanımı genel ad alanındadır.
 	{name: "kullanıcı_adlı_argümanı", namespaces: global, main: "TR_func f(a, ad_1 = 0) {\n    TR_return a + ad_1\n}\nTR_print(f(1, ad_1: 2))\n"},
 	{name: "modül_adı", namespaces: value, module: "TR_var ad_1 = 5\n", moduleInOther: true, main: "TR_import \"m\"\nTR_print(ad_1)\n"},

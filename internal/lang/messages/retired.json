@@ -43,6 +43,14 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H2302": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_range is gone; a range is a..b, its list TR_List(a..b) (3.8, 3.12)"
+ },
+ "H2303": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_range is gone; a range is a..b, its list TR_List(a..b) (3.8, 3.12)"
+ },
  "H2321": {
   "commit": "e5a76ed",
   "reason": "deleted: formats: csv_çöz parses CSV text, csv_oku reads only files"
@@ -58,6 +66,14 @@
  "H2417": {
   "commit": "cbb7f97",
   "reason": "deleted: interp: missing-argument message picks its plural in the template"
+ },
+ "H2429": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_int is gone; TR_Int reads text in program spelling (H2640, 3.12)"
+ },
+ "H2430": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_float is gone; TR_Float reads text in program spelling (H2642, 3.12)"
  },
  "H2449": {
   "commit": "0d6949c",

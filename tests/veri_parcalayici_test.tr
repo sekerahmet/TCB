@@ -5,7 +5,7 @@
 
 TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
-    TR_assert_equal(TR_Tokenizer, TR_type(p))
+    TR_assert_equal(TR_Tokenizer, TR_Type(p))
     TR_assert_equal(1005, p.TR_vocab_size)
     TR_assert_equal(0, p.TR_token_id("<|endoftext|>"))
     TR_assert_equal(TR_none, p.TR_token_id("böyle-bir-parça-yok"))
@@ -14,8 +14,8 @@ TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
 TR_test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
     TR_var k = p.TR_encode("Merhaba dünya!")
-    TR_assert_equal(TR_List, TR_type(k))
-    TR_assert_equal(TR_Int, TR_type(k[0]))
+    TR_assert_equal(TR_List, TR_Type(k))
+    TR_assert_equal(TR_Int, TR_Type(k[0]))
     # Metindeki özel parça tek bir kimlik olarak tanınır.
     TR_assert_equal(0, p.TR_encode("<|endoftext|>")[0])
     TR_assert_equal(1, p.TR_encode("<|endoftext|>").TR_length)
@@ -55,28 +55,28 @@ TR_test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler
     TR_assert_equal("", p.TR_decode([]))
     # Tensör: 1 boyutlu → metin, 2 boyutlu → metin listesi.
     TR_var k = p.TR_encode("bir iki")
-    TR_assert_equal("bir iki", p.TR_decode(TR_tensor(k)))
-    TR_assert_equal(["bir iki", "bir iki"], p.TR_decode(TR_tensor([k, k])))
+    TR_assert_equal("bir iki", p.TR_decode(TR_Tensor(k)))
+    TR_assert_equal(["bir iki", "bir iki"], p.TR_decode(TR_Tensor([k, k])))
 }
 
 TR_test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
-    TR_var küme = TR_dataset("data/numbers")
-    TR_assert_equal(TR_Dataset, TR_type(küme))
+    TR_var küme = TR_Dataset("data/numbers")
+    TR_assert_equal(TR_Dataset, TR_Type(küme))
     # Gösterimin sayıları dilden bağımsızdır: veri dosyası ve parça sayısı.
-    TR_assert(TR_str(küme).TR_contains("(2 ") TR_and TR_str(küme).TR_contains(" 250 "), TR_str(küme))
-    TR_var tek = TR_str(TR_dataset("data/numbers/a.npy"))
+    TR_assert(TR_String(küme).TR_contains("(2 ") TR_and TR_String(küme).TR_contains(" 250 "), TR_String(küme))
+    TR_var tek = TR_String(TR_Dataset("data/numbers/a.npy"))
     TR_assert(tek.TR_contains("(1 ") TR_and tek.TR_contains(" 100 "), tek)
     # meta.json varsa veri dosyalarının parça sayıları oradan okunur.
     # Büyük parça sayısı okuyanın dilinde kısaltılır ("1,1 bin", "1.1 thousand"); dosya sayısı aynıdır.
-    TR_assert(TR_str(TR_dataset("data/text")).TR_contains("(2 "), TR_str(TR_dataset("data/text")))
+    TR_assert(TR_String(TR_Dataset("data/text")).TR_contains("(2 "), TR_String(TR_Dataset("data/text")))
 }
 
 TR_test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
-    TR_var küme = TR_dataset("data/numbers")
+    TR_var küme = TR_Dataset("data/numbers")
     TR_var ö = küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: 1)
-    TR_assert_equal(TR_Sampler, TR_type(ö))
+    TR_assert_equal(TR_Sampler, TR_Type(ö))
     TR_var giriş, hedef = ö.TR_next()
-    TR_assert_equal(TR_Tensor, TR_type(giriş))
+    TR_assert_equal(TR_Tensor, TR_Type(giriş))
     TR_assert_equal([3, 5], giriş.TR_shape)
     TR_assert_equal([3, 5], hedef.TR_shape)
     # Hedef, girdinin bir kaydırılmışıdır; pencereler parça sınırını aşmaz (değerler ardışık).
@@ -99,15 +99,15 @@ TR_test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretileb
     # Tensörler gömme ve çapraz_entropi'ye doğrudan verilir.
     TR_var E = TR_randn([1200, 4], TR_seed: 1)
     TR_var W = TR_randn([4, 1200], TR_seed: 2)
-    TR_var çıktı = TR_embedding(E, giriş) @ W
+    TR_var çıktı = TR_embedding_lookup(E, giriş) @ W
     TR_assert_equal([3, 5, 1200], çıktı.TR_shape)
     TR_assert_equal([], TR_cross_entropy(çıktı, hedef).TR_shape)
 }
 
 TR_test "16.6 sıralı: pencereler sırayla, bitince yok" {
-    TR_var küme = TR_dataset("data/numbers")
+    TR_var küme = TR_Dataset("data/numbers")
     TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
-    TR_assert_equal(TR_SequentialReader, TR_type(s))
+    TR_assert_equal(TR_SequentialReader, TR_Type(s))
     TR_var giriş, hedef = s.TR_next()
     TR_assert_equal([[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]], giriş.TR_tolist)
     TR_assert_equal([[1, 2, 3, 4], [5, 6, 7, 8]], hedef.TR_tolist)
@@ -126,13 +126,13 @@ TR_test "16.6 sıralı: pencereler sırayla, bitince yok" {
     TR_assert_equal(TR_none, s.TR_next())
     # Metin kümesi: ilk pencere metnin başıdır.
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
-    TR_var m = TR_dataset("data/text").TR_sequential(TR_batch_size: 1, TR_context: 16)
+    TR_var m = TR_Dataset("data/text").TR_sequential(TR_batch_size: 1, TR_context: 16)
     TR_var mg, mh = m.TR_next()
     TR_assert(p.TR_decode(mg)[0].TR_starts_with("Bugün hava"))
 }
 
 TR_test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
-    TR_var küme = TR_dataset("data/numbers")
+    TR_var küme = TR_Dataset("data/numbers")
     TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
     TR_var sayı = 0
     TR_var ilk = TR_none
@@ -154,10 +154,10 @@ TR_test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
 TR_test "16.7 hatalar Türkçe ve yakalanabilir" {
     TR_assert_equal("H2132", TR_error_code(() => TR_load_tokenizer("data/yok.json")))
     TR_assert_equal("H5617", TR_error_code(() => TR_load_tokenizer("data/corrupt.npy")))
-    TR_assert_equal("H2132", TR_error_code(() => TR_dataset("data/yok_klasor")))
-    TR_assert_equal("H5053", TR_error_code(() => TR_dataset("data/corrupt.npy")))
-    TR_assert_equal("H5513", TR_error_code(() => TR_dataset("data/numbers", TR_cache: "onb")))
-    TR_var küme = TR_dataset("data/numbers")
+    TR_assert_equal("H2132", TR_error_code(() => TR_Dataset("data/yok_klasor")))
+    TR_assert_equal("H5053", TR_error_code(() => TR_Dataset("data/corrupt.npy")))
+    TR_assert_equal("H5513", TR_error_code(() => TR_Dataset("data/numbers", TR_cache: "onb")))
+    TR_var küme = TR_Dataset("data/numbers")
     TR_assert_equal("H5529", TR_error_code(() => küme.TR_sampler(TR_batch_size: 2)))
     TR_assert_equal("H5533", TR_error_code(() => küme.TR_sampler(TR_batch_size: 2, TR_context: 500)))
     TR_assert_equal("H7900", TR_error_code(() => küme.TR_sequential(TR_batch_size: 2, bağlm: 4)))

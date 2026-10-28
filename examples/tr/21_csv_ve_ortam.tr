@@ -10,10 +10,10 @@
 # "007" gibi baştaki sıfırlı hücre Metin kalır.
 TR_var tablo = TR_parse_csv("ad,yaş,numara\nAli,30,007\nAyşe,25,008")
 TR_print(tablo[0], tablo[1])
-TR_print(tablo[1][1] + 1, TR_type(tablo[1][1]), TR_type(tablo[1][2]))
+TR_print(tablo[1][1] + 1, TR_Type(tablo[1][1]), TR_Type(tablo[1][2]))
 
 # csv_oku aynı işi dosya için yapar.
-TR_var dosya = TR_path(TR_temp_dir(), "tablo.csv")
+TR_var dosya = TR_Path(TR_temp_dir(), "tablo.csv")
 TR_write_file(dosya, "ürün,adet\nelma,3\nmuz,5")
 TR_var satırlar = TR_read_csv(dosya)
 TR_print("satır sayısı:", satırlar.TR_length)
@@ -21,7 +21,7 @@ TR_for satır TR_in satırlar {
     TR_print(satır)
 }
 # Başlık satırında adet bir Metin, veri satırlarında bir Tam: yalnızca sayıları toplarız.
-TR_print("toplam adet:", TR_sum([satır[1] TR_for satır TR_in satırlar TR_if TR_type(satır[1]) == TR_Int]))
+TR_print("toplam adet:", TR_sum([satır[1] TR_for satır TR_in satırlar TR_if TR_Type(satır[1]) == TR_Int]))
 
 # ortam_değişkeni tanımsızsa yok verir; varsayılan için ?? yazılır.
 TR_print(TR_env("TR_ORNEK_OLMAYAN_DEGISKEN") ?? "varsayılan değer")

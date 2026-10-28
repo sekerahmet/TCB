@@ -1,14 +1,14 @@
 # TR 4
 # Hata 15 — Dönüşüm hatası.
-# İleti kodu: H2429
-# Ne olur: Sayıya çevrilemeyen bir metin tam() ile çevrilmek istenirse çalışma anında hata alınır.
-# Neden: "abc" bir tam sayı yazımı değildir.
+# İleti kodu: H2640
+# Ne olur: Sayıya çevrilemeyen bir metin Tam() ile çevrilmek istenirse çalışma anında hata alınır.
+# Neden: "abc" programdaki tam sayı yazımı değildir (3.12: "42", "-1_000").
 # Düzeltilmiş hâli:
 #     dene {
-#         yazdır(tam("abc"))
+#         yazdır(Tam("abc"))
 #     } yakala h {
-#         yazdır("sayı değil: {h}")
+#         yazdır("sayı değil: \(h)")
 #     }
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/15_donusum_hatasi.tr   (çıkış kodu 1)
 
-TR_print(TR_int("abc"))
+TR_print(TR_Int("abc"))

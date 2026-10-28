@@ -56,8 +56,7 @@ var (
 
 // Register veri yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.FnDataset, bind.SafeBuiltin(interp.CallPrefix(codes.FnDataset), openDataset))
-	v.RegisterTypeCall(codes.TypeDataset, v.Builtin(codes.FnDataset))
+	v.RegisterTypeCall(codes.TypeDataset, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeDataset), openDataset)})
 }
 
 // ----------------------------------------------------------------------------
@@ -155,7 +154,7 @@ func resolveCacheDir(m *interp.VM, fn any, named map[string]interp.Value) (strin
 }
 
 func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.FnDataset)
+	fn := codes.NameRef(codes.TypeDataset)
 	if err := bind.CheckNamed(fn.Called(), named, nameCache, nameQuota); err != nil {
 		return nil, err
 	}

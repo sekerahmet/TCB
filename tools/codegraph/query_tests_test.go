@@ -237,8 +237,8 @@ func TestMessageSlotMustHoldTheTarget(t *testing.T) {
 		want  bool
 	}{
 		{`hata_bekle(TR_print(1, ayraç: 2), "yazdır() 'ayraç' adında bir parametre almaz")`, []string{"yazdır"}, true},
-		{`hata_bekle(TR_str.TR_split("a", TR_x: 1), "böl() 'x' adında bir parametre almaz")`, []string{"metin"}, false},
-		{`TR_print(TR_str(1))`, []string{"metin"}, false},
+		{`hata_bekle(TR_String.TR_split("a", TR_x: 1), "böl() 'x' adında bir parametre almaz")`, []string{"metin"}, false},
+		{`TR_print(TR_String(1))`, []string{"metin"}, false},
 	} {
 		if got := fnSlotHolds(tpl, c.line, c.names); got != c.want {
 			t.Errorf("%s / %v = %v, want %v", c.line, c.names, got, c.want)

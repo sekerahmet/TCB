@@ -22,10 +22,10 @@ import (
 )
 
 // shortTraining 200 adımlık küçük bir eğitimdir: her adımda bilinen sayıda tensör işlemi.
-const shortTraining = `TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+const shortTraining = `TR_var w = TR_Tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
-TR_var ç = TR_progress(200)
+TR_var ç = TR_Progress(200)
 TR_for i TR_in 0..200 {
     op.TR_zero_grad()
     TR_var kayıp = TR_sum(TR_relu(x @ w))
@@ -187,7 +187,7 @@ TR_for i TR_in 0..120 {
 
 // ilerleme(...) yoksa adım sınırı iyileştiricinin adımıdır; adım evrelerin toplamıdır.
 func TestProfileStepsFromOptimizerWithPhases(t *testing.T) {
-	code := `TR_var w = TR_tensor(TR_randn([64, 64], TR_seed: 1), TR_requires_grad: TR_true)
+	code := `TR_var w = TR_Tensor(TR_randn([64, 64], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([32, 64], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
 TR_for i TR_in 0..40 {
@@ -214,7 +214,7 @@ func TestProfileBackwardTimeGoesToForwardLine(t *testing.T) {
 	if !hasDepth {
 		t.Skip("yarış denetimli derlemede örnekleyici çağrı derinliğini okumaz")
 	}
-	code := `TR_var w = TR_tensor(TR_randn([256, 256], TR_seed: 1), TR_requires_grad: TR_true)
+	code := `TR_var w = TR_Tensor(TR_randn([256, 256], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([256, 256], TR_seed: 2)
 TR_for i TR_in 0..60 {
     TR_var y = x @ w @ w @ w
@@ -405,10 +405,10 @@ func TestProfileOpMsPerStepUsesAllSteps(t *testing.T) {
 
 // Her epoch'ta yeni bir ilerleme çubuğu (adım 1'den yeniden başlar) adımları sıfırlamaz:
 // tamamlanan adımlar çubuklar boyunca birikir (Count son çubuğun adımıdır).
-const epochTraining = `TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+const epochTraining = `TR_var w = TR_Tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)
 TR_for e TR_in 0..2 {
-    TR_var ç = TR_progress(100)
+    TR_var ç = TR_Progress(100)
     TR_for i TR_in 0..100 {
         TR_var kayıp = TR_sum(TR_relu(x @ w))
         ç.TR_update({"loss": kayıp})

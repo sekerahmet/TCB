@@ -50,12 +50,12 @@ TR_var parametre_tohumu = 1
 TR_var ağırlıklar = []
 TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
-    TR_var p = TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
+    TR_var p = TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
     ağırlıklar.TR_append(p)
     TR_return p
 }
 TR_func sabit_parametre(şekil, değer) {
-    TR_var p = TR_tensor(TR_ones(şekil) * değer, TR_requires_grad: TR_true)
+    TR_var p = TR_Tensor(TR_ones(şekil) * değer, TR_requires_grad: TR_true)
     ağırlıklar.TR_append(p)
     TR_return p
 }
@@ -80,10 +80,10 @@ TR_for p TR_in ağırlıklar { toplam_parametre += p.TR_shape.TR_reduce(1) { TR_
 TR_print("veri: \(veri.TR_length) karakter, sözlük: \(V) karakter, parametre: \(toplam_parametre)")
 
 # --- Model ---
-TR_var konumlar = TR_range(T)
+TR_var konumlar = TR_List(0..T)
 
 TR_func ileri(girdiler, b) {
-    TR_var x = TR_embedding(E, girdiler) + TR_embedding(P, konumlar)
+    TR_var x = TR_embedding_lookup(E, girdiler) + TR_embedding_lookup(P, konumlar)
     TR_for L TR_in katmanlar {
         # Ön normalizasyonlu blok: dikkat, ardından ileri besleme
         TR_var a = TR_layer_norm(x, L["g1"], L["s1"])

@@ -13,20 +13,20 @@ TR_var kare = TR_custom_grad(
     TR_forward: TR_func(x) { TR_return [x * x, [x]] },
     TR_backward: TR_func(s, g) { TR_return [g * 2 * s[0]] }
 )
-TR_var x = TR_tensor([3.0], TR_requires_grad: TR_true)
+TR_var x = TR_Tensor([3.0], TR_requires_grad: TR_true)
 TR_print("kare(3) =", kare(x).TR_tolist)
 TR_backward(TR_sum(kare(x)))
 TR_print("d(kare)/dx =", x.TR_grad.TR_tolist, "(beklenen 6.0)")
 
 # türev_denetle, geri yayılımla bulunan gradyanı merkezi farkla bulunan sayısal gradyanla karşılaştırır;
 # uyuşursa doğru verir. fark_adımı: farkın büyüklüğü, tolerans: izin verilen göreli farktır.
-TR_print(TR_grad_check(TR_func(a) { TR_return a * a }, [TR_tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01))
-TR_print(TR_grad_check(TR_func(a) { TR_return TR_exp(a) }, [TR_tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001))
+TR_print(TR_grad_check(TR_func(a) { TR_return a * a }, [TR_Tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01))
+TR_print(TR_grad_check(TR_func(a) { TR_return TR_exp(a) }, [TR_Tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001))
 
 # kaynaştır, eleman bazlı işlemlerden oluşan bir fonksiyonu tek geçişte hesaplayan eşdeğerine çevirir;
 # sonuç kaynaşmamış hesapla aynıdır (GPU'da ara sonuçlar belleğe yazılmaz).
 TR_var f = TR_fuse((a, b) => a * b + a)
-TR_print(f(TR_tensor([1.0, 2.0]), TR_tensor([3.0, 4.0])).TR_tolist)
+TR_print(f(TR_Tensor([1.0, 2.0]), TR_Tensor([3.0, 4.0])).TR_tolist)
 
 # --- Kendin dene ---
 # 1. küp(x) = x³ işlemini özel_türev ile yaz (türevi 3x²) ve türev_denetle ile doğrula.

@@ -10,10 +10,10 @@ import (
 // VM kancaları: eşitlik, sağ işlenen, '**', karşılaştırma, tekli eksi ve indeksleme.
 func TestVMHooks(t *testing.T) {
 	out := mustRun(t, `
-		TR_var t = TR_tensor([[1.0, 2.0], [3.0, 4.0]])
-		TR_print(TR_tensor([1.00001]) == TR_tensor([1.0]))
-		TR_print(TR_tensor([1.0, 2.0]) == TR_tensor([1.0, 2.0]))
-		TR_print(TR_tensor([1.0, 2.0]) != TR_tensor([[1.0, 2.0]]))
+		TR_var t = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
+		TR_print(TR_Tensor([1.00001]) == TR_Tensor([1.0]))
+		TR_print(TR_Tensor([1.0, 2.0]) == TR_Tensor([1.0, 2.0]))
+		TR_print(TR_Tensor([1.0, 2.0]) != TR_Tensor([[1.0, 2.0]]))
 		TR_print((10 - t).TR_tolist)
 		TR_print((12 / t).TR_tolist)
 		TR_print((-t).TR_tolist)
@@ -23,7 +23,7 @@ func TestVMHooks(t *testing.T) {
 		TR_print(t[1].TR_tolist)
 		TR_print(t[-1][0].TR_tolist)
 		TR_print(t[0..1].TR_shape)
-		TR_print([1, 2] @ TR_tensor([[1.0], [1.0]]))
+		TR_print([1, 2] @ TR_Tensor([[1.0], [1.0]]))
 	`)
 	want := []string{
 		"false", "true", "true",
@@ -47,20 +47,20 @@ func TestVMHooks(t *testing.T) {
 
 // Kanca hataları satır bilgisi taşımalı ve yol göstermeli; türev sağ işlenen yolunda da akmalı.
 func TestVMHookErrorsAndGrad(t *testing.T) {
-	_, err := run(t, "TR_var t = TR_tensor([1.0])\n\nTR_var y = t % 2\n")
+	_, err := run(t, "TR_var t = TR_Tensor([1.0])\n\nTR_var y = t % 2\n")
 	if err == nil || !strings.HasPrefix(err.Error(), "Satır 3:") || !messages.Has(err, messages.H6703) {
 		t.Fatalf("satır bilgili, yol gösteren hata bekleniyordu: %v", err)
 	}
-	_, err = run(t, "TR_var t = TR_tensor([1.0, 2.0])\nTR_print(t[5])\n")
+	_, err = run(t, "TR_var t = TR_Tensor([1.0, 2.0])\nTR_print(t[5])\n")
 	if err == nil || !strings.HasPrefix(err.Error(), "Satır 2:") || !messages.Has(err, messages.H6709) {
 		t.Fatalf("indeks hatası bekleniyordu: %v", err)
 	}
-	_, err = run(t, "TR_var t = TR_tensor([[1.0, 2.0]])\nTR_print(t @ TR_tensor([[1.0, 2.0]]))\n")
+	_, err = run(t, "TR_var t = TR_Tensor([[1.0, 2.0]])\nTR_print(t @ TR_Tensor([[1.0, 2.0]]))\n")
 	if err == nil || !strings.HasPrefix(err.Error(), "Satır 2:") {
 		t.Fatalf("'@' hatası satır bilgisi taşımalı: %v", err)
 	}
 	out := mustRun(t, `
-		TR_var w = TR_tensor([2.0, 4.0], TR_requires_grad: TR_true)
+		TR_var w = TR_Tensor([2.0, 4.0], TR_requires_grad: TR_true)
 		TR_var kayip = TR_sum(1 / w - w[0] * 3)
 		TR_backward(kayip)
 		TR_print(w.TR_grad.TR_tolist)
@@ -74,19 +74,19 @@ func TestVMHookErrorsAndGrad(t *testing.T) {
 // Tam), N boyutluda veriyi paylaşan, türev izlenen (N-1) boyutlu görünümler.
 func TestLoopOverTensor(t *testing.T) {
 	out := mustRun(t, `
-		TR_var t = TR_tensor([[1, 2], [3, 4], [5, 6]])
+		TR_var t = TR_Tensor([[1, 2], [3, 4], [5, 6]])
 		TR_for i, s TR_in t { TR_print(i, s.TR_shape, s.TR_tolist) }
-		TR_print([x * 2 TR_for x TR_in TR_tensor([1.5, 2.5])])
-		TR_print([x TR_for x TR_in TR_tensor([0.1])][0] == 0.1)
-		TR_print([TR_type(x) TR_for x TR_in TR_argmax(TR_tensor([[1, 5], [7, 0]]), TR_dim: -1)])
-		TR_var k = TR_argmax(TR_tensor([[[0, 9], [5, 0]]]), TR_dim: -1)
-		TR_for s TR_in k { TR_for x TR_in s { TR_print(TR_type(x), x) } }
+		TR_print([x * 2 TR_for x TR_in TR_Tensor([1.5, 2.5])])
+		TR_print([x TR_for x TR_in TR_Tensor([0.1])][0] == 0.1)
+		TR_print([TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1, 5], [7, 0]]), TR_dim: -1)])
+		TR_var k = TR_argmax(TR_Tensor([[[0, 9], [5, 0]]]), TR_dim: -1)
+		TR_for s TR_in k { TR_for x TR_in s { TR_print(TR_Type(x), x) } }
 		TR_var z = TR_zeros([2, 2])
 		TR_for satır TR_in z { satır[0] = 9 }
 		TR_print(z.TR_tolist)
 		TR_for x TR_in TR_zeros([0]) { TR_print("hiç") }
-		TR_var w = TR_tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
-		TR_var kayip = TR_sum(TR_tensor(0.0))
+		TR_var w = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+		TR_var kayip = TR_sum(TR_Tensor(0.0))
 		TR_for s TR_in w { kayip = kayip + TR_sum(s * s) }
 		TR_backward(kayip)
 		TR_print(w.TR_grad.TR_tolist)
@@ -107,8 +107,8 @@ func TestLoopOverTensor(t *testing.T) {
 		t.Fatalf("tensör döngüsü:\n%s\nbeklenen:\n%s", out, want)
 	}
 	for _, code := range []string{
-		"TR_var a = TR_tensor(3.0)\n\nTR_for x TR_in a { }\n",
-		"TR_var a = TR_tensor(3.0)\n\nTR_print([x TR_for x TR_in a])\n",
+		"TR_var a = TR_Tensor(3.0)\n\nTR_for x TR_in a { }\n",
+		"TR_var a = TR_Tensor(3.0)\n\nTR_print([x TR_for x TR_in a])\n",
 	} {
 		_, err := run(t, code)
 		if err == nil || !strings.HasPrefix(err.Error(), "Satır 3:") || !messages.Has(err, messages.H6711) {
@@ -138,7 +138,7 @@ cikti[1][2] = 3`)
 // (..=) bundan sonra eklenir, sınır dışı uçlar kırpılır.
 func TestRangeIndexMatchesLists(t *testing.T) {
 	out := mustRun(t, `TR_var l = [1, 2, 3]
-TR_var t = TR_tensor([1, 2, 3])
+TR_var t = TR_Tensor([1, 2, 3])
 TR_for a TR_in [l[0..=-1], l[-5..2], l[2..1], l[1..=10], l[-2..=-2], l[-1..3]] { TR_print(a) }
 TR_for b TR_in [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]] { TR_print(b.TR_tolist) }`)
 	want := "[1, 2, 3]\n[1, 2]\n[]\n[2, 3]\n[2]\n[3]\n" +
@@ -153,7 +153,7 @@ TR_for b TR_in [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]] {
 // Neden: tensörün eski kopyası 'son++' ile taşıp dilimi boş yapıyordu, liste ise tam veriyordu.
 func TestRangeIndexMaxInclusiveEndMatchesLists(t *testing.T) {
 	out := mustRun(t, `TR_var l = [1, 2, 3]
-TR_var t = TR_tensor([1, 2, 3])
+TR_var t = TR_Tensor([1, 2, 3])
 TR_print(l[0..=9223372036854775807])
 TR_print(t[0..=9223372036854775807].TR_tolist)`)
 	want := "[1, 2, 3]\n[1.0, 2.0, 3.0]\n"

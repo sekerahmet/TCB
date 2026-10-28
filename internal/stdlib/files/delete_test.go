@@ -18,7 +18,7 @@ func TestDeleteBasic(t *testing.T) {
 		t.Fatalf("dosya: %s", got)
 	}
 	os.Mkdir(filepath.Join(k, "bos"), 0o755)
-	if got := mustRunTR(t, `TR_remove(TR_path("bos"))`); got != "0" || exists(filepath.Join(k, "bos")) {
+	if got := mustRunTR(t, `TR_remove(TR_Path("bos"))`); got != "0" || exists(filepath.Join(k, "bos")) {
 		t.Fatalf("boş klasör: %s", got)
 	}
 	buildTree(t, k)

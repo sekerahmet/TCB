@@ -23,7 +23,7 @@ TR_func golge() {
 TR_var eğer = 7
 
 TR_func bilgi() {
-    TR_return "toplam: \(TR_sum(TR_tensor([1, 2, 3]), TR_dim: 0).TR_tolist), eğer: \(eğer), ham: " + `{TR_fn_sum}`
+    TR_return "toplam: \(TR_sum(TR_Tensor([1, 2, 3]), TR_dim: 0).TR_tolist), eğer: \(eğer), ham: " + `{TR_fn_sum}`
 }
 
 TR_func yakalanan() {

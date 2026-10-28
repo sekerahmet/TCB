@@ -185,7 +185,7 @@ func TestDirectMethodCalls(t *testing.T) {
 		TR_var e = l.TR_append
 		e(7)
 		TR_var d = {"içerir": 5, "a": 1}
-		TR_var result = [l, d.TR_contains("a"), d["a"], "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_str(12), "çağ".TR_length,
+		TR_var result = [l, d.TR_contains("a"), d["a"], "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_String(12), "çağ".TR_length,
 			[1, 2, 3].TR_filter { TR_it > 1 }.TR_map { TR_it * 10 }]
 	`)
 	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], true, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {

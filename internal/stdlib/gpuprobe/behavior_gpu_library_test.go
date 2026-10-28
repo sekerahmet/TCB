@@ -29,7 +29,7 @@ TR_func eğit(cihaz, normuon) {
     TR_for adım TR_in 0..3 {
         op.TR_set_multiplier(TR_lr_schedule(adım, 3, TR_warmup: 1))
         op.TR_zero_grad()
-        TR_var kayıp = m.TR_loss(TR_tensor(girdiler[adım]), TR_tensor(hedefler[adım]))
+        TR_var kayıp = m.TR_loss(TR_Tensor(girdiler[adım]), TR_Tensor(hedefler[adım]))
         TR_backward(kayıp)
         op.TR_step()
         kayıplar.TR_append(kayıp.TR_tolist)

@@ -24,26 +24,6 @@ func floatToInt(name any, f float64) (int64, error) {
 	return int64(f), nil
 }
 
-// ParseNonFinite reads s as lang's name of an infinite or undefined number (TR_val_inf, TR_val_nan; an
-// infinity may carry '+' or '-'); nil lang is Turkish (codes.Source; a temporary exception). It reads back a number's
-// text in a file's language (ondalık("sonsuz") in a Turkish file) and, over every language, a
-// command-line value (17.8).
-func ParseNonFinite(s string, lang *codes.Language) (float64, bool) {
-	if lang == nil {
-		lang = codes.Source()
-	}
-	inf := lang.Name(codes.ValInf)
-	switch s {
-	case inf, "+" + inf:
-		return math.Inf(1), true
-	case "-" + inf:
-		return math.Inf(-1), true
-	case lang.Name(codes.ValNan):
-		return math.NaN(), true
-	}
-	return 0, false
-}
-
 // compareIntFloat bir Tam ile (NaN olmayan) bir Ondalığı tam olarak karşılaştırır
 // (Ondalığa çevirmek 2^53 üstünde eşitlik uydururdu): a < f ise -1, eşitse 0, büyükse 1.
 func compareIntFloat(a int64, f float64) int {
@@ -135,7 +115,7 @@ func sumNumbers(name any, elems []Value) (Value, error) {
 			}
 			s := intNum + x.Val
 			if (s > intNum) != (x.Val > 0) {
-				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.TypeInt), intNum, x.Val, i+1, codes.NameRef(codes.FnFloat))
+				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.TypeInt), intNum, x.Val, i+1, codes.NameRef(codes.TypeFloat))
 			}
 			intNum = s
 		case *FloatVal:

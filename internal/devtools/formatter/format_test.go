@@ -42,7 +42,7 @@ func TestStandardFormat(t *testing.T) {
 		{"blok başı/sonu boş satır", "TR_if x {\n\n    a()\n\n}\n", "TR_if x {\n    a()\n}\n"},
 		{"satır sonu boşlukları", "a = 1   \nb = 2\t\n", "a = 1\nb = 2\n"},
 		{"son satır sonu eklenir", "a = 1", "a = 1\n"},
-		{"ileti kodu", "TR_throw TR_message( \"H6903\" ,x )\n", "TR_throw TR_message(\"H6903\", x)\n"},
+		{"ileti kodu", "TR_throw TR_Message( \"H6903\" ,x )\n", "TR_throw TR_Message(\"H6903\", x)\n"},
 		{"sözlük", "s = {\"a\" :1,b: {\"c\":2} }\n", "s = {\"a\": 1, b: {\"c\": 2}}\n"},
 		{"sondaki blok", "y = l.filtrele{o>1}\n", "y = l.filtrele { o > 1 }\n"},
 		{"aralık", "TR_for i TR_in 1 ..= 10 { TR_print(i) }\n", "TR_for i TR_in 1..=10 { TR_print(i) }\n"},

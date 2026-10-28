@@ -74,13 +74,12 @@ const (
 // clock şimdiki zamandır; testler aralığı sınamak için değiştirir.
 var clock = time.Now
 
-// Register kontrol_noktası yerleşiğini VM'ye kaydeder. s programın süreç durumudur (komut
+// Register KontrolNoktası tipinin çağrısını VM'ye kaydeder. s programın süreç durumudur (komut
 // satırı ayarları noktaya yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
-	v.RegisterBuiltinCode(codes.FnCheckpoint, bind.SafeBuiltin(interp.CallPrefix(codes.FnCheckpoint), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	v.RegisterTypeCall(codes.TypeCheckpoint, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeCheckpoint), func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		return setup(m, s, args, named)
-	}))
-	v.RegisterTypeCall(codes.TypeCheckpoint, v.Builtin(codes.FnCheckpoint))
+	})})
 }
 
 // Checkpoint TR'de kurulmuş bir kontrol noktasıdır (tip KontrolNoktası). Alanları
@@ -150,23 +149,23 @@ func (kn *Checkpoint) GetProperty(kd codes.Code, prop string) (interp.Value, err
 
 // setup kontrol_noktası(koşu, nesneler, her_dakika:, tut:) yerleşiğidir.
 func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.FnCheckpoint)
+	fn := interp.CallPrefix(codes.TypeCheckpoint)
 	if err := bind.CheckNamed(fn, named, nameEveryMinutes, nameKeep); err != nil {
 		return nil, err
 	}
 	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.FnCheckpoint, 2, len(args), messages.Text(messages.H2313))
+		return nil, interp.ArgCountError(codes.TypeCheckpoint, 2, len(args), messages.Text(messages.H2313))
 	}
 	fpath, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
 	if !ok || fpath == "" {
-		return nil, interp.ArgTypeError(codes.FnCheckpoint, 1, args[0], codes.TypeString, codes.TypePath)
+		return nil, interp.ArgTypeError(codes.TypeCheckpoint, 1, args[0], codes.TypeString, codes.TypePath)
 	}
 	dict, ok := args[1].(*interp.DictVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.FnCheckpoint, 2, args[1], codes.TypeDict)
+		return nil, interp.ArgTypeError(codes.TypeCheckpoint, 2, args[1], codes.TypeDict)
 	}
 	interval, keep, err := options(fn, named)
 	if err != nil {
@@ -239,7 +238,7 @@ func setupUnseededWarning(m *interp.VM) {
 	ml.SetUnseededHook(func() {
 		one.Do(func() {
 			m.WriteOutput(m.Err, messages.Text(messages.H7410,
-				codes.NameRef(codes.FnCheckpoint), codes.NameRef(codes.FnRandn), codes.NameRef(codes.FnSample), nameSeed)+"\n")
+				codes.NameRef(codes.TypeCheckpoint), codes.NameRef(codes.FnRandn), codes.NameRef(codes.FnSample), nameSeed)+"\n")
 		})
 	})
 }

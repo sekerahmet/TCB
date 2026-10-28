@@ -32,7 +32,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | devam | TR_dbg_continue, TR_kw_continue | aynı anlam: sürdürmek (döngünün sonraki turu; hata ayıklayıcıda programı sürdürmek) |
 | değiştir | TR_dbg_set, TR_mem_replace | ayrı alan: TR_dbg_set hata ayıklayıcıda bir değişkenin değerini değiştirir; TR_mem_replace metinde parçayı değiştirir |
 | durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `TR_cmd_index`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
-| günlük | TR_arg_log, TR_fn_logger, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı TR_fn_logger'un açtığı günlüğü alır; `TR_type_Run`nun `TR_fn_logger` alanı (TR_mem_logger) o günlüktür |
+| günlük | TR_arg_log, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı `TR_type_Logger(...)`'ın açtığı günlüğü alır; `TR_type_Run`nun günlük alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
 | kodla | TR_cmd_encode, TR_mem_encode | ayrı alan: TR_cmd_encode dosyayı kodlu biçime çevirir; TR_mem_encode parçalayıcıda metni parça kimliklerine çevirir |
 | kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--kontrol` seçeneği aynı denetimi yapar |
@@ -43,7 +43,6 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | çıkış | TR_dbg_quit, TR_repl_exit | aynı anlam: kabuktan ve hata ayıklayıcıdan çıkmak |
 | değer | TR_arg_value, TR_mem_tolist | aynı anlam: düz sayı değeri (`TR_type_SpikeGuard.TR_mem_exceeds(değer, geçmiş)` izlenen sayıyı, tensörün `.TR_mem_tolist`i tensörün düz değerini verir) |
 | dikkat | TR_fn_attention, TR_mem_attention | aynı anlam: dikkat hesabı (`TR_fn_attention(q, k, v)` yerleşiği ve bloğun onu çalıştıran `TR_fn_attention` katmanı; PyTorch `scaled_dot_product_attention` ve `self_attn`) |
-| gömme | TR_fn_embedding, TR_mem_embedding | aynı anlam: kelime gömmesi (`TR_fn_embedding(tablo, kimlikler)` yerleşiği ve modelin onu çalıştıran `TR_fn_embedding` katmanı; PyTorch `F.embedding` ve `embed_tokens`) |
 | ileri | TR_arg_forward, TR_mem_forward | aynı anlam: ileri hesap (`özel_türev(ileri:, geri:)` ve katmanın `ileri` metodu; PyTorch `forward`) |
 | kapı | TR_arg_gate, TR_mem_gate_proj | aynı anlam: kapı (`TR_fn_ple_mix`ndaki kapı değeri ve onu üreten `kapı` katmanı; SwiGLU ve PLE kapısı) |
 | kayıp | TR_arg_loss, TR_mem_loss | aynı anlam: eğitim kaybı (`TR_type_SpikeGuard.TR_mem_observe(kayıp, norm)` ve kaybı hesaplayan `model.TR_mem_loss(...)`) |

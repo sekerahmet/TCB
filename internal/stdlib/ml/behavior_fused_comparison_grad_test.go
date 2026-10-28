@@ -9,7 +9,7 @@ import (
 // sonucu kaynaştır dışındaki gibi türevsizdir. (Gemini gerileme denetimi, Bulgu 7.)
 func TestFusedComparisonDoesNotTrackGrad(t *testing.T) {
 	out := mustRun(t, `
-TR_var x = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var x = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var dış_hata = TR_false
 TR_try {
     TR_backward(TR_sum(TR_is_finite(x)))

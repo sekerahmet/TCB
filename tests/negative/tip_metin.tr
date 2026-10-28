@@ -1,4 +1,4 @@
 # TR 4
 # TEST 3.11 tip değeri metinle karşılaştırılmaz; tip adları tırnaksız yazılır, denetim bunu çalıştırmadan önce bulur
-TR_print(TR_type(5) == "Tam") # ERROR H1105
-TR_print("Liste" != TR_type([1])) # ERROR H1105
+TR_print(TR_Type(5) == "Tam") # ERROR H1105
+TR_print("Liste" != TR_Type([1])) # ERROR H1105

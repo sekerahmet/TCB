@@ -18,7 +18,7 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 - `TR_fn_mean(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `TR_fn_sum(l)` sayı olmayan elemanda hata verir.
 - `l.TR_mem_sort()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `TR_fn_min` ve `TR_fn_max` sayı olmayan değerde (metin dahil) hata, boş listede `TR_kw_none` verir.
 - Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
-- Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `tensör() 'ölçek' adında bir parametre almaz (geçerli adlar: türev_izle, tür)`.
+- Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `Tensör() 'ölçek' adında bir parametre almaz (geçerli adlar: türev_izle, tür)`.
 
 ## `o` zamiri ve sondaki blok
 

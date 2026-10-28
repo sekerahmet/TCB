@@ -79,7 +79,7 @@ func TestAsyncConcurrentDictAndListWrites(t *testing.T) {
 		TR_var l = []
 		TR_for i TR_in 0..3000 {
 			TR_async {
-				d[TR_str(i)] = i
+				d[TR_String(i)] = i
 				l.TR_append(i)
 			}
 		}

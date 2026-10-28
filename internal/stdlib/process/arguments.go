@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -281,13 +282,21 @@ func boolName(s string) (value, ok bool) {
 	return false, false
 }
 
-// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (TR_val_inf, TR_val_nan)?
+// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (TR_val_inf,
+// TR_val_nan; sonsuz '+' ya da '-' alabilir)? Komut satırı değeri her dilde okunur (17.8).
 func nonFiniteName(s string) (float64, bool) {
 	for _, code := range codes.Languages() {
-		if l, err := codes.LoadLanguage(code); err == nil {
-			if f, ok := interp.ParseNonFinite(s, l); ok {
-				return f, true
-			}
+		l, err := codes.LoadLanguage(code)
+		if err != nil {
+			continue
+		}
+		switch inf := l.Name(codes.ValInf); s {
+		case inf, "+" + inf:
+			return math.Inf(1), true
+		case "-" + inf:
+			return math.Inf(-1), true
+		case l.Name(codes.ValNan):
+			return math.NaN(), true
 		}
 	}
 	return 0, false

@@ -177,7 +177,7 @@ func TestNonKeywords(t *testing.T) {
 }
 
 // İleti kodu biçimindeki yazım (H ve dört rakam) sıradan bir addır (eski 2.12 kalktı); kod bir
-// metindir: TR_message("H6903", x). Koşullu döngü ve varsayılan kolun ayrı sözcüğü yoktur (2.9).
+// metindir: TR_Message("H6903", x). Koşullu döngü ve varsayılan kolun ayrı sözcüğü yoktur (2.9).
 func TestNoMessageCodeOrRemovedWordTokens(t *testing.T) {
 	for _, s := range []string{"H6903", "H690", "H69030", "h6903", "iken", "varsayılan"} {
 		toks := tokensNoErrors(t, s)

@@ -20,7 +20,7 @@ TR_var siparisler = [
 ]
 
 # Tensörler de hata ayıklayıcıda tablo olarak açılır
-TR_var risk_matrisi = TR_tensor([
+TR_var risk_matrisi = TR_Tensor([
     [0.12, 0.85, 0.03],
     [0.45, 0.40, 0.15]
 ])

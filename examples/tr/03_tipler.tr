@@ -9,11 +9,11 @@ TR_var yaş = 30 # Tam: ondalık noktası olmayan sayı
 TR_var boy = 1.75 # Ondalık: noktalı sayı
 TR_var ad = "Ayşe" # Metin
 TR_var öğrenci_mi = TR_true # Mantık: doğru ya da yanlış
-TR_print(TR_type(yaş), TR_type(boy), TR_type(ad), TR_type(öğrenci_mi))
+TR_print(TR_Type(yaş), TR_Type(boy), TR_Type(ad), TR_Type(öğrenci_mi))
 
 # Dönüşümler: metin sayıya, sayı metne, ondalık tama çevrilir.
-TR_print(TR_int("42") + 1, TR_float("2.5") * 2, TR_str(7) + "8")
-TR_print(TR_int(3.9), TR_round(3.14159, 2)) # tam() noktadan sonrasını atar
+TR_print(TR_Int("42") + 1, TR_Float("2.5") * 2, TR_String(7) + "8")
+TR_print(TR_Int(3.9), TR_round(3.14159, 2)) # tam() noktadan sonrasını atar
 
 # Hesap işleçleri. / her zaman ondalık verir; % kalandır; ** kuvvettir.
 TR_print(7 + 2, 7 - 2, 7 * 2, 7 / 2, 7 % 2, 2 ** 10)
@@ -24,7 +24,7 @@ TR_print(yaş >= 18 TR_and öğrenci_mi, TR_not öğrenci_mi, yaş < 18 TR_or bo
 
 # yok "değer yok" demektir (kendi tipi Yok). ?? soldaki yoksa sağdakini alır.
 TR_var kullanıcı = TR_none
-TR_print(TR_type(kullanıcı), kullanıcı ?? "Misafir")
+TR_print(TR_Type(kullanıcı), kullanıcı ?? "Misafir")
 
 # --- Kendin dene ---
 # 1. tip(2 ** 10) ve tip(2 ** 0.5) ne yazar? Önce tahmin et, sonra çalıştır.

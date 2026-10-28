@@ -7,9 +7,9 @@ import (
 )
 
 func TestGradClip(t *testing.T) {
-	out := mustRun(t, `TR_var w = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
-TR_var b = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_backward(TR_sum(w * TR_tensor([3.0, 0.0])) + TR_sum(b * 4))
+	out := mustRun(t, `TR_var w = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_var b = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * TR_Tensor([3.0, 0.0])) + TR_sum(b * 4))
 TR_print(TR_clip_grad([w, b], TR_max: 1.0).TR_tolist)
 TR_print(w.TR_grad.TR_tolist, b.TR_grad.TR_tolist)
 TR_print(TR_clip_grad([w, b]))`)
@@ -22,8 +22,8 @@ TR_print(TR_clip_grad([w, b]))`)
 		code string
 		want messages.Code
 	}{
-		{"TR_clip_grad([TR_tensor([1.0], TR_requires_grad: TR_true)], TR_max: 0)", messages.H6429},
-		{"TR_clip_grad([TR_tensor([1.0], TR_requires_grad: TR_true)], max_norm: 1)", messages.H7901},
+		{"TR_clip_grad([TR_Tensor([1.0], TR_requires_grad: TR_true)], TR_max: 0)", messages.H6429},
+		{"TR_clip_grad([TR_Tensor([1.0], TR_requires_grad: TR_true)], max_norm: 1)", messages.H7901},
 		{"TR_clip_grad([TR_zeros([1])])", messages.H6513},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
@@ -36,7 +36,7 @@ TR_print(TR_clip_grad([w, b]))`)
 // ilk adımda 0/(√0+0) = NaN üretirdi.
 func TestAdamWEpsilonPositive(t *testing.T) {
 	for _, eps := range []string{"0", "1e-50"} {
-		_, err := run(t, "TR_var w = TR_tensor([0.0], TR_requires_grad: TR_true)\nTR_AdamW([w], TR_eps: "+eps+")")
+		_, err := run(t, "TR_var w = TR_Tensor([0.0], TR_requires_grad: TR_true)\nTR_AdamW([w], TR_eps: "+eps+")")
 		if err == nil || !messages.Has(err, messages.H6527) {
 			t.Fatalf("epsilon %s: hata beklenirdi: %v", eps, err)
 		}
@@ -48,11 +48,11 @@ func TestAdamWEpsilonPositive(t *testing.T) {
 // değişmez. Mantık olmayan değer açık hatadır.
 // Neden: uzun eğitim bozuk bir gradyanla sessizce sürmesin; isteyen erken durur.
 func TestGradClipErrorIfNonfinite(t *testing.T) {
-	out := mustRun(t, `TR_var w = TR_tensor([3.0, 4.0], TR_requires_grad: TR_true)
+	out := mustRun(t, `TR_var w = TR_Tensor([3.0, 4.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(w * w))
 TR_print(TR_clip_grad([w], TR_error_if_nonfinite: TR_true).TR_tolist)
-TR_var v = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
-TR_backward(TR_sum(v * TR_float("nan")))
+TR_var v = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_Float("nan")))
 TR_print(TR_is_finite(TR_clip_grad([v]).TR_tolist))`)
 	if out != "10.0\nfalse\n" {
 		t.Fatalf("çıktı: %q", out)
@@ -61,13 +61,13 @@ TR_print(TR_is_finite(TR_clip_grad([v]).TR_tolist))`)
 		code string
 		want messages.Code
 	}{
-		{`TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_backward(TR_sum(v * TR_float("nan")))
+		{`TR_var v = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_Float("nan")))
 TR_clip_grad([v], TR_error_if_nonfinite: TR_true)`, messages.H6534},
-		{`TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_backward(TR_sum(v * TR_float("inf")))
+		{`TR_var v = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_Float("inf")))
 TR_clip_grad([v], TR_max: 2.0, TR_error_if_nonfinite: TR_true)`, messages.H6534},
-		{`TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
+		{`TR_var v = TR_Tensor([1.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(v))
 TR_clip_grad([v], TR_error_if_nonfinite: 1)`, messages.H7905},
 	} {
@@ -83,13 +83,13 @@ TR_clip_grad([v], TR_error_if_nonfinite: 1)`, messages.H7905},
 // Neden: eskiden gradyanlar önce kırpılıp sonra hata veriliyordu (Gemini kararlılık denetimi,
 // bulgu 7); PyTorch error_if_nonfinite'te gradyanlara dokunmaz.
 func TestGradClipChecksBeforeScaling(t *testing.T) {
-	out := mustRun(t, `TR_var w = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
-TR_backward(TR_sum(w * TR_tensor([3e38, 3e38])))
+	out := mustRun(t, `TR_var w = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * TR_Tensor([3e38, 3e38])))
 TR_var hata_verdi = TR_false
 TR_try { TR_clip_grad([w], TR_max: 1.0, TR_error_if_nonfinite: TR_true) } TR_catch h { hata_verdi = TR_true }
 TR_print(hata_verdi, w.TR_grad.TR_tolist[0] > 1e38)
-TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
-TR_backward(TR_sum(v * TR_tensor([TR_float("inf"), 2.0])))
+TR_var v = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_Tensor([TR_Float("inf"), 2.0])))
 TR_clip_grad([v], TR_max: 1.0)
 TR_print(TR_is_finite(v.TR_grad.TR_tolist[0]), v.TR_grad.TR_tolist[1])`)
 	if out != "true true\nfalse 0.0\n" {

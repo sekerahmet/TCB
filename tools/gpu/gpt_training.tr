@@ -57,8 +57,8 @@ TR_if ayar["veri"] == "" {
     TR_throw ("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
 }
 TR_default_device(ayar["device"])
-TR_var p = TR_load_tokenizer(TR_path(ayar["veri"], "tokenizer.json"))
-TR_var eğitim_verisi = TR_dataset(TR_path(ayar["veri"], "train.npy"))
+TR_var p = TR_load_tokenizer(TR_Path(ayar["veri"], "tokenizer.json"))
+TR_var eğitim_verisi = TR_Dataset(TR_Path(ayar["veri"], "train.npy"))
 TR_var ö = eğitim_verisi.TR_sampler(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"], TR_seed: ayar["tohum"])
 
 TR_var model = eğitim_modeli(ayar, p.TR_vocab_size)
@@ -70,13 +70,13 @@ TR_var izlenen = {"en_iyi_doğrulama": 99.0, "örnekler": []}
 TR_var koşu = TR_Run(ayar["koşu"], ayar, {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "izlenen": izlenen},
     TR_num_steps: ayar["step"], TR_every_minutes: ayar["her_dakika"], TR_dry_run: ayar["dry_run"])
 # Parametre sayısını Koşu sayıp config.json'a yazdı; ikinci kez sayılmaz.
-TR_var parametre_sayısı = TR_Int(TR_json_parse(TR_read_file(TR_path(koşu.TR_folder, "config.json")))["num_params"])
+TR_var parametre_sayısı = TR_Int(TR_json_parse(TR_read_file(TR_Path(koşu.TR_folder, "config.json")))["num_params"])
 TR_print("model: \(TR_round(parametre_sayısı / 1000000, 2)) M parametre · cihaz \(model.TR_embedding.TR_table.TR_device) · dağarcık \(p.TR_vocab_size) (model \(model.TR_config["dağarcık"]))")
 
 # doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin
 # parça başına ortalama kaybı (eksik son toplu iş satır sayısıyla ağırlıklanır).
 TR_func doğrulama_kaybı(toplu_sayısı) {
-    TR_var okuyucu = TR_dataset(TR_path(ayar["veri"], "valid.npy")).TR_sequential(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"])
+    TR_var okuyucu = TR_Dataset(TR_Path(ayar["veri"], "valid.npy")).TR_sequential(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"])
     TR_var toplam_kayıp = 0.0
     TR_var satır = 0
     TR_var sayı = 0
@@ -107,7 +107,7 @@ TR_func örnek_yaz(adım) {
         }
     }
     izlenen["örnekler"].TR_append({"step": adım, "metinler": metinler})
-    TR_write_file(TR_path(koşu.TR_folder, "samples.json"), TR_json_string(izlenen["örnekler"]))
+    TR_write_file(TR_Path(koşu.TR_folder, "samples.json"), TR_json_string(izlenen["örnekler"]))
 }
 
 TR_var parça_adım = ayar["toplu"] * ayar["birikim"] * ayar["bağlam"]
@@ -191,7 +191,7 @@ TR_if kayıp != TR_none {
     TR_var son_kayıp = kayıp.TR_tolist # son adımın bitmesini bekler
     TR_if ölçüm_başı != TR_none TR_and ölçülen_adım > 0 {
         TR_var ms = (TR_time_ms() - ölçüm_başı - dış) / ölçülen_adım
-        TR_write_file(TR_path(koşu.TR_folder, "speed.json"), TR_json_string({"ms_adım": ms,
+        TR_write_file(TR_Path(koşu.TR_folder, "speed.json"), TR_json_string({"ms_adım": ms,
             "parça_sn": parça_adım * 1000.0 / ms, "ölçülen_adım": ölçülen_adım, "dış_sn": dış / 1000.0,
             "device": TR_default_device(), "hassasiyet": ayar["hassasiyet"], "son_kayıp": son_kayıp}))
         TR_print("hız: \(TR_round(ms, 1)) ms/adım · \(TR_round(parça_adım * 1000.0 / ms, 0)) parça/sn")

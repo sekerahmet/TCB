@@ -25,7 +25,7 @@ TR_var ayar = TR_command_line({"step": 100, "toplu": 8, "bağlam": 32, "embed_di
 
 # --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/39_veri_ile_egitim.tr) ---
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
-TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"], TR_seed: 1)
+TR_var ö = TR_Dataset("../../tests/data/text").TR_sampler(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"], TR_seed: 1)
 
 # --- Model ve iyileştirici ---
 TR_var model = TR_GPT(p.TR_vocab_size, TR_context: ayar["bağlam"], TR_embed_dim: ayar["embed_dim"], TR_num_layers: ayar["katman"],
@@ -35,15 +35,15 @@ TR_print("model: \(TR_parameters(model).TR_length) ağırlık tensörü; Muon'da
 
 # --- Koşu klasörü ve kontrol noktası: model, AdamW'nin ve Muon'un durumu, okuyucu, günlük ---
 TR_make_dir(ayar["koşu"])
-TR_write_file(TR_path(ayar["koşu"], "config.json"), TR_json_string(ayar))
-TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
-TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g}, TR_every_minutes: 5)
+TR_write_file(TR_Path(ayar["koşu"], "config.json"), TR_json_string(ayar))
+TR_var g = TR_Logger(TR_Path(ayar["koşu"], "metrics.jsonl"))
+TR_var kn = TR_Checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g}, TR_every_minutes: 5)
 
 # --- Eğitim: ilk %10 ısınma, son %30 azalma ---
 TR_if kn.TR_resume_step < ayar["step"] {
-    TR_var ç = TR_progress(ayar["step"], TR_log: g)
+    TR_var ç = TR_Progress(ayar["step"], TR_log: g)
     TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
-        op.TR_set_multiplier(TR_lr_schedule(adım, ayar["step"], TR_warmup: TR_int(ayar["step"] // 10), TR_decay_fraction: 0.3))
+        op.TR_set_multiplier(TR_lr_schedule(adım, ayar["step"], TR_warmup: TR_Int(ayar["step"] // 10), TR_decay_fraction: 0.3))
         TR_var giriş, hedef = ö.TR_next()
         op.TR_zero_grad()
         TR_var kayıp = model.TR_loss(giriş, hedef)
@@ -56,7 +56,7 @@ TR_if kn.TR_resume_step < ayar["step"] {
 }
 
 # --- Doğrulama kaybı ve metin üretimi ---
-TR_var doğrulama = TR_dataset("../../tests/data/text").TR_sequential(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"])
+TR_var doğrulama = TR_Dataset("../../tests/data/text").TR_sequential(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"])
 TR_var toplam_kayıp = 0.0
 TR_var sayı = 0
 TR_no_grad {

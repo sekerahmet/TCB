@@ -15,8 +15,8 @@ TR_test "SıçramaBekçisi: pencere dolana kadar yalnızca sonlu olmayanı yakal
     TR_var b = TR_SpikeGuard(TR_history_limit: 8, TR_threshold: 6.0)
     TR_assert_equal(TR_OK, b.TR_observe(1.0, 1.0))
     TR_assert_equal(TR_OK, b.TR_observe(100.0, 1.0)) # pencere dolmadı: karar yok
-    TR_assert_equal(TR_NONFINITE, b.TR_observe(TR_float("nan"), 1.0))
-    TR_assert_equal(TR_NONFINITE, b.TR_observe(1.0, TR_float("inf")))
+    TR_assert_equal(TR_NONFINITE, b.TR_observe(TR_Float("nan"), 1.0))
+    TR_assert_equal(TR_NONFINITE, b.TR_observe(1.0, TR_Float("inf")))
     TR_assert_equal(2, b.TR_history_length())
 }
 
@@ -34,7 +34,7 @@ TR_test "SıçramaBekçisi: sıçrama ve sonlu olmayan değer geçmişe girmez; 
     TR_var b = TR_SpikeGuard(TR_history_limit: 4, TR_threshold: 6.0)
     besle(b, 4)
     TR_assert_equal(TR_SPIKE, b.TR_observe(9.0, 1.0))
-    TR_assert_equal(TR_NONFINITE, b.TR_observe(TR_float("nan"), 1.0))
+    TR_assert_equal(TR_NONFINITE, b.TR_observe(TR_Float("nan"), 1.0))
     TR_assert_equal(4, b.TR_history_length())
     besle(b, 10)
     TR_assert_equal(4, b.TR_history_length())
@@ -71,7 +71,7 @@ TR_test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez
 
 TR_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
     TR_assert_equal("H6930", TR_error_code(() => TR_SpikeGuard(TR_history_limit: 2.5)))
-    TR_assert_equal("H6931", TR_error_code(() => TR_SpikeGuard(TR_threshold: TR_float("inf"))))
+    TR_assert_equal("H6931", TR_error_code(() => TR_SpikeGuard(TR_threshold: TR_Float("inf"))))
 }
 
 # Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
@@ -87,23 +87,23 @@ TR_func koş(klasör, model, adım_sayısı, prova = TR_false) {
 
 TR_test "Koşu: klasöre ayarları, günlüğü, kontrol noktasını ve ağırlıkları yazar; aynı klasör kaldığı adımdan sürer" {
     TR_var k = TR_temp_dir()
-    TR_var model = {"w": TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+    TR_var model = {"w": TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)}
     TR_var koşu = koş(k, model, 3)
     TR_assert_equal(0, koşu.TR_resume_step)
-    TR_assert_equal(2, TR_Int(TR_json_parse(TR_read_file(TR_path(k, "config.json")))["num_params"]))
-    TR_var günlük_metni = TR_read_file(TR_path(k, "metrics.jsonl"))
+    TR_assert_equal(2, TR_Int(TR_json_parse(TR_read_file(TR_Path(k, "config.json")))["num_params"]))
+    TR_var günlük_metni = TR_read_file(TR_Path(k, "metrics.jsonl"))
     TR_assert(günlük_metni.TR_contains("doğrulama_kaybı") TR_and günlük_metni.TR_contains("\"loss\""), "günlük ölçüleri taşımalı (kayıp anahtarı \"loss\"): \(günlük_metni)")
-    TR_assert_equal([1.0, 2.0], TR_load_tensors(TR_path(k, "model.trt"))["w"].TR_tolist)
+    TR_assert_equal([1.0, 2.0], TR_load_tensors(TR_Path(k, "model.trt"))["w"].TR_tolist)
     TR_assert_equal(3, TR_Run(k, {"deneme": 1}, {"model": model}, TR_num_steps: 3).TR_resume_step)
 }
 
 TR_test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosyaları denetler" {
     TR_var k = TR_temp_dir()
-    TR_var koşu = koş(k, {"w": TR_tensor([1.0], TR_requires_grad: TR_true)}, 100, prova: TR_true)
+    TR_var koşu = koş(k, {"w": TR_Tensor([1.0], TR_requires_grad: TR_true)}, 100, prova: TR_true)
     TR_assert_equal(TR_DRY_RUN_STEPS, koşu.TR_last_step)
-    TR_assert(koşu.TR_folder.TR_absolute != TR_path(k).TR_absolute, "prova verilen klasöre yazmamalı")
-    TR_assert(TR_path(koşu.TR_folder, "model.trt").TR_exists, "provada ağırlıklar yazılmalı")
-    TR_assert(TR_not TR_path(k, "config.json").TR_exists, "prova asıl klasörü kirletmemeli")
+    TR_assert(koşu.TR_folder.TR_absolute != TR_Path(k).TR_absolute, "prova verilen klasöre yazmamalı")
+    TR_assert(TR_Path(koşu.TR_folder, "model.trt").TR_exists, "provada ağırlıklar yazılmalı")
+    TR_assert(TR_not TR_Path(k, "config.json").TR_exists, "prova asıl klasörü kirletmemeli")
 }
 
 TR_test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {

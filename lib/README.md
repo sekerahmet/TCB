@@ -117,7 +117,7 @@ Kitaplığın adları kullanıcı düzeyi TR adlarıdır; dilin kodu değildir, 
 ```tr
 # TR 4
 TR_import "tr/egitim"
-TR_var model = {"w": TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+TR_var model = {"w": TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)}
 TR_var op = TR_AdamW(TR_parameters(model))
 TR_var koşu = TR_Run("koşu", {"oran": 0.001}, {"model": model, "op": op}, TR_num_steps: 1000)
 TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
@@ -139,10 +139,10 @@ Bekçi yalnızca karar verir; ne yapılacağını döngü seçer (dil tanımı 1
 ```tr
 # TR 4
 TR_import "tr/egitim"
-TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
-TR_var ö = TR_dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
-TR_var kn = TR_checkpoint("koşu", {"w": w, "op": op, "ö": ö})
+TR_var ö = TR_Dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+TR_var kn = TR_Checkpoint("koşu", {"w": w, "op": op, "ö": ö})
 TR_var bekçi = TR_SpikeGuard()
 TR_var adım = kn.TR_resume_step
 TR_for adım < 1000 {

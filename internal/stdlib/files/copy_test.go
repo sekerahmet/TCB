@@ -35,7 +35,7 @@ func TestCopyFile(t *testing.T) {
 		t.Errorf("değiştirilme zamanı korunmadı: %v", b.ModTime())
 	}
 	errContains(t, `TR_copy("a.txt", "yedek/")`, `hedef "yedek/a.txt" zaten var`)
-	mustRunTR(t, `TR_copy(TR_path("a.txt"), TR_path("b.txt"))`)
+	mustRunTR(t, `TR_copy(TR_Path("a.txt"), TR_Path("b.txt"))`)
 	if content(t, filepath.Join(k, "b.txt")) != "bir" {
 		t.Fatal("yeni adla kopya")
 	}

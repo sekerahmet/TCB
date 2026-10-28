@@ -245,7 +245,7 @@ func TestHeaderlessFileDoesNotRun(t *testing.T) {
 	testkit.WriteFile(t, dir, "ana.tr", "yazdır(1)\n")
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", nil, "ana.tr"), 1, nil, []string{source.Header, "tr kodla <dosya> --dil tr"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "ana.tr"), 1, nil, []string{source.Header, "tr encode <file> --lang en"})
-	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, type(x), true)\nexit\n", []string{"TR_DIL=en"})
+	repl := testkit.RunBinary(t, trBinary, dir, "var x = [1, 2].map { it * 10 }\nprint(x, Type(x), true)\nexit\n", []string{"TR_DIL=en"})
 	testkit.Wait(t, repl, 0, []string{"[10, 20] List true"}, nil)
 }
 

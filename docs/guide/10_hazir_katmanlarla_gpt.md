@@ -86,12 +86,12 @@ TR_import "tr/iyilestirici"
 
 TR_var ayar = TR_command_line({"step": 100, "koşu": "runs/gpt"})
 TR_var p = TR_load_tokenizer("../tests/data/tokenizer.json")
-TR_var ö = TR_dataset("../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+TR_var ö = TR_Dataset("../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
 TR_var model = TR_GPT(p.TR_vocab_size, TR_context: 32, TR_embed_dim: 32, TR_num_layers: 2, TR_num_heads: 4, TR_tied: TR_true)
 TR_var op = TR_MuonAndAdamW(model)
-TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
-TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g})
-TR_var ç = TR_progress(ayar["step"], TR_log: g)
+TR_var g = TR_Logger(TR_Path(ayar["koşu"], "metrics.jsonl"))
+TR_var kn = TR_Checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g})
+TR_var ç = TR_Progress(ayar["step"], TR_log: g)
 TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
     op.TR_set_multiplier(TR_lr_schedule(adım, ayar["step"], TR_warmup: 10))
     TR_var giriş, hedef = ö.TR_next()

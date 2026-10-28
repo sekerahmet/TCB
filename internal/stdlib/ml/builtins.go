@@ -23,7 +23,7 @@ func Register(v *interp.VM) {
 	registerWideMath(v) // yerlesik_matematik.go
 
 	// --- Sinir ağı ---
-	wrap(v, codes.FnEmbedding, newBuiltin(embedding))
+	wrap(v, codes.FnEmbeddingLookup, newBuiltin(embedding))
 	wrap(v, codes.FnCrossEntropy, newBuiltin(crossEntropy))
 	wrap(v, codes.FnLinearCrossEntropy, newBuiltin(linearCrossEntropy))
 	wrap(v, codes.FnLayerNorm, newBuiltin(layerNorm))
@@ -62,8 +62,7 @@ func Register(v *interp.VM) {
 // registerConstructors tensör oluşturucularını (matris ve görünüm dahil) kaydeder.
 func registerConstructors(v *interp.VM) {
 	// --- Oluşturucular ---
-	wrap(v, codes.FnTensor, newBuiltin(tensorBuiltin))
-	v.RegisterTypeCall(codes.TypeTensor, v.Builtin(codes.FnTensor))
+	v.RegisterTypeCall(codes.TypeTensor, &interp.BuiltinVal{Fn: guarded(newBuiltin(tensorBuiltin)(nil)), Pure: true})
 	wrap(v, codes.FnZeros, newBuiltin(shapedConstructor(codes.FnZeros, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
 		return tensor.Zeros(sh...), nil
 	})))

@@ -89,12 +89,10 @@ type state struct {
 // (komut satırı ayarları başlangıç kaydına yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
 	d := &state{process: s}
-	v.RegisterNoNamed(codes.FnLogger, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(interp.CallPrefix(codes.FnLogger), func() (interp.Value, error) { return d.openLog(m, args) })
-	})
-	v.RegisterBuiltinCode(codes.FnProgress, bind.SafeBuiltin(interp.CallPrefix(codes.FnProgress), d.openProgress))
-	v.RegisterTypeCall(codes.TypeLogger, v.Builtin(codes.FnLogger))
-	v.RegisterTypeCall(codes.TypeProgress, v.Builtin(codes.FnProgress))
+	v.RegisterTypeCall(codes.TypeLogger, &interp.BuiltinVal{NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return bind.Safe(interp.CallPrefix(codes.TypeLogger), func() (interp.Value, error) { return d.openLog(m, args) })
+	}})
+	v.RegisterTypeCall(codes.TypeProgress, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeProgress), d.openProgress)})
 }
 
 // Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.

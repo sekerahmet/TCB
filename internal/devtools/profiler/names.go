@@ -89,7 +89,7 @@ var opCode = map[tensor.OpKind]codes.Code{
 	tensor.OpKindArgMax:       codes.FnArgmax,
 	tensor.OpKindSoftmax:      codes.FnSoftmax,
 	tensor.OpKindLogSoftmax:   codes.FnLogSoftmax,
-	tensor.OpKindEmbedding:    codes.FnEmbedding,
+	tensor.OpKindEmbedding:    codes.FnEmbeddingLookup,
 	tensor.OpKindCrossEntropy: codes.FnCrossEntropy,
 	tensor.OpKindLayerNorm:    codes.FnLayerNorm,
 	tensor.OpKindRMSNorm:      codes.FnRmsNorm,

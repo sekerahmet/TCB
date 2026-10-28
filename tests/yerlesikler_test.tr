@@ -8,16 +8,16 @@ TR_test "13.1 genel yerleşikler" {
     TR_assert_equal(3, TR_max([3, 1, 2]))
     TR_assert_equal(5, TR_abs(-5))
     TR_assert_equal(3.0, TR_sqrt(9))
-    TR_assert_equal([0, 1, 2], TR_range(0, 3))
+    TR_assert_equal([0, 1, 2], TR_List(0..3))
 }
 
 TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     TR_assert_equal(2.0, TR_max([2.0, 1.5]))
-    TR_assert_equal(TR_Float, TR_type(TR_max([2.0, 1.5])))
-    TR_assert_equal(TR_Int, TR_type(TR_min([1, 2.5])))
+    TR_assert_equal(TR_Float, TR_Type(TR_max([2.0, 1.5])))
+    TR_assert_equal(TR_Int, TR_Type(TR_min([1, 2.5])))
     TR_assert_equal(9007199254740993, TR_max([9007199254740993, 1]))
     TR_assert(TR_max([9007199254740993, 9007199254740992]) != 9007199254740992)
-    TR_assert_equal(TR_Int, TR_type(TR_max(9223372036854775807, 1)))
+    TR_assert_equal(TR_Int, TR_Type(TR_max(9223372036854775807, 1)))
     TR_assert_equal(-7, TR_min(3, -7, 0.5))
     TR_assert_equal(TR_none, TR_max([]))
     TR_assert_equal("H2486", TR_error_code(() => { TR_max([1, "a", 5]) }))
@@ -30,8 +30,7 @@ TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı o
 }
 
 TR_test "13.1 yerleşiklerin argüman hataları tek biçimdedir" {
-    TR_assert_equal("H2423", TR_error_code(() => { TR_range("a") }))
-    TR_assert_equal("H2423", TR_error_code(() => { TR_range(1, 2.5) }))
+    TR_assert_equal("H2423", TR_error_code(() => { TR_sqrt("a") }))
     TR_assert_equal("H2423", TR_error_code(() => { [1].TR_filter(3) }))
     TR_assert_equal("H2011", TR_error_code(() => { TR_sum() }))
     TR_assert_equal("H2423", TR_error_code(() => { TR_round(1.25, "x") }))
@@ -62,7 +61,7 @@ TR_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham met
     TR_assert(m.TR_contains(`D:\new\rapor.txt`), m)
     TR_assert_equal("H2489", TR_error_code(() => { TR_load_tensors("a\tb.trt") }))
     TR_assert_equal("H2489", TR_error_code(() => { TR_load_tokenizer("a\tb.json") }))
-    TR_assert_equal("H2489", TR_error_code(() => { TR_dataset("veri\tsayilar") }))
+    TR_assert_equal("H2489", TR_error_code(() => { TR_Dataset("veri\tsayilar") }))
 }
 
 TR_test "13.2 metin metotları" {
@@ -131,20 +130,20 @@ TR_test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
     TR_assert_equal("H2427", TR_error_code(() => { TR_print("a", ayraç: "-") }))
     TR_assert_equal("H2427", TR_error_code(() => { "a b".TR_split(TR_dim: 1) }))
     TR_assert_equal("H7900", TR_error_code(() => { TR_sum([1, 2], eksn: 0) }))
-    TR_assert_equal("H7900", TR_error_code(() => { TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)], lr: 0.1) }))
-    TR_assert_equal("H7900", TR_error_code(() => { TR_sample(TR_tensor([1.0, 2.0]), tohm: 1) }))
+    TR_assert_equal("H7900", TR_error_code(() => { TR_AdamW([TR_Tensor([1.0], TR_requires_grad: TR_true)], lr: 0.1) }))
+    TR_assert_equal("H7900", TR_error_code(() => { TR_sample(TR_Tensor([1.0, 2.0]), tohm: 1) }))
 }
 
 TR_test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve tip() genel sorudur: ikisi de fonksiyondur" {
-    TR_assert_equal(5, TR_int("5"))
-    TR_assert_equal(2.5, TR_float("2.5"))
-    TR_assert_equal("[1, 2]", TR_str([1, 2]))
-    TR_assert_equal(TR_List, TR_type([1]))
+    TR_assert_equal(5, TR_Int("5"))
+    TR_assert_equal(2.5, TR_Float("2.5"))
+    TR_assert_equal("[1, 2]", TR_String([1, 2]))
+    TR_assert_equal(TR_List, TR_Type([1]))
     # Yapının 'tip' alanı yerleşik tip() ile çakışmaz
     TR_struct Ürün { ad, tip }
     TR_var ü = Ürün("kalem", "kırtasiye")
     TR_assert_equal("kırtasiye", ü.tip)
-    TR_assert_equal(Ürün, TR_type(ü))
+    TR_assert_equal(Ürün, TR_Type(ü))
 }
 
 TR_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör işi fonksiyondur" {
@@ -158,10 +157,10 @@ TR_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör
     TR_assert_equal(4, l.TR_reduce(10) { TR_acc - TR_it })
     TR_assert_equal(TR_none, [].TR_reduce((a, x) => a + x))
     TR_assert_equal(7, [].TR_reduce(7, (a, x) => a + x))
-    TR_assert_equal([[1, 2]], TR_tensor([[1], [2]]).TR_transpose().TR_tolist)
+    TR_assert_equal([[1, 2]], TR_Tensor([[1], [2]]).TR_transpose().TR_tolist)
     # Öbür biçim yoktur: liste.toplam() ve tensör.toplam bir üye değildir.
     TR_assert_equal("H2474", TR_error_code(() => { l.toplam() }))
-    TR_assert_equal("H6721", TR_error_code(() => { TR_tensor([1.0]).toplam }))
+    TR_assert_equal("H6721", TR_error_code(() => { TR_Tensor([1.0]).toplam }))
     TR_assert_equal("H2475", TR_error_code(() => { l.TR_reduce((a, x) => a + x, 0) }))
     # Metot adları genel kapsamda sıradan adlardır
     TR_var uzunluk = 5
@@ -178,8 +177,8 @@ TR_test "13.4 sözlük metotları" {
 
 TR_test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
     TR_var k = TR_temp_dir()
-    TR_write_file(TR_path(k, "t.csv"), "ad,yaş\nAli,30")
-    TR_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_read_csv(TR_path(k, "t.csv")))
+    TR_write_file(TR_Path(k, "t.csv"), "ad,yaş\nAli,30")
+    TR_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_read_csv(TR_Path(k, "t.csv")))
     TR_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_parse_csv("ad,yaş\nAli,30"))
     TR_assert_equal([["007", 7]], TR_parse_csv("007,7"))
     TR_assert_equal("H7006", TR_error_code(() => { TR_read_csv("ad,yaş\nAli,30") }))

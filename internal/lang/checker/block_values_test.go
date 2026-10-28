@@ -52,7 +52,7 @@ func TestUnusedValueIsAnError(t *testing.T) {
 	for _, code := range []string{
 		"TR_var b = 2\nTR_var a = 1 -\n    b\nTR_var c = -b",
 		"TR_var l = [1]\nl.TR_append(2)",
-		"TR_var x = 1\nTR_str(x + 2)",
+		"TR_var x = 1\nTR_String(x + 2)",
 		"TR_func f() { TR_return 1 }\n-f()",
 	} {
 		if errs := checkBodyIn(t, code, nil, false); len(errs) != 0 {

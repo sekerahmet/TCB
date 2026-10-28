@@ -106,18 +106,18 @@ func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 
 // openProgress ilerleme(toplam, günlük: g) yerleşiğidir.
 func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.FnProgress)
+	fn := interp.CallPrefix(codes.TypeProgress)
 	if err := bind.CheckNamed(fn, named, nameLog); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgCountError(codes.FnProgress, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
+		return nil, interp.ArgCountError(codes.TypeProgress, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
 	}
 	var total int64
 	if len(args) == 1 && args[0] != interp.Null {
 		n, ok := bind.Int(args[0])
 		if !ok {
-			return nil, interp.ArgTypeError(codes.FnProgress, 1, args[0], codes.TypeInt, codes.TypeNone)
+			return nil, interp.ArgTypeError(codes.TypeProgress, 1, args[0], codes.TypeInt, codes.TypeNoneType)
 		}
 		if n <= 0 {
 			return nil, messages.New(messages.H7313, fn, n, codes.NameRef(codes.KwNone))
@@ -128,7 +128,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.Null {
 		g, ok := v.(*Log)
 		if !ok {
-			return nil, messages.New(messages.H7314, fn, nameLog, LogType, codes.NameRef(codes.FnLogger), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7314, fn, nameLog, LogType, codes.NameRef(codes.TypeLogger), interp.TypeAndSummary(v))
 		}
 		c.log = g
 		g.setTotal(total)
@@ -219,7 +219,7 @@ func (c *Progress) advance(fn any, now time.Time, newStep int64, metrics []metri
 	if c.stopped {
 		text := c.stepText(codes.Display())
 		c.mu.Unlock()
-		return false, messages.New(messages.H7316, fn, text, codes.NameRef(codes.FnProgress))
+		return false, messages.New(messages.H7316, fn, text, codes.NameRef(codes.TypeProgress))
 	}
 	measure := true
 	switch {

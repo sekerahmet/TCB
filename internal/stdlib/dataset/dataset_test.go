@@ -88,7 +88,7 @@ func tensorData(t *testing.T, v interp.Value) ([]float32, []int) {
 func TestSamplerSameAsGo(t *testing.T) {
 	d := buildDataset(t)
 	_, m := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_var ö = k.TR_sampler(TR_batch_size: 4, TR_context: 16, TR_seed: 7)
 TR_var ilk = ö.TR_next()
 TR_var ikinci = ö.TR_next()
@@ -132,7 +132,7 @@ func TestSequentialEndsWithNoneAndCloses(t *testing.T) {
 	d := buildDataset(t)
 	base := dataset.OpenResources()
 	out, m := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_var s = k.TR_sequential(TR_batch_size: 8, TR_context: 32)
 TR_var n = 0
 TR_var satır = 0
@@ -167,7 +167,7 @@ func TestResourcesClose(t *testing.T) {
 	dataset.CloseAll(time.Second)
 	base := dataset.OpenResources()
 	_, m := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_func geçici() {
     TR_var ö = k.TR_sampler(TR_batch_size: 2, TR_context: 8)
     ö.TR_next()
@@ -214,7 +214,7 @@ func mustMember(t *testing.T, v interp.Value, k codes.Code) interp.Value {
 func TestConcurrentTasks(t *testing.T) {
 	d := buildDataset(t)
 	out, _ := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_var s = k.TR_sequential(TR_batch_size: 1, TR_context: 16)
 TR_var sayaç = [0, 0, 0]
 TR_for g TR_in 0..3 {
@@ -236,7 +236,7 @@ TR_print(sayaç[0] + sayaç[1] + sayaç[2])
 func TestNextReleasesLock(t *testing.T) {
 	d := buildDataset(t)
 	out, _ := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_var s = k.TR_sequential(TR_batch_size: 1, TR_context: 16)
 TR_var adım = 0
 TR_async {
@@ -255,13 +255,13 @@ TR_print(adım)
 func TestEmbeddingAndCrossEntropy(t *testing.T) {
 	d := buildDataset(t)
 	out, _ := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_var ö = k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
 TR_var girdi, hedef = ö.TR_next()
 TR_var E = TR_randn([20000, 4], TR_seed: 1)
 TR_var W = TR_randn([4, 20000], TR_seed: 2)
-TR_var çıktı = TR_embedding(E, girdi) @ W
-TR_print(çıktı.TR_shape, TR_type(TR_cross_entropy(çıktı, hedef)), girdi.TR_shape, hedef.TR_shape)
+TR_var çıktı = TR_embedding_lookup(E, girdi) @ W
+TR_print(çıktı.TR_shape, TR_Type(TR_cross_entropy(çıktı, hedef)), girdi.TR_shape, hedef.TR_shape)
 `)
 	if strings.TrimSpace(out) != "[2, 8, 20000] Tensor [2, 8] [2, 8]" {
 		t.Fatalf("çıktı %q", out)
@@ -272,14 +272,14 @@ func TestCache(t *testing.T) {
 	d := buildDataset(t)
 	cache := filepath.Join(t.TempDir(), "onb")
 	out, _ := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`", TR_cache: "`+trPath(cache)+`", TR_quota_gb: 0.001)
+TR_var k = TR_Dataset("`+trPath(d)+`", TR_cache: "`+trPath(cache)+`", TR_quota_gb: 0.001)
 TR_var x = k.TR_sampler(TR_batch_size: 2, TR_context: 8).TR_next()
 TR_print(x[0].TR_shape)
 `)
 	if strings.TrimSpace(out) != "[2, 8]" {
 		t.Fatalf("çıktı %q", out)
 	}
-	_, _, err := run(t, `TR_dataset("`+trPath(d)+`", TR_cache: "`+trPath(cache)+`", TR_quota_gb: 0.000000001).TR_sampler(TR_batch_size: 2, TR_context: 8)`)
+	_, _, err := run(t, `TR_Dataset("`+trPath(d)+`", TR_cache: "`+trPath(cache)+`", TR_quota_gb: 0.000000001).TR_sampler(TR_batch_size: 2, TR_context: 8)`)
 	if !messages.Has(err, messages.H5002) {
 		t.Fatalf("kota hatası bekleniyordu: %v", err)
 	}
@@ -297,18 +297,18 @@ func TestErrorMessages(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`TR_dataset("bu_klasor_yok_123")`, messages.H2132},
-		{`TR_dataset("` + trPath(t.TempDir()) + `")`, messages.H5518},
-		{`TR_dataset("` + trPath(broken) + `")`, messages.H5514},
-		{`TR_dataset("` + trPath(d) + `", TR_quota_gb: 1)`, messages.H5510},
-		{`TR_dataset("` + trPath(d) + `", TR_cache: "x")`, messages.H5513},
-		{`TR_dataset("` + trPath(d) + `", onbelek: "x")`, messages.H7900},
-		{`TR_dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2)`, messages.H5529},
-		{`TR_dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 0, TR_context: 4)`, messages.H5530},
-		{`TR_dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: -1)`, messages.H5532},
-		{`TR_dataset("` + trPath(d) + `").TR_sequential(TR_batch_size: 2, TR_context: 4, TR_seed: 1)`, messages.H7901},
-		{`TR_dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 600)`, messages.H5533},
-		{`TR_dataset("` + trPath(d) + `").karıştır()`, messages.H7904},
+		{`TR_Dataset("bu_klasor_yok_123")`, messages.H2132},
+		{`TR_Dataset("` + trPath(t.TempDir()) + `")`, messages.H5518},
+		{`TR_Dataset("` + trPath(broken) + `")`, messages.H5514},
+		{`TR_Dataset("` + trPath(d) + `", TR_quota_gb: 1)`, messages.H5510},
+		{`TR_Dataset("` + trPath(d) + `", TR_cache: "x")`, messages.H5513},
+		{`TR_Dataset("` + trPath(d) + `", onbelek: "x")`, messages.H7900},
+		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2)`, messages.H5529},
+		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 0, TR_context: 4)`, messages.H5530},
+		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: -1)`, messages.H5532},
+		{`TR_Dataset("` + trPath(d) + `").TR_sequential(TR_batch_size: 2, TR_context: 4, TR_seed: 1)`, messages.H7901},
+		{`TR_Dataset("` + trPath(d) + `").TR_sampler(TR_batch_size: 2, TR_context: 600)`, messages.H5533},
+		{`TR_Dataset("` + trPath(d) + `").karıştır()`, messages.H7904},
 	}
 	for _, dd := range cases {
 		_, _, err := run(t, dd.code)
@@ -317,7 +317,7 @@ func TestErrorMessages(t *testing.T) {
 		}
 	}
 	// Hatalar dene/yakala ile yakalanabilir.
-	out, _ := mustRun(t, `TR_try { TR_dataset("bu_klasor_yok_123") } TR_catch h { TR_print("yakalandı") }`)
+	out, _ := mustRun(t, `TR_try { TR_Dataset("bu_klasor_yok_123") } TR_catch h { TR_print("yakalandı") }`)
 	if strings.TrimSpace(out) != "yakalandı" {
 		t.Fatalf("çıktı %q", out)
 	}
@@ -326,7 +326,7 @@ func TestErrorMessages(t *testing.T) {
 // Göreli yollar çalışma klasöründe yoksa programın klasörüne göre çözülür.
 func TestRelativePathProgramDir(t *testing.T) {
 	d := buildDataset(t)
-	p := parser.New(source.TextLexer(`TR_var k = TR_dataset("` + filepath.Base(d) + `")`))
+	p := parser.New(source.TextLexer(`TR_var k = TR_Dataset("` + filepath.Base(d) + `")`))
 	prog := p.ParseProgram()
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
@@ -339,7 +339,7 @@ func TestRelativePathProgramDir(t *testing.T) {
 func TestWatchPanel(t *testing.T) {
 	d := buildDataset(t)
 	_, m := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_var ö = k.TR_sampler(TR_batch_size: 2, TR_context: 8)
 TR_var s = k.TR_sequential(TR_batch_size: 2, TR_context: 8)
 `)
@@ -370,7 +370,7 @@ TR_var s = k.TR_sequential(TR_batch_size: 2, TR_context: 8)
 // Kural (B5): veri okuyucusu sırayla okunur; indekslenince ileti .sonraki()'yi söyler.
 func TestReaderIndexSaysHowToRead(t *testing.T) {
 	d := buildDataset(t)
-	_, _, err := run(t, `TR_dataset("`+trPath(d)+`").TR_sampler(TR_batch_size: 2, TR_context: 8)[0]`)
+	_, _, err := run(t, `TR_Dataset("`+trPath(d)+`").TR_sampler(TR_batch_size: 2, TR_context: 8)[0]`)
 	if !messages.Has(err, messages.H2525) || !strings.Contains(err.Error(), ".sonraki()") {
 		t.Fatalf("okuyucu indekslenince: %v", err)
 	}

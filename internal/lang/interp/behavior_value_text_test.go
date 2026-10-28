@@ -14,8 +14,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// Değerin metni dilden bağımsızdır (3.14 ilk yanı; dosyanın dili yoktur, 2.1): metin(), yazdır,
-// metin yerleştirmesi ve tip() adları kimliğin adıyla çıkar (true, none, Int) — programı hangi dilde
+// Değerin metni dilden bağımsızdır (3.14 ilk yanı; dosyanın dili yoktur, 2.1): Metin(), yazdır,
+// metin yerleştirmesi ve Tip() adları kimliğin adıyla çıkar (true, none, Int) — programı hangi dilde
 // okursa okusun, kitaplıkta da, her makinede aynı. Yakalanan hatanın metni sabit İngilizce katalogdan
 // kurulur (caughtErrorLanguage). Testlerin programları bir dildeki gösterimde yazılır ve kodlanarak
 // çalıştırılır (dosya kimliklerle yazılır).
@@ -73,14 +73,14 @@ func TestValueTextIsLanguageIndependent(t *testing.T) {
 		"true true true\n"
 	for lang, main := range map[string]string{
 		"en": `var b = true
-print(b, none, type(1), [true, none, {"k": false}])
-print("\(b) \(none) \(type(b)) \([type([])])")
-print(str(b) == "true", str(none) == "none", str(type(1.5)) == "Float")
+print(b, none, Type(1), [true, none, {"k": false}])
+print("\(b) \(none) \(Type(b)) \([Type([])])")
+print(String(b) == "true", String(none) == "none", String(Type(1.5)) == "Float")
 `,
 		"tr": `değişken b = doğru
-yazdır(b, yok, tip(1), [doğru, yok, {"k": yanlış}])
-yazdır("\(b) \(yok) \(tip(b)) \([tip([])])")
-yazdır(metin(b) == "true", metin(yok) == "none", metin(tip(1.5)) == "Float")
+yazdır(b, yok, Tip(1), [doğru, yok, {"k": yanlış}])
+yazdır("\(b) \(yok) \(Tip(b)) \([Tip([])])")
+yazdır(Metin(b) == "true", Metin(yok) == "none", Metin(Tip(1.5)) == "Float")
 `,
 	} {
 		if out := runCoded(t, main, lang, nil); out != want {
@@ -91,15 +91,15 @@ yazdır(metin(b) == "true", metin(yok) == "none", metin(tip(1.5)) == "Float")
 
 // Kitaplığın ve yerel modülün fonksiyonu da aynı metni verir; geri çağırma da.
 func TestValueTextIsTheSameInEveryModule(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
-		"TR_func anlat(x) { TR_return \"\\(x) \" + TR_str(TR_type(x)) }\n" +
-		"TR_func uygula(f) { TR_print(f(TR_true)) }\n")}})
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func anlat(x) { TR_return \"\\(x) \" + TR_String(TR_Type(x)) }\nTR_func uygula(f) { TR_print(f(TR_true)) }\n" +
+		"" +
+		"")}})
 	out := runEnglish(t, `import "tr/kitap" as k
 import "yerel" as y
 print(k.anlat(true), y.anlat(none))
-k.uygula((x) => "\(x) " + str(x))
-y.uygula((x) => str([x]))
-`, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x) { TR_return TR_str(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
+k.uygula((x) => "\(x) " + String(x))
+y.uygula((x) => String([x]))
+`, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x) { TR_return TR_String(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
 	want := "true Bool none\ntrue true\n[none]\n"
 	if out != want {
 		t.Errorf("metin her modülde aynı olmalı:\n%s\nbeklenen:\n%s", out, want)
@@ -121,11 +121,11 @@ try { assert(false, none) } catch e { print(e.ends_with(": none")) }
 	}
 }
 
-// ondalık() sonsuz ve tanımsız sayının dilden bağımsız adını okur ("inf", "nan"); bir dildeki ad
-// ("sonsuz") okunmaz; metin(ondalık(...)) aynı adı verir, gidiş dönüş tutar (3.2).
+// Ondalık() sonsuz ve tanımsız sayının dilden bağımsız adını okur ("inf", "nan"); bir dildeki ad
+// ("sonsuz") okunmaz; Metin(Ondalık(...)) aynı adı verir, gidiş dönüş tutar (3.2).
 func TestFloatValueNamesRoundTrip(t *testing.T) {
-	out := runEnglish(t, `print(float("inf"), -float("inf"), float("nan"), str(float("-inf")) == "-inf", float(str(float("inf"))))
-try { float("sonsuz") } catch e { print("not read") }
+	out := runEnglish(t, `print(Float("inf"), -Float("inf"), Float("nan"), String(Float("-inf")) == "-inf", Float(String(Float("inf"))))
+try { Float("sonsuz") } catch e { print("not read") }
 `, nil)
 	if want := "inf -inf nan true inf\nnot read\n"; out != want {
 		t.Errorf("değer adları:\n%s\nbeklenen:\n%s", out, want)
@@ -140,7 +140,7 @@ func TestOneValueTextForEveryValue(t *testing.T) {
 	out := runEnglish(t, `func f() {}
 struct P { a }
 print([print, Int, f, P, P(1), inf, -inf, nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, x => x])
-print(str(print), "\(f)", str(1e15), str(inf) == "inf")
+print(String(print), "\(f)", String(1e15), String(inf) == "inf")
 `, nil)
 	want := "[<builtin print>, Int, <function f>, <struct P>, P{a: 1}, inf, -inf, nan, 1000000.0, 1234567.0, " +
 		"1000000000000000.0, 1e+16, 1e-05, -0.0, <lambda>]\n<builtin print> <function f> 1000000000000000.0 true\n"

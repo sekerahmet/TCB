@@ -92,7 +92,7 @@ TR_test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
     TR_for i, x TR_in ["a", "b"] { çiftler.TR_append("\(i)\(x)") }
     TR_assert_equal(["0a", "1b"], çiftler)
     TR_var anahtarlar = []
-    TR_for k, v TR_in {"a": 1, "b": 2} { anahtarlar.TR_append(k + TR_str(v)) }
+    TR_for k, v TR_in {"a": 1, "b": 2} { anahtarlar.TR_append(k + TR_String(v)) }
     TR_assert_equal(["a1", "b2"], anahtarlar)
     TR_var harfler = []
     TR_for h TR_in "çay" { harfler.TR_append(h) }

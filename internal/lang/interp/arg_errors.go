@@ -26,7 +26,7 @@ func CallName(kd codes.Code) codes.Ref { return codes.CallNameRef(kd) }
 func CallPrefix(kd codes.Code) codes.Ref { return codes.CallRef(kd) }
 
 // Usage writes the valid call forms of a code; each form is a parameter list:
-// Usage(codes.FnRange, "bitiş", "başlangıç, bitiş") → "aralık(bitiş) ya da aralık(başlangıç, bitiş)".
+// Usage(codes.FnRound, "x", "x, basamak") → "yuvarla(x) ya da yuvarla(x, basamak)".
 // A form that names a language element is a message part (codes.ReceiverRef(codes.TypeString)),
 // written in the message's language like the name.
 func Usage(kd codes.Code, forms ...any) messages.Localized {

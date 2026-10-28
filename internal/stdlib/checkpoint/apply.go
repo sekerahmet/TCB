@@ -220,5 +220,5 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	}
 	slices.Sort(diffs)
 	m.WriteOutput(m.Err, messages.Text(messages.H7405,
-		codes.NameRef(codes.FnCheckpoint), strings.Join(diffs, ", "))+"\n")
+		codes.NameRef(codes.TypeCheckpoint), strings.Join(diffs, ", "))+"\n")
 }

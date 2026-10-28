@@ -36,10 +36,10 @@ func TestFileLines(t *testing.T) {
 	}
 	// .sonraki() ve döngü aynı akışı tüketir; bitince yok verir.
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
-	got := mustRunTR(t, `TR_var o = TR_read_lines(TR_path("s.txt"))
+	got := mustRunTR(t, `TR_var o = TR_read_lines(TR_Path("s.txt"))
 		TR_var ilk = o.TR_next()
 		TR_var kalan = [s TR_for s TR_in o]
-		[ilk, kalan, o.TR_next(), TR_str(o), TR_type(o) == TR_LineReader]`)
+		[ilk, kalan, o.TR_next(), TR_String(o), TR_Type(o) == TR_LineReader]`)
 	if got != `["1", ["2", "3"], none, "LineReader(s.txt, 3 lines read, finished)", true]` {
 		t.Fatal(got)
 	}
@@ -106,7 +106,7 @@ func TestLineReaderClose(t *testing.T) {
 		TR_var ilk = o.TR_next()
 		TR_var birinci = o.TR_close()
 		TR_var ikinci = o.TR_close()
-		[ilk, birinci, ikinci, TR_str(o), TR_remove("s.txt"), TR_path("s.txt").TR_exists]`)
+		[ilk, birinci, ikinci, TR_String(o), TR_remove("s.txt"), TR_Path("s.txt").TR_exists]`)
 	if got != `["1", true, false, "LineReader(s.txt, 1 line read, closed)", 1, false]` {
 		t.Fatal(got)
 	}

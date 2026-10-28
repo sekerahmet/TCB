@@ -151,7 +151,7 @@
       "id": "tensor",
       "prefix": [
         {
-          "code": "TR_fn_tensor"
+          "code": "TR_type_Tensor"
         },
         {
           "code": "",
@@ -159,7 +159,7 @@
         }
       ],
       "end": true,
-      "source": "# TR 4\nTR_var ph_X = TR_tensor(ph_xs)\nTR_var ph_Y = TR_tensor(ph_ys)\nTR_var ph_w = TR_tensor(TR_no_grad(TR_randn([ph_shape], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)\nTR_var ph_b = TR_tensor([0.0], TR_requires_grad: TR_true)\nTR_var ph_optimizer = TR_AdamW([ph_w, ph_b], TR_lr: ph_rate, TR_weight_decay: 0)\nTR_for ph_step TR_in 0..ph_steps {\n\tph_optimizer.TR_zero_grad()\n\tTR_var ph_loss = TR_mean((ph_X @ ph_w + ph_b - ph_Y) ** 2)\n\tTR_backward(ph_loss)\n\tph_optimizer.TR_step()\n\tTR_if ph_step % 100 == 0 { TR_print(\"ph_step_label \\(ph_step): ph_loss_label = \\(ph_loss.TR_tolist)\") }\n}\nTR_print(TR_no_grad { TR_return ph_X @ ph_w + ph_b })\n",
+      "source": "# TR 4\nTR_var ph_X = TR_Tensor(ph_xs)\nTR_var ph_Y = TR_Tensor(ph_ys)\nTR_var ph_w = TR_Tensor(TR_no_grad(TR_randn([ph_shape], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)\nTR_var ph_b = TR_Tensor([0.0], TR_requires_grad: TR_true)\nTR_var ph_optimizer = TR_AdamW([ph_w, ph_b], TR_lr: ph_rate, TR_weight_decay: 0)\nTR_for ph_step TR_in 0..ph_steps {\n\tph_optimizer.TR_zero_grad()\n\tTR_var ph_loss = TR_mean((ph_X @ ph_w + ph_b - ph_Y) ** 2)\n\tTR_backward(ph_loss)\n\tph_optimizer.TR_step()\n\tTR_if ph_step % 100 == 0 { TR_print(\"ph_step_label \\(ph_step): ph_loss_label = \\(ph_loss.TR_tolist)\") }\n}\nTR_print(TR_no_grad { TR_return ph_X @ ph_w + ph_b })\n",
       "holes": {
         "ph_X": "X",
         "ph_Y": "Y",

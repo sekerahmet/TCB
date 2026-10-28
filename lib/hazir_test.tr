@@ -46,9 +46,9 @@ TR_test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
 }
 
 TR_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devrilerek; tanınmayan ad hatadır" {
-    TR_var w = TR_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) # HF [çıkış 2, giriş 3]
+    TR_var w = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) # HF [çıkış 2, giriş 3]
     TR_var e = TR_map_hugging_face({"model.layers.0.self_attn.q_proj.weight": w,
-        "model.layers.0.input_layernorm.weight": TR_tensor([1.0]), "model.layers.0.self_attn.rotary_emb.inv_freq": TR_tensor([1.0]),
+        "model.layers.0.input_layernorm.weight": TR_Tensor([1.0]), "model.layers.0.self_attn.rotary_emb.inv_freq": TR_Tensor([1.0]),
         "lm_head.weight": w}, {"tie_word_embeddings": TR_true})
     TR_assert_equal(["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight"], e.TR_keys())
     TR_assert_equal([3, 2], e["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight"].TR_shape)

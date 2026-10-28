@@ -7,7 +7,7 @@
 
 # SGD (olasılıksal gradyan inişi) en yalın iyileştiricidir: w = w - öğrenme_oranı · gradyan.
 # momentum önceki adımların yönünü sürdürür.
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
 TR_var sgd = TR_SGD([w], TR_lr: 0.1, TR_momentum: 0.9)
 TR_backward(TR_sum(w * w)) # d(w²)/dw = 2w = 2
 sgd.TR_step()
@@ -15,16 +15,16 @@ TR_print("SGD bir adım sonra w =", TR_round(w.TR_tolist[0], 4))
 
 # AdamW her ağırlık için ayrı bir adım büyüklüğü uyarlar. beta1 gradyan ortalamasının,
 # beta2 gradyan karelerinin üstel azalma katsayısıdır ([0, 1) aralığında).
-TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var v = TR_Tensor([1.0], TR_requires_grad: TR_true)
 TR_var adamw = TR_AdamW([v], TR_lr: 0.1, TR_beta1: 0.8, TR_beta2: 0.99)
 TR_backward(TR_sum(v * v))
 adamw.TR_step()
 TR_print("AdamW bir adım sonra v =", TR_round(v.TR_tolist[0], 4))
-TR_print(TR_type(sgd) == TR_Optimizer, TR_type(adamw) == TR_Optimizer)
+TR_print(TR_Type(sgd) == TR_Optimizer, TR_Type(adamw) == TR_Optimizer)
 
 # gradyan_kırp, toplam gradyan normu en_fazla'yı aşıyorsa gradyanları aynı oranda küçültür;
 # kırpmadan önceki normu verir. Büyük gradyanlı adımlarda eğitimi kararlı tutar.
-TR_var u = TR_tensor([3.0, 4.0], TR_requires_grad: TR_true)
+TR_var u = TR_Tensor([3.0, 4.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(u * u)) # gradyan [6, 8], norm 10
 TR_print("norm:", TR_clip_grad([u], TR_max: 1.0))
 TR_print("kırpılmış gradyan:", u.TR_grad.TR_tolist)

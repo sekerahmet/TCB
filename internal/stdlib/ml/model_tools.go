@@ -284,7 +284,7 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.NameRef(codes.FnTensor))
+		return nil, messages.New(messages.H6337, fn, typeName(args[0]), codes.NameRef(codes.TypeTensor))
 	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {

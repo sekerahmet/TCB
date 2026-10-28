@@ -5,7 +5,7 @@ TR_import "tr/katman"
 TR_import "tr/iyilestirici" # gradyanları_sıfırla
 
 TR_func rastgele_girdi(şekil, tohum) {
-    TR_return TR_tensor(TR_randn(şekil, TR_seed: tohum), TR_requires_grad: TR_true)
+    TR_return TR_Tensor(TR_randn(şekil, TR_seed: tohum), TR_requires_grad: TR_true)
 }
 
 TR_test "Doğrusal: şekil, sapma ve türev" {
@@ -25,7 +25,7 @@ TR_test "Doğrusal: şekil, sapma ve türev" {
 
 TR_test "Doğrusal: karışık hassasiyette sapma çarpımın türünde eklenir; çıktı bf16, sapmanın gradyanı float32" {
     TR_var d = TR_Linear(8, 6, TR_use_bias: TR_true, TR_seed: 3)
-    TR_no_grad { d.TR_bias[0..6] = TR_tensor([0.5, -1.0, 2.0, 0.25, -0.75, 1.5]) }
+    TR_no_grad { d.TR_bias[0..6] = TR_Tensor([0.5, -1.0, 2.0, 0.25, -0.75, 1.5]) }
     TR_var x = TR_randn([4, 8], TR_seed: 4)
     TR_var tam_y = d.TR_forward(x)
     TR_assert_equal("float32", tam_y.TR_dtype)
@@ -36,7 +36,7 @@ TR_test "Doğrusal: karışık hassasiyette sapma çarpımın türünde eklenir;
     TR_assert(fark < 0.05, "bf16 çıktı float32'dekinden uzak: \(fark)")
     TR_backward(TR_sum(y.TR_to_dtype("float32")))
     TR_assert_equal("float32", d.TR_bias.TR_grad.TR_dtype)
-    TR_assert_equal(TR_tensor([4.0, 4.0, 4.0, 4.0, 4.0, 4.0]), d.TR_bias.TR_grad)
+    TR_assert_equal(TR_Tensor([4.0, 4.0, 4.0, 4.0, 4.0, 4.0]), d.TR_bias.TR_grad)
 }
 
 TR_test "Doğrusal: başlatma ölçeği std'dir, aynı tohum aynı ağırlığı verir" {
@@ -79,8 +79,8 @@ TR_test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdı
     TR_var q = TR_randn([1, 4], TR_seed: 1)
     TR_var k = TR_randn([1, 4], TR_seed: 2)
     # q'yu ve k'yı bütün konumlara koy: [8, 1 bakış, 4] → [8, 4]
-    TR_var Q = TR_apply_rotary_fused(TR_tensor([q.TR_tolist TR_for i TR_in 0..8]), cos_tablosu, sin_tablosu).TR_reshape([8, 4])
-    TR_var K = TR_apply_rotary_fused(TR_tensor([k.TR_tolist TR_for i TR_in 0..8]), cos_tablosu, sin_tablosu).TR_reshape([8, 4])
+    TR_var Q = TR_apply_rotary_fused(TR_Tensor([q.TR_tolist TR_for i TR_in 0..8]), cos_tablosu, sin_tablosu).TR_reshape([8, 4])
+    TR_var K = TR_apply_rotary_fused(TR_Tensor([k.TR_tolist TR_for i TR_in 0..8]), cos_tablosu, sin_tablosu).TR_reshape([8, 4])
     TR_var fark = en_büyük_mutlak_fark(TR_sum(Q * Q, TR_dim: -1), TR_sum(q * q))
     TR_assert(fark < 0.00002, "döndürme normu korumalı: \(fark)")
     TR_var p = Q @ K.TR_transpose() # p[i][j] = <R_i q, R_j k>
@@ -132,7 +132,7 @@ TR_test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
     TR_var tablolar = TR_rotary_table(5, 4)
     TR_var d = TR_CausalAttention(8, 2, TR_seed: 4)
     TR_var x = TR_randn([1, 5, 8], TR_seed: 1)
-    TR_var x2 = TR_tensor(x)
+    TR_var x2 = TR_Tensor(x)
     TR_no_grad { x2[0][4] = TR_randn([8], TR_seed: 99) }
     TR_var y1 = d.TR_forward(x, tablolar[0], tablolar[1])
     TR_var y2 = d.TR_forward(x2, tablolar[0], tablolar[1])
@@ -205,7 +205,7 @@ TR_test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; 
         TR_var hedef = [[2, 3, -1, 5], [6, 7, 8, 9]]
         TR_var k1 = m.TR_loss(x, hedef)
         TR_backward(k1)
-        TR_var g1 = [TR_tensor(p.TR_grad) TR_for p TR_in TR_parameters(m)]
+        TR_var g1 = [TR_Tensor(p.TR_grad) TR_for p TR_in TR_parameters(m)]
         TR_zero_grads(TR_parameters(m))
         TR_var k2 = TR_cross_entropy(m.TR_forward(x), hedef)
         TR_backward(k2)
@@ -285,7 +285,7 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
         TR_for i, id TR_in [5, 7, 2, 9] {
             TR_var x = m.TR_hidden_states([[id]], TR_cache: ö1)
             TR_var beklenen = m.TR_logits(x)[0][0]
-            TR_var l = m.TR_single_step(TR_tensor([[id * 1.0]]), TR_tensor([ö2.TR_position * 1.0]), ö2)
+            TR_var l = m.TR_single_step(TR_Tensor([[id * 1.0]]), TR_Tensor([ö2.TR_position * 1.0]), ö2)
             ö2.TR_advance(1)
             TR_assert(en_büyük_mutlak_fark(l, beklenen) < 0.00001, "adım \(i): tek_adım farklı")
         }
@@ -347,7 +347,7 @@ TR_test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katman�
 TR_test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     TR_var tablolar = TR_rotary_table(6, 4)
     TR_var x = TR_randn([1, 6, 8], TR_seed: 1)
-    TR_var x2 = TR_tensor(x)
+    TR_var x2 = TR_Tensor(x)
     TR_no_grad { x2[0][0] = TR_randn([8], TR_seed: 99) } # yalnızca 0. konum değişir
     TR_var yerel = TR_CausalAttention(8, 2, TR_seed: 4, TR_window: 2)
     TR_var genel = TR_CausalAttention(8, 2, TR_seed: 4)
@@ -438,15 +438,15 @@ TR_test "SwiGLU: birleşik [G | U] ayrı kapı ve yukarı ile aynıdır; sapmal�
 TR_test "PLEBağlamı: x @ W_ctx / √D, katman başına parçalara bölünüp ortak RMS normundan geçer" {
     TR_var c = TR_PLEContext(2, 2, 2)
     TR_assert_equal([2, 4], c.TR_context_proj.TR_weight.TR_shape)
-    c.TR_context_proj.TR_weight = TR_tensor([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
-    TR_var b = c.TR_forward(TR_tensor([[[1.0, 2.0]]])) # x @ W = [11, 14, 17, 20]
+    c.TR_context_proj.TR_weight = TR_Tensor([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
+    TR_var b = c.TR_forward(TR_Tensor([[[1.0, 2.0]]])) # x @ W = [11, 14, 17, 20]
     TR_assert_equal(2, b.TR_length)
     TR_assert_equal([1, 1, 2], b[0].TR_shape)
     # RMS normu ölçekten bağımsızdır: √D bölümü silinir; parça i, [11, 14] ve [17, 20]'nin normlusudur.
     TR_var r0 = TR_sqrt((11.0 * 11.0 + 14.0 * 14.0) / 2)
     TR_var r1 = TR_sqrt((17.0 * 17.0 + 20.0 * 20.0) / 2)
-    TR_assert(en_büyük_mutlak_fark(b[0], TR_tensor([[[11.0 / r0, 14.0 / r0]]])) < 0.0001, "parça 0")
-    TR_assert(en_büyük_mutlak_fark(b[1], TR_tensor([[[17.0 / r1, 20.0 / r1]]])) < 0.0001, "parça 1")
+    TR_assert(en_büyük_mutlak_fark(b[0], TR_Tensor([[[11.0 / r0, 14.0 / r0]]])) < 0.0001, "parça 0")
+    TR_assert(en_büyük_mutlak_fark(b[1], TR_Tensor([[[17.0 / r1, 20.0 / r1]]])) < 0.0001, "parça 1")
 }
 
 TR_test "PLEBloğu: H + RMSNorm(W_p · (GELU(W_g · H) ⊙ (bağlam + √P · tablo[kelime]) / √2)) elle hesaplanan değeri verir" {
@@ -454,21 +454,21 @@ TR_test "PLEBloğu: H + RMSNorm(W_p · (GELU(W_g · H) ⊙ (bağlam + √P · ta
     TR_var p = TR_PLEBlock(2, 3, 2)
     p.TR_gate_proj.TR_weight = TR_eye(2)
     p.TR_proj.TR_weight = TR_eye(2)
-    p.TR_table = TR_tensor([[0.0, 0.0], [1.0, 3.0], [9.0, 9.0]])
-    TR_var h = TR_tensor([[[1.0, 2.0]]])
-    TR_var bağlam = TR_tensor([[[1.0, -1.0]]])
+    p.TR_table = TR_Tensor([[0.0, 0.0], [1.0, 3.0], [9.0, 9.0]])
+    TR_var h = TR_Tensor([[[1.0, 2.0]]])
+    TR_var bağlam = TR_Tensor([[[1.0, -1.0]]])
     TR_var çıktı = p.TR_forward(h, [[1]], bağlam) # kelime 1: tablo satırı [1, 3]
     # elle: e = (bağlam + √2 · [1, 3]) / √2
     TR_var e0 = (1.0 + TR_sqrt(2.0) * 1.0) / TR_sqrt(2.0)
     TR_var e1 = (-1.0 + TR_sqrt(2.0) * 3.0) / TR_sqrt(2.0)
-    TR_var g = TR_ple_gelu(TR_tensor([1.0, 2.0])).TR_tolist
+    TR_var g = TR_ple_gelu(TR_Tensor([1.0, 2.0])).TR_tolist
     TR_var k0 = g[0] * e0
     TR_var k1 = g[1] * e1
     TR_var r = TR_sqrt((k0 * k0 + k1 * k1) / 2 + 0.00001)
-    TR_var beklenen = TR_tensor([[[1.0 + k0 / r, 2.0 + k1 / r]]])
+    TR_var beklenen = TR_Tensor([[[1.0 + k0 / r, 2.0 + k1 / r]]])
     TR_assert(en_büyük_mutlak_fark(çıktı, beklenen) < 0.0001, "PLE formülü: \(çıktı.TR_tolist) ≠ \(beklenen.TR_tolist)")
     # gelu'nun kendisi: tek çağrı yeri ple_gelu
-    TR_assert(en_büyük_mutlak_fark(TR_ple_gelu(TR_tensor([0.5, -1.0])), TR_gelu(TR_tensor([0.5, -1.0]), TR_approximate: TR_false)) < 0.0000001)
+    TR_assert(en_büyük_mutlak_fark(TR_ple_gelu(TR_Tensor([0.5, -1.0])), TR_gelu(TR_Tensor([0.5, -1.0]), TR_approximate: TR_false)) < 0.0000001)
 }
 
 TR_test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencere ve birleşik seçenekleri bağlanır" {
@@ -561,10 +561,10 @@ TR_test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsay
     TR_var m = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_num_kv_heads: 1, TR_head_dim: 16, TR_seed: 3)
     TR_assert_equal([8, 32], m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_shape)
     TR_assert_equal([6, 8], m.TR_cos_table.TR_shape)
-    TR_assert_equal([2, 6, 12], m.TR_forward(TR_tensor([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).TR_shape)
+    TR_assert_equal([2, 6, 12], m.TR_forward(TR_Tensor([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).TR_shape)
     TR_var a = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 3)
     TR_var b = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_head_dim: 4, TR_seed: 3)
-    TR_assert_equal(a.TR_forward(TR_tensor([[1, 2, 3]])).TR_tolist, b.TR_forward(TR_tensor([[1, 2, 3]])).TR_tolist)
+    TR_assert_equal(a.TR_forward(TR_Tensor([[1, 2, 3]])).TR_tolist, b.TR_forward(TR_Tensor([[1, 2, 3]])).TR_tolist)
 }
 
 TR_test "GPT: rope_tabanı döner konum tablolarının tabanıdır; varsayılan 10000 (Hugging Face rope_theta)" {

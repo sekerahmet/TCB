@@ -31,11 +31,11 @@ TR_if ayar["koşu"] == "" TR_or ayar["veri"] == "" {
     TR_throw ("koşu ve veri klasörü verilmeli: --koşu <koşu klasörü> --veri <veri klasörü>")
 }
 TR_default_device(ayar["device"])
-TR_var yapılandırma = TR_json_parse(TR_read_file(TR_path(ayar["koşu"], "config.json")))
+TR_var yapılandırma = TR_json_parse(TR_read_file(TR_Path(ayar["koşu"], "config.json")))
 TR_var eğitim = yapılandırma["config"]
-TR_var p = TR_load_tokenizer(TR_path(ayar["veri"], "tokenizer.json"))
+TR_var p = TR_load_tokenizer(TR_Path(ayar["veri"], "tokenizer.json"))
 TR_var model = eğitim_modeli(eğitim, p.TR_vocab_size)
-TR_load_parameters(model, TR_load_tensors(TR_path(ayar["koşu"], "model.trt")))
+TR_load_parameters(model, TR_load_tensors(TR_Path(ayar["koşu"], "model.trt")))
 TR_var T = TR_Int(eğitim["bağlam"])
 
 # --- Kayıp, doğruluk ve bantlar ---
@@ -44,7 +44,7 @@ TR_var parça = 0
 TR_var doğru_konum = [] # pencere içi konum başına doğru tahmin sayısı
 TR_for i TR_in 0..T { doğru_konum.TR_append(0) }
 TR_var başla = TR_time_ms()
-TR_var okuyucu = TR_dataset(TR_path(ayar["veri"], "valid.npy")).TR_sequential(TR_batch_size: ayar["toplu"], TR_context: T)
+TR_var okuyucu = TR_Dataset(TR_Path(ayar["veri"], "valid.npy")).TR_sequential(TR_batch_size: ayar["toplu"], TR_context: T)
 TR_no_grad {
     TR_for iş TR_in okuyucu {
         TR_var h = TR_none
@@ -109,12 +109,12 @@ TR_for istem TR_in istemler { örnekler.TR_append({"istem": istem, "metin": açg
 TR_var sınav = {"loss": kayıp, "ppl": TR_exp(TR_min(kayıp, 50.0)), "bpb": kayıp / TR_log(2.0) / ayar["bayt_parça"],
     "doğruluk": toplam_doğru / TR_max(parça, 1), "bantlar": bantlar, "parça": parça, "pencere": pencere,
     "sondalar": sondalar, "süre_sn": (TR_time_ms() - başla) / 1000.0, "hassasiyet": ayar["hassasiyet"]}
-TR_var hız_yolu = TR_path(ayar["koşu"], "speed.json")
-TR_var sonuç_ = {"ad": TR_path(ayar["koşu"]).TR_name, "parametre_sayısı": yapılandırma["num_params"], "step": TR_Int(eğitim["step"]),
+TR_var hız_yolu = TR_Path(ayar["koşu"], "speed.json")
+TR_var sonuç_ = {"ad": TR_Path(ayar["koşu"]).TR_name, "parametre_sayısı": yapılandırma["num_params"], "step": TR_Int(eğitim["step"]),
     "eğitim_parçası": TR_Int(eğitim["step"]) * TR_Int(eğitim["toplu"]) * TR_Int(eğitim["birikim"]) * T, "last": sınav,
     "hız": TR_if hız_yolu.TR_exists { TR_json_parse(TR_read_file(hız_yolu)) } TR_else { TR_none }, "örnekler": örnekler,
     "device": TR_default_device(), "config": eğitim}
-TR_write_file(TR_path(ayar["koşu"], "results.json"), TR_json_string(sonuç_))
+TR_write_file(TR_Path(ayar["koşu"], "results.json"), TR_json_string(sonuç_))
 TR_print("sınav: kayıp \(TR_round(kayıp, 4)) · ppl \(TR_round(sınav["ppl"], 3)) · bpb \(TR_round(sınav["bpb"], 4)) · doğruluk \(TR_round(sınav["doğruluk"], 4)) · \(parça) parça (\(pencere) pencere)")
 TR_for ad, v TR_in bantlar { TR_print("  bant \(ad): \(TR_round(v, 4))") }
 TR_for s TR_in sondalar { TR_print("  sonda: farklı_4 \(TR_round(s["farklı_4"], 3)) · döngüde \(s["döngüde"]) · \(s["metin"])") }

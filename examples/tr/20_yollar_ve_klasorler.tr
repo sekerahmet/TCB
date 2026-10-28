@@ -10,37 +10,37 @@
 TR_var kök = TR_temp_dir()
 
 # yol(...) parçaları birleştirir; Yol değiştirilemez ve / ile gösterilir. Özellikleri yola soru sorar.
-TR_var y = TR_path(kök, "veri", "derlem.tar.gz")
-TR_print(TR_type(y) == TR_Path, y.TR_name, y.TR_extension, y.TR_stem, y.TR_parent.TR_name)
+TR_var y = TR_Path(kök, "veri", "derlem.tar.gz")
+TR_print(TR_Type(y) == TR_Path, y.TR_name, y.TR_extension, y.TR_stem, y.TR_parent.TR_name)
 
 # Klasör ve dosya oluşturmak; yol alan her yerleşik Metin yerine Yol da kabul eder.
-TR_make_dir(TR_path(kök, "veri", "alt"))
-TR_write_file(TR_path(kök, "veri", "a.txt"), "merhaba")
-TR_write_file(TR_path(kök, "veri", "alt", "b.txt"), "dünya!")
-TR_print(TR_path(kök, "veri", "a.txt").TR_is_file, TR_path(kök, "veri").TR_is_dir, TR_path(kök, "yok").TR_exists)
+TR_make_dir(TR_Path(kök, "veri", "alt"))
+TR_write_file(TR_Path(kök, "veri", "a.txt"), "merhaba")
+TR_write_file(TR_Path(kök, "veri", "alt", "b.txt"), "dünya!")
+TR_print(TR_Path(kök, "veri", "a.txt").TR_is_file, TR_Path(kök, "veri").TR_is_dir, TR_Path(kök, "yok").TR_exists)
 # mutlak, yolun baştan sona yazılmış hâlidir (göreli yolu çalışma klasörüne göre çözer).
-TR_print(TR_path(".").TR_absolute.TR_is_dir, TR_path(kök, "veri").TR_absolute == TR_path(kök, "veri"))
-TR_print("a.txt boyutu:", TR_path(kök, "veri", "a.txt").TR_size, "bayt")
+TR_print(TR_Path(".").TR_absolute.TR_is_dir, TR_Path(kök, "veri").TR_absolute == TR_Path(kök, "veri"))
+TR_print("a.txt boyutu:", TR_Path(kök, "veri", "a.txt").TR_size, "bayt")
 
 # klasörü_listele kalıba uyan dosya ve klasörleri sıralı Yol listesi olarak verir (** alt klasörlere iner).
-TR_print(TR_list_dir(TR_path(kök, "veri"), "**/*.txt").TR_map { TR_it.TR_name })
+TR_print(TR_list_dir(TR_Path(kök, "veri"), "**/*.txt").TR_map { TR_it.TR_name })
 
 # kopyala ve taşı hedefin yolunu döndürür. Hedef zaten varsa üzerine_yaz: doğru gerekir.
-TR_copy(TR_path(kök, "veri", "a.txt"), TR_path(kök, "veri", "alt"))
-TR_write_file(TR_path(kök, "yeni.txt"), "yeni içerik")
-TR_copy(TR_path(kök, "yeni.txt"), TR_path(kök, "veri", "a.txt"), TR_overwrite: TR_true)
-TR_print(TR_read_file(TR_path(kök, "veri", "a.txt")))
-TR_move(TR_path(kök, "yeni.txt"), TR_path(kök, "taşındı.txt"))
-TR_print(TR_path(kök, "yeni.txt").TR_exists, TR_path(kök, "taşındı.txt").TR_exists)
+TR_copy(TR_Path(kök, "veri", "a.txt"), TR_Path(kök, "veri", "alt"))
+TR_write_file(TR_Path(kök, "yeni.txt"), "yeni içerik")
+TR_copy(TR_Path(kök, "yeni.txt"), TR_Path(kök, "veri", "a.txt"), TR_overwrite: TR_true)
+TR_print(TR_read_file(TR_Path(kök, "veri", "a.txt")))
+TR_move(TR_Path(kök, "yeni.txt"), TR_Path(kök, "taşındı.txt"))
+TR_print(TR_Path(kök, "yeni.txt").TR_exists, TR_Path(kök, "taşındı.txt").TR_exists)
 
 # sil silinen dosya sayısını verir; dolu klasör için içindekilerle: doğru gerekir.
-TR_print(TR_remove(TR_path(kök, "taşındı.txt")))
-TR_print(TR_remove(TR_path(kök, "veri"), TR_recursive: TR_true))
+TR_print(TR_remove(TR_Path(kök, "taşındı.txt")))
+TR_print(TR_remove(TR_Path(kök, "veri"), TR_recursive: TR_true))
 
 # dosya_satırları dosyayı akışla satır satır okur (SatırOkuyucu): bellek dosyadan bağımsızdır.
-TR_write_file(TR_path(kök, "notlar.txt"), "bir\niki\nüç")
-TR_var okuyucu = TR_read_lines(TR_path(kök, "notlar.txt"))
-TR_print(TR_type(okuyucu) == TR_LineReader, okuyucu.TR_next(), okuyucu.TR_next())
+TR_write_file(TR_Path(kök, "notlar.txt"), "bir\niki\nüç")
+TR_var okuyucu = TR_read_lines(TR_Path(kök, "notlar.txt"))
+TR_print(TR_Type(okuyucu) == TR_LineReader, okuyucu.TR_next(), okuyucu.TR_next())
 # kapat dosyayı sonuna kadar okumadan bırakır: ilk çağrıda doğru, sonrakilerde yanlış verir.
 TR_print(okuyucu.TR_close(), okuyucu.TR_close())
 

@@ -53,7 +53,7 @@ func TestSecretValuesMaskedInOutput(t *testing.T) {
 	writeTR(t, dir, "g.tr", `TR_var ayar = TR_command_line({"api_key": ""})
 TR_var belirteç = TR_env("HF_TOKEN")
 TR_print("belirteç:", belirteç, "anahtar:", ayar["api_key"])
-TR_var g = TR_logger("kayit/g.jsonl")
+TR_var g = TR_Logger("kayit/g.jsonl")
 g.TR_append({"belirteç": belirteç})
 TR_write_file("veri.txt", belirteç)
 TR_throw "bozuk: " + ayar["api_key"]
@@ -79,8 +79,8 @@ TR_throw "bozuk: " + ayar["api_key"]
 func TestProgressOnCommandLine(t *testing.T) {
 	t.Skip("katman 2: değer metninin kalıp sözcükleri (İlerleme(adım 4/10) → Progress(step 4/10)) tek dile inince açılır")
 	dir := t.TempDir()
-	writeTR(t, dir, "i.tr", `TR_var g = TR_logger("i.jsonl")
-TR_var ç = TR_progress(10, TR_log: g)
+	writeTR(t, dir, "i.tr", `TR_var g = TR_Logger("i.jsonl")
+TR_var ç = TR_Progress(10, TR_log: g)
 TR_for i TR_in 0..4 { ç.TR_update({"loss": 1.5}) }
 TR_print("bitti mi:", ç)
 TR_throw "patladı"

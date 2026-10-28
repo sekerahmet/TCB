@@ -261,17 +261,17 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 	}{
 		{codes.TypeInt, `5`}, {codes.TypeFloat, `2.5`}, {codes.TypeString, `"abc"`}, {codes.TypeBool, `TR_true`},
 		{codes.TypeList, `[1, 2]`}, {codes.TypeDict, `{}`}, {codes.TypeRange, `1..3`}, {codes.TypeFunction, `(x) => x`},
-		{codes.TypeBuiltinFunction, `TR_print`}, {codes.TypeTensor, `TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`},
-		{codes.TypeOptimizer, `TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)])`}, {codes.TypeOptimizer, `TR_SGD([TR_tensor([1.0], TR_requires_grad: TR_true)])`},
-		{codes.TypeDataset, `TR_dataset("tests/data/numbers")`},
-		{codes.TypeSampler, `TR_dataset("tests/data/numbers").TR_sampler(TR_batch_size: 1, TR_context: 2)`},
-		{codes.TypeSequentialReader, `TR_dataset("tests/data/numbers").TR_sequential(TR_batch_size: 1, TR_context: 2)`},
+		{codes.TypeBuiltinFunction, `TR_print`}, {codes.TypeTensor, `TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`},
+		{codes.TypeOptimizer, `TR_AdamW([TR_Tensor([1.0], TR_requires_grad: TR_true)])`}, {codes.TypeOptimizer, `TR_SGD([TR_Tensor([1.0], TR_requires_grad: TR_true)])`},
+		{codes.TypeDataset, `TR_Dataset("tests/data/numbers")`},
+		{codes.TypeSampler, `TR_Dataset("tests/data/numbers").TR_sampler(TR_batch_size: 1, TR_context: 2)`},
+		{codes.TypeSequentialReader, `TR_Dataset("tests/data/numbers").TR_sequential(TR_batch_size: 1, TR_context: 2)`},
 		{codes.TypeTokenizer, `TR_load_tokenizer("tests/data/tokenizer.json")`},
-		{codes.TypePath, `TR_path("tests/yerlesikler_test.tr")`},
+		{codes.TypePath, `TR_Path("tests/yerlesikler_test.tr")`},
 		{codes.TypeLineReader, `TR_read_lines("tests/data/tokenizer.json")`},
-		{codes.TypeProgress, `TR_progress(3)`},
-		{codes.TypeLogger, `TR_logger("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
-		{codes.TypeCheckpoint, `TR_checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": TR_tensor([1.0], TR_requires_grad: TR_true)})`},
+		{codes.TypeProgress, `TR_Progress(3)`},
+		{codes.TypeLogger, `TR_Logger("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
+		{codes.TypeCheckpoint, `TR_Checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": TR_Tensor([1.0], TR_requires_grad: TR_true)})`},
 	}
 	t.Cleanup(logging.CloseAll)
 	var setup []string

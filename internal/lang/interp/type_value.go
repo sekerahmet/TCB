@@ -79,7 +79,7 @@ func TypeOfValue(v Value) *TypeVal {
 	case *BoolVal:
 		return typeValues[codes.TypeBool]
 	case *NullVal:
-		return typeValues[codes.TypeNone]
+		return typeValues[codes.TypeNoneType]
 	case *ListVal:
 		return typeValues[codes.TypeList]
 	case *DictVal:

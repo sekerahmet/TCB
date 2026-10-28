@@ -21,11 +21,6 @@ var coreBuiltins = [...]struct {
 }{
 	{codes.FnPrint, printBuiltin},
 	{codes.FnInput, inputBuiltin},
-	{codes.FnType, typeBuiltin},
-	{codes.FnInt, intBuiltin},
-	{codes.FnFloat, floatBuiltin},
-	{codes.FnStr, stringBuiltin},
-	{codes.FnRange, rangeBuiltin},
 	{codes.FnSum, sumBuiltin},
 	{codes.FnMin, minBuiltin},
 	{codes.FnMax, maxBuiltin},
@@ -46,7 +41,6 @@ func (v *VM) registerBuiltins() {
 	for _, k := range coreBuiltins {
 		v.RegisterNoNamed(k.kd, k.fn)
 	}
-	v.singleArg(codes.FnStr, singleChar)
 }
 
 // printBuiltin yazdır() yerleşiğidir.
@@ -82,105 +76,6 @@ func inputBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return &StringVal{Val: line}, nil
 }
 
-// typeBuiltin tip() yerleşiğidir.
-// Tip Sorgulama: tip(x)
-func typeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, ArgCountError(codes.FnType, 1, len(args), messages.Text(messages.H2301))
-	}
-	return TypeOfValue(args[0]), nil
-}
-
-// intBuiltin tam() yerleşiğidir.
-// Tip Dönüşümleri: tam(x), ondalık(x), metin(x)
-func intBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, ArgCountError(codes.FnInt, 1, len(args), messages.Text(messages.H2301))
-	}
-	switch val := args[0].(type) {
-	case *IntVal:
-		return val, nil
-	case *FloatVal:
-		n, err := floatToInt(CallPrefix(codes.FnInt), val.Val)
-		if err != nil {
-			return nil, err
-		}
-		return NewInt(n), nil
-	case *StringVal:
-		n, err := strconv.ParseInt(strings.TrimSpace(val.Val), 10, 64)
-		if err != nil {
-			return nil, messages.New(messages.H2429, CallPrefix(codes.FnInt), val.Val)
-		}
-		return NewInt(n), nil
-	case *BoolVal:
-		if val.Val {
-			return NewInt(1), nil
-		}
-		return NewInt(0), nil
-	default:
-		return nil, ArgTypeError(codes.FnInt, 1, args[0], codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool)
-	}
-}
-
-// floatBuiltin ondalık() yerleşiğidir.
-func floatBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, ArgCountError(codes.FnFloat, 1, len(args), messages.Text(messages.H2301))
-	}
-	switch val := args[0].(type) {
-	case *FloatVal:
-		return val, nil
-	case *IntVal:
-		return &FloatVal{Val: float64(val.Val)}, nil
-	case *StringVal:
-		s := strings.TrimSpace(val.Val)
-		n, err := strconv.ParseFloat(s, 64) // "inf", "nan" her dilde okunur
-		if err != nil {
-			var ok bool
-			if n, ok = ParseNonFinite(s, y.textLanguage()); !ok {
-				return nil, messages.New(messages.H2430, CallPrefix(codes.FnFloat), val.Val)
-			}
-		}
-		return &FloatVal{Val: n}, nil
-	default:
-		return nil, ArgTypeError(codes.FnFloat, 1, args[0], codes.TypeFloat, codes.TypeInt, codes.TypeString)
-	}
-}
-
-// stringBuiltin metin() yerleşiğidir.
-func stringBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, ArgCountError(codes.FnStr, 1, len(args), messages.Text(messages.H2301))
-	}
-	return singleChar(y, args[0])
-}
-
-// rangeBuiltin aralık() yerleşiğidir.
-// Liste: aralık(bitiş) ya da aralık(başlangıç, bitiş)
-func rangeBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) != 1 && len(args) != 2 {
-		return nil, ArgCountError(codes.FnRange, Counts(1, 2), len(args), messages.Text(messages.H2302), messages.Text(messages.H2303))
-	}
-	var bounds [2]int64 // tek argümanda başlangıç 0
-	first := 2 - len(args)
-	for i, arg := range args {
-		n, ok := arg.(*IntVal)
-		if !ok {
-			return nil, ArgTypeError(codes.FnRange, i+1, arg, codes.TypeInt)
-		}
-		bounds[first+i] = n.Val
-	}
-	start, end := bounds[0], bounds[1]
-	if err := checkRangeSize(start, end); err != nil {
-		return nil, err
-	}
-	elems := []Value{}
-	for i := start; i < end; i++ {
-		elems = append(elems, NewInt(i))
-	}
-	return &ListVal{Elements: elems}, nil
-}
-
 // sumBuiltin toplam() yerleşiğidir.
 // Temel Matematik Fonksiyonları
 func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
@@ -212,7 +107,7 @@ func absBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 	if iv, ok := args[0].(*IntVal); ok {
 		if iv.Val == math.MinInt64 {
-			m, o := codes.NameRef(codes.FnAbs), codes.NameRef(codes.FnFloat)
+			m, o := codes.NameRef(codes.FnAbs), codes.NameRef(codes.TypeFloat)
 			return nil, messages.New(messages.H2431, m, codes.NameRef(codes.TypeInt), iv.Val, o)
 		}
 		if iv.Val < 0 {
@@ -386,28 +281,6 @@ func callable(v Value) bool {
 // MaxCollectionSize is the largest number of elements a single builtin call may produce (it
 // guards against running out of memory).
 const MaxCollectionSize = 50_000_000
-
-// singleChar metin(x) yerleşiğinin tek argümanlı gövdesidir.
-func singleChar(y *VM, a Value) (Value, error) {
-	return &StringVal{Val: y.textOf(a)}, nil
-}
-
-// singleArg kayıtlı bir yerleşiğe, tek argümanla (adlı argümansız) çağrıldığında
-// argüman dilimi ayırmadan çalışan gövdesini bağlar. Gövde, Fn'in tek argümanlı
-// durumuyla birebir aynı olmalıdır.
-func (v *VM) singleArg(kd codes.Code, single func(*VM, Value) (Value, error)) {
-	if b := v.Builtin(kd); b != nil {
-		b.Single = single
-	}
-}
-
-// checkRangeSize aralık(başlangıç, bitiş) için boyut denetimi yapar; boş aralık (bitiş <= başlangıç) geçerlidir.
-func checkRangeSize(start, end int64) error {
-	if end > start && (end-start > MaxCollectionSize || end-start < 0) {
-		return messages.New(messages.H2435, CallPrefix(codes.FnRange), MaxCollectionSize)
-	}
-	return nil
-}
 
 // extremeArgs min/max'ın argümanlarını açar: tek bir liste verilirse elemanları,
 // değilse argümanların kendisi karşılaştırılır.

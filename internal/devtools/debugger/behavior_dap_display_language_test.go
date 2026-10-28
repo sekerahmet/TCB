@@ -23,7 +23,7 @@ func TestDAPDisplayHelper(t *testing.T) {
 		t.Skip("yalnızca TestDAPDisplayFollowsPersonsLanguage'ın alt süreci")
 	}
 	c := startDAP(t)
-	path := writeProgram(t, "TR_var b = TR_true\nTR_var l = [TR_true, TR_none]\nTR_var t = TR_tensor([1.0, 2.0])\nTR_print(b)\n")
+	path := writeProgram(t, "TR_var b = TR_true\nTR_var l = [TR_true, TR_none]\nTR_var t = TR_Tensor([1.0, 2.0])\nTR_print(b)\n")
 	c.launch(path, false, map[string]interface{}{"line": 5})
 	c.event("stopped")
 	var lines []string

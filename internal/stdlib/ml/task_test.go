@@ -26,7 +26,7 @@ TR_var d = {"başladı": TR_false, "devam": TR_false}
 // kaydedilmeye devam eder (hakem kanıtı: 3000 denemenin 2745'i "türev izlemiyor" hatası
 // veriyordu).
 func TestNoGradTaskBound(t *testing.T) {
-	out := mustRun(t, `TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+	out := mustRun(t, `TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_func f(x) { TR_return x * 2 }
 TR_var bitti = TR_false
 TR_async {
@@ -53,7 +53,7 @@ TR_print(deneme > 0, izsiz)`)
 // türevsiz bloğu kilidi bırakan bir çağrıdayken (bekle) başka görev türevli çalışır; blok
 // beklemeden dönünce kendi türevsiz durumunu görür; yeni görev türevli başlar.
 func TestNoGradAwaitTaskIsolation(t *testing.T) {
-	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+	out := mustRun(t, watchedTR+`TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var a = []
 TR_var b = []
 TR_async {
@@ -79,8 +79,8 @@ TR_print(a, b)`)
 // özel_türev'in ileri ve geri hesapları da görev başına türevsiz çalışır: ileri ya da geri
 // kilidi bıraktığında başka görevin hesabı çizgeye kaydedilir.
 func TestCustomGradForwardBackwardTaskBound(t *testing.T) {
-	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
-TR_var v = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+	out := mustRun(t, watchedTR+`TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var v = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var adım = {"ileri": TR_false, "ileri_devam": TR_false, "geri": TR_false, "geri_devam": TR_false}
 TR_var yavaş = TR_custom_grad(
     TR_forward: TR_func(x) { adım["ileri"] = TR_true; bekle_koşul(() => adım["ileri_devam"]); TR_return [x * 1, []] },
@@ -106,7 +106,7 @@ TR_print(i1, i2, w.TR_grad.TR_tolist)`)
 // Başka bir görevin türevsiz bloğu sürerken, türev izlenen tensöre indeksle atama türevli
 // görevde hâlâ reddedilir.
 func TestNoGradIndexAssignTaskBound(t *testing.T) {
-	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+	out := mustRun(t, watchedTR+`TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_async {
     TR_no_grad { d["başladı"] = TR_true; bekle_koşul(() => d["devam"]) }
 }
@@ -125,7 +125,7 @@ TR_print(w.TR_tolist, h.TR_contains("no_grad"))`)
 // çizgenin düğümlerinden geri yayılım başlatırsa açık hata alır (gradyanlar iki kez ya da
 // eksik birikmez).
 func TestConcurrentBackwardSameGraph(t *testing.T) {
-	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+	out := mustRun(t, watchedTR+`TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var yavaş = TR_custom_grad(
     TR_forward: TR_func(x) { TR_return [x * 1, []] },
     TR_backward: TR_func(s, g) { d["başladı"] = TR_true; bekle_koşul(() => d["devam"]); TR_return [g] }

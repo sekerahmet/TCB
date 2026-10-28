@@ -118,7 +118,7 @@ var displaySurfaces = []displaySurface{
 		}},
 	{name: "örnek_kod", files: map[string]string{"p.tr": "değişken ad_1 = 1\neğer tip(ad_1) == \"Tamsayı\" {\n    yazdır(1)\n}\n"}, args: run, frameFile: "p.tr",
 		want: func(r *codes.Language) []string {
-			return []string{r.Name(codes.FnType) + "(x) == " + r.Name(codes.TypeInt)} // iletinin örneği x'le yazılır
+			return []string{r.Name(codes.TypeType) + "(x) == " + r.Name(codes.TypeInt)} // iletinin örneği x'le yazılır
 		}},
 	{name: "kullanım", files: map[string]string{"p.tr": "yazdır(ortanca())\n"}, args: run, frameFile: "p.tr",
 		want: func(r *codes.Language) []string { return []string{r.Name(codes.FnMedian) + "("} }},

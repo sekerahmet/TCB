@@ -7,7 +7,7 @@ TR_import "tr/hazir"
 
 TR_var arg = TR_command_line({"folder": "", "adet": 100, "device": "cpu", "ad": "", "ağırlık_türü": "float32"})
 TR_default_device(arg["device"])
-TR_var p = TR_load_tokenizer(TR_path(arg["folder"], "tokenizer.json"))
+TR_var p = TR_load_tokenizer(TR_Path(arg["folder"], "tokenizer.json"))
 TR_var model = TR_pretrained_model(arg["folder"], TR_weight_dtype: arg["ağırlık_türü"])
 TR_var ids = p.TR_encode("The capital of France is")
 model.TR_generate(ids, 5, TR_temperature: 0)

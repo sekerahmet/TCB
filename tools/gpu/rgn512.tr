@@ -59,11 +59,11 @@ TR_if arg["weight"] != "" {
 TR_var ağırlıklar = TR_parameters(model)
 
 TR_var birikim = arg["toplu"] // arg["mikro"]
-TR_var küme = TR_dataset(arg["veri"])
+TR_var küme = TR_Dataset(arg["veri"])
 TR_var örnekler = TR_if arg["sequential"] { küme.TR_sequential(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"]) } TR_else {
     küme.TR_sampler(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"], TR_seed: arg["tohum"]) }
 TR_var adım_başına = arg["toplu"] * arg["bağlam"]
-TR_var ısınma = TR_max(1, TR_int(arg["step"] * 0.01))
+TR_var ısınma = TR_max(1, TR_Int(arg["step"] * 0.01))
 
 # Parametreler hedefin ayrımıyla sayılır: PLE tabloları gömme gibi çalışır (her parçada bir satır),
 # modelin boyu gövde + gömmedir.
@@ -79,7 +79,7 @@ TR_var M = (n) => TR_round(n / 1000000.0, 1)
 TR_print("hedef model (TR) | YYGYGYYG | \(M(parametre_sayısı))M parametre (PLE tabloları \(M(ple_tablo))M, gövde + gömme \(M(parametre_sayısı - ple_tablo))M) | \(arg["step"]) adım × \(adım_başına) parça | cihaz \(TR_default_device())")
 
 # Doğrulama kaybı: dosyanın başından ardışık pencereler (hedefle aynı), türevsiz, eğitimin hassasiyetiyle.
-TR_var doğrulama_kümesi = TR_if arg["doğrulama"] == "" { TR_none } TR_else { TR_dataset(arg["doğrulama"]) }
+TR_var doğrulama_kümesi = TR_if arg["doğrulama"] == "" { TR_none } TR_else { TR_Dataset(arg["doğrulama"]) }
 TR_func değerlendir() {
     TR_var s = doğrulama_kümesi.TR_sequential(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"])
     TR_var n = TR_max(1, arg["değerlendirme_parça"] // arg["bağlam"] // arg["mikro"])
@@ -108,7 +108,7 @@ TR_if arg["koşu"] != "" {
     TR_var nesneler = {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "örnekler": örnekler, "izlenen": izlenen}
     TR_if op.TR_adamw_no_decay != TR_none { nesneler["adamw_sönümsüz"] = op.TR_adamw_no_decay }
     TR_if op.TR_row_rms != TR_none { nesneler["satır_rms"] = op.TR_row_rms.TR_state }
-    kn = TR_checkpoint(arg["koşu"], nesneler, TR_every_minutes: arg["kayıt_dakika"])
+    kn = TR_Checkpoint(arg["koşu"], nesneler, TR_every_minutes: arg["kayıt_dakika"])
 }
 TR_var adım = TR_if kn == TR_none { 0 } TR_else { kn.TR_resume_step }
 TR_var nan_adımı = arg["nan_adımı"]
@@ -129,7 +129,7 @@ TR_for adım < arg["step"] {
             }
         }
         TR_if adım + 1 == nan_adımı {
-            kayıp = kayıp * TR_float("nan")
+            kayıp = kayıp * TR_Float("nan")
             nan_adımı = -1
         }
         TR_backward(kayıp)
@@ -182,7 +182,7 @@ TR_if arg["step"] == 0 TR_and doğrulama_kümesi != TR_none {
 }
 
 TR_if arg["çıktı"] != "" TR_and süreler.TR_length > 0 {
-    TR_var ölçülen = süreler[TR_int(süreler.TR_length // 2)..süreler.TR_length]
+    TR_var ölçülen = süreler[TR_Int(süreler.TR_length // 2)..süreler.TR_length]
     TR_write_file(arg["çıktı"], TR_json_string({"tool": "tr", "model": "target", "steps": arg["step"], "tokens_per_step": adım_başına,
         "first_step_ms": süreler[0], "measured": {"median_ms": TR_median(ölçülen), "mean_ms": TR_mean(ölçülen)}}))
 }

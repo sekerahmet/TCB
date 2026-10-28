@@ -6,12 +6,12 @@
 # Çalıştırma (proje kökünden): tr examples/tr/30_xor_agi.tr
 
 # Gizli katman tanh, çıkış sigmoid; ağırlıklar tensördür, AdamW ile eğitilir.
-TR_var X_veri = TR_tensor([[0, 0], [0, 1], [1, 0], [1, 1]])
-TR_var Y_hedef = TR_tensor([[0], [1], [1], [0]])
-TR_var W1 = TR_tensor(TR_randn([2, 8], TR_seed: 42) * 0.5, TR_requires_grad: TR_true)
-TR_var b1 = TR_tensor(TR_zeros([8]), TR_requires_grad: TR_true)
-TR_var W2 = TR_tensor(TR_randn([8, 1], TR_seed: 7) * 0.5, TR_requires_grad: TR_true)
-TR_var b2 = TR_tensor(TR_zeros([1]), TR_requires_grad: TR_true)
+TR_var X_veri = TR_Tensor([[0, 0], [0, 1], [1, 0], [1, 1]])
+TR_var Y_hedef = TR_Tensor([[0], [1], [1], [0]])
+TR_var W1 = TR_Tensor(TR_randn([2, 8], TR_seed: 42) * 0.5, TR_requires_grad: TR_true)
+TR_var b1 = TR_Tensor(TR_zeros([8]), TR_requires_grad: TR_true)
+TR_var W2 = TR_Tensor(TR_randn([8, 1], TR_seed: 7) * 0.5, TR_requires_grad: TR_true)
+TR_var b2 = TR_Tensor(TR_zeros([1]), TR_requires_grad: TR_true)
 TR_func ağ(X) {
     TR_return TR_sigmoid(TR_tanh(X @ W1 + b1) @ W2 + b2)
 }

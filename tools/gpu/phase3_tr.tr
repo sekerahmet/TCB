@@ -27,9 +27,9 @@ TR_const KAYIP_ADIM = c["loss_steps"]
 
 # Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).
 TR_var sentetik = []
-TR_for s TR_in TR_range(8) {
-    TR_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_for t TR_in TR_range(T + 1)] TR_for i TR_in TR_range(B)]
-    TR_var tümü = TR_tensor(satırlar)
+TR_for s TR_in 0..8 {
+    TR_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_for t TR_in 0..(T + 1)] TR_for i TR_in 0..B]
+    TR_var tümü = TR_Tensor(satırlar)
     sentetik.TR_append([tümü.TR_slice(1, 0, T), tümü.TR_slice(1, 1, T + 1)])
 }
 
@@ -54,7 +54,7 @@ TR_func adım_at(adım) {
 # yüzdelik: p. yüzdelik (en yakın sıra yöntemi).
 TR_func yüzdelik(değerler, p) {
     TR_var s = değerler.TR_sort()
-    TR_return s[TR_max(0, TR_int(TR_ceil(p / 100 * s.TR_length)) - 1)]
+    TR_return s[TR_max(0, TR_Int(TR_ceil(p / 100 * s.TR_length)) - 1)]
 }
 
 TR_var kayıplar = []

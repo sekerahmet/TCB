@@ -17,8 +17,8 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 | Girdi | Okuyan | Korumalar |
 | :-- | :-- | :-- |
 | `.trt` tensör dosyaları | `TR_fn_load_tensors` | biçim ve sürüm denetimi, sağlama toplamı, tensör başına eleman sınırı, fiziksel bellek sınırı ([kılavuz §4.C](docs/guide/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev), [dil tanımı 15.46 ve 15.42](docs/spec/15_tensorler.md)) |
-| Kontrol noktaları (`<koşu>/checkpoints/`) | `TR_fn_checkpoint` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `TR_fn_load_tensors` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzNoktaDosyalari` |
-| `.npy` veri dosyaları | `TR_fn_dataset` | başlık boyu sınırı, tür ve şekil denetimi |
+| Kontrol noktaları (`<koşu>/checkpoints/`) | `TR_type_Checkpoint` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `TR_fn_load_tensors` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzNoktaDosyalari` |
+| `.npy` veri dosyaları | `TR_type_Dataset` | başlık boyu sınırı, tür ve şekil denetimi |
 | `tokenizer.json` parçalayıcı dosyaları | `TR_fn_load_tokenizer` | düzenli ifadeler adım bütçesiyle çalışır, üstel geri izlemeye açık ve çok derin iç içe desenler yüklenmez ([kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md)) |
 | CSV ve JSON metinleri | `TR_fn_read_csv`, `TR_fn_parse_csv`, `TR_fn_json_parse` | biçim hataları açık hata verir |
 | `TR_cmd_build` ile üretilmiş uygulamanın gömülü paketi | uygulamanın kendisi | bozuk (yarım indirilmiş, kırpılmış) paket açık hata verir, modüller geçici klasörün dışına yazılmaz |

@@ -508,6 +508,18 @@ func CheckDefinitions(d *Language) []error {
 			}
 		case KindFunction:
 			checkSig(k, "", t.Signature)
+		case KindType:
+			// Tip çağrılınca kurar ve çevirir (3.12): çağrının imzası tipindir, dönüşü tipin kendisi.
+			sig := t.Signature
+			if len(t.Members) > 0 {
+				errorf("%s: a type has no member signatures", k)
+			}
+			if len(sig.Params) > 0 || len(sig.Named) > 0 || !sig.Return.Empty() {
+				if r := sig.Return; len(r.Types) != 1 || r.Types[0] != k || r.Optional {
+					errorf("%s: a type's call returns the type itself (3.12)", k)
+				}
+				checkSig(k, "", sig)
+			}
 		case KindConstant:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || len(t.Members) > 0 || t.Signature.Return.Empty() {
 				errorf("%s: a constant takes no parameters; only the return (the value's type) is written", k)

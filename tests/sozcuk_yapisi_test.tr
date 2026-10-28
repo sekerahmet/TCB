@@ -16,7 +16,7 @@ TR_test "2.1 ilk satırı #! olan dosyada başlık ikinci satırdır" {
 
 TR_test "2.1 aktarmalar dosyanın başındadır" {
     # Bu dosyanın aktarmaları başlıktan hemen sonra; başka yerdeki aktarma: tests/negative/aktarma_yeri.tr
-    TR_assert_equal(TR_Dict, TR_type(yazılış))
+    TR_assert_equal(TR_Dict, TR_Type(yazılış))
 }
 
 TR_test "2.1a tek yazı sistemindeki adlar geçerlidir" {
@@ -55,7 +55,7 @@ TR_test "2.3a dilin sözcükleri TR_ ve kimliğin adıyla yazılır; sınıfı y
     TR_var l = [1, 2, 3]
     TR_assert_equal([2, 4, 6], l.TR_map { TR_it * 2 })
     TR_assert_equal(3, l.TR_length)
-    TR_assert_equal(TR_Int, TR_type(1))
+    TR_assert_equal(TR_Int, TR_Type(1))
     # Üyenin kimliğiyle yazılan sözlük anahtarı da üyedir (iki noktadan önce, süslü parantezde).
     TR_var ayar = {"step": 3}
     TR_assert_equal(3, ayar["step"])
@@ -111,16 +111,16 @@ TR_test "2.4 tam sayı ondalık ya da küçük harfli ön ekle yazılır; _ raka
     TR_assert_equal(10, 0b1010)
     TR_assert_equal(65535, 0xFF_FF)
     TR_assert_equal(255, 0x_FF)
-    TR_assert_equal(TR_Int, TR_type(42))
+    TR_assert_equal(TR_Int, TR_Type(42))
     # Büyük harfli ön ek, yanlış '_', tabanın dışındaki rakam: tests/negative/sayi_yazimi.tr
 }
 
 TR_test "2.5 ondalık sayıda noktanın iki yanında rakam vardır; üslü yazım" {
-    TR_assert_equal(TR_Float, TR_type(3.14))
+    TR_assert_equal(TR_Float, TR_Type(3.14))
     TR_assert_equal(0.5, 1_0.5 - 10)
     TR_assert_equal(32000.0, 3.2E+4)
     TR_assert_equal(0.00001, 1e-5)
-    TR_assert_equal(TR_Float, TR_type(2e10))
+    TR_assert_equal(TR_Float, TR_Type(2e10))
     # '1..5' aralıktır.
     TR_var toplam = 0
     TR_for i TR_in 1..5 { toplam += i }
@@ -149,7 +149,7 @@ TR_test "2.6a ham metin: ters tırnak, kaçış ve yerleştirme yok, çok satır
     TR_var iki_satır = `bir
 iki`
     TR_assert_equal("bir\niki", iki_satır)
-    TR_assert_equal(TR_String, TR_type(`x`))
+    TR_assert_equal(TR_String, TR_Type(`x`))
     TR_assert_equal("", ``)
     TR_assert_equal(`"tek" 'çift'`, "\"tek\" 'çift'")
 }

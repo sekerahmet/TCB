@@ -13,10 +13,10 @@ func TestArgErrorsFormat(t *testing.T) {
 	if got := ArgTypeError(codes.FnZeros, 1, &StringVal{Val: "a"}, codes.TypeInt).Error(); got != `sıfırlar() 1. argüman olarak Tam bekler, Metin ("a") verildi` {
 		t.Errorf("tip hatası: %s", got)
 	}
-	if got := ArgTypeError(codes.FnInt, 1, Null, codes.TypeInt, codes.TypeFloat, codes.TypeString).Error(); got != `tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, Yok (yok) verildi` {
+	if got := ArgTypeError(codes.TypeInt, 1, Null, codes.TypeInt, codes.TypeFloat, codes.TypeString).Error(); got != `Tam() 1. argüman olarak Tam, Ondalık ya da Metin bekler, YokTipi (yok) verildi` {
 		t.Errorf("çok tipli tip hatası: %s", got)
 	}
-	if got := ArgCountError(codes.FnRange, Counts(1, 2), 3, "bitiş", "başlangıç, bitiş").Error(); got != "aralık() 1 ya da 2 argüman bekler, 3 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))" {
+	if got := ArgCountError(codes.FnRound, Counts(1, 2), 3, "x", "x, basamak").Error(); got != "yuvarla() 1 ya da 2 argüman bekler, 3 verildi (kullanım: yuvarla(x) ya da yuvarla(x, basamak))" {
 		t.Errorf("sayı hatası: %s", got)
 	}
 	if got := ArgCountError(codes.MemFilter, 1, 0).Error(); got != "liste.filtrele() 1 argüman bekler, 0 verildi" {
@@ -30,8 +30,8 @@ func TestArgErrorsFormat(t *testing.T) {
 	}{
 		{ArgCountError(codes.FnAbs, 1, 2), "abs() takes 1 argument, 2 given"},
 		{ArgCountError(codes.FnAbs, 2, 1), "abs() takes 2 arguments, 1 given"},
-		{ArgCountError(codes.FnRange, Counts(1, 2), 3), "range() takes 1 or 2 arguments, 3 given"},
-		{ArgCountError(codes.FnPath, AtLeast(1), 0), "takes 1 or more arguments, 0 given"},
+		{ArgCountError(codes.FnRound, Counts(1, 2), 3), "round() takes 1 or 2 arguments, 3 given"},
+		{ArgCountError(codes.TypePath, AtLeast(1), 0), "takes 1 or more arguments, 0 given"},
 	} {
 		if got := messages.ErrorIn(c.err, "en"); !strings.Contains(got, c.en) {
 			t.Errorf("İngilizce sayı hatası %q, %q bekleniyordu", got, c.en)

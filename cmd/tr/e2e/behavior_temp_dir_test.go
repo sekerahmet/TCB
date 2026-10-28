@@ -48,7 +48,7 @@ func TestTestCommandLeavesNoTempDir(t *testing.T) {
 // geçici_klasör()'ün klasörleri içlerindeki açık satır okuyucusuyla birlikte silinir.
 func TestTempDirRemovedWhenProgramEnds(t *testing.T) {
 	dir := t.TempDir()
-	shared := "TR_var k = TR_temp_dir()\nTR_write_file(TR_path(k, \"a.txt\"), \"1\\n2\")\nTR_var o = TR_read_lines(TR_path(k, \"a.txt\"))\no.TR_next()\nTR_print(k.TR_exists)\n"
+	shared := "TR_var k = TR_temp_dir()\nTR_write_file(TR_Path(k, \"a.txt\"), \"1\\n2\")\nTR_var o = TR_read_lines(TR_Path(k, \"a.txt\"))\no.TR_next()\nTR_print(k.TR_exists)\n"
 	states := []struct {
 		ad, last, argument string
 		code               int

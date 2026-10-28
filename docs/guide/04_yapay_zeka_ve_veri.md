@@ -61,10 +61,10 @@ Tensör, n boyutlu bir sayı dizisidir (veri türü varsayılan olarak `float32`
 ```tr
 # TR 4
 # y = 2·x - 1 doğrusunu öğren
-TR_var X = TR_tensor([[0], [1], [2], [3]])
-TR_var Y = TR_tensor([[-1], [1], [3], [5]])
-TR_var w = TR_tensor([[0.0]], TR_requires_grad: TR_true)
-TR_var b = TR_tensor([0.0], TR_requires_grad: TR_true)
+TR_var X = TR_Tensor([[0], [1], [2], [3]])
+TR_var Y = TR_Tensor([[-1], [1], [3], [5]])
+TR_var w = TR_Tensor([[0.0]], TR_requires_grad: TR_true)
+TR_var b = TR_Tensor([0.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w, b], TR_lr: 0.1, TR_weight_decay: 0)
 
 TR_for adım TR_in 0..500 {
@@ -92,8 +92,8 @@ TR_var kapılı = TR_custom_grad(
         TR_return [g * s, g * a * s * (1 - s)]           # a ve b için birer gradyan
     }
 )
-TR_var a = TR_tensor([[1.0, -2.0]], TR_requires_grad: TR_true)
-TR_var b = TR_tensor([[0.5, 0.0]], TR_requires_grad: TR_true)
+TR_var a = TR_Tensor([[1.0, -2.0]], TR_requires_grad: TR_true)
+TR_var b = TR_Tensor([[0.5, 0.0]], TR_requires_grad: TR_true)
 TR_backward(TR_sum(kapılı(a, b)))
 TR_print(a.TR_grad, b.TR_grad)
 TR_print(TR_grad_check(kapılı, [a, b]))               # doğru (yanlış bir geri hesabında açık hata)
@@ -117,7 +117,7 @@ toplu işler GPU'da oluşur.
 ```tr
 # TR 4
 TR_if TR_devices().TR_contains("gpu") { TR_default_device("gpu") }   # GPU yoksa CPU'da kalır
-TR_var W = TR_tensor(TR_no_grad(TR_randn([16, 4], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
+TR_var W = TR_Tensor(TR_no_grad(TR_randn([16, 4], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)              # varsayılan cihazda
 TR_var iyileştirici = TR_AdamW([W], TR_lr: 0.01)
 TR_for adım TR_in 0..10 {                                    # döngü CPU'dakiyle aynı
@@ -181,19 +181,19 @@ Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `t
 # TR 4
 TR_var p = TR_load_tokenizer("tokenizer.json")
 TR_print(p.TR_encode("Merhaba dünya"), p.TR_vocab_size)
-TR_var küme = TR_dataset("veri/train")
+TR_var küme = TR_Dataset("veri/train")
 TR_var ö = küme.TR_sampler(TR_batch_size: 8, TR_context: 256, TR_seed: 1)
-TR_var E = TR_tensor(TR_no_grad(TR_randn([p.TR_vocab_size, 64], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
-TR_var W = TR_tensor(TR_no_grad(TR_randn([64, p.TR_vocab_size], TR_seed: 2) * 0.1), TR_requires_grad: TR_true)
+TR_var E = TR_Tensor(TR_no_grad(TR_randn([p.TR_vocab_size, 64], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)
+TR_var W = TR_Tensor(TR_no_grad(TR_randn([64, p.TR_vocab_size], TR_seed: 2) * 0.1), TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([E, W], TR_lr: 0.01)
 TR_for adım TR_in 0..100 {
     TR_var girdi, hedef = ö.TR_next()
     op.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(TR_embedding(E, girdi) @ W, hedef)
+    TR_var kayıp = TR_cross_entropy(TR_embedding_lookup(E, girdi) @ W, hedef)
     TR_backward(kayıp)
     op.TR_step()
 }
-TR_var doğrulama = TR_dataset("veri/_valid").TR_sequential(TR_batch_size: 8, TR_context: 256)
+TR_var doğrulama = TR_Dataset("veri/_valid").TR_sequential(TR_batch_size: 8, TR_context: 256)
 TR_for doğrulama.TR_next() != TR_none { }   # bitince yok döner
 ```
 
@@ -212,9 +212,9 @@ Veri klasörünü gezmek, çıktı klasörü açmak, kontrol noktalarını yedek
 
 ```tr
 # TR 4
-TR_var çıktı = TR_make_dir(TR_path("çıktı", "deneme_1"))
+TR_var çıktı = TR_make_dir(TR_Path("çıktı", "deneme_1"))
 TR_for p TR_in TR_list_dir("veri", "**/*.npy") { TR_print(p.TR_name, p.TR_size) }
-TR_var model = TR_path(çıktı, "model.trt")
+TR_var model = TR_Path(çıktı, "model.trt")
 TR_if model.TR_exists { TR_copy(model, TR_make_dir("yedek"), TR_overwrite: TR_true) }
 TR_var n = 0
 TR_for satır TR_in TR_read_lines("veri/derlem.jsonl.gz") { n += 1 }
@@ -229,8 +229,8 @@ Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komu
 TR_var ayar = TR_command_line({"step": 2000, "lr": 0.001, "günlük_dosyası": TR_none},
     TR_description: "Küçük dil modelini eğitir",
     TR_descriptions: {"step": "eğitim adımı sayısı", "günlük_dosyası": "ölçülerin yazılacağı .jsonl dosyası"})
-TR_var g = TR_if ayar["günlük_dosyası"] != TR_none { TR_logger(ayar["günlük_dosyası"]) } TR_else { TR_none }
-TR_var ç = TR_progress(ayar["step"], TR_log: g)
+TR_var g = TR_if ayar["günlük_dosyası"] != TR_none { TR_Logger(ayar["günlük_dosyası"]) } TR_else { TR_none }
+TR_var ç = TR_Progress(ayar["step"], TR_log: g)
 TR_for adım TR_in 0..ayar["step"] {
     TR_var kayıp = 1.0 / (adım + 1)   # burada modelin bir eğitim adımı çalışır
     ç.TR_update({"loss": kayıp, "lr": ayar["lr"]})

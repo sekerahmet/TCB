@@ -87,14 +87,14 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`TR_var u_metin = "abc"`,
 		`TR_var u_liste = [1, 2]`,
 		`TR_var u_sozluk = {"a": 1}`,
-		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
+		`TR_var u_tensor = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
 		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
 		`TR_var u_parcalayici = TR_load_tokenizer("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
-		`TR_var u_yol = TR_path("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
-		`TR_var u_ilerleme = TR_progress(3)`,
+		`TR_var u_yol = TR_Path("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
+		`TR_var u_ilerleme = TR_Progress(3)`,
 		`TR_var u_satirlar = TR_read_lines("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
-		`TR_var u_nokta = TR_checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": u_tensor})`,
-		`TR_var u_veri = TR_dataset("` + filepath.ToSlash(reporoot.Path("tests/data/text")) + `")`,
+		`TR_var u_nokta = TR_Checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": u_tensor})`,
+		`TR_var u_veri = TR_Dataset("` + filepath.ToSlash(reporoot.Path("tests/data/text")) + `")`,
 		`TR_var u_okuyucu = u_veri.TR_sampler(TR_batch_size: 1, TR_context: 4)`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
@@ -130,7 +130,7 @@ func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
 	m := interp.New()
 	m.Err = io.Discard
 	setup := strings.Join([]string{
-		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
+		`TR_var u_tensor = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
 		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
 		`TR_var u_parcalayici = TR_load_tokenizer("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
 	}, "\n")

@@ -22,8 +22,8 @@ func TestProgressPlainLinesAndLog(t *testing.T) {
 	k := t.TempDir()
 	path := filepath.Join(k, "i.jsonl")
 	m, w := newVM(t, k)
-	if _, err := run(t, m, `TR_var g = TR_logger("`+pathText(path)+`")
-TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
+	if _, err := run(t, m, `TR_var g = TR_Logger("`+pathText(path)+`")
+TR_var ç = TR_Progress(100, TR_log: g)`); err != nil {
 		t.Fatal(err)
 	}
 	for i := 1; i <= 100; i++ {
@@ -67,7 +67,7 @@ TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
 func TestProgressStepAndErrors(t *testing.T) {
 	setClock(t)
 	m, _ := newVM(t, t.TempDir())
-	v, err := run(t, m, `TR_var ç = TR_progress(10)
+	v, err := run(t, m, `TR_var ç = TR_Progress(10)
 ç.TR_update(TR_step: 7)
 ç.TR_update()
 ç`)
@@ -82,8 +82,8 @@ func TestProgressStepAndErrors(t *testing.T) {
 		{`ç.TR_update(TR_step: -1)`, messages.H7315},
 		{`ç.TR_update({"step": 3})`, messages.H7321},
 		{`ç.TR_update({"rate": 3})`, messages.H7321},
-		{`TR_progress(0)`, messages.H7313},
-		{`TR_progress(10, TR_log: 5)`, messages.H7314},
+		{`TR_Progress(0)`, messages.H7313},
+		{`TR_Progress(10, TR_log: 5)`, messages.H7314},
 		{`ç.TR_stop(1)`, messages.H2012},
 	} {
 		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
@@ -95,7 +95,7 @@ func TestProgressStepAndErrors(t *testing.T) {
 		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 	// Toplamsız sayaç: kalan süre yerine geçen süre.
-	if v, err := run(t, m, `TR_var s = TR_progress()
+	if v, err := run(t, m, `TR_var s = TR_Progress()
 s.TR_update(); s.TR_update(); s`); err != nil || v.Inspect() != "Progress(step 2)" {
 		t.Errorf("sayaç: %v %v", v, err)
 	}
@@ -107,7 +107,7 @@ func TestProgressTerminal(t *testing.T) {
 	t.Cleanup(logging.FakeTerminal(100))
 	s := setClock(t)
 	m, w := newVM(t, t.TempDir())
-	if _, err := run(t, m, `TR_var ç = TR_progress(4)`); err != nil {
+	if _, err := run(t, m, `TR_var ç = TR_Progress(4)`); err != nil {
 		t.Fatal(err)
 	}
 	step := func(code string) {
@@ -150,7 +150,7 @@ func TestStepHook(t *testing.T) {
 		steps = append(steps, a.Step)
 	})
 	t.Cleanup(func() { logging.SetStepHook(nil) })
-	if _, err := run(t, m, `TR_var ç = TR_progress(3)
+	if _, err := run(t, m, `TR_var ç = TR_Progress(3)
 TR_for i TR_in 0..3 { ç.TR_update() }`); err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func TestJobStatus(t *testing.T) {
 	t.Setenv("TR_IS_KLASORU", job)
 	t.Cleanup(logging.FakeTerminal(60)) // iş kipinde terminal kullanılmaz
 	m, w := newVM(t, t.TempDir())
-	if _, err := run(t, m, `TR_var ç = TR_progress(2)
+	if _, err := run(t, m, `TR_var ç = TR_Progress(2)
 ç.TR_update({"loss": 0.25})`); err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestJobStatus(t *testing.T) {
 func TestCloseAllFinishesBar(t *testing.T) {
 	setClock(t)
 	m, w := newVM(t, t.TempDir())
-	if _, err := run(t, m, `TR_var ç = TR_progress(10)
+	if _, err := run(t, m, `TR_var ç = TR_Progress(10)
 ç.TR_update({"loss": 3.25})`); err != nil {
 		t.Fatal(err)
 	}
@@ -213,8 +213,8 @@ func TestProgressRateWithStepGaps(t *testing.T) {
 	k := t.TempDir()
 	path := filepath.Join(k, "i.jsonl")
 	m, _ := newVM(t, k)
-	if _, err := run(t, m, `TR_var g = TR_logger("`+pathText(path)+`")
-TR_var ç = TR_progress(100, TR_log: g)`); err != nil {
+	if _, err := run(t, m, `TR_var g = TR_Logger("`+pathText(path)+`")
+TR_var ç = TR_Progress(100, TR_log: g)`); err != nil {
 		t.Fatal(err)
 	}
 	for i := 1; i <= 5; i++ {
@@ -240,9 +240,9 @@ func TestNestedProgressRedrawsOuter(t *testing.T) {
 	s := setClock(t)
 	m, w := newVM(t, t.TempDir())
 	for _, code := range []string{
-		`TR_var dış = TR_progress(3)`,
+		`TR_var dış = TR_Progress(3)`,
 		`dış.TR_update({"loss": 9.0})`,
-		`TR_var iç = TR_progress(2)`,
+		`TR_var iç = TR_Progress(2)`,
 		`iç.TR_update()`,
 		`dış.TR_update({"loss": 7.0})`, // iç çubuk görünürken: yalnızca işaretlenir
 		`iç.TR_update()`,               // iç biter: dış yeniden çizilir

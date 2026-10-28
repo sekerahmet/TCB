@@ -180,8 +180,6 @@ const (
 	H2158 Code = 2158 // dosya bu dosya sistemi için çok büyük
 	H2300 Code = 2300 // istem
 	H2301 Code = 2301 // değer
-	H2302 Code = 2302 // bitiş
-	H2303 Code = 2303 // başlangıç, bitiş
 	H2304 Code = 2304 // liste
 	H2305 Code = 2305 // sayı
 	H2306 Code = 2306 // sayı, basamak
@@ -237,8 +235,6 @@ const (
 	H2426 Code = 2426 // {count} anahtarlı sözlük
 	H2427 Code = 2427 // {fn}() '{param}' adında bir parametre almaz (adlı argüman almaz)
 	H2428 Code = 2428 // {type} üzerinde {prop|q} özelliği ya da metodu bulunamadı{hint}
-	H2429 Code = 2429 // {fn}: {value|q} tam sayıya çevrilemedi (yalnızca rakamlardan oluşan bir metin verin, ör. "42")
-	H2430 Code = 2430 // {fn}: {value|q} ondalık sayıya çevrilemedi (ondalık ayırıcı nokta olmalı, ör. "3.14")
 	H2431 Code = 2431 // {fn}(): {type} sayı taşması ({fn}({value})); ondalık sonuç için {fn}({float}(x)) yazın
 	H2432 Code = 2432 // {fn} '{block}' bloğu içinden çağrılamaz; ana programda kullanın
 	H2433 Code = 2433 // {fn}: süre negatif ya da sayı değil ({value}); 0 ya da daha büyük bir saniye verin

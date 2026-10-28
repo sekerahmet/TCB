@@ -63,8 +63,8 @@ func TestLogRecords(t *testing.T) {
 	m, _ := newVM(t, k, "--hf_token", "hf_gizlideger1")
 	_, err := run(t, m, `
 TR_var ayar = TR_command_line({"step": 10, "hf_token": ""})
-TR_var g = TR_logger("`+pathText(path)+`")
-g.TR_append({"loss": TR_tensor([2.5]), "nan": TR_float("NaN"), "sonsuz": TR_float("inf"), "belirteç": ayar["hf_token"]})
+TR_var g = TR_Logger("`+pathText(path)+`")
+g.TR_append({"loss": TR_Tensor([2.5]), "nan": TR_Float("nan"), "sonsuz": TR_Float("inf"), "belirteç": ayar["hf_token"]})
 g.TR_append("merhaba")
 g.TR_append({"time": "elle", "x": [1, 2]})
 `)
@@ -114,16 +114,16 @@ func TestLogErrors(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`TR_logger("` + pathText(filepath.Join(k, "a.csv")) + `")`, messages.H7319},
-		{`TR_logger("` + pathText(filepath.Join(k, "a.jsonl")) + `").TR_append({"kind": "x"})`, messages.H7321},
-		{`TR_logger("` + pathText(filepath.Join(k, "b.jsonl")) + `").TR_append({"f": TR_print})`, messages.H7300},
+		{`TR_Logger("` + pathText(filepath.Join(k, "a.csv")) + `")`, messages.H7319},
+		{`TR_Logger("` + pathText(filepath.Join(k, "a.jsonl")) + `").TR_append({"kind": "x"})`, messages.H7321},
+		{`TR_Logger("` + pathText(filepath.Join(k, "b.jsonl")) + `").TR_append({"f": TR_print})`, messages.H7300},
 	} {
 		if _, err := run(t, m, d.code); !messages.Has(err, d.want) {
 			t.Errorf("%s: %s hatası bekleniyordu: %v", d.code, d.want, err)
 		}
 	}
 	// Argüman tipi hatası henüz kodlu değil (interp).
-	if _, err := run(t, m, `TR_logger("`+pathText(filepath.Join(k, "c.jsonl"))+`").TR_append(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük ya da Metin bekler") {
+	if _, err := run(t, m, `TR_Logger("`+pathText(filepath.Join(k, "c.jsonl"))+`").TR_append(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük ya da Metin bekler") {
 		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 }
@@ -137,7 +137,7 @@ func TestLogAppendAndResume(t *testing.T) {
 		t.Fatal(err)
 	}
 	m, _ := newVM(t, k)
-	v, err := run(t, m, `TR_var g = TR_logger("`+pathText(path)+`")
+	v, err := run(t, m, `TR_var g = TR_Logger("`+pathText(path)+`")
 g.TR_append({"loss": 1})
 g`)
 	if err != nil {
@@ -175,7 +175,7 @@ func TestLogEmptyClose(t *testing.T) {
 	k := t.TempDir()
 	path := filepath.Join(k, "bos.jsonl")
 	m, _ := newVM(t, k)
-	if _, err := run(t, m, `TR_logger("`+pathText(path)+`")`); err != nil {
+	if _, err := run(t, m, `TR_Logger("`+pathText(path)+`")`); err != nil {
 		t.Fatal(err)
 	}
 	logging.CloseAll()

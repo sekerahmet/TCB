@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kural: .tr kaynağında metin olarak yazılan her ileti kodu (`TR_message("H6932", x)`, `TR_error_code(h) == "H6932"`) ileti düğümünün bir
+// Kural: .tr kaynağında metin olarak yazılan her ileti kodu (`TR_Message("H6932", x)`, `TR_error_code(h) == "H6932"`) ileti düğümünün bir
 // başvurusudur: düğüm kodun kendisiyle bulunur, başvurular onu yazan bildirimden çıkar (`tr dizin kullananlar H6932`).
 // Kapsam: depodaki her .tr dosyasının sözcük çözümleyicisinin verdiği her ileti kodu belirteci bir başvurudur.
 func TestEveryMessageCodeTokenIsAUse(t *testing.T) {

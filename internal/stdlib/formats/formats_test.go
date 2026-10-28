@@ -62,8 +62,8 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	_, val, err = run(t, `
 		TR_var d = {1: "a", "b": 2}
 		TR_var tipler = []
-		TR_for k, v TR_in d { tipler = tipler + [TR_type(k)] }
-		TR_var result = [tipler, d.TR_keys(), [TR_type(k) TR_for k TR_in d]]
+		TR_for k, v TR_in d { tipler = tipler + [TR_Type(k)] }
+		TR_var result = [tipler, d.TR_keys(), [TR_Type(k) TR_for k TR_in d]]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -187,7 +187,7 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 	}
 	_, val, err = run(t, `
 		TR_var s = TR_parse_csv("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
-		TR_var result = [s[1], [TR_type(h) TR_for h TR_in s[1]], s[2], [TR_type(h) TR_for h TR_in s[2]]]`)
+		TR_var result = [s[1], [TR_Type(h) TR_for h TR_in s[1]], s[2], [TR_Type(h) TR_for h TR_in s[2]]]`)
 	if err != nil {
 		t.Fatal(err)
 	}

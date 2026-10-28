@@ -76,11 +76,11 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 }
 
 // Kural: her bildirimin kullandığı dil yapıları kaydedilir; işlecin sol işleneninin türü yerleşik dönüşünden
-// (`metin(x)` → Metin, TR_type_String; `tensör(...)` → Tensör, TR_type_Tensor) ya da değişmez değerden gelir, bilinmezse boştur. Kod
+// (tip çağrısı: `Metin(x)` → TR_type_String; `Tensör(...)` → TR_type_Tensor) ya da değişmez değerden gelir, bilinmezse boştur. Kod
 // grafiği bu türle işleci doğru uygulamaya bağlar (deneme 9 H1; değer dili tasarımı 3. tur).
 func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 	dir := t.TempDir()
-	src := "TR_func f(x, y) {\n    TR_var a = TR_str(x) == \"1\"\n    TR_var b = TR_tensor([1.0]) @ y\n    TR_return x + y\n}\n"
+	src := "TR_func f(x, y) {\n    TR_var a = TR_String(x) == \"1\"\n    TR_var b = TR_Tensor([1.0]) @ y\n    TR_return x + y\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), src), 0o644); err != nil {
 		t.Fatal(err)
 	}

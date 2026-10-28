@@ -9,11 +9,11 @@ import (
 )
 
 func TestPrintSpecialValues(t *testing.T) {
-	out := mustRun(t, `TR_print(TR_tensor([0.00001, 1]))
-TR_print(TR_tensor([1000000000.0, 2]))
-TR_print(TR_log(TR_tensor([-1, 0, 1])), TR_exp(TR_tensor([100])))
-TR_print(TR_sum(TR_tensor([0.00002])))
-TR_print(TR_min(TR_tensor([3, -2, 5])), TR_min(TR_tensor([3, -2], TR_requires_grad: TR_true)))`)
+	out := mustRun(t, `TR_print(TR_Tensor([0.00001, 1]))
+TR_print(TR_Tensor([1000000000.0, 2]))
+TR_print(TR_log(TR_Tensor([-1, 0, 1])), TR_exp(TR_Tensor([100])))
+TR_print(TR_sum(TR_Tensor([0.00002])))
+TR_print(TR_min(TR_Tensor([3, -2, 5])), TR_min(TR_Tensor([3, -2], TR_requires_grad: TR_true)))`)
 	want := "Tensor[2] [1.0000e-05, 1.0000e+00]\n" +
 		"Tensor[2] [1.0000e+09, 2.0000e+00]\n" +
 		"Tensor[3] [   nan,   -inf, 0.0000] Tensor[1] [inf]\n" +

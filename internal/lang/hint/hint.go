@@ -144,7 +144,7 @@ func TypeTextComparisonError(op, text string, example any, lang *codes.Language)
 	} else if k, ok := suggest(lang, codes.NamespaceType, text, nil); ok {
 		example = suggested(k, lang)
 	}
-	g := suggested(codes.FnType, lang)
+	g := suggested(codes.TypeType, lang)
 	return messages.New(messages.H1105, g, op, text, example)
 }
 

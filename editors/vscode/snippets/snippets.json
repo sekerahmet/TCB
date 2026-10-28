@@ -129,14 +129,14 @@
       "label": "Tensor and Training Loop (Automatic Differentiation)",
       "description": "A small training loop (linear model) with tensors, the AdamW optimizer and backward",
       "prefix": [
-        "tensor",
+        "Tensor",
         "grad"
       ],
       "body": [
-        "var X = tensor(${1:[[0.0], [1.0], [2.0], [3.0]]})",
-        "var Y = tensor(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
-        "var w = tensor(no_grad(randn([${3:1, 1}], seed: 1) * 0.1), requires_grad: true)",
-        "var b = tensor([0.0], requires_grad: true)",
+        "var X = Tensor(${1:[[0.0], [1.0], [2.0], [3.0]]})",
+        "var Y = Tensor(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
+        "var w = Tensor(no_grad(randn([${3:1, 1}], seed: 1) * 0.1), requires_grad: true)",
+        "var b = Tensor([0.0], requires_grad: true)",
         "var optimizer = AdamW([w, b], lr: ${4:0.1}, weight_decay: 0)",
         "for step in 0..${5:300} {",
         "\toptimizer.zero_grad()",
@@ -279,14 +279,14 @@
       "label": "Tensör ve Eğitim Döngüsü (Otomatik Türev)",
       "description": "Tensörler, AdamW iyileştiricisi ve geri_yayılım ile küçük bir eğitim döngüsü (doğrusal model)",
       "prefix": [
-        "tensör",
+        "Tensör",
         "türev"
       ],
       "body": [
-        "değişken X = tensör(${1:[[0.0], [1.0], [2.0], [3.0]]})",
-        "değişken Y = tensör(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
-        "değişken w = tensör(türevsiz(rastgele_normal([${3:1, 1}], tohum: 1) * 0.1), türev_izle: doğru)",
-        "değişken b = tensör([0.0], türev_izle: doğru)",
+        "değişken X = Tensör(${1:[[0.0], [1.0], [2.0], [3.0]]})",
+        "değişken Y = Tensör(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
+        "değişken w = Tensör(türevsiz(rastgele_normal([${3:1, 1}], tohum: 1) * 0.1), türev_izle: doğru)",
+        "değişken b = Tensör([0.0], türev_izle: doğru)",
         "değişken iyileştirici = AdamW([w, b], öğrenme_oranı: ${4:0.1}, ağırlık_çürümesi: 0)",
         "döngü adım içinde 0..${5:300} {",
         "\tiyileştirici.sıfırla()",

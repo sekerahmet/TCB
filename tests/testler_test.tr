@@ -13,7 +13,7 @@ TR_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada
 }
 
 TR_test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
-    TR_assert_equal(TR_String, TR_type(test))
+    TR_assert_equal(TR_String, TR_Type(test))
     TR_func test_et(test) { TR_return test + 1 }
     TR_assert_equal(2, test_et(1))
 }

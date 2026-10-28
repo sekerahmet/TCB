@@ -12,27 +12,27 @@
 TR_import "tr/egitim"
 
 # --- sonlu_mu: NaN ve sonsuz "sonlu değil"dir ---
-TR_print(TR_is_finite(2.5), TR_is_finite(TR_float("nan")), TR_is_finite(TR_float("inf")))
-TR_print(TR_is_finite(TR_tensor([1.0, TR_float("nan"), -TR_float("inf")])).TR_tolist) # eleman bazlı: [1.0, 0.0, 0.0]
+TR_print(TR_is_finite(2.5), TR_is_finite(TR_Float("nan")), TR_is_finite(TR_Float("inf")))
+TR_print(TR_is_finite(TR_Tensor([1.0, TR_Float("nan"), -TR_Float("inf")])).TR_tolist) # eleman bazlı: [1.0, 0.0, 0.0]
 
 # --- Küçük model ve veri (40. örnekteki model) ---
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
 TR_var V = p.TR_vocab_size
-TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+TR_var ö = TR_Dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
 TR_var parametre_tohumu = 0
 TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
-    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
+    TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
 }
 TR_var model = {"E": parametre([V, 32], 0.1), "W1": parametre([32, 64], 0.1), "W2": parametre([64, V], 0.1)}
 TR_func ileri(giriş) {
-    TR_return TR_gelu(TR_embedding(model["E"], giriş) @ model["W1"]) @ model["W2"]
+    TR_return TR_gelu(TR_embedding_lookup(model["E"], giriş) @ model["W1"]) @ model["W2"]
 }
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01, TR_weight_decay: 0.0)
 
 # --- gradyan_kırp: normu hep verir; sonlu_değilse_hata ile bozuk gradyanda hata da verebilir ---
 TR_var ilk_giriş, ilk_hedef = ö.TR_next()
-TR_backward(TR_cross_entropy(ileri(ilk_giriş), ilk_hedef) * TR_float("nan"))
+TR_backward(TR_cross_entropy(ileri(ilk_giriş), ilk_hedef) * TR_Float("nan"))
 TR_try {
     TR_clip_grad(TR_parameters(model), TR_max: 1.0, TR_error_if_nonfinite: TR_true)
 } TR_catch h {
@@ -42,9 +42,9 @@ op.TR_zero_grad() # bozuk gradyanlar silinir, model değişmedi
 
 # --- Eğitim: her 10 adımda bir kontrol noktası, bekçi her adımı izler ---
 # Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
-TR_const KOŞU = TR_path("runs/kararlilik_ornegi")
+TR_const KOŞU = TR_Path("runs/kararlilik_ornegi")
 TR_if KOŞU.TR_exists { TR_remove(KOŞU, TR_recursive: TR_true) }
-TR_var kn = TR_checkpoint(KOŞU, {"model": model, "op": op, "ö": ö}, TR_every_minutes: 0)
+TR_var kn = TR_Checkpoint(KOŞU, {"model": model, "op": op, "ö": ö}, TR_every_minutes: 0)
 TR_var bekçi = TR_SpikeGuard(TR_history_limit: 20, TR_threshold: 6.0)
 TR_const TOPLAM = 60
 TR_var bozulacak_adım = 35 # bu adımda kayıp bilerek bir kez NaN olur
@@ -54,7 +54,7 @@ TR_for adım < TOPLAM {
     op.TR_zero_grad()
     TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
     TR_if adım == bozulacak_adım {
-        kayıp = kayıp * TR_float("nan")
+        kayıp = kayıp * TR_Float("nan")
         bozulacak_adım = -1
     }
     TR_backward(kayıp)

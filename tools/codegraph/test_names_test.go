@@ -97,7 +97,7 @@ func Update() {
 	Save()
 }
 `,
-	"tests/x_test.tr": "TR_test \"adım ilerlemesi bildirilir\" {\n    TR_var kn = TR_checkpoint(1, {})\n    kn.TR_update(1)\n}\n",
+	"tests/x_test.tr": "TR_test \"adım ilerlemesi bildirilir\" {\n    TR_var kn = TR_Checkpoint(1, {})\n    kn.TR_update(1)\n}\n",
 }
 
 // Kural: bir Go işlevi, uyguladığı (kodunu kullandığı) dil adının testleriyle ve onu çağıran işlevlerin uyguladığı adların

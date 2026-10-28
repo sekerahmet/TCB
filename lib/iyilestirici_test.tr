@@ -26,8 +26,8 @@ TR_test "dikleştir: uzun ve geniş matriste sonuç yaklaşık diktir (UᵀU ≈
 }
 
 TR_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çıkış/giriş)" {
-    TR_var W = TR_tensor(TR_randn([4, 8], TR_seed: 1), TR_requires_grad: TR_true)
-    TR_var önce = TR_tensor(W)
+    TR_var W = TR_Tensor(TR_randn([4, 8], TR_seed: 1), TR_requires_grad: TR_true)
+    TR_var önce = TR_Tensor(W)
     TR_var op = TR_Muon([W], TR_lr: 0.1, TR_momentum: 0.9, TR_nesterov: TR_false)
     TR_assert_equal([TR_sqrt(2.0)], op.TR_scales)
     TR_var G = TR_randn([4, 8], TR_seed: 2)
@@ -42,18 +42,18 @@ TR_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çık
     # sıfırla gradyanı sıfırlar; gradyan almayan ağırlık güncellenmez.
     op.TR_zero_grad()
     TR_assert_equal(0.0, TR_max(TR_abs(W.TR_grad)).TR_tolist)
-    TR_var V = TR_tensor(TR_ones([3, 3]), TR_requires_grad: TR_true)
+    TR_var V = TR_Tensor(TR_ones([3, 3]), TR_requires_grad: TR_true)
     TR_Muon([V]).TR_step()
     TR_assert_equal(TR_ones([3, 3]), TR_no_grad(V))
 }
 
 TR_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
-    TR_assert_equal("H6920", TR_error_code(() => TR_Muon([TR_tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
-    TR_assert_equal("H6920", TR_error_code(() => TR_NorMuon([TR_tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code(() => TR_Muon([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code(() => TR_NorMuon([TR_Tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)])))
 }
 
 TR_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
-    TR_var W = TR_tensor(TR_zeros([6, 4]), TR_requires_grad: TR_true)
+    TR_var W = TR_Tensor(TR_zeros([6, 4]), TR_requires_grad: TR_true)
     TR_var op = TR_NorMuon([W], TR_lr: 0.01)
     TR_assert_equal([1, 4], op.TR_state["ikinci_moment"][0].TR_shape)
     TR_backward(TR_sum(W * TR_randn([6, 4], TR_seed: 3)))
@@ -94,7 +94,7 @@ TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (
     }
     TR_var a = kur()
     TR_var b = kur()
-    TR_var önce = TR_tensor(a.TR_embedding.TR_table)
+    TR_var önce = TR_Tensor(a.TR_embedding.TR_table)
     TR_var op_a = TR_MuonAndAdamW(a)
     TR_var op_b = TR_MuonAndAdamW(b)
     op_b.TR_set_multiplier(0.5)
@@ -117,7 +117,7 @@ TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (
     TR_assert_equal(TR_no_grad(a.TR_embedding.TR_table), TR_no_grad(d.TR_embedding.TR_table))
     TR_var c = kur()
     TR_var op_c = TR_MuonAndAdamW(c, TR_normuon: TR_true)
-    TR_assert_equal(TR_NorMuon, TR_type(op_c.TR_muon))
+    TR_assert_equal(TR_NorMuon, TR_Type(op_c.TR_muon))
     TR_assert_equal("H6922", TR_error_code(() => op_c.TR_set_multiplier(0.0)))
     TR_assert_equal(1.0, op_c.TR_lr_multiplier)
 }
@@ -127,7 +127,7 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
     TR_func eğit(koşu, son) {
         TR_var m = TR_GPT(6, TR_context: 3, TR_embed_dim: 4, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 3)
         TR_var op = TR_MuonAndAdamW(m)
-        TR_var kn = TR_checkpoint(koşu, {"model": m, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state}, TR_every_minutes: 0)
+        TR_var kn = TR_Checkpoint(koşu, {"model": m, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state}, TR_every_minutes: 0)
         TR_for adım TR_in kn.TR_resume_step..son {
             op.TR_zero_grad()
             TR_backward(m.TR_loss([[1, 2, adım % 6]], [[2, adım % 6, 4]]))
@@ -136,9 +136,9 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
         }
         TR_return [m, op]
     }
-    eğit(TR_path(klasör, "kesilen"), 2) # 2. adımda kaydedip durur
-    TR_var sürdürülen = eğit(TR_path(klasör, "kesilen"), 4) # kaldığı yerden sürer
-    TR_var kesintisiz = eğit(TR_path(klasör, "kesintisiz"), 4)
+    eğit(TR_Path(klasör, "kesilen"), 2) # 2. adımda kaydedip durur
+    TR_var sürdürülen = eğit(TR_Path(klasör, "kesilen"), 4) # kaldığı yerden sürer
+    TR_var kesintisiz = eğit(TR_Path(klasör, "kesintisiz"), 4)
     TR_assert_equal(TR_parameters(kesintisiz[0], TR_named: TR_true), TR_parameters(sürdürülen[0], TR_named: TR_true))
     TR_assert_equal(kesintisiz[1].TR_muon.TR_state["momentum"], sürdürülen[1].TR_muon.TR_state["momentum"])
     # Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
@@ -236,8 +236,8 @@ TR_test "parametre_kümeleri: seyrek, gizli, sönümlü ve sönümsüz gruplar a
 }
 
 TR_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile ölçekler" {
-    TR_var W = TR_tensor(TR_randn([4, 8], TR_seed: 1), TR_requires_grad: TR_true)
-    TR_var önce = TR_tensor(W)
+    TR_var W = TR_Tensor(TR_randn([4, 8], TR_seed: 1), TR_requires_grad: TR_true)
+    TR_var önce = TR_Tensor(W)
     TR_var op = TR_Muon([W], TR_lr: 0.1, TR_momentum: 0.9, TR_nesterov: TR_false, TR_scale: "rms")
     TR_assert_equal([0.2 * TR_sqrt(8.0)], op.TR_scales)
     TR_var G = TR_randn([4, 8], TR_seed: 2)
@@ -278,11 +278,11 @@ TR_test "MuonVeAdamW: adamw_çürümesi yalnızca sönümlü gruba uygulanır; n
 }
 
 TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; satır sayacıyla sapma düzeltmesi" {
-    TR_var W = TR_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [1.0, 1.0, 1.0]], TR_requires_grad: TR_true)
-    TR_var önce = TR_tensor(W)
+    TR_var W = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0], [1.0, 1.0, 1.0]], TR_requires_grad: TR_true)
+    TR_var önce = TR_Tensor(W)
     TR_var op = TR_RowRMS([W], TR_lr: 0.1, TR_beta2: 0.9)
     # 1. adım: yalnızca 1. ve 3. satırın gradyanı var
-    TR_var G1 = TR_tensor([[0.0, 0.0, 0.0], [1.0, -2.0, 2.0], [0.0, 0.0, 0.0], [3.0, 0.0, 4.0]])
+    TR_var G1 = TR_Tensor([[0.0, 0.0, 0.0], [1.0, -2.0, 2.0], [0.0, 0.0, 0.0], [3.0, 0.0, 4.0]])
     TR_backward(TR_sum(W * G1))
     op.TR_step()
     TR_var ağırlık1 = W.TR_tolist
@@ -293,10 +293,10 @@ TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; 
     # elle: ilk adımda v = (1 − β2)·ms, düzeltme 1 − β2 → v̂ = ms; güncelleme g / (√ms + ε)
     TR_var ms1 = (1.0 + 4.0 + 4.0) / 3
     TR_var beklenen1 = [4.0 - 0.1 * 1.0 / (TR_sqrt(ms1) + 0.00000001), 5.0 - 0.1 * -2.0 / (TR_sqrt(ms1) + 0.00000001), 6.0 - 0.1 * 2.0 / (TR_sqrt(ms1) + 0.00000001)]
-    TR_assert(en_büyük_mutlak_fark(TR_tensor(ağırlık1[1]), TR_tensor(beklenen1)) < 0.00001, "1. satır, 1. adım: \(ağırlık1[1]) ≠ \(beklenen1)")
+    TR_assert(en_büyük_mutlak_fark(TR_Tensor(ağırlık1[1]), TR_Tensor(beklenen1)) < 0.00001, "1. satır, 1. adım: \(ağırlık1[1]) ≠ \(beklenen1)")
     # 2. adım: yalnızca 1. satırın gradyanı var; sayaç 2 olur, 3. satırın sayacı 1 kalır
     op.TR_zero_grad()
-    TR_var G2 = TR_tensor([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+    TR_var G2 = TR_Tensor([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
     TR_backward(TR_sum(W * G2))
     op.TR_step()
     TR_assert_equal([2.0, 1.0], [op.TR_state["sayaç"][0].TR_tolist[1][0], op.TR_state["sayaç"][0].TR_tolist[3][0]])
@@ -307,15 +307,15 @@ TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; 
     TR_assert(TR_abs(W.TR_tolist[1][0] - x) < 0.00001, "1. satır, 2. adım: \(W.TR_tolist[1][0]) ≠ \(x)")
     TR_assert_equal(ağırlık1[3], W.TR_tolist[3]) # gradyanı olmayan satır (3.) değişmedi
     # gradyan sıfırlandıktan sonra adım hiçbir şey değiştirmez
-    TR_var öncesi = TR_tensor(W)
+    TR_var öncesi = TR_Tensor(W)
     op.TR_zero_grad()
     op.TR_step()
     TR_assert_equal(öncesi.TR_tolist, W.TR_tolist)
     # gradyan almayan ağırlık güncellenmez; yalnızca 2B kabul eder
-    TR_var U = TR_tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
+    TR_var U = TR_Tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
     TR_RowRMS([U]).TR_step()
     TR_assert_equal(TR_ones([2, 2]), TR_no_grad(U))
-    TR_assert_equal("H6920", TR_error_code(() => TR_RowRMS([TR_tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code(() => TR_RowRMS([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
 }
 
 TR_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen kelimelerin satırı değişmez" {
@@ -324,7 +324,7 @@ TR_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeye
         TR_separated: ["TR_mem_embedding", "TR_mem_ple_context.TR_mem_context_proj"], TR_sparse: ["TR_mem_ple.TR_mem_table"], TR_sparse_lr: 0.01)
     TR_assert_equal(2, op.TR_row_rms.TR_parameters.TR_length)
     TR_assert_equal(0.01, op.TR_row_rms.TR_lr)
-    TR_var önce = TR_tensor(m.TR_blocks[0].TR_ple.TR_table)
+    TR_var önce = TR_Tensor(m.TR_blocks[0].TR_ple.TR_table)
     # kayıp yalnızca 1, 2, 3 kimliklerini görür: tabloda yalnızca bu satırların gradyanı sıfırdan farklıdır
     op.TR_set_multiplier(0.5)
     op.TR_zero_grad()
@@ -366,8 +366,8 @@ TR_test "dikleştir: bf16 hesap türünde sonuç float32'dekine yakındır, tür
 # iyileştiricide güncelleyip sonuçların aynı olduğunu denetler.
 TR_func tek_tek_mi(kur) {
     TR_var şekiller = [[4, 8], [6, 3], [4, 8], [4, 8]]
-    TR_var birlikte = [TR_tensor(TR_randn(şekiller[i], TR_seed: 20 + i), TR_requires_grad: TR_true) TR_for i TR_in 0..şekiller.TR_length]
-    TR_var ayrı = [TR_tensor(w, TR_requires_grad: TR_true) TR_for w TR_in birlikte]
+    TR_var birlikte = [TR_Tensor(TR_randn(şekiller[i], TR_seed: 20 + i), TR_requires_grad: TR_true) TR_for i TR_in 0..şekiller.TR_length]
+    TR_var ayrı = [TR_Tensor(w, TR_requires_grad: TR_true) TR_for w TR_in birlikte]
     TR_var op = kur(birlikte)
     TR_var ops = [kur([w]) TR_for w TR_in ayrı]
     TR_for adım TR_in 0..3 {
@@ -397,8 +397,8 @@ TR_test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştir
     TR_var n = tek_tek_mi(TR_func(w) { TR_return TR_NorMuon(w, TR_lr: 0.01, TR_weight_decay: 0.1) })
     TR_assert_equal([[0, 2, 3], [1]], n.TR_groups)
     # Gradyan almayan ağırlık gruptan düşer, öbürleri güncellenir.
-    TR_var A = TR_tensor(TR_ones([4, 8]), TR_requires_grad: TR_true)
-    TR_var B = TR_tensor(TR_ones([4, 8]), TR_requires_grad: TR_true)
+    TR_var A = TR_Tensor(TR_ones([4, 8]), TR_requires_grad: TR_true)
+    TR_var B = TR_Tensor(TR_ones([4, 8]), TR_requires_grad: TR_true)
     TR_var m = TR_Muon([A, B], TR_lr: 0.1)
     TR_backward(TR_sum(B * TR_randn([4, 8], TR_seed: 7)))
     m.TR_step()

@@ -20,7 +20,7 @@ var (
 	ValFloat    = TypeName(codes.TypeFloat)           // Ondalık
 	ValString   = TypeName(codes.TypeString)          // Metin
 	ValBool     = TypeName(codes.TypeBool)            // Mantık
-	ValNull     = TypeName(codes.TypeNone)            // Yok
+	ValNull     = TypeName(codes.TypeNoneType)        // Yok
 	ValList     = TypeName(codes.TypeList)            // Liste
 	ValDict     = TypeName(codes.TypeDict)            // Sözlük
 	ValRange    = TypeName(codes.TypeRange)           // Aralık

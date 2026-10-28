@@ -6,18 +6,18 @@
 # Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
 # Küçük bir sınıflandırıcı: iki özellikten (boy, kilo gibi) üç sınıftan birini seçer.
-TR_var W = TR_tensor([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], TR_requires_grad: TR_true)
-TR_var b = TR_tensor([0.1, 0.0, -0.1], TR_requires_grad: TR_true)
+TR_var W = TR_Tensor([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], TR_requires_grad: TR_true)
+TR_var b = TR_Tensor([0.1, 0.0, -0.1], TR_requires_grad: TR_true)
 
 # Ağırlıklar bir sözlükte adlarıyla yazılır; geri yüklenince aynı adlarla okunur.
-TR_var dosya = TR_path(TR_temp_dir(), "agirliklar.trt")
+TR_var dosya = TR_Path(TR_temp_dir(), "agirliklar.trt")
 TR_save_tensors(dosya, {"W": W, "b": b})
 TR_var yüklenen = TR_load_tensors(dosya)
 TR_print("yüklenenlerin adları: \(yüklenen.TR_keys())")
 TR_print("W aynı mı: \(yüklenen["W"].TR_tolist == W.TR_tolist)")
 
 # Yüklenen ağırlıklarla tahmin: her satır bir örnek, her sütun bir sınıfın puanı.
-TR_var örnekler = TR_tensor([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
+TR_var örnekler = TR_Tensor([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
 TR_var puanlar = TR_no_grad { örnekler @ yüklenen["W"] + yüklenen["b"] }
 TR_print("puanlar =", puanlar)
 
@@ -28,9 +28,9 @@ TR_print("sınıf indeksleri: \(sınıflar.TR_tolist) → \([adlar[i] TR_for i T
 
 # parametreleri_yükle, tensör_yükle sonucunu modelin var olan parametrelerine aynı adlarla yerinde yazar
 # ve yazılan parametre sayısını verir (eğitime kaldığı yerden devam etmek için).
-TR_var model = {"w": TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
-TR_var model_dosyası = TR_path(TR_temp_dir(), "model.trt")
-TR_save_tensors(model_dosyası, {"w": TR_tensor([5.0, 6.0])})
+TR_var model = {"w": TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+TR_var model_dosyası = TR_Path(TR_temp_dir(), "model.trt")
+TR_save_tensors(model_dosyası, {"w": TR_Tensor([5.0, 6.0])})
 TR_print(TR_load_parameters(model, TR_load_tensors(model_dosyası)), model["w"].TR_tolist)
 
 # --- Kendin dene ---

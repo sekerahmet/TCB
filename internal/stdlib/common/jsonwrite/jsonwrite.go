@@ -225,5 +225,5 @@ func (y *writer) dict(v *interp.DictVal, depth int) error {
 // bağımsızdır. Python'un json.dumps'ı da TypeError verir.
 func notData(val interp.Value) error {
 	return messages.New(messages.H7010, val.Type(), interp.TypeNames(codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
-		codes.TypeNone, codes.TypeList, codes.TypeDict, codes.TypeTensor, codes.TypePath))
+		codes.TypeNoneType, codes.TypeList, codes.TypeDict, codes.TypeTensor, codes.TypePath))
 }

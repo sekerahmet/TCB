@@ -44,31 +44,30 @@ func (m *MessageVal) params() []any {
 	return out
 }
 
-// registerMessageBuiltins registers ileti and hata_kodu.
+// registerMessageBuiltins registers the call of İleti and hata_kodu.
 func (v *VM) registerMessageBuiltins() {
-	// ileti(kod, değerler...): katalog iletisini kurar; kod tanımlı olmalı, değer sayısı tanımla aynı.
-	v.RegisterNoNamed(codes.FnMessage, func(y *VM, args []Value, named map[string]Value) (Value, error) {
+	// İleti(kod, değerler...): katalog iletisini kurar; kod tanımlı olmalı, değer sayısı tanımla aynı.
+	v.RegisterTypeCall(codes.TypeMessage, &BuiltinVal{NoNamedArgs: true, Fn: func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) < 1 {
-			return nil, ArgCountError(codes.FnMessage, AtLeast(1), len(args))
+			return nil, ArgCountError(codes.TypeMessage, AtLeast(1), len(args))
 		}
 		text, ok := args[0].(*StringVal)
 		if !ok {
-			return nil, messages.New(messages.H2528, codes.NameRef(codes.FnMessage), Shown(args[0]))
+			return nil, messages.New(messages.H2528, codes.NameRef(codes.TypeMessage), Shown(args[0]))
 		}
 		code, err := messages.Parse(text.Val)
 		if err != nil {
-			return nil, messages.New(messages.H2528, codes.NameRef(codes.FnMessage), text.Val)
+			return nil, messages.New(messages.H2528, codes.NameRef(codes.TypeMessage), text.Val)
 		}
 		n, defined := messages.ParamCount(code)
 		if !defined {
-			return nil, messages.New(messages.H2528, codes.NameRef(codes.FnMessage), text.Val)
+			return nil, messages.New(messages.H2528, codes.NameRef(codes.TypeMessage), text.Val)
 		}
 		if len(args)-1 != n {
-			return nil, messages.New(messages.H2529, codes.NameRef(codes.FnMessage), text.Val, n, len(args)-1)
+			return nil, messages.New(messages.H2529, codes.NameRef(codes.TypeMessage), text.Val, n, len(args)-1)
 		}
 		return &MessageVal{Code: code, Args: append([]Value(nil), args[1:]...)}, nil
-	})
-	v.RegisterTypeCall(codes.TypeMessage, v.Builtin(codes.FnMessage))
+	}})
 
 	// hata_kodu(f): f'yi çalıştırır; hatanın en içteki nedeninin kodunu (Metin) verir, hata
 	// yoksa yok.

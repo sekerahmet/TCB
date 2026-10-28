@@ -111,12 +111,12 @@ test('düzenle ve kaydet: diskte kodlu; tr göster düzenleyicideki metnin aynı
     const o = makeEnv();
     const b = (await open(o, o.uri)).document;
     const firstDisk = fs.readFileSync(o.file);
-    b.edit(b.getText().replace('yazdır("sayaç: \\(sayaç)")', 'yazdır("toplam: \\(sayaç)", tip(sayaç))'));
+    b.edit(b.getText().replace('yazdır("sayaç: \\(sayaç)")', 'yazdır("toplam: \\(sayaç)", Tip(sayaç))'));
     assert.ok(await b.save());
     assert.ok(!b.isDirty);
     const disk = fs.readFileSync(o.file, 'utf8');
     assert.ok(disk.startsWith(codedFormat.HEADER + '\r\n'), 'diskte kodlu (satır sonu korunur): ' + disk);
-    assert.ok(disk.includes('TR_print("toplam: \\(sayaç)", TR_type(sayaç))'), disk);
+    assert.ok(disk.includes('TR_print("toplam: \\(sayaç)", TR_Type(sayaç))'), disk);
     assert.strictEqual(showText(o.file), b.getText());
     // Kayıt belgenin metnine dokunmaz: geri al geçmişi aynen durur, geri alınıp kaydedilince
     // disk ilk hâline döner.

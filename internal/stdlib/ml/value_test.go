@@ -12,10 +12,10 @@ import (
 
 // Kural (3.10): tensör koşul olamaz; doğruluk sınaması yoktur, değer açık karşılaştırılır.
 func TestTensorIsNotACondition(t *testing.T) {
-	out := mustRun(t, `TR_print(TR_error_code(() => { TR_if TR_tensor([0.0]) { } }))
-TR_print(TR_error_code(() => { TR_if TR_sum(TR_tensor([1, -1])) { } }))
+	out := mustRun(t, `TR_print(TR_error_code(() => { TR_if TR_Tensor([0.0]) { } }))
+TR_print(TR_error_code(() => { TR_if TR_sum(TR_Tensor([1, -1])) { } }))
 TR_print(TR_error_code(() => { TR_if TR_zeros([0]) { } }))
-TR_if TR_sum(TR_tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
+TR_if TR_sum(TR_Tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
 	want := "H2600\nH2600\nH2600\naçık sınama\n"
 	if out != want {
 		t.Fatalf("tensör koşulu:\n%q", out)
@@ -23,9 +23,9 @@ TR_if TR_sum(TR_tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
 }
 
 func TestValueShortForm(t *testing.T) {
-	out := mustRun(t, `TR_var a = TR_tensor([0.1, 0.2, 1.5, 3])
-TR_print(a.TR_tolist, a.TR_tolist[0] == 0.1, TR_sum(TR_tensor([0.1])).TR_tolist)
-TR_var m = TR_tensor([[1, 2], [3, 4]]).TR_tolist
+	out := mustRun(t, `TR_var a = TR_Tensor([0.1, 0.2, 1.5, 3])
+TR_print(a.TR_tolist, a.TR_tolist[0] == 0.1, TR_sum(TR_Tensor([0.1])).TR_tolist)
+TR_var m = TR_Tensor([[1, 2], [3, 4]]).TR_tolist
 m[0].TR_append(9)
 TR_print(m)`)
 	want := "[0.1, 0.2, 1.5, 3.0] true 0.1\n[[1.0, 2.0, 9], [3.0, 4.0]]\n"
@@ -58,7 +58,7 @@ func TestValueAllocations(t *testing.T) {
 }
 
 func TestIntermediateTensorGrad(t *testing.T) {
-	_, err := run(t, `TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+	_, err := run(t, `TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(w * w))
 w = w - w.TR_grad * 0.1
 TR_print(w.TR_grad)`)
@@ -66,7 +66,7 @@ TR_print(w.TR_grad)`)
 		t.Fatalf("ara tensör gradyanı: %v", err)
 	}
 	// Geri yayılımdan sonra da ara tensör ara sayılır ve iyileştiriciye verilemez.
-	_, err = run(t, `TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+	_, err = run(t, `TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
 TR_var y = w * 2
 TR_backward(TR_sum(y))
 TR_AdamW([y])`)
@@ -74,7 +74,7 @@ TR_AdamW([y])`)
 		t.Fatalf("ara tensör parametre: %v", err)
 	}
 	// Henüz geri yayılım yapılmamış yaprakta gradyan yoktur.
-	out := mustRun(t, `TR_print(TR_tensor([1.0], TR_requires_grad: TR_true).TR_grad, TR_zeros([2]).TR_grad)`)
+	out := mustRun(t, `TR_print(TR_Tensor([1.0], TR_requires_grad: TR_true).TR_grad, TR_zeros([2]).TR_grad)`)
 	if out != "none none\n" {
 		t.Fatalf("yaprak gradyanı: %q", out)
 	}

@@ -143,7 +143,7 @@ TR_test "6.7 kontrol yapısı başlığında { gövdeyi başlatır" {
 
 TR_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
     TR_func a(x: TR_Int): TR_Int { TR_return x }
-    TR_func b(x: TR_Int) -> TR_String { TR_return TR_str(x) }
+    TR_func b(x: TR_Int) -> TR_String { TR_return TR_String(x) }
     TR_assert_equal("3", b(a(3)))
     # Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
     # Olumsuz fikstür: tests/negative/donus_tipi.tr

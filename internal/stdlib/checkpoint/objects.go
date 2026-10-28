@@ -66,7 +66,7 @@ func splitObjects(fn any, s *interp.DictVal) ([]*object, error) {
 	}
 	if len(out) == 0 || len(out) > maxObjects {
 		return nil, messages.New(messages.H7435,
-			fn, maxObjects, codes.NameRef(codes.FnCheckpoint))
+			fn, maxObjects, codes.NameRef(codes.TypeCheckpoint))
 	}
 	return out, nil
 }

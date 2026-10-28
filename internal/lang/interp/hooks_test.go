@@ -101,7 +101,7 @@ func TestSelfContainingContainers(t *testing.T) {
 		TR_print(m)
 		TR_var l2 = [1, "a"]
 		l2.TR_append(l2)
-		TR_var result = [l == l, d == d, l == l2, TR_str(l).TR_length]
+		TR_var result = [l == l, d == d, l == l2, TR_String(l).TR_length]
 	`)
 	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{next: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
 	if err != nil || out != want || val.Inspect() != "[true, true, false, 15]" {
@@ -139,16 +139,16 @@ func TestIntEdges(t *testing.T) {
 // yazılmıştır (runCoded); yakalanan hatanın metni dilden bağımsızdır (İngilizce), satırı dosyanındır.
 func TestInternalErrorLineOnce(t *testing.T) {
 	out := runCoded(t, `TR_var h = []
-TR_try { [1].TR_filter((x) => x / 0) } TR_catch e { h.TR_append(TR_str(e)) }
+TR_try { [1].TR_filter((x) => x / 0) } TR_catch e { h.TR_append(TR_String(e)) }
 TR_try { [1].TR_filter(
-	(x) => x / 0) } TR_catch e { h.TR_append(TR_str(e)) }
-TR_try { [1].TR_map(1, 2) } TR_catch e { h.TR_append(TR_str(e)) }
-TR_try { TR_range("a") } TR_catch e { h.TR_append(TR_str(e)) }
+	(x) => x / 0) } TR_catch e { h.TR_append(TR_String(e)) }
+TR_try { [1].TR_map(1, 2) } TR_catch e { h.TR_append(TR_String(e)) }
+TR_try { TR_round(1.25, "x") } TR_catch e { h.TR_append(TR_String(e)) }
 TR_for s TR_in h { TR_print(s) }
 `, "tr", nil)
 	want := "Line 3: Division by zero error\nLine 5: Division by zero error\n" +
 		"Line 6: list.map() takes 1 argument, 2 given (usage: list.map(function))\n" +
-		"Line 7: range() expects Int as argument 1, String (\"a\") given\n"
+		"Line 7: round() expects Int as argument 2, String (\"x\") given\n"
 	if out != want {
 		t.Fatalf("beklenmeyen:\n%s\nbeklenen:\n%s", out, want)
 	}

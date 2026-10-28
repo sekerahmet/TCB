@@ -11,9 +11,9 @@ import (
 // korunması, adlı argümanlar, yayınlama, türev ve yol gösteren hatalar.
 
 func TestWideMathReturnTypes(t *testing.T) {
-	out := mustRun(t, `TR_print(TR_type(TR_silu(1)), TR_type(TR_tan(1)), TR_type(TR_asin(0.5)), TR_type(TR_acos(0.5)), TR_type(TR_atan(2)))
-TR_print(TR_type(TR_sinh(1)), TR_type(TR_cosh(1)), TR_type(TR_log1p(1)), TR_type(TR_log2(4)), TR_type(TR_log10(10)), TR_type(TR_expm1(1)))
-TR_print(TR_type(TR_silu(TR_tensor([1.0]))), TR_type(TR_atan2(1, 2)), TR_type(TR_atan2(TR_tensor([1.0]), 2)))
+	out := mustRun(t, `TR_print(TR_Type(TR_silu(1)), TR_Type(TR_tan(1)), TR_Type(TR_asin(0.5)), TR_Type(TR_acos(0.5)), TR_Type(TR_atan(2)))
+TR_print(TR_Type(TR_sinh(1)), TR_Type(TR_cosh(1)), TR_Type(TR_log1p(1)), TR_Type(TR_log2(4)), TR_Type(TR_log10(10)), TR_Type(TR_expm1(1)))
+TR_print(TR_Type(TR_silu(TR_Tensor([1.0]))), TR_Type(TR_atan2(1, 2)), TR_Type(TR_atan2(TR_Tensor([1.0]), 2)))
 TR_print(TR_floor(3.7), TR_floor(-3), TR_ceil(-3.7), TR_ceil(2), TR_sign(-7), TR_sign(2.5), TR_sign(0))
 TR_print(TR_clamp(15, TR_max: 10), TR_clamp(-3, TR_min: 0), TR_clamp(5, TR_min: 0.5), TR_clamp(2.5, TR_min: 0, TR_max: 1))
 TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, 3.14159 < TR_pi < 3.1416)`)
@@ -29,17 +29,17 @@ TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, 3.14159 < TR_pi <
 }
 
 func TestWideMathTensor(t *testing.T) {
-	out := mustRun(t, `TR_var i = TR_argmax(TR_tensor([[1, 5], [7, 2]]))
+	out := mustRun(t, `TR_var i = TR_argmax(TR_Tensor([[1, 5], [7, 2]]))
 TR_print(TR_floor(i).TR_tolist, TR_sign(i - 1).TR_tolist, TR_clamp(i, TR_min: 0, TR_max: 0).TR_tolist, TR_clamp(i, TR_max: 0.5).TR_tolist)
-TR_var x = TR_tensor([-2.0, 0.5, 3.0], TR_requires_grad: TR_true)
+TR_var x = TR_Tensor([-2.0, 0.5, 3.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(TR_clamp(x, TR_min: -1, TR_max: 1) + TR_floor(x) * 5))
 TR_print(x.TR_grad.TR_tolist)
-TR_var s = TR_topk(TR_tensor([[3, 1, 3], [0, 2, 1]]), 2)
-TR_print(s[0].TR_tolist, s[1].TR_tolist, TR_type(s[1].TR_tolist[0][0]))
-TR_print(TR_argsort(TR_tensor([2, 1, 2, 0]), TR_dim: 0).TR_tolist, TR_cumsum(i).TR_tolist)
-TR_var m = TR_tensor([[1.0], [0.0]])
-TR_print(TR_where(m, TR_tensor([1.0, 2.0]), -1).TR_tolist, TR_where(TR_false, TR_tensor([1.0]), 7).TR_tolist)
-TR_print((TR_tensor([1, 2, 3]) >= TR_tensor([[2], [1]])).TR_tolist, (2 < TR_tensor([1, 2, 3])).TR_tolist)`)
+TR_var s = TR_topk(TR_Tensor([[3, 1, 3], [0, 2, 1]]), 2)
+TR_print(s[0].TR_tolist, s[1].TR_tolist, TR_Type(s[1].TR_tolist[0][0]))
+TR_print(TR_argsort(TR_Tensor([2, 1, 2, 0]), TR_dim: 0).TR_tolist, TR_cumsum(i).TR_tolist)
+TR_var m = TR_Tensor([[1.0], [0.0]])
+TR_print(TR_where(m, TR_Tensor([1.0, 2.0]), -1).TR_tolist, TR_where(TR_false, TR_Tensor([1.0]), 7).TR_tolist)
+TR_print((TR_Tensor([1, 2, 3]) >= TR_Tensor([[2], [1]])).TR_tolist, (2 < TR_Tensor([1, 2, 3])).TR_tolist)`)
 	want := "[1, 0] [0.0, -1.0] [0, 0] [0.5, 0.0]\n" + // i - 1 tam sayılı değil (15.19)
 		"[0.0, 1.0, 0.0]\n" +
 		"[[3.0, 3.0], [2.0, 1.0]] [[0, 2], [1, 2]] Int\n" +
@@ -60,7 +60,7 @@ func TestWideMathErrors(t *testing.T) {
 		{"TR_floor([1.5])", messages.H6104},
 		{"TR_atan2([1], 2)", messages.H6104},
 		{"TR_atan2(1)", messages.H6116},
-		{"TR_atan2(TR_tensor([1, 2]), TR_tensor([1, 2, 3]))", messages.H6100},
+		{"TR_atan2(TR_Tensor([1, 2]), TR_Tensor([1, 2, 3]))", messages.H6100},
 		{"TR_clamp(3)", messages.H6112},
 		{"TR_clamp(3, TR_min: 2, TR_max: 1)", messages.H6113},
 		{"TR_clamp(3, min: 1)", messages.H7900},
@@ -68,17 +68,17 @@ func TestWideMathErrors(t *testing.T) {
 		{"TR_clamp([1], TR_min: 0)", messages.H6104},
 		{"TR_where(1, 2)", messages.H6201},
 		{"TR_where(\"a\", 1, 2)", messages.H6207},
-		{"TR_where(TR_tensor([1, 0]), TR_tensor([1, 2, 3]), 0)", messages.H6214},
+		{"TR_where(TR_Tensor([1, 0]), TR_Tensor([1, 2, 3]), 0)", messages.H6214},
 		{"TR_where([1], 1, 2)", messages.H6104},
 		{"TR_cumsum([1, 2])", messages.H6104},
-		{"TR_cumsum(TR_tensor([1, 2]), 0)", messages.H6200},
-		{"TR_cumsum(TR_tensor(3.0))", messages.H6015},
-		{"TR_topk(TR_tensor([1, 2]), 3)", messages.H6210},
-		{"TR_topk(TR_tensor([1, 2]), 1.5)", messages.H6208},
-		{"TR_argsort(TR_tensor([[1, 2]]), TR_dim: 2)", messages.H6016},
-		{"TR_tensor([1, 2]) < TR_tensor([1, 2, 3])", messages.H6100},
-		{"TR_max(TR_tensor([1, 2]), 0)", messages.H6205},
-		{"TR_min(TR_tensor([1, 2]), 0)", messages.H6205},
+		{"TR_cumsum(TR_Tensor([1, 2]), 0)", messages.H6200},
+		{"TR_cumsum(TR_Tensor(3.0))", messages.H6015},
+		{"TR_topk(TR_Tensor([1, 2]), 3)", messages.H6210},
+		{"TR_topk(TR_Tensor([1, 2]), 1.5)", messages.H6208},
+		{"TR_argsort(TR_Tensor([[1, 2]]), TR_dim: 2)", messages.H6016},
+		{"TR_Tensor([1, 2]) < TR_Tensor([1, 2, 3])", messages.H6100},
+		{"TR_max(TR_Tensor([1, 2]), 0)", messages.H6205},
+		{"TR_min(TR_Tensor([1, 2]), 0)", messages.H6205},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -108,13 +108,13 @@ TR_print(TR_clamp(7, TR_min: 1, TR_max: 3), TR_clamp(7, TR_min: 1.5))`)
 // aynıdır ve türev izlemez. Listede, argümansız ve adlı argümanla açık hatadır.
 // Neden: eğitim döngüsü gradyan normunu ve kaybı NaN için böyle denetler (torch.isfinite).
 func TestIsFiniteNumbersAndTensors(t *testing.T) {
-	out := mustRun(t, `TR_var nan = TR_float("nan")
-TR_var inf = TR_float("inf")
-TR_print(TR_is_finite(3), TR_is_finite(-2.5), TR_is_finite(nan), TR_is_finite(inf), TR_is_finite(-inf), TR_type(TR_is_finite(0)))
-TR_var x = TR_tensor([1.0, nan, inf, -inf, -0.0], TR_requires_grad: TR_true)
+	out := mustRun(t, `TR_var nan = TR_Float("nan")
+TR_var inf = TR_Float("inf")
+TR_print(TR_is_finite(3), TR_is_finite(-2.5), TR_is_finite(nan), TR_is_finite(inf), TR_is_finite(-inf), TR_Type(TR_is_finite(0)))
+TR_var x = TR_Tensor([1.0, nan, inf, -inf, -0.0], TR_requires_grad: TR_true)
 TR_var s = TR_is_finite(x)
 TR_print(s.TR_tolist, s.TR_dtype)
-TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_tensor([[1, 2]])).TR_tolist)`)
+TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_Tensor([[1, 2]])).TR_tolist)`)
 	want := "true true false false false Bool\n" +
 		"[1.0, 0.0, 0.0, 0.0, 1.0] float32\n" +
 		"[1.0, 0.0, 0.0, 0.0, 1.0] [[1.0, 1.0]]\n"
@@ -141,7 +141,7 @@ TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_tensor([
 // işaretli girdide (argmax, sıralama_indeksi) de, kaynaştır içindekiyle aynı.
 // Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
 func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {
-	out := mustRun(t, `TR_var idx = TR_argsort(TR_tensor([20.0, 10.0]))
+	out := mustRun(t, `TR_var idx = TR_argsort(TR_Tensor([20.0, 10.0]))
 TR_var f = TR_fuse(TR_func(x) { TR_return TR_is_finite(x) })
 TR_print(TR_is_finite(idx).TR_tolist, f(idx).TR_tolist)`)
 	if out != "[1.0, 1.0] [1.0, 1.0]\n" {

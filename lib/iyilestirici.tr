@@ -116,7 +116,7 @@ TR_func TR_zero_grads(TR_parameters) {
 # yalnızca_2b ağırlıkların hepsinin 2 boyutlu olduğunu denetler.
 TR_func TR_only_2d(TR_name, TR_parameters) {
     TR_for i, p TR_in TR_parameters {
-        TR_assert(p.TR_shape.TR_length == 2, TR_message("H6920", TR_name, i, p.TR_shape))
+        TR_assert(p.TR_shape.TR_length == 2, TR_Message("H6920", TR_name, i, p.TR_shape))
     }
 }
 
@@ -146,7 +146,7 @@ TR_struct TR_Muon {
     TR_state
     TR_func TR_init(TR_parameters, TR_lr = 0.02, TR_momentum = 0.95, TR_nesterov = TR_true, TR_weight_decay = 0.0, TR_ns_iterations = 5, TR_scale = "oran", TR_ns_dtype = "float32") {
         TR_only_2d(TR_Muon, TR_parameters)
-        TR_assert(TR_scale == "oran" TR_or TR_scale == "rms", TR_message("H6921", TR_scale))
+        TR_assert(TR_scale == "oran" TR_or TR_scale == "rms", TR_Message("H6921", TR_scale))
         TR_self.TR_parameters = TR_parameters
         TR_self.TR_lr = TR_lr
         TR_self.TR_momentum = TR_momentum
@@ -393,7 +393,7 @@ TR_struct TR_MuonAndAdamW {
         TR_self.TR_row_rms = TR_if gruplar["seyrek"].TR_length > 0 { TR_RowRMS(gruplar["seyrek"], TR_lr: TR_sparse_lr, TR_beta2: TR_beta2) } TR_else { TR_none }
     }
     TR_func TR_set_multiplier(TR_multiplier) {
-        TR_assert(TR_multiplier > 0, TR_message("H6922", TR_multiplier))
+        TR_assert(TR_multiplier > 0, TR_Message("H6922", TR_multiplier))
         TR_self.TR_lr_multiplier = TR_multiplier
     }
     TR_func TR_step() {
@@ -424,7 +424,7 @@ TR_struct TR_MuonAndAdamW {
 # adımlarda (0.2: son %20) doğrusal olarak en_az'a iner.
 TR_func TR_lr_schedule(TR_step, TR_num_steps, TR_warmup = 0, TR_decay_fraction = 0.2, TR_min = 0.0) {
     TR_if TR_step < TR_warmup { TR_return 1.0 * (TR_step + 1) / TR_warmup }
-    TR_var azalma_adımı = TR_int(TR_num_steps * TR_decay_fraction)
+    TR_var azalma_adımı = TR_Int(TR_num_steps * TR_decay_fraction)
     TR_var baş = TR_num_steps - azalma_adımı
     TR_if TR_step < baş TR_or azalma_adımı == 0 { TR_return 1.0 }
     TR_return TR_min + (1.0 - TR_min) * (TR_num_steps - TR_step) / azalma_adımı
