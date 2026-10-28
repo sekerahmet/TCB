@@ -1,0 +1,167 @@
+// confusables, Unicode'un benzerlik çizelgesini (UTS #39, confusables.txt) sözcük çözümleyicinin
+// gömülü tablosuna çevirir: internal/lang/lexer/confusables_generated.go. Tablo adların iskeletini
+// kurar (dil tanımı 2.1a: aynı iskeletli iki ayrı ad hatadır, iskeleti TR_ ile başlayan kullanıcı adı
+// olamaz). Kaynak dosya depoya girmez; sürümü sabittir ve SHA-256'sı burada yazılıdır: başka bir
+// dosya verilirse üreteç çalışmaz.
+//
+// Usage (from the repository root, after downloading the file named in sourceURL):
+//
+//	go run ./tools/gen/confusables -src path/to/confusables.txt          // write the table
+//	go run ./tools/gen/confusables -check [-src path/to/confusables.txt] // exit 1 if out of date
+//
+// -check without -src (the full check: the source is not in the repository) verifies that the table
+// was generated from the pinned source (its header names this version and SHA-256); with -src it
+// also regenerates and compares the bytes.
+//
+// Layer: tools (tools); not shipped to users.
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"flag"
+	"fmt"
+	"go/format"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/sekerahmet/TCB/tools/internal/repodir"
+)
+
+const (
+	// sourceURL ve sourceSHA256 kaynağın sabit sürümüdür (Unicode 17.0.0).
+	sourceURL    = "https://www.unicode.org/Public/17.0.0/security/confusables.txt"
+	sourceSHA256 = "091c7f82fc39ef208faf8f94d29c244de99254675e09de163160c810d13ef22a"
+	version      = "17.0.0"
+)
+
+// outPath depo köküne göre üretilen dosyadır.
+var outPath = filepath.Join("internal", "lang", "lexer", "confusables_generated.go")
+
+func main() {
+	src := flag.String("src", "", "the downloaded confusables.txt ("+sourceURL+")")
+	check := flag.Bool("check", false, "do not write the file; exit 1 if it is out of date")
+	root := flag.String("root", "", "repository root (default: found from the current directory)")
+	flag.Parse()
+	if err := run(*src, *root, *check); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run(src, rootFlag string, check bool) error {
+	root, err := repodir.Resolve(rootFlag)
+	if err != nil {
+		return err
+	}
+	target := filepath.Join(root, outPath)
+	if src == "" {
+		if !check {
+			return fmt.Errorf("give -src: the file downloaded from %s", sourceURL)
+		}
+		current, err := os.ReadFile(target)
+		if err != nil {
+			return err
+		}
+		if !bytes.Contains(current, []byte(sourceLine())) {
+			return fmt.Errorf("%s was not generated from Unicode %s (SHA-256 %s): download %s and run go run ./tools/gen/confusables -src <file>", outPath, version, sourceSHA256, sourceURL)
+		}
+		return nil
+	}
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	sum := sha256.Sum256(data)
+	if got := hex.EncodeToString(sum[:]); got != sourceSHA256 {
+		return fmt.Errorf("%s: SHA-256 %s, want %s (Unicode %s)", src, got, sourceSHA256, version)
+	}
+	table, err := parse(data)
+	if err != nil {
+		return err
+	}
+	out, err := generate(table)
+	if err != nil {
+		return err
+	}
+	if check {
+		current, err := os.ReadFile(target)
+		if err != nil || !bytes.Equal(bytes.ReplaceAll(current, []byte("\r\n"), []byte("\n")), out) {
+			return fmt.Errorf("%s is out of date: go run ./tools/gen/confusables -src %s", outPath, src)
+		}
+		return nil
+	}
+	return os.WriteFile(target, out, 0o644)
+}
+
+// sourceLine üretilen dosyanın kaynağı anan satırıdır.
+func sourceLine() string {
+	return fmt.Sprintf("// Source: %s (Unicode %s, UTS #39), SHA-256 %s.\n", sourceURL, version, sourceSHA256)
+}
+
+// parse dosyanın satırlarını okur: "kaynak ; hedef dizisi ; tür # açıklama" (kod noktaları
+// onaltılık). Yorum ve boş satırlar atlanır.
+func parse(data []byte) (map[rune]string, error) {
+	table := map[rune]string{}
+	sc := bufio.NewScanner(bytes.NewReader(data))
+	for n := 1; sc.Scan(); n++ {
+		line, _, _ := strings.Cut(sc.Text(), "#")
+		fields := strings.Split(line, ";")
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		if len(fields) < 2 {
+			return nil, fmt.Errorf("line %d: want 'source ; target ; type'", n)
+		}
+		from, err := codePoints(fields[0])
+		if err != nil || len(from) != 1 {
+			return nil, fmt.Errorf("line %d: the source must be one code point", n)
+		}
+		to, err := codePoints(fields[1])
+		if err != nil || len(to) == 0 {
+			return nil, fmt.Errorf("line %d: bad target", n)
+		}
+		table[from[0]] = string(to)
+	}
+	return table, sc.Err()
+}
+
+// codePoints boşlukla ayrılmış onaltılık kod noktalarını okur.
+func codePoints(s string) ([]rune, error) {
+	var out []rune
+	for _, f := range strings.Fields(s) {
+		n, err := strconv.ParseUint(f, 16, 32)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rune(n))
+	}
+	return out, nil
+}
+
+// generate tablonun Go dosyasını yazar (kod noktası sırasıyla).
+func generate(table map[rune]string) ([]byte, error) {
+	keys := make([]rune, 0, len(table))
+	for r := range table {
+		keys = append(keys, r)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	var b bytes.Buffer
+	fmt.Fprintf(&b, "// Code generated by go run ./tools/gen/confusables; DO NOT EDIT.\n\n")
+	b.WriteString(sourceLine())
+	fmt.Fprintf(&b, "// Copyright © 2025 Unicode®, Inc. Unicode data files are distributed under the Unicode License\n")
+	fmt.Fprintf(&b, "// v3: https://www.unicode.org/license.txt (terms of use: https://www.unicode.org/terms_of_use.html).\n\n")
+	b.WriteString("package lexer\n\n")
+	b.WriteString("// confusables is the UTS #39 confusable mapping: a code point → its prototype string (skeleton.go).\n")
+	fmt.Fprintf(&b, "var confusables = map[rune]string{ // %d mappings\n", len(keys))
+	for _, r := range keys {
+		fmt.Fprintf(&b, "\t0x%04X: %s,\n", r, strconv.QuoteToASCII(table[r]))
+	}
+	b.WriteString("}\n")
+	return format.Source(b.Bytes())
+}

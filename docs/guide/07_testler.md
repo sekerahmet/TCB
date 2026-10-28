@@ -3,16 +3,16 @@
 Testler kodun yanına `TR_ctx_test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test examples/tr/17_testler_test.tr`.
 
 ```tr
-//! tr kodlu 3 dil=tr
-// hesap_test.tr
-TR_kw_func topla(a, b) { TR_kw_return a + b }
+# TR 4
+# hesap_test.tr
+TR_func topla(a, b) { TR_return a + b }
 
-TR_ctx_test "toplama doğru" {
-    TR_fn_assert(topla(2, 2) == 4)
+TR_test "toplama doğru" {
+    TR_assert(topla(2, 2) == 4)
 }
 
-TR_ctx_test "eşitlik" {
-    TR_fn_assert_equal(5, topla(2, 2))   // beklenen önce, gerçek sonra
+TR_test "eşitlik" {
+    TR_assert_equal(5, topla(2, 2))   # beklenen önce, gerçek sonra
 }
 ```
 

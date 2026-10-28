@@ -1,0 +1,2 @@
+TR_print("başlık yok") # ERROR H2540
+# TEST 2.1 başlıksız dosya çalışmaz; ileti dosyayı kodlama komutunu söyler

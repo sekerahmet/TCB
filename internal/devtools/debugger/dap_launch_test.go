@@ -9,7 +9,7 @@ import (
 // konsoluna (stderr) uyarı yazılır.
 func TestDAPArgumentsPassed(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "yazdır(\"bitti\")\n")
+	path := writeProgram(t, "TR_print(\"bitti\")\n")
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
 	c.event("initialized")
 	c.request("launch", map[string]interface{}{"program": path, "args": []string{"--adım", "5"}})

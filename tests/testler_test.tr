@@ -1,49 +1,43 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/12_testler.md §12 — Testler
+# TR 4
+# docs/spec/12_testler.md §12 — Testler
+TR_import "yardimci_testli"
 
-TR_kw_var test = "test sıradan bir ad olarak da kullanılabilir"
-TR_kw_var genel_değer = 42
+TR_var test = "test sıradan bir ad olarak da kullanılabilir"
+TR_var genel_değer = 42
 
-TR_ctx_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
-    // Modül normal biçimde çalıştırılır: içindeki test bloğu atlanır (çalışsaydı sayaç değişir
-    // ve hata fırlatırdı), sonraki satırlar çalışır.
-    TR_kw_import "yardimci_testli"
-    TR_fn_assert_equal(0, testli_sayaç)
-    TR_fn_assert(testli_bitti)
+TR_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
+    # Modül normal biçimde çalıştırılır: içindeki test bloğu atlanır (çalışsaydı sayaç değişir
+    # ve hata fırlatırdı), sonraki satırlar çalışır. Modül dosyanın başında aktarılır.
+    TR_assert_equal(0, testli_sayaç)
+    TR_assert(testli_bitti)
 }
 
-TR_ctx_test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
-    TR_fn_assert_equal(TR_type_String, TR_fn_type(test))
-    TR_kw_func test_et(test) { TR_kw_return test + 1 }
-    TR_fn_assert_equal(2, test_et(1))
+TR_test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
+    TR_assert_equal(TR_String, TR_type(test))
+    TR_func test_et(test) { TR_return test + 1 }
+    TR_assert_equal(2, test_et(1))
 }
 
-TR_ctx_test "12.3 doğrula(koşul, [mesaj])" {
-    TR_fn_assert(1 < 2)
-    TR_fn_assert(TR_kw_true, "mesajlı biçim")
-    TR_fn_assert_equal(H2456, TR_fn_error_code(() => { TR_fn_assert(TR_kw_false, "özel mesaj") }))
+TR_test "12.3 doğrula(koşul, [mesaj])" {
+    TR_assert(1 < 2)
+    TR_assert(TR_true, "mesajlı biçim")
+    TR_assert_equal("H2456", TR_error_code(() => { TR_assert(TR_false, "özel mesaj") }))
 }
 
-TR_ctx_test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
-    TR_fn_assert_equal([1, 2], [1, 2])
-    TR_fn_assert_equal("a", "a")
-    TR_fn_assert_equal(H2458, TR_fn_error_code(() => { TR_fn_assert_equal("5", 5) }))
+TR_test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
+    TR_assert_equal([1, 2], [1, 2])
+    TR_assert_equal("a", "a")
+    TR_assert_equal("H2458", TR_error_code(() => { TR_assert_equal("5", 5) }))
 }
 
-TR_ctx_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {
-    TR_kw_var yerel = 1
-    TR_fn_assert_equal(1, yerel)
-    TR_fn_assert_equal(42, genel_değer)
+TR_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {
+    TR_var yerel = 1
+    TR_assert_equal(1, yerel)
+    TR_assert_equal(42, genel_değer)
 }
 
-TR_ctx_test "12.5 bir testin yerel adı ötekine sızmaz" {
-    // Başka bir testin tanımladığı ad (yerel) bu testte tanımsızdır; testlerin sırasından
-    // bağımsız olarak doğrudur.
-    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/test_yerel_adi" }))
-}
-
-TR_ctx_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
-    TR_kw_func iç() { TR_kw_return 7 }
-    TR_fn_assert_equal(7, iç())
-    TR_fn_assert_equal(H0153, TR_fn_error_code(() => { TR_kw_import "negative/test_govdesi_sonuc" }))
+TR_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
+    TR_func iç() { TR_return 7 }
+    TR_assert_equal(7, iç())
+    # Olumsuz fikstür: tests/negative/test_govdesi_sonuc.tr
 }

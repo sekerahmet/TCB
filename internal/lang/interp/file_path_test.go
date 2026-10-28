@@ -78,22 +78,22 @@ func TestFileBuiltinsUseSingleRule(t *testing.T) {
 		return m.Run(prog)
 	}
 	// Programın yanındaki dosya okunur ve güncellenince yine oraya yazılır
-	if _, err := run(`dosya_yaz("sayac.txt", metin(tam(dosya_oku("sayac.txt")) + 1))`); err != nil {
+	if _, err := run(`TR_write_file("sayac.txt", TR_str(TR_int(TR_read_file("sayac.txt")) + 1))`); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(program, "sayac.txt")); string(b) != "2" {
 		t.Errorf("sayac.txt programın klasöründe güncellenmeliydi: %q", b)
 	}
 	// Yeni dosya çalışma klasöründe oluşur
-	if _, err := run(`dosya_yaz("yeni.txt", "x")`); err != nil {
+	if _, err := run(`TR_write_file("yeni.txt", "x")`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(execution, "yeni.txt")); err != nil {
 		t.Errorf("yeni dosya çalışma klasöründe oluşmalıydı: %v", err)
 	}
-	_, err := run(`dosya_oku("yok.txt")`)
+	_, err := run(`TR_read_file("yok.txt")`)
 	if err == nil || !strings.Contains(err.Error(), `dosya_oku(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`) ||
-		!strings.Contains(err.Error(), "bakılan yerler: ") || strings.Count(err.Error(), "yok.txt") != 3 {
+		!strings.Contains(err.Error(), "bakılan yerler: ") || strings.Count(err.Error(), "TR_none.txt") != 3 {
 		t.Errorf("beklenmeyen hata: %v", err)
 	}
 }

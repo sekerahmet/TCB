@@ -1,44 +1,44 @@
-//! tr kodlu 3 dil=tr
-TR_kw_var n = 120
-TR_kw_var a = []
-TR_kw_var b = []
-TR_kw_var i = 0
-TR_kw_while i < n {
-    TR_kw_var sa = []
-    TR_kw_var sb = []
-    TR_kw_var j = 0
-    TR_kw_while j < n {
-        sa.TR_mem_append((i * j) % 7)
-        sb.TR_mem_append((i + j) % 5)
+# TR 4
+TR_var n = 120
+TR_var a = []
+TR_var b = []
+TR_var i = 0
+TR_for i < n {
+    TR_var sa = []
+    TR_var sb = []
+    TR_var j = 0
+    TR_for j < n {
+        sa.TR_append((i * j) % 7)
+        sb.TR_append((i + j) % 5)
         j += 1
     }
-    a.TR_mem_append(sa)
-    b.TR_mem_append(sb)
+    a.TR_append(sa)
+    b.TR_append(sb)
     i += 1
 }
-TR_kw_var bas = TR_fn_time_ms()
-TR_kw_var c = []
+TR_var bas = TR_time_ms()
+TR_var c = []
 i = 0
-TR_kw_while i < n {
-    TR_kw_var satir = []
-    TR_kw_var j = 0
-    TR_kw_while j < n {
-        TR_kw_var t = 0
-        TR_kw_var k = 0
-        TR_kw_while k < n {
+TR_for i < n {
+    TR_var satir = []
+    TR_var j = 0
+    TR_for j < n {
+        TR_var t = 0
+        TR_var k = 0
+        TR_for k < n {
             t += a[i][k] * b[k][j]
             k += 1
         }
-        satir.TR_mem_append(t)
+        satir.TR_append(t)
         j += 1
     }
-    c.TR_mem_append(satir)
+    c.TR_append(satir)
     i += 1
 }
-TR_kw_var iz = 0
+TR_var iz = 0
 i = 0
-TR_kw_while i < n {
+TR_for i < n {
     iz += c[i][i]
     i += 1
 }
-TR_fn_print("matris_dongu {iz} {TR_fn_time_ms() - bas}")
+TR_print("matris_dongu \(iz) \(TR_time_ms() - bas)")

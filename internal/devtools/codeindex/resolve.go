@@ -7,7 +7,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // owner bir başvurunun çıkış düğümüdür (başvuruyu içeren bildirim, test ya da modül).
@@ -191,7 +191,8 @@ func (x *indexer) scan(f *file, o owner, root any) {
 		case *ast.Identifier:
 			x.ident(f, o, sc, n)
 		case *ast.StringLiteral:
-			if n.Token.Type == lexer.TokMessageCode {
+			// İleti kodu bir metin olarak yazılır ("H6932"; eski çıplak yazım kalktı).
+			if _, err := messages.Parse(n.Value); err == nil {
 				x.message(f, o, n)
 			}
 		}

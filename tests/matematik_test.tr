@@ -1,270 +1,270 @@
-//! tr kodlu 3 dil=tr
-// Matematik genişletmesi: sayı matematiği (13.7), tensör karşılaştırmaları (15.6) ve
-// genişletilmiş eleman bazlı fonksiyonlar, sınırlama, koşullu seçim, birikim ve sıralama
-// (15.11–15.15, 15.20–15.22).
+# TR 4
+# Matematik genişletmesi: sayı matematiği (13.7), tensör karşılaştırmaları (15.6) ve
+# genişletilmiş eleman bazlı fonksiyonlar, sınırlama, koşullu seçim, birikim ve sıralama
+# (15.11–15.15, 15.20–15.22).
 
-TR_kw_import "yardimci_test_araclari"
+TR_import "yardimci_test_araclari"
 
-// yakın_mı: iki sayının farkı tolerans içinde mi?
-TR_kw_func yakın_mı(a, b, tol = 0.000001) {
-    TR_kw_return TR_fn_abs(a - b) <= tol * (1 + TR_fn_abs(b))
+# yakın_mı: iki sayının farkı tolerans içinde mi?
+TR_func yakın_mı(a, b, tol = 0.000001) {
+    TR_return TR_abs(a - b) <= tol * (1 + TR_abs(b))
 }
 
-TR_ctx_test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabittir" {
-    TR_fn_assert_equal(3.0, TR_fn_floor(3.7))
-    TR_fn_assert_equal(-4.0, TR_fn_floor(-3.2))
-    TR_fn_assert_equal(-2, TR_fn_floor(-2))
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_ceil(7)))
-    TR_fn_assert_equal(4.0, TR_fn_ceil(3.2))
-    TR_fn_assert_equal(-1, TR_fn_sign(-4))
-    TR_fn_assert_equal(1.0, TR_fn_sign(2.5))
-    TR_fn_assert_equal(0, TR_fn_sign(0))
-    TR_fn_assert_equal(10, TR_fn_clamp(15, TR_arg_max: 10))
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_clamp(-3, TR_arg_min: 0)))
-    TR_fn_assert_equal(5.0, TR_fn_clamp(5, TR_arg_min: 0.5))
-    TR_fn_assert_equal(TR_type_Float, TR_fn_type(TR_const_pi))
-    TR_fn_assert(TR_const_pi > 3.14159 && TR_const_pi < 3.1416)
-    TR_fn_assert(yakın_mı(TR_fn_sin(TR_const_pi / 2), 1.0))
-    TR_fn_assert_equal(H2421, TR_fn_error_code(() => TR_const_pi()))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_floor([1.5])))
-    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_floor("a")))
+TR_test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabittir" {
+    TR_assert_equal(3.0, TR_floor(3.7))
+    TR_assert_equal(-4.0, TR_floor(-3.2))
+    TR_assert_equal(-2, TR_floor(-2))
+    TR_assert_equal(TR_Int, TR_type(TR_ceil(7)))
+    TR_assert_equal(4.0, TR_ceil(3.2))
+    TR_assert_equal(-1, TR_sign(-4))
+    TR_assert_equal(1.0, TR_sign(2.5))
+    TR_assert_equal(0, TR_sign(0))
+    TR_assert_equal(10, TR_clamp(15, TR_max: 10))
+    TR_assert_equal(TR_Int, TR_type(TR_clamp(-3, TR_min: 0)))
+    TR_assert_equal(5.0, TR_clamp(5, TR_min: 0.5))
+    TR_assert_equal(TR_Float, TR_type(TR_pi))
+    TR_assert(TR_pi > 3.14159 && TR_pi < 3.1416)
+    TR_assert(yakın_mı(TR_sin(TR_pi / 2), 1.0))
+    TR_assert_equal("H2421", TR_error_code(() => TR_pi()))
+    TR_assert_equal("H6104", TR_error_code(() => TR_floor([1.5])))
+    TR_assert_equal("H2423", TR_error_code(() => TR_floor("a")))
 }
 
-TR_ctx_test "15.6 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
-    TR_kw_var a = TR_fn_tensor([1, 2, 3])
-    TR_fn_assert_equal([0.0, 1.0, 1.0], (a > 1).TR_mem_tolist)
-    TR_fn_assert_equal([1.0, 0.0, 0.0], (2 > a).TR_mem_tolist)
-    TR_fn_assert_equal([[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]], (a >= TR_fn_tensor([[2], [1]])).TR_mem_tolist)
-    TR_fn_assert_equal([1.0, 1.0, 0.0], (a <= [3, 2, 1]).TR_mem_tolist)
-    TR_fn_assert_equal([0.0], (TR_fn_tensor([0.0]) / 0 < 1).TR_mem_tolist)
-    TR_fn_assert(a == TR_fn_tensor([1, 2, 3]))
-    TR_fn_assert(a != TR_fn_tensor([1, 2, 4]))
-    TR_kw_var x = TR_fn_tensor([-1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_assert_equal(H6402, TR_fn_error_code(() => TR_fn_backward(TR_fn_sum(x > 0))))
-    TR_fn_assert_equal(H6100, TR_fn_error_code(() => a < TR_fn_tensor([1, 2])))
+TR_test "15.6 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
+    TR_var a = TR_tensor([1, 2, 3])
+    TR_assert_equal([0.0, 1.0, 1.0], (a > 1).TR_tolist)
+    TR_assert_equal([1.0, 0.0, 0.0], (2 > a).TR_tolist)
+    TR_assert_equal([[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]], (a >= TR_tensor([[2], [1]])).TR_tolist)
+    TR_assert_equal([1.0, 1.0, 0.0], (a <= [3, 2, 1]).TR_tolist)
+    TR_assert_equal([0.0], (TR_tensor([0.0]) / 0 < 1).TR_tolist)
+    TR_assert(a == TR_tensor([1, 2, 3]))
+    TR_assert(a != TR_tensor([1, 2, 4]))
+    TR_var x = TR_tensor([-1.0, 2.0], TR_requires_grad: TR_true)
+    TR_assert_equal("H6402", TR_error_code(() => TR_backward(TR_sum(x > 0))))
+    TR_assert_equal("H6100", TR_error_code(() => a < TR_tensor([1, 2])))
 }
 
-TR_ctx_test "15.11 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
-    TR_fn_assert(yakın_mı(TR_fn_silu(1.0), 1.0 / (1 + TR_fn_exp(-1.0))))
-    TR_fn_assert(yakın_mı(TR_fn_tan(0.5), TR_fn_sin(0.5) / TR_fn_cos(0.5)))
-    TR_fn_assert(yakın_mı(TR_fn_asin(1.0), TR_const_pi / 2))
-    TR_fn_assert(yakın_mı(TR_fn_acos(-1.0), TR_const_pi))
-    TR_fn_assert(yakın_mı(TR_fn_atan(1.0), TR_const_pi / 4))
-    TR_fn_assert(yakın_mı(TR_fn_sinh(1.0), (TR_fn_exp(1.0) - TR_fn_exp(-1.0)) / 2))
-    TR_fn_assert(yakın_mı(TR_fn_cosh(1.0), (TR_fn_exp(1.0) + TR_fn_exp(-1.0)) / 2))
-    TR_fn_assert_equal(3.0, TR_fn_log2(8))
-    TR_fn_assert_equal(3.0, TR_fn_log10(1000))
-    // Küçük x'te kararlılık: log(1 + x) ve exp(x) - 1 burada 0 verirdi.
-    TR_fn_assert(yakın_mı(TR_fn_log1p(1e-17), 1e-17))
-    TR_fn_assert(yakın_mı(TR_fn_expm1(1e-17), 1e-17))
-    TR_kw_var t = TR_fn_tensor([1e-10, 0.5])
-    TR_fn_assert(yakın_mı(TR_fn_log1p(t).TR_mem_tolist[0], 1e-10))
-    TR_fn_assert(yakın_mı(TR_fn_expm1(t).TR_mem_tolist[0], 1e-10))
-    TR_fn_assert_equal(0.0, TR_fn_log(1 + t).TR_mem_tolist[0])
-    // Tanım dışı ve kenar değerler.
-    TR_fn_assert(TR_fn_asin(TR_fn_tensor([2.0])).TR_mem_tolist[0] != TR_fn_asin(TR_fn_tensor([2.0])).TR_mem_tolist[0])
-    TR_fn_assert_equal(-1, TR_fn_sign(TR_fn_log1p(TR_fn_tensor([-1.0])).TR_mem_tolist[0]))
-    TR_fn_assert_equal(0.0, TR_fn_silu(TR_fn_tensor([-1.0]) / 0).TR_mem_tolist[0])
-    TR_fn_assert_equal(TR_type_Tensor, TR_fn_type(TR_fn_tan(TR_fn_tensor([0.5]))))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_silu([1, 2])))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_log10([1])))
+TR_test "15.11 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
+    TR_assert(yakın_mı(TR_silu(1.0), 1.0 / (1 + TR_exp(-1.0))))
+    TR_assert(yakın_mı(TR_tan(0.5), TR_sin(0.5) / TR_cos(0.5)))
+    TR_assert(yakın_mı(TR_asin(1.0), TR_pi / 2))
+    TR_assert(yakın_mı(TR_acos(-1.0), TR_pi))
+    TR_assert(yakın_mı(TR_atan(1.0), TR_pi / 4))
+    TR_assert(yakın_mı(TR_sinh(1.0), (TR_exp(1.0) - TR_exp(-1.0)) / 2))
+    TR_assert(yakın_mı(TR_cosh(1.0), (TR_exp(1.0) + TR_exp(-1.0)) / 2))
+    TR_assert_equal(3.0, TR_log2(8))
+    TR_assert_equal(3.0, TR_log10(1000))
+    # Küçük x'te kararlılık: log(1 + x) ve exp(x) - 1 burada 0 verirdi.
+    TR_assert(yakın_mı(TR_log1p(1e-17), 1e-17))
+    TR_assert(yakın_mı(TR_expm1(1e-17), 1e-17))
+    TR_var t = TR_tensor([1e-10, 0.5])
+    TR_assert(yakın_mı(TR_log1p(t).TR_tolist[0], 1e-10))
+    TR_assert(yakın_mı(TR_expm1(t).TR_tolist[0], 1e-10))
+    TR_assert_equal(0.0, TR_log(1 + t).TR_tolist[0])
+    # Tanım dışı ve kenar değerler.
+    TR_assert(TR_asin(TR_tensor([2.0])).TR_tolist[0] != TR_asin(TR_tensor([2.0])).TR_tolist[0])
+    TR_assert_equal(-1, TR_sign(TR_log1p(TR_tensor([-1.0])).TR_tolist[0]))
+    TR_assert_equal(0.0, TR_silu(TR_tensor([-1.0]) / 0).TR_tolist[0])
+    TR_assert_equal(TR_Tensor, TR_type(TR_tan(TR_tensor([0.5]))))
+    TR_assert_equal("H6104", TR_error_code(() => TR_silu([1, 2])))
+    TR_assert_equal("H6104", TR_error_code(() => TR_log10([1])))
 }
 
-TR_ctx_test "15.11 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur" {
-    TR_kw_var x = TR_fn_tensor([[-1.3, -0.4, 0.2], [0.7, 1.1, 1.9]], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var p = TR_fn_tensor([[0.3, 0.9, 1.7], [2.5, 4.0, 6.5]], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var a = TR_fn_tensor([[-0.8, -0.3, 0.1], [0.4, 0.6, 0.85]], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_assert(TR_fn_grad_check(TR_fn_silu, [x]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_tan, [a]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_asin, [a]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_acos, [a]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_atan, [x]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_sinh, [x]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_cosh, [x]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_log1p, [p]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_log2, [p]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_log10, [p]))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_expm1, [x]))
+TR_test "15.11 genişletilmiş fonksiyonların türevleri sayısal türevle uyuşur" {
+    TR_var x = TR_tensor([[-1.3, -0.4, 0.2], [0.7, 1.1, 1.9]], TR_requires_grad: TR_true)
+    TR_var p = TR_tensor([[0.3, 0.9, 1.7], [2.5, 4.0, 6.5]], TR_requires_grad: TR_true)
+    TR_var a = TR_tensor([[-0.8, -0.3, 0.1], [0.4, 0.6, 0.85]], TR_requires_grad: TR_true)
+    TR_assert(TR_grad_check(TR_silu, [x]))
+    TR_assert(TR_grad_check(TR_tan, [a]))
+    TR_assert(TR_grad_check(TR_asin, [a]))
+    TR_assert(TR_grad_check(TR_acos, [a]))
+    TR_assert(TR_grad_check(TR_atan, [x]))
+    TR_assert(TR_grad_check(TR_sinh, [x]))
+    TR_assert(TR_grad_check(TR_cosh, [x]))
+    TR_assert(TR_grad_check(TR_log1p, [p]))
+    TR_assert(TR_grad_check(TR_log2, [p]))
+    TR_assert(TR_grad_check(TR_log10, [p]))
+    TR_assert(TR_grad_check(TR_expm1, [x]))
 }
 
-TR_ctx_test "15.12 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
-    TR_fn_assert_equal([-2.0, 2.0], TR_fn_floor(TR_fn_tensor([-1.5, 2.5])).TR_mem_tolist)
-    TR_fn_assert_equal([-1.0, 3.0], TR_fn_ceil(TR_fn_tensor([-1.5, 2.5])).TR_mem_tolist)
-    TR_fn_assert_equal([-1.0, 0.0, 1.0], TR_fn_sign(TR_fn_tensor([-2.0, 0.0, 3.0])).TR_mem_tolist)
-    TR_kw_var i = TR_fn_argmax(TR_fn_tensor([[1, 5], [7, 2]]))
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_floor(i).TR_mem_tolist[0]))
-    TR_kw_var x = TR_fn_tensor([-1.5, 0.0, 2.5], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_floor(x) + TR_fn_ceil(x) * 2 + TR_fn_sign(x) * 3))
-    TR_fn_assert_equal([0.0, 0.0, 0.0], x.TR_mem_grad.TR_mem_tolist)
+TR_test "15.12 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
+    TR_assert_equal([-2.0, 2.0], TR_floor(TR_tensor([-1.5, 2.5])).TR_tolist)
+    TR_assert_equal([-1.0, 3.0], TR_ceil(TR_tensor([-1.5, 2.5])).TR_tolist)
+    TR_assert_equal([-1.0, 0.0, 1.0], TR_sign(TR_tensor([-2.0, 0.0, 3.0])).TR_tolist)
+    TR_var i = TR_argmax(TR_tensor([[1, 5], [7, 2]]))
+    TR_assert_equal(TR_Int, TR_type(TR_floor(i).TR_tolist[0]))
+    TR_var x = TR_tensor([-1.5, 0.0, 2.5], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_floor(x) + TR_ceil(x) * 2 + TR_sign(x) * 3))
+    TR_assert_equal([0.0, 0.0, 0.0], x.TR_grad.TR_tolist)
 }
 
-TR_ctx_test "15.16 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
-    TR_fn_assert_equal([2.0, 0.0, 3.5], TR_fn_abs(TR_fn_tensor([-2.0, 0.0, 3.5])).TR_mem_tolist)
-    // −0'ın mutlağı +0'dır: 1 / +0 pozitif sonsuz verir.
-    TR_kw_var eksi_sıfır = TR_fn_tensor([0.0]) * -1
-    TR_fn_assert((1 / eksi_sıfır).TR_mem_tolist[0] < 0)
-    TR_fn_assert((1 / TR_fn_abs(eksi_sıfır)).TR_mem_tolist[0] > 0)
-    TR_kw_var n = TR_fn_abs(TR_fn_tensor([0.0]) / 0).TR_mem_tolist[0]
-    TR_fn_assert(n != n, "NaN korunur")
-    TR_fn_assert((TR_fn_abs(TR_fn_tensor([-1.0]) / 0)).TR_mem_tolist[0] > 1e308, "sonsuzun mutlağı sonsuz")
-    // Türev işaret(x): pozitifte 1, negatifte -1, 0'da 0.
-    TR_kw_var x = TR_fn_tensor([-1.5, 0.0, 2.5], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_abs(x) * TR_fn_tensor([1.0, 2.0, 3.0])))
-    TR_fn_assert_equal([-1.0, 0.0, 3.0], x.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal(TR_kw_true, TR_fn_grad_check((t) => TR_fn_abs(t), [TR_fn_tensor([-0.7, 0.4, 1.3], TR_arg_requires_grad: TR_kw_true)]))
-    // 16 bitlik tensör kendi türünde döner; tam sayılı işaretli tensör tam sayılı kalır.
-    TR_kw_var h = TR_fn_abs(TR_fn_tensor([-1.5, 2.0], TR_arg_dtype: "bf16"))
-    TR_fn_assert_equal("bf16", h.TR_mem_dtype)
-    TR_fn_assert_equal([1.5, 2.0], h.TR_mem_tolist)
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_abs(TR_fn_argmax(TR_fn_tensor([1, 3]))).TR_mem_tolist))
-    // Sayıda kural değişmez; listede çalışmaz.
-    TR_fn_assert_equal(5, TR_fn_abs(-5))
-    TR_fn_assert_equal(2.5, TR_fn_abs(-2.5))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_abs([-1, 2])))
+TR_test "15.16 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 bit ve tam sayılı tür korunur" {
+    TR_assert_equal([2.0, 0.0, 3.5], TR_abs(TR_tensor([-2.0, 0.0, 3.5])).TR_tolist)
+    # −0'ın mutlağı +0'dır: 1 / +0 pozitif sonsuz verir.
+    TR_var eksi_sıfır = TR_tensor([0.0]) * -1
+    TR_assert((1 / eksi_sıfır).TR_tolist[0] < 0)
+    TR_assert((1 / TR_abs(eksi_sıfır)).TR_tolist[0] > 0)
+    TR_var n = TR_abs(TR_tensor([0.0]) / 0).TR_tolist[0]
+    TR_assert(n != n, "NaN korunur")
+    TR_assert((TR_abs(TR_tensor([-1.0]) / 0)).TR_tolist[0] > 1e308, "sonsuzun mutlağı sonsuz")
+    # Türev işaret(x): pozitifte 1, negatifte -1, 0'da 0.
+    TR_var x = TR_tensor([-1.5, 0.0, 2.5], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_abs(x) * TR_tensor([1.0, 2.0, 3.0])))
+    TR_assert_equal([-1.0, 0.0, 3.0], x.TR_grad.TR_tolist)
+    TR_assert_equal(TR_true, TR_grad_check((t) => TR_abs(t), [TR_tensor([-0.7, 0.4, 1.3], TR_requires_grad: TR_true)]))
+    # 16 bitlik tensör kendi türünde döner; tam sayılı işaretli tensör tam sayılı kalır.
+    TR_var h = TR_abs(TR_tensor([-1.5, 2.0], TR_dtype: "bf16"))
+    TR_assert_equal("bf16", h.TR_dtype)
+    TR_assert_equal([1.5, 2.0], h.TR_tolist)
+    TR_assert_equal(TR_Int, TR_type(TR_abs(TR_argmax(TR_tensor([1, 3]))).TR_tolist))
+    # Sayıda kural değişmez; listede çalışmaz.
+    TR_assert_equal(5, TR_abs(-5))
+    TR_assert_equal(2.5, TR_abs(-2.5))
+    TR_assert_equal("H6104", TR_error_code(() => TR_abs([-1, 2])))
 }
 
-TR_ctx_test "15.13 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
-    TR_fn_assert_equal([0.0, 0.5, 1.0], TR_fn_clamp(TR_fn_tensor([-2.0, 0.5, 3.0]), TR_arg_min: 0, TR_arg_max: 1).TR_mem_tolist)
-    TR_fn_assert_equal([0.0, 3.0], TR_fn_clamp(TR_fn_tensor([-2.0, 3.0]), TR_arg_min: 0).TR_mem_tolist)
-    TR_fn_assert_equal([-2.0, 1.0], TR_fn_clamp(TR_fn_tensor([-2.0, 3.0]), TR_arg_max: 1).TR_mem_tolist)
-    TR_kw_var n = TR_fn_clamp(TR_fn_tensor([0.0]) / 0, TR_arg_min: 0, TR_arg_max: 1).TR_mem_tolist[0]
-    TR_fn_assert(n != n)
-    TR_kw_var x = TR_fn_tensor([-2.0, -1.0, 0.5, 1.0, 3.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_clamp(x, TR_arg_min: -1, TR_arg_max: 1)))
-    TR_fn_assert_equal([0.0, 1.0, 1.0, 1.0, 0.0], x.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_clamp(TR_fn_argmax(TR_fn_tensor([1, 3])), TR_arg_max: 0).TR_mem_tolist))
-    TR_fn_assert_equal(H6112, TR_fn_error_code(() => TR_fn_clamp(3)))
-    TR_fn_assert_equal(H6113, TR_fn_error_code(() => TR_fn_clamp(3, TR_arg_min: 2, TR_arg_max: 1)))
-    TR_fn_assert_equal(H7900, TR_fn_error_code(() => TR_fn_clamp(3, min: 0)))
-    TR_fn_assert_equal(H6107, TR_fn_error_code(() => TR_fn_clamp(3, TR_arg_min: TR_kw_none)))
-    TR_fn_assert_equal(H6205, TR_fn_error_code(() => TR_fn_max(TR_fn_tensor([1, 2]), 0)))
+TR_test "15.13 sınırla: aralık, tek sınır, NaN korunur, türev aralık içinde 1; hatalar" {
+    TR_assert_equal([0.0, 0.5, 1.0], TR_clamp(TR_tensor([-2.0, 0.5, 3.0]), TR_min: 0, TR_max: 1).TR_tolist)
+    TR_assert_equal([0.0, 3.0], TR_clamp(TR_tensor([-2.0, 3.0]), TR_min: 0).TR_tolist)
+    TR_assert_equal([-2.0, 1.0], TR_clamp(TR_tensor([-2.0, 3.0]), TR_max: 1).TR_tolist)
+    TR_var n = TR_clamp(TR_tensor([0.0]) / 0, TR_min: 0, TR_max: 1).TR_tolist[0]
+    TR_assert(n != n)
+    TR_var x = TR_tensor([-2.0, -1.0, 0.5, 1.0, 3.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_clamp(x, TR_min: -1, TR_max: 1)))
+    TR_assert_equal([0.0, 1.0, 1.0, 1.0, 0.0], x.TR_grad.TR_tolist)
+    TR_assert_equal(TR_Int, TR_type(TR_clamp(TR_argmax(TR_tensor([1, 3])), TR_max: 0).TR_tolist))
+    TR_assert_equal("H6112", TR_error_code(() => TR_clamp(3)))
+    TR_assert_equal("H6113", TR_error_code(() => TR_clamp(3, TR_min: 2, TR_max: 1)))
+    TR_assert_equal("H7900", TR_error_code(() => TR_clamp(3, min: 0)))
+    TR_assert_equal("H6107", TR_error_code(() => TR_clamp(3, TR_min: TR_none)))
+    TR_assert_equal("H6205", TR_error_code(() => TR_max(TR_tensor([1, 2]), 0)))
 }
 
-TR_ctx_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türev" {
-    TR_fn_assert(yakın_mı(TR_fn_atan2(1, -1), 3 * TR_const_pi / 4))
-    TR_fn_assert(yakın_mı(TR_fn_atan2(-1, -1), -3 * TR_const_pi / 4))
-    TR_fn_assert(yakın_mı(TR_fn_atan2(-1, 1), -TR_const_pi / 4))
-    TR_fn_assert_equal(0.0, TR_fn_atan2(0, 0))
-    TR_fn_assert(yakın_mı(TR_fn_atan2(0.0, -1), TR_const_pi))
-    TR_fn_assert(yakın_mı(TR_fn_atan2(-0.0, -1), -TR_const_pi))
-    TR_kw_var y = TR_fn_tensor([[1.0], [-1.0]], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var x = TR_fn_tensor([1.0, -1.0, 0.0], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var a = TR_fn_atan2(y, x)
-    TR_fn_assert_equal([2, 3], a.TR_mem_shape)
-    TR_fn_assert(yakın_mı(a.TR_mem_tolist[1][1], -3 * TR_const_pi / 4, 0.000001))
-    TR_fn_assert(TR_fn_grad_check(TR_fn_atan2, [y, x]))
-    TR_kw_var z = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var w = TR_fn_tensor([0.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_atan2(z, w)))
-    TR_fn_assert_equal([0.0], z.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal([0.0], w.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal("bf16", TR_fn_atan2(TR_fn_tensor([1.0], TR_arg_dtype: "bf16"), 1).TR_mem_dtype)
-    TR_fn_assert_equal(H6100, TR_fn_error_code(() => TR_fn_atan2(TR_fn_tensor([1, 2]), TR_fn_tensor([1, 2, 3]))))
+TR_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türev" {
+    TR_assert(yakın_mı(TR_atan2(1, -1), 3 * TR_pi / 4))
+    TR_assert(yakın_mı(TR_atan2(-1, -1), -3 * TR_pi / 4))
+    TR_assert(yakın_mı(TR_atan2(-1, 1), -TR_pi / 4))
+    TR_assert_equal(0.0, TR_atan2(0, 0))
+    TR_assert(yakın_mı(TR_atan2(0.0, -1), TR_pi))
+    TR_assert(yakın_mı(TR_atan2(-0.0, -1), -TR_pi))
+    TR_var y = TR_tensor([[1.0], [-1.0]], TR_requires_grad: TR_true)
+    TR_var x = TR_tensor([1.0, -1.0, 0.0], TR_requires_grad: TR_true)
+    TR_var a = TR_atan2(y, x)
+    TR_assert_equal([2, 3], a.TR_shape)
+    TR_assert(yakın_mı(a.TR_tolist[1][1], -3 * TR_pi / 4, 0.000001))
+    TR_assert(TR_grad_check(TR_atan2, [y, x]))
+    TR_var z = TR_tensor([0.0], TR_requires_grad: TR_true)
+    TR_var w = TR_tensor([0.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_atan2(z, w)))
+    TR_assert_equal([0.0], z.TR_grad.TR_tolist)
+    TR_assert_equal([0.0], w.TR_grad.TR_tolist)
+    TR_assert_equal("bf16", TR_atan2(TR_tensor([1.0], TR_dtype: "bf16"), 1).TR_dtype)
+    TR_assert_equal("H6100", TR_error_code(() => TR_atan2(TR_tensor([1, 2]), TR_tensor([1, 2, 3]))))
 }
 
-TR_ctx_test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
-    TR_kw_var x = TR_fn_tensor([-1.0, 2.0, -3.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_assert_equal([0.0, 2.0, 0.0], TR_fn_where(x > 0, x, 0).TR_mem_tolist)
-    TR_fn_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_fn_where(TR_fn_tensor([[1.0], [0.0]]), TR_fn_tensor([1.0, 2.0]), -1).TR_mem_tolist)
-    TR_fn_assert_equal([7.0], TR_fn_where(TR_kw_false, TR_fn_tensor([1.0]), 7).TR_mem_tolist)
-    TR_fn_assert_equal(2, TR_fn_where(TR_kw_true, 2, 3))
-    TR_fn_assert_equal(3, TR_fn_where(0, 2, 3))
-    // Seçilmeyen dalın NaN'ı gradyana sızmaz: log(x) negatifte NaN'dır ama seçilmez.
-    TR_kw_var p = TR_fn_tensor([-1.0, 4.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_where(p > 0, TR_fn_sqrt(TR_fn_clamp(p, TR_arg_min: 0.0001)), 0)))
-    TR_fn_assert(p.TR_mem_grad.TR_mem_tolist[0] == 0.0)
-    TR_fn_assert(yakın_mı(p.TR_mem_grad.TR_mem_tolist[1], 0.25))
-    TR_kw_var a = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var b = TR_fn_tensor([3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_where(TR_fn_tensor([1, 0]), a, b) * TR_fn_tensor([10, 20])))
-    TR_fn_assert_equal([10.0, 0.0], a.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal([0.0, 20.0], b.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_where(TR_fn_tensor([1, 0]), TR_fn_argmax(TR_fn_tensor([[1, 2], [3, 1]])), 0).TR_mem_tolist[0]))
-    TR_fn_assert_equal(H6214, TR_fn_error_code(() => TR_fn_where(TR_fn_tensor([1, 0]), TR_fn_tensor([1, 2, 3]), 0)))
-    TR_fn_assert_equal(H6207, TR_fn_error_code(() => TR_fn_where("a", 1, 2)))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_where([1], 1, 2)))
+TR_test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
+    TR_var x = TR_tensor([-1.0, 2.0, -3.0], TR_requires_grad: TR_true)
+    TR_assert_equal([0.0, 2.0, 0.0], TR_where(x > 0, x, 0).TR_tolist)
+    TR_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_where(TR_tensor([[1.0], [0.0]]), TR_tensor([1.0, 2.0]), -1).TR_tolist)
+    TR_assert_equal([7.0], TR_where(TR_false, TR_tensor([1.0]), 7).TR_tolist)
+    TR_assert_equal(2, TR_where(TR_true, 2, 3))
+    TR_assert_equal(3, TR_where(0, 2, 3))
+    # Seçilmeyen dalın NaN'ı gradyana sızmaz: log(x) negatifte NaN'dır ama seçilmez.
+    TR_var p = TR_tensor([-1.0, 4.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_where(p > 0, TR_sqrt(TR_clamp(p, TR_min: 0.0001)), 0)))
+    TR_assert(p.TR_grad.TR_tolist[0] == 0.0)
+    TR_assert(yakın_mı(p.TR_grad.TR_tolist[1], 0.25))
+    TR_var a = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_var b = TR_tensor([3.0, 4.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_where(TR_tensor([1, 0]), a, b) * TR_tensor([10, 20])))
+    TR_assert_equal([10.0, 0.0], a.TR_grad.TR_tolist)
+    TR_assert_equal([0.0, 20.0], b.TR_grad.TR_tolist)
+    TR_assert_equal(TR_Int, TR_type(TR_where(TR_tensor([1, 0]), TR_argmax(TR_tensor([[1, 2], [3, 1]])), 0).TR_tolist[0]))
+    TR_assert_equal("H6214", TR_error_code(() => TR_where(TR_tensor([1, 0]), TR_tensor([1, 2, 3]), 0)))
+    TR_assert_equal("H6207", TR_error_code(() => TR_where("a", 1, 2)))
+    TR_assert_equal("H6104", TR_error_code(() => TR_where([1], 1, 2)))
 }
 
-TR_ctx_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
-    TR_fn_assert_equal([1.0, 3.0, 6.0, 10.0], TR_fn_cumsum(TR_fn_tensor([1, 2, 3, 4])).TR_mem_tolist)
-    TR_fn_assert_equal([[1.0, 2.0], [4.0, 6.0]], TR_fn_cumsum(TR_fn_tensor([[1, 2], [3, 4]]), TR_arg_dim: 0).TR_mem_tolist)
-    TR_fn_assert_equal([[1.0, 3.0], [3.0, 7.0]], TR_fn_cumsum(TR_fn_tensor([[1, 2], [3, 4]])).TR_mem_tolist)
-    TR_kw_var v = TR_fn_tensor([1.0, 2.0, 3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(TR_fn_cumsum(v)))
-    TR_fn_assert_equal([4.0, 3.0, 2.0, 1.0], v.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert(TR_fn_grad_check(TR_kw_func(t) { TR_kw_return TR_fn_cumsum(t, TR_arg_dim: 0) }, [TR_fn_tensor([[0.5, -1.0], [2.0, 0.3]], TR_arg_requires_grad: TR_kw_true)]))
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(TR_fn_cumsum(TR_fn_argmax(TR_fn_tensor([[1, 2], [3, 1]]))).TR_mem_tolist[0]))
-    TR_fn_assert_equal(H6200, TR_fn_error_code(() => TR_fn_cumsum(TR_fn_tensor([1, 2]), 0)))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_cumsum([1, 2])))
-    TR_fn_assert_equal(H6015, TR_fn_error_code(() => TR_fn_cumsum(TR_fn_tensor(2.0))))
+TR_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
+    TR_assert_equal([1.0, 3.0, 6.0, 10.0], TR_cumsum(TR_tensor([1, 2, 3, 4])).TR_tolist)
+    TR_assert_equal([[1.0, 2.0], [4.0, 6.0]], TR_cumsum(TR_tensor([[1, 2], [3, 4]]), TR_dim: 0).TR_tolist)
+    TR_assert_equal([[1.0, 3.0], [3.0, 7.0]], TR_cumsum(TR_tensor([[1, 2], [3, 4]])).TR_tolist)
+    TR_var v = TR_tensor([1.0, 2.0, 3.0, 4.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_cumsum(v)))
+    TR_assert_equal([4.0, 3.0, 2.0, 1.0], v.TR_grad.TR_tolist)
+    TR_assert(TR_grad_check(TR_func(t) { TR_return TR_cumsum(t, TR_dim: 0) }, [TR_tensor([[0.5, -1.0], [2.0, 0.3]], TR_requires_grad: TR_true)]))
+    TR_assert_equal(TR_Int, TR_type(TR_cumsum(TR_argmax(TR_tensor([[1, 2], [3, 1]]))).TR_tolist[0]))
+    TR_assert_equal("H6200", TR_error_code(() => TR_cumsum(TR_tensor([1, 2]), 0)))
+    TR_assert_equal("H6104", TR_error_code(() => TR_cumsum([1, 2])))
+    TR_assert_equal("H6015", TR_error_code(() => TR_cumsum(TR_tensor(2.0))))
 }
 
-TR_ctx_test "15.21 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
-    TR_kw_var s = TR_fn_topk(TR_fn_tensor([3.0, 1.0, 4.0, 1.5]), 2)
-    TR_fn_assert_equal([4.0, 3.0], s[0].TR_mem_tolist)
-    TR_fn_assert_equal([2, 0], s[1].TR_mem_tolist)
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(s[1].TR_mem_tolist[0]))
-    TR_kw_var e = TR_fn_topk(TR_fn_tensor([[3, 1, 3], [0, 2, 1]]), 2)
-    TR_fn_assert_equal([[0, 2], [1, 2]], e[1].TR_mem_tolist)
-    TR_fn_assert_equal([[0, 1, 0]], TR_fn_topk(TR_fn_tensor([[3, 1, 3], [0, 2, 1]]), 1, TR_arg_dim: 0)[1].TR_mem_tolist)
-    TR_kw_var n = TR_fn_topk(TR_fn_tensor([1.0, 2.0]) / TR_fn_tensor([1.0, 0.0]) * 0, 1)
-    TR_fn_assert_equal([1], n[1].TR_mem_tolist)
-    TR_kw_var x = TR_fn_tensor([1.0, 5.0, 3.0], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var t = TR_fn_topk(x, 2)
-    TR_fn_backward(TR_fn_sum(t[0] * TR_fn_tensor([10, 20])))
-    TR_fn_assert_equal([0.0, 10.0, 20.0], x.TR_mem_grad.TR_mem_tolist)
-    TR_fn_assert_equal([0], TR_fn_topk(TR_fn_tensor([1, 2]), 0)[1].TR_mem_shape)
-    TR_fn_assert_equal(H6210, TR_fn_error_code(() => TR_fn_topk(TR_fn_tensor([1, 2]), 3)))
-    TR_fn_assert_equal(H6208, TR_fn_error_code(() => TR_fn_topk(TR_fn_tensor([1, 2]), 1.5)))
+TR_test "15.21 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
+    TR_var s = TR_topk(TR_tensor([3.0, 1.0, 4.0, 1.5]), 2)
+    TR_assert_equal([4.0, 3.0], s[0].TR_tolist)
+    TR_assert_equal([2, 0], s[1].TR_tolist)
+    TR_assert_equal(TR_Int, TR_type(s[1].TR_tolist[0]))
+    TR_var e = TR_topk(TR_tensor([[3, 1, 3], [0, 2, 1]]), 2)
+    TR_assert_equal([[0, 2], [1, 2]], e[1].TR_tolist)
+    TR_assert_equal([[0, 1, 0]], TR_topk(TR_tensor([[3, 1, 3], [0, 2, 1]]), 1, TR_dim: 0)[1].TR_tolist)
+    TR_var n = TR_topk(TR_tensor([1.0, 2.0]) / TR_tensor([1.0, 0.0]) * 0, 1)
+    TR_assert_equal([1], n[1].TR_tolist)
+    TR_var x = TR_tensor([1.0, 5.0, 3.0], TR_requires_grad: TR_true)
+    TR_var t = TR_topk(x, 2)
+    TR_backward(TR_sum(t[0] * TR_tensor([10, 20])))
+    TR_assert_equal([0.0, 10.0, 20.0], x.TR_grad.TR_tolist)
+    TR_assert_equal([0], TR_topk(TR_tensor([1, 2]), 0)[1].TR_shape)
+    TR_assert_equal("H6210", TR_error_code(() => TR_topk(TR_tensor([1, 2]), 3)))
+    TR_assert_equal("H6208", TR_error_code(() => TR_topk(TR_tensor([1, 2]), 1.5)))
 }
 
-TR_ctx_test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
-    TR_fn_assert_equal([1, 2, 0], TR_fn_argsort(TR_fn_tensor([3.0, 1.0, 2.0])).TR_mem_tolist)
-    TR_fn_assert_equal([3, 1, 0, 2], TR_fn_argsort(TR_fn_tensor([2, 1, 2, 0])).TR_mem_tolist)
-    TR_fn_assert_equal([[1, 0], [0, 1]], TR_fn_argsort(TR_fn_tensor([[3, 1], [0, 2]]), TR_arg_dim: 0).TR_mem_tolist)
-    TR_fn_assert_equal([1, 2, 0], TR_fn_argsort(TR_fn_tensor([0.0, -1.0, 1.0]) / TR_fn_tensor([0.0, 1.0, 1.0])).TR_mem_tolist)
-    TR_kw_var x = TR_fn_tensor([2.0, 1.0], TR_arg_requires_grad: TR_kw_true)
-    TR_kw_var i = TR_fn_argsort(x)
-    TR_fn_assert_equal(H6402, TR_fn_error_code(() => TR_fn_backward(TR_fn_sum(i))))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_argsort([3, 1])))
+TR_test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
+    TR_assert_equal([1, 2, 0], TR_argsort(TR_tensor([3.0, 1.0, 2.0])).TR_tolist)
+    TR_assert_equal([3, 1, 0, 2], TR_argsort(TR_tensor([2, 1, 2, 0])).TR_tolist)
+    TR_assert_equal([[1, 0], [0, 1]], TR_argsort(TR_tensor([[3, 1], [0, 2]]), TR_dim: 0).TR_tolist)
+    TR_assert_equal([1, 2, 0], TR_argsort(TR_tensor([0.0, -1.0, 1.0]) / TR_tensor([0.0, 1.0, 1.0])).TR_tolist)
+    TR_var x = TR_tensor([2.0, 1.0], TR_requires_grad: TR_true)
+    TR_var i = TR_argsort(x)
+    TR_assert_equal("H6402", TR_error_code(() => TR_backward(TR_sum(i))))
+    TR_assert_equal("H6104", TR_error_code(() => TR_argsort([3, 1])))
 }
 
-TR_ctx_test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
-    TR_kw_if TR_fn_devices().TR_mem_contains("gpu") {
-        TR_kw_var v = TR_fn_randn([4, 7], TR_arg_seed: 5)
-        TR_kw_func hesap(c) {
-            TR_kw_var x = TR_fn_tensor(v.TR_mem_to_device(c), TR_arg_requires_grad: TR_kw_true)
-            TR_kw_var y = TR_fn_silu(x) + TR_fn_atan2(x, 1.5) + TR_fn_clamp(x, TR_arg_min: -0.5, TR_arg_max: 0.5) + TR_fn_cumsum(x, TR_arg_dim: 0)
-            TR_kw_var k = TR_fn_topk(x, 3)
-            TR_fn_backward(TR_fn_sum(y) + TR_fn_sum(k[0]) + TR_fn_sum(TR_fn_where(x > 0, x, 0)))
-            TR_kw_return [y.TR_mem_tolist, k[1].TR_mem_tolist, TR_fn_argsort(x).TR_mem_tolist, x.TR_mem_grad.TR_mem_tolist]
+TR_test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
+    TR_if TR_devices().TR_contains("gpu") {
+        TR_var v = TR_randn([4, 7], TR_seed: 5)
+        TR_func hesap(c) {
+            TR_var x = TR_tensor(v.TR_to_device(c), TR_requires_grad: TR_true)
+            TR_var y = TR_silu(x) + TR_atan2(x, 1.5) + TR_clamp(x, TR_min: -0.5, TR_max: 0.5) + TR_cumsum(x, TR_dim: 0)
+            TR_var k = TR_topk(x, 3)
+            TR_backward(TR_sum(y) + TR_sum(k[0]) + TR_sum(TR_where(x > 0, x, 0)))
+            TR_return [y.TR_tolist, k[1].TR_tolist, TR_argsort(x).TR_tolist, x.TR_grad.TR_tolist]
         }
-        TR_kw_var c = hesap("cpu")
-        TR_kw_var g = hesap("gpu")
-        TR_fn_assert_equal(c[1], g[1])
-        TR_fn_assert_equal(c[2], g[2])
-        TR_fn_assert(en_büyük_kare_fark(TR_fn_tensor(c[0]), TR_fn_tensor(g[0])) < 0.00001)
-        TR_fn_assert(en_büyük_kare_fark(TR_fn_tensor(c[3]), TR_fn_tensor(g[3])) < 0.00001)
+        TR_var c = hesap("cpu")
+        TR_var g = hesap("gpu")
+        TR_assert_equal(c[1], g[1])
+        TR_assert_equal(c[2], g[2])
+        TR_assert(en_büyük_kare_fark(TR_tensor(c[0]), TR_tensor(g[0])) < 0.00001)
+        TR_assert(en_büyük_kare_fark(TR_tensor(c[3]), TR_tensor(g[3])) < 0.00001)
     }
 }
 
-TR_ctx_test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
-    TR_fn_assert(TR_fn_is_finite(7))
-    TR_fn_assert(TR_fn_is_finite(-2.5))
-    TR_fn_assert(TR_kw_not TR_fn_is_finite(TR_fn_float("nan")))
-    TR_fn_assert(TR_kw_not TR_fn_is_finite(TR_fn_float("inf")))
-    TR_fn_assert(TR_kw_not TR_fn_is_finite(-TR_fn_float("inf")))
+TR_test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
+    TR_assert(TR_is_finite(7))
+    TR_assert(TR_is_finite(-2.5))
+    TR_assert(TR_not TR_is_finite(TR_float("nan")))
+    TR_assert(TR_not TR_is_finite(TR_float("inf")))
+    TR_assert(TR_not TR_is_finite(-TR_float("inf")))
 }
 
-TR_ctx_test "15.36 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
-    TR_kw_var x = TR_fn_tensor([1.0, TR_fn_float("nan"), TR_fn_float("inf"), 0.0])
-    TR_fn_assert_equal([1.0, 0.0, 0.0, 1.0], TR_fn_is_finite(x).TR_mem_tolist)
-    TR_fn_assert_equal([1.0, 0.0, 0.0, 1.0], TR_fn_is_finite(x.TR_mem_to_dtype("bf16")).TR_mem_tolist)
-    TR_kw_var w = TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)
-    TR_fn_backward(TR_fn_sum(w * TR_fn_float("nan")))
-    TR_kw_var norm = TR_fn_clip_grad([w])
-    TR_fn_assert(TR_kw_not TR_fn_is_finite(norm.TR_mem_tolist))
-    TR_kw_var hata_verdi = TR_kw_false
-    TR_kw_try { TR_fn_clip_grad([w], TR_arg_error_if_nonfinite: TR_kw_true) } TR_kw_catch h { hata_verdi = TR_kw_true }
-    TR_fn_assert(hata_verdi)
+TR_test "15.36 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
+    TR_var x = TR_tensor([1.0, TR_float("nan"), TR_float("inf"), 0.0])
+    TR_assert_equal([1.0, 0.0, 0.0, 1.0], TR_is_finite(x).TR_tolist)
+    TR_assert_equal([1.0, 0.0, 0.0, 1.0], TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist)
+    TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(w * TR_float("nan")))
+    TR_var norm = TR_clip_grad([w])
+    TR_assert(TR_not TR_is_finite(norm.TR_tolist))
+    TR_var hata_verdi = TR_false
+    TR_try { TR_clip_grad([w], TR_error_if_nonfinite: TR_true) } TR_catch h { hata_verdi = TR_true }
+    TR_assert(hata_verdi)
 }

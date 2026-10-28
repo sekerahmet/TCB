@@ -1,32 +1,32 @@
-//! tr kodlu 3 dil=tr
-// 19 — Dosya ve JSON: veriyi diske yazıp geri okumak.
-// Ne öğretir: geçici_klasör, yol, dosya_yaz/dosya_oku, dosya_satırları, .var_mı, json_metin ile
-// değeri metne, json_çöz ile metni değere çevirmek.
-// Önceki örnekten: metin (04), sözlükler (11), hata yönetimi (15).
-// Çalıştırma (proje kökünden): tr examples/tr/19_dosya_ve_json.tr
-// Dosyalar geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
+# TR 4
+# 19 — Dosya ve JSON: veriyi diske yazıp geri okumak.
+# Ne öğretir: geçici_klasör, yol, dosya_yaz/dosya_oku, dosya_satırları, .var_mı, json_metin ile
+# değeri metne, json_çöz ile metni değere çevirmek.
+# Önceki örnekten: metin (04), sözlükler (11), hata yönetimi (15).
+# Çalıştırma (proje kökünden): tr examples/tr/19_dosya_ve_json.tr
+# Dosyalar geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
-TR_kw_var klasör = TR_fn_temp_dir()
+TR_var klasör = TR_temp_dir()
 
-// Metin dosyası
-TR_kw_var not_yolu = TR_fn_path(klasör, "notlar.txt")
-TR_fn_write_file(not_yolu, "birinci satır\nikinci satır\nüçüncü satır\n")
-TR_fn_print("var mı: {not_yolu.TR_mem_exists}")
-TR_kw_var satır_sayısı = 0
-TR_kw_for satır TR_kw_in TR_fn_read_lines(not_yolu) {
-    TR_fn_print("satır: {satır}")
+# Metin dosyası
+TR_var not_yolu = TR_path(klasör, "notlar.txt")
+TR_write_file(not_yolu, "birinci satır\nikinci satır\nüçüncü satır\n")
+TR_print("var mı: \(not_yolu.TR_exists)")
+TR_var satır_sayısı = 0
+TR_for satır TR_in TR_read_lines(not_yolu) {
+    TR_print("satır: \(satır)")
     satır_sayısı += 1
 }
-TR_fn_print("satır sayısı: {satır_sayısı}")
+TR_print("satır sayısı: \(satır_sayısı)")
 
-// JSON: sözlük -> metin -> dosya -> metin -> sözlük
-TR_kw_var ayar = {"ad": "deneme", "adım": 100, "oranlar": [0.1, 0.01], "açık": TR_kw_true}
-TR_kw_var ayar_yolu = TR_fn_path(klasör, "ayar.json")
-TR_fn_write_file(ayar_yolu, TR_fn_json_string(ayar))
-TR_kw_var okunan = TR_fn_json_parse(TR_fn_read_file(ayar_yolu))
-TR_fn_print("adım: {okunan["adım"]}, oranlar: {okunan["oranlar"]}, açık: {okunan["açık"]}")
-TR_fn_print("aynı mı: {okunan == ayar}")
+# JSON: sözlük -> metin -> dosya -> metin -> sözlük
+TR_var ayar = {"ad": "deneme", "adım": 100, "oranlar": [0.1, 0.01], "açık": TR_true}
+TR_var ayar_yolu = TR_path(klasör, "ayar.json")
+TR_write_file(ayar_yolu, TR_json_string(ayar))
+TR_var okunan = TR_json_parse(TR_read_file(ayar_yolu))
+TR_print("adım: \(okunan["adım"]), oranlar: \(okunan["oranlar"]), açık: \(okunan["açık"])")
+TR_print("aynı mı: \(okunan == ayar)")
 
-// --- Kendin dene ---
-// 1. Kendi ayar sözlüğünü kaydet, bir değerini değiştirip yeniden yaz ve oku.
-// 2. Üç satırlık dosyadaki satırların uzunluklarını döngüyle yazdır.
+# --- Kendin dene ---
+# 1. Kendi ayar sözlüğünü kaydet, bir değerini değiştirip yeniden yaz ve oku.
+# 2. Üç satırlık dosyadaki satırların uzunluklarını döngüyle yazdır.

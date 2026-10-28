@@ -1,0 +1,5 @@
+# TR 4
+# TEST 2.2 yorum yalnız '#' ile yazılır: '/* */' ve satır başındaki '//' yorum değildir, ileti '#'i önerir
+TR_var a = 1
+/* blok yorum */ # ERROR H0015
+// satır yorumu # ERROR H0015

@@ -75,8 +75,8 @@ func TestValueHooks(t *testing.T) {
 // Kaplar eleman eleman karşılaştırılır; sözlüklerde sıra önemsizdir.
 func TestContainerEquality(t *testing.T) {
 	_, val, err := runTROut(t, `
-		yapı N { x }
-		sonuç [[1, 2] == [1.0, 2], [0.1 + 0.2] == [0.3], {"a": 1, "b": 2} == {"b": 2, "a": 1},
+		TR_struct N { x }
+		TR_return [[1, 2] == [1.0, 2], [0.1 + 0.2] == [0.3], {"a": 1, "b": 2} == {"b": 2, "a": 1},
 			{1: "x"} == {"1": "x"}, N(1) == N(1.0), N(1) == N(2), ["1"] == [1]]
 	`)
 	if err != nil || val.Inspect() != "[doğru, yanlış, doğru, yanlış, doğru, yanlış, yanlış]" {
@@ -87,22 +87,22 @@ func TestContainerEquality(t *testing.T) {
 // Kendini içeren kaplar yazdırılırken ve karşılaştırılırken süreç çökmemeli.
 func TestSelfContainingContainers(t *testing.T) {
 	out, val, err := runTROut(t, `
-		değişken l = [1, "a"]
-		l.ekle(l)
-		yazdır(l)
-		değişken d = {"x": 1}
+		TR_var l = [1, "a"]
+		l.TR_append(l)
+		TR_print(l)
+		TR_var d = {"x": 1}
 		d["ben"] = d
 		d["l"] = [d]
-		yazdır(d)
-		yapı D { sonraki }
-		değişken n = D()
-		n.sonraki = n
-		yazdır(n)
-		değişken m = [l, l]
-		yazdır(m)
-		değişken l2 = [1, "a"]
-		l2.ekle(l2)
-		sonuç [l == l, d == d, l == l2, metin(l).uzunluk]
+		TR_print(d)
+		TR_struct D { TR_next }
+		TR_var n = D()
+		n.TR_next = n
+		TR_print(n)
+		TR_var m = [l, l]
+		TR_print(m)
+		TR_var l2 = [1, "a"]
+		l2.TR_append(l2)
+		TR_return [l == l, d == d, l == l2, TR_str(l).TR_length]
 	`)
 	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD{sonraki: D{...}}\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
 	if err != nil || out != want || val.Inspect() != "[doğru, doğru, yanlış, 15]" {
@@ -114,19 +114,19 @@ func TestSelfContainingContainers(t *testing.T) {
 // doğrudan karşılaştırılır.
 func TestIntEdges(t *testing.T) {
 	_, val, err := runTROut(t, `
-		değişken en_kucuk = -9223372036854775807 - 1
-		değişken b = -1
-		değişken sonuclar = []
-		dene { sonuclar.ekle(en_kucuk / b) } yakala h { sonuclar.ekle(h) }
-		dene { sonuclar.ekle(-en_kucuk) } yakala h { sonuclar.ekle(h) }
-		dene { değişken x = en_kucuk
-			x /= -1 } yakala h { sonuclar.ekle("bileşik taşma") }
-		sonuclar.ekle(9007199254740993 == 9007199254740992)
-		sonuclar.ekle(9007199254740993 != 9007199254740992)
-		sonuclar.ekle([9007199254740993] == [9007199254740992])
-		sonuclar.ekle(1 == 1.0)
-		sonuclar.ekle(en_kucuk % b)
-		sonuç sonuclar
+		TR_var en_kucuk = -9223372036854775807 - 1
+		TR_var b = -1
+		TR_var sonuclar = []
+		TR_try { sonuclar.TR_append(en_kucuk / b) } TR_catch h { sonuclar.TR_append(h) }
+		TR_try { sonuclar.TR_append(-en_kucuk) } TR_catch h { sonuclar.TR_append(h) }
+		TR_try { TR_var x = en_kucuk
+			x /= -1 } TR_catch h { sonuclar.TR_append("bileşik taşma") }
+		sonuclar.TR_append(9007199254740993 == 9007199254740992)
+		sonuclar.TR_append(9007199254740993 != 9007199254740992)
+		sonuclar.TR_append([9007199254740993] == [9007199254740992])
+		sonuclar.TR_append(1 == 1.0)
+		sonuclar.TR_append(en_kucuk % b)
+		TR_return sonuclar
 	`)
 	want := `["Satır 5: Tam sayı taşması (-9223372036854775808 / -1); ondalık sonuç için örn. -9223372036854775808.0 / -1 yazın", ` +
 		`"Satır 6: Tam sayı taşması (-(-9223372036854775808)); ondalık sonuç için örn. -(-9223372036854775808.0) yazın", ` +
@@ -139,13 +139,13 @@ func TestIntEdges(t *testing.T) {
 // Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz. Program Türkçe
 // yazılmıştır, dil açıkça verilir (runCoded); yakalanan hata dosyanın dilinde yazılır.
 func TestInternalErrorLineOnce(t *testing.T) {
-	out := runCoded(t, `değişken h = []
-dene { [1].filtrele((x) => x / 0) } yakala e { h.ekle(metin(e)) }
-dene { [1].filtrele(
-	(x) => x / 0) } yakala e { h.ekle(metin(e)) }
-dene { [1].haritala(1, 2) } yakala e { h.ekle(metin(e)) }
-dene { aralık("a") } yakala e { h.ekle(metin(e)) }
-döngü s içinde h { yazdır(s) }
+	out := runCoded(t, `TR_var h = []
+TR_try { [1].TR_filter((x) => x / 0) } TR_catch e { h.TR_append(TR_str(e)) }
+TR_try { [1].TR_filter(
+	(x) => x / 0) } TR_catch e { h.TR_append(TR_str(e)) }
+TR_try { [1].TR_map(1, 2) } TR_catch e { h.TR_append(TR_str(e)) }
+TR_try { TR_range("a") } TR_catch e { h.TR_append(TR_str(e)) }
+TR_for s TR_in h { TR_print(s) }
 `, "tr", nil)
 	want := "Satır 2: Sıfıra bölme hatası\nSatır 4: Sıfıra bölme hatası\n" +
 		"Satır 5: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))\n" +
@@ -240,14 +240,14 @@ func TestIterableHook(t *testing.T) {
 		return vmx, err
 	}
 	vmx, err := runCode(`
-değişken toplamı = 0
-döngü x içinde y { toplamı = toplamı + x }
-değişken çiftler = []
-döngü i, x içinde y {
-    eğer i == 3 { çık }
-    çiftler.ekle([i, x])
+TR_var toplamı = 0
+TR_for x TR_in y { toplamı = toplamı + x }
+TR_var çiftler = []
+TR_for i, x TR_in y {
+    TR_if i == 3 { TR_break }
+    çiftler.TR_append([i, x])
 }
-değişken üretilen = [x + 1 döngü x içinde y eğer x > 0]
+TR_var üretilen = [x + 1 TR_for x TR_in y TR_if x > 0]
 `)
 	if err != nil {
 		t.Fatal(err)
@@ -259,10 +259,10 @@ değişken üretilen = [x + 1 döngü x içinde y eğer x > 0]
 			t.Errorf("%s: beklenen %s, alınan %v", name, want, got)
 		}
 	}
-	if _, err := runCode("\ndöngü x içinde bozuk { }"); !atLine(err, 2, "üzerinde gezilemez") {
+	if _, err := runCode("\nTR_for x TR_in bozuk { }"); !atLine(err, 2, "üzerinde gezilemez") {
 		t.Errorf("döngü kanca hatası satır önekli olmalı: %v", err)
 	}
-	if _, err := runCode("\n\nyazdır([x döngü x içinde bozuk])"); !atLine(err, 3, "üzerinde gezilemez") {
+	if _, err := runCode("\n\nTR_print([x TR_for x TR_in bozuk])"); !atLine(err, 3, "üzerinde gezilemez") {
 		t.Errorf("üreteç kanca hatası satır önekli olmalı: %v", err)
 	}
 }
@@ -300,14 +300,14 @@ func TestStreamHook(t *testing.T) {
 		return vmx, err
 	}
 	vmx, err := runCode(`
-değişken çiftler = []
-döngü i, x içinde a {
-    çiftler.ekle([i, x])
-    eğer i == 1 { çık }
+TR_var çiftler = []
+TR_for i, x TR_in a {
+    çiftler.TR_append([i, x])
+    TR_if i == 1 { TR_break }
 }
-değişken kalan = [x + 1 döngü x içinde a eğer x > 20]
-değişken boş = 0
-döngü x içinde a { boş += 1 }
+TR_var kalan = [x + 1 TR_for x TR_in a TR_if x > 20]
+TR_var boş = 0
+TR_for x TR_in a { boş += 1 }
 `)
 	if err != nil {
 		t.Fatal(err)
@@ -322,10 +322,10 @@ döngü x içinde a { boş += 1 }
 	if a.howMany != 5 {
 		t.Errorf("akıştan %d öğe istendi, 5 bekleniyordu", a.howMany)
 	}
-	if _, err := runCode("\ndöngü x içinde bozuk { }"); !atLine(err, 2, "akış okunamadı") {
+	if _, err := runCode("\nTR_for x TR_in bozuk { }"); !atLine(err, 2, "akış okunamadı") {
 		t.Errorf("döngü kanca hatası satır önekli olmalı: %v", err)
 	}
-	if _, err := runCode("\n\nyazdır([x döngü x içinde bozuk])"); !atLine(err, 3, "akış okunamadı") {
+	if _, err := runCode("\n\nTR_print([x TR_for x TR_in bozuk])"); !atLine(err, 3, "akış okunamadı") {
 		t.Errorf("üreteç kanca hatası satır önekli olmalı: %v", err)
 	}
 }

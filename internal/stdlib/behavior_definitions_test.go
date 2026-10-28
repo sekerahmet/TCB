@@ -256,22 +256,22 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 	}{
 		{codes.TypeInt, `5`}, {codes.TypeFloat, `2.5`}, {codes.TypeString, `"abc"`}, {codes.TypeBool, `doğru`},
 		{codes.TypeList, `[1, 2]`}, {codes.TypeDict, `{}`}, {codes.TypeRange, `1..3`}, {codes.TypeFunction, `(x) => x`},
-		{codes.TypeBuiltinFunction, `yazdır`}, {codes.TypeTensor, `tensör([[1.0, 2.0]], türev_izle: doğru)`},
-		{codes.TypeOptimizer, `AdamW([tensör([1.0], türev_izle: doğru)])`}, {codes.TypeOptimizer, `SGD([tensör([1.0], türev_izle: doğru)])`},
-		{codes.TypeDataset, `veri_kümesi("tests/data/numbers")`},
-		{codes.TypeSampler, `veri_kümesi("tests/data/numbers").örnekleyici(toplu: 1, bağlam: 2)`},
-		{codes.TypeSequentialReader, `veri_kümesi("tests/data/numbers").sıralı(toplu: 1, bağlam: 2)`},
-		{codes.TypeTokenizer, `parçalayıcı_yükle("tests/data/tokenizer.json")`},
-		{codes.TypePath, `yol("tests/yerlesikler_test.tr")`},
-		{codes.TypeLineReader, `dosya_satırları("tests/data/tokenizer.json")`},
-		{codes.TypeProgress, `ilerleme(3)`},
+		{codes.TypeBuiltinFunction, `yazdır`}, {codes.TypeTensor, `TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`},
+		{codes.TypeOptimizer, `TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)])`}, {codes.TypeOptimizer, `TR_SGD([TR_tensor([1.0], TR_requires_grad: TR_true)])`},
+		{codes.TypeDataset, `TR_dataset("tests/data/numbers")`},
+		{codes.TypeSampler, `TR_dataset("tests/data/numbers").TR_sampler(TR_batch_size: 1, TR_context: 2)`},
+		{codes.TypeSequentialReader, `TR_dataset("tests/data/numbers").TR_sequential(TR_batch_size: 1, TR_context: 2)`},
+		{codes.TypeTokenizer, `TR_load_tokenizer("tests/data/tokenizer.json")`},
+		{codes.TypePath, `TR_path("tests/yerlesikler_test.tr")`},
+		{codes.TypeLineReader, `TR_read_lines("tests/data/tokenizer.json")`},
+		{codes.TypeProgress, `TR_progress(3)`},
 		{codes.TypeLogger, `günlük("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
 		{codes.TypeCheckpoint, `kontrol_noktası("` + filepath.ToSlash(t.TempDir()) + `", {w: tensör([1.0], türev_izle: doğru)})`},
 	}
 	t.Cleanup(logging.CloseAll)
 	var setup []string
 	for i, o := range examples {
-		setup = append(setup, "değişken u_"+string(rune('a'+i))+" = "+o.setup)
+		setup = append(setup, "TR_var u_"+string(rune('a'+i))+" = "+o.setup)
 	}
 	if _, err := runSame(t, m, strings.Join(setup, "\n")); err != nil {
 		t.Fatal(err)

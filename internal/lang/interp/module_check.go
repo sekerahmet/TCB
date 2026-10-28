@@ -80,7 +80,7 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 	}
 	c.seen[abs] = true
 	checked := CheckModule(string(data), c.names, c.dynamic)
-	modSource := &Source{Path: resolved, Name: shownPath(resolved), Code: checked.Text, Language: checked.Language}
+	modSource := &Source{Path: resolved, Name: shownPath(resolved), Code: checked.Text}
 	if checked.Stage != "" {
 		return &ModuleError{Source: modSource, Kind: checked.Stage, Errors: checked.Errors,
 			ModulePath: im.Path, ImportLine: im.Line(), Importer: importer}

@@ -1,71 +1,67 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/10_eszamanlilik.md §10 — Eşzamanlılık ve yorumlayıcı kilidi
+# TR 4
+# docs/spec/10_eszamanlilik.md §10 — Eşzamanlılık ve yorumlayıcı kilidi
 
-TR_ctx_test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" {
-    TR_kw_var sonuçlar = []
-    TR_kw_async { sonuçlar.TR_mem_append("blok") }
-    TR_kw_func iş(x) { sonuçlar.TR_mem_append(x) }
-    TR_kw_async iş("çağrı")
-    TR_fn_wait_all()
-    TR_fn_assert_equal(2, sonuçlar.TR_mem_length)
-    TR_fn_assert(sonuçlar.TR_mem_contains("blok") TR_kw_and sonuçlar.TR_mem_contains("çağrı"))
+TR_test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" {
+    TR_var sonuçlar = []
+    TR_async { sonuçlar.TR_append("blok") }
+    TR_func iş(x) { sonuçlar.TR_append(x) }
+    TR_async iş("çağrı")
+    TR_wait_all()
+    TR_assert_equal(2, sonuçlar.TR_length)
+    TR_assert(sonuçlar.TR_contains("blok") TR_and sonuçlar.TR_contains("çağrı"))
 }
 
-TR_ctx_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
-    TR_kw_var birikim = 0
-    TR_kw_for i TR_kw_in 1..=200 {
-        TR_kw_async { birikim += i }
+TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
+    TR_var birikim = 0
+    TR_for i TR_in 1..=200 {
+        TR_async { birikim += i }
     }
-    TR_fn_wait_all()
-    TR_fn_assert_equal(20100, birikim)
+    TR_wait_all()
+    TR_assert_equal(20100, birikim)
 }
 
-TR_ctx_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
-    // Duvar saatine bakılmaz: ana görev bekle() ile kilidi bırakmazsa görev hiç çalışamaz.
-    // Tur sayısı 256'dan azdır, döngünün kilit devrine (10.2) güvenilmez; görevin bayrağı
-    // yalnızca bekle() kilidi bıraktığı için görülebilir.
-    TR_kw_var görev_çalıştı = TR_kw_false
-    TR_kw_async { görev_çalıştı = TR_kw_true }
-    TR_kw_var tur = 0
-    TR_kw_for TR_kw_not görev_çalıştı TR_kw_and tur < 200 {
-        TR_fn_sleep(0.001)
+TR_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
+    # Duvar saatine bakılmaz: ana görev bekle() ile kilidi bırakmazsa görev hiç çalışamaz.
+    # Tur sayısı 256'dan azdır, döngünün kilit devrine (10.2) güvenilmez; görevin bayrağı
+    # yalnızca bekle() kilidi bıraktığı için görülebilir.
+    TR_var görev_çalıştı = TR_false
+    TR_async { görev_çalıştı = TR_true }
+    TR_var tur = 0
+    TR_for TR_not görev_çalıştı TR_and tur < 200 {
+        TR_sleep(0.001)
         tur += 1
     }
-    TR_fn_assert(görev_çalıştı, "ana görev bekle() ile kilidi bıraktığı hâlde görev çalışamadı")
-    // Bekleyen görevler iç içe ilerler: her görev, öbürleri beklerken sırasını alır.
-    TR_kw_var iz = []
-    TR_kw_for i TR_kw_in 1..=3 {
-        TR_kw_async {
-            iz.TR_mem_append("başla {i}")
-            TR_fn_sleep(0.01)
-            iz.TR_mem_append("bitir {i}")
+    TR_assert(görev_çalıştı, "ana görev bekle() ile kilidi bıraktığı hâlde görev çalışamadı")
+    # Bekleyen görevler iç içe ilerler: her görev, öbürleri beklerken sırasını alır.
+    TR_var iz = []
+    TR_for i TR_in 1..=3 {
+        TR_async {
+            iz.TR_append("başla \(i)")
+            TR_sleep(0.01)
+            iz.TR_append("bitir \(i)")
         }
     }
-    TR_fn_wait_all()
-    TR_fn_assert_equal(6, iz.TR_mem_length)
-    // Hiçbir görev, bütün görevler başlamadan bitmez
-    TR_kw_var ilk_bitiş = 0
-    TR_kw_for j, olay TR_kw_in iz { TR_kw_if olay.TR_mem_starts_with("bitir") TR_kw_and ilk_bitiş == 0 { ilk_bitiş = j } }
-    TR_fn_assert_equal(3, ilk_bitiş, TR_fn_str(iz))
+    TR_wait_all()
+    TR_assert_equal(6, iz.TR_length)
+    # Hiçbir görev, bütün görevler başlamadan bitmez
+    TR_var ilk_bitiş = 0
+    TR_for j, olay TR_in iz { TR_if olay.TR_starts_with("bitir") TR_and ilk_bitiş == 0 { ilk_bitiş = j } }
+    TR_assert_equal(3, ilk_bitiş, TR_str(iz))
 }
 
-TR_ctx_test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
-    TR_fn_assert_equal(H2433, TR_fn_error_code(() => { TR_fn_sleep(-5) }))
-    TR_fn_assert_equal(H2433, TR_fn_error_code(() => { TR_fn_sleep(TR_fn_float("nan")) }))
-    TR_fn_assert_equal(H2434, TR_fn_error_code(() => { TR_fn_sleep(1e300) }))
-    TR_fn_assert_equal(H2434, TR_fn_error_code(() => { TR_fn_sleep(9.3e9) }))
-    TR_fn_sleep(0)
+TR_test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
+    TR_assert_equal("H2433", TR_error_code(() => { TR_sleep(-5) }))
+    TR_assert_equal("H2433", TR_error_code(() => { TR_sleep(TR_float("nan")) }))
+    TR_assert_equal("H2434", TR_error_code(() => { TR_sleep(1e300) }))
+    TR_assert_equal("H2434", TR_error_code(() => { TR_sleep(9.3e9) }))
+    TR_sleep(0)
 }
 
-TR_ctx_test "10.4 eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12)" {
-    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/eszamanli_kapsam" }))
-}
-
-TR_ctx_test "10.4 görev değişkenleri döngü turuna aittir" {
-    TR_kw_var görülen = []
-    TR_kw_for i TR_kw_in 1..=3 {
-        TR_kw_async { görülen.TR_mem_append(i) }
+TR_test "10.4 görev değişkenleri döngü turuna aittir" {
+    TR_var görülen = []
+    TR_for i TR_in 1..=3 {
+        TR_async { görülen.TR_append(i) }
     }
-    TR_fn_wait_all()
-    TR_fn_assert_equal([1, 2, 3], görülen.TR_mem_sort())
+    TR_wait_all()
+    TR_assert_equal([1, 2, 3], görülen.TR_sort())
 }

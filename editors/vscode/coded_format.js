@@ -1,21 +1,18 @@
-// Kodlu saklamanın (docs/spec/17_kodlar.md, 17.1-17.6 ve "Düzenleyicide") eklentideki vscode'a bağlı olmayan
-// parçaları: kodlu biçim başlığını tanıma ve 'tr' ile çeviri. Eklentide ikinci bir çevirici
-// yoktur: Türkçe görünüm 'tr göster -', kodlu kayıt 'tr kodla -' ile üretilir (metin standart
-// girişten okunur, sonuç standart çıktıya yazılır). Node ile ayrıca sınanır
-// (test/coded_view_test.js).
+// Kodlu saklamanın (dil tanımı 2.1; docs/spec/17_kodlar.md, "Düzenleyicide") eklentideki vscode'a bağlı
+// olmayan parçaları: başlığı tanıma ve 'tr' ile çeviri. Eklentide ikinci bir çevirici yoktur: görünüm
+// 'tr göster -', kodlu kayıt 'tr kodla -' ile üretilir (metin standart girişten okunur, sonuç standart
+// çıktıya yazılır). Node ile ayrıca sınanır (test/coded_view_test.js).
 'use strict';
 
 const { spawn } = require('child_process');
 const { t } = require('./l10n');
 
-// HEADER kodlu bir dosyanın (varsa BOM'dan sonraki) ilk satırının başıdır; ardından dosyanın
-// yazım dilinin kodu gelir: '//! tr kodlu 3 dil=en' (17.1, biçim sürümü 3).
-const HEADER = '//! tr kodlu 3 dil=';
-const HEADER_BYTES = Buffer.from(HEADER, 'utf8');
+// HEADER bir TR dosyasının (varsa BOM'dan sonraki) ilk satırıdır; ilk satır '#!' ile başlıyorsa
+// ikinci satırıdır. Dosyanın dili yoktur: başlık yalnız biçimin sürümünü söyler (2.1).
+const HEADER = '# TR 4';
 
-// LANGUAGE_CODE başlıktaki dil kodunun biçimidir (en, tr). Hangi dillerin gömülü olduğunu
-// yorumlayıcı bilir; bilinmeyen dil 'tr göster -' hatasıyla bildirilir.
-const LANGUAGE_CODE = /^[a-z]{1,8}$/;
+// SHEBANG ilk satırdaki yorumdur: dosya betik gibi doğrudan çalıştırılır (./program.tr).
+const SHEBANG = '#!';
 
 // EXIT_SYNTAX 'tr kodla -' ve 'tr göster -' komutlarının "metin ayrıştırılamadı, çevrilmedi"
 // çıkış kodudur (cmd/tr/coded.go, exitSyntax).
@@ -24,49 +21,32 @@ const EXIT_SYNTAX = 2;
 // TIMEOUT bir çevirinin en uzun süresidir (milisaniye); aşılırsa süreç durdurulur.
 const TIMEOUT = 30000;
 
-// header kodlu baytların başlığındaki dil kodunun aralığıdır ({ start, end }); baytlar kodlu
-// değilse null. Kodlu: (BOM'dan sonraki) ilk satır tam olarak HEADER ve bir dil kodu (satır
-// sonu LF ya da CRLF, ya da dosyanın tek satırı). Kural source.Split ile aynıdır.
-function header(data) {
-    const bytes = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-    let i = 0;
-    if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
-        i = 3;
-    }
-    if (bytes.length < i + HEADER_BYTES.length || !bytes.subarray(i, i + HEADER_BYTES.length).equals(HEADER_BYTES)) {
-        return null;
-    }
-    const start = i + HEADER_BYTES.length;
+// line bytes'ın start'tan başlayan satırıdır (satır sonu LF ya da CRLF hariç) ve sonraki satırın
+// başı.
+function line(bytes, start) {
     let end = bytes.indexOf(0x0a, start);
+    const next = end < 0 ? bytes.length : end + 1;
     if (end < 0) {
         end = bytes.length;
     } else if (end > start && bytes[end - 1] === 0x0d) {
         end--; // CRLF
     }
-    const language = bytes.subarray(start, end).toString('latin1');
-    return { bytes, start, end, language: LANGUAGE_CODE.test(language) ? language : null };
+    return { text: bytes.subarray(start, end).toString('utf8'), next };
 }
 
-// fileLanguage kodlu dosyanın yazım dilinin kodudur (başlığın dil='si); kodlu değilse null.
-function fileLanguage(data) {
-    const h = header(data);
-    return h && h.language;
-}
-
-// isCoded dosyanın baytları kodlu biçimde mi (bkz. header).
+// isCoded dosyanın baytları bir TR dosyası mı: (BOM'dan sonraki) ilk satır, '#!' ile başlıyorsa ikinci
+// satır, tam olarak HEADER. Kural source.Split ile aynıdır.
 function isCoded(data) {
-    return fileLanguage(data) !== null;
-}
-
-// withLanguage kodlu metnin başlığındaki dili language yapar; gövde, BOM ve satır sonları
-// olduğu gibi kalır. Kodlu olmayan metin olduğu gibi döner. Dosya başka bir dilde düzenlenip
-// kaydedilince dosyanın dili korunur: 'tr kodla - --dil <görünüm>' başlığa görünümün dilini yazar.
-function withLanguage(data, language) {
-    const h = header(data);
-    if (!h || !h.language) {
-        return data;
+    const bytes = Buffer.isBuffer(data) ? data : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+    let i = 0;
+    if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+        i = 3;
     }
-    return Buffer.concat([h.bytes.subarray(0, h.start), Buffer.from(language, 'latin1'), h.bytes.subarray(h.end)]);
+    let first = line(bytes, i);
+    if (first.text.startsWith(SHEBANG)) {
+        first = line(bytes, first.next);
+    }
+    return first.text === HEADER;
 }
 
 // translate metni 'tr <command> - --dil <lang>' ile çevirir; komut 'göster' (kodlu → yazım dili) ya da
@@ -115,4 +95,4 @@ function errorSummary(text) {
     return summary.length > 300 ? summary.slice(0, 297) + '...' : summary;
 }
 
-module.exports = { HEADER, EXIT_SYNTAX, isCoded, fileLanguage, withLanguage, translate, errorSummary };
+module.exports = { HEADER, EXIT_SYNTAX, isCoded, translate, errorSummary };

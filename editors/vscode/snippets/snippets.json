@@ -36,7 +36,7 @@
         "match ${1:value} {",
         "\t${2:1} => ${3:\"one\"}",
         "\t${4:2..10} => ${5:\"a few\"}",
-        "\tdefault => ${6:\"other\"}",
+        "\t_ => ${6:\"other\"}",
         "}"
       ]
     },
@@ -48,7 +48,7 @@
         ".filter"
       ],
       "body": [
-        ".filter { it > ${1:2} }"
+        ".filter { TR_it > ${1:2} }"
       ]
     },
     {
@@ -59,7 +59,7 @@
         ".map"
       ],
       "body": [
-        ".map { it * ${1:2} }"
+        ".map { TR_it * ${1:2} }"
       ]
     },
     {
@@ -143,7 +143,7 @@
         "\tvar loss = mean((X @ w + b - Y) ** 2)",
         "\tbackward(loss)",
         "\toptimizer.step()",
-        "\tif step % 100 == 0 { print(\"step {step}: loss = {loss.tolist}\") }",
+        "\tif step % 100 == 0 { print(\"step \\(step): loss = \\(loss.tolist)\") }",
         "}",
         "print(no_grad { return X @ w + b })$0"
       ]
@@ -186,7 +186,7 @@
         "eşle ${1:değer} {",
         "\t${2:1} => ${3:\"bir\"}",
         "\t${4:2..10} => ${5:\"birkaç\"}",
-        "\tvarsayılan => ${6:\"diğer\"}",
+        "\t_ => ${6:\"diğer\"}",
         "}"
       ]
     },
@@ -198,7 +198,7 @@
         ".filtrele"
       ],
       "body": [
-        ".filtrele { o > ${1:2} }"
+        ".filtrele { TR_it > ${1:2} }"
       ]
     },
     {
@@ -209,7 +209,7 @@
         ".haritala"
       ],
       "body": [
-        ".haritala { o * ${1:2} }"
+        ".haritala { TR_it * ${1:2} }"
       ]
     },
     {
@@ -293,7 +293,7 @@
         "\tdeğişken kayıp = ortalama((X @ w + b - Y) ** 2)",
         "\tgeri_yayılım(kayıp)",
         "\tiyileştirici.adım()",
-        "\teğer adım % 100 == 0 { yazdır(\"adım {adım}: kayıp = {kayıp.değer}\") }",
+        "\teğer adım % 100 == 0 { yazdır(\"adım \\(adım): kayıp = \\(kayıp.değer)\") }",
         "}",
         "yazdır(türevsiz { sonuç X @ w + b })$0"
       ]

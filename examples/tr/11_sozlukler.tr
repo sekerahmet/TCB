@@ -1,44 +1,44 @@
-//! tr kodlu 3 dil=tr
-// 11 — Sözlükler: değerleri anahtarla saklamak.
-// Ne öğretir: sözlük kurmak, anahtarla okumak/yazmak, olmayan anahtar (yok), anahtarlar() ve
-// değerler(), içerir, sözlük listesi.
-// Önceki örnekten: listeler (09), ok fonksiyonları (10), yok ve ?? (03).
-// Çalıştırma (proje kökünden): tr examples/tr/11_sozlukler.tr
+# TR 4
+# 11 — Sözlükler: değerleri anahtarla saklamak.
+# Ne öğretir: sözlük kurmak, anahtarla okumak/yazmak, olmayan anahtar (yok), anahtarlar() ve
+# değerler(), içerir, sözlük listesi.
+# Önceki örnekten: listeler (09), ok fonksiyonları (10), yok ve ?? (03).
+# Çalıştırma (proje kökünden): tr examples/tr/11_sozlukler.tr
 
-// Sözlük süslü parantezle yazılır: "anahtar": değer çiftleri.
-TR_kw_var fiyatlar = {"elma": 12, "muz": 30}
-TR_fn_print(fiyatlar, fiyatlar.TR_mem_length)
+# Sözlük süslü parantezle yazılır: "anahtar": değer çiftleri.
+TR_var fiyatlar = {"elma": 12, "muz": 30}
+TR_print(fiyatlar, fiyatlar.TR_length)
 
-// Anahtarla okunur ve yazılır; olmayan anahtar eklenir.
-TR_fn_print(fiyatlar["muz"])
+# Anahtarla okunur ve yazılır; olmayan anahtar eklenir.
+TR_print(fiyatlar["muz"])
 fiyatlar["kiraz"] = 45
 fiyatlar["elma"] = 15
-TR_fn_print(fiyatlar)
+TR_print(fiyatlar)
 
-// Olmayan anahtar yok verir; ?? ile varsayılana düşülür.
-TR_fn_print(fiyatlar["armut"], fiyatlar["armut"] ?? 0)
-TR_fn_print(fiyatlar.TR_mem_contains("muz"), fiyatlar.TR_mem_contains("armut"))
+# Olmayan anahtar yok verir; ?? ile varsayılana düşülür.
+TR_print(fiyatlar["armut"], fiyatlar["armut"] ?? 0)
+TR_print(fiyatlar.TR_contains("muz"), fiyatlar.TR_contains("armut"))
 
-// Anahtarlar ve değerler liste olarak alınır.
-TR_fn_print(fiyatlar.TR_mem_keys(), fiyatlar.TR_mem_values())
-TR_kw_for ürün TR_kw_in fiyatlar.TR_mem_keys() {
-    TR_fn_print("{ürün}: {fiyatlar[ürün]} TL")
+# Anahtarlar ve değerler liste olarak alınır.
+TR_print(fiyatlar.TR_keys(), fiyatlar.TR_values())
+TR_for ürün TR_in fiyatlar.TR_keys() {
+    TR_print("\(ürün): \(fiyatlar[ürün]) TL")
 }
-TR_fn_print("toplam: {TR_fn_sum(fiyatlar.TR_mem_values())} TL")
+TR_print("toplam: \(TR_sum(fiyatlar.TR_values())) TL")
 
-// Sözlüğün değeri liste ya da başka bir sözlük olabilir.
-TR_kw_var öğrenci = {"ad": "Ayşe", "notlar": [70, 85, 90], "adres": {"şehir": "Ankara"}}
-TR_fn_print("{öğrenci["ad"]} {öğrenci["adres"]["şehir"]}, ortalama {TR_fn_round(TR_fn_mean(öğrenci["notlar"]), 1)}")
+# Sözlüğün değeri liste ya da başka bir sözlük olabilir.
+TR_var öğrenci = {"ad": "Ayşe", "notlar": [70, 85, 90], "adres": {"şehir": "Ankara"}}
+TR_print("\(öğrenci["ad"]) \(öğrenci["adres"]["şehir"]), ortalama \(TR_round(TR_mean(öğrenci["notlar"]), 1))")
 
-// Sözlük listesi tablo gibi kullanılır.
-TR_kw_var siparişler = [
+# Sözlük listesi tablo gibi kullanılır.
+TR_var siparişler = [
     {"müşteri": "Ayşe", "tutar": 450},
     {"müşteri": "Mehmet", "tutar": 280},
     {"müşteri": "Elif", "tutar": 35}
 ]
-TR_fn_print(siparişler.TR_mem_filter { TR_ctx_it["tutar"] > 100 }.TR_mem_map { TR_ctx_it["müşteri"] })
-TR_fn_print("toplam tutar: {siparişler.TR_mem_map { TR_ctx_it["tutar"] } |> TR_fn_sum}")
+TR_print(siparişler.TR_filter { TR_it["tutar"] > 100 }.TR_map { TR_it["müşteri"] })
+TR_print("toplam tutar: \(siparişler.TR_map { TR_it["tutar"] } |> TR_sum)")
 
-// --- Kendin dene ---
-// 1. Bir metindeki her harfin kaç kez geçtiğini sözlükte say.
-// 2. siparişler listesine yeni bir sipariş ekle ve en büyük tutarı bul.
+# --- Kendin dene ---
+# 1. Bir metindeki her harfin kaç kez geçtiğini sözlükte say.
+# 2. siparişler listesine yeni bir sipariş ekle ve en büyük tutarı bul.

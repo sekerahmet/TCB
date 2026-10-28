@@ -2,19 +2,51 @@ package checker
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// warnUnusedNegation değeri kullanılmayan '-x' deyimini bildirir (2.8): satır başındaki '-'
-// önceki satırı sürdürmediği için 'a = 1' ardından gelen '- b' sessizce etkisiz kalırdı. Değeri
-// kullanılan bir bloğun son ifadesi (blockValues) bloğun değeridir, etkisiz değildir.
-func (c *Checker) warnUnusedNegation(s *ast.ExpressionStatement) {
-	if c.interactive || c.blockValues[s] {
+// checkUnusedValue değeri kullanılmayan, çağrı içermeyen ifade deyimini hata sayar (2.8): satır
+// başındaki ikili işleç önceki satırı sürdürmediği için 'a = 1' ardından gelen '- b' ya da '+ c'
+// bölünmüş bir formülün kopan parçasıdır; uyarı geçilebileceği için hatadır (Go da yalnız çağrıyı
+// deyim olarak kabul eder). Değeri kullanılan bir bloğun son ifadesi (blockValues) bloğun
+// değeridir; deyim olarak yazılan eğer ve eşle, fonksiyon tanımı ve kabuk satırı (interactive)
+// sayılmaz.
+func (c *Checker) checkUnusedValue(s *ast.ExpressionStatement) {
+	if c.interactive || c.blockValues[s] || s.Expression == nil {
 		return
 	}
-	if p, ok := s.Expression.(*ast.PrefixExpression); ok && p.Operator == "-" {
-		c.warnings = append(c.warnings, messages.At(p.Token.Line, 0, messages.New(messages.H1011)))
+	switch s.Expression.(type) {
+	case *ast.IfExpression, *ast.MatchExpression, *ast.FunctionLiteral:
+		return
 	}
+	if containsCall(s.Expression) {
+		return
+	}
+	// İkili biçimi de olan işleçle başlayan satır kopan bir formül parçasıdır; ileti işleci önceki
+	// satırın sonuna taşımayı söyler. Öbürlerinde değeri bir değişkene atamak ya da satırı silmek.
+	if pe, ok := s.Expression.(*ast.PrefixExpression); ok && (pe.Operator == lexer.TokMinus || pe.Operator == lexer.TokPlus) {
+		c.addError(s.Line(), 0, messages.New(messages.H1017, string(pe.Operator)))
+		return
+	}
+	c.addError(s.Line(), 0, messages.New(messages.H1023, c.word(codes.KwVar)))
+}
+
+// containsCall ifadenin (metin yerleştirmeleri dahil) bir çağrı içerdiğidir; '|>' sağındaki
+// fonksiyonun çağrısıdır (x |> f, f(x)).
+func containsCall(e ast.Expression) bool {
+	found := false
+	ast.Walk(e, func(n any) bool {
+		switch n := n.(type) {
+		case *ast.CallExpression:
+			found = true
+		case *ast.InfixExpression:
+			found = n.Operator == lexer.TokPipe
+		}
+		return !found
+	})
+	return found
 }
 
 // markBlockValue değeri kullanılan bloğun son deyimini, ifade deyimiyse, bloğun değeri olarak işaretler.

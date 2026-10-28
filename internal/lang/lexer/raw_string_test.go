@@ -7,7 +7,7 @@ import (
 )
 
 // Bilinmeyen kaçış dizisi sözdizimi hatasıdır (2.6): ters bölü sessizce atılmaz. Hata
-// ters bölünün konumunu gösterir ve ham metni önerir.
+// ters bölünün konumunu gösterir ve ham metni önerir. \{, \} ve tek tırnağın kaçışı kaçış değildir.
 func TestUnknownEscapeIsError(t *testing.T) {
 	tests := []struct {
 		src    string
@@ -16,10 +16,11 @@ func TestUnknownEscapeIsError(t *testing.T) {
 	}{
 		{`"\d+"`, 2, `'\d'`},
 		{`x = "C:\veri"`, 8, `'\v'`},
-		{`'a\qb'`, 3, `'\q'`},
+		{`"a\qb"`, 3, `'\q'`},
 		{"\"a\\\nb\"", 3, `'\' ve satır sonu`},
 		{"\"a\\\r\nb\"", 3, `'\' ve satır sonu`},
-		{"\"{f(\\u)}\"", 5, `'\u'`},
+		{`"\{"`, 2, `'\{'`},
+		{`"\'"`, 2, `'\''`},
 	}
 	for _, tt := range tests {
 		h := lexErrors(tt.src)
@@ -28,21 +29,18 @@ func TestUnknownEscapeIsError(t *testing.T) {
 		}
 	}
 	// Bilinen kaçışlar hata değildir
-	for _, g := range []string{`"\n\t\r\"\'\\\{\}"`, `'\''`} {
-		tokensNoErrors(t, g)
-	}
+	checkTokens(t, `"\n\t\r\"\\\u{41}"`, []expected{{TokString, "\n\t\r\"\\A"}, {TokEOF, ""}})
 }
 
-// Ham metin (2.6a): kaçış ve yerleştirme yoktur; süslü parantezler '\{' '\}' işaretçileriyle
-// taşınır (ayrıştırıcı yerleştirme saymaz), satır sonu kaynaktan bağımsız olarak '\n'dir.
+// Ham metin (2.6a): kaçış ve yerleştirme yoktur, süslü parantez ve '\(' olduğu gibi kalır; satır
+// sonu kaynaktan bağımsız olarak '\n'dir.
 func TestRawString(t *testing.T) {
-	L, R := string(EscapedLBrace), string(EscapedRBrace)
 	tests := []struct {
 		src, lit string
 	}{
 		{"`C:\\veri\\yeni`", `C:\veri\yeni`},
-		{"`\\d{3}`", `\d` + L + "3" + R},
-		{"`{ad}`", L + "ad" + R},
+		{"`\\d{3}`", `\d{3}`},
+		{"`{ad} \\(ad)`", `{ad} \(ad)`},
 		{"``", ""},
 		{"`\"'`", `"'`},
 		{"`a\nb`", "a\nb"},

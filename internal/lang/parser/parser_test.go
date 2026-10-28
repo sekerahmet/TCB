@@ -229,7 +229,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 
 // Metin içi yerleştirmedeki ifadeler dosyadaki gerçek konumlarını taşımalı (eskiden Satır 1, Sütun 1).
 func TestInterpolationKeepsSourcePosition(t *testing.T) {
-	p := New(trLexer("değişken a = 1\nyazdır(\"x = {toplm + 1}\")"))
+	p := New(trLexer("değişken a = 1\nyazdır(\"x = \\(toplm + 1)\")"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -283,7 +283,7 @@ func TestNonExpressionInterpolationIsError(t *testing.T) {
 			t.Errorf("%s: sütun %d konumunda H0158-H0162 (H0100 içinde) bekleniyordu: %v", code, col, errs)
 		}
 	}
-	for _, code := range []string{"yazdır(\"\\{\\\"kod\\\": 5\\}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a {1 + 2} b")`} {
+	for _, code := range []string{"yazdır(\"{\\\"kod\\\": 5}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a \(1 + 2) b")`} {
 		if errs := parseErrors(code); len(errs) != 0 {
 			t.Errorf("%s hata vermemeli: %v", code, errs)
 		}

@@ -87,7 +87,7 @@ func screens(out string) int { return strings.Count(out, "TR HATA AYIKLAYICI") }
 // İzleme koşulu bir kullanıcı fonksiyonunu çağırınca fonksiyonun deyimleri hata ayıklayıcıyı
 // yeniden tetiklemez: koşul her deyimde yeniden hesaplanıp sonsuz özyinelemeye girmez.
 func TestCLIWatchConditionCallsFunction(t *testing.T) {
-	code := "fonksiyon g() {\n    sonuç 1\n}\ndeğişken a = 0\na = 1\n"
+	code := "TR_func g() {\n    TR_return 1\n}\nTR_var a = 0\na = 1\n"
 	out, _ := runCLI(t, "t.tr", code, "devam\ndevam\ndevam\n", func(d *Debugger) {
 		d.Mode = StepContinue
 		d.Watchpoints = append(d.Watchpoints, &Watchpoint{ID: 1, Expression: "g() == 1", IsCond: true})
@@ -100,7 +100,7 @@ func TestCLIWatchConditionCallsFunction(t *testing.T) {
 // Duraklamada 'hesapla' ya da 'değiştir' bir kullanıcı fonksiyonunu çağırınca fonksiyonun
 // gövdesinde yeniden durulmaz.
 func TestCLIEvaluateCallsFunctionQuietly(t *testing.T) {
-	code := "fonksiyon g() {\n    sonuç 7\n}\ndeğişken a = 0\nyazdır(a)\n"
+	code := "TR_func g() {\n    TR_return 7\n}\nTR_var a = 0\nTR_print(a)\n"
 	out, machine := runCLI(t, "t.tr", code, "adım\nadım\nhesapla g()\ndeğiştir a = g()\ndevam\n", nil)
 	if screens(out) != 3 || !strings.Contains(out, "Sonuç (Tam): 7") {
 		t.Fatalf("başta ve iki adım sonrası olmak üzere üç duruş bekleniyordu (%d):\n%s", screens(out), out)
@@ -113,7 +113,7 @@ func TestCLIEvaluateCallsFunctionQuietly(t *testing.T) {
 // 'zıpla' düzenleyicideki gibi yalnızca duraklanan bloğun satırlarına izin verir; zıplanan
 // satırlar çalışmaz, durum metni doğru ekle yazılır.
 func TestCLIJump(t *testing.T) {
-	code := "değişken a = 0\n" + strings.Repeat("a = a + 1\n", 49)
+	code := "TR_var a = 0\n" + strings.Repeat("a = a + 1\n", 49)
 	for line, want := range map[int]string{6: "Satır 6'ya zıplandı", 9: "Satır 9'a zıplandı", 3: "Satır 3'e zıplandı", 40: "Satır 40'a zıplandı"} {
 		out, machine := runCLI(t, "t.tr", code, "adım\nzıpla "+strconv.Itoa(line)+"\ndevam\n", nil)
 		if !strings.Contains(out, want) {
@@ -127,7 +127,7 @@ func TestCLIJump(t *testing.T) {
 }
 
 func TestCLIJumpOutsideBlockRejected(t *testing.T) {
-	code := "fonksiyon f() {\n    değişken x = 1\n    sonuç x\n}\ndeğişken a = f()\na = 5\n"
+	code := "TR_func f() {\n    TR_var x = 1\n    TR_return x\n}\nTR_var a = f()\na = 5\n"
 	// f'nin içinde (2. satır) durup gövdenin dışına (6. satır) zıplamak reddedilir.
 	out, machine := runCLI(t, "t.tr", code, "adım\nadım\nzıpla 6\ndevam\n", nil)
 	if !strings.Contains(out, "çalışan bloğun dışında") || strings.Contains(out, "SATIRA ZIPLANDI") {
@@ -142,12 +142,12 @@ func TestCLIJumpOutsideBlockRejected(t *testing.T) {
 // modülün içine adımlanınca modülün satırları gösterilir.
 func TestCLIModuleLines(t *testing.T) {
 	dir := t.TempDir()
-	module := "fonksiyon f(x) {\n    değişken modül_satırı = x\n    sonuç modül_satırı\n}\n"
+	module := "TR_func f(x) {\n    TR_var modül_satırı = x\n    TR_return modül_satırı\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(module), 0644); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "program.tr")
-	code := "aktar \"m.tr\" olarak m\ndeğişken ana_satırı = 1\ndeğişken b = m.f(ana_satırı)\n"
+	code := "TR_import \"m.tr\" TR_as m\nTR_var ana_satırı = 1\nTR_var b = m.f(ana_satırı)\n"
 	out, _ := runCLI(t, path, code, "kesme 2\ndevam\ndevam\n", nil)
 	if screens(out) != 2 {
 		t.Fatalf("başta ve 2. satırda olmak üzere iki duruş bekleniyordu (%d):\n%s", screens(out), out)
@@ -241,7 +241,7 @@ func TestCommandsSingleSpelling(t *testing.T) {
 // tanımsız bir ada 'değiştir' yeni değişken açmaz, hata verir. Önceden ifade "Bilinmeyen komut"
 // alıyor, tanımsız ada değiştir sessizce değişken tanımlıyordu.
 func TestCLIExpressionAndUndefinedAssign(t *testing.T) {
-	code := "değişken a = 2\nyazdır(a)\n"
+	code := "TR_var a = 2\nTR_print(a)\n"
 	out, machine := runCLI(t, "t.tr", code, "adım\na * 3\ndeğiştir yok_boyle = 5\ndevam\n", nil)
 	if !strings.Contains(out, "Sonuç (Tam): 6") {
 		t.Errorf("ifade değerlendirilmeli:\n%s", out)
@@ -261,7 +261,7 @@ func TestScreenBoxRowsAlign(t *testing.T) {
 		t.Fatalf("görüntü genişliği: %d %d %d", displayWidth("🛠️"), displayWidth("📌"), displayWidth("şğü"))
 	}
 	for _, path := range []string{"t.tr", "çok/uzun/bir/klasör/yolu/içindeki/program_dosyası.tr", strings.Repeat("a", 100) + ".tr"} {
-		out, _ := runCLI(t, path, "değişken a = 1\n", "devam\n", nil)
+		out, _ := runCLI(t, path, "TR_var a = 1\n", "devam\n", nil)
 		want := -1
 		for _, line := range strings.Split(out, "\n") {
 			if !strings.HasPrefix(line, "╔") && !strings.HasPrefix(line, "║") && !strings.HasPrefix(line, "╠") {

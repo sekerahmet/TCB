@@ -1,141 +1,141 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/04_operatorler.md §4 — Operatörler
+# TR 4
+# docs/spec/04_operatorler.md §4 — Operatörler
 
-TR_ctx_test "4.1 öncelik: çarpma toplamadan, ** tekli eksiden sıkı bağlanır" {
-    TR_fn_assert_equal(7, 1 + 2 * 3)
-    TR_fn_assert_equal(9, (1 + 2) * 3)
-    TR_fn_assert_equal(-4, -2 ** 2)
-    TR_fn_assert_equal(512, 2 ** 3 ** 2)
+TR_test "4.1 öncelik: çarpma toplamadan, ** tekli eksiden sıkı bağlanır" {
+    TR_assert_equal(7, 1 + 2 * 3)
+    TR_assert_equal(9, (1 + 2) * 3)
+    TR_assert_equal(-4, -2 ** 2)
+    TR_assert_equal(512, 2 ** 3 ** 2)
 }
 
-TR_ctx_test "4.1 öncelik: değil karşılaştırmadan gevşek, ve'den sıkı bağlanır" {
-    TR_fn_assert_equal(TR_kw_true, TR_kw_not 1 == 2)
-    TR_fn_assert_equal(TR_kw_false, TR_kw_not TR_kw_true TR_kw_and TR_kw_true)
-    TR_fn_assert_equal(TR_kw_true, TR_kw_false TR_kw_or TR_kw_true TR_kw_and TR_kw_true)
+TR_test "4.1 öncelik: değil karşılaştırmadan gevşek, ve'den sıkı bağlanır" {
+    TR_assert_equal(TR_true, TR_not 1 == 2)
+    TR_assert_equal(TR_false, TR_not TR_true TR_and TR_true)
+    TR_assert_equal(TR_true, TR_false TR_or TR_true TR_and TR_true)
 }
 
-TR_ctx_test "4.1 öncelik: aralık toplamadan gevşek, ?? veya'dan gevşek bağlanır" {
-    TR_fn_assert_equal(4, [x TR_kw_for x TR_kw_in 1..2 + 3].TR_mem_length)
-    TR_fn_assert_equal(TR_kw_false, TR_kw_false TR_kw_or TR_kw_none ?? 5)
+TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? veya'dan gevşek bağlanır" {
+    TR_assert_equal(4, [x TR_for x TR_in 1..2 + 3].TR_length)
+    TR_assert_equal(TR_false, TR_false TR_or TR_none ?? 5)
 }
 
-TR_ctx_test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
-    TR_fn_assert_equal(2, 6 / 3)
-    TR_fn_assert_equal(TR_type_Int, TR_fn_type(6 / 3))
-    TR_fn_assert_equal(3.5, 7 / 2)
-    TR_fn_assert_equal(1, 7 % 3)
-    TR_fn_assert_equal(1.5, 5.5 % 2)
-    TR_fn_assert_equal(3.5, 1 + 2.5)
+TR_test "4.2 aritmetik: tam bölme tam çıkarsa Tam, değilse Ondalık" {
+    TR_assert_equal(2, 6 / 3)
+    TR_assert_equal(TR_Int, TR_type(6 / 3))
+    TR_assert_equal(3.5, 7 / 2)
+    TR_assert_equal(1, 7 % 3)
+    TR_assert_equal(1.5, 5.5 % 2)
+    TR_assert_equal(3.5, 1 + 2.5)
 }
 
-TR_ctx_test "4.2 sıfıra bölme hata verir" {
-    TR_fn_assert_equal(H2470, TR_fn_error_code(() => { TR_kw_var z = 1 / 0 }))
+TR_test "4.2 sıfıra bölme hata verir" {
+    TR_assert_equal("H2470", TR_error_code(() => { TR_var z = 1 / 0 }))
 }
 
-TR_ctx_test "4.3 üs alma sağdan birleşir, negatif üs Ondalık verir" {
-    TR_fn_assert_equal(1024, 2 ** 10)
-    TR_fn_assert_equal(0.5, 2 ** -1)
+TR_test "4.3 üs alma sağdan birleşir, negatif üs Ondalık verir" {
+    TR_assert_equal(1024, 2 ** 10)
+    TR_assert_equal(0.5, 2 ** -1)
 }
 
-TR_ctx_test "4.4 karşılaştırma sayılar arasında yapılır" {
-    TR_fn_assert(1 < 2 TR_kw_and 2 <= 2 TR_kw_and 3 > 2.5 TR_kw_and 3 >= 3)
+TR_test "4.4 karşılaştırma sayılar arasında yapılır" {
+    TR_assert(1 < 2 TR_and 2 <= 2 TR_and 3 > 2.5 TR_and 3 >= 3)
 }
 
-TR_ctx_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
-    TR_fn_assert(1 == 1.0)
-    TR_fn_assert("1" != 1)
-    TR_fn_assert([1, "a"] == [1, "a"])
-    TR_fn_assert({"a": 1} == {"a": 1})
-    TR_fn_assert(TR_kw_none == TR_kw_none)
-    TR_fn_assert(TR_kw_none != TR_kw_false)
-    // 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
-    TR_fn_assert(TR_fn_tensor(7.0) == 7 TR_kw_and 7 == TR_fn_tensor(7.0))
-    TR_fn_assert(TR_fn_tensor([[1, 2]])[0][1] == 2.0)
-    TR_fn_assert(TR_fn_sum(TR_fn_tensor([1, 2, 3, 4])) == 10)
-    TR_fn_assert(TR_fn_tensor([7.0]) != 7)
+TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
+    TR_assert(1 == 1.0)
+    TR_assert("1" != 1)
+    TR_assert([1, "a"] == [1, "a"])
+    TR_assert({"a": 1} == {"a": 1})
+    TR_assert(TR_none == TR_none)
+    TR_assert(TR_none != TR_false)
+    # 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
+    TR_assert(TR_tensor(7.0) == 7 TR_and 7 == TR_tensor(7.0))
+    TR_assert(TR_tensor([[1, 2]])[0][1] == 2.0)
+    TR_assert(TR_sum(TR_tensor([1, 2, 3, 4])) == 10)
+    TR_assert(TR_tensor([7.0]) != 7)
 }
 
-TR_ctx_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 üstünde de)" {
-    TR_kw_var büyük = 9007199254740993
-    TR_kw_var yakın = 9007199254740992.0
-    TR_fn_assert(büyük != yakın)
-    TR_fn_assert(büyük > yakın TR_kw_and yakın < büyük)
-    TR_fn_assert(büyük - 1 == yakın)
-    // sözlük anahtarı ve sıralama aynı kuralla: iki ayrı anahtar, belirli bir sıra
-    TR_kw_var d = {}
+TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 üstünde de)" {
+    TR_var büyük = 9007199254740993
+    TR_var yakın = 9007199254740992.0
+    TR_assert(büyük != yakın)
+    TR_assert(büyük > yakın TR_and yakın < büyük)
+    TR_assert(büyük - 1 == yakın)
+    # sözlük anahtarı ve sıralama aynı kuralla: iki ayrı anahtar, belirli bir sıra
+    TR_var d = {}
     d[büyük] = "tam"
     d[yakın] = "ondalık"
-    TR_fn_assert_equal(2, d.TR_mem_length)
-    TR_fn_assert_equal([yakın, büyük], [büyük, yakın].TR_mem_sort())
-    TR_kw_var nan = TR_fn_float("nan")
-    TR_fn_assert(nan != 1 TR_kw_and !(nan == 1) TR_kw_and !(nan < 1) TR_kw_and !(nan > 1))
+    TR_assert_equal(2, d.TR_length)
+    TR_assert_equal([yakın, büyük], [büyük, yakın].TR_sort())
+    TR_var nan = TR_float("nan")
+    TR_assert(nan != 1 TR_and !(nan == 1) TR_and !(nan < 1) TR_and !(nan > 1))
 }
 
-TR_ctx_test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
-    TR_kw_var f = x => x
-    TR_kw_var g = f
-    TR_fn_assert(f == g)
-    TR_fn_assert((x => x) != (x => x * 2))
-    TR_kw_func yap(n) { TR_kw_return TR_kw_func() { TR_kw_return n } }
-    TR_fn_assert(yap(1) != yap(2))
-    TR_fn_assert(TR_fn_print == TR_fn_print)
-    TR_fn_assert(TR_fn_print != TR_fn_type)
-    TR_kw_struct Kutu {
+TR_test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
+    TR_var f = x => x
+    TR_var g = f
+    TR_assert(f == g)
+    TR_assert((x => x) != (x => x * 2))
+    TR_func yap(n) { TR_return TR_func() { TR_return n } }
+    TR_assert(yap(1) != yap(2))
+    TR_assert(TR_print == TR_print)
+    TR_assert(TR_print != TR_type)
+    TR_struct Kutu {
         d = 0
-        TR_kw_func al() { TR_kw_return TR_kw_self.d }
+        TR_func al() { TR_return TR_self.d }
     }
-    TR_kw_var k = Kutu(1)
-    TR_fn_assert(k.al == k.al)
-    TR_fn_assert(k.al != Kutu(1).al)
-    TR_fn_assert(Kutu == Kutu)
-    TR_fn_assert(1..3 == 1..3 TR_kw_and 1..3 != 1..=3)
+    TR_var k = Kutu(1)
+    TR_assert(k.al == k.al)
+    TR_assert(k.al != Kutu(1).al)
+    TR_assert(Kutu == Kutu)
+    TR_assert(1..3 == 1..3 TR_and 1..3 != 1..=3)
 }
 
-TR_ctx_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
-    TR_kw_var cagrildi = TR_kw_false
-    TR_kw_func yan_etki() {
-        cagrildi = TR_kw_true
-        TR_kw_return TR_kw_true
+TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
+    TR_var cagrildi = TR_false
+    TR_func yan_etki() {
+        cagrildi = TR_true
+        TR_return TR_true
     }
-    TR_fn_assert_equal(TR_kw_false, TR_kw_false TR_kw_and yan_etki())
-    TR_fn_assert_equal(TR_kw_true, TR_kw_true TR_kw_or yan_etki())
-    TR_fn_assert(TR_kw_not cagrildi)
-    TR_fn_assert_equal(TR_kw_true, 1 && "a")
-    TR_fn_assert_equal(TR_kw_true, !TR_kw_false)
+    TR_assert_equal(TR_false, TR_false TR_and yan_etki())
+    TR_assert_equal(TR_true, TR_true TR_or yan_etki())
+    TR_assert(TR_not cagrildi)
+    TR_assert_equal(TR_true, 1 && "a")
+    TR_assert_equal(TR_true, !TR_false)
 }
 
-TR_ctx_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {
-    TR_fn_assert_equal(5, TR_kw_none ?? 5)
-    TR_fn_assert_equal(0, 0 ?? 5)
-    TR_fn_assert_equal(TR_kw_false, TR_kw_false ?? 5)
+TR_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {
+    TR_assert_equal(5, TR_none ?? 5)
+    TR_assert_equal(0, 0 ?? 5)
+    TR_assert_equal(TR_false, TR_false ?? 5)
 }
 
-TR_ctx_test "4.8 ?. yok üzerinde hata yerine yok verir" {
-    TR_kw_var kişi = TR_kw_none
-    TR_fn_assert_equal(TR_kw_none, kişi?.ad)
-    TR_fn_assert_equal(H2466, TR_fn_error_code(() => { kişi.ad }))
-    // Hata '?.' güvenli erişimini önerir (işleç her dilde aynı yazılır).
-    TR_kw_var mesaj = ""
-    TR_kw_try { kişi.ad } TR_kw_catch h { mesaj = h }
-    TR_fn_assert(mesaj.TR_mem_contains("?."), mesaj)
+TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
+    TR_var kişi = TR_none
+    TR_assert_equal(TR_none, kişi?.ad)
+    TR_assert_equal("H2466", TR_error_code(() => { kişi.ad }))
+    # Hata '?.' güvenli erişimini önerir (işleç her dilde aynı yazılır).
+    TR_var mesaj = ""
+    TR_try { TR_var ad = kişi.ad } TR_catch h { mesaj = h }
+    TR_assert(mesaj.TR_contains("?."), mesaj)
 }
 
-TR_ctx_test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; metotlar '.' ile zincirlenir" {
-    TR_fn_assert_equal(6, [1, 2, 3] |> TR_fn_sum)
-    TR_fn_assert_equal(2.0, [1, 2, 3] |> TR_fn_mean)
-    TR_kw_func katları(l, k) { TR_kw_return l.TR_mem_filter { TR_ctx_it % k == 0 } }
-    TR_fn_assert_equal([2, 4], [1, 2, 3, 4] |> katları(2))
-    TR_fn_assert_equal(12, [1, 2, 3].TR_mem_map { TR_ctx_it * 2 } |> TR_fn_sum)
+TR_test "4.9 |> soldaki değeri sağdaki çağrının ilk argümanı yapar; metotlar '.' ile zincirlenir" {
+    TR_assert_equal(6, [1, 2, 3] |> TR_sum)
+    TR_assert_equal(2.0, [1, 2, 3] |> TR_mean)
+    TR_func katları(l, k) { TR_return l.TR_filter { TR_it % k == 0 } }
+    TR_assert_equal([2, 4], [1, 2, 3, 4] |> katları(2))
+    TR_assert_equal(12, [1, 2, 3].TR_map { TR_it * 2 } |> TR_sum)
 }
 
-TR_ctx_test "4.10 metin + herhangi bir değer metin birleştirir; liste + liste birleştirir" {
-    TR_fn_assert_equal("a1", "a" + 1)
-    TR_fn_assert_equal("1a", 1 + "a")
-    TR_fn_assert_equal([1, 2], [1] + [2])
+TR_test "4.10 metin + herhangi bir değer metin birleştirir; liste + liste birleştirir" {
+    TR_assert_equal("a1", "a" + 1)
+    TR_assert_equal("1a", 1 + "a")
+    TR_assert_equal([1, 2], [1] + [2])
 }
 
-TR_ctx_test "4.11 @ matris çarpımıdır" {
-    TR_kw_var m = TR_fn_tensor([[1, 2], [3, 4]]) @ TR_fn_tensor([[1], [1]])
-    TR_fn_assert_equal([2, 1], m.TR_mem_shape)
-    TR_fn_assert_equal(7.0, m[1][0])
+TR_test "4.11 @ matris çarpımıdır" {
+    TR_var m = TR_tensor([[1, 2], [3, 4]]) @ TR_tensor([[1], [1]])
+    TR_assert_equal([2, 1], m.TR_shape)
+    TR_assert_equal(7.0, m[1][0])
 }

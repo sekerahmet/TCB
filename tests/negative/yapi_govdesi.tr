@@ -1,5 +1,6 @@
-// Bilerek hatalı: 7.1 — yapı gövdesinde yalnızca alanlar ve fonksiyon tanımları bulunur.
-yapı A {
+# TR 4
+# TEST 7.1 yapı gövdesinde yalnız alanlar ve fonksiyon tanımları bulunur
+TR_struct A {
     x = 1
-    yazdır("...")
+    TR_print("...") # ERROR H0147
 }

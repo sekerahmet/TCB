@@ -64,6 +64,11 @@ func indexCommand(args []string) {
 		return
 	}
 	idx, _ := loadIndex(root, opts)
+	// Dizine girmeyen dosya (görünüm, sözdizimi hatası) sorgunun cevabında yoktur: "tanım yok"
+	// kanıt sanılmasın diye her biri nedeniyle standart hataya yazılır (JSON çıktısı temiz kalır).
+	for _, s := range idx.Skipped {
+		fmt.Fprintln(os.Stderr, "  "+messages.Text(messages.H8825, s.File, s.Reason))
+	}
 	runIndexQuery(codeindex.NewReader(idx), sub, names, root, opts)
 }
 

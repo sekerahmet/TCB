@@ -9,14 +9,14 @@ import (
 
 func TestTrailingBlockWithOPronoun(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
-		değişken sayılar = [1, 2, 3, 4, 5, 6]
-		değişken a = sayılar.filtrele { o > 2 }.haritala { o * o }
-		değişken b = sayılar.filtrele { o % 2 == 0 }
-		değişken c = [{"ad": "Ali"}, {"ad": "Ayşe"}].haritala { o["ad"] }
-		değişken d = [[1, 2], [3, 4]].haritala { o.haritala { o * 10 } }
-		fonksiyon uygula(f) { sonuç f(21) }
-		değişken e = uygula { o * 2 }
-		sonuç [a, b, c, d, e]`)
+		TR_var sayılar = [1, 2, 3, 4, 5, 6]
+		TR_var a = sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it }
+		TR_var b = sayılar.TR_filter { TR_it % 2 == 0 }
+		TR_var c = [{"ad": "Ali"}, {"ad": "Ayşe"}].TR_map { TR_it["ad"] }
+		TR_var d = [[1, 2], [3, 4]].TR_map { TR_it.TR_map { TR_it * 10 } }
+		TR_func uygula(f) { TR_return f(21) }
+		TR_var e = uygula { TR_it * 2 }
+		TR_return [a, b, c, d, e]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,8 +28,8 @@ func TestTrailingBlockWithOPronoun(t *testing.T) {
 
 func TestTrailingBlockEquivalentToLambda(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
-		değişken l = [5, 3, 8, 1]
-		sonuç l.filtrele { o > 2 } == l.filtrele((x) => x > 2)`)
+		TR_var l = [5, 3, 8, 1]
+		TR_return l.TR_filter { TR_it > 2 } == l.TR_filter((x) => x > 2)`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,29 +41,29 @@ func TestTrailingBlockEquivalentToLambda(t *testing.T) {
 // Kontrol yapısı başlıklarında '{' gövdenin başlangıcıdır; sondaki blok olarak okunmamalı.
 func TestControlHeadersDoNotTakeTrailingBlocks(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
-		değişken sayılar = [1, 2, 3, 4, 5, 6]
-		değişken izler = []
-		eğer sayılar.uzunluk > 3 {
-			izler.ekle("eğer")
+		TR_var sayılar = [1, 2, 3, 4, 5, 6]
+		TR_var izler = []
+		TR_if sayılar.TR_length > 3 {
+			izler.TR_append("eğer")
 		}
-		döngü s içinde sayılar.filtrele((x) => x < 3) {
-			izler.ekle("döngü-{s}")
+		TR_for s TR_in sayılar.TR_filter((x) => x < 3) {
+			izler.TR_append("döngü-\(s)")
 		}
-		değişken i = 0
-		iken i < sayılar.uzunluk {
+		TR_var i = 0
+		TR_for i < sayılar.TR_length {
 			i += 3
 		}
-		izler.ekle("iken-{i}")
-		değişken sonuç_eşle = eşle sayılar.uzunluk {
+		izler.TR_append("iken-\(i)")
+		TR_var sonuç_eşle = TR_match sayılar.TR_length {
 			6 => "altı"
-			varsayılan => "başka"
+			_ => "başka"
 		}
-		izler.ekle(sonuç_eşle)
-		// Parantez içinde sondaki blok başlıkta da kullanılabilir
-		eğer (sayılar.filtrele { o > 5 }).uzunluk == 1 {
-			izler.ekle("parantez")
+		izler.TR_append(sonuç_eşle)
+		# Parantez içinde sondaki blok başlıkta da kullanılabilir
+		TR_if (sayılar.TR_filter { TR_it > 5 }).TR_length == 1 {
+			izler.TR_append("parantez")
 		}
-		sonuç izler`)
+		TR_return izler`)
 	if err != nil {
 		t.Fatal(err)
 	}

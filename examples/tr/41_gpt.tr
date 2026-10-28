@@ -1,75 +1,75 @@
-//! tr kodlu 3 dil=tr
-// 41 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil modeli.
-// Ne öğretir: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini AdamW'ye vermek
-// (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, kontrol noktasıyla sürdürmek, metin üretmek.
-// Önceki örnekten: kontrol noktası (40) ve transformer (35): 35'te elle yazılanın kitaplık karşılığı.
-// Kitaplığın kodu: lib/katman.tr ve lib/iyilestirici.tr (kopyalayıp değiştirebilirsiniz).
-// Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
-//
-// Çalıştırma (proje kökünden): tr examples/tr/41_gpt.tr
-//   Ayarlar komut satırından: tr examples/tr/41_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
-//   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
-//   klasörünü silin ya da başka bir --koşu verin.
-// GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
-// ve ayarları büyütün, ör. --boyut 512 --katman 8 --bakış_sayısı 8 --bağlam 512 --toplu 64.
-// varsayılan_cihaz("gpu")
+# TR 4
+# 41 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil modeli.
+# Ne öğretir: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini AdamW'ye vermek
+# (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, kontrol noktasıyla sürdürmek, metin üretmek.
+# Önceki örnekten: kontrol noktası (40) ve transformer (35): 35'te elle yazılanın kitaplık karşılığı.
+# Kitaplığın kodu: lib/katman.tr ve lib/iyilestirici.tr (kopyalayıp değiştirebilirsiniz).
+# Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
+#
+# Çalıştırma (proje kökünden): tr examples/tr/41_gpt.tr
+#   Ayarlar komut satırından: tr examples/tr/41_gpt.tr --adım 300 --boyut 64 --koşu runs/gpt2
+#   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
+#   klasörünü silin ya da başka bir --koşu verin.
+# GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)
+# ve ayarları büyütün, ör. --boyut 512 --katman 8 --bakış_sayısı 8 --bağlam 512 --toplu 64.
+# varsayılan_cihaz("gpu")
 
-TR_kw_import "tr/katman"
-TR_kw_import "tr/iyilestirici"
+TR_import "tr/katman"
+TR_import "tr/iyilestirici"
 
-TR_kw_var ayar = TR_fn_command_line({TR_mem_step: 100, toplu: 8, bağlam: 32, TR_mem_embed_dim: 32, katman: 2, TR_mem_num_heads: 4,
-    muon_oranı: 0.02, adamw_oranı: 0.01, normuon: TR_kw_false, koşu: "runs/gpt_ornegi"},
-    TR_arg_description: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
-    TR_arg_descriptions: {TR_mem_step: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
+TR_var ayar = TR_command_line({TR_step: 100, toplu: 8, bağlam: 32, TR_embed_dim: 32, katman: 2, TR_num_heads: 4,
+    muon_oranı: 0.02, adamw_oranı: 0.01, normuon: TR_false, koşu: "runs/gpt_ornegi"},
+    TR_description: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
+    TR_descriptions: {TR_step: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
         normuon: "gizli ağırlıklar için Muon yerine NorMuon"})
 
-// --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/39_veri_ile_egitim.tr) ---
-TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
-TR_kw_var ö = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: ayar.toplu, TR_arg_context: ayar.bağlam, TR_arg_seed: 1)
+# --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/39_veri_ile_egitim.tr) ---
+TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
+TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: ayar.toplu, TR_context: ayar.bağlam, TR_seed: 1)
 
-// --- Model ve iyileştirici ---
-TR_kw_var model = TR_type_GPT(p.TR_mem_vocab_size, TR_arg_context: ayar.bağlam, TR_arg_embed_dim: ayar.TR_mem_embed_dim, TR_arg_num_layers: ayar.katman,
-    TR_arg_num_heads: ayar.TR_mem_num_heads, TR_arg_tied: TR_kw_true, TR_arg_seed: 1)
-TR_kw_var op = TR_type_MuonAndAdamW(model, TR_arg_muon_lr: ayar.muon_oranı, TR_arg_adamw_lr: ayar.adamw_oranı, TR_arg_normuon: ayar.normuon)
-TR_fn_print("model: {TR_fn_parameters(model).TR_mem_length} ağırlık tensörü; Muon'da {op.TR_mem_muon.TR_mem_parameters.TR_mem_length}, AdamW'de {op.TR_mem_other.TR_mem_length}")
+# --- Model ve iyileştirici ---
+TR_var model = TR_GPT(p.TR_vocab_size, TR_context: ayar.bağlam, TR_embed_dim: ayar.TR_embed_dim, TR_num_layers: ayar.katman,
+    TR_num_heads: ayar.TR_num_heads, TR_tied: TR_true, TR_seed: 1)
+TR_var op = TR_MuonAndAdamW(model, TR_muon_lr: ayar.muon_oranı, TR_adamw_lr: ayar.adamw_oranı, TR_normuon: ayar.normuon)
+TR_print("model: \(TR_parameters(model).TR_length) ağırlık tensörü; Muon'da \(op.TR_muon.TR_parameters.TR_length), AdamW'de \(op.TR_other.TR_length)")
 
-// --- Koşu klasörü ve kontrol noktası: model, AdamW'nin ve Muon'un durumu, okuyucu, günlük ---
-TR_fn_make_dir(ayar.koşu)
-TR_fn_write_file(TR_fn_path(ayar.koşu, "config.json"), TR_fn_json_string(ayar))
-TR_kw_var g = TR_fn_logger(TR_fn_path(ayar.koşu, "metrics.jsonl"))
-TR_kw_var kn = TR_fn_checkpoint(ayar.koşu, {model: model, TR_mem_adamw: op.TR_mem_adamw, TR_mem_muon: op.TR_mem_muon.TR_mem_state, ö: ö, g: g}, TR_arg_every_minutes: 5)
+# --- Koşu klasörü ve kontrol noktası: model, AdamW'nin ve Muon'un durumu, okuyucu, günlük ---
+TR_make_dir(ayar.koşu)
+TR_write_file(TR_path(ayar.koşu, "config.json"), TR_json_string(ayar))
+TR_var g = TR_logger(TR_path(ayar.koşu, "metrics.jsonl"))
+TR_var kn = TR_checkpoint(ayar.koşu, {model: model, TR_adamw: op.TR_adamw, TR_muon: op.TR_muon.TR_state, ö: ö, g: g}, TR_every_minutes: 5)
 
-// --- Eğitim: ilk %10 ısınma, son %30 azalma ---
-TR_kw_if kn.TR_mem_resume_step < ayar.TR_mem_step {
-    TR_kw_var ç = TR_fn_progress(ayar.TR_mem_step, TR_arg_log: g)
-    TR_kw_for adım TR_kw_in kn.TR_mem_resume_step..ayar.TR_mem_step {
-        op.TR_mem_set_multiplier(TR_fn_lr_schedule(adım, ayar.TR_mem_step, TR_arg_warmup: TR_fn_int(ayar.TR_mem_step / 10), TR_arg_decay_fraction: 0.3))
-        TR_kw_var giriş, hedef = ö.TR_mem_next()
-        op.TR_mem_zero_grad()
-        TR_kw_var kayıp = model.TR_mem_loss(giriş, hedef)
-        TR_fn_backward(kayıp)
-        op.TR_mem_step()
-        ç.TR_mem_update({TR_mem_loss: kayıp}, TR_arg_step: adım + 1)
-        kn.TR_mem_update(adım + 1)
+# --- Eğitim: ilk %10 ısınma, son %30 azalma ---
+TR_if kn.TR_resume_step < ayar.TR_step {
+    TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
+    TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
+        op.TR_set_multiplier(TR_lr_schedule(adım, ayar.TR_step, TR_warmup: TR_int(ayar.TR_step / 10), TR_decay_fraction: 0.3))
+        TR_var giriş, hedef = ö.TR_next()
+        op.TR_zero_grad()
+        TR_var kayıp = model.TR_loss(giriş, hedef)
+        TR_backward(kayıp)
+        op.TR_step()
+        ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+        kn.TR_update(adım + 1)
     }
-    kn.TR_mem_save()
+    kn.TR_save()
 }
 
-// --- Doğrulama kaybı ve metin üretimi ---
-TR_kw_var doğrulama = TR_fn_dataset("../../tests/data/text").TR_mem_sequential(TR_arg_batch_size: ayar.toplu, TR_arg_context: ayar.bağlam)
-TR_kw_var toplam_kayıp = 0.0
-TR_kw_var sayı = 0
-TR_fn_no_grad {
-    TR_kw_for iş TR_kw_in doğrulama {
-        TR_kw_if sayı == 10 { TR_kw_break }
-        toplam_kayıp += model.TR_mem_loss(iş[0], iş[1]).TR_mem_tolist
+# --- Doğrulama kaybı ve metin üretimi ---
+TR_var doğrulama = TR_dataset("../../tests/data/text").TR_sequential(TR_batch_size: ayar.toplu, TR_context: ayar.bağlam)
+TR_var toplam_kayıp = 0.0
+TR_var sayı = 0
+TR_no_grad {
+    TR_for iş TR_in doğrulama {
+        TR_if sayı == 10 { TR_break }
+        toplam_kayıp += model.TR_loss(iş[0], iş[1]).TR_tolist
         sayı += 1
     }
 }
-TR_fn_print("doğrulama kaybı ({sayı} toplu iş): {TR_fn_round(toplam_kayıp / sayı, 3)}")
-TR_kw_var üretilen = model.TR_mem_generate(p.TR_mem_encode("Bugün"), 12, TR_arg_temperature: 0.8, TR_arg_top_k: 20, TR_arg_seed: 1)
-TR_fn_print("model şunu yazdı: {p.TR_mem_decode(üretilen)}")
+TR_print("doğrulama kaybı (\(sayı) toplu iş): \(TR_round(toplam_kayıp / sayı, 3))")
+TR_var üretilen = model.TR_generate(p.TR_encode("Bugün"), 12, TR_temperature: 0.8, TR_top_k: 20, TR_seed: 1)
+TR_print("model şunu yazdı: \(p.TR_decode(üretilen))")
 
-// --- Kendin dene ---
-// 1. --katman 4 --boyut 64 ile çalıştır: doğrulama kaybı nasıl değişiyor?
-// 2. üret'in sıcaklık değerini 0.2 ve 1.5 yap ve metnin değişimine bak.
+# --- Kendin dene ---
+# 1. --katman 4 --boyut 64 ile çalıştır: doğrulama kaybı nasıl değişiyor?
+# 2. üret'in sıcaklık değerini 0.2 ve 1.5 yap ve metnin değişimine bak.

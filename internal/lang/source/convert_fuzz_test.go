@@ -17,7 +17,7 @@ import (
 //	go test ./internal/lang/source -run '^$' -fuzz FuzzEncodeDecode -fuzztime 5m
 func FuzzEncodeDecode(f *testing.F) {
 	testkit.TRSeeds(f)
-	for _, s := range []string{"\xef\xbb\xbfyazdır(1)\r\n", "değişken $eğer = 1", "yazdır(\"{\"{toplam([1])}\"}\")", Header + "tr\nTR_fn_print(1)", "//! tr kodlu 9", "`{eğer}` // yazdır"} {
+	for _, s := range []string{"\xef\xbb\xbfyazdır(1)\r\n", "değişken $eğer = 1", "yazdır(\"\\(\"\\(toplam([1]))\")\")", Header + "\nTR_print(1)", "# TR 9", "`{eğer}` # yazdır"} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, tr string) {
@@ -37,6 +37,7 @@ func FuzzEncodeDecode(f *testing.F) {
 		if err != nil {
 			t.Fatalf("kodlu biçim çözülemedi: %v\nkaynak: %q\nkodlu: %q", err, tr, coded)
 		}
+		back = withoutViewHeader(back, codes.Source()) // başlıksız kaynağın gösterimi görünüm başlığını taşır
 		if strings.Contains(tr, "$") {
 			if again, err := Encode(back); err != nil || again != coded {
 				t.Fatalf("kod → TR → kod aynı değil (%v)\nkodlu: %q\nyine: %q", err, coded, again)

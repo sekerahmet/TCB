@@ -8,23 +8,20 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kodlu biçim (docs/spec/17_kodlar.md, 17.1-17.2): dosya diskte dilden bağımsız kodlarla
-// saklanır. Kodlu kaynakta dilin her sözcüğü kodla yazılır (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr:); kod
-// olmayan her ad kullanıcının adıdır ve hiçbir zaman anahtar kelime sayılmaz (başka bir
-// dilde yazılmış bir kullanıcı adı TR'nin bir anahtar kelimesiyle aynı olabilir). Bir kod
-// çözümleyicinin dilindeki adıyla gelir (codedToken). Program kimlik listesinde okunur (Active):
-// kodlar kimlik kalır, ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez;
-// çalışma anına yük gelmez.
+// Kodlu gövde (dil tanımı 2.1, 2.3a): dosya diskte dilden bağımsız kimliklerle saklanır. Dilin her
+// sözcüğü TR_<ad> kimliğiyle yazılır (TR_if, TR_print, x.TR_append, TR_lr:); kimlik olmayan her ad
+// kullanıcının adıdır ve hiçbir zaman anahtar kelime sayılmaz (başka bir dilde yazılmış bir
+// kullanıcı adı TR'nin bir anahtar kelimesiyle aynı olabilir). Kimliğin kodu yerinden çıkar
+// (identity.go) ve çözümleyicinin dilindeki adıyla gelir. Program kimlik listesinde okunur (Active):
+// ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez; çalışma anına yük gelmez.
 
-// NewBody returns the lexer for the body of a source file (the text left after
-// internal/lang/source split off the BOM and the coded-form header); kodlu says the body is
-// in coded form. internal/lang/source is the only place that recognizes the header and picks
-// the lexer. Unlike New it does not strip a leading U+FEFF: every character of the body is
-// part of the source.
+// NewBody returns the lexer for the body of a source file (the text internal/lang/source checked
+// the header of); coded says the body is in coded form. internal/lang/source is the only place
+// that recognizes the header and picks the lexer. Unlike New it does not strip a leading U+FEFF:
+// every character of the body is part of the source.
 //
-// Kodlu gövdede konumlar diskteki metne göredir: kodlar kimlikleriyle okunur (Active), kodun adı
-// diskteki yazımıdır, sütun kaymaz. Kişinin gördüğü görünümün konumlarını NewBodyView verir
-// (source.view, 17.5).
+// Kodlu gövdede konumlar diskteki metne göredir: kimlikler yazıldıkları gibi okunur, sütun kaymaz.
+// Yazılan bir metnin kişinin dilindeki konumlarını NewBodyView verir (source.view).
 func NewBody(input string, coded bool) *Lexer {
 	l := newLexer(input)
 	l.coded = coded
@@ -32,28 +29,29 @@ func NewBody(input string, coded bool) *Lexer {
 	return l
 }
 
-// NewBodyIn lang'de okunan gövdenin sözcük çözümleyicisidir: lang'de yazılmış kodsuz gövde ya da
-// kodları lang'deki adlarıyla okunan kodlu gövde. Programlar kimliklerle okunur (codes.Active;
-// NewBody); bir yazım dili yalnızca o dilde yazılmış metni çevirmek (tr kodla - --dil en, kabuk
-// satırı) ya da dosyayı o dilde göstermek için okunur (17.7).
+// NewBodyIn lang'de okunan gövdenin sözcük çözümleyicisidir: lang'de yazılmış gösterim ya da
+// kimlikleri lang'deki adlarıyla okunan kodlu gövde. Programlar kimliklerle okunur (codes.Active;
+// NewBody); bir yazım dili yalnızca o dilde yazılmış metni çevirmek (tr encode - --lang en, kabuk
+// satırı) ya da dosyayı o dilde göstermek için okunur. Gösterimde de kimlikler (TR_print) okunur.
 func NewBodyIn(input string, coded bool, lang *codes.Language) *Lexer {
 	l := NewBody(input, coded)
-	l.lang, l.words = lang, keywordsOf(lang)
+	l.lang, l.words, l.writtenIn = lang, keywordsOf(lang), lang
 	return l
 }
 
-// ViewEdit is one change the file's view makes to a coded body: the runes [Start, End) are
+// ViewEdit is one change a typed text's view makes to its coded form: the runes [Start, End) are
 // shown as Len runes (a code as its name, a user name as '$name').
 type ViewEdit struct {
 	Start, End, Len int
 }
 
-// NewBodyView sütunları edits'ten kurulan görünüme göre olan kodlu gövdenin çözümleyicisidir
-// (görünümü internal/lang/source kurar ve düzenlemelerini verir). Düzenlemeler görünümün kaçırdığı
-// kullanıcı adlarının '$'ını da taşır; her konum kişinin gördüğü metinle birebir aynıdır.
-func NewBodyView(input string, edits []ViewEdit) *Lexer {
+// NewBodyView, lang'de yazılmış bir metnin (kabuk satırı, hata ayıklayıcı ifadesi) kodlu biçiminin
+// çözümleyicisidir: sütunlar edits'ten kurulan görünüme göredir (görünümü internal/lang/source kurar
+// ve düzenlemelerini verir). Düzenlemeler görünümün kaçırdığı kullanıcı adlarının '$'ını da taşır;
+// her konum kişinin yazdığı metinle birebir aynıdır. Dosyanın konumları dosyanındır (NewBody).
+func NewBodyView(input string, edits []ViewEdit, lang *codes.Language) *Lexer {
 	l := newLexer(input)
-	l.coded = true
+	l.coded, l.writtenIn = true, lang
 	k := make([]shift, 0, len(edits))
 	for _, e := range edits {
 		if d := e.Len - (e.End - e.Start); d != 0 {
@@ -107,7 +105,7 @@ func (l *Lexer) lineShift(begin, i int) int {
 	return int(l.shiftSum[hi] - l.shiftSum[lo])
 }
 
-// codeTypes anahtar kelime kodu → token türü haritasıdır (turKodlari'nın tersi).
+// codeTypes anahtar kelime kodu → token türü haritasıdır (typeCodes'un tersi).
 var codeTypes = func() map[codes.Code]TokenType {
 	m := make(map[codes.Code]TokenType, len(typeCodes))
 	for t, k := range typeCodes {
@@ -121,53 +119,55 @@ func KeywordCode(t TokenType) codes.Code {
 	return typeCodes[t]
 }
 
-// nameToken okunan bir adın sözcük birimidir: Türkçe yazılmış kaynakta anahtar kelime ya da
-// ad (TR_ ile başlayan ad hatadır, 2.3a), kodlu kaynakta codedToken.
+// nameToken okunan bir adın sözcük birimidir: TR_ ile başlayan ad bir kimliktir ve yerine göre
+// koda çözülür (identity.go); kodlu gövdede öbür adlar kullanıcının adıdır, gösterimde gösterim
+// dilinin anahtar kelimesi ya da ad.
 func (l *Lexer) nameToken(lit string, line, col int) Token {
-	if isMessageCode(lit) {
-		return Token{Type: TokMessageCode, Literal: lit, Line: line, Column: col}
+	if isIdentitySpelling(lit) {
+		if k := l.identity(lit, line, col); k != codes.None {
+			return l.codeToken(k, line, col)
+		}
+		// Kalkan sözcükten sonra TR'deki yazımıyla sürülür: ileti bir kez çıkar, ayrıştırıcı ardından
+		// yanıltıcı ikinci bir hata vermez.
+		switch removedWords[lit] {
+		case messages.H0021:
+			return l.codeToken(codes.KwFor, line, col)
+		case messages.H0022:
+			return Token{Type: TokIdent, Literal: "_", Line: line, Column: col}
+		}
+		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
+	}
+	lit = nfc(lit) // aynı görünen iki yazım aynı addır (2.3)
+	if identityLookalike(lit) {
+		l.addError(line, col, messages.New(messages.H0030, lit))
 	}
 	if l.coded {
-		return l.codedToken(lit, line, col)
-	}
-	kind := l.root.lookupIdent(lit)
-	if kind == TokIdent {
-		l.checkReservedName(lit, line, col)
-	}
-	return Token{Type: kind, Literal: lit, Line: line, Column: col}
-}
-
-// codedToken kodlu kaynaktaki bir adı okur: kimlikse (TR_fn_print) kodun çözümleyicinin
-// dilindeki (Language) adını ve (anahtar kelimeyse) türünü taşıyan sözcük birimi, değilse kullanıcı
-// adıdır. TR_ ile başlayıp kod listesinde olmayan ad bir kimlik değildir: sözdizimi hatası.
-func (l *Lexer) codedToken(lit string, line, col int) Token {
-	if !codes.IsReservedName(lit) {
 		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 	}
-	k, err := codes.Parse(lit)
-	g, var_ := l.Language().Entry(k)
-	if err != nil || !var_ {
-		l.addError(line, col, messages.New(messages.H0001, lit, codes.FnPrint))
-		return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
-	}
-	if t, ok := codeTypes[k]; ok {
-		return Token{Type: t, Literal: g.Name, Line: line, Column: col, Code: k}
-	}
-	return Token{Type: TokIdent, Literal: g.Name, Line: line, Column: col, Code: k}
+	return Token{Type: l.root.lookupIdent(lit), Literal: lit, Line: line, Column: col}
 }
 
-// escapedName '$ad' kaçışını okur (2.11): '$' ardından gelen ad her zaman kullanıcının adıdır,
-// dilin bir sözcüğüyle aynı olsa bile (değişken $eğer = 1). Kaçış, bir dosya başka bir yazım
-// dilinde gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir; kodlama '$'ı
-// atar. TR_ ile başlayan adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye
-// bitişik yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5).
+// escapedName '$ad' kaçışını okur: '$' ardından gelen ad her zaman kullanıcının adıdır, dilin bir
+// sözcüğüyle aynı olsa bile (değişken $eğer = 1). Kaçış, bir dosya başka bir yazım dilinde
+// gösterilirken o dilin sözcükleriyle çakışan kullanıcı adları içindir; kodlama '$'ı atar. TR_ ile
+// başlayan adlar kaçışla da ayrılmıştır (2.3a). '$' bir harfe, rakama ya da '_'ye bitişik
+// yazılamaz: '$' atılınca iki sözcük birleşirdi (a$b → ab, 1$e5 → 1e5). Kodlu gövdede (dosya)
+// kullanıcının adı dilin sözcüğüyle çakışmaz, '$' yoktur (2.3): yazılırsa hata adı '$'sız önerir.
 func (l *Lexer) escapedName(line, col int) Token {
-	if l.position > 0 && (isLetter(l.input[l.position-1]) || isDigit(l.input[l.position-1])) {
+	adjacent := l.position > 0 && isNameChar(l.input[l.position-1])
+	l.readChar() // '$'
+	lit := nfc(l.readIdentifier())
+	switch {
+	case l.coded:
+		l.addError(line, col, messages.New(messages.H0031, lit))
+	case adjacent:
 		l.addError(line, col, messages.New(messages.H0002))
 	}
-	l.readChar() // '$'
-	lit := l.readIdentifier()
-	l.checkReservedName(lit, line, col+1)
+	if codes.IsReservedName(lit) {
+		// Önek ASCII'dir; küçük harfli öneri bu yüzden Türkçe kuralla değil strings.ToLower ile
+		// üretilir: TR_ için ır_ değil tr_ önerilir.
+		l.addError(line, col+1, messages.New(messages.H0004, lit, strings.ToLower(lit)))
+	}
 	return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
 }
 
@@ -178,38 +178,4 @@ func (l *Lexer) nulChar(line, col int) Token {
 	l.addError(line, col, messages.New(messages.H0003))
 	l.readChar()
 	return Token{Type: TokIllegal, Literal: "\x00", Line: line, Column: col}
-}
-
-// checkReservedName Türkçe yazılmış kaynakta TR_ ile başlayan bir adı (2.3a) hata olarak bildirir.
-// Önek ASCII'dir; küçük harfli öneri bu yüzden bilerek Türkçe kuralla (turkish.Lower) değil
-// strings.ToLower ile üretilir: TR_ için ır_ değil tr_ önerilir. Ad bilinen bir kimlikse kişi büyük
-// olasılıkla başlıksız kodlu metin yapıştırmıştır: ipucu, okunan metnin dilindeki başlığı anar.
-func (l *Lexer) checkReservedName(lit string, line, col int) {
-	if !codes.IsReservedName(lit) {
-		return
-	}
-	var hint *messages.Error
-	if _, err := codes.Parse(lit); err == nil {
-		hint = messages.New(messages.H0014, CodedHeader+l.Language().Code)
-	}
-	l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit), hint))
-}
-
-// CodedHeader is the start of a coded file's first line (format version 3: the language's words
-// are written by their identities, TR_fn_print): the code of the file's writing language follows
-// it ("//! tr kodlu 3 dil=en", 17.1). The header's rules live in internal/lang/source; the text
-// lives here so the lexer's hint can show it too.
-const CodedHeader = "//! tr kodlu 3 dil="
-
-// isMessageCode sözcüğün bir ileti kodu olduğudur: H ve tam dört rakam (H6903).
-func isMessageCode(word string) bool {
-	if len(word) != 5 || word[0] != 'H' {
-		return false
-	}
-	for i := 1; i < 5; i++ {
-		if word[i] < '0' || word[i] > '9' {
-			return false
-		}
-	}
-	return true
 }

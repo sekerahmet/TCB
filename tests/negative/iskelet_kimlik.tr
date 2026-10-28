@@ -1,0 +1,3 @@
+# TR 4
+# TEST 2.1a iskeleti TR_ ile başlayan ad, dilin bir sözcüğü gibi görünür: hatadır (ilk harf Kiril Т)
+ТR_print(1) # ERROR H0030

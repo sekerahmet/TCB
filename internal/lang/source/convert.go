@@ -1,6 +1,7 @@
 package source
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -13,13 +14,14 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// Çevirici (17.3, 17.4): Türkçe yazılmış kaynağı kodlu biçime (Kodla) ve kodlu kaynağı bir
-// yazım diline (Coz) çevirir. Çeviri yeniden yazdırma değildir: kaynakta yalnızca dilin
-// sözcüklerinin aralıkları değişir; boşluklar, satır düzeni, yorumlar, kullanıcının adları,
-// metinler ve sayılar bayt bayt korunur. Metin içi yerleştirmelerdeki sözcükler çevrilir; ham
-// metnin ve yorumların içi hiçbir zaman çevrilmez. Neyin dilin sözcüğü olduğu sözcüğe bakarak
-// tahmin edilmez: ayrıştırıcının ad görevlerinden (ayristir.AdRolu) ve denetleyicinin kapsam
-// bilgisinden (denetci.AdBaglari) çıkarılır.
+// Çevirici: bir yazım dilinde yazılmış gösterimi kodlu biçime (EncodeIn) ve kodlu biçimi bir yazım
+// dilinin gösterimine (Decode) çevirir. Çeviri yeniden yazdırma değildir: kaynakta yalnızca dilin
+// sözcüklerinin aralıkları değişir; boşluklar, satır düzeni, başlık ve öbür yorumlar, kullanıcının
+// adları, metinler ve sayılar bayt bayt korunur. Metin içi yerleştirmelerdeki sözcükler çevrilir; ham
+// metnin ve yorumların içi hiçbir zaman çevrilmez. Neyin dilin sözcüğü olduğu sözcüğe bakarak tahmin
+// edilmez: ayrıştırıcının ad görevlerinden (parser.NameRole) ve denetleyicinin kapsam bilgisinden
+// (checker.NameBindings) çıkarılır. Kodlu biçimde dilin sözcüğü kimliğinin yazımıdır (TR_print,
+// 2.3a); sınıfını okuyan sözcük çözümleyici yerinden bulur.
 
 // SyntaxError is returned when the source to convert cannot be parsed: the language's words
 // cannot be told apart without scope information, so the source is left untouched.
@@ -43,122 +45,156 @@ var ErrUTF8 error = messages.New(messages.H2510)
 // program. It is a converter bug; the file must not be written.
 var ErrLossy error = messages.New(messages.H2511)
 
-// Encode converts source written in Turkish (a file; the whole file) to coded form; see
-// EncodeIn.
+// ErrLossyView is returned when a coded file's view would not encode back to the same program
+// (Decode). It is a converter bug; showing writes nothing.
+var ErrLossyView error = messages.New(messages.H2543)
+
+// Encode converts a view written in Turkish (the whole text) to coded form; see EncodeIn.
 func Encode(text string) (string, error) { return EncodeIn(text, Turkish()) }
 
-// EncodeIn converts source written in lang (the whole text) to coded form. Source that is
-// already coded is returned as is. The '$' of '$name' escapes is dropped (2.11). The result is
-// verified: the coded program read in lang must give the original's tree, and decoding to lang
-// and re-encoding must not change it; otherwise it returns ErrLossy.
+// EncodeIn converts a view written in lang (the whole text) to coded form: the language's words
+// become identities (TR_print), the '$' of '$name' escapes is dropped, identities already written
+// stay. The '#!' line is kept; a view's header ('# TR 4 view=tr') becomes the header, a text
+// without the header gets it on its first line. A view written in another language is an error
+// (H2542): its language is in its header. The result is verified: the coded program read in lang
+// must give the original's tree, and decoding to lang and re-encoding must not change it;
+// otherwise it returns ErrLossy.
 func EncodeIn(text string, lang *codes.Language) (string, error) {
 	b, err := Split(text)
-	if err != nil || b.Coded {
+	var ve *ViewError
+	switch {
+	case errors.As(err, &ve) && ve.Lang != lang.Code:
+		return text, messages.New(messages.H2542, ve.Lang, codes.NameRef(codes.OptLang), lang.Code)
+	case err != nil && ve == nil:
 		return text, err
 	}
-	c, err := analyze(b, lang, nil, false)
+	c, err := analyze(b.Body, lang, false, nil, false)
 	if err != nil {
 		return "", err
 	}
-	coded := c.codedParts(b)
-	result := coded.Join()
-	if err := c.sameMeaning(coded); err != nil {
+	body := c.codedBody()
+	if err := c.sameMeaning(body); err != nil {
 		return "", err
 	}
+	switch {
+	case b.View != "":
+		body = setHeader(body, Header)
+	case !b.Coded:
+		body = Header + findEOL(b.Body) + body
+	}
+	result := Parts{BOM: b.BOM, Body: body}.Join()
 	if back, err := Decode(result, lang); err != nil || !reencodes(back, result, lang) {
 		return "", ErrLossy
 	}
 	return result, nil
 }
 
-// toCoded lang'de yazılmış kodsuz gövdeyi denetimsiz kodlu biçime çevirir (Encode'un
-// doğrulaması olmadan; gösterim ve kabuk satırı için); gövde ayrıştırılamıyorsa b ve hatayı
-// döner. globalNames metnin içinde okunduğu dış kapsamın adlarıdır (kabukta önceki satırlar,
-// modülde aktaran, 11.1): onlardan biriyle aynı yazılan ad kullanıcının adıdır, dilin öğesi
-// sayılıp kodlanmaz; dynamic, dış kapsamın adlarının tam bilinmediğini söyler.
-func toCoded(b Parts, lang *codes.Language, globalNames []string, dynamic bool) (Parts, error) {
-	c, err := analyze(b, lang, globalNames, dynamic)
-	if err != nil {
-		return b, err
-	}
-	return c.codedParts(b), nil
-}
-
-// codedParts b'nin (kodsuz, çözümlenmiş) kodlu biçimidir: BOM korunur, başlık satır sonu bulunur.
-func (c *analysis) codedParts(b Parts) Parts {
-	coded := Parts{BOM: b.BOM, Coded: true, Language: c.lang.Code, Body: c.codedBody()}
-	coded.HeaderEOL = findEOL(coded.Body)
-	return coded
-}
-
-// Show is the text of a file (the whole file) in lang's spelling: a coded file is decoded
-// (Decode); a file written in Turkish is shown in lang through its coded form (17.7), and
-// returned as is when lang is Turkish.
-func Show(text string, lang *codes.Language) (string, error) {
-	b, err := Split(text)
-	if err != nil || b.Coded || lang.Code == codes.SourceLanguage {
-		return Decode(text, lang)
-	}
-	coded, err := toCoded(b, Turkish(), nil, false)
+// toCoded lang'de yazılmış gövdeyi denetimsiz kodlu biçime çevirir (EncodeIn'in doğrulaması
+// olmadan; gösterim ve kabuk satırı için); gövde ayrıştırılamıyorsa hatayı döner. globalNames
+// metnin içinde okunduğu dış kapsamın adlarıdır (kabukta önceki satırlar, modülde aktaran, 11.1):
+// onlardan biriyle aynı yazılan ad kullanıcının adıdır, dilin öğesi sayılıp kodlanmaz; dynamic, dış
+// kapsamın adlarının tam bilinmediğini söyler.
+func toCoded(body string, lang *codes.Language, globalNames []string, dynamic bool) (string, error) {
+	c, err := analyze(body, lang, false, globalNames, dynamic)
 	if err != nil {
 		return "", err
 	}
-	return Decode(coded.Join(), lang)
+	return c.codedBody(), nil
+}
+
+// Show is the text of a file (the whole file) in lang's spelling (Decode).
+func Show(text string, lang *codes.Language) (string, error) { return Decode(text, lang) }
+
+// NFCNames is a coded file with its user names in NFC form and every other byte as it is (2.3):
+// what showing and encoding again give back. A text that is not coded is returned as it is.
+func NFCNames(text string) (string, error) {
+	b, err := Split(text)
+	if err != nil || !b.Coded {
+		return text, err
+	}
+	c, err := analyze(b.Body, Turkish(), true, nil, false)
+	if err != nil {
+		return "", err
+	}
+	return Parts{BOM: b.BOM, Body: c.nfcBody()}.Join(), nil
 }
 
 // reencodes kodlu metnin lang'e çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
 func reencodes(decoded, coded string, lang *codes.Language) bool {
-	b, err := Split(decoded)
-	if err != nil || b.Coded {
+	b, _ := Split(decoded)
+	if b.View != lang.Code {
 		return false
 	}
-	fresh, err := toCoded(b, lang, nil, false)
-	return err == nil && fresh.Join() == coded
+	fresh, err := toCoded(b.Body, lang, nil, false)
+	return err == nil && Parts{BOM: b.BOM, Body: setHeader(fresh, Header)}.Join() == coded
 }
 
-// codedBody Türkçe gövdenin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar
-// kodlarıyla yazılır, '$ad' kaçışlarının '$'ı atılır; başka hiçbir şey değişmez.
+// codedBody gösterimin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar kimliklerinin
+// yazımıyla (TR_print) yazılır, '$ad' kaçışlarının '$'ı atılır; başka hiçbir şey değişmez.
 func (c *analysis) codedBody() string {
 	var d []change
 	for _, r := range c.records {
 		if r.Type == lexer.TokIdent && c.escaped(r) {
 			d = append(d, change{r.Start, r.End, r.Literal})
 		} else if k := c.tokenCode(r); k != codes.None {
-			d = append(d, change{r.Start, r.End, k.String()})
+			d = append(d, change{r.Start, r.End, codes.Spelling(k)})
+		} else if c.unnormalized(r) {
+			d = append(d, change{r.Start, r.End, r.Literal})
 		}
 	}
 	return apply(c.input, uniqueChanges(d))
 }
 
-// Decode converts coded source (the whole file) to dil's spelling; source that is not coded
-// is returned as is. Codes become dil's names; user names that would read as a word of the
-// language in dil are written as '$name' (2.11). The header is dropped and the BOM kept.
+// nfcBody gövdenin, yalnız kullanıcı adları NFC biçimine çevrilmiş hâlidir (başka hiçbir şey
+// değişmez): kodlu gövdenin gösterimi bu metne geri kodlanır.
+func (c *analysis) nfcBody() string {
+	var d []change
+	for _, r := range c.records {
+		if c.unnormalized(r) {
+			d = append(d, change{r.Start, r.End, r.Literal})
+		}
+	}
+	return apply(c.input, uniqueChanges(d))
+}
+
+// unnormalized kullanıcı adının metinde NFC biçiminde yazılmadığıdır (ayrık o + U+0308): kodlama
+// ve gösterim adı sözcük çözümleyicinin okuduğu NFC biçimiyle yazar (2.3).
+func (c *analysis) unnormalized(r lexer.Record) bool {
+	return r.Type == lexer.TokIdent && r.Code == codes.None && !c.escaped(r) && r.End <= len(c.input) &&
+		string(c.input[r.Start:r.End]) != r.Literal
+}
+
+// Decode converts coded source (the whole file) to lang's spelling; source without the header is
+// returned as is. Codes become lang's names; user names that would read as a word of the language
+// in lang are written as '$name'. The BOM is kept and the header becomes the view's header
+// ('# TR 4 view=tr'): the view has the file's lines and says it is a view. A view is not
+// decoded again (ViewError).
 func Decode(text string, lang *codes.Language) (string, error) {
 	b, err := Split(text)
 	if err != nil || !b.Coded {
 		return text, err
 	}
-	c, err := analyze(b, lang, nil, false)
+	c, err := analyze(b.Body, lang, true, nil, false)
 	if err != nil {
 		return "", err
 	}
 	view := c.viewBody()
 	// The view must read back as the same program: read in lang and encoded again, it gives
-	// the coded body back.
-	if !reencodesBody(view, b.Body, lang) {
-		return "", ErrLossy
+	// the coded body back (its names in NFC form, as the view writes them, 2.3).
+	if !reencodesBody(view, c.nfcBody(), lang) {
+		return "", ErrLossyView
 	}
-	return Parts{BOM: b.BOM, Body: view}.Join(), nil
+	return Parts{BOM: b.BOM, Body: setHeader(view, viewHeader(lang))}.Join(), nil
 }
 
 // reencodesBody reports whether the view body, read in lang and encoded again, gives the coded
 // body back.
 func reencodesBody(view, codedBody string, lang *codes.Language) bool {
-	c, err := analyze(Parts{Body: view}, lang, nil, false)
+	c, err := analyze(view, lang, false, nil, false)
 	return err == nil && c.codedBody() == codedBody
 }
 
-// viewBody kodlu gövdenin c.dil'deki yazımıdır.
+// viewBody kodlu gövdenin c.lang'deki yazımıdır.
 func (c *analysis) viewBody() string { return apply(c.input, uniqueChanges(c.viewChanges())) }
 
 // viewChanges gövdeyi gösterime çeviren değişimlerdir: kodlar adlarına, dilin bir sözcüğü
@@ -167,26 +203,30 @@ func (c *analysis) viewChanges() []change {
 	var d []change
 	for _, r := range c.records {
 		switch {
+		case r.Code != codes.None && c.spelled[r.Code]:
+			// Kullanıcı fonksiyonunun TR_ parametresi yazımıyla kalır (gösterimde kimlik okunur).
 		case r.Code != codes.None:
 			d = append(d, change{r.Start, r.End, langName(c.lang, r.Code)})
 		case r.Type == lexer.TokIdent && !c.escaped(r) && c.needsEscape(r):
 			d = append(d, change{r.Start, r.End, "$" + r.Literal})
+		case c.unnormalized(r):
+			d = append(d, change{r.Start, r.End, r.Literal})
 		}
 	}
 	return d
 }
 
-// view kodlu bir gövdenin lang'deki gösterimidir: hata çerçeveleri ve hata ayıklayıcı bu
-// metni gösterir (17.5; kişinin gösterim dili, codes.Display). Gövde ayrıştırılamıyorsa
-// yalnızca dosya düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kod kalır). İkinci
+// view, lang'de yazılmış bir metnin (kabuk satırı, hata ayıklayıcı ifadesi) kodlu biçiminin lang'deki
+// gösterimidir: o metnin hata çerçeveleri bu metni gösterir. Gövde ayrıştırılamıyorsa
+// yalnızca dosya düzeyindeki kodlar adlarına çevrilir (yerleştirmelerdekiler kimlik kalır). İkinci
 // değer gösterimin sütunlarını veren sözcük çözümleyicidir: konumlar tam bu metne göredir,
 // '$ad' kaçışları dahil.
-func view(b Parts, lang *codes.Language) (string, *lexer.Lexer) {
-	if c, err := analyze(b, lang, nil, false); err == nil {
+func view(body string, lang *codes.Language) (string, *lexer.Lexer) {
+	if c, err := analyze(body, lang, true, nil, false); err == nil {
 		d := uniqueChanges(c.viewChanges())
-		return apply(c.input, d), lexer.NewBodyView(b.Body, viewEdits(d))
+		return apply(c.input, d), lexer.NewBodyView(body, viewEdits(d), lang)
 	}
-	l := b.scanLexer(lang)
+	l := lexer.NewBody(body, true)
 	l.StartRecording()
 	for l.NextToken().Type != lexer.TokEOF {
 	}
@@ -197,7 +237,7 @@ func view(b Parts, lang *codes.Language) (string, *lexer.Lexer) {
 		}
 	}
 	d = uniqueChanges(d)
-	return apply(l.Input(), d), lexer.NewBodyView(b.Body, viewEdits(d))
+	return apply(l.Input(), d), lexer.NewBodyView(body, viewEdits(d), lang)
 }
 
 // viewEdits değişimleri sözcük çözümleyicinin sütun kaymalarına çevirir; apply gibi aynı
@@ -228,17 +268,17 @@ func uniqueChanges(d []change) []change {
 	return out
 }
 
-// langName kodun dil'deki adıdır; dil kodu tanımıyorsa (başka dillerde ölü kodlar isteğe
-// bağlıdır, 17.6) kod olduğu gibi kalır.
+// langName kodun lang'deki adıdır; dil kodu tanımıyorsa (başka dillerde ölü kodlar isteğe
+// bağlıdır) kimliğin yazımı kalır.
 func langName(lang *codes.Language, k codes.Code) string {
 	if g, ok := lang.Entry(k); ok {
 		return g.Name
 	}
-	return k.String()
+	return codes.Spelling(k)
 }
 
 // analysis bir gövdenin çeviri için çıkarılmış bilgisidir: bütün sözcükler (yerleştirmelerdekiler
-// dahil) kaynak aralıklarıyla, ad sözcüklerinin görevleri ve adların bağları (dil'in adlarıyla).
+// dahil) kaynak aralıklarıyla, ad sözcüklerinin görevleri ve adların bağları (lang'in adlarıyla).
 type analysis struct {
 	lang     *codes.Language
 	input    []rune
@@ -246,21 +286,28 @@ type analysis struct {
 	roles    map[[2]int]parser.NameRole
 	bindings map[[2]int]checker.NameBinding
 	// conflicts gösterimde kodlu bir sözcüğü yakalayacak kullanıcı adlarıdır; her yerde
-	// kaçışla yazılırlar (denetci.AdBaglari).
+	// kaçışla yazılırlar (checker.NameBindings).
 	conflicts map[string]bool
 	// escapedNames metinde kaçışla ($ad) yazılmış kullanıcı adlarıdır (bkz. langElement).
 	escapedNames map[string]bool
 	// declarations kitaplık bildirimlerinin ad sözcükleridir (libraryDeclarations).
 	declarations map[[2]int]codes.Code
-	prog         *ast.Program
+	// spelled kodlu gövdede kullanıcı fonksiyonlarının TR_ ile yazılmış parametreleridir
+	// (userParameterCodes): gösterimde yazımlarıyla kalırlar.
+	spelled map[codes.Code]bool
+	prog    *ast.Program
 }
 
-// analyze b'yi lang'de okur; globalNames ve dynamic metnin dış kapsamıdır (toCoded).
-func analyze(b Parts, lang *codes.Language, globalNames []string, dynamic bool) (*analysis, error) {
-	if !utf8.ValidString(b.Body) {
+// analyze body'yi okur: coded ise kimliklerle yazılmış kodlu gövde, değilse lang'de yazılmış
+// gösterim; globalNames ve dynamic metnin dış kapsamıdır (toCoded).
+func analyze(body string, lang *codes.Language, coded bool, globalNames []string, dynamic bool) (*analysis, error) {
+	if !utf8.ValidString(body) {
 		return nil, ErrUTF8
 	}
-	l := b.scanLexer(lang)
+	l := lexer.NewBodyIn(body, false, lang)
+	if coded {
+		l = lexer.NewBody(body, true)
+	}
 	l.StartRecording()
 	p := parser.New(l)
 	p.RecordRoles()
@@ -276,6 +323,9 @@ func analyze(b Parts, lang *codes.Language, globalNames []string, dynamic bool) 
 	}
 	c.conflicts = conflicts
 	c.declarations = c.libraryDeclarations()
+	if coded {
+		c.spelled = userParameterCodes(prog)
+	}
 	c.escapedNames = map[string]bool{}
 	for _, r := range c.records {
 		if r.Type == lexer.TokIdent && c.escaped(r) {
@@ -288,8 +338,8 @@ func analyze(b Parts, lang *codes.Language, globalNames []string, dynamic bool) 
 // sameMeaning kodlu gövdenin ağacının özgün ağaçla aynı olduğunu denetler (sözcük birimleri
 // konumlarıyla atlanır; kodlu sözcükler c.lang'in adlarıyla okunduğu için ağaçlar birebir
 // aynı olmalıdır).
-func (c *analysis) sameMeaning(coded Parts) error {
-	p := parser.New(lexer.NewBodyIn(coded.Body, true, c.lang))
+func (c *analysis) sameMeaning(codedBody string) error {
+	p := parser.New(lexer.NewBodyIn(codedBody, true, c.lang))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || ast.Dump(prog) != ast.Dump(c.prog) {
 		return ErrLossy
@@ -302,8 +352,8 @@ func (c *analysis) escaped(r lexer.Record) bool {
 	return r.Start < len(c.input) && c.input[r.Start] == '$'
 }
 
-// tokenCode bir sözcüğün kodlu biçimdeki kodudur: anahtar kelime, kodla yazılmış sözcük ya da
-// dilin öğesi olan ad; kullanıcının adında kod.Yok.
+// tokenCode bir sözcüğün kodlu biçimdeki kodudur: anahtar kelime, kimlikle yazılmış sözcük ya da
+// dilin öğesi olan ad; kullanıcının adında codes.None.
 func (c *analysis) tokenCode(r lexer.Record) codes.Code {
 	if r.Code != codes.None {
 		return r.Code
@@ -314,7 +364,7 @@ func (c *analysis) tokenCode(r lexer.Record) codes.Code {
 	return lexer.KeywordCode(r.Type)
 }
 
-// needsEscape kodlu kaynaktaki bir kullanıcı adı dil'de yazılınca dilin bir sözcüğü olarak
+// needsEscape kodlu kaynaktaki bir kullanıcı adı lang'de yazılınca dilin bir sözcüğü olarak
 // okunur mu? Öyleyse gösterimde '$ad' yazılır.
 func (c *analysis) needsEscape(r lexer.Record) bool {
 	if k, ok := c.lang.Find(codes.NamespaceGlobal, r.Literal); ok && k.IsKeyword() {
@@ -323,7 +373,7 @@ func (c *analysis) needsEscape(r lexer.Record) bool {
 	return c.conflicts[r.Literal] || c.langElement(r) != codes.None
 }
 
-// change kaynakta [bas, son) karakter aralığının yerine yazılacak metindir.
+// change kaynakta [start, end) karakter aralığının yerine yazılacak metindir.
 type change struct {
 	start, end int
 	text       string

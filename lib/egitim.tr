@@ -1,166 +1,166 @@
-//! tr kodlu 3 dil=tr
-// tr/egitim — uzun eğitimin güvencesi: koşu düzeni (Koşu) ve kayıp ile gradyan normu sıçrama
-// bekçisi (SıçramaBekçisi).
-//
-// Kullanım:   aktar "tr/egitim"
-//             değişken bekçi = SıçramaBekçisi(pencere: 128, eşik: 6.0)
-//             değişken karar = bekçi.gözle(kayıp.değer, norm.değer)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
-//
-// Bekçi yalnızca karar verir; ne yapılacağını (adımı atlamak, son kontrol noktasına dönüp toplu
-// işleri atlamak, durmak) eğitim döngüsü seçer (dil tanımı 15.36, 20.14, 20.15). Örnek:
-//
-//     eğer karar == SONLU_DEĞİL { op.sıfırla(); devam }          // adımı atla (GradScaler gibi)
-//     eğer karar == SIÇRAMA { adım = kn.geri_dön(); ö.atla(200); devam }   // PaLM §5.1
-//
-// Yöntem: OLMo-core'un StabilityMonitor'ı gibi kayıp ve normun her biri son `pencere` sağlam
-// değerin ortalamasıyla karşılaştırılır; ortalamanın `eşik` standart sapma üstündeki değer
-// sıçramadır (OLMo-core: pencere 128, eşik 6). Sıçrama ve sonlu olmayan değer geçmişe girmez:
-// geçmiş sağlam eğitimin ölçüsü kalır. Değişmeyen dizide (σ ≈ 0) sapma, ortalamanın %1'inden
-// küçük alınmaz; OLMo-core bu durumda denetlemez, bekçi ise her ani artışı sıçrama sayar.
-// Geçmiş tamamen sıfırsa (σ ve ortalama 0) karar verilmez: değer geçmişe girer, bekçi
-// kilitlenmez. Ortalama ve sapma, penceredeki en büyük mutlak değere bölünmüş değerlerle
-// hesaplanır: ölçekten bağımsızdır ve çok büyük sonlu değerlerde (1e155) taşmaz.
-// Pencere dolmadan yalnızca sonlu olmayan değer yakalanır (eğitimin başı hızlı düşer).
+# TR 4
+# tr/egitim — uzun eğitimin güvencesi: koşu düzeni (Koşu) ve kayıp ile gradyan normu sıçrama
+# bekçisi (SıçramaBekçisi).
+#
+# Kullanım:   aktar "tr/egitim"
+#             değişken bekçi = SıçramaBekçisi(pencere: 128, eşik: 6.0)
+#             değişken karar = bekçi.gözle(kayıp.değer, norm.değer)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
+#
+# Bekçi yalnızca karar verir; ne yapılacağını (adımı atlamak, son kontrol noktasına dönüp toplu
+# işleri atlamak, durmak) eğitim döngüsü seçer (dil tanımı 15.36, 20.14, 20.15). Örnek:
+#
+#     eğer karar == SONLU_DEĞİL { op.sıfırla(); devam }          // adımı atla (GradScaler gibi)
+#     eğer karar == SIÇRAMA { adım = kn.geri_dön(); ö.atla(200); devam }   // PaLM §5.1
+#
+# Yöntem: OLMo-core'un StabilityMonitor'ı gibi kayıp ve normun her biri son `pencere` sağlam
+# değerin ortalamasıyla karşılaştırılır; ortalamanın `eşik` standart sapma üstündeki değer
+# sıçramadır (OLMo-core: pencere 128, eşik 6). Sıçrama ve sonlu olmayan değer geçmişe girmez:
+# geçmiş sağlam eğitimin ölçüsü kalır. Değişmeyen dizide (σ ≈ 0) sapma, ortalamanın %1'inden
+# küçük alınmaz; OLMo-core bu durumda denetlemez, bekçi ise her ani artışı sıçrama sayar.
+# Geçmiş tamamen sıfırsa (σ ve ortalama 0) karar verilmez: değer geçmişe girer, bekçi
+# kilitlenmez. Ortalama ve sapma, penceredeki en büyük mutlak değere bölünmüş değerlerle
+# hesaplanır: ölçekten bağımsızdır ve çok büyük sonlu değerlerde (1e155) taşmaz.
+# Pencere dolmadan yalnızca sonlu olmayan değer yakalanır (eğitimin başı hızlı düşer).
 
-TR_kw_const TR_const_OK = "tamam"
-TR_kw_const TR_const_NONFINITE = "sonlu_değil"
-TR_kw_const TR_const_SPIKE = "sıçrama"
+TR_const TR_OK = "tamam"
+TR_const TR_NONFINITE = "sonlu_değil"
+TR_const TR_SPIKE = "sıçrama"
 
-// Değişmeyen dizide sapmanın ortalamaya göre en küçük oranı.
-TR_kw_const TR_const_MIN_RELATIVE_STD = 0.01
+# Değişmeyen dizide sapmanın ortalamaya göre en küçük oranı.
+TR_const TR_MIN_RELATIVE_STD = 0.01
 
-TR_kw_struct TR_type_SpikeGuard {
-    TR_mem_history_limit
-    TR_mem_threshold
-    TR_mem_losses
-    TR_mem_norms
-    TR_mem_spike_count = 0
-    TR_kw_func TR_ctx_init(TR_arg_history_limit = 128, TR_arg_threshold = 6.0) {
-        TR_kw_if TR_fn_type(TR_arg_history_limit) != TR_type_Int TR_kw_or TR_arg_history_limit < 2 { TR_kw_throw TR_fn_message(H6930, TR_arg_history_limit) }
-        TR_kw_if TR_kw_not TR_fn_is_finite(TR_arg_threshold) TR_kw_or TR_kw_not (TR_arg_threshold > 0) { TR_kw_throw TR_fn_message(H6931, TR_arg_threshold) }
-        TR_kw_self.TR_mem_history_limit = TR_arg_history_limit
-        TR_kw_self.TR_mem_threshold = TR_arg_threshold
-        TR_kw_self.TR_mem_losses = []
-        TR_kw_self.TR_mem_norms = []
+TR_struct TR_SpikeGuard {
+    TR_history_limit
+    TR_threshold
+    TR_losses
+    TR_norms
+    TR_spike_count = 0
+    TR_func TR_init(TR_history_limit = 128, TR_threshold = 6.0) {
+        TR_if TR_type(TR_history_limit) != TR_Int TR_or TR_history_limit < 2 { TR_throw TR_message("H6930", TR_history_limit) }
+        TR_if TR_not TR_is_finite(TR_threshold) TR_or TR_not (TR_threshold > 0) { TR_throw TR_message("H6931", TR_threshold) }
+        TR_self.TR_history_limit = TR_history_limit
+        TR_self.TR_threshold = TR_threshold
+        TR_self.TR_losses = []
+        TR_self.TR_norms = []
     }
-    // gözle bir adımın kaybını ve gradyan normunu (sayı) değerlendirir; TAMAM, SONLU_DEĞİL ya da
-    // SIÇRAMA verir. Yalnızca TAMAM olan değerler geçmişe girer.
-    TR_kw_func TR_mem_observe(TR_arg_loss, TR_arg_norm) {
-        TR_kw_if TR_kw_not TR_fn_is_finite(TR_arg_loss) TR_kw_or TR_kw_not TR_fn_is_finite(TR_arg_norm) { TR_kw_return TR_const_NONFINITE }
-        TR_kw_if TR_kw_self.TR_mem_losses.TR_mem_length >= TR_kw_self.TR_mem_history_limit {
-            TR_kw_if TR_kw_self.TR_mem_exceeds(TR_kw_self.TR_mem_losses, TR_arg_loss) TR_kw_or TR_kw_self.TR_mem_exceeds(TR_kw_self.TR_mem_norms, TR_arg_norm) {
-                TR_kw_self.TR_mem_spike_count += 1
-                TR_kw_return TR_const_SPIKE
+    # gözle bir adımın kaybını ve gradyan normunu (sayı) değerlendirir; TAMAM, SONLU_DEĞİL ya da
+    # SIÇRAMA verir. Yalnızca TAMAM olan değerler geçmişe girer.
+    TR_func TR_observe(TR_loss, TR_norm) {
+        TR_if TR_not TR_is_finite(TR_loss) TR_or TR_not TR_is_finite(TR_norm) { TR_return TR_NONFINITE }
+        TR_if TR_self.TR_losses.TR_length >= TR_self.TR_history_limit {
+            TR_if TR_self.TR_exceeds(TR_self.TR_losses, TR_loss) TR_or TR_self.TR_exceeds(TR_self.TR_norms, TR_norm) {
+                TR_self.TR_spike_count += 1
+                TR_return TR_SPIKE
             }
         }
-        TR_kw_self.TR_mem_losses = TR_kw_self.TR_mem_append(TR_kw_self.TR_mem_losses, TR_arg_loss)
-        TR_kw_self.TR_mem_norms = TR_kw_self.TR_mem_append(TR_kw_self.TR_mem_norms, TR_arg_norm)
-        TR_kw_return TR_const_OK
+        TR_self.TR_losses = TR_self.TR_append(TR_self.TR_losses, TR_loss)
+        TR_self.TR_norms = TR_self.TR_append(TR_self.TR_norms, TR_norm)
+        TR_return TR_OK
     }
-    // geçmiş_uzunluğu geçmişteki sağlam adım sayısıdır (en çok pencere).
-    TR_kw_func TR_mem_history_length() { TR_kw_return TR_kw_self.TR_mem_losses.TR_mem_length }
-    TR_kw_func TR_mem_exceeds(TR_arg_history, TR_arg_value) {
-        TR_kw_var m = TR_fn_abs(TR_arg_value)
-        TR_kw_for x TR_kw_in TR_arg_history { m = TR_fn_max(m, TR_fn_abs(x)) }
-        TR_kw_if m == 0 { TR_kw_return TR_kw_false }
-        TR_kw_var g = [x / m TR_kw_for x TR_kw_in TR_arg_history]
-        TR_kw_var o = TR_fn_mean(g)
-        TR_kw_var s = TR_fn_max(TR_fn_std(g), TR_const_MIN_RELATIVE_STD * TR_fn_abs(o))
-        TR_kw_if s == 0 { TR_kw_return TR_kw_false } // geçmiş tamamen sıfır: karar yok
-        TR_kw_return TR_arg_value / m > o + TR_kw_self.TR_mem_threshold * s
+    # geçmiş_uzunluğu geçmişteki sağlam adım sayısıdır (en çok pencere).
+    TR_func TR_history_length() { TR_return TR_self.TR_losses.TR_length }
+    TR_func TR_exceeds(TR_history, TR_value) {
+        TR_var m = TR_abs(TR_value)
+        TR_for x TR_in TR_history { m = TR_max(m, TR_abs(x)) }
+        TR_if m == 0 { TR_return TR_false }
+        TR_var g = [x / m TR_for x TR_in TR_history]
+        TR_var o = TR_mean(g)
+        TR_var s = TR_max(TR_std(g), TR_MIN_RELATIVE_STD * TR_abs(o))
+        TR_if s == 0 { TR_return TR_false } # geçmiş tamamen sıfır: karar yok
+        TR_return TR_value / m > o + TR_self.TR_threshold * s
     }
-    TR_kw_func TR_mem_append(TR_arg_history, TR_arg_value) {
-        TR_arg_history.TR_mem_append(TR_arg_value)
-        TR_kw_if TR_arg_history.TR_mem_length > TR_kw_self.TR_mem_history_limit { TR_kw_return TR_arg_history[1..TR_arg_history.TR_mem_length] }
-        TR_kw_return TR_arg_history
+    TR_func TR_append(TR_history, TR_value) {
+        TR_history.TR_append(TR_value)
+        TR_if TR_history.TR_length > TR_self.TR_history_limit { TR_return TR_history[1..TR_history.TR_length] }
+        TR_return TR_history
     }
 }
 
-// --- Koşu ---
-//
-// Koşu bir eğitimin kayıt işlerini üstlenir; döngü kullanıcıda kalır (Hugging Face Accelerate'in
-// yolu: save_state/load_state, kullanıcının kendi döngüsü). Lightning ve Keras döngüyü kendileri
-// sürer ve geri çağırma düzeni ister; TR'de özel adımlar (bekçinin geri dönüşü, birikim,
-// kaynaştırma) döngüde açık kalsın diye yalnızca kayıt işleri toplanır.
-//
-//     değişken koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, ö: ö}, adım_sayısı: ayar.adım, prova: ayar.prova)
-//     döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
-//         ... adım ...
-//         koşu.adım_bitti(adım + 1, eğer günlük_adımı { {kayıp: kayıp} } değilse { yok })
-//         eğer değerlendirme_adımı { koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk}) }
-//     }
-//     koşu.bitir(model)
-//
-// Klasörde config.json ("config", "num_params", "device"), metrics.jsonl (günlük; çubuğun ve
-// değerlendirmelerin kayıtları), checkpoints/ (nesneler ve "logger" adıyla günlük) ve sonda
-// model.trt durur. Diske giden anahtarlar dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3).
-// Aynı komut kaldığı adımdan sürer (dil tanımı 20). bitir ağırlıkları her şeyden önce yazar: sonrası
-// bir hatayla bitse de eğitimin sonucu kaybolmaz.
-//
-// prova: doğru, aynı komutun uzun koşudan önceki denemesidir (Lightning fast_dev_run'ın karşılığı):
-// koşu geçici bir klasörde PROVA_ADIMI adım sürer, kontrol noktası her adımda yazılır, bitir koşunun
-// dosyalarının hepsinin yazıldığını denetler. Böylece uzun koşunun sonunda düşecek bir satır
-// (ör. yalnızca son adımda çalışan bir değerlendirme ya da kayıt) önceden görülür.
+# --- Koşu ---
+#
+# Koşu bir eğitimin kayıt işlerini üstlenir; döngü kullanıcıda kalır (Hugging Face Accelerate'in
+# yolu: save_state/load_state, kullanıcının kendi döngüsü). Lightning ve Keras döngüyü kendileri
+# sürer ve geri çağırma düzeni ister; TR'de özel adımlar (bekçinin geri dönüşü, birikim,
+# kaynaştırma) döngüde açık kalsın diye yalnızca kayıt işleri toplanır.
+#
+#     değişken koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, ö: ö}, adım_sayısı: ayar.adım, prova: ayar.prova)
+#     döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
+#         ... adım ...
+#         koşu.adım_bitti(adım + 1, eğer günlük_adımı { {kayıp: kayıp} } değilse { yok })
+#         eğer değerlendirme_adımı { koşu.değerlendirildi(adım + 1, {doğrulama_kaybı: dk}) }
+#     }
+#     koşu.bitir(model)
+#
+# Klasörde config.json ("config", "num_params", "device"), metrics.jsonl (günlük; çubuğun ve
+# değerlendirmelerin kayıtları), checkpoints/ (nesneler ve "logger" adıyla günlük) ve sonda
+# model.trt durur. Diske giden anahtarlar dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3).
+# Aynı komut kaldığı adımdan sürer (dil tanımı 20). bitir ağırlıkları her şeyden önce yazar: sonrası
+# bir hatayla bitse de eğitimin sonucu kaybolmaz.
+#
+# prova: doğru, aynı komutun uzun koşudan önceki denemesidir (Lightning fast_dev_run'ın karşılığı):
+# koşu geçici bir klasörde PROVA_ADIMI adım sürer, kontrol noktası her adımda yazılır, bitir koşunun
+# dosyalarının hepsinin yazıldığını denetler. Böylece uzun koşunun sonunda düşecek bir satır
+# (ör. yalnızca son adımda çalışan bir değerlendirme ya da kayıt) önceden görülür.
 
-TR_kw_const TR_const_DRY_RUN_STEPS = 2
+TR_const TR_DRY_RUN_STEPS = 2
 
-TR_kw_struct TR_type_Run {
-    TR_mem_folder
-    TR_mem_dry_run
-    TR_mem_logger
-    TR_mem_bar
-    TR_mem_checkpoint
-    TR_mem_resume_step
-    TR_mem_last_step
-    TR_kw_func TR_ctx_init(TR_arg_folder, TR_arg_config, TR_arg_objects, TR_arg_num_steps, TR_arg_every_minutes = 15.0, TR_arg_dry_run = TR_kw_false) {
-        TR_kw_if TR_fn_type(TR_arg_num_steps) != TR_type_Int TR_kw_or TR_arg_num_steps < 1 { TR_kw_throw TR_fn_message(H6932, TR_arg_num_steps) }
-        TR_kw_self.TR_mem_dry_run = TR_arg_dry_run
-        TR_kw_self.TR_mem_last_step = TR_kw_if TR_arg_dry_run { TR_fn_min(TR_arg_num_steps, TR_const_DRY_RUN_STEPS) } TR_kw_else { TR_arg_num_steps }
-        TR_kw_self.TR_mem_folder = TR_kw_if TR_arg_dry_run { TR_fn_path(TR_fn_temp_dir(), "prova") } TR_kw_else { TR_fn_path(TR_arg_folder) }
-        TR_fn_make_dir(TR_kw_self.TR_mem_folder)
-        TR_kw_var sayı = 0
-        TR_kw_if TR_arg_objects.TR_mem_contains("model") {
-            TR_kw_for w TR_kw_in TR_fn_parameters(TR_arg_objects["model"]) { sayı += w.TR_mem_shape.TR_mem_reduce(1) { TR_ctx_acc * TR_ctx_it } }
+TR_struct TR_Run {
+    TR_folder
+    TR_dry_run
+    TR_logger
+    TR_bar
+    TR_checkpoint
+    TR_resume_step
+    TR_last_step
+    TR_func TR_init(TR_folder, TR_config, TR_objects, TR_num_steps, TR_every_minutes = 15.0, TR_dry_run = TR_false) {
+        TR_if TR_type(TR_num_steps) != TR_Int TR_or TR_num_steps < 1 { TR_throw TR_message("H6932", TR_num_steps) }
+        TR_self.TR_dry_run = TR_dry_run
+        TR_self.TR_last_step = TR_if TR_dry_run { TR_min(TR_num_steps, TR_DRY_RUN_STEPS) } TR_else { TR_num_steps }
+        TR_self.TR_folder = TR_if TR_dry_run { TR_path(TR_temp_dir(), "prova") } TR_else { TR_path(TR_folder) }
+        TR_make_dir(TR_self.TR_folder)
+        TR_var sayı = 0
+        TR_if TR_objects.TR_contains("model") {
+            TR_for w TR_in TR_parameters(TR_objects["model"]) { sayı += w.TR_shape.TR_reduce(1) { TR_acc * TR_it } }
         }
-        TR_fn_write_file(TR_fn_path(TR_kw_self.TR_mem_folder, "config.json"), TR_fn_json_string({"config": TR_arg_config, "num_params": sayı, "device": TR_fn_default_device()}))
-        TR_kw_self.TR_mem_logger = TR_fn_logger(TR_fn_path(TR_kw_self.TR_mem_folder, "metrics.jsonl"))
-        TR_kw_var kayıtlılar = {}
-        TR_kw_for ad, d TR_kw_in TR_arg_objects { kayıtlılar[ad] = d }
-        kayıtlılar["logger"] = TR_kw_self.TR_mem_logger
-        TR_kw_self.TR_mem_checkpoint = TR_fn_checkpoint(TR_kw_self.TR_mem_folder, kayıtlılar, TR_arg_every_minutes: TR_kw_if TR_arg_dry_run { 0 } TR_kw_else { TR_arg_every_minutes })
-        TR_kw_self.TR_mem_resume_step = TR_kw_self.TR_mem_checkpoint.TR_mem_resume_step
-        TR_kw_self.TR_mem_bar = TR_fn_progress(TR_kw_self.TR_mem_last_step, TR_arg_log: TR_kw_self.TR_mem_logger)
-        TR_kw_if TR_kw_self.TR_mem_resume_step > 0 { TR_kw_self.TR_mem_bar.TR_mem_update(TR_arg_step: TR_kw_self.TR_mem_resume_step) }
+        TR_write_file(TR_path(TR_self.TR_folder, "config.json"), TR_json_string({"config": TR_config, "num_params": sayı, "device": TR_default_device()}))
+        TR_self.TR_logger = TR_logger(TR_path(TR_self.TR_folder, "metrics.jsonl"))
+        TR_var kayıtlılar = {}
+        TR_for ad, d TR_in TR_objects { kayıtlılar[ad] = d }
+        kayıtlılar["logger"] = TR_self.TR_logger
+        TR_self.TR_checkpoint = TR_checkpoint(TR_self.TR_folder, kayıtlılar, TR_every_minutes: TR_if TR_dry_run { 0 } TR_else { TR_every_minutes })
+        TR_self.TR_resume_step = TR_self.TR_checkpoint.TR_resume_step
+        TR_self.TR_bar = TR_progress(TR_self.TR_last_step, TR_log: TR_self.TR_logger)
+        TR_if TR_self.TR_resume_step > 0 { TR_self.TR_bar.TR_update(TR_step: TR_self.TR_resume_step) }
     }
-    // adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
-    // her adımda değil) çubuk ve günlük güncellenir; son adımda ölçü verilmese de çubuk kapanır.
-    // Kontrol noktası zamanı geldiyse kaydedilir; kayıt yapıldıysa doğru verir.
-    TR_kw_func TR_mem_step_done(TR_arg_step, TR_arg_metrics = TR_kw_none) {
-        TR_kw_if TR_arg_metrics != TR_kw_none {
-            TR_kw_self.TR_mem_bar.TR_mem_update(TR_arg_metrics, TR_arg_step: TR_arg_step)
-        } TR_kw_else TR_kw_if TR_arg_step == TR_kw_self.TR_mem_last_step {
-            TR_kw_self.TR_mem_bar.TR_mem_update(TR_arg_step: TR_arg_step)
+    # adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
+    # her adımda değil) çubuk ve günlük güncellenir; son adımda ölçü verilmese de çubuk kapanır.
+    # Kontrol noktası zamanı geldiyse kaydedilir; kayıt yapıldıysa doğru verir.
+    TR_func TR_step_done(TR_step, TR_metrics = TR_none) {
+        TR_if TR_metrics != TR_none {
+            TR_self.TR_bar.TR_update(TR_metrics, TR_step: TR_step)
+        } TR_else TR_if TR_step == TR_self.TR_last_step {
+            TR_self.TR_bar.TR_update(TR_step: TR_step)
         }
-        TR_kw_return TR_kw_self.TR_mem_checkpoint.TR_mem_update(TR_arg_step)
+        TR_return TR_self.TR_checkpoint.TR_update(TR_step)
     }
-    // değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
-    TR_kw_func TR_mem_evaluated(TR_arg_step, TR_arg_metrics) {
-        TR_kw_var kayıt = {TR_mem_step: TR_arg_step}
-        TR_kw_for ad, d TR_kw_in TR_arg_metrics { kayıt[ad] = d }
-        TR_kw_self.TR_mem_logger.TR_mem_append(kayıt)
+    # değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
+    TR_func TR_evaluated(TR_step, TR_metrics) {
+        TR_var kayıt = {TR_step: TR_step}
+        TR_for ad, d TR_in TR_metrics { kayıt[ad] = d }
+        TR_self.TR_logger.TR_append(kayıt)
     }
-    // geri_dön son kontrol noktasına döner ve onun adımını verir (sıçrama bekçisinin kararıyla).
-    TR_kw_func TR_mem_rollback() { TR_kw_return TR_kw_self.TR_mem_checkpoint.TR_mem_rollback() }
-    // bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
-    // dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
-    TR_kw_func TR_mem_finish(TR_arg_model) {
-        TR_fn_save_tensors(TR_fn_path(TR_kw_self.TR_mem_folder, "model.trt"), TR_fn_parameters(TR_arg_model, TR_arg_named: TR_kw_true))
-        TR_kw_self.TR_mem_checkpoint.TR_mem_save()
-        TR_kw_if TR_kw_self.TR_mem_dry_run {
-            TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt", "checkpoints"] {
-                TR_kw_if TR_kw_not TR_fn_path(TR_kw_self.TR_mem_folder, ad).TR_mem_exists { TR_kw_throw TR_fn_message(H6933, ad, TR_kw_self.TR_mem_folder.TR_mem_absolute) }
+    # geri_dön son kontrol noktasına döner ve onun adımını verir (sıçrama bekçisinin kararıyla).
+    TR_func TR_rollback() { TR_return TR_self.TR_checkpoint.TR_rollback() }
+    # bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
+    # dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
+    TR_func TR_finish(TR_model) {
+        TR_save_tensors(TR_path(TR_self.TR_folder, "model.trt"), TR_parameters(TR_model, TR_named: TR_true))
+        TR_self.TR_checkpoint.TR_save()
+        TR_if TR_self.TR_dry_run {
+            TR_for ad TR_in ["config.json", "metrics.jsonl", "model.trt", "checkpoints"] {
+                TR_if TR_not TR_path(TR_self.TR_folder, ad).TR_exists { TR_throw TR_message("H6933", ad, TR_self.TR_folder.TR_absolute) }
             }
-            TR_fn_print("Prova geçti: {TR_kw_self.TR_mem_last_step} adım, bütün dosyalar yazıldı")
+            TR_print("Prova geçti: \(TR_self.TR_last_step) adım, bütün dosyalar yazıldı")
         }
     }
 }

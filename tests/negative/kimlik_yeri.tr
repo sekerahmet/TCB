@@ -1,0 +1,7 @@
+# TR 4
+# TEST 2.3a kimliğin sınıfını yeri belirler: üye noktadan sonra, adlı argüman iki noktadan önce; yanlış yerdeki ya da yanlış yazılan kimliğin iletisi doğru yazımı söyler
+TR_var l = [1, 2]
+TR_var a = l.TR_print # ERROR H0029
+TR_var b = TR_map(l) # ERROR H0027
+TR_print(TR_lenght(l)) # ERROR H0026
+TR_def f() { } # ERROR H0026

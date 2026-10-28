@@ -12,8 +12,8 @@ import (
 func TestImportsInsideTestBlocksAreModuleImports(t *testing.T) {
 	dir := t.TempDir()
 	files := map[string]string{
-		"tests/yardim.tr": "fonksiyon iki() {\n    sonuç 2\n}\n",
-		"tests/baska.tr":  "fonksiyon iki() {\n    sonuç 22\n}\n",
+		"tests/yardim.tr": "TR_func iki() {\n    TR_return 2\n}\n",
+		"tests/baska.tr":  "TR_func iki() {\n    TR_return 22\n}\n",
 		"tests/a_test.tr": `test "birinci" {
     aktar "yardim" olarak m
     yazdır(m.iki())
@@ -69,11 +69,11 @@ test "üçüncü" {
 func TestAVisibleNameIsTheFirstInImportOrderDepthFirst(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"ana.tr": "aktar \"b\"\naktar \"c\"\naktar \"e\" olarak e\nyazdır(x, y, z)\n",
-		"b.tr":   "aktar \"d\"\nsabit y = 2\n",
-		"c.tr":   "sabit x = 3\n",
-		"d.tr":   "sabit x = 4\nsabit y = 4\n",
-		"e.tr":   "sabit z = 5\n",
+		"ana.tr": "TR_import \"b\"\nTR_import \"c\"\nTR_import \"e\" TR_as e\nTR_print(x, y, z)\n",
+		"b.tr":   "TR_import \"d\"\nTR_const y = 2\n",
+		"c.tr":   "TR_const x = 3\n",
+		"d.tr":   "TR_const x = 4\nTR_const y = 4\n",
+		"e.tr":   "TR_const z = 5\n",
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
 			t.Fatal(err)

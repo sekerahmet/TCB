@@ -1,4 +1,20 @@
 {
+ "H0005": {
+  "commit": "0f969d3",
+  "reason": "deleted: lexer: '#' is the comment (2.2); line-start '//' and '/*' are H0015"
+ },
+ "H0006": {
+  "commit": "0f969d3",
+  "reason": "deleted: lexer: there is no block comment (2.2)"
+ },
+ "H0013": {
+  "commit": "0f969d3",
+  "reason": "deleted: lexer: a name mixing scripts is a checker warning, H1019 (2.1a)"
+ },
+ "H0014": {
+  "commit": "0f969d3",
+  "reason": "deleted: lexer: the header hint of a reserved name; identities are read in every view (2.3a)"
+ },
  "H0144": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
@@ -6,6 +22,10 @@
  "H0157": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H1011": {
+  "commit": "0f969d3",
+  "reason": "deleted: checker: an unused value without a call is the error H1017 (2.8)"
  },
  "H2116": {
   "commit": "be79d7e",
@@ -50,6 +70,10 @@
  "H2494": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H2523": {
+  "commit": "0f969d3",
+  "reason": "deleted: source: the header '# TR 4' carries no language (2.1)"
  },
  "H3105": {
   "commit": "0d6949c",

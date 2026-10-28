@@ -1,2 +1,3 @@
-﻿// BOM ile başlayan dosya da okunur (2.1)
-değişken bom_okundu = doğru
+﻿# TR 4
+# BOM ile başlayan dosya da okunur (2.1)
+TR_var bom_okundu = TR_true

@@ -1,0 +1,8 @@
+# TR 4
+# TEST 2.1 aktarmalar başlıktan sonra, öbür tanım ve deyimlerden önce gelir
+TR_import "../yardimci_modul"
+TR_var a = 1
+TR_import "../yardimci_ozel" # ERROR H0024
+TR_func f() {
+    TR_import "../sira_ortak" # ERROR H0024
+}

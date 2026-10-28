@@ -8,18 +8,18 @@ import "testing"
 // olmalıdır. Sözlük sırasının dil kuralı ayrıca tests/tipler_test.tr'de (3.7) sınanır.
 func TestOutputOrderIsDeterministic(t *testing.T) {
 	const program = `
-yapı Nokta { zz = 1; a = 2; m = 3; b = 4; k = 5; c = 6 }
-değişken p = Nokta()
-değişken d = {z: 1, a: 2, m: 3, b: 4, k: 5, c: 6}
+TR_struct Nokta { zz = 1; a = 2; m = 3; b = 4; k = 5; c = 6 }
+TR_var p = Nokta()
+TR_var d = {z: 1, a: 2, m: 3, b: 4, k: 5, c: 6}
 d["en_son"] = 7
-yazdır(p)
-yazdır(metin(p))
-yazdır(d)
-yazdır(d.anahtarlar())
-yazdır(d.değerler())
-döngü k içinde d { yazdır(k) }
-değişken q = Nokta(c: 60, a: 20)
-yazdır(q)
+TR_print(p)
+TR_print(TR_str(p))
+TR_print(d)
+TR_print(d.TR_keys())
+TR_print(d.TR_values())
+TR_for k TR_in d { TR_print(k) }
+TR_var q = Nokta(c: 60, a: 20)
+TR_print(q)
 `
 	const want = "Nokta{zz: 1, a: 2, m: 3, b: 4, k: 5, c: 6}\n" +
 		"Nokta{zz: 1, a: 2, m: 3, b: 4, k: 5, c: 6}\n" +

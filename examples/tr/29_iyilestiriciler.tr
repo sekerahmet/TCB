@@ -1,39 +1,39 @@
-//! tr kodlu 3 dil=tr
-// 29 — İyileştiriciler: ağırlıkları güncellemenin yolları.
-// Ne öğretir: AdamW ve SGD, beta1/beta2 ve momentum ayarları, gradyan_kırp ile patlayan gradyanı sınırlamak,
-// iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek.
-// Önceki örnekten: eğitim döngüsü (28), otomatik türev (26).
-// Çalıştırma (proje kökünden): tr examples/tr/29_iyilestiriciler.tr
+# TR 4
+# 29 — İyileştiriciler: ağırlıkları güncellemenin yolları.
+# Ne öğretir: AdamW ve SGD, beta1/beta2 ve momentum ayarları, gradyan_kırp ile patlayan gradyanı sınırlamak,
+# iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek.
+# Önceki örnekten: eğitim döngüsü (28), otomatik türev (26).
+# Çalıştırma (proje kökünden): tr examples/tr/29_iyilestiriciler.tr
 
-// SGD (olasılıksal gradyan inişi) en yalın iyileştiricidir: w = w - öğrenme_oranı · gradyan.
-// momentum önceki adımların yönünü sürdürür.
-TR_kw_var w = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var sgd = TR_fn_SGD([w], TR_arg_lr: 0.1, TR_arg_momentum: 0.9)
-TR_fn_backward(TR_fn_sum(w * w)) // d(w²)/dw = 2w = 2
-sgd.TR_mem_step()
-TR_fn_print("SGD bir adım sonra w =", TR_fn_round(w.TR_mem_tolist[0], 4))
+# SGD (olasılıksal gradyan inişi) en yalın iyileştiricidir: w = w - öğrenme_oranı · gradyan.
+# momentum önceki adımların yönünü sürdürür.
+TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var sgd = TR_SGD([w], TR_lr: 0.1, TR_momentum: 0.9)
+TR_backward(TR_sum(w * w)) # d(w²)/dw = 2w = 2
+sgd.TR_step()
+TR_print("SGD bir adım sonra w =", TR_round(w.TR_tolist[0], 4))
 
-// AdamW her ağırlık için ayrı bir adım büyüklüğü uyarlar. beta1 gradyan ortalamasının,
-// beta2 gradyan karelerinin üstel azalma katsayısıdır ([0, 1) aralığında).
-TR_kw_var v = TR_fn_tensor([1.0], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var adamw = TR_fn_AdamW([v], TR_arg_lr: 0.1, TR_arg_beta1: 0.8, TR_arg_beta2: 0.99)
-TR_fn_backward(TR_fn_sum(v * v))
-adamw.TR_mem_step()
-TR_fn_print("AdamW bir adım sonra v =", TR_fn_round(v.TR_mem_tolist[0], 4))
-TR_fn_print(TR_fn_type(sgd) == TR_type_Optimizer, TR_fn_type(adamw) == TR_type_Optimizer)
+# AdamW her ağırlık için ayrı bir adım büyüklüğü uyarlar. beta1 gradyan ortalamasının,
+# beta2 gradyan karelerinin üstel azalma katsayısıdır ([0, 1) aralığında).
+TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var adamw = TR_AdamW([v], TR_lr: 0.1, TR_beta1: 0.8, TR_beta2: 0.99)
+TR_backward(TR_sum(v * v))
+adamw.TR_step()
+TR_print("AdamW bir adım sonra v =", TR_round(v.TR_tolist[0], 4))
+TR_print(TR_type(sgd) == TR_Optimizer, TR_type(adamw) == TR_Optimizer)
 
-// gradyan_kırp, toplam gradyan normu en_fazla'yı aşıyorsa gradyanları aynı oranda küçültür;
-// kırpmadan önceki normu verir. Büyük gradyanlı adımlarda eğitimi kararlı tutar.
-TR_kw_var u = TR_fn_tensor([3.0, 4.0], TR_arg_requires_grad: TR_kw_true)
-TR_fn_backward(TR_fn_sum(u * u)) // gradyan [6, 8], norm 10
-TR_fn_print("norm:", TR_fn_clip_grad([u], TR_arg_max: 1.0))
-TR_fn_print("kırpılmış gradyan:", u.TR_mem_grad.TR_mem_tolist)
+# gradyan_kırp, toplam gradyan normu en_fazla'yı aşıyorsa gradyanları aynı oranda küçültür;
+# kırpmadan önceki normu verir. Büyük gradyanlı adımlarda eğitimi kararlı tutar.
+TR_var u = TR_tensor([3.0, 4.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(u * u)) # gradyan [6, 8], norm 10
+TR_print("norm:", TR_clip_grad([u], TR_max: 1.0))
+TR_print("kırpılmış gradyan:", u.TR_grad.TR_tolist)
 
-// durum iyileştiricinin iç durumunu (momentler) bir sözlük olarak verir; durumu_yükle aynı ayarla
-// kurulmuş başka bir iyileştiriciye geri yükler (kontrol noktaları böyle çalışır).
-TR_kw_var yeni = TR_fn_AdamW([v], TR_arg_lr: 0.1, TR_arg_beta1: 0.8, TR_arg_beta2: 0.99)
-TR_fn_print("durum yüklendi:", yeni.TR_mem_load_state(adamw.TR_mem_state))
+# durum iyileştiricinin iç durumunu (momentler) bir sözlük olarak verir; durumu_yükle aynı ayarla
+# kurulmuş başka bir iyileştiriciye geri yükler (kontrol noktaları böyle çalışır).
+TR_var yeni = TR_AdamW([v], TR_lr: 0.1, TR_beta1: 0.8, TR_beta2: 0.99)
+TR_print("durum yüklendi:", yeni.TR_load_state(adamw.TR_state))
 
-// --- Kendin dene ---
-// 1. SGD'nin momentum değerini 0 yap: aynı adımda w farklı çıkar mı?
-// 2. gradyan_kırp'ta en_fazla'yı 100 yap: gradyan değişir mi?
+# --- Kendin dene ---
+# 1. SGD'nin momentum değerini 0 yap: aynı adımda w farklı çıkar mı?
+# 2. gradyan_kırp'ta en_fazla'yı 100 yap: gradyan değişir mi?

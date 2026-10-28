@@ -1,2 +1,9 @@
-// Bilerek hatalı: 2.3a — TR_ ile başlayan adlar dilin ve kitaplığının kimlikleri için ayrılmıştır.
-değişken TR_x = 1
+# TR 4
+# TEST 2.3a TR_ ile başlayan adlar dilin ve kitaplığın kimlikleri içindir: kullanıcı böyle bir ad tanımlayamaz; döngü değişkeni, yakalama adı, ok fonksiyonunun parametresi ve çoklu tanımın sonraki adı da tanımdır, ad geçerli bir kimlik olsa da
+TR_var TR_x = 1 # ERROR H0004
+TR_var a, TR_b = 1, 2 # ERROR H0004
+TR_for TR_min TR_in [5] { } # ERROR H0004
+TR_for i, TR_max TR_in [5] { } # ERROR H0004
+TR_try { TR_throw "x" } TR_catch TR_abs { } # ERROR H0004
+TR_var f = (TR_min) => 1 # ERROR H0004
+TR_var g = TR_abs => 1 # ERROR H0004

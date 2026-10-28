@@ -6,15 +6,15 @@ import "testing"
 // olarak girer (dil tanımı 15.44; JAX jit de kapanıştaki sayıları iz anında sabitler).
 // Sonradan değişen sayı kaynaşmış sonucu değiştirmez; argüman olarak verilen değiştirir.
 func TestFuseCapturedNumberIsBakedIn(t *testing.T) {
-	out := mustRun(t, `değişken ölçek = 2.0
-fonksiyon f(x) { sonuç x * ölçek }
-fonksiyon g(x, s) { sonuç x * s }
-değişken kf = kaynaştır(f)
-değişken kg = kaynaştır(g)
-değişken t = tensör([1.0])
-yazdır(kf(t).değer, kg(t, ölçek).değer)
+	out := mustRun(t, `TR_var ölçek = 2.0
+TR_func f(x) { TR_return x * ölçek }
+TR_func g(x, s) { TR_return x * s }
+TR_var kf = TR_fuse(f)
+TR_var kg = TR_fuse(g)
+TR_var t = TR_tensor([1.0])
+TR_print(kf(t).TR_tolist, kg(t, ölçek).TR_tolist)
 ölçek = 3.0
-yazdır(kf(t).değer, kg(t, ölçek).değer)`)
+TR_print(kf(t).TR_tolist, kg(t, ölçek).TR_tolist)`)
 	want := "[2.0] [2.0]\n[2.0] [3.0]\n"
 	if out != want {
 		t.Fatalf("dış sayı kayıtta sabitlenmedi ya da argüman değişmedi:\n%q\nbeklenen:\n%q", out, want)
@@ -25,8 +25,8 @@ yazdır(kf(t).değer, kg(t, ölçek).değer)`)
 // kaynaştırılan fonksiyonda '<', '>' hata vermez.
 func TestFuseComparisons(t *testing.T) {
 	for _, code := range []string{
-		`yazdır(kaynaştır((a) => a > 0.0)(tensör([1.0, -1.0])).değer)`,
-		`yazdır(kaynaştır((a, b) => a < b)(tensör([1.0, -1.0]), tensör([0.0, 0.0])).değer)`,
+		`TR_print(TR_fuse((a) => a > 0.0)(TR_tensor([1.0, -1.0])).TR_tolist)`,
+		`TR_print(TR_fuse((a, b) => a < b)(TR_tensor([1.0, -1.0]), TR_tensor([0.0, 0.0])).TR_tolist)`,
 	} {
 		if _, err := run(t, code); err != nil {
 			t.Errorf("%s\nkaynaştırılan karşılaştırma hata verdi: %v", code, err)
@@ -37,7 +37,7 @@ func TestFuseComparisons(t *testing.T) {
 // Kural: argümansız çağrılan kaynaştırılmış fonksiyon kullanıcı hatası verir (argüman sayısı).
 // Neden: boş args'a erişmek iç hataya (H9001) dönüşür.
 func TestFuseCallWithoutArgumentsIsUserError(t *testing.T) {
-	_, err := run(t, `değişken kf = kaynaştır(() => tensör([1.0]))
+	_, err := run(t, `TR_var kf = TR_fuse(() => TR_tensor([1.0]))
 kf()`)
 	if err == nil {
 		t.Fatal("argümansız kaynaştır çağrısı hata vermeli")
@@ -53,8 +53,8 @@ kf()`)
 // Kural: kaynaştırılan fonksiyon en az bir tensör döndürür (15.44); boş liste hatadır (H6436),
 // türevli ve türevsiz kipte aynı. Neden: türevli kipte çekirdek iç hata (H3028) verirdi.
 func TestFuseRejectsFunctionReturningEmptyList(t *testing.T) {
-	if out, err := run(t, `değişken kf = kaynaştır((x) => [])
-yazdır(kf(tensör([1.0])))`); err == nil {
+	if out, err := run(t, `TR_var kf = TR_fuse((x) => [])
+TR_print(kf(TR_tensor([1.0])))`); err == nil {
 		t.Fatalf("boş liste döndüren kaynaştır fonksiyonu hata vermeliydi, çıktı: %q", out)
 	}
 }
@@ -62,11 +62,11 @@ yazdır(kf(tensör([1.0])))`); err == nil {
 // Kural: kaynaştır önbellek anahtarı etkin hesap türünü (hesap_türü()) içerir (15.44). Neden:
 // iz hesap türünü sabitler; anahtarda yoksa blok içindeki çağrı blok dışındaki programı çalıştırır.
 func TestFuseCacheKeyIncludesComputeDType(t *testing.T) {
-	out := mustRun(t, `değişken kf = kaynaştır((x) => x.türe(hesap_türü()))
-değişken t = tensör([1.0])
-yazdır(kf(t).tür)
-karışık_hassasiyet("bf16") {
-    yazdır(kf(t).tür)
+	out := mustRun(t, `TR_var kf = TR_fuse((x) => x.TR_to_dtype(TR_compute_dtype()))
+TR_var t = TR_tensor([1.0])
+TR_print(kf(t).TR_dtype)
+TR_mixed_precision("bf16") {
+    TR_print(kf(t).TR_dtype)
 }`)
 	want := "float32\nbf16\n"
 	if out != want {

@@ -1,6 +1,5 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı modül (5.12, 10.4): eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır,
-// dışarıda tanımsızdır; denetim bunu çalışmadan önce bulur. Satır numaraları testte geçer.
-TR_kw_async (TR_kw_func görev_işi() { TR_kw_return 1 })()
-TR_fn_wait_all()
-TR_fn_print(görev_işi())
+# TR 4
+# TEST 10.4 eşzamanlı çağrıdaki adlı fonksiyon görevin kapsamındadır, dışarıda tanımsızdır (5.12); denetim bunu çalışmadan önce bulur
+TR_async (TR_func görev_işi() { TR_return 1 })()
+TR_wait_all()
+TR_print(görev_işi()) # ERROR H1106

@@ -17,12 +17,12 @@ func allOf(l *Lexer) []Token {
 	return t
 }
 
-// Kural (17.2, 17.5): kodlu gövdede kodlar okunduğu dilin adlarıyla, kod olmayan adlar kullanıcı adı
-// olarak okunur. Program kimlik listesinde okunur (NewBody): sözcüğün yazımı kimliğidir; bir yazım
-// dilinde okunan gövdede (NewBodyIn) o dilin adıdır. Kod her dilde aynıdır; konumlar diskteki
-// metne göredir (kişinin görünümünün konumlarını NewBodyView verir).
+// Kural (2.1, 2.3a): kodlu gövdede dilin sözcükleri kimlikle, kod olmayan adlar kullanıcı adı olarak
+// okunur. Program kimlik listesinde okunur (NewBody): sözcüğün yazımı kimliğidir; bir yazım dilinde
+// okunan gövdede (NewBodyIn) o dilin adıdır. Kod her dilde aynıdır; konumlar dosyanın metnine göredir
+// (kişinin görünümünün konumlarını NewBodyView verir).
 func TestCodedTokens(t *testing.T) {
-	const src = "TR_kw_var eğer = TR_fn_print\nx.TR_mem_append TR_kw_true"
+	const src = "TR_var eğer = TR_print\nx.TR_append TR_true"
 	en, err := codes.LoadLanguage("en")
 	if err != nil {
 		t.Fatal(err)
@@ -32,7 +32,7 @@ func TestCodedTokens(t *testing.T) {
 		lexer *Lexer
 		words [4]string // var, print, append, true
 	}{
-		{"kimlik", NewBody(src, true), [4]string{"TR_kw_var", "TR_fn_print", "TR_mem_append", "TR_kw_true"}},
+		{"kimlik", NewBody(src, true), [4]string{"TR_var", "TR_print", "TR_append", "TR_true"}},
 		{"tr", NewBodyIn(src, true, codes.Source()), [4]string{"değişken", "yazdır", "ekle", "doğru"}},
 		{"en", NewBodyIn(src, true, en), [4]string{"var", "print", "append", "true"}},
 	} {
@@ -57,46 +57,41 @@ func TestCodedTokens(t *testing.T) {
 				t.Errorf("%s: sözcük %d: %v (kod %v), beklenen %s %q %v", c.name, i, toks[i], toks[i].Code, b.kind, b.lit, b.kd)
 			}
 		}
-		if toks[2].Column != 16 || toks[3].Column != 18 {
-			t.Errorf("%s: disk sütunları: '=' %d, yazdır %d (beklenen 16, 18)", c.name, toks[2].Column, toks[3].Column)
+		if toks[2].Column != 13 || toks[3].Column != 15 {
+			t.Errorf("%s: dosyanın sütunları: '=' %d, TR_print %d (beklenen 13, 15)", c.name, toks[2].Column, toks[3].Column)
 		}
 	}
-	// Bilinmeyen kimlik hatadır; Türkçe yazılmış gövdede kimlik ayrılmış addır (2.3a).
-	if l := NewBody("TR_fn_yok", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
+	// Bilinmeyen kimlik hatadır (2.3a); kimlik bir dildeki gösterimde de kimliktir (bir dilde yazılmış
+	// metne yapıştırılan kod çalışır).
+	if l := NewBody("TR_yok", true); len(allOf(l)) != 1 || !hasCode(l.Errs(), messages.H0001) {
 		t.Errorf("bilinmeyen kimlik hatası yok: %v", l.Errors())
 	}
-	if l := NewBodyIn("TR_fn_print", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) {
-		t.Errorf("Türkçe gövdede ayrılmış ad hatası yok: %v", l.Errors())
+	if l := NewBodyIn("TR_print", false, codes.Source()); len(l.Errs()) != 0 || allOf(l)[0].Code != codes.FnPrint {
+		t.Errorf("Türkçe gösterimde de TR_print yazdırdır: %v", l.Errors())
 	}
-	// Kodlu dosyanın başlığı yalnız ad bilinen bir kimlikse (başlıksız yapıştırılmış kodlu metin)
-	// anılır; başlığın dili okunan metnin dilidir.
-	if l := NewBodyIn("değişken TR_x = 1", false, codes.Source()); allOf(l) == nil || !hasCode(l.Errs(), messages.H0004) || hasCode(l.Errs(), messages.H0014) {
-		t.Errorf("kimlik olmayan ayrılmış ad başlığı anmamalı: %v", l.Errors())
-	}
-	for _, c := range []struct{ lang, text string }{{"tr", "değişken TR_fn_sum = 1"}, {"en", "var TR_fn_sum = 1"}} {
-		lang, err := codes.LoadLanguage(c.lang)
-		if err != nil {
-			t.Fatal(err)
-		}
-		l := NewBodyIn(c.text, false, lang)
-		allOf(l)
-		if !hasCode(l.Errs(), messages.H0014) || !strings.Contains(l.Errors()[0], "dil="+c.lang+"'") {
-			t.Errorf("%s: kimlik olan ayrılmış ad '%s%s' başlığını anmalı: %v", c.lang, CodedHeader, c.lang, l.Errors())
+	// TR_ ile başlayan ad tanımlanamaz: ileti başka bir ad önerir.
+	for _, l := range []*Lexer{NewBody("TR_var TR_x = 1", true), NewBodyIn("değişken TR_x = 1", false, codes.Source())} {
+		if allOf(l) == nil || len(l.Errs()) != 1 || !hasCode(l.Errs(), messages.H0004) || !strings.Contains(l.Errors()[0], "tr_x") {
+			t.Errorf("TR_ ile başlayan tanım H0004 vermeli, tr_x önermeli: %v", l.Errors())
 		}
 	}
 }
 
-// '$ad' kaçışı (2.11): ad anahtar kelime olsa da kullanıcı adıdır; ada bitişik '$' hatadır.
+// '$ad' kaçışı bir dildeki gösterimdedir (17): ad o dilin sözcüğü olsa da kullanıcı adıdır; ada
+// bitişik '$' hatadır. Dosyada (kodlu gövde) '$' yoktur (2.3): ileti adı '$'sız önerir.
 func TestEscapedName(t *testing.T) {
 	l := New("$eğer + $yazdır")
 	toks := allOf(l)
 	if len(l.Errors()) > 0 || len(toks) != 3 || toks[0].Type != TokIdent || toks[0].Literal != "eğer" || toks[2].Literal != "yazdır" {
 		t.Fatalf("kaçışlı adlar: %v %v", toks, l.Errors())
 	}
-	for _, k := range []string{"a$b", "1$x", "$TR_fn_print"} {
-		if l := New(k); allOf(l) == nil || len(l.Errors()) == 0 {
-			t.Errorf("%q hata vermeli", k)
+	for k, want := range map[string]messages.Code{"a$b": messages.H0002, "1$x": messages.H0002, "$TR_print": messages.H0004} {
+		if l := New(k); allOf(l) == nil || !hasCode(l.Errs(), want) {
+			t.Errorf("%q %s vermeli: %v", k, want, l.Errors())
 		}
+	}
+	if l := NewBody("TR_var a = 1\nTR_print($a)", true); allOf(l) == nil || len(l.Errs()) != 1 || !hasCode(l.Errs(), messages.H0031) {
+		t.Errorf("dosyadaki '$a' H0031 vermeli: %v", l.Errors())
 	}
 }
 
@@ -112,7 +107,7 @@ func TestNulCharacter(t *testing.T) {
 // Yerleştirmedeki sözcükler dosyadaki konumlarıyla okunur: önündeki kaçış dizileri ve satır
 // sonları konumu kaydırmaz; kayıt açıksa kaynak aralıkları dosya metnindedir.
 func TestInterpolationPositions(t *testing.T) {
-	source := "x = \"a\\n\\t{yaz}\"\n"
+	source := "x = \"a\\n\\t\\(yaz)\"\n"
 	l := New(source)
 	l.StartRecording()
 	toks := allOf(l)
@@ -125,8 +120,8 @@ func TestInterpolationPositions(t *testing.T) {
 	expr, begin := InterpolationExpr(value, y[0][0]+1, y[0][1])
 	sub := l.Interpolation(text, expr, begin)
 	tok := sub.NextToken()
-	if tok.Literal != "yaz" || tok.Line != 1 || tok.Column != 12 {
-		t.Errorf("yerleştirmedeki ad: %v (beklenen 1:12)", tok)
+	if tok.Literal != "yaz" || tok.Line != 1 || tok.Column != 13 {
+		t.Errorf("yerleştirmedeki ad: %v (beklenen 1:13)", tok)
 	}
 	records := l.Records()
 	end := records[len(records)-1]

@@ -100,7 +100,7 @@ func TestSnippetDataIsLanguageNeutral(t *testing.T) {
 		t.Errorf("data.json'da Türkçe harf var: %q", turkish)
 	}
 	for _, tpl := range templates {
-		if !strings.HasPrefix(tpl.Source, "//! tr kodlu ") {
+		if b, err := source.Split(tpl.Source); err != nil || !b.Coded {
 			t.Errorf("%s: gövde kodlu biçimde değil", tpl.ID)
 		}
 	}

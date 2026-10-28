@@ -1,0 +1,5 @@
+# TR 4
+# TEST 2.6 metin çift tırnakla yazılır; \u{...} geçerli bir Unicode karakteridir; \{ ve \} kaçış değildir
+TR_var a = 'tek' # ERROR H0016
+TR_var b = "\u{110000}" # ERROR H0017
+TR_var c = "\{x\}" # ERROR H0008 H0008

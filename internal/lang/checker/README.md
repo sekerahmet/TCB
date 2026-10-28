@@ -3,8 +3,8 @@
 Programı çalıştırmadan önce okuyup hataları bulan denetçi. Bulduğu şeyler: tip uyuşmazlıkları
 (tanım, atama, dönüş değeri, çağrı argümanı), sabite atama, tanımsız adlar, yerleşik adların
 gölgelenmesi, ad yazılışı, tip değerinin metinle karşılaştırılması (`TR_fn_type(x) == "Tam"`) ve Mantık
-değerinin metninin başka bir yazım dilinin adıyla karşılaştırılması (İngilizce dosyada `str(b) ==
-"doğru"`, uyarı; dosyanın dili `SetFileLanguage` ile gelir).
+değerinin dilden bağımsız metninin (`true`, `false`) bir yazım dilinin adıyla ya da başka bir dilden
+tanıdık adla karşılaştırılması (`TR_str(b) == "doğru"`, `TR_str(b) == "True"`; uyarı).
 
 `TR_cmd_check` komutunda, her program çalışmadan önce ve her modül yüklenmeden önce çalışır.
 Kodlu biçime çevirici de bir sözcüğün dilin mi kullanıcının mı olduğunu buradan öğrenir.

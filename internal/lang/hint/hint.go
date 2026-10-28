@@ -34,7 +34,7 @@ func KeywordSpellingHint(name string, lang *codes.Language) *messages.Error {
 	if !ok {
 		return nil
 	}
-	return messages.New(messages.H1103, name, codes.NameRef(k))
+	return messages.New(messages.H1103, name, suggestedFor(name, k, lang))
 }
 
 // BuiltinSpellingHint returns the hint to append to an error message when ad is the ASCII
@@ -47,7 +47,23 @@ func BuiltinSpellingHint(name string, lang *codes.Language) *messages.Error {
 	if !ok {
 		return nil
 	}
-	return NotInTRHint(name, codes.NameRef(k))
+	return NotInTRHint(name, suggestedFor(name, k, lang))
+}
+
+// suggested is how a hint names the language's word k (codes.WordRef): in a file its spelling,
+// TR_print, which can be copied into the file as it is.
+func suggested(k codes.Code, lang *codes.Language) any { return codes.WordRef(k, lang) }
+
+// suggestedFor is how a hint for name names the word k: in a file the identity suggestion of the
+// name itself when there is one (codes.SuggestIdentity, the single suggestion path for program text:
+// elif → TR_else TR_if), otherwise suggested.
+func suggestedFor(name string, k codes.Code, lang *codes.Language) any {
+	if lang == nil {
+		if s, ok := codes.SuggestIdentity(name); ok {
+			return s
+		}
+	}
+	return suggested(k, lang)
 }
 
 // suggest is lang's suggestion for a spelling (codes.Language.Suggest); when lang is nil the
@@ -64,6 +80,10 @@ func suggest(lang *codes.Language, ns codes.Namespace, spelling string, accept f
 // closest to the spelling ("Bunu mu demek istediniz?"); nil when there is none. lang is the
 // language the name was written in (the file's; nil: not known): see ClosestSuggestion.
 func NameSuggestion(name string, visible []string, lang *codes.Language) *messages.Error {
+	// Dilin sözcüğü TR_'siz ya da başka bir dilin adıyla yazılmış olabilir (2.3a): print → TR_print.
+	if s, ok := codes.SuggestIdentity(name); ok {
+		return messages.New(messages.H1021, s)
+	}
 	if i := KeywordSpellingHint(name, lang); i != nil {
 		return i
 	}
@@ -75,25 +95,25 @@ func NameSuggestion(name string, visible []string, lang *codes.Language) *messag
 
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
 // candidate closest to name; nil when none is close enough. A name of the language (an identity,
-// TR_fn_print) is matched by its spelling in lang, the language name was written in, and
-// suggested as its code, written in the message's language (prnt → print in an English file); when
-// lang is nil its name in every writing language is matched. A user's name is matched and
-// suggested as written.
+// TR_print) is matched by its spelling in lang, the language name was written in, and
+// suggested as its code, written in the message's language (prnt → print on an English typed line);
+// when lang is nil (a file) its name in every writing language is matched and the suggestion is its
+// spelling (prnt → TR_print). A user's name is matched and suggested as written.
 func ClosestSuggestion(name string, candidates []string, lang *codes.Language) *messages.Error {
 	var spellings []string
-	var suggested []any
+	var names []any
 	for _, c := range candidates {
 		k, err := codes.Parse(c)
 		if err != nil || !codes.IsReservedName(c) {
-			spellings, suggested = append(spellings, c), append(suggested, c)
+			spellings, names = append(spellings, c), append(names, c)
 			continue
 		}
 		for _, s := range spellingsIn(lang, k) {
-			spellings, suggested = append(spellings, s), append(suggested, codes.NameRef(k))
+			spellings, names = append(spellings, s), append(names, suggested(k, lang))
 		}
 	}
 	if o := turkish.Closest(name, spellings); o != "" {
-		return messages.New(messages.H1104, suggested[slices.Index(spellings, o)])
+		return messages.New(messages.H1104, names[slices.Index(spellings, o)])
 	}
 	return nil
 }
@@ -112,15 +132,16 @@ func spellingsIn(lang *codes.Language, k codes.Code) []string {
 // TypeTextComparisonError is the error reporting that a type value (tip(x)) is compared with a
 // string (3.11, H1105): type names are written without quotes. If text is a type name in lang,
 // the language the string was written in (or its old or ASCII spelling; nil: any writing
-// language), that type's name is shown, otherwise example (the value's own type, a message part).
+// language), that type's name is shown (suggested: in a file its spelling), otherwise example (the
+// value's own type, a message part).
 // The checker and the interpreter use the same text.
 func TypeTextComparisonError(op, text string, example any, lang *codes.Language) *messages.Error {
 	if k, ok := findType(lang, text); ok {
-		example = codes.NameRef(k)
+		example = suggested(k, lang)
 	} else if k, ok := suggest(lang, codes.NamespaceType, text, nil); ok {
-		example = codes.NameRef(k)
+		example = suggested(k, lang)
 	}
-	g := codes.NameRef(codes.FnType)
+	g := suggested(codes.FnType, lang)
 	return messages.New(messages.H1105, g, op, text, example)
 }
 

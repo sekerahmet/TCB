@@ -1,3 +1,0 @@
-// Bilerek hatalı: 2.11 — '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz.
-değişken a = 1
-değişken b = a$a

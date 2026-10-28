@@ -15,9 +15,9 @@ func TestListArgumentsFollowTheInputDevice(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
-	_, err := run(t, `varsayılan_cihaz("cpu")
-değişken x = birler([1, 2]).cihaza("gpu")
-değişken y = katman_normu(x, [1.0, 1.0], [0.0, 0.0])`)
+	_, err := run(t, `TR_default_device("cpu")
+TR_var x = TR_ones([1, 2]).TR_to_device("gpu")
+TR_var y = TR_layer_norm(x, [1.0, 1.0], [0.0, 0.0])`)
 	if err != nil {
 		t.Errorf("katman_normu liste argümanlarını x'in cihazında çevirmeliydi: %v", err)
 	}
@@ -29,9 +29,9 @@ func TestDeviceMismatchMessageNamesTheTR(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
-	_, err := run(t, `değişken x = birler([1, 2]).cihaza("cpu")
-değişken g = birler([2]).cihaza("gpu")
-katman_normu(x, g, yok)`)
+	_, err := run(t, `TR_var x = TR_ones([1, 2]).TR_to_device("cpu")
+TR_var g = TR_ones([2]).TR_to_device("gpu")
+TR_layer_norm(x, g, TR_none)`)
 	if err == nil || !strings.Contains(err.Error(), ".cihaza(") || strings.Contains(err.Error(), "To ile") {
 		t.Errorf("katman_normu farklı cihaz hatası .cihaza(...) önermeli, Go adını göstermemeli: %v", err)
 	}

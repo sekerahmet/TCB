@@ -43,7 +43,7 @@ var bareNameAllowances = map[string]map[string]string{
 	// Yazım dilini seçen değişken (TR_env_LANG) dil listeleri kurulmadan okunur; messages kodları
 	// bilmez. codes.TestLanguageEnvVarsAreK400 listeyi TR_env_LANG'ün her dildeki adıyla eşler.
 	"internal/lang/messages/code.go": {
-		"TR_DIL": "yazım dili değişkeni TR_env_LANG, dil listelerinden önce okunur",
+		"TR_DIL": "yazım dili değişkeni TR_LANG, dil listelerinden önce okunur",
 	},
 	// Veri biçimlerindeki sonlu olmayan sayının sabit metni (kontrol noktası, günlük; 19.5, 20):
 	// dilden bağımsız sözleşme, TR_val_nan'in adı olarak değil, biçimin baytı olarak yazılır.
@@ -227,7 +227,7 @@ func shorten(s string) string {
 func TestBareNameScanner(t *testing.T) {
 	names := liveNames()
 	for text, want := range map[string]string{
-		"girdi() ya da girdi(istem)":       "girdi girdi",
+		"TR_input() ya da TR_input(istem)": "girdi girdi",
 		"%q bir sabittir ('sabit')":        "sabit",
 		"eşit_mi başarısız":                "eşit_mi",
 		"Liste indeksi Tam sayı olmalıdır": "Liste Tam",

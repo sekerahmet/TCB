@@ -1,154 +1,154 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/08_hata_yonetimi.md §8 — Hata yönetimi, §9 — ertele
+# TR 4
+# docs/spec/08_hata_yonetimi.md §8 — Hata yönetimi, §9 — ertele
 
-TR_ctx_test "8.1 dene / yakala; hata değişkeninin varsayılan adı hata" {
-    TR_kw_var yakalanan = ""
-    TR_kw_try { TR_kw_throw "patladı" } TR_kw_catch { yakalanan = TR_ctx_error }
-    TR_fn_assert_equal("patladı", yakalanan)
-    TR_kw_try { TR_kw_throw "a" } TR_kw_catch h { yakalanan = h }
-    TR_fn_assert_equal("a", yakalanan)
-    TR_kw_try { TR_kw_throw "b" } TR_kw_catch (e) { yakalanan = e }
-    TR_fn_assert_equal("b", yakalanan)
+TR_test "8.1 dene / yakala; hata değişkeninin varsayılan adı hata" {
+    TR_var yakalanan = ""
+    TR_try { TR_throw "patladı" } TR_catch { yakalanan = TR_error }
+    TR_assert_equal("patladı", yakalanan)
+    TR_try { TR_throw "a" } TR_catch h { yakalanan = h }
+    TR_assert_equal("a", yakalanan)
+    TR_try { TR_throw "b" } TR_catch (e) { yakalanan = e }
+    TR_assert_equal("b", yakalanan)
 }
 
-TR_ctx_test "8.1 hata yoksa yakala bloğu çalışmaz" {
-    TR_kw_var çalıştı = TR_kw_false
-    TR_kw_try { TR_kw_var x = 1 } TR_kw_catch { çalıştı = TR_kw_true }
-    TR_fn_assert(TR_kw_not çalıştı)
+TR_test "8.1 hata yoksa yakala bloğu çalışmaz" {
+    TR_var çalıştı = TR_false
+    TR_try { TR_var x = 1 } TR_catch { çalıştı = TR_true }
+    TR_assert(TR_not çalıştı)
 }
 
-TR_ctx_test "8.2 fırlat her değeri hata metnine çevirir" {
-    TR_kw_var yakalanan = TR_kw_none
-    TR_kw_try { TR_kw_throw {"kod": 5} } TR_kw_catch h { yakalanan = h }
-    TR_fn_assert_equal(TR_type_String, TR_fn_type(yakalanan))
-    TR_fn_assert_equal(`{"kod": 5}`, yakalanan)
+TR_test "8.2 fırlat her değeri hata metnine çevirir" {
+    TR_var yakalanan = TR_none
+    TR_try { TR_throw {"kod": 5} } TR_catch h { yakalanan = h }
+    TR_assert_equal(TR_String, TR_type(yakalanan))
+    TR_assert_equal(`{"kod": 5}`, yakalanan)
 }
 
-TR_ctx_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
-    TR_fn_assert_equal(H2469, TR_fn_error_code(() => { TR_kw_var z = [1] + 1 }))
-    // Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
-    TR_kw_var mesaj = ""
-    TR_kw_try { TR_kw_var z = [1] + 1 } TR_kw_catch h { mesaj = h }
-    TR_kw_var önek = mesaj.TR_mem_split(":")[0]
-    TR_fn_assert("0123456789".TR_mem_contains(önek[önek.TR_mem_length - 1]), mesaj)
+TR_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
+    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = [1] + 1 }))
+    # Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
+    TR_var mesaj = ""
+    TR_try { TR_var z = [1] + 1 } TR_catch h { mesaj = h }
+    TR_var önek = mesaj.TR_split(":")[0]
+    TR_assert("0123456789".TR_contains(önek[önek.TR_length - 1]), mesaj)
 }
 
-TR_ctx_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
-    TR_kw_func iç() { TR_kw_throw "derinde" }
-    TR_kw_func dış() { iç() }
-    TR_kw_var mesaj = ""
-    TR_kw_try { dış() } TR_kw_catch h { mesaj = h }
-    TR_fn_assert_equal("derinde", mesaj)
+TR_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
+    TR_func iç() { TR_throw "derinde" }
+    TR_func dış() { iç() }
+    TR_var mesaj = ""
+    TR_try { dış() } TR_catch h { mesaj = h }
+    TR_assert_equal("derinde", mesaj)
 }
 
-TR_ctx_test "9.1 ertele fonksiyon bitince ters sırayla çalışır" {
-    TR_kw_var iz = []
-    TR_kw_func f() {
-        TR_kw_defer iz.TR_mem_append("1. ertele")
-        TR_kw_defer { iz.TR_mem_append("2. ertele") }
-        iz.TR_mem_append("gövde")
+TR_test "9.1 ertele fonksiyon bitince ters sırayla çalışır" {
+    TR_var iz = []
+    TR_func f() {
+        TR_defer iz.TR_append("1. ertele")
+        TR_defer { iz.TR_append("2. ertele") }
+        iz.TR_append("gövde")
     }
     f()
-    TR_fn_assert_equal(["gövde", "2. ertele", "1. ertele"], iz)
+    TR_assert_equal(["gövde", "2. ertele", "1. ertele"], iz)
 }
 
-TR_ctx_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
-    TR_kw_var iz = []
-    TR_kw_func erken() {
-        TR_kw_defer iz.TR_mem_append("temizlik")
-        TR_kw_return 1
+TR_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
+    TR_var iz = []
+    TR_func erken() {
+        TR_defer iz.TR_append("temizlik")
+        TR_return 1
     }
     erken()
-    TR_kw_func hatalı() {
-        TR_kw_defer iz.TR_mem_append("hata sonrası temizlik")
-        TR_kw_throw "x"
+    TR_func hatalı() {
+        TR_defer iz.TR_append("hata sonrası temizlik")
+        TR_throw "x"
     }
-    TR_kw_try { hatalı() } TR_kw_catch { iz.TR_mem_append("yakalandı") }
-    TR_fn_assert_equal(["temizlik", "hata sonrası temizlik", "yakalandı"], iz)
+    TR_try { hatalı() } TR_catch { iz.TR_append("yakalandı") }
+    TR_assert_equal(["temizlik", "hata sonrası temizlik", "yakalandı"], iz)
 }
 
-TR_ctx_test "9.3 blok içindeki ertele, bloğu değil fonksiyonu bekler" {
-    TR_kw_var iz = []
-    TR_kw_func f() {
-        TR_kw_if TR_kw_true { TR_kw_defer iz.TR_mem_append("ertele") }
-        iz.TR_mem_append("blok sonrası")
+TR_test "9.3 blok içindeki ertele, bloğu değil fonksiyonu bekler" {
+    TR_var iz = []
+    TR_func f() {
+        TR_if TR_true { TR_defer iz.TR_append("ertele") }
+        iz.TR_append("blok sonrası")
     }
     f()
-    TR_fn_assert_equal(["blok sonrası", "ertele"], iz)
+    TR_assert_equal(["blok sonrası", "ertele"], iz)
 }
 
-TR_ctx_test "9.4 ertele içindeki hata yutulmaz" {
-    TR_kw_var iz = []
-    TR_kw_func başarılı() {
-        TR_kw_defer { TR_kw_throw "ertele içinde hata" }
-        iz.TR_mem_append("gövde")
-        TR_kw_return 1
+TR_test "9.4 ertele içindeki hata yutulmaz" {
+    TR_var iz = []
+    TR_func başarılı() {
+        TR_defer { TR_throw "ertele içinde hata" }
+        iz.TR_append("gövde")
+        TR_return 1
     }
-    TR_kw_var m = ""
-    TR_kw_try { başarılı() } TR_kw_catch h { m = h }
-    TR_fn_assert_equal("ertele içinde hata", m)
-    TR_fn_assert_equal(["gövde"], iz)
-    // Fonksiyon zaten hata verdiyse ilk hata korunur, ertelenen işin hatası ona eklenir
-    TR_kw_func iki_hata() {
-        TR_kw_defer { TR_kw_throw "ilk ertele" }
-        TR_kw_defer TR_fn_print(1 / 0)
-        TR_kw_throw "gövde hatası"
+    TR_var m = ""
+    TR_try { başarılı() } TR_catch h { m = h }
+    TR_assert_equal("ertele içinde hata", m)
+    TR_assert_equal(["gövde"], iz)
+    # Fonksiyon zaten hata verdiyse ilk hata korunur, ertelenen işin hatası ona eklenir
+    TR_func iki_hata() {
+        TR_defer { TR_throw "ilk ertele" }
+        TR_defer TR_print(1 / 0)
+        TR_throw "gövde hatası"
     }
-    TR_kw_try { iki_hata() } TR_kw_catch h { m = h }
-    // Parçalar sırayla: gövdenin hatası, sıfıra bölme, ilk ertelenen işin hatası.
-    TR_kw_var parçalar = m.TR_mem_split("; ")
-    TR_fn_assert_equal(3, parçalar.TR_mem_length, m)
-    TR_fn_assert_equal("gövde hatası", parçalar[0])
-    TR_fn_assert(parçalar[2].TR_mem_ends_with("ilk ertele"), m)
-    // Ertelenen işler hata verse de hepsi çalışır
-    TR_kw_func temizlik() {
-        TR_kw_defer iz.TR_mem_append("ikinci temizlik")
-        TR_kw_defer { TR_kw_throw "bozuk" }
+    TR_try { iki_hata() } TR_catch h { m = h }
+    # Parçalar sırayla: gövdenin hatası, sıfıra bölme, ilk ertelenen işin hatası.
+    TR_var parçalar = m.TR_split("; ")
+    TR_assert_equal(3, parçalar.TR_length, m)
+    TR_assert_equal("gövde hatası", parçalar[0])
+    TR_assert(parçalar[2].TR_ends_with("ilk ertele"), m)
+    # Ertelenen işler hata verse de hepsi çalışır
+    TR_func temizlik() {
+        TR_defer iz.TR_append("ikinci temizlik")
+        TR_defer { TR_throw "bozuk" }
     }
-    TR_kw_try { temizlik() } TR_kw_catch h { m = h }
-    TR_fn_assert_equal(["gövde", "ikinci temizlik"], iz)
+    TR_try { temizlik() } TR_catch h { m = h }
+    TR_assert_equal(["gövde", "ikinci temizlik"], iz)
 }
 
-TR_ctx_test "9.5 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
-    TR_kw_var görülen = []
-    TR_kw_func kaydet(x) { görülen.TR_mem_append(x) }
-    TR_kw_func f() {
-        TR_kw_var x = 1
-        TR_kw_defer kaydet(x)
+TR_test "9.5 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
+    TR_var görülen = []
+    TR_func kaydet(x) { görülen.TR_append(x) }
+    TR_func f() {
+        TR_var x = 1
+        TR_defer kaydet(x)
         x = 2
     }
     f()
-    TR_fn_assert_equal([2], görülen)
+    TR_assert_equal([2], görülen)
 }
 
-TR_ctx_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca terminale yazılırken görünür olur" {
-    TR_kw_var m = ""
-    TR_kw_try { TR_kw_throw "kötü\rveri" } TR_kw_catch h { m = h }
-    TR_fn_assert(m.TR_mem_contains("\r"), "yakalanan metin kaçırılmamalı")
-    TR_fn_assert_equal("kötü\rveri", m)
+TR_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca terminale yazılırken görünür olur" {
+    TR_var m = ""
+    TR_try { TR_throw "kötü\rveri" } TR_catch h { m = h }
+    TR_assert(m.TR_contains("\r"), "yakalanan metin kaçırılmamalı")
+    TR_assert_equal("kötü\rveri", m)
 }
 
-TR_ctx_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi olduğu gibi fırlatır; hata_kodu kodu verir" {
-    TR_fn_assert_equal("H6903", TR_fn_error_code(() => { TR_kw_throw TR_fn_message(H6903, -1) }))
-    TR_fn_assert_equal("H6900", TR_fn_error_code(() => { TR_fn_assert(TR_kw_false, TR_fn_message(H6900, 10, 4)) }))
-    TR_fn_assert_equal("H2441", TR_fn_error_code(() => { TR_kw_throw "düz metin" }))
-    TR_fn_assert_equal(TR_kw_none, TR_fn_error_code(() => { 1 + 1 }))
-    TR_kw_var yakalanan = ""
-    TR_kw_try { TR_kw_throw TR_fn_message(H6903, -1) } TR_kw_catch h { yakalanan = h }
-    TR_fn_assert(yakalanan.TR_mem_contains("-1"), yakalanan)
-    TR_kw_try { TR_fn_message("H6903") } TR_kw_catch h { yakalanan = h }
-    TR_fn_assert(yakalanan.TR_mem_contains("H6903"), yakalanan)
+TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi olduğu gibi fırlatır; hata_kodu kodu verir" {
+    TR_assert_equal("H6903", TR_error_code(() => { TR_throw TR_message("H6903", -1) }))
+    TR_assert_equal("H6900", TR_error_code(() => { TR_assert(TR_false, TR_message("H6900", 10, 4)) }))
+    TR_assert_equal("H2441", TR_error_code(() => { TR_throw "düz metin" }))
+    TR_assert_equal(TR_none, TR_error_code(() => { 1 + 1 }))
+    TR_var yakalanan = ""
+    TR_try { TR_throw TR_message("H6903", -1) } TR_catch h { yakalanan = h }
+    TR_assert(yakalanan.TR_contains("-1"), yakalanan)
+    TR_try { TR_message("H6903") } TR_catch h { yakalanan = h }
+    TR_assert(yakalanan.TR_contains("H6903"), yakalanan)
 }
 
-TR_ctx_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl nedenin, modülün denetim hatasında ilk tanının kodu" {
-    // İletinin parçaları ("tensörde ve sayıda", "Tam (5)") neden değildir: kod iletinin kendisinindir.
-    TR_fn_assert_equal(H2423, TR_fn_error_code(() => TR_fn_floor("a")))
-    TR_fn_assert_equal(H6104, TR_fn_error_code(() => TR_fn_floor([1.5])))
-    // Nedeni taşıyan yuva ({error}) inilir: dosya hatasının kendi kodu gelir.
-    TR_fn_assert_equal(H2132, TR_fn_error_code(() => TR_fn_load_tensors("bu_dosya_yok_12345.trt")))
-    // Tip değeriyle metnin karşılaştırılması (3.11) çalışma anında da kendi koduyla çıkar.
-    TR_kw_var ad = "Tam"
-    TR_fn_assert_equal(H1105, TR_fn_error_code(() => { TR_fn_print(TR_fn_type(5) == ad) }))
-    // Modül yüklenemezse (denetim hatası) hata yeniden fırlatılmaz; ilk tanının kodu gelir.
-    TR_fn_assert_equal(H1106, TR_fn_error_code(() => { TR_kw_import "negative/test_yerel_adi" }))
+TR_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl nedenin, modülün denetim hatasında ilk tanının kodu" {
+    # İletinin parçaları ("tensörde ve sayıda", "Tam (5)") neden değildir: kod iletinin kendisinindir.
+    TR_assert_equal("H2423", TR_error_code(() => TR_floor("a")))
+    TR_assert_equal("H6104", TR_error_code(() => TR_floor([1.5])))
+    # Nedeni taşıyan yuva ({error}) inilir: dosya hatasının kendi kodu gelir.
+    TR_assert_equal("H2132", TR_error_code(() => TR_load_tensors("bu_dosya_yok_12345.trt")))
+    # Tip değeriyle metnin karşılaştırılması (3.11) çalışma anında da kendi koduyla çıkar.
+    TR_var ad = "Tam"
+    TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_type(5) == ad) }))
+    # Modül yüklenemezse (denetim hatası) hata yeniden fırlatılmaz; ilk tanının kodu gelir.
+    # Olumsuz fikstür: tests/negative/test_yerel_adi.tr
 }

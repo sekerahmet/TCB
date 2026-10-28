@@ -1,0 +1,9 @@
+# TR 4
+# TEST 2.4 ön ek yalnız küçük harftir; '_' iki rakam arasında ya da ön ekten sonra yazılır; rakam tabanın rakamıdır
+TR_var a = 0X1F # ERROR H0018
+TR_var b = 1__0 # ERROR H0019
+TR_var c = 0b102 # ERROR H0020
+# TEST 2.5 ondalık sayıda noktanın iki yanında rakam vardır: .5 ve 1. yazılmaz, ileti 0.5 ve 1.0 yazımını önerir
+TR_var d = .5 # ERROR H0032
+TR_var e = 1. # ERROR H0032
+TR_var f = 0x_ # ERROR H0019

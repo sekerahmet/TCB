@@ -18,11 +18,11 @@ import (
 // yazdığı dosyanın yolunu verir.
 func TestWriteFileCreatesParentFolders(t *testing.T) {
 	dir := t.TempDir()
-	path := WriteFile(t, dir, "a/b/c.tr", "yazdır(1)\n")
+	path := WriteFile(t, dir, "a/b/c.tr", "TR_print(1)\n")
 	if want := filepath.Join(dir, "a", "b", "c.tr"); path != want {
 		t.Fatalf("yol %q, beklenen %q", path, want)
 	}
-	if data, err := os.ReadFile(path); err != nil || string(data) != "yazdır(1)\n" {
+	if data, err := os.ReadFile(path); err != nil || string(data) != "TR_print(1)\n" {
 		t.Fatalf("dosya içeriği %q, hata %v", data, err)
 	}
 }
@@ -149,7 +149,7 @@ func TestScalesLinearlyChecksTheWorkIsDone(t *testing.T) {
 		ok   bool
 	}{
 		{"tam", func(n int) (int, error) { return n, nil }, true},
-		{"sabit pay", func(n int) (int, error) { return n + 10, nil }, true},
+		{"TR_const pay", func(n int) (int, error) { return n + 10, nil }, true},
 		{"büyümeyen", func(n int) (int, error) { return 100, nil }, false},
 		{"yarıda kalan", func(n int) (int, error) { return min(n, 150), nil }, false},
 		{"hatalı", func(n int) (int, error) { return n, errors.New("bozuk") }, false},

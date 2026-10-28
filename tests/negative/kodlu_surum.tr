@@ -1,3 +1,3 @@
-//! tr kodlu 2 dil=tr
-// Bilerek hatalı (17.1, 17.6): eski kodlu biçim sürümü (2, kodlar A030 gibi yazılırdı) okunmaz; yalnızca sürüm 3 okunur.
-A030 x = 1
+# TR 3 # ERROR H2512
+# TEST 2.1 ilk satır tam olarak "# TR 4" başlığıdır; başka bir sürümün başlığı dosyayı çalıştırmaz ve nedenini söyler
+TR_var x = 1

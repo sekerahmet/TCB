@@ -1,0 +1,4 @@
+# TR 4
+# TEST 2.8 tekli biçimi olmayan işleç satır başında yazılamaz: sözdizimi hatasıdır
+TR_var t = 1
+    * 2 # ERROR H0167

@@ -100,18 +100,18 @@ func (s *interruptibleProcess) endedByInterrupt() bool {
 // çalışır, süreç isteğin sinyaliyle biter (1.5, 1.9).
 func TestInterruptGracefulExit(t *testing.T) {
 	s := startInterruptible(t, strings.Join([]string{
-		`ertele { dosya_yaz("ust_ertele.txt", "çalıştı") }`,
+		`TR_defer { TR_write_file("ust_ertele.txt", "çalıştı") }`,
 		`fonksiyon iş() {`,
-		`    ertele { dosya_yaz("ertele.txt", "çalıştı") }`,
+		`    TR_defer { TR_write_file("ertele.txt", "çalıştı") }`,
 		`    dene {`,
-		`        dosya_yaz("hazir.txt", "1")`,
-		`        döngü { }`,
+		`        TR_write_file("hazir.txt", "1")`,
+		`        TR_for { }`,
 		`    } yakala h {`,
-		`        dosya_yaz("yakalandi.txt", h)`,
+		`        TR_write_file("yakalandi.txt", h)`,
 		`    }`,
 		`}`,
 		`iş()`,
-		`dosya_yaz("devam_etti.txt", "1")`,
+		`TR_write_file("devam_etti.txt", "1")`,
 	}, "\n")+"\n")
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	sendInterrupt(t, s.cmd)
@@ -136,7 +136,7 @@ func TestInterruptGracefulExit(t *testing.T) {
 // Kesme isteği bekleme sırasında gelirse bekleme hemen biter. Tavan beklemenin yarısıdır: uyanmayan
 // bir bekleme onu aşar, yüklü makinede de (boşta ~1 sn sürer) payı geniştir.
 func TestInterruptWakesWait(t *testing.T) {
-	s := startInterruptible(t, "dosya_yaz(\"hazir.txt\", \"1\")\nbekle(600)\ndosya_yaz(\"devam_etti.txt\", \"1\")\n")
+	s := startInterruptible(t, "TR_write_file(\"hazir.txt\", \"1\")\nTR_sleep(600)\nTR_write_file(\"devam_etti.txt\", \"1\")\n")
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	start := time.Now()
 	sendInterrupt(t, s.cmd)
@@ -153,7 +153,7 @@ func TestInterruptWakesWait(t *testing.T) {
 
 // Ertelenen iş bitmezse ikinci kesme isteği süreci hemen SIGINT ile bitirir (kabuk 130 görür, 1.7).
 func TestSecondInterruptExitsImmediately(t *testing.T) {
-	s := startInterruptible(t, "ertele { döngü { } }\ndosya_yaz(\"hazir.txt\", \"1\")\ndöngü { }\n")
+	s := startInterruptible(t, "TR_defer { TR_for { } }\nTR_write_file(\"hazir.txt\", \"1\")\nTR_for { }\n")
 	s.waitCond("program hazır", func() bool { return s.fileExists("hazir.txt") })
 	sendInterrupt(t, s.cmd)
 	s.waitCond("ilk istek işlendi", func() bool { return strings.Contains(s.stderr.String(), "Durduruluyor") })

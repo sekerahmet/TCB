@@ -1,12 +1,13 @@
-aktar "tr/geo"
+# TR 4
+TR_import "tr/geo"
 
-test "kare alanı yazılır" {
-    değişken k = Kare(3)
+TR_test "kare alanı yazılır" {
+    TR_var k = Kare(3)
     yaz_alan(k)
 }
 
-test "çevre" {
-    değişken yazdır = fonksiyon(x) { sonuç x }
+TR_test "çevre" {
+    TR_var yazdır = TR_func(x) { TR_return x }
     yazdır(2)
     çevre_hesapla(Kare(2))
 }

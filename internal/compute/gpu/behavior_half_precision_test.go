@@ -239,11 +239,11 @@ func TestSharedGradStorage16Bit(t *testing.T) {
 	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
 		tensor.SetGradDType(dt)
 		v, wv := random(rng, 3*8, 1), random(rng, 8, 1)
-		compare(t, "atan2(x, x) "+dt.String(), 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		compare(t, "TR_atan2(x, x) "+dt.String(), 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := twin(v, false, 3, 8)[c].Cast(dt).SetRequiresGrad(true)
 			return tensor.Atan2(x, x).Cast(tensor.Float32), []*tensor.Tensor{x}
 		})
-		compare(t, "katman_normu(x, w, w) "+dt.String(), 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
+		compare(t, "TR_layer_norm(x, w, w) "+dt.String(), 2e-2, func(c int) (*tensor.Tensor, []*tensor.Tensor) {
 			x := twin(v, true, 3, 8)[c]
 			w := twin(wv, false, 8)[c].Cast(dt).SetRequiresGrad(true)
 			return tensor.LayerNorm(x.Cast(dt), w, w, 1e-5).Cast(tensor.Float32), []*tensor.Tensor{x, w}

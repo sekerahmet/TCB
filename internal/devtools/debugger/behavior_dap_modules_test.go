@@ -18,11 +18,11 @@ func frameSourcePath(f interface{}) string {
 func TestDAPModuleSourceLines(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "m.tr")
-	if err := os.WriteFile(module, []byte("fonksiyon f(x) {\n    değişken y = x\n    sonuç y\n}\n"), 0644); err != nil {
+	if err := os.WriteFile(module, []byte("TR_func f(x) {\n    TR_var y = x\n    TR_return y\n}\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "program.tr")
-	if err := os.WriteFile(path, []byte("aktar \"m.tr\" olarak m\ndeğişken a = 1\ndeğişken b = m.f(a)\nyazdır(b)\n"), 0644); err != nil {
+	if err := os.WriteFile(path, []byte("TR_import \"m.tr\" TR_as m\nTR_var a = 1\nTR_var b = m.f(a)\nTR_print(b)\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	c := startDAP(t)
@@ -49,9 +49,9 @@ func TestDAPModuleSourceLines(t *testing.T) {
 // Gizli değer bir protokol adıyla aynı olsa da (burada "output": çıktı olayının alanı ve
 // adı) ileti bozulmaz: zarf alanları, anahtarlar ve protokolün sabit değerleri maskelenmez.
 func TestDAPSecretDoesNotBreakProtocol(t *testing.T) {
-	path := writeProgram(t, `değişken ayar = komut_satırı({hf_token: ""})
-yazdır("belirteç:", ayar.hf_token)
-yazdır("bitti")
+	path := writeProgram(t, `TR_var ayar = TR_command_line({hf_token: ""})
+TR_print("belirteç:", ayar.hf_token)
+TR_print("bitti")
 `)
 	c := startDAP(t)
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
@@ -68,7 +68,7 @@ yazdır("bitti")
 // Göreli program yolu düzenleyicinin bildirdiği çalışma klasöründe ('cwd') çözülür.
 func TestDAPRelativeProgramInCwd(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "göreli.tr"), []byte("yazdır(\"göreli çalıştı\")\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "göreli.tr"), []byte("TR_print(\"göreli çalıştı\")\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	wd, _ := os.Getwd()

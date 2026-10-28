@@ -27,7 +27,7 @@ func WalkDir(root string, fn fs.WalkDirFunc) error { return nil }
 `,
 	"app/app.go":      "package app\n",
 	"app/app_test.go": "package app\n",
-	"app/x.tr":        "değişken x = 1\n",
+	"app/x.tr":        "TR_var x = 1\n",
 	"lib/a.go":        "package lib\n",
 	"docs/d.md":       "# D\n",
 	"checks/checks_test.go": `package checks

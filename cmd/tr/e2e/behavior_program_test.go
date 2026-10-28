@@ -10,12 +10,12 @@ import (
 // fonksiyon giriş noktası değildir, kendiliğinden çağrılmaz (dil tanımı 1.1).
 func TestProgramRunsTopToBottom(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "p.tr", `//! tr kodlu 3 dil=tr
-TR_fn_print("bir")
-TR_kw_func main() {
-    TR_fn_print("main")
+	testkit.WriteFile(t, dir, "p.tr", `# TR 4
+TR_print("bir")
+TR_func main() {
+    TR_print("main")
 }
-TR_fn_print("iki")
+TR_print("iki")
 `)
 	s := tr(t, dir, "p.tr")
 	testkit.Wait(t, s, 0, nil, nil)

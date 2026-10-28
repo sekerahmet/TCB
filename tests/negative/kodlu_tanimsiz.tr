@@ -1,4 +1,4 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı kodlu modül (17.5): konumlar Türkçe gösterime göre bildirilir.
-TR_kw_var a = 1
-TR_fn_print(a, tanımsız_ad)
+# TR 4
+# TEST 17.5 konumlar dosyanın kendi satırlarına göredir (başlık 1. satır)
+TR_var a = 1
+TR_print(a, tanımsız_ad) # ERROR H1106

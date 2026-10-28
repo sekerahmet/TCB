@@ -1,5 +1,5 @@
 // Kodlu görünümün dosya sistemi sağlayıcıları (coded_view.js). İki şema vardır:
-//   görünüm  (g.VIEW_SCHEME)  okuma g.readView'dan (kodluysa Türkçe yazım), yazma
+//   görünüm  (g.VIEW_SCHEME)  okuma g.readView'dan (kodluysa kişinin yazım dilinde), yazma
 //                                g.saveText'ten (kodlu biçim) geçer;
 //   ham      (g.RAW_SCHEME)      dosyanın baytları, salt okunur (kısıtlı kip ve "kodlu hâlini
 //                                göster" komutu).

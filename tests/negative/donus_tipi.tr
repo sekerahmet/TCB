@@ -1,6 +1,6 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 6.8 — dönüş değerleri bildirilen dönüş tipine göre denetlenir.
-TR_kw_func ad(): TR_type_Int { TR_kw_return "Ali" }
-TR_kw_func ort(a: TR_type_Int, b: TR_type_Int): TR_type_Int {
-    TR_kw_return a / b
+# TR 4
+# TEST 6.8 dönüş değerleri bildirilen dönüş tipine göre denetlenir
+TR_func ad(): TR_Int { TR_return "Ali" } # ERROR H1003
+TR_func ort(a: TR_Int, b: TR_Int): TR_Int {
+    TR_return a / b # ERROR H1003
 }

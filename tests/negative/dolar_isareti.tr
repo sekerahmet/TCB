@@ -1,0 +1,4 @@
+# TR 4
+# TEST 2.3 TR dosyasında '$' yoktur: kullanıcının adı olduğu gibi yazılır, ileti adı '$'sız önerir
+TR_var a = 1
+TR_var b = $a # ERROR H0031

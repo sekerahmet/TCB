@@ -18,11 +18,12 @@ import (
 // parsed bir .tr dosyasının okunmuş hâlidir.
 type parsed struct {
 	program *ast.Program
-	lines   []string // gövdenin diskteki satırları; kodlu dosyada başlık satırının yerine boş satır (satır numaraları dosyanınki)
+	lines   []string // dosyanın diskteki satırları, başlık ve '#!' satırı dahil (satır numaraları dosyanınki)
+	header  int      // baştaki '#!' ve başlık satırlarının sayısı (source.HeaderLines): belge yorumu değildir
 	coded   bool     // dosya kodlu biçimdeydi
 	errs    []error
 	roles   map[[2]int]parser.NameRole // ad sözcüklerinin sözdizimi görevi (satır, sütun): tırnaksız sözlük anahtarı, tip yazımı, alan adı ...
-	lang    *codes.Language            // dosyanın yazım dili (kodlu dosyada başlığınki, başlıksızda Türkçe; 17.7)
+	lang    *codes.Language            // adların gösterildiği dil (dosyanın dili yoktur; başlıksız metin Türkçe gösterimdir)
 }
 
 // identities dizinin dilidir: yorumlayıcının çalıştığı kimlik dili (sözcük çözümleyicinin dili). Adı dilin öğesi olan
@@ -38,13 +39,8 @@ func readIn(text string, module bool) *parsed {
 		return res
 	}
 	res.coded = b.Coded
-	if l, err := codes.LoadLanguage(b.Language); err == nil && b.Coded {
-		res.lang = l
-	}
-	if b.Coded {
-		b.Body = "\n" + b.Body // başlık satırının yerine boş satır: konumlar dosyadaki gerçek satır olur
-	}
-	res.lines = strings.Split(b.Body, "\n")
+	res.lines = strings.Split(b.Body, "\n") // başlık satırı dahil: konumlar dosyadaki gerçek satırdır
+	res.header = source.HeaderLines(text)
 	p := parser.New(b.IdentityLexer())
 	p.RecordRoles()
 	if module {

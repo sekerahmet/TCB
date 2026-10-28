@@ -31,7 +31,7 @@ func TestWatchSummary(t *testing.T) {
 		}
 	}
 	// Tam sayılı tensör (argmax sonucu) ondalıksız yazılır, yazdır() gibi.
-	v := value(t, "değişken cikti = argmax(tensör([0.1, 0.9, 0.2]))")
+	v := value(t, "TR_var cikti = TR_argmax(TR_tensor([0.1, 0.9, 0.2]))")
 	if got := v.(*TensorValue).WatchSummary(); got != "1 (Tensör, skaler)" {
 		t.Errorf("tam sayılı skaler: %q", got)
 	}

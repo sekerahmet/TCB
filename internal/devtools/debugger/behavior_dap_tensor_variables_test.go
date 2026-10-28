@@ -17,7 +17,7 @@ func init() { interp.AddEngine(ml.Register) }
 // "…" gösterilir. Satır elemanı panelden değiştirilebilir; İzleme Masası tablosu bozulmaz.
 func TestDAPTensorVariables(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "değişken t = tensör([[1, 2, 3], [4, 5, 6]])\ndeğişken büyük = sıfırlar([2500])\ndeğişken s = tensör(7.0)\nyazdır(t)\n")
+	path := writeProgram(t, "TR_var t = TR_tensor([[1, 2, 3], [4, 5, 6]])\nTR_var büyük = TR_zeros([2500])\nTR_var s = TR_tensor(7.0)\nTR_print(t)\n")
 	c.launch(path, false, map[string]interface{}{"line": 4})
 	c.event("stopped")
 

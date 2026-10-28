@@ -27,11 +27,11 @@ func TestWrappedBuiltinPanicIsCatchable(t *testing.T) {
 		_, err := m.Run(p.ParseProgram())
 		return out.String(), err
 	}
-	_, err := runWith(`sıfırlar([2])`)
+	_, err := runWith(`TR_zeros([2])`)
 	if !messages.Has(err, messages.H4014) || messages.Has(err, messages.H9000) {
 		t.Fatalf("kodlu bellek hatası (H4014) bekleniyordu, iç hata değil: %v", err)
 	}
-	out, err := runWith(`dene { sıfırlar([2]) } yakala h { yazdır("yakalandı") }`)
+	out, err := runWith(`TR_try { TR_zeros([2]) } TR_catch h { TR_print("yakalandı") }`)
 	if err != nil || out != "yakalandı\n" {
 		t.Fatalf("dene/yakala hatayı yakalamalı: %q, %v", out, err)
 	}

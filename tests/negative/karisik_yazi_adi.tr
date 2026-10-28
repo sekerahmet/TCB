@@ -1,2 +1,3 @@
-// Latin ve Kiril harfleri karışık ad (2.1a): son harf Kiril і
-değişken yetkі = 1
+# TR 4
+# TEST 2.1a tek adda Latin ve Kiril harfleri karışık yazılırsa uyarı verilir (son harf Kiril і)
+TR_var yetkі = 1 # WARNING H1019

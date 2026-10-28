@@ -39,13 +39,8 @@
     "comments": {
       "patterns": [
         {
-          "name": "comment.line.double-slash.tr",
-          "match": "//.*$"
-        },
-        {
-          "name": "comment.block.tr",
-          "begin": "/\\*",
-          "end": "\\*/"
+          "name": "comment.line.number-sign.tr",
+          "match": "#.*$"
         }
       ]
     },
@@ -72,24 +67,8 @@
           ]
         },
         {
-          "name": "string.quoted.single.tr",
-          "begin": "'",
-          "end": "'",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.begin.tr"
-            }
-          },
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.end.tr"
-            }
-          },
-          "patterns": [
-            {
-              "include": "#string-content"
-            }
-          ]
+          "name": "invalid.illegal.quote.tr",
+          "match": "'"
         },
         {
           "name": "string.quoted.other.raw.tr",
@@ -111,26 +90,26 @@
     "string-content": {
       "patterns": [
         {
-          "name": "constant.character.escape.brace.tr",
-          "match": "\\\\[{}]"
+          "name": "constant.character.escape.tr",
+          "match": "\\\\[ntr\"\\\\]"
         },
         {
-          "name": "constant.character.escape.tr",
-          "match": "\\\\[ntr\"'\\\\]"
+          "name": "constant.character.escape.unicode.tr",
+          "match": "\\\\u\\{[0-9A-Fa-f]{1,6}\\}"
+        },
+        {
+          "include": "#interpolation"
         },
         {
           "name": "invalid.illegal.escape.tr",
           "match": "\\\\."
-        },
-        {
-          "include": "#interpolation"
         }
       ]
     },
     "interpolation": {
       "name": "meta.interpolation.tr",
-      "begin": "\\{",
-      "end": "\\}",
+      "begin": "\\\\\\(",
+      "end": "\\)",
       "beginCaptures": {
         "0": {
           "name": "punctuation.section.interpolation.begin.tr"
@@ -144,29 +123,29 @@
       "contentName": "meta.embedded.expression.tr",
       "patterns": [
         {
-          "include": "#nested-braces"
+          "include": "#nested-parens"
         },
         {
           "include": "$self"
         }
       ]
     },
-    "nested-braces": {
-      "begin": "\\{",
-      "end": "\\}",
+    "nested-parens": {
+      "begin": "\\(",
+      "end": "\\)",
       "beginCaptures": {
         "0": {
-          "name": "punctuation.section.braces.begin.tr"
+          "name": "punctuation.section.parens.begin.tr"
         }
       },
       "endCaptures": {
         "0": {
-          "name": "punctuation.section.braces.end.tr"
+          "name": "punctuation.section.parens.end.tr"
         }
       },
       "patterns": [
         {
-          "include": "#nested-braces"
+          "include": "#nested-parens"
         },
         {
           "include": "$self"
@@ -176,7 +155,7 @@
     "import": {
       "patterns": [
         {
-          "match": "\\b(aktar|import)\\b\\s*(\"[^\"]*\"|'[^']*'|[^\\W\\d][\\w.]*)\\s+(olarak|as)\\b\\s*([^\\W\\d]\\w*)?",
+          "match": "\\b(TR_import|aktar|import)\\b\\s*(\"[^\"]*\"|[^\\W\\d][\\w.]*)\\s+(TR_as|olarak|as)\\b\\s*([^\\W\\d]\\w*)?",
           "captures": {
             "1": {
               "name": "keyword.control.import.tr"
@@ -194,14 +173,14 @@
         },
         {
           "name": "keyword.control.import.tr",
-          "match": "\\b(aktar|import)\\b"
+          "match": "\\b(TR_import|aktar|import)\\b"
         }
       ]
     },
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(fonksiyon|func)\\s+([^\\W\\d]\\w*)",
+          "match": "\\b(TR_func|fonksiyon|func)\\s+([^\\W\\d]\\w*)",
           "captures": {
             "1": {
               "name": "storage.type.function.tr"
@@ -212,7 +191,7 @@
           }
         },
         {
-          "match": "\\b(yapı|struct)\\s+([^\\W\\d]\\w*)",
+          "match": "\\b(TR_struct|yapı|struct)\\s+([^\\W\\d]\\w*)",
           "captures": {
             "1": {
               "name": "storage.type.struct.tr"
@@ -228,31 +207,31 @@
       "patterns": [
         {
           "name": "keyword.control.tr",
-          "match": "\\b(eğer|değilse|eşle|varsayılan|döngü|içinde|iken|çık|devam|sonuç|dene|yakala|fırlat|eşzamanlı|ertele|if|else|match|default|for|in|while|break|continue|return|try|catch|throw|async|defer)\\b"
+          "match": "\\b(TR_if|TR_else|TR_match|TR_for|TR_in|TR_break|TR_continue|TR_return|TR_try|TR_catch|TR_throw|TR_async|TR_defer|eğer|değilse|eşle|döngü|içinde|çık|devam|sonuç|dene|yakala|fırlat|eşzamanlı|ertele|if|else|match|for|in|break|continue|return|try|catch|throw|async|defer)\\b"
         },
         {
           "name": "keyword.other.debugger.tr",
-          "match": "\\b(kesme_noktası|breakpoint)\\b"
+          "match": "\\b(TR_breakpoint|kesme_noktası|breakpoint)\\b"
         },
         {
           "name": "storage.type.tr",
-          "match": "\\b(değişken|sabit|fonksiyon|yapı|var|const|func|struct)\\b"
+          "match": "\\b(TR_var|TR_const|TR_func|TR_struct|değişken|sabit|fonksiyon|yapı|var|const|func|struct)\\b"
         },
         {
           "name": "variable.language.self.tr",
-          "match": "\\b(kendi|self)\\b"
+          "match": "\\b(TR_self|kendi|self)\\b"
         },
         {
           "name": "constant.language.boolean.tr",
-          "match": "\\b(doğru|yanlış|true|false)\\b"
+          "match": "\\b(TR_true|TR_false|doğru|yanlış|true|false)\\b"
         },
         {
           "name": "constant.language.null.tr",
-          "match": "\\b(yok|none)\\b"
+          "match": "\\b(TR_none|yok|none)\\b"
         },
         {
           "name": "keyword.operator.logical.tr",
-          "match": "\\b(ve|veya|değil|and|or|not)\\b"
+          "match": "\\b(TR_and|TR_or|TR_not|ve|veya|değil|and|or|not)\\b"
         }
       ]
     },
@@ -269,7 +248,7 @@
       "patterns": [
         {
           "name": "entity.name.type.tr",
-          "match": "\\b(Herhangi|Mantık|YerleşikFonksiyon|NedenselDikkat|KontrolNoktası|VeriKümesi|Sözlük|GömmeKatmanı|Ondalık|Fonksiyon|GPT|Tam|KVÖnbellek|SatırOkuyucu|Doğrusal|Liste|Günlük|İleti|Muon|MuonVeAdamW|Yok|NorMuon|Nesne|İyileştirici|PLEBloğu|PLEBağlamı|Yol|İlerleme|RMSNormKatmanı|Aralık|SatırRMS|Koşu|Örnekleyici|SıralıOkuyucu|SıçramaBekçisi|Metin|YapıTanımı|SwiGLU|Tensör|Parçalayıcı|TransformerBloğu|Tip|Any|Bool|BuiltinFunction|CausalAttention|Checkpoint|Dataset|Dict|Embedding|Float|Function|Int|KVCache|LineReader|Linear|List|Logger|Message|MuonAndAdamW|None|Object|Optimizer|PLEBlock|PLEContext|Path|Progress|RMSNorm|Range|RowRMS|Run|Sampler|SequentialReader|SpikeGuard|String|StructType|Tensor|Tokenizer|TransformerBlock|Type)\\b"
+          "match": "\\b(TR_Any|TR_Bool|TR_BuiltinFunction|TR_CausalAttention|TR_Checkpoint|TR_Dataset|TR_Dict|TR_Embedding|TR_Float|TR_Function|TR_GPT|TR_Int|TR_KVCache|TR_LineReader|TR_Linear|TR_List|TR_Logger|TR_Message|TR_Muon|TR_MuonAndAdamW|TR_None|TR_NorMuon|TR_Object|TR_Optimizer|TR_PLEBlock|TR_PLEContext|TR_Path|TR_Progress|TR_RMSNorm|TR_Range|TR_RowRMS|TR_Run|TR_Sampler|TR_SequentialReader|TR_SpikeGuard|TR_String|TR_StructType|TR_SwiGLU|TR_Tensor|TR_Tokenizer|TR_TransformerBlock|TR_Type|Herhangi|Mantık|YerleşikFonksiyon|NedenselDikkat|KontrolNoktası|VeriKümesi|Sözlük|GömmeKatmanı|Ondalık|Fonksiyon|GPT|Tam|KVÖnbellek|SatırOkuyucu|Doğrusal|Liste|Günlük|İleti|Muon|MuonVeAdamW|Yok|NorMuon|Nesne|İyileştirici|PLEBloğu|PLEBağlamı|Yol|İlerleme|RMSNormKatmanı|Aralık|SatırRMS|Koşu|Örnekleyici|SıralıOkuyucu|SıçramaBekçisi|Metin|YapıTanımı|SwiGLU|Tensör|Parçalayıcı|TransformerBloğu|Tip|Any|Bool|BuiltinFunction|CausalAttention|Checkpoint|Dataset|Dict|Embedding|Float|Function|Int|KVCache|LineReader|Linear|List|Logger|Message|MuonAndAdamW|None|Object|Optimizer|PLEBlock|PLEContext|Path|Progress|RMSNorm|Range|RowRMS|Run|Sampler|SequentialReader|SpikeGuard|String|StructType|Tensor|Tokenizer|TransformerBlock|Type)\\b"
         }
       ]
     },
@@ -277,12 +256,24 @@
       "patterns": [
         {
           "name": "support.function.builtin.tr",
-          "match": "\\b(AdamW|SGD|mutlak|acos|argmax|sıralama_indeksi|asin|doğrula|eşit_mi|atan|atan2|dikkat|geri_yayılım|tavan|kontrol_noktası|sınırla|gradyan_kırp|komut_satırı|hesap_türü|bitiştir|kopyala|cos|cosh|çapraz_entropi|birikimli_toplam|özel_türev|veri_kümesi|varsayılan_cihaz|cihazlar|gömme|ortam_değişkeni|hata_kodu|sonlandır|exp|expm1|birim_matris|ondalık|taban|kaynaştır|gelu|türev_denetle|durdurmayı_üstlen|girdi|tam|sonlu_mu|json_çöz|json_metin|katman_normu|doğrusal_çapraz_entropi|klasörü_listele|parametreleri_yükle|tensör_yükle|parçalayıcı_yükle|log|log10|log1p|log2|log_softmax|günlük|klasör_oluştur|max|ortalama|ortanca|ileti|min|karışık_hassasiyet|taşı|türevsiz|birler|parametreler|csv_çöz|yol|yazdır|ilerleme|rastgele_normal|aralık|csv_oku|dosya_oku|dosya_satırları|relu|sil|tekrar_oynat|rms_normu|yuvarla|örnekle|tensör_kaydet|sigmoid|işaret|silu|sin|sinh|bekle|softmax|karekök|standart_sapma|durdurma_istendi|metin|toplam|tan|tanh|geçici_klasör|tensör|zaman_ms|en_büyük_k|tip|bekle_hepsi|koşullu|dosya_yaz|yerine_yaz|sıfırlar|pi|abs|argsort|assert|assert_equal|attention|backward|ceil|checkpoint|clamp|clip_grad|command_line|compute_dtype|concat|copy|cross_entropy|cumsum|custom_grad|dataset|default_device|devices|embedding|env|error_code|exit|eye|float|floor|fuse|grad_check|handle_stop|input|int|is_finite|json_parse|json_string|layer_norm|linear_cross_entropy|list_dir|load_parameters|load_tensors|load_tokenizer|logger|make_dir|mean|median|message|mixed_precision|move|no_grad|ones|parameters|parse_csv|path|print|progress|randn|range|read_csv|read_file|read_lines|remove|replay|rms_norm|round|sample|save_tensors|sign|sleep|sqrt|std|stop_requested|str|sum|temp_dir|tensor|time_ms|topk|type|wait_all|where|write_file|write_slice|zeros)\\b"
+          "match": "\\b(TR_AdamW|TR_SGD|TR_abs|TR_acos|TR_argmax|TR_argsort|TR_asin|TR_assert|TR_assert_equal|TR_atan|TR_atan2|TR_attention|TR_backward|TR_ceil|TR_checkpoint|TR_clamp|TR_clip_grad|TR_command_line|TR_compute_dtype|TR_concat|TR_copy|TR_cos|TR_cosh|TR_cross_entropy|TR_cumsum|TR_custom_grad|TR_dataset|TR_default_device|TR_devices|TR_embedding|TR_env|TR_error_code|TR_exit|TR_exp|TR_expm1|TR_eye|TR_float|TR_floor|TR_fuse|TR_gelu|TR_grad_check|TR_handle_stop|TR_input|TR_int|TR_is_finite|TR_json_parse|TR_json_string|TR_layer_norm|TR_linear_cross_entropy|TR_list_dir|TR_load_parameters|TR_load_tensors|TR_load_tokenizer|TR_log|TR_log10|TR_log1p|TR_log2|TR_log_softmax|TR_logger|TR_make_dir|TR_max|TR_mean|TR_median|TR_message|TR_min|TR_mixed_precision|TR_move|TR_no_grad|TR_ones|TR_parameters|TR_parse_csv|TR_path|TR_print|TR_progress|TR_randn|TR_range|TR_read_csv|TR_read_file|TR_read_lines|TR_relu|TR_remove|TR_replay|TR_rms_norm|TR_round|TR_sample|TR_save_tensors|TR_sigmoid|TR_sign|TR_silu|TR_sin|TR_sinh|TR_sleep|TR_softmax|TR_sqrt|TR_std|TR_stop_requested|TR_str|TR_sum|TR_tan|TR_tanh|TR_temp_dir|TR_tensor|TR_time_ms|TR_topk|TR_type|TR_wait_all|TR_where|TR_write_file|TR_write_slice|TR_zeros|TR_pi|AdamW|SGD|mutlak|acos|argmax|sıralama_indeksi|asin|doğrula|eşit_mi|atan|atan2|dikkat|geri_yayılım|tavan|kontrol_noktası|sınırla|gradyan_kırp|komut_satırı|hesap_türü|bitiştir|kopyala|cos|cosh|çapraz_entropi|birikimli_toplam|özel_türev|veri_kümesi|varsayılan_cihaz|cihazlar|gömme|ortam_değişkeni|hata_kodu|sonlandır|exp|expm1|birim_matris|ondalık|taban|kaynaştır|gelu|türev_denetle|durdurmayı_üstlen|girdi|tam|sonlu_mu|json_çöz|json_metin|katman_normu|doğrusal_çapraz_entropi|klasörü_listele|parametreleri_yükle|tensör_yükle|parçalayıcı_yükle|log|log10|log1p|log2|log_softmax|günlük|klasör_oluştur|max|ortalama|ortanca|ileti|min|karışık_hassasiyet|taşı|türevsiz|birler|parametreler|csv_çöz|yol|yazdır|ilerleme|rastgele_normal|aralık|csv_oku|dosya_oku|dosya_satırları|relu|sil|tekrar_oynat|rms_normu|yuvarla|örnekle|tensör_kaydet|sigmoid|işaret|silu|sin|sinh|bekle|softmax|karekök|standart_sapma|durdurma_istendi|metin|toplam|tan|tanh|geçici_klasör|tensör|zaman_ms|en_büyük_k|tip|bekle_hepsi|koşullu|dosya_yaz|yerine_yaz|sıfırlar|pi|abs|argsort|assert|assert_equal|attention|backward|ceil|checkpoint|clamp|clip_grad|command_line|compute_dtype|concat|copy|cross_entropy|cumsum|custom_grad|dataset|default_device|devices|embedding|env|error_code|exit|eye|float|floor|fuse|grad_check|handle_stop|input|int|is_finite|json_parse|json_string|layer_norm|linear_cross_entropy|list_dir|load_parameters|load_tensors|load_tokenizer|logger|make_dir|mean|median|message|mixed_precision|move|no_grad|ones|parameters|parse_csv|path|print|progress|randn|range|read_csv|read_file|read_lines|remove|replay|rms_norm|round|sample|save_tensors|sign|sleep|sqrt|std|stop_requested|str|sum|temp_dir|tensor|time_ms|topk|type|wait_all|where|write_file|write_slice|zeros)\\b"
         }
       ]
     },
     "numbers": {
       "patterns": [
+        {
+          "name": "constant.numeric.integer.hexadecimal.tr",
+          "match": "\\b0x[0-9A-Fa-f_]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.octal.tr",
+          "match": "\\b0o[0-7_]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.binary.tr",
+          "match": "\\b0b[01_]+\\b"
+        },
         {
           "name": "constant.numeric.float.tr",
           "match": "\\b\\d[\\d_]*(?:\\.\\d[\\d_]*)?[eE][+-]?\\d+\\b"
@@ -337,7 +328,7 @@
         },
         {
           "name": "keyword.operator.arithmetic.tr",
-          "match": "\\*\\*|@|[+\\-*/%]"
+          "match": "\\*\\*|//|@|[+\\-*/%]"
         },
         {
           "name": "keyword.operator.ternary.tr",

@@ -27,7 +27,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 
 **Neden böyle?** İki çekirdek birbirini bilmez: hesap çekirdeği dili bilmediği için tek başına sınanır ve ölçülür (tensör ya da GPU değişikliği dil testlerini beklemez); dil çekirdeği tensörü bilmediği için yeni bir motor dilin içine dokunmadan eklenir. İkisini `internal/stdlib` birleştirir. Tek ortak paket ileti kataloğudur (`internal/lang/messages`): yalnızca Go standart kitaplığına dayanır, hesap çekirdeğinin iletileri de onun kodlarıdır. Araçlar en üsttedir, çünkü hepsinin hepsini görmesi gerekir; ama alttakiler araçları bilmez, böylece hata ayıklayıcı ya da profilci çıkarılsa ikili derlenir.
 
-Dış bağımlılık izne bağlıdır: bugün yalnızca `purego` (GPU sürücüsünü cgo'suz yüklemek için, `internal/compute/gpu`). Denetim: `TestExternalDependencies`.
+Dış bağımlılık izne bağlıdır: bugün iki tane, `purego` (GPU sürücüsünü cgo'suz yüklemek için, `internal/compute/gpu`) ve `golang.org/x/text`'in yalnız `unicode/norm` paketi (adların NFC karşılaştırması ve benzerlik iskeleti, dil tanımı 2.3 ve 2.1a; `internal/lang/lexer`). Benzerlik çizelgesi Unicode'un `confusables.txt`'inden (17.0.0) `tools/gen/confusables` ile üretilip gömülür; ham dosya depoya girmez. Denetim: `TestExternalDependencies`.
 
 ### Dil çekirdeğinin iç sırası
 

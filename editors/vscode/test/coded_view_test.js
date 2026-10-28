@@ -1,5 +1,5 @@
 // Kodlu dosyaların Türkçe görünümü (coded_view.js, docs/spec/17_kodlar.md "Düzenleyicide"), sahte vscode
-// modülüyle ve GERÇEK 'tr' yorumlayıcısıyla: kodlu dosyayı aç → Türkçe görünüm (başlık gizli),
+// modülüyle ve GERÇEK 'tr' yorumlayıcısıyla: kodlu dosyayı aç → Türkçe görünüm (başlık görünür),
 // düzenle → kaydet → diskte kodlu ve 'tr göster' ile aynı; geri al; bozuk dosyanın kayıpsız
 // kaydı; satır eşlemesi (hata mesajı ve hata ayıklayıcı); kısıtlı kip. Depo kökünden:
 //   TR_YORUMLAYICI=bin/tr.exe node editors/vscode/test/coded_view_test.js
@@ -15,7 +15,7 @@ const { spawnSync } = require('child_process');
 const { setup, waitUntil, Uri, FakeState, createSuite } = require('./fake_vscode');
 const codedFormat = require('../coded_format');
 const { globEscape } = require('../coded_filesystem');
-const { PENDING_KEY, PLAIN_PENDING_KEY } = require('../coded_view');
+const { PENDING_KEY } = require('../coded_view');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const TR = [process.env.TR_YORUMLAYICI, path.join(repoRoot, 'bin', process.platform === 'win32' ? 'tr.exe' : 'tr')]
@@ -57,7 +57,11 @@ function showText(file) {
     return s.stdout.toString('utf8');
 }
 
-const TURKISH_TEXT = 'değişken sayaç = 0\r\ndöngü i içinde 1..3 {\r\n    sayaç += i\r\n}\r\nyazdır("sayaç: {sayaç}") // yorum\r\n';
+const TURKISH_TEXT = 'değişken sayaç = 0\r\ndöngü i içinde 1..3 {\r\n    sayaç += i\r\n}\r\nyazdır("sayaç: \\(sayaç)") # yorum\r\n';
+// VIEW_HEADER Türkçe görünümün başlığıdır: 'tr göster' başlığa görünümün dilini yazar; satırlar
+// dosyanınkilerdir (2.1). VIEW_TEXT kodlu dosyanın Türkçe gösterimidir.
+const VIEW_HEADER = codedFormat.HEADER + ' view=tr';
+const VIEW_TEXT = VIEW_HEADER + '\r\n' + TURKISH_TEXT;
 
 // ortam bir klasörde kodlu bir dosya yazar ve eklentiyi kurar.
 function makeEnv(s) {
@@ -80,32 +84,23 @@ function tabUris(o) {
     return o.vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.input.uri.toString()));
 }
 
-test('isCoded: başlık yalnızca ilk satırın tamamıysa (BOM, LF, CRLF, tek satır)', () => {
+test('isCoded: başlık ilk satırın (#! satırından sonra ikinci satırın) tamamıysa (BOM, LF, CRLF, tek satır)', () => {
     const b = (m) => Buffer.from(m, 'utf8');
-    const yes = { '//! tr kodlu 3 dil=tr\nTR_kw_var x = 1\n': 'tr', '//! tr kodlu 3 dil=en\r\n': 'en', '﻿//! tr kodlu 3 dil=tr\n': 'tr', '//! tr kodlu 3 dil=en': 'en' };
-    for (const [text, language] of Object.entries(yes)) {
-        assert.ok(codedFormat.isCoded(b(text)), JSON.stringify(text));
-        assert.strictEqual(codedFormat.fileLanguage(b(text)), language, JSON.stringify(text));
+    for (const yes of ['# TR 4\nTR_var x = 1\n', '# TR 4\r\n', '﻿# TR 4\n', '# TR 4', '#!/usr/bin/env tr\n# TR 4\n', '#!/usr/bin/env tr\r\n# TR 4\r\nTR_var x = 1\r\n']) {
+        assert.ok(codedFormat.isCoded(b(yes)), JSON.stringify(yes));
     }
-    for (const no of ['//! tr kodlu 1\n', '//! tr kodlu 2 dil=en\n', '//! tr kodlu 3\n', '//! tr kodlu 3 dil=\n', '//! tr kodlu 3 dil=en \n', ' //! tr kodlu 3 dil=en\n',
-        '//! tr kodlu 3 dil=en\r', 'değişken x = 1\n', '', '\n//! tr kodlu 3 dil=en\n']) {
+    for (const no of ['# TR 3\n', '# TR 4 \n', ' # TR 4\n', '# TR 4\r', '//! tr kodlu 3 dil=tr\n', 'değişken x = 1\n', '', '\n# TR 4\n', '# yorum\n# TR 4\n']) {
         assert.ok(!codedFormat.isCoded(b(no)), JSON.stringify(no));
-        assert.strictEqual(codedFormat.fileLanguage(b(no)), null, JSON.stringify(no));
     }
-    assert.ok(codedFormat.isCoded(new Uint8Array(b('//! tr kodlu 3 dil=tr\n'))), 'Uint8Array da okunur');
-    // withLanguage yalnızca başlığın dilini değiştirir: BOM, satır sonu ve gövde aynı kalır.
-    assert.strictEqual(codedFormat.withLanguage(b('﻿//! tr kodlu 3 dil=tr\r\nTR_kw_var x = 1\r\n'), 'en').toString('utf8'), '﻿//! tr kodlu 3 dil=en\r\nTR_kw_var x = 1\r\n');
-    assert.strictEqual(codedFormat.withLanguage(b('//! tr kodlu 3 dil=en'), 'tr').toString('utf8'), '//! tr kodlu 3 dil=tr');
-    assert.strictEqual(codedFormat.withLanguage(b('değişken x = 1\n'), 'en').toString('utf8'), 'değişken x = 1\n');
+    assert.ok(codedFormat.isCoded(new Uint8Array(b('# TR 4\n'))), 'Uint8Array da okunur');
     assert.strictEqual(codedFormat.errorSummary('❌ Sözdizimi Hataları:\n  • Satır 2, Sütun 1: eksik\n     2 | x\n'), 'Satır 2, Sütun 1: eksik');
     assert.strictEqual(globEscape('a[1]{b}*?.tr'), 'a?1??b???.tr');
 }, false);
 
-test('kodlu dosya açılınca ham sekme Türkçe görünümle değişir; başlık görünmez', async () => {
+test('kodlu dosya açılınca ham sekme Türkçe görünümle değişir; başlık ve satırlar dosyanınkiler', async () => {
     const o = makeEnv();
     const editor = await open(o, o.uri);
-    assert.strictEqual(editor.document.getText(), TURKISH_TEXT, 'görünüm dosyanın Türkçe yazımı olmalı');
-    assert.ok(!editor.document.getText().includes(codedFormat.HEADER), 'başlık görünmemeli');
+    assert.strictEqual(editor.document.getText(), VIEW_TEXT, 'görünüm dosyanın başlıklı Türkçe yazımı olmalı');
     assert.strictEqual(editor.document.languageId, 'tr');
     assert.strictEqual(editor.document.uri.fsPath, o.file, 'görünümün adresi dosyanın kendi yolu');
     assert.deepStrictEqual(tabUris(o), [o.vscode.Uri.file(o.file).with({ scheme: 'tr-coded' }).toString()], 'ham sekme kapanmalı');
@@ -116,12 +111,12 @@ test('düzenle ve kaydet: diskte kodlu; tr göster düzenleyicideki metnin aynı
     const o = makeEnv();
     const b = (await open(o, o.uri)).document;
     const firstDisk = fs.readFileSync(o.file);
-    b.edit(b.getText().replace('yazdır("sayaç: {sayaç}")', 'yazdır("toplam: {sayaç}", tip(sayaç))'));
+    b.edit(b.getText().replace('yazdır("sayaç: \\(sayaç)")', 'yazdır("toplam: \\(sayaç)", tip(sayaç))'));
     assert.ok(await b.save());
     assert.ok(!b.isDirty);
     const disk = fs.readFileSync(o.file, 'utf8');
-    assert.ok(disk.startsWith(codedFormat.HEADER + 'tr\r\n'), 'diskte kodlu (satır sonu korunur): ' + disk);
-    assert.ok(disk.includes('TR_fn_print("toplam: {sayaç}", TR_fn_type(sayaç))'), disk);
+    assert.ok(disk.startsWith(codedFormat.HEADER + '\r\n'), 'diskte kodlu (satır sonu korunur): ' + disk);
+    assert.ok(disk.includes('TR_print("toplam: \\(sayaç)", TR_type(sayaç))'), disk);
     assert.strictEqual(showText(o.file), b.getText());
     // Kayıt belgenin metnine dokunmaz: geri al geçmişi aynen durur, geri alınıp kaydedilince
     // disk ilk hâline döner.
@@ -134,29 +129,31 @@ test('düzenle ve kaydet: diskte kodlu; tr göster düzenleyicideki metnin aynı
 
 test('seçim (hata bağlantısının satırı ve sütunu) görünüme olduğu gibi taşınır', async () => {
     const o = makeEnv();
-    const selection = { start: { line: 4, character: 7 }, end: { line: 4, character: 7 } };
+    const selection = { start: { line: 5, character: 7 }, end: { line: 5, character: 7 } };
     const editor = await open(o, o.uri, { selection: selection });
     assert.deepStrictEqual(editor.selection, selection);
 });
 
-test('satır eşlemesi: tr kontrol\'ün hata konumu görünümde aynı satır ve sütun', async () => {
-    const o = makeEnv({ disk: encode(TURKISH_TEXT.replace('yazdır("sayaç: {sayaç}")', 'yazdır(sayacc)')) });
+test('satır eşlemesi: tr kontrol\'ün hata satırı görünümde aynı satır, sütun dosyanın', async () => {
+    const o = makeEnv({ disk: encode(TURKISH_TEXT.replace('yazdır("sayaç: \\(sayaç)")', 'yazdır(sayacc)')) });
     const s = spawnSync(TR, ['kontrol', o.file], { windowsHide: true });
     const m = /Satır (\d+), Sütun (\d+): Tanımsız ad/.exec(s.stderr.toString('utf8'));
     assert.ok(m, s.stderr.toString('utf8'));
+    // Konum dosyanındır: sütun diskteki satırda (kimlik yazımıyla) sayılır; görünüm satırları korur.
+    const disk = fs.readFileSync(o.file, 'utf8').split(/\r?\n/)[Number(m[1]) - 1];
+    assert.strictEqual(disk.slice(Number(m[2]) - 1, Number(m[2]) - 1 + 'sayacc'.length), 'sayacc', disk);
     const b = (await open(o, o.uri)).document;
-    const line = b.lineAt(Number(m[1]) - 1).text;
-    assert.strictEqual(line.slice(Number(m[2]) - 1, Number(m[2]) - 1 + 'sayacc'.length), 'sayacc', line);
+    assert.ok(b.lineAt(Number(m[1]) - 1).text.includes('yazdır(sayacc)'), b.lineAt(Number(m[1]) - 1).text);
 });
 
-test('bozuk metin kayıpsız kaydedilir: başlıksız Türkçe, bir kez bilgi, ilk geçerli kayıtta yeniden kodlu', async () => {
+test('bozuk metin kayıpsız kaydedilir: Türkçe yazımıyla, bir kez bilgi, ilk geçerli kayıtta yeniden kodlu', async () => {
     const state = new FakeState();
     const o = makeEnv({ state });
     const b = (await open(o, o.uri)).document;
     const partial = b.getText() + 'eğer sayaç > 2 {\r\n    yazdır("ç';
     b.edit(partial);
     assert.ok(await b.save());
-    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), partial, 'yazılan her şey diskte olmalı (başlıksız Türkçe)');
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), partial, 'yazılan her şey diskte olmalı (Türkçe yazımıyla)');
     assert.strictEqual(o.log.infos.length, 1);
     assert.ok(o.log.infos[0].includes('syntax error is fixed') && o.log.infos[0].includes('was not lost'), o.log.infos[0]);
     b.edit(partial + 'o');
@@ -171,7 +168,7 @@ test('bozuk metin kayıpsız kaydedilir: başlıksız Türkçe, bir kez bilgi, i
     b2.edit(b2.getText() + 'k")\r\n}\r\n');
     assert.ok(await b2.save());
     const disk = fs.readFileSync(o.file, 'utf8');
-    assert.ok(disk.startsWith(codedFormat.HEADER + 'tr\r\n') && disk.includes('TR_kw_if sayaç > 2'), disk);
+    assert.ok(disk.startsWith(codedFormat.HEADER + '\r\n') && disk.includes('TR_if sayaç > 2'), disk);
     assert.strictEqual(showText(o.file), b2.getText());
     assert.deepStrictEqual(state.get(PENDING_KEY, []), []);
     assert.strictEqual(o2.log.infos.length, 0);
@@ -204,27 +201,28 @@ test('kodlu olmayan dosya olduğu gibi açılır ve kaydedilir; yorumlayıcı hi
         await new Promise((resolve) => setTimeout(resolve, 200));
         assert.strictEqual(o.vscode.window.activeTextEditor.document.uri.scheme, 'file');
         const b = o.vscode.window.activeTextEditor.document;
-        b.edit(b.getText() + '// ek\r\n');
+        b.edit(b.getText() + '# ek\r\n');
         assert.ok(await b.save());
     } finally {
         codedFormat.translate = original;
     }
-    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), TURKISH_TEXT + '// ek\r\n', 'eklenti kendiliğinden kodlamaz');
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), TURKISH_TEXT + '# ek\r\n', 'eklenti kendiliğinden kodlamaz');
     assert.strictEqual(callCount, 0);
 });
 
 test('ayrıştırılamayan kodlu dosya (ör. birleştirme çakışması) ham hâliyle gösterilir, olduğu gibi kaydedilir', async () => {
-    const raw = codedFormat.HEADER + 'tr\n<<<<<<< HEAD\nTR_kw_var x = 1\n=======\nTR_kw_var x = 2\n>>>>>>> dal\n';
+    const raw = codedFormat.HEADER + '\n<<<<<<< HEAD\nTR_var x = 1\n=======\nTR_var x = 2\n>>>>>>> dal\n';
     const o = makeEnv({ disk: raw });
     const b = (await open(o, o.uri)).document;
     assert.strictEqual(b.getText(), raw);
     assert.strictEqual(o.log.warnings.length, 1);
     assert.ok(o.log.warnings[0].includes('raw (coded) form'), o.log.warnings[0]);
-    const resolved = codedFormat.HEADER + 'tr\nTR_kw_var x = 2\n';
+    // Kimliklerle yazılmış metin de gösterim gibi kodlanır: kimlikler olduğu gibi kalır.
+    const resolved = codedFormat.HEADER + '\nTR_var x = 2\n';
     b.edit(resolved);
     assert.ok(await b.save());
     assert.strictEqual(fs.readFileSync(o.file, 'utf8'), resolved);
-    assert.strictEqual(showText(o.file), 'değişken x = 2\n');
+    assert.strictEqual(showText(o.file), VIEW_HEADER + '\ndeğişken x = 2\n');
 });
 
 test('yazım dili ayarı tr göster ve tr kodla komutlarına --dil ile geçer', async () => {
@@ -242,40 +240,18 @@ test('yazım dili ayarı tr göster ve tr kodla komutlarına --dil ile geçer', 
     assert.deepStrictEqual(calls, [['göster', 'tr'], ['kodla', 'tr']]);
 });
 
-// Kural (17.1): dosyanın dili kayıtta korunur; dosyayı başka bir yazım dilinde düzenleyen kişi
-// onun değerlerinin metnini (doğru/true) değiştirmez. Neden: çıktı dosyayı düzenleyene bağlı olmamalı.
-test('başka dilde düzenlenen kodlu dosya kaydedilince dil=\'si korunur', async () => {
+// Kural (2.1): dosyanın dili yoktur; İngilizce yazılıp kodlanan dosya Türkçe görünümde düzenlenip
+// kaydedilince aynı kimlikleri taşır. Neden: çıktı dosyayı düzenleyene bağlı olmamalı.
+test('başka dilde yazılmış kodlu dosya Türkçe düzenlenince aynı kimliklerle kaydedilir', async () => {
     const english = tr('kodla', '-', '--dil', 'en', 'var x = true\nprint(x)\n');
     assert.strictEqual(english.code, 0, english.error);
-    assert.ok(english.output.startsWith(codedFormat.HEADER + 'en\n'), english.output);
+    assert.strictEqual(english.output, codedFormat.HEADER + '\nTR_var x = TR_true\nTR_print(x)\n');
     const o = makeEnv({ disk: english.output, settings: { writingLanguage: 'tr' } });
     const b = (await open(o, o.uri)).document;
-    assert.strictEqual(b.getText(), 'değişken x = doğru\nyazdır(x)\n');
+    assert.strictEqual(b.getText(), VIEW_HEADER + '\ndeğişken x = doğru\nyazdır(x)\n');
     b.edit(b.getText() + 'yazdır(yanlış)\n');
     assert.ok(await b.save());
-    const disk = fs.readFileSync(o.file, 'utf8');
-    assert.strictEqual(disk, codedFormat.HEADER + 'en\nTR_kw_var x = TR_kw_true\nTR_fn_print(x)\nTR_fn_print(TR_kw_false)\n');
-    // Yeni (Türkçe yazılmış) kodlu dosya Türkçe kodlanır.
-    assert.ok(encode(TURKISH_TEXT).startsWith(codedFormat.HEADER + 'tr\r\n'));
-});
-
-// Kural (17.1): kodlanamadığı için başlıksız kaydedilen (bekleyen) dosyanın dili de kalıcıdır;
-// VS Code yeniden açılıp dosya kodlanınca dil=en korunur. Neden: dil yalnız bellekteydi, yeniden
-// açılışta görünümün diliyle kodlanıyordu (dosyanın dili ve değer metinleri sessizce değişiyordu).
-test('bekleyen kodlu dosyanın dili VS Code yeniden açılınca da korunur', async () => {
-    const state = new FakeState();
-    const english = tr('kodla', '-', '--dil', 'en', 'var x = true\nprint(x)\n');
-    const o = makeEnv({ disk: english.output, settings: { writingLanguage: 'tr' }, state });
-    const b = (await open(o, o.uri)).document;
-    b.edit(b.getText() + 'eğer x {\n');
-    assert.ok(await b.save());
-    assert.ok(!codedFormat.isCoded(fs.readFileSync(o.file)), 'bozuk metin başlıksız (bekleyen) kaydedilir');
-
-    const o2 = setup({ setting: TR, folder: o.folder, state, settings: { writingLanguage: 'tr' } });
-    const b2 = (await open(o2, o.uri)).document;
-    b2.edit(b2.getText() + '}\n');
-    assert.ok(await b2.save());
-    assert.ok(fs.readFileSync(o.file, 'utf8').startsWith(codedFormat.HEADER + 'en\n'), fs.readFileSync(o.file, 'utf8'));
+    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), codedFormat.HEADER + '\nTR_var x = TR_true\nTR_print(x)\nTR_print(TR_false)\n');
 });
 
 test('yazım dili değişince kirli olmayan açık görünüm yeni dille yenilenir', async () => {
@@ -322,7 +298,7 @@ test('dosya dışarıda değişince görünümün adresiyle bildirilir; tarih di
     const after = await view.stat(address);
     assert.notStrictEqual(after.mtime, before.mtime);
     assert.strictEqual(after.size, fs.statSync(o.file).size);
-    assert.strictEqual(Buffer.from(await view.readFile(address)).toString('utf8'), 'yazdır(1)\n');
+    assert.strictEqual(Buffer.from(await view.readFile(address)).toString('utf8'), VIEW_HEADER + '\nyazdır(1)\n');
     watch.dispose();
     assert.ok(watcher.disposed);
     await assert.rejects(view.stat(Uri.file(path.join(o.folder, 'yok.tr')).with({ scheme: 'tr-coded' })), (e) => e.code === 'FileNotFound');
@@ -360,7 +336,7 @@ test('görünümde çalıştır: önce kodlu kaydedilir, görev diskteki dosyayl
     await waitUntil(() => o.log.tasks.length === 1, 'çalıştırma görevi');
     assert.deepStrictEqual(o.log.tasks[0].execution.args, [o.file]);
     assert.ok(!b.isDirty);
-    assert.ok(fs.readFileSync(o.file, 'utf8').includes('TR_fn_print("son")'));
+    assert.ok(fs.readFileSync(o.file, 'utf8').includes('TR_print("son")'));
 });
 
 test('kısıtlı kip: hiçbir şey çalıştırılmaz, salt okunur ham gösterim ve açıklama; güven verilince Türkçe', async () => {
@@ -387,7 +363,7 @@ test('kısıtlı kip: hiçbir şey çalıştırılmaz, salt okunur ham gösterim
     o.vscode.workspace.isTrusted = true;
     o.events.trust.fire();
     await waitUntil(() => o.vscode.window.activeTextEditor && o.vscode.window.activeTextEditor.document.uri.scheme === 'tr-coded', 'güvenden sonra görünüm');
-    assert.strictEqual(o.vscode.window.activeTextEditor.document.getText(), TURKISH_TEXT);
+    assert.strictEqual(o.vscode.window.activeTextEditor.document.getText(), VIEW_TEXT);
 });
 
 test('kirli ham belge ve yorumlayıcısız pencere yönlendirilmez (hiçbir şey kaybolmaz)', async () => {
@@ -400,7 +376,7 @@ test('kirli ham belge ve yorumlayıcısız pencere yönlendirilmez (hiçbir şey
     // Kaydedilmemiş değişikliği olan ham belge (ör. önceki oturumdan geri yüklenen) yerinde kalır.
     const o2 = makeEnv();
     const raw = await o2.vscode.workspace.openTextDocument(o2.uri);
-    raw.edit(raw.getText() + '// kaydedilmedi\n');
+    raw.edit(raw.getText() + '# kaydedilmedi\n');
     await o2.vscode.window.showTextDocument(o2.uri, { preview: true });
     await new Promise((resolve) => setTimeout(resolve, 300));
     assert.strictEqual(o2.vscode.window.activeTextEditor.document, raw);
@@ -417,69 +393,6 @@ test('Kodlu Hâlini Göster komutu ham hâli yanda salt okunur açar', async () 
     assert.deepStrictEqual(Buffer.from(e.document.getText(), 'utf8'), fs.readFileSync(o.file));
 });
 
-// Kodsuz (Türkçe) dosya başka bir yazım dilinde görünümle açılır, diske yine Türkçe yazılır (17.7).
-function inEnglish(text) {
-    const s = tr('göster', '-', '--dil', 'en', text);
-    assert.strictEqual(s.code, 0, s.error);
-    return s.output;
-}
-
-test('yazım dili en: kodsuz Türkçe dosya İngilizce görünür, kaydedilince diske Türkçe yazılır', async () => {
-    const o = makeEnv({ disk: TURKISH_TEXT, settings: { writingLanguage: 'en' } });
-    const b = (await open(o, o.uri)).document;
-    const english = inEnglish(TURKISH_TEXT);
-    assert.ok(english.includes('var sayaç') && english.includes('print('), english);
-    assert.strictEqual(b.getText(), english);
-    b.edit(b.getText() + 'print(sayaç * 2)\r\n');
-    assert.ok(await b.save());
-    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), TURKISH_TEXT + 'yazdır(sayaç * 2)\r\n', 'diskte kodsuz Türkçe');
-    assert.strictEqual(o.log.warnings.length + o.log.errors.length + o.log.infos.length, 0, [...o.log.warnings, ...o.log.errors, ...o.log.infos].join('\n'));
-    // F5: program diskteki dosya, satırlar görünümünkiler.
-    const y = await o.provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, { type: 'tr', request: 'launch', name: 'TR', program: o.file });
-    assert.strictEqual(y.viewURI, b.uri.toString());
-});
-
-test('yazım dili en: ayrıştırılamayan metin kayıpsız kaydedilir, ilk geçerli kayıtta yeniden Türkçe', async () => {
-    const state = new FakeState();
-    const o = makeEnv({ disk: TURKISH_TEXT, settings: { writingLanguage: 'en' }, state });
-    const b = (await open(o, o.uri)).document;
-    const partial = b.getText() + 'if sayaç > 2 {\r\n';
-    b.edit(partial);
-    assert.ok(await b.save());
-    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), partial, 'yazılan her şey diskte');
-    assert.strictEqual(o.log.infos.length, 1);
-    assert.ok(o.log.infos[0].includes('written in Turkish again'), o.log.infos[0]);
-    assert.strictEqual(state.get(PLAIN_PENDING_KEY, []).length, 1);
-    // VS Code yeniden açıldı: bekleyen dosya olduğu gibi (İngilizce) görünür.
-    const o2 = setup({ setting: TR, folder: o.folder, state, settings: { writingLanguage: 'en' } });
-    const b2 = (await open(o2, o.uri)).document;
-    assert.strictEqual(b2.getText(), partial);
-    b2.edit(partial + '    print(1)\r\n}\r\n');
-    assert.ok(await b2.save());
-    assert.strictEqual(fs.readFileSync(o.file, 'utf8'), TURKISH_TEXT + 'eğer sayaç > 2 {\r\n    yazdır(1)\r\n}\r\n');
-    assert.deepStrictEqual(state.get(PLAIN_PENDING_KEY, []), []);
-});
-
-test('yazım dili tr\'den en\'e geçince açık kodsuz dosya görünümle açılır', async () => {
-    const settings = { writingLanguage: 'tr' };
-    const o = makeEnv({ disk: TURKISH_TEXT, settings });
-    await o.vscode.window.showTextDocument(o.uri, { preview: true });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    assert.strictEqual(o.vscode.window.activeTextEditor.document.uri.scheme, 'file');
-    settings.writingLanguage = 'en';
-    o.events.setting.fire({ affectsConfiguration: (k) => k === 'tr.writingLanguage' });
-    await waitUntil(() => o.vscode.window.activeTextEditor.document.uri.scheme === 'tr-coded', 'İngilizce görünüm');
-    assert.strictEqual(o.vscode.window.activeTextEditor.document.getText(), inEnglish(TURKISH_TEXT));
-});
-
-test('yazım dili en, kısıtlı kip: kodsuz dosya Türkçe ve düzenlenebilir kalır', async () => {
-    const o = makeEnv({ disk: TURKISH_TEXT, settings: { writingLanguage: 'en' }, trusted: false });
-    await o.vscode.window.showTextDocument(o.uri, { preview: true });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    assert.strictEqual(o.vscode.window.activeTextEditor.document.uri.scheme, 'file');
-    assert.strictEqual(o.log.infos.length + o.log.warnings.length, 0);
-});
-
 // Kural: güvenilmeyen çalışma alanında tr-coded: şeması da salt okunurdur; adresi elle verilse
 // bile yazma, silme, taşıma ve klasör oluşturma yerel diske dokunmaz (SECURITY.md: kısıtlı
 // kipte yerel diske yazılmaz). Neden: görünüm sağlayıcısı kısıtlı kipte yönlendirmeye güveniyordu,
@@ -487,7 +400,7 @@ test('yazım dili en, kısıtlı kip: kodsuz dosya Türkçe ve düzenlenebilir k
 test('kısıtlı kipte tr-coded: yazma, silme, taşıma ve klasör oluşturma reddedilir', async () => {
     const dir = makeFolder();
     const filePath = path.join(dir, 'program.tr');
-    const original = '//! tr kodlu 3 dil=tr\nTR_kw_var x = 1\n';
+    const original = codedFormat.HEADER + '\nTR_var x = 1\n';
     fs.writeFileSync(filePath, original, 'utf8');
     const o = setup({ folder: dir, trusted: false });
     const codedUri = Uri.file(filePath).with({ scheme: 'tr-coded' });

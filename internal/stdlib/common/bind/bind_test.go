@@ -29,10 +29,10 @@ func names(codeList ...codes.Code) []Named {
 func TestNamedArg(t *testing.T) {
 	a := NamedArg(codes.ArgLr)
 	if id := codes.ArgLr.String(); a.TR != id || !a.Accepts(id) || len(a.Spellings()) != 1 || a.Spellings()[0] != id {
-		t.Fatalf("NamedArg(TR_arg_lr) = %+v", a)
+		t.Fatalf("NamedArg(TR_lr) = %+v", a)
 	}
 	defer func() {
-		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "TR_fn_print") {
+		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "TR_print") {
 			t.Fatalf("adlı argüman olmayan kod paniklemeli: %v", r)
 		}
 	}()
@@ -198,8 +198,8 @@ func TestResolvePath(t *testing.T) {
 	if g := ResolvePath(m, "yalnız_programda.txt"); g != filepath.Join(program, "yalnız_programda.txt") {
 		t.Errorf("programın klasörüne bakılmalı: %q", g)
 	}
-	g, tried := ResolvePathTried(m, "yok.txt")
-	if g != "yok.txt" || len(tried) != 2 {
+	g, tried := ResolvePathTried(m, "TR_none.txt")
+	if g != "TR_none.txt" || len(tried) != 2 {
 		t.Errorf("olmayan dosya çalışma klasörüne göre dönmeli ve iki yere bakılmalı: %q %v", g, tried)
 	}
 	if g := ResolvePath(nil, "yalnız_programda.txt"); g != "yalnız_programda.txt" {
@@ -210,7 +210,7 @@ func TestResolvePath(t *testing.T) {
 		t.Errorf("mutlak yol olduğu gibi kalmalı: %q %v", g, b)
 	}
 
-	_, err := os.Open(ResolvePath(m, "yok.txt"))
+	_, err := os.Open(ResolvePath(m, "TR_none.txt"))
 	if !IsNotExist(err) || !IsNotExist(fmt.Errorf("sarılı: %w", err)) || IsNotExist(fs.ErrPermission) {
 		t.Errorf("YokMu yalnızca 'dosya yok' hatasını tanımalı: %v", err)
 	}

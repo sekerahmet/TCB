@@ -1,24 +1,24 @@
-//! tr kodlu 3 dil=tr
-// Üretim hızı yarışının TR tarafı (tools/gpu/generation_race.sh çağırır; COLAB.md §12).
-// Hazır modeli yükler, 5 parçayla ısınır, 100 parçalık açgözlü üretimi üç kez ölçer ve ortancayı
-// "model | cihaz | yol | parça/sn" satırı olarak yazar. GPU'da ayrıca kayıtlı (çizge) ve kayıtsız
-// üretimin aynı parçaları verdiğini denetler.
-TR_kw_import "tr/hazir"
+# TR 4
+# Üretim hızı yarışının TR tarafı (tools/gpu/generation_race.sh çağırır; COLAB.md §12).
+# Hazır modeli yükler, 5 parçayla ısınır, 100 parçalık açgözlü üretimi üç kez ölçer ve ortancayı
+# "model | cihaz | yol | parça/sn" satırı olarak yazar. GPU'da ayrıca kayıtlı (çizge) ve kayıtsız
+# üretimin aynı parçaları verdiğini denetler.
+TR_import "tr/hazir"
 
-TR_kw_var arg = TR_fn_command_line({TR_mem_folder: "", adet: 100, TR_mem_device: "cpu", ad: "", ağırlık_türü: "float32"})
-TR_fn_default_device(arg.TR_mem_device)
-TR_kw_var p = TR_fn_load_tokenizer(TR_fn_path(arg.TR_mem_folder, "tokenizer.json"))
-TR_kw_var model = TR_fn_pretrained_model(arg.TR_mem_folder, TR_arg_weight_dtype: arg.ağırlık_türü)
-TR_kw_var ids = p.TR_mem_encode("The capital of France is")
-model.TR_mem_generate(ids, 5, TR_arg_temperature: 0)
-TR_kw_var hızlar = []
-TR_kw_var son = TR_kw_none
-TR_kw_for tur TR_kw_in 0..3 {
-    TR_kw_var başla = TR_fn_time_ms()
-    son = model.TR_mem_generate(ids, arg.adet, TR_arg_temperature: 0)
-    hızlar.TR_mem_append(arg.adet * 1000.0 / (TR_fn_time_ms() - başla))
+TR_var arg = TR_command_line({TR_folder: "", adet: 100, TR_device: "cpu", ad: "", ağırlık_türü: "float32"})
+TR_default_device(arg.TR_device)
+TR_var p = TR_load_tokenizer(TR_path(arg.TR_folder, "tokenizer.json"))
+TR_var model = TR_pretrained_model(arg.TR_folder, TR_weight_dtype: arg.ağırlık_türü)
+TR_var ids = p.TR_encode("The capital of France is")
+model.TR_generate(ids, 5, TR_temperature: 0)
+TR_var hızlar = []
+TR_var son = TR_none
+TR_for tur TR_in 0..3 {
+    TR_var başla = TR_time_ms()
+    son = model.TR_generate(ids, arg.adet, TR_temperature: 0)
+    hızlar.TR_append(arg.adet * 1000.0 / (TR_time_ms() - başla))
 }
-TR_kw_if arg.TR_mem_device != "cpu" {
-    TR_fn_assert(son == model.TR_mem_generate(ids, arg.adet, TR_arg_temperature: 0, TR_arg_cuda_graph: TR_kw_false), "kayıtlı ve kayıtsız üretim farklı")
+TR_if arg.TR_device != "cpu" {
+    TR_assert(son == model.TR_generate(ids, arg.adet, TR_temperature: 0, TR_cuda_graph: TR_false), "kayıtlı ve kayıtsız üretim farklı")
 }
-TR_fn_print("{arg.ad} | {arg.TR_mem_device} | TR {arg.ağırlık_türü} | {TR_fn_round(hızlar.TR_mem_sort()[1], 1)}")
+TR_print("\(arg.ad) | \(arg.TR_device) | TR \(arg.ağırlık_türü) | \(TR_round(hızlar.TR_sort()[1], 1))")

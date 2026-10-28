@@ -59,27 +59,27 @@ var (
 )
 
 var clashPlaces = []clashPlace{
-	{name: "değişken", namespaces: global, main: "değişken ad_1 = 5\nyazdır(ad_1 + 1)\n"},
-	{name: "fonksiyon", namespaces: global, main: "fonksiyon ad_1(x) {\n    sonuç x * 2\n}\nyazdır(ad_1(3))\n"},
-	{name: "parametre", namespaces: global, main: "fonksiyon f(ad_1) {\n    sonuç ad_1 * 2\n}\nyazdır(f(3))\n"},
-	{name: "döngü_değişkeni", namespaces: global, main: "döngü ad_1 içinde [1, 2] {\n    yazdır(ad_1)\n}\n"},
-	{name: "blok_parametresi", namespaces: global, main: "yazdır([1, 2].haritala((ad_1) => ad_1 * 2))\n"},
-	{name: "yakala_adı", namespaces: global, main: "dene {\n    fırlat \"x\"\n} yakala ad_1 {\n    yazdır(ad_1)\n}\n"},
-	{name: "takma_ad", namespaces: global, module: "değişken ad_2 = 1\n", main: "aktar \"m\" olarak ad_1\nyazdır(ad_1.ad_2)\n"},
-	{name: "değer", namespaces: value, main: "yazdır(ad_1)\n", neutralFails: true},
+	{name: "değişken", namespaces: global, main: "TR_var ad_1 = 5\nTR_print(ad_1 + 1)\n"},
+	{name: "fonksiyon", namespaces: global, main: "TR_func ad_1(x) {\n    TR_return x * 2\n}\nTR_print(ad_1(3))\n"},
+	{name: "parametre", namespaces: global, main: "TR_func f(ad_1) {\n    TR_return ad_1 * 2\n}\nTR_print(f(3))\n"},
+	{name: "döngü_değişkeni", namespaces: global, main: "TR_for ad_1 TR_in [1, 2] {\n    TR_print(ad_1)\n}\n"},
+	{name: "blok_parametresi", namespaces: global, main: "TR_print([1, 2].TR_map((ad_1) => ad_1 * 2))\n"},
+	{name: "yakala_adı", namespaces: global, main: "TR_try {\n    TR_throw \"x\"\n} TR_catch ad_1 {\n    TR_print(ad_1)\n}\n"},
+	{name: "takma_ad", namespaces: global, module: "TR_var ad_2 = 1\n", main: "TR_import \"m\" TR_as ad_1\nTR_print(ad_1.ad_2)\n"},
+	{name: "değer", namespaces: value, main: "TR_print(ad_1)\n", neutralFails: true},
 	// Metin yerleştirmesinin içi kod olarak okunur: değer yeridir.
-	{name: "yerleştirme", namespaces: value, main: "yazdır(\"{ad_1}\")\n", neutralFails: true},
-	{name: "yapı", namespaces: value, main: "yapı ad_1 {\n    a\n}\ndeğişken p: ad_1 = ad_1(a: 1)\nyazdır(p.a)\n"},
-	{name: "tip_açıklaması", namespaces: []codes.Namespace{codes.NamespaceType}, main: "değişken x: ad_1 = 1\nyazdır(x)\n", neutralFails: true},
-	{name: "alan", namespaces: member, main: "yapı P {\n    ad_1\n}\ndeğişken p = P(ad_1: 1)\nyazdır(p.ad_1)\n"},
-	{name: "metot", namespaces: member, main: "yapı P {\n    a\n    fonksiyon ad_1() {\n        sonuç kendi.a + 1\n    }\n}\nyazdır(P(a: 1).ad_1())\n"},
-	{name: "üye", namespaces: member, main: "yazdır([1, 2].ad_1)\n", neutralFails: true},
-	{name: "sözlük_anahtarı", namespaces: member, main: "değişken d = {ad_1: 1}\nyazdır(d, d.ad_1)\n"},
-	{name: "adlı_argüman", namespaces: []codes.Namespace{codes.NamespaceParam}, main: "yazdır(toplam(tensör([1.0, 2.0]), ad_1: 0))\n", neutralFails: true},
+	{name: "yerleştirme", namespaces: value, main: "TR_print(\"\\(ad_1)\")\n", neutralFails: true},
+	{name: "yapı", namespaces: value, main: "TR_struct ad_1 {\n    a\n}\nTR_var p: ad_1 = ad_1(a: 1)\nTR_print(p.a)\n"},
+	{name: "tip_açıklaması", namespaces: []codes.Namespace{codes.NamespaceType}, main: "TR_var x: ad_1 = 1\nTR_print(x)\n", neutralFails: true},
+	{name: "alan", namespaces: member, main: "TR_struct P {\n    ad_1\n}\nTR_var p = P(ad_1: 1)\nTR_print(p.ad_1)\n"},
+	{name: "metot", namespaces: member, main: "TR_struct P {\n    a\n    TR_func ad_1() {\n        TR_return TR_self.a + 1\n    }\n}\nTR_print(P(a: 1).ad_1())\n"},
+	{name: "üye", namespaces: member, main: "TR_print([1, 2].ad_1)\n", neutralFails: true},
+	{name: "sözlük_anahtarı", namespaces: member, main: "TR_var d = {ad_1: 1}\nTR_print(d, d.ad_1)\n"},
+	{name: "adlı_argüman", namespaces: []codes.Namespace{codes.NamespaceParam}, main: "TR_print(TR_sum(TR_tensor([1.0, 2.0]), ad_1: 0))\n", neutralFails: true},
 	// Kullanıcı fonksiyonuna verilen adlı argüman serbesttir; parametrenin tanımı genel ad alanındadır.
-	{name: "kullanıcı_adlı_argümanı", namespaces: global, main: "fonksiyon f(a, ad_1 = 0) {\n    sonuç a + ad_1\n}\nyazdır(f(1, ad_1: 2))\n"},
-	{name: "modül_adı", namespaces: value, module: "değişken ad_1 = 5\n", moduleInOther: true, main: "aktar \"m\"\nyazdır(ad_1)\n"},
-	{name: "modül_üyesi", namespaces: member, module: "değişken ad_1 = 7\n", moduleInOther: true, main: "aktar \"m\" olarak m\nyazdır(m.ad_1)\n"},
+	{name: "kullanıcı_adlı_argümanı", namespaces: global, main: "TR_func f(a, ad_1 = 0) {\n    TR_return a + ad_1\n}\nTR_print(f(1, ad_1: 2))\n"},
+	{name: "modül_adı", namespaces: value, module: "TR_var ad_1 = 5\n", moduleInOther: true, main: "TR_import \"m\"\nTR_print(ad_1)\n"},
+	{name: "modül_üyesi", namespaces: member, module: "TR_var ad_1 = 7\n", moduleInOther: true, main: "TR_import \"m\" TR_as m\nTR_print(m.ad_1)\n"},
 }
 
 // clashOutcome bir programın sonucudur: durduğu aşama ("" hatasız), hataları ve çıktısı.
@@ -141,7 +141,7 @@ func clashCase(t *testing.T, dir string, text string, f *codes.Language, module 
 	var out bytes.Buffer
 	vm := interp.New()
 	vm.Out, vm.Err = &out, &out
-	vm.SourceFile, vm.SourceCode, vm.SourceLanguage = filepath.Join(dir, "main.tr"), r.Text, r.Language
+	vm.SourceFile, vm.SourceCode = filepath.Join(dir, "main.tr"), r.Text
 	_, err = vm.Run(r.Program)
 	vm.WaitAsync()
 	if err != nil {

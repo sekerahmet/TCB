@@ -1,9 +1,9 @@
-//! tr kodlu 3 dil=tr
-// 09_moduller.tr'nin aktardığı küçük modül (kendi başına çalıştırılacak bir örnek değildir).
-// Üst düzeyde tanımlanan her ad, modülü aktaran dosyada kullanılabilir.
+# TR 4
+# 09_moduller.tr'nin aktardığı küçük modül (kendi başına çalıştırılacak bir örnek değildir).
+# Üst düzeyde tanımlanan her ad, modülü aktaran dosyada kullanılabilir.
 
-TR_kw_const PI = 3.14159
+TR_const PI = 3.14159
 
-TR_kw_func daire_alanı(r) {
-    TR_kw_return PI * r * r
+TR_func daire_alanı(r) {
+    TR_return PI * r * r
 }

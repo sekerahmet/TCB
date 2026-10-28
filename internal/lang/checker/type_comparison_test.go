@@ -31,32 +31,36 @@ func boolTextWarnings(t *testing.T, language, source string) int {
 	return n
 }
 
-// Mantık değerinin metni dosyanın dilindedir (3): metin(Mantık) başka bir yazım dilinin
-// doğru/yanlış adıyla karşılaştırılırsa karşılaştırma hiç tutmaz, denetleyici uyarır (5. adım;
-// 3.11'in tip(x) == "Tam" kuralıyla aynı aile). Dosyanın dilindeki ad ve başka metinler sessizdir.
+// Mantık değerinin metni dilden bağımsızdır (codes.ValueNames; "true", "false"): TR_str(Mantık) bir
+// yazım dilinin doğru/yanlış adıyla karşılaştırılırsa karşılaştırma hiç tutmaz, denetleyici uyarır
+// (3.11'in TR_type(x) == "Tam" kuralıyla aynı aile). Değer metnindeki ad ve başka metinler sessizdir;
+// dosyada da yazılan satırda (dil "tr", "en") da aynıdır.
 func TestBoolTextComparisonWarning(t *testing.T) {
 	// Tipi bilinen Mantık: sabit, tip açıklamalı değişken, karşılaştırma (açıklamasız değişken
 	// dinamik dilde tipsiz sayılır, checker.go VarStatement).
-	const decl = "TR_kw_const b = TR_kw_true\nTR_kw_var c: TR_type_Bool = TR_kw_false\n"
+	const decl = "TR_const b = TR_true\nTR_var c: TR_Bool = TR_false\n"
 	for _, c := range []struct {
-		language, line string
-		want           int
+		line string
+		want int
 	}{
-		{"en", `TR_fn_print(TR_fn_str(b) == "doğru")`, 1},
-		{"en", `TR_fn_print("yanlış" != TR_fn_str(1 > 2))`, 1},
-		{"en", `TR_fn_print(TR_fn_str(b) == "true")`, 0},
-		{"tr", `TR_fn_print(TR_fn_str(b) == "true")`, 1},
-		{"tr", `TR_fn_print(TR_fn_str(b) == "doğru")`, 0},
-		{"en", `TR_fn_print(TR_fn_str(b) == "evet")`, 0},
-		{"en", `TR_fn_print(TR_fn_str(3) == "doğru")`, 0}, // Mantık değil
-		{"en", `TR_fn_print(TR_fn_str(c) == "yanlış")`, 1},
+		{`TR_print(TR_str(b) == "doğru")`, 1},
+		{`TR_print("yanlış" != TR_str(1 > 2))`, 1},
+		{`TR_print(TR_str(b) == "true")`, 0},
+		{`TR_print(TR_str(c) == "false")`, 0},
+		{`TR_print(TR_str(b) == "evet")`, 0},
+		{`TR_print(TR_str(b) == "True")`, 1}, // başka bir dilden tanıdık ad (Python)
+		{`TR_print(TR_str(c) == "False")`, 1},
+		{`TR_print(TR_str(3) == "doğru")`, 0}, // Mantık değil
+		{`TR_print(TR_str(c) == "yanlış")`, 1},
 	} {
-		if got := boolTextWarnings(t, c.language, decl+c.line+"\n"); got != c.want {
-			t.Errorf("dil=%q %s: %d uyarı, beklenen %d", c.language, c.line, got, c.want)
+		for _, language := range []string{"", "tr", "en"} {
+			if got := boolTextWarnings(t, language, decl+c.line+"\n"); got != c.want {
+				t.Errorf("dil=%q %s: %d uyarı, beklenen %d", language, c.line, got, c.want)
+			}
 		}
 	}
 	// metin gölgelenmişse kullanıcının fonksiyonudur.
-	if got := boolTextWarnings(t, "en", decl+"TR_kw_func metin(x) { TR_kw_return \"doğru\" }\nTR_fn_print(metin(b) == \"doğru\")\n"); got != 0 {
+	if got := boolTextWarnings(t, "en", decl+"TR_func metin(x) { TR_return \"doğru\" }\nTR_print(metin(b) == \"doğru\")\n"); got != 0 {
 		t.Errorf("gölgelenen metin: %d uyarı", got)
 	}
 }

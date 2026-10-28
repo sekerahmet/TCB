@@ -1,17 +1,17 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 3.13 — denetim her ifadenin içine iner; her satırda bir çağrı tip hatası.
-TR_kw_func kare(x: TR_type_Int): TR_type_Int { TR_kw_return x * x }
-TR_kw_var l = [kare("a")]
-TR_kw_var s = {"k": kare("b")}
-TR_kw_var a = 0..kare("c")
-TR_kw_var m = "değer: {kare(1) + kare("d")}"
-TR_kw_var ü = [kare("e") TR_kw_for x TR_kw_in 1..3]
-TR_kw_var i = l[kare("f")]
-TR_kw_var u = kare("g").x
-l[kare("h")] = 1
-TR_kw_struct A {
-    alan = kare("i")
-    TR_kw_func m() { TR_kw_return kare("j") }
+# TR 4
+# TEST 3.13 denetim her ifadenin içine iner: liste, sözlük, aralık, yerleştirme, liste üreteci, indeks, üye, atama hedefi, yapı alanı ve metodu, eşle deseni, parametre varsayılanı
+TR_func kare(x: TR_Int): TR_Int { TR_return x * x }
+TR_var l = [kare("a")] # ERROR H1004
+TR_var s = {"k": kare("b")} # ERROR H1004
+TR_var a = 0..kare("c") # ERROR H1004
+TR_var m = "değer: \(kare(1) + kare("d"))" # ERROR H1004
+TR_var ü = [kare("e") TR_for x TR_in 1..3] # ERROR H1004
+TR_var i = l[kare("f")] # ERROR H1004
+TR_var u = kare("g").x # ERROR H1004
+l[kare("h")] = 1 # ERROR H1004
+TR_struct A {
+    alan = kare("i") # ERROR H1004
+    TR_func m() { TR_return kare("j") } # ERROR H1004
 }
-TR_kw_var e = TR_kw_match 1 { kare("k") => 1 }
-TR_kw_func g(p = kare("l")) { }
+TR_var e = TR_match 1 { kare("k") => 1 } # ERROR H1004
+TR_func g(p = kare("l")) { } # ERROR H1004

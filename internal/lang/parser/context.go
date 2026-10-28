@@ -67,9 +67,9 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	}
 	var exit any = "" // boşsa iletide öneri yer almaz
 	if p.ctx.funcs > 0 {
-		exit = codes.NameRef(codes.KwReturn)
+		exit = p.word(codes.KwReturn)
 	}
-	p.syntaxError(tok, messages.H0151, tokenName(tok), exit)
+	p.syntaxError(tok, messages.H0151, p.tokenName(tok), exit)
 }
 
 // checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
@@ -79,12 +79,12 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	}
 	switch {
 	case p.ctx.test:
-		p.syntaxError(tok, messages.H0153, tokenName(tok), codes.NameRef(codes.KwIf))
+		p.syntaxError(tok, messages.H0153, p.tokenName(tok), p.word(codes.KwIf))
 	case p.module:
-		p.syntaxError(tok, messages.H0154, tokenName(tok))
+		p.syntaxError(tok, messages.H0154, p.tokenName(tok))
 	default:
 		// Programın en dışında 'sonuç' yazılmaz: program TR_exit ile biter (1.10)
-		p.syntaxError(tok, messages.H0171, tokenName(tok), codes.NameRef(codes.FnExit))
+		p.syntaxError(tok, messages.H0171, p.tokenName(tok), codes.NameRef(codes.FnExit))
 	}
 }
 

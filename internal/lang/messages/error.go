@@ -146,3 +146,31 @@ func As(err error) (*Error, bool) {
 	ok := errors.As(err, &m)
 	return m, ok
 }
+
+// Root returns the message of err's innermost cause (the code TR_error_code gives): starting
+// from the first coded message it descends only through cause slots (IsCauseSlot: "tensor
+// operation failed: {reason}"), not into the message's parts. Precedent: Rust's Error::source()
+// chain and anyhow's root_cause ("the lowest level cause"); Go's errors.As gives the outermost.
+func Root(err error) (*Error, bool) {
+	m, ok := As(err)
+	for ok {
+		inner, found := causeOf(m)
+		if !found {
+			break
+		}
+		m = inner
+	}
+	return m, ok
+}
+
+// causeOf is the first coded message in m's cause slots.
+func causeOf(m *Error) (*Error, bool) {
+	for i, a := range m.Args {
+		if e, isErr := a.(error); isErr && IsCauseSlot(m.Code, i) {
+			if inner, found := As(e); found {
+				return inner, true
+			}
+		}
+	}
+	return nil, false
+}

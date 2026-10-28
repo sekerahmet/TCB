@@ -1,9 +1,8 @@
-// Package source is TR's "source to program" entry point: it splits the text of a .tr file
-// into its parts (BOM, coded-form header, body), picks the right lexer, parses, optionally
-// type-checks, and returns errors and warnings in one shape. The command line, the REPL, the
-// test runner, the debug server and the module loader read files only through here. The coded
-// form (docs/spec/17_kodlar.md, 17.1-17.6) and its converter (Encode, Decode) live only in
-// this package too.
+// Package source is TR's "source to program" entry point: it checks the header of a .tr file
+// (BOM, '#!', the '# TR 4' header), picks the right lexer, parses, optionally type-checks, and
+// returns errors and warnings in one shape. The command line, the REPL, the test runner, the debug
+// server and the module loader read files only through here. The converter between the coded
+// form and a writing language's view (Encode, Decode) lives only in this package too.
 //
 // Layer: language core (internal/lang); imports only internal/lang packages.
 package source
@@ -17,59 +16,52 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Header is the start of a coded file's first line (17.1, format version 2); the code of the
-// file's writing language follows it: "//! tr kodlu 3 dil=en". The language is the file's, not
-// the person's: a value's text follows the language of the file the operation is written in
-// (3), and each person still sees and edits the file in their own writing language.
-const Header = lexer.CodedHeader
+// Header is the first line of every TR file (2.1; the second when the first starts with '#!'). It
+// is a comment and carries no language: the file is written with identities (TR_print), and each
+// person sees it in their own writing language.
+const Header = "# TR 4"
 
-// headerPrefix kodlu biçim başlıklarının ortak başıdır; bu önekle başlayıp Header ve bilinen
-// bir dil kodu olmayan ilk satır, bu sürümün okuyamadığı bir biçimdir (sessizce Türkçe kaynak
-// sayılmaz).
-const headerPrefix = "//! tr kodlu"
+// headerPrefix başlıkların ortak başıdır; bu önekle başlayıp Header olmayan satır bu sürümün
+// okuyamadığı bir biçimdir (sessizce başlıksız sayılmaz).
+const headerPrefix = "# TR "
+
+// viewMarker görünüm başlığının işaretidir: 'tr göster' başlığa görünümün dilini yazar
+// ('# TR 4 view=tr'); satır sayısı değişmez. Dosyanın türü dosyanın kendisindedir: görünüm
+// çalışmaz (ViewError), 'tr kodla' dili oradan okur.
+const viewMarker = " view="
+
+// shebang ilk satırdaki yorumdur: dosya betik gibi doğrudan çalıştırılır (./program.tr, 2.1).
+const shebang = "#!"
 
 const bom = "\xef\xbb\xbf"
 
 // Parts are the parts of a source file. Join puts them back together byte for byte.
 type Parts struct {
-	// BOM reports whether the file starts with a UTF-8 BOM.
+	// BOM reports whether the file starts with a UTF-8 BOM (it is ignored, 2.1).
 	BOM bool
-	// Coded reports whether the file is in coded form (its first line is Header and a language).
+	// Coded reports whether the file has the header: it is a TR file, written with identities.
 	Coded bool
-	// Language is the code of the file's writing language: the header's for a coded file,
-	// Turkish (codes.SourceLanguage) for a file without the header (17.7).
-	Language string
-	// HeaderEOL is the end of the header line ("\n" or "\r\n"; empty when the header is the
-	// file's only line).
-	HeaderEOL string
-	// Body is the text after the header (if any). Line numbers count from the body (17.5): line
-	// 1 of a coded file is the line under the header, the same as line 1 of every view.
+	// View is the writing language of a view (its header '# TR 4 view=tr', tr göster's output);
+	// "" otherwise. A view is not coded and does not run (ViewError).
+	View string
+	// Body is the text after the BOM, the '#!' and header lines included: they are comments, and
+	// positions are the file's own (line 1 is the file's first line).
 	Body string
 }
 
-// HeaderError is returned when a file's first line looks like a coded-form header but is
-// not the header this version can read: another format version, or an unknown language.
+// HeaderError is returned when the line where the header stands looks like a header but is not
+// the one this version reads (another format version).
 type HeaderError struct {
 	Line string
+	// At is the line's number (1, or 2 after '#!').
+	At int
 }
 
-// Unwrap returns the message at its position (line 1, column 1), so frames and tools read the
-// position from the error (messages.Pos), not from its text.
+// Unwrap returns the message at its position, so frames and tools read the position from the
+// error (messages.Pos), not from its text.
 func (e *HeaderError) Unwrap() error {
-	languages := messages.OrList(codes.Languages()...)
-	switch language, ok := strings.CutPrefix(e.Line, Header); {
-	case ok && language != "":
-		_, err := codes.LoadLanguage(language)
-		return messages.At(1, 1, err)
-	case ok || e.Line == strings.TrimSuffix(Header, languageField):
-		// Sürüm okunur, dosyanın dili eksik.
-		return messages.At(1, 1, messages.New(messages.H2523, e.Line, Header, languages))
-	}
-	return messages.At(1, 1, messages.New(messages.H2512, e.Line, Header, languages, headerPrefix))
+	return messages.At(e.At, 1, messages.New(messages.H2512, e.Line, Header))
 }
-
-// languageField başlıkta dosyanın dilini veren alanın başıdır (Header bununla biter).
-const languageField = " dil="
 
 func (e *HeaderError) Error() string {
 	return e.Unwrap().Error()
@@ -78,28 +70,89 @@ func (e *HeaderError) Error() string {
 // MessageText hatanın lang dilindeki metnidir (messages.Localized).
 func (e *HeaderError) MessageText(lang string) string { return messages.ErrorIn(e.Unwrap(), lang) }
 
-// Split splits text into its parts. If the first line (after the BOM) is exactly Header and the
-// code of an embedded writing language the file is coded; otherwise it is source written in
-// Turkish. If the first line starts with the header prefix but is not such a header (an older
-// or newer format version, an unknown language), it returns *HeaderError.
+// NoHeaderError is the error of a file without the header: it is text in a writing language (or
+// not TR at all) and does not run; the message gives the encoding command, with the person's
+// language as the text's language (2.1).
+func NoHeaderError() error {
+	return messages.At(1, 1, messages.New(messages.H2540, Header, codes.NameRef(codes.CmdEncode),
+		codes.NameRef(codes.OptLang), codes.Display().Code))
+}
+
+// ViewError is returned for a view file: its header carries the view's writing language
+// ('# TR 4 view=tr', tr göster's output). A view is text in a writing language and does not run;
+// the message gives the encoding command.
+type ViewError struct {
+	Lang string
+	// At is the header line's number (1, or 2 after '#!').
+	At int
+}
+
+// Unwrap returns the message at its position (messages.Pos).
+func (e *ViewError) Unwrap() error {
+	return messages.At(e.At, 1, messages.New(messages.H2541, e.Lang, codes.NameRef(codes.CmdEncode)))
+}
+
+func (e *ViewError) Error() string { return e.Unwrap().Error() }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *ViewError) MessageText(lang string) string { return messages.ErrorIn(e.Unwrap(), lang) }
+
+// Split splits text into its parts. The header is the first line, or the second when the first
+// starts with '#!'; if that line starts with the header's prefix but is not the header (another
+// format version), it returns *HeaderError. A view's header ('# TR 4 view=tr') sets View and
+// returns *ViewError: only the encoder reads a view.
 func Split(text string) (Parts, error) {
-	b := Parts{Language: codes.SourceLanguage}
+	b := Parts{}
 	if strings.HasPrefix(text, bom) {
 		b.BOM = true
 		text = text[len(bom):]
 	}
-	first, rest, eol := firstLine(text)
-	language, header := strings.CutPrefix(first, Header)
+	b.Body = text
+	at := 1
+	line, rest, _ := firstLine(text)
+	if strings.HasPrefix(line, shebang) {
+		line, _, _ = firstLine(rest)
+		at = 2
+	}
 	switch {
-	case header && slices.Contains(codes.Languages(), language):
-		b.Coded, b.Language, b.HeaderEOL, b.Body = true, language, eol, rest
-	case strings.HasPrefix(first, headerPrefix):
-		b.Body = text
-		return b, &HeaderError{Line: first}
-	default:
-		b.Body = text
+	case line == Header:
+		b.Coded = true
+	case strings.HasPrefix(line, Header+viewMarker) && slices.Contains(codes.Languages(), line[len(Header+viewMarker):]):
+		b.View = line[len(Header+viewMarker):]
+		return b, &ViewError{Lang: b.View, At: at}
+	case strings.HasPrefix(line, headerPrefix):
+		return b, &HeaderError{Line: line, At: at}
 	}
 	return b, nil
+}
+
+// viewHeader lang'deki görünümün başlığıdır ('# TR 4 view=tr').
+func viewHeader(lang *codes.Language) string { return Header + viewMarker + lang.Code }
+
+// setHeader gövdenin başlık satırını (ilk satır, '#!' varsa ikincisi) header yapar; satır sonu ve
+// öbür satırlar olduğu gibi kalır.
+func setHeader(body, header string) string {
+	prefix := ""
+	line, rest, eol := firstLine(body)
+	if strings.HasPrefix(line, shebang) {
+		prefix = line + eol
+		line, rest, eol = firstLine(rest)
+	}
+	return prefix + header + eol + rest
+}
+
+// HeaderLines is the number of the text's first lines that are its '#!' line and header (0 when
+// the text has no header): tools that read a file's lines skip them, so the header is not a doc
+// comment and a template body does not carry it.
+func HeaderLines(text string) int {
+	b, err := Split(text)
+	if b.View == "" && (err != nil || !b.Coded) {
+		return 0
+	}
+	if strings.HasPrefix(b.Body, shebang) {
+		return 2
+	}
+	return 1
 }
 
 // firstLine metnin ilk satırını, ondan sonrasını ve aradaki satır sonunu verir.
@@ -117,68 +170,52 @@ func firstLine(text string) (first, rest, eol string) {
 
 // Join turns the parts back into file text (the inverse of Split).
 func (b Parts) Join() string {
-	var sb strings.Builder
 	if b.BOM {
-		sb.WriteString(bom)
+		return bom + b.Body
 	}
-	if b.Coded {
-		sb.WriteString(Header)
-		sb.WriteString(b.Language)
-		sb.WriteString(b.HeaderEOL)
-	}
-	sb.WriteString(b.Body)
-	return sb.String()
+	return b.Body
 }
 
-// Turkish Türkçe yazım dilidir: kodlu başlığı olmayan metin bugün Türkçe yazılmış sayılır (17.7;
-// Türkçeye ayrıcalık tanıyan geçici kural). Gömülü liste kurulamadıysa kimlik listesidir ve
-// codes.LanguageError nedenini söyler.
+// Turkish Türkçe yazım dilidir: Go testlerinin ve araçların Türkçe yazılmış metni (TextLexer)
+// onunla okunur. Gömülü liste kurulamadıysa kimlik listesidir ve codes.LanguageError nedenini söyler.
 func Turkish() *codes.Language { return codes.Source() }
 
-// TextLexer is the lexer of a text written in Turkish without the coded header: the text is
-// converted to coded form first, so the program reads codes; a text that cannot be
-// converted is read as it is.
+// TextLexer is the lexer of a text written in Turkish without the header (a test's or a tool's
+// snippet): the text is converted to coded form first, so the program reads codes; a text that
+// cannot be converted is read as it is.
 func TextLexer(text string) *lexer.Lexer { return textLexerIn(text, nil, Turkish()) }
 
 // TextLexerWithNames is the lexer of a text the person types inside a running program's scope
 // (the debugger's expression, condition and watch): it is written in the person's display
-// language (codes.Display, TR_DIL), like a shell line, not in the file's. A name in names is the
-// program's own and is not encoded as a language element (the user's toplam variable stays a
-// variable).
+// language (codes.Display, TR_DIL), like a shell line. A name in names is the program's own and is
+// not encoded as a language element (the user's toplam variable stays a variable).
 func TextLexerWithNames(text string, names []string) *lexer.Lexer {
 	return textLexerIn(text, names, codes.Display())
 }
 
-// textLexerIn lang'de yazılmış kodsuz metnin sözcük çözümleyicisidir: metin önce kodlu biçime
-// çevrilir, konumlar lang'deki gösterime göredir; çevrilemeyen metin olduğu gibi okunur.
+// textLexerIn lang'de yazılmış metnin sözcük çözümleyicisidir: metin önce kodlu biçime çevrilir,
+// konumlar lang'deki gösterime göredir; çevrilemeyen metin olduğu gibi okunur.
 func textLexerIn(text string, names []string, lang *codes.Language) *lexer.Lexer {
-	b := Parts{Language: lang.Code, Body: text}
-	if coded, err := toCoded(b, lang, names, false); err == nil {
+	if coded, err := toCoded(text, lang, names, false); err == nil {
 		_, l := view(coded, lang)
 		return l
 	}
 	return lexer.NewBodyIn(text, false, lang)
 }
 
-// Lexer metin araçlarının (biçimlendirici, tr derle) gövde çözümleyicisidir: kodlu dosyada kodları
-// tanıyan ve konumları dosyanın Türkçe görünümüne göre veren (kaçışlı kullanıcı adlarının '$'ı
-// dahil; araç çıktısı TR_DIL'e bağlı olmasın diye), başlıksız dosyada metni Türkçe okuyan
-// çözümleyici. Türkçe görünüm burada Türkçeye ayrıcalık tanıyan geçici bir istisnadır; dilden
-// bağımsız konum diskteki metindir (IdentityLexer). Programın konumları kişinin görünümüne
-// göredir (Prepare, 17.5).
+// Lexer is the body's lexer for the text tools (the formatter, tr build): a coded body is read as
+// it is (identities, positions on disk); a body without the header is a view written in Turkish.
 func (b Parts) Lexer() *lexer.Lexer {
-	if !b.Coded {
-		return lexer.NewBodyIn(b.Body, false, Turkish()) // başlıksız metin Türkçe sayılır (17.7)
+	if b.Coded {
+		return lexer.NewBody(b.Body, true)
 	}
-	_, l := view(b, Turkish())
-	return l
+	return lexer.NewBodyIn(b.Body, false, Turkish())
 }
 
 // IdentityLexer returns the body's lexer as the interpreter reads it, for tools that keep a program's
 // facts independent of the reader's language (the code index): names that are language elements come as
 // identities (TR_fn_print), user names as written. A coded body is read as it is; a body without the
-// coded header is written in Turkish (17.7) and is encoded first, as the interpreter does. Positions
-// follow the text on disk (a coded line counts an identity's length).
+// header is a view written in Turkish and is encoded first. Positions follow the text on disk.
 func (b Parts) IdentityLexer() *lexer.Lexer {
 	if b.Coded {
 		return lexer.NewBody(b.Body, true)
@@ -186,20 +223,8 @@ func (b Parts) IdentityLexer() *lexer.Lexer {
 	return TextLexer(b.Body)
 }
 
-// scanLexer kodları tanıyan, sütunları yalnızca kod adlarına göre kayan çözümleyicidir:
-// gösterimi kuran çözümleme (analyze) bunu kullanır, gösterim henüz yoktur. Aralıklar
-// (Record.Start/End) Lexer'ınkiyle aynıdır. Kodsuz gövde lang'de yazılmış okunur; kodlu
-// gövdenin kodları kimlikleriyle okunur (gösterimin kaçışları kimlikli ağaçtan, adlar
-// lang'de aranarak bulunur; checker.NameBindings).
-func (b Parts) scanLexer(lang *codes.Language) *lexer.Lexer {
-	if b.Coded {
-		return lexer.NewBody(b.Body, true)
-	}
-	return lexer.NewBodyIn(b.Body, false, lang)
-}
-
 // findEOL bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".
-// Kodla başlığı gövdenin biçimiyle yazar.
+// Kodlama başlığı gövdenin biçimiyle yazar.
 func findEOL(body string) string {
 	if i := strings.IndexByte(body, '\n'); i > 0 && body[i-1] == '\r' {
 		return "\r\n"

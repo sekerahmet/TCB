@@ -1,10 +1,9 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı modül (12.5): bir testin yerel adı ötekine sızmaz; başka bir testin
-// tanımladığı ad bu testte tanımsızdır ve çalışmadan önce hata verir.
-TR_ctx_test "birinci" {
-    TR_kw_var yerel = 1
+# TR 4
+# TEST 12.5 bir testin yerel adı ötekine sızmaz: başka bir testin tanımladığı ad bu testte tanımsızdır ve çalışmadan önce hata verir
+TR_test "birinci" {
+    TR_var yerel = 1
 }
 
-TR_ctx_test "ikinci" {
-    TR_fn_print(yerel)
+TR_test "ikinci" {
+    TR_print(yerel) # ERROR H1106
 }

@@ -18,7 +18,7 @@ func sampleSnapshot() *Snapshot {
 		Window: &WindowInfo{
 			Seconds: 2, Step: 50, MsPerStep: 40, StepsPerSec: 25, TensorShare: 0.75, CPUTensorAlloc: 50 << 20,
 			Ops:    []OpInfo{{Name: "matris çarpımı (@)", Share: 0.5, Seconds: 1, Calls: 100, Device: "gpu", MsPerStep: &ms}},
-			Lines:  []LineInfo{{File: "egit.tr", Line: 12, Share: 0.6, TensorShare: 0.9, Text: "geri_yayılım(kayıp)"}},
+			Lines:  []LineInfo{{File: "egit.tr", Line: 12, Share: 0.6, TensorShare: 0.9, Text: "TR_backward(kayıp)"}},
 			GPUSec: 1.5, GPUShare: 0.75, GPUFamilies: []KernelInfo{{Name: "carpim", Share: 0.6}, {Name: "dikkat", Share: 0.3}},
 		},
 	}
@@ -34,7 +34,7 @@ func TestScreenLines(t *testing.T) {
 		"tensör işlemleri %75",
 		"matris çarpımı (@)", "ms/adım", "çağrı/adım",
 		"kerneller %75 meşgul · 30,0 ms/adım · carpim %60 · dikkat %30",
-		"egit.tr:12", "geri_yayılım(kayıp)",
+		"egit.tr:12", "TR_backward(kayıp)",
 		"Go yığını 200,0 MB", "CPU tensör ayırması 1,0 MB/adım", "GPU canlı 3,0 GB (ayrılmış 4,0 GB, tepe 3,0 GB)",
 		"Programın çıktısı (tamamı: c.txt)", "│ adım 300",
 	} {

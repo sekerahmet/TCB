@@ -1,28 +1,28 @@
-//! tr kodlu 3 dil=tr
-// 22 — Eşzamanlı görevler: işleri aynı anda yürütmek.
-// Ne öğretir: eşzamanlı ile arka planda iş başlatmak, bekle_hepsi() ile hepsinin bitmesini beklemek.
-// Sonuç sıradan bağımsız olarak aynıdır.
-// Önceki örnekten: döngüler (07), fonksiyonlar (08).
-// Çalıştırma (proje kökünden): tr examples/tr/22_eszamanli_gorevler.tr
+# TR 4
+# 22 — Eşzamanlı görevler: işleri aynı anda yürütmek.
+# Ne öğretir: eşzamanlı ile arka planda iş başlatmak, bekle_hepsi() ile hepsinin bitmesini beklemek.
+# Sonuç sıradan bağımsız olarak aynıdır.
+# Önceki örnekten: döngüler (07), fonksiyonlar (08).
+# Çalıştırma (proje kökünden): tr examples/tr/22_eszamanli_gorevler.tr
 
-TR_kw_var kareler_toplamı = 0
-TR_kw_for i TR_kw_in 1..=100 {
-    TR_kw_async { kareler_toplamı += i * i }
+TR_var kareler_toplamı = 0
+TR_for i TR_in 1..=100 {
+    TR_async { kareler_toplamı += i * i }
 }
-TR_fn_wait_all() // başlatılan bütün görevlerin bitmesini bekle
-TR_fn_print("1..100 karelerinin toplamı: {kareler_toplamı}")
+TR_wait_all() # başlatılan bütün görevlerin bitmesini bekle
+TR_print("1..100 karelerinin toplamı: \(kareler_toplamı)")
 
-// Bekleyen görevler iç içe ilerler: 4 görev 0.05 sn beklemeyi birlikte yapar
-TR_kw_var biten = 0
-TR_kw_for i TR_kw_in 0..4 {
-    TR_kw_async {
-        TR_fn_sleep(0.05)
+# Bekleyen görevler iç içe ilerler: 4 görev 0.05 sn beklemeyi birlikte yapar
+TR_var biten = 0
+TR_for i TR_in 0..4 {
+    TR_async {
+        TR_sleep(0.05)
         biten += 1
     }
 }
-TR_fn_wait_all()
-TR_fn_print("biten görev sayısı: {biten}")
+TR_wait_all()
+TR_print("biten görev sayısı: \(biten)")
 
-// --- Kendin dene ---
-// 1. bekle(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?
-// 2. 1..=1000 sayılarının toplamını 10 eşzamanlı görevde parçalara bölerek hesapla.
+# --- Kendin dene ---
+# 1. bekle(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?
+# 2. 1..=1000 sayılarının toplamını 10 eşzamanlı görevde parçalara bölerek hesapla.

@@ -1,75 +1,75 @@
-//! tr kodlu 3 dil=tr
-// 48 — Eğitim koşusu: kayıt işlerini kitaplığa bırakmak, uzun koşudan önce prova yapmak.
-// Ne öğretir: aktar "tr/egitim" ile Koşu: koşu klasörü, config.json, metrics.jsonl, ilerleme çubuğu ve kontrol
-// noktası tek satırda; koşu.adım_bitti(adım, ölçüler), koşu.değerlendirildi(adım, ölçüler), koşu.bitir(model)
-// (ağırlıklar her şeyden önce yazılır); prova: doğru ile aynı eğitimin PROVA_ADIMI adımlık denemesi. Döngü sizde kalır.
-// Önceki örnekten: kontrol noktası (40): orada elle kurulan klasör, günlük ve çubuk burada Koşu'nun işidir;
-// eğitimin kararlılığı (44): aynı kitaplık modülü.
-// Ayrıntılar: lib/README.md (tr/egitim), docs/spec/20_kontrol_noktasi.md §20.
-//
-// Çalıştırma (proje kökünden): tr examples/tr/48_egitim_kosusu.tr
+# TR 4
+# 48 — Eğitim koşusu: kayıt işlerini kitaplığa bırakmak, uzun koşudan önce prova yapmak.
+# Ne öğretir: aktar "tr/egitim" ile Koşu: koşu klasörü, config.json, metrics.jsonl, ilerleme çubuğu ve kontrol
+# noktası tek satırda; koşu.adım_bitti(adım, ölçüler), koşu.değerlendirildi(adım, ölçüler), koşu.bitir(model)
+# (ağırlıklar her şeyden önce yazılır); prova: doğru ile aynı eğitimin PROVA_ADIMI adımlık denemesi. Döngü sizde kalır.
+# Önceki örnekten: kontrol noktası (40): orada elle kurulan klasör, günlük ve çubuk burada Koşu'nun işidir;
+# eğitimin kararlılığı (44): aynı kitaplık modülü.
+# Ayrıntılar: lib/README.md (tr/egitim), docs/spec/20_kontrol_noktasi.md §20.
+#
+# Çalıştırma (proje kökünden): tr examples/tr/48_egitim_kosusu.tr
 
-TR_kw_import "tr/egitim"
+TR_import "tr/egitim"
 
-// Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
-TR_kw_const KOŞU = TR_fn_path("runs/kosu_ornegi")
-TR_kw_if KOŞU.TR_mem_exists { TR_fn_remove(KOŞU, TR_arg_recursive: TR_kw_true) }
-TR_kw_var ayar = {TR_mem_step: 60, TR_mem_lr: 0.01}
+# Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
+TR_const KOŞU = TR_path("runs/kosu_ornegi")
+TR_if KOŞU.TR_exists { TR_remove(KOŞU, TR_recursive: TR_true) }
+TR_var ayar = {TR_step: 60, TR_lr: 0.01}
 
-// --- Veri ve model (40. örnekteki küçük model) ---
-TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
-TR_kw_var V = p.TR_mem_vocab_size
-TR_kw_var doğrulama_girişi, doğrulama_hedefi = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 2).TR_mem_next()
+# --- Veri ve model (40. örnekteki küçük model) ---
+TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
+TR_var V = p.TR_vocab_size
+TR_var doğrulama_girişi, doğrulama_hedefi = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 2).TR_next()
 
-// eğit bir koşuyu baştan sona sürer; prova doğruysa aynı eğitim kısa bir denemedir.
-TR_kw_func eğit(prova) {
-    TR_kw_var ö = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
-    TR_kw_var parametre_tohumu = 0
-    TR_kw_func parametre(şekil, ölçek) {
+# eğit bir koşuyu baştan sona sürer; prova doğruysa aynı eğitim kısa bir denemedir.
+TR_func eğit(prova) {
+    TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+    TR_var parametre_tohumu = 0
+    TR_func parametre(şekil, ölçek) {
         parametre_tohumu += 1
-        TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
+        TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
     }
-    TR_kw_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
-    TR_kw_func ileri(giriş) {
-        TR_kw_return TR_fn_gelu(TR_fn_embedding(model.E, giriş) @ model.W1) @ model.W2
+    TR_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+    TR_func ileri(giriş) {
+        TR_return TR_gelu(TR_embedding(model.E, giriş) @ model.W1) @ model.W2
     }
-    TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: ayar.TR_mem_lr, TR_arg_weight_decay: 0.0)
-    // Sözlükteki her şey kontrol noktasına girer; klasörde bir nokta varsa burada yüklenir.
-    TR_kw_var koşu = TR_type_Run(KOŞU, ayar, {model: model, op: op, ö: ö}, TR_arg_num_steps: ayar.TR_mem_step, TR_arg_dry_run: prova)
-    TR_kw_for adım TR_kw_in koşu.TR_mem_resume_step..koşu.TR_mem_last_step {
-        TR_kw_var giriş, hedef = ö.TR_mem_next()
-        op.TR_mem_zero_grad()
-        TR_kw_var kayıp = TR_fn_cross_entropy(ileri(giriş), hedef)
-        TR_fn_backward(kayıp)
-        op.TR_mem_step()
-        // Kaybı okumak (GPU'da) beklemek demektir: ölçüler her adımda değil, 10 adımda bir verilir.
-        koşu.TR_mem_step_done(adım + 1, TR_kw_if (adım + 1) % 10 == 0 { {TR_mem_loss: kayıp.TR_mem_tolist} } TR_kw_else { TR_kw_none })
-        TR_kw_if (adım + 1) % 30 == 0 {
-            TR_kw_var dk = TR_fn_cross_entropy(ileri(doğrulama_girişi), doğrulama_hedefi).TR_mem_tolist
-            koşu.TR_mem_evaluated(adım + 1, {doğrulama_kaybı: dk})
-            TR_fn_print("adım {adım + 1}: doğrulama kaybı {TR_fn_round(dk, 3)}")
+    TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
+    # Sözlükteki her şey kontrol noktasına girer; klasörde bir nokta varsa burada yüklenir.
+    TR_var koşu = TR_Run(KOŞU, ayar, {model: model, op: op, ö: ö}, TR_num_steps: ayar.TR_step, TR_dry_run: prova)
+    TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
+        TR_var giriş, hedef = ö.TR_next()
+        op.TR_zero_grad()
+        TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
+        TR_backward(kayıp)
+        op.TR_step()
+        # Kaybı okumak (GPU'da) beklemek demektir: ölçüler her adımda değil, 10 adımda bir verilir.
+        koşu.TR_step_done(adım + 1, TR_if (adım + 1) % 10 == 0 { {TR_loss: kayıp.TR_tolist} } TR_else { TR_none })
+        TR_if (adım + 1) % 30 == 0 {
+            TR_var dk = TR_cross_entropy(ileri(doğrulama_girişi), doğrulama_hedefi).TR_tolist
+            koşu.TR_evaluated(adım + 1, {doğrulama_kaybı: dk})
+            TR_print("adım \(adım + 1): doğrulama kaybı \(TR_round(dk, 3))")
         }
     }
-    koşu.TR_mem_finish(model)
-    TR_kw_return koşu
+    koşu.TR_finish(model)
+    TR_return koşu
 }
 
-// --- Önce prova: geçici bir klasörde PROVA_ADIMI adım; koşu klasörüne dokunmaz ---
-TR_fn_print("prova {TR_const_DRY_RUN_STEPS} adım sürer")
-eğit(TR_kw_true)
-TR_fn_print("prova koşu klasörünü açtı mı:", KOŞU.TR_mem_exists)
+# --- Önce prova: geçici bir klasörde PROVA_ADIMI adım; koşu klasörüne dokunmaz ---
+TR_print("prova \(TR_DRY_RUN_STEPS) adım sürer")
+eğit(TR_true)
+TR_print("prova koşu klasörünü açtı mı:", KOŞU.TR_exists)
 
-// --- Asıl koşu ---
-TR_kw_var koşu = eğit(TR_kw_false)
-TR_kw_for ad TR_kw_in ["config.json", "metrics.jsonl", "model.trt"] {
-    TR_fn_print(ad, TR_fn_path(KOŞU, ad).TR_mem_exists)
+# --- Asıl koşu ---
+TR_var koşu = eğit(TR_false)
+TR_for ad TR_in ["config.json", "metrics.jsonl", "model.trt"] {
+    TR_print(ad, TR_path(KOŞU, ad).TR_exists)
 }
-TR_fn_print("ağırlıklar:", TR_fn_load_tensors(TR_fn_path(KOŞU, "model.trt"))["W2"].TR_mem_shape)
+TR_print("ağırlıklar:", TR_load_tensors(TR_path(KOŞU, "model.trt"))["W2"].TR_shape)
 
-// --- Aynı koşu yeniden: bitmiş eğitim kaldığı adımdan (sondan) sürer, döngü bir şey yapmaz ---
-TR_fn_print("kaldığı adım:", eğit(TR_kw_false).TR_mem_resume_step)
+# --- Aynı koşu yeniden: bitmiş eğitim kaldığı adımdan (sondan) sürer, döngü bir şey yapmaz ---
+TR_print("kaldığı adım:", eğit(TR_false).TR_resume_step)
 
-// --- Kendin dene ---
-// 1. ayar.adım'ı 1 yap: prova kaç adım sürer?
-// 2. koşu.bitir(model) satırını silip örneği çalıştır: prova neyi söyler?
-// 3. Asıl koşuyu 30. adımda Ctrl+C ile kes (önce silme satırını kaldır), sonra yeniden çalıştır: nereden sürer?
+# --- Kendin dene ---
+# 1. ayar.adım'ı 1 yap: prova kaç adım sürer?
+# 2. koşu.bitir(model) satırını silip örneği çalıştır: prova neyi söyler?
+# 3. Asıl koşuyu 30. adımda Ctrl+C ile kes (önce silme satırını kaldır), sonra yeniden çalıştır: nereden sürer?

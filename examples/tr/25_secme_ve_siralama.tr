@@ -1,34 +1,34 @@
-//! tr kodlu 3 dil=tr
-// 25 — Seçme ve sıralama: tensörde koşula göre seçmek, en büyükleri bulmak.
-// Ne öğretir: koşullu ile eleman seçmek, argmax, en_büyük_k, sıralama_indeksi, birikimli_toplam, sınırla.
-// Önceki örnekten: tensör matematiği (24), tensörler (23), matematik (13).
-// Çalıştırma (proje kökünden): tr examples/tr/25_secme_ve_siralama.tr
-// Ayrıntılar: docs/spec/15_tensorler.md §15.
+# TR 4
+# 25 — Seçme ve sıralama: tensörde koşula göre seçmek, en büyükleri bulmak.
+# Ne öğretir: koşullu ile eleman seçmek, argmax, en_büyük_k, sıralama_indeksi, birikimli_toplam, sınırla.
+# Önceki örnekten: tensör matematiği (24), tensörler (23), matematik (13).
+# Çalıştırma (proje kökünden): tr examples/tr/25_secme_ve_siralama.tr
+# Ayrıntılar: docs/spec/15_tensorler.md §15.
 
-TR_kw_var x = TR_fn_tensor([-1.0, 2.0, -3.0, 4.0])
+TR_var x = TR_tensor([-1.0, 2.0, -3.0, 4.0])
 
-// koşullu(koşul, a, b): koşulun doğru olduğu yerde a'yı, diğerlerinde b'yi seçer (karşılaştırma 0/1 maskesi verir).
-TR_fn_print(TR_fn_where(x > 0, x, 0).TR_mem_tolist) // negatifleri sıfırlar (relu gibi)
-TR_fn_print(TR_fn_where(x > 0, 1, -1).TR_mem_tolist) // işaret
+# koşullu(koşul, a, b): koşulun doğru olduğu yerde a'yı, diğerlerinde b'yi seçer (karşılaştırma 0/1 maskesi verir).
+TR_print(TR_where(x > 0, x, 0).TR_tolist) # negatifleri sıfırlar (relu gibi)
+TR_print(TR_where(x > 0, 1, -1).TR_tolist) # işaret
 
-// sınırla tensörde de eleman bazlıdır.
-TR_fn_print(TR_fn_clamp(x, TR_arg_min: -2, TR_arg_max: 3).TR_mem_tolist)
+# sınırla tensörde de eleman bazlıdır.
+TR_print(TR_clamp(x, TR_min: -2, TR_max: 3).TR_tolist)
 
-// argmax en büyük elemanın indeksini verir (eksen: -1 her satır için).
-TR_kw_var puanlar = TR_fn_tensor([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
-TR_fn_print(TR_fn_argmax(puanlar, TR_arg_dim: -1).TR_mem_tolist)
+# argmax en büyük elemanın indeksini verir (eksen: -1 her satır için).
+TR_var puanlar = TR_tensor([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]])
+TR_print(TR_argmax(puanlar, TR_dim: -1).TR_tolist)
 
-// en_büyük_k en büyük k elemanı büyükten küçüğe [değerler, indeksler] olarak verir.
-TR_kw_var en_iyiler = TR_fn_topk(TR_fn_tensor([3.0, 1.0, 4.0, 1.5]), 2)
-TR_fn_print("değerler:", en_iyiler[0].TR_mem_tolist, "indeksler:", en_iyiler[1].TR_mem_tolist)
+# en_büyük_k en büyük k elemanı büyükten küçüğe [değerler, indeksler] olarak verir.
+TR_var en_iyiler = TR_topk(TR_tensor([3.0, 1.0, 4.0, 1.5]), 2)
+TR_print("değerler:", en_iyiler[0].TR_tolist, "indeksler:", en_iyiler[1].TR_tolist)
 
-// sıralama_indeksi elemanları küçükten büyüğe sıralayan indeksleri verir (eşitlerde küçük indeks önce gelir).
-TR_fn_print(TR_fn_argsort(TR_fn_tensor([3.0, 1.0, 2.0])).TR_mem_tolist)
+# sıralama_indeksi elemanları küçükten büyüğe sıralayan indeksleri verir (eşitlerde küçük indeks önce gelir).
+TR_print(TR_argsort(TR_tensor([3.0, 1.0, 2.0])).TR_tolist)
 
-// birikimli_toplam her konuma kadar olan elemanların toplamını verir; şekil korunur.
-TR_fn_print(TR_fn_cumsum(TR_fn_tensor([1, 2, 3, 4])).TR_mem_tolist)
-TR_fn_print(TR_fn_cumsum(TR_fn_tensor([[1, 2], [3, 4]]), TR_arg_dim: 0).TR_mem_tolist)
+# birikimli_toplam her konuma kadar olan elemanların toplamını verir; şekil korunur.
+TR_print(TR_cumsum(TR_tensor([1, 2, 3, 4])).TR_tolist)
+TR_print(TR_cumsum(TR_tensor([[1, 2], [3, 4]]), TR_dim: 0).TR_tolist)
 
-// --- Kendin dene ---
-// 1. Bir tensörün yalnızca pozitif elemanlarının toplamını koşullu ile bul.
-// 2. en_büyük_k ile bir puan tensörünün en iyi 3 sınıfını ve indekslerini bul.
+# --- Kendin dene ---
+# 1. Bir tensörün yalnızca pozitif elemanlarının toplamını koşullu ile bul.
+# 2. en_büyük_k ile bir puan tensörünün en iyi 3 sınıfını ve indekslerini bul.

@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -19,6 +20,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
+
+// messageCodeText bir ileti kodunun metnidir ("H6903").
+var messageCodeText = regexp.MustCompile(`^H\d{4}$`)
 
 // migrated ileti kodlarına geçirilmiş paketlerdir: test dışı kodlarında fmt.Errorf ve errors.New
 // kullanılmaz (her ileti bir koddur). Geçiş ilerledikçe liste büyür; bkz.
@@ -233,7 +237,9 @@ func messageCalls(lx *lexer.Lexer, name, path string) (calls []call) {
 		toks = append(toks, tok)
 	}
 	for i := 0; i+2 < len(toks); i++ {
-		if (toks[i].Code != codes.FnMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen || toks[i+2].Type != lexer.TokMessageCode {
+		// İleti kodu bir metin olarak yazılır: TR_message("H6903", x).
+		if (toks[i].Code != codes.FnMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen ||
+			toks[i+2].Type != lexer.TokString || !messageCodeText.MatchString(toks[i+2].Literal) {
 			continue
 		}
 		args, depth := 0, 0
@@ -442,7 +448,7 @@ func TestGenerateRejectsRetiredCode(t *testing.T) {
 // ileti(H…, değerler) çağrısının kodu ve değer sayısı sözcük birimlerinden okunur: iç içe çağrıdaki
 // ve liste içindeki virgüller sayılmaz, kodsuz çağrı yoksayılır.
 func TestMessageCallsScanner(t *testing.T) {
-	parts, err := source.Split("ileti(H6903, a, f(b, c))\nileti(H6904)\nileti(x, 1)\ng(H6905, 1)\nileti(H6900, [1, 2], {a: 1})\n")
+	parts, err := source.Split("TR_message(\"H6903\", a, f(b, c))\nTR_message(\"H6904\")\nTR_message(x, 1)\ng(\"H6905\", 1)\nTR_message(\"H6900\", [1, 2], {a: 1})\n")
 	if err != nil {
 		t.Fatal(err)
 	}

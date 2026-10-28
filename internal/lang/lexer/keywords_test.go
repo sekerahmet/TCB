@@ -20,8 +20,8 @@ func TestKeywordDictionaryValid(t *testing.T) {
 				t.Errorf("%q → %s bekleniyordu, %s", y, kw.Type, LookupIdent(y))
 			}
 		}
-		if KeywordName(kw.Type) != codes.Name(kw.Code) {
-			t.Errorf("%s adı %q, %q bekleniyordu", kw.Type, KeywordName(kw.Type), codes.Name(kw.Code))
+		if KeywordCode(kw.Type) != kw.Code {
+			t.Errorf("%s kodu %s, %s bekleniyordu", kw.Type, KeywordCode(kw.Type), kw.Code)
 		}
 	}
 	for _, k := range codes.Codes() {

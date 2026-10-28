@@ -129,7 +129,6 @@ func RunFile(fpath string, out io.Writer) Summary {
 	machine.Err = out // eşzamanlı görev hataları da raporda görünür
 	machine.SourceFile = fpath
 	machine.SourceCode = text
-	machine.SourceLanguage = ready.Language
 	if _, err := machine.Run(prog); err != nil {
 		writeLoadFailure(out, err, text)
 		summary.Unloadable++

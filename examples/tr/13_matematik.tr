@@ -1,35 +1,35 @@
-//! tr kodlu 3 dil=tr
-// 13 — Matematik: sayılarla hesap yapan yerleşikler.
-// Ne öğretir: min/max/mutlak/işaret, yuvarlama (taban, tavan, sınırla), istatistik (ortanca,
-// standart_sapma), pi ve trigonometri, üstel ve logaritma fonksiyonları.
-// Önceki örnekten: listeler (09), fonksiyon çağrıları (08), adlı argüman (08).
-// Çalıştırma (proje kökünden): tr examples/tr/13_matematik.tr
+# TR 4
+# 13 — Matematik: sayılarla hesap yapan yerleşikler.
+# Ne öğretir: min/max/mutlak/işaret, yuvarlama (taban, tavan, sınırla), istatistik (ortanca,
+# standart_sapma), pi ve trigonometri, üstel ve logaritma fonksiyonları.
+# Önceki örnekten: listeler (09), fonksiyon çağrıları (08), adlı argüman (08).
+# Çalıştırma (proje kökünden): tr examples/tr/13_matematik.tr
 
-// En küçük, en büyük, mutlak değer ve işaret. min/max bir liste ya da birden çok sayı alır.
-TR_fn_print(TR_fn_min([3, 1, 2]), TR_fn_max([3, 1, 2]), TR_fn_min(4, 2.5), TR_fn_max(4, 2.5))
-TR_fn_print(TR_fn_abs(-5), TR_fn_abs(-2.5), TR_fn_sign(-4), TR_fn_sign(0.0), TR_fn_sign(9))
+# En küçük, en büyük, mutlak değer ve işaret. min/max bir liste ya da birden çok sayı alır.
+TR_print(TR_min([3, 1, 2]), TR_max([3, 1, 2]), TR_min(4, 2.5), TR_max(4, 2.5))
+TR_print(TR_abs(-5), TR_abs(-2.5), TR_sign(-4), TR_sign(0.0), TR_sign(9))
 
-// taban aşağı, tavan yukarı yuvarlar; sınırla değeri iki sınır arasında tutar (adlı argümanlar).
-TR_fn_print(TR_fn_floor(3.7), TR_fn_ceil(3.2), TR_fn_floor(-2.5), TR_fn_ceil(-2.5))
-TR_fn_print(TR_fn_clamp(15, TR_arg_max: 10), TR_fn_clamp(-3.5, TR_arg_min: 0.0), TR_fn_clamp(5, TR_arg_min: 0, TR_arg_max: 3))
+# taban aşağı, tavan yukarı yuvarlar; sınırla değeri iki sınır arasında tutar (adlı argümanlar).
+TR_print(TR_floor(3.7), TR_ceil(3.2), TR_floor(-2.5), TR_ceil(-2.5))
+TR_print(TR_clamp(15, TR_max: 10), TR_clamp(-3.5, TR_min: 0.0), TR_clamp(5, TR_min: 0, TR_max: 3))
 
-// İstatistik: ortalama, ortanca ve (popülasyon) standart sapma.
-TR_kw_var notlar = [2, 4, 4, 4, 5, 5, 7, 9]
-TR_fn_print(TR_fn_mean(notlar), TR_fn_median(notlar), TR_fn_std(notlar))
-TR_fn_print(TR_fn_median([3, 1, 4, 2]), TR_fn_sqrt(16))
+# İstatistik: ortalama, ortanca ve (popülasyon) standart sapma.
+TR_var notlar = [2, 4, 4, 4, 5, 5, 7, 9]
+TR_print(TR_mean(notlar), TR_median(notlar), TR_std(notlar))
+TR_print(TR_median([3, 1, 4, 2]), TR_sqrt(16))
 
-// pi bir sabittir (çağrılmaz). Trigonometri radyanla çalışır: 180 derece pi radyandır.
-TR_fn_print(TR_fn_round(TR_const_pi, 4), TR_fn_round(TR_fn_sin(TR_const_pi / 2), 4), TR_fn_round(TR_fn_cos(TR_const_pi), 4), TR_fn_round(TR_fn_tan(TR_const_pi / 4), 4))
-TR_fn_print(TR_fn_round(TR_fn_asin(1.0), 4), TR_fn_round(TR_fn_acos(0.0), 4), TR_fn_round(TR_fn_atan(1.0), 4))
-TR_fn_print(TR_fn_round(TR_fn_atan2(1.0, -1.0), 4)) // (x, y) = (-1, 1) noktasının açısı
+# pi bir sabittir (çağrılmaz). Trigonometri radyanla çalışır: 180 derece pi radyandır.
+TR_print(TR_round(TR_pi, 4), TR_round(TR_sin(TR_pi / 2), 4), TR_round(TR_cos(TR_pi), 4), TR_round(TR_tan(TR_pi / 4), 4))
+TR_print(TR_round(TR_asin(1.0), 4), TR_round(TR_acos(0.0), 4), TR_round(TR_atan(1.0), 4))
+TR_print(TR_round(TR_atan2(1.0, -1.0), 4)) # (x, y) = (-1, 1) noktasının açısı
 
-// Üstel ve logaritma: exp e^x, log doğal logaritma; log2 ve log10 öbür tabanlar.
-TR_fn_print(TR_fn_round(TR_fn_exp(1.0), 4), TR_fn_log(1.0), TR_fn_log2(8), TR_fn_log10(1000))
-// log1p ve expm1 küçük sayılarda hassastır: log(1 + x), e^x - 1.
-TR_fn_print(TR_fn_log1p(0.000001), TR_fn_expm1(0.000001))
-// Hiperbolik sinüs ve kosinüs.
-TR_fn_print(TR_fn_round(TR_fn_sinh(1.0), 4), TR_fn_cosh(0.0))
+# Üstel ve logaritma: exp e^x, log doğal logaritma; log2 ve log10 öbür tabanlar.
+TR_print(TR_round(TR_exp(1.0), 4), TR_log(1.0), TR_log2(8), TR_log10(1000))
+# log1p ve expm1 küçük sayılarda hassastır: log(1 + x), e^x - 1.
+TR_print(TR_log1p(0.000001), TR_expm1(0.000001))
+# Hiperbolik sinüs ve kosinüs.
+TR_print(TR_round(TR_sinh(1.0), 4), TR_cosh(0.0))
 
-// --- Kendin dene ---
-// 1. Bir listenin ortalamasını, ortancasını ve standart sapmasını karşılaştır: hangisi uç değerden en az etkilenir?
-// 2. Bir üçgenin dik kenarlarından (3 ve 4) açıyı atan2 ile bul ve dereceye (180 / pi ile) çevir.
+# --- Kendin dene ---
+# 1. Bir listenin ortalamasını, ortancasını ve standart sapmasını karşılaştır: hangisi uç değerden en az etkilenir?
+# 2. Bir üçgenin dik kenarlarından (3 ve 4) açıyı atan2 ile bul ve dereceye (180 / pi ile) çevir.

@@ -9,19 +9,19 @@ import (
 )
 
 // gpuTraining GPU'da (benzetim) 6 adımlık küçük bir eğitimdir.
-const gpuTraining = `varsayılan_cihaz("gpu")
-değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
-değişken x = rastgele_normal([8, 16], tohum: 2)
-değişken op = AdamW([w], öğrenme_oranı: 0.01)
-değişken ç = ilerleme(6)
-döngü i içinde 0..6 {
-    op.sıfırla()
-    değişken kayıp = toplam(relu(x @ w))
-    geri_yayılım(kayıp)
-    op.adım()
-    ç.güncelle({kayıp: kayıp})
+const gpuTraining = `TR_default_device("gpu")
+TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var x = TR_randn([8, 16], TR_seed: 2)
+TR_var op = TR_AdamW([w], TR_lr: 0.01)
+TR_var ç = TR_progress(6)
+TR_for i TR_in 0..6 {
+    op.TR_zero_grad()
+    TR_var kayıp = TR_sum(TR_relu(x @ w))
+    TR_backward(kayıp)
+    op.TR_step()
+    ç.TR_update({TR_loss: kayıp})
 }
-varsayılan_cihaz("cpu")
+TR_default_device("cpu")
 `
 
 // setupGPU GPU benzetimini kaydeder (gerçek GPU varsa o kullanılır); test bitince varsayılan
@@ -115,11 +115,11 @@ func runWithClose(t *testing.T, code string, s Options) (*Snapshot, *Profile) {
 // verir: en büyük tensörü ayıran satır en üsttedir; örnekleme kapalıyken bölüm yoktur.
 func TestProfileGPUPeakByLine(t *testing.T) {
 	setupGPU(t)
-	const code = `varsayılan_cihaz("gpu")
-değişken büyük = rastgele_normal([512, 512], tohum: 1)
-değişken küçük = rastgele_normal([16, 16], tohum: 2)
-değişken t = toplam(büyük) + toplam(küçük)
-varsayılan_cihaz("cpu")
+	const code = `TR_default_device("gpu")
+TR_var büyük = TR_randn([512, 512], TR_seed: 1)
+TR_var küçük = TR_randn([16, 16], TR_seed: 2)
+TR_var t = TR_sum(büyük) + TR_sum(küçük)
+TR_default_device("cpu")
 `
 	g, _ := runWithClose(t, code, Options{SampleLines: true})
 	if len(g.gpuPeak) == 0 || g.gpuPeakTotal == 0 {
@@ -146,10 +146,10 @@ func TestProfileGPUPeakAfterCallReturn(t *testing.T) {
 		t.Skip("yarış denetimli derlemede çağrı derinliği okunmaz")
 	}
 	setupGPU(t)
-	const code = `varsayılan_cihaz("gpu")
-fonksiyon küçük() { sonuç rastgele_normal([4, 4], tohum: 1) }
-değişken büyük = toplam(küçük()) + rastgele_normal([512, 512], tohum: 2)
-varsayılan_cihaz("cpu")
+	const code = `TR_default_device("gpu")
+TR_func küçük() { TR_return TR_randn([4, 4], TR_seed: 1) }
+TR_var büyük = TR_sum(küçük()) + TR_randn([512, 512], TR_seed: 2)
+TR_default_device("cpu")
 `
 	g, _ := runWithClose(t, code, Options{SampleLines: true})
 	if len(g.gpuPeak) == 0 {
@@ -161,21 +161,21 @@ varsayılan_cihaz("cpu")
 }
 
 // gpuTwoOptimizers ilerleme kullanmayan, adımda iki iyileştiricisi olan 6 adımlık eğitimdir.
-const gpuTwoOptimizers = `varsayılan_cihaz("gpu")
-değişken w = tensör(rastgele_normal([16, 16], tohum: 1), türev_izle: doğru)
-değişken v = tensör(rastgele_normal([16, 16], tohum: 3), türev_izle: doğru)
-değişken x = rastgele_normal([8, 16], tohum: 2)
-değişken a = AdamW([w], öğrenme_oranı: 0.01)
-değişken b = AdamW([v], öğrenme_oranı: 0.01)
-döngü i içinde 0..6 {
-    a.sıfırla()
-    b.sıfırla()
-    değişken kayıp = toplam(relu(x @ w @ v))
-    geri_yayılım(kayıp)
-    a.adım()
-    b.adım()
+const gpuTwoOptimizers = `TR_default_device("gpu")
+TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var v = TR_tensor(TR_randn([16, 16], TR_seed: 3), TR_requires_grad: TR_true)
+TR_var x = TR_randn([8, 16], TR_seed: 2)
+TR_var a = TR_AdamW([w], TR_lr: 0.01)
+TR_var b = TR_AdamW([v], TR_lr: 0.01)
+TR_for i TR_in 0..6 {
+    a.TR_zero_grad()
+    b.TR_zero_grad()
+    TR_var kayıp = TR_sum(TR_relu(x @ w @ v))
+    TR_backward(kayıp)
+    a.TR_step()
+    b.TR_step()
 }
-varsayılan_cihaz("cpu")
+TR_default_device("cpu")
 `
 
 // Çekirdeklerin cihaz süresi onları başlatan işleme ve satıra yazılır (geri yöndekiler ileri

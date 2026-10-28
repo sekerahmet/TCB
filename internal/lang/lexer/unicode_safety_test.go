@@ -17,7 +17,7 @@ func lexErrors(src string) []error {
 // in code, comments and strings alike.
 func TestBidiControlsRejected(t *testing.T) {
 	for _, src := range []string{
-		"değişken a = 1 // yorum \u202e gizli\n",
+		"değişken a = 1 # yorum\u202e gizli\n",
 		"değişken a = \"metin \u2066 içinde\"\n",
 		"değişken\u200f a = 1\n",
 	} {
@@ -28,25 +28,21 @@ func TestBidiControlsRejected(t *testing.T) {
 	}
 }
 
-// Invisible filler letters and names that mix look-alike scripts are rejected; a name in one
-// script (Turkish, Cyrillic, Greek) is fine.
+// Invisible filler letters in a name are rejected (2.1a). A name that mixes scripts is a warning
+// of the checker (H1019; MixedScripts here); a name in one script (Turkish, Cyrillic, Greek) is fine.
 func TestConfusableNames(t *testing.T) {
-	for src, want := range map[string]messages.Code{
-		"değişken ㅤ = 1\n":           messages.H0012,
-		"değişken yetkі = 1\n":       messages.H0013,
-		"değişken аdmin = 1\n":       messages.H0013,
-		"değişken öğrenme = 1\n":     0,
-		"değişken привет = 1\n":      0,
-		"değişken αβγ = 1\n":         0,
-		"değişken toplam_2024 = 1\n": 0,
+	if errs := lexErrors("değişken ㅤ = 1\n"); len(errs) != 1 || !messages.Has(errs[0], messages.H0012) {
+		t.Errorf("filler letter: H0012 expected, got %v", errs)
+	}
+	for name, mixed := range map[string]bool{
+		"yetkі": true, "аdmin": true, "θ_eski": true,
+		"öğrenme": false, "привет": false, "αβγ": false, "toplam_2024": false,
 	} {
-		errs := lexErrors(src)
-		if want == 0 {
-			if len(errs) > 0 {
-				t.Errorf("%q: unexpected %v", src, errs)
-			}
-		} else if len(errs) != 1 || !messages.Has(errs[0], want) {
-			t.Errorf("%q: %v expected, got %v", src, want, errs)
+		if errs := lexErrors("değişken " + name + " = 1\n"); len(errs) > 0 {
+			t.Errorf("%q: the lexer gives no error, got %v", name, errs)
+		}
+		if _, _, got := MixedScripts(name); got != mixed {
+			t.Errorf("MixedScripts(%q) = %v, want %v", name, got, mixed)
 		}
 	}
 }

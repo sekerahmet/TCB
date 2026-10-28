@@ -1,13 +1,13 @@
 package codeindex
 
 // codeScanner bir satırın kod karakterlerini sırayla verir: çift tırnaklı metinler (kaçışlarıyla)
-// ve isteğe bağlı olarak `//` yorumları atlanır, tırnak işaretleri de verilmez. Parantez sayımı,
+// ve isteğe bağlı olarak `#` yorumları (2.2; `//` tam bölmedir) atlanır, tırnak işaretleri de verilmez. Parantez sayımı,
 // birim (satırın kod noktası konumu) ve ne zaman duracağı çağıranındır; çağıran i ile bir sonraki
 // konumu ya da end ile bitişi değiştirebilir (ad atlama, değer kesme).
 type codeScanner struct {
 	text     []rune
 	i, end   int  // bir sonraki konum ve bitiş (dışlayan)
-	comments bool // `//` satır sonuna kadar yorum sayılır
+	comments bool // `#` satır sonuna kadar yorum sayılır
 	inStr    bool
 }
 
@@ -31,7 +31,7 @@ func (s *codeScanner) next() (pos int, c rune, ok bool) {
 			}
 		case c == '"':
 			s.inStr = true
-		case s.comments && c == '/' && j+1 < len(s.text) && s.text[j+1] == '/':
+		case s.comments && c == '#':
 			s.i = s.end
 		default:
 			return j, c, true

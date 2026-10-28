@@ -32,8 +32,8 @@ func run(t *testing.T, code string) (string, interp.Value, error) {
 // json_çöz sözlük anahtarlarının sırasını korumuyordu (Go map'i sırasızdır).
 func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 	_, val, err := run(t, `
-		değişken d = json_çöz("\{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": \{\"b\": 1, \"a\": 2\}\}")
-		sonuç [d.anahtarlar(), d["iç"].anahtarlar(), d["orta"], d["alfa"], json_metin(d)]`)
+		TR_var d = TR_json_parse("{\"zeta\": 1, \"alfa\": 2.5, \"orta\": [true, null, \"x\"], \"iç\": {\"b\": 1, \"a\": 2}}")
+		TR_return [d.TR_keys(), d["iç"].TR_keys(), d["orta"], d["alfa"], TR_json_string(d)]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,10 +46,10 @@ func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 // d[1] ile d["1"] eskiden Inspect() ile aynı anahtara düşüyordu.
 func TestDictKeysAreTypeAware(t *testing.T) {
 	_, val, err := run(t, `
-		değişken d = {1: "tam", "1": "metin"}
-		d[doğru] = "mantık"
+		TR_var d = {1: "tam", "1": "metin"}
+		d[TR_true] = "mantık"
 		d["doğru"] = "metin2"
-		sonuç [d[1], d["1"], d[doğru], d["doğru"], d.uzunluk, d.içerir(1), d.içerir("2")]
+		TR_return [d[1], d["1"], d[TR_true], d["doğru"], d.TR_length, d.TR_contains(1), d.TR_contains("2")]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -60,10 +60,10 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 
 	// Döngü ve anahtarlar() özgün anahtar tiplerini geri vermeli.
 	_, val, err = run(t, `
-		değişken d = {1: "a", "b": 2}
-		değişken tipler = []
-		döngü k, v içinde d { tipler = tipler + [tip(k)] }
-		sonuç [tipler, d.anahtarlar(), [tip(k) döngü k içinde d]]
+		TR_var d = {1: "a", "b": 2}
+		TR_var tipler = []
+		TR_for k, v TR_in d { tipler = tipler + [TR_type(k)] }
+		TR_return [tipler, d.TR_keys(), [TR_type(k) TR_for k TR_in d]]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -74,11 +74,11 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 
 	// Yazdırma ve JSON dönüşümü metin anahtarlar için değişmemeli.
 	out, _, err := run(t, `
-		değişken d = {"ad": "Ali", 1: "bir"}
-		yazdır(d)
-		yazdır(json_metin({"ad": "Ali"}))
-		değişken j = json_çöz("\{\"x\": 1\}")
-		yazdır(j["x"])
+		TR_var d = {"ad": "Ali", 1: "bir"}
+		TR_print(d)
+		TR_print(TR_json_string({"ad": "Ali"}))
+		TR_var j = TR_json_parse("{\"x\": 1}")
+		TR_print(j["x"])
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
@@ -130,7 +130,7 @@ func TestCSVReadRejectsText(t *testing.T) {
 		{"x,1\ny,2", messages.H7006},
 		{"a\r\nb", messages.H7006},
 		{"tarih,1/2/2024", messages.H7007},
-		{"yok.csv", 0},
+		{"TR_none.csv", 0},
 		{"VERI.CSV", 0},
 		{"tek", 0},
 		{filepath.ToSlash(filepath.Join(dir, "yok", "veri.txt")), 0},
@@ -158,7 +158,7 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "yerel_tablo.csv"), []byte("a,b\n1,2"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(source.TextLexer(`sonuç csv_oku("yerel_tablo.csv")`))
+	p := parser.New(source.TextLexer(`TR_return TR_read_csv("yerel_tablo.csv")`))
 	prog := p.ParseProgram()
 	machine := interp.New()
 	machine.SourceFile = filepath.Join(dir, "program.tr")
@@ -185,8 +185,8 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 		t.Fatalf("BOM soyulmalı: %v %v", val, err)
 	}
 	_, val, err = run(t, `
-		değişken s = csv_çöz("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
-		sonuç [s[1], [tip(h) döngü h içinde s[1]], s[2], [tip(h) döngü h içinde s[2]]]`)
+		TR_var s = TR_parse_csv("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
+		TR_return [s[1], [TR_type(h) TR_for h TR_in s[1]], s[2], [TR_type(h) TR_for h TR_in s[2]]]`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,21 +202,21 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 // Hakem bulgusu 15 ve 5: json_metin anahtar sırasını kaybediyordu, NaN'da İngilizce hata
 // veriyordu, döngüsel listede süreç yığın taşmasıyla çöküyordu (dene yakalayamıyordu).
 func TestJSONTextOrderNaNAndCycle(t *testing.T) {
-	_, val, err := run(t, `sonuç json_metin(json_çöz("\{\"b\": 1, \"a\": \{\"z\": 2, \"y\": [3]\}\}"))`)
+	_, val, err := run(t, `TR_return TR_json_string(TR_json_parse("{\"b\": 1, \"a\": {\"z\": 2, \"y\": [3]}}"))`)
 	if err != nil || val.Inspect() != `{"b":1,"a":{"z":2,"y":[3]}}` {
 		t.Fatalf("sıra korunmalı: %v %v", val, err)
 	}
 	_, val, err = run(t, `
-		değişken l = [1]
-		l.ekle(l)
-		değişken d = {"a": 1}
+		TR_var l = [1]
+		l.TR_append(l)
+		TR_var d = {"a": 1}
 		d["ben"] = [d]
-		değişken mesajlar = []
-		dene { json_metin(l) } yakala h { mesajlar.ekle("{h}") }
-		dene { json_metin(d) } yakala h { mesajlar.ekle("{h}") }
-		dene { json_metin({"x": karekök(-1.0)}) } yakala h { mesajlar.ekle("{h}") }
-		dene { json_metin([1e308 * 10.0]) } yakala h { mesajlar.ekle("{h}") }
-		sonuç mesajlar`)
+		TR_var mesajlar = []
+		TR_try { TR_json_string(l) } TR_catch h { mesajlar.TR_append("\(h)") }
+		TR_try { TR_json_string(d) } TR_catch h { mesajlar.TR_append("\(h)") }
+		TR_try { TR_json_string({"x": TR_sqrt(-1.0)}) } TR_catch h { mesajlar.TR_append("\(h)") }
+		TR_try { TR_json_string([1e308 * 10.0]) } TR_catch h { mesajlar.TR_append("\(h)") }
+		TR_return mesajlar`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +225,7 @@ func TestJSONTextOrderNaNAndCycle(t *testing.T) {
 		t.Fatalf("Türkçe döngü ve NaN hataları bekleniyordu: %s", m)
 	}
 	// BOM'lu JSON metni de çözülür
-	_, val, err = run(t, fmt.Sprintf(`sonuç json_çöz("%s\{\"a\": 1\}")["a"]`, "\ufeff"))
+	_, val, err = run(t, fmt.Sprintf(`TR_return TR_json_parse("%s{\"a\": 1}")["a"]`, "\ufeff"))
 	if err != nil || val.Inspect() != "1" {
 		t.Fatalf("BOM'lu JSON: %v %v", val, err)
 	}
@@ -237,12 +237,12 @@ func TestDecodersRequireText(t *testing.T) {
 	for _, d := range []struct {
 		code string
 		want messages.Code
-	}{{`json_çöz(5)`, messages.H7000}, {`json_çöz([1, 2])`, messages.H7000}, {`csv_oku(5)`, messages.H2423}, {`csv_oku([1])`, messages.H2423}, {`csv_çöz(5)`, messages.H2423}} {
+	}{{`TR_json_parse(5)`, messages.H7000}, {`TR_json_parse([1, 2])`, messages.H7000}, {`TR_read_csv(5)`, messages.H2423}, {`TR_read_csv([1])`, messages.H2423}, {`TR_parse_csv(5)`, messages.H2423}} {
 		if _, _, err := run(t, d.code); !messages.Has(err, d.want) {
 			t.Fatalf("%s: %s beklenirdi: %v", d.code, d.want, err)
 		}
 	}
-	out, _, err := run(t, `yazdır(json_çöz("[1, 2]"), csv_çöz("a,b\n1,2"))`)
+	out, _, err := run(t, `TR_print(TR_json_parse("[1, 2]"), TR_parse_csv("a,b\n1,2"))`)
 	if err != nil || out != "[1, 2] [[\"a\", \"b\"], [1, 2]]\n" {
 		t.Fatalf("metin argümanı: %q, %v", out, err)
 	}

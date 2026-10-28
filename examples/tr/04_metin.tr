@@ -1,38 +1,38 @@
-//! tr kodlu 3 dil=tr
-// 04 — Metin: metne değer yerleştirmek ve metinle çalışmak.
-// Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
-// kırp, içerir, başlar, biter, değiştir, böl.
-// Önceki örnekten: değişkenler ve tipler (02, 03).
-// Çalıştırma (proje kökünden): tr examples/tr/04_metin.tr
+# TR 4
+# 04 — Metin: metne değer yerleştirmek ve metinle çalışmak.
+# Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
+# kırp, içerir, başlar, biter, değiştir, böl.
+# Önceki örnekten: değişkenler ve tipler (02, 03).
+# Çalıştırma (proje kökünden): tr examples/tr/04_metin.tr
 
-TR_kw_var ad = "Ayşe"
-TR_kw_var yaş = 30
+TR_var ad = "Ayşe"
+TR_var yaş = 30
 
-// Metin içindeki {...} bir ifadedir: değeri hesaplanıp metne yazılır.
-TR_fn_print("{ad} {yaş} yaşında; gelecek yıl {yaş + 1} olacak.")
-TR_fn_print("2 kere 3 = {2 * 3}")
+# Metin içindeki {...} bir ifadedir: değeri hesaplanıp metne yazılır.
+TR_print("\(ad) \(yaş) yaşında; gelecek yıl \(yaş + 1) olacak.")
+TR_print("2 kere 3 = \(2 * 3)")
 
-// İki metin + ile birleşir. Çift tırnağı metne \" ile koyarız.
-TR_fn_print("Merhaba, " + ad + "! Ona \"hoş geldin\" dedik.")
+# İki metin + ile birleşir. Çift tırnağı metne \" ile koyarız.
+TR_print("Merhaba, " + ad + "! Ona \"hoş geldin\" dedik.")
 
-// Metnin metotları: değer.metot() biçiminde çağrılır.
-TR_kw_var cümle = "  merhaba dünya  "
-TR_fn_print("uzunluk:", cümle.TR_mem_length)
-TR_fn_print("kırpılmış: [{cümle.TR_mem_strip()}]") // baştaki ve sondaki boşlukları atar
-TR_fn_print(cümle.TR_mem_strip().TR_mem_upper())
-TR_fn_print(cümle.TR_mem_strip().TR_mem_lower())
-TR_fn_print(cümle.TR_mem_contains("dünya"), cümle.TR_mem_strip().TR_mem_starts_with("mer"))
-TR_fn_print(cümle.TR_mem_strip().TR_mem_replace("dünya", "TR"))
+# Metnin metotları: değer.metot() biçiminde çağrılır.
+TR_var cümle = "  merhaba dünya  "
+TR_print("uzunluk:", cümle.TR_length)
+TR_print("kırpılmış: [\(cümle.TR_strip())]") # baştaki ve sondaki boşlukları atar
+TR_print(cümle.TR_strip().TR_upper())
+TR_print(cümle.TR_strip().TR_lower())
+TR_print(cümle.TR_contains("dünya"), cümle.TR_strip().TR_starts_with("mer"))
+TR_print(cümle.TR_strip().TR_replace("dünya", "TR"))
 
-// Metotlar zincirlenebilir: soldan sağa sırayla uygulanır.
-TR_fn_print("  tr dili  ".TR_mem_strip().TR_mem_upper().TR_mem_length)
+# Metotlar zincirlenebilir: soldan sağa sırayla uygulanır.
+TR_print("  tr dili  ".TR_strip().TR_upper().TR_length)
 
-// başlar, biter ve içerir metnin başını, sonunu ve içini sorar.
-TR_fn_print("rapor.tr".TR_mem_starts_with("rap"), "rapor.tr".TR_mem_ends_with(".tr"), "rapor.tr".TR_mem_contains("por"))
+# başlar, biter ve içerir metnin başını, sonunu ve içini sorar.
+TR_print("rapor.tr".TR_starts_with("rap"), "rapor.tr".TR_ends_with(".tr"), "rapor.tr".TR_contains("por"))
 
-// böl metni ayırıcıdan parçalara ayırır; sonuç bir listedir (listeleri 09'da öğreneceğiz).
-TR_fn_print("elma,armut,kiraz".TR_mem_split(","))
+# böl metni ayırıcıdan parçalara ayırır; sonuç bir listedir (listeleri 09'da öğreneceğiz).
+TR_print("elma,armut,kiraz".TR_split(","))
 
-// --- Kendin dene ---
-// 1. Adını ve doğum yılını iki değişkene yaz; "{ad} {yıl} doğumlu, bu yıl ... yaşında" cümlesini kur.
-// 2. Bir cümlede bir kelimeyi değiştir ve sonucun uzunluğunu yazdır.
+# --- Kendin dene ---
+# 1. Adını ve doğum yılını iki değişkene yaz; "{ad} {yıl} doğumlu, bu yıl ... yaşında" cümlesini kur.
+# 2. Bir cümlede bir kelimeyi değiştir ve sonucun uzunluğunu yazdır.

@@ -42,7 +42,7 @@ func TestGrammarSingleSpelling(t *testing.T) {
 			inOtherLanguage[d.Name(k)] = true
 		}
 	}
-	for _, name := range []string{"eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
+	for _, name := range []string{"TR_if", "TR_var", "TR_print", "TR_Tensor", "eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
 		if !words[name] {
 			t.Errorf("%q listelerde olmalı", name)
 		}
@@ -53,7 +53,8 @@ func TestGrammarSingleSpelling(t *testing.T) {
 			t.Errorf("%s'in ASCII yazımı %q listelerde olmamalı", k, a)
 		}
 	}
-	if strings.Contains(string(data), "number-sign") {
-		t.Error("'#' yorum değildir; renklendirilmemeli")
+	// Yorum '#' ile yazılır (2.2); '//' tam bölme işlecidir, yorum gibi renklenmez.
+	if !strings.Contains(string(data), "comment.line.number-sign") || strings.Contains(string(data), "double-slash") {
+		t.Error("yorum '#' ile renklenmeli, '//' ile değil")
 	}
 }

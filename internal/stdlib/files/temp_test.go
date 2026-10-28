@@ -43,13 +43,13 @@ func baseContent(t *testing.T, base string) []string {
 func TestTempDir(t *testing.T) {
 	tmpWork(t)
 	base := tempBase(t)
-	got := mustRunTR(t, `değişken k = geçici_klasör()
-		değişken bos = klasörü_listele(k).uzunluk
-		dosya_yaz(yol(k, "a.txt"), "x")
-		klasör_oluştur(yol(k, "alt/derin"))
-		dosya_yaz(yol(k, "alt/derin/b.txt"), "y")
-		değişken o = dosya_satırları(yol(k, "alt/derin/b.txt"))
-		[tip(k) == Yol, k.klasör_mü, k.mutlak == k, bos, k != geçici_klasör()]`)
+	got := mustRunTR(t, `TR_var k = TR_temp_dir()
+		TR_var bos = TR_list_dir(k).TR_length
+		TR_write_file(TR_path(k, "a.txt"), "x")
+		TR_make_dir(TR_path(k, "alt/derin"))
+		TR_write_file(TR_path(k, "alt/derin/b.txt"), "y")
+		TR_var o = TR_read_lines(TR_path(k, "alt/derin/b.txt"))
+		[TR_type(k) == TR_Path, k.TR_is_dir, k.TR_absolute == k, bos, k != TR_temp_dir()]`)
 	if got != `[doğru, doğru, doğru, 0, doğru]` {
 		t.Fatal(got)
 	}
@@ -72,14 +72,14 @@ func TestTempDir(t *testing.T) {
 		t.Fatalf("program bitince geçici klasör kalmamalı: %v", rest)
 	}
 	CloseAll() // ikinci kez çağırmak sorun değildir
-	errContains(t, `geçici_klasör(1)`, "geçici_klasör() 0 argüman bekler, 1 verildi")
+	errContains(t, `TR_temp_dir(1)`, "geçici_klasör() 0 argüman bekler, 1 verildi")
 }
 
 // Program geçici klasörü kendisi silmiş ya da taşımışsa program sonunda hata yoktur.
 func TestTempDirDeletedByProgram(t *testing.T) {
 	tmpWork(t)
 	base := tempBase(t)
-	mustRunTR(t, `değişken k = geçici_klasör(); sil(k); taşı(geçici_klasör(), "tasindi")`)
+	mustRunTR(t, `TR_var k = TR_temp_dir(); TR_remove(k); TR_move(TR_temp_dir(), "tasindi")`)
 	if errs := deleteTempDirs(); len(errs) != 0 {
 		t.Fatal(errs)
 	}
@@ -94,7 +94,7 @@ func TestTempDirDoesNotFollowLinks(t *testing.T) {
 	tempBase(t)
 	outer := filepath.Join(k, "dis")
 	write(t, filepath.Join(outer, "korunan.txt"), "x")
-	s := runTR(t, "", `geçici_klasör()`)
+	s := runTR(t, "", `TR_temp_dir()`)
 	if s.failure != nil {
 		t.Fatal(s.failure)
 	}
@@ -115,7 +115,7 @@ func TestTempDirDoesNotFollowLinks(t *testing.T) {
 func TestTempDirReadOnly(t *testing.T) {
 	tmpWork(t)
 	tempBase(t)
-	s := runTR(t, "", `değişken k = geçici_klasör(); dosya_yaz(yol(k, "s.txt"), "x"); k`)
+	s := runTR(t, "", `TR_var k = TR_temp_dir(); TR_write_file(TR_path(k, "s.txt"), "x"); k`)
 	if s.failure != nil {
 		t.Fatal(s.failure)
 	}

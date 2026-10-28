@@ -14,20 +14,20 @@ func TestGradClipStrictFailureLeavesGradsUntouched(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
 	out := mustRun(t, `
-fonksiyon sına(cihaz_adı) {
-    varsayılan_cihaz(cihaz_adı)
-    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    geri_yayılım(toplam(w * ondalık("nan")))
-    değişken v = tensör([1.0, 1.0], türev_izle: doğru)
-    değişken y = v * w.gradyan
-    dene {
-        gradyan_kırp([w], en_fazla: 1.0, sonlu_değilse_hata: doğru)
-    } yakala h {}
-    geri_yayılım(toplam(y))
-    sonuç sonlu_mu(v.gradyan).değer
+TR_func sına(cihaz_adı) {
+    TR_default_device(cihaz_adı)
+    TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(w * TR_float("nan")))
+    TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+    TR_var y = v * w.TR_grad
+    TR_try {
+        TR_clip_grad([w], TR_max: 1.0, TR_error_if_nonfinite: TR_true)
+    } TR_catch h {}
+    TR_backward(TR_sum(y))
+    TR_return TR_is_finite(v.TR_grad).TR_tolist
 }
-yazdır("CPU:", sına("cpu"))
-yazdır("GPU:", sına("gpu"))
+TR_print("CPU:", sına("cpu"))
+TR_print("GPU:", sına("gpu"))
 `)
 	want := "CPU: [0.0, 0.0]\nGPU: [0.0, 0.0]\n"
 	if out != want {
@@ -43,19 +43,19 @@ func TestGradClipBumpsVersionOnBothDevices(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
 	out := mustRun(t, `
-fonksiyon sına(cihaz_adı) {
-    varsayılan_cihaz(cihaz_adı)
-    değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-    geri_yayılım(toplam(w * 0.1))
-    değişken v = tensör([1.0, 1.0], türev_izle: doğru)
-    değişken y = v * w.gradyan
-    gradyan_kırp([w], en_fazla: 100.0)
-    değişken mesaj = ""
-    dene { geri_yayılım(toplam(y)) } yakala h { mesaj = h }
-    sonuç mesaj.içerir("yerinde değiştirildi")
+TR_func sına(cihaz_adı) {
+    TR_default_device(cihaz_adı)
+    TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(w * 0.1))
+    TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+    TR_var y = v * w.TR_grad
+    TR_clip_grad([w], TR_max: 100.0)
+    TR_var mesaj = ""
+    TR_try { TR_backward(TR_sum(y)) } TR_catch h { mesaj = h }
+    TR_return mesaj.TR_contains("yerinde değiştirildi")
 }
-yazdır("CPU:", sına("cpu"))
-yazdır("GPU:", sına("gpu"))
+TR_print("CPU:", sına("cpu"))
+TR_print("GPU:", sına("gpu"))
 `)
 	if want := "CPU: doğru\nGPU: doğru\n"; out != want {
 		t.Fatalf("kırpma iki cihazda da gradyan sürümünü artırmalı:\nalınan:\n%s\nbeklenen:\n%s", out, want)

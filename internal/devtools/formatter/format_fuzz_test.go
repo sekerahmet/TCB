@@ -27,7 +27,7 @@ func FuzzFormat(f *testing.F) {
 			return nil
 		})
 	}
-	f.Add("eğer x {\r\n// yorum\r\n  yazdır(\"{x}\")   }\n")
+	f.Add("eğer x {\r\n# yorum\r\n  yazdır(\"\\(x)\")   }\n")
 	f.Fuzz(func(t *testing.T, src string) {
 		if len(src) > 64<<10 {
 			return

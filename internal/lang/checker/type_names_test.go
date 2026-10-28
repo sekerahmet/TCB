@@ -10,24 +10,28 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// Kural (4D): ileti ve içindeki adlar tek dildedir. Denetleyici tipleri kanonik adla taşır;
-// tip hatası ve tip açıklaması önerisi tip adlarını iletinin dilinde yazar (İngilizcede Int,
-// Int or Float), kullanıcının sınıf adı olduğu gibi kalır.
+// Kural (4D): ileti ve içindeki adlar tek dildedir. Denetleyici tipleri kanonik adla taşır; tip
+// hatası ve tip açıklaması önerisi cümleyi iletinin dilinde yazar. Tip adı dosyada kimlik
+// yazımıyladır (TR_Int, TR_Int or TR_Float; dosyanın dili yoktur, 2.1), yazılan satırda iletinin
+// dilindedir (İngilizcede Int, Int or Float); kullanıcının sınıf adı olduğu gibi kalır.
 func TestTypeNamesFollowTheMessageLanguage(t *testing.T) {
-	for _, c := range []struct{ source, want string }{
-		{"TR_kw_var x: TR_type_Int = \"a\"\n", `type "Int" but a value of type "String"`},
-		{"TR_kw_var x: TR_type_Int = 6 / 3\n", `type "Int" but a value of type "Int or Float"`},
-		{"TR_kw_var x: TR_type_Int = 6 / 3\n", "gives Float if the quotient"},
-		{"TR_kw_var x: ondalik = 1.5\n", "did you mean 'Float'?"},
-		{"TR_kw_struct Nokta {\n  x: TR_type_Int\n}\nTR_kw_var p: Nokta = 1\n", `declared with type "Nokta" but a value of type "Int"`},
+	for _, c := range []struct{ source, typed, file string }{
+		{"TR_var x: TR_Int = \"a\"\n", `type "Int" but a value of type "String"`, `type "TR_Int" but a value of type "TR_String"`},
+		{"TR_var x: TR_Int = 6 / 3\n", `type "Int" but a value of type "Int or Float"`, `type "TR_Int" but a value of type "TR_Int or TR_Float"`},
+		{"TR_var x: TR_Int = 6 / 3\n", "gives Float if the quotient", "gives TR_Float if the quotient"},
+		{"TR_var x: float = 1.5\n", "write 'Float'", "write 'TR_Float'"},
+		{"TR_struct Nokta {\n  x: TR_Int\n}\nTR_var p: Nokta = 1\n", `declared with type "Nokta" but a value of type "Int"`, `declared with type "Nokta" but a value of type "TR_Int"`},
 	} {
+		typed, _ := checkErrsIn(t, "en", c.source)
 		_, errs := checkErrs(t, c.source)
-		var text []string
+		var file []string
 		for _, err := range errs {
-			text = append(text, messages.ErrorIn(err, "en"))
+			file = append(file, messages.ErrorIn(err, "en"))
 		}
-		if got := strings.Join(text, "\n"); !strings.Contains(got, c.want) || strings.Contains(got, "Tam") || strings.Contains(got, "Ondalık") {
-			t.Errorf("%s: İngilizce iletide %q yok ya da Türkçe tip adı var:\n%s", c.source, c.want, got)
+		for _, x := range []struct{ got, want string }{{strings.Join(typed, "\n"), c.typed}, {strings.Join(file, "\n"), c.file}} {
+			if !strings.Contains(x.got, x.want) || strings.Contains(x.got, "Tam") || strings.Contains(x.got, "Ondalık") {
+				t.Errorf("%s: İngilizce iletide %q yok ya da Türkçe tip adı var:\n%s", c.source, x.want, x.got)
+			}
 		}
 	}
 }

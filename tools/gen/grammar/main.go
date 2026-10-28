@@ -53,9 +53,10 @@ var spellingLanguages = func() []*codes.Language {
 	return d
 }()
 
-// namesInAllLanguages kodun bütün yazım dillerindeki adlarıdır (yinelenmeden, Türkçe önce).
+// namesInAllLanguages kodun kodlu yazımı (TR_if, 2.3a) ve bütün yazım dillerindeki adlarıdır
+// (yinelenmeden, Türkçe önce).
 func namesInAllLanguages(k codes.Code) []string {
-	var out []string
+	out := []string{codes.Spelling(k)}
 	for _, d := range spellingLanguages {
 		if g, ok := d.Entry(k); ok && !slices.Contains(out, g.Name) {
 			out = append(out, g.Name)
@@ -64,10 +65,14 @@ func namesInAllLanguages(k codes.Code) []string {
 	return out
 }
 
-// names kodların bütün yazım dillerindeki adlarıdır (önce Türkçeler sözlük sırasıyla, sonra
-// öbür dillerdekiler).
+// names kodların kodlu yazımları (TR_if) ve bütün yazım dillerindeki adlarıdır (önce kodlu
+// yazımlar, sonra Türkçeler sözlük sırasıyla, sonra öbür dillerdekiler): kodlu dosya da gösterim de
+// renklenir.
 func names(codeList ...codes.Code) []string {
 	var out []string
+	for _, k := range codeList {
+		out = append(out, codes.Spelling(k))
+	}
 	for _, d := range spellingLanguages {
 		for _, k := range codeList {
 			if g, ok := d.Entry(k); ok && !slices.Contains(out, g.Name) {
@@ -169,7 +174,7 @@ func Generate() ([]byte, error) {
 	// ad kodun bütün dillerdeki adlarının düzenli ifade seçeneğidir (değişken|var).
 	name := func(k codes.Code) string { return strings.Join(namesInAllLanguages(k), "|") }
 
-	control := names(codes.KwIf, codes.KwElse, codes.KwMatch, codes.KwDefault, codes.KwFor, codes.KwIn, codes.KwWhile, codes.KwBreak, codes.KwContinue, codes.KwReturn, codes.KwTry, codes.KwCatch, codes.KwThrow, codes.KwAsync, codes.KwDefer)
+	control := names(codes.KwIf, codes.KwElse, codes.KwMatch, codes.KwFor, codes.KwIn, codes.KwBreak, codes.KwContinue, codes.KwReturn, codes.KwTry, codes.KwCatch, codes.KwThrow, codes.KwAsync, codes.KwDefer)
 	declaration := names(codes.KwVar, codes.KwConst, codes.KwFunc, codes.KwStruct)
 	types := namesOf(func(k codes.Code) bool { return k.Class() == codes.ClassType })
 	builtins := namesOf(codes.Code.IsBuiltin)
@@ -183,46 +188,45 @@ func Generate() ([]byte, error) {
 		{"scopeName", "source.tr"},
 		{"patterns", includes("#comments", "#strings", "#import", "#declarations", "#keywords", "#pronoun", "#types", "#builtins", "#numbers", "#operators")},
 		{"repository", jsonObject{
+			// Yorum '#' ile başlar, satır sonuna kadar sürer (2.2); başlık (# TR 4) ve '#!' de yorumdur.
 			{"comments", jsonObject{{"patterns", []jsonObject{
-				rule("comment.line.double-slash.tr", "//.*$"),
-				{{"name", "comment.block.tr"}, {"begin", `/\*`}, {"end", `\*/`}},
+				rule("comment.line.number-sign.tr", "#.*$"),
 			}}}},
 			{"strings", jsonObject{{"patterns", []jsonObject{
 				{{"name", "string.quoted.double.tr"}, {"begin", `"`}, {"end", `"`},
 					{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.begin.tr"}}}}},
 					{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.end.tr"}}}}},
 					{"patterns", includes("#string-content")}},
-				{{"name", "string.quoted.single.tr"}, {"begin", `'`}, {"end", `'`},
-					{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.begin.tr"}}}}},
-					{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.end.tr"}}}}},
-					{"patterns", includes("#string-content")}},
+				// Metin yalnız çift tırnakla yazılır (2.6); tek tırnak sözdizimi hatasıdır.
+				rule("invalid.illegal.quote.tr", `'`),
 				// Ham metin (2.6a): kaçış ve yerleştirme yok, çok satırlı olabilir.
 				{{"name", "string.quoted.other.raw.tr"}, {"begin", "`"}, {"end", "`"},
 					{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.begin.tr"}}}}},
 					{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.definition.string.end.tr"}}}}}},
 			}}}},
 			{"string-content", jsonObject{{"patterns", []jsonObject{
-				rule("constant.character.escape.brace.tr", `\\[{}]`),
-				rule("constant.character.escape.tr", `\\[ntr"'\\]`),
+				rule("constant.character.escape.tr", `\\[ntr"\\]`),
+				rule("constant.character.escape.unicode.tr", `\\u\{[0-9A-Fa-f]{1,6}\}`),
+				{{"include", "#interpolation"}},
 				// Bilinmeyen kaçış dizisi sözdizimi hatasıdır (2.6).
 				rule("invalid.illegal.escape.tr", `\\.`),
-				{{"include", "#interpolation"}},
 			}}}},
+			// Yerleştirme \(ifade) (2.7): eş parantezle kapanır, içindeki parantezler onu kapatmaz.
 			{"interpolation", jsonObject{
-				{"name", "meta.interpolation.tr"}, {"begin", `\{`}, {"end", `\}`},
+				{"name", "meta.interpolation.tr"}, {"begin", `\\\(`}, {"end", `\)`},
 				{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.interpolation.begin.tr"}}}}},
 				{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.interpolation.end.tr"}}}}},
 				{"contentName", "meta.embedded.expression.tr"},
-				{"patterns", includes("#nested-braces", "$self")},
+				{"patterns", includes("#nested-parens", "$self")},
 			}},
-			{"nested-braces", jsonObject{
-				{"begin", `\{`}, {"end", `\}`},
-				{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.braces.begin.tr"}}}}},
-				{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.braces.end.tr"}}}}},
-				{"patterns", includes("#nested-braces", "$self")},
+			{"nested-parens", jsonObject{
+				{"begin", `\(`}, {"end", `\)`},
+				{"beginCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.parens.begin.tr"}}}}},
+				{"endCaptures", jsonObject{{"0", jsonObject{{"name", "punctuation.section.parens.end.tr"}}}}},
+				{"patterns", includes("#nested-parens", "$self")},
 			}},
 			{"import", jsonObject{{"patterns", []jsonObject{
-				{{"match", `\b(` + inner(name(codes.KwImport)) + `)\b\s*("[^"]*"|'[^']*'|[^\W\d][\w.]*)\s+(` + inner(name(codes.CtxAs)) + `)\b\s*([^\W\d]\w*)?`},
+				{{"match", `\b(` + inner(name(codes.KwImport)) + `)\b\s*("[^"]*"|[^\W\d][\w.]*)\s+(` + inner(name(codes.CtxAs)) + `)\b\s*([^\W\d]\w*)?`},
 					{"captures", captures("keyword.control.import.tr", "string.other.module.tr", "keyword.control.import.as.tr", "entity.name.namespace.tr")}},
 				rule("keyword.control.import.tr", wordsPattern(names(codes.KwImport))),
 			}}}},
@@ -248,6 +252,9 @@ func Generate() ([]byte, error) {
 				rule("support.function.builtin.tr", wordsPattern(builtins)),
 			}}}},
 			{"numbers", jsonObject{{"patterns", []jsonObject{
+				rule("constant.numeric.integer.hexadecimal.tr", `\b0x[0-9A-Fa-f_]+\b`),
+				rule("constant.numeric.integer.octal.tr", `\b0o[0-7_]+\b`),
+				rule("constant.numeric.integer.binary.tr", `\b0b[01_]+\b`),
 				rule("constant.numeric.float.tr", `\b\d[\d_]*(?:\.\d[\d_]*)?[eE][+-]?\d+\b`),
 				rule("constant.numeric.float.tr", `\b\d[\d_]*\.\d[\d_]*\b`),
 				rule("constant.numeric.integer.tr", `\b\d[\d_]*\b`),
@@ -262,7 +269,7 @@ func Generate() ([]byte, error) {
 				rule("keyword.operator.logical.tr", `&&|\|\||!`),
 				rule("keyword.operator.assignment.compound.tr", `\+=|-=|\*=|/=`),
 				rule("keyword.operator.assignment.tr", `:=|=`),
-				rule("keyword.operator.arithmetic.tr", `\*\*|@|[+\-*/%]`),
+				rule("keyword.operator.arithmetic.tr", `\*\*|//|@|[+\-*/%]`),
 				rule("keyword.operator.ternary.tr", `\?`),
 			}}}},
 		}},

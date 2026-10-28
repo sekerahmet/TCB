@@ -36,18 +36,18 @@ func TestFileLines(t *testing.T) {
 	}
 	// .sonraki() ve döngü aynı akışı tüketir; bitince yok verir.
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
-	got := mustRunTR(t, `değişken o = dosya_satırları(yol("s.txt"))
-		değişken ilk = o.sonraki()
-		değişken kalan = [s döngü s içinde o]
-		[ilk, kalan, o.sonraki(), metin(o), tip(o) == SatırOkuyucu]`)
+	got := mustRunTR(t, `TR_var o = TR_read_lines(TR_path("s.txt"))
+		TR_var ilk = o.TR_next()
+		TR_var kalan = [s TR_for s TR_in o]
+		[ilk, kalan, o.TR_next(), TR_str(o), TR_type(o) == TR_LineReader]`)
 	if got != `["1", ["2", "3"], yok, "SatırOkuyucu(s.txt, 3 satır okundu, bitti)", doğru]` {
 		t.Fatal(got)
 	}
-	errContains(t, `dosya_satırları("yok.txt")`, `dosya_satırları(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`, "bakılan yer")
+	errContains(t, `TR_read_lines("yok.txt")`, `dosya_satırları(): "yok.txt" okunamadı: böyle bir dosya ya da klasör yok`, "bakılan yer")
 	os.Mkdir(filepath.Join(k, "kl"), 0o755)
-	errHas(t, `dosya_satırları("kl")`, messages.H7129)
-	errHas(t, `dosya_satırları("s.txt").sonraki(1)`, messages.H2014)
-	errContains(t, `dosya_satırları("s.txt").ilk`, "SatırOkuyucu üzerinde")
+	errHas(t, `TR_read_lines("kl")`, messages.H7129)
+	errHas(t, `TR_read_lines("s.txt").TR_next(1)`, messages.H2014)
+	errContains(t, `TR_read_lines("s.txt").TR_first`, "SatırOkuyucu üzerinde")
 }
 
 func TestFileLinesGzipAndLongLine(t *testing.T) {
@@ -59,9 +59,9 @@ func TestFileLinesGzipAndLongLine(t *testing.T) {
 	}
 	gz.Close()
 	os.WriteFile(filepath.Join(k, "d.jsonl.gz"), b.Bytes(), 0o644)
-	got := mustRunTR(t, `değişken n = 0
-		değişken top = 0
-		döngü s içinde dosya_satırları("d.jsonl.gz") { n += 1; top += json_çöz(s)["no"] }
+	got := mustRunTR(t, `TR_var n = 0
+		TR_var top = 0
+		TR_for s TR_in TR_read_lines("d.jsonl.gz") { n += 1; top += TR_json_parse(s)["no"] }
 		[n, top]`)
 	if got != "[50000, 1249975000]" {
 		t.Fatalf("gz: %s", got)
@@ -70,9 +70,9 @@ func TestFileLinesGzipAndLongLine(t *testing.T) {
 	lineLimit = 100 << 10
 	t.Cleanup(func() { lineLimit = old })
 	write(t, filepath.Join(k, "uzun.txt"), "kısa\n"+strings.Repeat("x", 300<<10)+"\nson\n")
-	errHas(t, `[s döngü s içinde dosya_satırları("uzun.txt")]`, messages.H7105)
+	errHas(t, `[s TR_for s TR_in TR_read_lines("uzun.txt")]`, messages.H7105)
 	write(t, filepath.Join(k, "orta.txt"), strings.Repeat("y", 90<<10)+"\nson")
-	if got := mustRunTR(t, `[s.uzunluk döngü s içinde dosya_satırları("orta.txt")]`); got != fmt.Sprintf("[%d, 3]", 90<<10) {
+	if got := mustRunTR(t, `[s.TR_length TR_for s TR_in TR_read_lines("orta.txt")]`); got != fmt.Sprintf("[%d, 3]", 90<<10) {
 		t.Fatalf("tampondan uzun satır: %s", got)
 	}
 }
@@ -86,11 +86,11 @@ func TestFileLinesConcurrent(t *testing.T) {
 		fmt.Fprintf(&sb, "%d\n", i)
 	}
 	write(t, filepath.Join(k, "c.txt"), sb.String())
-	got := mustRunTR(t, `değişken o = dosya_satırları("c.txt")
-		değişken sayılar = [0, 0]
-		eşzamanlı { döngü s içinde o { sayılar[0] += 1 } }
-		eşzamanlı { döngü s içinde o { sayılar[1] += 1 } }
-		bekle_hepsi()
+	got := mustRunTR(t, `TR_var o = TR_read_lines("c.txt")
+		TR_var sayılar = [0, 0]
+		TR_async { TR_for s TR_in o { sayılar[0] += 1 } }
+		TR_async { TR_for s TR_in o { sayılar[1] += 1 } }
+		TR_wait_all()
 		sayılar[0] + sayılar[1]`)
 	if got != "200000" {
 		t.Fatalf("eşzamanlı okuma: %s", got)
@@ -102,40 +102,40 @@ func TestFileLinesConcurrent(t *testing.T) {
 func TestLineReaderClose(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
-	got := mustRunTR(t, `değişken o = dosya_satırları("s.txt")
-		değişken ilk = o.sonraki()
-		değişken birinci = o.kapat()
-		değişken ikinci = o.kapat()
-		[ilk, birinci, ikinci, metin(o), sil("s.txt"), yol("s.txt").var_mı]`)
+	got := mustRunTR(t, `TR_var o = TR_read_lines("s.txt")
+		TR_var ilk = o.TR_next()
+		TR_var birinci = o.TR_close()
+		TR_var ikinci = o.TR_close()
+		[ilk, birinci, ikinci, TR_str(o), TR_remove("s.txt"), TR_path("s.txt").TR_exists]`)
 	if got != `["1", doğru, yanlış, "SatırOkuyucu(s.txt, 1 satır okundu, kapatıldı)", 1, yanlış]` {
 		t.Fatal(got)
 	}
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
-	errContains(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); o.sonraki()`,
+	errContains(t, `TR_var o = TR_read_lines("s.txt"); o.TR_close(); o.TR_next()`,
 		`SatırOkuyucu: "s.txt" okuyucusu kapat() ile kapatıldı; yeniden okumak için dosya_satırları(...) ile yeni bir okuyucu açın`)
-	errHas(t, `değişken o = dosya_satırları("s.txt"); o.kapat(); [s döngü s içinde o]`, messages.H7134)
-	errContains(t, `dosya_satırları("s.txt").kapat(1)`, "kapat() parametre almaz")
+	errHas(t, `TR_var o = TR_read_lines("s.txt"); o.TR_close(); [s TR_for s TR_in o]`, messages.H7134)
+	errContains(t, `TR_read_lines("s.txt").TR_close(1)`, "kapat() parametre almaz")
 	// Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır: close() yanlış verir; close()
 	// çağrıldıktan sonra satır istemek yine hatadır.
-	if got := mustRunTR(t, `değişken o = dosya_satırları("s.txt")
-		değişken l = [s döngü s içinde o]
-		[l, o.sonraki(), o.kapat()]`); got != `[["1", "2", "3"], yok, yanlış]` {
+	if got := mustRunTR(t, `TR_var o = TR_read_lines("s.txt")
+		TR_var l = [s TR_for s TR_in o]
+		[l, o.TR_next(), o.TR_close()]`); got != `[["1", "2", "3"], yok, yanlış]` {
 		t.Fatal(got)
 	}
-	errHas(t, `değişken o = dosya_satırları("s.txt"); [s döngü s içinde o]; o.kapat(); o.sonraki()`, messages.H7134)
+	errHas(t, `TR_var o = TR_read_lines("s.txt"); [s TR_for s TR_in o]; o.TR_close(); o.TR_next()`, messages.H7134)
 	// Açık okuyucu varken sil yol gösterir: kapat() önerilir.
-	errHas(t, `değişken o = dosya_satırları("s.txt"); o.sonraki(); sil("s.txt")`, messages.H7125)
+	errHas(t, `TR_var o = TR_read_lines("s.txt"); o.TR_next(); TR_remove("s.txt")`, messages.H7125)
 }
 
 // Son satırı satır sonusuz biten dosyada okuyucu son satırla birlikte kapanır: dosya hemen
 // silinebilir (eskiden okuyucu kapatılmayı ya da bir çağrı daha bekliyordu).
 func TestLineReaderClosesAtEOFWithoutNewline(t *testing.T) {
 	tmpWork(t)
-	got := mustRunTR(t, `dosya_yaz("son.txt", "a\nb")
-değişken o = dosya_satırları("son.txt")
-değişken x = [o.sonraki(), o.sonraki()]
-sil("son.txt")
-[x, o.sonraki()]`)
+	got := mustRunTR(t, `TR_write_file("son.txt", "a\nb")
+TR_var o = TR_read_lines("son.txt")
+TR_var x = [o.TR_next(), o.TR_next()]
+TR_remove("son.txt")
+[x, o.TR_next()]`)
 	if got != `[["a", "b"], yok]` {
 		t.Fatalf("sonuç: %s", got)
 	}
@@ -147,7 +147,7 @@ func TestLineReaderClosedWhenUnreachable(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
 	closeReaders()
-	if got := mustRunTR(t, `fonksiyon bırak() { değişken o = dosya_satırları("s.txt"); o.sonraki() }
+	if got := mustRunTR(t, `TR_func bırak() { TR_var o = TR_read_lines("s.txt"); o.TR_next() }
 bırak()
 bırak()`); got != `1` {
 		t.Fatalf("sonuç: %s", got)
@@ -173,6 +173,6 @@ bırak()`); got != `1` {
 func TestLineReaderIndexSaysHowToRead(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "a.txt"), "x\ny\n")
-	errHas(t, `dosya_satırları("a.txt")[1]`, messages.H2525)
-	errContains(t, `dosya_satırları("a.txt")[1]`, "döngü", ".sonraki()")
+	errHas(t, `TR_read_lines("a.txt")[1]`, messages.H2525)
+	errContains(t, `TR_read_lines("a.txt")[1]`, "döngü", ".sonraki()")
 }

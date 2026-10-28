@@ -361,7 +361,8 @@ func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
 func (v *VM) readByName(env *Environment, e *ast.Identifier) (Value, error) {
 	val, ok := env.Get(e.Value)
 	if !ok {
-		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names(), v.textLanguage()))
+		// Program bir dosyadır, dili yoktur (2.1): öneri kimliğin yazımıdır (TR_print).
+		return nil, messages.At(e.Line(), e.Token.Column, hint.UndefinedNameError(e.Value, env.Names(), nil))
 	}
 	return val, nil
 }

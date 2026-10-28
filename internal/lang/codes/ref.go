@@ -40,6 +40,16 @@ func NameRef(k Code) Ref     { return Ref{Code: k, Form: RefName} }
 func CallNameRef(k Code) Ref { return Ref{Code: k, Form: RefCallName} }
 func CallRef(k Code) Ref     { return Ref{Code: k, Form: RefCall} }
 
+// WordRef is the language's word k as a message parameter about a text: in a file (lang nil: the
+// file has no language, 2.1) its spelling, TR_break, as it is written there; in text written in a
+// writing language (a typed line) the word in the message's language (NameRef).
+func WordRef(k Code, lang *Language) any {
+	if lang == nil {
+		return Spelling(k)
+	}
+	return NameRef(k)
+}
+
 // ReceiverRef is type typ as a member's receiver (liste).
 func ReceiverRef(typ Code) Ref { return Ref{Code: typ, Form: RefReceiver} }
 

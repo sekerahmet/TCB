@@ -10,10 +10,10 @@ import (
 // Görünüm metotları (şekillendir, devrik, eksenleri_sırala, dilim) ve bitiştir tam sayılı
 // tensörün (token kimlikleri, argmax) tam sayılı olduğunu korur: .değer Tam verir.
 func TestViewsKeepInts(t *testing.T) {
-	out := mustRun(t, `değişken i = argmax(tensör([[1.0, 5.0, 0.0], [7.0, 2.0, 9.0]]), eksen: 0)
-değişken m = i.şekillendir([3, 1])
-yazdır(m.değer, m.devrik().değer, m.eksenleri_sırala([1, 0]).değer, i.dilim(0, 0, 2).değer)
-yazdır(bitiştir([i, i]).değer, bitiştir([i, tensör([1.0, 2.0, 3.0])]).değer)`)
+	out := mustRun(t, `TR_var i = TR_argmax(TR_tensor([[1.0, 5.0, 0.0], [7.0, 2.0, 9.0]]), TR_dim: 0)
+TR_var m = i.TR_reshape([3, 1])
+TR_print(m.TR_tolist, m.TR_transpose().TR_tolist, m.TR_permute([1, 0]).TR_tolist, i.TR_slice(0, 0, 2).TR_tolist)
+TR_print(TR_concat([i, i]).TR_tolist, TR_concat([i, TR_tensor([1.0, 2.0, 3.0])]).TR_tolist)`)
 	want := "[[1], [0], [1]] [[1, 0, 1]] [[1, 0, 1]] [1, 0]\n[1, 0, 1, 1, 0, 1] [1.0, 0.0, 1.0, 1.0, 2.0, 3.0]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%q\nbeklenen:\n%q", out, want)
@@ -24,16 +24,16 @@ yazdır(bitiştir([i, i]).değer, bitiştir([i, tensör([1.0, 2.0, 3.0])]).değe
 // (veri yok ama 10⁹ boş liste ya da [4,0]@[0,N] ile dev çıktı) reddedilir.
 func TestShapeLimitZeroAxis(t *testing.T) {
 	for _, code := range []string{
-		"sıfırlar([0, 1000000000, 1000000000])",
-		"birler([1000000000000, 0])",
-		"sıfırlar([0]).şekillendir([1000000000000, 0])",
+		"TR_zeros([0, 1000000000, 1000000000])",
+		"TR_ones([1000000000000, 0])",
+		"TR_zeros([0]).TR_reshape([1000000000000, 0])",
 	} {
 		_, err := run(t, code)
 		if err == nil || !messages.Has(err, messages.H6028) {
 			t.Fatalf("%s: sınır hatası beklenirdi: %v", code, err)
 		}
 	}
-	if out := mustRun(t, "yazdır(sıfırlar([0, 3]).şekil, sıfırlar([2, 0]).değer)"); out != "[0, 3] [[], []]\n" {
+	if out := mustRun(t, "TR_print(TR_zeros([0, 3]).TR_shape, TR_zeros([2, 0]).TR_tolist)"); out != "[0, 3] [[], []]\n" {
 		t.Fatalf("küçük sıfır eksenli şekiller: %q", out)
 	}
 }
@@ -41,7 +41,7 @@ func TestShapeLimitZeroAxis(t *testing.T) {
 // Kural (B14): devrik() argüman almaz; argümanla çağrılınca ileti eksenlerin sırasını veren metodu
 // (eksenleri_sırala) söyler (PyTorch: t.T ile t.permute(...)).
 func TestTransposeWithArgumentsPointsToPermute(t *testing.T) {
-	_, err := run(t, "tensör([[1.0, 2.0]]).devrik(1, 0)")
+	_, err := run(t, "TR_tensor([[1.0, 2.0]]).TR_transpose(1, 0)")
 	if !messages.Has(err, messages.H6722) || !strings.Contains(err.Error(), "eksenleri_sırala(") {
 		t.Fatalf("devrik argümanla: %v", err)
 	}

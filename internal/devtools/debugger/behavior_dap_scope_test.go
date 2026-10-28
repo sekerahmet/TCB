@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-const dapScopeProgram = `değişken sayi = 1
-değişken liste = [{"a": 1}]
-fonksiyon f() {
-    değişken sayi = 2
-    değişken liste = [{"b": 2}]
-    yazdır(sayi)
+const dapScopeProgram = `TR_var sayi = 1
+TR_var liste = [{"a": 1}]
+TR_func f() {
+    TR_var sayi = 2
+    TR_var liste = [{"b": 2}]
+    TR_print(sayi)
 }
 f()
 `

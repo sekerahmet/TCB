@@ -14,22 +14,22 @@ import (
 func TestDeleteBasic(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "a.txt"), "x")
-	if got := mustRunTR(t, `sil("a.txt")`); got != "1" || exists(filepath.Join(k, "a.txt")) {
+	if got := mustRunTR(t, `TR_remove("a.txt")`); got != "1" || exists(filepath.Join(k, "a.txt")) {
 		t.Fatalf("dosya: %s", got)
 	}
 	os.Mkdir(filepath.Join(k, "bos"), 0o755)
-	if got := mustRunTR(t, `sil(yol("bos"))`); got != "0" || exists(filepath.Join(k, "bos")) {
+	if got := mustRunTR(t, `TR_remove(TR_path("bos"))`); got != "0" || exists(filepath.Join(k, "bos")) {
 		t.Fatalf("boş klasör: %s", got)
 	}
 	buildTree(t, k)
-	errContains(t, `sil("v")`, `sil(): "v" klasörü boş değil; içindekilerle birlikte silmek için içindekilerle: doğru verin`)
-	if got := mustRunTR(t, `sil("v", içindekilerle: doğru)`); got != "7" || exists(filepath.Join(k, "v")) {
+	errContains(t, `TR_remove("v")`, `sil(): "v" klasörü boş değil; içindekilerle birlikte silmek için içindekilerle: doğru verin`)
+	if got := mustRunTR(t, `TR_remove("v", TR_recursive: TR_true)`); got != "7" || exists(filepath.Join(k, "v")) {
 		t.Fatalf("dolu klasör: %s", got)
 	}
-	errContains(t, `sil("yok.txt")`, `sil(): "yok.txt" silinemedi: böyle bir dosya ya da klasör yok`, "bakılan yer")
-	errContains(t, `sil("*.txt")`, "silinemedi")
-	errHas(t, `sil("a", içindekilerle: 1)`, messages.H7905)
-	errHas(t, `sil("a", recursive: doğru)`, messages.H7900)
+	errContains(t, `TR_remove("yok.txt")`, `sil(): "yok.txt" silinemedi: böyle bir dosya ya da klasör yok`, "bakılan yer")
+	errContains(t, `TR_remove("*.txt")`, "silinemedi")
+	errHas(t, `TR_remove("a", TR_recursive: 1)`, messages.H7905)
+	errHas(t, `TR_remove("a", recursive: TR_true)`, messages.H7900)
 }
 
 // Salt okunur dosya zorla silinmez; klasörde böyle bir dosya varsa hiçbir şey silinmez.
@@ -40,9 +40,9 @@ func TestDeleteReadOnly(t *testing.T) {
 	locked := filepath.Join(k, "k", "z", "kilitli.txt")
 	os.Chmod(locked, 0o444)
 	t.Cleanup(func() { os.Chmod(locked, 0o644) })
-	errHas(t, `sil("k/z/kilitli.txt")`, messages.H7103)
-	errContains(t, `sil("k", içindekilerle: doğru)`, `içinde salt okunur bir dosya var ("z/kilitli.txt")`)
-	errHas(t, `sil("k", içindekilerle: doğru)`, messages.H7104)
+	errHas(t, `TR_remove("k/z/kilitli.txt")`, messages.H7103)
+	errContains(t, `TR_remove("k", TR_recursive: TR_true)`, `içinde salt okunur bir dosya var ("z/kilitli.txt")`)
+	errHas(t, `TR_remove("k", TR_recursive: TR_true)`, messages.H7104)
 	if !exists(filepath.Join(k, "k", "a.txt")) || !exists(locked) {
 		t.Fatal("salt okunur dosya varken bir şey silindi")
 	}
@@ -55,14 +55,14 @@ func TestDeleteDoesNotFollowLinks(t *testing.T) {
 	write(t, filepath.Join(k, "dis", "degerli.txt"), "x")
 	write(t, filepath.Join(k, "k", "a.txt"), "x")
 	dirLink(t, filepath.Join(k, "dis"), filepath.Join(k, "k", "bag"))
-	if got := mustRunTR(t, `sil("k", içindekilerle: doğru)`); got != "2" {
+	if got := mustRunTR(t, `TR_remove("k", TR_recursive: TR_true)`); got != "2" {
 		t.Errorf("sayı: %s", got)
 	}
 	if !exists(filepath.Join(k, "dis", "degerli.txt")) {
 		t.Fatal("bağlantının gösterdiği klasör silindi")
 	}
 	dirLink(t, filepath.Join(k, "dis"), filepath.Join(k, "bag2"))
-	if got := mustRunTR(t, `sil("bag2", içindekilerle: doğru)`); got != "1" || exists(filepath.Join(k, "bag2")) || !exists(filepath.Join(k, "dis", "degerli.txt")) {
+	if got := mustRunTR(t, `TR_remove("bag2", TR_recursive: TR_true)`); got != "1" || exists(filepath.Join(k, "bag2")) || !exists(filepath.Join(k, "dis", "degerli.txt")) {
 		t.Fatalf("bağlantının kendisi silinmeli, gösterdiği yer kalmalı: %s", got)
 	}
 }
@@ -84,8 +84,8 @@ func TestDeleteWindowsJunction(t *testing.T) {
 	if b, _ := os.Lstat(filepath.Join(k, "bag2")); !isLink(b.Mode()) {
 		t.Fatalf("dizin bağlantısı bağlantı sayılmadı: %v", b.Mode())
 	}
-	mustRunTR(t, `sil("k", içindekilerle: doğru)`)
-	mustRunTR(t, `sil("bag2")`)
+	mustRunTR(t, `TR_remove("k", TR_recursive: TR_true)`)
+	mustRunTR(t, `TR_remove("bag2")`)
 	if !exists(filepath.Join(k, "dis", "degerli.txt")) || exists(filepath.Join(k, "bag2")) {
 		t.Fatal("dizin bağlantısının gösterdiği klasör silindi ya da bağlantı kaldı")
 	}
@@ -100,11 +100,11 @@ func TestDeleteProtections(t *testing.T) {
 	write(t, filepath.Join(program, "x.txt"), "x")
 	home, _ := os.UserHomeDir()
 	cases := map[string]messages.Code{
-		`sil(".")`:                            messages.H7151, // çalışma klasörü ya da üstü
-		`sil("..")`:                           messages.H7151,
-		`sil("` + forwardPath(k) + `")`:       messages.H7151,
-		`sil("` + forwardPath(program) + `")`: messages.H7152, // programın klasörü ya da üstü
-		`sil("` + forwardPath(filepath.Dir(program)) + `")`:                             messages.H7152,
+		`TR_remove(".")`:                                    messages.H7151, // çalışma klasörü ya da üstü
+		`TR_remove("..")`:                                   messages.H7151,
+		`sil("` + forwardPath(k) + `")`:                     messages.H7151,
+		`sil("` + forwardPath(program) + `")`:               messages.H7152, // programın klasörü ya da üstü
+		`sil("` + forwardPath(filepath.Dir(program)) + `")`: messages.H7152,
 		`sil("` + forwardPath(filepath.VolumeName(k)+string(filepath.Separator)) + `")`: messages.H7147, // kök
 	}
 	if home != "" {
@@ -152,7 +152,7 @@ func TestSystemDirProtection(t *testing.T) {
 func TestDeleteOpenReader(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "k", "s.txt"), "a\nb\nc\n")
-	s := runTR(t, "", `değişken o = dosya_satırları("k/s.txt"); o.sonraki(); sil("k", içindekilerle: doğru)`)
+	s := runTR(t, "", `TR_var o = TR_read_lines("k/s.txt"); o.TR_next(); TR_remove("k", TR_recursive: TR_true)`)
 	if !messages.Has(s.failure, messages.H7154) {
 		t.Fatalf("açık dosya: %v", s.failure)
 	}
@@ -171,8 +171,8 @@ func TestReplaceHintsShowTheNamedArgument(t *testing.T) {
 	write(t, filepath.Join(k, "b.txt"), "b")
 	write(t, filepath.Join(k, "d", "c.txt"), "c")
 	for _, c := range []struct{ code, tr, en string }{
-		{`taşı("a.txt", "b.txt")`, "üzerine_yaz: doğru", "overwrite: true"},
-		{`sil("d")`, "içindekilerle: doğru", "recursive: true"},
+		{`TR_move("a.txt", "b.txt")`, "üzerine_yaz: doğru", "overwrite: true"},
+		{`TR_remove("d")`, "içindekilerle: doğru", "recursive: true"},
 	} {
 		s := runTR(t, "", c.code)
 		if tr, en := messages.ErrorIn(s.failure, "tr"), messages.ErrorIn(s.failure, "en"); !strings.Contains(tr, c.tr) || !strings.Contains(en, c.en) {

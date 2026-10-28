@@ -131,7 +131,6 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 		{"eğer", "eger", TokIf},
 		{"değilse", "degilse", TokElse},
 		{"eşle", "esle", TokMatch},
-		{"varsayılan", "varsayilan", TokDefault},
 		{"döngü", "dongu", TokFor},
 		{"içinde", "icinde", TokIn},
 		{"çık", "cik", TokBreak},
@@ -159,7 +158,7 @@ func TestKeywordTurkishSpellingOnly(t *testing.T) {
 
 	// Tek yazımı olan anahtar kelimeler
 	singles := map[string]TokenType{
-		"sabit": TokConst, "fonksiyon": TokFunction, "iken": TokWhile,
+		"sabit": TokConst, "fonksiyon": TokFunction,
 		"devam": TokContinue, "yok": TokNil, "ve": TokKwAnd, "veya": TokKwOr,
 		"kendi": TokSelf, "dene": TokTry, "yakala": TokCatch,
 		"aktar": TokImport, "ertele": TokDefer,
@@ -186,21 +185,17 @@ func TestNonKeywords(t *testing.T) {
 	}
 }
 
-// İleti kodu (H ve dört rakam, tam sözcük) bir ad değil sözcük birimidir: ileti(H6903, x).
-// Daha uzun, kısa ya da küçük harfli yazım sıradan bir addır.
-func TestMessageCodeToken(t *testing.T) {
-	toks := tokensNoErrors(t, "H6903")
-	if len(toks) != 2 || toks[0].Type != TokMessageCode || toks[0].Literal != "H6903" {
-		t.Errorf("H6903: tek bir ILETI_KODU bekleniyordu, gelen: %v", toks)
-	}
-	for _, s := range []string{"H690", "H69030", "h6903", "H6903x", "xH6903", "H_6903", "HH6903"} {
+// İleti kodu biçimindeki yazım (H ve dört rakam) sıradan bir addır (eski 2.12 kalktı); kod bir
+// metindir: TR_message("H6903", x). Koşullu döngü ve varsayılan kolun ayrı sözcüğü yoktur (2.9).
+func TestNoMessageCodeOrRemovedWordTokens(t *testing.T) {
+	for _, s := range []string{"H6903", "H690", "H69030", "h6903", "iken", "varsayılan"} {
 		toks := tokensNoErrors(t, s)
 		if len(toks) != 2 || toks[0].Type != TokIdent || toks[0].Literal != s {
 			t.Errorf("%q: tek bir TANIMLAYICI bekleniyordu, gelen: %v", s, toks)
 		}
 	}
-	checkTokens(t, "ileti(H6903, x)", []expected{
-		{TokIdent, "ileti"}, {TokLParen, "("}, {TokMessageCode, "H6903"}, {TokComma, ","}, {TokIdent, "x"}, {TokRParen, ")"}, {TokEOF, ""},
+	checkTokens(t, "ileti(\"H6903\", x)", []expected{
+		{TokIdent, "ileti"}, {TokLParen, "("}, {TokString, "H6903"}, {TokComma, ","}, {TokIdent, "x"}, {TokRParen, ")"}, {TokEOF, ""},
 	})
 }
 

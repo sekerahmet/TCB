@@ -259,7 +259,7 @@ func TestExtensionInterpreterSettingMachineScoped(t *testing.T) {
 	}
 	// Yorumlayıcı arama kuralı tek yerde: find_interpreter.js (üst klasör taraması yok).
 	if !strings.Contains(string(js), "require('./find_interpreter')") || strings.Contains(string(js), "path.dirname(dizin)") {
-		t.Error("extension.js yorumlayıcıyı find_interpreter.js ile bulmalı ve üst klasörleri taramamalı")
+		t.Error("extension.js yorumlayıcıyı find_interpreter.js ile bulmalı TR_and üst klasörleri taramamalı")
 	}
 }
 

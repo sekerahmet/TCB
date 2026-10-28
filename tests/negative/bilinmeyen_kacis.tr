@@ -1,4 +1,5 @@
-// Bilerek hatalı modül (2.6): bilinmeyen kaçış dizisi sözdizimi hatasıdır; ters bölü
-// sessizce atılmaz. Düzenli ifade ve Windows yolu için ham metin (2.6a) yazılır.
-değişken yol = "C:\veri\yeni"
-değişken desen = "[0-9]\d+"
+# TR 4
+# TEST 2.6 bilinmeyen kaçış dizisi sözdizimi hatasıdır; ters bölü sessizce atılmaz, ileti ham metni önerir
+# Düzenli ifade ve Windows yolu ham metinle (2.6a) yazılır: `C:\veri\yeni`, `[0-9]\d+`.
+TR_var klasör = "C:\veri\yeni" # ERROR H0008 H0008
+TR_var desen = "[0-9]\d+" # ERROR H0008

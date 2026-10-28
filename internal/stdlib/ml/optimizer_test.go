@@ -7,12 +7,12 @@ import (
 )
 
 func TestGradClip(t *testing.T) {
-	out := mustRun(t, `değişken w = tensör([1.0, 1.0], türev_izle: doğru)
-değişken b = tensör([1.0], türev_izle: doğru)
-geri_yayılım(toplam(w * tensör([3.0, 0.0])) + toplam(b * 4))
-yazdır(gradyan_kırp([w, b], en_fazla: 1.0).değer)
-yazdır(w.gradyan.değer, b.gradyan.değer)
-yazdır(gradyan_kırp([w, b]))`)
+	out := mustRun(t, `TR_var w = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_var b = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * TR_tensor([3.0, 0.0])) + TR_sum(b * 4))
+TR_print(TR_clip_grad([w, b], TR_max: 1.0).TR_tolist)
+TR_print(w.TR_grad.TR_tolist, b.TR_grad.TR_tolist)
+TR_print(TR_clip_grad([w, b]))`)
 	// Kırpma öncesi norm 0 boyutlu tensördür; sayısı .değer ile okunur.
 	want := "5.0\n[0.6, 0.0] [0.8]\nTensör(1.0000)\n"
 	if out != want {
@@ -22,9 +22,9 @@ yazdır(gradyan_kırp([w, b]))`)
 		code string
 		want messages.Code
 	}{
-		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], en_fazla: 0)", messages.H6429},
-		{"gradyan_kırp([tensör([1.0], türev_izle: doğru)], max_norm: 1)", messages.H7901},
-		{"gradyan_kırp([sıfırlar([1])])", messages.H6513},
+		{"TR_clip_grad([TR_tensor([1.0], TR_requires_grad: TR_true)], TR_max: 0)", messages.H6429},
+		{"TR_clip_grad([TR_tensor([1.0], TR_requires_grad: TR_true)], max_norm: 1)", messages.H7901},
+		{"TR_clip_grad([TR_zeros([1])])", messages.H6513},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -48,12 +48,12 @@ func TestAdamWEpsilonPositive(t *testing.T) {
 // değişmez. Mantık olmayan değer açık hatadır.
 // Neden: uzun eğitim bozuk bir gradyanla sessizce sürmesin; isteyen erken durur.
 func TestGradClipErrorIfNonfinite(t *testing.T) {
-	out := mustRun(t, `değişken w = tensör([3.0, 4.0], türev_izle: doğru)
-geri_yayılım(toplam(w * w))
-yazdır(gradyan_kırp([w], sonlu_değilse_hata: doğru).değer)
-değişken v = tensör([1.0, 2.0], türev_izle: doğru)
-geri_yayılım(toplam(v * ondalık("nan")))
-yazdır(sonlu_mu(gradyan_kırp([v]).değer))`)
+	out := mustRun(t, `TR_var w = TR_tensor([3.0, 4.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * w))
+TR_print(TR_clip_grad([w], TR_error_if_nonfinite: TR_true).TR_tolist)
+TR_var v = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_float("nan")))
+TR_print(TR_is_finite(TR_clip_grad([v]).TR_tolist))`)
 	if out != "10.0\nyanlış\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
@@ -61,15 +61,15 @@ yazdır(sonlu_mu(gradyan_kırp([v]).değer))`)
 		code string
 		want messages.Code
 	}{
-		{`değişken v = tensör([1.0], türev_izle: doğru)
-geri_yayılım(toplam(v * ondalık("nan")))
-gradyan_kırp([v], sonlu_değilse_hata: doğru)`, messages.H6534},
-		{`değişken v = tensör([1.0], türev_izle: doğru)
-geri_yayılım(toplam(v * ondalık("inf")))
-gradyan_kırp([v], en_fazla: 2.0, sonlu_değilse_hata: doğru)`, messages.H6534},
-		{`değişken v = tensör([1.0], türev_izle: doğru)
-geri_yayılım(toplam(v))
-gradyan_kırp([v], sonlu_değilse_hata: 1)`, messages.H7905},
+		{`TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_float("nan")))
+TR_clip_grad([v], TR_error_if_nonfinite: TR_true)`, messages.H6534},
+		{`TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_float("inf")))
+TR_clip_grad([v], TR_max: 2.0, TR_error_if_nonfinite: TR_true)`, messages.H6534},
+		{`TR_var v = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v))
+TR_clip_grad([v], TR_error_if_nonfinite: 1)`, messages.H7905},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -83,15 +83,15 @@ gradyan_kırp([v], sonlu_değilse_hata: 1)`, messages.H7905},
 // Neden: eskiden gradyanlar önce kırpılıp sonra hata veriliyordu (Gemini kararlılık denetimi,
 // bulgu 7); PyTorch error_if_nonfinite'te gradyanlara dokunmaz.
 func TestGradClipChecksBeforeScaling(t *testing.T) {
-	out := mustRun(t, `değişken w = tensör([1.0, 1.0], türev_izle: doğru)
-geri_yayılım(toplam(w * tensör([3e38, 3e38])))
-değişken hata_verdi = yanlış
-dene { gradyan_kırp([w], en_fazla: 1.0, sonlu_değilse_hata: doğru) } yakala h { hata_verdi = doğru }
-yazdır(hata_verdi, w.gradyan.değer[0] > 1e38)
-değişken v = tensör([1.0, 1.0], türev_izle: doğru)
-geri_yayılım(toplam(v * tensör([ondalık("inf"), 2.0])))
-gradyan_kırp([v], en_fazla: 1.0)
-yazdır(sonlu_mu(v.gradyan.değer[0]), v.gradyan.değer[1])`)
+	out := mustRun(t, `TR_var w = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(w * TR_tensor([3e38, 3e38])))
+TR_var hata_verdi = TR_false
+TR_try { TR_clip_grad([w], TR_max: 1.0, TR_error_if_nonfinite: TR_true) } TR_catch h { hata_verdi = TR_true }
+TR_print(hata_verdi, w.TR_grad.TR_tolist[0] > 1e38)
+TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+TR_backward(TR_sum(v * TR_tensor([TR_float("inf"), 2.0])))
+TR_clip_grad([v], TR_max: 1.0)
+TR_print(TR_is_finite(v.TR_grad.TR_tolist[0]), v.TR_grad.TR_tolist[1])`)
 	if out != "doğru doğru\nyanlış 0.0\n" {
 		t.Fatalf("çıktı: %q", out)
 	}

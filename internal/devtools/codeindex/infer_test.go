@@ -6,36 +6,36 @@ import (
 	"testing"
 )
 
-const inferSource = `yapı S {
+const inferSource = `TR_struct S {
     a
-    fonksiyon kurucu() {
-        kendi.a = 1
+    TR_func TR_init() {
+        TR_self.a = 1
     }
 }
 
-fonksiyon yap() {
-    sonuç S()
+TR_func yap() {
+    TR_return S()
 }
 
-fonksiyon yap2() {
-    değişken s = yap()
-    sonuç s
+TR_func yap2() {
+    TR_var s = yap()
+    TR_return s
 }
 
-fonksiyon karışık(b) {
-    eğer b {
-        sonuç S()
+TR_func karışık(b) {
+    TR_if b {
+        TR_return S()
     }
-    sonuç 3
+    TR_return 3
 }
 
-değişken g = yap2()
-yazdır(g.a)
+TR_var g = yap2()
+TR_print(g.a)
 
-fonksiyon kullan() {
-    değişken t = yap()
-    değişken u = karışık(doğru)
-    sonuç t.a + u.a
+TR_func kullan() {
+    TR_var t = yap()
+    TR_var u = karışık(TR_true)
+    TR_return t.a + u.a
 }
 `
 
@@ -79,7 +79,7 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 // grafiği bu türle işleci doğru uygulamaya bağlar (deneme 9 H1; değer dili tasarımı 3. tur).
 func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 	dir := t.TempDir()
-	src := "fonksiyon f(x, y) {\n    değişken a = metin(x) == \"1\"\n    değişken b = tensör([1.0]) @ y\n    sonuç x + y\n}\n"
+	src := "TR_func f(x, y) {\n    TR_var a = TR_str(x) == \"1\"\n    TR_var b = TR_tensor([1.0]) @ y\n    TR_return x + y\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 			}
 		}
 	}
-	if got["=="] != "type:TR_type_String" || got["@"] != "type:TR_type_Tensor" || got["+"] != "" {
+	if got["=="] != "type:TR_String" || got["@"] != "type:TR_Tensor" || got["+"] != "" {
 		t.Errorf("operand types: %v", got)
 	}
 	if !kinds["CallExpression"] || !kinds["ListLiteral"] || !kinds["InfixExpression"] {

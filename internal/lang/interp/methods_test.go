@@ -25,7 +25,7 @@ func TestCaseConversionIsTheSameInEveryLanguage(t *testing.T) {
 	want := "TITLE ISTANBUL list\n"
 	for lang, text := range map[string]string{
 		"en": `print("title".upper(), "istanbul".upper(), "LIST".lower())` + "\n",
-		"tr": `yazdır("title".büyük_harf(), "istanbul".büyük_harf(), "LIST".küçük_harf())` + "\n",
+		"tr": `TR_print("title".TR_upper(), "istanbul".TR_upper(), "LIST".TR_lower())` + "\n",
 	} {
 		if got := runCoded(t, text, lang, nil); got != want {
 			t.Errorf("%s: %q, beklenen %q", lang, got, want)

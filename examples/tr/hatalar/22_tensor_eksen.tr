@@ -1,11 +1,11 @@
-//! tr kodlu 3 dil=tr
-// Hata 22 — Geçersiz eksen.
-// İleti kodu: H6016
-// Ne olur: Tensörde olmayan bir eksen istenirse çalışma anında hata alınır.
-// Neden: 2 boyutlu tensörde eksenler 0, 1 (ya da -1, -2); 5 yok.
-// Düzeltilmiş hâli:
-//     yazdır(toplam(m, eksen: 1))
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/22_tensor_eksen.tr   (çıkış kodu 1)
+# TR 4
+# Hata 22 — Geçersiz eksen.
+# İleti kodu: H6016
+# Ne olur: Tensörde olmayan bir eksen istenirse çalışma anında hata alınır.
+# Neden: 2 boyutlu tensörde eksenler 0, 1 (ya da -1, -2); 5 yok.
+# Düzeltilmiş hâli:
+#     yazdır(toplam(m, eksen: 1))
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/22_tensor_eksen.tr   (çıkış kodu 1)
 
-TR_kw_var m = TR_fn_tensor([[1, 2], [3, 4]])
-TR_fn_print(TR_fn_sum(m, TR_arg_dim: 5))
+TR_var m = TR_tensor([[1, 2], [3, 4]])
+TR_print(TR_sum(m, TR_dim: 5))

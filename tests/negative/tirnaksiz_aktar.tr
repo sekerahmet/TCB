@@ -1,2 +1,3 @@
-// Bilerek hatalı: 11.1 — aktar modül yolunu metin olarak bekler.
-aktar yardimci_modul
+# TR 4
+TR_import yardimci_modul # ERROR H0143
+# TEST 11.1 modül yolu metin olarak yazılır; tırnaksız yazım hatadır

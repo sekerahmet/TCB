@@ -9,7 +9,7 @@ import (
 )
 
 func TestErrorFrame(t *testing.T) {
-	source := "değişken toplam = 1\n\tyazdır(toplm + 1)\nson"
+	source := "TR_var toplam = 1\n\tTR_print(toplm + 1)\nson"
 	at := func(line, col int, text string) error { return messages.At(line, col, errors.New(text)) }
 	got := ErrorFrame(source, at(2, 9, "'toplm' adında bir değişken yok"))
 	want := " 2 | \tyazdır(toplm + 1)\n   | \t       ^^^^^\n"
@@ -61,7 +61,7 @@ func TestLineAt(t *testing.T) {
 
 // ErrorFrame konumu hatanın alanından okur: metni "Satır" ile başlamasa da (başka dil) çizer.
 func TestErrorFrameFromPosition(t *testing.T) {
-	src := "a = 1\nyazdır(toplm + 1)\n"
+	src := "a = 1\nTR_print(toplm + 1)\n"
 	err := messages.At(2, 8, messages.New(messages.H2000, "x", "'toplm'"))
 	got := ErrorFrame(src, err)
 	if !strings.Contains(got, "2 | yazdır(toplm + 1)") || !strings.Contains(got, "^^^^^") {

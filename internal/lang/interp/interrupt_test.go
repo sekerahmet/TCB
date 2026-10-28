@@ -13,23 +13,23 @@ import (
 // eşzamanlı görevin kesilmesi hata olarak bildirilmez.
 func TestInterrupt(t *testing.T) {
 	codeVal := `
-değişken izler = []
-ertele { izler.ekle("program") }
-eşzamanlı {
-    ertele { izler.ekle("görev") }
-    döngü { }
+TR_var izler = []
+TR_defer { izler.TR_append("program") }
+TR_async {
+    TR_defer { izler.TR_append("görev") }
+    TR_for { }
 }
-fonksiyon iş() {
-    ertele { izler.ekle("fonksiyon") }
-    dene {
+TR_func iş() {
+    TR_defer { izler.TR_append("fonksiyon") }
+    TR_try {
         hazır()
-        döngü { }
-    } yakala h {
-        izler.ekle("yakalandı")
+        TR_for { }
+    } TR_catch h {
+        izler.TR_append("yakalandı")
     }
 }
 iş()
-izler.ekle("sürdü")
+izler.TR_append("sürdü")
 `
 	prog := mustParseProgram(t, codeVal)
 	vmx := New()
@@ -75,9 +75,9 @@ izler.ekle("sürdü")
 // (fonksiyon çağrısı) durur.
 func TestInterruptWaitsForBuiltin(t *testing.T) {
 	prog := mustParseProgram(t, `
-değişken izler = []
-fonksiyon sür() { izler.ekle("sürdü") }
-izler.ekle(uzun())
+TR_var izler = []
+TR_func sür() { izler.TR_append("sürdü") }
+izler.TR_append(uzun())
 sür()
 `)
 	vmx := New()

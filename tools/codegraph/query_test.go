@@ -279,7 +279,7 @@ func TestNameCodeChain(t *testing.T) {
 		if code != exitOK {
 			t.Fatalf("%s: exit %d\n%s", q, code, out)
 		}
-		testkit.MustContain(t, out, "TR_kw_if [name]", "names: eger · if", "Go constant: codes.KwIf [const]",
+		testkit.MustContain(t, out, "TR_if [name]", "names: eger · if", "Go constant: codes.KwIf [const]",
 			"registered or used in Go", "shape.table at shape/shape.go:", "shape.runIf [shape/shape.go:")
 	}
 }

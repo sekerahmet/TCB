@@ -1,58 +1,58 @@
-//! tr kodlu 3 dil=tr
-// 09 — Listeler: birçok değeri sıralı tutmak.
-// Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
-// döngüyle gezmek (sıra numarasıyla da), sırala, ters_çevir, toplam/ortalama, liste üreteci, birleştir, varsa_al, çoklu atama ve takas.
-// Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
-// Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
+# TR 4
+# 09 — Listeler: birçok değeri sıralı tutmak.
+# Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
+# döngüyle gezmek (sıra numarasıyla da), sırala, ters_çevir, toplam/ortalama, liste üreteci, birleştir, varsa_al, çoklu atama ve takas.
+# Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
+# Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
 
-// Liste köşeli parantezle yazılır; elemanlar farklı tipte olabilir.
-TR_kw_var meyveler = ["elma", "armut", "kiraz"]
-TR_fn_print(meyveler, meyveler.TR_mem_length)
+# Liste köşeli parantezle yazılır; elemanlar farklı tipte olabilir.
+TR_var meyveler = ["elma", "armut", "kiraz"]
+TR_print(meyveler, meyveler.TR_length)
 
-// İndeks 0'dan başlar; -1 son elemandır.
-TR_fn_print(meyveler[0], meyveler[2], meyveler[-1])
-meyveler[1] = "erik" // elemanı değiştir
-meyveler.TR_mem_append("muz") // sona ekle
-TR_fn_print(meyveler)
+# İndeks 0'dan başlar; -1 son elemandır.
+TR_print(meyveler[0], meyveler[2], meyveler[-1])
+meyveler[1] = "erik" # elemanı değiştir
+meyveler.TR_append("muz") # sona ekle
+TR_print(meyveler)
 
-// Liste bir döngüyle gezilir.
-TR_kw_for meyve TR_kw_in meyveler {
-    TR_fn_print("- {meyve}")
+# Liste bir döngüyle gezilir.
+TR_for meyve TR_in meyveler {
+    TR_print("- \(meyve)")
 }
 
-// Sayı listeleri için hazır işlemler.
-TR_kw_var sayılar = [5, 2, 8, 2, 1, 9, 5, 4]
-TR_fn_print("sıralı:", sayılar.TR_mem_sort(), "ters:", sayılar.TR_mem_sort().TR_mem_reverse())
-TR_fn_print("ilk: {sayılar.TR_mem_first}, son: {sayılar.TR_mem_last}, benzersiz: {sayılar.TR_mem_unique()}")
-TR_fn_print("toplam: {TR_fn_sum(sayılar)}, ortalama: {TR_fn_mean(sayılar)}, en büyük: {TR_fn_max(sayılar)}")
+# Sayı listeleri için hazır işlemler.
+TR_var sayılar = [5, 2, 8, 2, 1, 9, 5, 4]
+TR_print("sıralı:", sayılar.TR_sort(), "ters:", sayılar.TR_sort().TR_reverse())
+TR_print("ilk: \(sayılar.TR_first), son: \(sayılar.TR_last), benzersiz: \(sayılar.TR_unique())")
+TR_print("toplam: \(TR_sum(sayılar)), ortalama: \(TR_mean(sayılar)), en büyük: \(TR_max(sayılar))")
 
-// Liste üreteci: bir döngüden yeni liste kurar; eğer ile elenebilir.
-TR_fn_print("kareler: {[x * x TR_kw_for x TR_kw_in 1..=6]}")
-TR_fn_print("çift kareler: {[x * x TR_kw_for x TR_kw_in 1..=10 TR_kw_if x % 2 == 0]}")
+# Liste üreteci: bir döngüden yeni liste kurar; eğer ile elenebilir.
+TR_print("kareler: \([x * x TR_for x TR_in 1..=6])")
+TR_print("çift kareler: \([x * x TR_for x TR_in 1..=10 TR_if x % 2 == 0])")
 
-// Fonksiyon birden çok değeri liste olarak verebilir; çoklu atama listeyi açar.
-TR_kw_func bölüm_ve_kalan(a, b) {
-    TR_kw_return [a / b, a % b]
+# Fonksiyon birden çok değeri liste olarak verebilir; çoklu atama listeyi açar.
+TR_func bölüm_ve_kalan(a, b) {
+    TR_return [a / b, a % b]
 }
-TR_kw_var bölüm, kalan = bölüm_ve_kalan(17, 5)
-TR_fn_print("17 / 5 = {bölüm}, kalan {kalan}")
+TR_var bölüm, kalan = bölüm_ve_kalan(17, 5)
+TR_print("17 / 5 = \(bölüm), kalan \(kalan)")
 
-// Çoklu atamayla iki değişken yer değiştirir (takas).
-TR_kw_var a, b = 10, 20
+# Çoklu atamayla iki değişken yer değiştirir (takas).
+TR_var a, b = 10, 20
 a, b = b, a
-TR_fn_print("a = {a}, b = {b}")
+TR_print("a = \(a), b = \(b)")
 
-// birleştir elemanları aralarına ayırıcı koyarak tek metin yapar.
-TR_fn_print(["a", "b", "c"].TR_mem_join(", "))
+# birleştir elemanları aralarına ayırıcı koyarak tek metin yapar.
+TR_print(["a", "b", "c"].TR_join(", "))
 
-// l[i] sınır dışında hata verir; varsa_al ise yok verir, ?? ile varsayılana düşülür.
-TR_fn_print(sayılar.TR_mem_get(1), sayılar.TR_mem_get(99) ?? 0, "ab".TR_mem_get(-1))
+# l[i] sınır dışında hata verir; varsa_al ise yok verir, ?? ile varsayılana düşülür.
+TR_print(sayılar.TR_get(1), sayılar.TR_get(99) ?? 0, "ab".TR_get(-1))
 
-// döngü sıra, öğe içinde liste: öğenin sıra numarasıyla (0'dan) birlikte gezer.
-TR_kw_for sıra, öğe TR_kw_in meyveler {
-    TR_fn_print("{sıra}. {öğe}")
+# döngü sıra, öğe içinde liste: öğenin sıra numarasıyla (0'dan) birlikte gezer.
+TR_for sıra, öğe TR_in meyveler {
+    TR_print("\(sıra). \(öğe)")
 }
 
-// --- Kendin dene ---
-// 1. Bir not listesi kur; en yüksek, en düşük ve ortalamayı yazdır.
-// 2. 1..=30 arasında 3'e bölünen sayıların listesini üreteçle çıkar.
+# --- Kendin dene ---
+# 1. Bir not listesi kur; en yüksek, en düşük ve ortalamayı yazdır.
+# 2. 1..=30 arasında 3'e bölünen sayıların listesini üreteçle çıkar.

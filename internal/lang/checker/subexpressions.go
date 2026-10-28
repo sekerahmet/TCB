@@ -96,6 +96,8 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		}
 	}
 	if e.Body != nil {
+		// Gövdenin son ifadesi fonksiyonun değeridir (sondaki blok: liste.filtrele { o > 2 }).
+		c.markBlockValue(e.Body, true)
 		for _, stmt := range e.Body.Statements {
 			c.checkStatement(stmt)
 		}

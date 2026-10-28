@@ -7,18 +7,18 @@ import (
 // watchedTR, bir tensörün hesap çizgesine kaydedilip kaydedilmediğini (geri yayılım
 // yapılabiliyor mu) söyleyen TR yardımcısıdır; bekle_koşul koşul doğru olana dek (en çok
 // 10 sn) kilidi bırakarak bekler. Testler süreye değil el sıkışmaya (bayraklara) dayanır.
-const watchedTR = `fonksiyon izli(t) {
-    dene { geri_yayılım(toplam(t)) } yakala h { sonuç yanlış }
-    sonuç doğru
+const watchedTR = `TR_func izli(t) {
+    TR_try { TR_backward(TR_sum(t)) } TR_catch h { TR_return TR_false }
+    TR_return TR_true
 }
-fonksiyon bekle_koşul(k) {
-    döngü i içinde 0..1000 {
-        eğer k() { sonuç doğru }
-        bekle(0.01)
+TR_func bekle_koşul(k) {
+    TR_for i TR_in 0..1000 {
+        TR_if k() { TR_return TR_true }
+        TR_sleep(0.01)
     }
-    sonuç yanlış
+    TR_return TR_false
 }
-değişken d = {"başladı": yanlış, "devam": yanlış}
+TR_var d = {"başladı": TR_false, "devam": TR_false}
 `
 
 // türevsiz { } göreve bağlıdır: blok içindeki fonksiyon çağrıları ve döngü turları
@@ -26,25 +26,25 @@ değişken d = {"başladı": yanlış, "devam": yanlış}
 // kaydedilmeye devam eder (hakem kanıtı: 3000 denemenin 2745'i "türev izlemiyor" hatası
 // veriyordu).
 func TestNoGradTaskBound(t *testing.T) {
-	out := mustRun(t, `değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-fonksiyon f(x) { sonuç x * 2 }
-değişken bitti = yanlış
-eşzamanlı {
-    türevsiz {
-        döngü i içinde 0..20000 { f(w) }
+	out := mustRun(t, `TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_func f(x) { TR_return x * 2 }
+TR_var bitti = TR_false
+TR_async {
+    TR_no_grad {
+        TR_for i TR_in 0..20000 { f(w) }
     }
-    bitti = doğru
+    bitti = TR_true
 }
-değişken izsiz = 0
-değişken deneme = 0
-döngü i içinde 0..3000 {
-    değişken y = toplam(w * 3)
+TR_var izsiz = 0
+TR_var deneme = 0
+TR_for i TR_in 0..3000 {
+    TR_var y = TR_sum(w * 3)
     deneme += 1
-    dene { geri_yayılım(y) } yakala h { izsiz += 1 }
-    eğer bitti { çık }
+    TR_try { TR_backward(y) } TR_catch h { izsiz += 1 }
+    TR_if bitti { TR_break }
 }
-bekle_hepsi()
-yazdır(deneme > 0, izsiz)`)
+TR_wait_all()
+TR_print(deneme > 0, izsiz)`)
 	if out != "doğru 0\n" {
 		t.Fatalf("türevsiz başka görevi etkiledi:\n%s", out)
 	}
@@ -53,24 +53,24 @@ yazdır(deneme > 0, izsiz)`)
 // türevsiz bloğu kilidi bırakan bir çağrıdayken (bekle) başka görev türevli çalışır; blok
 // beklemeden dönünce kendi türevsiz durumunu görür; yeni görev türevli başlar.
 func TestNoGradAwaitTaskIsolation(t *testing.T) {
-	out := mustRun(t, watchedTR+`değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-değişken a = []
-değişken b = []
-eşzamanlı {
-    türevsiz {
-        a.ekle(izli(w * 2))
-        d["başladı"] = doğru
+	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var a = []
+TR_var b = []
+TR_async {
+    TR_no_grad {
+        a.TR_append(izli(w * 2))
+        d["başladı"] = TR_true
         bekle_koşul(() => d["devam"])
-        a.ekle(izli(w * 2))
-        eşzamanlı { b.ekle(izli(w * 3)) }
+        a.TR_append(izli(w * 2))
+        TR_async { b.TR_append(izli(w * 3)) }
     }
-    a.ekle(izli(w * 2))
+    a.TR_append(izli(w * 2))
 }
 bekle_koşul(() => d["başladı"])
-b.ekle(izli(w * 2))
-d["devam"] = doğru
-bekle_hepsi()
-yazdır(a, b)`)
+b.TR_append(izli(w * 2))
+d["devam"] = TR_true
+TR_wait_all()
+TR_print(a, b)`)
 	if out != "[yanlış, yanlış, doğru] [doğru, doğru]\n" {
 		t.Fatalf("türevsiz görev izolasyonu:\n%s", out)
 	}
@@ -79,25 +79,25 @@ yazdır(a, b)`)
 // özel_türev'in ileri ve geri hesapları da görev başına türevsiz çalışır: ileri ya da geri
 // kilidi bıraktığında başka görevin hesabı çizgeye kaydedilir.
 func TestCustomGradForwardBackwardTaskBound(t *testing.T) {
-	out := mustRun(t, watchedTR+`değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-değişken v = tensör([1.0, 2.0], türev_izle: doğru)
-değişken adım = {"ileri": yanlış, "ileri_devam": yanlış, "geri": yanlış, "geri_devam": yanlış}
-değişken yavaş = özel_türev(
-    ileri: fonksiyon(x) { adım["ileri"] = doğru; bekle_koşul(() => adım["ileri_devam"]); sonuç [x * 1, []] },
-    geri: fonksiyon(s, g) { adım["geri"] = doğru; bekle_koşul(() => adım["geri_devam"]); sonuç [g] }
+	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var v = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var adım = {"ileri": TR_false, "ileri_devam": TR_false, "geri": TR_false, "geri_devam": TR_false}
+TR_var yavaş = TR_custom_grad(
+    TR_forward: TR_func(x) { adım["ileri"] = TR_true; bekle_koşul(() => adım["ileri_devam"]); TR_return [x * 1, []] },
+    TR_backward: TR_func(s, g) { adım["geri"] = TR_true; bekle_koşul(() => adım["geri_devam"]); TR_return [g] }
 )
-eşzamanlı {
-    değişken y = yavaş(w)
-    geri_yayılım(toplam(y))
+TR_async {
+    TR_var y = yavaş(w)
+    TR_backward(TR_sum(y))
 }
 bekle_koşul(() => adım["ileri"])
-değişken i1 = izli(v * 2)
-adım["ileri_devam"] = doğru
+TR_var i1 = izli(v * 2)
+adım["ileri_devam"] = TR_true
 bekle_koşul(() => adım["geri"])
-değişken i2 = izli(v * 2)
-adım["geri_devam"] = doğru
-bekle_hepsi()
-yazdır(i1, i2, w.gradyan.değer)`)
+TR_var i2 = izli(v * 2)
+adım["geri_devam"] = TR_true
+TR_wait_all()
+TR_print(i1, i2, w.TR_grad.TR_tolist)`)
 	if out != "doğru doğru [1.0, 1.0]\n" {
 		t.Fatalf("özel_türev görev izolasyonu:\n%s", out)
 	}
@@ -106,16 +106,16 @@ yazdır(i1, i2, w.gradyan.değer)`)
 // Başka bir görevin türevsiz bloğu sürerken, türev izlenen tensöre indeksle atama türevli
 // görevde hâlâ reddedilir.
 func TestNoGradIndexAssignTaskBound(t *testing.T) {
-	out := mustRun(t, watchedTR+`değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-eşzamanlı {
-    türevsiz { d["başladı"] = doğru; bekle_koşul(() => d["devam"]) }
+	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_async {
+    TR_no_grad { d["başladı"] = TR_true; bekle_koşul(() => d["devam"]) }
 }
 bekle_koşul(() => d["başladı"])
-değişken h = ""
-dene { w[0] = 5 } yakala e { h = "{e}" }
-d["devam"] = doğru
-bekle_hepsi()
-yazdır(w.değer, h.içerir("türevsiz"))`)
+TR_var h = ""
+TR_try { w[0] = 5 } TR_catch e { h = "\(e)" }
+d["devam"] = TR_true
+TR_wait_all()
+TR_print(w.TR_tolist, h.TR_contains("türevsiz"))`)
 	if out != "[1.0, 2.0] doğru\n" {
 		t.Fatalf("başka görevin türevsiz bloğu atamaya izin verdi:\n%s", out)
 	}
@@ -125,21 +125,21 @@ yazdır(w.değer, h.içerir("türevsiz"))`)
 // çizgenin düğümlerinden geri yayılım başlatırsa açık hata alır (gradyanlar iki kez ya da
 // eksik birikmez).
 func TestConcurrentBackwardSameGraph(t *testing.T) {
-	out := mustRun(t, watchedTR+`değişken w = tensör([1.0, 2.0], türev_izle: doğru)
-değişken yavaş = özel_türev(
-    ileri: fonksiyon(x) { sonuç [x * 1, []] },
-    geri: fonksiyon(s, g) { d["başladı"] = doğru; bekle_koşul(() => d["devam"]); sonuç [g] }
+	out := mustRun(t, watchedTR+`TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var yavaş = TR_custom_grad(
+    TR_forward: TR_func(x) { TR_return [x * 1, []] },
+    TR_backward: TR_func(s, g) { d["başladı"] = TR_true; bekle_koşul(() => d["devam"]); TR_return [g] }
 )
-değişken o = yavaş(w)
-değişken k1 = toplam(o * 3)
-değişken k2 = toplam(o * 2)
-eşzamanlı { geri_yayılım(k1) }
+TR_var o = yavaş(w)
+TR_var k1 = TR_sum(o * 3)
+TR_var k2 = TR_sum(o * 2)
+TR_async { TR_backward(k1) }
 bekle_koşul(() => d["başladı"])
-değişken h = ""
-dene { geri_yayılım(k2) } yakala e { h = "{e}" }
-d["devam"] = doğru
-bekle_hepsi()
-yazdır(h.içerir("başka bir geri yayılım"), w.gradyan.değer)`)
+TR_var h = ""
+TR_try { TR_backward(k2) } TR_catch e { h = "\(e)" }
+d["devam"] = TR_true
+TR_wait_all()
+TR_print(h.TR_contains("başka bir geri yayılım"), w.TR_grad.TR_tolist)`)
 	if out != "doğru [3.0, 3.0]\n" {
 		t.Fatalf("aynı çizgeden eşzamanlı geri yayılım:\n%s", out)
 	}

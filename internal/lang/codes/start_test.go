@@ -73,10 +73,10 @@ func TestProgramRunsOnIdentities(t *testing.T) {
 // yarım çeviri ("TR_mem_embedding.tablo") ne kod ne ad olurdu.
 func TestIdentityNamesLeaveAnIdentityPathAsItIs(t *testing.T) {
 	for text, want := range map[string]string{
-		"TR_mem_append":                 "append",
-		"liste.TR_mem_append":           "liste.append",
-		"TR_mem_append()":               "append()",
-		"TR_mem_embedding.TR_mem_table": "TR_mem_embedding.TR_mem_table",
+		"TR_append":             "append",
+		"liste.TR_append":       "liste.append",
+		"TR_append()":           "append()",
+		"TR_embedding.TR_table": "TR_embedding.TR_table",
 	} {
 		if got := messages.IdentityNames(text, "en"); got != want {
 			t.Errorf("IdentityNames(%q) = %q, beklenen %q", text, got, want)

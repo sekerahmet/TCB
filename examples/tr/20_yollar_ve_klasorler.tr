@@ -1,49 +1,49 @@
-//! tr kodlu 3 dil=tr
-// 20 — Yollar ve klasörler: dosya sistemini yönetmek.
-// Ne öğretir: yol() ile Yol kurmak ve özellikleri (dosya_adı, uzantı, uzantısız_ad, üst_klasör,
-// var_mı, dosya_mı, klasör_mü, bayt), klasör_oluştur, klasörü_listele, kopyala, taşı, sil,
-// üzerine_yaz ve içindekilerle, dosya_satırları ile satır okuyucu ve kapat.
-// Önceki örnekten: dosya ve JSON (19), metin (04), listeler (09).
-// Çalıştırma (proje kökünden): tr examples/tr/20_yollar_ve_klasorler.tr
-// Her şey geçici klasörde yapılır (program bitince silinir, depoda iz kalmaz).
+# TR 4
+# 20 — Yollar ve klasörler: dosya sistemini yönetmek.
+# Ne öğretir: yol() ile Yol kurmak ve özellikleri (dosya_adı, uzantı, uzantısız_ad, üst_klasör,
+# var_mı, dosya_mı, klasör_mü, bayt), klasör_oluştur, klasörü_listele, kopyala, taşı, sil,
+# üzerine_yaz ve içindekilerle, dosya_satırları ile satır okuyucu ve kapat.
+# Önceki örnekten: dosya ve JSON (19), metin (04), listeler (09).
+# Çalıştırma (proje kökünden): tr examples/tr/20_yollar_ve_klasorler.tr
+# Her şey geçici klasörde yapılır (program bitince silinir, depoda iz kalmaz).
 
-TR_kw_var kök = TR_fn_temp_dir()
+TR_var kök = TR_temp_dir()
 
-// yol(...) parçaları birleştirir; Yol değiştirilemez ve / ile gösterilir. Özellikleri yola soru sorar.
-TR_kw_var y = TR_fn_path(kök, "veri", "derlem.tar.gz")
-TR_fn_print(TR_fn_type(y) == TR_type_Path, y.TR_mem_name, y.TR_mem_extension, y.TR_mem_stem, y.TR_mem_parent.TR_mem_name)
+# yol(...) parçaları birleştirir; Yol değiştirilemez ve / ile gösterilir. Özellikleri yola soru sorar.
+TR_var y = TR_path(kök, "veri", "derlem.tar.gz")
+TR_print(TR_type(y) == TR_Path, y.TR_name, y.TR_extension, y.TR_stem, y.TR_parent.TR_name)
 
-// Klasör ve dosya oluşturmak; yol alan her yerleşik Metin yerine Yol da kabul eder.
-TR_fn_make_dir(TR_fn_path(kök, "veri", "alt"))
-TR_fn_write_file(TR_fn_path(kök, "veri", "a.txt"), "merhaba")
-TR_fn_write_file(TR_fn_path(kök, "veri", "alt", "b.txt"), "dünya!")
-TR_fn_print(TR_fn_path(kök, "veri", "a.txt").TR_mem_is_file, TR_fn_path(kök, "veri").TR_mem_is_dir, TR_fn_path(kök, "yok").TR_mem_exists)
-// mutlak, yolun baştan sona yazılmış hâlidir (göreli yolu çalışma klasörüne göre çözer).
-TR_fn_print(TR_fn_path(".").TR_mem_absolute.TR_mem_is_dir, TR_fn_path(kök, "veri").TR_mem_absolute == TR_fn_path(kök, "veri"))
-TR_fn_print("a.txt boyutu:", TR_fn_path(kök, "veri", "a.txt").TR_mem_size, "bayt")
+# Klasör ve dosya oluşturmak; yol alan her yerleşik Metin yerine Yol da kabul eder.
+TR_make_dir(TR_path(kök, "veri", "alt"))
+TR_write_file(TR_path(kök, "veri", "a.txt"), "merhaba")
+TR_write_file(TR_path(kök, "veri", "alt", "b.txt"), "dünya!")
+TR_print(TR_path(kök, "veri", "a.txt").TR_is_file, TR_path(kök, "veri").TR_is_dir, TR_path(kök, "yok").TR_exists)
+# mutlak, yolun baştan sona yazılmış hâlidir (göreli yolu çalışma klasörüne göre çözer).
+TR_print(TR_path(".").TR_absolute.TR_is_dir, TR_path(kök, "veri").TR_absolute == TR_path(kök, "veri"))
+TR_print("a.txt boyutu:", TR_path(kök, "veri", "a.txt").TR_size, "bayt")
 
-// klasörü_listele kalıba uyan dosya ve klasörleri sıralı Yol listesi olarak verir (** alt klasörlere iner).
-TR_fn_print(TR_fn_list_dir(TR_fn_path(kök, "veri"), "**/*.txt").TR_mem_map { TR_ctx_it.TR_mem_name })
+# klasörü_listele kalıba uyan dosya ve klasörleri sıralı Yol listesi olarak verir (** alt klasörlere iner).
+TR_print(TR_list_dir(TR_path(kök, "veri"), "**/*.txt").TR_map { TR_it.TR_name })
 
-// kopyala ve taşı hedefin yolunu döndürür. Hedef zaten varsa üzerine_yaz: doğru gerekir.
-TR_fn_copy(TR_fn_path(kök, "veri", "a.txt"), TR_fn_path(kök, "veri", "alt"))
-TR_fn_write_file(TR_fn_path(kök, "yeni.txt"), "yeni içerik")
-TR_fn_copy(TR_fn_path(kök, "yeni.txt"), TR_fn_path(kök, "veri", "a.txt"), TR_arg_overwrite: TR_kw_true)
-TR_fn_print(TR_fn_read_file(TR_fn_path(kök, "veri", "a.txt")))
-TR_fn_move(TR_fn_path(kök, "yeni.txt"), TR_fn_path(kök, "taşındı.txt"))
-TR_fn_print(TR_fn_path(kök, "yeni.txt").TR_mem_exists, TR_fn_path(kök, "taşındı.txt").TR_mem_exists)
+# kopyala ve taşı hedefin yolunu döndürür. Hedef zaten varsa üzerine_yaz: doğru gerekir.
+TR_copy(TR_path(kök, "veri", "a.txt"), TR_path(kök, "veri", "alt"))
+TR_write_file(TR_path(kök, "yeni.txt"), "yeni içerik")
+TR_copy(TR_path(kök, "yeni.txt"), TR_path(kök, "veri", "a.txt"), TR_overwrite: TR_true)
+TR_print(TR_read_file(TR_path(kök, "veri", "a.txt")))
+TR_move(TR_path(kök, "yeni.txt"), TR_path(kök, "taşındı.txt"))
+TR_print(TR_path(kök, "yeni.txt").TR_exists, TR_path(kök, "taşındı.txt").TR_exists)
 
-// sil silinen dosya sayısını verir; dolu klasör için içindekilerle: doğru gerekir.
-TR_fn_print(TR_fn_remove(TR_fn_path(kök, "taşındı.txt")))
-TR_fn_print(TR_fn_remove(TR_fn_path(kök, "veri"), TR_arg_recursive: TR_kw_true))
+# sil silinen dosya sayısını verir; dolu klasör için içindekilerle: doğru gerekir.
+TR_print(TR_remove(TR_path(kök, "taşındı.txt")))
+TR_print(TR_remove(TR_path(kök, "veri"), TR_recursive: TR_true))
 
-// dosya_satırları dosyayı akışla satır satır okur (SatırOkuyucu): bellek dosyadan bağımsızdır.
-TR_fn_write_file(TR_fn_path(kök, "notlar.txt"), "bir\niki\nüç")
-TR_kw_var okuyucu = TR_fn_read_lines(TR_fn_path(kök, "notlar.txt"))
-TR_fn_print(TR_fn_type(okuyucu) == TR_type_LineReader, okuyucu.TR_mem_next(), okuyucu.TR_mem_next())
-// kapat dosyayı sonuna kadar okumadan bırakır: ilk çağrıda doğru, sonrakilerde yanlış verir.
-TR_fn_print(okuyucu.TR_mem_close(), okuyucu.TR_mem_close())
+# dosya_satırları dosyayı akışla satır satır okur (SatırOkuyucu): bellek dosyadan bağımsızdır.
+TR_write_file(TR_path(kök, "notlar.txt"), "bir\niki\nüç")
+TR_var okuyucu = TR_read_lines(TR_path(kök, "notlar.txt"))
+TR_print(TR_type(okuyucu) == TR_LineReader, okuyucu.TR_next(), okuyucu.TR_next())
+# kapat dosyayı sonuna kadar okumadan bırakır: ilk çağrıda doğru, sonrakilerde yanlış verir.
+TR_print(okuyucu.TR_close(), okuyucu.TR_close())
 
-// --- Kendin dene ---
-// 1. Bir klasörde yalnızca .tr uzantılı dosyaların adlarını listele.
-// 2. Bir dosyayı yedek.txt adıyla kopyala, asıl dosyayı sil ve yedeğin yaşadığını göster.
+# --- Kendin dene ---
+# 1. Bir klasörde yalnızca .tr uzantılı dosyaların adlarını listele.
+# 2. Bir dosyayı yedek.txt adıyla kopyala, asıl dosyayı sil ve yedeğin yaşadığını göster.

@@ -1,38 +1,38 @@
-//! tr kodlu 3 dil=tr
-// 32 — Ağırlıkları kaydetmek: eğitilmiş modeli diske yazıp geri yüklemek.
-// Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), parametreleri_yükle, argmax ile en olası sınıfı seçmek.
-// Önceki örnekten: eğitim döngüsü (28), XOR ağı (30), sözlükler (11), dosya ve JSON (19), yollar (20).
-// Çalıştırma (proje kökünden): tr examples/tr/32_agirliklari_kaydet.tr
-// Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
+# TR 4
+# 32 — Ağırlıkları kaydetmek: eğitilmiş modeli diske yazıp geri yüklemek.
+# Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), parametreleri_yükle, argmax ile en olası sınıfı seçmek.
+# Önceki örnekten: eğitim döngüsü (28), XOR ağı (30), sözlükler (11), dosya ve JSON (19), yollar (20).
+# Çalıştırma (proje kökünden): tr examples/tr/32_agirliklari_kaydet.tr
+# Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
-// Küçük bir sınıflandırıcı: iki özellikten (boy, kilo gibi) üç sınıftan birini seçer.
-TR_kw_var W = TR_fn_tensor([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], TR_arg_requires_grad: TR_kw_true)
-TR_kw_var b = TR_fn_tensor([0.1, 0.0, -0.1], TR_arg_requires_grad: TR_kw_true)
+# Küçük bir sınıflandırıcı: iki özellikten (boy, kilo gibi) üç sınıftan birini seçer.
+TR_var W = TR_tensor([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]], TR_requires_grad: TR_true)
+TR_var b = TR_tensor([0.1, 0.0, -0.1], TR_requires_grad: TR_true)
 
-// Ağırlıklar bir sözlükte adlarıyla yazılır; geri yüklenince aynı adlarla okunur.
-TR_kw_var dosya = TR_fn_path(TR_fn_temp_dir(), "agirliklar.trt")
-TR_fn_save_tensors(dosya, {"W": W, "b": b})
-TR_kw_var yüklenen = TR_fn_load_tensors(dosya)
-TR_fn_print("yüklenenlerin adları: {yüklenen.TR_mem_keys()}")
-TR_fn_print("W aynı mı: {yüklenen["W"].TR_mem_tolist == W.TR_mem_tolist}")
+# Ağırlıklar bir sözlükte adlarıyla yazılır; geri yüklenince aynı adlarla okunur.
+TR_var dosya = TR_path(TR_temp_dir(), "agirliklar.trt")
+TR_save_tensors(dosya, {"W": W, "b": b})
+TR_var yüklenen = TR_load_tensors(dosya)
+TR_print("yüklenenlerin adları: \(yüklenen.TR_keys())")
+TR_print("W aynı mı: \(yüklenen["W"].TR_tolist == W.TR_tolist)")
 
-// Yüklenen ağırlıklarla tahmin: her satır bir örnek, her sütun bir sınıfın puanı.
-TR_kw_var örnekler = TR_fn_tensor([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
-TR_kw_var puanlar = TR_fn_no_grad { örnekler @ yüklenen["W"] + yüklenen["b"] }
-TR_fn_print("puanlar =", puanlar)
+# Yüklenen ağırlıklarla tahmin: her satır bir örnek, her sütun bir sınıfın puanı.
+TR_var örnekler = TR_tensor([[2.0, 0.5], [0.2, 1.8], [1.0, 1.0]])
+TR_var puanlar = TR_no_grad { örnekler @ yüklenen["W"] + yüklenen["b"] }
+TR_print("puanlar =", puanlar)
 
-// argmax her satırdaki en büyük puanın sütununu verir: seçilen sınıf.
-TR_kw_var sınıflar = TR_fn_argmax(puanlar, TR_arg_dim: -1)
-TR_kw_var adlar = ["kedi", "köpek", "kuş"]
-TR_fn_print("sınıf indeksleri: {sınıflar.TR_mem_tolist} → {[adlar[i] TR_kw_for i TR_kw_in sınıflar.TR_mem_tolist]}")
+# argmax her satırdaki en büyük puanın sütununu verir: seçilen sınıf.
+TR_var sınıflar = TR_argmax(puanlar, TR_dim: -1)
+TR_var adlar = ["kedi", "köpek", "kuş"]
+TR_print("sınıf indeksleri: \(sınıflar.TR_tolist) → \([adlar[i] TR_for i TR_in sınıflar.TR_tolist])")
 
-// parametreleri_yükle, tensör_yükle sonucunu modelin var olan parametrelerine aynı adlarla yerinde yazar
-// ve yazılan parametre sayısını verir (eğitime kaldığı yerden devam etmek için).
-TR_kw_var model = {w: TR_fn_tensor([1.0, 2.0], TR_arg_requires_grad: TR_kw_true)}
-TR_kw_var model_dosyası = TR_fn_path(TR_fn_temp_dir(), "model.trt")
-TR_fn_save_tensors(model_dosyası, {w: TR_fn_tensor([5.0, 6.0])})
-TR_fn_print(TR_fn_load_parameters(model, TR_fn_load_tensors(model_dosyası)), model.w.TR_mem_tolist)
+# parametreleri_yükle, tensör_yükle sonucunu modelin var olan parametrelerine aynı adlarla yerinde yazar
+# ve yazılan parametre sayısını verir (eğitime kaldığı yerden devam etmek için).
+TR_var model = {w: TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+TR_var model_dosyası = TR_path(TR_temp_dir(), "model.trt")
+TR_save_tensors(model_dosyası, {w: TR_tensor([5.0, 6.0])})
+TR_print(TR_load_parameters(model, TR_load_tensors(model_dosyası)), model.w.TR_tolist)
 
-// --- Kendin dene ---
-// 1. 21. örnekteki w ve b'yi eğitip burada kaydet, sonra yükleyip tahmin yap.
-// 2. Yüklenen sözlüğe ek bir anahtar koyup tekrar kaydet.
+# --- Kendin dene ---
+# 1. 21. örnekteki w ve b'yi eğitip burada kaydet, sonra yükleyip tahmin yap.
+# 2. Yüklenen sözlüğe ek bir anahtar koyup tekrar kaydet.

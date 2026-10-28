@@ -1,33 +1,33 @@
-//! tr kodlu 3 dil=tr
-// 30 — Küçük sinir ağı: iki katmanlı bir ağ XOR'u öğrenir.
-// Ne öğretir: gizli katman ve doğrusal olmayan etkinleştirme (tanh, sigmoid), ağırlıkları
-// türev izleyen tensörler olarak kurmak, çok katmanlı ağda eğitim döngüsü.
-// Önceki örnekten: eğitim döngüsü (28); XOR tek doğrusal katmanla çözülemez, gizli katman bunu mümkün kılar.
-// Çalıştırma (proje kökünden): tr examples/tr/30_xor_agi.tr
+# TR 4
+# 30 — Küçük sinir ağı: iki katmanlı bir ağ XOR'u öğrenir.
+# Ne öğretir: gizli katman ve doğrusal olmayan etkinleştirme (tanh, sigmoid), ağırlıkları
+# türev izleyen tensörler olarak kurmak, çok katmanlı ağda eğitim döngüsü.
+# Önceki örnekten: eğitim döngüsü (28); XOR tek doğrusal katmanla çözülemez, gizli katman bunu mümkün kılar.
+# Çalıştırma (proje kökünden): tr examples/tr/30_xor_agi.tr
 
-// Gizli katman tanh, çıkış sigmoid; ağırlıklar tensördür, AdamW ile eğitilir.
-TR_kw_var X_veri = TR_fn_tensor([[0, 0], [0, 1], [1, 0], [1, 1]])
-TR_kw_var Y_hedef = TR_fn_tensor([[0], [1], [1], [0]])
-TR_kw_var W1 = TR_fn_tensor(TR_fn_randn([2, 8], TR_arg_seed: 42) * 0.5, TR_arg_requires_grad: TR_kw_true)
-TR_kw_var b1 = TR_fn_tensor(TR_fn_zeros([8]), TR_arg_requires_grad: TR_kw_true)
-TR_kw_var W2 = TR_fn_tensor(TR_fn_randn([8, 1], TR_arg_seed: 7) * 0.5, TR_arg_requires_grad: TR_kw_true)
-TR_kw_var b2 = TR_fn_tensor(TR_fn_zeros([1]), TR_arg_requires_grad: TR_kw_true)
-TR_kw_func ağ(X) {
-    TR_kw_return TR_fn_sigmoid(TR_fn_tanh(X @ W1 + b1) @ W2 + b2)
+# Gizli katman tanh, çıkış sigmoid; ağırlıklar tensördür, AdamW ile eğitilir.
+TR_var X_veri = TR_tensor([[0, 0], [0, 1], [1, 0], [1, 1]])
+TR_var Y_hedef = TR_tensor([[0], [1], [1], [0]])
+TR_var W1 = TR_tensor(TR_randn([2, 8], TR_seed: 42) * 0.5, TR_requires_grad: TR_true)
+TR_var b1 = TR_tensor(TR_zeros([8]), TR_requires_grad: TR_true)
+TR_var W2 = TR_tensor(TR_randn([8, 1], TR_seed: 7) * 0.5, TR_requires_grad: TR_true)
+TR_var b2 = TR_tensor(TR_zeros([1]), TR_requires_grad: TR_true)
+TR_func ağ(X) {
+    TR_return TR_sigmoid(TR_tanh(X @ W1 + b1) @ W2 + b2)
 }
-TR_kw_var op = TR_fn_AdamW([W1, b1, W2, b2], TR_arg_lr: 0.05, TR_arg_weight_decay: 0)
-TR_kw_var ilk_kayıp = 0.0
-TR_kw_for adım TR_kw_in 0..800 {
-    op.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_mean((ağ(X_veri) - Y_hedef) ** 2)
-    TR_kw_if adım == 0 { ilk_kayıp = kayıp.TR_mem_tolist }
-    TR_fn_backward(kayıp)
-    op.TR_mem_step()
+TR_var op = TR_AdamW([W1, b1, W2, b2], TR_lr: 0.05, TR_weight_decay: 0)
+TR_var ilk_kayıp = 0.0
+TR_for adım TR_in 0..800 {
+    op.TR_zero_grad()
+    TR_var kayıp = TR_mean((ağ(X_veri) - Y_hedef) ** 2)
+    TR_if adım == 0 { ilk_kayıp = kayıp.TR_tolist }
+    TR_backward(kayıp)
+    op.TR_step()
 }
-TR_kw_var son_kayıp = TR_fn_no_grad { TR_fn_mean((ağ(X_veri) - Y_hedef) ** 2) }.TR_mem_tolist
-TR_fn_print("ilk kayıp {TR_fn_round(ilk_kayıp, 4)} → son kayıp {TR_fn_round(son_kayıp, 6)}")
-TR_fn_print("XOR tahminleri (beklenen 0, 1, 1, 0): {[TR_fn_round(t[0], 2) TR_kw_for t TR_kw_in TR_fn_no_grad { ağ(X_veri) }.TR_mem_tolist]}")
+TR_var son_kayıp = TR_no_grad { TR_mean((ağ(X_veri) - Y_hedef) ** 2) }.TR_tolist
+TR_print("ilk kayıp \(TR_round(ilk_kayıp, 4)) → son kayıp \(TR_round(son_kayıp, 6))")
+TR_print("XOR tahminleri (beklenen 0, 1, 1, 0): \([TR_round(t[0], 2) TR_for t TR_in TR_no_grad { ağ(X_veri) }.TR_tolist])")
 
-// --- Kendin dene ---
-// 1. Gizli katmanı 8 yerine 2 nörona indir: ağ hâlâ öğreniyor mu?
-// 2. Tahminleri yuvarlamadan yazdır ve 0/1'e ne kadar yaklaştıklarına bak.
+# --- Kendin dene ---
+# 1. Gizli katmanı 8 yerine 2 nörona indir: ağ hâlâ öğreniyor mu?
+# 2. Tahminleri yuvarlamadan yazdır ve 0/1'e ne kadar yaklaştıklarına bak.

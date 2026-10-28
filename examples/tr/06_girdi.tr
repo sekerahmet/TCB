@@ -1,29 +1,29 @@
-//! tr kodlu 3 dil=tr
-// 06 — Girdi: kullanıcıdan veri okumak.
-// Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek,
-// girdi boşken varsayılana düşmek.
-// Önceki örnekten: tipler ve dönüşümler (03), metin (04), koşullar (05).
-// Çalıştırma (proje kökünden): tr examples/tr/06_girdi.tr
-//   Etkileşimli çalıştırın ve soruları yanıtlayın; Enter'a boş basarsanız varsayılan değer kullanılır.
-//   Girdi gelmeyen ortamlarda (standart giriş boş ya da kapalı) program varsayılanlarla sürer.
-//   Hata ayıklayıcıda (F5) girdi() çalışmaz: oturumda standart giriş yoktur; Ctrl+F5 ya da terminalde çalıştırın.
+# TR 4
+# 06 — Girdi: kullanıcıdan veri okumak.
+# Ne öğretir: girdi("soru") ile satır okumak, okunan metni tam() ile sayıya çevirmek,
+# girdi boşken varsayılana düşmek.
+# Önceki örnekten: tipler ve dönüşümler (03), metin (04), koşullar (05).
+# Çalıştırma (proje kökünden): tr examples/tr/06_girdi.tr
+#   Etkileşimli çalıştırın ve soruları yanıtlayın; Enter'a boş basarsanız varsayılan değer kullanılır.
+#   Girdi gelmeyen ortamlarda (standart giriş boş ya da kapalı) program varsayılanlarla sürer.
+#   Hata ayıklayıcıda (F5) girdi() çalışmaz: oturumda standart giriş yoktur; Ctrl+F5 ya da terminalde çalıştırın.
 
-// girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı Metin olarak verir.
-// Hiçbir şey yazılmazsa boş metin ("") gelir.
-TR_kw_var ad = TR_fn_input("Adın nedir? ")
-TR_kw_if ad == "" {
+# girdi(soru) soruyu yazar ve kullanıcının yazdığı satırı Metin olarak verir.
+# Hiçbir şey yazılmazsa boş metin ("") gelir.
+TR_var ad = TR_input("Adın nedir? ")
+TR_if ad == "" {
     ad = "Misafir"
 }
-TR_fn_print("Merhaba, {ad}!")
+TR_print("Merhaba, \(ad)!")
 
-// girdi her zaman Metin verir; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir.
-TR_kw_var yaş_metni = TR_fn_input("Yaşın kaç? ")
-TR_kw_var yaş = 20
-TR_kw_if yaş_metni != "" {
-    yaş = TR_fn_int(yaş_metni)
+# girdi her zaman Metin verir; sayı gerekiyorsa tam() ya da ondalık() ile çevrilir.
+TR_var yaş_metni = TR_input("Yaşın kaç? ")
+TR_var yaş = 20
+TR_if yaş_metni != "" {
+    yaş = TR_int(yaş_metni)
 }
-TR_fn_print("Gelecek yıl {yaş + 1} yaşında olacaksın.")
+TR_print("Gelecek yıl \(yaş + 1) yaşında olacaksın.")
 
-// --- Kendin dene ---
-// 1. İki sayı sor ve toplamlarını yazdır.
-// 2. Yaşa "abc" yazmayı dene: tam() hata verir. Bu hatayı yönetmeyi 13. örnekte öğreneceksin.
+# --- Kendin dene ---
+# 1. İki sayı sor ve toplamlarını yazdır.
+# 2. Yaşa "abc" yazmayı dene: tam() hata verir. Bu hatayı yönetmeyi 13. örnekte öğreneceksin.

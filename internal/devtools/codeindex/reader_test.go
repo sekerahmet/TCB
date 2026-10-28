@@ -53,7 +53,7 @@ func TestUnresolvedNamesAreCounted(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("a.tr", "fonksiyon f() {\n    sonuç bilinmeyen_ad(1)\n}\n")
+	write("a.tr", "TR_func f() {\n    TR_return bilinmeyen_ad(1)\n}\n")
 	idx, err := Build(dir, Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -66,10 +66,10 @@ func TestUnresolvedNamesAreCounted(t *testing.T) {
 // Projede lib/ yoksa `aktar "tr/ad"` gömülü kitaplığa çözülür; modül sanal yoldadır.
 func TestEmbeddedLibraryModule(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "main.tr"), []byte("aktar \"tr/katman\"\n\nGPT(1)\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "main.tr"), []byte("TR_import \"tr/katman\"\n\nTR_GPT(1)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lib := fstest.MapFS{"katman.tr": {Data: []byte("yapı GPT {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"katman.tr": {Data: []byte("TR_struct TR_GPT {\n    n = 1\n}\n")}}
 	idx, err := Build(dir, Options{Library: lib})
 	if err != nil {
 		t.Fatal(err)
@@ -131,8 +131,8 @@ func TestAliasAfterPlainImportOfTheSameModule(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("geo.tr", "sabit PI = 3\nfonksiyon alan(r) {\n    sonuç PI * r\n}\n")
-	write("main.tr", "aktar \"geo\"\naktar \"geo\" olarak g\n\nfonksiyon f() {\n    sonuç g.alan(1) + g.PI\n}\n")
+	write("geo.tr", "TR_const PI = 3\nTR_func alan(r) {\n    TR_return PI * r\n}\n")
+	write("main.tr", "TR_import \"geo\"\nTR_import \"geo\" TR_as g\n\nTR_func f() {\n    TR_return g.alan(1) + g.PI\n}\n")
 	idx, err := Build(dir, Options{})
 	if err != nil {
 		t.Fatal(err)

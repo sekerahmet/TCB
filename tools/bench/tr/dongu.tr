@@ -1,9 +1,9 @@
-//! tr kodlu 3 dil=tr
-TR_kw_var bas = TR_fn_time_ms()
-TR_kw_var birikim = 0
-TR_kw_var i = 0
-TR_kw_while i < 3000000 {
+# TR 4
+TR_var bas = TR_time_ms()
+TR_var birikim = 0
+TR_var i = 0
+TR_for i < 3000000 {
     birikim += i
     i += 1
 }
-TR_fn_print("dongu {birikim} {TR_fn_time_ms() - bas}")
+TR_print("dongu \(birikim) \(TR_time_ms() - bas)")

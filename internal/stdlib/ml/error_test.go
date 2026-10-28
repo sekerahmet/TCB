@@ -12,10 +12,10 @@ import (
 // iletinin dilinde yazılır: aynı hata İngilizce iletide İngilizce örnek verir, Türkçe sözcük taşımaz.
 func TestCodeExamplesFollowTheMessageLanguage(t *testing.T) {
 	for code, want := range map[string]string{
-		"exp([1.0, 2.0])":               "exp(tensor(...))",
-		"softmax([1.0, 2.0])":           "softmax(tensor(...), dim: -1)",
-		"geri_yayılım(tensör(3.0) * 2)": "tensor(..., requires_grad: true)",
-		"özel_türev(1)":                 "custom_grad(forward: func(x) { return [x * x, [x]] }, backward: func(s, g) { return [g * 2 * s[0]] })",
+		"TR_exp([1.0, 2.0])":              "exp(tensor(...))",
+		"TR_softmax([1.0, 2.0])":          "softmax(tensor(...), dim: -1)",
+		"TR_backward(TR_tensor(3.0) * 2)": "tensor(..., requires_grad: true)",
+		"TR_custom_grad(1)":               "custom_grad(forward: func(x) { return [x * x, [x]] }, backward: func(s, g) { return [g * 2 * s[0]] })",
 	} {
 		_, err := run(t, code)
 		if err == nil {
@@ -32,15 +32,15 @@ func TestMessageConsistency(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{"AdamW([tensör(3.0)])", messages.H6513},
-		{"AdamW([3.0])", messages.H6512},
-		{"gömme(tensör(3.0), [0])", messages.H6303},
-		{"gömme(3.0, [0])", messages.H6302},
-		{"geri_yayılım(3.0)", messages.H6030},
-		{"geri_yayılım(tensör(3.0) * 2)", messages.H6402},
-		{"çapraz_entropi(sıfırlar([3, 4]), [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]])", messages.H6312},
-		{"log_softmax([1, 2], eksen: 0)", messages.H6104},
-		{"relu([[1, 2]])", messages.H6104},
+		{"TR_AdamW([TR_tensor(3.0)])", messages.H6513},
+		{"TR_AdamW([3.0])", messages.H6512},
+		{"TR_embedding(TR_tensor(3.0), [0])", messages.H6303},
+		{"TR_embedding(3.0, [0])", messages.H6302},
+		{"TR_backward(3.0)", messages.H6030},
+		{"TR_backward(TR_tensor(3.0) * 2)", messages.H6402},
+		{"TR_cross_entropy(TR_zeros([3, 4]), [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]])", messages.H6312},
+		{"TR_log_softmax([1, 2], TR_dim: 0)", messages.H6104},
+		{"TR_relu([[1, 2]])", messages.H6104},
 	}
 	for _, d := range cases {
 		_, err := run(t, d.code)

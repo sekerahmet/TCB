@@ -81,9 +81,6 @@ type vmShared struct {
 	wg         sync.WaitGroup
 	SourceFile string
 	SourceCode string
-	// SourceLanguage is the code of the main program's writing language (17.1; source.Parts.
-	// Language; empty: Turkish). Values turn into text in it in the main program's code (3).
-	SourceLanguage string
 	// CommandName programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
 	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
 	// Boşsa "tr <SourceFile>" kullanılır.
@@ -451,7 +448,8 @@ func (v *VM) WaitAsync() {
 // Öneri denetleyiciyle ortaktır (ipucu.AdOnerisi): tanımsız ad çalışmadan önce de aynı
 // mesajla bulunur.
 func (v *VM) suggestName(name string, env *Environment) *messages.Error {
-	return hint.NameSuggestion(name, env.Names(), v.textLanguage())
+	// Program bir dosyadır, dili yoktur (2.1): öneri kimliğin yazımıdır (TR_print).
+	return hint.NameSuggestion(name, env.Names(), nil)
 }
 
 func (v *VM) reportAsyncError(line int, err error) {

@@ -1,50 +1,50 @@
-//! tr kodlu 3 dil=tr
-// 05 — Koşullar: programın karar vermesi.
-// Ne öğretir: eğer / değilse eğer / değilse, ve/veya/değil ile birleşik koşul, iç içe koşul, eşle.
-// Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (04).
-// Çalıştırma (proje kökünden): tr examples/tr/05_kosullar.tr
+# TR 4
+# 05 — Koşullar: programın karar vermesi.
+# Ne öğretir: eğer / değilse eğer / değilse, ve/veya/değil ile birleşik koşul, iç içe koşul, eşle.
+# Önceki örnekten: karşılaştırma ve Mantık değerleri (03), metne değer yerleştirme (04).
+# Çalıştırma (proje kökünden): tr examples/tr/05_kosullar.tr
 
-TR_kw_var sıcaklık = 31
+TR_var sıcaklık = 31
 
-// Koşul doğruysa süslü parantezli blok çalışır; sırayla denenir, ilk doğru olan seçilir.
-TR_kw_if sıcaklık > 30 {
-    TR_fn_print("sıcak")
-} TR_kw_else TR_kw_if sıcaklık > 15 {
-    TR_fn_print("ılık")
-} TR_kw_else {
-    TR_fn_print("soğuk")
+# Koşul doğruysa süslü parantezli blok çalışır; sırayla denenir, ilk doğru olan seçilir.
+TR_if sıcaklık > 30 {
+    TR_print("sıcak")
+} TR_else TR_if sıcaklık > 15 {
+    TR_print("ılık")
+} TR_else {
+    TR_print("soğuk")
 }
 
-// Birleşik koşul: ve ikisi de doğruysa, veya biri doğruysa, değil tersi.
-TR_kw_var yaş = 20
-TR_kw_var ehliyet_var = TR_kw_true
-TR_kw_if yaş >= 18 TR_kw_and ehliyet_var {
-    TR_fn_print("araç kullanabilir")
+# Birleşik koşul: ve ikisi de doğruysa, veya biri doğruysa, değil tersi.
+TR_var yaş = 20
+TR_var ehliyet_var = TR_true
+TR_if yaş >= 18 TR_and ehliyet_var {
+    TR_print("araç kullanabilir")
 }
-TR_kw_if yaş < 18 TR_kw_or TR_kw_not ehliyet_var {
-    TR_fn_print("araç kullanamaz")
+TR_if yaş < 18 TR_or TR_not ehliyet_var {
+    TR_print("araç kullanamaz")
 }
 
-// Koşullar iç içe yazılabilir.
-TR_kw_if yaş >= 18 {
-    TR_kw_if yaş >= 65 {
-        TR_fn_print("{yaş}: emekli")
-    } TR_kw_else {
-        TR_fn_print("{yaş}: yetişkin")
+# Koşullar iç içe yazılabilir.
+TR_if yaş >= 18 {
+    TR_if yaş >= 65 {
+        TR_print("\(yaş): emekli")
+    } TR_else {
+        TR_print("\(yaş): yetişkin")
     }
 }
 
-// eşle: bir değeri sırayla kalıplarla karşılaştırır, ilk uyan kolu çalıştırır.
-// varsayılan hiçbiri uymazsa çalışır. eşle değer de üretir.
-TR_kw_var gün = 3
-TR_kw_var gün_adı = TR_kw_match gün {
+# eşle: bir değeri sırayla kalıplarla karşılaştırır, ilk uyan kolu çalıştırır.
+# varsayılan hiçbiri uymazsa çalışır. eşle değer de üretir.
+TR_var gün = 3
+TR_var gün_adı = TR_match gün {
     1 => "pazartesi"
     2 => "salı"
     3 => "çarşamba"
-    TR_kw_default => "başka bir gün"
+    _ => "başka bir gün"
 }
-TR_fn_print("{gün}. gün: {gün_adı}")
+TR_print("\(gün). gün: \(gün_adı)")
 
-// --- Kendin dene ---
-// 1. Bir notu (0-100) değişkene yaz; 50'nin altına "kaldı", 50-84'e "geçti", 85 ve üstüne "pekiyi" yazdır.
-// 2. gün değişkenini 6 yap: hangi kol çalışır?
+# --- Kendin dene ---
+# 1. Bir notu (0-100) değişkene yaz; 50'nin altına "kaldı", 50-84'e "geçti", 85 ve üstüne "pekiyi" yazdır.
+# 2. gün değişkenini 6 yap: hangi kol çalışır?

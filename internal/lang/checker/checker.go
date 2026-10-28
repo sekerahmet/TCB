@@ -71,8 +71,8 @@ type Checker struct {
 	// adHatalari son CheckProgram çağrısının tanımsız ad hatalarıdır (undefined_names.go).
 	globalNames *nameScope
 	nameErrors  []error
-	// fileLanguage denetlenen dosyanın yazım dilinin kodudur ("": Türkçe); değer metni o
-	// dildedir (3), metin karşılaştırması uyarısı ona bakar (type_comparison.go).
+	// fileLanguage denetlenen yazılan satırın (kabuk) yazım dilinin kodudur; "": dosya, dili yoktur
+	// (2.1). İletiler dilin sözcüklerini dosyada kimlik yazımıyla, satırda o dilde adlandırır (word).
 	fileLanguage string
 }
 
@@ -110,17 +110,21 @@ func (c *Checker) Warnings() []error {
 // yapılır; onlar bu yardımcıyı kullanmaz.
 func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo) {
 	c.checkShadowing(name, line)
-	c.checkNameStyle(name, kind, line)
+	c.checkNameStyle(name, kind, line, 0)
 	c.scope.Define(name, info)
 }
 
 // checkShadowing ad bir yerleşik fonksiyonun adıysa (sözlükte fn yerleşik kodu) uyarı
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
+// Yalnız kişinin dilinde yazılan satırda (kabuk, SetFileLanguage) olur: dosyanın dili yoktur,
+// yerleşik TR_ ile yazılır ve hiçbir kullanıcı adı onu gölgelemez (2.1; 'toplam' TR_sum değildir).
 func (c *Checker) checkShadowing(name string, line int) {
-	// Kullanıcının adı dosyanın yazım dilinde bir yerleşiğin adı mı?
-	lang := codes.Source()
-	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil && c.fileLanguage != "" {
-		lang = l
+	if c.fileLanguage == "" {
+		return
+	}
+	lang, err := codes.LoadLanguage(c.fileLanguage)
+	if err != nil {
+		return
 	}
 	if k, ok := lang.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
 		c.warnings = append(c.warnings, messages.At(line, 0, messages.New(messages.H1009, name)))
@@ -143,6 +147,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.nameErrors = c.nameErrors[:0]
 	c.checkNames(prog)
 	c.errors = append(c.errors, c.nameErrors...)
+	c.checkSkeletons(prog)
 	sortByLine(c.errors[start:])
 }
 
@@ -153,12 +158,12 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Line())
-		c.checkNameStyle(s.Name.Value, varKind(s.IsConst), s.Line())
+		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Line(), s.Name.Token.Column)
 		declared := c.checkedTypeName(s.TypeName, s.Line())
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
 			c.addError(s.Line(), 0, messages.New(messages.H1001,
-				s.Name.Value, typeText(declared), typeText(inferred), numberHint(declared, inferred)))
+				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.numberHint(declared, inferred)))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
 		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
@@ -220,12 +225,12 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.StructStatement:
 		c.checkShadowing(s.Name, s.Line())
-		c.checkNameStyle(s.Name, kindType, s.Line())
+		c.checkNameStyle(s.Name, kindType, s.Line(), 0)
 		for _, f := range s.Fields {
-			c.checkNameStyle(f.Name, kindValue, s.Line())
+			c.checkNameStyle(f.Name, kindValue, s.Line(), 0)
 		}
 		for name, m := range s.Methods {
-			c.checkNameStyle(name, kindValue, m.Line())
+			c.checkNameStyle(name, kindValue, m.Line(), 0)
 		}
 		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
 		c.checkStruct(s)
@@ -235,7 +240,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
-			c.defineName(name.Value, varKind(s.IsConst), s.Line(), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
+			c.defineName(name.Value, c.varKind(s.IsConst), s.Line(), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
 
 	case *ast.MultiAssignStatement:
@@ -249,7 +254,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.KwConst)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 		}
 
@@ -265,7 +270,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
 			c.addError(s.Line(), 0, messages.New(messages.H1003,
-				typeText(c.returnType), typeText(valType), numberHint(c.returnType, valType)))
+				c.typeArg(c.returnType), c.typeArg(valType), c.numberHint(c.returnType, valType)))
 		}
 
 	case *ast.ThrowStatement:
@@ -293,7 +298,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 		c.inferExpression(s.Expression)
 		c.statementExpr = prev
-		c.warnUnusedNegation(s)
+		c.checkUnusedValue(s)
 	}
 }
 
@@ -301,13 +306,17 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 // a value's text is in it, so comparisons with another language's value names are warned about.
 func (c *Checker) SetFileLanguage(code string) { c.fileLanguage = code }
 
-// language denetlenen dosyanın yazım dilidir (nil: kanonik, Türkçe).
+// language denetlenen yazılan satırın yazım dilidir (nil: dosya).
 func (c *Checker) language() *codes.Language {
 	if l, err := codes.LoadLanguage(c.fileLanguage); err == nil && c.fileLanguage != "" {
 		return l
 	}
 	return nil
 }
+
+// word dilin k sözcüğünün iletideki adıdır: dosyada yazımı (TR_const), yazılan satırda iletinin
+// dilindeki sözcük (codes.WordRef).
+func (c *Checker) word(k codes.Code) any { return codes.WordRef(k, c.language()) }
 
 // SetInteractive marks the checker as the shell's: an expression statement's value is shown
 // there, so it is not unused.
@@ -326,6 +335,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.FloatLiteral:
 		return typeFloat
 	case *ast.StringLiteral:
+		c.checkForeignInterpolation(e)
 		return typeString
 	case *ast.BooleanLiteral:
 		return typeBool
@@ -388,7 +398,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			argType := c.inferExpression(arg)
 			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
 				c.addError(e.Line(), 0, messages.New(messages.H1004,
-					ident.Value, i+1, typeText(info.ParamTypes[i]), typeText(argType)))
+					ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
 			}
 		}
 		for _, na := range e.NamedArgs {
@@ -417,11 +427,11 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType, false)
 			}
 			if info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, codes.NameRef(codes.KwConst)))
+				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
 				c.addError(s.Line(), 0, messages.New(messages.H1005,
-					ident.Value, typeText(info.TypeName), typeText(valType), numberHint(info.TypeName, valType)))
+					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.numberHint(info.TypeName, valType)))
 			}
 		}
 	} else {

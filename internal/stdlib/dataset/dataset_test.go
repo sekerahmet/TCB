@@ -297,7 +297,7 @@ func TestErrorMessages(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`veri_kümesi("bu_klasor_yok_123")`, messages.H2132},
+		{`TR_dataset("bu_klasor_yok_123")`, messages.H2132},
 		{`veri_kümesi("` + trPath(t.TempDir()) + `")`, messages.H5518},
 		{`veri_kümesi("` + trPath(broken) + `")`, messages.H5514},
 		{`veri_kümesi("` + trPath(d) + `", kota_gb: 1)`, messages.H5510},
@@ -317,7 +317,7 @@ func TestErrorMessages(t *testing.T) {
 		}
 	}
 	// Hatalar dene/yakala ile yakalanabilir.
-	out, _ := mustRun(t, `dene { veri_kümesi("bu_klasor_yok_123") } yakala h { yazdır("yakalandı") }`)
+	out, _ := mustRun(t, `TR_try { TR_dataset("bu_klasor_yok_123") } TR_catch h { TR_print("yakalandı") }`)
 	if strings.TrimSpace(out) != "yakalandı" {
 		t.Fatalf("çıktı %q", out)
 	}

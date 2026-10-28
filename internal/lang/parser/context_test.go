@@ -48,9 +48,9 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 	}
 	valid := []string{
 		"döngü { çık }",
-		"iken doğru { devam }",
+		"döngü doğru { devam }",
 		"döngü i içinde 1..3 { eğer i > 1 { çık } }",
-		"döngü i içinde 1..3 { eşle i { 1 => { devam } varsayılan => { çık } } }",
+		"döngü i içinde 1..3 { eşle i { 1 => { devam } _ => { çık } } }",
 		"döngü x < 3 { dene { çık } yakala { devam } }",
 		"fonksiyon f() { döngü { çık } }",
 		"[1].haritala { döngü { çık }; o }",

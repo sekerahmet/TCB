@@ -4,9 +4,11 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// Metin içi yerleştirmelerin ('{ifade}', 2.7) konumları. Tırnaklı metnin değerinde kaçış
+// Metin içi yerleştirmelerin ('\(ifade)', 2.7) konumları. Tırnaklı metnin değerinde kaçış
 // dizileri çözülmüştür ("\n" tek karakterdir); bu yüzden ifadenin dosyadaki yeri değerden
 // sayılarak bulunamaz. Sözcük çözümleyici yerleştirme içeren her metnin değerindeki her
 // karakterin kaynaktaki konumunu saklar; ayrıştırıcı ifadeyi bir alt çözümleyiciyle okur ve
@@ -23,12 +25,14 @@ func (l *Lexer) appendString(sb *strings.Builder, r rune, source int) {
 }
 
 // stringInfo yerleştirme içeren bir metin sabitinin bilgisidir: değerdeki her karakterin
-// kökün girdisindeki konumu ve yerleştirmelerin değerdeki aralıkları ('{' ve onu kapatan '}'
-// indeksleri; kapanmayanda son -1). Aralıkları sözcük çözümleyici metni okurken çıkarır;
-// ayrıştırıcı aynı aralıkları kullanır.
+// kökün girdisindeki konumu ve yerleştirmelerin değerdeki aralıkları (değere yazılan '(' ve onu
+// kapatan ')' indeksleri; kapanmayanda son -1). Aralıkları sözcük çözümleyici metni okurken
+// çıkarır; ayrıştırıcı aynı aralıkları kullanır. scopes metnin bulunduğu yerdeki kitaplık
+// parametreleridir (identity.go): yerleştirmedeki kimlikler de onlara çözülür.
 type stringInfo struct {
 	srcPos    []int32
 	positions [][2]int
+	scopes    []map[string]codes.Code
 }
 
 // saveStringPositions okunan metnin bilgisini kökte, metnin satır ve sütunuyla saklar.
@@ -40,6 +44,7 @@ func (l *Lexer) saveStringPositions(lineNo, colNo int) {
 	k.stringInfos[[2]int{lineNo, colNo}] = &stringInfo{
 		srcPos:    append([]int32(nil), l.strBuf...),
 		positions: append([][2]int(nil), l.posBuf...),
+		scopes:    l.scopes(),
 	}
 }
 
@@ -52,8 +57,8 @@ func (l *Lexer) stringMap(text Token) []int32 {
 }
 
 // Interpolations returns the ranges of the interpolations in a string literal's value: the
-// index of '{' and of the matching '}'; for an unclosed interpolation (a lexer error) the
-// second is len(value).
+// index of the '(' written for '\(' and of the matching ')'; for an unclosed interpolation (a
+// lexer error) the second is len(value). A string without interpolations has none.
 func (l *Lexer) Interpolations(text Token) [][2]int {
 	b := l.root.stringInfos[[2]int{text.Line, text.Column}]
 	if b == nil {
@@ -98,14 +103,17 @@ func (l *Lexer) lineCol(i int) (int, int) {
 	return s + 1, i - l.lineStarts[s] + 1 + l.lineShift(l.lineStarts[s], i)
 }
 
-// Interpolation returns the sub-lexer for one '{expr}' part of a string literal. metin is the
-// literal's token, ifade the part's text, and bas the index of the expression's first
+// Interpolation returns the sub-lexer for one '\(expr)' part of a string literal. text is the
+// literal's token, expr the part's text, and begin the index of the expression's first
 // character in the string's value. The sub-lexer shares the root's coded mode, positions and
-// record.
+// record, and the library parameters in scope where the string stands.
 func (l *Lexer) Interpolation(text Token, expr string, begin int) *Lexer {
 	src := []rune(expr)
 	posMap := l.stringMap(text)
 	sub := &Lexer{input: src, coded: l.coded, root: l.root}
+	if b := l.root.stringInfos[[2]int{text.Line, text.Column}]; b != nil {
+		sub.places.base = b.scopes
+	}
 	if posMap != nil && begin >= 0 && begin+len(src) <= len(posMap) {
 		sub.posMap = posMap[begin : begin+len(src) : begin+len(src)]
 	} else {

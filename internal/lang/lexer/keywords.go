@@ -24,12 +24,10 @@ var keywordTable = []Keyword{
 	{codes.KwIf, TokIf},
 	{codes.KwElse, TokElse},
 	{codes.KwMatch, TokMatch},
-	{codes.KwDefault, TokDefault},
 
 	// Döngüler ve akış kontrolü
 	{codes.KwFor, TokFor},
 	{codes.KwIn, TokIn},
-	{codes.KwWhile, TokWhile},
 	{codes.KwBreak, TokBreak},
 	{codes.KwContinue, TokContinue},
 
@@ -116,15 +114,6 @@ func keywordMap(table []Keyword, spellings func(codes.Code) []string) (map[strin
 		}
 	}
 	return posMap, codeList
-}
-
-// KeywordName returns the dictionary name of a keyword token type (e.g. "sonuç"), or the
-// empty string for other types.
-func KeywordName(t TokenType) string {
-	if k, ok := typeCodes[t]; ok {
-		return codes.Name(k)
-	}
-	return ""
 }
 
 // LookupIdent reports whether a word is a keyword or an identifier.

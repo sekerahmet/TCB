@@ -1,169 +1,169 @@
-//! tr kodlu 3 dil=tr
-// docs/spec/06_fonksiyonlar.md §6 — Fonksiyonlar
+# TR 4
+# docs/spec/06_fonksiyonlar.md §6 — Fonksiyonlar
 
-TR_kw_func topla(a, b) {
-    TR_kw_return a + b
+TR_func topla(a, b) {
+    TR_return a + b
 }
 
-TR_ctx_test "6.1 isimli fonksiyon tanımı" {
-    TR_fn_assert_equal(4, topla(2, 2))
-    TR_kw_func çarp(a, b) { TR_kw_return a * b }
-    TR_fn_assert_equal(6, çarp(2, 3))
+TR_test "6.1 isimli fonksiyon tanımı" {
+    TR_assert_equal(4, topla(2, 2))
+    TR_func çarp(a, b) { TR_return a * b }
+    TR_assert_equal(6, çarp(2, 3))
 }
 
-TR_ctx_test "6.1 fonksiyonlar tanımlandıkları noktadan sonra kullanılabilir" {
-    TR_kw_var bulundu = TR_kw_true
-    TR_kw_try { sonra_tanımlı() } TR_kw_catch { bulundu = TR_kw_false }
-    TR_fn_assert(TR_kw_not bulundu)
-    TR_kw_func sonra_tanımlı() { TR_kw_return 1 }
-    TR_fn_assert_equal(1, sonra_tanımlı())
+TR_test "6.1 fonksiyonlar tanımlandıkları noktadan sonra kullanılabilir" {
+    TR_var bulundu = TR_true
+    TR_try { sonra_tanımlı() } TR_catch { bulundu = TR_false }
+    TR_assert(TR_not bulundu)
+    TR_func sonra_tanımlı() { TR_return 1 }
+    TR_assert_equal(1, sonra_tanımlı())
 }
 
-TR_ctx_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
-    TR_kw_func erken(x) {
-        TR_kw_if x > 0 { TR_kw_return "pozitif" }
-        TR_kw_return "değil"
+TR_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
+    TR_func erken(x) {
+        TR_if x > 0 { TR_return "pozitif" }
+        TR_return "değil"
     }
-    TR_fn_assert_equal("pozitif", erken(1))
-    TR_fn_assert_equal("değil", erken(-1))
-    TR_kw_func örtük() { 5 }
-    TR_fn_assert_equal(5, örtük())
-    TR_kw_func boş_dönüş() { TR_kw_return }
-    TR_fn_assert_equal(TR_kw_none, boş_dönüş())
+    TR_assert_equal("pozitif", erken(1))
+    TR_assert_equal("değil", erken(-1))
+    TR_func örtük() { 5 }
+    TR_assert_equal(5, örtük())
+    TR_func boş_dönüş() { TR_return }
+    TR_assert_equal(TR_none, boş_dönüş())
 }
 
-TR_ctx_test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
-    TR_kw_func selam(ad, ek = "!") { TR_kw_return "Selam " + ad + ek }
-    TR_fn_assert_equal("Selam Ali!", selam("Ali"))
-    TR_fn_assert_equal("Selam Ali?", selam("Ali", "?"))
-    TR_kw_func ikinci(a, b) { TR_kw_return b }
-    TR_fn_assert_equal(H2414, TR_fn_error_code(() => { ikinci(1) }))
-    TR_fn_assert_equal(H2412, TR_fn_error_code(() => { ikinci(1, 2, 3) }))
+TR_test "6.3 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
+    TR_func selam(ad, ek = "!") { TR_return "Selam " + ad + ek }
+    TR_assert_equal("Selam Ali!", selam("Ali"))
+    TR_assert_equal("Selam Ali?", selam("Ali", "?"))
+    TR_func ikinci(a, b) { TR_return b }
+    TR_assert_equal("H2414", TR_error_code(() => { ikinci(1) }))
+    TR_assert_equal("H2412", TR_error_code(() => { ikinci(1, 2, 3) }))
 }
 
-TR_ctx_test "6.3 varsayılan değer önceki parametreleri görür" {
-    TR_kw_var a = 100
-    TR_kw_func f(a, b = a * 2) { TR_kw_return b }
-    TR_fn_assert_equal(2, f(1))
-    TR_kw_func g(x, y = x + 1, z = x + y) { TR_kw_return [x, y, z] }
-    TR_fn_assert_equal([1, 2, 3], g(1))
-    TR_fn_assert_equal([1, 5, 6], g(1, 5))
-    TR_fn_assert_equal([1, 2, 9], g(1, z: 9))
-    // Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
-    TR_kw_var b = 7
-    TR_kw_func h(a = b, b = 1) { TR_kw_return a }
-    TR_fn_assert_equal(H2440, TR_fn_error_code(() => { h() }))
-    // Varsayılan her çağrıda yeniden hesaplanır
-    TR_kw_func liste_al(l = []) { l.TR_mem_append(1); TR_kw_return l }
-    TR_fn_assert_equal([1], liste_al())
-    TR_fn_assert_equal([1], liste_al())
+TR_test "6.3 varsayılan değer önceki parametreleri görür" {
+    TR_var a = 100
+    TR_func f(a, b = a * 2) { TR_return b }
+    TR_assert_equal(2, f(1))
+    TR_func g(x, y = x + 1, z = x + y) { TR_return [x, y, z] }
+    TR_assert_equal([1, 2, 3], g(1))
+    TR_assert_equal([1, 5, 6], g(1, 5))
+    TR_assert_equal([1, 2, 9], g(1, z: 9))
+    # Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
+    TR_var b = 7
+    TR_func h(a = b, b = 1) { TR_return a }
+    TR_assert_equal("H2440", TR_error_code(() => { h() }))
+    # Varsayılan her çağrıda yeniden hesaplanır
+    TR_func liste_al(l = []) { l.TR_append(1); TR_return l }
+    TR_assert_equal([1], liste_al())
+    TR_assert_equal([1], liste_al())
 }
 
-TR_ctx_test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
-    TR_kw_func sonsuz(n) { TR_kw_return sonsuz(n + 1) }
-    TR_fn_assert_equal(H2422, TR_fn_error_code(() => { sonsuz(0) }))
+TR_test "6.3a özyineleme derinliği sınırı yakalanabilir hata verir" {
+    TR_func sonsuz(n) { TR_return sonsuz(n + 1) }
+    TR_assert_equal("H2422", TR_error_code(() => { sonsuz(0) }))
 }
 
-TR_ctx_test "6.4 adlı argümanlar" {
-    TR_kw_func böl(bölünen, bölen = 1) { TR_kw_return bölünen / bölen }
-    TR_fn_assert_equal(5, böl(bölen: 2, bölünen: 10))
-    TR_fn_assert_equal(10, böl(10))
+TR_test "6.4 adlı argümanlar" {
+    TR_func böl(bölünen, bölen = 1) { TR_return bölünen / bölen }
+    TR_assert_equal(5, böl(bölen: 2, bölünen: 10))
+    TR_assert_equal(10, böl(10))
 }
 
-TR_ctx_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
-    TR_kw_func f(a, b = 10) { TR_kw_return [a, b] }
-    TR_fn_assert_equal([1, 20], f(1, b: 20))
-    TR_fn_assert_equal(H2413, TR_fn_error_code(() => { f(1, a: 2) }))
-    // adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
-    TR_fn_assert_equal(H2415, TR_fn_error_code(() => { f(b: 20) }))
+TR_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
+    TR_func f(a, b = 10) { TR_return [a, b] }
+    TR_assert_equal([1, 20], f(1, b: 20))
+    TR_assert_equal("H2413", TR_error_code(() => { f(1, a: 2) }))
+    # adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
+    TR_assert_equal("H2415", TR_error_code(() => { f(b: 20) }))
 }
 
-TR_ctx_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
-    TR_kw_func sayaç_yap() {
-        TR_kw_var n = 0
-        TR_kw_return TR_kw_func() {
+TR_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
+    TR_func sayaç_yap() {
+        TR_var n = 0
+        TR_return TR_func() {
             n += 1
-            TR_kw_return n
+            TR_return n
         }
     }
-    TR_kw_var s = sayaç_yap()
+    TR_var s = sayaç_yap()
     s()
-    TR_fn_assert_equal(2, s())
-    TR_fn_assert_equal(1, sayaç_yap()())
+    TR_assert_equal(2, s())
+    TR_assert_equal(1, sayaç_yap()())
 }
 
-TR_ctx_test "6.5 özyineleme" {
-    TR_kw_func fakt(n) {
-        TR_kw_if n <= 1 { TR_kw_return 1 }
-        TR_kw_return n * fakt(n - 1)
+TR_test "6.5 özyineleme" {
+    TR_func fakt(n) {
+        TR_if n <= 1 { TR_return 1 }
+        TR_return n * fakt(n - 1)
     }
-    TR_fn_assert_equal(3628800, fakt(10))
+    TR_assert_equal(3628800, fakt(10))
 }
 
-TR_ctx_test "6.6 ok fonksiyonları (lambda)" {
-    TR_kw_var iki_kat = x => x * 2
-    TR_kw_var topla2 = (a, b) => a + b
-    TR_kw_var blok = (x) => {
-        TR_kw_var y = x + 1
-        TR_kw_return y * 2
+TR_test "6.6 ok fonksiyonları (lambda)" {
+    TR_var iki_kat = x => x * 2
+    TR_var topla2 = (a, b) => a + b
+    TR_var blok = (x) => {
+        TR_var y = x + 1
+        TR_return y * 2
     }
-    TR_fn_assert_equal(6, iki_kat(3))
-    TR_fn_assert_equal(5, topla2(2, 3))
-    TR_fn_assert_equal(8, blok(3))
+    TR_assert_equal(6, iki_kat(3))
+    TR_assert_equal(5, topla2(2, 3))
+    TR_assert_equal(8, blok(3))
 }
 
-TR_ctx_test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
-    TR_kw_var sayılar = [1, 2, 3, 4]
-    TR_fn_assert_equal([3, 4], sayılar.TR_mem_filter { TR_ctx_it > 2 })
-    TR_fn_assert_equal([9, 16], sayılar.TR_mem_filter { TR_ctx_it > 2 }.TR_mem_map { TR_ctx_it * TR_ctx_it })
-    TR_fn_assert_equal([[10, 20]], [[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } })
-    TR_kw_func uygula(x, f) { TR_kw_return f(x) }
-    TR_fn_assert_equal(10, uygula(5) { TR_ctx_it * 2 })
+TR_test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
+    TR_var sayılar = [1, 2, 3, 4]
+    TR_assert_equal([3, 4], sayılar.TR_filter { TR_it > 2 })
+    TR_assert_equal([9, 16], sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it })
+    TR_assert_equal([[10, 20]], [[1, 2]].TR_map { TR_it.TR_map { TR_it * 10 } })
+    TR_func uygula(x, f) { TR_return f(x) }
+    TR_assert_equal(10, uygula(5) { TR_it * 2 })
 }
 
-TR_ctx_test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
-    TR_fn_assert_equal(10, [1, 2, 3, 4].TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it })
-    TR_fn_assert_equal(24, [1, 2, 3, 4].TR_mem_reduce { TR_ctx_acc * TR_ctx_it })
-    TR_fn_assert_equal([3, 2, 1], [1, 2, 3].TR_mem_reduce([]) { [TR_ctx_it] + TR_ctx_acc })
-    // Elemanlar liste olsa da o elemandır
-    TR_fn_assert_equal(10, [[1, 2], [3, 4]].TR_mem_reduce(0) { TR_ctx_acc + TR_ctx_it[0] + TR_ctx_it[1] })
-    // birikim başka her yerde sıradan bir addır
-    TR_kw_var birikim = 5
-    TR_fn_assert_equal(5, birikim)
-    TR_fn_assert_equal(2, [1, 2].TR_mem_reduce(birikim) { TR_ctx_acc - TR_ctx_it })
-    TR_fn_assert_equal(H2476, TR_fn_error_code(() => { [1, 2].TR_mem_reduce(0, (x) => x) }))
+TR_test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
+    TR_assert_equal(10, [1, 2, 3, 4].TR_reduce(0) { TR_acc + TR_it })
+    TR_assert_equal(24, [1, 2, 3, 4].TR_reduce { TR_acc * TR_it })
+    TR_assert_equal([3, 2, 1], [1, 2, 3].TR_reduce([]) { [TR_it] + TR_acc })
+    # Elemanlar liste olsa da o elemandır
+    TR_assert_equal(10, [[1, 2], [3, 4]].TR_reduce(0) { TR_acc + TR_it[0] + TR_it[1] })
+    # birikim başka her yerde sıradan bir addır
+    TR_var birikim = 5
+    TR_assert_equal(5, birikim)
+    TR_assert_equal(2, [1, 2].TR_reduce(birikim) { TR_acc - TR_it })
+    TR_assert_equal("H2476", TR_error_code(() => { [1, 2].TR_reduce(0, (x) => x) }))
 }
 
-TR_ctx_test "6.7 kontrol yapısı başlığında \{ gövdeyi başlatır" {
-    TR_kw_var l = [1, 5]
-    TR_kw_var sonuç_ = ""
-    TR_kw_if (l.TR_mem_filter { TR_ctx_it > 2 }).TR_mem_length > 0 { sonuç_ = "var" }
-    TR_fn_assert_equal("var", sonuç_)
+TR_test "6.7 kontrol yapısı başlığında { gövdeyi başlatır" {
+    TR_var l = [1, 5]
+    TR_var sonuç_ = ""
+    TR_if (l.TR_filter { TR_it > 2 }).TR_length > 0 { sonuç_ = "var" }
+    TR_assert_equal("var", sonuç_)
 }
 
-TR_ctx_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
-    TR_kw_func a(x: TR_type_Int): TR_type_Int { TR_kw_return x }
-    TR_kw_func b(x: TR_type_Int) -> TR_type_String { TR_kw_return TR_fn_str(x) }
-    TR_fn_assert_equal("3", b(a(3)))
-    // Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
-    TR_fn_assert_equal(H1003, TR_fn_error_code(() => { TR_kw_import "negative/donus_tipi" }))
+TR_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
+    TR_func a(x: TR_Int): TR_Int { TR_return x }
+    TR_func b(x: TR_Int) -> TR_String { TR_return TR_str(x) }
+    TR_assert_equal("3", b(a(3)))
+    # Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
+    # Olumsuz fikstür: tests/negative/donus_tipi.tr
 }
 
-TR_ctx_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {
-    TR_kw_var l = [1, 2, 3]
-    TR_kw_func sınıf(x) {
-        TR_kw_return TR_kw_if l.TR_mem_contains(x * 10) { "a" } TR_kw_else TR_kw_if l.TR_mem_contains(x) { "b" } TR_kw_else { "c" }
+TR_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {
+    TR_var l = [1, 2, 3]
+    TR_func sınıf(x) {
+        TR_return TR_if l.TR_contains(x * 10) { "a" } TR_else TR_if l.TR_contains(x) { "b" } TR_else { "c" }
     }
-    TR_fn_assert_equal("b", sınıf(2))
-    TR_fn_assert_equal("c", sınıf(9))
-    TR_kw_var ad = "model.layers.0"
-    TR_kw_var sonuç_ = ""
-    TR_kw_if ad == "x" {
+    TR_assert_equal("b", sınıf(2))
+    TR_assert_equal("c", sınıf(9))
+    TR_var ad = "model.layers.0"
+    TR_var sonuç_ = ""
+    TR_if ad == "x" {
         sonuç_ = "x"
-    } TR_kw_else TR_kw_if ad.TR_mem_starts_with("model.layers.") {
+    } TR_else TR_if ad.TR_starts_with("model.layers.") {
         sonuç_ = "katman"
-    } TR_kw_else {
+    } TR_else {
         sonuç_ = "başka"
     }
-    TR_fn_assert_equal("katman", sonuç_)
+    TR_assert_equal("katman", sonuç_)
 }

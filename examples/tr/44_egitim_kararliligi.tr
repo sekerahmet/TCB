@@ -1,82 +1,82 @@
-//! tr kodlu 3 dil=tr
-// 44 — Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönmek.
-// Ne öğretir: sonlu_mu (sayı ve tensörde), gradyan_kırp(..., sonlu_değilse_hata:), kn.geri_dön(),
-// ö.atla(n) ve kitaplığın sıçrama bekçisi (aktar "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
-// Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşer ya da kaybı birden sıçrar; bu örnek bunu
-// bilerek bir kez yapar ve eğitimin son sağlam noktadan, sorunlu toplu işleri atlayarak sürdüğünü gösterir.
-// Önceki örnekten: kontrol noktası (40), hazır kitaplık (41).
-// Ayrıntılar: docs/spec/15_tensorler.md §15.36, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
-//
-// Çalıştırma (proje kökünden): tr examples/tr/44_egitim_kararliligi.tr
+# TR 4
+# 44 — Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönmek.
+# Ne öğretir: sonlu_mu (sayı ve tensörde), gradyan_kırp(..., sonlu_değilse_hata:), kn.geri_dön(),
+# ö.atla(n) ve kitaplığın sıçrama bekçisi (aktar "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
+# Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşer ya da kaybı birden sıçrar; bu örnek bunu
+# bilerek bir kez yapar ve eğitimin son sağlam noktadan, sorunlu toplu işleri atlayarak sürdüğünü gösterir.
+# Önceki örnekten: kontrol noktası (40), hazır kitaplık (41).
+# Ayrıntılar: docs/spec/15_tensorler.md §15.36, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
+#
+# Çalıştırma (proje kökünden): tr examples/tr/44_egitim_kararliligi.tr
 
-TR_kw_import "tr/egitim"
+TR_import "tr/egitim"
 
-// --- sonlu_mu: NaN ve sonsuz "sonlu değil"dir ---
-TR_fn_print(TR_fn_is_finite(2.5), TR_fn_is_finite(TR_fn_float("nan")), TR_fn_is_finite(TR_fn_float("inf")))
-TR_fn_print(TR_fn_is_finite(TR_fn_tensor([1.0, TR_fn_float("nan"), -TR_fn_float("inf")])).TR_mem_tolist) // eleman bazlı: [1.0, 0.0, 0.0]
+# --- sonlu_mu: NaN ve sonsuz "sonlu değil"dir ---
+TR_print(TR_is_finite(2.5), TR_is_finite(TR_float("nan")), TR_is_finite(TR_float("inf")))
+TR_print(TR_is_finite(TR_tensor([1.0, TR_float("nan"), -TR_float("inf")])).TR_tolist) # eleman bazlı: [1.0, 0.0, 0.0]
 
-// --- Küçük model ve veri (40. örnekteki model) ---
-TR_kw_var p = TR_fn_load_tokenizer("../../tests/data/tokenizer.json")
-TR_kw_var V = p.TR_mem_vocab_size
-TR_kw_var ö = TR_fn_dataset("../../tests/data/text").TR_mem_sampler(TR_arg_batch_size: 8, TR_arg_context: 32, TR_arg_seed: 1)
-TR_kw_var parametre_tohumu = 0
-TR_kw_func parametre(şekil, ölçek) {
+# --- Küçük model ve veri (40. örnekteki model) ---
+TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
+TR_var V = p.TR_vocab_size
+TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+TR_var parametre_tohumu = 0
+TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
-    TR_kw_return TR_fn_tensor(TR_fn_no_grad(TR_fn_randn(şekil, TR_arg_seed: parametre_tohumu) * ölçek), TR_arg_requires_grad: TR_kw_true)
+    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
 }
-TR_kw_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
-TR_kw_func ileri(giriş) {
-    TR_kw_return TR_fn_gelu(TR_fn_embedding(model.E, giriş) @ model.W1) @ model.W2
+TR_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+TR_func ileri(giriş) {
+    TR_return TR_gelu(TR_embedding(model.E, giriş) @ model.W1) @ model.W2
 }
-TR_kw_var op = TR_fn_AdamW(TR_fn_parameters(model), TR_arg_lr: 0.01, TR_arg_weight_decay: 0.0)
+TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01, TR_weight_decay: 0.0)
 
-// --- gradyan_kırp: normu hep verir; sonlu_değilse_hata ile bozuk gradyanda hata da verebilir ---
-TR_kw_var ilk_giriş, ilk_hedef = ö.TR_mem_next()
-TR_fn_backward(TR_fn_cross_entropy(ileri(ilk_giriş), ilk_hedef) * TR_fn_float("nan"))
-TR_kw_try {
-    TR_fn_clip_grad(TR_fn_parameters(model), TR_arg_max: 1.0, TR_arg_error_if_nonfinite: TR_kw_true)
-} TR_kw_catch h {
-    TR_fn_print("gradyan bozuk, adım atılmadı")
+# --- gradyan_kırp: normu hep verir; sonlu_değilse_hata ile bozuk gradyanda hata da verebilir ---
+TR_var ilk_giriş, ilk_hedef = ö.TR_next()
+TR_backward(TR_cross_entropy(ileri(ilk_giriş), ilk_hedef) * TR_float("nan"))
+TR_try {
+    TR_clip_grad(TR_parameters(model), TR_max: 1.0, TR_error_if_nonfinite: TR_true)
+} TR_catch h {
+    TR_print("gradyan bozuk, adım atılmadı")
 }
-op.TR_mem_zero_grad() // bozuk gradyanlar silinir, model değişmedi
+op.TR_zero_grad() # bozuk gradyanlar silinir, model değişmedi
 
-// --- Eğitim: her 10 adımda bir kontrol noktası, bekçi her adımı izler ---
-// Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
-TR_kw_const KOŞU = TR_fn_path("runs/kararlilik_ornegi")
-TR_kw_if KOŞU.TR_mem_exists { TR_fn_remove(KOŞU, TR_arg_recursive: TR_kw_true) }
-TR_kw_var kn = TR_fn_checkpoint(KOŞU, {model: model, op: op, ö: ö}, TR_arg_every_minutes: 0)
-TR_kw_var bekçi = TR_type_SpikeGuard(TR_arg_history_limit: 20, TR_arg_threshold: 6.0)
-TR_kw_const TOPLAM = 60
-TR_kw_var bozulacak_adım = 35 // bu adımda kayıp bilerek bir kez NaN olur
-TR_kw_var adım = 0
-TR_kw_for adım < TOPLAM {
-    TR_kw_var giriş, hedef = ö.TR_mem_next()
-    op.TR_mem_zero_grad()
-    TR_kw_var kayıp = TR_fn_cross_entropy(ileri(giriş), hedef)
-    TR_kw_if adım == bozulacak_adım {
-        kayıp = kayıp * TR_fn_float("nan")
+# --- Eğitim: her 10 adımda bir kontrol noktası, bekçi her adımı izler ---
+# Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
+TR_const KOŞU = TR_path("runs/kararlilik_ornegi")
+TR_if KOŞU.TR_exists { TR_remove(KOŞU, TR_recursive: TR_true) }
+TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ö: ö}, TR_every_minutes: 0)
+TR_var bekçi = TR_SpikeGuard(TR_history_limit: 20, TR_threshold: 6.0)
+TR_const TOPLAM = 60
+TR_var bozulacak_adım = 35 # bu adımda kayıp bilerek bir kez NaN olur
+TR_var adım = 0
+TR_for adım < TOPLAM {
+    TR_var giriş, hedef = ö.TR_next()
+    op.TR_zero_grad()
+    TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
+    TR_if adım == bozulacak_adım {
+        kayıp = kayıp * TR_float("nan")
         bozulacak_adım = -1
     }
-    TR_fn_backward(kayıp)
-    TR_kw_var norm = TR_fn_clip_grad(TR_fn_parameters(model), TR_arg_max: 1.0)
-    TR_kw_var karar = bekçi.TR_mem_observe(kayıp.TR_mem_tolist, norm.TR_mem_tolist)
-    TR_kw_if karar != TR_const_OK {
-        // Bozuk ya da sıçrayan adım uygulanmaz: son sağlam noktaya dönülür, sorunlu toplu işler atlanır.
-        TR_fn_print("adım {adım + 1}: {karar}")
-        adım = kn.TR_mem_rollback()
-        TR_fn_print("  {adım}. adıma dönüldü, {ö.TR_mem_skip(3)} toplu iş atlandı")
-        TR_kw_continue
+    TR_backward(kayıp)
+    TR_var norm = TR_clip_grad(TR_parameters(model), TR_max: 1.0)
+    TR_var karar = bekçi.TR_observe(kayıp.TR_tolist, norm.TR_tolist)
+    TR_if karar != TR_OK {
+        # Bozuk ya da sıçrayan adım uygulanmaz: son sağlam noktaya dönülür, sorunlu toplu işler atlanır.
+        TR_print("adım \(adım + 1): \(karar)")
+        adım = kn.TR_rollback()
+        TR_print("  \(adım). adıma dönüldü, \(ö.TR_skip(3)) toplu iş atlandı")
+        TR_continue
     }
-    op.TR_mem_step()
+    op.TR_step()
     adım += 1
-    TR_kw_if adım % 10 == 0 {
-        kn.TR_mem_update(adım)
-        TR_fn_print("adım {adım}: kayıp {TR_fn_round(kayıp.TR_mem_tolist, 3)}")
+    TR_if adım % 10 == 0 {
+        kn.TR_update(adım)
+        TR_print("adım \(adım): kayıp \(TR_round(kayıp.TR_tolist, 3))")
     }
 }
-TR_fn_print("model sağlam mı:", TR_fn_is_finite(TR_fn_sum(model.W2).TR_mem_tolist), "| sıçrama sayısı:", bekçi.TR_mem_spike_count)
+TR_print("model sağlam mı:", TR_is_finite(TR_sum(model.W2).TR_tolist), "| sıçrama sayısı:", bekçi.TR_spike_count)
 
-// --- Kendin dene ---
-// 1. bozulacak_adım'ı 5 yap: henüz kontrol noktası yokken geri_dön ne der?
-// 2. eşik'i 2.0'a indir: bekçi olağan gürültüyü de sıçrama sayar mı?
-// 3. Bekçiyi op.adım()'dan sonra çağır: NaN artık modele girer; geri_dön onu yine kurtarır mı?
+# --- Kendin dene ---
+# 1. bozulacak_adım'ı 5 yap: henüz kontrol noktası yokken geri_dön ne der?
+# 2. eşik'i 2.0'a indir: bekçi olağan gürültüyü de sıçrama sayar mı?
+# 3. Bekçiyi op.adım()'dan sonra çağır: NaN artık modele girer; geri_dön onu yine kurtarır mı?

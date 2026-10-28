@@ -73,7 +73,7 @@ func TestAJavaScriptTestReadsAFileThroughADirectoryConstantOrAHelper(t *testing.
 	}
 	files["ui/l10n/bundle.json"] = "{}\n"
 	files["ui/media/page.html"] = "<p></p>\n"
-	files["ui/deneme.tr"] = "yazdır(1)\n"
+	files["ui/deneme.tr"] = "TR_print(1)\n"
 	files["ui/test/l10n_test.js"] = "const ROOT = path.join(__dirname, '..');\n" +
 		"const MEDIA = path.join(ROOT, 'media');\n" +
 		"const FILE = path.join(ROOT, \"deneme.tr\");\n" +

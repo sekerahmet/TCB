@@ -1,13 +1,13 @@
-//! tr kodlu 3 dil=tr
-// Hata 09 — Bilinmeyen adlı argüman.
-// İleti kodu: H2410
-// Ne olur: Çağrıda fonksiyonun almadığı bir parametre adı kullanılırsa çalışma anında hata alınır.
-// Neden: selam() 'ad' adında bir parametre alır; 'isim' yazıldı.
-// Düzeltilmiş hâli:
-//     yazdır(selam(ad: "Ali"))
-// Çalıştırma (proje kökünden): tr examples/tr/hatalar/09_bilinmeyen_adli_arguman.tr   (çıkış kodu 1)
+# TR 4
+# Hata 09 — Bilinmeyen adlı argüman.
+# İleti kodu: H2410
+# Ne olur: Çağrıda fonksiyonun almadığı bir parametre adı kullanılırsa çalışma anında hata alınır.
+# Neden: selam() 'ad' adında bir parametre alır; 'isim' yazıldı.
+# Düzeltilmiş hâli:
+#     yazdır(selam(ad: "Ali"))
+# Çalıştırma (proje kökünden): tr examples/tr/hatalar/09_bilinmeyen_adli_arguman.tr   (çıkış kodu 1)
 
-TR_kw_func selam(ad) {
-    TR_kw_return "Selam {ad}"
+TR_func selam(ad) {
+    TR_return "Selam \(ad)"
 }
-TR_fn_print(selam(isim: "Ali"))
+TR_print(selam(isim: "Ali"))

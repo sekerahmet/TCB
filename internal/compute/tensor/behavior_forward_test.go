@@ -336,7 +336,7 @@ func TestNormsForward(t *testing.T) {
 	// [1,2,3,4]: ort 2.5, varyans 1.25
 	s := float32(1 / math.Sqrt(1.25))
 	near(t, "layernorm", ln[:4], []float32{-1.5 * s, -0.5 * s, 0.5 * s, 1.5 * s}, 1e-5)
-	near(t, "layernorm sabit satır", ln[4:], []float32{0, 0, 0, 0}, 1e-5)
+	near(t, "layernorm TR_const satır", ln[4:], []float32{0, 0, 0, 0}, 1e-5)
 	g := New([]float32{1, 2, 1, 2}, 4)
 	bt := New([]float32{0, 0, 1, 1}, 4)
 	ln2 := LayerNorm(x, g, bt, 1e-6).Data()

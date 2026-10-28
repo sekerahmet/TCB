@@ -3,7 +3,7 @@ package codeindex
 import "testing"
 
 // Kural: codeScanner yalnızca kod karakterlerini verir: çift tırnaklı metinler (kaçışlarıyla) ve
-// açıksa `//` yorumları atlanır; çağıran i ile atlayabilir, end ile kesebilir.
+// açıksa `#` yorumları atlanır (`//` tam bölmedir, kod karakteridir); çağıran i ile atlayabilir, end ile kesebilir.
 // Neden: dört tarayıcı (blockEnd, valueEnd, paramPositions, defaultText) aynı durum makinesini
 // ayrı ayrı yazıyordu; parantez sayımı ve konumlar çağıranda kaldı.
 func TestCodeScannerSkipsStringsAndComments(t *testing.T) {
@@ -23,8 +23,10 @@ func TestCodeScannerSkipsStringsAndComments(t *testing.T) {
 	}{
 		{`f(a, "x)y")`, true, "f(a, )"},
 		{`"a\"(b" (`, true, " ("},
-		{"a // (b", true, "a "},
-		{"a // (b", false, "a // (b"},
+		{"a # (b", true, "a "},
+		{"a # (b", false, "a # (b"},
+		{"a // b", true, "a // b"},
+		{`"#" (`, true, " ("},
 		{`"açık`, true, ""},
 		{`é(ş)`, true, "é(ş)"},
 	} {

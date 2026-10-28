@@ -260,12 +260,12 @@ func TestLoadErrors(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`parçalayıcı_yükle("yok_boyle_bir_dosya.json")`, messages.H2132},
+		{`TR_load_tokenizer("yok_boyle_bir_dosya.json")`, messages.H2132},
 		{`parçalayıcı_yükle("` + filepath.ToSlash(d) + `")`, messages.H5610},
 		{`parçalayıcı_yükle("` + unsupported + `")`, messages.H5614},
 		{`parçalayıcı_yükle("` + risky + `")`, messages.H5615},
 		{`parçalayıcı_yükle("` + broken + `")`, messages.H5617},
-		{`parçalayıcı_yükle(5)`, messages.H5609},
+		{`TR_load_tokenizer(5)`, messages.H5609},
 		{`parçalayıcı_yükle("` + bpePath + `").kodla(5)`, messages.H5630},
 		{`parçalayıcı_yükle("` + bpePath + `").kodla(["a", 1])`, messages.H5631},
 		{`parçalayıcı_yükle("` + bpePath + `").kodla("a", özel_parçlar: doğru)`, messages.H7900},

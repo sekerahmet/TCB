@@ -19,7 +19,7 @@ var resolvers = map[string]bool{"ResolvePath": true, "ResolvePathTried": true, "
 // notUserPaths yorumlayıcı alıp os çağıran ama kullanıcının yazdığı bir yola dokunmayan işlevlerdir
 // (gerekçeleriyle). Liste yalnızca küçülür: yeni kayıt eklenmez.
 var notUserPaths = map[string]string{
-	"internal/stdlib/checkpoint/read.go:loadNewest": "koşu klasörü kontrol_noktası() kurulurken bind.ResolvePath ile çözülmüştür",
+	"internal/stdlib/checkpoint/read.go:loadNewest": "koşu klasörü TR_checkpoint() kurulurken bind.ResolvePath ile çözülmüştür",
 	"internal/stdlib/files/copy.go:checkConflict":   "job.src ve job.last findSource/findTarget'ta çözülmüş yollardır",
 	"internal/stdlib/files/temp.go:tempDirBuiltin":  "yol işletim sisteminin geçici klasöründen üretilir, kullanıcı yolu almaz",
 }

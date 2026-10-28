@@ -1,49 +1,49 @@
-//! tr kodlu 3 dil=tr
-// 42 — Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek.
-// ETKİLEŞİMLİDİR: `kesme_noktası eğer ...` satırında program durur ve hata ayıklayıcı
-// komut bekler (değişkenleri gösterir; standart giriş boşsa ya da kapalıysa devam eder).
-// Ne öğretir: koşullu kesme noktası, değişkenleri ve tensörleri incelemek, değeri
-// çalışırken değiştirmek. Hata ayıklayıcı komutları: docs/guide/05_hata_ayiklayici.md §5.
-// Önceki örnekten: fonksiyonlar (08), sözlük listeleri (11), tensörler (23).
-// Çalıştırma (proje kökünden): tr examples/tr/42_hata_ayiklama.tr   (VS Code'da F5)
-// Program durduğunda deneyin:
-//   tablo siparisler            → sipariş listesini tablo olarak gösterir
-//   değiştir vergi_orani = 0.20 → hatalı oranı çalışırken düzeltir
-//   devam                       → programı sürdürür (sonuç 102600.0 TL olur)
+# TR 4
+# 42 — Hata ayıklama: koddaki kesme noktasıyla bir hesap hatasını çalışırken bulup düzeltmek.
+# ETKİLEŞİMLİDİR: `kesme_noktası eğer ...` satırında program durur ve hata ayıklayıcı
+# komut bekler (değişkenleri gösterir; standart giriş boşsa ya da kapalıysa devam eder).
+# Ne öğretir: koşullu kesme noktası, değişkenleri ve tensörleri incelemek, değeri
+# çalışırken değiştirmek. Hata ayıklayıcı komutları: docs/guide/05_hata_ayiklayici.md §5.
+# Önceki örnekten: fonksiyonlar (08), sözlük listeleri (11), tensörler (23).
+# Çalıştırma (proje kökünden): tr examples/tr/42_hata_ayiklama.tr   (VS Code'da F5)
+# Program durduğunda deneyin:
+#   tablo siparisler            → sipariş listesini tablo olarak gösterir
+#   değiştir vergi_orani = 0.20 → hatalı oranı çalışırken düzeltir
+#   devam                       → programı sürdürür (sonuç 102600.0 TL olur)
 
-TR_fn_print("=== Sipariş ve vergi hesabı ===")
+TR_print("=== Sipariş ve vergi hesabı ===")
 
-TR_kw_var siparisler = [
+TR_var siparisler = [
     {"belge_no": "100001", "musteri": "Anadolu Teknoloji", "tutar": 15000.0, "durum": "AÇIK"},
     {"belge_no": "100002", "musteri": "Karadeniz Lojistik", "tutar": 28500.0, "durum": "ONAYLI"},
     {"belge_no": "100003", "musteri": "Ege Enerji A.Ş.", "tutar": 42000.0, "durum": "BEKLEMEDE"}
 ]
 
-// Tensörler de hata ayıklayıcıda tablo olarak açılır
-TR_kw_var risk_matrisi = TR_fn_tensor([
+# Tensörler de hata ayıklayıcıda tablo olarak açılır
+TR_var risk_matrisi = TR_tensor([
     [0.12, 0.85, 0.03],
     [0.45, 0.40, 0.15]
 ])
 
-TR_kw_func net_tutar_hesapla(brut_toplam: TR_type_Float) -> TR_type_Float {
-    // HATA: vergi oranı %20 yerine yanlışlıkla %80 girilmiş.
-    TR_kw_var vergi_orani = 0.80
+TR_func net_tutar_hesapla(brut_toplam: TR_Float) -> TR_Float {
+    # HATA: vergi oranı %20 yerine yanlışlıkla %80 girilmiş.
+    TR_var vergi_orani = 0.80
 
-    // Koşullu kesme noktası: yalnızca büyük tutarlarda durur
-    TR_kw_breakpoint TR_kw_if brut_toplam > 50000
+    # Koşullu kesme noktası: yalnızca büyük tutarlarda durur
+    TR_breakpoint TR_if brut_toplam > 50000
 
-    TR_kw_var vergi = brut_toplam * vergi_orani
-    TR_kw_return brut_toplam + vergi
+    TR_var vergi = brut_toplam * vergi_orani
+    TR_return brut_toplam + vergi
 }
 
-TR_kw_var ara_toplam = 0.0
-TR_kw_for s TR_kw_in siparisler {
+TR_var ara_toplam = 0.0
+TR_for s TR_in siparisler {
     ara_toplam += s["tutar"]
 }
 
-TR_fn_print("Sipariş ara toplamı : {ara_toplam} TL")
-TR_fn_print("Vergi dahil ödenecek: {net_tutar_hesapla(ara_toplam)} TL")
+TR_print("Sipariş ara toplamı : \(ara_toplam) TL")
+TR_print("Vergi dahil ödenecek: \(net_tutar_hesapla(ara_toplam)) TL")
 
-// --- Kendin dene ---
-// 1. Durunca `değişkenler` yerine `tablo risk_matrisi` yaz ve tensörün tablo görünümüne bak.
-// 2. kesme_noktası koşulunu 100000 yap: bu kez durur mu?
+# --- Kendin dene ---
+# 1. Durunca `değişkenler` yerine `tablo risk_matrisi` yaz ve tensörün tablo görünümüne bak.
+# 2. kesme_noktası koşulunu 100000 yap: bu kez durur mu?

@@ -6,71 +6,128 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// readString bir metin sabitini okur. Metin içindeki '{ifade}' bölümleri
-// (interpolasyon) ayrıştırıcıya olduğu gibi aktarılır; bu bölümlerin içinde
-// tırnaklı alt metinler bulunabilir ("{p['ad']}"). Bir interpolasyon aynı satırda
-// kapanmalıdır; kapanmazsa veya metnin kapanış tırnağı hiç gelmezse açık bir
-// hata kaydedilir. Düz süslü parantez için '\{' ve '\}' kullanılır.
+// readString tırnaklı bir metni okur (2.6, 2.7). Kaçış dizileri çözülür; '\(ifade)' bir
+// yerleştirmedir: ifadenin metni değere '(' ve ')' arasında olduğu gibi (kaçışları çözülmeden)
+// yazılır, aralığı posBuf'a kaydedilir, ayrıştırıcı onu alt çözümleyiciyle okur
+// (interpolation.go). Yerleştirme '\('in eşi olan parantezle kapanır; içindeki parantezler ve
+// metinler onu kapatmaz; aynı satırda kapanmalıdır. Süslü parantez sıradan karakterdir. quote
+// '"' dışında yalnız hata kurtarmada gelir (tek tırnaklı metin, 2.6).
 func (l *Lexer) readString(quote rune, startLine, startCol int) string {
 	var sb strings.Builder
 	l.readChar() // açılış tırnağını geç
 	// Değerdeki her karakterin kaynaktaki konumu biriktirilir; metin bir yerleştirme
 	// içeriyorsa ayrıştırıcı ifadenin konumunu buradan okur (interpolation.go).
 	l.strBuf, l.posBuf = l.strBuf[:0], l.posBuf[:0]
-	interpolated := false
 	defer func() {
-		if interpolated {
+		if len(l.posBuf) > 0 {
 			l.saveStringPositions(startLine, startCol)
 		}
 	}()
-	braceDepth := 0
-	braceLine, braceCol := 0, 0
-	var inner rune // interpolasyon içindeki alt metnin tırnağı (0 = alt metin yok)
-
 	for {
-		if l.ch == 0 || (braceDepth > 0 && l.ch == '\n') {
-			if braceDepth > 0 {
-				l.addError(braceLine, braceCol, messages.New(messages.H0009))
-			} else {
-				l.addError(startLine, startCol, messages.New(messages.H0010, string(quote)))
-			}
+		switch {
+		case l.ch == 0 && l.position >= len(l.input):
+			l.addError(startLine, startCol, messages.New(messages.H0010, string(quote)))
 			return sb.String()
-		}
-
-		if l.ch == '\\' {
-			l.readEscape(&sb)
-			continue
-		}
-
-		if inner != 0 {
-			if l.ch == inner {
-				inner = 0
-			}
-		} else if braceDepth > 0 && (l.ch == '"' || l.ch == '\'') {
-			inner = l.ch
-		} else if l.ch == '{' {
-			if braceDepth == 0 {
-				braceLine, braceCol = l.line, l.column
-				l.posBuf = append(l.posBuf, [2]int{len(l.strBuf), -1})
-			}
-			braceDepth++
-			interpolated = true
-		} else if l.ch == '}' && braceDepth > 0 {
-			if braceDepth--; braceDepth == 0 {
-				l.posBuf[len(l.posBuf)-1][1] = len(l.strBuf)
-			}
-		} else if l.ch == quote && braceDepth == 0 {
+		case l.ch == quote:
 			l.readChar() // kapanış tırnağını geç
 			return sb.String()
-		}
-
-		// Çok satırlı metinde satır sonu kaynağın biçiminden bağımsız olarak '\n'dir:
-		// CRLF'li dosyada metnin değerine '\r' girmez (yalnızca \r kaçışıyla yazılır).
-		if l.ch == '\r' && l.peekChar() == '\n' {
+		case l.ch == '\\' && l.peekChar() == '(':
+			if !l.readInterpolation(&sb) {
+				// Kapanmayan yerleştirmede metin orada biter: sonraki satırlar kendi sözcükleriyle
+				// okunur, tek hata verilir.
+				return sb.String()
+			}
+		case l.ch == '\\':
+			l.readEscape(&sb)
+		case l.ch == '\r' && l.peekChar() == '\n':
+			// Çok satırlı metinde satır sonu kaynağın biçiminden bağımsız olarak '\n'dir:
+			// CRLF'li dosyada metnin değerine '\r' girmez (yalnızca \r kaçışıyla yazılır).
 			l.readChar()
+		default:
+			l.appendString(&sb, l.ch, l.position)
+			l.readChar()
+		}
+	}
+}
+
+// readInterpolation '\(' ile başlayan yerleştirmeyi okur: değere '(' + ifadenin kaynaktaki metni
+// + ')' yazılır, '(' ve ')'nin değerdeki indeksleri posBuf'a kaydedilir. Satır sonunda ya da dosya
+// sonunda kapanmamışsa hata verir, aralığın sonu açık kalır (-1) ve false döner.
+func (l *Lexer) readInterpolation(sb *strings.Builder) bool {
+	openLine, openCol := l.line, l.column
+	l.readChar() // '\'
+	l.posBuf = append(l.posBuf, [2]int{len(l.strBuf), -1})
+	l.appendString(sb, '(', l.position)
+	l.readChar()
+	if !l.copyCode(sb) {
+		l.addError(openLine, openCol, messages.New(messages.H0009))
+		return false
+	}
+	l.posBuf[len(l.posBuf)-1][1] = len(l.strBuf)
+	l.appendString(sb, ')', l.position)
+	l.readChar()
+	return true
+}
+
+// copyCode yerleştirmenin içindeki kodu eşi olan ')'ye kadar (')' hariç) değere olduğu gibi
+// yazar: iç içe parantezler sayılır, içteki tırnaklı ve ham metinler (kendi yerleştirmeleriyle)
+// atlanır. Satır sonuna ya da dosya sonuna varırsa false döner.
+func (l *Lexer) copyCode(sb *strings.Builder) bool {
+	depth := 0
+	for {
+		switch l.ch {
+		case 0, '\n':
+			return false
+		case '\r':
+			if l.peekChar() == '\n' {
+				return false
+			}
+		case '(':
+			depth++
+		case ')':
+			if depth == 0 {
+				return true
+			}
+			depth--
+		case '"', '`':
+			if !l.copyQuoted(sb, l.ch) {
+				return false
+			}
 			continue
 		}
-		l.appendString(&sb, l.ch, l.position)
+		l.appendString(sb, l.ch, l.position)
 		l.readChar()
 	}
+}
+
+// copyQuoted yerleştirmenin içindeki bir metni (tırnaklarıyla) değere olduğu gibi yazar; içindeki
+// kaçışlar ve yerleştirmeler atlanır. Metin aynı satırda kapanmazsa false döner.
+func (l *Lexer) copyQuoted(sb *strings.Builder, quote rune) bool {
+	l.appendString(sb, l.ch, l.position)
+	l.readChar()
+	for l.ch != quote {
+		switch {
+		case l.ch == 0 || l.ch == '\n':
+			return false
+		case quote == '"' && l.ch == '\\' && l.peekChar() == '(':
+			l.appendString(sb, l.ch, l.position)
+			l.readChar()
+			l.appendString(sb, l.ch, l.position)
+			l.readChar()
+			if !l.copyCode(sb) {
+				return false
+			}
+		case quote == '"' && l.ch == '\\':
+			l.appendString(sb, l.ch, l.position)
+			l.readChar()
+			if l.ch == 0 || l.ch == '\n' {
+				return false
+			}
+		}
+		l.appendString(sb, l.ch, l.position)
+		l.readChar()
+	}
+	l.appendString(sb, l.ch, l.position)
+	l.readChar()
+	return true
 }

@@ -1,5 +1,5 @@
-//! tr kodlu 3 dil=tr
-// Bilerek hatalı: 5.2 — sabit yeniden atanamaz; denetleyici çalıştırmadan önce yakalar.
-TR_fn_print("bu satır hiç çalışmamalı")
-TR_kw_const PI = 3.14
-PI = 3
+# TR 4
+# TEST 5.2 sabit yeniden atanamaz; denetim bunu çalışmadan önce bulur, dosyanın hiçbir satırı çalışmaz
+TR_print("bu satır hiç çalışmamalı")
+TR_const PI = 3.14
+PI = 3 # ERROR H1002
