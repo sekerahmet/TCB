@@ -11,9 +11,9 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 func names(codeList ...codes.Code) []Named {
@@ -167,7 +167,7 @@ func TestRecoverKeepsInterrupt(t *testing.T) {
 		}, func(any) error { converted = true; return errors.New("yutuldu") })
 		return interp.Null, nil
 	}}, true)
-	_, err := m.Run(parser.New(source.TextLexer("dene_kurtar()")).ParseProgram())
+	_, err := m.Run(parser.New(lexer.NewBody("dene_kurtar()", true)).ParseProgram())
 	if converted {
 		t.Fatal("Kurtar kesilmeyi hataya çevirdi")
 	}

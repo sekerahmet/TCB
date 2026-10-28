@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/stdlib/formats"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
@@ -35,7 +35,7 @@ type result struct {
 // klasörü testin ayarladığıdır).
 func runTR(t *testing.T, programDir, code string) result {
 	t.Helper()
-	p := parser.New(source.TextLexer(code))
+	p := parser.New(lexer.NewBody(code, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v\n%s", p.Errors(), code)
