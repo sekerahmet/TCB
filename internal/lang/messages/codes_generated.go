@@ -88,6 +88,9 @@ const (
 	H0241 Code = 241  // '{name}' tanımlı değil: sözlük anahtarı bir ifadedir, burada bir değişken; metin anahtarı için "{name}" yazın
 	H0242 Code = 242  // '{name}' TR'de yok: aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
 	H0243 Code = 243  // . Aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
+	H0250 Code = 250  // TR'de ':=' yok; değişken {var} ile tanımlanır: '{name} :=' yerine '{var} {name} =' yazın
+	H0251 Code = 251  // TR'de ':=' yok; {decl} tanımının değeri '=' ile yazılır: {decl} x = 5
+	H0252 Code = 252  // '{name}' ilk değeri yazılmadan tanımlandı; {decl} tanımında ilk değer her zaman yazılır, tip ondan çıkar: adın (ya da tipin) ardına '= ' ve başlangıç değerini ekleyin (değer henüz yoksa '= {none}')
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

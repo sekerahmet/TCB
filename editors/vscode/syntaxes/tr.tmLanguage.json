@@ -324,7 +324,7 @@
         },
         {
           "name": "keyword.operator.assignment.tr",
-          "match": ":=|="
+          "match": "="
         },
         {
           "name": "keyword.operator.arithmetic.tr",

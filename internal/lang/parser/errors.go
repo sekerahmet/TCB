@@ -71,6 +71,15 @@ func (p *Parser) tokenName(tok lexer.Token) any {
 // dilindeki sözcük (codes.WordRef).
 func (p *Parser) word(k codes.Code) any { return codes.WordRef(k, p.l.WrittenIn()) }
 
+// wordText dilin k sözcüğünün metinde yazıldığı biçimdir (düzeltmenin yeni metni): dosyada yazımı
+// (TR_var), yazılan satırda o satırın dilindeki sözcük.
+func (p *Parser) wordText(k codes.Code) string {
+	if lang := p.l.WrittenIn(); lang != nil {
+		return lang.Name(k)
+	}
+	return codes.Spelling(k)
+}
+
 // shortText hata mesajında gösterilecek metin sabitini kısaltır.
 func shortText(s string) string {
 	const limit = 30

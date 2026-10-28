@@ -1,0 +1,6 @@
+# TR 4
+# TEST 5.1 değişken TR_var ve ilk değeriyle tanımlanır: kısa tanım yoktur, ilk değersiz tanım hatadır; ileti TR_var'ı ve '='yi önerir
+b := 2 # ERROR H0250
+TR_var x := 5 # ERROR H0251
+TR_var y # ERROR H0252
+TR_const K: TR_Int # ERROR H0252

@@ -267,7 +267,7 @@ dene { fırlat "patladı" } yakala h { yazdır("yakalandı:", h) }
 
 #### TR_kw_var `değişken`
 
-Bulunulan kapsamda yeni bir ad tanımlar; değer verilmezse yok olur, virgülle birden çok ad tanımlanabilir.
+Bulunulan kapsamda ilk değeriyle yeni bir ad tanımlar, tipi ilk değerden çıkar (ilk değersiz tanım ve := sözdizimi hatasıdır); virgülle birden çok ad tanımlanabilir.
 
 ```tr
 değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)

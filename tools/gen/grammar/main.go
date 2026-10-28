@@ -268,7 +268,7 @@ func Generate() ([]byte, error) {
 				rule("keyword.operator.comparison.tr", `==|!=|<=|>=|<|>`),
 				rule("keyword.operator.logical.tr", `&&|\|\||!`),
 				rule("keyword.operator.assignment.compound.tr", `\+=|-=|\*=|/=`),
-				rule("keyword.operator.assignment.tr", `:=|=`),
+				rule("keyword.operator.assignment.tr", `=`),
 				rule("keyword.operator.arithmetic.tr", `\*\*|//|@|[+\-*/%]`),
 				rule("keyword.operator.ternary.tr", `\?`),
 			}}}},

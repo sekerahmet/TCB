@@ -49,9 +49,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		if slices.Contains(p.words.test, p.curToken().Literal) && p.peekTokenIs(lexer.TokString) {
 			return p.parseTestStatement()
 		}
-		// x := 5 kısa değişken tanımı kontrolü
+		// x := 5: kısa tanım yoktur (5.1), ileti TR_var'ı önerir
 		if p.peekTokenIs(lexer.TokWalrus) {
-			return p.parseShortVarStatement()
+			p.shortVarError()
+			return nil
 		}
 		return p.parseExpressionOrAssignmentStatement()
 	default:
@@ -134,7 +135,11 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 			}
 			names = append(names, &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal})
 		}
-		if !p.peekTokenIs(lexer.TokAssign) && !p.peekTokenIs(lexer.TokWalrus) {
+		if p.peekTokenIs(lexer.TokWalrus) {
+			p.walrusInDeclError(tok)
+			return nil
+		}
+		if !p.peekTokenIs(lexer.TokAssign) {
 			tok := p.peekToken()
 			p.syntaxError(tok, messages.H0142, p.tokenDescription(tok))
 			return nil
@@ -163,31 +168,49 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 		p.role(p.curToken(), RoleType)
 	}
 
-	if p.peekTokenIs(lexer.TokAssign) || p.peekTokenIs(lexer.TokWalrus) {
-		p.nextToken() // '=' veya ':='
+	switch {
+	case p.peekTokenIs(lexer.TokAssign):
+		p.nextToken() // '='
 		p.nextToken()
 		stmt.Value = p.parseExpression(precLowest)
-	} else {
+	case p.peekTokenIs(lexer.TokWalrus):
+		p.walrusInDeclError(tok)
+		return nil
+	default:
+		// İlk değer her zaman yazılır (5.1); ağaç yine kurulur ki ardından gelen denetim boşluk görmesin.
 		stmt.Value = &ast.NullLiteral{Token: p.curToken()}
+		p.noFirstValueError(tok, firstIdent.Value, p.curToken())
 	}
 
 	p.skipSemicolon()
 	return stmt
 }
-func (p *Parser) parseShortVarStatement() *ast.VarStatement {
-	identTok := p.curToken()
-	p.nextToken() // ':=' üzerine gel
-	walrusTok := p.curToken()
-	p.nextToken() // değerin başına gel
 
-	stmt := &ast.VarStatement{
-		Token:   walrusTok,
-		Name:    &ast.Identifier{Token: identTok, Value: identTok.Literal},
-		Value:   p.parseExpression(precLowest),
-		IsConst: false,
-	}
-	p.skipSemicolon()
-	return stmt
+// shortVarError 'x := 5' kısa tanımının hatasıdır (5.1): imleç adda, ardından ':=' gelir. Düzeltme
+// 'x :=' yerine 'TR_var x =' yazar; olduğu gibi uygulanabilir (Go'da da ':=' yeni ad tanımlar).
+func (p *Parser) shortVarError() {
+	name, walrus := p.curToken(), p.peekToken()
+	v := p.word(codes.KwVar)
+	r := name.Range()
+	r.EndLine, r.EndCol = walrus.EndLine, walrus.EndColumn
+	fixed := p.wordText(codes.KwVar) + " " + name.Literal + " ="
+	p.syntaxErrorFix(walrus, []messages.Fix{{Range: r, Replacement: fixed, Applicable: true}}, messages.H0250, v, name.Literal)
+}
+
+// walrusInDeclError 'TR_var x := 5' yazımının hatasıdır (5.1): imleç ':='den önceki belirteçte. Düzeltme
+// ':='yi '=' yapar.
+func (p *Parser) walrusInDeclError(declTok lexer.Token) {
+	walrus := p.peekToken()
+	p.syntaxErrorFix(walrus, []messages.Fix{{Range: walrus.Range(), Replacement: "=", Applicable: true}}, messages.H0251, p.word(declTok.Code))
+}
+
+// noFirstValueError ilk değeri yazılmamış tanımın hatasıdır (5.1); last tanımın son belirtecidir (ad
+// ya da tip). Önerilen ' = TR_none' bugünkü anlamı korur ama asıl değer değildir: uygulanabilir değil.
+func (p *Parser) noFirstValueError(declTok lexer.Token, name string, last lexer.Token) {
+	r := last.Range()
+	r.Line, r.Col = r.EndLine, r.EndCol
+	none := p.wordText(codes.KwNone)
+	p.syntaxErrorFix(last, []messages.Fix{{Range: r, Replacement: " = " + none}}, messages.H0252, p.word(declTok.Code), name, none)
 }
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	p.checkReturn(p.curToken())
