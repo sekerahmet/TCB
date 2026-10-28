@@ -415,6 +415,39 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Mevcut durum:** yanlış tip ve sayı çalışma anında, iletiyle: "sqrt() expects Int or Float as argument 1, String (\"a\") given", "sqrt() takes 1 argument, 2 given (usage: sqrt(number))" [ölçüldü].
 - **Yapılacaklar:** denetleyicide aynı kodla (4a).
 
+## 16. Veri ve parçalayıcı
+
+Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Taslak (2026-10-29): ana oturum yeniden yazdı, önce CLAUDE.md'den türeterek (Ahmet: "dil maddeleri yalan yanlış olsa da düzeltmezsek bizi hep eskiye götürecek"). DENETİM bekleniyor. Yeni adların (`TR_train_tokenizer`, `TR_reserved_tokens`, `TR_write_dataset`, `TR_shard_tokens`) gösterim adı onayda.
+
+### 16.3
+
+- **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`].
+- **Yapılacaklar:** `.TR_decode` yalnız tek dizi, birden çok dizi `TR_batch_decode` (13.8a); dağarcık dışı kimliğin hatası ve TR testi.
+
+### 16.4
+
+- **Mevcut durum:** parçalayıcı eğitmek yok; bugün Python'a gidiliyor.
+- **Yapılacaklar:** bayt düzeyinde BPE eğitimi, belirlenimci; `.TR_save` ile `tokenizer.json`; TR testi.
+
+### 16.5
+
+- **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 bit okuyor [kanıtlı: `internal/compute/dataload/npy.go`].
+
+### 16.6
+
+- **Mevcut durum:** veriyi yazan yerleşik yok; Go tarafında işaretsiz 16 bit yazıcı var (`WriteNpyU16`) [kanıtlı: `npy.go`].
+- **Yapılacaklar:** `TR_write_dataset`, tür seçimi ve `meta.json`; TR testi.
+
+### 16.7
+
+- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi).
+- **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler.
+
+### 16.8
+
+- **Mevcut durum:** sıralı okuyucu döngüyle geziliyor, liste veriyor [ölçüldü].
+- **Yapılacaklar:** demet; döngüde açma (iki adla `TR_for`).
+
 ## 17. Kodlar
 
 Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur); 3. turda DENETİM'in 1. turunun görünümden bağımsız bulguları alındı. DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.

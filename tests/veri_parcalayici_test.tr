@@ -1,7 +1,7 @@
 # TR 4
 # docs/spec/16_veri_parcalayici.md §16 — Veri ve parçalayıcı
 # Sentetik test verisi tests/data altındadır (üreteci: internal/stdlib/dataset/ornek_veri_test.go).
-# Göreli yollar çalışma klasöründe yoksa bu dosyanın klasörüne göre çözülür (16.8).
+# Göreli yollar çalışma klasöründe yoksa bu dosyanın klasörüne göre çözülür (16.10).
 
 TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
@@ -59,7 +59,7 @@ TR_test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler
     TR_assert_equal(["bir iki", "bir iki"], p.TR_decode(TR_Tensor([k, k])))
 }
 
-TR_test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
+TR_test "16.5 veri_kümesi: klasör ya da tek .npy dosyası" {
     TR_var küme = TR_Dataset("data/numbers")
     TR_assert_equal(TR_Dataset, TR_Type(küme))
     # Gösterimin sayıları dilden bağımsızdır: veri dosyası ve parça sayısı.
@@ -71,7 +71,7 @@ TR_test "16.4 veri_kümesi: klasör ya da tek .npy dosyası" {
     TR_assert(TR_String(TR_Dataset("data/text")).TR_contains("(2 "), TR_String(TR_Dataset("data/text")))
 }
 
-TR_test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
+TR_test "16.7 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretilebilir" {
     TR_var küme = TR_Dataset("data/numbers")
     TR_var ö = küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: 1)
     TR_assert_equal(TR_Sampler, TR_Type(ö))
@@ -104,7 +104,7 @@ TR_test "16.5 örnekleyici: [girdi, hedef] tensörleri, tohumla tekrar üretileb
     TR_assert_equal([], TR_cross_entropy(çıktı, hedef).TR_shape)
 }
 
-TR_test "16.6 sıralı: pencereler sırayla, bitince yok" {
+TR_test "16.8 sıralı: pencereler sırayla, bitince yok" {
     TR_var küme = TR_Dataset("data/numbers")
     TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
     TR_assert_equal(TR_SequentialReader, TR_Type(s))
@@ -131,7 +131,7 @@ TR_test "16.6 sıralı: pencereler sırayla, bitince yok" {
     TR_assert(p.TR_decode(mg)[0].TR_starts_with("Bugün hava"))
 }
 
-TR_test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
+TR_test "16.8 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     TR_var küme = TR_Dataset("data/numbers")
     TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
     TR_var sayı = 0
@@ -151,7 +151,7 @@ TR_test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     TR_assert_equal("H5535", TR_error_code { TR_for iş TR_in küme.TR_sampler(TR_batch_size: 2, TR_context: 4) {} })
 }
 
-TR_test "16.7 hatalar Türkçe ve yakalanabilir" {
+TR_test "16.9 hatalar Türkçe ve yakalanabilir" {
     TR_assert_equal("H2132", TR_error_code { TR_load_tokenizer("data/yok.json") })
     TR_assert_equal("H5617", TR_error_code { TR_load_tokenizer("data/corrupt.npy") })
     TR_assert_equal("H2132", TR_error_code { TR_Dataset("data/yok_klasor") })
@@ -167,7 +167,7 @@ TR_test "16.7 hatalar Türkçe ve yakalanabilir" {
     TR_assert_equal("H7905", TR_error_code { p.TR_encode("a", TR_special_tokens: 1) })
 }
 
-TR_test "16.8 göreli yollar programın klasörüne göre de çözülür" {
+TR_test "16.10 göreli yollar programın klasörüne göre de çözülür" {
     # Bu dosya proje kökünden (tr test tests) ya da başka bir klasörden çalıştırılsa da
     # "veri/..." yolları tests/data'yi bulur.
     TR_assert_equal(1005, TR_load_tokenizer("data/tokenizer.json").TR_vocab_size)
