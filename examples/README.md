@@ -63,6 +63,7 @@ TR_DIL=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 | 46 | [`46_hazir_model_ve_uretim.tr`](tr/46_hazir_model_ve_uretim.tr) | Hazır model ve üretim: Hugging Face biçimindeki bir modeli yüklemek (`TR_fn_pretrained_model`, `ağırlık_türü`) ve `TR_mem_generate` ile parça üretmek (küçük, rastgele ağırlıklı model `tests/data/hf_tiny`) |
 | 47 | [`47_kendi_uretim_dongusu.tr`](tr/47_kendi_uretim_dongusu.tr) | Kendi üretim döngün: `TR_mem_build_cache`, önbellekli `ileri`, `TR_mem_strip`; elle yazılan döngü `TR_mem_generate` ile aynı diziyi verir; `gizli_durum` + `TR_mem_single_step` + `TR_fn_replay` |
 | 48 | [`48_egitim_kosusu.tr`](tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`TR_type_Run`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce `prova` |
+| 49 | [`49_programin_sonu.tr`](tr/49_programin_sonu.tr) | Programın sonu: `TR_exit` ile kendi çıkış kodu, `TR_handle_stop` ve `TR_stop_requested` ile Ctrl+C'yi programın kendisinin karşılaması |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

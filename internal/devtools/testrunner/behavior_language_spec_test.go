@@ -323,19 +323,16 @@ func identityWord(w string) bool {
 // identityExceptions kimlik listesinde (henüz) olmayan ama tanımda anılan TR_ sözcükleridir: onaylı
 // yeni adlar (kodu kendi katmanıyla gelir; gelince buradan silinir) ve bilerek yanlış yazılan örnekler.
 var identityExceptions = map[string]string{
-	"TR_exit":           "onaylı yeni ad (1.10, süreç katmanı)",
-	"TR_handle_stop":    "onaylı yeni ad (1.5, süreç katmanı)",
-	"TR_stop_requested": "onaylı yeni ad (1.5, süreç katmanı)",
-	"TR_JSON":           "onaylı yeni ad (3.7a)",
-	"TR_Bytes":          "onaylı yeni ad (3.3)",
-	"TR_NoneType":       "onaylı yeni ad (3.11)",
-	"TR_enum":           "onaylı yeni ad (7.x, durumlu tip)",
-	"TR_interface":      "onaylı yeni ad (7.x, arayüz)",
-	"TR_while":          "bilerek yanlış: kalkan sözcük (2.9)",
-	"TR_default":        "bilerek yanlış: kalkan sözcük (2.9)",
-	"TR_elif":           "bilerek yanlış: başka dilin yazımı (5.5)",
-	"TR_prnt":           "bilerek yanlış: önerinin örneği (2.3a)",
-	"TR_Flaot":          "bilerek yanlış: önerinin örneği (2.3a)",
+	"TR_JSON":      "onaylı yeni ad (3.7a)",
+	"TR_Bytes":     "onaylı yeni ad (3.3)",
+	"TR_NoneType":  "onaylı yeni ad (3.11)",
+	"TR_enum":      "onaylı yeni ad (7.x, durumlu tip)",
+	"TR_interface": "onaylı yeni ad (7.x, arayüz)",
+	"TR_while":     "bilerek yanlış: kalkan sözcük (2.9)",
+	"TR_default":   "bilerek yanlış: kalkan sözcük (2.9)",
+	"TR_elif":      "bilerek yanlış: başka dilin yazımı (5.5)",
+	"TR_prnt":      "bilerek yanlış: önerinin örneği (2.3a)",
+	"TR_Flaot":     "bilerek yanlış: önerinin örneği (2.3a)",
 }
 
 // Test satırının üç biçimi tanınır, eksik ya da çelişkili satır yakalanır.

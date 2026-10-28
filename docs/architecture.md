@@ -129,8 +129,8 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `ResolvePath`, `OpenFileReader`, `ReadFileContent`, `WriteFileContent`, `WriteAtomic` | Tek yol kuralı, `.gz` saydamlığı, atomik yazma: dosya okuyan ve yazan bütün yerleşikler bunlardan geçer |
 | `WriteOutput`, `SetLiveLine`, `UpdateLiveLine`, `AddSecret`, `Mask` | İnsanın göreceği çıktı noktaları; etkin canlı satır silinip yeniden çizilir, gizli değerler `***` olur |
 | `SetArgs`, `Args`, `ProgramCommand`, `UnusedArgsWarning` | Betiğin komut satırı argümanları ve programı başlatan komut |
-| `Interrupt`, `RequestInterrupt`, `DeferInterrupts`, `StopRequested`, `InterruptNow`, `IsInterrupt` | Nazik çıkış ve ertelenen kesme: bir kontrol noktası kurulduysa istek yalnızca bayrak koyar, kontrol noktası adım sınırında kaydedip `InterruptNow` ile durdurur. Motorların panik kurtarıcıları `IsInterrupt` ile kesmeyi yeniden atar |
-| `ExitRequest`, `IsExitRequest` | Bir yerleşiğin istediği program çıkışı (`TR_fn_command_line`: `--yardım` 0, kullanım hatası 2): `TR_kw_defer`ler çalışır, `dene/yakala` yakalamaz |
+| `RequestStop`, `DeferStops`, `HandleStop`, `StopRequested`, `Interrupt`, `InterruptNow`, `IsInterrupt`, `AwaitNew`, `Abandonable` | Durdurma isteği (1.5–1.7): istek bayrak koyar; bir kontrol noktası kurulduysa erteleme penceresinde (`DeferStops`) adım sınırında kaydedip `InterruptNow` ile durdurur; `TR_handle_stop` çağrılınca program durdurmayı üstlenir (`HandleStop`). Yeni bir şey bekleyen yerleşik `AwaitNew`, bırakılabilen bekleme `Abandonable` ile sarılır. Motorların panik kurtarıcıları `IsInterrupt` ile kesmeyi yeniden atar |
+| `RequestExit`, `IsExitRequest`, `End` | Programın çıkışı (1.9–1.14): `TR_exit` ve bir yerleşiğin istediği çıkış (`TR_command_line`: `--help` 0, kullanım hatası 2) `TR_defer`leri çalıştırır, `TR_try` yakalamaz; `End` sinyal, yakalanmamış hata ve `TR_exit` kodunun öncelik sırasıyla çıkış kodunu verir |
 
 ### Motorların kendi kancaları
 

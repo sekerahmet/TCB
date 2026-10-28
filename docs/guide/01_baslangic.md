@@ -29,7 +29,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
-Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_kw_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), çıkış kodu 3'tür; ikinci Ctrl+C hemen çıkar (130). Ayrıntılar: `docs/spec/01_program.md`.
+Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_kw_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), süreç Ctrl+C sinyaliyle biter (kabuk 130 görür); ikinci Ctrl+C hemen çıkar. Ayrıntılar: `docs/spec/01_program.md`.
 
 Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 

@@ -1,0 +1,39 @@
+# TR 4
+# 49 — Programın sonu: çıkış kodu ve durdurmayı üstlenmek.
+# Ne öğretir: TR_exit ile programı kendi koduyla bitirmek, TR_handle_stop ile Ctrl+C'yi programın
+# kendisinin karşılaması, TR_stop_requested ile isteği sormak.
+# Önceki örnekten: 48'de durdurmayı ve kaydı kitaplık yönetiyordu; burada program kendisi yönetir.
+# Çalıştırma (proje kökünden): tr examples/tr/49_programin_sonu.tr
+# Çalışırken Ctrl+C'ye basın: program turu bitirir, temizler ve kendi sınırında biter.
+
+TR_const TUR_SAYISI = 5
+TR_if TUR_SAYISI < 1 {
+    TR_print("tur sayısı en az 1 olmalı")
+    # Programın kendi çıkış kodları 4'ten başlar: 1 hata, 2 kullanım hatası içindir.
+    TR_exit(4)
+}
+
+# Bundan sonra gelen ilk Ctrl+C programı durdurmaz, yalnız kaydedilir.
+TR_handle_stop()
+
+TR_for tur TR_in TR_range(TUR_SAYISI) {
+    TR_if TR_stop_requested() {
+        TR_print("durdurma istendi, tur \(tur)'de bırakılıyor")
+        TR_break
+    }
+    TR_print("tur \(tur)")
+    TR_try {
+        # İstekten sonra yeni bir bekleme başlamaz, uyku "durdurma istendi" hatasıyla döner.
+        TR_sleep(0.2)
+    } TR_catch e {
+        TR_print("bekleme bırakıldı")
+        TR_break
+    }
+}
+
+# Temizlik her durumda çalışır; program burada kendiliğinden biter.
+TR_print("temizlik bitti")
+
+# --- Kendin dene ---
+# 1. TUR_SAYISI'nı 0 yapıp çalıştırın; kabukta çıkış kodunu görün (echo $?).
+# 2. TR_handle_stop() satırını silip Ctrl+C'ye basın: program turun ortasında durur.

@@ -82,7 +82,7 @@ func orDisplay(languageCode string) string {
 func languageArgument(args []string, command any) string {
 	languageCode, extra := parseLanguageArgs(command, args, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command))
 	if len(extra) > 0 {
-		exitWithError(messages.Text(messages.H8701, command, extra[0]))
+		exitUsage(messages.Text(messages.H8701, command, extra[0]))
 	}
 	return languageCode
 }
@@ -101,7 +101,7 @@ func parseLanguageArgs(command any, args []string, missingValue string) (languag
 			languageCode = args[i+1]
 			i++
 		case options && isOption(args[i], codes.OptLang):
-			exitWithError(missingValue)
+			exitUsage(missingValue)
 		case options && looksLikeOption(args[i]):
 			unknownOption(command, args[i], []codes.Code{codes.OptLang})
 		default:
@@ -111,11 +111,11 @@ func parseLanguageArgs(command any, args []string, missingValue string) (languag
 	return languageCode, files
 }
 
-// mustLoadLanguage yazım dili kodunun kod listesini yükler; bilinmeyen dil hatadır.
+// mustLoadLanguage yazım dili kodunun kod listesini yükler; bilinmeyen dil kullanım hatasıdır (2).
 func mustLoadLanguage(languageCode string) *codes.Language {
 	language, err := codes.LoadLanguage(languageCode)
 	if err != nil {
-		exitWithError(err)
+		exitUsage(err)
 	}
 	return language
 }
@@ -153,7 +153,7 @@ func convertFromInput(language *codes.Language, convert func(string) (string, er
 // Açılamayan hedef failed iletisiyle bildirilir.
 func convertCommand(targets []string, command any, verb string, failed messages.Code, convert func(filePath, text string) (string, error)) {
 	if len(targets) == 0 {
-		exitWithError(messages.Text(messages.H8703, command))
+		exitUsage(messages.Text(messages.H8703, command))
 	}
 	files, err := collectTrFiles(targets, failed)
 	if err != nil {
@@ -230,10 +230,10 @@ func showCommand(args []string) {
 	showName := codes.NameRef(codes.CmdShow)
 	languageCode, files := parseLanguageArgs(showName, args, messages.Text(messages.H8708, codes.OptionFlag(codes.OptLang), showName))
 	if len(files) == 0 {
-		exitWithError(messages.Text(messages.H8710, codes.NameRef(codes.CmdShow), codes.OptionFlag(codes.OptLang)))
+		exitUsage(messages.Text(messages.H8710, codes.NameRef(codes.CmdShow), codes.OptionFlag(codes.OptLang)))
 	}
 	if len(files) > 1 {
-		exitWithError(messages.Text(messages.H8709, showName, files[1]))
+		exitUsage(messages.Text(messages.H8709, showName, files[1]))
 	}
 	file := files[0]
 	language := mustLoadLanguage(orDisplay(languageCode))

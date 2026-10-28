@@ -6,7 +6,7 @@
 # Kendi denemeleriniz için bu dosyayı scratch/ klasörüne kopyalayıp değiştirebilirsiniz
 # (scratch/ depoya girmez).
 
-# İki eğik çizgiyle başlayan satır yorumdur: program onu çalıştırmaz, okuyana not düşer.
+# # ile başlayan satır yorumdur: program onu çalıştırmaz, okuyana not düşer.
 TR_print("Merhaba, dünya!")
 TR_print("Bu ikinci satır.")
 
