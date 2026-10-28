@@ -36,6 +36,7 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 - *Emsal:* Go'nun `for i, x := range` biçimi indeksle öğeyi verir; Python dolaşılırken boyu değişen sözlükte hata verir: "dictionary changed size during iteration" [ölçüldü: Python 3.12.6]; belge yalnız "may raise a RuntimeError or fail to iterate over all entries" der. *Almadık:* Python'da dolaşılırken boyu değişen listenin sessizce öğe atlaması ya da yinelemesi. ([Go 1.27](https://go.dev/ref/spec#For_range), [Python 3.15](https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects))
 - *Gerekçe:* dolaşırken listeyi ya da sözlüğü büyütüp küçültmek yaygın bir yanlıştır ve sonucu belirsizdir; hata o anda görünür. Var olan öğeye atama boyu değiştirmez, Python'da da serbesttir (`l[i] = x * 10`, `d[k] = 0` dolaşırken çalışır [ölçüldü: Python 3.12.6]); öğeleri yerinde dönüştürmek sık bir iştir.
+- *Gerekçe (dolaşılamayan JSON türleri):* serde_json'da `Value` dolaşılmaz; dizi ve nesne `as_array()` ve `as_object()` ile açılır. TR dizide ve nesnede doğrudan dolaşır, öbür türlerde hata verir: Python'daki gibi bir JSON metninde sessizce karakterleri dolaşmak yanlış olurdu. ([serde_json 1.0.154 Value](https://docs.rs/serde_json/1.0.154/serde_json/enum.Value.html))
 
 ### 5.8
 

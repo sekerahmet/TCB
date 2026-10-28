@@ -31,6 +31,8 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 
 - *Emsal:* Go'da fonksiyon tipleri karşılaştırılamaz; Go, Rust ve Swift'te ayrı tipler `==` ile karşılaştırılamaz, derleme hatasıdır. *Almadık:* Python'un ayrı tipleri sessizce eşit saymaması (`"1" == 1`, `False` döner, hata vermez); fonksiyonları kimlikle karşılaştırmak (görünüşü aynı iki fonksiyon eşit sayılmaz, kafa karıştırır). ([Go 1.27](https://go.dev/ref/spec#Comparison_operators), [Python 3.15](https://docs.python.org/3/reference/expressions.html#value-comparisons))
 - *Gerekçe:* her zaman yanlış çıkan bir karşılaştırma bir yanlışı saklar; çalışmadan önce hata olur. Tam sayı ile ondalığın kesin karşılaştırılması büyük adım ve bayt sayılarında yanlış eşitlik vermez. Sayıların tipten bağımsız eşitliği öğelere uzanmaz, çünkü öğe tipi ayrı iki liste 3.6'ya göre ayrı tiptir. Aralığın eşitliği uçlarından gelir, Rust'ın `Range`'indeki gibi (`PartialEq` uçlardan); Python'da `range(0) == range(1, 1)` doğrudur [ölçüldü: Python 3.12.6], TR'de iki aralık aynı uçları taşıdığında eşittir, kural tek cümle kalır.
+- *Emsal (fonksiyon içeren kap):* Go'da fonksiyon tipi karşılaştırılamaz, yalnız `nil`'le; Rust'ta kapanış tipleri `Clone`, `Copy`, `Sync`, `Send` uygular, `PartialEq` uygulamaz. Kabın eşitliği öğelerinin eşitliğidir; öğe karşılaştırılamıyorsa kap da karşılaştırılamaz. ([Go 1.27 karşılaştırma](https://go.dev/ref/spec#Comparison_operators), [Rust Reference: closure types](https://doc.rust-lang.org/reference/types/closure.html))
+- *Gerekçe:* `[f] == [f]`'in kimlikle doğru vermesi, `f == f`'nin hata vermesiyle çelişirdi.
 
 ### 4.6
 
@@ -53,6 +55,7 @@ Kurallar: [`04_operatorler.md`](../04_operatorler.md). Bu dosya her kuralın ems
 - *Gerekçe:* her işin tek yazımı vardır; kodlama modelleri başka dillerin işlecini ve yorumunu alışkanlıkla yazar. Bu yazımların hepsi sessiz bir yanlış değil, sözdizimi hatası olur ve ileti doğrusunu söyler; düzeltme ilk denemede tutar.
   - `x = f(a) // ölçek` satırında `//`'nin sağı bir ifadedir; sözdizimi hatası yerine tanımsız ad hatası çıkar, bu yüzden o ileti de `#`'i önerir. Sağdaki ad tanımlı bir sayıysa (`bs = 32 // batch`) yanlış bir değer sessizce çıkar [hipotez: sıklığı ölçülmedi]. TR'nin yüzeyi Swift'e benzediği için model `//` yorumuna uzanabilir [hipotez, DENETİM]; iletilerin önemi bundandır.
   - Python'un `x in l`'si TR'de işleç olamaz: koşullu döngü `TR_for koşul` olduğundan `TR_for x TR_in l { }` hem dolaşma hem koşul diye okunurdu. Üyelik bu yüzden yalnız `.TR_contains` ile sorulur.
+- *Gerekçe (ifadenin ardındaki `TR_in`):* kural `TR_in`'in yerini anlatır: döngünün ve üretecin başlığında değişken adından sonra; başka her yerde, döngü başlığına benzese de (`TR_if x.y TR_in l`), Python'un üyelik sınamasıdır.
 
 ### 4.10
 
