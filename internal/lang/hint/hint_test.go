@@ -127,3 +127,14 @@ func TestLibraryCodeGetsNoSpellingHint(t *testing.T) {
 		t.Errorf("BuiltinSpellingHint(%q) = %v, ipucu beklenmiyordu", ascii, i)
 	}
 }
+
+// Kural (3.8, 3.12): başka dilin range(n)'i tip çağrısını değil aralık yazımını önerir (0..n,
+// TR_List(0..n)); öbür tanıdık adlar TR_ yazımlarını (str → TR_String).
+func TestRangeSuggestsTheRangeSpelling(t *testing.T) {
+	if got := NameSuggestion("range", nil, nil); !messages.Has(got, messages.H0243) {
+		t.Errorf("range: %v; want H0243", got)
+	}
+	if got := NameSuggestion("str", nil, nil); !messages.Has(got, messages.H1021) || !strings.Contains(got.Error(), "TR_String") {
+		t.Errorf("str: %v; want H1021 suggesting TR_String", got)
+	}
+}

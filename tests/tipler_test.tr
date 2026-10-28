@@ -339,6 +339,8 @@ TR_test "3.12 tip çağrılınca kurar ve çevirir" {
     TR_assert_equal(TR_Type, TR_Type(TR_Int))
     TR_assert_equal(TR_Tensor, TR_Type(TR_Tensor([1, 2])))
     TR_assert_equal("H2645", TR_error_code(() => { TR_Dict() }))
+    # Aralık çağrılmaz: a..b yazılır, listesi TR_List(a..b) (3.8)
+    TR_assert_equal("H2657", TR_error_code(() => { TR_Range(3) }))
 }
 
 TR_test "3.12 metin 2.4 ve 2.5'in yazımıyla, işaretle ve yerel ayarsız okunur" {

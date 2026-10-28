@@ -61,6 +61,9 @@ func (v *VM) callType(t *TypeVal, args []Value, named map[string]Value, line int
 		return v.apply(t.Struct, args, named, line)
 	}
 	b := v.typeCalls[t.Code]
+	if b == nil && t.Code == codes.TypeRange {
+		return nil, messages.At(line, 0, messages.New(messages.H2657)) // aralık a..b yazılır (3.8)
+	}
 	if b == nil {
 		return nil, messages.At(line, 0, messages.New(messages.H2645, codes.NameRef(t.Code)))
 	}

@@ -83,6 +83,9 @@ func NameSuggestion(name string, visible []string, lang *codes.Language) *messag
 	// Dosyada (lang nil) dilin sözcüğü TR_'siz ya da başka bir dilin adıyla yazılmış olabilir
 	// (2.3a): print → TR_print. Bir dilde yazılan satırda (kabuk) öneri o dilin sözcüğüdür.
 	if lang == nil {
+		if k, ok := codes.FamiliarCode(name); ok && k == codes.TypeRange {
+			return messages.New(messages.H0243) // range(n): aralık 0..n yazılır, tip çağrılmaz (3.8)
+		}
 		if s, ok := codes.SuggestIdentity(name); ok {
 			return messages.New(messages.H1021, s)
 		}
