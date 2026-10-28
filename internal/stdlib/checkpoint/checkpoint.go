@@ -262,11 +262,6 @@ func (kn *Checkpoint) update(m *interp.VM, args []interp.Value) (interp.Value, e
 	if err != nil {
 		return nil, err
 	}
-	// Uygulanmış bir durdurma (1.5; ertelenmeyen istek) adım sınırında hemen uygulanır: döngüler
-	// durdurmayı her turda denetlemez, adım sınırı güvenli noktadır.
-	if m.Interrupted() {
-		m.InterruptNow()
-	}
 	kn.step = n
 	now := clock() // saat güncelleme başına bir kez okunur
 	kn.noteUpdate(now)

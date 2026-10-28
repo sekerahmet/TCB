@@ -326,6 +326,16 @@ func (v *VM) handOff() {
 	}
 }
 
+// loopTurn döngü turunun başındaki güvenli noktadır. Uygulanmış durdurma her turda fark edilir
+// (1.5): turu yalnız yerleşik çağıran bir döngüde de durdurmanın gecikmesi tur sayısına değil
+// tek bir turun süresine bağlıdır. Bekleyen göreve kilit 256 turda bir devredilir.
+func (v *VM) loopTurn(turn *uint32) {
+	if *turn++; *turn&255 == 0 {
+		v.handOff()
+	}
+	v.checkInterrupt()
+}
+
 func (v *VM) handOffLock() {
 	v.releaseGIL()
 	// Bekleyen görev kilidi alabilsin; sync.Mutex 1 ms'den uzun bekleyen göreve kilidi

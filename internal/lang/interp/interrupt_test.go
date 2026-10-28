@@ -99,6 +99,31 @@ sür()
 	}
 }
 
+// Döngü turu güvenli noktadır (1.5): gövdesi yalnız yerleşik çağıran bir döngü de durdurmayı
+// bir sonraki turda uygular; uzun süren turlarda gecikme tur sayısıyla büyümez.
+func TestInterruptStopsALoopOfBuiltinsAtTheNextTurn(t *testing.T) {
+	prog := mustParseProgram(t, `
+TR_var tur = 0
+TR_for i TR_in 1..1000 {
+    tur = i
+    adım(i)
+}
+`)
+	vmx := New()
+	vmx.RegisterBuiltin("adım", func(v *VM, args []Value, _ map[string]Value) (Value, error) {
+		if n, _ := args[0].(*IntVal); n != nil && n.Val == 3 {
+			v.Interrupt()
+		}
+		return Null, nil
+	})
+	if _, err := vmx.Run(prog); !errors.Is(err, ErrInterrupted) {
+		t.Fatalf("ErrKesildi bekleniyordu: %v", err)
+	}
+	if turn, _ := vmx.GlobalEnv.Get("tur"); turn.Inspect() != "3" {
+		t.Errorf("döngü durdurmanın geldiği turdan sonraki turda durmalıydı; son tur %s", turn.Inspect())
+	}
+}
+
 // RequestStop isteği dört yoldan karşılar (1.5, 1.6, 1.15) ve ilk sinyali korur (1.9).
 func TestRequestStopDispositions(t *testing.T) {
 	v := New()

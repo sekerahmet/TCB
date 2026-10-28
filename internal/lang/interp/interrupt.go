@@ -21,9 +21,10 @@ import (
 //     .güncelle ya da .kaydet noktayı kaydeder ve durur; süre dolarsa istek uygulanır (1.6).
 //   - Program biterken (StopFinishing) ertelenen işleri kesmez (1.15).
 //
-// Sıcak yola ek denetim girmez: Interrupt kilit bekleyen görev sayacını (pending) artırır;
-// döngüler ve çağrılar zaten bu sayaca baktığından kilit devri yoluna (handOffLock) girer ve
-// durdurma orada fark edilir.
+// Interrupt kilit bekleyen görev sayacını (pending) artırır: fonksiyon çağrıları bu sayaca
+// baktığından kilit devri yoluna (handOffLock) girer ve durdurma orada fark edilir. Döngü turu
+// kilidi 256 turda bir devreder; durdurmaya ise her turda bakar (loopTurn), yalnız yerleşik
+// çağıran bir döngü de bir sonraki turda durur.
 
 // ErrInterrupted reports that the program was stopped by an interrupt signal; dene/yakala does
 // not catch it.

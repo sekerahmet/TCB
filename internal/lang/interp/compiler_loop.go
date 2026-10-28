@@ -83,9 +83,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			idx := int64(0)
 			// Son değer dahil gezilir ve döngü onda biter: int64 sınırında taşma olmaz.
 			for i := first; ; i += step {
-				if handoff++; handoff&255 == 0 {
-					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-				}
+				v.loopTurn(&handoff)
 				loopEnv := kind.turn(v)
 				// Tam sayılar sahiplenilemez: yuvaya doğrudan yazılır (ownership.go).
 				if keySlot >= 0 {
@@ -111,9 +109,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 
 		case *ListVal:
 			for idx, item := range it.Elements {
-				if handoff++; handoff&255 == 0 {
-					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-				}
+				v.loopTurn(&handoff)
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, NewInt(int64(idx)))
@@ -134,9 +130,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 
 		case *DictVal:
 			for _, key := range it.Order {
-				if handoff++; handoff&255 == 0 {
-					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-				}
+				v.loopTurn(&handoff)
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, it.KeyValue(key))
@@ -159,9 +153,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 
 		case *StringVal:
 			for idx, ch := range []rune(it.Val) {
-				if handoff++; handoff&255 == 0 {
-					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-				}
+				v.loopTurn(&handoff)
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, NewInt(int64(idx)))
@@ -187,9 +179,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				return nil, signalNone, lineSuffix(line, err)
 			}
 			for idx := 0; idx < n; idx++ {
-				if handoff++; handoff&255 == 0 {
-					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-				}
+				v.loopTurn(&handoff)
 				item, err := it.IterItem(idx)
 				if err != nil {
 					return nil, signalNone, lineSuffix(line, err)
@@ -228,9 +218,7 @@ func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyB
 	var lastVal Value = Null
 	var handoff uint32
 	for idx := int64(0); ; idx++ {
-		if handoff++; handoff&255 == 0 {
-			v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-		}
+		v.loopTurn(&handoff)
 		item, cont, err := it.Next(v)
 		if err != nil {
 			return nil, signalNone, lineSuffix(line, err)
@@ -270,9 +258,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 			var lastVal Value = Null
 			var handoff uint32
 			for {
-				if handoff++; handoff&255 == 0 {
-					v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-				}
+				v.loopTurn(&handoff)
 				v.boundary()
 				cond, err := condition(v, env)
 				if err != nil {
@@ -308,9 +294,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 		defer kind.close(nil)
 		var handoff uint32
 		for {
-			if handoff++; handoff&255 == 0 {
-				v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-			}
+			v.loopTurn(&handoff)
 			cond, err := condition(v, env)
 			if err != nil {
 				return nil, signalNone, err
@@ -377,9 +361,7 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 		defer kind.close(iterVal)
 		var handoff uint32
 		for _, item := range items {
-			if handoff++; handoff&255 == 0 {
-				v.handOff() // her 256 turda bir: bekleyen göreve kilidi devret
-			}
+			v.loopTurn(&handoff)
 			compEnv := kind.fresh()
 			compEnv.store(varSlot, item)
 			if condition != nil {
