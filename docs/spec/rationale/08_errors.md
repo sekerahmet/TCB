@@ -5,7 +5,7 @@ Kurallar: [`08_hata_yonetimi.md`](../08_hata_yonetimi.md). Bu dosya her kuralın
 ### 8.1
 
 - *Emsal:* Kotlin'de `try` bir ifadedir: "It's a common approach to use `try-catch` as an expression, so it can return a value from either the `try` block or the `catch` block". Go'da temizlik `defer` ile yazılır, `finally` yoktur. *Almadık:* Kotlin'in ve Python'un `finally`'si: Kotlin aynı iş için ayrıca `.use()`'u önerir, yani temizliğin iki yazımı olur; TR'de `TR_defer` (9) zaten fonksiyondan her çıkışta çalışır. ([Kotlin exceptions](https://kotlinlang.org/docs/exceptions.html), [Go 1.27 defer](https://go.dev/ref/spec#Defer_statements))
-- *Gerekçe:* `TR_if` ve `TR_match` gibi `TR_try` da değer verince "değeri ya da varsayılanı" tek satırda yazılır; ajan geçici bir değişkene atama yapmak zorunda kalmaz. Temizliğin tek yazımı olunca hangi yolun kullanılacağı seçimi kalkar. Kesme ve `TR_exit`'in yakalanmaması 1.5 ve 1.10'un sonucudur.
+- *Gerekçe:* `TR_if` ve `TR_match` gibi `TR_try` da değer verince "değeri ya da varsayılanı" tek satırda yazılır; ajan geçici bir değişkene atama yapmak zorunda kalmaz. Temizliğin tek yazımı olunca hangi yolun kullanılacağı seçimi kalkar. Yakalanan hatanın adı zorunludur (Ahmet'in kararı, 2026-10-28; DENETİM Ç1): adsız yakalama ve hazır `TR_error` adı ikinci bir yazımdı (2.9), iç içe `TR_try`'da dıştaki hatayı gizliyordu; 3. katmanın örtük `TR_it`'i aynı nedenle kalktı. Depoda adlı yazım çoğunluktaydı (29'a 7). Kesme ve `TR_exit`'in yakalanmaması 1.5 ve 1.10'un sonucudur.
 
 ### 8.2
 

@@ -318,12 +318,12 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ## 8. Hata yönetimi
 
-Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi, adsız yakalamanın yazımı Ahmet'in kararını bekliyor), Gemini'nin araştırması bekleniyor. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den `TR_error` kalktı, Ahmet 2026-10-28), Gemini'nin araştırması bekleniyor. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
 
 ### 8.1
 
 - **Mevcut durum:** `TR_try`/`TR_catch` çalışıyor, `TR_catch` zorunlu; `TR_try` ifade olarak sözdizimi hatası; `TR_finally` bilinmeyen kimlik; Python'un `except`'i ipucu alıyor [ölçüldü].
-- **Yapılacaklar:** ifade olarak `TR_try`; parantezli adın ve Python'un `except`/`finally`'sinin iletileri.
+- **Yapılacaklar:** ifade olarak `TR_try`; adsız `TR_catch` sözdizimi hatası (ileti `TR_catch e`; göç: depodaki 7 adsız yakalama ve 4 `TR_error`), `TR_error` kimliği kalkar; parantezli adın ve Python'un `except`/`finally`'sinin iletileri.
 
 ### 8.2
 
