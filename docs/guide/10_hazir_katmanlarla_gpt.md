@@ -84,13 +84,13 @@ Muon'u değiştirmek için `lib/iyilestirici.tr`'yi kopyalayın: `TR_type_Muon.T
 TR_import "tr/katman"
 TR_import "tr/iyilestirici"
 
-TR_var ayar = TR_command_line({TR_step: 100, koşu: "runs/gpt"})
+TR_var ayar = TR_command_line({"step": 100, "koşu": "runs/gpt"})
 TR_var p = TR_load_tokenizer("../tests/data/tokenizer.json")
 TR_var ö = TR_dataset("../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
 TR_var model = TR_GPT(p.TR_vocab_size, TR_context: 32, TR_embed_dim: 32, TR_num_layers: 2, TR_num_heads: 4, TR_tied: TR_true)
 TR_var op = TR_MuonAndAdamW(model)
-TR_var g = TR_logger(TR_path(ayar.koşu, "metrics.jsonl"))
-TR_var kn = TR_checkpoint(ayar.koşu, {model: model, TR_adamw: op.TR_adamw, TR_muon: op.TR_muon.TR_state, ö: ö, g: g})
+TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
+TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g})
 TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
 TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
     op.TR_set_multiplier(TR_lr_schedule(adım, ayar.TR_step, TR_warmup: 10))
@@ -99,7 +99,7 @@ TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
     TR_var kayıp = model.TR_loss(giriş, hedef)
     TR_backward(kayıp)
     op.TR_step()
-    ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+    ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
     kn.TR_update(adım + 1)
 }
 TR_print(p.TR_decode(model.TR_generate(p.TR_encode("Bugün"), 12, TR_temperature: 0.8, TR_seed: 1)))

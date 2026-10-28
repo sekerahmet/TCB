@@ -9,14 +9,14 @@
 
 # komut_satırı bir sözlük alır: anahtarlar ayar adları, değerler varsayılanlarıdır. Komut satırında
 # --ad değer verilmemişse varsayılan kullanılır; verilmişse değer varsayılanın tipine çevrilir.
-TR_var ayar = TR_command_line({TR_step: 100, TR_lr: 0.01, koşu: "deneme", günlük_dosyası: TR_none},
+TR_var ayar = TR_command_line({"step": 100, "lr": 0.01, "koşu": "deneme", "günlük_dosyası": TR_none},
     TR_description: "Ayarları komut satırından alan örnek program",
-    TR_descriptions: {TR_step: "eğitim adımı sayısı", TR_lr: "adım büyüklüğü", koşu: "koşunun adı",
-        günlük_dosyası: "kayıtların yazılacağı dosya (yoksa yazılmaz)"})
+    TR_descriptions: {"step": "eğitim adımı sayısı", "lr": "adım büyüklüğü", "koşu": "koşunun adı",
+        "günlük_dosyası": "kayıtların yazılacağı dosya (yoksa yazılmaz)"})
 
 # Sonuç bir nesnedir: ayar adıyla okunur.
-TR_print("adım:", ayar.TR_step, "| öğrenme oranı:", ayar.TR_lr, "| koşu:", ayar.koşu)
-TR_print("günlük dosyası verildi mi:", ayar.günlük_dosyası != TR_none)
+TR_print("adım:", ayar.TR_step, "| öğrenme oranı:", ayar.TR_lr, "| koşu:", ayar["koşu"])
+TR_print("günlük dosyası verildi mi:", ayar["günlük_dosyası"] != TR_none)
 
 # Ayarlar kodda sıradan değişkenler gibi kullanılır.
 TR_var toplam_adım = ayar.TR_step * 2

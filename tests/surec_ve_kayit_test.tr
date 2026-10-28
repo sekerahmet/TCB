@@ -13,8 +13,8 @@ TR_func satırlar(dosya_yolu) {
 }
 
 # Programın tek komut_satırı çağrısı (19.2, 19.4 bunu kullanır).
-TR_const AYAR = TR_command_line({TR_step: 100, oran: 0.5, veri: "veri/train", katmanlar: [64, 32], hızlı: TR_false, etiket: TR_none, api_anahtarı: "anahtar-varsayılan-1"},
-    TR_description: "Deneme", TR_descriptions: {TR_step: "eğitim adımı"})
+TR_const AYAR = TR_command_line({"step": 100, "oran": 0.5, "veri": "veri/train", "katmanlar": [64, 32], "hızlı": TR_false, "etiket": TR_none, "api_anahtarı": "anahtar-varsayılan-1"},
+    TR_description: "Deneme", TR_descriptions: {"step": "eğitim adımı"})
 
 TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
     TR_assert_equal(TR_none, TR_env("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
@@ -28,31 +28,31 @@ TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükt
     TR_assert_equal(TR_Dict, TR_type(AYAR))
     TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], AYAR.TR_keys())
     TR_assert_equal(100, AYAR.TR_step)
-    TR_assert_equal(0.5, AYAR.oran)
-    TR_assert_equal([64, 32], AYAR.katmanlar)
-    TR_assert_equal(TR_false, AYAR.hızlı)
-    TR_assert_equal(TR_none, AYAR.etiket)
+    TR_assert_equal(0.5, AYAR["oran"])
+    TR_assert_equal([64, 32], AYAR["katmanlar"])
+    TR_assert_equal(TR_false, AYAR["hızlı"])
+    TR_assert_equal(TR_none, AYAR["etiket"])
 }
 
 TR_test "19.2 komut_satırı programda bir kez çağrılır" {
-    TR_assert_equal("H7218", TR_error_code(() => TR_command_line({TR_step: 1})))
+    TR_assert_equal("H7218", TR_error_code(() => TR_command_line({"step": 1})))
 }
 
 TR_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
-    TR_assert_equal("H7222", TR_error_code(() => TR_command_line({TR_length: 3})))
-    TR_assert_equal("H7222", TR_error_code(() => TR_command_line({TR_contains: "x"})))
-    TR_assert_equal("H7221", TR_error_code(() => TR_command_line({yardım: TR_true})))
-    TR_assert_equal("H7225", TR_error_code(() => TR_command_line({a: {b: 1}})))
-    TR_assert_equal("H7224", TR_error_code(() => TR_command_line({a: [1, "x"]})))
-    TR_assert_equal("H7229", TR_error_code(() => TR_command_line({TR_step: 1}, TR_descriptions: {adim: "x"})))
-    TR_assert_equal("H7900", TR_error_code(() => TR_command_line({a: 1}, açklama: "x")))
+    TR_assert_equal("H7222", TR_error_code(() => TR_command_line({"length": 3})))
+    TR_assert_equal("H7222", TR_error_code(() => TR_command_line({"contains": "x"})))
+    TR_assert_equal("H7221", TR_error_code(() => TR_command_line({"yardım": TR_true})))
+    TR_assert_equal("H7225", TR_error_code(() => TR_command_line({"a": {"b": 1}})))
+    TR_assert_equal("H7224", TR_error_code(() => TR_command_line({"a": [1, "x"]})))
+    TR_assert_equal("H7229", TR_error_code(() => TR_command_line({"step": 1}, TR_descriptions: {"stpe": "x"})))
+    TR_assert_equal("H7900", TR_error_code(() => TR_command_line({"a": 1}, açklama: "x")))
 }
 
 TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
     # Değerin kendisi programda değişmez (yazdır'ın döndürdüğü metin de veridir).
-    TR_assert_equal("anahtar-varsayılan-1", AYAR.api_anahtarı)
+    TR_assert_equal("anahtar-varsayılan-1", AYAR["api_anahtarı"])
     TR_var dosya_yolu = "\(KOŞU)/gizli.jsonl"
-    TR_logger(dosya_yolu).TR_append({anahtar: AYAR.api_anahtarı})
+    TR_logger(dosya_yolu).TR_append({"anahtar": AYAR["api_anahtarı"]})
     TR_var içerik = TR_read_file(dosya_yolu)
     TR_assert(içerik.TR_contains("\"anahtar\":\"***\""), içerik)
     TR_assert(TR_not içerik.TR_contains("anahtar-varsayılan-1"))
@@ -62,22 +62,22 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
     TR_var dosya_yolu = "\(KOŞU)/kayit/egitim.jsonl"
     TR_var g = TR_logger(dosya_yolu)
     TR_assert_equal(TR_Logger, TR_type(g))
-    TR_assert_equal(TR_true, g.TR_append({TR_loss: 2.5, TR_step: 3, nan: TR_float("NaN"), kayıp_t: TR_tensor([0.25])}))
+    TR_assert_equal(TR_true, g.TR_append({"loss": 2.5, "step": 3, "nan": TR_float("NaN"), "kayıp_t": TR_tensor([0.25])}))
     g.TR_append("ilk dönem bitti")
     TR_var s = satırlar(dosya_yolu)
     TR_assert_equal(3, s.TR_length)
     TR_assert_equal("start", s[0]["kind"])
     TR_assert_equal(2, s[0]["version"])
-    TR_assert_equal("surec_ve_kayit_test.tr", s[0].program)
+    TR_assert_equal("surec_ve_kayit_test.tr", s[0]["program"])
     TR_assert_equal(100, s[0]["settings"].TR_step)
     TR_assert_equal(2.5, s[1].TR_loss)
     TR_assert_equal(3, s[1].TR_step)
-    TR_assert_equal("NaN", s[1].nan)
-    TR_assert_equal(0.25, s[1].kayıp_t)
+    TR_assert_equal("NaN", s[1]["nan"])
+    TR_assert_equal(0.25, s[1]["kayıp_t"])
     TR_assert_equal(TR_String, TR_type(s[1]["time"]))
     TR_assert_equal("ilk dönem bitti", s[2]["message"])
     # Yeniden açılan günlük sonuna ekler, yeni bir başlangıç kaydıyla.
-    TR_logger(dosya_yolu).TR_append({TR_loss: 1.0})
+    TR_logger(dosya_yolu).TR_append({"loss": 1.0})
     TR_var s2 = satırlar(dosya_yolu)
     TR_assert_equal(5, s2.TR_length)
     TR_assert_equal("start", s2[3]["kind"])
@@ -87,7 +87,7 @@ TR_test "19.6 günlük hataları" {
     TR_assert_equal("H7319", TR_error_code(() => TR_logger("\(KOŞU)/a.csv")))
     TR_var g = TR_logger("\(KOŞU)/h.jsonl")
     TR_assert_equal("H7321", TR_error_code(() => g.TR_append({"kind": "x"})))
-    TR_assert_equal("H7300", TR_error_code(() => g.TR_append({f: TR_print})))
+    TR_assert_equal("H7300", TR_error_code(() => g.TR_append({"f": TR_print})))
     TR_assert_equal("H2423", TR_error_code(() => g.TR_append(5)))
     TR_assert_equal("H7903", TR_error_code(() => g.eklee({})))
 }
@@ -95,7 +95,7 @@ TR_test "19.6 günlük hataları" {
 TR_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
     TR_var ç = TR_progress(3)
     TR_assert_equal(TR_Progress, TR_type(ç))
-    TR_assert_equal(TR_true, ç.TR_update({TR_loss: 0.5}))
+    TR_assert_equal(TR_true, ç.TR_update({"loss": 0.5}))
     TR_assert(TR_str(ç).TR_contains(" 1/3)"), TR_str(ç))
     ç.TR_update()
     ç.TR_update()
@@ -120,7 +120,7 @@ TR_test "19.8 ilerleme hataları" {
     TR_assert_equal("H7314", TR_error_code(() => TR_progress(5, TR_log: "a.jsonl")))
     TR_var ç = TR_progress(5)
     TR_assert_equal("H7317", TR_error_code(() => ç.TR_update(TR_step: 9)))
-    TR_assert_equal("H7321", TR_error_code(() => ç.TR_update({TR_step: 1})))
+    TR_assert_equal("H7321", TR_error_code(() => ç.TR_update({"step": 1})))
     TR_assert_equal("H7900", TR_error_code(() => ç.TR_update(adim: 1)))
     ç.TR_stop()
 }
@@ -129,8 +129,8 @@ TR_test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
     TR_var dosya_yolu = "\(KOŞU)/cubuk.jsonl"
     TR_var g = TR_logger(dosya_yolu)
     TR_var ç = TR_progress(2, TR_log: g)
-    ç.TR_update({TR_loss: 0.9})
-    ç.TR_update({TR_loss: 0.7})
+    ç.TR_update({"loss": 0.9})
+    ç.TR_update({"loss": 0.7})
     TR_var s = satırlar(dosya_yolu)
     TR_assert_equal(4, s.TR_length)
     TR_assert_equal(2, s[0]["total"])

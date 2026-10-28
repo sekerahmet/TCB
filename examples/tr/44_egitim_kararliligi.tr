@@ -24,9 +24,9 @@ TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
     TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
 }
-TR_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+TR_var model = {"E": parametre([V, 32], 0.1), "W1": parametre([32, 64], 0.1), "W2": parametre([64, V], 0.1)}
 TR_func ileri(giriş) {
-    TR_return TR_gelu(TR_embedding(model.E, giriş) @ model.W1) @ model.W2
+    TR_return TR_gelu(TR_embedding(model["E"], giriş) @ model["W1"]) @ model["W2"]
 }
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01, TR_weight_decay: 0.0)
 
@@ -44,7 +44,7 @@ op.TR_zero_grad() # bozuk gradyanlar silinir, model değişmedi
 # Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
 TR_const KOŞU = TR_path("runs/kararlilik_ornegi")
 TR_if KOŞU.TR_exists { TR_remove(KOŞU, TR_recursive: TR_true) }
-TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ö: ö}, TR_every_minutes: 0)
+TR_var kn = TR_checkpoint(KOŞU, {"model": model, "op": op, "ö": ö}, TR_every_minutes: 0)
 TR_var bekçi = TR_SpikeGuard(TR_history_limit: 20, TR_threshold: 6.0)
 TR_const TOPLAM = 60
 TR_var bozulacak_adım = 35 # bu adımda kayıp bilerek bir kez NaN olur
@@ -74,7 +74,7 @@ TR_for adım < TOPLAM {
         TR_print("adım \(adım): kayıp \(TR_round(kayıp.TR_tolist, 3))")
     }
 }
-TR_print("model sağlam mı:", TR_is_finite(TR_sum(model.W2).TR_tolist), "| sıçrama sayısı:", bekçi.TR_spike_count)
+TR_print("model sağlam mı:", TR_is_finite(TR_sum(model["W2"]).TR_tolist), "| sıçrama sayısı:", bekçi.TR_spike_count)
 
 # --- Kendin dene ---
 # 1. bozulacak_adım'ı 5 yap: henüz kontrol noktası yokken geri_dön ne der?

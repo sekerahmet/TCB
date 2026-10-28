@@ -23,13 +23,13 @@ TR_const PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
 TR_const VERİ_YOLU = "../../tests/data/text"
 TR_const DOĞRULAMA_YOLU = "../../tests/data/text"
 
-TR_var ayar = TR_command_line({TR_step: 150, toplu: 8, bağlam: 32, TR_lr: 0.01, günlük_dosyası: TR_none},
+TR_var ayar = TR_command_line({"step": 150, "toplu": 8, "bağlam": 32, "lr": 0.01, "günlük_dosyası": TR_none},
     TR_description: "Sentetik metin verisiyle küçük bir dil modelini eğitir",
-    TR_descriptions: {TR_step: "eğitim adımı sayısı", toplu: "toplu iş başına satır", bağlam: "satır başına parça",
-        günlük_dosyası: "her adımın kaybının yazılacağı .jsonl dosyası"})
+    TR_descriptions: {"step": "eğitim adımı sayısı", "toplu": "toplu iş başına satır", "bağlam": "satır başına parça",
+        "günlük_dosyası": "her adımın kaybının yazılacağı .jsonl dosyası"})
 TR_const ADIM = ayar.TR_step
-TR_const TOPLU = ayar.toplu
-TR_const BAĞLAM = ayar.bağlam
+TR_const TOPLU = ayar["toplu"]
+TR_const BAĞLAM = ayar["bağlam"]
 TR_var D = 32 # gömme boyutu
 TR_const GİZLİ = 64 # ara katman boyutu
 
@@ -78,7 +78,7 @@ TR_func ileri(giriş) {
 TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
 # İlerleme çubuğu (standart hataya): adım, kayıp, adım hızı ve kalan süre. Günlük dosyası
 # verildiyse her adımın kaybı oraya da yazılır.
-TR_var g = TR_if ayar.günlük_dosyası != TR_none { TR_logger(ayar.günlük_dosyası) } TR_else { TR_none }
+TR_var g = TR_if ayar["günlük_dosyası"] != TR_none { TR_logger(ayar["günlük_dosyası"]) } TR_else { TR_none }
 TR_var ç = TR_progress(ADIM, TR_log: g)
 TR_var son_kayıp = 0.0
 TR_for adım TR_in 0..ADIM {
@@ -87,7 +87,7 @@ TR_for adım TR_in 0..ADIM {
     TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
     TR_backward(kayıp)
     iyileştirici.TR_step()
-    ç.TR_update({TR_loss: kayıp})
+    ç.TR_update({"loss": kayıp})
     son_kayıp = kayıp.TR_tolist
 }
 TR_print("eğitim bitti: son kayıp = \(TR_round(son_kayıp, 3))")

@@ -28,10 +28,10 @@ TR_print("sınıf indeksleri: \(sınıflar.TR_tolist) → \([adlar[i] TR_for i T
 
 # parametreleri_yükle, tensör_yükle sonucunu modelin var olan parametrelerine aynı adlarla yerinde yazar
 # ve yazılan parametre sayısını verir (eğitime kaldığı yerden devam etmek için).
-TR_var model = {w: TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
+TR_var model = {"w": TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)}
 TR_var model_dosyası = TR_path(TR_temp_dir(), "model.trt")
-TR_save_tensors(model_dosyası, {w: TR_tensor([5.0, 6.0])})
-TR_print(TR_load_parameters(model, TR_load_tensors(model_dosyası)), model.w.TR_tolist)
+TR_save_tensors(model_dosyası, {"w": TR_tensor([5.0, 6.0])})
+TR_print(TR_load_parameters(model, TR_load_tensors(model_dosyası)), model["w"].TR_tolist)
 
 # --- Kendin dene ---
 # 1. 21. örnekteki w ve b'yi eğitip burada kaydet, sonra yükleyip tahmin yap.

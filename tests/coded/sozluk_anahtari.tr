@@ -1,3 +1,3 @@
 # TR 4
 # Sözlüğün çıplak ad anahtarı bir üyenin adıysa üyeyle aynı kodla yazılır (17.3, 17.7).
-TR_var ayar = {TR_step: 3, renk: "mavi"}
+TR_var ayar = {"step": 3, "renk": "mavi"}

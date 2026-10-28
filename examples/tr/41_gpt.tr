@@ -17,27 +17,27 @@
 TR_import "tr/katman"
 TR_import "tr/iyilestirici"
 
-TR_var ayar = TR_command_line({TR_step: 100, toplu: 8, bağlam: 32, TR_embed_dim: 32, katman: 2, TR_num_heads: 4,
-    muon_oranı: 0.02, adamw_oranı: 0.01, normuon: TR_false, koşu: "runs/gpt_ornegi"},
+TR_var ayar = TR_command_line({"step": 100, "toplu": 8, "bağlam": 32, "embed_dim": 32, "katman": 2, "num_heads": 4,
+    "muon_oranı": 0.02, "adamw_oranı": 0.01, "normuon": TR_false, "koşu": "runs/gpt_ornegi"},
     TR_description: "Hazır katmanlarla küçük bir GPT'yi Muon + AdamW ile eğitir",
-    TR_descriptions: {TR_step: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
-        normuon: "gizli ağırlıklar için Muon yerine NorMuon"})
+    TR_descriptions: {"step": "toplam eğitim adımı", "koşu": "koşu klasörü (ayarlar, günlük, kontrol noktaları)",
+        "normuon": "gizli ağırlıklar için Muon yerine NorMuon"})
 
 # --- Veri: depodaki sentetik metin ve parçalayıcısı (kendi veriniz için examples/tr/39_veri_ile_egitim.tr) ---
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
-TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: ayar.toplu, TR_context: ayar.bağlam, TR_seed: 1)
+TR_var ö = TR_dataset("../../tests/data/text").TR_sampler(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"], TR_seed: 1)
 
 # --- Model ve iyileştirici ---
-TR_var model = TR_GPT(p.TR_vocab_size, TR_context: ayar.bağlam, TR_embed_dim: ayar.TR_embed_dim, TR_num_layers: ayar.katman,
+TR_var model = TR_GPT(p.TR_vocab_size, TR_context: ayar["bağlam"], TR_embed_dim: ayar.TR_embed_dim, TR_num_layers: ayar["katman"],
     TR_num_heads: ayar.TR_num_heads, TR_tied: TR_true, TR_seed: 1)
-TR_var op = TR_MuonAndAdamW(model, TR_muon_lr: ayar.muon_oranı, TR_adamw_lr: ayar.adamw_oranı, TR_normuon: ayar.normuon)
+TR_var op = TR_MuonAndAdamW(model, TR_muon_lr: ayar["muon_oranı"], TR_adamw_lr: ayar["adamw_oranı"], TR_normuon: ayar["normuon"])
 TR_print("model: \(TR_parameters(model).TR_length) ağırlık tensörü; Muon'da \(op.TR_muon.TR_parameters.TR_length), AdamW'de \(op.TR_other.TR_length)")
 
 # --- Koşu klasörü ve kontrol noktası: model, AdamW'nin ve Muon'un durumu, okuyucu, günlük ---
-TR_make_dir(ayar.koşu)
-TR_write_file(TR_path(ayar.koşu, "config.json"), TR_json_string(ayar))
-TR_var g = TR_logger(TR_path(ayar.koşu, "metrics.jsonl"))
-TR_var kn = TR_checkpoint(ayar.koşu, {model: model, TR_adamw: op.TR_adamw, TR_muon: op.TR_muon.TR_state, ö: ö, g: g}, TR_every_minutes: 5)
+TR_make_dir(ayar["koşu"])
+TR_write_file(TR_path(ayar["koşu"], "config.json"), TR_json_string(ayar))
+TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
+TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g}, TR_every_minutes: 5)
 
 # --- Eğitim: ilk %10 ısınma, son %30 azalma ---
 TR_if kn.TR_resume_step < ayar.TR_step {
@@ -49,14 +49,14 @@ TR_if kn.TR_resume_step < ayar.TR_step {
         TR_var kayıp = model.TR_loss(giriş, hedef)
         TR_backward(kayıp)
         op.TR_step()
-        ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+        ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
         kn.TR_update(adım + 1)
     }
     kn.TR_save()
 }
 
 # --- Doğrulama kaybı ve metin üretimi ---
-TR_var doğrulama = TR_dataset("../../tests/data/text").TR_sequential(TR_batch_size: ayar.toplu, TR_context: ayar.bağlam)
+TR_var doğrulama = TR_dataset("../../tests/data/text").TR_sequential(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"])
 TR_var toplam_kayıp = 0.0
 TR_var sayı = 0
 TR_no_grad {

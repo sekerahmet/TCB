@@ -98,10 +98,10 @@ TR_test "3.6 Liste: değerler başvuruyla paylaşılır" {
 }
 
 TR_test "3.7 Sözlük: eklenme sırasını korur, çıplak ad anahtarı metindir" {
-    TR_var d = {ad: "Ali", "yaş": 30, 1: "bir"}
+    TR_var d = {"ad": "Ali", "yaş": 30, 1: "bir"}
     TR_assert_equal(["ad", "yaş", 1], d.TR_keys())
     TR_assert_equal("Ali", d["ad"])
-    TR_assert_equal("Ali", d.ad)
+    TR_assert_equal("Ali", d["ad"])
     TR_assert_equal("bir", d[1])
     TR_assert_equal(TR_none, d["yok_olan"])
     d["yeni"] = TR_true
@@ -153,8 +153,8 @@ TR_test "3.7 sözlük üyeleri: metot adları anahtarı gölgeler, .uzunluk elem
     TR_assert_equal(["anahtarlar", "a"], d.TR_keys())
     TR_assert_equal(2, d.TR_length)
     TR_assert_equal(2, {"x": 1, "y": 2}.TR_length)
-    TR_assert_equal(1, d.a)
-    d.b = 3
+    TR_assert_equal(1, d["a"])
+    d["b"] = 3
     TR_assert_equal(3, d["b"])
     TR_assert_equal("H2406", TR_error_code(() => { d.TR_keys = 7 }))
 }

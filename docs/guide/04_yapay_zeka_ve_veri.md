@@ -226,14 +226,14 @@ Uzun bir eğitimi izlemek için üç yerleşik yeter: betiğin ayarlarını komu
 
 ```tr
 # TR 4
-TR_var ayar = TR_command_line({TR_step: 2000, TR_lr: 0.001, günlük_dosyası: TR_none},
+TR_var ayar = TR_command_line({"step": 2000, "lr": 0.001, "günlük_dosyası": TR_none},
     TR_description: "Küçük dil modelini eğitir",
-    TR_descriptions: {TR_step: "eğitim adımı sayısı", günlük_dosyası: "ölçülerin yazılacağı .jsonl dosyası"})
-TR_var g = TR_if ayar.günlük_dosyası != TR_none { TR_logger(ayar.günlük_dosyası) } TR_else { TR_none }
+    TR_descriptions: {"step": "eğitim adımı sayısı", "günlük_dosyası": "ölçülerin yazılacağı .jsonl dosyası"})
+TR_var g = TR_if ayar["günlük_dosyası"] != TR_none { TR_logger(ayar["günlük_dosyası"]) } TR_else { TR_none }
 TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
 TR_for adım TR_in 0..ayar.TR_step {
     TR_var kayıp = 1.0 / (adım + 1)   # burada modelin bir eğitim adımı çalışır
-    ç.TR_update({TR_loss: kayıp, TR_lr: ayar.TR_lr})
+    ç.TR_update({"loss": kayıp, "lr": ayar.TR_lr})
 }
 ```
 

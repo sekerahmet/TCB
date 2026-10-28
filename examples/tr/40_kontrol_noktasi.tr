@@ -13,11 +13,11 @@
 #   Baştan başlamak için koşu klasörünü silin ya da başka bir klasör verin: --koşu runs/deneme2
 # Bulut not defterinde koşu klasörünü yerel diskte tutup ara ara Drive'a kopyalayın (kılavuz §9).
 
-TR_var ayar = TR_command_line({TR_step: 200, koşu: "runs/kontrol_noktasi_ornegi", her_dakika: 5.0, TR_lr: 0.01},
+TR_var ayar = TR_command_line({"step": 200, "koşu": "runs/kontrol_noktasi_ornegi", "her_dakika": 5.0, "lr": 0.01},
     TR_description: "Küçük bir dil modelini kontrol noktasıyla eğitir; kesilirse aynı komutla sürer",
-    TR_descriptions: {TR_step: "toplam eğitim adımı", koşu: "koşu klasörü (ayarlar, günlük, ağırlıklar, kontrol noktaları)",
-        her_dakika: "kontrol noktası aralığı (dakika)"})
-TR_const KOŞU = ayar.koşu
+    TR_descriptions: {"step": "toplam eğitim adımı", "koşu": "koşu klasörü (ayarlar, günlük, ağırlıklar, kontrol noktaları)",
+        "her_dakika": "kontrol noktası aralığı (dakika)"})
+TR_const KOŞU = ayar["koşu"]
 
 # --- Veri ve model (examples/tr/39_veri_ile_egitim.tr'deki küçük model) ---
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
@@ -28,9 +28,9 @@ TR_func parametre(şekil, ölçek) {
     parametre_tohumu += 1
     TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
 }
-TR_var model = {E: parametre([V, 32], 0.1), W1: parametre([32, 64], 0.1), W2: parametre([64, V], 0.1)}
+TR_var model = {"E": parametre([V, 32], 0.1), "W1": parametre([32, 64], 0.1), "W2": parametre([64, V], 0.1)}
 TR_func ileri(giriş) {
-    TR_return TR_gelu(TR_embedding(model.E, giriş) @ model.W1) @ model.W2
+    TR_return TR_gelu(TR_embedding(model["E"], giriş) @ model["W1"]) @ model["W2"]
 }
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
 
@@ -38,9 +38,9 @@ TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar.TR_lr, TR_weight_decay: 0
 TR_make_dir(KOŞU)
 TR_write_file(TR_path(KOŞU, "config.json"), TR_json_string(ayar))
 TR_var g = TR_logger(TR_path(KOŞU, "metrics.jsonl"))
-TR_var izlenen = {en_iyi_kayıp: 99.0}
+TR_var izlenen = {"en_iyi_kayıp": 99.0}
 # Sözlükteki her şey kaydedilir; klasörde bir nokta varsa burada yüklenir.
-TR_var kn = TR_checkpoint(KOŞU, {model: model, op: op, ö: ö, g: g, izlenen: izlenen}, TR_every_minutes: ayar.her_dakika, TR_keep: 3)
+TR_var kn = TR_checkpoint(KOŞU, {"model": model, "op": op, "ö": ö, "g": g, "izlenen": izlenen}, TR_every_minutes: ayar["her_dakika"], TR_keep: 3)
 TR_print(TR_type(kn) == TR_Checkpoint)
 
 # --- Eğitim: döngü kaldığı adımdan başlar ---
@@ -52,8 +52,8 @@ TR_if kn.TR_resume_step < ayar.TR_step {
         TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
         TR_backward(kayıp)
         op.TR_step()
-        TR_if kayıp.TR_tolist < izlenen.en_iyi_kayıp { izlenen.en_iyi_kayıp = kayıp.TR_tolist }
-        ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+        TR_if kayıp.TR_tolist < izlenen["en_iyi_kayıp"] { izlenen["en_iyi_kayıp"] = kayıp.TR_tolist }
+        ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
         kn.TR_update(adım + 1) # her_dakika dolunca ve Ctrl+C gelince burada kaydeder
     }
     TR_print("son nokta:", kn.TR_save())
@@ -64,8 +64,8 @@ TR_if kn.TR_resume_step < ayar.TR_step {
 # --- Sonuçlar koşu klasörüne ---
 TR_save_tensors(TR_path(KOŞU, "model.trt"), TR_parameters(model, TR_named: TR_true))
 TR_var son_adım = TR_if kn.TR_resume_step < ayar.TR_step { ayar.TR_step } TR_else { kn.TR_resume_step }
-TR_write_file(TR_path(KOŞU, "results.json"), TR_json_string({TR_step: son_adım, en_iyi_kayıp: izlenen.en_iyi_kayıp}))
-TR_print("en iyi kayıp: \(TR_round(izlenen.en_iyi_kayıp, 3)); koşu klasörü: \(TR_path(KOŞU).TR_absolute)")
+TR_write_file(TR_path(KOŞU, "results.json"), TR_json_string({"step": son_adım, "en_iyi_kayıp": izlenen["en_iyi_kayıp"]}))
+TR_print("en iyi kayıp: \(TR_round(izlenen["en_iyi_kayıp"], 3)); koşu klasörü: \(TR_path(KOŞU).TR_absolute)")
 
 # --- Kendin dene ---
 # 1. --adım 100 ile çalıştır, sonra --adım 200 ile tekrar çalıştır: eğitim 100'den mi başlıyor?

@@ -8,7 +8,7 @@
 
 TR_import "measurement_model"
 
-TR_var arg = TR_command_line({TR_device: "gpu", TR_config: "phase3_config.json", çıktı: ""},
+TR_var arg = TR_command_line({"device": "gpu", "config": "phase3_config.json", "çıktı": ""},
     TR_description: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
 TR_default_device(arg.TR_device)
 TR_var c = TR_json_parse(TR_read_file(arg.TR_config))
@@ -68,12 +68,12 @@ TR_for adım TR_in 0.. (ISINMA + ÖLÇÜLEN) {
     TR_if adım < KAYIP_ADIM { kayıplar.TR_append(v) }
 }
 
-TR_var sonuç_ = {tool: "tr", mode: "tr", precision: HASSASIYET, device: TR_default_device(),
-    config: {B: B, T: T, D: D, H: H, FF: FF, LAYERS: KATMAN, V: V},
-    first_step_ms: ısınma_ms[0], warmup_ms: ısınma_ms,
-    measured: {median_ms: TR_median(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), mean_ms: TR_mean(ölçülen_ms),
-        min_ms: TR_min(ölçülen_ms), max_ms: TR_max(ölçülen_ms)},
-    loss_curve: kayıplar}
+TR_var sonuç_ = {"tool": "tr", "mode": "tr", "precision": HASSASIYET, "device": TR_default_device(),
+    "config": {"B": B, "T": T, "D": D, "H": H, "FF": FF, "LAYERS": KATMAN, "V": V},
+    "first_step_ms": ısınma_ms[0], "warmup_ms": ısınma_ms,
+    "measured": {"median_ms": TR_median(ölçülen_ms), "p90_ms": yüzdelik(ölçülen_ms, 90), "mean_ms": TR_mean(ölçülen_ms),
+        "min_ms": TR_min(ölçülen_ms), "max_ms": TR_max(ölçülen_ms)},
+    "loss_curve": kayıplar}
 TR_var çıktı_metni = TR_json_string(sonuç_)
-TR_if arg.çıktı != "" { TR_write_file(arg.çıktı, çıktı_metni) }
+TR_if arg["çıktı"] != "" { TR_write_file(arg["çıktı"], çıktı_metni) }
 TR_print(çıktı_metni)

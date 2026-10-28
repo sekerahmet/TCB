@@ -7,7 +7,7 @@ TR_var a = 0..kare("c") # ERROR H1004
 TR_var m = "değer: \(kare(1) + kare("d"))" # ERROR H1004
 TR_var ü = [kare("e") TR_for x TR_in 1..3] # ERROR H1004
 TR_var i = l[kare("f")] # ERROR H1004
-TR_var u = kare("g").x # ERROR H1004
+TR_var u = kare("g")["x"] # ERROR H1004
 l[kare("h")] = 1 # ERROR H1004
 TR_struct A {
     alan = kare("i") # ERROR H1004

@@ -145,7 +145,7 @@ TR_struct TR_Run {
     }
     # değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
     TR_func TR_evaluated(TR_step, TR_metrics) {
-        TR_var kayıt = {TR_step: TR_step}
+        TR_var kayıt = {"step": TR_step}
         TR_for ad, d TR_in TR_metrics { kayıt[ad] = d }
         TR_self.TR_logger.TR_append(kayıt)
     }

@@ -497,10 +497,10 @@ TR_struct TR_GPT {
     TR_cos_table
     TR_sin_table
     TR_func TR_init(TR_vocab_size, TR_context = 256, TR_embed_dim = 256, TR_num_layers = 4, TR_num_heads = 4, TR_num_kv_heads = TR_none, TR_intermediate_dim = TR_none, TR_tied = TR_false, TR_seed = 1, TR_windows = TR_none, TR_qk_norm = TR_false, TR_merged_kv = TR_false, TR_merged_gate = TR_false, TR_ff_use_bias = TR_false, TR_eps = 0.00001, TR_ple_dim = TR_none, TR_head_dim = TR_none, TR_rope_theta = 10000.0, TR_weight_dtype = "float32") {
-        TR_self.TR_config = {dağarcık: TR_vocab_size, bağlam: TR_context, TR_embed_dim: TR_embed_dim, katman: TR_num_layers, TR_num_heads: TR_num_heads, TR_head_dim: TR_head_dim,
-            TR_num_kv_heads: TR_num_kv_heads, ara_boyut: TR_intermediate_dim, paylaşımlı: TR_tied, tohum: TR_seed,
-            pencereler: TR_windows, qk_normu: TR_qk_norm, birleşik_kv: TR_merged_kv, birleşik_kapı: TR_merged_gate,
-            ileri_sapmalı: TR_ff_use_bias, TR_eps: TR_eps, TR_ple_dim: TR_ple_dim, rope_tabanı: TR_rope_theta, ağırlık_türü: TR_weight_dtype}
+        TR_self.TR_config = {"dağarcık": TR_vocab_size, "bağlam": TR_context, "embed_dim": TR_embed_dim, "katman": TR_num_layers, "num_heads": TR_num_heads, "head_dim": TR_head_dim,
+            "num_kv_heads": TR_num_kv_heads, "ara_boyut": TR_intermediate_dim, "paylaşımlı": TR_tied, "tohum": TR_seed,
+            "pencereler": TR_windows, "qk_normu": TR_qk_norm, "birleşik_kv": TR_merged_kv, "birleşik_kapı": TR_merged_gate,
+            "ileri_sapmalı": TR_ff_use_bias, "eps": TR_eps, "ple_dim": TR_ple_dim, "rope_tabanı": TR_rope_theta, "ağırlık_türü": TR_weight_dtype}
         TR_if TR_windows != TR_none {
             TR_assert(TR_windows.TR_length == TR_num_layers, TR_message("H6911", TR_windows.TR_length, TR_num_layers))
         }
@@ -546,7 +546,7 @@ TR_struct TR_GPT {
         TR_var T = x.TR_shape[1]
         TR_if TR_cache != TR_none {
             TR_var baş = TR_cache.TR_position
-            TR_assert(baş + T <= TR_self.TR_config.bağlam, TR_message("H6912", baş + T, TR_self.TR_config.bağlam))
+            TR_assert(baş + T <= TR_self.TR_config["bağlam"], TR_message("H6912", baş + T, TR_self.TR_config["bağlam"]))
             cos_tablosu = cos_tablosu.TR_slice(0, baş, baş + T)
             sin_tablosu = sin_tablosu.TR_slice(0, baş, baş + T)
         }
@@ -592,7 +592,7 @@ TR_struct TR_GPT {
     # önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
     # önbellek en_çok konum tutar (verilmezse bağlam).
     TR_func TR_build_cache(TR_kind = "sabit", TR_capacity = TR_none) {
-        TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config.bağlam } TR_else { TR_capacity })
+        TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
     # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
@@ -608,7 +608,7 @@ TR_struct TR_GPT {
     # kayıtsızla aynı parçalardır. Sabit önbellek en çok başlangıç + adet konum tutar.
     TR_func TR_generate(TR_prompt, TR_max_new_tokens, TR_temperature = 1.0, TR_top_k = 0, TR_seed = TR_none, TR_eos = TR_none, TR_cache_kind = "sabit", TR_cuda_graph = TR_true) {
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
-        TR_var bağlam = TR_self.TR_config.bağlam
+        TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none
         TR_var adım = TR_none
         TR_var cihaz = TR_self.TR_embedding.TR_table.TR_device

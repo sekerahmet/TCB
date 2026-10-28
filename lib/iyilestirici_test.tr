@@ -55,7 +55,7 @@ TR_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
 TR_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
     TR_var W = TR_tensor(TR_zeros([6, 4]), TR_requires_grad: TR_true)
     TR_var op = TR_NorMuon([W], TR_lr: 0.01)
-    TR_assert_equal([1, 4], op.TR_state.ikinci_moment[0].TR_shape)
+    TR_assert_equal([1, 4], op.TR_state["ikinci_moment"][0].TR_shape)
     TR_backward(TR_sum(W * TR_randn([6, 4], TR_seed: 3)))
     op.TR_step()
     TR_var rms = TR_sqrt(TR_mean(TR_no_grad(W) ** 2)).TR_tolist
@@ -68,11 +68,11 @@ TR_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·
 TR_test "parametre_grupları: gizli 2B ağırlıklar ile gömme, çıkış ve normlar ayrılır" {
     TR_var m = TR_GPT(10, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2)
     TR_var g = TR_parameter_groups(m)
-    TR_assert_equal(14, g.gizli.TR_length) # blok başına 7 matris
+    TR_assert_equal(14, g["gizli"].TR_length) # blok başına 7 matris
     TR_assert_equal(7, g.TR_other.TR_length) # gömme, çıkış, 2·2 blok normu, son norm
     TR_assert(g.TR_other.TR_contains(m.TR_embedding.TR_table) TR_and g.TR_other.TR_contains(m.TR_logit_layer.TR_weight))
-    TR_assert(g.gizli.TR_contains(m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight))
-    TR_assert_equal(TR_parameters(m).TR_length, g.gizli.TR_length + g.TR_other.TR_length)
+    TR_assert(g["gizli"].TR_contains(m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight))
+    TR_assert_equal(TR_parameters(m).TR_length, g["gizli"].TR_length + g.TR_other.TR_length)
 }
 
 TR_test "oran_planı: ısınma, sabit, azalma" {
@@ -127,7 +127,7 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
     TR_func eğit(koşu, son) {
         TR_var m = TR_GPT(6, TR_context: 3, TR_embed_dim: 4, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 3)
         TR_var op = TR_MuonAndAdamW(m)
-        TR_var kn = TR_checkpoint(koşu, {model: m, TR_adamw: op.TR_adamw, TR_muon: op.TR_muon.TR_state}, TR_every_minutes: 0)
+        TR_var kn = TR_checkpoint(koşu, {"model": m, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state}, TR_every_minutes: 0)
         TR_for adım TR_in kn.TR_resume_step..son {
             op.TR_zero_grad()
             TR_backward(m.TR_loss([[1, 2, adım % 6]], [[2, adım % 6, 4]]))
@@ -217,22 +217,22 @@ TR_func ple_modeli() {
 TR_test "parametre_kümeleri: seyrek, gizli, sönümlü ve sönümsüz gruplar ada göre ayrılır" {
     TR_var m = ple_modeli()
     TR_var k = parametre_kümeleri(m, ayrı: ["TR_mem_embedding", "TR_mem_ple_context.TR_mem_context_proj"], seyrek: ["TR_mem_ple.TR_mem_table"])
-    TR_assert_equal(2, k.seyrek.TR_length) # bloklar.0.ple.tablo, bloklar.1.ple.tablo
-    TR_assert(k.seyrek.TR_contains(m.TR_blocks[1].TR_ple.TR_table))
-    TR_assert_equal(2, k.sönümlü.TR_length) # gömme.tablo, ple_bağlamı.ctx_katmanı.ağırlık
-    TR_assert(k.sönümlü.TR_contains(m.TR_embedding.TR_table) TR_and k.sönümlü.TR_contains(m.TR_ple_context.TR_context_proj.TR_weight))
+    TR_assert_equal(2, k["seyrek"].TR_length) # bloklar.0.ple.tablo, bloklar.1.ple.tablo
+    TR_assert(k["seyrek"].TR_contains(m.TR_blocks[1].TR_ple.TR_table))
+    TR_assert_equal(2, k["sönümlü"].TR_length) # gömme.tablo, ple_bağlamı.ctx_katmanı.ağırlık
+    TR_assert(k["sönümlü"].TR_contains(m.TR_embedding.TR_table) TR_and k["sönümlü"].TR_contains(m.TR_ple_context.TR_context_proj.TR_weight))
     # sönümsüz: 2B olmayanlar: normlar (blok başına 2 + son norm + ple_bağlamı normu + blok ple normu) ve sapmalar
-    TR_assert(k.sönümsüz.TR_contains(m.TR_final_norm.TR_weight) TR_and k.sönümsüz.TR_contains(m.TR_blocks[0].TR_feed_forward.TR_down_proj.TR_bias))
-    TR_assert(k.sönümsüz.TR_contains(m.TR_blocks[0].TR_ple.TR_norm.TR_weight))
-    TR_assert(TR_not k.gizli.TR_contains(m.TR_blocks[0].TR_ple.TR_table), "seyrek parametre gizliye girmez")
-    TR_assert(k.gizli.TR_contains(m.TR_blocks[0].TR_ple.TR_gate_proj.TR_weight) TR_and k.gizli.TR_contains(m.TR_blocks[1].TR_feed_forward.TR_gate_proj.TR_weight))
-    TR_assert_equal(TR_parameters(m).TR_length, k.gizli.TR_length + k.sönümlü.TR_length + k.sönümsüz.TR_length + k.seyrek.TR_length)
-    TR_assert_equal(k.sönümlü.TR_length + k.sönümsüz.TR_length, k.TR_other.TR_length)
+    TR_assert(k["sönümsüz"].TR_contains(m.TR_final_norm.TR_weight) TR_and k["sönümsüz"].TR_contains(m.TR_blocks[0].TR_feed_forward.TR_down_proj.TR_bias))
+    TR_assert(k["sönümsüz"].TR_contains(m.TR_blocks[0].TR_ple.TR_norm.TR_weight))
+    TR_assert(TR_not k["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_table), "seyrek parametre gizliye girmez")
+    TR_assert(k["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_gate_proj.TR_weight) TR_and k["gizli"].TR_contains(m.TR_blocks[1].TR_feed_forward.TR_gate_proj.TR_weight))
+    TR_assert_equal(TR_parameters(m).TR_length, k["gizli"].TR_length + k["sönümlü"].TR_length + k["sönümsüz"].TR_length + k["seyrek"].TR_length)
+    TR_assert_equal(k["sönümlü"].TR_length + k["sönümsüz"].TR_length, k.TR_other.TR_length)
     # seyrek verilmezse tablolar da gizli gruba girer (eski davranış)
     TR_var g = TR_parameter_groups(m, TR_separated: ["TR_mem_embedding", "TR_mem_ple_context"])
-    TR_assert(g.gizli.TR_contains(m.TR_blocks[0].TR_ple.TR_table))
+    TR_assert(g["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_table))
     # sonek deseni parametre_grupları'nda da çalışır
-    TR_assert(TR_not TR_parameter_groups(m, TR_separated: ["TR_mem_embedding", "TR_mem_ple.TR_mem_table"]).gizli.TR_contains(m.TR_blocks[0].TR_ple.TR_table))
+    TR_assert(TR_not TR_parameter_groups(m, TR_separated: ["TR_mem_embedding", "TR_mem_ple.TR_mem_table"])["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_table))
 }
 
 TR_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile ölçekler" {
@@ -288,8 +288,8 @@ TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; 
     TR_var ağırlık1 = W.TR_tolist
     TR_assert_equal(önce.TR_tolist[0], ağırlık1[0]) # geçmeyen satırlar aynen
     TR_assert_equal(önce.TR_tolist[2], ağırlık1[2])
-    TR_assert_equal([0.0, 0.0, 0.0, 0.0], [op.TR_state.sayaç[0].TR_tolist[0][0], op.TR_state.sayaç[0].TR_tolist[2][0], op.TR_state.ikinci_moment[0].TR_tolist[0][0], op.TR_state.ikinci_moment[0].TR_tolist[2][0]])
-    TR_assert_equal([1.0, 1.0], [op.TR_state.sayaç[0].TR_tolist[1][0], op.TR_state.sayaç[0].TR_tolist[3][0]])
+    TR_assert_equal([0.0, 0.0, 0.0, 0.0], [op.TR_state["sayaç"][0].TR_tolist[0][0], op.TR_state["sayaç"][0].TR_tolist[2][0], op.TR_state["ikinci_moment"][0].TR_tolist[0][0], op.TR_state["ikinci_moment"][0].TR_tolist[2][0]])
+    TR_assert_equal([1.0, 1.0], [op.TR_state["sayaç"][0].TR_tolist[1][0], op.TR_state["sayaç"][0].TR_tolist[3][0]])
     # elle: ilk adımda v = (1 − β2)·ms, düzeltme 1 − β2 → v̂ = ms; güncelleme g / (√ms + ε)
     TR_var ms1 = (1.0 + 4.0 + 4.0) / 3
     TR_var beklenen1 = [4.0 - 0.1 * 1.0 / (TR_sqrt(ms1) + 0.00000001), 5.0 - 0.1 * -2.0 / (TR_sqrt(ms1) + 0.00000001), 6.0 - 0.1 * 2.0 / (TR_sqrt(ms1) + 0.00000001)]
@@ -299,7 +299,7 @@ TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; 
     TR_var G2 = TR_tensor([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
     TR_backward(TR_sum(W * G2))
     op.TR_step()
-    TR_assert_equal([2.0, 1.0], [op.TR_state.sayaç[0].TR_tolist[1][0], op.TR_state.sayaç[0].TR_tolist[3][0]])
+    TR_assert_equal([2.0, 1.0], [op.TR_state["sayaç"][0].TR_tolist[1][0], op.TR_state["sayaç"][0].TR_tolist[3][0]])
     TR_var ms2 = 4.0 / 3
     TR_var v2 = 0.9 * (0.1 * ms1) + 0.1 * ms2
     TR_var v_şapka = v2 / (1 - 0.9 * 0.9)
@@ -334,8 +334,8 @@ TR_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeye
     TR_var sonra = m.TR_blocks[0].TR_ple.TR_table.TR_tolist
     TR_for satır TR_in [0, 4, 5, 6, 7, 8, 9] { TR_assert_equal(önce.TR_tolist[satır], sonra[satır]) }
     TR_assert(önce.TR_tolist[1] != sonra[1] TR_and önce.TR_tolist[2] != sonra[2] TR_and önce.TR_tolist[3] != sonra[3], "geçen kelimelerin satırı değişmeli")
-    TR_assert_equal(op.TR_row_rms.TR_state.sayaç[0].TR_tolist[1][0], 1.0)
-    TR_assert_equal(op.TR_row_rms.TR_state.sayaç[0].TR_tolist[9][0], 0.0)
+    TR_assert_equal(op.TR_row_rms.TR_state["sayaç"][0].TR_tolist[1][0], 1.0)
+    TR_assert_equal(op.TR_row_rms.TR_state["sayaç"][0].TR_tolist[9][0], 0.0)
     # seyrek verilmezse SatırRMS yok ve tablolar Muon'a girer
     TR_assert(TR_MuonAndAdamW(ple_modeli()).TR_row_rms == TR_none)
 }
