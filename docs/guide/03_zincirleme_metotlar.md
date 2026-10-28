@@ -28,9 +28,9 @@ Bir çağrının sonuna aynı satırda yazılan `{ ... }` bloğu, tek parametres
 # TR 4
 TR_var sayılar = [1, 2, 3, 4]
 TR_var personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
-sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it }   # sayılar.filtrele((x) => x > 2)... ile aynı
-personel.TR_map { TR_it["ad"] }
-TR_sum(sayılar.TR_filter { TR_it % 2 == 0 })      # fonksiyon çağrıyla: toplam(sayılar.filtrele {...})
+sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x)   # sayılar.filtrele((x) => x > 2)... ile aynı
+personel.TR_map((x) => x["ad"])
+TR_sum(sayılar.TR_filter((x) => x % 2 == 0))      # fonksiyon çağrıyla: toplam(sayılar.filtrele {...})
 ```
 
 - İç içe bloklarda `TR_ctx_it` en içteki elemanı gösterir: `[[1, 2]].TR_mem_map { TR_ctx_it.TR_mem_map { TR_ctx_it * 10 } }`.

@@ -148,23 +148,23 @@ TR_test "16.6 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     TR_var s2 = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
     TR_for iş TR_in s2 { TR_break }
     TR_assert_equal(30, [1 TR_for iş TR_in s2].TR_length)
-    TR_assert_equal("H5535", TR_error_code(() => { TR_for iş TR_in küme.TR_sampler(TR_batch_size: 2, TR_context: 4) {} }))
+    TR_assert_equal("H5535", TR_error_code { TR_for iş TR_in küme.TR_sampler(TR_batch_size: 2, TR_context: 4) {} })
 }
 
 TR_test "16.7 hatalar Türkçe ve yakalanabilir" {
-    TR_assert_equal("H2132", TR_error_code(() => TR_load_tokenizer("data/yok.json")))
-    TR_assert_equal("H5617", TR_error_code(() => TR_load_tokenizer("data/corrupt.npy")))
-    TR_assert_equal("H2132", TR_error_code(() => TR_Dataset("data/yok_klasor")))
-    TR_assert_equal("H5053", TR_error_code(() => TR_Dataset("data/corrupt.npy")))
-    TR_assert_equal("H5513", TR_error_code(() => TR_Dataset("data/numbers", TR_cache: "onb")))
+    TR_assert_equal("H2132", TR_error_code { TR_load_tokenizer("data/yok.json") })
+    TR_assert_equal("H5617", TR_error_code { TR_load_tokenizer("data/corrupt.npy") })
+    TR_assert_equal("H2132", TR_error_code { TR_Dataset("data/yok_klasor") })
+    TR_assert_equal("H5053", TR_error_code { TR_Dataset("data/corrupt.npy") })
+    TR_assert_equal("H5513", TR_error_code { TR_Dataset("data/numbers", TR_cache: "onb") })
     TR_var küme = TR_Dataset("data/numbers")
-    TR_assert_equal("H5529", TR_error_code(() => küme.TR_sampler(TR_batch_size: 2)))
-    TR_assert_equal("H5533", TR_error_code(() => küme.TR_sampler(TR_batch_size: 2, TR_context: 500)))
-    TR_assert_equal("H7900", TR_error_code(() => küme.TR_sequential(TR_batch_size: 2, bağlm: 4)))
+    TR_assert_equal("H5529", TR_error_code { küme.TR_sampler(TR_batch_size: 2) })
+    TR_assert_equal("H5533", TR_error_code { küme.TR_sampler(TR_batch_size: 2, TR_context: 500) })
+    TR_assert_equal("H7900", TR_error_code { küme.TR_sequential(TR_batch_size: 2, bağlm: 4) })
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
-    TR_assert_equal("H5630", TR_error_code(() => p.TR_encode(5)))
-    TR_assert_equal("H5639", TR_error_code(() => p.TR_decode(["a"])))
-    TR_assert_equal("H7905", TR_error_code(() => p.TR_encode("a", TR_special_tokens: 1)))
+    TR_assert_equal("H5630", TR_error_code { p.TR_encode(5) })
+    TR_assert_equal("H5639", TR_error_code { p.TR_decode(["a"]) })
+    TR_assert_equal("H7905", TR_error_code { p.TR_encode("a", TR_special_tokens: 1) })
 }
 
 TR_test "16.8 göreli yollar programın klasörüne göre de çözülür" {

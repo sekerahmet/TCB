@@ -37,8 +37,8 @@ TR_test "6.4 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
     TR_assert_equal("Selam Ali!", selam("Ali"))
     TR_assert_equal("Selam Ali?", selam("Ali", "?"))
     TR_func ikinci(a, b) { TR_return b }
-    TR_assert_equal("H2414", TR_error_code(() => { ikinci(1) }))
-    TR_assert_equal("H2412", TR_error_code(() => { ikinci(1, 2, 3) }))
+    TR_assert_equal("H2414", TR_error_code { ikinci(1) })
+    TR_assert_equal("H2412", TR_error_code { ikinci(1, 2, 3) })
 }
 
 TR_test "6.4 varsayılan değer önceki parametreleri görür" {
@@ -52,7 +52,7 @@ TR_test "6.4 varsayılan değer önceki parametreleri görür" {
     # Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
     TR_var b = 7
     TR_func h(a = b, b = 1) { TR_return a }
-    TR_assert_equal("H2440", TR_error_code(() => { h() }))
+    TR_assert_equal("H2440", TR_error_code { h() })
     # Varsayılan her çağrıda yeniden hesaplanır
     TR_func liste_al(l = []) { l.TR_append(1); TR_return l }
     TR_assert_equal([1], liste_al())
@@ -61,7 +61,7 @@ TR_test "6.4 varsayılan değer önceki parametreleri görür" {
 
 TR_test "6.11 iç içe çağrı derinliği sınırı yakalanabilir hata verir" {
     TR_func sonsuz(n) { TR_return sonsuz(n + 1) }
-    TR_assert_equal("H2422", TR_error_code(() => { sonsuz(0) }))
+    TR_assert_equal("H2422", TR_error_code { sonsuz(0) })
 }
 
 TR_test "6.4 adlı argümanlar" {
@@ -73,9 +73,9 @@ TR_test "6.4 adlı argümanlar" {
 TR_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
     TR_func f(a, b = 10) { TR_return [a, b] }
     TR_assert_equal([1, 20], f(1, b: 20))
-    TR_assert_equal("H2413", TR_error_code(() => { f(1, a: 2) }))
+    TR_assert_equal("H2413", TR_error_code { f(1, a: 2) })
     # adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
-    TR_assert_equal("H2415", TR_error_code(() => { f(b: 20) }))
+    TR_assert_equal("H2415", TR_error_code { f(b: 20) })
 }
 
 TR_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
@@ -114,30 +114,30 @@ TR_test "6.6 ok fonksiyonları (lambda)" {
 
 TR_test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
     TR_var sayılar = [1, 2, 3, 4]
-    TR_assert_equal([3, 4], sayılar.TR_filter { TR_it > 2 })
-    TR_assert_equal([9, 16], sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it })
-    TR_assert_equal([[10, 20]], [[1, 2]].TR_map { TR_it.TR_map { TR_it * 10 } })
+    TR_assert_equal([3, 4], sayılar.TR_filter((x) => x > 2))
+    TR_assert_equal([9, 16], sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x))
+    TR_assert_equal([[10, 20]], [[1, 2]].TR_map((x) => x.TR_map((x2) => x2 * 10)))
     TR_func uygula(x, f) { TR_return f(x) }
-    TR_assert_equal(10, uygula(5) { TR_it * 2 })
+    TR_assert_equal(10, uygula(5, (x) => x * 2))
 }
 
 TR_test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
-    TR_assert_equal(10, [1, 2, 3, 4].TR_reduce(0) { TR_acc + TR_it })
-    TR_assert_equal(24, [1, 2, 3, 4].TR_reduce { TR_acc * TR_it })
-    TR_assert_equal([3, 2, 1], [1, 2, 3].TR_reduce([]) { [TR_it] + TR_acc })
+    TR_assert_equal(10, [1, 2, 3, 4].TR_reduce(0, (acc, x) => acc + x))
+    TR_assert_equal(24, [1, 2, 3, 4].TR_reduce((acc, x) => acc * x))
+    TR_assert_equal([3, 2, 1], [1, 2, 3].TR_reduce([], (acc, x) => [x] + acc))
     # Elemanlar liste olsa da o elemandır
-    TR_assert_equal(10, [[1, 2], [3, 4]].TR_reduce(0) { TR_acc + TR_it[0] + TR_it[1] })
+    TR_assert_equal(10, [[1, 2], [3, 4]].TR_reduce(0, (acc, x) => acc + x[0] + x[1]))
     # birikim başka her yerde sıradan bir addır
     TR_var birikim = 5
     TR_assert_equal(5, birikim)
-    TR_assert_equal(2, [1, 2].TR_reduce(birikim) { TR_acc - TR_it })
-    TR_assert_equal("H2476", TR_error_code(() => { [1, 2].TR_reduce(0, (x) => x) }))
+    TR_assert_equal(2, [1, 2].TR_reduce(birikim, (acc, x) => acc - x))
+    TR_assert_equal("H2476", TR_error_code { [1, 2].TR_reduce(0, (x) => x) })
 }
 
 TR_test "6.7 kontrol yapısı başlığında { gövdeyi başlatır" {
     TR_var l = [1, 5]
     TR_var sonuç_ = ""
-    TR_if (l.TR_filter { TR_it > 2 }).TR_length > 0 { sonuç_ = "var" }
+    TR_if (l.TR_filter((x) => x > 2)).TR_length > 0 { sonuç_ = "var" }
     TR_assert_equal("var", sonuç_)
 }
 

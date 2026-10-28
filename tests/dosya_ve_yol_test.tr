@@ -15,9 +15,9 @@ TR_test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve bo�
     TR_assert_equal(`["a/b"]`, TR_json_string([TR_Path("a/b")]))
     TR_assert(TR_Path("a") == TR_Path("a/./"))
     TR_assert(TR_Path("a") != "a")
-    TR_assert_equal("H7139", TR_error_code(() => TR_Path("veri", "/etc/passwd")))
-    TR_assert_equal("H7138", TR_error_code(() => TR_Path("a", "")))
-    TR_assert_equal("H2489", TR_error_code(() => TR_Path("C:\tokenizer.json")))
+    TR_assert_equal("H7139", TR_error_code { TR_Path("veri", "/etc/passwd") })
+    TR_assert_equal("H7138", TR_error_code { TR_Path("a", "") })
+    TR_assert_equal("H2489", TR_error_code { TR_Path("C:\tokenizer.json") })
 }
 
 TR_test "18.2 dosya_adı, uzantı, uzantısız_ad ve üst_klasör yolun yazımına bakar" {
@@ -46,8 +46,8 @@ TR_test "18.3 diske bakan özellikler yolu tek kuralla çözer" {
     # Programın klasöründeki veri, program başka bir klasörden çalışsa da bulunur.
     TR_assert(TR_Path("data/tokenizer.json").TR_exists)
     TR_assert_equal("tokenizer.json", TR_Path("data/tokenizer.json").TR_absolute.TR_name)
-    TR_assert_equal("H7140", TR_error_code(() => k.TR_size))
-    TR_assert_equal("H2132", TR_error_code(() => TR_Path(k, "yok.txt").TR_size))
+    TR_assert_equal("H7140", TR_error_code { k.TR_size })
+    TR_assert_equal("H2132", TR_error_code { TR_Path(k, "yok.txt").TR_size })
 }
 
 TR_test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
@@ -55,8 +55,8 @@ TR_test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
     TR_write_file(TR_Path(k, "t.csv"), "a,b\n1,2")
     TR_assert_equal("a,b\n1,2", TR_read_file(TR_Path(k, "t.csv")))
     TR_assert_equal([["a", "b"], [1, 2]], TR_read_csv(TR_Path(k, "t.csv")))
-    TR_assert_equal("H2423", TR_error_code(() => TR_read_file(5)))
-    TR_assert_equal("H2132", TR_error_code(() => TR_read_csv(TR_Path(k, "olmayan.csv"))))
+    TR_assert_equal("H2423", TR_error_code { TR_read_file(5) })
+    TR_assert_equal("H2132", TR_error_code { TR_read_csv(TR_Path(k, "olmayan.csv")) })
 }
 
 TR_test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir" {
@@ -77,9 +77,9 @@ TR_test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir
     TR_assert_equal([".gizli"], adlar(TR_list_dir(k, ".*")))
     TR_assert_equal(["a.txt", "b.npy"], adlar(TR_list_dir(k, "[ab].*")))
     TR_assert_equal(TR_Path, TR_Type(TR_list_dir(k)[0]))
-    TR_assert_equal("H7143", TR_error_code(() => TR_list_dir(k, "../*")))
-    TR_assert_equal("H7144", TR_error_code(() => TR_list_dir(k, "a**")))
-    TR_assert_equal("H2132", TR_error_code(() => TR_list_dir(TR_Path(k, "olmayan"))))
+    TR_assert_equal("H7143", TR_error_code { TR_list_dir(k, "../*") })
+    TR_assert_equal("H7144", TR_error_code { TR_list_dir(k, "a**") })
+    TR_assert_equal("H2132", TR_error_code { TR_list_dir(TR_Path(k, "olmayan")) })
 }
 
 TR_test "18.6 klasör_oluştur üst klasörleriyle oluşturur; varsa sorun değildir" {
@@ -89,7 +89,7 @@ TR_test "18.6 klasör_oluştur üst klasörleriyle oluşturur; varsa sorun deği
     TR_assert_equal(TR_Path, TR_Type(d))
     TR_assert_equal(d, TR_make_dir(TR_Path(k, "a/b/c")))
     TR_write_file(TR_Path(k, "dosya"), "x")
-    TR_assert_equal("H7123", TR_error_code(() => TR_make_dir(TR_Path(k, "dosya"))))
+    TR_assert_equal("H7123", TR_error_code { TR_make_dir(TR_Path(k, "dosya")) })
 }
 
 TR_test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindekilerle ister" {
@@ -101,22 +101,22 @@ TR_test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindekiler
     TR_make_dir(TR_Path(k, "dolu/alt"))
     TR_write_file(TR_Path(k, "dolu/a.txt"), "x")
     TR_write_file(TR_Path(k, "dolu/alt/b.txt"), "x")
-    TR_assert_equal("H7122", TR_error_code(() => TR_remove(TR_Path(k, "dolu"))))
+    TR_assert_equal("H7122", TR_error_code { TR_remove(TR_Path(k, "dolu")) })
     TR_assert_equal(2, TR_remove(TR_Path(k, "dolu"), TR_recursive: TR_true))
-    TR_assert_equal("H2132", TR_error_code(() => TR_remove(TR_Path(k, "olmayan.txt"))))
+    TR_assert_equal("H2132", TR_error_code { TR_remove(TR_Path(k, "olmayan.txt")) })
     TR_write_file(TR_Path(k, "s.txt"), "1\n2")
     TR_var o = TR_read_lines(TR_Path(k, "s.txt"))
     o.TR_next()
-    TR_assert_equal("H7154", TR_error_code(() => TR_remove(k, TR_recursive: TR_true)))
+    TR_assert_equal("H7154", TR_error_code { TR_remove(k, TR_recursive: TR_true) })
     o.TR_close()
     TR_assert_equal(1, TR_remove(TR_Path(k, "s.txt")))
 }
 
 TR_test "18.8 sil kökü, çalışma ve program klasörünü ve onların üstlerini silmez" {
-    TR_assert_equal("H7121", TR_error_code(() => TR_remove(".")))
-    TR_assert_equal("H7121", TR_error_code(() => TR_remove("..")))
-    TR_assert_equal("H7121", TR_error_code(() => TR_remove(TR_Path("data").TR_absolute.TR_parent)))
-    TR_assert_equal("H7121", TR_error_code(() => TR_remove("/")))
+    TR_assert_equal("H7121", TR_error_code { TR_remove(".") })
+    TR_assert_equal("H7121", TR_error_code { TR_remove("..") })
+    TR_assert_equal("H7121", TR_error_code { TR_remove(TR_Path("data").TR_absolute.TR_parent) })
+    TR_assert_equal("H7121", TR_error_code { TR_remove("/") })
     TR_assert(TR_Path("data/tokenizer.json").TR_exists)
 }
 
@@ -127,17 +127,17 @@ TR_test "18.9 kopyala hedef klasörün içine kopyalar; üzerine yazmak açık o
     TR_assert_equal(TR_Path(k, "yedek/model.txt"), TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "yedek")))
     TR_assert_equal("bir", TR_read_file(TR_Path(k, "yedek/model.txt")))
     TR_write_file(TR_Path(k, "model.txt"), "iki")
-    TR_assert_equal("H7115", TR_error_code(() => TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "yedek"))))
+    TR_assert_equal("H7115", TR_error_code { TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "yedek")) })
     TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "yedek"), TR_overwrite: TR_true)
     TR_assert_equal("iki", TR_read_file(TR_Path(k, "yedek/model.txt")))
     TR_make_dir(TR_Path(k, "ağaç/alt"))
     TR_write_file(TR_Path(k, "ağaç/alt/a.txt"), "a")
     TR_copy(TR_Path(k, "ağaç"), TR_Path(k, "ağaç2"))
     TR_assert_equal("a", TR_read_file(TR_Path(k, "ağaç2/alt/a.txt")))
-    TR_assert_equal("H7114", TR_error_code(() => TR_copy(TR_Path(k, "ağaç"), TR_Path(k, "ağaç/alt"))))
-    TR_assert_equal("H7113", TR_error_code(() => TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "model.txt"), TR_overwrite: TR_true)))
+    TR_assert_equal("H7114", TR_error_code { TR_copy(TR_Path(k, "ağaç"), TR_Path(k, "ağaç/alt")) })
+    TR_assert_equal("H7113", TR_error_code { TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "model.txt"), TR_overwrite: TR_true) })
     TR_make_dir(TR_Path(k, "h/model.txt"))
-    TR_assert_equal("H7117", TR_error_code(() => TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "h"), TR_overwrite: TR_true)))
+    TR_assert_equal("H7117", TR_error_code { TR_copy(TR_Path(k, "model.txt"), TR_Path(k, "h"), TR_overwrite: TR_true) })
     # Geride geçici ad kalmaz.
     TR_assert_equal([], TR_list_dir(k, ".*"))
 }
@@ -152,10 +152,10 @@ TR_test "18.10 taşı yeniden adlandırır; kurallar kopyala ile aynıdır" {
     TR_move(TR_Path(k, "d"), TR_Path(k, "e"))
     TR_assert_equal("c", TR_read_file(TR_Path(k, "e/alt/c.txt")))
     TR_write_file(TR_Path(k, "c.txt"), "yeni")
-    TR_assert_equal("H7115", TR_error_code(() => TR_move(TR_Path(k, "c.txt"), TR_Path(k, "b.txt"))))
+    TR_assert_equal("H7115", TR_error_code { TR_move(TR_Path(k, "c.txt"), TR_Path(k, "b.txt")) })
     TR_move(TR_Path(k, "c.txt"), TR_Path(k, "b.txt"), TR_overwrite: TR_true)
     TR_assert_equal("yeni", TR_read_file(TR_Path(k, "b.txt")))
-    TR_assert_equal("H7109", TR_error_code(() => TR_move(".", TR_Path(k, "x"))))
+    TR_assert_equal("H7109", TR_error_code { TR_move(".", TR_Path(k, "x")) })
 }
 
 TR_test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
@@ -171,7 +171,7 @@ TR_test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
     TR_assert_equal("1", o.TR_next())
     TR_assert_equal(["2", "3"], [s TR_for s TR_in o])
     TR_assert_equal(TR_none, o.TR_next())
-    TR_assert_equal("H2132", TR_error_code(() => TR_read_lines(TR_Path(k, "olmayan.txt"))))
+    TR_assert_equal("H2132", TR_error_code { TR_read_lines(TR_Path(k, "olmayan.txt")) })
 }
 
 TR_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
@@ -184,7 +184,7 @@ TR_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
     TR_assert(TR_Path(k, "t.csv.gz").TR_size != 7)
     TR_write_file(TR_Path(k, "duz.txt"), "sıkıştırılmamış")
     TR_copy(TR_Path(k, "duz.txt"), TR_Path(k, "duz.gz"))
-    TR_assert_equal("H2040", TR_error_code(() => TR_read_file(TR_Path(k, "duz.gz"))))
+    TR_assert_equal("H2040", TR_error_code { TR_read_file(TR_Path(k, "duz.gz")) })
 }
 
 TR_test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
@@ -193,7 +193,7 @@ TR_test "18.13 dosya_yaz atomik yazar; geride geçici dosya kalmaz" {
     TR_write_file(TR_Path(k, "a.txt"), "yeni")
     TR_assert_equal("yeni", TR_read_file(TR_Path(k, "a.txt")))
     TR_assert_equal([], TR_list_dir(k, ".*"))
-    TR_assert_equal("H2130", TR_error_code(() => TR_write_file(k, "x")))
+    TR_assert_equal("H2130", TR_error_code { TR_write_file(k, "x") })
 }
 
 TR_test "18.14 geçici_klasör yeni, boş bir klasör verir; program bitince silinir" {
@@ -206,7 +206,7 @@ TR_test "18.14 geçici_klasör yeni, boş bir klasör verir; program bitince sil
     TR_assert(k != başka)
     TR_write_file(TR_Path(k, "a.txt"), "x")
     TR_assert(TR_not TR_Path(başka, "a.txt").TR_exists)
-    TR_assert_equal("H2012", TR_error_code(() => TR_temp_dir(1)))
+    TR_assert_equal("H2012", TR_error_code { TR_temp_dir(1) })
 }
 
 TR_test "18.15 SatırOkuyucu.kapat dosyayı bırakır; kapatılmış okuyucu satır vermez" {
@@ -218,8 +218,8 @@ TR_test "18.15 SatırOkuyucu.kapat dosyayı bırakır; kapatılmış okuyucu sat
     TR_assert_equal(TR_false, o.TR_close())
     # Dosya artık bu programda açık değildir: Windows'ta da silinir.
     TR_assert_equal(1, TR_remove(TR_Path(k, "s.txt")))
-    TR_assert_equal("H7134", TR_error_code(() => o.TR_next()))
-    TR_assert_equal("H7134", TR_error_code(() => [s TR_for s TR_in o]))
+    TR_assert_equal("H7134", TR_error_code { o.TR_next() })
+    TR_assert_equal("H7134", TR_error_code { [s TR_for s TR_in o] })
     # Sonuna kadar okunan okuyucunun dosyası zaten kapalıdır.
     TR_write_file(TR_Path(k, "t.txt"), "a")
     TR_var t = TR_read_lines(TR_Path(k, "t.txt"))

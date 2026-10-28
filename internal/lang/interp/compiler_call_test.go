@@ -10,12 +10,12 @@ import (
 func TestTrailingBlockWithOPronoun(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
 		TR_var sayılar = [1, 2, 3, 4, 5, 6]
-		TR_var a = sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it }
-		TR_var b = sayılar.TR_filter { TR_it % 2 == 0 }
-		TR_var c = [{"ad": "Ali"}, {"ad": "Ayşe"}].TR_map { TR_it["ad"] }
-		TR_var d = [[1, 2], [3, 4]].TR_map { TR_it.TR_map { TR_it * 10 } }
+		TR_var a = sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x)
+		TR_var b = sayılar.TR_filter((x) => x % 2 == 0)
+		TR_var c = [{"ad": "Ali"}, {"ad": "Ayşe"}].TR_map((x) => x["ad"])
+		TR_var d = [[1, 2], [3, 4]].TR_map((x) => x.TR_map((x2) => x2 * 10))
 		TR_func uygula(f) { TR_return f(21) }
-		TR_var e = uygula { TR_it * 2 }
+		TR_var e = uygula((x) => x * 2)
 		TR_var result = [a, b, c, d, e]`)
 	if err != nil {
 		t.Fatal(err)
@@ -29,7 +29,7 @@ func TestTrailingBlockWithOPronoun(t *testing.T) {
 func TestTrailingBlockEquivalentToLambda(t *testing.T) {
 	_, val, err := runTRWithin(t, 5*time.Second, `
 		TR_var l = [5, 3, 8, 1]
-		TR_var result = l.TR_filter { TR_it > 2 } == l.TR_filter((x) => x > 2)`)
+		TR_var result = l.TR_filter((x) => x > 2) == l.TR_filter((x) => x > 2)`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestControlHeadersDoNotTakeTrailingBlocks(t *testing.T) {
 		}
 		izler.TR_append(sonuç_eşle)
 		# Parantez içinde sondaki blok başlıkta da kullanılabilir
-		TR_if (sayılar.TR_filter { TR_it > 5 }).TR_length == 1 {
+		TR_if (sayılar.TR_filter((x) => x > 5)).TR_length == 1 {
 			izler.TR_append("parantez")
 		}
 		TR_var result = izler`)

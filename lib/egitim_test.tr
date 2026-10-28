@@ -48,8 +48,8 @@ TR_test "SıçramaBekçisi: değişmeyen dizide (σ = 0) eşik yerine en küçü
 }
 
 TR_test "SıçramaBekçisi: geçersiz ayar hatadır" {
-    TR_assert_equal("H6930", TR_error_code(() => TR_SpikeGuard(TR_history_limit: 1)))
-    TR_assert_equal("H6931", TR_error_code(() => TR_SpikeGuard(TR_threshold: 0)))
+    TR_assert_equal("H6930", TR_error_code { TR_SpikeGuard(TR_history_limit: 1) })
+    TR_assert_equal("H6931", TR_error_code { TR_SpikeGuard(TR_threshold: 0) })
 }
 
 TR_test "SıçramaBekçisi: ölçekten bağımsızdır; çok büyük sonlu değerlerde taşmaz" {
@@ -70,8 +70,8 @@ TR_test "SıçramaBekçisi: geçmiş tamamen sıfırsa karar vermez, kilitlenmez
 }
 
 TR_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
-    TR_assert_equal("H6930", TR_error_code(() => TR_SpikeGuard(TR_history_limit: 2.5)))
-    TR_assert_equal("H6931", TR_error_code(() => TR_SpikeGuard(TR_threshold: TR_Float("inf"))))
+    TR_assert_equal("H6930", TR_error_code { TR_SpikeGuard(TR_history_limit: 2.5) })
+    TR_assert_equal("H6931", TR_error_code { TR_SpikeGuard(TR_threshold: TR_Float("inf")) })
 }
 
 # Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
@@ -107,5 +107,5 @@ TR_test "Koşu: prova geçici klasörde en çok PROVA_ADIMI adım sürer ve dosy
 }
 
 TR_test "Koşu: adım_sayısı pozitif bir Tam olmalıdır" {
-    TR_assert_equal("H6932", TR_error_code(() => TR_Run(TR_temp_dir(), {}, {}, TR_num_steps: 0)))
+    TR_assert_equal("H6932", TR_error_code { TR_Run(TR_temp_dir(), {}, {}, TR_num_steps: 0) })
 }

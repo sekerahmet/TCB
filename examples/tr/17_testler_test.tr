@@ -27,7 +27,7 @@ TR_struct Sepet {
     }
 
     TR_func tutar() {
-        TR_return TR_sum(TR_self.ürünler.TR_map { TR_it["fiyat"] })
+        TR_return TR_sum(TR_self.ürünler.TR_map((x) => x["fiyat"]))
     }
 }
 

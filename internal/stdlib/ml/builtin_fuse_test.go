@@ -37,7 +37,7 @@ func TestFuseComparisons(t *testing.T) {
 // Kural: argümansız çağrılan kaynaştırılmış fonksiyon kullanıcı hatası verir (argüman sayısı).
 // Neden: boş args'a erişmek iç hataya (H9001) dönüşür.
 func TestFuseCallWithoutArgumentsIsUserError(t *testing.T) {
-	_, err := run(t, `TR_var kf = TR_fuse(() => TR_Tensor([1.0]))
+	_, err := run(t, `TR_var kf = TR_fuse { TR_Tensor([1.0]) }
 kf()`)
 	if err == nil {
 		t.Fatal("argümansız kaynaştır çağrısı hata vermeli")

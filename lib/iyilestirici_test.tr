@@ -48,8 +48,8 @@ TR_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çık
 }
 
 TR_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
-    TR_assert_equal("H6920", TR_error_code(() => TR_Muon([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
-    TR_assert_equal("H6920", TR_error_code(() => TR_NorMuon([TR_Tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code { TR_Muon([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)]) })
+    TR_assert_equal("H6920", TR_error_code { TR_NorMuon([TR_Tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)]) })
 }
 
 TR_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
@@ -118,7 +118,7 @@ TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (
     TR_var c = kur()
     TR_var op_c = TR_MuonAndAdamW(c, TR_normuon: TR_true)
     TR_assert_equal(TR_NorMuon, TR_Type(op_c.TR_muon))
-    TR_assert_equal("H6922", TR_error_code(() => op_c.TR_set_multiplier(0.0)))
+    TR_assert_equal("H6922", TR_error_code { op_c.TR_set_multiplier(0.0) })
     TR_assert_equal(1.0, op_c.TR_lr_multiplier)
 }
 
@@ -246,7 +246,7 @@ TR_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile 
     TR_var beklenen = önce - 0.1 * 0.2 * TR_sqrt(8.0) * TR_orthogonalize(G)
     TR_assert(en_büyük_mutlak_fark(W, beklenen) < 0.00001, "rms ölçeği: \(en_büyük_mutlak_fark(W, beklenen))")
     TR_assert_equal([TR_sqrt(2.0)], TR_Muon([W]).TR_scales) # varsayılan "oran": √max(1, 8/4)
-    TR_assert_equal("H6921", TR_error_code(() => TR_Muon([W], TR_scale: "x")))
+    TR_assert_equal("H6921", TR_error_code { TR_Muon([W], TR_scale: "x") })
 }
 
 # bir_adım: model parametrelerine sabit gradyan basıp op.adım() çalıştırır (kayıp = Σ p · G).
@@ -315,7 +315,7 @@ TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; 
     TR_var U = TR_Tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
     TR_RowRMS([U]).TR_step()
     TR_assert_equal(TR_ones([2, 2]), TR_no_grad(U))
-    TR_assert_equal("H6920", TR_error_code(() => TR_RowRMS([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code { TR_RowRMS([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)]) })
 }
 
 TR_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen kelimelerin satırı değişmez" {

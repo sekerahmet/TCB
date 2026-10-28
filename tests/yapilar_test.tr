@@ -29,25 +29,25 @@ TR_test "7.2 oluşturma: konumlu ve adlı argümanlarla" {
 }
 
 TR_test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
-    TR_assert_equal("H2419", TR_error_code(() => { Nokta(1, 2, 3) }))
-    TR_assert_equal("H2418", TR_error_code(() => { Nokta(yy: 9) }))
+    TR_assert_equal("H2419", TR_error_code { Nokta(1, 2, 3) })
+    TR_assert_equal("H2418", TR_error_code { Nokta(yy: 9) })
     # kurucu varsa argümanlar kurucunun imzasına göre denetlenir
     TR_struct Hesap {
         bakiye
         TR_func TR_init(b, kat = 2) { TR_self.bakiye = b * kat }
     }
     TR_assert_equal(15, Hesap(5, 3).bakiye)
-    TR_assert_equal("H2412", TR_error_code(() => { Hesap(1, 2, 3) }))
+    TR_assert_equal("H2412", TR_error_code { Hesap(1, 2, 3) })
 }
 
 TR_test "7.2 bir alan hem sırayla hem adıyla verilemez" {
-    TR_assert_equal("H2420", TR_error_code(() => { Nokta(1, x: 2) }))
+    TR_assert_equal("H2420", TR_error_code { Nokta(1, x: 2) })
     TR_assert_equal(2, Nokta(1, y: 2).y)
     TR_struct Hesap {
         bakiye
         TR_func TR_init(b, kat = 2) { TR_self.bakiye = b * kat }
     }
-    TR_assert_equal("H2413", TR_error_code(() => { Hesap(1, b: 2) }))
+    TR_assert_equal("H2413", TR_error_code { Hesap(1, b: 2) })
 }
 
 TR_test "7.3 metotlar kendi ile nesneye erişir" {
@@ -69,14 +69,14 @@ TR_test "7.5 alanlar atanabilir; olmayan alan hata verir" {
     TR_var p = Nokta()
     p.x = 7
     TR_assert_equal(7, p.x)
-    TR_assert_equal("H2468", TR_error_code(() => { p.z }))
+    TR_assert_equal("H2468", TR_error_code { p.z })
     TR_assert_equal(TR_none, p?.z)
 }
 
 TR_test "7.5 tanımda olmayan alana atama hatadır; nesnenin alanları her zaman tanımdakilerdir" {
     TR_var p = Nokta(1, 2)
-    TR_assert_equal("H2405", TR_error_code(() => { p.z = 5 }))
-    TR_assert_equal("H2404", TR_error_code(() => { p.taşı = 5 }))
+    TR_assert_equal("H2405", TR_error_code { p.z = 5 })
+    TR_assert_equal("H2404", TR_error_code { p.taşı = 5 })
     TR_assert_equal(`Nokta{x: 1, y: 2}`, TR_String(p))
     TR_assert(p == Nokta(1, 2))
 }

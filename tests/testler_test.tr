@@ -21,13 +21,13 @@ TR_test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar 
 TR_test "12.3 doğrula(koşul, [mesaj])" {
     TR_assert(1 < 2)
     TR_assert(TR_true, "mesajlı biçim")
-    TR_assert_equal("H2456", TR_error_code(() => { TR_assert(TR_false, "özel mesaj") }))
+    TR_assert_equal("H2456", TR_error_code { TR_assert(TR_false, "özel mesaj") })
 }
 
 TR_test "12.4 eşit_mi(beklenen, gerçek) iki değeri de gösterir" {
     TR_assert_equal([1, 2], [1, 2])
     TR_assert_equal("a", "a")
-    TR_assert_equal("H2458", TR_error_code(() => { TR_assert_equal("5", 5) }))
+    TR_assert_equal("H2458", TR_error_code { TR_assert_equal("5", 5) })
 }
 
 TR_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar görünür" {

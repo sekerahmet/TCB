@@ -47,15 +47,15 @@ TR_test "20.1 kontrol_noktası yeni bir koşuda boş başlar; klasör ilk kayıt
 TR_test "20.1 kurulum hataları" {
     TR_defer { temizle() }
     TR_var w = param([2], 1)
-    TR_assert_equal("H2011", TR_error_code(() => TR_Checkpoint(koşu("h"))))
-    TR_assert_equal("H2423", TR_error_code(() => TR_Checkpoint(5, {"w": w})))
-    TR_assert_equal("H2423", TR_error_code(() => TR_Checkpoint(koşu("h"), [w])))
-    TR_assert_equal("H7900", TR_error_code(() => TR_Checkpoint(koşu("h"), {"w": w}, her_dakka: 1)))
-    TR_assert_equal("H7408", TR_error_code(() => TR_Checkpoint(koşu("h"), {"w": w}, TR_every_minutes: -1)))
-    TR_assert_equal("H7409", TR_error_code(() => TR_Checkpoint(koşu("h"), {"w": w}, TR_keep: 0)))
+    TR_assert_equal("H2011", TR_error_code { TR_Checkpoint(koşu("h")) })
+    TR_assert_equal("H2423", TR_error_code { TR_Checkpoint(5, {"w": w}) })
+    TR_assert_equal("H2423", TR_error_code { TR_Checkpoint(koşu("h"), [w]) })
+    TR_assert_equal("H7900", TR_error_code { TR_Checkpoint(koşu("h"), {"w": w}, her_dakka: 1) })
+    TR_assert_equal("H7408", TR_error_code { TR_Checkpoint(koşu("h"), {"w": w}, TR_every_minutes: -1) })
+    TR_assert_equal("H7409", TR_error_code { TR_Checkpoint(koşu("h"), {"w": w}, TR_keep: 0) })
     TR_make_dir(TABAN)
     TR_write_file(TR_Path(TABAN, "dosya"), "x")
-    TR_assert_equal("H7407", TR_error_code(() => TR_Checkpoint(TR_Path(TABAN, "dosya"), {"w": w})))
+    TR_assert_equal("H7407", TR_error_code { TR_Checkpoint(TR_Path(TABAN, "dosya"), {"w": w}) })
 }
 
 TR_test "20.2 kaydedilebilen nesneler ve hatalar" {
@@ -67,13 +67,13 @@ TR_test "20.2 kaydedilebilen nesneler ve hatalar" {
     TR_var kn = TR_Checkpoint(koşu("nesneler"), {"model": {"katman": [w]}, "op": op, "ö": ö, "g": g, "sayaçlar": {"step": 0}, "liste": [1, 2.5, "a", TR_none]})
     TR_assert_equal(0, kn.TR_resume_step)
     TR_var k = koşu("nesneler_h")
-    TR_assert_equal("H7435", TR_error_code(() => TR_Checkpoint(k, {})))
-    TR_assert_equal("H7436", TR_error_code(() => TR_Checkpoint(k, {"en_iyi": 99.0})))
-    TR_assert_equal("H7437", TR_error_code(() => TR_Checkpoint(k, {"t": w * 2})))
-    TR_assert_equal("H7438", TR_error_code(() => TR_Checkpoint(k, {"f": (x) => x})))
-    TR_assert_equal("H7457", TR_error_code(() => TR_Checkpoint(k, {"izlenen": {"sayı": 1, "f": (x) => x}})))
-    TR_assert_equal("H7433", TR_error_code(() => TR_Checkpoint(k, {"a/b": w})))
-    TR_assert_equal("H7434", TR_error_code(() => TR_Checkpoint(k, {1: w})))
+    TR_assert_equal("H7435", TR_error_code { TR_Checkpoint(k, {}) })
+    TR_assert_equal("H7436", TR_error_code { TR_Checkpoint(k, {"en_iyi": 99.0}) })
+    TR_assert_equal("H7437", TR_error_code { TR_Checkpoint(k, {"t": w * 2}) })
+    TR_assert_equal("H7438", TR_error_code { TR_Checkpoint(k, {"f": (x) => x}) })
+    TR_assert_equal("H7457", TR_error_code { TR_Checkpoint(k, {"izlenen": {"sayı": 1, "f": (x) => x}}) })
+    TR_assert_equal("H7433", TR_error_code { TR_Checkpoint(k, {"a/b": w}) })
+    TR_assert_equal("H7434", TR_error_code { TR_Checkpoint(k, {1: w}) })
 }
 
 TR_test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde geri yazılır" {
@@ -97,7 +97,7 @@ TR_test "20.2 türev izlemeyen tensörler (durum) de saklanır ve yerinde geri y
     TR_assert_equal(0, TR_parameters(durum2).TR_length)
     TR_assert_equal(1, TR_parameters(model2).TR_length)
     # Kayıtta olan bir durum tensörü eksikse açık hata.
-    TR_assert_equal("H7452", TR_error_code(() => TR_Checkpoint(k, {"model": model2, "opt": {"m": m2}})))
+    TR_assert_equal("H7452", TR_error_code { TR_Checkpoint(k, {"model": model2, "opt": {"m": m2}}) })
 }
 
 TR_test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder" {
@@ -109,9 +109,9 @@ TR_test "20.3 güncelle tamamlanan adımı bildirir; her_dakika dolunca kaydeder
     TR_assert_equal(TR_true, TR_Path(k, "checkpoints", "step_0000000001").TR_is_dir)
     TR_var kn2 = TR_Checkpoint(koşu("güncelle2"), {"w": w})
     TR_assert_equal(TR_false, kn2.TR_update(1))
-    TR_assert_equal("H7411", TR_error_code(() => kn2.TR_update(-1)))
-    TR_assert_equal("H7411", TR_error_code(() => kn2.TR_update(1.5)))
-    TR_assert_equal("H2011", TR_error_code(() => kn2.TR_update()))
+    TR_assert_equal("H7411", TR_error_code { kn2.TR_update(-1) })
+    TR_assert_equal("H7411", TR_error_code { kn2.TR_update(1.5) })
+    TR_assert_equal("H2011", TR_error_code { kn2.TR_update() })
 }
 
 TR_test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
@@ -126,8 +126,8 @@ TR_test "20.4 kaydet hemen kaydeder ve noktanın klasörünü verir" {
     TR_assert_equal("step_0000001500", kn.TR_save().TR_name)
     # Aynı adımın noktası yeniden kaydedilince yenisi yerine konur.
     TR_assert_equal("step_0000001500", kn.TR_save().TR_name)
-    TR_assert_equal(["step_0000000000", "step_0000001500"], TR_list_dir(TR_Path(k, "checkpoints"), "step_*").TR_map { TR_it.TR_name })
-    TR_assert_equal("H2012", TR_error_code(() => kn.TR_save(1)))
+    TR_assert_equal(["step_0000000000", "step_0000001500"], TR_list_dir(TR_Path(k, "checkpoints"), "step_*").TR_map((x) => x.TR_name))
+    TR_assert_equal("H2012", TR_error_code { kn.TR_save(1) })
 }
 
 TR_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.json en son noktayı gösterir" {
@@ -137,7 +137,7 @@ TR_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.j
     TR_var kn = TR_Checkpoint(k, {"w": w, "op": TR_SGD([w])})
     kn.TR_update(7)
     TR_var n = kn.TR_save()
-    TR_assert_equal(["digest.json", "state.json", "tensors.trt"], TR_list_dir(n).TR_map { TR_it.TR_name })
+    TR_assert_equal(["digest.json", "state.json", "tensors.trt"], TR_list_dir(n).TR_map((x) => x.TR_name))
     TR_var son = TR_json_parse(TR_read_file(TR_Path(k, "checkpoints", "latest.json")))
     TR_assert_equal(7, TR_Int(son["step"]))
     TR_assert_equal("step_0000000007", TR_String(son["dir"]))
@@ -203,8 +203,8 @@ TR_test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
     TR_var k = koşu("devam_günlük")
     eğit(k, 2, "devam_günlük")
     eğit(k, 4, "devam_günlük")
-    TR_var kayıtlar = TR_read_file("\(GÜNLÜKLER)/devam_günlük.jsonl").TR_strip().TR_split("\n").TR_map { TR_json_parse(TR_it) }
-    TR_var devamlar = kayıtlar.TR_filter { TR_it.TR_get("kind") == TR_JSON("resume") }
+    TR_var kayıtlar = TR_read_file("\(GÜNLÜKLER)/devam_günlük.jsonl").TR_strip().TR_split("\n").TR_map((x) => TR_json_parse(x))
+    TR_var devamlar = kayıtlar.TR_filter((x) => x.TR_get("kind") == TR_JSON("resume"))
     TR_assert_equal(1, devamlar.TR_length)
     TR_assert_equal(2, TR_Int(devamlar[0]["step"]))
 }
@@ -219,13 +219,13 @@ TR_test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {
     kn.TR_save()
     TR_var yeni = param([2], 9)
     TR_var önce = yeni.TR_tolist
-    TR_assert_equal("H7479", TR_error_code(() => TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni])})))
-    TR_assert_equal("H7478", TR_error_code(() => TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": ö, "x": {"a": 1}})))
-    TR_assert_equal("H7450", TR_error_code(() => TR_Checkpoint(k, {"w": param([3], 1), "op": TR_AdamW([yeni]), "ö": ö})))
-    TR_assert_equal("H7442", TR_error_code(() => TR_Checkpoint(k, {"w": yeni, "op": TR_SGD([yeni]), "ö": ö})))
+    TR_assert_equal("H7479", TR_error_code { TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni])}) })
+    TR_assert_equal("H7478", TR_error_code { TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": ö, "x": {"a": 1}}) })
+    TR_assert_equal("H7450", TR_error_code { TR_Checkpoint(k, {"w": param([3], 1), "op": TR_AdamW([yeni]), "ö": ö}) })
+    TR_assert_equal("H7442", TR_error_code { TR_Checkpoint(k, {"w": yeni, "op": TR_SGD([yeni]), "ö": ö}) })
     TR_var ö2 = TR_Dataset("data/text").TR_sampler(TR_batch_size: 3, TR_context: 4, TR_seed: 1)
-    TR_assert_equal("H5544", TR_error_code(() => TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": ö2})))
-    TR_assert_equal("H7440", TR_error_code(() => TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": {"a": 1}})))
+    TR_assert_equal("H5544", TR_error_code { TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": ö2}) })
+    TR_assert_equal("H7440", TR_error_code { TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": {"a": 1}}) })
     TR_assert_equal(önce, yeni.TR_tolist)
     TR_var kn2 = TR_Checkpoint(k, {"w": yeni, "op": TR_AdamW([yeni]), "ö": ö})
     TR_assert_equal(5, kn2.TR_resume_step)
@@ -241,7 +241,7 @@ TR_test "20.8 tut en yeni noktaları bırakır" {
         kn.TR_update(i * 10)
         kn.TR_save()
     }
-    TR_assert_equal(["step_0000000030", "step_0000000040"], TR_list_dir(TR_Path(k, "checkpoints"), "step_*").TR_map { TR_it.TR_name })
+    TR_assert_equal(["step_0000000030", "step_0000000040"], TR_list_dir(TR_Path(k, "checkpoints"), "step_*").TR_map((x) => x.TR_name))
 }
 
 TR_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı önerir" {
@@ -255,13 +255,13 @@ TR_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı ön
     TR_var n = kn.TR_save()
     TR_var d = TR_Path(n, "state.json")
     TR_write_file(d, TR_read_file(d).TR_replace("\"workers\"", "\"workers\" "))
-    TR_assert_equal("H7476", TR_error_code(() => TR_Checkpoint(k, {"w": w})))
+    TR_assert_equal("H7476", TR_error_code { TR_Checkpoint(k, {"w": w}) })
     # İleti bozuk noktayı ve bir önceki geçerli noktayı adıyla söyler.
-    TR_var m = hata_metni(() => TR_Checkpoint(k, {"w": w}))
+    TR_var m = hata_metni { TR_Checkpoint(k, {"w": w}) }
     TR_assert(m.TR_contains("step_0000000002") TR_and m.TR_contains("step_0000000001"), m)
     TR_remove(TR_Path(k, "checkpoints", "step_0000000001"), TR_recursive: TR_true)
-    TR_assert_equal("H7476", TR_error_code(() => TR_Checkpoint(k, {"w": w})))
-    m = hata_metni(() => TR_Checkpoint(k, {"w": w}))
+    TR_assert_equal("H7476", TR_error_code { TR_Checkpoint(k, {"w": w}) })
+    m = hata_metni { TR_Checkpoint(k, {"w": w}) }
     TR_assert(m.TR_contains("step_0000000002") TR_and TR_not m.TR_contains("step_0000000001"), m)
     TR_remove(n, TR_recursive: TR_true)
     TR_assert_equal(0, TR_Checkpoint(k, {"w": w}).TR_resume_step)
@@ -281,8 +281,8 @@ TR_test "20.10 aralıklı kayıtta yazma hatası eğitimi durdurmaz; art arda ü
     TR_write_file(TR_Path(k, "checkpoints"), "engel")
     TR_assert_equal(TR_false, kn.TR_update(1))
     TR_assert_equal(TR_false, kn.TR_update(2))
-    TR_assert_equal("H7400", TR_error_code(() => kn.TR_update(3)))
-    TR_assert_equal("H7400", TR_error_code(() => kn.TR_save()))
+    TR_assert_equal("H7400", TR_error_code { kn.TR_update(3) })
+    TR_assert_equal("H7400", TR_error_code { kn.TR_save() })
 }
 
 TR_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
@@ -298,12 +298,12 @@ TR_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
     TR_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], model["katman"]["w"].TR_tolist)
     TR_backward(TR_sum(model["katman"]["b"]))
     op.TR_step()
-    TR_assert_equal([0.4, 0.4, 0.4], model["katman"]["b"].TR_tolist.TR_map { TR_round(TR_it, 4) })
-    TR_assert_equal("H6508", TR_error_code(() => TR_load_parameters(model, {"katman.w": TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])})))
-    TR_assert_equal("H6511", TR_error_code(() => TR_load_parameters(model, {"katman.w": TR_Tensor([1.0]), "katman.b": TR_Tensor([1.0, 1.0, 1.0])})))
-    TR_assert_equal("H6532", TR_error_code(() => TR_load_parameters(model, {"katman.w": TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_Tensor([1.0, 1.0, 1.0]), "katman.c": TR_Tensor([1.0])})))
-    TR_assert_equal("H6520", TR_error_code(() => TR_load_parameters({"a": 1}, {})))
-    TR_assert_equal("H2423", TR_error_code(() => TR_load_parameters(model, [1])))
+    TR_assert_equal([0.4, 0.4, 0.4], model["katman"]["b"].TR_tolist.TR_map((x) => TR_round(x, 4)))
+    TR_assert_equal("H6508", TR_error_code { TR_load_parameters(model, {"katman.w": TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])}) })
+    TR_assert_equal("H6511", TR_error_code { TR_load_parameters(model, {"katman.w": TR_Tensor([1.0]), "katman.b": TR_Tensor([1.0, 1.0, 1.0])}) })
+    TR_assert_equal("H6532", TR_error_code { TR_load_parameters(model, {"katman.w": TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_Tensor([1.0, 1.0, 1.0]), "katman.c": TR_Tensor([1.0])}) })
+    TR_assert_equal("H6520", TR_error_code { TR_load_parameters({"a": 1}, {}) })
+    TR_assert_equal("H2423", TR_error_code { TR_load_parameters(model, [1]) })
 }
 
 TR_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş iyileştiriciye yüklenir" {
@@ -323,9 +323,9 @@ TR_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş i
     TR_backward(TR_sum(w2 * w2))
     yeni.TR_step()
     TR_assert_equal(w.TR_tolist, w2.TR_tolist)
-    TR_assert_equal("H6518", TR_error_code(() => yeni.TR_load_state({"m.0": TR_Tensor([1.0])})))
-    TR_assert_equal("H6516", TR_error_code(() => TR_SGD([w]).TR_load_state(op.TR_state)))
-    TR_assert_equal("H6501", TR_error_code(() => yeni.TR_load_state({"m.0": 1})))
+    TR_assert_equal("H6518", TR_error_code { yeni.TR_load_state({"m.0": TR_Tensor([1.0])}) })
+    TR_assert_equal("H6516", TR_error_code { TR_SGD([w]).TR_load_state(op.TR_state) })
+    TR_assert_equal("H6501", TR_error_code { yeni.TR_load_state({"m.0": 1}) })
     TR_assert_equal(TR_Dict, TR_Type(TR_SGD([w]).TR_state))
 }
 
@@ -341,8 +341,8 @@ TR_test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yükl
     TR_var yeni = küme.TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: 7)
     TR_assert_equal(TR_true, yeni.TR_load_state(d))
     TR_assert_equal(beklenen, yeni.TR_next()[0].TR_tolist)
-    TR_assert_equal("H5544", TR_error_code(() => küme.TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: 8).TR_load_state(d)))
-    TR_assert_equal("H5538", TR_error_code(() => küme.TR_sequential(TR_batch_size: 2, TR_context: 4).TR_load_state(d)))
+    TR_assert_equal("H5544", TR_error_code { küme.TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: 8).TR_load_state(d) })
+    TR_assert_equal("H5538", TR_error_code { küme.TR_sequential(TR_batch_size: 2, TR_context: 4).TR_load_state(d) })
     TR_var s = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
     s.TR_next()
     TR_var sd = s.TR_state
@@ -351,7 +351,7 @@ TR_test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yükl
     TR_var s2 = küme.TR_sequential(TR_batch_size: 2, TR_context: 4)
     s2.TR_load_state(sd)
     TR_assert_equal(sb, s2.TR_next()[0].TR_tolist)
-    TR_assert_equal("H5541", TR_error_code(() => s2.TR_load_state({"kind": "sequential"})))
+    TR_assert_equal("H5541", TR_error_code { s2.TR_load_state({"kind": "sequential"}) })
 }
 
 TR_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; nokta yoksa hatadır" {
@@ -360,7 +360,7 @@ TR_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; n
     TR_var op = TR_AdamW([w], TR_lr: 0.1)
     TR_var izlenen = {"sayaç": 0}
     TR_var kn = TR_Checkpoint(koşu("geri"), {"w": w, "op": op, "izlenen": izlenen})
-    TR_assert_equal("H7486", TR_error_code(() => kn.TR_rollback()))
+    TR_assert_equal("H7486", TR_error_code { kn.TR_rollback() })
     TR_backward(TR_sum(w * w))
     op.TR_step()
     op.TR_zero_grad()
@@ -379,7 +379,7 @@ TR_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; n
     TR_assert_equal(kayıtlı_durum, op.TR_state["m.0"].TR_tolist)
     TR_assert_equal(1, izlenen["sayaç"])
     TR_assert_equal(0, kn.TR_resume_step)
-    TR_assert_equal("H2012", TR_error_code(() => kn.TR_rollback(1)))
+    TR_assert_equal("H2012", TR_error_code { kn.TR_rollback(1) })
 }
 
 TR_test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
@@ -392,7 +392,7 @@ TR_test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {
     TR_assert_equal(3, b.TR_skip(3))
     TR_assert_equal(3, b.TR_state["counter"])
     TR_assert_equal(beklenen, b.TR_next()[0].TR_tolist)
-    TR_assert_equal("H5545", TR_error_code(() => b.TR_skip(-1)))
+    TR_assert_equal("H5545", TR_error_code { b.TR_skip(-1) })
 }
 
 TR_test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan bağlar kopmaz" {

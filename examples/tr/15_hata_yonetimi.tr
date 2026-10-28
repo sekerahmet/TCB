@@ -50,8 +50,8 @@ TR_func pencere_denetle(pencere) {
     TR_return pencere
 }
 TR_try { pencere_denetle(-1) } TR_catch h { TR_print("yakalandı: \(h)") }
-TR_print(TR_error_code(() => { pencere_denetle(-1) }))
-TR_print(TR_error_code(() => { pencere_denetle(4) }))
+TR_print(TR_error_code { pencere_denetle(-1) })
+TR_print(TR_error_code { pencere_denetle(4) })
 TR_var iletim: TR_Message = TR_Message("H6903", 5)
 TR_print(TR_Type(iletim))
 

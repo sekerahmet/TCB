@@ -120,7 +120,7 @@ TR_struct TR_Run {
         TR_make_dir(TR_self.TR_folder)
         TR_var sayı = 0
         TR_if TR_objects.TR_contains("model") {
-            TR_for w TR_in TR_parameters(TR_objects["model"]) { sayı += w.TR_shape.TR_reduce(1) { TR_acc * TR_it } }
+            TR_for w TR_in TR_parameters(TR_objects["model"]) { sayı += w.TR_shape.TR_reduce(1, (acc, x) => acc * x) }
         }
         TR_write_file(TR_Path(TR_self.TR_folder, "config.json"), TR_json_string({"config": TR_config, "num_params": sayı, "device": TR_default_device()}))
         TR_self.TR_logger = TR_Logger(TR_Path(TR_self.TR_folder, "metrics.jsonl"))

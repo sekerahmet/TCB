@@ -1092,7 +1092,7 @@ değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır(kla
 Verilen fonksiyonu çalıştırır; fonksiyon bir ileti (ileti) fırlatırsa onun kodunu Metin olarak ("H6903") döndürür, hata fırlatmazsa ya da hata kodlu değilse yok döndürür. İletinin metnini değil kodunu sınamak içindir.
 
 ```tr
-yazdır(hata_kodu(() => { fırlat İleti("H6903", -1) }))
+yazdır(hata_kodu { fırlat İleti("H6903", -1) })
 ```
 
 İlişkili: TR_type_Message `İleti`, TR_fn_assert `doğrula`
@@ -3187,7 +3187,7 @@ yazdır(Yol("veri/derlem.tar.gz").uzantı)
 Fonksiyonun doğru döndüğü elemanlardan oluşan yeni bir liste verir. Asıl liste değişmez; fonksiyon sondaki blokla da yazılır.
 
 ```tr
-yazdır([1, 2, 3, 4].filtrele { o > 2 })
+yazdır([1, 2, 3, 4].filtrele((x) => x > 2))
 ```
 
 İlişkili: TR_mem_map `haritala`, TR_mem_reduce `indirge`
@@ -3447,7 +3447,7 @@ değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], ö�
 Her elemana fonksiyonu uygular ve sonuçların yeni listesini verir. Asıl liste değişmez; fonksiyon sondaki blokla da yazılır.
 
 ```tr
-yazdır([1, 2, 3].haritala { o * 10 })
+yazdır([1, 2, 3].haritala((x) => x * 10))
 ```
 
 İlişkili: TR_mem_filter `filtrele`, TR_mem_reduce `indirge`
@@ -3613,7 +3613,7 @@ yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
 Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger; başlangıç verilmezse ilk eleman başlangıçtır, boş listede başlangıç (yoksa yok) döner. Fonksiyon son argümandır ve iki parametre alır; sondaki blokla yazılınca birikim önceki sonuç, o eleman olur.
 
 ```tr
-yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1) { birikim * o })
+yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1, (a, x) => a * x))
 ```
 
 İlişkili: TR_mem_filter `filtrele`, TR_mem_map `haritala`

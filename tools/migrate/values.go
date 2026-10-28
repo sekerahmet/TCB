@@ -4,7 +4,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 
@@ -42,12 +41,34 @@ func convertValues(rel, text string) (string, []problem) { return convertValuesW
 // değişmezinin anahtarları çevrilir (Go testlerindeki parçalar: nesnenin yapısı parçanın dışında
 // tanımlı olabilir, nokta erişimi orada kesin değildir).
 func convertValuesWith(rel, text string, members bool) (string, []problem) {
+	// İç içe düzenlemelerden bir geçişte yalnız en dıştakiler yapılır (statements.go); metin
+	// değişmeyene dek yeniden çevrilir. Sorunlar bir kez bildirilir.
+	var probs []problem
+	seen := map[problem]bool{}
+	for range 16 {
+		out, ps := convertValuesOnce(rel, text, members)
+		for _, p := range ps {
+			if !seen[p] {
+				seen[p] = true
+				probs = append(probs, p)
+			}
+		}
+		if out == text {
+			break
+		}
+		text = out
+	}
+	return text, probs
+}
+
+// convertValuesOnce convertValuesWith'in bir geçişidir.
+func convertValuesOnce(rel, text string, members bool) (string, []problem) {
 	prefix, body, lineBase := splitHeader(text)
 	edits, probs := valueEdits(rel, body, lineBase, members)
 	if len(edits) == 0 {
 		return text, probs
 	}
-	sort.Slice(edits, func(i, j int) bool { return edits[i].start < edits[j].start })
+	edits = outermost(edits)
 	runes := []rune(body)
 	var b strings.Builder
 	b.WriteString(prefix)
@@ -147,7 +168,7 @@ func valueEdits(rel, body string, lineBase int, members bool) ([]valueEdit, []pr
 		}
 		return true
 	})
-	more, moreProbs := statementEdits(prog, records, at, lineBase)
+	more, moreProbs := statementEdits(prog, body, records, at, lineBase)
 	return append(edits, more...), append(probs, moreProbs...)
 }
 

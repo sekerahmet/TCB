@@ -30,7 +30,7 @@ func TestCompilerScopes(t *testing.T) {
 		TR_var fs = []
 		TR_for i TR_in 0..3 {
 			TR_var j = i * 10
-			fs.TR_append(() => i + j)
+			fs.TR_append { i + j }
 		}
 		TR_for g TR_in fs { TR_print(g()) }
 
@@ -186,7 +186,7 @@ func TestDirectMethodCalls(t *testing.T) {
 		e(7)
 		TR_var d = {"içerir": 5, "a": 1}
 		TR_var result = [l, d.TR_contains("a"), d["a"], "Kar".TR_upper(), [3, 1, 2].TR_sort(), TR_String(12), "çağ".TR_length,
-			[1, 2, 3].TR_filter { TR_it > 1 }.TR_map { TR_it * 10 }]
+			[1, 2, 3].TR_filter((x) => x > 1).TR_map((x) => x * 10)]
 	`)
 	if err != nil || val.Inspect() != `[[1, 1, 1, 9, 7], true, 1, "KAR", [1, 2, 3], "12", 3, [20, 30]]` {
 		t.Fatalf("beklenmeyen: %v %v", val, err)

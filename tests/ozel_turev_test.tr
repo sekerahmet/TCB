@@ -24,7 +24,7 @@ TR_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     TR_backward(TR_sum(y))
     TR_assert_equal([6.0], x.TR_grad.TR_tolist)
     # Sonuç bir işlemin sonucudur: .gradyan'ı yoktur.
-    TR_assert_equal("H6700", TR_error_code(() => y.TR_grad))
+    TR_assert_equal("H6700", TR_error_code { y.TR_grad })
     # Bileşik sürümle aynı gradyan: kare(x) * x = x³ → 3x².
     TR_var a = TR_Tensor([[0.5, -2.0, 1.5]], TR_requires_grad: TR_true)
     TR_var b = TR_Tensor([[0.5, -2.0, 1.5]], TR_requires_grad: TR_true)
@@ -127,33 +127,33 @@ TR_test "15.31 özel_türev: hatalar" {
     TR_var x = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
     # ileri yanlış biçim döndürürse.
     TR_var bozuk = TR_custom_grad(TR_forward: TR_func(x) { TR_return x * x }, TR_backward: TR_func(k, g) { TR_return [g] })
-    TR_assert_equal("H6409", TR_error_code(() => bozuk(x)))
+    TR_assert_equal("H6409", TR_error_code { bozuk(x) })
     TR_var bozuk2 = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, x] }, TR_backward: TR_func(k, g) { TR_return [g] })
-    TR_assert_equal("H6410", TR_error_code(() => bozuk2(x)))
+    TR_assert_equal("H6410", TR_error_code { bozuk2(x) })
     # Yanlış şekilli gradyan: yayınlama yapılmaz.
     TR_var şekilsiz = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x * 2, []] }, TR_backward: TR_func(k, g) { TR_return [TR_sum(g)] })
-    TR_assert_equal("H6418", TR_error_code(() => TR_backward(TR_sum(şekilsiz(x)))))
-    TR_assert(hata_metni(() => TR_backward(TR_sum(şekilsiz(x)))).TR_contains("[1, 2]"))
+    TR_assert_equal("H6418", TR_error_code { TR_backward(TR_sum(şekilsiz(x))) })
+    TR_assert(hata_metni { TR_backward(TR_sum(şekilsiz(x))) }.TR_contains("[1, 2]"))
     # Liste uzunluğu yanlış.
     TR_var eksik = TR_custom_grad(TR_forward: TR_func(a, b) { TR_return [a + b, []] }, TR_backward: TR_func(k, g) { TR_return [g] })
-    TR_assert_equal("H6415", TR_error_code(() => TR_backward(TR_sum(eksik(x, x)))))
+    TR_assert_equal("H6415", TR_error_code { TR_backward(TR_sum(eksik(x, x))) })
     # Tensör olmayan girdi için gradyan verilemez.
     TR_var sayılı = TR_custom_grad(TR_forward: TR_func(a, n) { TR_return [a * n, []] }, TR_backward: TR_func(k, g) { TR_return [g, g] })
-    TR_assert_equal("H6417", TR_error_code(() => TR_backward(TR_sum(sayılı(x, 2)))))
+    TR_assert_equal("H6417", TR_error_code { TR_backward(TR_sum(sayılı(x, 2))) })
     # Saklanan bir tensör ileri hesaptan sonra yerinde değiştirilirse geri yayılım hata verir.
     TR_var c = TR_Tensor([[3.0, 4.0]])
     TR_var ölçekle = TR_custom_grad(TR_forward: TR_func(x, c) { TR_return [x * c, [c]] }, TR_backward: TR_func(k, g) { TR_return [g * k[0], TR_none] })
     TR_var y = ölçekle(x, c)
     c[0] = [9.0, 9.0]
-    TR_assert_equal("H3012", TR_error_code(() => TR_backward(TR_sum(y))))
+    TR_assert_equal("H3012", TR_error_code { TR_backward(TR_sum(y)) })
     # geri'deki hata dene/yakala ile yakalanır.
     TR_var fırlatan = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_throw "geri bozuk" })
-    TR_assert(hata_metni(() => TR_backward(TR_sum(fırlatan(x)))).TR_contains("geri bozuk"))
+    TR_assert(hata_metni { TR_backward(TR_sum(fırlatan(x))) }.TR_contains("geri bozuk"))
     # Kullanım hataları.
-    TR_assert_equal("H6430", TR_error_code(() => TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] })))
-    TR_assert_equal("H6406", TR_error_code(() => TR_custom_grad(TR_forward: 3, TR_backward: TR_func(k, g) { TR_return [g] })))
-    TR_assert_equal("H6408", TR_error_code(() => TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(g) { TR_return [g] })))
-    TR_assert_equal("H7901", TR_error_code(() => TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, backward: TR_func(k, g) { TR_return [g] })))
+    TR_assert_equal("H6430", TR_error_code { TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }) })
+    TR_assert_equal("H6406", TR_error_code { TR_custom_grad(TR_forward: 3, TR_backward: TR_func(k, g) { TR_return [g] }) })
+    TR_assert_equal("H6408", TR_error_code { TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(g) { TR_return [g] }) })
+    TR_assert_equal("H7901", TR_error_code { TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, backward: TR_func(k, g) { TR_return [g] }) })
 }
 
 TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
@@ -163,8 +163,8 @@ TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
         TR_forward: TR_func(x) { TR_return [x * x, [x]] },
         TR_backward: TR_func(k, g) { TR_return [g * k[0]] }
     )
-    TR_assert_equal("H6432", TR_error_code(() => TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])))
-    TR_assert(hata_metni(() => TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])).TR_contains("[0, 1]"))
+    TR_assert_equal("H6432", TR_error_code { TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]) })
+    TR_assert(hata_metni { TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]) }.TR_contains("[0, 1]"))
     # Sıradan TR fonksiyonlarında, çok girdide ve çok çıktıda da çalışır.
     TR_assert(TR_grad_check(TR_func(a, b) { TR_return a * TR_sigmoid(b) }, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true), TR_Tensor([[0.5, 2.0]], TR_requires_grad: TR_true)]))
     TR_assert(TR_grad_check((a, b) => [a * b, a + b], [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true), TR_Tensor([3.0], TR_requires_grad: TR_true)]))
@@ -174,13 +174,13 @@ TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
     TR_assert_equal(TR_none, w.TR_grad)
     # adım ve tolerans.
     TR_assert(TR_grad_check(kare, [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)], TR_fd_step: 0.01, TR_tol: 0.001))
-    TR_assert_equal("H6429", TR_error_code(() => TR_grad_check(kare, [w], TR_fd_step: 0)))
+    TR_assert_equal("H6429", TR_error_code { TR_grad_check(kare, [w], TR_fd_step: 0) })
     # float32'de etkisiz fark_adımı (x ± adım == x): sahte uyuşmazlık değil, açık hata.
     TR_for etkisiz TR_in [1e-46, 1e-30] {
-        TR_assert_equal("H6445", TR_error_code(() => TR_grad_check(kare, [TR_Tensor([2.0], TR_requires_grad: TR_true)], TR_fd_step: etkisiz)))
+        TR_assert_equal("H6445", TR_error_code { TR_grad_check(kare, [TR_Tensor([2.0], TR_requires_grad: TR_true)], TR_fd_step: etkisiz) })
     }
-    TR_assert_equal("H6423", TR_error_code(() => TR_grad_check(kare, [TR_Tensor([1.0])])))
-    TR_assert_equal("H7901", TR_error_code(() => TR_grad_check(kare, [w], step: 0.1)))
+    TR_assert_equal("H6423", TR_error_code { TR_grad_check(kare, [TR_Tensor([1.0])]) })
+    TR_assert_equal("H7901", TR_error_code { TR_grad_check(kare, [w], step: 0.1) })
     # karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.
     TR_var çarp = TR_custom_grad(
         TR_forward: TR_func(x, m) { TR_return [x @ m, [x, m]] },

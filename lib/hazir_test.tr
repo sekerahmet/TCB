@@ -30,19 +30,19 @@ TR_test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu
 TR_test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
     TR_var a = qwen3_ayarı()
     a["model_type"] = "gpt2"
-    TR_assert_equal("H6940", TR_error_code(() => TR_build_pretrained_model(a)))
+    TR_assert_equal("H6940", TR_error_code { TR_build_pretrained_model(a) })
     TR_var b = qwen3_ayarı()
     b["attention_bias"] = TR_true
-    TR_assert_equal("H6941", TR_error_code(() => TR_build_pretrained_model(b)))
+    TR_assert_equal("H6941", TR_error_code { TR_build_pretrained_model(b) })
     TR_var c = qwen3_ayarı()
     c["rope_parameters"] = {"rope_type": "yarn", "rope_theta": 10000.0}
-    TR_assert_equal("H6943", TR_error_code(() => TR_build_pretrained_model(c)))
+    TR_assert_equal("H6943", TR_error_code { TR_build_pretrained_model(c) })
     TR_var d = qwen3_ayarı()
     d["use_sliding_window"] = TR_true
-    TR_assert_equal("H6944", TR_error_code(() => TR_build_pretrained_model(d)))
+    TR_assert_equal("H6944", TR_error_code { TR_build_pretrained_model(d) })
     TR_var e = qwen3_ayarı()
     e["hidden_act"] = "gelu"
-    TR_assert_equal("H6942", TR_error_code(() => TR_build_pretrained_model(e)))
+    TR_assert_equal("H6942", TR_error_code { TR_build_pretrained_model(e) })
 }
 
 TR_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devrilerek; tanınmayan ad hatadır" {
@@ -56,7 +56,7 @@ TR_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devri
     # k ve v (gate ve up) devrilip son eksende tek katmana bitiştirilir: [K | V], [G | U].
     TR_var b = TR_map_hugging_face({"model.layers.1.self_attn.v_proj.weight": w * 10, "model.layers.1.self_attn.k_proj.weight": w}, {})
     TR_assert_equal([[1.0, 4.0, 10.0, 40.0], [2.0, 5.0, 20.0, 50.0], [3.0, 6.0, 30.0, 60.0]], b["TR_mem_blocks.1.TR_mem_attention.TR_mem_kv_proj.TR_mem_weight"].TR_tolist)
-    TR_assert_equal("H6946", TR_error_code(() => TR_map_hugging_face({"model.layers.0.mlp.up_proj.weight": w}, {})))
-    TR_assert_equal("H6945", TR_error_code(() => TR_map_hugging_face({"model.layers.0.mlp.gate_proj.bias": w}, {})))
-    TR_assert_equal("H6945", TR_error_code(() => TR_map_hugging_face({"vision.x": w}, {})))
+    TR_assert_equal("H6946", TR_error_code { TR_map_hugging_face({"model.layers.0.mlp.up_proj.weight": w}, {}) })
+    TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"model.layers.0.mlp.gate_proj.bias": w}, {}) })
+    TR_assert_equal("H6945", TR_error_code { TR_map_hugging_face({"vision.x": w}, {}) })
 }

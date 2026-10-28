@@ -36,7 +36,7 @@ TR_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
     # Göreli yol modülün klasörüne göre de aranır
     TR_assert_equal("alt klasörün verisi", alt_veri())
     # Hata modülün adı ve kendi satırıyla (başlık 1. satır) bildirilir
-    TR_assert_equal("H2470", TR_error_code(() => { sıfıra_böl(1) }))
+    TR_assert_equal("H2470", TR_error_code { sıfıra_böl(1) })
     TR_var mesaj = ""
     TR_try { sıfıra_böl(1) } TR_catch h { mesaj = h }
     TR_assert(mesaj.TR_contains("yardimci_alt.tr, ") TR_and mesaj.TR_contains(" 5: "), mesaj)
@@ -49,13 +49,13 @@ TR_test "11.7 başı _ olan üst düzey adlar modüle özeldir" {
     TR_assert_equal(7, özel.dış_hesap(2))
     TR_assert_equal(1, özel.TR_length)
     TR_assert_equal(TR_false, özel.TR_contains("_iç_hesap"))
-    TR_assert_equal("H2487", TR_error_code(() => { özel._iç_hesap(2) }))
-    TR_assert_equal("H2487", TR_error_code(() => { TR_print(özel["_ÇARPAN"]) }))
+    TR_assert_equal("H2487", TR_error_code { özel._iç_hesap(2) })
+    TR_assert_equal("H2487", TR_error_code { TR_print(özel["_ÇARPAN"]) })
 }
 
 TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
     TR_assert_equal(7, dış_hesap(2))
-    TR_assert_equal("H1106", TR_error_code(() => { _iç_hesap(2) }))
+    TR_assert_equal("H1106", TR_error_code { _iç_hesap(2) })
 }
 
 TR_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {

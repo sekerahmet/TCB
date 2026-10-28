@@ -76,7 +76,7 @@ TR_var ss = sabit_parametre([D], 0.0)
 TR_var Wu = parametre([D, V], 0.1)
 
 TR_var toplam_parametre = 0
-TR_for p TR_in ağırlıklar { toplam_parametre += p.TR_shape.TR_reduce(1) { TR_acc * TR_it } } # şeklin boyutlarının çarpımı
+TR_for p TR_in ağırlıklar { toplam_parametre += p.TR_shape.TR_reduce(1, (acc, x) => acc * x) } # şeklin boyutlarının çarpımı
 TR_print("veri: \(veri.TR_length) karakter, sözlük: \(V) karakter, parametre: \(toplam_parametre)")
 
 # --- Model ---

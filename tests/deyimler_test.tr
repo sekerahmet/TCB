@@ -249,7 +249,7 @@ TR_test "5.11 liste üreteci" {
 }
 
 TR_test "5.11 liste üreteci aralıkta da eleman sınırına uyar (bellek tükenmez)" {
-    TR_assert_equal("H2462", TR_error_code(() => { TR_var l = [x TR_for x TR_in 0..9000000000000000000] }))
+    TR_assert_equal("H2462", TR_error_code { TR_var l = [x TR_for x TR_in 0..9000000000000000000] })
 }
 
 TR_test "5.12 bloklar kapsam açar; dış değişkenler atanabilir" {
@@ -303,7 +303,7 @@ TR_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış 
     TR_func önce() { TR_return sonra() + 1 }
     TR_func sonra() { TR_return 1 }
     TR_assert_equal(2, önce())
-    TR_assert_equal([2, 3], [1, 2].TR_map { TR_it + 1 })
+    TR_assert_equal([2, 3], [1, 2].TR_map((x) => x + 1))
     TR_var yakalanan = ""
     TR_try { TR_throw "x" } TR_catch { yakalanan = TR_error }
     TR_assert_equal("x", yakalanan)
