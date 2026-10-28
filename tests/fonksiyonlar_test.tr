@@ -167,3 +167,8 @@ TR_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlat�
     }
     TR_assert_equal("katman", sonuç_)
 }
+
+TR_test "6.7 sondaki blok argümansız çağrılabilir; değeri son ifadesidir" {
+    TR_func çalıştır(iş) { TR_return iş() }
+    TR_assert_equal(5, çalıştır { 2 + 3 })
+}

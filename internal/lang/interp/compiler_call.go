@@ -250,7 +250,7 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 // defaultsSuffice verilmeyen her parametrenin varsayılanı var mı (checkArity'nin hızlı yolu)?
 func defaultsSuffice(fn *FuncVal, nargs int) bool {
 	for _, p := range fn.Parameters[nargs:] {
-		if p.DefaultValue == nil {
+		if p.DefaultValue == nil && !implicitParam(p) {
 			return false
 		}
 	}
