@@ -88,7 +88,9 @@ func (p *Parser) interpolationError(lineNo, colNo int, rawExpr string, problem *
 	if problem.code == messages.H0160 {
 		args = append(args, problem.detail)
 	}
-	p.syntaxError(lexer.Token{Line: lineNo, Column: colNo}, problem.code, args...)
+	// The error is about the whole part, but its end in the file is not known here: the range covers
+	// the two characters of the '\(' that opens it.
+	p.syntaxError(lexer.Token{Line: lineNo, Column: colNo, EndLine: lineNo, EndColumn: colNo + 2}, problem.code, args...)
 }
 
 // interpolationProblem yerleştirmenin neden ayrıştırılamadığıdır: her neden kendi tam

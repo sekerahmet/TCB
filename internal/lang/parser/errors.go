@@ -102,7 +102,7 @@ func (p *Parser) recordError(tok lexer.Token, err error) {
 	}
 	p.errorMode = true
 	p.errorLine = tok.Line
-	p.errors = append(p.errors, messages.At(tok.Line, tok.Column, err))
+	p.errors = append(p.errors, messages.AtRange(tok.Range(), err))
 }
 
 // syntaxError, "Sözdizimi hatası — ..." önekli (H0100) bir sözdizimi hatası kaydeder.
