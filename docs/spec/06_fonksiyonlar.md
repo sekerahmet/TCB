@@ -31,7 +31,7 @@ TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 - Liste ve sözlük argümanı paylaşılır (3.6). Parametre gövdenin yerel değişkenidir ve atanabilir.
 - *Test:* TR testi; adlı argüman iletisi ve denetim hataları uygulanınca denetleyicinin testi.
 
-**6.6** Fonksiyon ifadesi `(a, b) => ifade` ya da `(a) => { ... }` bir fonksiyon değeridir; blok gövdesi değerini `TR_return` ile verir (6.2). Parametre tipleri beklenen fonksiyon tipinden çıkar (`l.TR_filter((x) => x > 2)`); beklenen tip yoksa yazılır (`(x: TR_Int) => x * 2`). Parantez her zaman yazılır. Fonksiyon ifadesinin tek yazımı budur: adsız `TR_func(x) { ... }`, parantezsiz `x => ...` ve Python'un `lambda x: ...`'i sözdizimi hatasıdır, ileti `(x) => ...`'i önerir. `TR_func` tanımı yalnız deyim olarak yazılır; ifade yerinde sözdizimi hatasıdır.
+**6.6** Fonksiyon ifadesi `(a, b) => ifade` ya da `(a) => { ... }` bir fonksiyon değeridir; blok gövdesi değerini `TR_return` ile verir (6.2). Parametre tipleri beklenen fonksiyon tipinden çıkar (`l.TR_filter((x) => x > 2)`); beklenen tip yoksa yazılır (`(x: TR_Int) => x * 2`). Parantez her zaman yazılır. Değeri gerekmeyen parametrenin yerine `_` yazılabilir (`(_) => 0`); `_` okunamaz (5.3). Fonksiyon ifadesinin tek yazımı budur: adsız `TR_func(x) { ... }`, parantezsiz `x => ...` ve Python'un `lambda x: ...`'i sözdizimi hatasıdır, ileti `(x) => ...`'i önerir. `TR_func` tanımı yalnız deyim olarak yazılır; ifade yerinde sözdizimi hatasıdır.
 - *Test:* TR testi; yazım iletileri uygulanınca TR testi.
 
 **6.7** Sondaki blok: bir çağrının ardından aynı satırda yazılan `{ ... }` (2.8) parametresiz bir fonksiyondur ve çağrının son argümanı olur: `TR_mixed_precision("bfloat16") { ... }`. Blok tek argümansa parantez yazılmaz (`TR_error_code { f(1) }`).

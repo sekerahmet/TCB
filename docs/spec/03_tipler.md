@@ -55,7 +55,9 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - **Kurmak:** `TR_json_parse(m)` bir `TR_JSON` verir. Beklenen tip `TR_JSON` olan değişmez JSON kurar; içinde metin, sayı, mantık değeri, `TR_none`, liste, metin anahtarlı sözlük ve `TR_JSON` bulunabilir (`TR_var g: TR_JSON = {"k": "a", "n": 512}`). JSON'da olmayan `TR_inf` ve `TR_nan` `TR_JSON`'a giremez: çözmede ve kurmada çalışma hatasıdır.
 - **Okumak:** `j["k"]` ve `j[i]` yine `TR_JSON` verir; olmayan alan ve sınır dışı indeks çalışma hatasıdır. `.TR_get(k)` `TR_JSON?` verir: eksik alan `TR_none`'dır, var olan JSON yokluğu ise bir `TR_JSON` değeridir. `.TR_length` nesnede ve dizide, `.TR_keys()` yalnız nesnede çalışır; tür tutmazsa çalışma hatasıdır.
 - **Türü sormak:** `TR_Type(j)` değerin JSON türünü tip olarak verir: `TR_NoneType`, `TR_Bool`, `TR_Int` (tam yazılmış ve `TR_Int`'e sığan sayı), `TR_Float` (öbür sayılar), `TR_String`, `TR_List[TR_JSON]`, `TR_Dict[TR_String, TR_JSON]`.
-- **Açmak:** tip çağrısı JSON değerini açar: `TR_String(j)` metni, `TR_Int(j)` tam yazılmış ve `TR_Int`'e sığan sayıyı, `TR_Float(j)` her sayıyı, `TR_Bool(j)` mantık değerini verir; tür tutmazsa çalışma hatasıdır, metin sayı olarak okunmaz.
+- **Açmak:** tip çağrısı JSON değerini açar: `TR_String(j)` metni, `TR_Int(j)` tam yazılmış ve `TR_Int`'e sığan sayıyı, `TR_Float(j)` her sayıyı, `TR_Bool(j)` mantık değerini, `TR_List(j)` diziyi `TR_JSON` değerlerinin listesi olarak verir; tür tutmazsa çalışma hatasıdır, metin sayı olarak okunmaz.
+- **Karşılaştırmak:** `==` ve `!=` iki `TR_JSON` değerini JSON değeri olarak karşılaştırır (4.5). JSON değeriyle JSON olmayan bir değerin karşılaştırması çalışma hatasıdır; ileti açan yazımı önerir (`TR_Int(j) == 1`). `TR_none` ile karşılaştırma hata değildir ve her zaman eşit değildir: JSON yokluğu bir `TR_JSON` değeridir, `TR_Type(j) == TR_NoneType` ile sorulur.
+- **Dolaşmak:** dizide öğeler, nesnede anahtarlar (5.7); öbür türler dolaşılamaz.
 - **Yazmak:** `TR_json_string(j)` her zaman JSON metnini verir (metin tırnaklı: `"\"merhaba\""`). Değerin metni (`TR_print(j)`, yerleştirme, 3.14) JSON metin türünde metnin kendisidir (`"\(j["k"])"` → merhaba), öbür türlerde JSON metnidir.
 - Her değeri tutan genel bir tip yoktur.
 - *Test:* TR testi.
@@ -68,13 +70,13 @@ TR_if TR_Type(cevap["id"]) == TR_Int { TR_print(TR_Int(cevap["id"]) + 1) }
 TR_var istek: TR_JSON = {"soru": metin, "en_fazla": 512, "akış": TR_false}
 ```
 
-**3.8** `TR_Range`: `a..b` (b hariç), `a..=b` (b dahil); uçlar `TR_Int`. `a >= b` ise `a..b`, `a > b` ise `a..=b` boştur; geriye `.TR_reverse()` sayar (`(0..3).TR_reverse()` → 2, 1, 0). Sınırdaki uçlar taşmadan gezilir.
+**3.8** `TR_Range`: `a..b` (b hariç), `a..=b` (b dahil); uçlar `TR_Int`. `a >= b` ise `a..b`, `a > b` ise `a..=b` boştur; geriye `.TR_reverse()` sayar ve bir `TR_List` verir (`(0..3).TR_reverse()` → `[2, 1, 0]`). Sınırdaki uçlar taşmadan gezilir.
 - *Test:* TR testi.
 
 **3.9** Fonksiyon birinci sınıf değerdir: atanır, listeye konur, argüman olur, döndürülür. Tipi parametrelerinin ve dönüşünün tipleridir; yazımı sonraki bölümlerdedir.
 - *Test:* TR testi.
 
-**3.10** Koşul `TR_Bool` olmalıdır: `TR_if` ve koşullu `TR_for`'un koşulu, `TR_and`, `TR_or`, `TR_not`'un işlenenleri. Başka tip denetim hatasıdır; boşluk `.TR_length == 0`, yokluk `TR_none`'la karşılaştırma ile sorulur.
+**3.10** Koşul `TR_Bool` olmalıdır: `TR_if` ve koşullu `TR_for`'un koşulu, liste üretecinin koşulu, `TR_breakpoint TR_if`'in koşulu, `.TR_filter`'ın yükleminin sonucu, `TR_assert`'in koşulu (12.3), `TR_and`, `TR_or`, `TR_not`'un işlenenleri. Başka tip denetim hatasıdır; boşluk `.TR_length == 0`, yokluk `TR_none`'la karşılaştırma ile sorulur.
 - *Test:* TR testi; mantık dışı koşulun hatası uygulanınca denetleyicinin testi.
 
 **3.11** `TR_Type(x)` değerin tipini verir; tip değerlerinin tipi `TR_Type`'tır. Tip değerleri: dilin tipleri (`TR_Int`, `TR_Float`, `TR_String`, `TR_Bytes`, `TR_Bool`, `TR_NoneType`, `TR_JSON`, `TR_Range`, `TR_Tensor`, `TR_Type`), parametreli tipler (`TR_List[TR_Int]`, `TR_Int?`), fonksiyon tipleri (3.9), yapılar ve kitaplığın tipleri (`TR_Optimizer`, `TR_Tokenizer`). Tip, tiple karşılaştırılır (`TR_Type(x) == TR_Int`); metinle karşılaştırma denetim hatasıdır. `TR_JSON` değerinde `TR_Type` JSON türünü verir (3.7a); bu yüzden `TR_Type(j) == TR_JSON` hiç doğru olmaz ve denetim hatasıdır. İsteğe bağlı değerde `TR_Type` içteki değerin tipini, yoklukta `TR_NoneType`'ı verir. `TR_print`, `TR_String(x)` ve `TR_Type(x)` her tipten değer alan yerleşiklerdir; kullanıcının yazabileceği genel bir tip yoktur (3.7a). Matris iki boyutlu tensördür.
@@ -83,7 +85,8 @@ TR_var istek: TR_JSON = {"soru": metin, "en_fazla": 512, "akış": TR_false}
 **3.12** Tip çağrılınca değerini kurar ya da verileni o tipe çevirir; aynı işi gören ayrı fonksiyon yoktur.
 - `TR_Int(x)` ondalığı sıfıra doğru keser; metni 2.4'ün ondalık yazımıyla okur (`_` dahil, önde isteğe bağlı `+` ya da `-`, boşluksuz).
 - `TR_Float(x)` tam sayıyı ve metni ondalığa çevirir; metni 2.4'ün ondalık ya da 2.5'in yazımıyla, önde isteğe bağlı `+` ya da `-` ile (`"3"`, `"-1.5"`), bir de "inf", "-inf" ve "nan" olarak okur.
-- `TR_Bool(m)` yalnız "true" ve "false" metnini okur; sayıdan ve listeden mantık değeri kurulmaz.
+- `TR_Bool(m)` yalnız "true" ve "false" metnini okur; sayıdan ve listeden mantık değeri kurulmaz. Tersi de yoktur: `TR_Int` ve `TR_Float` mantık değerinden sayı kurmaz.
+- `TR_List(x)` aralığın ve listenin öğelerini yeni bir listeye koyar; metinden liste kurulmaz.
 - `TR_String(x)` değerin metnini verir (3.14). Kitaplığın tipleri de böyle kurulur (`TR_Tensor([1, 2])`, `TR_Checkpoint("kayit")`).
 - İki istisna: `TR_Type(x)` değerin tipini verir (3.11); `TR_JSON` değerinde tip çağrısı değeri açar (3.7a).
 - Çevrilemeyen değer (yazıma uymayan metin, `TR_nan`, sonsuz, `TR_Int`'e sığmayan ondalık) çalışma hatasıdır; yerel ayar yoktur (`TR_Float("1,5")` hatadır). Atamada ve argümanda kendiliğinden dönüşüm yoktur; tek istisna 3.13'ün tam sayı yazımıdır.
@@ -105,7 +108,7 @@ toplam += 0.5        # denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazı
 
 **3.14** Değerin metni dilden bağımsızdır: `TR_String(x)`, `TR_print` ve yerleştirme (2.7) her makinede ve her okuyan için aynı metni verir.
 - Tam sayı ondalık rakamla, ondalık 3.2'deki gibi yazılır. Dilin değerleri ve tipleri kimliğin adıyla yazılır: "true", "false", "none", "inf", "-inf", "nan"; tip adıyla ("Int", "List[Int]", "Int?").
-- Metin kendisi olarak yazılır. Liste "[1, 2]", sözlük "{"k": 1}" biçimindedir; içlerindeki metin çift tırnakla ve kaçışla yazılır: `\n`, `\t`, `\r`, `\"`, `\\`, öbür denetim karakterleri `\u{...}` ile (2.6).
+- Metin kendisi olarak yazılır. Liste "[1, 2]", sözlük "{"k": 1}" biçimindedir; içlerindeki metin çift tırnakla ve kaçışla yazılır: `\n`, `\t`, `\r`, `\"`, `\\`, öbür denetim karakterleri ve 2.1a'nın yön karakterleri `\u{...}` ile (2.6). Kaptaki `TR_JSON` değeri JSON metniyle yazılır. Bayt dizisinin metni onu kuran çağrıdır: `Bytes([104, 105])`; 64 bayttan uzunsa boyu ve ilk 16 baytı.
 - İsteğe bağlı değer içindeki değerin ya da "none"ın metnini, `TR_JSON` JSON metin türünde metnin kendisini, öbür türlerde JSON metnini (3.7a), aralık "0..3" ya da "0..=3" metnini verir.
 - Bayt dizisinin, fonksiyonun, yapı nesnesinin ve tensörün metni sonraki bölümlerdedir.
 - Program çıktısı çevrilmez; kişinin dilinde görünen yalnız iletiler, kabuk ve hata ayıklayıcıdır.

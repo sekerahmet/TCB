@@ -2,6 +2,10 @@
 
 Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. İşlerin sırası [yol haritasındadır](roadmap.md). Bu belgede kimlikler dil tanımının yazımıyla anılır (`TR_if`, 2.3a).
 
+## Uygulamada verilen, dil tanımı turunda denetlenecek kararlar
+
+Uygulama sırasında çıkan çelişki ya da dil tanımının sustuğu yer için ana oturumun kararı aynı gün dil tanımına yazılır; denetimi sıradaki dil tanımı turunda (Gemini ve DENETİM) yapılır. 2026-10-28, 2. katmandan: 3.7a (açmada `TR_List(j)`, karşılaştırma, dolaşma), 3.8 (`.TR_reverse()` liste verir), 3.10 (koşulun geçtiği öbür yerler), 3.12 (mantık değerinden sayı, metinden liste kurulmaz), 3.14 (yön karakterleri, kaptaki JSON, bayt dizisinin metni), 4.5 (fonksiyon içeren kap, isteğe bağlı fonksiyon ve `TR_none`), 4.9 (ifadenin ardındaki `TR_in`), 5.7 (dolaşılamayan JSON türleri), 6.6 (`_` parametre), 12.3 (koşul `TR_Bool`).
+
 ## 1. Program
 
 Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). 1.3–1.15 uygulandı (katman 1b, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar.
