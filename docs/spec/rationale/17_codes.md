@@ -25,7 +25,7 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 ### 17.5
 
 - *Emsal:* matematik ve makine öğrenmesi gösterimi uluslararasıdır: `sin`, `log`, `argmax`, `relu`, optimizer adları (AdamW, Muon) her dilde aynı yazılır.
-- *Gerekçe:* her işin tek adı vardır (2.9). Ortak ad iki dilde ayrı yazılsaydı aynı kavramın iki gösterimi olurdu. "Kısa ve düz" ilkesi okunurluk içindir: kod okunurken ad cümlenin parçasıdır (`TR_if hepsi(t >= 0.0)` "eğer hepsi" diye okunur); var olan Türkçe adların %60'ı tek sözcüktür, ortalaması 9 harftir [ölçüldü: `tr.json`, 2026-10-29]. Gösterim adını baş geliştirici onaylar ([`docs/development.md`](../../development.md)).
+- *Gerekçe:* her işin tek adı vardır (2.9). Ortak ad iki dilde ayrı yazılsaydı aynı kavramın iki gösterimi olurdu. "Kısa ve düz" ilkesi okunurluk içindir: kod okunurken ad cümlenin parçasıdır (`TR_if hepsi(t >= 0.0)` "eğer hepsi" diye okunur); var olan Türkçe adların %60'ı tek sözcüktür, ortalaması 9 harftir [ölçüldü: `tr.json`, 2026-10-29]. Gösterim adını baş geliştirici onaylar ([`docs/development.md`](../../development.md)). Türkçe harfsiz yazımı (`yazdir`) yakalayan kural yoktur: kimse bir gösterim dilinde kod yazmaz (17.7).
 
 ### 17.6
 
@@ -34,8 +34,8 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 
 ### 17.7
 
-- *Emsal:* Excel kaydı kanonik adla yapar, gösterimi kişinin dilinde verir. Yerelleştirilmiş programlama dillerinde (Hedy) dosya dile bağlıdır; TR'de dosyanın dili yoktur.
-- *Gerekçe:* görünüm bir okuma aracıdır, programın kendisi değildir. Bu yüzden çalışmaz: bir görünüm dosyasını çalıştırmak, programın dile bağlı ikinci bir biçimi olması demekti. Bayt bayt gidiş-dönüş, görünümde yapılan düzenlemenin kodlu dosyada yalnız o düzenleme olarak görünmesini sağlar. `$` kaçışı yalnız görünümdedir, çünkü kodlu dosyada dilin sözcüğü `TR_` ile ayrılır ve çakışma olmaz.
+- *Emsal:* Excel kaydı kanonik adla yapar, gösterimi kişinin dilinde verir. *Almadık:* yerelleştirilmiş programlama dilleri (Hedy) kişinin kendi dilinde yazmasına izin verir; TR'de kod yalnız kimliklerle yazılır.
+- *Gerekçe:* TR'yi ajanlar yazar, insanlar okur; insan kodu kendi diline çevrilmiş olarak okur ama hiçbir insan dilinde kod yazılmaz. Bu yüzden görünüm yalnız okumak içindir: çalışmaz ve koda geri çevrilmez. Kod yazmak isteyen insan da kimlikleri kullanır, etkileşimli kabukta da. Geri çevrilmeyen bir gösterimin kusursuz olması gerekmez: bir kullanıcı adının dilin bir sözcüğüyle aynı görünmesi okumada küçük bir belirsizliktir, programın anlamını değiştirmez. Bugünkü motorun yaptığı görünümden geri kodlama, görünümde düzenleyip kaydetme, bayt bayt gidiş-dönüş ve `$` kaçışı bu kuralın gerektirmediği işlerdir (1. turda bunları bugünkü davranıştan kural yazmıştım; baş geliştirici 2026-10-29: "gösterimin mükemmel olmasına gerek yok").
 
 ### 17.8
 

@@ -4,7 +4,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Her kuralın emsali ve gerekçesi: [`rationale/17_codes.md`](rationale/17_codes.md).
 
-TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, program diskte ve çalışırken yalnız kodlarla yaşar, insanların dilleri yalnız gösterimdir (1, 2.3a). Bu bölüm kodların hangi adlara verildiğini, nasıl yazıldığını, nerede tanımlandığını ve bir dilde nasıl gösterildiğini söyler.
+TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, program diskte ve çalışırken yalnız kodlarla yaşar. Kod yalnız kimliklerle yazılır; insanların dilleri yalnız okumak içindir (1, 2.3a). Bu bölüm kodların hangi adlara verildiğini, nasıl yazıldığını, nerede tanımlandığını ve bir dilde nasıl okunduğunu söyler.
 
 ## Kod
 
@@ -21,9 +21,9 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - Kimlik bir kez verilir ve değişmez; ad değişse de kalır. Anlam değişince yeni kimlik açılır (17.10). İki kimlik yalnız harf büyüklüğüyle ayrılamaz.
 - *Test:* TR testi; Go: `TestProgramRunsOnIdentities`; aynı yerde aynı kısa adın reddi uygulanınca Go testi.
 
-**17.3** Sınıflar ve ad alanları:
+**17.3** Sınıflar ve ad alanları. Sınıf içeridedir: program yazan sınıf yazmaz, yeri belirler (2.3a). Sınıf, aynı kısa adın ayrı kodlarını, gösterim adlarının ad alanlarını ve programın dışındaki adları ayırır.
 
-| Sınıf | Kapsam | Program metninde yeri |
+| Sınıf | Kapsam | Program metninde yeri (2.3a) |
 | :-- | :-- | :-- |
 | `kw` | anahtar kelimeler | deyim ve ifade |
 | `ctx` | bağlamsal sözcükler (yalnız kendi bağlamında sözcük) | kendi bağlamı |
@@ -59,7 +59,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Ortak ad:** uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır: `sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `GPT`, `Muon`. Tanım dosyasında bir kez yazılır, hiçbir dil dosyasında yazılmaz.
 - **Kısa ve düz:** ad işi söyler ve kısa tutulur; tek sözcük yeterse tek sözcüktür. Örnekler: Türkçede `yazdır`, `sınırla`, `dilim`; soru soran ad soru ekiyle (`sonlu_mu`).
 - **Ad alanında çakışmaz:** aynı ad alanında iki kod aynı adı (ASCII biçimi aynı olanlar dahil) taşıyamaz. Ayrı alanda aynı ad ancak aynı anlamda ya da gerekçesiyle verilir; her eş ad grubu [`docs/terimler.md`](../terimler.md)'dedir.
-- Harfleri o dilin harfleridir; ASCII biçimi (Türkçe harfsiz) kabul edilmez, yalnız ipucunda doğru adı önermek için kullanılır.
+- Harfleri o dilin harfleridir.
 - *Test:* TR testi; Go: `TestEveryCodeHasDescription`; ad alanı çakışmasının reddi uygulanınca Go testi.
 
 **17.6** Başka dillerin alışkanlık adları (`str`, `range`, `lambda`, PyTorch'un `long`'u) kod değildir; tanım dosyasının `familiar` alanında durur ve yazıldığında ileti doğru kimliği önerir (2.3a). Kaldırılmış bir kodun eski adı `familiar` değildir (17.10).
@@ -67,13 +67,12 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 
 ## Görünüm
 
-**17.7** Görünüm, kodlu dosyanın bir dildeki gösterimidir.
-- `TR_cmd_show <dosya> --lang <dil>` görünümü yazar, `TR_cmd_encode <dosya>` geri kodlar. Görünümün başlığı dilini taşır: `# TR 4 view=tr`. Görünüm çalışmaz; çalıştırılırsa ileti önce kodlamayı önerir (2.1).
-- **Yalnız dilin sözcükleri çevrilir:** boşluk, satır düzeni, yorumlar, kullanıcı adları, metinler ve sayılar bayt bayt korunur. Kodlu → görünüm → kodlu ve görünüm → kodlu → görünüm bayt bayt aynıdır.
-- **Kaçış:** görünümde dilin bir sözcüğüyle aynı yazılan kullanıcı adı `$` ile yazılır. Kullanıcının `yazdır` adlı değişkeni Türkçe görünümde `$yazdır`'dır; `yazdır(...)` ise `TR_print`'tir. Kodlu dosyada kaçış yoktur.
-- Sözdizimi hatası olan ya da UTF-8 olmayan dosya çevrilmez. Çevirici sonucunu kendisi denetler: kodlu programın ağacı özgününkiyle aynı değilse dosyaya dokunmaz.
-- **Konum** dosyanın metnindedir (2.1). Görünümdeki karşılığını göstermek düzenleyicinin işidir.
-- *Test:* TR testi; Go: `TestEncodeShowCommands`, `TestEncodeShowStandardInput`, `TestEnglishWritingLanguage`, `TestRepoFilesEnglishLossless`, `TestRepoTRFilesEncodeLossless`, `TestEscapeInOtherLanguage`, `TestDAPCodedFileView`.
+**17.7** Görünüm, kodun bir dilde okunan biçimidir; yalnız okunur. Kod yalnız kimliklerle yazılır, etkileşimli kabukta da.
+- `TR_cmd_show <dosya> --lang <dil>` görünümü yazar. Görünümün başlığı dilini taşır: `# TR 4 view=tr`. Görünüm çalışmaz ve koda geri çevrilmez; çalıştırılırsa ileti kodlu dosyayı çalıştırmayı söyler.
+- **Yalnız dilin sözcükleri çevrilir:** kullanıcı adları, metinler, sayılar ve yorumlar yazıldığı gibi kalır; satır düzeni korunur, satır numaraları kodlu dosyanınkiyle aynıdır.
+- **Gösterim okumak içindir, kusursuz olmak zorunda değildir:** bir kullanıcı adı dilin bir sözcüğüyle aynı yazılabilir; görünüm onu ayırt etmek için işaretleyebilir ama bu bir kural değildir.
+- **Konum** dosyanın metnindedir (2.1).
+- *Test:* TR testi; Go: `TestEncodeShowCommands`, `TestEnglishWritingLanguage`, `TestDAPCodedFileView`; görünümün çalışmaması ve geri çevrilmemesi uygulanınca Go testi.
 
 **17.8** Program dilden bağımsızdır.
 - **Anlam koda bağlıdır:** hangi yerleşiğin çağrıldığı, kullanıcının adları ve sonuç gösterim diline bağlı değildir.

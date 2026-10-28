@@ -417,7 +417,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 ## 17. Kodlar
 
-Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"), DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
+Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur). DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
 
 ### 17.2
 
@@ -432,6 +432,11 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 ### 17.5
 
 - **Yapılacaklar:** ad alanı çakışmasının reddine Go testi; `TR_assert_equal`'ın Türkçe adı bugün "eşit_mi", bir sınama soru gibi okunuyor (13'ün ad işinde).
+
+### 17.7
+
+- **Mevcut durum:** görünümden geri kodlama (`TR_cmd_encode`), düzenleyicide görünümde düzenleyip kaydetme (`editors/vscode/coded_*.js`, 743 satır), bayt bayt gidiş-dönüş testleri ve `$` kaçışı var [ölçüldü]. Bunlar 17.7'nin gerektirmediği işlerdir. `internal/lang/source` 1 870 satır, `cmd/tr/coded.go` 256 satır [ölçüldü]; kodlamayı başka bir şey (belgelerdeki kod blokları, `tests/negative`) kullanıyor mu ölçülmedi.
+- **Yapılacaklar:** geri kodlamanın ve görünümde düzenlemenin kaldırılması (mekanik iş, 4a'dan bağımsız); görünümü çalıştırmanın iletisi bugün "encode it first: tr encode <file>" diyor, kodlu dosyayı söylemeli; görünümün çalışmadığını sınayan Go testi; kabuğun yalnız kimlik kabul ettiğinin sınanması.
 
 ### 17.8
 
