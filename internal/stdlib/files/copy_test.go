@@ -46,7 +46,7 @@ func TestCopyFile(t *testing.T) {
 		t.Fatal("üzerine yazılmadı")
 	}
 	errHas(t, `TR_copy("a.txt", "a.txt", TR_overwrite: TR_true)`, messages.H7113)
-	errContains(t, `TR_copy("a.txt", "olmayan/")`, `hedef klasör "olmayan/" TR_none; önce TR_make_dir("olmayan")`)
+	errContains(t, `TR_copy("a.txt", "olmayan/")`, `hedef klasör "olmayan/" yok; önce klasör_oluştur("olmayan")`)
 	errHas(t, `TR_copy("a.txt", "olmayan/b.txt")`, messages.H2131)
 	errContains(t, `TR_copy("yok.txt", "c.txt")`, `"yok.txt" bulunamadı`)
 	errHas(t, `TR_copy("a.txt", "b.txt", overwrite: TR_true)`, messages.H7900)

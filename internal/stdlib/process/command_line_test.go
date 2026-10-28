@@ -59,7 +59,7 @@ func TestCommandLineValues(t *testing.T) {
 		{nil, `{öğrenme_oranı: 0.001, adım: 5000, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 		{[]string{"--adım", "5_000", "--öğrenme_oranı=1e-3", "--hızlı", "--katmanlar", "128, 32,8", "--etiket", "deneme"},
 			`{öğrenme_oranı: 0.001, adım: 5000, "veri": "veri/train", "katmanlar": [128, 32, 8], "hızlı": doğru, "etiket": "deneme", "hf_token": ""}`},
-		{[]string{"--öğrenme_oranı", "3", "--hızlı=TR_false", "--katmanlar=", "--veri", "-x"},
+		{[]string{"--öğrenme_oranı", "3", "--hızlı=yanlış", "--katmanlar=", "--veri", "-x"},
 			`{öğrenme_oranı: 3.0, adım: 5000, "veri": "-x", "katmanlar": [], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 		{[]string{"--adım", "-5"}, `{öğrenme_oranı: 0.001, adım: -5, "veri": "veri/train", "katmanlar": [64, 64], "hızlı": yanlış, "etiket": yok, "hf_token": ""}`},
 	} {
@@ -89,7 +89,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		{[]string{"--hızlı=evet"}, `'--hızlı' Mantık bir seçenek; doğru ya da yanlış verin (yalnız --hızlı yazmak doğru demektir), "evet" verildi.`},
 		{[]string{"--adım"}, "'--adım' bir değer bekler (ör. --adım 5000 ya da --adım=5000)"},
 		// Mantık seçeneğinin değeri ayrı argüman değildir (Go flag: -flag=false); öneri doğru biçimi verir (B17).
-		{[]string{"--hızlı", "yanlış"}, "--hızlı=TR_false"},
+		{[]string{"--hızlı", "yanlış"}, "--hızlı=yanlış"},
 		{[]string{"--hızlı", "true"}, "--hızlı=true"},
 		// Yardımın her kabul edilen yazımı öneri adayıdır (K1): --hel, --help'e yakındır.
 		{[]string{"--hel"}, "Bunu mu demek istediniz: '--yardım'?"},
@@ -132,7 +132,7 @@ Seçenekler:
 func TestCommandLineHelpShowsHowToTurnOff(t *testing.T) {
 	_, _, err := commandLine(t, `TR_command_line({hızlı: TR_true})`, "--yardım")
 	c, ok := interp.IsExitRequest(err)
-	if !ok || !strings.Contains(c.Message, "--hızlı=TR_false") {
+	if !ok || !strings.Contains(c.Message, "--hızlı=yanlış") {
 		t.Errorf("yardım kapatma biçimini göstermeli: %v", err)
 	}
 }
@@ -143,7 +143,7 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		{`TR_command_line({TR_length: 3})`, `"uzunluk" seçenek adı olamaz: Sözlük tipinin bir üyesidir`},
 		{`TR_command_line({a: {b: 1}})`, "'a' seçeneğinin varsayılanı Tam, Ondalık, Metin ya da Mantık, Liste ya da yok olmalı"},
 		{`TR_command_line({TR_step: 1}, TR_descriptions: {adim: "x"})`, "açıklamalar içindeki 'adim' bir seçenek değil. Bunu mu demek istediniz: 'adım'?"},
-		{`TR_command_line([1])`, "1. argüman olarak TR_Dict bekler"},
+		{`TR_command_line([1])`, "1. argüman olarak Sözlük bekler"},
 	} {
 		_, _, err := commandLine(t, d.code)
 		if _, exit := interp.IsExitRequest(err); err == nil || exit || !strings.Contains(err.Error(), d.want) {

@@ -52,7 +52,7 @@ func TestListDir(t *testing.T) {
 	errHas(t, `TR_list_dir("v/a.npy")`, messages.H7136)
 	errContains(t, `TR_list_dir("v", "../*")`, `kalıp "../*" geçersiz: kalıpta .. olamaz`)
 	errHas(t, `TR_list_dir("v", "../*")`, messages.H7135, messages.H7143)
-	errContains(t, `TR_list_dir("v", 5)`, "2. argüman olarak TR_String bekler")
+	errContains(t, `TR_list_dir("v", 5)`, "2. argüman olarak Metin bekler")
 }
 
 // ** klasör bağlantılarının içine girmez (döngü olmaz); adıyla yazılmış bağlantının içine

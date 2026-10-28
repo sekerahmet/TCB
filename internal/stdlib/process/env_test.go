@@ -26,7 +26,7 @@ func TestEnvVar(t *testing.T) {
 		t.Errorf("maskeleme: %q", s)
 	}
 	for _, d := range []struct{ code, want string }{
-		{`TR_env(5)`, "1. argüman olarak TR_String bekler"},
+		{`TR_env(5)`, "1. argüman olarak Metin bekler"},
 		{`TR_env()`, "1 argüman bekler"},
 	} {
 		if _, _, err := commandLine(t, d.code); err == nil || !strings.Contains(err.Error(), d.want) {

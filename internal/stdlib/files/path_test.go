@@ -60,10 +60,10 @@ func TestPathMembers(t *testing.T) {
 }
 
 func TestPathErrors(t *testing.T) {
-	errContains(t, `TR_path("a", "/etc")`, `TR_path() 2. parça "/etc" TR_abs bir TR_path`)
+	errContains(t, `TR_path("a", "/etc")`, `yol() 2. parça "/etc" mutlak bir yol`)
 	errHas(t, `TR_path("a", "")`, messages.H7138)
-	errContains(t, `TR_path("")`, "1. parça boş TR_str")
-	errContains(t, `TR_path()`, "TR_path()")
+	errContains(t, `TR_path("")`, "1. parça boş metin")
+	errContains(t, `TR_path()`, "yol()")
 	errContains(t, `TR_path(5)`, "1. argüman olarak Metin ya da Yol bekler, Tam (5) verildi")
 	errContains(t, `TR_path("C:\tokenizer.json")`, "sekme karakteri var", "ham metin")
 	if runtime.GOOS == "windows" {
@@ -119,7 +119,7 @@ func TestPathTakingBuiltins(t *testing.T) {
 	if s := runTR(t, "", `TR_parse_csv(TR_path("a.csv"))`); !messages.Has(s.failure, messages.H2423) {
 		t.Errorf("csv_çöz(Yol): tip hatası bekleniyordu: %v", s.failure)
 	}
-	errContains(t, `TR_read_file(5)`, "TR_read_file() 1. argüman olarak TR_String ya da TR_Path bekler")
+	errContains(t, `TR_read_file(5)`, "dosya_oku() 1. argüman olarak Metin ya da Yol bekler")
 }
 
 // .gz saydamlığı: dosya_yaz sıkıştırır, dosya_oku, csv_oku ve dosya_satırları açar.

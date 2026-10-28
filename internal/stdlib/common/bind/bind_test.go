@@ -32,7 +32,7 @@ func TestNamedArg(t *testing.T) {
 		t.Fatalf("NamedArg(TR_lr) = %+v", a)
 	}
 	defer func() {
-		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "TR_print") {
+		if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "TR_fn_print") {
 			t.Fatalf("adlı argüman olmayan kod paniklemeli: %v", r)
 		}
 	}()
