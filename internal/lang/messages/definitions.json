@@ -320,6 +320,7 @@
 "H2540": { "param": ["header", "encode", "lang", "code"] },
 "H2541": { "param": ["lang", "encode"] },
 "H2542": { "param": ["view", "lang", "code"] },
+"H2543": { "param": [] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },
