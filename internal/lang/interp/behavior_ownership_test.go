@@ -211,13 +211,13 @@ TR_print(oku(q), oku(r))
 1 3`)
 }
 
-// Örtük dönüş (gövdenin son değeri) ve iç içe çağrılar.
-func TestOwnershipImplicitReturnAndNestedCalls(t *testing.T) {
+// Dönüş değeri (çağırana geçer) ve iç içe çağrılar.
+func TestOwnershipReturnAndNestedCalls(t *testing.T) {
 	expectOut(t, `
-TR_func iç(a) { a + yeni() }
+TR_func iç(a) { TR_return a + yeni() }
 TR_func dış(a) {
     TR_var x = iç(a)
-    iç(x)
+    TR_return iç(x)
 }
 TR_var s = yeni()
 TR_var r = dış(s)
