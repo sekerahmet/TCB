@@ -48,7 +48,7 @@
         ".filter"
       ],
       "body": [
-        ".filter { TR_it > ${1:2} }"
+        ".filter { it > ${1:2} }"
       ]
     },
     {
@@ -59,7 +59,7 @@
         ".map"
       ],
       "body": [
-        ".map { TR_it * ${1:2} }"
+        ".map { it * ${1:2} }"
       ]
     },
     {
@@ -198,7 +198,7 @@
         ".filtrele"
       ],
       "body": [
-        ".filtrele { TR_it > ${1:2} }"
+        ".filtrele { o > ${1:2} }"
       ]
     },
     {
@@ -209,7 +209,7 @@
         ".haritala"
       ],
       "body": [
-        ".haritala { TR_it * ${1:2} }"
+        ".haritala { o * ${1:2} }"
       ]
     },
     {

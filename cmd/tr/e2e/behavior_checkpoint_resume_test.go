@@ -307,7 +307,7 @@ func copyDir(t *testing.T, source, target string, half int64) {
 
 func TestCheckpointResumeBitExact(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "egit.tr", checkTrainingProgram)
+	writeTR(t, dir, "egit.tr", checkTrainingProgram)
 	data := checkData(t)
 	run := func(ad string) string { return filepath.ToSlash(filepath.Join(dir, ad)) }
 

@@ -10,7 +10,7 @@ import (
 // fonksiyon giriş noktası değildir, kendiliğinden çağrılmaz (dil tanımı 1.1).
 func TestProgramRunsTopToBottom(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "p.tr", `# TR 4
+	writeTR(t, dir, "p.tr", `# TR 4
 TR_print("bir")
 TR_func main() {
     TR_print("main")

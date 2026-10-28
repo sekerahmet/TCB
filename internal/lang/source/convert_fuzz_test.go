@@ -38,7 +38,9 @@ func FuzzEncodeDecode(f *testing.F) {
 			t.Fatalf("kodlu biçim çözülemedi: %v\nkaynak: %q\nkodlu: %q", err, tr, coded)
 		}
 		back = withoutViewHeader(back, codes.Source()) // başlıksız kaynağın gösterimi görünüm başlığını taşır
-		if strings.Contains(tr, "$") {
+		// '$' kaçışı ve görünümde yazılmış kimlik (TR_print) geri gösterimde dilin yazımına döner:
+		// o metinlerde kodlu biçimin kararlılığı sınanır.
+		if strings.Contains(tr, "$") || strings.Contains(tr, "TR_") {
 			if again, err := Encode(back); err != nil || again != coded {
 				t.Fatalf("kod → TR → kod aynı değil (%v)\nkodlu: %q\nyine: %q", err, coded, again)
 			}

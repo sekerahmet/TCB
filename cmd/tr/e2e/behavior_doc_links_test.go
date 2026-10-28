@@ -39,6 +39,9 @@ func uncodedLines(text string) []string {
 	return lines
 }
 
+// inlineCodeRe satır içi koddur (`f[T](l)`): içindeki köşeli ve yuvarlak parantez bağlantı değildir.
+var inlineCodeRe = regexp.MustCompile("`[^`]*`")
+
 // headingAnchor bir başlıktan barındırma sitesinin ürettiği çapayı üretir: küçük harf, harf,
 // rakam, boşluk, '-' ve '_' dışındaki karakterler atılır, boşluklar '-' olur.
 func headingAnchor(heading string) string {
@@ -96,7 +99,7 @@ func TestDocLinks(t *testing.T) {
 			t.Fatalf("%s okunamadı", belge)
 		}
 		for i, line := range uncodedLines(text) {
-			for _, m := range linkRe.FindAllStringSubmatch(line, -1) {
+			for _, m := range linkRe.FindAllStringSubmatch(inlineCodeRe.ReplaceAllString(line, ""), -1) {
 				target := m[1]
 				if strings.Contains(target, "://") || strings.HasPrefix(target, "mailto:") {
 					continue
@@ -137,8 +140,8 @@ func TestDocLinks(t *testing.T) {
 
 func TestHeadingAnchors(t *testing.T) {
 	for heading, expected := range map[string]string{
-		"C. Tensörler TR_and Otomatik Türev":          "c-tensörler-ve-otomatik-türev",
-		"7. Test Yazma TR_and Çalıştırma (`tr test`)": "7-test-yazma-ve-çalıştırma-tr-test",
+		"C. Tensörler ve Otomatik Türev":          "c-tensörler-ve-otomatik-türev",
+		"7. Test Yazma ve Çalıştırma (`tr test`)": "7-test-yazma-ve-çalıştırma-tr-test",
 		"Örnekler":      "örnekler",
 		"B. İstatistik": "b-i̇statistik",
 	} {

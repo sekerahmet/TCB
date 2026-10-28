@@ -20,6 +20,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -126,4 +127,15 @@ func trVersion(t *testing.T) string {
 	}
 	t.Fatal("cmd/tr/main.go'da Version sabiti bulunamadı")
 	return ""
+}
+
+// writeTR bir TR programını dosyaya yazar: başlıksız gövdenin önüne başlığı koyar (2.1; satırlar
+// dosyanınkidir, gövdenin ilk satırı 2. satır), başlıklı ya da başka biçimde başlayan metni olduğu
+// gibi yazar. Başlıksız dosyanın kendisini sınayan testler testkit.WriteFile kullanır.
+func writeTR(t testing.TB, dir, name, content string) string {
+	t.Helper()
+	if _, err := source.Split(content); err == nil && source.HeaderLines(content) == 0 {
+		content = source.Header + "\n" + content
+	}
+	return testkit.WriteFile(t, dir, name, content)
 }

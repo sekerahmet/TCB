@@ -25,7 +25,7 @@ import (
 func watchCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") && !strings.EqualFold(filepath.Ext(args[0]), ".tr") {
 		if _, err := os.Stat(args[0]); err != nil {
-			exitWithError(messages.Text(messages.H8670, args[0], codes.NameRef(codes.CmdWatch)))
+			exitUsage(messages.Text(messages.H8670, args[0], codes.NameRef(codes.CmdWatch)))
 		}
 	}
 	s, path, arguments := profileArguments(codes.NameRef(codes.CmdWatch), args, codes.OptOutput)

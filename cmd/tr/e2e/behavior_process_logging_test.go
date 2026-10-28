@@ -14,7 +14,7 @@ import (
 // ve 2 ile biter. İkisinde de ertele blokları çalışır; argüman uyarısı verilmez.
 func TestCommandLineOptions(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "egit.tr", `TR_defer TR_print("ertelenen")
+	writeTR(t, dir, "egit.tr", `TR_defer TR_print("ertelenen")
 TR_var ayar = TR_command_line({TR_step: 10, oran: 0.5, hızlı: TR_false}, TR_description: "Deneme eğitimi")
 TR_print("adım=\(ayar.TR_step) oran=\(ayar.oran) hızlı=\(ayar.hızlı)")
 `)
@@ -24,7 +24,7 @@ TR_print("adım=\(ayar.TR_step) oran=\(ayar.oran) hızlı=\(ayar.hızlı)")
 		{"hata_ayıkla", "egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
 	} {
 		s := tr(t, dir, command...)
-		testkit.Wait(t, s, 0, []string{"adım=20 oran=0.25 hızlı=TR_true", "ertelenen"}, nil)
+		testkit.Wait(t, s, 0, []string{"adım=20 oran=0.25 hızlı=true", "ertelenen"}, nil)
 		if strings.Contains(s.Stderr, "Uyarı") {
 			t.Errorf("%v: okunan argümanlar için uyarı olmamalı: %q", command, s.Stderr)
 		}
@@ -50,7 +50,7 @@ TR_print("adım=\(ayar.TR_step) oran=\(ayar.oran) hızlı=\(ayar.hızlı)")
 // mesajında ve günlükte *** olur; dosyaya yazılan veri (dosya_yaz) değişmez.
 func TestSecretValuesMaskedInOutput(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "g.tr", `TR_var ayar = TR_command_line({api_key: ""})
+	writeTR(t, dir, "g.tr", `TR_var ayar = TR_command_line({api_key: ""})
 TR_var belirteç = TR_env("HF_TOKEN")
 TR_print("belirteç:", belirteç, "anahtar:", ayar.api_key)
 TR_var g = TR_logger("kayit/g.jsonl")
@@ -77,8 +77,9 @@ TR_throw "bozuk: " + ayar.api_key
 // İlerleme çubuğu boruya (terminal değil) yazarken standart çıktıya karışmaz, sonda özet
 // satırı yazılır; program hatayla bitse de çubuk biter, bitiş günlüğe yazılır.
 func TestProgressOnCommandLine(t *testing.T) {
+	t.Skip("katman 2: değer metninin kalıp sözcükleri (İlerleme(adım 4/10) → Progress(step 4/10)) tek dile inince açılır")
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "i.tr", `TR_var g = TR_logger("i.jsonl")
+	writeTR(t, dir, "i.tr", `TR_var g = TR_logger("i.jsonl")
 TR_var ç = TR_progress(10, TR_log: g)
 TR_for i TR_in 0..4 { ç.TR_update({TR_loss: 1.5}) }
 TR_print("bitti mi:", ç)

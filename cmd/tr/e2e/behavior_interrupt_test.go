@@ -25,7 +25,7 @@ type interruptibleProcess struct {
 func startInterruptible(t *testing.T, code string) *interruptibleProcess {
 	t.Helper()
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "program.tr", code)
+	writeTR(t, dir, "program.tr", code)
 	cmd := exec.Command(trBinary, "program.tr")
 	cmd.Dir = dir
 	stderr := &testkit.TeeWriter{}
@@ -101,12 +101,12 @@ func (s *interruptibleProcess) endedByInterrupt() bool {
 func TestInterruptGracefulExit(t *testing.T) {
 	s := startInterruptible(t, strings.Join([]string{
 		`TR_defer { TR_write_file("ust_ertele.txt", "çalıştı") }`,
-		`fonksiyon iş() {`,
+		`TR_func iş() {`,
 		`    TR_defer { TR_write_file("ertele.txt", "çalıştı") }`,
-		`    dene {`,
+		`    TR_try {`,
 		`        TR_write_file("hazir.txt", "1")`,
 		`        TR_for { }`,
-		`    } yakala h {`,
+		`    } TR_catch h {`,
 		`        TR_write_file("yakalandi.txt", h)`,
 		`    }`,
 		`}`,

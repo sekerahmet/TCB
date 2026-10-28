@@ -85,8 +85,8 @@ func TestExamplesNumbered(t *testing.T) {
 			t.Errorf("examples/tr/%s kodlu saklanmalı (%q ile başlamalı)", name, source.Header)
 		}
 		first := strings.SplitN(text, "\n", 3)
-		if title := first[min(1, len(first)-1)]; !strings.HasPrefix(title, "// "+n+" —") {
-			t.Errorf("examples/tr/%s: ilk yorum satırı %q ile başlamalı", name, "// "+n+" —")
+		if title := first[min(1, len(first)-1)]; !strings.HasPrefix(title, "# "+n+" —") {
+			t.Errorf("examples/tr/%s: ilk yorum satırı %q ile başlamalı", name, "# "+n+" —")
 		}
 	}
 }

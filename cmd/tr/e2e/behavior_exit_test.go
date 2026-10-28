@@ -39,7 +39,7 @@ func TestExitCodes(t *testing.T) {
 		{"yakalanmayan hata 1", trProgram(`TR_throw "patladı"`), 1, nil, nil, []string{"patladı"}},
 		{"en dışta return sözdizimi hatası", trProgram("TR_return 1"), 1, nil, nil, []string{"(0)"}},
 	} {
-		testkit.WriteFile(t, dir, "program.tr", tc.code)
+		writeTR(t, dir, "program.tr", tc.code)
 		got := tr(t, dir, "program.tr")
 		testkit.Wait(t, got, tc.want, tc.stdout, tc.stderr)
 		for _, absent := range tc.notStdout {
@@ -71,8 +71,8 @@ func TestToolUsageErrorsExitTwo(t *testing.T) {
 // satır çalışmaz, çıkış 1. 'tr kontrol', 'tr çalıştır' ve 'tr hata_ayıkla' aynı sonucu verir.
 func TestModulesAreCheckedBeforeAnyLineRuns(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "bozuk.tr", trProgram("TR_func f() -> TR_Int {", `    TR_return "a"`, "}"))
-	testkit.WriteFile(t, dir, "ana.tr", trProgram(`TR_import "bozuk" TR_as b`, `TR_print("ilk satır")`, "TR_print(b.f())"))
+	writeTR(t, dir, "bozuk.tr", trProgram("TR_func f() -> TR_Int {", `    TR_return "a"`, "}"))
+	writeTR(t, dir, "ana.tr", trProgram(`TR_import "bozuk" TR_as b`, `TR_print("ilk satır")`, "TR_print(b.f())"))
 	for _, command := range [][]string{{"ana.tr"}, {"çalıştır", "ana.tr"}, {"hata_ayıkla", "ana.tr"}, {"kontrol", "ana.tr"}} {
 		s := tr(t, dir, command...)
 		testkit.Wait(t, s, 1, nil, []string{"bozuk.tr"})

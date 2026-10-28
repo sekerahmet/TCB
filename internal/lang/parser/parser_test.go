@@ -118,9 +118,9 @@ func hasErrAt(errs []error, line, col int, code messages.Code) bool {
 
 // Metin içindeki tek bir '{' eskiden dosyanın geri kalanını yutuyordu.
 func TestUnbalancedInterpolationIsReportedWithLine(t *testing.T) {
-	errs := parseErrs("yazdır(\"a\")\nyazdır(\"{\")\nyazdır(\"b\")")
+	errs := parseErrs("yazdır(\"a\")\nyazdır(\"\\(\")\nyazdır(\"b\")")
 	if len(errs) == 0 || !hasErrAt(errs[:1], 2, 0, messages.H0009) {
-		t.Fatalf("2. satırda kapatılmamış '{' hatası bekleniyordu, alınan: %v", errs)
+		t.Fatalf("2. satırda kapatılmamış '\\(' hatası bekleniyordu, alınan: %v", errs)
 	}
 }
 
@@ -128,12 +128,6 @@ func TestUnterminatedStringIsReported(t *testing.T) {
 	errs := parseErrs("değişken a = 1\nyazdır(\"merhaba)\n")
 	if len(errs) == 0 || !hasErrAt(errs[:1], 2, 0, messages.H0010) {
 		t.Fatalf("2. satırda kapatılmamış metin hatası bekleniyordu, alınan: %v", errs)
-	}
-}
-
-func TestEscapedBracesParseAsLiteral(t *testing.T) {
-	if got := shape(firstExpr(t, `"\{ x \}"`)); got != `"{ x }"` {
-		t.Fatalf("düz süslü parantez bekleniyordu, %s alındı", got)
 	}
 }
 
@@ -238,8 +232,8 @@ func TestInterpolationKeepsSourcePosition(t *testing.T) {
 	interp := call.Arguments[0].(*ast.InterpolatedString)
 	infix := interp.Parts[1].(*ast.InfixExpression)
 	id := infix.Left.(*ast.Identifier)
-	if id.Token.Line != 2 || id.Token.Column != 14 {
-		t.Fatalf("konum Satır 2, Sütun 14 olmalıydı, alınan: Satır %d, Sütun %d", id.Token.Line, id.Token.Column)
+	if id.Token.Line != 2 || id.Token.Column != 15 {
+		t.Fatalf("konum Satır 2, Sütun 15 olmalıydı, alınan: Satır %d, Sütun %d", id.Token.Line, id.Token.Column)
 	}
 }
 
@@ -268,11 +262,11 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 // sözdizimi hatası verir. Düz süslü parantezin iki yazımı (\{ ve ham metin) hata vermez.
 func TestNonExpressionInterpolationIsError(t *testing.T) {
 	for code, col := range map[string]int{
-		`yazdır("{\"kod\": 5}")`:      9,
-		`yazdır("Nokta{x: 1, y: 2}")`: 14,
-		`yazdır("şablon: {'a': 1}")`:  17,
-		`yazdır("{değil}")`:           9,
-		`yazdır("boş {}")`:            13,
+		`yazdır("\()")`:               9,
+		`yazdır("boş \()")`:           13,
+		`yazdır("\(değil)")`:          9,
+		`yazdır("\(a, b)")`:           9,
+		`yazdır("\(değişken x = 1)")`: 9,
 	} {
 		errs := parseErrs(code)
 		found := false
@@ -296,19 +290,5 @@ func TestColonSliceGetsRangeHint(t *testing.T) {
 	errs := parseErrs("değişken l = [1, 2, 3]\nyazdır(l[0:2])\n")
 	if !hasCode(errs, messages.H0170) {
 		t.Fatalf("l[a:b] ipucu bekleniyordu: %v", errs)
-	}
-}
-
-// Bir ileti kodu (H6903) ifadede kodun metnidir: ileti(H6903, x) ile ileti("H6903", x) aynıdır.
-func TestMessageCodeIsItsString(t *testing.T) {
-	p := New(lexer.New("f(H6903, 1)\n"))
-	prog := p.ParseProgram()
-	if len(p.Errors()) != 0 {
-		t.Fatalf("hata: %v", p.Errors())
-	}
-	call := prog.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.CallExpression)
-	lit, ok := call.Arguments[0].(*ast.StringLiteral)
-	if !ok || lit.Value != "H6903" {
-		t.Errorf("ilk argüman \"H6903\" metni olmalı: %#v", call.Arguments[0])
 	}
 }

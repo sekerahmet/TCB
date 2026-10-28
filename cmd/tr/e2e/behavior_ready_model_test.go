@@ -37,7 +37,7 @@ func TestReadyModelMatchesTransformers(t *testing.T) {
 		t.Skip("torch, transformers ya da safetensors yok")
 	}
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "karsilastir.tr", readyModelCompare)
+	writeTR(t, dir, "karsilastir.tr", readyModelCompare)
 	// İki model aynı anda kurulur (her kurulum torch'u yeniden yükler).
 	build := func(arch string, tied bool) func(t *testing.T) string {
 		return func(t *testing.T) string {

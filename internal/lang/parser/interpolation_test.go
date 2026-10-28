@@ -6,10 +6,10 @@ import "testing"
 // parantez sayılmaz (2.7). Eskiden ayrıştırıcı süslü parantezleri ayrıca sayıyordu; tırnaklı
 // metindeki '}' yerleştirmeyi erken kapatıyor, '{' ise metni sessizce boş metne çeviriyordu.
 func TestQuotedStringInInterpolation(t *testing.T) {
-	if errs := parseErrors(`yazdır("x \("a}b") y")`); len(errs) != 0 {
-		t.Errorf("tırnaklı metindeki '}' yerleştirmeyi kapatmamalı: %v", errs)
+	if errs := parseErrors(`yazdır("x \("a)b") y")`); len(errs) != 0 {
+		t.Errorf("tırnaklı metindeki ')' yerleştirmeyi kapatmamalı: %v", errs)
 	}
-	if errs := parseErrors(`yazdır("\("{")")`); len(errs) == 0 {
+	if errs := parseErrors(`yazdır("\("\(")")`); len(errs) == 0 {
 		t.Error("kapanmayan iç yerleştirme sessizce boş metin olmamalı, hata vermeli")
 	}
 }

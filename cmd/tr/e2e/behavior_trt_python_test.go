@@ -30,7 +30,7 @@ write_trt(sys.argv[2], {"w": np.array([[1.5, -2.0], [0.25, 3.0]], dtype=np.float
 	if out, err := exec.Command(python, "-I", "-c", write, tools, fromPy).CombinedOutput(); err != nil {
 		t.Fatalf("python yazamadı: %v\n%s", err, out)
 	}
-	testkit.WriteFile(t, dir, "oku.tr", `TR_var d = TR_load_tensors("py.trt")
+	writeTR(t, dir, "oku.tr", `TR_var d = TR_load_tensors("py.trt")
 TR_print(d["w"].TR_tolist)
 TR_print(d["b"].TR_tolist)
 TR_save_tensors("tr.trt", {"x": TR_tensor([[0.5, 1.0, -4.0]])})

@@ -46,7 +46,7 @@ func indexCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
 		k, ok := codes.FindSubcommand(args[0])
 		if !ok {
-			exitWithError(messages.Text(messages.H8821, codes.NameRef(codes.CmdIndex), args[0], subcommandNames()))
+			exitUsage(messages.Text(messages.H8821, codes.NameRef(codes.CmdIndex), args[0], subcommandNames()))
 		}
 		sub, args = k, args[1:]
 	}
@@ -128,9 +128,9 @@ func parseIndexArguments(sub codes.Code, args []string) (indexOptions, []string)
 	}
 	switch {
 	case sub == codes.SubRename && len(names) != 2:
-		exitWithError(messages.Text(messages.H8864, command, codes.NameRef(sub), "head view"))
+		exitUsage(messages.Text(messages.H8864, command, codes.NameRef(sub), "head view"))
 	case sub != codes.None && sub != codes.SubRename && len(names) != 1:
-		exitWithError(messages.Text(messages.H8820, command, codes.NameRef(sub), "Muon"))
+		exitUsage(messages.Text(messages.H8820, command, codes.NameRef(sub), "Muon"))
 	}
 	return o, names
 }
@@ -142,7 +142,7 @@ func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 	case codes.OptLimit:
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
-			exitWithError(messages.Text(messages.H8822, codes.OptionFlag(k), value))
+			exitUsage(messages.Text(messages.H8822, codes.OptionFlag(k), value))
 		}
 		o.limit, o.limitSet = n, true
 	case codes.OptAll:

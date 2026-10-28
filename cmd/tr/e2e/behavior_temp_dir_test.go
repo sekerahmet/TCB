@@ -59,13 +59,13 @@ func TestTempDirRemovedWhenProgramEnds(t *testing.T) {
 	}
 	for _, d := range states {
 		temp, env := tempEnv(t)
-		testkit.WriteFile(t, dir, "p.tr", shared+d.last)
+		writeTR(t, dir, "p.tr", shared+d.last)
 		args := []string{"p.tr"}
 		if d.argument != "" {
 			args = append(args, d.argument)
 		}
 		s := testkit.RunBinary(t, trBinary, dir, "", env, args...)
-		testkit.Wait(t, s, d.code, []string{"doğru"}, nil)
+		testkit.Wait(t, s, d.code, []string{"true"}, nil)
 		tempIsEmpty(t, temp, d.ad)
 	}
 }

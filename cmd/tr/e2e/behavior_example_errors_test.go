@@ -20,7 +20,7 @@ import (
 // beklenen ileti kodunu söyler ("İleti kodu: H1010"). Testler ileti metnine değil koda ve çıkış koduna
 // bakar (iletiler gösterim diline göre değişir).
 
-var messageCodeLine = regexp.MustCompile(`(?m)^// (?:İleti kodu|Message code): (H\d{4})$`)
+var messageCodeLine = regexp.MustCompile(`(?m)^# (?:İleti kodu|Message code): (H\d{4})$`)
 
 // errorExamples dil klasöründeki hata örneklerini numarasıyla verir.
 func errorExamples(t *testing.T, lang, dir string) map[string]string {

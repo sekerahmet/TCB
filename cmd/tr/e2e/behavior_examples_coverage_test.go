@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -22,10 +24,10 @@ import (
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste
 // yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredNames = map[string]string{
-	// Değer adları (val) kaynakta sözcük olarak yazılmaz, yalnızca programın metninde görünür
-	// (3.2: yazdır(ondalık("sonsuz"))); kodlu iskelette geçemezler.
-	"TR_inf": "değer adı (sonsuz), kaynakta sözcük değil",
-	"TR_nan": "değer adı (NaN), kaynakta sözcük değil",
+	// Değer adları kaynakta sözcük olarak yazılmaz, yalnızca metinde görünür (3.2:
+	// TR_print(TR_Float("inf"))); kodlu metinde geçemezler. Kodlar iç (sınıflı) yazımladır.
+	"TR_val_inf": "değer adı (inf), kaynakta sözcük değil",
+	"TR_val_nan": "değer adı (nan), kaynakta sözcük değil",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.
@@ -55,7 +57,7 @@ func exampleTexts(t *testing.T) map[string]string {
 	return out
 }
 
-// usedCodes örneklerin kodlu iskeletinde geçen kodlardır.
+// usedCodes örneklerin kodlu metninde geçen kodlardır (yerleştirmelerdekiler dahil).
 func usedCodes(t *testing.T) map[string]bool {
 	t.Helper()
 	used := map[string]bool{}
@@ -68,9 +70,19 @@ func usedCodes(t *testing.T) map[string]bool {
 			}
 			t.Fatalf("examples/tr/%s kodlanamadı: %v", name, err)
 		}
-		for _, tok := range structure(coded) {
-			if codes.IsReservedName(tok) {
-				used[tok] = true
+		b, err := source.Split(coded)
+		if err != nil || !b.Coded {
+			t.Fatalf("examples/tr/%s: kodlu metin başlıksız: %v", name, err)
+		}
+		l := b.IdentityLexer()
+		l.StartRecording()
+		parser.New(l).ParseProgram()
+		for _, r := range l.Records() {
+			if r.Code != codes.None {
+				used[r.Code.String()] = true
+			}
+			if k := lexer.KeywordCode(r.Type); k != codes.None {
+				used[k.String()] = true
 			}
 		}
 	}

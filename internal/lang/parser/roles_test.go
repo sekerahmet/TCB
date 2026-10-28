@@ -12,7 +12,8 @@ import (
 // ve olarak sözcükleri, sözlük anahtarı kayıt açıkken görevleriyle (satır, sütun) kaydedilir;
 // kodlu biçime çevirici bu kayda dayanır. Yerleştirme içindeki adlar da dosyadaki konumlarıyla gelir.
 func TestRolesRecordedForNamesWithoutNodes(t *testing.T) {
-	src := `yapı Nokta {
+	src := `aktar "yol" olarak m
+yapı Nokta {
     x: Tam
     fonksiyon uzak(a: Metin): Tam { sonuç 1 }
 }
@@ -20,8 +21,7 @@ değişken n: Liste = []
 değişken d = {ad: 1}
 n.ekle(1)
 test "t" { }
-aktar "yol" olarak m
-yazdır("{n.uzunluk}")
+yazdır("\(n.uzunluk)")
 `
 	p := New(trLexer(src))
 	p.RecordRoles()
@@ -36,15 +36,15 @@ yazdır("{n.uzunluk}")
 		needle string // satırdaki sözcük (ilk geçtiği yer)
 		role   NameRole
 	}{
-		{2, "x", RoleStructField},
-		{2, "Tam", RoleType},
-		{3, "uzak", RoleStructMethod},
-		{3, "Metin", RoleType},
-		{5, "Liste", RoleType},
-		{6, "ad", RoleDictKey},
-		{7, "ekle", RoleMember},
-		{8, "test", RoleTest},
-		{9, "olarak", RoleAs},
+		{3, "x", RoleStructField},
+		{3, "Tam", RoleType},
+		{4, "uzak", RoleStructMethod},
+		{4, "Metin", RoleType},
+		{6, "Liste", RoleType},
+		{7, "ad", RoleDictKey},
+		{8, "ekle", RoleMember},
+		{9, "test", RoleTest},
+		{1, "olarak", RoleAs},
 		{10, "uzunluk", RoleMember}, // yerleştirmenin içi, dosyadaki gerçek yeriyle
 	}
 	for _, w := range want {
@@ -57,11 +57,11 @@ yazdır("{n.uzunluk}")
 			t.Errorf("%d:%d (%s): görev %v, beklenen %v", w.line, col, w.needle, got, w.role)
 		}
 	}
-	// Dönüş tipi (`): Tam`) de kaydedilir: satır 3'te Tam ikinci geçiştir.
-	l3 := lines[2]
-	col := utf8.RuneCountInString(l3[:strings.LastIndex(l3, "Tam")]) + 1
-	if roles[[2]int{3, col}] != RoleType {
-		t.Errorf("3:%d dönüş tipi kaydedilmedi", col)
+	// Dönüş tipi (`): Tam`) de kaydedilir: satır 4'te Tam ikinci geçiştir.
+	l4 := lines[3]
+	col := utf8.RuneCountInString(l4[:strings.LastIndex(l4, "Tam")]) + 1
+	if roles[[2]int{4, col}] != RoleType {
+		t.Errorf("4:%d dönüş tipi kaydedilmedi", col)
 	}
 	seen := map[NameRole]bool{}
 	for _, r := range roles {

@@ -70,9 +70,9 @@ func TestEncodeShowCommands(t *testing.T) {
 		t.Errorf("görünüm kodlanınca: %q, beklenen %q", readFile(t, g), want)
 	}
 	testkit.Wait(t, tr(t, k, "g.tr"), 0, []string{"x = 1"}, nil)
-	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
-	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
-	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 1, nil, []string{"'tr göster' yazmak mı istediniz?"})
+	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 2, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
+	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 2, nil, []string{"'--dil' bir yazım dili bekler"})
+	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 2, nil, []string{"'tr göster' yazmak mı istediniz?"})
 	// tr çöz yoktur: ad bir komut değil, okunamayan bir dosya adıdır; yardımda da geçmez.
 	testkit.Wait(t, tr(t, k, "çöz", "a.tr"), 1, nil, []string{"\"çöz\" okunamadı"})
 	help := tr(t, k, "yardım")
@@ -119,9 +119,9 @@ func TestEncodeShowStandardInput(t *testing.T) {
 	}
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", source.Header+"\nTR_if {\n", nil, "göster", "-"), 2, nil, []string{"Sözdizimi Hataları"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "# TR 3\nTR_var x = 1\n", nil, "kodla", "-"), 1, nil, []string{"okunamayan bir başlık", source.Header})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "göster", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "a.tr"), 1, nil, []string{"fazladan argüman: a.tr"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "göster", "-", "--dil", "xx"), 2, nil, []string{"'xx' yazım dili yok"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "--dil", "xx"), 2, nil, []string{"'xx' yazım dili yok"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", nil, "kodla", "-", "a.tr"), 2, nil, []string{"fazladan argüman: a.tr"})
 	testkit.Wait(t, tr(t, "", "yardım"), 0, []string{"tr göster - [--dil tr]", "tr kodla - [--dil tr]"}, nil)
 }
 
@@ -177,12 +177,12 @@ func TestEnglishWritingLanguage(t *testing.T) {
 		}
 		testkit.Wait(t, tr(t, dir, "en.tr"), 0, []string{"1\n"}, nil)
 	}
-	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
-	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok"})
+	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil"), 2, nil, []string{"'--dil' bir yazım dili bekler"})
+	testkit.Wait(t, tr(t, t.TempDir(), "kodla", "a.tr", "--dil", "xx"), 2, nil, []string{"'xx' yazım dili yok"})
 	// İletideki komut adı kişinin dilindedir.
 	enEnv := []string{"TR_DIL=en"}
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, t.TempDir(), "", enEnv, "encode", "a.tr", "--x"), 1, nil, []string{"for 'tr encode'"})
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", enEnv, "encode", "-", "a.tr"), 1, nil, []string{"'tr encode -' reads"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, t.TempDir(), "", enEnv, "encode", "a.tr", "--x"), 2, nil, []string{"for 'tr encode'"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", enEnv, "encode", "-", "a.tr"), 2, nil, []string{"'tr encode -' reads"})
 	// Metin --dil'in dilinde okunur; iletiler kişinin yazım dilindedir (TR_DIL).
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", []string{"TR_DIL=en"}, "kodla", "-", "--dil", "en"), 2, nil, []string{"Syntax Errors"})
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "if {\n", nil, "kodla", "-", "--dil", "en"), 2, nil, []string{"Sözdizimi"})
@@ -211,7 +211,7 @@ func TestRepoFilesEnglishLossless(t *testing.T) {
 			if err == nil && g.IsDir() && (g.Name() == "negative" || g.Name() == errorsDir["tr"]) {
 				return filepath.SkipDir // bilerek hatalı dosyalar (bozuk başlıklar, hata örnekleri)
 			}
-			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") && !trFilesWithData[g.Name()] {
+			if err == nil && !g.IsDir() && strings.HasSuffix(filePath, ".tr") && !trFilesWithData[g.Name()] && !brokenFixture(filePath) {
 				files = append(files, filePath)
 			}
 			return err
@@ -310,4 +310,10 @@ func TestDiagnosticsUseDisplayNames(t *testing.T) {
 		t.Errorf("TR_DIL=en iletisinde Türkçe ad var:\n%s%s", s.Stdout, s.Stderr)
 	}
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "yanlis.tr"), 1, nil, []string{"rms_normu()"})
+}
+
+// brokenFixture bilerek sözdizimi hatalı yazılmış araç fikstürüdür (codegraph'ın atlanan dosya
+// testi); gösterimi yoktur.
+func brokenFixture(filePath string) bool {
+	return filepath.ToSlash(filePath) == filepath.ToSlash(reporoot.Path("tools/codegraph/testdata/mod/examples/broken.tr"))
 }

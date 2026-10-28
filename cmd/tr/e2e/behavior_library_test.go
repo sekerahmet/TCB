@@ -15,10 +15,10 @@ import (
 // çalışma klasöründeki aynı adlı dosyayı değil, programın yanındakini yükler.
 func TestImportDoesNotLoadWorkingDirFile(t *testing.T) {
 	project := t.TempDir()
-	testkit.WriteFile(t, project, "ana.tr", "TR_import \"yardimci\"\nTR_print(kaynak)\n")
-	testkit.WriteFile(t, project, "yardimci.tr", "TR_var kaynak = \"programın yanı\"\n")
+	writeTR(t, project, "ana.tr", "TR_import \"yardimci\"\nTR_print(kaynak)\n")
+	writeTR(t, project, "yardimci.tr", "TR_var kaynak = \"programın yanı\"\n")
 	runDir := t.TempDir()
-	testkit.WriteFile(t, runDir, "yardimci.tr", "TR_var kaynak = \"SAHTE\"\n")
+	writeTR(t, runDir, "yardimci.tr", "TR_var kaynak = \"SAHTE\"\n")
 	s := tr(t, runDir, filepath.Join(project, "ana.tr"))
 	testkit.Wait(t, s, 0, []string{"programın yanı"}, nil)
 	if strings.Contains(s.Stdout, "SAHTE") {
@@ -33,14 +33,14 @@ func TestImportDoesNotLoadWorkingDirFile(t *testing.T) {
 // diskte tr/katman.tr varken de kitaplıktakini yükler.
 func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	project := t.TempDir()
-	testkit.WriteFile(t, project, "ana.tr", strings.Join([]string{
+	writeTR(t, project, "ana.tr", strings.Join([]string{
 		`TR_import "tr/katman" TR_as k`,
 		`TR_import "yerel"`,
-		`TR_var d = k.Doğrusal(3, 2, TR_seed: 1)`,
+		`TR_var d = k.TR_Linear(3, 2, TR_seed: 1)`,
 		`TR_print("şekil \(d.TR_forward(TR_ones([1, 3])).TR_shape) \(YEREL)")`,
 	}, "\n")+"\n")
-	testkit.WriteFile(t, project, "yerel.tr", "TR_var YEREL = \"yerel modül\"\n")
-	testkit.WriteFile(t, project, "tr/katman.tr", "TR_var TR_Linear = TR_none\n")
+	writeTR(t, project, "yerel.tr", "TR_var YEREL = \"yerel modül\"\n")
+	writeTR(t, project, "tr/katman.tr", "TR_var TR_Linear = TR_none\n")
 	expected := "şekil [1, 2] yerel modül"
 	testkit.Wait(t, tr(t, project, "ana.tr"), 0, []string{expected}, nil)
 
@@ -51,10 +51,10 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 		t.Errorf("kitaplık modülü pakete gömülmemeli:\n%s", s.Stdout)
 	}
 	other := t.TempDir()
-	testkit.WriteFile(t, other, "tr/katman.tr", "TR_var TR_Linear = TR_none\n")
+	writeTR(t, other, "tr/katman.tr", "TR_var TR_Linear = TR_none\n")
 	testkit.Wait(t, testkit.RunBinary(t, exit, other, "", nil), 0, []string{expected}, nil)
 
-	testkit.WriteFile(t, project, "hatali.tr", "TR_import \"tr/olmayan\"\n")
+	writeTR(t, project, "hatali.tr", "TR_import \"tr/olmayan\"\n")
 	testkit.Wait(t, tr(t, project, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/hazir, tr/iyilestirici, tr/katman`})
 	testkit.Wait(t, tr(t, project, "derle", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }

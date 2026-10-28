@@ -39,8 +39,8 @@ var (
 // (1.4): komut satırını okuyan program onları alır.
 func TestScriptArgumentsPassed(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "okur.tr", readsProgram)
-	testkit.WriteFile(t, dir, "dolayli.tr", readsViaFunction)
+	writeTR(t, dir, "okur.tr", readsProgram)
+	writeTR(t, dir, "dolayli.tr", readsViaFunction)
 	for _, command := range [][]string{
 		{"okur.tr", "--adim", "5"},
 		{"çalıştır", "okur.tr", "--adim", "5"},
@@ -56,8 +56,8 @@ func TestScriptArgumentsPassed(t *testing.T) {
 // çağrıyı söyler (1.4). Aynı kural her çalıştırma yolunda geçerlidir.
 func TestArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
-	testkit.WriteFile(t, dir, "cagrilmaz.tr", readsInAFunctionNeverCalled)
+	writeTR(t, dir, "okumaz.tr", readsNothing)
+	writeTR(t, dir, "cagrilmaz.tr", readsInAFunctionNeverCalled)
 	for _, command := range [][]string{
 		{"okumaz.tr", "--adim", "5"},
 		{"çalıştır", "okumaz.tr", "--adim", "5"},
@@ -79,7 +79,7 @@ func TestArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
 // komut_satırı ile okunduğunu söyler (1.4).
 func TestPositionalArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	writeTR(t, dir, "okumaz.tr", readsNothing)
 	s := tr(t, dir, "okumaz.tr", "veri.txt")
 	testkit.Wait(t, s, 2, nil, []string{"komut_satırı"})
 	if s.Stdout != "" {
@@ -92,7 +92,7 @@ func TestPositionalArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) 
 // blokları, --local-rank=N) programın sayılmaz: programa argüman verilmemiş gibi çalışır.
 func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	writeTR(t, dir, "okumaz.tr", readsNothing)
 	testkit.Wait(t, tr(t, dir, "okumaz.tr", "-h"), 0, []string{"seçeneği almıyor"}, nil)
 	testkit.Wait(t, tr(t, dir, "okumaz.tr", "--help"), 0, []string{"seçeneği almıyor"}, nil)
 	for _, launcher := range [][]string{
@@ -104,7 +104,7 @@ func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
 		testkit.Wait(t, tr(t, dir, append([]string{"okumaz.tr"}, launcher...)...), 0, []string{"çalıştı"}, nil)
 	}
 	// ROS 2 bloğundan sonra gelen argüman programındır
-	testkit.WriteFile(t, dir, "okur.tr", readsProgram)
+	writeTR(t, dir, "okur.tr", readsProgram)
 	testkit.Wait(t, tr(t, dir, "okur.tr", "--ros-args", "-r", "a:=b", "--", "--adim", "7", "--local-rank=1"), 0, []string{"adım: 7"}, nil)
 }
 
@@ -112,8 +112,8 @@ func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
 // geçerlidir.
 func TestBuiltAppArguments(t *testing.T) {
 	dir := t.TempDir()
-	testkit.WriteFile(t, dir, "okur.tr", readsProgram)
-	testkit.WriteFile(t, dir, "okumaz.tr", readsNothing)
+	writeTR(t, dir, "okur.tr", readsProgram)
+	writeTR(t, dir, "okumaz.tr", readsNothing)
 	readsExe := filepath.Join(t.TempDir(), "okur.exe")
 	readsNothingExe := filepath.Join(t.TempDir(), "okumaz.exe")
 	testkit.Wait(t, tr(t, dir, "derle", "okur.tr", readsExe), 0, nil, nil)

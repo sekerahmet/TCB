@@ -151,7 +151,7 @@ func TestNestingDepthLimit(t *testing.T) {
 // ayrıştırıcı sıfırdan başlasaydı iç içe metinlerle sınırın katları kadar derine inilirdi.
 func TestInterpolationDepthLimited(t *testing.T) {
 	codeVal := strings.Repeat("eğer doğru {\n", 480) +
-		`değişken s = "{` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + "}\"\n" +
+		`değişken s = "\(` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + ")\"\n" +
 		strings.Repeat("}\n", 480)
 	h := parseErrs(codeVal)
 	if len(h) != 1 || !hasErrAt(h, 481, 0, messages.H0155) {
@@ -168,7 +168,7 @@ func TestInterpolationDepthLimited(t *testing.T) {
 // tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 50 000 ve 200 000 yerleştirme).
 func TestManyInterpolationsLinear(t *testing.T) {
 	testkit.ScalesLinearly(t, "yerleştirmeli metin", 50000, func(n int) func() (int, error) {
-		code := `değişken s = "` + strings.Repeat("{a}", n) + `"`
+		code := `değişken s = "` + strings.Repeat(`\(a)`, n) + `"`
 		return func() (int, error) {
 			p := New(trLexer(code))
 			prog := p.ParseProgram()

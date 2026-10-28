@@ -162,9 +162,9 @@ TR_test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
     TR_var k = TR_temp_dir()
     TR_write_file(TR_path(k, "a.txt"), "bir\r\niki\n\nson")
     TR_assert_equal(["bir", "iki", "", "son"], [s TR_for s TR_in TR_read_lines(TR_path(k, "a.txt"))])
-    # Baştaki BOM atılır (bom_ornegi.tr BOM ile başlar).
+    # Baştaki BOM atılır (bom_ornegi.tr BOM ile başlar): ilk satır başlığın kendisidir.
     TR_var ilk = TR_read_lines("bom_ornegi.tr").TR_next()
-    TR_assert(ilk.TR_starts_with("// BOM ile"), ilk)
+    TR_assert_equal("# TR 4", ilk)
     TR_write_file(TR_path(k, "b.txt"), "1\n2\n3\n")
     TR_var o = TR_read_lines(TR_path(k, "b.txt"))
     TR_assert_equal(TR_LineReader, TR_type(o))

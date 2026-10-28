@@ -57,8 +57,6 @@ var uncoveredLibraryNames = map[string]string{
 	"iyilestirici.parametre_grupları":  "belgeli ad; yazılacak: Muon parametre grupları örneği",
 	"iyilestirici.parametre_kümeleri":  "belgeli ad; yazılacak: Muon parametre grupları örneği",
 	"iyilestirici.SatırRMS":            "belgeli ad; yazılacak: Muon parametre grupları örneği",
-	"egitim.SONLU_DEĞİL":               "belgeli ad; yazılacak: sıçrama bekçisinin ayrıntıları (44 yalnız TAMAM ile karşılaştırır)",
-	"egitim.SIÇRAMA":                   "belgeli ad; yazılacak: sıçrama bekçisinin ayrıntıları (44 yalnız TAMAM ile karşılaştırır)",
 	"egitim.EN_AZ_GÖRELİ_SAPMA":        "iç yardımcı: lib/README.md'de belgelenmemiş",
 	"egitim.aşıyor()":                  "iç yardımcı: lib/README.md'de belgelenmemiş",
 	"egitim.geçmiş_uzunluğu()":         "belgeli ad; yazılacak: sıçrama bekçisinin ayrıntıları (44 yalnız TAMAM ile karşılaştırır)",

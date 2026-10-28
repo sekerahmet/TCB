@@ -22,7 +22,7 @@ func formatCommand(args []string) {
 		return a == "-k" || isOption(a, codes.OptCheck)
 	})
 	if len(targets) == 0 {
-		exitWithError(messages.Text(messages.H8691, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)))
+		exitUsage(messages.Text(messages.H8691, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)))
 	}
 
 	files, err := collectTrFiles(targets, messages.H2108)
