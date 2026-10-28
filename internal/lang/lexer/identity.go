@@ -245,14 +245,40 @@ func identityError(place codes.Place, lit string) error {
 			return wrongPlace(other, k)
 		}
 	}
-	if s, ok := nearestSpelling(place, lit); ok {
+	if s, _ := nearestSpelling(place, lit); s != "" {
 		return messages.New(messages.H0026, lit, s)
 	}
 	// Başka bir dilin tanıdık adı TR_ ile yazılmış olabilir: TR_def → TR_func, TR_None → TR_none.
 	if s, ok := codes.SuggestIdentity(lit[len(codes.IdentityPrefix):]); ok && place == codes.PlaceOther {
 		return messages.New(messages.H0026, lit, s)
 	}
+	// Yanlış yazılmış kimlik başka bir yerin kimliğine yakın olabilir: öbür yerlerde en yakın olan, o
+	// yerin yazımıyla önerilir (TR_lenght(l) → x.TR_length). Eşit uzaklıkta yerlerin sırası seçer.
+	best, bestDist := "", 0
+	for _, other := range []codes.Place{codes.PlaceOther, codes.PlaceMember, codes.PlaceArg} {
+		if other == place {
+			continue
+		}
+		if s, d := nearestSpelling(other, lit); s != "" && (best == "" || d < bestDist) {
+			best, bestDist = placedSpelling(other, s), d
+		}
+	}
+	if best != "" {
+		return messages.New(messages.H0026, lit, best)
+	}
 	return messages.New(messages.H0001, lit)
+}
+
+// placedSpelling s yazımının place'te yazıldığı biçimdir: üye noktadan sonra (x.TR_length), adlı
+// argüman iki noktadan önce (TR_reverse:).
+func placedSpelling(place codes.Place, s string) string {
+	switch place {
+	case codes.PlaceMember:
+		return "x." + s
+	case codes.PlaceArg:
+		return s + ":"
+	}
+	return s
 }
 
 // wrongPlace başka bir yerin (place) kodu olan k'nin doğru yazımını anlatan iletidir.
@@ -273,8 +299,9 @@ func wrongPlace(place codes.Place, k codes.Code) error {
 // nearestSpelling place'teki yazımlardan lit'e en yakın olandır (2.3a): uzaklık TR_'den sonraki
 // adda sayılır, iki komşu harfin yer değiştirmesi tek değişikliktir (sınırlı Damerau-Levenshtein,
 // Rust'ın derleyicisi gibi); adın uzunluğunun üçte birini (en az bir) aşan değişiklikte öneri
-// yoktur. Eşit uzaklıkta alfabe sırasıyla ilki seçilir (ileti kararlı olsun).
-func nearestSpelling(place codes.Place, lit string) (string, bool) {
+// yoktur (boş yazım). Eşit uzaklıkta alfabe sırasıyla ilki seçilir (ileti kararlı olsun). İkinci
+// değer uzaklıktır.
+func nearestSpelling(place codes.Place, lit string) (string, int) {
 	name := []rune(lit[len(codes.IdentityPrefix):])
 	limit := max(1, len(name)/3)
 	best, bestDist := "", limit+1
@@ -288,7 +315,7 @@ func nearestSpelling(place codes.Place, lit string) (string, bool) {
 			best, bestDist = s, d
 		}
 	}
-	return best, best != ""
+	return best, bestDist
 }
 
 // editDistance a ile b arasındaki sınırlı Damerau-Levenshtein uzaklığıdır (ekleme, silme,
