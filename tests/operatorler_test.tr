@@ -170,6 +170,22 @@ TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırıl
     TR_assert(1..3 == 1..3 TR_and 1..3 != 1..=3)
 }
 
+TR_test "4.5 fonksiyon içeren kap da karşılaştırılamaz: kabın içinde, .TR_contains'te ve eşleme deseninde" {
+    TR_var f = (x) => x
+    TR_assert_equal("H2706", TR_error_code { TR_var z = [f] == [f] })
+    TR_assert_equal("H2706", TR_error_code { TR_var z = {"f": f} == {"f": f} })
+    TR_assert_equal("H2706", TR_error_code { TR_var z = [f].TR_contains(f) })
+    TR_assert_equal("H2706", TR_error_code {
+        TR_var z = TR_match f {
+            (f) => 1
+            _ => 2
+        }
+    })
+    # Yoklukla karşılaştırma serbesttir (3.5); iletinin önerisi sonuçları karşılaştırmak
+    TR_assert([f] != [TR_none])
+    TR_assert([f(1)] == [1])
+}
+
 TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     TR_var cagrildi = TR_false
     TR_func yan_etki() {

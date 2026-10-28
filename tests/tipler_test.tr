@@ -261,6 +261,24 @@ TR_test "3.7a JSON değeri JSON olmayan değerle karşılaştırılmaz, işleçt
     TR_assert_equal(3, TR_abs(TR_Int(j["k"])))
 }
 
+TR_test "3.7a kabın içinde, .TR_contains'te ve eşleme deseninde de JSON yalnız JSON'la karşılaştırılır" {
+    TR_var j = TR_json_parse(`{"a": [1, 2]}`)
+    TR_assert_equal("H2705", TR_error_code { TR_var z = TR_List(j["a"]) == [1, 2] })
+    TR_assert_equal("H2705", TR_error_code { TR_var z = [j["a"][0]] == [1] })
+    TR_assert_equal("H2705", TR_error_code { TR_var z = TR_List(j["a"]).TR_contains(1) })
+    TR_assert_equal("H2705", TR_error_code {
+        TR_var z = TR_match j["a"][0] {
+            1 => "bir"
+            _ => "başka"
+        }
+    })
+    # İletinin önerileri: önce tipiyle açmak ya da öbür yanı JSON yapmak; yoklukla karşılaştırma serbest
+    TR_assert([TR_Int(j["a"][0])] == [1])
+    TR_assert(TR_List(j["a"]) == [TR_JSON(1), TR_JSON(2)])
+    TR_assert(TR_List(j["a"]).TR_contains(TR_JSON(2)))
+    TR_assert([j["a"]] != [TR_none])
+}
+
 TR_test "5.7 JSON dizisinde öğeler, nesnesinde anahtarlar dolaşılır; iki değişkenle anahtar ve değer" {
     TR_var j = TR_json_parse(`{"a": [1, 2], "b": "x"}`)
     TR_var anahtarlar = []

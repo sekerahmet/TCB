@@ -326,7 +326,11 @@ func setupListMethods() {
 	})
 	addMethod(typeList, codes.MemContains, signature{1, 1, messages.Text(messages.H2301), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
-			if ValuesEqual(el, args[0]) {
+			eq, err := EqualValues(el, args[0])
+			if err != nil {
+				return nil, err
+			}
+			if eq {
 				return True, nil
 			}
 		}
@@ -337,7 +341,11 @@ func setupListMethods() {
 		for _, el := range inst.(*ListVal).Elements {
 			exists := false
 			for _, u := range unique {
-				if ValuesEqual(el, u) {
+				eq, err := EqualValues(el, u)
+				if err != nil {
+					return nil, err
+				}
+				if eq {
 					exists = true
 					break
 				}

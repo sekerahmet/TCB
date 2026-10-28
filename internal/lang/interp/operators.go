@@ -367,7 +367,11 @@ func equalityResult(equal bool, op string, left, right Value, line int) (Value, 
 		// açar (3.5: 'f == TR_none'), serbesttir.
 		return nil, messages.At(line, 0, messages.New(messages.H2613, op))
 	}
-	return BoolToVal(ValuesEqual(left, right) == equal), nil
+	eq, err := EqualValues(left, right)
+	if err != nil {
+		return nil, messages.At(line, 0, err)
+	}
+	return BoolToVal(eq == equal), nil
 }
 
 // isFunction x bir fonksiyon değeri mi: kullanıcı fonksiyonu, ok fonksiyonu, bağlı metot ya da

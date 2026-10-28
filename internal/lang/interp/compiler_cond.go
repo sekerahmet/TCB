@@ -83,7 +83,11 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 					if err != nil {
 						return nil, signalNone, err
 					}
-					if patternMatches(subj, patVal) {
+					ok, err := patternMatches(subj, patVal)
+					if err != nil {
+						return nil, signalNone, messages.At(line, 0, err)
+					}
+					if ok {
 						matched = true
 						break
 					}
@@ -105,19 +109,20 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 	}
 }
 
-// patternMatches 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil).
-func patternMatches(subj, patVal Value) bool {
+// patternMatches 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil); desen konuyla
+// '==' ile karşılaştırılır (5.6), JSON ve fonksiyon karşılaştırmasının hatası da onunkidir.
+func patternMatches(subj, patVal Value) (bool, error) {
 	if rng, ok := patVal.(*RangeVal); ok {
 		if iv, ok := subj.(*IntVal); ok {
 			if rng.Inclusive && iv.Val >= rng.Start && iv.Val <= rng.End {
-				return true
+				return true, nil
 			} else if !rng.Inclusive && iv.Val >= rng.Start && iv.Val < rng.End {
-				return true
+				return true, nil
 			}
 		}
-		return false
+		return false, nil
 	}
-	return ValuesEqual(subj, patVal)
+	return EqualValues(subj, patVal)
 }
 
 // armValue tek satırlık kolun ('desen => ifade') değerini derler. Kol kendi kapsamını açar (5.12):

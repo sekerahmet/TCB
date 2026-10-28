@@ -387,6 +387,8 @@
 "H2702": { "param": ["value"], "slots": {"match": "TR_kw_match"} },
 "H2703": { "param": ["before", "after"] },
 "H2704": { "param": ["before", "after"] },
+"H2705": { "param": ["kind", "type"], "slots": {"JSON": "TR_type_JSON"} },
+"H2706": { "param": [] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

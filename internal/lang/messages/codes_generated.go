@@ -392,6 +392,8 @@ const (
 	H2702 Code = 2702 // {value}, {@match|gen} hiçbir koluyla eşleşmedi: eşleşme her durumu kapsar; öbür durumlar için son kol olarak '_ => ...' yazın (_ her şeyle eşleşir)
 	H2703 Code = 2703 // dolaşılan liste dolaşma sürerken {before} öğeden {after} öğeye değişti: dolaşılan listeye öğe eklenmez ve ondan öğe çıkarılmaz (var olan öğeye atama serbesttir); eklenecekleri ayrı bir listede toplayıp dolaşmadan sonra ekleyin: l += yeniler
 	H2704 Code = 2704 // dolaşılan sözlük dolaşma sürerken {before} anahtardan {after} anahtara değişti: dolaşılan sözlüğe anahtar eklenmez ve ondan anahtar çıkarılmaz (var olan anahtara atama serbesttir); değişiklikleri ayrı bir sözlükte toplayıp dolaşmadan sonra yazın
+	H2705 Code = 2705 // {kind} türündeki bir {@JSON} değeri {type} tipindeki bir değerle karşılaştırıldı (bir listenin, sözlüğün ya da eşleme deseninin içinde): JSON değeri yalnız JSON değerine eşit olabilir, sonuç hep yanlış olurdu; JSON'u önce tipiyle açın ({kind}(j)) ya da öbür yanı JSON yapın ({@JSON}(x))
+	H2706 Code = 2706 // fonksiyonlar karşılaştırılamaz (bir listenin, sözlüğün ya da eşleme deseninin içinde de): görünüşü aynı iki fonksiyon da eşit sayılmaz; fonksiyonları karşılaştırılan verinin dışında tutun ya da sonuçlarını karşılaştırın: f(x) == g(x)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
