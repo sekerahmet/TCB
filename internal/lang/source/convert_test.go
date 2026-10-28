@@ -15,8 +15,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// encodeDecode Türkçe kaynağın kodlu biçimini verir ve kodlu biçimin çözülünce özgün kaynağa
-// döndüğünü sınar.
+// encodeDecode Türkçe kaynağın (başlıksız) kodlu biçimini verir ve kodlu biçimin çözülünce,
+// görünüm başlığı dışında, özgün kaynağa döndüğünü sınar.
 func encodeDecode(t *testing.T, tr string) string {
 	t.Helper()
 	coded, err := Encode(tr)
@@ -24,10 +24,18 @@ func encodeDecode(t *testing.T, tr string) string {
 		t.Fatalf("%q kodlanamadı: %v", tr, err)
 	}
 	back, err := Decode(coded, codes.Source())
-	if err != nil || back != tr {
+	if back = withoutViewHeader(back, codes.Source()); err != nil || back != tr {
 		t.Fatalf("TR → kod → TR aynı değil (%v)\nözgün: %q\nkodlu: %q\ngeri:  %q", err, tr, coded, back)
 	}
 	return coded
+}
+
+// withoutViewHeader görünümün lang'deki başlık satırını ('# TR 4 view=tr') atar: başlıksız metnin
+// gösterimi, bu satır dışında özgün metindir.
+func withoutViewHeader(text string, lang *codes.Language) string {
+	p, _ := Split(text)
+	p.Body = strings.TrimPrefix(strings.TrimPrefix(p.Body, viewHeader(lang)+"\r\n"), viewHeader(lang)+"\n")
+	return p.Join()
 }
 
 // Kenar durumlar (17.3, 17.4): beklenen kodlu gövde başlıktan sonraki metindir.
@@ -131,7 +139,7 @@ func TestEscapeInOtherLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Header + "\ntanım $kutu = 1\ntanım $sayaç = 2\nsayaç($kutu, $sayaç)\nyapı K {\n    fonksiyon $koy() { sonuç 1 }\n}\ntanım bu = 3\nsayaç([1].haritala { bu + $bu })\n"
+	want := viewHeader(d) + "\ntanım $kutu = 1\ntanım $sayaç = 2\nsayaç($kutu, $sayaç)\nyapı K {\n    fonksiyon $koy() { sonuç 1 }\n}\ntanım bu = 3\nsayaç([1].haritala { bu + $bu })\n"
 	if got != want {
 		t.Errorf("sahte dilde gösterim:\n%s\nbeklenen:\n%s", got, want)
 	}
@@ -210,13 +218,9 @@ func roundTrip(t *testing.T, name, text string) bool {
 	if !strings.Contains(coded, Header) {
 		t.Errorf("%s: kodlu metinde başlık yok", name)
 	}
-	// Başlıksız gösterim kodlanınca başlığı alır; çözülen gösterim başlığı tutar.
+	// Başlıksız gösterim kodlanınca başlığı alır; çözülen gösterim görünüm başlığını taşır.
 	back, err := Decode(coded, codes.Source())
-	if p, perr := Split(back); err == nil && perr == nil {
-		p.Body = strings.TrimPrefix(strings.TrimPrefix(p.Body, Header+"\r\n"), Header+"\n")
-		back = p.Join()
-	}
-	if err != nil || back != text {
+	if back = withoutViewHeader(back, codes.Source()); err != nil || back != text {
 		t.Errorf("%s: TR → kod → TR aynı değil (%v)\n%s", name, err, testkit.FirstLineDiff(text, back, "özgün", "geri"))
 		return false
 	}
@@ -277,6 +281,20 @@ func TestDocCodeBlocksEncodeLossless(t *testing.T) {
 	}
 }
 
+// Kural (2.3): aynı görünen iki yazım aynı addır; kodlama ve gösterim kullanıcının adını sözcük
+// çözümleyicinin okuduğu NFC biçimiyle yazar (ayrık o + U+0308 → ö). Neden: diskteki ad ile
+// programın gördüğü ad bir olsun; arama ve fark araçları iki yazımı ayırmasın.
+func TestEncodeAndShowWriteNFC(t *testing.T) {
+	coded, err := Encode("değişken ögr = 1\nyazdır(ögr)\n")
+	if want := Header + "\nTR_var ögr = 1\nTR_print(ögr)\n"; err != nil || coded != want {
+		t.Errorf("kodlu %q (%v), beklenen %q", coded, err, want)
+	}
+	shown, err := Decode(Header+"\nTR_var ögr = 1\nTR_print(ögr)\n", Turkish())
+	if want := viewHeader(Turkish()) + "\ndeğişken ögr = 1\nyazdır(ögr)\n"; err != nil || shown != want {
+		t.Errorf("gösterim %q (%v), beklenen %q", shown, err, want)
+	}
+}
+
 // A coded file may hold an identity where it cannot stand (a member written as a global name,
 // 2.3a): it cannot be read, so Decode refuses it instead of showing it.
 func TestDecodeRefusesAnUnreadableFile(t *testing.T) {
@@ -317,7 +335,7 @@ func TestDecodeKeepsEscapedUserNameApartFromBuiltin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("etkin dilde çakışan kullanıcı değişkenli kodlu kaynak çözülemedi: %v", err)
 	}
-	want := Header + "\ndeğişken $yazdır = 2\nyazdır($yazdır)\n"
+	want := viewHeader(codes.Source()) + "\ndeğişken $yazdır = 2\nyazdır($yazdır)\n"
 	if got != want {
 		t.Fatalf("çözülen metin:\n%s\nbeklenen:\n%s", got, want)
 	}
@@ -337,8 +355,9 @@ func TestEncodeKeepsUserErrorVarApartFromImplicitCatchName(t *testing.T) {
 	}
 }
 
-// Kural (17.5): konumlar ve hata çerçevesi kişinin gösterim dilindedir: İngilizce gösterimde
-// çerçevenin metni İngilizce satırdır, sütun o satırdaki yeri gösterir; Türkçe gösterimde Türkçe.
+// Kural: yazılan bir metnin (kabuk satırı) görünümü ve konumları o dildedir; eşleme yalnız Go'da,
+// view ve lexer.NewBodyView'dadır. İngilizce görünümde çerçevenin metni İngilizce satırdır, sütun o
+// satırdaki yeri gösterir; Türkçede Türkçe. (Dosyanın konumu dosyanındır: Prepare.)
 func TestViewFollowsTheDisplayLanguage(t *testing.T) {
 	b, err := Split(Header + "\nTR_var x = 1\nTR_print(x, tanimsiz)\n")
 	if err != nil {

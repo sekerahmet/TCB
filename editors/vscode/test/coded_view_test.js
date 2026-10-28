@@ -58,8 +58,10 @@ function showText(file) {
 }
 
 const TURKISH_TEXT = 'değişken sayaç = 0\r\ndöngü i içinde 1..3 {\r\n    sayaç += i\r\n}\r\nyazdır("sayaç: \\(sayaç)") # yorum\r\n';
-// VIEW_TEXT kodlu dosyanın Türkçe gösterimidir: gösterim başlığı ve satırları tutar (2.1).
-const VIEW_TEXT = codedFormat.HEADER + '\r\n' + TURKISH_TEXT;
+// VIEW_HEADER Türkçe görünümün başlığıdır: 'tr göster' başlığa görünümün dilini yazar; satırlar
+// dosyanınkilerdir (2.1). VIEW_TEXT kodlu dosyanın Türkçe gösterimidir.
+const VIEW_HEADER = codedFormat.HEADER + ' view=tr';
+const VIEW_TEXT = VIEW_HEADER + '\r\n' + TURKISH_TEXT;
 
 // ortam bir klasörde kodlu bir dosya yazar ve eklentiyi kurar.
 function makeEnv(s) {
@@ -220,7 +222,7 @@ test('ayrıştırılamayan kodlu dosya (ör. birleştirme çakışması) ham hâ
     b.edit(resolved);
     assert.ok(await b.save());
     assert.strictEqual(fs.readFileSync(o.file, 'utf8'), resolved);
-    assert.strictEqual(showText(o.file), codedFormat.HEADER + '\ndeğişken x = 2\n');
+    assert.strictEqual(showText(o.file), VIEW_HEADER + '\ndeğişken x = 2\n');
 });
 
 test('yazım dili ayarı tr göster ve tr kodla komutlarına --dil ile geçer', async () => {
@@ -246,7 +248,7 @@ test('başka dilde yazılmış kodlu dosya Türkçe düzenlenince aynı kimlikle
     assert.strictEqual(english.output, codedFormat.HEADER + '\nTR_var x = TR_true\nTR_print(x)\n');
     const o = makeEnv({ disk: english.output, settings: { writingLanguage: 'tr' } });
     const b = (await open(o, o.uri)).document;
-    assert.strictEqual(b.getText(), codedFormat.HEADER + '\ndeğişken x = doğru\nyazdır(x)\n');
+    assert.strictEqual(b.getText(), VIEW_HEADER + '\ndeğişken x = doğru\nyazdır(x)\n');
     b.edit(b.getText() + 'yazdır(yanlış)\n');
     assert.ok(await b.save());
     assert.strictEqual(fs.readFileSync(o.file, 'utf8'), codedFormat.HEADER + '\nTR_var x = TR_true\nTR_print(x)\nTR_print(TR_false)\n');
@@ -296,7 +298,7 @@ test('dosya dışarıda değişince görünümün adresiyle bildirilir; tarih di
     const after = await view.stat(address);
     assert.notStrictEqual(after.mtime, before.mtime);
     assert.strictEqual(after.size, fs.statSync(o.file).size);
-    assert.strictEqual(Buffer.from(await view.readFile(address)).toString('utf8'), codedFormat.HEADER + '\nyazdır(1)\n');
+    assert.strictEqual(Buffer.from(await view.readFile(address)).toString('utf8'), VIEW_HEADER + '\nyazdır(1)\n');
     watch.dispose();
     assert.ok(watcher.disposed);
     await assert.rejects(view.stat(Uri.file(path.join(o.folder, 'yok.tr')).with({ scheme: 'tr-coded' })), (e) => e.code === 'FileNotFound');

@@ -38,7 +38,7 @@ func TestEncodeShowCommands(t *testing.T) {
 	codedPath := testkit.WriteFile(t, k, "kodlu.tr", coded)
 
 	s := tr(t, k, "kodla", k)
-	testkit.Wait(t, s, 1, []string{"kodlandı: ", "3 dosya incelendi, 1 dosya kodlandı."}, []string{"bozuk.tr: sözdizimi hatası olan kaynak çevrilmez"})
+	testkit.Wait(t, s, 1, []string{"kodlandı: ", "kodlu.tr\" zaten kodlu, dokunulmadı", "3 dosya incelendi, 1 dosya kodlandı."}, []string{"bozuk.tr: sözdizimi hatası olan kaynak çevrilmez"})
 	if want := source.Header + "\r\nTR_var x = 1\r\nTR_print(\"x: \\(x)\") # yorum\r\n"; readFile(t, filePath) != want {
 		t.Errorf("kodlu dosya: %q, beklenen %q", readFile(t, filePath), want)
 	}
@@ -52,13 +52,24 @@ func TestEncodeShowCommands(t *testing.T) {
 	testkit.Wait(t, tr(t, k, "a.tr"), 0, []string{"x: 1"}, nil)
 	testkit.Wait(t, tr(t, k, "kodlu.tr"), 0, []string{"1"}, nil)
 	testkit.Wait(t, tr(t, k, "kodla", "a.tr"), 0, []string{"1 dosya incelendi, 0 dosya kodlandı."}, nil)
-	// Gösterim başlığı ve satırları tutar, dosyayı değiştirmez.
-	if s := tr(t, k, "göster", "a.tr", "--dil", "tr"); s.Code != 0 || s.Stdout != source.Header+"\r\n"+view {
-		t.Errorf("tr göster: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
+	// Gösterim satırları tutar, başlığa görünümün dilini yazar ('view=tr'), dosyayı değiştirmez.
+	shown := tr(t, k, "göster", "a.tr", "--dil", "tr")
+	if shown.Code != 0 || shown.Stdout != source.Header+" view=tr\r\n"+view {
+		t.Errorf("tr göster: %q (çıkış %d, hata %q)", shown.Stdout, shown.Code, shown.Stderr)
 	}
-	if s := tr(t, k, "göster", "a.tr", "--dil", "en"); s.Code != 0 || s.Stdout != source.Header+"\r\nvar x = 1\r\nprint(\"x: \\(x)\") # yorum\r\n" {
+	if s := tr(t, k, "göster", "a.tr", "--dil", "en"); s.Code != 0 || s.Stdout != source.Header+" view=en\r\nvar x = 1\r\nprint(\"x: \\(x)\") # yorum\r\n" {
 		t.Errorf("tr göster --dil en: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
+	// Göster → düzenle → kodla: görünüm çalışmaz, kodlama komutunu söyler; 'tr kodla' dili başlıktan
+	// okur ('--dil' gerekmez, başka bir dil hatadır) ve dosya çalışır.
+	g := testkit.WriteFile(t, k, "g.tr", strings.Replace(shown.Stdout, "x: ", "x = ", 1))
+	testkit.Wait(t, tr(t, k, "g.tr"), 1, nil, []string{"bu dosya bir 'tr' görünümü", "tr kodla <dosya>"})
+	testkit.Wait(t, tr(t, k, "kodla", "g.tr", "--dil", "en"), 1, nil, []string{"metin bir 'tr' görünümü, ama --dil en verildi"})
+	testkit.Wait(t, tr(t, k, "kodla", "g.tr"), 0, []string{"1 dosya incelendi, 1 dosya kodlandı."}, nil)
+	if want := source.Header + "\r\nTR_var x = 1\r\nTR_print(\"x = \\(x)\") # yorum\r\n"; readFile(t, g) != want {
+		t.Errorf("görünüm kodlanınca: %q, beklenen %q", readFile(t, g), want)
+	}
+	testkit.Wait(t, tr(t, k, "g.tr"), 0, []string{"x = 1"}, nil)
 	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 1, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
 	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 1, nil, []string{"'--dil' bir yazım dili bekler"})
 	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 1, nil, []string{"'tr göster' yazmak mı istediniz?"})
@@ -73,7 +84,8 @@ func TestEncodeShowCommands(t *testing.T) {
 
 // Standart giriş kipi (düzenleyiciler için): 'tr kodla -' ve 'tr göster -' metni girişten okur,
 // çıkışa yalnızca çevrilmiş metni yazar; BOM ve CRLF korunur, iki yön birbirinin tersidir. 'tr kodla
-// -' girişi her zaman gösterim olarak okur (başlıklı olsa da: tr göster'in çıktısı başlığı tutar).
+// -' girişi gösterim olarak okur: görünüm başlığı ('view=tr') varsa dili oradan, yoksa '--dil'den ya
+// da TR_DIL'den alır.
 // Ayrıştırılamayan metin çevrilmez ve 2 koduyla (sözdizimi hatası) çıkar; başka hatalar 1 koduyla.
 func TestEncodeShowStandardInput(t *testing.T) {
 	view := "\xef\xbb\xbfdeğişken eğer_değil = 1\r\nyazdır(eğer_değil) # yorum\r\n"
@@ -82,17 +94,21 @@ func TestEncodeShowStandardInput(t *testing.T) {
 	if encode.Code != 0 || encode.Stdout != want || encode.Stderr != "" {
 		t.Fatalf("tr kodla -: %q (çıkış %d, hata %q), beklenen %q", encode.Stdout, encode.Code, encode.Stderr, want)
 	}
-	shown := "\xef\xbb\xbf" + source.Header + "\r\ndeğişken eğer_değil = 1\r\nyazdır(eğer_değil) # yorum\r\n"
+	shown := "\xef\xbb\xbf" + source.Header + " view=tr\r\ndeğişken eğer_değil = 1\r\nyazdır(eğer_değil) # yorum\r\n"
 	if s := testkit.RunBinary(t, trBinary, "", encode.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != shown {
 		t.Errorf("tr göster -: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
-	// Başlıklı gösterim ve kimliklerle yazılmış metin aynı kodlu biçime kodlanır; başlıksız metin
-	// gösterilince değişmez.
+	// Görünüm (TR_DIL=en'de de, dili başlığındadır) ve kimliklerle yazılmış metin aynı kodlu biçime
+	// kodlanır; başlıksız metin gösterilince değişmez.
 	for _, in := range []string{shown, encode.Stdout} {
 		if s := testkit.RunBinary(t, trBinary, "", in, nil, "kodla", "-"); s.Code != 0 || s.Stdout != encode.Stdout {
 			t.Errorf("%q kodlandı: %q (çıkış %d)", in, s.Stdout, s.Code)
 		}
 	}
+	if s := testkit.RunBinary(t, trBinary, "", shown, []string{"TR_DIL=en"}, "kodla", "-"); s.Code != 0 || s.Stdout != encode.Stdout {
+		t.Errorf("TR_DIL=en'de Türkçe görünüm kodlandı: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
+	}
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", shown, nil, "kodla", "-", "--dil", "en"), 1, nil, []string{"metin bir 'tr' görünümü"})
 	if s := testkit.RunBinary(t, trBinary, "", view, nil, "göster", "-"); s.Code != 0 || s.Stdout != view {
 		t.Errorf("başlıksız metnin gösterimi değişti: %q (çıkış %d)", s.Stdout, s.Code)
 	}
@@ -120,7 +136,7 @@ func TestEnglishWritingLanguage(t *testing.T) {
 		"}\n" +
 		"değişken len = {name: ayar.uzunluk}\n" +
 		"yazdır(len.name)\n"
-	englishText := source.Header + "\n" +
+	englishText := source.Header + " view=en\n" +
 		"var ayar = {step: 3, renk: \"mavi\"}\n" +
 		"for i in 0..ayar.step {\n" +
 		"    if i % 2 == 0 { print(\"\\(i) \\(ayar.renk)\") }\n" +
@@ -139,7 +155,7 @@ func TestEnglishWritingLanguage(t *testing.T) {
 	if back.Code != 0 || back.Stdout != coded.Stdout {
 		t.Fatalf("İngilizce metin aynı kodlu biçime kodlanmadı:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", back.Stdout, back.Code, back.Stderr, coded.Stdout)
 	}
-	if s := testkit.RunBinary(t, trBinary, "", back.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != source.Header+"\n"+turkish {
+	if s := testkit.RunBinary(t, trBinary, "", back.Stdout, nil, "göster", "-"); s.Code != 0 || s.Stdout != source.Header+" view=tr\n"+turkish {
 		t.Errorf("İngilizceden kodlanan metnin Türkçesi özgün değil: %q", s.Stdout)
 	}
 	// Dosya ve klasör kipi de metni kişinin yazım dilinde (TR_DIL) okur, '--dil' ile başkasında;

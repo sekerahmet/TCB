@@ -1,6 +1,7 @@
 package source
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -49,12 +50,18 @@ func Encode(text string) (string, error) { return EncodeIn(text, Turkish()) }
 
 // EncodeIn converts a view written in lang (the whole text) to coded form: the language's words
 // become identities (TR_print), the '$' of '$name' escapes is dropped, identities already written
-// stay. The header and '#!' lines are kept; a text without the header gets it on its first line.
-// The result is verified: the coded program read in lang must give the original's tree, and
-// decoding to lang and re-encoding must not change it; otherwise it returns ErrLossy.
+// stay. The '#!' line is kept; a view's header ('# TR 4 view=tr') becomes the header, a text
+// without the header gets it on its first line. A view written in another language is an error
+// (H2542): its language is in its header. The result is verified: the coded program read in lang
+// must give the original's tree, and decoding to lang and re-encoding must not change it;
+// otherwise it returns ErrLossy.
 func EncodeIn(text string, lang *codes.Language) (string, error) {
 	b, err := Split(text)
-	if err != nil {
+	var ve *ViewError
+	switch {
+	case errors.As(err, &ve) && ve.Lang != lang.Code:
+		return text, messages.New(messages.H2542, ve.Lang, codes.NameRef(codes.OptLang), lang.Code)
+	case err != nil && ve == nil:
 		return text, err
 	}
 	c, err := analyze(b.Body, lang, false, nil, false)
@@ -65,7 +72,10 @@ func EncodeIn(text string, lang *codes.Language) (string, error) {
 	if err := c.sameMeaning(body); err != nil {
 		return "", err
 	}
-	if !b.Coded {
+	switch {
+	case b.View != "":
+		body = setHeader(body, Header)
+	case !b.Coded:
 		body = Header + findEOL(b.Body) + body
 	}
 	result := Parts{BOM: b.BOM, Body: body}.Join()
@@ -93,12 +103,12 @@ func Show(text string, lang *codes.Language) (string, error) { return Decode(tex
 
 // reencodes kodlu metnin lang'e çözülmüş hâli kodlanınca aynı kodlu metni veriyor mu?
 func reencodes(decoded, coded string, lang *codes.Language) bool {
-	b, err := Split(decoded)
-	if err != nil {
+	b, _ := Split(decoded)
+	if b.View != lang.Code {
 		return false
 	}
 	fresh, err := toCoded(b.Body, lang, nil, false)
-	return err == nil && Parts{BOM: b.BOM, Body: fresh}.Join() == coded
+	return err == nil && Parts{BOM: b.BOM, Body: setHeader(fresh, Header)}.Join() == coded
 }
 
 // codedBody gösterimin kodlu biçimidir: anahtar kelimeler ve dilin öğesi olan adlar kimliklerinin
@@ -110,14 +120,25 @@ func (c *analysis) codedBody() string {
 			d = append(d, change{r.Start, r.End, r.Literal})
 		} else if k := c.tokenCode(r); k != codes.None {
 			d = append(d, change{r.Start, r.End, codes.Spelling(k)})
+		} else if c.unnormalized(r) {
+			d = append(d, change{r.Start, r.End, r.Literal})
 		}
 	}
 	return apply(c.input, uniqueChanges(d))
 }
 
+// unnormalized kullanıcı adının metinde NFC biçiminde yazılmadığıdır (ayrık o + U+0308): kodlama
+// ve gösterim adı sözcük çözümleyicinin okuduğu NFC biçimiyle yazar (2.3).
+func (c *analysis) unnormalized(r lexer.Record) bool {
+	return r.Type == lexer.TokIdent && r.Code == codes.None && !c.escaped(r) && r.End <= len(c.input) &&
+		string(c.input[r.Start:r.End]) != r.Literal
+}
+
 // Decode converts coded source (the whole file) to lang's spelling; source without the header is
 // returned as is. Codes become lang's names; user names that would read as a word of the language
-// in lang are written as '$name'. The header and the BOM are kept: the view has the file's lines.
+// in lang are written as '$name'. The BOM is kept and the header becomes the view's header
+// ('# TR 4 view=tr'): the view has the file's lines and says it is a view. A view is not
+// decoded again (ViewError).
 func Decode(text string, lang *codes.Language) (string, error) {
 	b, err := Split(text)
 	if err != nil || !b.Coded {
@@ -129,11 +150,11 @@ func Decode(text string, lang *codes.Language) (string, error) {
 	}
 	view := c.viewBody()
 	// The view must read back as the same program: read in lang and encoded again, it gives
-	// the coded body back.
-	if !reencodesBody(view, b.Body, lang) {
+	// the coded body back (its names in NFC form, as the view writes them, 2.3).
+	if !reencodesBody(view, c.codedBody(), lang) {
 		return "", ErrLossy
 	}
-	return Parts{BOM: b.BOM, Body: view}.Join(), nil
+	return Parts{BOM: b.BOM, Body: setHeader(view, viewHeader(lang))}.Join(), nil
 }
 
 // reencodesBody reports whether the view body, read in lang and encoded again, gives the coded
@@ -156,6 +177,8 @@ func (c *analysis) viewChanges() []change {
 			d = append(d, change{r.Start, r.End, langName(c.lang, r.Code)})
 		case r.Type == lexer.TokIdent && !c.escaped(r) && c.needsEscape(r):
 			d = append(d, change{r.Start, r.End, "$" + r.Literal})
+		case c.unnormalized(r):
+			d = append(d, change{r.Start, r.End, r.Literal})
 		}
 	}
 	return d

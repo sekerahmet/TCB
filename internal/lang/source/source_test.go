@@ -44,6 +44,43 @@ func TestHeaderRules(t *testing.T) {
 	}
 }
 
+// Kural: görünüm dosyası işaretini taşır. 'tr göster' başlığa görünümün dilini yazar ('# TR 4
+// view=tr'; satır sayısı değişmez); görünüm çalışmaz (H2541, başlığın satırında), kodlayıcı dili
+// başlıktan okur, başka bir dille kodlamak hatadır (H2542). Bilinmeyen dilin işareti okunamayan
+// başlıktır (H2512). Neden: dosyanın türü komutun bayrağında değil dosyanın kendisinde olsun;
+// '--dil' unutulunca göster → düzenle → kodla sessizce bozulmasın.
+func TestViewHeader(t *testing.T) {
+	coded := "#!/usr/bin/env tr\n" + Header + "\nTR_var x = 1\nTR_print(x)\n"
+	shown, err := Decode(coded, Turkish())
+	if want := "#!/usr/bin/env tr\n" + Header + " view=tr\ndeğişken x = 1\nyazdır(x)\n"; err != nil || shown != want {
+		t.Fatalf("görünüm %q (%v), beklenen %q", shown, err, want)
+	}
+	var ve *ViewError
+	if b, err := Split(shown); !errors.As(err, &ve) || b.View != "tr" || b.Coded || ve.At != 2 || HeaderLines(shown) != 2 {
+		t.Errorf("görünüm başlığı tanınmalı: %+v, %v, %d", b, err, HeaderLines(shown))
+	}
+	if s := Prepare(shown, Options{TypeCheck: true}); s.Stage != StageSyntax || !messages.Has(s.Errors[0], messages.H2541) || !hasPos(s.Errors[0], 2, 1) {
+		t.Errorf("görünüm çalışmamalı (H2541, 2:1): %v", s.Errors)
+	}
+	if back, err := EncodeIn(shown, Turkish()); err != nil || back != coded {
+		t.Errorf("görünüm kodlanınca kodlu dosyaya dönmeli: %q, %v", back, err)
+	}
+	en, err := codes.LoadLanguage("en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EncodeIn(shown, en); !messages.Has(err, messages.H2542) {
+		t.Errorf("başka dille kodlama H2542 vermeli: %v", err)
+	}
+	if _, err := Decode(shown, Turkish()); !errors.As(err, &ve) {
+		t.Errorf("görünüm yeniden gösterilmemeli: %v", err)
+	}
+	var bh *HeaderError
+	if _, err := Split(Header + " view=xx\n"); !errors.As(err, &bh) {
+		t.Errorf("bilinmeyen dilin işareti okunamayan başlıktır: %v", err)
+	}
+}
+
 func hasPos(err error, line, col int) bool {
 	l, c, ok := messages.Pos(err)
 	return ok && l == line && c == col

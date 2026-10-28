@@ -8,6 +8,7 @@
 package source
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -24,6 +25,11 @@ const Header = "# TR 4"
 // okuyamadığı bir biçimdir (sessizce başlıksız sayılmaz).
 const headerPrefix = "# TR "
 
+// viewMarker görünüm başlığının işaretidir: 'tr göster' başlığa görünümün dilini yazar
+// ('# TR 4 view=tr'); satır sayısı değişmez. Dosyanın türü dosyanın kendisindedir: görünüm
+// çalışmaz (ViewError), 'tr kodla' dili oradan okur.
+const viewMarker = " view="
+
 // shebang ilk satırdaki yorumdur: dosya betik gibi doğrudan çalıştırılır (./program.tr, 2.1).
 const shebang = "#!"
 
@@ -35,6 +41,9 @@ type Parts struct {
 	BOM bool
 	// Coded reports whether the file has the header: it is a TR file, written with identities.
 	Coded bool
+	// View is the writing language of a view (its header '# TR 4 view=tr', tr göster's output);
+	// "" otherwise. A view is not coded and does not run (ViewError).
+	View string
 	// Body is the text after the BOM, the '#!' and header lines included: they are comments, and
 	// positions are the file's own (line 1 is the file's first line).
 	Body string
@@ -69,9 +78,29 @@ func NoHeaderError() error {
 		codes.NameRef(codes.OptLang), codes.Display().Code))
 }
 
+// ViewError is returned for a view file: its header carries the view's writing language
+// ('# TR 4 view=tr', tr göster's output). A view is text in a writing language and does not run;
+// the message gives the encoding command.
+type ViewError struct {
+	Lang string
+	// At is the header line's number (1, or 2 after '#!').
+	At int
+}
+
+// Unwrap returns the message at its position (messages.Pos).
+func (e *ViewError) Unwrap() error {
+	return messages.At(e.At, 1, messages.New(messages.H2541, e.Lang, codes.NameRef(codes.CmdEncode)))
+}
+
+func (e *ViewError) Error() string { return e.Unwrap().Error() }
+
+// MessageText hatanın lang dilindeki metnidir (messages.Localized).
+func (e *ViewError) MessageText(lang string) string { return messages.ErrorIn(e.Unwrap(), lang) }
+
 // Split splits text into its parts. The header is the first line, or the second when the first
 // starts with '#!'; if that line starts with the header's prefix but is not the header (another
-// format version), it returns *HeaderError.
+// format version), it returns *HeaderError. A view's header ('# TR 4 view=tr') sets View and
+// returns *ViewError: only the encoder reads a view.
 func Split(text string) (Parts, error) {
 	b := Parts{}
 	if strings.HasPrefix(text, bom) {
@@ -88,10 +117,28 @@ func Split(text string) (Parts, error) {
 	switch {
 	case line == Header:
 		b.Coded = true
+	case strings.HasPrefix(line, Header+viewMarker) && slices.Contains(codes.Languages(), line[len(Header+viewMarker):]):
+		b.View = line[len(Header+viewMarker):]
+		return b, &ViewError{Lang: b.View, At: at}
 	case strings.HasPrefix(line, headerPrefix):
 		return b, &HeaderError{Line: line, At: at}
 	}
 	return b, nil
+}
+
+// viewHeader lang'deki görünümün başlığıdır ('# TR 4 view=tr').
+func viewHeader(lang *codes.Language) string { return Header + viewMarker + lang.Code }
+
+// setHeader gövdenin başlık satırını (ilk satır, '#!' varsa ikincisi) header yapar; satır sonu ve
+// öbür satırlar olduğu gibi kalır.
+func setHeader(body, header string) string {
+	prefix := ""
+	line, rest, eol := firstLine(body)
+	if strings.HasPrefix(line, shebang) {
+		prefix = line + eol
+		line, rest, eol = firstLine(rest)
+	}
+	return prefix + header + eol + rest
 }
 
 // HeaderLines is the number of the text's first lines that are its '#!' line and header (0 when
@@ -99,7 +146,7 @@ func Split(text string) (Parts, error) {
 // comment and a template body does not carry it.
 func HeaderLines(text string) int {
 	b, err := Split(text)
-	if err != nil || !b.Coded {
+	if b.View == "" && (err != nil || !b.Coded) {
 		return 0
 	}
 	if strings.HasPrefix(b.Body, shebang) {
