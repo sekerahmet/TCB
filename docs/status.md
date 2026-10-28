@@ -500,3 +500,30 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
   - dil tanımında 10 bölümde 1 034 eski sınıflı yazım var: 15'te 557, 20'de 187, 18'de 106, 19'da 74, 16'da 35, 11'de 32, 12'de ve 10'da 15'er, 14'te 5 [ölçüldü: DENETİM]; öbür belgeler 2.1'in satırında;
   - başka bölümler eski 17'yi anlatıyor: 14:11 (gösterime göre sütun), 19:13 ve 19:28 ile 20:32 (kodlu sözlük anahtarı, bugün sözdizimi hatası); 17'ye göndermeler eski numarada (20:47 ve 20:67 → 17.8, 20:102 → 17.10, 19:13 → 17.9) [kanıtlı: DENETİM].
 - **Yapılacaklar:** bölümler yeniden yazılırken kimlik yazımı ve 17 göndermeleri; 15 bu turda yazılıyor, 19 ve 20 sırada.
+
+## 20. Kontrol noktası
+
+Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. DENETİM bekleniyor.
+
+### 20.2
+
+- **Mevcut durum:** sözlük anahtarlarında eski kodlu anahtar kuralı metinden kalktı (bugün sözdizimi hatası). Tam sayılı işaretli tensör (argmax'in sonucu) model olarak kaydediliyor [ölçüldü].
+- **Yapılacaklar:** gerçek tam sayı ve mantık tensörlerinin (15'in A'sı) kaydı ve yüklemesi; adlar `TR_named_parameters` ile (13.8a).
+
+### 20.11
+
+- **Yapılacaklar:** cins farkının hatası (15.1).
+
+### 20.12, 20.13
+
+- **Mevcut durum:** `TR_load_state` bugün mantık değeri döndürüyor.
+- **Yapılacaklar:** değer döndürmez (13'ün "anlamsız dönüş yoktur" kuralı); göç.
+
+### 20.16
+
+- **Mevcut durum:** nazik durdurmada süreç 3 koduyla, ikinci istekte 130 koduyla çıkıyor; 1.9'un "isteğin sinyaliyle biter" kuralı bekliyor.
+
+### 20.17
+
+- **Mevcut durum:** kontrol noktası kurulduktan sonra tohumsuz rastgelelik bir uyarı veriyor, üretecin durumu kaydedilmiyor [ölçüldü].
+- **Yapılacaklar:** paylaşılan üretecin durumunun kaydı ve geri yüklenmesi; TR testi.
