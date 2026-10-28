@@ -371,32 +371,37 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ## 13. Yerleşikler
 
-Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 1. tur (2026-10-28): ana oturum yazdı, DENETİM bekleniyor.
+Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 2. tur (2026-10-28): ana oturum yazdı, 1. turu DENETİM ve ana oturum inceledi, bulgular işlendi; 2. turun DENETİM'i bekleniyor. `tests/yerlesikler_test.tr` eski kuralları da sınıyor (kazanan değerin tipi, sayı hücreli CSV, `TR_mean`'in tek tek değerleri); kural uygulanırken yeniden yazılır.
 
 ### 13.1
 
-- **Mevcut durum:** `TR_sum([1, 2])` `TR_Int`, `TR_sum([1, 2.5])` 3.5; `TR_max([])` `TR_none`; `TR_round(2.5)` 3; sayı olmayan öğe H2486 [ölçüldü].
-- **Yapılacaklar:** boş listede `TR_std` ve `TR_median`'ın hatası ölçülmedi.
+- **Mevcut durum:** `TR_max` kazanan değerin tipini veriyor: `TR_max(2, 1.5)` `TR_Int` 2, `TR_max(1, 1.5)` `TR_Float` 1.5; metin argüman hata; `TR_max([])` `TR_none`; `TR_max(1)` 1 veriyor; `TR_mean(1, 2)` 1.5 (depoda 2 yer); `TR_round(5, 2)` `TR_Float` 5.0, `TR_round(3.7, 0)` `TR_Int` 4, `TR_round(TR_nan)` hata; `TR_print` yazdığı metni, `TR_sleep(0)` ve `TR_wait_all()` `TR_true` döndürüyor; boş listede `TR_mean`, `TR_std`, `TR_median` hata [ölçüldü: DENETİM].
+- **Yapılacaklar:** karışık sayıların `TR_Float`'ı, metnin sıralanabilir sayılması, boş listede `TR_min`/`TR_max`'ın hatası, tek argümanın hatası, `TR_mean`/`TR_std`/`TR_median`'ın yalnız liste alması, `TR_round`'un üç imzası, değer döndürmeyen üç yerleşik.
+
+### 13.2
+
+- **Mevcut durum:** harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
+- **Yapılacaklar:** yok.
 
 ### 13.6
 
-- **Mevcut durum:** `TR_reduce(0, (a, x) => a + x)` çalışıyor [ölçüldü].
-- **Yapılacaklar:** tek parametreli ve başa yazılmış fonksiyonun iletisi ölçülmedi.
+- **Mevcut durum:** `TR_reduce(0, (a, x) => a + x)` çalışıyor; başa yazılan ve tek parametreli fonksiyon hata, ama iletiler (H2475, H2476) eski sondaki blok yazımını öneriyor; 3A düzeltiyor [ölçüldü: DENETİM].
+- **Yapılacaklar:** iletilerin testi 3. katman birleşince.
 
 ### 13.8
 
-- **Mevcut durum:** `TR_json_parse` `TR_Dict` veriyor, `TR_JSON` değil [ölçüldü].
-- **Yapılacaklar:** `TR_json_parse` `TR_JSON` verir (3.7a ile).
+- **Mevcut durum:** `TR_json_parse` `TR_Dict` veriyor; `TR_json_string({1: 2})` anahtarı sessizce metne çeviriyor (`{"1":2}`); CSV hücresi sayıya benziyorsa sayı (`[["007", 7]]`) [ölçüldü].
+- **Yapılacaklar:** `TR_json_parse` `TR_JSON` verir (3.7a); metin olmayan anahtarın hatası; CSV hücresi hep metin (göç: `.tr`'de 10 kullanım).
 
 ### 13.9
 
-- **Mevcut durum:** katalog 188 fonksiyon ve metodun 168'inin imzasını tutuyor; 20 kitaplık fonksiyonunun (`tr/hazir`, `tr/katman`, `tr/egitim` gibi) imzası yok. Tipler öğesiz (`TR_List`, `TR_Dict`), fonksiyon tipi tek bir `TR_Function`, genel tip `TR_Any` 3.11'e karşın kullanılıyor [ölçüldü].
-- **Yapılacaklar:** her yerleşiğin imzası, öğe ve fonksiyon tipleriyle; TR modüllerinin imzasıyla katalogun aynı olduğunu sınayan test; `docs/codes.md`'nin imzayı göstermesi (4a).
+- **Mevcut durum:** katalog 188 fonksiyon ve metottan 138 Go yerleşiğinin imzasını tutuyor; 50'si TR ile yazılmış kitaplıkta (29 fonksiyon, 21 metot), imzası kaynakta. Tipler öğesiz (`TR_List`, `TR_Dict`), fonksiyon tipi tek bir `TR_Function`, yerleşiğin tipi `TR_BuiltinFunction` (11 yerde), genel tip `TR_Any` 24 yerde [ölçüldü: DENETİM].
+- **Yapılacaklar:** imzalar öğe ve fonksiyon tipleriyle; `TR_BuiltinFunction` ve `TR_Any` kalkar; Go testi (4a).
 
 ### 13.10
 
-- **Mevcut durum:** 38 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi: "Int ya da Float ya da Tensor"); yalnız 7 metodun alıcıya göre ayrı imzası var (`TR_append`, `TR_contains`, `TR_get`, `TR_next`, `TR_reverse`, `TR_split`, `TR_update`) [ölçüldü].
-- **Yapılacaklar:** birleşim dönüşler ayrı imzalara; `TR_Any` tip parametresine (4a).
+- **Mevcut durum:** 35 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi), `TR_tolist`'in özelliği de; dönüşü argümanın değerine bağlı üç yer: `TR_tolist` (tensörün boyutu), `TR_decode` (toplu giriş), `TR_parameters` (`TR_named:`); 9 yerleşik değişken sayıda argüman alıyor; yalnız 7 metodun alıcıya göre ayrı imzası var [ölçüldü: DENETİM].
+- **Yapılacaklar:** kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
 
 ### 13.11
 
