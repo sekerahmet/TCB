@@ -60,8 +60,8 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ### 2.13
 
-- **Mevcut durum:** hata kaydı hazır (katman 2b, 1. evre, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının ve denetleyicinin hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltme taşıyor; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir, ad önerileri uygulanamaz öneri. Metin kipinde denetleyicinin iletileri artık sütunu da yazıyor. Kayıt henüz dışarı verilmiyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
-- **Yapılacaklar:** `TR_cmd_check --json` kaydı JSON satırları olarak yazar, kullanım hataları dahil, Go e2e testiyle (2b, 2. evre). Düğüm aralığı kapanış `)` ve `}`'yi içermiyor; 2.13'e bir cümleyle yazılır.
+- **Mevcut durum:** `TR_cmd_check --json` çalışıyor (katman 2b, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının, denetleyicinin ve komut satırının hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltmeyle JSON satırları olarak; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir. Metin kipinde denetleyicinin iletileri sütunu da yazıyor [ölçüldü].
+- **Yapılacaklar:** başlık hatasının (H2540) bitişi; ana dosyadaki okunamayan modülün (H2131) sütunu ve bitişi; iç içe modülün `TR_import` hatasının dosyası (yorumlayıcıda `ModuleError` sarmalayıcısı); `TR_cmd_check`'te dosyadan sonraki öbür argümanların durumu (1.4); aktarılan modülün uyarıları [ölçüldü: DENETİM].
 
 ## 3. Tipler ve değerler
 
