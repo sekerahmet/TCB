@@ -1,10 +1,10 @@
 # Durum
 
-Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. İşlerin sırası [yol haritasındadır](roadmap.md). Bu belgede kimlikler dil tanımının yazımıyla anılır (`TR_if`, 2.3a); bugünkü kod onları sınıflı yazımla tanıyor (TR_kw_if biçimi).
+Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve kurala varmak için yapılacaklar. Her maddenin kuralı dil tanımındadır ([`docs/spec/`](spec/README.md)); yapılan iş testiyle birlikte buradan silinir. İşlerin sırası [yol haritasındadır](roadmap.md). Bu belgede kimlikler dil tanımının yazımıyla anılır (`TR_if`, 2.3a).
 
 ## 1. Program
 
-Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27).
+Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). 1.3–1.15 uygulandı (katman 1b, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar.
 
 ### 1.1
 
@@ -28,196 +28,31 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.3
 
-- **Mevcut durum:**
-  - Çalıştırmada modülün hatası `TR_import` satırında çıkıyor, aktaranın önceki satırları çalışmış oluyor (11.4).
-  - `TR_cmd_check` modülü geçiriyor, çalıştırma reddediyor; iki ayrı yol var.
-  - `TR_cmd_debug` tip denetimini hiç yapmıyor, hatalı programın satırları çalışıyor [ölçüldü, DENETİM].
-  - Takma adsız `TR_import` olan kapsamda tanımsız adlar çalışmadan önce aranmıyor (5.14).
-  - `TR_import` her yerde yazılabiliyor ve adları bulunduğu bloğa getiriyor [ölçüldü].
-- **Yapılacaklar:**
-  - Çalıştırma, `TR_cmd_check`'in yolunu kullanarak bütün modülleri önce denetler; ikinci yol silinir.
-  - `TR_cmd_debug` de denetler.
-  - `TR_import` yalnız dosyanın başında yazılır.
-  - Takma adsız aktarmada tanımsız ad çalışmadan önce bulunur.
-
-### 1.4
-
-- **Mevcut durum:**
-  - Argüman okunmadan program biterse bitişte uyarı yazılıyor, çıkış kodu değişmiyor.
-  - Komut satırı çözümleyicisi `--ros-args`'ı bilinmeyen seçenek sayıyor.
-- **Yapılacaklar:**
-  - Argüman verilip programın en dışından ulaşılabilen bir `TR_command_line` çağrısı yoksa program çalışmadan kullanım hatası verir (2); ulaşılabilirlik kesin değilse çağrı var sayılır.
-  - Böyle bir programa yalnız yardım seçeneği (`-h` ya da `--help`) verilirse "seçeneği yok" yazılır, çıkış 0 (yeni ileti kodu).
-  - Bitişteki uyarı silinir.
-  - ROS 2'nin `--ros-args` blokları ve dağıtık eğitim başlatıcılarının `--local-rank=N`, `--local_rank=N` argümanı programın argümanlarından ayrılır.
+- **Mevcut durum:** takma adsız `TR_import` olan kapsamda tanımsız adlar çalışmadan önce aranmıyor (5.14).
+- **Yapılacaklar:** takma adsız aktarmada tanımsız ad çalışmadan önce bulunur.
 
 ### 1.5
 
-- **Mevcut durum:**
-  - Süreç temizlikten sonra 3 koduyla çıkıyor.
-  - Çalışan her yerleşik önce bitiyor; `TR_input` satır beklerken ilk istek beklemeyi kesmiyor.
-  - Ağ yerleşiği yok; TR alt süreç açmıyor (19.1).
-  - SIGUSR1'in bugün ne yaptığı ölçülmedi.
+- **Mevcut durum:** hesap çekirdeğinin (CPU) ortasında bırakma yok, süren hesap biter; ağ yerleşiği yok; TR alt süreç açmıyor (19.1).
 - **Yapılacaklar:**
-  - Süreç isteğin kendi sinyaliyle biter; SIGUSR1 de durdurma isteği olur.
-  - Durum değiştirmeyen yerleşik ve bekleme bırakılır, önce `TR_input` ve dosyadan yükleme; bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır.
-  - Yığın çözülürken ertelenen işlerdeki beklemeler bırakılmaz (bugün `interruptibleSleep` kesmede hemen dönüyor [kanıtlı, DENETİM]).
-  - Durum değiştirenlerin listesi yazılır ve sınanır: `TR_backward`, iyileştirici adımı, indeksle atama, `TR_write_slice`, dosyaya yazma, üretecin ve yükleyicinin ilerlemesi (yükleyicinin bir sonraki parçayı beklemesi dahil).
+  - Bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır; CPU çekirdeğinin ortasında bırakma.
   - TR alt süreç açmaya başlarsa (19.1) bu madde ona göre genişler: istek alt sürece, kendisi zaten almadıysa iletilir.
-
-### 1.6
-
-- **Mevcut durum:**
-  - `TR_handle_stop` ve `TR_stop_requested` yok (adları onaylı).
-  - Kontrol noktası kuruluyken bekleme uyanmıyor.
-  - Son kayıttan sonra gelen istek kayboluyor, çıkış 0 [ölçüldü, DENETİM].
-  - Ertelenen durdurma bayrağı temizlenmiyor, `.TR_save()` iki kez kaydediyor [ölçüldü, DENETİM].
-- **Yapılacaklar:**
-  - İki yerleşik; "durdurma istendi" hatası için ileti kodu.
-  - Üstlenen programda yeni bir şey bekleyen yerleşik, `TR_sleep` dahil, bu hatayla döner.
-  - `TR_defer` bloklarında ve bu hatayı yakalayan `TR_catch` gövdesinde beklemeler normal çalışır.
-  - Kontrol noktası isteği yalnız kaydeder, beklemeleri hataya çevirmez; istekten sonraki ilk kayıtta durur, bitişte kaydetmez.
-  - Program `TR_handle_stop` ile de üstlendiyse kontrol noktası yalnız kaydeder, durmayı programa bırakır.
-  - Erteleme süreyle sınırlı: şimdiye kadarki en uzun iki ardışık `.TR_update` arasının iki katı içinde kayda varılmazsa ya da istek ikinci güncellemeden önce geldiyse istek 1.5'teki gibi uygulanır.
-
-### 1.7
-
-- **Mevcut durum:** ikinci istekte süreç sinyalle değil, 130 koduyla çıkıyor.
-- **Yapılacaklar:** ikinci istekte süreç SIGINT ile biter.
-
-### 1.8
-
-- **Mevcut durum:** kuralın uygulanacak bir yanı yok; süre sınırı süreci başlatanındır.
-- **Yapılacaklar:** yok.
-
-### 1.9
-
-- **Mevcut durum:**
-  - Durdurmada 3 ve 130 kodlarıyla çıkılıyor.
-  - `tr` aracının kendi kullanım hatası 1 veriyor.
-  - Bir görevdeki yakalanmayan hata yazılıyor ama çıkış 0 [ölçüldü, DENETİM].
-  - Program sona gelince önce görevleri bekliyor, ertelenen işler sonra çalışıyor [ölçüldü, DENETİM]; kuralla aynı.
-- **Yapılacaklar:**
-  - İstek geldiyse süreç isteğin sinyaliyle biter (1.5, 1.7 ile); durdurmayı üstlenen program sona gelirse sinyal, `TR_exit(kod)` ile o kod.
-  - Görevdeki yakalanmayan hata olduysa çıkış 1; görevin ve ertelenen işin hatası `TR_exit`'in kodundan önce gelir.
-  - Yakalanmayan hatayla biten programda görevler 1.5'teki gibi durur ve beklenir, sonra ertelenen işler çalışır; bugün görevler durdurulmadan ertelenen işler çalışıyor [kanıtlı: DENETİM, `vm.go:401–405`].
-  - SIGUSR1'de süreç 128+10 ile çıkar (Go bu sinyalle ölemez).
-  - `tr` aracının kullanım hatası 2 verir.
-
-### 1.10
-
-- **Mevcut durum:** `TR_exit` yok; programın en dışındaki `TR_return` çalışıyor (1.14'teki ölçüm).
-- **Yapılacaklar:** yerleşik eklenir: nazik çıkış, `TR_defer` çalışır, `TR_catch` yakalamaz, görevden çağrılınca bütün program biter.
-  - Programın en dışındaki `TR_return` sözdizimi hatası olur; depodaki kullanımlar `TR_exit`'e çevrilir.
-
-### 1.11
-
-- **Mevcut durum:** `TR_exit` olmadığı için yok.
-- **Yapılacaklar:** 0–125 dışındaki kod çalışma hatasıdır.
-
-### 1.12
-
-- **Mevcut durum:** `TR_exit` olmadığı için yok.
-- **Yapılacaklar:** `TR_cmd_test` altında `TR_exit` testi düşürür, öbür testler sürer.
-
-### 1.13
-
-- **Mevcut durum:** `TR_exit` olmadığı için yok.
-- **Yapılacaklar:** ertelenen işten çağrılan `TR_exit` kodu değiştirir; durdurmayı üstlenmemiş programa istek geldiyse sinyal korunur.
-
-### 1.14
-
-- **Mevcut durum:**
-  - Program sona gelince ve en dıştaki `TR_return` ile ertelenen işin hatası yazılıyor, çıkış 1 [ölçüldü].
-  - Komut satırı çözümleyicisinin yardım ve kullanım hatası çıkışları ertelenen işin hatasını yutuyor, çıkış 0 ya da 2 [ölçüldü, DENETİM].
-- **Yapılacaklar:**
-  - Komut satırı çözümleyicisinin çıkışlarında da hata yazılır, çıkış 1.
-  - `TR_exit` ve durdurma kısımları 1.10 ve 1.5 ile.
-
-### 1.15
-
-- **Mevcut durum:** ölçülmedi.
-- **Yapılacaklar:** önce ölçülür; bitişte gelen ilk Ctrl+C ertelenen işleri kesmez, işler bitince süreç SIGINT ile biter.
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). Sonradan değişen ve henüz denetlenmeyenler: yorumun `#`, başlığın `# TR 4` olması, 2.1a'nın `TR_` iskelet kuralı, 2.3b'de yerel sabitin küçük harfle yazılması. Eski 2.9a (her dilde tek yazım) ve 2.11 (diller arası ad kuralı, $ad kaçışı) gösterim dilleri bölümüne gitti; o numaralar boş kalır. `tests/` altındaki 2.9a, 2.11 ve 2.12 numaralı testler, testler koşulmadan önce taşınır ya da silinir; yoksa her test numarasını bir kurala bağlayan kapı kalır. Kapılar da testlerle birlikte düzelir: `TestEveryRuleHasATest` harfli kural örneği olarak 2.9a'yı ve 6.3a'yı sabit arıyor, ikisi de artık tanımda yok (yerine 2.1a ve 3.7a); kimlik kapısı `TR_` ile başlayan sözcükleri hiç denetlemiyor, TR_ ile yazılan her sözcüğü yerine göre bir kimliğe çözmeli (onaylı yeni adlar ve bilerek yanlış örnekler bir listede); gerekçe dosyalarının düzenini ve aynı yerde çakışan kimlik olmamasını koruyan test yok. Eski 2.12 (çıplak ileti kodu) kalktı. Anlamı değişmeyen maddelerin bugünkü TR testi var; aşağıda yalnız değişen ya da eksik olanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). 2.1–2.10 uygulandı (katman 1, iki DENETİM turundan geçti, 2026-10-28); aşağıda yalnız kalanlar.
 
 ### 2.1
 
-- **Mevcut durum:** başlığı olmayan metin bugün Türkçe yazılmış sayılıp okunuyor. Başlık bugün eski biçimde (tr kodlu 3 dil=tr): bir Türkçe sözcük ve dosyanın dilini taşıyor. Programın sonucu bu dile bağlı: `TR_print(TR_true)` dil=tr ile "doğru", dil=en ile "true" yazdırıyor [ölçüldü].
-- **Yapılacaklar:** diskteki her dosya kodludur; başlıksız dosya çalışmaz, ileti kodlama yolunu söyler. Bilerek bozuk sınav dosyaları, belgelerdeki kod blokları ve Go testlerindeki TR metni kodlu biçime geçer.
-  - Başlık `# TR 4`; bugün tanınmıyor, dosya başlıksız sayılıp hata veriyor [ölçüldü]. 1. ve 2. bölümün kod blokları yeni başlıkla yazıldı; başlık uygulanana kadar belgelerdeki kod bloklarını çalıştıran testler kalır. Dosyanın dili kalkınca programın sonucu hiçbir dile bağlı olmaz (değer metni ve hata metni ilgili bölümlerde).
-  - İlk satırdaki `#!` yok sayılır; bugün sözdizimi hatası veriyor [ölçüldü].
-  - İletilerdeki satır numarası başlık satırını saymıyor: dosyanın 3. satırındaki hata "Line 2" olarak bildiriliyor [ölçüldü: 84ee01b8, `TR_cmd_check`]. Konum dosyanın gerçek satırıdır, başlık dahil.
-
-### 2.1a
-
-- **Mevcut durum:** Yunan ve Latin harfli `θ_eski` "farklı yazı sistemlerinin harfleri karışık" hatası veriyor [ölçüldü].
-- **Yapılacaklar:** dosyanın ve aktardığı adların arasında UTS #39 iskeleti aynı iki ad hata; iskeleti `TR_` ile başlayan kullanıcı adı hata (bugün `ТR_print` karışık yazı sistemi hatası veriyor [ölçüldü, DENETİM]); tek bir addaki karışık yazı sistemi uyarı.
-
-### 2.2
-
-- **Mevcut durum:** yorum `//` ve `/* */` ile yazılıyor, iç içe yorum hata veriyor; `#` "TR'de yorum değil" hatası veriyor [ölçüldü].
-- **Yapılacaklar:** yorum `#` ile; `//` tam bölme (4.2a); `/* */` kalkar; satır başındaki `//` ve `/*` iletisi `#`'i önerir. Depodaki bütün kodlu dosyalar ve belgelerdeki kod blokları çevrilir.
-
-### 2.3
-
-- **Mevcut durum:** adlar karşılaştırılmadan önce normalleştirilmiyor (sözcük çözümleyicide normalleştirme yok).
-- **Yapılacaklar:** adlar NFC'ye göre karşılaştırılır; kodlama ve gösterim de aynı biçimi kullanır.
-
-### 2.3 (ad kuralı)
-
-- **Mevcut durum:** adın harf, rakam ve `_` ile yazıldığı bugünkü kural birleşen işaretleri kapsıyor mu ölçülmedi.
-- **Yapılacaklar:** UAX #31 (XID_Start, XID_Continue) ile okunur.
+- **Mevcut durum:**
+  - Belgelerde ters tırnak içinde sınıflı kimlik yazımı kalıyor (`TR_kw_…`, `TR_fn_…`, `TR_mem_…`; 48 belgede yaklaşık 2 770 yer, spec ve arşiv hariç) [ölçüldü: katman 1].
+  - Bölüm 11 ve 17 eski başlığı, dosyanın dilini, iç içe aktarmayı ve gösterime göre konumu anlatıyor (11.3'ün eşzamanlı aktarma cümlesi, 17.1, 17.4, 17.5, 17.7); bölümler yeniden yazılınca düzelir.
+- **Yapılacaklar:** belgelerdeki sınıflı yazım `tools/migrate`'in kimlik çevirisiyle çevrilir.
 
 ### 2.3a
 
-- **Mevcut durum:** kimlikler sınıflı yazılıyor (TR_kw_if, TR_fn_print). Listede olmayan kimlik hata veriyor ama en yakın kimliği önermiyor: TR_fn_prnt ve x.TR_fn_map için ileti yalnız "bilinen bir kimlik değil" diyor [ölçüldü].
-- **Yapılacaklar:** program metninde sınıfsız yazım (`TR_print`, `x.TR_map`); sınıfı yer belirler. Kimlik çizelgesi yerle birlikte okunur; aynı ad iki yerde aynı kavramsa (argüman ve üye olarak lr) çeviri adları birleştirilir. Depodaki bütün kodlu dosyalar ve belgeler yeni yazıma çevrilir.
-  - İleti, ad başka bir yerde geçerliyse doğru yeri, değilse o yerde yazımca en yakın kimliği önerir; uzaklık `TR_`'den sonraki adda ölçülür, komşu harflerin yer değiştirmesi tek değişikliktir.
-  - `TR_`'siz ve başka dillerden tanıdık adlar önerilir: bugün `print(2)` yalnız "there is no variable or function named 'print'" diyor, `True` ve `TR_fn_argv` için de öneri yok [ölçüldü: 84ee01b8]. Tanıdık adlar (`foreign`, bugün `tr.json`'da 73 kodda) kimliğin tanımına (`definitions.json`) taşınır; başka dillerin sözcükleri eklenir (`True`, `False`, `None`, `null`, `nil`, `def`, `fn`, `elif`).
-  - Kitaplığın kimlikle adlanmış parametresi gövdede aynı adlı yerleşiği gölgeler (`lib/iyilestirici.tr`'de `TR_parameters` ve `TR_min`, `lib/katman.tr`'de `TR_rope_theta`).
-
-### 2.3b
-
-- **Mevcut durum:** her sabit büyük harf istiyor: fonksiyonun içindeki küçük harfli sabit de ad yazılışı uyarısı veriyor [ölçüldü].
-- **Yapılacaklar:** büyük harf yalnız dosyanın en dışındaki sabitte; yerel sabit küçük harfle yazılır. Depodaki yerel sabitler çevrilir.
-
-### 2.4
-
-- **Mevcut durum:** `0x1F` sözdizimi hatası veriyor [ölçüldü]; aralığı aşan tam sayı yazımı hata veriyor, ileti ondalık yazımı öneriyor [ölçüldü], kuralla aynı.
-- **Yapılacaklar:** `0x1F`, `0o17`, `0b1010` biçimindeki ön ekler ve ön ekten sonra `_`.
-  - `0X1F` bugün genel bir sözdizimi hatası veriyor ("')' bekleniyordu"), küçük harfli ön eki önermiyor [ölçüldü]; ileti `0x1F`'yi önerir.
-
-### 2.6
-
-- **Mevcut durum:** `\u{...}` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü]. Bilinen kaçışlar arasında `\'`, `\{` ve `\}` var.
-- **Yapılacaklar:** `\u{...}` kaçışı; bilinmeyen kaçış iletisi bilinenlere onu da ekler.
-  - Tek tırnaklı metin kalkar, iletisi çift tırnağı önerir; depodaki kullanımlar çift tırnağa çevrilir.
-  - `\{` ve `\}` kaçışları kalkar (2.7).
-
-### 2.7
-
-- **Mevcut durum:** yerleştirme `{x}` ile yapılıyor; `"a \(1 + 2) b"` bilinmeyen kaçış dizisi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** yerleştirme `\(x)` ile; `{` metinde sıradan karakter. Depodaki metinler çevrilir: `{x}` → `\(x)`, `\{` ve `\}` → `{` ve `}`.
-  - Tırnaklı metinde kapsamdaki bir adın `{konu}` ya da `${konu}` yazımı uyarı, `\(konu)`'ı önerir; ham metinde yalnız `${konu}`. Bugün yok (bugün `{x}` yerleştirmedir).
-
-### 2.8
-
-- **Mevcut durum:** çağrısız tek başına ifadenin bugünkü davranışı ölçülmedi.
-- **Yapılacaklar:** çağrısız tek başına ifade (`-x`, `a + b`) denetim hatası.
-
-### 2.9
-
-- **Mevcut durum:** `TR_while` ve `TR_default` çalışıyor [ölçüldü].
-- **Yapılacaklar:** ikisi kalkar; koşullu döngü `TR_for` ve bir koşulla, varsayılan kol `_` ile yazılır; depodaki kullanımlar çevrilir.
-  - İkisi yazılırsa ileti TR'deki yazımı söyler.
-
-### 2.12 (kalktı)
-
-- **Mevcut durum:** `H6903` gibi çıplak ileti kodu metin değeri olarak okunuyor.
-- **Yapılacaklar:** bu sözcük sınıfı kalkar; ileti kodu metin olarak yazılır (`"H6903"`); `H6903` sıradan bir ad olur.
+- **Mevcut durum:** kimlik kapısı (`TestReviewedSectionsWriteIdentities`) bir `TR_` sözcüğünün herhangi bir yerde geçerli olmasını yeterli sayıyor; yanlış yerde yazılmış `TR_append(x)` geçiyor [kanıtlı: DENETİM].
+- **Yapılacaklar:** tam ifade olan parça (`(`, `.` ya da `:` içeren) sözcük çözümleyiciyle okunup yeri denetlenir.
 
 ### 2.13
 
@@ -352,7 +187,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 - 5.4: tam sayı değişkene `/=`;
 - 5.5: `TR_else`'siz `TR_if` ifadesinin yokluk vermesi;
 - 5.6: `TR_default`, kapsamayan iki eşleme, düz adla yazılmış değişken deseni (`(x)`'e çevrilir);
-- 5.7: `{i}{x}` yerleştirmesi (2.7), `TR_fn_str` (3.12), geriye sayan `3..0` (3.8), tipsiz boş listeler (3.6);
+- 5.7: `{i}{x}` yerleştirmesi (2.7), `TR_str` (3.12), geriye sayan `3..0` (3.8), tipsiz boş listeler (3.6);
 - 5.8: `TR_while`;
 - 5.12: kolda dıştaki fonksiyonla aynı adlı fonksiyon (yeni kurala göre hata); adlı fonksiyon ifadesinin adının dışarı çıkması (6. bölümün kararı);
 - 5.13: kapsamayan eşleme;
@@ -412,7 +247,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 - parantezsiz ok ve adsız `TR_func` (6.6);
 - `TR_it` ve `TR_acc`'li sondaki blok, son argümanda `() => { ... }` (6.7);
 - argüman hatalarını çalışırken yakalayan testler (eski 6.3 ve 6.4: eksik, fazla, iki kez verilen argüman, varsayılandaki ileri başvuru): artık denetim hatası olduklarından `tests/negative/` fikstürlerine taşınır, yoksa dosya denetimden geçmez (1.3);
-- 6.7 testinin adındaki `\{` (2.6), `TR_fn_str` (3.12), `//` yorumları ve eski başlık (2.1, 2.2);
+- 6.7 testinin adındaki `\{` (2.6), `TR_str` (3.12), `//` yorumları ve eski başlık (2.1, 2.2);
 - numaralar: eski 6.3 → 6.4, 6.4 → 6.5, 6.5 → 6.8, 6.8 → 6.1, 6.3a → 6.11.
 
 Kapıların bu bölümdeki kırılmaları, testler yeniden yazılırken giderilir: 6.3'ün Test satırı "gerekmez" diyor ama eski 6.3 numaralı testler var; 6.11 "TR testi" diyor ama 6.11 numaralı test yok (bugün 6.3a) [DENETİM].
@@ -480,7 +315,7 @@ Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den 
 - verilmeyen alanın yokluk alması (7.2);
 - argüman ve alan hatalarını çalışırken yakalayan 7.2 ve 7.5 testleri: artık denetim hatası, `tests/negative/` fikstürlerine taşınır;
 - `p?.z` (7.5, 4.8);
-- eski metin biçimi ve yapının tipinin StructType olması (7.6); `TR_fn_str` ve `TR_fn_type` (3.12); `//` yorumları ve eski başlık.
+- eski metin biçimi ve yapının tipinin StructType olması (7.6); `TR_str` ve `TR_type` (3.12); `//` yorumları ve eski başlık.
 
 Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, None (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [DENETİM].
 
@@ -492,6 +327,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 - **Mevcut durum:** alan tipsiz yazılabiliyor (`y = 0`); varsayılanlı alandan sonra varsayılansız alan geçerli (bugünkü 7.1 testi).
 - **Yapılacaklar:** her alanın tipi; varsayılanlıların sonda olması; yapının tip parametresi; kalıtım yazımları için iletiler.
+- **Ayrıştırıcının toparlanması:** yinelenen metottan sonra kapanan `}` ikinci bir H0141 veriyor (`tests/negative/yapi_yinelenen_metot.tr` bugünkü davranışı etiketliyor); tek yanlışa tek ileti, fikstürün etiketi düzelir.
 
 ### 7.2
 
