@@ -87,6 +87,8 @@
 "H0251": { "param": ["decl"] },
 "H0252": { "param": ["decl", "name", "none"] },
 "H0253": { "param": [] },
+"H0254": { "param": ["if", "else"] },
+"H0255": { "param": ["if", "else"] },
 "H1001": { "param": ["name", "declared", "given", "hint"] },
 "H1002": { "param": ["name", "keyword"] },
 "H1003": { "param": ["expected", "given", "hint"] },

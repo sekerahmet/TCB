@@ -87,6 +87,8 @@
 "H0251": "there is no ':=' in TR; the value of a {decl} declaration is written after '=': {decl} x = 5",
 "H0252": "'{name}' is declared without a first value; a {decl} declaration always gives its first value and the type comes from it: add '= ' and the starting value after the name (or the type), '= {none}' when there is no value yet",
 "H0253": "'_' cannot be read: it is not a name, it stands for a value that is not needed; to use the value, give it a name (a, b = l instead of a, _ = l)",
+"H0254": "this {if} is used as a value but has no {else} branch: when {if} gives a value it gives one in every case; write the {else} branch: {if} c {{ a }} {else} {{ b }}",
+"H0255": "Python's conditional expression (a {if} c {else} b) is not in TR; as a value {if} is written {if} c {{ a }} {else} {{ b }}",
 "H1001": "Type mismatch — the variable {name|q} was declared with type {declared|q} but a value of type {given|q} was assigned{hint}",
 "H1002": "Constant error — {name|q} is a constant ('{keyword}') and its value cannot be changed",
 "H1003": "Return type mismatch — the function must return {expected|q} but returns a value of type {given|q}{hint}",

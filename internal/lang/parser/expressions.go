@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -302,6 +303,11 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 		// Python'un üyelik sınaması 'x TR_in l' yoktur (4.9); TR_in döngü ve liste üreteci
 		// başlığında kendi yerinde okunur, bir ifadenin ardında hiç geçmez.
 		p.syntaxError(p.peekToken(), messages.H0206)
+	}
+	if p.peekTokenIs(lexer.TokIf) && !p.lineBreakEnds() && !p.comprehensionSource {
+		// Python'un koşullu ifadesi 'a TR_if c TR_else b' yoktur (5.5): ifadenin ardındaki TR_if
+		// yalnız liste üretecinin koşuludur; ileti TR_if ifadesini önerir.
+		p.syntaxError(p.peekToken(), messages.H0255, p.word(codes.KwIf), p.word(codes.KwElse))
 	}
 
 	return leftExp

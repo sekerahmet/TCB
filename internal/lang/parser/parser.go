@@ -148,6 +148,11 @@ type Parser struct {
 	// interpolated, ayrıştırıcının bir metin yerleştirmesinin alt ayrıştırıcısı olduğunu: '_'yi üstü
 	// bütün ağaçta denetler.
 	underscore, interpolated bool
+
+	// comprehensionSource liste üretecinin kaynağı okunurken açıktır: ardındaki TR_if üretecin
+	// koşuludur. ifWithoutElse, TR_else'siz bir TR_if okunduğunu söyler (5.5: değer yerindeyse hata,
+	// bkz. valueIfs).
+	comprehensionSource, ifWithoutElse bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -325,6 +330,7 @@ func (p *Parser) peekPrecedence() int {
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{Statements: p.parseStatementList(true)}
 	p.underscoreReads(program)
+	p.valueIfs(program)
 	p.removedSpellingHints()
 	return program
 }

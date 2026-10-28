@@ -92,6 +92,8 @@ const (
 	H0251 Code = 251  // TR'de ':=' yok; {decl} tanımının değeri '=' ile yazılır: {decl} x = 5
 	H0252 Code = 252  // '{name}' ilk değeri yazılmadan tanımlandı; {decl} tanımında ilk değer her zaman yazılır, tip ondan çıkar: adın (ya da tipin) ardına '= ' ve başlangıç değerini ekleyin (değer henüz yoksa '= {none}')
 	H0253 Code = 253  // '_' okunamaz: bir ad değil, gerekmeyen bir değerin yerini tutar; değeri kullanmak için ona bir ad verin (a, _ = l yerine a, b = l)
+	H0254 Code = 254  // değer olarak kullanılan {if}'in {else} dalı yok: değer veren {if} her durumda bir değer verir; {else} dalını yazın: {if} c {{ a }} {else} {{ b }}
+	H0255 Code = 255  // Python'un koşullu ifadesi (a {if} c {else} b) TR'de yok; değer veren {if} şöyle yazılır: {if} c {{ a }} {else} {{ b }}
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

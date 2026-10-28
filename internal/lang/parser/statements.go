@@ -176,6 +176,11 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	case p.peekTokenIs(lexer.TokWalrus):
 		p.walrusInDeclError(tok)
 		return nil
+	case p.peekToken().Line == p.curToken().Line && !p.peekTokenIs(lexer.TokSemicolon) &&
+		!p.peekTokenIs(lexer.TokRBrace) && !p.peekTokenIs(lexer.TokEOF):
+		// Tanımın ardında başka bir şey var (ör. henüz yazılamayan TR_List[TR_Int]): '=' beklenir.
+		p.peekError(lexer.TokAssign)
+		return nil
 	default:
 		// İlk değer her zaman yazılır (5.1); ağaç yine kurulur ki ardından gelen denetim boşluk görmesin.
 		stmt.Value = &ast.NullLiteral{Token: p.curToken()}

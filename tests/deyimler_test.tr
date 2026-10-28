@@ -117,7 +117,6 @@ TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
     TR_assert_equal("negatif", sınıflandır(-5))
     TR_assert_equal("sıfır", sınıflandır(0))
     TR_assert_equal("pozitif", sınıflandır(7))
-    TR_assert_equal(TR_none, TR_if TR_false { 1 })
 }
 
 TR_test "5.6 eşle: değer, çoklu desen, aralık ve varsayılan" {
