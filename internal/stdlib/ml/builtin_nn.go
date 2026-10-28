@@ -34,7 +34,7 @@ func intIndices(fn any, v interp.Value) ([]int, []int, error) {
 }
 
 func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.FnEmbedding)
+	fn := codes.NameRef(codes.FnEmbeddingLookup)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6301, fn, len(args))
 	}

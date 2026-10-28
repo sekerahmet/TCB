@@ -5,20 +5,20 @@
 # üretimin aynı parçaları verdiğini denetler.
 TR_import "tr/hazir"
 
-TR_var arg = TR_command_line({TR_folder: "", adet: 100, TR_device: "cpu", ad: "", ağırlık_türü: "float32"})
-TR_default_device(arg.TR_device)
-TR_var p = TR_load_tokenizer(TR_path(arg.TR_folder, "tokenizer.json"))
-TR_var model = TR_pretrained_model(arg.TR_folder, TR_weight_dtype: arg.ağırlık_türü)
+TR_var arg = TR_command_line({"folder": "", "adet": 100, "device": "cpu", "ad": "", "ağırlık_türü": "float32"})
+TR_default_device(arg["device"])
+TR_var p = TR_load_tokenizer(TR_Path(arg["folder"], "tokenizer.json"))
+TR_var model = TR_pretrained_model(arg["folder"], TR_weight_dtype: arg["ağırlık_türü"])
 TR_var ids = p.TR_encode("The capital of France is")
 model.TR_generate(ids, 5, TR_temperature: 0)
 TR_var hızlar = []
 TR_var son = TR_none
 TR_for tur TR_in 0..3 {
     TR_var başla = TR_time_ms()
-    son = model.TR_generate(ids, arg.adet, TR_temperature: 0)
-    hızlar.TR_append(arg.adet * 1000.0 / (TR_time_ms() - başla))
+    son = model.TR_generate(ids, arg["adet"], TR_temperature: 0)
+    hızlar.TR_append(arg["adet"] * 1000.0 / (TR_time_ms() - başla))
 }
-TR_if arg.TR_device != "cpu" {
-    TR_assert(son == model.TR_generate(ids, arg.adet, TR_temperature: 0, TR_cuda_graph: TR_false), "kayıtlı ve kayıtsız üretim farklı")
+TR_if arg["device"] != "cpu" {
+    TR_assert(son == model.TR_generate(ids, arg["adet"], TR_temperature: 0, TR_cuda_graph: TR_false), "kayıtlı ve kayıtsız üretim farklı")
 }
-TR_print("\(arg.ad) | \(arg.TR_device) | TR \(arg.ağırlık_türü) | \(TR_round(hızlar.TR_sort()[1], 1))")
+TR_print("\(arg["ad"]) | \(arg["device"]) | TR \(arg["ağırlık_türü"]) | \(TR_round(hızlar.TR_sort()[1], 1))")

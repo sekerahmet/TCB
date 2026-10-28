@@ -18,22 +18,24 @@ func TestJSONDecodeRejectsBadInput(t *testing.T) {
 			t.Errorf("%.30q için %q içeren hata bekleniyordu, alınan: %v", input, want, err)
 		}
 	}
-	// Tam sayı ve ondalık ayrımı korunur; tam değerli ondalık eskisi gibi Tam olur
+	// Tam sayı ve ondalık yazımı korunur (3.7a): tam değerli ondalık Ondalık kalır
 	v, err := JSONToTR([]byte(`[1, 2.5, 3.0, 9007199254740993]`))
-	if err != nil || v.Inspect() != "[1, 2.5, 3, 9007199254740993]" {
+	if err != nil || v.Inspect() != "[1, 2.5, 3.0, 9007199254740993]" {
 		t.Fatalf("sayılar korunmalı: %v %v", v, err)
 	}
 }
 
-// Kural: Tam aralığının (64 bit işaretli) dışındaki JSON tam sayısı açık hata verir; sessizce
-// başka bir Tam'a kırpılmaz ya da mimariye göre farklı değer olmaz. Ondalık/üslü yazımlı
-// büyük sayılar Ondalık kalır. Neden: float64'e yuvarlanınca -2^63-1 gibi sayılar MinInt64'e
-// eşit çıkıyordu.
-func TestJSONIntegerOutsideIntRangeIsAnError(t *testing.T) {
-	for _, in := range []string{"-9223372036854775809", "-9223372036854776000", "9223372036854775808", "99999999999999999999"} {
-		if v, err := JSONToTR([]byte(in)); err == nil || !messages.Has(err, messages.H2521) {
-			t.Errorf("JSONToTR(%q) = %v, err=%v; H2521 bekleniyordu", in, v, err)
+// Kural (3.7a): Tam aralığının (64 bit işaretli) dışındaki JSON tam sayısının türü Ondalık'tır; sessizce
+// başka bir Tam'a kırpılmaz ya da mimariye göre farklı değer olmaz. Ondalık yazımlı sayı tam değerli
+// olsa da Ondalık kalır (2.0); sonsuza taşan sayı hatadır.
+func TestJSONIntegerOutsideIntRangeIsAFloat(t *testing.T) {
+	for _, in := range []string{"-9223372036854775809", "9223372036854775808", "99999999999999999999", "2.0"} {
+		if v, err := JSONToTR([]byte(in)); err != nil || v.Type() != ValFloat {
+			t.Errorf("JSONToTR(%q) = %v, err=%v; Ondalık bekleniyordu", in, v, err)
 		}
+	}
+	if _, err := JSONToTR([]byte("1e999")); !messages.Has(err, messages.H2503) {
+		t.Errorf("JSONToTR(1e999): %v; H2503 bekleniyordu", err)
 	}
 	for _, in := range []string{"-9223372036854775808", "9223372036854775807"} {
 		if v, err := JSONToTR([]byte(in)); err != nil || v.Inspect() != in {

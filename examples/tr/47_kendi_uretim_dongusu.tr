@@ -62,7 +62,7 @@ TR_no_grad {
     TR_for i TR_in 0..ADET {
         TR_var seçilen = TR_argmax(son_logit, TR_dim: -1).TR_tolist
         sabit_çıktı.TR_append(seçilen)
-        son_logit = adım(TR_tensor([[seçilen * 1.0]]), TR_tensor([sabit_önbellek.TR_position * 1.0]))
+        son_logit = adım(TR_Tensor([[seçilen * 1.0]]), TR_Tensor([sabit_önbellek.TR_position * 1.0]))
         sabit_önbellek.TR_advance(1)
     }
 }

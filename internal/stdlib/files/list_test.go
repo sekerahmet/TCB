@@ -30,8 +30,8 @@ func TestListDir(t *testing.T) {
 		`TR_list_dir("v", "[ab].*")`:        "[v/a.npy, v/b.txt]",
 		`TR_list_dir("v", "**/derin")`:      "[v/alt/derin]",
 		`TR_list_dir("./v/", "a.npy")`:      "[v/a.npy]",
-		`TR_list_dir(TR_path("v"), "yok*")`: "[]",
-		`TR_type(TR_list_dir("v")[0])`:      "Yol",
+		`TR_list_dir(TR_Path("v"), "yok*")`: "[]",
+		`TR_Type(TR_list_dir("v")[0])`:      "Path",
 		`TR_list_dir()`:                     "[v]",
 	}
 	if caseInsensitive {
@@ -44,7 +44,7 @@ func TestListDir(t *testing.T) {
 		}
 	}
 	// Mutlak taban: sonuçlar da mutlak.
-	got := mustRunTR(t, `TR_list_dir(TR_path("`+forwardPath(filepath.Join(k, "v"))+`"), "*.txt")`)
+	got := mustRunTR(t, `TR_list_dir(TR_Path("`+forwardPath(filepath.Join(k, "v"))+`"), "*.txt")`)
 	if !strings.HasSuffix(got, "/v/b.txt]") || !strings.Contains(got, ":") && !strings.HasPrefix(got, "[/") {
 		t.Errorf("mutlak taban: %s", got)
 	}

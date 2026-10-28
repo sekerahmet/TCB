@@ -6,9 +6,9 @@
 # Ayrıntılar: docs/guide/04_yapay_zeka_ve_veri.md §4.C, docs/spec/15_tensorler.md §15.
 
 # Tensör, n boyutlu bir sayı dizisidir: tek boyutlu (vektör), iki boyutlu (matris) ...
-TR_var v = TR_tensor([1.0, 2.0, 3.0])
-TR_var A = TR_tensor([[1.0, 2.0], [3.0, 4.0]])
-TR_var W = TR_tensor([[0.5, -0.5], [1.0, 2.0]]) # matris: 2 boyutlu tensör
+TR_var v = TR_Tensor([1.0, 2.0, 3.0])
+TR_var A = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
+TR_var W = TR_Tensor([[0.5, -0.5], [1.0, 2.0]]) # matris: 2 boyutlu tensör
 TR_print("v.şekil = \(v.TR_shape), A.şekil = \(A.TR_shape)")
 TR_print("A.değer = \(A.TR_tolist)") # .değer tensörü düz TR listesine çevirir
 
@@ -25,17 +25,17 @@ TR_print("A * W =", A * W)
 TR_print("A @ W =", A @ W)
 
 # Yayınlama: küçük tensör büyüğün şekline kendiliğinden yayılır.
-TR_print("A + [10, 20] (her satıra eklenir) =", A + TR_tensor([10.0, 20.0]))
+TR_print("A + [10, 20] (her satıra eklenir) =", A + TR_Tensor([10.0, 20.0]))
 TR_print("A * 2 =", A * 2)
 
 # Etkinleştirme işlevleri: relu negatifleri sıfırlar, softmax toplamı 1 olan olasılık verir.
 TR_print("relu(A @ W - 4) =", TR_relu(A @ W - 4))
-TR_print("softmax([2, 1, 0.1]) =", TR_softmax(TR_tensor([2.0, 1.0, 0.1])))
+TR_print("softmax([2, 1, 0.1]) =", TR_softmax(TR_Tensor([2.0, 1.0, 0.1])))
 TR_print("toplam:", TR_sum(A), "ortalama:", TR_mean(A))
 
 # Tip bildirimi: Tensör. Şekil tensörün bir özelliğidir (sayı türü ve cihaz 33'te).
-TR_var t: TR_Tensor = TR_tensor([[1, 2, 3], [4, 5, 6]])
-TR_print(TR_type(t) == TR_Tensor, t.TR_shape)
+TR_var t: TR_Tensor = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+TR_print(TR_Type(t) == TR_Tensor, t.TR_shape)
 
 # devrik son iki ekseni yer değiştirir; eksenleri_sırala eksenleri verilen sıraya dizer;
 # dilim(eksen, baş, son) bir aralığı keser; bitiştir tensör listesini bir eksen boyunca uç uca ekler.

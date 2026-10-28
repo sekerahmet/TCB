@@ -103,7 +103,7 @@ TR_func kare() {
 }
 
 TR_func gizli_işlev() {
-    TR_return TR_str(1)
+    TR_return TR_String(1)
 }
 `)
 	for q, want := range map[string]string{
@@ -112,8 +112,6 @@ TR_func gizli_işlev() {
 		"KARE":        "function:m.tr#kare struct:m.tr#Kare",
 		"GİZLİ_İŞLEV": "function:m.tr#gizli_işlev", // Türkçe büyük harf
 		"GIZLI_IŞLEV": "function:m.tr#gizli_işlev", // İngilizce klavye: I, Türkçede ı olurdu
-		"Metin":       "",                          // dilin tip adı: metin() yerleşiğine sessizce düşülmez
-		"metin":       "builtin:TR_fn_str",
 	} {
 		var ids []string
 		for _, n := range r.Resolve(q, "") {
@@ -140,7 +138,7 @@ TR_test "yalnız bir test" {
 }
 `
 	for name, text := range map[string]string{
-		"metin.tr":  "TR_var metin_boyu = TR_str(12).TR_length\n",
+		"metin.tr":  "TR_var metin_boyu = TR_String(12).TR_length\n",
 		"m_test.tr": tests,
 	} {
 		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
@@ -153,7 +151,7 @@ TR_test "yalnız bir test" {
 	}
 	r := NewReader(idx)
 	for q, want := range map[string]string{
-		"metin":           "builtin:TR_fn_str module:metin.tr",
+		"metin":           "builtin:TR_type_String module:metin.tr",
 		"ortalama":        "builtin:TR_fn_mean",
 		"yalnız bir test": "test_block:m_test.tr#" + strings.Split(srcAt(t, tests, `TR_test "yalnız bir test"`, "TR_test", 1), ":")[0],
 	} {

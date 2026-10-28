@@ -2,40 +2,40 @@
 # Evre 3 ölçümü, TR tarafı: phase3_torch.py ile aynı model, veri ve iyileştirici.
 # Ayarlar aynı klasördeki phase3_config.json'dan (iki taraf aynı dosyayı okur); cihaz ve çıktı
 # komut satırından. Her adım sonunda kayıp okunur (GPU eşzamanlanır): PyTorch tarafı da öyle.
-# Kullanım: ./tr phase3_tr.tr [--cihaz gpu] [--ayar phase3_config.json] [--çıktı phase3_tr.json]
+# Kullanım: ./tr phase3_tr.tr [--device gpu] [--config phase3_config.json] [--çıktı phase3_tr.json]
 # Tepe bellek bu dosyadan değil, `tr profil --json` raporundan (gpu.bellek[].tepe_canlı_bayt) okunur.
 # Çıktı (JSON, anahtarlar İngilizce: phase3_torch.py ile aynı): ilk adım, ısınma adımları, ölçülen adımların medyan ve p90 süresi, kayıp eğrisi.
 
 TR_import "measurement_model"
 
-TR_var arg = TR_command_line({TR_device: "gpu", TR_config: "phase3_config.json", çıktı: ""},
+TR_var arg = TR_command_line({"device": "gpu", "config": "phase3_config.json", "çıktı": ""},
     TR_description: "Evre 3 ölçümü, TR tarafı (PyTorch karşılığı: phase3_torch.py)")
-TR_default_device(arg.TR_device)
-TR_var c = TR_json_parse(TR_read_file(arg.TR_config))
-TR_var B = c["B"]
-TR_var T = c["T"]
-TR_var D = c["D"]
-TR_var H = c["H"]
+TR_default_device(arg["device"])
+TR_var c = TR_json_parse(TR_read_file(arg["config"]))
+TR_var B = TR_Int(c["B"])
+TR_var T = TR_Int(c["T"])
+TR_var D = TR_Int(c["D"])
+TR_var H = TR_Int(c["H"])
 TR_var Dh = D // H
-TR_var FF = c["FF"]
-TR_const KATMAN = c["LAYERS"]
-TR_var V = c["V"]
-TR_const HASSASIYET = c["precision"]
-TR_const ISINMA = c["warmup"]
-TR_const ÖLÇÜLEN = c["measured"]
-TR_const KAYIP_ADIM = c["loss_steps"]
+TR_var FF = TR_Int(c["FF"])
+TR_const KATMAN = TR_Int(c["LAYERS"])
+TR_var V = TR_Int(c["V"])
+TR_const HASSASIYET = TR_String(c["precision"])
+TR_const ISINMA = TR_Int(c["warmup"])
+TR_const ÖLÇÜLEN = TR_Int(c["measured"])
+TR_const KAYIP_ADIM = TR_Int(c["loss_steps"])
 
 # Sabit sentetik toplu işler (phase3_torch.py ile aynı formül).
 TR_var sentetik = []
-TR_for s TR_in TR_range(8) {
-    TR_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_for t TR_in TR_range(T + 1)] TR_for i TR_in TR_range(B)]
-    TR_var tümü = TR_tensor(satırlar)
+TR_for s TR_in 0..8 {
+    TR_var satırlar = [[(s * 7919 + i * 104729 + t * 31) % V TR_for t TR_in 0.. (T + 1)] TR_for i TR_in 0..B]
+    TR_var tümü = TR_Tensor(satırlar)
     sentetik.TR_append([tümü.TR_slice(1, 0, T), tümü.TR_slice(1, 1, T + 1)])
 }
 
 TR_var model = Model()
 TR_var ağırlıklar = TR_parameters(model)
-TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: c["lr"], TR_weight_decay: 0.0)
+TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: TR_Float(c["lr"]), TR_weight_decay: 0.0)
 
 # adım_at: bir eğitim adımı; kaybın değerini döndürür (okumak GPU'yu bekler).
 TR_func adım_at(adım) {
@@ -54,7 +54,7 @@ TR_func adım_at(adım) {
 # yüzdelik: p. yüzdelik (en yakın sıra yöntemi).
 TR_func yüzdelik(değerler, p) {
     TR_var s = değerler.TR_sort()
-    TR_return s[TR_max(0, TR_int(TR_ceil(p / 100 * s.TR_length)) - 1)]
+    TR_return s[TR_max(0, TR_Int(TR_ceil(p / 100 * s.TR_length)) - 1)]
 }
 
 TR_var kayıplar = []
@@ -68,12 +68,12 @@ TR_for adım TR_in 0.. (ISINMA + ÖLÇÜLEN) {
     TR_if adım < KAYIP_ADIM { kayıplar.TR_append(v) }
 }
 
-TR_var sonuç_ = {tool: "tr", mode: "tr", precision: HASSASIYET, device: TR_default_device(),
-    config: {B: B, T: T, D: D, H: H, FF: FF, LAYERS: KATMAN, V: V},
-    first_step_ms: ısınma_ms[0], warmup_ms: ısınma_ms,
-    measured: {median_ms: TR_median(ölçülen_ms), p90_ms: yüzdelik(ölçülen_ms, 90), mean_ms: TR_mean(ölçülen_ms),
-        min_ms: TR_min(ölçülen_ms), max_ms: TR_max(ölçülen_ms)},
-    loss_curve: kayıplar}
+TR_var sonuç_ = {"tool": "tr", "mode": "tr", "precision": HASSASIYET, "device": TR_default_device(),
+    "config": {"B": B, "T": T, "D": D, "H": H, "FF": FF, "LAYERS": KATMAN, "V": V},
+    "first_step_ms": ısınma_ms[0], "warmup_ms": ısınma_ms,
+    "measured": {"median_ms": TR_median(ölçülen_ms), "p90_ms": yüzdelik(ölçülen_ms, 90), "mean_ms": TR_mean(ölçülen_ms),
+        "min_ms": TR_min(ölçülen_ms), "max_ms": TR_max(ölçülen_ms)},
+    "loss_curve": kayıplar}
 TR_var çıktı_metni = TR_json_string(sonuç_)
-TR_if arg.çıktı != "" { TR_write_file(arg.çıktı, çıktı_metni) }
+TR_if arg["çıktı"] != "" { TR_write_file(arg["çıktı"], çıktı_metni) }
 TR_print(çıktı_metni)

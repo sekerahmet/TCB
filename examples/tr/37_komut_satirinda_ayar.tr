@@ -4,24 +4,24 @@
 # yardım yazısı, --ayar_adı değer ile ayarı değiştirmek, --yardım.
 # Önceki örnekten: sözlükler (11), yok (03), metin (04).
 # Çalıştırma (proje kökünden): tr examples/tr/37_komut_satirinda_ayar.tr
-#   Ayarları değiştirmek için: tr examples/tr/37_komut_satirinda_ayar.tr --adım 500 --öğrenme_oranı 0.1 --koşu deneme2
+#   Ayarları değiştirmek için: tr examples/tr/37_komut_satirinda_ayar.tr --step 500 --lr 0.1 --koşu deneme2
 #   Yardım için:                tr examples/tr/37_komut_satirinda_ayar.tr --yardım
 
 # komut_satırı bir sözlük alır: anahtarlar ayar adları, değerler varsayılanlarıdır. Komut satırında
 # --ad değer verilmemişse varsayılan kullanılır; verilmişse değer varsayılanın tipine çevrilir.
-TR_var ayar = TR_command_line({TR_step: 100, TR_lr: 0.01, koşu: "deneme", günlük_dosyası: TR_none},
+TR_var ayar = TR_command_line({"step": 100, "lr": 0.01, "koşu": "deneme", "günlük_dosyası": TR_none},
     TR_description: "Ayarları komut satırından alan örnek program",
-    TR_descriptions: {TR_step: "eğitim adımı sayısı", TR_lr: "adım büyüklüğü", koşu: "koşunun adı",
-        günlük_dosyası: "kayıtların yazılacağı dosya (yoksa yazılmaz)"})
+    TR_descriptions: {"step": "eğitim adımı sayısı", "lr": "adım büyüklüğü", "koşu": "koşunun adı",
+        "günlük_dosyası": "kayıtların yazılacağı dosya (yoksa yazılmaz)"})
 
-# Sonuç bir nesnedir: ayar adıyla okunur.
-TR_print("adım:", ayar.TR_step, "| öğrenme oranı:", ayar.TR_lr, "| koşu:", ayar.koşu)
-TR_print("günlük dosyası verildi mi:", ayar.günlük_dosyası != TR_none)
+# Sonuç bir sözlüktür: değer köşeli parantezle okunur (ayar["step"]).
+TR_print("adım:", ayar["step"], "| öğrenme oranı:", ayar["lr"], "| koşu:", ayar["koşu"])
+TR_print("günlük dosyası verildi mi:", ayar["günlük_dosyası"] != TR_none)
 
 # Ayarlar kodda sıradan değişkenler gibi kullanılır.
-TR_var toplam_adım = ayar.TR_step * 2
+TR_var toplam_adım = ayar["step"] * 2
 TR_print("iki katı adım:", toplam_adım)
 
 # --- Kendin dene ---
-# 1. Programı --adım 7 ile çalıştır ve çıktının değiştiğini gör.
+# 1. Programı --step 7 ile çalıştır ve çıktının değiştiğini gör.
 # 2. --yardım yaz: açıklamalar ve varsayılanlar listelenir. Yeni bir ayar ekleyip yardımda görünmesini sağla.

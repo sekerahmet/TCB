@@ -23,7 +23,7 @@ TR_print("geçerli yaş: \(yaş_denetle(30))")
 
 # Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
 TR_func sayıya_çevir(yazı) {
-    TR_return TR_int(yazı)
+    TR_return TR_Int(yazı)
 }
 TR_func güvenli_çevir(yazı, varsayılan_değer) {
     TR_try {
@@ -46,14 +46,14 @@ TR_try {
 # Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
 # kodla fırlar. Metin okuyanın dilinde yazılır; testler metni değil kodu sınar (hata_kodu).
 TR_func pencere_denetle(pencere) {
-    TR_if pencere < 0 { TR_throw TR_message("H6903", pencere) }
+    TR_if pencere < 0 { TR_throw TR_Message("H6903", pencere) }
     TR_return pencere
 }
 TR_try { pencere_denetle(-1) } TR_catch h { TR_print("yakalandı: \(h)") }
 TR_print(TR_error_code(() => { pencere_denetle(-1) }))
 TR_print(TR_error_code(() => { pencere_denetle(4) }))
-TR_var iletim: TR_Message = TR_message("H6903", 5)
-TR_print(TR_type(iletim))
+TR_var iletim: TR_Message = TR_Message("H6903", 5)
+TR_print(TR_Type(iletim))
 
 # --- Kendin dene ---
 # 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.

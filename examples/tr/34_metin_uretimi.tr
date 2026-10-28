@@ -7,7 +7,7 @@
 
 # Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (argmax) hep aynı
 # metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.
-TR_var logit = TR_tensor([1.0, 3.0, 0.5])
+TR_var logit = TR_Tensor([1.0, 3.0, 0.5])
 TR_print("olasılıklar:", TR_softmax(logit).TR_tolist)
 
 # sıcaklık: logitleri böler. 0 her zaman en olasıyı seçer; küçük değer en olasıya yaklaştırır, büyük değer dağıtır.

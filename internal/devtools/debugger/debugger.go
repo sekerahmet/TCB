@@ -522,7 +522,7 @@ func (d *Debugger) inspectTable(v *interp.VM, name string, env *interp.Environme
 		fmt.Println("  " + strings.Repeat("─", 56))
 		for _, k := range t.Order {
 			e := t.Pairs[k]
-			fmt.Printf("  %-18s | %-12s | %s\n", t.DisplayKey(k), interp.DisplayType(e), v.Mask(interp.DisplayText(e)))
+			fmt.Printf("  %-18s | %-12s | %s\n", t.KeyText(k), interp.DisplayType(e), v.Mask(interp.DisplayText(e)))
 		}
 	case *interp.StructInstanceVal:
 		fmt.Println("  " + messages.Text(messages.H8085, t.Def.Name))

@@ -20,7 +20,7 @@ TR_print("Merhaba, \(ad)!")
 TR_var yaş_metni = TR_input("Yaşın kaç? ")
 TR_var yaş = 20
 TR_if yaş_metni != "" {
-    yaş = TR_int(yaş_metni)
+    yaş = TR_Int(yaş_metni)
 }
 TR_print("Gelecek yıl \(yaş + 1) yaşında olacaksın.")
 

@@ -40,7 +40,7 @@ echo "== Hız: hedef model, sentetik veri, 120 adım"
 python3 -c "import numpy as np, sys; np.save(sys.argv[1], np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))" "$veri/train.npy"
 nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 >"$out/bellek.log" &
 yoklama=$!
-"$bin/tr" tools/gpu/rgn512.tr --veri "$veri" --adım 120 --çıktı "$out/hiz.json" >"$out/hiz.log" 2>&1
+"$bin/tr" tools/gpu/rgn512.tr --veri "$veri" --step 120 --çıktı "$out/hiz.json" >"$out/hiz.log" 2>&1
 hiz=$?
 kill "$yoklama"
 

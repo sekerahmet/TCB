@@ -35,7 +35,7 @@ func Text(c Code, args ...any) string { return catalogFor(c, args).render(c, arg
 // English file wherever it runs.
 func TextIn(lang string, c Code, args ...any) string {
 	load()
-	cat, ok := catalogs[lang]
+	cat, ok := catalogs[catalogLanguage(lang)]
 	if !ok || !cat.translates(c, args) {
 		cat = catalogs["tr"]
 	}
@@ -57,7 +57,7 @@ func (e *Error) Error() string {
 // language of the file that catches it (docs/spec/08_hata_yonetimi.md).
 func ErrorIn(err error, lang string) string {
 	load()
-	cat, ok := catalogs[lang]
+	cat, ok := catalogs[catalogLanguage(lang)]
 	if !ok || !cat.translatesValue(err) {
 		cat = catalogs["tr"]
 	}

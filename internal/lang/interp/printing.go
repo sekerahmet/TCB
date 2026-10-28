@@ -3,14 +3,17 @@ package interp
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
-// Değerin metni (3, 17.1): metin(), yazdır ve metin yerleştirmesi bir değeri işlemin yazıldığı
-// dosyanın dilinde metne çevirir (valueText). Dile bağlı olan yalnızca dilin değerlerinin adlarıdır
-// (doğru, yanlış, yok ve tip adları; LanguageText), iç içe kapların içindekiler dahil. Inspect
-// bugün Türkçedir (codes.Source; Türkçeye ayrıcalık tanıyan geçici istisna): veri biçimleri (JSON, günlük) ve iletiler onu kullanır.
+// Değerin metni (3.14): TR_String(x), TR_print, metin yerleştirmesi ve Inspect aynı metni verir;
+// hiçbir dosyanın ve kişinin diline bağlı değildir. Dilin değerleri ve tipleri kimliğin adıyla
+// (codes.ValueNames: true, none, inf, Int), yerleşiklerin ve kitaplık nesnelerinin metni sabit
+// İngilizce katalogla (messages.ValueLanguage: <builtin print>, Progress(step 0/2)) yazılır.
+// Kişinin dilinde yalnız iletiler, kabuk ve hata ayıklayıcı görünür (DisplayText, Shown).
 
 // LanguageText is a value whose text depends on a writing language: the language's value and
 // type names (doğru, yok, Tam, sonsuz), names of builtins, messages inside the text. Text(lang)
@@ -52,15 +55,22 @@ func DisplayType(v Value) string {
 	return string(v.Type())
 }
 
-// valueText v'nin lang dilinde yazılmış bir dosyadaki metnidir; lang nil ise Türkçe (codes.Source; geçici istisna). Dilin
-// sözcüğü olan değerler (LanguageText) her zaman bir dilde çevrilir: fonksiyon, yerleşik ve yapı
-// değerlerinin Inspect'i görüntüdür (TR_DIL), program metni ondan alınmaz. Aynı dili birden çok değer için bir kez soran çağıranlar (yazdır, birleştir,
-// yerleştirme) bunu kullanır.
+// valueText v'nin lang listesiyle yazılmış metnidir: program codes.ValueNames ile (değerin metni,
+// Inspect'le aynı), kişiye gösterilen yerler (DisplayText, iletiler) kişinin diliyle yazar; lang nil
+// ise codes.ValueNames.
 func valueText(v Value, lang *codes.Language) string {
 	return writeItem(v, lang, nil)
 }
 
-// writeContainer bir kabı (Liste, Sözlük, yapı nesnesi) lang dilinde (nil: kanonik) yazdırır.
+// orValueNames lang'dir; nil ise değerin metninin listesi (codes.ValueNames).
+func orValueNames(lang *codes.Language) *codes.Language {
+	if lang == nil {
+		return codes.ValueNames()
+	}
+	return lang
+}
+
+// writeContainer bir kabı (Liste, Sözlük, yapı nesnesi) lang dilinde (nil: değerin metni) yazdırır.
 // filePath, şu an yazdırılmakta olan dış kaplardır: kendini (doğrudan ya da dolaylı) içeren bir
 // kap yeniden görülünce sonsuz özyineleme yerine "[...]" / "{...}" / "Ad{...}" yazılır.
 func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
@@ -84,11 +94,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			if el.Type() == ValString {
-				fmt.Fprintf(&sb, "%q", el.Inspect())
-			} else {
-				sb.WriteString(writeItem(el, lang, filePath))
-			}
+			sb.WriteString(writeElement(el, lang, filePath))
 		}
 		sb.WriteByte(']')
 	case *DictVal:
@@ -100,21 +106,10 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if kv, ok := x.KeyVals[k]; ok {
 				sb.WriteString(writeItem(kv, lang, filePath))
 			} else {
-				if _, coded := x.coded[k]; coded {
-					// Kodlu anahtar kaynaktaki gibi tırnaksız ve dosyanın dilinde yazılır ({adım: 0}):
-					// bir ad olduğu, d.adım ile okunduğu görünür (17.3; Node.js util.inspect gibi).
-					sb.WriteString(x.keyText(k, lang))
-				} else {
-					fmt.Fprintf(&sb, "%q", k)
-				}
+				sb.WriteString(QuoteText(k))
 			}
 			sb.WriteString(": ")
-			val := x.Pairs[k]
-			if val.Type() == ValString {
-				fmt.Fprintf(&sb, "%q", val.Inspect())
-			} else {
-				sb.WriteString(writeItem(val, lang, filePath))
-			}
+			sb.WriteString(writeElement(x.Pairs[k], lang, filePath))
 		}
 		sb.WriteByte('}')
 	case *StructInstanceVal:
@@ -147,16 +142,55 @@ func shownName(name string, lang *codes.Language) string {
 	if err != nil {
 		return name
 	}
-	if lang == nil {
-		lang = codes.Source()
-	}
-	if e, ok := lang.Entry(k); ok {
+	if e, ok := orValueNames(lang).Entry(k); ok {
 		return e.Name
 	}
 	return name
 }
 
-// writeItem bir kabın elemanını lang dilinde (nil: kanonik) yazar; eleman da bir kapsa döngü
+// writeElement liste ve sözlükteki bir değerin metnidir (3.14): metin tırnaklı ve kaçışlı, JSON değeri
+// JSON metniyle (metin türü de tırnaklı: [1, "a"] ile [1, a] ayrılsın), öbürleri writeItem.
+func writeElement(v Value, lang *codes.Language, filePath []Value) string {
+	switch x := v.(type) {
+	case *StringVal:
+		return QuoteText(x.Val)
+	case *JSONVal:
+		return x.JSONText()
+	}
+	return writeItem(v, lang, filePath)
+}
+
+// QuoteText s'nin programdaki metin yazımıdır (2.6, 3.14): çift tırnak içinde, kaçışlar \n \t \r \"
+// \\; öbür denetim karakterleri ve yön değiştiren karakterler (2.1a) \u{...} ile. Çıktı programa
+// kopyalanınca aynı metni verir.
+func QuoteText(s string) string {
+	var sb strings.Builder
+	sb.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\t':
+			sb.WriteString(`\t`)
+		case '\r':
+			sb.WriteString(`\r`)
+		case '"':
+			sb.WriteString(`\"`)
+		case '\\':
+			sb.WriteString(`\\`)
+		default:
+			if unicode.IsControl(r) || lexer.IsBidiControl(r) {
+				fmt.Fprintf(&sb, `\u{%x}`, r)
+			} else {
+				sb.WriteRune(r)
+			}
+		}
+	}
+	sb.WriteByte('"')
+	return sb.String()
+}
+
+// writeItem bir kabın elemanını lang dilinde (nil: değerin metni) yazar; eleman da bir kapsa döngü
 // denetimi sürer.
 func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 	switch x := v.(type) {
@@ -177,10 +211,7 @@ func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 	case *ListVal, *DictVal, *StructInstanceVal:
 		return writeContainer(v, lang, filePath)
 	case LanguageText:
-		if lang == nil {
-			lang = codes.Source()
-		}
-		return x.Text(lang)
+		return x.Text(orValueNames(lang))
 	}
 	return v.Inspect()
 }

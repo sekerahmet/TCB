@@ -9,24 +9,24 @@
 # Normalleştirme katmanları, değerlerin ölçeğini sabit tutarak derin ağların eğitimini kolaylaştırır.
 # katman_normu son eksende ortalamayı çıkarıp standart sapmaya böler; ağırlık ölçekler, sapma kaydırır.
 # epsilon sıfıra bölmeyi önleyen küçük sayıdır.
-TR_var x = TR_tensor([[1.0, 2.0, 3.0]])
+TR_var x = TR_Tensor([[1.0, 2.0, 3.0]])
 TR_print(TR_layer_norm(x).TR_tolist)
 TR_print(TR_layer_norm(x, TR_eps: 0.001).TR_tolist)
-TR_print(TR_layer_norm(TR_tensor([[1.0, 3.0]]), TR_bias: TR_tensor([0.5, 0.5])).TR_tolist)
+TR_print(TR_layer_norm(TR_Tensor([[1.0, 3.0]]), TR_bias: TR_Tensor([0.5, 0.5])).TR_tolist)
 
 # rms_normu ortalamayı çıkarmaz; yalnızca karelerinin ortalamasının köküne böler.
-TR_print(TR_rms_norm(TR_tensor([[3.0, 4.0]])).TR_tolist)
-TR_print(TR_rms_norm(TR_tensor([[3.0, 4.0]]), TR_weight: TR_tensor([2.0, 1.0])).TR_tolist)
+TR_print(TR_rms_norm(TR_Tensor([[3.0, 4.0]])).TR_tolist)
+TR_print(TR_rms_norm(TR_Tensor([[3.0, 4.0]]), TR_weight: TR_Tensor([2.0, 1.0])).TR_tolist)
 
 # gelu varsayılan olarak tanh yaklaşımıyla hesaplanır; yaklaşık: yanlış tam (erf tabanlı) biçimi verir.
-TR_var a = TR_tensor([-1.0, 0.0, 1.0])
+TR_var a = TR_Tensor([-1.0, 0.0, 1.0])
 TR_print(TR_gelu(a).TR_tolist)
 TR_print(TR_gelu(a, TR_approximate: TR_false).TR_tolist)
 
 # doğrusal_çapraz_entropi(örnek_girdi, ağırlık, hedefler), çapraz_entropi(örnek_girdi @ ağırlık, hedefler) ile aynı kaybı verir
 # ama bütün logitleri bellekte tutmaz; büyük sözlüklü dil modellerinin çıkış katmanı için kullanılır.
-TR_var örnek_girdi = TR_tensor([[1.0, 2.0]])
-TR_var ağırlık_matrisi = TR_tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]])
+TR_var örnek_girdi = TR_Tensor([[1.0, 2.0]])
+TR_var ağırlık_matrisi = TR_Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]])
 TR_print(TR_linear_cross_entropy(örnek_girdi, ağırlık_matrisi, [2]).TR_tolist)
 TR_print(TR_cross_entropy(örnek_girdi @ ağırlık_matrisi, [2]).TR_tolist)
 

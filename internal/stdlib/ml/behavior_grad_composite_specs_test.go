@@ -205,7 +205,7 @@ func compositeSpecs() []compositeSpec {
 			}},
 		{name: "embedding", funcs: []string{"embedding"}, shapes: [][]int{{4, 3}}, bf16Tol: 0.004,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {
-				return callBuiltin(m, codes.FnEmbedding, tv(xs[0]), tv(indexTensor([]int{1, 3, 1, 0}, 2, 2)))
+				return callBuiltin(m, codes.FnEmbeddingLookup, tv(xs[0]), tv(indexTensor([]int{1, 3, 1, 0}, 2, 2)))
 			},
 			ref: func(in [][]float64) []float64 {
 				var out []float64

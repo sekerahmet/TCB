@@ -121,7 +121,7 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	}
 	d, ok := args[0].(*TensorValue)
 	if !ok {
-		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.NameRef(codes.FnTensor))
+		return nil, messages.New(messages.H6217, ad, typeName(args[0]), codes.NameRef(codes.TypeTensor))
 	}
 	t := d.t
 	e, given, err := axisArg(ad, args, named)
@@ -165,17 +165,17 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		return nil, err
 	}
 	if _, ok := bind.GetNamed(named, nameKeepDim); ok {
-		return nil, messages.New(messages.H6218, ad, nameKeepDim, typeName(args[0]), codes.NameRef(codes.FnTensor), nameAxis, codes.NameRef(codes.KwTrue))
+		return nil, messages.New(messages.H6218, ad, nameKeepDim, typeName(args[0]), codes.NameRef(codes.TypeTensor), nameAxis, codes.NameRef(codes.KwTrue))
 	}
 	if _, ok := bind.GetNamed(named, nameAxis); ok {
-		return nil, messages.New(messages.H6219, ad, nameAxis, typeName(args[0]), codes.NameRef(codes.FnTensor))
+		return nil, messages.New(messages.H6219, ad, nameAxis, typeName(args[0]), codes.NameRef(codes.TypeTensor))
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {
 		var hasTensor bool
 		for _, el := range l.Elements {
 			switch el.(type) {
 			case *interp.ListVal:
-				t := codes.NameRef(codes.FnTensor)
+				t := codes.NameRef(codes.TypeTensor)
 				return nil, messages.New(messages.H6220, ad, t, nameAxis)
 			case *TensorValue:
 				hasTensor = true

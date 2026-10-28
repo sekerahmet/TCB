@@ -45,12 +45,12 @@ func TestTempDir(t *testing.T) {
 	base := tempBase(t)
 	got := mustRunTR(t, `TR_var k = TR_temp_dir()
 		TR_var bos = TR_list_dir(k).TR_length
-		TR_write_file(TR_path(k, "a.txt"), "x")
-		TR_make_dir(TR_path(k, "alt/derin"))
-		TR_write_file(TR_path(k, "alt/derin/b.txt"), "y")
-		TR_var o = TR_read_lines(TR_path(k, "alt/derin/b.txt"))
-		[TR_type(k) == TR_Path, k.TR_is_dir, k.TR_absolute == k, bos, k != TR_temp_dir()]`)
-	if got != `[doğru, doğru, doğru, 0, doğru]` {
+		TR_write_file(TR_Path(k, "a.txt"), "x")
+		TR_make_dir(TR_Path(k, "alt/derin"))
+		TR_write_file(TR_Path(k, "alt/derin/b.txt"), "y")
+		TR_var o = TR_read_lines(TR_Path(k, "alt/derin/b.txt"))
+		[TR_Type(k) == TR_Path, k.TR_is_dir, k.TR_absolute == k, bos, k != TR_temp_dir()]`)
+	if got != `[true, true, true, 0, true]` {
 		t.Fatal(got)
 	}
 	names := baseContent(t, base)
@@ -115,7 +115,7 @@ func TestTempDirDoesNotFollowLinks(t *testing.T) {
 func TestTempDirReadOnly(t *testing.T) {
 	tmpWork(t)
 	tempBase(t)
-	s := runTR(t, "", `TR_var k = TR_temp_dir(); TR_write_file(TR_path(k, "s.txt"), "x"); k`)
+	s := runTR(t, "", `TR_var k = TR_temp_dir(); TR_write_file(TR_Path(k, "s.txt"), "x"); k`)
 	if s.failure != nil {
 		t.Fatal(s.failure)
 	}

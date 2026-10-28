@@ -286,7 +286,7 @@ func TestClashesCaught(t *testing.T) {
 		}
 	}
 	// Farklı ad alanlarında aynı ad serbesttir.
-	if _, err := Load("deneme", []byte(`{"TR_fn_abs": {"name": "mutlak"}, "TR_mem_absolute": {"name": "mutlak"}, "TR_arg_log": {"name": "günlük"}, "TR_fn_logger": {"name": "günlük"}}`)); err != nil {
+	if _, err := Load("deneme", []byte(`{"TR_fn_abs": {"name": "mutlak"}, "TR_mem_absolute": {"name": "mutlak"}, "TR_arg_log": {"name": "günlük"}, "TR_mem_logger": {"name": "günlük"}}`)); err != nil {
 		t.Errorf("farklı ad alanlarında aynı ad kabul edilmeliydi: %v", err)
 	}
 }

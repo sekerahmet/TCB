@@ -15,9 +15,9 @@ func TestRefreshKeepsSharedContainersApart(t *testing.T) {
 
 	// 1. koşu: kontrol noktasına izlenen = {a: [10], b: [20]} kaydedilir.
 	saveCode := fmt.Sprintf(`
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_var izlenen = {a: [10], b: [20]}
-TR_var kn = TR_checkpoint(%q, {w: w, izlenen: izlenen})
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var izlenen = {"a": [10], "b": [20]}
+TR_var kn = TR_Checkpoint(%q, {"w": w, "izlenen": izlenen})
 kn.TR_update(1)
 kn.TR_save()
 `, runDir)
@@ -28,19 +28,19 @@ kn.TR_save()
 	// 2. koşu: yeniden başlatmada izlenen = {a: l, b: l} ile yüklenir; ardından
 	// geri_dön() içinde de aynı durum sınanır.
 	loadCode := fmt.Sprintf(`
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
 TR_var l = [0]
-TR_var izlenen = {a: l, b: l}
-TR_var kn = TR_checkpoint(%q, {w: w, izlenen: izlenen})
-TR_print("YUKLE_A:", izlenen.a)
-TR_print("YUKLE_B:", izlenen.b)
+TR_var izlenen = {"a": l, "b": l}
+TR_var kn = TR_Checkpoint(%q, {"w": w, "izlenen": izlenen})
+TR_print("YUKLE_A:", izlenen["a"])
+TR_print("YUKLE_B:", izlenen["b"])
 
 TR_var l2 = [99]
-izlenen.a = l2
-izlenen.b = l2
+izlenen["a"] = l2
+izlenen["b"] = l2
 kn.TR_rollback()
-TR_print("GERI_A:", izlenen.a)
-TR_print("GERI_B:", izlenen.b)
+TR_print("GERI_A:", izlenen["a"])
+TR_print("GERI_B:", izlenen["b"])
 `, runDir)
 	out, err := run(t, loadCode)
 	if err != nil {

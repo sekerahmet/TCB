@@ -78,7 +78,7 @@ func TestFileBuiltinsUseSingleRule(t *testing.T) {
 		return m.Run(prog)
 	}
 	// Programın yanındaki dosya okunur ve güncellenince yine oraya yazılır
-	if _, err := run(`TR_write_file("sayac.txt", TR_str(TR_int(TR_read_file("sayac.txt")) + 1))`); err != nil {
+	if _, err := run(`TR_write_file("sayac.txt", TR_String(TR_Int(TR_read_file("sayac.txt")) + 1))`); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(program, "sayac.txt")); string(b) != "2" {

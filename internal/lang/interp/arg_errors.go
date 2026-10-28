@@ -14,19 +14,19 @@ import (
 // yerleşikler de bu işlevleri kullanmalıdır. Dilin adları (yerleşik, metot, tip adları)
 // mesaja koddan girer; Go metninde yazılmaz:
 //
-//	aralık() 1. argüman olarak Tam bekler, Metin ("a") verildi
-//	aralık() 1 ya da 2 argüman bekler, 0 verildi (kullanım: aralık(bitiş) ya da aralık(başlangıç, bitiş))
+//	yuvarla() 2. argüman olarak Tam bekler, Metin ("x") verildi
+//	yuvarla() 1 ya da 2 argüman bekler, 0 verildi (kullanım: yuvarla(x) ya da yuvarla(x, basamak))
 
 // CallName is the name of a code as written in error messages: the name itself for
-// builtins (aralık), with the receiver for members (liste.filtrele; see codes.CallNameRef).
+// builtins (yuvarla), with the receiver for members (liste.filtrele; see codes.CallNameRef).
 // It is a message parameter (codes.Ref): the catalog writes it in the message's language.
 func CallName(kd codes.Code) codes.Ref { return codes.CallNameRef(kd) }
 
-// CallPrefix is the error-message prefix of a code: "aralık()", "liste.filtrele()" (codes.Ref).
+// CallPrefix is the error-message prefix of a code: "yuvarla()", "liste.filtrele()" (codes.Ref).
 func CallPrefix(kd codes.Code) codes.Ref { return codes.CallRef(kd) }
 
 // Usage writes the valid call forms of a code; each form is a parameter list:
-// Usage(codes.FnRange, "bitiş", "başlangıç, bitiş") → "aralık(bitiş) ya da aralık(başlangıç, bitiş)".
+// Usage(codes.FnRound, "x", "x, basamak") → "yuvarla(x) ya da yuvarla(x, basamak)".
 // A form that names a language element is a message part (codes.ReceiverRef(codes.TypeString)),
 // written in the message's language like the name.
 func Usage(kd codes.Code, forms ...any) messages.Localized {
@@ -82,6 +82,9 @@ func languageNamed(lang string) *codes.Language {
 // ArgTypeError reports that argument number sira of builtin kd (or its member) is not one of
 // the expected types; the expected values are type codes (type).
 func ArgTypeError(kd codes.Code, order int, given Value, expected ...codes.Code) error {
+	if j, ok := given.(*JSONVal); ok && len(expected) > 0 {
+		return jsonArgError(CallName(kd), order, j, expected)
+	}
 	return argTypeErrorByName(CallName(kd), order, TypeNames(expected...), given)
 }
 

@@ -17,8 +17,8 @@ TR_var kare = TR_custom_grad(
 )
 
 TR_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
-    TR_assert_equal(TR_BuiltinFunction, TR_type(kare))
-    TR_var x = TR_tensor([3.0], TR_requires_grad: TR_true)
+    TR_assert_equal(TR_BuiltinFunction, TR_Type(kare))
+    TR_var x = TR_Tensor([3.0], TR_requires_grad: TR_true)
     TR_var y = kare(x)
     TR_assert_equal([9.0], y.TR_tolist)
     TR_backward(TR_sum(y))
@@ -26,13 +26,13 @@ TR_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
     # Sonuç bir işlemin sonucudur: .gradyan'ı yoktur.
     TR_assert_equal("H6700", TR_error_code(() => y.TR_grad))
     # Bileşik sürümle aynı gradyan: kare(x) * x = x³ → 3x².
-    TR_var a = TR_tensor([[0.5, -2.0, 1.5]], TR_requires_grad: TR_true)
-    TR_var b = TR_tensor([[0.5, -2.0, 1.5]], TR_requires_grad: TR_true)
+    TR_var a = TR_Tensor([[0.5, -2.0, 1.5]], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([[0.5, -2.0, 1.5]], TR_requires_grad: TR_true)
     TR_backward(TR_sum(kare(a) * a))
     TR_backward(TR_sum(b * b * b))
     TR_assert(yakın(a.TR_grad, b.TR_grad))
     # Hiçbir girdi türev izlemiyorsa çizgeye bir şey kaydedilmez; türevsiz içinde de.
-    TR_var z = kare(TR_tensor([2.0]))
+    TR_var z = kare(TR_Tensor([2.0]))
     TR_assert_equal(TR_none, z.TR_grad)
     TR_var t = TR_no_grad { TR_return kare(x) }
     TR_assert_equal(TR_none, t.TR_grad)
@@ -46,7 +46,7 @@ TR_test "15.28 özel_türev: ileri ve geri hesabı kullanıcı yazar" {
         },
         TR_backward: TR_func(s, g) { TR_return [g * 2] }
     )
-    TR_backward(TR_sum(dene_ileri(TR_tensor([1.0, 2.0], TR_requires_grad: TR_true))))
+    TR_backward(TR_sum(dene_ileri(TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true))))
     TR_assert(iç_izli)
 }
 
@@ -63,17 +63,17 @@ TR_test "15.29 özel_türev: çok girdi, türev izlemeyen ve tensör olmayan gir
             TR_return [g * s, g * a * s * (1 - s)]
         }
     )
-    TR_var a1 = TR_tensor([[1.0, -2.0], [0.5, 3.0]], TR_requires_grad: TR_true)
-    TR_var b1 = TR_tensor([[0.2, -0.7], [1.5, 0.0]], TR_requires_grad: TR_true)
-    TR_var a2 = TR_tensor([[1.0, -2.0], [0.5, 3.0]], TR_requires_grad: TR_true)
-    TR_var b2 = TR_tensor([[0.2, -0.7], [1.5, 0.0]], TR_requires_grad: TR_true)
-    TR_backward(TR_sum(kapılı(a1, b1) * TR_tensor([[1.0, 2.0], [3.0, 4.0]])))
-    TR_backward(TR_sum(a2 * TR_sigmoid(b2) * TR_tensor([[1.0, 2.0], [3.0, 4.0]])))
+    TR_var a1 = TR_Tensor([[1.0, -2.0], [0.5, 3.0]], TR_requires_grad: TR_true)
+    TR_var b1 = TR_Tensor([[0.2, -0.7], [1.5, 0.0]], TR_requires_grad: TR_true)
+    TR_var a2 = TR_Tensor([[1.0, -2.0], [0.5, 3.0]], TR_requires_grad: TR_true)
+    TR_var b2 = TR_Tensor([[0.2, -0.7], [1.5, 0.0]], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(kapılı(a1, b1) * TR_Tensor([[1.0, 2.0], [3.0, 4.0]])))
+    TR_backward(TR_sum(a2 * TR_sigmoid(b2) * TR_Tensor([[1.0, 2.0], [3.0, 4.0]])))
     TR_assert(yakın(a1.TR_grad, a2.TR_grad))
     TR_assert(yakın(b1.TR_grad, b2.TR_grad))
     # Türev izlemeyen girdi: gradyan hesaplanmaz; geri yok da döndürebilir.
-    TR_var sabit_t = TR_tensor([[0.0, 0.0], [0.0, 0.0]])
-    TR_var a3 = TR_tensor([[1.0, 1.0], [1.0, 1.0]], TR_requires_grad: TR_true)
+    TR_var sabit_t = TR_Tensor([[0.0, 0.0], [0.0, 0.0]])
+    TR_var a3 = TR_Tensor([[1.0, 1.0], [1.0, 1.0]], TR_requires_grad: TR_true)
     TR_backward(TR_sum(kapılı(a3, sabit_t)))
     TR_assert_equal([[0.5, 0.5], [0.5, 0.5]], a3.TR_grad.TR_tolist)
     TR_assert_equal(TR_none, sabit_t.TR_grad)
@@ -87,7 +87,7 @@ TR_test "15.29 özel_türev: çok girdi, türev izlemeyen ve tensör olmayan gir
             TR_return [g * k[0], TR_none]
         }
     )
-    TR_var x = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_var x = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
     TR_var y = ölçekli(x, 3, ölçek: 0.5, ad: "deneme")
     TR_assert_equal([1.5, 3.0], y.TR_tolist)
     TR_backward(TR_sum(y))
@@ -100,10 +100,10 @@ TR_test "15.30 özel_türev: çok çıktı" {
         TR_forward: TR_func(a, b) { TR_return [[a + b, a - b], []] },
         TR_backward: TR_func(k, g) { TR_return [g[0] + g[1], g[0] - g[1]] }
     )
-    TR_var a = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
-    TR_var b = TR_tensor([3.0, 5.0], TR_requires_grad: TR_true)
+    TR_var a = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([3.0, 5.0], TR_requires_grad: TR_true)
     TR_var sonuçlar = topla_fark(a, b)
-    TR_assert_equal(TR_List, TR_type(sonuçlar))
+    TR_assert_equal(TR_List, TR_Type(sonuçlar))
     TR_assert_equal([[4.0, 7.0], [-2.0, -3.0]], [sonuçlar[0].TR_tolist, sonuçlar[1].TR_tolist])
     TR_backward(TR_sum(sonuçlar[0] * 2) + TR_sum(sonuçlar[1] * 3))
     TR_assert_equal([5.0, 5.0], a.TR_grad.TR_tolist)
@@ -117,14 +117,14 @@ TR_test "15.30 özel_türev: çok çıktı" {
             TR_return [g[0] * 2 + g[1] * 3]
         }
     )
-    TR_var x = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+    TR_var x = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(izle(x)[0]))
     TR_assert_equal([0.0, 0.0], görülen)
     TR_assert_equal([2.0, 2.0], x.TR_grad.TR_tolist)
 }
 
 TR_test "15.31 özel_türev: hatalar" {
-    TR_var x = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
+    TR_var x = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
     # ileri yanlış biçim döndürürse.
     TR_var bozuk = TR_custom_grad(TR_forward: TR_func(x) { TR_return x * x }, TR_backward: TR_func(k, g) { TR_return [g] })
     TR_assert_equal("H6409", TR_error_code(() => bozuk(x)))
@@ -141,7 +141,7 @@ TR_test "15.31 özel_türev: hatalar" {
     TR_var sayılı = TR_custom_grad(TR_forward: TR_func(a, n) { TR_return [a * n, []] }, TR_backward: TR_func(k, g) { TR_return [g, g] })
     TR_assert_equal("H6417", TR_error_code(() => TR_backward(TR_sum(sayılı(x, 2)))))
     # Saklanan bir tensör ileri hesaptan sonra yerinde değiştirilirse geri yayılım hata verir.
-    TR_var c = TR_tensor([[3.0, 4.0]])
+    TR_var c = TR_Tensor([[3.0, 4.0]])
     TR_var ölçekle = TR_custom_grad(TR_forward: TR_func(x, c) { TR_return [x * c, [c]] }, TR_backward: TR_func(k, g) { TR_return [g * k[0], TR_none] })
     TR_var y = ölçekle(x, c)
     c[0] = [9.0, 9.0]
@@ -157,39 +157,39 @@ TR_test "15.31 özel_türev: hatalar" {
 }
 
 TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
-    TR_assert(TR_grad_check(kare, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))
+    TR_assert(TR_grad_check(kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))
     # Yanlış bir geri hesabını yakalar ve en büyük farkın yerini yazar.
     TR_var yanlış_kare = TR_custom_grad(
         TR_forward: TR_func(x) { TR_return [x * x, [x]] },
         TR_backward: TR_func(k, g) { TR_return [g * k[0]] }
     )
-    TR_assert_equal("H6432", TR_error_code(() => TR_grad_check(yanlış_kare, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])))
-    TR_assert(hata_metni(() => TR_grad_check(yanlış_kare, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])).TR_contains("[0, 1]"))
+    TR_assert_equal("H6432", TR_error_code(() => TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])))
+    TR_assert(hata_metni(() => TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])).TR_contains("[0, 1]"))
     # Sıradan TR fonksiyonlarında, çok girdide ve çok çıktıda da çalışır.
-    TR_assert(TR_grad_check(TR_func(a, b) { TR_return a * TR_sigmoid(b) }, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true), TR_tensor([[0.5, 2.0]], TR_requires_grad: TR_true)]))
-    TR_assert(TR_grad_check((a, b) => [a * b, a + b], [TR_tensor([1.0, 2.0], TR_requires_grad: TR_true), TR_tensor([3.0], TR_requires_grad: TR_true)]))
+    TR_assert(TR_grad_check(TR_func(a, b) { TR_return a * TR_sigmoid(b) }, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true), TR_Tensor([[0.5, 2.0]], TR_requires_grad: TR_true)]))
+    TR_assert(TR_grad_check((a, b) => [a * b, a + b], [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true), TR_Tensor([3.0], TR_requires_grad: TR_true)]))
     # Türev izlemeyen ve tensör olmayan girdiler denetlenmez; kullanıcının gradyanları değişmez.
-    TR_var w = TR_tensor([2.0, -1.0], TR_requires_grad: TR_true)
-    TR_assert(TR_grad_check((w, c, n) => TR_sum(w * c) * n, [w, TR_tensor([1.0, 3.0]), 2]))
+    TR_var w = TR_Tensor([2.0, -1.0], TR_requires_grad: TR_true)
+    TR_assert(TR_grad_check((w, c, n) => TR_sum(w * c) * n, [w, TR_Tensor([1.0, 3.0]), 2]))
     TR_assert_equal(TR_none, w.TR_grad)
     # adım ve tolerans.
-    TR_assert(TR_grad_check(kare, [TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)], TR_fd_step: 0.01, TR_tol: 0.001))
+    TR_assert(TR_grad_check(kare, [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)], TR_fd_step: 0.01, TR_tol: 0.001))
     TR_assert_equal("H6429", TR_error_code(() => TR_grad_check(kare, [w], TR_fd_step: 0)))
     # float32'de etkisiz fark_adımı (x ± adım == x): sahte uyuşmazlık değil, açık hata.
     TR_for etkisiz TR_in [1e-46, 1e-30] {
-        TR_assert_equal("H6445", TR_error_code(() => TR_grad_check(kare, [TR_tensor([2.0], TR_requires_grad: TR_true)], TR_fd_step: etkisiz)))
+        TR_assert_equal("H6445", TR_error_code(() => TR_grad_check(kare, [TR_Tensor([2.0], TR_requires_grad: TR_true)], TR_fd_step: etkisiz)))
     }
-    TR_assert_equal("H6423", TR_error_code(() => TR_grad_check(kare, [TR_tensor([1.0])])))
+    TR_assert_equal("H6423", TR_error_code(() => TR_grad_check(kare, [TR_Tensor([1.0])])))
     TR_assert_equal("H7901", TR_error_code(() => TR_grad_check(kare, [w], step: 0.1)))
     # karışık_hassasiyet içinde: ileri ve geri bloğun türüyle çalışır, gradyanlar girdilerin türündedir.
     TR_var çarp = TR_custom_grad(
         TR_forward: TR_func(x, m) { TR_return [x @ m, [x, m]] },
         TR_backward: TR_func(k, g) { TR_return [g @ k[1].TR_transpose(), k[0].TR_transpose() @ g] }
     )
-    TR_var x1 = TR_tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
-    TR_var m1 = TR_tensor([[0.5, -1.0], [2.0, 0.25]], TR_dtype: "bf16", TR_requires_grad: TR_true)
-    TR_var x2 = TR_tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
-    TR_var m2 = TR_tensor([[0.5, -1.0], [2.0, 0.25]], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_var x1 = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+    TR_var m1 = TR_Tensor([[0.5, -1.0], [2.0, 0.25]], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_var x2 = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+    TR_var m2 = TR_Tensor([[0.5, -1.0], [2.0, 0.25]], TR_dtype: "bf16", TR_requires_grad: TR_true)
     TR_var tür = TR_mixed_precision("bf16") {
         TR_var y = çarp(x1, m1)
         TR_backward(TR_sum(y * y))
@@ -215,7 +215,7 @@ TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
 # Bileşik sürüm: her adım çizgeye kaydedilir.
 TR_func kapılı_bileşik(x, W, indeks) {
     TR_var d = x.TR_shape[1]
-    TR_var satırlar = TR_embedding(W, indeks)
+    TR_var satırlar = TR_embedding_lookup(W, indeks)
     TR_var a = TR_sum(satırlar.TR_slice(1, 0, d) * x, TR_dim: 1)
     TR_var b = TR_sum(satırlar.TR_slice(1, d, 2 * d) * x, TR_dim: 1)
     TR_var s = (a * TR_sigmoid(a) * b).TR_reshape([-1, 1])
@@ -251,7 +251,7 @@ TR_var kapı_çekirdeği = TR_custom_grad(
 # Satır seçimi (ve tablo gradyanının satırlara dağıtılması) gömme'ye bırakılır.
 TR_func kapılı_nöron(x, W, indeks) {
     TR_var d = x.TR_shape[1]
-    TR_var satırlar = TR_embedding(W, indeks)
+    TR_var satırlar = TR_embedding_lookup(W, indeks)
     TR_return kapı_çekirdeği(x, satırlar.TR_slice(1, 0, d), satırlar.TR_slice(1, d, 2 * d), satırlar.TR_slice(1, 2 * d, 3 * d))
 }
 
@@ -263,7 +263,7 @@ TR_func kapılı_nöron(x, W, indeks) {
 TR_var kapılı_nöron_tam = TR_custom_grad(
     TR_forward: TR_func(x, W, indeks) {
         TR_var d = x.TR_shape[1]
-        TR_var satırlar = TR_embedding(W, indeks)
+        TR_var satırlar = TR_embedding_lookup(W, indeks)
         TR_var a = TR_sum(satırlar.TR_slice(1, 0, d) * x, TR_dim: 1)
         TR_var b = TR_sum(satırlar.TR_slice(1, d, 2 * d) * x, TR_dim: 1)
         TR_var sa = TR_sigmoid(a)
@@ -271,7 +271,7 @@ TR_var kapılı_nöron_tam = TR_custom_grad(
     },
     TR_backward: TR_func(k, G) {
         TR_var x = k[0]
-        TR_var satırlar = TR_embedding(k[1], k[2])
+        TR_var satırlar = TR_embedding_lookup(k[1], k[2])
         TR_var a = k[3]
         TR_var b = k[4]
         TR_var sa = k[5]
@@ -284,7 +284,7 @@ TR_var kapılı_nöron_tam = TR_custom_grad(
         # satır dilimleri) yan yana dizilir.
         TR_var I = TR_eye(3 * d)
         TR_var d_satır = (da * x) @ I.TR_slice(0, 0, d) + (db * x) @ I.TR_slice(0, d, 2 * d) + ((a_sa * b).TR_reshape([-1, 1]) * G) @ I.TR_slice(0, 2 * d, 3 * d)
-        TR_var dW = TR_embedding(TR_eye(k[1].TR_shape[0]), k[2]).TR_transpose() @ d_satır
+        TR_var dW = TR_embedding_lookup(TR_eye(k[1].TR_shape[0]), k[2]).TR_transpose() @ d_satır
         TR_var dx = da * satırlar.TR_slice(1, 0, d) + db * satırlar.TR_slice(1, d, 2 * d)
         TR_return [dx, dW, TR_none]
     }
@@ -294,12 +294,12 @@ TR_var kapılı_nöron_tam = TR_custom_grad(
 TR_test "15.28 örnek: satıra özel kapılı nöron (özel türevli sürümler bileşik sürümle aynı gradyanı verir)" {
     TR_var x0 = TR_randn([6, 4], TR_seed: 11)
     TR_var W0 = TR_randn([5, 12], TR_seed: 12) * 0.5
-    TR_var indeks = TR_tensor([0, 3, 3, 1, 4, 0])
+    TR_var indeks = TR_Tensor([0, 3, 3, 1, 4, 0])
     TR_var ağırlık = TR_randn([6, 4], TR_seed: 13)
     TR_var gradyanlar = []
     TR_for f TR_in [kapılı_bileşik, kapılı_nöron, kapılı_nöron_tam] {
-        TR_var x = TR_tensor(x0, TR_requires_grad: TR_true)
-        TR_var W = TR_tensor(W0, TR_requires_grad: TR_true)
+        TR_var x = TR_Tensor(x0, TR_requires_grad: TR_true)
+        TR_var W = TR_Tensor(W0, TR_requires_grad: TR_true)
         TR_var y = f(x, W, indeks)
         TR_backward(TR_sum(y * ağırlık))
         gradyanlar.TR_append([y, x.TR_grad, W.TR_grad])
@@ -312,8 +312,8 @@ TR_test "15.28 örnek: satıra özel kapılı nöron (özel türevli sürümler 
     # Kullanılmayan satır (2) gradyan almaz.
     TR_assert_equal([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], gradyanlar[2][2][2].TR_tolist)
     TR_for f TR_in [kapılı_bileşik, kapılı_nöron, kapılı_nöron_tam] {
-        TR_assert(TR_grad_check(f, [TR_tensor(TR_randn([3, 2], TR_seed: 21), TR_requires_grad: TR_true), TR_tensor(TR_randn([4, 6], TR_seed: 22), TR_requires_grad: TR_true), TR_tensor([1, 3, 1])]))
+        TR_assert(TR_grad_check(f, [TR_Tensor(TR_randn([3, 2], TR_seed: 21), TR_requires_grad: TR_true), TR_Tensor(TR_randn([4, 6], TR_seed: 22), TR_requires_grad: TR_true), TR_Tensor([1, 3, 1])]))
     }
-    TR_var izli = (s) => TR_tensor(TR_randn([3, 2], TR_seed: s), TR_requires_grad: TR_true)
+    TR_var izli = (s) => TR_Tensor(TR_randn([3, 2], TR_seed: s), TR_requires_grad: TR_true)
     TR_assert(TR_grad_check(kapı_çekirdeği, [izli(31), izli(32), izli(33), izli(34)]))
 }

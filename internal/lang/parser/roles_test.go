@@ -42,7 +42,7 @@ yazdır("\(n.uzunluk)")
 		{4, "uzak", RoleStructMethod},
 		{4, "Metin", RoleType},
 		{6, "Liste", RoleType},
-		{7, "ad", RoleDictKey},
+		{7, "ad", 0}, // sözlük anahtarı bir ifadedir (3.7): adın görevi yok, değişkendir
 		{8, "ekle", RoleMember},
 		{9, "test", RoleTest},
 		{1, "olarak", RoleAs},
@@ -68,7 +68,7 @@ yazdır("\(n.uzunluk)")
 	for _, r := range roles {
 		seen[r] = true
 	}
-	for _, r := range []NameRole{RoleType, RoleMember, RoleStructField, RoleStructMethod, RoleTest, RoleAs, RoleDictKey} {
+	for _, r := range []NameRole{RoleType, RoleMember, RoleStructField, RoleStructMethod, RoleTest, RoleAs} {
 		if !seen[r] {
 			t.Errorf("%v görevi hiç kaydedilmedi", r)
 		}

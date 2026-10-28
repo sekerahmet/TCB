@@ -1,25 +1,25 @@
 # 9. Uzun eğitim: kontrol noktası ve devam
 
-Saatler süren bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basarsınız, makine yeniden başlar. TR'de bunun için tek bir satır yeter: `TR_fn_checkpoint` eğitimin bütün durumunu (model ağırlıkları, iyileştiricinin momentleri, veri okuyucusunun konumu, günlük, kendi sayaçlarınız) düzenli aralıklarla koşu klasörüne kaydeder; programı **aynı komutla** yeniden çalıştırdığınızda kaldığı adımdan sürer. Sürdürülen eğitim, hiç kesilmemiş bir eğitimle **bit düzeyinde aynı** sonucu verir. Kurallar: [`docs/spec/20_kontrol_noktasi.md`](../spec/20_kontrol_noktasi.md). Uçtan uca örnek: [`examples/tr/40_kontrol_noktasi.tr`](../../examples/tr/40_kontrol_noktasi.tr).
+Saatler süren bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basarsınız, makine yeniden başlar. TR'de bunun için tek bir satır yeter: `TR_type_Checkpoint` eğitimin bütün durumunu (model ağırlıkları, iyileştiricinin momentleri, veri okuyucusunun konumu, günlük, kendi sayaçlarınız) düzenli aralıklarla koşu klasörüne kaydeder; programı **aynı komutla** yeniden çalıştırdığınızda kaldığı adımdan sürer. Sürdürülen eğitim, hiç kesilmemiş bir eğitimle **bit düzeyinde aynı** sonucu verir. Kurallar: [`docs/spec/20_kontrol_noktasi.md`](../spec/20_kontrol_noktasi.md). Uçtan uca örnek: [`examples/tr/40_kontrol_noktasi.tr`](../../examples/tr/40_kontrol_noktasi.tr).
 
 ```tr
 # TR 4
-TR_var ayar = TR_command_line({TR_step: 20000, koşu: "runs/deneme1"})
-TR_var model = {E: TR_tensor(TR_no_grad(TR_randn([50000, 256], TR_seed: 1) * 0.02), TR_requires_grad: TR_true)}
+TR_var ayar = TR_command_line({"step": 20000, "koşu": "runs/deneme1"})
+TR_var model = {"E": TR_Tensor(TR_no_grad(TR_randn([50000, 256], TR_seed: 1) * 0.02), TR_requires_grad: TR_true)}
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.0003)
-TR_var ö = TR_dataset("veri/train").TR_sampler(TR_batch_size: 16, TR_context: 512, TR_seed: 1)
-TR_var g = TR_logger(TR_path(ayar.koşu, "metrics.jsonl"))
-TR_var izlenen = {en_iyi_kayıp: 99.0}
-TR_var kn = TR_checkpoint(ayar.koşu, {model: model, op: op, ö: ö, g: g, izlenen: izlenen})
-TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
-TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
+TR_var ö = TR_Dataset("veri/train").TR_sampler(TR_batch_size: 16, TR_context: 512, TR_seed: 1)
+TR_var g = TR_Logger(TR_Path(ayar["koşu"], "metrics.jsonl"))
+TR_var izlenen = {"en_iyi_kayıp": 99.0}
+TR_var kn = TR_Checkpoint(ayar["koşu"], {"model": model, "op": op, "ö": ö, "g": g, "izlenen": izlenen})
+TR_var ç = TR_Progress(ayar["step"], TR_log: g)
+TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
     TR_var giriş, hedef = ö.TR_next()
     op.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(TR_embedding(model.E, giriş) @ model.E.TR_transpose(), hedef)
+    TR_var kayıp = TR_cross_entropy(TR_embedding_lookup(model["E"], giriş) @ model["E"].TR_transpose(), hedef)
     TR_backward(kayıp)
     op.TR_step()
-    TR_if kayıp.TR_tolist < izlenen.en_iyi_kayıp { izlenen.en_iyi_kayıp = kayıp.TR_tolist }
-    ç.TR_update({TR_loss: kayıp}, TR_step: adım + 1)
+    TR_if kayıp.TR_tolist < izlenen["en_iyi_kayıp"] { izlenen["en_iyi_kayıp"] = kayıp.TR_tolist }
+    ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
     kn.TR_update(adım + 1) # 15 dakikada bir ve Ctrl+C gelince adım sınırında kaydeder
 }
 kn.TR_save()
@@ -37,7 +37,7 @@ kn.TR_save()
 
 ```text
 runs/deneme1/
-  config.json            ayarlar: dosya_yaz(yol(koşu, "config.json"), json_metin(ayar))
+  config.json            ayarlar: dosya_yaz(Yol(koşu, "config.json"), json_metin(ayar))
   metrics.jsonl          günlük: her adımın ölçüleri
   samples.json           üretilen örnek metinler
   results.json           son değerlendirme
@@ -74,10 +74,10 @@ Oturum kapanınca klasörü Drive'dan yerel diske geri kopyalayıp aynı komutu 
 ```tr
 # TR 4
 TR_import "tr/egitim"
-TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
-TR_var ö = TR_dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
-TR_var kn = TR_checkpoint("koşu", {w: w, op: op, ö: ö})
+TR_var ö = TR_Dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
+TR_var kn = TR_Checkpoint("koşu", {"w": w, "op": op, "ö": ö})
 TR_var bekçi = TR_SpikeGuard()
 TR_var adım = kn.TR_resume_step
 TR_for adım < 1000 {

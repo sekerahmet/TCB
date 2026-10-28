@@ -43,7 +43,7 @@ func TestFileOpsRelativePath(t *testing.T) {
 		t.Fatalf("%s çalışma klasöründe olmamalı", sub)
 	}
 	out, err := fromProgram(t, dir, `
-TR_save_tensors("`+sub+`/t.trt", {"w": TR_tensor([1.5, 2.5])})
+TR_save_tensors("`+sub+`/t.trt", {"w": TR_Tensor([1.5, 2.5])})
 TR_print(TR_load_tensors("`+sub+`/t.trt")["w"].TR_tolist)
 `)
 	if err != nil {
@@ -68,7 +68,7 @@ func TestFileOpsTurkishError(t *testing.T) {
 		want messages.Code
 	}{
 		{`TR_load_tensors("yok_12345.trt")`, messages.H2107},
-		{`TR_save_tensors("olmayan_klasör_12345/t.trt", {"w": TR_tensor([1])})`, messages.H2101},
+		{`TR_save_tensors("olmayan_klasör_12345/t.trt", {"w": TR_Tensor([1])})`, messages.H2101},
 	} {
 		_, err := fromProgram(t, dir, d.code)
 		if err == nil || !messages.Has(err, d.want) {

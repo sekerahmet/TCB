@@ -42,7 +42,7 @@ func TestGrammarSingleSpelling(t *testing.T) {
 			inOtherLanguage[d.Name(k)] = true
 		}
 	}
-	for _, name := range []string{"TR_if", "TR_var", "TR_print", "TR_Tensor", "eğer", "değişken", "sonuç", "yazdır", "tensör", "Tensör", "veri_kümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
+	for _, name := range []string{"TR_if", "TR_var", "TR_print", "TR_Tensor", "eğer", "değişken", "sonuç", "yazdır", "Tensör", "VeriKümesi", "parçalayıcı_yükle", "kesme_noktası", "Ondalık", "if", "var", "print", "Tensor"} {
 		if !words[name] {
 			t.Errorf("%q listelerde olmalı", name)
 		}

@@ -56,7 +56,7 @@ codegraph query source.Header | contains: carries no language | src: deneme 5, 2
 codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
 codegraph query interp.Value.Inspect | group: -> dispatches_to => checkpoint.Checkpoint.Inspect | group: -> dispatches_to => dataset.Dataset.Inspect | src: deneme 5, 2026-10-23
 codegraph query TR_fn_print | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
-codegraph query TR_fn_str | group: registered or used in Go => interp.stringBuiltin | src: deneme 5, 2026-10-23
+codegraph query TR_type_String | group: registered or used in Go => interp.stringCall | src: deneme 5, 2026-10-23
 codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
 codegraph query interp.compiler | group: fields ( => interp.compiler.root | group: fields ( => interp.compiler.source | group: fields ( => interp.compiler.blocks | src: deneme 5, 2026-10-23
 codegraph who-uses 17.7 --all | contains: internal/lang/codes/start.go | src: deneme 5, 2026-10-23; katman 1, 2026-10-28 (sözcük çözümleyici dosyanın dilini artık anmıyor)
@@ -102,8 +102,8 @@ codegraph tests-for codeindex.Build | not: other build configurations | not: Go 
 codegraph tests-for internal/devtools/codeindex/text.go --all | contains: TestListFilesKeepsTwoRules | contains: Araçların tek dosya listesi | not: no tests found | not: other build configurations | src: CLAUDE.md kuralı (tests-for <Go dosyası>), 2026-10-24
 
 # Deneme 7: bir kitaplık parametresini yeniden adlandırmayı planlamak (bakış_sayısı → baş_sayısı) (2026-10-24)
-codegraph query bakış_sayısı | contains: 7 candidates | contains: [tr_option] | contains: [tr_field] | src: deneme 7 R1, 2026-10-24
-tr dizin tanım bakış_sayısı | contains: 7 aday | src: deneme 7 R1, 2026-10-24
+codegraph query bakış_sayısı | contains: 4 candidates | contains: [tr_field] | src: deneme 7 R1, 2026-10-24
+tr dizin tanım bakış_sayısı | contains: 4 aday | src: deneme 7 R1, 2026-10-24
 
 # Deneme 8: çok kullanılan bir şeye ekleme (yazdır'a adlı ayırıcı argümanı) (2026-10-24)
 codegraph query TR_mem_join | group: related => TR_mem_split | src: deneme 8 S2, 2026-10-24
@@ -125,7 +125,7 @@ codegraph who-uses interp.valueText | contains: <- implemented_by | group: calls
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
 codegraph query katman.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
 codegraph path katman.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
-tr dizin kullananlar field:lib/katman.tr#TR_type_GPT.TR_mem_config --tümü | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/hazir_test.tr#m.TR_config.rope_tabanı} | contains: @{lib/hazir_test.tr#ll.TR_config.rope_tabanı} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
+tr dizin kullananlar field:lib/katman.tr#TR_type_GPT.TR_mem_config --tümü | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/hazir_test.tr#m.TR_config["rope_tabanı"]} | contains: @{lib/hazir_test.tr#ll.TR_config["rope_tabanı"]} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)
 codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.TR_type_Run.TR_mem_finish | group: implemented_by => hazir.TR_fn_map_hugging_face | src: değer dili 3. tur, 2026-10-25
@@ -141,7 +141,7 @@ codegraph query value.inspect | contains: interp.Value.Inspect [method] | not: i
 codegraph query identifier | contains: interp.identifier [func] | contains: also matches in another case | contains: ast.Identifier [type] | src: denetim grup 7 R1 (Go: tam harfli eşleşme önce, öbür harf görünür), 2026-10-25
 codegraph query IKINCI | contains: TR_arg_pair [name] | not: is ambiguous | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
 tr dizin tanım IKINCI | contains: TR_arg_pair | src: denetim grup 7 R1 (ASCII büyük harf), 2026-10-25
-tr dizin tanım Metin | exit: 4 | not: birden çok düğüme | src: denetim grup 7 R1 (dilin sözcüğü, dizinde düğümü yok), 2026-10-25
+tr dizin tanım Metin | contains: TR_type_String | not: birden çok düğüme | src: denetim grup 7 R1 (dilin sözcüğü), 2026-10-25; tip çağrılınca (3.12) yerleşik gibi düğümü olur, 2026-10-28
 # TCB 2026-10-25: düzenleme kancası her ilk düzenlemede tests-for <dosya> sorar; kod dışı dosyalar
 codegraph tests-for tools/full_check.sh | not: is ambiguous | group: <- tests => internal.TestGoEquivalentPackagesListed | group: tests that cite it => testrunner.TestLanguageSpecTestsPass | src: TCB 2026-10-25, 1. madde
 codegraph tests-for .gitignore | contains: .gitignore [file] | not: is ambiguous | contains: no tests read it by name | group: repository-wide checks that scan it => internal_test.TestLayoutEnglishFileNames | src: TCB 2026-10-25, 1. madde
@@ -160,7 +160,7 @@ codegraph tests-for lib/egitim.tr | group: repository-wide checks that scan it =
 # Deneme: içeride ara dil yok, asıl biçim kod (yol haritası 15, 1. tur, 2026-10-25)
 codegraph who-uses turkish.ErrorFrame | contains: tr.printError | contains: interp.ErrorItems | contains: testrunner.writeError | contains: debugger.dapServer.reportDiagnostics | src: iç dil 1. tur, 2026-10-25 (çerçeveye metin veren yerler); katman 1, 2026-10-28 (hata ayıklayıcının tanıları kendi işlevinde)
 codegraph query lexer.NewBodyIn | contains: Programlar kimliklerle okunur | src: iç dil 1. tur, 2026-10-25 (kodlar okunurken Türkçeye çevriliyor)
-codegraph who-uses lexer.Token.Code | contains: interp.codedKeyOf | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
+codegraph who-uses lexer.Token.Code | contains: checker.nameChecker.tokenResolution | contains: checker.nameChecker.bind | src: iç dil 1. tur, 2026-10-25 (kodu taşıyan belirteci okuyan az yer)
 codegraph who-uses ast.Identifier.Value | contains: accesses in | contains: read, | contains: codeindex.indexer.calleeStruct | src: iç dil 1. tur, 2026-10-25 (adı okuyan çok yer)
 codegraph who-uses codes.Spellings | contains: interp.VM.DefineBuiltin | src: iç dil 1. tur, 2026-10-25 (yerleşik genel kapsama Türkçe adıyla girer)
 codegraph who-uses codes.Name --all | contains: interp.ctorName | contains: checker.typeInt | src: iç dil 1. tur, 2026-10-25 (iç adın kimlik olduğu yerler; profil etiketleri 2026-10-26 Türkçe yazım dilinden)
@@ -206,7 +206,7 @@ codegraph tests-for --all lib/katman.tr | contains: e2e.TestGPTTrainingScriptSmo
 codegraph tests-for internal/lang/interp/stats.go | group: this file's tests => interp.TestStatsNameTheBadValueByItsPlace [func] @{internal/lang/interp/stats_test.go#func TestStatsNameTheBadValueByItsPlace(} | src: K2 partisi A, 2026-10-26 (aynı paketin testi dosyanın uyguladığı yerleşiği tablodaki TR koduyla koşuyor; eskiden 40. sırada 2 adım); gaps2 2026-10-27 (adaş test dosyasının testleri ilk grupta)
 codegraph tests-for cmd/tr/main.go | not: tipler_test: | not: yerlesikler_test: | not: tensor_test: | src: K2 partisi C, 2026-10-26 (yazdır'ın yazımlarını okuyan startsWithPrint yazdır'ı uygulamaz; TR testleri main.go'nun testi değil)
 codegraph who-uses --all TR_fn_print | group: reads_name => tr.startsWithPrint | src: K2 partisi C, 2026-10-26 (adını okuyan, uygulayandan ayrı)
-codegraph who-uses interp.memberKeys | before: <- calls => <- implemented_by | contains: via MemberExpression | not: [tr_func] | src: K2 partisi B, 2026-10-26 (yapı köprüsü yapının adıyla tek satır; Go çağıranı önde)
+codegraph who-uses interp.resolveMember | before: <- calls => <- implemented_by | contains: via MemberExpression | not: [tr_func] | src: K2 partisi B, 2026-10-26 (yapı köprüsü yapının adıyla tek satır; Go çağıranı önde)
 
 # Kitaplık partisi: kitaplık kodları ve alt süreçteki TR metni (2026-10-26)
 tr dizin tanım TR_type_Linear | contains: katman.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (kitaplık kodu bildirimine çözülür)

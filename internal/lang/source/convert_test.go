@@ -41,7 +41,7 @@ func withoutViewHeader(text string, lang *codes.Language) string {
 // Kenar durumlar (17.3, 17.4): beklenen kodlu gövde başlıktan sonraki metindir.
 func TestEncodeEdgeCases(t *testing.T) {
 	cases := []struct{ name, tr, coded string }{
-		{"ileti kodu bir ad değildir", "yazdır(ileti(\"H6903\", 1))\n", "TR_print(TR_message(\"H6903\", 1))\n"},
+		{"ileti kodu bir ad değildir", "yazdır(İleti(\"H6903\", 1))\n", "TR_print(TR_Message(\"H6903\", 1))\n"},
 		{"anahtar kelime ve yerleşik", "değişken x = 1\nyazdır(x)\n", "TR_var x = 1\nTR_print(x)\n"},
 		{"gölgelenen yerleşik kullanıcının adıdır",
 			"fonksiyon f() {\n    değişken toplam = 1\n    sonuç toplam\n}\nyazdır(toplam([1, 2]))\n",
@@ -68,8 +68,8 @@ func TestEncodeEdgeCases(t *testing.T) {
 			"aktar \"m\" olarak m\ntest \"t\" { doğrula(doğru) }\ndeğişken test = 1\n",
 			"TR_import \"m\" TR_as m\nTR_test \"t\" { TR_assert(TR_true) }\nTR_var test = 1\n"},
 		{"tip açıklaması; kabul edilmeyen harf yazımı (3.14) olduğu gibi kalır",
-			"değişken a: Tam = 1\ndeğişken b: tam = 2\nyazdır(tip(a) == Tam)\n",
-			"TR_var a: TR_Int = 1\nTR_var b: tam = 2\nTR_print(TR_type(a) == TR_Int)\n"},
+			"değişken a: Tam = 1\ndeğişken b: tam = 2\nyazdır(Tip(a) == Tam)\n",
+			"TR_var a: TR_Int = 1\nTR_var b: tam = 2\nTR_print(TR_Type(a) == TR_Int)\n"},
 		{"Türkçe harfler ve eski kod biçimine benzeyen adlar",
 			"değişken İSİM_ı = \"Iİ\"\ndeğişken g100 = 1\nyazdır(İSİM_ı, g100)\n",
 			"TR_var İSİM_ı = \"Iİ\"\nTR_var g100 = 1\nTR_print(İSİM_ı, g100)\n"},

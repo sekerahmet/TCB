@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -13,8 +14,8 @@ import (
 //
 //   - noktadan ('.', '?.') sonra ve yapı gövdesindeki alan ve metot tanımında üye;
 //   - parantez içinde ardından tek ':' gelen ad (adlı argüman, tipli parametre) ve fonksiyonun
-//     parametre listesindeki ad argüman; süslü parantez içinde ardından ':' gelen ad (sözlük
-//     değişmezinin anahtarı) üye;
+//     parametre listesindeki ad argüman; sözlük değişmezinin anahtarı bir ifadedir (3.7), öbür
+//     yerdir;
 //   - öbür yerlerde anahtar kelime, bağlamsal sözcük, değer, tip, fonksiyon ya da sabit. Kitaplık
 //     fonksiyonunun gövdesinde parametresi aynı adlı yerleşiği gölgeler (sözcüksel kapsam).
 //
@@ -175,8 +176,6 @@ func (l *Lexer) placeOf(line int) (place, second codes.Place, fallback bool) {
 		return codes.PlaceMember, codes.PlaceOther, true
 	case top.open == TokLParen && l.colonAhead():
 		return codes.PlaceArg, 0, false
-	case top.open == TokLBrace && l.colonAhead():
-		return codes.PlaceMember, 0, false
 	}
 	return codes.PlaceOther, 0, false
 }
@@ -297,6 +296,12 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 		l.addError(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)))
 		return codes.None
 	}
+	if l.places.top().open == TokLBrace && l.colonAhead() {
+		// Sözlük anahtarı bir ifadedir (3.7): {TR_step: 1} bir üye adını anahtar sanıyor; metin
+		// anahtarı önerilir.
+		l.addError(line, col, messages.New(messages.H0240, lit, strings.TrimPrefix(lit, codes.IdentityPrefix)))
+		return codes.None
+	}
 	l.addError(line, col, identityError(place, lit))
 	return codes.None
 }
@@ -351,6 +356,11 @@ func identityError(place codes.Place, lit string) error {
 	case messages.H0022:
 		return messages.New(messages.H0022, lit)
 	}
+	if place == codes.PlaceOther {
+		if err := familiarOrType(lit); err != nil {
+			return err
+		}
+	}
 	for _, other := range []codes.Place{codes.PlaceOther, codes.PlaceMember, codes.PlaceArg} {
 		if other == place {
 			continue
@@ -359,11 +369,12 @@ func identityError(place codes.Place, lit string) error {
 			return wrongPlace(other, k)
 		}
 	}
-	if s, _ := nearestSpelling(place, lit); s != "" {
+	// Başka bir dilin tanıdık adı TR_ ile yazılmış olabilir: TR_def → TR_func, TR_None → TR_none,
+	// TR_str → TR_String. Yazımca yakın kimlikten önce gelir (TR_str, TR_std değildir).
+	if s, ok := codes.SuggestIdentity(lit[len(codes.IdentityPrefix):]); ok && place == codes.PlaceOther {
 		return messages.New(messages.H0026, lit, s)
 	}
-	// Başka bir dilin tanıdık adı TR_ ile yazılmış olabilir: TR_def → TR_func, TR_None → TR_none.
-	if s, ok := codes.SuggestIdentity(lit[len(codes.IdentityPrefix):]); ok && place == codes.PlaceOther {
+	if s, _ := nearestSpelling(place, lit); s != "" {
 		return messages.New(messages.H0026, lit, s)
 	}
 	// Yanlış yazılmış kimlik başka bir yerin kimliğine yakın olabilir: öbür yerlerde en yakın olan, o
@@ -382,6 +393,31 @@ func identityError(place codes.Place, lit string) error {
 		return messages.New(messages.H0026, lit, best)
 	}
 	return messages.New(messages.H0001, lit)
+}
+
+// familiarOrType küçük harfle yazılmış bir tip adı ya da bir fonksiyonun tanıdık adı için iletidir
+// (3.12: eski çevirme fonksiyonları tip çağrısı oldu): TR_checkpoint → TR_Checkpoint, TR_embedding →
+// TR_embedding_lookup; aralık için 0..n ve TR_List(0..n). Başka yerin kimliğinden önce gelir: aynı
+// yazımın üye kodu (TR_checkpoint alanı) yanlış yere götürürdü. Tipe giden öbür tanıdık adlar
+// (TR_map'in map'i TR_Dict'tir, ama .TR_map üyedir) üyeden sonra gelir. Hiçbiri değilse nil.
+func familiarOrType(lit string) error {
+	name := lit[len(codes.IdentityPrefix):]
+	if k, ok := codes.FamiliarCode(name); ok && (k == codes.TypeRange || k.Class() == codes.ClassFunction) {
+		if k == codes.TypeRange {
+			return messages.New(messages.H0242, lit)
+		}
+		return messages.New(messages.H0026, lit, codes.Spelling(k))
+	}
+	r, size := utf8.DecodeRuneInString(name)
+	if upper := string(unicode.ToUpper(r)) + name[size:]; upper != name {
+		if k, ok := codes.FromSpelling(codes.PlaceOther, codes.IdentityPrefix+upper); ok && k.Namespace() == codes.NamespaceType {
+			if k == codes.TypeRange {
+				return messages.New(messages.H0242, lit)
+			}
+			return messages.New(messages.H0026, lit, codes.Spelling(k))
+		}
+	}
+	return nil
 }
 
 // placedSpelling s yazımının place'te yazıldığı biçimdir: üye noktadan sonra (x.TR_length), adlı

@@ -3,10 +3,10 @@
 - **Değişken & Sabit:** `TR_kw_var`, `:=`, `TR_kw_const`
 - **Çoklu Atama & Takas:** `TR_kw_var a, b = 10, 20`, `a, b = b, a`, `ad, soyad = ["Mustafa", "Kemal"]`
 - **Fonksiyon & Dönüş:** `TR_kw_func`, `TR_kw_return`, `(x) => x * 2`
-- **Koşul & Eşleştirme:** `TR_kw_if`, `değilse eğer`, `TR_kw_else`, `TR_kw_match`, `TR_kw_default`
-- **Döngüler & Liste Üreteci:** `TR_kw_for x TR_kw_in liste`, `1..10`, `1..=10`, `TR_kw_while`, `TR_kw_break`, `TR_kw_continue`, `[x * x TR_kw_for x TR_kw_in 1..=10 TR_kw_if x % 2 == 0]`
+- **Koşul & Eşleştirme:** `TR_kw_if`, `değilse eğer`, `TR_kw_else`, `TR_kw_match` (varsayılan kol `_ =>`)
+- **Döngüler & Liste Üreteci:** `TR_kw_for x TR_kw_in liste`, `1..10`, `1..=10`, `TR_kw_break`, `TR_kw_continue`, `[x * x TR_kw_for x TR_kw_in 1..=10 TR_kw_if x % 2 == 0]`
 - **Mantıksal & Boş:** `TR_kw_true`, `TR_kw_false`, `TR_kw_none`, `TR_kw_and`, `TR_kw_or`, `TR_kw_not` (`&&`, `||` ve tekli `!` sözdizimi hatasıdır, 4.9), `??`, `?.`
-- **Tipler:** `TR_type_Int`, `TR_type_Float`, `TR_type_String`, `TR_type_Bool`, `TR_type_None`, `TR_type_List`, `TR_type_Dict`, `TR_type_Tensor` (matrisler 2 boyutlu tensördür). Tip açıklamasında tip adı yalnızca kendi yazımıyla geçerlidir: `tam` ya da `MANTIK` yazılırsa denetleyici `'Tam' yazın` der (3.14). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`
+- **Tipler:** `TR_type_Int`, `TR_type_Float`, `TR_type_String`, `TR_type_Bool`, `TR_type_NoneType`, `TR_type_List`, `TR_type_Dict`, `TR_type_Tensor` (matrisler 2 boyutlu tensördür). Tip açıklamasında tip adı yalnızca kendi yazımıyla geçerlidir: `tam` ya da `MANTIK` yazılırsa denetleyici `'Tam' yazın` der (3.14). Eş ya da İngilizce adlar (`tamsayı`, `int`, `harita`, `dict` ...) kabul edilmez: `'tamsayı' TR'de bir tip adı değil; 'Tam' yazmak mı istediniz?`
 - **Yapı:** `TR_kw_struct`, `TR_kw_self` (kalıtım yoktur)
 - **Hata, Ertele, Kesme Noktası, Modül & Eşzamanlılık:** `TR_kw_try`, `TR_kw_catch`, `TR_kw_throw`, `TR_kw_defer`, `TR_kw_breakpoint` (koşullu: `TR_kw_breakpoint TR_kw_if koşul`), `TR_kw_import "yol"`, `TR_kw_import "yol" TR_ctx_as ad`, `TR_kw_async`, `TR_fn_sleep(saniye)`, `TR_fn_wait_all()`
 - **Test:** `TR_ctx_test "ad" { ... }`, `TR_fn_assert(koşul, [mesaj])`, `TR_fn_assert_equal(beklenen, gerçek, [mesaj])`
@@ -27,7 +27,7 @@ Her işin tek adı vardır; eş anlamlı ikinci bir ad sıradan bir addır. Baş
 
 ## Yerleşik ad gölgeleme uyarısı
 
-Bir yerleşik fonksiyonun adını (`TR_fn_sum`, `TR_fn_input`, `TR_fn_str`, `TR_fn_type` ...) değişken, fonksiyon, parametre, döngü değişkeni, `TR_kw_catch` değişkeni ya da yapı adı olarak kullanmak serbesttir, ama o kapsamda yerleşik artık kullanılamaz. Denetleyici bunu bir **uyarı** olarak bildirir: program yine çalışır, çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı bir başlıkla yazılır:
+Bir yerleşik fonksiyonun adını (`TR_fn_sum`, `TR_fn_input`, `TR_type_String`, `TR_type_Type` ...) değişken, fonksiyon, parametre, döngü değişkeni, `TR_kw_catch` değişkeni ya da yapı adı olarak kullanmak serbesttir, ama o kapsamda yerleşik artık kullanılamaz. Denetleyici bunu bir **uyarı** olarak bildirir: program yine çalışır, çıkış kodu değişmez. Uyarılar standart hataya, tip hatalarından ayrı bir başlıkla yazılır:
 
 ```text
 ⚠️ Uyarılar:

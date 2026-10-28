@@ -37,9 +37,9 @@ TR_func sıfırla_ilk(x) {
 }
 TR_var f = TR_replay(sıfırla_ilk)
 TR_no_grad {
-    TR_var a = TR_tensor([5.0, 3.0])
-    TR_var b = TR_tensor([7.0, 4.0])
-    TR_var c = TR_tensor([9.0, 6.0])
+    TR_var a = TR_Tensor([5.0, 3.0])
+    TR_var b = TR_Tensor([7.0, 4.0])
+    TR_var c = TR_Tensor([9.0, 6.0])
     TR_print(f(a).TR_tolist, a.TR_tolist)
     TR_print(f(b).TR_tolist, b.TR_tolist)
     TR_print(f(c).TR_tolist, c.TR_tolist)

@@ -308,7 +308,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 	list, ok := args[1].(*interp.ListVal)
 	if !ok {
-		return nil, messages.New(messages.H6421, fn, codes.NameRef(codes.FnTensor), codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue), typeName(args[1]))
+		return nil, messages.New(messages.H6421, fn, codes.NameRef(codes.TypeTensor), codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue), typeName(args[1]))
 	}
 	step, err := positiveFloat(fn, named, nameStep, 1e-3)
 	if err != nil {
@@ -336,7 +336,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		}
 	}
 	if checked == 0 {
-		return nil, messages.New(messages.H6423, fn, codes.NameRef(codes.FnTensor), codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue))
+		return nil, messages.New(messages.H6423, fn, codes.NameRef(codes.TypeTensor), codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue))
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.

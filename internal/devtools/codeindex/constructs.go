@@ -53,6 +53,9 @@ func (x *indexer) literalType(sc *scope, e ast.Expression) string {
 		if !ok || sc.locals[fn.Value] {
 			return ""
 		}
+		if t, ok := x.lang.Find(codes.NamespaceType, fn.Value); ok {
+			return typeCode(t) // tip çağrısı tipin değerini kurar (3.12)
+		}
 		k, ok := x.lang.Find(codes.NamespaceGlobal, fn.Value)
 		if !ok {
 			return ""

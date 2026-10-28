@@ -57,14 +57,14 @@ func isAbsPart(p string) bool {
 // pathBuiltin yol(...) yerleşiğidir: parçaları birleştirip temizler.
 func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) == 0 {
-		return nil, interp.ArgCountError(codes.FnPath, interp.AtLeast(1), 0, messages.Text(messages.H2320))
+		return nil, interp.ArgCountError(codes.TypePath, interp.AtLeast(1), 0, messages.Text(messages.H2320))
 	}
-	fn := interp.CallPrefix(codes.FnPath)
+	fn := interp.CallPrefix(codes.TypePath)
 	parts := make([]string, len(args))
 	for i, a := range args {
 		p, ok, err := interp.PathArg(fn, a)
 		if !ok {
-			return nil, interp.ArgTypeError(codes.FnPath, i+1, a, codes.TypeString, codes.TypePath)
+			return nil, interp.ArgTypeError(codes.TypePath, i+1, a, codes.TypeString, codes.TypePath)
 		}
 		if err != nil {
 			return nil, err

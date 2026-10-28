@@ -17,7 +17,7 @@
 # ağırlık_başlat şekli verilen, N(0, std) ile başlayan, türev izleyen bir ağırlık kurar; tür
 # verilirse ağırlık o türde tutulur (ör. "bf16": hazır modellerin saklandığı tür).
 TR_func TR_init_weight(TR_shape, TR_init_std, TR_seed, TR_dtype = "float32") {
-    TR_return TR_tensor(TR_no_grad((TR_randn(TR_shape, TR_seed: TR_seed) * TR_init_std).TR_to_dtype(TR_dtype)), TR_requires_grad: TR_true)
+    TR_return TR_Tensor(TR_no_grad((TR_randn(TR_shape, TR_seed: TR_seed) * TR_init_std).TR_to_dtype(TR_dtype)), TR_requires_grad: TR_true)
 }
 
 # Doğrusal: y = x @ ağırlık (+ sapma). ağırlık [giriş, çıkış], sapma [çıkış] ya da yok. tür
@@ -32,7 +32,7 @@ TR_struct TR_Linear {
     TR_bias
     TR_func TR_init(TR_in_features, TR_out_features, TR_use_bias = TR_false, TR_init_std = 0.02, TR_seed = 1, TR_dtype = "float32") {
         TR_self.TR_weight = TR_init_weight([TR_in_features, TR_out_features], TR_init_std, TR_seed, TR_dtype: TR_dtype)
-        TR_self.TR_bias = TR_if TR_use_bias { TR_tensor(TR_zeros([TR_out_features]), TR_requires_grad: TR_true) } TR_else { TR_none }
+        TR_self.TR_bias = TR_if TR_use_bias { TR_Tensor(TR_zeros([TR_out_features]), TR_requires_grad: TR_true) } TR_else { TR_none }
     }
     TR_func TR_forward(TR_x) {
         TR_if TR_self.TR_bias == TR_none { TR_return TR_x @ TR_self.TR_weight }
@@ -50,7 +50,7 @@ TR_struct TR_Embedding {
         TR_self.TR_table = TR_init_weight([TR_vocab_size, TR_embed_dim], TR_init_std, TR_seed, TR_dtype: TR_dtype)
     }
     TR_func TR_forward(TR_token_ids) {
-        TR_var e = TR_embedding(TR_self.TR_table, TR_token_ids)
+        TR_var e = TR_embedding_lookup(TR_self.TR_table, TR_token_ids)
         TR_if TR_self.TR_table.TR_dtype == "float32" { TR_return e }
         TR_return e.TR_to_dtype(TR_compute_dtype())
     }
@@ -66,7 +66,7 @@ TR_struct TR_RMSNorm {
     TR_weight
     TR_eps = 0.00001
     TR_func TR_init(TR_embed_dim, TR_eps = 0.00001) {
-        TR_self.TR_weight = TR_tensor(TR_ones([TR_embed_dim]), TR_requires_grad: TR_true)
+        TR_self.TR_weight = TR_Tensor(TR_ones([TR_embed_dim]), TR_requires_grad: TR_true)
         TR_self.TR_eps = TR_eps
     }
     TR_func TR_forward(TR_x, TR_output_dtype = TR_none) {
@@ -82,8 +82,8 @@ TR_struct TR_RMSNorm {
 TR_func TR_rotary_table(TR_context, TR_head_dim, TR_rope_theta = 10000.0) {
     TR_var yarım = TR_head_dim // 2
     TR_var frekanslar = [TR_rope_theta ** (-2.0 * i / TR_head_dim) TR_for i TR_in 0..yarım]
-    TR_var konumlar = TR_tensor([[t] TR_for t TR_in 0..TR_context]) # [bağlam, 1]
-    TR_var açılar = konumlar @ TR_tensor([frekanslar]) # [bağlam, yarım]
+    TR_var konumlar = TR_Tensor([[t] TR_for t TR_in 0..TR_context]) # [bağlam, 1]
+    TR_var açılar = konumlar @ TR_Tensor([frekanslar]) # [bağlam, yarım]
     TR_return [TR_cos(açılar), TR_sin(açılar)]
 }
 
@@ -135,12 +135,12 @@ TR_struct TR_CausalAttention {
     TR_func TR_init(TR_embed_dim, TR_num_heads, TR_num_kv_heads = TR_none, TR_use_bias = TR_false, TR_init_std = 0.02, TR_output_init_std = 0.02, TR_seed = 1, TR_window = 0, TR_qk_norm = TR_false, TR_merged_kv = TR_false, TR_eps = 0.00001, TR_head_dim = TR_none, TR_weight_dtype = "float32") {
         TR_if TR_num_kv_heads == TR_none { TR_num_kv_heads = TR_num_heads }
         TR_if TR_head_dim == TR_none {
-            TR_assert(TR_embed_dim % TR_num_heads == 0, TR_message("H6900", TR_embed_dim, TR_num_heads))
+            TR_assert(TR_embed_dim % TR_num_heads == 0, TR_Message("H6900", TR_embed_dim, TR_num_heads))
             TR_head_dim = TR_embed_dim // TR_num_heads
         }
-        TR_assert(TR_head_dim > 0 TR_and TR_head_dim % 2 == 0, TR_message("H6901", TR_head_dim))
-        TR_assert(TR_num_heads % TR_num_kv_heads == 0, TR_message("H6902", TR_num_heads, TR_num_kv_heads))
-        TR_assert(TR_window >= 0, TR_message("H6903", TR_window))
+        TR_assert(TR_head_dim > 0 TR_and TR_head_dim % 2 == 0, TR_Message("H6901", TR_head_dim))
+        TR_assert(TR_num_heads % TR_num_kv_heads == 0, TR_Message("H6902", TR_num_heads, TR_num_kv_heads))
+        TR_assert(TR_window >= 0, TR_Message("H6903", TR_window))
         TR_self.TR_num_heads = TR_num_heads
         TR_self.TR_num_kv_heads = TR_num_kv_heads
         TR_self.TR_head_dim = TR_head_dim
@@ -207,7 +207,7 @@ TR_struct TR_CausalAttention {
 # swiglu_ara_boyutu: SwiGLU'nun ara boyutu için yaygın seçim, 8/3 · boyut, 32'nin katına
 # yukarı yuvarlanır (üç matrisli ileri besleme, 4 · boyut'luk iki matrisliyle aynı büyüklükte).
 TR_func TR_swiglu_intermediate_dim(TR_embed_dim) {
-    TR_return TR_int(TR_ceil(8.0 * TR_embed_dim / 3.0 / 32.0)) * 32
+    TR_return TR_Int(TR_ceil(8.0 * TR_embed_dim / 3.0 / 32.0)) * 32
 }
 
 # swiglu_kapısı: SwiGLU'nun kapısı silu(g) · u; birleşik [G | U] çıktısında g ve u yarılardır.
@@ -308,7 +308,7 @@ TR_struct TR_PLEBlock {
     }
     # h [B, T, D]; kimlikler [B, T]; bağlam bu katmanın PLEBağlamı çıktısı [B, T, P].
     TR_func TR_forward(TR_h, TR_token_ids, TR_ple_context) {
-        TR_var karışım = TR_ple_mix_fused(TR_self.TR_gate_proj.TR_forward(TR_h), TR_ple_context, TR_embedding(TR_self.TR_table, TR_token_ids), TR_sqrt(TR_self.TR_ple_dim))
+        TR_var karışım = TR_ple_mix_fused(TR_self.TR_gate_proj.TR_forward(TR_h), TR_ple_context, TR_embedding_lookup(TR_self.TR_table, TR_token_ids), TR_sqrt(TR_self.TR_ple_dim))
         TR_return TR_h + TR_self.TR_norm.TR_forward(TR_self.TR_proj.TR_forward(karışım))
     }
 }
@@ -334,7 +334,7 @@ TR_struct TR_TransformerBlock {
         TR_self.TR_post_attention_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
         TR_self.TR_feed_forward = TR_SwiGLU(TR_embed_dim, TR_intermediate_dim: TR_intermediate_dim, TR_use_bias: TR_ff_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed + 10, TR_merged: TR_merged_gate, TR_weight_dtype: TR_weight_dtype)
         TR_if TR_ple_dim != TR_none {
-            TR_assert(TR_vocab_size != TR_none, TR_message("H6904"))
+            TR_assert(TR_vocab_size != TR_none, TR_Message("H6904"))
             TR_self.TR_ple = TR_PLEBlock(TR_embed_dim, TR_vocab_size, TR_ple_dim, TR_eps: TR_eps, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed + 20, TR_weight_dtype: TR_weight_dtype)
         } TR_else {
             TR_self.TR_ple = TR_none
@@ -356,7 +356,7 @@ TR_func TR_layer_windows(TR_layout, TR_windows) {
     TR_var liste = []
     TR_var y = 0
     TR_for harf TR_in TR_layout {
-        TR_assert(harf == "Y" TR_or harf == "G", TR_message("H6905", harf))
+        TR_assert(harf == "Y" TR_or harf == "G", TR_Message("H6905", harf))
         TR_if harf == "G" {
             liste.TR_append(0)
         } TR_else {
@@ -393,8 +393,8 @@ TR_struct TR_KVCache {
     TR_positions
     TR_masks
     TR_func TR_init(TR_num_layers, TR_kind = "sabit", TR_capacity = 0) {
-        TR_assert(TR_kind == "sabit" TR_or TR_kind == "büyüyen", TR_message("H6906", TR_kind))
-        TR_assert(TR_kind != "sabit" TR_or TR_capacity > 0, TR_message("H6907", TR_capacity))
+        TR_assert(TR_kind == "sabit" TR_or TR_kind == "büyüyen", TR_Message("H6906", TR_kind))
+        TR_assert(TR_kind != "sabit" TR_or TR_capacity > 0, TR_Message("H6907", TR_capacity))
         TR_self.TR_kind = TR_kind
         TR_self.TR_capacity = TR_capacity
         TR_self.TR_position = 0
@@ -406,7 +406,7 @@ TR_struct TR_KVCache {
     }
     # cihaz_adımı: sonraki ekle'ler konumu (cihazdaki [1] tensörü; yok: konak konumu) kullanır.
     TR_func TR_device_step(TR_position) {
-        TR_assert(TR_position == TR_none TR_or TR_self.TR_kind == "sabit", TR_message("H6908"))
+        TR_assert(TR_position == TR_none TR_or TR_self.TR_kind == "sabit", TR_Message("H6908"))
         TR_self.TR_step_position = TR_position
         TR_self.TR_masks = {}
     }
@@ -426,9 +426,9 @@ TR_struct TR_KVCache {
     TR_func TR_append(TR_layer_idx, TR_k, TR_v) {
         TR_var son = TR_self.TR_position + TR_k.TR_shape[1]
         TR_if TR_self.TR_kind == "sabit" TR_and TR_self.TR_step_position == TR_none {
-            TR_if son > TR_self.TR_capacity { TR_throw TR_message("H6909", son, TR_self.TR_capacity) }
+            TR_if son > TR_self.TR_capacity { TR_throw TR_Message("H6909", son, TR_self.TR_capacity) }
             TR_if TR_self.TR_k_buffers[TR_layer_idx] == TR_none TR_and TR_self.TR_positions == TR_none {
-                TR_self.TR_positions = TR_tensor([i * 1.0 TR_for i TR_in 0..TR_self.TR_capacity]).TR_to_device(TR_k.TR_device)
+                TR_self.TR_positions = TR_Tensor([i * 1.0 TR_for i TR_in 0..TR_self.TR_capacity]).TR_to_device(TR_k.TR_device)
             }
         }
         TR_return [TR_self.TR_append_buffer(TR_self.TR_k_buffers, TR_layer_idx, TR_k, son), TR_self.TR_append_buffer(TR_self.TR_v_buffers, TR_layer_idx, TR_v, son)]
@@ -459,7 +459,7 @@ TR_struct TR_KVCache {
     TR_func TR_advance(TR_T) { TR_self.TR_position = TR_self.TR_position + TR_T }
     # kırp: önbelleği ilk n parçaya indirir (n ≤ konum).
     TR_func TR_truncate(TR_n) {
-        TR_assert(TR_n >= 0 TR_and TR_n <= TR_self.TR_position, TR_message("H6910", TR_self.TR_position, TR_n))
+        TR_assert(TR_n >= 0 TR_and TR_n <= TR_self.TR_position, TR_Message("H6910", TR_self.TR_position, TR_n))
         TR_self.TR_position = TR_n
     }
 }
@@ -497,12 +497,12 @@ TR_struct TR_GPT {
     TR_cos_table
     TR_sin_table
     TR_func TR_init(TR_vocab_size, TR_context = 256, TR_embed_dim = 256, TR_num_layers = 4, TR_num_heads = 4, TR_num_kv_heads = TR_none, TR_intermediate_dim = TR_none, TR_tied = TR_false, TR_seed = 1, TR_windows = TR_none, TR_qk_norm = TR_false, TR_merged_kv = TR_false, TR_merged_gate = TR_false, TR_ff_use_bias = TR_false, TR_eps = 0.00001, TR_ple_dim = TR_none, TR_head_dim = TR_none, TR_rope_theta = 10000.0, TR_weight_dtype = "float32") {
-        TR_self.TR_config = {dağarcık: TR_vocab_size, bağlam: TR_context, TR_embed_dim: TR_embed_dim, katman: TR_num_layers, TR_num_heads: TR_num_heads, TR_head_dim: TR_head_dim,
-            TR_num_kv_heads: TR_num_kv_heads, ara_boyut: TR_intermediate_dim, paylaşımlı: TR_tied, tohum: TR_seed,
-            pencereler: TR_windows, qk_normu: TR_qk_norm, birleşik_kv: TR_merged_kv, birleşik_kapı: TR_merged_gate,
-            ileri_sapmalı: TR_ff_use_bias, TR_eps: TR_eps, TR_ple_dim: TR_ple_dim, rope_tabanı: TR_rope_theta, ağırlık_türü: TR_weight_dtype}
+        TR_self.TR_config = {"dağarcık": TR_vocab_size, "bağlam": TR_context, "embed_dim": TR_embed_dim, "katman": TR_num_layers, "num_heads": TR_num_heads, "head_dim": TR_head_dim,
+            "num_kv_heads": TR_num_kv_heads, "ara_boyut": TR_intermediate_dim, "paylaşımlı": TR_tied, "tohum": TR_seed,
+            "pencereler": TR_windows, "qk_normu": TR_qk_norm, "birleşik_kv": TR_merged_kv, "birleşik_kapı": TR_merged_gate,
+            "ileri_sapmalı": TR_ff_use_bias, "eps": TR_eps, "ple_dim": TR_ple_dim, "rope_tabanı": TR_rope_theta, "ağırlık_türü": TR_weight_dtype}
         TR_if TR_windows != TR_none {
-            TR_assert(TR_windows.TR_length == TR_num_layers, TR_message("H6911", TR_windows.TR_length, TR_num_layers))
+            TR_assert(TR_windows.TR_length == TR_num_layers, TR_Message("H6911", TR_windows.TR_length, TR_num_layers))
         }
         TR_var std = 0.02
         TR_var çıkış_std = std / TR_sqrt(2 * TR_num_layers)
@@ -546,7 +546,7 @@ TR_struct TR_GPT {
         TR_var T = x.TR_shape[1]
         TR_if TR_cache != TR_none {
             TR_var baş = TR_cache.TR_position
-            TR_assert(baş + T <= TR_self.TR_config.bağlam, TR_message("H6912", baş + T, TR_self.TR_config.bağlam))
+            TR_assert(baş + T <= TR_self.TR_config["bağlam"], TR_Message("H6912", baş + T, TR_self.TR_config["bağlam"]))
             cos_tablosu = cos_tablosu.TR_slice(0, baş, baş + T)
             sin_tablosu = sin_tablosu.TR_slice(0, baş, baş + T)
         }
@@ -561,8 +561,8 @@ TR_struct TR_GPT {
     # (dil tanımı 15.45). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
     TR_func TR_single_step(TR_token_id, TR_position, TR_cache) {
         TR_var gb = TR_self.TR_embed(TR_token_id)
-        TR_var cos_tablosu = TR_embedding(TR_self.TR_cos_table, TR_position)
-        TR_var sin_tablosu = TR_embedding(TR_self.TR_sin_table, TR_position)
+        TR_var cos_tablosu = TR_embedding_lookup(TR_self.TR_cos_table, TR_position)
+        TR_var sin_tablosu = TR_embedding_lookup(TR_self.TR_sin_table, TR_position)
         TR_cache.TR_device_step(TR_position)
         TR_var x = TR_self.TR_run_blocks(gb[0], gb[1], cos_tablosu, sin_tablosu, TR_token_id, TR_cache)
         TR_cache.TR_device_step(TR_none)
@@ -592,7 +592,7 @@ TR_struct TR_GPT {
     # önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
     # önbellek en_çok konum tutar (verilmezse bağlam).
     TR_func TR_build_cache(TR_kind = "sabit", TR_capacity = TR_none) {
-        TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config.bağlam } TR_else { TR_capacity })
+        TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
     # verir. sıcaklık 0 en olasıyı seçer; tohum verilirse sonuç tekrarlanır. eos verilirse (bir
@@ -608,7 +608,7 @@ TR_struct TR_GPT {
     # kayıtsızla aynı parçalardır. Sabit önbellek en çok başlangıç + adet konum tutar.
     TR_func TR_generate(TR_prompt, TR_max_new_tokens, TR_temperature = 1.0, TR_top_k = 0, TR_seed = TR_none, TR_eos = TR_none, TR_cache_kind = "sabit", TR_cuda_graph = TR_true) {
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
-        TR_var bağlam = TR_self.TR_config.bağlam
+        TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none
         TR_var adım = TR_none
         TR_var cihaz = TR_self.TR_embedding.TR_table.TR_device
@@ -631,7 +631,7 @@ TR_struct TR_GPT {
                         TR_var öö = ö
                         adım = TR_replay((kimlik, konum) => TR_self.TR_single_step(kimlik, konum, öö))
                     }
-                    son = adım(TR_tensor([[kimlikler[-1] * 1.0]]).TR_to_device(cihaz), TR_tensor([ö.TR_position * 1.0]).TR_to_device(cihaz))
+                    son = adım(TR_Tensor([[kimlikler[-1] * 1.0]]).TR_to_device(cihaz), TR_Tensor([ö.TR_position * 1.0]).TR_to_device(cihaz))
                     ö.TR_advance(1)
                 } TR_else {
                     x = TR_self.TR_hidden_states([[kimlikler[-1]]], TR_cache: ö)

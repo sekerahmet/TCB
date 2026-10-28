@@ -20,7 +20,7 @@ var (
 	ValFloat    = TypeName(codes.TypeFloat)           // Ondalık
 	ValString   = TypeName(codes.TypeString)          // Metin
 	ValBool     = TypeName(codes.TypeBool)            // Mantık
-	ValNull     = TypeName(codes.TypeNone)            // Yok
+	ValNull     = TypeName(codes.TypeNoneType)        // Yok
 	ValList     = TypeName(codes.TypeList)            // Liste
 	ValDict     = TypeName(codes.TypeDict)            // Sözlük
 	ValRange    = TypeName(codes.TypeRange)           // Aralık
@@ -114,7 +114,7 @@ type FloatVal struct {
 }
 
 func (f *FloatVal) Type() ValueType { return ValFloat }
-func (f *FloatVal) Inspect() string { return f.Text(codes.Source()) }
+func (f *FloatVal) Inspect() string { return f.Text(codes.ValueNames()) }
 
 // Text sayının lang dilindeki metnidir. Sonsuz ve tanımsız değerin adı dilin değer adıdır (TR_val_inf,
 // TR_val_nan; eksi sonsuz başına '-' alır); tensör yazdırması aynı adları kullanır (NonFiniteText).
@@ -122,8 +122,21 @@ func (f *FloatVal) Text(lang *codes.Language) string {
 	if s, ok := NonFiniteText(f.Val, lang); ok {
 		return s
 	}
-	s := strconv.FormatFloat(f.Val, 'g', -1, 64)
-	if !strings.Contains(s, ".") && !strings.Contains(s, "e") {
+	return FloatText(f.Val)
+}
+
+// FloatText is a finite number's text (3.2): the shortest digits that read back as the same
+// number; scientific when the exponent is below -4 or 16 and above, with a signed exponent of at
+// least two digits ("1e-05", "1e+16"), otherwise positional with at least one digit after the
+// dot ("1.0", "1234567.0", "0.0001", "-0.0"), like Python's repr.
+func FloatText(f float64) string {
+	e := strconv.FormatFloat(f, 'e', -1, 64)
+	exp, _ := strconv.Atoi(e[strings.LastIndexByte(e, 'e')+1:])
+	if exp < -4 || exp >= 16 {
+		return e
+	}
+	s := strconv.FormatFloat(f, 'f', -1, 64)
+	if !strings.Contains(s, ".") {
 		s += ".0"
 	}
 	return s
@@ -158,7 +171,7 @@ type BoolVal struct {
 }
 
 func (b *BoolVal) Type() ValueType { return ValBool }
-func (b *BoolVal) Inspect() string { return b.Text(codes.Source()) }
+func (b *BoolVal) Inspect() string { return b.Text(codes.ValueNames()) }
 func (b *BoolVal) Text(lang *codes.Language) string {
 	if b.Val {
 		return lang.Name(codes.KwTrue)
@@ -170,7 +183,7 @@ func (b *BoolVal) IsTruthy() bool { return b.Val }
 type NullVal struct{}
 
 func (n *NullVal) Type() ValueType                  { return ValNull }
-func (n *NullVal) Inspect() string                  { return n.Text(codes.Source()) }
+func (n *NullVal) Inspect() string                  { return n.Text(codes.ValueNames()) }
 func (n *NullVal) Text(lang *codes.Language) string { return lang.Name(codes.KwNone) }
 func (n *NullVal) IsTruthy() bool                   { return false }
 
@@ -199,10 +212,6 @@ type DictVal struct {
 	Order   []string
 	Pairs   map[string]Value
 	KeyVals map[string]Value // yalnızca metin olmayan anahtarlar için
-	// coded kod taşıyan çıplak anahtarların kodudur ({adım: 3}: "step" → TR_mem_step; 17.3).
-	// Anahtar metni kodun dilden bağımsız adıdır; kod yalnızca gösterimi değiştirir (yazdır
-	// dosyanın, iletiler kişinin dilinde yazar). Seyrektir: kodlu anahtar yoksa nil.
-	coded map[string]codes.Code
 	// module, 'aktar ... olarak ad' ile bağlanan modül sözlüğünün dışa aktarmadığı (başı _)
 	// adlarını tutar (11.7); sıradan sözlükte nildir.
 	module *moduleExports
@@ -258,6 +267,8 @@ func DictKey(v Value) string {
 		if x.Struct != nil {
 			return identityKey(x.Struct)
 		}
+	case *BytesVal:
+		return nonStringKeyPrefix + string(ValBytes) + ":" + string(x.b)
 	case *BoolVal, *NullVal, *FloatVal, *IntVal, *RangeVal:
 	default:
 		return identityKey(v)
@@ -275,21 +286,36 @@ func identityKey(v Value) string {
 	return fmt.Sprintf("%s%s:%p", nonStringKeyPrefix, v.Type(), v)
 }
 
-// DictKeyError reports why a value cannot be a dict key, or nil. A value whose contents can
-// change in place (a list, a dict, a struct instance, an engine object such as a tensor) would
-// be lost from the dict once changed, so it is rejected.
+// DictKeyError reports why a value cannot be a dict key, or nil (3.7). Keys are Int, String, Bool
+// and Bytes. A value whose contents can change in place (a list, a dict, a struct instance, an engine
+// object such as a tensor) would be lost from the dict once changed (H2495); a decimal key could
+// be missed by rounding, and other values have no key equality (H2646).
 func DictKeyError(v Value) error {
-	mutable := false
 	switch v.(type) {
-	case *ListVal, *DictVal, *StructInstanceVal:
-		mutable = true
-	case IndexAssignable, MemberAssignable:
-		mutable = true
-	}
-	if !mutable {
+	case *StringVal, *IntVal, *BoolVal, *BytesVal:
 		return nil
+	case *ListVal, *DictVal, *StructInstanceVal, IndexAssignable, MemberAssignable:
+		return messages.New(messages.H2495, v.Type())
+	case *FloatVal:
+		return messages.New(messages.H2646, v.Type()) // ondalık anahtar yuvarlama yüzünden bulunamayabilirdi
+	case *JSONVal:
+		return messages.New(messages.H2670)
 	}
-	return messages.New(messages.H2495, v.Type())
+	return messages.New(messages.H2669, v.Type())
+}
+
+// missingKeyError köşeli parantezle olmayan anahtarı okumanın hatasıdır (3.7): ileti olmayabilecek
+// anahtar için .get(k)'yi önerir.
+func missingKeyError(key Value) error {
+	return messages.New(messages.H2647, keyLiteral(key))
+}
+
+// keyLiteral anahtarın programdaki yazımıdır (iletide): metin tırnaklı, öbürleri değerin metni.
+func keyLiteral(key Value) string {
+	if s, ok := key.(*StringVal); ok {
+		return QuoteText(s.Val)
+	}
+	return key.Inspect()
 }
 
 // intKeyValue bir sayının Tam anahtar olarak değerini verir: Tam'ın kendisi ya da tam
@@ -377,41 +403,9 @@ func (d *DictVal) GetValue(key Value) (Value, bool) {
 	return val, ok
 }
 
-// CodedKey is the text of a coded bare dict key ({adım: 3}): the language-independent part of
-// the member code's identity (TR_mem_step → "step"; 17.3). It never changes (17.6) and is the
-// key on disk (JSON, the log, the checkpoint) and in memory in every writing language.
-func CodedKey(k codes.Code) string {
-	_, name, _ := strings.Cut(strings.TrimPrefix(k.String(), codes.IdentityPrefix), "_")
-	return name
-}
-
-// SetCoded stores val under the coded bare key k (CodedKey); a new entry remembers the code for
-// display, like KeyVals keeps the original value of a non-string key.
-func (d *DictVal) SetCoded(k codes.Code, val Value) {
-	key := CodedKey(k)
-	if _, ok := d.Pairs[key]; !ok {
-		if d.coded == nil {
-			d.coded = make(map[string]codes.Code)
-		}
-		d.coded[key] = k
-	}
-	d.setRaw(key, val)
-}
-
-// KeyCode is the code of an internal key that was written as a coded bare key; ok is false for
-// every other key.
-func (d *DictVal) KeyCode(k string) (codes.Code, bool) {
-	c, ok := d.coded[k]
-	return c, ok
-}
-
-// SetFrom stores val under the internal key k of src, keeping its code (SetCoded) or its
-// original non-string value (SetValue): copies of a dict show the same keys.
+// SetFrom stores val under the internal key k of src, keeping its original non-string value
+// (SetValue): copies of a dict show the same keys.
 func (d *DictVal) SetFrom(src *DictVal, k string, val Value) {
-	if c, ok := src.coded[k]; ok {
-		d.SetCoded(c, val)
-		return
-	}
 	d.SetValue(src.KeyValue(k), val)
 }
 
@@ -423,34 +417,12 @@ func (d *DictVal) KeyValue(k string) Value {
 	return &StringVal{Val: k}
 }
 
-// KeyText is the language-independent text of an internal key, the one data formats write (JSON,
-// weight paths): a string key (a coded key too, CodedKey) as it is, another key's Inspect.
+// KeyText is the language-independent text of an internal key, the one data formats, messages and
+// the debugger write (JSON, weight paths, option names): a string key as it is, another key's
+// Inspect.
 func (d *DictVal) KeyText(k string) string {
 	if kv, ok := d.KeyVals[k]; ok {
 		return kv.Inspect()
-	}
-	return k
-}
-
-// DisplayKey returns the text of an internal key as shown to the user: a coded key in the
-// person's writing language (TR_DIL). Data formats use KeyText.
-func (d *DictVal) DisplayKey(k string) string {
-	if kv, ok := d.KeyVals[k]; ok {
-		return kv.Inspect()
-	}
-	return d.keyText(k, codes.Display())
-}
-
-// keyText is the text of a metin key k in a file written in lang: a coded key is the code's
-// name in lang (lang nil: Inspect, like shownName), any other key as it is.
-func (d *DictVal) keyText(k string, lang *codes.Language) string {
-	if c, ok := d.coded[k]; ok {
-		if lang == nil {
-			lang = codes.Source()
-		}
-		if e, ok := lang.Entry(c); ok {
-			return e.Name
-		}
 	}
 	return k
 }
@@ -485,12 +457,7 @@ type FuncVal struct {
 }
 
 func (f *FuncVal) Type() ValueType { return ValFunc }
-func (f *FuncVal) Inspect() string {
-	if f.Name != "" {
-		return messages.Text(messages.H2496, f.Name)
-	}
-	return messages.Text(messages.H2442)
-}
+func (f *FuncVal) Inspect() string { return f.Text(codes.ValueNames()) }
 func (f *FuncVal) Text(lang *codes.Language) string {
 	if f.Name != "" {
 		return messages.TextIn(lang.Code, messages.H2496, f.Name)
@@ -520,7 +487,7 @@ type BuiltinVal struct {
 }
 
 func (b *BuiltinVal) Type() ValueType { return ValBuiltin }
-func (b *BuiltinVal) Inspect() string { return messages.Text(messages.H2497, b.Name) }
+func (b *BuiltinVal) Inspect() string { return b.Text(codes.ValueNames()) }
 
 // text yerleşiğin lang dilindeki metnidir: adı (kanonik ad, bir yerleşik ya da üye kodu) da o
 // dildedir; koda bağlı olmayan ad olduğu gibi kalır.
@@ -550,7 +517,7 @@ type StructDefVal struct {
 }
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
-func (s *StructDefVal) Inspect() string { return messages.Text(messages.H2498, s.Name) }
+func (s *StructDefVal) Inspect() string { return s.Text(codes.ValueNames()) }
 func (s *StructDefVal) Text(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H2498, s.Name)
 }

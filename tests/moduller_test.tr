@@ -22,7 +22,7 @@ TR_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörün
 }
 
 TR_test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
-    TR_assert_equal(TR_Dict, TR_type(ym))
+    TR_assert_equal(TR_Dict, TR_Type(ym))
     TR_assert_equal(4, ym.kare(2))
     TR_assert_equal(3, ym["PI"])
 }
@@ -59,7 +59,7 @@ TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
 }
 
 TR_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
-    TR_assert_equal(TR_Dict, TR_type(k))
+    TR_assert_equal(TR_Dict, TR_Type(k))
     TR_assert(k.TR_keys().TR_contains("TR_type_GPT") TR_and k.TR_keys().TR_contains("TR_type_Linear"), "kitaplığın katmanları gelmeli")
     TR_assert(TR_not k.TR_keys().TR_contains("disk_katmanı"), "tests/tr/katman.tr yüklenmemeli")
     TR_assert_equal(TR_true, d.disk_katmanı)

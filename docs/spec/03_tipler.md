@@ -10,7 +10,7 @@ TR statik tiplidir (1.2): her değerin tipi çalışmadan önce bilinir. Tip den
 - *Test:* TR testi.
 
 **3.2** `TR_Float`: IEEE 754 64 bit. Metne, geri okununca aynı sayıyı veren en kısa rakamlarla çevrilir: tam değerli ondalık bir sıfırla ("1.0", "1234567.0", "-0.0"); üssü −4'ten küçük ya da 16 ve üstüyse bilimsel, üs her zaman işaretli ve en az iki rakamlı ("1e-05", "1e+16"; "0.0001", "1000000000000000.0" olduğu gibi). Sonsuz ve tanımsız `TR_inf` ve `TR_nan`dır. Daha küçük ondalık ve tam sayı tipleri (32, 16 ve 8 bit, nicemlenmiş) yalnız tensörün öğe tipidir (sonraki bölümlerde).
-- *Test:* TR testi; yazım eşiği uygulanınca TR testi.
+- *Test:* TR testi.
 
 **3.3** `TR_String`: değiştirilemez Unicode metni; uzunluk ve indeks kod noktası sayar. `m[i]` tek karakterlik bir `TR_String` verir; negatif indeks sondan sayar; sınır dışı indeks çalışma hatasıdır, `.TR_get(i)` `TR_String?` verir (3.5). `m[a..b]` alt metin verir; dilimde negatif uç sondan sayılır, uçlar sınıra kırpılır, başlangıç bitişten büyükse sonuç boştur (`"şeker"[-3..5]` → "ker").
 - *Test:* TR testi.
@@ -21,7 +21,7 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 ```
 
 **3.3a** `TR_Bytes`: değiştirilemez bayt dizisi (dosya, ağ, görüntü, ses verisi). `b[i]` 0–255 arası bir `TR_Int`, `b[a..c]` bir `TR_Bytes` verir; indeks ve dilim 3.3'teki gibidir. `TR_Bytes("ab")` metnin UTF-8 baytlarını, `TR_Bytes([0, 255])` bir tam sayı listesini verir; 0–255 dışındaki sayı çalışma hatasıdır. `TR_String(b)` UTF-8 okur; geçersiz UTF-8 çalışma hatasıdır. Metin ile bayt kendiliğinden dönüşmez. Birleştirme, tensörden kurma ve parça parça yazma sonraki bölümlerdedir.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi.
 
 **3.4** `TR_Bool`: `TR_true` ve `TR_false`; koşulda yalnız bu tip kullanılır (3.10).
 - *Test:* TR testi.
@@ -49,7 +49,7 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - *Test:* TR testi; tek tipli liste uygulanınca denetleyicinin testi.
 
 **3.7** `TR_Dict[K, V]`: eklenme sırasını koruyan tablo (`{"k": 1}`); anahtar tipi `TR_Int`, `TR_String`, `TR_Bool`, `TR_Bytes` ya da alanlarının hepsi anahtar olabilen bir durumlu tip (sonraki bölümlerde); boş sözlük tipini yazar. Değişmezdeki anahtar bir ifadedir: `{k: 1}`'de `k` değişkendir. Anahtar yalnız köşeli parantezle okunur ve yazılır (`d["k"]`); nokta yalnız üyeleri verir (`.TR_length`, `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_get(k)`). Olmayan anahtarı köşeli parantezle okumak çalışma hatasıdır; `.TR_get(k)` `V?` verir.
-- *Test:* TR testi; anahtar ve erişim kuralları uygulanınca TR testi.
+- *Test:* TR testi.
 
 **3.7a** `TR_JSON`: yapısı önceden bilinmeyen veri; JSON'un her değerini tutar: yokluk, mantık değeri, sayı, metin, dizi, nesne.
 - **Kurmak:** `TR_json_parse(m)` bir `TR_JSON` verir. Beklenen tip `TR_JSON` olan değişmez JSON kurar; içinde metin, sayı, mantık değeri, `TR_none`, liste, metin anahtarlı sözlük ve `TR_JSON` bulunabilir (`TR_var g: TR_JSON = {"k": "a", "n": 512}`). JSON'da olmayan `TR_inf` ve `TR_nan` `TR_JSON`'a giremez: çözmede ve kurmada çalışma hatasıdır.
@@ -58,7 +58,7 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - **Açmak:** tip çağrısı JSON değerini açar: `TR_String(j)` metni, `TR_Int(j)` tam yazılmış ve `TR_Int`'e sığan sayıyı, `TR_Float(j)` her sayıyı, `TR_Bool(j)` mantık değerini verir; tür tutmazsa çalışma hatasıdır, metin sayı olarak okunmaz.
 - **Yazmak:** `TR_json_string(j)` her zaman JSON metnini verir (metin tırnaklı: `"\"merhaba\""`). Değerin metni (`TR_print(j)`, yerleştirme, 3.14) JSON metin türünde metnin kendisidir (`"\(j["k"])"` → merhaba), öbür türlerde JSON metnidir.
 - Her değeri tutan genel bir tip yoktur.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi.
 
 ```tr
 # TR 4
@@ -69,7 +69,7 @@ TR_var istek: TR_JSON = {"soru": metin, "en_fazla": 512, "akış": TR_false}
 ```
 
 **3.8** `TR_Range`: `a..b` (b hariç), `a..=b` (b dahil); uçlar `TR_Int`. `a >= b` ise `a..b`, `a > b` ise `a..=b` boştur; geriye `.TR_reverse()` sayar (`(0..3).TR_reverse()` → 2, 1, 0). Sınırdaki uçlar taşmadan gezilir.
-- *Test:* TR testi; boş aralık ve geriye sayma uygulanınca TR testi.
+- *Test:* TR testi.
 
 **3.9** Fonksiyon birinci sınıf değerdir: atanır, listeye konur, argüman olur, döndürülür. Tipi parametrelerinin ve dönüşünün tipleridir; yazımı sonraki bölümlerdedir.
 - *Test:* TR testi.
@@ -109,7 +109,7 @@ toplam += 0.5        # denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazı
 - İsteğe bağlı değer içindeki değerin ya da "none"ın metnini, `TR_JSON` JSON metin türünde metnin kendisini, öbür türlerde JSON metnini (3.7a), aralık "0..3" ya da "0..=3" metnini verir.
 - Bayt dizisinin, fonksiyonun, yapı nesnesinin ve tensörün metni sonraki bölümlerdedir.
 - Program çıktısı çevrilmez; kişinin dilinde görünen yalnız iletiler, kabuk ve hata ayıklayıcıdır.
-- *Test:* TR testi; dilden bağımsız metin uygulanınca TR testi.
+- *Test:* TR testi.
 
 ```tr
 # TR 4

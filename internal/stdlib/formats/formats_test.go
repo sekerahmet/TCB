@@ -37,7 +37,7 @@ func TestJSONDecodePreservesKeyOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [doğru, yok, "x"], 2.5, `
+	want := `[["zeta", "alfa", "orta", "iç"], ["b", "a"], [true,null,"x"], 2.5, `
 	if !strings.HasPrefix(val.Inspect(), want) {
 		t.Fatalf("%s… bekleniyordu, %s alındı", want, val.Inspect())
 	}
@@ -54,7 +54,7 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if val.Inspect() != `["tam", "metin", "mantık", "metin2", 4, doğru, yanlış]` {
+	if val.Inspect() != `["tam", "metin", "mantık", "metin2", 4, true, false]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
 
@@ -62,13 +62,13 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 	_, val, err = run(t, `
 		TR_var d = {1: "a", "b": 2}
 		TR_var tipler = []
-		TR_for k, v TR_in d { tipler = tipler + [TR_type(k)] }
-		TR_var result = [tipler, d.TR_keys(), [TR_type(k) TR_for k TR_in d]]
+		TR_for k, v TR_in d { tipler = tipler + [TR_Type(k)] }
+		TR_var result = [tipler, d.TR_keys(), [TR_Type(k) TR_for k TR_in d]]
 	`)
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	if val.Inspect() != `[[Tam, Metin], [1, "b"], [Tam, Metin]]` {
+	if val.Inspect() != `[[Int, String], [1, "b"], [Int, String]]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
 
@@ -182,19 +182,19 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, val, err := run(t, fmt.Sprintf(`TR_var result = [TR_read_csv(%q)[0][0] == "ad", TR_parse_csv("%sa,b")[0][0]]`, file, "\ufeff"))
-	if err != nil || val.Inspect() != `[doğru, "a"]` {
+	if err != nil || val.Inspect() != `[true, "a"]` {
 		t.Fatalf("BOM soyulmalı: %v %v", val, err)
 	}
 	_, val, err = run(t, `
 		TR_var s = TR_parse_csv("a,b,c,d,e,f,g,h,i,j,k,l\nNaN,Inf,-Inf,infinity,007,12345678901234567890,0x10,1_000,1e400,+5,00.5,.5\n-0,0,1.0,2.5e3,-7,9223372036854775807,1E-3,0.0,,  42 ,1.,1e")
-		TR_var result = [s[1], [TR_type(h) TR_for h TR_in s[1]], s[2], [TR_type(h) TR_for h TR_in s[2]]]`)
+		TR_var result = [s[1], [TR_Type(h) TR_for h TR_in s[1]], s[2], [TR_Type(h) TR_for h TR_in s[2]]]`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := `[["NaN", "Inf", "-Inf", "infinity", "007", "12345678901234567890", "0x10", "1_000", "1e400", "+5", "00.5", ".5"], ` +
-		`[Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin, Metin], ` +
+		`[String, String, String, String, String, String, String, String, String, String, String, String], ` +
 		`[0, 0, 1.0, 2500.0, -7, 9223372036854775807, 0.001, 0.0, "", 42, "1.", "1e"], ` +
-		`[Tam, Tam, Ondalık, Ondalık, Tam, Tam, Ondalık, Ondalık, Metin, Tam, Metin, Metin]]`
+		`[Int, Int, Float, Float, Int, Int, Float, Float, String, Int, String, String]]`
 	if val.Inspect() != want {
 		t.Fatalf("\n%s\nbeklenen\n%s", val.Inspect(), want)
 	}
@@ -245,7 +245,7 @@ func TestDecodersRequireText(t *testing.T) {
 		}
 	}
 	out, _, err := run(t, `TR_print(TR_json_parse("[1, 2]"), TR_parse_csv("a,b\n1,2"))`)
-	if err != nil || out != "[1, 2] [[\"a\", \"b\"], [1, 2]]\n" {
+	if err != nil || out != "[1,2] [[\"a\", \"b\"], [1, 2]]\n" {
 		t.Fatalf("metin argümanı: %q, %v", out, err)
 	}
 }

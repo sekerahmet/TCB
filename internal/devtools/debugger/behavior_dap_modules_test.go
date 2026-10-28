@@ -49,8 +49,8 @@ func TestDAPModuleSourceLines(t *testing.T) {
 // Gizli değer bir protokol adıyla aynı olsa da (burada "output": çıktı olayının alanı ve
 // adı) ileti bozulmaz: zarf alanları, anahtarlar ve protokolün sabit değerleri maskelenmez.
 func TestDAPSecretDoesNotBreakProtocol(t *testing.T) {
-	path := writeProgram(t, `TR_var ayar = TR_command_line({hf_token: ""})
-TR_print("belirteç:", ayar.hf_token)
+	path := writeProgram(t, `TR_var ayar = TR_command_line({"hf_token": ""})
+TR_print("belirteç:", ayar["hf_token"])
 TR_print("bitti")
 `)
 	c := startDAP(t)

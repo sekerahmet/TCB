@@ -92,6 +92,9 @@ type nameChecker struct {
 	decl map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
 	// floorDivRight '//' işlecinin sağ yanındaki adlardır: tanımsızsa ileti '#'i önerir (4.9).
 	floorDivRight map[*ast.Identifier]bool
+	// dictKeys sözlük değişmezinin ad olarak yazılmış anahtarlarıdır: tanımsızsa ileti metin
+	// anahtarını önerir ({step: 1} → {"step": 1}; 3.7).
+	dictKeys map[*ast.Identifier]bool
 	// bindings nil değilse gezinti hata aramaz, her adın neye bağlandığını dil'in adlarıyla
 	// kaydeder (NameBindings, bindings.go).
 	bindings *[]NameBinding
@@ -335,6 +338,15 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 				}
 				d.floorDivRight[id] = true
 			}
+		case *ast.DictLiteral:
+			for _, p := range y.Pairs {
+				if id, ok := p.Key.(*ast.Identifier); ok {
+					if d.dictKeys == nil {
+						d.dictKeys = map[*ast.Identifier]bool{}
+					}
+					d.dictKeys[id] = true
+				}
+			}
 		case *ast.FunctionLiteral:
 			d.function(y, k)
 			return false
@@ -378,6 +390,9 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 	var err error = hint.UndefinedNameError(id.Value, k.visible(), d.c.language())
 	if d.floorDivRight[id] {
 		err = messages.New(messages.H1018, id.Value)
+	}
+	if d.dictKeys[id] {
+		err = messages.New(messages.H0241, id.Value)
 	}
 	d.c.nameErrors = append(d.c.nameErrors, messages.At(id.Line(), id.Token.Column, messages.New(messages.H1010, err)))
 }

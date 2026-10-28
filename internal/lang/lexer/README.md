@@ -21,7 +21,7 @@ dosyadaki gerçek yerleriyle gelir. Hata mesajı, hata ayıklayıcı ve düzenle
 
 **Her işin tek yazımı vardır (2.2, 2.6).** Satır yorumu `#`'dir; `//` taban bölmedir. Satır başındaki
 `//` ve `/*` yorum değildir, açık bir hata verir ve `#`'i önerir. Bilinmeyen kaçış dizisi hatadır,
-sessizce kabul edilmez. İleti kodu bir metindir (`TR_message("H6903", x)`). Denetim: `TestComments`,
+sessizce kabul edilmez. İleti kodu bir metindir (`TR_Message("H6903", x)`). Denetim: `TestComments`,
 `TestCStyleCommentIsAnError`, `TestUnknownEscapeIsError`.
 
 **Hiçbir girdide çökmez.** Kaynak güvenilmeyen girdidir. Sözcük çözümleyici panik yapmaz, sonsuz

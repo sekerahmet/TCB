@@ -24,7 +24,7 @@ func TestTypeNameNormalization(t *testing.T) {
 		"TR_type_Float": codes.TypeFloat, "ONDALIK": codes.TypeFloat, "float": codes.TypeFloat,
 		"TR_type_String": codes.TypeString, "METİN": codes.TypeString,
 		"TR_type_Bool": codes.TypeBool, "MANTIK": codes.TypeBool,
-		"TR_type_List": codes.TypeList, "TR_type_Dict": codes.TypeDict, "TR_type_Tensor": codes.TypeTensor, "TR_type_None": codes.TypeNone,
+		"TR_type_List": codes.TypeList, "TR_type_Dict": codes.TypeDict, "TR_type_Tensor": codes.TypeTensor, "TR_type_NoneType": codes.TypeNoneType,
 		"Fonksiyon": codes.TypeFunction, "": codes.TypeAny,
 	}
 	for input, want := range tests {
@@ -50,7 +50,7 @@ func TestTypeNameASCIISuggestion(t *testing.T) {
 	singleErrorIn(t, "tr", "TR_func f(x: sozluk) { TR_return x }", messages.H1007, 1, "'sozluk'", "'Sözlük'")
 	singleErrorIn(t, "tr", "TR_func f(x) -> mantik { TR_return TR_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
 	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
-		"bool": "Mantık", "null": "Yok", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
+		"bool": "Mantık", "null": "YokTipi", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
 		singleErrorIn(t, "tr", "TR_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 	for name, canonical := range map[string]string{"Ondalık": "Float", "Tam": "Int", "Sözlük": "Dict"} {
@@ -63,7 +63,7 @@ func TestTypeNameASCIISuggestion(t *testing.T) {
 func TestTypeNameCaseSpelling(t *testing.T) {
 	for lang, names := range map[string]map[string]string{
 		"tr": {"tam": "Tam", "TAM": "Tam", "ondalık": "Ondalık", "ONDALIK": "Ondalık", "METİN": "Metin", "mantık": "Mantık",
-			"aralık": "Aralık", "tensör": "Tensör", "YOK": "Yok", "yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"},
+			"aralık": "Aralık", "tensör": "Tensör", "YOKTIPI": "YokTipi", "yerleşikFonksiyon": "YerleşikFonksiyon", "tip": "Tip"},
 		"en": {"int": "Int", "FLOAT": "Float", "string": "String", "bool": "Bool", "list": "List"},
 	} {
 		for name, canonical := range names {
@@ -136,7 +136,7 @@ func TestTypedVarCompatible(t *testing.T) {
 		"TR_var a: TR_Int", // değer verilmezse 'yok' atanır
 		"TR_var bilinmeyen_tip = TR_input()\nTR_var a: TR_Int = bilinmeyen_tip",
 		`TR_var a: TR_Int = TR_print("x")`,
-		"TR_var a: TR_Int = TR_int(5)",
+		"TR_var a: TR_Int = TR_Int(5)",
 		"TR_var a: TR_Int = (5 ?? 6)",
 		`TR_var a: TR_String = TR_none ?? "varsayılan"`,
 		"TR_var a: TR_Int = -5",
@@ -416,18 +416,18 @@ f(5)`)
 // yerleşiğin adıysa uyarılır: Türkçe dosyada girdi, İngilizce dosyada input.
 func TestBuiltinShadowingWarning(t *testing.T) {
 	for lang, c := range map[string]struct {
-		input, str string
+		input, abs string
 		other      string // öbür dilin yerleşik adı: bu dosyada sıradan kullanıcı adıdır
 	}{
-		"tr": {"girdi", "metin", "input"},
-		"en": {"input", "str", "girdi"},
+		"tr": {"girdi", "mutlak", "input"},
+		"en": {"input", "abs", "girdi"},
 	} {
 		source := `TR_var uzunluk = 5
 TR_func f(toplam, x) {
     TR_return toplam + x
 }
 TR_func ` + c.input + `() { TR_return 1 }
-TR_for i, ` + c.str + ` TR_in ["a"] { TR_print(` + c.str + `) }
+TR_for i, ` + c.abs + ` TR_in ["a"] { TR_print(` + c.abs + `) }
 TR_try { TR_throw "x" } TR_catch ekle { TR_print(ekle) }
 TR_var a, sırala = 1, 2
 TR_struct Nokta {
@@ -448,7 +448,7 @@ TR_var ` + c.other + ` = 1`
 		}
 		// uzunluk, ekle ve sırala yerleşik değil (metotlar): gölgeleme sayılmaz. Uyarı konumuyla
 		// (yapı) ve koduyla (H1009) sınanır.
-		expected := map[int]string{5: c.input, 6: c.str}
+		expected := map[int]string{5: c.input, 6: c.abs}
 		if lang == "tr" {
 			expected[2] = "toplam" // İngilizce dosyada toplam sıradan bir addır (sum)
 		}

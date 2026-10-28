@@ -96,6 +96,20 @@ func load() {
 	})
 }
 
+// ValueLanguage is the language code of a value's text (3.14; codes.ValueNames): it is no
+// writing language. A message that is part of a value's text (a builtin's, a library object's, a
+// caught error's) is written with the English catalog, so it is the same on every machine and
+// for every reader; the names in it are the identities' names.
+const ValueLanguage = "value"
+
+// catalogLanguage kataloğu seçilecek dildir: değerin metni İngilizce katalogla yazılır.
+func catalogLanguage(lang string) string {
+	if lang == ValueLanguage {
+		return "en"
+	}
+	return lang
+}
+
 // activeLanguage süreç dilidir: LanguageEnvVar ilk okunuşta sabitlenir (codes paketi de bu
 // değeri kullanır). Bir süreç tek dil konuşur; erken kurulup geç gösterilen bir ileti ile adlar
 // iki dile bölünmez. Testler değişkeni bu paketin içinden değiştirir.

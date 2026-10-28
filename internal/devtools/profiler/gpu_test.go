@@ -10,16 +10,16 @@ import (
 
 // gpuTraining GPU'da (benzetim) 6 adımlık küçük bir eğitimdir.
 const gpuTraining = `TR_default_device("gpu")
-TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var w = TR_Tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
-TR_var ç = TR_progress(6)
+TR_var ç = TR_Progress(6)
 TR_for i TR_in 0..6 {
     op.TR_zero_grad()
     TR_var kayıp = TR_sum(TR_relu(x @ w))
     TR_backward(kayıp)
     op.TR_step()
-    ç.TR_update({TR_loss: kayıp})
+    ç.TR_update({"loss": kayıp})
 }
 TR_default_device("cpu")
 `
@@ -162,8 +162,8 @@ TR_default_device("cpu")
 
 // gpuTwoOptimizers ilerleme kullanmayan, adımda iki iyileştiricisi olan 6 adımlık eğitimdir.
 const gpuTwoOptimizers = `TR_default_device("gpu")
-TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
-TR_var v = TR_tensor(TR_randn([16, 16], TR_seed: 3), TR_requires_grad: TR_true)
+TR_var w = TR_Tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var v = TR_Tensor(TR_randn([16, 16], TR_seed: 3), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)
 TR_var a = TR_AdamW([w], TR_lr: 0.01)
 TR_var b = TR_AdamW([v], TR_lr: 0.01)

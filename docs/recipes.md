@@ -19,7 +19,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
-| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
+| Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(Tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
 | İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "kind": "function", "common_name": "silu", "params": ["TR_type_Tensor\|TR_type_Int\|TR_type_Float"], "returns": "TR_type_Tensor\|TR_type_Float" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
@@ -95,7 +95,7 @@ Testler: tipin dosyasının birim testi; metot hem doğru hem yanlış argümanl
 3. **Üret.** `go run ./tools/gen/msgconsts`.
 4. **Kullan.** Hata: `messages.New(messages.H7006, fn, path)`. Çıktı: `messages.Text(...)`. Konumlu hata: `messages.At(satır, sütun, ...)`. Yalnızca TR'nin kendi hatasıyla oluşabilen durum: `messages.Internal("English detail")`.
 5. **Test.** `messages.Has(err, messages.H7006)`; metne değil koda bakılır.
-6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_kw_throw TR_fn_message(H6903, pencere)` ya da `TR_fn_assert(koşul, TR_fn_message(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_kw_if TR_kw_not koşul { TR_kw_throw TR_fn_message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_fn_assert_equal(H6903, TR_fn_error_code(() => ...))`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_fn_message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
+6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_kw_throw TR_type_Message(H6903, pencere)` ya da `TR_fn_assert(koşul, TR_type_Message(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_kw_if TR_kw_not koşul { TR_kw_throw TR_type_Message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_fn_assert_equal(H6903, TR_fn_error_code(() => ...))`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_type_Message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
 
 Denetimler: aynı metin iki kodda olamaz (bağlamı farklı etiketler gerekçeli izinle), her çağrının değer sayısı tanımla aynı, kullanılmayan kod kalmaz, geçirilmiş pakette `fmt.Errorf`/`errors.New` yok.
 
@@ -133,7 +133,7 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 
 ## 7. Dış girdi okuyan özellik
 
-Örnek: `TR_fn_load_tensors` (`.trt` dosyası), `TR_fn_checkpoint`.
+Örnek: `TR_fn_load_tensors` (`.trt` dosyası), `TR_type_Checkpoint`.
 
 1. **Güvenilmeyen girdi** sayılır: bozuk ya da kötü niyetli olabilir.
 2. **Sınırlar:**

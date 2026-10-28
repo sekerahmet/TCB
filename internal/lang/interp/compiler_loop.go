@@ -69,6 +69,9 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 		if err != nil {
 			return nil, signalNone, err
 		}
+		if iterVal, err = jsonLoopSource(iterVal); err != nil { // JSON dizisi ve nesnesi (5.7)
+			return nil, signalNone, messages.At(line, 0, err)
+		}
 		kind := loopScope{outerEnv: env, info: info, again: again}
 		pin(iterVal) // gövdenin deyim sınırları gezilen kaynağı bırakmasın
 		defer kind.close(iterVal)

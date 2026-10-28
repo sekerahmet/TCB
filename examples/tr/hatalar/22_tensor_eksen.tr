@@ -7,5 +7,5 @@
 #     yazdır(toplam(m, eksen: 1))
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/22_tensor_eksen.tr   (çıkış kodu 1)
 
-TR_var m = TR_tensor([[1, 2], [3, 4]])
+TR_var m = TR_Tensor([[1, 2], [3, 4]])
 TR_print(TR_sum(m, TR_dim: 5))

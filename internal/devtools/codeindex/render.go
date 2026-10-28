@@ -19,7 +19,7 @@ var kindLabels = map[Kind]messages.Code{
 var roleLabels = map[Role]messages.Code{
 	RoleDefinition: messages.H8810, RoleCall: messages.H8241, RoleRead: messages.H8812,
 	RoleWrite: messages.H8813, RoleImport: messages.H8814, RoleTest: messages.H8807,
-	RoleArgument: messages.H8858, RoleOptionKey: messages.H8859, RoleDictKey: messages.H8868,
+	RoleArgument: messages.H8858, RoleOptionKey: messages.H8859,
 }
 
 // roleOrder rolleler listelenirken kullanılan sıradır.
@@ -202,7 +202,7 @@ var reasonMessages = map[string]messages.Code{
 // matchLabels olası yerlerin eşleşme biçimlerinin iletileridir; whereLabels bulundukları yerin.
 var matchLabels = map[string]messages.Code{
 	MatchMemberGuess: messages.H8847, MatchShadowed: messages.H8848, MatchExact: messages.H8849,
-	MatchSuffixed: messages.H8850, MatchCompound: messages.H8851, MatchDerived: messages.H8865, MatchDataFormat: messages.H8869,
+	MatchSuffixed: messages.H8850, MatchCompound: messages.H8851, MatchDerived: messages.H8865,
 	MatchLanguageFile: messages.H8872,
 }
 
@@ -299,15 +299,10 @@ func writeChange(b *strings.Builder, c Change) {
 	switch {
 	case c.Match == "":
 		what = RoleLabel(c.Role)
-	case c.Role == RoleDictKey: // rol adı bu sütunda; veri biçimi açıklaması aşağıda kendi sütununda
-		what = RoleLabel(c.Role)
 	default:
 		what = messages.Text(matchLabels[c.Match])
 	}
 	line := fmt.Sprintf("    %-22s %s", c.Pos, what)
-	if c.Match == MatchDataFormat {
-		line += "  " + messages.Text(matchLabels[c.Match])
-	}
 	if c.Basis == BasisLocalType {
 		line += "  " + messages.Text(messages.H8862)
 	}
@@ -317,7 +312,7 @@ func writeChange(b *strings.Builder, c Change) {
 	if c.Check != "" {
 		line += "  " + messages.Text(messages.H8857)
 	}
-	if c.Word != "" && c.Match != MatchExact && c.Match != MatchDataFormat { // veri biçimi kendiliğinden değişmez: öneri yok
+	if c.Word != "" && c.Match != MatchExact {
 		line += fmt.Sprintf("  %s → %s", c.Word, c.Replacement)
 	}
 	if c.Context != "" {

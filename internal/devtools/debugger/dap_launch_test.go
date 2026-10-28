@@ -9,7 +9,7 @@ import (
 // argüman verilirse program çalışmaz: kullanım hatası hata ayıklama konsoluna yazılır (1.4).
 func TestDAPArgumentsPassed(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "TR_var ayar = TR_command_line({TR_step: 1})\nTR_print(\"adım\", ayar.TR_step)\n")
+	path := writeProgram(t, "TR_var ayar = TR_command_line({\"step\": 1})\nTR_print(\"adım\", ayar[\"step\"])\n")
 	c.request("initialize", map[string]interface{}{"adapterID": "tr"})
 	c.event("initialized")
 	c.request("launch", map[string]interface{}{"program": path, "args": []string{"--step", "5"}})

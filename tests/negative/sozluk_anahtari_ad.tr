@@ -1,0 +1,5 @@
+# TR 4
+# TEST 3.7 sözlük değişmezinin çıplak adı bir değişkendir: tanımsızsa ileti metin anahtarını önerir
+TR_var a = {step: 1} # ERROR H0241
+TR_var k = "x"
+TR_var b = {k: 2}

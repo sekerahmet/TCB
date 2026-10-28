@@ -29,12 +29,12 @@ TR_func eğit(cihaz, normuon) {
     TR_for adım TR_in 0..3 {
         op.TR_set_multiplier(TR_lr_schedule(adım, 3, TR_warmup: 1))
         op.TR_zero_grad()
-        TR_var kayıp = m.TR_loss(TR_tensor(girdiler[adım]), TR_tensor(hedefler[adım]))
+        TR_var kayıp = m.TR_loss(TR_Tensor(girdiler[adım]), TR_Tensor(hedefler[adım]))
         TR_backward(kayıp)
         op.TR_step()
         kayıplar.TR_append(kayıp.TR_tolist)
     }
-    TR_var c = m.TR_embedding.TR_table.TR_device + " " + m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_device + " " + op.TR_muon.TR_state.TR_momentum[0].TR_device
+    TR_var c = m.TR_embedding.TR_table.TR_device + " " + m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_device + " " + op.TR_muon.TR_state["momentum"][0].TR_device
     TR_default_device("cpu")
     TR_return [kayıplar, c]
 }

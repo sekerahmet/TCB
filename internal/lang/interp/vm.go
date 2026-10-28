@@ -105,6 +105,9 @@ type vmShared struct {
 	// builtinConstants genel kapsama kaydedilen yerleşik sabitlerdir (ad → değer; ör. pi);
 	// hata ayıklayıcı onları kullanıcı değişkenlerinden ayırır (YerlesikSabitMi).
 	builtinConstants map[string]Value
+	// typeCalls tiplerin çağrısıdır (3.12; tip kodu → kurucu yerleşik, RegisterTypeCall). Yalnız
+	// kayıt sırasında yazılır.
+	typeCalls map[codes.Code]*BuiltinVal
 	// programValues motorların programa bağlı durumudur (bütün görevler paylaşır; ör. tensör
 	// motorunun bir kez gösterilen uyarıları). Süreç geneli değişkende tutulsaydı aynı süreçte
 	// çalışan programlar (tr test'in dosyaları, düzenleyici oturumu) birbirini etkilerdi.
@@ -286,6 +289,7 @@ func New() *VM {
 		CallStack: []StackFrame{},
 	}
 	v.registerTypes()
+	v.registerTypeCalls()
 	v.registerBuiltins()
 	v.registerStats()
 	v.registerMath()

@@ -83,7 +83,7 @@ TR_DIL=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 | 12 | [`12_yakalanmamis_firlat.tr`](tr/hatalar/12_yakalanmamis_firlat.tr) | Yakalanmayan fırlat (`H2441`) |
 | 13 | [`13_yok_uzerinde_ozellik.tr`](tr/hatalar/13_yok_uzerinde_ozellik.tr) | yok değerin özelliği (`H2466`) |
 | 14 | [`14_alan_bulunamadi.tr`](tr/hatalar/14_alan_bulunamadi.tr) | Olmayan alan (`H2468`) |
-| 15 | [`15_donusum_hatasi.tr`](tr/hatalar/15_donusum_hatasi.tr) | Dönüşüm hatası (`H2429`) |
+| 15 | [`15_donusum_hatasi.tr`](tr/hatalar/15_donusum_hatasi.tr) | Dönüşüm hatası (`H2640`) |
 | 16 | [`16_fonksiyon_degil.tr`](tr/hatalar/16_fonksiyon_degil.tr) | Fonksiyon olmayanı çağırmak (`H2421`) |
 | 17 | [`17_dongu_tipi.tr`](tr/hatalar/17_dongu_tipi.tr) | Gezilemeyen değer (`H2443`) |
 | 18 | [`18_sonsuz_ozyineleme.tr`](tr/hatalar/18_sonsuz_ozyineleme.tr) | Sonsuz özyineleme (`H2422`) |

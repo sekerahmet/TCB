@@ -14,21 +14,21 @@ import (
 func TestNoGradTensorsSaved(t *testing.T) {
 	runDir := trPath(t.TempDir())
 	if output, err := run(t, fmt.Sprintf(`
-TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
-TR_var model = {w: w, TR_state: {m: TR_tensor([5.0, 6.0]), TR_step: TR_tensor(3.0)}}
-TR_var kn = TR_checkpoint(%q, {model: model, tek: TR_tensor([[1.0], [2.0]], TR_dtype: "bf16")})
+TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var model = {"w": w, "state": {"m": TR_Tensor([5.0, 6.0]), "step": TR_Tensor(3.0)}}
+TR_var kn = TR_Checkpoint(%q, {"model": model, "tek": TR_Tensor([[1.0], [2.0]], TR_dtype: "bf16")})
 kn.TR_update(4)
 kn.TR_save()
 `, runDir)); err != nil {
 		t.Fatalf("%v\n%s", err, output)
 	}
 	output, err := run(t, fmt.Sprintf(`
-TR_var w = TR_tensor([0.0, 0.0], TR_requires_grad: TR_true)
-TR_var m = TR_tensor([0.0, 0.0])
-TR_var model = {w: w, TR_state: {m: m, TR_step: TR_tensor(0.0)}}
-TR_var tek = TR_tensor([[0.0], [0.0]], TR_dtype: "bf16")
-TR_var kn = TR_checkpoint(%q, {model: model, tek: tek})
-TR_print(kn.TR_resume_step, w.TR_tolist, m.TR_tolist, model.TR_state.m.TR_tolist, model.TR_state.TR_step.TR_tolist, tek.TR_tolist, tek.TR_dtype)
+TR_var w = TR_Tensor([0.0, 0.0], TR_requires_grad: TR_true)
+TR_var m = TR_Tensor([0.0, 0.0])
+TR_var model = {"w": w, "state": {"m": m, "step": TR_Tensor(0.0)}}
+TR_var tek = TR_Tensor([[0.0], [0.0]], TR_dtype: "bf16")
+TR_var kn = TR_Checkpoint(%q, {"model": model, "tek": tek})
+TR_print(kn.TR_resume_step, w.TR_tolist, m.TR_tolist, model["state"]["m"].TR_tolist, model["state"]["step"].TR_tolist, tek.TR_tolist, tek.TR_dtype)
 `, runDir))
 	if err != nil || !strings.Contains(output, "4 [1.0, 2.0] [5.0, 6.0] [5.0, 6.0] 3.0 [[1.0], [2.0]] bf16") {
 		t.Fatalf("durum tensörleri yerinde yüklenmedi: %v\n%s", err, output)
@@ -38,19 +38,19 @@ TR_print(kn.TR_resume_step, w.TR_tolist, m.TR_tolist, model.TR_state.m.TR_tolist
 		model string
 		want  messages.Code
 	}{
-		{`{w: TR_tensor([0.0, 0.0], TR_requires_grad: TR_true), TR_state: {m: TR_tensor([0.0, 0.0])}}`, messages.H7452}, // "state.step" yok
-		{`{w: TR_tensor([0.0, 0.0], TR_requires_grad: TR_true), TR_state: {m: TR_tensor([0.0]), TR_step: TR_tensor(0.0)}}`, messages.H7450},
-		{`{w: TR_tensor([0.0, 0.0], TR_requires_grad: TR_true), TR_state: {m: TR_tensor([0.0, 0.0]), TR_step: TR_tensor(0.0), yeni: TR_tensor([1.0])}}`, messages.H7449},
+		{`{"w": TR_Tensor([0.0, 0.0], TR_requires_grad: TR_true), "state": {"m": TR_Tensor([0.0, 0.0])}}`, messages.H7452}, // "state.step" yok
+		{`{"w": TR_Tensor([0.0, 0.0], TR_requires_grad: TR_true), "state": {"m": TR_Tensor([0.0]), "step": TR_Tensor(0.0)}}`, messages.H7450},
+		{`{"w": TR_Tensor([0.0, 0.0], TR_requires_grad: TR_true), "state": {"m": TR_Tensor([0.0, 0.0]), "step": TR_Tensor(0.0), "yeni": TR_Tensor([1.0])}}`, messages.H7449},
 	} {
-		output, err := run(t, fmt.Sprintf(`TR_checkpoint(%q, {model: %s, tek: TR_tensor([[0.0], [0.0]], TR_dtype: "bf16")})`, runDir, d.model))
+		output, err := run(t, fmt.Sprintf(`TR_Checkpoint(%q, {"model": %s, "tek": TR_Tensor([[0.0], [0.0]], TR_dtype: "bf16")})`, runDir, d.model))
 		if !messages.Has(err, d.want) {
 			t.Errorf("%s bekleniyordu: %v\n%s", d.want, err, output)
 		}
 	}
 	// Ara sonuç (türev izleyen bir işlemin sonucu) tek başına verilemez; modelin içindeyse atlanır.
 	output, err = run(t, fmt.Sprintf(`
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_checkpoint(%q, {ara: w * 2})
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_Checkpoint(%q, {"ara": w * 2})
 `, trPath(t.TempDir())))
 	if !messages.Has(err, messages.H7437) {
 		t.Errorf("ara tensör hatası bekleniyordu: %v\n%s", err, output)
@@ -61,13 +61,13 @@ TR_checkpoint(%q, {ara: w * 2})
 func TestRemovedSettingReported(t *testing.T) {
 	runDir := trPath(t.TempDir())
 	program := `TR_var ayar = TR_command_line(%s)
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_var kn = TR_checkpoint(%q, {w: w})
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var kn = TR_Checkpoint(%q, {"w": w})
 kn.TR_save()`
-	if output, err := run(t, fmt.Sprintf(program, "{oran: 0.1, katman: 2}", runDir)); err != nil {
+	if output, err := run(t, fmt.Sprintf(program, `{"oran": 0.1, "katman": 2}`, runDir)); err != nil {
 		t.Fatalf("%v\n%s", err, output)
 	}
-	output, err := run(t, fmt.Sprintf(program, "{oran: 0.1}", runDir))
+	output, err := run(t, fmt.Sprintf(program, `{"oran": 0.1}`, runDir))
 	if err != nil || !strings.Contains(output, "katman: 2 → yok") {
 		t.Fatalf("kaldırılan ayar bildirilmedi: %v\n%s", err, output)
 	}

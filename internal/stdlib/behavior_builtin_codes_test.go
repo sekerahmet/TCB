@@ -38,8 +38,8 @@ func TestBuiltinsMatchDictionary(t *testing.T) {
 			continue
 		}
 		d, ok := m.GlobalEnv.Get(k.String())
-		if tn, _ := codes.DefinitionOf(k); tn.Kind == codes.KindConstant {
-			// Sabitler (pi) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
+		if tn, _ := codes.DefinitionOf(k); tn.Kind == codes.KindConstant || tn.Kind == codes.KindValueName {
+			// Sabitler (pi) ve değer adları (inf, nan) yerleşik fonksiyon değil, değer olarak kayıtlıdır.
 			if !ok || d == nil {
 				t.Errorf("sözlükteki sabit %s kimliğiyle kayıtlı değil", k)
 			}
@@ -87,16 +87,22 @@ func TestMembersMatchDictionary(t *testing.T) {
 		`TR_var u_metin = "abc"`,
 		`TR_var u_liste = [1, 2]`,
 		`TR_var u_sozluk = {"a": 1}`,
-		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
+		`TR_var u_tensor = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
 		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
 		`TR_var u_parcalayici = TR_load_tokenizer("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
-		`TR_var u_yol = TR_path("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
-		`TR_var u_ilerleme = TR_progress(3)`,
+		`TR_var u_yol = TR_Path("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
+		`TR_var u_ilerleme = TR_Progress(3)`,
+		`TR_var u_satirlar = TR_read_lines("` + filepath.ToSlash(reporoot.Path("go.mod")) + `")`,
+		`TR_var u_nokta = TR_Checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": u_tensor})`,
+		`TR_var u_veri = TR_Dataset("` + filepath.ToSlash(reporoot.Path("tests/data/text")) + `")`,
+		`TR_var u_okuyucu = u_veri.TR_sampler(TR_batch_size: 1, TR_context: 4)`,
 	}, "\n")
 	if _, err := runSame(t, m, setup); err != nil {
 		t.Fatal(err)
 	}
-	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme"}
+	// Sözlüğe nokta ile okuma anahtar okumadığı için (3.7) her nesnenin üyesi kendi nesnesinde denenir.
+	examples := []string{"u_metin", "u_liste", "u_sozluk", "u_tensor", "u_iyilestirici", "u_parcalayici", "u_yol", "u_ilerleme",
+		"u_satirlar", "u_nokta", "u_veri", "u_okuyucu"}
 	for _, k := range codes.Codes() {
 		// Kitaplığın üyesi çekirdek tiplerde değil, kitaplığın yapılarında karşılanır.
 		if k.Namespace() != codes.NamespaceMember || k.IsLibrary() || (k >= codes.MemSampler && k <= codes.MemNext) {
@@ -124,7 +130,7 @@ func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
 	m := interp.New()
 	m.Err = io.Discard
 	setup := strings.Join([]string{
-		`TR_var u_tensor = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
+		`TR_var u_tensor = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`,
 		`TR_var u_iyilestirici = TR_SGD([u_tensor])`,
 		`TR_var u_parcalayici = TR_load_tokenizer("` + filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json")) + `")`,
 	}, "\n")

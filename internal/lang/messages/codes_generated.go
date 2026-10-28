@@ -84,6 +84,10 @@ const (
 	H0204 Code = 204  // tekli '!' TR'de yok; mantıksal tersi '{@not}' ile yazılır: {@not} a ('!=' eşit değil işlecidir)
 	H0205 Code = 205  // '|>' TR'de yok; fonksiyon çağrıyla yazılır: x |> f(y) yerine f(x, y)
 	H0206 Code = 206  // '{@in}' yalnız döngüde ve liste üretecinde yazılır ({@for} x {@in} l); üyelik l.{@contains}(x) ile sorulur
+	H0240 Code = 240  // '{spelling}' bir sözlük anahtarı olamaz: anahtar bir ifadedir ve '{spelling}' burada bir değer değil; metin anahtarı için "{name}" yazın
+	H0241 Code = 241  // '{name}' tanımlı değil: sözlük anahtarı bir ifadedir, burada bir değişken; metin anahtarı için "{name}" yazın
+	H0242 Code = 242  // '{name}' TR'de yok: aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
+	H0243 Code = 243  // . Aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -178,8 +182,6 @@ const (
 	H2158 Code = 2158 // dosya bu dosya sistemi için çok büyük
 	H2300 Code = 2300 // istem
 	H2301 Code = 2301 // değer
-	H2302 Code = 2302 // bitiş
-	H2303 Code = 2303 // başlangıç, bitiş
 	H2304 Code = 2304 // liste
 	H2305 Code = 2305 // sayı
 	H2306 Code = 2306 // sayı, basamak
@@ -189,7 +191,7 @@ const (
 	H2310 Code = 2310 // a, b, ...
 	H2311 Code = 2311 // koşul, [mesaj]
 	H2312 Code = 2312 // beklenen, gerçek, [mesaj]
-	H2313 Code = 2313 // koşu_klasörü, {{model: model, op: op, ...}}
+	H2313 Code = 2313 // koşu_klasörü, {{"model": model, "op": op, ...}}
 	H2314 Code = 2314 // tamamlanan_adım
 	H2315 Code = 2315 // ö.{member}
 	H2316 Code = 2316 // kaynak, hedef
@@ -198,13 +200,13 @@ const (
 	H2319 Code = 2319 // klasör, kalıp
 	H2320 Code = 2320 // parça, ...
 	H2322 Code = 2322 // toplam_adım
-	H2323 Code = 2323 // {{ölçü: değer, ...}}
-	H2324 Code = 2324 // {{ad: değer, ...}}
+	H2323 Code = 2323 // {{"ölçü": değer, ...}}
+	H2324 Code = 2324 // {{"ad": değer, ...}}
 	H2325 Code = 2325 // ileti
 	H2326 Code = 2326 // op.{member}
 	H2327 Code = 2327 // model
-	H2328 Code = 2328 // {{ad: tensör, ...}}
-	H2329 Code = 2329 // {{seçenek: varsayılan, ...}}
+	H2328 Code = 2328 // {{"ad": tensör, ...}}
+	H2329 Code = 2329 // {{"seçenek": varsayılan, ...}}
 	H2330 Code = 2330 // ad
 	H2331 Code = 2331 // [ayırıcı]
 	H2332 Code = 2332 // önek
@@ -235,8 +237,6 @@ const (
 	H2426 Code = 2426 // {count} anahtarlı sözlük
 	H2427 Code = 2427 // {fn}() '{param}' adında bir parametre almaz (adlı argüman almaz)
 	H2428 Code = 2428 // {type} üzerinde {prop|q} özelliği ya da metodu bulunamadı{hint}
-	H2429 Code = 2429 // {fn}: {value|q} tam sayıya çevrilemedi (yalnızca rakamlardan oluşan bir metin verin, ör. "42")
-	H2430 Code = 2430 // {fn}: {value|q} ondalık sayıya çevrilemedi (ondalık ayırıcı nokta olmalı, ör. "3.14")
 	H2431 Code = 2431 // {fn}(): {type} sayı taşması ({fn}({value})); ondalık sonuç için {fn}({float}(x)) yazın
 	H2432 Code = 2432 // {fn} '{block}' bloğu içinden çağrılamaz; ana programda kullanın
 	H2433 Code = 2433 // {fn}: süre negatif ya da sayı değil ({value}); 0 ya da daha büyük bir saniye verin
@@ -320,7 +320,6 @@ const (
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
 	H2519 Code = 2519 // {error}; {defer} içinde de hata: {deferred}
 	H2520 Code = 2520 // Koddaki kesme noktası ({keyword})
-	H2521 Code = 2521 // JSON tam sayısı {token|q} Tam aralığının (64 bit işaretli) dışında; ondalık olarak yazın (ör. 1e30)
 	H2522 Code = 2522 // {fn} {owner} içinde çağrılamaz: orada kilit başka göreve geçmez, görevler ilerleyemez
 	H2524 Code = 2524 // '{struct}' yapısı
 	H2525 Code = 2525 // {type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun
@@ -351,6 +350,37 @@ const (
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için l + [x] ya da l.{@append}(x) yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar
+	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için {@Int}({@Float}(x)) yazın
+	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); {@Float}(...) ile okuyun
+	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
+	H2643 Code = 2643 // {@Bool}(): {value|q} bir mantık değeri değil; yalnız "true" ve "false" okunur
+	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (x != 0, l.{@length} > 0)
+	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type}, {@JSON}, {@Bytes} ve kitaplığın tipleridir
+	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı {@Int}(x) ya da {@String}(x) ile çevirin
+	H2647 Code = 2647 // {key} anahtarı sözlükte yok; olmayabilecek bir anahtar için .{@get}({key}) ?? varsayılan yazın
+	H2648 Code = 2648 // sözlük anahtarı noktayla değil köşeli parantezle okunur ve yazılır: ["{name}"] yazın (nokta yalnız sözlüğün üyelerini verir, .{@keys}() gibi)
+	H2649 Code = 2649 // JSON nesnesinde {key} anahtarı yok; olmayabilecek bir anahtar için .{@get}({key}) yazıp yokla karşılaştırın
+	H2650 Code = 2650 // bu JSON değerinin türü {kind}, {given} ile indekslenmez: nesne {@String} anahtarla, dizi {@Int} ile indekslenir
+	H2651 Code = 2651 // .{member} JSON nesnesinde ya da dizisinde çalışır (.{@keys}() yalnız nesnede); bu JSON değerinin türü {kind}
+	H2652 Code = 2652 // {type}() bu JSON değerini açamaz: türü {kind}; türünü {@Type}(j) ile sorup uygun tiple açın
+	H2653 Code = 2653 // {value} JSON'a giremez: JSON'da sonsuz ya da tanımsız sayı yoktur
+	H2654 Code = 2654 // {given} {@JSON} içine giremez: JSON yokluk, mantık değeri, sayı, metin, liste ve {@String} anahtarlı sözlük tutar
+	H2655 Code = 2655 // {@Bytes}() 0 ile 255 arası {@Int} sayılardan kurar; {index} indeksindeki öğe {value}
+	H2656 Code = 2656 // {@String}(): baytlar geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); UTF-8 olmayan veri {@Bytes} olarak kalır
+	H2657 Code = 2657 // {@Range} çağrılmaz: aralık başlangıç..bitiş yazılır (0..n); sayılarının listesi için {@List}(0..n) yazın
+	H2658 Code = 2658 // ; JSON nesnesinin anahtarı köşeli parantezle okunur: ["{name}"], olmayabilecekse .{@get}("{name}")
+	H2659 Code = 2659 // ; bayt dizisinin üyeleri .{@length} ve .{@get}(i)'dir, metin gibi indekslenir ve dilimlenir (b[i], b[a..c])
+	H2660 Code = 2660 // {@JSON} değeri {op} ile yalnız JSON değeriyle ya da yoklukla karşılaştırılır; bunun türü {kind}: önce açın, {kind}(j) {op} x
+	H2661 Code = 2661 // {kind} türündeki {@JSON} değeri {op} ile yalnız JSON değeriyle karşılaştırılır: j {op} {@JSON}(x)
+	H2662 Code = 2662 // {op} bir {@JSON} değerinde çalışmaz; bunun türü {kind}: önce açın, {kind}(j) {op} x
+	H2663 Code = 2663 // {op} {kind} türündeki bir {@JSON} değerinde çalışmaz; bir değeri ["k"] ya da [i] ile okuyup tipiyle açın
+	H2664 Code = 2664 // {kind} türündeki bir {@JSON} değerinde dönülmez: dizi öğelerini, nesne anahtarlarını verir; metnin karakterleri için {@String}(j) üzerinde dönün
+	H2665 Code = 2665 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi; JSON değerini önce tipiyle açın: {open}(j)
+	H2666 Code = 2666 // JSON değerinin .{@length}'u nesnenin anahtarlarını ya da dizinin öğelerini sayar; bu bir metin: önce açın, {@String}(j).{@length}
+	H2667 Code = 2667 // {fn}: nan bir sayı değildir, {@Int} değeri yoktur; önce {@is_finite}(x) ile sorun
+	H2668 Code = 2668 // {type}() mantık değerinden sayı kurmaz; {@if} b {{ 1 }} {@else} {{ 0 }} yazın
+	H2669 Code = 2669 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur
+	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: {@String}(j) ya da {@Int}(j)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
@@ -1244,7 +1274,6 @@ const (
 	H7219 Code = 7219 // {fn}: seçenek adları {type} olmalıdır, {given} verildi
 	H7220 Code = 7220 // {fn}: {name|q} seçenek adı olamaz (boş olamaz, - ile başlayamaz, boşluk ya da = içeremez)
 	H7221 Code = 7221 // {fn}: {name|q} seçenek adı olamaz: {help} ve -h seçenekleri listeler
-	H7222 Code = 7222 // {fn}: {name|q} seçenek adı olamaz: {type} tipinin bir üyesidir, ayar.{name} seçeneğin değerini değil üyeyi verirdi; başka bir ad seçin
 	H7223 Code = 7223 // {fn}: '{name}' seçeneğinin liste varsayılanı yalnızca aynı tipte {types} öğeler içerebilir; {index}. öğe {given}
 	H7224 Code = 7224 // {fn}: '{name}' seçeneğinin liste varsayılanındaki öğeler aynı tipte olmalı ({index}. öğe {given})
 	H7225 Code = 7225 // {fn}: '{name}' seçeneğinin varsayılanı {types}, {list} ya da {none} olmalı; {given} verildi
@@ -1319,8 +1348,8 @@ const (
 	H7432 Code = 7432 // nesne adı boş ya da çok uzun (en çok {max} bayt)
 	H7433 Code = 7433 // {name|q} nesne adı '/' ya da denetim karakteri içeremez
 	H7434 Code = 7434 // {fn}: sözlük anahtarları nesne adları ({type}) olmalıdır, {given} verildi
-	H7435 Code = 7435 // {fn}: kaydedilecek nesneler sözlüğü 1 ile {max} arası nesne içermeli, ör. {example}("runs/deneme1", {{model: model, op: op}})
-	H7436 Code = 7436 // {fn}: {name|q} bir {type}; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {{{key}: {{değer: ...}}}}
+	H7435 Code = 7435 // {fn}: kaydedilecek nesneler sözlüğü 1 ile {max} arası nesne içermeli, ör. {example}("runs/deneme1", {{"model": model, "op": op}})
+	H7436 Code = 7436 // {fn}: {name|q} bir {type}; düz bir değer doğrudan verilemez (geri yüklenirken yerine yazılamaz). Bir sözlüğe koyun: {{"{key}": {{"değer": ...}}}}
 	H7437 Code = 7437 // {fn}: {name|q} bir işlemin sonucu (ara tensör, {given}); kaydedilecek tensörler yaprak olmalıdır: parametreler ve {noGrad} içinde güncellenen durum tensörleri
 	H7438 Code = 7438 // {fn}: {name|q} kaydedilemez ({given}); modeller, iyileştiriciler, okuyucular, günlükler ve düz değerli sözlük ya da listeler verilebilir
 	H7439 Code = 7439 // {name|q}: {error}
@@ -1760,8 +1789,6 @@ const (
 	H8865 Code = 8865 // türemiş biçim
 	H8866 Code = 8866 // terim kipi: sembol aranmadı, yalnızca metin eşleşmeleri listelenir (aynı sözcüğün başka anlamları da gelebilir; satırın metnine bakın)
 	H8867 Code = 8867 // bağlı bildirimler ({count}; aynı adla iletilen ya da aynı adlı alana atanan; birlikte değiştirilmesi önerilir):
-	H8868 Code = 8868 // sözlük anahtarı
-	H8869 Code = 8869 // veri biçimi; kendiliğinden değişmez
 	H8870 Code = 8870 // (yok sayılan klasör)
 	H8871 Code = 8871 // {code} bir koddur: adı dil dosyasında değişir, kodlu dosyalar kimliği taşır ve olduğu gibi kalır; yeni ad baş geliştiricinin onayıyla eklenir
 	H8872 Code = 8872 // dil dosyasındaki ad

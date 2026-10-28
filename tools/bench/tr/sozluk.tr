@@ -3,13 +3,13 @@ TR_var bas = TR_time_ms()
 TR_var d = {}
 TR_var i = 0
 TR_for i < 200000 {
-    d["k" + TR_str(i)] = i
+    d["k" + TR_String(i)] = i
     i += 1
 }
 TR_var birikim = 0
 i = 0
 TR_for i < 200000 {
-    birikim += d["k" + TR_str(i)]
+    birikim += d["k" + TR_String(i)]
     i += 1
 }
 TR_print("sozluk \(birikim) \(TR_time_ms() - bas)")

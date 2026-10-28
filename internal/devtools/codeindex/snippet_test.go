@@ -9,11 +9,11 @@ import (
 	"testing/fstest"
 )
 
-const builtinUseSource = `TR_var kn = TR_checkpoint(1, {}, TR_every_minutes: 3)
+const builtinUseSource = `TR_var kn = TR_Checkpoint(1, {}, TR_every_minutes: 3)
 kn.TR_update(1)
 
 TR_test "kontrol noktası adımı bildirir" {
-    TR_var k = TR_checkpoint(1, {}, TR_every_minutes: 1)
+    TR_var k = TR_Checkpoint(1, {}, TR_every_minutes: 1)
     k.TR_update(2)
 }
 `
@@ -53,7 +53,7 @@ func TestMembersAndNamedArgumentsAreBuiltinsTestedByTestBlocks(t *testing.T) {
 // Kural: aynı ad hem bildirilmiş bir adı (komut satırı seçeneği) hem yerleşik bir adı gösteriyorsa ikisi de aday olur.
 func TestADeclaredNameAndABuiltinNameAreBothCandidates(t *testing.T) {
 	dir := t.TempDir()
-	src := "TR_command_line(TR_every_minutes: 5)\nTR_checkpoint(1, {}, TR_every_minutes: 3)\n"
+	src := "TR_command_line(TR_every_minutes: 5)\nTR_Checkpoint(1, {}, TR_every_minutes: 3)\n"
 	if err := os.WriteFile(filepath.Join(dir, "a.tr"), trText(filepath.Join(dir, "a.tr"), src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestSnippetListsTheCodesAProgramTextUses(t *testing.T) {
 	for _, u := range got {
 		codes = append(codes, u.Code)
 	}
-	if !strings.Contains(strings.Join(codes, ","), "TR_fn_checkpoint") || !strings.Contains(strings.Join(codes, ","), "TR_arg_every_minutes") ||
+	if !strings.Contains(strings.Join(codes, ","), "TR_type_Checkpoint") || !strings.Contains(strings.Join(codes, ","), "TR_arg_every_minutes") ||
 		!strings.Contains(strings.Join(codes, ","), "TR_mem_update") {
 		t.Errorf("codes = %v", codes)
 	}

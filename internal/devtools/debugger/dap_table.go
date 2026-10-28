@@ -179,7 +179,7 @@ func TableData(val interp.Value) ([]string, [][]string, error) {
 	case *interp.DictVal:
 		var rows [][]string
 		for _, k := range v.Order {
-			rows = append(rows, []string{v.DisplayKey(k), plainText(v.Pairs[k])})
+			rows = append(rows, []string{v.KeyText(k), plainText(v.Pairs[k])})
 		}
 		return []string{messages.Text(messages.H8143), messages.Text(messages.H8142)}, rows, nil
 	case *interp.StructInstanceVal:

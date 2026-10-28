@@ -1,6 +1,7 @@
 package process
 
 import (
+	"math"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -71,11 +72,7 @@ func applyArguments(m *interp.VM, options []*option, description string) (*inter
 		if !ok {
 			v = s.defaultVal
 		}
-		if s.code != codes.None {
-			result.SetCoded(s.code, v) // kodlu seçenek sonuçta da kodlu anahtardır (ayar.adım)
-		} else {
-			result.Set(s.name, v)
-		}
+		result.Set(s.name, v)
 	}
 	return result, nil
 }
@@ -159,27 +156,14 @@ func optionName(a string, options []*option) (name, value string, valued bool, e
 	return "", "", false, messages.New(messages.H7207, shorten(a))
 }
 
-// find adı verilen seçeneği bulur: adın kendisiyle ya da kodlu seçenekte kodun herhangi bir gömülü
-// yazım dilindeki adıyla (17.8: girdide her dilin adı geçerlidir, hiçbiri öncelikli değildir).
+// find adı verilen seçeneği bulur: seçeneğin adı metin anahtarının kendisidir (3.7), çevrilmez.
 func find(options []*option, name string) *option {
 	for _, s := range options {
-		if s.name == name || (s.code != codes.None && codeHasName(s.code, name)) {
+		if s.name == name {
 			return s
 		}
 	}
 	return nil
-}
-
-// codeHasName name, k'nin bir gömülü yazım dilindeki adı mı?
-func codeHasName(k codes.Code, name string) bool {
-	for _, lang := range codes.Languages() {
-		if l, err := codes.LoadLanguage(lang); err == nil {
-			if e, ok := l.Entry(k); ok && e.Name == name {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // unknownOption en yakın seçeneği öneren hatayı verir; verilen, argümanın yazıldığı
@@ -298,13 +282,21 @@ func boolName(s string) (value, ok bool) {
 	return false, false
 }
 
-// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (TR_val_inf, TR_val_nan)?
+// nonFiniteName s bir gömülü yazım dilinde sonsuz ya da tanımsız sayının adı mı (TR_val_inf,
+// TR_val_nan; sonsuz '+' ya da '-' alabilir)? Komut satırı değeri her dilde okunur (17.8).
 func nonFiniteName(s string) (float64, bool) {
 	for _, code := range codes.Languages() {
-		if l, err := codes.LoadLanguage(code); err == nil {
-			if f, ok := interp.ParseNonFinite(s, l); ok {
-				return f, true
-			}
+		l, err := codes.LoadLanguage(code)
+		if err != nil {
+			continue
+		}
+		switch inf := l.Name(codes.ValInf); s {
+		case inf, "+" + inf:
+			return math.Inf(1), true
+		case "-" + inf:
+			return math.Inf(-1), true
+		case l.Name(codes.ValNan):
+			return math.NaN(), true
 		}
 	}
 	return 0, false

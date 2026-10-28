@@ -53,7 +53,7 @@ func splitObjects(fn any, s *interp.DictVal) ([]*object, error) {
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H7434, fn, codes.NameRef(codes.TypeString), s.DisplayKey(k))
+			return nil, messages.New(messages.H7434, fn, codes.NameRef(codes.TypeString), s.KeyText(k))
 		}
 		if err := checkObjectName(k); err != nil {
 			return nil, messages.New(messages.H2000, fn, err)
@@ -66,7 +66,7 @@ func splitObjects(fn any, s *interp.DictVal) ([]*object, error) {
 	}
 	if len(out) == 0 || len(out) > maxObjects {
 		return nil, messages.New(messages.H7435,
-			fn, maxObjects, codes.NameRef(codes.FnCheckpoint))
+			fn, maxObjects, codes.NameRef(codes.TypeCheckpoint))
 	}
 	return out, nil
 }

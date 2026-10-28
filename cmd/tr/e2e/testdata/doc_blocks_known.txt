@@ -3,7 +3,6 @@
 docs/spec/03_tipler.md:100 hata
 docs/spec/03_tipler.md:40
 docs/spec/03_tipler.md:63
-docs/spec/04_operatorler.md:66
 docs/spec/06_fonksiyonlar.md:46
 docs/spec/07_yapilar.md:55
 docs/spec/08_hata_yonetimi.md:5

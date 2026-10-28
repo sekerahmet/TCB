@@ -3,7 +3,7 @@ package main
 import "testing"
 
 var snippetFiles = map[string]string{
-	"internal/lang/codes/tr.json": "{\n  \"TR_fn_checkpoint\": { \"name\": \"kontrol_noktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" },\n  \"TR_fn_pretrained_model\": { \"name\": \"hazır_model\", \"family\": \"x\" }\n}\n",
+	"internal/lang/codes/tr.json": "{\n  \"TR_type_Checkpoint\": { \"name\": \"KontrolNoktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" },\n  \"TR_fn_pretrained_model\": { \"name\": \"hazır_model\", \"family\": \"x\" }\n}\n",
 	"lib/hazirx.tr":               "TR_func TR_pretrained_model(TR_folder) {\n    TR_return TR_folder\n}\n",
 	"internal/lang/lexer/lexer.go": `package lexer
 
@@ -25,7 +25,7 @@ func run(t *testing.T, code string) int { return lexer.New(code) }
 func runIn(t *testing.T, dir, code string) int { t.Helper(); return run(t, code) }
 
 func program(dir string) string {
-	return fmt.Sprintf(` + "`" + `TR_var kn = TR_checkpoint(%q, {}, TR_every_minutes: 3)
+	return fmt.Sprintf(` + "`" + `TR_var kn = TR_Checkpoint(%q, {}, TR_every_minutes: 3)
 kn.TR_update(1)
 ` + "`" + `, dir)
 }
@@ -35,13 +35,13 @@ func notTR(t *testing.T, text string) int { return len(text) }
 func TestFormatted(t *testing.T) { run(t, program("d")) }
 
 func TestWrapped(t *testing.T) {
-	code := ` + "`" + `TR_var kn = TR_checkpoint(1, {})` + "`" + `
+	code := ` + "`" + `TR_var kn = TR_Checkpoint(1, {})` + "`" + `
 	runIn(t, "d", code)
 }
 
 func TestConcatenated(t *testing.T) {
 	dir := t.TempDir()
-	run(t, ` + "`" + `TR_checkpoint("` + "`" + ` + dir + ` + "`" + `", {}, TR_every_minutes: 1)` + "`" + `)
+	run(t, ` + "`" + `TR_Checkpoint("` + "`" + ` + dir + ` + "`" + `", {}, TR_every_minutes: 1)` + "`" + `)
 }
 
 func TestNotTRCode(t *testing.T) { notTR(t, "kn.TR_update(1)") }
@@ -50,19 +50,19 @@ func TestTable(t *testing.T) {
 	for _, c := range []struct {
 		code string
 		n    int
-	}{{"TR_checkpoint(1, {})", 1}, {code: "kn.TR_update(1)"}} {
+	}{{"TR_Checkpoint(1, {})", 1}, {code: "kn.TR_update(1)"}} {
 		run(t, c.code+"\n")
 	}
 }
 
 func TestNamedTable(t *testing.T) {
-	cases := []struct{ code string }{{"TR_checkpoint(2, {}, TR_every_minutes: 1)"}}
+	cases := []struct{ code string }{{"TR_Checkpoint(2, {}, TR_every_minutes: 1)"}}
 	for _, c := range cases {
 		run(t, c.code)
 	}
 }
 
-func far5(t *testing.T) int { return run(t, "TR_checkpoint(2, {})") }
+func far5(t *testing.T) int { return run(t, "TR_Checkpoint(2, {})") }
 func far4(t *testing.T) int { return far5(t) }
 func far3(t *testing.T) int { return far4(t) }
 func far2(t *testing.T) int { return far3(t) }
@@ -91,14 +91,14 @@ func writeFile(t *testing.T, dir, name, content string) {
 	os.WriteFile(filepath.Join(dir, filepath.FromSlash(name)), []byte(content), 0o644)
 }
 
-func TestWrittenByHelper(t *testing.T) { writeProgram(t, "TR_checkpoint(1, {})") }
+func TestWrittenByHelper(t *testing.T) { writeProgram(t, "TR_Checkpoint(1, {})") }
 
 func TestWrittenDirectly(t *testing.T) {
 	os.WriteFile(filepath.Join(t.TempDir(), "a.tr"), []byte("kn.TR_update(1)"), 0o644)
 }
 
 func TestWrittenByName(t *testing.T) {
-	writeFile(t, t.TempDir(), "sub/b.tr", "TR_checkpoint(2, {}, TR_every_minutes: 1)")
+	writeFile(t, t.TempDir(), "sub/b.tr", "TR_Checkpoint(2, {}, TR_every_minutes: 1)")
 }
 
 func TestWrittenFromAMap(t *testing.T) {
@@ -108,7 +108,7 @@ func TestWrittenFromAMap(t *testing.T) {
 }
 
 func TestWrittenLines(t *testing.T) {
-	writeFile(t, t.TempDir(), "d.tr", strings.Join([]string{"TR_var kn = TR_checkpoint(1, {})", "kn.TR_update(1)"}, "\n"))
+	writeFile(t, t.TempDir(), "d.tr", strings.Join([]string{"TR_var kn = TR_Checkpoint(1, {})", "kn.TR_update(1)"}, "\n"))
 }
 
 func TestWrittenLibraryUse(t *testing.T) {
@@ -129,9 +129,9 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	}
 	const app = "go:func:example.com/audit/app."
 	for _, c := range []struct{ test, name string }{
-		{"TestFormatted", "TR_fn_checkpoint"}, {"TestFormatted", "TR_arg_every_minutes"}, {"TestFormatted", "TR_mem_update"},
-		{"TestWrapped", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_fn_checkpoint"}, {"TestConcatenated", "TR_arg_every_minutes"},
-		{"TestTable", "TR_fn_checkpoint"}, {"TestTable", "TR_mem_update"}, {"TestNamedTable", "TR_arg_every_minutes"},
+		{"TestFormatted", "TR_type_Checkpoint"}, {"TestFormatted", "TR_arg_every_minutes"}, {"TestFormatted", "TR_mem_update"},
+		{"TestWrapped", "TR_type_Checkpoint"}, {"TestConcatenated", "TR_type_Checkpoint"}, {"TestConcatenated", "TR_arg_every_minutes"},
+		{"TestTable", "TR_type_Checkpoint"}, {"TestTable", "TR_mem_update"}, {"TestNamedTable", "TR_arg_every_minutes"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
 	}
@@ -139,8 +139,8 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	// yolunu ona ileten bir yardımcıyla) yazılan içerik; yol filepath.Join'le, ad sözlük tablosundan, içerik satırlardan
 	// kurulabilir. Kitaplıktan aktarılan adın kodu da gelir. .tr olmayan dosyaya yazılan metin TR değildir.
 	for _, c := range []struct{ test, name string }{
-		{"TestWrittenByHelper", "TR_fn_checkpoint"}, {"TestWrittenDirectly", "TR_mem_update"}, {"TestWrittenByName", "TR_arg_every_minutes"},
-		{"TestWrittenFromAMap", "TR_mem_update"}, {"TestWrittenLines", "TR_fn_checkpoint"}, {"TestWrittenLines", "TR_mem_update"},
+		{"TestWrittenByHelper", "TR_type_Checkpoint"}, {"TestWrittenDirectly", "TR_mem_update"}, {"TestWrittenByName", "TR_arg_every_minutes"},
+		{"TestWrittenFromAMap", "TR_mem_update"}, {"TestWrittenLines", "TR_type_Checkpoint"}, {"TestWrittenLines", "TR_mem_update"},
 		{"TestWrittenLibraryUse", "TR_fn_pretrained_model"},
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
@@ -153,7 +153,7 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	}
 	// TR metni testten beş adım uzakta: bu bağ "doğrudan" test sayılır, bu yüzden zincir en çok yarı sınırdır (4 adım;
 	// daha uzunu tests-for'da zayıf kanıttır). Bağımsız denetim S3.
-	if e := edge(g, app+"TestFar", "name:TR_fn_checkpoint", edgeTests); e != nil {
+	if e := edge(g, app+"TestFar", "name:TR_type_Checkpoint", edgeTests); e != nil {
 		t.Errorf("TR text five steps from the test is weak evidence, not a tests edge: %+v", e)
 	}
 }

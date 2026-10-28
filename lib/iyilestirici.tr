@@ -12,9 +12,9 @@
 # sütunudur (ağırlığı [çıkış, giriş] tutan düzende bir satır).
 #
 # Kontrol noktası: iyileştiricinin durum tensörleri (`op.muon.durum`) türev izlemez;
-# `kontrol_noktası` bir nesnenin bütün tensörlerini (türev izlemeyenleri de) saklayıp yerinde
+# `KontrolNoktası` bir nesnenin bütün tensörlerini (türev izlemeyenleri de) saklayıp yerinde
 # geri yazdığından (dil tanımı 20.2) durum ayrı bir nesne olarak verilir:
-#     kontrol_noktası(koşu, {model: model, adamw: op.adamw, muon: op.muon.durum, ...})
+#     KontrolNoktası(koşu, {"model": model, "adamw": op.adamw, "muon": op.muon.durum, ...})
 
 # Newton–Schulz katsayıları (Muon'un yaygın kullanılan beşinci derece yinelemesi). Tam dik
 # matrise yakınsamaz; tekil değerleri yaklaşık [0.7, 1.2] aralığına toplar, bu da güncelleme
@@ -116,7 +116,7 @@ TR_func TR_zero_grads(TR_parameters) {
 # yalnızca_2b ağırlıkların hepsinin 2 boyutlu olduğunu denetler.
 TR_func TR_only_2d(TR_name, TR_parameters) {
     TR_for i, p TR_in TR_parameters {
-        TR_assert(p.TR_shape.TR_length == 2, TR_message("H6920", TR_name, i, p.TR_shape))
+        TR_assert(p.TR_shape.TR_length == 2, TR_Message("H6920", TR_name, i, p.TR_shape))
     }
 }
 
@@ -146,7 +146,7 @@ TR_struct TR_Muon {
     TR_state
     TR_func TR_init(TR_parameters, TR_lr = 0.02, TR_momentum = 0.95, TR_nesterov = TR_true, TR_weight_decay = 0.0, TR_ns_iterations = 5, TR_scale = "oran", TR_ns_dtype = "float32") {
         TR_only_2d(TR_Muon, TR_parameters)
-        TR_assert(TR_scale == "oran" TR_or TR_scale == "rms", TR_message("H6921", TR_scale))
+        TR_assert(TR_scale == "oran" TR_or TR_scale == "rms", TR_Message("H6921", TR_scale))
         TR_self.TR_parameters = TR_parameters
         TR_self.TR_lr = TR_lr
         TR_self.TR_momentum = TR_momentum
@@ -156,12 +156,12 @@ TR_struct TR_Muon {
         TR_self.TR_ns_dtype = TR_ns_dtype
         TR_self.TR_groups = TR_shape_groups(TR_parameters)
         TR_self.TR_scales = [TR_if TR_scale == "rms" { 0.2 * TR_sqrt(TR_max(p.TR_shape[0], p.TR_shape[1])) } TR_else { TR_sqrt(TR_max(1.0, p.TR_shape[1] / p.TR_shape[0])) } TR_for p TR_in TR_parameters]
-        TR_self.TR_state = {TR_momentum: [TR_state_tensor(p.TR_shape, p.TR_device) TR_for p TR_in TR_parameters]}
+        TR_self.TR_state = {"momentum": [TR_state_tensor(p.TR_shape, p.TR_device) TR_for p TR_in TR_parameters]}
     }
     TR_func TR_step() {
         TR_no_grad {
             TR_for grup TR_in TR_self.TR_groups {
-                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state.TR_momentum, grup, TR_self.TR_momentum, TR_self.TR_nesterov)
+                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_momentum, TR_self.TR_nesterov)
                 TR_var sıra = sg[0]
                 TR_if sıra.TR_length == 0 { TR_continue }
                 TR_var O = TR_orthogonalize_stack(sg[1], TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
@@ -210,21 +210,21 @@ TR_struct TR_NorMuon {
         TR_self.TR_ns_dtype = TR_ns_dtype
         TR_self.TR_groups = TR_shape_groups(TR_parameters)
         TR_self.TR_state = {
-            TR_momentum: [TR_state_tensor(p.TR_shape, p.TR_device) TR_for p TR_in TR_parameters],
-            ikinci_moment: [TR_state_tensor([1, p.TR_shape[1]], p.TR_device) TR_for p TR_in TR_parameters]
+            "momentum": [TR_state_tensor(p.TR_shape, p.TR_device) TR_for p TR_in TR_parameters],
+            "ikinci_moment": [TR_state_tensor([1, p.TR_shape[1]], p.TR_device) TR_for p TR_in TR_parameters]
         }
     }
     TR_func TR_step() {
         TR_var oran = TR_self.TR_lr
         TR_no_grad {
             TR_for grup TR_in TR_self.TR_groups {
-                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state.TR_momentum, grup, TR_self.TR_beta1, TR_false)
+                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_beta1, TR_false)
                 TR_var sıra = sg[0]
                 TR_if sıra.TR_length == 0 { TR_continue }
                 TR_var yığın = TR_orthogonalize_stack(sg[1], TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
                 TR_for j, i TR_in sıra {
                     TR_var p = TR_self.TR_parameters[i]
-                    TR_var v = TR_self.TR_state.ikinci_moment[i]
+                    TR_var v = TR_self.TR_state["ikinci_moment"][i]
                     TR_var O = yığın[j]
                     v[0..1] = TR_self.TR_beta2 * v + (1 - TR_self.TR_beta2) * TR_mean(O * O, TR_dim: 0, TR_keepdim: TR_true)
                     TR_var N = O / (TR_sqrt(v) + TR_self.TR_eps)
@@ -266,7 +266,7 @@ TR_func TR_any_pattern_matches(TR_name, TR_patterns) {
 # ad_uyar_mı'daki gibi yol parçalarıdır (önek "TR_mem_embedding", sonek "ple_tablo", tam "TR_mem_embedding.TR_mem_table").
 TR_func TR_parameter_groups(TR_model, TR_separated = ["TR_mem_embedding", "TR_mem_logit_layer"]) {
     TR_var k = parametre_kümeleri(TR_model, ayrı: TR_separated)
-    TR_return {gizli: k.gizli, TR_other: k.TR_other}
+    TR_return {"gizli": k["gizli"], "other": k["other"]}
 }
 
 # parametre_kümeleri parametre_grupları'nın ayrıntılı hâlidir: {gizli, sönümlü, sönümsüz, seyrek, diğer}.
@@ -298,7 +298,7 @@ TR_func parametre_kümeleri(model, ayrı = ["TR_mem_embedding", "TR_mem_logit_la
             }
         }
     }
-    TR_return {gizli: gizli, sönümlü: sönümlü, sönümsüz: sönümsüz, seyrek: seyrek_p, TR_other: diğer}
+    TR_return {"gizli": gizli, "sönümlü": sönümlü, "sönümsüz": sönümsüz, "seyrek": seyrek_p, "other": diğer}
 }
 
 # SatırRMS: satır seyrek RMS iyileştiricisi (RGN-512'nin PLE tabloları için). Tablo [satır, sütun]
@@ -324,8 +324,8 @@ TR_struct TR_RowRMS {
         TR_self.TR_beta2 = TR_beta2
         TR_self.TR_eps = TR_eps
         TR_self.TR_state = {
-            ikinci_moment: [TR_state_tensor([p.TR_shape[0], 1], p.TR_device) TR_for p TR_in TR_parameters],
-            sayaç: [TR_state_tensor([p.TR_shape[0], 1], p.TR_device) TR_for p TR_in TR_parameters]
+            "ikinci_moment": [TR_state_tensor([p.TR_shape[0], 1], p.TR_device) TR_for p TR_in TR_parameters],
+            "sayaç": [TR_state_tensor([p.TR_shape[0], 1], p.TR_device) TR_for p TR_in TR_parameters]
         }
     }
     TR_func TR_step() {
@@ -335,8 +335,8 @@ TR_struct TR_RowRMS {
                 TR_var g = p.TR_grad
                 TR_if g == TR_none { TR_continue }
                 TR_var satırlar = p.TR_shape[0]
-                TR_var v = TR_self.TR_state.ikinci_moment[i]
-                TR_var n = TR_self.TR_state.sayaç[i]
+                TR_var v = TR_self.TR_state["ikinci_moment"][i]
+                TR_var n = TR_self.TR_state["sayaç"][i]
                 TR_var geçti = TR_sum(TR_abs(g), TR_dim: 1, TR_keepdim: TR_true) > 0 # [satır, 1] 0/1
                 n[0..satırlar] = n + geçti
                 v[0..satırlar] = TR_where(geçti, b2 * v + (1 - b2) * TR_mean(g * g, TR_dim: 1, TR_keepdim: TR_true), v)
@@ -378,22 +378,22 @@ TR_struct TR_MuonAndAdamW {
         TR_self.TR_adamw_lr = TR_adamw_lr
         TR_self.TR_sparse_lr = TR_sparse_lr
         TR_self.TR_muon = TR_if TR_normuon {
-            TR_NorMuon(gruplar.gizli, TR_lr: TR_muon_lr, TR_weight_decay: TR_weight_decay, TR_ns_dtype: TR_ns_dtype)
+            TR_NorMuon(gruplar["gizli"], TR_lr: TR_muon_lr, TR_weight_decay: TR_weight_decay, TR_ns_dtype: TR_ns_dtype)
         } TR_else {
-            TR_Muon(gruplar.gizli, TR_lr: TR_muon_lr, TR_weight_decay: TR_weight_decay, TR_scale: TR_muon_scale, TR_ns_dtype: TR_ns_dtype)
+            TR_Muon(gruplar["gizli"], TR_lr: TR_muon_lr, TR_weight_decay: TR_weight_decay, TR_scale: TR_muon_scale, TR_ns_dtype: TR_ns_dtype)
         }
-        TR_self.TR_other = gruplar.TR_other
+        TR_self.TR_other = gruplar["other"]
         TR_if TR_adamw_weight_decay > 0 {
-            TR_self.TR_adamw = TR_AdamW(gruplar.sönümlü, TR_lr: TR_adamw_lr, TR_weight_decay: TR_adamw_weight_decay, TR_beta1: 0.9, TR_beta2: TR_beta2)
-            TR_self.TR_adamw_no_decay = TR_AdamW(gruplar.sönümsüz, TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
+            TR_self.TR_adamw = TR_AdamW(gruplar["sönümlü"], TR_lr: TR_adamw_lr, TR_weight_decay: TR_adamw_weight_decay, TR_beta1: 0.9, TR_beta2: TR_beta2)
+            TR_self.TR_adamw_no_decay = TR_AdamW(gruplar["sönümsüz"], TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
         } TR_else {
-            TR_self.TR_adamw = TR_AdamW(gruplar.TR_other, TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
+            TR_self.TR_adamw = TR_AdamW(gruplar["other"], TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
             TR_self.TR_adamw_no_decay = TR_none
         }
-        TR_self.TR_row_rms = TR_if gruplar.seyrek.TR_length > 0 { TR_RowRMS(gruplar.seyrek, TR_lr: TR_sparse_lr, TR_beta2: TR_beta2) } TR_else { TR_none }
+        TR_self.TR_row_rms = TR_if gruplar["seyrek"].TR_length > 0 { TR_RowRMS(gruplar["seyrek"], TR_lr: TR_sparse_lr, TR_beta2: TR_beta2) } TR_else { TR_none }
     }
     TR_func TR_set_multiplier(TR_multiplier) {
-        TR_assert(TR_multiplier > 0, TR_message("H6922", TR_multiplier))
+        TR_assert(TR_multiplier > 0, TR_Message("H6922", TR_multiplier))
         TR_self.TR_lr_multiplier = TR_multiplier
     }
     TR_func TR_step() {
@@ -424,7 +424,7 @@ TR_struct TR_MuonAndAdamW {
 # adımlarda (0.2: son %20) doğrusal olarak en_az'a iner.
 TR_func TR_lr_schedule(TR_step, TR_num_steps, TR_warmup = 0, TR_decay_fraction = 0.2, TR_min = 0.0) {
     TR_if TR_step < TR_warmup { TR_return 1.0 * (TR_step + 1) / TR_warmup }
-    TR_var azalma_adımı = TR_int(TR_num_steps * TR_decay_fraction)
+    TR_var azalma_adımı = TR_Int(TR_num_steps * TR_decay_fraction)
     TR_var baş = TR_num_steps - azalma_adımı
     TR_if TR_step < baş TR_or azalma_adımı == 0 { TR_return 1.0 }
     TR_return TR_min + (1.0 - TR_min) * (TR_num_steps - TR_step) / azalma_adımı

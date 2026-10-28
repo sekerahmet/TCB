@@ -16,7 +16,7 @@ var (
 	typeFloat    = codes.Name(codes.TypeFloat)
 	typeString   = codes.Name(codes.TypeString)
 	typeBool     = codes.Name(codes.TypeBool)
-	typeNull     = codes.Name(codes.TypeNone)
+	typeNull     = codes.Name(codes.TypeNoneType)
 	typeList     = codes.Name(codes.TypeList)
 	typeDict     = codes.Name(codes.TypeDict)
 	typeRange    = codes.Name(codes.TypeRange)
@@ -60,7 +60,7 @@ func (c *Checker) typeArg(t string) messages.Localized {
 // annotationTypes tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
 var annotationTypes = []codes.Code{codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
-	codes.TypeList, codes.TypeDict, codes.TypeRange, codes.TypeFunction, codes.TypeBuiltinFunction, codes.TypeTensor, codes.TypeNone, codes.TypeType}
+	codes.TypeList, codes.TypeDict, codes.TypeRange, codes.TypeFunction, codes.TypeBuiltinFunction, codes.TypeTensor, codes.TypeNoneType, codes.TypeType}
 
 // typeSpellings tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
 // gelir ve tektir (3.14): yalnızca tip adının tam yazımı (Tam, Ondalık); büyük/küçük harfi

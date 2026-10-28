@@ -105,7 +105,7 @@ func right(s string, n int) string {
 
 // noStep program adım bildirmiyorsa gösterilen nottur (adlar kod listesinden).
 func noStep() string {
-	return messages.Text(messages.H8200, codes.NameRef(codes.FnProgress), codes.NameRef(codes.MemUpdate))
+	return messages.Text(messages.H8200, codes.NameRef(codes.TypeProgress), codes.NameRef(codes.MemUpdate))
 }
 
 // linePos bir satırın "dosya:satır" yazımıdır ('aktar' ile yüklenen modülde modülün dosyası);

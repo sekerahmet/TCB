@@ -1,6 +1,6 @@
 # logging
 
-TR'nin eğitim günlüğü ve ilerleme çubuğu yerleşikleri: `TR_fn_logger(yol)` ve `TR_fn_progress(toplam)`.
+TR'nin eğitim günlüğü ve ilerleme çubuğu yerleşikleri: `TR_type_Logger(yol)` ve `TR_type_Progress(toplam)`.
 Araçlar (`TR_cmd_watch`, `TR_cmd_profile`) sayı ve süre yazımını buradan alır, böylece her yerde aynı
 görünür.
 
@@ -8,10 +8,10 @@ görünür.
 
 **Günlük biçimi sözleşmedir.** Günlük JSON satırlarıdır (`.jsonl`); kayıt alanlarının adları, kayıt
 türleri (`start`, `end`, `resume`), `progress.json`'un adı ve anahtarları dilden bağımsız İngilizce
-tanımlayıcılardır, çevrilmez (dil tanımı 17.3). Programın ölçü adları programındır: kodlu çıplak
-anahtar kodun dilden bağımsız adıyla yazılır (`{TR_mem_loss: k}` → `"loss"`). Biçim değişirse sürüm artar;
+tanımlayıcılardır, çevrilmez (dil tanımı 17.3). Programın ölçü adları programındır: sözlüğün metin
+anahtarı olduğu gibi yazılır (`{"loss": k}` → `"loss"`; 3.7), çubukta da her dilde aynı. Biçim değişirse sürüm artar;
 eski sürüm okunmaz.
-Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLogRecords`, `TestJobStatus`, `cmd/tr/e2e` `TestFileFormatsIndependentOfWritingLanguage`, `TestDictCodedKeysOnDisk`.
+Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLogRecords`, `TestJobStatus`, `cmd/tr/e2e` `TestFileFormatsIndependentOfWritingLanguage`, `TestDictTextKeysOnDisk`.
 
 **Kayıt kaybolmaz.** Kayıtlar dosyanın sonuna eklenir; önceki koşu yarım satır bıraktıysa yeni kayıt yeni satırda başlar,
 kontrol noktasından sürdürmede "devam" kaydı düşülür. Program bitince açık günlükler kapanır,

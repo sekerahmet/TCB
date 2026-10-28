@@ -259,6 +259,15 @@ func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
 		}
 		return
 	}
+	if k, ok := x.lang.Find(codes.NamespaceType, id.Value); ok && sc.called[id] && !k.IsLibrary() {
+		// Tip çağrılınca kurar ve çevirir (3.12): çağrı yerleşik bir fonksiyonun çağrısı gibi bağlanır.
+		code := NodeID(KindBuiltin, "", k.String())
+		if x.nodes[code] == nil {
+			x.nodes[code] = &Node{ID: code, Kind: KindBuiltin, Name: k.String()}
+		}
+		x.linkBasis(o, code, EdgeUses, Extracted, RoleCall, pos, "")
+		return
+	}
 	x.noteUnresolved(id.Value, pos)
 }
 

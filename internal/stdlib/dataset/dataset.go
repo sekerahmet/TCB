@@ -56,7 +56,7 @@ var (
 
 // Register veri yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterBuiltinCode(codes.FnDataset, bind.SafeBuiltin(interp.CallPrefix(codes.FnDataset), openDataset))
+	v.RegisterTypeCall(codes.TypeDataset, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeDataset), openDataset)})
 }
 
 // ----------------------------------------------------------------------------
@@ -78,8 +78,8 @@ func (k *Dataset) summary(lang *codes.Language) string {
 	return messages.TextIn(lang.Code, messages.H5500, k.k.ShardCount(), bind.ShortNumber(k.k.TotalTokens()))
 }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (k *Dataset) Inspect() string { return k.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (k *Dataset) Inspect() string { return k.Text(codes.ValueNames()) }
 
 var (
 	_ interp.LanguageText = (*Dataset)(nil)
@@ -154,7 +154,7 @@ func resolveCacheDir(m *interp.VM, fn any, named map[string]interp.Value) (strin
 }
 
 func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.FnDataset)
+	fn := codes.NameRef(codes.TypeDataset)
 	if err := bind.CheckNamed(fn.Called(), named, nameCache, nameQuota); err != nil {
 		return nil, err
 	}
@@ -298,8 +298,8 @@ func (o *Reader) Type() interp.ValueType {
 
 func (o *Reader) IsTruthy() bool { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (o *Reader) Inspect() string { return o.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (o *Reader) Inspect() string { return o.Text(codes.ValueNames()) }
 
 // Text is the value's text in lang: str() and yazdır give it in the language of the file they
 // are written in (docs/spec/03_tipler.md).

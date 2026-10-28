@@ -15,7 +15,7 @@ import (
 func TestTensorSaveLoad(t *testing.T) {
 	dir := t.TempDir()
 	fpath := filepath.ToSlash(filepath.Join(dir, "model.trt"))
-	out := mustRun(t, `TR_var p = {"gömme": TR_tensor([[0.1, 0.2], [0.3, 0.4]]), "sapma": TR_tensor([1.5]), "ölçek": TR_sum(TR_tensor([2.0, 3.0])), "boş": TR_zeros([0, 3])}
+	out := mustRun(t, `TR_var p = {"gömme": TR_Tensor([[0.1, 0.2], [0.3, 0.4]]), "sapma": TR_Tensor([1.5]), "ölçek": TR_sum(TR_Tensor([2.0, 3.0])), "boş": TR_zeros([0, 3])}
 TR_save_tensors("`+fpath+`", p)
 TR_var y = TR_load_tensors("`+fpath+`")
 TR_print(y.TR_keys())
@@ -80,8 +80,8 @@ TR_print(z["sapma"].TR_grad.TR_tolist)`)
 		want messages.Code
 	}{
 		{`TR_save_tensors("` + fpath + `", {"a": 1})`, messages.H6608},
-		{`TR_save_tensors("` + fpath + `", {1: TR_tensor([1])})`, messages.H6606},
-		{`TR_save_tensors("` + fpath + `", [TR_tensor([1])])`, messages.H6605},
+		{`TR_save_tensors("` + fpath + `", {1: TR_Tensor([1])})`, messages.H6606},
+		{`TR_save_tensors("` + fpath + `", [TR_Tensor([1])])`, messages.H6605},
 		{`TR_save_tensors("", {})`, messages.H6603},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {

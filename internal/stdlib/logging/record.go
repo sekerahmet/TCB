@@ -40,8 +40,8 @@ type Log struct {
 func (g *Log) Type() interp.ValueType { return LogType }
 func (g *Log) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (g *Log) Inspect() string { return g.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (g *Log) Inspect() string { return g.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Log)(nil)
 
@@ -73,16 +73,16 @@ func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 
 // openLog günlük(yol) yerleşiğidir.
 func (d *state) openLog(m *interp.VM, args []interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.FnLogger)
+	fn := interp.CallPrefix(codes.TypeLogger)
 	if len(args) != 1 {
-		return nil, interp.ArgCountError(codes.FnLogger, 1, len(args), messages.Text(messages.H2307))
+		return nil, interp.ArgCountError(codes.TypeLogger, 1, len(args), messages.Text(messages.H2307))
 	}
 	path, ok, err := interp.PathArg(fn, args[0])
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
-		return nil, interp.ArgTypeError(codes.FnLogger, 1, args[0], codes.TypeString)
+		return nil, interp.ArgTypeError(codes.TypeLogger, 1, args[0], codes.TypeString)
 	}
 	if !strings.EqualFold(filepath.Ext(path), logExt) {
 		return nil, messages.New(messages.H7319,
@@ -198,10 +198,10 @@ func addMetrics(fn any, record *interp.DictVal, dict *interp.DictVal, reserved .
 		}
 		for _, r := range reserved {
 			if k == r {
-				return messages.New(messages.H7321, fn, dict.DisplayKey(k), reservedReason(k))
+				return messages.New(messages.H7321, fn, dict.KeyText(k), reservedReason(k))
 			}
 		}
-		d, err := metricValue(fn, dict.DisplayKey(k), v)
+		d, err := metricValue(fn, dict.KeyText(k), v)
 		if err != nil {
 			return err
 		}
@@ -240,11 +240,11 @@ func (g *Log) write(record *interp.DictVal) error {
 	}
 	if g.file == nil {
 		if err := g.open(); err != nil {
-			return turkish.FileError(interp.CallPrefix(codes.FnLogger), g.path, messages.H2103, err)
+			return turkish.FileError(interp.CallPrefix(codes.TypeLogger), g.path, messages.H2103, err)
 		}
 	}
 	if _, err := g.file.Write(line); err != nil {
-		return turkish.FileError(interp.CallPrefix(codes.FnLogger), g.path, messages.H2101, err)
+		return turkish.FileError(interp.CallPrefix(codes.TypeLogger), g.path, messages.H2101, err)
 	}
 	g.start = true
 	g.records++

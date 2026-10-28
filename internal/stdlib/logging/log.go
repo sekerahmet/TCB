@@ -1,5 +1,5 @@
 // Package logging, model eğitimini izlemenin iki TR yerleşiğini içerir: JSON satırlarıyla
-// eğitim günlüğü (günlük, TR_fn_logger; tip Günlük, TR_type_Logger) ve ilerleme çubuğu (ilerleme, TR_fn_progress; tip
+// eğitim günlüğü (günlük, TR_type_Logger; tip Günlük, TR_type_Logger) ve ilerleme çubuğu (ilerleme, TR_type_Progress; tip
 // İlerleme, TR_type_Progress).
 //
 // Günlük dosyası biçimi (sürüm 2): her satır tek bir JSON nesnesidir ve tek bir yazma
@@ -89,10 +89,10 @@ type state struct {
 // (komut satırı ayarları başlangıç kaydına yazılır); nil olabilir.
 func Register(v *interp.VM, s *process.State) {
 	d := &state{process: s}
-	v.RegisterNoNamed(codes.FnLogger, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
-		return bind.Safe(interp.CallPrefix(codes.FnLogger), func() (interp.Value, error) { return d.openLog(m, args) })
-	})
-	v.RegisterBuiltinCode(codes.FnProgress, bind.SafeBuiltin(interp.CallPrefix(codes.FnProgress), d.openProgress))
+	v.RegisterTypeCall(codes.TypeLogger, &interp.BuiltinVal{NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return bind.Safe(interp.CallPrefix(codes.TypeLogger), func() (interp.Value, error) { return d.openLog(m, args) })
+	}})
+	v.RegisterTypeCall(codes.TypeProgress, &interp.BuiltinVal{Fn: bind.SafeBuiltin(interp.CallPrefix(codes.TypeProgress), d.openProgress)})
 }
 
 // Açık günlükler ve bitmemiş çubuklar: program bitince CloseAll hepsini kapatır.

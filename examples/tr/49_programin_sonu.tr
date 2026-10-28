@@ -16,7 +16,7 @@ TR_if TUR_SAYISI < 1 {
 # Bundan sonra gelen ilk Ctrl+C programı durdurmaz, yalnız kaydedilir.
 TR_handle_stop()
 
-TR_for tur TR_in TR_range(TUR_SAYISI) {
+TR_for tur TR_in 0..TUR_SAYISI {
     TR_if TR_stop_requested() {
         TR_print("durdurma istendi, tur \(tur)'de bırakılıyor")
         TR_break

@@ -118,7 +118,7 @@ func (y *plainWriter) write(v interp.Value, fpath string, depth int) error {
 				return err
 			}
 			b.WriteByte(',')
-			if err := y.write(el, fpath+"."+x.DisplayKey(k), depth+1); err != nil {
+			if err := y.write(el, fpath+"."+x.KeyText(k), depth+1); err != nil {
 				return err
 			}
 			b.WriteByte(']')

@@ -129,7 +129,7 @@ func listError(ad any, v interp.Value, accept any, example codeExample) error {
 	if _, ok := v.(*interp.ListVal); !ok {
 		return nil
 	}
-	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.FnTensor), example)
+	return messages.New(messages.H6104, ad, accept, codes.NameRef(codes.TypeTensor), example)
 }
 
 // axisArg eksen adlı argümanını ya da konumlu ikinci argümanı okur.

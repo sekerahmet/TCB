@@ -5,22 +5,22 @@
 TR_import "tr/hazir"
 
 TR_func qwen3_ayarı() {
-    TR_return {model_type: "qwen3", vocab_size: 16, hidden_size: 8, intermediate_size: 12, num_hidden_layers: 1,
-        num_attention_heads: 2, num_key_value_heads: 1, head_dim: 8, max_position_embeddings: 6,
-        rms_norm_eps: 0.000001, tie_word_embeddings: TR_false, rope_parameters: {rope_theta: 1000000.0, rope_type: "default"},
-        hidden_act: "silu", attention_bias: TR_false, use_sliding_window: TR_false, sliding_window: TR_none}
+    TR_return {"model_type": "qwen3", "vocab_size": 16, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 1,
+        "num_attention_heads": 2, "num_key_value_heads": 1, "head_dim": 8, "max_position_embeddings": 6,
+        "rms_norm_eps": 0.000001, "tie_word_embeddings": TR_false, "rope_parameters": {"rope_theta": 1000000.0, "rope_type": "default"},
+        "hidden_act": "silu", "attention_bias": TR_false, "use_sliding_window": TR_false, "sliding_window": TR_none}
 }
 
 TR_test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu ve RoPE tabanı Hugging Face kuralıyla" {
     TR_var m = TR_build_pretrained_model(qwen3_ayarı())
     TR_assert_equal([8, 16], m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_shape) # 2 bakış × 8
     TR_assert_equal([8], m.TR_blocks[0].TR_attention.TR_q_norm.TR_weight.TR_shape) # bakış boyutu
-    TR_assert_equal(1000000.0, m.TR_config.rope_tabanı)
+    TR_assert_equal(1000000.0, m.TR_config["rope_tabanı"])
     TR_assert_equal([8, 16], m.TR_logit_layer.TR_weight.TR_shape)
-    TR_var l = {model_type: "llama", vocab_size: 16, hidden_size: 8, intermediate_size: 12, num_hidden_layers: 1,
-        num_attention_heads: 2, rope_theta: 100000.0, tie_word_embeddings: TR_true}
+    TR_var l = {"model_type": "llama", "vocab_size": 16, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 1,
+        "num_attention_heads": 2, "rope_theta": 100000.0, "tie_word_embeddings": TR_true}
     TR_var ll = TR_build_pretrained_model(l)
-    TR_assert_equal(100000.0, ll.TR_config.rope_tabanı)
+    TR_assert_equal(100000.0, ll.TR_config["rope_tabanı"])
     TR_assert_equal(TR_none, ll.TR_logit_layer)
     TR_assert_equal(TR_none, ll.TR_blocks[0].TR_attention.TR_q_norm)
     TR_assert_equal([8, 16], ll.TR_blocks[0].TR_attention.TR_kv_proj.TR_weight.TR_shape) # [K | V]; kv verilmezse bakış sayısı
@@ -29,27 +29,27 @@ TR_test "hazır_model_kur: config.json alanları GPT'ye eşlenir; bakış boyutu
 
 TR_test "hazır_model_kur: desteklenmeyen mimari ve ayarlar açık hatadır" {
     TR_var a = qwen3_ayarı()
-    a.model_type = "gpt2"
+    a["model_type"] = "gpt2"
     TR_assert_equal("H6940", TR_error_code(() => TR_build_pretrained_model(a)))
     TR_var b = qwen3_ayarı()
-    b.attention_bias = TR_true
+    b["attention_bias"] = TR_true
     TR_assert_equal("H6941", TR_error_code(() => TR_build_pretrained_model(b)))
     TR_var c = qwen3_ayarı()
-    c.rope_parameters = {rope_type: "yarn", rope_theta: 10000.0}
+    c["rope_parameters"] = {"rope_type": "yarn", "rope_theta": 10000.0}
     TR_assert_equal("H6943", TR_error_code(() => TR_build_pretrained_model(c)))
     TR_var d = qwen3_ayarı()
-    d.use_sliding_window = TR_true
+    d["use_sliding_window"] = TR_true
     TR_assert_equal("H6944", TR_error_code(() => TR_build_pretrained_model(d)))
     TR_var e = qwen3_ayarı()
-    e.hidden_act = "gelu"
+    e["hidden_act"] = "gelu"
     TR_assert_equal("H6942", TR_error_code(() => TR_build_pretrained_model(e)))
 }
 
 TR_test "hugging_face_eşle: adlar TR parametrelerine, doğrusal katmanlar devrilerek; tanınmayan ad hatadır" {
-    TR_var w = TR_tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) # HF [çıkış 2, giriş 3]
+    TR_var w = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]) # HF [çıkış 2, giriş 3]
     TR_var e = TR_map_hugging_face({"model.layers.0.self_attn.q_proj.weight": w,
-        "model.layers.0.input_layernorm.weight": TR_tensor([1.0]), "model.layers.0.self_attn.rotary_emb.inv_freq": TR_tensor([1.0]),
-        "lm_head.weight": w}, {tie_word_embeddings: TR_true})
+        "model.layers.0.input_layernorm.weight": TR_Tensor([1.0]), "model.layers.0.self_attn.rotary_emb.inv_freq": TR_Tensor([1.0]),
+        "lm_head.weight": w}, {"tie_word_embeddings": TR_true})
     TR_assert_equal(["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight", "TR_mem_blocks.0.TR_mem_input_norm.TR_mem_weight"], e.TR_keys())
     TR_assert_equal([3, 2], e["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight"].TR_shape)
     TR_assert_equal([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], e["TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight"].TR_tolist)

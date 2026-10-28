@@ -43,6 +43,14 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H2302": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_range is gone; a range is a..b, its list TR_List(a..b) (3.8, 3.12)"
+ },
+ "H2303": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_range is gone; a range is a..b, its list TR_List(a..b) (3.8, 3.12)"
+ },
  "H2321": {
   "commit": "e5a76ed",
   "reason": "deleted: formats: csv_çöz parses CSV text, csv_oku reads only files"
@@ -59,6 +67,14 @@
   "commit": "cbb7f97",
   "reason": "deleted: interp: missing-argument message picks its plural in the template"
  },
+ "H2429": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_int is gone; TR_Int reads text in program spelling (H2640, 3.12)"
+ },
+ "H2430": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: TR_float is gone; TR_Float reads text in program spelling (H2642, 3.12)"
+ },
  "H2449": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
@@ -74,6 +90,10 @@
  "H2494": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
+ },
+ "H2521": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: interp: a JSON integer beyond Int is a Float (3.7a), not an error"
  },
  "H2523": {
   "commit": "0f969d3",
@@ -179,6 +199,10 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H7222": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: process: an option may be named like a dict member; the settings are read with brackets (3.7)"
+ },
  "H7401": {
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
@@ -238,5 +262,13 @@
  "H8753": {
   "commit": "f60c7bc",
   "reason": "deleted: cmd/tr: tr derle's version 1 package (TR_EXE_1) is no longer read"
+ },
+ "H8868": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: codeindex: a dict key is a string (3.7), no bare-key role"
+ },
+ "H8869": {
+  "commit": "claude/katman2-deger-12bdf3",
+  "reason": "deleted: codeindex: no data-format match; a dict key is a string hit (3.7)"
  }
 }

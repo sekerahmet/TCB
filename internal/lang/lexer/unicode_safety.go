@@ -17,8 +17,9 @@ import (
 // A name that mixes writing systems (θ_eski) is a warning, not an error: the checker reports it
 // (MixedScripts), since the letters of machine learning formulas (θ, α) are confusable too.
 
-// isBidiControl reports whether r changes the display order of text.
-func isBidiControl(r rune) bool {
+// IsBidiControl reports whether r changes the display order of text (2.1a); such a character is
+// written in a text only as an escape, so the value text escapes it too (3.14).
+func IsBidiControl(r rune) bool {
 	switch {
 	case r >= 0x202A && r <= 0x202E, r >= 0x2066 && r <= 0x2069:
 		return true
@@ -41,7 +42,7 @@ func (l *Lexer) checkBidi() {
 			line, col = line+1, 0
 			continue
 		}
-		if isBidiControl(r) {
+		if IsBidiControl(r) {
 			l.addError(line, col, messages.New(messages.H0011, fmt.Sprintf("%04X", r)))
 		}
 	}

@@ -43,8 +43,8 @@ func stopRunClock(t *testing.T, clock func() time.Time, setup func(*interp.VM), 
 		setup(m)
 	}
 	_, err = runVM(t, m, fmt.Sprintf(`# TR 4
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
-TR_var kn = TR_checkpoint(%q, {w: w})
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var kn = TR_Checkpoint(%q, {"w": w})
 `, trPath(runDir))+body)
 	return w.String(), runDir, m, err
 }

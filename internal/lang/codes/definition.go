@@ -21,7 +21,7 @@ import (
 //
 // File format (each entry is one line or a short block, codes in ascending order):
 //
-//	"TR_fn_range": { "kind": "function", "params": ["TR_type_Int", "TR_type_Int?"], "returns": "TR_type_List" },
+//	"TR_fn_round": { "kind": "function", "params": ["TR_type_Int|TR_type_Float", "TR_type_Int?"], "returns": "TR_type_Int|TR_type_Float" },
 //	"TR_fn_sum": { "kind": "function", "params": ["TR_type_List|TR_type_Tensor"], "named": [["TR_arg_dim", "TR_type_Int"], ["TR_arg_keepdim", "TR_type_Bool", false]], "returns": "TR_type_Int|TR_type_Float|TR_type_Tensor" },
 //	"TR_mem_length": { "kind": "property", "types": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "returns": "TR_type_Int" },
 //	"TR_mem_split": { "kind": "method", "signatures": { "TR_type_String": { "params": ["TR_type_String?"], "returns": "TR_type_List" }, "TR_type_Tensor": { ... } } },
@@ -46,8 +46,8 @@ type Kind string
 const (
 	KindKeyword    Kind = "keyword"
 	KindContextual Kind = "contextual"
-	// KindValueName is the name of a value that is not a word of the source (inf, nan: written
-	// ondalık("sonsuz")); it is never coded in a file.
+	// KindValueName is the name of a value of the language that is no keyword (TR_inf, TR_nan;
+	// 3.2): bound in the global scope like a constant, and the same text in every language.
 	KindValueName Kind = "value_name"
 	KindType      Kind = "type"
 	KindFunction  Kind = "function"
@@ -508,6 +508,18 @@ func CheckDefinitions(d *Language) []error {
 			}
 		case KindFunction:
 			checkSig(k, "", t.Signature)
+		case KindType:
+			// Tip çağrılınca kurar ve çevirir (3.12): çağrının imzası tipindir, dönüşü tipin kendisi.
+			sig := t.Signature
+			if len(t.Members) > 0 {
+				errorf("%s: a type has no member signatures", k)
+			}
+			if len(sig.Params) > 0 || len(sig.Named) > 0 || !sig.Return.Empty() {
+				if r := sig.Return; len(r.Types) != 1 || r.Types[0] != k || r.Optional {
+					errorf("%s: a type's call returns the type itself (3.12)", k)
+				}
+				checkSig(k, "", sig)
+			}
 		case KindConstant:
 			if len(t.Signature.Params) > 0 || len(t.Signature.Named) > 0 || len(t.Members) > 0 || t.Signature.Return.Empty() {
 				errorf("%s: a constant takes no parameters; only the return (the value's type) is written", k)

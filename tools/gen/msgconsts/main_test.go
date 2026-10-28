@@ -62,7 +62,7 @@ func TestGeneratedUpToDate(t *testing.T) {
 }
 
 // wrongCountOnPurpose eksik değerli çağrının çalışma hatasını sınayan TR testidir
-// (tests/hatalar_ertele_test.tr: TR_message("H6903") değersiz kurulunca hata verir).
+// (tests/hatalar_ertele_test.tr: TR_Message("H6903") değersiz kurulunca hata verir).
 func wrongCountOnPurpose(c call) bool {
 	return c.code == "H6903" && c.args == 0 && strings.Contains(filepath.ToSlash(c.pos), "tests/hatalar_ertele_test.tr:")
 }
@@ -205,7 +205,7 @@ func scan(t *testing.T, root string) (calls, banned []call, used map[string]bool
 // değer sayısı en dıştaki virgüllerle sayılır.
 func scanTR(t *testing.T, root string) (calls []call) {
 	t.Helper()
-	name := codes.Source().Name(codes.FnMessage)
+	name := codes.Source().Name(codes.TypeMessage)
 	err := reporoot.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -243,8 +243,8 @@ func messageCalls(lx *lexer.Lexer, name, path string) (calls []call) {
 		toks = append(toks, tok)
 	}
 	for i := 0; i+2 < len(toks); i++ {
-		// İleti kodu bir metin olarak yazılır: TR_message("H6903", x).
-		if (toks[i].Code != codes.FnMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen ||
+		// İleti kodu bir metin olarak yazılır: TR_Message("H6903", x).
+		if (toks[i].Code != codes.TypeMessage && toks[i].Literal != name) || toks[i+1].Type != lexer.TokLParen ||
 			toks[i+2].Type != lexer.TokString || !messageCodeText.MatchString(toks[i+2].Literal) {
 			continue
 		}
@@ -454,11 +454,11 @@ func TestGenerateRejectsRetiredCode(t *testing.T) {
 // ileti(H…, değerler) çağrısının kodu ve değer sayısı sözcük birimlerinden okunur: iç içe çağrıdaki
 // ve liste içindeki virgüller sayılmaz, kodsuz çağrı yoksayılır.
 func TestMessageCallsScanner(t *testing.T) {
-	parts, err := source.Split("TR_message(\"H6903\", a, f(b, c))\nTR_message(\"H6904\")\nTR_message(x, 1)\ng(\"H6905\", 1)\nTR_message(\"H6900\", [1, 2], {a: 1})\n")
+	parts, err := source.Split("TR_Message(\"H6903\", a, f(b, c))\nTR_Message(\"H6904\")\nTR_Message(x, 1)\ng(\"H6905\", 1)\nTR_Message(\"H6900\", [1, 2], {\"a\": 1})\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := messageCalls(parts.Lexer(), codes.Source().Name(codes.FnMessage), "x.tr")
+	got := messageCalls(parts.Lexer(), codes.Source().Name(codes.TypeMessage), "x.tr")
 	want := []call{{"H6903", 2, "x.tr:1"}, {"H6904", 0, "x.tr:2"}, {"H6900", 2, "x.tr:5"}}
 	if len(got) != len(want) {
 		t.Fatalf("%v, %v bekleniyordu", got, want)

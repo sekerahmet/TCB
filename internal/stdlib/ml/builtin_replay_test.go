@@ -23,7 +23,7 @@ const replayStep = `
 TR_var w = TR_randn([6, 4], TR_seed: 1)
 TR_func kur() { TR_return TR_zeros([1, 5, 4]) }
 TR_func adım(ön, id, konum) {
-    TR_var e = TR_embedding(w, id)
+    TR_var e = TR_embedding_lookup(w, id)
     TR_write_slice(ön, e.TR_reshape([1, 1, 4]), TR_dim: 1, TR_start: konum)
     TR_return e * 2 + 1
 }
@@ -31,7 +31,7 @@ TR_func sür(f, ön) {
     TR_var sonuçlar = []
     TR_no_grad {
         TR_for i TR_in 0..5 {
-            sonuçlar.TR_append(f(TR_tensor([(i * 2) % 6 * 1.0]), TR_tensor(i * 1.0)).TR_tolist)
+            sonuçlar.TR_append(f(TR_Tensor([(i * 2) % 6 * 1.0]), TR_Tensor(i * 1.0)).TR_tolist)
         }
     }
     TR_return [sonuçlar, ön.TR_tolist]
@@ -68,7 +68,7 @@ func TestReplayOutputsAreCopiesAndShapesRecapture(t *testing.T) {
 	out := mustRun(t, `TR_default_device("gpu")
 TR_var f = TR_replay((x) => x * 3)
 TR_no_grad {
-    TR_var s = [f(TR_tensor([1.0])), f(TR_tensor([2.0])), f(TR_tensor([4.0])), f(TR_tensor([5.0, 6.0])), f(TR_tensor([7.0, 8.0])), f(TR_tensor([9.0, 1.0]))]
+    TR_var s = [f(TR_Tensor([1.0])), f(TR_Tensor([2.0])), f(TR_Tensor([4.0])), f(TR_Tensor([5.0, 6.0])), f(TR_Tensor([7.0, 8.0])), f(TR_Tensor([9.0, 1.0]))]
     TR_print([x.TR_tolist TR_for x TR_in s])
 }`)
 	want := "[[3.0], [6.0], [12.0], [15.0, 18.0], [21.0, 24.0], [27.0, 3.0]]\n"
@@ -84,7 +84,7 @@ func TestReplayErrors(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	_, err := run(t, `TR_default_device("gpu")
 TR_var f = TR_replay((x) => x * 2)
-f(TR_tensor([1.0]))`)
+f(TR_Tensor([1.0]))`)
 	if !messages.Has(err, messages.H6440) {
 		t.Fatalf("türevsiz dışında H6440 bekleniyordu: %v", err)
 	}
@@ -99,9 +99,9 @@ TR_func g(x) {
 }
 TR_var f = TR_replay(g)
 TR_no_grad {
-    f(TR_tensor([1.0]))
-    TR_try { f(TR_tensor([2.0])) } TR_catch h { TR_print("hata:", h) }
-    TR_print(f(TR_tensor([3.0])).TR_tolist)
+    f(TR_Tensor([1.0]))
+    TR_try { f(TR_Tensor([2.0])) } TR_catch h { TR_print("hata:", h) }
+    TR_print(f(TR_Tensor([3.0])).TR_tolist)
 }`)
 	if err != nil || !strings.Contains(out, "while a GPU recording is in progress, data cannot be read") || !strings.HasSuffix(out, "[6.0]\n") {
 		t.Fatalf("kayıtta konağa okuma hatası ve sonra çalışma bekleniyordu:\n%s\n%v", out, err)
@@ -113,7 +113,7 @@ TR_no_grad {
 // hedefe yalnızca türevsiz içinde yazılır (H6716).
 func TestWriteSliceChecks(t *testing.T) {
 	out := mustRun(t, `TR_var t = TR_zeros([2, 4])
-TR_write_slice(t, TR_ones([2, 2]), TR_dim: 1, TR_start: TR_tensor(2.0))
+TR_write_slice(t, TR_ones([2, 2]), TR_dim: 1, TR_start: TR_Tensor(2.0))
 TR_print(t.TR_tolist)`)
 	if out != "[[0.0, 0.0, 1.0, 1.0], [0.0, 0.0, 1.0, 1.0]]\n" {
 		t.Fatalf("yerine_yaz: %q", out)
@@ -143,7 +143,7 @@ func TestReplayReleasesUnreachableRecordings(t *testing.T) {
 TR_no_grad {
     TR_for i TR_in 0..3 {
         TR_var f = TR_replay((x) => x * 2)
-        TR_for j TR_in 0..3 { f(TR_tensor([1.0, 2.0])) }
+        TR_for j TR_in 0..3 { f(TR_Tensor([1.0, 2.0])) }
     }
 }`)
 	deadline := time.Now().Add(5 * time.Second)
@@ -172,7 +172,7 @@ func TestReplayNestedRunsInsideOuterRecording(t *testing.T) {
 TR_var iç = TR_replay((x) => x + 1)
 TR_var dış = TR_replay((x) => iç(x) * 2)
 TR_no_grad {
-    TR_print([dış(TR_tensor([3.0])).TR_tolist, dış(TR_tensor([4.0])).TR_tolist, dış(TR_tensor([5.0])).TR_tolist])
+    TR_print([dış(TR_Tensor([3.0])).TR_tolist, dış(TR_Tensor([4.0])).TR_tolist, dış(TR_Tensor([5.0])).TR_tolist])
 }`)
 	if want := "[[8.0], [10.0], [12.0]]\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
@@ -270,7 +270,7 @@ TR_var f = TR_replay(TR_func(x) {
     TR_return x * 2
 })
 TR_no_grad {
-    TR_var x = TR_tensor([3.0, 4.0])
+    TR_var x = TR_Tensor([3.0, 4.0])
     f(x)
     f(x)
     TR_wait_all()
@@ -287,8 +287,8 @@ TR_var f = TR_replay(TR_func(x) {
     TR_return x * 2
 })
 TR_no_grad {
-    f(TR_tensor([1.0]))
-    f(TR_tensor([1.0]))
+    f(TR_Tensor([1.0]))
+    f(TR_Tensor([1.0]))
 }`)
 	if !messages.Has(err, messages.H2522) {
 		t.Fatalf("kayıtta bekle_hepsi H2522 vermeliydi: %v", err)
@@ -309,7 +309,7 @@ TR_func adım(ön, yeni, konum) {
 TR_var oynat = TR_replay(adım)
 TR_var ö1 = TR_zeros([3])
 TR_var ö2 = TR_zeros([3])
-TR_var dokuz = TR_tensor([9.0])
+TR_var dokuz = TR_Tensor([9.0])
 TR_var g = TR_replay(TR_func(a, b) {
     TR_write_slice(a, dokuz, TR_dim: 0)
     TR_return b * 2
@@ -317,8 +317,8 @@ TR_var g = TR_replay(TR_func(a, b) {
 TR_var h = TR_replay((x, c) => [x * 2, c * 3])
 TR_no_grad {
     TR_for i TR_in 0..3 {
-        TR_var v = TR_tensor([(i + 1) * 10.0])
-        TR_var k = TR_tensor(i * 1.0)
+        TR_var v = TR_Tensor([(i + 1) * 10.0])
+        TR_var k = TR_Tensor(i * 1.0)
         oynat(ö1, v, k)
         adım(ö2, v, k)
     }
@@ -329,7 +329,7 @@ TR_no_grad {
         s.TR_append(g(x, x).TR_tolist)
     }
     TR_print(s)
-    TR_print([h(TR_tensor([1.0]), TR_tensor([c * 1.0]).TR_to_device("cpu"))[1].TR_tolist TR_for c TR_in [10, 20, 100]])
+    TR_print([h(TR_Tensor([1.0]), TR_Tensor([c * 1.0]).TR_to_device("cpu"))[1].TR_tolist TR_for c TR_in [10, 20, 100]])
 }`)
 	want := "true\n[[18.0, 0.0], [18.0, 0.0], [18.0, 0.0]]\n[[30.0], [60.0], [300.0]]\n"
 	if out != want {
@@ -346,27 +346,27 @@ func TestWriteSliceSameRulesInsideAndOutsideRecording(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	out := mustRun(t, `TR_default_device("gpu")
-TR_func kur() { TR_return TR_tensor([i * 1.0 TR_for i TR_in 0..64]) }
+TR_func kur() { TR_return TR_Tensor([i * 1.0 TR_for i TR_in 0..64]) }
 TR_var a = kur()
 TR_var b = kur()
-TR_no_grad { TR_write_slice(a, a.TR_slice(0, 0, 48), TR_dim: 0, TR_start: TR_tensor(16.0)) }
+TR_no_grad { TR_write_slice(a, a.TR_slice(0, 0, 48), TR_dim: 0, TR_start: TR_Tensor(16.0)) }
 TR_var f = TR_replay(TR_func(konum) {
     TR_write_slice(b, b.TR_slice(0, 0, 48), TR_dim: 0, TR_start: konum)
     TR_return b * 1
 })
 TR_no_grad {
-    f(TR_tensor(0.0))
+    f(TR_Tensor(0.0))
     TR_write_slice(b, kur(), TR_dim: 0)
-    f(TR_tensor(16.0))
+    f(TR_Tensor(16.0))
 }
 TR_print(a.TR_tolist == b.TR_tolist, b.TR_tolist[48])`)
 	if out != "true 32.0\n" {
 		t.Fatalf("örtüşen dilim kayıtta bozuldu: %q", out)
 	}
 	for code, call := range map[messages.Code]string{
-		messages.H6443: `TR_write_slice(TR_zeros([3, 4]).TR_transpose(), TR_ones([4, 1]), TR_dim: 1, TR_start: TR_tensor(0.0))`,
-		messages.H3111: `TR_write_slice(TR_zeros([2, 4]), TR_ones([1, 2]), TR_dim: 1, TR_start: TR_tensor(0.0))`,
-		messages.H6102: `TR_write_slice(TR_zeros([4]), TR_ones([2]), TR_dim: 0, TR_start: TR_tensor(0.0).TR_to_device("cpu"))`,
+		messages.H6443: `TR_write_slice(TR_zeros([3, 4]).TR_transpose(), TR_ones([4, 1]), TR_dim: 1, TR_start: TR_Tensor(0.0))`,
+		messages.H3111: `TR_write_slice(TR_zeros([2, 4]), TR_ones([1, 2]), TR_dim: 1, TR_start: TR_Tensor(0.0))`,
+		messages.H6102: `TR_write_slice(TR_zeros([4]), TR_ones([2]), TR_dim: 0, TR_start: TR_Tensor(0.0).TR_to_device("cpu"))`,
 	} {
 		if _, err := run(t, `TR_default_device("gpu")
 TR_no_grad { `+call+` }`); !messages.Has(err, code) {
@@ -377,7 +377,7 @@ TR_no_grad { `+call+` }`); !messages.Has(err, code) {
 		t.Errorf("0 boyutlu kaynak H3111 vermeliydi: %v", err)
 	}
 	if _, err := run(t, `TR_default_device("gpu")
-TR_embedding(TR_ones([4, 2]), TR_tensor([1.0]).TR_to_device("cpu"))`); !messages.Has(err, messages.H6102) {
+TR_embedding_lookup(TR_ones([4, 2]), TR_Tensor([1.0]).TR_to_device("cpu"))`); !messages.Has(err, messages.H6102) {
 		t.Errorf("gömme farklı cihazdaki indekste H6102 vermeliydi: %v", err)
 	}
 }
@@ -392,7 +392,7 @@ func TestReplayScalarOperands(t *testing.T) {
 		out, err := run(t, `TR_default_device("gpu")
 TR_var f = TR_replay((x) => `+expr+`)
 TR_no_grad {
-    TR_var x = TR_tensor([1.0, -2.0, 3.0, 4.0]) + 1
+    TR_var x = TR_Tensor([1.0, -2.0, 3.0, 4.0]) + 1
     TR_var s = [f(x).TR_tolist TR_for i TR_in 0..3]
     TR_print(s[0] == s[2], s[2] == (`+expr+`).TR_tolist)
 }`)
@@ -412,8 +412,8 @@ func TestReplayAttentionMaskViewsAndPLEGeneration(t *testing.T) {
 	out := mustRun(t, `TR_default_device("gpu")
 TR_var q = TR_ones([1, 1, 1, 4])
 TR_var k = TR_ones([1, 4, 1, 4])
-TR_var v = TR_tensor([[[[1.0, 2.0, 3.0, 4.0]], [[5.0, 6.0, 7.0, 8.0]], [[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0, 2.0]]]])
-TR_var tampon = TR_tensor([[1.0, 0.0, 0.0, 0.0], [1.0, 1.0, 0.0, 0.0]])
+TR_var v = TR_Tensor([[[[1.0, 2.0, 3.0, 4.0]], [[5.0, 6.0, 7.0, 8.0]], [[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0, 2.0]]]])
+TR_var tampon = TR_Tensor([[1.0, 0.0, 0.0, 0.0], [1.0, 1.0, 0.0, 0.0]])
 TR_var f = TR_replay((m) => TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m))
 TR_no_grad {
     TR_var s = [f(tampon[1]).TR_tolist TR_for i TR_in 0..3]

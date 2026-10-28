@@ -26,11 +26,11 @@ TR_test "4.1 öncelik: aralık toplamadan gevşek, ?? karşılaştırmadan sık�
 
 TR_test "4.2 aritmetik: '/' her zaman Ondalık verir, iki Tam'ın + - * Tam'dır" {
     TR_assert_equal(2.0, 6 / 3)
-    TR_assert_equal(TR_Float, TR_type(6 / 3))
+    TR_assert_equal(TR_Float, TR_Type(6 / 3))
     TR_assert_equal("2.0", "\(6 / 3)")
     TR_assert_equal(3.5, 7 / 2)
     TR_assert_equal(-3.5, -7 / 2)
-    TR_assert_equal(TR_Int, TR_type(7 * 2 - 3))
+    TR_assert_equal(TR_Int, TR_Type(7 * 2 - 3))
     TR_assert_equal(3.5, 1 + 2.5)
     # 2^53'ün üstünde de en yakın ondalığa yuvarlanır
     TR_assert_equal(9007199254740992.0, 9007199254740993 / 1)
@@ -45,14 +45,14 @@ TR_test "4.2a '//' aşağı yuvarlar, '%' bölenin işaretini alır" {
     TR_assert_equal(3, 7 // 2)
     TR_assert_equal(-4, -7 // 2)
     TR_assert_equal(-4, 7 // -2)
-    TR_assert_equal(TR_Int, TR_type(7 // 2))
+    TR_assert_equal(TR_Int, TR_Type(7 // 2))
     TR_assert_equal(1, 7 % 3)
     TR_assert_equal(2, -7 % 3)
     TR_assert_equal(-1, 7 % -2)
     TR_assert_equal(1.5, 7.5 % 2)
     TR_assert_equal(0.5, -7.5 % 2)
     TR_assert_equal(3.0, 7.5 // 2)
-    TR_assert_equal(TR_Float, TR_type(7 // 2.0))
+    TR_assert_equal(TR_Float, TR_Type(7 // 2.0))
     # iki Tam'da bölüm ile kalan birbirini tutar; halka arabelleğinde eksi indeks de doğru çıkar
     TR_for a TR_in [-7, -1, 0, 5, 9] {
         TR_for b TR_in [-3, 2, 4] {
@@ -73,7 +73,7 @@ TR_test "4.2a sıfıra bölme ve en küçük Tam'ın // -1'i hatadır" {
 
 TR_test "4.3 üs alma sağdan birleşir; iki Tam'da eksi üs hatadır" {
     TR_assert_equal(1024, 2 ** 10)
-    TR_assert_equal(TR_Int, TR_type(2 ** 10))
+    TR_assert_equal(TR_Int, TR_Type(2 ** 10))
     TR_assert_equal(0.5, 2.0 ** -1)
     TR_assert_equal(0.5, 2 ** -1.0)
     TR_assert_equal("H2603", TR_error_code(() => { TR_var z = 2 ** -1 }))
@@ -120,7 +120,7 @@ TR_test "4.4 sıralama zinciri Python'daki gibi okunur, ortadaki ifade bir kez h
     TR_assert_equal(TR_false, 5 < 1 < orta())
     TR_assert_equal(1, sayaç)
     # tensör karşılaştırması mantık değeri vermez; zincirde kullanılamaz
-    TR_assert_equal("H2602", TR_error_code(() => { TR_var z = 0 < TR_tensor([1.0]) < 2 }))
+    TR_assert_equal("H2602", TR_error_code(() => { TR_var z = 0 < TR_Tensor([1.0]) < 2 }))
 }
 
 TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
@@ -131,10 +131,10 @@ TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     TR_assert(TR_none == TR_none)
     TR_assert(TR_none != TR_false)
     # 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
-    TR_assert(TR_tensor(7.0) == 7 TR_and 7 == TR_tensor(7.0))
-    TR_assert(TR_tensor([[1, 2]])[0][1] == 2.0)
-    TR_assert(TR_sum(TR_tensor([1, 2, 3, 4])) == 10)
-    TR_assert(TR_tensor([7.0]) != 7)
+    TR_assert(TR_Tensor(7.0) == 7 TR_and 7 == TR_Tensor(7.0))
+    TR_assert(TR_Tensor([[1, 2]])[0][1] == 2.0)
+    TR_assert(TR_sum(TR_Tensor([1, 2, 3, 4])) == 10)
+    TR_assert(TR_Tensor([7.0]) != 7)
 }
 
 TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 üstünde de)" {
@@ -143,13 +143,9 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
     TR_assert(büyük != yakın)
     TR_assert(büyük > yakın TR_and yakın < büyük)
     TR_assert(büyük - 1 == yakın)
-    # sözlük anahtarı ve sıralama aynı kuralla: iki ayrı anahtar, belirli bir sıra
-    TR_var d = {}
-    d[büyük] = "tam"
-    d[yakın] = "ondalık"
-    TR_assert_equal(2, d.TR_length)
+    # sıralama aynı kuralla: belirli bir sıra (ondalık sözlük anahtarı olamaz, 3.7)
     TR_assert_equal([yakın, büyük], [büyük, yakın].TR_sort())
-    TR_var nan = TR_float("nan")
+    TR_var nan = TR_Float("nan")
     TR_assert(nan != 1 TR_and TR_not (nan == 1) TR_and TR_not (nan < 1) TR_and TR_not (nan > 1))
 }
 
@@ -260,7 +256,7 @@ TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi bo�
 }
 
 TR_test "4.11 @ matris çarpımıdır" {
-    TR_var m = TR_tensor([[1, 2], [3, 4]]) @ TR_tensor([[1], [1]])
+    TR_var m = TR_Tensor([[1, 2], [3, 4]]) @ TR_Tensor([[1], [1]])
     TR_assert_equal([2, 1], m.TR_shape)
     TR_assert_equal(7.0, m[1][0])
 }

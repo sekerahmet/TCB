@@ -265,7 +265,7 @@ mkdir -p /content/ss4096
 cp "/content/drive/MyDrive/VERI/ss4096/"{tokenizer.json,train.npy,valid.npy} /content/ss4096/
 cd /content/tr
 # Önce birkaç dakikalık deneme: bellek ve hız (speed.json)
-./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/deneme --adım 60 --ısınma 10 \
+./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/deneme --step 60 --ısınma 10 \
   --değerlendir_her 30 --örnek_her 60 2>&1 | tail -4
 cat /content/runs/deneme/speed.json
 ```
@@ -280,8 +280,8 @@ Uzun koşudan önce aynı komut `--prova` ile denenir: iki adım, geçici klasö
 ```bash
 %%bash
 cd /content/tr
-./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 --prova 2>&1 | tail -3
-./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --adım 5000 2>&1 | tail -8
+./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --step 5000 --prova 2>&1 | tail -3
+./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --step 5000 2>&1 | tail -8
 cp -r /content/runs/gpt1 "/content/drive/MyDrive/TR_dili/kosular/"
 ```
 
@@ -294,9 +294,9 @@ kopunca aynı komut sürer. Ardından `ss_exam.tr` araştırma deposunun ölçü
 mkdir -p /content/ss_gpt2 && cp /content/drive/MyDrive/simplestories/gpt2/{tokenizer.json,train.npy,valid.npy} /content/ss_gpt2/
 R=/content/drive/MyDrive/TR_dili/kosular/ss_d512_tf_tr
 cd /content/TCB && /content/tr/tr tools/gpu/gpt_training.tr --veri /content/ss_gpt2 --koşu $R --hassasiyet bf16 \
-  --boyut 512 --katman 8 --bakış_sayısı 8 --bağlam 512 --toplu 64 --birikim 2 --adım 9241 --ısınma 92 --azalma 0.2001 \
-  --muon_oranı 0.002 --adamw_oranı 0.002 --ağırlık_çürümesi 0.1 --adamw_çürümesi 0.1 --muon_ölçeği rms --ns_türü bf16 \
-  --kırp 1.0 --tohum 0 --dağarcık 50304 --ara_boyut 1344 --epsilon 0.000001 --qk_normu --birleşik_kv --birleşik_kapı --ileri_sapmalı \
+  --embed_dim 512 --katman 8 --num_heads 8 --bağlam 512 --toplu 64 --birikim 2 --step 9241 --ısınma 92 --azalma 0.2001 \
+  --muon_oranı 0.002 --adamw_oranı 0.002 --weight_decay 0.1 --adamw_çürümesi 0.1 --muon_ölçeği rms --ns_dtype bf16 \
+  --strip 1.0 --tohum 0 --dağarcık 50304 --ara_boyut 1344 --eps 0.000001 --qk_normu --birleşik_kv --birleşik_kapı --ileri_sapmalı \
   --değerlendir_her 1000 --değerlendir_toplu 128 --son_değerlendir_toplu 100000 --örnek_her 1000 --örnek_sayısı 1 --her_dakika 10 \
   --istemler "Once upon a time|The little dog|One day, a girl named|In a small village," > /content/kosu.log 2>&1
 cp /content/kosu.log $R/stdout.log
@@ -394,7 +394,7 @@ json.dump(c, open("phase3_short.json", "w"))
 PY
 PEN=$(python -c "import json; print(10 * json.load(open('p3_tr.json'))['measured']['median_ms'])")
 # TR
-nsys profile -t cuda,nvtx --force-overwrite true -o p3_nsys_tr ./tr phase3_tr.tr --ayar phase3_short.json > /dev/null 2>&1
+nsys profile -t cuda,nvtx --force-overwrite true -o p3_nsys_tr ./tr phase3_tr.tr --config phase3_short.json > /dev/null 2>&1
 nsys export --type sqlite --force-overwrite true -o p3_nsys_tr.sqlite p3_nsys_tr.nsys-rep > /dev/null 2>&1
 python phase3_nsys.py p3_nsys_tr.sqlite --window-ms $PEN --steps 10 --name "TR"
 # PyTorch torch.compile (varsayılan kip)
@@ -467,7 +467,7 @@ done
 # 3 · TR PROFİLİ: GPU KERNEL AİLELERİ VE TEPE BELLEK DÖKÜMÜ (tr profil, 20 ADIM) · GPU
 mkdir -p /content/rgn/trveri && cd /content/rgn
 [ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
-/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > profil.txt 2>&1
+/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > profil.txt 2>&1
 grep -A12 "^aile" profil.txt | head -14; grep -A14 "ayıran satıra göre" profil.txt
 ```
 
@@ -480,10 +480,10 @@ mkdir -p /content/rgn/trveri
 [ -f /content/rgn/trveri/train.npy ] || python -c "import numpy as np; np.save('/content/rgn/trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
 cd /content/rgn
 nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > mem.log & P=$!
-/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı hiz.json 2>&1 | tail -1
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 120 --çıktı hiz.json 2>&1 | tail -1
 kill $P; sleep 1
 printf "tepe (nvidia-smi): %.2f GiB\n" $(echo "$(sort -n mem.log | tail -1)/1024" | bc -l); cat hiz.json; echo
-TR_GPU_PROFIL=1 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 6 --günlük 6 2>&1 | grep "^bellek"
+TR_GPU_PROFIL=1 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 6 --logger 6 2>&1 | grep "^bellek"
 ```
 
 ### Hücre 5 · GERÇEK VERİ: DRIVE'I BAĞLA VE KOPYALA · CPU
@@ -516,7 +516,7 @@ ADIM=2000
 cd /content && rm -rf kalite && mkdir -p kalite && cd kalite
 cat > kos.sh <<EOF
 python /content/TCB/tools/gpu/rgn512.py train --data /content/fw/train --valid /content/fw/valid.npy --out k_pt --steps $ADIM > pt.log 2>&1
-/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri /content/fw/train --doğrulama /content/fw/valid.npy --adım $ADIM --günlük 50 --değerlendirme 1000 --kayıplar tr_kayip.json > tr.log 2>&1
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri /content/fw/train --doğrulama /content/fw/valid.npy --step $ADIM --logger 50 --değerlendirme 1000 --losses tr_kayip.json > tr.log 2>&1
 echo bitti > bitti
 EOF
 setsid nohup bash kos.sh > /dev/null 2>&1 < /dev/null &
@@ -583,7 +583,7 @@ SECONDS=0
 python rgn_reference.py --out /content/par --steps 100 --micro 32 --accum 2 --seq 1024 --device cuda --bf16 --ns-bf16 > /content/par/py.log 2>&1 || tail -5 /content/par/py.log
 echo "PyTorch: ${SECONDS} sn"; SECONDS=0
 cd /content/par
-/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr.json --günlük 100 2>&1 | tail -2
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --weight init.trt --sequential --step 100 --losses tr.json --logger 100 2>&1 | tail -2
 echo "TR: ${SECONDS} sn"
 python - <<'PY'
 import json
@@ -614,20 +614,20 @@ cd /content/TCB/internal/compute/gpu && /content/tr/gpu_sinama -test.count=1 > /
 cd /content/rgn
 for B in 1 0; do
   nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > bir/mem_$B.log & P=$!
-  TR_RELEASE=$B /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı bir/hiz_$B.json > bir/tr_$B.log 2>&1
+  TR_RELEASE=$B /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 120 --çıktı bir/hiz_$B.json > bir/tr_$B.log 2>&1
   kill $P; sleep 1
   printf "bırakma %s | tepe %.2f GiB | ortanca %s ms/adım | son kayıp %s\n" $([ $B = 1 ] && echo açık || echo kapalı) $(echo "$(sort -n bir/mem_$B.log | tail -1)/1024" | bc -l) $(python3 -c "import json;print(round(json.load(open('bir/hiz_$B.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' bir/tr_$B.log | tail -1)" >> bir/sonuc.txt
 done
 rm -rf /content/par && mkdir /content/par && cd /content/TCB/tools/gpu
 python rgn_reference.py --out /content/par --steps 100 --micro 32 --accum 2 --seq 1024 --device cuda --bf16 --ns-bf16 > /content/par/py.log 2>&1
-cd /content/par && /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr.json --günlük 100 > tr.log 2>&1
+cd /content/par && /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --weight init.trt --sequential --step 100 --losses tr.json --logger 100 > tr.log 2>&1
 python - >> /content/rgn/bir/sonuc.txt <<'PY'
 import json
 r = json.load(open("reference.json"))["steps"]; t = json.load(open("tr.json"))["steps"]
 d = max(abs(a["loss"] - b["loss"]) for a, b in zip(r, t)); g = max(abs(a["grad_norm"] - b["grad_norm"]) for a, b in zip(r, t))
 print(f"eşleşme (100 adım, bf16): en büyük kayıp farkı {d:.4f}, grad farkı {g:.4f}; son kayıp PT {r[-1]['loss']:.4f} TR {t[-1]['loss']:.4f}")
 PY
-cd /content/rgn && /content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > bir/profil.txt 2>&1
+cd /content/rgn && /content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > bir/profil.txt 2>&1
 echo bitti > bir/bitti
 EOF
 setsid nohup bash bir/kos.sh > /dev/null 2>&1 < /dev/null &
@@ -655,7 +655,7 @@ belirlenimsizliğidir.
 ```bash
 # 17 · EŞLEŞMEYİ BIRAKMA KAPALI TEKRARLA (AYNI PYTORCH REFERANSI, ~2 DK) · GPU
 cd /content/par
-TR_RELEASE=0 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --ağırlık init.trt --sıralı --adım 100 --kayıplar tr0.json --günlük 100 > tr0.log 2>&1
+TR_RELEASE=0 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri data --weight init.trt --sequential --step 100 --losses tr0.json --logger 100 > tr0.log 2>&1
 python - <<'PY'
 import json
 r = json.load(open("reference.json"))["steps"]
@@ -695,10 +695,10 @@ cat > hz/kos.sh <<'EOF'
 cd /content/TCB/internal/compute/gpu && /content/tr/gpu_sinama -test.run 'Fused|LinearCrossEntropy|Norms' -test.count=1 > /content/rgn/hz/gpu_test.log 2>&1; echo "gpu testleri çıkış $?" >> /content/rgn/hz/sonuc.txt
 cd /content/rgn
 nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > hz/mem.log & P=$!
-/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı hz/hiz.json > hz/tr.log 2>&1
+/content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 120 --çıktı hz/hiz.json > hz/tr.log 2>&1
 kill $P; sleep 1
 printf "tepe %.2f GiB | ortanca %s ms/adım | %s\n" $(echo "$(sort -n hz/mem.log | tail -1)/1024" | bc -l) $(python3 -c "import json;print(round(json.load(open('hz/hiz.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' hz/tr.log | tail -1)" >> hz/sonuc.txt
-/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 20 --günlük 20 > hz/profil.txt 2>&1
+/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > hz/profil.txt 2>&1
 echo bitti > hz/bitti
 EOF
 setsid nohup bash hz/kos.sh > /dev/null 2>&1 < /dev/null &
@@ -748,7 +748,7 @@ rm -f ab/*
 cat > ab/kos.sh <<'EOF'
 cd /content/rgn
 for i in 1 2; do for ad in tr tr_deney; do
-  /content/tr/$ad /content/TCB/tools/gpu/rgn512.tr --veri trveri --adım 120 --çıktı ab/${ad}_$i.json > ab/${ad}_$i.log 2>&1
+  /content/tr/$ad /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 120 --çıktı ab/${ad}_$i.json > ab/${ad}_$i.log 2>&1
   printf "%-9s tur %s | ortanca %s ms/adım | %s\n" $ad $i $(python3 -c "import json;print(round(json.load(open('ab/${ad}_$i.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' ab/${ad}_$i.log | tail -1)" >> ab/sonuc.txt
 done; done
 echo bitti > ab/bitti

@@ -20,7 +20,7 @@ TR_test "8.1 hata yoksa yakala bloğu çalışmaz" {
 TR_test "8.2 fırlat her değeri hata metnine çevirir" {
     TR_var yakalanan = TR_none
     TR_try { TR_throw {"kod": 5} } TR_catch h { yakalanan = h }
-    TR_assert_equal(TR_String, TR_type(yakalanan))
+    TR_assert_equal(TR_String, TR_Type(yakalanan))
     TR_assert_equal(`{"kod": 5}`, yakalanan)
 }
 
@@ -129,14 +129,14 @@ TR_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca ter
 }
 
 TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi olduğu gibi fırlatır; hata_kodu kodu verir" {
-    TR_assert_equal("H6903", TR_error_code(() => { TR_throw TR_message("H6903", -1) }))
-    TR_assert_equal("H6900", TR_error_code(() => { TR_assert(TR_false, TR_message("H6900", 10, 4)) }))
+    TR_assert_equal("H6903", TR_error_code(() => { TR_throw TR_Message("H6903", -1) }))
+    TR_assert_equal("H6900", TR_error_code(() => { TR_assert(TR_false, TR_Message("H6900", 10, 4)) }))
     TR_assert_equal("H2441", TR_error_code(() => { TR_throw "düz metin" }))
     TR_assert_equal(TR_none, TR_error_code(() => { 1 + 1 }))
     TR_var yakalanan = ""
-    TR_try { TR_throw TR_message("H6903", -1) } TR_catch h { yakalanan = h }
+    TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { yakalanan = h }
     TR_assert(yakalanan.TR_contains("-1"), yakalanan)
-    TR_try { TR_message("H6903") } TR_catch h { yakalanan = h }
+    TR_try { TR_Message("H6903") } TR_catch h { yakalanan = h }
     TR_assert(yakalanan.TR_contains("H6903"), yakalanan)
 }
 
@@ -148,7 +148,7 @@ TR_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl ne
     TR_assert_equal("H2132", TR_error_code(() => TR_load_tensors("bu_dosya_yok_12345.trt")))
     # Tip değeriyle metnin karşılaştırılması (3.11) çalışma anında da kendi koduyla çıkar.
     TR_var ad = "Tam"
-    TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_type(5) == ad) }))
+    TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_Type(5) == ad) }))
     # Modül yüklenemezse (denetim hatası) hata yeniden fırlatılmaz; ilk tanının kodu gelir.
     # Olumsuz fikstür: tests/negative/test_yerel_adi.tr
 }

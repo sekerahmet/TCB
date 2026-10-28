@@ -23,9 +23,8 @@ const edgeItems = 3
 
 var _ interp.LanguageText = (*TensorValue)(nil)
 
-// Inspect is the tensor's display text, in the person's writing language (TR_DIL): the
-// debugger and messages show it.
-func (d *TensorValue) Inspect() string { return d.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (d *TensorValue) Inspect() string { return d.Text(codes.ValueNames()) }
 
 // Text is the tensor's text in lang (docs/spec/03_tipler.md): the type name, the non-finite
 // numbers (the same names as Ondalık's, TR_val_inf and TR_val_nan) and the notes are lang's; str(t) and

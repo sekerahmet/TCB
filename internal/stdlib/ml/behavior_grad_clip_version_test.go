@@ -16,9 +16,9 @@ func TestGradClipStrictFailureLeavesGradsUntouched(t *testing.T) {
 	out := mustRun(t, `
 TR_func sına(cihaz_adı) {
     TR_default_device(cihaz_adı)
-    TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
-    TR_backward(TR_sum(w * TR_float("nan")))
-    TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(w * TR_Float("nan")))
+    TR_var v = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
     TR_var y = v * w.TR_grad
     TR_try {
         TR_clip_grad([w], TR_max: 1.0, TR_error_if_nonfinite: TR_true)
@@ -45,9 +45,9 @@ func TestGradClipBumpsVersionOnBothDevices(t *testing.T) {
 	out := mustRun(t, `
 TR_func sına(cihaz_adı) {
     TR_default_device(cihaz_adı)
-    TR_var w = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(w * 0.1))
-    TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
+    TR_var v = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
     TR_var y = v * w.TR_grad
     TR_clip_grad([w], TR_max: 100.0)
     TR_var mesaj = ""

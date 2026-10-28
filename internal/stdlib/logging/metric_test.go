@@ -15,7 +15,7 @@ func TestFormatNumber(t *testing.T) {
 	}{
 		{2.31, "2,31"}, {2.3149, "2,31"}, {85.24, "85,2"}, {0.001, "0,001"}, {0.000312, "3,12e-4"},
 		{0.0003, "3e-4"}, {1234.6, "1235"}, {1234567, "1,23e6"}, {0, "0"}, {-0.5, "-0,5"}, {1, "1"},
-		{math.NaN(), "NaN"}, {math.Inf(1), "sonsuz"}, {math.Inf(-1), "-sonsuz"}, // görüntü: TR_DIL'in değer adları
+		{math.NaN(), "nan"}, {math.Inf(1), "inf"}, {math.Inf(-1), "-inf"}, // değer adları her dilde aynı (3.2)
 	} {
 		if got := logging.FormatNumber(d.f); got != d.want {
 			t.Errorf("FormatNumber(%v) = %q, beklenen %q", d.f, got, d.want)

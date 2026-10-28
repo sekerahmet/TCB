@@ -16,7 +16,7 @@ python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 | `dongu` | 3 milyon turluk sıkı döngü: değişken okuma/yazma ve tamsayı aritmetiği |
 | `fib` | Özyinelemeli fib(27): fonksiyon çağrısı maliyeti |
 | `sirala` | 300 bin sayı üretip sıralama: liste ekleme ve yerleşik sıralama |
-| `TR_fn_str` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
+| `TR_type_String` | 200 bin metin oluşturma: metin birleştirme ve dönüştürme |
 | `sozluk` | 200 bin anahtar yazıp okuma: sözlük erişimi |
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |

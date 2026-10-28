@@ -52,7 +52,7 @@ TR_print(Hesap(5).bakiye)
 # Yapının kendisi YapıTanımı tipindedir; nesnenin tipi yapının kendisidir.
 # Nesne, yapıdan oluşan her değerin genel adıdır (tip bildirimlerinde kullanılır).
 TR_var hesap: TR_Object = Hesap(1)
-TR_print(TR_type(Hesap) == TR_StructType, TR_type(hesap) == Hesap)
+TR_print(TR_Type(Hesap) == TR_StructType, TR_Type(hesap) == Hesap)
 
 # --- Kendin dene ---
 # 1. Dikdörtgen yapısı yaz (en, boy) ve alan() ile çevre() metotlarını ekle.

@@ -5,7 +5,7 @@ modeline yükleyip kaybı rgn512.py'nin evaluate'iyle (aynı pencereler, bf16 au
 İki sayı yuvarlama düzeyinde aynı olmalıdır. Sonra aynı istemlerle TR modelinden ve (verilirse)
 PyTorch'ta eğitilen modelden metin üretir: açgözlü ve örneklemeli (sıcaklık, en iyi k, tohum sabit).
 
-    ./tr rgn512.tr ... --kaydet tr_son.trt
+    ./tr rgn512.tr ... --save tr_son.trt
     python rgn_from_tr.py --trt tr_son.trt --valid valid.npy --tokenizer tr_bpe_40k_v2.json --pt k_pt_1/model.pt
 
 Ağırlık adları rgn_reference.py'deki tr_name_map'tedir (TR'nin Doğrusal ağırlığı [giriş, çıkış],
@@ -53,7 +53,7 @@ def model_from_trt(path, cfg):
 
 def main():
     ap = argparse.ArgumentParser(description="TR'de eğitilen hedef model: PyTorch'ta doğrulama kaybı ve metin")
-    ap.add_argument("--trt", required=True, help="rgn512.tr --kaydet dosyası")
+    ap.add_argument("--trt", required=True, help="rgn512.tr --save dosyası")
     ap.add_argument("--valid", default="", help="doğrulama .npy (boşsa kayıp ölçülmez)")
     ap.add_argument("--tokenizer", default="", help="tokenizer.json (boşsa metin üretilmez)")
     ap.add_argument("--pt", default="", help="PyTorch'ta eğitilen model.pt (karşılaştırma için)")

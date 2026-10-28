@@ -7,11 +7,11 @@ import "testing"
 // ve "Tabloyu aç" ile görünür; bf16/fp16 tensörde tür de yazılır.
 func TestDAPScalarAndSmallTensorValue(t *testing.T) {
 	c := startDAP(t)
-	path := writeProgram(t, "TR_var kayıp = TR_tensor(0.60738)\n"+
-		"TR_var w = TR_tensor([[1.42981]])\n"+
-		"TR_var yarım = TR_tensor(2.5).TR_to_dtype(\"bf16\")\n"+
-		"TR_var büyük = TR_zeros([3, 4])\n"+
-		"TR_print(kayıp)\n")
+	path := writeProgram(t, "TR_var kayıp = TR_Tensor(0.60738)\nTR_var w = TR_Tensor([[1.42981]])\nTR_var yarım = TR_Tensor(2.5).TR_to_dtype(\"bf16\")\nTR_var büyük = TR_zeros([3, 4])\nTR_print(kayıp)\n"+
+		""+
+		""+
+		""+
+		"")
 	c.launch(path, false, map[string]interface{}{"line": 6})
 	c.event("stopped")
 

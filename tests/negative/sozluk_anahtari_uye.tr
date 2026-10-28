@@ -1,0 +1,4 @@
+# TR 4
+# TEST 3.7 sözlük değişmezinin anahtarı bir ifadedir: üye adı ve tanımsız ad anahtar değildir; ileti metin anahtarını önerir
+TR_var a = {TR_step: 1} # ERROR H0240
+TR_var b = {"lr": 0.1, TR_lr: 0.2} # ERROR H0240

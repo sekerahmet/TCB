@@ -9,7 +9,7 @@
 TR_var tohum_sayacı = 0
 TR_func ağırlık(şekil, ölçek) {
     tohum_sayacı += 1
-    TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
+    TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
 }
 
 TR_struct Blok {
@@ -23,8 +23,8 @@ TR_struct Blok {
     Wu
     W2
     TR_func TR_init() {
-        TR_self.g1 = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
-        TR_self.g2 = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
+        TR_self.g1 = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
+        TR_self.g2 = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
         TR_self.Wq = ağırlık([D, D], 0.02)
         TR_self.Wk = ağırlık([D, D], 0.02)
         TR_self.Wv = ağırlık([D, D], 0.02)
@@ -49,11 +49,11 @@ TR_struct Model {
     gs
     TR_func TR_init() {
         TR_self.E = ağırlık([V, D], 0.02)
-        TR_self.TR_blocks = TR_range(KATMAN).TR_map { Blok() }
-        TR_self.gs = TR_tensor(TR_ones([D]), TR_requires_grad: TR_true)
+        TR_self.TR_blocks = TR_List(0..KATMAN).TR_map { Blok() }
+        TR_self.gs = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
     }
     TR_func TR_forward(kimlikler) {
-        TR_var x = TR_embedding(TR_self.E, kimlikler)
+        TR_var x = TR_embedding_lookup(TR_self.E, kimlikler)
         TR_for bl TR_in TR_self.TR_blocks { x = bl.TR_forward(x) }
         TR_return TR_rms_norm(x, TR_self.gs) @ TR_self.E.TR_transpose() # paylaşımlı çıkış
     }

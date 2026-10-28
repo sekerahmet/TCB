@@ -401,10 +401,6 @@ func FindSubcommand(name string) (Code, bool) { return findInLanguages(Namespace
 // embedded writing language, as FindCommand does.
 func FindOption(name string) (Code, bool) { return findInLanguages(NamespaceOption, name) }
 
-// FindMember finds a method or property (member) by its name in any embedded writing language,
-// as FindCommand does.
-func FindMember(name string) (Code, bool) { return findInLanguages(NamespaceMember, name) }
-
 // FindDebuggerCommand finds a debugger command (dbg) by its name in any embedded writing
 // language, as FindCommand does.
 func FindDebuggerCommand(name string) (Code, bool) {

@@ -16,6 +16,8 @@ func (v *VM) registerMath() {
 	v.RegisterNoNamed(codes.FnSign, signBuiltin)
 	v.RegisterNoNamed(codes.FnIsFinite, isFiniteBuiltin)
 	v.DefineConstant(codes.ConstPi, &FloatVal{Val: math.Pi})
+	v.DefineConstant(codes.ValInf, &FloatVal{Val: math.Inf(1)})
+	v.DefineConstant(codes.ValNan, &FloatVal{Val: math.NaN()})
 }
 
 // roundingBuiltin taban ve tavan: Tam olduğu gibi, Ondalık f ile yuvarlanmış Ondalık döner

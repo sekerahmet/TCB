@@ -45,9 +45,9 @@ var bareNameAllowances = map[string]map[string]string{
 	"internal/lang/messages/code.go": {
 		"TR_DIL": "yazım dili değişkeni TR_LANG, dil listelerinden önce okunur",
 	},
-	// Veri biçimlerindeki sonlu olmayan sayının sabit metni (kontrol noktası, günlük; 19.5, 20):
-	// dilden bağımsız sözleşme, TR_val_nan'in adı olarak değil, biçimin baytı olarak yazılır.
-	"internal/stdlib/common/jsonwrite/jsonwrite.go": {"NaN": "günlük, durum dosyası ve kontrol noktası veri biçimi (NonFiniteData: NaN, Infinity, -Infinity)"},
+	// Dosya biçiminin adı (JSON), TR_type_JSON tipinin adı değil: dil ve ileti dosyalarının okunma hatası.
+	"internal/lang/codes/language.go":   {"JSON": "dil dosyası biçiminin adı (tip değil)"},
+	"internal/lang/messages/catalog.go": {"JSON": "ileti dosyası biçiminin adı (tip değil)"},
 }
 
 // scanRoots adları koddan üretmesi gereken katmanlardır.

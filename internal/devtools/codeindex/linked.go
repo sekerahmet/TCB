@@ -119,14 +119,6 @@ func (r *Reader) linkedTo(id string) []*Node {
 	return out
 }
 
-// Sözlük anahtarı (deneme 7 R3). `kendi.ayar = {..., bakış_sayısı: bakış_sayısı, ...}` anahtarı bir ad değil, verinin
-// biçimidir (kaydedilen ayar dosyası onu okur): yeniden adlandırılan parametreyle aynı yazılsa da değiştirilmesi bir veri
-// biçimi kararıdır. Metin eşleşmesi ayrıştırıcının tırnaksız sözlük anahtarı dediği yerdeyse (parsed.dictKey) ayrı rol ve eşleşme türüyle (sözlük anahtarı; veri biçimi,
-// kendiliğinden değişmez) olası grupta kalır.
-const RoleDictKey Role = "dict_key" // sözlük değişmezinin tırnaksız anahtarı
-
-const MatchDataFormat = "data_format" // anahtar verinin biçimidir: kendiliğinden değişmez
-
 // addLinked hedeflerin bağlı bildirimlerini sonuca ekler (hedefler hariç, her biri bir kez) ve bildirim yerlerini metin
 // taramasından çıkarır: onlar bu gruptadır.
 func (r *Reader) addLinked(res *Result, targets []*Node, skip map[string]bool) {
@@ -147,11 +139,8 @@ func (r *Reader) addLinked(res *Result, targets []*Node, skip map[string]bool) {
 	}
 }
 
-// textChange bir metin eşleşmesini olası değişikliğe çevirir; TR kodundaki sözlük anahtarı kendi rolünü alır.
-func textChange(h TextHit, lines *lineSource) Change {
-	ch := Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word, Context: h.Context, Replacement: h.Suggestion, Check: h.Check}
-	if strings.HasSuffix(h.Pos.File, ".tr") && h.Where == WhereCode && lines.dictKey(h.Pos) {
-		ch.Role, ch.Match = RoleDictKey, MatchDataFormat
-	}
-	return ch
+// textChange bir metin eşleşmesini olası değişikliğe çevirir. Sözlük anahtarı bir metindir (3.7:
+// {"baş": baş}): metin sabiti olarak olası grupta durur, kendiliğinden değişmez.
+func textChange(h TextHit) Change {
+	return Change{Pos: h.Pos, Where: h.Where, Match: h.Match, Word: h.Word, Context: h.Context, Replacement: h.Suggestion, Check: h.Check}
 }

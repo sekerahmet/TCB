@@ -16,25 +16,25 @@ import (
 // karşılaştırıyorsa hata ekler.
 func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	text, call, ok := textComparison(e)
-	if !ok || c.builtinCall(call, codes.FnType) == nil {
+	if !ok || c.builtinCall(call, codes.TypeType) == nil {
 		return
 	}
 	c.addError(e.Line(), 0, hint.TypeTextComparisonError(string(e.Operator), text.Value, c.word(codes.TypeInt), c.language()))
 }
 
-// Mantık değerinin metni dilden bağımsızdır (codes.ValueNames): TR_str(b) her dosyada ve her
-// TR_DIL'de "true" ya da "false" verir. Aynı aileden ikinci kural: TR_str(Mantık) bir yazım dilinin
-// doğru/yanlış adıyla karşılaştırılıyorsa (TR_str(b) == "doğru") karşılaştırma hiç tutmaz;
+// Mantık değerinin metni dilden bağımsızdır (codes.ValueNames): TR_String(b) her dosyada ve her
+// TR_DIL'de "true" ya da "false" verir. Aynı aileden ikinci kural: TR_String(Mantık) bir yazım dilinin
+// doğru/yanlış adıyla karşılaştırılıyorsa (TR_String(b) == "doğru") karşılaştırma hiç tutmaz;
 // denetleyici uyarır (çalışmayı engellemez).
 
-// checkBoolTextComparison e, Mantık bir değerin TR_str()'ini değer metninde olmayan bir doğru/
+// checkBoolTextComparison e, Mantık bir değerin TR_String()'ini değer metninde olmayan bir doğru/
 // yanlış adıyla karşılaştırıyorsa uyarı ekler.
 func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	text, call, ok := textComparison(e)
 	if !ok {
 		return
 	}
-	str := c.builtinCall(call, codes.FnStr)
+	str := c.builtinCall(call, codes.TypeString)
 	if str == nil || len(str.Arguments) != 1 || !c.isBool(str.Arguments[0]) {
 		return
 	}
@@ -44,7 +44,7 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 	}
 	if boolName(text.Value) {
 		c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
-			c.word(codes.FnStr), own.Name(codes.KwTrue), own.Name(codes.KwFalse), text.Value)))
+			c.word(codes.TypeString), own.Name(codes.KwTrue), own.Name(codes.KwFalse), text.Value)))
 	}
 }
 

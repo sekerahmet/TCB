@@ -24,10 +24,10 @@ func TestCustomGradSquare(t *testing.T) {
     TR_forward: TR_func(x) { TR_return [x * x, [x]] },
     TR_backward: TR_func(saklananlar, g) { TR_return [g * 2 * saklananlar[0]] }
 )
-TR_var x = TR_tensor([3.0, -1.0], TR_requires_grad: TR_true)
+TR_var x = TR_Tensor([3.0, -1.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(kare(x)))
 TR_print(x.TR_grad.TR_tolist)
-TR_print(TR_grad_check(kare, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))`)
+TR_print(TR_grad_check(kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))`)
 	if want := "[6.0, -2.0]\ntrue\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
 	}
@@ -41,14 +41,14 @@ func TestCustomGradBackwardRunsInCallerTask(t *testing.T) {
 TR_var f = TR_custom_grad(
     TR_forward: TR_func(x) { TR_return [x * 1, []] },
     TR_backward: TR_func(k, g) {
-        görülen.TR_append((TR_tensor([[1.001]]) @ TR_tensor([[1.0]])).TR_tolist[0][0])
+        görülen.TR_append((TR_Tensor([[1.001]]) @ TR_Tensor([[1.0]])).TR_tolist[0][0])
         TR_return [g]
     }
 )
-TR_var y = f(TR_tensor([1.0], TR_requires_grad: TR_true))
+TR_var y = f(TR_Tensor([1.0], TR_requires_grad: TR_true))
 TR_async { TR_mixed_precision("bf16") { TR_backward(TR_sum(y)) } }
 TR_wait_all()
-TR_var z = TR_mixed_precision("bf16") { f(TR_tensor([1.0], TR_requires_grad: TR_true)) }
+TR_var z = TR_mixed_precision("bf16") { f(TR_Tensor([1.0], TR_requires_grad: TR_true)) }
 TR_async { TR_backward(TR_sum(z)) }
 TR_wait_all()
 TR_print(görülen)`)
@@ -58,7 +58,7 @@ TR_print(görülen)`)
 }
 
 func TestCustomGradErrorMessages(t *testing.T) {
-	prefixVal := `TR_var x = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
+	prefixVal := `TR_var x = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
 `
 	cases := []struct {
 		code string
@@ -96,7 +96,7 @@ func TestCustomGradBackwardError(t *testing.T) {
 	_, err := run(t, `TR_var f = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) {
     TR_return [g @ g]
 })
-TR_backward(TR_sum(f(TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true))))`)
+TR_backward(TR_sum(f(TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true))))`)
 	if err == nil || !strings.Contains(err.Error(), "Satır 2:") || !messages.Has(err, messages.H6126) {
 		t.Fatalf("geri'deki hata satırıyla gelmeli: %v", err)
 	}
@@ -140,12 +140,12 @@ func gatedVM(tb testing.TB, N, d, R int) *interp.VM {
 	fmt.Fprintf(&sb, `
 TR_var x0 = TR_randn([%[1]d, %[2]d], TR_seed: 1)
 TR_var W0 = TR_randn([%[3]d, %[4]d], TR_seed: 2) * 0.1
-TR_var indeks = TR_tensor([(i * 7) %% %[3]d TR_for i TR_in 0..%[1]d])
+TR_var indeks = TR_Tensor([(i * 7) %% %[3]d TR_for i TR_in 0..%[1]d])
 TR_var ağırlık = TR_randn([%[1]d, %[2]d], TR_seed: 3)
 `, N, d, R, 3*d)
 	for _, s := range gatedVersions {
-		fmt.Fprintf(&sb, `TR_var x_%[1]s = TR_tensor(x0, TR_requires_grad: TR_true)
-TR_var W_%[1]s = TR_tensor(W0, TR_requires_grad: TR_true)
+		fmt.Fprintf(&sb, `TR_var x_%[1]s = TR_Tensor(x0, TR_requires_grad: TR_true)
+TR_var W_%[1]s = TR_Tensor(W0, TR_requires_grad: TR_true)
 TR_func kayıp_%[1]s() { TR_return TR_sum(%[1]s(x_%[1]s, W_%[1]s, indeks) * ağırlık) }
 TR_func adım_%[1]s() { TR_backward(kayıp_%[1]s()) }
 `, s.fn)
@@ -267,8 +267,8 @@ func (d *auditSecondDevice) Release(s tensor.Storage) {
 // Neden: varsayılan cihazda kurulursa başka cihazdaki tensörlerle işlem cihaz uyuşmazlığı verir.
 func TestCheckGradBuildsCopiesOnTheInputDevice(t *testing.T) {
 	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
-	out, err := run(t, `TR_var w = TR_tensor([2.0, 3.0]).TR_to_device("gpu:99")
-TR_var x = TR_tensor([1.0, 4.0], TR_requires_grad: TR_true).TR_to_device("gpu:99")
+	out, err := run(t, `TR_var w = TR_Tensor([2.0, 3.0]).TR_to_device("gpu:99")
+TR_var x = TR_Tensor([1.0, 4.0], TR_requires_grad: TR_true).TR_to_device("gpu:99")
 TR_print(TR_grad_check((a) => a * w, [x]))`)
 	if err != nil || out != "true\n" {
 		t.Fatalf("varsayılan dışı cihazda türev_denetle başarısız: err=%v out=%q", err, out)
@@ -354,7 +354,7 @@ func TestIndexAndWholeReductionsReturnStorageAtScopeExit(t *testing.T) {
 
 // Kural: ileti, verilen değeri dilin ortak "Tip (özet)" biçiminde anar; uzun değerler özetlenir.
 func TestCustomGradMessagesUseTypeAndSummary(t *testing.T) {
-	_, err := run(t, `TR_var x = TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
+	_, err := run(t, `TR_var x = TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true)
 TR_grad_check((a) => 3, [x])`)
 	if err == nil || !strings.Contains(err.Error(), "Tam (3)") {
 		t.Errorf("verilen değer \"Tam (3)\" biçiminde anılmalı: %v", err)

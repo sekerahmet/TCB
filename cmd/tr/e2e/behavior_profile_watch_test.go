@@ -13,16 +13,16 @@ import (
 )
 
 // watchTraining 60 adımlık kısa bir eğitimdir (tr izle / tr profil alt süreç testleri).
-const watchTraining = `TR_var w = TR_tensor(TR_randn([128, 128], TR_seed: 1), TR_requires_grad: TR_true)
+const watchTraining = `TR_var w = TR_Tensor(TR_randn([128, 128], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([64, 128], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
-TR_var ç = TR_progress(60)
+TR_var ç = TR_Progress(60)
 TR_for i TR_in 0..60 {
     op.TR_zero_grad()
     TR_var kayıp = TR_sum(TR_relu(x @ w))
     TR_backward(kayıp)
     op.TR_step()
-    ç.TR_update({TR_loss: kayıp})
+    ç.TR_update({"loss": kayıp})
 }
 TR_print("eğitim bitti")
 `
@@ -128,12 +128,12 @@ func TestWatchCommandNotTerminal(t *testing.T) {
 	}
 }
 
-// Program ilerleme(...) kullanmıyorsa rapor nasıl kullanılacağını söyler.
+// Program İlerleme(...) kullanmıyorsa rapor nasıl kullanılacağını söyler.
 func TestWatchNoStepInfo(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "dongu.tr", "TR_var s = 0\nTR_for i TR_in 0..1000 {\n    s += i\n}\nTR_print(s)\n")
 	s := tr(t, dir, "izle", "dongu.tr")
-	testkit.Wait(t, s, 0, []string{"499500"}, []string{"adım bilgisi yok: eğitim döngüsünde ilerleme(...) ve .güncelle(...) kullanın"})
+	testkit.Wait(t, s, 0, []string{"499500"}, []string{"adım bilgisi yok: eğitim döngüsünde İlerleme(...) ve .güncelle(...) kullanın"})
 }
 
 // tr izle .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
@@ -165,16 +165,16 @@ func TestJobProfileFile(t *testing.T) {
 
 // gpuWatchTraining GPU'da (TR_GPU_SIM=1 ile benzetimde) 8 adımlık küçük bir eğitimdir.
 const gpuWatchTraining = `TR_default_device("gpu")
-TR_var w = TR_tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
+TR_var w = TR_Tensor(TR_randn([16, 16], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([8, 16], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
-TR_var ç = TR_progress(8)
+TR_var ç = TR_Progress(8)
 TR_for i TR_in 0..8 {
     op.TR_zero_grad()
     TR_var kayıp = TR_sum(TR_relu(x @ w))
     TR_backward(kayıp)
     op.TR_step()
-    ç.TR_update({TR_loss: kayıp})
+    ç.TR_update({"loss": kayıp})
 }
 TR_print("gpu eğitimi bitti")
 `

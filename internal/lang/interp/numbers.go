@@ -17,31 +17,14 @@ const intLimit = 9223372036854775808.0
 // floatToInt bir Ondalık değeri (kesirli kısmı atılmış) Tam'a çevirir; NaN, sonsuz ya
 // da int64 aralığı dışındaki değerde hata verir.
 func floatToInt(name any, f float64) (int64, error) {
-	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
+	if math.IsNaN(f) {
+		return 0, messages.New(messages.H2667, name) // nan taşma değildir: sayı değildir
+	}
+	if math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
 		t := codes.NameRef(codes.TypeInt)
 		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Text(codes.Display()), t)
 	}
 	return int64(f), nil
-}
-
-// ParseNonFinite reads s as lang's name of an infinite or undefined number (TR_val_inf, TR_val_nan; an
-// infinity may carry '+' or '-'); nil lang is Turkish (codes.Source; a temporary exception). It reads back a number's
-// text in a file's language (ondalık("sonsuz") in a Turkish file) and, over every language, a
-// command-line value (17.8).
-func ParseNonFinite(s string, lang *codes.Language) (float64, bool) {
-	if lang == nil {
-		lang = codes.Source()
-	}
-	inf := lang.Name(codes.ValInf)
-	switch s {
-	case inf, "+" + inf:
-		return math.Inf(1), true
-	case "-" + inf:
-		return math.Inf(-1), true
-	case lang.Name(codes.ValNan):
-		return math.NaN(), true
-	}
-	return 0, false
 }
 
 // compareIntFloat bir Tam ile (NaN olmayan) bir Ondalığı tam olarak karşılaştırır
@@ -135,7 +118,7 @@ func sumNumbers(name any, elems []Value) (Value, error) {
 			}
 			s := intNum + x.Val
 			if (s > intNum) != (x.Val > 0) {
-				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.TypeInt), intNum, x.Val, i+1, codes.NameRef(codes.FnFloat))
+				return nil, messages.New(messages.H2485, name, codes.NameRef(codes.TypeInt), intNum, x.Val, i+1, codes.NameRef(codes.TypeFloat))
 			}
 			intNum = s
 		case *FloatVal:
@@ -190,8 +173,9 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 	return picked, nil
 }
 
-// rangeSteps bir aralığın gezilecek ilk ve son değerini ve adımını verir; bos doğruysa
-// aralıkta hiç değer yoktur. Son değer dahil hesaplandığı için int64 sınırındaki aralıklar
+// rangeSteps bir aralığın gezilecek ilk ve son değerini ve adımını verir; empty doğruysa
+// aralıkta hiç değer yoktur: a >= b ise a..b, a > b ise a..=b boştur (3.8; geriye sayan aralık
+// .reverse() ile yazılır). Son değer dahil hesaplandığı için int64 sınırındaki aralıklar
 // (0..=9223372036854775807) taşmadan gezilir.
 func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
 	first, last, step = r.Start, r.End, 1
@@ -201,10 +185,7 @@ func rangeSteps(r *RangeVal) (first, last, step int64, empty bool) {
 			last = r.End - 1
 		}
 	case r.Start > r.End:
-		step = -1
-		if !r.Inclusive {
-			last = r.End + 1
-		}
+		empty = true
 	default: // Start == End
 		empty = !r.Inclusive
 	}

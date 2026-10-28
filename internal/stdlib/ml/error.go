@@ -63,11 +63,11 @@ func (e codeExample) MessageText(lang string) string {
 // tensorCallExample listeyi tensöre çevirerek yazılmış çağrı örneğidir: fn(tensör(...)<rest>);
 // rest'in biçimi ve parçaları example'daki gibidir (", %s: -1", nameAxis).
 func tensorCallExample(fn codes.Ref, rest string, parts ...any) codeExample {
-	return example("%s(%s(...)"+rest+")", append([]any{fn, codes.NameRef(codes.FnTensor)}, parts...)...)
+	return example("%s(%s(...)"+rest+")", append([]any{fn, codes.NameRef(codes.TypeTensor)}, parts...)...)
 }
 
 // gradExample hata mesajlarındaki türev izleyen tensör örneğidir: tensör(..., türev_izle: doğru).
-var gradExample = example("%s(..., %s: %s)", codes.NameRef(codes.FnTensor), nameRequiresGrad, codes.NameRef(codes.KwTrue))
+var gradExample = example("%s(..., %s: %s)", codes.NameRef(codes.TypeTensor), nameRequiresGrad, codes.NameRef(codes.KwTrue))
 
 // safe fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
 func safe[T any](fn func() T) (T, error) { return bind.Recover(fn, panicError) }

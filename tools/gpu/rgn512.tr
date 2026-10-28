@@ -9,61 +9,61 @@
 # tutmaz (model.kayıp → doğrusal_çapraz_entropi, 8192'lik dilimler; hedef de dilimler ama geri
 # geçişte yeniden hesaplar).
 #
-# Kullanım: ./tr rgn512.tr --veri KLASÖR [--adım 120] [--çıktı sonuç.json]
+# Kullanım: ./tr rgn512.tr --veri KLASÖR [--step 120] [--çıktı sonuç.json]
 #   veri: uint16 .npy parça dosyalarının klasörü (belge sonu 0), hedefle aynı biçim.
-# Doğruluk karşılaştırması (tools/gpu/rgn_reference.py ile): --ağırlık init.trt PyTorch'un başlangıç
-# ağırlıklarını yükler, --sıralı doğru toplu işleri sırayla okur (PyTorch tarafı aynı pencereleri
-# kurar), --hassasiyet fp32 bf16'yı kapatır, --kayıplar adım başına kaybı ve gradyan normunu yazar.
+# Doğruluk karşılaştırması (tools/gpu/rgn_reference.py ile): --weight init.trt PyTorch'un başlangıç
+# ağırlıklarını yükler, --sequential doğru toplu işleri sırayla okur (PyTorch tarafı aynı pencereleri
+# kurar), --hassasiyet fp32 bf16'yı kapatır, --losses adım başına kaybı ve gradyan normunu yazar.
 # Kalite: --doğrulama valid.npy her --değerlendirme adımda ve sonda doğrulama kaybını hedefin yöntemiyle
 # ölçer (dosyanın başından --değerlendirme_parça kadar ardışık pencere; rgn512.py evaluate).
 # Kararlılık (dil tanımı 15.36, 20.14, 20.15; tr/egitim): her adımın kaybını ve gradyan normunu bir
 # sıçrama bekçisi izler (son --bekçi_pencere sağlam adıma göre --bekçi_eşik standart sapma). --koşu
 # KLASÖR verilince kontrol noktası kurulur (her --kayıt_dakika dakikada bir; yeniden çalıştırılınca
-# kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --atla toplu iş atlanır.
+# kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --skip toplu iş atlanır.
 # --koşu yoksa NaN ya da sonsuzda eğitim açık bir hatayla durur, sıçramada uyarı yazılır. Aynı
 # noktaya üçüncü kez dönülürse (sorun kalıcı) eğitim açık bir hatayla durur. Bekçi değeri
 # adımın sonunda zaten okunan kayıp ve normdan okur: adıma bekleme eklemez. --nan_adımı N (sınama
 # için) N. adımın kaybını bir kez NaN yapar.
-# Sonuç: --kaydet DOSYA eğitim bitince son ağırlıkları (parametreler, yol adlarıyla) tensör dosyası
+# Sonuç: --save DOSYA eğitim bitince son ağırlıkları (parametreler, yol adlarıyla) tensör dosyası
 # olarak yazar; tools/gpu/rgn_from_tr.py onları PyTorch modeline yükleyip doğrulama kaybını hedefin
 # kendi koduyla ölçer ve metin üretir.
-# Tersi: --ağırlık DOSYA --adım 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
+# Tersi: --weight DOSYA --step 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
 
 TR_import "tr/katman" TR_as katman
 TR_import "tr/iyilestirici" TR_as iyileştirici
 TR_import "tr/egitim" TR_as eğitim
 
-TR_var arg = TR_command_line({veri: "", TR_step: 120, toplu: 64, mikro: 32, bağlam: 1024, oran: 0.002,
-    TR_device: "gpu", tohum: 0, TR_logger: 50, çıktı: "", TR_weight: "", TR_sequential: TR_false, hassasiyet: "bf16",
-    TR_losses: "", dağarcık: 40000, TR_embed_dim: 512, katman: 8, TR_num_heads: 8, TR_num_kv_heads: 4, ara: 672,
-    doğrulama: "", değerlendirme: 1000, değerlendirme_parça: 4194304,
-    koşu: "", kayıt_dakika: 15, bekçi_pencere: 128, bekçi_eşik: 6.0, TR_skip: 200, nan_adımı: -1, TR_save: ""},
+TR_var arg = TR_command_line({"veri": "", "step": 120, "toplu": 64, "mikro": 32, "bağlam": 1024, "oran": 0.002,
+    "device": "gpu", "tohum": 0, "logger": 50, "çıktı": "", "weight": "", "sequential": TR_false, "hassasiyet": "bf16",
+    "losses": "", "dağarcık": 40000, "embed_dim": 512, "katman": 8, "num_heads": 8, "num_kv_heads": 4, "ara": 672,
+    "doğrulama": "", "değerlendirme": 1000, "değerlendirme_parça": 4194304,
+    "koşu": "", "kayıt_dakika": 15, "bekçi_pencere": 128, "bekçi_eşik": 6.0, "skip": 200, "nan_adımı": -1, "save": ""},
     TR_description: "Hedef modelin TR karşılığı (PyTorch: rgn512.py)")
-TR_assert(arg.veri != "", "--veri ile .npy klasörü verilmeli")
-TR_default_device(arg.TR_device)
+TR_assert(arg["veri"] != "", "--veri ile .npy klasörü verilmeli")
+TR_default_device(arg["device"])
 
 # Boyutlar hedefin varsayılanlarıdır; küçük boyutlar yalnızca hızlı doğruluk testi içindir (8 katman ve
 # düzen sabittir, PLE boyutu = boyut).
-TR_var model = katman.TR_GPT(arg.dağarcık, TR_context: arg.bağlam, TR_embed_dim: arg.TR_embed_dim, TR_num_layers: arg.katman, TR_num_heads: arg.TR_num_heads,
-    TR_num_kv_heads: arg.TR_num_kv_heads, TR_intermediate_dim: arg.ara, TR_tied: TR_true,
+TR_var model = katman.TR_GPT(arg["dağarcık"], TR_context: arg["bağlam"], TR_embed_dim: arg["embed_dim"], TR_num_layers: arg["katman"], TR_num_heads: arg["num_heads"],
+    TR_num_kv_heads: arg["num_kv_heads"], TR_intermediate_dim: arg["ara"], TR_tied: TR_true,
     TR_windows: katman.TR_layer_windows("YYGYGYYG", [32, 64]), TR_qk_norm: TR_true, TR_merged_kv: TR_true,
-    TR_merged_gate: TR_true, TR_ff_use_bias: TR_true, TR_eps: 0.000001, TR_ple_dim: arg.TR_embed_dim, TR_seed: arg.tohum + 1)
+    TR_merged_gate: TR_true, TR_ff_use_bias: TR_true, TR_eps: 0.000001, TR_ple_dim: arg["embed_dim"], TR_seed: arg["tohum"] + 1)
 
-TR_var op = iyileştirici.TR_MuonAndAdamW(model, TR_muon_lr: arg.oran, TR_adamw_lr: arg.oran,
+TR_var op = iyileştirici.TR_MuonAndAdamW(model, TR_muon_lr: arg["oran"], TR_adamw_lr: arg["oran"],
     TR_weight_decay: 0.1, TR_adamw_weight_decay: 0.1, TR_muon_scale: "rms",
     TR_separated: ["TR_mem_embedding", "TR_mem_ple_context"], TR_sparse: ["TR_mem_ple.TR_mem_table"],
-    TR_ns_dtype: TR_if arg.hassasiyet == "fp32" { "float32" } TR_else { "bf16" })
-TR_if arg.TR_weight != "" {
-    TR_load_parameters(model, TR_load_tensors(arg.TR_weight))
+    TR_ns_dtype: TR_if arg["hassasiyet"] == "fp32" { "float32" } TR_else { "bf16" })
+TR_if arg["weight"] != "" {
+    TR_load_parameters(model, TR_load_tensors(arg["weight"]))
 }
 TR_var ağırlıklar = TR_parameters(model)
 
-TR_var birikim = arg.toplu // arg.mikro
-TR_var küme = TR_dataset(arg.veri)
-TR_var örnekler = TR_if arg.TR_sequential { küme.TR_sequential(TR_batch_size: arg.mikro, TR_context: arg.bağlam) } TR_else {
-    küme.TR_sampler(TR_batch_size: arg.mikro, TR_context: arg.bağlam, TR_seed: arg.tohum) }
-TR_var adım_başına = arg.toplu * arg.bağlam
-TR_var ısınma = TR_max(1, TR_int(arg.TR_step * 0.01))
+TR_var birikim = arg["toplu"] // arg["mikro"]
+TR_var küme = TR_Dataset(arg["veri"])
+TR_var örnekler = TR_if arg["sequential"] { küme.TR_sequential(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"]) } TR_else {
+    küme.TR_sampler(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"], TR_seed: arg["tohum"]) }
+TR_var adım_başına = arg["toplu"] * arg["bağlam"]
+TR_var ısınma = TR_max(1, TR_Int(arg["step"] * 0.01))
 
 # Parametreler hedefin ayrımıyla sayılır: PLE tabloları gömme gibi çalışır (her parçada bir satır),
 # modelin boyu gövde + gömmedir.
@@ -76,21 +76,21 @@ TR_for ad, p TR_in TR_parameters(model, TR_named: TR_true) {
     TR_if iyileştirici.TR_name_matches(ad, "TR_mem_ple.TR_mem_table") { ple_tablo += n }
 }
 TR_var M = (n) => TR_round(n / 1000000.0, 1)
-TR_print("hedef model (TR) | YYGYGYYG | \(M(parametre_sayısı))M parametre (PLE tabloları \(M(ple_tablo))M, gövde + gömme \(M(parametre_sayısı - ple_tablo))M) | \(arg.TR_step) adım × \(adım_başına) parça | cihaz \(TR_default_device())")
+TR_print("hedef model (TR) | YYGYGYYG | \(M(parametre_sayısı))M parametre (PLE tabloları \(M(ple_tablo))M, gövde + gömme \(M(parametre_sayısı - ple_tablo))M) | \(arg["step"]) adım × \(adım_başına) parça | cihaz \(TR_default_device())")
 
 # Doğrulama kaybı: dosyanın başından ardışık pencereler (hedefle aynı), türevsiz, eğitimin hassasiyetiyle.
-TR_var doğrulama_kümesi = TR_if arg.doğrulama == "" { TR_none } TR_else { TR_dataset(arg.doğrulama) }
+TR_var doğrulama_kümesi = TR_if arg["doğrulama"] == "" { TR_none } TR_else { TR_Dataset(arg["doğrulama"]) }
 TR_func değerlendir() {
-    TR_var s = doğrulama_kümesi.TR_sequential(TR_batch_size: arg.mikro, TR_context: arg.bağlam)
-    TR_var n = TR_max(1, arg.değerlendirme_parça // arg.bağlam // arg.mikro)
+    TR_var s = doğrulama_kümesi.TR_sequential(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"])
+    TR_var n = TR_max(1, arg["değerlendirme_parça"] // arg["bağlam"] // arg["mikro"])
     TR_var kayıp_toplamı = 0.0
     TR_no_grad {
         TR_for i TR_in 0..n {
             TR_var xy = s.TR_next()
-            TR_if arg.hassasiyet == "fp32" {
+            TR_if arg["hassasiyet"] == "fp32" {
                 kayıp_toplamı += model.TR_loss(xy[0], xy[1]).TR_tolist
             } TR_else {
-                TR_mixed_precision(arg.hassasiyet) { kayıp_toplamı += model.TR_loss(xy[0], xy[1]).TR_tolist }
+                TR_mixed_precision(arg["hassasiyet"]) { kayıp_toplamı += model.TR_loss(xy[0], xy[1]).TR_tolist }
             }
         }
     }
@@ -101,35 +101,35 @@ TR_var doğrulama_kaydı = []
 TR_var süreler = []
 TR_var pencere = []
 TR_var kayıt = []
-TR_var bekçi = eğitim.TR_SpikeGuard(TR_history_limit: arg.bekçi_pencere, TR_threshold: arg.bekçi_eşik)
-TR_var izlenen = {kayıt: kayıt, doğrulama: doğrulama_kaydı}
+TR_var bekçi = eğitim.TR_SpikeGuard(TR_history_limit: arg["bekçi_pencere"], TR_threshold: arg["bekçi_eşik"])
+TR_var izlenen = {"kayıt": kayıt, "doğrulama": doğrulama_kaydı}
 TR_var kn = TR_none
-TR_if arg.koşu != "" {
-    TR_var nesneler = {model: model, TR_adamw: op.TR_adamw, TR_muon: op.TR_muon.TR_state, örnekler: örnekler, izlenen: izlenen}
+TR_if arg["koşu"] != "" {
+    TR_var nesneler = {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "örnekler": örnekler, "izlenen": izlenen}
     TR_if op.TR_adamw_no_decay != TR_none { nesneler["adamw_sönümsüz"] = op.TR_adamw_no_decay }
     TR_if op.TR_row_rms != TR_none { nesneler["satır_rms"] = op.TR_row_rms.TR_state }
-    kn = TR_checkpoint(arg.koşu, nesneler, TR_every_minutes: arg.kayıt_dakika)
+    kn = TR_Checkpoint(arg["koşu"], nesneler, TR_every_minutes: arg["kayıt_dakika"])
 }
 TR_var adım = TR_if kn == TR_none { 0 } TR_else { kn.TR_resume_step }
-TR_var nan_adımı = arg.nan_adımı
+TR_var nan_adımı = arg["nan_adımı"]
 TR_var son_dönüş = -1 # aynı noktaya art arda dönüşler sayılır: kalıcı bir bozulmada sonsuz döngü olmasın
 TR_var dönüş_sayısı = 0
-TR_for adım < arg.TR_step {
-    op.TR_set_multiplier(TR_max(0.000001, iyileştirici.TR_lr_schedule(adım, arg.TR_step, TR_warmup: ısınma, TR_decay_fraction: 0.2)))
+TR_for adım < arg["step"] {
+    op.TR_set_multiplier(TR_max(0.000001, iyileştirici.TR_lr_schedule(adım, arg["step"], TR_warmup: ısınma, TR_decay_fraction: 0.2)))
     TR_var t0 = TR_time_ms()
     TR_var toplam_kayıp = 0.0
     TR_for m TR_in 0..birikim {
         TR_var xy = örnekler.TR_next()
         TR_var kayıp = TR_none
-        TR_if arg.hassasiyet == "fp32" {
+        TR_if arg["hassasiyet"] == "fp32" {
             kayıp = model.TR_loss(xy[0], xy[1]) / birikim
         } TR_else {
-            TR_mixed_precision(arg.hassasiyet) {
+            TR_mixed_precision(arg["hassasiyet"]) {
                 kayıp = model.TR_loss(xy[0], xy[1]) / birikim
             }
         }
         TR_if adım + 1 == nan_adımı {
-            kayıp = kayıp * TR_float("nan")
+            kayıp = kayıp * TR_Float("nan")
             nan_adımı = -1
         }
         TR_backward(kayıp)
@@ -146,47 +146,47 @@ TR_for adım < arg.TR_step {
             adım = kn.TR_rollback()
             TR_if adım == son_dönüş { dönüş_sayısı += 1 } TR_else { son_dönüş = adım; dönüş_sayısı = 1 }
             TR_assert(dönüş_sayısı < 3, "aynı kontrol noktasına (\(adım). adım) üç kez dönüldü ve sorun sürüyor; eğitim durduruldu (öğrenme oranını, veriyi ya da --bekçi_eşik'i inceleyin)")
-            TR_print("  \(adım). adıma dönüldü, \(örnekler.TR_skip(arg.TR_skip)) toplu iş atlandı")
+            TR_print("  \(adım). adıma dönüldü, \(örnekler.TR_skip(arg["skip"])) toplu iş atlandı")
             TR_continue
         }
         TR_assert(karar != eğitim.TR_NONFINITE, "eğitim bozuldu (NaN ya da sonsuz) ve dönülecek kontrol noktası yok; --koşu KLASÖR ile kontrol noktası kurun")
     }
     süreler.TR_append(ms)
     pencere.TR_append(ms)
-    kayıt.TR_append({loss: toplam_kayıp, grad_norm: norm.TR_tolist})
-    TR_if (adım + 1) % arg.TR_logger == 0 TR_or adım + 1 == arg.TR_step {
+    kayıt.TR_append({"loss": toplam_kayıp, "grad_norm": norm.TR_tolist})
+    TR_if (adım + 1) % arg["logger"] == 0 TR_or adım + 1 == arg["step"] {
         TR_var ort = TR_mean(pencere)
-        TR_print("adım \(adım + 1) / \(arg.TR_step)  kayıp \(TR_round(toplam_kayıp, 4))  grad \(TR_round(norm.TR_tolist, 3)) | \(TR_round(ort, 0)) ms/adım  \(TR_round(adım_başına / ort * 1000, 0)) parça/sn")
+        TR_print("adım \(adım + 1) / \(arg["step"])  kayıp \(TR_round(toplam_kayıp, 4))  grad \(TR_round(norm.TR_tolist, 3)) | \(TR_round(ort, 0)) ms/adım  \(TR_round(adım_başına / ort * 1000, 0)) parça/sn")
         pencere = []
     }
-    TR_if doğrulama_kümesi != TR_none TR_and ((adım + 1) % arg.değerlendirme == 0 TR_or adım + 1 == arg.TR_step) {
+    TR_if doğrulama_kümesi != TR_none TR_and ((adım + 1) % arg["değerlendirme"] == 0 TR_or adım + 1 == arg["step"]) {
         TR_var d = değerlendir()
-        doğrulama_kaydı.TR_append({step: adım + 1, loss: d})
+        doğrulama_kaydı.TR_append({"step": adım + 1, "loss": d})
         TR_print("  DEĞERLENDİRME adım \(adım + 1): kayıp \(TR_round(d, 4))")
         # Kayıp kaydı her değerlendirmede yazılır: koşu sonra bir hatayla biterse ölçülenler kalır.
-        TR_if arg.TR_losses != "" { TR_write_file(arg.TR_losses, TR_json_string({steps: kayıt, valid: doğrulama_kaydı})) }
+        TR_if arg["losses"] != "" { TR_write_file(arg["losses"], TR_json_string({"steps": kayıt, "valid": doğrulama_kaydı})) }
     }
     adım += 1
     TR_if kn != TR_none { kn.TR_update(adım) }
 }
 
 # Ağırlıklar sonuç dosyalarından önce yazılır: en pahalı sonuç odur, sonraki bir hata onu kaybettirmez.
-TR_if arg.TR_save != "" {
-    TR_save_tensors(arg.TR_save, TR_parameters(model, TR_named: TR_true))
+TR_if arg["save"] != "" {
+    TR_save_tensors(arg["save"], TR_parameters(model, TR_named: TR_true))
 }
 
-# --adım 0: eğitmeden yalnızca değerlendirir (ör. --ağırlık ile yüklenen, PyTorch'ta eğitilmiş modelin
+# --step 0: eğitmeden yalnızca değerlendirir (ör. --weight ile yüklenen, PyTorch'ta eğitilmiş modelin
 # doğrulama kaybı; tools/gpu/rgn_to_tr.py).
-TR_if arg.TR_step == 0 TR_and doğrulama_kümesi != TR_none {
+TR_if arg["step"] == 0 TR_and doğrulama_kümesi != TR_none {
     TR_print("  DEĞERLENDİRME adım 0: kayıp \(TR_round(değerlendir(), 4))")
 }
 
-TR_if arg.çıktı != "" TR_and süreler.TR_length > 0 {
-    TR_var ölçülen = süreler[TR_int(süreler.TR_length // 2)..süreler.TR_length]
-    TR_write_file(arg.çıktı, TR_json_string({tool: "tr", model: "target", steps: arg.TR_step, tokens_per_step: adım_başına,
-        first_step_ms: süreler[0], measured: {median_ms: TR_median(ölçülen), mean_ms: TR_mean(ölçülen)}}))
+TR_if arg["çıktı"] != "" TR_and süreler.TR_length > 0 {
+    TR_var ölçülen = süreler[TR_Int(süreler.TR_length // 2)..süreler.TR_length]
+    TR_write_file(arg["çıktı"], TR_json_string({"tool": "tr", "model": "target", "steps": arg["step"], "tokens_per_step": adım_başına,
+        "first_step_ms": süreler[0], "measured": {"median_ms": TR_median(ölçülen), "mean_ms": TR_mean(ölçülen)}}))
 }
 
-TR_if arg.TR_losses != "" {
-    TR_write_file(arg.TR_losses, TR_json_string({steps: kayıt, valid: doğrulama_kaydı}))
+TR_if arg["losses"] != "" {
+    TR_write_file(arg["losses"], TR_json_string({"steps": kayıt, "valid": doğrulama_kaydı}))
 }

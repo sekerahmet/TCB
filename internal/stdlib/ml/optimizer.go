@@ -27,8 +27,8 @@ type Optimizer struct {
 func (o *Optimizer) Type() interp.ValueType { return optimizerType }
 func (o *Optimizer) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (o *Optimizer) Inspect() string { return o.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (o *Optimizer) Inspect() string { return o.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Optimizer)(nil)
 

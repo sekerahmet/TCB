@@ -58,7 +58,7 @@ func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]
 		}
 		d, ok := v.(*TensorValue)
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text || !ok {
-			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.TypeString), codes.NameRef(codes.TypeTensor), s.DisplayKey(k), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H6501, fn, codes.NameRef(memberState), codes.NameRef(codes.TypeString), codes.NameRef(codes.TypeTensor), s.KeyText(k), interp.TypeAndSummary(v))
 		}
 		st[k] = d.t
 	}

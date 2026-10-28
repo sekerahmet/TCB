@@ -17,7 +17,7 @@ TR_var önbellek = TR_zeros([5, 4]) # 5 konumluk "önbellek"
 # Bir adım: parçanın gömmesini seçer, önbellekte konumuna yazar, önbelleğin toplamını verir.
 # Değişen her şey tensördür: kayıtta sabitlenmez, her oynatmada yeniden okunur.
 TR_func adım(kimlik, konum) {
-    TR_var e = TR_embedding(tablo, kimlik) # [1, 4]
+    TR_var e = TR_embedding_lookup(tablo, kimlik) # [1, 4]
     TR_write_slice(önbellek, e, TR_dim: 0, TR_start: konum)
     TR_return TR_sum(önbellek, TR_dim: 0)
 }
@@ -25,7 +25,7 @@ TR_func adım(kimlik, konum) {
 TR_var oynat = TR_replay(adım)
 TR_no_grad {
     TR_for konum, kimlik TR_in [3, 1, 4, 1, 5] {
-        TR_var s = oynat(TR_tensor([kimlik * 1.0]), TR_tensor(konum * 1.0))
+        TR_var s = oynat(TR_Tensor([kimlik * 1.0]), TR_Tensor(konum * 1.0))
         TR_print("konum \(konum), parça \(kimlik): toplam \(TR_round(TR_sum(s).TR_tolist, 4))")
     }
 }

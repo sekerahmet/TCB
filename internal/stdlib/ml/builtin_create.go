@@ -33,7 +33,7 @@ func requiresGrad(fn any, named map[string]interp.Value, positional interp.Value
 // sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
 // listeden float32, tensörden kaynağın türünde tensör oluşur.
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(codes.FnTensor)
+	fn := codes.NameRef(codes.TypeTensor)
 	if len(args) < 1 {
 		return nil, messages.New(messages.H6001, gradExample)
 	}

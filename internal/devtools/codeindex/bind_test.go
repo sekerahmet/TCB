@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
@@ -41,7 +40,7 @@ TR_func gölge(baş) {
 
 TR_var a = Dikkat(8, 2, kv_baş: 1)
 TR_var e = yap(baş: 4)
-TR_var ayar = TR_command_line({baş: 8, TR_step: 1}, TR_descriptions: {baş: "baş sayısı"})
+TR_var ayar = TR_command_line({"baş": 8, "step": 1}, TR_descriptions: {"baş": "baş sayısı"})
 `
 
 // uses bir düğümün başvurularını "rol@satır:sütun/güven/dayanak" olarak sıralı verir.
@@ -109,9 +108,9 @@ func TestCommandLineOptionKeys(t *testing.T) {
 	r := buildSource(t, bindSource)
 	at := func(word string, n int) string { return srcAt(t, bindSource, "TR_command_line(", word, n) }
 	wantUses(t, r, "option:m.tr#baş", "option_key@"+at("baş", 1)+"/EXTRACTED", "option_key@"+at("baş", 2)+"/EXTRACTED")
-	// Kod taşıyan anahtar (`TR_step`) kimliğiyle tutulur, adı okuyanın dilindedir (komut satırında kişinin dilindeki adı).
-	if n := r.Node("option:m.tr#TR_mem_step"); n == nil || n.Kind != KindOption || n.Code != "TR_mem_step" {
-		t.Errorf("each key is an option, a coded key by its identity: %+v", n)
+	// Seçeneğin adı metin anahtarıdır (3.7): kimlik taşımaz, çevrilmez.
+	if n := r.Node("option:m.tr#step"); n == nil || n.Kind != KindOption || n.Code != "" {
+		t.Errorf("each key is an option by its text: %+v", n)
 	}
 }
 
@@ -129,14 +128,12 @@ func TestNameOnlyGuessesStayOutOfReferences(t *testing.T) {
 	}
 }
 
-// Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır. Kod taşıyan çıplak anahtar (`{TR_step: 100}`) komut
-// satırında kişinin gösterim dilindeki adıyla yazılır (TR_DIL=en'de `--step`, tr'de `--adım`; dosyanın dili yoktur, dil
-// tanımı 2.1): düğüm kimliğiyle tutulur (`option:x.tr#TR_mem_step`, Code taşır), adı okuyanın dilinde gösterilir; dizin
-// TR_DIL'den bağımsızdır. Kullanıcının kendi adı (`run`, `adım`) olduğu gibi kalır, kodlu anahtarla aynı seçenek değildir.
-// Konum diskteki anahtarın yeridir (kimlik yazımının uzunluğuyla).
-func TestACodedOptionKeyIsItsIdentity(t *testing.T) {
+// Kural: komut satırı seçeneğinin adı çalışma anındaki adıdır: metin anahtarının kendisi (3.7; `{"step": 100}` →
+// `--step`), hiçbir dilde çevrilmez. Düğüm `option:x.tr#step`'tir, kimlik taşımaz; bir dildeki ad (`adım`) ayrı bir
+// seçenektir. Konum tırnağın içindeki adın yeridir.
+func TestAnOptionIsItsTextKey(t *testing.T) {
 	dir := t.TempDir()
-	src := "TR_var c = TR_command_line({TR_step: 100, adım: 1, run: \"trial\"}, TR_descriptions: {TR_step: \"steps\"})\n"
+	src := "TR_var c = TR_command_line({\"step\": 100, \"adım\": 1, \"run\": \"trial\"}, TR_descriptions: {\"step\": \"steps\"})\n"
 	if err := os.WriteFile(filepath.Join(dir, "x.tr"), trText("x.tr", src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -145,23 +142,17 @@ func TestACodedOptionKeyIsItsIdentity(t *testing.T) {
 		t.Fatal(err, idx.Skipped)
 	}
 	r := NewReader(idx)
-	if n := r.Node("option:x.tr#TR_mem_step"); n == nil || n.Kind != KindOption || n.Code != "TR_mem_step" {
-		t.Errorf("the coded key is an option by its identity: %+v", n)
-	}
-	for _, id := range []string{"option:x.tr#run", "option:x.tr#adım"} {
+	for _, id := range []string{"option:x.tr#step", "option:x.tr#run", "option:x.tr#adım"} {
 		if n := r.Node(id); n == nil || n.Kind != KindOption || n.Code != "" {
-			t.Errorf("%s is the user's own option name: %+v", id, n)
+			t.Errorf("%s is an option by its text key: %+v", id, n)
 		}
 	}
-	if n := r.Node("option:x.tr#step"); n != nil {
-		t.Errorf("an option is not named in a writing language inside the index: %+v", n)
+	if n := r.Node("option:x.tr#TR_mem_step"); n != nil {
+		t.Errorf("an option carries no identity: %+v", n)
 	}
 	at := func(word string, n int) string { return srcAt(t, src, "TR_command_line(", word, n) }
 	wantUses(t, r, "option:x.tr#adım", "option_key@"+at("adım", 1)+"/EXTRACTED")
-	wantUses(t, r, "option:x.tr#TR_mem_step", "option_key@"+at("TR_step", 1)+"/EXTRACTED", "option_key@"+at("TR_step", 2)+"/EXTRACTED")
-	if shown := r.display(*r.Node("option:x.tr#TR_mem_step")); shown.Name != codes.Display().Name(codes.MemStep) {
-		t.Errorf("the coded option is shown in the reader's language: %+v", shown)
-	}
+	wantUses(t, r, "option:x.tr#step", "option_key@"+at("step", 1)+"/EXTRACTED", "option_key@"+at("step", 2)+"/EXTRACTED")
 }
 
 // memberGuessFiles alıcısı bilinmeyen üye erişimleri için bir proje: katman.tr'de aynı adlı beş metot (`ileri`: aday

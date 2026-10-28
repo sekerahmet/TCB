@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
 // Bu dosya üye erişimlerini, parametreleri, adlı argümanları ve komut_satırı anahtarlarını bağlar:
@@ -271,8 +272,8 @@ func (x *indexer) paramOf(fnID, arg string) string {
 	return id
 }
 
-// optionKeys komut_satırı({ad: ...}) çağrısının sözlük anahtarlarını (ve açıklamalar: {ad: ...}
-// anahtarlarını) seçenek düğümlerine bağlar: anahtar komut satırında `--ad` olur.
+// optionKeys komut_satırı({"ad": ...}) çağrısının metin anahtarlarını (ve açıklamalar: {"ad": ...}
+// anahtarlarını) seçenek düğümlerine bağlar: anahtar komut satırında `--ad` olur (çevrilmez, 3.7).
 func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression) {
 	fn, ok := c.Function.(*ast.Identifier)
 	if !ok || sc.locals[fn.Value] {
@@ -300,15 +301,13 @@ func (x *indexer) optionKeys(f *file, o owner, sc *scope, c *ast.CallExpression)
 	for _, d := range dicts {
 		for _, p := range d.Pairs {
 			key, ok := p.Key.(*ast.StringLiteral)
-			if !ok || !f.res.dictKey(key.Token.Line, key.Token.Column) {
+			if !ok || key.Token.Type != lexer.TokString || key.Token.Raw {
 				continue
 			}
-			// Kod taşıyan çıplak anahtar (`{TR_step: 100}`) komut satırında kişinin gösterim dilindeki adıyla yazılır
-			// (process.commandLine, DictVal.DisplayKey: TR_DIL=en'de `--step`, tr'de `--adım`): düğüm kimliğiyle tutulur,
-			// adı okuyanın dilinde gösterilir (display). Kullanıcının adı (`run`) olduğu gibi kalır.
+			// Seçeneğin adı tırnağın içindedir: düğüm adın ilk harfinden başlar.
 			name := key.Value
 			id := NodeID(KindOption, f.rel, name)
-			pos := tokenPos(f, key.Token.Line, key.Token.Column, key.Value)
+			pos := tokenPos(f, key.Token.Line, key.Token.Column+1, key.Value)
 			if x.nodes[id] == nil {
 				x.nodes[id] = &Node{ID: id, Kind: KindOption, Name: name, Code: declCode(name), Pos: &pos, Qualified: f.base + "." + name}
 			}

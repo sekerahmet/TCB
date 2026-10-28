@@ -416,6 +416,6 @@ func TestWhoUsesSummarizesTheConstructBridge(t *testing.T) {
 		t.Errorf("only %d bridged functions found", checked)
 	}
 	var out strings.Builder
-	ix.printWhoUses(&out, ix.byID["go:func:github.com/sekerahmet/TCB/internal/lang/interp.memberKeys"], 12)
+	ix.printWhoUses(&out, ix.byID["go:func:github.com/sekerahmet/TCB/internal/lang/interp.resolveMember"], 12)
 	testkit.MustContain(t, out.String(), "<- calls", "interp.compiler.member", "via MemberExpression")
 }

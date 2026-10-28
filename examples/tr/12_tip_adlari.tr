@@ -7,22 +7,22 @@
 
 # tip(değer) tipi verir; tip adları da ifadede değerdir, == ile karşılaştırılır.
 TR_var liste = [1, "iki", 3.0]
-TR_print(TR_type(liste) == TR_List, TR_type(liste))
+TR_print(TR_Type(liste) == TR_List, TR_Type(liste))
 TR_var sözlük = {"ad": "Ali"}
-TR_print(TR_type(sözlük) == TR_Dict, sözlük["ad"])
-TR_print(TR_type(TR_true) == TR_Bool, TR_type(TR_none) == TR_None)
+TR_print(TR_Type(sözlük) == TR_Dict, sözlük["ad"])
+TR_print(TR_Type(TR_true) == TR_Bool, TR_Type(TR_none) == TR_NoneType)
 
-# Aralık a..b (b hariç) ya da a..=b (b dahil) yazımının tipidir; aralık(n) ise bir Liste verir.
-TR_print(TR_type(1..5) == TR_Range, TR_type(TR_range(5)) == TR_List, TR_range(5))
+# Aralık a..b (b hariç) ya da a..=b (b dahil) yazımının tipidir; sayılarının listesi TR_List(0..n) ile kurulur.
+TR_print(TR_Type(1..5) == TR_Range, TR_Type(TR_List(0..5)) == TR_List, TR_List(0..5))
 
 # Fonksiyonlar birinci sınıf değerdir: ok fonksiyonu ve fonksiyon Fonksiyon,
 # dilin kendi fonksiyonları YerleşikFonksiyon tipindedir.
 TR_var kare = x => x * x
-TR_print(TR_type(kare) == TR_Function, TR_type(TR_print) == TR_BuiltinFunction, kare(7))
+TR_print(TR_Type(kare) == TR_Function, TR_Type(TR_print) == TR_BuiltinFunction, kare(7))
 
 # Tip bildirimi: ad: Tip. Tip denetleyicisi yanlış atamayı program çalışmadan yakalar.
 TR_var hazır: TR_Bool = TR_true
-TR_var boş: TR_None = TR_none
+TR_var boş: TR_NoneType = TR_none
 TR_var sayılar: TR_List = [1, 2, 3]
 TR_print(hazır, boş, sayılar)
 
@@ -33,8 +33,8 @@ TR_func kimlik(x: TR_Any) {
 TR_print(kimlik(5), kimlik("beş"), kimlik([1, 2]))
 
 # tip() sonucunun kendi tipi de Tip'tir ve bir değişkende saklanabilir.
-TR_var t: TR_Type = TR_type(42)
-TR_print(t == TR_Int, t, TR_type(t))
+TR_var t: TR_Type = TR_Type(42)
+TR_print(t == TR_Int, t, TR_Type(t))
 
 # --- Kendin dene ---
 # 1. tip(tip(1)) == Tip değerini yazdır.

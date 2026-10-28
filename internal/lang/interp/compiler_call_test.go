@@ -33,7 +33,7 @@ func TestTrailingBlockEquivalentToLambda(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if val.Inspect() != "doğru" {
+	if val.Inspect() != "true" {
 		t.Fatalf("sondaki blok ile ok fonksiyonu aynı sonucu vermeli, %s alındı", val.Inspect())
 	}
 }

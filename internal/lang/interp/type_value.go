@@ -27,7 +27,7 @@ type TypeVal struct {
 
 func (t *TypeVal) Type() ValueType { return ValType }
 func (t *TypeVal) IsTruthy() bool  { return true }
-func (t *TypeVal) Inspect() string { return t.Text(codes.Source()) }
+func (t *TypeVal) Inspect() string { return t.Text(codes.ValueNames()) }
 func (t *TypeVal) Text(lang *codes.Language) string {
 	if t.Struct != nil {
 		return t.Struct.Name
@@ -79,13 +79,15 @@ func TypeOfValue(v Value) *TypeVal {
 	case *BoolVal:
 		return typeValues[codes.TypeBool]
 	case *NullVal:
-		return typeValues[codes.TypeNone]
+		return typeValues[codes.TypeNoneType]
 	case *ListVal:
 		return typeValues[codes.TypeList]
 	case *DictVal:
 		return typeValues[codes.TypeDict]
 	case *StructInstanceVal:
 		return x.Def.typeValue()
+	case *JSONVal:
+		return x.kind() // JSON değerinin türü (3.7a); TR_Type(j) hiçbir zaman TR_JSON değildir
 	}
 	if t := typeValueByName[v.Type()]; t != nil {
 		return t
@@ -119,9 +121,13 @@ func (v *VM) registerTypes() {
 	}
 }
 
-// typeTextError tip değeri metinle karşılaştırılıyorsa yol gösteren hatayı verir (tip
-// değeri hiçbir metne eşit değildir; sessizce yanlış dönmek yerine hata). Değilse nil.
+// typeTextError çalışma anında yasak bir eşitliğin hatasıdır: tip değeri metinle (tip
+// değeri hiçbir metne eşit değildir) ya da JSON değeri JSON olmayan değerle (jsonCompareError);
+// sessizce yanlış dönmek yerine hata. Değilse nil.
 func typeTextError(op string, a, b Value) error {
+	if err := jsonCompareError(op, a, b); err != nil {
+		return err // JSON değeri JSON olmayan değerle karşılaştırılmaz (4.5, 3.7a)
+	}
 	t, ok := a.(*TypeVal)
 	m, ok2 := b.(*StringVal)
 	if !ok || !ok2 {

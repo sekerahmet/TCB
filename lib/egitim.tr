@@ -36,8 +36,8 @@ TR_struct TR_SpikeGuard {
     TR_norms
     TR_spike_count = 0
     TR_func TR_init(TR_history_limit = 128, TR_threshold = 6.0) {
-        TR_if TR_type(TR_history_limit) != TR_Int TR_or TR_history_limit < 2 { TR_throw TR_message("H6930", TR_history_limit) }
-        TR_if TR_not TR_is_finite(TR_threshold) TR_or TR_not (TR_threshold > 0) { TR_throw TR_message("H6931", TR_threshold) }
+        TR_if TR_Type(TR_history_limit) != TR_Int TR_or TR_history_limit < 2 { TR_throw TR_Message("H6930", TR_history_limit) }
+        TR_if TR_not TR_is_finite(TR_threshold) TR_or TR_not (TR_threshold > 0) { TR_throw TR_Message("H6931", TR_threshold) }
         TR_self.TR_history_limit = TR_history_limit
         TR_self.TR_threshold = TR_threshold
         TR_self.TR_losses = []
@@ -83,7 +83,7 @@ TR_struct TR_SpikeGuard {
 # sürer ve geri çağırma düzeni ister; TR'de özel adımlar (bekçinin geri dönüşü, birikim,
 # kaynaştırma) döngüde açık kalsın diye yalnızca kayıt işleri toplanır.
 #
-#     değişken koşu = Koşu(ayar.koşu, ayar, {model: model, adamw: op.adamw, ö: ö}, adım_sayısı: ayar.adım, prova: ayar.prova)
+#     değişken koşu = Koşu(ayar["koşu"], ayar, {"model": model, "adamw": op.adamw, "ö": ö}, adım_sayısı: ayar["adım"], prova: ayar["prova"])
 #     döngü adım içinde koşu.kaldığı_adım..koşu.son_adım {
 #         ... adım ...
 #         koşu.adım_bitti(adım + 1, eğer günlük_adımı { {kayıp: kayıp} } değilse { yok })
@@ -113,23 +113,23 @@ TR_struct TR_Run {
     TR_resume_step
     TR_last_step
     TR_func TR_init(TR_folder, TR_config, TR_objects, TR_num_steps, TR_every_minutes = 15.0, TR_dry_run = TR_false) {
-        TR_if TR_type(TR_num_steps) != TR_Int TR_or TR_num_steps < 1 { TR_throw TR_message("H6932", TR_num_steps) }
+        TR_if TR_Type(TR_num_steps) != TR_Int TR_or TR_num_steps < 1 { TR_throw TR_Message("H6932", TR_num_steps) }
         TR_self.TR_dry_run = TR_dry_run
         TR_self.TR_last_step = TR_if TR_dry_run { TR_min(TR_num_steps, TR_DRY_RUN_STEPS) } TR_else { TR_num_steps }
-        TR_self.TR_folder = TR_if TR_dry_run { TR_path(TR_temp_dir(), "prova") } TR_else { TR_path(TR_folder) }
+        TR_self.TR_folder = TR_if TR_dry_run { TR_Path(TR_temp_dir(), "prova") } TR_else { TR_Path(TR_folder) }
         TR_make_dir(TR_self.TR_folder)
         TR_var sayı = 0
         TR_if TR_objects.TR_contains("model") {
             TR_for w TR_in TR_parameters(TR_objects["model"]) { sayı += w.TR_shape.TR_reduce(1) { TR_acc * TR_it } }
         }
-        TR_write_file(TR_path(TR_self.TR_folder, "config.json"), TR_json_string({"config": TR_config, "num_params": sayı, "device": TR_default_device()}))
-        TR_self.TR_logger = TR_logger(TR_path(TR_self.TR_folder, "metrics.jsonl"))
+        TR_write_file(TR_Path(TR_self.TR_folder, "config.json"), TR_json_string({"config": TR_config, "num_params": sayı, "device": TR_default_device()}))
+        TR_self.TR_logger = TR_Logger(TR_Path(TR_self.TR_folder, "metrics.jsonl"))
         TR_var kayıtlılar = {}
         TR_for ad, d TR_in TR_objects { kayıtlılar[ad] = d }
         kayıtlılar["logger"] = TR_self.TR_logger
-        TR_self.TR_checkpoint = TR_checkpoint(TR_self.TR_folder, kayıtlılar, TR_every_minutes: TR_if TR_dry_run { 0 } TR_else { TR_every_minutes })
+        TR_self.TR_checkpoint = TR_Checkpoint(TR_self.TR_folder, kayıtlılar, TR_every_minutes: TR_if TR_dry_run { 0 } TR_else { TR_every_minutes })
         TR_self.TR_resume_step = TR_self.TR_checkpoint.TR_resume_step
-        TR_self.TR_bar = TR_progress(TR_self.TR_last_step, TR_log: TR_self.TR_logger)
+        TR_self.TR_bar = TR_Progress(TR_self.TR_last_step, TR_log: TR_self.TR_logger)
         TR_if TR_self.TR_resume_step > 0 { TR_self.TR_bar.TR_update(TR_step: TR_self.TR_resume_step) }
     }
     # adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
@@ -145,7 +145,7 @@ TR_struct TR_Run {
     }
     # değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
     TR_func TR_evaluated(TR_step, TR_metrics) {
-        TR_var kayıt = {TR_step: TR_step}
+        TR_var kayıt = {"step": TR_step}
         TR_for ad, d TR_in TR_metrics { kayıt[ad] = d }
         TR_self.TR_logger.TR_append(kayıt)
     }
@@ -154,11 +154,11 @@ TR_struct TR_Run {
     # bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
     # dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
     TR_func TR_finish(TR_model) {
-        TR_save_tensors(TR_path(TR_self.TR_folder, "model.trt"), TR_parameters(TR_model, TR_named: TR_true))
+        TR_save_tensors(TR_Path(TR_self.TR_folder, "model.trt"), TR_parameters(TR_model, TR_named: TR_true))
         TR_self.TR_checkpoint.TR_save()
         TR_if TR_self.TR_dry_run {
             TR_for ad TR_in ["config.json", "metrics.jsonl", "model.trt", "checkpoints"] {
-                TR_if TR_not TR_path(TR_self.TR_folder, ad).TR_exists { TR_throw TR_message("H6933", ad, TR_self.TR_folder.TR_absolute) }
+                TR_if TR_not TR_Path(TR_self.TR_folder, ad).TR_exists { TR_throw TR_Message("H6933", ad, TR_self.TR_folder.TR_absolute) }
             }
             TR_print("Prova geçti: \(TR_self.TR_last_step) adım, bütün dosyalar yazıldı")
         }

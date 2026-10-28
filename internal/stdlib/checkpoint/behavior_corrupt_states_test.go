@@ -23,10 +23,10 @@ func TestCorruptOptimizerAndReaderStatesSuggestPrevious(t *testing.T) {
 		t.Helper()
 		runDir := t.TempDir()
 		out, err := run(t, fmt.Sprintf(`
-TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
-TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
-TR_var kn = TR_checkpoint(%q, {w: w, op: op, ö: ö})
+TR_var ö = TR_Dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
+TR_var kn = TR_Checkpoint(%q, {"w": w, "op": op, "ö": ö})
 ö.TR_next()
 kn.TR_update(1)
 kn.TR_save()
@@ -50,9 +50,9 @@ kn.TR_save()
 				trtPath := filepath.Join(step2Dir, "tensors.trt")
 				if _, err := run(t, fmt.Sprintf(`
 TR_save_tensors(%q, {
-    "w/0": TR_tensor([1.0, 2.0, 3.0]),
-    "op/step": TR_tensor([0.0, 0.0]),
-    "op/bozuk": TR_tensor([1.0, 2.0, 3.0])
+    "w/0": TR_Tensor([1.0, 2.0, 3.0]),
+    "op/step": TR_Tensor([0.0, 0.0]),
+    "op/bozuk": TR_Tensor([1.0, 2.0, 3.0])
 })
 `, trPath(trtPath))); err != nil {
 					t.Fatal(err)
@@ -97,10 +97,10 @@ TR_save_tensors(%q, {
 			resignCheckpoint(t, step2Dir, 2)
 
 			_, err := run(t, fmt.Sprintf(`
-TR_var w = TR_tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
+TR_var w = TR_Tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
-TR_var ö = TR_dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
-TR_checkpoint(%q, {w: w, op: op, ö: ö})
+TR_var ö = TR_Dataset(%q).TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 1)
+TR_Checkpoint(%q, {"w": w, "op": op, "ö": ö})
 `, dataDir, trPath(runDir)))
 			if err == nil {
 				t.Fatal("bozuk kontrol noktası reddedilmeliydi")

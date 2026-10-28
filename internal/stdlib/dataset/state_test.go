@@ -13,7 +13,7 @@ import (
 func TestReaderStateResumesSameBatches(t *testing.T) {
 	d := buildDataset(t)
 	out, _ := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_func çek(ö, n) {
     TR_var liste = []
     TR_for i TR_in 0..n {
@@ -53,7 +53,7 @@ dene_okuyucu(TR_func() { TR_return k.TR_sequential(TR_batch_size: 2, TR_context:
 func TestReaderSkipSameAsNext(t *testing.T) {
 	d := buildDataset(t)
 	out, _ := mustRun(t, `
-TR_var k = TR_dataset("`+trPath(d)+`")
+TR_var k = TR_Dataset("`+trPath(d)+`")
 TR_func dene_okuyucu(yap) {
     TR_var a = yap()
     TR_for i TR_in 0..5 { a.TR_next() }
@@ -74,7 +74,7 @@ TR_print(s.TR_skip(10), s.TR_next())
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
 	for _, code := range []string{"ö.TR_skip(-1)", "ö.TR_skip(1.5)", "ö.TR_skip()", "ö.TR_skip(1, 2)", "ö.TR_skip(\"a\")"} {
-		_, _, err := run(t, `TR_var ö = TR_dataset("`+trPath(d)+`").TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3)
+		_, _, err := run(t, `TR_var ö = TR_Dataset("`+trPath(d)+`").TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3)
 `+code)
 		if err == nil {
 			t.Errorf("%s hata vermeliydi", code)

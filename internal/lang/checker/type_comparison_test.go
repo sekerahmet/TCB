@@ -31,9 +31,9 @@ func boolTextWarnings(t *testing.T, language, source string) int {
 	return n
 }
 
-// Mantık değerinin metni dilden bağımsızdır (codes.ValueNames; "true", "false"): TR_str(Mantık) bir
+// Mantık değerinin metni dilden bağımsızdır (codes.ValueNames; "true", "false"): TR_String(Mantık) bir
 // yazım dilinin doğru/yanlış adıyla karşılaştırılırsa karşılaştırma hiç tutmaz, denetleyici uyarır
-// (3.11'in TR_type(x) == "Tam" kuralıyla aynı aile). Değer metnindeki ad ve başka metinler sessizdir;
+// (3.11'in TR_Type(x) == "Tam" kuralıyla aynı aile). Değer metnindeki ad ve başka metinler sessizdir;
 // dosyada da yazılan satırda (dil "tr", "en") da aynıdır.
 func TestBoolTextComparisonWarning(t *testing.T) {
 	// Tipi bilinen Mantık: sabit, tip açıklamalı değişken, karşılaştırma (açıklamasız değişken
@@ -43,15 +43,15 @@ func TestBoolTextComparisonWarning(t *testing.T) {
 		line string
 		want int
 	}{
-		{`TR_print(TR_str(b) == "doğru")`, 1},
-		{`TR_print("yanlış" != TR_str(1 > 2))`, 1},
-		{`TR_print(TR_str(b) == "true")`, 0},
-		{`TR_print(TR_str(c) == "false")`, 0},
-		{`TR_print(TR_str(b) == "evet")`, 0},
-		{`TR_print(TR_str(b) == "True")`, 1}, // başka bir dilden tanıdık ad (Python)
-		{`TR_print(TR_str(c) == "False")`, 1},
-		{`TR_print(TR_str(3) == "doğru")`, 0}, // Mantık değil
-		{`TR_print(TR_str(c) == "yanlış")`, 1},
+		{`TR_print(TR_String(b) == "doğru")`, 1},
+		{`TR_print("yanlış" != TR_String(1 > 2))`, 1},
+		{`TR_print(TR_String(b) == "true")`, 0},
+		{`TR_print(TR_String(c) == "false")`, 0},
+		{`TR_print(TR_String(b) == "evet")`, 0},
+		{`TR_print(TR_String(b) == "True")`, 1}, // başka bir dilden tanıdık ad (Python)
+		{`TR_print(TR_String(c) == "False")`, 1},
+		{`TR_print(TR_String(3) == "doğru")`, 0}, // Mantık değil
+		{`TR_print(TR_String(c) == "yanlış")`, 1},
 	} {
 		for _, language := range []string{"", "tr", "en"} {
 			if got := boolTextWarnings(t, language, decl+c.line+"\n"); got != c.want {

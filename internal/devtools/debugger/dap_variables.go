@@ -96,7 +96,7 @@ func children(val interp.Value, expr string) []dapChild {
 			if sv, isStr := key.(*interp.StringVal); isStr {
 				keyExpr = trStringLiteral(sv.Val)
 			}
-			out = append(out, dapChild{name: v.DisplayKey(k), expr: expr + "[" + keyExpr + "]", val: el})
+			out = append(out, dapChild{name: v.KeyText(k), expr: expr + "[" + keyExpr + "]", val: el})
 			if len(out) >= limit {
 				break
 			}
@@ -234,7 +234,7 @@ func (s *dapServer) setVariable(msg *dapMessage) {
 				container.Elements[idx] = val
 			case *interp.DictVal:
 				for _, k := range container.Order {
-					if container.DisplayKey(k) == a.Name {
+					if container.KeyText(k) == a.Name {
 						container.Pairs[k] = val
 					}
 				}

@@ -50,7 +50,7 @@ func viewOf(langCode string) *view {
 }
 
 // convertTRFile bir .tr dosyasının (ya da belgedeki bloğun) bütün metnini çevirir.
-func convertTRFile(_ string, in string) (string, []problem) {
+func convertTRFile(rel string, in string) (string, []problem) {
 	text, hasBOM := strings.CutPrefix(in, bom)
 	prefix := ""
 	if hasBOM {
@@ -66,7 +66,7 @@ func convertTRFile(_ string, in string) (string, []problem) {
 	first, rest, eol := firstLine(text)
 	switch {
 	case strings.HasPrefix(first, newHeaderPrefix):
-		return in, nil
+		return convertValues(rel, in) // yeni biçim: yalnız değer kuralları (values.go)
 	case strings.HasPrefix(first, oldHeader):
 		if _, err := codes.LoadLanguage(strings.TrimPrefix(first, oldHeader)); err != nil {
 			return in, []problem{{Line: lineBase + 1, Reason: "unknown language in the old header"}}

@@ -13,7 +13,7 @@ TR_print("ilk cihaz:", TR_devices()[0], "| gpu var mı:", TR_devices().TR_contai
 # bütün tensörlerin cihazını seçer. GPU'da eğitim için model kurulmadan önce çağrılır.
 TR_print(TR_default_device())
 TR_default_device("cpu")
-TR_var t = TR_tensor([1.0, 2.0])
+TR_var t = TR_Tensor([1.0, 2.0])
 TR_print(t.TR_device, t.TR_to_device("cpu").TR_device) # cihaza tensörü başka cihaza taşır
 
 # Sayı türü: "float32" (varsayılan), "bf16" ya da "fp16". Kurarken tür: ile seçilir, .tür ile okunur,
@@ -22,7 +22,7 @@ TR_print(t.TR_dtype, TR_zeros([2, 2], TR_dtype: "fp16").TR_dtype, t.TR_to_dtype(
 
 # karışık_hassasiyet(tür) { ... }: blokta @ girdileri bu türe çevrilir, hesap daha hızlı ve hafızada daha ucuz olur;
 # ağırlıkların türü değişmez. Bloğun son ifadesi sonuç olur.
-TR_var y = TR_mixed_precision("bf16") { TR_tensor([[1.0, 2.0]]) @ TR_tensor([[3.0], [4.0]]) }
+TR_var y = TR_mixed_precision("bf16") { TR_Tensor([[1.0, 2.0]]) @ TR_Tensor([[3.0], [4.0]]) }
 TR_print(y.TR_tolist)
 # hesap_türü() etkin bloğun hesap türünü verir (blok dışında "float32"). Çıktısını yalnızca
 # çarpımlar okuyan bir normu doğrudan o türde yazmak için: rms_normu(x, w, tür: hesap_türü()).
@@ -30,7 +30,7 @@ TR_print(TR_compute_dtype(), TR_mixed_precision("bf16") { TR_compute_dtype() })
 
 # 16 bitlik parametreyi AdamW ile eğitirken ana_kopya: doğru (varsayılan) float32 bir ana kopya tutar;
 # güncelleme orada yapılıp parametreye yuvarlanır, böylece küçük adımlar kaybolmaz.
-TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true, TR_dtype: "bf16")
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true, TR_dtype: "bf16")
 TR_var op = TR_AdamW([w], TR_master_weights: TR_true)
 TR_backward(TR_sum(w * w))
 op.TR_step()

@@ -10,10 +10,10 @@ import (
 // Görünüm metotları (şekillendir, devrik, eksenleri_sırala, dilim) ve bitiştir tam sayılı
 // tensörün (token kimlikleri, argmax) tam sayılı olduğunu korur: .değer Tam verir.
 func TestViewsKeepInts(t *testing.T) {
-	out := mustRun(t, `TR_var i = TR_argmax(TR_tensor([[1.0, 5.0, 0.0], [7.0, 2.0, 9.0]]), TR_dim: 0)
+	out := mustRun(t, `TR_var i = TR_argmax(TR_Tensor([[1.0, 5.0, 0.0], [7.0, 2.0, 9.0]]), TR_dim: 0)
 TR_var m = i.TR_reshape([3, 1])
 TR_print(m.TR_tolist, m.TR_transpose().TR_tolist, m.TR_permute([1, 0]).TR_tolist, i.TR_slice(0, 0, 2).TR_tolist)
-TR_print(TR_concat([i, i]).TR_tolist, TR_concat([i, TR_tensor([1.0, 2.0, 3.0])]).TR_tolist)`)
+TR_print(TR_concat([i, i]).TR_tolist, TR_concat([i, TR_Tensor([1.0, 2.0, 3.0])]).TR_tolist)`)
 	want := "[[1], [0], [1]] [[1, 0, 1]] [[1, 0, 1]] [1, 0]\n[1, 0, 1, 1, 0, 1] [1.0, 0.0, 1.0, 1.0, 2.0, 3.0]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%q\nbeklenen:\n%q", out, want)
@@ -41,7 +41,7 @@ func TestShapeLimitZeroAxis(t *testing.T) {
 // Kural (B14): devrik() argüman almaz; argümanla çağrılınca ileti eksenlerin sırasını veren metodu
 // (eksenleri_sırala) söyler (PyTorch: t.T ile t.permute(...)).
 func TestTransposeWithArgumentsPointsToPermute(t *testing.T) {
-	_, err := run(t, "TR_tensor([[1.0, 2.0]]).TR_transpose(1, 0)")
+	_, err := run(t, "TR_Tensor([[1.0, 2.0]]).TR_transpose(1, 0)")
 	if !messages.Has(err, messages.H6722) || !strings.Contains(err.Error(), "eksenleri_sırala(") {
 		t.Fatalf("devrik argümanla: %v", err)
 	}

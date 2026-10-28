@@ -17,13 +17,13 @@ import (
 
 // Tensör başına tür: oluşturucular, .tür, .türe ve yazdırma.
 func TestDTypeChoice(t *testing.T) {
-	out := mustRun(t, `TR_var a = TR_tensor([[1.001, 2], [3, 4]], TR_dtype: "bf16")
+	out := mustRun(t, `TR_var a = TR_Tensor([[1.001, 2], [3, 4]], TR_dtype: "bf16")
 TR_print(a.TR_dtype, a.TR_tolist)
 TR_print(a)
-TR_print(TR_tensor(2.5, TR_dtype: "fp16"), TR_tensor(2.5))
+TR_print(TR_Tensor(2.5, TR_dtype: "fp16"), TR_Tensor(2.5))
 TR_print(TR_zeros([2], TR_dtype: "fp16").TR_dtype, TR_ones([2], TR_dtype: "bf16").TR_dtype, TR_randn([2], TR_seed: 1, TR_dtype: "bf16").TR_dtype)
-TR_print(TR_tensor(a).TR_dtype, a.TR_to_dtype("float32").TR_dtype, (a @ a).TR_dtype, (a + TR_tensor([1.0, 1.0])).TR_dtype)
-TR_var w = TR_tensor([1.0, 3.0], TR_requires_grad: TR_true)
+TR_print(TR_Tensor(a).TR_dtype, a.TR_to_dtype("float32").TR_dtype, (a @ a).TR_dtype, (a + TR_Tensor([1.0, 1.0])).TR_dtype)
+TR_var w = TR_Tensor([1.0, 3.0], TR_requires_grad: TR_true)
 TR_var h = w.TR_to_dtype("bf16")
 TR_print(h.TR_dtype, h)
 TR_backward(TR_sum(h * h))
@@ -33,7 +33,7 @@ TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 		"Tensor(2.5000) fp16 Tensor(2.5000)\n" +
 		"fp16 bf16 bf16\n" +
 		"bf16 float32 bf16 float32\n" +
-		"bf16 Tensor[2] bf16 (türev izleniyor) [1.0000, 3.0000]\n" +
+		"bf16 Tensor[2] bf16 (requires grad) [1.0000, 3.0000]\n" +
 		"[2.0, 6.0] float32\n"
 	if out != want {
 		t.Fatalf("veri türleri:\n%q\nbeklenen:\n%q", out, want)
@@ -49,15 +49,15 @@ TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 		code string
 		want messages.Code
 	}{
-		{`TR_tensor([1], TR_dtype: "bfloat16")`, messages.H6811},
-		{`TR_tensor([1], TR_dtype: "bf61")`, messages.H6811},
+		{`TR_Tensor([1], TR_dtype: "bfloat16")`, messages.H6811},
+		{`TR_Tensor([1], TR_dtype: "bf61")`, messages.H6811},
 		{`TR_ones([1], TR_dtype: "half")`, messages.H6811},
 		{`TR_zeros([1], TR_dtype: "float64")`, messages.H6811},
-		{`TR_tensor([1.0]).TR_to_dtype("fp32")`, messages.H6811},
-		{`TR_tensor([1.0]).TR_to_dtype()`, messages.H6806},
-		{`TR_tensor([1], TR_dtype: TR_none)`, messages.H6803},
-		{`TR_tensor([1], dtype: "bf16")`, messages.H7901},
-		{`TR_tensor([1.0]).tür_`, messages.H7903},
+		{`TR_Tensor([1.0]).TR_to_dtype("fp32")`, messages.H6811},
+		{`TR_Tensor([1.0]).TR_to_dtype()`, messages.H6806},
+		{`TR_Tensor([1], TR_dtype: TR_none)`, messages.H6803},
+		{`TR_Tensor([1], dtype: "bf16")`, messages.H7901},
+		{`TR_Tensor([1.0]).tür_`, messages.H7903},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)
@@ -67,8 +67,8 @@ TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 
 // karışık_hassasiyet: blok değeri, iç içe bloklar, hatada geri dönüş ve geri yayılım.
 func TestMixedPrecisionBlock(t *testing.T) {
-	out := mustRun(t, `TR_var x = TR_tensor([[1.001]])
-TR_var y = TR_tensor([[1.0]])
+	out := mustRun(t, `TR_var x = TR_Tensor([[1.001]])
+TR_var y = TR_Tensor([[1.0]])
 TR_var r = TR_mixed_precision("bf16") {
     TR_print((x @ y).TR_tolist, (x @ y).TR_dtype)
     TR_mixed_precision("fp16") { TR_print((x @ y).TR_tolist) }
@@ -96,8 +96,8 @@ TR_print(TR_mixed_precision("bf16") { 5 }, TR_mixed_precision("bf16") {})`)
 func TestMixedPrecisionGradient(t *testing.T) {
 	out := mustRun(t, `TR_func hesap(karışık) {
     TR_var x = TR_randn([16, 32], TR_seed: 1)
-    TR_var w = TR_tensor(TR_randn([32, 8], TR_seed: 2) * 0.2, TR_requires_grad: TR_true)
-    TR_var g = TR_tensor(TR_ones([8]), TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor(TR_randn([32, 8], TR_seed: 2) * 0.2, TR_requires_grad: TR_true)
+    TR_var g = TR_Tensor(TR_ones([8]), TR_requires_grad: TR_true)
     TR_func ileri() {
         TR_var h = TR_layer_norm(TR_gelu(x @ w), g)
         TR_return TR_mean(TR_log_softmax(h, TR_dim: -1) * -1)
@@ -127,8 +127,8 @@ TR_print(TR_abs(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)
 // Karışık hassasiyet durumu göreve bağlıdır: blok GIL'i bırakan bir çağrıdayken (bekle)
 // çalışan başka görev bloktan etkilenmez; görev beklemeden sonra kendi türünü görür.
 func TestMixedPrecisionTaskIsolation(t *testing.T) {
-	out := mustRun(t, `TR_var x = TR_tensor([[1.001]])
-TR_var y = TR_tensor([[1.0]])
+	out := mustRun(t, `TR_var x = TR_Tensor([[1.001]])
+TR_var y = TR_Tensor([[1.0]])
 TR_var görev = []
 TR_var başla = []
 TR_async {
@@ -156,7 +156,7 @@ TR_print(görev, başla, ana, (x @ y).TR_tolist[0][0])`)
 func TestTensorSaveVersion2(t *testing.T) {
 	dir := t.TempDir()
 	fpath := filepath.ToSlash(filepath.Join(dir, "turler.trt"))
-	out := mustRun(t, `TR_var p = {"a": TR_tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16"), "b": TR_tensor([0.1, 65504.0, 0.00001], TR_dtype: "fp16"), "c": TR_tensor([0.1])}
+	out := mustRun(t, `TR_var p = {"a": TR_Tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16"), "b": TR_Tensor([0.1, 65504.0, 0.00001], TR_dtype: "fp16"), "c": TR_Tensor([0.1])}
 TR_save_tensors("`+fpath+`", p)
 TR_var y = TR_load_tensors("`+fpath+`", TR_requires_grad: TR_true)
 TR_print(y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype)
@@ -164,7 +164,7 @@ TR_print(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].TR_tolist)
 TR_print(y["b"].TR_grad, y["b"])`)
 	want := "bf16 fp16 float32\n" +
 		"true true true [[1.5, -2.25], [3.0, 0.100097656]]\n" +
-		"none Tensor[3] fp16 (türev izleniyor) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
+		"none Tensor[3] fp16 (requires grad) [9.9976e-02, 6.5504e+04, 1.0014e-05]\n"
 	if out != want {
 		t.Fatalf("sürüm 2 gidiş-dönüş:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -235,7 +235,7 @@ func writeClipped(t *testing.T, dir string, data []byte, n int) string {
 // İyileştiricilerin ana_kopya seçeneği SetMasterWeights'e bağlanır.
 func TestOptimizerMasterCopy(t *testing.T) {
 	out := mustRun(t, `TR_func eğit(ad, ana) {
-    TR_var p = TR_tensor([1.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_var p = TR_Tensor([1.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
     TR_var o = TR_none
     TR_if ad == "SGD" { o = TR_SGD([p], TR_lr: 0.001, TR_master_weights: ana) } TR_else { o = TR_AdamW([p], TR_lr: 0.001, TR_weight_decay: 0.0, TR_master_weights: ana) }
     TR_for i TR_in 0..20 {
@@ -249,7 +249,7 @@ TR_print(eğit("SGD", TR_false), eğit("AdamW", TR_false), eğit("SGD", TR_true)
 	if out != "1.0 1.0 true true\n" {
 		t.Fatalf("ana_kopya: %q", out)
 	}
-	if _, err := run(t, `TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)], TR_master_weights: "evet")`); err == nil || !messages.Has(err, messages.H7905) {
+	if _, err := run(t, `TR_AdamW([TR_Tensor([1.0], TR_requires_grad: TR_true)], TR_master_weights: "evet")`); err == nil || !messages.Has(err, messages.H7905) {
 		t.Errorf("ana_kopya türü: %v", err)
 	}
 }

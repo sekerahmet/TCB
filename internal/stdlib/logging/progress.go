@@ -32,8 +32,8 @@ var barOrder atomic.Int64
 
 // metric çubukta gösterilen ve günlüğe yazılan bir ölçüdür.
 type metric struct {
-	name  string // kayıttaki anahtar (dosya biçimi; kodlu anahtar dilden bağımsız)
-	shown string // çubukta gösterilen ad (kodlu anahtar kişinin dilinde)
+	name  string // kayıttaki anahtar (dosya biçimi)
+	shown string // çubukta gösterilen ad (metin anahtarı, çevrilmez; 3.7)
 	value interp.Value
 }
 
@@ -71,8 +71,8 @@ type Progress struct {
 func (c *Progress) Type() interp.ValueType { return ProgressType }
 func (c *Progress) IsTruthy() bool         { return true }
 
-// Inspect is the value's display text, in the person's writing language (TR_DIL).
-func (c *Progress) Inspect() string { return c.Text(codes.Display()) }
+// Inspect is the value's text (3.14): language-independent, the same as its program text.
+func (c *Progress) Inspect() string { return c.Text(codes.ValueNames()) }
 
 var _ interp.LanguageText = (*Progress)(nil)
 
@@ -106,18 +106,18 @@ func (c *Progress) GetProperty(kd codes.Code, prop string) (interp.Value, error)
 
 // openProgress ilerleme(toplam, günlük: g) yerleşiğidir.
 func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := interp.CallPrefix(codes.FnProgress)
+	fn := interp.CallPrefix(codes.TypeProgress)
 	if err := bind.CheckNamed(fn, named, nameLog); err != nil {
 		return nil, err
 	}
 	if len(args) > 1 {
-		return nil, interp.ArgCountError(codes.FnProgress, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
+		return nil, interp.ArgCountError(codes.TypeProgress, interp.Counts(0, 1), len(args), "", messages.Text(messages.H2322))
 	}
 	var total int64
 	if len(args) == 1 && args[0] != interp.Null {
 		n, ok := bind.Int(args[0])
 		if !ok {
-			return nil, interp.ArgTypeError(codes.FnProgress, 1, args[0], codes.TypeInt, codes.TypeNone)
+			return nil, interp.ArgTypeError(codes.TypeProgress, 1, args[0], codes.TypeInt, codes.TypeNoneType)
 		}
 		if n <= 0 {
 			return nil, messages.New(messages.H7313, fn, n, codes.NameRef(codes.KwNone))
@@ -128,7 +128,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 	if v, ok := bind.GetNamed(named, nameLog); ok && v != interp.Null {
 		g, ok := v.(*Log)
 		if !ok {
-			return nil, messages.New(messages.H7314, fn, nameLog, LogType, codes.NameRef(codes.FnLogger), interp.TypeAndSummary(v))
+			return nil, messages.New(messages.H7314, fn, nameLog, LogType, codes.NameRef(codes.TypeLogger), interp.TypeAndSummary(v))
 		}
 		c.log = g
 		g.setTotal(total)
@@ -187,7 +187,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 			return nil, err
 		}
 		for _, k := range record.Order {
-			metrics = append(metrics, metric{name: k, shown: record.DisplayKey(k), value: record.Pairs[k]})
+			metrics = append(metrics, metric{name: k, shown: record.KeyText(k), value: record.Pairs[k]})
 		}
 	}
 	newStep := int64(-1)
@@ -219,7 +219,7 @@ func (c *Progress) advance(fn any, now time.Time, newStep int64, metrics []metri
 	if c.stopped {
 		text := c.stepText(codes.Display())
 		c.mu.Unlock()
-		return false, messages.New(messages.H7316, fn, text, codes.NameRef(codes.FnProgress))
+		return false, messages.New(messages.H7316, fn, text, codes.NameRef(codes.TypeProgress))
 	}
 	measure := true
 	switch {

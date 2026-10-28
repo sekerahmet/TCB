@@ -202,7 +202,7 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			continue
 		}
 		if _, text := s.KeyValue(k).(*interp.StringVal); !text {
-			return nil, messages.New(messages.H6522, fn, codes.NameRef(codes.TypeString), s.DisplayKey(k))
+			return nil, messages.New(messages.H6522, fn, codes.NameRef(codes.TypeString), s.KeyText(k))
 		}
 		d, ok := v.(*TensorValue)
 		if !ok {
