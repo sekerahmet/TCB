@@ -53,7 +53,7 @@ TR_test "2.3 adlar NFC biçimine göre karşılaştırılır: aynı görünen ik
 
 TR_test "2.3a dilin sözcükleri TR_ ve kimliğin adıyla yazılır; sınıfı yeri belirler" {
     TR_var l = [1, 2, 3]
-    TR_assert_equal([2, 4, 6], l.TR_map { TR_it * 2 })
+    TR_assert_equal([2, 4, 6], l.TR_map((x) => x * 2))
     TR_assert_equal(3, l.TR_length)
     TR_assert_equal(TR_Int, TR_Type(1))
     # Üyenin kimliğiyle yazılan sözlük anahtarı da üyedir (iki noktadan önce, süslü parantezde).
@@ -177,7 +177,7 @@ TR_test "2.8 deyim sonu gerekmez; ; isteğe bağlıdır" {
 
 TR_test "2.8 yeni satırdaki ( ve [ yeni deyim başlatır" {
     TR_var f = 5
-    (x => x * 2)(f)
+    ((x) => x * 2)(f)
     TR_assert_equal(5, f)
 }
 

@@ -29,7 +29,10 @@ func (p *Parser) parseListLiteral() ast.Expression {
 			return nil
 		}
 		p.nextToken()
+		saved := p.comprehensionSource
+		p.comprehensionSource = true // ardındaki TR_if üretecin koşuludur, Python'un koşullu ifadesi değil
 		iterable := p.parseExpression(precLowest)
+		p.comprehensionSource = saved
 
 		var cond ast.Expression
 		if p.peekTokenIs(lexer.TokIf) {

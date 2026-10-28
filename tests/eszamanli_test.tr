@@ -50,10 +50,10 @@ TR_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
 }
 
 TR_test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
-    TR_assert_equal("H2433", TR_error_code(() => { TR_sleep(-5) }))
-    TR_assert_equal("H2433", TR_error_code(() => { TR_sleep(TR_Float("nan")) }))
-    TR_assert_equal("H2434", TR_error_code(() => { TR_sleep(1e300) }))
-    TR_assert_equal("H2434", TR_error_code(() => { TR_sleep(9.3e9) }))
+    TR_assert_equal("H2433", TR_error_code { TR_sleep(-5) })
+    TR_assert_equal("H2433", TR_error_code { TR_sleep(TR_Float("nan")) })
+    TR_assert_equal("H2434", TR_error_code { TR_sleep(1e300) })
+    TR_assert_equal("H2434", TR_error_code { TR_sleep(9.3e9) })
     TR_sleep(0)
 }
 

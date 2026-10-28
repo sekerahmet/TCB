@@ -1,157 +1,169 @@
 # TR 4
 # docs/spec/06_fonksiyonlar.md §6 — Fonksiyonlar
 
-TR_func topla(a, b) {
+TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {
     TR_return a + b
 }
 
-TR_test "6.1 isimli fonksiyon tanımı" {
+TR_test "6.1 adlı fonksiyon tanımı" {
     TR_assert_equal(4, topla(2, 2))
-    TR_func çarp(a, b) { TR_return a * b }
+    TR_func çarp(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a * b }
     TR_assert_equal(6, çarp(2, 3))
+    TR_func yaz(x: TR_Int) { TR_print(x) }
+    # Başka dillerin yazımları ve aynı kapsamda aynı adla ikinci tanım sözdizimi hatasıdır
+    # Olumsuz fikstür: tests/negative/fonksiyon_yazimi.tr
 }
 
-TR_test "6.1 fonksiyonlar tanımlandıkları noktadan sonra kullanılabilir" {
-    TR_var bulundu = TR_true
-    TR_try { sonra_tanımlı() } TR_catch { bulundu = TR_false }
-    TR_assert(TR_not bulundu)
-    TR_func sonra_tanımlı() { TR_return 1 }
-    TR_assert_equal(1, sonra_tanımlı())
-}
-
-TR_test "6.2 sonuç değer döndürür; yoksa son deyimin değeri döner" {
-    TR_func erken(x) {
-        TR_if x > 0 { TR_return "pozitif" }
-        TR_return "değil"
-    }
-    TR_assert_equal("pozitif", erken(1))
-    TR_assert_equal("değil", erken(-1))
-    TR_func örtük() { 5 }
-    TR_assert_equal(5, örtük())
-    TR_func boş_dönüş() { TR_return }
-    TR_assert_equal(TR_none, boş_dönüş())
-}
-
-TR_test "6.4 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
-    TR_func selam(ad, ek = "!") { TR_return "Selam " + ad + ek }
-    TR_assert_equal("Selam Ali!", selam("Ali"))
-    TR_assert_equal("Selam Ali?", selam("Ali", "?"))
-    TR_func ikinci(a, b) { TR_return b }
-    TR_assert_equal("H2414", TR_error_code(() => { ikinci(1) }))
-    TR_assert_equal("H2412", TR_error_code(() => { ikinci(1, 2, 3) }))
-}
-
-TR_test "6.4 varsayılan değer önceki parametreleri görür" {
-    TR_var a = 100
-    TR_func f(a, b = a * 2) { TR_return b }
-    TR_assert_equal(2, f(1))
-    TR_func g(x, y = x + 1, z = x + y) { TR_return [x, y, z] }
-    TR_assert_equal([1, 2, 3], g(1))
-    TR_assert_equal([1, 5, 6], g(1, 5))
-    TR_assert_equal([1, 2, 9], g(1, z: 9))
-    # Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
-    TR_var b = 7
-    TR_func h(a = b, b = 1) { TR_return a }
-    TR_assert_equal("H2440", TR_error_code(() => { h() }))
-    # Varsayılan her çağrıda yeniden hesaplanır
-    TR_func liste_al(l = []) { l.TR_append(1); TR_return l }
-    TR_assert_equal([1], liste_al())
-    TR_assert_equal([1], liste_al())
-}
-
-TR_test "6.11 iç içe çağrı derinliği sınırı yakalanabilir hata verir" {
-    TR_func sonsuz(n) { TR_return sonsuz(n + 1) }
-    TR_assert_equal("H2422", TR_error_code(() => { sonsuz(0) }))
-}
-
-TR_test "6.4 adlı argümanlar" {
-    TR_func böl(bölünen, bölen = 1) { TR_return bölünen / bölen }
-    TR_assert_equal(5, böl(bölen: 2, bölünen: 10))
-    TR_assert_equal(10, böl(10))
-}
-
-TR_test "6.4 aynı parametre hem sırayla hem adıyla verilemez" {
-    TR_func f(a, b = 10) { TR_return [a, b] }
-    TR_assert_equal([1, 20], f(1, b: 20))
-    TR_assert_equal("H2413", TR_error_code(() => { f(1, a: 2) }))
-    # adlı argümanlar varken eksik zorunlu parametre adıyla söylenir (6.3)
-    TR_assert_equal("H2415", TR_error_code(() => { f(b: 20) }))
-}
-
-TR_test "6.5 kapanışlar tanımlandıkları ortamı yakalar" {
-    TR_func sayaç_yap() {
-        TR_var n = 0
-        TR_return TR_func() {
-            n += 1
-            TR_return n
-        }
-    }
-    TR_var s = sayaç_yap()
-    s()
-    TR_assert_equal(2, s())
-    TR_assert_equal(1, sayaç_yap()())
-}
-
-TR_test "6.5 özyineleme" {
-    TR_func fakt(n) {
-        TR_if n <= 1 { TR_return 1 }
-        TR_return n * fakt(n - 1)
-    }
-    TR_assert_equal(3628800, fakt(10))
-}
-
-TR_test "6.6 ok fonksiyonları (lambda)" {
-    TR_var iki_kat = x => x * 2
-    TR_var topla2 = (a, b) => a + b
-    TR_var blok = (x) => {
-        TR_var y = x + 1
-        TR_return y * 2
-    }
-    TR_assert_equal(6, iki_kat(3))
-    TR_assert_equal(5, topla2(2, 3))
-    TR_assert_equal(8, blok(3))
-}
-
-TR_test "6.7 sondaki blok: tek parametresi o olan fonksiyon" {
-    TR_var sayılar = [1, 2, 3, 4]
-    TR_assert_equal([3, 4], sayılar.TR_filter { TR_it > 2 })
-    TR_assert_equal([9, 16], sayılar.TR_filter { TR_it > 2 }.TR_map { TR_it * TR_it })
-    TR_assert_equal([[10, 20]], [[1, 2]].TR_map { TR_it.TR_map { TR_it * 10 } })
-    TR_func uygula(x, f) { TR_return f(x) }
-    TR_assert_equal(10, uygula(5) { TR_it * 2 })
-}
-
-TR_test "6.7 indirge'nin sondaki bloğunda birikim önceki sonuç, o elemandır" {
-    TR_assert_equal(10, [1, 2, 3, 4].TR_reduce(0) { TR_acc + TR_it })
-    TR_assert_equal(24, [1, 2, 3, 4].TR_reduce { TR_acc * TR_it })
-    TR_assert_equal([3, 2, 1], [1, 2, 3].TR_reduce([]) { [TR_it] + TR_acc })
-    # Elemanlar liste olsa da o elemandır
-    TR_assert_equal(10, [[1, 2], [3, 4]].TR_reduce(0) { TR_acc + TR_it[0] + TR_it[1] })
-    # birikim başka her yerde sıradan bir addır
-    TR_var birikim = 5
-    TR_assert_equal(5, birikim)
-    TR_assert_equal(2, [1, 2].TR_reduce(birikim) { TR_acc - TR_it })
-    TR_assert_equal("H2476", TR_error_code(() => { [1, 2].TR_reduce(0, (x) => x) }))
-}
-
-TR_test "6.7 kontrol yapısı başlığında { gövdeyi başlatır" {
-    TR_var l = [1, 5]
-    TR_var sonuç_ = ""
-    TR_if (l.TR_filter { TR_it > 2 }).TR_length > 0 { sonuç_ = "var" }
-    TR_assert_equal("var", sonuç_)
-}
-
-TR_test "6.8 dönüş tipi : Tip ya da -> Tip ile bildirilir" {
-    TR_func a(x: TR_Int): TR_Int { TR_return x }
+TR_test "6.1 dönüş tipi -> ile yazılır" {
+    TR_func a(x: TR_Int) -> TR_Int { TR_return x }
     TR_func b(x: TR_Int) -> TR_String { TR_return TR_String(x) }
     TR_assert_equal("3", b(a(3)))
     # Bildirilen tiple uyuşmayan sonuç değeri programı çalıştırmadan reddeder
     # Olumsuz fikstür: tests/negative/donus_tipi.tr
 }
 
+TR_test "6.2 TR_return değer döndürür; gövdenin son ifadesi dönüş değeri değildir" {
+    TR_func erken(x: TR_Int) -> TR_String {
+        TR_if x > 0 { TR_return "pozitif" }
+        TR_return "değil"
+    }
+    TR_assert_equal("pozitif", erken(1))
+    TR_assert_equal("değil", erken(-1))
+    TR_func örtük() { 5 }
+    TR_assert_equal(TR_none, örtük())
+    # Sondaki blok ise bir fonksiyon gövdesi değildir: değeri son ifadesidir (6.7)
+    TR_func çalıştır(iş: () -> TR_Int) -> TR_Int { TR_return iş() }
+    TR_assert_equal(5, çalıştır { 5 })
+    TR_func boş_dönüş() { TR_return }
+    TR_assert_equal(TR_none, boş_dönüş())
+}
+
+TR_test "6.3 birden çok değer döndürülür ve açılır; TR_return f() ile iletilir" {
+    TR_func böl(a: TR_Int, b: TR_Int) -> (TR_Int, TR_Int) {
+        TR_return a // b, a % b
+    }
+    TR_var bölüm, kalan = böl(17, 5)
+    TR_assert_equal([3, 2], [bölüm, kalan])
+    TR_func ilet(a: TR_Int) -> (TR_Int, TR_Int) {
+        TR_return böl(a, 4)
+    }
+    TR_var x, _ = ilet(9)
+    TR_assert_equal(2, x)
+    bölüm, kalan = böl(7, 2)
+    TR_assert_equal([3, 1], [bölüm, kalan])
+}
+
+TR_test "6.3 sonuç tek değer ya da argüman olarak kullanılmaz; değer sayısı tutmalıdır" {
+    TR_func iki() -> (TR_Int, TR_Int) { TR_return 1, 2 }
+    TR_assert_equal("H2708", TR_error_code { TR_var t = iki() })
+    TR_assert_equal("H2708", TR_error_code { TR_print(iki()) })
+    TR_assert_equal("H2708", TR_error_code { TR_var t = iki() + 1 })
+    TR_assert_equal("H2709", TR_error_code { TR_var a, b, c = iki() })
+    # Deyim olarak çağrının sonuçları atılır
+    iki()
+}
+
+TR_test "6.4 varsayılan parametreler; eksik ya da fazla argüman hata verir" {
+    TR_func selam(ad: TR_String, ek: TR_String = "!") -> TR_String { TR_return "Selam " + ad + ek }
+    TR_assert_equal("Selam Ali!", selam("Ali"))
+    TR_assert_equal("Selam Ali?", selam("Ali", "?"))
+    TR_func ikinci(a: TR_Int, b: TR_Int) -> TR_Int { TR_return b }
+    TR_assert_equal("H2414", TR_error_code { ikinci(1) })
+    TR_assert_equal("H2412", TR_error_code { ikinci(1, 2, 3) })
+    # Varsayılanlı parametreden sonra varsayılansız parametre sözdizimi hatasıdır
+    # Olumsuz fikstür: tests/negative/fonksiyon_yazimi.tr
+}
+
+TR_test "6.4 varsayılan değer önceki parametreleri görür" {
+    TR_var a = 100
+    TR_func f(a: TR_Int, b: TR_Int = a * 2) -> TR_Int { TR_return b }
+    TR_assert_equal(2, f(1))
+    TR_func g(x: TR_Int, y: TR_Int = x + 1, z: TR_Int = x + y) -> TR_List { TR_return [x, y, z] }
+    TR_assert_equal([1, 2, 3], g(1))
+    TR_assert_equal([1, 5, 6], g(1, 5))
+    TR_assert_equal([1, 2, 9], g(1, z: 9))
+    # Sonraki parametre (ve parametrenin kendisi) henüz tanımlı değildir; dıştaki aynı adlı değişken kullanılmaz
+    TR_var b = 7
+    TR_func h(a: TR_Int = b, b: TR_Int = 1) -> TR_Int { TR_return a }
+    TR_assert_equal("H2440", TR_error_code { h() })
+    # Varsayılan her çağrıda yeniden hesaplanır
+    TR_func liste_al(l: TR_List = []) -> TR_List { l.TR_append(1); TR_return l }
+    TR_assert_equal([1], liste_al())
+    TR_assert_equal([1], liste_al())
+}
+
+TR_test "6.5 adlı argümanlar" {
+    TR_func böl(bölünen: TR_Int, bölen: TR_Int = 1) -> TR_Float { TR_return bölünen / bölen }
+    TR_assert_equal(5, böl(bölen: 2, bölünen: 10))
+    TR_assert_equal(10, böl(10))
+    # Python'un k=2 yazımı sözdizimi hatasıdır, ileti k: 2'yi önerir
+    # Olumsuz fikstür: tests/negative/adli_arguman.tr
+}
+
+TR_test "6.5 aynı parametre hem sırayla hem adıyla verilemez" {
+    TR_func f(a: TR_Int, b: TR_Int = 10) -> TR_List { TR_return [a, b] }
+    TR_assert_equal([1, 20], f(1, b: 20))
+    TR_assert_equal("H2413", TR_error_code { f(1, a: 2) })
+    # adlı argümanlar varken eksik zorunlu parametre adıyla söylenir
+    TR_assert_equal("H2415", TR_error_code { f(b: 20) })
+}
+
+TR_test "6.6 fonksiyon ifadesi (a, b) => ifade ya da (a) => { ... }" {
+    TR_var iki_kat = (x: TR_Int) => x * 2
+    TR_var topla2 = (a: TR_Int, b: TR_Int) => a + b
+    TR_var blok = (x: TR_Int) => {
+        TR_var y = x + 1
+        TR_return y * 2
+    }
+    TR_assert_equal(6, iki_kat(3))
+    TR_assert_equal(5, topla2(2, 3))
+    TR_assert_equal(8, blok(3))
+    TR_var sıfır = (_) => 0
+    TR_assert_equal(0, sıfır(7))
+    # Başka yazımlar (x => ..., adsız TR_func, lambda) sözdizimi hatasıdır, ileti oku önerir
+    # Olumsuz fikstür: tests/negative/fonksiyon_ifadesi.tr
+}
+
+TR_test "6.6 parametre tipleri beklenen fonksiyon tipinden çıkar" {
+    TR_var sayılar = [1, 2, 3, 4]
+    TR_assert_equal([3, 4], sayılar.TR_filter((x) => x > 2))
+    TR_assert_equal([9, 16], sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x))
+    TR_assert_equal([[10, 20]], [[1, 2]].TR_map((x) => x.TR_map((x2) => x2 * 10)))
+    TR_func uygula(x: TR_Int, f: (TR_Int) -> TR_Int) -> TR_Int { TR_return f(x) }
+    TR_assert_equal(10, uygula(5, (x) => x * 2))
+}
+
+TR_test "6.6 TR_reduce'un fonksiyonu birikimi ve öğeyi alır" {
+    TR_assert_equal(10, [1, 2, 3, 4].TR_reduce(0, (acc, x) => acc + x))
+    TR_assert_equal(24, [1, 2, 3, 4].TR_reduce((acc, x) => acc * x))
+    TR_assert_equal([3, 2, 1], [1, 2, 3].TR_reduce([], (acc, x) => [x] + acc))
+    # Öğeler liste olsa da x öğedir
+    TR_assert_equal(10, [[1, 2], [3, 4]].TR_reduce(0, (acc, x) => acc + x[0] + x[1]))
+    TR_var birikim = 5
+    TR_assert_equal(2, [1, 2].TR_reduce(birikim, (acc, x) => acc - x))
+    TR_assert_equal("H2476", TR_error_code { [1, 2].TR_reduce(0, (x) => x) })
+}
+
+TR_test "6.7 sondaki blok argümansız çağrılabilir; değeri son ifadesidir" {
+    TR_func çalıştır(iş: () -> TR_Int) -> TR_Int { TR_return iş() }
+    TR_assert_equal(5, çalıştır { 2 + 3 })
+    # Blok argüman almaz: yerleşik de onu argümanla çağıramaz, ileti oku önerir
+    TR_assert_equal("H2711", TR_error_code { [1, 2].TR_map { 1 } })
+    TR_assert_equal([2, 4], [1, 2].TR_map((x) => x * 2))
+    # Sondaki blok parametresizdir, içinde TR_return yoktur
+    # Olumsuz fikstür: tests/negative/sondaki_blok.tr
+}
+
+TR_test "6.7 kontrol yapısı başlığında { gövdeyi başlatır" {
+    TR_var l = [1, 5]
+    TR_var sonuç_ = ""
+    TR_if (l.TR_filter((x) => x > 2)).TR_length > 0 { sonuç_ = "var" }
+    TR_assert_equal("var", sonuç_)
+}
+
 TR_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlatır, sondaki blok olmaz" {
     TR_var l = [1, 2, 3]
-    TR_func sınıf(x) {
+    TR_func sınıf(x: TR_Int) -> TR_String {
         TR_return TR_if l.TR_contains(x * 10) { "a" } TR_else TR_if l.TR_contains(x) { "b" } TR_else { "c" }
     }
     TR_assert_equal("b", sınıf(2))
@@ -166,4 +178,58 @@ TR_test "6.7 değilse eğer başlığında da süslü parantez gövdeyi başlat�
         sonuç_ = "başka"
     }
     TR_assert_equal("katman", sonuç_)
+}
+
+TR_test "6.8 kapanışlar tanımlandıkları ortamı yakalar" {
+    TR_func sayaç_yap() -> () -> TR_Int {
+        TR_var n = 0
+        TR_return () => {
+            n += 1
+            TR_return n
+        }
+    }
+    TR_var s = sayaç_yap()
+    s()
+    TR_assert_equal(2, s())
+    TR_assert_equal(1, sayaç_yap()())
+}
+
+TR_test "6.8 özyineleme" {
+    TR_func fakt(n: TR_Int) -> TR_Int {
+        TR_if n <= 1 { TR_return 1 }
+        TR_return n * fakt(n - 1)
+    }
+    TR_assert_equal(3628800, fakt(10))
+}
+
+TR_test "6.9 fonksiyon tipi (T) -> R diye yazılır; -> sağdan birleşir" {
+    TR_func uygula(h: (TR_Int) -> TR_Int, x: TR_Int) -> TR_Int { TR_return h(x) }
+    TR_assert_equal(6, uygula((y) => y * 3, 2))
+    TR_func toplayan() -> (TR_Int) -> (TR_Int) -> TR_Int { TR_return (a) => (b) => a + b }
+    TR_assert_equal(3, toplayan()(1)(2))
+    TR_var toplam = 0
+    TR_var ekle: (TR_Int) -> TR_NoneType = (x) => { toplam += x }
+    ekle(4)
+    TR_assert_equal(4, toplam)
+}
+
+TR_test "6.9 fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır" {
+    TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }
+    TR_assert_equal(3, f(1, k: 2))
+    TR_assert_equal(2, f(1))
+    TR_var g = f
+    TR_assert_equal(3, g(1, 2))
+    TR_assert_equal("H2710", TR_error_code { g(1, k: 2) })
+    TR_assert_equal("H2710", TR_error_code { g(1) })
+    # Karar adın bağına göredir: parametre, tanımla aynı adı taşısa da bir değerdir
+    TR_func aynı_adla(f: (TR_Int) -> TR_Int, x: TR_Int) -> TR_Int { TR_return f(x) }
+    TR_func başka_adla(h: (TR_Int) -> TR_Int, x: TR_Int) -> TR_Int { TR_return h(x) }
+    TR_assert_equal("H2710", TR_error_code { aynı_adla(f, 1) })
+    TR_assert_equal("H2710", TR_error_code { başka_adla(f, 1) })
+    TR_assert_equal(2, aynı_adla((x) => x * 2, 1))
+}
+
+TR_test "6.11 iç içe çağrı derinliği sınırı yakalanabilir hata verir" {
+    TR_func sonsuz(n: TR_Int) -> TR_Int { TR_return sonsuz(n + 1) }
+    TR_assert_equal("H2422", TR_error_code { sonsuz(0) })
 }

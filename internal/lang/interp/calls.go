@@ -23,8 +23,8 @@ var selfName = codes.Name(codes.KwSelf)
 var ctorName = codes.Name(codes.CtxInit)
 
 // checkArity koddaki doğrudan çağrılarda (f(1, 2), x |> f) kullanıcı fonksiyonunun argüman
-// sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlar
-// (filtrele, haritala, indirge ...) bu denetime girmez; onlar fazladan argüman gönderebilir.
+// sayısını ve adlandırılmış argümanlarını denetler. Yerleşiklerin geri çağırdığı fonksiyonlarda
+// (TR_filter, TR_map, TR_reduce ...) apply yalnız fazla argümanı denetler.
 //
 // owner, metot ya da kurucu çağrısında yapının tanımıdır (bağlı metotta BoundSelf'ten okunur): ileti
 // öznesini o kurar (callLabel).
@@ -192,6 +192,13 @@ func (v *VM) apply(fnVal Value, args []Value, named map[string]Value, line int) 
 		if fk == nil {
 			fk = v.prepareFuncCode(fn)
 		}
+		if len(args) > len(fn.Parameters) {
+			// Yerleşiğin verdiği fazla argüman atılmaz (6.7: sondaki blok parametresizdir).
+			if fk.blockValue {
+				return nil, messages.At(line, 0, messages.New(messages.H2711, len(args)))
+			}
+			return nil, checkArity(fn, nil, len(args), nil, line)
+		}
 		return v.callPrepared(fn, fk, fk.getEnv(fn.Env), fn.BoundSelf, args, len(args), named, line)
 
 	case *BuiltinVal:
@@ -295,9 +302,12 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 			fnEnv.store(slot, Null)
 		}
 	}
-	val, _, err := fk.bodyBlock.run(v, fnEnv)
+	val, sig, err := fk.bodyBlock.run(v, fnEnv)
 	if err != nil {
 		return nil, err
+	}
+	if sig != signalReturn && !fk.blockValue {
+		return Null, nil // örtük dönüş yoktur (6.2): TR_return'süz biten fonksiyon değer döndürmez
 	}
 	return val, nil
 }

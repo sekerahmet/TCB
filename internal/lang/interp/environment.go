@@ -23,6 +23,9 @@ type scopeInfo struct {
 	// yazılan sahipli değerler bağlanır, ortam kapanınca bağ kalkar (ownership.go). Diğer
 	// ortamlara yazılan değer kaçar.
 	local bool
+	// funcs bir TR_func tanımının bağladığı adlardır: bu yuvaya çözülen ad tanımın adıdır, çağrısı
+	// doğrudandır (6.9).
+	funcs map[string]bool
 }
 
 // slot adın indeksini döndürür; ad tabloda yoksa ekler.
@@ -225,6 +228,13 @@ func (e *Environment) Get(name string) (Value, bool) {
 
 func (e *Environment) Define(name string, val Value, isConst bool) {
 	e.define(e.scope.slot(name), val, isConst)
+	if fn, ok := val.(*FuncVal); ok && fn.Name == name {
+		// Adla yapılan tanım (takma adsız aktar, hata ayıklayıcı) bir TR_func'ı kendi adına bağlar (6.9)
+		if e.scope.funcs == nil {
+			e.scope.funcs = map[string]bool{}
+		}
+		e.scope.funcs[name] = true
+	}
 }
 
 func (e *Environment) Assign(name string, val Value) error {

@@ -4,7 +4,7 @@
 # cmd/tr/e2e); burada programın içinden görülen kurallar.
 
 TR_test "1.11 TR_exit'in kodu 0–125 arasında bir TR_Int'tir; dışındaki değer çalışma hatasıdır" {
-    TR_assert_equal("H2531", TR_error_code(() => TR_exit(126)))
-    TR_assert_equal("H2531", TR_error_code(() => TR_exit(-1)))
-    TR_assert_equal("H2531", TR_error_code(() => TR_exit(255)))
+    TR_assert_equal("H2531", TR_error_code { TR_exit(126) })
+    TR_assert_equal("H2531", TR_error_code { TR_exit(-1) })
+    TR_assert_equal("H2531", TR_error_code { TR_exit(255) })
 }

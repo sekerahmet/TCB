@@ -246,38 +246,8 @@ func (l *Lexer) nextToken() Token {
 	var tok Token
 
 	switch l.ch {
-	case '=':
-		tok = l.operator(line, col, TokAssign, follow{'=', TokEq}, follow{'>', TokArrow})
-	case ':':
-		tok = l.operator(line, col, TokColon, follow{'=', TokWalrus})
-	case '+':
-		tok = l.operator(line, col, TokPlus, follow{'=', TokPlusAssign})
-	case '-':
-		tok = l.operator(line, col, TokMinus, follow{'=', TokMinusAssign})
-	case '*':
-		tok = l.operator(line, col, TokAsterisk, follow{'*', TokPower}, follow{'=', TokMulAssign})
-	case '/':
-		tok = l.operator(line, col, TokSlash, follow{'/', TokSlashSlash}, follow{'=', TokDivAssign})
-	case '%':
-		tok = l.operator(line, col, TokPercent)
-	case '@':
-		tok = l.operator(line, col, TokMatmul)
-	case '!':
-		tok = l.operator(line, col, TokBang, follow{'=', TokNotEq})
-	case '<':
-		tok = l.operator(line, col, TokLt, follow{'=', TokLte}, follow{'<', TokShl})
-	case '>':
-		tok = l.operator(line, col, TokGt, follow{'=', TokGte}, follow{'>', TokShr})
-	case '&':
-		tok = l.operator(line, col, TokBitAnd, follow{'&', TokAnd})
-	case '|':
-		tok = l.operator(line, col, TokBitOr, follow{'|', TokOr}, follow{'>', TokPipe})
-	case '^':
-		tok = l.operator(line, col, TokBitXor)
-	case '~':
-		tok = l.operator(line, col, TokTilde)
-	case '?':
-		tok = l.operator(line, col, TokQuestion, follow{'?', TokNullCoalesc}, follow{'.', TokSafeDot})
+	case '=', ':', '+', '-', '*', '/', '%', '@', '!', '<', '>', '&', '|', '^', '~', '?':
+		tok = l.operatorToken(line, col)
 	case '.':
 		if isDigit(l.peekChar()) {
 			return l.pointFraction(line, col)
@@ -366,6 +336,76 @@ type follow struct {
 // operator, l.ch'de başlayan işleci verir: sonraki karakter follows'taki karakterlerden biriyse
 // iki karakterli işleç (ilk karakter tüketilir; ikincisini NextToken'ın sonu tüketir), değilse
 // single. go/scanner'ın switch2/switch3 yardımcılarının karşılığı: işleç tablosu tek yerde durur.
+// operatorToken işleç ve noktalama karakteriyle (=, :, +, -, *, /, %, @, !, <, >, &, |, ^, ~, ?) başlayan
+// sözcük birimini okur; iki ve üç karakterli işleçler (==, //=) en uzun eşleşmeyle.
+func (l *Lexer) operatorToken(line, col int) Token {
+	switch l.ch {
+	case '=':
+		return l.operator(line, col, TokAssign, follow{'=', TokEq}, follow{'>', TokArrow})
+	case ':':
+		return l.operator(line, col, TokColon, follow{'=', TokWalrus})
+	case '+':
+		return l.operator(line, col, TokPlus, follow{'=', TokPlusAssign})
+	case '-':
+		return l.operator(line, col, TokMinus, follow{'=', TokMinusAssign})
+	case '*':
+		if t, ok := l.doubled(line, col, TokPower, TokPowAssign); ok {
+			return t
+		} else {
+			return l.operator(line, col, TokAsterisk, follow{'=', TokMulAssign})
+		}
+	case '/':
+		if t, ok := l.doubled(line, col, TokSlashSlash, TokFloorDivAssign); ok {
+			return t
+		} else {
+			return l.operator(line, col, TokSlash, follow{'=', TokDivAssign})
+		}
+	case '%':
+		return l.operator(line, col, TokPercent, follow{'=', TokModAssign})
+	case '@':
+		return l.operator(line, col, TokMatmul)
+	case '!':
+		return l.operator(line, col, TokBang, follow{'=', TokNotEq})
+	case '<':
+		if t, ok := l.doubled(line, col, TokShl, TokShlAssign); ok {
+			return t
+		} else {
+			return l.operator(line, col, TokLt, follow{'=', TokLte})
+		}
+	case '>':
+		if t, ok := l.doubled(line, col, TokShr, TokShrAssign); ok {
+			return t
+		} else {
+			return l.operator(line, col, TokGt, follow{'=', TokGte})
+		}
+	case '&':
+		return l.operator(line, col, TokBitAnd, follow{'&', TokAnd}, follow{'=', TokBitAndAssign})
+	case '|':
+		return l.operator(line, col, TokBitOr, follow{'|', TokOr}, follow{'>', TokPipe}, follow{'=', TokBitOrAssign})
+	case '^':
+		return l.operator(line, col, TokBitXor, follow{'=', TokBitXorAssign})
+	case '~':
+		return l.operator(line, col, TokTilde)
+	case '?':
+		return l.operator(line, col, TokQuestion, follow{'?', TokNullCoalesc}, follow{'.', TokSafeDot})
+	}
+	return Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col} // yalnız işleç karakterinde çağrılır
+}
+
+// doubled iki kez yazılan işleci (//, **, <<, >>) ve ardından '=' geliyorsa bileşik atamasını (//=)
+// okur; ok, karakterin ikinci kez yazıldığıdır.
+func (l *Lexer) doubled(line, col int, two, assign TokenType) (Token, bool) {
+	if l.peekChar() != l.ch {
+		return Token{}, false
+	}
+	l.readChar()
+	if l.peekChar() == '=' {
+		l.readChar()
+		return Token{Type: assign, Literal: string(assign), Line: line, Column: col}, true
+	}
+	return Token{Type: two, Literal: string(two), Line: line, Column: col}, true
+}
+
 func (l *Lexer) operator(line, col int, single TokenType, follows ...follow) Token {
 	for _, f := range follows {
 		if l.peekChar() == f.ch {

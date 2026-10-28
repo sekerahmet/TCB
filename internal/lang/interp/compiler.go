@@ -65,6 +65,14 @@ func (k *compilerScope) predefine(stmts []ast.Statement) {
 	for _, st := range stmts {
 		ast.StatementDefinedNames(st, k.define)
 		k.statementShadows(st)
+		if es, ok := st.(*ast.ExpressionStatement); ok && k.info != nil {
+			if fl, ok := es.Expression.(*ast.FunctionLiteral); ok && fl.Name != "" {
+				if k.info.funcs == nil {
+					k.info.funcs = map[string]bool{}
+				}
+				k.info.funcs[fl.Name] = true
+			}
+		}
 	}
 }
 
@@ -80,6 +88,8 @@ type resolution struct {
 	nestDepth int
 	slot      int
 	global    *Environment
+	// funcDef: ad bir TR_func tanımının yuvasına çözüldü (6.9)
+	funcDef bool
 }
 
 // resolve bir adı derleme anında çözer.
@@ -94,9 +104,9 @@ func (k *compilerScope) resolve(name string) resolution {
 		}
 		if i, ok := c.info.index[name]; ok {
 			if c.global != nil {
-				return resolution{kind: resolveGlobal, slot: i, global: c.global}
+				return resolution{kind: resolveGlobal, slot: i, global: c.global, funcDef: c.info.funcs[name]}
 			}
-			return resolution{kind: resolveLocal, nestDepth: d, slot: i}
+			return resolution{kind: resolveLocal, nestDepth: d, slot: i, funcDef: c.info.funcs[name]}
 		}
 		if c.dynamic {
 			return resolution{}

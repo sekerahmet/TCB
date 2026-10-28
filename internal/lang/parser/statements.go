@@ -49,14 +49,64 @@ func (p *Parser) parseStatement() ast.Statement {
 		if slices.Contains(p.words.test, p.curToken().Literal) && p.peekTokenIs(lexer.TokString) {
 			return p.parseTestStatement()
 		}
-		// x := 5 kısa değişken tanımı kontrolü
+		// def f(x): Python'un tanımı yoktur (6.1), ileti TR_func'ı önerir
+		if p.curToken().Literal == "def" && p.peekTokenIs(lexer.TokIdent) && p.peekTokenN(2).Type == lexer.TokLParen {
+			def := p.curToken()
+			p.syntaxErrorFix(def, []messages.Fix{{Range: def.Range(), Replacement: p.wordText(codes.KwFunc)}}, messages.H0258, p.word(codes.KwFunc))
+			return nil
+		}
+		// x := 5: kısa tanım yoktur (5.1), ileti TR_var'ı önerir
 		if p.peekTokenIs(lexer.TokWalrus) {
-			return p.parseShortVarStatement()
+			p.shortVarError()
+			return nil
+		}
+		return p.parseExpressionOrAssignmentStatement()
+	case lexer.TokMatmul:
+		// Satır başında '@f': Python'un süsleyicisi yoktur (6.1); '@' matris çarpımıdır.
+		if p.peekTokenIs(lexer.TokIdent) && p.peekToken().Line == p.curToken().Line &&
+			(p.pos == 0 || p.tokens[p.pos-1].Line < p.curToken().Line) {
+			p.syntaxError(p.curToken(), messages.H0259, p.peekToken().Literal)
+			return nil
 		}
 		return p.parseExpressionOrAssignmentStatement()
 	default:
 		return p.parseExpressionOrAssignmentStatement()
 	}
+}
+
+// duplicateFunctions aynı blokta aynı adla ikinci fonksiyon tanımını hata yapar (6.1): bir ad tek
+// fonksiyondur, parametre tipine göre ayrışma yoktur; ikinci tanım birincisini sessizce değiştirmez.
+// Hata ikinci tanımın adındadır, ilgili konum ilk tanımdır.
+func (p *Parser) duplicateFunctions(prog *ast.Program) {
+	if !p.namedFunctions {
+		return
+	}
+	check := func(stmts []ast.Statement) {
+		first := map[string]lexer.Token{}
+		for _, s := range stmts {
+			es, ok := s.(*ast.ExpressionStatement)
+			if !ok {
+				continue
+			}
+			f, ok := es.Expression.(*ast.FunctionLiteral)
+			if !ok || f.Name == "" {
+				continue
+			}
+			if prev, seen := first[f.Name]; seen {
+				err := messages.AtRange(f.NameToken.Range(), messages.New(messages.H0100, messages.New(messages.H0260, f.Name, prev.Line)))
+				p.errors = append(p.errors, err.WithRelated(messages.Related{Range: prev.Range()}))
+				continue
+			}
+			first[f.Name] = f.NameToken
+		}
+	}
+	check(prog.Statements)
+	ast.Walk(prog, func(n any) bool {
+		if b, ok := n.(*ast.BlockStatement); ok {
+			check(b.Statements)
+		}
+		return true
+	})
 }
 func (p *Parser) parseTestStatement() ast.Statement {
 	tok := p.curToken() // test
@@ -134,7 +184,11 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 			}
 			names = append(names, &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal})
 		}
-		if !p.peekTokenIs(lexer.TokAssign) && !p.peekTokenIs(lexer.TokWalrus) {
+		if p.peekTokenIs(lexer.TokWalrus) {
+			p.walrusInDeclError(tok)
+			return nil
+		}
+		if !p.peekTokenIs(lexer.TokAssign) {
 			tok := p.peekToken()
 			p.syntaxError(tok, messages.H0142, p.tokenDescription(tok))
 			return nil
@@ -156,38 +210,99 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	// İsteğe bağlı tip belirtimi: değişken yaş: Tam = 25
 	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
-		if !p.expectPeek(lexer.TokIdent) {
+		var ok bool
+		if stmt.TypeName, stmt.TypeToken, ok = p.typeAfter(); !ok {
 			return nil
 		}
-		stmt.TypeName, stmt.TypeToken = p.curToken().Literal, p.curToken()
-		p.role(p.curToken(), RoleType)
 	}
 
-	if p.peekTokenIs(lexer.TokAssign) || p.peekTokenIs(lexer.TokWalrus) {
-		p.nextToken() // '=' veya ':='
+	switch {
+	case p.peekTokenIs(lexer.TokAssign):
+		p.nextToken() // '='
 		p.nextToken()
 		stmt.Value = p.parseExpression(precLowest)
-	} else {
+	case p.peekTokenIs(lexer.TokWalrus):
+		p.walrusInDeclError(tok)
+		return nil
+	case p.peekToken().Line == p.curToken().Line && !p.peekTokenIs(lexer.TokSemicolon) &&
+		!p.peekTokenIs(lexer.TokRBrace) && !p.peekTokenIs(lexer.TokEOF):
+		// Tanımın ardında başka bir şey var (ör. henüz yazılamayan TR_List[TR_Int]): '=' beklenir.
+		p.peekError(lexer.TokAssign)
+		return nil
+	default:
+		// İlk değer her zaman yazılır (5.1); ağaç yine kurulur ki ardından gelen denetim boşluk görmesin.
 		stmt.Value = &ast.NullLiteral{Token: p.curToken()}
+		p.noFirstValueError(tok, firstIdent.Value, p.curToken())
 	}
 
 	p.skipSemicolon()
 	return stmt
 }
-func (p *Parser) parseShortVarStatement() *ast.VarStatement {
-	identTok := p.curToken()
-	p.nextToken() // ':=' üzerine gel
-	walrusTok := p.curToken()
-	p.nextToken() // değerin başına gel
 
-	stmt := &ast.VarStatement{
-		Token:   walrusTok,
-		Name:    &ast.Identifier{Token: identTok, Value: identTok.Literal},
-		Value:   p.parseExpression(precLowest),
-		IsConst: false,
+// underscoreReads '_'nin okunduğu her yeri sözdizimi hatası yapar (5.3): '_' bir ad değildir, gerekmeyen
+// değerin yerini tutar. Yazılabildiği yerler tanımın adları, atamanın hedefleri ('=' ile), döngü ve
+// üreteç değişkeni, fonksiyon parametresi ve eşlemenin her şeyle eşleşen kolu; son üçü ağaçta ad
+// değil metindir, burada görünmez.
+func (p *Parser) underscoreReads(prog *ast.Program) {
+	if !p.underscore || p.interpolated {
+		return // ağaç yalnız ifadede '_' yazılmışsa ve en dıştaki ayrıştırıcıda gezilir
 	}
-	p.skipSemicolon()
-	return stmt
+	writes := map[*ast.Identifier]bool{}
+	ast.Walk(prog, func(n any) bool {
+		switch s := n.(type) {
+		case *ast.VarStatement:
+			writes[s.Name] = true
+		case *ast.MultiVarStatement:
+			for _, x := range s.Names {
+				writes[x] = true
+			}
+		case *ast.MultiAssignStatement:
+			for _, x := range s.Targets {
+				if id, ok := x.(*ast.Identifier); ok {
+					writes[id] = true
+				}
+			}
+		case *ast.AssignStatement:
+			if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == lexer.TokAssign {
+				writes[id] = true
+			}
+		}
+		return true
+	})
+	ast.Walk(prog, func(n any) bool {
+		if id, ok := n.(*ast.Identifier); ok && id.Value == "_" && !writes[id] {
+			p.syntaxError(id.Token, messages.H0253)
+			p.errorMode = false // her okuma ayrı bir yerdir
+		}
+		return true
+	})
+}
+
+// shortVarError 'x := 5' kısa tanımının hatasıdır (5.1): imleç adda, ardından ':=' gelir. Düzeltme
+// 'x :=' yerine 'TR_var x =' yazar; olduğu gibi uygulanabilir (Go'da da ':=' yeni ad tanımlar).
+func (p *Parser) shortVarError() {
+	name, walrus := p.curToken(), p.peekToken()
+	v := p.word(codes.KwVar)
+	r := name.Range()
+	r.EndLine, r.EndCol = walrus.EndLine, walrus.EndColumn
+	fixed := p.wordText(codes.KwVar) + " " + name.Literal + " ="
+	p.syntaxErrorFix(walrus, []messages.Fix{{Range: r, Replacement: fixed, Applicable: true}}, messages.H0250, v, name.Literal)
+}
+
+// walrusInDeclError 'TR_var x := 5' yazımının hatasıdır (5.1): imleç ':='den önceki belirteçte. Düzeltme
+// ':='yi '=' yapar.
+func (p *Parser) walrusInDeclError(declTok lexer.Token) {
+	walrus := p.peekToken()
+	p.syntaxErrorFix(walrus, []messages.Fix{{Range: walrus.Range(), Replacement: "=", Applicable: true}}, messages.H0251, p.word(declTok.Code))
+}
+
+// noFirstValueError ilk değeri yazılmamış tanımın hatasıdır (5.1); last tanımın son belirtecidir (ad
+// ya da tip). Önerilen ' = TR_none' bugünkü anlamı korur ama asıl değer değildir: uygulanabilir değil.
+func (p *Parser) noFirstValueError(declTok lexer.Token, name string, last lexer.Token) {
+	r := last.Range()
+	r.Line, r.Col = r.EndLine, r.EndCol
+	none := p.wordText(codes.KwNone)
+	p.syntaxErrorFix(last, []messages.Fix{{Range: r, Replacement: " = " + none}}, messages.H0252, p.word(declTok.Code), name, none)
 }
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	p.checkReturn(p.curToken())
@@ -201,7 +316,12 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	}
 
 	p.nextToken()
+	first := p.curToken()
 	stmt.ReturnValue = p.parseExpression(precLowest)
+	if p.peekTokenIs(lexer.TokComma) {
+		// TR_return a, b: birden çok değer (6.3)
+		stmt.ReturnValue = &ast.TupleExpression{Token: first, Elements: p.parseCommaExpressions(stmt.ReturnValue)}
+	}
 
 	p.skipSemicolon()
 	return stmt
@@ -227,9 +347,11 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		}
 	}
 
-	// Atama operatörü kontrolü (=, +=, -=, *=, /=)
+	// Atama ve on iki bileşik atama (5.4)
 	switch p.peekToken().Type {
-	case lexer.TokAssign, lexer.TokPlusAssign, lexer.TokMinusAssign, lexer.TokMulAssign, lexer.TokDivAssign:
+	case lexer.TokAssign, lexer.TokPlusAssign, lexer.TokMinusAssign, lexer.TokMulAssign, lexer.TokDivAssign,
+		lexer.TokFloorDivAssign, lexer.TokModAssign, lexer.TokPowAssign, lexer.TokBitAndAssign, lexer.TokBitOrAssign,
+		lexer.TokBitXorAssign, lexer.TokShlAssign, lexer.TokShrAssign:
 		p.nextToken()
 		opTok := p.curToken()
 		p.nextToken()

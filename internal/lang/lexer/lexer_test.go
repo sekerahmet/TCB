@@ -303,7 +303,9 @@ func TestAllOperators(t *testing.T) {
 		{"&&", TokAnd}, {"||", TokOr}, {"|>", TokPipe}, {"??", TokNullCoalesc},
 		{"?.", TokSafeDot}, {"=>", TokArrow}, {"..", TokRange}, {"..=", TokRangeIncl},
 		{"+=", TokPlusAssign}, {"-=", TokMinusAssign}, {"*=", TokMulAssign},
-		{"/=", TokDivAssign},
+		{"/=", TokDivAssign}, {"//=", TokFloorDivAssign}, {"%=", TokModAssign}, {"**=", TokPowAssign},
+		{"&=", TokBitAndAssign}, {"|=", TokBitOrAssign}, {"^=", TokBitXorAssign}, {"<<=", TokShlAssign},
+		{">>=", TokShrAssign},
 		{"&", TokBitAnd}, {"|", TokBitOr}, {"^", TokBitXor}, {"~", TokTilde},
 		{"<<", TokShl}, {">>", TokShr},
 		{",", TokComma}, {";", TokSemicolon}, {":", TokColon}, {".", TokDot},
@@ -311,8 +313,11 @@ func TestAllOperators(t *testing.T) {
 		{"}", TokRBrace}, {"[", TokLBracket}, {"]", TokRBracket},
 	}
 	for _, tt := range tests {
-		// Hem tek başına hem de iki tanımlayıcı arasında doğru okunmalı
-		checkTokens(t, tt.src, []expected{{tt.kind, tt.src}, {TokEOF, ""}})
+		// Hem tek başına hem de iki tanımlayıcı arasında doğru okunmalı; satır başındaki '//' yorum
+		// hatasıdır (2.2), '//=' yalnız iki ad arasında sınanır.
+		if tt.kind != TokFloorDivAssign {
+			checkTokens(t, tt.src, []expected{{tt.kind, tt.src}, {TokEOF, ""}})
+		}
 		checkTokens(t, "a"+tt.src+"b", []expected{
 			{TokIdent, "a"}, {tt.kind, tt.src}, {TokIdent, "b"}, {TokEOF, ""},
 		})
@@ -327,13 +332,16 @@ func TestOperatorCombinations(t *testing.T) {
 	}{
 		// '->' tek token değildir; ayrıştırıcı '-' ve '>' çiftini dönüş tipi oku olarak tanır
 		{"->", []expected{{TokMinus, "-"}, {TokGt, ">"}}},
-		{"**=", []expected{{TokPower, "**"}, {TokAssign, "="}}},
+		{"**=", []expected{{TokPowAssign, "**="}}},
+		{"**==", []expected{{TokPowAssign, "**="}, {TokAssign, "="}}},
 		{"===", []expected{{TokEq, "=="}, {TokAssign, "="}}},
 		{"==>", []expected{{TokEq, "=="}, {TokGt, ">"}}},
 		{"...", []expected{{TokRange, ".."}, {TokDot, "."}}},
 		{"???", []expected{{TokNullCoalesc, "??"}, {TokQuestion, "?"}}},
 		{"!!", []expected{{TokBang, "!"}, {TokBang, "!"}}},
-		{"<<=", []expected{{TokShl, "<<"}, {TokAssign, "="}}},
+		{"<<=", []expected{{TokShlAssign, "<<="}}},
+		{"<<<", []expected{{TokShl, "<<"}, {TokLt, "<"}}},
+		{"<=<", []expected{{TokLte, "<="}, {TokLt, "<"}}},
 		{">>>", []expected{{TokShr, ">>"}, {TokGt, ">"}}},
 		{"|||", []expected{{TokOr, "||"}, {TokBitOr, "|"}}},
 		{"&&&", []expected{{TokAnd, "&&"}, {TokBitAnd, "&"}}},

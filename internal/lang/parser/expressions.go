@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -25,8 +26,13 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		// Tek parametreli ok fonksiyonu: x => x * 2 (eşle deseninde ad, değeriyle karşılaştırılır)
 		if !pattern && p.peekTokenIs(lexer.TokArrow) {
 			leftExp = p.parseSingleParamLambda()
+		} else if p.curToken().Literal == "lambda" && (p.peekTokenIs(lexer.TokIdent) || p.peekTokenIs(lexer.TokColon)) {
+			// Python'un lambda x: e'si yoktur (6.6): ileti oku önerir.
+			p.syntaxError(p.curToken(), messages.H0270)
+			return nil
 		} else {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
+			p.underscore = p.underscore || p.curToken().Literal == "_"
 		}
 	case lexer.TokSelf:
 		leftExp = &ast.Identifier{Token: p.curToken(), Value: p.words.self}
@@ -143,8 +149,11 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	}
 	p.nextToken()
 	if tok.Type == lexer.TokSlashSlash && !p.startsExpression() {
-		// '// not' C ailesinin yorumudur (4.9): tam bölmenin sağında ifade yoksa ileti '#'i önerir.
-		p.syntaxError(p.curToken(), messages.H0025)
+		// '// not' C ailesinin yorumudur (4.9): tam bölmenin sağında ifade yoksa hata '//'dedir ve '#'i
+		// önerir. Düzeltme satırın kalanını yoruma çevirir; parantez dışında soldaki ifade tamamdır,
+		// olduğu gibi uygulanabilir. Parantez içinde kapanış da yoruma girerdi: yalnız öneri.
+		fix := messages.Fix{Range: tok.Range(), Replacement: "#", Applicable: p.brackets == 0}
+		p.syntaxErrorFix(tok, []messages.Fix{fix}, messages.H0025)
 		return nil
 	}
 	if prec == precCompare {
@@ -298,6 +307,11 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int) ast.Exp
 		// Python'un üyelik sınaması 'x TR_in l' yoktur (4.9); TR_in döngü ve liste üreteci
 		// başlığında kendi yerinde okunur, bir ifadenin ardında hiç geçmez.
 		p.syntaxError(p.peekToken(), messages.H0206)
+	}
+	if p.peekTokenIs(lexer.TokIf) && !p.lineBreakEnds() && !p.comprehensionSource {
+		// Python'un koşullu ifadesi 'a TR_if c TR_else b' yoktur (5.5): ifadenin ardındaki TR_if
+		// yalnız liste üretecinin koşuludur; ileti TR_if ifadesini önerir.
+		p.syntaxError(p.peekToken(), messages.H0255, p.word(codes.KwIf), p.word(codes.KwElse))
 	}
 
 	return leftExp

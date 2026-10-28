@@ -48,7 +48,7 @@
         ".filter"
       ],
       "body": [
-        ".filter { it > ${1:2} }"
+        ".filter((x) => x > ${1:2})"
       ]
     },
     {
@@ -59,7 +59,7 @@
         ".map"
       ],
       "body": [
-        ".map { it * ${1:2} }"
+        ".map((x) => x * ${1:2})"
       ]
     },
     {
@@ -145,7 +145,7 @@
         "\toptimizer.step()",
         "\tif step % 100 == 0 { print(\"step \\(step): loss = \\(loss.tolist)\") }",
         "}",
-        "print(no_grad { return X @ w + b })$0"
+        "print(no_grad { X @ w + b })$0"
       ]
     }
   ],
@@ -198,7 +198,7 @@
         ".filtrele"
       ],
       "body": [
-        ".filtrele { o > ${1:2} }"
+        ".filtrele((x) => x > ${1:2})"
       ]
     },
     {
@@ -209,7 +209,7 @@
         ".haritala"
       ],
       "body": [
-        ".haritala { o * ${1:2} }"
+        ".haritala((x) => x * ${1:2})"
       ]
     },
     {
@@ -295,7 +295,7 @@
         "\tiyileştirici.adım()",
         "\teğer adım % 100 == 0 { yazdır(\"adım \\(adım): kayıp = \\(kayıp.değer)\") }",
         "}",
-        "yazdır(türevsiz { sonuç X @ w + b })$0"
+        "yazdır(türevsiz { X @ w + b })$0"
       ]
     }
   ]

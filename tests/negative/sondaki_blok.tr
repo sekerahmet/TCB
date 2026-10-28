@@ -1,0 +1,10 @@
+# TR 4
+# TEST 6.7 sondaki blok parametresizdir: son argümandaki parametresiz ok blokla yazılır, blokta TR_return yoktur, başlıkta paranteze alınır; kalkan TR_it ve TR_acc oku önerir
+TR_var tamam = TR_error_code { 1 }
+TR_var a = TR_error_code(() => { 1 }) # ERROR H0262
+TR_var b = TR_error_code { TR_return 1 } # ERROR H0263
+TR_var l = [1]
+TR_for x TR_in l.TR_filter { TR_true } { TR_print(x) } # ERROR H0265
+TR_for x TR_in (l.TR_filter { TR_true }) { TR_print(x) }
+TR_var m = l.TR_map { TR_it * 2 } # ERROR H0271
+TR_var r = l.TR_reduce(0) { TR_acc } # ERROR H0272

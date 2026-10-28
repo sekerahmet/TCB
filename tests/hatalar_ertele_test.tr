@@ -25,7 +25,7 @@ TR_test "8.2 fırlat her değeri hata metnine çevirir" {
 }
 
 TR_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
-    TR_assert_equal("H2469", TR_error_code(() => { TR_var z = [1] - 1 }))
+    TR_assert_equal("H2469", TR_error_code { TR_var z = [1] - 1 })
     # Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
     TR_var mesaj = ""
     TR_try { TR_var z = [1] - 1 } TR_catch h { mesaj = h }
@@ -129,10 +129,10 @@ TR_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca ter
 }
 
 TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi olduğu gibi fırlatır; hata_kodu kodu verir" {
-    TR_assert_equal("H6903", TR_error_code(() => { TR_throw TR_Message("H6903", -1) }))
-    TR_assert_equal("H6900", TR_error_code(() => { TR_assert(TR_false, TR_Message("H6900", 10, 4)) }))
-    TR_assert_equal("H2441", TR_error_code(() => { TR_throw "düz metin" }))
-    TR_assert_equal(TR_none, TR_error_code(() => { 1 + 1 }))
+    TR_assert_equal("H6903", TR_error_code { TR_throw TR_Message("H6903", -1) })
+    TR_assert_equal("H6900", TR_error_code { TR_assert(TR_false, TR_Message("H6900", 10, 4)) })
+    TR_assert_equal("H2441", TR_error_code { TR_throw "düz metin" })
+    TR_assert_equal(TR_none, TR_error_code { 1 + 1 })
     TR_var yakalanan = ""
     TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { yakalanan = h }
     TR_assert(yakalanan.TR_contains("-1"), yakalanan)
@@ -142,13 +142,13 @@ TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi 
 
 TR_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl nedenin, modülün denetim hatasında ilk tanının kodu" {
     # İletinin parçaları ("tensörde ve sayıda", "Tam (5)") neden değildir: kod iletinin kendisinindir.
-    TR_assert_equal("H2423", TR_error_code(() => TR_floor("a")))
-    TR_assert_equal("H6104", TR_error_code(() => TR_floor([1.5])))
+    TR_assert_equal("H2423", TR_error_code { TR_floor("a") })
+    TR_assert_equal("H6104", TR_error_code { TR_floor([1.5]) })
     # Nedeni taşıyan yuva ({error}) inilir: dosya hatasının kendi kodu gelir.
-    TR_assert_equal("H2132", TR_error_code(() => TR_load_tensors("bu_dosya_yok_12345.trt")))
+    TR_assert_equal("H2132", TR_error_code { TR_load_tensors("bu_dosya_yok_12345.trt") })
     # Tip değeriyle metnin karşılaştırılması (3.11) çalışma anında da kendi koduyla çıkar.
     TR_var ad = "Tam"
-    TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_Type(5) == ad) }))
+    TR_assert_equal("H1105", TR_error_code { TR_print(TR_Type(5) == ad) })
     # Modül yüklenemezse (denetim hatası) hata yeniden fırlatılmaz; ilk tanının kodu gelir.
     # Olumsuz fikstür: tests/negative/test_yerel_adi.tr
 }

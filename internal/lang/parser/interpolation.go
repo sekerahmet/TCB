@@ -60,7 +60,10 @@ func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int
 	subParser := New(p.l.Interpolation(text, exprCode, exprStart))
 	subParser.nesting = p.nesting
 	subParser.roles = p.roles
+	subParser.interpolated = true
 	subProg := subParser.ParseProgram()
+	p.underscore = p.underscore || subParser.underscore
+	p.ifWithoutElse = p.ifWithoutElse || subParser.ifWithoutElse
 	if subParser.depthExceeded {
 		if !p.depthExceeded {
 			p.errors = append(p.errors, subParser.errors[len(subParser.errors)-1])

@@ -23,7 +23,7 @@ TR_print(TR_Path(".").TR_absolute.TR_is_dir, TR_Path(kök, "veri").TR_absolute =
 TR_print("a.txt boyutu:", TR_Path(kök, "veri", "a.txt").TR_size, "bayt")
 
 # klasörü_listele kalıba uyan dosya ve klasörleri sıralı Yol listesi olarak verir (** alt klasörlere iner).
-TR_print(TR_list_dir(TR_Path(kök, "veri"), "**/*.txt").TR_map { TR_it.TR_name })
+TR_print(TR_list_dir(TR_Path(kök, "veri"), "**/*.txt").TR_map((x) => x.TR_name))
 
 # kopyala ve taşı hedefin yolunu döndürür. Hedef zaten varsa üzerine_yaz: doğru gerekir.
 TR_copy(TR_Path(kök, "veri", "a.txt"), TR_Path(kök, "veri", "alt"))

@@ -25,16 +25,16 @@ TR_print(sayılar.TR_reduce(0, (t, x) => t + x))
 
 # Son parametre fonksiyonsa süslü parantezle yazılabilir (sondaki blok).
 # Blokta sıradaki eleman o adıyla gelir; indirge'de önceki sonuç birikim'dir.
-TR_print(sayılar.TR_map { TR_it * 10 })
-TR_print(sayılar.TR_filter { TR_it > 3 })
-TR_print(sayılar.TR_reduce(1) { TR_acc * TR_it })
+TR_print(sayılar.TR_map((x) => x * 10))
+TR_print(sayılar.TR_filter((x) => x > 3))
+TR_print(sayılar.TR_reduce(1, (acc, x) => acc * x))
 
 # Metotlar zincirlenir: her adımın sonucu bir sonrakinin girdisi olur.
 TR_var ham = [5, 2, 8, 2, 1, 9, 5, 4]
-TR_print(ham.TR_unique().TR_filter { TR_it > 2 }.TR_sort().TR_reverse())
+TR_print(ham.TR_unique().TR_filter((x) => x > 2).TR_sort().TR_reverse())
 
 # Listenin toplamı: TR_sum(liste).
-TR_var çift_kareler = ham.TR_filter { TR_it % 2 == 0 }.TR_map { TR_it * TR_it }
+TR_var çift_kareler = ham.TR_filter((x) => x % 2 == 0).TR_map((x) => x * x)
 TR_print("çift kareler: \(çift_kareler), toplamı \(TR_sum(çift_kareler))")
 
 # --- Kendin dene ---

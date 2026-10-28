@@ -32,8 +32,8 @@ TR_func dene_okuyucu(yap) {
     TR_print(kalan == çek(sürdürülen, 4))
     TR_print(durum.TR_keys())
 }
-dene_okuyucu(TR_func() { TR_return k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3) })
-dene_okuyucu(TR_func() { TR_return k.TR_sequential(TR_batch_size: 2, TR_context: 8) })
+dene_okuyucu { k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3) }
+dene_okuyucu { k.TR_sequential(TR_batch_size: 2, TR_context: 8) }
 `)
 	want := "true\n" +
 		`["kind", "batch", "context", "seed", "dataset", "epoch", "position", "window", "counter"]` + "\n" +
@@ -64,8 +64,8 @@ TR_func dene_okuyucu(yap) {
     TR_var x = b.TR_next()
     TR_print(x[0].TR_tolist == beklenen[0].TR_tolist, x[1].TR_tolist == beklenen[1].TR_tolist, b.TR_state["counter"] == a.TR_state["counter"])
 }
-dene_okuyucu(TR_func() { TR_return k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3) })
-dene_okuyucu(TR_func() { TR_return k.TR_sequential(TR_batch_size: 2, TR_context: 8) })
+dene_okuyucu { k.TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3) }
+dene_okuyucu { k.TR_sequential(TR_batch_size: 2, TR_context: 8) }
 TR_var s = k.TR_sequential(TR_batch_size: 8, TR_context: 32)
 TR_print(s.TR_skip(10), s.TR_next())
 `)

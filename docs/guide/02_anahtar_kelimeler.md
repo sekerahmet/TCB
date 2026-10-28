@@ -1,6 +1,6 @@
 # 2. Anahtar Kelimeler
 
-- **Değişken & Sabit:** `TR_kw_var`, `:=`, `TR_kw_const`
+- **Değişken & Sabit:** `TR_kw_var x = 1`, `TR_kw_const K = 2` (ilk değer her zaman yazılır; `:=` yoktur)
 - **Çoklu Atama & Takas:** `TR_kw_var a, b = 10, 20`, `a, b = b, a`, `ad, soyad = ["Mustafa", "Kemal"]`
 - **Fonksiyon & Dönüş:** `TR_kw_func`, `TR_kw_return`, `(x) => x * 2`
 - **Koşul & Eşleştirme:** `TR_kw_if`, `değilse eğer`, `TR_kw_else`, `TR_kw_match` (varsayılan kol `_ =>`)

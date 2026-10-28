@@ -12,9 +12,9 @@ import (
 
 // Kural (3.10): tensör koşul olamaz; doğruluk sınaması yoktur, değer açık karşılaştırılır.
 func TestTensorIsNotACondition(t *testing.T) {
-	out := mustRun(t, `TR_print(TR_error_code(() => { TR_if TR_Tensor([0.0]) { } }))
-TR_print(TR_error_code(() => { TR_if TR_sum(TR_Tensor([1, -1])) { } }))
-TR_print(TR_error_code(() => { TR_if TR_zeros([0]) { } }))
+	out := mustRun(t, `TR_print(TR_error_code { TR_if TR_Tensor([0.0]) { } })
+TR_print(TR_error_code { TR_if TR_sum(TR_Tensor([1, -1])) { } })
+TR_print(TR_error_code { TR_if TR_zeros([0]) { } })
 TR_if TR_sum(TR_Tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
 	want := "H2600\nH2600\nH2600\naçık sınama\n"
 	if out != want {

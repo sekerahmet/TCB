@@ -16,7 +16,7 @@ func TestRolesRecordedForNamesWithoutNodes(t *testing.T) {
 	src := `aktar "yol" olarak m
 yapı Nokta {
     x: Tam
-    fonksiyon uzak(a: Metin): Tam { sonuç 1 }
+    fonksiyon uzak(a: Metin) -> Tam { sonuç 1 }
 }
 değişken n: Liste = []
 değişken d = {ad: 1}

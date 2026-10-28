@@ -3,17 +3,17 @@
 
 TR_test "3.1 Tam: 64 bit, taşma hata verir" {
     TR_assert_equal(9223372036854775807, 9223372036854775806 + 1)
-    TR_assert_equal("H2473", TR_error_code(() => { TR_var z = 9223372036854775807 + 1 }))
+    TR_assert_equal("H2473", TR_error_code { TR_var z = 9223372036854775807 + 1 })
 }
 
 TR_test "3.1 yerleşikler de taşmada sarmak yerine hata verir" {
     TR_var büyük = 9223372036854775807
-    TR_assert_equal("H2485", TR_error_code(() => { TR_sum([büyük, 1]) }))
-    TR_assert_equal("H2485", TR_error_code(() => { TR_sum([büyük, 1]) }))
-    TR_assert_equal("H2431", TR_error_code(() => { TR_abs(-büyük - 1) }))
-    TR_assert_equal("H2484", TR_error_code(() => { TR_Int(1e30) }))
-    TR_assert_equal("H2484", TR_error_code(() => { TR_Int(-1e30) }))
-    TR_assert_equal("H2484", TR_error_code(() => { TR_round(1e30) }))
+    TR_assert_equal("H2485", TR_error_code { TR_sum([büyük, 1]) })
+    TR_assert_equal("H2485", TR_error_code { TR_sum([büyük, 1]) })
+    TR_assert_equal("H2431", TR_error_code { TR_abs(-büyük - 1) })
+    TR_assert_equal("H2484", TR_error_code { TR_Int(1e30) })
+    TR_assert_equal("H2484", TR_error_code { TR_Int(-1e30) })
+    TR_assert_equal("H2484", TR_error_code { TR_round(1e30) })
     TR_assert_equal(büyük, TR_sum([büyük - 1, 1]))
     TR_assert_equal(-büyük - 1, TR_Int(TR_Float(-büyük - 1)))
 }
@@ -49,7 +49,7 @@ TR_test "3.3 Metin: karakter (rune) bazında uzunluk ve indeks" {
     TR_assert_equal("r", "şeker"[-1])
     TR_assert_equal("ek", "şeker"[1..3])
     # Sınır dışı okuma hatadır; öğenin olmayabileceği bilinçli durum varsa_al ile yazılır
-    TR_assert_equal("H2515", TR_error_code(() => { "abc"[10] }))
+    TR_assert_equal("H2515", TR_error_code { "abc"[10] })
     TR_assert_equal(TR_none, "abc".TR_get(10))
     TR_assert_equal("c", "abc".TR_get(-1))
 }
@@ -70,7 +70,7 @@ TR_test "3.3a Bayt dizisi: metinden ve tam sayı listesinden kurulur, indeks ve 
     TR_assert_equal(101, b[-1])
     TR_assert_equal(TR_Bytes([159, 101]), b[1..3])
     TR_assert_equal(TR_Bytes([]), b[2..1])
-    TR_assert_equal("H2515", TR_error_code(() => { b[3] }))
+    TR_assert_equal("H2515", TR_error_code { b[3] })
     TR_assert_equal(TR_none, b.TR_get(3))
     TR_assert_equal(TR_Bytes, TR_Type(b))
     TR_var toplam = 0
@@ -80,11 +80,11 @@ TR_test "3.3a Bayt dizisi: metinden ve tam sayı listesinden kurulur, indeks ve 
 
 TR_test "3.3a 0–255 dışındaki sayı ve geçersiz UTF-8 çalışma hatasıdır; metinle bayt kendiliğinden dönüşmez" {
     TR_assert_equal("şe", TR_String(TR_Bytes("şe")))
-    TR_assert_equal("H2655", TR_error_code(() => { TR_Bytes([0, 256]) }))
-    TR_assert_equal("H2655", TR_error_code(() => { TR_Bytes([-1]) }))
-    TR_assert_equal("H2655", TR_error_code(() => { TR_Bytes(["a"]) }))
-    TR_assert_equal("H2656", TR_error_code(() => { TR_String(TR_Bytes([197])) }))
-    TR_assert_equal("H2656", TR_error_code(() => { TR_String(TR_Bytes([255, 97])) }))
+    TR_assert_equal("H2655", TR_error_code { TR_Bytes([0, 256]) })
+    TR_assert_equal("H2655", TR_error_code { TR_Bytes([-1]) })
+    TR_assert_equal("H2655", TR_error_code { TR_Bytes(["a"]) })
+    TR_assert_equal("H2656", TR_error_code { TR_String(TR_Bytes([197])) })
+    TR_assert_equal("H2656", TR_error_code { TR_String(TR_Bytes([255, 97])) })
     TR_assert(TR_Bytes("a") != TR_Bytes("b"))
 }
 
@@ -118,8 +118,8 @@ TR_test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatadır, 
     TR_assert_equal(3, l.TR_length)
     TR_assert_equal(1, l[0])
     TR_assert_equal(3.0, l[-1])
-    TR_assert_equal("H2515", TR_error_code(() => { l[5] }))
-    TR_assert_equal("H2515", TR_error_code(() => { l[-4] }))
+    TR_assert_equal("H2515", TR_error_code { l[5] })
+    TR_assert_equal("H2515", TR_error_code { l[-4] })
     TR_assert_equal(TR_none, l.TR_get(5))
     TR_assert_equal(0, l.TR_get(5) ?? 0)
     TR_assert_equal(3.0, l.TR_get(-1))
@@ -151,25 +151,25 @@ TR_test "3.7 Sözlük: eklenme sırasını korur; anahtar bir ifadedir" {
 
 TR_test "3.7 anahtar yalnız köşeli parantezle okunur ve yazılır; olmayan anahtar hatadır, .get yok verir" {
     TR_var d = {"a": 1}
-    TR_assert_equal("H2648", TR_error_code(() => { d.a }))
-    TR_assert_equal("H2648", TR_error_code(() => { d.TR_step }))
-    TR_assert_equal("H2648", TR_error_code(() => { d.a = 2 }))
-    TR_assert_equal("H2647", TR_error_code(() => { d["yok"] }))
-    TR_assert_equal("H2647", TR_error_code(() => { d["yok"] += 1 }))
+    TR_assert_equal("H2648", TR_error_code { d.a })
+    TR_assert_equal("H2648", TR_error_code { d.TR_step })
+    TR_assert_equal("H2648", TR_error_code { d.a = 2 })
+    TR_assert_equal("H2647", TR_error_code { d["yok"] })
+    TR_assert_equal("H2647", TR_error_code { d["yok"] += 1 })
     TR_assert_equal(TR_none, d.TR_get("yok"))
     TR_assert_equal(1, d.TR_get("a"))
     TR_assert_equal(0, d.TR_get("yok") ?? 0)
-    TR_assert_equal("H2647", TR_error_code(() => { {1: "bir"}["1"] }))
+    TR_assert_equal("H2647", TR_error_code { {1: "bir"}["1"] })
 }
 
 TR_test "3.7 anahtar tipi Int, String, Bool ya da Bytes'tır; ondalık ve öbür değerler anahtar olamaz" {
     TR_var d = {}
-    TR_assert_equal("H2646", TR_error_code(() => { d[1.0] = "bir" }))
-    TR_assert_equal("H2646", TR_error_code(() => { TR_var e = {0.5: "yarım"} }))
-    TR_assert_equal("H2669", TR_error_code(() => { d[TR_none] = 1 }))
-    TR_assert_equal("H2669", TR_error_code(() => { d[x => x] = 1 }))
-    TR_assert_equal("H2670", TR_error_code(() => { d[TR_json_parse("1")] = 1 }))
-    TR_assert_equal("H2646", TR_error_code(() => { d.TR_contains(1.5) }))
+    TR_assert_equal("H2646", TR_error_code { d[1.0] = "bir" })
+    TR_assert_equal("H2646", TR_error_code { TR_var e = {0.5: "yarım"} })
+    TR_assert_equal("H2669", TR_error_code { d[TR_none] = 1 })
+    TR_assert_equal("H2669", TR_error_code { d[(x) => x] = 1 })
+    TR_assert_equal("H2670", TR_error_code { d[TR_json_parse("1")] = 1 })
+    TR_assert_equal("H2646", TR_error_code { d.TR_contains(1.5) })
     # NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
     TR_var j = TR_json_parse(`{"\u0000Tam:1": "metin"}`)
     TR_var d2 = {j.TR_keys()[0]: TR_String(j[j.TR_keys()[0]])}
@@ -180,11 +180,11 @@ TR_test "3.7 anahtar tipi Int, String, Bool ya da Bytes'tır; ondalık ve öbür
 }
 
 TR_test "3.7 içeriği değişebilen değerler (liste, sözlük, yapı nesnesi) anahtar olamaz" {
-    TR_assert_equal("H2495", TR_error_code(() => { TR_var a = {[1]: 1} }))
+    TR_assert_equal("H2495", TR_error_code { TR_var a = {[1]: 1} })
     TR_var d = {}
-    TR_assert_equal("H2495", TR_error_code(() => { d[[1]] = 1 }))
-    TR_assert_equal("H2495", TR_error_code(() => { TR_var b = d[{}] }))
-    TR_assert_equal("H2495", TR_error_code(() => { TR_var c = d.TR_contains([1]) }))
+    TR_assert_equal("H2495", TR_error_code { d[[1]] = 1 })
+    TR_assert_equal("H2495", TR_error_code { TR_var b = d[{}] })
+    TR_assert_equal("H2495", TR_error_code { TR_var c = d.TR_contains([1]) })
 }
 
 TR_test "3.7 sözlük üyeleri noktayla, anahtarlar köşeli parantezle: üye adı da anahtar olabilir" {
@@ -196,7 +196,7 @@ TR_test "3.7 sözlük üyeleri noktayla, anahtarlar köşeli parantezle: üye ad
     TR_assert_equal(1, d["a"])
     d["b"] = 3
     TR_assert_equal(3, d["b"])
-    TR_assert_equal("H2406", TR_error_code(() => { d.TR_keys = 7 }))
+    TR_assert_equal("H2406", TR_error_code { d.TR_keys = 7 })
 }
 
 TR_test "3.7a JSON: çözme, okuma, tür ve açma" {
@@ -219,46 +219,64 @@ TR_test "3.7a JSON: çözme, okuma, tür ve açma" {
 
 TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_var j = TR_json_parse(`{"a": "x", "n": [1, 2.5]}`)
-    TR_assert_equal("H2649", TR_error_code(() => { j["yok"] }))
-    TR_assert_equal("H2515", TR_error_code(() => { j["n"][5] }))
-    TR_assert_equal("H2650", TR_error_code(() => { j[0] }))
-    TR_assert_equal("H2652", TR_error_code(() => { TR_Int(j["a"]) }))
-    TR_assert_equal("H2652", TR_error_code(() => { TR_String(j["n"]) }))
-    TR_assert_equal("H2651", TR_error_code(() => { j["n"].TR_keys() }))
+    TR_assert_equal("H2649", TR_error_code { j["yok"] })
+    TR_assert_equal("H2515", TR_error_code { j["n"][5] })
+    TR_assert_equal("H2650", TR_error_code { j[0] })
+    TR_assert_equal("H2652", TR_error_code { TR_Int(j["a"]) })
+    TR_assert_equal("H2652", TR_error_code { TR_String(j["n"]) })
+    TR_assert_equal("H2651", TR_error_code { j["n"].TR_keys() })
     # Metin türünde değerin metni metnin kendisi, öbürlerinde JSON metni.
     TR_assert_equal("x [1,2.5]", "\(j["a"]) \(j["n"])")
     TR_assert_equal("\"x\"", TR_json_string(j["a"]))
     TR_assert(j == TR_json_parse(`{"n": [1.0, 2.5], "a": "x"}`))
     TR_assert(j != TR_json_parse(`{"a": "y", "n": [1, 2.5]}`))
     TR_assert_equal(j, TR_JSON({"a": "x", "n": [1, 2.5]}))
-    TR_assert_equal("H2653", TR_error_code(() => { TR_JSON([TR_inf]) }))
-    TR_assert_equal("H2653", TR_error_code(() => { TR_JSON(TR_nan) }))
-    TR_assert_equal("H2654", TR_error_code(() => { TR_JSON({1: 2}) }))
-    TR_assert_equal("H2654", TR_error_code(() => { TR_JSON(0..3) }))
+    TR_assert_equal("H2653", TR_error_code { TR_JSON([TR_inf]) })
+    TR_assert_equal("H2653", TR_error_code { TR_JSON(TR_nan) })
+    TR_assert_equal("H2654", TR_error_code { TR_JSON({1: 2}) })
+    TR_assert_equal("H2654", TR_error_code { TR_JSON(0..3) })
 }
 
 TR_test "3.7a JSON değeri JSON olmayan değerle karşılaştırılmaz, işleçte açılır; ileti açan yazımı önerir" {
     TR_var j = TR_json_parse(`{"k": 3, "s": "xy", "a": [1, 2], "o": {}, "n": null}`)
     # j["k"] == 3 hep yanlış olurdu: çalışma hatası, ileti TR_Int(j) == x'i önerir; önerilen yazım çalışır
-    TR_assert_equal("H2660", TR_error_code(() => { j["k"] == 3 }))
-    TR_assert_equal("H2660", TR_error_code(() => { "xy" != j["s"] }))
+    TR_assert_equal("H2660", TR_error_code { j["k"] == 3 })
+    TR_assert_equal("H2660", TR_error_code { "xy" != j["s"] })
     TR_assert(TR_Int(j["k"]) == 3)
     TR_assert(TR_String(j["s"]) == "xy")
-    TR_assert_equal("H2661", TR_error_code(() => { j["o"] == {} }))
+    TR_assert_equal("H2661", TR_error_code { j["o"] == {} })
     TR_assert(j["o"] == TR_JSON({}))
     # Yoklukla ve JSON değeriyle karşılaştırma serbesttir; JSON null bir JSON değeridir (3.7a)
     TR_assert(j["n"] != TR_none)
     TR_assert(j["k"] == TR_JSON(3))
     # Öbür işleçler: önce tipiyle açılır
-    TR_assert_equal("H2662", TR_error_code(() => { j["k"] + 1 }))
-    TR_assert_equal("H2662", TR_error_code(() => { j["k"] < 2 }))
+    TR_assert_equal("H2662", TR_error_code { j["k"] + 1 })
+    TR_assert_equal("H2662", TR_error_code { j["k"] < 2 })
     TR_assert_equal(4, TR_Int(j["k"]) + 1)
-    TR_assert_equal("H2663", TR_error_code(() => { j["o"] + 1 }))
-    TR_assert_equal("H2666", TR_error_code(() => { j["s"].TR_length }))
+    TR_assert_equal("H2663", TR_error_code { j["o"] + 1 })
+    TR_assert_equal("H2666", TR_error_code { j["s"].TR_length })
     TR_assert_equal(2, TR_String(j["s"]).TR_length)
     # Yerleşiğe JSON değeri verilince ileti beklenen tiple açmayı önerir
-    TR_assert_equal("H2665", TR_error_code(() => { TR_abs(j["k"]) }))
+    TR_assert_equal("H2665", TR_error_code { TR_abs(j["k"]) })
     TR_assert_equal(3, TR_abs(TR_Int(j["k"])))
+}
+
+TR_test "3.7a kabın içinde, .TR_contains'te ve eşleme deseninde de JSON yalnız JSON'la karşılaştırılır" {
+    TR_var j = TR_json_parse(`{"a": [1, 2]}`)
+    TR_assert_equal("H2705", TR_error_code { TR_var z = TR_List(j["a"]) == [1, 2] })
+    TR_assert_equal("H2705", TR_error_code { TR_var z = [j["a"][0]] == [1] })
+    TR_assert_equal("H2705", TR_error_code { TR_var z = TR_List(j["a"]).TR_contains(1) })
+    TR_assert_equal("H2705", TR_error_code {
+        TR_var z = TR_match j["a"][0] {
+            1 => "bir"
+            _ => "başka"
+        }
+    })
+    # İletinin önerileri: önce tipiyle açmak ya da öbür yanı JSON yapmak; yoklukla karşılaştırma serbest
+    TR_assert([TR_Int(j["a"][0])] == [1])
+    TR_assert(TR_List(j["a"]) == [TR_JSON(1), TR_JSON(2)])
+    TR_assert(TR_List(j["a"]).TR_contains(TR_JSON(2)))
+    TR_assert([j["a"]] != [TR_none])
 }
 
 TR_test "5.7 JSON dizisinde öğeler, nesnesinde anahtarlar dolaşılır; iki değişkenle anahtar ve değer" {
@@ -270,7 +288,7 @@ TR_test "5.7 JSON dizisinde öğeler, nesnesinde anahtarlar dolaşılır; iki de
     TR_for k, v TR_in j { çiftler.TR_append("\(k)=\(v)") }
     TR_assert_equal(["a=[1,2]", "b=x"], çiftler)
     TR_assert_equal([2, 4], [TR_Int(x) * 2 TR_for x TR_in j["a"]])
-    TR_assert_equal("H2664", TR_error_code(() => { TR_for c TR_in j["b"] {} }))
+    TR_assert_equal("H2664", TR_error_code { TR_for c TR_in j["b"] {} })
 }
 
 TR_test "3.8 Aralık: a..b (b hariç), a..=b (b dahil)" {
@@ -309,7 +327,7 @@ TR_test "3.8 başı sonundan büyük aralık boştur; geriye .reverse() sayar" {
 }
 
 TR_test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
-    TR_var f = TR_func(x) { TR_return x + 1 }
+    TR_var f = (x) => { TR_return x + 1 }
     TR_var l = [f]
     TR_assert_equal(2, l[0](1))
     TR_assert_equal(TR_Function, TR_Type(f))
@@ -317,10 +335,10 @@ TR_test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
 
 TR_test "3.10 koşul yalnız TR_Bool olur; başka tip çalışma hatasıdır" {
     TR_for d TR_in [TR_none, 0, 0.0, "", "a", [], [0], {}, 1..2] {
-        TR_assert_equal("H2600", TR_error_code(() => { TR_if d { TR_print("girmemeli") } }))
-        TR_assert_equal("H2600", TR_error_code(() => { TR_if TR_false {} TR_else TR_if d {} }))
-        TR_assert_equal("H2600", TR_error_code(() => { TR_for d { TR_break } }))
-        TR_assert_equal("H2600", TR_error_code(() => { TR_var l = [x TR_for x TR_in [1] TR_if d] }))
+        TR_assert_equal("H2600", TR_error_code { TR_if d { TR_print("girmemeli") } })
+        TR_assert_equal("H2600", TR_error_code { TR_if TR_false {} TR_else TR_if d {} })
+        TR_assert_equal("H2600", TR_error_code { TR_for d { TR_break } })
+        TR_assert_equal("H2600", TR_error_code { TR_var l = [x TR_for x TR_in [1] TR_if d] })
     }
 }
 
@@ -355,8 +373,8 @@ TR_test "3.11 tip(x) değerin tipini bir tip değeri olarak verir; tip adlarıyl
 
 TR_test "3.11 tip değeri metinle karşılaştırılamaz: tip(x) == Tam yazılır" {
     TR_var ad = "Tam"
-    TR_assert_equal("H1105", TR_error_code(() => { TR_print(TR_Type(5) == ad) }))
-    TR_assert_equal("H1105", TR_error_code(() => { TR_assert_equal(ad, TR_Type(5)) }))
+    TR_assert_equal("H1105", TR_error_code { TR_print(TR_Type(5) == ad) })
+    TR_assert_equal("H1105", TR_error_code { TR_assert_equal(ad, TR_Type(5)) })
     # Denetleyici tip(...) ile bir metin sabitinin karşılaştırılmasını çalıştırmadan önce bulur.
     # Olumsuz fikstür: tests/negative/tip_metin.tr
 }
@@ -375,9 +393,9 @@ TR_test "3.12 tip çağrılınca kurar ve çevirir" {
     TR_assert_equal(TR_Float, TR_Type(1.5))
     TR_assert_equal(TR_Type, TR_Type(TR_Int))
     TR_assert_equal(TR_Tensor, TR_Type(TR_Tensor([1, 2])))
-    TR_assert_equal("H2645", TR_error_code(() => { TR_Dict() }))
+    TR_assert_equal("H2645", TR_error_code { TR_Dict() })
     # Aralık çağrılmaz: a..b yazılır, listesi TR_List(a..b) (3.8)
-    TR_assert_equal("H2657", TR_error_code(() => { TR_Range(3) }))
+    TR_assert_equal("H2657", TR_error_code { TR_Range(3) })
 }
 
 TR_test "3.12 metin 2.4 ve 2.5'in yazımıyla, işaretle ve yerel ayarsız okunur" {
@@ -388,35 +406,35 @@ TR_test "3.12 metin 2.4 ve 2.5'in yazımıyla, işaretle ve yerel ayarsız okunu
     TR_var n = TR_Float("nan")
     TR_assert(n != n)
     TR_for m TR_in [" 42", "3.5", "0x1F", "1__0", "1_", "", "+"] {
-        TR_assert_equal("H2640", TR_error_code(() => { TR_Int(m) }), m)
+        TR_assert_equal("H2640", TR_error_code { TR_Int(m) }, m)
     }
-    TR_assert_equal("H2641", TR_error_code(() => { TR_Int("9223372036854775808") }))
+    TR_assert_equal("H2641", TR_error_code { TR_Int("9223372036854775808") })
     TR_for m TR_in ["1,5", ".5", "1.", "1e999", "Inf", "infinity", "sonsuz", " 1.0"] {
-        TR_assert_equal("H2642", TR_error_code(() => { TR_Float(m) }), m)
+        TR_assert_equal("H2642", TR_error_code { TR_Float(m) }, m)
     }
-    TR_assert_equal("H2667", TR_error_code(() => { TR_Int(TR_Float("nan")) }))
-    TR_assert_equal("H2484", TR_error_code(() => { TR_Int(1e30) }))
+    TR_assert_equal("H2667", TR_error_code { TR_Int(TR_Float("nan")) })
+    TR_assert_equal("H2484", TR_error_code { TR_Int(1e30) })
 }
 
 TR_test "3.12 mantık değeri yalnız \"true\" ve \"false\" metninden kurulur" {
     TR_assert_equal([TR_true, TR_false], [TR_Bool("true"), TR_Bool("false")])
-    TR_assert_equal("H2643", TR_error_code(() => { TR_Bool("True") }))
-    TR_assert_equal("H2643", TR_error_code(() => { TR_Bool("1") }))
-    TR_assert_equal("H2643", TR_error_code(() => { TR_Bool("") }))
+    TR_assert_equal("H2643", TR_error_code { TR_Bool("True") })
+    TR_assert_equal("H2643", TR_error_code { TR_Bool("1") })
+    TR_assert_equal("H2643", TR_error_code { TR_Bool("") })
     TR_for x TR_in [1, 0.0, []] {
-        TR_assert_equal("H2644", TR_error_code(() => { TR_Bool(x) }), "\(x)")
+        TR_assert_equal("H2644", TR_error_code { TR_Bool(x) }, "\(x)")
     }
-    TR_assert_equal("H2668", TR_error_code(() => { TR_Int(TR_true) }))
-    TR_assert_equal("H2668", TR_error_code(() => { TR_Float(TR_false) }))
+    TR_assert_equal("H2668", TR_error_code { TR_Int(TR_true) })
+    TR_assert_equal("H2668", TR_error_code { TR_Float(TR_false) })
 }
 
 TR_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
     TR_var yaş: TR_Int = 25
-    TR_func iki_kat(x: TR_Int): TR_Int { TR_return x * 2 }
+    TR_func iki_kat(x: TR_Int) -> TR_Int { TR_return x * 2 }
     TR_assert_equal(50, iki_kat(yaş))
     TR_var r: TR_Range = 0..3
     TR_assert_equal(TR_Range, TR_Type(r))
-    TR_var f: TR_Function = x => x
+    TR_var f: TR_Function = (x) => x
     TR_assert_equal(2, f(2))
     # Uyuşmazlık programı çalıştırmadan reddeder (modül de aynı denetimden geçer)
     # Olumsuz fikstür: tests/negative/tip_aciklamasi.tr
@@ -436,7 +454,7 @@ TR_test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
 
 TR_test "3.14 tip adının tek yazımı vardır" {
     TR_var adet: TR_Int = 3
-    TR_func kare(x: TR_Float): TR_Float { TR_return x * x }
+    TR_func kare(x: TR_Float) -> TR_Float { TR_return x * x }
     TR_assert_equal(2.25, kare(1.5))
     # Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
     # Olumsuz fikstür: tests/negative/tip_adi_yazimi.tr

@@ -9,7 +9,7 @@ TR_const KOŞU = TR_temp_dir()
 
 # satırlar: günlük dosyasının JSON satırlarını JSON listesi olarak verir.
 TR_func satırlar(dosya_yolu) {
-    TR_return TR_read_file(dosya_yolu).TR_strip().TR_split("\n").TR_map { TR_json_parse(TR_it) }
+    TR_return TR_read_file(dosya_yolu).TR_strip().TR_split("\n").TR_map((x) => TR_json_parse(x))
 }
 
 # Programın tek komut_satırı çağrısı (19.2, 19.4 bunu kullanır).
@@ -20,8 +20,8 @@ TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
     TR_assert_equal(TR_none, TR_env("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
     TR_assert_equal("varsayılan", TR_env("TR_BOYLE_BIR_DEGISKEN_YOK_19") ?? "varsayılan")
     TR_assert_equal(TR_String, TR_Type(TR_env("PATH")))
-    TR_assert_equal("H2423", TR_error_code(() => TR_env(5)))
-    TR_assert_equal("H7231", TR_error_code(() => TR_env("")))
+    TR_assert_equal("H2423", TR_error_code { TR_env(5) })
+    TR_assert_equal("H7231", TR_error_code { TR_env("") })
 }
 
 TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükte verir" {
@@ -35,15 +35,15 @@ TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükt
 }
 
 TR_test "19.2 komut_satırı programda bir kez çağrılır" {
-    TR_assert_equal("H7218", TR_error_code(() => TR_command_line({"step": 1})))
+    TR_assert_equal("H7218", TR_error_code { TR_command_line({"step": 1}) })
 }
 
 TR_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
-    TR_assert_equal("H7221", TR_error_code(() => TR_command_line({"yardım": TR_true})))
-    TR_assert_equal("H7225", TR_error_code(() => TR_command_line({"a": {"b": 1}})))
-    TR_assert_equal("H7224", TR_error_code(() => TR_command_line({"a": [1, "x"]})))
-    TR_assert_equal("H7229", TR_error_code(() => TR_command_line({"step": 1}, TR_descriptions: {"stpe": "x"})))
-    TR_assert_equal("H7900", TR_error_code(() => TR_command_line({"a": 1}, açklama: "x")))
+    TR_assert_equal("H7221", TR_error_code { TR_command_line({"yardım": TR_true}) })
+    TR_assert_equal("H7225", TR_error_code { TR_command_line({"a": {"b": 1}}) })
+    TR_assert_equal("H7224", TR_error_code { TR_command_line({"a": [1, "x"]}) })
+    TR_assert_equal("H7229", TR_error_code { TR_command_line({"step": 1}, TR_descriptions: {"stpe": "x"}) })
+    TR_assert_equal("H7900", TR_error_code { TR_command_line({"a": 1}, açklama: "x") })
 }
 
 TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
@@ -82,12 +82,12 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
 }
 
 TR_test "19.6 günlük hataları" {
-    TR_assert_equal("H7319", TR_error_code(() => TR_Logger("\(KOŞU)/a.csv")))
+    TR_assert_equal("H7319", TR_error_code { TR_Logger("\(KOŞU)/a.csv") })
     TR_var g = TR_Logger("\(KOŞU)/h.jsonl")
-    TR_assert_equal("H7321", TR_error_code(() => g.TR_append({"kind": "x"})))
-    TR_assert_equal("H7300", TR_error_code(() => g.TR_append({"f": TR_print})))
-    TR_assert_equal("H2423", TR_error_code(() => g.TR_append(5)))
-    TR_assert_equal("H7903", TR_error_code(() => g.eklee({})))
+    TR_assert_equal("H7321", TR_error_code { g.TR_append({"kind": "x"}) })
+    TR_assert_equal("H7300", TR_error_code { g.TR_append({"f": TR_print}) })
+    TR_assert_equal("H2423", TR_error_code { g.TR_append(5) })
+    TR_assert_equal("H7903", TR_error_code { g.eklee({}) })
 }
 
 TR_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
@@ -98,7 +98,7 @@ TR_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
     ç.TR_update()
     ç.TR_update()
     TR_assert(TR_String(ç).TR_contains(" 3/3, "), TR_String(ç))
-    TR_assert_equal("H7316", TR_error_code(() => ç.TR_update()))
+    TR_assert_equal("H7316", TR_error_code { ç.TR_update() })
     TR_assert_equal(TR_false, ç.TR_stop())
     # adım: kaldığı yerden sürdürür; toplamsız sayaç; elle durdurma
     TR_var d = TR_Progress(1000)
@@ -113,13 +113,13 @@ TR_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
 }
 
 TR_test "19.8 ilerleme hataları" {
-    TR_assert_equal("H7313", TR_error_code(() => TR_Progress(0)))
-    TR_assert_equal("H2423", TR_error_code(() => TR_Progress("çok")))
-    TR_assert_equal("H7314", TR_error_code(() => TR_Progress(5, TR_log: "a.jsonl")))
+    TR_assert_equal("H7313", TR_error_code { TR_Progress(0) })
+    TR_assert_equal("H2423", TR_error_code { TR_Progress("çok") })
+    TR_assert_equal("H7314", TR_error_code { TR_Progress(5, TR_log: "a.jsonl") })
     TR_var ç = TR_Progress(5)
-    TR_assert_equal("H7317", TR_error_code(() => ç.TR_update(TR_step: 9)))
-    TR_assert_equal("H7321", TR_error_code(() => ç.TR_update({"step": 1})))
-    TR_assert_equal("H7900", TR_error_code(() => ç.TR_update(adim: 1)))
+    TR_assert_equal("H7317", TR_error_code { ç.TR_update(TR_step: 9) })
+    TR_assert_equal("H7321", TR_error_code { ç.TR_update({"step": 1}) })
+    TR_assert_equal("H7900", TR_error_code { ç.TR_update(adim: 1) })
     ç.TR_stop()
 }
 

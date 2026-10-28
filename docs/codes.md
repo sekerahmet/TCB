@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 565 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 563 kod: 26 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -207,7 +207,7 @@ yazdır(yanlış veya doğru, 1 > 2 veya 3 > 2)
 
 #### TR_kw_return `sonuç`
 
-Fonksiyondan değer döndürür; yalnız sonuç yok döndürür, üst düzeyde programı bitirir, modülün üst düzeyinde ve test gövdesinde derleme hatasıdır.
+Fonksiyondan değer döndürür; gövdenin son ifadesi dönüş değeri değildir, sonuç'suz biten fonksiyon yok döndürür; yalnız sonuç yok döndürür; programın en dışında yazılmaz (1.10), test gövdesinde de derleme hatasıdır.
 
 ```tr
 fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
@@ -267,7 +267,7 @@ dene { fırlat "patladı" } yakala h { yazdır("yakalandı:", h) }
 
 #### TR_kw_var `değişken`
 
-Bulunulan kapsamda yeni bir ad tanımlar; değer verilmezse yok olur, virgülle birden çok ad tanımlanabilir.
+Bulunulan kapsamda ilk değeriyle yeni bir ad tanımlar, tipi ilk değerden çıkar (ilk değersiz tanım ve := sözdizimi hatasıdır); virgülle birden çok ad tanımlanabilir.
 
 ```tr
 değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
@@ -276,16 +276,6 @@ değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
 İlişkili: TR_kw_const `sabit`
 
 ### Bağlamsal sözcükler
-
-#### TR_ctx_acc `birikim`
-
-liste.indirge(...) { ... } sondaki bloğunda birikim o ana kadarki sonuçtur, o sıradaki elemandır. Başka her yerde sıradan bir addır.
-
-```tr
-yazdır([1, 2, 3, 4].indirge(0) { birikim + o }, [1, 2, 3].indirge(1) { birikim * o })
-```
-
-İlişkili: TR_mem_reduce `indirge`, TR_ctx_it `o`
 
 #### TR_ctx_as `olarak`
 
@@ -316,16 +306,6 @@ yapı Hesap { bakiye; fonksiyon kurucu(b) { kendi.bakiye = b * 2 } }; yazdır(He
 ```
 
 İlişkili: TR_kw_struct `yapı`
-
-#### TR_ctx_it `o`
-
-Sondaki blok { ... } tek parametreli bir fonksiyondur ve parametresinin adı o'dur; iç içe bloklarda en içteki elemanı gösterir.
-
-```tr
-yazdır([1, 2, 3, 4].filtrele { o > 2 }.haritala { o * 10 })
-```
-
-İlişkili: TR_ctx_acc `birikim`
 
 #### TR_ctx_test `test`
 
@@ -452,7 +432,7 @@ değişken oran: Ondalık = 0.75; yazdır(Tip(oran), Ondalık("3.14"), Ondalık(
 Kullanıcı tanımlı fonksiyonların ve ok fonksiyonlarının tipidir; fonksiyonlar birinci sınıf değerdir.
 
 ```tr
-değişken f: Fonksiyon = x => x * 2; yazdır(Tip(f), f(3))
+değişken f: Fonksiyon = (x) => x * 2; yazdır(Tip(f), f(3))
 ```
 
 İlişkili: TR_kw_func `fonksiyon`, TR_type_BuiltinFunction `YerleşikFonksiyon`
@@ -1032,7 +1012,7 @@ yazdır(birikimli_toplam(Tensör([1, 2, 3, 4])).değer, birikimli_toplam(Tensör
 İleri ve geri hesabı kullanıcının yazdığı yeni bir türevlenebilir işlem kurar ve çağrılabilir bir fonksiyon döndürür. Yalnızca ileri: ve geri: adlı argümanlarını alır; ileri [çıktı, saklananlar], geri her konumlu girdi için bir gradyan (ya da yok) döndürür.
 
 ```tr
-değişken kare = özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri: fonksiyon(s, g) { sonuç [g * 2 * s[0]] }); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
+değişken kare = özel_türev(ileri: (x) => [x * x, [x]], geri: (s, g) => [g * 2 * s[0]]); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
 ```
 
 İlişkili: TR_fn_grad_check `türev_denetle`, TR_fn_backward `geri_yayılım`
@@ -1092,7 +1072,7 @@ değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır(kla
 Verilen fonksiyonu çalıştırır; fonksiyon bir ileti (ileti) fırlatırsa onun kodunu Metin olarak ("H6903") döndürür, hata fırlatmazsa ya da hata kodlu değilse yok döndürür. İletinin metnini değil kodunu sınamak içindir.
 
 ```tr
-yazdır(hata_kodu(() => { fırlat İleti("H6903", -1) }))
+yazdır(hata_kodu { fırlat İleti("H6903", -1) })
 ```
 
 İlişkili: TR_type_Message `İleti`, TR_fn_assert `doğrula`
@@ -1188,7 +1168,7 @@ yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlış))
 Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
+yazdır(türev_denetle((x) => x * x, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
 ```
 
 İlişkili: TR_fn_custom_grad `özel_türev`
@@ -2161,10 +2141,10 @@ Kullananlar: TR_fn_gelu `gelu` · İlişkili: TR_fn_gelu `gelu`
 
 #### TR_arg_backward `geri`
 
-özel_türev'in geri hesabıdır: fonksiyon(saklananlar, g) biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
+özel_türev'in geri hesabıdır: (saklananlar, g) => ... biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
 
 ```tr
-değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x * 3, []] }, geri: fonksiyon(s, g) { sonuç [g * 3] }); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
+değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
 ```
 
 Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_forward `ileri`
@@ -2366,7 +2346,7 @@ Kullananlar: TR_type_Checkpoint `KontrolNoktası` · İlişkili: TR_arg_keep `tu
 türev_denetle'de sayısal gradyanı veren merkezi farkın adım büyüklüğüdür (h): (f(x + h) - f(x - h)) / 2h. Pozitif olmalıdır; varsayılan 0.001'dir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
+yazdır(türev_denetle((x) => x * x, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
 ```
 
 Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_tol `tolerans`
@@ -2384,7 +2364,7 @@ Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_tol `tolera
 özel_türev'in ileri hesabıdır: türevsiz çalışır ve [çıktı, saklananlar] döndürmelidir. Çıktı bir tensör ya da tensör listesidir.
 
 ```tr
-değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x * 3, []] }, geri: fonksiyon(s, g) { sonuç [g * 3] }); yazdır(f(Tensör([2.0])).değer)
+değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); yazdır(f(Tensör([2.0])).değer)
 ```
 
 Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_backward `geri`
@@ -2846,7 +2826,7 @@ Kullananlar: TR_fn_sample `örnekle` · İlişkili: TR_arg_top_k `en_iyi_k`
 türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç sigmoid(x) }, [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
+yazdır(türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
 ```
 
 Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_fd_step `fark_adımı`
@@ -3187,7 +3167,7 @@ yazdır(Yol("veri/derlem.tar.gz").uzantı)
 Fonksiyonun doğru döndüğü elemanlardan oluşan yeni bir liste verir. Asıl liste değişmez; fonksiyon sondaki blokla da yazılır.
 
 ```tr
-yazdır([1, 2, 3, 4].filtrele { o > 2 })
+yazdır([1, 2, 3, 4].filtrele((x) => x > 2))
 ```
 
 İlişkili: TR_mem_map `haritala`, TR_mem_reduce `indirge`
@@ -3447,7 +3427,7 @@ değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], ö�
 Her elemana fonksiyonu uygular ve sonuçların yeni listesini verir. Asıl liste değişmez; fonksiyon sondaki blokla da yazılır.
 
 ```tr
-yazdır([1, 2, 3].haritala { o * 10 })
+yazdır([1, 2, 3].haritala((x) => x * 10))
 ```
 
 İlişkili: TR_mem_filter `filtrele`, TR_mem_reduce `indirge`
@@ -3613,7 +3593,7 @@ yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
 Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger; başlangıç verilmezse ilk eleman başlangıçtır, boş listede başlangıç (yoksa yok) döner. Fonksiyon son argümandır ve iki parametre alır; sondaki blokla yazılınca birikim önceki sonuç, o eleman olur.
 
 ```tr
-yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1) { birikim * o })
+yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1, (a, x) => a * x))
 ```
 
 İlişkili: TR_mem_filter `filtrele`, TR_mem_map `haritala`

@@ -15,6 +15,7 @@ type stmtContext struct {
 	loops int  // içinde bulunulan döngü sayısı (en yakın sınırdan bu yana)
 	funcs int  // içinde bulunulan fonksiyon sayısı
 	test  bool // bir test gövdesindeyiz (fonksiyon dışı)
+	block bool // bir sondaki bloğun gövdesindeyiz (iç içe fonksiyon dışı; 6.7)
 }
 
 // ParseModule parses the code as a module (a file brought in with 'aktar'): the same as
@@ -29,7 +30,18 @@ func (p *Parser) ParseModule() *ast.Program {
 func (p *Parser) loopBody() *ast.BlockStatement {
 	p.ctx.loops++
 	defer func() { p.ctx.loops-- }()
-	return p.parseBlockStatement()
+	b := p.parseBlockStatement()
+	p.headerBlockCheck()
+	return b
+}
+
+// headerBlockCheck kontrol yapısının gövdesinden hemen sonra aynı satırda bir '{' daha geliyorsa başlıkta
+// sondaki bloklu bir çağrı yazılmıştır (6.7): başlıkta '{' her zaman gövdeyi başlatır, ilk '{ ... }' gövde
+// okundu. İleti çağrıyı paranteze almayı önerir.
+func (p *Parser) headerBlockCheck() {
+	if p.peekTokenIs(lexer.TokLBrace) && p.peekToken().Line == p.curToken().Line {
+		p.syntaxError(p.peekToken(), messages.H0265)
+	}
 }
 
 // withinLimit fn'i yeni bir sınırda (döngüsüz bağlamda) ayrıştırır. fonksiyon, sınırın bir
@@ -40,6 +52,7 @@ func (p *Parser) withinLimit(fnExpr, test bool, fn func()) {
 	if fnExpr {
 		p.ctx.funcs++
 		p.ctx.test = false
+		p.ctx.block = false
 	}
 	if test {
 		p.ctx = stmtContext{test: true}
@@ -48,9 +61,19 @@ func (p *Parser) withinLimit(fnExpr, test bool, fn func()) {
 	fn()
 }
 
-// functionBody bir fonksiyon (ok fonksiyonu, sondaki blok) gövdesini ayrıştırır.
+// functionBody bir fonksiyon (adlı fonksiyon, ok fonksiyonu) gövdesini ayrıştırır.
 func (p *Parser) functionBody() (b *ast.BlockStatement) {
 	p.withinLimit(true, false, func() { b = p.parseBlockStatement() })
+	return b
+}
+
+// trailingBody sondaki bloğun gövdesini ayrıştırır: bir sınırdır (dıştaki döngü görünmez) ve içinde
+// TR_return yoktur (6.7).
+func (p *Parser) trailingBody() (b *ast.BlockStatement) {
+	p.withinLimit(true, false, func() {
+		p.ctx.block = true
+		b = p.parseBlockStatement()
+	})
 	return b
 }
 
@@ -65,6 +88,11 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	if p.ctx.loops > 0 {
 		return
 	}
+	if p.ctx.block {
+		// Sondaki blok bir döngü de fonksiyon da değildir: blok son ifadesiyle biter (6.7).
+		p.syntaxError(tok, messages.H0264, p.tokenName(tok), p.word(codes.KwIf), p.word(codes.KwElse))
+		return
+	}
 	var exit any = "" // boşsa iletide öneri yer almaz
 	if p.ctx.funcs > 0 {
 		exit = p.word(codes.KwReturn)
@@ -74,6 +102,12 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 
 // checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
 func (p *Parser) checkReturn(tok lexer.Token) {
+	if p.ctx.block {
+		// Sondaki blokta TR_return yoktur (6.7): Python'un with içinden dönme alışkanlığı sessizce
+		// yanlış yere dönmesin; blok son ifadesiyle biter.
+		p.syntaxError(tok, messages.H0263, p.tokenName(tok), p.word(codes.KwIf), p.word(codes.KwElse))
+		return
+	}
 	if p.ctx.funcs > 0 {
 		return
 	}

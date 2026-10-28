@@ -88,6 +88,29 @@ const (
 	H0241 Code = 241  // '{name}' tanımlı değil: sözlük anahtarı bir ifadedir, burada bir değişken; metin anahtarı için "{name}" yazın
 	H0242 Code = 242  // '{name}' TR'de yok: aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
 	H0243 Code = 243  // . Aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
+	H0250 Code = 250  // TR'de ':=' yok; değişken {var} ile tanımlanır: '{name} :=' yerine '{var} {name} =' yazın
+	H0251 Code = 251  // TR'de ':=' yok; {decl} tanımının değeri '=' ile yazılır: {decl} x = 5
+	H0252 Code = 252  // '{name}' ilk değeri yazılmadan tanımlandı; {decl} tanımında ilk değer her zaman yazılır, tip ondan çıkar: adın (ya da tipin) ardına '= ' ve başlangıç değerini ekleyin (değer henüz yoksa '= {none}')
+	H0253 Code = 253  // '_' okunamaz: bir ad değil, gerekmeyen bir değerin yerini tutar; değeri kullanmak için ona bir ad verin (a, _ = l yerine a, b = l)
+	H0254 Code = 254  // değer olarak kullanılan {if}'in {else} dalı yok: değer veren {if} her durumda bir değer verir; {else} dalını yazın: {if} c {{ a }} {else} {{ b }}
+	H0255 Code = 255  // Python'un koşullu ifadesi (a {if} c {else} b) TR'de yok; değer veren {if} şöyle yazılır: {if} c {{ a }} {else} {{ b }}
+	H0256 Code = 256  // dönüş tipi ':' ile değil '->' ile yazılır: f(x: T): R yerine f(x: T) -> R
+	H0257 Code = 257  // değer döndürmeyen fonksiyonda '-> {none}' yazılmaz: '->' yalnız değer döndüren fonksiyonda yazılır; '-> {none}'u silin
+	H0258 Code = 258  // Python'un 'def'i TR'de yok: fonksiyon {func} ile tanımlanır ve gövdesi süslü parantezdedir: {func} f(x: T) -> R {{ ... }}
+	H0259 Code = 259  // Python'un süsleyicisi (@{name}) TR'de yok, '@' matris çarpımıdır: bir işi kodun çevresinde yapmak için sondaki blok yazılır: {name} {{ ... }}
+	H0260 Code = 260  // '{name}' bu blokta {first}. satırda zaten tanımlı: bir ad tek fonksiyondur, parametrelere göre ayrışma yoktur; ikinci fonksiyona başka bir ad verin
+	H0261 Code = 261  // '{name}' parametresinin varsayılanı yok ama varsayılanlı bir parametreden sonra geliyor: varsayılanlı parametreler sonda yazılır; '{name}'i öne alın ya da ona bir varsayılan verin
+	H0262 Code = 262  // son argümandaki parametresiz fonksiyon sondaki blokla yazılır: f(() => {{ ... }}) yerine f {{ ... }}, f(a, () => x) yerine f(a) {{ x }}; kontrol yapısının başlığında çağrıyı paranteze alın: (f {{ x }})
+	H0263 Code = 263  // sondaki blokta '{keyword}' yazılmaz: blok biter ve değeri son ifadesidir; erken çıkış yerine dalları yazın: {if} c {{ a }} {else} {{ b }}
+	H0264 Code = 264  // '{keyword}' yalnız bir döngünün içinde kullanılabilir; sondaki blok bir döngü değildir, son ifadesiyle biter: dalları yazın, {if} c {{ a }} {else} {{ b }}
+	H0265 Code = 265  // kontrol yapısının başlığında '{{' her zaman gövdeyi başlatır: başlıktaki sondaki bloklu çağrı paranteze alınır, (l.f {{ ... }}) {{ gövde }}
+	H0266 Code = 266  // adlı argüman '=' ile değil iki noktayla yazılır: {name}: değer ('=' atamadır)
+	H0267 Code = 267  // okun parametresi her zaman parantezle yazılır: {name} => ... yerine ({name}) => ...
+	H0268 Code = 268  // adsız {func} yok: fonksiyon ifadesi ok ile yazılır, {func}(x) {{ ... }} yerine (x) => {{ ... }}
+	H0269 Code = 269  // {func} tanımı yalnız deyim olarak yazılır: '{name}'i bloğun bir satırında tanımlayıp adıyla kullanın ya da ifade yerinde ok yazın, (x) => ...
+	H0270 Code = 270  // Python'un lambda'sı TR'de yok: fonksiyon ifadesi ok ile yazılır, lambda x: x * 2 yerine (x) => x * 2
+	H0271 Code = 271  // '{name}' TR'de yok: sondaki blok parametre almaz; öğeyle çalışan fonksiyon ok ile yazılır: l.{map}((x) => x * 2)
+	H0272 Code = 272  // '{name}' TR'de yok: sondaki blok parametre almaz; birikimi ve öğeyi alan fonksiyon ok ile yazılır: l.{reduce}(0, (acc, x) => acc + x)
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -278,8 +301,8 @@ const (
 	H2472 Code = 2472 // {type} sayı taşması ({a} ** {b}); ondalık sonuç için örn. {a}.0 ** {b} yazın
 	H2473 Code = 2473 // {type} sayı taşması ({a} {op} {b}); ondalık sonuç için örn. {a}.0 {op} {b} yazın
 	H2474 Code = 2474 // {type} tipinde {prop|q} özelliği veya metodu bulunamadı{hint}
-	H2475 Code = 2475 // {fn}(): {function} son argüman olmalı; {fn}(başlangıç, {function}) ya da {fn}(başlangıç) {{ ... }} yazın
-	H2476 Code = 2476 // {fn}(): {function} iki parametre almalı ({acc}, eleman), {count} parametreli verildi; ör. {fn}(0, ({acc}, x) => {acc} + x) ya da {fn}(0) {{ {acc} + {elem} }}
+	H2475 Code = 2475 // {fn}(): {function} son argüman olmalı; {fn}(başlangıç, {function}) yazın: {fn}(0, (acc, x) => acc + x)
+	H2476 Code = 2476 // {fn}(): {function} iki parametre almalı (birikim ve öğe), {count} parametreli verildi; sondaki blok parametresizdir, ok yazın: {fn}(0, (acc, x) => acc + x)
 	H2477 Code = 2477 // {fn}: boş listenin ortalaması yoktur
 	H2478 Code = 2478 // {wanted|q} dilin kitaplığında yok; kitaplıktaki modüller: {modules}{suggestion}
 	H2479 Code = 2479 // . Bunu mu demek istediniz: {name|q}?
@@ -345,7 +368,7 @@ const (
 	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi '{@not}' ile yazılır
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
 	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
-	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}(x => x != 0)
+	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}((x) => x != 0)
 	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: {@assert}(x == beklenen) ya da {@assert_equal}(beklenen, x)
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için l + [x] ya da l.{@append}(x) yazın
@@ -381,6 +404,17 @@ const (
 	H2668 Code = 2668 // {type}() mantık değerinden sayı kurmaz; {@if} b {{ 1 }} {@else} {{ 0 }} yazın
 	H2669 Code = 2669 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur
 	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: {@String}(j) ya da {@Int}(j)
+	H2700 Code = 2700 // liste {names} ada açılıyor ama {count} öğesi var: öğe sayısı ad sayısıyla aynı olmalı; yalnız baştaki öğeler gerekiyorsa onları indeksle alın: a, b = l[0], l[1]
+	H2701 Code = 2701 // {names} ada {count} değer verildi: her ada bir değer yazılır (a, b = 1, 2); gerekmeyen değerin yerine _ yazılır
+	H2702 Code = 2702 // {value}, {@match|gen} hiçbir koluyla eşleşmedi: eşleşme her durumu kapsar; öbür durumlar için son kol olarak '_ => ...' yazın (_ her şeyle eşleşir)
+	H2703 Code = 2703 // dolaşılan liste dolaşma sürerken {before} öğeden {after} öğeye değişti: dolaşılan listeye öğe eklenmez ve ondan öğe çıkarılmaz (var olan öğeye atama serbesttir); eklenecekleri ayrı bir listede toplayıp dolaşmadan sonra ekleyin: l += yeniler
+	H2704 Code = 2704 // dolaşılan sözlük dolaşma sürerken {before} anahtardan {after} anahtara değişti: dolaşılan sözlüğe anahtar eklenmez ve ondan anahtar çıkarılmaz (var olan anahtara atama serbesttir); değişiklikleri ayrı bir sözlükte toplayıp dolaşmadan sonra yazın
+	H2705 Code = 2705 // {kind} türündeki bir {@JSON} değeri {type} tipindeki bir değerle karşılaştırıldı (bir listenin, sözlüğün ya da eşleme deseninin içinde): JSON değeri yalnız JSON değerine eşit olabilir, sonuç hep yanlış olurdu; JSON'u önce tipiyle açın ({kind}(j)) ya da öbür yanı JSON yapın ({@JSON}(x))
+	H2706 Code = 2706 // fonksiyonlar karşılaştırılamaz (bir listenin, sözlüğün ya da eşleme deseninin içinde de): görünüşü aynı iki fonksiyon da eşit sayılmaz; fonksiyonları karşılaştırılan verinin dışında tutun ya da sonuçlarını karşılaştırın: f(x) == g(x)
+	H2708 Code = 2708 // bu çağrı {count} değer döndürür, tek bir değer değildir: sonuçları adlara açın (a, b = f()), aynı sonuçlarla TR_return f() yazarak iletin; başka bir çağrının argümanı olamaz
+	H2709 Code = 2709 // çağrı {count} değer döndürür ama {names} ada açılıyor: her sonuca bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
+	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
+	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

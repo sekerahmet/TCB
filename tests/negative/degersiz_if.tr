@@ -1,0 +1,11 @@
+# TR 4
+# TEST 5.5 değer olarak kullanılan TR_if'in TR_else'i zorunludur, iç içe dallar dahil; Python'un koşullu ifadesi yoktur, ileti TR_if ifadesini önerir
+TR_var c = TR_true
+TR_if c { TR_print(1) }
+TR_var tamam = TR_if c { 1 } TR_else { 2 }
+TR_var v = TR_if c { 1 } # ERROR H0254
+TR_var w = 1 TR_if c TR_else 2 # ERROR H0255
+TR_var z = TR_if c { TR_if c { 1 } } TR_else { 2 } # ERROR H0254
+TR_var f = (x) => TR_if x { 1 } # ERROR H0254
+TR_print("\(TR_if c { 1 })") # ERROR H0254
+TR_var l = [x TR_for x TR_in [1, 2] TR_if x > 1]

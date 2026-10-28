@@ -27,6 +27,9 @@ type funcCode struct {
 	// ortamların yığınıdır (yalnızca yorumlayıcı kilidi tutulurken erişilir).
 	pooled bool
 	free   []*Environment
+	// blockValue: sondaki bloktur (6.7), değeri son ifadesidir; öbür fonksiyonlar yalnız TR_return ile
+	// değer döndürür, gövdenin son ifadesi dönüş değeri değildir (6.2).
+	blockValue bool
 	// source fonksiyonun tanımlandığı dosyadır (nil: ana program); çağıranınkinden farklıysa
 	// çağrı o dosyanın bağlamında yapılır (kaynaktaCagir).
 	source *Source

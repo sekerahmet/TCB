@@ -311,6 +311,10 @@
           "match": "=>"
         },
         {
+          "name": "keyword.operator.assignment.compound.tr",
+          "match": "//=|\\*\\*=|<<=|>>=|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^="
+        },
+        {
           "name": "keyword.operator.comparison.tr",
           "match": "==|!=|<=|>=|<|>"
         },
@@ -319,12 +323,8 @@
           "match": "&&|\\|\\||!"
         },
         {
-          "name": "keyword.operator.assignment.compound.tr",
-          "match": "\\+=|-=|\\*=|/="
-        },
-        {
           "name": "keyword.operator.assignment.tr",
-          "match": ":=|="
+          "match": "="
         },
         {
           "name": "keyword.operator.arithmetic.tr",

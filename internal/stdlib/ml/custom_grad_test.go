@@ -21,8 +21,8 @@ import (
 
 func TestCustomGradSquare(t *testing.T) {
 	out := mustRun(t, `TR_var kare = TR_custom_grad(
-    TR_forward: TR_func(x) { TR_return [x * x, [x]] },
-    TR_backward: TR_func(saklananlar, g) { TR_return [g * 2 * saklananlar[0]] }
+    TR_forward: (x) => { TR_return [x * x, [x]] },
+    TR_backward: (saklananlar, g) => { TR_return [g * 2 * saklananlar[0]] }
 )
 TR_var x = TR_Tensor([3.0, -1.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(kare(x)))
@@ -39,8 +39,8 @@ TR_print(TR_grad_check(kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true
 func TestCustomGradBackwardRunsInCallerTask(t *testing.T) {
 	out := mustRun(t, `TR_var görülen = []
 TR_var f = TR_custom_grad(
-    TR_forward: TR_func(x) { TR_return [x * 1, []] },
-    TR_backward: TR_func(k, g) {
+    TR_forward: (x) => { TR_return [x * 1, []] },
+    TR_backward: (k, g) => {
         görülen.TR_append((TR_Tensor([[1.001]]) @ TR_Tensor([[1.0]])).TR_tolist[0][0])
         TR_return [g]
     }
@@ -64,17 +64,17 @@ func TestCustomGradErrorMessages(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`TR_custom_grad(TR_forward: TR_func(x) { TR_return x }, TR_backward: TR_func(k, g) { TR_return [g] })(x)`,
+		{`TR_custom_grad(TR_forward: (x) => { TR_return x }, TR_backward: (k, g) => { TR_return [g] })(x)`,
 			messages.H6409},
-		{`TR_custom_grad(TR_forward: TR_func(x) { TR_return [[x, 3], []] }, TR_backward: TR_func(k, g) { TR_return [g] })(x)`,
+		{`TR_custom_grad(TR_forward: (x) => { TR_return [[x, 3], []] }, TR_backward: (k, g) => { TR_return [g] })(x)`,
 			messages.H6412},
-		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_return g })(x)))`,
+		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (k, g) => { TR_return g })(x)))`,
 			messages.H6414},
-		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_return [g.TR_reshape([2, 1])] })(x)))`,
+		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (k, g) => { TR_return [g.TR_reshape([2, 1])] })(x)))`,
 			messages.H6418},
-		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) { TR_return [3] })(x)))`,
+		{`TR_backward(TR_sum(TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (k, g) => { TR_return [3] })(x)))`,
 			messages.H6416},
-		{`TR_custom_grad(TR_func(x) { TR_return [x, []] })`, messages.H6405},
+		{`TR_custom_grad((x) => { TR_return [x, []] })`, messages.H6405},
 		{`TR_custom_grad()`, messages.H6431},
 		{`TR_grad_check(x, [x])`, messages.H6420},
 		{`TR_grad_check((a) => a, x)`, messages.H6421},
@@ -93,7 +93,7 @@ func TestCustomGradErrorMessages(t *testing.T) {
 // Kullanıcının geri hesabındaki hata satır bilgisiyle ve dene/yakala ile yakalanabilir
 // olarak gelir; geri yayılım yarıda kalsa da program çökmez.
 func TestCustomGradBackwardError(t *testing.T) {
-	_, err := run(t, `TR_var f = TR_custom_grad(TR_forward: TR_func(x) { TR_return [x, []] }, TR_backward: TR_func(k, g) {
+	_, err := run(t, `TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (k, g) => {
     TR_return [g @ g]
 })
 TR_backward(TR_sum(f(TR_Tensor([[1.0, 2.0]], TR_requires_grad: TR_true))))`)

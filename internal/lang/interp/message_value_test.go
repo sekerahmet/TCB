@@ -42,11 +42,11 @@ func TestMessageAssert(t *testing.T) {
 // hata_kodu(f) f'yi çalıştırır; fırlayan iletinin kodunu verir, hata yoksa yok.
 func TestErrorCode(t *testing.T) {
 	out, _, err := runTROut(t, `
-		TR_print(TR_error_code(() => { TR_throw TR_Message("H6903", -1) }))
-		TR_print(TR_error_code(() => TR_assert(TR_false, TR_Message("H6900", 10, 4))))
-		TR_print(TR_error_code(() => 1 + 1))
-		TR_print(TR_error_code(() => { TR_throw "metin" }) == "H2441")
-		TR_print(TR_error_code(() => { TR_throw TR_Message("H6903", -1) }) == "H6903")
+		TR_print(TR_error_code { TR_throw TR_Message("H6903", -1) })
+		TR_print(TR_error_code { TR_assert(TR_false, TR_Message("H6900", 10, 4)) })
+		TR_print(TR_error_code { 1 + 1 })
+		TR_print(TR_error_code { TR_throw "metin" } == "H2441")
+		TR_print(TR_error_code { TR_throw TR_Message("H6903", -1) } == "H6903")
 	`)
 	if err != nil {
 		t.Fatal(err)

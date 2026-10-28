@@ -326,7 +326,11 @@ func setupListMethods() {
 	})
 	addMethod(typeList, codes.MemContains, signature{1, 1, messages.Text(messages.H2301), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
-			if ValuesEqual(el, args[0]) {
+			eq, err := EqualValues(el, args[0])
+			if err != nil {
+				return nil, err
+			}
+			if eq {
 				return True, nil
 			}
 		}
@@ -337,7 +341,11 @@ func setupListMethods() {
 		for _, el := range inst.(*ListVal).Elements {
 			exists := false
 			for _, u := range unique {
-				if ValuesEqual(el, u) {
+				eq, err := EqualValues(el, u)
+				if err != nil {
+					return nil, err
+				}
+				if eq {
 					exists = true
 					break
 				}
@@ -472,8 +480,8 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 }
 
 // listReduce liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
-// argümandır (sondaki blokla da yazılabilsin diye: liste.indirge(0) { birikim + o }) ve
-// (birikim, eleman) ile çağrılır; kullanıcı fonksiyonu iki parametreli olmalıdır.
+// argümandır ve (birikim, eleman) ile çağrılır: l.TR_reduce(0, (acc, x) => acc + x); kullanıcı
+// fonksiyonu iki parametreli olmalıdır (sondaki blok parametresizdir, 6.7).
 // Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)
 // döner.
 func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
@@ -486,8 +494,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 		return nil, ArgTypeError(codes.MemReduce, len(args), f, codes.TypeFunction)
 	}
 	if fn, ok := f.(*FuncVal); ok && len(fn.Parameters) != 2 {
-		b := codes.NameRef(codes.CtxAcc)
-		return nil, messages.New(messages.H2476, name, fun, b, len(fn.Parameters), codes.NameRef(codes.CtxIt))
+		return nil, messages.New(messages.H2476, name, fun, len(fn.Parameters))
 	}
 	var acc Value
 	begin := 0

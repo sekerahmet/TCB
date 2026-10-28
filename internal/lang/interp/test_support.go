@@ -42,7 +42,11 @@ func (v *VM) registerTestBuiltins() {
 		if err := typeTextError("==", args[0], args[1]); err != nil {
 			return nil, err
 		}
-		if ValuesEqual(args[0], args[1]) {
+		eq, err := EqualValues(args[0], args[1])
+		if err != nil {
+			return nil, err
+		}
+		if eq {
 			return True, nil
 		}
 		if len(args) == 3 {

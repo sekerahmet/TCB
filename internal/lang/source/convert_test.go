@@ -61,9 +61,9 @@ func TestEncodeEdgeCases(t *testing.T) {
 		{"adlı argüman yalnızca dilin öğesinde",
 			"fonksiyon f(eksen = 0) { sonuç eksen }\nyazdır(toplam([1], eksen: 0), f(eksen: 1))\n",
 			"TR_func f(eksen = 0) { TR_return eksen }\nTR_print(TR_sum([1], TR_dim: 0), f(eksen: 1))\n"},
-		{"örtük adlar yalnızca kendi bloklarında",
-			"değişken o = 1\nyazdır([1].haritala { o * 2 }, [1].indirge(0) { birikim + o }, (o) => o)\ndene { fırlat \"x\" } yakala { yazdır(hata) }\ndene { fırlat \"y\" } yakala hata { yazdır(hata) }\n",
-			"TR_var o = 1\nTR_print([1].TR_map { TR_it * 2 }, [1].TR_reduce(0) { TR_acc + TR_it }, (o) => o)\nTR_try { TR_throw \"x\" } TR_catch { TR_print(TR_error) }\nTR_try { TR_throw \"y\" } TR_catch hata { TR_print(hata) }\n"},
+		{"yakala'nın örtük adı yalnızca kendi bloğunda; sondaki blokta örtük ad yok (6.7)",
+			"değişken o = 1\nyazdır([1].haritala { o * 2 }, [1].indirge(0, (birikim, x) => birikim + x), (o) => o)\ndene { fırlat \"x\" } yakala { yazdır(hata) }\ndene { fırlat \"y\" } yakala hata { yazdır(hata) }\n",
+			"TR_var o = 1\nTR_print([1].TR_map { o * 2 }, [1].TR_reduce(0, (birikim, x) => birikim + x), (o) => o)\nTR_try { TR_throw \"x\" } TR_catch { TR_print(TR_error) }\nTR_try { TR_throw \"y\" } TR_catch hata { TR_print(hata) }\n"},
 		{"test ve olarak",
 			"aktar \"m\" olarak m\ntest \"t\" { doğrula(doğru) }\ndeğişken test = 1\n",
 			"TR_import \"m\" TR_as m\nTR_test \"t\" { TR_assert(TR_true) }\nTR_var test = 1\n"},
@@ -119,7 +119,6 @@ func fakeLanguage(t *testing.T) *codes.Language {
 		`"TR_fn_print": { "name": "yazdır"`: `"TR_fn_print": { "name": "sayaç"`,
 		`"TR_kw_if": { "name": "eğer"`:      `"TR_kw_if": { "name": "kutu"`,
 		`"TR_mem_append": { "name": "ekle"`: `"TR_mem_append": { "name": "koy"`,
-		`"TR_ctx_it": { "name": "o"`:        `"TR_ctx_it": { "name": "bu"`,
 	} {
 		if !strings.Contains(data, old) {
 			t.Fatalf("dil dosyasında %q bulunamadı", old)
@@ -136,13 +135,13 @@ func fakeLanguage(t *testing.T) *codes.Language {
 // Hedef dilde bir kullanıcı adı dilin sözcüğüyle çakışırsa '$ad' yazılır (2.11).
 func TestEscapeInOtherLanguage(t *testing.T) {
 	d := fakeLanguage(t)
-	tr := "değişken kutu = 1\ndeğişken sayaç = 2\nyazdır(kutu, sayaç)\nyapı K {\n    fonksiyon koy() { sonuç 1 }\n}\ndeğişken bu = 3\nyazdır([1].haritala { o + bu })\n"
+	tr := "değişken kutu = 1\ndeğişken sayaç = 2\nyazdır(kutu, sayaç)\nyapı K {\n    fonksiyon koy() { sonuç 1 }\n}\ndeğişken bu = 3\nyazdır([1].haritala((x) => x + bu))\n"
 	coded := encodeDecode(t, tr)
 	got, err := Decode(coded, d)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := viewHeader(d) + "\ntanım $kutu = 1\ntanım $sayaç = 2\nsayaç($kutu, $sayaç)\nyapı K {\n    fonksiyon $koy() { sonuç 1 }\n}\ntanım bu = 3\nsayaç([1].haritala { bu + $bu })\n"
+	want := viewHeader(d) + "\ntanım $kutu = 1\ntanım $sayaç = 2\nsayaç($kutu, $sayaç)\nyapı K {\n    fonksiyon $koy() { sonuç 1 }\n}\ntanım bu = 3\nsayaç([1].haritala((x) => x + bu))\n"
 	if got != want {
 		t.Errorf("sahte dilde gösterim:\n%s\nbeklenen:\n%s", got, want)
 	}

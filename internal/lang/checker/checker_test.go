@@ -51,10 +51,10 @@ func TestTypeNameASCIISuggestion(t *testing.T) {
 	singleErrorIn(t, "tr", "TR_func f(x) -> mantik { TR_return TR_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
 	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
 		"bool": "Mantık", "null": "YokTipi", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
-		singleErrorIn(t, "tr", "TR_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "tr", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 	for name, canonical := range map[string]string{"Ondalık": "Float", "Tam": "Int", "Sözlük": "Dict"} {
-		singleErrorIn(t, "en", "TR_var a: "+name, messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "en", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 }
 
@@ -67,7 +67,7 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 		"en": {"int": "Int", "FLOAT": "Float", "string": "String", "bool": "Bool", "list": "List"},
 	} {
 		for name, canonical := range names {
-			singleErrorIn(t, lang, "TR_var a: "+name, messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
+			singleErrorIn(t, lang, "TR_var a: "+name+" = TR_none", messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
 		}
 	}
 	singleErrorIn(t, "tr", "TR_func f(x: liste) { TR_return x }", messages.H1006, 1, "'liste'", "'Liste'")
@@ -133,7 +133,6 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_Dict = {"a": 1}`,
 		"TR_var m1 = TR_eye(2)\nTR_var m2 = m1\nTR_var a: TR_Tensor = m1 @ m2",
 		"TR_var a: TR_Int = TR_none",
-		"TR_var a: TR_Int", // değer verilmezse 'yok' atanır
 		"TR_var bilinmeyen_tip = TR_input()\nTR_var a: TR_Int = bilinmeyen_tip",
 		`TR_var a: TR_Int = TR_print("x")`,
 		"TR_var a: TR_Int = TR_Int(5)",
@@ -141,7 +140,7 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_String = TR_none ?? "varsayılan"`,
 		"TR_var a: TR_Int = -5",
 		"TR_var a: TR_Int = 2 ** 3",
-		"TR_var a: TR_Function = TR_func(x) { TR_return x }",
+		"TR_var a: TR_Function = (x) => { TR_return x }",
 		"TR_const a: TR_Int = 1",
 	} {
 		noErrors(t, source)
@@ -171,7 +170,7 @@ func TestTypedVarIncompatible(t *testing.T) {
 		{"TR_var a: TR_String = 2 ** 3", "TR_String", "TR_Int"},
 		{"TR_var a: TR_String = 1 << 2", "TR_String", "TR_Int"},
 		{"TR_var a: TR_String = ~1", "TR_String", "TR_Int"},
-		{"TR_var a: TR_String = TR_func() { }", "TR_String", "TR_Function"},
+		{"TR_var a: TR_String = () => { }", "TR_String", "TR_Function"},
 		{"TR_var a: Nokta = 5", "Nokta", "TR_Int"},
 		{"TR_const a: TR_String = TR_true", "TR_String", "TR_Bool"},
 		{`TR_var a: TR_String = 5 ?? "x"`, "TR_String", "TR_Int"},
@@ -198,14 +197,13 @@ func TestAssignmentTypeCheck(t *testing.T) {
 	// Dil dinamiktir: tip açıklaması olmayan değişkenin ilk değerden çıkarılan tipi kalıcı
 	// bir bildirim değildir; başka tipte değer atanabilir. Sabitlerin tipi kalır.
 	noErrors(t, "TR_var a = 5\na = \"beş\"")
-	noErrors(t, "x := TR_true\nx = 1")
+	noErrors(t, "TR_var x = TR_true\nx = 1")
 	noErrors(t, "TR_var kayıp = 0\nTR_for i TR_in 1..3 { kayıp += 0.5 }")
 	singleError(t, "TR_const S = 5\nTR_var m: TR_String = S", messages.H1001, 2, `"TR_String"`, `"TR_Int"`)
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
 	noErrors(t, "TR_var a = TR_none\na = 5\na = \"x\"")
 	noErrors(t, "TR_var a = TR_input()\na = 5\na = \"x\"")
-	noErrors(t, "TR_var a\na = [1]")
 
 	// Tanımlanmamış bir hedefe atama tanımsız ad hatasıdır (5.4, 5.14)
 	singleError(t, "tanımsız = 5", messages.H1010, 1, "'tanımsız'")
@@ -304,7 +302,7 @@ func TestFunctionReturnTypeInference(t *testing.T) {
 	noErrors(t, def+"TR_var s: TR_Float = topla(1, 2)")
 
 	// Parametresiz fonksiyonların dönüş tipi de kullanılır
-	singleError(t, "TR_func ad(): TR_String { TR_return \"Ali\" }\nTR_var n: TR_Int = ad()", messages.H1001, 2, `"TR_Int"`, `"TR_String"`)
+	singleError(t, "TR_func ad() -> TR_String { TR_return \"Ali\" }\nTR_var n: TR_Int = ad()", messages.H1001, 2, `"TR_Int"`, `"TR_String"`)
 
 	// Dönüş tipi belirtilmemişse sonuç bilinmez (Herhangi)
 	noErrors(t, "TR_func f(a: TR_Int) { TR_return a }\nTR_var s: TR_String = f(1)")
@@ -312,36 +310,36 @@ func TestFunctionReturnTypeInference(t *testing.T) {
 }
 
 func TestReturnTypeCheck(t *testing.T) {
-	singleError(t, "TR_func f(): TR_Int {\n  TR_return \"x\"\n}", messages.H1003, 2, `"TR_Int"`, `"TR_String"`)
+	singleError(t, "TR_func f() -> TR_Int {\n  TR_return \"x\"\n}", messages.H1003, 2, `"TR_Int"`, `"TR_String"`)
 	singleError(t, "TR_func f() -> TR_String {\n  TR_return 1\n}", messages.H1003, 2)
-	singleError(t, "TR_func f(): TR_Int { TR_return 2.5 }", messages.H1003, 0, `"TR_Float"`)
+	singleError(t, "TR_func f() -> TR_Int { TR_return 2.5 }", messages.H1003, 0, `"TR_Float"`)
 	// '/' her zaman Ondalık verir (4.2): ': TR_Int' bildiren fonksiyon a / b'yi döndüremez
-	singleError(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Int { TR_return a / b }", messages.H1003, 0, `"TR_Float"`, "'//'")
-	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Int { TR_return a // b }")
-	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int): TR_Float { TR_return a / b }")
+	singleError(t, "TR_func ort(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a / b }", messages.H1003, 0, `"TR_Float"`, "'//'")
+	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a // b }")
+	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int) -> TR_Float { TR_return a / b }")
 
 	// İç bloklardaki dönüşler de denetlenir
-	singleError(t, "TR_func f(x): TR_Int {\n  TR_if x {\n    TR_return \"a\"\n  }\n  TR_return 1\n}", messages.H1003, 3)
-	singleError(t, "TR_func f(x): TR_Int {\n  TR_for i TR_in x {\n    TR_return TR_true\n  }\n}", messages.H1003, 3)
+	singleError(t, "TR_func f(x) -> TR_Int {\n  TR_if x {\n    TR_return \"a\"\n  }\n  TR_return 1\n}", messages.H1003, 3)
+	singleError(t, "TR_func f(x) -> TR_Int {\n  TR_for i TR_in x {\n    TR_return TR_true\n  }\n}", messages.H1003, 3)
 
 	for _, source := range []string{
-		"TR_func f(): TR_Float { TR_return 1 }",            // Tam -> Ondalık
-		"TR_func f(): TR_List { TR_return TR_none }",       // 'yok' her tipe uyar
-		"TR_func f(): TR_Int { TR_return }",                // boş dönüş 'yok' sayılır
-		"TR_func f(x): TR_Int { TR_return x }",             // bilinmeyen tip
-		"TR_func f(x: TR_Int): TR_Int { TR_return x * 2 }", // çıkarılan tip uyumlu
-		"TR_func f(): TR_Bool { TR_return 1 < 2 }",         // karşılaştırma
-		"TR_func f(): TR_Function { TR_return (x) => x }",
+		"TR_func f() -> TR_Float { TR_return 1 }",            // Tam -> Ondalık
+		"TR_func f() -> TR_List { TR_return TR_none }",       // 'yok' her tipe uyar
+		"TR_func f() -> TR_Int { TR_return }",                // boş dönüş 'yok' sayılır
+		"TR_func f(x) -> TR_Int { TR_return x }",             // bilinmeyen tip
+		"TR_func f(x: TR_Int) -> TR_Int { TR_return x * 2 }", // çıkarılan tip uyumlu
+		"TR_func f() -> TR_Bool { TR_return 1 < 2 }",         // karşılaştırma
+		"TR_func f() -> TR_Function { TR_return (x) => x }",
 		`TR_func f() { TR_return "x" }`, // dönüş tipi yoksa denetim yok
 	} {
 		noErrors(t, source)
 	}
 
 	// İç fonksiyonlar dış fonksiyonun dönüş tipini devralmaz
-	noErrors(t, "TR_func f(): TR_Int {\n  TR_var g = (x) => \"metin\"\n  TR_return 1\n}")
-	noErrors(t, "TR_func f(): TR_Int {\n  TR_func g() { TR_return \"metin\" }\n  TR_return 1\n}")
+	noErrors(t, "TR_func f() -> TR_Int {\n  TR_var g = (x) => \"metin\"\n  TR_return 1\n}")
+	noErrors(t, "TR_func f() -> TR_Int {\n  TR_func g() { TR_return \"metin\" }\n  TR_return 1\n}")
 	// İç fonksiyonun kendi dönüş tipi denetlenir; dış fonksiyonunki geri yüklenir
-	errs, coded := checkErrs(t, "TR_func f(): TR_Int {\n  TR_func g(): TR_String { TR_return 1 }\n  TR_return \"x\"\n}")
+	errs, coded := checkErrs(t, "TR_func f() -> TR_Int {\n  TR_func g() -> TR_String { TR_return 1 }\n  TR_return \"x\"\n}")
 	if len(errs) != 2 || !messages.Has(coded[0], messages.H1003) || !messages.Has(coded[1], messages.H1003) ||
 		!strings.Contains(errs[0], `"TR_String"`) || !strings.Contains(errs[1], `"TR_Int"`) {
 		t.Errorf("iç ve dış fonksiyon için birer dönüş hatası bekleniyordu, gelen: %v", errs)
@@ -393,12 +391,12 @@ func TestMultipleErrorsInOrder(t *testing.T) {
 	errs, coded := checkErrs(t, `TR_var a: TR_Int = "x"
 TR_const b = 1
 b = 2
-TR_func f(x: TR_String): TR_Int { TR_return x }
+TR_func f(x: TR_String) -> TR_Int { TR_return x }
 f(5)`)
 	expected := []struct {
 		line, col int
 		code      messages.Code
-	}{{1, 1, messages.H1001}, {3, 1, messages.H1002}, {4, 35, messages.H1003}, {5, 3, messages.H1004}}
+	}{{1, 1, messages.H1001}, {3, 1, messages.H1002}, {4, 37, messages.H1003}, {5, 3, messages.H1004}}
 	if len(errs) != len(expected) {
 		t.Fatalf("%d hata bekleniyordu, gelen: %v", len(expected), errs)
 	}
@@ -499,14 +497,14 @@ func TestKnownLimitations(t *testing.T) {
 		name, source string
 	}{
 		{"tanımdan önce çağrı (öne alma yok)", "kare(\"a\")\nTR_func kare(x: TR_Int) { }"},
-		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "TR_var kare = TR_func(x: TR_Int) { TR_return x }\nkare(\"a\")"},
+		{"değişkene atanan fonksiyonun parametre tipleri unutulur", "TR_var kare = (x: TR_Int) => { TR_return x }\nkare(\"a\")"},
 		{"lambda parametre tipleri", "TR_var f = (x: TR_Int) => x\nf(\"a\")"},
 		{"eksik argüman", "TR_func f(a: TR_Int, b: TR_Int) { }\nf(1)"},
 		{"fazla argüman", "TR_func f(a: TR_Int) { }\nf(1, 2, 3)"},
 		{"isimli argüman tipi", "TR_func f(a: TR_Int) { }\nf(a: \"x\")"},
-		{"dönüş tipi olan fonksiyonda eksik 'sonuç'", "TR_func f(): TR_Int { }"},
+		{"dönüş tipi olan fonksiyonda eksik 'sonuç'", "TR_func f() -> TR_Int { }"},
 		{"sabitin yeniden tanımlanması", "TR_const x = 1\nTR_var x = 2\nx = 3"},
-		{"sabitin aynı adlı fonksiyonla ezilmesi", "TR_const f = 1\nTR_func f() { }\nf = TR_func() { }"},
+		{"sabitin aynı adlı fonksiyonla ezilmesi", "TR_const f = 1\nTR_func f() { }\nf = () => { }"},
 		{"TR_const listenin elemanını değiştirme", "TR_const l = [1, 2]\nl[0] = 5"},
 		{"TR_const sözlüğün alanını değiştirme", "TR_const p = {\"x\": 1}\np.x = 5"},
 		{"çoklu atamada tip denetimi yok", "TR_var x: TR_Int = 1\nTR_var y = 2\nx, y = \"a\", 2"},

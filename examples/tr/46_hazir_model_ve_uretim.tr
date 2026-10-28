@@ -19,7 +19,7 @@ TR_const YOL = "../../tests/data/hf_tiny"
 TR_var model = TR_pretrained_model(YOL)
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")
 TR_var parametre_sayısı = 0
-TR_for w TR_in TR_parameters(model) { parametre_sayısı += w.TR_shape.TR_reduce(1) { TR_acc * TR_it } } # şeklin boyutlarının çarpımı
+TR_for w TR_in TR_parameters(model) { parametre_sayısı += w.TR_shape.TR_reduce(1, (acc, x) => acc * x) } # şeklin boyutlarının çarpımı
 TR_print("bağlam:", model.TR_config["bağlam"], "| dağarcık:", p.TR_vocab_size, "| parametre:", parametre_sayısı)
 
 # üret(başlangıç, adet): başlangıç kimliklerinin ardına adet parça ekler ve bütün listeyi verir.

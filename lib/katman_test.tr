@@ -141,7 +141,7 @@ TR_test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
 }
 
 TR_test "NedenselDikkat: boyut bakış sayısına bölünmeli" {
-    TR_assert_equal("H6900", TR_error_code(() => TR_CausalAttention(10, 4)))
+    TR_assert_equal("H6900", TR_error_code { TR_CausalAttention(10, 4) })
 }
 
 TR_test "SwiGLU: ara boyut, şekil ve türev" {
@@ -262,8 +262,8 @@ TR_test "KVÖnbellek: kırp son parçaları geri alır; aynı parçalar yeniden 
             TR_assert(en_büyük_mutlak_fark(a, b) < 0.000001, "\(çeşit): kırpmadan sonra aynı logit")
         }
         TR_var ö = m.TR_build_cache(TR_kind: "sabit", TR_capacity: 2)
-        TR_assert_equal("H6909", TR_error_code(() => m.TR_forward([[1, 2, 3]], TR_cache: ö)))
-        TR_assert_equal("H6906", TR_error_code(() => TR_KVCache(2, TR_kind: "kocaman")))
+        TR_assert_equal("H6909", TR_error_code { m.TR_forward([[1, 2, 3]], TR_cache: ö) })
+        TR_assert_equal("H6906", TR_error_code { TR_KVCache(2, TR_kind: "kocaman") })
     }
 }
 
@@ -363,7 +363,7 @@ TR_test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     # pencere uzunluğa eşit ya da büyükse tam nedensel dikkatle aynıdır
     TR_var geniş = TR_CausalAttention(8, 2, TR_seed: 4, TR_window: 6)
     TR_assert(en_büyük_mutlak_fark(geniş.TR_forward(x, tablolar[0], tablolar[1]), t1) < 0.0000001, "pencere ≥ T tam dikkattir")
-    TR_assert_equal("H6903", TR_error_code(() => TR_CausalAttention(8, 2, TR_window: -1)))
+    TR_assert_equal("H6903", TR_error_code { TR_CausalAttention(8, 2, TR_window: -1) })
 }
 
 TR_test "NedenselDikkat: qk_normu q ve k'yı bakış boyutunda normlar (sorgu ölçeğinden bağımsız), türevlidir" {
@@ -495,13 +495,13 @@ TR_test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencer
         TR_return b.TR_forward(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)
     }
     TR_assert(TR_grad_check(f, [rastgele_girdi([1, 4, 8], 2), rastgele_girdi([8, 4], 3), rastgele_girdi([10, 4], 4), rastgele_girdi([1, 4, 4], 5)]))
-    TR_assert_equal("H6904", TR_error_code(() => TR_TransformerBlock(8, 2, TR_ple_dim: 4)))
+    TR_assert_equal("H6904", TR_error_code { TR_TransformerBlock(8, 2, TR_ple_dim: 4) })
 }
 
 TR_test "katman_pencereleri: G katmanı 0, Y katmanları pencereleri sırayla alır" {
     TR_assert_equal([32, 64, 0, 32, 0, 64, 32, 0], TR_layer_windows("YYGYGYYG", [32, 64]))
     TR_assert_equal([0, 0], TR_layer_windows("GG", [8]))
-    TR_assert_equal("H6905", TR_error_code(() => TR_layer_windows("YXG", [8])))
+    TR_assert_equal("H6905", TR_error_code { TR_layer_windows("YXG", [8]) })
 }
 
 TR_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/genel model kurulur" {
@@ -525,7 +525,7 @@ TR_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/
     TR_var l2 = m.TR_forward([[1, 2, 3, 4, 6]])
     TR_assert(en_büyük_mutlak_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
     TR_assert(en_büyük_mutlak_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
-    TR_assert_equal("H6911", TR_error_code(() => TR_GPT(12, TR_num_layers: 2, TR_windows: [1, 2, 3])))
+    TR_assert_equal("H6911", TR_error_code { TR_GPT(12, TR_num_layers: 2, TR_windows: [1, 2, 3]) })
     TR_assert(m.TR_loss([[1, 2, 3]], [[2, 3, 4]]).TR_tolist > 0)
 }
 
@@ -554,7 +554,7 @@ TR_test "NedenselDikkat: bakış_boyutu gizli boyuttan bağımsızdır (Hugging 
     TR_assert_equal(4, TR_CausalAttention(8, 2).TR_head_dim)
     # bakış_boyutu verilince boyut bakış sayısına bölünmek zorunda değildir.
     TR_assert_equal([6, 8], TR_CausalAttention(6, 4, TR_head_dim: 2).TR_q_proj.TR_weight.TR_shape)
-    TR_assert_equal("H6901", TR_error_code(() => TR_CausalAttention(8, 2, TR_head_dim: 3)))
+    TR_assert_equal("H6901", TR_error_code { TR_CausalAttention(8, 2, TR_head_dim: 3) })
 }
 
 TR_test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsayılan model değişmez" {
@@ -586,8 +586,8 @@ TR_test "GPT: ağırlık_türü PLE tablolarına ve katmanlarına da iletilir" {
 }
 
 TR_test "NedenselDikkat ve KVÖnbellek: kv bakış sayısı, kapasite, cihaz adımı ve kısaltma sınırları ileti koduyla bildirilir" {
-    TR_assert_equal("H6902", TR_error_code(() => TR_CausalAttention(8, 4, TR_num_kv_heads: 3)))
-    TR_assert_equal("H6907", TR_error_code(() => TR_KVCache(2, TR_kind: "sabit", TR_capacity: 0)))
-    TR_assert_equal("H6908", TR_error_code(() => TR_KVCache(2, TR_kind: "büyüyen").TR_device_step(1)))
-    TR_assert_equal("H6910", TR_error_code(() => TR_KVCache(2, TR_kind: "sabit", TR_capacity: 4).TR_truncate(1)))
+    TR_assert_equal("H6902", TR_error_code { TR_CausalAttention(8, 4, TR_num_kv_heads: 3) })
+    TR_assert_equal("H6907", TR_error_code { TR_KVCache(2, TR_kind: "sabit", TR_capacity: 0) })
+    TR_assert_equal("H6908", TR_error_code { TR_KVCache(2, TR_kind: "büyüyen").TR_device_step(1) })
+    TR_assert_equal("H6910", TR_error_code { TR_KVCache(2, TR_kind: "sabit", TR_capacity: 4).TR_truncate(1) })
 }

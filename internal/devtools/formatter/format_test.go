@@ -47,10 +47,10 @@ func TestStandardFormat(t *testing.T) {
 		{"sondaki blok", "y = l.filtrele{o>1}\n", "y = l.filtrele { o > 1 }\n"},
 		{"aralık", "TR_for i TR_in 1 ..= 10 { TR_print(i) }\n", "TR_for i TR_in 1..=10 { TR_print(i) }\n"},
 		{"dönüş tipi oku", "TR_func f(a:TR_Int)->TR_Int { TR_return a }\n", "TR_func f(a: TR_Int) -> TR_Int { TR_return a }\n"},
-		{"lambda", "f = (a,b)=>a+b\ng = x=>x*2\n", "f = (a, b) => a + b\ng = x => x * 2\n"},
+		{"lambda", "f = (a,b)=>a+b\ng = (x)=>x*2\n", "f = (a, b) => a + b\ng = (x) => x * 2\n"},
 		{"devam satırı", "t = 1 +\n2\nl\n.TR_sort()\n", "t = 1 +\n    2\nl\n    .TR_sort()\n"},
 		{"çok satırlı liste", "l = [\n1,\n  2\n    ]\n", "l = [\n    1,\n    2\n]\n"},
-		{"kapanışla başlayan satır", "f(TR_func() {\nTR_print(1)\n}, 2)\n", "f(TR_func() {\n    TR_print(1)\n}, 2)\n"},
+		{"kapanışla başlayan satır", "f(() => {\nTR_print(1)\n}, 2)\n", "f(() => {\n    TR_print(1)\n}, 2)\n"},
 		{"CRLF", "a = 1\r\nTR_if a {\r\n  b()\r\n}\r\n", "a = 1\nTR_if a {\n    b()\n}\n"},
 		// Çok satırlı metnin içindeki satır sonları da LF yazılır (karışık satır sonu kalmaz)
 		{"CRLF çok satırlı metin", "m = \"a\r\nb\"\r\n", "m = \"a\nb\"\n"},
@@ -128,7 +128,7 @@ func TestStringsKeptByteForByte(t *testing.T) {
 // Satıra duyarlı yapılar: yeni satırdaki '(', '[' ve sözlük '{' önceki ifadeye bağlanmamalı.
 func TestLineStructureKept(t *testing.T) {
 	inputs := []string{
-		"TR_var f = 5\n(x => x)(1)\n",
+		"TR_var f = 5\n((x) => x)(1)\n",
 		"TR_var l = [1]\n[2, 3].TR_sort()\n",
 		"TR_var s = l.TR_filter\n{\"a\": 1}.TR_keys()\n",
 	}
@@ -145,11 +145,11 @@ func TestMeaningChangeRejected(t *testing.T) {
 	defer func() { transform = old }()
 	var meaning *MeaningChangedError
 
-	// Bozuk dönüşüm: satırları birleştirir; yeni satırdaki '(' önceki ifadeye bağlanır (5(x => x)).
+	// Bozuk dönüşüm: satırları birleştirir; yeni satırdaki '(' önceki ifadeye bağlanır (5((x) => x)).
 	transform = func(src string, _ bool, braces map[pos]int) string {
 		return strings.ReplaceAll(src, "\n", " ") + "\n"
 	}
-	if _, err := Format(fileOf("TR_var f = 5\n(x => x)(1)\n")); !errors.As(err, &meaning) {
+	if _, err := Format(fileOf("TR_var f = 5\n((x) => x)(1)\n")); !errors.As(err, &meaning) {
 		t.Fatalf("anlam değişikliği reddedilmedi, hata: %v", err)
 	}
 
@@ -250,8 +250,8 @@ func TestContinuationBody(t *testing.T) {
 		{"iç blokta devam", "TR_for i TR_in 0..3 {\nTR_if i > 0 TR_or\ni < 2 {\nTR_print(i)\n}\n}\n",
 			"TR_for i TR_in 0..3 {\n    TR_if i > 0 TR_or\n        i < 2 {\n        TR_print(i)\n    }\n}\n"},
 		// Bir argümanın içindeki gövde (parantez açıkken) eskisi gibi satırın girintisine göredir.
-		{"devam satırında fonksiyon argümanı", "x = 1 +\nf(TR_func() {\nTR_print(1)\n})\n",
-			"x = 1 +\n    f(TR_func() {\n        TR_print(1)\n    })\n"},
+		{"devam satırında fonksiyon argümanı", "x = 1 +\nf((y) => {\nTR_print(y)\n})\n",
+			"x = 1 +\n    f((y) => {\n        TR_print(y)\n    })\n"},
 		// Ayrıştırıcı yeni satırdaki '-x'i önceki ifadeyle (eğer de bir ifadedir) ikili eksi okur;
 		// biçim bu okumayı gösterir.
 		{"bloktan sonra eksi", "TR_if a {\nb()\n}\n-x\n", "TR_if a {\n    b()\n}\n- x\n"},

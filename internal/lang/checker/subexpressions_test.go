@@ -11,7 +11,7 @@ import (
 // atama hedefi, yapı alan varsayılanı ve metot gövdesi, eşle deseni ve parametre
 // varsayılanı içindeki hatalar sessizce geçerdi.
 func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
-	const kare = "TR_func kare(x: TR_Int): TR_Int { TR_return x * x }\n"
+	const kare = "TR_func kare(x: TR_Int) -> TR_Int { TR_return x * x }\n"
 	const want = `1. parametresi "TR_Int" bekliyor ancak "TR_String" verildi`
 	cases := []struct{ name, source string }{
 		{"liste", `TR_var l = [1, kare("a")]`},
@@ -39,9 +39,9 @@ func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 		})
 	}
 	// Metodun dönüş tipi kendi gövdesinde denetlenir.
-	singleError(t, "TR_struct A {\n  TR_func m(): TR_Int { TR_return \"a\" }\n}", messages.H1003, 2)
+	singleError(t, "TR_struct A {\n  TR_func m() -> TR_Int { TR_return \"a\" }\n}", messages.H1003, 2)
 	// Sabite iç içe bir fonksiyonda atama da yakalanır.
-	singleError(t, "TR_const k = 1\nTR_var l = [TR_func() { k = 2 }]", messages.H1002, 2)
+	singleError(t, "TR_const k = 1\nTR_var l = [() => { k = 2 }]", messages.H1002, 2)
 	// Metodun adı yapının dışındaki kapsama tanımlanmaz: dıştaki 'm'nin imzası kalır.
 	singleError(t, "TR_func m(x: TR_Int) { }\nTR_struct A {\n  TR_func m() { }\n}\nm(\"a\")", messages.H1004, 0, want)
 	// Üreteç değişkeni kendi kapsamındadır: dıştaki aynı adlı açıklamalı değişkeni gizler.

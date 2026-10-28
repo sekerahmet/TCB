@@ -82,7 +82,7 @@ test('sağlayıcı yazım diline göre sunar; ".ad" kısayolu imlecin solundaki 
     assert.ok(!items.some((item) => item.label === 'fonksiyon'));
     const member = items.find((item) => item.label === '.filter');
     assert.strictEqual(member.range.start.character, 5, 'nokta da değiştirilir');
-    assert.strictEqual(member.insertText.value, '.filter { it > ${1:2} }');
+    assert.strictEqual(member.insertText.value, '.filter((x) => x > ${1:2})');
     assert.strictEqual(items.find((item) => item.label === 'filter').range, undefined);
     assert.strictEqual(provide('fil').find((item) => item.label === '.filter').range, undefined, 'nokta yoksa aralık değişmez');
 });

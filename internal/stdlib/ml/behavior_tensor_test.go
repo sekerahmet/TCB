@@ -146,7 +146,7 @@ TR_print(w.TR_tolist)`)
 
 func TestNoGrad(t *testing.T) {
 	out := mustRun(t, `TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
-TR_var a = TR_no_grad { TR_return w * 2 }
+TR_var a = TR_no_grad { w * 2 }
 TR_var b = TR_no_grad(w * 2)
 TR_var c = w * 2
 TR_print(a, b, c)

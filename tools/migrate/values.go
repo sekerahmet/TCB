@@ -147,7 +147,8 @@ func valueEdits(rel, body string, lineBase int, members bool) ([]valueEdit, []pr
 		}
 		return true
 	})
-	return edits, probs
+	more, moreProbs := statementEdits(prog, body, records, at, lineBase)
+	return append(edits, more...), append(probs, moreProbs...)
 }
 
 // keyName çıplak anahtarın metin anahtarındaki adıdır: kodlu üye kimliğin adı (TR_step → step),

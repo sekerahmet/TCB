@@ -252,7 +252,6 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 		// eksik zorunlu parametre: sayılar kendisiyle çelişmemeli ("1 bekler, 1 verildi")
 		{"TR_func f(a, b = 10) { TR_return a }\nf(b: 20)", messages.H2415, 2},
 		{"TR_func f(a, b, c = 1) { TR_return a }\nf(c: 2)", messages.H2415, 0},
-		{"TR_func f(a = 1, b) { TR_return a }\nf(5)", messages.H2415, 0},
 	}
 	for _, c := range cases {
 		_, _, err := runTRWithin(t, 5*time.Second, c.code)

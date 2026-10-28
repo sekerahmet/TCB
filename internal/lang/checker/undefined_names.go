@@ -6,7 +6,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -292,9 +291,6 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 	if d.bindings != nil {
 		d.codeParameters(f, pk)
 	}
-	if f.Token.Type == lexer.TokLBrace {
-		pk.implicit = trailingBlockImplicits(f, d.treeLang)
-	}
 	for _, p := range f.Parameters {
 		d.expression(p.DefaultValue, pk)
 	}
@@ -305,7 +301,10 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 // atama hatadır, bkz. 5.4); indeks ve alan hedeflerinde nesne okunur.
 func (d *nameChecker) target(e ast.Expression, k *nameScope) {
 	// Düz ada atama okumadan ayrı bir hatadır: çalışma anı gibi (H2448) 'değişken' ile tanımlamayı
-	// söyler. İndeks ya da üye hedefi (l[0] = 1) adı okur.
+	// söyler. İndeks ya da üye hedefi (l[0] = 1) adı okur. '_' bir ad değildir, değeri atar (5.3).
+	if id, ok := e.(*ast.Identifier); ok && id.Value == "_" {
+		return
+	}
 	if id, ok := e.(*ast.Identifier); ok && d.bindings == nil {
 		if !k.isKnown(id.Value) && !d.decl[id.Value] {
 			d.decl[id.Value] = true

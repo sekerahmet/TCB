@@ -24,6 +24,11 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 			c.inferExpression(el)
 		}
 		return typeList, true
+	case *ast.TupleExpression:
+		for _, el := range e.Elements {
+			c.inferExpression(el)
+		}
+		return typeAny, true // birden çok değer (6.3); denetimi 4a'da
 	case *ast.ListComprehension:
 		c.inferExpression(e.Iterable)
 		prev := c.scope

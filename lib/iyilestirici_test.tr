@@ -48,8 +48,8 @@ TR_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çık
 }
 
 TR_test "Muon ve NorMuon yalnızca 2 boyutlu ağırlık alır" {
-    TR_assert_equal("H6920", TR_error_code(() => TR_Muon([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
-    TR_assert_equal("H6920", TR_error_code(() => TR_NorMuon([TR_Tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code { TR_Muon([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)]) })
+    TR_assert_equal("H6920", TR_error_code { TR_NorMuon([TR_Tensor(TR_ones([2, 2, 2]), TR_requires_grad: TR_true)]) })
 }
 
 TR_test "NorMuon: nöron başına normalleştirilmiş güncellemenin RMS'i 0.2·η'dır" {
@@ -118,7 +118,7 @@ TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (
     TR_var c = kur()
     TR_var op_c = TR_MuonAndAdamW(c, TR_normuon: TR_true)
     TR_assert_equal(TR_NorMuon, TR_Type(op_c.TR_muon))
-    TR_assert_equal("H6922", TR_error_code(() => op_c.TR_set_multiplier(0.0)))
+    TR_assert_equal("H6922", TR_error_code { op_c.TR_set_multiplier(0.0) })
     TR_assert_equal(1.0, op_c.TR_lr_multiplier)
 }
 
@@ -183,9 +183,9 @@ TR_func ters_eğit(kur, adım_sayısı) {
 }
 
 TR_test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
-    TR_var adamw = ters_eğit(m => TR_AdamW(TR_parameters(m), TR_lr: 0.003, TR_weight_decay: 0.0), 300)
-    TR_var muon = ters_eğit(m => TR_MuonAndAdamW(m, TR_adamw_lr: 0.003), 300)
-    TR_var normuon = ters_eğit(m => TR_MuonAndAdamW(m, TR_normuon: TR_true, TR_adamw_lr: 0.003), 300)
+    TR_var adamw = ters_eğit((m) => TR_AdamW(TR_parameters(m), TR_lr: 0.003, TR_weight_decay: 0.0), 300)
+    TR_var muon = ters_eğit((m) => TR_MuonAndAdamW(m, TR_adamw_lr: 0.003), 300)
+    TR_var normuon = ters_eğit((m) => TR_MuonAndAdamW(m, TR_normuon: TR_true, TR_adamw_lr: 0.003), 300)
     TR_assert(muon[1] < 0.7 * muon[0], "Muon ile kayıp belirgin düşmeli: \(muon)")
     TR_assert(muon[1] <= adamw[1] * 1.05, "Muon AdamW'den kötü olmamalı: Muon \(muon[1]), AdamW \(adamw[1])")
     TR_assert(normuon[1] <= adamw[1] * 1.05, "NorMuon AdamW'den kötü olmamalı: NorMuon \(normuon[1]), AdamW \(adamw[1])")
@@ -246,7 +246,7 @@ TR_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile 
     TR_var beklenen = önce - 0.1 * 0.2 * TR_sqrt(8.0) * TR_orthogonalize(G)
     TR_assert(en_büyük_mutlak_fark(W, beklenen) < 0.00001, "rms ölçeği: \(en_büyük_mutlak_fark(W, beklenen))")
     TR_assert_equal([TR_sqrt(2.0)], TR_Muon([W]).TR_scales) # varsayılan "oran": √max(1, 8/4)
-    TR_assert_equal("H6921", TR_error_code(() => TR_Muon([W], TR_scale: "x")))
+    TR_assert_equal("H6921", TR_error_code { TR_Muon([W], TR_scale: "x") })
 }
 
 # bir_adım: model parametrelerine sabit gradyan basıp op.adım() çalıştırır (kayıp = Σ p · G).
@@ -315,7 +315,7 @@ TR_test "SatırRMS: yalnızca gradyanı sıfırdan farklı satırlar değişir; 
     TR_var U = TR_Tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
     TR_RowRMS([U]).TR_step()
     TR_assert_equal(TR_ones([2, 2]), TR_no_grad(U))
-    TR_assert_equal("H6920", TR_error_code(() => TR_RowRMS([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)])))
+    TR_assert_equal("H6920", TR_error_code { TR_RowRMS([TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)]) })
 }
 
 TR_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeyen kelimelerin satırı değişmez" {
@@ -391,10 +391,10 @@ TR_func tek_tek_mi(kur) {
 }
 
 TR_test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştirilir; sonuç tek tek güncellemeyle aynıdır" {
-    TR_var op = tek_tek_mi(TR_func(w) { TR_return TR_Muon(w, TR_lr: 0.05, TR_weight_decay: 0.1) })
+    TR_var op = tek_tek_mi((w) => { TR_return TR_Muon(w, TR_lr: 0.05, TR_weight_decay: 0.1) })
     TR_assert_equal([[0, 2, 3], [1]], op.TR_groups)
-    tek_tek_mi(TR_func(w) { TR_return TR_Muon(w, TR_lr: 0.05, TR_scale: "rms", TR_nesterov: TR_false) })
-    TR_var n = tek_tek_mi(TR_func(w) { TR_return TR_NorMuon(w, TR_lr: 0.01, TR_weight_decay: 0.1) })
+    tek_tek_mi((w) => { TR_return TR_Muon(w, TR_lr: 0.05, TR_scale: "rms", TR_nesterov: TR_false) })
+    TR_var n = tek_tek_mi((w) => { TR_return TR_NorMuon(w, TR_lr: 0.01, TR_weight_decay: 0.1) })
     TR_assert_equal([[0, 2, 3], [1]], n.TR_groups)
     # Gradyan almayan ağırlık gruptan düşer, öbürleri güncellenir.
     TR_var A = TR_Tensor(TR_ones([4, 8]), TR_requires_grad: TR_true)

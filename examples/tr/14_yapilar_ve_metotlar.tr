@@ -37,7 +37,7 @@ TR_struct Nokta {
     }
 }
 TR_var noktalar = [Nokta(3.0, 4.0), Nokta(6.0, 8.0)]
-TR_print(noktalar.TR_map { TR_it.uzaklık() })
+TR_print(noktalar.TR_map((x) => x.uzaklık()))
 
 # kurucu adlı metot nesne oluşturulurken çağrılır; alanları hesaplayarak başlatabilir.
 TR_struct Hesap {

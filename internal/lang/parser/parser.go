@@ -16,14 +16,13 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki
-// bloğun parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adıdır; kod
-// listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: TR_ctx_test, TR_ctx_as,
-// TR_ctx_error, TR_ctx_it, TR_ctx_acc, TR_kw_self, TR_mem_reduce). Programlar kimliklerle okunur (codes.Active); bir yazım
-// dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
+// contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı) yazımları ve
+// 'kendi'nin adıdır; kod listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes:
+// TR_ctx_test, TR_ctx_as, TR_ctx_error, TR_kw_self). Programlar kimliklerle okunur (codes.Active); bir
+// yazım dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
 type contextWords struct {
-	test, as, reduce   []string
-	self, err, it, acc string
+	test, as  []string
+	self, err string
 }
 
 // contextWordsByLanguage dil kodu → o dilin bağlamsal sözcükleri (bir kez kurulur).
@@ -34,8 +33,8 @@ func contextWordsOf(lang *codes.Language) *contextWords {
 		return w.(*contextWords)
 	}
 	w := &contextWords{
-		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs), reduce: lang.Spellings(codes.MemReduce),
-		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError), it: lang.Name(codes.CtxIt), acc: lang.Name(codes.CtxAcc),
+		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs),
+		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError),
 	}
 	v, _ := contextWordsByLanguage.LoadOrStore(lang.Code, w)
 	return v.(*contextWords)
@@ -143,6 +142,22 @@ type Parser struct {
 	// aşıldıktan sonra açıktır (bkz. derinlikGir).
 	nesting       int
 	depthExceeded bool
+
+	// underscore ifadede '_' yazıldığını söyler (5.3: okunduysa hata, bkz. underscoreReads);
+	// interpolated, ayrıştırıcının bir metin yerleştirmesinin alt ayrıştırıcısı olduğunu: '_'yi üstü
+	// bütün ağaçta denetler.
+	underscore, interpolated bool
+
+	// comprehensionSource liste üretecinin kaynağı okunurken açıktır: ardındaki TR_if üretecin
+	// koşuludur. ifWithoutElse, TR_else'siz bir TR_if okunduğunu söyler (5.5: değer yerindeyse hata,
+	// bkz. valueIfs).
+	comprehensionSource, ifWithoutElse bool
+	// namedFunctions adlı bir fonksiyon tanımı okunduğunu söyler (6.1: aynı blokta ikinci tanım hata,
+	// bkz. duplicateFunctions).
+	namedFunctions bool
+	// funcKeywords TR_func ile yazılmış bir fonksiyon okunduğunu söyler (6.6: ifade yerinde hata, bkz.
+	// functionExpressions).
+	funcKeywords bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -197,20 +212,15 @@ func isTrailingBlockTarget(e ast.Expression) bool {
 	return false
 }
 
-// parseTrailingBlock '{ ... }' bloğunu tek parametresi 'o' olan bir fonksiyona çevirip
-// çağrının son argümanı yapar: sayılar.filtrele { o > 2 } == sayılar.filtrele((o) => o > 2).
-// liste.indirge'nin bloğu iki parametrelidir: 'birikim' önceki sonuç, 'o' eleman
-// (l.indirge(0) { birikim + o } == l.indirge(0, (birikim, o) => birikim + o)).
+// parseTrailingBlock '{ ... }' bloğunu parametresiz bir fonksiyona çevirip çağrının son argümanı yapar
+// (6.7): TR_error_code { f(1) } == TR_error_code(() => { f(1) }) (ikinci yazım hatadır). Bloğun değeri
+// son ifadesidir.
 func (p *Parser) parseTrailingBlock(left ast.Expression) ast.Expression {
 	tok := p.curToken() // '{'
-	body := p.functionBody()
-	params := []ast.Param{{Name: p.words.it}}
-	if p.isReduceTarget(left) {
-		params = []ast.Param{{Name: p.words.acc}, {Name: p.words.it}}
-	}
+	body := p.trailingBody()
 	fn := &ast.FunctionLiteral{
 		Token:      tok,
-		Parameters: params,
+		Parameters: []ast.Param{},
 		Body:       body,
 	}
 	if call, ok := left.(*ast.CallExpression); ok {
@@ -319,6 +329,12 @@ func (p *Parser) peekPrecedence() int {
 // ParseProgram parses the whole input as a program.
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{Statements: p.parseStatementList(true)}
+	p.underscoreReads(program)
+	p.valueIfs(program)
+	if !p.interpolated {
+		p.duplicateFunctions(program)
+	}
+	p.functionExpressions(program)
 	p.removedSpellingHints()
 	return program
 }
@@ -358,8 +374,8 @@ func (p *Parser) removedSpellingHints() {
 	}
 	badLine := map[int]bool{}
 	for _, e := range p.errors {
-		if line, _, ok := messages.Pos(e); ok {
-			badLine[line] = true
+		if line, _, ok := messages.Pos(e); ok && !messages.Has(e, messages.H0258) {
+			badLine[line] = true // H0258 'def'in TR yazımını kendisi söyler
 		}
 	}
 	for _, t := range p.tokens {

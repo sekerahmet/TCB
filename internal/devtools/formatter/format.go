@@ -266,6 +266,8 @@ var binaryOps = map[lexer.TokenType]bool{
 	lexer.TokBitAnd: true, lexer.TokBitOr: true, lexer.TokBitXor: true, lexer.TokShl: true, lexer.TokShr: true,
 	lexer.TokAssign: true, lexer.TokWalrus: true, lexer.TokPlusAssign: true,
 	lexer.TokMinusAssign: true, lexer.TokMulAssign: true, lexer.TokDivAssign: true,
+	lexer.TokFloorDivAssign: true, lexer.TokModAssign: true, lexer.TokPowAssign: true, lexer.TokBitAndAssign: true,
+	lexer.TokBitOrAssign: true, lexer.TokBitXorAssign: true, lexer.TokShlAssign: true, lexer.TokShrAssign: true,
 }
 
 // Satır sonunda kalırsa sonraki satırı devam satırı yapan sözcükler

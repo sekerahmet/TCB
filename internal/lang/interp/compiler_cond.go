@@ -2,6 +2,7 @@ package interp
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // --- EĞER / EŞLE ---
@@ -57,6 +58,7 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 		value      exprCode
 	}
 	topic := c.expression(k, e.Subject)
+	line := e.Line()
 	caseList := make([]statusCode, len(e.Cases))
 	for i, mc := range e.Cases {
 		d := statusCode{defaultVal: mc.IsDefault, patterns: c.expressions(k, mc.Patterns)}
@@ -81,7 +83,11 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 					if err != nil {
 						return nil, signalNone, err
 					}
-					if patternMatches(subj, patVal) {
+					ok, err := patternMatches(subj, patVal)
+					if err != nil {
+						return nil, signalNone, messages.At(line, 0, err)
+					}
+					if ok {
 						matched = true
 						break
 					}
@@ -98,23 +104,25 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 				return Null, signalNone, nil
 			}
 		}
-		return Null, signalNone, nil
+		// Eşleşme her durumu kapsar (5.6): hiçbir kol tutmazsa sessizce yokluk vermez.
+		return nil, signalNone, messages.At(line, 0, messages.New(messages.H2702, TypeAndSummary(subj)))
 	}
 }
 
-// patternMatches 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil).
-func patternMatches(subj, patVal Value) bool {
+// patternMatches 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil); desen konuyla
+// '==' ile karşılaştırılır (5.6), JSON ve fonksiyon karşılaştırmasının hatası da onunkidir.
+func patternMatches(subj, patVal Value) (bool, error) {
 	if rng, ok := patVal.(*RangeVal); ok {
 		if iv, ok := subj.(*IntVal); ok {
 			if rng.Inclusive && iv.Val >= rng.Start && iv.Val <= rng.End {
-				return true
+				return true, nil
 			} else if !rng.Inclusive && iv.Val >= rng.Start && iv.Val < rng.End {
-				return true
+				return true, nil
 			}
 		}
-		return false
+		return false, nil
 	}
-	return ValuesEqual(subj, patVal)
+	return EqualValues(subj, patVal)
 }
 
 // armValue tek satırlık kolun ('desen => ifade') değerini derler. Kol kendi kapsamını açar (5.12):
