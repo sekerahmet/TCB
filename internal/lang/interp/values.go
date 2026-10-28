@@ -296,8 +296,12 @@ func DictKeyError(v Value) error {
 		return nil
 	case *ListVal, *DictVal, *StructInstanceVal, IndexAssignable, MemberAssignable:
 		return messages.New(messages.H2495, v.Type())
+	case *FloatVal:
+		return messages.New(messages.H2646, v.Type()) // ondalık anahtar yuvarlama yüzünden bulunamayabilirdi
+	case *JSONVal:
+		return messages.New(messages.H2670)
 	}
-	return messages.New(messages.H2646, v.Type())
+	return messages.New(messages.H2669, v.Type())
 }
 
 // missingKeyError köşeli parantezle olmayan anahtarı okumanın hatasıdır (3.7): ileti olmayabilecek

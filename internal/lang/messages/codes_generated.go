@@ -377,6 +377,10 @@ const (
 	H2664 Code = 2664 // {kind} türündeki bir {@JSON} değerinde dönülmez: dizi öğelerini, nesne anahtarlarını verir; metnin karakterleri için {@String}(j) üzerinde dönün
 	H2665 Code = 2665 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi; JSON değerini önce tipiyle açın: {open}(j)
 	H2666 Code = 2666 // JSON değerinin .{@length}'u nesnenin anahtarlarını ya da dizinin öğelerini sayar; bu bir metin: önce açın, {@String}(j).{@length}
+	H2667 Code = 2667 // {fn}: nan bir sayı değildir, {@Int} değeri yoktur; önce {@is_finite}(x) ile sorun
+	H2668 Code = 2668 // {type}() mantık değerinden sayı kurmaz; {@if} b {{ 1 }} {@else} {{ 0 }} yazın
+	H2669 Code = 2669 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur
+	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: {@String}(j) ya da {@Int}(j)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

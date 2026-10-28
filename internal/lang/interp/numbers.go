@@ -17,7 +17,10 @@ const intLimit = 9223372036854775808.0
 // floatToInt bir Ondalık değeri (kesirli kısmı atılmış) Tam'a çevirir; NaN, sonsuz ya
 // da int64 aralığı dışındaki değerde hata verir.
 func floatToInt(name any, f float64) (int64, error) {
-	if math.IsNaN(f) || math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
+	if math.IsNaN(f) {
+		return 0, messages.New(messages.H2667, name) // nan taşma değildir: sayı değildir
+	}
+	if math.IsInf(f, 0) || f >= intLimit || f < -intLimit {
 		t := codes.NameRef(codes.TypeInt)
 		return 0, messages.New(messages.H2484, name, (&FloatVal{Val: f}).Text(codes.Display()), t)
 	}

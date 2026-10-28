@@ -166,8 +166,9 @@ TR_test "3.7 anahtar tipi Int, String, Bool ya da Bytes'tır; ondalık ve öbür
     TR_var d = {}
     TR_assert_equal("H2646", TR_error_code(() => { d[1.0] = "bir" }))
     TR_assert_equal("H2646", TR_error_code(() => { TR_var e = {0.5: "yarım"} }))
-    TR_assert_equal("H2646", TR_error_code(() => { d[TR_none] = 1 }))
-    TR_assert_equal("H2646", TR_error_code(() => { d[x => x] = 1 }))
+    TR_assert_equal("H2669", TR_error_code(() => { d[TR_none] = 1 }))
+    TR_assert_equal("H2669", TR_error_code(() => { d[x => x] = 1 }))
+    TR_assert_equal("H2670", TR_error_code(() => { d[TR_json_parse("1")] = 1 }))
     TR_assert_equal("H2646", TR_error_code(() => { d.TR_contains(1.5) }))
     # NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
     TR_var j = TR_json_parse(`{"\u0000Tam:1": "metin"}`)
@@ -393,7 +394,7 @@ TR_test "3.12 metin 2.4 ve 2.5'in yazımıyla, işaretle ve yerel ayarsız okunu
     TR_for m TR_in ["1,5", ".5", "1.", "1e999", "Inf", "infinity", "sonsuz", " 1.0"] {
         TR_assert_equal("H2642", TR_error_code(() => { TR_Float(m) }), m)
     }
-    TR_assert_equal("H2484", TR_error_code(() => { TR_Int(TR_Float("nan")) }))
+    TR_assert_equal("H2667", TR_error_code(() => { TR_Int(TR_Float("nan")) }))
     TR_assert_equal("H2484", TR_error_code(() => { TR_Int(1e30) }))
 }
 
@@ -405,7 +406,8 @@ TR_test "3.12 mantık değeri yalnız \"true\" ve \"false\" metninden kurulur" {
     TR_for x TR_in [1, 0.0, []] {
         TR_assert_equal("H2644", TR_error_code(() => { TR_Bool(x) }), "\(x)")
     }
-    TR_assert_equal("H2423", TR_error_code(() => { TR_Int(TR_true) }))
+    TR_assert_equal("H2668", TR_error_code(() => { TR_Int(TR_true) }))
+    TR_assert_equal("H2668", TR_error_code(() => { TR_Float(TR_false) }))
 }
 
 TR_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {

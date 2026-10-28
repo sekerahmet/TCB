@@ -96,7 +96,10 @@ func intCall(_ *VM, a Value) (Value, error) {
 	case *StringVal:
 		return parseIntText(x.Val)
 	}
-	return nil, ArgTypeError(codes.TypeInt, 1, a, codes.TypeFloat, codes.TypeString)
+	if _, ok := a.(*BoolVal); ok {
+		return nil, messages.New(messages.H2668, codes.NameRef(codes.TypeInt)) // D1: TR_if ile
+	}
+	return nil, ArgTypeError(codes.TypeInt, 1, a, codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeJSON)
 }
 
 // floatCall is TR_Float(x): an integer becomes a decimal, a text is read in 2.4's or 2.5's spelling
@@ -122,7 +125,10 @@ func floatCall(_ *VM, a Value) (Value, error) {
 		}
 		return &FloatVal{Val: f}, nil
 	}
-	return nil, ArgTypeError(codes.TypeFloat, 1, a, codes.TypeInt, codes.TypeString)
+	if _, ok := a.(*BoolVal); ok {
+		return nil, messages.New(messages.H2668, codes.NameRef(codes.TypeFloat))
+	}
+	return nil, ArgTypeError(codes.TypeFloat, 1, a, codes.TypeFloat, codes.TypeInt, codes.TypeString, codes.TypeJSON)
 }
 
 // stringCall is TR_String(x): the value's text (3.14).
