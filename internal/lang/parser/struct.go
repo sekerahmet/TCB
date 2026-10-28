@@ -139,7 +139,7 @@ func (p *Parser) inheritanceError(name string) {
 	for _, t := range toks {
 		base.WriteString(t.Literal)
 	}
-	p.syntaxError(open, messages.H0275, p.word(codes.KwStruct), name, base.String(), "")
+	p.syntaxError(open, messages.H0280, p.word(codes.KwStruct), name, base.String())
 }
 
 // fieldNameFor kalıtım iletisinin önerdiği alanın adıdır: tipin adı küçük harfle başlar
@@ -154,4 +154,45 @@ func fieldNameFor(tok lexer.Token) string {
 	}
 	r, size := utf8.DecodeRuneInString(name)
 	return string(unicode.ToLower(r)) + name[size:]
+}
+
+// isPythonClass deyim Python'un sınıf tanımı mı: 'class A(B):' ya da 'class A:' (7.1). 'class' TR'de
+// bir ad olabilir; yalnız ardından ad ve '(' ya da ':' gelirse tanım sayılır.
+func (p *Parser) isPythonClass() bool {
+	if k, ok := codes.FamiliarCode(p.curToken().Literal); !ok || k != codes.KwStruct || !p.peekTokenIs(lexer.TokIdent) {
+		return false
+	}
+	if p.pos+2 >= len(p.tokens) {
+		return false
+	}
+	next := p.tokens[p.pos+2].Type
+	return next == lexer.TokLParen || next == lexer.TokColon
+}
+
+// pythonClassError Python'un sınıf tanımını tek iletiyle bildirir: TR'de yapı yazılır ve kalıtım yoktur;
+// tek adlı tabanda ileti ortak parçayı alanla kurmayı önerir (H0275 gibi). Deyimin geri kalanı atlanır.
+func (p *Parser) pythonClassError() ast.Statement {
+	class := p.curToken()
+	p.nextToken()
+	name := p.curToken().Literal
+	if !p.peekTokenIs(lexer.TokLParen) {
+		p.syntaxError(class, messages.H0278, class.Literal, p.word(codes.KwStruct), name)
+		return nil
+	}
+	p.nextToken() // '('
+	var toks []lexer.Token
+	for !p.peekTokenIs(lexer.TokRParen) && !p.peekTokenIs(lexer.TokEOF) && !p.peekTokenIs(lexer.TokColon) {
+		p.nextToken()
+		toks = append(toks, p.curToken())
+	}
+	if len(toks) == 1 && toks[0].Type == lexer.TokIdent {
+		p.syntaxError(class, messages.H0279, class.Literal, p.word(codes.KwStruct), name, p.tokenName(toks[0]), fieldNameFor(toks[0]))
+		return nil
+	}
+	var base strings.Builder
+	for _, t := range toks {
+		base.WriteString(t.Literal)
+	}
+	p.syntaxError(class, messages.H0281, class.Literal, p.word(codes.KwStruct), name, base.String())
+	return nil
 }

@@ -111,9 +111,13 @@ const (
 	H0270 Code = 270  // Python'un lambda'sı TR'de yok: fonksiyon ifadesi ok ile yazılır, lambda x: x * 2 yerine (x) => x * 2
 	H0271 Code = 271  // '{name}' TR'de yok: sondaki blok parametre almaz; öğeyle çalışan fonksiyon ok ile yazılır: l.{map}((x) => x * 2)
 	H0272 Code = 272  // '{name}' TR'de yok: sondaki blok parametre almaz; birikimi ve öğeyi alan fonksiyon ok ile yazılır: l.{reduce}(0, (acc, x) => acc + x)
-	H0275 Code = 275  // '{keyword} {struct}({base})': TR'de yapı kalıtım almaz; ortak parçayı alan olarak yazın{field, select, empty {} other {: {keyword} {struct} {{ {field}: {base} }}}} (ortak davranış arayüzle kurulur)
+	H0275 Code = 275  // '{keyword} {struct}({base})': TR'de yapı kalıtım almaz; ortak parçayı alan olarak yazın: {keyword} {struct} {{ {field}: {base} }} (ortak davranış arayüzle kurulur)
 	H0276 Code = 276  // '{struct}' yapısının '{name}' alanının varsayılanı yok ama varsayılanlı '{prev}' alanından sonra geliyor; varsayılansız alanları önce yazın
 	H0277 Code = 277  // '{name}' '{struct}' yapısında hem alan hem metot (her alan ve metot adı bir kez kullanılır); birinin adını değiştirin
+	H0278 Code = 278  // '{class}' TR'de anahtar kelime değil; yapı {keyword} {struct} {{ ... }} diye, alanları ve metotları süslü parantezin içinde yazılır
+	H0279 Code = 279  // '{class} {struct}({base})': TR'de sınıf yok ve yapı kalıtım almaz; ortak parçayı alan olarak yazın: {keyword} {struct} {{ {field}: {base} }} (ortak davranış arayüzle kurulur)
+	H0280 Code = 280  // '{keyword} {struct}({base})': TR'de yapı kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
+	H0281 Code = 281  // '{class} {struct}({base})': TR'de sınıf yok ve yapı ({keyword}) kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

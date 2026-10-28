@@ -12,8 +12,8 @@ import (
 func TestStructInheritanceSuggestsAField(t *testing.T) {
 	// alan tipi tek bir addır: noktalı yazımda çalışan bir öneri yoktur, ileti yazım önermez
 	errs := parseErrs("TR_struct A(nn.Module) { y = 2 }")
-	if len(errs) != 1 || !messages.Has(errs[0], messages.H0275) || strings.Contains(messages.ErrorIn(errs[0], "en"), "{") {
-		t.Errorf("A(nn.Module): want one H0275 without a spelling, got %v", errs)
+	if len(errs) != 1 || !messages.Has(errs[0], messages.H0280) {
+		t.Errorf("A(nn.Module): want one H0280, got %v", errs)
 	}
 	for _, c := range []struct{ code, want string }{
 		{"TR_struct B { x = 1 }\nTR_struct A(B) { y = 2 }", "TR_struct A { b: B }"},
@@ -54,3 +54,4 @@ func TestStructBodyErrorsAreReportedOnce(t *testing.T) {
 		t.Errorf("fields without a default before defaulted ones: %v", errs)
 	}
 }
+
