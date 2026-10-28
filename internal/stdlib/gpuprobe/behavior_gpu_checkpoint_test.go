@@ -10,8 +10,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/stdlib"
 )
 
@@ -21,35 +21,35 @@ import (
 // ile 3. adımda kaydedilip yeni nesnelerle sürdürülen GPU eğitimi bit düzeyinde aynıdır. Gerçek
 // GPU yoksa PTX benzetimidir (yavaş; şekiller küçük).
 const gpuCheckpointProgram = `
-varsayılan_cihaz("gpu")
-değişken KOŞU = %q
-fonksiyon eğit(son) {
-    değişken sayaç = 0
-    fonksiyon ağırlık(şekil) {
+TR_default_device("gpu")
+TR_var KOŞU = %q
+TR_func eğit(son) {
+    TR_var sayaç = 0
+    TR_func ağırlık(şekil) {
         sayaç += 1
-        sonuç tensör(türevsiz(rastgele_normal(şekil, tohum: sayaç) * 0.2), türev_izle: doğru)
+        TR_return TR_tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * 0.2), TR_requires_grad: TR_true)
     }
-    değişken model = {E: ağırlık([16, 8]), W: ağırlık([8, 16])}
-    değişken op = AdamW(parametreler(model), öğrenme_oranı: 0.01)
-    değişken izlenen = {kayıplar: []}
-    değişken kn = kontrol_noktası(KOŞU + "/" + metin(son), {model: model, op: op, izlenen: izlenen}, her_dakika: 0)
-    değişken girdiler = [[[3, 1, 4, 1], [5, 9, 2, 6]], [[5, 3, 5, 8], [9, 7, 9, 3]], [[2, 3, 8, 4], [6, 2, 6, 4]]]
-    değişken hedefler = [[1, 4, 1, 5, 9, 2, 6, 5], [3, 5, 8, 9, 7, 9, 3, 2], [3, 8, 4, 6, 2, 6, 4, 3]]
-    döngü adım içinde kn.kaldığı_adım..son {
-        op.sıfırla()
-        değişken kayıp = çapraz_entropi(gömme(model.E, tensör(girdiler[adım %% 3])).şekillendir([8, 8]) @ model.W, tensör(hedefler[adım %% 3]))
-        geri_yayılım(kayıp)
-        op.adım()
-        izlenen.kayıplar.ekle(kayıp.değer)
-        kn.güncelle(adım + 1)
+    TR_var model = {E: ağırlık([16, 8]), W: ağırlık([8, 16])}
+    TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.01)
+    TR_var izlenen = {TR_losses: []}
+    TR_var kn = TR_checkpoint(KOŞU + "/" + TR_str(son), {model: model, op: op, izlenen: izlenen}, TR_every_minutes: 0)
+    TR_var girdiler = [[[3, 1, 4, 1], [5, 9, 2, 6]], [[5, 3, 5, 8], [9, 7, 9, 3]], [[2, 3, 8, 4], [6, 2, 6, 4]]]
+    TR_var hedefler = [[1, 4, 1, 5, 9, 2, 6, 5], [3, 5, 8, 9, 7, 9, 3, 2], [3, 8, 4, 6, 2, 6, 4, 3]]
+    TR_for adım TR_in kn.TR_resume_step..son {
+        op.TR_zero_grad()
+        TR_var kayıp = TR_cross_entropy(TR_embedding(model.E, TR_tensor(girdiler[adım %% 3])).TR_reshape([8, 8]) @ model.W, TR_tensor(hedefler[adım %% 3]))
+        TR_backward(kayıp)
+        op.TR_step()
+        izlenen.TR_losses.TR_append(kayıp.TR_tolist)
+        kn.TR_update(adım + 1)
     }
-    sonuç [model, op, izlenen, kn]
+    TR_return [model, op, izlenen, kn]
 }
 `
 
 func runOnGPU(t *testing.T, code string) string {
 	t.Helper()
-	p := parser.New(source.TextLexer(code))
+	p := parser.New(lexer.NewBody(code, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())

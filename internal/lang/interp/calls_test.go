@@ -14,7 +14,7 @@ func TestUnknownNameErrorHasColumnAndSuggestion(t *testing.T) {
 		line, col int    // 0: konum denetlenmez
 		want      string // öneri ipucunun metni (biçimi)
 	}{
-		{"TR_var adet = 1\nyazdır(adt + 1)", 2, 8, "Bunu mu demek istediniz: 'adet'?"},
+		{"TR_var adet = 1\nTR_print(adt + 1)", 2, len("TR_print(") + 1, "Bunu mu demek istediniz: 'adet'?"},
 		{"TR_var değişken_adı = 1\ndegisken_adi = 2", 0, 0, "Bunu mu demek istediniz: 'değişken_adı'?"},
 		{"TR_var sayaç = 1\nsayac += 1", 2, 1, "Bunu mu demek istediniz: 'sayaç'?"},
 		{"yazdırr(1)", 0, 0, "Bunu mu demek istediniz: 'TR_print'?"},

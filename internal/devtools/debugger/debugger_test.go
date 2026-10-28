@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 func TestDebuggerBreakpointToggleIsSafe(t *testing.T) {
@@ -34,7 +34,7 @@ func TestDebuggerBreakpointToggleIsSafe(t *testing.T) {
 // hata ayıklayıcının ekrana yazdıklarını ve VM'i döner. Süre sınırı asılmayı yakalar.
 func runCLI(t *testing.T, path, code, input string, setup func(*Debugger)) (string, *interp.VM) {
 	t.Helper()
-	p := parser.New(source.TextLexer(code))
+	p := parser.New(lexer.NewBody(code, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("Sözdizimi hatası: %v", p.Errors())

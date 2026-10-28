@@ -55,10 +55,10 @@ func TestOperatorPrecedence(t *testing.T) {
 		{"2 ** -1", "0.5"},
 		{"2 * 3 ** 2", "18"},
 		{"-2 * 3", "-6"},
-		{"değil 1 == 2", "doğru"},
-		{"değil 1 < 2", "yanlış"},
-		{"değil yanlış ve yanlış", "yanlış"}, // (değil yanlış) ve yanlış
-		{"!yanlış == yanlış", "yanlış"},      // '!' sıkı bağlanır: (!yanlış) == yanlış
+		{"TR_not 1 == 2", "doğru"},
+		{"TR_not 1 < 2", "yanlış"},
+		{"TR_not TR_false TR_and TR_false", "yanlış"}, // (TR_not TR_false) TR_and TR_false
+		{"!TR_false == TR_false", "yanlış"},           // '!' sıkı bağlanır: (!TR_false) == TR_false
 		{"2 ** 10", "1024"},
 		{"2.0 ** 2", "4.0"},
 	}

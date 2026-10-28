@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 )
 
-const options = `{öğrenme_oranı: 0.001, adım: 5000, veri: "veri/train", katmanlar: [64, 64], hızlı: yanlış, etiket: yok, hf_token: ""}`
+const options = `{TR_lr: 0.001, TR_step: 5000, veri: "veri/train", katmanlar: [64, 64], hızlı: TR_false, etiket: TR_none, hf_token: ""}`
 
 // commandLine komut_satırı'nı verilen argümanlarla çalıştırır; sonucu (sözlüğün görünümü),
 // yorumlayıcıyı ve hatayı döndürür.
@@ -22,7 +22,7 @@ func commandLine(t *testing.T, code string, arguments ...string) (string, *inter
 	m.Out, m.Err = io.Discard, io.Discard
 	m.SourceFile = "egit.tr"
 	m.SetArgs(arguments)
-	p := parser.New(source.TextLexer(code))
+	p := parser.New(lexer.NewBody(code, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi: %v", p.Errors())

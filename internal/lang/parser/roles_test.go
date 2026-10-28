@@ -11,6 +11,7 @@ import (
 // Ağaçta düğümü olmayan adlar da kaybolmaz: tip açıklaması, üye adı, yapı alanı ve metodu, test
 // ve olarak sözcükleri, sözlük anahtarı kayıt açıkken görevleriyle (satır, sütun) kaydedilir;
 // kodlu biçime çevirici bu kayda dayanır. Yerleştirme içindeki adlar da dosyadaki konumlarıyla gelir.
+// Bilerek Türkçe gösterim: çeviricinin girdisi kişinin dilinde yazılmış metindir.
 func TestRolesRecordedForNamesWithoutNodes(t *testing.T) {
 	src := `aktar "yol" olarak m
 yapı Nokta {
@@ -76,7 +77,7 @@ yazdır("\(n.uzunluk)")
 
 // Kayıt kapalıyken (sıradan ayrıştırma) hiçbir şey kaydedilmez.
 func TestRolesOffByDefault(t *testing.T) {
-	p := New(lexer.New("değişken x: Tam = 1\n"))
+	p := New(lexer.New("TR_var x: TR_Int = 1\n"))
 	p.ParseProgram()
 	if len(p.Roles()) != 0 {
 		t.Errorf("kayıt kapalıyken görev tutulmamalı: %v", p.Roles())

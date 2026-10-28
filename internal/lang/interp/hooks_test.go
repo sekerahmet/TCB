@@ -9,7 +9,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // fakeValue kancaları sınamak için kendi eşitliğini, işleçlerini ve indekslemesini sağlar.
@@ -36,7 +35,7 @@ func (s *fakeValue) Index(i Value) (Value, error) { return NewInt(int64(s.n) * i
 
 func parseExpr(t *testing.T, codeVal string) ast.Expression {
 	t.Helper()
-	p := parser.New(source.TextLexer(codeVal))
+	p := parser.New(bodyLexer(codeVal))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || len(prog.Statements) != 1 {
 		t.Fatalf("ifade ayrıştırılamadı: %q %v", codeVal, p.Errors())

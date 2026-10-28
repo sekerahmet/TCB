@@ -153,7 +153,7 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 	fmt.Fprintf(&b, "TR_const C%d = %d\n", i, i)
 	fmt.Fprintf(&b, "TR_struct S%d {\n    x = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i)
 	for j := 0; j < 3; j++ {
-		fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
+		fmt.Fprintf(&b, "TR_func f%d_%d(p) {\n", i, j)
 		if i > 0 {
 			fmt.Fprintf(&b, "    TR_var v = f%d_%d(p)\n", i-1, j)
 		}
@@ -163,7 +163,7 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 		if i%5 == 2 {
 			b.WriteString("    TR_var g = Katman(1)\n")
 		}
-		b.WriteString("    yazdır(p.ileri())\n    sonuç p\n}\n")
+		b.WriteString("    TR_print(p.TR_forward())\n    TR_return p\n}\n")
 	}
 	for _, line := range extra {
 		b.WriteString(line + "\n")
@@ -215,7 +215,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 		if broken[i] {
 			p := filepath.Join(dir, fmt.Sprintf("m%d.tr", i))
 			data, _ := os.ReadFile(p)
-			if err := os.WriteFile(p, append(data, []byte("fonksiyon {\n")...), 0o644); err != nil {
+			if err := os.WriteFile(p, append(data, []byte("TR_func {\n")...), 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -275,11 +275,11 @@ func benchProject(tb testing.TB, n int) string {
 		}
 		fmt.Fprintf(&b, "TR_const c_%d = %d\nTR_struct S_%d {\n    x = 1\n    TR_weight = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i, i, i)
 		for j := 0; j < 3; j++ {
-			fmt.Fprintf(&b, "fonksiyon f%d_%d(p) {\n", i, j)
+			fmt.Fprintf(&b, "TR_func f%d_%d(p) {\n", i, j)
 			if i > 0 {
 				fmt.Fprintf(&b, "    TR_var v = f%d_%d(p)\n", i-1, j)
 			}
-			b.WriteString("    yazdır(p.ileri())\n    yazdır(p.ağırlık)\n    sonuç p\n}\n")
+			b.WriteString("    TR_print(p.TR_forward())\n    TR_print(p.TR_weight)\n    TR_return p\n}\n")
 		}
 		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), trText(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), b.String()), 0o644); err != nil {
 			tb.Fatal(err)

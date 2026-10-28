@@ -112,17 +112,17 @@ func TestRunFile(t *testing.T) {
 func TestCheck(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "iyi.tr", "TR_print(\"çalışmamalı\")\n")
-	writeTR(t, dir, "TR_type.tr", "TR_var x: TR_Int = \"metin\"\n")
-	writeTR(t, dir, "sozdizimi.tr", "fonksiyon f( {\n")
+	writeTR(t, dir, "tip.tr", "TR_var x: TR_Int = \"metin\"\n")
+	writeTR(t, dir, "sozdizimi.tr", "TR_func f( {\n")
 
 	s := tr(t, dir, "kontrol", "iyi.tr")
 	testkit.Wait(t, s, 0, []string{"iyi.tr başarıyla denetlendi"}, nil)
 	if strings.Contains(s.Stdout, "çalışmamalı") {
 		t.Error("kontrol programı çalıştırmamalı")
 	}
-	testkit.Wait(t, tr(t, dir, "kontrol", "TR_type.tr"), 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:"})
+	testkit.Wait(t, tr(t, dir, "kontrol", "tip.tr"), 1, nil, []string{"❌ Tip ve Güvenlik Denetimi Hataları:"})
 	testkit.Wait(t, tr(t, dir, "kontrol", "sozdizimi.tr"), 1, nil, []string{"❌ Sözdizimi Hataları:"})
-	testkit.Wait(t, tr(t, dir, "kontrol", "TR_none.tr"), 1, nil, []string{"Dosya okuma hatası", "TR_none.tr", "böyle bir dosya ya da klasör yok"})
+	testkit.Wait(t, tr(t, dir, "kontrol", "yok.tr"), 1, nil, []string{"Dosya okuma hatası", "yok.tr", "böyle bir dosya ya da klasör yok"})
 }
 
 func TestTestCommand(t *testing.T) {
@@ -148,7 +148,7 @@ func TestFormat(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "biçimle", "--kontrol", "."), 0, []string{"hepsi standart biçimde"}, nil)
 	testkit.Wait(t, tr(t, dir, "biçimle", "olmayan.tr"), 1, nil, []string{`"olmayan.tr" biçimlenemedi: böyle bir dosya ya da klasör yok`})
 	// Sözdizimi hatalı dosya varken "hepsi standart biçimde" denmez
-	writeTR(t, dir, "bozuk.tr", "yazdır(\n")
+	writeTR(t, dir, "bozuk.tr", "TR_print(\n")
 	s = tr(t, dir, "biçimle", "--kontrol", ".")
 	testkit.Wait(t, s, 1, []string{"1 tanesi biçimlenemedi"}, []string{"bozuk.tr"})
 	if strings.Contains(s.Stdout, "standart biçimde") {
@@ -167,11 +167,12 @@ func TestDAPStartup(t *testing.T) {
 	testkit.Wait(t, s, 1, nil, []string{"❌ Hata ayıklama sunucusu:"})
 }
 
+// Bilerek Türkçe gösterim: kabuğa yazılan satır kişinin dilindedir (TR_DIL varsayılanı Türkçe).
 func TestREPL(t *testing.T) {
 	input := strings.Join([]string{
-		`TR_print("merhaba")`,
+		`yazdır("merhaba")`,
 		`1 +`,
-		`TR_var x: TR_Int = "a"`,
+		`değişken x: Tam = "a"`,
 		`1 / 0`,
 		`2 + 3`,
 		`cikis`,
@@ -195,7 +196,7 @@ func TestREPL(t *testing.T) {
 		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.Stderr)
 	}
 	// Kabuğun çıkış komutu bir ad kodudur (TR_repl_exit): her yazım dilinin adı kabul edilir.
-	s = testkit.RunBinary(t, trBinary, "", "exit\nTR_print(\"sürdü\")\n", nil)
+	s = testkit.RunBinary(t, trBinary, "", "exit\nyazdır(\"sürdü\")\n", nil)
 	testkit.Wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
 	if strings.Contains(s.Stdout, "sürdü") {
 		t.Error("exit kabuğu kapatmalıydı")
@@ -206,7 +207,7 @@ func TestREPL(t *testing.T) {
 // (toplam, sum) dilin öğesiyle aynı yazılsa da kullanıcının adıdır, yerleşiğe dönmez. Her yazım dilinde.
 func TestREPLKeepsTheEarlierLinesNames(t *testing.T) {
 	for _, c := range []struct{ lang, input string }{
-		{"tr", "TR_var toplam = 5\nTR_print(toplam + 1)\nçıkış\n"},
+		{"tr", "değişken toplam = 5\nyazdır(toplam + 1)\nçıkış\n"},
 		{"en", "var sum = 5\nprint(sum + 1)\nexit\n"},
 	} {
 		s := testkit.RunBinary(t, trBinary, "", c.input, []string{"TR_DIL=" + c.lang})
@@ -225,7 +226,7 @@ func TestInputPipeAndShell(t *testing.T) {
 	s := testkit.RunBinary(t, trBinary, dir, "bir\niki\n", nil, "g.tr")
 	testkit.Wait(t, s, 0, []string{"a=[bir] b=[iki]"}, nil)
 
-	input := "TR_var x = TR_input()\nveri\nTR_print(\"x=\" + x)\nçıkış\n"
+	input := "değişken x = girdi()\nveri\nyazdır(\"x=\" + x)\nçıkış\n" // kabuk satırları: Türkçe
 	s = testkit.RunBinary(t, trBinary, "", input, nil)
 	testkit.Wait(t, s, 0, []string{"x=veri", "Görüşmek üzere!"}, nil)
 }

@@ -8,16 +8,16 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // fromProgram kodu, programın klasörü klasor olacak biçimde (çalışma klasörü değişmeden)
 // çalıştırır.
 func fromProgram(t *testing.T, dir, code string) (string, error) {
 	t.Helper()
-	p := parser.New(source.TextLexer(code))
+	p := parser.New(lexer.NewBody(code, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatalf("sözdizimi hatası: %v", p.Errors())

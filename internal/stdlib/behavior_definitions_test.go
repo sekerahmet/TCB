@@ -49,6 +49,8 @@ func chdirTemp(t *testing.T) {
 
 func repoRoot(*testing.T) string { return reporoot.Root() }
 
+// exampleProgram kodun Türkçe tanımındaki örneği ayrıştırır. Bilerek Türkçe gösterim: örnek tr.json'da
+// Türkçe yazılmıştır, Türkçe okuma yoluyla (source.TextLexer) okunur.
 func exampleProgram(t *testing.T, k codes.Code) (*ast.Program, string) {
 	t.Helper()
 	g, _ := codes.Source().Entry(k)
@@ -257,9 +259,9 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		typ   codes.Code
 		setup string
 	}{
-		{codes.TypeInt, `5`}, {codes.TypeFloat, `2.5`}, {codes.TypeString, `"abc"`}, {codes.TypeBool, `doğru`},
+		{codes.TypeInt, `5`}, {codes.TypeFloat, `2.5`}, {codes.TypeString, `"abc"`}, {codes.TypeBool, `TR_true`},
 		{codes.TypeList, `[1, 2]`}, {codes.TypeDict, `{}`}, {codes.TypeRange, `1..3`}, {codes.TypeFunction, `(x) => x`},
-		{codes.TypeBuiltinFunction, `yazdır`}, {codes.TypeTensor, `TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`},
+		{codes.TypeBuiltinFunction, `TR_print`}, {codes.TypeTensor, `TR_tensor([[1.0, 2.0]], TR_requires_grad: TR_true)`},
 		{codes.TypeOptimizer, `TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)])`}, {codes.TypeOptimizer, `TR_SGD([TR_tensor([1.0], TR_requires_grad: TR_true)])`},
 		{codes.TypeDataset, `TR_dataset("tests/data/numbers")`},
 		{codes.TypeSampler, `TR_dataset("tests/data/numbers").TR_sampler(TR_batch_size: 1, TR_context: 2)`},

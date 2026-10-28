@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -19,16 +20,16 @@ func TestErrorMessagesUseTurkishDescriptions(t *testing.T) {
 		text string
 	}
 	caseList := map[string]want{
-		"yazdır(1":                    {messages.H0140, "')' bekleniyordu, ancak dosya sonu bulundu"},
-		"değişken = 4":                {messages.H0140, "bir ad bekleniyordu, ancak '=' bulundu"},
-		"eğer x = 5 { }":              {messages.H0140, "'{' bekleniyordu, ancak '=' bulundu (karşılaştırma için '==' yazın"},
-		"değişken d = [1, 2\nsonuç 3": {messages.H0140, "']' bekleniyordu, ancak 'sonuç' anahtar kelimesi bulundu"},
-		"fonksiyon f(a b) { }":        {messages.H0140, "')' bekleniyordu, ancak 'b' adı bulundu"},
-		"eşle 1 { 1 \"bir\" }":        {messages.H0140, "'=>' bekleniyordu, ancak \"bir\" metni bulundu"},
-		")":                           {messages.H0141, "burada bir değer ya da ifade bekleniyordu, ancak ')' bulundu"},
-		"değişken a, b 5":             {messages.H0142, "çoklu değişken tanımında '=' bekleniyordu, ancak 5 sayısı bulundu"},
-		"döngü i içinde [1] değilse":  {messages.H0140, "'{' bekleniyordu, ancak 'değilse' anahtar kelimesi bulundu"},
-		"x = 99999999999999999999":    {messages.H0165, "99999999999999999999 tam sayı olarak çok büyük"},
+		"TR_print(1":                    {messages.H0140, "')' bekleniyordu, ancak dosya sonu bulundu"},
+		"TR_var = 4":                    {messages.H0140, "bir ad bekleniyordu, ancak '=' bulundu"},
+		"TR_if x = 5 { }":               {messages.H0140, "'{' bekleniyordu, ancak '=' bulundu (karşılaştırma için '==' yazın"},
+		"TR_var d = [1, 2\nTR_return 3": {messages.H0140, "']' bekleniyordu, ancak 'TR_return' anahtar kelimesi bulundu"},
+		"TR_func f(a b) { }":            {messages.H0140, "')' bekleniyordu, ancak 'b' adı bulundu"},
+		"TR_match 1 { 1 \"bir\" }":      {messages.H0140, "'=>' bekleniyordu, ancak \"bir\" metni bulundu"},
+		")":                             {messages.H0141, "burada bir değer ya da ifade bekleniyordu, ancak ')' bulundu"},
+		"TR_var a, b 5":                 {messages.H0142, "çoklu değişken tanımında '=' bekleniyordu, ancak 5 sayısı bulundu"},
+		"TR_for i TR_in [1] TR_else":    {messages.H0140, "'{' bekleniyordu, ancak 'TR_else' anahtar kelimesi bulundu"},
+		"x = 99999999999999999999":      {messages.H0165, "99999999999999999999 tam sayı olarak çok büyük"},
 	}
 	for codeVal, w := range caseList {
 		errs := parseErrs(codeVal)
@@ -50,16 +51,16 @@ func TestErrorMessagesUseTurkishDescriptions(t *testing.T) {
 // Tek bir yanlış, ardından gelen geçerli satırlarda art arda hata üretmemeli.
 func TestSingleErrorNoCascade(t *testing.T) {
 	caseList := map[string]int{
-		// '=' hatası; gövde ve 'değilse' kolu hatalı deyimin parçasıdır
-		"değişken x = 5\neğer x = 5 {\n    yazdır(\"a\")\n    yazdır(\"b\")\n} değilse {\n    yazdır(\"c\")\n}\nyazdır(x)": 1,
+		// '=' hatası; gövde ve 'TR_else' kolu hatalı deyimin parçasıdır
+		"TR_var x = 5\nTR_if x = 5 {\n    TR_print(\"a\")\n    TR_print(\"b\")\n} TR_else {\n    TR_print(\"c\")\n}\nTR_print(x)": 1,
 		// Parametre listesindeki eksik virgül; gövde atlanır
-		"fonksiyon f(a b) {\n    sonuç a\n}\nyazdır(1)": 1,
+		"TR_func f(a b) {\n    TR_return a\n}\nTR_print(1)": 1,
 		// Bloğu kapatan '}' hatalı deyimde yutulmaz: "'{' kapatılmadı" hatası çıkmaz
-		"fonksiyon g() {\n    eğer doğru { yazdır( }\n    sonuç 3\n}\nyazdır(g())": 1,
+		"TR_func g() {\n    TR_if TR_true { TR_print( }\n    TR_return 3\n}\nTR_print(g())": 1,
 		// Eşle bloğundaki hata kalan durumları da bozmaz
-		"eşle 3 {\n    1 \"bir\"\n    2 => \"iki\"\n    _ => \"çok\"\n}\nyazdır(1)": 1,
+		"TR_match 3 {\n    1 \"bir\"\n    2 => \"iki\"\n    _ => \"çok\"\n}\nTR_print(1)": 1,
 		// Ayrı satırlardaki bağımsız hatalar ayrı ayrı bildirilir
-		"değişken = 1\nyazdır(2)\ndeğişken = 3": 2,
+		"TR_var = 1\nTR_print(2)\nTR_var = 3": 2,
 	}
 	for codeVal, wantSub := range caseList {
 		if errList := parseErrors(codeVal); len(errList) != wantSub {
@@ -69,10 +70,11 @@ func TestSingleErrorNoCascade(t *testing.T) {
 }
 
 // Anahtar kelimenin Türkçe harfsiz yazımının ipucu (hint.KeywordSpellingHint) hatalı satırda korunur.
+// Bilerek Türkçe gösterim: ipucu Türkçe yazılmış metnin (kabuk satırı) sözcüğünü önerir.
 func TestKeywordSpellingHintKept(t *testing.T) {
 	const src = "eger topla(a, b) -> Tam { sonuc a + b }"
-	errs := parseErrs(src)
-	compound := strings.Join(parseErrors(src), "\n")
+	errs := parseErrsIn(src, codes.Source())
+	compound := strings.Join(messages.Texts(errs), "\n")
 	for _, name := range []string{"eger", "sonuc"} {
 		// İpucu metni tek kaynaktan (hint) gelir; hata satırına eklenmiş olmalı.
 		if want := hint.KeywordSpellingHint(name, nil).Error(); want == "" || !strings.Contains(compound, want) {

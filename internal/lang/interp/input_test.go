@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // girdi() her çağrıda yeni bir tamponlu okuyucu açınca ilk okuma kaynağın tamamını
@@ -40,7 +39,7 @@ func TestInputReaderShared(t *testing.T) {
 	if s, _ := m.InputReader().ReadString('\n'); s != "komut\n" {
 		t.Fatalf("ilk satır: %q", s)
 	}
-	_, err := m.Run(parser.New(source.TextLexer(`TR_var result = TR_input()`)).ParseProgram())
+	_, err := m.Run(parser.New(bodyLexer(`TR_var result = TR_input()`)).ParseProgram())
 	val, _ := m.GlobalEnv.Get("result")
 	if err != nil || val == nil || val.Inspect() != "veri" {
 		t.Fatalf("girdi() ikinci satırı okumalıydı: %v %v", val, err)

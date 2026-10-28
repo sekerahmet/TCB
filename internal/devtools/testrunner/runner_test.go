@@ -136,7 +136,7 @@ func TestEmptyDirErrors(t *testing.T) {
 
 func TestUnloadableFile(t *testing.T) {
 	root := t.TempDir()
-	writeTR(t, root, "bozuk_test.tr", "test \"a\" { doğrula(doğru) }\ndeğişken = 5\n")
+	writeTR(t, root, "bozuk_test.tr", "TR_test \"a\" { TR_assert(TR_true) }\nTR_var = 5\n")
 	writeTR(t, root, "ustduzey_test.tr", "TR_throw \"yükleme hatası\"\nTR_test \"b\" { TR_assert(TR_true) }\n")
 	writeTR(t, root, "iyi_test.tr", "TR_test \"c\" { TR_assert(TR_true) }\n")
 	var out bytes.Buffer

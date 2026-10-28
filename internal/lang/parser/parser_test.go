@@ -2,7 +2,9 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -27,13 +29,17 @@ func shape(e ast.Expression) string {
 	return fmt.Sprintf("<%T>", e)
 }
 
-// trLexer Türkçe yazılmış metnin sözcük çözümleyicisidir: dil açıkça verilir (program içeride
-// kimliklerle çalışır, Türkçe bir yazım dilidir; 17.7).
+// codedLexer bir dosyanın gövdesinin sözcük çözümleyicisidir: program kimlik yazımıyla okunur
+// (2.3a; source.Prepare'in dosya yolu).
+func codedLexer(code string) *lexer.Lexer { return lexer.NewBody(code, true) }
+
+// trLexer Türkçe yazılmış metnin sözcük çözümleyicisidir: yalnız bilerek Türkçe gösterimi (17)
+// sınayan testler içindir; program içeride kimliklerle çalışır.
 func trLexer(code string) *lexer.Lexer { return lexer.NewBodyIn(code, false, codes.Source()) }
 
 func firstExpr(t *testing.T, code string) ast.Expression {
 	t.Helper()
-	p := New(trLexer(code))
+	p := New(codedLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("%s: beklenmeyen hata: %v", code, p.Errors())
@@ -48,11 +54,11 @@ func firstExpr(t *testing.T, code string) ast.Expression {
 // Hatalı yapı metodları eskiden "interface conversion: agac.Expression is nil" paniğine yol açıyordu.
 func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
 	for _, code := range []string{
-		"yapı A { fonksiyon f { } }",
-		"yapı A { fonksiyon f { yazdır(1) } }\nyazdır(2)",
-		"yapı A { fonksiyon { } }",
-		"yapı A { fonksiyon f(",
-		"yapı A { fonksiyon f { { { }",
+		"TR_struct A { TR_func f { } }",
+		"TR_struct A { TR_func f { TR_print(1) } }\nTR_print(2)",
+		"TR_struct A { TR_func { } }",
+		"TR_struct A { TR_func f(",
+		"TR_struct A { TR_func f { { { }",
 	} {
 		func() {
 			defer func() {
@@ -60,7 +66,7 @@ func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
 					t.Fatalf("%q ayrıştırılırken panik: %v", code, r)
 				}
 			}()
-			p := New(trLexer(code))
+			p := New(codedLexer(code))
 			p.ParseProgram()
 			if len(p.Errors()) == 0 {
 				t.Errorf("%q için sözdizimi hatası bekleniyordu", code)
@@ -70,21 +76,23 @@ func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
 }
 
 func TestValidStructMethodStillParses(t *testing.T) {
-	p := New(trLexer("yapı A {\n  ad: Metin\n  fonksiyon selam() { sonuç kendi.ad }\n}"))
+	p := New(codedLexer("TR_struct A {\n  ad: TR_String\n  TR_func selam() { TR_return TR_self.ad }\n}"))
 	p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("geçerli yapı hata vermemeli: %v", p.Errors())
 	}
 }
 
-// parseErrors Türkçe yazılmış metni ayrıştırır, hata metinlerini verir.
+// parseErrors kodlu gövdeyi ayrıştırır, hata metinlerini verir.
 func parseErrors(code string) []string {
 	return messages.Texts(parseErrs(code))
 }
 
 // parseErrs, parseErrors gibi ama hataları ileti kodu ve konumuyla denetlenebilsin diye error olarak verir.
 func parseErrs(code string) []error {
-	return parseErrsIn(code, codes.Source())
+	p := New(codedLexer(code))
+	p.ParseProgram()
+	return p.Errs()
 }
 
 // parseErrsIn lang'de yazılmış metni ayrıştırır, hatalarını verir.
@@ -116,16 +124,28 @@ func hasErrAt(errs []error, line, col int, code messages.Code) bool {
 	return false
 }
 
+// posOf needle'ın code'da ilk geçtiği yerdir: satır 1'den, sütun karakter (rune) sayısıyla 1'den
+// (2.1). Beklenen konum böylece elle değil programdan hesaplanır; yazım değişse de doğru kalır.
+func posOf(t *testing.T, code, needle string) (line, col int) {
+	t.Helper()
+	i := strings.Index(code, needle)
+	if i < 0 {
+		t.Fatalf("%q içinde %q yok", code, needle)
+	}
+	before := code[:i]
+	return strings.Count(before, "\n") + 1, utf8.RuneCountInString(before[strings.LastIndex(before, "\n")+1:]) + 1
+}
+
 // Metin içindeki tek bir '{' eskiden dosyanın geri kalanını yutuyordu.
 func TestUnbalancedInterpolationIsReportedWithLine(t *testing.T) {
-	errs := parseErrs("yazdır(\"a\")\nyazdır(\"\\(\")\nyazdır(\"b\")")
+	errs := parseErrs("TR_print(\"a\")\nTR_print(\"\\(\")\nTR_print(\"b\")")
 	if len(errs) == 0 || !hasErrAt(errs[:1], 2, 0, messages.H0009) {
 		t.Fatalf("2. satırda kapatılmamış '\\(' hatası bekleniyordu, alınan: %v", errs)
 	}
 }
 
 func TestUnterminatedStringIsReported(t *testing.T) {
-	errs := parseErrs("değişken a = 1\nyazdır(\"merhaba)\n")
+	errs := parseErrs("TR_var a = 1\nTR_print(\"merhaba)\n")
 	if len(errs) == 0 || !hasErrAt(errs[:1], 2, 0, messages.H0010) {
 		t.Fatalf("2. satırda kapatılmamış metin hatası bekleniyordu, alınan: %v", errs)
 	}
@@ -133,11 +153,11 @@ func TestUnterminatedStringIsReported(t *testing.T) {
 
 func TestPowerAndNotPrecedenceShape(t *testing.T) {
 	cases := map[string]string{
-		"2 ** 3 ** 2":  "(2 ** (3 ** 2))",
-		"-2 ** 2":      "(-(2 ** 2))",
-		"değil 1 == 2": "(!(1 == 2))",
-		"değil a ve b": "((!a) && b)",
-		"-a * b":       "((-a) * b)",
+		"2 ** 3 ** 2":       "(2 ** (3 ** 2))",
+		"-2 ** 2":           "(-(2 ** 2))",
+		"TR_not 1 == 2":     "(!(1 == 2))",
+		"TR_not a TR_and b": "((!a) && b)",
+		"-a * b":            "((-a) * b)",
 	}
 	for code, want := range cases {
 		if got := shape(firstExpr(t, code)); got != want {
@@ -147,7 +167,7 @@ func TestPowerAndNotPrecedenceShape(t *testing.T) {
 }
 
 func TestCallOnNextLineStartsNewStatement(t *testing.T) {
-	p := New(trLexer("değişken f = 5\n(1 + 2) |> yazdır\nx\n[1]"))
+	p := New(codedLexer("TR_var f = 5\n(1 + 2) |> TR_print\nx\n[1]"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -165,22 +185,22 @@ func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
 		code  string
 		stmts int
 	}{
-		{"değişken a = 1\n-x", 2},
-		{"değişken a = 1 -\nx", 1},
-		{"değişken a = (1\n- x)", 1},
-		{"değişken a = x\n.uzunluk", 1},
-		{"değişken a = x\n?.uzunluk", 1},
-		{"değişken a = x ve\ny", 1},
-		{"değişken a = x\n|> yazdır", 1},
+		{"TR_var a = 1\n-x", 2},
+		{"TR_var a = 1 -\nx", 1},
+		{"TR_var a = (1\n- x)", 1},
+		{"TR_var a = x\n.TR_length", 1},
+		{"TR_var a = x\n?.TR_length", 1},
+		{"TR_var a = x TR_and\ny", 1},
+		{"TR_var a = x\n|> TR_print", 1},
 	} {
-		p := New(trLexer(d.code))
+		p := New(codedLexer(d.code))
 		prog := p.ParseProgram()
 		if len(p.Errors()) != 0 || len(prog.Statements) != d.stmts {
 			t.Errorf("%q: %d deyim bekleniyordu, %d alındı (hatalar %v)", d.code, d.stmts, len(prog.Statements), p.Errors())
 		}
 	}
 	// Satır başında tekli biçimi olmayan işleç sözdizimi hatasıdır: sessizce yeni anlam kazanmaz.
-	for _, code := range []string{"değişken b = 10\n+ 2", "değişken c = x\nve y", "değişken d = x\n?? 0"} {
+	for _, code := range []string{"TR_var b = 10\n+ 2", "TR_var c = x\nTR_and y", "TR_var d = x\n?? 0"} {
 		if errs := parseErrs(code); !hasCode(errs, messages.H0167) {
 			t.Errorf("%q: nedenini söyleyen sözdizimi hatası (H0167) bekleniyordu: %v", code, errs)
 		}
@@ -189,7 +209,7 @@ func TestBinaryOperatorOnNextLineDoesNotContinue(t *testing.T) {
 
 // 'test' yalnızca deyim başında ve ardından metin geldiğinde anahtar kelimedir.
 func TestTestIsContextualKeyword(t *testing.T) {
-	p := New(trLexer("test \"toplama\" { doğrula(1 + 1 == 2) }"))
+	p := New(codedLexer("TR_test \"toplama\" { TR_assert(1 + 1 == 2) }"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -200,8 +220,8 @@ func TestTestIsContextualKeyword(t *testing.T) {
 	}
 
 	// Ad olarak kullanım bozulmamalı
-	for _, code := range []string{"değişken test = 5\ntest = test + 1\nyazdır(test)", "test := [1]\ntest[0]", "fonksiyon test(a) { sonuç a }\ntest(\"x\")"} {
-		p := New(trLexer(code))
+	for _, code := range []string{"TR_var test = 5\ntest = test + 1\nTR_print(test)", "test := [1]\ntest[0]", "TR_func test(a) { TR_return a }\ntest(\"x\")"} {
+		p := New(codedLexer(code))
 		prog := p.ParseProgram()
 		if len(p.Errors()) != 0 {
 			t.Fatalf("%q: beklenmeyen hata: %v", code, p.Errors())
@@ -214,7 +234,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 	}
 
 	// Gövdesiz test bir sözdizimi hatasıdır
-	p = New(trLexer("test \"ad\" doğrula(doğru)"))
+	p = New(codedLexer("TR_test \"ad\" TR_assert(TR_true)"))
 	p.ParseProgram()
 	if len(p.Errors()) == 0 {
 		t.Fatal("gövdesiz test hata vermedi")
@@ -223,7 +243,8 @@ func TestTestIsContextualKeyword(t *testing.T) {
 
 // Metin içi yerleştirmedeki ifadeler dosyadaki gerçek konumlarını taşımalı (eskiden Satır 1, Sütun 1).
 func TestInterpolationKeepsSourcePosition(t *testing.T) {
-	p := New(trLexer("değişken a = 1\nyazdır(\"x = \\(toplm + 1)\")"))
+	const code = "TR_var a = 1\nTR_print(\"x = \\(toplm + 1)\")"
+	p := New(codedLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())
@@ -232,27 +253,31 @@ func TestInterpolationKeepsSourcePosition(t *testing.T) {
 	interp := call.Arguments[0].(*ast.InterpolatedString)
 	infix := interp.Parts[1].(*ast.InfixExpression)
 	id := infix.Left.(*ast.Identifier)
-	if id.Token.Line != 2 || id.Token.Column != 15 {
-		t.Fatalf("konum Satır 2, Sütun 15 olmalıydı, alınan: Satır %d, Sütun %d", id.Token.Line, id.Token.Column)
+	if line, col := posOf(t, code, "toplm"); id.Token.Line != line || id.Token.Column != col {
+		t.Fatalf("konum Satır %d, Sütun %d olmalıydı, alınan: Satır %d, Sütun %d", line, col, id.Token.Line, id.Token.Column)
 	}
 }
 
 // Test raporu Y1: kapatılmamış '{' hatasız kabul ediliyor, sonraki kod sessizce bloğa giriyordu.
 func TestUnclosedBlockBraceIsReported(t *testing.T) {
-	// sütun 0: konuma bakılmaz
-	for code, want := range map[string][2]int{
-		"eğer yanlış {\n    yazdır(\"gizli\")\nyazdır(\"son\")":    {1, 13},
-		"fonksiyon f() {\n    sonuç 1\nyazdır(f())":                {1, 15},
-		"yapı Kişi {\n    ad: Metin\n":                             {1, 11},
-		"değişken x = eşle 1 {\n    1 => \"bir\"\n":                {0, 0},
-		"döngü i içinde 1..3 {\n    eğer i == 2 {\n        çık\n}": {1, 21},
+	// Hata kapatılmayan ilk '{'dedir; atBrace false ise konuma bakılmaz.
+	for code, atBrace := range map[string]bool{
+		"TR_if TR_false {\n    TR_print(\"gizli\")\nTR_print(\"son\")":   true,
+		"TR_func f() {\n    TR_return 1\nTR_print(f())":                  true,
+		"TR_struct Kişi {\n    ad: TR_String\n":                          true,
+		"TR_var x = TR_match 1 {\n    1 => \"bir\"\n":                    false,
+		"TR_for i TR_in 1..3 {\n    TR_if i == 2 {\n        TR_break\n}": true,
 	} {
+		line, col := 0, 0
+		if atBrace {
+			line, col = posOf(t, code, "{")
+		}
 		errs := parseErrs(code)
-		if !hasErrAt(errs, want[0], want[1], messages.H0156) {
-			t.Errorf("%q için H0156 (satır %d, sütun %d) bekleniyordu, alınan: %v", code, want[0], want[1], errs)
+		if !hasErrAt(errs, line, col, messages.H0156) {
+			t.Errorf("%q için H0156 (satır %d, sütun %d) bekleniyordu, alınan: %v", code, line, col, errs)
 		}
 	}
-	if errs := parseErrors("eğer doğru {\n    yazdır(1)\n}\n"); len(errs) != 0 {
+	if errs := parseErrors("TR_if TR_true {\n    TR_print(1)\n}\n"); len(errs) != 0 {
 		t.Fatalf("kapatılmış blok hata vermemeli: %v", errs)
 	}
 }
@@ -261,13 +286,15 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 // parantezler (JSON, başka dillerde kod) sessizce düz metin kalmaz, '{'nin konumunda
 // sözdizimi hatası verir. Düz süslü parantezin iki yazımı (\{ ve ham metin) hata vermez.
 func TestNonExpressionInterpolationIsError(t *testing.T) {
-	for code, col := range map[string]int{
-		`yazdır("\()")`:               9,
-		`yazdır("boş \()")`:           13,
-		`yazdır("\(değil)")`:          9,
-		`yazdır("\(a, b)")`:           9,
-		`yazdır("\(değişken x = 1)")`: 9,
+	// Hata yerleştirmenin '\('sindedir.
+	for _, code := range []string{
+		`TR_print("\()")`,
+		`TR_print("boş \()")`,
+		`TR_print("\(TR_not)")`,
+		`TR_print("\(a, b)")`,
+		`TR_print("\(TR_var x = 1)")`,
 	} {
+		_, col := posOf(t, code, `\(`)
 		errs := parseErrs(code)
 		found := false
 		for _, c := range []messages.Code{messages.H0158, messages.H0159, messages.H0160, messages.H0161, messages.H0162} {
@@ -277,7 +304,7 @@ func TestNonExpressionInterpolationIsError(t *testing.T) {
 			t.Errorf("%s: sütun %d konumunda H0158-H0162 (H0100 içinde) bekleniyordu: %v", code, col, errs)
 		}
 	}
-	for _, code := range []string{"yazdır(\"{\\\"kod\\\": 5}\")", "yazdır(`{\"kod\": 5}`)", `yazdır("a \(1 + 2) b")`} {
+	for _, code := range []string{"TR_print(\"{\\\"kod\\\": 5}\")", "TR_print(`{\"kod\": 5}`)", `TR_print("a \(1 + 2) b")`} {
 		if errs := parseErrors(code); len(errs) != 0 {
 			t.Errorf("%s hata vermemeli: %v", code, errs)
 		}
@@ -287,7 +314,7 @@ func TestNonExpressionInterpolationIsError(t *testing.T) {
 // Kural (B2b): dilim '..' ile yazılır; Python alışkanlığıyla yazılan l[a:b] doğru biçimi söyleyen
 // ipucunu alır (H0170). Önceden "']' bekleniyordu, ancak ':' bulundu" diyordu.
 func TestColonSliceGetsRangeHint(t *testing.T) {
-	errs := parseErrs("değişken l = [1, 2, 3]\nyazdır(l[0:2])\n")
+	errs := parseErrs("TR_var l = [1, 2, 3]\nTR_print(l[0:2])\n")
 	if !hasCode(errs, messages.H0170) {
 		t.Fatalf("l[a:b] ipucu bekleniyordu: %v", errs)
 	}

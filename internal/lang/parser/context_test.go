@@ -17,17 +17,17 @@ import (
 // sondaki blok, test, ertele ve eşzamanlı gövdesi döngünün içini kesmez, sınır sayılır.
 func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 	bad := []string{
-		"çık",
-		"devam",
-		"fonksiyon f() { çık }",
-		"döngü { fonksiyon f() { çık } }",
-		"[1, 2].haritala { eğer o > 1 { devam } }",
-		"değişken f = x => { devam }",
-		"değişken g = (a, b) => { çık }",
-		"test \"t\" { çık }",
-		"döngü { ertele { çık } }",
-		"döngü { eşzamanlı { devam } }",
-		"eğer doğru { çık }",
+		"TR_break",
+		"TR_continue",
+		"TR_func f() { TR_break }",
+		"TR_for { TR_func f() { TR_break } }",
+		"[1, 2].TR_map { TR_if TR_it > 1 { TR_continue } }",
+		"TR_var f = x => { TR_continue }",
+		"TR_var g = (a, b) => { TR_break }",
+		"TR_test \"t\" { TR_break }",
+		"TR_for { TR_defer { TR_break } }",
+		"TR_for { TR_async { TR_continue } }",
+		"TR_if TR_true { TR_break }",
 	}
 	for _, codeVal := range bad {
 		h := parseErrs(codeVal)
@@ -35,26 +35,26 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 			t.Errorf("%q: H0151 bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
-	// Fonksiyonda 'çık' yazılırsa hata (H0151) çıkış için 'sonuç'u önerir; ad kod başvurusudur,
-	// iletinin dilinde yazılır (Türkçede sonuç, İngilizcede return).
-	h := parseErrs("fonksiyon f() { çık }")
+	// Fonksiyonda TR_break yazılırsa hata (H0151) çıkış için TR_return'ü önerir; dosyadan gelen hatanın
+	// önerisi kimlik yazımıyladır, iletinin her dilinde aynı (2.3a).
+	h := parseErrs("TR_func f() { TR_break }")
 	if len(h) == 0 || !messages.Has(h[0], messages.H0151) {
-		t.Fatalf("'sonuç' önerisi (H0151) bekleniyordu, alınan: %v", h)
+		t.Fatalf("TR_return önerisi (H0151) bekleniyordu, alınan: %v", h)
 	}
 	for _, lang := range []string{"tr", "en"} {
-		if name := codes.NameRef(codes.KwReturn).MessageText(lang); !strings.Contains(messages.ErrorIn(h[0], lang), "'"+name+"'") {
+		if name := codes.Spelling(codes.KwReturn); !strings.Contains(messages.ErrorIn(h[0], lang), "'"+name+"'") {
 			t.Errorf("%s iletisinde '%s' önerisi bekleniyordu: %s", lang, name, messages.ErrorIn(h[0], lang))
 		}
 	}
 	valid := []string{
-		"döngü { çık }",
-		"döngü doğru { devam }",
-		"döngü i içinde 1..3 { eğer i > 1 { çık } }",
-		"döngü i içinde 1..3 { eşle i { 1 => { devam } _ => { çık } } }",
-		"döngü x < 3 { dene { çık } yakala { devam } }",
-		"fonksiyon f() { döngü { çık } }",
-		"[1].haritala { döngü { çık }; o }",
-		"döngü { döngü { çık }; çık }",
+		"TR_for { TR_break }",
+		"TR_for TR_true { TR_continue }",
+		"TR_for i TR_in 1..3 { TR_if i > 1 { TR_break } }",
+		"TR_for i TR_in 1..3 { TR_match i { 1 => { TR_continue } _ => { TR_break } } }",
+		"TR_for x < 3 { TR_try { TR_break } TR_catch { TR_continue } }",
+		"TR_func f() { TR_for { TR_break } }",
+		"[1].TR_map { TR_for { TR_break }; TR_it }",
+		"TR_for { TR_for { TR_break }; TR_break }",
 	}
 	for _, codeVal := range valid {
 		if h := parseErrors(codeVal); len(h) > 0 {
@@ -67,10 +67,10 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 // test içindeki bir fonksiyonda geçerlidir.
 func TestReturnInTestBodyIsError(t *testing.T) {
 	for _, codeVal := range []string{
-		"test \"t\" { sonuç }",
-		"test \"t\" { eğer doğru { sonuç 1 } }",
-		"test \"t\" { dene { yazdır(1) } yakala h { sonuç yok } }",
-		"test \"t\" { eşle 1 { 1 => sonuç 2 } }",
+		"TR_test \"t\" { TR_return }",
+		"TR_test \"t\" { TR_if TR_true { TR_return 1 } }",
+		"TR_test \"t\" { TR_try { TR_print(1) } TR_catch h { TR_return TR_none } }",
+		"TR_test \"t\" { TR_match 1 { 1 => TR_return 2 } }",
 	} {
 		h := parseErrs(codeVal)
 		if len(h) == 0 || !messages.Has(h[0], messages.H0153) {
@@ -78,8 +78,8 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 		}
 	}
 	for _, codeVal := range []string{
-		"test \"t\" { fonksiyon f() { sonuç 1 }; eşit_mi(1, f()) }",
-		"test \"t\" { değişken f = x => x + 1 }",
+		"TR_test \"t\" { TR_func f() { TR_return 1 }; TR_assert_equal(1, f()) }",
+		"TR_test \"t\" { TR_var f = x => x + 1 }",
 	} {
 		if h := parseErrors(codeVal); len(h) > 0 {
 			t.Errorf("%q geçerli olmalıydı: %v", codeVal, h)
@@ -92,19 +92,19 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 // eşzamanlı blok programın en dışındaysa fonksiyon sayılmaz, orada da hatadır.
 func TestProgramTopLevelReturnIsError(t *testing.T) {
 	for _, codeVal := range []string{
-		"sonuç 5",
-		"değişken a = 1\nsonuç",
-		"eğer doğru { sonuç 1 }",
-		"döngü { sonuç 1 }",
-		"ertele { sonuç }",
-		"eşzamanlı { sonuç 2 }",
+		"TR_return 5",
+		"TR_var a = 1\nTR_return",
+		"TR_if TR_true { TR_return 1 }",
+		"TR_for { TR_return 1 }",
+		"TR_defer { TR_return }",
+		"TR_async { TR_return 2 }",
 	} {
 		h := parseErrs(codeVal)
 		if len(h) == 0 || !messages.Has(h[0], messages.H0171) {
 			t.Errorf("%q: en dıştaki 'sonuç' hatası (H0171) bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
-	if h := parseErrs("fonksiyon f() { sonuç 1 }\ndeğişken g = x => x"); len(h) > 0 {
+	if h := parseErrs("TR_func f() { TR_return 1 }\nTR_var g = x => x"); len(h) > 0 {
 		t.Errorf("fonksiyon içindeki sonuç geçerli olmalıydı: %v", h)
 	}
 }
@@ -112,17 +112,17 @@ func TestProgramTopLevelReturnIsError(t *testing.T) {
 // Modülün üst düzeyindeki 'sonuç' (ParseModule) derleme hatasıdır; fonksiyon içinde geçerlidir.
 func TestModuleTopLevelReturnIsError(t *testing.T) {
 	moduleErrors := func(codeVal string) []error {
-		p := New(trLexer(codeVal))
+		p := New(codedLexer(codeVal))
 		p.ParseModule()
 		return p.Errs()
 	}
-	for _, codeVal := range []string{"değişken a = 1\nsonuç 5", "eğer doğru { sonuç }", "döngü { sonuç 1 }"} {
+	for _, codeVal := range []string{"TR_var a = 1\nTR_return 5", "TR_if TR_true { TR_return }", "TR_for { TR_return 1 }"} {
 		h := moduleErrors(codeVal)
 		if len(h) == 0 || !messages.Has(h[0], messages.H0154) {
 			t.Errorf("%q: modül hatası (H0154) bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
-	if h := moduleErrors("fonksiyon f() { sonuç 1 }\ndeğişken g = x => x"); len(h) > 0 {
+	if h := moduleErrors("TR_func f() { TR_return 1 }\nTR_var g = x => x"); len(h) > 0 {
 		t.Errorf("fonksiyon içindeki sonuç geçerli olmalıydı: %v", h)
 	}
 }
@@ -132,8 +132,8 @@ func TestModuleTopLevelReturnIsError(t *testing.T) {
 func TestNestingDepthLimit(t *testing.T) {
 	for _, codeVal := range []string{
 		strings.Repeat("[", 200000),
-		"değişken x = " + strings.Repeat("(", 5000) + "1" + strings.Repeat(")", 5000),
-		strings.Repeat("eğer doğru { ", 3000) + strings.Repeat("}", 3000),
+		"TR_var x = " + strings.Repeat("(", 5000) + "1" + strings.Repeat(")", 5000),
+		strings.Repeat("TR_if TR_true { ", 3000) + strings.Repeat("}", 3000),
 		strings.Repeat("-", 100000) + "1",
 	} {
 		h := parseErrs(codeVal)
@@ -142,7 +142,7 @@ func TestNestingDepthLimit(t *testing.T) {
 		}
 	}
 	// Sınırın altındaki iç içelik geçerlidir
-	if h := parseErrors("değişken x = " + strings.Repeat("[", 500) + strings.Repeat("]", 500)); len(h) > 0 {
+	if h := parseErrors("TR_var x = " + strings.Repeat("[", 500) + strings.Repeat("]", 500)); len(h) > 0 {
 		t.Errorf("500 düzey geçerli olmalı: %.200v", h)
 	}
 }
@@ -150,15 +150,15 @@ func TestNestingDepthLimit(t *testing.T) {
 // Metin içindeki yerleştirmenin ifadesi de dosyanın iç içelik sınırına sayılır: alt
 // ayrıştırıcı sıfırdan başlasaydı iç içe metinlerle sınırın katları kadar derine inilirdi.
 func TestInterpolationDepthLimited(t *testing.T) {
-	codeVal := strings.Repeat("eğer doğru {\n", 480) +
-		`değişken s = "\(` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + ")\"\n" +
+	codeVal := strings.Repeat("TR_if TR_true {\n", 480) +
+		`TR_var s = "\(` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + ")\"\n" +
 		strings.Repeat("}\n", 480)
 	h := parseErrs(codeVal)
 	if len(h) != 1 || !hasErrAt(h, 481, 0, messages.H0155) {
 		t.Errorf("yerleştirmede derinlik hatası (satır 481) bekleniyordu: %.300v", h)
 	}
 	// Aynı ifade üst düzeyde sınırın altındadır
-	if h := parseErrors(`değişken s = "\(` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + `)"`); len(h) > 0 {
+	if h := parseErrors(`TR_var s = "\(` + strings.Repeat("(", 900) + "1" + strings.Repeat(")", 900) + `)"`); len(h) > 0 {
 		t.Errorf("900 düzey yerleştirme geçerli olmalı: %.200v", h)
 	}
 }
@@ -168,9 +168,9 @@ func TestInterpolationDepthLimited(t *testing.T) {
 // tavanı yerine büyüme ölçülür (testkit.ScalesLinearly: 50 000 ve 200 000 yerleştirme).
 func TestManyInterpolationsLinear(t *testing.T) {
 	testkit.ScalesLinearly(t, "yerleştirmeli metin", 50000, func(n int) func() (int, error) {
-		code := `değişken s = "` + strings.Repeat(`\(a)`, n) + `"`
+		code := `TR_var s = "` + strings.Repeat(`\(a)`, n) + `"`
 		return func() (int, error) {
-			p := New(trLexer(code))
+			p := New(codedLexer(code))
 			prog := p.ParseProgram()
 			if err := errors.Join(p.Errs()...); err != nil {
 				return 0, err
@@ -188,13 +188,13 @@ func TestManyInterpolationsLinear(t *testing.T) {
 
 // aktar yalnızca metin olarak yazılmış bir yol alır (§11): tırnaksız yazım sözdizimi hatasıdır.
 func TestImportUnquotedPathIsError(t *testing.T) {
-	for _, codeVal := range []string{"aktar yardımcı", "aktar 5", "aktar"} {
+	for _, codeVal := range []string{"TR_import yardımcı", "TR_import 5", "TR_import"} {
 		h := parseErrs(codeVal)
 		if len(h) == 0 || !messages.Has(h[0], messages.H0143) {
 			t.Errorf("%q: tırnaksız aktar hatası bekleniyordu: %v", codeVal, h)
 		}
 	}
-	if h := parseErrors("aktar \"yardımcı\" olarak y"); len(h) > 0 {
+	if h := parseErrors("TR_import \"yardımcı\" TR_as y"); len(h) > 0 {
 		t.Errorf("tırnaklı aktar geçerli olmalı: %v", h)
 	}
 }

@@ -12,9 +12,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // replayStep KV önbelleği gibi kullanılan bir adım: indeksle gömme seçer, konuma yazar,
@@ -216,8 +216,8 @@ func recordedEntry(t *testing.T) *replayEntry {
 	t.Helper()
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
-	if _, err := m.Run(parser.New(source.TextLexer(`TR_default_device("gpu")
-TR_func f(x) { TR_return x * 2 + 1 }`)).ParseProgram()); err != nil {
+	if _, err := m.Run(parser.New(lexer.NewBody(`TR_default_device("gpu")
+TR_func f(x) { TR_return x * 2 + 1 }`, true)).ParseProgram()); err != nil {
 		t.Fatal(err)
 	}
 	f, _ := m.GlobalEnv.Get("f")

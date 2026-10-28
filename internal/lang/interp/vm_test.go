@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -20,10 +21,14 @@ func runTR(t *testing.T, code string) (Value, error) {
 	return val, err
 }
 
+// bodyLexer bir dosyanın başlıksız gövdesinin sözcük çözümleyicisidir: program kimlik yazımıyla
+// okunur, konumlar metnindir (source.Prepare'in dosya yolu, source.Options.Body).
+func bodyLexer(code string) *lexer.Lexer { return lexer.NewBody(code, true) }
+
 // mustParseProgram kodu ayrıştırır; sözdizimi hatasında testi düşürür.
 func mustParseProgram(tb testing.TB, code string) *ast.Program {
 	tb.Helper()
-	p := parser.New(source.TextLexer(code))
+	p := parser.New(bodyLexer(code))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		tb.Fatalf("sözdizimi hatası: %v\nkod:\n%s", p.Errors(), code)
@@ -63,7 +68,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 		TR_import "yardimci.tr" TR_as yrd
 		TR_var result = yrd.iki_kati(21)
 	`
-	l := source.TextLexer(code)
+	l := bodyLexer(code)
 	p := parser.New(l)
 	prog := p.ParseProgram()
 	machine := New()
@@ -83,7 +88,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	_ = os.WriteFile(circA, []byte(source.Header+"\nTR_import \"b.tr\"\n"), 0644)
 	_ = os.WriteFile(circB, []byte(source.Header+"\nTR_import \"a.tr\"\n"), 0644)
 
-	l2 := source.TextLexer(`TR_import "a.tr"`)
+	l2 := bodyLexer(`TR_import "a.tr"`)
 	p2 := parser.New(l2)
 	prog2 := p2.ParseProgram()
 	m2 := New()
@@ -213,7 +218,7 @@ func TestTaskErrorGoesToErrWriter(t *testing.T) {
 	m := New()
 	m.Out = &out
 	m.Err = &failure
-	prog := parser.New(source.TextLexer("TR_async {\n    TR_var x = 1 / 0\n}\nTR_wait_all()\n")).ParseProgram()
+	prog := parser.New(bodyLexer("TR_async {\n    TR_var x = 1 / 0\n}\nTR_wait_all()\n")).ParseProgram()
 	if _, err := m.Run(prog); err != nil {
 		t.Fatal(err)
 	}
