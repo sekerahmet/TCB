@@ -32,12 +32,12 @@ TR_var b = TR_tensor([[1, 0], [0, 1], [1, 1]])
 		{"TR_sqrt(TR_tensor([4, 9]))", []float32{2, 3}, []int{2}},
 		{"TR_exp(TR_tensor([0]))", []float32{1}, []int{1}},
 		{"TR_log(TR_tensor([1]))", []float32{0}, []int{1}},
-		{"a.şekillendir([3, 2]).şekil.uzunluk", nil, nil},
-		{"a.devrik()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
-		{"a.devrik()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
-		{"a.şekillendir([-1])", []float32{1, 2, 3, 4, 5, 6}, []int{6}},
-		{"a.dilim(1, 1, 3)", []float32{2, 3, 5, 6}, []int{2, 2}},
-		{"a.dilim(0, -1, 2)", []float32{4, 5, 6}, []int{1, 3}},
+		{"a.TR_reshape([3, 2]).TR_shape.TR_length", nil, nil},
+		{"a.TR_transpose()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
+		{"a.TR_transpose()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
+		{"a.TR_reshape([-1])", []float32{1, 2, 3, 4, 5, 6}, []int{6}},
+		{"a.TR_slice(1, 1, 3)", []float32{2, 3, 5, 6}, []int{2, 2}},
+		{"a.TR_slice(0, -1, 2)", []float32{4, 5, 6}, []int{1, 3}},
 		{"TR_tensor([[[1, 2], [3, 4]]]).TR_permute([0, 2, 1])", []float32{1, 3, 2, 4}, []int{1, 2, 2}},
 		{"TR_tensor([1, 2, 3]) @ TR_tensor([1, 1, 1])", []float32{6}, []int{}},
 		{"TR_zeros([2, 3])", []float32{0, 0, 0, 0, 0, 0}, []int{2, 3}},
@@ -51,7 +51,7 @@ TR_var b = TR_tensor([[1, 0], [0, 1], [1, 1]])
 		if d.data == nil {
 			continue
 		}
-		v := value(t, code+"değişken cikti = "+d.expr)
+		v := value(t, code+"TR_var cikti = "+d.expr)
 		data, sh := tensorData(t, v)
 		shapeEqual(t, d.expr, sh, d.shape)
 		near(t, d.expr, data, d.data, 1e-3)
@@ -75,7 +75,7 @@ TR_var b = TR_tensor([[1, 0], [0, 1], [1, 1]])
 TR_print(a.TR_tolist)
 TR_print(TR_sum(a).TR_tolist)
 TR_print(TR_randn([2, 3], TR_seed: 7).TR_shape)`)
-	want := "[2, 3] cpu Tensör\n[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]\n21.0\n[2, 3]\n"
+	want := "[2, 3] cpu Tensor\n[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]\n21.0\n[2, 3]\n"
 	if out != want {
 		t.Fatalf("özellik çıktısı:\n%q\nbeklenen:\n%q", out, want)
 	}

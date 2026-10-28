@@ -28,7 +28,7 @@ TR_var x = TR_tensor([3.0, -1.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(kare(x)))
 TR_print(x.TR_grad.TR_tolist)
 TR_print(TR_grad_check(kare, [TR_tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))`)
-	if want := "[6.0, -2.0]\ndoğru\n"; out != want {
+	if want := "[6.0, -2.0]\ntrue\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
 	}
 }
@@ -121,12 +121,9 @@ func gatedDefs(tb testing.TB) string {
 	if err != nil {
 		tb.Fatalf("test dosyası okunamadı: %v", err)
 	}
-	s, err := source.Show(string(data), source.Turkish()) // test dosyası kodlu saklanır: Türkçe görünümü
-	if err != nil {
-		tb.Fatalf("test dosyası gösterilemedi: %v", err)
-	}
-	head := strings.Index(s, "// --- kapılı nöron tanımları başı ---")
-	last := strings.Index(s, "// --- kapılı nöron tanımları sonu ---")
+	s := string(data) // kodlu dosya: tanımlar kimliklerle, gövde olarak okunur
+	head := strings.Index(s, "# --- kapılı nöron tanımları başı ---")
+	last := strings.Index(s, "# --- kapılı nöron tanımları sonu ---")
 	if head < 0 || last < head {
 		tb.Fatal("kapılı nöron tanımlarının işaretleri bulunamadı")
 	}

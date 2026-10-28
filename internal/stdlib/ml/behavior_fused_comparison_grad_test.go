@@ -27,7 +27,7 @@ TR_try {
 }
 TR_print("IC_HATA:", iç_hata, "IC_GRAD:", x.TR_grad)
 `)
-	want := "DIS_HATA: doğru DIS_GRAD: yok\nIC_HATA: doğru IC_GRAD: yok\n"
+	want := "DIS_HATA: true DIS_GRAD: none\nIC_HATA: true IC_GRAD: none\n"
 	if out != want {
 		t.Fatalf("sonlu_mu kaynaştır içinde de türev izlememeliydi (15.36):\nalınan:\n%s\nbeklenen:\n%s", out, want)
 	}

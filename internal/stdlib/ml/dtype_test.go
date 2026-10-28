@@ -29,11 +29,11 @@ TR_print(h.TR_dtype, h)
 TR_backward(TR_sum(h * h))
 TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 	want := "bf16 [[1.0, 2.0], [3.0, 4.0]]\n" +
-		"Tensör[2×2] bf16 [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
-		"Tensör(2.5000) fp16 Tensör(2.5000)\n" +
+		"Tensor[2×2] bf16 [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
+		"Tensor(2.5000) fp16 Tensor(2.5000)\n" +
 		"fp16 bf16 bf16\n" +
 		"bf16 float32 bf16 float32\n" +
-		"bf16 Tensör[2] bf16 (türev izleniyor) [1.0000, 3.0000]\n" +
+		"bf16 Tensor[2] bf16 (türev izleniyor) [1.0000, 3.0000]\n" +
 		"[2.0, 6.0] float32\n"
 	if out != want {
 		t.Fatalf("veri türleri:\n%q\nbeklenen:\n%q", out, want)
@@ -80,7 +80,7 @@ TR_print(r.TR_tolist, (x @ y).TR_tolist)
 TR_try { TR_mixed_precision("bf16") { TR_throw "dur" } } TR_catch h { TR_print(h) }
 TR_print((x @ y).TR_tolist)
 TR_print(TR_mixed_precision("bf16") { 5 }, TR_mixed_precision("bf16") {})`)
-	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5 yok\n" // yakalanan fırlat öneksiz (8.2)
+	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5 none\n" // yakalanan fırlat öneksiz (8.2)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -119,7 +119,7 @@ TR_for i TR_in 0..32 {
     }
 }
 TR_print(TR_abs(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)
-	if out != "float32 float32 float32\ndoğru doğru\n" {
+	if out != "float32 float32 float32\ntrue true\n" {
 		t.Fatalf("karışık hassasiyet gradyanı:\n%s", out)
 	}
 }
@@ -246,7 +246,7 @@ func TestOptimizerMasterCopy(t *testing.T) {
     TR_return p.TR_tolist[0]
 }
 TR_print(eğit("SGD", TR_false), eğit("AdamW", TR_false), eğit("SGD", TR_true) < 0.99, eğit("AdamW", TR_true) < 0.99)`)
-	if out != "1.0 1.0 doğru doğru\n" {
+	if out != "1.0 1.0 true true\n" {
 		t.Fatalf("ana_kopya: %q", out)
 	}
 	if _, err := run(t, `TR_AdamW([TR_tensor([1.0], TR_requires_grad: TR_true)], TR_master_weights: "evet")`); err == nil || !messages.Has(err, messages.H7905) {

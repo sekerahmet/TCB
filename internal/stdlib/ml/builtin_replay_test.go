@@ -45,7 +45,7 @@ func TestReplayMatchesDirectCalls(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	for _, dev := range []string{"cpu", "gpu"} {
-		out := mustRun(t, `varsayılan_cihaz("`+dev+`")`+replayStep+`
+		out := mustRun(t, `TR_default_device("`+dev+`")`+replayStep+`
 TR_var ö1 = kur()
 TR_var ö2 = kur()
 TR_var oynatılan = TR_replay((id, konum) => adım(ö1, id, konum))
@@ -54,7 +54,7 @@ TR_var b = sür((id, konum) => adım(ö2, id, konum), ö2)
 TR_print(a == b)
 TR_print(a[0][4])`)
 		lines := strings.Split(out, "\n")
-		if lines[0] != "doğru" {
+		if lines[0] != "true" {
 			t.Fatalf("%s: tekrar_oynat doğrudan çağrıdan farklı:\n%s", dev, out)
 		}
 	}
@@ -103,7 +103,7 @@ TR_no_grad {
     TR_try { f(TR_tensor([2.0])) } TR_catch h { TR_print("hata:", h) }
     TR_print(f(TR_tensor([3.0])).TR_tolist)
 }`)
-	if err != nil || !strings.Contains(out, "GPU kaydı sürerken cihazdan konağa okunamaz") || !strings.HasSuffix(out, "[6.0]\n") {
+	if err != nil || !strings.Contains(out, "while a GPU recording is in progress, data cannot be read") || !strings.HasSuffix(out, "[6.0]\n") {
 		t.Fatalf("kayıtta konağa okuma hatası ve sonra çalışma bekleniyordu:\n%s\n%v", out, err)
 	}
 }
@@ -331,7 +331,7 @@ TR_no_grad {
     TR_print(s)
     TR_print([h(TR_tensor([1.0]), TR_tensor([c * 1.0]).TR_to_device("cpu"))[1].TR_tolist TR_for c TR_in [10, 20, 100]])
 }`)
-	want := "doğru\n[[18.0, 0.0], [18.0, 0.0], [18.0, 0.0]]\n[[30.0], [60.0], [300.0]]\n"
+	want := "true\n[[18.0, 0.0], [18.0, 0.0], [18.0, 0.0]]\n[[30.0], [60.0], [300.0]]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -360,7 +360,7 @@ TR_no_grad {
     f(TR_tensor(16.0))
 }
 TR_print(a.TR_tolist == b.TR_tolist, b.TR_tolist[48])`)
-	if out != "doğru 32.0\n" {
+	if out != "true 32.0\n" {
 		t.Fatalf("örtüşen dilim kayıtta bozuldu: %q", out)
 	}
 	for code, call := range map[messages.Code]string{

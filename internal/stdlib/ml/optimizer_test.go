@@ -14,7 +14,7 @@ TR_print(TR_clip_grad([w, b], TR_max: 1.0).TR_tolist)
 TR_print(w.TR_grad.TR_tolist, b.TR_grad.TR_tolist)
 TR_print(TR_clip_grad([w, b]))`)
 	// Kırpma öncesi norm 0 boyutlu tensördür; sayısı .değer ile okunur.
-	want := "5.0\n[0.6, 0.0] [0.8]\nTensör(1.0000)\n"
+	want := "5.0\n[0.6, 0.0] [0.8]\nTensor(1.0000)\n"
 	if out != want {
 		t.Fatalf("gradyan_kırp:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -54,7 +54,7 @@ TR_print(TR_clip_grad([w], TR_error_if_nonfinite: TR_true).TR_tolist)
 TR_var v = TR_tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(v * TR_float("nan")))
 TR_print(TR_is_finite(TR_clip_grad([v]).TR_tolist))`)
-	if out != "10.0\nyanlış\n" {
+	if out != "10.0\nfalse\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
 	for _, d := range []struct {
@@ -92,7 +92,7 @@ TR_var v = TR_tensor([1.0, 1.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(v * TR_tensor([TR_float("inf"), 2.0])))
 TR_clip_grad([v], TR_max: 1.0)
 TR_print(TR_is_finite(v.TR_grad.TR_tolist[0]), v.TR_grad.TR_tolist[1])`)
-	if out != "doğru doğru\nyanlış 0.0\n" {
+	if out != "true true\nfalse 0.0\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
 }

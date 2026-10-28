@@ -159,7 +159,7 @@ TR_try {
 	if err != nil {
 		t.Fatalf("hata yakalanmalıydı: %v", err)
 	}
-	for _, p := range []string{"matris çarpımı: sonuç tensörü [46000000, 46000000] şeklinde", "PB bellek ister", "bu makinede"} {
+	for _, p := range []string{"matris çarpımı: the result tensor of shape [46000000, 46000000]", "PB of memory", "this machine"} {
 		if !strings.Contains(output, p) {
 			t.Fatalf("mesajda %q yok: %s", p, output)
 		}

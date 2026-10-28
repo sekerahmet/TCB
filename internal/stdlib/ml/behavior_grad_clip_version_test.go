@@ -52,12 +52,12 @@ TR_func sına(cihaz_adı) {
     TR_clip_grad([w], TR_max: 100.0)
     TR_var mesaj = ""
     TR_try { TR_backward(TR_sum(y)) } TR_catch h { mesaj = h }
-    TR_return mesaj.TR_contains("yerinde değiştirildi")
+    TR_return mesaj.TR_contains("modified in place")
 }
 TR_print("CPU:", sına("cpu"))
 TR_print("GPU:", sına("gpu"))
 `)
-	if want := "CPU: doğru\nGPU: doğru\n"; out != want {
+	if want := "CPU: true\nGPU: true\n"; out != want {
 		t.Fatalf("kırpma iki cihazda da gradyan sürümünü artırmalı:\nalınan:\n%s\nbeklenen:\n%s", out, want)
 	}
 }

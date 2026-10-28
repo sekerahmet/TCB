@@ -157,7 +157,7 @@ m[0][2] = 1
 TR_print(fark(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m)[0][0][0], v[0][2][0]) < 0.0000000001)
 TR_print(TR_attention(q, k, v, TR_mask: TR_none).TR_shape)
 `)
-	want := "[1, 5, 2, 3]\n[1, 5, 2, 3]\ndoğru yanlış\ndoğru\ndoğru\n[1, 5, 2, 3]\n"
+	want := "[1, 5, 2, 3]\n[1, 5, 2, 3]\ntrue false\ntrue\ntrue\n[1, 5, 2, 3]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
@@ -196,7 +196,7 @@ TR_var b = TR_attention(q.TR_to_dtype("bf16"), q.TR_to_dtype("bf16"), q.TR_to_dt
 TR_print(a.TR_dtype, fark(a.TR_to_dtype("float32"), b.TR_to_dtype("float32")) < 0.0000000001)
 TR_print(TR_attention(q.TR_to_dtype("bf16"), q.TR_to_dtype("bf16"), q.TR_to_dtype("bf16")).TR_dtype)
 `)
-	if out != "bf16 doğru\nbf16\n" {
+	if out != "bf16 true\nbf16\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
 }
@@ -255,35 +255,35 @@ TR_var cikti = s`)
 func TestParameters(t *testing.T) {
 	fpath := filepath.ToSlash(filepath.Join(t.TempDir(), "model.trt"))
 	out := mustRun(t, `
-fonksiyon p(x) { sonuç tensör([x], türev_izle: doğru) }
-yapı Dikkat { Wq, Wk, ölçek }
-yapı Blok { dikkat, mlp }
-yapı Model { gömme, bloklar, son, ad, ek }
-değişken ortak = p(9)
-değişken m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak]), Blok(Dikkat(p(5), ortak, 1), {"W1": p(6), "sabit": tensör([0.0])})], ortak, "küçük")
+TR_func p(x) { TR_return TR_tensor([x], TR_requires_grad: TR_true) }
+TR_struct Dikkat { Wq, Wk, ölçek }
+TR_struct Blok { TR_attention, mlp }
+TR_struct Model { TR_embedding, TR_blocks, TR_last, ad, ek }
+TR_var ortak = p(9)
+TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak]), Blok(Dikkat(p(5), ortak, 1), {"W1": p(6), "sabit": TR_tensor([0.0])})], ortak, "küçük")
 m.ek = p(7)
-değişken liste = parametreler(m)
-yazdır(liste.uzunluk, [x.değer[0] döngü x içinde liste])
-değişken adlar = parametreler(m, adlarıyla: doğru)
-yazdır(adlar.anahtarlar())
-// Aynı tensör nesnesidir: iyileştirici ile güncellenir.
-doğrula(liste[0] == m.gömme)
-tensör_kaydet("`+fpath+`", adlar)
-değişken y = tensör_yükle("`+fpath+`")
-yazdır(y.anahtarlar() == adlar.anahtarlar(), y["TR_blocks.1.TR_attention.Wq"].değer)
-// Ara sonuçlar ve türev izlemeyenler parametre değildir.
-yazdır(parametreler([p(1) * 2, tensör([1.0])]).uzunluk, parametreler(p(1)).uzunluk, parametreler(p(1), adlarıyla: doğru).anahtarlar())
-// Döngülü yapılar sonsuz döngüye girmez.
-değişken l = [p(1)]
-l.ekle(l)
-yazdır(parametreler(l).uzunluk)
+TR_var liste = TR_parameters(m)
+TR_print(liste.TR_length, [x.TR_tolist[0] TR_for x TR_in liste])
+TR_var adlar = TR_parameters(m, TR_named: TR_true)
+TR_print(adlar.TR_keys())
+# Aynı tensör nesnesidir: iyileştirici ile güncellenir.
+TR_assert(liste[0] == m.TR_embedding)
+TR_save_tensors("`+fpath+`", adlar)
+TR_var y = TR_load_tensors("`+fpath+`")
+TR_print(y.TR_keys() == adlar.TR_keys(), y["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
+# Ara sonuçlar ve türev izlemeyenler parametre değildir.
+TR_print(TR_parameters([p(1) * 2, TR_tensor([1.0])]).TR_length, TR_parameters(p(1)).TR_length, TR_parameters(p(1), TR_named: TR_true).TR_keys())
+# Döngülü yapılar sonsuz döngüye girmez.
+TR_var l = [p(1)]
+l.TR_append(l)
+TR_print(TR_parameters(l).TR_length)
 `)
 	lines := strings.Split(out, "\n")
 	expected := []string{
 		"8 [1.0, 2.0, 3.0, 4.0, 9.0, 5.0, 6.0, 7.0]",
 		// Ağırlık adı kimlik yoludur: kitaplığın üye adlarıyla aynı alanlar (gömme, bloklar, dikkat) kodludur.
 		`["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.0.mlp.1", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.mlp.W1", "ek"]`,
-		"doğru [5.0]",
+		"true [5.0]",
 		`0 1 ["0"]`,
 		"1",
 	}

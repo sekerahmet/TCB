@@ -45,7 +45,7 @@ TR_for i TR_in 0..3000 {
 }
 TR_wait_all()
 TR_print(deneme > 0, izsiz)`)
-	if out != "doğru 0\n" {
+	if out != "true 0\n" {
 		t.Fatalf("türevsiz başka görevi etkiledi:\n%s", out)
 	}
 }
@@ -71,7 +71,7 @@ b.TR_append(izli(w * 2))
 d["devam"] = TR_true
 TR_wait_all()
 TR_print(a, b)`)
-	if out != "[yanlış, yanlış, doğru] [doğru, doğru]\n" {
+	if out != "[false, false, true] [true, true]\n" {
 		t.Fatalf("türevsiz görev izolasyonu:\n%s", out)
 	}
 }
@@ -98,7 +98,7 @@ TR_var i2 = izli(v * 2)
 adım["geri_devam"] = TR_true
 TR_wait_all()
 TR_print(i1, i2, w.TR_grad.TR_tolist)`)
-	if out != "doğru doğru [1.0, 1.0]\n" {
+	if out != "true true [1.0, 1.0]\n" {
 		t.Fatalf("özel_türev görev izolasyonu:\n%s", out)
 	}
 }
@@ -115,8 +115,8 @@ TR_var h = ""
 TR_try { w[0] = 5 } TR_catch e { h = "\(e)" }
 d["devam"] = TR_true
 TR_wait_all()
-TR_print(w.TR_tolist, h.TR_contains("türevsiz"))`)
-	if out != "[1.0, 2.0] doğru\n" {
+TR_print(w.TR_tolist, h.TR_contains("no_grad"))`)
+	if out != "[1.0, 2.0] true\n" {
 		t.Fatalf("başka görevin türevsiz bloğu atamaya izin verdi:\n%s", out)
 	}
 }
@@ -139,8 +139,8 @@ TR_var h = ""
 TR_try { TR_backward(k2) } TR_catch e { h = "\(e)" }
 d["devam"] = TR_true
 TR_wait_all()
-TR_print(h.TR_contains("başka bir geri yayılım"), w.TR_grad.TR_tolist)`)
-	if out != "doğru [3.0, 3.0]\n" {
+TR_print(h.TR_contains("another backward pass"), w.TR_grad.TR_tolist)`)
+	if out != "true [3.0, 3.0]\n" {
 		t.Fatalf("aynı çizgeden eşzamanlı geri yayılım:\n%s", out)
 	}
 }
