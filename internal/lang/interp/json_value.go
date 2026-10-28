@@ -115,7 +115,7 @@ func (j *JSONVal) Index(idx Value) (Value, error) {
 		}
 		v, ok := x.GetValue(k)
 		if !ok {
-			return nil, messages.New(messages.H2649, strconv.Quote(k.Val))
+			return nil, messages.New(messages.H2649, QuoteText(k.Val))
 		}
 		return &JSONVal{v: v}, nil
 	case *ListVal:

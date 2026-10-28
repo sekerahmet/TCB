@@ -3,8 +3,10 @@ package interp
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
 // Değerin metni (3.14): TR_String(x), TR_print, metin yerleştirmesi ve Inspect aynı metni verir;
@@ -92,11 +94,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			if el.Type() == ValString {
-				fmt.Fprintf(&sb, "%q", el.Inspect())
-			} else {
-				sb.WriteString(writeItem(el, lang, filePath))
-			}
+			sb.WriteString(writeElement(el, lang, filePath))
 		}
 		sb.WriteByte(']')
 	case *DictVal:
@@ -108,15 +106,10 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if kv, ok := x.KeyVals[k]; ok {
 				sb.WriteString(writeItem(kv, lang, filePath))
 			} else {
-				fmt.Fprintf(&sb, "%q", k)
+				sb.WriteString(QuoteText(k))
 			}
 			sb.WriteString(": ")
-			val := x.Pairs[k]
-			if val.Type() == ValString {
-				fmt.Fprintf(&sb, "%q", val.Inspect())
-			} else {
-				sb.WriteString(writeItem(val, lang, filePath))
-			}
+			sb.WriteString(writeElement(x.Pairs[k], lang, filePath))
 		}
 		sb.WriteByte('}')
 	case *StructInstanceVal:
@@ -153,6 +146,48 @@ func shownName(name string, lang *codes.Language) string {
 		return e.Name
 	}
 	return name
+}
+
+// writeElement liste ve sözlükteki bir değerin metnidir (3.14): metin tırnaklı ve kaçışlı, JSON değeri
+// JSON metniyle (metin türü de tırnaklı: [1, "a"] ile [1, a] ayrılsın), öbürleri writeItem.
+func writeElement(v Value, lang *codes.Language, filePath []Value) string {
+	switch x := v.(type) {
+	case *StringVal:
+		return QuoteText(x.Val)
+	case *JSONVal:
+		return x.JSONText()
+	}
+	return writeItem(v, lang, filePath)
+}
+
+// QuoteText s'nin programdaki metin yazımıdır (2.6, 3.14): çift tırnak içinde, kaçışlar \n \t \r \"
+// \\; öbür denetim karakterleri ve yön değiştiren karakterler (2.1a) \u{...} ile. Çıktı programa
+// kopyalanınca aynı metni verir.
+func QuoteText(s string) string {
+	var sb strings.Builder
+	sb.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\t':
+			sb.WriteString(`\t`)
+		case '\r':
+			sb.WriteString(`\r`)
+		case '"':
+			sb.WriteString(`\"`)
+		case '\\':
+			sb.WriteString(`\\`)
+		default:
+			if unicode.IsControl(r) || lexer.IsBidiControl(r) {
+				fmt.Fprintf(&sb, `\u{%x}`, r)
+			} else {
+				sb.WriteRune(r)
+			}
+		}
+	}
+	sb.WriteByte('"')
+	return sb.String()
 }
 
 // writeItem bir kabın elemanını lang dilinde (nil: değerin metni) yazar; eleman da bir kapsa döngü

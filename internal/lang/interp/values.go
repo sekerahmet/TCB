@@ -309,7 +309,7 @@ func missingKeyError(key Value) error {
 // keyLiteral anahtarın programdaki yazımıdır (iletide): metin tırnaklı, öbürleri değerin metni.
 func keyLiteral(key Value) string {
 	if s, ok := key.(*StringVal); ok {
-		return strconv.Quote(s.Val)
+		return QuoteText(s.Val)
 	}
 	return key.Inspect()
 }

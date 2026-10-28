@@ -400,8 +400,18 @@ TR_test "3.14 tip adının tek yazımı vardır" {
     TR_assert_equal(2.25, kare(1.5))
     # Büyük/küçük harfi farklı yazım tip adı değildir; program çalıştırılmadan reddedilir
     # Olumsuz fikstür: tests/negative/tip_adi_yazimi.tr
-    # Değer olarak okunan küçük harfli ad dönüşüm fonksiyonudur (3.12)
+    # Tip çağrılınca çevirir (3.12)
     TR_assert_equal(adet, TR_Int("3"))
+}
+
+TR_test "3.14 liste ve sözlükteki metin tırnaklı ve 2.6'nın kaçışlarıyla yazılır; metin programa geri kopyalanabilir" {
+    TR_assert_equal("[\"a\\tb\\n\", \"q\\\"\\\\\"]", TR_String(["a\tb\n", "q\"\\"]))
+    TR_assert_equal("[\"\\u{1}\", \"\\u{7f}\", \"\\u{85}\", \"\\u{202e}\", \"ş\"]", TR_String(["\u{1}", "\u{7f}", "\u{85}", "\u{202e}", "ş"]))
+    TR_assert_equal("{\"k\\u{0}\": \"\\\\(\"}", TR_String({"k\u{0}": "\\("}))
+    # Kaptaki JSON değeri JSON metniyle: metin türü de tırnaklı
+    TR_assert_equal("[1, \"a\", null]", TR_String(TR_List(TR_json_parse("[1, \"a\", null]"))))
+    # Kabın dışındaki metin kendisidir
+    TR_assert_equal("a\tb", TR_String("a\tb"))
 }
 
 TR_test "8.5 İleti: kodu ve değerleriyle kurulur, metni gösterilirken katalogdan yazılır" {
