@@ -6,9 +6,9 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // Hesap çekirdeğinin kodlu paniği (ör. GPU belleği yetmedi, H4014) her ml yerleşiğinde
@@ -23,7 +23,7 @@ func TestWrappedBuiltinPanicIsCatchable(t *testing.T) {
 		}))
 		var out bytes.Buffer
 		m.Out = &out
-		p := parser.New(source.TextLexer(code))
+		p := parser.New(lexer.NewBody(code, true))
 		_, err := m.Run(p.ParseProgram())
 		return out.String(), err
 	}

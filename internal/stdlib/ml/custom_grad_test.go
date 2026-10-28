@@ -10,9 +10,9 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -138,19 +138,19 @@ func gatedVM(tb testing.TB, N, d, R int) *interp.VM {
 	var sb strings.Builder
 	sb.WriteString(gatedDefs(tb))
 	fmt.Fprintf(&sb, `
-değişken x0 = rastgele_normal([%[1]d, %[2]d], tohum: 1)
-değişken W0 = rastgele_normal([%[3]d, %[4]d], tohum: 2) * 0.1
-değişken indeks = tensör([(i * 7) %% %[3]d döngü i içinde 0..%[1]d])
-değişken ağırlık = rastgele_normal([%[1]d, %[2]d], tohum: 3)
+TR_var x0 = TR_randn([%[1]d, %[2]d], TR_seed: 1)
+TR_var W0 = TR_randn([%[3]d, %[4]d], TR_seed: 2) * 0.1
+TR_var indeks = TR_tensor([(i * 7) %% %[3]d TR_for i TR_in 0..%[1]d])
+TR_var ağırlık = TR_randn([%[1]d, %[2]d], TR_seed: 3)
 `, N, d, R, 3*d)
 	for _, s := range gatedVersions {
-		fmt.Fprintf(&sb, `değişken x_%[1]s = tensör(x0, türev_izle: doğru)
-değişken W_%[1]s = tensör(W0, türev_izle: doğru)
-fonksiyon kayıp_%[1]s() { sonuç toplam(%[1]s(x_%[1]s, W_%[1]s, indeks) * ağırlık) }
-fonksiyon adım_%[1]s() { geri_yayılım(kayıp_%[1]s()) }
+		fmt.Fprintf(&sb, `TR_var x_%[1]s = TR_tensor(x0, TR_requires_grad: TR_true)
+TR_var W_%[1]s = TR_tensor(W0, TR_requires_grad: TR_true)
+TR_func kayıp_%[1]s() { TR_return TR_sum(%[1]s(x_%[1]s, W_%[1]s, indeks) * ağırlık) }
+TR_func adım_%[1]s() { TR_backward(kayıp_%[1]s()) }
 `, s.fn)
 	}
-	p := parser.New(source.TextLexer(sb.String()))
+	p := parser.New(lexer.NewBody(sb.String(), true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		tb.Fatalf("sözdizimi hatası: %v", p.Errors())
@@ -289,14 +289,14 @@ func TestNamedArgumentMethodCallReleasesReceiverAtScopeExit(t *testing.T) {
 			return interp.Null, nil
 		},
 	}, true)
-	p := parser.New(source.TextLexer(`
+	p := parser.New(lexer.NewBody(`
 TR_func sına() {
     TR_var x = TR_zeros([4, 4])
     izle(x)
     TR_var parça = x.TR_split(2, TR_dim: 0)
 }
 sına()
-`))
+`, true))
 	if _, err := m.Run(p.ParseProgram()); err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
 			},
 		}, true)
 		code := fmt.Sprintf("TR_func sına() {\n    TR_var x = TR_zeros([4, 4])\n    izle(x)\n    TR_var y = %s\n    TR_print(1)\n}\nsına()\n", expr)
-		p := parser.New(source.TextLexer(code))
+		p := parser.New(lexer.NewBody(code, true))
 		if _, err := m.Run(p.ParseProgram()); err != nil {
 			t.Fatalf("%s: %v", expr, err)
 		}
