@@ -124,13 +124,50 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 	if e.Safe {
 		return Null, nil
 	}
-	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property))
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property, (*messages.Error)(nil)))
 }
 
 // structDefMember yapının kendisinin (nesnesiz) üyesine erişimdir (N.m): yapının nesnesiz
-// metodu yoktur (7.3).
+// metodu ve alanı yoktur (7.3). İleti nesneyi kurmayı önerir; yapı argümansız kurulabiliyorsa
+// önerilen yazım olduğu gibi çalışır.
 func structDefMember(def *StructDefVal, e *ast.MemberExpression) (Value, error) {
-	return nil, messages.At(e.Line(), 0, messages.New(messages.H2467, def.Type(), e.Property))
+	args := "..."
+	if constructibleBare(def) {
+		args = ""
+	}
+	if m, ok := def.Methods[e.Property]; ok {
+		margs := "..."
+		if defaultsSuffice(m, 0) {
+			margs = ""
+		}
+		return nil, messages.At(e.Line(), 0, messages.New(messages.H2751, def.Name, e.Property, args, margs))
+	}
+	names := make([]string, 0, len(def.Fields)+len(def.Methods))
+	for _, f := range def.Fields {
+		if f.Name == e.Property {
+			return nil, messages.At(e.Line(), 0, messages.New(messages.H2752, def.Name, e.Property, args))
+		}
+		names = append(names, f.Name)
+	}
+	for name := range def.Methods {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, def.Name, e.Property, hint.ClosestSuggestion(e.Property, names, nil)))
+}
+
+// constructibleBare yapı argümansız kurulabilir mi: kurucusu varsa parametrelerinin hepsinin,
+// yoksa alanlarının hepsinin varsayılanı var.
+func constructibleBare(def *StructDefVal) bool {
+	if init, ok := def.Methods[ctorName]; ok {
+		return defaultsSuffice(init, 0)
+	}
+	for _, f := range def.Fields {
+		if f.DefaultValue == nil {
+			return false
+		}
+	}
+	return true
 }
 
 // setStructField nesne.alan = değer atamasıdır. Nesnenin alanları her zaman yapı

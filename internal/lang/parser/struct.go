@@ -247,3 +247,22 @@ func (p *Parser) checkConstructor(fn *ast.FunctionLiteral) {
 		return true
 	})
 }
+
+// selfParameterError 'kendi'nin parametre olarak yazılmasını (Python'un self'i, 7.3) bildirir; düzeltme
+// onu ardındaki virgülle siler. Ardından başka parametre geliyorsa ona geçer ve true döner; 'kendi'
+// listenin sonundaysa yerinde kalır ve false döner.
+func (p *Parser) selfParameterError() bool {
+	self := p.curToken()
+	end := p.peekToken()
+	more := p.peekTokenIs(lexer.TokComma)
+	if more {
+		p.nextToken() // ','
+		end = p.peekToken()
+	}
+	cut := messages.Range{Line: self.Line, Col: self.Column, EndLine: end.Line, EndCol: end.Column}
+	p.syntaxErrorFix(self, []messages.Fix{{Range: cut, Applicable: true}}, messages.H0284, p.tokenName(self))
+	if more {
+		p.nextToken()
+	}
+	return more
+}

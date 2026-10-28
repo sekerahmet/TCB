@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -103,5 +104,29 @@ func TestConstructorReturnsNoValue(t *testing.T) {
 	ok := "TR_struct D {\n    f\n    TR_func TR_init() {\n        TR_self.f = (x) => { TR_return x }\n        TR_if TR_true { TR_return }\n    }\n}"
 	if errs := parseErrs(ok); len(errs) != 0 {
 		t.Errorf("%q: %v", ok, errs)
+	}
+}
+
+// Python'un self parametresi (7.3) sözdizimi hatasıdır; düzeltme onu ardındaki virgülle siler.
+// Yazım dilindeki metinde ('kendi') sınanır: kodlu dosyada sözcük çözümleyici parametre yerindeki
+// TR_self'i önce kendisi reddeder (H0029).
+func TestSelfParameterIsDeleted(t *testing.T) {
+	for _, c := range []struct{ line, cut string }{
+		{"fonksiyon m(kendi, k) { sonuç k }", "kendi, "},
+		{"fonksiyon m(kendi) { sonuç 1 }", "kendi"},
+	} {
+		code := "yapı N {\n" + c.line + "\n}"
+		errs := parseErrsIn(code, codes.Source())
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H0284) {
+			t.Fatalf("%q: want one H0284, got %v", code, errs)
+		}
+		pos, _ := messages.Find(errs[0])
+		if len(pos.Fixes) != 1 || pos.Fixes[0].Replacement != "" || !pos.Fixes[0].Applicable {
+			t.Fatalf("%q: fix %+v", code, pos.Fixes)
+		}
+		f := pos.Fixes[0]
+		if got := string([]rune(c.line)[f.Col-1 : f.EndCol-1]); f.Line != 2 || got != c.cut {
+			t.Errorf("%q: the fix deletes %q on line %d, want %q", code, got, f.Line, c.cut)
+		}
 	}
 }

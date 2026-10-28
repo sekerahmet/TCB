@@ -106,6 +106,8 @@ type nameChecker struct {
 	// libraryFuncs, parametreleri kodlanan kitaplık fonksiyonlarıdır: kitaplık yapısının metotları
 	// ve kitaplığın fonksiyon değişkenleri (adlı fonksiyon adından tanınır; codeParameters).
 	libraryFuncs map[*ast.FunctionLiteral]bool
+	// method denetlenmekte olan metodun yapısıdır (düz alan adı, 7.3; struct_names.go).
+	method *methodNames
 }
 
 // SetGlobalScope is for checking modules: a module runs under the global scope of the
@@ -259,9 +261,7 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		for _, f := range s.Fields {
 			d.expression(f.DefaultValue, k)
 		}
-		for _, name := range sortedMethodNames(s) {
-			d.function(s.Methods[name], k, d.treeLang.Name(codes.KwSelf))
-		}
+		d.structMethods(s, k)
 	case *ast.DeferStatement:
 		d.block(s.Body, k)
 		d.expression(s.Call, k)
@@ -306,6 +306,9 @@ func (d *nameChecker) target(e ast.Expression, k *nameScope) {
 		return
 	}
 	if id, ok := e.(*ast.Identifier); ok && d.bindings == nil {
+		if d.memberName(id, k) {
+			return
+		}
 		if !k.isKnown(id.Value) && !d.decl[id.Value] {
 			d.decl[id.Value] = true
 			d.c.nameErrors = append(d.c.nameErrors, messages.AtRange(id.Token.Range(),
@@ -382,7 +385,7 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 
 // name, okunan ya da atanan bir adın görünür olduğunu denetler.
 func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
-	if k.isKnown(id.Value) || d.decl[id.Value] {
+	if d.memberName(id, k) || k.isKnown(id.Value) || d.decl[id.Value] {
 		return
 	}
 	d.decl[id.Value] = true

@@ -98,6 +98,18 @@ TR_test "7.4 varsayılanlı alanlar kurucudan önce, tanım sırasıyla değer a
     TR_assert_equal([1, 2, 3], sıra)
 }
 
+TR_test "7.3 nesnesiz metot ve alan yoktur; ileti nesneyi kurmayı önerir" {
+    TR_struct S {
+        x = 1
+        TR_func m() { TR_return TR_self.x + 1 }
+    }
+    TR_assert_equal("H2751", TR_error_code { S.m() })
+    TR_assert_equal("H2752", TR_error_code { S.x })
+    TR_assert_equal("H2468", TR_error_code { S.mm })
+    # H2751'in önerdiği yazım: S().m()
+    TR_assert_equal(2, S().m())
+}
+
 TR_test "7.4 kurucu metodu oluşturmada çağrılır" {
     TR_struct Hesap {
         bakiye

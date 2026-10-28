@@ -120,6 +120,7 @@ const (
 	H0281 Code = 281  // '{class} {struct}({base})': TR'de sınıf yok ve yapı ({keyword}) kalıtım almaz; ortak parçayı yapının bir alanı olarak yazın (ortak davranış arayüzle kurulur)
 	H0282 Code = 282  // kurucu '{init}' değer döndürmez (yapının çağrısı nesneyi verir); '{return}' değersiz yazılır ya da hiç yazılmaz
 	H0283 Code = 283  // kurucu '{init}' dönüş tipi almaz (yapının çağrısı nesneyi verir); '->' ile ardındaki tipi silin
+	H0284 Code = 284  // '{self}' parametre değildir: metot nesnesine {self} ile, onu bildirmeden erişir (Python'un self'inden farklı); parametre listesinden silin
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -142,6 +143,8 @@ const (
 	H1021 Code = 1021 // . Dilin sözcükleri TR_ ile yazılır: '{spelling}' mi demek istediniz?
 	H1022 Code = 1022 // metindeki '{text}' başka dillerin yerleştirme yazımıdır, metne olduğu gibi geçer; {name} değerini yazmak için '\({name})' yazın (2.7)
 	H1023 Code = 1023 // ifadenin değeri kullanılmıyor (2.8): çağrı içermeyen bir ifade tek başına deyim olamaz; değeri bir değişkene atayın ({var} v = …) ya da satırı silin
+	H1024 Code = 1024 // {kind, select, method {'{name}' '{struct}' yapısının metodu, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; metodu {self}.{name}() diye çağırın} other {'{name}' '{struct}' yapısının alanı, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; alanı {self}.{name} diye okuyun ve atayın}}
+	H1025 Code = 1025 // {kind, select, method {'{name}' tanımlı değil; metotta '{struct}' yapısının metodu {self}.{name}() diye çağrılır} other {'{name}' tanımlı değil; metotta '{struct}' yapısının alanı {self}.{name} diye okunur ve atanır}}
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
@@ -303,7 +306,7 @@ const (
 	H2465 Code = 2465 // {type} tipi indekslenemez
 	H2466 Code = 2466 // '{keyword}' değerin {prop|q} özelliğine erişilemez ('?.' güvenli erişim kullanabilirsiniz)
 	H2467 Code = 2467 // {type} tipinde {prop|q} özelliği bulunamadı
-	H2468 Code = 2468 // {struct} yapısında {prop|q} alanı veya metodu bulunamadı
+	H2468 Code = 2468 // {struct} yapısında {prop|q} alanı ya da metodu yok{hint}
 	H2469 Code = 2469 // {left} ve {right} tipleri arasında {op|q} işlemi desteklenmiyor
 	H2470 Code = 2470 // Sıfıra bölme hatası
 	H2471 Code = 2471 // Sıfıra göre mod alma hatası
@@ -425,6 +428,8 @@ const (
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
 	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
+	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
+	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
