@@ -80,7 +80,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			case *ListVal:
 				return "[...]"
 			case *StructInstanceVal:
-				return shownName(x.Def.Name, lang) + "{...}"
+				return structCycleText(x, lang)
 			}
 			return "{...}"
 		}
@@ -113,21 +113,7 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 		}
 		sb.WriteByte('}')
 	case *StructInstanceVal:
-		sb.WriteString(shownName(x.Def.Name, lang))
-		sb.WriteByte('{')
-		first := true
-		for _, f := range x.Def.Fields {
-			if val, ok := x.Fields[f.Name]; ok {
-				if !first {
-					sb.WriteString(", ")
-				}
-				first = false
-				sb.WriteString(shownName(f.Name, lang))
-				sb.WriteString(": ")
-				sb.WriteString(writeItem(val, lang, filePath))
-			}
-		}
-		sb.WriteByte('}')
+		writeStruct(&sb, x, lang, filePath)
 	}
 	return sb.String()
 }

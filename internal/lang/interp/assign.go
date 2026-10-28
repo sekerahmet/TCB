@@ -87,25 +87,7 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 	escape(rightVal) // alana yazılan değer kaçar (ownership.go)
 	switch inst := obj.(type) {
 	case *StructInstanceVal:
-		// Nesnenin alanları her zaman yapı tanımındakilerdir (7.5): tanımda olmayan alana ve
-		// metoda atama yapılamaz.
-		cur, field := inst.Fields[prop]
-		if !field {
-			if _, meth := inst.Def.Methods[prop]; meth {
-				return messages.At(line, 0, messages.New(messages.H2404, prop, inst.Def.Name))
-			}
-			return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, prop))
-		}
-		if cur == nil {
-			cur = Null
-		}
-		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
-		if err != nil {
-			return err
-		}
-		escape(finalVal)
-		inst.Fields[prop] = finalVal
-		return nil
+		return v.setStructField(inst, prop, codeVal, rightVal, line)
 	case *DictVal:
 		// d.ad = ..., d["ad"] = ... ile aynıdır; ancak sözlük üyelerinin adları (d.anahtarlar,
 		// d.uzunluk) okumada üyeyi verdiği için atamada da anahtar sayılmaz (3.7).

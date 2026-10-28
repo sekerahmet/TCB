@@ -443,16 +443,7 @@ func valuesEqual(a, b Value, nestDepth int) bool {
 			return true
 		}
 	case *StructInstanceVal:
-		if y, ok := b.(*StructInstanceVal); ok && x.Def == y.Def {
-			for _, f := range x.Def.Fields {
-				va, okA := x.Fields[f.Name]
-				vb, okB := y.Fields[f.Name]
-				if okA != okB || (okA && !valuesEqual(va, vb, nestDepth+1)) {
-					return false
-				}
-			}
-			return true
-		}
+		return structsEqual(x, b, nestDepth)
 	case *BoolVal:
 		return x.Val == b.(*BoolVal).Val
 	case *RangeVal:

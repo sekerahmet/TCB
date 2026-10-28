@@ -102,34 +102,6 @@ func callLabel(fn *FuncVal, owner *StructDefVal) *messages.Error {
 	return messages.New(messages.H2408, fn.Name)
 }
 
-// checkStructArgs kurucusu olmayan bir yapının oluşturulmasındaki argümanları alanlara
-// göre denetler: alan sayısından fazla konumlu argüman ya da alan olmayan bir adla verilen
-// argüman hatadır.
-func checkStructArgs(def *StructDefVal, nargs int, named map[string]Value, line int) error {
-	if nargs <= len(def.Fields) && len(named) == 0 {
-		return nil
-	}
-	nameList := make([]string, len(def.Fields))
-	for i, f := range def.Fields {
-		nameList[i] = f.Name
-	}
-	alignNamed(named, nameList)
-	for k := range named {
-		if !slices.Contains(nameList, k) {
-			return messages.At(line, 0, messages.New(messages.H2418, def.Name, k, hint.ClosestSuggestion(k, nameList, nil)))
-		}
-	}
-	if nargs > len(def.Fields) {
-		return messages.At(line, 0, messages.New(messages.H2419, def.Name, len(def.Fields), strings.Join(nameList, ", "), nargs))
-	}
-	for i, f := range nameList[:nargs] {
-		if _, ok := named[f]; ok {
-			return messages.At(line, 0, messages.New(messages.H2420, def.Name, f, i+1))
-		}
-	}
-	return nil
-}
-
 // alignNamed kodlu adlı argümanı (TR_arg_lr) bildirimi metin olan parametreye ya da alana bağlar. Kullanıcının
 // parametre adı metin kalır, çağrıdaki dilin sözcüğü kodlanır (öğrenme_oranı:, lr: → TR_arg_lr); kimlik
 // hiçbir adla eşleşmiyorsa kodun herhangi bir yazım dilindeki adı olan parametre seçilir: hiçbir dile
@@ -240,67 +212,6 @@ func (v *VM) apply(fnVal Value, args []Value, named map[string]Value, line int) 
 	}
 
 	return nil, messages.At(line, 0, messages.New(messages.H2421, fnVal.Type()))
-}
-
-// construct yapının çağrısıdır: alanlar argümanlardan, adlı argümanlardan ya da varsayılanlardan
-// dolar; kurucu varsa argümanlar onun imzasına gider.
-func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, line int) (Value, error) {
-	inst := &StructInstanceVal{
-		Def:    fn,
-		Fields: make(map[string]Value),
-	}
-	if fn.fieldCode == nil {
-		// Derleyici dışında kurulmuş tanım: varsayılanlar genel kapsamda değerlendirilir
-		c := v.newCompiler()
-		fn.fieldCode = c.fieldDefaults(c.root, fn.Fields)
-		fn.fieldEnv = v.GlobalEnv
-	}
-	fieldEnv := fn.fieldEnv
-	if fieldEnv == nil {
-		fieldEnv = v.GlobalEnv
-	}
-	initMethod, withCtor := fn.Methods[ctorName]
-	if !withCtor {
-		// kurucu yoksa argümanlar alanlara gider: fazlası ya da bilinmeyen adlısı hatadır
-		if err := checkStructArgs(fn, len(args), named, line); err != nil {
-			return nil, err
-		}
-	}
-	for i, f := range fn.Fields {
-		if i < len(args) {
-			inst.Fields[f.Name] = args[i]
-		} else if named != nil && named[f.Name] != nil {
-			inst.Fields[f.Name] = named[f.Name]
-		} else if f.DefaultValue != nil && i < len(fn.fieldCode) && fn.fieldCode[i] != nil {
-			defVal, err := fn.fieldCode[i](v, fieldEnv)
-			if err != nil {
-				return nil, err
-			}
-			inst.Fields[f.Name] = defVal
-		} else {
-			inst.Fields[f.Name] = Null
-		}
-		escape(inst.Fields[f.Name]) // nesne alanına yazılan değer kaçar
-	}
-	if withCtor {
-		// kurucu varsa argümanlar onun imzasına göre denetlenir
-		if err := checkArity(initMethod, fn, len(args), named, line); err != nil {
-			return nil, err
-		}
-		boundInit := &FuncVal{
-			Name:       initMethod.Name,
-			Parameters: initMethod.Parameters,
-			Body:       initMethod.Body,
-			Env:        initMethod.Env,
-			BoundSelf:  inst,
-			codeVal:    initMethod.codeVal,
-		}
-		_, err := v.ApplyFunction(boundInit, args, named, line)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return inst, nil
 }
 
 // callPrepared bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse

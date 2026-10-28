@@ -189,28 +189,10 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 	if inst, ok := obj.(*StructInstanceVal); ok {
 		return structMember(inst, e)
 	}
+	if def, ok := obj.(*StructDefVal); ok {
+		return structDefMember(def, e)
+	}
 	return nil, messages.At(e.Line(), 0, messages.New(messages.H2467, obj.Type(), e.Property))
-}
-
-// structMember nesnenin alanını ya da (bağlı fonksiyon olarak) metodunu döndürür.
-func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, error) {
-	if val, ok := inst.Fields[e.Property]; ok {
-		return val, nil
-	}
-	if method, ok := inst.Def.Methods[e.Property]; ok {
-		return &FuncVal{
-			Name:       method.Name,
-			Parameters: method.Parameters,
-			Body:       method.Body,
-			Env:        method.Env,
-			BoundSelf:  inst,
-			codeVal:    method.codeVal,
-		}, nil
-	}
-	if e.Safe {
-		return Null, nil
-	}
-	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property))
 }
 
 // asciiChars tek karakterlik ASCII metinlerdir (indekslemede yeniden kullanılır;
