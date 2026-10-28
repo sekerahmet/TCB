@@ -12,9 +12,9 @@ TR_func eğitim_modeli(ayar, parçalayıcı_dağarcığı) {
         TR_throw ("--dağarcık \(ayar["dağarcık"]) parçalayıcının dağarcığından (\(parçalayıcı_dağarcığı)) küçük olamaz")
     }
     TR_return TR_GPT(TR_if ayar["dağarcık"] == 0 { parçalayıcı_dağarcığı } TR_else { ayar["dağarcık"] }, TR_context: ayar["bağlam"],
-        TR_embed_dim: ayar.TR_embed_dim, TR_num_layers: ayar["katman"], TR_num_heads: ayar.TR_num_heads,
-        TR_num_kv_heads: TR_if ayar.TR_num_kv_heads == 0 { TR_none } TR_else { ayar.TR_num_kv_heads },
-        TR_intermediate_dim: TR_if ayar["ara_boyut"] == 0 { TR_none } TR_else { ayar["ara_boyut"] }, TR_eps: ayar.TR_eps,
+        TR_embed_dim: ayar["embed_dim"], TR_num_layers: ayar["katman"], TR_num_heads: ayar["num_heads"],
+        TR_num_kv_heads: TR_if ayar["num_kv_heads"] == 0 { TR_none } TR_else { ayar["num_kv_heads"] },
+        TR_intermediate_dim: TR_if ayar["ara_boyut"] == 0 { TR_none } TR_else { ayar["ara_boyut"] }, TR_eps: ayar["eps"],
         TR_qk_norm: ayar["qk_normu"], TR_merged_kv: ayar["birleşik_kv"], TR_merged_gate: ayar["birleşik_kapı"],
         TR_ff_use_bias: ayar["ileri_sapmalı"], TR_tied: ayar["paylaşımlı"], TR_seed: ayar["tohum"])
 }

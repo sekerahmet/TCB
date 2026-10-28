@@ -161,7 +161,7 @@ TR_struct TR_Muon {
     TR_func TR_step() {
         TR_no_grad {
             TR_for grup TR_in TR_self.TR_groups {
-                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state.TR_momentum, grup, TR_self.TR_momentum, TR_self.TR_nesterov)
+                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_momentum, TR_self.TR_nesterov)
                 TR_var sıra = sg[0]
                 TR_if sıra.TR_length == 0 { TR_continue }
                 TR_var O = TR_orthogonalize_stack(sg[1], TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
@@ -218,7 +218,7 @@ TR_struct TR_NorMuon {
         TR_var oran = TR_self.TR_lr
         TR_no_grad {
             TR_for grup TR_in TR_self.TR_groups {
-                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state.TR_momentum, grup, TR_self.TR_beta1, TR_false)
+                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_beta1, TR_false)
                 TR_var sıra = sg[0]
                 TR_if sıra.TR_length == 0 { TR_continue }
                 TR_var yığın = TR_orthogonalize_stack(sg[1], TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
@@ -266,7 +266,7 @@ TR_func TR_any_pattern_matches(TR_name, TR_patterns) {
 # ad_uyar_mı'daki gibi yol parçalarıdır (önek "TR_mem_embedding", sonek "ple_tablo", tam "TR_mem_embedding.TR_mem_table").
 TR_func TR_parameter_groups(TR_model, TR_separated = ["TR_mem_embedding", "TR_mem_logit_layer"]) {
     TR_var k = parametre_kümeleri(TR_model, ayrı: TR_separated)
-    TR_return {"gizli": k["gizli"], "other": k.TR_other}
+    TR_return {"gizli": k["gizli"], "other": k["other"]}
 }
 
 # parametre_kümeleri parametre_grupları'nın ayrıntılı hâlidir: {gizli, sönümlü, sönümsüz, seyrek, diğer}.
@@ -382,12 +382,12 @@ TR_struct TR_MuonAndAdamW {
         } TR_else {
             TR_Muon(gruplar["gizli"], TR_lr: TR_muon_lr, TR_weight_decay: TR_weight_decay, TR_scale: TR_muon_scale, TR_ns_dtype: TR_ns_dtype)
         }
-        TR_self.TR_other = gruplar.TR_other
+        TR_self.TR_other = gruplar["other"]
         TR_if TR_adamw_weight_decay > 0 {
             TR_self.TR_adamw = TR_AdamW(gruplar["sönümlü"], TR_lr: TR_adamw_lr, TR_weight_decay: TR_adamw_weight_decay, TR_beta1: 0.9, TR_beta2: TR_beta2)
             TR_self.TR_adamw_no_decay = TR_AdamW(gruplar["sönümsüz"], TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
         } TR_else {
-            TR_self.TR_adamw = TR_AdamW(gruplar.TR_other, TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
+            TR_self.TR_adamw = TR_AdamW(gruplar["other"], TR_lr: TR_adamw_lr, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: TR_beta2)
             TR_self.TR_adamw_no_decay = TR_none
         }
         TR_self.TR_row_rms = TR_if gruplar["seyrek"].TR_length > 0 { TR_RowRMS(gruplar["seyrek"], TR_lr: TR_sparse_lr, TR_beta2: TR_beta2) } TR_else { TR_none }

@@ -11,8 +11,8 @@ TR_var ö = TR_dataset("veri/train").TR_sampler(TR_batch_size: 16, TR_context: 5
 TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
 TR_var izlenen = {"en_iyi_kayıp": 99.0}
 TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "op": op, "ö": ö, "g": g, "izlenen": izlenen})
-TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
-TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
+TR_var ç = TR_progress(ayar["step"], TR_log: g)
+TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
     TR_var giriş, hedef = ö.TR_next()
     op.TR_zero_grad()
     TR_var kayıp = TR_cross_entropy(TR_embedding(model["E"], giriş) @ model["E"].TR_transpose(), hedef)

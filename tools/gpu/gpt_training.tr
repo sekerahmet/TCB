@@ -56,19 +56,19 @@ TR_var ayar = TR_command_line({
 TR_if ayar["veri"] == "" {
     TR_throw ("veri klasörü verilmedi: --veri /content/ss4096 (tokenizer.json, train.npy, valid.npy)")
 }
-TR_default_device(ayar.TR_device)
+TR_default_device(ayar["device"])
 TR_var p = TR_load_tokenizer(TR_path(ayar["veri"], "tokenizer.json"))
 TR_var eğitim_verisi = TR_dataset(TR_path(ayar["veri"], "train.npy"))
 TR_var ö = eğitim_verisi.TR_sampler(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"], TR_seed: ayar["tohum"])
 
 TR_var model = eğitim_modeli(ayar, p.TR_vocab_size)
 TR_var op = TR_MuonAndAdamW(model, TR_muon_lr: ayar["muon_oranı"], TR_adamw_lr: ayar["adamw_oranı"],
-    TR_weight_decay: ayar.TR_weight_decay, TR_adamw_weight_decay: ayar["adamw_çürümesi"], TR_muon_scale: ayar["muon_ölçeği"],
-    TR_ns_dtype: ayar.TR_ns_dtype, TR_normuon: ayar["normuon"])
+    TR_weight_decay: ayar["weight_decay"], TR_adamw_weight_decay: ayar["adamw_çürümesi"], TR_muon_scale: ayar["muon_ölçeği"],
+    TR_ns_dtype: ayar["ns_dtype"], TR_normuon: ayar["normuon"])
 TR_var ağırlıklar = TR_parameters(model)
 TR_var izlenen = {"en_iyi_doğrulama": 99.0, "örnekler": []}
 TR_var koşu = TR_Run(ayar["koşu"], ayar, {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "izlenen": izlenen},
-    TR_num_steps: ayar.TR_step, TR_every_minutes: ayar["her_dakika"], TR_dry_run: ayar.TR_dry_run)
+    TR_num_steps: ayar["step"], TR_every_minutes: ayar["her_dakika"], TR_dry_run: ayar["dry_run"])
 # Parametre sayısını Koşu sayıp config.json'a yazdı; ikinci kez sayılmaz.
 TR_var parametre_sayısı = TR_json_parse(TR_read_file(TR_path(koşu.TR_folder, "config.json")))["num_params"]
 TR_print("model: \(TR_round(parametre_sayısı / 1000000, 2)) M parametre · cihaz \(model.TR_embedding.TR_table.TR_device) · dağarcık \(p.TR_vocab_size) (model \(model.TR_config["dağarcık"]))")
@@ -131,7 +131,7 @@ TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
         ölçülen_adım = 0
         dış = 0.0
     }
-    TR_var çarpan = TR_lr_schedule(adım, ayar.TR_step, TR_warmup: ayar["ısınma"], TR_decay_fraction: ayar["azalma"])
+    TR_var çarpan = TR_lr_schedule(adım, ayar["step"], TR_warmup: ayar["ısınma"], TR_decay_fraction: ayar["azalma"])
     op.TR_set_multiplier(çarpan)
     op.TR_zero_grad()
     TR_for b TR_in 0..ayar["birikim"] {
@@ -142,7 +142,7 @@ TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
         }
     }
     TR_var norm = TR_none # kırpma öncesi gradyan normu (0 boyutlu tensör; okununca GPU beklenir)
-    TR_if ayar.TR_strip > 0 { norm = TR_clip_grad(ağırlıklar, TR_max: ayar.TR_strip) }
+    TR_if ayar["strip"] > 0 { norm = TR_clip_grad(ağırlıklar, TR_max: ayar["strip"]) }
     op.TR_step()
     ölçülen_adım += 1
     # Kaybın değerini okumak GPU'yu bekletir: çubuk ve günlük günlük_her adımda bir güncellenir.

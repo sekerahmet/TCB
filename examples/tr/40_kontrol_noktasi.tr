@@ -32,7 +32,7 @@ TR_var model = {"E": parametre([V, 32], 0.1), "W1": parametre([32, 64], 0.1), "W
 TR_func ileri(giriş) {
     TR_return TR_gelu(TR_embedding(model["E"], giriş) @ model["W1"]) @ model["W2"]
 }
-TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
+TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar["lr"], TR_weight_decay: 0.0)
 
 # --- Koşu klasörü: ayarlar, günlük ve kontrol noktası ---
 TR_make_dir(KOŞU)
@@ -44,9 +44,9 @@ TR_var kn = TR_checkpoint(KOŞU, {"model": model, "op": op, "ö": ö, "g": g, "i
 TR_print(TR_type(kn) == TR_Checkpoint)
 
 # --- Eğitim: döngü kaldığı adımdan başlar ---
-TR_if kn.TR_resume_step < ayar.TR_step {
-    TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
-    TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
+TR_if kn.TR_resume_step < ayar["step"] {
+    TR_var ç = TR_progress(ayar["step"], TR_log: g)
+    TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
         TR_var giriş, hedef = ö.TR_next()
         op.TR_zero_grad()
         TR_var kayıp = TR_cross_entropy(ileri(giriş), hedef)
@@ -63,7 +63,7 @@ TR_if kn.TR_resume_step < ayar.TR_step {
 
 # --- Sonuçlar koşu klasörüne ---
 TR_save_tensors(TR_path(KOŞU, "model.trt"), TR_parameters(model, TR_named: TR_true))
-TR_var son_adım = TR_if kn.TR_resume_step < ayar.TR_step { ayar.TR_step } TR_else { kn.TR_resume_step }
+TR_var son_adım = TR_if kn.TR_resume_step < ayar["step"] { ayar["step"] } TR_else { kn.TR_resume_step }
 TR_write_file(TR_path(KOŞU, "results.json"), TR_json_string({"step": son_adım, "en_iyi_kayıp": izlenen["en_iyi_kayıp"]}))
 TR_print("en iyi kayıp: \(TR_round(izlenen["en_iyi_kayıp"], 3)); koşu klasörü: \(TR_path(KOŞU).TR_absolute)")
 

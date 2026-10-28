@@ -33,9 +33,9 @@ TR_func eğit(prova) {
     TR_func ileri(giriş) {
         TR_return TR_gelu(TR_embedding(model["E"], giriş) @ model["W1"]) @ model["W2"]
     }
-    TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
+    TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar["lr"], TR_weight_decay: 0.0)
     # Sözlükteki her şey kontrol noktasına girer; klasörde bir nokta varsa burada yüklenir.
-    TR_var koşu = TR_Run(KOŞU, ayar, {"model": model, "op": op, "ö": ö}, TR_num_steps: ayar.TR_step, TR_dry_run: prova)
+    TR_var koşu = TR_Run(KOŞU, ayar, {"model": model, "op": op, "ö": ö}, TR_num_steps: ayar["step"], TR_dry_run: prova)
     TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
         TR_var giriş, hedef = ö.TR_next()
         op.TR_zero_grad()

@@ -91,9 +91,9 @@ TR_var model = TR_GPT(p.TR_vocab_size, TR_context: 32, TR_embed_dim: 32, TR_num_
 TR_var op = TR_MuonAndAdamW(model)
 TR_var g = TR_logger(TR_path(ayar["koşu"], "metrics.jsonl"))
 TR_var kn = TR_checkpoint(ayar["koşu"], {"model": model, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state, "ö": ö, "g": g})
-TR_var ç = TR_progress(ayar.TR_step, TR_log: g)
-TR_for adım TR_in kn.TR_resume_step..ayar.TR_step {
-    op.TR_set_multiplier(TR_lr_schedule(adım, ayar.TR_step, TR_warmup: 10))
+TR_var ç = TR_progress(ayar["step"], TR_log: g)
+TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
+    op.TR_set_multiplier(TR_lr_schedule(adım, ayar["step"], TR_warmup: 10))
     TR_var giriş, hedef = ö.TR_next()
     op.TR_zero_grad()
     TR_var kayıp = model.TR_loss(giriş, hedef)

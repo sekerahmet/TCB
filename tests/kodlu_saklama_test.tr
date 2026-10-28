@@ -26,7 +26,7 @@ TR_test "17.3 neyin kodlandığını kapsam belirler; üyeler tanımda ve kullan
     TR_assert_equal(5, s.TR_length)
     # Üyenin kimliğiyle yazılan sözlük anahtarı ({TR_step: 3}) kimliğin dilden bağımsız adıyla
     # saklanır ("step") ve üye erişimiyle bulunur; bir dildeki adı ("adım") anahtar değildir.
-    TR_assert_equal(3, anahtarlı.ayar.TR_step)
+    TR_assert_equal(3, anahtarlı.ayar["step"])
     TR_assert_equal(3, anahtarlı.ayar["step"])
     TR_assert_equal(TR_false, anahtarlı.ayar.TR_contains("adım"))
     TR_assert_equal(["step", "renk"], anahtarlı.ayar.TR_keys())

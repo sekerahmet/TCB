@@ -15,11 +15,11 @@ TR_var ayar = TR_command_line({"step": 100, "lr": 0.01, "koşu": "deneme", "gün
         "günlük_dosyası": "kayıtların yazılacağı dosya (yoksa yazılmaz)"})
 
 # Sonuç bir nesnedir: ayar adıyla okunur.
-TR_print("adım:", ayar.TR_step, "| öğrenme oranı:", ayar.TR_lr, "| koşu:", ayar["koşu"])
+TR_print("adım:", ayar["step"], "| öğrenme oranı:", ayar["lr"], "| koşu:", ayar["koşu"])
 TR_print("günlük dosyası verildi mi:", ayar["günlük_dosyası"] != TR_none)
 
 # Ayarlar kodda sıradan değişkenler gibi kullanılır.
-TR_var toplam_adım = ayar.TR_step * 2
+TR_var toplam_adım = ayar["step"] * 2
 TR_print("iki katı adım:", toplam_adım)
 
 # --- Kendin dene ---

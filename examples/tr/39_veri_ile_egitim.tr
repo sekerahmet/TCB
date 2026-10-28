@@ -27,7 +27,7 @@ TR_var ayar = TR_command_line({"step": 150, "toplu": 8, "bağlam": 32, "lr": 0.0
     TR_description: "Sentetik metin verisiyle küçük bir dil modelini eğitir",
     TR_descriptions: {"step": "eğitim adımı sayısı", "toplu": "toplu iş başına satır", "bağlam": "satır başına parça",
         "günlük_dosyası": "her adımın kaybının yazılacağı .jsonl dosyası"})
-TR_const ADIM = ayar.TR_step
+TR_const ADIM = ayar["step"]
 TR_const TOPLU = ayar["toplu"]
 TR_const BAĞLAM = ayar["bağlam"]
 TR_var D = 32 # gömme boyutu
@@ -75,7 +75,7 @@ TR_func ileri(giriş) {
 }
 
 # --- Eğitim ---
-TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: ayar.TR_lr, TR_weight_decay: 0.0)
+TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: ayar["lr"], TR_weight_decay: 0.0)
 # İlerleme çubuğu (standart hataya): adım, kayıp, adım hızı ve kalan süre. Günlük dosyası
 # verildiyse her adımın kaybı oraya da yazılır.
 TR_var g = TR_if ayar["günlük_dosyası"] != TR_none { TR_logger(ayar["günlük_dosyası"]) } TR_else { TR_none }

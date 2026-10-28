@@ -38,7 +38,7 @@ TR_test "Muon: güncelleme dikleştirilmiş momentumdur; ölçek √max(1, çık
     TR_var beklenen = önce - 0.1 * TR_sqrt(2.0) * TR_orthogonalize(G)
     TR_var fark = en_büyük_mutlak_fark(W, beklenen)
     TR_assert(fark < 0.00001, "Muon adımı beklenenden farklı: \(fark)")
-    TR_assert_equal(1, op.TR_state.TR_momentum.TR_length)
+    TR_assert_equal(1, op.TR_state["momentum"].TR_length)
     # sıfırla gradyanı sıfırlar; gradyan almayan ağırlık güncellenmez.
     op.TR_zero_grad()
     TR_assert_equal(0.0, TR_max(TR_abs(W.TR_grad)).TR_tolist)
@@ -69,10 +69,10 @@ TR_test "parametre_grupları: gizli 2B ağırlıklar ile gömme, çıkış ve no
     TR_var m = TR_GPT(10, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2)
     TR_var g = TR_parameter_groups(m)
     TR_assert_equal(14, g["gizli"].TR_length) # blok başına 7 matris
-    TR_assert_equal(7, g.TR_other.TR_length) # gömme, çıkış, 2·2 blok normu, son norm
-    TR_assert(g.TR_other.TR_contains(m.TR_embedding.TR_table) TR_and g.TR_other.TR_contains(m.TR_logit_layer.TR_weight))
+    TR_assert_equal(7, g["other"].TR_length) # gömme, çıkış, 2·2 blok normu, son norm
+    TR_assert(g["other"].TR_contains(m.TR_embedding.TR_table) TR_and g["other"].TR_contains(m.TR_logit_layer.TR_weight))
     TR_assert(g["gizli"].TR_contains(m.TR_blocks[1].TR_feed_forward.TR_down_proj.TR_weight))
-    TR_assert_equal(TR_parameters(m).TR_length, g["gizli"].TR_length + g.TR_other.TR_length)
+    TR_assert_equal(TR_parameters(m).TR_length, g["gizli"].TR_length + g["other"].TR_length)
 }
 
 TR_test "oran_planı: ısınma, sabit, azalma" {
@@ -112,7 +112,7 @@ TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (
     TR_assert_equal(0.003, op_a.TR_adamw.TR_lr)
     # Çarpan 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır.
     TR_var d = kur()
-    TR_var op_d = TR_AdamW(TR_parameter_groups(d).TR_other, TR_lr: 0.003, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: 0.95)
+    TR_var op_d = TR_AdamW(TR_parameter_groups(d)["other"], TR_lr: 0.003, TR_weight_decay: 0.0, TR_beta1: 0.9, TR_beta2: 0.95)
     op_d.TR_step()
     TR_assert_equal(TR_no_grad(a.TR_embedding.TR_table), TR_no_grad(d.TR_embedding.TR_table))
     TR_var c = kur()
@@ -140,10 +140,10 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
     TR_var sürdürülen = eğit(TR_path(klasör, "kesilen"), 4) # kaldığı yerden sürer
     TR_var kesintisiz = eğit(TR_path(klasör, "kesintisiz"), 4)
     TR_assert_equal(TR_parameters(kesintisiz[0], TR_named: TR_true), TR_parameters(sürdürülen[0], TR_named: TR_true))
-    TR_assert_equal(kesintisiz[1].TR_muon.TR_state.TR_momentum, sürdürülen[1].TR_muon.TR_state.TR_momentum)
+    TR_assert_equal(kesintisiz[1].TR_muon.TR_state["momentum"], sürdürülen[1].TR_muon.TR_state["momentum"])
     # Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
     TR_assert_equal(0, TR_parameters(sürdürülen[1].TR_muon.TR_state).TR_length)
-    TR_assert(TR_max(TR_abs(sürdürülen[1].TR_muon.TR_state.TR_momentum[0])).TR_tolist > 0, "momentum yüklenmeli")
+    TR_assert(TR_max(TR_abs(sürdürülen[1].TR_muon.TR_state["momentum"][0])).TR_tolist > 0, "momentum yüklenmeli")
 }
 
 # Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
@@ -227,7 +227,7 @@ TR_test "parametre_kümeleri: seyrek, gizli, sönümlü ve sönümsüz gruplar a
     TR_assert(TR_not k["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_table), "seyrek parametre gizliye girmez")
     TR_assert(k["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_gate_proj.TR_weight) TR_and k["gizli"].TR_contains(m.TR_blocks[1].TR_feed_forward.TR_gate_proj.TR_weight))
     TR_assert_equal(TR_parameters(m).TR_length, k["gizli"].TR_length + k["sönümlü"].TR_length + k["sönümsüz"].TR_length + k["seyrek"].TR_length)
-    TR_assert_equal(k["sönümlü"].TR_length + k["sönümsüz"].TR_length, k.TR_other.TR_length)
+    TR_assert_equal(k["sönümlü"].TR_length + k["sönümsüz"].TR_length, k["other"].TR_length)
     # seyrek verilmezse tablolar da gizli gruba girer (eski davranış)
     TR_var g = TR_parameter_groups(m, TR_separated: ["TR_mem_embedding", "TR_mem_ple_context"])
     TR_assert(g["gizli"].TR_contains(m.TR_blocks[0].TR_ple.TR_table))
