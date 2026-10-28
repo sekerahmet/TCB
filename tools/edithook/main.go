@@ -80,10 +80,10 @@ func run(in io.Reader, out, errOut io.Writer, stamps string, find func(string) (
 		case side && c != precheck:
 			return deny(out, errOut, nothingRan+c+" is the main session's job: a side session runs only the tests of the packages "+
 				"it touched (go test ./internal/x -run TestY, the tests-for answer), in the background; the main session "+
-				"runs the full check when it merges (CLAUDE.md, side sessions).")
+				"runs the full check when it merges (docs/development.md, the full check).")
 		case !h.ToolInput.RunInBackground:
 			return deny(out, errOut, nothingRan+c+" takes minutes: run it with run_in_background: true and go on; "+
-				"the notification says when it ends (CLAUDE.md, hard rules: long checks run in the background).")
+				"the notification says when it ends (tools/edithook/README.md, long checks run in the background).")
 		}
 		return 0
 	}
@@ -331,7 +331,7 @@ func testsFor(t target) string {
 	}
 	if err != nil {
 		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence: check with grep, "+
-			"CLAUDE.md on reading codegraph answers)", err)
+			"tools/codegraph/README.md, Reading an answer)", err)
 	}
 	return text
 }

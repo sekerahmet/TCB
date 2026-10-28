@@ -14,7 +14,7 @@ import (
 // adlandırılması dil dosyasında ad değişikliğidir: kodlu dosyalar kimliği taşır, adı değil; onlar olduğu gibi kalır.
 // Değişen okuyanın dil dosyasındaki satırdır (internal/lang/codes/<dil>.json); dosyalar kimliğin yazımını taşır
 // (TR_num_steps, dil tanımı 2.3a), dilin adını değil. Aynı kodu taşıyan öbür bildirimler de aynı adı alır: bağlı
-// listede. Yeni ad kullanıcıya görünen bir addır, baş geliştiricinin onayıyla gelir (CLAUDE.md); önizleme bunu söyler
+// listede. Yeni ad kullanıcıya görünen bir addır; önizleme bunu söyler
 // (H8871). Kullanıcı yapısının aynı kodlu
 // üyesi (kitaplığın üye adıyla yazılmış `ileri`) kullanıcının adıdır: eski plan geçerlidir, kimlik yeni adla değişir.
 

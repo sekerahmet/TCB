@@ -28,8 +28,8 @@ var dupRules = []dupRule{
 	{
 		Name: "test-float64-reference",
 		Reason: "tests keep deliberately naive float64 reference implementations of production algorithms; they " +
-			"are the independent oracle the production code is compared with (CLAUDE.md: an independent reference " +
-			"is not a duplicate).",
+			"are the independent oracle the production code is compared with (an independent reference is not a " +
+			"duplicate).",
 		Match: testFloat64Reference,
 	},
 	{

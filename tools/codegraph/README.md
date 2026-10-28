@@ -93,6 +93,14 @@ are measurements and stay out), and so do, for `x.go`, the tests of its test fil
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).
 Functions of a package that a test builds and runs as a binary get the "covered by subprocess tests" line (`builds`).
 
+## Reading an answer
+
+An ambiguous or missing answer is not evidence. A name guessed and not found (exit `4`) does not mean the thing does
+not exist: search the text with grep (or ripgrep) and ask the graph about the place it finds (`query file:line`,
+`grep -rn ... | go run ./tools/codegraph query -`). Content search is grep's job; the graph answers what a place is,
+who uses it and what tests it. A wrong, ambiguous or missing answer is written to `gaps.md` with the command, the
+expected and the actual answer.
+
 ## Graph
 
 `graph.json` has `schema_version` (readers refuse other versions), `module`, `nodes`, `edges` and

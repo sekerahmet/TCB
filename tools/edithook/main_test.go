@@ -167,7 +167,7 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 	}
 }
 
-// Kural (CLAUDE.md, Yan oturumlar ve ajanlar): yan oturum tam denetimi ve bütün ağacın testini
+// Kural (docs/development.md, tam denetim; tools/edithook/README.md): yan oturum tam denetimi ve bütün ağacın testini
 // (`...` desenli go test) arka planda da koşmaz; yalnız dokunduğu paketlerin testlerini ve bir
 // maddenin sonunda ön denetimi (`--kip=on`, arka planda) koşar, tam denetim birleştirmede ana
 // oturumdadır. Yan oturum, dökümü bir çalışma ağacının klasörüne yazılan oturumdur.
