@@ -396,6 +396,34 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). Taslak (202
 
 - **Mevcut durum:** paylaşılan listeye görevlerden ekleme sırası zamana bağlı ([4, 3, 2, 1, 0]) [ölçüldü].
 
+## 11. Modüller
+
+Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Kitaplık modüllerinin İngilizce yolları (11.6) baş geliştiricinin onayını bekliyor.
+
+### 11.1
+
+- **Mevcut durum:** aktarılan modülün en dışındaki deyimler çalışıyor: en dışta yazdırma yapan bir modül aktarılınca çıktı geliyor [ölçüldü: main `a9a1ba14`].
+- **Yapılacaklar:** modülün en dışındaki deyim sözdizimi hatası (1.1); olumsuz fikstür.
+
+### 11.2
+
+- **Mevcut durum:** `TR_as` bir `TR_Dict` bağlıyor; köşeli ayraçla erişim (m["PI"]) çalışıyor; modülde olmayan bir ad (m.yok) denetimden geçiyor ve çalışırken `TR_none` veriyor [ölçüldü: main `a9a1ba14`].
+- **Yapılacaklar:** modül değeri; adların tipi denetimde; köşeli ayraçla erişim ve olmayan ad denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
+
+### 11.5
+
+- **Yapılacaklar:** dosya bilgisinin görevde tutulması (bir görevin modül yüklemesi öbür görevlerin yollarını değiştirmez); TR testi.
+
+### 11.6
+
+- **Mevcut durum:** kitaplığın dört modülünün yolu Türkçe sözcüklerle: `tr/katman`, `tr/iyilestirici`, `tr/hazir`, `tr/egitim` (`lib/`); 26 dosyada 43 aktarma satırı [ölçüldü].
+- **Yapılacaklar:** onaylanınca İngilizce yollar (öneri: `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`), `lib/` dosya adları, aktarma satırları, `tests/negative/kitaplik_turkce_harf.tr`'nin yazım örneği.
+
+### 11.8
+
+- **Mevcut durum:** iki aktarım aynı adı getirince sonraki sessizce kazanıyor; dosyanın kendi tanımı aktarılan adı sessizce gölgeliyor [ölçüldü: main `a9a1ba14`].
+- **Yapılacaklar:** denetim hatası, iki yeri gösteren ve `TR_as`'ı öneren ileti; olumsuz fikstür.
+
 ## 12. Testler
 
 Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni ad `TR_assert_close`'un gösterim adı onaylandı (yakın_olmalı); kodu uygulandığı gün kayda girer (17.4).

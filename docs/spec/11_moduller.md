@@ -1,17 +1,47 @@
 # 11. Modüller
 
-**11.1** `TR_kw_import "yol"` başka bir `.tr` dosyasının (modülün) tanımlarını yükler ve en dış adlarını bulunulan kapsama getirir. Modülün en dışında yalnız tanım bulunur (`TR_kw_func`, `TR_kw_struct`, `TR_kw_const`, `TR_kw_var`, `TR_kw_import`); çalışan bir deyim (`TR_fn_print(...)`, atama, `TR_kw_for`, `TR_kw_if` ...) derleme hatasıdır (1.1). Değişken ve sabitlerin ilk değerleri modül ilk aktarıldığında bir kez hesaplanır (11.3). Yol bir metin sabitidir (tırnaksız `aktar yardımcı` sözdizimi hatasıdır); `.tr` uzantısı isteğe bağlıdır. Göreli bir modül yolu önce **aktaran dosyanın** (`TR_kw_import` deyiminin yazıldığı dosyanın) klasörüne, bulunamazsa programın klasörüne göre çözülür; dosyası olan bir programda çalışma klasörüne bakılmaz (dosyasız programda — etkileşimli kabuk — yol çalışma klasörüne göredir). Gerekçe: başka bir klasörden çalıştırılan program ya da modül, yanındaki modül yerine çalışma klasöründe duran aynı adlı bir dosyayı yüklememelidir. Bu, dosya yerleşiklerinin kuralından (**13.1**: önce çalışma klasörü) bilerek farklıdır: veri dosyası kullanıcının çalıştığı yerde olabilir, kod ise yazıldığı dosyanın yanındadır. Modül bulunamazsa hata bakılan yerleri listeler. `tr/` önekli yollar diskte aranmaz (**11.6**).
-- *Durum:* en dışta yalnız tanım kuralı karar (Ahmet, 2026-10-27; 1.1). Bugün `TR_kw_import` modülün en dışındaki bütün deyimleri çalıştırıyor.
+Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status.md`](../status.md), "11. Modüller".
 
-**11.2** `TR_kw_import "yol" TR_ctx_as ad` modülün adlarını tek bir `TR_type_Dict` olarak `ad`a bağlar: `ym.kare(2)`, `ym["PI"]`.
+Her kuralın emsali ve gerekçesi: [`rationale/11_modules.md`](rationale/11_modules.md).
 
-**11.3** Bir modül program boyunca bir kez yüklenir (ilk değerleri bir kez hesaplanır); sonraki aktarımlar aynı değerleri paylaşır. Başka bir görev (`TR_kw_async`) aynı modülü o sırada yüklüyorsa aktarım yüklemenin bitmesini bekler ve aynı değerleri alır (yükleme hata verdiyse aynı hatayı). Döngüsel aktarım — yüklenmekte olan bir modülün kendi yükleme zincirinden (ya da o yükleme sırasında başlatılan bir görevden) yeniden aktarılması — hatadır.
+Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin kendi kitaplığını kullanır. Bu bölüm modülün nasıl bulunduğunu, adlarının nasıl geldiğini ve ne zaman denetlendiğini söyler.
 
-**11.4** Modül çalışmadan önce ayrıştırılır ve tip denetiminden geçer; hata varsa modülün hiçbir satırı çalışmaz, hiçbir adı gelmez ve `TR_kw_import` deyimi (dene/yakala ile yakalanabilen) bir hata verir: `Satır 2: "m5" modülü tip denetimi hataları nedeniyle yüklenemedi: m5.tr, Satır 1: Tip uyuşmazlığı — ...`. Modülün üst düzeyinde `TR_kw_return` derleme hatasıdır: modül bir fonksiyon değildir, aktaran programı bitiremez (fonksiyonlarının içinde geçerlidir). `TR_cmd_check` ve `TR_cmd_build` kaynakta yazılı bütün `TR_kw_import` deyimlerini (iç bloklardakiler ve modüllerin aktardıkları dahil) izleyip modülleri çalıştırmadan aynı denetimden geçirir; hata başlığı modülü söyler (`❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):`).
-- *Durum:* karar (Ahmet, 2026-10-27; 1.3): programı çalıştırmak da `TR_cmd_check` gibi bütün `TR_kw_import`'ları önce denetler; modülde hata varsa programın hiçbir satırı çalışmaz, hata `TR_kw_try`/`TR_kw_catch` ile yakalanmaz. Yukarıdaki "`TR_kw_import` deyimi hata verir" bugünkü davranıştır.
+**11.1** `TR_import "yol"` başka bir `.tr` dosyasının tanımlarını yükler ve en dış adlarını dosyanın kapsamına getirir.
+- Aktarmalar dosyanın başında, başlıktan sonra ve öbür tanımlardan önce yazılır (2.1).
+- Modülün en dışında yalnız tanımlar bulunur; ilk değerler sabittir (1.1). Bir modülün en dışında çalışan bir deyim sözdizimi hatasıdır.
+- Yol bir metindir; `.tr` uzantısı isteğe bağlıdır.
+- **Göreli yol** önce aktaran dosyanın klasörüne, bulunamazsa programın klasörüne göre çözülür; çalışma klasörüne bakılmaz (dosyası olmayan kabukta yol çalışma klasörüne göredir). Bu, veri dosyalarının yol kuralından (13) bilerek ayrılır: kod yazıldığı dosyanın yanındadır.
+- Modül bulunamazsa ileti bakılan yerleri sayar. `tr/` önekli yollar diskte aranmaz (11.6).
+- *Test:* TR testi, olumsuz fikstür.
 
-**11.5** Kod tanımlandığı dosyanın bağlamında çalışır: modülün üst düzeyi ve modülde tanımlanan fonksiyonlar, nereden çağrılırsa çağrılsın, o modülün dosyasındadır. Bu yüzden göreli dosya yolları önce çalışma klasörüne, sonra o modülün klasörüne, sonra programın klasörüne göre aranır (13.1), göreli `TR_kw_import` yolları önce o modülün klasörüne göre (11.1) ve başka bir dosyadan gelen çalışma hataları o dosyanın adı ve kendi satırıyla yazılır (`m2.tr, Satır 3: Sıfıra bölme hatası`; kod çerçevesi modülün kaynağından çizilir). `TR_kw_throw` ile atılan değerler ise değişmeden yakalanır. Dosya bilgisi görevindir, paylaşılmaz: bir modül yüklenirken kilidi bırakırsa (ör. `TR_fn_sleep`) öbür görevlerin göreli yolları kendi dosyalarına göre çözülmeye devam eder.
+**11.2** `TR_import "yol" TR_as m` modülü tek bir **modül değeri** olarak `m`'ye bağlar. Adlarına `m.ad` ile erişilir ve her adın tipi çalışmadan önce bilinir: `m.kare(2)`, `m.PI`.
+- Modül değeri bir sözlük değildir: `m["PI"]` denetim hatasıdır, ileti `m.PI`'yi önerir.
+- Olmayan bir ad denetim hatasıdır; ileti modülün en yakın adını önerir.
+- *Test:* TR testi; köşeli ayraçla erişimin ve olmayan adın denetim hatası uygulanınca olumsuz fikstür.
 
-**11.6** `tr/` öneki dilin kendi kitaplığına ayrılmıştır: `TR_kw_import "tr/katman"` diskten değil, `tr` ikilisine gömülü kitaplıktan (depoda `lib/katman.tr`) yüklenir; `.tr` uzantısı burada da isteğe bağlıdır, `TR_ctx_as` ve 11.3–11.5 aynen geçerlidir. Kullanıcının diskteki dosyaları bu öneki gölgeleyemez: çalışma ya da program klasöründe `tr/katman.tr` bulunsa da kitaplıktaki modül yüklenir; kullanıcının `tr` adlı bir klasörü `./tr/...` ile aktarılır. Kitaplık modülünün içindeki göreli `TR_kw_import` kitaplıkta çözülür; kitaplık kodundaki göreli dosya yolları kitaplığın (diskte olmayan) klasörüne göre aranmaz. Hatalar modülün adıyla yazılır (`tr/katman.tr, Satır 12: ...`). Olmayan modül, `..` ile kitaplık dışına çıkan yol ve kitaplığın test dosyaları (`*_test.tr`, modül değildir) hatadır; hata kitaplıktaki modülleri ve en yakın adı söyler (`"tr/iyileştirici" dilin kitaplığında yok; kitaplıktaki modüller: tr/iyilestirici, tr/katman. Bunu mu demek istediniz: "tr/iyilestirici"?`). `TR_cmd_check` ve `TR_cmd_build` kitaplık modülünün varlığını denetler; kitaplık `TR_cmd_build` çıktısına da girer (uygulama, kitaplığı içeren yorumlayıcının kopyasıdır), pakete ayrıca gömülmez. Kitaplığın içeriği için [`lib/README.md`](../../lib/README.md).
+**11.3** Bir modül program boyunca bir kez yüklenir; sonraki aktarımlar aynı değerleri paylaşır. Başka bir görev aynı modülü o sırada yüklüyorsa aktarım yüklemenin bitmesini bekler. Döngüsel aktarım (yüklenmekte olan bir modülün kendi yükleme zincirinden yeniden aktarılması) hatadır.
+- *Test:* TR testi.
 
-**11.7** Başı `_` olan üst düzey adlar (`_iç_hesap`, `_ÇARPAN`; tek başına `_` değil) modüle özeldir: modülün içinde her yerden kullanılır, ama dışa aktarılmaz. `TR_kw_import "yol"` onları getirmez (aktaranda tanımsız addır); `TR_kw_import "yol" TR_ctx_as m` sözlüğünde yoktur (`m.TR_mem_length` onları saymaz) ve `m._iç_hesap` ya da `m["_iç_hesap"]` hata verir: `"_iç_hesap" "yardimci_ozel" modülüne özel bir ad (başı _); yalnızca o modülün içinde kullanılır`. Modülün dışa açık fonksiyonları özel adları kullanmaya devam eder. Karşılaştırma: Dart'ta `_` ile başlayan ad kitaplığa özeldir ve dil bunu uygular (erişim anahtar kelimesi yoktur); Python'da `_ad` yalnızca bir gelenektir ve `from m import *` dışında erişimi engellemez; Go dışa açıklığı büyük harfle yapar (TR'de büyük harf sabiti söyler, 2.3b). TR Dart'ın kuralını alır: kitaplıkların (11.6) dış yüzü bilinçli seçilir, iç yardımcılar kullanıcı koduna sızmaz. Şimdilik yalnızca üst düzey adlara uygulanır; yapı alanları ve metotları için aynı kural ileride gelecektir.
+**11.4** Program çalışmadan önce kendisi ve aktardığı bütün modüller (aktarılanların aktardıkları da) ayrıştırılır ve denetlenir (1.3). Herhangi birinde hata varsa programın hiçbir satırı çalışmaz; hata `TR_try`/`TR_catch` ile yakalanmaz, başlığı hatanın hangi modülde olduğunu söyler.
+- Modülün en dışında `TR_return` sözdizimi hatasıdır: modül bir fonksiyon değildir.
+- *Test:* TR testi, olumsuz fikstür.
+
+**11.5** Kod tanımlandığı dosyanın bağlamında çalışır: bir modülde tanımlanan fonksiyon nereden çağrılırsa çağrılsın o modülün dosyasındadır.
+- Göreli dosya yolları 13'ün kuralıyla, göreli aktarma yolları 11.1'e göre o modülün klasöründen çözülür.
+- Başka bir dosyadan gelen çalışma hatası o dosyanın adı ve kendi satırıyla yazılır; `TR_throw` ile atılan değer değişmeden yakalanır.
+- Dosya bilgisi görevindir: bir görevin modül yüklerken beklemesi öbür görevlerin yollarını değiştirmez.
+- *Test:* TR testi.
+
+**11.6** `tr/` öneki TR'nin kendi kitaplığına ayrılmıştır: `TR_import "tr/<modül>"` diskten değil `tr` ikilisine gömülü kitaplıktan yüklenir.
+- Kitaplığın adları koddur (17.1). Modül adları İngilizcedir, kimliklerin adları gibi (17.2, 17.9).
+- Diskteki bir `tr` klasörü bu öneki gölgeleyemez; kullanıcının `tr` adlı klasörü `./tr/...` ile aktarılır.
+- Kitaplık modülünün içindeki göreli aktarma kitaplıkta çözülür.
+- Olmayan modül, `..` ile kitaplık dışına çıkan yol ve kitaplığın test dosyaları hatadır; ileti kitaplığın modüllerini ve en yakın adı söyler.
+- `TR_cmd_check` ve `TR_cmd_build` kitaplık modülünün varlığını denetler; kitaplık `TR_cmd_build`'in çıktısına, yorumlayıcının parçası olarak girer.
+- *Test:* TR testi, olumsuz fikstür.
+
+**11.7** Başı `_` olan üst düzey adlar (tek başına `_` değil) modüle özeldir: modülün içinde kullanılır, dışa aktarılmaz. `TR_import "yol"` onları getirmez; modül değerinde (`m._iç`) yoktur, yazılırsa ileti adın modüle özel olduğunu söyler. Yalnız üst düzey adlara uygulanır.
+- *Test:* TR testi.
+
+**11.8** Ad çakışması denetim hatasıdır: iki aktarım aynı adı getirirse ya da dosya aktarılan bir adı yeniden tanımlarsa ileti iki yeri de gösterir ve `TR_as` ile aktarmayı önerir. Sonra gelenin sessizce kazanması yoktur.
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca olumsuz fikstür.

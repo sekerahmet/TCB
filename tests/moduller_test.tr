@@ -21,10 +21,9 @@ TR_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörün
     TR_assert_equal("program klasörü", so.kimden)
 }
 
-TR_test "11.2 olarak ile modül tek bir Sözlük olarak bağlanır" {
-    TR_assert_equal(TR_Dict, TR_Type(ym))
+TR_test "11.2 olarak ile modül tek bir değer olarak bağlanır; adlarına nokta ile erişilir" {
     TR_assert_equal(4, ym.kare(2))
-    TR_assert_equal(3, ym["PI"])
+    TR_assert_equal(3, ym.PI)
 }
 
 TR_test "11.3 modül bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır" {
@@ -47,10 +46,7 @@ TR_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
 
 TR_test "11.7 başı _ olan üst düzey adlar modüle özeldir" {
     TR_assert_equal(7, özel.dış_hesap(2))
-    TR_assert_equal(1, özel.TR_length)
-    TR_assert_equal(TR_false, özel.TR_contains("_iç_hesap"))
     TR_assert_equal("H2487", TR_error_code { özel._iç_hesap(2) })
-    TR_assert_equal("H2487", TR_error_code { TR_print(özel["_ÇARPAN"]) })
 }
 
 TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
@@ -59,9 +55,6 @@ TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
 }
 
 TR_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
-    TR_assert_equal(TR_Dict, TR_Type(k))
-    TR_assert(k.TR_keys().TR_contains("TR_type_GPT") TR_and k.TR_keys().TR_contains("TR_type_Linear"), "kitaplığın katmanları gelmeli")
-    TR_assert(TR_not k.TR_keys().TR_contains("disk_katmanı"), "tests/tr/katman.tr yüklenmemeli")
+    TR_assert_equal([4, 3], k.TR_Linear(4, 3).TR_weight.TR_shape) # tests/tr/katman.tr'de Linear yok
     TR_assert_equal(TR_true, d.disk_katmanı)
-    TR_assert_equal([4, 3], k.TR_Linear(4, 3).TR_weight.TR_shape)
 }
