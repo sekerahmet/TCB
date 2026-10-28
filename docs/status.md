@@ -61,7 +61,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 ### 2.13
 
 - **Mevcut durum:** hata kaydı hazır (katman 2b, 1. evre, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının ve denetleyicinin hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltme taşıyor; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir, ad önerileri uygulanamaz öneri. Metin kipinde denetleyicinin iletileri artık sütunu da yazıyor. Kayıt henüz dışarı verilmiyor; komut satırının yardımında JSON yalnız hız raporu için var [ölçüldü].
-- **Yapılacaklar:** `tr check --json` kaydı JSON satırları olarak yazar, kullanım hataları dahil, Go e2e testiyle (2b, 2. evre). Düğüm aralığı kapanış `)` ve `}`'yi içermiyor; 2.13'e bir cümleyle yazılır.
+- **Yapılacaklar:** `TR_cmd_check --json` kaydı JSON satırları olarak yazar, kullanım hataları dahil, Go e2e testiyle (2b, 2. evre). Düğüm aralığı kapanış `)` ve `}`'yi içermiyor; 2.13'e bir cümleyle yazılır.
 
 ## 3. Tipler ve değerler
 
@@ -309,7 +309,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 ### 7.7
 
 - **Mevcut durum:** durumlu tip yok.
-- **Yapılacaklar:** `TR_enum`, tip parametresi, durumların kurulması, eşlemede desen, alan bağlama ve kapsama, koşullu kol iletisi, metin.
+- **Yapılacaklar:** `TR_enum`, tip parametresi, durumların kurulması (çağrısız alanlı ve çağrılı alansız durumun hatası, `TR_init`'in yokluğu), eşlemede konumlu desen (ad sayısının hatası, adlı alanın iletisi), alan bağlama ve kapsama, koşullu kol iletisi, metin (3. katman, 3B).
 
 ### 7.8
 
