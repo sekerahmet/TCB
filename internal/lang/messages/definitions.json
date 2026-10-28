@@ -343,6 +343,7 @@
 "H2610": { "param": ["count", "n"] },
 "H2611": { "param": ["type"], "slots": {"filter": "TR_mem_filter"} },
 "H2612": { "param": ["type"], "slots": {"assert": "TR_fn_assert", "assert_equal": "TR_fn_assert_equal"} },
+"H2613": { "param": ["op"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

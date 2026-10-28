@@ -348,6 +348,7 @@ const (
 	H2610 Code = 2610 // yineleme çok büyük: {count} öğe {n} kez yinelenemez
 	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}(x => x != 0)
 	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: {@assert}(x == beklenen) ya da {@assert_equal}(beklenen, x)
+	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

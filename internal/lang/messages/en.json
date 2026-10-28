@@ -343,6 +343,7 @@
 "H2610": "the repetition is too large: {count} items cannot be repeated {n} times",
 "H2611": "the function of '.{@filter}' must return a truth value (Bool); it returned {type}. Return an explicit test: l.{@filter}(x => x != 0)",
 "H2612": "'{@assert}' takes a truth value (Bool) as its condition; {type} was given. Write the comparison: {@assert}(x == expected) or {@assert_equal}(expected, x)",
+"H2613": "functions cannot be compared with '{op}': even two functions that look the same are not equal. Compare their results: f(x) == g(x)",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

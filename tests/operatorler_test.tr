@@ -152,22 +152,23 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
     TR_assert(nan != 1 TR_and TR_not (nan == 1) TR_and TR_not (nan < 1) TR_and TR_not (nan > 1))
 }
 
-TR_test "4.5 fonksiyonlar kimlikle karşılaştırılır" {
+TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırılır" {
     TR_var f = x => x
     TR_var g = f
-    TR_assert(f == g)
-    TR_assert((x => x) != (x => x * 2))
-    TR_func yap(n) { TR_return TR_func() { TR_return n } }
-    TR_assert(yap(1) != yap(2))
-    TR_assert(TR_print == TR_print)
-    TR_assert(TR_print != TR_type)
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = f == g }))
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = (x => x) != (x => x * 2) }))
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = TR_print == TR_print }))
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = f == 1 }))
+    TR_assert(f(2) == g(2))
+    # isteğe bağlı fonksiyon yoklukla karşılaştırılır (3.5)
+    TR_var h = TR_none
+    TR_assert(h == TR_none TR_and f != TR_none TR_and TR_none != TR_print)
     TR_struct Kutu {
         d = 0
         TR_func al() { TR_return TR_self.d }
     }
     TR_var k = Kutu(1)
-    TR_assert(k.al == k.al)
-    TR_assert(k.al != Kutu(1).al)
+    TR_assert_equal("H2613", TR_error_code(() => { TR_var z = k.al == k.al }))
     TR_assert(Kutu == Kutu)
     TR_assert(1..3 == 1..3 TR_and 1..3 != 1..=3)
 }
