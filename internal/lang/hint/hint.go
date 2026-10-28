@@ -171,3 +171,37 @@ func findType(lang *codes.Language, text string) (codes.Code, bool) {
 func UndefinedNameError(name string, visible []string, lang *codes.Language) *messages.Error {
 	return messages.New(messages.H1106, name, NameSuggestion(name, visible, lang))
 }
+
+// suggestionArg is, for each hint message, the index of the parameter that holds the name it
+// suggests (the closest name, the identity of a word written without TR_).
+var suggestionArg = map[messages.Code]int{
+	messages.H0026: 1,
+	messages.H1021: 0,
+	messages.H1101: 1,
+	messages.H1103: 1,
+	messages.H1104: 0,
+}
+
+// SuggestedName is the name the message err suggests in text, as it would be written in a file
+// (TR_print): the first hint inside err, whatever message it is part of. Tools take it as the
+// replacement of a fix (2.13); ok is false when err suggests no name or names it only as a word of
+// a language (a typed line), which is not a text to put in a file.
+func SuggestedName(err error) (name string, ok bool) {
+	m, isMsg := err.(*messages.Error)
+	if !isMsg {
+		if u, can := err.(interface{ Unwrap() error }); can {
+			return SuggestedName(u.Unwrap())
+		}
+		return "", false
+	}
+	if i, hinted := suggestionArg[m.Code]; hinted && i < len(m.Args) {
+		s, isString := m.Args[i].(string)
+		return s, isString
+	}
+	for _, e := range m.Unwrap() {
+		if s, found := SuggestedName(e); found {
+			return s, true
+		}
+	}
+	return "", false
+}

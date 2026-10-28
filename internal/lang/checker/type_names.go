@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
@@ -196,10 +197,10 @@ func resolveTypeAnnotation(name string, lang *codes.Language) (canonical string,
 
 // checkedTypeName tip açıklamasındaki adı çözer ve kabul edilmeyen bir yazımsa (tam, ondalik,
 // int) asıl adı öneren bir hata ekler; asıl tip adını döndürür.
-func (c *Checker) checkedTypeName(name string, line int) string {
+func (c *Checker) checkedTypeName(name string, at lexer.Token) string {
 	canonical, code := resolveTypeAnnotation(name, c.language())
 	if code != 0 {
-		c.addError(line, 0, messages.New(code, name, c.typeArg(canonical)))
+		c.addErrorAtToken(at, messages.New(code, name, c.typeArg(canonical)))
 	}
 	return canonical
 }

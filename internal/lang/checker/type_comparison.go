@@ -19,7 +19,7 @@ func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 	if !ok || c.builtinCall(call, codes.TypeType) == nil {
 		return
 	}
-	c.addError(e.Line(), 0, hint.TypeTextComparisonError(string(e.Operator), text.Value, c.word(codes.TypeInt), c.language()))
+	c.addErrorAt(e, hint.TypeTextComparisonError(string(e.Operator), text.Value, c.word(codes.TypeInt), c.language()))
 }
 
 // Mantık değerinin metni dilden bağımsızdır (codes.ValueNames): TR_String(b) her dosyada ve her
@@ -43,8 +43,8 @@ func (c *Checker) checkBoolTextComparison(e *ast.InfixExpression) {
 		return
 	}
 	if boolName(text.Value) {
-		c.warnings = append(c.warnings, messages.At(e.Line(), 0, messages.New(messages.H1016,
-			c.word(codes.TypeString), own.Name(codes.KwTrue), own.Name(codes.KwFalse), text.Value)))
+		c.addWarningAt(e, messages.New(messages.H1016,
+			c.word(codes.TypeString), own.Name(codes.KwTrue), own.Name(codes.KwFalse), text.Value))
 	}
 }
 

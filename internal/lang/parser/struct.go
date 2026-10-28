@@ -12,10 +12,11 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		return nil
 	}
 	stmt := &ast.StructStatement{
-		Token:   tok,
-		Name:    p.curToken().Literal,
-		Fields:  []ast.StructField{},
-		Methods: make(map[string]*ast.FunctionLiteral),
+		Token:     tok,
+		Name:      p.curToken().Literal,
+		NameToken: p.curToken(),
+		Fields:    []ast.StructField{},
+		Methods:   make(map[string]*ast.FunctionLiteral),
 	}
 
 	if !p.expectPeek(lexer.TokLBrace) {
@@ -77,8 +78,8 @@ func (p *Parser) parseStructStatement() *ast.StructStatement {
 		}
 		fieldTok := p.curToken()
 		p.role(fieldTok, RoleStructField)
-		field := ast.StructField{Name: fieldTok.Literal}
-		field.TypeName, field.DefaultValue = p.parseTypeAndDefault()
+		field := ast.StructField{Name: fieldTok.Literal, NameToken: fieldTok}
+		field.TypeName, field.TypeToken, field.DefaultValue = p.parseTypeAndDefault()
 		// Alan virgül, ';', satır sonu ya da '}' ile biter: aynı satırda başka bir şey
 		// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
 		if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&

@@ -41,42 +41,51 @@ const mathSymbolLetters = 3
 // bir uyarı ekler (PEP 8 düzeni, Rust'ın varsayılan uyarıları gibi hata değil): sabitler
 // BÜYÜK_YILAN, yapılar BüyükDeve, geri kalan adlar küçük_yılan. Baştaki _ (modüle özel ad) ve
 // $ (kaçış) yazılışa sayılmaz; TR_ ile başlayan adlar (2.3a) zaten hatadır.
-func (c *Checker) checkNameStyle(name string, kind nameKind, line, col int) {
-	c.checkScripts(name, line, col)
+func (c *Checker) checkNameStyle(name string, kind nameKind, at lexer.Token) {
+	c.checkScripts(name, at)
 	bare := strings.TrimLeft(name, "$_")
 	if bare == "" || codes.IsReservedName(bare) || !strings.ContainsFunc(bare, unicode.IsLetter) {
 		return
 	}
 	var warning error
+	var suggestion string
 	switch kind {
 	case kindConst:
 		if strings.ContainsFunc(bare, unicode.IsLower) {
-			warning = messages.New(messages.H1013, name, keepPrefix(name, upperSnake(bare)))
+			suggestion = keepPrefix(name, upperSnake(bare))
+			warning = messages.New(messages.H1013, name, suggestion)
 		}
 	case kindType:
 		if !startsUpper(bare) || strings.Contains(bare, "_") {
-			warning = messages.New(messages.H1014, name, keepPrefix(name, upperCamel(bare)))
+			suggestion = keepPrefix(name, upperCamel(bare))
+			warning = messages.New(messages.H1014, name, suggestion)
 		}
 	default:
 		if valueNameOK(bare) {
 			return
 		}
+		suggestion = keepPrefix(name, snake(bare))
 		if kind == kindVariable && !strings.ContainsFunc(bare, unicode.IsLower) {
-			warning = messages.New(messages.H1015, name, c.word(codes.KwConst), keepPrefix(name, snake(bare)))
+			warning = messages.New(messages.H1015, name, c.word(codes.KwConst), suggestion)
 		} else {
-			warning = messages.New(messages.H1012, name, keepPrefix(name, snake(bare)))
+			warning = messages.New(messages.H1012, name, suggestion)
 		}
 	}
 	if warning != nil {
-		c.warnings = append(c.warnings, messages.At(line, col, warning))
+		e := c.addWarningAtToken(at, warning)
+		// The fix renames this one place. A name is right only when every use of it changes with
+		// it, so the fix is a suggestion, never applicable as it stands.
+		if at.Column > 0 {
+			e.WithFix(replaceToken(at, suggestion, false))
+		}
 	}
 }
 
 // checkScripts tek bir adda birden çok yazı sisteminin harfi varsa uyarır (2.1a): θ_eski gibi
 // formül adları geçerlidir ama başka bir adla karışabilir. Tek yazı sistemindeki ad uyarısızdır.
-func (c *Checker) checkScripts(name string, line, col int) {
+func (c *Checker) checkScripts(name string, at lexer.Token) {
 	if first, second, mixed := lexer.MixedScripts(name); mixed {
-		c.warnings = append(c.warnings, messages.At(line, col, messages.New(messages.H1019, name, first, second)))
+		c.addWarningAtToken(at, messages.New(messages.H1019, name, first, second))
 	}
 }
 

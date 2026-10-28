@@ -96,18 +96,27 @@ func unexpectedHint(expected lexer.TokenType, found lexer.Token) *messages.Error
 // recordError bir sözdizimi hatası kaydeder. Bir deyimde yalnızca ilk hata kaydedilir:
 // ardından gelenler çoğunlukla ilkinin sonucudur ve kullanıcıyı yanıltır. Deyim
 // döngüleri senkronizeOl ile hatalı deyimin geri kalanını atlayıp kaydı yeniden açar.
-func (p *Parser) recordError(tok lexer.Token, err error) {
+//
+// The record is at the token, from its start to its end (2.13); fixes are the changes that would put
+// the error right (messages.Fix; the fix of an error that is mended by one known text, such as a
+// '//' that starts a line becoming '#', is applicable).
+func (p *Parser) recordError(tok lexer.Token, err error, fixes ...messages.Fix) {
 	if p.errorMode || p.depthExceeded {
 		return
 	}
 	p.errorMode = true
 	p.errorLine = tok.Line
-	p.errors = append(p.errors, messages.At(tok.Line, tok.Column, err))
+	p.errors = append(p.errors, messages.AtRange(tok.Range(), err).WithFix(fixes...))
 }
 
 // syntaxError, "Sözdizimi hatası — ..." önekli (H0100) bir sözdizimi hatası kaydeder.
 func (p *Parser) syntaxError(tok lexer.Token, code messages.Code, args ...any) {
-	p.recordError(tok, messages.New(messages.H0100, messages.New(code, args...)))
+	p.syntaxErrorFix(tok, nil, code, args...)
+}
+
+// syntaxErrorFix is syntaxError with the fixes that mend it.
+func (p *Parser) syntaxErrorFix(tok lexer.Token, fixes []messages.Fix, code messages.Code, args ...any) {
+	p.recordError(tok, messages.New(messages.H0100, messages.New(code, args...)), fixes...)
 }
 
 // skipToBlockEnd, içinde bulunulan '{ ... }' bloğunu kapatan '}' işaretine kadar

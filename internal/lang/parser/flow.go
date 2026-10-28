@@ -25,6 +25,8 @@ func (p *Parser) parseForStatement() ast.Statement {
 		firstVar := p.curToken().Literal
 		keyVar := ""
 		valVar := firstVar
+		var keyTok lexer.Token
+		valTok := p.curToken()
 
 		if p.peekTokenIs(lexer.TokComma) {
 			p.nextToken() // ','
@@ -32,7 +34,9 @@ func (p *Parser) parseForStatement() ast.Statement {
 				return nil
 			}
 			keyVar = firstVar
+			keyTok = valTok
 			valVar = p.curToken().Literal
+			valTok = p.curToken()
 		}
 
 		if !p.expectPeek(lexer.TokIn) {
@@ -50,6 +54,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 			Token:    tok,
 			KeyVar:   keyVar,
 			ValueVar: valVar,
+			KeyToken: keyTok, ValueToken: valTok,
 			Iterable: iterable,
 			Body:     body,
 		}
@@ -88,14 +93,15 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 	}
 
 	errVar := p.words.err
+	var errTok lexer.Token
 	implicit := !p.peekTokenIs(lexer.TokIdent) && !p.peekTokenIs(lexer.TokLParen)
 	if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()
-		errVar = p.curToken().Literal
+		errVar, errTok = p.curToken().Literal, p.curToken()
 	} else if p.peekTokenIs(lexer.TokLParen) {
 		p.nextToken() // '('
 		if p.expectPeek(lexer.TokIdent) {
-			errVar = p.curToken().Literal
+			errVar, errTok = p.curToken().Literal, p.curToken()
 		}
 		p.expectPeek(lexer.TokRParen)
 	}
@@ -109,6 +115,7 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		Token:            tok,
 		TryBody:          tryBody,
 		ErrorVar:         errVar,
+		ErrorToken:       errTok,
 		ImplicitErrorVar: implicit,
 		CatchBody:        catchBody,
 	}

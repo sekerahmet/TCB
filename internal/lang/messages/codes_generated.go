@@ -1596,6 +1596,7 @@ const (
 	H8291 Code = 8291 // GPU süresi işleme göre (çekirdeklerin cihaz süresi, onları başlatan tensör işlemine göre):
 	H8292 Code = 8292 // GPU süresi satıra göre (geri yöndeki çekirdekler düğümü üreten ileri satırda):
 	H8293 Code = 8293 // %{n|decimal}
+	H8300 Code = 8300 // {name|q} ilk burada yazılmış
 	H8400 Code = 8400 // biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})
 	H8401 Code = 8401 // sözdizimi hatası olan kod biçimlenmez: {error}
 	H8402 Code = 8402 // dosyanın biçimi (kodlu ya da Türkçe yazım) değişti

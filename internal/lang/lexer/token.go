@@ -2,8 +2,10 @@ package lexer
 
 import (
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // TokenType is the type of a token.
@@ -22,12 +24,34 @@ type Token struct {
 	Literal string
 	Line    int
 	Column  int
+	// EndLine and EndColumn are the position after the token's last character, in the file's
+	// own line and column (exclusive, like LSP and rustc); 0 for a token the lexer did not make.
+	// Range gives start and end together.
+	EndLine, EndColumn int
 	// Code is the code the word was written with (an identity TR_print, or a word of the writing
 	// language the body is read in), otherwise codes.None. Literal is then the code's name in the
 	// lexer's language (see identity.go).
 	Code codes.Code
+	// Escaped says a name was written with the '$' escape in a text read in a writing language (a shell
+	// line, a file shown in a language): the token's range includes the '$', its Literal does not. A
+	// coded file has no '$' (it is an error there), so its tokens are never Escaped.
+	Escaped bool
 	// Raw says a string token was written as a raw string (`...`, 2.6a).
 	Raw bool
+}
+
+// Range is the token's place with its end (messages.Range). A token without an end of its own
+// (one the parser made) ends after its text, on its line; with no text it ends one character on.
+func (t Token) Range() messages.Range {
+	r := messages.Range{Line: t.Line, Col: t.Column}
+	switch {
+	case t.Line <= 0 || t.Column <= 0:
+	case t.EndLine > 0 && t.EndColumn > 0:
+		r.EndLine, r.EndCol = t.EndLine, t.EndColumn
+	default:
+		r.EndLine, r.EndCol = t.Line, t.Column+max(utf8.RuneCountInString(t.Literal), 1)
+	}
+	return r
 }
 
 func (t Token) String() string {

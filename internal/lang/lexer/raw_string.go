@@ -67,7 +67,7 @@ func (l *Lexer) readEscape(sb *strings.Builder) {
 	default:
 		// Bilinmeyen kaçış hatadır: ters bölüyü sessizce atmak düzenli ifadeleri
 		// ("\d") ve Windows yollarını ("C:\veri") fark edilmeden bozardı.
-		l.addError(escLine, escCol, messages.New(messages.H0008, unknownEscape(l.ch)))
+		l.errors = append(l.errors, l.newErrorTo(escLine, escCol, l.position+1, messages.New(messages.H0008, unknownEscape(l.ch))))
 		l.appendString(sb, '\\', begin)
 		if l.ch == '\r' && l.peekChar() == '\n' {
 			l.readChar()

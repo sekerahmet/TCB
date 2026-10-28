@@ -11,6 +11,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -94,11 +95,6 @@ func (c *Checker) Errors() []string {
 	return messages.Texts(c.errors)
 }
 
-// addError records err at the given position (col 0 when unknown).
-func (c *Checker) addError(line, col int, err error) {
-	c.errors = append(c.errors, messages.At(line, col, err))
-}
-
 // Warnings returns the checker's warnings, each at its line (messages.Pos). Warnings are not errors: the program runs and
 // the exit code is unaffected; the command line prints them under a separate heading.
 func (c *Checker) Warnings() []error {
@@ -108,9 +104,9 @@ func (c *Checker) Warnings() []error {
 // defineName bir adı kapsama tanımlar: önce gölgeleme uyarısı, sonra yazım kuralı denetimi, en
 // sonda kapsam kaydı. Değeri çıkarılacak tanımlarda (değişken bildirimi) kayıt değerden sonra
 // yapılır; onlar bu yardımcıyı kullanmaz.
-func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo) {
-	c.checkShadowing(name, line)
-	c.checkNameStyle(name, kind, line, 0)
+func (c *Checker) defineName(name string, kind nameKind, at lexer.Token, info TypeInfo) {
+	c.checkShadowing(name, at)
+	c.checkNameStyle(name, kind, at)
 	c.scope.Define(name, info)
 }
 
@@ -118,7 +114,7 @@ func (c *Checker) defineName(name string, kind nameKind, line int, info TypeInfo
 // ekler: kullanıcı tanımı o kapsamda yerleşiği gölgeler; yerleşik orada artık çağrılamaz.
 // Yalnız kişinin dilinde yazılan satırda (kabuk, SetFileLanguage) olur: dosyanın dili yoktur,
 // yerleşik TR_ ile yazılır ve hiçbir kullanıcı adı onu gölgelemez (2.1; 'toplam' TR_sum değildir).
-func (c *Checker) checkShadowing(name string, line int) {
+func (c *Checker) checkShadowing(name string, at lexer.Token) {
 	if c.fileLanguage == "" {
 		return
 	}
@@ -127,7 +123,7 @@ func (c *Checker) checkShadowing(name string, line int) {
 		return
 	}
 	if k, ok := lang.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
-		c.warnings = append(c.warnings, messages.At(line, 0, messages.New(messages.H1009, name)))
+		c.addWarningAtToken(at, messages.New(messages.H1009, name))
 	}
 }
 
@@ -157,12 +153,12 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	}
 	switch s := stmt.(type) {
 	case *ast.VarStatement:
-		c.checkShadowing(s.Name.Value, s.Line())
-		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Line(), s.Name.Token.Column)
-		declared := c.checkedTypeName(s.TypeName, s.Line())
+		c.checkShadowing(s.Name.Value, s.Name.Token)
+		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Name.Token)
+		declared := c.checkedTypeName(s.TypeName, siteOf(s.TypeToken, s.Line()))
 		inferred := c.inferExpression(s.Value)
 		if s.TypeName != "" && !typesCompatible(declared, inferred) {
-			c.addError(s.Line(), 0, messages.New(messages.H1001,
+			c.addErrorAt(s, messages.New(messages.H1001,
 				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
 		}
 		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
@@ -196,9 +192,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		prev := c.scope
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
-			c.defineName(s.KeyVar, kindVariable, s.Line(), TypeInfo{TypeName: typeAny})
+			c.defineName(s.KeyVar, kindVariable, siteOf(s.KeyToken, s.Line()), TypeInfo{TypeName: typeAny})
 		}
-		c.defineName(s.ValueVar, kindVariable, s.Line(), TypeInfo{TypeName: typeAny})
+		c.defineName(s.ValueVar, kindVariable, siteOf(s.ValueToken, s.Line()), TypeInfo{TypeName: typeAny})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
 		}
@@ -217,20 +213,20 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			catchLine = s.CatchBody.Line()
 		}
 		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
-		c.defineName(s.ErrorVar, kindVariable, catchLine, TypeInfo{TypeName: typeAny})
+		c.defineName(s.ErrorVar, kindVariable, siteOf(s.ErrorToken, catchLine), TypeInfo{TypeName: typeAny})
 		for _, bs := range s.CatchBody.Statements {
 			c.checkStatement(bs)
 		}
 		c.scope = prev
 
 	case *ast.StructStatement:
-		c.checkShadowing(s.Name, s.Line())
-		c.checkNameStyle(s.Name, kindType, s.Line(), 0)
+		c.checkShadowing(s.Name, siteOf(s.NameToken, s.Line()))
+		c.checkNameStyle(s.Name, kindType, siteOf(s.NameToken, s.Line()))
 		for _, f := range s.Fields {
-			c.checkNameStyle(f.Name, kindValue, s.Line(), 0)
+			c.checkNameStyle(f.Name, kindValue, siteOf(f.NameToken, s.Line()))
 		}
 		for name, m := range s.Methods {
-			c.checkNameStyle(name, kindValue, m.Line(), 0)
+			c.checkNameStyle(name, kindValue, siteOf(m.NameToken, m.Line()))
 		}
 		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
 		c.checkStruct(s)
@@ -240,7 +236,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.inferExpression(v)
 		}
 		for _, name := range s.Names {
-			c.defineName(name.Value, c.varKind(s.IsConst), s.Line(), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
+			c.defineName(name.Value, c.varKind(s.IsConst), siteOf(name.Token, s.Line()), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
 
 	case *ast.MultiAssignStatement:
@@ -254,7 +250,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 				continue
 			}
 			if info, found := c.scope.Resolve(ident.Value); found && info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
+				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 		}
 
@@ -269,7 +265,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.ReturnStatement:
 		valType := c.inferExpression(s.ReturnValue)
 		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
-			c.addError(s.Line(), 0, messages.New(messages.H1003,
+			c.addErrorAt(s, messages.New(messages.H1003,
 				c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
 		}
 
@@ -380,7 +376,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.FunctionLiteral:
 		paramTypes, retType := c.functionSignature(e)
 		if e.Name != "" {
-			c.defineName(e.Name, kindValue, e.Line(), TypeInfo{
+			c.defineName(e.Name, kindValue, siteOf(e.NameToken, e.Line()), TypeInfo{
 				TypeName:   typeFunction,
 				ParamTypes: paramTypes,
 				ReturnType: retType,
@@ -400,7 +396,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		for i, arg := range e.Arguments {
 			argType := c.inferExpression(arg)
 			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
-				c.addError(e.Line(), 0, messages.New(messages.H1004,
+				c.addErrorAt(arg, messages.New(messages.H1004,
 					ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
 			}
 		}
@@ -431,10 +427,10 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 				valType = arithmeticType(op, info.TypeName, valType)
 			}
 			if info.IsConst {
-				c.addError(s.Line(), 0, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
+				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
-				c.addError(s.Line(), 0, messages.New(messages.H1005,
+				c.addErrorAt(s, messages.New(messages.H1005,
 					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.divisionHint(info.TypeName, valType, op == "/" || op == "" && dividesAtTop(s.Value))))
 			}
 		}

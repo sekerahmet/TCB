@@ -19,10 +19,14 @@ func (l *Lexer) skipWhitespaceAndComments() {
 		case l.ch == '#':
 			l.skipLine()
 		case l.lineStart && l.ch == '/' && l.peekChar() == '/':
-			l.addError(l.line, l.column, messages.New(messages.H0015, "//"))
+			// '//' at the start of a line is a comment written the C way: '#' put in its place reads
+			// right as it stands (2.13).
+			e := l.newErrorTo(l.line, l.column, l.position+2, messages.New(messages.H0015, "//"))
+			l.errors = append(l.errors, e.WithFix(messages.Fix{Range: e.Range(), Replacement: "#", Applicable: true}))
 			l.skipLine()
 		case l.lineStart && l.ch == '/' && l.peekChar() == '*':
-			l.addError(l.line, l.column, messages.New(messages.H0015, "/*"))
+			// No fix: the '*/' that closes the comment would have to change as well.
+			l.errors = append(l.errors, l.newErrorTo(l.line, l.column, l.position+2, messages.New(messages.H0015, "/*")))
 			for l.ch != 0 && !(l.ch == '*' && l.peekChar() == '/') {
 				l.readChar()
 			}

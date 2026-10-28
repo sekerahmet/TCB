@@ -100,8 +100,57 @@ func (l *Lexer) Errors() []string {
 	return messages.Texts(l.errors)
 }
 
+// addError records err at (line, col). It ends where the lexer stands: the error is raised once
+// the text it is about is read (an unclosed string ends at the end of the file); at the least it
+// covers the character at the start. An error raised before the text is read to its end (a '//' not
+// yet skipped, a '.' not yet taken) ends it with newErrorTo, or closes the record later with endError.
 func (l *Lexer) addError(line, col int, err error) {
-	l.errors = append(l.errors, messages.At(line, col, err))
+	l.errors = append(l.errors, l.newError(line, col, err))
+}
+
+// addErrorFix records err with one suggested fix: the text the error is at replaced by replacement.
+// The suggestion is a guess (the closest name, the name without its prefix), so it is never
+// applicable as it stands.
+func (l *Lexer) addErrorFix(line, col int, err error, replacement string) {
+	e := l.newError(line, col, err)
+	l.errors = append(l.errors, e.WithFix(messages.Fix{Range: e.Range(), Replacement: replacement}))
+}
+
+// newError is addError's record, for an error that carries fixes (WithFix) before it is added.
+func (l *Lexer) newError(line, col int, err error) *messages.PosError {
+	return l.newErrorTo(line, col, l.position, err)
+}
+
+// newErrorTo is newError for an error whose text ends before the character at index end of the
+// input (the lexer has not read that far yet).
+func (l *Lexer) newErrorTo(line, col, end int, err error) *messages.PosError {
+	e := messages.At(line, col, err)
+	l.endError(e, end)
+	return e
+}
+
+// endError ends e before the character at index end of the input, and at the least one character
+// after its start.
+func (l *Lexer) endError(e *messages.PosError, end int) {
+	e.EndLine, e.EndCol = l.endAt(end)
+	if e.EndLine < e.Line || e.EndLine == e.Line && e.EndCol <= e.Col {
+		e.EndLine, e.EndCol = e.Line, e.Col+1
+	}
+}
+
+// endAt is the line and column of the character at index i of the input, which is the position
+// after the token that ends just before it (a token never ends with a newline, so a newline at i
+// is still on the token's line). A lexer for the expression inside a string reads the position
+// through its map (interpolation.go); one without a map has no place of its own.
+func (l *Lexer) endAt(i int) (line, col int) {
+	switch {
+	case l.posMap != nil && i > 0:
+		line, col = l.root.lineCol(int(l.sourcePos(i - 1)))
+		return line, col + 1
+	case l.posMap != nil || l.root != l:
+		return l.line, l.column
+	}
+	return l.lineCol(i)
 }
 
 // New returns a lexer for source text written in Turkish (a REPL line, an expression typed
@@ -170,6 +219,16 @@ func (l *Lexer) peekCharN(n int) rune {
 // with its source range to the root's record.
 func (l *Lexer) NextToken() Token {
 	tok := l.nextToken()
+	tok.EndLine, tok.EndColumn = tok.Line, tok.Column
+	if begin, end := l.LastRange(); end > begin {
+		// A lexer without a place of its own (a string's text read apart) has no end to give:
+		// Token.Range then ends the token after its text.
+		if endLine, endCol := l.endAt(end); endLine > tok.Line || endLine == tok.Line && endCol > tok.Column {
+			tok.EndLine, tok.EndColumn = endLine, endCol
+		} else {
+			tok.EndLine, tok.EndColumn = 0, 0
+		}
+	}
 	l.track(tok)
 	l.lineStart = false
 	if l.root.rec != nil {
@@ -255,8 +314,11 @@ func (l *Lexer) nextToken() Token {
 	case '\'':
 		// Metin yalnız çift tırnakla yazılır (2.6); tek tırnaklı metin yine okunur ki ardındaki
 		// sözcükler ikinci bir hata üretmesin.
-		l.addError(line, col, messages.New(messages.H0016))
-		return Token{Type: TokString, Literal: l.readString('\'', line, col), Line: line, Column: col}
+		e := l.newError(line, col, messages.New(messages.H0016))
+		l.errors = append(l.errors, e) // the string's own errors follow it
+		lit := l.readString('\'', line, col)
+		l.endError(e, l.position) // the error is about the whole string
+		return Token{Type: TokString, Literal: lit, Line: line, Column: col}
 	case '`':
 		return Token{Type: TokString, Literal: l.readRawString(line, col), Line: line, Column: col, Raw: true}
 	case 0:

@@ -40,7 +40,7 @@ func (p *Parser) isLambdaAhead() bool {
 }
 func (p *Parser) parseSingleParamLambda() ast.Expression {
 	tok := p.curToken()
-	param := ast.Param{Name: tok.Literal}
+	param := ast.Param{Name: tok.Literal, NameToken: tok}
 	p.nextToken() // '=>'
 	return p.finishLambda(tok, []ast.Param{param})
 }
@@ -85,7 +85,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	// İsimli fonksiyon: fonksiyon topla(a, b) { ... }
 	if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()
-		lit.Name = p.curToken().Literal
+		lit.Name, lit.NameToken = p.curToken().Literal, p.curToken()
 	}
 
 	if !p.expectPeek(lexer.TokLParen) {
@@ -98,7 +98,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	if p.peekTokenIs(lexer.TokColon) || p.peekTokenIs(lexer.TokArrow) {
 		p.nextToken()
 		if p.expectPeek(lexer.TokIdent) {
-			lit.ReturnType = p.curToken().Literal
+			lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
 			p.role(p.curToken(), RoleType)
 		}
 	} else if p.peekTokenIs(lexer.TokMinus) {
@@ -106,7 +106,7 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 		if p.peekTokenIs(lexer.TokGt) {
 			p.nextToken() // '>'
 			if p.expectPeek(lexer.TokIdent) {
-				lit.ReturnType = p.curToken().Literal
+				lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
 				p.role(p.curToken(), RoleType)
 			}
 		}
@@ -130,8 +130,8 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 	p.nextToken()
 
 	for {
-		param := ast.Param{Name: p.curToken().Literal}
-		param.TypeName, param.DefaultValue = p.parseTypeAndDefault()
+		param := ast.Param{Name: p.curToken().Literal, NameToken: p.curToken()}
+		param.TypeName, param.TypeToken, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)
 
 		if !p.peekTokenIs(lexer.TokComma) {
@@ -194,11 +194,11 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 
 // parseTypeAndDefault isteğe bağlı ': Tip' ve '= varsayılan' bölümlerini okur (parametre ve yapı
 // alanı için); olmayan bölüm boş döner.
-func (p *Parser) parseTypeAndDefault() (typeName string, def ast.Expression) {
+func (p *Parser) parseTypeAndDefault() (typeName string, typeTok lexer.Token, def ast.Expression) {
 	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
 		if p.expectPeek(lexer.TokIdent) {
-			typeName = p.curToken().Literal
+			typeName, typeTok = p.curToken().Literal, p.curToken()
 			p.role(p.curToken(), RoleType)
 		}
 	}
@@ -207,5 +207,5 @@ func (p *Parser) parseTypeAndDefault() (typeName string, def ast.Expression) {
 		p.nextToken()
 		def = p.parseExpression(precLowest)
 	}
-	return typeName, def
+	return typeName, typeTok, def
 }

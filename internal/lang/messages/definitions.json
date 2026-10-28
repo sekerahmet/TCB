@@ -1591,6 +1591,7 @@
 "H8291": { "param": [] },
 "H8292": { "param": [] },
 "H8293": { "param": ["n"] },
+"H8300": { "param": ["name"] },
 "H8400": { "param": ["detail"] },
 "H8401": { "param": ["error"] },
 "H8402": { "param": [] },
