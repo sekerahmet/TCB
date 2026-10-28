@@ -444,6 +444,7 @@
 "H2763": "the field '{field}' of '{variant}' is read by matching: in a match arm the pattern {variant}(...) binds a name for it",
 "H2764": "a value of '{variant}' does not change: build a new state instead of assigning '{field}'",
 "H2765": "the enum {enum} has no state or method {prop|q}{hint}",
+"H2766": "a value of '{variant}' can be a dictionary key only when all its fields can: the field '{field}' cannot ({why})",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

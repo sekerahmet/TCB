@@ -444,6 +444,7 @@
 "H2763": { "param": ["variant", "field"] },
 "H2764": { "param": ["variant", "field"] },
 "H2765": { "param": ["enum", "prop", "hint"] },
+"H2766": { "param": ["variant", "field", "why"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

@@ -248,6 +248,9 @@ const nonStringKeyPrefix = "\x00"
 // that starts like an encoded key is encoded too, so no string collides with a non-string key.
 // Mutable values are not valid keys (see DictKeyError).
 func DictKey(v Value) string {
+	if inst, ok := v.(*StructInstanceVal); ok && inst.Variant != nil { // 7.7: enum_ops.go
+		return enumKey(inst)
+	}
 	switch x := v.(type) {
 	case *StringVal:
 		if strings.HasPrefix(x.Val, nonStringKeyPrefix) {
@@ -291,6 +294,9 @@ func identityKey(v Value) string {
 // object such as a tensor) would be lost from the dict once changed (H2495); a decimal key could
 // be missed by rounding, and other values have no key equality (H2646).
 func DictKeyError(v Value) error {
+	if inst, ok := v.(*StructInstanceVal); ok && inst.Variant != nil { // 7.7: enum_ops.go
+		return enumKeyError(inst)
+	}
 	switch v.(type) {
 	case *StringVal, *IntVal, *BoolVal, *BytesVal:
 		return nil

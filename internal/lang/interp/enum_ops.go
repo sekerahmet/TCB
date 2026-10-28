@@ -5,7 +5,9 @@ package interp
 // eşitlik ve tip yolları yapınınkilerdir (struct_ops.go); burada yalnız onlara özgü olan durur.
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -303,4 +305,28 @@ func enumHint(def *StructDefVal, prop string) *messages.Error {
 	}
 	slices.Sort(names)
 	return hint.ClosestSuggestion(prop, names, nil)
+}
+
+// enumKeyError durumlu tipin değeri sözlük anahtarı olabilir mi (3.7): değer değişmez (7.7), alanlarının
+// hepsi anahtar olabiliyorsa anahtardır. Liste gibi paylaşılan bir alan değişebilir: o zaman değil.
+func enumKeyError(inst *StructInstanceVal) error {
+	for _, f := range inst.Variant.Fields {
+		if err := DictKeyError(inst.Fields[f.Name]); err != nil {
+			return messages.New(messages.H2766, variantLabel(inst.Def, inst.Variant), f.Name, err)
+		}
+	}
+	return nil
+}
+
+// enumKey durumlu tipin değerinin sözlükteki anahtarıdır: tanım, durum ve alanların anahtarları. Eşitliği
+// '=='nin eşitliğidir (aynı durum, eşit alanlar; 7.7). Alan anahtarları uzunluklarıyla yazılır, böylece
+// hiçbir metin alanı başka bir değerin anahtarıyla çakışmaz.
+func enumKey(inst *StructInstanceVal) string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%senum:%p.%s", nonStringKeyPrefix, inst.Def, inst.Variant.Name)
+	for _, f := range inst.Variant.Fields {
+		k := DictKey(inst.Fields[f.Name])
+		fmt.Fprintf(&sb, ":%d:%s", len(k), k)
+	}
+	return sb.String()
 }

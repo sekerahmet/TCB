@@ -449,6 +449,7 @@ const (
 	H2763 Code = 2763 // '{variant}' durumunun '{field}' alanı eşlemeyle okunur: eşle kolunda {variant}(...) deseni ona bir ad bağlar
 	H2764 Code = 2764 // '{variant}' değeri değişmez: '{field}' alanına atamak yerine yeni bir durum kurun
 	H2765 Code = 2765 // {enum} durumlu tipinde {prop|q} durumu ya da metodu yok{hint}
+	H2766 Code = 2766 // '{variant}' değeri ancak bütün alanları anahtar olabiliyorsa sözlük anahtarı olur: '{field}' alanı olamıyor ({why})
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

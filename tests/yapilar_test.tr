@@ -227,6 +227,16 @@ TR_test "7.7 değer değişmez, alanı eşlemeyle okunur; durumun yazımı denet
     TR_assert_equal("bekliyor", anlat(Durum.Bekliyor))
 }
 
+TR_test "7.7 değer değişmez, sözlük anahtarı olur; anahtarın eşitliği '=='dir (3.7)" {
+    TR_var s = {Durum.Bekliyor: 0, Durum.Çalışıyor(5): 5}
+    TR_assert_equal(5, s[Durum.Çalışıyor(adım: 5)])
+    TR_assert_equal(TR_none, s.TR_get(Durum.Çalışıyor(6)))
+    TR_assert_equal(0, s[Durum.Bekliyor])
+    # alanı değişebilen (liste) durum anahtar olmaz
+    TR_enum Kutu { Dolu(öğeler: TR_List) }
+    TR_assert_equal("H2766", TR_error_code { TR_var k = {Kutu.Dolu([1]): 1} })
+}
+
 TR_test "7.7 desendeki ad sayısı alan sayısını tutmazsa kol denenirken hatadır" {
     TR_assert_equal("H2759", TR_error_code {
         TR_match Durum.Bitti(1.0) {
