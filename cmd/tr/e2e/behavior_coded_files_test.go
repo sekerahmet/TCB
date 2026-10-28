@@ -20,9 +20,6 @@ import (
 // trFilesWithData testlerin veri olarak (metnini) okuduğu .tr dosyalarıdır.
 var trFilesWithData = map[string]bool{"bom_ornegi.tr": true}
 
-// digits örnek çıktılarındaki süreleri (ms/adım) karşılaştırmadan çıkarmak içindir.
-var digits = regexp.MustCompile(`[0-9]+`)
-
 // progressLine ilerleme çubuğunun bir satırıdır ("adım 3/10 ▕██░▏ ...").
 var progressLine = regexp.MustCompile(`(?m)^.*▕.*▏.*\n?`)
 

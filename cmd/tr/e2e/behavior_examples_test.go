@@ -8,9 +8,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"unicode"
 
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -87,110 +85,6 @@ func TestExamplesNumbered(t *testing.T) {
 		first := strings.SplitN(text, "\n", 3)
 		if title := first[min(1, len(first)-1)]; !strings.HasPrefix(title, "# "+n+" —") {
 			t.Errorf("examples/tr/%s: ilk yorum satırı %q ile başlamalı", name, "# "+n+" —")
-		}
-	}
-}
-
-// structure bir kodlu dosyadan programın iskeletini çıkarır: yorumlar, metin sabitlerinin
-// düz yazısı ve kullanıcı adları atılır (ad → ID); kodlar, sayılar, işleçler ve metin içi
-// yerleştirmelerdeki kod kalır. Aynı programın iki yazımının iskeleti aynıdır.
-func structure(coded string) []string {
-	// Başlık (dosyanın dili dahil) iskelete girmez: iki yazım ayrı dillerde kodludur.
-	if b, err := source.Split(coded); err == nil {
-		coded = b.Body
-	}
-	var out []string
-	s := &scanner{src: []rune(coded), out: &out}
-	s.code(false)
-	return out
-}
-
-type scanner struct {
-	src []rune
-	pos int
-	out *[]string
-}
-
-func (s *scanner) emit(tok string) { *s.out = append(*s.out, tok) }
-
-// code kodu tarar; inInterpolation ise eşleşmeyen '}' yerleştirmeyi bitirir.
-func (s *scanner) code(inInterpolation bool) {
-	depth := 0
-	for s.pos < len(s.src) {
-		c := s.src[s.pos]
-		switch {
-		case unicode.IsSpace(c):
-			s.pos++
-		case c == '/' && s.peek(1) == '/':
-			for s.pos < len(s.src) && s.src[s.pos] != '\n' {
-				s.pos++
-			}
-		case c == '"':
-			s.str()
-		case unicode.IsLetter(c) || c == '_':
-			s.word()
-		case unicode.IsDigit(c):
-			s.number()
-		case c == '}' && inInterpolation && depth == 0:
-			s.pos++
-			return
-		default:
-			if c == '{' {
-				depth++
-			} else if c == '}' {
-				depth--
-			}
-			s.emit(string(c))
-			s.pos++
-		}
-	}
-}
-
-func (s *scanner) peek(n int) rune {
-	if s.pos+n < len(s.src) {
-		return s.src[s.pos+n]
-	}
-	return 0
-}
-
-func (s *scanner) word() {
-	start := s.pos
-	for s.pos < len(s.src) && (unicode.IsLetter(s.src[s.pos]) || unicode.IsDigit(s.src[s.pos]) || s.src[s.pos] == '_') {
-		s.pos++
-	}
-	if w := string(s.src[start:s.pos]); codes.IsReservedName(w) { // kimlik (TR_fn_print): dilin sözcüğü
-		s.emit(w)
-	} else {
-		s.emit("ID")
-	}
-}
-
-func (s *scanner) number() {
-	start := s.pos
-	for s.pos < len(s.src) && (unicode.IsDigit(s.src[s.pos]) || (s.src[s.pos] == '.' && unicode.IsDigit(s.peek(1)))) {
-		s.pos++
-	}
-	s.emit(string(s.src[start:s.pos]))
-}
-
-// str bir metin sabitini tarar: düz yazı atılır, {...} yerleştirmeleri kod olarak taranır.
-func (s *scanner) str() {
-	s.emit("STR")
-	s.pos++
-	for s.pos < len(s.src) {
-		switch s.src[s.pos] {
-		case '\\':
-			s.pos += 2
-		case '"':
-			s.pos++
-			return
-		case '{':
-			s.pos++
-			s.emit("{")
-			s.code(true)
-			s.emit("}")
-		default:
-			s.pos++
 		}
 	}
 }

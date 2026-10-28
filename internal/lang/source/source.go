@@ -136,7 +136,7 @@ func setHeader(body, header string) string {
 	line, rest, eol := firstLine(body)
 	if strings.HasPrefix(line, shebang) {
 		prefix = line + eol
-		line, rest, eol = firstLine(rest)
+		_, rest, eol = firstLine(rest)
 	}
 	return prefix + header + eol + rest
 }

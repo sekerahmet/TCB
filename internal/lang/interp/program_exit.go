@@ -111,7 +111,7 @@ type End struct {
 //   - TR_exit çağrıldıysa onun (son çağrının) kodu.
 //   - Üstlenen program sona geldiyse isteğin sinyali; istek yoksa 0.
 func (v *VM) End(err error) End {
-	main, deferred := splitProgramErrors(err)
+	deferred, main := splitProgramErrors(err)
 	v.exitMu.Lock()
 	exited, code, message := v.exitRequested, v.exitCode, v.exitMessage
 	v.exitMu.Unlock()
@@ -139,7 +139,7 @@ func (v *VM) End(err error) End {
 
 // splitProgramErrors Run'ın hatasını programın yakalanmayan hatasına (durdurma ve TR_exit
 // istekleri hata sayılmaz) ve ertelenen işlerin hatalarına ayırır.
-func splitProgramErrors(err error) (main error, deferred []error) {
+func splitProgramErrors(err error) (deferred []error, main error) {
 	if err == nil {
 		return nil, nil
 	}
@@ -148,12 +148,12 @@ func splitProgramErrors(err error) (main error, deferred []error) {
 		if !silentEnd(d.mainSrc) {
 			main = d.mainSrc
 		}
-		return main, d.extras
+		return d.extras, main
 	}
 	if silentEnd(err) {
 		return nil, nil
 	}
-	return err, nil
+	return nil, err
 }
 
 // silentEnd hatanın bir hata olmadan bitiş isteği olduğunu söyler: durdurma ya da TR_exit. Bir
@@ -168,7 +168,7 @@ func silentEnd(err error) bool {
 // taskError bir eşzamanlı görevin bitişinde bildirilecek hatayı verir: durdurma ya da TR_exit
 // yüzünden bitmek bir hata değildir; yalnız ertelenen işlerin hataları kalır.
 func taskError(err error) error {
-	main, deferred := splitProgramErrors(err)
+	deferred, main := splitProgramErrors(err)
 	switch {
 	case main != nil && len(deferred) == 0:
 		return main

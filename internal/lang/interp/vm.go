@@ -410,7 +410,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 	val, err := v.runMain(prog)
 	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli
 	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz.
-	if main, _ := splitProgramErrors(err); main != nil && !v.interactive {
+	if _, main := splitProgramErrors(err); main != nil && !v.interactive {
 		v.Interrupt()
 	}
 	// Görevlere durma emri gittiyse (durdurma, TR_exit, hata) ya da program hatasız bittiyse görevler

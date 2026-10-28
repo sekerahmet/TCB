@@ -105,33 +105,6 @@ func (c *jsonParser) str() (string, error) {
 	return "", c.errorf("unterminated string")
 }
 
-func (c *jsonParser) strList() ([]string, error) {
-	if err := c.expect('['); err != nil {
-		return nil, err
-	}
-	var out []string
-	if c.next() == ']' {
-		c.i++
-		return out, nil
-	}
-	for {
-		s, err := c.str()
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, s)
-		switch c.next() {
-		case ',':
-			c.i++
-		case ']':
-			c.i++
-			return out, nil
-		default:
-			return nil, c.errorf("',' or ']' expected")
-		}
-	}
-}
-
 // entry { "name": ..., "family": ..., "description": ..., "example": ... }
 // nesnesini okur.
 func (c *jsonParser) entry(g *rawEntry) error {

@@ -35,10 +35,6 @@ var trBinary string
 // geçmiş sayılmaz (1.7).
 var skippedSignalTests atomic.Int32
 
-// exitSyntax 'tr kodla -' komutunun metin ayrıştırılamadığında verdiği çıkış kodudur
-// (cmd/tr/coded.go'daki aynı adlı sabit; değişirse oradaki belgeyle birlikte değişir).
-const exitSyntax = 2
-
 func TestMain(m *testing.M) {
 	dir, err := os.MkdirTemp("", "tr-uctan-uca-*")
 	if err != nil {

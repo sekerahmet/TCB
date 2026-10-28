@@ -22,14 +22,14 @@ import (
 // stopRun kontrol noktalı küçük bir programı çalıştırır; kesme_iste(), istekle ilgili sonucu
 // (karşılanma yolunun adını) verir ve ilk argümanıyla sinyal numarasını alır. Saat her okunuşta tick
 // kadar ilerler.
-func stopRun(t *testing.T, tick time.Duration, body string) (output string, err error, runDir string, m *interp.VM) {
+func stopRun(t *testing.T, tick time.Duration, body string) (output, runDir string, m *interp.VM, err error) {
 	t.Helper()
 	ticks := 0
 	return stopRunClock(t, func() time.Time { ticks++; return time.Unix(0, 0).Add(time.Duration(ticks) * tick) }, nil, body)
 }
 
 // stopRunClock stopRun'ın saati dışarıdan verilen biçimidir; setup varsa VM'ye ek yerleşikler tanımlar.
-func stopRunClock(t *testing.T, clock func() time.Time, setup func(*interp.VM), body string) (output string, err error, runDir string, m *interp.VM) {
+func stopRunClock(t *testing.T, clock func() time.Time, setup func(*interp.VM), body string) (output, runDir string, m *interp.VM, err error) {
 	t.Helper()
 	runDir = t.TempDir()
 	m = interp.New()
@@ -46,7 +46,7 @@ func stopRunClock(t *testing.T, clock func() time.Time, setup func(*interp.VM), 
 TR_var w = TR_tensor([1.0], TR_requires_grad: TR_true)
 TR_var kn = TR_checkpoint(%q, {w: w})
 `, trPath(runDir))+body)
-	return w.String(), err, runDir, m
+	return w.String(), runDir, m, err
 }
 
 func hasStep(runDir string, step int) bool {
@@ -56,7 +56,7 @@ func hasStep(runDir string, step int) bool {
 
 // İkinci .güncelle'den önce gelen istek ertelenmez: 1.5'teki gibi uygulanır, nokta kaydedilmez.
 func TestStopBeforeTheSecondUpdateIsNotDeferred(t *testing.T) {
-	output, err, runDir, _ := stopRun(t, time.Second, `
+	output, runDir, _, err := stopRun(t, time.Second, `
 TR_for i TR_in 0..5 {
     TR_if i == 1 { kesme_iste() }
     kn.TR_update(i + 1)
@@ -77,7 +77,7 @@ TR_for i TR_in 0..5 {
 // Ertelenen istek .kaydet ile de karşılanır: kayıt istek için yeniden yapılmaz, nokta kaydedilir ve program
 // durur (eskiden iki kez kaydediyordu).
 func TestSaveHonoursTheDeferredRequestAndStops(t *testing.T) {
-	output, err, runDir, _ := stopRun(t, time.Second, `
+	output, runDir, _, err := stopRun(t, time.Second, `
 TR_for i TR_in 0..3 { kn.TR_update(i + 1) }
 kesme_iste()
 kn.TR_save()
@@ -100,7 +100,7 @@ TR_print("sürdü (görünmemeli)")
 // Program durdurmayı üstlendiyse istek ertelenmez, kaydedilir: ilk güncelle noktayı kaydeder ve
 // program durmaz; sonraki güncellemeler istek için yeniden kaydetmez (1.6).
 func TestHandledStopCheckpointOnlySaves(t *testing.T) {
-	output, err, runDir, m := stopRun(t, time.Second, `
+	output, runDir, m, err := stopRun(t, time.Second, `
 TR_handle_stop()
 TR_for i TR_in 0..6 {
     TR_if i == 2 { kesme_iste() }
@@ -126,7 +126,7 @@ TR_print("döngü bitti")
 // uygulanır ve bekleyen yerleşik uyanır; nokta kaydedilmez. Saat her okunuşta bir milisaniye ilerler.
 func TestDeferralExpiresWhileWaiting(t *testing.T) {
 	start := time.Now()
-	output, err, runDir, _ := stopRun(t, time.Millisecond, `
+	output, runDir, _, err := stopRun(t, time.Millisecond, `
 TR_for i TR_in 0..5 {
     kn.TR_update(i + 1)
     TR_if i == 3 {
@@ -149,7 +149,7 @@ TR_for i TR_in 0..5 {
 // Program kayda varmadan biterse ek kayıt yapılmaz; istek kaybolmaz, süreç isteğin sinyaliyle
 // biter (eskiden çıkış 0'dı).
 func TestNoExtraSaveAtTheEndAndTheRequestIsKept(t *testing.T) {
-	output, err, runDir, m := stopRun(t, time.Second, `
+	output, runDir, m, err := stopRun(t, time.Second, `
 kn.TR_update(1)
 kn.TR_update(2)
 kesme_iste()
@@ -178,7 +178,7 @@ func TestDeferralWindowIsTwiceTheLongestInterval(t *testing.T) {
 			return interp.NewInt(0), nil
 		}}, true)
 	}
-	output, err, runDir, _ := stopRunClock(t, clock, setup, `
+	output, runDir, _, err := stopRunClock(t, clock, setup, `
 kn.TR_update(1)
 saat_ileri(2000)
 kn.TR_update(2)

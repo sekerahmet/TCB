@@ -228,7 +228,7 @@ func TestSplitProgramErrors(t *testing.T) {
 		{"hata ve ertele hatası", &deferError{mainSrc: failure, extras: []error{later}}, failure, 1},
 	}
 	for _, tc := range cases {
-		main, deferred := splitProgramErrors(tc.err)
+		deferred, main := splitProgramErrors(tc.err)
 		if main != tc.wantMain || len(deferred) != tc.wantDeferred {
 			t.Errorf("%s: ana=%v ertelenen=%d, ana=%v ertelenen=%d bekleniyordu", tc.name, main, len(deferred), tc.wantMain, tc.wantDeferred)
 		}
