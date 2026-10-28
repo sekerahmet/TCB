@@ -26,6 +26,10 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		// Tek parametreli ok fonksiyonu: x => x * 2 (eşle deseninde ad, değeriyle karşılaştırılır)
 		if !pattern && p.peekTokenIs(lexer.TokArrow) {
 			leftExp = p.parseSingleParamLambda()
+		} else if p.curToken().Literal == "lambda" && (p.peekTokenIs(lexer.TokIdent) || p.peekTokenIs(lexer.TokColon)) {
+			// Python'un lambda x: e'si yoktur (6.6): ileti oku önerir.
+			p.syntaxError(p.curToken(), messages.H0270)
+			return nil
 		} else {
 			leftExp = &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal}
 			p.underscore = p.underscore || p.curToken().Literal == "_"

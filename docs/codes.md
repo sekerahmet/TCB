@@ -432,7 +432,7 @@ değişken oran: Ondalık = 0.75; yazdır(Tip(oran), Ondalık("3.14"), Ondalık(
 Kullanıcı tanımlı fonksiyonların ve ok fonksiyonlarının tipidir; fonksiyonlar birinci sınıf değerdir.
 
 ```tr
-değişken f: Fonksiyon = x => x * 2; yazdır(Tip(f), f(3))
+değişken f: Fonksiyon = (x) => x * 2; yazdır(Tip(f), f(3))
 ```
 
 İlişkili: TR_kw_func `fonksiyon`, TR_type_BuiltinFunction `YerleşikFonksiyon`
@@ -1012,7 +1012,7 @@ yazdır(birikimli_toplam(Tensör([1, 2, 3, 4])).değer, birikimli_toplam(Tensör
 İleri ve geri hesabı kullanıcının yazdığı yeni bir türevlenebilir işlem kurar ve çağrılabilir bir fonksiyon döndürür. Yalnızca ileri: ve geri: adlı argümanlarını alır; ileri [çıktı, saklananlar], geri her konumlu girdi için bir gradyan (ya da yok) döndürür.
 
 ```tr
-değişken kare = özel_türev(ileri: fonksiyon(x) { sonuç [x * x, [x]] }, geri: fonksiyon(s, g) { sonuç [g * 2 * s[0]] }); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
+değişken kare = özel_türev(ileri: (x) => [x * x, [x]], geri: (s, g) => [g * 2 * s[0]]); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
 ```
 
 İlişkili: TR_fn_grad_check `türev_denetle`, TR_fn_backward `geri_yayılım`
@@ -1168,7 +1168,7 @@ yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlış))
 Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
+yazdır(türev_denetle((x) => x * x, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
 ```
 
 İlişkili: TR_fn_custom_grad `özel_türev`
@@ -2141,10 +2141,10 @@ Kullananlar: TR_fn_gelu `gelu` · İlişkili: TR_fn_gelu `gelu`
 
 #### TR_arg_backward `geri`
 
-özel_türev'in geri hesabıdır: fonksiyon(saklananlar, g) biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
+özel_türev'in geri hesabıdır: (saklananlar, g) => ... biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
 
 ```tr
-değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x * 3, []] }, geri: fonksiyon(s, g) { sonuç [g * 3] }); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
+değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
 ```
 
 Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_forward `ileri`
@@ -2346,7 +2346,7 @@ Kullananlar: TR_type_Checkpoint `KontrolNoktası` · İlişkili: TR_arg_keep `tu
 türev_denetle'de sayısal gradyanı veren merkezi farkın adım büyüklüğüdür (h): (f(x + h) - f(x - h)) / 2h. Pozitif olmalıdır; varsayılan 0.001'dir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç x * x }, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
+yazdır(türev_denetle((x) => x * x, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
 ```
 
 Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_tol `tolerans`
@@ -2364,7 +2364,7 @@ Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_tol `tolera
 özel_türev'in ileri hesabıdır: türevsiz çalışır ve [çıktı, saklananlar] döndürmelidir. Çıktı bir tensör ya da tensör listesidir.
 
 ```tr
-değişken f = özel_türev(ileri: fonksiyon(x) { sonuç [x * 3, []] }, geri: fonksiyon(s, g) { sonuç [g * 3] }); yazdır(f(Tensör([2.0])).değer)
+değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); yazdır(f(Tensör([2.0])).değer)
 ```
 
 Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_backward `geri`
@@ -2826,7 +2826,7 @@ Kullananlar: TR_fn_sample `örnekle` · İlişkili: TR_arg_top_k `en_iyi_k`
 türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir.
 
 ```tr
-yazdır(türev_denetle(fonksiyon(x) { sonuç sigmoid(x) }, [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
+yazdır(türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
 ```
 
 Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_fd_step `fark_adımı`

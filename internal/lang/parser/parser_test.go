@@ -284,7 +284,7 @@ func TestChainAndCoalescingErrors(t *testing.T) {
 }
 
 func TestCallOnNextLineStartsNewStatement(t *testing.T) {
-	p := New(codedLexer("TR_var f = 5\n(x => x)(1)\nx\n[1]"))
+	p := New(codedLexer("TR_var f = 5\n((x) => x)(1)\nx\n[1]"))
 	prog := p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("beklenmeyen hata: %v", p.Errors())

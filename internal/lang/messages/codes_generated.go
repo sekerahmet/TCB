@@ -105,6 +105,10 @@ const (
 	H0264 Code = 264  // '{keyword}' yalnız bir döngünün içinde kullanılabilir; sondaki blok bir döngü değildir, son ifadesiyle biter: dalları yazın, {if} c {{ a }} {else} {{ b }}
 	H0265 Code = 265  // kontrol yapısının başlığında '{{' her zaman gövdeyi başlatır: başlıktaki sondaki bloklu çağrı paranteze alınır, (l.f {{ ... }}) {{ gövde }}
 	H0266 Code = 266  // adlı argüman '=' ile değil iki noktayla yazılır: {name}: değer ('=' atamadır)
+	H0267 Code = 267  // okun parametresi her zaman parantezle yazılır: {name} => ... yerine ({name}) => ...
+	H0268 Code = 268  // adsız {func} yok: fonksiyon ifadesi ok ile yazılır, {func}(x) {{ ... }} yerine (x) => {{ ... }}
+	H0269 Code = 269  // {func} tanımı yalnız deyim olarak yazılır: '{name}'i bloğun bir satırında tanımlayıp adıyla kullanın ya da ifade yerinde ok yazın, (x) => ...
+	H0270 Code = 270  // Python'un lambda'sı TR'de yok: fonksiyon ifadesi ok ile yazılır, lambda x: x * 2 yerine (x) => x * 2
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}
@@ -362,7 +366,7 @@ const (
 	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi '{@not}' ile yazılır
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
 	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
-	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}(x => x != 0)
+	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}((x) => x != 0)
 	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: {@assert}(x == beklenen) ya da {@assert_equal}(beklenen, x)
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için l + [x] ya da l.{@append}(x) yazın

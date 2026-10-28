@@ -155,6 +155,9 @@ type Parser struct {
 	// namedFunctions adlı bir fonksiyon tanımı okunduğunu söyler (6.1: aynı blokta ikinci tanım hata,
 	// bkz. duplicateFunctions).
 	namedFunctions bool
+	// funcKeywords TR_func ile yazılmış bir fonksiyon okunduğunu söyler (6.6: ifade yerinde hata, bkz.
+	// functionExpressions).
+	funcKeywords bool
 }
 
 // parseMatchPattern bir eşle kolunun desenini okur.
@@ -331,6 +334,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	if !p.interpolated {
 		p.duplicateFunctions(program)
 	}
+	p.functionExpressions(program)
 	p.removedSpellingHints()
 	return program
 }

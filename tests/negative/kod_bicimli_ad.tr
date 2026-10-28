@@ -6,4 +6,4 @@ TR_for TR_min TR_in [5] { } # ERROR H0004
 TR_for i, TR_max TR_in [5] { } # ERROR H0004
 TR_try { TR_throw "x" } TR_catch TR_abs { } # ERROR H0004
 TR_var f = (TR_min) => 1 # ERROR H0004
-TR_var g = TR_abs => 1 # ERROR H0004
+TR_var g = (TR_abs) => 1 # ERROR H0004

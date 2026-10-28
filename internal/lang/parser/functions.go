@@ -42,6 +42,8 @@ func (p *Parser) isLambdaAhead() bool {
 }
 func (p *Parser) parseSingleParamLambda() ast.Expression {
 	tok := p.curToken()
+	// Parametre her zaman parantezle yazılır (6.6): x => e yerine (x) => e; düzeltme uygulanabilir.
+	p.syntaxErrorFix(tok, []messages.Fix{{Range: tok.Range(), Replacement: "(" + tok.Literal + ")", Applicable: true}}, messages.H0267, tok.Literal)
 	param := ast.Param{Name: tok.Literal, NameToken: tok}
 	p.nextToken() // '=>'
 	return p.finishLambda(tok, []ast.Param{param})
@@ -83,6 +85,7 @@ func (p *Parser) finishLambda(tok lexer.Token, params []ast.Param) ast.Expressio
 }
 func (p *Parser) parseFunctionLiteral() ast.Expression {
 	lit := &ast.FunctionLiteral{Token: p.curToken()}
+	p.funcKeywords = true
 
 	// İsimli fonksiyon: fonksiyon topla(a, b) { ... }
 	if p.peekTokenIs(lexer.TokIdent) {
@@ -225,6 +228,42 @@ func (p *Parser) parseCallArguments() ([]ast.Expression, []ast.NamedArg) {
 	}
 
 	return args, named
+}
+
+// functionExpressions TR_func'ın yalnız deyim olarak yazılmasını denetler (6.6): fonksiyon ifadesinin tek
+// yazımı oktur. Adsız TR_func(x) { ... } H0268, ifade yerindeki adlı TR_func H0269; deyim olarak yazılan
+// adlı fonksiyon ve yapı metodu tanımdır.
+func (p *Parser) functionExpressions(prog *ast.Program) {
+	if !p.funcKeywords || p.interpolated {
+		return
+	}
+	definitions := map[*ast.FunctionLiteral]bool{}
+	ast.Walk(prog, func(n any) bool {
+		switch x := n.(type) {
+		case *ast.ExpressionStatement:
+			if f, ok := x.Expression.(*ast.FunctionLiteral); ok && f.Name != "" {
+				definitions[f] = true
+			}
+		case *ast.StructStatement:
+			for _, m := range x.Methods {
+				definitions[m] = true
+			}
+		}
+		return true
+	})
+	ast.Walk(prog, func(n any) bool {
+		f, ok := n.(*ast.FunctionLiteral)
+		if !ok || f.Token.Type != lexer.TokFunction || definitions[f] {
+			return true
+		}
+		if f.Name == "" {
+			p.syntaxError(f.Token, messages.H0268, p.word(codes.KwFunc))
+		} else {
+			p.syntaxError(f.Token, messages.H0269, p.word(codes.KwFunc), f.Name)
+		}
+		p.errorMode = false // her fonksiyon ifadesi ayrı bir yerdir
+		return true
+	})
 }
 
 // parseTypeList '(' üzerindeki imleçten '(A, B)' tip listesini okur; imleç ')'de kalır. Hatalıysa nil.

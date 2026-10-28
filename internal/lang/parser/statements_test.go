@@ -211,3 +211,11 @@ func TestNamedArgumentWithEqualsSign(t *testing.T) {
 		{"TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k = 2))", "= 2", messages.H0266, "TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k : 2))", true},
 	})
 }
+
+// Kural (6.6): parantezsiz okun düzeltmesi parametreyi paranteze alır ve olduğu gibi uygulanır.
+func TestArrowParameterNeedsParentheses(t *testing.T) {
+	checkFixedCases(t, []fixedCase{
+		{"TR_var f = x => x * 2", "x =>", messages.H0267, "TR_var f = (x) => x * 2", true},
+		{"TR_print([1].TR_map(y => y + 1))", "y =>", messages.H0267, "TR_print([1].TR_map((y) => y + 1))", true},
+	})
+}
