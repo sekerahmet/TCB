@@ -310,8 +310,11 @@ func isTurkishProgram(s string) bool {
 			word = true
 		}
 		if r.Type == lexer.TokIdent {
-			if _, ok := codes.Source().Find(codes.NamespaceGlobal, r.Literal); ok {
-				word = true
+			// Dilin sözcüğü: genel ad, üye (ç.güncelle) ya da adlı argüman (adım: 7).
+			for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceMember, codes.NamespaceParam} {
+				if _, ok := codes.Source().Find(ns, r.Literal); ok {
+					word = true
+				}
 			}
 		}
 	}

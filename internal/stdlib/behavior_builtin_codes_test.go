@@ -103,7 +103,7 @@ func TestMembersMatchDictionary(t *testing.T) {
 		}
 		found := false
 		for _, o := range examples {
-			if _, err := runCoded(t, m, o+"."+k.String()); err == nil {
+			if _, err := runCoded(t, m, o+"."+codes.Spelling(k)); err == nil {
 				found = true
 				break
 			}
@@ -139,7 +139,7 @@ func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, want, err)
 		}
 	}
-	if _, err := runSame(t, m, "u_tensor.kodla"); err == nil || strings.Contains(messages.ErrorIn(err, "tr"), "?") {
+	if _, err := runSame(t, m, "u_tensor.TR_encode"); err == nil || strings.Contains(messages.ErrorIn(err, "tr"), "?") {
 		t.Errorf("tensörde kodla önerilmemeli: %v", err)
 	}
 }

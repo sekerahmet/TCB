@@ -221,6 +221,7 @@ func clashWords(o, f *codes.Language) []clashWord {
 }
 
 func TestNameClashExam(t *testing.T) {
+	t.Skip("bölüm 17 (gösterim dilleri) yeniden yazılınca baştan kurulur: öncülü bir yazım dilinde yazılmış dosyaydı, dosyanın dili kalktı (2.1); görünümde çakışan ad $ ile yazılır")
 	if testing.Short() {
 		t.Skip("binlerce küçük program")
 	}

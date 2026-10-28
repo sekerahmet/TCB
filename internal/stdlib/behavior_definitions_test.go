@@ -78,6 +78,9 @@ func runExample(t *testing.T, prog *ast.Program) error {
 	}()
 	select {
 	case err := <-result:
+		if _, ok := interp.IsExitRequest(err); ok {
+			return nil // TR_exit örneği programı kendi koduyla bitirir (1.10)
+		}
 		return err
 	case <-time.After(20 * time.Second):
 		t.Fatal("örnek 20 saniyede bitmedi")
@@ -284,7 +287,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		}
 		var real []codes.Code
 		for i, o := range examples {
-			v, err := runCoded(t, m, "u_"+string(rune('a'+i))+"."+k.String())
+			v, err := runCoded(t, m, "u_"+string(rune('a'+i))+"."+codes.Spelling(k))
 			if err == nil && !(o.typ == codes.TypeDict && v == interp.Null) {
 				real = append(real, o.typ)
 			}

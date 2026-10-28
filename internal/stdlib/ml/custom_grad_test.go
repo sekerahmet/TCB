@@ -309,7 +309,7 @@ sına()
 // başlığı ikinci kez sarmaz; yerel tensör kapsam sonunda bırakılır (15.43). Neden: ikinci
 // sarıcı sahipliği alamaz ve başlık hiç düşmez.
 func TestRewrappingBuiltinsKeepSingleOwner(t *testing.T) {
-	for _, expr := range []string{`x.cihaza("cpu")`, `TR_sum([x])`} {
+	for _, expr := range []string{`x.TR_to_device("cpu")`, `TR_sum([x])`} {
 		m := interp.New()
 		m.Out = &bytes.Buffer{}
 		var captured *tensor.Tensor

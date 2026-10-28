@@ -123,7 +123,7 @@ func TestLogErrors(t *testing.T) {
 		}
 	}
 	// Argüman tipi hatası henüz kodlu değil (interp).
-	if _, err := run(t, m, `TR_logger("`+pathText(filepath.Join(k, "c.jsonl"))+`").TR_append(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak TR_Dict ya da TR_String bekler") {
+	if _, err := run(t, m, `TR_logger("`+pathText(filepath.Join(k, "c.jsonl"))+`").TR_append(5)`); err == nil || !strings.Contains(err.Error(), "1. argüman olarak Sözlük ya da Metin bekler") {
 		t.Errorf("argüman tipi hatası bekleniyordu: %v", err)
 	}
 }
@@ -162,7 +162,7 @@ g`)
 	}
 	// Kapatılan günlüğe yazılınca dosya yeniden açılır.
 	logging.CloseAll()
-	if _, err := run(t, m, `g.ekle("yine")`); err != nil {
+	if _, err := run(t, m, `g.TR_append("yine")`); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.HasSuffix(string(mustRead(t, path)), `"message":"yine"}`+"\n") {

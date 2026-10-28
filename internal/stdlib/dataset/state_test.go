@@ -69,11 +69,11 @@ dene_okuyucu(TR_func() { TR_return k.TR_sequential(TR_batch_size: 2, TR_context:
 TR_var s = k.TR_sequential(TR_batch_size: 8, TR_context: 32)
 TR_print(s.TR_skip(10), s.TR_next())
 `)
-	want := "0 4\ndoğru doğru doğru\n0 4\ndoğru doğru doğru\n3 yok\n"
+	want := "0 4\ntrue true true\n0 4\ntrue true true\n3 none\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
-	for _, code := range []string{"ö.atla(-1)", "ö.atla(1.5)", "ö.atla()", "ö.atla(1, 2)", "ö.atla(\"a\")"} {
+	for _, code := range []string{"ö.TR_skip(-1)", "ö.TR_skip(1.5)", "ö.TR_skip()", "ö.TR_skip(1, 2)", "ö.TR_skip(\"a\")"} {
 		_, _, err := run(t, `TR_var ö = TR_dataset("`+trPath(d)+`").TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 3)
 `+code)
 		if err == nil {
