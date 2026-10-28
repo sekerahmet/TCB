@@ -18,7 +18,7 @@ Dilin asıl biçimi koddur. Kullanıcıya görünen her ad (anahtar kelime, bağ
 | `repl`, `dbg` | kabuğun ve hata ayıklayıcının komutları | komut; hata ayıklayıcı |
 | `env` | ortam değişkenleri (`TR_env_LANG` `TR_DIL`) | ortam |
 
-İletiler kimlik değil `H` ve dört basamaklı numaradır (`internal/lang/messages`): `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı · `H3` tensör · `H4` GPU · `H5` veri ve parçalayıcı · `H6` ml · `H7` standart kitaplık · `H8` araçlar · `H9` iç hatalar. Parametreler adlıdır (`{fn}: {path\|q} bir klasör`); ileti ve içindeki değerler kişinin dilinde (`TR_DIL`) yazılır. TR kaynağında bir ileti `TR_fn_message(H6903, ...)` ile kurulur; ileti kodu bir metin değeridir (`"H6903"`, 2.12, 8.5); kitaplığın kendi adları iletide ad yuvasıyla (`{@ad}`, `internal/lang/messages`) yazılır, kaynak adı geçirmez.
+İletiler kimlik değil `H` ve dört basamaklı numaradır (`internal/lang/messages`): `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı · `H3` tensör · `H4` GPU · `H5` veri ve parçalayıcı · `H6` ml · `H7` standart kitaplık · `H8` araçlar · `H9` iç hatalar. Parametreler adlıdır (`{fn}: {path\|q} bir klasör`); ileti ve içindeki değerler kişinin dilinde (`TR_DIL`) yazılır. TR kaynağında bir ileti `TR_fn_message(H6903, ...)` ile kurulur; ileti kodu bir metin değeridir (`"H6903"`, 8.5); kitaplığın kendi adları iletide ad yuvasıyla (`{@ad}`, `internal/lang/messages`) yazılır, kaynak adı geçirmez.
 
 **Dil dosyası.** Her kod bir satırdır, sınıf sırasıyla ve sınıf içinde kimliğe göre dizilir. Dil dosyasının ve tanım dosyasının alan adları ile türleri dosya biçiminin anahtarlarıdır: Go adları gibi İngilizce tanımlayıcıdır, bir insan dili yalnız değerlerde görünür:
 
