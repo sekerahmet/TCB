@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -167,5 +168,77 @@ func TestIdentitySuggestionFixIsNotApplicable(t *testing.T) {
 		if f.Applicable || f.Replacement == "" || f.Range != p.Range() {
 			t.Errorf("%q: fix %+v at %+v", source, f, p.Range())
 		}
+	}
+}
+
+// An error covers the text it is about, to the end of what the lexer recognised (2.13), also when it
+// is raised before the lexer has read that text to its end ('//' not yet skipped, a '.' not yet
+// taken, the character after a backslash).
+func TestLexerErrorsCoverTheirText(t *testing.T) {
+	cases := []struct {
+		name   string
+		source string
+		code   messages.Code
+		text   string
+	}{
+		{"C comment", "x = 1\n// not a comment", messages.H0015, "//"},
+		{"C block comment", "/* not a comment */\nx = 1", messages.H0015, "/*"},
+		{"single quoted text", "x = 'ab'", messages.H0016, "'ab'"},
+		{"number with a point and no fraction", "x = 1.\ny = 2", messages.H0032, "1."},
+		{"fraction with no integer part", "x = .5", messages.H0032, ".5"},
+		{"unknown escape", `x = "a\dz"`, messages.H0008, `\d`},
+		{"digit outside the base", "x = 0b102", messages.H0020, "0b102"},
+		{"prefix with no digits", "x = 0x", messages.H0019, "0x"},
+		{"reserved name", "TR_var TR_x = 1", messages.H0004, "TR_x"},
+		{"unknown identity", "TR_pritn(1)", messages.H0026, "TR_pritn"},
+		{"unclosed raw text", "x = `ab\ncd", messages.H0007, "`ab\ncd"},
+	}
+	for _, c := range cases {
+		_, errs := lexTokens(t, NewBody(c.source, true), c.source)
+		var got *messages.PosError
+		for _, e := range errs {
+			if p, ok := messages.Find(e); ok && messages.Has(e, c.code) {
+				got = p
+			}
+		}
+		if got == nil {
+			t.Errorf("%s: no %v among %v", c.name, c.code, errs)
+			continue
+		}
+		if text := textOfRange(c.source, got.Range()); text != c.text {
+			t.Errorf("%s: the range covers %q (%+v), want %q", c.name, text, got.Range(), c.text)
+		}
+	}
+}
+
+// textOfRange is the text of source within r (lines and columns count characters, the end is exclusive).
+func textOfRange(source string, r messages.Range) string {
+	lines := strings.Split(source, "\n")
+	var out []string
+	for line := r.Line; line <= r.EndLine && line <= len(lines); line++ {
+		text := []rune(lines[line-1])
+		from, to := 1, len(text)+1
+		if line == r.Line {
+			from = r.Col
+		}
+		if line == r.EndLine {
+			to = r.EndCol
+		}
+		out = append(out, string(text[from-1:min(to-1, len(text))]))
+	}
+	return strings.Join(out, "\n")
+}
+
+// '//' at the start of a line is fixed by '#' as it stands; '/*' has no fix (its '*/' must change too).
+func TestCStyleCommentFix(t *testing.T) {
+	_, errs := lexTokens(t, NewBody("x = 1\n// note", true), "")
+	p, _ := messages.Find(errs[0])
+	want := messages.Fix{Range: messages.Range{Line: 2, Col: 1, EndLine: 2, EndCol: 3}, Replacement: "#", Applicable: true}
+	if len(p.Fixes) != 1 || p.Fixes[0] != want {
+		t.Errorf("fixes %+v, want %+v", p.Fixes, want)
+	}
+	_, errs = lexTokens(t, NewBody("/* note */", true), "")
+	if p, _ := messages.Find(errs[0]); len(p.Fixes) != 0 {
+		t.Errorf("/* has fixes %+v", p.Fixes)
 	}
 }

@@ -62,12 +62,12 @@ func siteOf(tok lexer.Token, line int) lexer.Token {
 	return lexer.Token{Line: line}
 }
 
-// replaceToken is the fix that replaces the name at tok with text. The tree keeps a name without
-// its '$' escape; the range of the token includes it, so the replacement puts it back.
-func replaceToken(tok lexer.Token, name, text string, applicable bool) messages.Fix {
-	r := tok.Range()
-	if r.EndLine == r.Line && r.EndCol-r.Col == len([]rune(name))+1 {
+// replaceToken is the fix that replaces the name at tok with text. The range of a name written with
+// the '$' escape includes the '$' (Token.Escaped, only in a text read in a writing language), so the
+// replacement puts it back; a coded file has none.
+func replaceToken(tok lexer.Token, text string, applicable bool) messages.Fix {
+	if tok.Escaped {
 		text = "$" + text
 	}
-	return messages.Fix{Range: r, Replacement: text, Applicable: applicable}
+	return messages.Fix{Range: tok.Range(), Replacement: text, Applicable: applicable}
 }

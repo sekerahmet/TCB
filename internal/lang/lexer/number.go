@@ -36,7 +36,7 @@ func (l *Lexer) number(line, col int) Token {
 		// '1.' sayı değildir (2.5): ileti '1.0'ı önerir, okuma öyle yazılmış gibi sürer (nokta ardından
 		// gelen satırı üye sanmasın). Noktadan sonra harf üye erişimidir, ikinci nokta aralıktır.
 		written := string(l.input[start:l.position]) + "."
-		l.addError(line, col, messages.New(messages.H0032, written, written+"0"))
+		l.errors = append(l.errors, l.newErrorTo(line, col, l.position+1, messages.New(messages.H0032, written, written+"0"))) // up to the '.'
 		l.readChar()
 		isFloat = true
 		sb.WriteString(".0")

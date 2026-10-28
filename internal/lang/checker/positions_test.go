@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
@@ -162,5 +163,51 @@ func TestSkeletonErrorRelatesToTheFirstName(t *testing.T) {
 	rel := errs[0].Related[0]
 	if rel.Range != rangeAt(t, source, 1, "m") || !messages.Has(rel.Err, messages.H8300) || rel.File != "" {
 		t.Errorf("related %+v", rel)
+	}
+}
+
+// A fix puts the '$' escape back only for a name that was written with it. The escape exists in a text
+// read in a writing language (a file shown in a language, a shell line); a coded file has none, so a name
+// there is replaced by the plain name, also when its range is longer than its characters (a name written
+// in decomposed form: 'e' and a combining accent are two characters, the name has one).
+func TestNameFixesPutBackTheDollarOnlyWhenItWasWritten(t *testing.T) {
+	decomposed := "e\u0301"
+	cases := []struct {
+		name   string
+		lexer  func(string) *lexer.Lexer
+		source string
+		code   messages.Code
+		want   string
+	}{
+		{"escaped name in a shown file", func(s string) *lexer.Lexer { return lexer.NewBodyIn(s, false, codes.Source()) },
+			"TR_var $MyVar = 1", messages.H1012, "$my_var"},
+		{"plain name in a shown file", func(s string) *lexer.Lexer { return lexer.NewBodyIn(s, false, codes.Source()) },
+			"TR_var MyVar = 1", messages.H1012, "my_var"},
+		{"name in a coded file", func(s string) *lexer.Lexer { return lexer.NewBody(s, true) },
+			"TR_var MyVar = 1", messages.H1012, "my_var"},
+		{"decomposed undefined name in a coded file", func(s string) *lexer.Lexer { return lexer.NewBody(s, true) },
+			"TR_var " + decomposed + "b = 1\nTR_print(" + decomposed + "c)", messages.H1010, "éb"}, // the name is kept composed, the file has it decomposed
+	}
+	for _, c := range cases {
+		p := parser.New(c.lexer(c.source))
+		prog := p.ParseProgram()
+		if len(p.Errs()) != 0 {
+			t.Fatalf("%s: syntax errors %v", c.name, p.Errs())
+		}
+		chk := New()
+		chk.CheckProgram(prog)
+		var got *messages.PosError
+		for _, e := range append(chk.Errs(), chk.Warnings()...) {
+			if pos, ok := messages.Find(e); ok && messages.Has(e, c.code) && len(pos.Fixes) > 0 {
+				got = pos
+			}
+		}
+		if got == nil {
+			t.Errorf("%s: no %v with a fix among %v %v", c.name, c.code, chk.Errs(), chk.Warnings())
+			continue
+		}
+		if f := got.Fixes[0]; f.Replacement != c.want || f.Applicable {
+			t.Errorf("%s: fix %+v, want replacement %q not applicable", c.name, f, c.want)
+		}
 	}
 }

@@ -168,7 +168,7 @@ func (l *Lexer) escapedName(line, col int) Token {
 		// üretilir: TR_ için ır_ değil tr_ önerilir.
 		l.addErrorFix(line, col+1, messages.New(messages.H0004, lit, strings.ToLower(lit)), strings.ToLower(lit))
 	}
-	return Token{Type: TokIdent, Literal: lit, Line: line, Column: col}
+	return Token{Type: TokIdent, Literal: lit, Line: line, Column: col, Escaped: !l.coded}
 }
 
 // nulChar kaynağın ortasındaki NUL (U+0000) karakterini hata olarak bildirir. Sözcük

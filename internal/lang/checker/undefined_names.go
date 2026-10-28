@@ -398,7 +398,7 @@ func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
 	// The closest name is a guess: the fix names it, never applicable as it stands (TR_str is
 	// closest to TR_std and means TR_String).
 	if suggestion, ok := hint.SuggestedName(err); ok && id.Token.Column > 0 {
-		e.WithFix(replaceToken(id.Token, id.Value, suggestion, false))
+		e.WithFix(replaceToken(id.Token, suggestion, false))
 	}
 	d.c.nameErrors = append(d.c.nameErrors, e)
 }

@@ -32,6 +32,10 @@ type Token struct {
 	// language the body is read in), otherwise codes.None. Literal is then the code's name in the
 	// lexer's language (see identity.go).
 	Code codes.Code
+	// Escaped says a name was written with the '$' escape in a text read in a writing language (a shell
+	// line, a file shown in a language): the token's range includes the '$', its Literal does not. A
+	// coded file has no '$' (it is an error there), so its tokens are never Escaped.
+	Escaped bool
 	// Raw says a string token was written as a raw string (`...`, 2.6a).
 	Raw bool
 }

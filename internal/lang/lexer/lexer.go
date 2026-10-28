@@ -101,8 +101,9 @@ func (l *Lexer) Errors() []string {
 }
 
 // addError records err at (line, col). It ends where the lexer stands: the error is raised once
-// the text it is about is read (an unterminated string ends at the end of its line); at the
-// least it covers the character at the start.
+// the text it is about is read (an unclosed string ends at the end of the file); at the least it
+// covers the character at the start. An error raised before the text is read to its end (a '//' not
+// yet skipped, a '.' not yet taken) ends it with newErrorTo, or closes the record later with endError.
 func (l *Lexer) addError(line, col int, err error) {
 	l.errors = append(l.errors, l.newError(line, col, err))
 }
@@ -117,11 +118,24 @@ func (l *Lexer) addErrorFix(line, col int, err error, replacement string) {
 
 // newError is addError's record, for an error that carries fixes (WithFix) before it is added.
 func (l *Lexer) newError(line, col int, err error) *messages.PosError {
-	endLine, endCol := l.endAt(l.position)
-	if endLine < line || endLine == line && endCol <= col {
-		endLine, endCol = line, col+1
+	return l.newErrorTo(line, col, l.position, err)
+}
+
+// newErrorTo is newError for an error whose text ends before the character at index end of the
+// input (the lexer has not read that far yet).
+func (l *Lexer) newErrorTo(line, col, end int, err error) *messages.PosError {
+	e := messages.At(line, col, err)
+	l.endError(e, end)
+	return e
+}
+
+// endError ends e before the character at index end of the input, and at the least one character
+// after its start.
+func (l *Lexer) endError(e *messages.PosError, end int) {
+	e.EndLine, e.EndCol = l.endAt(end)
+	if e.EndLine < e.Line || e.EndLine == e.Line && e.EndCol <= e.Col {
+		e.EndLine, e.EndCol = e.Line, e.Col+1
 	}
-	return messages.AtRange(messages.Range{Line: line, Col: col, EndLine: endLine, EndCol: endCol}, err)
 }
 
 // endAt is the line and column of the character at index i of the input, which is the position
@@ -300,8 +314,11 @@ func (l *Lexer) nextToken() Token {
 	case '\'':
 		// Metin yalnız çift tırnakla yazılır (2.6); tek tırnaklı metin yine okunur ki ardındaki
 		// sözcükler ikinci bir hata üretmesin.
-		l.addError(line, col, messages.New(messages.H0016))
-		return Token{Type: TokString, Literal: l.readString('\'', line, col), Line: line, Column: col}
+		e := l.newError(line, col, messages.New(messages.H0016))
+		l.errors = append(l.errors, e) // the string's own errors follow it
+		lit := l.readString('\'', line, col)
+		l.endError(e, l.position) // the error is about the whole string
+		return Token{Type: TokString, Literal: lit, Line: line, Column: col}
 	case '`':
 		return Token{Type: TokString, Literal: l.readRawString(line, col), Line: line, Column: col, Raw: true}
 	case 0:

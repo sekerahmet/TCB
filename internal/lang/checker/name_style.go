@@ -76,7 +76,7 @@ func (c *Checker) checkNameStyle(name string, kind nameKind, at lexer.Token) {
 		// The fix renames this one place. A name is right only when every use of it changes with
 		// it, so the fix is a suggestion, never applicable as it stands.
 		if at.Column > 0 {
-			e.WithFix(replaceToken(at, name, suggestion, false))
+			e.WithFix(replaceToken(at, suggestion, false))
 		}
 	}
 }
