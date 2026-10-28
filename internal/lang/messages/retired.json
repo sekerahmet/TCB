@@ -99,6 +99,10 @@
   "commit": "0f969d3",
   "reason": "deleted: source: the header '# TR 4' carries no language (2.1)"
  },
+ "H2707": {
+  "commit": "claude/katman3a-deyim-547235",
+  "reason": "deleted: interp: trailing blocks take no parameters (6.7), TR_it is gone"
+ },
  "H3105": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"

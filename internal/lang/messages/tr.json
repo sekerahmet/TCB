@@ -399,7 +399,6 @@
 "H2704": "dolaşılan sözlük dolaşma sürerken {before} anahtardan {after} anahtara değişti: dolaşılan sözlüğe anahtar eklenmez ve ondan anahtar çıkarılmaz (var olan anahtara atama serbesttir); değişiklikleri ayrı bir sözlükte toplayıp dolaşmadan sonra yazın",
 "H2705": "{kind} türündeki bir {@JSON} değeri {type} tipindeki bir değerle karşılaştırıldı (bir listenin, sözlüğün ya da eşleme deseninin içinde): JSON değeri yalnız JSON değerine eşit olabilir, sonuç hep yanlış olurdu; JSON'u önce tipiyle açın ({kind}(j)) ya da öbür yanı JSON yapın ({@JSON}(x))",
 "H2706": "fonksiyonlar karşılaştırılamaz (bir listenin, sözlüğün ya da eşleme deseninin içinde de): görünüşü aynı iki fonksiyon da eşit sayılmaz; fonksiyonları karşılaştırılan verinin dışında tutun ya da sonuçlarını karşılaştırın: f(x) == g(x)",
-"H2707": "bu sondaki blok argümansız çağrıldı, {@it} bir değer almadı: sondaki blok parametresizdir; değer gerekiyorsa blok yerine parametreli bir fonksiyon verin, (x) => ..., ve onu bir argümanla çağırın",
 "H3001": "{dev} arka ucunun dikkat blok boyutları ayarlanamaz",
 "H3002": "Attention maskesi farklı cihazda ({mask}, {q})",
 "H3003": "Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}",

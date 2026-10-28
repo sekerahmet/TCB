@@ -399,7 +399,6 @@
 "H2704": "the dictionary being looped over changed from {before} to {after} keys during the loop: keys are not added to or removed from a dictionary while it is looped over (assigning to an existing key is allowed); collect the changes in another dictionary and write them after the loop",
 "H2705": "a {@JSON} value of kind {kind} is compared with a {type} value (inside a list, a dictionary or a match pattern): a JSON value can only equal a JSON value, the result would always be false; open the JSON first ({kind}(j)) or make the other side JSON ({@JSON}(x))",
 "H2706": "functions cannot be compared (not inside a list, a dictionary or a match pattern either): even two functions that look the same are not equal; keep functions out of the data you compare, or compare their results: f(x) == g(x)",
-"H2707": "this trailing block was called without an argument, so {@it} has no value: a trailing block takes no parameters; when a value is needed pass a function with a parameter instead, (x) => ..., and call it with an argument",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

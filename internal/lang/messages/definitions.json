@@ -399,7 +399,6 @@
 "H2704": { "param": ["before", "after"] },
 "H2705": { "param": ["kind", "type"], "slots": {"JSON": "TR_type_JSON"} },
 "H2706": { "param": [] },
-"H2707": { "param": [], "slots": {"it": "TR_ctx_it"} },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

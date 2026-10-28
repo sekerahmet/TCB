@@ -23,8 +23,8 @@ const (
 	// language (Code). Under an 'aktar' with no alias it also counts as builtin (the module's
 	// names arrive at run time; whether a module shadows a builtin is known only then).
 	BindBuiltin
-	// BindImplicit: the name is a contextual implicit name (Code: TR_ctx_error hata, TR_ctx_it o, TR_ctx_acc
-	// birikim).
+	// BindImplicit: the name is a contextual implicit name (Code: TR_ctx_error hata, the error of a catch
+	// block that names none).
 	BindImplicit
 	// BindNamed: a named argument's name is a name of the language (Code: the arg parameter
 	// code, or the member code of a field name in a struct constructor).
@@ -197,23 +197,4 @@ func (d *nameChecker) codeParameters(f *ast.FunctionLiteral, k *nameScope) {
 			k.code(p.Name, code)
 		}
 	}
-}
-
-// trailingBlockImplicits sondaki bloğun (liste.filtrele { o > 2 }) örtük parametrelerinin
-// bağlamsal kodlarıdır: 'o' (TR_ctx_it) ve indirge bloğunda 'birikim' (TR_ctx_acc). Adlar ağacın
-// yazıldığı dildedir (treeLang).
-func trailingBlockImplicits(f *ast.FunctionLiteral, lang *codes.Language) [2]codes.Code {
-	var o [2]codes.Code
-	for i, p := range f.Parameters {
-		if i >= len(o) {
-			break
-		}
-		switch p.Name {
-		case lang.Name(codes.CtxIt):
-			o[i] = codes.CtxIt
-		case lang.Name(codes.CtxAcc):
-			o[i] = codes.CtxAcc
-		}
-	}
-	return o
 }

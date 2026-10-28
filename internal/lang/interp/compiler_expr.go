@@ -272,22 +272,6 @@ func (c *compiler) interpolation(pieces []exprCode) exprCode {
 // readName bir adın değerini okuyan kodu üretir. Derleme anında çözülen adlar yuvadan okunur;
 // yuva boşsa (ya da ad çözülemediyse) arama adla yapılır.
 func (c *compiler) readName(k *compilerScope, e *ast.Identifier) exprCode {
-	read := c.readSlot(k, e)
-	if !blockParams[e.Value] {
-		return read
-	}
-	// Argümansız çağrılan sondaki bloğun TR_it'i değer almamıştır (6.7, geçiş).
-	return func(v *VM, env *Environment) (Value, error) {
-		x, err := read(v, env)
-		if err == nil && x == unboundArg {
-			return nil, messages.At(e.Line(), e.Token.Column, messages.New(messages.H2707))
-		}
-		return x, err
-	}
-}
-
-// readSlot adın değerini yuvasından (ya da adla) okuyan koddur.
-func (c *compiler) readSlot(k *compilerScope, e *ast.Identifier) exprCode {
 	r := k.resolve(e.Value)
 	i := r.slot
 	switch r.kind {

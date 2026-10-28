@@ -28,9 +28,6 @@ var uncoveredNames = map[string]string{
 	// TR_print(TR_Float("inf"))); kodlu metinde geçemezler. Kodlar iç (sınıflı) yazımladır.
 	"TR_val_inf": "değer adı (inf), kaynakta sözcük değil",
 	"TR_val_nan": "değer adı (nan), kaynakta sözcük değil",
-	// Sondaki blok parametresiz (6.7): örnekler oka göçtü, iki kod göçten sonra silinir.
-	"TR_ctx_it":  "6.7: sondaki bloğun eski örtük parametresi, silinmek üzere",
-	"TR_ctx_acc": "6.7: TR_reduce bloğunun eski örtük parametresi, silinmek üzere",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

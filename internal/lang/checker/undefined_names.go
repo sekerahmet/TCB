@@ -6,7 +6,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -291,9 +290,6 @@ func (d *nameChecker) function(f *ast.FunctionLiteral, k *nameScope, extra ...st
 	}
 	if d.bindings != nil {
 		d.codeParameters(f, pk)
-	}
-	if f.Token.Type == lexer.TokLBrace {
-		pk.implicit = trailingBlockImplicits(f, d.treeLang)
 	}
 	for _, p := range f.Parameters {
 		d.expression(p.DefaultValue, pk)

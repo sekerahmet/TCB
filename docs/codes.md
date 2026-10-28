@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 565 kod: 26 anahtar kelime, 6 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 563 kod: 26 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -277,16 +277,6 @@ değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
 
 ### Bağlamsal sözcükler
 
-#### TR_ctx_acc `birikim`
-
-liste.indirge(...) { ... } sondaki bloğunda birikim o ana kadarki sonuçtur, o sıradaki elemandır. Başka her yerde sıradan bir addır.
-
-```tr
-yazdır([1, 2, 3, 4].indirge(0) { birikim + o }, [1, 2, 3].indirge(1) { birikim * o })
-```
-
-İlişkili: TR_mem_reduce `indirge`, TR_ctx_it `o`
-
 #### TR_ctx_as `olarak`
 
 aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağlar.
@@ -316,16 +306,6 @@ yapı Hesap { bakiye; fonksiyon kurucu(b) { kendi.bakiye = b * 2 } }; yazdır(He
 ```
 
 İlişkili: TR_kw_struct `yapı`
-
-#### TR_ctx_it `o`
-
-Sondaki blok { ... } tek parametreli bir fonksiyondur ve parametresinin adı o'dur; iç içe bloklarda en içteki elemanı gösterir.
-
-```tr
-yazdır([1, 2, 3, 4].filtrele { o > 2 }.haritala { o * 10 })
-```
-
-İlişkili: TR_ctx_acc `birikim`
 
 #### TR_ctx_test `test`
 

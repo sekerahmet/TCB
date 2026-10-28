@@ -16,14 +16,13 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı, sondaki
-// bloğun parametresi, indirge bloğunun birikimi) yazımları ve 'kendi'nin adıdır; kod
-// listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: TR_ctx_test, TR_ctx_as,
-// TR_ctx_error, TR_ctx_it, TR_ctx_acc, TR_kw_self, TR_mem_reduce). Programlar kimliklerle okunur (codes.Active); bir yazım
-// dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
+// contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı) yazımları ve
+// 'kendi'nin adıdır; kod listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes:
+// TR_ctx_test, TR_ctx_as, TR_ctx_error, TR_kw_self). Programlar kimliklerle okunur (codes.Active); bir
+// yazım dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
 type contextWords struct {
-	test, as, reduce   []string
-	self, err, it, acc string
+	test, as  []string
+	self, err string
 }
 
 // contextWordsByLanguage dil kodu → o dilin bağlamsal sözcükleri (bir kez kurulur).
@@ -34,8 +33,8 @@ func contextWordsOf(lang *codes.Language) *contextWords {
 		return w.(*contextWords)
 	}
 	w := &contextWords{
-		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs), reduce: lang.Spellings(codes.MemReduce),
-		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError), it: lang.Name(codes.CtxIt), acc: lang.Name(codes.CtxAcc),
+		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs),
+		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError),
 	}
 	v, _ := contextWordsByLanguage.LoadOrStore(lang.Code, w)
 	return v.(*contextWords)

@@ -67,7 +67,7 @@ func checkArity(fnVal Value, owner *StructDefVal, nargs int, named map[string]Va
 		if p.DefaultValue == nil {
 			required++
 		}
-		if i >= nargs && named[p.Name] == nil && p.DefaultValue == nil && !implicitParam(p) {
+		if i >= nargs && named[p.Name] == nil && p.DefaultValue == nil {
 			missing = append(missing, "'"+p.Name+"'")
 		}
 	}
@@ -124,17 +124,6 @@ func alignNamed(named map[string]Value, names []string) {
 		}
 	}
 }
-
-// implicitParam sondaki bloğun ayrıştırıcının koyduğu parametresidir (TR_it, TR_reduce'ta TR_acc):
-// yazılmamıştır. Geçiş süresince (6.7) blok argümansız da çağrılabilir; o zaman parametre unboundArg
-// alır ve okunursa çalışma hatasıdır (sessiz yokluk doğmasın).
-func implicitParam(p ast.Param) bool { return p.NameToken.Line == 0 }
-
-// unboundArg argümansız çağrılan sondaki bloğun parametresinin değeridir (bkz. implicitParam).
-var unboundArg Value = &NullVal{}
-
-// blockParams sondaki bloğun örtük parametrelerinin adlarıdır.
-var blockParams = map[string]bool{codes.Name(codes.CtxIt): true, codes.Name(codes.CtxAcc): true}
 
 func suggestParam(name string, params []ast.Param) *messages.Error {
 	var names []string
@@ -302,8 +291,6 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 				return nil, err
 			}
 			fnEnv.store(slot, defVal)
-		} else if implicitParam(param) {
-			fnEnv.store(slot, unboundArg)
 		} else {
 			fnEnv.store(slot, Null)
 		}

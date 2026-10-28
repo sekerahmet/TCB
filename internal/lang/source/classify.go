@@ -164,8 +164,7 @@ func (c *analysis) libraryDeclarations() map[[2]int]codes.Code {
 // sözcüğüyle yazılır ve geri kodlanır (libraryDeclarations); kullanıcı fonksiyonunda bu yapılamaz:
 // düz yazılmış parametrelerin çoğu (x, n, adım) bir dilin parametre sözcüğüdür, kodlanırsa kaçış
 // isterdi. O yüzden gösterim bu parametreleri, kullanımları ve adlı argümanlarıyla birlikte, kimlik
-// yazımıyla bırakır. Yalnız adlı argüman kodları sayılır: sondaki bloğun örtük parametreleri
-// (TR_it, TR_acc) bağlamsal sözcüktür, gösterimde dilin sözcüğüyle yazılır (o, birikim).
+// yazımıyla bırakır. Yalnız adlı argüman kodları sayılır.
 func userParameterCodes(prog *ast.Program) map[codes.Code]bool {
 	isCode := func(name string) bool { _, err := codes.Parse(name); return err == nil }
 	library := map[*ast.FunctionLiteral]bool{}
