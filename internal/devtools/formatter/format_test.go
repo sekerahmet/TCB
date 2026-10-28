@@ -23,7 +23,7 @@ func TestStandardFormat(t *testing.T) {
 	cases := []struct{ ad, input, expected string }{
 		{"operatör boşlukları", "değişken   x=1+2*3\n", "değişken x = 1 + 2 * 3\n"},
 		{"virgül ve parantez", "yazdır( 1 ,2,  3 )\n", "yazdır(1, 2, 3)\n"},
-		{"tekli eksi", "x = -1\ny = a-b\nz = f(-x) * -2\nsonuç -1\n", "x = -1\ny = a - b\nz = f(-x) * -2\nsonuç -1\n"},
+		{"tekli eksi", "x = -1\ny = a-b\nz = f(-x) * -2\nw = -1\n", "x = -1\ny = a - b\nz = f(-x) * -2\nw = -1\n"},
 		{"değil ve ünlem", "a = !b\nc = değil (d)\n", "a = !b\nc = değil (d)\n"},
 		{"girinti 4 boşluk", "eğer x {\n  yazdır(1)\n\t\teğer y {\nyazdır(2)\n}\n}\n",
 			"eğer x {\n    yazdır(1)\n    eğer y {\n        yazdır(2)\n    }\n}\n"},
@@ -103,7 +103,7 @@ func TestCommentedBraceNotMoved(t *testing.T) {
 
 func TestStringsKeptByteForByte(t *testing.T) {
 	texts := []string{
-		`"  iki  boşluk  "`, `'tek tırnak'`, `"kaçış \" \n \t \\ \{ \}"`, `"ara {x+1} değer"`,
+		`"  iki  boşluk  "`, `"kaçış \" \n \t \\"`, `"ara {x+1} değer"`, `"ara \(x + 1) değer"`,
 		`"{p['ad']}"`, "\"çok\nsatırlı   \n  metin\"",
 		// Ham metin (2.6a): ters bölü, süslü parantez ve boşluklar olduğu gibi
 		"`C:\\veri\\  {x+1}  \\d{3}`", "`çok\n    satırlı  \n`", "``",

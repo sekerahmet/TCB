@@ -227,7 +227,7 @@ func shorten(s string) string {
 func TestBareNameScanner(t *testing.T) {
 	names := liveNames()
 	for text, want := range map[string]string{
-		"TR_input() ya da TR_input(istem)": "girdi girdi",
+		"girdi() ya da girdi(istem)": "girdi girdi",
 		"%q bir sabittir ('sabit')":        "sabit",
 		"eşit_mi başarısız":                "eşit_mi",
 		"Liste indeksi Tam sayı olmalıdır": "Liste Tam",

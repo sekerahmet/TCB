@@ -130,7 +130,7 @@ TR_default_device("cpu")
 		t.Errorf("en üstte büyük tensörün satırı beklenirdi: %+v", top)
 	}
 	text := ReportText(g)
-	if !strings.Contains(text, "ayıran satıra göre") || !strings.Contains(text, "rastgele_normal([512, 512]") {
+	if !strings.Contains(text, "ayıran satıra göre") || !strings.Contains(text, "TR_randn([512, 512]") {
 		t.Errorf("raporda tepe bellek bölümü yok:\n%s", text)
 	}
 	g, _ = runWithClose(t, code, Options{})

@@ -61,6 +61,12 @@ func TestGeneratedUpToDate(t *testing.T) {
 	genmain.AssertUpToDate(t, reporoot.Root(), "msgconsts", outputPath, Generate)
 }
 
+// wrongCountOnPurpose eksik değerli çağrının çalışma hatasını sınayan TR testidir
+// (tests/hatalar_ertele_test.tr: TR_message("H6903") değersiz kurulunca hata verir).
+func wrongCountOnPurpose(c call) bool {
+	return c.code == "H6903" && c.args == 0 && strings.Contains(filepath.ToSlash(c.pos), "tests/hatalar_ertele_test.tr:")
+}
+
 // call bir ileti çağrısıdır (messages.New / messages.Text; paketin kendi içinde New / Text).
 type call struct {
 	code string
@@ -94,7 +100,7 @@ func TestMessageUsage(t *testing.T) {
 			t.Errorf("%s: %s tanımlı değil", c.pos, c.code)
 			continue
 		}
-		if c.args != len(d.Param) {
+		if c.args != len(d.Param) && !wrongCountOnPurpose(c) {
 			t.Errorf("%s: %s %d değer bekler (%v), %d verildi", c.pos, c.code, len(d.Param), d.Param, c.args)
 		}
 	}

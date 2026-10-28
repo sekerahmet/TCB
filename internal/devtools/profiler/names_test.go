@@ -32,7 +32,7 @@ func TestOpNamesHelper(t *testing.T) {
 // "AdamW.step", ".to_device"; TR_DIL=tr ile "toplam", "AdamW.adım", ".cihaza". Önceden adlar her
 // dilde kanonik Türkçeydi. TR_DIL süreç başında okunduğu için her dil ayrı bir alt süreçte koşar.
 func TestOpNamesFollowPersonsLanguage(t *testing.T) {
-	for lang, want := range map[string]string{"en": "sum\nTR_AdamW.step\n.to_device", "tr": "TR_sum\nTR_AdamW.TR_step\n.TR_to_device"} {
+	for lang, want := range map[string]string{"en": "sum\nAdamW.step\n.to_device", "tr": "toplam\nAdamW.adım\n.cihaza"} {
 		if got := string(testkit.RunWithLanguageFile(t, "TestOpNamesHelper", opNamesOut, lang)); got != want {
 			t.Errorf("TR_DIL=%s: %q, beklenen %q", lang, got, want)
 		}

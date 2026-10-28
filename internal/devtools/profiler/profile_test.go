@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
@@ -367,12 +368,12 @@ func TestProfileModuleLines(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "yardımcı.tr")
 	code := "TR_var ısınma = 0\nTR_for j TR_in 0..300000 {\n    ısınma += j % 3\n}\nTR_func ileri(x) {\n    TR_var s = 0\n    TR_for i TR_in 0..300000 {\n        s += i % 7\n    }\n    TR_return s + x\n}\n"
-	if err := os.WriteFile(module, []byte(code), 0644); err != nil {
+	if err := os.WriteFile(module, []byte(source.Header+"\n"+code), 0644); err != nil {
 		t.Fatal(err)
 	}
-	main := "TR_import \"" + filepath.ToSlash(module) + "\" TR_as m\nTR_func ileri(x) {\n    TR_return x\n}\nTR_print(m.TR_forward(ileri(1)))\n"
+	main := "TR_import \"" + filepath.ToSlash(module) + "\" TR_as m\nTR_func ileri(x) {\n    TR_return x\n}\nTR_print(m.ileri(ileri(1)))\n"
 	g, _ := run(t, main, Options{SampleLines: true})
-	want := map[int]string{3: "ısınma += j % 3", 8: "s += i % 7"}
+	want := map[int]string{4: "ısınma += j % 3", 9: "s += i % 7"}
 	found := 0
 	for _, s := range g.Sampling.Lines {
 		text, ok := want[s.Line]
