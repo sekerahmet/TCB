@@ -1,6 +1,9 @@
+# BİTTİ
+
 # DURUM — Faz 0.6b: demet
 
 - **Başlama:** 2026-10-29 16:03 UTC
+- **Bitiş:** 2026-10-29 16:43 UTC
 - **Dal:** `claude/magical-feynman-mgjmfn` (taban `main` 4eb9a44)
 
 ## Biten adımlar
@@ -17,10 +20,10 @@
 ## Bitiş ölçütü
 
 - `go build ./...`, `go vet ./internal/...`: temiz.
-- `go test ./internal/...`: SONUC_INTERNAL
+- `go test ./internal/...`: hepsi geçiyor. (`codeindex`'in `TestBuildScalesLinearly`'si bir koşuda yük altında süre sınırını aştı, tek başına geçiyor: zamanlama testi, bu işle ilgisiz.)
 - `go test ./cmd/tr/e2e/ -run 'DocLinks|DocTRCodeBlocks'`: geçiyor.
 - `go run ./tools/codegraph spec-refs`: "0 error(s), 0 note(s)".
-- `go test -short ./internal/reporoot ./tools/...`: yalnız `TestEveryTrackedDataFileHasATestOrAReason` düşüyor (`.devir/DURUM.md`, beklenen).
+- `go test -short ./internal/reporoot ./tools/...`: yalnız `TestEveryTrackedDataFileHasATestOrAReason` düşüyor (`.devir/DURUM.md`, beklenen). Son koşuda `TestGeneratedUpToDate` da düştü (H1026'nın metni değişip `codes_generated.go` yeniden üretilmemişti); üretildi, geçiyor.
 - `go run ./cmd/tr test tests`: 352 test, 352 geçti (`examples` 4/4, `lib` 69/69).
 - `git grep -n 'MultiVal' -- internal`: boş.
 - `go run ./tools/codegraph dups --changed main`: 0 aday.
