@@ -1,7 +1,7 @@
 // codesdoc, dilin bütün kodlarının açıklamalı başvuru belgesini (docs/codes.md) kod
 // listesinden üretir: dilden bağımsız tanımlar (internal/lang/codes/definitions.json: tür, tipler, imza,
-// ilişkili kodlar) ve Türkçe dil dosyası (internal/lang/codes/tr.json: ad, yabancı adlar,
-// açıklama, örnek). Belge elle düzenlenmez; bir kod eklendiğinde ya da değiştiğinde
+// ilişkili kodlar, kimlik yazımıyla örnek) ve Türkçe dil dosyası (internal/lang/codes/tr.json: ad,
+// yabancı adlar, açıklama). Örnek her gömülü dilde görünümüyle de gösterilir (17.4, 17.7). Belge elle düzenlenmez; bir kod eklendiğinde ya da değiştiğinde
 // yeniden üretilir.
 //
 // Kullanım (depo kökünden):
@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // docPath depo köküne göre üretilen dosyadır.
@@ -202,6 +203,30 @@ func codeList(ks []codes.Code) string {
 	return strings.Join(parts, ", ")
 }
 
+// exampleBlock kodun örneğini yazar: kimlik yazımıyla (programda yazılan biçim) ve altında her gömülü
+// dilin görünümüyle (17.4, 17.7). Komut satırı örneği kimliklerin adlarıyla yazılır; görünümü yoktur
+// (17.9).
+func exampleBlock(k codes.Code, example string) (string, error) {
+	block := "```tr\n" + example + "\n```\n\n"
+	if k.ExpectedKind() == codes.KindCommand {
+		return block, nil
+	}
+	var views []string
+	for _, code := range codes.Languages() {
+		lang, err := codes.LoadLanguage(code)
+		if err != nil {
+			return "", err
+		}
+		view, err := source.Show(source.Header+"\n"+example+"\n", lang)
+		if err != nil {
+			return "", fmt.Errorf("%s: the example's view in %s: %v", k, code, err)
+		}
+		_, body, _ := strings.Cut(view, "\n")
+		views = append(views, code+": "+strings.TrimSuffix(body, "\n"))
+	}
+	return block + text.Labels["views"] + ":\n\n```text\n" + strings.Join(views, "\n") + "\n```\n\n", nil
+}
+
 // Generate belgenin içeriğini üretir.
 func Generate() ([]byte, error) {
 	if errs := codes.CheckDefinitions(codes.Source()); len(errs) > 0 {
@@ -279,8 +304,12 @@ func Generate() ([]byte, error) {
 					b.WriteString("\n")
 				}
 				b.WriteString(g.Description + "\n\n")
-				if g.Example != "" {
-					fmt.Fprintf(&b, "```tr\n%s\n```\n\n", g.Example)
+				if t.Example != "" {
+					ex, err := exampleBlock(k, t.Example)
+					if err != nil {
+						return nil, err
+					}
+					b.WriteString(ex)
 				}
 				var extras []string
 				if t.Kind == codes.KindNamedArg && len(usedBy[k]) > 0 {

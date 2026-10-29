@@ -15,8 +15,8 @@ import (
 // Language-independent definitions (definitions.json): each code's kind (keyword, type,
 // function, constant, method ...), the types a method or property applies to, its signature
 // (order and type of positional parameters; code, type and default of named arguments), its
-// return type, related codes, and for removed codes the new code the job moved to. No names
-// appear here: signatures are lists of types and codes, and the language file (tr.json) gives
+// return type, related codes, the example written with identities, and for removed codes the new
+// code the job moved to. No names appear here: signatures are lists of types and codes, and the language file (tr.json) gives
 // the names. docs/codes.md is generated from these two files.
 //
 // File format (each entry is one line or a short block, codes in ascending order):
@@ -143,6 +143,10 @@ type Definition struct {
 	// suggests the code (2.3a). They belong to no writing language; Load gives them to every
 	// language, except one equal to that language's own name.
 	Familiar []string
+	// Example is the code's one-line working example written with identities ("example":
+	// TR_print(1 < 2)); every language shows it in its view (17.4, 17.7). A command-line code's
+	// example is a command line with the identities' names (tr check eğit.tr).
+	Example string
 }
 
 // Types returns the types the member applies to.
@@ -262,6 +266,7 @@ type rawDefinition struct {
 	Common     string                  `json:"common_name"`
 	Module     string                  `json:"module"`
 	Familiar   []string                `json:"familiar"`
+	Example    string                  `json:"example"`
 }
 
 // ParseDefinitions parses a definitions file; it collects every format error into one error.
@@ -345,7 +350,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			sort.Slice(t.Members, func(i, j int) bool { return t.Members[i].Type < t.Members[j].Type })
 		}
 		t.Related = codeList("related", h.Related)
-		t.Common, t.Familiar = h.Common, h.Familiar
+		t.Common, t.Familiar, t.Example = h.Common, h.Familiar, h.Example
 		if t.Module = h.Module; t.Module != "" {
 			switch c := k.Class(); {
 			case c != ClassType && c != ClassFunction && c != ClassConstant && c != ClassMember && c != ClassNamedArg:
