@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -19,10 +20,11 @@ import (
 var ruleSkipDirs = set(".git .claude .codegraph node_modules testdata")
 
 var (
-	ruleBacktick = regexp.MustCompile("`([^`]+)`")
-	ruleTestName = regexp.MustCompile(`^(Test|Fuzz|Benchmark|Example)(\w*)$`)
-	ruleListItem = regexp.MustCompile(`^\s*([-*+]|\d+\.)\s`)
-	ruleSpecFile = regexp.MustCompile(`^docs/spec/\d\d_[a-z0-9_]+\.md$`)
+	ruleBacktick   = regexp.MustCompile("`([^`]+)`")
+	ruleTestName   = regexp.MustCompile(`^(Test|Fuzz|Benchmark|Example)(\w*)$`)
+	ruleTestPrefix = regexp.MustCompile(`^(Test|Fuzz|Benchmark|Example)(\S*)$`)
+	ruleListItem   = regexp.MustCompile(`^\s*([-*+]|\d+\.)\s`)
+	ruleSpecFile   = regexp.MustCompile(`^docs/spec/\d\d_[a-z0-9_]+\.md$`)
 )
 
 // ruleGuard bir README'nin bir kuralı koruyan olarak anıp tuttuğu bir test adı ya da test dosyasıdır.
@@ -35,20 +37,30 @@ type ruleGuard struct {
 // TestRuleTestsExist README'lerdeki her "Denetim:" maddesinin, "Kural | Test" tablosu
 // satırının ve dil tanımındaki (docs/spec/NN_*.md) her "- *Test:*" satırının andığı test
 // işlevleri ve test dosyaları depoda vardır. Yeniden adlandırılan bir test kuralı sessizce
-// korumasız bırakmaz.
+// korumasız bırakmaz; jokerli ya da kalıplı test adı kabul edilmez.
 func TestRuleTestsExist(t *testing.T) {
 	root := reporoot.Root()
 	funcs, files := ruleTestDecls(t, root)
 	for _, g := range ruleGuards(t, root) {
-		switch {
-		case strings.HasSuffix(g.token, ".go"):
-			if !ruleFileExists(root, g, files) {
-				t.Errorf("%s:%d: test dosyası yok: %s", g.readme, g.line, g.token)
-			}
-		case !funcs[g.token]:
-			t.Errorf("%s:%d: test işlevi yok: %s", g.readme, g.line, g.token)
+		if p := ruleGuardProblem(root, g, funcs, files); p != "" {
+			t.Error(p)
 		}
 	}
+}
+
+// ruleGuardProblem bir koruma simgesindeki sorunu verir (yoksa "").
+func ruleGuardProblem(root string, g ruleGuard, funcs, files map[string]bool) string {
+	switch {
+	case strings.HasSuffix(g.token, ".go"):
+		if !ruleFileExists(root, g, files) {
+			return fmt.Sprintf("%s:%d: test dosyası yok: %s", g.readme, g.line, g.token)
+		}
+	case !ruleTestName.MatchString(g.token):
+		return fmt.Sprintf("%s:%d: jokerli ya da kalıplı test adı: %s (test adlarını tek tek yazın)", g.readme, g.line, g.token)
+	case !funcs[g.token]:
+		return fmt.Sprintf("%s:%d: test işlevi yok: %s", g.readme, g.line, g.token)
+	}
+	return ""
 }
 
 // ruleTestDecls depodaki _test.go dosyalarının adlarını ve içlerindeki üst düzey işlev adlarını verir.
@@ -143,7 +155,7 @@ func docGuards(rel, text string) []ruleGuard {
 	add := func(line int, s string) {
 		for _, m := range ruleBacktick.FindAllStringSubmatch(s, -1) {
 			tok := m[1]
-			if strings.HasSuffix(tok, "_test.go") || ruleTestName.MatchString(tok) && !ruleLowerAfterPrefix(tok) {
+			if strings.HasSuffix(tok, "_test.go") || ruleTestPrefix.MatchString(tok) && !ruleLowerAfterPrefix(tok) {
 				out = append(out, ruleGuard{rel, line, tok})
 			}
 		}
@@ -197,8 +209,35 @@ func docGuards(rel, text string) []ruleGuard {
 
 // ruleLowerAfterPrefix "Testimiz" gibi go test'in test saymadığı adları ayırır.
 func ruleLowerAfterPrefix(name string) bool {
-	m := ruleTestName.FindStringSubmatch(name)
+	m := ruleTestPrefix.FindStringSubmatch(name)
 	return m != nil && m[2] != "" && m[2][0] >= 'a' && m[2][0] <= 'z'
+}
+
+// Koruma satırlarında ters tırnak içindeki jokerli ya da kalıplı test adları yakalanır; düz
+// metindeki jokerler (koruma satırında ters tırnak dışında ya da koruma satırı dışındaki metinde)
+// hata vermez.
+func TestDocGuards(t *testing.T) {
+	doc := strings.Join([]string{
+		"Düz metinde `BenchmarkSpeed*` ve TestGPU* geçebilir.",
+		"Denetim: `TestVar`, düz metinde TestGPU* ve Benchmark*.",
+		"- *Test:* Go: `TestGPU*`, `TestA|TestB`, `TestA/alt`, `Fuzz*`.",
+	}, "\n")
+	guards := docGuards("docs/spec/01_program.md", doc)
+	wantTokens := []string{"TestVar", "TestGPU*", "TestA|TestB", "TestA/alt", "Fuzz*"}
+	if len(guards) != len(wantTokens) {
+		t.Fatalf("bulunan simgeler: %v, beklenen: %v", guards, wantTokens)
+	}
+	funcs := map[string]bool{"TestVar": true}
+	if p := ruleGuardProblem("", guards[0], funcs, nil); p != "" {
+		t.Errorf("geçerli test adında hata: %s", p)
+	}
+	for i, w := range wantTokens[1:] {
+		g := guards[i+1]
+		p := ruleGuardProblem("", g, funcs, nil)
+		if !strings.Contains(p, "docs/spec/01_program.md:3") || !strings.Contains(p, w) || !strings.Contains(p, "tek tek") {
+			t.Errorf("%s için beklenen satır, sözcük ve öneri iletisi alınmadı: %q", w, p)
+		}
+	}
 }
 
 func ruleCells(line string) []string {
