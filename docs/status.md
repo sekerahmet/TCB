@@ -613,7 +613,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ## 18. Dosya ve yol
 
-Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni adlar `TR_write_lines`, `TR_LineWriter`, `TR_write` (18.17) gösterim adı onayını bekliyor; kodları uygulandıkları gün kayda girer (17.4).
+Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_write_lines` satırları_yaz, `TR_LineWriter` SatırYazıcı, `TR_write` yaz (18.17); kodları uygulandıkları gün kayda girer (17.4).
 
 ### 18.5
 
