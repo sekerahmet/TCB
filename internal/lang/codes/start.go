@@ -19,8 +19,8 @@ import (
 //     Türkçe, İngilizce ve sonra eklenecek diller yalnızca gösterimdir; hiçbirinin ayrıcalığı yoktur.
 // Karşılaştırma: Python ve Swift çalışma anı değerlerini (True, tür adları) hiç yerelleştirmez;
 // Excel formülü kanonik saklar, yalnızca ekranda yerelleştirir. TR de anlamı kodda tutar,
-// yalnızca gösterimi yerelleştirir. Bir yazım dilinde yazılmış metin (tr kodla - --dil en,
-// kabuk satırı) dili açıkça verilerek okunur (lexer.NewBodyIn) ve kodlu biçime çevrilir.
+// yalnızca gösterimi yerelleştirir. Kod, kabuk satırı da, kimliklerle yazılır; bir yazım dilinde
+// yazılmış metin okunmaz, kodlu dosyanın görünümü yalnız okunur (17.7).
 
 // display LanguageEnvVar'ın seçtiği gösterim dilidir, active programın okunduğu ve çalıştığı
 // kimlik listesidir. Kurulamayan bir dil paketi başlatırken süreci kapatmaz

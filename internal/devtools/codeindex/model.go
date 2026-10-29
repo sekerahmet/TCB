@@ -4,8 +4,8 @@
 // sınıyor", "bunu değiştirirsem ne etkilenir" sorularını insana (düz metin), yapay zekâ ajanına
 // (kararlı JSON şeması) ve ileride dil sunucusuna yanıtlar.
 //
-// Dizin kaynağı yorumlayıcının okuduğu biçimde, kimlikleriyle okur (read.go; başlıksız dosya Türkçe
-// yazılmış sayılır ve önce kodlanır): içeriği, kimlikleri ve konumları her dilde aynıdır; yalnızca
+// Dizin kaynağı yorumlayıcının okuduğu biçimde, kimlikleriyle okur (read.go; başlıksız dosya
+// reddedilir, başlıksız gövde de kimliklerle okunur): içeriği, kimlikleri ve konumları her dilde aynıdır; yalnızca
 // çıktı, dilin öğelerini okuyanın dilinde yazar (Reader.display).
 //
 // Layer: developer tools (internal/devtools); yalnızca internal/lang paketlerini (ve gömülü

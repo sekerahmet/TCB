@@ -34,7 +34,6 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `TR_cmd_index`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
 | günlük | TR_arg_log, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı `TR_Logger(...)`'ın açtığı günlüğü alır; `TR_Run`'ın günlük alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
-| kodla | TR_cmd_encode, TR_mem_encode | ayrı alan: TR_cmd_encode dosyayı kodlu biçime çevirir; TR_mem_encode parçalayıcıda metni parça kimliklerine çevirir |
 | kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--kontrol` seçeneği aynı denetimi yapar |
 | mutlak | TR_fn_abs, TR_mem_absolute | aynı anlam: göreli olmayan (mutlak değer, mutlak yol; Python `abs` ve `Path.absolute`) |
 | test | TR_cmd_test, TR_ctx_test | aynı anlam: `TR_ctx_test` bloğu ve onu koşan `tr test` |

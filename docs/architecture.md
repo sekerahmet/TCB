@@ -59,7 +59,7 @@ Sıra bir bağımlılık zinciri olduğu kadar bir döngü korumasıdır: sözc�
 `tr egit.tr` yazıldığında olan şudur:
 
 1. **Dosya okunur ve bölünür.** `source.Split` BOM'u ve kodlu biçimin başlığını ayırır. Komut satırı, kabuk, test koşucusu, hata ayıklama sunucusu ve modül yükleyici bir `.tr` dosyasını yalnızca `internal/lang/source` üzerinden okur; başlık kuralları tek yerdedir.
-2. **Sözcüklere ayrılır.** Sözcük çözümleyici kaynağı sözcük birimlerine çevirir. Program içeride kimliklerle çalışır: kodlu dosyanın her dil sözcüğü (`TR_if`, `TR_print`) kimliğiyle okunur; ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez (`codes.Active` kimlik listesidir; koruyan test `TestProgramRunsOnIdentities`). Türkçe, İngilizce ve sonra eklenecek diller yalnızca gösterimdir, hiçbirinin ayrıcalığı yoktur: hata çerçevesi ve hata ayıklayıcı dosyanın kişinin dilindeki (`TR_DIL`) görünümünü gösterir, satır ve sütun o görünüme göredir (17.5). Başlıksız metin bugün Türkçe yazılmış sayılır ve önce kodlu biçime çevrilir (17.7; kalkacak: [yol haritası](roadmap.md) madde 15).
+2. **Sözcüklere ayrılır.** Sözcük çözümleyici kaynağı sözcük birimlerine çevirir. Program içeride kimliklerle çalışır: kodlu dosyanın her dil sözcüğü (`TR_if`, `TR_print`) kimliğiyle okunur; ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez (`codes.Active` kimlik listesidir; koruyan test `TestProgramRunsOnIdentities`). Türkçe, İngilizce ve sonra eklenecek diller yalnızca gösterimdir, hiçbirinin ayrıcalığı yoktur: kod, kabuk satırı ve hata ayıklayıcının ifadesi de, yalnız kimliklerle yazılır; kodlu dosyanın bir dildeki görünümü (`TR_cmd_show`) yalnız okunur, çalışmaz ve koda geri çevrilmez (17.7). Başlıksız metin çalışmaz (2.1).
 3. **Ayrıştırılır.** `parser.New` sözdizimi ağacını (`ast`) kurar. Bağlam kuralları (`TR_break` yalnızca döngüde ...) burada denetlenir; hatalar tek mesaja toplanıp toparlanır.
 4. **Denetlenir.** `source.Prepare` istenirse `checker` ile tip ve ad denetimi yapar. Denetleyici hiçbir şey çalıştırmaz; emin olamadığında susar.
 5. **Derlenir.** `interp` ağacı bir kez Go kapanışlarına derler (`compiler*.go`): değişkenler yuvalara, üye adları kodlara çözülür; çalışma anında ad karşılaştırılmaz.
@@ -210,7 +210,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 | Paket | Görevi |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `TR_cmd_build`, `test`, `TR_cmd_format`, `kodla`, `TR_cmd_show`, `izle`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
+| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `TR_cmd_build`, `test`, `TR_cmd_format`, `TR_cmd_show`, `izle`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
 | `cmd/tr/e2e` | Uçtan uca testler (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisi |
 | `devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`TR_cmd_dap`, Debug Adapter Protocol). Yüklenirken `interp.NewDebugger`'ı kurar; gizli değerleri düzenleyiciye göndermez |
 | `devtools/formatter` | `TR_cmd_format`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |

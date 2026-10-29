@@ -56,7 +56,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - Dosyaların alan adları İngilizce tanımlayıcıdır; insan dili yalnız değerlerde görünür. Hepsi ikiliye gömülüdür; kodların başvuru belgesi [`docs/codes.md`](../codes.md) bunlardan üretilir.
 - **İletiler** kod değil, ileti koduyla tanımlanır (`H` ve dört basamak, `internal/lang/messages`); metni dil başına katalogdadır.
 - **Kayıtlı her kod canlıdır:** açıklaması ve çalışan örneği vardır, bir yerde kullanılır. Henüz uygulanmamış bir kod dil tanımında anılabilir ama tanım dosyasına uygulandığı gün girer. Belgelerde anılan her kimlik de kayıttadır ya da bilerek yazılmış adların listesindedir.
-- *Test:* Go: `TestEveryCodeHasDescription`, `TestWritingLanguagesComplete`, `TestCommonNamesAreNotInLanguageFiles`, `TestClassedIdentitiesAreLive`, `TestReviewedSectionsWriteIdentities`; örneğin çalıştığı ve kodun kullanıldığı uygulanınca Go testi.
+- *Test:* Go: `TestEveryCodeHasDescription`, `TestWritingLanguagesComplete`, `TestCommonNamesAreNotInLanguageFiles`, `TestClassedIdentitiesAreLive`, `TestReviewedSectionsWriteIdentities`, `TestExamplesRun` (örnek kimlik yazımıyla okunur ve çalışır); kodun kullanıldığı uygulanınca Go testi.
 
 **17.5** Ad: her kodun her dilde tek bir adı vardır (2.9: bir iş, bir yazım).
 - **Ortak ad:** uluslararası gösterimle ya da özel adla yazılan kavramın adı her dilde aynıdır: `sin`, `exp`, `log`, `max`, `argmax`, `relu`, `AdamW`, `GPT`, `Muon`. Tanım dosyasında bir kez yazılır, hiçbir dil dosyasında yazılmaz.
@@ -75,7 +75,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Yalnız dilin sözcükleri çevrilir:** kullanıcı adları, metinler, sayılar ve yorumlar yazıldığı gibi kalır; metnin içindeki yerleştirmede (`\(...)`, 2.7) dilin sözcükleri çevrilir, metnin kendisi kalır. Satır düzeni korunur, satır numaraları kodlu dosyanınkiyle aynıdır.
 - **Gösterim okumak içindir, kusursuz olmak zorunda değildir:** bir kullanıcı adı dilin bir sözcüğüyle aynı yazılabilir; görünüm onu ayırt etmek için işaretleyebilir ama bu bir kural değildir.
 - **Konum** dosyanın metnindedir (2.1).
-- *Test:* Go: `TestDAPCodedFileView`; yalnız `TR_cmd_show`'u sınayan test (satır numarası, yerleştirmenin çevrilmesi, kullanıcı adının kalması) ve görünümün çalışmaması uygulanınca Go testi.
+- *Test:* Go: `TestDAPCodedFileView`, `TestShowTranslatesOnlyTheLanguageWords` (satır numarası, yerleştirmenin çevrilmesi, kullanıcı adının kalması), `TestViewHeader` ve `TestShowCommand` (görünüm çalışmaz, ileti kodlu dosyayı söyler), `TestTypedLineIsReadWithIdentities` ve `TestCLIExpressionIsWrittenWithIdentities` (kabuk ve hata ayıklayıcı kimlikle yazılır).
 
 **17.8** Program dilden bağımsızdır.
 - **Anlam koda bağlıdır:** hangi yerleşiğin çağrıldığı, kullanıcının adları ve sonuç gösterim diline bağlı değildir.

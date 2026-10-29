@@ -163,11 +163,11 @@ Testler: `tests/<bölüm>_test.tr` (her test madde numarasıyla başlar; olumsuz
 
 | Adım | Ne yapılır |
 | :-- | :-- |
-| Kullanımları kodla | Ad değişecekse (bugünkü adlar dillerde farklıysa) veriden **önce**: kodsuz `.tr` dosyaları `tr kodla <dosyalar> --dil tr`, belgelerin ```tr blokları ve satır içi kodu `tr kodla - --dil tr` ile eski adlarla kodlanır (dil verilmezse metin kişinin yazım dilinde, `TR_DIL`, okunur) (çağrı ve başvuru kimliğe döner, yorum ve düzyazı bayt bayt kalır). Sözcükle arayıp değiştirme yapılmaz. |
-| Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"name"` düşer (`description`, `example`, `family` kalır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `foreign` girdisi silinir. |
-| Denetle | Kodlu dosyalar geri yazılmaz, kimlikleri değişmez; görünüm `tr göster <dosya> --dil tr` ve `tr göster - --dil tr` ile denetlenir, yalnız ad çiftleri değişmiş olmalı. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
+| Kullanımlar | Kod kimliklerle yazılır (17.7): `.tr` dosyaları, belgelerin ```tr blokları ve Go testlerindeki TR kodu kimliği (`TR_sin`) taşır, ad değişince değişmez. Yalnız eski adı düzyazıda ya da metin olarak anan yerler (yorumlar, açıklamalar, ileti metinleri) elle güncellenir; sözcükle arayıp değiştirme yapılmaz. |
+| Veri | Tek betikle: `definitions.json` satırına `"common_name": "sin"`; `tr.json` satırından `"name"` düşer (`description`, `family` kalır; örnek tanım dosyasındadır); `en.json`'da yalnız ad taşıyan satır silinir; ortak adla aynı `foreign` girdisi silinir. |
+| Denetle | Kodlu dosyalar yeniden yazılmaz, kimlikleri değişmez; görünüm `tr göster <dosya> --dil tr` ve `tr göster - --dil tr` ile denetlenir, yalnız ad çiftleri değişmiş olmalı. Elle: Go test dizgilerindeki TR kodu, fonksiyonu anan yorumlar, `tr.json`'un açıklamaları, `.tr` testlerinin beklediği ileti metinleri. |
 | Gölgeleme | Yeni adı yerel ad ya da parametre olarak kullanan yer yerleşiği gölgeler (2.9a): depodaki her kodsuz `.tr` dosyası `TR_cmd_check` ile koşulur, uyarı aranır. |
-| Üret, sına | `go generate ./internal/lang/codes`; ad çakışması sınavı `-update` ile yalnız satır siler (yeni satır çıkarsa elle, nedeniyle). |
+| Üret, sına | `go generate ./internal/lang/codes`, `go run ./tools/gen/codesdoc`. |
 
 ## Bitti kontrol listesi
 

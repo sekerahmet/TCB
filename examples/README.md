@@ -109,7 +109,6 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | `derle` | Programı yorumlayıcıyla birlikte tek çalıştırılabilir dosyaya paketler | `tr derle examples/tr/18_moduller.tr` |
 | `test` | Dosyadaki ya da klasördeki `*_test.tr` testlerini koşar | `tr test examples/tr/17_testler_test.tr` |
 | `biçimle` | Dosyaları standart biçime getirir | `tr biçimle examples/tr/09_listeler.tr` |
-| `kodla` | Dosyayı dilden bağımsız kodlu biçime çevirir | `tr kodla scratch/deneme.tr` |
 | `göster` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `tr göster examples/tr/01_merhaba.tr --dil en` |
 | `hata_ayıkla` | Programı terminal hata ayıklayıcısında başlatır | `tr hata_ayıkla examples/tr/42_hata_ayiklama.tr` |
 | `izle` | Çalışan bir eğitimin canlı profil tablosunu gösterir | `tr izle examples/tr/40_kontrol_noktasi.tr` |
