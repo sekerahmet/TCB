@@ -373,7 +373,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ## 10. Eşzamanlılık
 
-Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (2026-10-29): DENETİM 10-1'in bulgularıyla (süreyle devir, uzun yerleşiklerin kilidi bırakması, iptal, 2.8'in istisnası, verilen sıradaki ilk hata). Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı, `TR_cancel` iptal_et, `TR_done` bitti_mi; kodları uygulandıkları gün kayda girer (17.4). `TR_sleep`'in Türkçe adı "bekle"den "uyu"ya döndü (görevi beklemekle karışmasın diye; uygulandı).
+Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (2026-10-29): DENETİM 10-1'in bulgularıyla (süreyle devir, uzun yerleşiklerin kilidi bırakması, iptal, 2.8'in istisnası, verilen sıradaki ilk hata). 3. tur: DENETİM 10-2'nin bulgularıyla (gecikme sözü 10 ms, izin depoda ve hepsi birden, geri çağırmada bırakılır; iptal 1.5'in noktaları ve yerleşik ayrımıyla; alt görevi bekleyen de iptal hatası alır; iptal ve zaman aşımı ileti kodları). Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı, `TR_cancel` iptal_et, `TR_done` bitti_mi; kodları uygulandıkları gün kayda girer (17.4). `TR_sleep`'in Türkçe adı "bekle"den "uyu"ya döndü (görevi beklemekle karışmasın diye; uygulandı).
 
 ### 10.1
 
@@ -384,7 +384,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (202
 
 - **Mevcut durum:** kilit süreyle değil, döngülerde 256 turda bir ve kullanıcı fonksiyonu çağrısında devrediliyor; tensör işlemleri, geri yayılım, iyileştiricinin adımı, örnekleme ve GPU beklemeleri kilidi tutuyor (`internal/stdlib/ml`'de kilidi bırakan sarmalayıcı yalnız `TR_save_tensors`'ta). 60 matris çarpımı sürerken 5 ms'de bir uyanan görev 301 ms bekledi [ölçüldü: DENETİM 10-1, main `5ec35e05`].
 - **Mevcut durum (bırakanlar):** `TR_sleep`, `TR_input`, dosya okuma ve yazma, `TR_wait_all`, modül yükleme beklemesi, veri kümesini açma ve okuma, dosya işleri, `TR_save_tensors`, `TR_load_tensors`, parçalayıcıyı yükleme ve büyük girdide kodlama [kanıtlı: DENETİM 10-1].
-- **Yapılacaklar:** süreyle devir (5 ms); uzun yerleşiklerin kilidi bırakması ve tensörlerin okuma ve yazma izni (bölünmezlik); gecikme ölçümü TR testi ya da Go testi olarak.
+- **Yapılacaklar:** süreyle devir (5 ms); uzun yerleşiklerin kilidi bırakması ve deponun okuma ve yazma izni (hepsi birden, geri çağırmadan önce bırakılır); gecikme sözünün Go testi. Önce ve sonra ölç: küçük tensör işlemli döngüde izinlerin bedeli (tahmin ~%5) [hipotez: DENETİM 10-2]. Geri çağıran yerleşikler: `TR_backward` (kullanıcı türeviyle), `TR_fuse`, anahtarlı sıralama, `TR_grad_check`. GPU'da iznin kuyruğun bitişine bağlanması [hipotez: GPU yolu açılmadı].
 
 ### 10.3
 
@@ -393,6 +393,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (202
 ### 10.5
 
 - **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi ve verilen sıradaki ilk hatası; TR testi.
+- **Mevcut durum:** `tr.json`'da `TR_sleep` ve `TR_wait_all`'ın açıklaması "doğru döndürür" diyor; uygulama da `TR_true` döndürüyor. 13.10'a göre ikisi de değer döndürmez (`TR_wait_all(görevler)` liste verir) [ölçüldü: DENETİM 10-2].
 
 ### 10.6
 
@@ -409,7 +410,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (202
 
 ### 10.9
 
-- **Yapılacaklar:** iptal (`TR_cancel`), alt görevlere geçmesi, ertelenen işlerin çalışması, iptalin yakalanmaması; TR testi.
+- **Yapılacaklar:** iptal (`TR_cancel`) 1.5'in noktalarıyla ve yerleşik ayrımıyla, alt görevlere geçmesi, ertelenen işlerin çalışması, iptalin yakalanmaması, iptal ve zaman aşımı ileti kodları (8.5); TR testi.
 
 ## 11. Modüller
 
