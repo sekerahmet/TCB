@@ -44,7 +44,7 @@ func main() {
 			}
 			lines := strings.Split(strings.TrimSuffix(c, "\n"), "\n")
 			if len(lines) != 2 || lines[0] != source.Header {
-				fmt.Fprintf(os.Stderr, "%s: beklenmeyen biçim %q\n", key, c)
+				fmt.Fprintf(os.Stderr, "%s: unexpected form %q\n", key, c)
 				failed++
 				continue
 			}
@@ -53,12 +53,12 @@ func main() {
 		coded[key] = out
 	}
 	if failed > 0 {
-		fmt.Fprintf(os.Stderr, "%d örnek çevrilemedi\n", failed)
+		fmt.Fprintf(os.Stderr, "%d examples could not be converted\n", failed)
 		os.Exit(1)
 	}
 	must(os.WriteFile(trPath, []byte(trOut), 0644))
 	must(os.WriteFile(defsPath, []byte(addExamples(defsPath, coded)), 0644))
-	fmt.Printf("%d örnek taşındı\n", len(coded))
+	fmt.Printf("%d examples moved\n", len(coded))
 }
 
 // takeExamples dil dosyasının satırlarından "example" alanını çıkarır; örnekleri ve yeni metni verir.
@@ -113,7 +113,7 @@ func addExamples(path string, coded map[string]string) string {
 		done++
 	}
 	if done != len(coded) {
-		fmt.Fprintf(os.Stderr, "%d örnekten %d'i tanım dosyasına girdi\n", len(coded), done)
+		fmt.Fprintf(os.Stderr, "%d examples, %d written to the definitions\n", len(coded), done)
 		os.Exit(1)
 	}
 	return strings.Join(lines, "\n")
