@@ -77,9 +77,9 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		arg  []string
 		want string
 	}{
-		{[]string{"--ogrenme_orani", "0.01"}, "Hata: bilinmeyen seçenek '--ogrenme_orani'. Bunu mu demek istediniz: '--öğrenme_oranı'? Seçenekler için: tr egit.tr --yardım"},
+		{[]string{"--ogrenme_orani", "0.01"}, "Hata: bilinmeyen seçenek '--ogrenme_orani'. Bunu mu demek istediniz: '--öğrenme_oranı'? Seçenekler için: tr egit.tr --help"},
 		{[]string{"--öğrenme-oranı", "0.01"}, "Bunu mu demek istediniz: '--öğrenme_oranı'?"},
-		{[]string{"--yardim"}, "Bunu mu demek istediniz: '--yardım'?"},
+		{[]string{"--yardim"}, "Bunu mu demek istediniz: '--help'?"},
 		{[]string{"-adım", "5"}, "bilinmeyen seçenek '-adım'. Bunu mu demek istediniz: '--adım'?; seçenekler iki tireyle yazılır"},
 		{[]string{"--adım", "beş"}, `'--adım' Tam bekler, "beş" verildi. Seçenekler için`},
 		{[]string{"--adım", "3.0"}, `'--adım' Tam bekler, "3.0" verildi; tam sayı nokta ya da üs içermez.`},
@@ -90,7 +90,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		{[]string{"--hızlı", "yanlış"}, "--hızlı=yanlış"},
 		{[]string{"--hızlı", "true"}, "--hızlı=true"},
 		// Yardımın her kabul edilen yazımı öneri adayıdır (K1): --hel, --help'e yakındır.
-		{[]string{"--hel"}, "Bunu mu demek istediniz: '--yardım'?"},
+		{[]string{"--hel"}, "Bunu mu demek istediniz: '--help'?"},
 	} {
 		_, _, err := commandLine(t, code, d.arg...)
 		c, ok := interp.IsExitRequest(err)
@@ -115,7 +115,7 @@ Seçenekler:
   --hızlı                     (varsayılan: yanlış)
   --etiket <Metin>            (varsayılan: yok)
   --hf_token <Metin>          (varsayılan: "")
-  --yardım, -h                bu yardımı gösterir`
+  --help, -h                  bu yardımı gösterir`
 	// --yardım bir ad kodudur (TR_opt_help): her yazım dilinin adı (--help) da yardımı verir.
 	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}, {"--help"}} {
 		_, _, err := commandLine(t, code, arg...)

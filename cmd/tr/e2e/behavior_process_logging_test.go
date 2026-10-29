@@ -35,7 +35,7 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 		t.Errorf("yardım programı bitirmeli, standart hata boş kalmalı: %+v", s)
 	}
 	s = tr(t, dir, "egit.tr", "--adim", "5")
-	testkit.Wait(t, s, 2, []string{"ertelenen"}, []string{"Hata: bilinmeyen seçenek '--adim'. Bunu mu demek istediniz: '--adım'? Seçenekler için: tr egit.tr --yardım"})
+	testkit.Wait(t, s, 2, []string{"ertelenen"}, []string{"Hata: bilinmeyen seçenek '--adim'. Bunu mu demek istediniz: '--adım'? Seçenekler için: tr egit.tr --help"})
 	if strings.Contains(s.Stderr, "Çalışma Zamanı") || strings.Contains(s.Stdout, "Hata:") {
 		t.Errorf("kullanım hatası çalışma hatası gibi yazılmamalı: %+v", s)
 	}
@@ -43,7 +43,7 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 	exit := filepath.Join(t.TempDir(), "uyg.exe")
 	testkit.Wait(t, tr(t, dir, "derle", "egit.tr", exit), 0, nil, nil)
 	testkit.Wait(t, testkit.RunBinary(t, exit, dir, "", nil, "-h"), 0, []string{"Kullanım: uyg.exe [seçenekler]"}, nil)
-	testkit.Wait(t, testkit.RunBinary(t, exit, dir, "", nil, "--oran", "0,5"), 2, nil, []string{"ondalık ayırıcı nokta olmalı", "Seçenekler için: uyg.exe --yardım"})
+	testkit.Wait(t, testkit.RunBinary(t, exit, dir, "", nil, "--oran", "0,5"), 2, nil, []string{"ondalık ayırıcı nokta olmalı", "Seçenekler için: uyg.exe --help"})
 }
 
 // Gizli değerler: gizli adlı ortam değişkeninin ve seçeneğin değeri yazdır'da, hata

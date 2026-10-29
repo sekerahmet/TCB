@@ -80,6 +80,16 @@ func Spelling(k Code) string {
 	return IdentityPrefix + strings.TrimPrefix(id, IdentityPrefix+string(cls)+"_")
 }
 
+// CommandLineName returns the identity name written on the command line, in the shell, in the
+// debugger or in the environment (17.9): TR_cmd_run → run, TR_sub_definition → definition,
+// TR_opt_go_profile → go_profile, TR_repl_exit → exit, TR_dbg_step → step, TR_env_LANG → TR_LANG.
+func CommandLineName(k Code) string {
+	if k.Class() == ClassEnvironment {
+		return Spelling(k)
+	}
+	return strings.TrimPrefix(Spelling(k), IdentityPrefix)
+}
+
 // FromSpelling returns the code written as s (TR_print) at place p.
 func FromSpelling(p Place, s string) (Code, bool) {
 	if p >= placeCount {

@@ -38,12 +38,12 @@ func TestShowCommand(t *testing.T) {
 	// Görünüm çalışmaz ve denetlenmez; ileti başlığın satırındadır ve kodlu dosyayı çalıştırmayı söyler.
 	testkit.WriteFile(t, k, "g.tr", shown.Stdout)
 	for _, args := range [][]string{{"g.tr"}, {"kontrol", "g.tr"}} {
-		testkit.Wait(t, tr(t, k, args...), 1, nil, []string{"Satır 1", "bu dosya bir 'tr' görünümü", "kodlu dosyayı çalıştırın", "tr göster"})
+		testkit.Wait(t, tr(t, k, args...), 1, nil, []string{"Satır 1", "bu dosya bir 'tr' görünümü", "kodlu dosyayı çalıştırın", "tr show"})
 	}
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, k, "", []string{"TR_DIL=en"}, "g.tr"), 1, nil, []string{"this file is a 'tr' view", "run the coded file"})
 	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil", "xx"), 2, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
-	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 2, nil, []string{"'--dil' bir yazım dili bekler"})
-	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 2, nil, []string{"'tr göster' yazmak mı istediniz?"})
+	testkit.Wait(t, tr(t, k, "göster", "a.tr", "--dil"), 2, nil, []string{"'--lang' bir yazım dili bekler"})
+	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 2, nil, []string{"'tr show' yazmak mı istediniz?"})
 	// Görünümden kodlama yoktur: 'kodla' bir komut değil, okunamayan bir dosya adıdır; yardımda da geçmez.
 	for _, name := range []string{"kodla", "çöz"} {
 		testkit.Wait(t, tr(t, k, name, "a.tr"), 1, nil, []string{"\"" + name + "\" okunamadı"})
@@ -52,7 +52,7 @@ func TestShowCommand(t *testing.T) {
 		t.Errorf("dosya değişti: %q", readFile(t, filePath))
 	}
 	help := tr(t, k, "yardım")
-	testkit.Wait(t, help, 0, []string{"tr göster <dosya.tr> [--dil tr]", "tr göster - [--dil tr]"}, nil)
+	testkit.Wait(t, help, 0, []string{"tr show <dosya.tr> [--lang tr]", "tr show - [--lang tr]"}, nil)
 	for _, gone := range []string{"kodla", "çöz"} {
 		if strings.Contains(help.Stdout, gone) {
 			t.Errorf("yardımda %q geçiyor:\n%s", gone, help.Stdout)

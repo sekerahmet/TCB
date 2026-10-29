@@ -139,7 +139,7 @@ func TestWatchNoStepInfo(t *testing.T) {
 // tr izle .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
 func TestWatchJobNameNotYet(t *testing.T) {
 	s := tr(t, t.TempDir(), "izle", "deneme1")
-	testkit.Wait(t, s, 2, nil, []string{"bir .tr dosyası değil", "tr izle <dosya.tr>"})
+	testkit.Wait(t, s, 2, nil, []string{"bir .tr dosyası değil", "tr watch <dosya.tr>"})
 	s = tr(t, t.TempDir(), "profil", "--bilinmeyen", "x.tr")
 	testkit.Wait(t, s, 2, nil, []string{"bilinmeyen seçenek"})
 }

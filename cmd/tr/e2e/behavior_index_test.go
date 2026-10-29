@@ -65,8 +65,8 @@ func TestIndexExitCodesAndJSON(t *testing.T) {
 func TestIndexUsageErrors(t *testing.T) {
 	dir := indexProject(t)
 	testkit.Wait(t, tr(t, dir, "dizin", "bilinmeyen_alt"), 2, nil, []string{"bilinmeyen_alt"})
-	testkit.Wait(t, tr(t, dir, "dizin", "tanım"), 2, nil, []string{"tanım"})
-	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "Kare", "--sınır", "x"), 2, nil, []string{"--sınır"})
+	testkit.Wait(t, tr(t, dir, "dizin", "tanım"), 2, nil, []string{"definition"})
+	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "Kare", "--sınır", "x"), 2, nil, []string{"--limit"})
 	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "Kare", "--durum"), 2, nil, []string{"--durum"})
 }
 
@@ -110,7 +110,7 @@ func TestIndexRename(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "yazdır", "yaz"), 2, nil, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş"), 2, nil, []string{"eski ve yeni ad"})
 	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.yok_boyle", "x"), 4, nil, nil)
-	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş", "bakış", "--sınır", "1"), 0, []string{"--tümü"}, nil)
+	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "Dikkat.baş", "bakış", "--sınır", "1"), 0, []string{"--all"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş", "bakış_sayısı"), 2, []string{"birden çok", "field:m.tr#Dikkat.baş", "parameter:m.tr#yap.baş"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "başka_yok", "x"), 0, []string{"terim kipi"}, nil)
 	testkit.Wait(t, tr(t, dir, "dizin", "yeniden_adlandır", "baş", "bakış", "--terim"), 0, []string{"terim kipi", "doc.md:1:10"}, nil)

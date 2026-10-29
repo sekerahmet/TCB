@@ -18,9 +18,9 @@ import (
 func TestHelpAndVersion(t *testing.T) {
 	for _, a := range []string{"yardım", "-h"} {
 		s := tr(t, "", a)
-		// Yardım her komutu listeler (hakem mimari 22: dap eksikti)
-		testkit.Wait(t, s, 0, []string{"Kullanım:", "tr derle <dosya.tr>", "tr test", "tr çalıştır", "tr hata_ayıkla",
-			"tr kontrol", "tr biçimle", "tr dap", "tr yardım", "tr sürüm"}, nil)
+		// Yardım her komutu yazılacak kimlik adıyla listeler (17.9; hakem mimari 22: dap eksikti)
+		testkit.Wait(t, s, 0, []string{"Kullanım:", "tr build <dosya.tr>", "tr test", "tr run", "tr debug",
+			"tr check", "tr format", "tr dap", "tr help", "tr version"}, nil)
 	}
 	for _, a := range []string{"sürüm", "-v"} {
 		s := tr(t, "", a)
@@ -30,13 +30,13 @@ func TestHelpAndVersion(t *testing.T) {
 
 // Komut adları ad kodlarıdır: her yazım dilinin adı kabul edilir (tr çalıştır da tr run da her
 // makinede çalışır; betikler TR_DIL'den bağımsızdır). Türkçe karaktersiz yazımlar ve --help,
-// --version dosya adı sanılmaz, asıl komutu öneren bir hatayla 1 koduyla çıkar.
+// --version dosya adı sanılmaz, kimlik adını öneren bir hatayla 2 koduyla çıkar.
 func TestCommandsHaveOneName(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "a.tr", "TR_print(\"çalıştı\")\n")
 	for ad, actual := range map[string]string{
-		"calistir": "çalıştır", "bicimle": "biçimle", "hata_ayikla": "hata_ayıkla",
-		"yardim": "yardım", "--help": "yardım", "surum": "sürüm", "--version": "sürüm",
+		"calistir": "run", "bicimle": "format", "hata_ayikla": "debug",
+		"yardim": "help", "--help": "help", "surum": "version", "--version": "version",
 	} {
 		s := tr(t, dir, ad, "a.tr")
 		testkit.Wait(t, s, 2, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + actual + "' yazmak mı istediniz?"})
@@ -47,7 +47,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 	// Seçenekler de ad kodudur (opt): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
 	testkit.Wait(t, tr(t, dir, "biçimle", "--check", "a.tr"), 0, nil, nil)
 	testkit.Wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 0, nil, nil)
-	testkit.Wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 2, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profili"})
+	testkit.Wait(t, tr(t, dir, "profil", "--go_profili", "x.prof", "a.tr"), 2, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profile"})
 	// İngilizce yazım dilinin adları da her makinede komuttur.
 	testkit.Wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
 	testkit.Wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
@@ -180,7 +180,7 @@ func TestREPL(t *testing.T) {
 	}, "\n") + "\n"
 	s := testkit.RunBinary(t, trBinary, "", input, nil)
 	testkit.Wait(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
-		"'cikis' TR'de bir komut değil; çıkmak için 'çıkış' yazın.",
+		"'cikis' TR'de bir komut değil; çıkmak için 'exit' yazın.",
 		"❌ Sözdizimi Hataları:\n  • Satır 1, Sütun 4",
 		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1, Sütun 1: Tip uyuşmazlığı",
 		"❌ Çalışma Zamanı Hatası:\n  • Satır 1: Sıfıra bölme hatası",

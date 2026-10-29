@@ -471,13 +471,16 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 	}
 }
 
-// Kural: OptionFlag seçenek kodunu komut satırı bayrağına çevirir: "--" ve alt çizgi yerine tire.
+// Kural (17.9): OptionFlag seçenek kodunu kimlik yazımındaki komut satırı bayrağına çevirir:
+// "--" ve alt çizgi yerine tire (--lang, --go-profile).
 // Neden: cmd/tr ve codeindex aynı çevirmeyi ayrı ayrı yazıyordu.
 func TestOptionFlagHyphenatesDisplayName(t *testing.T) {
-	for _, k := range []Code{OptLang, OptHelp} {
-		want := "--" + strings.ReplaceAll(DisplayName(k), "_", "-")
-		if got := OptionFlag(k); got != want || strings.Contains(got, "_") {
-			t.Errorf("OptionFlag(%s) = %q, beklenen %q", k, got, want)
+	for _, c := range []struct {
+		k    Code
+		want string
+	}{{OptLang, "--lang"}, {OptHelp, "--help"}, {OptGoProfile, "--go-profile"}} {
+		if got := OptionFlag(c.k); got != c.want || strings.Contains(got, "_") {
+			t.Errorf("OptionFlag(%s) = %q, beklenen %q", c.k, got, c.want)
 		}
 	}
 }

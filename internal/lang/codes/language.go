@@ -363,17 +363,22 @@ var loaded sync.Map
 // help and command-line output, and of a coded file's view.
 func Display() *Language { return display }
 
-// DisplayName returns k's name in the display language; a code the display language does not
-// name keeps its canonical name.
+// DisplayName returns k's name in the display language; a code that is not written in program
+// text (17.9: commands, subcommands, options, shell/debugger commands, environment variables)
+// returns its identity name (CommandLineName), and a code the display language does not name
+// keeps its canonical name.
 func DisplayName(k Code) string {
+	if _, ok := PlaceOf(k); !ok && k != None {
+		return CommandLineName(k)
+	}
 	if g, ok := display.Entry(k); ok {
 		return g.Name
 	}
 	return active.Name(k)
 }
 
-// OptionFlag returns the command-line form of an option code in the display language: "--"
-// plus its name with underscores as hyphens (--dil, --go-profili).
+// OptionFlag returns the command-line form of an option code (17.9): "--"
+// plus its identity name with underscores as hyphens (--lang, --go-profile).
 func OptionFlag(k Code) string {
 	return "--" + strings.ReplaceAll(DisplayName(k), "_", "-")
 }

@@ -219,9 +219,9 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 func TestCommandsSingleSpelling(t *testing.T) {
 	oldOutput := os.Stdout
 	defer func() { os.Stdout = oldOutput }()
-	for old, actual := range map[string]string{"adim": "adım", "s": "adım", "gec": "geç", "o": "dön",
-		"c": "devam", "goto": "zıpla", "b": "kesme", "w": "izle",
-		"yigin": "yığın", "bt": "yığın", "p": "hesapla", "h": "yardım", "q": "çıkış", "cikis": "çıkış"} {
+	for old, actual := range map[string]string{"adim": "step", "s": "step", "gec": "next", "o": "out",
+		"c": "continue", "goto": "jump", "b": "break", "w": "watch",
+		"yigin": "stack", "bt": "stack", "p": "eval", "h": "help", "q": "quit", "cikis": "quit"} {
 		d := NewDebugger("t.tr", "x\n", false)
 		d.Mode = -1
 		r, w, _ := os.Pipe()

@@ -90,8 +90,13 @@ func (r Ref) MessageText(lang string) string {
 // String is the display name (TR_DIL), for text that is not a message.
 func (r Ref) String() string { return r.MessageText(display.Code) }
 
-// nameIn kodun l'deki adıdır; l kodu adlandırmıyorsa kanonik ad.
+// nameIn kodun l'deki adıdır; program metninde yazılmayan kodlar (17.9: komut, alt komut,
+// seçenek, kabuk ve hata ayıklayıcı komutu, ortam değişkeni) her gösterim dilinde kimliğin
+// adıyla yazılır (CommandLineName); l kodu adlandırmıyorsa kanonik ad.
 func nameIn(l *Language, k Code) string {
+	if _, ok := PlaceOf(k); !ok && k != None {
+		return CommandLineName(k)
+	}
 	if e, ok := l.Entry(k); ok {
 		return e.Name
 	}
