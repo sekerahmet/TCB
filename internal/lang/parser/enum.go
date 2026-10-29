@@ -189,9 +189,8 @@ func (b *structBody) signature() bool {
 	lit.Parameters = p.parseFunctionParameters()
 	if p.peekTokenIs(lexer.TokMinus) {
 		p.nextToken() // '-'
-		if p.expectPeek(lexer.TokGt) && p.expectPeek(lexer.TokIdent) {
-			lit.ReturnType = &ast.TypeRef{Name: p.curToken().Literal, Token: p.curToken()}
-			p.role(p.curToken(), RoleType)
+		if p.expectPeek(lexer.TokGt) {
+			lit.ReturnType, _ = p.typeAfter()
 		}
 	}
 	if p.peekTokenIs(lexer.TokLBrace) {
