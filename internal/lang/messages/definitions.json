@@ -154,6 +154,7 @@
 "H1023": { "param": ["var"] },
 "H1024": { "param": ["kind", "name", "struct", "self"] },
 "H1025": { "param": ["kind", "name", "struct", "self"] },
+"H1026": { "param": ["count", "names"] },
 "H1101": { "param": ["name", "canonical"] },
 "H1103": { "param": ["name", "keyword"] },
 "H1104": { "param": ["closest"] },

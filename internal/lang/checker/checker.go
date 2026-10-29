@@ -21,6 +21,9 @@ type TypeInfo struct {
 	IsConst    bool
 	ParamTypes []string
 	ReturnType string
+	// TupleLen dönüşü demet tipi olarak yazılmış fonksiyonun öğe sayısıdır (6.3; unpack.go); 0:
+	// bilinmiyor ya da demet değil.
+	TupleLen int
 }
 
 // Scope is one level of the checker's type scope.
@@ -235,6 +238,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		for _, v := range s.Values {
 			c.inferExpression(v)
 		}
+		c.checkUnpackCount(s, s.Values, len(s.Names))
 		for _, name := range s.Names {
 			c.defineName(name.Value, c.varKind(s.IsConst), siteOf(name.Token, s.Line()), TypeInfo{TypeName: typeAny, IsConst: s.IsConst})
 		}
@@ -243,6 +247,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		for _, v := range s.Values {
 			c.inferExpression(v)
 		}
+		c.checkUnpackCount(s, s.Values, len(s.Targets))
 		for _, t := range s.Targets {
 			ident, ok := t.(*ast.Identifier)
 			if !ok {
@@ -380,6 +385,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				TypeName:   typeFunction,
 				ParamTypes: paramTypes,
 				ReturnType: retType,
+				TupleLen:   returnTupleLen(e),
 			})
 		}
 		c.functionBody(e, retType)
