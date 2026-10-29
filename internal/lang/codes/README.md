@@ -17,7 +17,7 @@ tutulur. Türkçe karakterli adların ASCII biçimi kabul edilmez. Denetim: `Tes
 **Ad, kendi ad alanında benzersizdir.** Genel adlar, tip adları, üyeler ve adlı argümanlar ayrı
 ad alanlarıdır; çakışma dil dosyası yüklenirken hata verir. Denetim: `TestNamespacesUnique`, `TestClashesCaught`.
 
-**Dil dosyası dile bağlı olanı içerir.** Ad, yabancı adlar, açıklama ve örnek dil dosyasındadır; imzalar ve türler dilden bağımsızdır ve tanım dosyasında bir
+**Dil dosyası dile bağlı olanı içerir.** Ad, yabancı adlar ve açıklama dil dosyasındadır; imzalar, türler ve örnek (kimlik yazımıyla, 17.4) dilden bağımsızdır ve tanım dosyasında bir
 kez yazılır. Her dil dosyası aynı kodlara kendi adlarını verir. Denetim: `TestWritingLanguagesComplete`, `TestParserMatchesJSON`, `TestDefinitionsConsistent`.
 
 **Dosya biçiminin anahtarları İngilizce tanımlayıcıdır.** Tanım ve dil dosyalarının alan adları (`kind`, `params`, `named`, `returns`, `related`, `common_name`, `module`, `types`, `signatures`, `example`; `name`, `foreign`, `family`, `description`) ve `kind` değerleri (`keyword`, `function`, `method` ...) Go adları gibi İngilizce yazılır; bir insan dili yalnız değerlerde (adlar, açıklamalar) görünür; örnek kimlik yazımıyla tanım dosyasındadır. Denetim: `TestFileFieldNamesAreEnglishIdentifiers`.
