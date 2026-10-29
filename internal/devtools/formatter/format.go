@@ -337,6 +337,9 @@ func spaceBetween(p, c *item) bool {
 		return false
 	case ct == lexer.TokColon:
 		return false
+	// İsteğe bağlı tipin işareti tipe bitişiktir (3.5): TR_Int?
+	case ct == lexer.TokQuestion:
+		return false
 	}
 	return true
 }
