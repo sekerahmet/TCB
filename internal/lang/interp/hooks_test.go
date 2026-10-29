@@ -400,15 +400,23 @@ TR_var s = {"x": l[0]}
 s["x"] *= 2
 TR_var sayı = 7
 sayı += 3
+TR_var g = w0
+g += 100
+TR_func yerel(x) { TR_var y = x; y -= 50 }
+yerel(w0)
 `)
 	if _, err := vmx.Run(prog); err != nil {
 		t.Fatal(err)
 	}
-	if w.n != 12 || elem.n != 24 {
+	// Yerel ve genel yuvanın hızlı yolu (compiler_assign.go) da kancayı çağırır: w 12 + 100 − 50.
+	if w.n != 62 || elem.n != 24 {
 		t.Fatalf("yerinde güncelleme / ok=false ayrımı: w=%d, elem=%d", w.n, elem.n)
 	}
 	if sVal, _ := vmx.GlobalEnv.Get("s"); sVal.(*DictVal).Pairs["x"].Inspect() != "48" {
 		t.Fatalf("ok=false sonrası OperatorHook sonucu: %v", sVal)
+	}
+	if gVal, _ := vmx.GlobalEnv.Get("g"); gVal != Value(w) {
+		t.Fatalf("yerinde güncellemede bağ değişmemeli: %v", gVal)
 	}
 	if nVal, _ := vmx.GlobalEnv.Get("sayı"); nVal.Inspect() != "10" {
 		t.Fatalf("kancasız değerde bileşik atama: %v", nVal)

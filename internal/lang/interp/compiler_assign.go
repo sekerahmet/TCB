@@ -38,8 +38,8 @@ func (c *compiler) assignTo(k *compilerScope, target ast.Expression, codeVal uin
 			if i < len(o.vals) {
 				cur := o.vals[i]
 				if compound && cur != nil {
-					// Listede += ve *= yerindedir, bağ değişmez: sabit listede de geçerli (5.4).
-					if _, done, err := v.listInPlace(codeVal, cur, rhs, line); done {
+					// Yerinde atama bağı değiştirmez: sabitte de geçerli (5.4, assignInPlace).
+					if done, err := v.assignInPlace(codeVal, cur, rhs, line); done {
 						return err
 					}
 				}

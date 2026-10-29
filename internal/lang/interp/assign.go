@@ -13,19 +13,45 @@ func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, err
 	if codeVal == opAssign {
 		return rhs, nil
 	}
-	if h, ok := cur.(InPlaceOperator); ok {
-		if done, err := h.InPlaceOp(assignOpText(codeVal), rhs); done {
-			if err != nil {
-				return nil, lineSuffix(line, err)
-			}
-			v.releaseTemp(rhs, cur)
-			return cur, nil
+	if done, err := v.inPlaceHook(codeVal, cur, rhs, line); done {
+		if err != nil {
+			return nil, err
 		}
+		return cur, nil
 	}
 	if res, done, err := v.listInPlace(codeVal, cur, rhs, line); done {
 		return res, err
 	}
 	return v.infix(codeVal, assignOpText(codeVal), cur, rhs, line)
+}
+
+// inPlaceHook cur InPlaceOperator ise bileşik atamayı ona verir (ör. tensörde yerinde t += d);
+// done, değerin atamayı kendisinin yaptığıdır: cur aynı nesne kalır, bağ değişmez. Hem assignOp
+// hem yerel ve genel yuvaların hızlı yolu (compiler_assign.go) bunu çağırır.
+func (v *VM) inPlaceHook(codeVal uint8, cur Value, rhs Value, line int) (bool, error) {
+	h, ok := cur.(InPlaceOperator)
+	if !ok {
+		return false, nil
+	}
+	done, err := h.InPlaceOp(assignOpText(codeVal), rhs)
+	if !done {
+		return false, nil
+	}
+	if err != nil {
+		return true, lineSuffix(line, err)
+	}
+	v.releaseTemp(rhs, cur)
+	return true, nil
+}
+
+// assignInPlace bileşik atamayı yerinde yapmayı dener: önce değerin kendi kancası
+// (InPlaceOperator), sonra listede += ve *=. done, atamanın yapıldığı (ya da hata verdiği)dır.
+func (v *VM) assignInPlace(codeVal uint8, cur Value, rhs Value, line int) (bool, error) {
+	if done, err := v.inPlaceHook(codeVal, cur, rhs, line); done {
+		return true, err
+	}
+	_, done, err := v.listInPlace(codeVal, cur, rhs, line)
+	return done, err
 }
 
 // listInPlace listede += ve *= atamasını yerinde yapar (5.4): sonuç '+' ve '*'nin kurallarıyla (4.10:
