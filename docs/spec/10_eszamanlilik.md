@@ -15,7 +15,8 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 
 **10.2** Yorumlayıcı kilidi: aynı anda yalnız bir görev TR kodu çalıştırır. Paylaşılan liste ve sözlük bozulmaz, bir deyim (`s += 1`) bölünmez; veri yarışı yoktur.
 - **Devir süreyledir:** kilidi bekleyen bir görev varsa kilidi tutan görev, kilidi aldığından bu yana 5 ms geçtikten sonraki ilk deyim sınırında onu devreder. Tur sayısı ya da çağrı sayısı devri belirlemez; 1.5'in durdurma noktası ayrı bir kuraldır.
-- **Gecikme sözü:** kilidi bekleyen bir görev, öbür görevler ne çalıştırırsa çalıştırsın en çok 10 ms içinde kilidi alır. Bunun için uzun süren yerleşikler (tensör işlemleri, ileri ve geri yayılım, iyileştiricinin adımı, örnekleme, toplu kodlama, veri okuma, cihaz beklemeleri) çalışırken kilidi bırakır; hangi yerleşiğin hangi büyüklükten sonra bıraktığı uygulamanın işidir.
+- **Gecikme sözü:** kilidi bekleyen bir görev en çok 10 ms içinde kilidi alır; öbür görevler TR kodu, tensör ve veri yerleşikleri (tensör işlemleri, ileri ve geri yayılım, iyileştiricinin adımı, örnekleme, toplu kodlama, veri ve dosya okuma, cihaz beklemeleri) çalıştırıyor olabilir. Bu yerleşikler uzun sürünce çalışırken kilidi bırakır; hangisinin hangi büyüklükten sonra bıraktığı uygulamanın işidir.
+- TR'nin kendi değerleri üstünde çalışan yerleşikler (listenin, sözlüğün ve metnin metotları, `TR_json_string`, `TR_json_parse`) kilidi tutar; süreleri büyüklükle artar. Büyük veri tensörde ve veri kümesinde tutulur (15, 16).
 - **Her yerleşik bölünmez görünür:** bir yerleşiğin okuduğu tensöre o bitene kadar başka bir görev yazamaz; yazdığı tensörü başka bir görev okuyamaz da yazamaz da. Sonuç, yerleşik başka hiçbir görev araya girmeden çalışmış gibidir.
   - Okuma ve yazma izni tensörün **deposundadır**: aynı depoyu paylaşan görünümler (15) birbirini korur.
   - Yerleşik bütün izinlerini başlarken **hepsini birden** alır; biri alınamıyorsa hiçbirini tutmadan, kilidi bırakarak bekler. Böylece kilitlenme olmaz.
@@ -53,5 +54,5 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 - Görevin ertelenen işleri (`TR_defer`, 9.1) çalışır; iptal görevin içinde `TR_catch` ile yakalanmaz, görev her zaman durur.
 - İptal, görevin başlattığı ve henüz bitmemiş görevlere de geçer: iptal edilen görevden kimsenin beklemediği bir görev kalmaz. O alt görevin görev değerini başka bir görev bekliyorsa o da iptal hatası alır.
 - İptal edilen görevi bekleyen `.TR_wait()` iptal hatası fırlatır (10.7'deki kodla); `TR_wait_all(görevler)` için iptal de bir hatadır (10.5).
-- Bitmiş görevi iptal etmenin etkisi yoktur.
+- Bitmiş görevi iptal etmenin etkisi yoktur. `TR_handle_stop` (1.6) iptali etkilemez: o program durdurma isteğini üstlenir, iptal edilen görev yine durur.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.

@@ -393,7 +393,6 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (202
 ### 10.5
 
 - **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi ve verilen sıradaki ilk hatası; TR testi.
-- **Mevcut durum:** `tr.json`'da `TR_sleep` ve `TR_wait_all`'ın açıklaması "doğru döndürür" diyor; uygulama da `TR_true` döndürüyor. 13.10'a göre ikisi de değer döndürmez (`TR_wait_all(görevler)` liste verir) [ölçüldü: DENETİM 10-2].
 
 ### 10.6
 
@@ -410,6 +409,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (202
 
 ### 10.9
 
+- **Mevcut durum:** iptal 1.5'in noktalarını kullandığı için döngüde 256 tur sürebilir; ağır turlu döngüde bu saniyeler olabilir [hipotez: DENETİM 10-3]. 1.5'in noktası süreyle de sınırlanabilir; 1. bölümün işi.
 - **Yapılacaklar:** iptal (`TR_cancel`) 1.5'in noktalarıyla ve yerleşik ayrımıyla, alt görevlere geçmesi, ertelenen işlerin çalışması, iptalin yakalanmaması, iptal ve zaman aşımı ileti kodları (8.5); TR testi.
 
 ## 11. Modüller
@@ -474,7 +474,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.3, 12.4
 
-- **Mevcut durum:** `TR_assert` `TR_true` döndürüyor (`internal/lang/interp/test_support.go`); 13'e göre değer döndürmez. Tensör koşullu `TR_assert` 20 satır, 0 boyutlu tensör koşulu 4 satır (`tests/operatorler_test.tr:134-137`) [ölçüldü: DENETİM].
+- **Mevcut durum:** `TR_assert`'in dönüşü 13.10'un status'unda. Tensör koşullu `TR_assert` 20 satır, 0 boyutlu tensör koşulu 4 satır (`tests/operatorler_test.tr:134-137`) [ölçüldü: DENETİM].
 
 ### 12.5
 
@@ -518,7 +518,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.10
 
 - **Mevcut durum:** 35 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi), `TR_tolist`'in özelliği de; dönüşü argümanın değerine bağlı üç yer: `TR_tolist` (tensörün boyutu), `TR_decode` (toplu giriş), `TR_parameters` (`TR_named:`); 9 yerleşik değişken sayıda argüman alıyor; yalnız 7 metodun alıcıya göre ayrı imzası var [ölçüldü: DENETİM].
-- **Yapılacaklar:** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 19 ve 50 kullanım, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması (`TR_write_file`, `TR_assert`, `.TR_load_state`, 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi); `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
+- **Yapılacaklar:** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 19 ve 50 kullanım, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması, tek bir 4a işi: `TR_write_file`, `TR_assert` (`internal/lang/interp/test_support.go`), `.TR_load_state`, `TR_sleep`, `TR_wait_all` (argümanlı biçimi liste verir, 10.5), 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi; `tr.json`'un açıklamalarındaki "doğru döndürür" aynı commit'te değişir [ölçüldü: DENETİM 10-2, 10-3]; `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
 
 ### 13.11
 
@@ -651,8 +651,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.12, 20.13
 
-- **Mevcut durum:** `TR_load_state` bugün mantık değeri döndürüyor.
-- **Yapılacaklar:** değer döndürmez (13'ün "anlamsız dönüş yoktur" kuralı); göç.
+- **Mevcut durum:** `TR_load_state`'in mantık değeri dönüşü 13.10'un status'unda.
 
 ### 20.16
 
