@@ -104,7 +104,7 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 	constant := s.IsConst
 	line := s.Line()
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return applyMultiValues(v, env, values, len(definitions), line, func(i int, val Value) error {
+		return applyUnpacked(v, env, values, len(definitions), line, func(i int, val Value) error {
 			definitions[i](env, val, constant)
 			return nil
 		})
@@ -137,15 +137,15 @@ func (c *compiler) multiAssignStatement(k *compilerScope, s *ast.MultiAssignStat
 	}
 	line := s.Line()
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		return applyMultiValues(v, env, values, len(dests), line, func(i int, val Value) error {
+		return applyUnpacked(v, env, values, len(dests), line, func(i int, val Value) error {
 			return dests[i](v, env, val)
 		})
 	}
 }
 
-// applyMultiValues çoklu tanım/atamanın sağ tarafını hesaplar ve her değeri sırayla apply ile
+// applyUnpacked çoklu tanım/atamanın sağ tarafını hesaplar ve her değeri sırayla apply ile
 // i. hedefe uygular; sonuç son değerdir.
-func applyMultiValues(v *VM, env *Environment, values []exprCode, count, line int, apply func(i int, val Value) error) (Value, flowSignal, error) {
+func applyUnpacked(v *VM, env *Environment, values []exprCode, count, line int, apply func(i int, val Value) error) (Value, flowSignal, error) {
 	evalVals, err := multiValues(v, env, values, count, line)
 	if err != nil {
 		return nil, signalNone, err
