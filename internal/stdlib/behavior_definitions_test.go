@@ -15,9 +15,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
@@ -49,18 +49,18 @@ func chdirTemp(t *testing.T) {
 
 func repoRoot(*testing.T) string { return reporoot.Root() }
 
-// exampleProgram kodun Türkçe tanımındaki örneği ayrıştırır. Bilerek Türkçe gösterim: örnek tr.json'da
-// Türkçe yazılmıştır, Türkçe okuma yoluyla (source.TextLexer) okunur.
+// exampleProgram kodun tanımındaki örneği ayrıştırır: örnek kimlik yazımıyla yazılmış başlıksız
+// kodlu gövdedir (17.4), kimlik okuyucusuyla okunur.
 func exampleProgram(t *testing.T, k codes.Code) (*ast.Program, string) {
 	t.Helper()
-	g, _ := codes.Source().Entry(k)
-	p := parser.New(source.TextLexer(g.Example))
+	def, _ := codes.DefinitionOf(k)
+	p := parser.New(lexer.NewBody(def.Example, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
-		t.Errorf("%s (%s) örneği ayrıştırılamadı: %v\n  %s", k, g.Name, p.Errors(), g.Example)
-		return nil, g.Example
+		t.Errorf("%s örneği ayrıştırılamadı: %v\n  %s", k, p.Errors(), def.Example)
+		return nil, def.Example
 	}
-	return prog, g.Example
+	return prog, def.Example
 }
 
 // runExample programı depo kökünde duran bir program gibi (göreli yollar depo köküne
@@ -96,10 +96,10 @@ func runExample(t *testing.T, prog *ast.Program) error {
 func TestExamplesRun(t *testing.T) {
 	chdirTemp(t)
 	for _, k := range codes.Codes() {
-		g, _ := codes.Source().Entry(k)
+		def, _ := codes.DefinitionOf(k)
 		// Komutların örneği bir komut satırıdır, TR programı değil; komut satırı testleri sınar.
 		// Kitaplık kodunun örneği aktarım ister (madde 15 adım 3c).
-		if g.Example == "" || k.ExpectedKind() == codes.KindCommand || k.IsLibrary() {
+		if def.Example == "" || k.ExpectedKind() == codes.KindCommand || k.IsLibrary() {
 			continue
 		}
 		prog, example := exampleProgram(t, k)
@@ -107,11 +107,11 @@ func TestExamplesRun(t *testing.T) {
 			continue
 		}
 		if errs := checker.New().CheckProgram(prog); len(errs) > 0 {
-			t.Errorf("%s (%s) örneği tip denetiminden geçmedi: %v\n  %s", k, g.Name, errs, example)
+			t.Errorf("%s örneği tip denetiminden geçmedi: %v\n  %s", k, errs, example)
 			continue
 		}
 		if err := runExample(t, prog); err != nil {
-			t.Errorf("%s (%s) örneği çalışmadı: %v\n  %s", k, g.Name, err, example)
+			t.Errorf("%s örneği çalışmadı: %v\n  %s", k, err, example)
 		}
 	}
 }

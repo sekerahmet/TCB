@@ -38,7 +38,7 @@
 //
 // # Language file fields
 //
-//	"TR_fn_print": { "name": "yazdır", "family": "giriş ve çıkış", "description": "...", "example": "..." }
+//	"TR_fn_print": { "name": "yazdır", "family": "giriş ve çıkış", "description": "..." }
 //	"TR_arg_seed": { "name": "tohum", "foreign": ["seed"], "family": "adlı argüman: rastgelelik", ... }
 //
 // The field names are English identifiers like the Go names; only the values are in the
@@ -46,8 +46,9 @@
 // other languages or libraries (lr, seed, axis): they are not accepted, only make the error
 // message suggest name, and are specific to
 // each language file (each file records its own readers' habits). Every operation has exactly
-// one name: a synonym or a second spelling is not accepted. family is a short group name, description one or two
-// sentences and example one line of working TR code, for people. Entries are one per line, in the order of Classes and by identity inside a class.
+// one name: a synonym or a second spelling is not accepted. family is a short group name and description one or two
+// sentences, for people; the example is language-independent (definitions.json "example",
+// written with identities) and each language shows it in its view. Entries are one per line, in the order of Classes and by identity inside a class.
 //
 // # ASCII form
 //

@@ -17,10 +17,10 @@ import (
 
 // rawEntry dosyadaki bir satırın çözülmüş biçimidir.
 type rawEntry struct {
-	key                  string
-	name                 string
-	family               string
-	description, example string
+	key         string
+	name        string
+	family      string
+	description string
 }
 
 type jsonParser struct {
@@ -105,7 +105,7 @@ func (c *jsonParser) str() (string, error) {
 	return "", c.errorf("unterminated string")
 }
 
-// entry { "name": ..., "family": ..., "description": ..., "example": ... }
+// entry { "name": ..., "family": ..., "description": ... }
 // nesnesini okur.
 func (c *jsonParser) entry(g *rawEntry) error {
 	if err := c.expect('{'); err != nil {
@@ -135,10 +135,8 @@ func (c *jsonParser) entry(g *rawEntry) error {
 			g.family, err = c.str()
 		case "description":
 			g.description, err = c.str()
-		case "example":
-			g.example, err = c.str()
 		default:
-			return c.errorf("%s entry has unknown field %q (valid fields: name, family, description, example; familiar names are in definitions.json)", g.key, field)
+			return c.errorf("%s entry has unknown field %q (valid fields: name, family, description; familiar names and examples are in definitions.json)", g.key, field)
 		}
 		if err != nil {
 			return err

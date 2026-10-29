@@ -51,9 +51,9 @@ type Entry struct {
 	Foreign []string
 	// Family is a short description for people (the group; for members, the types).
 	Family string
-	// Description is one or two sentences on what the code does; Example is a one-line TR
-	// snippet (docs/codes.md is generated from them).
-	Description, Example string
+	// Description is one or two sentences on what the code does (docs/codes.md is generated
+	// from it; the example is language-independent, Definition.Example).
+	Description string
 }
 
 // foreignMatch bir yabancı adın hangi koda ait olduğu ve adın, yabancı bir adın türetilmiş
@@ -119,7 +119,7 @@ func load(langCode string, data []byte, common map[Code]string) (*Language, erro
 			errorf("%s: the name must not be empty or contain spaces (%q)", k, g.name)
 			continue
 		}
-		gr := &Entry{Code: k, Name: g.name, Family: g.family, Description: g.description, Example: g.example}
+		gr := &Entry{Code: k, Name: g.name, Family: g.family, Description: g.description}
 		// Tanıdık adlar dilden bağımsızdır (definitions.json "familiar"); bu dilin kendi adına eşit
 		// olan (İngilizcede max) bu dilde tanıdık ad değildir.
 		for _, e := range familiar[k] {

@@ -53,7 +53,7 @@ func TestFileFieldNamesAreEnglishIdentifiers(t *testing.T) {
 	}
 }
 
-// Her kodun Türkçe bir açıklaması ve bir örneği vardır.
+// Her kodun Türkçe bir açıklaması ve tanım dosyasında kimlik yazımıyla bir örneği vardır (17.4).
 // Açıklama bir-iki cümledir.
 func TestEveryCodeHasDescription(t *testing.T) {
 	d := Source()
@@ -68,10 +68,11 @@ func TestEveryCodeHasDescription(t *testing.T) {
 		if n := strings.Count(g.Description, ". ") - strings.Count(g.Description, "... ") + 1; n > 3 {
 			t.Errorf("%s (%s): açıklama %d cümle; en çok 2-3 cümle olmalı", k, g.Name, n)
 		}
-		if strings.TrimSpace(g.Example) == "" {
+		def, _ := DefinitionOf(k)
+		if strings.TrimSpace(def.Example) == "" {
 			t.Errorf("%s (%s): örnek yok", k, g.Name)
 		}
-		if strings.Contains(g.Example, "\n") {
+		if strings.Contains(def.Example, "\n") {
 			t.Errorf("%s (%s): örnek tek satır olmalı", k, g.Name)
 		}
 	}
