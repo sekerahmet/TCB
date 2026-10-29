@@ -34,6 +34,7 @@ const (
 	H0033 Code = 33   // Latin
 	H0034 Code = 34   // Kiril
 	H0035 Code = 35   // Yunan
+	H0036 Code = 36   // '{literal}' bir öğe indeksi değil: noktadan sonra demetin öğesi yalnız ondalık rakamlarla, başta sıfır olmadan yazılır (t.0, t.1, t.10; 3.6a)
 	H0100 Code = 100  // Sözdizimi hatası — {error}
 	H0110 Code = 110  // dosya sonu
 	H0111 Code = 111  // bir ad

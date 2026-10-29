@@ -16,8 +16,13 @@ func (p *Parser) parseGroupedOrLambdaExpression(pattern bool) ast.Expression {
 		return p.parseLambdaExpression()
 	}
 
+	tok := p.curToken()
 	p.nextToken()
 	exp := p.parseExpression(precLowest)
+	if p.peekTokenIs(lexer.TokComma) {
+		// (a, b): demet (3.6a); tek öğeli parantez gruplamadır
+		exp = &ast.TupleExpression{Token: tok, Elements: p.parseCommaExpressions(exp), Parens: true}
+	}
 	if !p.expectPeek(lexer.TokRParen) {
 		return nil
 	}

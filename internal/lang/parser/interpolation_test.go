@@ -14,9 +14,10 @@ func TestQuotedStringInInterpolation(t *testing.T) {
 	}
 }
 
-// Üye adı bir ad olmalıdır: başka bir sözcük sessizce üye adı sayılmaz.
+// Üye adı bir ad ya da demetin indeksidir (x.1, 3.6a): başka bir sözcük sessizce üye adı sayılmaz.
+// İndeks yalnız '.'den sonra gelir, '?.'den sonra değil.
 func TestMemberNameMustBeName(t *testing.T) {
-	for _, codeVal := range []string{"x.1", "x.$", "x?.TR_if"} {
+	for _, codeVal := range []string{"x?.1", "x.$", "x?.TR_if", "x.1e5"} {
 		if errs := parseErrors("TR_var x = 1\n" + codeVal); len(errs) == 0 {
 			t.Errorf("%s hata vermeli", codeVal)
 		}

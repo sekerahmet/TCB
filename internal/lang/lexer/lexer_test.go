@@ -258,6 +258,36 @@ func TestNumberAndRangeSplit(t *testing.T) {
 	})
 }
 
+// Üyeden sonraki rakamlar demetin öğe indeksidir (3.6a): 't.0.1' iki indekstir, (t.0).1; ondalık
+// okunmaz. Ondalık ve aralık okuması üye dışında aynı kalır.
+func TestElementIndexSplit(t *testing.T) {
+	dot, end := expected{TokDot, "."}, expected{TokEOF, ""}
+	checkTokens(t, "t.0.1", []expected{{TokIdent, "t"}, dot, {TokInt, "0"}, dot, {TokInt, "1"}, end})
+	checkTokens(t, "t.10", []expected{{TokIdent, "t"}, dot, {TokInt, "10"}, end})
+	checkTokens(t, "t.0.1.2", []expected{{TokIdent, "t"}, dot, {TokInt, "0"}, dot, {TokInt, "1"}, dot, {TokInt, "2"}, end})
+	checkTokens(t, "(1, 2).1", []expected{
+		{TokLParen, "("}, {TokInt, "1"}, {TokComma, ","}, {TokInt, "2"}, {TokRParen, ")"}, dot, {TokInt, "1"}, end,
+	})
+	checkTokens(t, "l[0].1", []expected{{TokIdent, "l"}, {TokLBracket, "["}, {TokInt, "0"}, {TokRBracket, "]"}, dot, {TokInt, "1"}, end})
+	checkTokens(t, "t.0..2", []expected{{TokIdent, "t"}, dot, {TokInt, "0"}, {TokRange, ".."}, {TokInt, "2"}, end})
+	// üye dışında ondalık ve aralık
+	checkTokens(t, "1.5", []expected{{TokFloat, "1.5"}, end})
+	checkTokens(t, "1..2", []expected{{TokInt, "1"}, {TokRange, ".."}, {TokInt, "2"}, end})
+	checkTokens(t, "x = 1.5 + t.1", []expected{
+		{TokIdent, "x"}, {TokAssign, "="}, {TokFloat, "1.5"}, {TokPlus, "+"}, {TokIdent, "t"}, dot, {TokInt, "1"}, end,
+	})
+	// indeks yalnız rakamdır: üs, ayırıcı ve baştaki sıfır hatadır
+	for _, src := range []string{"x.0e1", "t.1_0", "t.01"} {
+		if _, errs := allTokens(t, src); !hasCode(errs, messages.H0036) {
+			t.Errorf("%q: H0036 bekleniyordu, hatalar: %v", src, errs)
+		}
+	}
+	// işlenenden sonra gelmeyen '.5' yine noktayla başlayan sayının hatasıdır
+	if _, errs := allTokens(t, "x = .5"); !hasCode(errs, messages.H0032) {
+		t.Errorf("'x = .5': H0032 bekleniyordu, hatalar: %v", errs)
+	}
+}
+
 // Bilimsel yazım: üs harfi (e/E), isteğe bağlı işaret ve en az bir rakam; sonuç Ondalık'tır.
 func TestScientificNumbers(t *testing.T) {
 	tests := []struct{ src, lit string }{

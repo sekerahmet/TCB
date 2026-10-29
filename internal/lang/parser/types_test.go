@@ -45,7 +45,8 @@ func parseClean(t *testing.T, code string) *ast.Program {
 
 // Kural (3.5, 3.6, 3.6a, 3.7, 6.9, 6.10, 15.1): dil tanımının yazdığı her tip yazımı ve iç içe
 // biçimleri TypeRef'e ayrışır. Parantezden sonra '->' geliyorsa fonksiyon tipi, gelmiyorsa demet
-// tipidir; '->' sağdan birleşir; fonksiyon tipinin ardındaki '?' dönüş tipinindir. TR_AnyTensor
+// tipidir, tek öğeli parantez gruplar; '->' sağdan birleşir; fonksiyon tipinin ardındaki '?' dönüş
+// tipinindir, parantezli fonksiyon tipinin ardındaki fonksiyonun kendisinin. TR_AnyTensor
 // (15.1) ve TR_Task (10.1) henüz kod değildir, kendi izlerinde kaydedilir.
 func TestTypeFormsParse(t *testing.T) {
 	i, s, b, f := named("TR_Int"), named("TR_String"), named("TR_Bool"), named("TR_Float")
@@ -64,6 +65,8 @@ func TestTypeFormsParse(t *testing.T) {
 		{"(TR_Int, TR_String)", tuple(i, s)},
 		{"(TR_Int, TR_String)?", opt(tuple(i, s))},
 		{"(TR_Int, (TR_Bool, TR_Float))", tuple(i, tuple(b, f))},
+		{"(TR_Int)", i},
+		{"((TR_Int) -> TR_Bool)?", opt(fn(b, i))},
 		{"(TR_Int) -> TR_Bool", fn(b, i)},
 		{"(TR_Int, TR_Int) -> TR_Int", fn(i, i, i)},
 		{"() -> TR_Int", fn(i)},
@@ -122,8 +125,7 @@ TR_var h = (a: TR_List[TR_Int]) => a`)
 	check("ok fonksiyonu parametresi", h.Parameters[0].Type, listInt)
 }
 
-// Yanlış yazımlar hatadır. Tek öğeli parantez ve '->'süz '()' de hatadır: dil tanımı onların tip mi
-// gruplama mı olduğunu söylemiyor (3.6a yalnız değer için "(x) parantezdir" der).
+// Yanlış yazımlar hatadır; '->'süz '()' de. Tek öğeli parantez gruplamadır (3.6a), hata değildir.
 func TestMalformedTypesAreErrors(t *testing.T) {
 	for _, src := range []string{
 		"TR_var x: TR_List[ = 1",
@@ -133,12 +135,9 @@ func TestMalformedTypesAreErrors(t *testing.T) {
 		"TR_var x: TR_Int?? = 1",
 		"TR_var x: TR_Int? ? = 1",
 		"TR_var x: (TR_Int) -> = 1",
-		"TR_var x: (TR_Int) = 1",
 		"TR_var x: () = 1",
-		"TR_var x: ((TR_Int) -> TR_Bool)? = TR_none",
 		"TR_var x: (TR_Int, ) = 1",
 		"TR_func f() -> { TR_return 1 }",
-		"TR_func f() -> (TR_Int) { TR_return 1 }",
 		"TR_func f(a: TR_Int??) { }",
 		"TR_func f(a: TR_List[) { }",
 		"TR_struct S { a: TR_Int?? }",

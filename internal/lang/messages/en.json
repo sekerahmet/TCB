@@ -29,6 +29,7 @@
 "H0033": "Latin",
 "H0034": "Cyrillic",
 "H0035": "Greek",
+"H0036": "'{literal}' is not an element index: after the dot a tuple's element is written with decimal digits only, without a leading zero (t.0, t.1, t.10; 3.6a)",
 "H0100": "Syntax error — {error}",
 "H0110": "end of file",
 "H0111": "a name",

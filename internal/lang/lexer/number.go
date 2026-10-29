@@ -121,6 +121,38 @@ func (l *Lexer) pointFraction(line, col int) Token {
 	return Token{Type: TokFloat, Literal: sb.String(), Line: line, Column: col}
 }
 
+// operandEnded son sözcük biriminin bir işleneni bitirip bitirmediğidir: ad, kapanan parantez ya da
+// öğe indeksi (t.0). Ardından gelen '.' ve rakam üye erişimidir (t.0, f().1, t.0.1), '.5' gibi
+// noktayla başlayan bir sayı değildir.
+func (l *Lexer) operandEnded() bool {
+	switch s := &l.places; s.prev {
+	case TokIdent, TokSelf, TokRParen, TokRBracket:
+		return true
+	case TokInt:
+		return s.prev2 == TokDot
+	}
+	return false
+}
+
+// elementIndex üye noktasından sonraki demet indeksini okur (3.6a): yalnız ondalık rakamlar,
+// ayırıcısız ve baştaki sıfırsız ('0' kendisi olur). Nokta ve üs okunmaz: 't.0.1' iki indekstir,
+// (t.0).1; ardındaki '.' yeniden bir üye noktasıdır. Rakamlara bitişik harf ya da '_' (x.0e1,
+// t.1_0) ve baştaki sıfır (t.01) hatadır; okuma onları da indeksin metnine katıp sürer.
+func (l *Lexer) elementIndex(line, col int) Token {
+	start := l.position
+	for isDigit(l.ch) {
+		l.readChar()
+	}
+	digits := string(l.input[start:l.position])
+	for isNameChar(l.ch) {
+		l.readChar()
+	}
+	if written := string(l.input[start:l.position]); written != digits || len(digits) > 1 && digits[0] == '0' {
+		l.addError(line, col, messages.New(messages.H0036, written))
+	}
+	return Token{Type: TokInt, Literal: digits, Line: line, Column: col}
+}
+
 // readDigits tabandaki rakamları (ve ayırıcı '_' işaretlerini, onları yazmadan) sb'ye okur. '_'
 // iki rakam arasında olmalıdır: sonda ya da iki '_' yan yana gelirse false döner. Metottur,
 // kapanış değil: sayı başına en çok üç çağrıdır ve sb yakalanıp yığından kaçmaz.

@@ -249,7 +249,7 @@ func (l *Lexer) nextToken() Token {
 	case '=', ':', '+', '-', '*', '/', '%', '@', '!', '<', '>', '&', '|', '^', '~', '?':
 		tok = l.operatorToken(line, col)
 	case '.':
-		if isDigit(l.peekChar()) {
+		if isDigit(l.peekChar()) && !l.operandEnded() {
 			return l.pointFraction(line, col)
 		}
 		if l.peekChar() == '.' {
@@ -306,6 +306,8 @@ func (l *Lexer) nextToken() Token {
 			name := l.readIdentifier()
 			l.checkName(name, line, col)
 			return l.nameToken(name, line, col)
+		} else if isDigit(l.ch) && l.places.prev == TokDot {
+			return l.elementIndex(line, col)
 		} else if isDigit(l.ch) {
 			return l.number(line, col)
 		} else {
