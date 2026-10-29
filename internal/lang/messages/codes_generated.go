@@ -372,7 +372,6 @@ const (
 	H2524 Code = 2524 // '{struct}' yapısı
 	H2525 Code = 2525 // {type} tipi sırayla okunur, indekslenemez: öğelerini '{loop} x {in} ...' döngüsüyle ya da .{next}() ile okuyun
 	H2526 Code = 2526 // {type} tipinde {prop|q} metodu yok; dilim köşeli parantezle alınır: x[a..b]
-	H2527 Code = 2527 // {name}={value|q} ile {other}={other_value|q} aynı ortam değişkenidir ama değerleri farklı: birini kaldırın ya da ikisine aynı değeri verin
 	H2528 Code = 2528 // {fn}: {code|q} tanımlı bir ileti kodu değil
 	H2529 Code = 2529 // {fn}: {code} iletisi {expected} değer alır, {given} verildi
 	H2530 Code = 2530 // {fn}: durdurma istendi, yeni bekleme başlatılmadı. Program durdurmayı üstlendi: {requested}() doğruysa döngüden çıkıp temizliğe geçin; temizlikte beklemek gerekiyorsa onu '{defer}' bloğunda ya da bu hatayı yakalayan '{catch}' gövdesinde yapın
@@ -1872,5 +1871,7 @@ const (
 	H8872 Code = 8872 // dil dosyasındaki ad
 	H8873 Code = 8873 // ileti kodu
 	H8874 Code = 8874 // yeniden adlandırılamaz: ileti kodu (kod değişmez, metni ileti kataloğundadır)
+	H8875 Code = 8875 // '{given}' TR'de bir ortam değişkeni değil; '{name}' kullanın
+	H8876 Code = 8876 // '{given}' 'tr {command}' için bir alt komut değil; 'tr {command} {subcommand}' yazmak mı istediniz?
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

@@ -109,11 +109,11 @@ func commandCode(arg string) codes.Code {
 	return codes.None
 }
 
-// oldCommand bir komutun eski yazımını (Türkçe harfsiz biçim) tanır ve asıl adını verir. Eski
-// yazım KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz. Komut adının seçenek
-// biçimi (--help, --help) unknownTopLevelOption'dadır.
+// oldCommand bir komutun gösterim dilindeki adını ya da eski yazımını (Türkçe harfsiz biçim)
+// tanır ve yazılacak kimlik adını verir (17.9). Böyle yazımlar dosya adı sanılıp çalıştırılmaz.
+// Komut adının seçenek biçimi (--help, --yardım) unknownTopLevelOption'dadır.
 func oldCommand(arg string) (string, bool) {
-	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, arg, nil); ok {
+	if k, ok := codes.SuggestCommandLine(codes.NamespaceCommand, arg, func(k codes.Code) bool { return k.Class() == codes.ClassCommand }); ok {
 		return codes.DisplayName(k), true
 	}
 	return "", false
@@ -392,12 +392,15 @@ func startsWithPrint(ln string) bool {
 }
 
 // exitHint kabukta çıkmak isteyen ama kabuğun çıkış komutunu (TR_repl_exit) yazmayan bir satırı tanır:
-// adın Türkçe harfsiz biçimi (cikis) ya da hata ayıklayıcının çıkış komutu (TR_dbg_quit, quit).
-// Böyle bir satır program sanılıp çalıştırılmaz; asıl komut önerilir.
+// adın gösterim dilindeki ya da Türkçe harfsiz biçimi (çıkış, cikis) ya da hata ayıklayıcının çıkış
+// komutu (TR_dbg_quit, quit). Böyle bir satır program sanılıp çalıştırılmaz; asıl komut önerilir.
 func exitHint(line string) bool {
-	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, line, nil); ok && k == codes.ReplExit {
+	if k, ok := codes.SuggestCommandLine(codes.NamespaceCommand, line, nil); ok && k == codes.ReplExit {
 		return true
 	}
-	k, ok := codes.FindDebuggerCommand(line)
+	if k, ok := codes.FindDebuggerCommand(line); ok && k == codes.DbgQuit {
+		return true
+	}
+	k, ok := codes.SuggestCommandLine(codes.NamespaceDebugger, line, nil)
 	return ok && k == codes.DbgQuit
 }

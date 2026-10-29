@@ -40,11 +40,6 @@ import (
 
 // bareNameAllowances: dosya (depo köküne göre) ve o dosyada izin verilen ad → gerekçe.
 var bareNameAllowances = map[string]map[string]string{
-	// Yazım dilini seçen değişken (TR_env_LANG) dil listeleri kurulmadan okunur; messages kodları
-	// bilmez. codes.TestLanguageEnvVarsAreK400 listeyi TR_env_LANG'ün her dildeki adıyla eşler.
-	"internal/lang/messages/code.go": {
-		"TR_DIL": "yazım dili değişkeni TR_LANG, dil listelerinden önce okunur",
-	},
 	// Dosya biçiminin adı (JSON), TR_type_JSON tipinin adı değil: dil ve ileti dosyalarının okunma hatası.
 	"internal/lang/codes/language.go":   {"JSON": "dil dosyası biçiminin adı (tip değil)"},
 	"internal/lang/messages/catalog.go": {"JSON": "ileti dosyası biçiminin adı (tip değil)"},

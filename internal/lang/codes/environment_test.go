@@ -25,79 +25,66 @@ func unsetEnv(t *testing.T, name string) {
 	})
 }
 
-// Kural (dil tanımı 17.8): bir ortam değişkeni her gömülü yazım dilinin adıyla okunur; hiçbir dilin adı
-// öncelikli değildir: iki ad aynı değerle verilebilir, ayrı değerle verilirse hata (H2527).
+// Kural (dil tanımı 17.9): bir ortam değişkeni yalnız kimliğin adıyla okunur (TR_GPU_SYNC, TR_LANG);
+// gösterim dilindeki ad (TR_GPU_ESZAMANLI, TR_DIL) kabul edilmez ve kimliğin adını önerir (H8875).
 func TestEnvValueReadsEveryLanguagesName(t *testing.T) {
 	unsetEnv(t, "TR_GPU_ESZAMANLI")
 	unsetEnv(t, "TR_GPU_SYNC")
 	if _, ok := EnvValue(EnvGpuSync); ok {
 		t.Fatal("unset variable reported as set")
 	}
-	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI"} {
-		t.Run(name, func(t *testing.T) {
-			unsetEnv(t, "TR_GPU_ESZAMANLI")
-			unsetEnv(t, "TR_GPU_SYNC")
-			t.Setenv(name, "1")
-			if v, ok := EnvValue(EnvGpuSync); !ok || v != "1" {
-				t.Errorf("%s=1 not read: %q %v", name, v, ok)
-			}
-		})
-	}
 	t.Setenv("TR_GPU_SYNC", "1")
+	if v, ok := EnvValue(EnvGpuSync); !ok || v != "1" {
+		t.Errorf("TR_GPU_SYNC=1 not read: %q %v", v, ok)
+	}
+	os.Unsetenv("TR_GPU_SYNC")
 	t.Setenv("TR_GPU_ESZAMANLI", "1")
-	if _, _, err := envLookup(EnvGpuSync); err != nil {
-		t.Errorf("same value under both names: %v", err)
+	if v, ok := EnvValue(EnvGpuSync); ok {
+		t.Errorf("display-language name TR_GPU_ESZAMANLI must not be read: %q", v)
 	}
-	t.Setenv("TR_GPU_ESZAMANLI", "0")
-	if _, _, err := envLookup(EnvGpuSync); !messages.Has(err, messages.H2527) {
-		t.Errorf("different values under two names: want H2527, got %v", err)
+	if _, _, err := envLookup(EnvGpuSync); !messages.Has(err, messages.H8875) || !strings.Contains(err.Error(), "TR_GPU_SYNC") {
+		t.Errorf("display-language name TR_GPU_ESZAMANLI: want H8875 suggesting TR_GPU_SYNC, got %v", err)
 	}
-	if err := ExportEnvironment(); !messages.Has(err, messages.H2527) {
-		t.Errorf("ExportEnvironment: want H2527, got %v", err)
+	if err := ExportEnvironment(); !messages.Has(err, messages.H8875) || !strings.Contains(err.Error(), "TR_GPU_SYNC") {
+		t.Errorf("ExportEnvironment: want H8875 suggesting TR_GPU_SYNC, got %v", err)
 	}
 }
 
-// Kural: tr komutu başlarken her ortam değişkenine kimlik adı verilir (ad kodlarını göremeyen hesap
-// çekirdeği onu okur: TR_env_GPU_SYNC); hiçbir yazım dilinde verilmeyen değişkenin kalıtılmış kimlik adı
-// silinir. Ortak adlı değişken (TR_CPU_AVX2) ortak adıyla da okunur.
+// Kural (17.9): tr komutu başlarken her ortam değişkenine kimlik adı verilir (ad kodlarını göremeyen hesap
+// çekirdeği onu okur: TR_env_GPU_SYNC); verilmeyen değişkenin kalıtılmış kimlik adı silinir.
 func TestExportEnvironmentGivesTheIdentityName(t *testing.T) {
 	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI", "TR_env_GPU_SYNC", "TR_CPU_AVX2", "TR_env_CPU_AVX2"} {
 		unsetEnv(t, name)
 	}
-	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI"} {
-		t.Run(name, func(t *testing.T) {
-			t.Setenv(name, "1")
-			t.Setenv("TR_CPU_AVX2", "0")
-			if err := ExportEnvironment(); err != nil {
-				t.Fatal(err)
-			}
-			if v := os.Getenv("TR_env_GPU_SYNC"); v != "1" {
-				t.Errorf("TR_env_GPU_SYNC = %q, want 1", v)
-			}
-			if v := os.Getenv("TR_env_CPU_AVX2"); v != "0" {
-				t.Errorf("TR_env_CPU_AVX2 = %q, want 0", v)
-			}
-			os.Unsetenv(name)
-			if err := ExportEnvironment(); err != nil {
-				t.Fatal(err)
-			}
-			if v, set := os.LookupEnv("TR_env_GPU_SYNC"); set {
-				t.Errorf("TR_env_GPU_SYNC = %q left after its name was removed", v)
-			}
-		})
+	t.Setenv("TR_GPU_SYNC", "1")
+	t.Setenv("TR_CPU_AVX2", "0")
+	if err := ExportEnvironment(); err != nil {
+		t.Fatal(err)
+	}
+	if v := os.Getenv("TR_env_GPU_SYNC"); v != "1" {
+		t.Errorf("TR_env_GPU_SYNC = %q, want 1", v)
+	}
+	if v := os.Getenv("TR_env_CPU_AVX2"); v != "0" {
+		t.Errorf("TR_env_CPU_AVX2 = %q, want 0", v)
+	}
+	os.Unsetenv("TR_GPU_SYNC")
+	if err := ExportEnvironment(); err != nil {
+		t.Fatal(err)
+	}
+	if v, set := os.LookupEnv("TR_env_GPU_SYNC"); set {
+		t.Errorf("TR_env_GPU_SYNC = %q left after its name was removed", v)
 	}
 }
 
-// messages yazım dilini dil listelerinden önce okuduğu için TR_env_LANG'ün adlarını kendisi tutar; liste
-// TR_env_LANG'ün bütün gömülü dillerdeki adlarıyla aynı olmalı (yeni dil eklenince burada yakalanır).
+// messages gösterim dilini dil listelerinden önce okuduğu için TR_env_LANG'in komut satırı adını
+// kendisi tutar; yalnız kimlik adını (TR_LANG) okur (17.8, 17.9).
 func TestLanguageEnvVarsAreK400(t *testing.T) {
-	got, want := slices.Sorted(slices.Values(messages.LanguageEnvVars)), WritingNames(EnvLang)
-	slices.Sort(want)
-	if !slices.Equal(got, want) {
-		t.Errorf("messages.LanguageEnvVars = %v, TR_env_LANG names = %v", got, want)
+	want := []string{CommandLineName(EnvLang)}
+	if !slices.Equal(messages.LanguageEnvVars, want) {
+		t.Errorf("messages.LanguageEnvVars = %v, want %v", messages.LanguageEnvVars, want)
 	}
-	if !slices.Contains(want, messages.LanguageEnvVar) {
-		t.Errorf("messages.LanguageEnvVar = %q is not a name of TR_env_LANG %v", messages.LanguageEnvVar, want)
+	if messages.LanguageEnvVar != CommandLineName(EnvLang) {
+		t.Errorf("messages.LanguageEnvVar = %q, want %q", messages.LanguageEnvVar, CommandLineName(EnvLang))
 	}
 }
 

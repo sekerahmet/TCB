@@ -391,24 +391,46 @@ func buildLanguage(langs map[string][]byte, langCode string) (*Language, error) 
 	return Load(langCode, data)
 }
 
-// FindCommand finds a tr command or a shell command (cmd, repl) by its name in any embedded
-// writing language: the active language first, then the others. Command lines and scripts then
-// work on every machine whatever TR_LANG is (unlike the language's source, a command line has no
-// coded form).
-func FindCommand(name string) (Code, bool) { return findInLanguages(NamespaceCommand, name) }
+// FindCommand finds a tr command or a shell command (cmd, repl) by its command-line identity
+// name (17.9: run, index, exit). Display-language names are rejected and suggested via
+// SuggestCommandLine.
+func FindCommand(name string) (Code, bool) { return findCommandLine(NamespaceCommand, name) }
 
-// FindSubcommand finds a subcommand of 'tr index' (sub) by its name in any embedded writing
-// language, as FindCommand does. The names are valid only after 'tr index'.
-func FindSubcommand(name string) (Code, bool) { return findInLanguages(NamespaceSubcommand, name) }
+// FindSubcommand finds a subcommand of 'tr index' (sub) by its command-line identity name (17.9),
+// as FindCommand does. The names are valid only after 'tr index'.
+func FindSubcommand(name string) (Code, bool) { return findCommandLine(NamespaceSubcommand, name) }
 
-// FindOption finds a command-line option (opt) by its name without the leading "--", in any
-// embedded writing language, as FindCommand does.
-func FindOption(name string) (Code, bool) { return findInLanguages(NamespaceOption, name) }
+// FindOption finds a command-line option (opt) by its identity name without the leading "--"
+// (17.9), as FindCommand does.
+func FindOption(name string) (Code, bool) { return findCommandLine(NamespaceOption, name) }
 
-// FindDebuggerCommand finds a debugger command (dbg) by its name in any embedded writing
-// language, as FindCommand does.
+// FindDebuggerCommand finds a debugger command (dbg) by its command-line identity name (17.9),
+// as FindCommand does.
 func FindDebuggerCommand(name string) (Code, bool) {
-	return findInLanguages(NamespaceDebugger, name)
+	return findCommandLine(NamespaceDebugger, name)
+}
+
+// SuggestCommandLine returns the command-line code to suggest when spelling is a display-language
+// name (çalıştır → TR_cmd_run, tanım → TR_sub_definition, dil → TR_opt_lang, çıkış → TR_repl_exit,
+// adım → TR_dbg_step, TR_DIL → TR_env_LANG) or its ASCII/familiar form (calistir, tanim, cikis, adim).
+func SuggestCommandLine(ns Namespace, spelling string, accept func(Code) bool) (Code, bool) {
+	if k, ok := findCommandLine(ns, spelling); ok && (accept == nil || accept(k)) {
+		return None, false
+	}
+	if k, ok := findInLanguages(ns, spelling); ok && (accept == nil || accept(k)) {
+		return k, true
+	}
+	return Display().Suggest(ns, spelling, accept)
+}
+
+// findCommandLine adı ad alanındaki kodların yalnız kimlik adında (CommandLineName, 17.9) arar.
+func findCommandLine(ns Namespace, name string) (Code, bool) {
+	for _, k := range active.Codes() {
+		if k.Namespace() == ns && CommandLineName(k) == name {
+			return k, true
+		}
+	}
+	return None, false
 }
 
 // findInLanguages adı önce etkin dilde, sonra öbür gömülü dillerde arar.

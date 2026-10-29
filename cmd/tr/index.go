@@ -46,6 +46,9 @@ func indexCommand(args []string) {
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
 		k, ok := codes.FindSubcommand(args[0])
 		if !ok {
+			if s, suggested := codes.SuggestCommandLine(codes.NamespaceSubcommand, args[0], nil); suggested {
+				exitUsage(messages.Text(messages.H8876, args[0], codes.NameRef(codes.CmdIndex), codes.NameRef(s)))
+			}
 			exitUsage(messages.Text(messages.H8821, codes.NameRef(codes.CmdIndex), args[0], subcommandNames()))
 		}
 		sub, args = k, args[1:]

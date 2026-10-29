@@ -6,26 +6,23 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Ortam değişkenleri (env sınıfı) komutlar gibi ad kodudur (dil tanımı 17.8): her gömülü yazım dilinin
-// adıyla okunur (TR_GPU_SYNC ile TR_GPU_SYNC aynı değişkendir), hiçbir dilin adı öncelikli değildir:
-// iki ad ayrı değerle verilirse tr komutu başlamadan durur (H2527). İletiler ve belgeler kişinin dilindeki
-// adı yazar. Karşılaştırma: Go (GODEBUG, GOMAXPROCS) ve PyTorch (CUDA_LAUNCH_BLOCKING, PYTORCH_*) ortam
-// adlarını yalnızca İngilizce tutar; TR'de komut satırı adları her dilde kabul edildiği için ortam adları da
-// aynı kuralı izler, betik hangi dilde yazılırsa yazılsın çalışır.
+// Ortam değişkenleri (env sınıfı) komutlar gibi ad kodudur ve yalnız kimliğin adıyla (TR_LANG,
+// TR_GPU_SYNC, TR_GPU_PROFILE, TR_JOB_DIR) okunur (dil tanımı 17.9). Bir gösterim dilinin adı
+// (TR_DIL, TR_GPU_ESZAMANLI) kabul edilmez: tr komutu başlamadan durur ve kimliğin adını önerir
+// (H8875). İletiler ve belgeler yazılacak kimlik adını gösterir.
 // Yazım dilini seçen TR_env_LANG'ı dil listeleri kurulmadan önce messages okur (messages.LanguageEnvVars).
 
 // EnvValue returns the value of the environment variable k (env class) and whether it is set, reading
-// it under its name in every embedded writing language (ExportEnvironment rejects two names with
-// different values).
+// it under its command-line identity name (17.9).
 func EnvValue(k Code) (string, bool) {
 	v, set, _ := envLookup(k)
 	return v, set
 }
 
 // ExportEnvironment gives every environment variable its identity name (TR_env_GPU_SYNC), which the
-// packages that cannot see name codes read (compute); a variable set under no writing-language name
-// loses an inherited identity name. Two names of one variable with different values are an error
-// (H2527). The tr command calls it before anything else runs.
+// packages that cannot see name codes read (compute); a variable not set under its command-line
+// identity name loses an inherited identity name. A display-language name is an error suggesting
+// the identity name (H8875, 17.9). The tr command calls it before anything else runs.
 func ExportEnvironment() error {
 	for _, k := range active.Codes() {
 		if k.Namespace() != NamespaceEnvironment {
@@ -44,18 +41,17 @@ func ExportEnvironment() error {
 	return nil
 }
 
-// envLookup k'yi her yazım dilinin adıyla okur; iki ad ayrı değerle verilmişse H2527 döner.
+// envLookup k'yi kimlik adıyla (CommandLineName) okur; başka bir gömülü dilin adıyla verilmişse H8875 döner.
 func envLookup(k Code) (value string, set bool, err error) {
-	var first string
+	want := CommandLineName(k)
 	for _, name := range WritingNames(k) {
-		v, ok := os.LookupEnv(name)
-		switch {
-		case !ok:
-		case !set:
-			value, set, first = v, true, name
-		case v != value:
-			return "", false, messages.New(messages.H2527, first, value, name, v)
+		if name == want {
+			continue
+		}
+		if _, ok := os.LookupEnv(name); ok {
+			return "", false, messages.New(messages.H8875, name, NameRef(k))
 		}
 	}
-	return value, set, nil
+	v, ok := os.LookupEnv(want)
+	return v, ok, nil
 }

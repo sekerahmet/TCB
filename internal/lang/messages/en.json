@@ -367,7 +367,6 @@
 "H2524": "the struct '{struct}'",
 "H2525": "a {type} is read in order and cannot be indexed: read its items with a '{loop} x {in} ...' loop or with .{next}()",
 "H2526": "a {type} has no method {prop|q}; a slice is taken with square brackets: x[a..b]",
-"H2527": "{name}={value|q} and {other}={other_value|q} are the same environment variable but their values differ: remove one or give both the same value",
 "H2528": "{fn}: {code|q} is not a defined message code",
 "H2529": "{fn}: message {code} takes {expected, plural, one {# value} other {# values}}, {given} given",
 "H2530": "{fn}: a stop was requested, no new wait was started. The program took over stopping: when {requested}() is true leave the loop and clean up; if the cleanup must wait, do it in a '{defer}' block or in the '{catch}' body that catches this error",
@@ -1867,5 +1866,7 @@
 "H8872": "name in the language file",
 "H8873": "message code",
 "H8874": "cannot be renamed: a message code (the code does not change, its text is in the message catalog)",
+"H8875": "'{given}' is not an environment variable in TR; use '{name}'",
+"H8876": "'{given}' is not a subcommand of 'tr {command}'; did you mean to write 'tr {command} {subcommand}'?",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

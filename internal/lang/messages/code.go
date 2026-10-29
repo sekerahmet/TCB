@@ -25,12 +25,10 @@ type Code uint16
 // the same variable. It is the command-line identity name of TR_env_LANG (17.9).
 const LanguageEnvVar = "TR_LANG"
 
-// LanguageEnvVars, LanguageEnvVar'ın bütün gömülü yazım dillerindeki adlarıdır: öbür ortam değişkenleri
-// gibi her dilin adıyla okunur (codes.EnvValue, dil tanımı 17.8); sıra önemsizdir, iki ad ayrı değerle
-// verilirse tr komutu başlamadan durur (codes.ExportEnvironment, H2527). Bu paket
-// dil listelerinden önce okunduğu için adlar burada yazılıdır; codes'un
-// TestLanguageEnvVarsAreK400 testi listeyi TR_env_LANG'ün adlarıyla aynı tutar.
-var LanguageEnvVars = []string{"TR_DIL", LanguageEnvVar}
+// LanguageEnvVars, LanguageEnvVar'ın kabul edilen adlarıdır (yalnız kimliğin adı: TR_LANG, dil tanımı
+// 17.9). Bu paket dil listelerinden önce okunduğu için ad burada yazılıdır; codes'un
+// TestLanguageEnvVarsAreK400 testi listeyi TR_env_LANG'ün kimlik adıyla aynı tutar.
+var LanguageEnvVars = []string{LanguageEnvVar}
 
 // String writes the code as in the language file (H7003).
 func (c Code) String() string { return fmt.Sprintf("H%04d", uint16(c)) }

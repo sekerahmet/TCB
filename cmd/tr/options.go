@@ -42,26 +42,37 @@ func looksLikeOption(arg string) bool {
 }
 
 // unknownOption komutun almadığı bir seçenekle (H8674) çıkışa götürür: ileti komutun seçeneklerini
-// (allowed) sayar ve yazımı en yakın olanı önerir.
+// (allowed) sayar ve gösterim dilindeki ya da yazımı en yakın olanı önerir.
 func unknownOption(command any, arg string, allowed []codes.Code) {
 	name, _, _ := strings.Cut(arg, "=")
 	list := make([]string, len(allowed))
 	for i, a := range allowed {
 		list[i] = codes.OptionFlag(a)
 	}
-	exitUsage(messages.New(messages.H8674, command, name, strings.Join(list, ", "), hint.ClosestSuggestion(name, list, nil)))
+	var suggestion *messages.Error
+	raw := strings.ReplaceAll(strings.TrimLeft(name, "-"), "-", "_")
+	if k, ok := codes.SuggestCommandLine(codes.NamespaceOption, raw, func(k codes.Code) bool { return slices.Contains(allowed, k) }); ok {
+		suggestion = messages.New(messages.H1104, codes.OptionFlag(k))
+	} else {
+		suggestion = hint.ClosestSuggestion(name, list, nil)
+	}
+	exitUsage(messages.New(messages.H8674, command, name, strings.Join(list, ", "), suggestion))
 }
 
 // unknownTopLevelOption tr'nin kendisine verilen seçenek biçimindeki ilk argümanla çıkışa götürür:
-// '--help', '--help' gibi bir komutun adıysa (ya da yazımı ona en yakınsa) asıl komut (H8602),
+// '--help', '--yardım' gibi bir komutun adıysa (ya da yazımı ona en yakınsa) asıl komut (H8602),
 // değilse bilinmeyen seçenek (H8604) iletisiyle.
 func unknownTopLevelOption(arg string) {
 	name := strings.ReplaceAll(strings.TrimLeft(arg, "-"), "-", "_")
+	isCmd := func(k codes.Code) bool { return k.Class() == codes.ClassCommand }
 	k, ok := codes.FindCommand(name)
+	if !ok || !isCmd(k) {
+		k, ok = codes.SuggestCommandLine(codes.NamespaceCommand, name, isCmd)
+	}
 	if !ok {
 		var names []string
 		for _, c := range codes.Codes() {
-			if c.Class() == codes.ClassCommand {
+			if isCmd(c) {
 				names = append(names, codes.DisplayName(c))
 			}
 		}

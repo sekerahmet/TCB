@@ -367,7 +367,6 @@
 "H2524": { "param": ["struct"] },
 "H2525": { "param": ["type", "loop", "in", "next"] },
 "H2526": { "param": ["type", "prop"] },
-"H2527": { "param": ["name", "value", "other", "other_value"] },
 "H2528": { "param": ["fn", "code"] },
 "H2529": { "param": ["fn", "code", "expected", "given"] },
 "H2530": { "param": ["fn", "requested", "defer", "catch"] },
@@ -1867,5 +1866,7 @@
 "H8872": { "param": [] },
 "H8873": { "param": [] },
 "H8874": { "param": [] },
+"H8875": { "param": ["given", "name"] },
+"H8876": { "param": ["given", "command", "subcommand"] },
 "H9000": { "param": ["detail"] }
 }

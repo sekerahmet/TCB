@@ -418,48 +418,76 @@ func TestInvalidLanguageFallsBack(t *testing.T) {
 	}
 }
 
-// Komut satırı adları her yazım dilinde bulunur ve ad alanları ayrıdır: 'kontrol' komut olarak
-// TR_cmd_check, seçenek olarak TR_opt_check; 'izle' komut olarak TR_cmd_watch, hata ayıklayıcıda TR_dbg_watch.
+// Kural (dil tanımı 17.9): komut satırı girdisi (cmd, sub, opt, repl, dbg) yalnız kimliğin adını
+// kabul eder; gösterim dilindeki ad ve ASCII biçimi kabul edilmez, SuggestCommandLine kimliği önerir.
 func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 	for _, d := range []struct {
 		find func(string) (Code, bool)
 		name string
 		want Code
 	}{
-		{FindCommand, "çalıştır", CmdRun}, {FindCommand, "run", CmdRun}, {FindCommand, "kontrol", CmdCheck},
-		{FindOption, "kontrol", OptCheck}, {FindOption, "check", OptCheck}, {FindOption, "go_profile", OptGoProfile},
-		{FindCommand, "izle", CmdWatch}, {FindDebuggerCommand, "izle", DbgWatch}, {FindDebuggerCommand, "continue", DbgContinue},
-		{FindCommand, "çıkış", ReplExit}, {FindCommand, "exit", ReplExit},
+		{FindCommand, "run", CmdRun}, {FindCommand, "check", CmdCheck}, {FindCommand, "watch", CmdWatch},
+		{FindSubcommand, "definition", SubDefinition}, {FindSubcommand, "tested_by", SubTestedBy},
+		{FindOption, "lang", OptLang}, {FindOption, "check", OptCheck}, {FindOption, "go_profile", OptGoProfile},
+		{FindDebuggerCommand, "watch", DbgWatch}, {FindDebuggerCommand, "continue", DbgContinue}, {FindDebuggerCommand, "step", DbgStep},
+		{FindCommand, "exit", ReplExit},
 	} {
 		if got, ok := d.find(d.name); !ok || got != d.want {
 			t.Errorf("%q: %v %v, %v bekleniyordu", d.name, got, ok, d.want)
 		}
 	}
-	for _, name := range []string{"calistir", "--kontrol", "adım"} {
-		if k, ok := FindCommand(name); ok {
-			t.Errorf("%q komut sayılmamalı: %v", name, k)
+	for _, d := range []struct {
+		find func(string) (Code, bool)
+		ns   Namespace
+		name string
+		want Code
+	}{
+		{FindCommand, NamespaceCommand, "çalıştır", CmdRun}, {FindCommand, NamespaceCommand, "calistir", CmdRun},
+		{FindCommand, NamespaceCommand, "kontrol", CmdCheck}, {FindCommand, NamespaceCommand, "izle", CmdWatch},
+		{FindSubcommand, NamespaceSubcommand, "tanım", SubDefinition}, {FindSubcommand, NamespaceSubcommand, "tanim", SubDefinition},
+		{FindOption, NamespaceOption, "dil", OptLang}, {FindOption, NamespaceOption, "kontrol", OptCheck},
+		{FindDebuggerCommand, NamespaceDebugger, "izle", DbgWatch}, {FindDebuggerCommand, NamespaceDebugger, "adım", DbgStep},
+		{FindCommand, NamespaceCommand, "çıkış", ReplExit}, {FindCommand, NamespaceCommand, "cikis", ReplExit},
+	} {
+		if got, ok := d.find(d.name); ok {
+			t.Errorf("%q kabul edilmemeliydi, %s bulundu", d.name, got)
 		}
+		if got, ok := SuggestCommandLine(d.ns, d.name, nil); !ok || got != d.want {
+			t.Errorf("SuggestCommandLine(%s, %q) = %s %v, %s bekleniyordu", d.ns, d.name, got, ok, d.want)
+		}
+	}
+	if _, ok := SuggestCommandLine(NamespaceCommand, "run", nil); ok {
+		t.Error("geçerli kimlik adı için öneri olmamalı")
 	}
 }
 
 // 'tr index' alt komutları (sub sınıfı) yalnızca dizin komutunun altında geçerlidir: üst düzey
-// komut adı değildir, ama her gömülü dilin adı alt komut olarak kabul edilir (17.8).
+// komut adı değildir ve yalnız kimlik adıyla kabul edilir (17.9).
 func TestIndexSubcommandsAreNotCommands(t *testing.T) {
-	for _, name := range []string{"tanım", "kullananlar", "sınayanlar", "etki", "yeniden_adlandır", "definition", "references", "tested_by", "impact", "rename"} {
+	for _, name := range []string{"definition", "references", "tested_by", "impact", "rename"} {
 		if k, ok := FindCommand(name); ok {
 			t.Errorf("%q must not be a top-level command, found %s", name, k)
 		}
 		if k, ok := FindSubcommand(name); !ok || !k.IsIndexSubcommand() || k.Namespace() != NamespaceSubcommand {
-			t.Errorf("%q must be an index subcommand in every language: %s %v", name, k, ok)
+			t.Errorf("%q must be an index subcommand: %s %v", name, k, ok)
 		}
 	}
-	for _, name := range []string{"dizin", "index"} {
-		if k, ok := FindCommand(name); !ok || k != CmdIndex {
-			t.Errorf("%q is the index command TR_cmd_index, got %s %v", name, k, ok)
+	for _, name := range []string{"tanım", "kullananlar", "sınayanlar", "etki", "yeniden_adlandır"} {
+		if k, ok := FindSubcommand(name); ok {
+			t.Errorf("%q display-language name must not be accepted as subcommand: %s", name, k)
 		}
-		if _, ok := FindSubcommand(name); ok {
-			t.Errorf("%q is not a subcommand of itself", name)
+		if _, ok := SuggestCommandLine(NamespaceSubcommand, name, nil); !ok {
+			t.Errorf("%q should suggest its identity subcommand", name)
 		}
+	}
+	if k, ok := FindCommand("index"); !ok || k != CmdIndex {
+		t.Errorf("index is the index command TR_cmd_index, got %s %v", k, ok)
+	}
+	if k, ok := FindCommand("dizin"); ok {
+		t.Errorf("dizin must not be accepted as a command: %s", k)
+	}
+	if _, ok := FindSubcommand("index"); ok {
+		t.Error("index is not a subcommand of itself")
 	}
 	if CmdIndex.IsIndexSubcommand() || CmdIndex.Namespace() != NamespaceCommand {
 		t.Error("TR_cmd_index itself is a command")

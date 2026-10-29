@@ -151,7 +151,6 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{`TR_command_line({"yardım": TR_true})`, messages.H7221},
 		{`TR_command_line({"help": TR_true})`, messages.H7221},
 		{`TR_command_line({"h": TR_true})`, messages.H7221},
 		{`TR_command_line({"a b": 1})`, messages.H7220},

@@ -115,7 +115,7 @@ func TestCLIEvaluateCallsFunctionQuietly(t *testing.T) {
 func TestCLIJump(t *testing.T) {
 	code := "TR_var a = 0\n" + strings.Repeat("a = a + 1\n", 49)
 	for line, want := range map[int]string{6: "Satır 6'ya zıplandı", 9: "Satır 9'a zıplandı", 3: "Satır 3'e zıplandı", 40: "Satır 40'a zıplandı"} {
-		out, machine := runCLI(t, "t.tr", code, "step\nzıpla "+strconv.Itoa(line)+"\ncontinue\n", nil)
+		out, machine := runCLI(t, "t.tr", code, "step\njump "+strconv.Itoa(line)+"\ncontinue\n", nil)
 		if !strings.Contains(out, want) {
 			t.Errorf("%q bekleniyordu:\n%s", want, out)
 		}
@@ -208,15 +208,15 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 	}
 }
 
-// Komutlar ad kodudur: her yazım dilinin adı çalışır (yukarıda); kısaltmalar, Türkçe
-// karaktersiz biçimler ve başka hata ayıklayıcıların kısaltmaları çalışmaz, asıl komutu söyleyen bir ipucu verir ve komut
+// Komutlar ad kodudur (17.9): yalnız kimliğin adı çalışır (yukarıda); gösterim dilindeki adlar,
+// kısaltmalar ve Türkçe karaktersiz biçimler çalışmaz, kimlik adını söyleyen bir ipucu verir ve komut
 // beklemeye devam edilir.
 func TestCommandsSingleSpelling(t *testing.T) {
 	oldOutput := os.Stdout
 	defer func() { os.Stdout = oldOutput }()
-	for old, actual := range map[string]string{"adim": "step", "s": "step", "gec": "next", "o": "out",
-		"c": "continue", "goto": "jump", "b": "break", "w": "watch",
-		"yigin": "stack", "bt": "stack", "p": "eval", "h": "help", "q": "quit", "cikis": "quit"} {
+	for old, actual := range map[string]string{"adım": "step", "adim": "step", "s": "step", "geç": "next", "gec": "next", "o": "out",
+		"devam": "continue", "c": "continue", "zıpla": "jump", "goto": "jump", "b": "break", "izle": "watch", "w": "watch",
+		"yığın": "stack", "yigin": "stack", "bt": "stack", "p": "eval", "yardım": "help", "h": "help", "çıkış": "quit", "q": "quit", "cikis": "quit"} {
 		d := NewDebugger("t.tr", "x\n", false)
 		d.Mode = -1
 		r, w, _ := os.Pipe()

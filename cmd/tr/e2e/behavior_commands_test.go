@@ -28,13 +28,16 @@ func TestHelpAndVersion(t *testing.T) {
 	}
 }
 
-// Komut adları ad kodlarıdır: her yazım dilinin adı kabul edilir (tr run da tr run da her
-// makinede çalışır; betikler TR_LANG'den bağımsızdır). Türkçe karaktersiz yazımlar ve --help,
-// --version dosya adı sanılmaz, kimlik adını öneren bir hatayla 2 koduyla çıkar.
+// Kural (dil tanımı 17.9): komut satırı girdisi (cmd, sub, opt, repl, dbg, env) yalnız kimliğin
+// adını kabul eder; gösterim dilindeki adlar, Türkçe karaktersiz yazımlar ve --help, --version
+// dosya adı sanılmaz, kimlik adını öneren bir hatayla çıkar.
 func TestCommandsHaveOneName(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "a.tr", "TR_print(\"çalıştı\")\n")
 	for ad, actual := range map[string]string{
+		"çalıştır": "run", "göster": "show", "kontrol": "check", "derle": "build",
+		"dizin": "index", "profil": "profile", "izle": "watch", "biçimle": "format",
+		"hata_ayıkla": "debug", "yardım": "help", "sürüm": "version",
 		"calistir": "run", "bicimle": "format", "hata_ayikla": "debug",
 		"yardim": "help", "--help": "help", "surum": "version", "--version": "version",
 	} {
@@ -44,11 +47,23 @@ func TestCommandsHaveOneName(t *testing.T) {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
 	}
-	// Seçenekler de ad kodudur (opt): her dilin adı kabul edilir, sözcükleri tireyle yazılır.
+	// Alt komut (sub): 'tr dizin tanım' üst komutta, 'tr index tanım' alt komutta reddedilir ve kimlik önerilir.
+	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "x"), 2, nil, []string{"'dizin' TR'de bir komut değil; 'tr index' yazmak mı istediniz?"})
+	testkit.Wait(t, tr(t, dir, "index", "tanım", "x"), 2, nil, []string{"'tanım' 'tr index' için bir alt komut değil; 'tr index definition' yazmak mı istediniz?"})
+	// Seçenek (opt): yalnız kimlik adıyla (--lang, --check, --go-profile) kabul edilir; --dil, --kontrol reddedilir.
 	testkit.Wait(t, tr(t, dir, "format", "--check", "a.tr"), 0, nil, nil)
-	testkit.Wait(t, tr(t, dir, "format", "--check", "a.tr"), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "show", "a.tr", "--dil", "tr"), 2, nil, []string{"bilinmeyen seçenek \"--dil\"", "--lang"})
+	testkit.Wait(t, tr(t, dir, "format", "--kontrol", "a.tr"), 2, nil, []string{"bilinmeyen seçenek \"--kontrol\"", "--check"})
 	testkit.Wait(t, tr(t, dir, "profile", "--go_profili", "x.prof", "a.tr"), 2, nil, []string{"bilinmeyen seçenek \"--go_profili\"", "--go-profile"})
-	// İngilizce yazım dilinin adları da her makinede komuttur.
+	// Ortam değişkeni (env): TR_DIL dili değiştirmez ve TR_LANG önererek reddedilir; TR_LANG=en dili İngilizce yapar.
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "run", "a.tr")
+	testkit.Wait(t, s, 2, nil, []string{"'TR_DIL' TR'de bir ortam değişkeni değil; 'TR_LANG' kullanın"})
+	s = testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, "çalıştır", "a.tr")
+	testkit.Wait(t, s, 2, nil, []string{"'çalıştır' is not a command in TR; did you mean to write 'tr run'?"})
+	// Hata ayıklayıcı komutu (dbg): 'adım' reddedilir ve 'step' önerir.
+	s = testkit.RunBinary(t, trBinary, dir, "adım\ncontinue\n", nil, "debug", "a.tr")
+	testkit.Wait(t, s, 0, []string{"'adım' hata ayıklayıcıda bir komut değil; 'step' yazın", "çalıştı"}, nil)
+	// Kimlik adları çalışır.
 	testkit.Wait(t, tr(t, dir, "run", "a.tr"), 0, []string{"çalıştı"}, nil)
 	testkit.Wait(t, tr(t, dir, "version"), 0, []string{"v" + trVersion(t)}, nil)
 	testkit.Wait(t, tr(t, dir, "help"), 0, []string{"Kullanım:"}, nil)
@@ -175,11 +190,13 @@ func TestREPL(t *testing.T) {
 		`TR_var x: TR_Int = "a"`,
 		`1 / 0`,
 		`2 + 3`,
+		`çıkış`,
 		`cikis`,
 		`exit`,
 	}, "\n") + "\n"
 	s := testkit.RunBinary(t, trBinary, "", input, nil)
 	testkit.Wait(t, s, 0, []string{"merhaba", "=> 5", "Görüşmek üzere!"}, []string{
+		"'çıkış' TR'de bir komut değil; çıkmak için 'exit' yazın.",
 		"'cikis' TR'de bir komut değil; çıkmak için 'exit' yazın.",
 		"❌ Sözdizimi Hataları:\n  • Satır 1, Sütun 4",
 		"❌ Tip ve Güvenlik Denetimi Hataları:\n  • Satır 1, Sütun 1: Tip uyuşmazlığı",
@@ -195,7 +212,7 @@ func TestREPL(t *testing.T) {
 	if n := strings.Count(s.Stderr, "Tip uyuşmazlığı"); n != 1 {
 		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.Stderr)
 	}
-	// Kabuğun çıkış komutu bir ad kodudur (TR_repl_exit): her yazım dilinin adı kabul edilir.
+	// Kabuğun çıkış komutu bir ad kodudur (TR_repl_exit): yalnız kimlik adıyla (exit) kabul edilir (17.9).
 	s = testkit.RunBinary(t, trBinary, "", "exit\nTR_print(\"sürdü\")\n", nil)
 	testkit.Wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
 	if strings.Contains(s.Stdout, "sürdü") {

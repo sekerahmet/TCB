@@ -37,13 +37,12 @@ func commandCode(word string) codes.Code {
 }
 
 // oldCommand bir sözcüğün asıl komutunu verir: başka hata ayıklayıcıların kısaltmaları
-// (tablodan), kişinin gösterim dilindeki harfsiz biçimler (Türkçede adim → adım, kod listesinden;
-// komut kişinin dilinde yazılır, TR_LANG).
+// (tablodan), gösterim dilindeki adlar ve harfsiz biçimler (adım, adim → step; 17.9).
 func oldCommand(word string) (codes.Code, bool) {
 	if k, ok := oldCommands[word]; ok {
 		return k, true
 	}
-	return codes.Display().Suggest(codes.NamespaceDebugger, word, nil)
+	return codes.SuggestCommandLine(codes.NamespaceDebugger, word, nil)
 }
 
 // oldCommands başka hata ayıklayıcılardan gelen kısaltmalardır (gdb'nin n, c, bt). Bunlar
