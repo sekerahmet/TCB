@@ -29,6 +29,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_builtin_codes_test.go`: yerleşiklerin ve üyelerin kod sözlüğüyle birebir eşleşmesi
 - `behavior_definitions_test.go`: kod listesindeki örneklerin, adlı argümanların ve üye tiplerinin gerçek davranışla aynı olması
-- `behavior_name_clash_test.go`: ad çakışması sınavı (madde 15): bir dilin dosyasında başka bir gömülü dilin sözcüğü kullanıcı adı olunca ad kuralı hatası ya da nötr adla aynı sonuç; bugün kalanlar `testdata/name_clash_known.txt`'de, liste yalnızca küçülür
 - `behavior_paths_test.go`: yorumlayıcı alan her işlevin dosya sistemine dokunmadan önce yolu `VM.ResolvePath` ile çözmesi (kaynak taraması)
 - `behavior_resources_close_test.go`: kaynak tutan her paketin kapatma işlevinin `Close`'dan çağrılması ve `Close`'un tekrar çağrılabilmesi

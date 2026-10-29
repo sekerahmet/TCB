@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
 )
@@ -35,7 +35,7 @@ func TestCachePathFromProgramDir(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(program, "onb_16_8"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	p := parser.New(source.TextLexer(`TR_Dataset("` + trPath(d) + `", TR_cache: "onb_16_8/kume", TR_quota_gb: 0.001).TR_sampler(TR_batch_size: 2, TR_context: 8).TR_next()`))
+	p := parser.New(lexer.NewBody(`TR_Dataset("`+trPath(d)+`", TR_cache: "onb_16_8/kume", TR_quota_gb: 0.001).TR_sampler(TR_batch_size: 2, TR_context: 8).TR_next()`, true))
 	prog := p.ParseProgram()
 	m := interp.New()
 	m.SourceFile = filepath.Join(program, "egit.tr")

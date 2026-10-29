@@ -33,8 +33,6 @@ const turkishLetters = "çğıöşüâîûÇĞİÖŞÜÂÎÛ"
 var turkishLiteralAllowed = map[string]string{
 	// UTS #39 karıştırılabilir karakter tablosu (Unicode verisinden üretilir): harfler veridir.
 	"internal/lang/lexer/confusables_generated.go": "Unicode'un karıştırılabilir karakter tablosu; harfler veridir, ad ya da ileti değil",
-	// Eski biçimden çevirici: Türkçe I/İ harfleri küçük harfe çevirmenin özel durumudur (veri).
-	"tools/migrate/syntax.go": "tek seferlik çevirici; I ve İ harfleri küçük harf kuralının verisidir, ileti değil",
 	// Dil tanımı atıf tarayıcısı Türkçe belgeleri okur: "PyTorch 2.14", "sürümü 2.1" gibi sürüm numaraları madde atfı sayılmaz.
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
 }

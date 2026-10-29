@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// Kural: bir ad kodu bileşik değerde bir işlevin anahtarıysa (`codes.CmdEncode: encodeCommand`) kodun Go'daki
+// Kural: bir ad kodu bileşik değerde bir işlevin anahtarıysa (`codes.CmdFormat: formatCommand`) kodun Go'daki
 // uygulaması o çiftin değeridir, aynı satırdaki öbür çiftlerinki değil (keyedImplementations, implementationsAt). Çiftler
 // go/types'tan bulunur, grafiğe bakılmadan; kodun kullanıldığı her satırda sorgu yalnız o işlevi adlandırır.
 func TestAKeyedNameCodeIsImplementedByItsPairsValue(t *testing.T) {

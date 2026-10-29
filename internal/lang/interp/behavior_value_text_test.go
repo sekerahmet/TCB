@@ -17,21 +17,13 @@ import (
 // Değerin metni dilden bağımsızdır (3.14 ilk yanı; dosyanın dili yoktur, 2.1): Metin(), yazdır,
 // metin yerleştirmesi ve Tip() adları kimliğin adıyla çıkar (true, none, Int) — programı hangi dilde
 // okursa okusun, kitaplıkta da, her makinede aynı. Yakalanan hatanın metni sabit İngilizce katalogdan
-// kurulur (caughtErrorLanguage). Testlerin programları bir dildeki gösterimde yazılır ve kodlanarak
-// çalıştırılır (dosya kimliklerle yazılır).
+// kurulur (caughtErrorLanguage). Testlerin programları dosya gibi kimliklerle yazılır.
 
-// runEnglish İngilizce gösterimde yazılmış main metnini kodlayıp programın kendisi gibi çalıştırır;
-// files çalışma klasörüne yazılan modüllerdir.
-func runEnglish(t *testing.T, main string, files map[string]string) string {
-	t.Helper()
-	return runCoded(t, main, "en", files)
-}
-
-// runCoded lang gösteriminde yazılmış main metnini kodlayıp programın kendisi gibi çalıştırır; files
+// runCoded kimliklerle yazılmış main gövdesini (başlıksız) programın kendisi gibi çalıştırır; files
 // çalışma klasörüne olduğu gibi yazılır.
-func runCoded(t *testing.T, main, lang string, files map[string]string) string {
+func runCoded(t *testing.T, main string, files map[string]string) string {
 	t.Helper()
-	out, err := runCodedErr(t, main, lang, files)
+	out, err := runCodedErr(t, main, files)
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
@@ -39,16 +31,9 @@ func runCoded(t *testing.T, main, lang string, files map[string]string) string {
 }
 
 // runCodedErr runCoded gibidir; çalışma hatasını testi düşürmeden döndürür.
-func runCodedErr(t *testing.T, main, lang string, files map[string]string) (string, error) {
+func runCodedErr(t *testing.T, main string, files map[string]string) (string, error) {
 	t.Helper()
-	l, err := codes.LoadLanguage(lang)
-	if err != nil {
-		t.Fatal(err)
-	}
-	coded, err := source.EncodeIn(main, l)
-	if err != nil {
-		t.Fatalf("%s metni kodlanamadı: %v", lang, err)
-	}
+	coded := source.Header + "\n" + main
 	root := t.TempDir()
 	runInDir(t, root)
 	for name, content := range files {
@@ -62,30 +47,21 @@ func runCodedErr(t *testing.T, main, lang string, files map[string]string) (stri
 	m := New()
 	m.Out, m.Err, m.Stdin = &out, &out, strings.NewReader("\n")
 	m.SourceFile, m.SourceCode = filepath.Join(root, "main.tr"), r.Text
-	_, err = m.Run(r.Program)
+	_, err := m.Run(r.Program)
 	return out.String(), err
 }
 
-// Aynı program İngilizce ve Türkçe gösterimde yazılsa da (dosya aynı kimlikleri taşır) aynı metni verir.
+// Değerin metni kimliğin adıdır (true, none, Int); programın çalıştığı süreç Türkçedir (TR_DIL).
 func TestValueTextIsLanguageIndependent(t *testing.T) {
 	want := "true none Int [true, none, {\"k\": false}]\n" +
 		"true none Bool [List]\n" +
 		"true true true\n"
-	for lang, main := range map[string]string{
-		"en": `var b = true
-print(b, none, Type(1), [true, none, {"k": false}])
-print("\(b) \(none) \(Type(b)) \([Type([])])")
-print(String(b) == "true", String(none) == "none", String(Type(1.5)) == "Float")
-`,
-		"tr": `değişken b = doğru
-yazdır(b, yok, Tip(1), [doğru, yok, {"k": yanlış}])
-yazdır("\(b) \(yok) \(Tip(b)) \([Tip([])])")
-yazdır(Metin(b) == "true", Metin(yok) == "none", Metin(Tip(1.5)) == "Float")
-`,
-	} {
-		if out := runCoded(t, main, lang, nil); out != want {
-			t.Errorf("%s gösteriminde yazılan program:\n%s\nbeklenen:\n%s", lang, out, want)
-		}
+	if out := runCoded(t, `TR_var b = TR_true
+TR_print(b, TR_none, TR_Type(1), [TR_true, TR_none, {"k": TR_false}])
+TR_print("\(b) \(TR_none) \(TR_Type(b)) \([TR_Type([])])")
+TR_print(TR_String(b) == "true", TR_String(TR_none) == "none", TR_String(TR_Type(1.5)) == "Float")
+`, nil); out != want {
+		t.Errorf("program:\n%s\nbeklenen:\n%s", out, want)
 	}
 }
 
@@ -94,11 +70,11 @@ func TestValueTextIsTheSameInEveryModule(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func anlat(x) { TR_return \"\\(x) \" + TR_String(TR_Type(x)) }\nTR_func uygula(f) { TR_print(f(TR_true)) }\n" +
 		"" +
 		"")}})
-	out := runEnglish(t, `import "tr/kitap" as k
-import "yerel" as y
-print(k.anlat(true), y.anlat(none))
-k.uygula((x) => "\(x) " + String(x))
-y.uygula((x) => String([x]))
+	out := runCoded(t, `TR_import "tr/kitap" TR_as k
+TR_import "yerel" TR_as y
+TR_print(k.anlat(TR_true), y.anlat(TR_none))
+k.uygula((x) => "\(x) " + TR_String(x))
+y.uygula((x) => TR_String([x]))
 `, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x) { TR_return TR_String(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
 	want := "true Bool none\ntrue true\n[none]\n"
 	if out != want {
@@ -109,11 +85,11 @@ y.uygula((x) => String([x]))
 // Fırlatılan değerin ve doğrula'nın mesaj değerinin metni de dilden bağımsızdır.
 func TestThrownValueTextIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func at() { TR_throw [TR_true, TR_none] }\n")}})
-	out := runEnglish(t, `import "tr/kitap" as k
-try { throw true } catch e { print(e, e == "true") }
-try { throw [none, Int] } catch e { print(e) }
-try { k.at() } catch e { print(e) }
-try { assert(false, none) } catch e { print(e.ends_with(": none")) }
+	out := runCoded(t, `TR_import "tr/kitap" TR_as k
+TR_try { TR_throw TR_true } TR_catch e { TR_print(e, e == "true") }
+TR_try { TR_throw [TR_none, TR_Int] } TR_catch e { TR_print(e) }
+TR_try { k.at() } TR_catch e { TR_print(e) }
+TR_try { TR_assert(TR_false, TR_none) } TR_catch e { TR_print(e.TR_ends_with(": none")) }
 `, nil)
 	want := "true true\n[none, Int]\n[true, none]\ntrue\n"
 	if out != want {
@@ -124,8 +100,8 @@ try { assert(false, none) } catch e { print(e.ends_with(": none")) }
 // Ondalık() sonsuz ve tanımsız sayının dilden bağımsız adını okur ("inf", "nan"); bir dildeki ad
 // ("sonsuz") okunmaz; Metin(Ondalık(...)) aynı adı verir, gidiş dönüş tutar (3.2).
 func TestFloatValueNamesRoundTrip(t *testing.T) {
-	out := runEnglish(t, `print(Float("inf"), -Float("inf"), Float("nan"), String(Float("-inf")) == "-inf", Float(String(Float("inf"))))
-try { Float("sonsuz") } catch e { print("not read") }
+	out := runCoded(t, `TR_print(TR_Float("inf"), -TR_Float("inf"), TR_Float("nan"), TR_String(TR_Float("-inf")) == "-inf", TR_Float(TR_String(TR_Float("inf"))))
+TR_try { TR_Float("sonsuz") } TR_catch e { TR_print("not read") }
 `, nil)
 	if want := "inf -inf nan true inf\nnot read\n"; out != want {
 		t.Errorf("değer adları:\n%s\nbeklenen:\n%s", out, want)
@@ -137,10 +113,10 @@ try { Float("sonsuz") } catch e { print("not read") }
 // >= 16); TR_inf ve TR_nan programda yazılır. Inspect, TR_String ve yazdır aynı metni verir; testin
 // süreç dili (TR_DIL) Türkçedir.
 func TestOneValueTextForEveryValue(t *testing.T) {
-	out := runEnglish(t, `func f() {}
-struct P { a }
-print([print, Int, f, P, P(1), inf, -inf, nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, (x) => x])
-print(String(print), "\(f)", String(1e15), String(inf) == "inf")
+	out := runCoded(t, `TR_func f() {}
+TR_struct P { a }
+TR_print([TR_print, TR_Int, f, P, P(1), TR_inf, -TR_inf, TR_nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, (x) => x])
+TR_print(TR_String(TR_print), "\(f)", TR_String(1e15), TR_String(TR_inf) == "inf")
 `, nil)
 	want := "[<builtin print>, Int, <function f>, P, P(a: 1), inf, -inf, nan, 1000000.0, 1234567.0, " +
 		"1000000000000000.0, 1e+16, 1e-05, -0.0, <lambda>]\n<builtin print> <function f> 1000000000000000.0 true\n"
@@ -157,35 +133,30 @@ print(String(print), "\(f)", String(1e15), String(inf) == "inf")
 }
 
 // Yakalanan çalışma anı hatası programın Metin değeridir: ileti sabit İngilizce katalogdan kurulur,
-// içindeki tip ve değerlerle; program hangi gösterimde yazılırsa yazılsın ve hata Türkçe adlı bir
-// kitaplık fonksiyonunda oluşsa da aynıdır. Satır dosyanın satırıdır (başlık 1. satır).
+// içindeki tip ve değerlerle; süreç Türkçe olsa (TR_DIL) ve hata Türkçe adlı bir kitaplık fonksiyonunda
+// oluşsa da aynıdır. Satır dosyanın satırıdır (başlık 1. satır).
 func TestCaughtErrorTextIsEnglish(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() { TR_return [1][5] }\n")}})
-	for lang, main := range map[string]string{
-		"en": "import \"tr/kitap\" as k\ntry { [1].join(true) } catch e { print(e) }\ntry { k.taşır() } catch e { print(e) }\n",
-		"tr": "aktar \"tr/kitap\" olarak k\ndene { [1].birleştir(doğru) } yakala e { yazdır(e) }\ndene { k.taşır() } yakala e { yazdır(e) }\n",
-	} {
-		out := runCoded(t, main, lang, nil)
-		for _, want := range []string{"Line 3:", "list.join() expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
-			if !strings.Contains(out, want) {
-				t.Errorf("%s: %q yok:\n%s", lang, want, out)
-			}
+	out := runCoded(t, "TR_import \"tr/kitap\" TR_as k\nTR_try { [1].TR_join(TR_true) } TR_catch e { TR_print(e) }\nTR_try { k.taşır() } TR_catch e { TR_print(e) }\n", nil)
+	for _, want := range []string{"Line 3:", "list.join() expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("%q yok:\n%s", want, out)
 		}
-		if strings.Contains(out, "Satır") || strings.Contains(out, "Mantık") {
-			t.Errorf("%s: yakalanan hata Türkçe:\n%s", lang, out)
-		}
+	}
+	if strings.Contains(out, "Satır") || strings.Contains(out, "Mantık") {
+		t.Errorf("yakalanan hata Türkçe:\n%s", out)
 	}
 }
 
 // Kodlu ileti olmayan hata türleri de (dosya hatası, ertele hatası; messages.Localized) yakalanınca
 // İngilizce yazılır. Her hata türünün Localized olduğunu TestEveryErrorTypeIsLocalized (messages) korur.
 func TestCaughtErrorTypesAreEnglish(t *testing.T) {
-	out := runEnglish(t, `try { read_file("missing.txt") } catch e { print(e) }
-func f() {
-	defer { var a = [1][7] }
-	var b = [1][5]
+	out := runCoded(t, `TR_try { TR_read_file("missing.txt") } TR_catch e { TR_print(e) }
+TR_func f() {
+	TR_defer { TR_var a = [1][7] }
+	TR_var b = [1][5]
 }
-try { f() } catch e { print(e) }
+TR_try { f() } TR_catch e { TR_print(e) }
 `, nil)
 	for _, want := range []string{`read_file(): "missing.txt" could not be read: no such file or folder`, "error in defer as well:"} {
 		if !strings.Contains(out, want) {
@@ -203,14 +174,9 @@ try { f() } catch e { print(e) }
 // yazdır onu tırnakla yazar. Anahtar yalnız köşeli parantezle okunur; noktayla okuma (bir üye adıyla
 // da) hatadır ve iletisi köşeli parantezli yazımı verir (sabit İngilizce, yakalanan hata).
 func TestDictKeysAreTextNotMembers(t *testing.T) {
-	for lang, main := range map[string]string{
-		"en": "var cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nprint(cfg, cfg[\"step\"], cfg.keys())\ntry { print(cfg.step) } catch e { print(e) }\n",
-		"tr": "değişken cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nyazdır(cfg, cfg[\"step\"], cfg.anahtarlar())\ndene { yazdır(cfg.adım) } yakala e { yazdır(e) }\n",
-	} {
-		out := runCoded(t, main, lang, nil)
-		if want := "{\"step\": 2} 2 [\"step\"]\n"; !strings.HasPrefix(out, want) || !strings.Contains(out, `write ["step"]`) {
-			t.Errorf("%s: sözlük anahtarı metin olmalı, noktayla okuma hata vermeli:\n%s", lang, out)
-		}
+	out := runCoded(t, "TR_var cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nTR_print(cfg, cfg[\"step\"], cfg.TR_keys())\nTR_try { TR_print(cfg.TR_step) } TR_catch e { TR_print(e) }\n", nil)
+	if want := "{\"step\": 2} 2 [\"step\"]\n"; !strings.HasPrefix(out, want) || !strings.Contains(out, `write ["step"]`) {
+		t.Errorf("sözlük anahtarı metin olmalı, noktayla okuma hata vermeli:\n%s", out)
 	}
 }
 
@@ -219,11 +185,11 @@ func TestDictKeysAreTextNotMembers(t *testing.T) {
 func TestEveryTextConversionIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
 		"TR_func ekle(x) { TR_return \"a\\(x),\" + [x, TR_none].TR_join(\"/\") }\n")}})
-	out := runEnglish(t, `import "tr/kitap" as k
-print("x\(true)", "\(none)!", [true, none, Int].join(","), k.ekle(false))
-write_file("out.txt", [false])
-print(read_file("out.txt"))
-input(true)
+	out := runCoded(t, `TR_import "tr/kitap" TR_as k
+TR_print("x\(TR_true)", "\(TR_none)!", [TR_true, TR_none, TR_Int].TR_join(","), k.ekle(TR_false))
+TR_write_file("out.txt", [TR_false])
+TR_print(TR_read_file("out.txt"))
+TR_input(TR_true)
 `, nil)
 	want := "xtrue none! true,none,Int afalse,false/none\n[false]\ntrue"
 	if out != want {
@@ -244,15 +210,15 @@ func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
 // Kural (B1): kurucusu olan yapının oluşturulmasındaki argüman hatası yapının adını, metodun
 // argüman hatası Yapı.metot'u söyler (Python: Point.__init__(), Point.go()).
 func TestStructCallErrorsNameTheStruct(t *testing.T) {
-	out := runEnglish(t, `struct Point {
+	out := runCoded(t, `TR_struct Point {
 	x
-	func init(a, b = 2) { self.x = a + b }
-	func go(n) { self.x = n }
+	TR_func TR_init(a, b = 2) { TR_self.x = a + b }
+	TR_func go(n) { TR_self.x = n }
 }
-try { Point(1, 2, 3) } catch e { print(e) }
-try { Point(1, z: 2) } catch e { print(e) }
-try { Point(1).go(1, 2) } catch e { print(e) }
-try { Point(1).go() } catch e { print(e) }
+TR_try { Point(1, 2, 3) } TR_catch e { TR_print(e) }
+TR_try { Point(1, z: 2) } TR_catch e { TR_print(e) }
+TR_try { Point(1).go(1, 2) } TR_catch e { TR_print(e) }
+TR_try { Point(1).go() } TR_catch e { TR_print(e) }
 `, nil)
 	for _, want := range []string{"the struct 'Point' takes at most 2 arguments, 3 given",
 		"the struct 'Point' takes no parameter named 'z'", "the function 'Point.go' takes at most 1 argument, 2 given",
@@ -269,9 +235,9 @@ try { Point(1).go() } catch e { print(e) }
 // Kural (B11, 2.3a): tanımsız ada öneri dilin adlarını her yazım dilindeki yazımıyla karşılaştırır ve
 // kimliğin yazımıyla önerir (prnt → 'TR_print': dosyaya olduğu gibi yazılır); kullanıcının adı olduğu gibi.
 func TestUndefinedNameSuggestionIsTheIdentity(t *testing.T) {
-	out := runEnglish(t, `var counter = 1
-try { prnt(1) } catch e { print(e) }
-try { print(countr) } catch e { print(e) }
+	out := runCoded(t, `TR_var counter = 1
+TR_try { prnt(1) } TR_catch e { TR_print(e) }
+TR_try { TR_print(countr) } TR_catch e { TR_print(e) }
 `, nil)
 	for _, want := range []string{"Did you mean 'TR_print'?", "Did you mean 'counter'?"} {
 		if !strings.Contains(out, want) {

@@ -72,29 +72,25 @@ func open(body string) string {
 	return emptyRe.ReplaceAllString(body, "")
 }
 
-// Her dilin şablonu, varsayılanlarıyla açıldığında o dilin yazımında geçerli koddur: ayrıştırılır ve
-// kayıpsız kodlanır (varsayılanlar tanımlı adlar aramaz; derleme sınaması Türkçe şablonlar için
-// cmd/tr/e2e'dedir).
+// Her dilin şablonu, varsayılanlarıyla açıldığında kimlik yazımıyla geçerli koddur: kodlu gövde olarak
+// ayrıştırılır (varsayılanlar tanımlı adlar aramaz; derleme sınaması Türkçe şablonlar için cmd/tr/e2e'dedir).
 func TestSnippetsParseInEveryLanguage(t *testing.T) {
 	for lang, entries := range generated(t) {
-		language, err := codes.LoadLanguage(lang)
-		if err != nil {
-			t.Fatal(err)
-		}
 		for _, e := range entries {
 			code := open(strings.Join(e.Body, "\n"))
 			if strings.HasPrefix(code, ".") {
 				code = "list" + code // metot şablonları bir listenin ardına yazılır
 			}
-			if _, err := source.EncodeIn(code+"\n", language); err != nil {
-				t.Errorf("%s: %q şablonu ayrıştırılamadı: %v\n%s", lang, e.Label, err, code)
+			if r := source.Prepare(code+"\n", source.Options{Body: true}); r.Stage == source.StageSyntax {
+				t.Errorf("%s: %q şablonu ayrıştırılamadı: %v\n%s", lang, e.Label, r.Errors, code)
 			}
 		}
 	}
 }
 
-// Şablon verisi dilden bağımsızdır: gövdeler kodlu biçimdedir, data.json'da Türkçe harf ya da sözcük
-// yoktur; Türkçe de öbür diller gibi aynı kodlu gövdeden source.Show ile çıkar.
+// Kural (17.7): şablon verisi dilden bağımsızdır: gövdeler kodlu biçimdedir, data.json'da Türkçe harf ya da
+// sözcük yoktur. Şablon kodlu dosyaya yazılır: dilin sözcükleri her dilde aynı kimliklerdir (TR_func), yalnız
+// kullanıcının adları ve durakların varsayılan sözcükleri (ad, koşul) dildedir.
 func TestSnippetDataIsLanguageNeutral(t *testing.T) {
 	if turkish := regexp.MustCompile(`[çğıöşüÇĞİÖŞÜ]`).FindString(string(dataJSON)); turkish != "" {
 		t.Errorf("data.json'da Türkçe harf var: %q", turkish)
@@ -105,7 +101,16 @@ func TestSnippetDataIsLanguageNeutral(t *testing.T) {
 		}
 	}
 	result := generated(t)
-	if result["tr"][0].Body[0] == result["en"][0].Body[0] {
-		t.Error("Türkçe ve İngilizce şablon aynı çıktı")
+	identities := regexp.MustCompile(`TR_[\p{L}\p{N}_]+`)
+	skeleton := func(e entry) string {
+		return strings.Join(identities.FindAllString(strings.Join(e.Body, "\n"), -1), " ")
+	}
+	for i, tr := range result["tr"] {
+		if en := result["en"][i]; skeleton(tr) != skeleton(en) || skeleton(tr) == "" && !strings.HasPrefix(tr.Body[0], "[") {
+			t.Errorf("%s: gövde her dilde aynı kimlik yazımı olmalı:\n%s\n---\n%s", tr.Label, strings.Join(tr.Body, "\n"), strings.Join(en.Body, "\n"))
+		}
+	}
+	if result["tr"][0].Label == result["en"][0].Label {
+		t.Error("Türkçe ve İngilizce şablonun adı aynı çıktı")
 	}
 }

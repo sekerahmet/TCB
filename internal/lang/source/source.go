@@ -1,8 +1,9 @@
 // Package source is TR's "source to program" entry point: it checks the header of a .tr file
 // (BOM, '#!', the '# TR 4' header), picks the right lexer, parses, optionally type-checks, and
 // returns errors and warnings in one shape. The command line, the REPL, the test runner, the debug
-// server and the module loader read files only through here. The converter between the coded
-// form and a writing language's view (Encode, Decode) lives only in this package too.
+// server and the module loader read files only through here. A coded file's view in a writing
+// language (Show) is written only in this package too; a view is only read by people, it does not
+// run and is not converted back (17.7).
 //
 // Layer: language core (internal/lang); imports only internal/lang packages.
 package source
@@ -27,7 +28,7 @@ const headerPrefix = "# TR "
 
 // viewMarker görünüm başlığının işaretidir: 'tr göster' başlığa görünümün dilini yazar
 // ('# TR 4 view=tr'); satır sayısı değişmez. Dosyanın türü dosyanın kendisindedir: görünüm
-// çalışmaz (ViewError), 'tr kodla' dili oradan okur.
+// çalışmaz (ViewError).
 const viewMarker = " view="
 
 // shebang ilk satırdaki yorumdur: dosya betik gibi doğrudan çalıştırılır (./program.tr, 2.1).
@@ -70,17 +71,15 @@ func (e *HeaderError) Error() string {
 // MessageText hatanın lang dilindeki metnidir (messages.Localized).
 func (e *HeaderError) MessageText(lang string) string { return messages.ErrorIn(e.Unwrap(), lang) }
 
-// NoHeaderError is the error of a file without the header: it is text in a writing language (or
-// not TR at all) and does not run; the message gives the encoding command, with the person's
-// language as the text's language (2.1).
+// NoHeaderError is the error of a file without the header: it is not a TR file and does not run;
+// the message gives the header and says the file is written with identities (2.1).
 func NoHeaderError() error {
-	return messages.At(1, 1, messages.New(messages.H2540, Header, codes.NameRef(codes.CmdEncode),
-		codes.NameRef(codes.OptLang), codes.Display().Code))
+	return messages.At(1, 1, messages.New(messages.H2540, Header, codes.WordRef(codes.FnPrint, nil)))
 }
 
 // ViewError is returned for a view file: its header carries the view's writing language
-// ('# TR 4 view=tr', tr göster's output). A view is text in a writing language and does not run;
-// the message gives the encoding command.
+// ('# TR 4 view=tr', tr göster's output). A view is only read: it does not run and is not
+// converted back; the message says to run the coded file it was shown from (17.7).
 type ViewError struct {
 	Lang string
 	// At is the header line's number (1, or 2 after '#!').
@@ -89,7 +88,7 @@ type ViewError struct {
 
 // Unwrap returns the message at its position (messages.Pos).
 func (e *ViewError) Unwrap() error {
-	return messages.At(e.At, 1, messages.New(messages.H2541, e.Lang, codes.NameRef(codes.CmdEncode)))
+	return messages.At(e.At, 1, messages.New(messages.H2541, e.Lang, codes.NameRef(codes.CmdShow)))
 }
 
 func (e *ViewError) Error() string { return e.Unwrap().Error() }
@@ -100,7 +99,7 @@ func (e *ViewError) MessageText(lang string) string { return messages.ErrorIn(e.
 // Split splits text into its parts. The header is the first line, or the second when the first
 // starts with '#!'; if that line starts with the header's prefix but is not the header (another
 // format version), it returns *HeaderError. A view's header ('# TR 4 view=tr') sets View and
-// returns *ViewError: only the encoder reads a view.
+// returns *ViewError: a view is not read as a program.
 func Split(text string) (Parts, error) {
 	b := Parts{}
 	if strings.HasPrefix(text, bom) {
@@ -176,58 +175,13 @@ func (b Parts) Join() string {
 	return b.Body
 }
 
-// Turkish Türkçe yazım dilidir: Go testlerinin ve araçların Türkçe yazılmış metni (TextLexer)
-// onunla okunur. Gömülü liste kurulamadıysa kimlik listesidir ve codes.LanguageError nedenini söyler.
-func Turkish() *codes.Language { return codes.Source() }
+// Lexer is the body's lexer as the interpreter reads it, for the tools that read a file's tokens
+// (the formatter, tr build, the code index): names that are language elements come as identities
+// (TR_fn_print), user names as written; positions follow the text on disk. A body without the
+// header is read the same way: there is no text written in a writing language to read (17.7).
+func (b Parts) Lexer() *lexer.Lexer { return lexer.NewBody(b.Body, true) }
 
-// TextLexer is the lexer of a text written in Turkish without the header (a test's or a tool's
-// snippet): the text is converted to coded form first, so the program reads codes; a text that
-// cannot be converted is read as it is.
-func TextLexer(text string) *lexer.Lexer { return textLexerIn(text, nil, Turkish()) }
-
-// TextLexerWithNames is the lexer of a text the person types inside a running program's scope
-// (the debugger's expression, condition and watch): it is written in the person's display
-// language (codes.Display, TR_DIL), like a shell line. A name in names is the program's own and is
-// not encoded as a language element (the user's toplam variable stays a variable).
-func TextLexerWithNames(text string, names []string) *lexer.Lexer {
-	return textLexerIn(text, names, codes.Display())
-}
-
-// textLexerIn lang'de yazılmış metnin sözcük çözümleyicisidir: metin önce kodlu biçime çevrilir,
-// konumlar lang'deki gösterime göredir; çevrilemeyen metin olduğu gibi okunur.
-func textLexerIn(text string, names []string, lang *codes.Language) *lexer.Lexer {
-	if coded, err := toCoded(text, lang, names, false); err == nil {
-		_, l := view(coded, lang)
-		return l
-	}
-	return lexer.NewBodyIn(text, false, lang)
-}
-
-// Lexer is the body's lexer for the text tools (the formatter, tr build): a coded body is read as
-// it is (identities, positions on disk); a body without the header is a view written in Turkish.
-func (b Parts) Lexer() *lexer.Lexer {
-	if b.Coded {
-		return lexer.NewBody(b.Body, true)
-	}
-	return lexer.NewBodyIn(b.Body, false, Turkish())
-}
-
-// IdentityLexer returns the body's lexer as the interpreter reads it, for tools that keep a program's
-// facts independent of the reader's language (the code index): names that are language elements come as
-// identities (TR_fn_print), user names as written. A coded body is read as it is; a body without the
-// header is a view written in Turkish and is encoded first. Positions follow the text on disk.
-func (b Parts) IdentityLexer() *lexer.Lexer {
-	if b.Coded {
-		return lexer.NewBody(b.Body, true)
-	}
-	return TextLexer(b.Body)
-}
-
-// findEOL bir gövdenin satır sonu biçimidir: ilk satır sonu CRLF ise "\r\n", yoksa "\n".
-// Kodlama başlığı gövdenin biçimiyle yazar.
-func findEOL(body string) string {
-	if i := strings.IndexByte(body, '\n'); i > 0 && body[i-1] == '\r' {
-		return "\r\n"
-	}
-	return "\n"
-}
+// TypedLexer is the lexer of a text the person types into a running program (the debugger's
+// expression, condition and watch): like a file and a shell line it is code, written with
+// identities (TR_print); a writing language's word is a user name (17.7).
+func TypedLexer(text string) *lexer.Lexer { return lexer.NewBody(text, true) }

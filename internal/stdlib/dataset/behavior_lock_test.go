@@ -10,8 +10,8 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
 // gatedSource ilk Doldur çağrısında kapı açılana kadar bekleyen bir toplu iş kaynağıdır.
@@ -65,7 +65,7 @@ func TestNextReleasesLockWhileWaiting(t *testing.T) {
 		close(resource.gate)
 		return interp.Null, nil
 	})
-	p := parser.New(source.TextLexer(`
+	p := parser.New(lexer.NewBody(`
 TR_var alınan = TR_none
 TR_async {
     başladı()
@@ -74,7 +74,7 @@ TR_async {
 görevi_bekle()
 kapıyı_aç()
 TR_wait_all()
-`))
+`, true))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		t.Fatal(p.Errors())

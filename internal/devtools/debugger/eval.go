@@ -17,10 +17,10 @@ const (
 	exprNotExpression                   // ilk deyim ifade değil
 )
 
-// parseFirstExpression metni env'in kapsamında ayrıştırır ve ilk deyiminin ifadesini verir (sonraki
+// parseFirstExpression metni kimlik yazımıyla ayrıştırır (17.7) ve ilk deyiminin ifadesini verir (sonraki
 // deyimler yok sayılır). Hangi kolun hangi iletiyi yazacağı çağıranındır.
-func parseFirstExpression(text string, env *interp.Environment) (ast.Expression, exprStatus) {
-	p := parser.New(source.TextLexerWithNames(text, env.Names()))
+func parseFirstExpression(text string) (ast.Expression, exprStatus) {
+	p := parser.New(source.TypedLexer(text))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 || len(prog.Statements) == 0 {
 		return nil, exprSyntaxError
@@ -40,7 +40,7 @@ func (d *Debugger) evalQuiet(v *interp.VM, env *interp.Environment, e ast.Expres
 func (d *Debugger) checkWatchpoints(v *interp.VM, env *interp.Environment) string {
 	for _, wp := range d.Watchpoints {
 		if wp.IsCond {
-			if e, status := parseFirstExpression(wp.Expression, env); status == exprParsed {
+			if e, status := parseFirstExpression(wp.Expression); status == exprParsed {
 				val, err := d.evalQuiet(v, env, e)
 				if err == nil && val.IsTruthy() {
 					curStr := interp.True.Inspect()

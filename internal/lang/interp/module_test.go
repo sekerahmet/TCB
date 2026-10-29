@@ -13,8 +13,8 @@ import (
 )
 
 // runWithModules klasör altına dosyaları yazar, çalışma klasörünü kok yapar ve ana.tr'yi çalıştırır.
-// Modül bir dosyadır (2.1): başlıksız modül metnine başlık yazılır, satırları bir artar. ana.tr metin
-// olarak okunur (source.TextLexer), satırları yazıldığı gibidir.
+// Modül bir dosyadır (2.1): başlıksız modül metnine başlık yazılır, satırları bir artar. ana.tr başlıksız
+// kodlu gövde olarak okunur, satırları yazıldığı gibidir.
 func runWithModules(t *testing.T, root string, files map[string]string) (string, error) {
 	t.Helper()
 	for name, content := range files {

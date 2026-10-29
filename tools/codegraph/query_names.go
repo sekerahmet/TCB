@@ -57,7 +57,7 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 
 // implementationsAt kodun kullanıldığı satırda aynı sahibin başvurduğu işlevleri verir (kayıt
 // tablosunda {codes.FnTimeMs, timeMsBuiltin} satırının timeMsBuiltin'i). Satırda ad koduyla anahtarlanmış çiftler varsa
-// (`codes.CmdDebug: debugCommand, codes.CmdEncode: encodeCommand`) uygulama sorulan kodun çiftinin değeridir (Edge.Via).
+// (`codes.CmdDebug: debugCommand, codes.CmdFormat: formatCommand`) uygulama sorulan kodun çiftinin değeridir (Edge.Via).
 func (ix *index) implementationsAt(owner *Node, use *Edge) []string {
 	var all, keyed []string
 	for _, e := range ix.out[owner.ID] {

@@ -31,6 +31,10 @@
   "commit": "d134bc2d",
   "reason": "deleted: interp: '//' is floor division (4.2a); the not-implemented error is gone"
  },
+ "H2115": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7); it reported a file it could not encode"
+ },
  "H2116": {
   "commit": "be79d7e",
   "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
@@ -95,6 +99,10 @@
   "commit": "claude/katman3b-yapi-a92861",
   "reason": "deleted: a struct's text is its name, Nokta, not <struct Nokta> (7.6)"
  },
+ "H2511": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: source: the encoder from a view to code is gone (17.7); no conversion to check for loss"
+ },
  "H2521": {
   "commit": "claude/katman2-deger-12bdf3",
   "reason": "deleted: interp: a JSON integer beyond Int is a Float (3.7a), not an error"
@@ -102,6 +110,14 @@
  "H2523": {
   "commit": "0f969d3",
   "reason": "deleted: source: the header '# TR 4' carries no language (2.1)"
+ },
+ "H2542": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: source: a view is not encoded back (17.7), so its language cannot clash with --lang"
+ },
+ "H2543": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: source: a view is only read (17.7); it is no longer encoded back to verify it"
  },
  "H2707": {
   "commit": "claude/katman3a-deyim-547235",
@@ -251,9 +267,17 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H8620": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7); help no longer lists it"
+ },
  "H8621": {
   "commit": "be79d7e",
   "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
+ },
+ "H8624": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode - is gone (17.7); help no longer lists it"
  },
  "H8652": {
   "commit": "ab7f634",
@@ -263,9 +287,29 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H8681": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7)"
+ },
+ "H8703": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7); it was the only command converting files in place"
+ },
+ "H8704": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7)"
+ },
  "H8705": {
   "commit": "be79d7e",
   "reason": "deleted: cmd/tr: tr çöz is gone; nothing writes a file to disk in a writing language"
+ },
+ "H8706": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7)"
+ },
+ "H8707": {
+  "commit": "claude/serene-pascal-rbkqwf",
+  "reason": "deleted: cmd/tr: tr encode is gone (17.7)"
  },
  "H8711": {
   "commit": "be79d7e",

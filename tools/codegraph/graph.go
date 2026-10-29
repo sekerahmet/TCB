@@ -119,7 +119,7 @@ type Edge struct {
 	Sites      []Site `json:"sites,omitempty"` // alan erişim kenarlarında her erişim yeri
 	// Via implemented_by kenarının dil yapısıdır ("MemberExpression", "operator @"; ilk görülen): who-uses binlerce TR
 	// bildirimini yapının adıyla tek satırda özetler. İşleve giden calls kenarında, işlev bir ad koduyla anahtarlanmış
-	// çiftin değeriyse o kodun düğümüdür ("name:TR_cmd_encode"; keyedImplementations).
+	// çiftin değeriyse o kodun düğümüdür ("name:TR_cmd_format"; keyedImplementations).
 	Via string `json:"via,omitempty"`
 }
 

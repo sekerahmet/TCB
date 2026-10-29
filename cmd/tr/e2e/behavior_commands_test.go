@@ -170,9 +170,9 @@ func TestDAPStartup(t *testing.T) {
 // Bilerek Türkçe gösterim: kabuğa yazılan satır kişinin dilindedir (TR_DIL varsayılanı Türkçe).
 func TestREPL(t *testing.T) {
 	input := strings.Join([]string{
-		`yazdır("merhaba")`,
+		`TR_print("merhaba")`,
 		`1 +`,
-		`değişken x: Tam = "a"`,
+		`TR_var x: TR_Int = "a"`,
 		`1 / 0`,
 		`2 + 3`,
 		`cikis`,
@@ -196,19 +196,19 @@ func TestREPL(t *testing.T) {
 		t.Errorf("tip hatası %d kez yazıldı, beklenen 1:\n%s", n, s.Stderr)
 	}
 	// Kabuğun çıkış komutu bir ad kodudur (TR_repl_exit): her yazım dilinin adı kabul edilir.
-	s = testkit.RunBinary(t, trBinary, "", "exit\nyazdır(\"sürdü\")\n", nil)
+	s = testkit.RunBinary(t, trBinary, "", "exit\nTR_print(\"sürdü\")\n", nil)
 	testkit.Wait(t, s, 0, []string{"Görüşmek üzere!"}, nil)
 	if strings.Contains(s.Stdout, "sürdü") {
 		t.Error("exit kabuğu kapatmalıydı")
 	}
 }
 
-// Kabuk satırı önceki satırların adlarını bilerek kodlanır: kullanıcının önceki satırda tanımladığı ad
-// (toplam, sum) dilin öğesiyle aynı yazılsa da kullanıcının adıdır, yerleşiğe dönmez. Her yazım dilinde.
+// Kabuk satırı kimliklerle yazılır (17.7): kullanıcının önceki satırda tanımladığı ad (toplam, sum) bir
+// dilin sözcüğüyle aynı yazılsa da kullanıcının adıdır, yerleşiğe dönmez. Her yazım dilinde (TR_DIL).
 func TestREPLKeepsTheEarlierLinesNames(t *testing.T) {
 	for _, c := range []struct{ lang, input string }{
-		{"tr", "değişken toplam = 5\nyazdır(toplam + 1)\nçıkış\n"},
-		{"en", "var sum = 5\nprint(sum + 1)\nexit\n"},
+		{"tr", "TR_var toplam = 5\nTR_print(toplam + 1)\nçıkış\n"},
+		{"en", "TR_var sum = 5\nTR_print(sum + 1)\nexit\n"},
 	} {
 		s := testkit.RunBinary(t, trBinary, "", c.input, []string{"TR_DIL=" + c.lang})
 		testkit.Wait(t, s, 0, []string{"6\n"}, nil)
@@ -226,7 +226,7 @@ func TestInputPipeAndShell(t *testing.T) {
 	s := testkit.RunBinary(t, trBinary, dir, "bir\niki\n", nil, "g.tr")
 	testkit.Wait(t, s, 0, []string{"a=[bir] b=[iki]"}, nil)
 
-	input := "değişken x = girdi()\nveri\nyazdır(\"x=\" + x)\nçıkış\n" // kabuk satırları: Türkçe
+	input := "TR_var x = TR_input()\nveri\nTR_print(\"x=\" + x)\nçıkış\n" // kabuk satırları kimliklerle
 	s = testkit.RunBinary(t, trBinary, "", input, nil)
 	testkit.Wait(t, s, 0, []string{"x=veri", "Görüşmek üzere!"}, nil)
 }

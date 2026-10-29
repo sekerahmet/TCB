@@ -270,7 +270,7 @@ func TestDAPDebugSession(t *testing.T) {
 	}
 
 	// Hata ayıklama konsolunda deyim çalıştırma
-	c.request("evaluate", map[string]interface{}{"expression": "$toplam = 5", "context": "repl"})
+	c.request("evaluate", map[string]interface{}{"expression": "toplam = 5", "context": "repl"})
 
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	exited := c.event("exited")

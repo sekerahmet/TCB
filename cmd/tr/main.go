@@ -123,7 +123,7 @@ func oldCommand(arg string) (string, bool) {
 var commands = map[codes.Code]func([]string){
 	codes.CmdHelp: helpCommand, codes.CmdVersion: versionCommand,
 	codes.CmdCheck: checkCommand, codes.CmdBuild: buildCommand, codes.CmdDap: dapCommand, codes.CmdRun: runCommand,
-	codes.CmdDebug: debugCommand, codes.CmdTest: testCommand, codes.CmdFormat: formatCommand, codes.CmdEncode: encodeCommand,
+	codes.CmdDebug: debugCommand, codes.CmdTest: testCommand, codes.CmdFormat: formatCommand,
 	codes.CmdShow: showCommand, codes.CmdWatch: watchCommand, codes.CmdProfile: profileCommand,
 	codes.CmdIndex: indexCommand,
 }
@@ -237,10 +237,8 @@ func printHelp() {
 		messages.Text(messages.H8617, codes.NameRef(codes.CmdBuild)),
 		messages.Text(messages.H8618, codes.NameRef(codes.CmdTest)),
 		messages.Text(messages.H8619, codes.NameRef(codes.CmdFormat), codes.OptionFlag(codes.OptCheck)),
-		messages.Text(messages.H8620, codes.NameRef(codes.CmdEncode), lang),
 		messages.Text(messages.H8622, codes.NameRef(codes.CmdShow), lang),
 		messages.Text(messages.H8623, codes.NameRef(codes.CmdShow), lang),
-		messages.Text(messages.H8624, codes.NameRef(codes.CmdEncode), lang),
 		messages.Text(messages.H8625, codes.NameRef(codes.CmdWatch)),
 		messages.Text(messages.H8626, codes.NameRef(codes.CmdProfile), codes.OptionFlag(codes.OptJson)),
 		messages.Text(messages.H8627, codes.NameRef(codes.CmdDap)),
@@ -294,8 +292,8 @@ func startREPL() {
 	fmt.Println(messages.Text(messages.H8634, codes.NameRef(codes.ReplExit)))
 	machine := interp.New()
 	machine.SetInteractive()
-	// Kabuğa yazılan satırlar kişinin yazım dilindedir (source.Options.Typed); değerlerin metni
-	// dilden bağımsızdır (3.14).
+	// Kabuğa yazılan satır koddur, dosya gibi kimlik yazımıyla okunur (source.Options.Body, 17.7);
+	// değerlerin metni dilden bağımsızdır (3.14).
 	// Satırlar girdi() ile aynı tamponlu okuyucudan okunur; ayrı bir okuyucu, programın
 	// okuyacağı satırları kendi tamponuna çekip yutardı.
 	reader := machine.InputReader()
@@ -327,7 +325,7 @@ func startREPL() {
 		// Hatalar dosya çalıştırmadakiyle aynı başlık ve biçimle standart hataya yazılır.
 		// Denetleyici satırlar arasında durumunu (ve hata listesini) korur; yalnızca bu
 		// satırın getirdiği yeni hatalar gösterilir.
-		s := source.Prepare(line, source.Options{TypeCheck: true, Checker: chk, Typed: true, GlobalNames: machine.GlobalEnv.Names()})
+		s := source.Prepare(line, source.Options{TypeCheck: true, Checker: chk, Body: true})
 		if s.Stage == source.StageSyntax {
 			writeDiags(syntaxHeader, s.Errors, s.Text)
 			continue

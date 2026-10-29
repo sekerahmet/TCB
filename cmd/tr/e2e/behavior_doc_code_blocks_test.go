@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -102,8 +103,10 @@ func TestDocTRCodeBlocks(t *testing.T) {
 	}
 	header := "# Dil tanımının henüz uygulanmamış kurallarını gösteren kod blokları (TestDocTRCodeBlocks): belge:satır.\n" +
 		"# Kuralı uygulayan katman kendi satırlarını siler; liste yalnızca küçülür (-update).\n"
-	testkit.CheckKnownList(t, "testdata/doc_blocks_known.txt", header, failing, *updateDisplayKnown)
+	testkit.CheckKnownList(t, "testdata/doc_blocks_known.txt", header, failing, *updateKnown)
 }
+
+var updateKnown = flag.Bool("update", false, "testdata/doc_blocks_known.txt'ten artık geçen satırları sil")
 
 var (
 	templateDefaultRe = regexp.MustCompile(`\$\{\d+:([^${}]*)\}`)
@@ -130,7 +133,7 @@ var namePlaceholderRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 // tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
 // olduğunu varsayar.
 func definePlaceholders(body, code string) string {
-	defined, _ := checker.TopLevelNames(parser.New(source.TextLexer(code)).ParseProgram())
+	defined, _ := checker.TopLevelNames(parser.New(source.Parts{Body: code}.Lexer()).ParseProgram())
 	var on strings.Builder
 	seen := map[string]bool{}
 	for _, m := range templateDefaultRe.FindAllStringSubmatch(body, -1) {
@@ -151,8 +154,8 @@ func TestExtensionTemplatesBuild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Türkçe şablonlar kaynaktır; öbür dillerinki ondan üretilir ve tools/gen/snippets testlerinde
-	// kendi yazımlarında ayrıştırılır.
+	// Şablonların gövdesi her dilde aynı kimlik yazımıdır (tools/gen/snippets); Türkçe şablonların
+	// durak sözcükleriyle derlenmesi sınanır.
 	var languages map[string][]struct {
 		Label string   `json:"label"`
 		Body  []string `json:"body"`
@@ -179,16 +182,8 @@ func TestExtensionTemplatesBuild(t *testing.T) {
 			code = "TR_var sonuç_listesi = " + code
 		}
 		code = definePlaceholders(body, code)
-		// Türkçe şablon Türkçe görünümde yazılır; dosyaya kodlanarak girer (17).
-		coded, err := source.EncodeIn(code, source.Turkish())
-		if err != nil {
-			t.Errorf("%q şablonu kodlanamadı: %v\n%s", ad, err, code)
-			continue
-		}
-		if source.HeaderLines(coded) == 0 {
-			coded = source.Header + "\n" + coded
-		}
-		if passed, stdout := trCheck(t, "sablon", coded); !passed {
+		// Şablon kodlu dosyaya kimlik yazımıyla yazılır (17.7): başlıkla birlikte bir dosyadır.
+		if passed, stdout := trCheck(t, "sablon", source.Header+"\n"+code); !passed {
 			t.Errorf("%q şablonu derlenmiyor:\n%s\n---\n%s", ad, code, stdout)
 		}
 	}

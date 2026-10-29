@@ -1,10 +1,10 @@
 // snippets, VS Code eklentisinin kod şablonlarını (editors/vscode/snippets/snippets.json) her yazım
-// dili için üretir. Şablonun gövdesi bir kez, kodlu biçimde yazılır (data.json);
-// her dilin (Türkçe dahil) gövdesi o kodun source.Show ile o dilin yazımında gösterimidir: anahtar kelime,
-// yerleşik, tip ve üye adları dilin kod listesinden gelir, elle çevrilmez. Kullanıcının dolduracağı
-// yerler (ad, koşul, sayı) kodda "ph_" ile başlayan adlarla yazılır; üretici onları dilin sözcükleriyle
-// VS Code şablon durağına (${1:koşul}) çevirir. Eklenti, kişinin yazım diline (tr.writingLanguage) göre
-// ilgili dilin şablonlarını sunar.
+// dili için üretir. Şablonun gövdesi bir kez, kodlu biçimde yazılır (data.json) ve her dilde kimlik
+// yazımıyla aynen kalır: şablon kodlu dosyaya yazılır, kod yalnız kimliklerle yazılır (17.7). Dile göre
+// değişenler şablonun adı, açıklaması, kısayolu (kodun o dildeki adı: fonksiyon, func) ve kullanıcının
+// dolduracağı yerlerin (ad, koşul, sayı) varsayılan sözcükleridir: kodda "ph_" ile başlayan adlar VS Code
+// şablon durağına (${1:koşul}) çevrilir. Eklenti, kişinin yazım diline (tr.writingLanguage) göre ilgili
+// dilin şablonlarını sunar.
 //
 // Kullanım (depo kökünden):
 //
@@ -69,13 +69,8 @@ func fill(hole, lang string) (string, error) {
 // build şablonun lang dilindeki hâlidir.
 func build(t template, language *codes.Language) (entry, error) {
 	lang := language.Code
-	shown, err := source.Show(t.Source, language)
-	if err != nil {
-		return entry{}, fmt.Errorf("template %s cannot be shown in %s: %w", t.ID, lang, err)
-	}
-	// Gösterim dosyanın satırlarını, başlık dahil, tutar; şablon bir dosyanın içine yazılır, başlığı
-	// almaz.
-	shown = strings.Join(strings.SplitAfter(shown, "\n")[source.HeaderLines(shown):], "")
+	// Şablon kodlu dosyanın içine yazılır: gövde kimlik yazımıyladır, her dilde aynıdır; başlığı almaz.
+	shown := strings.Join(strings.SplitAfter(t.Source, "\n")[source.HeaderLines(t.Source):], "")
 	used := map[string]bool{}
 	var failure error
 	shown = holeRe.ReplaceAllStringFunc(shown, func(name string) string {

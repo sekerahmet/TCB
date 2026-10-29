@@ -15,8 +15,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
 	"github.com/sekerahmet/TCB/internal/devtools/debugger"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
-	"github.com/sekerahmet/TCB/internal/lang/source"
 	_ "github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
@@ -326,7 +326,7 @@ func TestErrorMessages(t *testing.T) {
 // Göreli yollar çalışma klasöründe yoksa programın klasörüne göre çözülür.
 func TestRelativePathProgramDir(t *testing.T) {
 	d := buildDataset(t)
-	p := parser.New(source.TextLexer(`TR_var k = TR_Dataset("` + filepath.Base(d) + `")`))
+	p := parser.New(lexer.NewBody(`TR_var k = TR_Dataset("`+filepath.Base(d)+`")`, true))
 	prog := p.ParseProgram()
 	m := interp.New()
 	m.Out = &bytes.Buffer{}

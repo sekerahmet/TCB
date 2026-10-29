@@ -22,10 +22,7 @@ import (
 // kitaplıkta yok: sahte depo dizesi gerçek kitaplık dosyasına bağlanmasın), onu aktaran
 // bir betik ve kitaplığı dize, kodlu dize, betik ve kalıpla koşan Go testleridir.
 func libraryImportFiles(t *testing.T) map[string]string {
-	coded, err := source.Encode("TR_import \"tr/katmanx\"\nTR_print(1)\n")
-	if err != nil {
-		t.Fatal(err)
-	}
+	coded := source.Header + "\nTR_import \"tr/katmanx\"\nTR_print(1)\n"
 	return map[string]string{
 		"lib/modelx.tr":             "TR_import \"tr/katmanx\"\nTR_func h() {\n}\n",
 		"lib/katmanx.tr":            "TR_func k() {\n}\n",

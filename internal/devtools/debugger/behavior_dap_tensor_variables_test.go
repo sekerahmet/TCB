@@ -56,7 +56,7 @@ func TestDAPTensorVariables(t *testing.T) {
 	if set["value"] != "60" {
 		t.Fatalf("setVariable 60 döndürmeliydi: %v", set)
 	}
-	if got := c.evaluate("t.değer"); got != "(2) [[1.0, 2.0, 3.0], [4.0, 5.0, 60.0]]" {
+	if got := c.evaluate("t.TR_tolist"); got != "(2) [[1.0, 2.0, 3.0], [4.0, 5.0, 60.0]]" {
 		t.Fatalf("atama tensörü değiştirmeli: %s", got)
 	}
 

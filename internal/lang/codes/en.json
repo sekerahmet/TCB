@@ -457,7 +457,6 @@
   "TR_cmd_build": { "name": "build" },
   "TR_cmd_check": { "name": "check" },
   "TR_cmd_debug": { "name": "debug" },
-  "TR_cmd_encode": { "name": "encode" },
   "TR_cmd_format": { "name": "format" },
   "TR_cmd_help": { "name": "help" },
   "TR_cmd_index": { "name": "index" },

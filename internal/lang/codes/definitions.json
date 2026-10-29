@@ -513,7 +513,6 @@
   "TR_cmd_check": { "kind": "command", "example": "tr check eğit.tr" },
   "TR_cmd_dap": { "kind": "command", "common_name": "dap", "example": "tr dap" },
   "TR_cmd_debug": { "kind": "command", "example": "tr debug eğit.tr" },
-  "TR_cmd_encode": { "kind": "command", "example": "tr encode eğit.tr" },
   "TR_cmd_format": { "kind": "command", "example": "tr format eğit.tr" },
   "TR_cmd_help": { "kind": "command", "example": "tr help" },
   "TR_cmd_index": { "kind": "command", "example": "tr index" },
