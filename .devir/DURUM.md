@@ -5,13 +5,12 @@
 
 ## Biten adımlar
 
-- 16:40 sözcük çözümleyici ve ayrıştırıcı (`698ab10`): `t.0.1` iki indeks; `(a, b)` demet değişmezi; `ast.ElementExpression`; tipte tek öğeli parantez gruplar. Biçimleyici zaten doğru biçimliyordu, tablo satırı eklendi.
-- 17:20 değer ve işleçler (`383c265`): `TupleVal`, `MultiVal` ve H2708 kalktı; `==`, `<`, sıralama, `TR_min`/`TR_max`, sözlük anahtarı, metin, tip metni; hata ayıklayıcıda öğeler `.0`. Değer ve işleçler aynı ileti dosyalarına dokunduğu için tek commit.
-- 17:20 JSON yazımı (`01cd4be`): `TR_json_string` demeti dizi yazar.
-
-- 17:45 sahiplik (`55e45eb`): demet `Owned`; `moveTo`, `adopt`, `escape` liste ve demeti `ownedElements` ile gezer; `ownList` → `ownContainer`. Testler (a)–(e), liste değişmezi ve indeksle atama `behavior_ownership_test.go`'da. Liste testi gerçek bir eksiği gösterdi (aşağıda, Kararsız 1): düzeltildi.
-- 17:55 denetleyici (`f0fafb7`; H1026, `checker/unpack.go`): sayı `TypeInfo.TupleLen`'de, tip dizesinde değil; `tests/negative/demet_acma.tr`.
-- 18:10 (`2a4f3f1`) TR testleri (`tests/tipler_test.tr`'nin 8 "3.6a ..." testi), `bind` ve `codeindex` denemeleri, dil tanımı (3.6a, 6.3, 13.8), gerekçe, status (3.6a, 5.3, 6.3).
+- 16:10 sözcük çözümleyici ve ayrıştırıcı (`698ab10`): `t.0.1` iki indeks; `(a, b)` demet değişmezi; `ast.ElementExpression`; tipte tek öğeli parantez gruplar. Biçimleyici zaten doğru biçimliyordu, tablo satırı eklendi.
+- 16:23 değer ve işleçler (`383c265`): `TupleVal`, `MultiVal` ve H2708 kalktı; `==`, `<`, sıralama, `TR_min`/`TR_max`, sözlük anahtarı, metin, tip metni; hata ayıklayıcıda öğeler `.0`. Değer ve işleçler aynı ileti dosyalarına dokunduğu için tek commit.
+- 16:23 JSON yazımı (`01cd4be`): `TR_json_string` demeti dizi yazar.
+- 16:25 sahiplik (`55e45eb`): demet `Owned`; `moveTo`, `adopt`, `escape` liste ve demeti `ownedElements` ile gezer; `ownList` → `ownContainer`. Testler (a)–(e), liste değişmezi ve indeksle atama `behavior_ownership_test.go`'da. Liste testi gerçek bir eksiği gösterdi (aşağıda, Kararsız 1): düzeltildi.
+- 16:27 denetleyici (`f0fafb7`; H1026, `checker/unpack.go`): sayı `TypeInfo.TupleLen`'de, tip dizesinde değil; `tests/negative/demet_acma.tr`.
+- 16:30 (`2a4f3f1`) TR testleri (`tests/tipler_test.tr`'nin 8 "3.6a ..." testi), `bind` ve `codeindex` denemeleri, dil tanımı (3.6a, 6.3, 13.8), gerekçe, status (3.6a, 5.3, 6.3).
 
 ## Kalanlar
 
