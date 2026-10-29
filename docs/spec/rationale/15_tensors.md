@@ -109,7 +109,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:*
   - PyTorch ve NumPy tensörle ve maskeyle indeksi verir. PyTorch'un `torch.select`'i ve `unsqueeze`'i; NumPy'de `expand_dims`.
-  - Yinelenen indeks [ölçüldü ve kanıtlı: DENETİM, torch 2.14]: PyTorch'ta `c[idx] += 1` → `[1, 0, 0]`, `index_add_` → `[3, 0, 0]`; `index_put_`'un belgesi: "If accumulate is False, the behavior is undefined if indices contain duplicate elements". PyTorch'un `x[idx] += 1`'i yinelenenleri kaybeder; `index_add_` ve `index_put_(accumulate=True)` biriktirir.
+  - Yinelenen indeks [ölçüldü ve kanıtlı: DENETİM, `torch==2.14`]: PyTorch'ta `c[idx] += 1` → `[1, 0, 0]`, `index_add_` → `[3, 0, 0]`; `index_put_`'un belgesi: "If accumulate is False, the behavior is undefined if indices contain duplicate elements". PyTorch'un `x[idx] += 1`'i yinelenenleri kaybeder; `index_add_` ve `index_put_(accumulate=True)` biriktirir.
   - Örtüşme: NumPy'ın kuralı; kaynak önce kopyalanır [ölçüldü: DENETİM, `[1, 1, 2, 3]`].
   - Bileşik atama: PyTorch'ta `TR_var q = p; p -= ...` karşılığında `q` de değişir [ölçüldü: DENETİM, 2.14]; paylaşımın tuzağı (`kalıntı`) PyTorch'ta da aynıdır.
   - Yaprak: PyTorch'un `is_leaf` kuralıyla aynıdır.
