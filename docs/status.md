@@ -101,7 +101,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ### 3.6a
 
-- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** demet tipi `(A, B)` ayrıştırılıyor, her şeyle uyumlu sayılıyor; tip yerinde gruplama parantezi (`(TR_Int)`, `((T) -> R)?`) henüz hata, 0.6b'de.
+- **Mevcut durum (Faz 0.6b, 2026-10-29):** demet bir değer (`TupleVal`): değişmez `(a, b)`, `(x)` parantez; `t.0`, `t.0.1` okunur, atamak çalışma hatası (H2776); sınır dışı indeks çalışma hatası, ileti öğe sayısını söylüyor (H2774); `==` öğe öğe, tensör tutan demette çalışma hatası (H2777); `<` sözlük sırasıyla (IEEE), `.TR_sort`, `TR_min`, `TR_max` 13.10'un sırasıyla; öğeleri anahtar olabilen demet sözlük anahtarı, olamayan öğeli demet anahtarda hata (H2773); metni `(1, "a")`, tipinin metni `(Int, String)`; `TR_json_string` dizi yazıyor; kontrol noktasında desteklenmeyen değer (H7457). Tipte tek öğeli parantez gruplar: `(TR_Int)` `TR_Int`, `((TR_Int) -> TR_Bool)?` isteğe bağlı fonksiyon tipi [ölçüldü: `tests/tipler_test.tr`'nin 3.6a testleri, `parser/types_test.go`].
+- **Yapılacaklar:** sınır dışı indeksin, tensör tutan demetin `==`'sinin ve sıralanamayan öğeli `<`'nin denetim hatası: denetleyici demet tipini bugün Herhangi'ye indirgiyor, öğe sayısını ve tiplerini taşımıyor (4a2); `TR_json_parse[T]` (13.8) motorda yok, demet tipli alanın diziden kurulması onunla gelir.
 
 ### 3.7
 
@@ -170,8 +171,8 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 ### 5.3
 
-- **Mevcut durum:** takas, listeden açma ve `_` kurala uyuyor; öğe sayısı tutmazsa H2700 ya da H2701 çalışma hatası; `_` okunamıyor (sözdizimi hatası). Demet yok: `TR_var x, y = (7, 8)` sözdizimi hatası veriyor [ölçüldü: takas, `TR_var p, q = [1, 2, 3]`, okunan `_` ve parantezli demet programları; denetim ve çalıştırma].
-- **Yapılacaklar:** sağdaki tek demetin öğelerine açılması (3.6a'nın demetiyle); TR testi.
+- **Mevcut durum:** takas, listeden ve demetten açma ve `_` kurala uyuyor; öğe sayısı tutmazsa H2700, H2701 ya da (demette) H2709 çalışma hatası, sağ yan demet yazımıysa denetim hatası (H1026); `_` okunamıyor (sözdizimi hatası) [ölçüldü: takas, `TR_var p, q = [1, 2, 3]`, okunan `_`, `TR_var x, y = (7, 8)`; `tests/negative/demet_acma.tr`; Faz 0.6b].
+- **Yapılacaklar:** yok.
 
 ### 5.4
 
@@ -227,8 +228,8 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 ### 6.3
 
-- **Mevcut durum:** `TR_return a, b`, dönüş tipinin `-> (TR_Float, TR_Int)` yazımı, açma ve `TR_return f()` ile iletme çalışıyor; sonuç bir değer değil: `TR_var t = f()`, argüman olarak ve listede kullanım çalışırken H2708 veriyor, `t.0` sözdizimi hatası; açmada değer sayısı tutmazsa denetim değil çalışma hatası (H2709) [ölçüldü: iki değer döndüren fonksiyonla altı kullanım; denetim ve çalıştırma].
-- **Yapılacaklar:** sonuç bir demet değeri (3.6a): tutulur, argüman olur, listeye konur, `t.0` ile okunur, H2708 kalkar; açmada sayı tutmazsa denetim hatası; TR testi.
+- **Mevcut durum (Faz 0.6b, 2026-10-29):** `TR_return a, b` bir demet döndürüyor: sonuç açılıyor, tutuluyor, argüman oluyor, listeye konuyor, `t.0` ile okunuyor; H2708 kalktı. Açmada sayı tutmazsa dönüşü `-> (A, B)` diye yazılmış fonksiyonun doğrudan çağrısında denetim hatası (H1026), öbür yerlerde (fonksiyon değeri, dönüş tipi yazılmamış fonksiyon) çalışma hatası (H2709) [ölçüldü: `tests/tipler_test.tr`'nin 3.6a testi, `tests/fonksiyonlar_test.tr`'nin 6.3 testleri, `checker/unpack_test.go`].
+- **Yapılacaklar:** dönüş tipinin öğe tipleriyle açılan adların tipi ve dönüş tipi yazılmamış fonksiyonun sayısı (4a2).
 
 ### 6.4
 

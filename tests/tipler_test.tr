@@ -137,6 +137,98 @@ TR_test "3.6 Liste: değerler başvuruyla paylaşılır" {
     TR_assert_equal([1, 2], a)
 }
 
+TR_test "3.6a demet değişmezi: en az iki öğe, (x) parantezdir" {
+    TR_var t = (1, "a")
+    TR_assert_equal(1, t.0)
+    TR_assert_equal("a", t.1)
+    TR_assert_equal(7, (7))
+    TR_assert_equal(9, (1 + 2) * 3)
+    TR_var u = (1, (2.5, TR_none), [4])
+    TR_assert_equal([4], u.2)
+    TR_assert_equal(TR_none, u.1.1)
+}
+
+TR_test "3.6a öğe okuma t.0, t.0.1; sınır dışı indeks çalışma hatasıdır" {
+    TR_var t = ((1, 2), "b")
+    TR_assert_equal(2, t.0.1)
+    TR_assert_equal(2, (t.0).1)
+    TR_assert_equal(1, ((1, 2), 3).0.0)
+    TR_assert_equal("H2774", TR_error_code { t.2 })
+    TR_assert_equal("H2775", TR_error_code { [1, 2].0 })
+}
+
+TR_test "3.6a demetin öğesi atanamaz" {
+    TR_var t = (1, 2)
+    TR_assert_equal("H2776", TR_error_code { t.0 = 5 })
+    TR_assert_equal("H2776", TR_error_code { t.1 += 1 })
+    TR_assert_equal((1, 2), t)
+}
+
+TR_test "3.6a == öğe öğedir; öğeleri sıralanabilen demet sözlük sırasıyla karşılaştırılır" {
+    TR_assert((1, "a") == (1, "a"))
+    TR_assert((1, "a") != (1, "b"))
+    TR_assert((1, (2, 3)) == (1, (2, 3)))
+    TR_assert((1, 2) < (1, 3))
+    TR_assert((2, "a") > (1, "z"))
+    TR_assert((1, 2) <= (1, 2))
+    TR_assert(TR_not ((TR_nan, 1) < (TR_nan, 2)))
+    TR_assert_equal([(1, "b"), (1, "c"), (2, "a")], [(2, "a"), (1, "c"), (1, "b")].TR_sort())
+    # Sıralama 13.10'un sırasıdır (-0.0 < 0.0), '<' IEEE 754'ündür (-0.0 == 0.0)
+    TR_var l = [(0.0, 2.0), (-0.0, 3.0)].TR_sort()
+    TR_assert_equal("[(-0.0, 3.0), (0.0, 2.0)]", TR_String(l))
+    TR_assert(l[0] > l[1])
+    TR_assert_equal((1, 5), TR_min([(2, 1), (1, 5)]))
+    TR_assert_equal((2, 1), TR_max([(2, 1), (1, 5)]))
+    TR_assert_equal("H2772", TR_error_code { (1, [1]) < (1, [2]) })
+    TR_assert_equal("H2493", TR_error_code { [(1, 2), 3].TR_sort() })
+    # Tensör tutan demetin ==si hatadır (15.5)
+    TR_assert_equal("H2777", TR_error_code { (TR_Tensor([1.0]), 1) == (TR_Tensor([1.0]), 1) })
+}
+
+TR_test "3.6a öğeleri anahtar olabilen demet sözlük anahtarıdır" {
+    TR_var d = {(1, 2): "a"}
+    d[(3, 4)] = "b"
+    TR_assert_equal("a", d[(1, 2)])
+    TR_assert_equal([(1, 2), (3, 4)], d.TR_keys())
+    TR_assert(d.TR_contains((3, 4)))
+    TR_assert_equal("H2773", TR_error_code { d[([1], 2)] = "c" })
+}
+
+TR_test "3.6a değerin metni (1, \"a\"), tipinin metni (Int, String)" {
+    TR_assert_equal("(1, \"a\")", TR_String((1, "a")))
+    TR_assert_equal("x (1, 2.5)", "x \((1, 2.5))")
+    TR_assert_equal("(Int, String)", TR_String(TR_Type((1, "a"))))
+    TR_assert_equal("((Int, Float), List)", TR_String(TR_Type(((1, 2.5), [1]))))
+    TR_assert(TR_Type((1, 2)) == TR_Type((3, 4)))
+    TR_assert(TR_Type((1, 2)) != TR_Type((1, "a")))
+}
+
+TR_test "3.6a birden çok değer bir demettir (6.3): tutulur, argüman olur, listeye konur, açılır" {
+    TR_func böl(a: TR_Int, b: TR_Int) -> (TR_Int, TR_Int) {
+        TR_return a // b, a % b
+    }
+    TR_var t = böl(17, 5)
+    TR_assert_equal((3, 2), t)
+    TR_assert_equal(3, t.0)
+    TR_assert_equal(2, böl(17, 5).1)
+    TR_func topla(p) {
+        TR_return p.0 + p.1
+    }
+    TR_assert_equal(5, topla(böl(17, 5)))
+    TR_assert_equal([(3, 1), (2, 1)], [böl(7, 2), böl(9, 4)])
+    TR_var b, k = t
+    TR_assert_equal([3, 2], [b, k])
+    TR_var x, y = (7, 8)
+    x, y = y, x
+    TR_assert_equal((8, 7), (x, y))
+}
+
+TR_test "3.6a JSON'a demet dizi olarak yazılır; geri dönüş tiple olur" {
+    TR_assert_equal("[1,\"a\",[2,3]]", TR_json_string((1, "a", (2, 3))))
+    TR_var j = TR_json_parse(TR_json_string((1, "a")))
+    TR_assert_equal((1, "a"), (TR_Int(j[0]), TR_String(j[1])))
+}
+
 TR_test "3.7 Sözlük: eklenme sırasını korur; anahtar bir ifadedir" {
     TR_var k = "ad"
     TR_var d = {k: "Ali", "yaş": 30, 1: "bir", TR_true: "doğru"}

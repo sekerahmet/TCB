@@ -44,6 +44,7 @@ Kurallar: [`03_tipler.md`](../03_tipler.md). Bu dosya her kuralın emsalini (ba�
 - *Gerekçe:* parçalayıcı eğitimi (BPE) bir `(a, b)` çiftinin sayısını tutar; liste ve yapı anahtar olamaz (değişir), demet olabilir. Birden çok dönüşün demet olması tek kavramdır: ajan `(A, B)`'nin değer olup olmadığını tahmin etmez.
 - *Gerekçe (`t.0.1`):* Rust'ta da `t.0.1` iç içe demetin öğesidir; ajanın doğal yazımı budur. Parantez zorunlu olsaydı (`(t.0).1`) ajan önce yanlışı yazıp iletiyle düzeltirdi.
 - *Gerekçe (tipte parantez):* isteğe bağlı fonksiyon tipi gruplamasız yazılamaz, çünkü `(T) -> R?`'nin `?`'si dönüşündür. Swift `((Int) -> Bool)?` yazar; Go ve Rust da tipte parantezi gruplama sayar (Rust'ta tek öğeli demet `(T,)`'dir). TR'de demet en az iki öğeli olduğu için `(T)` belirsiz değildir.
+- *Gerekçe (JSON):* JSON'da demet yoktur; Python'un `json`'u da demeti dizi yazar ("list, tuple → array"). Geri dönüş tiple olur: `TR_json_parse[T]` demet tipli alanı diziden kurar, tipsiz okuma dizi verir. ([Python json](https://docs.python.org/3/library/json.html#py-to-json-table))
 
 ### 3.7
 

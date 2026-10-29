@@ -316,3 +316,23 @@ func TestIntList(t *testing.T) {
 		t.Errorf("boş: %v", l)
 	}
 }
+
+// Demet liste değildir (3.6a): yerleşikler liste parametresini tipiyle (*interp.ListVal) okur, demet
+// oraya girmez, tip hatası verir; aynı öğeli liste geçer.
+func TestTupleIsNotGivenToAListParameter(t *testing.T) {
+	run := func(src string) (interp.Value, error) {
+		m := interp.New()
+		prog := parser.New(lexer.NewBody("TR_var s = "+src, true)).ParseProgram()
+		if _, err := m.Run(prog); err != nil {
+			return nil, err
+		}
+		v, _ := m.GlobalEnv.Get("s")
+		return v, nil
+	}
+	if _, err := run("TR_sum((1, 2))"); !messages.Has(err, messages.H2423) {
+		t.Fatalf("demet liste parametresine verilince tip hatası (H2423) beklenirdi: %v", err)
+	}
+	if v, err := run("TR_sum([1, 2])"); err != nil || v.Inspect() != "3" {
+		t.Fatalf("liste geçmeli: %v %v", v, err)
+	}
+}
