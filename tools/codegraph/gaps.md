@@ -16,7 +16,9 @@ gösterim **ince ayar**dır.
 
 **Akış (Ahmet, 2026-10-26; baş geliştirici aksini onaylamadıkça):** maddeler bu dosyada birikir; ana oturum listeyi
 baştan sona gözden geçirir; DENETİM bütününü denetler (yeniden üretim, sınıf, istenen çözümün genelliği); onaylananlar
-tek mesajla CODEGRAPH'a gider (tek tek gönderilmez); gönderilen madde "CODEGRAPH'ta (tarih)" diye işaretlenir. Düzeltme ana dala birleştirilince ana oturum
+tek yönergeyle sahibine gider (tek tek gönderilmez): açık tanımlı ve çözümü dar olan Gemini'ye, tasarım isteyen CODEGRAPH'a
+(2026-10-29'dan beri; sahip maddenin yanına yazılır); gönderilen madde "<sahip>'te (tarih)" diye işaretlenir; birleşmeden
+önce DENETİM kodu okur. Düzeltme ana dala birleştirilince ana oturum
 düzeltmeyi aynı komutla doğrular ve maddeyi siler (geçmişi git'tedir). İstenen her zaman örneği yamalayan değil aynı sınıftaki
 her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
