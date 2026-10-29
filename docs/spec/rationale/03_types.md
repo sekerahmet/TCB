@@ -42,6 +42,7 @@ Kurallar: [`03_tipler.md`](../03_tipler.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* Rust: "A tuple is a general way of grouping together a number of values with a variety of types into one compound type. Tuples have a fixed length"; öğeler `t.0` ile okunur. Python'da birden çok dönüş ve sözlüğün çift anahtarı (`counts[(a, b)]`) demettir [kanıtsız]. *Almadık:* Go'nun değer olmayan birden çok dönüşü ve demetsizliği (6.3'ün önceki kuralı): aynı `(A, B)` yazımı bir yerde değer, bir yerde değer değildi. ([Rust kitabı 3.2](https://doc.rust-lang.org/book/ch03-02-data-types.html))
 - *Gerekçe:* parçalayıcı eğitimi (BPE) bir `(a, b)` çiftinin sayısını tutar; liste ve yapı anahtar olamaz (değişir), demet olabilir. Birden çok dönüşün demet olması tek kavramdır: ajan `(A, B)`'nin değer olup olmadığını tahmin etmez.
+- *Gerekçe (`t.0.1`):* Rust'ta da `t.0.1` iç içe demetin öğesidir; ajanın doğal yazımı budur. Parantez zorunlu olsaydı (`(t.0).1`) ajan önce yanlışı yazıp iletiyle düzeltirdi.
 
 ### 3.7
 
