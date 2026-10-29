@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/sysmem"
 )
 
 // ============================================================================
@@ -110,7 +111,7 @@ func allocLimit() int64 {
 // readLimit sınırı fiziksel bellekten okuyup saklar (ayirmaSiniri'nin soğuk yolu; sıcak
 // yol satır içine alınabilsin diye ayrıdır).
 func readLimit() int64 {
-	b, ok := physicalMemory()
+	b, ok := sysmem.Physical()
 	if !ok || b == 0 || b > math.MaxInt64/8 {
 		b = defaultMemory
 	}

@@ -17,11 +17,12 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 
 | Katman | Görevi | İçe aktarabileceği iç paketler |
 | :-- | :-- | :-- |
-| `internal/lang/**` | Kaynak metinden çalışan programa; kod listesi, iletiler | yalnızca `internal/lang/**`, iç sırasına göre (aşağıda) |
-| `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | `internal/compute/**` ve ileti kataloğu `internal/lang/messages` |
+| `internal/lang/**` | Kaynak metinden çalışan programa; kod listesi, iletiler | yalnızca `internal/lang/**` (iç sırasına göre, aşağıda) ve `internal/sysmem` |
+| `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | `internal/compute/**`, ileti kataloğu `internal/lang/messages` ve `internal/sysmem` |
 | `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib` |
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
 | `cmd/tr` | `tr` komutu | hepsi (`internal/reporoot` dışında) |
+| `internal/sysmem` | Makinenin fiziksel belleği sorgusu | hiçbiri |
 | `internal/reporoot`, `lib` | Testlerin depo kökü yardımcısı; kitaplığın gömme dosyası | hiçbiri |
 | `tools/**` | Depo bakım araçları | `internal/**`, `lib` |
 

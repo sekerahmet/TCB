@@ -8,10 +8,11 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 
 | Katman | Klasör | Görevi | İçe aktarabileceği |
 | :-- | :-- | :-- | :-- |
-| Dil çekirdeği | `lang/` | Kaynak metinden çalışan programa: sözcük çözümleme, ayrıştırma, tip denetimi, yorumlayıcı, kod listesi, iletiler | yalnızca `lang/` |
-| Hesap çekirdeği | `compute/` | Tensörler, otomatik türev, CPU ve GPU arka uçları, veri hattı, parçalayıcı | `compute/` ve ileti kataloğu `lang/messages` |
+| Dil çekirdeği | `lang/` | Kaynak metinden çalışan programa: sözcük çözümleme, ayrıştırma, tip denetimi, yorumlayıcı, kod listesi, iletiler | `lang/` ve `sysmem/` |
+| Hesap çekirdeği | `compute/` | Tensörler, otomatik türev, CPU ve GPU arka uçları, veri hattı, parçalayıcı | `compute/`, ileti kataloğu `lang/messages` ve `sysmem/` |
 | Standart kitaplık | `stdlib/` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler (ml, dosyalar, günlük, kontrol noktası ...) | `lang/`, `compute/`, `stdlib/` |
 | Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı, kod dizini, Go modül yükleyici (`tools/impact` ve `tools/codegraph` ortak kullanır) | `lang/`, `compute/`, `stdlib/`, `devtools/` |
+| Sistem belleği | `sysmem/` | Makinenin toplam fiziksel belleğini işletim sisteminden okuma | hiçbir iç paket |
 | Test yardımcısı | `reporoot/` | Testlerin depo kökünü bulması | hiçbir iç paket |
 | Test yardımcısı | `testkit/`, `testkit/trrun/` | Paketler arası ortak test yardımcıları (dosya yazma, ikili çalıştırma, TR programı çalıştırma) | `testkit`: yalnızca `reporoot`; `trrun`: `lang/` |
 

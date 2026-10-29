@@ -1,11 +1,11 @@
-package tensor
+package sysmem
 
 import "syscall"
 
-// physicalMemory makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
+// Physical makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
 // Değer 8 baytlık küçük sonlu bir tam sayıdır; sistem çağrısı sarmalayıcısı sondaki
 // sıfır baytı kırpabildiğinden eksik baytlar sıfır sayılır.
-func physicalMemory() (uint64, bool) {
+func Physical() (uint64, bool) {
 	s, err := syscall.Sysctl("hw.memsize")
 	if err != nil || len(s) == 0 || len(s) > 8 {
 		return 0, false

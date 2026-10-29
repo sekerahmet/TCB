@@ -43,6 +43,7 @@ var layerDoc = []struct{ prefix, line string }{
 	{"internal/devtools/", "Layer: developer tools (internal/devtools)"},
 	{"internal/testkit", "Layer: test helper (internal/testkit)"},
 	{"internal/reporoot", "Layer: test helper (internal/reporoot)"},
+	{"internal/sysmem", "Layer: system memory (internal/sysmem)"},
 	{"cmd/", "Layer: command (cmd)"},
 	{"lib", "Layer: TR library (lib)"},
 	{"tools/", "Layer: tools (tools)"},
@@ -370,7 +371,7 @@ func fixMargin(ceiling int) int {
 
 // testFileRuleRoots are the trees where the test file layout below is enforced. The list grows
 // as each layer is cleaned up.
-var testFileRuleRoots = []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "cmd/"}
+var testFileRuleRoots = []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "internal/sysmem/", "cmd/"}
 
 // Test dosyası düzeni (docs/development.md, "Testler"): üç tür test dosyası vardır.
 //   - Birim testi: X_test.go yalnızca X.go'yu sınar ve yanında durur. X_fuzz_test.go ve

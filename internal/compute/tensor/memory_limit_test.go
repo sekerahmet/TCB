@@ -2,12 +2,11 @@ package tensor
 
 import (
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/testkit"
-	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // setLimit testin süresince tek ayırmanın sınırını bayt olarak koyar (gerçek bellek
@@ -46,13 +45,6 @@ func expectedPanic(t *testing.T, ad string, fn func(), code messages.Code, want 
 }
 
 func TestPhysicalMemoryRead(t *testing.T) {
-	b, ok := physicalMemory()
-	switch runtime.GOOS {
-	case "windows", "linux", "darwin":
-		if !ok || b < 256<<20 {
-			t.Fatalf("fiziksel bellek okunamadı ya da akla yatkın değil: %d bayt (ok=%v)", b, ok)
-		}
-	}
 	if s := allocLimit(); s <= 0 {
 		t.Fatalf("ayırma sınırı pozitif olmalı: %d", s)
 	}

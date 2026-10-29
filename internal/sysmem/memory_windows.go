@@ -1,4 +1,4 @@
-package tensor
+package sysmem
 
 import (
 	"syscall"
@@ -18,8 +18,8 @@ type memState struct {
 	freeLargeVirtual uint64
 }
 
-// physicalMemory makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
-func physicalMemory() (uint64, bool) {
+// Physical makinenin toplam fiziksel belleğini (bayt) sistem çağrısıyla okur.
+func Physical() (uint64, bool) {
 	proc := syscall.NewLazyDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx")
 	if proc.Find() != nil {
 		return 0, false
