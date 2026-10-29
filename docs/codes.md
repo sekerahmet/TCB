@@ -21,7 +21,7 @@ Toplam 565 kod: 28 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip,
 
 ### Anahtar kelimeler
 
-#### TR_kw_and `ve`
+#### `TR_and` (`TR_kw_and`, `ve`)
 
 Mantıksal ve; işlenenleri Mantık olmalıdır, kısa devre yapar. TR'de && yoktur: yazılırsa sözdizimi hatasıdır, ileti ve'yi önerir.
 
@@ -29,9 +29,9 @@ Mantıksal ve; işlenenleri Mantık olmalıdır, kısa devre yapar. TR'de && yok
 yazdır(1 < 2 ve 2 < 3, yanlış ve doğru)
 ```
 
-İlişkili: TR_kw_or `veya`, TR_kw_not `değil`
+İlişkili: `TR_or`, `TR_not`
 
-#### TR_kw_async `eşzamanlı`
+#### `TR_async` (`TR_kw_async`, `eşzamanlı`)
 
 Bloğu ya da çağrıyı ayrı bir görev olarak başlatıp hemen devam eder; aynı anda yalnızca bir görev TR kodu çalıştırır.
 
@@ -39,9 +39,9 @@ Bloğu ya da çağrıyı ayrı bir görev olarak başlatıp hemen devam eder; ay
 eşzamanlı { yazdır("görevde") }; bekle_hepsi(); yazdır("bitti")
 ```
 
-İlişkili: TR_fn_wait_all `bekle_hepsi`
+İlişkili: `TR_wait_all(...)`
 
-#### TR_kw_break `çık`
+#### `TR_break` (`TR_kw_break`, `çık`)
 
 En içteki döngüden çıkar; döngü dışında yazılması derleme hatasıdır (fonksiyondan çıkmak için sonuç yazılır).
 
@@ -49,9 +49,9 @@ En içteki döngüden çıkar; döngü dışında yazılması derleme hatasıdı
 döngü x içinde 1..10 { eğer x == 3 { çık }; yazdır(x) }
 ```
 
-İlişkili: TR_kw_continue `devam`
+İlişkili: `TR_continue`
 
-#### TR_kw_breakpoint `kesme_noktası`
+#### `TR_breakpoint` (`TR_kw_breakpoint`, `kesme_noktası`)
 
 Programı bu satırda durdurup hata ayıklayıcıyı açar; kesme_noktası eğer koşul biçiminde yalnızca koşul doğruyken durur.
 
@@ -59,7 +59,7 @@ Programı bu satırda durdurup hata ayıklayıcıyı açar; kesme_noktası eğer
 değişken x = 2; kesme_noktası eğer x > 5; yazdır(x)
 ```
 
-#### TR_kw_catch `yakala`
+#### `TR_catch` (`TR_kw_catch`, `yakala`)
 
 dene bloğunda hata olursa çalışır ve hata mesajını verilen ada (ad verilmezse hata adına) Metin olarak bağlar.
 
@@ -67,9 +67,9 @@ dene bloğunda hata olursa çalışır ve hata mesajını verilen ada (ad verilm
 dene { değişken z = 1 / 0 } yakala h { yazdır(h) }
 ```
 
-İlişkili: TR_kw_try `dene`, TR_ctx_error `hata`
+İlişkili: `TR_try`, `TR_error`
 
-#### TR_kw_const `sabit`
+#### `TR_const` (`TR_kw_const`, `sabit`)
 
 Yeniden atanamayan bir ad tanımlar; ihlal çalıştırmadan önce yakalanır, ama değer bir listeyse içeriği değişebilir.
 
@@ -77,9 +77,9 @@ Yeniden atanamayan bir ad tanımlar; ihlal çalıştırmadan önce yakalanır, a
 sabit PI = 3.14; yazdır(PI * 2)
 ```
 
-İlişkili: TR_kw_var `değişken`
+İlişkili: `TR_var`
 
-#### TR_kw_continue `devam`
+#### `TR_continue` (`TR_kw_continue`, `devam`)
 
 En içteki döngünün sonraki turuna geçer; yalnızca bir döngü gövdesinde geçerlidir.
 
@@ -87,9 +87,9 @@ En içteki döngünün sonraki turuna geçer; yalnızca bir döngü gövdesinde 
 döngü x içinde 1..=5 { eğer x % 2 == 0 { devam }; yazdır(x) }
 ```
 
-İlişkili: TR_kw_break `çık`
+İlişkili: `TR_break`
 
-#### TR_kw_defer `ertele`
+#### `TR_defer` (`TR_kw_defer`, `ertele`)
 
 Çağrıyı ya da bloğu içinde bulunduğu fonksiyon bitince çalıştırır; birden çok ertele ters sırayla çalışır, erken sonuç ve hata durumunda da çalışır.
 
@@ -97,7 +97,7 @@ döngü x içinde 1..=5 { eğer x % 2 == 0 { devam }; yazdır(x) }
 fonksiyon iş() { ertele yazdır("temizlik"); yazdır("iş") }; iş()
 ```
 
-#### TR_kw_else `değilse`
+#### `TR_else` (`TR_kw_else`, `değilse`)
 
 eğer koşulu tutmadığında çalışacak dalı başlatır; değilse eğer ile yeni bir koşul zincirlenir.
 
@@ -105,9 +105,9 @@ eğer koşulu tutmadığında çalışacak dalı başlatır; değilse eğer ile 
 değişken n = -3; değişken tür = eğer n < 0 { "negatif" } değilse eğer n == 0 { "sıfır" } değilse { "pozitif" }; yazdır(tür)
 ```
 
-İlişkili: TR_kw_if `eğer`
+İlişkili: `TR_if`
 
-#### TR_kw_enum `durumlu`
+#### `TR_enum` (`TR_kw_enum`, `durumlu`)
 
 Durumlu bir tip tanımlar: değer sayılı durumlardan biridir, durum alan taşıyabilir; alanlar eşlemeyle okunur.
 
@@ -115,9 +115,9 @@ Durumlu bir tip tanımlar: değer sayılı durumlardan biridir, durum alan taş�
 durumlu D { Bekliyor; Bitti(n: Tam) }; yazdır(D.Bitti(3), D.Bekliyor != D.Bitti(1))
 ```
 
-İlişkili: TR_kw_struct `yapı`, TR_kw_match `eşle`
+İlişkili: `TR_struct`, `TR_match`
 
-#### TR_kw_false `yanlış`
+#### `TR_false` (`TR_kw_false`, `yanlış`)
 
 Mantık tipinin yanlış değeridir. Koşul yalnız Mantık değeri alır: yok, 0, boş metin ve boş liste koşul olamaz, açık sınama yazılır (l.uzunluk == 0, x != yok).
 
@@ -125,9 +125,9 @@ Mantık tipinin yanlış değeridir. Koşul yalnız Mantık değeri alır: yok, 
 yazdır(yanlış veya doğru, değil yanlış)
 ```
 
-İlişkili: TR_kw_true `doğru`
+İlişkili: `TR_true`
 
-#### TR_kw_for `döngü`
+#### `TR_for` (`TR_kw_for`, `döngü`)
 
 Bir kaynağı gezer (döngü x içinde ...), koşul doğru oldukça tekrarlar (döngü koşul { }) ya da sonsuz döner (döngü { }); her tur kendi kapsamında çalışır.
 
@@ -135,9 +135,9 @@ Bir kaynağı gezer (döngü x içinde ...), koşul doğru oldukça tekrarlar (d
 döngü i, x içinde ["a", "b"] { yazdır(i, x) }
 ```
 
-İlişkili: TR_kw_in `içinde`
+İlişkili: `TR_in`
 
-#### TR_kw_func `fonksiyon`
+#### `TR_func` (`TR_kw_func`, `fonksiyon`)
 
 Fonksiyon tanımlar; parametrelere varsayılan değer verilebilir, tanım öne alınmaz (tanımdan önce çağrılamaz).
 
@@ -145,9 +145,9 @@ Fonksiyon tanımlar; parametrelere varsayılan değer verilebilir, tanım öne a
 fonksiyon topla(a, b = 1) { sonuç a + b }; yazdır(topla(2, 3), topla(5))
 ```
 
-İlişkili: TR_kw_return `sonuç`
+İlişkili: `TR_return`
 
-#### TR_kw_if `eğer`
+#### `TR_if` (`TR_kw_if`, `eğer`)
 
 Koşul doğruysa bloğu çalıştırır; eğer bir ifadedir, değeri çalışan bloğun son deyimidir (hiçbir dal çalışmazsa yok).
 
@@ -155,9 +155,9 @@ Koşul doğruysa bloğu çalıştırır; eğer bir ifadedir, değeri çalışan 
 değişken n = 7; eğer n % 2 == 0 { yazdır("çift") } değilse { yazdır("tek") }
 ```
 
-İlişkili: TR_kw_else `değilse`
+İlişkili: `TR_else`
 
-#### TR_kw_import `aktar`
+#### `TR_import` (`TR_kw_import`, `aktar`)
 
 Başka bir .tr dosyasını program boyunca bir kez çalıştırır ve üst düzey adlarını getirir; yol metin sabiti olmalıdır, .tr uzantısı isteğe bağlıdır.
 
@@ -165,9 +165,9 @@ Başka bir .tr dosyasını program boyunca bir kez çalıştırır ve üst düze
 aktar "tests/yardimci_modul"; yazdır(kare(PI))
 ```
 
-İlişkili: TR_ctx_as `olarak`
+İlişkili: `TR_as`
 
-#### TR_kw_in `içinde`
+#### `TR_in` (`TR_kw_in`, `içinde`)
 
 döngüde ve liste üretecinde gezilecek kaynağı belirtir; iki değişkenli biçimde indeks ile eleman (sözlükte anahtar ile değer) verir.
 
@@ -175,9 +175,9 @@ döngüde ve liste üretecinde gezilecek kaynağı belirtir; iki değişkenli bi
 yazdır([x * x döngü x içinde 1..=5 eğer x % 2 == 1])
 ```
 
-İlişkili: TR_kw_for `döngü`
+İlişkili: `TR_for`
 
-#### TR_kw_interface `arayüz`
+#### `TR_interface` (`TR_kw_interface`, `arayüz`)
 
 Gövdesiz metot imzalarından oluşan bir arayüz tanımlar; metotları aynı imzayla taşıyan yapı onu karşılar.
 
@@ -185,9 +185,9 @@ Gövdesiz metot imzalarından oluşan bir arayüz tanımlar; metotları aynı im
 arayüz Ölçen { fonksiyon ölç(x: Ondalık) -> Ondalık }; yapı Kare { fonksiyon ölç(x: Ondalık) -> Ondalık { sonuç x * x } }; yazdır(Ölçen, Kare().ölç(3.0))
 ```
 
-İlişkili: TR_kw_struct `yapı`
+İlişkili: `TR_struct`
 
-#### TR_kw_match `eşle`
+#### `TR_match` (`TR_kw_match`, `eşle`)
 
 Konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolun sonucunu verir; Aralık deseni içerme sınar, eşleşme yoksa yok döner.
 
@@ -195,7 +195,7 @@ Konuyu kollarla sırayla karşılaştırır ve ilk eşleşen kolun sonucunu veri
 değişken puan = 95; yazdır(eşle puan { 100 => "tam puan"; 90..100 => "pekiyi"; _ => "diğer" })
 ```
 
-#### TR_kw_none `yok`
+#### `TR_none` (`TR_kw_none`, `yok`)
 
 Değerin yokluğudur; değer döndürmeyen fonksiyonlar ve varsa_al ile istenen olmayan öğe ya da anahtar yok verir. Sözlükte olmayan anahtarı köşeli parantezle okumak hatadır.
 
@@ -203,9 +203,9 @@ Değerin yokluğudur; değer döndürmeyen fonksiyonlar ve varsa_al ile istenen 
 değişken l = [1, 2]; yazdır(l.varsa_al(5) == yok, l.varsa_al(5) ?? "boş", {"a": 1}.varsa_al("b"))
 ```
 
-İlişkili: TR_type_NoneType `YokTipi`
+İlişkili: `TR_NoneType`
 
-#### TR_kw_not `değil`
+#### `TR_not` (`TR_kw_not`, `değil`)
 
 Mantık değerinin tersini verir; işleneni Mantık olmalıdır. Karşılaştırmadan gevşek bağlanır: değil 1 == 2, değil (1 == 2) demektir.
 
@@ -213,9 +213,9 @@ Mantık değerinin tersini verir; işleneni Mantık olmalıdır. Karşılaştır
 yazdır(değil 1 == 2)
 ```
 
-İlişkili: TR_kw_and `ve`, TR_kw_or `veya`
+İlişkili: `TR_and`, `TR_or`
 
-#### TR_kw_or `veya`
+#### `TR_or` (`TR_kw_or`, `veya`)
 
 Mantıksal veya; işlenenleri Mantık olmalıdır, kısa devre yapar. TR'de || yoktur: yazılırsa sözdizimi hatasıdır, ileti veya'yı önerir.
 
@@ -223,9 +223,9 @@ Mantıksal veya; işlenenleri Mantık olmalıdır, kısa devre yapar. TR'de || y
 yazdır(yanlış veya doğru, 1 > 2 veya 3 > 2)
 ```
 
-İlişkili: TR_kw_and `ve`, TR_kw_not `değil`
+İlişkili: `TR_and`, `TR_not`
 
-#### TR_kw_return `sonuç`
+#### `TR_return` (`TR_kw_return`, `sonuç`)
 
 Fonksiyondan değer döndürür; gövdenin son ifadesi dönüş değeri değildir, sonuç'suz biten fonksiyon yok döndürür; yalnız sonuç yok döndürür; programın en dışında yazılmaz (1.10), test gövdesinde de derleme hatasıdır.
 
@@ -233,9 +233,9 @@ Fonksiyondan değer döndürür; gövdenin son ifadesi dönüş değeri değildi
 fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
 ```
 
-İlişkili: TR_kw_func `fonksiyon`
+İlişkili: `TR_func`
 
-#### TR_kw_self `kendi`
+#### `TR_self` (`TR_kw_self`, `kendi`)
 
 Yapı metodunun içinde metodun çağrıldığı nesneyi gösterir; alanlar kendi ile okunur ve değiştirilir.
 
@@ -243,9 +243,9 @@ Yapı metodunun içinde metodun çağrıldığı nesneyi gösterir; alanlar kend
 yapı Sayaç { n = 0; fonksiyon artır() { kendi.n += 1 } }; değişken s = Sayaç(); s.artır(); s.artır(); yazdır(s.n)
 ```
 
-İlişkili: TR_kw_struct `yapı`
+İlişkili: `TR_struct`
 
-#### TR_kw_struct `yapı`
+#### `TR_struct` (`TR_kw_struct`, `yapı`)
 
 Alanları ve metotları olan bir yapı tanımlar; nesne yapının adıyla, alan sırasıyla ya da adlı argümanlarla oluşturulur. Kalıtım yoktur.
 
@@ -253,9 +253,9 @@ Alanları ve metotları olan bir yapı tanımlar; nesne yapının adıyla, alan 
 yapı Nokta { x = 0, y = 0 }; yazdır(Nokta(3, 4), Nokta(y: 1).x)
 ```
 
-İlişkili: TR_kw_self `kendi`, TR_ctx_init `kurucu`
+İlişkili: `TR_self`, `TR_init`
 
-#### TR_kw_throw `fırlat`
+#### `TR_throw` (`TR_kw_throw`, `fırlat`)
 
 Bir hata başlatır; verilen değer metne çevrilir, yakalayan değişken her zaman Metin'dir.
 
@@ -263,9 +263,9 @@ Bir hata başlatır; verilen değer metne çevrilir, yakalayan değişken her za
 dene { fırlat {"kod": 5} } yakala h { yazdır(Tip(h), h) }
 ```
 
-İlişkili: TR_kw_try `dene`
+İlişkili: `TR_try`
 
-#### TR_kw_true `doğru`
+#### `TR_true` (`TR_kw_true`, `doğru`)
 
 Mantık tipinin doğru değeridir.
 
@@ -273,9 +273,9 @@ Mantık tipinin doğru değeridir.
 değişken hazır = doğru; eğer hazır { yazdır("hazır") }
 ```
 
-İlişkili: TR_kw_false `yanlış`
+İlişkili: `TR_false`
 
-#### TR_kw_try `dene`
+#### `TR_try` (`TR_kw_try`, `dene`)
 
 Bloktaki hatayı yakala bloğuna yönlendirir; çalışma zamanı hataları da yakalanır.
 
@@ -283,9 +283,9 @@ Bloktaki hatayı yakala bloğuna yönlendirir; çalışma zamanı hataları da y
 dene { fırlat "patladı" } yakala h { yazdır("yakalandı:", h) }
 ```
 
-İlişkili: TR_kw_catch `yakala`, TR_kw_throw `fırlat`
+İlişkili: `TR_catch`, `TR_throw`
 
-#### TR_kw_var `değişken`
+#### `TR_var` (`TR_kw_var`, `değişken`)
 
 Bulunulan kapsamda ilk değeriyle yeni bir ad tanımlar, tipi ilk değerden çıkar (ilk değersiz tanım ve := sözdizimi hatasıdır); virgülle birden çok ad tanımlanabilir.
 
@@ -293,11 +293,11 @@ Bulunulan kapsamda ilk değeriyle yeni bir ad tanımlar, tipi ilk değerden çı
 değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
 ```
 
-İlişkili: TR_kw_const `sabit`
+İlişkili: `TR_const`
 
 ### Bağlamsal sözcükler
 
-#### TR_ctx_as `olarak`
+#### `TR_as` (`TR_ctx_as`, `olarak`)
 
 aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağlar.
 
@@ -305,9 +305,9 @@ aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağl
 aktar "tests/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym["PI"])
 ```
 
-İlişkili: TR_kw_import `aktar`
+İlişkili: `TR_import`
 
-#### TR_ctx_error `hata`
+#### `TR_error` (`TR_ctx_error`, `hata`)
 
 yakala bloğunda ad verilmediğinde hata mesajının bağlandığı değişkendir.
 
@@ -315,9 +315,9 @@ yakala bloğunda ad verilmediğinde hata mesajının bağlandığı değişkendi
 dene { fırlat "patladı" } yakala { yazdır(hata) }
 ```
 
-İlişkili: TR_kw_catch `yakala`
+İlişkili: `TR_catch`
 
-#### TR_ctx_init `kurucu`
+#### `TR_init` (`TR_ctx_init`, `kurucu`)
 
 Bu adlı metot nesne oluşturulurken aynı argümanlarla çağrılır; argümanlar kurucunun imzasına göre denetlenir.
 
@@ -325,9 +325,9 @@ Bu adlı metot nesne oluşturulurken aynı argümanlarla çağrılır; argümanl
 yapı Hesap { bakiye; fonksiyon kurucu(b) { kendi.bakiye = b * 2 } }; yazdır(Hesap(5).bakiye)
 ```
 
-İlişkili: TR_kw_struct `yapı`
+İlişkili: `TR_struct`
 
-#### TR_ctx_test `test`
+#### `TR_test` (`TR_ctx_test`, `test`)
 
 test "ad" { ... } bir test tanımlar; testler yalnızca tr test ile çalışır, normal çalıştırmada atlanır. Deyim başı dışında sıradan bir addır.
 
@@ -335,11 +335,11 @@ test "ad" { ... } bir test tanımlar; testler yalnızca tr test ile çalışır,
 test "toplama" { eşit_olmalı(4, 2 + 2) }
 ```
 
-İlişkili: TR_fn_assert `doğrula`, TR_fn_assert_equal `eşit_olmalı`
+İlişkili: `TR_assert(...)`, `TR_assert_equal(...)`
 
 ### Değer adları
 
-#### TR_val_inf `inf`
+#### `TR_inf` (`TR_val_inf`, `inf`)
 
 Ondalık sonsuz değerdir; metni her dilde inf, eksi sonsuzunki -inf'tir (3.2). Ondalık("inf") metinden okur.
 
@@ -347,9 +347,9 @@ Ondalık sonsuz değerdir; metni her dilde inf, eksi sonsuzunki -inf'tir (3.2). 
 yazdır(inf, -inf, inf > 1e308)
 ```
 
-İlişkili: TR_val_nan `nan`, TR_type_Float `Ondalık`
+İlişkili: `TR_nan`, `TR_Float`
 
-#### TR_val_nan `nan`
+#### `TR_nan` (`TR_val_nan`, `nan`)
 
 Ondalık tanımsız değerdir (sayı olmayan); metni her dilde nan'dır (3.2) ve hiçbir sayıya, kendine de eşit değildir. Ondalık("nan") metinden okur.
 
@@ -357,11 +357,11 @@ Ondalık tanımsız değerdir (sayı olmayan); metni her dilde nan'dır (3.2) ve
 yazdır(nan, nan == nan)
 ```
 
-İlişkili: TR_val_inf `inf`, TR_type_Float `Ondalık`
+İlişkili: `TR_inf`, `TR_Float`
 
 ### Tip adları
 
-#### TR_type_Any `Herhangi`
+#### `TR_Any` (`TR_type_Any`, `Herhangi`)
 
 Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herhangi açıklamalı bir ada her değer verilebilir.
 
@@ -369,7 +369,7 @@ Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herha
 fonksiyon kimlik(x: Herhangi) { sonuç x }; yazdır(kimlik(5), kimlik("beş"))
 ```
 
-#### TR_type_Bool `Mantık`
+#### `TR_Bool` (`TR_type_Bool`, `Mantık`)
 
 doğru ve yanlış değerlerinin tipidir.
 
@@ -377,9 +377,9 @@ doğru ve yanlış değerlerinin tipidir.
 değişken hazır: Mantık = doğru; yazdır(Tip(hazır))
 ```
 
-İlişkili: TR_kw_true `doğru`, TR_kw_false `yanlış`
+İlişkili: `TR_true`, `TR_false`
 
-#### TR_type_BuiltinFunction `YerleşikFonksiyon`
+#### `TR_BuiltinFunction` (`TR_type_BuiltinFunction`, `YerleşikFonksiyon`)
 
 Dilin yerleşik fonksiyonlarının tipidir.
 
@@ -387,9 +387,9 @@ Dilin yerleşik fonksiyonlarının tipidir.
 değişken f: YerleşikFonksiyon = yazdır; f(Tip(f))
 ```
 
-İlişkili: TR_type_Function `Fonksiyon`
+İlişkili: `TR_Function`
 
-#### TR_type_Bytes `Baytlar`
+#### `TR_Bytes` (`TR_type_Bytes`, `Baytlar`)
 
 Değiştirilemez bayt dizisinin tipidir (3.3a): dosya, ağ, görüntü ve ses verisi. b[i] 0–255 arası bir Tam, b[a..c] yine Baytlar verir; Baytlar("ab") metnin UTF-8 baytlarını, Baytlar([0, 255]) bir tam sayı listesini kurar; Metin(b) UTF-8 okur. Metin ile bayt kendiliğinden dönüşmez.
 
@@ -397,13 +397,13 @@ Değiştirilemez bayt dizisinin tipidir (3.3a): dosya, ağ, görüntü ve ses ve
 değişken b = Baytlar("şe"); yazdır(b, b.uzunluk, b[0], Metin(b + Baytlar([107])))
 ```
 
-İlişkili: TR_type_String `Metin`
+İlişkili: `TR_String`
 
-#### TR_type_CausalAttention `NedenselDikkat`
+#### `TR_CausalAttention` (`TR_type_CausalAttention`, `NedenselDikkat`)
 
 
 
-#### TR_type_Checkpoint `KontrolNoktası`
+#### `TR_Checkpoint` (`TR_type_Checkpoint`, `KontrolNoktası`)
 
 Eğitimin bütün durumunu (modeller, iyileştiriciler, okuyucular, günlükler, düz değerli sözlük ve listeler; anahtarlar veridir) atomik kaydeden ve yeniden başlatılan programı kaldığı adımdan sürdüren nesnenin tipidir. KontrolNoktası(koşu, {...}) koşu klasöründe (noktalar <koşu>/checkpoints/ altına) kurulur; geçerli bir nokta varsa kurulurken yükler ve kaldığı adımı yazar, yoksa boş başlar. .güncelle(adım) adım sınırında aralıkla, .kaydet() hemen kaydeder.
 
@@ -411,9 +411,9 @@ Eğitimin bütün durumunu (modeller, iyileştiriciler, okuyucular, günlükler,
 değişken w = Tensör([1.0, 2.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); değişken kn = KontrolNoktası("koşu_t702", {"model": [w], "op": op}, her_dakika: 15, tut: 2); yazdır(kn.kaldığı_adım, Tip(kn) == KontrolNoktası)
 ```
 
-Üyeleri: TR_mem_resume_step `kaldığı_adım`, TR_mem_rollback `geri_dön`, TR_mem_save `kaydet`, TR_mem_update `güncelle` · İlişkili: TR_mem_update `güncelle`, TR_mem_resume_step `kaldığı_adım`, TR_mem_save `kaydet`, TR_mem_rollback `geri_dön`, TR_fn_load_parameters `parametreleri_yükle`, TR_mem_state `durum`
+Üyeleri: `.TR_resume_step`, `.TR_rollback`, `.TR_save`, `.TR_update` · İlişkili: `.TR_update`, `.TR_resume_step`, `.TR_save`, `.TR_rollback`, `TR_load_parameters(...)`, `.TR_state`
 
-#### TR_type_Dataset `VeriKümesi`
+#### `TR_Dataset` (`TR_type_Dataset`, `VeriKümesi`)
 
 Bir klasördeki .npy veri dosyalarından (ad sırasıyla) ya da tek bir .npy veri dosyasından oluşan veri kümesinin tipidir; VeriKümesi(yol) açar. Okuyucular .örnekleyici ve .sıralı ile alınır. önbellek: verilirse kota_gb: de verilmelidir.
 
@@ -421,9 +421,9 @@ Bir klasördeki .npy veri dosyalarından (ad sırasıyla) ya da tek bir .npy ver
 değişken küme = VeriKümesi("tests/data/numbers"); yazdır(küme, Tip(küme) == VeriKümesi)
 ```
 
-Üyeleri: TR_mem_sampler `örnekleyici`, TR_mem_sequential `sıralı` · İlişkili: TR_mem_sampler `örnekleyici`, TR_mem_sequential `sıralı`
+Üyeleri: `.TR_sampler`, `.TR_sequential` · İlişkili: `.TR_sampler`, `.TR_sequential`
 
-#### TR_type_Dict `Sözlük`
+#### `TR_Dict` (`TR_type_Dict`, `Sözlük`)
 
 Eklenme sırasını koruyan anahtar–değer tablosu tipidir; anahtar köşeli parantezle okunur, olmayan anahtar hatadır, .varsa_al(k) yok verir (3.7).
 
@@ -431,13 +431,13 @@ Eklenme sırasını koruyan anahtar–değer tablosu tipidir; anahtar köşeli p
 değişken s: Sözlük = {"ad": "Ali"}; yazdır(Tip(s), s["ad"])
 ```
 
-Üyeleri: TR_mem_contains `içerir`, TR_mem_get `varsa_al`, TR_mem_keys `anahtarlar`, TR_mem_length `uzunluk`, TR_mem_values `değerler`
+Üyeleri: `.TR_contains`, `.TR_get`, `.TR_keys`, `.TR_length`, `.TR_values`
 
-#### TR_type_Embedding `GömmeKatmanı`
+#### `TR_Embedding` (`TR_type_Embedding`, `GömmeKatmanı`)
 
 
 
-#### TR_type_Float `Ondalık`
+#### `TR_Float` (`TR_type_Float`, `Ondalık`)
 
 64 bit kayan noktalı sayı tipidir; Tam bir değer Ondalık açıklamalı bir ada da atanabilir. Ondalık(x) Tam'ı ya da metni Ondalık'a çevirir; metin programdaki yazımla okunur ("3.14", "2e-3", "inf"), yerel ayar yoktur.
 
@@ -445,9 +445,9 @@ değişken s: Sözlük = {"ad": "Ali"}; yazdır(Tip(s), s["ad"])
 değişken oran: Ondalık = 0.75; yazdır(Tip(oran), Ondalık("3.14"), Ondalık(2))
 ```
 
-İlişkili: TR_type_Int `Tam`, TR_type_String `Metin`
+İlişkili: `TR_Int`, `TR_String`
 
-#### TR_type_Function `Fonksiyon`
+#### `TR_Function` (`TR_type_Function`, `Fonksiyon`)
 
 Kullanıcı tanımlı fonksiyonların ve ok fonksiyonlarının tipidir; fonksiyonlar birinci sınıf değerdir.
 
@@ -455,13 +455,13 @@ Kullanıcı tanımlı fonksiyonların ve ok fonksiyonlarının tipidir; fonksiyo
 değişken f: Fonksiyon = (x) => x * 2; yazdır(Tip(f), f(3))
 ```
 
-İlişkili: TR_kw_func `fonksiyon`, TR_type_BuiltinFunction `YerleşikFonksiyon`
+İlişkili: `TR_func`, `TR_BuiltinFunction`
 
-#### TR_type_GPT `GPT`
+#### `TR_GPT` (`TR_type_GPT`, `GPT`)
 
 
 
-#### TR_type_Int `Tam`
+#### `TR_Int` (`TR_type_Int`, `Tam`)
 
 64 bit işaretli tam sayı tipidir; sınırı aşan işlem sessizce sarmak yerine taşma hatası verir. Tam(x) değeri Tam'a çevirir (3.12): Ondalık'ın kesirli kısmını atar, metni programdaki yazımla okur ("42", "-1_000"); çevrilemeyen değer hatadır.
 
@@ -469,9 +469,9 @@ değişken f: Fonksiyon = (x) => x * 2; yazdır(Tip(f), f(3))
 değişken x: Tam = 5; yazdır(Tip(x), x * 2, Tam("42") + 1, Tam(3.9))
 ```
 
-İlişkili: TR_type_Float `Ondalık`, TR_type_String `Metin`
+İlişkili: `TR_Float`, `TR_String`
 
-#### TR_type_JSON `JSON`
+#### `TR_JSON` (`TR_type_JSON`, `JSON`)
 
 Yapısı önceden bilinmeyen verinin tipidir (3.7a): JSON'un her değerini tutar. j["k"] ve j[i] yine JSON verir, olmayan alan hatadır, .varsa_al(k) yok verir; Tip(j) değerin JSON türünü söyler, asıl değere tip çağrısıyla geçilir (Tam(j), Metin(j)).
 
@@ -479,13 +479,13 @@ Yapısı önceden bilinmeyen verinin tipidir (3.7a): JSON'un her değerini tutar
 değişken j = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(Tip(j["yaş"]), Tam(j["yaş"]) + 1, j["ad"])
 ```
 
-İlişkili: TR_fn_json_parse `json_çöz`, TR_fn_json_string `json_metin`
+İlişkili: `TR_json_parse(...)`, `TR_json_string(...)`
 
-#### TR_type_KVCache `KVÖnbellek`
+#### `TR_KVCache` (`TR_type_KVCache`, `KVÖnbellek`)
 
 
 
-#### TR_type_LineReader `SatırOkuyucu`
+#### `TR_LineReader` (`TR_type_LineReader`, `SatırOkuyucu`)
 
 dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir; .kapat() dosyayı sonuna kadar okumadan bırakır.
 
@@ -493,13 +493,13 @@ dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuy
 dosya_yaz("okuyucu.txt", "a\nb"); değişken o = dosya_satırları("okuyucu.txt"); yazdır(Tip(o) == SatırOkuyucu, o.sonraki(), o.sonraki(), o.sonraki())
 ```
 
-Üyeleri: TR_mem_close `kapat`, TR_mem_next `sonraki` · İlişkili: TR_fn_read_lines `dosya_satırları`, TR_mem_next `sonraki`, TR_mem_close `kapat`
+Üyeleri: `.TR_close`, `.TR_next` · İlişkili: `TR_read_lines(...)`, `.TR_next`, `.TR_close`
 
-#### TR_type_Linear `Doğrusal`
+#### `TR_Linear` (`TR_type_Linear`, `Doğrusal`)
 
 
 
-#### TR_type_List `Liste`
+#### `TR_List` (`TR_type_List`, `Liste`)
 
 Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyla paylaşılır.
 
@@ -507,9 +507,9 @@ Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyl
 değişken l: Liste = [1, "iki", 3.0]; yazdır(Tip(l), l[-1])
 ```
 
-Üyeleri: TR_mem_append `ekle`, TR_mem_contains `içerir`, TR_mem_filter `filtrele`, TR_mem_first `ilk`, TR_mem_get `varsa_al`, TR_mem_join `birleştir`, TR_mem_last `son`, TR_mem_length `uzunluk`, TR_mem_map `haritala`, TR_mem_reduce `indirge`, TR_mem_reverse `ters_çevir`, TR_mem_sort `sırala`, TR_mem_unique `benzersiz`
+Üyeleri: `.TR_append`, `.TR_contains`, `.TR_filter`, `.TR_first`, `.TR_get`, `.TR_join`, `.TR_last`, `.TR_length`, `.TR_map`, `.TR_reduce`, `.TR_reverse`, `.TR_sort`, `.TR_unique`
 
-#### TR_type_Logger `Günlük`
+#### `TR_Logger` (`TR_type_Logger`, `Günlük`)
 
 Her satırı bir JSON kaydı olan eğitim günlüğü dosyasının (.jsonl) tipidir; Günlük(yol) açar: dosya varsa sonuna eklenir, klasörü yoksa oluşturulur. İlk kayıttan önce program adı ve komut satırı ayarlarıyla bir başlangıç kaydı yazılır; .ekle(...) bir kayıt yazar.
 
@@ -517,9 +517,9 @@ Her satırı bir JSON kaydı olan eğitim günlüğü dosyasının (.jsonl) tipi
 değişken g = Günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğruluk": 0.5}); yazdır(g, Tip(g) == Günlük)
 ```
 
-Üyeleri: TR_mem_append `ekle` · İlişkili: TR_mem_append `ekle`, TR_type_Progress `İlerleme`
+Üyeleri: `.TR_append` · İlişkili: `.TR_append`, `TR_Progress`
 
-#### TR_type_Message `İleti`
+#### `TR_Message` (`TR_type_Message`, `İleti`)
 
 Katalog iletisinin tipidir: İleti("H6903", ...) iletiyi kodu ve değerleriyle (katalogdaki parametre sırasıyla) kurar; metni gösterilirken iletinin dilinde kurulur. fırlat ve doğrula ona verilince hata o kodla fırlar. Kitaplık hata metnini böyle yazar.
 
@@ -527,17 +527,17 @@ Katalog iletisinin tipidir: İleti("H6903", ...) iletiyi kodu ve değerleriyle (
 değişken i = İleti("H6903", -1); yazdır(Tip(i), i)
 ```
 
-İlişkili: TR_fn_error_code `hata_kodu`, TR_fn_assert `doğrula`, TR_kw_throw `fırlat`
+İlişkili: `TR_error_code(...)`, `TR_assert(...)`, `TR_throw`
 
-#### TR_type_Muon `Muon`
-
-
-
-#### TR_type_MuonAndAdamW `MuonVeAdamW`
+#### `TR_Muon` (`TR_type_Muon`, `Muon`)
 
 
 
-#### TR_type_NoneType `YokTipi`
+#### `TR_MuonAndAdamW` (`TR_type_MuonAndAdamW`, `MuonVeAdamW`)
+
+
+
+#### `TR_NoneType` (`TR_type_NoneType`, `YokTipi`)
 
 yok değerinin tipidir; Tip(yok) == YokTipi. Tip adı yalnız tip değeri olarak yazılır.
 
@@ -545,13 +545,13 @@ yok değerinin tipidir; Tip(yok) == YokTipi. Tip adı yalnız tip değeri olarak
 yazdır(Tip(yok), Tip(yok) == YokTipi)
 ```
 
-İlişkili: TR_kw_none `yok`
+İlişkili: `TR_none`
 
-#### TR_type_NorMuon `NorMuon`
+#### `TR_NorMuon` (`TR_type_NorMuon`, `NorMuon`)
 
 
 
-#### TR_type_Object `Nesne`
+#### `TR_Object` (`TR_type_Object`, `Nesne`)
 
 Yapıdan oluşturulan nesnelerin genel adıdır; Tip() bir nesne için Nesne değil yapının kendisini verir (Tip(p) == Nokta).
 
@@ -559,9 +559,9 @@ Yapıdan oluşturulan nesnelerin genel adıdır; Tip() bir nesne için Nesne de�
 yapı Nokta { x, y }; değişken p = Nokta(1, 2); yazdır(Tip(p) == Nokta, p)
 ```
 
-İlişkili: TR_type_StructType `YapıTanımı`
+İlişkili: `TR_StructType`
 
-#### TR_type_Optimizer `İyileştirici`
+#### `TR_Optimizer` (`TR_type_Optimizer`, `İyileştirici`)
 
 AdamW(...) ve SGD(...) ile oluşturulan iyileştiricilerin tipidir; .adım() parametreleri günceller, .sıfırla() gradyanları sıfırlar.
 
@@ -569,17 +569,17 @@ AdamW(...) ve SGD(...) ile oluşturulan iyileştiricilerin tipidir; .adım() par
 değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w], öğrenme_oranı: 0.1); yazdır(Tip(op), Tip(SGD([w])))
 ```
 
-Üyeleri: TR_mem_load_state `durumu_yükle`, TR_mem_lr `öğrenme_oranı`, TR_mem_state `durum`, TR_mem_step `adım`, TR_mem_zero_grad `sıfırla` · İlişkili: TR_fn_AdamW `AdamW`, TR_fn_SGD `SGD`
+Üyeleri: `.TR_load_state`, `.TR_lr`, `.TR_state`, `.TR_step`, `.TR_zero_grad` · İlişkili: `TR_AdamW(...)`, `TR_SGD(...)`
 
-#### TR_type_PLEBlock `PLEBloğu`
-
-
-
-#### TR_type_PLEContext `PLEBağlamı`
+#### `TR_PLEBlock` (`TR_type_PLEBlock`, `PLEBloğu`)
 
 
 
-#### TR_type_Path `Yol`
+#### `TR_PLEContext` (`TR_type_PLEContext`, `PLEBağlamı`)
+
+
+
+#### `TR_Path` (`TR_type_Path`, `Yol`)
 
 Dosya ya da klasör yolunun tipidir; değiştirilemez, ayırıcıyı / ile saklar ve gösterir. Yol(...) parçaları / ile birleştirip temizlenmiş bir yol kurar (a/./b/../c → a/c); ilk parçadan sonra mutlak bir parça, boş parça ya da sekme/satır sonu içeren parça hatadır; göreli yol, kullanıldığı anda dosya_oku ile aynı kuralla çözülür. Özellikleri yola soru sorar (dosya_adı, uzantı, var_mı, bayt ...); yol alan her yerleşik Metin yerine Yol da kabul eder.
 
@@ -587,9 +587,9 @@ Dosya ya da klasör yolunun tipidir; değiştirilemez, ayırıcıyı / ile sakla
 değişken y = Yol("veri", "./eğitim/../derlem.txt"); yazdır(Tip(y) == Yol, y)
 ```
 
-Üyeleri: TR_mem_absolute `mutlak`, TR_mem_exists `var_mı`, TR_mem_extension `uzantı`, TR_mem_is_dir `klasör_mü`, TR_mem_is_file `dosya_mı`, TR_mem_name `dosya_adı`, TR_mem_parent `üst_klasör`, TR_mem_size `bayt`, TR_mem_stem `uzantısız_ad` · İlişkili: TR_fn_list_dir `klasörü_listele`
+Üyeleri: `.TR_absolute`, `.TR_exists`, `.TR_extension`, `.TR_is_dir`, `.TR_is_file`, `.TR_name`, `.TR_parent`, `.TR_size`, `.TR_stem` · İlişkili: `TR_list_dir(...)`
 
-#### TR_type_Progress `İlerleme`
+#### `TR_Progress` (`TR_type_Progress`, `İlerleme`)
 
 İlerleme çubuğunun tipidir; İlerleme(toplam) toplam adımla açar (toplam verilmezse kalan süresiz sayaç), .güncelle(...) bir adım ilerletir, .durdur() çubuğu bitirir. Çubuk standart hataya yazılır: terminalde tek satırda yenilenir, dosyaya ya da boruya giderken 10 saniyede bir düz satır yazılır; günlük: verilirse her güncelleme o günlüğe de yazılır.
 
@@ -597,13 +597,13 @@ değişken y = Yol("veri", "./eğitim/../derlem.txt"); yazdır(Tip(y) == Yol, y)
 değişken ç = İlerleme(3); döngü i içinde 0..3 { ç.güncelle({"kayıp": 1.0 / (i + 1)}) }; yazdır(ç, Tip(ç) == İlerleme)
 ```
 
-Üyeleri: TR_mem_stop `durdur`, TR_mem_update `güncelle` · İlişkili: TR_mem_update `güncelle`, TR_mem_stop `durdur`, TR_type_Logger `Günlük`
+Üyeleri: `.TR_stop`, `.TR_update` · İlişkili: `.TR_update`, `.TR_stop`, `TR_Logger`
 
-#### TR_type_RMSNorm `RMSNormKatmanı`
+#### `TR_RMSNorm` (`TR_type_RMSNorm`, `RMSNormKatmanı`)
 
 
 
-#### TR_type_Range `Aralık`
+#### `TR_Range` (`TR_type_Range`, `Aralık`)
 
 a..b (b hariç) ve a..=b (b dahil) aralıklarının tipidir; uçlar Tam olmalıdır. Aralığın sayılarının listesi Liste(a..b) ile kurulur.
 
@@ -611,17 +611,17 @@ a..b (b hariç) ve a..=b (b dahil) aralıklarının tipidir; uçlar Tam olmalıd
 değişken a: Aralık = 1..5; yazdır(Tip(a), Liste(0..5))
 ```
 
-Üyeleri: TR_mem_reverse `ters_çevir`
+Üyeleri: `.TR_reverse`
 
-#### TR_type_RowRMS `SatırRMS`
-
-
-
-#### TR_type_Run `Koşu`
+#### `TR_RowRMS` (`TR_type_RowRMS`, `SatırRMS`)
 
 
 
-#### TR_type_Sampler `Örnekleyici`
+#### `TR_Run` (`TR_type_Run`, `Koşu`)
+
+
+
+#### `TR_Sampler` (`TR_type_Sampler`, `Örnekleyici`)
 
 Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten okuyucunun tipidir; dönemler boyunca sonsuz üretir.
 
@@ -629,9 +629,9 @@ Veri kümesinden tohuma göre rastgele [girdi, hedef] tensör çiftleri üreten 
 değişken ö = VeriKümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4, tohum: 1); yazdır(Tip(ö) == Örnekleyici)
 ```
 
-Üyeleri: TR_mem_load_state `durumu_yükle`, TR_mem_next `sonraki`, TR_mem_skip `atla`, TR_mem_state `durum` · İlişkili: TR_mem_sampler `örnekleyici`, TR_type_SequentialReader `SıralıOkuyucu`
+Üyeleri: `.TR_load_state`, `.TR_next`, `.TR_skip`, `.TR_state` · İlişkili: `.TR_sampler`, `TR_SequentialReader`
 
-#### TR_type_SequentialReader `SıralıOkuyucu`
+#### `TR_SequentialReader` (`TR_type_SequentialReader`, `SıralıOkuyucu`)
 
 Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri bitince .sonraki() yok verir.
 
@@ -639,13 +639,13 @@ Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri biti
 değişken s = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4); yazdır(Tip(s) == SıralıOkuyucu)
 ```
 
-Üyeleri: TR_mem_load_state `durumu_yükle`, TR_mem_next `sonraki`, TR_mem_skip `atla`, TR_mem_state `durum` · İlişkili: TR_mem_sequential `sıralı`, TR_type_Sampler `Örnekleyici`
+Üyeleri: `.TR_load_state`, `.TR_next`, `.TR_skip`, `.TR_state` · İlişkili: `.TR_sequential`, `TR_Sampler`
 
-#### TR_type_SpikeGuard `SıçramaBekçisi`
+#### `TR_SpikeGuard` (`TR_type_SpikeGuard`, `SıçramaBekçisi`)
 
 
 
-#### TR_type_String `Metin`
+#### `TR_String` (`TR_type_String`, `Metin`)
 
 Değiştirilemez Unicode metin tipidir; uzunluk ve indeks karakter bazındadır. Metin(x) her değeri yazdırıldığı biçimiyle Metin'e çevirir; bayt dizisini UTF-8 olarak okur.
 
@@ -653,9 +653,9 @@ Değiştirilemez Unicode metin tipidir; uzunluk ve indeks karakter bazındadır.
 değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", Metin([1, 2]))
 ```
 
-Üyeleri: TR_mem_contains `içerir`, TR_mem_ends_with `biter`, TR_mem_get `varsa_al`, TR_mem_length `uzunluk`, TR_mem_lower `küçük_harf`, TR_mem_replace `değiştir`, TR_mem_reverse `ters_çevir`, TR_mem_split `böl`, TR_mem_starts_with `başlar`, TR_mem_strip `kırp`, TR_mem_upper `büyük_harf` · İlişkili: TR_type_Int `Tam`, TR_type_Float `Ondalık`
+Üyeleri: `.TR_contains`, `.TR_ends_with`, `.TR_get`, `.TR_length`, `.TR_lower`, `.TR_replace`, `.TR_reverse`, `.TR_split`, `.TR_starts_with`, `.TR_strip`, `.TR_upper` · İlişkili: `TR_Int`, `TR_Float`
 
-#### TR_type_StructType `YapıTanımı`
+#### `TR_StructType` (`TR_type_StructType`, `YapıTanımı`)
 
 yapı ile tanımlanan yapının kendisinin tipidir; tip açıklamasında kullanılamaz.
 
@@ -663,13 +663,13 @@ yapı ile tanımlanan yapının kendisinin tipidir; tip açıklamasında kullan�
 yapı Nokta { x, y }; yazdır(Tip(Nokta) == YapıTanımı)
 ```
 
-İlişkili: TR_kw_struct `yapı`, TR_type_Object `Nesne`
+İlişkili: `TR_struct`, `TR_Object`
 
-#### TR_type_SwiGLU `SwiGLU`
+#### `TR_SwiGLU` (`TR_type_SwiGLU`, `SwiGLU`)
 
 
 
-#### TR_type_Tensor `Tensör`
+#### `TR_Tensor` (`TR_type_Tensor`, `Tensör`)
 
 N boyutlu sayı dizisi tipidir (matris 2 boyutlu tensördür); elemanlar varsayılan olarak float32'dir. Tensör(x) iç içe sayı listesinden, tek sayıdan ya da başka bir tensörden yeni bir yaprak tensör kurar; türev_izle varsayılan olarak yanlıştır; tür verilmezse listeden float32 olur, tensörden kaynağın türü korunur (tensörün türünü değiştirmek için tür: değil .türe kullanılır).
 
@@ -677,9 +677,9 @@ N boyutlu sayı dizisi tipidir (matris 2 boyutlu tensördür); elemanlar varsay�
 değişken t: Tensör = Tensör([[1, 2], [3, 4]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
 ```
 
-Üyeleri: TR_mem_device `cihaz`, TR_mem_dtype `tür`, TR_mem_grad `gradyan`, TR_mem_permute `eksenleri_sırala`, TR_mem_reshape `şekillendir`, TR_mem_shape `şekil`, TR_mem_slice `dilim`, TR_mem_split `böl`, TR_mem_to_device `cihaza`, TR_mem_to_dtype `türe`, TR_mem_tolist `değer`, TR_mem_transpose `devrik` · İlişkili: TR_fn_zeros `sıfırlar`, TR_fn_ones `birler`, TR_fn_randn `rastgele_normal`
+Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_permute`, `.TR_reshape`, `.TR_shape`, `.TR_slice`, `.TR_split`, `.TR_to_device`, `.TR_to_dtype`, `.TR_tolist`, `.TR_transpose` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
 
-#### TR_type_Tokenizer `Parçalayıcı`
+#### `TR_Tokenizer` (`TR_type_Tokenizer`, `Parçalayıcı`)
 
 parçalayıcı_yükle(...) ile yüklenen, metni parçalara ayırıp parça kimliklerine çeviren nesnenin tipidir.
 
@@ -687,13 +687,13 @@ parçalayıcı_yükle(...) ile yüklenen, metni parçalara ayırıp parça kimli
 değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(Tip(p) == Parçalayıcı)
 ```
 
-Üyeleri: TR_mem_decode `çöz`, TR_mem_encode `kodla`, TR_mem_token_id `parça_kimliği`, TR_mem_vocab_size `dağarcık_boyutu` · İlişkili: TR_fn_load_tokenizer `parçalayıcı_yükle`
+Üyeleri: `.TR_decode`, `.TR_encode`, `.TR_token_id`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
 
-#### TR_type_TransformerBlock `TransformerBloğu`
+#### `TR_TransformerBlock` (`TR_type_TransformerBlock`, `TransformerBloğu`)
 
 
 
-#### TR_type_Type `Tip`
+#### `TR_Type` (`TR_type_Type`, `Tip`)
 
 Tip değerlerinin tipidir: Tip(x) değerin tipini verir, tip adları (Tam, Liste, Tensör ...) ifadede tip değeridir. Karşılaştırma değerle yapılır: Tip(x) == Tam; tip değeri metinle karşılaştırılamaz. Bir yapı nesnesi için yapının kendisini verir (Tip(p) == Nokta).
 
@@ -701,13 +701,13 @@ Tip değerlerinin tipidir: Tip(x) değerin tipini verir, tip adları (Tam, Liste
 değişken t: Tip = Tip(42); yazdır(t == Tam, t, Tip(t), Tip([1, 2]) == Liste)
 ```
 
-İlişkili: TR_type_Int `Tam`, TR_type_Float `Ondalık`, TR_type_String `Metin`
+İlişkili: `TR_Int`, `TR_Float`, `TR_String`
 
 ## Yerleşikler
 
 ### Yerleşik fonksiyonlar
 
-#### TR_fn_AdamW `AdamW`
+#### `TR_AdamW(...)` (`TR_fn_AdamW`, `AdamW`)
 
     AdamW(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.001, ağırlık_çürümesi: Tam | Ondalık = 0.01, beta1: Tam | Ondalık = 0.9, beta2: Tam | Ondalık = 0.999, epsilon: Tam | Ondalık = 1e-08, ana_kopya: Mantık = doğru) → İyileştirici
 
@@ -717,9 +717,9 @@ Türev izleyen yaprak tensörler için ağırlık çürümesi ayrık uygulanan A
 değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = AdamW([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-İlişkili: TR_fn_SGD `SGD`, TR_fn_clip_grad `gradyan_kırp`, TR_mem_step `adım`, TR_mem_zero_grad `sıfırla`, TR_type_Optimizer `İyileştirici`
+İlişkili: `TR_SGD(...)`, `TR_clip_grad(...)`, `.TR_step`, `.TR_zero_grad`, `TR_Optimizer`
 
-#### TR_fn_SGD `SGD`
+#### `TR_SGD(...)` (`TR_fn_SGD`, `SGD`)
 
     SGD(Liste | Tensör, öğrenme_oranı: Tam | Ondalık = 0.01, momentum: Tam | Ondalık = 0, ağırlık_çürümesi: Tam | Ondalık = 0, ana_kopya: Mantık = doğru) → İyileştirici
 
@@ -729,9 +729,9 @@ Türev izleyen yaprak tensörler için olasılıksal gradyan inişi iyileştiric
 değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.1, momentum: 0.9); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-İlişkili: TR_fn_AdamW `AdamW`, TR_mem_step `adım`, TR_mem_zero_grad `sıfırla`, TR_type_Optimizer `İyileştirici`
+İlişkili: `TR_AdamW(...)`, `.TR_step`, `.TR_zero_grad`, `TR_Optimizer`
 
-#### TR_fn_abs `mutlak`
+#### `TR_abs(...)` (`TR_fn_abs`, `mutlak`)
 
     mutlak(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
 
@@ -741,9 +741,9 @@ Sayının mutlak değerini verir; Tam Tam, Ondalık Ondalık kalır, en küçük
 yazdır(mutlak(-5), mutlak(-2.5), mutlak(Tensör([-2.0, 0.0, 3.0])).değer)
 ```
 
-İlişkili: TR_fn_round `yuvarla`, TR_fn_sign `işaret`
+İlişkili: `TR_round(...)`, `TR_sign(...)`
 
-#### TR_fn_acos `acos`
+#### `TR_acos(...)` (`TR_fn_acos`, `acos`)
 
     acos(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -753,27 +753,27 @@ Her elemanın arkkosinüsünü radyan olarak [0, π] aralığında verir; [-1, 1
 yazdır(acos(0.0), acos(Tensör([1.0, -1.0])).değer)
 ```
 
-İlişkili: TR_fn_asin `asin`, TR_fn_cos `cos`
+İlişkili: `TR_asin(...)`, `TR_cos(...)`
 
-#### TR_fn_any_pattern_matches `bir_desen_uyar_mı`
+#### `TR_any_pattern_matches(...)` (`TR_fn_any_pattern_matches`, `bir_desen_uyar_mı`)
 
     bir_desen_uyar_mı()
 
 
 
-#### TR_fn_apply_rotary `döner_konum_uygula`
+#### `TR_apply_rotary(...)` (`TR_fn_apply_rotary`, `döner_konum_uygula`)
 
     döner_konum_uygula()
 
 
 
-#### TR_fn_apply_rotary_fused `döner_konum_uygula_kaynaşık`
+#### `TR_apply_rotary_fused(...)` (`TR_fn_apply_rotary_fused`, `döner_konum_uygula_kaynaşık`)
 
     döner_konum_uygula_kaynaşık()
 
 
 
-#### TR_fn_argmax `argmax`
+#### `TR_argmax(...)` (`TR_fn_argmax`, `argmax`)
 
     argmax(Tensör, eksen: Tam = -1) → Tensör
 
@@ -783,9 +783,9 @@ Verilen eksende (varsayılan son eksen) en büyük elemanın indeksini verir; e�
 yazdır(argmax(Tensör([[0.1, 2.5, 0.3], [1.7, 0.2, 0.9]]), eksen: -1).değer)
 ```
 
-İlişkili: TR_fn_sample `örnekle`
+İlişkili: `TR_sample(...)`
 
-#### TR_fn_argsort `sıralama_indeksi`
+#### `TR_argsort(...)` (`TR_fn_argsort`, `sıralama_indeksi`)
 
     sıralama_indeksi(Tensör, eksen: Tam = -1) → Tensör
 
@@ -795,9 +795,9 @@ Verilen eksende (varsayılan son eksen) elemanları küçükten büyüğe sıral
 yazdır(sıralama_indeksi(Tensör([3.0, 1.0, 2.0])).değer)
 ```
 
-İlişkili: TR_fn_topk `en_büyük_k`, TR_mem_sort `sırala`
+İlişkili: `TR_topk(...)`, `.TR_sort`
 
-#### TR_fn_asin `asin`
+#### `TR_asin(...)` (`TR_fn_asin`, `asin`)
 
     asin(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -807,9 +807,9 @@ Her elemanın arksinüsünü radyan olarak [-π/2, π/2] aralığında verir; [-
 yazdır(asin(1.0), asin(Tensör([0.0, 0.5])).değer)
 ```
 
-İlişkili: TR_fn_acos `acos`, TR_fn_sin `sin`
+İlişkili: `TR_acos(...)`, `TR_sin(...)`
 
-#### TR_fn_assert `doğrula`
+#### `TR_assert(...)` (`TR_fn_assert`, `doğrula`)
 
     doğrula(Herhangi, [Herhangi]) → Mantık
 
@@ -819,9 +819,9 @@ Koşul yanlışsa "doğrulama başarısız" hatası fırlatır, doğruysa doğru
 doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 ```
 
-İlişkili: TR_fn_assert_equal `eşit_olmalı`, TR_ctx_test `test`
+İlişkili: `TR_assert_equal(...)`, `TR_test`
 
-#### TR_fn_assert_equal `eşit_olmalı`
+#### `TR_assert_equal(...)` (`TR_fn_assert_equal`, `eşit_olmalı`)
 
     eşit_olmalı(Herhangi, Herhangi, [Herhangi]) → Mantık
 
@@ -831,9 +831,9 @@ doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 eşit_olmalı(4, 2 + 2); yazdır("eşit")
 ```
 
-İlişkili: TR_fn_assert `doğrula`, TR_ctx_test `test`
+İlişkili: `TR_assert(...)`, `TR_test`
 
-#### TR_fn_atan `atan`
+#### `TR_atan(...)` (`TR_fn_atan`, `atan`)
 
     atan(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -843,9 +843,9 @@ Her elemanın arktanjantını radyan olarak (-π/2, π/2) aralığında verir; t
 yazdır(atan(1.0), atan(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_atan2 `atan2`, TR_fn_tan `tan`
+İlişkili: `TR_atan2(...)`, `TR_tan(...)`
 
-#### TR_fn_atan2 `atan2`
+#### `TR_atan2(...)` (`TR_fn_atan2`, `atan2`)
 
     atan2(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -855,9 +855,9 @@ atan2(y, x), (x, y) noktasının açısını (-π, π] aralığında radyan olar
 yazdır(atan2(1.0, -1.0), atan2(Tensör([1.0, -1.0]), Tensör([0.0])).değer)
 ```
 
-İlişkili: TR_fn_atan `atan`
+İlişkili: `TR_atan(...)`
 
-#### TR_fn_attention `dikkat`
+#### `TR_attention(...)` (`TR_fn_attention`, `dikkat`)
 
     dikkat(Tensör, Tensör, Tensör, nedensel: Mantık = doğru, pencere: Tam = 0, maske: Tensör | Liste | YokTipi = yok) → Tensör
 
@@ -867,9 +867,9 @@ Birleşik ölçekli nokta çarpımı dikkatini (softmax(q @ kᵀ / √dh + maske
 değişken q = rastgele_normal([2, 4, 8], tohum: 1); yazdır(dikkat(q, q, q, nedensel: doğru).şekil)
 ```
 
-İlişkili: TR_fn_softmax `softmax`
+İlişkili: `TR_softmax(...)`
 
-#### TR_fn_backward `geri_yayılım`
+#### `TR_backward(...)` (`TR_fn_backward`, `geri_yayılım`)
 
     geri_yayılım(Tensör) → Mantık
 
@@ -879,15 +879,15 @@ Tek elemanlı (skaler) bir kayıptan geri yayılım yaparak yaprak tensörlerin 
 değişken x = Tensör(3.0, türev_izle: doğru); geri_yayılım(x * x); yazdır(x.gradyan.değer)
 ```
 
-İlişkili: TR_fn_no_grad `türevsiz`, TR_mem_grad `gradyan`
+İlişkili: `TR_no_grad(...)`, `.TR_grad`
 
-#### TR_fn_build_pretrained_model `hazır_model_kur`
+#### `TR_build_pretrained_model(...)` (`TR_fn_build_pretrained_model`, `hazır_model_kur`)
 
     hazır_model_kur()
 
 
 
-#### TR_fn_ceil `tavan`
+#### `TR_ceil(...)` (`TR_fn_ceil`, `tavan`)
 
     tavan(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
 
@@ -897,9 +897,9 @@ Sayıyı yukarı (artı sonsuza doğru) en yakın tam sayıya yuvarlar; Tam gird
 yazdır(tavan(3.2), tavan(7), tavan(Tensör([-1.5, 2.5])).değer)
 ```
 
-İlişkili: TR_fn_floor `taban`, TR_fn_round `yuvarla`
+İlişkili: `TR_floor(...)`, `TR_round(...)`
 
-#### TR_fn_clamp `sınırla`
+#### `TR_clamp(...)` (`TR_fn_clamp`, `sınırla`)
 
     sınırla(Tam | Ondalık | Tensör, en_az: Tam | Ondalık = yok, en_fazla: Tam | Ondalık = yok) → Tam | Ondalık | Tensör
 
@@ -909,9 +909,9 @@ Değeri en_az ile en_fazla arasına sınırlar; ikisinden en az biri verilmeli, 
 yazdır(sınırla(15, en_fazla: 10), sınırla(Tensör([-2.0, 0.5, 3.0]), en_az: 0, en_fazla: 1).değer)
 ```
 
-İlişkili: TR_fn_min `min`, TR_fn_max `max`
+İlişkili: `TR_min(...)`, `TR_max(...)`
 
-#### TR_fn_clip_grad `gradyan_kırp`
+#### `TR_clip_grad(...)` (`TR_fn_clip_grad`, `gradyan_kırp`)
 
     gradyan_kırp(Liste | Tensör, en_fazla: Tam | Ondalık = 1, sonlu_değilse_hata: Mantık = yanlış) → Tensör
 
@@ -921,9 +921,9 @@ Parametre gradyanlarının toplam L2 normu en_fazla değerini (varsayılan 1.0) 
 değişken w = Tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); yazdır(gradyan_kırp([w], en_fazla: 1.0))
 ```
 
-İlişkili: TR_fn_AdamW `AdamW`, TR_fn_SGD `SGD`
+İlişkili: `TR_AdamW(...)`, `TR_SGD(...)`
 
-#### TR_fn_command_line `komut_satırı`
+#### `TR_command_line(...)` (`TR_fn_command_line`, `komut_satırı`)
 
     komut_satırı(Sözlük, açıklama: Metin = "", açıklamalar: Sözlük) → Sözlük
 
@@ -933,9 +933,9 @@ Betiğin seçeneklerini varsayılanlarıyla tanımlar ve komut satırında veril
 değişken ayar = komut_satırı({"adım": 100, "oran": 0.01, "hızlı": yanlış}, açıklama: "Küçük modeli eğitir"); yazdır(ayar["adım"], ayar["oran"], ayar["hızlı"])
 ```
 
-İlişkili: TR_fn_env `ortam_değişkeni`
+İlişkili: `TR_env(...)`
 
-#### TR_fn_compute_dtype `hesap_türü`
+#### `TR_compute_dtype(...)` (`TR_fn_compute_dtype`, `hesap_türü`)
 
     hesap_türü() → Metin
 
@@ -945,9 +945,9 @@ Etkin karışık_hassasiyet bloğunun hesap türünün adını verir ("bf16", "f
 yazdır(hesap_türü(), karışık_hassasiyet("bf16") { hesap_türü() })
 ```
 
-İlişkili: TR_fn_mixed_precision `karışık_hassasiyet`, TR_fn_rms_norm `rms_normu`, TR_arg_dtype `tür`
+İlişkili: `TR_mixed_precision(...)`, `TR_rms_norm(...)`, `TR_dtype:`
 
-#### TR_fn_concat `bitiştir`
+#### `TR_concat(...)` (`TR_fn_concat`, `bitiştir`)
 
     bitiştir(Liste, [Tam], eksen: Tam = -1) → Tensör
 
@@ -957,15 +957,15 @@ Bir tensör listesini verilen eksen boyunca (varsayılan son eksen) uç uca ekle
 yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
 ```
 
-İlişkili: TR_mem_split `böl`
+İlişkili: `.TR_split`
 
-#### TR_fn_config_value `ayar_değeri`
+#### `TR_config_value(...)` (`TR_fn_config_value`, `ayar_değeri`)
 
     ayar_değeri()
 
 
 
-#### TR_fn_copy `kopyala`
+#### `TR_copy(...)` (`TR_fn_copy`, `kopyala`)
 
     kopyala(Metin | Yol, Metin | Yol, üzerine_yaz: Mantık = yanlış) → Yol
 
@@ -975,9 +975,9 @@ Dosyayı ya da klasörü (içindekilerle) kopyalar ve hedefin yolunu döndürür
 dosya_yaz("ağırlık.txt", "w"); klasör_oluştur("yedek"); yazdır(kopyala("ağırlık.txt", "yedek"))
 ```
 
-İlişkili: TR_fn_move `taşı`
+İlişkili: `TR_move(...)`
 
-#### TR_fn_cos `cos`
+#### `TR_cos(...)` (`TR_fn_cos`, `cos`)
 
     cos(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -987,9 +987,9 @@ Her elemanın kosinüsünü (radyan) hesaplar; türevi -sin(x)'tir. Tensörde t�
 yazdır(cos(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_sin `sin`
+İlişkili: `TR_sin(...)`
 
-#### TR_fn_cosh `cosh`
+#### `TR_cosh(...)` (`TR_fn_cosh`, `cosh`)
 
     cosh(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -999,9 +999,9 @@ Eleman bazlı hiperbolik kosinüstür: (e^x + e^(-x)) / 2; türevi sinh(x)'tir. 
 yazdır(cosh(0.0), cosh(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_sinh `sinh`, TR_fn_tanh `tanh`
+İlişkili: `TR_sinh(...)`, `TR_tanh(...)`
 
-#### TR_fn_cross_entropy `çapraz_entropi`
+#### `TR_cross_entropy(...)` (`TR_fn_cross_entropy`, `çapraz_entropi`)
 
     çapraz_entropi(Tensör | Liste, Tam | Liste | Tensör) → Tensör
 
@@ -1011,9 +1011,9 @@ Son ekseni sınıf olan çıktıyla satır başına bir sınıf indeksi arasınd
 yazdır(çapraz_entropi(Tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).değer)
 ```
 
-İlişkili: TR_fn_log_softmax `log_softmax`
+İlişkili: `TR_log_softmax(...)`
 
-#### TR_fn_cumsum `birikimli_toplam`
+#### `TR_cumsum(...)` (`TR_fn_cumsum`, `birikimli_toplam`)
 
     birikimli_toplam(Tensör, eksen: Tam = -1) → Tensör
 
@@ -1023,9 +1023,9 @@ Verilen eksende (varsayılan son eksen) her konuma kadar olan elemanların topla
 yazdır(birikimli_toplam(Tensör([1, 2, 3, 4])).değer, birikimli_toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-İlişkili: TR_fn_sum `toplam`
+İlişkili: `TR_sum(...)`
 
-#### TR_fn_custom_grad `özel_türev`
+#### `TR_custom_grad(...)` (`TR_fn_custom_grad`, `özel_türev`)
 
     özel_türev(ileri: Fonksiyon | YerleşikFonksiyon, geri: Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
 
@@ -1035,9 +1035,9 @@ yazdır(birikimli_toplam(Tensör([1, 2, 3, 4])).değer, birikimli_toplam(Tensör
 değişken kare = özel_türev(ileri: (x) => [x * x, [x]], geri: (s, g) => [g * 2 * s[0]]); değişken x = Tensör([3.0], türev_izle: doğru); geri_yayılım(toplam(kare(x))); yazdır(x.gradyan.değer)
 ```
 
-İlişkili: TR_fn_grad_check `türev_denetle`, TR_fn_backward `geri_yayılım`
+İlişkili: `TR_grad_check(...)`, `TR_backward(...)`
 
-#### TR_fn_default_device `varsayılan_cihaz`
+#### `TR_default_device(...)` (`TR_fn_default_device`, `varsayılan_cihaz`)
 
     varsayılan_cihaz([Metin]) → Metin
 
@@ -1047,9 +1047,9 @@ Argümanla çağrılınca ("cpu", "gpu", "gpu:1") bundan sonra oluşturulan büt
 yazdır(varsayılan_cihaz()); varsayılan_cihaz("cpu"); yazdır(Tensör([1.0]).cihaz)
 ```
 
-İlişkili: TR_fn_devices `cihazlar`, TR_mem_to_device `cihaza`, TR_mem_device `cihaz`
+İlişkili: `TR_devices(...)`, `.TR_to_device`, `.TR_device`
 
-#### TR_fn_devices `cihazlar`
+#### `TR_devices(...)` (`TR_fn_devices`, `cihazlar`)
 
     cihazlar() → Liste
 
@@ -1059,9 +1059,9 @@ Bu makinede kullanılabilir cihazların adlarını liste olarak verir; ilk elema
 yazdır(cihazlar()[0], cihazlar().içerir("gpu"))
 ```
 
-İlişkili: TR_fn_default_device `varsayılan_cihaz`, TR_mem_to_device `cihaza`
+İlişkili: `TR_default_device(...)`, `.TR_to_device`
 
-#### TR_fn_embedding_lookup `gömme_seç`
+#### `TR_embedding_lookup(...)` (`TR_fn_embedding_lookup`, `gömme_seç`)
 
     gömme_seç(Tensör, Tam | Liste | Tensör) → Tensör
 
@@ -1071,9 +1071,9 @@ yazdır(cihazlar()[0], cihazlar().içerir("gpu"))
 değişken tablo = Tensör([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]); yazdır(gömme_seç(tablo, [2, 0]).değer)
 ```
 
-İlişkili: TR_fn_cross_entropy `çapraz_entropi`
+İlişkili: `TR_cross_entropy(...)`
 
-#### TR_fn_env `ortam_değişkeni`
+#### `TR_env(...)` (`TR_fn_env`, `ortam_değişkeni`)
 
     ortam_değişkeni(Metin) → Metin | YokTipi
 
@@ -1083,9 +1083,9 @@ Ortam değişkeninin değerini Metin olarak verir; tanımsızsa yok döner (vars
 değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır(klasör)
 ```
 
-İlişkili: TR_fn_command_line `komut_satırı`
+İlişkili: `TR_command_line(...)`
 
-#### TR_fn_error_code `hata_kodu`
+#### `TR_error_code(...)` (`TR_fn_error_code`, `hata_kodu`)
 
     hata_kodu(Fonksiyon | YerleşikFonksiyon) → Metin | YokTipi
 
@@ -1095,9 +1095,9 @@ Verilen fonksiyonu çalıştırır; fonksiyon bir ileti (ileti) fırlatırsa onu
 yazdır(hata_kodu { fırlat İleti("H6903", -1) })
 ```
 
-İlişkili: TR_type_Message `İleti`, TR_fn_assert `doğrula`
+İlişkili: `TR_Message`, `TR_assert(...)`
 
-#### TR_fn_exit `sonlandır`
+#### `TR_exit(...)` (`TR_fn_exit`, `sonlandır`)
 
     sonlandır(Tam) → YokTipi
 
@@ -1107,9 +1107,9 @@ Programı verilen çıkış koduyla nazikçe bitirir: ertele blokları çalış�
 sonlandır(4)
 ```
 
-İlişkili: TR_fn_handle_stop `durdurmayı_üstlen`
+İlişkili: `TR_handle_stop(...)`
 
-#### TR_fn_exp `exp`
+#### `TR_exp(...)` (`TR_fn_exp`, `exp`)
 
     exp(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1119,9 +1119,9 @@ Her elemanın e tabanında üstelini (e^x) hesaplar. Tensörde türev izleyen te
 yazdır(exp(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_log `log`
+İlişkili: `TR_log(...)`
 
-#### TR_fn_expm1 `expm1`
+#### `TR_expm1(...)` (`TR_fn_expm1`, `expm1`)
 
     expm1(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1131,9 +1131,9 @@ e^x - 1 hesaplar; küçük x'te çıkarmadaki basamak kaybı olmaz (expm1(1e-10)
 yazdır(expm1(0.000001), expm1(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_exp `exp`, TR_fn_log1p `log1p`
+İlişkili: `TR_exp(...)`, `TR_log1p(...)`
 
-#### TR_fn_eye `birim_matris`
+#### `TR_eye(...)` (`TR_fn_eye`, `birim_matris`)
 
     birim_matris(Tam) → Tensör
 
@@ -1143,9 +1143,9 @@ n×n birim matrisi (köşegeni 1, geri kalanı 0 olan 2 boyutlu tensör) oluştu
 yazdır(birim_matris(3).değer)
 ```
 
-İlişkili: TR_type_Tensor `Tensör`
+İlişkili: `TR_Tensor`
 
-#### TR_fn_floor `taban`
+#### `TR_floor(...)` (`TR_fn_floor`, `taban`)
 
     taban(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
 
@@ -1155,9 +1155,9 @@ Sayıyı aşağı (eksi sonsuza doğru) en yakın tam sayıya yuvarlar; Tam gird
 yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).değer)
 ```
 
-İlişkili: TR_fn_ceil `tavan`, TR_fn_round `yuvarla`
+İlişkili: `TR_ceil(...)`, `TR_round(...)`
 
-#### TR_fn_fuse `kaynaştır`
+#### `TR_fuse(...)` (`TR_fn_fuse`, `kaynaştır`)
 
     kaynaştır(Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
 
@@ -1167,9 +1167,9 @@ Eleman bazlı tensör işlemlerinden oluşan bir fonksiyonu kaynaştırır ve ay
 değişken f = kaynaştır((a, b) => a * b + a); yazdır(f(Tensör([1.0, 2.0]), Tensör([3.0, 4.0])).değer)
 ```
 
-İlişkili: TR_fn_custom_grad `özel_türev`
+İlişkili: `TR_custom_grad(...)`
 
-#### TR_fn_gelu `gelu`
+#### `TR_gelu(...)` (`TR_fn_gelu`, `gelu`)
 
     gelu(Tensör | Tam | Ondalık, yaklaşık: Mantık = doğru) → Tensör | Ondalık
 
@@ -1179,9 +1179,9 @@ Eleman bazlı GELU etkinleştirmesidir; varsayılan tanh yaklaşımıyla hesapla
 yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlış))
 ```
 
-İlişkili: TR_fn_relu `relu`
+İlişkili: `TR_relu(...)`
 
-#### TR_fn_grad_check `türev_denetle`
+#### `TR_grad_check(...)` (`TR_fn_grad_check`, `türev_denetle`)
 
     türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, fark_adımı: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → Mantık
 
@@ -1191,9 +1191,9 @@ Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan say
 yazdır(türev_denetle((x) => x * x, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
 ```
 
-İlişkili: TR_fn_custom_grad `özel_türev`
+İlişkili: `TR_custom_grad(...)`
 
-#### TR_fn_handle_stop `durdurmayı_üstlen`
+#### `TR_handle_stop(...)` (`TR_fn_handle_stop`, `durdurmayı_üstlen`)
 
     durdurmayı_üstlen() → YokTipi
 
@@ -1203,21 +1203,21 @@ Ctrl+C ve sonlandırma isteklerinin karşılanmasını programa bırakır: ondan
 durdurmayı_üstlen()
 ```
 
-İlişkili: TR_fn_stop_requested `durdurma_istendi`, TR_fn_exit `sonlandır`
+İlişkili: `TR_stop_requested(...)`, `TR_exit(...)`
 
-#### TR_fn_has_rope_scaling `rope_ölçekleme_var_mı`
+#### `TR_has_rope_scaling(...)` (`TR_fn_has_rope_scaling`, `rope_ölçekleme_var_mı`)
 
     rope_ölçekleme_var_mı()
 
 
 
-#### TR_fn_init_weight `ağırlık_başlat`
+#### `TR_init_weight(...)` (`TR_fn_init_weight`, `ağırlık_başlat`)
 
     ağırlık_başlat()
 
 
 
-#### TR_fn_input `girdi`
+#### `TR_input(...)` (`TR_fn_input`, `girdi`)
 
     girdi([Herhangi]) → Metin
 
@@ -1227,9 +1227,9 @@ Standart girişten bir satır okur, varsa önce istemi yazar; satır sonu atıl�
 değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
 ```
 
-İlişkili: TR_fn_print `yazdır`
+İlişkili: `TR_print(...)`
 
-#### TR_fn_is_finite `sonlu_mu`
+#### `TR_is_finite(...)` (`TR_fn_is_finite`, `sonlu_mu`)
 
     sonlu_mu(Tam | Ondalık | Tensör) → Mantık | Tensör
 
@@ -1239,9 +1239,9 @@ Sayının sonlu olup olmadığını verir: NaN, sonsuz ve eksi sonsuzda yanlış
 yazdır(sonlu_mu(1.5), sonlu_mu(Ondalık("nan")), sonlu_mu(Tensör([1.0, Ondalık("inf")])).değer)
 ```
 
-İlişkili: TR_fn_sign `işaret`, TR_fn_clip_grad `gradyan_kırp`
+İlişkili: `TR_sign(...)`, `TR_clip_grad(...)`
 
-#### TR_fn_json_parse `json_çöz`
+#### `TR_json_parse(...)` (`TR_fn_json_parse`, `json_çöz`)
 
     json_çöz(Metin) → JSON
 
@@ -1251,9 +1251,9 @@ JSON metnini bir JSON değerine çevirir (3.7a); anahtar sırası ve sayının t
 değişken v = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(v["ad"], Tam(v["yaş"]) + 1)
 ```
 
-İlişkili: TR_fn_json_string `json_metin`
+İlişkili: `TR_json_string(...)`
 
-#### TR_fn_json_string `json_metin`
+#### `TR_json_string(...)` (`TR_fn_json_string`, `json_metin`)
 
     json_metin(Herhangi) → Metin
 
@@ -1263,9 +1263,9 @@ Değeri boşluksuz JSON metnine çevirir; anahtarlar sözlükteki sırayla yazı
 yazdır(json_metin({"ad": "Ali", "puan": [90, 85]}))
 ```
 
-İlişkili: TR_fn_json_parse `json_çöz`
+İlişkili: `TR_json_parse(...)`
 
-#### TR_fn_layer_norm `katman_normu`
+#### `TR_layer_norm(...)` (`TR_fn_layer_norm`, `katman_normu`)
 
     katman_normu(Tensör | Liste, [Tensör | Liste | YokTipi], [Tensör | Liste | YokTipi], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | YokTipi = yok, sapma: Tensör | Liste | YokTipi = yok, tür: Metin = yok) → Tensör
 
@@ -1275,15 +1275,15 @@ Girdiyi son eksende ortalaması 0, varyansı 1 olacak biçimde normalleştirir; 
 yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sapma: sıfırlar([3])).değer)
 ```
 
-İlişkili: TR_fn_rms_norm `rms_normu`
+İlişkili: `TR_rms_norm(...)`
 
-#### TR_fn_layer_windows `katman_pencereleri`
+#### `TR_layer_windows(...)` (`TR_fn_layer_windows`, `katman_pencereleri`)
 
     katman_pencereleri()
 
 
 
-#### TR_fn_linear_cross_entropy `doğrusal_çapraz_entropi`
+#### `TR_linear_cross_entropy(...)` (`TR_fn_linear_cross_entropy`, `doğrusal_çapraz_entropi`)
 
     doğrusal_çapraz_entropi(Tensör, Tensör, Tam | Liste | Tensör) → Tensör
 
@@ -1293,9 +1293,9 @@ yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sapma:
 yazdır(doğrusal_çapraz_entropi(Tensör([[1.0, 2.0]]), Tensör([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), [2]).değer)
 ```
 
-İlişkili: TR_fn_cross_entropy `çapraz_entropi`
+İlişkili: `TR_cross_entropy(...)`
 
-#### TR_fn_list_dir `klasörü_listele`
+#### `TR_list_dir(...)` (`TR_fn_list_dir`, `klasörü_listele`)
 
     klasörü_listele([Metin | Yol], [Metin]) → Liste
 
@@ -1305,9 +1305,9 @@ Klasörde kalıba uyan dosya ve klasörleri sıralı bir Yol listesi olarak veri
 klasör_oluştur("liste/alt"); dosya_yaz("liste/a.npy", "1"); dosya_yaz("liste/alt/b.npy", "2"); yazdır(klasörü_listele("liste", "**/*.npy"))
 ```
 
-İlişkili: TR_type_Path `Yol`, TR_fn_make_dir `klasör_oluştur`
+İlişkili: `TR_Path`, `TR_make_dir(...)`
 
-#### TR_fn_load_parameters `parametreleri_yükle`
+#### `TR_load_parameters(...)` (`TR_fn_load_parameters`, `parametreleri_yükle`)
 
     parametreleri_yükle(Nesne | Liste | Sözlük | Tensör, Sözlük) → Tam
 
@@ -1317,9 +1317,9 @@ Ad → tensör sözlüğünü (tensör_yükle sonucu) modelin var olan parametre
 değişken m = {"w": Tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kaydet("m.trt", {"w": Tensör([5.0, 6.0])}); yazdır(parametreleri_yükle(m, tensör_yükle("m.trt")), m["w"].değer)
 ```
 
-İlişkili: TR_fn_parameters `parametreler`, TR_fn_load_tensors `tensör_yükle`, TR_type_Checkpoint `KontrolNoktası`
+İlişkili: `TR_parameters(...)`, `TR_load_tensors(...)`, `TR_Checkpoint`
 
-#### TR_fn_load_tensors `tensör_yükle`
+#### `TR_load_tensors(...)` (`TR_fn_load_tensors`, `tensör_yükle`)
 
     tensör_yükle(Metin, türev_izle: Mantık = yanlış) → Sözlük
 
@@ -1329,9 +1329,9 @@ tensör_kaydet ile yazılmış dosyayı ya da safetensors dosyasını (Hugging F
 tensör_kaydet("a.trt", {"w": Tensör([1.0])}); yazdır(tensör_yükle("a.trt", türev_izle: doğru)["w"].gradyan)
 ```
 
-İlişkili: TR_fn_save_tensors `tensör_kaydet`
+İlişkili: `TR_save_tensors(...)`
 
-#### TR_fn_load_tokenizer `parçalayıcı_yükle`
+#### `TR_load_tokenizer(...)` (`TR_fn_load_tokenizer`, `parçalayıcı_yükle`)
 
     parçalayıcı_yükle(Metin) → Parçalayıcı
 
@@ -1341,9 +1341,9 @@ tokenizer.json biçimindeki bir parçalayıcı dosyasını yükler ve Parçalay�
 değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p)
 ```
 
-İlişkili: TR_mem_encode `kodla`, TR_mem_decode `çöz`, TR_mem_vocab_size `dağarcık_boyutu`, TR_mem_token_id `parça_kimliği`
+İlişkili: `.TR_encode`, `.TR_decode`, `.TR_vocab_size`, `.TR_token_id`
 
-#### TR_fn_log `log`
+#### `TR_log(...)` (`TR_fn_log`, `log`)
 
     log(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1353,9 +1353,9 @@ Her elemanın doğal logaritmasını hesaplar. Tensörde türev izleyen tensör,
 yazdır(log(Tensör([1.0, 10.0])).değer)
 ```
 
-İlişkili: TR_fn_exp `exp`
+İlişkili: `TR_exp(...)`
 
-#### TR_fn_log10 `log10`
+#### `TR_log10(...)` (`TR_fn_log10`, `log10`)
 
     log10(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1365,9 +1365,9 @@ yazdır(log(Tensör([1.0, 10.0])).değer)
 yazdır(log10(1000), log10(Tensör([1.0, 100.0])).değer)
 ```
 
-İlişkili: TR_fn_log `log`, TR_fn_log2 `log2`
+İlişkili: `TR_log(...)`, `TR_log2(...)`
 
-#### TR_fn_log1p `log1p`
+#### `TR_log1p(...)` (`TR_fn_log1p`, `log1p`)
 
     log1p(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1377,9 +1377,9 @@ log(1 + x) hesaplar; küçük x'te 1 + x yuvarlamasından etkilenmez (log1p(1e-1
 yazdır(log1p(0.000001), log1p(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_log `log`, TR_fn_expm1 `expm1`
+İlişkili: `TR_log(...)`, `TR_expm1(...)`
 
-#### TR_fn_log2 `log2`
+#### `TR_log2(...)` (`TR_fn_log2`, `log2`)
 
     log2(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1389,9 +1389,9 @@ yazdır(log1p(0.000001), log1p(Tensör([0.0, 1.0])).değer)
 yazdır(log2(8), log2(Tensör([1.0, 1024.0])).değer)
 ```
 
-İlişkili: TR_fn_log `log`, TR_fn_log10 `log10`
+İlişkili: `TR_log(...)`, `TR_log10(...)`
 
-#### TR_fn_log_softmax `log_softmax`
+#### `TR_log_softmax(...)` (`TR_fn_log_softmax`, `log_softmax`)
 
     log_softmax(Tensör, [Tam], eksen: Tam = -1) → Tensör
 
@@ -1401,15 +1401,15 @@ softmax'ın logaritmasını verilen eksende (varsayılan son eksen) sayısal ola
 yazdır(log_softmax(Tensör([1.0, 2.0, 3.0])).değer)
 ```
 
-İlişkili: TR_fn_softmax `softmax`, TR_fn_cross_entropy `çapraz_entropi`
+İlişkili: `TR_softmax(...)`, `TR_cross_entropy(...)`
 
-#### TR_fn_lr_schedule `öğrenme_oranı_planı`
+#### `TR_lr_schedule(...)` (`TR_fn_lr_schedule`, `öğrenme_oranı_planı`)
 
     öğrenme_oranı_planı()
 
 
 
-#### TR_fn_make_dir `klasör_oluştur`
+#### `TR_make_dir(...)` (`TR_fn_make_dir`, `klasör_oluştur`)
 
     klasör_oluştur(Metin | Yol) → Yol
 
@@ -1419,15 +1419,15 @@ Klasörü üst klasörleriyle birlikte oluşturur ve Yol olarak döndürür; kla
 değişken k = klasör_oluştur("çıktı/kontrol_noktaları"); yazdır(k, k.klasör_mü)
 ```
 
-İlişkili: TR_fn_list_dir `klasörü_listele`, TR_fn_remove `sil`
+İlişkili: `TR_list_dir(...)`, `TR_remove(...)`
 
-#### TR_fn_map_hugging_face `hugging_face_eşle`
+#### `TR_map_hugging_face(...)` (`TR_fn_map_hugging_face`, `hugging_face_eşle`)
 
     hugging_face_eşle()
 
 
 
-#### TR_fn_max `max`
+#### `TR_max(...)` (`TR_fn_max`, `max`)
 
     max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | YokTipi | Tensör
 
@@ -1437,9 +1437,9 @@ Tek bir listenin ya da birden çok sayının en büyüğünü tipini koruyarak v
 yazdır(max([2.0, 1.5]), max(3, 7, 5), max(Tensör([[1, 5], [3, 2]]), eksen: 0).değer)
 ```
 
-İlişkili: TR_fn_min `min`, TR_fn_argmax `argmax`
+İlişkili: `TR_min(...)`, `TR_argmax(...)`
 
-#### TR_fn_mean `ortalama`
+#### `TR_mean(...)` (`TR_fn_mean`, `ortalama`)
 
     ortalama(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
 
@@ -1449,9 +1449,9 @@ Sayıların aritmetik ortalamasını Ondalık olarak verir; tek bir liste ya da 
 yazdır(ortalama([1, 2, 3, 4]), ortalama(Tensör([[1, 2], [3, 4]]), eksen: 1).değer)
 ```
 
-İlişkili: TR_fn_sum `toplam`, TR_fn_median `ortanca`
+İlişkili: `TR_sum(...)`, `TR_median(...)`
 
-#### TR_fn_median `ortanca`
+#### `TR_median(...)` (`TR_fn_median`, `ortanca`)
 
     ortanca(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
 
@@ -1461,9 +1461,9 @@ Sayıların ortancasını Ondalık olarak verir; eleman sayısı çiftse ortadak
 yazdır(ortanca([3, 1, 4, 2]))
 ```
 
-İlişkili: TR_fn_mean `ortalama`
+İlişkili: `TR_mean(...)`
 
-#### TR_fn_min `min`
+#### `TR_min(...)` (`TR_fn_min`, `min`)
 
     min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | YokTipi | Tensör
 
@@ -1473,9 +1473,9 @@ Tek bir listenin ya da birden çok sayının en küçüğünü tipini koruyarak 
 yazdır(min([3, 1, 2]), min(4, 2.5), min([]))
 ```
 
-İlişkili: TR_fn_max `max`
+İlişkili: `TR_max(...)`
 
-#### TR_fn_mixed_precision `karışık_hassasiyet`
+#### `TR_mixed_precision(...)` (`TR_fn_mixed_precision`, `karışık_hassasiyet`)
 
     karışık_hassasiyet(Metin, Fonksiyon | YerleşikFonksiyon) → Herhangi
 
@@ -1485,9 +1485,9 @@ Bloğu verilen hesap türüyle ("bf16", "fp16" ya da kapatmak için "float32") �
 değişken y = karışık_hassasiyet("bf16") { Tensör([[1.0, 2.0]]) @ Tensör([[3.0], [4.0]]) }; yazdır(y.değer, y.tür)
 ```
 
-İlişkili: TR_arg_dtype `tür`, TR_fn_compute_dtype `hesap_türü`
+İlişkili: `TR_dtype:`, `TR_compute_dtype(...)`
 
-#### TR_fn_move `taşı`
+#### `TR_move(...)` (`TR_fn_move`, `taşı`)
 
     taşı(Metin | Yol, Metin | Yol, üzerine_yaz: Mantık = yanlış) → Yol
 
@@ -1497,15 +1497,15 @@ Dosyayı ya da klasörü taşır ve hedefin yolunu döndürür; hedef kuralları
 dosya_yaz("taşınacak.txt", "x"); yazdır(taşı("taşınacak.txt", "taşındı.txt"))
 ```
 
-İlişkili: TR_fn_copy `kopyala`, TR_fn_remove `sil`
+İlişkili: `TR_copy(...)`, `TR_remove(...)`
 
-#### TR_fn_name_matches `ad_uyar_mı`
+#### `TR_name_matches(...)` (`TR_fn_name_matches`, `ad_uyar_mı`)
 
     ad_uyar_mı()
 
 
 
-#### TR_fn_no_grad `türevsiz`
+#### `TR_no_grad(...)` (`TR_fn_no_grad`, `türevsiz`)
 
     türevsiz(Tensör | Fonksiyon | YerleşikFonksiyon) → Herhangi
 
@@ -1515,9 +1515,9 @@ türevsiz { ... } bloğu türev izlemeden çalışır ve bloğun değerini dönd
 değişken x = Tensör([1.0], türev_izle: doğru); değişken y = türevsiz { x * 2 }; yazdır(y.değer)
 ```
 
-İlişkili: TR_fn_backward `geri_yayılım`
+İlişkili: `TR_backward(...)`
 
-#### TR_fn_ones `birler`
+#### `TR_ones(...)` (`TR_fn_ones`, `birler`)
 
     birler(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
 
@@ -1527,33 +1527,33 @@ Verilen şekilde, bütün elemanları 1 olan bir tensör oluşturur. Şekil yaln
 yazdır(birler([2, 2], tür: "bf16").değer)
 ```
 
-İlişkili: TR_fn_zeros `sıfırlar`, TR_type_Tensor `Tensör`
+İlişkili: `TR_zeros(...)`, `TR_Tensor`
 
-#### TR_fn_only_2d `yalnızca_2b`
+#### `TR_only_2d(...)` (`TR_fn_only_2d`, `yalnızca_2b`)
 
     yalnızca_2b()
 
 
 
-#### TR_fn_orthogonalize `dikleştir`
+#### `TR_orthogonalize(...)` (`TR_fn_orthogonalize`, `dikleştir`)
 
     dikleştir()
 
 
 
-#### TR_fn_orthogonalize_stack `yığın_dikleştir`
+#### `TR_orthogonalize_stack(...)` (`TR_fn_orthogonalize_stack`, `yığın_dikleştir`)
 
     yığın_dikleştir()
 
 
 
-#### TR_fn_parameter_groups `parametre_grupları`
+#### `TR_parameter_groups(...)` (`TR_fn_parameter_groups`, `parametre_grupları`)
 
     parametre_grupları()
 
 
 
-#### TR_fn_parameters `parametreler`
+#### `TR_parameters(...)` (`TR_fn_parameters`, `parametreler`)
 
     parametreler(Nesne | Liste | Sözlük | Tensör, adlarıyla: Mantık = yanlış) → Liste | Sözlük
 
@@ -1563,9 +1563,9 @@ Bir yapı nesnesini (iç içe yapılar, listeler ve sözlüklerle) gezip türev 
 değişken model = {"w": Tensör([1.0], türev_izle: doğru), "b": Tensör([0.0], türev_izle: doğru)}; yazdır(parametreler(model, adlarıyla: doğru))
 ```
 
-İlişkili: TR_fn_AdamW `AdamW`, TR_fn_save_tensors `tensör_kaydet`
+İlişkili: `TR_AdamW(...)`, `TR_save_tensors(...)`
 
-#### TR_fn_parse_csv `csv_çöz`
+#### `TR_parse_csv(...)` (`TR_fn_parse_csv`, `csv_çöz`)
 
     csv_çöz(Metin) → Liste
 
@@ -1575,33 +1575,33 @@ CSV metnini satır listelerine çevirir (json_çöz gibi; dosya okumaz, dosya i�
 değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], tablo[1][1] + 1)
 ```
 
-İlişkili: TR_fn_read_csv `csv_oku`, TR_fn_json_parse `json_çöz`
+İlişkili: `TR_read_csv(...)`, `TR_json_parse(...)`
 
-#### TR_fn_ple_gelu `ple_gelu`
+#### `TR_ple_gelu(...)` (`TR_fn_ple_gelu`, `ple_gelu`)
 
     ple_gelu()
 
 
 
-#### TR_fn_ple_mix `ple_karışımı`
+#### `TR_ple_mix(...)` (`TR_fn_ple_mix`, `ple_karışımı`)
 
     ple_karışımı()
 
 
 
-#### TR_fn_ple_mix_fused `ple_karışımı_kaynaşık`
+#### `TR_ple_mix_fused(...)` (`TR_fn_ple_mix_fused`, `ple_karışımı_kaynaşık`)
 
     ple_karışımı_kaynaşık()
 
 
 
-#### TR_fn_pretrained_model `hazır_model`
+#### `TR_pretrained_model(...)` (`TR_fn_pretrained_model`, `hazır_model`)
 
     hazır_model()
 
 
 
-#### TR_fn_print `yazdır`
+#### `TR_print(...)` (`TR_fn_print`, `yazdır`)
 
     yazdır([Herhangi...]) → Metin
 
@@ -1611,9 +1611,9 @@ Değerleri aralarına boşluk koyarak tek satırda yazar ve yazdığı metni dö
 yazdır("Toplam:", 2 + 3)
 ```
 
-İlişkili: TR_fn_input `girdi`
+İlişkili: `TR_input(...)`
 
-#### TR_fn_randn `rastgele_normal`
+#### `TR_randn(...)` (`TR_fn_randn`, `rastgele_normal`)
 
     rastgele_normal(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam) → Tensör
 
@@ -1623,9 +1623,9 @@ Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla
 yazdır(rastgele_normal([2, 3], tohum: 42).şekil)
 ```
 
-İlişkili: TR_fn_zeros `sıfırlar`
+İlişkili: `TR_zeros(...)`
 
-#### TR_fn_read_csv `csv_oku`
+#### `TR_read_csv(...)` (`TR_fn_read_csv`, `csv_oku`)
 
     csv_oku(Metin | Yol) → Liste
 
@@ -1635,9 +1635,9 @@ Bir CSV dosyasını (Metin ya da Yol olarak verilen yol) satır listelerine çev
 dosya_yaz("tablo.csv", "ad,yaş\nAli,30"); değişken tablo = csv_oku("tablo.csv"); yazdır(tablo[1][0], tablo[1][1] + 1)
 ```
 
-İlişkili: TR_fn_read_file `dosya_oku`, TR_fn_parse_csv `csv_çöz`
+İlişkili: `TR_read_file(...)`, `TR_parse_csv(...)`
 
-#### TR_fn_read_file `dosya_oku`
+#### `TR_read_file(...)` (`TR_fn_read_file`, `dosya_oku`)
 
     dosya_oku(Metin | Yol) → Metin
 
@@ -1647,9 +1647,9 @@ Dosyanın tüm içeriğini Metin olarak okur; yol Metin ya da Yol olabilir. Gör
 dosya_yaz("notlar.txt", "merhaba"); yazdır(dosya_oku("notlar.txt"))
 ```
 
-İlişkili: TR_fn_write_file `dosya_yaz`, TR_fn_read_lines `dosya_satırları`, TR_fn_read_csv `csv_oku`
+İlişkili: `TR_write_file(...)`, `TR_read_lines(...)`, `TR_read_csv(...)`
 
-#### TR_fn_read_lines `dosya_satırları`
+#### `TR_read_lines(...)` (`TR_fn_read_lines`, `dosya_satırları`)
 
     dosya_satırları(Metin | Yol) → SatırOkuyucu
 
@@ -1659,9 +1659,9 @@ Dosyayı akışla satır satır okuyan bir SatırOkuyucu açar; bellek dosyanın
 dosya_yaz("satırlar.txt", "bir\niki\n"); döngü satır içinde dosya_satırları("satırlar.txt") { yazdır(satır) }
 ```
 
-İlişkili: TR_fn_read_file `dosya_oku`, TR_mem_next `sonraki`
+İlişkili: `TR_read_file(...)`, `.TR_next`
 
-#### TR_fn_relu `relu`
+#### `TR_relu(...)` (`TR_fn_relu`, `relu`)
 
     relu(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1671,9 +1671,9 @@ Negatif elemanları 0 yapan, pozitifleri koruyan eleman bazlı etkinleştirme fo
 yazdır(relu(Tensör([-1.0, 0.5, 2.0])).değer)
 ```
 
-İlişkili: TR_fn_gelu `gelu`, TR_fn_sigmoid `sigmoid`
+İlişkili: `TR_gelu(...)`, `TR_sigmoid(...)`
 
-#### TR_fn_remove `sil`
+#### `TR_remove(...)` (`TR_fn_remove`, `sil`)
 
     sil(Metin | Yol, içindekilerle: Mantık = yanlış) → Tam
 
@@ -1683,9 +1683,9 @@ Dosyayı, bağlantıyı ya da boş klasörü siler ve silinen dosya sayısını 
 dosya_yaz("silinecek.txt", "x"); yazdır(sil("silinecek.txt"))
 ```
 
-İlişkili: TR_fn_make_dir `klasör_oluştur`, TR_fn_move `taşı`
+İlişkili: `TR_make_dir(...)`, `TR_move(...)`
 
-#### TR_fn_replay `tekrar_oynat`
+#### `TR_replay(...)` (`TR_fn_replay`, `tekrar_oynat`)
 
     tekrar_oynat(Fonksiyon | YerleşikFonksiyon) → YerleşikFonksiyon
 
@@ -1695,9 +1695,9 @@ Tensör alıp tensör veren bir fonksiyonu sarar: GPU'da ikinci çağrı f'in i�
 değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.0, 2.0])).değer) }
 ```
 
-İlişkili: TR_fn_fuse `kaynaştır`
+İlişkili: `TR_fuse(...)`
 
-#### TR_fn_rms_norm `rms_normu`
+#### `TR_rms_norm(...)` (`TR_fn_rms_norm`, `rms_normu`)
 
     rms_normu(Tensör | Liste, [Tensör | Liste | YokTipi], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | YokTipi = yok, tür: Metin = yok) → Tensör
 
@@ -1707,21 +1707,21 @@ Girdiyi son eksende karelerinin ortalamasının köküne bölerek normalleştiri
 yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: birler([2])).değer)
 ```
 
-İlişkili: TR_fn_layer_norm `katman_normu`, TR_fn_compute_dtype `hesap_türü`
+İlişkili: `TR_layer_norm(...)`, `TR_compute_dtype(...)`
 
-#### TR_fn_rope_theta `rope_tabanı`
+#### `TR_rope_theta(...)` (`TR_fn_rope_theta`, `rope_tabanı`)
 
     rope_tabanı()
 
 
 
-#### TR_fn_rotary_table `döner_konum_tablosu`
+#### `TR_rotary_table(...)` (`TR_fn_rotary_table`, `döner_konum_tablosu`)
 
     döner_konum_tablosu()
 
 
 
-#### TR_fn_round `yuvarla`
+#### `TR_round(...)` (`TR_fn_round`, `yuvarla`)
 
     yuvarla(Tam | Ondalık, [Tam]) → Tam | Ondalık
 
@@ -1731,9 +1731,9 @@ Sayıyı en yakına yuvarlar (yarımlar sıfırdan uzağa); basamak pozitifse On
 yazdır(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1234, -2))
 ```
 
-İlişkili: TR_type_Int `Tam`
+İlişkili: `TR_Int`
 
-#### TR_fn_sample `örnekle`
+#### `TR_sample(...)` (`TR_fn_sample`, `örnekle`)
 
     örnekle(Tensör, sıcaklık: Tam | Ondalık = 1, en_iyi_k: Tam = 0, tohum: Tam | YokTipi = yok) → Tensör
 
@@ -1743,9 +1743,9 @@ Son eksendeki softmax(logit / sıcaklık) dağılımından bir indeks örnekler;
 yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0.8, en_iyi_k: 2, tohum: 7).değer)
 ```
 
-İlişkili: TR_fn_argmax `argmax`, TR_fn_softmax `softmax`
+İlişkili: `TR_argmax(...)`, `TR_softmax(...)`
 
-#### TR_fn_save_tensors `tensör_kaydet`
+#### `TR_save_tensors(...)` (`TR_fn_save_tensors`, `tensör_kaydet`)
 
     tensör_kaydet(Metin, Sözlük) → YokTipi
 
@@ -1755,15 +1755,15 @@ Anahtarları metin, değerleri tensör olan bir sözlüğü sürüm başlıklı 
 tensör_kaydet("agirliklar.trt", {"w": Tensör([[1.0, 2.0]]), "b": Tensör([0.5])}); yazdır(tensör_yükle("agirliklar.trt"))
 ```
 
-İlişkili: TR_fn_load_tensors `tensör_yükle`, TR_fn_parameters `parametreler`
+İlişkili: `TR_load_tensors(...)`, `TR_parameters(...)`
 
-#### TR_fn_shape_groups `şekil_grupları`
+#### `TR_shape_groups(...)` (`TR_fn_shape_groups`, `şekil_grupları`)
 
     şekil_grupları()
 
 
 
-#### TR_fn_sigmoid `sigmoid`
+#### `TR_sigmoid(...)` (`TR_fn_sigmoid`, `sigmoid`)
 
     sigmoid(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1773,9 +1773,9 @@ Her elemana 1 / (1 + e^(-x)) uygulayarak değerleri 0 ile 1 arasına sıkıştı
 yazdır(sigmoid(Tensör([-2.0, 0.0, 2.0])).değer)
 ```
 
-İlişkili: TR_fn_tanh `tanh`, TR_fn_relu `relu`
+İlişkili: `TR_tanh(...)`, `TR_relu(...)`
 
-#### TR_fn_sign `işaret`
+#### `TR_sign(...)` (`TR_fn_sign`, `işaret`)
 
     işaret(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
 
@@ -1785,9 +1785,9 @@ Pozitif sayıda 1, negatifte -1, sıfırda 0 verir; Tam girdide Tam, Ondalık gi
 yazdır(işaret(-4), işaret(0.0), işaret(Tensör([-2.0, 0.0, 3.0])).değer)
 ```
 
-İlişkili: TR_fn_abs `mutlak`
+İlişkili: `TR_abs(...)`
 
-#### TR_fn_silu `silu`
+#### `TR_silu(...)` (`TR_fn_silu`, `silu`)
 
     silu(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1797,9 +1797,9 @@ Eleman bazlı SiLU etkinleştirmesidir: x · sigmoid(x); tek geçişte hesaplan�
 yazdır(silu(Tensör([-1.0, 0.0, 2.0])).değer)
 ```
 
-İlişkili: TR_fn_sigmoid `sigmoid`, TR_fn_gelu `gelu`
+İlişkili: `TR_sigmoid(...)`, `TR_gelu(...)`
 
-#### TR_fn_sin `sin`
+#### `TR_sin(...)` (`TR_fn_sin`, `sin`)
 
     sin(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1809,9 +1809,9 @@ Her elemanın sinüsünü (radyan) hesaplar; türevi cos(x)'tir. Tensörde türe
 yazdır(sin(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_cos `cos`
+İlişkili: `TR_cos(...)`
 
-#### TR_fn_sinh `sinh`
+#### `TR_sinh(...)` (`TR_fn_sinh`, `sinh`)
 
     sinh(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1821,9 +1821,9 @@ Eleman bazlı hiperbolik sinüstür: (e^x - e^(-x)) / 2; türevi cosh(x)'tir. Te
 yazdır(sinh(1.0), sinh(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_cosh `cosh`, TR_fn_tanh `tanh`
+İlişkili: `TR_cosh(...)`, `TR_tanh(...)`
 
-#### TR_fn_sleep `uyu`
+#### `TR_sleep(...)` (`TR_fn_sleep`, `uyu`)
 
     uyu(Tam | Ondalık) → Mantık
 
@@ -1833,9 +1833,9 @@ Verilen saniye kadar bekler ve doğru döndürür; beklerken yorumlayıcı kilid
 uyu(0.1); yazdır("0.1 saniye geçti")
 ```
 
-İlişkili: TR_fn_wait_all `bekle_hepsi`, TR_fn_time_ms `zaman_ms`
+İlişkili: `TR_wait_all(...)`, `TR_time_ms(...)`
 
-#### TR_fn_softmax `softmax`
+#### `TR_softmax(...)` (`TR_fn_softmax`, `softmax`)
 
     softmax(Tensör, [Tam], eksen: Tam = -1) → Tensör
 
@@ -1845,9 +1845,9 @@ Verilen eksende (varsayılan son eksen) değerleri toplamı 1 olan olasılıklar
 yazdır(softmax(Tensör([[1.0, 2.0, 3.0]]), eksen: -1).değer)
 ```
 
-İlişkili: TR_fn_log_softmax `log_softmax`, TR_fn_sample `örnekle`
+İlişkili: `TR_log_softmax(...)`, `TR_sample(...)`
 
-#### TR_fn_sqrt `karekök`
+#### `TR_sqrt(...)` (`TR_fn_sqrt`, `karekök`)
 
     karekök(Tam | Ondalık | Tensör) → Ondalık | Tensör
 
@@ -1857,15 +1857,15 @@ Sayının karekökünü Ondalık olarak verir (negatif sayıda NaN); tensörde e
 yazdır(karekök(16), karekök(2.25))
 ```
 
-İlişkili: TR_fn_abs `mutlak`
+İlişkili: `TR_abs(...)`
 
-#### TR_fn_state_tensor `durum_tensörü`
+#### `TR_state_tensor(...)` (`TR_fn_state_tensor`, `durum_tensörü`)
 
     durum_tensörü()
 
 
 
-#### TR_fn_std `standart_sapma`
+#### `TR_std(...)` (`TR_fn_std`, `standart_sapma`)
 
     standart_sapma(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
 
@@ -1875,9 +1875,9 @@ Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak ver
 yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 ```
 
-İlişkili: TR_fn_mean `ortalama`
+İlişkili: `TR_mean(...)`
 
-#### TR_fn_stop_requested `durdurma_istendi`
+#### `TR_stop_requested(...)` (`TR_fn_stop_requested`, `durdurma_istendi`)
 
     durdurma_istendi() → Mantık
 
@@ -1887,9 +1887,9 @@ Bir durdurma isteği geldiyse doğru döner ve hiçbir şeyi değiştirmez; iste
 durdurma_istendi()
 ```
 
-İlişkili: TR_fn_handle_stop `durdurmayı_üstlen`
+İlişkili: `TR_handle_stop(...)`
 
-#### TR_fn_sum `toplam`
+#### `TR_sum(...)` (`TR_fn_sum`, `toplam`)
 
     toplam(Liste | Tensör, [Tam], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
@@ -1899,39 +1899,39 @@ Sayı listesini toplar (hepsi Tam ise Tam, bir Ondalık varsa Ondalık); sayı o
 yazdır(toplam([1, 2, 3]), toplam([1, 2.5]), toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-İlişkili: TR_fn_mean `ortalama`
+İlişkili: `TR_mean(...)`
 
-#### TR_fn_swiglu_gate `swiglu_kapısı`
+#### `TR_swiglu_gate(...)` (`TR_fn_swiglu_gate`, `swiglu_kapısı`)
 
     swiglu_kapısı()
 
 
 
-#### TR_fn_swiglu_gate_fused `swiglu_kapısı_kaynaşık`
+#### `TR_swiglu_gate_fused(...)` (`TR_fn_swiglu_gate_fused`, `swiglu_kapısı_kaynaşık`)
 
     swiglu_kapısı_kaynaşık()
 
 
 
-#### TR_fn_swiglu_intermediate_dim `swiglu_ara_boyutu`
+#### `TR_swiglu_intermediate_dim(...)` (`TR_fn_swiglu_intermediate_dim`, `swiglu_ara_boyutu`)
 
     swiglu_ara_boyutu()
 
 
 
-#### TR_fn_swiglu_merged_gate `swiglu_birleşik_kapısı`
+#### `TR_swiglu_merged_gate(...)` (`TR_fn_swiglu_merged_gate`, `swiglu_birleşik_kapısı`)
 
     swiglu_birleşik_kapısı()
 
 
 
-#### TR_fn_swiglu_merged_gate_fused `swiglu_birleşik_kapısı_kaynaşık`
+#### `TR_swiglu_merged_gate_fused(...)` (`TR_fn_swiglu_merged_gate_fused`, `swiglu_birleşik_kapısı_kaynaşık`)
 
     swiglu_birleşik_kapısı_kaynaşık()
 
 
 
-#### TR_fn_tan `tan`
+#### `TR_tan(...)` (`TR_fn_tan`, `tan`)
 
     tan(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1941,9 +1941,9 @@ Her elemanın tanjantını (radyan) hesaplar; türevi 1 + tan(x)²'dir. Tensörd
 yazdır(tan(0.5), tan(Tensör([0.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_sin `sin`, TR_fn_cos `cos`, TR_fn_atan `atan`
+İlişkili: `TR_sin(...)`, `TR_cos(...)`, `TR_atan(...)`
 
-#### TR_fn_tanh `tanh`
+#### `TR_tanh(...)` (`TR_fn_tanh`, `tanh`)
 
     tanh(Tensör | Tam | Ondalık) → Tensör | Ondalık
 
@@ -1953,9 +1953,9 @@ Eleman bazlı hiperbolik tanjanttır; değerleri -1 ile 1 arasına sıkıştır�
 yazdır(tanh(0.5), tanh(Tensör([-1.0, 1.0])).değer)
 ```
 
-İlişkili: TR_fn_sigmoid `sigmoid`
+İlişkili: `TR_sigmoid(...)`
 
-#### TR_fn_temp_dir `geçici_klasör`
+#### `TR_temp_dir(...)` (`TR_fn_temp_dir`, `geçici_klasör`)
 
     geçici_klasör() → Yol
 
@@ -1965,9 +1965,9 @@ yazdır(tanh(0.5), tanh(Tensör([-1.0, 1.0])).değer)
 değişken k = geçici_klasör(); dosya_yaz(Yol(k, "not.txt"), "x"); yazdır(Yol(k, "not.txt").var_mı, klasörü_listele(k).uzunluk)
 ```
 
-İlişkili: TR_fn_make_dir `klasör_oluştur`, TR_fn_remove `sil`
+İlişkili: `TR_make_dir(...)`, `TR_remove(...)`
 
-#### TR_fn_time_ms `zaman_ms`
+#### `TR_time_ms(...)` (`TR_fn_time_ms`, `zaman_ms`)
 
     zaman_ms() → Tam
 
@@ -1977,9 +1977,9 @@ değişken k = geçici_klasör(); dosya_yaz(Yol(k, "not.txt"), "x"); yazdır(Yol
 değişken baş = zaman_ms(); uyu(0.05); yazdır(zaman_ms() - baş >= 50)
 ```
 
-İlişkili: TR_fn_sleep `uyu`
+İlişkili: `TR_sleep(...)`
 
-#### TR_fn_topk `en_büyük_k`
+#### `TR_topk(...)` (`TR_fn_topk`, `en_büyük_k`)
 
     en_büyük_k(Tensör, Tam, eksen: Tam = -1) → Liste
 
@@ -1989,9 +1989,9 @@ Verilen eksende (varsayılan son eksen) en büyük k elemanı büyükten küçü
 değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].değer, s[1].değer)
 ```
 
-İlişkili: TR_fn_argsort `sıralama_indeksi`, TR_fn_argmax `argmax`
+İlişkili: `TR_argsort(...)`, `TR_argmax(...)`
 
-#### TR_fn_wait_all `bekle_hepsi`
+#### `TR_wait_all(...)` (`TR_fn_wait_all`, `bekle_hepsi`)
 
     bekle_hepsi() → Mantık
 
@@ -2001,9 +2001,9 @@ Başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru dönd
 değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s)
 ```
 
-İlişkili: TR_kw_async `eşzamanlı`, TR_fn_sleep `uyu`
+İlişkili: `TR_async`, `TR_sleep(...)`
 
-#### TR_fn_where `koşullu`
+#### `TR_where(...)` (`TR_fn_where`, `koşullu`)
 
     koşullu(Tensör | Mantık | Tam | Ondalık, Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
 
@@ -2013,9 +2013,9 @@ koşullu(koşul, a, b), koşulun doğru (sıfırdan farklı) olduğu elemanlarda
 değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).değer)
 ```
 
-İlişkili: TR_kw_if `eğer`
+İlişkili: `TR_if`
 
-#### TR_fn_write_file `dosya_yaz`
+#### `TR_write_file(...)` (`TR_fn_write_file`, `dosya_yaz`)
 
     dosya_yaz(Metin | Yol, Herhangi) → Mantık
 
@@ -2025,9 +2025,9 @@ Değeri metne çevirip dosyaya yazar ve doğru döndürür; var olan dosyanın y
 dosya_yaz("not.txt", "merhaba"); yazdır(dosya_oku("not.txt"))
 ```
 
-İlişkili: TR_fn_read_file `dosya_oku`
+İlişkili: `TR_read_file(...)`
 
-#### TR_fn_write_slice `yerine_yaz`
+#### `TR_write_slice(...)` (`TR_fn_write_slice`, `yerine_yaz`)
 
     yerine_yaz(Tensör, Tensör, eksen: Tam = -1, başlangıç: Tam | Tensör = 0) → YokTipi
 
@@ -2037,15 +2037,15 @@ Kaynağı hedefin verilen eksenindeki dilime, başlangıç konumundan itibaren y
 değişken t = sıfırlar([2, 4]); yerine_yaz(t, birler([2, 2]), eksen: 1, başlangıç: 1); yazdır(t.değer)
 ```
 
-İlişkili: TR_fn_concat `bitiştir`
+İlişkili: `TR_concat(...)`
 
-#### TR_fn_zero_grads `gradyanları_sıfırla`
+#### `TR_zero_grads(...)` (`TR_fn_zero_grads`, `gradyanları_sıfırla`)
 
     gradyanları_sıfırla()
 
 
 
-#### TR_fn_zeros `sıfırlar`
+#### `TR_zeros(...)` (`TR_fn_zeros`, `sıfırlar`)
 
     sıfırlar(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32") → Tensör
 
@@ -2055,71 +2055,71 @@ Verilen şekilde, bütün elemanları 0 olan bir tensör oluşturur. Şekil yaln
 yazdır(sıfırlar([2, 3]).şekil)
 ```
 
-İlişkili: TR_fn_ones `birler`, TR_type_Tensor `Tensör`
+İlişkili: `TR_ones(...)`, `TR_Tensor`
 
 ### Yerleşik sabitler
 
-#### TR_const_BLOCK_NAMES `BLOK_ADLARI`
+#### `TR_BLOCK_NAMES` (`TR_const_BLOCK_NAMES`, `BLOK_ADLARI`)
 
     BLOK_ADLARI
 
 
 
-#### TR_const_DRY_RUN_STEPS `PROVA_ADIMI`
+#### `TR_DRY_RUN_STEPS` (`TR_const_DRY_RUN_STEPS`, `PROVA_ADIMI`)
 
     PROVA_ADIMI
 
 
 
-#### TR_const_MIN_RELATIVE_STD `EN_AZ_GÖRELİ_SAPMA`
+#### `TR_MIN_RELATIVE_STD` (`TR_const_MIN_RELATIVE_STD`, `EN_AZ_GÖRELİ_SAPMA`)
 
     EN_AZ_GÖRELİ_SAPMA
 
 
 
-#### TR_const_NONFINITE `SONLU_DEĞİL`
+#### `TR_NONFINITE` (`TR_const_NONFINITE`, `SONLU_DEĞİL`)
 
     SONLU_DEĞİL
 
 
 
-#### TR_const_NS_A `NS_A`
+#### `TR_NS_A` (`TR_const_NS_A`, `NS_A`)
 
     NS_A
 
 
 
-#### TR_const_NS_B `NS_B`
+#### `TR_NS_B` (`TR_const_NS_B`, `NS_B`)
 
     NS_B
 
 
 
-#### TR_const_NS_C `NS_C`
+#### `TR_NS_C` (`TR_const_NS_C`, `NS_C`)
 
     NS_C
 
 
 
-#### TR_const_OK `TAMAM`
+#### `TR_OK` (`TR_const_OK`, `TAMAM`)
 
     TAMAM
 
 
 
-#### TR_const_SPIKE `SIÇRAMA`
+#### `TR_SPIKE` (`TR_const_SPIKE`, `SIÇRAMA`)
 
     SIÇRAMA
 
 
 
-#### TR_const_SUPPORTED_ARCHITECTURES `DESTEKLENEN_MİMARİLER`
+#### `TR_SUPPORTED_ARCHITECTURES` (`TR_const_SUPPORTED_ARCHITECTURES`, `DESTEKLENEN_MİMARİLER`)
 
     DESTEKLENEN_MİMARİLER
 
 
 
-#### TR_const_pi `pi`
+#### `TR_pi` (`TR_const_pi`, `pi`)
 
     pi → Ondalık
 
@@ -2129,27 +2129,27 @@ Bir çemberin çevresinin çapına oranı olan π sayısıdır (Ondalık, 3.1415
 yazdır(pi, sin(pi / 2), cos(pi))
 ```
 
-İlişkili: TR_fn_sin `sin`, TR_fn_tan `tan`
+İlişkili: `TR_sin(...)`, `TR_tan(...)`
 
 ### Adlı argümanlar
 
-#### TR_arg_G_muon `G`
+#### `TR_G_muon:` (`TR_arg_G_muon`, `G`)
 
 
 
-#### TR_arg_T `T`
+#### `TR_T:` (`TR_arg_T`, `T`)
 
 
 
-#### TR_arg_adamw_lr `adamw_öğrenme_oranı`
+#### `TR_adamw_lr:` (`TR_arg_adamw_lr`, `adamw_öğrenme_oranı`)
 
 
 
-#### TR_arg_adamw_weight_decay `adamw_çürümesi`
+#### `TR_adamw_weight_decay:` (`TR_arg_adamw_weight_decay`, `adamw_çürümesi`)
 
 
 
-#### TR_arg_approximate `yaklaşık`
+#### `TR_approximate:` (`TR_arg_approximate`, `yaklaşık`)
 
 gelu'nun hangi biçimde hesaplanacağını seçer: doğru (varsayılan) tanh yaklaşımı, yanlış tam (erf tabanlı) GELU. Mantık olmalıdır.
 
@@ -2157,9 +2157,9 @@ gelu'nun hangi biçimde hesaplanacağını seçer: doğru (varsayılan) tanh yak
 yazdır(gelu(Tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).değer)
 ```
 
-Kullananlar: TR_fn_gelu `gelu` · İlişkili: TR_fn_gelu `gelu`
+Kullananlar: `TR_gelu(...)` · İlişkili: `TR_gelu(...)`
 
-#### TR_arg_backward `geri`
+#### `TR_backward:` (`TR_arg_backward`, `geri`)
 
 özel_türev'in geri hesabıdır: (saklananlar, g) => ... biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
 
@@ -2167,9 +2167,9 @@ Kullananlar: TR_fn_gelu `gelu` · İlişkili: TR_fn_gelu `gelu`
 değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(f(x))); yazdır(x.gradyan.değer)
 ```
 
-Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_forward `ileri`
+Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_forward:`
 
-#### TR_arg_batch_size `toplu`
+#### `TR_batch_size:` (`TR_arg_batch_size`, `toplu`)
 
 Okuyucunun her .sonraki() çağrısında verdiği satır (toplu iş) sayısıdır. Pozitif bir tam sayı olmalıdır ve verilmesi zorunludur.
 
@@ -2177,9 +2177,9 @@ Okuyucunun her .sonraki() çağrısında verdiği satır (toplu iş) sayısıdı
 değişken ö = VeriKümesi("tests/data/numbers").örnekleyici(toplu: 8, bağlam: 16)
 ```
 
-Kullananlar: TR_mem_sampler `örnekleyici`, TR_mem_sequential `sıralı` · İlişkili: TR_arg_context `bağlam`
+Kullananlar: `.TR_sampler`, `.TR_sequential` · İlişkili: `TR_context:`
 
-#### TR_arg_beta1 `beta1`
+#### `TR_beta1:` (`TR_arg_beta1`, `beta1`)
 
 AdamW'nin gradyan ortalaması için kullandığı üstel azalma katsayısıdır. [0, 1) aralığında olmalıdır; varsayılan 0.9'dur.
 
@@ -2187,9 +2187,9 @@ AdamW'nin gradyan ortalaması için kullandığı üstel azalma katsayısıdır.
 değişken w = Tensör([1.0], türev_izle: doğru); yazdır(AdamW([w], beta1: 0.8))
 ```
 
-Kullananlar: TR_fn_AdamW `AdamW` · İlişkili: TR_arg_beta2 `beta2`
+Kullananlar: `TR_AdamW(...)` · İlişkili: `TR_beta2:`
 
-#### TR_arg_beta2 `beta2`
+#### `TR_beta2:` (`TR_arg_beta2`, `beta2`)
 
 AdamW'nin gradyan karelerinin ortalaması için kullandığı üstel azalma katsayısıdır. [0, 1) aralığında olmalıdır; varsayılan 0.999'dur.
 
@@ -2197,9 +2197,9 @@ AdamW'nin gradyan karelerinin ortalaması için kullandığı üstel azalma kats
 değişken w = Tensör([1.0], türev_izle: doğru); yazdır(AdamW([w], beta2: 0.99))
 ```
 
-Kullananlar: TR_fn_AdamW `AdamW` · İlişkili: TR_arg_beta1 `beta1`
+Kullananlar: `TR_AdamW(...)` · İlişkili: `TR_beta1:`
 
-#### TR_arg_bias `sapma`
+#### `TR_bias:` (`TR_arg_bias`, `sapma`)
 
 katman_normu sonucuna son eksende eklenen [D] şeklindeki kayma tensörüdür; yok verilirse eklenmez. Konumlu da verilebilir.
 
@@ -2207,13 +2207,13 @@ katman_normu sonucuna son eksende eklenen [D] şeklindeki kayma tensörüdür; y
 yazdır(katman_normu(Tensör([[1.0, 3.0]]), sapma: Tensör([0.5, 0.5])).değer)
 ```
 
-Kullananlar: TR_fn_layer_norm `katman_normu` · İlişkili: TR_arg_weight `ağırlık`
+Kullananlar: `TR_layer_norm(...)` · İlişkili: `TR_weight:`
 
-#### TR_arg_buffers `tamponlar`
+#### `TR_buffers:` (`TR_arg_buffers`, `tamponlar`)
 
 
 
-#### TR_arg_cache `önbellek`
+#### `TR_cache:` (`TR_arg_cache`, `önbellek`)
 
 veri_kümesi'nin veri dosyalarını kullanmadan önce kopyalayacağı yerel önbellek klasörüdür; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. Tek başına verilemez: kota_gb: zorunludur.
 
@@ -2221,17 +2221,17 @@ veri_kümesi'nin veri dosyalarını kullanmadan önce kopyalayacağı yerel önb
 değişken küme = VeriKümesi("tests/data/numbers", önbellek: "onbellek/veri", kota_gb: 1)
 ```
 
-Kullananlar: TR_type_Dataset `VeriKümesi` · İlişkili: TR_arg_quota_gb `kota_gb`
+Kullananlar: `TR_Dataset` · İlişkili: `TR_quota_gb:`
 
-#### TR_arg_cache_kind `önbellek_çeşidi`
-
-
-
-#### TR_arg_capacity `kapasite`
+#### `TR_cache_kind:` (`TR_arg_cache_kind`, `önbellek_çeşidi`)
 
 
 
-#### TR_arg_causal `nedensel`
+#### `TR_capacity:` (`TR_arg_capacity`, `kapasite`)
+
+
+
+#### `TR_causal:` (`TR_arg_causal`, `nedensel`)
 
 doğru iken (varsayılan) her sorgu yalnızca kendisine kadarki anahtarlara bakar; Tq < Tk iken hizalama sondandır. yanlış ile dikkat iki yönlüdür.
 
@@ -2239,13 +2239,13 @@ doğru iken (varsayılan) her sorgu yalnızca kendisine kadarki anahtarlara baka
 değişken q = rastgele_normal([4, 8], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış).şekil)
 ```
 
-Kullananlar: TR_fn_attention `dikkat` · İlişkili: TR_arg_window `pencere`, TR_arg_mask `maske`
+Kullananlar: `TR_attention(...)` · İlişkili: `TR_window:`, `TR_mask:`
 
-#### TR_arg_config `ayar`
+#### `TR_config:` (`TR_arg_config`, `ayar`)
 
 
 
-#### TR_arg_context `bağlam`
+#### `TR_context:` (`TR_arg_context`, `bağlam`)
 
 Okuyucunun her satırdaki pencere uzunluğudur; girdi ve hedef [toplu, bağlam] şeklinde olur. Zorunludur ve en uzun veri dosyasından kısa olmalıdır.
 
@@ -2253,21 +2253,21 @@ Okuyucunun her satırdaki pencere uzunluğudur; girdi ve hedef [toplu, bağlam] 
 değişken s = VeriKümesi("tests/data/numbers").sıralı(toplu: 4, bağlam: 16)
 ```
 
-Kullananlar: TR_mem_sampler `örnekleyici`, TR_mem_sequential `sıralı` · İlişkili: TR_arg_batch_size `toplu`
+Kullananlar: `.TR_sampler`, `.TR_sequential` · İlişkili: `TR_batch_size:`
 
-#### TR_arg_cos_table `cos_tablosu`
-
-
-
-#### TR_arg_cuda_graph `cuda_çizgesi`
+#### `TR_cos_table:` (`TR_arg_cos_table`, `cos_tablosu`)
 
 
 
-#### TR_arg_decay_fraction `azalma`
+#### `TR_cuda_graph:` (`TR_arg_cuda_graph`, `cuda_çizgesi`)
 
 
 
-#### TR_arg_description `açıklama`
+#### `TR_decay_fraction:` (`TR_arg_decay_fraction`, `azalma`)
+
+
+
+#### `TR_description:` (`TR_arg_description`, `açıklama`)
 
 komut_satırı'nın --yardım çıktısının başında gösterilen, programın ne yaptığını anlatan metindir; varsayılan boştur.
 
@@ -2275,9 +2275,9 @@ komut_satırı'nın --yardım çıktısının başında gösterilen, programın 
 değişken ayar = komut_satırı({"adım": 10}, açıklama: "Modeli eğitir"); yazdır(ayar["adım"])
 ```
 
-Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_descriptions `açıklamalar`
+Kullananlar: `TR_command_line(...)` · İlişkili: `TR_descriptions:`
 
-#### TR_arg_descriptions `açıklamalar`
+#### `TR_descriptions:` (`TR_arg_descriptions`, `açıklamalar`)
 
 komut_satırı seçeneklerinin --yardım çıktısındaki açıklamalarıdır: anahtarlar seçenek adları, değerler Metin olmalıdır; seçeneklerde olmayan bir ad hatadır.
 
@@ -2285,13 +2285,13 @@ komut_satırı seçeneklerinin --yardım çıktısındaki açıklamalarıdır: a
 değişken ayar = komut_satırı({"adım": 10}, açıklamalar: {"adım": "eğitim adımı sayısı"}); yazdır(ayar["adım"])
 ```
 
-Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_description `açıklama`
+Kullananlar: `TR_command_line(...)` · İlişkili: `TR_description:`
 
-#### TR_arg_device `cihaz`
+#### `TR_device:` (`TR_arg_device`, `cihaz`)
 
 
 
-#### TR_arg_dim `eksen`
+#### `TR_dim:` (`TR_arg_dim`, `eksen`)
 
 İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, bitiştir ve argmax'te son eksen kullanılır.
 
@@ -2299,13 +2299,13 @@ Kullananlar: TR_fn_command_line `komut_satırı` · İlişkili: TR_arg_descripti
 yazdır(toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-Kullananlar: TR_fn_argmax `argmax`, TR_fn_argsort `sıralama_indeksi`, TR_fn_concat `bitiştir`, TR_fn_cumsum `birikimli_toplam`, TR_fn_log_softmax `log_softmax`, TR_fn_max `max`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_softmax `softmax`, TR_fn_sum `toplam`, TR_fn_topk `en_büyük_k`, TR_fn_write_slice `yerine_yaz`, TR_mem_split `böl` · İlişkili: TR_arg_keepdim `boyutu_koru`
+Kullananlar: `TR_argmax(...)`, `TR_argsort(...)`, `TR_concat(...)`, `TR_cumsum(...)`, `TR_log_softmax(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_softmax(...)`, `TR_sum(...)`, `TR_topk(...)`, `TR_write_slice(...)`, `.TR_split` · İlişkili: `TR_keepdim:`
 
-#### TR_arg_dry_run `prova`
+#### `TR_dry_run:` (`TR_arg_dry_run`, `prova`)
 
 
 
-#### TR_arg_dtype `tür`
+#### `TR_dtype:` (`TR_arg_dtype`, `tür`)
 
 Oluşturulan tensörün veri türünü seçer: "float32" (varsayılan), "bf16" ya da "fp16". Normlarda (katman_normu, rms_normu) çıktının türüdür; hesap yine float32'dir, verilmezse çıktı girdinin türündedir. Başka bir ad en yakın geçerli adı öneren bir hatadır.
 
@@ -2313,21 +2313,21 @@ Oluşturulan tensörün veri türünü seçer: "float32" (varsayılan), "bf16" y
 yazdır(sıfırlar([2, 2], tür: "fp16").tür)
 ```
 
-Kullananlar: TR_type_Tensor `Tensör`, TR_fn_layer_norm `katman_normu`, TR_fn_ones `birler`, TR_fn_randn `rastgele_normal`, TR_fn_rms_norm `rms_normu`, TR_fn_zeros `sıfırlar`
+Kullananlar: `TR_Tensor`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`
 
-#### TR_arg_embed_dim `boyut`
-
-
-
-#### TR_arg_end `bitiş`
+#### `TR_embed_dim:` (`TR_arg_embed_dim`, `boyut`)
 
 
 
-#### TR_arg_eos `eos`
+#### `TR_end:` (`TR_arg_end`, `bitiş`)
 
 
 
-#### TR_arg_eps `epsilon`
+#### `TR_eos:` (`TR_arg_eos`, `eos`)
+
+
+
+#### `TR_eps:` (`TR_arg_eps`, `epsilon`)
 
 Sıfıra bölmeyi önlemek için paydaya eklenen küçük pozitif sayıdır. Normlarda varsayılan 0.00001, AdamW'de 1e-8'dir.
 
@@ -2335,9 +2335,9 @@ Sıfıra bölmeyi önlemek için paydaya eklenen küçük pozitif sayıdır. Nor
 yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), epsilon: 0.001).değer)
 ```
 
-Kullananlar: TR_fn_AdamW `AdamW`, TR_fn_layer_norm `katman_normu`, TR_fn_rms_norm `rms_normu`
+Kullananlar: `TR_AdamW(...)`, `TR_layer_norm(...)`, `TR_rms_norm(...)`
 
-#### TR_arg_error_if_nonfinite `sonlu_değilse_hata`
+#### `TR_error_if_nonfinite:` (`TR_arg_error_if_nonfinite`, `sonlu_değilse_hata`)
 
 gradyan_kırp'ın seçeneğidir (Mantık, varsayılan yanlış): doğruysa gradyanların toplam normu NaN ya da sonsuzsa hata verir (PyTorch clip_grad_norm_(error_if_nonfinite=True)). Normu okumak için GPU'yu bekler; varsayılanda bekleme yoktur. Adımı atlamak isteyen eğitim bunun yerine sonlu_mu(norm.değer) ile denetler.
 
@@ -2345,9 +2345,9 @@ gradyan_kırp'ın seçeneğidir (Mantık, varsayılan yanlış): doğruysa grady
 değişken w = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(w * Ondalık("inf"))); dene { gradyan_kırp([w], sonlu_değilse_hata: doğru) } yakala h { yazdır("sonlu değil") }
 ```
 
-Kullananlar: TR_fn_clip_grad `gradyan_kırp` · İlişkili: TR_fn_clip_grad `gradyan_kırp`, TR_fn_is_finite `sonlu_mu`
+Kullananlar: `TR_clip_grad(...)` · İlişkili: `TR_clip_grad(...)`, `TR_is_finite(...)`
 
-#### TR_arg_every_minutes `her_dakika`
+#### `TR_every_minutes:` (`TR_arg_every_minutes`, `her_dakika`)
 
 kontrol_noktası'nın kayıt aralığıdır (dakika, varsayılan 15; 0: her güncelle'de). Süre dolunca sıradaki .güncelle(adım) çağrısı adım sınırında kaydeder; durdurma isteğinde (Ctrl+C) aralık beklenmez.
 
@@ -2355,13 +2355,13 @@ kontrol_noktası'nın kayıt aralığıdır (dakika, varsayılan 15; 0: her gün
 değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolNoktası("koşu_t984", {"w": w}, her_dakika: 0.5); yazdır(kn)
 ```
 
-Kullananlar: TR_type_Checkpoint `KontrolNoktası` · İlişkili: TR_arg_keep `tut`
+Kullananlar: `TR_Checkpoint` · İlişkili: `TR_keep:`
 
-#### TR_arg_fallback `yedek`
+#### `TR_fallback:` (`TR_arg_fallback`, `yedek`)
 
 
 
-#### TR_arg_fd_step `fark_adımı`
+#### `TR_fd_step:` (`TR_arg_fd_step`, `fark_adımı`)
 
 türev_denetle'de sayısal gradyanı veren merkezi farkın adım büyüklüğüdür (h): (f(x + h) - f(x - h)) / 2h. Pozitif olmalıdır; varsayılan 0.001'dir.
 
@@ -2369,17 +2369,17 @@ türev_denetle'de sayısal gradyanı veren merkezi farkın adım büyüklüğüd
 yazdır(türev_denetle((x) => x * x, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
 ```
 
-Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_tol `tolerans`
+Kullananlar: `TR_grad_check(...)` · İlişkili: `TR_tol:`
 
-#### TR_arg_ff_use_bias `ileri_sapmalı`
-
-
-
-#### TR_arg_folder `klasör`
+#### `TR_ff_use_bias:` (`TR_arg_ff_use_bias`, `ileri_sapmalı`)
 
 
 
-#### TR_arg_forward `ileri`
+#### `TR_folder:` (`TR_arg_folder`, `klasör`)
+
+
+
+#### `TR_forward:` (`TR_arg_forward`, `ileri`)
 
 özel_türev'in ileri hesabıdır: türevsiz çalışır ve [çıktı, saklananlar] döndürmelidir. Çıktı bir tensör ya da tensör listesidir.
 
@@ -2387,53 +2387,53 @@ Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_tol `tolera
 değişken f = özel_türev(ileri: (x) => [x * 3, []], geri: (s, g) => [g * 3]); yazdır(f(Tensör([2.0])).değer)
 ```
 
-Kullananlar: TR_fn_custom_grad `özel_türev` · İlişkili: TR_arg_backward `geri`
+Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_backward:`
 
-#### TR_arg_g_swiglu `g`
-
-
-
-#### TR_arg_gate `kapı`
+#### `TR_g_swiglu:` (`TR_arg_g_swiglu`, `g`)
 
 
 
-#### TR_arg_gu `gu`
+#### `TR_gate:` (`TR_arg_gate`, `kapı`)
 
 
 
-#### TR_arg_h `h`
+#### `TR_gu:` (`TR_arg_gu`, `gu`)
 
 
 
-#### TR_arg_head_dim `bakış_boyutu`
+#### `TR_h:` (`TR_arg_h`, `h`)
 
 
 
-#### TR_arg_history `geçmiş`
+#### `TR_head_dim:` (`TR_arg_head_dim`, `bakış_boyutu`)
 
 
 
-#### TR_arg_history_limit `geçmiş_sınırı`
+#### `TR_history:` (`TR_arg_history`, `geçmiş`)
 
 
 
-#### TR_arg_in_features `giriş_boyutu`
+#### `TR_history_limit:` (`TR_arg_history_limit`, `geçmiş_sınırı`)
 
 
 
-#### TR_arg_init_std `başlatma_sapması`
+#### `TR_in_features:` (`TR_arg_in_features`, `giriş_boyutu`)
 
 
 
-#### TR_arg_intermediate_dim `ara_boyut`
+#### `TR_init_std:` (`TR_arg_init_std`, `başlatma_sapması`)
 
 
 
-#### TR_arg_k `k`
+#### `TR_intermediate_dim:` (`TR_arg_intermediate_dim`, `ara_boyut`)
 
 
 
-#### TR_arg_keep `tut`
+#### `TR_k:` (`TR_arg_k`, `k`)
+
+
+
+#### `TR_keep:` (`TR_arg_keep`, `tut`)
 
 kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, varsayılan 2); daha eskileri her başarılı kayıttan sonra silinir.
 
@@ -2441,9 +2441,9 @@ kontrol_noktası'nın saklayacağı en yeni nokta sayısıdır (pozitif Tam, var
 değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolNoktası("koşu_t985", {"w": w}, tut: 3); döngü i içinde 1..5 { kn.güncelle(i); kn.kaydet() }; yazdır(klasörü_listele("koşu_t985/checkpoints", "step_*").uzunluk)
 ```
 
-Kullananlar: TR_type_Checkpoint `KontrolNoktası` · İlişkili: TR_arg_every_minutes `her_dakika`
+Kullananlar: `TR_Checkpoint` · İlişkili: `TR_every_minutes:`
 
-#### TR_arg_keepdim `boyutu_koru`
+#### `TR_keepdim:` (`TR_arg_keepdim`, `boyutu_koru`)
 
 doğru verilince indirgenen eksen 1 uzunlukta korunur, böylece sonuç girdiye yayınlanabilir; eksen verilmezse bütün eksenler 1 olur. Mantık olmalıdır ve yalnızca tensörlerde geçerlidir.
 
@@ -2451,25 +2451,25 @@ doğru verilince indirgenen eksen 1 uzunlukta korunur, böylece sonuç girdiye y
 yazdır(toplam(Tensör([[1, 2], [3, 4]]), eksen: -1, boyutu_koru: doğru).şekil)
 ```
 
-Kullananlar: TR_fn_max `max`, TR_fn_mean `ortalama`, TR_fn_min `min`, TR_fn_sum `toplam` · İlişkili: TR_arg_dim `eksen`
+Kullananlar: `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_sum(...)` · İlişkili: `TR_dim:`
 
-#### TR_arg_key `anahtar`
-
-
-
-#### TR_arg_kind `çeşit`
+#### `TR_key:` (`TR_arg_key`, `anahtar`)
 
 
 
-#### TR_arg_layer_idx `katman_no`
+#### `TR_kind:` (`TR_arg_kind`, `çeşit`)
 
 
 
-#### TR_arg_layout `düzen`
+#### `TR_layer_idx:` (`TR_arg_layer_idx`, `katman_no`)
 
 
 
-#### TR_arg_log `günlük`
+#### `TR_layout:` (`TR_arg_layout`, `düzen`)
+
+
+
+#### `TR_log:` (`TR_arg_log`, `günlük`)
 
 ilerleme çubuğunun her güncellemesini (adım, ölçüler, hız) ve bitişini verilen Günlük'e de yazar; varsayılan yok.
 
@@ -2477,13 +2477,13 @@ ilerleme çubuğunun her güncellemesini (adım, ölçüler, hız) ve bitişini 
 değişken g = Günlük("kayit/ilerleme.jsonl"); değişken ç = İlerleme(2, günlük: g); ç.güncelle({"kayıp": 0.9}); ç.güncelle({"kayıp": 0.7})
 ```
 
-Kullananlar: TR_type_Progress `İlerleme` · İlişkili: TR_type_Logger `Günlük`
+Kullananlar: `TR_Progress` · İlişkili: `TR_Logger`
 
-#### TR_arg_loss `kayıp`
+#### `TR_loss:` (`TR_arg_loss`, `kayıp`)
 
 
 
-#### TR_arg_lr `öğrenme_oranı`
+#### `TR_lr:` (`TR_arg_lr`, `öğrenme_oranı`)
 
 İyileştiricinin her adımda parametreleri ne kadar değiştireceğini belirleyen orandır. Sonlu ve negatif olmayan bir sayı olmalıdır; varsayılan AdamW'de 0.001, SGD'de 0.01'dir.
 
@@ -2491,9 +2491,9 @@ Kullananlar: TR_type_Progress `İlerleme` · İlişkili: TR_type_Logger `Günlü
 değişken w = Tensör([1.0], türev_izle: doğru); değişken opt = SGD([w], öğrenme_oranı: 0.5); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-Kullananlar: TR_fn_AdamW `AdamW`, TR_fn_SGD `SGD` · İlişkili: TR_arg_weight_decay `ağırlık_çürümesi`, TR_mem_lr `öğrenme_oranı`
+Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_weight_decay:`, `.TR_lr`
 
-#### TR_arg_mask `maske`
+#### `TR_mask:` (`TR_arg_mask`, `maske`)
 
 [..., H, Tq, Tk] şekline yayınlanabilen 0/1 tensörüdür; sıfırdan farklı yerlere bakılır. Türev izlemez; varsayılan yok'tur.
 
@@ -2501,9 +2501,9 @@ Kullananlar: TR_fn_AdamW `AdamW`, TR_fn_SGD `SGD` · İlişkili: TR_arg_weight_d
 değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[1, 1, 0], [1, 1, 0], [1, 1, 1]])).şekil)
 ```
 
-Kullananlar: TR_fn_attention `dikkat` · İlişkili: TR_arg_causal `nedensel`
+Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`
 
-#### TR_arg_master_weights `ana_kopya`
+#### `TR_master_weights:` (`TR_arg_master_weights`, `ana_kopya`)
 
 doğru iken (varsayılan) 16 bitlik parametrelerin float32 ana kopyası tutulur; güncelleme orada yapılıp parametreye yuvarlanır, böylece küçük adımlar kaybolmaz. float32 parametrelerde etkisizdir.
 
@@ -2511,9 +2511,9 @@ doğru iken (varsayılan) 16 bitlik parametrelerin float32 ana kopyası tutulur;
 değişken w = Tensör([1.0], türev_izle: doğru, tür: "bf16"); değişken opt = AdamW([w], ana_kopya: doğru); geri_yayılım(toplam(w * w)); opt.adım(); yazdır(w.değer)
 ```
 
-Kullananlar: TR_fn_AdamW `AdamW`, TR_fn_SGD `SGD`
+Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)`
 
-#### TR_arg_max `en_fazla`
+#### `TR_max:` (`TR_arg_max`, `en_fazla`)
 
 gradyan_kırp için izin verilen en büyük toplam gradyan normudur (pozitif bir sayı, varsayılan 1.0); sınırla için üst sınırdır (sayı; en_az'dan küçük olamaz).
 
@@ -2521,29 +2521,29 @@ gradyan_kırp için izin verilen en büyük toplam gradyan normudur (pozitif bir
 değişken w = Tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); yazdır(gradyan_kırp([w], en_fazla: 0.5))
 ```
 
-Kullananlar: TR_fn_clamp `sınırla`, TR_fn_clip_grad `gradyan_kırp` · İlişkili: TR_arg_min `en_az`
+Kullananlar: `TR_clamp(...)`, `TR_clip_grad(...)` · İlişkili: `TR_min:`
 
-#### TR_arg_max_new_tokens `en_fazla_yeni_parça`
-
-
-
-#### TR_arg_merged `birleşik`
+#### `TR_max_new_tokens:` (`TR_arg_max_new_tokens`, `en_fazla_yeni_parça`)
 
 
 
-#### TR_arg_merged_gate `birleşik_kapı`
+#### `TR_merged:` (`TR_arg_merged`, `birleşik`)
 
 
 
-#### TR_arg_merged_kv `birleşik_kv`
+#### `TR_merged_gate:` (`TR_arg_merged_gate`, `birleşik_kapı`)
 
 
 
-#### TR_arg_metrics `ölçüler`
+#### `TR_merged_kv:` (`TR_arg_merged_kv`, `birleşik_kv`)
 
 
 
-#### TR_arg_min `en_az`
+#### `TR_metrics:` (`TR_arg_metrics`, `ölçüler`)
+
+
+
+#### `TR_min:` (`TR_arg_min`, `en_az`)
 
 sınırla için alt sınırdır: değerden küçük elemanlar bu değere çekilir. Bir sayı olmalıdır ve en_fazla'dan büyük olamaz; en_az ile en_fazla'dan en az biri verilmelidir.
 
@@ -2551,13 +2551,13 @@ sınırla için alt sınırdır: değerden küçük elemanlar bu değere çekili
 yazdır(sınırla(-3.5, en_az: 0.0), sınırla(Tensör([-1.0, 2.0]), en_az: 0).değer)
 ```
 
-Kullananlar: TR_fn_clamp `sınırla` · İlişkili: TR_arg_max `en_fazla`
+Kullananlar: `TR_clamp(...)` · İlişkili: `TR_max:`
 
-#### TR_arg_model `model`
+#### `TR_model:` (`TR_arg_model`, `model`)
 
 
 
-#### TR_arg_momentum `momentum`
+#### `TR_momentum:` (`TR_arg_momentum`, `momentum`)
 
 SGD'nin önceki adımların yönünü sürdürme katsayısıdır; varsayılan 0'dır (momentum yok).
 
@@ -2565,29 +2565,29 @@ SGD'nin önceki adımların yönünü sürdürme katsayısıdır; varsayılan 0'
 değişken w = Tensör([1.0], türev_izle: doğru); yazdır(SGD([w], momentum: 0.9))
 ```
 
-Kullananlar: TR_fn_SGD `SGD`
+Kullananlar: `TR_SGD(...)`
 
-#### TR_arg_multiplier `çarpan`
-
-
-
-#### TR_arg_muon_lr `muon_öğrenme_oranı`
+#### `TR_multiplier:` (`TR_arg_multiplier`, `çarpan`)
 
 
 
-#### TR_arg_muon_scale `muon_ölçeği`
+#### `TR_muon_lr:` (`TR_arg_muon_lr`, `muon_öğrenme_oranı`)
 
 
 
-#### TR_arg_n `n`
+#### `TR_muon_scale:` (`TR_arg_muon_scale`, `muon_ölçeği`)
 
 
 
-#### TR_arg_name `ad`
+#### `TR_n:` (`TR_arg_n`, `n`)
 
 
 
-#### TR_arg_named `adlarıyla`
+#### `TR_name:` (`TR_arg_name`, `ad`)
+
+
+
+#### `TR_named:` (`TR_arg_named`, `adlarıyla`)
 
 doğru verilince parametreler liste yerine "bloklar.0.Wq" gibi yol adı → tensör sözlüğü döndürür. Mantık olmalıdır; varsayılan yanlış'tır.
 
@@ -2595,65 +2595,65 @@ doğru verilince parametreler liste yerine "bloklar.0.Wq" gibi yol adı → tens
 yazdır(parametreler([Tensör([1.0], türev_izle: doğru)], adlarıyla: doğru))
 ```
 
-Kullananlar: TR_fn_parameters `parametreler`
+Kullananlar: `TR_parameters(...)`
 
-#### TR_arg_nesterov `nesterov`
-
-
-
-#### TR_arg_new_chunk `yeni`
+#### `TR_nesterov:` (`TR_arg_nesterov`, `nesterov`)
 
 
 
-#### TR_arg_norm `norm`
+#### `TR_new_chunk:` (`TR_arg_new_chunk`, `yeni`)
 
 
 
-#### TR_arg_normuon `normuon`
+#### `TR_norm:` (`TR_arg_norm`, `norm`)
 
 
 
-#### TR_arg_ns_dtype `ns_türü`
+#### `TR_normuon:` (`TR_arg_normuon`, `normuon`)
 
 
 
-#### TR_arg_ns_iterations `ns_yineleme_sayısı`
+#### `TR_ns_dtype:` (`TR_arg_ns_dtype`, `ns_türü`)
 
 
 
-#### TR_arg_num_heads `bakış_sayısı`
+#### `TR_ns_iterations:` (`TR_arg_ns_iterations`, `ns_yineleme_sayısı`)
 
 
 
-#### TR_arg_num_kv_heads `kv_bakış_sayısı`
+#### `TR_num_heads:` (`TR_arg_num_heads`, `bakış_sayısı`)
 
 
 
-#### TR_arg_num_layers `katman_sayısı`
+#### `TR_num_kv_heads:` (`TR_arg_num_kv_heads`, `kv_bakış_sayısı`)
 
 
 
-#### TR_arg_num_steps `adım_sayısı`
+#### `TR_num_layers:` (`TR_arg_num_layers`, `katman_sayısı`)
 
 
 
-#### TR_arg_objects `nesneler`
+#### `TR_num_steps:` (`TR_arg_num_steps`, `adım_sayısı`)
 
 
 
-#### TR_arg_out_features `çıkış_boyutu`
+#### `TR_objects:` (`TR_arg_objects`, `nesneler`)
 
 
 
-#### TR_arg_output_dtype `çıktı_türü`
+#### `TR_out_features:` (`TR_arg_out_features`, `çıkış_boyutu`)
 
 
 
-#### TR_arg_output_init_std `çıkış_başlatma_sapması`
+#### `TR_output_dtype:` (`TR_arg_output_dtype`, `çıktı_türü`)
 
 
 
-#### TR_arg_overwrite `üzerine_yaz`
+#### `TR_output_init_std:` (`TR_arg_output_init_std`, `çıkış_başlatma_sapması`)
+
+
+
+#### `TR_overwrite:` (`TR_arg_overwrite`, `üzerine_yaz`)
 
 kopyala ve taşı'da hedef zaten varsa kaynağın onun yerine konmasına izin verir; varsayılan yanlıştır (var olan hedef hatadır). Bir dosya bir klasörün, bir klasör bir dosyanın yerine konmaz.
 
@@ -2661,9 +2661,9 @@ kopyala ve taşı'da hedef zaten varsa kaynağın onun yerine konmasına izin ve
 dosya_yaz("kaynak.txt", "yeni"); dosya_yaz("hedef.txt", "eski"); kopyala("kaynak.txt", "hedef.txt", üzerine_yaz: doğru); yazdır(dosya_oku("hedef.txt"))
 ```
 
-Kullananlar: TR_fn_copy `kopyala`, TR_fn_move `taşı` · İlişkili: TR_fn_copy `kopyala`, TR_fn_move `taşı`
+Kullananlar: `TR_copy(...)`, `TR_move(...)` · İlişkili: `TR_copy(...)`, `TR_move(...)`
 
-#### TR_arg_pair `ikinci`
+#### `TR_pair:` (`TR_arg_pair`, `ikinci`)
 
 kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır.
 
@@ -2671,45 +2671,45 @@ kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı 
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("soru", ikinci: "cevap"))
 ```
 
-Kullananlar: TR_mem_encode `kodla`
+Kullananlar: `.TR_encode`
 
-#### TR_arg_parameters `parametreler`
-
-
-
-#### TR_arg_pattern `desen`
+#### `TR_parameters:` (`TR_arg_parameters`, `parametreler`)
 
 
 
-#### TR_arg_patterns `desenler`
+#### `TR_pattern:` (`TR_arg_pattern`, `desen`)
 
 
 
-#### TR_arg_ple_context `ple_bağlamı`
+#### `TR_patterns:` (`TR_arg_patterns`, `desenler`)
 
 
 
-#### TR_arg_ple_contexts `ple_bağlamları`
+#### `TR_ple_context:` (`TR_arg_ple_context`, `ple_bağlamı`)
 
 
 
-#### TR_arg_ple_dim `ple_boyutu`
+#### `TR_ple_contexts:` (`TR_arg_ple_contexts`, `ple_bağlamları`)
 
 
 
-#### TR_arg_position `konum`
+#### `TR_ple_dim:` (`TR_arg_ple_dim`, `ple_boyutu`)
 
 
 
-#### TR_arg_prompt `istem`
+#### `TR_position:` (`TR_arg_position`, `konum`)
 
 
 
-#### TR_arg_qk_norm `qk_normu`
+#### `TR_prompt:` (`TR_arg_prompt`, `istem`)
 
 
 
-#### TR_arg_quota_gb `kota_gb`
+#### `TR_qk_norm:` (`TR_arg_qk_norm`, `qk_normu`)
+
+
+
+#### `TR_quota_gb:` (`TR_arg_quota_gb`, `kota_gb`)
 
 Önbellek klasörünün kullanabileceği en çok disk alanıdır (GB). Pozitif bir sayı olmalıdır ve yalnızca önbellek: ile birlikte geçerlidir.
 
@@ -2717,9 +2717,9 @@ Kullananlar: TR_mem_encode `kodla`
 değişken küme = VeriKümesi("tests/data/numbers", önbellek: "onbellek/veri", kota_gb: 0.5)
 ```
 
-Kullananlar: TR_type_Dataset `VeriKümesi` · İlişkili: TR_arg_cache `önbellek`
+Kullananlar: `TR_Dataset` · İlişkili: `TR_cache:`
 
-#### TR_arg_recursive `içindekilerle`
+#### `TR_recursive:` (`TR_arg_recursive`, `içindekilerle`)
 
 sil'de dolu bir klasörün içindekilerle birlikte silinmesine izin verir; varsayılan yanlıştır (yalnızca boş klasör silinir). İçerideki bağlantıların gösterdiği yerlere dokunulmaz; salt okunur bir dosya varsa hiçbir şey silinmez.
 
@@ -2727,9 +2727,9 @@ sil'de dolu bir klasörün içindekilerle birlikte silinmesine izin verir; varsa
 klasör_oluştur("çöp/alt"); dosya_yaz("çöp/alt/a.txt", "x"); yazdır(sil("çöp", içindekilerle: doğru))
 ```
 
-Kullananlar: TR_fn_remove `sil` · İlişkili: TR_fn_remove `sil`
+Kullananlar: `TR_remove(...)` · İlişkili: `TR_remove(...)`
 
-#### TR_arg_requires_grad `türev_izle`
+#### `TR_requires_grad:` (`TR_arg_requires_grad`, `türev_izle`)
 
 Oluşturulan tensörün türevinin izlenip izlenmeyeceğini belirler; varsayılan yanlıştır. Parametreler ve gradyanı istenen girdiler türev_izle: doğru ile oluşturulmalıdır.
 
@@ -2737,21 +2737,21 @@ Oluşturulan tensörün türevinin izlenip izlenmeyeceğini belirler; varsayıla
 değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(x * x)); yazdır(x.gradyan.değer)
 ```
 
-Kullananlar: TR_type_Tensor `Tensör`, TR_fn_load_tensors `tensör_yükle`, TR_fn_ones `birler`, TR_fn_randn `rastgele_normal`, TR_fn_zeros `sıfırlar`
+Kullananlar: `TR_Tensor`, `TR_load_tensors(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_zeros(...)`
 
-#### TR_arg_rope_theta `rope_tabanı`
-
-
-
-#### TR_arg_row `satır`
+#### `TR_rope_theta:` (`TR_arg_rope_theta`, `rope_tabanı`)
 
 
 
-#### TR_arg_scale `ölçek`
+#### `TR_row:` (`TR_arg_row`, `satır`)
 
 
 
-#### TR_arg_seed `tohum`
+#### `TR_scale:` (`TR_arg_scale`, `ölçek`)
+
+
+
+#### `TR_seed:` (`TR_arg_seed`, `tohum`)
 
 Rastgele sayı üretecinin başlangıç değeridir (tam sayı); aynı tohum her çalıştırmada aynı sonucu verir. Verilmezse paylaşılan bir üreteç kullanılır.
 
@@ -2759,29 +2759,29 @@ Rastgele sayı üretecinin başlangıç değeridir (tam sayı); aynı tohum her 
 yazdır(rastgele_normal([3], tohum: 7).değer)
 ```
 
-Kullananlar: TR_fn_randn `rastgele_normal`, TR_fn_sample `örnekle`, TR_mem_sampler `örnekleyici`
+Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler`
 
-#### TR_arg_separated `ayrılan`
-
-
-
-#### TR_arg_shape `şekil`
+#### `TR_separated:` (`TR_arg_separated`, `ayrılan`)
 
 
 
-#### TR_arg_sin_table `sin_tablosu`
+#### `TR_shape:` (`TR_arg_shape`, `şekil`)
 
 
 
-#### TR_arg_sparse `seyrek`
+#### `TR_sin_table:` (`TR_arg_sin_table`, `sin_tablosu`)
 
 
 
-#### TR_arg_sparse_lr `seyrek_öğrenme_oranı`
+#### `TR_sparse:` (`TR_arg_sparse`, `seyrek`)
 
 
 
-#### TR_arg_special_tokens `özel_parçalar`
+#### `TR_sparse_lr:` (`TR_arg_sparse_lr`, `seyrek_öğrenme_oranı`)
+
+
+
+#### `TR_special_tokens:` (`TR_arg_special_tokens`, `özel_parçalar`)
 
 Özel parçaların kodlamaya eklenip eklenmeyeceğini (kodla, varsayılan doğru) ya da çözülen metne yazılıp yazılmayacağını (çöz, varsayılan yanlış) belirler. Yalnızca doğru ya da yanlış olabilir.
 
@@ -2789,9 +2789,9 @@ Kullananlar: TR_fn_randn `rastgele_normal`, TR_fn_sample `örnekle`, TR_mem_samp
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("merhaba dünya", özel_parçalar: yanlış))
 ```
 
-Kullananlar: TR_mem_decode `çöz`, TR_mem_encode `kodla`
+Kullananlar: `.TR_decode`, `.TR_encode`
 
-#### TR_arg_start `başlangıç`
+#### `TR_start:` (`TR_arg_start`, `başlangıç`)
 
 yerine_yaz'ın hedef eksende yazmaya başladığı konumdur: tam sayı ya da 0 boyutlu tam sayı tensörü. Kaynak hedefe sığmalıdır; tensörle verilen konum tekrar_oynat kaydında her oynatmada cihazdan okunur.
 
@@ -2799,9 +2799,9 @@ yerine_yaz'ın hedef eksende yazmaya başladığı konumdur: tam sayı ya da 0 b
 değişken t = sıfırlar([3]); yerine_yaz(t, birler([1]), eksen: 0, başlangıç: 2); yazdır(t.değer)
 ```
 
-Kullananlar: TR_fn_write_slice `yerine_yaz` · İlişkili: TR_fn_write_slice `yerine_yaz`
+Kullananlar: `TR_write_slice(...)` · İlişkili: `TR_write_slice(...)`
 
-#### TR_arg_step `adım`
+#### `TR_step:` (`TR_arg_step`, `adım`)
 
 İlerleme.güncelle'de tamamlanan eğitim adımı sayısıdır (kaldığı yerden sürdürmek için; 0 ya da pozitif Tam).
 
@@ -2809,13 +2809,13 @@ Kullananlar: TR_fn_write_slice `yerine_yaz` · İlişkili: TR_fn_write_slice `ye
 değişken ç = İlerleme(100); ç.güncelle(adım: 40); ç.durdur()
 ```
 
-Kullananlar: TR_mem_update `güncelle` · İlişkili: TR_mem_update `güncelle`
+Kullananlar: `.TR_update` · İlişkili: `.TR_update`
 
-#### TR_arg_targets `hedef`
+#### `TR_targets:` (`TR_arg_targets`, `hedef`)
 
 
 
-#### TR_arg_temperature `sıcaklık`
+#### `TR_temperature:` (`TR_arg_temperature`, `sıcaklık`)
 
 örnekle'de logitlerin bölündüğü sıcaklıktır: küçük değer en olasıya yaklaştırır, 0 her zaman en olasıyı seçer. Negatif olmamalıdır; varsayılan 1.0'dır.
 
@@ -2823,25 +2823,25 @@ Kullananlar: TR_mem_update `güncelle` · İlişkili: TR_mem_update `güncelle`
 yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), sıcaklık: 0).değer)
 ```
 
-Kullananlar: TR_fn_sample `örnekle` · İlişkili: TR_arg_top_k `en_iyi_k`
+Kullananlar: `TR_sample(...)` · İlişkili: `TR_top_k:`
 
-#### TR_arg_threshold `eşik`
-
-
-
-#### TR_arg_tied `paylaşımlı`
+#### `TR_threshold:` (`TR_arg_threshold`, `eşik`)
 
 
 
-#### TR_arg_token_id `kimlik`
+#### `TR_tied:` (`TR_arg_tied`, `paylaşımlı`)
 
 
 
-#### TR_arg_token_ids `kimlikler`
+#### `TR_token_id:` (`TR_arg_token_id`, `kimlik`)
 
 
 
-#### TR_arg_tol `tolerans`
+#### `TR_token_ids:` (`TR_arg_token_ids`, `kimlikler`)
+
+
+
+#### `TR_tol:` (`TR_arg_tol`, `tolerans`)
 
 türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir.
 
@@ -2849,9 +2849,9 @@ türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ toler
 yazdır(türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
 ```
 
-Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_fd_step `fark_adımı`
+Kullananlar: `TR_grad_check(...)` · İlişkili: `TR_fd_step:`
 
-#### TR_arg_top_k `en_iyi_k`
+#### `TR_top_k:` (`TR_arg_top_k`, `en_iyi_k`)
 
 örnekle'de seçimi en olası k sınıfla sınırlar; 0 (varsayılan) bütün sınıflar demektir. Negatif olmayan bir tam sayı olmalıdır.
 
@@ -2859,37 +2859,37 @@ Kullananlar: TR_fn_grad_check `türev_denetle` · İlişkili: TR_arg_fd_step `fa
 yazdır(örnekle(Tensör([1.0, 3.0, 0.5]), en_iyi_k: 1).değer)
 ```
 
-Kullananlar: TR_fn_sample `örnekle` · İlişkili: TR_arg_temperature `sıcaklık`
+Kullananlar: `TR_sample(...)` · İlişkili: `TR_temperature:`
 
-#### TR_arg_u `u`
-
-
-
-#### TR_arg_updates `güncellemeler`
+#### `TR_u:` (`TR_arg_u`, `u`)
 
 
 
-#### TR_arg_use_bias `sapmalı`
+#### `TR_updates:` (`TR_arg_updates`, `güncellemeler`)
 
 
 
-#### TR_arg_v `v`
+#### `TR_use_bias:` (`TR_arg_use_bias`, `sapmalı`)
 
 
 
-#### TR_arg_value `değer`
+#### `TR_v:` (`TR_arg_v`, `v`)
 
 
 
-#### TR_arg_vocab_size `dağarcık_boyutu`
+#### `TR_value:` (`TR_arg_value`, `değer`)
 
 
 
-#### TR_arg_warmup `ısınma`
+#### `TR_vocab_size:` (`TR_arg_vocab_size`, `dağarcık_boyutu`)
 
 
 
-#### TR_arg_weight `ağırlık`
+#### `TR_warmup:` (`TR_arg_warmup`, `ısınma`)
+
+
+
+#### `TR_weight:` (`TR_arg_weight`, `ağırlık`)
 
 Normalleştirme sonucunu son eksende eleman bazlı ölçekleyen [D] şeklindeki tensördür; yok verilirse ölçekleme yapılmaz. Konumlu da verilebilir.
 
@@ -2897,9 +2897,9 @@ Normalleştirme sonucunu son eksende eleman bazlı ölçekleyen [D] şeklindeki 
 yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: Tensör([2.0, 1.0])).değer)
 ```
 
-Kullananlar: TR_fn_layer_norm `katman_normu`, TR_fn_rms_norm `rms_normu` · İlişkili: TR_arg_bias `sapma`
+Kullananlar: `TR_layer_norm(...)`, `TR_rms_norm(...)` · İlişkili: `TR_bias:`
 
-#### TR_arg_weight_decay `ağırlık_çürümesi`
+#### `TR_weight_decay:` (`TR_arg_weight_decay`, `ağırlık_çürümesi`)
 
 Her adımda parametreleri sıfıra doğru küçülten düzenlileştirme katsayısıdır. Varsayılan AdamW'de 0.01, SGD'de 0'dır.
 
@@ -2907,17 +2907,17 @@ Her adımda parametreleri sıfıra doğru küçülten düzenlileştirme katsayı
 değişken w = Tensör([1.0], türev_izle: doğru); yazdır(AdamW([w], ağırlık_çürümesi: 0.1))
 ```
 
-Kullananlar: TR_fn_AdamW `AdamW`, TR_fn_SGD `SGD` · İlişkili: TR_arg_lr `öğrenme_oranı`
+Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_lr:`
 
-#### TR_arg_weight_dtype `ağırlık_türü`
-
-
-
-#### TR_arg_weights `ağırlıklar`
+#### `TR_weight_dtype:` (`TR_arg_weight_dtype`, `ağırlık_türü`)
 
 
 
-#### TR_arg_window `pencere`
+#### `TR_weights:` (`TR_arg_weights`, `ağırlıklar`)
+
+
+
+#### `TR_window:` (`TR_arg_window`, `pencere`)
 
 Her sorguyu son w konuma (kendisi dahil) sınırlayan yerel dikkat penceresidir; 0 (varsayılan) pencere yok demektir. nedensel: yanlış ile pencere iki yönlüdür.
 
@@ -2925,13 +2925,13 @@ Her sorguyu son w konuma (kendisi dahil) sınırlayan yerel dikkat penceresidir;
 değişken q = rastgele_normal([6, 4], tohum: 2); yazdır(dikkat(q, q, q, pencere: 2).şekil)
 ```
 
-Kullananlar: TR_fn_attention `dikkat` · İlişkili: TR_arg_causal `nedensel`
+Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`
 
-#### TR_arg_windows `pencereler`
+#### `TR_windows:` (`TR_arg_windows`, `pencereler`)
 
 
 
-#### TR_arg_x `x`
+#### `TR_x:` (`TR_arg_x`, `x`)
 
 
 
@@ -2939,7 +2939,7 @@ Kullananlar: TR_fn_attention `dikkat` · İlişkili: TR_arg_causal `nedensel`
 
 ### Metot ve özellikler
 
-#### TR_mem_absolute `mutlak`
+#### `.TR_absolute` (`TR_mem_absolute`, `mutlak`)
 
     Yol.mutlak → Yol
 
@@ -2949,23 +2949,23 @@ Yolu dosya_oku ile aynı kuralla (önce çalışma klasörü, sonra modülün ve
 yazdır(Yol("a.txt").mutlak.dosya_adı)
 ```
 
-#### TR_mem_adamw `adamw`
+#### `.TR_adamw` (`TR_mem_adamw`, `adamw`)
 
 
 
-#### TR_mem_adamw_lr `adamw_öğrenme_oranı`
+#### `.TR_adamw_lr` (`TR_mem_adamw_lr`, `adamw_öğrenme_oranı`)
 
 
 
-#### TR_mem_adamw_no_decay `adamw_çürümesiz`
+#### `.TR_adamw_no_decay` (`TR_mem_adamw_no_decay`, `adamw_çürümesiz`)
 
 
 
-#### TR_mem_advance `ilerle`
+#### `.TR_advance` (`TR_mem_advance`, `ilerle`)
 
 
 
-#### TR_mem_append `ekle`
+#### `.TR_append` (`TR_mem_append`, `ekle`)
 
     Liste.ekle(Herhangi...) → Liste
     Günlük.ekle(Sözlük | Metin) → Mantık
@@ -2976,49 +2976,49 @@ Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve liste
 değişken l = [1]; l.ekle(2, 3); yazdır(l)
 ```
 
-İlişkili: TR_mem_first `ilk`, TR_mem_last `son`
+İlişkili: `.TR_first`, `.TR_last`
 
-#### TR_mem_append_buffer `tampon_ekle`
-
-
-
-#### TR_mem_attention `dikkat`
+#### `.TR_append_buffer` (`TR_mem_append_buffer`, `tampon_ekle`)
 
 
 
-#### TR_mem_bar `çubuk`
+#### `.TR_attention` (`TR_mem_attention`, `dikkat`)
 
 
 
-#### TR_mem_beta1 `beta1`
+#### `.TR_bar` (`TR_mem_bar`, `çubuk`)
 
 
 
-#### TR_mem_beta2 `beta2`
+#### `.TR_beta1` (`TR_mem_beta1`, `beta1`)
 
 
 
-#### TR_mem_bias `sapma`
+#### `.TR_beta2` (`TR_mem_beta2`, `beta2`)
 
 
 
-#### TR_mem_blocks `bloklar`
+#### `.TR_bias` (`TR_mem_bias`, `sapma`)
 
 
 
-#### TR_mem_build_cache `önbellek_kur`
+#### `.TR_blocks` (`TR_mem_blocks`, `bloklar`)
 
 
 
-#### TR_mem_capacity `kapasite`
+#### `.TR_build_cache` (`TR_mem_build_cache`, `önbellek_kur`)
 
 
 
-#### TR_mem_checkpoint `nokta`
+#### `.TR_capacity` (`TR_mem_capacity`, `kapasite`)
 
 
 
-#### TR_mem_close `kapat`
+#### `.TR_checkpoint` (`TR_mem_checkpoint`, `nokta`)
+
+
+
+#### `.TR_close` (`TR_mem_close`, `kapat`)
 
     SatırOkuyucu.kapat() → Mantık
 
@@ -3028,13 +3028,13 @@ Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece siline
 dosya_yaz("kapat.txt", "a\nb"); değişken o = dosya_satırları("kapat.txt"); yazdır(o.sonraki(), o.kapat(), o.kapat(), sil("kapat.txt"))
 ```
 
-İlişkili: TR_mem_next `sonraki`, TR_fn_read_lines `dosya_satırları`
+İlişkili: `.TR_next`, `TR_read_lines(...)`
 
-#### TR_mem_config `ayar`
+#### `.TR_config` (`TR_mem_config`, `ayar`)
 
 
 
-#### TR_mem_contains `içerir`
+#### `.TR_contains` (`TR_mem_contains`, `içerir`)
 
     Sözlük.içerir(Herhangi) → Mantık
     Liste.içerir(Herhangi) → Mantık
@@ -3046,17 +3046,17 @@ Metinde alt metni, listede değeri (== ile), sözlükte anahtarı arar ve doğru
 yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 ```
 
-İlişkili: TR_mem_starts_with `başlar`, TR_mem_ends_with `biter`
+İlişkili: `.TR_starts_with`, `.TR_ends_with`
 
-#### TR_mem_context_proj `bağlam_katmanı`
-
-
-
-#### TR_mem_cos_table `cos_tablosu`
+#### `.TR_context_proj` (`TR_mem_context_proj`, `bağlam_katmanı`)
 
 
 
-#### TR_mem_decode `çöz`
+#### `.TR_cos_table` (`TR_mem_cos_table`, `cos_tablosu`)
+
+
+
+#### `.TR_decode` (`TR_mem_decode`, `çöz`)
 
     Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin | Liste
 
@@ -3066,9 +3066,9 @@ Parça kimliklerini (liste, listelerin listesi ya da tensör) metne geri çeviri
 değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
 ```
 
-İlişkili: TR_mem_encode `kodla`
+İlişkili: `.TR_encode`
 
-#### TR_mem_device `cihaz`
+#### `.TR_device` (`TR_mem_device`, `cihaz`)
 
     Tensör.cihaz → Metin
 
@@ -3078,21 +3078,21 @@ Tensörün bulunduğu cihazın adını verir: "cpu", "gpu" (ilk GPU) ya da "gpu:
 yazdır(Tensör([1, 2]).cihaz)
 ```
 
-İlişkili: TR_mem_to_device `cihaza`, TR_fn_default_device `varsayılan_cihaz`
+İlişkili: `.TR_to_device`, `TR_default_device(...)`
 
-#### TR_mem_device_step `cihaz_adımı`
-
-
-
-#### TR_mem_down_proj `aşağı`
+#### `.TR_device_step` (`TR_mem_device_step`, `cihaz_adımı`)
 
 
 
-#### TR_mem_dry_run `prova`
+#### `.TR_down_proj` (`TR_mem_down_proj`, `aşağı`)
 
 
 
-#### TR_mem_dtype `tür`
+#### `.TR_dry_run` (`TR_mem_dry_run`, `prova`)
+
+
+
+#### `.TR_dtype` (`TR_mem_dtype`, `tür`)
 
     Tensör.tür → Metin
 
@@ -3102,21 +3102,21 @@ Tensörün sayı türünün adını verir: "float32", "bf16" ya da "fp16".
 yazdır(Tensör([1.0, 2.0]).tür)
 ```
 
-İlişkili: TR_mem_to_dtype `türe`, TR_arg_dtype `tür`
+İlişkili: `.TR_to_dtype`, `TR_dtype:`
 
-#### TR_mem_embed `göm`
-
-
-
-#### TR_mem_embed_dim `boyut`
+#### `.TR_embed` (`TR_mem_embed`, `göm`)
 
 
 
-#### TR_mem_embedding `gömme`
+#### `.TR_embed_dim` (`TR_mem_embed_dim`, `boyut`)
 
 
 
-#### TR_mem_encode `kodla`
+#### `.TR_embedding` (`TR_mem_embedding`, `gömme`)
+
+
+
+#### `.TR_encode` (`TR_mem_encode`, `kodla`)
 
     Parçalayıcı.kodla(Metin | Liste, özel_parçalar: Mantık = doğru, ikinci: Metin | Liste) → Liste
 
@@ -3126,9 +3126,9 @@ Metni parça kimliklerinin listesine çevirir; metin listesi verilirse her metni
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("Merhaba dünya!"))
 ```
 
-İlişkili: TR_mem_decode `çöz`
+İlişkili: `.TR_decode`
 
-#### TR_mem_ends_with `biter`
+#### `.TR_ends_with` (`TR_mem_ends_with`, `biter`)
 
     Metin.biter(Metin) → Mantık
 
@@ -3138,21 +3138,21 @@ Metin verilen sonekle bitiyorsa doğru verir. Argüman Metin olmalıdır.
 yazdır("rapor.tr".biter(".tr"))
 ```
 
-İlişkili: TR_mem_starts_with `başlar`, TR_mem_contains `içerir`
+İlişkili: `.TR_starts_with`, `.TR_contains`
 
-#### TR_mem_eps `epsilon`
-
-
-
-#### TR_mem_evaluated `değerlendirildi`
+#### `.TR_eps` (`TR_mem_eps`, `epsilon`)
 
 
 
-#### TR_mem_exceeds `aşıyor`
+#### `.TR_evaluated` (`TR_mem_evaluated`, `değerlendirildi`)
 
 
 
-#### TR_mem_exists `var_mı`
+#### `.TR_exceeds` (`TR_mem_exceeds`, `aşıyor`)
+
+
+
+#### `.TR_exists` (`TR_mem_exists`, `var_mı`)
 
     Yol.var_mı → Mantık
 
@@ -3162,9 +3162,9 @@ Yolda bir dosya ya da klasör var mı söyler; bağlantıyı izler, kırık bağ
 dosya_yaz("var.txt", "x"); yazdır(Yol("var.txt").var_mı, Yol("olmayan.txt").var_mı)
 ```
 
-İlişkili: TR_mem_is_file `dosya_mı`, TR_mem_is_dir `klasör_mü`
+İlişkili: `.TR_is_file`, `.TR_is_dir`
 
-#### TR_mem_extension `uzantı`
+#### `.TR_extension` (`TR_mem_extension`, `uzantı`)
 
     Yol.uzantı → Metin
 
@@ -3174,13 +3174,13 @@ Dosya adının noktasıyla birlikte son uzantısını verir ("derlem.tar.gz" →
 yazdır(Yol("veri/derlem.tar.gz").uzantı)
 ```
 
-İlişkili: TR_mem_stem `uzantısız_ad`
+İlişkili: `.TR_stem`
 
-#### TR_mem_feed_forward `ileri_besleme`
+#### `.TR_feed_forward` (`TR_mem_feed_forward`, `ileri_besleme`)
 
 
 
-#### TR_mem_filter `filtrele`
+#### `.TR_filter` (`TR_mem_filter`, `filtrele`)
 
     Liste.filtrele(Fonksiyon) → Liste
 
@@ -3190,17 +3190,17 @@ Fonksiyonun doğru döndüğü elemanlardan oluşan yeni bir liste verir. Asıl 
 yazdır([1, 2, 3, 4].filtrele((x) => x > 2))
 ```
 
-İlişkili: TR_mem_map `haritala`, TR_mem_reduce `indirge`
+İlişkili: `.TR_map`, `.TR_reduce`
 
-#### TR_mem_final_norm `son_norm`
-
-
-
-#### TR_mem_finish `bitir`
+#### `.TR_final_norm` (`TR_mem_final_norm`, `son_norm`)
 
 
 
-#### TR_mem_first `ilk`
+#### `.TR_finish` (`TR_mem_finish`, `bitir`)
+
+
+
+#### `.TR_first` (`TR_mem_first`, `ilk`)
 
     Liste.ilk → Herhangi
 
@@ -3210,29 +3210,29 @@ Listenin ilk elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir
 yazdır([5, 6, 7].ilk)
 ```
 
-İlişkili: TR_mem_last `son`
+İlişkili: `.TR_last`
 
-#### TR_mem_folder `klasör`
-
-
-
-#### TR_mem_forward `ileri`
+#### `.TR_folder` (`TR_mem_folder`, `klasör`)
 
 
 
-#### TR_mem_gate_proj `kapı`
+#### `.TR_forward` (`TR_mem_forward`, `ileri`)
 
 
 
-#### TR_mem_gate_up_proj `kapı_yukarı`
+#### `.TR_gate_proj` (`TR_mem_gate_proj`, `kapı`)
 
 
 
-#### TR_mem_generate `üret`
+#### `.TR_gate_up_proj` (`TR_mem_gate_up_proj`, `kapı_yukarı`)
 
 
 
-#### TR_mem_get `varsa_al`
+#### `.TR_generate` (`TR_mem_generate`, `üret`)
+
+
+
+#### `.TR_get` (`TR_mem_get`, `varsa_al`)
 
     Sözlük.varsa_al(Herhangi) → Herhangi
     Liste.varsa_al(Tam) → Herhangi
@@ -3244,9 +3244,9 @@ i. öğeyi (negatif indeks sondan sayar) ya da sözlükte ve JSON nesnesinde k a
 değişken l = [10, 20, 30]; yazdır(l.varsa_al(1), l.varsa_al(5) ?? 0, "ab".varsa_al(-1), {"a": 1}.varsa_al("b") ?? 0)
 ```
 
-İlişkili: TR_mem_first `ilk`, TR_mem_last `son`, TR_mem_contains `içerir`
+İlişkili: `.TR_first`, `.TR_last`, `.TR_contains`
 
-#### TR_mem_grad `gradyan`
+#### `.TR_grad` (`TR_mem_grad`, `gradyan`)
 
     Tensör.gradyan → Tensör | YokTipi
 
@@ -3256,33 +3256,33 @@ geri_yayılım sonrası biriken gradyanı tensör olarak verir; henüz yoksa yok
 değişken x = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(x * 3)); yazdır(x.gradyan.değer)
 ```
 
-İlişkili: TR_fn_backward `geri_yayılım`, TR_arg_requires_grad `türev_izle`
+İlişkili: `TR_backward(...)`, `TR_requires_grad:`
 
-#### TR_mem_groups `gruplar`
-
-
-
-#### TR_mem_head_dim `bakış_boyutu`
+#### `.TR_groups` (`TR_mem_groups`, `gruplar`)
 
 
 
-#### TR_mem_hidden_states `gizli_temsil`
+#### `.TR_head_dim` (`TR_mem_head_dim`, `bakış_boyutu`)
 
 
 
-#### TR_mem_history_length `geçmiş_uzunluğu`
+#### `.TR_hidden_states` (`TR_mem_hidden_states`, `gizli_temsil`)
 
 
 
-#### TR_mem_history_limit `geçmiş_sınırı`
+#### `.TR_history_length` (`TR_mem_history_length`, `geçmiş_uzunluğu`)
 
 
 
-#### TR_mem_input_norm `norm1`
+#### `.TR_history_limit` (`TR_mem_history_limit`, `geçmiş_sınırı`)
 
 
 
-#### TR_mem_is_dir `klasör_mü`
+#### `.TR_input_norm` (`TR_mem_input_norm`, `norm1`)
+
+
+
+#### `.TR_is_dir` (`TR_mem_is_dir`, `klasör_mü`)
 
     Yol.klasör_mü → Mantık
 
@@ -3292,9 +3292,9 @@ Yol bir klasör mü söyler (bağlantıyı izler); yol yoksa yanlış verir.
 klasör_oluştur("bir_klasör"); yazdır(Yol("bir_klasör").klasör_mü)
 ```
 
-İlişkili: TR_mem_exists `var_mı`, TR_mem_is_file `dosya_mı`
+İlişkili: `.TR_exists`, `.TR_is_file`
 
-#### TR_mem_is_file `dosya_mı`
+#### `.TR_is_file` (`TR_mem_is_file`, `dosya_mı`)
 
     Yol.dosya_mı → Mantık
 
@@ -3304,9 +3304,9 @@ Yol sıradan bir dosya mı söyler (bağlantıyı izler); yol yoksa yanlış ver
 klasör_oluştur("bir_klasör"); yazdır(Yol("bir_klasör").dosya_mı)
 ```
 
-İlişkili: TR_mem_exists `var_mı`, TR_mem_is_dir `klasör_mü`
+İlişkili: `.TR_exists`, `.TR_is_dir`
 
-#### TR_mem_join `birleştir`
+#### `.TR_join` (`TR_mem_join`, `birleştir`)
 
     Liste.birleştir([Metin]) → Metin
 
@@ -3316,21 +3316,21 @@ Liste elemanlarını metne çevirip aralarına ayırıcıyı koyarak birleştiri
 yazdır(["a", "b", "c"].birleştir(", "))
 ```
 
-İlişkili: TR_mem_split `böl`
+İlişkili: `.TR_split`
 
-#### TR_mem_k_buffers `k_tamponları`
-
-
-
-#### TR_mem_k_norm `k_norm`
+#### `.TR_k_buffers` (`TR_mem_k_buffers`, `k_tamponları`)
 
 
 
-#### TR_mem_k_proj `anahtar_katmanı`
+#### `.TR_k_norm` (`TR_mem_k_norm`, `k_norm`)
 
 
 
-#### TR_mem_keys `anahtarlar`
+#### `.TR_k_proj` (`TR_mem_k_proj`, `anahtar_katmanı`)
+
+
+
+#### `.TR_keys` (`TR_mem_keys`, `anahtarlar`)
 
     Sözlük.anahtarlar() → Liste
 
@@ -3340,17 +3340,17 @@ Sözlüğün anahtarlarını ekleniş sırasıyla bir liste olarak verir.
 yazdır({"ad": "Ali", "puan": 30}.anahtarlar())
 ```
 
-İlişkili: TR_mem_values `değerler`
+İlişkili: `.TR_values`
 
-#### TR_mem_kind `çeşit`
-
-
-
-#### TR_mem_kv_proj `kv_katmanı`
+#### `.TR_kind` (`TR_mem_kind`, `çeşit`)
 
 
 
-#### TR_mem_last `son`
+#### `.TR_kv_proj` (`TR_mem_kv_proj`, `kv_katmanı`)
+
+
+
+#### `.TR_last` (`TR_mem_last`, `son`)
 
     Liste.son → Herhangi
 
@@ -3360,13 +3360,13 @@ Listenin son elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir
 yazdır([5, 6, 7].son)
 ```
 
-İlişkili: TR_mem_first `ilk`
+İlişkili: `.TR_first`
 
-#### TR_mem_last_step `son_adım`
+#### `.TR_last_step` (`TR_mem_last_step`, `son_adım`)
 
 
 
-#### TR_mem_length `uzunluk`
+#### `.TR_length` (`TR_mem_length`, `uzunluk`)
 
     Metin.uzunluk → Tam
     Liste.uzunluk → Tam
@@ -3378,7 +3378,7 @@ Metnin karakter sayısını, listenin ya da sözlüğün eleman sayısını veri
 yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
 ```
 
-#### TR_mem_load_state `durumu_yükle`
+#### `.TR_load_state` (`TR_mem_load_state`, `durumu_yükle`)
 
     İyileştirici.durumu_yükle(Sözlük) → Mantık
     Örnekleyici.durumu_yükle(Sözlük) → Mantık
@@ -3390,29 +3390,29 @@ durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya d
 değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); geri_yayılım(toplam(w * 2)); op.adım(); değişken yeni = AdamW([w]); yazdır(yeni.durumu_yükle(op.durum))
 ```
 
-İlişkili: TR_mem_state `durum`
+İlişkili: `.TR_state`
 
-#### TR_mem_logger `günlük`
-
-
-
-#### TR_mem_logit_layer `logit_katmanı`
+#### `.TR_logger` (`TR_mem_logger`, `günlük`)
 
 
 
-#### TR_mem_logits `logit`
+#### `.TR_logit_layer` (`TR_mem_logit_layer`, `logit_katmanı`)
 
 
 
-#### TR_mem_loss `kayıp`
+#### `.TR_logits` (`TR_mem_logits`, `logit`)
 
 
 
-#### TR_mem_losses `kayıplar`
+#### `.TR_loss` (`TR_mem_loss`, `kayıp`)
 
 
 
-#### TR_mem_lower `küçük_harf`
+#### `.TR_losses` (`TR_mem_losses`, `kayıplar`)
+
+
+
+#### `.TR_lower` (`TR_mem_lower`, `küçük_harf`)
 
     Metin.küçük_harf() → Metin
 
@@ -3422,9 +3422,9 @@ Metni Unicode'un varsayılan kuralıyla küçük harfe çevirir; sonuç program�
 yazdır("MERHABA".küçük_harf())
 ```
 
-İlişkili: TR_mem_upper `büyük_harf`
+İlişkili: `.TR_upper`
 
-#### TR_mem_lr `öğrenme_oranı`
+#### `.TR_lr` (`TR_mem_lr`, `öğrenme_oranı`)
 
     İyileştirici.öğrenme_oranı → Ondalık
 
@@ -3434,13 +3434,13 @@ yazdır("MERHABA".küçük_harf())
 değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.5); op.öğrenme_oranı = 0.25; geri_yayılım(toplam(w * w)); op.adım(); yazdır(op.öğrenme_oranı, w.değer)
 ```
 
-İlişkili: TR_arg_lr `öğrenme_oranı`, TR_mem_step `adım`
+İlişkili: `TR_lr:`, `.TR_step`
 
-#### TR_mem_lr_multiplier `öğrenme_oranı_çarpanı`
+#### `.TR_lr_multiplier` (`TR_mem_lr_multiplier`, `öğrenme_oranı_çarpanı`)
 
 
 
-#### TR_mem_map `haritala`
+#### `.TR_map` (`TR_mem_map`, `haritala`)
 
     Liste.haritala(Fonksiyon) → Liste
 
@@ -3450,29 +3450,29 @@ Her elemana fonksiyonu uygular ve sonuçların yeni listesini verir. Asıl liste
 yazdır([1, 2, 3].haritala((x) => x * 10))
 ```
 
-İlişkili: TR_mem_filter `filtrele`, TR_mem_reduce `indirge`
+İlişkili: `.TR_filter`, `.TR_reduce`
 
-#### TR_mem_mask `maske`
-
-
-
-#### TR_mem_masks `maskeler`
+#### `.TR_mask` (`TR_mem_mask`, `maske`)
 
 
 
-#### TR_mem_momentum `momentum`
+#### `.TR_masks` (`TR_mem_masks`, `maskeler`)
 
 
 
-#### TR_mem_muon `muon`
+#### `.TR_momentum` (`TR_mem_momentum`, `momentum`)
 
 
 
-#### TR_mem_muon_lr `muon_öğrenme_oranı`
+#### `.TR_muon` (`TR_mem_muon`, `muon`)
 
 
 
-#### TR_mem_name `dosya_adı`
+#### `.TR_muon_lr` (`TR_mem_muon_lr`, `muon_öğrenme_oranı`)
+
+
+
+#### `.TR_name` (`TR_mem_name`, `dosya_adı`)
 
     Yol.dosya_adı → Metin
 
@@ -3482,13 +3482,13 @@ Yolun son bileşenini verir ("veri/derlem.tar.gz" → "derlem.tar.gz"); . ve kö
 yazdır(Yol("veri/derlem.tar.gz").dosya_adı)
 ```
 
-İlişkili: TR_mem_extension `uzantı`, TR_mem_stem `uzantısız_ad`
+İlişkili: `.TR_extension`, `.TR_stem`
 
-#### TR_mem_nesterov `nesterov`
+#### `.TR_nesterov` (`TR_mem_nesterov`, `nesterov`)
 
 
 
-#### TR_mem_next `sonraki`
+#### `.TR_next` (`TR_mem_next`, `sonraki`)
 
     SatırOkuyucu.sonraki() → Metin | YokTipi
     Örnekleyici.sonraki() → Liste
@@ -3500,53 +3500,53 @@ yazdır(Yol("veri/derlem.tar.gz").dosya_adı)
 değişken girdi, hedef = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4).sonraki(); yazdır(girdi.değer, hedef.değer)
 ```
 
-İlişkili: TR_mem_sampler `örnekleyici`, TR_mem_sequential `sıralı`, TR_fn_read_lines `dosya_satırları`
+İlişkili: `.TR_sampler`, `.TR_sequential`, `TR_read_lines(...)`
 
-#### TR_mem_norm `norm`
-
-
-
-#### TR_mem_norms `normlar`
+#### `.TR_norm` (`TR_mem_norm`, `norm`)
 
 
 
-#### TR_mem_ns_dtype `ns_türü`
+#### `.TR_norms` (`TR_mem_norms`, `normlar`)
 
 
 
-#### TR_mem_ns_iterations `ns_yineleme_sayısı`
+#### `.TR_ns_dtype` (`TR_mem_ns_dtype`, `ns_türü`)
 
 
 
-#### TR_mem_num_heads `bakış_sayısı`
+#### `.TR_ns_iterations` (`TR_mem_ns_iterations`, `ns_yineleme_sayısı`)
 
 
 
-#### TR_mem_num_kv_heads `kv_bakış_sayısı`
+#### `.TR_num_heads` (`TR_mem_num_heads`, `bakış_sayısı`)
 
 
 
-#### TR_mem_num_layers `katman_sayısı`
+#### `.TR_num_kv_heads` (`TR_mem_num_kv_heads`, `kv_bakış_sayısı`)
 
 
 
-#### TR_mem_o_proj `çıkış_katmanı`
+#### `.TR_num_layers` (`TR_mem_num_layers`, `katman_sayısı`)
 
 
 
-#### TR_mem_observe `gözle`
+#### `.TR_o_proj` (`TR_mem_o_proj`, `çıkış_katmanı`)
 
 
 
-#### TR_mem_other `diğer`
+#### `.TR_observe` (`TR_mem_observe`, `gözle`)
 
 
 
-#### TR_mem_parameters `parametreler`
+#### `.TR_other` (`TR_mem_other`, `diğer`)
 
 
 
-#### TR_mem_parent `üst_klasör`
+#### `.TR_parameters` (`TR_mem_parameters`, `parametreler`)
+
+
+
+#### `.TR_parent` (`TR_mem_parent`, `üst_klasör`)
 
     Yol.üst_klasör → Yol
 
@@ -3556,9 +3556,9 @@ Yolun bulunduğu klasörü Yol olarak verir; tek bileşenli göreli yolda . olur
 yazdır(Yol("veri/eğitim/a.npy").üst_klasör)
 ```
 
-İlişkili: TR_mem_name `dosya_adı`
+İlişkili: `.TR_name`
 
-#### TR_mem_permute `eksenleri_sırala`
+#### `.TR_permute` (`TR_mem_permute`, `eksenleri_sırala`)
 
     Tensör.eksenleri_sırala(Liste | Tam, [Tam...]) → Tensör
 
@@ -3568,45 +3568,45 @@ Tensörün eksenlerini verilen sıraya dizer. Her eksen tam olarak bir kez yer a
 yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
 ```
 
-İlişkili: TR_mem_transpose `devrik`
+İlişkili: `.TR_transpose`
 
-#### TR_mem_ple `ple`
-
-
-
-#### TR_mem_ple_context `ple_bağlamı`
+#### `.TR_ple` (`TR_mem_ple`, `ple`)
 
 
 
-#### TR_mem_ple_dim `ple_boyutu`
+#### `.TR_ple_context` (`TR_mem_ple_context`, `ple_bağlamı`)
 
 
 
-#### TR_mem_position `konum`
+#### `.TR_ple_dim` (`TR_mem_ple_dim`, `ple_boyutu`)
 
 
 
-#### TR_mem_positions `konumlar`
+#### `.TR_position` (`TR_mem_position`, `konum`)
 
 
 
-#### TR_mem_post_attention_norm `norm2`
+#### `.TR_positions` (`TR_mem_positions`, `konumlar`)
 
 
 
-#### TR_mem_proj `izdüşüm_katmanı`
+#### `.TR_post_attention_norm` (`TR_mem_post_attention_norm`, `norm2`)
 
 
 
-#### TR_mem_q_norm `q_norm`
+#### `.TR_proj` (`TR_mem_proj`, `izdüşüm_katmanı`)
 
 
 
-#### TR_mem_q_proj `sorgu_katmanı`
+#### `.TR_q_norm` (`TR_mem_q_norm`, `q_norm`)
 
 
 
-#### TR_mem_reduce `indirge`
+#### `.TR_q_proj` (`TR_mem_q_proj`, `sorgu_katmanı`)
+
+
+
+#### `.TR_reduce` (`TR_mem_reduce`, `indirge`)
 
     Liste.indirge([Herhangi], Fonksiyon) → Herhangi
 
@@ -3616,9 +3616,9 @@ Listeyi soldan sağa (birikim, eleman) alan bir fonksiyonla tek değere indirger
 yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1, (a, x) => a * x))
 ```
 
-İlişkili: TR_mem_filter `filtrele`, TR_mem_map `haritala`
+İlişkili: `.TR_filter`, `.TR_map`
 
-#### TR_mem_replace `değiştir`
+#### `.TR_replace` (`TR_mem_replace`, `değiştir`)
 
     Metin.değiştir(Metin, Metin) → Metin
 
@@ -3628,7 +3628,7 @@ Metindeki bütün eski alt metinleri yenisiyle değiştirir. İki argüman da Me
 yazdır("elma armut elma".değiştir("elma", "erik"))
 ```
 
-#### TR_mem_reshape `şekillendir`
+#### `.TR_reshape` (`TR_mem_reshape`, `şekillendir`)
 
     Tensör.şekillendir(Liste) → Tensör
 
@@ -3638,9 +3638,9 @@ Tensörü aynı eleman sayısıyla yeni bir şekle sokar; bir eksen -1 verilirse
 yazdır(Tensör([1, 2, 3, 4, 5, 6]).şekillendir([2, 3]).şekil)
 ```
 
-İlişkili: TR_mem_shape `şekil`
+İlişkili: `.TR_shape`
 
-#### TR_mem_resume_step `kaldığı_adım`
+#### `.TR_resume_step` (`TR_mem_resume_step`, `kaldığı_adım`)
 
     KontrolNoktası.kaldığı_adım → Tam
 
@@ -3650,9 +3650,9 @@ Kurulurken yüklenen kontrol noktasının adımıdır (tamamlanan adım sayısı
 değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolNoktası("koşu_y520", {"w": w}); yazdır(kn.kaldığı_adım)
 ```
 
-İlişkili: TR_mem_save `kaydet`, TR_mem_update `güncelle`
+İlişkili: `.TR_save`, `.TR_update`
 
-#### TR_mem_reverse `ters_çevir`
+#### `.TR_reverse` (`TR_mem_reverse`, `ters_çevir`)
 
     Liste.ters_çevir() → Liste
     Aralık.ters_çevir() → Liste
@@ -3664,9 +3664,9 @@ Metnin karakterlerini, listenin elemanlarını ya da aralığın sayılarını t
 yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir(), (0..3).ters_çevir())
 ```
 
-İlişkili: TR_mem_sort `sırala`
+İlişkili: `.TR_sort`
 
-#### TR_mem_rollback `geri_dön`
+#### `.TR_rollback` (`TR_mem_rollback`, `geri_dön`)
 
     KontrolNoktası.geri_dön() → Tam
 
@@ -3676,17 +3676,17 @@ En yeni geçerli kontrol noktasını aynı programda yerinde yükler (parametrel
 değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolNoktası("koşu_y522", {"w": w}); kn.güncelle(1); kn.kaydet(); yazdır(kn.geri_dön())
 ```
 
-İlişkili: TR_mem_save `kaydet`, TR_mem_resume_step `kaldığı_adım`, TR_fn_is_finite `sonlu_mu`
+İlişkili: `.TR_save`, `.TR_resume_step`, `TR_is_finite(...)`
 
-#### TR_mem_row_rms `satır_rms`
-
-
-
-#### TR_mem_run_blocks `blokları_işle`
+#### `.TR_row_rms` (`TR_mem_row_rms`, `satır_rms`)
 
 
 
-#### TR_mem_sampler `örnekleyici`
+#### `.TR_run_blocks` (`TR_mem_run_blocks`, `blokları_işle`)
+
+
+
+#### `.TR_sampler` (`TR_mem_sampler`, `örnekleyici`)
 
     VeriKümesi.örnekleyici([Tam], [Tam], [Tam], toplu: Tam, bağlam: Tam, tohum: Tam = 0) → Örnekleyici
 
@@ -3696,9 +3696,9 @@ Veri kümesinden rastgele pencereler alan bir örnekleyici kurar; toplu ve bağl
 yazdır(VeriKümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4, tohum: 1))
 ```
 
-İlişkili: TR_mem_sequential `sıralı`, TR_mem_next `sonraki`
+İlişkili: `.TR_sequential`, `.TR_next`
 
-#### TR_mem_save `kaydet`
+#### `.TR_save` (`TR_mem_save`, `kaydet`)
 
     KontrolNoktası.kaydet() → Yol
 
@@ -3708,13 +3708,13 @@ Kontrol noktasını hemen, son güncelle(adım) adımıyla kaydeder ve noktanın
 değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolNoktası("koşu_y521", {"w": w}); kn.güncelle(1); yazdır(kn.kaydet())
 ```
 
-İlişkili: TR_mem_resume_step `kaldığı_adım`, TR_mem_update `güncelle`
+İlişkili: `.TR_resume_step`, `.TR_update`
 
-#### TR_mem_scales `ölçekler`
+#### `.TR_scales` (`TR_mem_scales`, `ölçekler`)
 
 
 
-#### TR_mem_sequential `sıralı`
+#### `.TR_sequential` (`TR_mem_sequential`, `sıralı`)
 
     VeriKümesi.sıralı([Tam], [Tam], toplu: Tam, bağlam: Tam) → SıralıOkuyucu
 
@@ -3724,13 +3724,13 @@ Veri kümesini baştan sona sırayla okuyan bir okuyucu kurar; toplu ve bağlam 
 yazdır(VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam: 4).sonraki()[0].şekil)
 ```
 
-İlişkili: TR_mem_sampler `örnekleyici`, TR_mem_next `sonraki`
+İlişkili: `.TR_sampler`, `.TR_next`
 
-#### TR_mem_set_multiplier `çarpan_ayarla`
+#### `.TR_set_multiplier` (`TR_mem_set_multiplier`, `çarpan_ayarla`)
 
 
 
-#### TR_mem_shape `şekil`
+#### `.TR_shape` (`TR_mem_shape`, `şekil`)
 
     Tensör.şekil → Liste
 
@@ -3740,17 +3740,17 @@ Tensörün her eksendeki uzunluğunu Tam listesi olarak verir; 0 boyutlu tensör
 yazdır(Tensör([[1, 2], [3, 4]]).şekil)
 ```
 
-İlişkili: TR_mem_reshape `şekillendir`
+İlişkili: `.TR_reshape`
 
-#### TR_mem_sin_table `sin_tablosu`
-
-
-
-#### TR_mem_single_step `tek_adım`
+#### `.TR_sin_table` (`TR_mem_sin_table`, `sin_tablosu`)
 
 
 
-#### TR_mem_size `bayt`
+#### `.TR_single_step` (`TR_mem_single_step`, `tek_adım`)
+
+
+
+#### `.TR_size` (`TR_mem_size`, `bayt`)
 
     Yol.bayt → Tam
 
@@ -3760,7 +3760,7 @@ Dosyanın boyutunu bayt olarak Tam verir (.gz dosyada sıkıştırılmış boyut
 dosya_yaz("boyut.txt", "merhaba"); yazdır(Yol("boyut.txt").bayt)
 ```
 
-#### TR_mem_skip `atla`
+#### `.TR_skip` (`TR_mem_skip`, `atla`)
 
     Örnekleyici.atla(Tam) → Tam
     SıralıOkuyucu.atla(Tam) → Tam
@@ -3771,9 +3771,9 @@ Sıradaki n toplu işi tensör kurmadan atlar ve atladığı sayıyı Tam olarak
 değişken ö = VeriKümesi("tests/data/text").örnekleyici(toplu: 2, bağlam: 8, tohum: 1); yazdır(ö.atla(3), ö.durum["counter"])
 ```
 
-İlişkili: TR_mem_next `sonraki`, TR_mem_state `durum`, TR_mem_rollback `geri_dön`
+İlişkili: `.TR_next`, `.TR_state`, `.TR_rollback`
 
-#### TR_mem_slice `dilim`
+#### `.TR_slice` (`TR_mem_slice`, `dilim`)
 
     Tensör.dilim(Tam, Tam, Tam) → Tensör
 
@@ -3783,7 +3783,7 @@ Verilen eksende [baş, son) aralığını keser; negatif konumlar sondan sayıl�
 yazdır(Tensör([[1, 2, 3], [4, 5, 6]]).dilim(1, 0, 2).değer)
 ```
 
-#### TR_mem_sort `sırala`
+#### `.TR_sort` (`TR_mem_sort`, `sırala`)
 
     Liste.sırala() → Liste
 
@@ -3793,17 +3793,17 @@ Listenin küçükten büyüğe sıralanmış yeni bir kopyasını verir. Liste y
 yazdır([3, 1, 2].sırala())
 ```
 
-İlişkili: TR_mem_reverse `ters_çevir`
+İlişkili: `.TR_reverse`
 
-#### TR_mem_sparse_lr `seyrek_öğrenme_oranı`
-
-
-
-#### TR_mem_spike_count `sıçrama_sayısı`
+#### `.TR_sparse_lr` (`TR_mem_sparse_lr`, `seyrek_öğrenme_oranı`)
 
 
 
-#### TR_mem_split `böl`
+#### `.TR_spike_count` (`TR_mem_spike_count`, `sıçrama_sayısı`)
+
+
+
+#### `.TR_split` (`TR_mem_split`, `böl`)
 
     Metin.böl([Metin]) → Liste
     Tensör.böl(Tam, [Tam], eksen: Tam = -1) → Liste
@@ -3814,9 +3814,9 @@ Metni ayırıcıdan böler ve parçaların listesini verir (ayırıcı verilmezs
 yazdır("a,b,c".böl(","), Tensör([1, 2, 3, 4]).böl(2)[0].değer)
 ```
 
-İlişkili: TR_mem_join `birleştir`, TR_fn_concat `bitiştir`
+İlişkili: `.TR_join`, `TR_concat(...)`
 
-#### TR_mem_starts_with `başlar`
+#### `.TR_starts_with` (`TR_mem_starts_with`, `başlar`)
 
     Metin.başlar(Metin) → Mantık
 
@@ -3826,9 +3826,9 @@ Metin verilen önekle başlıyorsa doğru verir. Argüman Metin olmalıdır.
 yazdır("merhaba".başlar("mer"))
 ```
 
-İlişkili: TR_mem_ends_with `biter`, TR_mem_contains `içerir`
+İlişkili: `.TR_ends_with`, `.TR_contains`
 
-#### TR_mem_state `durum`
+#### `.TR_state` (`TR_mem_state`, `durum`)
 
     İyileştirici.durum → Sözlük
     Örnekleyici.durum → Sözlük
@@ -3840,9 +3840,9 @@ Kaldığı yerden sürdürmek için gereken durumdur: iyileştiricide ad → ten
 değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(op.durum.anahtarlar())
 ```
 
-İlişkili: TR_mem_load_state `durumu_yükle`, TR_type_Checkpoint `KontrolNoktası`
+İlişkili: `.TR_load_state`, `TR_Checkpoint`
 
-#### TR_mem_stem `uzantısız_ad`
+#### `.TR_stem` (`TR_mem_stem`, `uzantısız_ad`)
 
     Yol.uzantısız_ad → Metin
 
@@ -3852,9 +3852,9 @@ Dosya adının son uzantısı atılmış hâlini verir ("derlem.tar.gz" → "der
 yazdır(Yol("veri/derlem.tar.gz").uzantısız_ad)
 ```
 
-İlişkili: TR_mem_extension `uzantı`
+İlişkili: `.TR_extension`
 
-#### TR_mem_step `adım`
+#### `.TR_step` (`TR_mem_step`, `adım`)
 
     İyileştirici.adım() → YokTipi
 
@@ -3864,17 +3864,17 @@ yazdır(Yol("veri/derlem.tar.gz").uzantısız_ad)
 değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], öğrenme_oranı: 0.1); geri_yayılım(toplam(w * 2)); op.adım(); yazdır(w.değer)
 ```
 
-İlişkili: TR_mem_zero_grad `sıfırla`, TR_fn_backward `geri_yayılım`
+İlişkili: `.TR_zero_grad`, `TR_backward(...)`
 
-#### TR_mem_step_done `adım_bitti`
-
-
-
-#### TR_mem_step_position `adım_konumu`
+#### `.TR_step_done` (`TR_mem_step_done`, `adım_bitti`)
 
 
 
-#### TR_mem_stop `durdur`
+#### `.TR_step_position` (`TR_mem_step_position`, `adım_konumu`)
+
+
+
+#### `.TR_stop` (`TR_mem_stop`, `durdur`)
 
     İlerleme.durdur() → Mantık
 
@@ -3884,9 +3884,9 @@ değişken w = Tensör([1.0], türev_izle: doğru); değişken op = SGD([w], ö�
 değişken ç = İlerleme(); ç.güncelle(); yazdır(ç.durdur())
 ```
 
-İlişkili: TR_mem_update `güncelle`
+İlişkili: `.TR_update`
 
-#### TR_mem_strip `kırp`
+#### `.TR_strip` (`TR_mem_strip`, `kırp`)
 
     Metin.kırp() → Metin
 
@@ -3896,15 +3896,15 @@ Metnin başındaki ve sonundaki boşlukları (satır sonları dahil) atar. Yeni 
 yazdır("  merhaba  ".kırp())
 ```
 
-#### TR_mem_table `tablo`
+#### `.TR_table` (`TR_mem_table`, `tablo`)
 
 
 
-#### TR_mem_threshold `eşik`
+#### `.TR_threshold` (`TR_mem_threshold`, `eşik`)
 
 
 
-#### TR_mem_to_device `cihaza`
+#### `.TR_to_device` (`TR_mem_to_device`, `cihaza`)
 
     Tensör.cihaza(Metin) → Tensör
 
@@ -3914,9 +3914,9 @@ Tensörü verilen cihaza ("cpu", "gpu", "gpu:1") taşınmış olarak verir; kull
 yazdır(Tensör([1, 2]).cihaza("cpu").cihaz)
 ```
 
-İlişkili: TR_mem_device `cihaz`, TR_fn_default_device `varsayılan_cihaz`, TR_fn_devices `cihazlar`
+İlişkili: `.TR_device`, `TR_default_device(...)`, `TR_devices(...)`
 
-#### TR_mem_to_dtype `türe`
+#### `.TR_to_dtype` (`TR_mem_to_dtype`, `türe`)
 
     Tensör.türe(Metin) → Tensör
 
@@ -3926,9 +3926,9 @@ Tensörün "float32", "bf16" ya da "fp16" türüne çevrilmiş kopyasını verir
 yazdır(Tensör([1.0, 2.0]).türe("bf16").tür)
 ```
 
-İlişkili: TR_mem_dtype `tür`, TR_fn_mixed_precision `karışık_hassasiyet`
+İlişkili: `.TR_dtype`, `TR_mixed_precision(...)`
 
-#### TR_mem_token_id `parça_kimliği`
+#### `.TR_token_id` (`TR_mem_token_id`, `parça_kimliği`)
 
     Parçalayıcı.parça_kimliği(Metin) → Tam | YokTipi
 
@@ -3938,9 +3938,9 @@ Verilen parçanın dağarcıktaki kimliğini verir; parça dağarcıkta yoksa yo
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").parça_kimliği("<|endoftext|>"))
 ```
 
-İlişkili: TR_mem_vocab_size `dağarcık_boyutu`
+İlişkili: `.TR_vocab_size`
 
-#### TR_mem_tolist `değer`
+#### `.TR_tolist` (`TR_mem_tolist`, `değer`)
 
     Tensör.değer → Liste | Ondalık | Tam
 
@@ -3950,7 +3950,7 @@ Tensörün değerlerini iç içe liste olarak verir; 0 boyutlu tensörde tek bir
 yazdır(Tensör([[1, 2], [3, 4]]).değer)
 ```
 
-#### TR_mem_transpose `devrik`
+#### `.TR_transpose` (`TR_mem_transpose`, `devrik`)
 
     Tensör.devrik() → Tensör
 
@@ -3960,13 +3960,13 @@ Tensörün son iki eksenini yer değiştirir. Argüman almaz ve en az 2 boyutlu 
 yazdır(Tensör([[1, 2], [3, 4]]).devrik().değer)
 ```
 
-İlişkili: TR_mem_permute `eksenleri_sırala`
+İlişkili: `.TR_permute`
 
-#### TR_mem_truncate `kısalt`
+#### `.TR_truncate` (`TR_mem_truncate`, `kısalt`)
 
 
 
-#### TR_mem_unique `benzersiz`
+#### `.TR_unique` (`TR_mem_unique`, `benzersiz`)
 
     Liste.benzersiz() → Liste
 
@@ -3976,11 +3976,11 @@ Tekrar eden elemanları atar, her değerin ilk geçtiği sırayı korur. Yeni bi
 yazdır([1, 2, 2, 3, 1].benzersiz())
 ```
 
-#### TR_mem_up_proj `yukarı`
+#### `.TR_up_proj` (`TR_mem_up_proj`, `yukarı`)
 
 
 
-#### TR_mem_update `güncelle`
+#### `.TR_update` (`TR_mem_update`, `güncelle`)
 
     KontrolNoktası.güncelle(Tam) → Mantık
     İlerleme.güncelle([Sözlük], adım: Tam = yok) → Mantık
@@ -3991,9 +3991,9 @@ Her çağrı eğitimin bir adım sınırıdır. İlerleme'de çubuğu bir adım 
 değişken ç = İlerleme(10); ç.güncelle({"kayıp": 0.5}, adım: 5); yazdır(ç)
 ```
 
-İlişkili: TR_mem_stop `durdur`, TR_mem_save `kaydet`
+İlişkili: `.TR_stop`, `.TR_save`
 
-#### TR_mem_upper `büyük_harf`
+#### `.TR_upper` (`TR_mem_upper`, `büyük_harf`)
 
     Metin.büyük_harf() → Metin
 
@@ -4003,17 +4003,17 @@ Metni Unicode'un varsayılan kuralıyla büyük harfe çevirir; sonuç programı
 yazdır("merhaba".büyük_harf())
 ```
 
-İlişkili: TR_mem_lower `küçük_harf`
+İlişkili: `.TR_lower`
 
-#### TR_mem_v_buffers `v_tamponları`
-
-
-
-#### TR_mem_v_proj `değer_katmanı`
+#### `.TR_v_buffers` (`TR_mem_v_buffers`, `v_tamponları`)
 
 
 
-#### TR_mem_values `değerler`
+#### `.TR_v_proj` (`TR_mem_v_proj`, `değer_katmanı`)
+
+
+
+#### `.TR_values` (`TR_mem_values`, `değerler`)
 
     Sözlük.değerler() → Liste
 
@@ -4023,9 +4023,9 @@ Sözlüğün değerlerini anahtarların ekleniş sırasıyla bir liste olarak ve
 yazdır({"ad": "Ali", "puan": 30}.değerler())
 ```
 
-İlişkili: TR_mem_keys `anahtarlar`
+İlişkili: `.TR_keys`
 
-#### TR_mem_vocab_size `dağarcık_boyutu`
+#### `.TR_vocab_size` (`TR_mem_vocab_size`, `dağarcık_boyutu`)
 
     Parçalayıcı.dağarcık_boyutu → Tam
 
@@ -4035,21 +4035,21 @@ Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parça
 yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu)
 ```
 
-İlişkili: TR_mem_token_id `parça_kimliği`
+İlişkili: `.TR_token_id`
 
-#### TR_mem_weight `ağırlık`
-
-
-
-#### TR_mem_weight_decay `ağırlık_çürümesi`
+#### `.TR_weight` (`TR_mem_weight`, `ağırlık`)
 
 
 
-#### TR_mem_window `pencere`
+#### `.TR_weight_decay` (`TR_mem_weight_decay`, `ağırlık_çürümesi`)
 
 
 
-#### TR_mem_zero_grad `sıfırla`
+#### `.TR_window` (`TR_mem_window`, `pencere`)
+
+
+
+#### `.TR_zero_grad` (`TR_mem_zero_grad`, `sıfırla`)
 
     İyileştirici.sıfırla() → YokTipi
 
@@ -4059,7 +4059,7 @@ yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu)
 değişken w = Tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w * 2)); AdamW([w]).sıfırla(); yazdır(w.gradyan.değer)
 ```
 
-İlişkili: TR_mem_step `adım`
+İlişkili: `.TR_step`
 
 ## Komutlar (tr, kabuk, hata ayıklayıcı)
 

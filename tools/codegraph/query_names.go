@@ -49,7 +49,7 @@ func (ix *index) printNameChain(w io.Writer, n *Node, limit int) {
 	}
 	for i := range ix.g.Nodes {
 		h := &ix.g.Nodes[i]
-		if h.Kind == kindHeading && (h.Name == n.Name || strings.HasPrefix(h.Name, n.Name+" ")) {
+		if h.Kind == kindHeading && (h.Name == n.Name || strings.HasPrefix(h.Name, n.Name+" ") || strings.Contains(h.Name, "("+n.Name+", ")) {
 			fmt.Fprintf(w, "  documented: %s\n", describe(h))
 		}
 	}

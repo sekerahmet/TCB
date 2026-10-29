@@ -154,8 +154,50 @@ func signatureLines(t codes.Definition) []string {
 	return nil
 }
 
-// codeLabel "TR_fn_sum `toplam`" biçimidir.
-func codeLabel(k codes.Code) string { return fmt.Sprintf("%s `%s`", k, codes.Source().Name(k)) }
+// codeLabel bir kodun program metnindeki yazımını ters tırnak içinde verir (`TR_and`,
+// `TR_log(...)`, `.TR_first`, `TR_k:`).
+func codeLabel(k codes.Code) string {
+	p, ok := codes.PlaceOf(k)
+	if !ok {
+		return fmt.Sprintf("`%s`", k)
+	}
+	s := codes.Spelling(k)
+	switch {
+	case p == codes.PlaceMember:
+		return "`." + s + "`"
+	case p == codes.PlaceArg:
+		return "`" + s + ":`"
+	case k.Class() == codes.ClassFunction:
+		return "`" + s + "(...)`"
+	}
+	return "`" + s + "`"
+}
+
+// codeHeading bir kodun başlık satırını yazar: programda yazılan kodlarda program yazımı
+// önde, sınıflı kimlik ve Türkçe görünüm parantezde (`TR_and` (`TR_kw_and`, `ve`)).
+func codeHeading(k codes.Code, name string) string {
+	if _, ok := codes.PlaceOf(k); ok {
+		return fmt.Sprintf("#### %s (`%s`, `%s`)\n\n", codeLabel(k), k, name)
+	}
+	return fmt.Sprintf("#### %s `%s`\n\n", k, name)
+}
+
+// codeList kodları virgülle ayırarak yazar; aynı kısa adı taşıyan iki kod yan yana
+// geçiyorsa sınıflı kimliği parantez içinde ekler.
+func codeList(ks []codes.Code) string {
+	shared := map[string]int{}
+	for _, k := range ks {
+		shared[codes.Spelling(k)]++
+	}
+	parts := make([]string, len(ks))
+	for i, k := range ks {
+		parts[i] = codeLabel(k)
+		if shared[codes.Spelling(k)] > 1 {
+			parts[i] += fmt.Sprintf(" (`%s`)", k)
+		}
+	}
+	return strings.Join(parts, ", ")
+}
 
 // Generate belgenin içeriğini üretir.
 func Generate() ([]byte, error) {
@@ -185,14 +227,6 @@ func Generate() ([]byte, error) {
 			}
 		}
 	}
-	list := func(ks []codes.Code) string {
-		parts := make([]string, len(ks))
-		for i, k := range ks {
-			parts[i] = codeLabel(k)
-		}
-		return strings.Join(parts, ", ")
-	}
-
 	var b bytes.Buffer
 	b.WriteString("# " + text.Title + "\n\n")
 	b.WriteString("<!-- " + text.GeneratedNote + " -->\n\n")
@@ -234,7 +268,7 @@ func Generate() ([]byte, error) {
 			for _, k := range ks {
 				g, _ := d.Entry(k)
 				t, _ := codes.DefinitionOf(k)
-				fmt.Fprintf(&b, "#### %s `%s`\n\n", k, g.Name)
+				b.WriteString(codeHeading(k, g.Name))
 				if im := signatureLines(t); len(im) > 0 {
 					for _, s := range im {
 						fmt.Fprintf(&b, "    %s\n", s)
@@ -247,13 +281,13 @@ func Generate() ([]byte, error) {
 				}
 				var extras []string
 				if t.Kind == codes.KindNamedArg && len(usedBy[k]) > 0 {
-					extras = append(extras, text.Labels["usedBy"]+": "+list(usedBy[k]))
+					extras = append(extras, text.Labels["usedBy"]+": "+codeList(usedBy[k]))
 				}
 				if t.Kind == codes.KindType && len(typeMembers[k]) > 0 {
-					extras = append(extras, text.Labels["members"]+": "+list(typeMembers[k]))
+					extras = append(extras, text.Labels["members"]+": "+codeList(typeMembers[k]))
 				}
 				if len(t.Related) > 0 {
-					extras = append(extras, text.Labels["related"]+": "+list(t.Related))
+					extras = append(extras, text.Labels["related"]+": "+codeList(t.Related))
 				}
 				if len(extras) > 0 {
 					b.WriteString(strings.Join(extras, " · ") + "\n\n")
