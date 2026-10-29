@@ -205,18 +205,31 @@ func (c *Checker) checkedTypeName(name string, at lexer.Token) string {
 	return canonical
 }
 
-// writtenType yazılan tipin denetleyicideki adını verir (yazılmamışsa Herhangi); adın kabul
-// edilmeyen yazımı checkedTypeName'deki gibi hatadır.
+// writtenType yazılan tipin denetleyicideki adını verir (yazılmamışsa Herhangi). Bileşik tip
+// bugün asıl adına indirgenir, yalnız yapısı açılır: TR_List[...] → TR_List, T? → T; demet ve
+// fonksiyon tipi Herhangi'dir. İçindeki her ad checkedTypeName'deki gibi denetlenir. Tiplerin
+// anlamı 4a2, 4b ve 4c'de gelir.
 func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 	if t == nil {
+		return typeAny
+	}
+	for _, inner := range [][]ast.TypeRef{t.Args, t.Elems, t.Params} {
+		for i := range inner {
+			c.writtenType(&inner[i], line)
+		}
+	}
+	if t.Return != nil {
+		c.writtenType(t.Return, line)
+	}
+	if t.Name == "" {
 		return typeAny
 	}
 	return c.checkedTypeName(t.Name, siteOf(t.Token, line))
 }
 
-// normalizedType yazılan tipin denetleyicideki adını hata eklemeden verir (yazılmamışsa Herhangi).
+// normalizedType writtenType'ın indirgemesini hata eklemeden yapar.
 func normalizedType(t *ast.TypeRef) string {
-	if t == nil {
+	if t == nil || t.Name == "" {
 		return typeAny
 	}
 	return normalizeTypeName(t.Name)
