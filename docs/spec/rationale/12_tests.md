@@ -5,7 +5,7 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 ### 12.1
 
 - *Emsal:* Swift Testing'in `@Test("ad")`'ı ve Zig'in `test "ad" { ... }` bloğu testi adıyla birlikte dilin içinde tanımlar [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* ajan kodunu ve testini aynı dilde, aynı dosyada yazar; test bloğu normal çalıştırmada atlandığı için dosya hem program hem test olur.
+- *Gerekçe:* ajan kodunu ve testini aynı dilde yazar; test bloğu modülde ya da test dosyasında, program modülü aktarır (Python'un modül ile `__main__` ayrımı gibi). Zig'in "test kipinde en dış deyimler atlanır" yolu alınmadı: aynı dosya iki kipte ayrı anlam taşırdı, sabit olmayan ilk değeri (`TR_var model = kur()`) olan dosyada hangi tanımın kurulacağı belirsiz kalırdı (Gemini Koşu 7).
 
 ### 12.2
 
@@ -28,6 +28,7 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 - *Emsal (formül):* Python'un `math.isclose`'u simetriktir (`max(|a|, |b|)`); NumPy'nin `allclose`'u ve PyTorch'un `assert_close`'u ikinci argümanı başvuru alır [kanıtsız: belgeler bu tur açılmadı]. Ajan bir aracı öbürü sanınca bağıl toleransın ölçeği değişir; simetrik formül sırayı önemsiz kılar.
 - *Gerekçe:* ondalık sonuçlar kesin eşitlikle sınanamaz: `TR_assert_equal(0.1 + 0.2, 0.3)` kalır [ölçüldü]. ML testinde sınanan çoğu değer ondalık ve tensördür; ajan bir toleransı her seferinde uydurmak zorunda kalmamalıdır. 15.18a'nın `TR_all_close`'u ile aynı tablo.
 - *Gerekçe (sonsuz):* formül sonsuzda IEEE'de tersini verir (sonlu ile sonsuz yakın, aynı işaretli iki sonsuz uzak); NumPy ve PyTorch'un `isclose`'u gibi sonsuz ayrı ele alınır [ölçüldü: DENETİM, `numpy==2.1.1`, `torch==2.14`].
+- *Gerekçe (sayı ile tensör):* `.TR_item()` sayısı float64'tür ama hesabı float32'dir; tensörüyle karşılaştırmak toleransı doğru seçer. PyTorch iki toleranstan yalnız biri verilince hata verir; TR varsayılanı kullanır, çünkü ajan için tek argümanlık yazım daha az hatalıdır (Gemini Koşu 7).
 
 ### 12.5
 

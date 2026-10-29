@@ -16,7 +16,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 
 **16.2** `p.TR_encode(metin)` metni kimliklere çevirir ve `TR_List[TR_Int]` verir. `p.TR_encode(metinler)` (`TR_List[TR_String]`) her metni ayrı çevirir, sırayı korur ve `TR_List[TR_List[TR_Int]]` verir (13.10: iki imza).
 - Metnin içinde yazılan özel parça (`<|endoftext|>`) tek bir kimlik olur.
-- `TR_special_tokens: TR_false` parçalayıcının kendi eklediği özel parçaları (başa ve sona) kapatır; varsayılan `TR_true`.
+- `TR_special_tokens: TR_false` parçalayıcının kendi eklediği özel parçaları (başa ve sona) da, metnin içinde geçen özel parça yazımlarını da kapatır: metindeki `<|endoftext|>` sıradan baytlar olarak kodlanır; özel parçayı isteyen kimliğini açıkça ekler (`p.TR_token_id(...)`). Varsayılan `TR_true`. Güvenilmeyen girdi (sunmak) ve derlem (veri hazırlamak) `TR_false` ile kodlanır.
 - `TR_pair:` ikinci metni (ya da metin listesini) çift olarak kodlar; listeyle verilirse uzunlukları aynı olmalıdır.
 - *Test:* TR testi.
 
@@ -26,10 +26,11 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 - *Test:* TR testi; dağarcık dışı kimliğin hatası uygulanınca TR testi.
 
 **16.4** Kendi parçalayıcısını eğitmek: `TR_train_tokenizer(metinler, TR_vocab_size: n, TR_reserved_tokens: [...])` metinlerden bayt düzeyinde bir BPE parçalayıcısı eğitir ve `TR_Tokenizer` verir.
-- `metinler` bir `TR_List[TR_String]`'dir. Metin veren bir akış (5.7) 13.10'a "dolaşılabilir" kısıtı eklenince alınır.
+- `metinler` bir `TR_List[TR_String]` ya da dosya yollarının `TR_List[TR_Path]`'idir: her dosya bir metindir, satır satır okunur (`.gz` 18.12 gibi); dosya listesiyle eğitim derlemi belleğe almaz. Metin veren bir akış (5.7) 13.10'a "dolaşılabilir" kısıtı eklenince alınır.
 - `TR_reserved_tokens:` dağarcığın başına konan özel parçalardır (`["<|endoftext|>"]`); sırayla 0'dan kimlik alırlar.
 - `TR_vocab_size:` en az 256 artı ayrılmış parça sayısıdır (bayt düzeyinde BPE'nin tabanı 256 bayttır); daha küçüğü hatadır, ileti en küçük değeri söyler.
-- **Belirlenimci:** aynı metinler ve aynı argümanlar her makinede aynı parçalayıcıyı verir; birleştirmelerin eşitliği sabit bir kuralla bozulur.
+- **Belirlenimci:** aynı metinler ve aynı argümanlar her makinede aynı parçalayıcıyı verir. Ön ayırıcı ve çözücü bayt düzeyindedir (GPT-2'nin düzenli ifadesi ve 256 baytın Unicode eşlemesi; `tokenizer.json`'da `ByteLevel`, `add_prefix_space: false`). Taban 256 bayt, ayrılmış parçalardan sonra bayt sırasıyla numaralanır. Sıklığı eşit çiftlerden önce birleşen, iki parçanın bayt dizilerinin sözlük sırasıyla küçüğüdür.
+- Eğitilen parçalayıcı başa ya da sona kendiliğinden özel parça eklemez.
 - `p.TR_save(yol)` parçalayıcıyı `tokenizer.json` biçiminde yazar; `TR_load_tokenizer` ve başka araçlar onu okur.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
@@ -38,19 +39,19 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 **16.5** `TR_Dataset(yol)` kimlik parçalarını açar: bir klasördeki `.npy` dosyalarını ad sırasıyla ya da tek bir `.npy` dosyasını.
 - Parçaların öğeleri tam sayıdır: işaretsiz 16 ya da 32 bit, işaretli 32 ya da 64 bit (NumPy'nin varsayılanı). Başka türdeki dosya hatadır; ileti dosyanın türünü söyler.
 - `meta.json` varsa parça uzunlukları ondan okunur.
-- `TR_cache: klasör` parçaları yerel bir önbelleğe kopyalar; o zaman `TR_quota_gb:` zorunludur. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır; klasörü aynı anda başka bir program kullanıyorsa hata.
+- `TR_cache: klasör` parçaları yerel bir önbelleğe kopyalar; o zaman `TR_quota_gb:` zorunludur. Önbellek her parçayı kaynak kümenin adı, parçanın adı, bayt boyu ve değiştirilme zamanıyla anahtarlar; kaynak değişince kopya yenilenir. Aynı önbellek klasörünü kullanan kümeler tek kotayı paylaşır, aynı adlı parçaları ayrı tutulur; klasörü aynı anda başka bir program kullanıyorsa hata.
 - Dosyalar açıkça kapatılmaz: sıralı okuyucu bitince, kullanılmayan nesneler toplanınca ve program bitince kapanır.
 - *Test:* TR testi.
 
 **16.6** Veriyi eğitime hazırlamak: `TR_write_dataset(yol, diziler, TR_shard_tokens: n)` kimlik dizilerini `yol` klasörüne `.npy` parçaları olarak yazar.
 - `diziler` bir `TR_List[TR_List[TR_Int]]`'dir; diziler sırayla uç uca eklenir. Akış 16.4'teki gibi sonra.
-- Her parça en çok `TR_shard_tokens` kimlik tutar; parçalar ad sırasıyla okunacak biçimde adlandırılır ve `meta.json` yazılır.
+- Her parça en çok `TR_shard_tokens` kimlik tutar; parçalar ad sırasıyla okunacak biçimde adlandırılır ve `meta.json` yazılır. Hedef klasörde var olan kümenin yerine yazılır: eski parçalar ve `meta.json` atomik olarak değişir (18.13).
 - Öğe türü kimliklerin en büyüğüne sığan en dar işaretsiz türdür: 65 536'dan küçükse 16 bit, değilse 32 bit. Eksi ya da 2³²'ye sığmayan kimlik hatadır.
 - Yazma yolu 13'ün yazma kuralına uyar (çalışma klasörü).
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 **16.7** `küme.TR_sampler(TR_batch_size: b, TR_context: c, TR_seed: s)` rastgele pencereler veren bir `TR_Sampler` kurar.
-- `.TR_next()` bir demet verir (3.6a): `TR_var girdi, hedef = ö.TR_next()`. İkisi de `[b, c]` şekilli `TR_Tensor[TR_Int]` "int64"tür, parçanın diskteki türü ne olursa olsun (16.5): çapraz entropinin yok sayılan hedefi `-100` (15.23a) işaretsiz türde tutulamaz. `hedef`, `girdi`nin bir kaydırılmışıdır. Toplu işler varsayılan cihazda kurulur (15.38). Pencere bir parçanın sınırını aşmaz.
+- `.TR_next()` bir demet verir (3.6a): `TR_var girdi, hedef = ö.TR_next()`. İkisi de `[b, c]` şekilli `TR_Tensor[TR_Int]` "int64"tür, parçanın diskteki türü ne olursa olsun (16.5): çapraz entropinin yok sayılan hedefi `-100` (15.23a) işaretsiz türde tutulamaz. `hedef`, `girdi`nin bir kaydırılmışıdır: bir pencere `TR_context + 1` kimlik ister. Daha kısa parçalar atlanır; hiçbir parça yetmiyorsa 16.9'un "bağlam veri parçasından uzun" hatası. Toplu işler varsayılan cihazda kurulur (15.38). Pencere bir parçanın sınırını aşmaz.
 - **Belirlenimci:** aynı küme, aynı argümanlar ve aynı tohum aynı toplu işleri verir. Örnekleyici sonsuzdur.
 - **Kaldığı yerden:** örnekleyici kontrol noktasına kaydedilir (20); geri yüklenince kaldığı yerden aynı toplu işleri verir.
 - Sonsuz olduğu için döngüyle gezilmez: `.TR_next()`'i isteğe bağlı değer vermez, 5.7'ye göre dolaşılamaz; `TR_for x TR_in ö` denetim hatasıdır, ileti adım sayısıyla döngüyü önerir.

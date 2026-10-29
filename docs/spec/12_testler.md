@@ -7,6 +7,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/12_tests.md`](rationale/12_tests.
 Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını, nasıl çalıştığını ve neyin sessizce geçemeyeceğini söyler. `TR_cmd_test`'in kullanımı ve çıktısı: `docs/guide/07_testler.md`; örnek: `examples/tr/17_testler_test.tr`.
 
 **12.1** `TR_test "ad" { ... }` bir test tanımlar. `TR_cmd_test` dosyanın testlerini yazıldıkları sırayla çalıştırır; dosya normal çalıştırıldığında test blokları atlanır.
+- **Test dosyası** `TR_test` içeren dosyadır; en dışında yalnız tanımlar bulunur (12.5, 1.1). Test bloğu bir modülde de bulunabilir (aktarılan modül testleriyle birlikte sınanır). En dışında deyim çalıştıran bir program `TR_test` içermez: sınanacak fonksiyonlar bir modüldedir, program o modülü aktarıp çalıştırır, test dosyası da aktarıp sınar.
 - *Test:* TR testi.
 
 **12.2** `TR_test` yalnız bir deyimin başında ve ardından bir metin gelince test başlatır; başka bir yerde yazılırsa sözdizimi hatasıdır (2.3a).
@@ -31,7 +32,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 
 **12.4a** `TR_assert_close(beklenen, gerçek, TR_rtol: r, TR_atol: a)` iki ondalık sayıyı ya da iki `TR_Float` tensörü toleransla karşılaştırır: her öğede fark, `a` ile `r` kere iki değerin mutlak değerinin büyüğünün toplamını aşmamalıdır. Formül simetriktir, argümanların sırası sonucu değiştirmez; 15.18a'nın aynı işi gören yerleşiği de bu formülü kullanır.
 - Formül: |x − y| ≤ a + r · `TR_max(|x|, |y|)`.
-- Varsayılan toleranslar hassasiyete göredir (15.18a'nın tablosu; sayıda "float64"ün satırı).
+- Varsayılan toleranslar hassasiyete göredir (15.18a'nın tablosu; sayıda "float64"ün satırı). Biri `TR_Float` sayı, öbürü 0 boyutlu `TR_Tensor[TR_Float]` olabilir; tolerans tensörün hassasiyetinden seçilir. `TR_rtol:` ve `TR_atol:`'dan yalnız biri verilirse öbürü tablodaki varsayılandır. Üçüncü argüman `mesaj` isteğe bağlıdır; değer döndürmez (13.10).
 - Tensörde şekiller aynı olmalıdır; yayın yoktur.
 - Yakınlık öğe öğedir: iki öğe de sonluysa formül uygulanır; sonsuz bir öğe yalnız aynı işaretli sonsuza yakındır; sonlu ile sonsuz ve zıt işaretli iki sonsuz yakın değildir; NaN hiçbir şeye yakın değildir. Sonsuz ve NaN bu yüzden formüle girmez: formül IEEE'de tersini verirdi.
 - İleti en büyük farkı, yerini ve kullanılan toleransları söyler.
@@ -40,7 +41,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 **12.5** Test dosyasının en dışında yalnız tanımlar ve `TR_test` blokları bulunur (1.1); en dıştaki başka bir deyim ve sabit olmayan bir ilk değer sözdizimi hatasıdır. Testlerin ortak kurulumu (geçici klasör, model) en dışta tanımlanan bir fonksiyondur ve her test onu kendi çağırır; böylece her test öbürlerinden bağımsızdır.
 - **Her test kendi tanımlarıyla çalışır:** test dosyasının ve aktardığı modüllerin en dıştaki tanımları her test için yeniden kurulur; test bunların üstünde açılan yeni bir kapsamda çalışır. Bir testin en dıştaki bir değişkene atadığı değer, en dıştaki bir listeye eklediği öğe, bir modülün durumuna yaptığı değişiklik ve yerel adları sonraki teste geçmez. En dışta yalnız sabit ilk değer olduğu için (1.1) yeniden kurmanın bedeli küçüktür.
 - Kalan ya da hata veren test öbürlerini durdurmaz.
-- Testin başlattığı görevler beklenir; testteki `TR_defer` test bitince çalışır (9.1).
+- Test bir görev gibi biter (10.9): gövdesi bitince önce başlattığı görevleri bekler, sonra `TR_defer` çalışır (9.1). Hatayla bittiyse (`TR_assert`, yakalanmayan hata, 1.12'nin `TR_exit`'i) bitmemiş görevleri önce iptal edilir, durmaları beklenir, sonra `TR_defer` çalışır.
 - **Her test paylaşılan rastgele üreteci programın başlangıç durumunda (20.17) başlar:** tohumsuz rastgelelik bir testin sonucunu öbür testlere ve sıraya bağlamaz. Testin görevleri aynı üreteçten çekerse 10.8'in sınırı geçerlidir.
 - *Test:* TR testi, olumsuz fikstür; en dıştaki deyimin hatası, tanımların yeniden kurulması ve üretecin durumu uygulanınca TR testi.
 

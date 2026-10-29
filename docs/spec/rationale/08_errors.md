@@ -26,6 +26,7 @@ Kurallar: [`08_hata_yonetimi.md`](../08_hata_yonetimi.md). Bu dosya her kuralın
 
 - *Emsal:* Fluent (`get_message("kimlik")`) ve Java ResourceBundle iletiyi açık bir kimlikle anar; TR'nin H kodları da açık kimliktir. *Almadık:* Python gettext, Swift `String(localized:)` ve Go `x/text` kaynak metni anahtar yapar: metin değişince çeviri düşer, geliştiricinin dili ayrıcalıklı olur (karşılaştırma 2026-10-26).
 - *Gerekçe:* kod dilden bağımsızdır, gösterilen metin okuyanın dilindedir; testler kodu sınadığı için ileti yeniden yazılınca kırılmaz. `TR_error_code`'un nedenler zincirinde dıştan içe araması Go'nun `errors.As`'ı gibidir ("As finds the first error in err's tree that matches target"); böylece `e.TR_code` ile `TR_error_code` kodu olan hatada aynı kodu verir. ([Go 1.27 errors](https://pkg.go.dev/errors#As))
+- *Gerekçe (kodsuz hata):* kodsuz bir hatayı `TR_none`'a çevirmek, hatayla hatasızlığı ayırt edilemez kılar; yanlış hata testi geçirir. Sarılmış kodsuz hatada (`TR_Error("okunamadı", TR_cause: e)`) `e.TR_code` `TR_none`'dır, `TR_error_code` nedenler zincirinin kodunu verir; bu bilinçlidir: sarıcının kendi kodu yoktur (Gemini Koşu 7).
 
 ### 8.6
 
