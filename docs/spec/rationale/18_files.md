@@ -24,8 +24,8 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 ### 18.5
 
-- *Emsal:* Python'un `glob.glob`'u ve `os.listdir`'i sırasız verir (dosya sisteminin sırası); Windows'ta ve macOS'ta harf büyüklüğüne bakmaz, Linux'ta bakar [kanıtsız: bu tur açılmadı]. *İkisini de almadık.*
-- *Gerekçe:* Güvenilir: veri parçalarının sırası eğitimin sırasıdır; sırasız listeleme aynı programın iki makinede ayrı sonuç vermesidir. Harf büyüklüğü de aynı yanlışı doğurur: Mac'te yazılan `"*.jpg"` Linux'ta `A.JPG`'yi sessizce kaçırır. Her sistemde duyarlı eşleme her yerde aynı listeyi verir; bugün Windows'ta `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`].
+- *Emsal:* Python'un `glob.glob`'u ve `os.listdir`'i sırasız verir (dosya sisteminin sırası) [kanıtsız: bu tur açılmadı]; `glob` Windows'ta harf büyüklüğüne bakmaz, `pathlib`'in `glob`'u 3.12'den beri `case_sensitive` argümanı alır; Go'nun `filepath.Glob`'u Windows'ta da duyarlıdır [ölçüldü: DENETİM 18-1, Windows]. Go'nunki ve `pathlib`'in argümanı alındı.
+- *Gerekçe:* Güvenilir: veri parçalarının sırası eğitimin sırasıdır; sırasız listeleme aynı programın iki makinede ayrı sonuç vermesidir. Harf büyüklüğü de aynı yanlışı doğurur: Mac'te yazılan `"*.jpg"` Linux'ta `A.JPG`'yi sessizce kaçırır. Her sistemde duyarlı eşleme her yerde aynı listeyi verir; bugün Windows'ta `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`]. Duyarlı eşleme kameranın `.JPG`'lerini `"*.jpg"` ile kaçırır; açık argüman bu durumu her sistemde aynı biçimde çözer. Okuma sırasıyla başka bir klasörde bulunan sonuçların mutlak olması, listelenen dosyaları silen bir temizleme döngüsünün başka klasördeki aynı adlı dosyayı silmesini önler [ölçüldü: DENETİM 18-1, `TR_list_dir("cikti", "*.tmp")` programın klasörünü buluyor ve göreli yollar veriyor].
 
 ### 18.6
 
@@ -84,5 +84,5 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 ### 18.17
 
-- *Emsal:* Python'da dosyaya satır satır yazmak `open(..., "w")` ile yapılır, atomik değildir ve satırın içindeki satır sonunu denetlemez [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* amacın ilk işi veriyi temizleyip eğitime hazırlamaktır; temizlenen derlem bellekten büyüktür ve `TR_write_file` tek seferde yazar. Akışla yazan yazıcı olmadan bu iş TR'de yazılamaz. Atomiklik 18.13'ünküyle aynıdır: yarıda kalan bir temizleme eski çıktıyı bozmaz. İçinde satır sonu olan satır JSONL'ü sessizce bozar; hata bunu yazılırken gösterir.
+- *Emsal:* Python'da dosyaya satır satır yazmak `open(..., "w")` ile yapılır, atomik değildir ve satırın içindeki satır sonunu denetlemez; kapatılmadan biten programda Python tamponu yazar, Go'nun `bufio.Writer`'ı hiçbir şey yazmaz (0 bayt) [ölçüldü: DENETİM 18-1].
+- *Gerekçe:* amacın ilk işi veriyi temizleyip eğitime hazırlamaktır; temizlenen derlem bellekten büyüktür ve `TR_write_file` tek seferde yazar. Akışla yazan yazıcı olmadan bu iş TR'de yazılamaz. Atomiklik 18.13'ünküyle aynıdır: yarıda kalan bir temizleme eski çıktıyı bozmaz. İçinde satır sonu olan satır JSONL'ü sessizce bozar; hata bunu yazılırken gösterir. Açık yazıcının yolunu okumak eski içeriği verir; ajan yeni yazdığını okuduğunu sanar, bu yüzden hatadır.

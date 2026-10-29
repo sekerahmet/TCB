@@ -30,12 +30,12 @@ Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 **18.4** Yol alan her yerleşik (13.1a'dakiler ve bu bölümünkiler) yolu `TR_String` ya da `TR_Path` olarak alır; başka bir tip denetim hatasıdır ve ileti iki kabul edilen tipi ve verilen tipi söyler. `TR_read_csv` bir `TR_Path` alınca onu her zaman dosya sayar: dosya yoksa hata verir, metni CSV içeriği sanmaz.
 - *Test:* TR testi.
 
-**18.5** `TR_list_dir(yer, kalıp)` verilen klasörde kalıba uyan dosya ve klasörleri bir `TR_Path` listesi olarak verir; `yer` `"."`, `kalıp` `"*"` varsayılandır.
+**18.5** `TR_list_dir(yer, kalıp, TR_ignore_case: TR_false)` verilen klasörde kalıba uyan dosya ve klasörleri bir `TR_Path` listesi olarak verir; `yer` `"."`, `kalıp` `"*"` varsayılandır.
 - Liste yolların `/`'lı yazımının bayt sırasıyla **sıralıdır**: her çalıştırmada ve her sistemde aynı sıra.
 - **Kalıp** `/` ile ayrılmış bileşenlerdir. Bir bileşenin içinde `*` sıfır ya da çok karakter, `?` tek karakter, `[a-z]`, `[!a-z]` ve `[^a-z]` karakter kümesidir; `**` yalnız tam bir bileşen olarak sıfır ya da çok klasör eşler (sonda: alttaki her şey). `{a,b}` seçeneği yoktur.
-- **Eşleme her sistemde harf büyüklüğüne duyarlıdır:** `"*.jpg"` `A.JPG`'yi eşlemez. Aynı klasörde aynı program her sistemde aynı listeyi verir.
+- **Eşleme her sistemde harf büyüklüğüne duyarlıdır:** `"*.jpg"` `A.JPG`'yi eşlemez. Aynı klasörde aynı program her sistemde aynı listeyi verir. Kameraların `.JPG` gibi büyük harfli uzantıları için `TR_ignore_case: TR_true` her sistemde harf büyüklüğüne bakmadan eşler.
 - Noktayla başlayan adlar, kalıbın o bileşeni de noktayla başlamadıkça listelenmez. `**` gizli klasörlere ve klasör bağlantılarının içine girmez (döngü olmaz); adıyla yazılmış bir bağlantının içine girilir.
-- Sonuçlar klasörün verildiği biçimle başlar: `TR_list_dir("veri", "*.npy")` → `[veri/a.npy, ...]`; mutlak klasörde mutlak yollar.
+- Sonuçlar klasörün verildiği biçimle başlar: `TR_list_dir("veri", "*.npy")` → `[veri/a.npy, ...]`; mutlak klasörde mutlak yollar. Göreli klasör çalışma klasörünün dışında bulunduysa (18.16'nın okuma sırası) sonuçlar **mutlak** yollardır: sonuçlar değiştiren bir işe (`TR_remove`) verilince başka bir klasördeki aynı adlı dosyayı göstermez.
 - Mutlak kalıp, `..` içeren kalıp, `a**` gibi yarım `**`, kapanmayan `[`, boş kalıp, olmayan klasör ve klasör yerine dosya hatadır. Okunamayan bir alt klasör atlanır ve tek bir uyarı yazılır.
 - *Test:* TR testi; harf büyüklüğüne duyarlı eşleme uygulanınca TR testi.
 
@@ -85,6 +85,7 @@ Karşılaştırma bağlantıları çözülmüş mutlak yollarla yapılır (`.`, 
 
 **18.13** `TR_write_file` atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılır, diske işlenir, sonra eski dosyanın yerine konur. Yarıda kalan bir yazma (hata, disk dolması, çökme) var olan dosyayı bozmaz ve geride geçici dosya kalmaz.
 - Yol bir bağlantıysa gösterdiği dosya yazılır, bağlantı korunur. Var olan dosyanın izin bitleri korunur, yeni dosya `0644` açılır.
+- Yazılan bağlantı taban klasörün dışını gösterebilir: bağlantıyla yazmak klasörün dışına yazmaktır. Dışarıdan gelen adlarla yazan program 18.1'in mutlak parça kuralına ve kendi denetimine güvenir.
 - Bedelleri: her yazma diske işlendiği için çok sayıda küçük yazma yavaştır (büyük çıktı 18.17 ile yazılır); dosyanın başka sabit bağlantıları eski içeriği göstermeye devam eder; sahiplik, erişim listeleri ve Windows'un ek veri akışları klasörün varsayılanına döner; klasöre yazma izni gerekir; Windows'ta başka bir programın silmeye kapalı açtığı dosyanın yerine yazılamaz.
 - *Test:* TR testi.
 
@@ -109,7 +110,7 @@ TR_print(TR_list_dir(k).TR_length) # program bitince k silinir
 
 **18.16** Göreli yollar 13.1a'nın kuralıyla çözülür.
 - **Okuyan ve soran işler** (`TR_read_file`, `TR_read_lines`, `TR_list_dir`, 18.3'ün özellikleri, `TR_copy`'nin kaynağı) önce çalışma klasörüne, sonra kodun modülünün ve programın klasörüne bakar; `TR_Path("x").TR_exists` ile `TR_read_file("x")` aynı dosyayı görür.
-- **Değiştiren işler** (`TR_write_file`, `TR_write_lines`, `TR_make_dir`, `TR_remove`, `TR_move`'un kaynağı ve hedefi, `TR_copy`'nin hedefi) göreli yolu yalnız çalışma klasörüne göre çözer: başka bir klasördeki aynı adlı dosyayı silmez, ezmez, taşımaz.
+- **Değiştiren işler** (`TR_write_file`, `TR_write_lines`, `TR_save_tensors`, `TR_Checkpoint`'in koşu klasörü (20), `TR_Logger`'ın dosyası (19), `TR_make_dir`, `TR_remove`, `TR_move`'un kaynağı ve hedefi, `TR_copy`'nin hedefi) göreli yolu yalnız çalışma klasörüne göre çözer: başka bir klasördeki aynı adlı dosyayı silmez, ezmez, taşımaz.
 - **Bağlantılar:** silen, kopyalayan, taşıyan ve klasör gezen işler bağlantıları izlemez; okuyan, soran ve yazan işler bağlantının gösterdiği dosyayı kullanır.
 - Ağır işler (listeleme, kopyalama, silme, diskten okuma ve yazma) yorumlayıcı kilidini bırakır (10.3). Hatalar `TR_try`/`TR_catch` ile yakalanır; dosya bulunamazsa ileti bakılan yerleri sayar.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi (okuma sırası bugün 18.3'ün testinde sınanıyor).
@@ -118,5 +119,6 @@ TR_print(TR_list_dir(k).TR_length) # program bitince k silinir
 - `.TR_write(satır)` bir `TR_String` satırını ve ardından `\n` yazar. Satır sonu (`\n` ya da `\r`) içeren satır hatadır: her `.TR_write` tam bir satırdır, JSONL gibi satır biçimleri bozulmaz.
 - Yazma atomiktir (18.13): satırlar aynı klasördeki geçici bir dosyaya gider, `.TR_close()`'ta diske işlenir ve yerine konur. Program yazıcı açıkken başarıyla biterse yazıcı kapanır ve dosya yerine konur; hatayla ya da durdurmayla biterse geçici dosya silinir, var olan dosya değişmez.
 - `.TR_close()` 18.15'teki gibidir; kapatılmış yazıcıya yazmak hatadır. Yazıcıyı kapatmak için `TR_defer` kullanılır (9.1).
+- Yazıcı açıkken aynı programda o yolu okumak (`TR_read_file`, `TR_read_lines`, `TR_read_csv`) ve o yola ikinci bir yazıcı açmak ya da yazmak hatadır: dosyanın yerinde henüz eski içerik vardır; ileti yazıcıyı önce kapatmayı söyler.
 - Yazma yorumlayıcı kilidini diske işlerken bırakır; aynı yazıcıya yazan görevlerin her satırı bütün yazılır, satırların sırası 10.8'e göre tanımsızdır.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
