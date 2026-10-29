@@ -26,8 +26,8 @@ import (
 // trSinks TR metnini okuyan dil giriş noktalarıdır (paket yolu modül köküne göre → işlev adları); dize tipli
 // parametreleri TR metni sayılır.
 var trSinks = map[string][]string{
-	"internal/lang/lexer":  {"New", "NewBody", "NewBodyIn", "NewBodyView"},
-	"internal/lang/source": {"Prepare", "Split", "Decode", "Encode", "EncodeIn"},
+	"internal/lang/lexer":  {"New", "NewBody", "NewBodyIn"},
+	"internal/lang/source": {"Prepare", "Split", "Show", "ShowBody", "TypedLexer"},
 }
 
 // paramKey bir işlevin dize parametresidir.

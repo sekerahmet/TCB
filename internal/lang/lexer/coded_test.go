@@ -19,8 +19,7 @@ func allOf(l *Lexer) []Token {
 
 // Kural (2.1, 2.3a): kodlu gövdede dilin sözcükleri kimlikle, kod olmayan adlar kullanıcı adı olarak
 // okunur. Program kimlik listesinde okunur (NewBody): sözcüğün yazımı kimliğidir; bir yazım dilinde
-// okunan gövdede (NewBodyIn) o dilin adıdır. Kod her dilde aynıdır; konumlar dosyanın metnine göredir
-// (kişinin görünümünün konumlarını NewBodyView verir).
+// okunan gövdede (NewBodyIn) o dilin adıdır. Kod her dilde aynıdır; konumlar dosyanın metnine göredir.
 func TestCodedTokens(t *testing.T) {
 	const src = "TR_var eğer = TR_print\nx.TR_append TR_true"
 	en, err := codes.LoadLanguage("en")

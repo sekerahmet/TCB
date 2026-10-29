@@ -149,7 +149,7 @@ codegraph tests-for docs/development.md | group: tests that cite it => internal_
 codegraph tests-for internal/README.md | group: guard the rules it states => internal_test.TestLayoutFileNames | src: TCB 2026-10-25, 2. madde (kural belgesi)
 codegraph tests-for CLAUDE.md | contains: no tests read it by name | group: repository-wide checks that scan it => internal_test.TestRetiredTermsStayRetired | src: TCB 2026-10-25, 2. madde (adıyla okuyan yok; depo geneli taramalar var)
 codegraph tests-for cmd/tr/main.go | not: checker.TestBoolTextComparisonWarning | contains: covered by subprocess tests | src: TCB 2026-10-25, 3. madde
-codegraph tests-for editors/vscode/coded_view.js | group: tests, indirect => e2e.TestExtensionJSTests | contains: via editors/vscode/test/coded_view_test.js | src: TCB 2026-10-25, 4. madde
+codegraph tests-for editors/vscode/view.js | group: tests, indirect => e2e.TestExtensionJSTests | contains: via editors/vscode/test/view_test.js | src: TCB 2026-10-25, 4. madde
 codegraph tests-for README.md | group: among other files => e2e.TestDocLinks | not: no tests found | src: TCB 2026-10-25, 2. madde (gaps.md: belgeListesi kök README ve docs/*.md; K2 partisinden beri listeyle okuyan test kendi grubunda); katman 1, 2026-10-28 (örnek listesi examples/README.md'de)
 codegraph tests-for examples/README.md | group: <- tests => e2e.TestExamplesListedInReadme | src: katman 1, 2026-10-28 (kök README yeniden yazıldı, örnek listesini okuyan test bu dosyaya bağlı)
 # TCB 2026-10-25: depo genelini tarayan kural testleri (gaps.md)

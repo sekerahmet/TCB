@@ -42,11 +42,6 @@ type Lexer struct {
 	lineStarts []int
 	// rec açıksa (Kaydet) kökte üretilen bütün sözcük birimleri kaynak aralıklarıyla tutulur.
 	rec *[]Record
-	// shifts kodlu kökte gösterimdeki sütun kaymalarıdır (coded.go); shiftSum birikimli
-	// toplamları, shiftIdx kök çözümleyicinin sıradaki kayma noktasıdır.
-	shifts   []shift
-	shiftSum []int32
-	shiftIdx int
 	// lang ve words kökte, kodsuz gövdenin yazıldığı dil ve onun anahtar kelimeleridir
 	// (NewBodyIn); nil ise kimlik listesi (codes.Active).
 	lang  *codes.Language
@@ -194,9 +189,6 @@ func (l *Lexer) readChar() {
 		l.column = 0
 	} else {
 		l.column++
-	}
-	if l.shifts != nil {
-		l.applyShift()
 	}
 }
 
