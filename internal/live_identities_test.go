@@ -28,8 +28,8 @@ var deadIdentityAllowed = map[string]map[string]string{
 	"tools/migrate/removed.json":                                  {"*": "eski biçimden kalkan sözcükler"},
 	"tools/migrate/syntax.go":                                     {"TR_kw_while": "eski biçimin sözcüğü", "TR_kw_default": "eski biçimin sözcüğü"},
 	"internal/devtools/testrunner/behavior_language_spec_test.go": {"TR_fn_str": "program metninde kimlik yerine yazılan sınıflı eski yazımın örneği"},
-	"lib/optimizers.tr":                                         {"TR_mem_ple_table": "parametre yolu deseninin örneği", "TR_mem_embedding_x": "parametre yolu deseninin uymayan örneği"},
-	"lib/optimizers_test.tr":                                    {"TR_mem_ple_table": "parametre yolu deseninin testi", "TR_mem_embedding_x": "parametre yolu deseninin testi"},
+	"lib/optimizers.tr":                                           {"TR_mem_ple_table": "parametre yolu deseninin örneği", "TR_mem_embedding_x": "parametre yolu deseninin uymayan örneği"},
+	"lib/optimizers_test.tr":                                      {"TR_mem_ple_table": "parametre yolu deseninin testi", "TR_mem_embedding_x": "parametre yolu deseninin testi"},
 }
 
 // Kural (17.6): bir kimlik silinince satırı kod listesinden silinir; onu anan belge, yorum ve ileti de güncellenir.

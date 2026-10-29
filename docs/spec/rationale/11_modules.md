@@ -31,7 +31,7 @@ Kurallar: [`11_moduller.md`](../11_moduller.md). Bu dosya her kuralın emsalini 
 ### 11.6
 
 - *Emsal:* Go'nun standart kitaplığı derleyiciyle gelir ve kullanıcının paketleri onu gölgeleyemez [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* `tr/` kitaplığı dilin parçasıdır (17.1): adları koddur, her gösterimde okunur. Modülün yolu ise bir metindir ve çevrilmez; bu yüzden yolun kendisi kimliklerin dilindedir, İngilizce (17.2; baş geliştirici 2026-10-29: "kabul edelim ki dünyadaki tüm yazılım dilleri ingilizce"). Bugün modül yolları Türkçe sözcüklerle (`tr/layers`): Türkçe bilmeyen ajan ve okur yolu tahmin edemez.
+- *Gerekçe:* `tr/` kitaplığı dilin parçasıdır (17.1): adları koddur, her gösterimde okunur. Modülün yolu ise bir metindir ve çevrilmez; bu yüzden yolun kendisi kimliklerin dilindedir, İngilizce (17.2; baş geliştirici 2026-10-29: "kabul edelim ki dünyadaki tüm yazılım dilleri ingilizce"). 2026-10-29'a kadar modül yolları Türkçe sözcüklerleydi (`tr/katman`): Türkçe bilmeyen ajan ve okur yolu tahmin edemiyordu.
 
 ### 11.7
 
