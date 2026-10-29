@@ -122,15 +122,15 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 					if _, ok := p.functionTypeRest(); !ok {
 						return nil
 					}
-					lit.ReturnType, lit.ReturnToken = codes.TypeFunction.String(), open
+					lit.ReturnType = &ast.TypeRef{Name: codes.TypeFunction.String(), Token: open}
 				} else {
-					lit.ReturnTypes = list
+					lit.ReturnType = &ast.TypeRef{Token: open, Elems: list}
 				}
 			} else if p.expectPeek(lexer.TokIdent) {
-				lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
+				lit.ReturnType = &ast.TypeRef{Name: p.curToken().Literal, Token: p.curToken()}
 				p.role(p.curToken(), RoleType)
-				if lit.ReturnToken.Code == codes.TypeNoneType {
-					p.returnNoneError(rparen, lit.ReturnToken)
+				if lit.ReturnType.Token.Code == codes.TypeNoneType {
+					p.returnNoneError(rparen, lit.ReturnType.Token)
 					return nil
 				}
 			}
@@ -163,7 +163,7 @@ func (p *Parser) parseFunctionParameters() []ast.Param {
 			break
 		}
 		param := ast.Param{Name: p.curToken().Literal, NameToken: p.curToken()}
-		param.TypeName, param.TypeToken, param.DefaultValue = p.parseTypeAndDefault()
+		param.Type, param.DefaultValue = p.parseTypeAndDefault()
 		params = append(params, param)
 		if param.DefaultValue == nil && withDefault {
 			// Varsayılanlı parametreden sonrakilerin de varsayılanı vardır (6.4), Python'daki gibi.
@@ -290,11 +290,11 @@ func (p *Parser) parseTypeList() []ast.TypeRef {
 		return types
 	}
 	for {
-		name, tok, ok := p.typeAfter()
+		t, ok := p.typeAfter()
 		if !ok {
 			return nil
 		}
-		types = append(types, ast.TypeRef{Name: name, Token: tok})
+		types = append(types, *t)
 		if !p.peekTokenIs(lexer.TokComma) {
 			break
 		}
@@ -309,27 +309,27 @@ func (p *Parser) parseTypeList() []ast.TypeRef {
 // typeAfter imlecin ardındaki tipi okur (6.9): ad (TR_Int) ya da fonksiyon tipi ((T1, T2) -> R,
 // () -> R, (T) -> (A, B)); '->' sağdan birleşir. Fonksiyon tipinin adı TR_Function'dır, belirteci
 // '('dir; parametre ve dönüş tipleri ayrıştırılır, denetimi 4a'da. İmleç tipin son belirtecinde kalır.
-func (p *Parser) typeAfter() (string, lexer.Token, bool) {
+func (p *Parser) typeAfter() (*ast.TypeRef, bool) {
 	if p.peekTokenIs(lexer.TokLParen) {
 		p.nextToken()
 		open := p.curToken()
 		if p.parseTypeList() == nil {
-			return "", open, false
+			return nil, false
 		}
 		if !p.arrowAhead() {
 			p.peekError(lexer.TokArrow)
-			return "", open, false
+			return nil, false
 		}
 		if _, ok := p.functionTypeRest(); !ok {
-			return "", open, false
+			return nil, false
 		}
-		return codes.TypeFunction.String(), open, true
+		return &ast.TypeRef{Name: codes.TypeFunction.String(), Token: open}, true
 	}
 	if !p.expectPeek(lexer.TokIdent) {
-		return "", p.curToken(), false
+		return nil, false
 	}
 	p.role(p.curToken(), RoleType)
-	return p.curToken().Literal, p.curToken(), true
+	return &ast.TypeRef{Name: p.curToken().Literal, Token: p.curToken()}, true
 }
 
 // arrowAhead ardından dönüş oku '->' ('-' ve '>') mı geliyor.
@@ -352,8 +352,11 @@ func (p *Parser) functionTypeRest() (string, bool) {
 		}
 		return "", true
 	}
-	name, _, ok := p.typeAfter()
-	return name, ok
+	t, ok := p.typeAfter()
+	if !ok {
+		return "", false
+	}
+	return t.Name, true
 }
 
 // returnColonError dönüş tipinin ': R' ile yazımının hatasıdır (6.1): imleç parametrelerin ')'sinde,
@@ -377,15 +380,15 @@ func (p *Parser) returnNoneError(rparen, typ lexer.Token) {
 
 // parseTypeAndDefault isteğe bağlı ': Tip' ve '= varsayılan' bölümlerini okur (parametre ve yapı
 // alanı için); olmayan bölüm boş döner.
-func (p *Parser) parseTypeAndDefault() (typeName string, typeTok lexer.Token, def ast.Expression) {
+func (p *Parser) parseTypeAndDefault() (typ *ast.TypeRef, def ast.Expression) {
 	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
-		typeName, typeTok, _ = p.typeAfter()
+		typ, _ = p.typeAfter()
 	}
 	if p.peekTokenIs(lexer.TokAssign) {
 		p.nextToken() // '='
 		p.nextToken()
 		def = p.parseExpression(precLowest)
 	}
-	return typeName, typeTok, def
+	return typ, def
 }

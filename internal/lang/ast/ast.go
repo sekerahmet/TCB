@@ -45,12 +45,11 @@ func (p *Program) Line() int {
 // --- STATEMENTS ---
 
 type VarStatement struct {
-	Token     lexer.Token // değişken / sabit / :=
-	Name      *Identifier
-	TypeName  string      // optional type name (e.g. "Tam", "Metin")
-	TypeToken lexer.Token // the type name as written
-	Value     Expression
-	IsConst   bool
+	Token   lexer.Token // değişken / sabit / :=
+	Name    *Identifier
+	Type    *TypeRef // the written type (TR_var x: TR_Int? = ...); nil when not written
+	Value   Expression
+	IsConst bool
 }
 
 func (vs *VarStatement) statementNode()       {}
@@ -138,8 +137,7 @@ func (ws *WhileStatement) Line() int            { return ws.Token.Line }
 type StructField struct {
 	Name         string
 	NameToken    lexer.Token // the name as written
-	TypeName     string
-	TypeToken    lexer.Token // the type name as written
+	Type         *TypeRef    // nil when not written
 	DefaultValue Expression
 }
 
@@ -409,8 +407,7 @@ func (me *MatchExpression) Line() int            { return me.Token.Line }
 type Param struct {
 	Name         string
 	NameToken    lexer.Token // the name as written; zero for a parameter the parser made (the implicit 'it')
-	TypeName     string
-	TypeToken    lexer.Token // the type name as written
+	Type         *TypeRef    // nil when not written
 	DefaultValue Expression
 }
 
@@ -419,22 +416,31 @@ type FunctionLiteral struct {
 	Name       string
 	NameToken  lexer.Token // the function's name as written; zero for an unnamed one
 	Parameters []Param
-	ReturnType string
-	// ReturnToken is the token of the return type's name (zero when not written).
-	ReturnToken lexer.Token
-	// ReturnTypes are the types of several results, -> (A, B) (6.3); ReturnType is then empty.
-	ReturnTypes []TypeRef
-	Body        *BlockStatement
+	// ReturnType is the type after '->' (6.1); several results are a tuple type, -> (A, B) (6.3).
+	// nil when not written.
+	ReturnType *TypeRef
+	Body       *BlockStatement
 }
 
 func (fl *FunctionLiteral) expressionNode()      {}
 func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
 func (fl *FunctionLiteral) Line() int            { return fl.Token.Line }
 
-// TypeRef is a type name as written, with its token (Dump skips the token's position).
+// TypeRef is a type as written (3.5-3.7, 6.9, 6.10, 15.1). It is one of:
+//   - a name, with its type arguments: TR_Int, TR_List[TR_Int], TR_Dict[K, V] (Name, Args);
+//   - a tuple type (A, B), at least two elements (Elems);
+//   - a function type (T1, T2) -> R (Params, Return; Return is never nil).
+//
+// Optional is the trailing '?' (T?). Token is the name's token, or the '(' of a tuple or
+// function type (Dump skips the token's position).
 type TypeRef struct {
-	Name  string
-	Token lexer.Token
+	Name     string
+	Token    lexer.Token
+	Args     []TypeRef
+	Optional bool
+	Elems    []TypeRef
+	Params   []TypeRef
+	Return   *TypeRef
 }
 
 type NamedArg struct {

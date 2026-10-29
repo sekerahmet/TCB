@@ -155,9 +155,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.VarStatement:
 		c.checkShadowing(s.Name.Value, s.Name.Token)
 		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Name.Token)
-		declared := c.checkedTypeName(s.TypeName, siteOf(s.TypeToken, s.Line()))
+		declared := c.writtenType(s.Type, s.Line())
 		inferred := c.inferExpression(s.Value)
-		if s.TypeName != "" && !typesCompatible(declared, inferred) {
+		if s.Type != nil && !typesCompatible(declared, inferred) {
 			c.addErrorAt(s, messages.New(messages.H1001,
 				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
 		}
@@ -166,7 +166,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		// sayılır. Sabitler yeniden atanamadığı için çıkarılan tipleri kalır.
 		finalType := typeAny
 		switch {
-		case s.TypeName != "":
+		case s.Type != nil:
 			finalType = declared
 		case s.IsConst:
 			finalType = inferred
