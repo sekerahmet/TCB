@@ -487,10 +487,11 @@ func (me *MemberExpression) Line() int            { return me.Token.Line }
 
 // ElementExpression reads a tuple's element by its index: t.0, t.1 (3.6a). t.0.1 is (t.0).1.
 type ElementExpression struct {
-	Token      lexer.Token // .
-	Object     Expression
-	Index      int
-	IndexToken lexer.Token // the index's token
+	Token       lexer.Token // .
+	Object      Expression
+	ObjectToken lexer.Token
+	Index       int
+	IndexToken  lexer.Token // the index's token
 }
 
 func (ee *ElementExpression) expressionNode()      {}

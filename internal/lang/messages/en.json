@@ -130,7 +130,7 @@
 "H0295": "the method '{name}' is written twice in the interface '{iface}'",
 "H0296": "the field '{name}' is written twice in the state '{variant}'",
 "H0297": "the field '{name}' of the state '{variant}' has no default but comes after the defaulted field '{prev}'; write the fields without a default first",
-"H0298": "a tuple's element cannot be assigned: a tuple does not change (3.6a); build a new tuple, (a, t.1)",
+"H0298": "{target}.{index} cannot be assigned: a tuple does not change (3.6a); bind a new tuple to {target}, writing the new value in place of element {index}",
 "H1001": "Type mismatch — the variable {name|q} was declared with type {declared|q} but a value of type {given|q} was assigned{hint}",
 "H1002": "Constant error — {name|q} is a constant ('{keyword}') and its value cannot be changed",
 "H1003": "Return type mismatch — the function must return {expected|q} but returns a value of type {given|q}{hint}",

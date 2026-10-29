@@ -135,7 +135,7 @@ const (
 	H0295 Code = 295  // '{name}' metodu '{iface}' arayüzünde iki kez yazıldı
 	H0296 Code = 296  // '{name}' alanı '{variant}' durumunda iki kez yazıldı
 	H0297 Code = 297  // '{variant}' durumunun '{name}' alanının varsayılanı yok ama varsayılanlı '{prev}' alanından sonra geliyor; varsayılansız alanları önce yazın
-	H0298 Code = 298  // demetin öğesine atanamaz: demet değişmez (3.6a); yeni bir demet kurun, (a, t.1)
+	H0298 Code = 298  // {target}.{index|dat} atanamaz: demet değişmez (3.6a); {target|dat} yeni bir demet bağlayın, {index}. öğenin yerine yeni değeri yazarak
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

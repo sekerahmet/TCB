@@ -292,8 +292,9 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int, pattern
 				leftExp = p.parseIndexExpression(leftExp, p.spanToken(start, leftEnd))
 			}
 		case lexer.TokDot, lexer.TokSafeDot:
+			leftEnd := p.curToken()
 			p.nextToken()
-			leftExp = p.parseMemberExpression(leftExp)
+			leftExp = p.parseMemberExpression(leftExp, p.spanToken(start, leftEnd))
 		case lexer.TokLBrace:
 			// Sondaki blok yalnızca aynı satırda ve kontrol yapısı başlığı dışında geçerlidir
 			if p.noBlock || p.peekToken().Line != p.curToken().Line || !isTrailingBlockTarget(leftExp) {

@@ -118,7 +118,7 @@ func (p *Parser) parseIndexExpression(left ast.Expression, leftTok lexer.Token) 
 	}
 	return exp
 }
-func (p *Parser) parseMemberExpression(left ast.Expression) ast.Expression {
+func (p *Parser) parseMemberExpression(left ast.Expression, leftTok lexer.Token) ast.Expression {
 	tok := p.curToken()
 	safe := tok.Type == lexer.TokSafeDot
 	if !safe && p.peekTokenIs(lexer.TokInt) {
@@ -130,7 +130,7 @@ func (p *Parser) parseMemberExpression(left ast.Expression) ast.Expression {
 			p.syntaxError(idx, messages.H0036, idx.Literal)
 			return nil
 		}
-		return &ast.ElementExpression{Token: tok, Object: left, Index: n, IndexToken: idx}
+		return &ast.ElementExpression{Token: tok, Object: left, ObjectToken: leftTok, Index: n, IndexToken: idx}
 	}
 	// Üye adı bir ad ya da demetin indeksidir: başka bir sözcük (x.$, x.eğer) sessizce üye adı sayılmaz.
 	if !p.expectPeek(lexer.TokIdent) {

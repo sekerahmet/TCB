@@ -406,7 +406,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 func (p *Parser) checkAssignTargets(targets ...ast.Expression) {
 	for _, t := range targets {
 		if ee, ok := t.(*ast.ElementExpression); ok {
-			p.syntaxError(ee.IndexToken, messages.H0298)
+			p.syntaxError(ee.IndexToken, messages.H0298, ee.ObjectToken.Literal, ee.Index)
 		}
 	}
 }
