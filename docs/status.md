@@ -254,63 +254,53 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 ## 7. Yapılar
 
-Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor (`q.x = 9` `p.x`'i de değiştiriyor), eşitlik alanlardan, çağrısız metot nesneye bağlı bir fonksiyon [ölçüldü].
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`); her kuralda bir ayrılık kaldı. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor, eşitlik alanlardan, metin kurma yazımıyla ve döngüde "...", çağrısız metot nesneye bağlı bir fonksiyon; yapı tanımının sözdizimi hataları (kalıtım ve Python sınıfı iletileri, yinelenen alan ve metot, alan sırası), metotta düz alan adı, parametre olarak `TR_self`, kurucunun değerli dönüşü ve dönüş tipi, durumlu tipin ve arayüzün tanım ve desen hataları çalışmadan önce bulunuyor [ölçüldü: küçük programlar ve `tests/negative/` yapı, durumlu tip ve arayüz fikstürleri; denetim ve çalıştırma]. `tests/yapilar_test.tr` 24 testi geçiyor; tipsiz alanlar (7.1) ve verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
 
-İki yeni anahtar kelime kimlik listesine eklenir: `TR_enum` (7.7) ve `TR_interface` (7.8) (Ahmet, 2026-10-27, adları ana oturuma bıraktı: "senin için hataya en az sebep olacak hangisi ise o isimleri seçebilirsin"). Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11).
+Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
 
-`tests/yapilar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır:
-- tipsiz alanlar ve varsayılanlıdan sonra varsayılansız alan (7.1); tipsiz metot ve kurucu parametreleri (1.2);
-- verilmeyen alanın yokluk alması (7.2);
-- argüman ve alan hatalarını çalışırken yakalayan 7.2 ve 7.5 testleri: artık denetim hatası, `tests/negative/` fikstürlerine taşınır;
-- `p?.z` (7.5, 4.8);
-- eski metin biçimi ve yapının tipinin StructType olması (7.6); `//` yorumları ve eski başlık.
-
-Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, None (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [DENETİM].
-
-Kütüphanenin bedeli [ölçüldü, DENETİM]: depoda 38 yapı tanımı (`lib/`'de 16); alanlar ve kurucu parametreleri tipsiz, tipli yazıma çevrilir. Alan daraltılmadığı için (3.5) `lib/`'deki 15 `TR_self.alan != TR_none` sınaması yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır. `lib/katman.tr`'nin kurucuları 7.4'e uyuyor.
+Kütüphanenin bedeli: `.tr` dosyalarında 63 yapı tanımı (`lib/`'de 16) [ölçüldü: satır başındaki `TR_struct` için git grep]; alanlar ve kurucu parametreleri tipsiz, tipli yazıma çevrilir. Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/katman.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
 
 JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde'si, Python'un pydantic'i gibi) henüz hiçbir bölümde yok; sonraki bölümlerde tasarlanır.
 
 ### 7.1
 
-- **Mevcut durum:** alan tipsiz yazılabiliyor (`y = 0`); varsayılanlı alandan sonra varsayılansız alan geçerli (bugünkü 7.1 testi).
-- **Yapılacaklar:** her alanın tipi; varsayılanlıların sonda olması; yapının tip parametresi; kalıtım yazımları için iletiler.
-- **Ayrıştırıcının toparlanması:** yinelenen metottan sonra kapanan `}` ikinci bir H0141 veriyor (`tests/negative/yapi_yinelenen_metot.tr` bugünkü davranışı etiketliyor); tek yanlışa tek ileti, fikstürün etiketi düzelir.
+- **Mevcut durum:** alan tipsiz yazılabiliyor (`y = 0`, yalnız ad); varsayılanlı alandan sonra varsayılansız alan, yinelenen alan ve metot, kalıtım yazımları sözdizimi hatası; yinelenen metot tek ileti veriyor; yapının tip parametresi yok: `TR_struct Kutu[T]` sözdizimi hatası ("'{' bekleniyordu") [ölçüldü: tipsiz alanlı ve tip parametreli yapı, `tests/negative/` yapı fikstürleri; denetim ve çalıştırma].
+- **Yapılacaklar:** her alanın tipi zorunlu (tipsiz alan denetim hatası); yapının tip parametresi (6.10 ile); kitaplığın ve testlerin tipsiz alanları çevrilir; TR testi.
 
 ### 7.2
 
-- **Mevcut durum:** verilmeyen ve varsayılanı olmayan alan yokluk alıyor [ölçüldü].
-- **Yapılacaklar:** zorunlu alan verilmezse denetim hatası.
+- **Mevcut durum:** sırayla ve adla kurma, her kurmada yeniden hesaplanan varsayılan kurala uyuyor; varsayılanı olmayan alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda ancak çalışırken hata (H2750, H2419, H2418, H2420); alanın tipi kurmada denetlenmiyor: `TR_Int` alana metin veriliyor [ölçüldü: iki alanlı yapıyla altı kurma; denetim ve çalıştırma].
+- **Yapılacaklar:** zorunlu alanın verilmemesi ve 6.5'in argüman hataları denetim hatası; alanın tipinin denetimi; denetleyicinin testi.
 
 ### 7.3
 
-- **Mevcut durum:** metotta düz alan adı tanımsız ad hatası veriyor; atamada ileti `TR_var`'ı [ölçüldü], okumada en yakın adı öneriyor, ilgisiz bir tip adı bile olabiliyor [ölçüldü, DENETİM]. Dışta aynı adlı değişken varsa düz ad onu okuyor (hata yok).
-- **Yapılacaklar:** alan ya da metot adıyla aynı düz ad denetim hatası, ileti `TR_self.x`'i önerir; metot `TR_self.m()` ile; Python'un self parametresi için ileti.
+- **Mevcut durum:** alan `TR_self.x` ile, metot `TR_self.m()` ile; metotta düz alan ya da metot adı dıştaki ada çözülse de çözülmese de denetim hatası, ileti `TR_self.x`'i öneriyor; `TR_self` parametre yazılınca sözdizimi hatası; nesnesiz metot çalışırken H2751. Python alışkanlığıyla ilk parametreye düz self sözcüğü yazılınca hata yok: o sıradan bir parametre sayılıyor, çağrı eksik argüman hatası veriyor [ölçüldü: dışta aynı adlı değişkenli metot, `TR_self` ve düz self parametreli metot, `tests/negative/yapi_metotta_duz_alan.tr`; denetim ve çalıştırma].
+- **Yapılacaklar:** metodun ilk parametresi Python'un self'iyse sözdizimi hatası, ileti `TR_self`'i önerir; TR testi.
 
 ### 7.4
 
-- **Mevcut durum:** kurucu alanı atamasa da konumlu argüman alana yazılıyor (`D(3).n` 3 veriyor) [ölçüldü].
-- **Yapılacaklar:** kurucu varken yalnız onun imzasıyla kurma; varsayılanlı alanlar kurucudan önce, tanım sırasıyla; her alanın kurucuda atanma denetimi.
+- **Mevcut durum:** kurucu varken kurma onun imzasıyla, varsayılanlı alanlar gövdeden önce tanım sırasıyla, değerli `TR_return` ve dönüş tipi sözdizimi hatası; kurucunun imzasına uymayan kurma ancak çalışırken bulunuyor (H2410, H2414); kurucunun atamadığı varsayılansız alan yokluk kalıyor, atanmadan okunan alan ve bütün alanlar atanmadan metot çağrısı hata vermiyor [ölçüldü: varsayılansız alanı atamayan, onu okuyan ve metot çağıran kurucu; denetim ve çalıştırma].
+- **Yapılacaklar:** kurucunun sonunda her yolda varsayılansız her alanın atanması, atanmadan okuma ve önceden metot çağrısı denetim hatası; kurucunun imzasıyla kurma 6.5'in denetim hatalarıyla; denetleyicinin testi.
 
 ### 7.5
 
-- **Mevcut durum:** `TR_Int` alana metin atanabiliyor; olmayan alan ancak çalışırken bulunuyor ("alanı veya metodu bulunamadı") [ölçüldü]; `p?.z` yokluk veriyor (bugünkü 7.5 testi).
-- **Yapılacaklar:** alan tipinin denetimi; olmayan alan denetim hatası, ileti en yakın alanı önerir.
+- **Mevcut durum:** alan okunuyor ve atanıyor, `TR_const` nesnenin alanı atanabiliyor; olmayan alan ve metoda atama ancak çalışırken bulunuyor (H2468, H2405, H2404); ileti en yakın adı öneriyor ama alanla eşit uzaklıktaki metodu da seçebiliyor (`p.y` için `m`), yakın ad yoksa alanı eklemeyi öneriyor; alanın tipi denetlenmiyor: `TR_Int` alana metin atanıyor [ölçüldü: bir alanlı ve bir metotlu yapıda okuma ve atama; denetim ve çalıştırma].
+- **Yapılacaklar:** alan tipinin denetimi; olmayan alan ve metoda atama denetim hatası, ileti en yakın alanı önerir; denetleyicinin testi.
 
 ### 7.6
 
-- **Mevcut durum:** nesnenin metni `Nokta{x: 1, y: 2}` biçiminde [ölçüldü]; yapının tipi StructType (bugünkü 7.6 testi).
-- **Yapılacaklar:** metin kurma yazımıyla ("Nokta(x: 1.0, y: 2.0)"), döngüde "..."; döngüde `==` çalışma hatası; fonksiyon ya da tensör alanlı yapının `==`'si denetim hatası.
+- **Mevcut durum:** paylaşım, alanlardan eşitlik, kurma yazımıyla metin ("Nokta(x: 9.0, y: 4.0)"), kendine bağlanan nesnede "...", döngüde `==`'nin çalışma hatası (H2771) ve `TR_Type(p) == Nokta` kurala uyuyor; yapının tipi StructType; fonksiyon ya da tensör alanlı yapının `==`'si denetim değil çalışma hatası (H2770), aynı nesne kendisiyle karşılaştırılınca hata yok, doğru veriyor [ölçüldü: paylaşılan nesne, kendine bağlı nesne, fonksiyon alanlı nesnenin kendisiyle karşılaştırması; denetim ve çalıştırma].
+- **Yapılacaklar:** fonksiyon ya da tensör alanlı yapının `==`'si denetim hatası (aynı nesnede de); yapının tipi `TR_Type` (3.11); denetleyicinin testi.
 
 ### 7.7
 
-- **Mevcut durum:** durumlu tip yok.
-- **Yapılacaklar:** `TR_enum`, tip parametresi, durumların kurulması (çağrısız alanlı ve çağrılı alansız durumun hatası, `TR_init`'in yokluğu), eşlemede konumlu desen (ad sayısının hatası, adlı alanın iletisi), alan bağlama ve kapsama, koşullu kol iletisi, metin (3. katman, 3B).
+- **Mevcut durum:** `TR_enum`, durumların kurulması, çağrısız alanlı ve çağrılı alansız durumun hatası, kurucunun yokluğu, değişmezlik, eşlemede konumlu desen ve alan bağlama, adlı alan ve koşullu kol hatası, eşitlik ve metin uygulandı (bugünkü 7.7 testleri ve fikstürleri). Kalanlar: tip parametresi yok (`TR_enum Cevap[T]` sözdizimi hatası); kapsama denetimi yok (`_`'siz, eksik durumlu eşleme çalışırken H2702); dıştaki adla aynı bağlanan ad hata vermiyor, dıştakini gizliyor (5.12); alanın tipi denetlenmiyor (`TR_Int` alana metin); tensör alanlı durumun `==`'si denetim değil çalışma hatası (H2770) [ölçüldü: dört durumlu tip programı; denetim ve çalıştırma].
+- **Yapılacaklar:** tip parametresi (6.10 ile); kapsama denetimi (5.6); bağlanan adın 5.12 hatası; alan tipinin denetimi; tensör içeren durumlu tipin `==`'si ve `==` isteyen deseni denetim hatası (15.5); TR testi.
 
 ### 7.8
 
-- **Mevcut durum:** arayüz yok.
-- **Yapılacaklar:** `TR_interface` (en az bir metot; boş arayüz denetim hatası), yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt, `TR_Type` sınamasıyla asıl tipe daraltma. Kimlik kapısının onaylı yeni adlar listesine `TR_enum` ve `TR_interface` girer.
+- **Mevcut durum:** `TR_interface`, boş arayüzün ve alanlı ya da gövdeli arayüzün sözdizimi hatası, yapının ve durumlu tipin yapısal karşılaması, nesnenin kendi metoduna giden çağrı, arayüz tipli parametre ve alan, `TR_Type` sınamasıyla dalda asıl tipin alanı çalışıyor. Denetim yok: metodu eksik değer ancak çağrıda "alanı ya da metodu yok" çalışma hatası veriyor, imzası tutmayan değer (`TR_String` parametreli metot) hatasız geçiyor; arayüz değerinin `==`'si hata vermiyor; arayüz kısıtlı tip parametresi (`TR_func g[T: Katman]`) sözdizimi hatası [ölçüldü: bir arayüz, üç yapı ve bir durumlu tiple karşılama, daraltma ve karşılaştırma; denetim ve çalıştırma].
+- **Yapılacaklar:** karşılamayan değer denetim hatası, ileti eksik ya da imzası tutmayan metotları söyler; arayüz değerinin karşılaştırması denetim hatası (4.5); tip parametresinde kısıt (6.10 ile); daraltmanın denetleyicide 3.5'in koşullarıyla yapılması; denetleyicinin testi.
 - **Karar (2026-10-29):** yapısal karşılama kalır; açık bildirimle karşılaştırması gerekçede (7.8). Eski gerekçe "kütüphanenin bugünkü yapılarını değiştirmeden" motora dayanıyordu, çıkarıldı.
 
 ## 8. Hata yönetimi
