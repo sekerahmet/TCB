@@ -46,9 +46,9 @@ TR_test "17.1 hiçbir gösterim dili asıl dil değildir: dillerin sözcükleri 
     TR_assert_equal(4, değişken)
 }
 
-TR_test "19.2 programın yardım seçeneğinin her dildeki adı ayrılmıştır" {
-    # tr'nin kendi komut satırı Go testleriyle sınanır (dil tanımı 17.9); programın --yardım'ı (TR_opt_help) her dilde ayrılmıştır.
-    TR_assert_equal("H7221", TR_error_code { TR_command_line({"yardım": TR_true}) })
+TR_test "19.3 programın yardım seçeneğinin adları help ve h ayrılmıştır" {
+    # tr'nin kendi komut satırı Go testleriyle sınanır (dil tanımı 17.9). Yardımın gösterim dillerindeki
+    # adlarının ayrılmış olması bugünkü davranıştır; 19.3 uygulanınca kalkar (status 19.10).
     TR_assert_equal("H7221", TR_error_code { TR_command_line({"help": TR_true}) })
     TR_assert_equal("H7221", TR_error_code { TR_command_line({"h": TR_true}) })
 }

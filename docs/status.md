@@ -637,7 +637,11 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). Taslak 
 ### 19.2
 
 - **Mevcut durum:** seçenekler bir sözlükle veriliyor (`TR_command_line({"oran": 0.5, ...})`), sonuç bir sözlük [ölçüldü: main `217ae940`].
-- **Yapılacaklar:** yapıyla yazım (13.10'un göçü: 19 kullanım); `tests/surec_ve_kayit_test.tr`, rehber ve örnekler; TR testi.
+- **Yapılacaklar:** yapıyla yazım (13.10'un göçü: 19 kullanım); `tests/surec_ve_kayit_test.tr`, `internal/stdlib/process`'in `TestOptionNameIsTheTextKey`'i, rehber ve örnekler; `TR_descriptions:` değişmezinde bilinmeyen adın denetim hatası; TR testi.
+
+### 19.4
+
+- **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
 
 ### 19.5, 19.7
 
@@ -646,7 +650,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). Taslak 
 ### 19.10
 
 - **Mevcut durum:** yardım seçeneğinin Türkçe ve İngilizce adı ikisi de çalışıyor; mantık değerinde Türkçe yazım da okunuyor; ondalıkta Türkçe "sonsuz" okunmuyor; yardım varsayılanları kişinin dilinde gösteriyor [ölçüldü: main `217ae940`].
-- **Yapılacaklar:** tek yazım: yalnız "--help" ve "-h", "true" ve "false", "inf", "-inf" ve "nan"; yardımın varsayılanları komut satırının yazımıyla; "help" ve "h" ayrılmış ad (bugün her dildeki yardım adı ayrılmış; `tests/kodlu_saklama_test.tr`'nin 19.2 testi); Go testleri.
+- **Yapılacaklar:** tek yazım: yalnız "--help" ve "-h", "true" ve "false", "inf", "-inf" ve "nan"; yardımın varsayılanları komut satırının yazımıyla; yalnız "help" ve "h" ayrılmış ad (bugün her dildeki yardım adı ayrılmış); `internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri; Go testleri.
+- **Göç:** yardımın Türkçe adı 26 dosyada 47 satırda [ölçüldü: DENETİM 19-1]. İkiye ayrılır: `tr`'nin kendi seçeneği 17.9'un göçüdür (`cmd/tr/main.go`, `options.go`); programın seçeneği 19.10'unkudur (`internal/stdlib/process`, `examples/tr/37_komut_satirinda_ayar.tr`, `39_veri_ile_egitim.tr`, `tools/gpu/gpt_training.tr`, rehber).
 
 ### 19.11
 

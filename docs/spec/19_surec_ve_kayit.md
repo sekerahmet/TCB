@@ -15,6 +15,8 @@ Bir eğitim, ölçme ya da hizmet programının dış dünyayla dört bağı var
 - Argüman verilmemişse (`TR_cmd_test` ve kabuk dahil) varsayılanlar döner.
 - Programda bir kez çağrılır; ikinci çağrı hatadır. Sonuç bir değişkende tutulur.
 - Seçeneklerin tipi alanların tipidir; `ayar.adım` tipiyle okunur, yanlış alan adı denetim hatasıdır.
+- Her seçeneğin bir varsayılanı vardır (`Ayar()` varsayılansız alanda denetim hatasıdır, 7.2). Verilmesi gereken bir seçenek isteğe bağlı tiple yazılır ve program yokluğunu kendisi bildirir: `veri: TR_String? = TR_none`, sonra `TR_if ayar.veri == TR_none { TR_throw "--veri verilmeli" }`. Böylece `TR_cmd_test` ve kabuk argümansız çalışır.
+- `TR_descriptions:` bir sözlük değişmeziyse bilinmeyen alan adı denetim hatasıdır; değişkenle gelende kurulum hatası (19.3).
 
 ```tr
 # TR 4
@@ -38,9 +40,9 @@ TR_print(ayar.adım)
 
 **19.4** Adının bir **sözcüğü** gizli bir sözcük olan ortam değişkeninin ve komut satırı seçeneğinin değeri gizlidir.
 - Ad sözcüklere `_`, `-`, `.`, boşluk gibi ayırıcılardan ve küçükten büyüğe harf geçişlerinden bölünür (`apiKey` → `api Key`). Sözcükler Türkçe harfler ASCII karşılıklarıyla, harf büyüklüğüne bakmadan, **tam** karşılaştırılır.
-- Gizli sözcükler: `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, `PASSWD`, `PASS`, `PASSPHRASE`, `AUTH`, `CREDENTIAL(S)`, `PRIVATE`, `GİZLİ`, `ŞİFRE(Sİ)`, `PAROLA(SI)`, `ANAHTAR(I)` ve bitişik `APIKEY`, `ACCESSKEY`, `SECRETKEY`, `PRIVATEKEY`, `AUTHTOKEN`, `ACCESSTOKEN`, `APITOKEN`. Kullanıcının adları her dilde olabildiği için liste gösterim dillerinin (17.7) sözcüklerini taşır. `HF_TOKEN`, `OPENAI_API_KEY`, `apiKey`, `db_şifresi` gizlidir; `TOKENIZER_PATH`, `max_tokens`, `KEYBOARD_LAYOUT`, `PASSAGE_DIR` değildir.
+- Gizli sözcükler: `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, `PASSWD`, `PASS`, `PASSPHRASE`, `AUTH`, `CREDENTIAL(S)`, `PRIVATE`, `GİZLİ`, `ŞİFRE(Sİ)`, `PAROLA(SI)`, `ANAHTAR(I)` ve bitişik `APIKEY`, `ACCESSKEY`, `SECRETKEY`, `PRIVATEKEY`, `AUTHTOKEN`, `ACCESSTOKEN`, `APITOKEN`. Kullanıcının adları her dilde olabildiği için her gösterim dilinin dil dosyası (17.4) kendi gizli sözcüklerini taşır; liste dillerle birlikte büyür. Bugün Türkçe ve İngilizce. `HF_TOKEN`, `OPENAI_API_KEY`, `apiKey`, `db_şifresi` gizlidir; `TOKENIZER_PATH`, `max_tokens`, `KEYBOARD_LAYOUT`, `PASSAGE_DIR` değildir.
 - Yalnız sayı ya da mantık değeri olan değer (`--max_tokens 131072`) gizli sayılmaz: maskelemek bütün sayı çıktılarını bozardı.
-- En az 6 karakterli gizli değer **insanın göreceği çıktılarda** `***` olarak görünür: `TR_print`'in çıktısı, hata iletileri ve kod çerçevesi, uyarılar, ilerleme çubuğu, günlük dosyası (başlangıç kaydındaki ayarlar dahil), iş durumu dosyası (19.11), yardım çıktısı, hata ayıklayıcının değişken görünümü.
+- En az 6 karakterli gizli değer **insanın göreceği çıktılarda** `***` olarak görünür: `TR_print`'in çıktısı, hata iletileri ve kod çerçevesi, uyarılar, ilerleme çubuğu, günlük dosyası (başlangıç kaydındaki ayarlar dahil), iş durumu dosyası (19.11), yardım çıktısı, hata ayıklayıcının değişken görünümü ve düzenleyicinin İzleme Masası.
 - **Veri değişmez:** değişkenin değeri, `TR_write_file`, `TR_json_string` gerçek değeri taşır.
 - Bu, sızıntıyı azaltır ama güvence değildir: değer dönüştürülünce (dilim, ters çevirme) eşleşme kaybolur. Gizli değer argümanla değil ortam değişkeniyle verilir.
 - *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`.
@@ -48,7 +50,7 @@ TR_print(ayar.adım)
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.
 - Her açılışın ilk satırı bir başlangıç kaydıdır: `{"kind":"start","time":...,"version":2,"program":"egit.tr","total":5000,"settings":{...}}`. `total` bağlı bir çubuğun toplamı, `settings` programda `TR_command_line` çağrıldıysa onun sonucudur.
-- `g.TR_append(kayıt)` bir ölçü kaydı yazar, değer döndürmez (13.10). `time` anahtarı verilmediyse eklenir; tek öğeli tensör sayı, daha büyüğü iç içe liste olur. `g.TR_append(metin)` `{"time":...,"message":...}` yazar.
+- `g.TR_append(kayıt)` bir ölçü kaydı yazar, değer döndürmez (13.10). `time` anahtarı verilmediyse eklenir, verildiyse onun yerine geçer; tek öğeli tensör sayı, daha büyüğü iç içe liste olur. `g.TR_append(metin)` `{"time":...,"message":...}` yazar.
 - NaN ve sonsuz değerler gizlenmez; `"NaN"`, `"Infinity"`, `"-Infinity"` metni olarak yazılır.
 - Her kayıt tek bir yazma çağrısıyla eklenir: süreç çökse de en çok son satır yarım kalır, sonraki açılış yeni kaydı yeni satırda başlatır.
 - Sistemin yazdığı anahtarlar ve kayıt türleri (`kind`: `start`, `end`, `resume`; `time`, `version`, `program`, `total`, `settings`, `step`, `rate`, `seconds`, `message`) dosya biçiminin parçasıdır ve çevrilmez (17.3). Kaydın kendi anahtarları programındır ve yazıldığı gibi yazılır.
@@ -77,7 +79,7 @@ TR_print(ayar.adım)
 **19.10** Komut satırında yazım. `TR_cmd_run`, `TR_cmd_debug`, `TR_cmd_build`'in ürettiği uygulama ve düzenleyicinin `"args"` ayarı aynı yoldan geçer (1.4).
 - `--ad değer` ya da `--ad=değer`. `TR_Bool` seçenek değersiz yazılınca `TR_true` olur (`--hızlı`); `TR_false` yalnız `--hızlı=false` ile.
 - **Değerlerin tek yazımı vardır** (17.9): mantık `true`, `false`; ondalık `inf`, `-inf`, `nan`; sayılar TR'nin yazımıyla (`5000`, `5_000`, `1e-3`; `TR_Float` seçeneğe `3` verilirse `3.0`). Virgüllü ondalık (`0,001`) ve `TR_Int` seçeneğe noktalı sayı hatadır. Liste değeri virgülle ayrılır (`--katmanlar 128,64`; boş değer boş liste).
-- `--help` ya da `-h` (başka argümanlar hatalı olsa da) seçenekleri tipleri, açıklamaları ve varsayılanlarıyla standart çıktıya yazar ve programı **0** koduyla bitirir. Yardımın sözcükleri kişinin dilindedir (17.7), varsayılanları ise komut satırının yazımıyla: gösterilen her varsayılan geri verilince aynı değeri verir.
+- `--help` ya da `-h` (başka argümanlar hatalı olsa da) seçenekleri tipleri, açıklamaları ve varsayılanlarıyla standart çıktıya yazar ve programı **0** koduyla bitirir. Yardımın sözcükleri kişinin dilindedir (17.8), varsayılanları ise komut satırının yazımıyla: gösterilen her varsayılan geri verilince aynı değeri verir.
 - Bilinmeyen seçenek, iki kez verilen seçenek, değeri eksik ya da tipine uymayan seçenek, tek tireli seçenek (`-h` dışında), konumlu argüman ve 1 MB'tan uzun argüman kullanım hatasıdır: standart hataya hata ve yardımın nasıl alınacağı yazılır, program **2** koduyla biter. İleti en yakın seçeneği önerir; başka yazımlar (`--ogrenme_orani`, `--öğrenme-oranı`) kabul edilmez, doğru ad önerilir.
 - `--ad değer` biçiminde sonraki argüman `-` ile başlasa da değerdir (`--oran -0.5`); `--` ile başlayan argüman değer sayılmaz.
 - Yardım ve kullanım hatası birer program çıkışıdır: `TR_defer` blokları çalışır, `TR_try`/`TR_catch` onları yakalamaz (1.5, 8.3).
@@ -90,7 +92,7 @@ adım 1200/5000 ▕████▌░░░░░░░░░░░▏ %24 · ka
 adım 5000/5000 · kayıp 1,84 · 61 dk 3 sn sürdü
 ```
 
-- Çubuk bir görünümdür ve kişinin dilindedir (`TR_LANG`, 17.7): sözcükler o dilde, ölçüler 3 anlamlı basamakla ve o dilin ondalık ayırıcısıyla. 0,001'den küçük ve 100 000'den büyük sayılar bilimsel yazılır; `TR_Int` olduğu gibi, uzun metin kısaltılarak yazılır. Hız saniyede birin altındaysa saniye başına adım yerine adım başına saniye gösterilir.
+- Çubuk bir görüntüdür ve kişinin dilindedir (`TR_LANG`, 17.8): sözcükler o dilde, ölçüler 3 anlamlı basamakla ve o dilin ondalık ayırıcısıyla. 0,001'den küçük ve 100 000'den büyük sayılar bilimsel yazılır; `TR_Int` olduğu gibi, uzun metin kısaltılarak yazılır. Hız saniyede birin altındaysa saniye başına adım yerine adım başına saniye gösterilir.
 - Hız yaklaşık son 30 saniyenin üstel ortalamasıdır; kalan süre ondan hesaplanır. Toplamsız sayaçta geçen süre gösterilir.
 - Standart hata bir terminalse çubuk tek satırda, en çok saniyede 10 kez yeniden çizilir ve terminal genişliğine kırpılır. `TR_print`, uyarılar ve hata iletileri çubuğu silip yazılır, çubuk alttan yeniden çizilir. Bitince satır özet satırına döner. Aynı anda tek çubuk görünür: yenisi açılınca eskisi görünmez olur ama saymayı ve günlüğe yazmayı sürdürür, yenisi bitince yeniden görünür.
 - Terminal değilse (dosya, boru, not defteri hücresi, sürekli sınama) en çok 10 saniyede bir düz satır ve sonda özet satırı yazılır.

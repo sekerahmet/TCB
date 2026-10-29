@@ -24,7 +24,7 @@ TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
     TR_assert_equal("H7231", TR_error_code { TR_env("") })
 }
 
-TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir sözlükte verir" {
+TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir değerde verir" {
     TR_assert_equal(TR_Dict, TR_Type(AYAR))
     TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], AYAR.TR_keys())
     TR_assert_equal(100, AYAR["step"])

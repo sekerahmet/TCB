@@ -11,6 +11,7 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 
 - *Emsal:* Python'un `argparse`'ı ve `typer`'ı seçenekleri bir şemadan kurar; `typer` ve Rust'ın `clap`'i (derive) bir yapının ya da fonksiyonun tiplerinden [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* seçenekler bir yapı olunca her seçeneğin tipi çalışmadan önce bilinir ve yanlış yazılmış bir seçenek adı (`ayar.adim`) denetimde yakalanır (1.2, 13.10). Sözlükle yazılan seçenekler tek tipli olamaz (3.7) ve yanlış anahtar ancak çalışırken görünür. Bugün seçenekler bir sözlükle veriliyor [ölçüldü: main `217ae940`].
+- *Gerekçe (zorunlu seçenek):* `argparse`'ın `required=True`'su gibi bir zorunlu seçenek, argümansız çalışan `TR_cmd_test`'i ve kabuğu kırar ve `TR_command_line`'ın bir tip değeri almasını gerektirirdi. Her seçeneğin varsayılanı olması tek bir kural bırakır; zorunlu seçenek isteğe bağlı tiple yazılır ve yokluğu tiple görünür (3.5): ajan `TR_none`'ı denetlemeden değeri kullanamaz.
 
 ### 19.3
 
@@ -20,7 +21,7 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 ### 19.4
 
 - *Emsal:* GitHub Actions gizli değerleri günlükte `***` ile maskeler; değer dönüştürülünce eşleşmez [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* ajanlar programın çıktısını okur ve başka yerlere taşır; çıktıya düşen bir anahtar sızmış bir anahtardır. Veriyi değiştirmemek programın doğru çalışmasını korur: maskeleme yalnız insanın göreceği yerdedir.
+- *Gerekçe:* ajanlar programın çıktısını okur ve başka yerlere taşır; çıktıya düşen bir anahtar sızmış bir anahtardır. Veriyi değiştirmemek programın doğru çalışmasını korur: maskeleme yalnız insanın göreceği yerdedir. Sözcüklerin dil dosyalarında durması hiçbir dile ayrıcalık tanımaz: yeni bir gösterim dili kendi sözcüklerini getirir (`contraseña`).
 
 ### 19.5
 
@@ -50,7 +51,7 @@ Kurallar: [`19_surec_ve_kayit.md`](../19_surec_ve_kayit.md). Bu dosya her kural�
 ### 19.10
 
 - *Emsal:* `argparse` `--help` ve `-h` verir, kullanım hatasında 2 koduyla çıkar [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* komut satırı girdidir ve kimlik kodlu dilde girdi tek yazımlıdır (17.9; baş geliştirici 2026-10-29: "kabul edelim ki dünyadaki tüm yazılım dilleri ingilizce"). Bugün `--yardım` ve `--help` ikisi de çalışıyor, mantık değerinde `doğru` da okunuyor; eski metnin `sonsuz`'u ise okunmuyor [ölçüldü: main `217ae940`]. İki yazım ajanın hangisinin doğru olduğunu tahmin etmesi demektir. Yardımın varsayılanları komut satırının yazımıyla gösterilir, böylece kopyalanan değer çalışır.
+- *Gerekçe:* komut satırı girdidir ve kimlik kodlu dilde girdi tek yazımlıdır (17.9; baş geliştirici 2026-10-29: "kabul edelim ki dünyadaki tüm yazılım dilleri ingilizce"). Bugün yardımın Türkçe ve İngilizce adı ikisi de çalışıyor, mantık değerinde `doğru` da okunuyor; eski metnin `sonsuz`'u ise okunmuyor [ölçüldü: main `217ae940`]. İki yazım ajanın hangisinin doğru olduğunu tahmin etmesi demektir. Yardımın varsayılanları komut satırının yazımıyla gösterilir, böylece kopyalanan değer çalışır.
 
 ### 19.11
 

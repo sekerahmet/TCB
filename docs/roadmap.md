@@ -28,6 +28,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 - **Düzenli ifade:** metin temizleme ve parçalayıcının ön ayırması (GPT tarzı ön bölme).
 - **Unicode normalleştirmesi:** NFC ve NFKC; parçalayıcı eğitimi ve metin hazırlama.
 - **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır (tasarım yönteminin açık konusu). Yorumlayıcı kilidinin gecikmesi 10.2'nin kuralıdır (süreyle devir); ölçümü de buraya girer.
+- **Alt süreç** (2026-10-29, 19'un tartısı): veri hazırlamada dış bir programı (ffmpeg gibi) çalıştırmak ve çıktısını beklemek; 10.3'ün "dış süreç beklemeleri" ona bağlıdır. TR bugün alt süreç açmaz. Güvenlik tartısı gerekir (komutun metinle kurulması); "Görüntü, ses ve video çözme" gelirse ihtiyaç küçülür.
 - **Hizmet günlüğü** (2026-10-29, 19'un tartısı): sunulan modelin istek kayıtları (düzeyler, istek kimliği) ve cihazda uzun çalışan programın günlüğünün boyut sınırı (eski dosyaların döndürülmesi). 19'un `TR_Logger`'ı eğitim günlüğüdür.
 - **zstd sıkıştırması** (2026-10-29, 18'in tartısı): büyük derlemlerin yaygın biçimi (`.jsonl.zst`); 18.12'nin `.gz` saydamlığı gibi okuma ve yazmada.
 - **Paket, bağımlılık ve sürüm sabitleme** (2026-10-29, 11'in tartısı): başkasının modülünü sürümüyle almak ve sürümü bir kilit dosyasında sabitlemek; amacın "Paylaşmak"ı ve "Güvenilir"i (aynı program aynı sonucu) ister. `tr/` kitaplığı ikiliyle gelir, ona gerekmez (11.6).
