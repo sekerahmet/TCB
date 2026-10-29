@@ -95,7 +95,7 @@ short command for the edit loop: `go test -short ./<the file's package>/` whole 
 graph cannot see), then one `go test -short` with `-run '^(...)$'` over the packages of every repository-wide check that
 scans the file and of the Go tests about it (two commands: `-run` applies to every package of one `go test`). The lines
 are written from the pre-check's own selection (`goTestSelection`, the function of `changed --go-tests`), and the line
-below them counts what they leave out: "not run by these commands: N more Go tests in M packages; before committing,
+below them counts what they leave out (they are among the groups below): "not run by these commands: N more Go tests in M packages; before committing,
 `bash tools/full_check.sh --kip=on` (in the background) runs them all". A `-run` list longer than 20000 characters (the
 pre-check's Windows limit) runs its packages whole. The `run:` lines are not indented, so they are no item of a group.
 Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,

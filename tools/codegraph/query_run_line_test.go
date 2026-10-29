@@ -116,3 +116,21 @@ func TestTheRunLineStaysWithinTheCommandLine(t *testing.T) {
 		t.Errorf("the answer says why:\n%s", out.String())
 	}
 }
+
+// Kural: koşulmayanların satırı ayrı bir liste vaat etmez (onlar aşağıdaki gruplardadır) ve sayıya göre tekil ya da
+// çoğul yazar (DENETİM, birleşme denetimi: "in 1 packages", "(listed below)").
+func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
+	for _, c := range []struct {
+		rest []goTest
+		want string
+	}{
+		{[]goTest{{"b", "TestX"}}, "1 more Go test in 1 package (among the groups below)"},
+		{[]goTest{{"b", "TestX"}, {"b", "TestY"}, {"c", "TestZ"}}, "3 more Go tests in 2 packages (among the groups below)"},
+	} {
+		var out strings.Builder
+		printRunPlan(&out, runPlan{pkg: "a", rest: c.rest})
+		if !strings.Contains(out.String(), "not run by these commands: "+c.want+"; before committing") {
+			t.Errorf("want %q:\n%s", c.want, out.String())
+		}
+	}
+}

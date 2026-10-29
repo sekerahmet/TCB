@@ -113,5 +113,15 @@ func printRunPlan(w io.Writer, p runPlan) {
 	for _, t := range p.rest {
 		pkgs[t.dir] = true
 	}
-	fmt.Fprintf(w, "  not run by these commands: %d more Go tests in %d packages (listed below); before committing, `bash tools/full_check.sh --kip=on` (in the background) runs them all\n", len(p.rest), len(pkgs))
+	// Koşulmayanlar ayrı listelenmez: aşağıdaki gruplardadırlar (DENETİM: "listed below" ayrı bir liste vaat ediyordu).
+	fmt.Fprintf(w, "  not run by these commands: %s in %s (among the groups below); before committing, `bash tools/full_check.sh --kip=on` (in the background) runs them all\n",
+		countOf(len(p.rest), "more Go test"), countOf(len(pkgs), "package"))
+}
+
+// countOf "1 package", "2 packages": sayıya göre tekil ya da çoğul İngilizce ad.
+func countOf(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
 }
