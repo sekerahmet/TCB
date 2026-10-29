@@ -19,15 +19,14 @@ var trJSON []byte
 //go:embed en.json
 var enJSON []byte
 
-// languages ikiliye gömülü yazım dilleridir (ISO 639-1 kodu → dil dosyası). Türkçe dilin asıl
-// dilidir: kodsuz (düz) yazılmış dosyalar Türkçedir; öbür diller kodlu dosyaların gösterimi
-// ve o dilde yazılmış metnin kodlanması içindir (docs/spec/17_kodlar.md, 17.6).
+// languages ikiliye gömülü yazım dilleridir (ISO 639-1 kodu → dil dosyası). Diller yalnız
+// görüntüdür: iletiler, yardım ve kodlu dosyanın salt okunur görünümü (docs/spec/17_kodlar.md, 17.7);
+// kod kimliklerle yazılır.
 var languages = map[string][]byte{"tr": trJSON, "en": enJSON}
 
 // LanguageEnvVar selects the process's active writing language (empty: tr). The lexer's word
 // tables are built once from the active language while packages initialize, so the language
-// can be chosen only at process start; 'tr kodla --dil en' re-executes itself with this
-// variable.
+// can be chosen only at process start.
 const LanguageEnvVar = messages.LanguageEnvVar
 
 // AcceptASCII is the SINGLE switch that decides whether the ASCII-folded forms of names

@@ -22,10 +22,8 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | `./bin/tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §7) |
 | `./bin/tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |
 | `./bin/tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
-| `./bin/tr.exe kodla dosya.tr` | Dosyayı yerinde **kodlu biçime** çevirir: dilin sözcükleri dilden bağımsız kodlarla (`TR_if`, `TR_print`) saklanır, gerisi bayt bayt aynı kalır; klasör verilirse içindeki tüm `.tr` dosyalarını çevirir, zaten kodlu dosyaya dokunmaz. Kodlu dosya çevrilmeden çalışır, test edilir ve aktarılır (bkz. `docs/spec/17_kodlar.md`, Kodlu saklama) |
-| `./bin/tr.exe çöz dosya.tr` | Kodlu dosyayı yerinde Türkçe yazıma geri çevirir (klasör de verilebilir) |
-| `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyayı bir yazım dilinde (`tr`, `en`; verilmezse kişinin dili, `TR_DIL`) standart çıktıya basar; kodlu dosyanın hata mesajlarındaki satır ve sütunlar bu gösterime göredir |
-| `./bin/tr.exe göster -`, `./bin/tr.exe kodla -` | Metni standart girişten okur, gösterimini ya da kodlu biçimini standart çıktıya yazar (düzenleyiciler için; çıkış kodu 2: metin ayrıştırılamadı, çevrilmedi) |
+| `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyanın bir yazım dilindeki görünümünü (`tr`, `en`; verilmezse kişinin dili, `TR_DIL`) standart çıktıya basar; görünümün satırları dosyanınkidir. Görünüm yalnız okunur: çalışmaz ve koda geri çevrilmez, kod kimliklerle (`TR_print`) yazılır (dil tanımı 17.7) |
+| `./bin/tr.exe göster -` | Metni standart girişten okur, görünümünü standart çıktıya yazar (düzenleyiciler için; çıkış kodu 2: metin ayrıştırılamadı, görünüm yazılmadı) |
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
@@ -37,7 +35,7 @@ Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizc
 
 ## Kodlu dosyalar: düzenleyici ve git farkları
 
-Kodlu bir dosyayı (ilk satırı `//! tr kodlu 2 dil=<dil>`) VS Code'da açtığınızda Türkçe yazımıyla görürsünüz; kaydedince diske yine kodlu yazılır, satır numaraları hata mesajlarıyla ve hata ayıklayıcıyla aynıdır (ayrıntılar: [eklenti belgesi](../../editors/vscode/README.md#kodlu-dosyalar); kurallar: [17_kodlar.md, Görünüm](../spec/17_kodlar.md#görünüm)).
+TR dosyası (ilk satırı `# TR 4`) kimliklerle yazılır ve VS Code'da olduğu gibi açılıp düzenlenir. Yazım dilinizdeki görünümü "TR: Görünümü Göster" komutu yanda salt okunur açar; satır numaraları dosyanınkiyle, hata mesajlarıyla ve hata ayıklayıcıyla aynıdır. Görünüm düzenlenmez ve koda geri çevrilmez (ayrıntılar: [eklenti belgesi](../../editors/vscode/README.md#kodlu-dosyalar); kurallar: [17_kodlar.md, Görünüm](../spec/17_kodlar.md#görünüm)).
 
 `git diff` kodlu dosyada kodları gösterir (`TR_var x = 1`). Farkı Türkçe görmek için git'e `TR_cmd_show`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
 
@@ -46,4 +44,4 @@ git config --global diff.tr.textconv "tr göster"                      # tr PATH
 git config --global diff.tr.textconv "'C:/Projeler/TR/bin/tr.exe' göster"   # ya da tam yolla (boşluklu yol tek tırnakta)
 ```
 
-Sonra `git diff`, `git log -p` ve `git show` kodlu dosyalarda Türkçe fark gösterir (Türkçe yazılmış dosyalar olduğu gibi gösterilir); ham farkı görmek için `git diff --no-textconv`. Sürücü tanımlı değilse git olağan farkı gösterir, hiçbir şey bozulmaz. Textconv yalnızca gösterimi değiştirir: depoya kodlu metin girer, birleştirme de kodlu metin üzerinde yapılır. Bir birleştirme çakışması dosyayı ayrıştırılamaz bıraktıysa `TR_cmd_show` hata verir (git "textconv failed" der); çakışmayı düzeltin ya da `--no-textconv` kullanın. VS Code'un kendi kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.
+Sonra `git diff`, `git log -p` ve `git show` kodlu dosyalarda Türkçe fark gösterir (başlıksız dosyalar olduğu gibi gösterilir); ham farkı görmek için `git diff --no-textconv`. Sürücü tanımlı değilse git olağan farkı gösterir, hiçbir şey bozulmaz. Textconv yalnızca gösterimi değiştirir: depoya kodlu metin girer, birleştirme de kodlu metin üzerinde yapılır. Bir birleştirme çakışması dosyayı ayrıştırılamaz bıraktıysa `TR_cmd_show` hata verir (git "textconv failed" der); çakışmayı düzeltin ya da `--no-textconv` kullanın. VS Code'un kendi kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.

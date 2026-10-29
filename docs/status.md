@@ -57,11 +57,10 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 - **Mevcut durum:**
   - Rehber ve kök belgelerdeki program metni kimlik yazımına çevrildi (2026-10-29). Kalan sınıflı yazım 17.2'nin "içeride" grubudur: tanım dosyalarının içeriği, eş adlar tablosunun kod sütunu, `code_identities.md`, disk biçimi örnekleri [ölçüldü: belgelerde program sınıflarının sınıflı yazımını arayan git grep].
-  - Üretilen kod listesi (`docs/codes.md`, 761 satır) başlıklarda sınıflı anahtarı yazıyor; örnekleri Türkçe görünümde (kod listesinin örnek alanından).
+  - Üretilen kod listesi (`docs/codes.md`) başlıklarda program yazımını, yanında sınıflı anahtarı yazıyor; örnekleri kimlik yazımıyla, altında her gömülü dilin görünümüyle (tanım dosyasının örnek alanından, 2026-10-29, Faz 0.5).
   - Satır içi kod (ters tırnak) yalnız dil tanımında ve status'ta denetleniyor; öbür belgelerde yanlış kod gösteren ad (ör. aynı kısa adın başka sınıfı) hiçbir testte düşmüyor.
   - Bölüm 11 eski başlığı, dosyanın dilini ve iç içe aktarmayı anlatıyor (11.3'ün eşzamanlı aktarma cümlesi); bölüm yeniden yazılınca düzelir. 17 yeniden yazıldı (2026-10-29).
 - **Yapılacaklar:**
-  - kod listesinin üreticisi başlıkta program yazımını, yanında sınıflı anahtarı yazar; örnekler görünümden geri kodlama kalkınca (17.7) kimlikle yazılır;
   - ters tırnak içindeki adların denetimi `docs/*.md`'ye genişler (üretilen ve donmuş belgeler ile eş adlar tablosunun kod sütunu hariç): program sınıflarının sınıflı yazımı hata, `.TR_x` yalnız üye, `TR_x:` yalnız adlı argüman.
 
 ### 2.3a
@@ -957,7 +956,8 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 - **Mevcut durum:** 565 kodun 245'i kitaplık kodu; kitaplık kodlarının hiçbirinin açıklaması ve örneği yok, `TestEveryCodeHasDescription` onları atlıyor ("madde 15 adım 3c") [ölçüldü].
 - **Yapılacaklar:** kitaplık kodlarının açıklaması ve örneği; atlama kalkar. Dil tanımına giren ama uygulanmamış adlar (13'ün ve 15'in yeni adları) uygulandıkları commit'te tanım ve dil dosyalarına girer.
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** örnekler kimlik yazımıyla tanım dosyasına taşınır (bugün `tr.json`'da 320 örnek Türkçe görünümde, test onları Türkçe okuma yoluyla çalıştırıyor [ölçüldü: DENETİM]); dil dosyası örnek taşımaz. Faz 0.5'in parçası.
+- **Mevcut durum (Faz 0.5, 2026-10-29):** 320 örnek kimlik yazımıyla tanım dosyasında (`definitions.json`, `example`); dil dosyaları örnek taşımaz, ayrıştırıcısı alanı reddeder. Taşıma bir betikle, o günkü kodlayıcıyla yapıldı (elle değil). `TestExamplesRun` program örneklerini (265) kimlik okuyucusuyla (`lexer.NewBody`) okuyup denetler ve çalıştırır; komut satırı örnekleri (55: komut, alt komut, seçenek, ortam değişkeni, kabuk ve hata ayıklayıcı komutu) kimliğin adıyla yazılı ve program olarak sınanmaz [ölçüldü]. `docs/codes.md` örneği kimlik yazımıyla ve her gömülü dilin görünümüyle gösterir.
+- **Yapılacaklar:** komut satırı örneklerinin sınanması (komut satırı adları 17.9'un girdisiyle, Faz 0.4).
 
 ### 17.5
 
@@ -966,12 +966,12 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.7
 
-- **Mevcut durum:** görünümden geri kodlama (`TR_cmd_encode`), düzenleyicide görünümde düzenleyip kaydetme (`editors/vscode/coded_*.js`, 743 satır), bayt bayt gidiş-dönüş testleri ve `$` kaçışı var [ölçüldü]. Bunlar 17.7'nin gerektirmediği işlerdir. `internal/lang/source` 1 870 satır, `cmd/tr/coded.go` 256 satır [ölçüldü]; kodlamayı başka bir şey (belgelerdeki kod blokları, `tests/negative`) kullanıyor mu ölçülmedi.
-- **Yaklaşık kodlama:** görünümden kodlama, kapsamı çalışırken belli olan adları yaklaşık kodluyor (takma adsız aktarmada yerleşik adı yerleşik sayılıyor, bir yerleşiği taşıyan değişkene verilen adlı argüman kullanıcının adı sayılıyor, `$` kaçışı gösterimde sütunu kaydırıyor; eski 14. bölümün sözü). Kodlama kalkınca bu da kalkar.
-- **Kabuk:** bugün kişinin dilinde yazmayı kabul ediyor: Türkçe adıyla yazılan bir yazdırma çağrısı çalışıyor [ölçüldü: DENETİM].
-- **İletiler:** başlıksız dosyanın iletisi de kodlamayı öneriyor ("tr kodla <dosya> --dil tr") [ölçüldü: DENETİM].
-- **Testler:** `TestEncodeShowCommands` ve `TestEnglishWritingLanguage` kalkacak davranışı (Türkçe metni kodlamayı, gidiş-dönüşü) sınıyor.
-- **Yapılacaklar:** geri kodlamanın ve görünümde düzenlemenin kaldırılması (mekanik iş, 4a'dan bağımsız); iki iletinin kodlamayı önermemesi; kabuğun yalnız kimlik kabul etmesi; yalnız `TR_cmd_show`'u sınayan Go testi; görünümün çalışmadığını sınayan Go testi.
+- **Mevcut durum (Faz 0.5, 2026-10-29):** görünümden geri kodlama kalktı: kodlama komutu (tr kodla; kaydı silindi, iletileri `retired.json`'da), `internal/lang/source`'un kodlayıcısı (`Encode`, `EncodeIn`, `TextLexer`, `TextLexerWithNames`), gösterimin geri kodlama denetimi, tek seferlik çevirici `tools/migrate` [ölçüldü: `git grep`]. Yaklaşık kodlama da onunla kalktı. `internal/lang/source` 1 870 satırdan 1 441 satıra indi (testler dahil) [ölçüldü: wc].
+- **Görünüm:** `TR_cmd_show` görünümü yazar (`source.Show`); görünüm başlıklı dosya (`# TR 4 view=tr`) çalıştırılınca ve denetlenince ileti (H2541) kodlu dosyayı çalıştırmayı söyler; başlıksız dosyanın iletisi (H2540) başlığı ve kimlik yazımını söyler, kodlamayı önermez. Görünüm dilin sözcüğüyle aynı yazılan kullanıcı adını `$ad` diye işaretliyor (kural değil, 17.7).
+- **Kabuk ve hata ayıklayıcı:** kabuk satırı ve hata ayıklayıcının ifadesi (koşul, izleme, değerlendirme) kimlik yazımıyla okunuyor; Türkçe adıyla yazılan yazdırma çağrısı tanımsız ad hatası veriyor [ölçüldü: Go testi]. Kabuğun ve hata ayıklayıcının komut adları (`TR_repl_exit`, `TR_dbg_eval`) 17.9'un işi (Faz 0.4).
+- **Düzenleyici:** VS Code eklentisi dosyayı kimlikleriyle açıp kaydediyor; görünümü yanda salt okunur açıyor (`view.js`); görünümde düzenleme ve kayıt (`coded_*.js`) kalktı.
+- **Kalan:** sözcük çözümleyicinin bir yazım dilinde okuma kipi (`lexer.NewBodyIn`'in kodsuz kipi, onu izleyen `$` kaçışı, `WrittenIn`, denetleyicinin `SetFileLanguage`'ı) yalnız Go testlerinde kullanılıyor [ölçüldü: `git grep`, 31 test yeri]; kaldırılması ayrı bir iş.
+- **Testler:** `TestShowTranslatesOnlyTheLanguageWords` (yalnız görünüm: satırlar, yerleştirmenin çevrilmesi, kullanıcı adının kalması), `TestViewHeader` ve `TestShowCommand` (görünümün çalışmaması), `TestTypedLineIsReadWithIdentities`, `TestCLIExpressionIsWrittenWithIdentities`, `TestHeaderlessFileDoesNotRun`.
 
 ### 17.8
 
