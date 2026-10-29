@@ -140,6 +140,31 @@ func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 	_ = sink
 }
 
+// Kural: ScalesLinearly karesel büyüyen işte kalır; deneme sayısı ve her denemeden önceki çöp
+// toplama onu gizlemez. İş, tarihteki gerileme gibi doğrusal ve karesel payın toplamıdır (codeindex'te
+// CI'da oran 9-10): n'de karesel pay doğrusalın iki katı, oran (4+32)/(1+2) = 12, saf karesel işin
+// ~16'sının altında. Eşit paylı iş (oran 10) boş makinede 20 koşuda 8,9'a indi, yükte sınırın altına
+// düşebilir. İş ölçülen işlevde büyür: ScalesLinearly'nin dışarıdan gördüğü yol sınanır.
+func TestScalesLinearlyFailsQuadraticWork(t *testing.T) {
+	var sink int
+	r := &recorder{TB: t}
+	ScalesLinearly(r, "karesel", 100, func(n int) func() (int, error) {
+		steps := n*20000 + n*n*400
+		return func() (int, error) {
+			s := 0
+			for i := 0; i < steps; i++ {
+				s += i ^ (s >> 3)
+			}
+			sink += s
+			return n, nil
+		}
+	})
+	if len(r.errors) != 1 || !strings.Contains(r.errors[0], "does not grow linearly") {
+		t.Errorf("karesel iş kalmalı: %v", r.errors)
+	}
+	_ = sink
+}
+
 // Kural: ScalesLinearly süreyi ancak işin iki boyu da hatasız ve tam bittiyse karşılaştırır: iş hata
 // verirse ya da büyük iş küçüğün 3,5–4,5 katı birim işlemezse (iş yarıda kaldı, girdi büyümedi) test kalır.
 func TestScalesLinearlyChecksTheWorkIsDone(t *testing.T) {
