@@ -140,6 +140,8 @@ func TestNestingDepthLimit(t *testing.T) {
 		"TR_var x = " + strings.Repeat("(", 5000) + "1" + strings.Repeat(")", 5000),
 		strings.Repeat("TR_if TR_true { ", 3000) + strings.Repeat("}", 3000),
 		strings.Repeat("-", 100000) + "1",
+		"TR_var x: " + strings.Repeat("TR_List[", 2000),
+		"TR_var x: " + strings.Repeat("(", 100000),
 	} {
 		h := parseErrs(codeVal)
 		if len(h) == 0 || !messages.Has(h[0], messages.H0155) {
