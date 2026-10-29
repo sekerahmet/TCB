@@ -224,7 +224,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	info := sub.info
 	// Yakalanan hata programın Metin değeri olur: değerin metni gibi hiçbir dosyanın ve kişinin
 	// diline bağlı değildir (3.14), sabit bir katalogla kurulur (caughtErrorLanguage); yakalanmayan
-	// hata ekranda TR_DIL'dedir (görüntü).
+	// hata ekranda TR_LANG'dedir (görüntü).
 	lang := caughtErrorLanguage
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, sig, err := tryBlock(v, env)

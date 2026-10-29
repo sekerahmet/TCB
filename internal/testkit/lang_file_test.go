@@ -9,22 +9,22 @@ import (
 
 const langFileEnv = "TESTKIT_LANG_FILE_OUT"
 
-// TestHelperWriteLanguage bir test değil, alt süreçtir: etkin TR_DIL değerini çıktı dosyasına yazar.
+// TestHelperWriteLanguage bir test değil, alt süreçtir: etkin TR_LANG değerini çıktı dosyasına yazar.
 func TestHelperWriteLanguage(t *testing.T) {
 	out := os.Getenv(langFileEnv)
 	if out == "" {
 		t.Skip("alt süreç yardımcısı")
 	}
-	if err := os.WriteFile(out, []byte(os.Getenv("TR_DIL")), 0o644); err != nil {
+	if err := os.WriteFile(out, []byte(os.Getenv("TR_LANG")), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
 
-// Kural: RunWithLanguageFile yardımcı testi verilen TR_DIL ile ayrı bir süreçte çalıştırır ve yazdığı dosyayı döner.
+// Kural: RunWithLanguageFile yardımcı testi verilen TR_LANG ile ayrı bir süreçte çalıştırır ve yazdığı dosyayı döner.
 func TestRunWithLanguageFileRunsTheHelperInThatLanguage(t *testing.T) {
 	for _, lang := range []string{"tr", "en"} {
 		if got := string(RunWithLanguageFile(t, "TestHelperWriteLanguage", langFileEnv, lang)); got != lang {
-			t.Errorf("TR_DIL=%s: helper saw %q", lang, got)
+			t.Errorf("TR_LANG=%s: helper saw %q", lang, got)
 		}
 	}
 }
@@ -47,7 +47,7 @@ func TestAssertSameFactSetReportsOnlyTheDifference(t *testing.T) {
 		t.Errorf("same facts must pass: %v %v", r.errors, r.fatals)
 	}
 	AssertSameFactSet(r, "the index", 2, []string{"a", "b", "c"}, []string{"a", "c"})
-	if len(r.errors) != 1 || !strings.Contains(r.errors[0], "TR_DIL=en changes the index (3 facts vs 2); only in tr:\nb") {
+	if len(r.errors) != 1 || !strings.Contains(r.errors[0], "TR_LANG=en changes the index (3 facts vs 2); only in tr:\nb") {
 		t.Errorf("difference: %v", r.errors)
 	}
 	AssertSameFactSet(r, "the index", 5, []string{"a"}, []string{"a"})
