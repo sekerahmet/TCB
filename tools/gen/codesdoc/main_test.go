@@ -25,6 +25,7 @@ func TestCodeLabelAndHeading(t *testing.T) {
 		codes.ConstPi:  "`TR_pi`",
 		codes.FnLog:    "`TR_log(...)`",
 		codes.MemFirst: "`.TR_first`",
+		codes.MemSort:  "`.TR_sort(...)`",
 		codes.ArgK:     "`TR_k:`",
 	} {
 		if got := codeLabel(k); got != want {

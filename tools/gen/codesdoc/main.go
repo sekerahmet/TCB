@@ -155,7 +155,7 @@ func signatureLines(t codes.Definition) []string {
 }
 
 // codeLabel bir kodun program metnindeki yazımını ters tırnak içinde verir (`TR_and`,
-// `TR_log(...)`, `.TR_first`, `TR_k:`).
+// `TR_log(...)`, `.TR_sort(...)`, `.TR_first`, `TR_k:`).
 func codeLabel(k codes.Code) string {
 	p, ok := codes.PlaceOf(k)
 	if !ok {
@@ -164,6 +164,9 @@ func codeLabel(k codes.Code) string {
 	s := codes.Spelling(k)
 	switch {
 	case p == codes.PlaceMember:
+		if t, _ := codes.DefinitionOf(k); t.Kind == codes.KindMethod {
+			return "`." + s + "(...)`"
+		}
 		return "`." + s + "`"
 	case p == codes.PlaceArg:
 		return "`" + s + ":`"
