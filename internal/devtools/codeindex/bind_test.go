@@ -216,3 +216,30 @@ func TestMemberGuessesAreLikelyOnlyWhereTheMemberIsVisible(t *testing.T) {
 		}
 	}
 }
+
+// Demetin öğe okuması (t.0, t.0.1; 3.6a) bir üyenin kullanımı değildir: dizine üye tahmini girmez,
+// dizin kurulurken düşmez; zincirin sonundaki gerçek üye (t.0.a) yine bir tahmin olarak dizinde kalır.
+func TestTupleElementIsNotAMemberUse(t *testing.T) {
+	const src = `TR_struct K {
+    a
+}
+
+TR_func f() {
+    TR_var t = ((K(1), 2), 3)
+    TR_return t.0.0.a + t.0.1 + t.1
+}
+`
+	r := buildSource(t, src)
+	if len(r.Index.Skipped) != 0 {
+		t.Fatalf("the fixture must parse: %v", r.Index.Skipped)
+	}
+	var members []string
+	for _, g := range r.Index.MemberGuesses {
+		members = append(members, g.Member)
+	}
+	if strings.Join(members, " ") != "a" {
+		t.Errorf("member guesses: got %v, want only [a]", members)
+	}
+	at := srcAt(t, src, "    TR_return t.0.0.a", "a", 1)
+	wantUses(t, r, "field:m.tr#K.a", "definition@"+srcAt(t, src, "    a", "a", 1)+"/EXTRACTED", "read@"+at+"/INFERRED/name_only")
+}
