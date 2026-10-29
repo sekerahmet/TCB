@@ -450,8 +450,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ### 11.6
 
-- **Durum:** uygulandı (Faz 0.2). Kitaplığın dört modülü tek bir taşıma commit'iyle (davranış değişmeden) İngilizce yollara (`tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`; `lib/layers.tr`, `lib/optimizers.tr`, `lib/pretrained.tr`, `lib/training.tr` ve `*_test.tr` eşleri ile `tests/tr/layers.tr` gölge fikstürü) taşındı; `definitions.json` (245 kod: layers 135, optimizers 61, training 37, pretrained 12), `tr.json` (246 satır), `codes_generated.go` (245 satır) ve `docs/codes.md` güncellendi; `tests/negative/kitaplik_turkce_harf.tr` eski Türkçe yolu (`H2478`) kalıcı olumsuz test olarak korur.
-- **Ölçü:** göçten önce `tr/` veya `lib/` önekli eski dört yol 90 dosyada 976 satırda (`tr/` önekli olarak 66 dosyada 876 satırda) geçiyordu; göçten sonra gerçek eski dört yol yalnız tarihli arşiv (`docs/archive/`: 2 dosyada 8 satır), olumsuz test (`tests/negative/kitaplik_turkce_harf.tr`: 1 satır) ve eşzamanlı iş nedeniyle dokunulmayan `internal/devtools/codeindex/cache_test.go` (1 satır) içinde (4 dosyada 10 satır; `katmanx`/`hazirx` sahte modül fikstürleriyle birlikte 7 dosyada 30 satır) kalmıştır.
+- **Mevcut durum (Faz 0.2, 2026-10-29):** kitaplığın dört modülü İngilizce yollarda: `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training` (`lib/`); eski Türkçe yol H2478 verir (`tests/negative/kitaplik_turkce_harf.tr`). Eski yollar göçten önce 90 dosyada 976 satırda geçiyordu; şimdi yalnız `docs/archive/`'da ve o negatif testte [ölçüldü: `git grep`].
 
 ### 11.8
 

@@ -148,7 +148,7 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 		fmt.Fprintf(&b, "TR_import \"m%d\" TR_as a\n", i-1)
 	}
 	if i%5 == 2 {
-		b.WriteString("TR_import \"tr/katman\"\n")
+		b.WriteString("TR_import \"tr/layers\"\n")
 	}
 	fmt.Fprintf(&b, "TR_const C%d = %d\n", i, i)
 	fmt.Fprintf(&b, "TR_struct S%d {\n    x = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i)
@@ -179,7 +179,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 	dir := t.TempDir()
 	const n = 12
 	genProject(t, dir, n)
-	lib := fstest.MapFS{"katman.tr": {Data: []byte("TR_struct Katman {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"layers.tr": {Data: []byte("TR_struct Katman {\n    n = 1\n}\n")}}
 	opts := Options{Library: lib}
 	rng := rand.New(rand.NewSource(7))
 	extras := make([][]string, n)
