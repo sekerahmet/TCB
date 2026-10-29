@@ -2,6 +2,7 @@ package interp
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
@@ -23,6 +24,8 @@ type TypeVal struct {
 	Code codes.Code
 	// Struct is the type of struct instances (tip(p) → Nokta); nil for other types.
 	Struct *StructDefVal
+	// Elems is a tuple type's element types (3.6a: "(Int, String)"); nil for other types.
+	Elems []*TypeVal
 }
 
 func (t *TypeVal) Type() ValueType { return ValType }
@@ -32,14 +35,29 @@ func (t *TypeVal) Text(lang *codes.Language) string {
 	if t.Struct != nil {
 		return t.Struct.Name
 	}
+	if t.Elems != nil {
+		parts := make([]string, len(t.Elems))
+		for i, e := range t.Elems {
+			parts[i] = e.Text(lang)
+		}
+		return "(" + strings.Join(parts, ", ") + ")"
+	}
 	return lang.Name(t.Code)
 }
 
-// Equal is the equality of type values: the same type code or the same struct. The type of a
-// struct instance also equals the struct itself (tip(p) == Nokta).
+// Equal is the equality of type values: the same type code, the same struct or tuple types with
+// equal element types. The type of a struct instance also equals the struct itself (tip(p) == Nokta).
 func (t *TypeVal) Equal(b Value) bool {
 	switch x := b.(type) {
 	case *TypeVal:
+		if len(t.Elems) != len(x.Elems) {
+			return false
+		}
+		for i := range t.Elems {
+			if !t.Elems[i].Equal(x.Elems[i]) {
+				return false
+			}
+		}
 		return t.Code == x.Code && t.Struct == x.Struct
 	case *StructDefVal:
 		return t.Struct == x
@@ -84,6 +102,12 @@ func TypeOfValue(v Value) *TypeVal {
 		return typeValues[codes.TypeList]
 	case *DictVal:
 		return typeValues[codes.TypeDict]
+	case *TupleVal:
+		elems := make([]*TypeVal, len(x.Elements))
+		for i, e := range x.Elements {
+			elems[i] = TypeOfValue(e)
+		}
+		return &TypeVal{Elems: elems}
 	case *StructInstanceVal:
 		return x.Def.typeValue()
 	case *JSONVal:

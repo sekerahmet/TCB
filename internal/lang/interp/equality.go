@@ -41,6 +41,8 @@ func comparisonError(a, b Value, nestDepth int) error {
 				}
 			}
 		}
+	case *TupleVal:
+		return tupleComparisonError(x, b, nestDepth, comparisonError) // tuple_ops.go
 	case *DictVal:
 		if y, ok := b.(*DictVal); ok && x != y && len(x.Pairs) == len(y.Pairs) {
 			for k, va := range x.Pairs {

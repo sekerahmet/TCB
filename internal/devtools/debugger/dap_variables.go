@@ -85,6 +85,11 @@ func children(val interp.Value, expr string) []dapChild {
 			}
 			out = append(out, dapChild{name: fmt.Sprintf("[%d]", i), expr: fmt.Sprintf("%s[%d]", expr, i), val: el})
 		}
+	case *interp.TupleVal:
+		// demetin öğeleri t.0, t.1 ile okunur (3.6a); değiştirilemez (setVariable hata verir)
+		for i, el := range v.Elements {
+			out = append(out, dapChild{name: fmt.Sprintf(".%d", i), expr: fmt.Sprintf("%s.%d", expr, i), val: el})
+		}
 	case *interp.DictVal:
 		for _, k := range v.Order {
 			el, ok := v.Pairs[k]
@@ -126,6 +131,8 @@ func expandable(val interp.Value) bool {
 	switch v := val.(type) {
 	case *interp.ListVal:
 		return len(v.Elements) > 0
+	case *interp.TupleVal:
+		return true
 	case *interp.DictVal:
 		return len(v.Pairs) > 0
 	case *interp.StructInstanceVal:

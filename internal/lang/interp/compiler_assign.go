@@ -16,6 +16,9 @@ func (c *compiler) assignTarget(k *compilerScope, target ast.Expression, codeVal
 		// '_' bir ad değildir: değer atılır (5.3)
 		return func(*VM, *Environment, Value) error { return nil }
 	}
+	if _, ok := target.(*ast.ElementExpression); ok {
+		return func(*VM, *Environment, Value) error { return elementAssignError(line) } // demet değişmez (3.6a)
+	}
 	return c.assignTo(k, target, codeVal, line)
 }
 

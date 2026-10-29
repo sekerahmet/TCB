@@ -18,8 +18,8 @@ import (
 //     çerçevesine (ownerFrame) girer. Sahiplenilmeyen taze işareti bir sonraki çağrıda
 //     geçersizdir (damga, ownGen).
 //   - Bağ: değer yerel bir ortamın (kapanışın göremediği) yuvasına yazılınca, sahip bir
-//     listenin elemanı olunca ya da bir iş sürerken korunması gerekince (pin) bağ sayısı
-//     artar; yuva başka değer alınca, ortam kapanınca, liste bırakılınca azalır.
+//     listenin ya da demetin elemanı olunca ya da bir iş sürerken korunması gerekince (pin) bağ
+//     sayısı artar; yuva başka değer alınca, ortam kapanınca, kap bırakılınca azalır.
 //   - Kaçış: değer bir nesne alanına, sözlüğe, sahipsiz bir listeye, genel/modül ya da bir
 //     kapanışın gördüğü ortama yazılırsa, argümanlarını saklayabilecek bir yerleşiğe
 //     verilirse ya da Go'dan çağrılan bir fonksiyonun sonucu olursa kaçar: bir daha
@@ -118,8 +118,8 @@ var ownGen atomic.Uint64
 
 // MarkFresh motorun çalışan işlemde ürettiği değeri taze olarak işaretler; derlenmiş kodun
 // çağrı yeri onu sahiplenir. Sahiplik dışı olmayan (daha önce sahiplenilmiş ya da kaçmış)
-// değerde etkisizdir. Bir listeyi işaretlemek onu elemanlarının sahibi yapar (ör. tensörün
-// .böl'ü); elemanlar ayrıca işaretlenmelidir.
+// değerde etkisizdir. Bir listeyi ya da demeti işaretlemek onu elemanlarının sahibi yapar (ör.
+// tensörün .böl'ü); elemanlar ayrıca işaretlenmelidir.
 func MarkFresh(o Owned) {
 	if own := o.Ownership(); own.state == ownNone {
 		own.gen = ownGen.Load()
@@ -178,8 +178,8 @@ func (v *VM) closeFrame(d int, ret Value) {
 	v.flush(f)
 }
 
-// moveTo f çerçevesindeki değeri (sahip listeyse elemanlarıyla) derinlik d'nin çerçevesine
-// taşır.
+// moveTo f çerçevesindeki değeri (sahip liste ya da demetse elemanlarıyla) derinlik d'nin
+// çerçevesine taşır: fonksiyonun döndürdüğü demetin içindeki taze değerler de çağırana geçer.
 func (v *VM) moveTo(val Value, f *ownerFrame, d int) {
 	o, own := ownershipOf(val)
 	if own == nil || own.state != ownHeld || own.frame != f {
@@ -190,15 +190,13 @@ func (v *VM) moveTo(val Value, f *ownerFrame, d int) {
 	if own.binds == 0 {
 		to.pending = append(to.pending, o)
 	}
-	if l, ok := val.(*ListVal); ok {
-		for _, e := range l.Elements {
-			v.moveTo(e, f, d)
-		}
+	for _, e := range ownedElements(val) {
+		v.moveTo(e, f, d)
 	}
 }
 
 // adopt derlenmiş kodun çağrı yerinde taze değeri çalışan çağrının çerçevesine alır; sahip
-// listenin elemanları önce alınır ve listeye bağlanır.
+// listenin ya da demetin elemanları önce alınır ve kaba bağlanır.
 func (v *VM) adopt(val Value) {
 	o, own := ownershipOf(val)
 	if own == nil || ownershipOff {
@@ -209,28 +207,39 @@ func (v *VM) adopt(val Value) {
 	}
 	ownActive.Store(true)
 	f := v.frameAt(len(v.CallStack))
-	if l, ok := val.(*ListVal); ok {
-		for _, e := range l.Elements {
-			v.adopt(e)
-			bind(e)
-		}
+	for _, e := range ownedElements(val) {
+		v.adopt(e)
+		bind(e)
 	}
 	own.state, own.frame = ownHeld, f
 	f.pending = append(f.pending, o)
 }
 
-// adoptList derleyicinin kurduğu listeyi (liste yazımı, liste üreteci) elemanlarının sahibi
-// yapar: liste çalışan çağrının çerçevesine girer, sahiplenilmiş elemanlar listeye bağlanır.
-func (v *VM) adoptList(l *ListVal) {
+// adoptContainer derleyicinin kurduğu kabı (liste yazımı, liste üreteci, demet yazımı) elemanlarının
+// (elems) sahibi yapar: kap çalışan çağrının çerçevesine girer, sahiplenilmiş elemanlar kaba bağlanır.
+func (v *VM) adoptContainer(o Owned, elems []Value) {
 	if ownershipOff {
 		return
 	}
-	for _, e := range l.Elements {
+	for _, e := range elems {
 		bind(e)
 	}
 	f := v.frameAt(len(v.CallStack))
-	l.own.state, l.own.frame = ownHeld, f
-	f.pending = append(f.pending, l)
+	own := o.Ownership()
+	own.state, own.frame = ownHeld, f
+	f.pending = append(f.pending, o)
+}
+
+// ownedElements sahip olabilen kabın (liste, demet) elemanlarıdır; başka değerde nil. Sözlük ve
+// nesne alanı sahip değildir: onlara yazılan değer kaçar.
+func ownedElements(val Value) []Value {
+	switch x := val.(type) {
+	case *ListVal:
+		return x.Elements
+	case *TupleVal:
+		return x.Elements
+	}
+	return nil
 }
 
 // bind değere bir bağ ekler (sahiplenilmiş değerlerde).
@@ -256,7 +265,7 @@ func unbind(val Value) {
 	}
 }
 
-// escape değeri (sahip listeyse elemanlarıyla) kalıcı olarak sahiplik dışına çıkarır.
+// escape değeri (sahip liste ya da demetse elemanlarıyla) kalıcı olarak sahiplik dışına çıkarır.
 func escape(val Value) {
 	if !ownActive.Load() {
 		return
@@ -271,8 +280,8 @@ func escape(val Value) {
 	}
 	held := own.state == ownHeld
 	own.state, own.frame = ownEscaped, nil
-	if l, ok := val.(*ListVal); ok && held {
-		for _, e := range l.Elements {
+	if held {
+		for _, e := range ownedElements(val) {
 			escape(e)
 		}
 	}
@@ -301,7 +310,7 @@ func (v *VM) releaseTemp(val, result Value) {
 	}
 }
 
-// release değeri bırakır; sahip listenin elemanlarının bağı kalkar.
+// release değeri bırakır; sahip liste ve demetin elemanlarının bağı kalkar.
 func release(o Owned) {
 	own := o.Ownership()
 	own.state, own.frame = ownReleased, nil
@@ -428,12 +437,12 @@ func (v *VM) afterIndex(res, left, idx Value) {
 	v.releaseTemp(idx, res)
 }
 
-// ownList derleyicinin kurduğu listeyi (liste yazımı, liste üreteci) sahiplenilmiş bir
-// eleman taşıyorsa elemanlarının sahibi yapar.
-func (v *VM) ownList(l *ListVal) {
-	for _, e := range l.Elements {
+// ownContainer ifadede kurulan kabı (liste yazımı, liste üreteci, demet yazımı; 15.43)
+// sahiplenilmiş bir eleman taşıyorsa elemanlarının (elems) sahibi yapar.
+func (v *VM) ownContainer(o Owned, elems []Value) {
+	for _, e := range elems {
 		if _, own := ownershipOf(e); own != nil && own.state == ownHeld {
-			v.adoptList(l)
+			v.adoptContainer(o, elems)
 			return
 		}
 	}

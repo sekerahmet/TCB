@@ -121,6 +121,15 @@ func (l *Lexer) pointFraction(line, col int) Token {
 	return Token{Type: TokFloat, Literal: sb.String(), Line: line, Column: col}
 }
 
+// numberOrIndex rakamla başlayan sözcük birimini okur: üye noktasından sonra demetin öğe indeksi
+// (t.0, 3.6a), başka yerde sayı.
+func (l *Lexer) numberOrIndex(line, col int) Token {
+	if l.places.prev == TokDot {
+		return l.elementIndex(line, col)
+	}
+	return l.number(line, col)
+}
+
 // operandEnded son sözcük biriminin bir işleneni bitirip bitirmediğidir: ad, kapanan parantez ya da
 // öğe indeksi (t.0). Ardından gelen '.' ve rakam üye erişimidir (t.0, f().1, t.0.1), '.5' gibi
 // noktayla başlayan bir sayı değildir.

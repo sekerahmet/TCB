@@ -35,6 +35,9 @@ var (
 // names in messages follow the message's language (TR_DIL). A name that is not a type code's
 // (a struct's own name) stays as it is.
 func (t ValueType) MessageText(lang string) string {
+	if strings.HasPrefix(string(t), "(") && strings.HasSuffix(string(t), ")") {
+		return tupleTypeText(t, lang) // demet tipi (3.6a): öğelerin tipleri
+	}
 	k, ok := codes.Find(codes.NamespaceType, string(t))
 	if !ok {
 		return string(t)
@@ -251,6 +254,9 @@ func DictKey(v Value) string {
 	if inst, ok := v.(*StructInstanceVal); ok && inst.Variant != nil { // 7.7: enum_ops.go
 		return enumKey(inst)
 	}
+	if t, ok := v.(*TupleVal); ok { // 3.6a: tuple_ops.go
+		return tupleKey(t)
+	}
 	switch x := v.(type) {
 	case *StringVal:
 		if strings.HasPrefix(x.Val, nonStringKeyPrefix) {
@@ -296,6 +302,9 @@ func identityKey(v Value) string {
 func DictKeyError(v Value) error {
 	if inst, ok := v.(*StructInstanceVal); ok && inst.Variant != nil { // 7.7: enum_ops.go
 		return enumKeyError(inst)
+	}
+	if t, ok := v.(*TupleVal); ok { // 3.6a: tuple_ops.go
+		return tupleKeyError(t)
 	}
 	switch v.(type) {
 	case *StringVal, *IntVal, *BoolVal, *BytesVal:

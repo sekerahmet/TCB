@@ -23,11 +23,7 @@ func SubExpressions(e Expression, visit func(Expression) bool) bool {
 			}
 		}
 	case *ListLiteral:
-		for _, el := range x.Elements {
-			if visit(el) {
-				return true
-			}
-		}
+		return each(x.Elements...)
 	case *DictLiteral:
 		for _, p := range x.Pairs {
 			if each(p.Key, p.Value) {

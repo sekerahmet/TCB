@@ -70,7 +70,7 @@ func orValueNames(lang *codes.Language) *codes.Language {
 	return lang
 }
 
-// writeContainer bir kabı (Liste, Sözlük, yapı nesnesi) lang dilinde (nil: değerin metni) yazdırır.
+// writeContainer bir kabı (Liste, Sözlük, demet, yapı nesnesi) lang dilinde (nil: değerin metni) yazdırır.
 // filePath, şu an yazdırılmakta olan dış kaplardır: kendini (doğrudan ya da dolaylı) içeren bir
 // kap yeniden görülünce sonsuz özyineleme yerine "[...]" / "{...}" / "Ad{...}" yazılır.
 func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
@@ -97,6 +97,16 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			sb.WriteString(writeElement(el, lang, filePath))
 		}
 		sb.WriteByte(']')
+	case *TupleVal:
+		// demet (3.6a): (1, "a"); değişmez olduğu için kendini içeremez, içindeki liste içerebilir
+		sb.WriteByte('(')
+		for i, el := range x.Elements {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(writeElement(el, lang, filePath))
+		}
+		sb.WriteByte(')')
 	case *DictVal:
 		sb.WriteByte('{')
 		for i, k := range x.Order {
@@ -194,7 +204,7 @@ func writeItem(v Value, lang *codes.Language, filePath []Value) string {
 			return x.Inspect()
 		}
 		return x.Text(lang)
-	case *ListVal, *DictVal, *StructInstanceVal:
+	case *ListVal, *DictVal, *TupleVal, *StructInstanceVal:
 		return writeContainer(v, lang, filePath)
 	case LanguageText:
 		return x.Text(orValueNames(lang))
