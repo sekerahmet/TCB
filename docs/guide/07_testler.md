@@ -16,9 +16,9 @@ TR_test "eşitlik" {
 }
 ```
 
-- `TR_fn_assert(koşul, [mesaj])`: koşul yanlışsa test kalır.
-- `TR_fn_assert_equal(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
-- `TR_ctx_test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `TR_kw_var test = 5` gibi kullanımlar çalışmaya devam eder.
+- `TR_assert(koşul, [mesaj])`: koşul yanlışsa test kalır.
+- `TR_assert_equal(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
+- `TR_ctx_test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `TR_var test = 5` gibi kullanımlar çalışmaya devam eder.
 - Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
 
 ```text

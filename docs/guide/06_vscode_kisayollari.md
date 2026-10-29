@@ -1,12 +1,12 @@
 # 6. VS Code Editör Eklentisi Kısayolları (Snippets)
 `.tr` uzantılı bir dosya açtığınızda aşağıdaki kısayolları yazıp `Tab` tuşuna basabilirsiniz:
-- `fonk` / `TR_kw_func` $\rightarrow$ Fonksiyon bloğu oluşturur
-- `TR_kw_if` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
-- `TR_kw_match` $\rightarrow$ `TR_kw_match` durum eşleştirme bloğu oluşturur
-- `TR_mem_filter` / `TR_mem_map` $\rightarrow$ Okla `.TR_mem_filter((x) => ...)` / `.TR_mem_map((x) => ...)` yazar
-- `TR_mem_reduce` $\rightarrow$ `.TR_mem_reduce(başlangıç, (birikim, x) => ...)` yazar
-- `TR_kw_for` $\rightarrow$ `TR_kw_for i TR_kw_in 1..=10` bloğu oluşturur
+- `fonk` / `TR_func` $\rightarrow$ Fonksiyon bloğu oluşturur
+- `TR_if` $\rightarrow$ `eğer ... değilse` bloğu oluşturur
+- `TR_match` $\rightarrow$ `TR_match` durum eşleştirme bloğu oluşturur
+- `.TR_filter` / `.TR_map` $\rightarrow$ Okla `.TR_filter((x) => ...)` / `.TR_map((x) => ...)` yazar
+- `.TR_reduce` $\rightarrow$ `.TR_reduce(başlangıç, (birikim, x) => ...)` yazar
+- `TR_for` $\rightarrow$ `TR_for i TR_in 1..=10` bloğu oluşturur
 - `liste_üret` $\rightarrow$ Tek satırda liste üreteci oluşturur
-- `TR_kw_struct` $\rightarrow$ `TR_kw_struct` ve metot şablonu oluşturur
-- `TR_kw_try` $\rightarrow$ `dene ... yakala` hata yakalama bloğu oluşturur
-- `TR_type_Tensor` / `türev` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`TR_type_Tensor(..., TR_arg_requires_grad: TR_kw_true)`, `TR_fn_AdamW`, `iyileştirici.TR_mem_zero_grad()`, `TR_fn_backward`, `iyileştirici.TR_mem_step()`)
+- `TR_struct` $\rightarrow$ `TR_struct` ve metot şablonu oluşturur
+- `TR_try` $\rightarrow$ `dene ... yakala` hata yakalama bloğu oluşturur
+- `TR_Tensor` / `türev` $\rightarrow$ Tensörlerle küçük bir eğitim döngüsü oluşturur (`TR_Tensor(..., TR_requires_grad: TR_true)`, `TR_AdamW`, `iyileştirici.TR_zero_grad()`, `TR_backward`, `iyileştirici.TR_step()`)

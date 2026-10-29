@@ -2,7 +2,7 @@
 
 `TR_cmd_format` kodu tek bir standart biçime getirir:
 
-- 4 boşluk girinti; `{` her zaman aynı satırda, `TR_kw_else` / `TR_kw_catch` kapanan `}` ile aynı satırda,
+- 4 boşluk girinti; `{` her zaman aynı satırda, `TR_else` / `TR_catch` kapanan `}` ile aynı satırda,
 - ikili operatörlerin iki yanında ve virgülden sonra birer boşluk (aralıklar bitişik: `1..=10`; sözlükler `{"a": 1}`, sondaki bloklar `{ o > 2 }`),
 - satır sonunda boşluk yok, art arda en fazla bir boş satır, dosya sonunda tek satır sonu.
 
