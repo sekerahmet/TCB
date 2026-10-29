@@ -130,8 +130,8 @@ func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 			return steps, nil
 		}
 	}
-	linear := func(n int) func() (int, error) { return work(n * 120000) }
-	quadratic := func(n int) func() (int, error) { return work(n * n * 600) }
+	linear := func(n int) func() (int, error) { return work(n * 240000) }
+	quadratic := func(n int) func() (int, error) { return work(n * n * 1200) }
 	small, large := linearRuns(200, linear)
 	t.Logf("doğrusal: %v at 200, %v at 800; ratio %.1f", small.best, large.best, large.ratio(small))
 	if large.ratio(small) > linearLimit {
