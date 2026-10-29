@@ -22,9 +22,6 @@ type TupleVal struct {
 	own Ownership
 }
 
-// NewTuple is the tuple of elems (at least two; elems is not copied).
-func NewTuple(elems ...Value) *TupleVal { return &TupleVal{Elements: elems} }
-
 // Type is the tuple's type, its elements' types in parentheses: "(Int, String)". The text is built
 // when asked; a tuple holds no type of its own.
 func (t *TupleVal) Type() ValueType { return tupleTypeName(t.Elements) }
