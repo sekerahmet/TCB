@@ -335,52 +335,25 @@ func TestUnpackTupleCountSuggestion(t *testing.T) {
 	})
 }
 
-// Kural (3.6a): demette köşeli parantezle okuma H2778 verir ve üç durumu ayırır: sabit sayıda t.0,
-// değişken indeksle aynı tipli öğelerde [t.0, t.1][i], farklı tipli öğelerde TR_var a, b = t;
-// önerilen yazım çalıştırılınca hatasız biter.
+// Kural (3.6a): demette köşeli parantezle okuma H2778 verir ve üç durumu ayırır: sabit sayıda
+// <sol>.0, değişken indeksle aynı tipli öğelerde [<sol>.0, <sol>.1][<indeks>], farklı tipli
+// öğelerde TR_var a, b = <sol>; önerilen yazım çalıştırılınca hatasız biter.
 func TestTupleIndexSuggestion(t *testing.T) {
+	mSame := "TR_struct M { t: (TR_Int, TR_Int) = (10, 20) }\nTR_var m = M()\nTR_var i = 0\n"
+	mDiff := "TR_struct M { t: (TR_Int, TR_String) = (10, \"x\") }\nTR_var m = M()\nTR_var i = 0\n"
 	checkRuntimeSuggestions(t, messages.H2778, 2, []suggestionCase{
-		{
-			`TR_var t = (10, "x")` + "\n",
-			"TR_print(t[0])", "t.0",
-			"(Tam, Metin) demeti köşeli parantezle indekslenemez (3.6a): demetin öğesi noktayla okunur: t.0",
-			"the tuple (Int, String) cannot be indexed with square brackets (3.6a): a tuple's element is read with a dot: t.0",
-			"TR_var result = t.0", "10",
-		},
-		{
-			`TR_var t = (10, "x")` + "\n",
-			"TR_print(t[1])", "t.1",
-			"demetin öğesi noktayla okunur: t.1",
-			"a tuple's element is read with a dot: t.1",
-			"TR_var result = t.1", "x",
-		},
-		{
-			"TR_var t = (10, 20)\nTR_var i = 1\n",
-			"TR_print(t[i])", "[t.0, t.1][i]",
-			"(Tam, Tam) demeti köşeli parantezle indekslenemez (3.6a): demetin öğesi yalnız sabit sayıyla okunur; listeye koyun: [t.0, t.1][i]",
-			"the tuple (Int, Int) cannot be indexed with square brackets (3.6a): a tuple's element is read only with a constant number; put it in a list: [t.0, t.1][i]",
-			"TR_var result = [t.0, t.1][i]", "20",
-		},
-		{
-			"TR_var t = (10, 20, 30)\nTR_var i = 2\n",
-			"TR_print(t[i])", "[t.0, t.1, t.2][i]",
-			"listeye koyun: [t.0, t.1, t.2][i]",
-			"put it in a list: [t.0, t.1, t.2][i]",
-			"TR_var result = [t.0, t.1, t.2][i]", "30",
-		},
-		{
-			`TR_var t = (10, "x")` + "\nTR_var i = 0\n",
-			"TR_print(t[i])", "TR_var a, b = t",
-			"(Tam, Metin) demeti köşeli parantezle indekslenemez (3.6a): demetin öğesi yalnız sabit sayıyla okunur; açın: TR_var a, b = t",
-			"the tuple (Int, String) cannot be indexed with square brackets (3.6a): a tuple's element is read only with a constant number; unpack it: TR_var a, b = t",
-			"TR_var a, b = t\nTR_var result = [a, b]", `[10, "x"]`,
-		},
-		{
-			`TR_var t = (10, "x", TR_true)` + "\nTR_var i = 0\n",
-			"TR_print(t[i])", "TR_var a, b, c = t",
-			"açın: TR_var a, b, c = t",
-			"unpack it: TR_var a, b, c = t",
-			"TR_var a, b, c = t\nTR_var result = [a, b, c]", `[10, "x", true]`,
-		},
+		{`TR_var t = (10, "x")` + "\n", "TR_print(t[0])", "t.0", "demetin öğesi noktayla okunur: t.0", "a tuple's element is read with a dot: t.0", "TR_var result = t.0", "10"},
+		{"TR_var t = (10, 20, 30)\nTR_var i = 2\n", "TR_print(t[i])", "[t.0, t.1, t.2][i]", "listeye koyun: [t.0, t.1, t.2][i]", "put it in a list: [t.0, t.1, t.2][i]", "TR_var result = [t.0, t.1, t.2][i]", "30"},
+		{`TR_var t = (10, "x", TR_true)` + "\nTR_var i = 0\n", "TR_print(t[i])", "TR_var a, b, c = t", "açın: TR_var a, b, c = t", "unpack it: TR_var a, b, c = t", "TR_var a, b, c = t\nTR_var result = [a, b, c]", `[10, "x", true]`},
+		{"", "TR_print((1, 2)[0])", "(1, 2).0", "demetin öğesi noktayla okunur: (1, 2).0", "a tuple's element is read with a dot: (1, 2).0", "TR_var result = (1, 2).0", "1"},
+		{"TR_var i = 1\n", "TR_print((1, 2)[i])", "[(1, 2).0, (1, 2).1][i]", "listeye koyun: [(1, 2).0, (1, 2).1][i]", "put it in a list: [(1, 2).0, (1, 2).1][i]", "TR_var result = [(1, 2).0, (1, 2).1][i]", "2"},
+		{"TR_var i = 0\n", `TR_print((1, "x")[i])`, `TR_var a, b = (1, "x")`, `açın: TR_var a, b = (1, "x")`, `unpack it: TR_var a, b = (1, "x")`, "TR_var a, b = (1, \"x\")\nTR_var result = [a, b]", `[1, "x"]`},
+		{"TR_func f() { TR_return 10, 20 }\n", "TR_print(f()[0])", "f().0", "demetin öğesi noktayla okunur: f().0", "a tuple's element is read with a dot: f().0", "TR_var result = f().0", "10"},
+		{"TR_func f() { TR_return 10, 20 }\nTR_var i = 1\n", "TR_print(f()[i])", "[f().0, f().1][i]", "listeye koyun: [f().0, f().1][i]", "put it in a list: [f().0, f().1][i]", "TR_var result = [f().0, f().1][i]", "20"},
+		{"TR_func f() { TR_return 10, \"x\" }\nTR_var i = 0\n", "TR_print(f()[i])", "TR_var a, b = f()", "açın: TR_var a, b = f()", "unpack it: TR_var a, b = f()", "TR_var a, b = f()\nTR_var result = [a, b]", `[10, "x"]`},
+		{mDiff, "TR_print(m.t[0])", "m.t.0", "demetin öğesi noktayla okunur: m.t.0", "a tuple's element is read with a dot: m.t.0", "TR_var result = m.t.0", "10"},
+		{mSame, "TR_print(m.t[i])", "[m.t.0, m.t.1][i]", "listeye koyun: [m.t.0, m.t.1][i]", "put it in a list: [m.t.0, m.t.1][i]", "TR_var result = [m.t.0, m.t.1][i]", "10"},
+		{mSame, "TR_print(m.t[i + 1])", "[m.t.0, m.t.1][i + 1]", "listeye koyun: [m.t.0, m.t.1][i + 1]", "put it in a list: [m.t.0, m.t.1][i + 1]", "TR_var result = [m.t.0, m.t.1][i + 1]", "20"},
+		{mDiff, "TR_print(m.t[i])", "TR_var a, b = m.t", "açın: TR_var a, b = m.t", "unpack it: TR_var a, b = m.t", "TR_var a, b = m.t\nTR_var result = [a, b]", `[10, "x"]`},
 	})
 }

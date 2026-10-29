@@ -100,12 +100,14 @@ func (p *Parser) parseDictLiteral() ast.Expression {
 
 	return dict
 }
-func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+func (p *Parser) parseIndexExpression(left ast.Expression, leftTok lexer.Token) ast.Expression {
 	defer p.allowBlocks()()
 	defer p.enterBrackets()()
-	exp := &ast.IndexExpression{Token: p.curToken(), Left: left}
+	exp := &ast.IndexExpression{Token: p.curToken(), Left: left, LeftToken: leftTok}
 	p.nextToken()
+	idxStart := p.curToken()
 	exp.Index = p.parseExpression(precLowest)
+	exp.IndexToken = p.spanToken(idxStart, p.curToken())
 	if p.peekTokenIs(lexer.TokColon) {
 		// Python'un l[a:b]'si: dilim '..' ile yazılır (3.6); genel "']' bekleniyordu" yerine doğru biçim.
 		p.syntaxError(p.peekToken(), messages.H0170)

@@ -88,7 +88,7 @@ func UnpackSuggestion(stmt Node, count int) (kind, example string) {
 		rhs = s.ValueToken.Literal
 	case *MultiAssignStatement:
 		for _, t := range s.Targets {
-			names = append(names, targetName(t))
+			names = append(names, TargetName(t))
 		}
 		rhs = s.ValueToken.Literal
 	}
@@ -102,16 +102,22 @@ func UnpackSuggestion(stmt Node, count int) (kind, example string) {
 	return "missing", prefix + strings.Join(padded, ", ") + " = " + rhs
 }
 
-func targetName(e Expression) string {
+// TargetName returns the dotted spelling of an identifier or member chain (x, m.t, a?.b), or empty
+// when e is not a name.
+func TargetName(e Expression) string {
 	switch x := e.(type) {
 	case *Identifier:
 		return x.Value
 	case *MemberExpression:
+		base := TargetName(x.Object)
+		if base == "" {
+			return ""
+		}
 		dot := "."
 		if x.Safe {
 			dot = "?."
 		}
-		return targetName(x.Object) + dot + x.Property
+		return base + dot + x.Property
 	}
-	return e.TokenLiteral()
+	return ""
 }

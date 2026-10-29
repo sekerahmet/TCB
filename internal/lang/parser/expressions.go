@@ -20,6 +20,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	var leftExp ast.Expression
 	pattern := p.patternMode
 	p.patternMode = false
+	start := p.curToken()
 
 	switch p.curToken().Type {
 	case lexer.TokIdent:
@@ -71,7 +72,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 
-	return p.parseInfixChain(leftExp, precedence, pattern)
+	return p.parseInfixChain(leftExp, precedence, pattern, start)
 }
 func (p *Parser) parseIntegerLiteral() ast.Expression {
 	tok := p.curToken()
@@ -252,7 +253,7 @@ func (p *Parser) parseRangeExpression(left ast.Expression) ast.Expression {
 
 // parseInfixChain sol ifadeye ikili işleçleri, çağrıları, indeksleri ve üyeleri öncelik
 // sırasıyla bağlar; pattern ifadenin bir eşle kolunun deseni olduğudur.
-func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int, pattern bool) ast.Expression {
+func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int, pattern bool, start lexer.Token) ast.Expression {
 	for !p.peekTokenIs(lexer.TokSemicolon) && precedence < p.peekPrecedence() {
 		switch p.peekToken().Type {
 		case lexer.TokPlus, lexer.TokMinus, lexer.TokSlash, lexer.TokSlashSlash, lexer.TokAsterisk,
@@ -283,11 +284,12 @@ func (p *Parser) parseInfixChain(leftExp ast.Expression, precedence int, pattern
 			if p.peekToken().Line > p.curToken().Line {
 				return leftExp
 			}
+			leftEnd := p.curToken()
 			p.nextToken()
 			if p.curTokenIs(lexer.TokLParen) {
 				leftExp = p.parseCallExpression(leftExp)
 			} else {
-				leftExp = p.parseIndexExpression(leftExp)
+				leftExp = p.parseIndexExpression(leftExp, p.spanToken(start, leftEnd))
 			}
 		case lexer.TokDot, lexer.TokSafeDot:
 			p.nextToken()

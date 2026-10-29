@@ -462,9 +462,11 @@ func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
 func (ce *CallExpression) Line() int            { return ce.Token.Line }
 
 type IndexExpression struct {
-	Token lexer.Token // [
-	Left  Expression
-	Index Expression
+	Token      lexer.Token // [
+	Left       Expression
+	LeftToken  lexer.Token
+	Index      Expression
+	IndexToken lexer.Token
 }
 
 func (ie *IndexExpression) expressionNode()      {}

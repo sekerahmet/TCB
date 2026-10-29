@@ -140,30 +140,26 @@ func notTupleError(obj Value, index int) error {
 // tupleIndexError demette t[i] okumasının hatasıdır (3.6a): sabit sayıda t.0, aynı tipli öğelerde
 // [t.0, t.1][i], farklı tipli öğelerde TR_var a, b = t önerilir.
 func tupleIndexError(t *TupleVal, e *ast.IndexExpression) error {
-	name := "t"
-	if id, ok := e.Left.(*ast.Identifier); ok {
-		name = id.Value
+	left := ast.TargetName(e.Left)
+	if left == "" {
+		left = e.LeftToken.Literal
 	}
 	if lit, ok := e.Index.(*ast.IntegerLiteral); ok {
-		return messages.New(messages.H2778, t.Type(), "const", fmt.Sprintf("%s.%d", name, lit.Value))
+		return messages.New(messages.H2778, t.Type(), "const", fmt.Sprintf("%s.%d", left, lit.Value))
 	}
 	if sameElementTypes(t.Elements) {
-		idxName := "i"
-		if id, ok := e.Index.(*ast.Identifier); ok {
-			idxName = id.Value
-		}
 		items := make([]string, len(t.Elements))
 		for i := range t.Elements {
-			items[i] = fmt.Sprintf("%s.%d", name, i)
+			items[i] = fmt.Sprintf("%s.%d", left, i)
 		}
-		example := "[" + strings.Join(items, ", ") + "][" + idxName + "]"
+		example := "[" + strings.Join(items, ", ") + "][" + e.IndexToken.Literal + "]"
 		return messages.New(messages.H2778, t.Type(), "same", example)
 	}
 	names := make([]string, len(t.Elements))
 	for i := range t.Elements {
 		names[i] = string(rune('a' + i%26))
 	}
-	example := codes.Spelling(codes.KwVar) + " " + strings.Join(names, ", ") + " = " + name
+	example := codes.Spelling(codes.KwVar) + " " + strings.Join(names, ", ") + " = " + left
 	return messages.New(messages.H2778, t.Type(), "diff", example)
 }
 
