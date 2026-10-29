@@ -76,3 +76,47 @@ func TestTypeAnnotationSuggestionFollowsTheFileLanguage(t *testing.T) {
 		}
 	}
 }
+
+// Kural (3.5, 3.6, 3.6a, 3.7, 6.9, 15.1): bileşik tip bugün asıl adına indirgenir; denetleyici
+// onunla yeni hata vermez. Yalnız yapı açılır (TR_List[...] → TR_List, T? → T, demet ve fonksiyon
+// tipi her şeyle uyumlu); isteğe bağlı tipe TR_none verilir. İçteki adlar bugünkü gibi denetlenir.
+func TestCompoundTypesReduceToTheirBaseName(t *testing.T) {
+	noErrors(t, `TR_var l: TR_List[TR_Int] = [1, 2]
+TR_var bos: TR_List[TR_Int] = []
+TR_var x: TR_Int? = TR_none
+x = 3
+x = TR_none
+TR_var d: TR_Dict[TR_String, TR_List[TR_Int?]] = {"a": [1, TR_none]}
+TR_var k: TR_Dict[(TR_Int, TR_Int), TR_Int] = {}
+TR_var t: (TR_Int, TR_String) = TR_none
+TR_var f: (TR_Int) -> TR_Bool = (a) => a > 0
+TR_var g: () -> (TR_Int, TR_Int) = () => 1
+TR_var tensor: TR_Tensor[TR_Int] = TR_Tensor([1, 2])
+TR_func h(a: TR_List[TR_Int], b: TR_Tensor? = TR_none, c: TR_String? = TR_none) -> TR_List[TR_Int]? {
+    TR_if c == TR_none { TR_return TR_none }
+    TR_return a
+}
+TR_func m() -> (TR_Int, TR_Int) -> TR_Int { TR_return (a, b) => a + b }
+TR_func ikili() -> (TR_Int, TR_String) { TR_return 1, "a" }
+TR_struct S {
+    a: TR_List[TR_Float]
+    b: TR_String? = TR_none
+}
+TR_var y: TR_Int = h(l, TR_none, "c")?.TR_length ?? 0
+TR_print(l, bos, x, d, k, t, f, g, tensor, h(l), m(), ikili(), S([1.0]), y)
+`)
+	for _, c := range []struct {
+		source string
+		code   messages.Code
+	}{
+		{"TR_var l: TR_List[TR_Int] = 1\n", messages.H1001},        // indirgenen tip bugünkü gibi denetlenir
+		{"TR_var x: TR_Int? = \"a\"\n", messages.H1001},            // T? → T
+		{"TR_var l: TR_List[tam] = [1]\n", messages.H1006},         // içteki ad
+		{"TR_func f(a: (Metin) -> TR_Bool) { }\n", messages.H1006}, // fonksiyon tipinin parametresi
+	} {
+		errs, coded := checkErrs(t, c.source)
+		if len(coded) != 1 || !messages.Has(coded[0], c.code) {
+			t.Errorf("%q: tek %v hatası bekleniyordu, gelen: %v", c.source, c.code, errs)
+		}
+	}
+}
