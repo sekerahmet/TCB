@@ -124,7 +124,7 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | `tanım` | Bir adın tanımı: nerede, imzası, belge yorumu, üyeleri | `tr dizin tanım Doğrusal` |
 | `kullananlar` | Bir ada başvuranlar: çağrı, okuma, yazma, aktarma, test | `tr dizin kullananlar Doğrusal` |
 | `sınayanlar` | Bir adı sınayan test blokları (doğrudan, sonra çağrı zinciriyle dolaylı) | `tr dizin sınayanlar Doğrusal` |
-| `etki` | Bir ad ya da dosya değişirse etkilenenler | `tr dizin etki lib/katman.tr` |
+| `etki` | Bir ad ya da dosya değişirse etkilenenler | `tr dizin etki lib/layers.tr` |
 | `yeniden_adlandır` | Bir ad değişirse değişecek yerler: kesin ve olası (hiçbir dosyayı değiştirmez) | `tr dizin yeniden_adlandır baş bakış_sayısı` |
 
 Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılır):

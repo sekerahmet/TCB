@@ -72,18 +72,18 @@ func TestUnresolvedNamesAreCounted(t *testing.T) {
 // Projede lib/ yoksa `aktar "tr/ad"` gömülü kitaplığa çözülür; modül sanal yoldadır.
 func TestEmbeddedLibraryModule(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "main.tr"), trText(filepath.Join(dir, "main.tr"), "TR_import \"tr/katman\"\n\nTR_GPT(1)\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "main.tr"), trText(filepath.Join(dir, "main.tr"), "TR_import \"tr/layers\"\n\nTR_GPT(1)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lib := fstest.MapFS{"katman.tr": {Data: trText("katman.tr", "TR_struct TR_GPT {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"layers.tr": {Data: trText("layers.tr", "TR_struct TR_GPT {\n    n = 1\n}\n")}}
 	idx, err := Build(dir, Options{Library: lib})
 	if err != nil {
 		t.Fatal(err)
 	}
 	fs := facts(idx)
 	for _, want := range []string{
-		"edge module:main.tr imports module:tr:lib/katman.tr EXTRACTED x1",
-		"edge module:main.tr calls struct:tr:lib/katman.tr#TR_type_GPT EXTRACTED x1",
+		"edge module:main.tr imports module:tr:lib/layers.tr EXTRACTED x1",
+		"edge module:main.tr calls struct:tr:lib/layers.tr#TR_type_GPT EXTRACTED x1",
 	} {
 		if !hasFact(fs, want) {
 			t.Errorf("missing %s in\n%v", want, fs)

@@ -42,8 +42,8 @@ type placeState struct {
 	pending    map[string]codes.Code
 	// base yerleştirme alt çözümleyicisinde metnin bulunduğu yerin kapsamıdır.
 	base []map[string]codes.Code
-	// aliases takma adla aktarılan modüllerin adlarıdır (TR_import "tr/katman" TR_as katman):
-	// katman.TR_GPT kitaplığın tipidir, üye değil. importStep aktarma deyiminin okunan sözcüğüdür
+	// aliases takma adla aktarılan modüllerin adlarıdır (TR_import "tr/layers" TR_as katman):
+	// layers.TR_GPT kitaplığın tipidir, üye değil. importStep aktarma deyiminin okunan sözcüğüdür
 	// (1: TR_import, 2: yol, 3: TR_as); prevName son adın metni, afterAlias noktanın bir takma addan
 	// sonra geldiğidir.
 	aliases    map[string]bool

@@ -253,8 +253,8 @@ TR_GPU_MICRO=1 TR_GPU_OWN_GEMM=1 ncu --target-processes all -k regex:carpim --la
 
 ## 9. SimpleStories ile GPT eğitimi (dilin kitaplığıyla)
 
-`gpt_training.tr` dilin kitaplığındaki GPT'yi (`TR_kw_import "tr/katman"`) gizli ağırlıklarda Muon,
-gömme/norm ağırlıklarında AdamW ile (`TR_kw_import "tr/iyilestirici"`), ısınma–sabit–azalma (WSD)
+`gpt_training.tr` dilin kitaplığındaki GPT'yi (`TR_kw_import "tr/layers"`) gizli ağırlıklarda Muon,
+gömme/norm ağırlıklarında AdamW ile (`TR_kw_import "tr/optimizers"`), ısınma–sabit–azalma (WSD)
 öğrenme oranı planıyla eğitir. Veri klasörü: `tokenizer.json`, `train.npy`, `valid.npy`
 (uint16 parça kimlikleri). Varsayılan model d512, 8 katman, 8 bakış, bağlam 512, toplu 128.
 Koşu klasörünü yerel diskte tutun, bitince Drive'a kopyalayın.
@@ -719,7 +719,7 @@ else echo "sürüyor: $(tail -c 160 tr.log 2>/dev/null)"; fi
 ### Hücre 21 · KİTAPLIK DENEYİ (A/B) · GPU
 
 Bir kitaplık değişikliğini dile ve depoya almadan önce ölçer: `/content/TCB`'nin kopyasında
-`lib/katman.tr` yamalanır (kitaplık ikiliye gömülüdür), `tr_deney` derlenir; iki ikili aynı
+`lib/layers.tr` yamalanır (kitaplık ikiliye gömülüdür), `tr_deney` derlenir; iki ikili aynı
 sentetik veride sırayla ikişer kez 120 adım koşar. Örnekteki yama, f32 girdili normların
 (`TR_mem_input_norm`, `TR_mem_post_attention_norm`, `TR_mem_final_norm`) çıktısını doğrudan bf16 yazar (`TR_arg_dtype:`): bu modelde onları yalnızca
 çarpımlar okur, çarpımın kendi dönüşümü gereksizleşir. Yamayı deneye göre değiştirin
@@ -731,7 +731,7 @@ sentetik veride sırayla ikişer kez 120 adım koşar. Örnekteki yama, f32 gird
 export PATH=/usr/local/go/bin:$PATH
 rm -rf /content/TCB_b && cp -r /content/TCB /content/TCB_b && cd /content/TCB_b
 python3 - <<'PY'
-p = "lib/katman.tr"; s = open(p, encoding="utf-8").read()
+p = "lib/layers.tr"; s = open(p, encoding="utf-8").read()
 r = [("kendi.norm1.ileri(x)", 'rms_normu(x, kendi.norm1.ağırlık, epsilon: kendi.norm1.epsilon, tür: "bf16")'),
      ("kendi.norm2.ileri(h)", 'rms_normu(h, kendi.norm2.ağırlık, epsilon: kendi.norm2.epsilon, tür: "bf16")'),
      ("sonuç kendi.son_norm.ileri(x)", 'sonuç rms_normu(x, kendi.son_norm.ağırlık, epsilon: kendi.son_norm.epsilon, tür: "bf16")')]

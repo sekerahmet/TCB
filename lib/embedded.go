@@ -4,7 +4,7 @@
 // yalnızca paketin kendi klasörünü ve alt klasörlerini gömebildiği için kitaplık bu paketin
 // altında durur.
 //
-// Kullanıcı kodunda bir modül `aktar "tr/katman"` ile alınır (dil tanımı 11.6): "tr/" öneki
+// Kullanıcı kodunda bir modül `aktar "tr/layers"` ile alınır (dil tanımı 11.6): "tr/" öneki
 // dilin kendi kitaplığına ayrılmıştır, diskteki dosyalar onu gölgeleyemez. Komut satırı
 // (cmd/tr) Files'ı yorumlayıcıya interp.SetLibrary ile bağlar; `tr derle` çıktısı
 // yorumlayıcının kopyası olduğundan kitaplık ona da girer. Testler (*_test.tr) de gömülür ama
@@ -15,7 +15,7 @@ package lib
 
 import "embed"
 
-// Files kitaplığın gömülü dosyalarıdır (klasöre göre yollarla: "katman.tr").
+// Files kitaplığın gömülü dosyalarıdır (klasöre göre yollarla: "layers.tr").
 //
 //go:embed README.md *.tr
 var Files embed.FS

@@ -37,7 +37,7 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 		return false
 	})
 	out = append(out, ix.loaderTests(target, direct)...)
-	// Aynı uzaklıkta dosyanın kendi test dosyasındakiler önce (lib/katman.tr için lib/katman_test.tr).
+	// Aynı uzaklıkta dosyanın kendi test dosyasındakiler önce (lib/layers.tr için lib/layers_test.tr).
 	own := func(t *Node) bool {
 		stem := strings.TrimSuffix(target.File, path.Ext(target.File))
 		return target.Kind == kindFile && strings.TrimSuffix(t.File, path.Ext(t.File)) == stem+"_test"
@@ -76,8 +76,8 @@ func (a testRank) before(b testRank) bool {
 // loaderTests bir dosyayı yükleyen dosyaları (`loads`, js_loads.go) geriye doğru izler ve onları koşan testleri verir:
 // e2e.TestExtensionJSTests test/coded_view_test.js'yi koşar, o da coded_view.js'yi yükler (2 adım, via test dosyası).
 // TR'de aktarma da yüklemedir: `.tr` dosyasının testleri onu (geçişli) aktaran `.tr` dosyalarının testleridir, onları
-// koşan Go testleri (TestGPTTrainingScriptSmoke → tools/gpu/gpt_training.tr → lib/katman.tr) ve içlerindeki TR testleri
-// (lib/katman_test.tr'nin testleri, 1 adım). Doğrudan `tests` kenarı olanlar (skip) listeye girmez; her test bir kez,
+// koşan Go testleri (TestGPTTrainingScriptSmoke → tools/gpu/gpt_training.tr → lib/layers.tr) ve içlerindeki TR testleri
+// (lib/layers_test.tr'nin testleri, 1 adım). Doğrudan `tests` kenarı olanlar (skip) listeye girmez; her test bir kez,
 // en yakın yükleyiciyle.
 func (ix *index) loaderTests(target *Node, skip map[string]bool) []indirectTest {
 	if target.Kind != kindFile {

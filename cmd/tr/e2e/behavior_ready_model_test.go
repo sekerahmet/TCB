@@ -11,9 +11,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// readyModelCompare tr/hazir ile yüklenen modelin logitlerini transformers'ın yazdığı logits.json
+// readyModelCompare tr/pretrained ile yüklenen modelin logitlerini transformers'ın yazdığı logits.json
 // ile karşılaştırır ve en büyük mutlak farkı yazar.
-const readyModelCompare = `TR_import "tr/hazir"
+const readyModelCompare = `TR_import "tr/pretrained"
 TR_var arg = TR_command_line({"folder": ""})
 TR_var beklenen = TR_json_parse(TR_read_file(TR_Path(arg["folder"], "logits.json")))
 TR_var model = TR_pretrained_model(arg["folder"])
@@ -27,7 +27,7 @@ TR_print(en_büyük)
 `
 
 // Kural (Evre 5, hazır modeller; dil tanımı 15.47): Hugging Face biçiminde kaydedilmiş bir model
-// (config.json + model.safetensors) tr/hazir ile yüklenince aynı token kimlikleri için
+// (config.json + model.safetensors) tr/pretrained ile yüklenince aynı token kimlikleri için
 // transformers'la float32 yuvarlama düzeyinde aynı logitleri verir. İki mimari: Llama (paylaşımlı
 // gömme, RoPE tabanı 10⁵) ve Qwen3 (bakış boyutu gizli boyuttan bağımsız, QK-norm, RoPE tabanı
 // 10⁶ rope_parameters içinde, ayrı çıkış katmanı). Model rastgele ağırlıklarla yerelde kurulur;

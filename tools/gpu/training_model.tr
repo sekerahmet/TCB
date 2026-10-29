@@ -3,7 +3,7 @@
 # komut satırı sözlüğü ya da koşu klasöründeki config.json'un "config"i) bu tek fonksiyonla kurar; yeni bir
 # model seçeneği yalnızca burada eklenir. Kendisi program değildir.
 
-TR_import "tr/katman"
+TR_import "tr/layers"
 
 # eğitim_modeli: ayar.dağarcık 0 ise parçalayıcının dağarcığı kullanılır; büyükse dolgu satırları eklenir,
 # küçükse hatadır. 0 verilen kv_bakış_sayısı ve ara_boyut kitaplığın varsayılanıdır. Ayar config.json'dan

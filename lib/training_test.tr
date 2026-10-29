@@ -1,7 +1,7 @@
 # TR 4
-# tr/egitim testleri: sıçrama bekçisinin kararları (pencere dolmadan karar yok, sonlu olmayan
+# tr/training testleri: sıçrama bekçisinin kararları (pencere dolmadan karar yok, sonlu olmayan
 # değer, z-skoru eşiği), sıçramanın geçmişe girmemesi ve kayan pencere. Koşturma: tr test lib
-TR_import "tr/egitim"
+TR_import "tr/training"
 
 # Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
 TR_func besle(b, n) {

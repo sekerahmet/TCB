@@ -30,32 +30,32 @@ func TestImportDoesNotLoadWorkingDirFile(t *testing.T) {
 
 // Kural 11.6: tr/ önekli modül gömülü kitaplıktandır; tr kontrol olmayanı bildirir, tr derle
 // kitaplığı pakete gömmez (uygulama yorumlayıcının kopyasıdır) ve uygulama başka klasörde,
-// diskte tr/katman.tr varken de kitaplıktakini yükler.
+// diskte tr/layers.tr varken de kitaplıktakini yükler.
 func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	project := t.TempDir()
 	writeTR(t, project, "ana.tr", strings.Join([]string{
-		`TR_import "tr/katman" TR_as k`,
+		`TR_import "tr/layers" TR_as k`,
 		`TR_import "yerel"`,
 		`TR_var d = k.TR_Linear(3, 2, TR_seed: 1)`,
 		`TR_print("şekil \(d.TR_forward(TR_ones([1, 3])).TR_shape) \(YEREL)")`,
 	}, "\n")+"\n")
 	writeTR(t, project, "yerel.tr", "TR_var YEREL = \"yerel modül\"\n")
-	writeTR(t, project, "tr/katman.tr", "TR_var TR_Linear = TR_none\n")
+	writeTR(t, project, "tr/layers.tr", "TR_var TR_Linear = TR_none\n")
 	expected := "şekil [1, 2] yerel modül"
 	testkit.Wait(t, tr(t, project, "ana.tr"), 0, []string{expected}, nil)
 
 	exit := filepath.Join(t.TempDir(), "uygulama.exe")
 	s := tr(t, project, "derle", "ana.tr", exit)
 	testkit.Wait(t, s, 0, []string{"Başarıyla derlendi", "Gömülen modüller (1)", "yerel.tr"}, nil)
-	if strings.Contains(s.Stdout, "katman") {
+	if strings.Contains(s.Stdout, "layers") {
 		t.Errorf("kitaplık modülü pakete gömülmemeli:\n%s", s.Stdout)
 	}
 	other := t.TempDir()
-	writeTR(t, other, "tr/katman.tr", "TR_var TR_Linear = TR_none\n")
+	writeTR(t, other, "tr/layers.tr", "TR_var TR_Linear = TR_none\n")
 	testkit.Wait(t, testkit.RunBinary(t, exit, other, "", nil), 0, []string{expected}, nil)
 
 	writeTR(t, project, "hatali.tr", "TR_import \"tr/olmayan\"\n")
-	testkit.Wait(t, tr(t, project, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/egitim, tr/hazir, tr/iyilestirici, tr/katman`})
+	testkit.Wait(t, tr(t, project, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/layers, tr/optimizers, tr/pretrained, tr/training`})
 	testkit.Wait(t, tr(t, project, "derle", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }
 
@@ -123,7 +123,7 @@ func TestGPTTrainingScriptSmoke(t *testing.T) {
 	// Aynı komut: eğitim bitmiş, kontrol noktasından yüklenir.
 	testkit.Wait(t, tr(t, t.TempDir(), args...), 0, []string{"bitti"}, []string{"Kaldığı yerden devam: adım 12"})
 
-	// Prova (tr/egitim Koşu): aynı komut iki adım, geçici klasörde; verilen koşu klasörüne dokunmaz.
+	// Prova (tr/training Koşu): aynı komut iki adım, geçici klasörde; verilen koşu klasörüne dokunmaz.
 	unused := filepath.Join(t.TempDir(), "kosu")
 	trial := append(append([]string{}, args...), "--dry_run")
 	trial[4] = unused

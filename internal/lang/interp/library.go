@@ -13,7 +13,7 @@ import (
 )
 
 // LibraryPrefix is the 'aktar' prefix reserved for the language's own library (11.6):
-// "tr/katman" is loaded from the library embedded in the binary (lib/katman.tr in the repo),
+// "tr/layers" is loaded from the library embedded in the binary (lib/layers.tr in the repo),
 // not from disk. The user's files on disk cannot shadow this prefix; a user folder named "tr"
 // is imported with "./tr/...".
 const LibraryPrefix = "tr/"
@@ -27,8 +27,8 @@ var libraryFiles fs.FS
 func SetLibrary(f fs.FS) { libraryFiles = f }
 
 // LibraryModule, when the path points into the language's library (tr/ prefix), returns the
-// module's name relative to the library root with the ".tr" extension: "tr/katman" →
-// "katman.tr". A backslash also counts as a separator.
+// module's name relative to the library root with the ".tr" extension: "tr/layers" →
+// "layers.tr". A backslash also counts as a separator.
 func LibraryModule(filePath string) (name string, ok bool) {
 	y := strings.ReplaceAll(filePath, `\`, "/")
 	if !strings.HasPrefix(y, LibraryPrefix) {
@@ -63,7 +63,7 @@ func ReadLibrary(name string) ([]byte, error) {
 	return nil, messages.New(messages.H2478, wanted, strings.Join(modules, ", "), suggestion)
 }
 
-// LibraryModules returns the 'aktar' paths of the library's modules ("tr/katman", ...),
+// LibraryModules returns the 'aktar' paths of the library's modules ("tr/layers", ...),
 // sorted.
 func LibraryModules() []string {
 	if libraryFiles == nil {

@@ -103,7 +103,7 @@ func joinErrors(errs []error) string { return strings.Join(messages.Texts(errs),
 
 // speedFiles hız tabanının metinleridir: büyük, orta ve küçük bir dosya (cmd/tr/e2e'deki
 // uçtan uca ölçüm de aynılarını kullanır).
-var speedFiles = []string{"lib/katman.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
+var speedFiles = []string{"lib/layers.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
 
 // BenchmarkPrepare kodlu dosyanın tip denetimiyle hazırlanmasını ölçer (gösterimin kurulması dahil).
 // Madde 15'in tabanıdır:

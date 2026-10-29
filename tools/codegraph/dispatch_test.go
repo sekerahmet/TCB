@@ -51,7 +51,7 @@ func TestImplementedByJoinsTheChainOnlyFromMeasurements(t *testing.T) {
 	if !reachEdge(edgeImplementedBy, inferred, "tr:func:tools/bench/tr/fib.tr:fib", to) {
 		t.Error("a bench program reaches the interpreter")
 	}
-	if reachEdge(edgeImplementedBy, inferred, "tr:test:lib/katman_test.tr:12", to) || reachEdge(edgeImplementedBy, inferred, "tr:func:lib/katman.tr:f", to) {
+	if reachEdge(edgeImplementedBy, inferred, "tr:test:lib/layers_test.tr:12", to) || reachEdge(edgeImplementedBy, inferred, "tr:func:lib/layers.tr:f", to) {
 		t.Error("a TR test or library function does not count as a test of the interpreter through implemented_by")
 	}
 }

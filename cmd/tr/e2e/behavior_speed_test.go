@@ -12,7 +12,7 @@ import (
 
 // speedFiles hız tabanının metinleridir: büyük, orta ve küçük bir dosya
 // (internal/lang/source'taki BenchmarkPrepare de aynılarını kullanır).
-var speedFiles = []string{"lib/katman.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
+var speedFiles = []string{"lib/layers.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
 
 // BenchmarkCheckAndRun aynı dosyanın kodsuz ve kodlu kopyasında 'tr kontrol' ile çalıştırmanın
 // süreç başından sonuna süresini ölçer (derleme ve süreç açılışı dahil). Madde 15'in tabanıdır,

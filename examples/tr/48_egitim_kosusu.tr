@@ -1,15 +1,15 @@
 # TR 4
 # 48 — Eğitim koşusu: kayıt işlerini kitaplığa bırakmak, uzun koşudan önce prova yapmak.
-# Ne öğretir: aktar "tr/egitim" ile Koşu: koşu klasörü, config.json, metrics.jsonl, ilerleme çubuğu ve kontrol
+# Ne öğretir: aktar "tr/training" ile Koşu: koşu klasörü, config.json, metrics.jsonl, ilerleme çubuğu ve kontrol
 # noktası tek satırda; koşu.adım_bitti(adım, ölçüler), koşu.değerlendirildi(adım, ölçüler), koşu.bitir(model)
 # (ağırlıklar her şeyden önce yazılır); prova: doğru ile aynı eğitimin PROVA_ADIMI adımlık denemesi. Döngü sizde kalır.
 # Önceki örnekten: kontrol noktası (40): orada elle kurulan klasör, günlük ve çubuk burada Koşu'nun işidir;
 # eğitimin kararlılığı (44): aynı kitaplık modülü.
-# Ayrıntılar: lib/README.md (tr/egitim), docs/spec/20_kontrol_noktasi.md §20.
+# Ayrıntılar: lib/README.md (tr/training), docs/spec/20_kontrol_noktasi.md §20.
 #
 # Çalıştırma (proje kökünden): tr examples/tr/48_egitim_kosusu.tr
 
-TR_import "tr/egitim"
+TR_import "tr/training"
 
 # Koşu klasörü her çalıştırmada silinir: örnek her seferinde baştan başlar.
 TR_const KOŞU = TR_Path("runs/kosu_ornegi")

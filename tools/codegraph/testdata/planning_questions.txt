@@ -64,11 +64,11 @@ codegraph tests-for 17.7 | not: no tests found | src: deneme 5, 2026-10-23
 
 # Önceki işler: .tr dosyasını, kitaplığı ve belgeyi koruyan Go testleri (2026-10-23)
 codegraph tests-for tools/gpu/gpt_training.tr | contains: TestGPTTrainingScriptSmoke | src: madde 7 / 2, 2026-10-23
-codegraph tests-for lib/egitim.tr | contains: TestExamplesCoverLibraryNames | contains: Kitaplık kapsamı | src: madde 7 / 2, 2026-10-23
+codegraph tests-for lib/training.tr | contains: TestExamplesCoverLibraryNames | contains: Kitaplık kapsamı | src: madde 7 / 2, 2026-10-23
 codegraph tests-for lib/README.md | contains: TestDocTRCodeBlocks | src: madde 7 / 2, 2026-10-23
 
 # Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, TR_fn_where) (2026-10-23)
-codegraph query koşullu | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => iyilestirici.TR_type_RowRMS.TR_mem_step | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
+codegraph query koşullu | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => optimizers.TR_type_RowRMS.TR_mem_step | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
 codegraph callees ml.whereBuiltin | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
 codegraph callees tensor.Where | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | contains: dispatches to: gpu.backend.WhereGrad, tensor.cpuBackend.WhereGrad | src: deneme 6, 2026-10-23
 codegraph who-uses gpu.selectKernel | contains: gpu.backend.Where | src: deneme 6, 2026-10-23
@@ -77,10 +77,10 @@ codegraph deleted | group: names: => K102  removed 020a98a7 | src: deneme 6, 202
 codegraph query "ölü" | not: bölüm | not: Bölüm | contains: source.langName | src: deneme 6 (N1: metin araması önce bütün sözcük), 2026-10-23
 
 # Bağımsız denetim: "bu bir test mi / bu test neyi sınıyor" tek kural (Y1, Y3, T3) (2026-10-23)
-codegraph tests-for hazir.ayar_değeri | not: no tests found | group: tests, indirect => lib/hazir_test.tr | src: bağımsız denetim Y1, 2026-10-23
-codegraph tests-for katman.GPT.göm | not: no tests found | first-of: tests, indirect => lib/katman_test.tr | src: bağımsız denetim Y1, 2026-10-23
-codegraph changed 99f04289~1..99f04289 | contains: egitim.TR_type_Run.TR_mem_finish | not: none found for the changed code | group: tests that exercise the changed code => lib/egitim_test.tr | src: bağımsız denetim Y3, 2026-10-23
-tr dizin sınayanlar ayar_değeri | contains: lib/hazir_test.tr | src: bağımsız denetim T3 (tr dizin ile tests-for aynı zincir kuralı), 2026-10-23
+codegraph tests-for pretrained.ayar_değeri | not: no tests found | group: tests, indirect => lib/pretrained_test.tr | src: bağımsız denetim Y1, 2026-10-23
+codegraph tests-for layers.GPT.göm | not: no tests found | first-of: tests, indirect => lib/layers_test.tr | src: bağımsız denetim Y1, 2026-10-23
+codegraph changed 56d6fd1d~1..56d6fd1d | contains: kontrol_noktasi_test.koşu | not: none found for the changed code | group: tests that exercise the changed code => tests/kontrol_noktasi_test.tr | src: bağımsız denetim Y3, 2026-10-23
+tr dizin sınayanlar ayar_değeri | contains: lib/pretrained_test.tr | src: bağımsız denetim T3 (tr dizin ile tests-for aynı zincir kuralı), 2026-10-23
 
 # Bağımsız denetim: değer olarak geçen işlevler ve alt süreç testleri (Y2, Y5) (2026-10-24)
 codegraph tests-for tensor.Tensor.Ceil | not: no tests found | group: function value => tensor.TestUnaryNoGrad | group: function value => via gpu.wideUnaries | src: bağımsız denetim Y2, 2026-10-24
@@ -95,7 +95,7 @@ codegraph query gpu.runExitHandlers | contains: internal/compute/gpu/cuda_linux.
 codegraph dead-methods --in internal/compute/tensor | not: VersionCounter | src: sağlık taraması P1, 2026-10-24
 codegraph query tensor.Storage.Hold | group: dispatches_to => tensor.VersionCounter.Hold | src: sağlık taraması P1, 2026-10-24
 codegraph spec-refs | contains: 0 note(s) | not: no item 2.14 | src: sağlık taraması P2, 2026-10-24
-tr dizin sınayanlar swiglu_kapısı | contains: lib/katman_test.tr | src: DENETİM doğrulaması T3 (iki aracın sınayan kümesi), 2026-10-24
+tr dizin sınayanlar swiglu_kapısı | contains: lib/layers_test.tr | src: DENETİM doğrulaması T3 (iki aracın sınayan kümesi), 2026-10-24
 codegraph tests-for codeindex.LoadCached | not: no tests found | contains: weak evidence | contains: linked into the binary of cmd/tr | src: DENETİM doğrulaması Y5, 2026-10-24
 codegraph tests-for dataload.mmapFile | contains: TestMmapTruncatedDoesNotCrash || internal/compute/dataload/mmap_windows.go | contains: in other build configurations || TestMmapTruncatedDoesNotCrash | src: DENETİM doğrulaması Y4a, 2026-10-24
 codegraph tests-for codeindex.Build | not: other build configurations | not: Go files are not built | src: DENETİM doğrulaması Y4b, 2026-10-24
@@ -109,26 +109,26 @@ tr dizin tanım bakış_sayısı | contains: 4 aday | src: deneme 7 R1, 2026-10-
 codegraph query TR_mem_join | group: related => TR_mem_split | src: deneme 8 S2, 2026-10-24
 codegraph query TR_fn_print | group: related => TR_fn_input | src: deneme 8 S2, 2026-10-24
 codegraph tests-for TR_fn_print | group: tests about it => ml.TestPrintFormat | before: tests about it => hatalar_ertele_test | src: deneme 8 S1 (tek sıralama), 2026-10-24
-codegraph query katman.GPT.kurucu.bakış_sayısı | group: forwards => katman.TR_type_TransformerBlock.TR_ctx_init.TR_arg_num_heads | src: deneme 7 R2 (bağlı bildirim), 2026-10-24
-codegraph query katman.NedenselDikkat.kurucu.bakış_sayısı | group: forwards => katman.TR_type_CausalAttention.TR_mem_num_heads | src: deneme 7 R2 (alana atanan), 2026-10-24
+codegraph query layers.GPT.kurucu.bakış_sayısı | group: forwards => layers.TR_type_TransformerBlock.TR_ctx_init.TR_arg_num_heads | src: deneme 7 R2 (bağlı bildirim), 2026-10-24
+codegraph query layers.NedenselDikkat.kurucu.bakış_sayısı | group: forwards => layers.TR_type_CausalAttention.TR_mem_num_heads | src: deneme 7 R2 (alana atanan), 2026-10-24
 
 # Deneme 9: GPU'da sapma eklemesini matris çarpımına kaynaştırmayı planlamak (2026-10-24)
 codegraph tests-for gpu.backend.ltMul | contains: gpu.TestGemmLibraryMatchesOwnKernel [func] @{internal/compute/gpu/gemm_lib_test.go#func TestGemmLibraryMatchesOwnKernel(}  [skips when: g.lt == nil] | contains: gpu.TestGemmLibrary16Bit | src: deneme 9 H2, 2026-10-24
 
 # Bağımsız denetim karar maddeleri (2026-10-24)
-tr dizin sınayanlar ağırlık_başlat | contains: lib/katman_test.tr | not: sınayan yok | src: bağımsız denetim Y12 (kurucu çağrısı), 2026-10-24
-codegraph query sıçramabekçisi | contains: egitim.TR_type_SpikeGuard [tr_struct] | not: is ambiguous | src: bağımsız denetim Y12 (Türkçe harf katlaması), 2026-10-24
+tr dizin sınayanlar ağırlık_başlat | contains: lib/layers_test.tr | not: sınayan yok | src: bağımsız denetim Y12 (kurucu çağrısı), 2026-10-24
+codegraph query sıçramabekçisi | contains: training.TR_type_SpikeGuard [tr_struct] | not: is ambiguous | src: bağımsız denetim Y12 (Türkçe harf katlaması), 2026-10-24
 
 # Deneme 9 ve 10: dil yapısı → Go uygulaması; değer dili 3. tur (2026-10-24)
 codegraph tests-for interp.VM.callPrepared --all | group: measurements, not tests => tools/bench/tr/fib.tr | src: deneme 10 (çağrı maliyeti ölçümü), 2026-10-24
 codegraph who-uses interp.valueText | contains: <- implemented_by | group: calls => interp.compiler.interpolation | group: calls => interp.VM.textOf | src: değer dili 3. tur (metin yerleştirmesi → valueText, VM.textOf ile aynı yol; değer dili adım 1-2), 2026-10-24
-codegraph query katman.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
-codegraph query katman.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
-codegraph path katman.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
-tr dizin kullananlar field:lib/katman.tr#TR_type_GPT.TR_mem_config --tümü | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/hazir_test.tr#m.TR_config["rope_tabanı"]} | contains: @{lib/hazir_test.tr#ll.TR_config["rope_tabanı"]} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
+codegraph query layers.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
+codegraph query layers.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
+codegraph path layers.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
+tr dizin kullananlar field:lib/layers.tr#TR_type_GPT.TR_mem_config --tümü | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/pretrained_test.tr#m.TR_config["rope_tabanı"]} | contains: @{lib/pretrained_test.tr#ll.TR_config["rope_tabanı"]} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)
-codegraph who-uses interp.Value.Inspect --all | group: implemented_by => egitim.TR_type_Run.TR_mem_finish | group: implemented_by => hazir.TR_fn_map_hugging_face | src: değer dili 3. tur, 2026-10-25
+codegraph who-uses interp.Value.Inspect --all | group: implemented_by => training.TR_type_Run.TR_mem_finish | group: implemented_by => pretrained.TR_fn_map_hugging_face | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses hint.TypeTextComparisonError | group: calls => checker.Checker.checkTypeTextComparison | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses H1105 | group: uses_message => hint.TypeTextComparisonError | src: değer dili 3. tur, 2026-10-25
 codegraph who-uses interp.NonFiniteText | group: calls => interp.FloatVal.Text | group: calls => ml.numberText | src: değer dili 3. tur ve adım 3, 2026-10-25 (sayı ve tensör tek ad)
@@ -155,7 +155,7 @@ codegraph tests-for examples/README.md | group: <- tests => e2e.TestExamplesList
 # TCB 2026-10-25: depo genelini tarayan kural testleri (gaps.md)
 codegraph tests-for tools/edithook/main.go | group: repository-wide checks that scan it => internal_test.TestNoTurkishLiterals | contains: internal_test.TestLayoutFileSize | contains: *.go under the repository, not *_test.go | src: TCB 2026-10-25, gaps.md (depo geneli kural testleri)
 codegraph tests-for lib/README.md | group: repository-wide checks that scan it => internal_test.TestRuleTestsExist | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md (kalıp uzantıya göre: .go taraması .md'ye uymaz)
-codegraph tests-for lib/egitim.tr | group: repository-wide checks that scan it => tr.TestRepoTRFilesPassCheck | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md
+codegraph tests-for lib/training.tr | group: repository-wide checks that scan it => tr.TestRepoTRFilesPassCheck | not: TestNoTurkishLiterals | src: TCB 2026-10-25, gaps.md
 
 # Deneme: içeride ara dil yok, asıl biçim kod (yol haritası 15, 1. tur, 2026-10-25)
 codegraph who-uses turkish.ErrorFrame | contains: tr.printError | contains: interp.ErrorItems | contains: testrunner.writeError | contains: debugger.dapServer.reportDiagnostics | src: iç dil 1. tur, 2026-10-25 (çerçeveye metin veren yerler); katman 1, 2026-10-28 (hata ayıklayıcının tanıları kendi işlevinde)
@@ -201,25 +201,25 @@ codegraph tests-for internal/lang/codes/language_test.go | contains: this file's
 # K2 partisi, 2026-10-26 (CODEGRAPH)
 codegraph tests-for tools/edithook/codegraph.go | contains: edithook.TestABrokenTreeFallsBackToTheLastBuiltCodegraph | src: K2 partisi D, 2026-10-26 (dil paketi derlenmezken kanca son derlenen codegraph'ı bayat uyarısıyla koşar)
 codegraph who-uses edithook.codegraph | contains: edithook.testsFor | contains: edithook.runCodegraph | src: K2 partisi D, 2026-10-26 (kanca ve ön denetim codegraph'ı aynı yoldan koşar)
-codegraph tests-for lib/hazir.tr | contains: e2e.TestReadyModelMatchesTransformers | first-item: e2e.TestReadyModelMatchesTransformers | contains: hazir_test: | src: K2 partisi K, 2026-10-26 (kitaplığı test dizesindeki aktarmayla koşan test; gömülü kitaplığı okuyanlar sonda)
-codegraph tests-for --all lib/katman.tr | contains: e2e.TestGPTTrainingScriptSmoke | contains: e2e.TestLibraryModuleCheckAndBuild | contains: e2e.TestReadyModelMatchesTransformers | contains: katman_test: | src: K2 partisi K, 2026-10-26 (aktarma test erişiminde bağımlılık: betik, aktaran modül, test dosyası)
+codegraph tests-for lib/pretrained.tr | contains: e2e.TestReadyModelMatchesTransformers | first-item: e2e.TestReadyModelMatchesTransformers | contains: pretrained_test: | src: K2 partisi K, 2026-10-26 (kitaplığı test dizesindeki aktarmayla koşan test; gömülü kitaplığı okuyanlar sonda)
+codegraph tests-for --all lib/layers.tr | contains: e2e.TestGPTTrainingScriptSmoke | contains: e2e.TestLibraryModuleCheckAndBuild | contains: e2e.TestReadyModelMatchesTransformers | contains: layers_test: | src: K2 partisi K, 2026-10-26 (aktarma test erişiminde bağımlılık: betik, aktaran modül, test dosyası)
 codegraph tests-for internal/lang/interp/stats.go | group: this file's tests => interp.TestStatsNameTheBadValueByItsPlace [func] @{internal/lang/interp/stats_test.go#func TestStatsNameTheBadValueByItsPlace(} | src: K2 partisi A, 2026-10-26 (aynı paketin testi dosyanın uyguladığı yerleşiği tablodaki TR koduyla koşuyor; eskiden 40. sırada 2 adım); gaps2 2026-10-27 (adaş test dosyasının testleri ilk grupta)
 codegraph tests-for cmd/tr/main.go | not: tipler_test: | not: yerlesikler_test: | not: tensor_test: | src: K2 partisi C, 2026-10-26 (yazdır'ın yazımlarını okuyan startsWithPrint yazdır'ı uygulamaz; TR testleri main.go'nun testi değil)
 codegraph who-uses --all TR_fn_print | group: reads_name => tr.startsWithPrint | src: K2 partisi C, 2026-10-26 (adını okuyan, uygulayandan ayrı)
 codegraph who-uses interp.resolveMember | before: <- calls => <- implemented_by | contains: via MemberExpression | not: [tr_func] | src: K2 partisi B, 2026-10-26 (yapı köprüsü yapının adıyla tek satır; Go çağıranı önde)
 
 # Kitaplık partisi: kitaplık kodları ve alt süreçteki TR metni (2026-10-26)
-tr dizin tanım TR_type_Linear | contains: katman.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (kitaplık kodu bildirimine çözülür)
-tr dizin tanım Linear | contains: katman.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (İngilizce adla da)
-tr dizin tanım katman.Linear.forward | contains: katman.Doğrusal.ileri | src: kitaplık partisi, 2026-10-26 (nitelenmiş adın İngilizce yazımı)
+tr dizin tanım TR_type_Linear | contains: layers.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (kitaplık kodu bildirimine çözülür)
+tr dizin tanım Linear | contains: layers.Doğrusal | not: bulunamadı | src: kitaplık partisi, 2026-10-26 (İngilizce adla da)
+tr dizin tanım layers.Linear.forward | contains: layers.Doğrusal.ileri | src: kitaplık partisi, 2026-10-26 (nitelenmiş adın İngilizce yazımı)
 tr dizin kullananlar TR_type_GPT | contains: examples/tr/41_gpt.tr | src: kitaplık partisi, 2026-10-26 (kodlu örnekteki kullanım bildirime bağlı)
 codegraph tests-for TR_fn_pretrained_model | group: <- tests ( => e2e.TestReadyModelMatchesTransformers | src: kitaplık partisi, 2026-10-26 (tr ikilisine dosyayla verilen betik; eskiden untested_names'teydi)
-codegraph query Linear | contains: katman.TR_type_Linear | src: kitaplık partisi, 2026-10-26 (iki aracın çıplak ad kuralı tek)
+codegraph query Linear | contains: layers.TR_type_Linear | src: kitaplık partisi, 2026-10-26 (iki aracın çıplak ad kuralı tek)
 
 # Kimlik okuması: dizin ve codegraph dosyayı kimlikleriyle okur, kodlu ad diskteki yazımla görünür (2026-10-26)
-codegraph query Doğrusal | contains: katman.TR_type_Linear [tr_struct] | src: kimlik okuması, 2026-10-26 (Türkçe adla sorulan kitaplık bildirimi)
-codegraph query katman.Linear.forward | contains: katman.TR_type_Linear.TR_mem_forward [tr_method] | src: kimlik okuması, 2026-10-26 (nitelenmiş adın İngilizce yazımı takma addır)
-tr dizin tanım katman.TR_type_Linear.TR_mem_forward | contains: katman.Doğrusal.ileri | src: kimlik okuması, 2026-10-26 (kimlikle sorulan, okuyanın dilinde yazılır)
+codegraph query Doğrusal | contains: layers.TR_type_Linear [tr_struct] | src: kimlik okuması, 2026-10-26 (Türkçe adla sorulan kitaplık bildirimi)
+codegraph query layers.Linear.forward | contains: layers.TR_type_Linear.TR_mem_forward [tr_method] | src: kimlik okuması, 2026-10-26 (nitelenmiş adın İngilizce yazımı takma addır)
+tr dizin tanım layers.TR_type_Linear.TR_mem_forward | contains: layers.Doğrusal.ileri | src: kimlik okuması, 2026-10-26 (kimlikle sorulan, okuyanın dilinde yazılır)
 
 # Gerçek kullanım denemesi bulguları (2026-10-26)
 codegraph tests-for tools/gen/snippets/data.json | group: <- tests ( => snippets.TestSnippetsUpToDate | group: <- tests ( => snippets.TestSnippetsParseInEveryLanguage | src: gerçek kullanım denemesi, 2026-10-26 (init()'in doldurduğu değişkeni okuyan testler)

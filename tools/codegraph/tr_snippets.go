@@ -264,7 +264,7 @@ func (x *goExtractor) noteRangeTable(fc *fileCtx, rs *ast.RangeStmt) {
 }
 
 // noteRangeMap sözlük üzerinde dönen döngünün anahtar ve değer değişkenlerine sözlükteki metinleri bağlar: testler
-// dosyaları `for ad, metin := range map[string]string{"lib/katman.tr": "..."}` ile yazar.
+// dosyaları `for ad, metin := range map[string]string{"lib/layers.tr": "..."}` ile yazar.
 func (x *goExtractor) noteRangeMap(fc *fileCtx, rs *ast.RangeStmt, lit *ast.CompositeLit) {
 	for i, v := range []ast.Expr{rs.Key, rs.Value} {
 		id, ok := v.(*ast.Ident)

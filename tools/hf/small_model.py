@@ -1,7 +1,7 @@
 """Builds a small random Hugging Face model (llama or qwen3), saves it with save_pretrained
 (config.json + model.safetensors) and writes the float32 logits of fixed token ids.
 
-Used by cmd/tr/e2e (TestReadyModelMatchesTransformers) to check that tr/hazir loads the model
+Used by cmd/tr/e2e (TestReadyModelMatchesTransformers) to check that tr/pretrained loads the model
 and computes the same logits, and to regenerate the tiny example model in tests/data/hf_tiny
 (see tools/hf/README.md). No network: the model is built from a config, not downloaded.
 

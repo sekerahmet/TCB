@@ -1,0 +1,3 @@
+# TR 4
+# 11.6 testinin fikstürü: tr/ öneki bu dosyayı değil dilin kitaplığını yükler; ./tr/layers bunu yükler.
+TR_var disk_katmanı = TR_true

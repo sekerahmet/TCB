@@ -105,7 +105,7 @@ func (r *Reader) pathIn(n *Node, spell func(codes.Code) string) string {
 	return seg
 }
 
-// qualifiedIn düğümün nitelenmiş adıdır (`katman.Doğrusal.ileri`), kodlu parçaları spell'in yazımıyla.
+// qualifiedIn düğümün nitelenmiş adıdır (`layers.Doğrusal.ileri`), kodlu parçaları spell'in yazımıyla.
 func (r *Reader) qualifiedIn(n *Node, spell func(codes.Code) string) string {
 	if n.Qualified == "" || !strings.HasSuffix(n.Qualified, n.Name) {
 		return n.Qualified
@@ -131,7 +131,7 @@ func signatureIn(n *Node, lang *codes.Language) string {
 }
 
 // qualifiedSpellings düğümün nitelenmiş adının dilin öğesi olan parçaları her yazım dilinde yazılmış biçimleridir
-// (kimlikle yazılmış Qualified'dan farklı olanlar): `katman.Linear.forward`, `katman.Doğrusal.ileri`. Yolunda kodlu
+// (kimlikle yazılmış Qualified'dan farklı olanlar): `layers.Linear.forward`, `layers.Doğrusal.ileri`. Yolunda kodlu
 // düğüm olmayan düğümde boştur.
 func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 	coded := false
@@ -142,7 +142,7 @@ func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 		return nil
 	}
 	var out [][2]string
-	spells := []func(codes.Code) string{codes.Spelling} // program metnindeki yazım: katman.TR_Linear.TR_forward
+	spells := []func(codes.Code) string{codes.Spelling} // program metnindeki yazım: layers.TR_Linear.TR_forward
 	for _, l := range writingLanguages() {
 		spells = append(spells, l.Name)
 	}

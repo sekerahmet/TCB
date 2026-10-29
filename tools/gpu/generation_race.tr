@@ -3,7 +3,7 @@
 # Hazır modeli yükler, 5 parçayla ısınır, 100 parçalık açgözlü üretimi üç kez ölçer ve ortancayı
 # "model | cihaz | yol | parça/sn" satırı olarak yazar. GPU'da ayrıca kayıtlı (çizge) ve kayıtsız
 # üretimin aynı parçaları verdiğini denetler.
-TR_import "tr/hazir"
+TR_import "tr/pretrained"
 
 TR_var arg = TR_command_line({"folder": "", "adet": 100, "device": "cpu", "ad": "", "ağırlık_türü": "float32"})
 TR_default_device(arg["device"])

@@ -1,12 +1,12 @@
 # 10. Hazır katmanlarla GPT
 
-Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples/tr/35_transformer.tr`](../../examples/tr/35_transformer.tr) bunu öğretmek için yapar). Dilin kitaplığı hazır katmanlar ve iyileştiricilerle gelir; TR ile yazılmıştır, `tr` ikilisine gömülüdür ve `TR_import "tr/..."` ile alınır ([dil tanımı 11.6](../spec/11_moduller.md)). Kitaplığın kodu okunur: [`lib/katman.tr`](../../lib/katman.tr), [`lib/iyilestirici.tr`](../../lib/iyilestirici.tr); bütün adlar [`lib/README.md`](../../lib/README.md)'de. Uçtan uca örnek: [`examples/tr/41_gpt.tr`](../../examples/tr/41_gpt.tr).
+Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples/tr/35_transformer.tr`](../../examples/tr/35_transformer.tr) bunu öğretmek için yapar). Dilin kitaplığı hazır katmanlar ve iyileştiricilerle gelir; TR ile yazılmıştır, `tr` ikilisine gömülüdür ve `TR_import "tr/..."` ile alınır ([dil tanımı 11.6](../spec/11_moduller.md)). Kitaplığın kodu okunur: [`lib/layers.tr`](../../lib/layers.tr), [`lib/optimizers.tr`](../../lib/optimizers.tr); bütün adlar [`lib/README.md`](../../lib/README.md)'de. Uçtan uca örnek: [`examples/tr/41_gpt.tr`](../../examples/tr/41_gpt.tr).
 
 ## Model
 
 ```tr
 # TR 4
-TR_import "tr/katman"
+TR_import "tr/layers"
 
 TR_var model = TR_GPT(4096, TR_context: 256, TR_embed_dim: 256, TR_num_layers: 4, TR_num_heads: 4, TR_tied: TR_true, TR_seed: 1)
 TR_var logit = model.TR_forward([[1, 2, 3]])            # [1, 3, 4096]
@@ -16,7 +16,7 @@ TR_print(TR_parameters(model, TR_named: TR_true).TR_keys()[0..3])
 
 `TR_GPT` sıradan bir `TR_struct`dır: `model.TR_blocks[0].TR_attention.TR_q_proj.TR_weight` bir tensördür, `TR_parameters(model)` bütün ağırlıkları bulur, `TR_save_tensors(yol, TR_parameters(model, TR_named: TR_true))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok bakışlı dikkat (İngilizce *multi-head attention*; `TR_num_kv_heads:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
 
-Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalayıp `TR_import "katman"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `TR_Linear(giriş, çıkış)`, `TR_Embedding`, `TR_RMSNorm`, `TR_CausalAttention`, `TR_SwiGLU`, `TR_TransformerBlock`; hepsinin ileri hesabı `.TR_forward` metodudur.
+Modeli değiştirmek isterseniz `lib/layers.tr`'yi kendi klasörünüze kopyalayıp `TR_import "layers"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `TR_Linear(giriş, çıkış)`, `TR_Embedding`, `TR_RMSNorm`, `TR_CausalAttention`, `TR_SwiGLU`, `TR_TransformerBlock`; hepsinin ileri hesabı `.TR_forward` metodudur.
 
 ## Yerel dikkat, PLE ve hedef model seçenekleri
 
@@ -24,7 +24,7 @@ Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalay
 
 ```tr
 # TR 4
-TR_import "tr/katman"
+TR_import "tr/layers"
 
 TR_var model = TR_GPT(4096, TR_context: 64, TR_embed_dim: 64, TR_num_layers: 4, TR_num_heads: 4, TR_num_kv_heads: 2, TR_intermediate_dim: 96, TR_tied: TR_true,
     TR_windows: TR_layer_windows("YGYG", [8, 16]), TR_qk_norm: TR_true, TR_merged_kv: TR_true, TR_merged_gate: TR_true,
@@ -40,8 +40,8 @@ Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir
 
 ```tr
 # TR 4
-TR_import "tr/katman"
-TR_import "tr/iyilestirici"
+TR_import "tr/layers"
+TR_import "tr/optimizers"
 
 TR_var model = TR_GPT(4096, TR_context: 256, TR_embed_dim: 256, TR_num_layers: 4, TR_num_heads: 4)
 TR_var op = TR_MuonAndAdamW(model, TR_muon_lr: 0.02, TR_adamw_lr: 0.003)
@@ -75,14 +75,14 @@ TR_func işaretli_sgd(ağırlıklar, oran) {
 }
 ```
 
-Muon'u değiştirmek için `lib/iyilestirici.tr`'yi kopyalayın: `TR_Muon.TR_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_requires_grad: TR_true` ile kurarsanız `TR_Checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
+Muon'u değiştirmek için `lib/optimizers.tr`'yi kopyalayın: `TR_Muon.TR_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_requires_grad: TR_true` ile kurarsanız `TR_Checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
 
 ## Eğitim döngüsü, kontrol noktası ve GPU
 
 ```tr
 # TR 4
-TR_import "tr/katman"
-TR_import "tr/iyilestirici"
+TR_import "tr/layers"
+TR_import "tr/optimizers"
 
 TR_var ayar = TR_command_line({"step": 100, "koşu": "runs/gpt"})
 TR_var p = TR_load_tokenizer("../tests/data/tokenizer.json")
@@ -109,11 +109,11 @@ Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.
 
 ## Hazır model, üretim ve kayıtlı oynatma
 
-Hugging Face biçiminde kaydedilmiş bir Llama ya da Qwen3 modelini (`config.json` + `model.safetensors`) eğitmeden kullanmak için `tr/hazir` yeter. Ağ gerekmez: model önceden indirilmiş bir klasördür.
+Hugging Face biçiminde kaydedilmiş bir Llama ya da Qwen3 modelini (`config.json` + `model.safetensors`) eğitmeden kullanmak için `tr/pretrained` yeter. Ağ gerekmez: model önceden indirilmiş bir klasördür.
 
 ```tr
 # TR 4
-TR_import "tr/hazir"
+TR_import "tr/pretrained"
 
 TR_var model = TR_pretrained_model("modeller/SmolLM2-135M", TR_weight_dtype: "bf16")
 TR_var p = TR_load_tokenizer("modeller/SmolLM2-135M/tokenizer.json")

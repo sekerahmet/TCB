@@ -8,7 +8,7 @@
 # Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 # Model: 46'daki rastgele ağırlıklı küçük model (tests/data/hf_tiny); yazdırılan şey parça kimlikleridir.
 
-TR_import "tr/hazir"
+TR_import "tr/pretrained"
 
 TR_var model = TR_pretrained_model("../../tests/data/hf_tiny")
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")

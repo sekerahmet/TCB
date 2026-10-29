@@ -1,8 +1,8 @@
 # TR 4
-# tr/katman testleri: her katmanın şekli ve türevi (türev_denetle), döner konumun özellikleri,
+# tr/layers testleri: her katmanın şekli ve türevi (türev_denetle), döner konumun özellikleri,
 # nedensellik, GPT'nin kuruluşu ve küçük bir görevde öğrenmesi. Koşturma: tr test lib
-TR_import "tr/katman"
-TR_import "tr/iyilestirici" # gradyanları_sıfırla
+TR_import "tr/layers"
+TR_import "tr/optimizers" # gradyanları_sıfırla
 
 TR_func rastgele_girdi(şekil, tohum) {
     TR_return TR_Tensor(TR_randn(şekil, TR_seed: tohum), TR_requires_grad: TR_true)

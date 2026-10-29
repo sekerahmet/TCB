@@ -15,13 +15,13 @@ var update = flag.Bool("update", false, "testdata/schema altın dosyalarını ye
 // exampleReferences şema örneğidir (tasarım belgesindeki `kullananlar Muon --json`).
 func exampleReferences() *Result {
 	r := NewResult(CommandReferences, Query{Text: "Muon", Language: "tr"})
-	r.Target = &Node{ID: "struct:lib/iyilestirici.tr#Muon", Kind: KindStruct, Name: "Muon",
-		Pos: &Pos{File: "lib/iyilestirici.tr", Line: 72, Col: 1, EndLine: 112, EndCol: 2}, Signature: "yapı Muon"}
+	r.Target = &Node{ID: "struct:lib/optimizers.tr#Muon", Kind: KindStruct, Name: "Muon",
+		Pos: &Pos{File: "lib/optimizers.tr", Line: 72, Col: 1, EndLine: 112, EndCol: 2}, Signature: "yapı Muon"}
 	r.Users = []Use{
-		{Role: RoleCall, Confidence: Extracted, Pos: Pos{File: "lib/iyilestirici.tr", Line: 197, Col: 16},
-			In: &Node{ID: "method:lib/iyilestirici.tr#MuonVeAdamW.kurucu", Kind: KindMethod, Name: "MuonVeAdamW.kurucu"}},
-		{Role: RoleTest, Confidence: Extracted, Pos: Pos{File: "lib/iyilestirici_test.tr", Line: 33, Col: 20},
-			In: &Node{ID: "test_block:lib/iyilestirici_test.tr#30", Kind: KindTest, Name: "Muon: güncelleme dikleştirilmiş momentumdur"}},
+		{Role: RoleCall, Confidence: Extracted, Pos: Pos{File: "lib/optimizers.tr", Line: 197, Col: 16},
+			In: &Node{ID: "method:lib/optimizers.tr#MuonVeAdamW.kurucu", Kind: KindMethod, Name: "MuonVeAdamW.kurucu"}},
+		{Role: RoleTest, Confidence: Extracted, Pos: Pos{File: "lib/optimizers_test.tr", Line: 33, Col: 20},
+			In: &Node{ID: "test_block:lib/optimizers_test.tr#30", Kind: KindTest, Name: "Muon: güncelleme dikleştirilmiş momentumdur"}},
 	}
 	r.Counts = &Counts{Total: 2, ByRole: map[Role]int{RoleCall: 1, RoleTest: 1}}
 	return r
@@ -31,8 +31,8 @@ func exampleAmbiguous() *Result {
 	r := NewResult(CommandDefinition, Query{Text: "ileri", Language: "tr"})
 	r.Status = StatusAmbiguous
 	r.Candidates = []Node{
-		{ID: "method:lib/katman.tr#Doğrusal.ileri", Kind: KindMethod, Name: "Doğrusal.ileri", Pos: &Pos{File: "lib/katman.tr", Line: 30, Col: 5}},
-		{ID: "method:lib/katman.tr#GPT.ileri", Kind: KindMethod, Name: "GPT.ileri", Pos: &Pos{File: "lib/katman.tr", Line: 170, Col: 5}},
+		{ID: "method:lib/layers.tr#Doğrusal.ileri", Kind: KindMethod, Name: "Doğrusal.ileri", Pos: &Pos{File: "lib/layers.tr", Line: 30, Col: 5}},
+		{ID: "method:lib/layers.tr#GPT.ileri", Kind: KindMethod, Name: "GPT.ileri", Pos: &Pos{File: "lib/layers.tr", Line: 170, Col: 5}},
 	}
 	return r
 }

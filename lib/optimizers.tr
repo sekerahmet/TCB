@@ -1,7 +1,7 @@
 # TR 4
-# tr/iyilestirici — Muon ve NorMuon iyileştiricileri, parametre grupları ve öğrenme oranı planı.
+# tr/optimizers — Muon ve NorMuon iyileştiricileri, parametre grupları ve öğrenme oranı planı.
 #
-# Kullanım:   aktar "tr/iyilestirici"
+# Kullanım:   aktar "tr/optimizers"
 #             değişken op = MuonVeAdamW(model)            // gizli 2B ağırlıklar Muon, öbürleri AdamW
 #             op.sıfırla(); geri_yayılım(kayıp); op.adım()
 # Bu iyileştiriciler TR ile yazılmıştır: parametreyi türev izlemeden, yerinde güncellerler

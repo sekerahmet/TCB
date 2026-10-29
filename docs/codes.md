@@ -4192,7 +4192,7 @@ tr dizin tanım Muon
 Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar, onu aktaran modüller, sınayan testler (tr dizin altında).
 
 ```tr
-tr dizin etki lib/katman.tr
+tr dizin etki lib/layers.tr
 ```
 
 #### TR_sub_references `kullananlar`

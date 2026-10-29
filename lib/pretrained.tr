@@ -1,8 +1,8 @@
 # TR 4
-# tr/hazir — Hugging Face biçiminde kaydedilmiş hazır modelleri (config.json + model.safetensors)
-# TR'nin GPT'sine (tr/katman) yükler.
+# tr/pretrained — Hugging Face biçiminde kaydedilmiş hazır modelleri (config.json + model.safetensors)
+# TR'nin GPT'sine (tr/layers) yükler.
 #
-# Kullanım:   aktar "tr/hazir"
+# Kullanım:   aktar "tr/pretrained"
 #             değişken model = hazır_model("modeller/SmolLM2-135M")
 #             değişken p = parçalayıcı_yükle("modeller/SmolLM2-135M/tokenizer.json")
 #
@@ -21,7 +21,7 @@
 # üretim adımında katman başına iki çarpım (iki kernel) eksilir; vLLM de Llama'yı böyle yükler
 # (QKVParallelLinear, MergedColumnParallelLinear).
 
-TR_import "tr/katman"
+TR_import "tr/layers"
 
 TR_const TR_SUPPORTED_ARCHITECTURES = ["llama", "qwen3"]
 

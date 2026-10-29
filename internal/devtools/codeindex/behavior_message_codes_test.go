@@ -80,7 +80,7 @@ func TestAMessageCodeIsFoundAsAName(t *testing.T) {
 	for _, oc := range r.Occurrences(found[0].ID) {
 		in = append(in, oc.In)
 	}
-	for _, want := range []string{"method:lib/egitim.tr#TR_type_Run.TR_ctx_init", "test_block:lib/egitim_test.tr#"} {
+	for _, want := range []string{"method:lib/training.tr#TR_type_Run.TR_ctx_init", "test_block:lib/training_test.tr#"} {
 		ok := false
 		for _, id := range in {
 			ok = ok || id == want || want[len(want)-1] == '#' && len(id) > len(want) && id[:len(want)] == want

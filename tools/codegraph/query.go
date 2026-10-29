@@ -72,7 +72,7 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	var cur *foldedNode // basamak döngüsünün o anki düğümünün katlanmışları
 	tiers := []func(n *Node) bool{
 		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
-		// (katman, tr/katman); düğümü, aynı adlı belge başlığından önce gelir.
+		// (katman, tr/layers); düğümü, aynı adlı belge başlığından önce gelir.
 		func(n *Node) bool { return contains(n.Aliases, q) },
 		func(n *Node) bool {
 			return idTailEquals(n.ID, q) || idTailEquals(strings.ReplaceAll(n.ID, ix.g.Module+"/", ""), q)

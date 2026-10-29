@@ -68,12 +68,12 @@ Oturum kapanınca klasörü Drive'dan yerel diske geri kopyalayıp aynı komutu 
 
 - `TR_is_finite(x)` bir sayının ya da tensörün elemanlarının NaN ve sonsuz olmadığını söyler.
 - `TR_clip_grad(..., TR_error_if_nonfinite: TR_true)` normu bozuk gradyanda hata verir.
-- `TR_import "tr/egitim"` ile gelen `TR_SpikeGuard` her adımın kaybını ve gradyan normunu son 128 sağlam adımla karşılaştırır ve `TR_OK`, `TR_NONFINITE` ya da `TR_SPIKE` der.
+- `TR_import "tr/training"` ile gelen `TR_SpikeGuard` her adımın kaybını ve gradyan normunu son 128 sağlam adımla karşılaştırır ve `TR_OK`, `TR_NONFINITE` ya da `TR_SPIKE` der.
 - `kn.TR_rollback()` son kontrol noktasını yerinde yükleyip adımını verir; `ö.TR_skip(n)` sorunlu toplu işleri atlar.
 
 ```tr
 # TR 4
-TR_import "tr/egitim"
+TR_import "tr/training"
 TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
 TR_var ö = TR_Dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)

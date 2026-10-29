@@ -1,8 +1,8 @@
 # TR 4
-# tr/egitim — uzun eğitimin güvencesi: koşu düzeni (Koşu) ve kayıp ile gradyan normu sıçrama
+# tr/training — uzun eğitimin güvencesi: koşu düzeni (Koşu) ve kayıp ile gradyan normu sıçrama
 # bekçisi (SıçramaBekçisi).
 #
-# Kullanım:   aktar "tr/egitim"
+# Kullanım:   aktar "tr/training"
 #             değişken bekçi = SıçramaBekçisi(pencere: 128, eşik: 6.0)
 #             değişken karar = bekçi.gözle(kayıp.değer, norm.değer)   // TAMAM, SONLU_DEĞİL ya da SIÇRAMA
 #

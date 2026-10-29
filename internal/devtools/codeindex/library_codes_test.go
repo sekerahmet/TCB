@@ -17,7 +17,7 @@ func libraryProject(t testing.TB) *Reader {
 	t.Helper()
 	dir := t.TempDir()
 	for name, text := range map[string]string{
-		"lib/katman.tr": `TR_struct TR_Linear {
+		"lib/layers.tr": `TR_struct TR_Linear {
     TR_weight = 1
     TR_func TR_forward(TR_x) {
         TR_return TR_x * TR_self.TR_weight
@@ -28,7 +28,7 @@ TR_func TR_lr_schedule(TR_step, TR_num_steps, TR_warmup = TR_none) {
     TR_return TR_step / TR_num_steps
 }
 `,
-		"lib/katman_test.tr": `TR_import "tr/katman"
+		"lib/layers_test.tr": `TR_import "tr/layers"
 
 TR_test "doğrusal" {
     TR_var d = TR_Linear()
@@ -36,7 +36,7 @@ TR_test "doğrusal" {
     TR_assert(TR_lr_schedule(1, 2) == 0.5)
 }
 `,
-		"examples/a.tr": `TR_import "tr/katman"
+		"examples/a.tr": `TR_import "tr/layers"
 
 TR_func ileri(x) {
     TR_return x
@@ -62,10 +62,10 @@ TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward:
 func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	r := libraryProject(t)
 	for want, spellings := range map[string][]string{
-		"struct:lib/katman.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "katman.Linear", "katman.TR_Linear", "katman.TR_type_Linear"},
-		"method:lib/katman.tr#TR_type_Linear.TR_mem_forward":         {"katman.Doğrusal.ileri", "katman.Linear.forward", "Linear.forward", "katman.TR_Linear.TR_forward", "katman.TR_type_Linear.TR_mem_forward"},
-		"function:lib/katman.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
-		"parameter:lib/katman.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "katman.öğrenme_oranı_planı.adım_sayısı"},
+		"struct:lib/layers.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "layers.Linear", "layers.TR_Linear", "layers.TR_type_Linear"},
+		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
+		"function:lib/layers.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
+		"parameter:lib/layers.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "layers.öğrenme_oranı_planı.adım_sayısı"},
 	} {
 		var first []string
 		for _, q := range spellings {
@@ -82,7 +82,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 				t.Errorf("%q answers differently from %q:\n%s\nvs\n%s", q, spellings[0], strings.Join(got, "\n"), strings.Join(first, "\n"))
 			}
 		}
-		if want == "struct:lib/katman.tr#TR_type_Linear" && !strings.Contains(first[1], "examples/a.tr") || want == "function:lib/katman.tr#TR_fn_lr_schedule" && !strings.Contains(first[2], "katman_test") {
+		if want == "struct:lib/layers.tr#TR_type_Linear" && !strings.Contains(first[1], "examples/a.tr") || want == "function:lib/layers.tr#TR_fn_lr_schedule" && !strings.Contains(first[2], "layers_test") {
 			t.Errorf("%s: the use in the example and the test block are listed:\n%s", want, strings.Join(first, "\n"))
 		}
 	}
@@ -101,7 +101,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 		t.Errorf("ileri -> %v: the user function is found by its own name", turkish)
 	}
 	turkish = slices.DeleteFunc(turkish, func(id string) bool { return id == "function:examples/a.tr#ileri" })
-	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/katman.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_arg_forward") {
+	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/layers.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_arg_forward") {
 		t.Errorf("ileri -> %v, forward -> %v: the library method and the builtin are candidates under both names", turkish, english)
 	}
 }
@@ -127,8 +127,8 @@ func TestHelperLibraryText(t *testing.T) {
 // yorumu ve modül adı aynen kalır.
 func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {
 	en := string(testkit.RunWithLanguageFile(t, "TestHelperLibraryText", "CODEINDEX_LIBRARY_OUT", "en"))
-	for _, part := range []string{"katman.Linear ", "katman.Linear.forward", "katman.Linear.weight", "func lr_schedule(step, num_steps, warmup = …)",
-		"katman.lr_schedule.num_steps"} {
+	for _, part := range []string{"layers.Linear ", "layers.Linear.forward", "layers.Linear.weight", "func lr_schedule(step, num_steps, warmup = …)",
+		"layers.lr_schedule.num_steps"} {
 		if !strings.Contains(en, part) {
 			t.Errorf("English output lacks %q:\n%s", part, en)
 		}
@@ -139,7 +139,7 @@ func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {
 		}
 	}
 	tr := string(testkit.RunWithLanguageFile(t, "TestHelperLibraryText", "CODEINDEX_LIBRARY_OUT", "tr"))
-	if !strings.Contains(tr, "katman.Doğrusal.ileri") || !strings.Contains(tr, "fonksiyon öğrenme_oranı_planı(adım, adım_sayısı, ısınma = …)") {
+	if !strings.Contains(tr, "layers.Doğrusal.ileri") || !strings.Contains(tr, "fonksiyon öğrenme_oranı_planı(adım, adım_sayısı, ısınma = …)") {
 		t.Errorf("Turkish output:\n%s", tr)
 	}
 }

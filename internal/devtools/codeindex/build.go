@@ -23,7 +23,7 @@ type Options struct {
 	// Tracked doğruysa yalnızca git'in izlediği .tr dosyaları dizine girer (depo aracı: codegraph); yanlışsa (tr dizin)
 	// kökün altındaki her .tr, .gitignore'a bakılmadan (ListFiles kipleri).
 	Tracked bool
-	// Library gömülü TR kitaplığıdır (kökünde katman.tr gibi dosyalar): projede lib/ad.tr yoksa
+	// Library gömülü TR kitaplığıdır (kökünde layers.tr gibi dosyalar): projede lib/ad.tr yoksa
 	// `aktar "tr/ad"` buraya çözülür ve modül "tr:lib/ad.tr" yoluyla dizine girer. Boşsa yok.
 	Library fs.FS
 }
@@ -157,7 +157,7 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 	x.order = append(x.order, rel)
 }
 
-// libraryPrefix gömülü kitaplık modüllerinin yol önekidir ("tr:lib/katman.tr").
+// libraryPrefix gömülü kitaplık modüllerinin yol önekidir ("tr:lib/layers.tr").
 const libraryPrefix = "tr:"
 
 // addLibrary projenin `aktar "tr/ad"` ile aldığı ama kendi lib/ klasöründe bulunmayan modülleri

@@ -92,9 +92,9 @@ func TestDataFormatsAreLanguageIndependent(t *testing.T) {
 // Sözlüğün metin anahtarı diske olduğu gibi gider (3.7, 17.3): json_metin, günlük, config.json ve
 // kontrol noktası {"step": …} için "step" anahtarını taşır; komut satırında seçenek metin anahtarının
 // adıyla geçer (--step) ve çıktı her koşuda aynıdır, TR_print anahtarı tırnakla yazar. Kitaplığın
-// (tr/egitim) config.json'u İngilizce tanımlayıcılardır; program JSON'daki "step"'i ["step"] ile okur.
+// (tr/training) config.json'u İngilizce tanımlayıcılardır; program JSON'daki "step"'i ["step"] ile okur.
 func TestDictTextKeysOnDisk(t *testing.T) {
-	program := "TR_import \"tr/egitim\" TR_as e\nTR_var ayar = TR_command_line({\"step\": 3, \"lr\": 0.5})\nTR_var koşu = e.Koşu(\"kosu\", ayar, {}, TR_num_steps: ayar[\"step\"])\nkoşu.değerlendirildi(1, {\"loss\": 0.25})\nTR_var kn = TR_Checkpoint(\"nokta\", {\"w\": TR_Tensor([1.0]), \"sayaç\": {\"step\": 1}})\nkn.güncelle(1)\nkn.kaydet()\nTR_print(TR_json_string(ayar))\nTR_print(ayar)\nTR_print(TR_json_parse(`{\"step\": 4}`)[\"step\"])\n"
+	program := "TR_import \"tr/training\" TR_as e\nTR_var ayar = TR_command_line({\"step\": 3, \"lr\": 0.5})\nTR_var koşu = e.Koşu(\"kosu\", ayar, {}, TR_num_steps: ayar[\"step\"])\nkoşu.değerlendirildi(1, {\"loss\": 0.25})\nTR_var kn = TR_Checkpoint(\"nokta\", {\"w\": TR_Tensor([1.0]), \"sayaç\": {\"step\": 1}})\nkn.güncelle(1)\nkn.kaydet()\nTR_print(TR_json_string(ayar))\nTR_print(ayar)\nTR_print(TR_json_parse(`{\"step\": 4}`)[\"step\"])\n"
 	coded, err := source.Encode(program)
 	if err != nil {
 		t.Fatal(err)

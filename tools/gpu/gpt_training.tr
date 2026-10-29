@@ -13,7 +13,7 @@
 #                   kontrol noktası kaydı hariç)
 #   model.trt       son ağırlıklar; checkpoints/ kaldığı yerden devam için
 # Kesilirse aynı komut kaldığı yerden sürer (her_dakika'da bir kayıt). Klasör, günlük, kontrol noktası
-# ve ağırlık kaydı kitaplığın Koşu yapısıdır (tr/egitim); --prova aynı komutu geçici bir klasörde iki
+# ve ağırlık kaydı kitaplığın Koşu yapısıdır (tr/training); --prova aynı komutu geçici bir klasörde iki
 # adım koşturup bütün dosyaların yazıldığını denetler (uzun koşudan önce).
 #
 # Kullanım:
@@ -23,10 +23,10 @@
 #   ./tr gpt_training.tr --yardım
 # Model ayarları varsayılan olarak d512, 8 katman, 8 bakış, bağlam 512, toplu 128'dir.
 
-TR_import "tr/katman"
+TR_import "tr/layers"
 TR_import "training_model"
-TR_import "tr/iyilestirici"
-TR_import "tr/egitim"
+TR_import "tr/optimizers"
+TR_import "tr/training"
 
 TR_var ayar = TR_command_line({
     "veri": "", "koşu": "runs/gpt_ss", "device": "gpu", "hassasiyet": "float32",

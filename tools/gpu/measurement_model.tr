@@ -1,7 +1,7 @@
 # TR 4
 # Ölçüm modeli: compare_gpu.tr ve phase3_tr.tr aynı modeli (RMS normlu, SwiGLU'lu, paylaşımlı çıkışlı
 # küçük bir GPT) kurar; PyTorch karşılıkları compare_gpu.py ve phase3_torch.py'dedir. Model kasıtlı
-# olarak lib/katman.tr'ye bağlanmaz: ölçüm programı PyTorch dosyasıyla katman katman eşleşir, kitaplık
+# olarak lib/layers.tr'ye bağlanmaz: ölçüm programı PyTorch dosyasıyla katman katman eşleşir, kitaplık
 # değişince ölçüm sessizce değişmesin. Bu dosya aktaranın B, T, D, H, Dh, FF, KATMAN ve V adlarını
 # kullanır (aktar'dan önce tanımlı olmalıdır); ağırlık tohumları kurulum sırasına bağlıdır.
 # Kendisi program değildir: tr kontrol/çalıştırma aktaran dosyalardan yapılır.

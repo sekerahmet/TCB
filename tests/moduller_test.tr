@@ -9,8 +9,8 @@ TR_import "sira_ortak" TR_as so
 TR_import "sub/yardimci_alt"
 TR_import "yardimci_ozel" TR_as özel
 TR_import "yardimci_ozel"
-TR_import "tr/katman" TR_as k
-TR_import "./tr/katman" TR_as d
+TR_import "tr/layers" TR_as k
+TR_import "./tr/layers" TR_as d
 
 TR_test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı isteğe bağlıdır" {
     TR_assert_equal(9, kare(PI))
@@ -55,6 +55,6 @@ TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
 }
 
 TR_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {
-    TR_assert_equal([4, 3], k.TR_Linear(4, 3).TR_weight.TR_shape) # tests/tr/katman.tr'de Linear yok
+    TR_assert_equal([4, 3], k.TR_Linear(4, 3).TR_weight.TR_shape) # tests/tr/layers.tr'de Linear yok
     TR_assert_equal(TR_true, d.disk_katmanı)
 }

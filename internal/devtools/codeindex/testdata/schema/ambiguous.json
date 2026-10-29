@@ -8,21 +8,21 @@
   },
   "candidates": [
     {
-      "id": "method:lib/katman.tr#Doğrusal.ileri",
+      "id": "method:lib/layers.tr#Doğrusal.ileri",
       "kind": "method",
       "name": "Doğrusal.ileri",
       "pos": {
-        "file": "lib/katman.tr",
+        "file": "lib/layers.tr",
         "line": 30,
         "col": 5
       }
     },
     {
-      "id": "method:lib/katman.tr#GPT.ileri",
+      "id": "method:lib/layers.tr#GPT.ileri",
       "kind": "method",
       "name": "GPT.ileri",
       "pos": {
-        "file": "lib/katman.tr",
+        "file": "lib/layers.tr",
         "line": 170,
         "col": 5
       }

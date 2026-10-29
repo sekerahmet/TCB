@@ -16,7 +16,7 @@
 # kurar), --hassasiyet fp32 bf16'yı kapatır, --losses adım başına kaybı ve gradyan normunu yazar.
 # Kalite: --doğrulama valid.npy her --değerlendirme adımda ve sonda doğrulama kaybını hedefin yöntemiyle
 # ölçer (dosyanın başından --değerlendirme_parça kadar ardışık pencere; rgn512.py evaluate).
-# Kararlılık (dil tanımı 15.36, 20.14, 20.15; tr/egitim): her adımın kaybını ve gradyan normunu bir
+# Kararlılık (dil tanımı 15.36, 20.14, 20.15; tr/training): her adımın kaybını ve gradyan normunu bir
 # sıçrama bekçisi izler (son --bekçi_pencere sağlam adıma göre --bekçi_eşik standart sapma). --koşu
 # KLASÖR verilince kontrol noktası kurulur (her --kayıt_dakika dakikada bir; yeniden çalıştırılınca
 # kaldığı adımdan sürer): NaN, sonsuz ya da sıçramada son noktaya dönülür ve --skip toplu iş atlanır.
@@ -29,9 +29,9 @@
 # kendi koduyla ölçer ve metin üretir.
 # Tersi: --weight DOSYA --step 0 PyTorch'ta eğitilmiş modeli (rgn_to_tr.py) eğitmeden TR'nin koduyla ölçer.
 
-TR_import "tr/katman" TR_as katman
-TR_import "tr/iyilestirici" TR_as iyileştirici
-TR_import "tr/egitim" TR_as eğitim
+TR_import "tr/layers" TR_as katman
+TR_import "tr/optimizers" TR_as iyileştirici
+TR_import "tr/training" TR_as eğitim
 
 TR_var arg = TR_command_line({"veri": "", "step": 120, "toplu": 64, "mikro": 32, "bağlam": 1024, "oran": 0.002,
     "device": "gpu", "tohum": 0, "logger": 50, "çıktı": "", "weight": "", "sequential": TR_false, "hassasiyet": "bf16",

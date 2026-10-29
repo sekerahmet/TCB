@@ -1,8 +1,8 @@
 # TR 4
-# tr/katman — transformer katmanları ve yalnızca kod çözücülü GPT.
+# tr/layers — transformer katmanları ve yalnızca kod çözücülü GPT.
 #
-# Kullanım:   aktar "tr/katman"                (adlar doğrudan gelir: GPT, Doğrusal, ...)
-#             aktar "tr/katman" olarak k       (k.GPT(...), k.Doğrusal(...))
+# Kullanım:   aktar "tr/layers"                (adlar doğrudan gelir: GPT, Doğrusal, ...)
+#             aktar "tr/layers" olarak k       (k.GPT(...), k.Doğrusal(...))
 # Her katman sıradan bir yapıdır: ağırlıklar alanlarındadır, ileri hesap `ileri` metodudur,
 # `parametreler(model)` bütün ağırlıkları bulur. Bu dosyayı kopyalayıp değiştirebilirsiniz.
 #

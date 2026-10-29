@@ -270,7 +270,7 @@ Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den 
 
 Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
 
-Kütüphanenin bedeli: `.tr` dosyalarında 63 yapı tanımı (`lib/`'de 16) [ölçüldü: satır başındaki `TR_struct` için git grep]; alanlar ve kurucu parametreleri tipsiz, tipli yazıma çevrilir. Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/katman.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
+Kütüphanenin bedeli: `.tr` dosyalarında 63 yapı tanımı (`lib/`'de 16) [ölçüldü: satır başındaki `TR_struct` için git grep]; alanlar ve kurucu parametreleri tipsiz, tipli yazıma çevrilir. Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/layers.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
 
 JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde'si, Python'un pydantic'i gibi) henüz hiçbir bölümde yok; sonraki bölümlerde tasarlanır.
 
@@ -450,8 +450,8 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ### 11.6
 
-- **Mevcut durum:** kitaplığın dört modülünün yolu Türkçe sözcüklerle: `tr/katman`, `tr/iyilestirici`, `tr/hazir`, `tr/egitim` (`lib/`). Eski yollar 65 dosyada 875 satırda geçiyor; en büyüğü `internal/lang/codes/definitions.json`'un modül alanı, 245 kod (katman 135, iyilestirici 61, egitim 37, hazir 12) [ölçüldü: DENETİM 11-1, main `957eee87`].
-- **Yapılacaklar:** tek bir taşıma commit'iyle (davranış değişmeden) İngilizce yollar (`tr/katman` → `tr/layers`, `tr/iyilestirici` → `tr/optimizers`, `tr/hazir` → `tr/pretrained`, `tr/egitim` → `tr/training`), `definitions.json`'un modül alanı, `lib/` dosya adları, Go testlerindeki TR dizeleri, belgeler, aktarma satırları, `tests/negative/kitaplik_turkce_harf.tr`'nin yazım örneği.
+- **Durum:** uygulandı (Faz 0.2). Kitaplığın dört modülü tek bir taşıma commit'iyle (davranış değişmeden) İngilizce yollara (`tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`; `lib/layers.tr`, `lib/optimizers.tr`, `lib/pretrained.tr`, `lib/training.tr` ve `*_test.tr` eşleri ile `tests/tr/layers.tr` gölge fikstürü) taşındı; `definitions.json` (245 kod: layers 135, optimizers 61, training 37, pretrained 12), `tr.json` (246 satır), `codes_generated.go` (245 satır) ve `docs/codes.md` güncellendi; `tests/negative/kitaplik_turkce_harf.tr` eski Türkçe yolu (`H2478`) kalıcı olumsuz test olarak korur.
+- **Ölçü:** göçten önce `tr/` veya `lib/` önekli eski dört yol 90 dosyada 976 satırda (`tr/` önekli olarak 66 dosyada 876 satırda) geçiyordu; göçten sonra gerçek eski dört yol yalnız tarihli arşiv (`docs/archive/`: 2 dosyada 8 satır), olumsuz test (`tests/negative/kitaplik_turkce_harf.tr`: 1 satır) ve eşzamanlı iş nedeniyle dokunulmayan `internal/devtools/codeindex/cache_test.go` (1 satır) içinde (4 dosyada 10 satır; `katmanx`/`hazirx` sahte modül fikstürleriyle birlikte 7 dosyada 30 satır) kalmıştır.
 
 ### 11.8
 
@@ -612,7 +612,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.6
 
 - **Mevcut durum:** argmax'in tam sayılı işareti `+ 1`'de düşüyor (sonuç `2.0`, `TR_Float`); `/ 2` ve `* 2.5` tam sayılı tensörü ondalık yapıyor. `t // 2`, `t % 2` ve bit işleçleri H6703 veriyor; `@` yalnız ondalık [ölçüldü].
-- **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi. Göç: kesirli aritmetiğe giren argmax sonucu (tools/gpu/ss_exam.tr:58) [ölçüldü: DENETİM]; kitaplıkta maske aritmetiği 3 yer [ölçüldü: DENETİM B1]: lib/iyilestirici.tr:341 (`n + geçti` → `TR_where` ya da `TR_sum`), :344 (oranın `geçti * g` ile çarpımı → `TR_where(geçti, ..., 0.0)`), lib/katman.tr:419 (`m * (...)` → `m & (...)`).
+- **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi. Göç: kesirli aritmetiğe giren argmax sonucu (tools/gpu/ss_exam.tr:58) [ölçüldü: DENETİM]; kitaplıkta maske aritmetiği 3 yer [ölçüldü: DENETİM B1]: lib/optimizers.tr:341 (`n + geçti` → `TR_where` ya da `TR_sum`), :344 (oranın `geçti * g` ile çarpımı → `TR_where(geçti, ..., 0.0)`), lib/layers.tr:419 (`m * (...)` → `m & (...)`).
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
 
 ### 15.6a
@@ -641,7 +641,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar:**
   - tensörle ve maskeyle indeks, `.TR_select`, `.TR_unsqueeze`, `.TR_fill`, yerinde bileşik atama, tensörle indekste biriktirme, türevin üç kuralı (türevsiz kipe bağlı); TR testi;
   - bileşik atamanın göçü sessiz bir anlam değişikliğidir (yazım aynı kalır): bütün .tr dosyalarında tensör adına bileşik atamalar ve aynı tensörü paylaşan adlar sayılır, örnekler ve lib/ önce ve sonra koşulup karşılaştırılır;
-  - kitaplığın `TR_Tensor(TR_no_grad(...), TR_requires_grad: TR_true)` dolambacı (lib/katman.tr:20) yaprağın tanımıyla sadeleşir;
+  - kitaplığın `TR_Tensor(TR_no_grad(...), TR_requires_grad: TR_true)` dolambacı (lib/layers.tr:20) yaprağın tanımıyla sadeleşir;
   - indeksli hedefte yerinde olmayan bir biriktirme (index_add türü) yok; açık soru.
 - **Tersine dönecek Go testi:** `TestMatrixIndexAndAssign` (`internal/stdlib/ml/matrix_test.go:50`) tam sayı değişmezli matrisi ondalık bekliyor (15.2), 0 boyutlu tensörde `.TR_tolist` okuyor (13.8a) ve liste değerli atama yapıyor (`M[-1] = [8, 9]`; değer sayı ya da tensör olmalı). Aynı dosyanın öbür testlerine de bakılmalı.
 
@@ -744,7 +744,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.23c
 
-- **Mevcut durum:** evrişim yok; kitaplık yalnız dil modellerinin katmanlarını taşıyor [ölçüldü: `lib/katman.tr`].
+- **Mevcut durum:** evrişim yok; kitaplık yalnız dil modellerinin katmanlarını taşıyor [ölçüldü: `lib/layers.tr`].
 - **Yapılacaklar:** `TR_conv1d`, `TR_conv2d`; TR testi. Gösterim adları onaylı (Ahmet, 2026-10-29).
 
 ### 15.23d
@@ -790,7 +790,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.34
 
-- **Mevcut durum:** dondurma yok: yaprakta `.TR_requires_grad` üyesi yok (`definitions.json`'da `TR_requires_grad` yalnız adlı argüman kodu) [kanıtlı]. Kitaplığın iyileştiricisi indeksli dolambaçla yazılı: `p[0..p.TR_shape[0]] -= ...`, `g[0..g.TR_shape[0]] = 0.0` [kanıtlı: `lib/iyilestirici.tr:96-97, 111`]; kitaplığın yolu bugün `tr/iyilestirici` (11'in taşıması bekliyor). Kitaplık parametre gruplarını birden çok iyileştiriciyle yazıyor [kanıtlı: DENETİM E1]. 15.34'ün "kendi iyileştiricisi" TR testi indeksli atamayla yazılı (`tests/tensor_test.tr:401`).
+- **Mevcut durum:** dondurma yok: yaprakta `.TR_requires_grad` üyesi yok (`definitions.json`'da `TR_requires_grad` yalnız adlı argüman kodu) [kanıtlı]. Kitaplığın iyileştiricisi indeksli dolambaçla yazılı: `p[0..p.TR_shape[0]] -= ...`, `g[0..g.TR_shape[0]] = 0.0` [kanıtlı: `lib/optimizers.tr:96-97, 111`]; kitaplığın yolu `tr/optimizers`. Kitaplık parametre gruplarını birden çok iyileştiriciyle yazıyor [kanıtlı: DENETİM E1]. 15.34'ün "kendi iyileştiricisi" TR testi indeksli atamayla yazılı (`tests/tensor_test.tr:401`).
 - **Yapılacaklar:** yaprağın `.TR_requires_grad` üyesi için yeni üye kodu (gösterim adı "türev_izle", onaylı); dondurma, aşamalı çözme ve iyileştiricinin donmuş yaprağı atlaması; gradyansız `.TR_step()` hatası; türevsiz kipte 16 bitlik yaprağa bileşik atamanın uyarısı; kitaplık ve 15.34'ün TR testi bileşik atamalı yazıma geçer (başlık da değişir); donma durumunun kontrol noktasına girmesi (20.4); TR testleri.
 - **Gemini Koşu 1 (2026-10-29):** parametre başına "gradyan eklendi" bilgisi, gradyansız parametreyi atlayan `.TR_step()`, donmuş grubun hatasızlığı, açmanın yalnız kendi deposu olan yaprakta geçerliliği uygulanacak. Kendi iyileştiricisi (`TR_if g != TR_none`) kullanılmayan parametreyi bugün ayıramıyor; kitaplığın Muon'u için soru üyesi Sonraya.
 - **Açık (Sonraya):** aynı yapıya eklenen LoRA alanları için `TR_load_parameters`'ın kesin kuralı; bugün yol alt yapıya yüklemek (`TR_load_parameters(model.gövde, ...)`).

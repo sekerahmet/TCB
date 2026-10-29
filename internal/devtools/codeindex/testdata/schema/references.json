@@ -7,11 +7,11 @@
     "language": "tr"
   },
   "target": {
-    "id": "struct:lib/iyilestirici.tr#Muon",
+    "id": "struct:lib/optimizers.tr#Muon",
     "kind": "struct",
     "name": "Muon",
     "pos": {
-      "file": "lib/iyilestirici.tr",
+      "file": "lib/optimizers.tr",
       "line": 72,
       "col": 1,
       "end_line": 112,
@@ -24,12 +24,12 @@
       "role": "call",
       "confidence": "EXTRACTED",
       "pos": {
-        "file": "lib/iyilestirici.tr",
+        "file": "lib/optimizers.tr",
         "line": 197,
         "col": 16
       },
       "in": {
-        "id": "method:lib/iyilestirici.tr#MuonVeAdamW.kurucu",
+        "id": "method:lib/optimizers.tr#MuonVeAdamW.kurucu",
         "kind": "method",
         "name": "MuonVeAdamW.kurucu"
       }
@@ -38,12 +38,12 @@
       "role": "in_test",
       "confidence": "EXTRACTED",
       "pos": {
-        "file": "lib/iyilestirici_test.tr",
+        "file": "lib/optimizers_test.tr",
         "line": 33,
         "col": 20
       },
       "in": {
-        "id": "test_block:lib/iyilestirici_test.tr#30",
+        "id": "test_block:lib/optimizers_test.tr#30",
         "kind": "test_block",
         "name": "Muon: güncelleme dikleştirilmiş momentumdur"
       }

@@ -8,9 +8,9 @@ func TestNodeID(t *testing.T) {
 		file, name string
 		want       string
 	}{
-		{KindFunction, "lib/katman.tr", "cevre", "function:lib/katman.tr#cevre"},
-		{KindMethod, "lib/katman.tr", "Doğrusal.ileri", "method:lib/katman.tr#Doğrusal.ileri"},
-		{KindModule, "lib/katman.tr", "", "module:lib/katman.tr"},
+		{KindFunction, "lib/layers.tr", "cevre", "function:lib/layers.tr#cevre"},
+		{KindMethod, "lib/layers.tr", "Doğrusal.ileri", "method:lib/layers.tr#Doğrusal.ileri"},
+		{KindModule, "lib/layers.tr", "", "module:lib/layers.tr"},
 		{KindBuiltin, "", "TR_fn_time_ms", "builtin:TR_fn_time_ms"},
 	}
 	for _, c := range cases {

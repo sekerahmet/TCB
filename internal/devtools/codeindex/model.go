@@ -111,9 +111,9 @@ type Node struct {
 	Display   string `json:"display,omitempty"`
 	Pos       *Pos   `json:"pos,omitempty"`
 	Signature string `json:"signature,omitempty"`
-	// Qualified modül adıyla nitelenmiş ad ("katman.Doğrusal.ileri"): sorguda yazılan biçim.
+	// Qualified modül adıyla nitelenmiş ad ("layers.Doğrusal.ileri"): sorguda yazılan biçim.
 	Qualified string `json:"qualified,omitempty"`
-	// Aliases bir modülün başka adlarıdır (içe aktarma yolu "tr/katman").
+	// Aliases bir modülün başka adlarıdır (içe aktarma yolu "tr/layers").
 	Aliases []string `json:"aliases,omitempty"`
 	Coded   bool     `json:"coded,omitempty"` // modül: dosya kodlu biçimdeydi
 	// Imports modülün `aktar` ifadeleridir (kaynak sırasıyla); artımlı yenileme değişmeyen
@@ -228,7 +228,7 @@ type Unresolved struct {
 	Pos  Pos    `json:"pos"`
 }
 
-// NodeID bir bildirimin kimliğini kurar: tür, dosya ve ad "function:lib/katman.tr#cevre"
+// NodeID bir bildirimin kimliğini kurar: tür, dosya ve ad "function:lib/layers.tr#cevre"
 // biçiminde birleşir; yerleşiğin dosyası yoktur ("builtin:TR_fn_time_ms"), modülün adı yoktur.
 func NodeID(kind Kind, file, name string) string {
 	switch kind {

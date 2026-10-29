@@ -31,7 +31,7 @@ import (
 // or more. Type codes are the type class (the type of AdamW and SGD is a type code too:
 // İyileştirici, TR_type_Optimizer). A named argument is a [code, type, default] triple; the
 // default is a JSON value (null: none) and is omitted when there is no single default. A public
-// name of a standard library module also carries "module" (the module, "tr/katman"); the code is
+// name of a standard library module also carries "module" (the module, "tr/layers"); the code is
 // then a library code, not a builtin.
 
 //go:embed definitions.json
@@ -135,7 +135,7 @@ type Definition struct {
 	// notation or a proper name (sin, AdamW, json) has the same name in every writing language. It
 	// is written only here, never in a language file; Load gives it to every language.
 	Common string
-	// Module is the standard library module ("module": tr/katman) whose public name the code is;
+	// Module is the standard library module ("module": tr/layers) whose public name the code is;
 	// empty for a core code. codes_generated.go carries it as the libraryModules table.
 	Module string
 	// Familiar holds names familiar from other languages and libraries ("familiar": print's

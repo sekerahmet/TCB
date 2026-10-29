@@ -4,17 +4,17 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `TR_kw_import 
 
 | Modül | Dosya | İçerik |
 | :-- | :-- | :-- |
-| `tr/katman` | [`katman.tr`](katman.tr) | Transformer katmanları ve yalnızca kod çözücülü `TR_type_GPT` |
-| `tr/iyilestirici` | [`iyilestirici.tr`](iyilestirici.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
-| `tr/egitim` | [`egitim.tr`](egitim.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
-| `tr/hazir` | [`hazir.tr`](hazir.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
+| `tr/layers` | [`layers.tr`](layers.tr) | Transformer katmanları ve yalnızca kod çözücülü `TR_type_GPT` |
+| `tr/optimizers` | [`optimizers.tr`](optimizers.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
+| `tr/training` | [`training.tr`](training.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
+| `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 
-Testler her modülün yanındadır (`katman_test.tr`, `iyilestirici_test.tr`, `egitim_test.tr`, `hazir_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
+Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 # TR 4
-TR_import "tr/katman"
-TR_import "tr/iyilestirici"
+TR_import "tr/layers"
+TR_import "tr/optimizers"
 
 TR_var model = TR_GPT(1000, TR_context: 64, TR_embed_dim: 64, TR_num_layers: 2, TR_num_heads: 4)
 TR_var op = TR_MuonAndAdamW(model) # gizli 2B ağırlıklar Muon, öbürleri AdamW
@@ -28,7 +28,7 @@ TR_for adım TR_in 0..10 {
 }
 ```
 
-## `tr/katman`
+## `tr/layers`
 
 Her katman sıradan bir `TR_kw_struct`dır: ağırlıklar alanlarındadır, ileri hesap `ileri` metodudur, `TR_fn_parameters(model)` hepsini bulur (adlar kimlik yoludur: `TR_mem_blocks.0.TR_mem_attention.TR_mem_q_proj.TR_mem_weight`, gösterimde `bloklar.0.dikkat.sorgu_katmanı.ağırlık`). Girdiler `[toplu, uzunluk, boyut]`, çarpım `x @ W`, Doğrusal'ın ağırlığı `[giriş, çıkış]` şeklindedir.
 
@@ -49,11 +49,11 @@ Her katman sıradan bir `TR_kw_struct`dır: ağırlıklar alanlarındadır, iler
 
 **Başlatma.** Bütün ağırlık matrisleri N(0, 0.02) ile başlar. Artık yola yazan çıkış katmanları (dikkatin `TR_mem_o_proj`, ileri beslemenin `TR_mem_down_proj`sı) `0.02 / √(2 · katman)` ile küçültülür: her blok artık yola iki katkı ekler, katkıların varyansı katman sayısıyla büyümesin. Norm ağırlıkları 1, sapmalar 0 ile başlar. Her ağırlığın sabit bir tohumu vardır (blok `i` için `tohum + 100·(i+1)` ve ardışıkları): aynı `tohum` aynı modeli verir. `TR_arg_tied: TR_kw_true` çıkışta gömme tablosunu kullanır (`logit = h @ tablo.TR_mem_transpose()`).
 
-**Hedef model seçenekleri (RGN-512).** Aşağıdaki seçeneklerin hepsinin varsayılanı eski davranıştır (`katman_test.tr` varsayılanın değişmediğini sınar). `tools/gpu/rgn512.py`'nin ileri hesabı yeni bir model yapısı gerektirmez, `TR_type_GPT`nin blok seçenekleriyle kurulur:
+**Hedef model seçenekleri (RGN-512).** Aşağıdaki seçeneklerin hepsinin varsayılanı eski davranıştır (`layers_test.tr` varsayılanın değişmediğini sınar). `tools/gpu/rgn512.py`'nin ileri hesabı yeni bir model yapısı gerektirmez, `TR_type_GPT`nin blok seçenekleriyle kurulur:
 
 ```tr
 # TR 4
-TR_import "tr/katman"
+TR_import "tr/layers"
 
 TR_var rgn = TR_GPT(40000, TR_context: 1024, TR_embed_dim: 512, TR_num_layers: 8, TR_num_heads: 8, TR_num_kv_heads: 4, TR_intermediate_dim: 672, TR_tied: TR_true,
     TR_windows: TR_layer_windows("YYGYGYYG", [32, 64]), TR_qk_norm: TR_true, TR_merged_kv: TR_true,
@@ -69,11 +69,11 @@ TR_var rgn = TR_GPT(40000, TR_context: 1024, TR_embed_dim: 512, TR_num_layers: 8
 
 **Üretim.** `model.TR_mem_generate(kimlikler, en_fazla_yeni_parça, TR_arg_temperature: 1.0, TR_arg_top_k: 0, TR_arg_seed: TR_kw_none, TR_arg_eos: TR_kw_none, TR_arg_cache_kind: "sabit")` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar ve yalnızca son konumun logitini çıkarır (transformers `generate`'in `logits_to_keep`'i gibi). `eos` bir parça kimliğidir: o parça örneklenince dizide kalır ve üretim `adet` dolmadan durur. Dizi bağlamı doldurunca son `bağlam` parça yeniden işlenir. GPU'da sabit önbellekle (`çizge: TR_kw_true`, varsayılan) her adım `TR_type_GPT.TR_mem_single_step`'dır ve `TR_fn_replay` ile kaydedilip oynatılır (dil tanımı 15.45): konum ve parça kimliği cihazda bir tensördür, yeni anahtarlar `TR_fn_write_slice` ile konuma yazılır, dikkat tamponun tamamına maskeyle bakar (transformers sabit önbelleği ve `cache_position` ile aynı yol); yorumlayıcı adımı yeniden çalıştırmaz. Sonuç kayıtsızla aynı parçalardır; `çizge: TR_kw_false` kapatır. Sabit önbellek en çok başlangıç + adet konum tutar.
 - **`TR_type_KVCache`** (`model.TR_mem_build_cache(TR_arg_kind: "sabit", TR_arg_capacity: bağlam)`): katman başına döner konumlu anahtar ve değerler, `[B, T, kv_bakış, bakış_boyutu]` düzende (dikkat'in düzeni; GQA'da çoğaltılmaz). `"sabit"` tamponu bir kez ayırır ve yeni anahtarları zaman ekseninde yerine yazar (gpt-fast, FlashAttention `flash_attn_with_kvcache` gibi); `"büyüyen"` her adımda `TR_fn_concat` ile uzar (transformers `DynamicCache` gibi). `model.TR_mem_forward(kimlikler, TR_arg_cache: ö)` önbellekteki konumdan devam eder: döner konum tabloları o konumdan dilimlenir, `TR_fn_attention` önbellekteki bütün konumlara bakar (nedensellik sondan hizalı, dil tanımı 15.24). `ö.TR_mem_strip(n)` önbelleği ilk `n` parçaya indirir, sonrakileri geri alır (reddedilen taslak). Önbellek türev izlemez.
-- **Ölçüm (SmolLM2-135M, CPU, 100 parça, açgözlü, 4 tur ortancası, 2026-10-21):** önbelleksiz 1,7; büyüyen 23,6; sabit 24,7 parça/sn; transformers `generate` 23,2. Colab (RTX PRO 6000, 3 tur): GPU'da sabit ~216, büyüyen ~201, transformers ~109; Colab işlemcisinde (24 iş parçacığı) TR ~38, transformers ~37 parça/sn. Önbellekli ve önbelleksiz sonuç aynıdır (`lib/katman_test.tr`).
+- **Ölçüm (SmolLM2-135M, CPU, 100 parça, açgözlü, 4 tur ortancası, 2026-10-21):** önbelleksiz 1,7; büyüyen 23,6; sabit 24,7 parça/sn; transformers `generate` 23,2. Colab (RTX PRO 6000, 3 tur): GPU'da sabit ~216, büyüyen ~201, transformers ~109; Colab işlemcisinde (24 iş parçacığı) TR ~38, transformers ~37 parça/sn. Önbellekli ve önbelleksiz sonuç aynıdır (`lib/layers_test.tr`).
 
 **`TR_mem_single_step` ve `TR_mem_hidden_states`.** Kendi üretim döngünüz için iki yapı taşı: `model.TR_mem_hidden_states(kimlikler, TR_arg_cache: ö)` kimlikler `[B, T]` (liste) için gizli durumu `[B, T, boyut]` verir ve önbelleğe yazar (`ö.TR_mem_position` T kadar ilerler); `model.TR_mem_logits(gizli)` onu dağarcık logitine çevirir (üretimde yalnızca son konum için: `model.TR_mem_logits(x.TR_mem_slice(1, T - 1, T))[0][0]`). `model.TR_mem_single_step(kimlik, konum, ö)` bir parçalık adımdır: `kimlik` `[1, 1]` ve `konum` `[1]` **tensörleri** (konum cihazdadır, bu yüzden adım `TR_fn_replay` ile kaydedilebilir), `ö` **sabit** önbellek olmalı ve önceki parçalar `gizli_durum` ile işlenmiş olmalıdır; son konumun logitini `[dağarcık]` verir. Konumu çağıran ilerletir: `ö.TR_mem_advance(1)`. CPU'da `TR_fn_replay` adımı doğrudan çağırır. Örnek: `examples/tr/47_kendi_uretim_dongusu.tr` (elle yazılan döngü `model.TR_mem_generate` ile aynı diziyi verir).
 
-## `tr/iyilestirici`
+## `tr/optimizers`
 
 İyileştiriciler TR ile yazılmıştır: parametreyi türev izlemeden yerinde günceller (`TR_fn_no_grad { p[0..p.TR_mem_shape[0]] -= ... }`, dil tanımı [15.34](../docs/spec/15_tensorler.md)). Go tarafına iyileştirici eklenmez; yeni bir yöntem için bu dosya kopyalanıp değiştirilir.
 
@@ -98,9 +98,9 @@ TR_var rgn = TR_GPT(40000, TR_context: 1024, TR_embed_dim: 512, TR_num_layers: 8
 
 **SatırRMS.** Tablo `[satır, sütun]` (kelime × P). Adımda gradyanı sıfırdan farklı satırlar için `n ← n + 1`, `v ← β2·v + (1−β2)·ortalama(g²)` (satırın elemanları üzerinden), `W ← W − η·g / (√(v / (1−β2ⁿ)) + ε)`; sapma düzeltmesi satırın kendi sayacıyladır (ilk kez görülen kelime doğru ölçekle başlar), gradyanı olmayan satırın ağırlığı, `v`'si ve sayacı değişmez. Momentum yoktur. Durum `op.TR_mem_state.ikinci_moment` ve `op.TR_mem_state.sayaç` (`[satır, 1]`) tensörleridir. **Bu sürüm yoğun maskelidir**: gradyan ve durum tam tablo boyundadır, maliyet O(satır · sütun)'dur; anlam seyrek sürümle aynıdır, gerçek seyrek yol (yalnızca geçen satırlara dokunan) yerleşik olarak gelince arayüz değişmez.
 
-**Öğrenme oranı çarpanı.** `çarpan_ayarla(c)` (c pozitif) sonraki adımda iki grubun oranını birlikte ölçekler: `TR_type_MuonAndAdamW` her adımda `op.TR_mem_muon.TR_mem_lr`'nı ve `op.TR_mem_adamw.TR_mem_lr`'nı (dil tanımı [15.35](../docs/spec/15_tensorler.md)) taban oran × c yapar. Kopya ya da ek bellek yoktur; c = 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır (`iyilestirici_test.tr` sınar).
+**Öğrenme oranı çarpanı.** `çarpan_ayarla(c)` (c pozitif) sonraki adımda iki grubun oranını birlikte ölçekler: `TR_type_MuonAndAdamW` her adımda `op.TR_mem_muon.TR_mem_lr`'nı ve `op.TR_mem_adamw.TR_mem_lr`'nı (dil tanımı [15.35](../docs/spec/15_tensorler.md)) taban oran × c yapar. Kopya ya da ek bellek yoktur; c = 1 iken AdamW'nin adımı planı olmayan AdamW'ninkiyle bit düzeyinde aynıdır (`optimizers_test.tr` sınar).
 
-**Kontrol noktası.** Muon'un durum tensörleri `op.TR_mem_muon.TR_mem_state` sözlüğündedir ve türev izlemez (parametre değildir, yalnızca türevsiz blokta yerinde güncellenir); `TR_type_Checkpoint` bir nesnenin türev izlemeyen tensörlerini de saklayıp yerinde geri yazar (dil tanımı [20.2](../docs/spec/20_kontrol_noktasi.md)). Kontrol noktasına modelin yanında `op.TR_mem_adamw` ve `op.TR_mem_muon.TR_mem_state` da verilir (örnek: `examples/tr/41_gpt.tr`); sürdürülen eğitim kesintisizle aynıdır (`iyilestirici_test.tr`).
+**Kontrol noktası.** Muon'un durum tensörleri `op.TR_mem_muon.TR_mem_state` sözlüğündedir ve türev izlemez (parametre değildir, yalnızca türevsiz blokta yerinde güncellenir); `TR_type_Checkpoint` bir nesnenin türev izlemeyen tensörlerini de saklayıp yerinde geri yazar (dil tanımı [20.2](../docs/spec/20_kontrol_noktasi.md)). Kontrol noktasına modelin yanında `op.TR_mem_adamw` ve `op.TR_mem_muon.TR_mem_state` da verilir (örnek: `examples/tr/41_gpt.tr`); sürdürülen eğitim kesintisizle aynıdır (`optimizers_test.tr`).
 
 ## Adlar ve açık konular
 
@@ -110,13 +110,13 @@ Kitaplığın adları kullanıcı düzeyi TR adlarıdır; dilin kodu değildir, 
 
 **Hata iletileri.** Kitaplık hata metni yazmaz: her `TR_kw_throw` ve `TR_fn_assert` bir katalog iletisi kurar (`TR_type_Message(H6903, pencere)`, 27 kod `H6900`–`H6946`, `internal/lang/messages`); metin okuyanın dilinde kurulur ve kitaplığın kendi adları iletide o dilin adıyla yazılır. Testler iletinin metnine değil koduna bakar (`TR_fn_error_code`). Denetim: `TestMessageUsage` (tools/gen/msgconsts), `TestMessageSlotsAreNames` (internal/lang/codes).
 
-## `tr/egitim`
+## `tr/training`
 
 `TR_type_Run(klasör, ayar, nesneler, adım_sayısı, TR_arg_every_minutes: 15.0, TR_arg_dry_run: TR_kw_false)` bir eğitimin kayıt işlerini üstlenir, döngü kullanıcıda kalır (Hugging Face Accelerate'in yolu; Lightning ve Keras döngüyü kendileri sürer). Klasöre `config.json` (`"config"`: ayarlar, `"num_params"`, `"device"`; diske giden anahtarlar dilden bağımsız İngilizce tanımlayıcılardır, dil tanımı 17.3) yazar, `metrics.jsonl` günlüğünü, ilerleme çubuğunu ve kontrol noktasını (dil tanımı 20; `nesneler` ve `"logger"` adıyla günlük) kurar; aynı komut `TR_mem_resume_step`'dan sürer. `adım_bitti(adım, ölçüler)` adım sınırıdır: ölçüler verilirse çubuk ve günlük güncellenir, zamanı geldiyse kontrol noktası yazılır (yazıldıysa `TR_kw_true`). `değerlendirildi(adım, ölçüler)` değerlendirmeyi günlüğe yazar. `bitir(model)` ağırlıkları (`model.trt`) her şeyden önce yazar, sonra son kontrol noktasını: sonrası bir hatayla bitse de eğitimin sonucu kaybolmaz. `TR_arg_dry_run: TR_kw_true` aynı komutun uzun koşudan önceki denemesidir (Lightning `fast_dev_run`): yeni bir geçici klasörde `TR_const_DRY_RUN_STEPS` (2) adım, kontrol noktası her adımda; `TR_mem_finish` bütün dosyaların yazıldığını denetler. Döngü `koşu.TR_mem_resume_step..koşu.TR_mem_last_step` üzerinde döner.
 
 ```tr
 # TR 4
-TR_import "tr/egitim"
+TR_import "tr/training"
 TR_var model = {"w": TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)}
 TR_var op = TR_AdamW(TR_parameters(model))
 TR_var koşu = TR_Run("koşu", {"oran": 0.001}, {"model": model, "op": op}, TR_num_steps: 1000)
@@ -138,7 +138,7 @@ Bekçi yalnızca karar verir; ne yapılacağını döngü seçer (dil tanımı 1
 
 ```tr
 # TR 4
-TR_import "tr/egitim"
+TR_import "tr/training"
 TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
 TR_var ö = TR_Dataset("veri").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
@@ -165,7 +165,7 @@ TR_for adım < 1000 {
 
 Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_kararliligi.tr); hedef modelde: [`tools/gpu/rgn512.tr`](../tools/gpu/rgn512.tr) (`--koşu`, `--skip`, `--bekçi_pencere`, `--bekçi_eşik`).
 
-## `tr/hazir`
+## `tr/pretrained`
 
 `TR_fn_pretrained_model(klasör, TR_arg_weight_dtype: "float32")` Hugging Face biçiminde kaydedilmiş bir modeli (`config.json` + `model.safetensors`) TR'nin `GPT`'si olarak kurar ve ağırlıklarını yükler; parçalayıcı `TR_fn_load_tokenizer(TR_type_Path(klasör, "tokenizer.json"))` ile ayrıca açılır. `ağırlık_türü` matris ağırlıklarının (gömme ve doğrusal katmanlar) türüdür; normlar ve hesap float32 kalır. Hugging Face modelleri çoğunlukla bf16 saklanır: `TR_arg_weight_dtype: "bf16"` ağırlıkları olduğu gibi tutar (sonuç float32 ağırlıkla aynı matematiktir, bellek yarıya iner; dosyada F32 saklanan ağırlıklar ise bf16'ya yuvarlanır, sonuç float32 yüklemeden biraz ayrılır) ve GPU'da tek parçalık çarpımlar ağırlığı açmadan okur (llama.cpp'nin f16 ağırlık + f32 etkinleşme düzeni). K ve V, kapı ve yukarı tek katman olarak yüklenir (birleşik_kv, birleşik_kapı).
 

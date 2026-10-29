@@ -1,8 +1,8 @@
 # TR 4
-# tr/hazir testleri: config.json'dan GPT kuruluşu (bağımsız bakış boyutu, RoPE tabanının iki
+# tr/pretrained testleri: config.json'dan GPT kuruluşu (bağımsız bakış boyutu, RoPE tabanının iki
 # yazımı, paylaşımlı gömme), desteklenmeyen ayarların açık hatası ve ağırlık adı eşlemesi.
 # Gerçek bir Hugging Face modeliyle logit eşitliği cmd/tr/e2e'de (transformers kuruluysa).
-TR_import "tr/hazir"
+TR_import "tr/pretrained"
 
 TR_func qwen3_ayarı() {
     TR_return {"model_type": "qwen3", "vocab_size": 16, "hidden_size": 8, "intermediate_size": 12, "num_hidden_layers": 1,

@@ -55,7 +55,7 @@ func TestReadsCommandLineReachability(t *testing.T) {
 		{"modülün en dışında", "# TR 4\nTR_import \"ayar\"\n",
 			map[string]string{"ayar.tr": "# TR 4\nTR_var a = " + option + "\n"}, true},
 		{"bulunamayan modül", "# TR 4\nTR_import \"yok_modul\"\n", nil, true},
-		{"dilin kitaplığı komut satırını okumaz", "# TR 4\nTR_import \"tr/katman\"\nTR_print(\"a\")\n", nil, false},
+		{"dilin kitaplığı komut satırını okumaz", "# TR 4\nTR_import \"tr/layers\"\nTR_print(\"a\")\n", nil, false},
 	} {
 		if got := reads(t, tc.main, tc.files); got != tc.want {
 			t.Errorf("%s: %v, %v bekleniyordu", tc.name, got, tc.want)

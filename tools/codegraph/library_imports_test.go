@@ -213,7 +213,7 @@ func TestEveryLibraryImportOfARepositoryTestReachesTheLibraryFile(t *testing.T) 
 }
 
 // Kural (parti K2): her kitaplık dosyasında tests-for'un ilk test satırı bir davranış testidir, gömülü kitaplığı ya da
-// lib/*.tr kalıbını okuyan bir test değil (önceden lib/hazir.tr'nin altı testinden dördü lib/embedded.go üzerinden
+// lib/*.tr kalıbını okuyan bir test değil (önceden lib/pretrained.tr'nin altı testinden dördü lib/embedded.go üzerinden
 // geliyordu, asıl davranış testi yoktu).
 func TestALibraryFileListsItsBehaviourTestsFirst(t *testing.T) {
 	_, _, g := repoGraph(t)

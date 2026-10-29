@@ -110,7 +110,7 @@ func (k NameKey) HasSuffix(name, folded, prefix string) bool {
 type NameClass int
 
 const (
-	ClassModule      NameClass = iota // modül adı ya da yolu (`katman`, `tr/katman`)
+	ClassModule      NameClass = iota // modül adı ya da yolu (`katman`, `tr/layers`)
 	ClassDeclaration                  // bildirilmiş kısa ad: işlev, yapı, alan, metot, parametre, seçenek ...
 	ClassBuiltin                      // yerleşik ad (her dilde) ya da ad kodu
 	ClassTest                         // test bloğunun açıklaması
@@ -181,9 +181,9 @@ func builtinNames(idx *Index) map[string][]string {
 
 // Resolve bir sorgu metnini düğümlere çözer; ilk eşleşme veren basamaktaki bütün düğümleri döner
 // (birden çoksa belirsizdir). Basamaklar: "dosya.tr:satır:sütun" konumu; kimlik; çıplak ad (PickByName: modül yolu ya
-// da adı `katman`, `tr/katman`; bildirilmiş kısa ad, dilin öğesi olan bildirimde (Node.Code) kodu ve her yazım
+// da adı `katman`, `tr/layers`; bildirilmiş kısa ad, dilin öğesi olan bildirimde (Node.Code) kodu ve her yazım
 // dilindeki adı da; yerleşik adı, her dilde; test açıklaması); modülle nitelenmiş ad
-// (`katman.Doğrusal.ileri`); nitelenmiş adın sonu (`Doğrusal.ileri`). Harf kuralı NameKeys'tir: her geçişte bütün
+// (`layers.Doğrusal.ileri`); nitelenmiş adın sonu (`Doğrusal.ileri`). Harf kuralı NameKeys'tir: her geçişte bütün
 // basamaklar denenir. kind boş değilse yalnızca o tür.
 func (r *Reader) Resolve(q, kind string) []*Node {
 	if m := positionQuery.FindStringSubmatch(q); m != nil {

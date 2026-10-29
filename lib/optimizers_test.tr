@@ -1,9 +1,9 @@
 # TR 4
-# tr/iyilestirici testleri: Newton–Schulz dikleştirmesi, Muon ve NorMuon'un güncellemesi,
+# tr/optimizers testleri: Newton–Schulz dikleştirmesi, Muon ve NorMuon'un güncellemesi,
 # parametre grupları, öğrenme oranı planı, kontrol noktası ve küçük bir görevde AdamW ile
 # karşılaştırma. Koşturma: tr test lib
-TR_import "tr/katman"
-TR_import "tr/iyilestirici"
+TR_import "tr/layers"
+TR_import "tr/optimizers"
 
 # sapma_rms ‖XᵀX − I‖'nın eleman başına kök ortalama karesidir (dik matriste 0).
 TR_func sapma_rms(X) {

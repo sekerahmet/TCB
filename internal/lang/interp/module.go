@@ -20,7 +20,7 @@ import (
 // runs in its own file wherever it is called from (relative paths are also searched relative to
 // its directory, and its errors are written with its name and lines).
 type Source struct {
-	Path string // dosyanın çözülmüş yolu (kitaplık modülünde "tr/katman.tr")
+	Path string // dosyanın çözülmüş yolu (kitaplık modülünde "tr/layers.tr")
 	Name string // hata mesajlarında gösterilen yol (mümkünse çalışma klasörüne göre)
 	Code string
 	// Embedded says the source lives in the language's embedded library, not on disk (11.6):

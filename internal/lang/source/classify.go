@@ -82,7 +82,7 @@ func (c *analysis) contextual(k codes.Code, name string) codes.Code {
 // fonksiyon, fonksiyon değişkeni ve sabit adları ile kitaplık fonksiyonlarının (yapının metotları
 // dahil) parametreleri (17.3). Bildirim adının ağaçta belirteci olmadığı için sözcük kayıtlardan
 // bulunur: anahtar kelimeden sonraki ilk ad, parametre ayracının ilk düzeyindeki adlar. Takma adla
-// aktarılan modülün adı da kodlanır (aktar "tr/katman" olarak k; k.GPT). Bu adlara giden
+// aktarılan modülün adı da kodlanır (aktar "tr/layers" olarak k; k.GPT). Bu adlara giden
 // kullanımları checker.NameBindings bağlar.
 func (c *analysis) libraryDeclarations() map[[2]int]codes.Code {
 	at := map[[2]int]int{}

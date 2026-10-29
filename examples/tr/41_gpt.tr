@@ -1,9 +1,9 @@
 # TR 4
 # 41 — Hazır katmanlarla GPT: dilin kitaplığındaki katmanlar ve iyileştiricilerle küçük bir dil modeli.
-# Ne öğretir: `aktar "tr/katman"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini AdamW'ye vermek
+# Ne öğretir: `aktar "tr/layers"` ile GPT kurmak, gizli ağırlıkları Muon'a öbürlerini AdamW'ye vermek
 # (MuonVeAdamW), ısınma–sabit–azalma öğrenme oranı planı, kontrol noktasıyla sürdürmek, metin üretmek.
 # Önceki örnekten: kontrol noktası (40) ve transformer (35): 35'te elle yazılanın kitaplık karşılığı.
-# Kitaplığın kodu: lib/katman.tr ve lib/iyilestirici.tr (kopyalayıp değiştirebilirsiniz).
+# Kitaplığın kodu: lib/layers.tr ve lib/optimizers.tr (kopyalayıp değiştirebilirsiniz).
 # Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 #
 # Çalıştırma (proje kökünden): tr examples/tr/41_gpt.tr
@@ -14,8 +14,8 @@
 # ve ayarları büyütün, ör. --embed_dim 512 --katman 8 --num_heads 8 --bağlam 512 --toplu 64.
 # varsayılan_cihaz("gpu")
 
-TR_import "tr/katman"
-TR_import "tr/iyilestirici"
+TR_import "tr/layers"
+TR_import "tr/optimizers"
 
 TR_var ayar = TR_command_line({"step": 100, "toplu": 8, "bağlam": 32, "embed_dim": 32, "katman": 2, "num_heads": 4,
     "muon_oranı": 0.02, "adamw_oranı": 0.01, "normuon": TR_false, "koşu": "runs/gpt_ornegi"},

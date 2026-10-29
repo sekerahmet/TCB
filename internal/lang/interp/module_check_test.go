@@ -49,8 +49,8 @@ func TestCheckImportedModules(t *testing.T) {
 		t.Errorf("bulunamayan modül bir okuma hatasıdır: %v", err)
 	}
 	// Dilin kitaplığı derlemeyle gelir, içeriği denetlenmez; olmayan bir kitaplık modülü bulunur.
-	withLibrary(t, fstest.MapFS{"katman.tr": {Data: []byte("# TR 4\nTR_var K = 1\n")}})
-	if err := checkImports(t, "# TR 4\nTR_import \"tr/katman\"\n", nil); err != nil {
+	withLibrary(t, fstest.MapFS{"layers.tr": {Data: []byte("# TR 4\nTR_var K = 1\n")}})
+	if err := checkImports(t, "# TR 4\nTR_import \"tr/layers\"\n", nil); err != nil {
 		t.Errorf("kitaplıktaki modül çalışmadan önce denetlenmez, yalnız varlığı bakılır: %v", err)
 	}
 	if err := checkImports(t, "# TR 4\nTR_import \"tr/olmayan\"\n", nil); err == nil {

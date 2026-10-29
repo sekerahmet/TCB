@@ -107,7 +107,7 @@ Tam dili çalıştıran her program (`cmd/tr`, `internal/devtools/testrunner`) b
 
 **Hata ayıklayıcı.** Koddaki `TR_breakpoint` deyimi `interp.NewDebugger` değişkeniyle bir `interp.Debugger` açar; bu değişkeni `internal/devtools/debugger` paketi yüklenirken (`wire.go`) kurar. Değişken boşsa deyim yok sayılır. Profilci de aynı yuvaya (`VM.Debugger`) bağlanır.
 
-**Kitaplık.** `lib` paketi `*.tr` dosyalarını `go:embed` ile ikiliye gömer; `cmd/tr` bunları `interp.SetLibrary` ile bağlar. `TR_import "tr/katman"` yorumlayıcının kitaplık okuyucusundan (`interp.ReadLibrary`) gelir; `tr/` öneki dilin kendisine ayrılmıştır. `TR_cmd_build` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md).
+**Kitaplık.** `lib` paketi `*.tr` dosyalarını `go:embed` ile ikiliye gömer; `cmd/tr` bunları `interp.SetLibrary` ile bağlar. `TR_import "tr/layers"` yorumlayıcının kitaplık okuyucusundan (`interp.ReadLibrary`) gelir; `tr/` öneki dilin kendisine ayrılmıştır. `TR_cmd_build` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md).
 
 ### Yorumlayıcının arayüzleri
 
@@ -300,7 +300,7 @@ Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/wo
 | :-- | :-- |
 | `cmd/tr/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar); `reporoot` testlerin depo kökünü bulur |
-| `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`TR_import "tr/katman"`, `TR_import "tr/iyilestirici"`; testleri `tr test lib`) |
+| `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`TR_import "tr/layers"`, `TR_import "tr/optimizers"`; testleri `tr test lib`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`codes.md`](codes.md) (üretilir), [`roadmap.md`](roadmap.md), [`development.md`](development.md), [`recipes.md`](recipes.md), bu dosya |
 | `examples/` | Öğrenme sırasıyla numaralı örnek programlar: `tr/` Türkçe, `en/` İngilizce yazım (aynı numara aynı program) |

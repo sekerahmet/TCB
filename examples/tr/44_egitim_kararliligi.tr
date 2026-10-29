@@ -1,7 +1,7 @@
 # TR 4
 # 44 — Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönmek.
 # Ne öğretir: sonlu_mu (sayı ve tensörde), gradyan_kırp(..., sonlu_değilse_hata:), kn.geri_dön(),
-# ö.atla(n) ve kitaplığın sıçrama bekçisi (aktar "tr/egitim": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
+# ö.atla(n) ve kitaplığın sıçrama bekçisi (aktar "tr/training": SıçramaBekçisi, TAMAM, SONLU_DEĞİL, SIÇRAMA).
 # Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşer ya da kaybı birden sıçrar; bu örnek bunu
 # bilerek bir kez yapar ve eğitimin son sağlam noktadan, sorunlu toplu işleri atlayarak sürdüğünü gösterir.
 # Önceki örnekten: kontrol noktası (40), hazır kitaplık (41).
@@ -9,7 +9,7 @@
 #
 # Çalıştırma (proje kökünden): tr examples/tr/44_egitim_kararliligi.tr
 
-TR_import "tr/egitim"
+TR_import "tr/training"
 
 # --- sonlu_mu: NaN ve sonsuz "sonlu değil"dir ---
 TR_print(TR_is_finite(2.5), TR_is_finite(TR_Float("nan")), TR_is_finite(TR_Float("inf")))

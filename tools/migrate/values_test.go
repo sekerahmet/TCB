@@ -8,7 +8,7 @@ import "testing"
 // 3.7'den önceki ayrıştırıcıyla koştu (460c8fe9); bugün çıplak ad bir değişkendir, ona dokunulmaz.
 func TestValueRulesConvertDictReads(t *testing.T) {
 	in := "# TR 4\n" +
-		"TR_import \"tr/katman\" TR_as k\n" +
+		"TR_import \"tr/layers\" TR_as k\n" +
 		"TR_struct Nokta { x }\n" +
 		"TR_var p = Nokta(1)\n" +
 		"TR_var a = \"ağırlık\"\n" +
@@ -16,7 +16,7 @@ func TestValueRulesConvertDictReads(t *testing.T) {
 		"ş.ağırlık += p.x\n" +
 		"TR_print(ş.ağırlık, ş.TR_keys(), k.TR_Embedding, \"\\(ş.ağırlık)\")\n"
 	want := "# TR 4\n" +
-		"TR_import \"tr/katman\" TR_as k\n" +
+		"TR_import \"tr/layers\" TR_as k\n" +
 		"TR_struct Nokta { x }\n" +
 		"TR_var p = Nokta(1)\n" +
 		"TR_var a = \"ağırlık\"\n" +

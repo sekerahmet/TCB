@@ -12,13 +12,13 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// Dilin kitaplığındaki GPT ve TR ile yazılmış iyileştiriciler (tr/katman, tr/iyilestirici)
+// Dilin kitaplığındaki GPT ve TR ile yazılmış iyileştiriciler (tr/layers, tr/optimizers)
 // GPU'da CPU ile aynı kaybı verir: küçük bir GPT aynı veriyle önce CPU'da, sonra
 // varsayılan_cihaz("gpu") ile GPU'da Muon + AdamW (ve NorMuon) ile birkaç adım eğitilir.
 // Gerçek GPU yoksa PTX benzetimidir (yavaş; şekiller küçük).
 const gpuLibraryProgram = `
-TR_import "tr/katman"
-TR_import "tr/iyilestirici"
+TR_import "tr/layers"
+TR_import "tr/optimizers"
 TR_func eğit(cihaz, normuon) {
     TR_default_device(cihaz)
     TR_var m = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_num_kv_heads: 1, TR_seed: 3)
