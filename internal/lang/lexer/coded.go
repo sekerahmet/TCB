@@ -29,8 +29,8 @@ func NewBody(input string, coded bool) *Lexer {
 
 // NewBodyIn lang'de okunan gövdenin sözcük çözümleyicisidir: lang'de yazılmış gösterim ya da
 // kimlikleri lang'deki adlarıyla okunan kodlu gövde. Programlar kimliklerle okunur (codes.Active;
-// NewBody); bir yazım dili yalnızca o dilde yazılmış metni çevirmek (tr encode - --lang en, kabuk
-// satırı) ya da dosyayı o dilde göstermek için okunur. Gösterimde de kimlikler (TR_print) okunur.
+// NewBody). Görünümden koda geri çeviri ve kabuk satırının görünümü 0.5'te kalktı (17.7); bu kip
+// bugün üretimde çağrılmıyor, yalnız testler kullanıyor ve ayrı bir işle kalkacak.
 func NewBodyIn(input string, coded bool, lang *codes.Language) *Lexer {
 	l := NewBody(input, coded)
 	l.lang, l.words, l.writtenIn = lang, keywordsOf(lang), lang
