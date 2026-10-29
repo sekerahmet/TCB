@@ -154,6 +154,7 @@
 "H1023": "the value of the expression is not used (2.8): an expression without a call is not a statement on its own; assign the value to a variable ({var} v = …) or delete the line",
 "H1024": "{kind, select, method {'{name}' is a method of the struct '{struct}', but a plain '{name}' in a method is the '{name}' outside the struct; call the method as {self}.{name}()} other {'{name}' is a field of the struct '{struct}', but a plain '{name}' in a method is the '{name}' outside the struct; read and assign the field as {self}.{name}}}",
 "H1025": "{kind, select, method {'{name}' is not defined; in a method the method of the struct '{struct}' is called as {self}.{name}()} other {'{name}' is not defined; in a method the field of the struct '{struct}' is read and assigned as {self}.{name}}}",
+"H1026": "the tuple has {count} elements but is unpacked into {names} names: write a name for each element, and _ for one that is not needed (a, _ = f())",
 "H1101": " ('{name}' does not exist in TR; did you mean '{canonical}'?)",
 "H1103": " ('{name}' is not a keyword in TR; did you mean '{keyword}'?)",
 "H1104": ". Did you mean '{closest}'?",

@@ -159,6 +159,7 @@ const (
 	H1023 Code = 1023 // ifadenin değeri kullanılmıyor (2.8): çağrı içermeyen bir ifade tek başına deyim olamaz; değeri bir değişkene atayın ({var} v = …) ya da satırı silin
 	H1024 Code = 1024 // {kind, select, method {'{name}' '{struct}' yapısının metodu, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; metodu {self}.{name}() diye çağırın} other {'{name}' '{struct}' yapısının alanı, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; alanı {self}.{name} diye okuyun ve atayın}}
 	H1025 Code = 1025 // {kind, select, method {'{name}' tanımlı değil; metotta '{struct}' yapısının metodu {self}.{name}() diye çağrılır} other {'{name}' tanımlı değil; metotta '{struct}' yapısının alanı {self}.{name} diye okunur ve atanır}}
+	H1026 Code = 1026 // demetin {count} öğesi var ama {names} ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
 	H1101 Code = 1101 //  ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)
 	H1103 Code = 1103 //  ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
@@ -465,7 +466,7 @@ const (
 	H2774 Code = 2774 // demetin {count} öğesi var: .{index} yok; öğeleri .0'dan .{last}'e kadardır
 	H2775 Code = 2775 // '.{index}' demetin öğesini okur, ama değer bir {type}{kind, select, list {: listenin öğesi [{index}] ile okunur} other {}}
 	H2776 Code = 2776 // demetin öğesine atanamaz: demet değişmez (3.6a); yeni bir demet kurun, (a, t.1)
-	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün ==’si öğe öğedir (15.5); tensörleri TR_equal(a.{index}, b.{index}) ile karşılaştırın
+	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün =='si öğe öğedir (15.5); tensörleri TR_equal(a.{index}, b.{index}) ile karşılaştırın
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}
