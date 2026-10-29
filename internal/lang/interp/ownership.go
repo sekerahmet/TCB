@@ -359,6 +359,16 @@ func (l *ListVal) Release() {
 	}
 }
 
+// writeToList listeye sonradan yazmanın (l[i] = x, .TR_append) sahipliğidir (15.43): yazılan değer
+// kaçar; liste ve öbür öğeleri kaçmaz, sahip liste onların sahibi kalır. Yerine yazılan eski öğenin
+// (old; eklemede nil) listedeki bağı kalkar.
+func writeToList(l *ListVal, old, val Value) {
+	escape(val)
+	if old != nil && l.own.state == ownHeld {
+		unbind(old)
+	}
+}
+
 // pin bir işin sürdüğü süre değeri korur (bağ ekler); unpin kaldırır.
 func pin(val Value)   { bind(val) }
 func unpin(val Value) { unbind(val) }
