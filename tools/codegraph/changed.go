@@ -192,6 +192,29 @@ func (ix *index) testsToRun(ts *touchSet) (best map[string]int, subprocess map[s
 // bir veri dosyası, planning_questions.txt gibi, hiçbir düğüme eşlenmez; onu okuyan test yine de seçilir). TR testleri
 // (tr test) ve ölçümler (Benchmark) girmez. Ön denetim (tools/full_check.sh --kip=on) bu listeyi koşar.
 func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
+	for _, t := range ix.goTestSelection(ts) {
+		fmt.Fprintln(w, t.dir+" "+t.name)
+	}
+}
+
+// goTest `go test`'in koşabildiği bir testtir: paketin klasörü ve Test/Fuzz adı.
+type goTest struct{ dir, name string }
+
+// goTestOf düğüm `go test -run` ile koşulan bir Go testi mi (Test* ya da Fuzz* işlevi); TR testleri ve ölçümler değil.
+func goTestOf(n *Node) (goTest, bool) {
+	if !isTestNode(n) || n.Kind != kindFunc {
+		return goTest{}, false
+	}
+	name := n.Name[strings.LastIndex(n.Name, ".")+1:]
+	if !strings.HasPrefix(name, "Test") && !strings.HasPrefix(name, "Fuzz") {
+		return goTest{}, false
+	}
+	return goTest{path.Dir(n.File), name}, true
+}
+
+// goTestSelection `changed --go-tests`'in seçimidir (printGoTests), "klasör ad" sırasıyla, tekrarsız. tests-for <Go dosyası>'nın
+// koşu satırı (runPlanFor) aynı seçimden yazılır: koşmadığını sayar, ikinci bir seçim yolu yoktur.
+func (ix *index) goTestSelection(ts *touchSet) []goTest {
 	best, subprocess := ix.testsToRun(ts)
 	nodes := ownTests(ts)
 	for id := range best {
@@ -209,25 +232,16 @@ func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
 	for _, list := range subprocess {
 		nodes = append(nodes, list...)
 	}
-	seen := map[string]bool{}
-	var lines []string
+	seen := map[goTest]bool{}
+	var out []goTest
 	for _, n := range nodes {
-		if !isTestNode(n) || n.Kind != kindFunc {
-			continue
-		}
-		name := n.Name[strings.LastIndex(n.Name, ".")+1:]
-		if !strings.HasPrefix(name, "Test") && !strings.HasPrefix(name, "Fuzz") {
-			continue
-		}
-		if line := path.Dir(n.File) + " " + name; !seen[line] {
-			seen[line] = true
-			lines = append(lines, line)
+		if t, ok := goTestOf(n); ok && !seen[t] {
+			seen[t] = true
+			out = append(out, t)
 		}
 	}
-	sort.Strings(lines)
-	for _, l := range lines {
-		fmt.Fprintln(w, l)
-	}
+	sort.Slice(out, func(i, j int) bool { return out[i].dir+" "+out[i].name < out[j].dir+" "+out[j].name })
+	return out
 }
 
 func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, ownWhat string) {

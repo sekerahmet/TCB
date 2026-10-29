@@ -46,7 +46,7 @@ func (ix *index) testDistances(n *Node) map[string]int {
 // düzeyinin gruplarıyla ve sırasıyla yazılır (fileTests).
 func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	ts := ix.fileDecls(file)
-	fmt.Fprintf(w, "  declarations in this file: %d\n", len(ts.nodes))
+	decls := len(ts.nodes)
 	if sibling := ix.byID[fileID(strings.TrimSuffix(file.File, ".go")+"_test.go")]; !isTestFile(file.File) && sibling != nil {
 		// Adaş test dosyasının (aynı ya da dış `_test` paketteki x_test.go) testleri dosyanın testleridir: ilk grupta.
 		for _, t := range ownTests(ix.fileDecls(sibling)) {
@@ -54,6 +54,8 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 		}
 	}
 	s := ix.fileTests(file, ts)
+	printRunPlan(w, ix.runPlanFor(file, ts, s.about))
+	fmt.Fprintf(w, "  declarations in this file: %d\n", decls)
 	ix.printFileTests(w, file, s, limit)
 	ix.printScans(w, file.File, limit)
 	tests := map[string]bool{}
