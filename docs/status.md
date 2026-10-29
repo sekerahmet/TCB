@@ -823,7 +823,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.43
 
 - **Gemini 15/2 (2026-10-29), uygulanacak:** ifadede kurulan liste ve demet içindekilerin sahibidir (`TR_concat([a, b])` GC'yi beklemez); 0.6b'nin demet sahipliğiyle aynı kural, liste yanı D1.
-- **DENETİM 0.6b (2026-10-29):** `.TR_append` ve indeksle atamada yalnız yazılan değer kaçıyor (kurala uygun); öbür değiştiren metotlar (`.TR_insert`, `.TR_extend`, `+=`) bütün listeyi kaçırıyor: güvenli taraf ama sapma. Test satırına 0.6b'nin iki sahiplik testi girecek.
+- **DENETİM 0.6b (2026-10-29):** `.TR_append` ve indeksle atamada yalnız yazılan değer kaçıyor (kurala uygun); öbür değiştiren yollar (ör. `+=`) bütün listeyi kaçırıyor: güvenli taraf ama sapma. Test satırına 0.6b'nin iki sahiplik testi girecek.
 
 ### 15.44
 
