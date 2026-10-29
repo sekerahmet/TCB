@@ -1,6 +1,7 @@
 // Kod şablonları kişinin yazım dilinde sunulur: şablon dosyası (snippets/snippets.json) her yazım dili
-// için ayrı bir liste taşır ve `go run ./tools/gen/snippets` ile dilin kod listesinden üretilir; elle
-// düzenlenmez. VS Code'un sabit şablon katkısı (contributes.snippets) dil seçemediği için şablonlar
+// için ayrı bir liste taşır ve `go run ./tools/gen/snippets` ile üretilir; elle düzenlenmez. Kısayol, ad
+// ve durakların varsayılan sözcükleri yazım dilindedir; gövde her dilde kimlik yazımıdır (TR_if): şablon
+// kodlu dosyaya yazılır, kod yalnız kimliklerle yazılır (17.7). VS Code'un sabit şablon katkısı (contributes.snippets) dil seçemediği için şablonlar
 // tamamlama önerisi olarak verilir: öneri, ayarın (tr.writingLanguage) o anki diline göre
 // seçilir, Tab ile durak durak doldurulur. vscode modülüne yalnızca register bağlıdır; böylece
 // seçim kuralı Node ile ayrıca sınanır (test/snippets_test.js).
@@ -26,7 +27,7 @@ function completions(table, lang) {
 }
 
 // register yazım diline göre şablon önerilerini .tr belgelerine ekler. Metot şablonlarının ".ad"
-// kısayolu, imlecin solunda nokta varsa noktayı da değiştirir (liste.fil → liste.filtrele { ... }).
+// kısayolu, imlecin solunda nokta varsa noktayı da değiştirir (liste.fil → liste.TR_filter(...)).
 function register(vscode, table, writingLanguage) {
     return vscode.languages.registerCompletionItemProvider({ language: 'tr' }, {
         provideCompletionItems(document, position) {

@@ -23,14 +23,16 @@ test('şablon dosyası Türkçe ve İngilizce şablonları taşır', () => {
     assert.strictEqual(table.tr.length, table.en.length, 'her dilde aynı şablonlar vardır');
 });
 
-test('şablonlar yazım dilinin sözcükleriyle gelir', () => {
+// Kural (17.7): şablon kodlu dosyaya yazılır; gövde her dilde kimlik yazımıdır (TR_if), yalnız kısayol
+// ve durağın varsayılan sözcüğü yazım dilindedir.
+test('şablonun kısayolu yazım dilinde, gövdesi kimlik yazımıyla gelir', () => {
     assert.ok(prefixesOf('tr').includes('fonksiyon') && prefixesOf('tr').includes('eğer'));
     assert.ok(prefixesOf('en').includes('func') && prefixesOf('en').includes('if'));
     assert.ok(!prefixesOf('en').includes('fonksiyon'), 'İngilizce yazana Türkçe sözcük sunulmaz');
     const english = snippets.completions(table, 'en').find((c) => c.prefix === 'if');
-    assert.ok(english.snippet.startsWith('if ${1:condition} {'), english.snippet);
+    assert.ok(english.snippet.startsWith('TR_if ${1:condition} {'), english.snippet);
     const turkish = snippets.completions(table, 'tr').find((c) => c.prefix === 'eğer');
-    assert.ok(turkish.snippet.startsWith('eğer ${1:koşul} {'), turkish.snippet);
+    assert.ok(turkish.snippet.startsWith('TR_if ${1:koşul} {'), turkish.snippet);
 });
 
 test('şablonu olmayan dil Türkçeye düşer', () => {
@@ -82,7 +84,7 @@ test('sağlayıcı yazım diline göre sunar; ".ad" kısayolu imlecin solundaki 
     assert.ok(!items.some((item) => item.label === 'fonksiyon'));
     const member = items.find((item) => item.label === '.filter');
     assert.strictEqual(member.range.start.character, 5, 'nokta da değiştirilir');
-    assert.strictEqual(member.insertText.value, '.filter((x) => x > ${1:2})');
+    assert.strictEqual(member.insertText.value, '.TR_filter((x) => x > ${1:2})');
     assert.strictEqual(items.find((item) => item.label === 'filter').range, undefined);
     assert.strictEqual(provide('fil').find((item) => item.label === '.filter').range, undefined, 'nokta yoksa aralık değişmez');
 });

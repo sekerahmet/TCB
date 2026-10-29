@@ -3,8 +3,9 @@
 // davranışının yerine geçmez; eklentinin VS Code'a NE istediğini (hangi süreç, hangi
 // argümanlar, hangi mesaj) sınar. setup() eklentiyi bu sahteyle yükler.
 //
-// Belgeler ve sekmeler: kayıtlı bir dosya sistemi sağlayıcısının şemasındaki belge sağlayıcıdan
-// okunur ve sağlayıcıya kaydedilir (VS Code gibi: BOM metinden ayrılır, kayıtta geri eklenir;
+// Belgeler ve sekmeler: kayıtlı bir metin belgesi sağlayıcısının şemasındaki belge ondan okunur ve
+// salt okunurdur; kayıtlı bir dosya sistemi sağlayıcısının şemasındaki belge sağlayıcıdan okunur ve
+// sağlayıcıya kaydedilir (VS Code gibi: BOM metinden ayrılır, kayıtta geri eklenir;
 // kayıt belgenin metnine dokunmaz). Diskteki dosyalar diskten okunur. showTextDocument sekme
 // açar (önizleme sekmesi yeni önizlemeyle değişir), tabGroups.close kapatır; ikisi de VS Code'un
 // olaylarını (onDidChangeTabs, onDidChangeVisibleTextEditors) yayar. Eklentinin kayıtta belgeyi
@@ -23,7 +24,7 @@ class Uri {
     static file(p) { return new Uri(p, 'file'); }
     static joinPath(u, ...parts) { return new Uri(path.join(u.fsPath, ...parts), u.scheme); }
     with(d) { return new Uri(this.fsPath, d && d.scheme !== undefined ? d.scheme : this.scheme); }
-    // VS Code'un biçimi: "file:///c%3A/a/b.tr", "tr-coded:/c%3A/a/b.tr".
+    // VS Code'un biçimi: "file:///c%3A/a/b.tr", "tr-view:/c%3A/a/b.tr".
     toString() {
         let p = this.fsPath.replace(/\\/g, '/');
         let prefix = '';
@@ -82,7 +83,7 @@ class FakeDocument {
     getText() { return this.text; }
     get lineCount() { return this.text.split(/\r?\n/).length; }
     lineAt(i) { return { text: this.text.split(/\r?\n/)[i] }; }
-    edit(fresh) { this.history.push(this.text); this.text = fresh; this.isDirty = true; }
+    edit(fresh) { this.history.push(this.text); this.text = fresh; this.isDirty = true; if (this.onEdit) { this.onEdit(); } }
     undo() { this.text = this.history.pop(); this.isDirty = true; }
     // reload dosyanın tarihi (etag) değiştiyse metni sağlayıcıdan yeniden okur.
     async reload() {
@@ -133,13 +134,13 @@ class FakeState {
 //   s.trusted     çalışma alanı güvenilir mi (varsayılan doğru)
 //   s.activeFile  etkin düzenleyicideki .tr dosyası (yoksa düzenleyici kapalı)
 //   s.state       kalıcı durum (FakeState; yoksa yenisi)
-// Döner: { vscode, log, provider, adapterFactory, commands, filesystems, state, events }
+// Döner: { vscode, log, provider, adapterFactory, commands, filesystems, state, events, settingValues }
 function setup(s) {
     const log = { tasks: [], terminals: [], errors: [], warnings: [], infos: [], commands: [], watchers: [], debugSessions: [], panels: [] };
     const makeDocument = (p) => ({ uri: Uri.file(p), fileName: p, languageId: 'tr', isUntitled: false, isDirty: false, save: async () => true });
     const folder = s.folder ? { uri: Uri.file(s.folder), name: path.basename(s.folder), index: 0 } : undefined;
-    const registries = { providers: {}, commands: {}, filesystems: {} };
-    const events = { tabs: new EventEmitter(), visibleEditors: new EventEmitter(), selectionChange: new EventEmitter(), trust: new EventEmitter(), setting: new EventEmitter() };
+    const registries = { providers: {}, commands: {}, filesystems: {}, contents: {} };
+    const events = { tabs: new EventEmitter(), visibleEditors: new EventEmitter(), selectionChange: new EventEmitter(), trust: new EventEmitter(), setting: new EventEmitter(), documentChange: new EventEmitter() };
     const forbidden = (name) => () => { throw new Error(name + ' kullanılmamalı: kayıtta belgenin metnine dokunulmaz'); };
 
     const groups = [];
@@ -160,6 +161,13 @@ function setup(s) {
         if (existing) {
             return existing;
         }
+        const content = registries.contents[uri.scheme];
+        if (content) {
+            // Metin belgesi sağlayıcısının belgesi salt okunurdur (VS Code gibi: kaydedilemez).
+            const b = new FakeDocument(uri, Buffer.from(await content.provideTextDocumentContent(uri), 'utf8'), { readOnly: true, p: {} });
+            vscode.workspace.textDocuments.push(b);
+            return b;
+        }
         const fsEntry = registries.filesystems[uri.scheme];
         const provider = fsEntry ? { p: fsEntry.p, readOnly: !!(fsEntry.options && fsEntry.options.isReadonly) } : diskProvider;
         if (!fsEntry && (uri.scheme !== 'file' || !fs.existsSync(uri.fsPath))) {
@@ -167,6 +175,7 @@ function setup(s) {
         }
         const b = new FakeDocument(uri, await provider.p.readFile(uri), provider);
         b.etag = provider.p.stat ? (await provider.p.stat(uri)).mtime : undefined;
+        b.onEdit = () => events.documentChange.fire({ document: b });
         vscode.workspace.textDocuments.push(b);
         return b;
     }
@@ -174,6 +183,7 @@ function setup(s) {
         events.visibleEditors.fire(window.visibleTextEditors);
     }
 
+    s.settings = s.settings || {};
     const vscode = {
         Uri, EventEmitter, FileSystemError, TabInputText, RelativePattern,
         Disposable: class { constructor(f) { this.dispose = f; } },
@@ -237,6 +247,21 @@ function setup(s) {
                 }
                 return { dispose() {} };
             },
+            // registerTextDocumentContentProvider: sağlayıcı "değişti" bildirince açık belgenin metni
+            // sağlayıcıdan yeniden okunur (VS Code gibi).
+            registerTextDocumentContentProvider: (scheme, p) => {
+                registries.contents[scheme] = p;
+                if (p.onDidChange) {
+                    p.onDidChange(async (uri) => {
+                        const doc = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
+                        if (doc) {
+                            doc.text = await p.provideTextDocumentContent(uri);
+                        }
+                    });
+                }
+                return { dispose() {} };
+            },
+            onDidChangeTextDocument: events.documentChange.event,
             createFileSystemWatcher: (pattern) => {
                 const watcher = { pattern, changed: new EventEmitter(), created: new EventEmitter(), deleted: new EventEmitter(), dispose() { watcher.disposed = true; } };
                 watcher.onDidChange = watcher.changed.event;
@@ -369,7 +394,7 @@ function setup(s) {
         vscode, log, state, events,
         provider: registries.providers.configProvider, taskProvider: registries.providers.taskProvider, adapterFactory: registries.providers.adapterFactory,
         completion: registries.providers.completion,
-        commands: registries.commands, filesystems: registries.filesystems
+        commands: registries.commands, filesystems: registries.filesystems, settingValues: s.settings
     };
 }
 
