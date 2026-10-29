@@ -122,10 +122,11 @@ func TestHelperLibraryText(t *testing.T) {
 	}
 }
 
-// Kural: çıktı okuyanın dilindedir (TR_DIL). Dizin kimlikleri tutar; kitaplık adı, nitelenmiş adın kodlu
+// Kural: çıktı okuyanın dilindedir (TR_LANG). Dizin kimlikleri tutar; kitaplık adı, nitelenmiş adın kodlu
 // parçaları ve imzadaki anahtar sözcük ile parametre adları gösterim dilinde yazılır, kullanıcının yazdığı belge
 // yorumu ve modül adı aynen kalır.
 func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {
+	t.Setenv("TR_LANG", "en")
 	en := string(testkit.RunWithLanguageFile(t, "TestHelperLibraryText", "CODEINDEX_LIBRARY_OUT", "en"))
 	for _, part := range []string{"layers.Linear ", "layers.Linear.forward", "layers.Linear.weight", "func lr_schedule(step, num_steps, warmup = …)",
 		"layers.lr_schedule.num_steps"} {
@@ -138,6 +139,7 @@ func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {
 			t.Errorf("English output shows the Turkish name %q:\n%s", part, en)
 		}
 	}
+	t.Setenv("TR_LANG", "tr")
 	tr := string(testkit.RunWithLanguageFile(t, "TestHelperLibraryText", "CODEINDEX_LIBRARY_OUT", "tr"))
 	if !strings.Contains(tr, "layers.Doğrusal.ileri") || !strings.Contains(tr, "fonksiyon öğrenme_oranı_planı(adım, adım_sayısı, ısınma = …)") {
 		t.Errorf("Turkish output:\n%s", tr)

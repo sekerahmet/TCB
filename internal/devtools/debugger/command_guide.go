@@ -38,7 +38,7 @@ func commandCode(word string) codes.Code {
 
 // oldCommand bir sözcüğün asıl komutunu verir: başka hata ayıklayıcıların kısaltmaları
 // (tablodan), kişinin gösterim dilindeki harfsiz biçimler (Türkçede adim → adım, kod listesinden;
-// komut kişinin dilinde yazılır, TR_DIL).
+// komut kişinin dilinde yazılır, TR_LANG).
 func oldCommand(word string) (codes.Code, bool) {
 	if k, ok := oldCommands[word]; ok {
 		return k, true

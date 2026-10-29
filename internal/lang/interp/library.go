@@ -86,7 +86,7 @@ func LibraryModules() []string {
 // a program with no file) it is relative to the working directory. For a program with a file
 // the working directory is not one of the places searched: a module run from another directory
 // must not load a same-named file from the working directory instead of the one next to it.
-// Absolute paths are tried as is. The interpreter, 'tr derle' and 'tr kontrol' use this
+// Absolute paths are tried as is. The interpreter, 'tr build' and 'tr check' use this
 // function. bakilanlar are the places tried, for the error message.
 func ResolveModulePath(filePath string, dirs []string) (resolved string, searched []string, ok bool) {
 	if filepath.IsAbs(filePath) {

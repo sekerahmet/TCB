@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// 'tr dizin' komutu ve alt komutları (tanım, kullananlar, sınayanlar, etki): TR kodunun dizinini
+// 'tr index' komutu ve alt komutları (tanım, kullananlar, sınayanlar, etki): TR kodunun dizinini
 // (internal/devtools/codeindex) kurar ve ona sorar. Burada yalnızca argümanlar, çıktı biçimi ve
 // çıkış kodu vardır.
 
@@ -24,23 +24,23 @@ const defaultIndexLimit = 12
 // indexOptions komutun seçenekleridir.
 type indexOptions struct {
 	json    bool   // TR_opt_json (--json)
-	limit   int    // TR_opt_limit (--sınır)
-	all     bool   // TR_opt_all (--tümü)
-	root    string // TR_opt_root (--kök)
-	kind    string // TR_opt_kind (--tür)
-	noIndex bool   // TR_opt_no_index (--dizin-yok)
-	status  bool   // TR_opt_status (--durum)
-	clear   bool   // TR_opt_clear (--temizle)
-	noText  bool   // TR_opt_no_text (--metin-yok)
-	term    bool   // TR_opt_term (--terim)
+	limit   int    // TR_opt_limit (--limit)
+	all     bool   // TR_opt_all (--all)
+	root    string // TR_opt_root (--root)
+	kind    string // TR_opt_kind (--kind)
+	noIndex bool   // TR_opt_no_index (--no-index)
+	status  bool   // TR_opt_status (--status)
+	clear   bool   // TR_opt_clear (--clear)
+	noText  bool   // TR_opt_no_text (--no-text)
+	term    bool   // TR_opt_term (--term)
 
-	limitSet bool // --sınır açıkça verildi
+	limitSet bool // --limit açıkça verildi
 }
 
 // indexValueOptions değer isteyen seçeneklerdir.
 var indexValueOptions = []codes.Code{codes.OptLimit, codes.OptRoot, codes.OptKind}
 
-// indexCommand 'tr dizin [alt komut] [ad] [seçenekler]' komutudur.
+// indexCommand 'tr index [alt komut] [ad] [seçenekler]' komutudur.
 func indexCommand(args []string) {
 	sub := codes.None
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
@@ -75,7 +75,7 @@ func indexCommand(args []string) {
 // indexBuildOptions dizinin kurulum seçenekleridir (gömülü kitaplık dahil).
 func indexBuildOptions() codeindex.Options { return codeindex.Options{Library: lib.Files} }
 
-// loadIndex dizini önbellekle getirir: --dizin-yok varsa kullanılabilir önbellek olduğu gibi okunur
+// loadIndex dizini önbellekle getirir: --no-index varsa kullanılabilir önbellek olduğu gibi okunur
 // (yoksa kurulur); yoksa değişen dosyalar tazelenir.
 func loadIndex(root string, o indexOptions) (*codeindex.Index, codeindex.Stats) {
 	if o.noIndex {
@@ -164,7 +164,7 @@ func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 	}
 }
 
-// indexOverview alt komutsuz 'tr dizin': dizini kurar ve özetler; --durum önbelleğin durumunu, --temizle
+// indexOverview alt komutsuz 'tr index': dizini kurar ve özetler; --status önbelleğin durumunu, --clear
 // önbelleği siler.
 func indexOverview(root string, o indexOptions) {
 	fmt.Println(messages.Text(messages.H8824, root))

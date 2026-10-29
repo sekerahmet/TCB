@@ -26,7 +26,7 @@ import (
 // kimlik listesidir. Kurulamayan bir dil paketi başlatırken süreci kapatmaz
 // (paketi kullanan dil sunucusu, codegraph, testler ya da TR'yi gömen bir program da kapanırdı);
 // hata LanguageError ile okunur, tr komutu başlarken onu bildirip çıkar:
-//   - Geçersiz bir TR_DIL seçimi Türkçeye düşer.
+//   - Geçersiz bir TR_LANG seçimi Türkçeye düşer.
 //   - Gömülü Türkçe listenin kendisi kurulamazsa (bozuk ya da yarım değişmiş tr.json) adlar
 //     kimliklere düşer (identityLanguage): Go tarafı çalışır, TR metni okunmaz; Türkçeyi
 //     isteyen LoadLanguage hatayı verir.
@@ -81,7 +81,7 @@ func complete(d *Language) error {
 }
 
 // identityPattern iletinin parametresinin tamamı olan bir kimliktir (TR_mem_keys, TR_fn_print(),
-// liste.TR_mem_append); başka metnin içindeki kimlik (tr dizin'in builtin:TR_fn_sum'ı) ve öneki de
+// liste.TR_mem_append); başka metnin içindeki kimlik (tr index'in builtin:TR_fn_sum'ı) ve öneki de
 // bir kimlik olan yol (ağırlık anahtarı TR_mem_embedding.TR_mem_table, bir değer) çevrilmez.
 var identityPattern = regexp.MustCompile(`^([\p{L}_][\p{L}\p{N}_]*\.)?(` + IdentityPrefix + `[a-z]+_[A-Za-z0-9_]+)(\(\))?$`)
 

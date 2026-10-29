@@ -112,7 +112,7 @@ func applyFix(t *testing.T, source string, f jsonFixRecord) string {
 // checkJSON 'tr check --json dosya' komutunu verilen dilde çalıştırır.
 func checkJSON(t *testing.T, dir, lang, file string) result {
 	t.Helper()
-	return testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=" + lang}, "check", "--json", file)
+	return testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=" + lang}, "check", "--json", file)
 }
 
 const (
@@ -202,7 +202,7 @@ func TestCheckJSONColumnsCountCharacters(t *testing.T) {
 	}
 }
 
-// Kod, konum ve düzeltme dilden bağımsızdır; yalnız ileti okuyanın dilindedir (TR_DIL).
+// Kod, konum ve düzeltme dilden bağımsızdır; yalnız ileti okuyanın dilindedir (TR_LANG).
 func TestCheckJSONIsTheSameInBothLanguagesExceptTheMessage(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "type.tr", typeStageProgram)
@@ -340,7 +340,7 @@ func TestCheckJSONUsageErrors(t *testing.T) {
 		{"bilinmeyen seçenek", []string{"check", "--json", "--bogus", "clean.tr"}, 2, "H8674"},
 		{"bilinmeyen seçenek json'dan önce", []string{"check", "--bogus", "--json", "clean.tr"}, 2, "H8674"},
 	} {
-		r := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, c.args...)
+		r := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, c.args...)
 		records, raw := checkRecords(t, r.Stdout)
 		if r.Code != c.code || len(records) != 1 || records[0].Code != c.want || records[0].Severity != "error" || records[0].Message == "" {
 			t.Errorf("%s: çıkış %d, kayıtlar %+v, hata %q", c.name, r.Code, records, r.Stderr)
@@ -359,13 +359,13 @@ func TestCheckJSONUsageErrors(t *testing.T) {
 	}
 
 	// --json dosya adından sonra: metin kipi kullanım hatası, standart çıktı boş.
-	late := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "check", "clean.tr", "--json")
+	late := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, "check", "clean.tr", "--json")
 	if late.Code != 2 || late.Stdout != "" || !strings.Contains(late.Stderr, "check --json clean.tr") {
 		t.Fatalf("dosyadan sonraki --json: çıkış %d, çıktı %q, hata %q", late.Code, late.Stdout, late.Stderr)
 	}
 	// İletinin önerdiği komut kopyalanınca çalışır.
 	_, suggestion, _ := strings.Cut(strings.TrimSpace(late.Stderr), "E.g. tr ")
-	fixed := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, strings.Fields(suggestion)...)
+	fixed := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, strings.Fields(suggestion)...)
 	if fixed.Code != 0 || fixed.Stdout != "" {
 		t.Errorf("önerilen komut %q çalışmadı: çıkış %d, çıktı %q, hata %q", suggestion, fixed.Code, fixed.Stdout, fixed.Stderr)
 	}

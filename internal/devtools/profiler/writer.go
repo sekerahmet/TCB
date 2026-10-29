@@ -27,7 +27,7 @@ import (
 //
 // Yazıcı yalnızca profilin saniyelik döngüsünden ve sonda çağrılır; aynı anda iki yazma olmaz.
 
-// ReportFileName 'tr profil --json klasör/' ile yazılan raporun adıdır: koşu klasörünün
+// ReportFileName 'tr profile --json klasör/' ile yazılan raporun adıdır: koşu klasörünün
 // (config.json, metrics.jsonl, results.json ...) hız raporu.
 const ReportFileName = "speed.json"
 

@@ -582,7 +582,7 @@ const (
 	H4005 Code = 4005 // {call} başarısız: {name}
 	H4007 Code = 4007 // {call} başarısız: {name} ({status})
 	H4008 Code = 4008 // {call} başarısız: {name} ({status}); son başlatılan kernel: {kernel}
-	H4009 Code = 4009 // {call} başarısız: {name} ({status}); son başlatılan kernel: {kernel} (hata daha önceki bir kernelden de olabilir; yerini bulmak için TR_GPU_ESZAMANLI=1 ile çalıştırın)
+	H4009 Code = 4009 // {call} başarısız: {name} ({status}); son başlatılan kernel: {kernel} (hata daha önceki bir kernelden de olabilir; yerini bulmak için TR_GPU_SYNC=1 ile çalıştırın)
 	H4010 Code = 4010 // {error}\n{detail}
 	H4011 Code = 4011 // {kernel} çekirdeği derlenemedi: {name} ({status})
 	H4012 Code = 4012 // {error}\nPTX derleyici günlüğü:\n{log}

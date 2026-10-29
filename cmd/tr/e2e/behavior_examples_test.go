@@ -15,7 +15,7 @@ import (
 )
 
 // Öğrenme yolu: examples/tr/NN_ad.tr. Örnekler kodlu saklanır ve her gösterim dilinde aynı programdır
-// (17.7; `tr göster --dil en` onu İngilizce gösterir): ayrı bir İngilizce yazım klasörü yoktur.
+// (17.7; `tr show --lang en` onu İngilizce gösterir): ayrı bir İngilizce yazım klasörü yoktur.
 
 // errorsDir hata örneklerinin klasör adıdır (behavior_example_errors_test.go).
 var errorsDir = map[string]string{"tr": "hatalar"}
@@ -109,7 +109,7 @@ var (
 
 // numberBag bir çıktının sayılarını sıralı verir: metinler dile göre değişir, sayılar aynı
 // programda aynıdır (ilerleme çubuğu satırları, kök klasörü ve örnek yolları çıkarılır).
-// Görüntüdeki ondalık ayırıcı kişinin dilindedir (TR_DIL: "2,31" / "2.31"); karşılaştırma için
+// Görüntüdeki ondalık ayırıcı kişinin dilindedir (TR_LANG: "2,31" / "2.31"); karşılaştırma için
 // noktaya çevrilir.
 func numberBag(out, root string) []string {
 	out = strings.ReplaceAll(strings.ReplaceAll(out, filepath.ToSlash(root), ""), root, "")
@@ -129,17 +129,17 @@ func numberBag(out, root string) []string {
 // uyarı yok.
 func runExample(t *testing.T, root, display, name string) []string {
 	t.Helper()
-	s := testkit.RunBinary(t, trBinary, root, "", []string{"TR_DIL=" + display}, filepath.ToSlash(filepath.Join("examples", "tr", name)))
+	s := testkit.RunBinary(t, trBinary, root, "", []string{"TR_LANG=" + display}, filepath.ToSlash(filepath.Join("examples", "tr", name)))
 	if s.Code != 0 {
-		t.Fatalf("examples/tr/%s (TR_DIL=%s) çıkış kodu %d\n%s%s", name, display, s.Code, s.Stdout, s.Stderr)
+		t.Fatalf("examples/tr/%s (TR_LANG=%s) çıkış kodu %d\n%s%s", name, display, s.Code, s.Stdout, s.Stderr)
 	}
 	if strings.Contains(s.Stderr, "Uyar") || strings.Contains(s.Stderr, "Warning") {
-		t.Errorf("examples/tr/%s (TR_DIL=%s) uyarı verdi: %s", name, display, s.Stderr)
+		t.Errorf("examples/tr/%s (TR_LANG=%s) uyarı verdi: %s", name, display, s.Stderr)
 	}
 	return numberBag(s.Stdout+s.Stderr, root)
 }
 
-// Her örnek iki gösterim dilinde (TR_DIL=tr ve TR_DIL=en) aynı programdır: ikisi de 0 koduyla biter,
+// Her örnek iki gösterim dilinde (TR_LANG=tr ve TR_LANG=en) aynı programdır: ikisi de 0 koduyla biter,
 // uyarı vermez ve çıktılarının sayıları aynıdır (metinler gösterim diline göre değişir). Her dil kendi
 // temiz kopyasında koşar (koşu klasörleri çakışmaz).
 func TestExamplesSameOutputInEveryDisplayLanguage(t *testing.T) {

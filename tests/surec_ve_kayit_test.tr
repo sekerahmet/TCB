@@ -1,7 +1,7 @@
 # TR 4
 # docs/spec/19_surec_ve_kayit.md §19 — Süreç ve kayıt
 # tr test argümansız çalışır: komut_satırı varsayılanları döndürür. Komut satırı yazımı,
-# --yardım, çıkış kodları ve terminaldeki çubuk Go testleriyle sınanır
+# --help, çıkış kodları ve terminaldeki çubuk Go testleriyle sınanır
 # (internal/stdlib/process, internal/stdlib/logging, cmd/tr/e2e).
 
 # Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
@@ -39,7 +39,7 @@ TR_test "19.2 komut_satırı programda bir kez çağrılır" {
 }
 
 TR_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
-    TR_assert_equal("H7221", TR_error_code { TR_command_line({"yardım": TR_true}) })
+    TR_assert_equal("H7221", TR_error_code { TR_command_line({"help": TR_true}) })
     TR_assert_equal("H7225", TR_error_code { TR_command_line({"a": {"b": 1}}) })
     TR_assert_equal("H7224", TR_error_code { TR_command_line({"a": [1, "x"]}) })
     TR_assert_equal("H7229", TR_error_code { TR_command_line({"step": 1}, TR_descriptions: {"stpe": "x"}) })

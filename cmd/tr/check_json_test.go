@@ -34,7 +34,7 @@ func TestRecordOfCarriesTheErrorRecord(t *testing.T) {
 
 // Konumu bilinmeyen hatada file, start ve end yazılmaz; sütunu bilinmeyende start yalnız satır taşır.
 func TestRecordOfLeavesOutWhatIsUnknown(t *testing.T) {
-	line, _ := json.Marshal(recordOf(messages.New(messages.H8605, "kontrol", "a.tr"), severityError, "a.tr"))
+	line, _ := json.Marshal(recordOf(messages.New(messages.H8605, "check", "a.tr"), severityError, "a.tr"))
 	var fields map[string]any
 	if err := json.Unmarshal(line, &fields); err != nil {
 		t.Fatal(err)

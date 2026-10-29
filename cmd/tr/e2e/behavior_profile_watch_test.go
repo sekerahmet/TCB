@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// watchTraining 60 adımlık kısa bir eğitimdir (tr izle / tr profil alt süreç testleri).
+// watchTraining 60 adımlık kısa bir eğitimdir (tr watch / tr profile alt süreç testleri).
 const watchTraining = `TR_var w = TR_Tensor(TR_randn([128, 128], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([64, 128], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
@@ -77,12 +77,12 @@ func processCall(d map[string]any, code, direction string) float64 {
 	return -1
 }
 
-// tr profil: metin rapor standart çıktıya, JSON rapor koşu klasörüne (speed.json).
+// tr profile: metin rapor standart çıktıya, JSON rapor koşu klasörüne (speed.json).
 func TestProfileCommand(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "egit.tr", watchTraining)
 	run := filepath.Join(dir, "runs", "deneme1") + string(os.PathSeparator)
-	s := tr(t, dir, "profil", "--json", run, "egit.tr")
+	s := tr(t, dir, "profile", "--json", run, "egit.tr")
 	testkit.Wait(t, s, 0, []string{"eğitim bitti", "⏱ Profil: egit.tr", "Adımlar: 60 adım", "Tensör işlemleri",
 		"matris çarpımı (@)", "geri · matris çarpımı (@)", "AdamW.adım", "En çok zaman alan satırlar"},
 		[]string{"speed.json"})
@@ -100,26 +100,26 @@ func TestProfileCommand(t *testing.T) {
 		}
 	}
 	if d["sampling"] == nil {
-		t.Error("tr profil satır örneklemesiyle çalışmalı")
+		t.Error("tr profile satır örneklemesiyle çalışmalı")
 	}
 }
 
-// tr profil program hata verse de raporu yazar; çıkış kodu programınkidir.
+// tr profile program hata verse de raporu yazar; çıkış kodu programınkidir.
 func TestProfileCommandReportsOnError(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "hata.tr", "TR_var a = TR_ones([2, 3])\nTR_print(a @ a)\n")
-	s := tr(t, dir, "profil", "--json", "rapor.json", "hata.tr")
+	s := tr(t, dir, "profile", "--json", "rapor.json", "hata.tr")
 	testkit.Wait(t, s, 1, []string{"⏱ Profil: hata.tr", "çıkış kodu 1"}, []string{"Çalışma Zamanı Hatası"})
 	if d := readReport(t, filepath.Join(dir, "rapor.json")); d["exit_code"] != float64(1) {
 		t.Errorf("rapordaki çıkış kodu %v", d["exit_code"])
 	}
 }
 
-// tr izle terminal değilken: program çıktısı olduğu gibi akar, son rapor standart hataya.
+// tr watch terminal değilken: program çıktısı olduğu gibi akar, son rapor standart hataya.
 func TestWatchCommandNotTerminal(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "egit.tr", watchTraining)
-	s := tr(t, dir, "izle", "egit.tr")
+	s := tr(t, dir, "watch", "egit.tr")
 	testkit.Wait(t, s, 0, []string{"eğitim bitti"}, []string{"adım 60/60", "⏱ Profil: egit.tr", "Adımlar: 60 adım",
 		"geri · matris çarpımı (@)", "En çok zaman alan satırlar"})
 	checkLineExample(t, s.Stderr, "egit.tr:")
@@ -132,19 +132,19 @@ func TestWatchCommandNotTerminal(t *testing.T) {
 func TestWatchNoStepInfo(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "dongu.tr", "TR_var s = 0\nTR_for i TR_in 0..1000 {\n    s += i\n}\nTR_print(s)\n")
-	s := tr(t, dir, "izle", "dongu.tr")
+	s := tr(t, dir, "watch", "dongu.tr")
 	testkit.Wait(t, s, 0, []string{"499500"}, []string{"adım bilgisi yok: eğitim döngüsünde İlerleme(...) ve .güncelle(...) kullanın"})
 }
 
-// tr izle .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
+// tr watch .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
 func TestWatchJobNameNotYet(t *testing.T) {
-	s := tr(t, t.TempDir(), "izle", "deneme1")
+	s := tr(t, t.TempDir(), "watch", "deneme1")
 	testkit.Wait(t, s, 2, nil, []string{"bir .tr dosyası değil", "tr watch <dosya.tr>"})
-	s = tr(t, t.TempDir(), "profil", "--bilinmeyen", "x.tr")
+	s = tr(t, t.TempDir(), "profile", "--bilinmeyen", "x.tr")
 	testkit.Wait(t, s, 2, nil, []string{"bilinmeyen seçenek"})
 }
 
-// Arka plan işi (TR_IS_KLASORU) olarak çalışan program iş klasörüne profile.json yazar.
+// Arka plan işi (TR_JOB_DIR) olarak çalışan program iş klasörüne profile.json yazar.
 func TestJobProfileFile(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "egit.tr", watchTraining)
@@ -152,7 +152,7 @@ func TestJobProfileFile(t *testing.T) {
 	if err := os.MkdirAll(is, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_IS_KLASORU=" + is}, "egit.tr")
+	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_JOB_DIR=" + is}, "egit.tr")
 	testkit.Wait(t, s, 0, []string{"eğitim bitti"}, nil)
 	d := readReport(t, filepath.Join(is, "profile.json"))
 	if d["done"] != true || d["sampling"] != nil {
@@ -179,8 +179,8 @@ TR_for i TR_in 0..8 {
 TR_print("gpu eğitimi bitti")
 `
 
-// tr profil ve tr izle GPU'da: çekirdek süreleri ve GPU belleği rapora girer; GPU arka
-// ucunun kendi raporu bir kez yazılır (ölçümü profil açtıysa raporun içinde, TR_GPU_PROFIL
+// tr profile ve tr watch GPU'da: çekirdek süreleri ve GPU belleği rapora girer; GPU arka
+// ucunun kendi raporu bir kez yazılır (ölçümü profil açtıysa raporun içinde, TR_GPU_PROFILE
 // ile açıksa arka ucun kendisince).
 func TestProfileAndWatchGPU(t *testing.T) {
 	dir := t.TempDir()
@@ -189,12 +189,12 @@ func TestProfileAndWatchGPU(t *testing.T) {
 		ad, gpuProfile string
 		args           []string
 	}{
-		{"profil", "", []string{"profil", "--json", "speed.json", "gpu.tr"}},
-		{"izle", "", []string{"izle", "gpu.tr"}},
-		{"profil_TR_GPU_PROFIL", "1", []string{"profil", "gpu.tr"}},
+		{"profile", "", []string{"profile", "--json", "speed.json", "gpu.tr"}},
+		{"watch", "", []string{"watch", "gpu.tr"}},
+		{"profil_TR_GPU_PROFIL", "1", []string{"profile", "gpu.tr"}},
 	} {
 		t.Run(d.ad, func(t *testing.T) {
-			s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_GPU_SIM=1", "TR_GPU_PROFIL=" + d.gpuProfile}, d.args...)
+			s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_GPU_SIM=1", "TR_GPU_PROFILE=" + d.gpuProfile}, d.args...)
 			if s.Code != 0 {
 				t.Fatalf("çıkış kodu %d\nçıktı:\n%s\nhata:\n%s", s.Code, s.Stdout, s.Stderr)
 			}

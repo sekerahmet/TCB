@@ -97,7 +97,7 @@ func graphID(n codeindex.Node) string {
 
 // graphNode dizinin bir düğümünü grafik düğümüne çevirir. Dizin dilin öğelerini kimlikleriyle tutar
 // (`layers.TR_type_Linear.TR_mem_forward`, diskteki kodlu dosyanın yazımı); kodlu bildirim her yazım dilindeki
-// adıyla ve nitelenmiş adıyla da bulunur (takma adlar), tr dizin gibi. Kodun kimliği grafikte ad düğümünü
+// adıyla ve nitelenmiş adıyla da bulunur (takma adlar), tr index gibi. Kodun kimliği grafikte ad düğümünü
 // gösterir (nameNodeNames); kitaplık kodunun bildirimine oradan uses_name kenarıyla gidilir.
 func graphNode(r *codeindex.Reader, n codeindex.Node, id string) Node {
 	if n.Kind == codeindex.KindModule {

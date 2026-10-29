@@ -10,17 +10,17 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
 
-// Arka plan işi: program bir iş olarak çalışırken (tr başlat) TR_IS_KLASORU ortam değişkeni iş
+// Arka plan işi: program bir iş olarak çalışırken (tr başlat) TR_JOB_DIR ortam değişkeni iş
 // klasörünü gösterir. Çubuk o zaman terminal kipine geçmez (çıktı dosyaya gider, düz satırlar
 // yazılır) ve iş klasörüne saniyede en çok bir kez progress.json anlık görüntüsünü yazar;
-// tr izle ve düzenleyici çubuğun aynı satırını bu dosyadan çizer:
+// tr watch ve düzenleyici çubuğun aynı satırını bu dosyadan çizer:
 //
 //	{"step":1200,"total":5000,"metrics":{"kayıp":2.31},"rate":85.2,"remaining_seconds":840,"time":"...","done":false}
 //
 // Dosya geçici bir dosyaya yazılıp yerine konur: okuyan hiçbir zaman yarım dosya görmez.
 
 // jobDir arka plan işinin klasörüdür (ortam değişkeni TR_env_JOB_DIR, her yazım dilinin adıyla:
-// TR_IS_KLASORU, TR_JOB_DIR); iş değilse boş.
+// TR_JOB_DIR, TR_JOB_DIR); iş değilse boş.
 func jobDir() string {
 	k, _ := codes.EnvValue(codes.EnvJobDir)
 	return k

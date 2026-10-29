@@ -147,7 +147,7 @@ func longCommand(command string, side bool) string {
 	}
 	for _, words := range commands(command) {
 		for len(words) > 0 && (strings.Contains(words[0], "=") || slices.Contains([]string{"bash", "sh", "time", "nohup", "env"}, words[0])) {
-			words = words[1:] // ortam ataması (TR_DIL=en) ve sarmalayan komut
+			words = words[1:] // ortam ataması (TR_LANG=en) ve sarmalayan komut
 		}
 		switch {
 		case len(words) == 0:

@@ -64,7 +64,7 @@ type Counts struct {
 	Likely  int          `json:"likely,omitempty"`  // yeniden adlandırma: olası değişiklikler
 }
 
-// Affected `etki` sorgusunun sonucudur: değişirse etkilenenler.
+// Affected `impact` sorgusunun sonucudur: değişirse etkilenenler.
 type Affected struct {
 	Modules []Node `json:"modules,omitempty"` // onu (dolaylı da) aktaran modüller
 	Users   []Use  `json:"users,omitempty"`

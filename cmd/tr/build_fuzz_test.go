@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// FuzzEmbeddedPackage: 'tr derle' ile üretilmiş bir uygulama başlarken kendi ikilisinin
+// FuzzEmbeddedPackage: 'tr build' ile üretilmiş bir uygulama başlarken kendi ikilisinin
 // sonundaki paketi çözer, modülleri geçici klasöre yazar ve 'aktar' yollarını yönlendirir.
 // Paketi değiştirebilen biri ikiliyi de değiştirebileceği için bu bir güven sınırı değildir;
 // yine de bozuk (yarım indirilmiş, kırpılmış) bir uygulama çökmemeli, açık bir hata vermeli

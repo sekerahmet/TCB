@@ -178,7 +178,7 @@ func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 
 // CheckModule checks a module's source (the whole file) before running it: it parses it as a
 // module (a top-level 'sonuç' is an error) and type-checks it; on errors the result's Stage
-// ("sözdizimi" or "tip denetimi") and Errors are set. 'tr kontrol', 'tr derle' and
+// ("sözdizimi" or "tip denetimi") and Errors are set. 'tr check', 'tr build' and
 // CheckImportedModules use this one check before the run (1.3); 'aktar' at run time only reads
 // and parses the module. Since a module runs under the importer's global scope (11.1), genelAdlar
 // count as defined in the module, and a name defined nowhere else is an undefined-name error

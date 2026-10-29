@@ -33,7 +33,7 @@ Depodaki bütün kodlu `.tr` dosyaları ve belgelerdeki kod blokları her gömü
 **Dosyanın dili yoktur.** Dosya `# TR 4` başlığıyla başlar ve kimliklerle (`TR_print`) yazılır (dil
 tanımı 2.1); program her zaman kimliklerle okunur ve çalışır, başlıksız metin çalışmaz (`NoHeaderError`,
 ileti başlığı ve kimlik yazımını söyler). Hiçbir yazım dilinin ayrıcalığı yoktur; değerin metni dilden
-bağımsızdır (`codes.ValueNames`). Kişinin yazım dili (`TR_DIL`, `codes.Display`) yalnızca görüntüdür.
+bağımsızdır (`codes.ValueNames`). Kişinin yazım dili (`TR_LANG`, `codes.Display`) yalnızca görüntüdür.
 Denetim: `TestHeaderRules`, `TestHeaderlessFileDoesNotRun`, `TestUserNamesNeverBecomeLanguageWords`,
 `TestDictMemberKeysDoNotDependOnTheLanguage` (cmd/tr/e2e).
 

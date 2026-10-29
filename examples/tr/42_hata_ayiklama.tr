@@ -7,9 +7,9 @@
 # Önceki örnekten: fonksiyonlar (08), sözlük listeleri (11), tensörler (23).
 # Çalıştırma (proje kökünden): tr examples/tr/42_hata_ayiklama.tr   (VS Code'da F5)
 # Program durduğunda deneyin:
-#   tablo siparisler            → sipariş listesini tablo olarak gösterir
-#   değiştir vergi_orani = 0.20 → hatalı oranı çalışırken düzeltir
-#   devam                       → programı sürdürür (sonuç 102600.0 TL olur)
+#   table siparisler            → sipariş listesini tablo olarak gösterir
+#   set vergi_orani = 0.20      → hatalı oranı çalışırken düzeltir
+#   continue                    → programı sürdürür (sonuç 102600.0 TL olur)
 
 TR_print("=== Sipariş ve vergi hesabı ===")
 
@@ -45,5 +45,5 @@ TR_print("Sipariş ara toplamı : \(ara_toplam) TL")
 TR_print("Vergi dahil ödenecek: \(net_tutar_hesapla(ara_toplam)) TL")
 
 # --- Kendin dene ---
-# 1. Durunca `değişkenler` yerine `tablo risk_matrisi` yaz ve tensörün tablo görünümüne bak.
+# 1. Durunca `değişkenler` yerine `table risk_matrisi` yaz ve tensörün tablo görünümüne bak.
 # 2. kesme_noktası koşulunu 100000 yap: bu kez durur mu?

@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
-// Zincir kuralının yürüyüşü ve sınırları codeindex'tedir (codeindex.WalkCallers, TestMaxHops, TestMaxSteps): `tr dizin
+// Zincir kuralının yürüyüşü ve sınırları codeindex'tedir (codeindex.WalkCallers, TestMaxHops, TestMaxSteps): `tr index
 // sınayanlar` ile `tests-for` aynı kuralla cevap verir. Burada yalnızca grafiğe özgü kısım durur: hangi kenar zincire girer.
 const (
 	testMaxHops  = codeindex.TestMaxHops

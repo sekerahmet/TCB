@@ -11,9 +11,9 @@ import (
 )
 
 // Komut satırı seçenekleri ad kodlarıdır (opt): komutlar gibi her yazım dilinin adı kabul
-// edilir (--dil de --lang da; betikler TR_DIL'den bağımsız çalışır), çıktı etkin dildedir.
+// edilir (--lang de --lang da; betikler TR_LANG'den bağımsız çalışır), çıktı etkin dildedir.
 // Seçenek iki tireyle, sözcükleri tireyle ayrılarak yazılır: kodun adındaki alt çizgi komut
-// satırında tiredir (go_profili → --go-profili; GNU ve Go araçlarının yazımı). Kısa bayraklar
+// satırında tiredir (go_profili → --go-profile; GNU ve Go araçlarının yazımı). Kısa bayraklar
 // (-k, -h, -v, -w) simgedir, kod almaz.
 //
 // '-' ile başlayan argüman (tek başına '-' standart giriştir) dosya adı sanılmaz: komutun
@@ -53,7 +53,7 @@ func unknownOption(command any, arg string, allowed []codes.Code) {
 }
 
 // unknownTopLevelOption tr'nin kendisine verilen seçenek biçimindeki ilk argümanla çıkışa götürür:
-// '--yardım', '--help' gibi bir komutun adıysa (ya da yazımı ona en yakınsa) asıl komut (H8602),
+// '--help', '--help' gibi bir komutun adıysa (ya da yazımı ona en yakınsa) asıl komut (H8602),
 // değilse bilinmeyen seçenek (H8604) iletisiyle.
 func unknownTopLevelOption(arg string) {
 	name := strings.ReplaceAll(strings.TrimLeft(arg, "-"), "-", "_")

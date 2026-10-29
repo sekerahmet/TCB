@@ -1,4 +1,4 @@
-// Package formatter TR kaynak kodunu standart biçime getirir ('tr biçimle').
+// Package formatter TR kaynak kodunu standart biçime getirir ('tr format').
 //
 // Biçimlendirici sözcük birimi (token) tabanlıdır: kaynak, yorumlar da dahil olmak üzere
 // sözcük birimlerine ayrılır; yalnızca aralarındaki boşluklar ve girintiler yeniden

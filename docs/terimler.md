@@ -4,7 +4,7 @@ TR'nin kullanıcıya görünen metinlerinde (belgeler, iletiler, ad açıklamala
 
 **İngilizce kelime birebir çevrilmez, kavrama ad verilir.** Kavramın ne yaptığını söyleyen ve TR'nin metinlerinde başka bir anlamla çakışmayan kelime seçilir. Türkçede yerleşik ve tek anlamlı bir karşılık varsa o kalır; yerleşik bir alıntı (GPU, bf16, kernel) daha açıksa alıntı kullanılır. Bir terim değişince eski ad ve gerekçe bu tabloda kalır.
 
-Yeniden adlandırmanın etkisini `tr dizin yeniden_adlandır <ad> <yeni>` (kod adları) ve `tr dizin yeniden_adlandır <terim> <yeni> --terim` (yalnızca metin) listeler. `internal/doc_terms_test.go` aşağıdaki "kullanılmaz" sütunundaki kalıpların kullanıcıya görünen metinlerde geçmediğini denetler.
+Yeniden adlandırmanın etkisini `tr index rename <ad> <yeni>` (kod adları) ve `tr index rename <terim> <yeni> --term` (yalnızca metin) listeler. `internal/doc_terms_test.go` aşağıdaki "kullanılmaz" sütunundaki kalıpların kullanıcıya görünen metinlerde geçmediğini denetler.
 
 | Terim | İngilizce | Anlamı | Kullanılmaz (eski) | Neden | Tarih |
 | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -34,7 +34,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `TR_cmd_index`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
 | günlük | TR_arg_log, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı `TR_Logger(...)`'ın açtığı günlüğü alır; `TR_Run`'ın günlük alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
-| kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--kontrol` seçeneği aynı denetimi yapar |
+| kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--check` seçeneği aynı denetimi yapar |
 | mutlak | TR_fn_abs, TR_mem_absolute | aynı anlam: göreli olmayan (mutlak değer, mutlak yol; Python `abs` ve `Path.absolute`) |
 | test | TR_cmd_test, TR_ctx_test | aynı anlam: `TR_ctx_test` bloğu ve onu koşan `tr test` |
 | tür | TR_arg_dtype, TR_mem_dtype, TR_opt_kind | ayrı alan: TR_opt_kind `TR_cmd_index`'de düğüm türü; TR_arg_dtype ile TR_mem_dtype aynı anlamda tensörün veri türüdür |

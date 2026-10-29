@@ -1,7 +1,7 @@
 // Package checker is TR's type checker that runs before execution: it walks the syntax tree
 // and finds type mismatches (declaration, assignment, return value, call argument),
 // assignments to constants, undefined names and shadowed builtin names; it reports errors
-// and warnings with their lines ('tr kontrol', and before running or loading a module).
+// and warnings with their lines ('tr check', and before running or loading a module).
 //
 // Layer: language core (internal/lang); imports only internal/lang packages.
 package checker

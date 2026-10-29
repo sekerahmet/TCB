@@ -142,7 +142,7 @@ func devicesBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 	return &interp.ListVal{Elements: el}, nil
 }
 
-// Close program sonunda çağrılır (motor.Kapat): GPU ölçümü açıksa (TR_GPU_PROFIL=1) özeti
+// Close program sonunda çağrılır (motor.Kapat): GPU ölçümü açıksa (TR_GPU_PROFILE=1) özeti
 // standart hataya yazar ve bağlı dış profilleyicilere topladıkları veriyi yazdırır; programın
 // kurduğu tohumsuz rastgelelik kancasını kaldırır (aynı süreçte sonraki programa geçmesin).
 func Close() {

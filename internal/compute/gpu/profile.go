@@ -14,7 +14,7 @@ import (
 // GPU profili: çekirdek başına GPU süresi, başlatma arası boşluk, adım özeti
 // ============================================================================
 //
-// Ölçüm açıkken (TR_GPU_PROFIL=1 ya da ProfilAc) her çekirdek başlatması ve sürücünün
+// Ölçüm açıkken (TR_GPU_PROFILE=1 ya da ProfilAc) her çekirdek başlatması ve sürücünün
 // bellek işi (doldurma, kopya, yükleme) iki zamanlama olayı arasına alınır. Olaylar
 // beklenmeden sıraya konur; geçilmiş olanlar arada bir (ve her eşzamanlamada) çözülür:
 // çekirdeğin GPU süresi iki olayı arasındaki süredir, boşluk ise önceki işin bitişiyle

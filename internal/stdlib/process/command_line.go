@@ -17,7 +17,7 @@ import (
 // döndürür (verilen sözlük değişmez). Seçenek adları sözlüğün anahtarlarıdır (veri; kodlanmaz),
 // tipi varsayılandan çıkar. Kurulum hataları (desteklenmeyen varsayılan, ayrılmış ad, ikinci
 // çağrı) sıradan çalışma zamanı hatalarıdır; kullanıcının yazdığı argümandaki hatalar ve
-// --yardım ise programı bitirir (interp.ExitRequest: 2 ya da 0 koduyla).
+// --help ise programı bitirir (interp.ExitRequest: 2 ya da 0 koduyla).
 
 // optKind bir seçeneğin değer tipidir.
 type optKind int
@@ -133,7 +133,7 @@ func checkOptionName(fn any, name string) error {
 	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsFunc(name, func(r rune) bool { return r == '=' || unicode.IsSpace(r) }) {
 		return messages.New(messages.H7220, fn, name)
 	}
-	if name == "h" || isHelpName(name) { // --yardım'ın bir dildeki adı ya da -h
+	if name == "h" || isHelpName(name) { // --help'ın bir dildeki adı ya da -h
 		return messages.New(messages.H7221, fn, name, helpOption())
 	}
 	return nil

@@ -15,7 +15,7 @@ import (
 
 // Bir ileti ve içindeki her şey iletinin dilindedir; yakalanan hatada ileti yakalayan dosyanın
 // dilinde kurulur (ErrorIn). Katalog bir hatayı dile göre ancak kendi türlerinden (Error,
-// PosError) ya da Localized ise yazabilir; başka bir hata türü Error() metnine, yani TR_DIL'e
+// PosError) ya da Localized ise yazabilir; başka bir hata türü Error() metnine, yani TR_LANG'e
 // düşerdi. Kural: depoda Error() string uygulayan her tür MessageText(lang string) string de
 // uygular. Yeni bir hata türü bu testle kapsama girer.
 //
@@ -72,7 +72,7 @@ func TestEveryErrorTypeIsLocalized(t *testing.T) {
 	}
 	sort.Strings(missing)
 	for _, m := range missing {
-		t.Errorf("%s: hata türü Error() uyguluyor ama MessageText(lang) uygulamıyor; yakalanan hatada TR_DIL'de kalır", m)
+		t.Errorf("%s: hata türü Error() uyguluyor ama MessageText(lang) uygulamıyor; yakalanan hatada TR_LANG'de kalır", m)
 	}
 	for typ := range localizedExempt {
 		if errorTypes[typ] == "" {

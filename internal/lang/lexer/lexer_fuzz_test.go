@@ -6,7 +6,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// FuzzLexer: kaynak kod güvenilmeyen girdidir ('tr kontrol', biçimlendirici ve
+// FuzzLexer: kaynak kod güvenilmeyen girdidir ('tr check', biçimlendirici ve
 // düzenleyici bir dosyayı çalıştırmadan okur). Sözcük çözümleyici hiçbir girdide çökmemeli,
 // sonsuz döngüye girmemeli (girdi uzunluğundan fazla sözcük birimi üretmemeli) ve her
 // sözcük biriminin aralığı girdinin içinde kalmalıdır. Derin arama:

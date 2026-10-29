@@ -16,7 +16,7 @@ import (
 // satırında satır devamı yerine düz "\n" yazılmıştı). Bu test tools/gpu/COLAB.md'deki
 // her ```bash bloğunu `bash -n` ile, içindeki Python gömmelerini (heredoc ve `python -c`)
 // `py_compile` ile denetler; tools/gpu/*.py betikleri de derlenir ve `--help` verir;
-// phase3_tr.tr `tr kontrol`dan uyarısız geçer.
+// phase3_tr.tr `tr check`dan uyarısız geçer.
 
 var (
 	colabBashRe    = regexp.MustCompile("(?ms)^```bash[ \t]*\r?\n(.*?)^```")
@@ -114,7 +114,7 @@ func TestGPUScriptsCompileAndHelp(t *testing.T) {
 }
 
 func TestPhase3TRProgramChecksClean(t *testing.T) {
-	out, err := exec.Command(trBinary, "kontrol", reporoot.Path("tools/gpu/phase3_tr.tr")).CombinedOutput()
+	out, err := exec.Command(trBinary, "check", reporoot.Path("tools/gpu/phase3_tr.tr")).CombinedOutput()
 	if err != nil {
 		t.Fatalf("phase3_tr.tr kontrolden geçmedi: %s", out)
 	}

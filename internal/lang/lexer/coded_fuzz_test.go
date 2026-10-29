@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// FuzzCodedLexer: a coded file is untrusted input too ('tr göster', the editor). In coded
+// FuzzCodedLexer: a coded file is untrusted input too ('tr show', the editor). In coded
 // mode the lexer must not panic, loop or take long, and every token range must stay inside
 // the input. Deep search:
 //

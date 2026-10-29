@@ -7,7 +7,7 @@ import (
 )
 
 // Ortam değişkenleri (env sınıfı) komutlar gibi ad kodudur (dil tanımı 17.8): her gömülü yazım dilinin
-// adıyla okunur (TR_GPU_SYNC ile TR_GPU_ESZAMANLI aynı değişkendir), hiçbir dilin adı öncelikli değildir:
+// adıyla okunur (TR_GPU_SYNC ile TR_GPU_SYNC aynı değişkendir), hiçbir dilin adı öncelikli değildir:
 // iki ad ayrı değerle verilirse tr komutu başlamadan durur (H2527). İletiler ve belgeler kişinin dilindeki
 // adı yazar. Karşılaştırma: Go (GODEBUG, GOMAXPROCS) ve PyTorch (CUDA_LAUNCH_BLOCKING, PYTORCH_*) ortam
 // adlarını yalnızca İngilizce tutar; TR'de komut satırı adları her dilde kabul edildiği için ortam adları da

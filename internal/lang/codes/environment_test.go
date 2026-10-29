@@ -106,8 +106,7 @@ func TestLanguageEnvVarsAreK400(t *testing.T) {
 func TestComputeMessagesNameTheirLanguagesVariable(t *testing.T) {
 	uses := map[string]Code{"H4009": EnvGpuSync, "H4026": EnvGpuCublaslt, "H4027": EnvGpuCublaslt}
 	for _, lc := range Languages() {
-		l, err := LoadLanguage(lc)
-		if err != nil {
+		if _, err := LoadLanguage(lc); err != nil {
 			t.Fatal(err)
 		}
 		data, err := os.ReadFile(reporoot.Path("internal/lang/messages/" + lc + ".json"))
@@ -119,9 +118,9 @@ func TestComputeMessagesNameTheirLanguagesVariable(t *testing.T) {
 			t.Fatal(err)
 		}
 		for code, k := range uses {
-			g, _ := l.Entry(k)
-			if !strings.Contains(texts[code], g.Name) {
-				t.Errorf("%s.json %s: %q does not name %s", lc, code, texts[code], g.Name)
+			want := CommandLineName(k)
+			if !strings.Contains(texts[code], want) {
+				t.Errorf("%s.json %s: %q does not name %s", lc, code, texts[code], want)
 			}
 		}
 	}

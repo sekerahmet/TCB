@@ -13,7 +13,7 @@ import (
 const opNamesOut = "TR_PROFILE_OP_NAMES_OUT"
 
 // TestOpNamesHelper birkaç işlemin rapor adını dosyaya yazar; yalnızca
-// TestOpNamesFollowPersonsLanguage tarafından TR_DIL=tr/en alt süreçlerinde çalışır.
+// TestOpNamesFollowPersonsLanguage tarafından TR_LANG=tr/en alt süreçlerinde çalışır.
 func TestOpNamesHelper(t *testing.T) {
 	out := os.Getenv(opNamesOut)
 	if out == "" {
@@ -28,13 +28,14 @@ func TestOpNamesHelper(t *testing.T) {
 	}
 }
 
-// Profil raporundaki işlem adları kişinin gösterim dilindedir (TR_DIL): TR_DIL=en ile "sum",
-// "AdamW.step", ".to_device"; TR_DIL=tr ile "toplam", "AdamW.adım", ".cihaza". Önceden adlar her
-// dilde kanonik Türkçeydi. TR_DIL süreç başında okunduğu için her dil ayrı bir alt süreçte koşar.
+// Profil raporundaki işlem adları kişinin gösterim dilindedir (TR_LANG): TR_LANG=en ile "sum",
+// "AdamW.step", ".to_device"; TR_LANG=tr ile "toplam", "AdamW.adım", ".cihaza". Önceden adlar her
+// dilde kanonik Türkçeydi. TR_LANG süreç başında okunduğu için her dil ayrı bir alt süreçte koşar.
 func TestOpNamesFollowPersonsLanguage(t *testing.T) {
 	for lang, want := range map[string]string{"en": "sum\nAdamW.step\n.to_device", "tr": "toplam\nAdamW.adım\n.cihaza"} {
+		t.Setenv("TR_LANG", lang)
 		if got := string(testkit.RunWithLanguageFile(t, "TestOpNamesHelper", opNamesOut, lang)); got != want {
-			t.Errorf("TR_DIL=%s: %q, beklenen %q", lang, got, want)
+			t.Errorf("TR_LANG=%s: %q, beklenen %q", lang, got, want)
 		}
 	}
 }

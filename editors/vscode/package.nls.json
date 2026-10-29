@@ -12,7 +12,7 @@
   "config.title": "TR Studio",
   "config.interpreterPath": "Full path of the TR interpreter (`tr.exe`). Read only from user settings; a workspace's own settings file cannot change it. A relative path is resolved only against a trusted workspace folder. If empty: `bin/tr.exe` or `tr.exe` at the root of a trusted workspace folder, then `tr` on PATH. Parent folders are not searched; a window without a folder uses only this setting and PATH.",
   "config.autoOpenWatchPanel": "Opens the **Watch Panel** (variable table and table grid) next to the editor every time the program stops while debugging.",
-  "config.writingLanguage": "The writing language of the read-only view of a `.tr` file (command **TR: Show View in My Language**) and of the snippets' labels and placeholder words. Code is written only with identities (`TR_print`): the file is edited as it is, the view is only read and is never converted back. Turkish (`tr`) or English (`en`); your own names, comments and texts stay as written, only the words of the language are translated. Also passed to run, terminal and debug processes as `TR_DIL`.",
+  "config.writingLanguage": "The writing language of the read-only view of a `.tr` file (command **TR: Show View in My Language**) and of the snippets' labels and placeholder words. Code is written only with identities (`TR_print`): the file is edited as it is, the view is only read and is never converted back. Turkish (`tr`) or English (`en`); your own names, comments and texts stay as written, only the words of the language are translated. Also passed to run, terminal and debug processes as `TR_LANG`.",
   "config.writingLanguage.tr": "Turkish (Türkçe)",
   "config.writingLanguage.en": "English",
   "task.command": "The TR command to run.",

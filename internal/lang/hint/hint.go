@@ -16,7 +16,7 @@ import (
 )
 
 // The hints are message parts (*messages.Error, nil when there is none): the outer message writes
-// them in its own language, so a hint and the names in it follow the message (TR_DIL on screen,
+// them in its own language, so a hint and the names in it follow the message (TR_LANG on screen,
 // the catching file's language in a caught error).
 
 // NotInTRHint is the hint that suggests the real name (canonical, a codes.Ref) in place of a name.

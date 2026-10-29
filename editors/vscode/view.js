@@ -1,6 +1,6 @@
 // Kodlu dosyanın görünümü (docs/spec/17_kodlar.md, 17.7): .tr dosyası diskte de düzenleyicide de
 // kimliklerle (TR_print) yazılır; kişinin yazım dilindeki görünümü yalnız okunur. "Görünümü Göster"
-// komutu açık dosyanın görünümünü yanda salt okunur bir belge olarak açar ('tr göster - --dil <dil>';
+// komutu açık dosyanın görünümünü yanda salt okunur bir belge olarak açar ('tr show - --lang <dil>';
 // eklentide ikinci bir çevirici yoktur). Görünüm dosyanın satırlarını tutar: satır numaraları hata
 // iletileri ve hata ayıklayıcıyla aynıdır. Dosya düzenlendikçe (kaydedilmemiş metin dahil) ve yazım
 // dili değişince görünüm yenilenir. Görünüm düzenlenmez ve koda geri çevrilmez.
@@ -17,7 +17,7 @@ const { t } = require('./l10n');
 
 const VIEW_SCHEME = 'tr-view';
 
-// EXIT_SYNTAX 'tr göster -' komutunun "metin ayrıştırılamadı, görünüm yazılmadı" çıkış kodudur
+// EXIT_SYNTAX 'tr show -' komutunun "metin ayrıştırılamadı, görünüm yazılmadı" çıkış kodudur
 // (cmd/tr/show.go, exitSyntax).
 const EXIT_SYNTAX = 2;
 
@@ -27,7 +27,7 @@ const TIMEOUT = 30000;
 // REFRESH_DELAY düzenlemeden sonra görünümün yenilenmesinden önceki bekleme süresidir (milisaniye).
 const REFRESH_DELAY = 300;
 
-// show metni 'tr göster - --dil <lang>' ile görünüme çevirir. Kabuk kullanılmaz. Hiçbir zaman reddetmez:
+// show metni 'tr show - --lang <lang>' ile görünüme çevirir. Kabuk kullanılmaz. Hiçbir zaman reddetmez:
 //   { code: 0, output }              gösterildi (output: Buffer)
 //   { code: EXIT_SYNTAX, error }     metin ayrıştırılamadı (error: tr'nin iletisi)
 //   { code: 1 | -1, error }          başka bir hata (-1: süreç başlatılamadı ya da durduruldu)
@@ -39,7 +39,7 @@ function show(interpreter, lang, input, timeoutMs) {
         };
         let proc;
         try {
-            proc = spawn(interpreter, ['göster', '-', '--dil', lang], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+            proc = spawn(interpreter, ['show', '-', '--lang', lang], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
         } catch (e) {
             resolve({ code: -1, output: Buffer.alloc(0), error: t('Could not start the TR interpreter: {0}', e && e.message ? e.message : e) });
             return;

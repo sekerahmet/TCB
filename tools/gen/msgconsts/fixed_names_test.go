@@ -44,7 +44,7 @@ var probes = map[[2]string]string{
 // çevrilmeleri ayrı tasarım, yol haritası 10).
 var exampleParams = map[string]bool{"example": true, "usage": true, "signature": true, "customGradExample": true}
 
-// displayLayers iletileri yalnız kişinin dilinde (TR_DIL) gösteren katmanlardır: burada hiçbir
+// displayLayers iletileri yalnız kişinin dilinde (TR_LANG) gösteren katmanlardır: burada hiçbir
 // hata yakalanmaz, iç içe hazır metin (messages.Text) dıştaki iletiyle aynı dilde kalır; bu
 // kaynak orada sayılmaz.
 var displayLayers = []string{"cmd/", "internal/devtools/"}

@@ -231,7 +231,7 @@ func TestExtensionDoesNotFlagTurkishLetters(t *testing.T) {
 }
 
 // .tr dosyaları UTF-8'dir (2.1): kullanıcının genel files.encoding ayarı başka bir kodlama olsa da
-// eklenti .tr dosyalarını UTF-8 açar ve kaydeder; kodlu dosyanın Türkçe görünümü de ('tr göster -'
+// eklenti .tr dosyalarını UTF-8 açar ve kaydeder; kodlu dosyanın Türkçe görünümü de ('tr show -'
 // UTF-8 yazar) yanlış çözülmez. Yazım dili ayarı her kişinindir (kapsam "application").
 func TestExtensionTRFilesUTF8(t *testing.T) {
 	p := readExtensionPackage(t)
@@ -301,7 +301,7 @@ func TestExtensionRestrictedMode(t *testing.T) {
 	if n := strings.Count(string(js), "if (!vscode.workspace.isTrusted)"); n < 2 {
 		t.Errorf("extension.js çalıştırmadan ve hata ayıklamadan önce çalışma alanı güvenini denetlemeli (%d denetim bulundu)", n)
 	}
-	// Salt okunur görünüm 'tr göster -' çalıştırır: yalnızca güvenilen çalışma alanında (kısıtlı
+	// Salt okunur görünüm 'tr show -' çalıştırır: yalnızca güvenilen çalışma alanında (kısıtlı
 	// kipte görünüm açılmaz; view_test.js).
 	view, err := os.ReadFile(reporoot.Path("editors/vscode/view.js"))
 	if err != nil {

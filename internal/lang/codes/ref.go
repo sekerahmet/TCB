@@ -8,7 +8,7 @@ import (
 
 // Ref is a language element as a message parameter (messages.Localized): the catalog writes its
 // name in the language of the message, so a message and the names inside it are in one language
-// (TR_DIL on screen; a caught error in the language of the file that catches it). The parameter
+// (TR_LANG on screen; a caught error in the language of the file that catches it). The parameter
 // carries the code, not a name built when the message is made. String is the display name.
 type Ref struct {
 	Code Code
@@ -87,7 +87,7 @@ func (r Ref) MessageText(lang string) string {
 	return nameIn(l, r.Code)
 }
 
-// String is the display name (TR_DIL), for text that is not a message.
+// String is the display name (TR_LANG), for text that is not a message.
 func (r Ref) String() string { return r.MessageText(display.Code) }
 
 // nameIn kodun l'deki adıdır; program metninde yazılmayan kodlar (17.9: komut, alt komut,

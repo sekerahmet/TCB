@@ -272,7 +272,7 @@ func (x *indexer) ident(f *file, o owner, sc *scope, id *ast.Identifier) {
 }
 
 // noteUnresolved hiçbir kapsamda ve dilin hiçbir adında bulunmayan adı kaydeder (dizin kalitesinin
-// ölçüsü: `tr dizin --durum` sayısını yazar). Dilin öğesi olan adlar (anahtar sözcük, tip) sayılmaz.
+// ölçüsü: `tr index --status` sayısını yazar). Dilin öğesi olan adlar (anahtar sözcük, tip) sayılmaz.
 func (x *indexer) noteUnresolved(name string, pos Pos) {
 	for _, ns := range []codes.Namespace{codes.NamespaceGlobal, codes.NamespaceType, codes.NamespaceMember} {
 		if _, ok := x.lang.Find(ns, name); ok {

@@ -142,8 +142,8 @@ cihazda verir; büyük bir modelin tamamı için örnek: `tools/gpu/compare_gpu.
 - Sonuçlar CPU'dakiyle float32 yuvarlama farkı içinde aynıdır; indirgemeler belirlenimcidir.
   GPU belleği yetmezse Türkçe ve `TR_try`/`TR_catch` ile yakalanabilir bir hata alınır.
 - Teşhis: bir GPU hatasının hangi işlemde olduğunu tam bulmak için program
-  `TR_GPU_ESZAMANLI=1` ortam değişkeniyle çalıştırılır (her işlemden sonra bekler; yavaştır).
-- Hız dökümü: `TR_GPU_PROFIL=1` ile çalışan program sonunda standart hataya GPU profilini
+  `TR_GPU_SYNC=1` ortam değişkeniyle çalıştırılır (her işlemden sonra bekler; yavaştır).
+- Hız dökümü: `TR_GPU_PROFILE=1` ile çalışan program sonunda standart hataya GPU profilini
   yazar (adım başına süreler, hangi çekirdeğin GPU zamanının ne kadarını aldığı, bellek).
   `TR_cmd_watch` ve `TR_cmd_profile` aynı ölçümü canlı tabloda ve raporda gösterir (bkz. §11).
 - Matris çarpımı, makinede NVIDIA'nın cuBLASLt kitaplığı kuruluysa (CUDA araç takımı ya da
@@ -237,7 +237,7 @@ TR_for adım TR_in 0..ayar["step"] {
 }
 ```
 
-**Ayarlar (`TR_command_line`).** Sözlüğün anahtarları seçenek adları, değerleri varsayılanlardır; tip varsayılandan çıkar. `tr egit.tr --adım 5000 --öğrenme_oranı=3e-4` seçenekleri değiştirir, `tr egit.tr --yardım` hepsini açıklamalarıyla listeler. Yanlış yazılan seçenek (`--ogrenme_orani`, `--adim`) ya da tipine uymayan değer (`--öğrenme_oranı 0,001`) eğitim başlamadan, doğru adı öneren bir mesajla durdurur. Argüman vermeden çalıştırınca varsayılanlar kullanılır.
+**Ayarlar (`TR_command_line`).** Sözlüğün anahtarları seçenek adları, değerleri varsayılanlardır; tip varsayılandan çıkar. `tr egit.tr --adım 5000 --öğrenme_oranı=3e-4` seçenekleri değiştirir, `tr egit.tr --help` hepsini açıklamalarıyla listeler. Yanlış yazılan seçenek (`--ogrenme_orani`, `--adim`) ya da tipine uymayan değer (`--öğrenme_oranı 0,001`) eğitim başlamadan, doğru adı öneren bir mesajla durdurur. Argüman vermeden çalıştırınca varsayılanlar kullanılır.
 
 **İlerleme çubuğu.** Her `ç.TR_update(...)` bir adım ilerletir; çubuk terminalde tek satırda yenilenir, geçen adım sayısını, ölçüleri, adım hızını ve kalan süreyi gösterir. Çıktı bir dosyaya ya da not defteri hücresine gidiyorsa 10 saniyede bir düz satır yazılır. `TR_print` çubuğu bozmaz. Kaldığı yerden sürdürülen bir eğitimde `ç.TR_update(..., TR_step: n)` sayacı n'ye getirir.
 

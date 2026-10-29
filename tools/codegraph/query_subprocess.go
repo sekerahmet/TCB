@@ -91,7 +91,7 @@ func (ix *index) printSubprocessTests(w io.Writer, byDir map[string][]*Node) {
 
 // printLinkedBinaries n'nin paketi (geçişli içe aktarmayla) bir testin derleyip koştuğu ana pakete bağlıysa bunu zayıf
 // kanıt olarak yazar ve true verir: ikiliyi koşan testler bu koda varabilir, ama hangisinin vardığı izlenmez (DENETİM
-// doğrulaması Y5: codeindex.LoadCached, e2e'deki --dizin-yok testine rağmen "no tests found" diyordu). Paketin kendisi
+// doğrulaması Y5: codeindex.LoadCached, e2e'deki --no-index testine rağmen "no tests found" diyordu). Paketin kendisi
 // derleniyorsa satır zaten "covered by subprocess tests"tir; burada yalnızca bağlanan paketler.
 func (ix *index) printLinkedBinaries(w io.Writer, n *Node) bool {
 	pkg := ix.goPackageOf(n)

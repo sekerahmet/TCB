@@ -30,7 +30,7 @@ ad iletiye kodla verilir (`codes.NameRef`, `interp.CallName`, `bind.Named`; dene
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları
 (`"H7003": { "param": ["fn", "path"] }`; adlar İngilizce tanımlayıcıdır). Her yazım dilinin bir dosyası vardır
 (`tr.json`, `en.json` ...); `tr.json` her kodun metnini tutar ve bugün yedektir: başka bir dil dosyası çevirisi olmayan kodu Türkçe
-gösterir (hiçbir yazım dilinin ayrıcalığı olmaması ilkesine aykırı geçici istisna). Etkin dil `TR_DIL` ortam değişkenidir (adlarla aynı: `--dil en`); dosyadan tahmin edilmez.
+gösterir (hiçbir yazım dilinin ayrıcalığı olmaması ilkesine aykırı geçici istisna). Etkin dil `TR_LANG` ortam değişkenidir (adlarla aynı: `--lang en`); dosyadan tahmin edilmez.
 Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogValid`, `TestFilesOneCodePerLine`, `TestDefinitionParamsAreASCIIIdentifiers`, `TestUnknownLanguageFallsBack`.
 
 **Şablon** (ICU MessageFormat'ın alt kümesi; çevirmen araçları tanır):
@@ -70,9 +70,9 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 3. Hâl eki olan bir dilse çekimcisini kendi dilbilgisi paketinden `messages.RegisterInflector` ile kaydet.
 4. `go test ./internal/lang/messages` her şablonu ve parametreyi denetler; çevrilmemiş kod Türkçeye düşer.
 
-**Bir ileti tek dildedir.** Süreç dili `TR_DIL`'den bir kez okunur (`messages.ActiveLanguage`; `codes` da bunu kullanır, adlar ve iletiler aynı dildedir). Bir iletinin ya da içindeki kodlu hatalardan (`*Error`, `*PosError`) birinin etkin dilde metni yoksa iletinin bütünü yedek dilde (bugün Türkçe) gösterilir; iç ileti dıştakinin dilinde yazılır. Bu yüzden ileti değerine metin (`messages.Text`) değil kodlu hata (`messages.New`) geçirilir. Denetim: `TestFallbackKeepsOneLanguage`, `TestLanguageReadOnce`.
+**Bir ileti tek dildedir.** Süreç dili `TR_LANG`'den bir kez okunur (`messages.ActiveLanguage`; `codes` da bunu kullanır, adlar ve iletiler aynı dildedir). Bir iletinin ya da içindeki kodlu hatalardan (`*Error`, `*PosError`) birinin etkin dilde metni yoksa iletinin bütünü yedek dilde (bugün Türkçe) gösterilir; iç ileti dıştakinin dilinde yazılır. Bu yüzden ileti değerine metin (`messages.Text`) değil kodlu hata (`messages.New`) geçirilir. Denetim: `TestFallbackKeepsOneLanguage`, `TestLanguageReadOnce`.
 
-İngilizce: `en.json` her kodun metnini taşır; `TR_DIL=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
+İngilizce: `en.json` her kodun metnini taşır; `TR_LANG=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
 
 **TR kodu da ileti kurar.** `lib/*.tr` hata metni yazmaz: `TR_throw TR_message("H6903", pencere)` kodu (bir metin değeri) ve değerleri taşır, metin hata gösterilirken bu katalogdan kurulur (dil tanımı 8.5). `ParamCount` `TR_message` çağrısını tanımla denetler (tanımsız kod H2528, yanlış değer sayısı H2529). Kitaplığın kendi adları ad yuvasıdır (`{@ad}`, yukarıda). Denetim: `TestParamCount`, `TestMessageUsage` (tools/gen/msgconsts: `.tr` çağrıları), `TestMessageSlotsAreNames` (internal/lang/codes).
 
@@ -106,5 +106,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_message_text_test.go`: Go kodunun bir iletinin metnini düzenlemediği (`strings.Replace`, `TrimPrefix` ... doğrudan ileti metniyle çağrılmaz)
 - `behavior_message_fragments_test.go`: bir ileti çağrısına başka bir `messages.Text(...)` parça olarak verilmez (cümle tek şablondur)
-- `behavior_localized_errors_test.go`: `Error()` uygulayan her hata türü `MessageText(lang)` de uygular (messages.Localized); yakalanan hata bütünüyle yakalayan dosyanın dilinde yazılır, katalog hiçbir hatayı TR_DIL metnine düşürmez
+- `behavior_localized_errors_test.go`: `Error()` uygulayan her hata türü `MessageText(lang)` de uygular (messages.Localized); yakalanan hata bütünüyle yakalayan dosyanın dilinde yazılır, katalog hiçbir hatayı TR_LANG metnine düşürmez
 - `behavior_english_complete_test.go`: tr.json'daki her ileti kodunun en.json'da İngilizce metni vardır

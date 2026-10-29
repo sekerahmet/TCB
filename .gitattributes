@@ -6,7 +6,7 @@
 *.safetensors binary
 
 # Kodlu .tr dosyalarında farkı Türkçe göstermek için "tr" fark sürücüsü. Sürücüyü her kişi kendi
-# git ayarında tanımlar: git config --global diff.tr.textconv "tr göster" (docs/guide/01_baslangic.md,
+# git ayarında tanımlar: git config --global diff.tr.textconv "tr show" (docs/guide/01_baslangic.md,
 # "Kodlu dosyalar"). Tanımlanmamışsa git olağan farkı gösterir.
 *.tr diff=tr
 

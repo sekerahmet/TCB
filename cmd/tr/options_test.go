@@ -43,6 +43,6 @@ func TestUnknownOptionIsNotAFile(t *testing.T) {
 		t.Errorf("tr --%s: 'tr %s' önerisi bekleniyordu, gelen:\n%s", help, help, out)
 	}
 	if out, _ := trOutput(t, codes.DisplayName(codes.CmdCheck), "--", "-TR_none.tr"); !strings.Contains(out, "-TR_none.tr") || strings.Contains(out, "--x") {
-		t.Errorf("tr kontrol -- -yok.tr: '-yok.tr' dosya olarak okunmalıydı, gelen:\n%s", out)
+		t.Errorf("tr check -- -yok.tr: '-yok.tr' dosya olarak okunmalıydı, gelen:\n%s", out)
 	}
 }

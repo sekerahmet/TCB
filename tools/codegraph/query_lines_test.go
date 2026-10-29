@@ -12,7 +12,7 @@ import (
 
 // Kural: `dosya:satır` satırı içeren en dar düğüme çözülür: bildirimin ilk ve son satırı ve arası, kapanışın içi (kendi
 // işlevi), belge yorumu (araya boş satır girmeden altındaki bildirim), tipin içindeki alan; hiçbir bildirimde olmayan
-// satır dosyanın kendisidir ve bu söylenir. `.tr` dosyasında sütun verilince tr dizin'in kuralıyla imlecin altındaki adın
+// satır dosyanın kendisidir ve bu söylenir. `.tr` dosyasında sütun verilince tr index'in kuralıyla imlecin altındaki adın
 // başvurduğu bildirim; Markdown'da başlık bölümü. `query -` grep satırlarına içeren düğümü yazar (eksikler listesi:
 // grep'in bulduğu yer grafiğe sorulamıyordu, içeren işlev elle aranıyordu).
 func TestALineIsAnsweredByTheDeclarationThatContainsIt(t *testing.T) {

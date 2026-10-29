@@ -43,7 +43,7 @@ func TestHeaderRules(t *testing.T) {
 	}
 }
 
-// Kural (17.7): görünüm dosyası işaretini taşır. 'tr göster' başlığa görünümün dilini yazar ('# TR 4
+// Kural (17.7): görünüm dosyası işaretini taşır. 'tr show' başlığa görünümün dilini yazar ('# TR 4
 // view=tr'; satır sayısı değişmez); görünüm çalışmaz ve koda geri çevrilmez: ileti (H2541, başlığın
 // satırında) kodlu dosyayı çalıştırmayı söyler. Bilinmeyen dilin işareti okunamayan başlıktır (H2512).
 // Neden: dosyanın türü dosyanın kendisinde olsun; görünüm yalnız okunur.

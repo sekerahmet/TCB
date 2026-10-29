@@ -15,7 +15,7 @@ const dapDisplayOut = "TR_DAP_DISPLAY_OUT"
 
 // TestDAPDisplayHelper bir DAP oturumunda değişkenlerin değerini ve tipini, İzleme Masası'nın tip
 // sütununu ve değerlendirmenin tipini dosyaya yazar; yalnızca TestDAPDisplayFollowsPersonsLanguage
-// tarafından TR_DIL=tr/en alt süreçlerinde çalışır.
+// tarafından TR_LANG=tr/en alt süreçlerinde çalışır.
 func TestDAPDisplayHelper(t *testing.T) {
 	out := os.Getenv(dapDisplayOut)
 	if out == "" {
@@ -75,36 +75,39 @@ func TestDAPExpressionHelper(t *testing.T) {
 }
 
 // Kural (17.7): kişinin hata ayıklayıcıya yazdığı ifade (koşul, izleme) koddur, kimlik yazımıyla
-// yazılır, TR_DIL ne olursa olsun: "TR_sum(l) == i + 2" koşulu ve "TR_sum(l) * 2" izlemesi her dilde
+// yazılır, TR_LANG ne olursa olsun: "TR_sum(l) == i + 2" koşulu ve "TR_sum(l) * 2" izlemesi her dilde
 // doğru değeri verir. Türkçe harfsiz komut (adim) yalnızca Türkçe okuyana önerilir.
 func TestDAPExpressionsAreWrittenWithIdentities(t *testing.T) {
 	for lang, want := range map[string]string{"en": "i=1 watch=6 adim=false", "tr": "i=1 watch=6 adim=true"} {
+		t.Setenv("TR_LANG", lang)
 		if got := string(testkit.RunWithLanguageFile(t, "TestDAPExpressionHelper", dapExpressionOut, lang)); got != want {
-			t.Errorf("TR_DIL=%s: %q, beklenen %q", lang, got, want)
+			t.Errorf("TR_LANG=%s: %q, beklenen %q", lang, got, want)
 		}
 	}
 }
 
-// Düzenleyicinin hata ayıklayıcısında değer ve tipi kişinin dilindedir (TR_DIL; DENETİM 3. adım,
-// bulgu 2): TR_DIL=en ile Türkçe programın değişkeni "true | Bool", İzleme Masası'nda tensörün
-// tipi "Tensor [2]". Önceden değer TR_DIL'de, tip kanonik Türkçeydi ("true | Mantık").
-// TR_DIL süreç başında okunduğu için her dil ayrı bir alt süreçte koşar.
+// Düzenleyicinin hata ayıklayıcısında değer ve tipi kişinin dilindedir (TR_LANG; DENETİM 3. adım,
+// bulgu 2): TR_LANG=en ile Türkçe programın değişkeni "true | Bool", İzleme Masası'nda tensörün
+// tipi "Tensor [2]". Önceden değer TR_LANG'de, tip kanonik Türkçeydi ("true | Mantık").
+// TR_LANG süreç başında okunduğu için her dil ayrı bir alt süreçte koşar.
 func TestDAPDisplayFollowsPersonsLanguage(t *testing.T) {
+	t.Setenv("TR_LANG", "en")
 	en := string(testkit.RunWithLanguageFile(t, "TestDAPDisplayHelper", dapDisplayOut, "en"))
+	t.Setenv("TR_LANG", "tr")
 	tr := string(testkit.RunWithLanguageFile(t, "TestDAPDisplayHelper", dapDisplayOut, "tr"))
 	for _, want := range []string{"var b | true | Bool", "var l | (2) [true, none] | List", "| Tensor", "panel t | ", "Tensor [2]", "eval b | true | Bool"} {
 		if !strings.Contains(en, want) {
-			t.Errorf("TR_DIL=en: %q yok:\n%s", want, en)
+			t.Errorf("TR_LANG=en: %q yok:\n%s", want, en)
 		}
 	}
 	for _, unwanted := range []string{"Mantık", "Liste", "Tensör", "doğru", "yok"} {
 		if strings.Contains(en, unwanted) {
-			t.Errorf("TR_DIL=en çıktısında Türkçe %q:\n%s", unwanted, en)
+			t.Errorf("TR_LANG=en çıktısında Türkçe %q:\n%s", unwanted, en)
 		}
 	}
 	for _, want := range []string{"var b | doğru | Mantık", "var l | (2) [doğru, yok] | Liste", "Tensör [2]", "eval b | doğru | Mantık"} {
 		if !strings.Contains(tr, want) {
-			t.Errorf("TR_DIL=tr: %q yok:\n%s", want, tr)
+			t.Errorf("TR_LANG=tr: %q yok:\n%s", want, tr)
 		}
 	}
 }

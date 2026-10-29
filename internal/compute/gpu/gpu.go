@@ -34,7 +34,7 @@ type backend struct {
 	prm        paramWriter
 	lastKernel string
 	// concurrent her başlatmadan sonra eşitler (teşhis: hatalı çekirdeği tam yerinde
-	// yakalar; TR_GPU_ESZAMANLI=1).
+	// yakalar; TR_GPU_SYNC=1).
 	concurrent bool
 	gemm2      gemmConfig
 	// gemmConst doluysa matris çarpımı döşemesi otomatik seçilmez (sınama).

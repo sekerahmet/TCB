@@ -20,7 +20,7 @@ import (
 // İzleme araçları (canlı profil) şu üç işi kullanır: ProfilAc ile ölçümü açıp kapatır,
 // CekirdekOlcumleri ile şimdiye kadarki çekirdek başına toplamları (anlık görüntü; arka ucu
 // beklemez, saniyede birkaç kez okunabilir) ve BellekOlcumleri ile GPU belleğinin durumunu
-// alır. TR_GPU_PROFIL=1 ile çalışan bir program sonunda (Kapat) özet standart hataya yazılır.
+// alır. TR_GPU_PROFILE=1 ile çalışan bir program sonunda (Kapat) özet standart hataya yazılır.
 
 // KernelSample bir çekirdeğin (ya da sürücü bellek işinin) toplamları.
 type KernelSample struct {
@@ -107,7 +107,7 @@ func PeakLiveBySite() (sites []SitePeak, peak uint64) {
 	return sites, peak
 }
 
-// EnableProfile GPU çekirdek ölçümünü açar ya da kapatır (TR_GPU_PROFIL=1 ile başlangıçta
+// EnableProfile GPU çekirdek ölçümünü açar ya da kapatır (TR_GPU_PROFILE=1 ile başlangıçta
 // açıktır). Kapalıyken maliyet başlatma başına tek bir atomik okumadır.
 func EnableProfile(open bool) { profileOn.Store(open) }
 

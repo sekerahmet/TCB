@@ -97,7 +97,7 @@ func (d *TensorValue) WatchSummary() string {
 		if d.hasInts {
 			return strconv.FormatInt(int64(x), 10)
 		}
-		return numberText(x, scientific, codes.Display()) // İzleme Masası görüntüdür (TR_DIL)
+		return numberText(x, scientific, codes.Display()) // İzleme Masası görüntüdür (TR_LANG)
 	}
 	var sb strings.Builder
 	if len(sh) == 0 {
@@ -122,6 +122,6 @@ func (d *TensorValue) WatchSummary() string {
 		}
 		write(0)
 	}
-	// İzleme Masası görüntüdür (TR_DIL).
+	// İzleme Masası görüntüdür (TR_LANG).
 	return messages.Text(messages.H6822, sb.String(), codes.NameRef(codes.TypeTensor), d.watchShape(), d.watchDType())
 }

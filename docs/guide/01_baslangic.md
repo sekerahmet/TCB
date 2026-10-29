@@ -13,25 +13,25 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | Komut | Açıklama |
 | :--- | :--- |
 | `./bin/tr.exe` | Etkileşimli TR kabuğunu (REPL) kişinin yazım dilinde başlatır (`/h` ile hata ayıklayıcı açılır) |
-| `./bin/tr.exe dosya.tr [argümanlar]` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./bin/tr.exe çalıştır dosya.tr` ile aynı). Dosya adından sonrakiler programa iletilir; program okumazsa çıkışta uyarı yazılır |
-| `./bin/tr.exe izle dosya.tr [argümanlar]` | Programı çalıştırır ve hızını canlı gösterir: ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU, bellek; bitince rapor (bkz. §11) |
-| `./bin/tr.exe profil [--json yol] dosya.tr [argümanlar]` | Programı çalıştırır, bitince hız raporu verir; `--json` ile JSON raporu (klasör verilirse içine `speed.json`) (bkz. §11) |
-| `./bin/tr.exe hata_ayıkla dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
-| `./bin/tr.exe kontrol [--json] dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar. `--json` (dosya adından önce yazılır) hata ve uyarıları standart çıktıya satır başına bir JSON kaydı olarak verir: `code`, `severity`, `file`, `start`, `end` (dışlayıcı), `message` ve varsa `related`, `fixes` (`applicable: true` olan düzeltme olduğu gibi uygulanır); kullanım hataları dahil, temizse çıktı boş, hata varsa çıkış 1, kullanım hatasında 2 (dil tanımı 2.13) |
-| `./bin/tr.exe derle dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
+| `./bin/tr.exe dosya.tr [argümanlar]` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./bin/tr.exe run dosya.tr` ile aynı). Dosya adından sonrakiler programa iletilir; program okumazsa çıkışta uyarı yazılır |
+| `./bin/tr.exe watch dosya.tr [argümanlar]` | Programı çalıştırır ve hızını canlı gösterir: ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU, bellek; bitince rapor (bkz. §11) |
+| `./bin/tr.exe profile [--json yol] dosya.tr [argümanlar]` | Programı çalıştırır, bitince hız raporu verir; `--json` ile JSON raporu (klasör verilirse içine `speed.json`) (bkz. §11) |
+| `./bin/tr.exe debug dosya.tr` | Terminalde etkileşimli TR Hata Ayıklayıcıyı başlatır |
+| `./bin/tr.exe check [--json] dosya.tr` | Kodu çalıştırmadan sözdizimi ve akıllı tip kontrolü yapar. `--json` (dosya adından önce yazılır) hata ve uyarıları standart çıktıya satır başına bir JSON kaydı olarak verir: `code`, `severity`, `file`, `start`, `end` (dışlayıcı), `message` ve varsa `related`, `fixes` (`applicable: true` olan düzeltme olduğu gibi uygulanır); kullanım hataları dahil, temizse çıktı boş, hata varsa çıkış 1, kullanım hatasında 2 (dil tanımı 2.13) |
+| `./bin/tr.exe build dosya.tr` | `.tr` dosyasını tek başına çalışan bağımsız **`.exe`** programına dönüştürür |
 | `./bin/tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §7) |
-| `./bin/tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |
-| `./bin/tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
-| `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyanın bir yazım dilindeki görünümünü (`tr`, `en`; verilmezse kişinin dili, `TR_DIL`) standart çıktıya basar; görünümün satırları dosyanınkidir. Görünüm yalnız okunur: çalışmaz ve koda geri çevrilmez, kod kimliklerle (`TR_print`) yazılır (dil tanımı 17.7) |
-| `./bin/tr.exe göster -` | Metni standart girişten okur, görünümünü standart çıktıya yazar (düzenleyiciler için; çıkış kodu 2: metin ayrıştırılamadı, görünüm yazılmadı) |
+| `./bin/tr.exe format dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |
+| `./bin/tr.exe format --check dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
+| `./bin/tr.exe show dosya.tr [--lang tr]` | Dosyanın bir yazım dilindeki görünümünü (`tr`, `en`; verilmezse kişinin dili, `TR_LANG`) standart çıktıya basar; görünümün satırları dosyanınkidir. Görünüm yalnız okunur: çalışmaz ve koda geri çevrilmez, kod kimliklerle (`TR_print`) yazılır (dil tanımı 17.7) |
+| `./bin/tr.exe show -` | Metni standart girişten okur, görünümünü standart çıktıya yazar (düzenleyiciler için; çıkış kodu 2: metin ayrıştırılamadı, görünüm yazılmadı) |
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
-| `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
+| `./bin/tr.exe help` / `-h`, `./bin/tr.exe version` / `-v` | Yardımı ve sürümü gösterir |
 
 Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), süreç Ctrl+C sinyaliyle biter (kabuk 130 görür); ikinci Ctrl+C hemen çıkar. Ayrıntılar: `docs/spec/01_program.md`.
 
-Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
+Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr debug' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `exit` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `exit` yazmanızı söyler.
 
-Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `45_tekrar_oynat.tr`; örnekler kodlu saklanır, `tr göster <örnek> --dil en` İngilizce gösterir; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
+Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `45_tekrar_oynat.tr`; örnekler kodlu saklanır, `tr show <örnek> --lang en` İngilizce gösterir; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
 
 ## Kodlu dosyalar: düzenleyici ve git farkları
 
@@ -40,7 +40,7 @@ TR dosyası (ilk satırı `# TR 4`) kimliklerle yazılır ve VS Code'da olduğu 
 `git diff` kodlu dosyada kodları gösterir (`TR_var x = 1`). Farkı Türkçe görmek için git'e `TR_cmd_show`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
 
 ```bash
-git config --global diff.tr.textconv "tr göster"                      # tr PATH üzerindeyse
+git config --global diff.tr.textconv "tr show"                      # tr PATH üzerindeyse
 git config --global diff.tr.textconv "'C:/Projeler/TR/bin/tr.exe' göster"   # ya da tam yolla (boşluklu yol tek tırnakta)
 ```
 

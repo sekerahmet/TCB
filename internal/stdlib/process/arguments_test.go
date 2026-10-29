@@ -9,7 +9,7 @@ import (
 
 // Yardımın gösterdiği her varsayılan, okuyucuya geri verilince aynı değeri verir (DENETİM 3. adım,
 // bulgu 3): yardım kişinin dilinde yazar, okuyucu her gömülü yazım dilinin değer adını kabul eder
-// (17.8). Önceden sonsuz varsayılan hiçbir dilde, TR_DIL=en'in "true" yazımı da okunmuyordu.
+// (17.8). Önceden sonsuz varsayılan hiçbir dilde, TR_LANG=en'in "true" yazımı da okunmuyordu.
 func TestHelpDefaultsReadBack(t *testing.T) {
 	f := func(x float64) interp.Value { return &interp.FloatVal{Val: x} }
 	list := func(v ...interp.Value) interp.Value { return &interp.ListVal{Elements: v} }

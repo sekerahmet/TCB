@@ -44,19 +44,19 @@ func setGCTarget() {
 }
 
 func main() {
-	// Geçersiz TR_DIL: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
+	// Geçersiz TR_LANG: codes paketi Türkçeye düştü; komut yanlış dille çalışmasın.
 	if err := codes.LanguageError(); err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
-	// Ortam değişkenleri her yazım dilinin adıyla verilebilir (TR_GPU_SYNC = TR_GPU_ESZAMANLI);
+	// Ortam değişkenleri her yazım dilinin adıyla verilebilir (TR_GPU_SYNC = TR_GPU_SYNC);
 	// hesap çekirdeği kimlik adını (TR_env_GPU_SYNC) okur. İki ad ayrı değerle verilmişse durulur.
 	if err := codes.ExportEnvironment(); err != nil {
 		fmt.Fprintln(os.Stderr, messages.Text(messages.H8060, err))
 		os.Exit(2)
 	}
 	setGCTarget()
-	// Bu .exe 'tr derle' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
+	// Bu .exe 'tr build' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, found, err := findEmbeddedPackage(); found {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8601, err))
@@ -94,8 +94,8 @@ func main() {
 }
 
 // commandCode komut satırının ilk argümanını bir tr komutunun koduna çevirir: kısa bayraklar
-// (-h, -v) simgedir; adlar her yazım dilinde aranır (tr çalıştır da tr run da her makinede
-// çalışır, betikler TR_DIL'den bağımsızdır). Komut değilse codes.None (dosya adıdır).
+// (-h, -v) simgedir; adlar her yazım dilinde aranır (tr run da tr run da her makinede
+// çalışır, betikler TR_LANG'den bağımsızdır). Komut değilse codes.None (dosya adıdır).
 func commandCode(arg string) codes.Code {
 	switch arg {
 	case "-h":
@@ -111,7 +111,7 @@ func commandCode(arg string) codes.Code {
 
 // oldCommand bir komutun eski yazımını (Türkçe harfsiz biçim) tanır ve asıl adını verir. Eski
 // yazım KABUL EDİLMEZ: dosya adı sanılıp çalıştırılmaya çalışılmaz. Komut adının seçenek
-// biçimi (--help, --yardım) unknownTopLevelOption'dadır.
+// biçimi (--help, --help) unknownTopLevelOption'dadır.
 func oldCommand(arg string) (string, bool) {
 	if k, ok := codes.Display().Suggest(codes.NamespaceCommand, arg, nil); ok {
 		return codes.DisplayName(k), true
@@ -128,19 +128,19 @@ var commands = map[codes.Code]func([]string){
 	codes.CmdIndex: indexCommand,
 }
 
-// helpCommand 'tr yardım' komutudur.
+// helpCommand 'tr help' komutudur.
 func helpCommand(args []string) {
 	noOptions(codes.CmdHelp, args)
 	printHelp()
 }
 
-// versionCommand 'tr sürüm' komutudur.
+// versionCommand 'tr version' komutudur.
 func versionCommand(args []string) {
 	noOptions(codes.CmdVersion, args)
 	fmt.Println(messages.Text(messages.H8603, Version))
 }
 
-// checkCommand 'tr kontrol [--json] dosya.tr' komutudur. --json dosya adından önce yazılır: dosya
+// checkCommand 'tr check [--json] dosya.tr' komutudur. --json dosya adından önce yazılır: dosya
 // adından sonrası programın argümanıdır (1.4), orada yazılan --json sessizce yok sayılmaz, hatadır.
 func checkCommand(args []string) {
 	command := codes.NameRef(codes.CmdCheck)
@@ -160,7 +160,7 @@ func checkCommand(args []string) {
 	checkFile(file)
 }
 
-// buildCommand 'tr derle dosya.tr [çıktı]' komutudur.
+// buildCommand 'tr build dosya.tr [çıktı]' komutudur.
 func buildCommand(args []string) {
 	files := fileArguments(codes.NameRef(codes.CmdBuild), args, nil, nil)
 	if len(files) < 1 {
@@ -185,7 +185,7 @@ func dapCommand(args []string) {
 	}
 }
 
-// runCommand 'tr çalıştır dosya.tr [argümanlar]' komutudur.
+// runCommand 'tr run dosya.tr [argümanlar]' komutudur.
 func runCommand(args []string) {
 	file, rest, ok := programFile(codes.NameRef(codes.CmdRun), args)
 	if !ok {
@@ -207,7 +207,7 @@ func exitWithError(message any) {
 // standart hataya yazar ve 2 koduyla çıkar (1.9).
 func exitUsage(message any) {
 	if m, ok := message.(*messages.Error); ok && jsonUsage {
-		writeJSONRecord(usageRecord(m)) // 'tr kontrol --json': kullanım hatası da kayıttır (2.13)
+		writeJSONRecord(usageRecord(m)) // 'tr check --json': kullanım hatası da kayıttır (2.13)
 		os.Exit(usageExitCode)
 	}
 	fmt.Fprintln(os.Stderr, turkish.Printable(messages.Text(messages.H8060, message)))
@@ -261,7 +261,7 @@ func runFile(path string, arguments []string) {
 	cleanup()
 }
 
-// debugCommand 'tr hata_ayıkla dosya.tr [argümanlar]' komutudur; dosyadan sonraki argümanlar
+// debugCommand 'tr debug dosya.tr [argümanlar]' komutudur; dosyadan sonraki argümanlar
 // programındır.
 func debugCommand(args []string) {
 	file, rest, ok := programFile(codes.NameRef(codes.CmdDebug), args)
@@ -271,7 +271,7 @@ func debugCommand(args []string) {
 	debugFile(file, rest)
 }
 
-// debugFile programı hata ayıklayıcıyla çalıştırır; çalışmadan önce 'tr kontrol'ün denetiminden
+// debugFile programı hata ayıklayıcıyla çalıştırır; çalışmadan önce 'tr check'ün denetiminden
 // geçer (1.3).
 func debugFile(path string, arguments []string) {
 	machine, program, text := prepareProgram(path, arguments, runPreparation)
@@ -355,7 +355,7 @@ func startREPL() {
 		machine.WaitAsync()
 		if val != nil && val.Type() != interp.ValNull {
 			if !startsWithPrint(line) {
-				fmt.Println("=>", interp.DisplayText(val)) // kabuğun yankısı görüntüdür (TR_DIL)
+				fmt.Println("=>", interp.DisplayText(val)) // kabuğun yankısı görüntüdür (TR_LANG)
 			}
 		}
 	}

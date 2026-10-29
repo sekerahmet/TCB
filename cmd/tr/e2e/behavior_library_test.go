@@ -24,11 +24,11 @@ func TestImportDoesNotLoadWorkingDirFile(t *testing.T) {
 	if strings.Contains(s.Stdout, "SAHTE") {
 		t.Error("çalışma klasöründeki dosya programın modülünün yerine geçti")
 	}
-	// tr kontrol ve tr derle aynı kuralla çözer.
-	testkit.Wait(t, tr(t, runDir, "kontrol", filepath.Join(project, "ana.tr")), 0, nil, nil)
+	// tr check ve tr build aynı kuralla çözer.
+	testkit.Wait(t, tr(t, runDir, "check", filepath.Join(project, "ana.tr")), 0, nil, nil)
 }
 
-// Kural 11.6: tr/ önekli modül gömülü kitaplıktandır; tr kontrol olmayanı bildirir, tr derle
+// Kural 11.6: tr/ önekli modül gömülü kitaplıktandır; tr check olmayanı bildirir, tr build
 // kitaplığı pakete gömmez (uygulama yorumlayıcının kopyasıdır) ve uygulama başka klasörde,
 // diskte tr/layers.tr varken de kitaplıktakini yükler.
 func TestLibraryModuleCheckAndBuild(t *testing.T) {
@@ -45,7 +45,7 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	testkit.Wait(t, tr(t, project, "ana.tr"), 0, []string{expected}, nil)
 
 	exit := filepath.Join(t.TempDir(), "uygulama.exe")
-	s := tr(t, project, "derle", "ana.tr", exit)
+	s := tr(t, project, "build", "ana.tr", exit)
 	testkit.Wait(t, s, 0, []string{"Başarıyla derlendi", "Gömülen modüller (1)", "yerel.tr"}, nil)
 	if strings.Contains(s.Stdout, "layers") {
 		t.Errorf("kitaplık modülü pakete gömülmemeli:\n%s", s.Stdout)
@@ -55,8 +55,8 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	testkit.Wait(t, testkit.RunBinary(t, exit, other, "", nil), 0, []string{expected}, nil)
 
 	writeTR(t, project, "hatali.tr", "TR_import \"tr/olmayan\"\n")
-	testkit.Wait(t, tr(t, project, "kontrol", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/layers, tr/optimizers, tr/pretrained, tr/training`})
-	testkit.Wait(t, tr(t, project, "derle", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
+	testkit.Wait(t, tr(t, project, "check", "hatali.tr"), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok; kitaplıktaki modüller: tr/layers, tr/optimizers, tr/pretrained, tr/training`})
+	testkit.Wait(t, tr(t, project, "build", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }
 
 // Colab eğitim betiğinin (tools/gpu/gpt_training.tr) duman testi: depodaki sentetik veri

@@ -14,4 +14,4 @@
 
 Depo kökündeki [`README.md`](../README.md) dilin amacını anlatır; eski, uzun hâli [`archive/`](archive/README-2026-10-27.md)'tedir; VS Code eklentisi [`editors/vscode/README.md`](../editors/vscode/README.md)'de, hız kıyas seti [`tools/bench/README.md`](../tools/bench/README.md)'dedir.
 
-Belgelerdeki her ```tr kod bloğu `tr kontrol`den geçer ve her göreli bağlantı var olan bir dosyaya ve başlığa gider; ikisini de `go test ./cmd/tr/e2e` denetler.
+Belgelerdeki her ```tr kod bloğu `tr check`den geçer ve her göreli bağlantı var olan bir dosyaya ve başlığa gider; ikisini de `go test ./cmd/tr/e2e` denetler.

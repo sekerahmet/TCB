@@ -10,7 +10,7 @@ import (
 )
 
 // Bu dosya üye erişimlerini, parametreleri, adlı argümanları ve komut_satırı anahtarlarını bağlar:
-// yeniden adlandırma etkisinin ve "kullananlar"ın ihtiyacı olan, ada göre çözümlenemeyen yerler.
+// yeniden adlandırma etkisinin ve "references"ın ihtiyacı olan, ada göre çözümlenemeyen yerler.
 
 // ownerName sahip kimliğindeki "#"den sonraki addır ("Yapı.metot", "işlev").
 func ownerName(id string) string { return id[strings.Index(id, "#")+1:] }
@@ -123,7 +123,7 @@ func (x *indexer) bindMember(f *file, o owner, sc *scope, m *ast.MemberExpressio
 }
 
 // noteMemberGuess alıcısı bilinmeyen `a.b` erişimini adıyla bir kez kaydeder (MemberGuess): aynı adlı alanlara ve, aday
-// sayısı kenar sınırını aşan metotlara "olası" bağı sorguda kurulur (Reader.Occurrences). Kenar yoktur, "kullananlar"
+// sayısı kenar sınırını aşan metotlara "olası" bağı sorguda kurulur (Reader.Occurrences). Kenar yoktur, "references"
 // göstermez, yeniden adlandırma etkisi "olası" diye listeler.
 func (x *indexer) noteMemberGuess(o owner, sc *scope, m *ast.MemberExpression, pos Pos, methodsCapped bool) {
 	x.guesses = append(x.guesses, MemberGuess{Member: m.Property, Pos: pos, In: o.id, Called: sc.calledMember[m],

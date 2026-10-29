@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// FuzzFormat: 'tr biçimle' bir klasördeki dosyaları yerinde yeniden yazar; indirilen bir
+// FuzzFormat: 'tr format' bir klasördeki dosyaları yerinde yeniden yazar; indirilen bir
 // klasör de biçimlenebilir. Biçimlendirici hiçbir girdide çökmemeli; başarılı sonuç
 // yeniden biçimlendirildiğinde değişmemelidir (anlam denetimi Format'ın içindedir).
 // Derin arama:

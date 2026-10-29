@@ -14,7 +14,7 @@ func TestPercentFollowsTheLanguage(t *testing.T) {
 			t.Errorf("%v: %q / %q; %q / %q olmalı", f, tr, en, want[0], want[1])
 		}
 	}
-	if got := percent(0.052); got != "%5,2" { // sınama süreci Türkçedir (TR_DIL=tr)
+	if got := percent(0.052); got != "%5,2" { // sınama süreci Türkçedir (TR_LANG=tr)
 		t.Errorf("percent: %q", got)
 	}
 }

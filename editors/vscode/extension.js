@@ -22,8 +22,8 @@ const INTERPRETER_NAME = interpreterName(process.platform);
 // sonraki argümanlar (ek) programa iletilir: 'tr dosya.tr --adım 5'.
 const COMMANDS = {
     run: { id: 'tr.run', title: t('Run'), args: (file, extra) => [file, ...(extra || [])] },
-    check: { id: 'tr.check', title: t('Check'), args: (file) => ['kontrol', file] },
-    debug: { id: 'tr.debug', title: t('Debug'), args: (file) => ['hata_ayıkla', file] }
+    check: { id: 'tr.check', title: t('Check'), args: (file) => ['check', file] },
+    debug: { id: 'tr.debug', title: t('Debug'), args: (file) => ['debug', file] }
 };
 
 function fileExists(filePath) {
@@ -90,10 +90,10 @@ function writingLanguage() {
     return vscode.workspace.getConfiguration('tr').get('writingLanguage', 'tr');
 }
 
-// languageEnvironment, yorumlayıcıya başlattığımız her süreçte yazım dilini (TR_DIL) ayara göre
+// languageEnvironment, yorumlayıcıya başlattığımız her süreçte yazım dilini (TR_LANG) ayara göre
 // verir; böylece çalışan program ve hata ayıklayıcı iletileri ayarla aynı dilde gösterir.
 function languageEnvironment() {
-    return { TR_DIL: writingLanguage() };
+    return { TR_LANG: writingLanguage() };
 }
 
 function createTask(def, documentUri, interpreter, extra) {

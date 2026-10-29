@@ -23,7 +23,7 @@ func (c *Checker) checkTypeTextComparison(e *ast.InfixExpression) {
 }
 
 // Mantık değerinin metni dilden bağımsızdır (codes.ValueNames): TR_String(b) her dosyada ve her
-// TR_DIL'de "true" ya da "false" verir. Aynı aileden ikinci kural: TR_String(Mantık) bir yazım dilinin
+// TR_LANG'de "true" ya da "false" verir. Aynı aileden ikinci kural: TR_String(Mantık) bir yazım dilinin
 // doğru/yanlış adıyla karşılaştırılıyorsa (TR_String(b) == "doğru") karşılaştırma hiç tutmaz;
 // denetleyici uyarır (çalışmayı engellemez).
 

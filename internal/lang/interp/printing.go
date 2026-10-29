@@ -41,12 +41,12 @@ var (
 // kullanmaz: onlar Inspect'tedir.
 func (v *VM) textOf(val Value) string { return valueText(val, v.textLanguage()) }
 
-// DisplayText is v's display text, in the person's writing language (TR_DIL): the REPL's echo,
+// DisplayText is v's display text, in the person's writing language (TR_LANG): the REPL's echo,
 // the debugger, the İzleme Masası and help text show it. The program's own text of a value
 // follows the language of its file instead (textOf); Inspect is canonical.
 func DisplayText(v Value) string { return valueText(v, codes.Display()) }
 
-// DisplayType is the name of v's type in the person's writing language (TR_DIL); for a struct
+// DisplayType is the name of v's type in the person's writing language (TR_LANG); for a struct
 // instance, the struct's name.
 func DisplayType(v Value) string {
 	if t := TypeOfValue(v); t != nil {

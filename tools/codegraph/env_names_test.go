@@ -8,7 +8,7 @@ import (
 var envFiles = map[string]string{
 	"internal/lang/codes/tr.json": `{
   "TR_kw_if": { "name": "eger", "family": "keyword" },
-  "TR_env_GPU_SYNC": { "name": "TR_GPU_ESZAMANLI", "family": "ortam değişkeni" },
+  "TR_env_GPU_SYNC": { "name": "TR_GPU_SYNC", "family": "ortam değişkeni" },
   "TR_env_CPU_AVX2": { "name": "TR_CPU_AVX2", "family": "ortam değişkeni" }
 }
 `,
@@ -17,7 +17,7 @@ var envFiles = map[string]string{
 }
 `,
 	"internal/lang/messages/tr.json": `{
-"H4009": "kernel başarısız; bulmak için TR_GPU_ESZAMANLI=1 ile çalıştırın",
+"H4009": "kernel başarısız; bulmak için TR_GPU_SYNC=1 ile çalıştırın",
 "H0002": "ortam adı yok"
 }
 `,
@@ -34,7 +34,7 @@ import (
 
 const avx = "TR_CPU_AVX2"
 
-func Sync() bool { return os.Getenv("TR_GPU_ESZAMANLI") == "1" }
+func Sync() bool { return os.Getenv("TR_GPU_SYNC") == "1" }
 
 func Avx() bool { v, ok := os.LookupEnv(avx); return ok && v != "0" }
 
@@ -95,8 +95,8 @@ func TestEnvironmentNamesLinkToTheirCodes(t *testing.T) {
 // test dosyasındaki bir yardımcı üzerinden; okuyan test ve HOME koyan test sınamaz.
 var envSetFiles = map[string]string{
 	"internal/lang/codes/tr.json": `{
-  "TR_env_LANG": { "name": "TR_DIL", "family": "ortam değişkeni" },
-  "TR_env_GPU_SYNC": { "name": "TR_GPU_ESZAMANLI", "family": "ortam değişkeni" },
+  "TR_env_LANG": { "name": "TR_LANG", "family": "ortam değişkeni" },
+  "TR_env_GPU_SYNC": { "name": "TR_GPU_SYNC", "family": "ortam değişkeni" },
   "TR_env_CPU_AVX2": { "name": "TR_CPU_AVX2", "family": "ortam değişkeni" }
 }
 `,
@@ -109,10 +109,10 @@ import (
 )
 
 // WithLang yalnızca testlerden çağrılan ortak yardımcı.
-func WithLang(lang string) { cmd := exec.Command("x"); cmd.Env = append(os.Environ(), "TR_DIL="+lang); _ = cmd }
+func WithLang(lang string) { cmd := exec.Command("x"); cmd.Env = append(os.Environ(), "TR_LANG="+lang); _ = cmd }
 
 // Var dilin ortam değişkeninin adıdır (başka paketten seçiciyle okunur).
-const Var = "TR_GPU_ESZAMANLI"
+const Var = "TR_GPU_SYNC"
 
 // Serve üretim kodu: değişkeni kendi alt sürecine koyar, çağıran test onu sınamaz.
 func Serve() { cmd := exec.Command("x"); cmd.Env = []string{"TR_CPU_AVX2=0"}; _ = cmd }
@@ -151,13 +151,13 @@ import (
 	"testing"
 )
 
-const langVar = "TR_DIL"
+const langVar = "TR_LANG"
 
 func TestSetenv(t *testing.T) { t.Setenv("TR_CPU_AVX2", "0"); Run() }
 
 func TestChildEnv(t *testing.T) {
 	cmd := exec.Command("x")
-	cmd.Env = append(os.Environ(), "TR_DIL=en")
+	cmd.Env = append(os.Environ(), "TR_LANG=en")
 	_ = cmd
 }
 
@@ -165,13 +165,13 @@ func TestConstEnv(t *testing.T) { run(t, []string{langVar + "=en"}) }
 
 func TestPrefixEnv(t *testing.T) {
 	for _, lang := range []string{"tr", "en"} {
-		_ = []string{"TR_GPU_ESZAMANLI=" + lang}
+		_ = []string{"TR_GPU_SYNC=" + lang}
 	}
 }
 
-func TestReads(t *testing.T) { _ = os.Getenv("TR_DIL") }
+func TestReads(t *testing.T) { _ = os.Getenv("TR_LANG") }
 
-func TestMessageOnly(t *testing.T) { t.Log("TR_DIL=en ile koşulmalı") }
+func TestMessageOnly(t *testing.T) { t.Log("TR_LANG=en ile koşulmalı") }
 
 func TestHome(t *testing.T) { t.Setenv("HOME", "/tmp") }
 
@@ -181,7 +181,7 @@ func run(t *testing.T, env []string) { _ = env }
 
 // Kural: bir ortam değişkenini koyan test (t.Setenv, os.Setenv, alt sürecin ortamındaki "AD=..." dizesi; kendisi ya
 // da test dosyasındaki yardımcısı) o değişkenin ad kodunu sınar: `tests` kenarı; yalnızca okuyan test sınamaz (değer
-// dili 3. tur: tests-for TR_env_LANG TR_DIL'i koyan e2e testlerini göstermiyordu).
+// dili 3. tur: tests-for TR_env_LANG TR_LANG'i koyan e2e testlerini göstermiyordu).
 func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 	root := auditModule(t, envSetFiles)
 	g, err := buildGraph(root)
@@ -199,7 +199,7 @@ func TestTestsThatSetAnEnvironmentVariableTestItsCode(t *testing.T) {
 	}
 	for _, e := range g.Edges {
 		if e.Kind == edgeTests && strings.HasPrefix(e.To, "name:") && (strings.HasSuffix(e.From, ".TestReads") || strings.HasSuffix(e.From, ".TestHome") || strings.HasSuffix(e.From, ".TestMessageOnly")) {
-			t.Errorf("reading TR_DIL or setting HOME tests no name code: %+v", e)
+			t.Errorf("reading TR_LANG or setting HOME tests no name code: %+v", e)
 		}
 	}
 }

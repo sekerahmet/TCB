@@ -15,11 +15,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// 'tr kontrol --json dosya.tr' (dil tanımı 2.13): çalışmadan önceki hatalar ve uyarılar, kullanım
+// 'tr check --json dosya.tr' (dil tanımı 2.13): çalışmadan önceki hatalar ve uyarılar, kullanım
 // hataları dahil, standart çıktıya JSON Lines olarak yazılır: her kayıt bir satırda bir JSON nesnesi,
 // başka metin yok, kayıt yoksa çıktı boş. Çıkış kodu metin kipindekiyle aynıdır (hata 1, kullanım
 // hatası 2, temiz ya da yalnız uyarı 0). Alan adları dilden bağımsızdır; yalnız message okuyanın
-// dilindedir (TR_DIL).
+// dilindedir (TR_LANG).
 
 // jsonPosition satır ve sütundur (1'den başlar; sütun Unicode karakteridir, 2.1). Sütun bilinmiyorsa
 // yazılmaz.
@@ -62,7 +62,7 @@ const (
 	severityWarning = "warning"
 )
 
-// jsonUsage 'tr kontrol --json' komutunun kullanım hatalarının da JSON olarak yazılacağını söyler
+// jsonUsage 'tr check --json' komutunun kullanım hatalarının da JSON olarak yazılacağını söyler
 // (exitUsage). Seçenekler çözülmeden önce, komut satırı taranarak kurulur.
 var jsonUsage bool
 
@@ -138,7 +138,7 @@ func shownFile(path string) string {
 }
 
 // checkFileJSON dosyayı ve aktardığı modülleri çalıştırmadan denetler (1.3) ve sonucu JSON olarak
-// yazar; 'tr kontrol'ün metin kipiyle aynı denetimdir, yalnız çıktı değişir. Hata varsa 1 ile çıkar.
+// yazar; 'tr check'ün metin kipiyle aynı denetimdir, yalnız çıktı değişir. Hata varsa 1 ile çıkar.
 func checkFileJSON(path string) {
 	file := shownFile(path)
 	data, err := os.ReadFile(path)
@@ -203,7 +203,7 @@ func importsAt(prog *ast.Program, line int, err error) bool {
 	return found
 }
 
-// checkOptions 'tr kontrol'ün seçeneklerini (dosya adından önce) çözer: json açıksa true.
+// checkOptions 'tr check'ün seçeneklerini (dosya adından önce) çözer: json açıksa true.
 func checkOptions(command any, args []string) (jsonOut bool, rest []string) {
 	allowed := []codes.Code{codes.OptJson}
 	for len(args) > 0 && looksLikeOption(args[0]) {

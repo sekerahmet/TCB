@@ -1,6 +1,6 @@
 # Evre 3 ölçümü: phase3_torch.py (eager, compile, max-autotune) ve phase3_tr.tr çıktılarını tek tabloya döker.
 # Kullanım: python phase3_table.py tr.json eager.json compile.json autotune.json [--tr-memory tr_profil.json]
-# Kart bilgisi (ad, bellek, sürücü, CUDA, torch) torch çıktılarından okunur. --tr-memory: `tr profil --json`
+# Kart bilgisi (ad, bellek, sürücü, CUDA, torch) torch çıktılarından okunur. --tr-memory: `tr profile --json`
 # raporu (TR'nin tepe belleği buradan: gpu.bellek[].tepe_canlı_bayt).
 import argparse, json, sys
 
@@ -11,7 +11,7 @@ def oku(yol):
 
 
 def tr_tepe_gb(rapor):
-    """tr profil --json raporundan GPU tepe canlı belleği (GB); yoksa None."""
+    """tr profile --json raporundan GPU tepe canlı belleği (GB); yoksa None."""
     bellek = rapor.get("gpu", {}).get("memory") or []
     if not bellek:
         return None

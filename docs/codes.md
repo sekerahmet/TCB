@@ -15,7 +15,7 @@ Toplam 564 kod: 28 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip,
 - Dilin çekirdeği: Anahtar kelimeler · Bağlamsal sözcükler · Değer adları · Tip adları
 - Yerleşikler: Yerleşik fonksiyonlar · Yerleşik sabitler · Adlı argümanlar
 - Metot ve özellikler (x.ad): Metot ve özellikler
-- Komutlar (tr, kabuk, hata ayıklayıcı): tr komutları · tr dizin alt komutları · Komut satırı seçenekleri · Kabuk komutları · Hata ayıklayıcı komutları
+- Komutlar (tr, kabuk, hata ayıklayıcı): tr komutları · tr index alt komutları · Komut satırı seçenekleri · Kabuk komutları · Hata ayıklayıcı komutları
 
 ## Dilin çekirdeği
 
@@ -1473,7 +1473,7 @@ tr: değişken w = Tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(topl
 
     komut_satırı(Sözlük, açıklama: Metin = "", açıklamalar: Sözlük) → Sözlük
 
-Betiğin seçeneklerini varsayılanlarıyla tanımlar ve komut satırında verilen --ad değer argümanlarıyla doldurulmuş yeni bir Sözlük döndürür; seçeneğin tipi varsayılanından çıkar. --yardım seçenekleri listeler; hatalı argüman programı 2 koduyla bitirir. Programda bir kez çağrılır; argüman yoksa varsayılanlar döner.
+Betiğin seçeneklerini varsayılanlarıyla tanımlar ve komut satırında verilen --ad değer argümanlarıyla doldurulmuş yeni bir Sözlük döndürür; seçeneğin tipi varsayılanından çıkar. --help seçenekleri listeler; hatalı argüman programı 2 koduyla bitirir. Programda bir kez çağrılır; argüman yoksa varsayılanlar döner.
 
 ```tr
 TR_var ayar = TR_command_line({"adım": 100, "oran": 0.01, "hızlı": TR_false}, TR_description: "Küçük modeli eğitir"); TR_print(ayar["adım"], ayar["oran"], ayar["hızlı"])
@@ -3459,7 +3459,7 @@ Kullananlar: `.TR_sampler(...)`, `.TR_sequential(...)` · İlişkili: `TR_batch_
 
 #### `TR_description:` (`TR_arg_description`, `açıklama`)
 
-komut_satırı'nın --yardım çıktısının başında gösterilen, programın ne yaptığını anlatan metindir; varsayılan boştur.
+komut_satırı'nın --help çıktısının başında gösterilen, programın ne yaptığını anlatan metindir; varsayılan boştur.
 
 ```tr
 TR_var ayar = TR_command_line({"adım": 10}, TR_description: "Modeli eğitir"); TR_print(ayar["adım"])
@@ -3476,7 +3476,7 @@ Kullananlar: `TR_command_line(...)` · İlişkili: `TR_descriptions:`
 
 #### `TR_descriptions:` (`TR_arg_descriptions`, `açıklamalar`)
 
-komut_satırı seçeneklerinin --yardım çıktısındaki açıklamalarıdır: anahtarlar seçenek adları, değerler Metin olmalıdır; seçeneklerde olmayan bir ad hatadır.
+komut_satırı seçeneklerinin --help çıktısındaki açıklamalarıdır: anahtarlar seçenek adları, değerler Metin olmalıdır; seçeneklerde olmayan bir ad hatadır.
 
 ```tr
 TR_var ayar = TR_command_line({"adım": 10}, TR_descriptions: {"adım": "eğitim adımı sayısı"}); TR_print(ayar["adım"])
@@ -6024,11 +6024,11 @@ tr version
 tr watch
 ```
 
-### tr dizin alt komutları
+### tr index alt komutları
 
 #### TR_sub_definition `tanım`
 
-Bir adın tanımını gösterir: nerede, imzası, belge yorumu, üyeleri (tr dizin altında).
+Bir adın tanımını gösterir: nerede, imzası, belge yorumu, üyeleri (tr index altında).
 
 ```tr
 tr index definition Muon
@@ -6036,7 +6036,7 @@ tr index definition Muon
 
 #### TR_sub_impact `etki`
 
-Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar, onu aktaran modüller, sınayan testler (tr dizin altında).
+Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar, onu aktaran modüller, sınayan testler (tr index altında).
 
 ```tr
 tr index impact lib/layers.tr
@@ -6044,7 +6044,7 @@ tr index impact lib/layers.tr
 
 #### TR_sub_references `kullananlar`
 
-Bir ada başvuranları gösterir: çağrı, okuma, yazma, aktarma, test; dosya:satır:sütun ve içeren bildirimle (tr dizin altında).
+Bir ada başvuranları gösterir: çağrı, okuma, yazma, aktarma, test; dosya:satır:sütun ve içeren bildirimle (tr index altında).
 
 ```tr
 tr index references Doğrusal
@@ -6052,7 +6052,7 @@ tr index references Doğrusal
 
 #### TR_sub_rename `yeniden_adlandır`
 
-Bir ad değişirse değişecek yerleri listeler, hiçbir dosyayı değiştirmez: kesin (tanım, parametre, adlı argüman, kendi.x ve yapıcıdan bilinen yerelin üye erişimi, komut_satırı anahtarı) ve olası (alıcısı bilinmeyen üye erişimi, belge, yorum, ileti metni) olarak ikiye ayrılır (tr dizin altında).
+Bir ad değişirse değişecek yerleri listeler, hiçbir dosyayı değiştirmez: kesin (tanım, parametre, adlı argüman, kendi.x ve yapıcıdan bilinen yerelin üye erişimi, komut_satırı anahtarı) ve olası (alıcısı bilinmeyen üye erişimi, belge, yorum, ileti metni) olarak ikiye ayrılır (tr index altında).
 
 ```tr
 tr index rename baş bakış_sayısı
@@ -6060,7 +6060,7 @@ tr index rename baş bakış_sayısı
 
 #### TR_sub_tested_by `sınayanlar`
 
-Bir adı sınayan test bloklarını gösterir: önce doğrudan, sonra çağrı zinciriyle dolaylı olanlar (tr dizin altında).
+Bir adı sınayan test bloklarını gösterir: önce doğrudan, sonra çağrı zinciriyle dolaylı olanlar (tr index altında).
 
 ```tr
 tr index tested_by çevre_hesapla
@@ -6078,7 +6078,7 @@ tr index references Muon --all
 
 #### TR_opt_check `kontrol`
 
-Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (tr biçimle).
+Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (tr format).
 
 ```tr
 tr format --check eğit.tr
@@ -6094,7 +6094,7 @@ tr index --clear
 
 #### TR_opt_go_profile `go_profili`
 
-Yorumlayıcının kendi Go profilini de yazar (tr profil).
+Yorumlayıcının kendi Go profilini de yazar (tr profile).
 
 ```tr
 tr profile --go-profile go.prof eğit.tr
@@ -6110,7 +6110,7 @@ tr eğit.tr --help
 
 #### TR_opt_json `json`
 
-Profil raporunu JSON olarak yazar (tr profil).
+Profil raporunu JSON olarak yazar (tr profile).
 
 ```tr
 tr profile --json
@@ -6126,7 +6126,7 @@ tr index definition ileri --kind method
 
 #### TR_opt_lang `dil`
 
-Yazım dilini seçer (tr, en); --dil biçiminde yazılır.
+Yazım dilini seçer (tr, en); --lang biçiminde yazılır.
 
 ```tr
 tr show --lang en eğit.tr
@@ -6158,7 +6158,7 @@ tr index rename baş bakış_sayısı --no-text
 
 #### TR_opt_output `çıktı`
 
-Canlı tablonun yazılacağı dosyayı seçer (tr izle).
+Canlı tablonun yazılacağı dosyayı seçer (tr watch).
 
 ```tr
 tr watch --output tablo.txt

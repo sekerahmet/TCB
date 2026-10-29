@@ -13,7 +13,7 @@ import (
 // Benzetimin hata yakalama yetenekleri ve arka ucun hata mesajları. Her sınama kendi
 // benzetim arka ucunu kurar (yapışkan hata diğerlerini etkilemesin).
 
-// Eşzamanlı kip (TR_GPU_ESZAMANLI=1) bu arka uçlarda kapalıdır: hatayı başlatmada değil
+// Eşzamanlı kip (TR_GPU_SYNC=1) bu arka uçlarda kapalıdır: hatayı başlatmada değil
 // eşzamanlamada beklerler; ortam değişkeninden bağımsız olmalıdırlar.
 func newSimBackend(memory uint64) *backend {
 	g := newBackend(tensor.GPU(7), newSim(memory))

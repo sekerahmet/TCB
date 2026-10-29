@@ -100,7 +100,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 	}
 }
 
-// --yardım ve -h seçenekleri listeleyip programı 0 koduyla bitirir; hatalı argümanlar olsa da.
+// --help ve -h seçenekleri listeleyip programı 0 koduyla bitirir; hatalı argümanlar olsa da.
 func TestCommandLineHelp(t *testing.T) {
 	code := `TR_command_line(` + options + `, TR_description: "Küçük dil modelini eğitir", TR_descriptions: {"öğrenme_oranı": "öğrenme oranı", "adım": "eğitim adımı sayısı"})`
 	want := `Kullanım: tr egit.tr [seçenekler]
@@ -116,8 +116,8 @@ Seçenekler:
   --etiket <Metin>            (varsayılan: yok)
   --hf_token <Metin>          (varsayılan: "")
   --help, -h                  bu yardımı gösterir`
-	// --yardım bir ad kodudur (TR_opt_help): her yazım dilinin adı (--help) da yardımı verir.
-	for _, arg := range [][]string{{"--yardım"}, {"-h"}, {"--adım", "x", "-h"}, {"--help"}} {
+	// --help bir ad kodudur (TR_opt_help): her yazım dilinin adı (--help) da yardımı verir.
+	for _, arg := range [][]string{{"--help"}, {"-h"}, {"--adım", "x", "-h"}, {"--help"}} {
 		_, _, err := commandLine(t, code, arg...)
 		c, ok := interp.IsExitRequest(err)
 		if !ok || c.Code != 0 || c.Message != want {
@@ -128,7 +128,7 @@ Seçenekler:
 
 // Kural (B17): varsayılanı doğru olan Mantık seçeneğinin yardımı onu kapatma biçimini de gösterir.
 func TestCommandLineHelpShowsHowToTurnOff(t *testing.T) {
-	_, _, err := commandLine(t, `TR_command_line({"hızlı": TR_true})`, "--yardım")
+	_, _, err := commandLine(t, `TR_command_line({"hızlı": TR_true})`, "--help")
 	c, ok := interp.IsExitRequest(err)
 	if !ok || !strings.Contains(c.Message, "--hızlı=yanlış") {
 		t.Errorf("yardım kapatma biçimini göstermeli: %v", err)

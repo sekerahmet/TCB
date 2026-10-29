@@ -165,7 +165,7 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 		"go test ./... -count=1",
 		"go test -short ./internal/... ./cmd/...",
 		"python fix.py && go build ./... && go test ./... -count=1",
-		"git add x && go run ./tools/codegraph dups --changed main\nTR_DIL=en bash tools/full_check.sh",
+		"git add x && go run ./tools/codegraph dups --changed main\nTR_LANG=en bash tools/full_check.sh",
 		"x=$(bash tools/full_check.sh --kip=on)",
 	}
 	text := []string{

@@ -9,7 +9,7 @@ import (
 )
 
 // Betiğe komut satırında verilen argümanlar ('tr betik.tr --adım 5 veri' → ["--adım", "5",
-// "veri"]). 'tr betik.tr', 'tr çalıştır', 'tr hata_ayıkla', 'tr derle' ile üretilen uygulama
+// "veri"]). 'tr betik.tr', 'tr run', 'tr debug', 'tr build' ile üretilen uygulama
 // ve düzenleyicinin başlatma ayarındaki "args" aynı yoldan buraya gelir (1.4). Program
 // argümanları okuyan yerleşik (komut_satırı, internal/stdlib/process) Args ile alır. Argüman
 // verilip programın en dışından ulaşılan bir komut_satırı çağrısı yoksa program çalışmaz
@@ -66,7 +66,7 @@ func (v *VM) CheckArguments(prog *ast.Program) ArgumentVerdict {
 }
 
 // isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir yazım dilindeki yardım
-// seçeneği (--help, --yardım; TR_opt_help). Komut satırı çözümleyicisiyle (internal/stdlib/process)
+// seçeneği (--help, --help; TR_opt_help). Komut satırı çözümleyicisiyle (internal/stdlib/process)
 // aynı tanımdır.
 func isHelpArgument(a string) bool {
 	if a == "-h" {

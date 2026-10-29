@@ -31,7 +31,7 @@ async function until(t, cond) {
 }
 
 test('çıktı terminalde kalır, satır sonları \\r\\n olur, bitince çıkış kodu yazılır', async () => {
-    const t = start('console.log("Merhaba, dünya!"); console.error("uyarı"); process.exitCode = 3', { TR_DIL: 'tr' });
+    const t = start('console.log("Merhaba, dünya!"); console.error("uyarı"); process.exitCode = 3', { TR_LANG: 'tr' });
     await until(t, () => t.out.includes('exit code'));
     assert.ok(t.out.includes('Merhaba, dünya!\r\n'), t.out);
     assert.ok(t.out.includes('uyarı\r\n'), t.out);
@@ -43,7 +43,7 @@ test('çıktı terminalde kalır, satır sonları \\r\\n olur, bitince çıkış
 });
 
 test('ortam değişkeni sürece geçer', async () => {
-    const t = start('console.log("dil=" + process.env.TR_DIL)', { TR_DIL: 'tr' });
+    const t = start('console.log("dil=" + process.env.TR_LANG)', { TR_LANG: 'tr' });
     await until(t, () => t.out.includes('exit code'));
     assert.ok(t.out.includes('dil=tr'), t.out);
 });

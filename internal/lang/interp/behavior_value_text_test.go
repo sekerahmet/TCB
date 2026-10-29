@@ -51,7 +51,7 @@ func runCodedErr(t *testing.T, main string, files map[string]string) (string, er
 	return out.String(), err
 }
 
-// Değerin metni kimliğin adıdır (true, none, Int); programın çalıştığı süreç Türkçedir (TR_DIL).
+// Değerin metni kimliğin adıdır (true, none, Int); programın çalıştığı süreç Türkçedir (TR_LANG).
 func TestValueTextIsLanguageIndependent(t *testing.T) {
 	want := "true none Int [true, none, {\"k\": false}]\n" +
 		"true none Bool [List]\n" +
@@ -111,7 +111,7 @@ TR_try { TR_Float("sonsuz") } TR_catch e { TR_print("not read") }
 // Kural (3.14, 3.2): her değerin tek metni vardır. Yerleşiğin, fonksiyonun ve yapının metni sabit
 // İngilizce ve kimlik öneksizdir; ondalık 3.2'nin eşiğiyle yazılır (bilimsel yalnız üs < -4 ya da
 // >= 16); TR_inf ve TR_nan programda yazılır. Inspect, TR_String ve yazdır aynı metni verir; testin
-// süreç dili (TR_DIL) Türkçedir.
+// süreç dili (TR_LANG) Türkçedir.
 func TestOneValueTextForEveryValue(t *testing.T) {
 	out := runCoded(t, `TR_func f() {}
 TR_struct P { a }
@@ -133,7 +133,7 @@ TR_print(TR_String(TR_print), "\(f)", TR_String(1e15), TR_String(TR_inf) == "inf
 }
 
 // Yakalanan çalışma anı hatası programın Metin değeridir: ileti sabit İngilizce katalogdan kurulur,
-// içindeki tip ve değerlerle; süreç Türkçe olsa (TR_DIL) ve hata Türkçe adlı bir kitaplık fonksiyonunda
+// içindeki tip ve değerlerle; süreç Türkçe olsa (TR_LANG) ve hata Türkçe adlı bir kitaplık fonksiyonunda
 // oluşsa da aynıdır. Satır dosyanın satırıdır (başlık 1. satır).
 func TestCaughtErrorTextIsEnglish(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() { TR_return [1][5] }\n")}})

@@ -144,7 +144,7 @@ func buildValueNames() *Language {
 	for _, k := range d.codeList {
 		name := strings.TrimPrefix(Spelling(k), IdentityPrefix)
 		if k.Class() == ClassEnvironment {
-			name = k.String() // ortam değişkeninin adı kimliğidir (TR_DIL'in kimliği TR_env_LANG değil)
+			name = k.String() // ortam değişkeninin adı kimliğidir (TR_LANG'in kimliği TR_env_LANG değil)
 		}
 		ns := k.Namespace()
 		d.entries[k].Name, d.nameArr[k], d.spellings[k] = name, name, []string{name}

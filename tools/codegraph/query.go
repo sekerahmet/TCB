@@ -45,7 +45,7 @@ const minTextQuery = 3
 
 // lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün
 // düğümleri döner (birden çoksa belirsizdir). Çıplak ad (`.`, `/`, `:` içermeyen) TR adlarında (modül, TR bildirimi,
-// test, ad kodu) tr dizin'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar: kimlik, kimliğin "tür:"
+// test, ad kodu) tr index'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar: kimlik, kimliğin "tür:"
 // önekleri atılmış hali, takma ad, tam ad, sınırda biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında),
 // büyük-küçük harfsiz tam ad ve ad sonu; hiçbiri tutmazsa metin aramaları: adın başı, adın alt dizesi, açıklama metninin
 // alt dizesi (en az minTextQuery karakter).
@@ -197,7 +197,7 @@ type trName struct {
 	folded []string
 }
 
-// trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar tr dizin'inkilerdir: modülün adı ve takma adları, bildirimin
+// trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar tr index'inkilerdir: modülün adı ve takma adları, bildirimin
 // kısa adı (kodlu bildirimde dillerdeki adları da), testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
 func (ix *index) trNameTable() []trName {
 	if ix.trNames != nil {
@@ -227,10 +227,10 @@ func (ix *index) trNameTable() []trName {
 	return ix.trNames
 }
 
-// trByName çıplak adın TR adaylarıdır; tr dizin'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
-// codeindex.PickByName sınıf sırası), böylece `query`, `tr dizin tanım` ve `tr dizin yeniden_adlandır` aynı aday kümesini
+// trByName çıplak adın TR adaylarıdır; tr index'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
+// codeindex.PickByName sınıf sırası), böylece `query`, `tr index definition` ve `tr index rename` aynı aday kümesini
 // görür (deneme 7 R1, bağımsız denetim grup 6 R1). folded adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse
-// true'dur. Grafikte tr dizin'in bilmediği ad kodları da vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da
+// true'dur. Grafikte tr index'in bilmediği ad kodları da vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da
 // yerleşik sınıfındadır.
 func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool) {
 	table := ix.trNameTable()

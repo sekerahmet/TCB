@@ -48,7 +48,7 @@ func TestCheckArguments(t *testing.T) {
 		{"argüman yok", nil, ArgumentsUsable},
 		{"-h", []string{"-h"}, ArgumentsNoOptions},
 		{"--help", []string{"--help"}, ArgumentsNoOptions},
-		{"yardım seçeneğinin başka bir dildeki adı", []string{"--yardım"}, ArgumentsNoOptions},
+		{"yardım seçeneğinin başka bir dildeki adı", []string{"--help"}, ArgumentsNoOptions},
 		{"-h ve başka argüman", []string{"-h", "--adim", "5"}, ArgumentsUnread},
 		{"seçenek", []string{"--adim", "5"}, ArgumentsUnread},
 		{"konumlu", []string{"veri.txt"}, ArgumentsUnread},

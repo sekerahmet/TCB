@@ -17,6 +17,6 @@ Denetim: `TestCommandLineUsageErrors`, `TestParseErrorCodes`.
 kısmen sayı olan bir değer sessizce kırpılmaz, hatadır.
 Denetim: `TestNumberParsing`, `TestIsNumberOrBool`.
 
-**Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--yardım` programı açıklayıcı bir
+**Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/tr/e2e` `TestCommandLineOptions`.

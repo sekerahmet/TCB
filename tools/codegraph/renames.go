@@ -105,7 +105,7 @@ func joinRenames(list []codeEvent, renames map[string]string) []codeEvent {
 }
 
 // renamedCode eski bir anahtarın bugünkü ad ya da ileti kodu düğümüdür; q eski anahtar değilse nil. Takma ad değildir:
-// eski anahtar yalnız hiçbir düğüme çıkmayınca yönlendirilir, ad çözümü tr dizin'inkiyle aynı kalır.
+// eski anahtar yalnız hiçbir düğüme çıkmayınca yönlendirilir, ad çözümü tr index'inkiyle aynı kalır.
 func (ix *index) renamedCode(q string) *Node {
 	renames := readRenames(ix.root)
 	if _, old := renames[q]; !old {

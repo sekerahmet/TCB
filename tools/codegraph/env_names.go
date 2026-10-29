@@ -13,10 +13,10 @@ import (
 
 // Ortam değişkeni adları (env ad kodları) iki yerde koda bağlanır: hesap çekirdeği ad kodlarını göremediği
 // için değişkeni kimlik adıyla, testler bir dilin adıyla düz metin okur ya da koyar (`os.Getenv("TR_env_GPU_SYNC")`,
-// `t.Setenv(...)`, alt süreç ortamındaki `"TR_DIL=en"` → `uses_env`), iletiler de adı şablonda taşır (H4009:
+// `t.Setenv(...)`, alt süreç ortamındaki `"TR_LANG=en"` → `uses_env`), iletiler de adı şablonda taşır (H4009:
 // "... TR_GPU_SYNC=1 ile çalıştırın" → `uses_name`, her dilin şablonu kendi adını yazar). Ad, hangi dilde
 // yazılmış olursa olsun aynı koda varır. Değişkeni koyan test (kendisi ya da test dosyasındaki bir yardımcısı)
-// o ad kodunu sınar: `tests` kenarı (addTestEdges; değer dili 3. tur: `tests-for TR_env_LANG` TR_DIL'i koyan e2e
+// o ad kodunu sınar: `tests` kenarı (addTestEdges; değer dili 3. tur: `tests-for TR_env_LANG` TR_LANG'i koyan e2e
 // testlerini göstermiyordu).
 
 // envCodePrefix ortam değişkeni kimliklerinin ön ekidir (env sınıfı, codes.NamespaceEnvironment).
@@ -85,10 +85,10 @@ func (x *goExtractor) envUse(fc *fileCtx, owner string, call *ast.CallExpr) {
 	}
 }
 
-// envStrings `"AD=değer"` biçimli ortam dizelerini (alt sürecin `cmd.Env`'i, `[]string{"TR_DIL=en"}`) ad koduna
+// envStrings `"AD=değer"` biçimli ortam dizelerini (alt sürecin `cmd.Env`'i, `[]string{"TR_LANG=en"}`) ad koduna
 // bağlar: düz metin, sabit (`Ad + "=xx"`, `messages.LanguageEnvVar + "=en"`) ya da başı sabit olan toplama
-// (`"TR_DIL=" + dil`). Dize yalnızca bir ortam dilimine gidiyorsa sayılır: bir dilim ya da bileşik değişmezin öğesi
-// ya da append'in eklediği; günlük ya da ileti metnindeki `"TR_DIL=en ile koşulmalı"` koyma değildir (bağımsız
+// (`"TR_LANG=" + dil`). Dize yalnızca bir ortam dilimine gidiyorsa sayılır: bir dilim ya da bileşik değişmezin öğesi
+// ya da append'in eklediği; günlük ya da ileti metnindeki `"TR_LANG=en ile koşulmalı"` koyma değildir (bağımsız
 // denetim grup 7). Owner'dan `uses_env` kenarı çıkar ve owner değişkeni koymuş sayılır.
 func (x *goExtractor) envStrings(fc *fileCtx, owner string, root ast.Node) {
 	if len(x.env) == 0 {

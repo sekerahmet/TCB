@@ -8,7 +8,7 @@ import (
 )
 
 // Görüntünün metin biçimleri: canlı ekran (terminal), düz özet satırı (terminal değilken
-// 10 sn'de bir) ve son rapor (tr profil, tr izle'nin sonu).
+// 10 sn'de bir) ve son rapor (tr profile, tr watch'nin sonu).
 
 // Screen canlı ekranın görüntü dışındaki parçalarıdır.
 type Screen struct {

@@ -43,7 +43,7 @@ func addTestEdges(b *builder, idx *goIndex) {
 
 // testOnlySetters test dosyasında olmayan ama yalnızca test dosyalarından çağrılan (bütün kesin çağıranları test
 // dosyasında) ve bir ortam değişkeni koyan işlevlerdir: ortak test yardımcısı `testkit.RunWithLanguageFile` alt süreci
-// TR_DIL ile başlatır, onu çağıran test TR_DIL'i koymuş olur. Üretim kodunun koyduğu değişken teste kalkmaz.
+// TR_LANG ile başlatır, onu çağıran test TR_LANG'i koymuş olur. Üretim kodunun koyduğu değişken teste kalkmaz.
 func testOnlySetters(b *builder, idx *goIndex) map[string]bool {
 	out := map[string]bool{}
 	for k, e := range b.edges {

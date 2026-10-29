@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Program çıkışı: TR_exit(kod) ve komut satırı çözümleyicisi (--yardım: 0, hatalı argüman: 2)
+// Program çıkışı: TR_exit(kod) ve komut satırı çözümleyicisi (--help: 0, hatalı argüman: 2)
 // programın hemen, belirli bir çıkış koduyla bitmesini ister (1.10). İstek bir hata gibi yukarı
 // yayılır: yığın çözülürken 'ertele' blokları çalışır, ama 'dene/yakala' onu yakalamaz (durdurma
 // gibi, bkz. interrupt.go). Kodun kendisi hatanın içinde değil VM'dedir (RequestExit): bir

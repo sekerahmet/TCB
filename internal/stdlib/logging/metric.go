@@ -56,7 +56,7 @@ func metricText(v interp.Value) string {
 	case *interp.DictVal:
 		return fmt.Sprintf("{%d}", len(x.Pairs))
 	}
-	return interp.DisplayText(v) // çubuğun satırı görüntüdür (TR_DIL): doğru/true, yok/none
+	return interp.DisplayText(v) // çubuğun satırı görüntüdür (TR_LANG): doğru/true, yok/none
 }
 
 // formatNumber bir ondalığı 3 anlamlı basamakla yazar: 2.31 → "2,31", 85.24 → "85,2",
@@ -65,7 +65,7 @@ func metricText(v interp.Value) string {
 func formatNumber(f float64) string {
 	switch {
 	case math.IsNaN(f) || math.IsInf(f, 0):
-		return (&interp.FloatVal{Val: f}).Text(codes.Display()) // çubuğun satırı görüntüdür (TR_DIL)
+		return (&interp.FloatVal{Val: f}).Text(codes.Display()) // çubuğun satırı görüntüdür (TR_LANG)
 	case f == 0:
 		return "0"
 	}

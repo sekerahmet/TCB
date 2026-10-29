@@ -8,7 +8,7 @@ import (
 )
 
 // Adım sınırı kancası: eğitim döngüsünde İlerleme.güncelle'nin her çağrısı bir adımın
-// bittiği yerdir. Canlı profil (tr izle, İzleme Masası) ms/adım'ı ve adım başına işlem
+// bittiği yerdir. Canlı profil (tr watch, İzleme Masası) ms/adım'ı ve adım başına işlem
 // dağılımını bu kancayla ölçer: kanca iki çağrı arasında geçen süreyi ve o arada biriken
 // sayaçları adıma bağlar. Kanca yoksa maliyet tek bir atomik okumadır.
 

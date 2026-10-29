@@ -393,12 +393,12 @@ func buildLanguage(langs map[string][]byte, langCode string) (*Language, error) 
 
 // FindCommand finds a tr command or a shell command (cmd, repl) by its name in any embedded
 // writing language: the active language first, then the others. Command lines and scripts then
-// work on every machine whatever TR_DIL is (unlike the language's source, a command line has no
+// work on every machine whatever TR_LANG is (unlike the language's source, a command line has no
 // coded form).
 func FindCommand(name string) (Code, bool) { return findInLanguages(NamespaceCommand, name) }
 
-// FindSubcommand finds a subcommand of 'tr dizin' (sub) by its name in any embedded writing
-// language, as FindCommand does. The names are valid only after 'tr dizin'.
+// FindSubcommand finds a subcommand of 'tr index' (sub) by its name in any embedded writing
+// language, as FindCommand does. The names are valid only after 'tr index'.
 func FindSubcommand(name string) (Code, bool) { return findInLanguages(NamespaceSubcommand, name) }
 
 // FindOption finds a command-line option (opt) by its name without the leading "--", in any

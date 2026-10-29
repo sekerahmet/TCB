@@ -145,7 +145,7 @@ func TestNonFiniteAsTextOnlyWhenAsked(t *testing.T) {
 
 // Veri olmayan değer (fonksiyon, yerleşik, aralık, yapı nesnesi) JSON'a yazılmaz, tipini söyleyen
 // hata verir (H7010; Python'un json.dumps'ı TypeError verir). Eskiden görüntü metniyle yazılıyor,
-// JSON baytları çalıştıranın diline (TR_DIL) bağlı oluyordu.
+// JSON baytları çalıştıranın diline (TR_LANG) bağlı oluyordu.
 func TestNonDataValueIsAnError(t *testing.T) {
 	for _, v := range []interp.Value{&interp.FuncVal{Name: "f"}, &interp.BuiltinVal{Name: "yazdır"}, &interp.RangeVal{Start: 0, End: 3}} {
 		d := interp.NewDictVal()

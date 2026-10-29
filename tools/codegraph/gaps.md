@@ -1,6 +1,6 @@
 # codegraph eksikleri
 
-codegraph'ın (ve `tr dizin`'in) yetmeyen ya da yanlış cevaplarının biriktiği yer. Yol haritası
+codegraph'ın (ve `tr index`'in) yetmeyen ya da yanlış cevaplarının biriktiği yer. Yol haritası
 aracın gelişimini özetlerdi ([eski yol haritası, Evre 4 madde 7](../../docs/archive/roadmap-2026-10-27.md)); tek tek eksikler buradadır.
 
 **Kim yazar:** dosyayı yalnızca ana oturum günceller. Yan oturumlar ve ajanlar codegraph'ın
@@ -24,7 +24,7 @@ her durumu kapatan genel çözüm ve sınıfı koruyan bir testtir.
 
 ## Kritik
 
-Son kapananlar (CODEGRAPH gaps2, main 64324414, 2026-10-27; ana oturum aynı komutlarla doğruladı [ölçüldü]): `tr dizin yeniden_adlandır` kodlu adı dil dosyası değişikliği olarak planlıyor (kodlu dosya kesin listede değil); TR kodundaki ileti kodu `uses_message` veriyor ve `tr dizin kullananlar H6932` buluyor; hedefin üretmediği ileti "tests about it" grubundan çıktı (H6126, H6115, H7900, H7901; H2011 README'nin `{fn}` yuvası kuralıyla kalıyor); `x_test.go` dış pakette de "this file's tests" grubunda; kodlu ortam değişkenleri `.sh`/`.py`'den `uses_env`; JS testinin dizin sabiti ya da yol yardımcısıyla okuduğu dosya bağlı; `tr dizin etki`'de her kısaltılmış grup gizlenen satır sayısını yazıyor; zincir sınırı ve liste tutarlı (en çok 8 adım); yok sayılan klasördeki dosya işaretli ve sonda; `init()`'in doldurduğu değişken; harita satırında yalnız değer. Ayrıntı: side-notes `kol-codegraph-gaps2-devir.md`. `TestBuildScalesLinearly`'nin düzeltmesi (karesel terim, a0939273) aynı push'ta; CI'da izleniyor.
+Son kapananlar (CODEGRAPH gaps2, main 64324414, 2026-10-27; ana oturum aynı komutlarla doğruladı [ölçüldü]): `tr index rename` kodlu adı dil dosyası değişikliği olarak planlıyor (kodlu dosya kesin listede değil); TR kodundaki ileti kodu `uses_message` veriyor ve `tr index references H6932` buluyor; hedefin üretmediği ileti "tests about it" grubundan çıktı (H6126, H6115, H7900, H7901; H2011 README'nin `{fn}` yuvası kuralıyla kalıyor); `x_test.go` dış pakette de "this file's tests" grubunda; kodlu ortam değişkenleri `.sh`/`.py`'den `uses_env`; JS testinin dizin sabiti ya da yol yardımcısıyla okuduğu dosya bağlı; `tr index impact`'de her kısaltılmış grup gizlenen satır sayısını yazıyor; zincir sınırı ve liste tutarlı (en çok 8 adım); yok sayılan klasördeki dosya işaretli ve sonda; `init()`'in doldurduğu değişken; harita satırında yalnız değer. Ayrıntı: side-notes `kol-codegraph-gaps2-devir.md`. `TestBuildScalesLinearly`'nin düzeltmesi (karesel terim, a0939273) aynı push'ta; CI'da izleniyor.
 
 Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliyor; geliştirici aracının iç tasarımı olduğu için seçimi ana oturum yapar; hiçbiri CODEGRAPH'a yeniden gitmedi):
 
@@ -70,7 +70,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 - **Her zaman atlanan testlerin listesi (istek, 2026-10-26, gerçek kullanım denemesi):** arşivdeki testleri (`t.Skip("ARŞİV …")`, bugün 56) toplu silmek için hepsinin listesi gerekiyor. codegraph her testin atlama koşulunu biliyor (`[skips when: always]`) ama bunları listeleyen bir sorgu yok; bugün grep ile bulunuyor. İstek: koşulu `always` olan testleri (gerekçe metniyle) veren bir sorgu ya da `query` süzgeci.
 
-- `.tr` kodunda tekrar bulma (`dups`'ın `.tr` karşılığı; `tr dizin kopya` bugün yok, 2026-10-25'te denendi).
+- `.tr` kodunda tekrar bulma (`dups`'ın `.tr` karşılığı; `tr index kopya` bugün yok, 2026-10-25'te denendi).
 - **Kullanım yerinin rolü (istek, 2026-10-26, madde 15 tasarımı):** `who-uses` bir adın her kullanımını aynı listede veriyor; kullanımın ne işe yaradığını ayırmıyor. İç dil tasarımında `codes.Name`'in ~90 kullanımından hangisinin kimlik (karşılaştırma, harita anahtarı, `switch`, kayıt: `Define`/`Register`), hangisinin görüntü (ileti ya da `fmt` argümanı) olduğu kaynak okunarak ayrıldı. İstek: her kullanım yerine bir rol etiketi (görüntü / kimlik / kayıt), `who-uses --role` gibi süzme. Görüntü ve dosya biçimi rolleri d4de3803 ile kenar türü oldu (`formats`, `encodes`, `stdlib_calls`); kimlik ve kayıt rolleri ve süzme kalıyor (`compares_value` kimliğin metin tarafı).
 - **Arayüz kullanımlarının kalan iki yolu (CODEGRAPH bildirdi, 2026-10-26; ana oturum henüz yeniden üretmedi). DENETİM: eksik, "yeni yetenek" değil; `Error()`'ın çağıransız görünmesi `dead-methods` için yanlış "kullanılmıyor" demek, kural gereği kritik aday; yeniden üretilince kritik listesine:** `...any`'yi `fmt`'ye geçen modül işlevleri (vet'in printf sarmalayıcı kuralı) bugün yalnız `messages` paketi için biçimleme sayılıyor; `error` olarak döndürülüp başka yerde biçimlenen değerin `Error()`'ı çağıransız.
 - `dead-methods` ve `package-state`'in ilk koşusunun bulgularının ayıklanması (sayılar 2026-10-26, DENETİM: 56 yalnızca arayüzle ya da yalnızca testte yaşayan metot, 120 paket değişkeni; iş açılmadan önce yeniden koşulur); korumasız görünenler: `tensor.backends`, `tokenize` kayıt haritaları, `codes.defs`, `messages.catalogs`, `interp.engines`, `logging` açık çubuklar ve günlükler, `cmd/tr.exitCode`.

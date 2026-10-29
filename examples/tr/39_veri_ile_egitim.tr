@@ -17,7 +17,7 @@
 # Çalıştırma (proje kökünden): tr examples/tr/39_veri_ile_egitim.tr
 # Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.F; ayarlar 37, ilerleme ve günlük 38'de):
 #     tr examples/tr/39_veri_ile_egitim.tr --step 500 --günlük_dosyası kayit/egitim.jsonl
-#     tr examples/tr/39_veri_ile_egitim.tr --yardım
+#     tr examples/tr/39_veri_ile_egitim.tr --help
 
 TR_const PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
 TR_const VERİ_YOLU = "../../tests/data/text"

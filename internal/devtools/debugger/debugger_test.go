@@ -88,7 +88,7 @@ func screens(out string) int { return strings.Count(out, "TR HATA AYIKLAYICI") }
 // yeniden tetiklemez: koşul her deyimde yeniden hesaplanıp sonsuz özyinelemeye girmez.
 func TestCLIWatchConditionCallsFunction(t *testing.T) {
 	code := "TR_func g() {\n    TR_return 1\n}\nTR_var a = 0\na = 1\n"
-	out, _ := runCLI(t, "t.tr", code, "devam\ndevam\ndevam\n", func(d *Debugger) {
+	out, _ := runCLI(t, "t.tr", code, "continue\ncontinue\ncontinue\n", func(d *Debugger) {
 		d.Mode = StepContinue
 		d.Watchpoints = append(d.Watchpoints, &Watchpoint{ID: 1, Expression: "g() == 1", IsCond: true})
 	})
@@ -101,12 +101,12 @@ func TestCLIWatchConditionCallsFunction(t *testing.T) {
 // gövdesinde yeniden durulmaz.
 func TestCLIEvaluateCallsFunctionQuietly(t *testing.T) {
 	code := "TR_func g() {\n    TR_return 7\n}\nTR_var a = 0\nTR_print(a)\n"
-	out, machine := runCLI(t, "t.tr", code, "adım\nadım\nhesapla g()\ndeğiştir a = g()\ndevam\n", nil)
+	out, machine := runCLI(t, "t.tr", code, "step\nstep\neval g()\nset a = g()\ncontinue\n", nil)
 	if screens(out) != 3 || !strings.Contains(out, "Sonuç (Tam): 7") {
 		t.Fatalf("başta ve iki adım sonrası olmak üzere üç duruş bekleniyordu (%d):\n%s", screens(out), out)
 	}
 	if v, _ := machine.GlobalEnv.Get("a"); v == nil || v.Inspect() != "7" {
-		t.Fatalf("değiştir a = g() uygulanmalıydı: %v", v)
+		t.Fatalf("set a = g() uygulanmalıydı: %v", v)
 	}
 }
 
@@ -115,13 +115,13 @@ func TestCLIEvaluateCallsFunctionQuietly(t *testing.T) {
 func TestCLIJump(t *testing.T) {
 	code := "TR_var a = 0\n" + strings.Repeat("a = a + 1\n", 49)
 	for line, want := range map[int]string{6: "Satır 6'ya zıplandı", 9: "Satır 9'a zıplandı", 3: "Satır 3'e zıplandı", 40: "Satır 40'a zıplandı"} {
-		out, machine := runCLI(t, "t.tr", code, "adım\nzıpla "+strconv.Itoa(line)+"\ndevam\n", nil)
+		out, machine := runCLI(t, "t.tr", code, "step\nzıpla "+strconv.Itoa(line)+"\ncontinue\n", nil)
 		if !strings.Contains(out, want) {
 			t.Errorf("%q bekleniyordu:\n%s", want, out)
 		}
 		// 2. satırda (çalışmadan) line'a zıplandı: line..50 çalışır.
 		if v, _ := machine.GlobalEnv.Get("a"); v == nil || v.Inspect() != strconv.Itoa(51-line) {
-			t.Errorf("zıpla %d: a = %d bekleniyordu, %v", line, 51-line, v)
+			t.Errorf("jump %d: a = %d bekleniyordu, %v", line, 51-line, v)
 		}
 	}
 }
@@ -129,7 +129,7 @@ func TestCLIJump(t *testing.T) {
 func TestCLIJumpOutsideBlockRejected(t *testing.T) {
 	code := "TR_func f() {\n    TR_var x = 1\n    TR_return x\n}\nTR_var a = f()\na = 5\n"
 	// f'nin içinde (2. satır) durup gövdenin dışına (6. satır) zıplamak reddedilir.
-	out, machine := runCLI(t, "t.tr", code, "adım\nadım\nzıpla 6\ndevam\n", nil)
+	out, machine := runCLI(t, "t.tr", code, "step\nstep\njump 6\ncontinue\n", nil)
 	if !strings.Contains(out, "çalışan bloğun dışında") || strings.Contains(out, "SATIRA ZIPLANDI") {
 		t.Fatalf("blok dışına zıplama reddedilmeliydi:\n%s", out)
 	}
@@ -148,11 +148,11 @@ func TestCLIModuleLines(t *testing.T) {
 	}
 	path := filepath.Join(dir, "program.tr")
 	code := "TR_import \"m.tr\" TR_as m\nTR_var ana_satırı = 1\nTR_var b = m.f(ana_satırı)\n"
-	out, _ := runCLI(t, path, code, "kesme 2\ndevam\ndevam\n", nil)
+	out, _ := runCLI(t, path, code, "break 2\ncontinue\ncontinue\n", nil)
 	if screens(out) != 2 {
 		t.Fatalf("başta ve 2. satırda olmak üzere iki duruş bekleniyordu (%d):\n%s", screens(out), out)
 	}
-	out, _ = runCLI(t, path, code, "adım\nadım\nf11\n\ndevam\n", nil)
+	out, _ = runCLI(t, path, code, "step\nstep\nf11\n\ncontinue\n", nil)
 	if !strings.Contains(out, "m.tr") || !strings.Contains(out, "===>   3 |     TR_var modül_satırı = x") {
 		t.Fatalf("modülün içinde modülün satırları gösterilmeliydi:\n%s", out)
 	}
@@ -189,19 +189,14 @@ func TestTerminalKeysMatchVSCode(t *testing.T) {
 	for input, await := range map[string]StepMode{
 		"f5":        StepContinue,
 		"F5":        StepContinue,
-		"devam":     StepContinue,
+		"continue":  StepContinue,
 		"f10":       StepOver,
-		"geç":       StepOver,
+		"next":      StepOver,
 		"f11":       StepInto,
-		"adım":      StepInto,
+		"step":      StepInto,
 		"":          StepInto,
 		"shift+f11": StepOut,
-		"dön":       StepOut,
-		// Komutlar ad kodudur (dbg): her yazım dilinin adı kabul edilir.
-		"continue": StepContinue,
-		"next":     StepOver,
-		"step":     StepInto,
-		"out":      StepOut,
+		"out":       StepOut,
 	} {
 		d := NewDebugger("t.tr", "x\n", false)
 		d.Mode = -1
@@ -226,7 +221,7 @@ func TestCommandsSingleSpelling(t *testing.T) {
 		d.Mode = -1
 		r, w, _ := os.Pipe()
 		os.Stdout = w
-		d.Reader = bufio.NewReader(strings.NewReader(old + "\ndevam\n"))
+		d.Reader = bufio.NewReader(strings.NewReader(old + "\ncontinue\n"))
 		d.promptCLI(interp.New(), 1, interp.NewEnvironment(nil))
 		w.Close()
 		data, _ := io.ReadAll(r)
@@ -242,7 +237,7 @@ func TestCommandsSingleSpelling(t *testing.T) {
 // alıyor, tanımsız ada değiştir sessizce değişken tanımlıyordu.
 func TestCLIExpressionAndUndefinedAssign(t *testing.T) {
 	code := "TR_var a = 2\nTR_print(a)\n"
-	out, machine := runCLI(t, "t.tr", code, "adım\na * 3\ndeğiştir yok_boyle = 5\ndevam\n", nil)
+	out, machine := runCLI(t, "t.tr", code, "step\na * 3\nset yok_boyle = 5\ncontinue\n", nil)
 	if !strings.Contains(out, "Sonuç (Tam): 6") {
 		t.Errorf("ifade değerlendirilmeli:\n%s", out)
 	}
@@ -259,7 +254,7 @@ func TestCLIExpressionAndUndefinedAssign(t *testing.T) {
 // kimliklerle yazılır, görünüm koda geri çevrilmez; kabuk ve dosya da öyle okunur.
 func TestCLIExpressionIsWrittenWithIdentities(t *testing.T) {
 	code := "TR_var a = 2\nTR_print(a)\n"
-	out, _ := runCLI(t, "t.tr", code, "adım\nhesapla TR_String(a * 3)\nhesapla yazdır(a)\ndevam\n", nil)
+	out, _ := runCLI(t, "t.tr", code, "step\neval TR_String(a * 3)\neval yazdır(a)\ncontinue\n", nil)
 	if !strings.Contains(out, "Sonuç (Metin): 6") {
 		t.Errorf("kimlik yazımıyla ifade hesaplanmalı:\n%s", out)
 	}
@@ -275,7 +270,7 @@ func TestScreenBoxRowsAlign(t *testing.T) {
 		t.Fatalf("görüntü genişliği: %d %d %d", displayWidth("🛠️"), displayWidth("📌"), displayWidth("şğü"))
 	}
 	for _, path := range []string{"t.tr", "çok/uzun/bir/klasör/yolu/içindeki/program_dosyası.tr", strings.Repeat("a", 100) + ".tr"} {
-		out, _ := runCLI(t, path, "TR_var a = 1\n", "devam\n", nil)
+		out, _ := runCLI(t, path, "TR_var a = 1\n", "continue\n", nil)
 		want := -1
 		for _, line := range strings.Split(out, "\n") {
 			if !strings.HasPrefix(line, "╔") && !strings.HasPrefix(line, "║") && !strings.HasPrefix(line, "╠") {

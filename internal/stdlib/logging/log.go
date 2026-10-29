@@ -13,7 +13,7 @@
 //
 // "kind" taşımayan satırlar ölçü kayıtlarıdır. Biçimin anahtarları ve kayıt türleri dilden
 // bağımsız İngilizce tanımlayıcılardır ve çevrilmez (dil tanımı 17.3; TRTENSOR imzası gibi);
-// okuyan araçlar (tr izle, tr profil, testkit) bunlara bakar. Ölçülerin ve ayarların adları
+// okuyan araçlar (tr watch, tr profile, testkit) bunlara bakar. Ölçülerin ve ayarların adları
 // programındır, olduğu gibi yazılır.
 // Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "Infinity", "-Infinity" metni olarak
 // yazılır. Bir "resume" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden
@@ -23,7 +23,7 @@
 // İlerleme çubuğu standart hataya (VM.Err) yazar: terminalde tek satırda en çok saniyede 10
 // kez yenilenir (yorumlayıcının canlı satır kancasıyla: yazdır ve hata çıktısı çubuğa
 // karışmaz), terminal değilse 10 saniyede bir düz satır ve sonda özet satırı yazılır. Arka
-// plan işinde (TR_IS_KLASORU ortam değişkeni) ayrıca iş klasörüne progress.json anlık görüntüsü
+// plan işinde (TR_JOB_DIR ortam değişkeni) ayrıca iş klasörüne progress.json anlık görüntüsü
 // yazılır. Her İlerleme.güncelle çağrısı eğitimin bir adım sınırıdır (SetStepHook).
 //
 // Gizli değerler (interp.VM.AddSecret) günlükte, çubukta ve progress.json'da ***

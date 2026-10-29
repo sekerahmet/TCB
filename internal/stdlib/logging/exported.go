@@ -2,7 +2,7 @@ package logging
 
 import "os"
 
-// Araçların (tr izle, tr profil) çubukla aynı kuralla yazması için dışa açılan yardımcılar.
+// Araçların (tr watch, tr profile) çubukla aynı kuralla yazması için dışa açılan yardımcılar.
 
 // FormatNumber bir ölçüyü 3 anlamlı basamakla Türkçe yazar (2,31 · 0,000312 → 3,12e-4).
 func FormatNumber(f float64) string { return formatNumber(f) }
@@ -17,5 +17,5 @@ func IsTerminal(f *os.File) bool { return isTerminal(f) }
 func TerminalWidth(f *os.File) int { return terminalWidth(f) }
 
 // JobDir program bir arka plan işi olarak çalışıyorsa (tr başlat) iş klasörüdür
-// (TR_IS_KLASORU ortam değişkeni); değilse boş.
+// (TR_JOB_DIR ortam değişkeni); değilse boş.
 func JobDir() string { return jobDir() }

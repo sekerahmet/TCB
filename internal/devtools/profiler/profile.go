@@ -1,4 +1,4 @@
-// Package profiler TR'nin canlı profilidir: 'tr izle' ve 'tr profil' komutlarının ortak
+// Package profiler TR'nin canlı profilidir: 'tr watch' ve 'tr profile' komutlarının ortak
 // çekirdeği. Üç kaynaktan okur:
 //
 //   - Tensör sayaçları (internal/compute/tensor, counter.go): her zaman açık, işlem türüne,
@@ -39,8 +39,8 @@ type Options struct {
 	Source  string // ana programın kaynağı (satır metinleri)
 	// SampleLines satır/fonksiyon örneklemesini açar (yorumlayıcının hata ayıklayıcı yuvası).
 	SampleLines bool
-	// GPUMeasure GPU çekirdeklerinin cihazdaki süresinin ölçümünü açar (gpu.go; tr izle ve
-	// tr profil açar, arka plan işinin profili açmaz).
+	// GPUMeasure GPU çekirdeklerinin cihazdaki süresinin ölçümünü açar (gpu.go; tr watch ve
+	// tr profile açar, arka plan işinin profili açmaz).
 	GPUMeasure bool
 	// StatusFile boş değilse canlı görüntü saniyede en çok bir kez bu dosyaya yazılır.
 	StatusFile string
@@ -90,7 +90,7 @@ type Profile struct {
 // StatusFileName arka plan işinin klasöründeki canlı profil dosyasının adıdır.
 const StatusFileName = "profile.json"
 
-// JobStatusFile program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasöründeki
+// JobStatusFile program bir arka plan işi olarak çalışıyorsa (TR_JOB_DIR) iş klasöründeki
 // profile.json'un yoludur; değilse boş (durum dosyası yazılmaz).
 func JobStatusFile() string {
 	if k := logging.JobDir(); k != "" {
@@ -160,7 +160,7 @@ func Start(m *interp.VM, s Options) *Profile {
 		gpu.SetAllocSite(p.smp.site)
 	}
 	if s.GPUMeasure {
-		// Ölçüm zaten açıksa (TR_GPU_PROFIL=1) dokunulmaz: arka uç raporunu kendisi yazar.
+		// Ölçüm zaten açıksa (TR_GPU_PROFILE=1) dokunulmaz: arka uç raporunu kendisi yazar.
 		p.gpuPrev = enableGPUMeasure()
 		gpu.SetExternalSteps(true)
 		p.gpuOpened, p.gpuMeasured = !p.gpuPrev, true

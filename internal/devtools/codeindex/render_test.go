@@ -23,22 +23,22 @@ func headerCounts(text string) []string {
 	return out
 }
 
-// Kural: metin çıktısının her başlığı listenin toplamını yazar, liste --sınır ile kesilse de (bağımsız denetim grup 6:
+// Kural: metin çıktısının her başlığı listenin toplamını yazar, liste --limit ile kesilse de (bağımsız denetim grup 6:
 // `sınayanlar (12)` 42 testin ilk 12'siydi; etki ve yeniden adlandırma grupları da gösterilen satırı sayıyordu).
 func TestTextHeadersCountTheWholeList(t *testing.T) {
 	r := fixtureReader(t)
 	cut := false
 	for name, run := range map[string]func(limit int) (*Result, string){
-		"kullananlar": func(n int) (*Result, string) {
+		"references": func(n int) (*Result, string) {
 			res := r.References("alan", QueryOptions{Limit: n})
 			return res, Text(res)
 		},
-		"sınayanlar": func(n int) (*Result, string) {
+		"tested_by": func(n int) (*Result, string) {
 			res := r.TestedBy("Kare", QueryOptions{Limit: n})
 			return res, Text(res)
 		},
-		"etki": func(n int) (*Result, string) { res := r.Impact("geo", QueryOptions{Limit: n}); return res, Text(res) },
-		"yeniden_adlandır": func(n int) (*Result, string) {
+		"impact": func(n int) (*Result, string) { res := r.Impact("geo", QueryOptions{Limit: n}); return res, Text(res) },
+		"rename": func(n int) (*Result, string) {
 			res := r.RenameImpact("alan", "yüzey", RenameOptions{Root: fixtureDir, Limit: n})
 			return res, RenameText(res)
 		},
@@ -47,16 +47,16 @@ func TestTextHeadersCountTheWholeList(t *testing.T) {
 		res, one := run(1)
 		cut = cut || res.Truncated
 		if a, o := headerCounts(all), headerCounts(one); len(a) == 0 || !slices.Equal(a, o) {
-			t.Errorf("%s: header counts %v without a limit, %v with --sınır 1:\n%s", name, a, o, one)
+			t.Errorf("%s: header counts %v without a limit, %v with --limit 1:\n%s", name, a, o, one)
 		}
 	}
 	if !cut {
-		t.Error("no list was cut by --sınır 1; the fixture does not exercise the rule")
+		t.Error("no list was cut by --limit 1; the fixture does not exercise the rule")
 	}
 }
 
-// Kural: --sınır ile kesilen her grup, altında kaç satırın gizlendiğini yazar (eksikler listesi, ince ayar, DENETİM
-// 2026-10-26: `tr dizin etki TR_type_GPT` "bunu aktaran modüller (13)" altında 12 satır verip susuyordu, kullananlar
+// Kural: --limit ile kesilen her grup, altında kaç satırın gizlendiğini yazar (eksikler listesi, ince ayar, DENETİM
+// 2026-10-26: `tr index impact TR_type_GPT` "bunu aktaran modüller (13)" altında 12 satır verip susuyordu, kullananlar
 // grubu sayısız "daha fazlası var" diyordu). Başlığın sayısından grubun gösterilen satırları çıkınca kalan, grubun notunda
 // geçmelidir.
 func TestEveryCutGroupSaysHowManyLinesAreHidden(t *testing.T) {
@@ -64,10 +64,10 @@ func TestEveryCutGroupSaysHowManyLinesAreHidden(t *testing.T) {
 	header := regexp.MustCompile(`^( *)\S.*\((\d+)`)
 	cut := 0
 	for name, text := range map[string]string{
-		"kullananlar":      Text(r.References("alan", QueryOptions{Limit: 1})),
-		"sınayanlar":       Text(r.TestedBy("Kare", QueryOptions{Limit: 1})),
-		"etki":             Text(r.Impact("geo", QueryOptions{Limit: 1})),
-		"yeniden_adlandır": RenameText(r.RenameImpact("alan", "yüzey", RenameOptions{Root: fixtureDir, Limit: 1})),
+		"references": Text(r.References("alan", QueryOptions{Limit: 1})),
+		"tested_by":  Text(r.TestedBy("Kare", QueryOptions{Limit: 1})),
+		"impact":     Text(r.Impact("geo", QueryOptions{Limit: 1})),
+		"rename":     RenameText(r.RenameImpact("alan", "yüzey", RenameOptions{Root: fixtureDir, Limit: 1})),
 	} {
 		lines := strings.Split(text, "\n")
 		for i, line := range lines {
@@ -97,6 +97,6 @@ func TestEveryCutGroupSaysHowManyLinesAreHidden(t *testing.T) {
 		}
 	}
 	if cut < 4 {
-		t.Errorf("only %d groups were cut by --sınır 1; the fixture does not exercise the rule", cut)
+		t.Errorf("only %d groups were cut by --limit 1; the fixture does not exercise the rule", cut)
 	}
 }

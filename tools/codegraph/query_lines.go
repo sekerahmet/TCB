@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
-// Bu dosya konumla sorgu: `dosya:satır` ve `dosya:satır:sütun` (gopls'in ve tr dizin'in konum biçimi) query, who-uses,
+// Bu dosya konumla sorgu: `dosya:satır` ve `dosya:satır:sütun` (gopls'in ve tr index'in konum biçimi) query, who-uses,
 // tests-for ve history'de satırı içeren en içteki düğüme çözülür; `query -` grep'in çıktısını (`yol:satır:metin`) satır
 // satır okur ve her satıra o düğümü yazar. Metin araması codegraph'ta yoktur (grep, ripgrep var); bu köprü bulunan
 // yeri grafiğe taşır (README, "Reading an answer": metnin içeriği grep ile aranır, sonra bulunan yer grafiğe sorulur).
@@ -22,7 +22,7 @@ import (
 // İçeren düğümün kuralı: satırı kapsayan (ilk satırdan son satıra) düğümlerden en dar olanı; kapanış (func literal)
 // kendi işlevine sayılır, alan ve yöntem tipinden içtedir. Bildirimin hemen üstündeki yorum satırları (belge yorumu,
 // araya boş satır girmeden) o bildirimindir. Hiçbir bildirimde olmayan satır (iki bildirim arası, içe aktarma) dosyanın
-// kendisidir ve bu söylenir. `.tr` dosyasında sütun da verilmişse konum tr dizin'in kuralıyla (codeindex Reader.At:
+// kendisidir ve bu söylenir. `.tr` dosyasında sütun da verilmişse konum tr index'in kuralıyla (codeindex Reader.At:
 // imlecin altındaki adın başvurduğu bildirim) çözülür; sütunsuz satır Go'daki gibi içeren bildirimdir.
 
 // locationForm `yol:satır` ya da `yol:satır:sütun`, ardından isteğe bağlı `:metin` (grep -n, rg --vimgrep).
@@ -60,7 +60,7 @@ func (ix *index) locate(q string, exact bool) (loc location, ok bool) {
 	loc.col, _ = strconv.Atoi(m[3])
 	if loc.col > 0 && strings.HasSuffix(loc.file, ".tr") {
 		if n := ix.trReference(loc); n != nil {
-			loc.node, loc.note = n, "the name at that column refers to it (tr dizin's rule)"
+			loc.node, loc.note = n, "the name at that column refers to it (tr index's rule)"
 			return loc, true
 		}
 	}
@@ -134,7 +134,7 @@ func (ix *index) fileLines(file string) []string {
 	return strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
 }
 
-// trReference `.tr` konumundaki adın başvurduğu bildirimin düğümüdür (codeindex Reader.At, tr dizin'in konum çözümü).
+// trReference `.tr` konumundaki adın başvurduğu bildirimin düğümüdür (codeindex Reader.At, tr index'in konum çözümü).
 func (ix *index) trReference(loc location) *Node {
 	idx, err := codeindex.Build(ix.root, codeindex.Options{Dirs: trRoots, Tracked: true})
 	if err != nil {

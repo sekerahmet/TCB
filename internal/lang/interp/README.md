@@ -41,7 +41,7 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 metin yaptığı her yer (`TR_String()`, `TR_print`, metin yerleştirmesi, Metin ile `+`, `TR_join`,
 `TR_write_file`, `TR_input`'un istemi, metin metotlarının argümanları) değeri kimliğin adıyla yazar
 (`true`, `none`, `Int`; tek yol: `VM.textOf`/`valueText`, dil `codes.ValueNames()`): aynı program her
-makinede ve her `TR_DIL`'de aynı çıktıyı verir. Yakalanan hatanın metni sabit İngilizce katalogdan kurulur
+makinede ve her `TR_LANG`'de aynı çıktıyı verir. Yakalanan hatanın metni sabit İngilizce katalogdan kurulur
 (`caughtErrorLanguage`, `messages.ValueLanguage`). `Inspect` aynı metni verir (3.14). Sözlük anahtarı bir
 ifadedir ve metin anahtarı çevrilmez (`{"step": 1}`; 3.7): `TR_keys()`, `d["step"]` ve veri biçimleri (JSON,
 günlük, kontrol noktası; `KeyText`) aynı anahtarı görür. Anahtar yalnız köşeli parantezle okunur ve yazılır;

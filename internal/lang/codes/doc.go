@@ -17,7 +17,7 @@
 //	val   value names (inf, nan; never coded)    type  type names (tip(), type annotations)
 //	fn    builtin functions                      const builtin constants (pi)
 //	arg   named arguments                        mem   methods and properties (x.name)
-//	cmd   commands of tr                         sub   subcommands of 'tr dizin'
+//	cmd   commands of tr                         sub   subcommands of 'tr index'
 //	opt   command-line options                   repl  shell commands
 //	dbg   debugger commands                      env   environment variables (TR_env_LANG for TR_LANG)
 //

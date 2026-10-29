@@ -9,7 +9,7 @@ import (
 )
 
 // scriptExts ortam değişkeni kullanımları okunan betik türleridir: kabuk ve Python. Betik değişkeni koyar ya da okur
-// (`TR_GPU_ESZAMANLI=1 tr ...`, `export TR_DIL=en`, `${TR_DIL:-tr}`, `os.environ["TR_DIL"]`); hepsinde değişkenin adı
+// (`TR_GPU_SYNC=1 tr ...`, `export TR_LANG=en`, `${TR_LANG:-tr}`, `os.environ["TR_LANG"]`); hepsinde değişkenin adı
 // düz metin olarak geçer.
 var scriptExts = map[string]bool{".sh": true, ".py": true}
 

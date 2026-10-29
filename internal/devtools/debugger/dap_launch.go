@@ -146,7 +146,7 @@ func (s *dapServer) start() {
 		logging.CloseAll() // bitmemiş ilerleme çubuklarının son satırı konsola
 		end := s.machine.End(err)
 		if end.Message != "" {
-			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --yardım ya da hatalı
+			// Programın istediği çıkış (ör. komut satırı seçeneklerinde --help ya da hatalı
 			// argüman): mesaj konsola, kod düzenleyiciye.
 			category := "stderr"
 			if end.MessageToOutput {

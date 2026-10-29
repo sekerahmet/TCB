@@ -43,8 +43,8 @@ func TestScriptArgumentsPassed(t *testing.T) {
 	writeTR(t, dir, "dolayli.tr", readsViaFunction)
 	for _, command := range [][]string{
 		{"okur.tr", "--adim", "5"},
-		{"çalıştır", "okur.tr", "--adim", "5"},
-		{"hata_ayıkla", "okur.tr", "--adim", "5"},
+		{"run", "okur.tr", "--adim", "5"},
+		{"debug", "okur.tr", "--adim", "5"},
 		{"dolayli.tr", "--adim", "5"},
 	} {
 		testkit.Wait(t, tr(t, dir, command...), 0, []string{"adım: 5"}, nil)
@@ -60,8 +60,8 @@ func TestArgumentsToAProgramThatReadsNoneAreAUsageError(t *testing.T) {
 	writeTR(t, dir, "cagrilmaz.tr", readsInAFunctionNeverCalled)
 	for _, command := range [][]string{
 		{"okumaz.tr", "--adim", "5"},
-		{"çalıştır", "okumaz.tr", "--adim", "5"},
-		{"hata_ayıkla", "okumaz.tr", "--adim", "5"},
+		{"run", "okumaz.tr", "--adim", "5"},
+		{"debug", "okumaz.tr", "--adim", "5"},
 		{"cagrilmaz.tr", "--adim", "5"},
 	} {
 		s := tr(t, dir, command...)
@@ -108,7 +108,7 @@ func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "okur.tr", "--ros-args", "-r", "a:=b", "--", "--adim", "7", "--local-rank=1"), 0, []string{"adım: 7"}, nil)
 }
 
-// 'tr derle' ile üretilen uygulamanın bütün argümanları programındır (1.4); kural onda da
+// 'tr build' ile üretilen uygulamanın bütün argümanları programındır (1.4); kural onda da
 // geçerlidir.
 func TestBuiltAppArguments(t *testing.T) {
 	dir := t.TempDir()
@@ -116,8 +116,8 @@ func TestBuiltAppArguments(t *testing.T) {
 	writeTR(t, dir, "okumaz.tr", readsNothing)
 	readsExe := filepath.Join(t.TempDir(), "okur.exe")
 	readsNothingExe := filepath.Join(t.TempDir(), "okumaz.exe")
-	testkit.Wait(t, tr(t, dir, "derle", "okur.tr", readsExe), 0, nil, nil)
-	testkit.Wait(t, tr(t, dir, "derle", "okumaz.tr", readsNothingExe), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "build", "okur.tr", readsExe), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "build", "okumaz.tr", readsNothingExe), 0, nil, nil)
 	testkit.Wait(t, testkit.RunBinary(t, readsExe, dir, "", nil, "--adim", "5"), 0, []string{"adım: 5"}, nil)
 	testkit.Wait(t, testkit.RunBinary(t, readsNothingExe, dir, "", nil, "--adim", "5"), 2, nil, []string{"--adim"})
 }

@@ -30,7 +30,7 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 
 **Ağ.** Yorumlayıcı bugün hiçbir ağ bağlantısı açmaz. İleride bir sunucu eklenirse yalnızca `127.0.0.1`'e bağlanır.
 
-**VS Code eklentisi.** Eklenti yalnızca güvenilen yorumlayıcıyı çalıştırır: yorumlayıcının yolu (`tr.interpreterPath`) yalnızca kullanıcı ayarından okunur, çalışma alanının kendi ayar dosyası onu değiştiremez; güvenilmeyen (kısıtlı kipteki) çalışma alanında hiçbir şey çalıştırılmaz; yorumlayıcı üst klasörlerde aranmaz ([eklenti belgesi](editors/vscode/README.md)). Dosyanın yazım dilindeki salt okunur görünümü de yorumlayıcıyı (`TR_cmd_show`, `tr göster -`; metin standart girişten verilir, kabuk kullanılmaz) aynı kuralla çalıştırır; kısıtlı kipte görünüm açılmaz.
+**VS Code eklentisi.** Eklenti yalnızca güvenilen yorumlayıcıyı çalıştırır: yorumlayıcının yolu (`tr.interpreterPath`) yalnızca kullanıcı ayarından okunur, çalışma alanının kendi ayar dosyası onu değiştiremez; güvenilmeyen (kısıtlı kipteki) çalışma alanında hiçbir şey çalıştırılmaz; yorumlayıcı üst klasörlerde aranmaz ([eklenti belgesi](editors/vscode/README.md)). Dosyanın yazım dilindeki salt okunur görünümü de yorumlayıcıyı (`TR_cmd_show`, `tr show -`; metin standart girişten verilir, kabuk kullanılmaz) aynı kuralla çalıştırır; kısıtlı kipte görünüm açılmaz.
 
 ## Bulanıklaştırma testleri
 

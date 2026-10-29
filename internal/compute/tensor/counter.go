@@ -9,7 +9,7 @@ import (
 // Profil sayaçları: her zaman açık, çok ucuz tensör işlemi sayaçları
 // ============================================================================
 //
-// Canlı profil (tr izle, tr profil) tensör işlemlerinin türüne, yönüne (ileri / geri
+// Canlı profil (tr watch, tr profile) tensör işlemlerinin türüne, yönüne (ileri / geri
 // yayılım) ve cihazına göre çağrı sayısını, süresini ve ayırdığı baytı bu sayaçlardan
 // okur. Sayaçlar her zaman açıktır; açma/kapama yoktur. Bir işlemin maliyeti:
 //
@@ -188,7 +188,7 @@ func init() {
 
 // activeNo o anda çalışan işlemin kaydının numarasıdır (kayitNo; 0: tensör işlemi yok). Bayt
 // sayacı ayırmayı ona yazar; track düğümü onunla etiketler (geri yayılım düğümün işlem
-// türüyle sayılır; sayaçsız işlemlerin düğümü "diğer" olur); örnekleyici (tr izle) zamanı
+// türüyle sayılır; sayaçsız işlemlerin düğümü "diğer" olur); örnekleyici (tr watch) zamanı
 // tensör işlemi / TR kodu diye ona bakarak ayırır. Gösterici değil numaradır: küresel bir
 // göstericiye her yazma, çöp toplayıcı işaretlerken yazma engelinden (write barrier) geçerdi;
 // çok iş parçacıklı, çok ayırmalı küçük işlemlerde bu, sayaçların yükünü üçe katlıyordu.

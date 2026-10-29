@@ -70,7 +70,7 @@ func localDecimal(text, lang string) string {
 }
 
 // Decimal writes the decimal points of a number's text (Go's "1.5", "2.3 GB") with the person's
-// writing language's separator (TR_DIL: "1,5" in Turkish), for display that is not a message (a
+// writing language's separator (TR_LANG: "1,5" in Turkish), for display that is not a message (a
 // progress line, a profile table). In a message the template's {name|decimal} does the same in
 // the message's language.
 func Decimal(text string) string { return localDecimal(text, activeCatalog().Language) }

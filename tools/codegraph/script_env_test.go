@@ -11,7 +11,7 @@ import (
 )
 
 // Kural: kabuk ve Python betiklerinde (izlenen .sh, .py) yorum satırı dışında geçen her kodlu ortam değişkeni adı (her
-// dildeki adı, ortak adı ya da kimliği: `TR_CPU_AVX2=0`, `export TR_DIL=en`, `${TR_DIL:-tr}`, `os.environ["TR_DIL"]`)
+// dildeki adı, ortak adı ya da kimliği: `TR_CPU_AVX2=0`, `export TR_LANG=en`, `${TR_LANG:-tr}`, `os.environ["TR_LANG"]`)
 // betiğin dosya düğümünden o ad koduna `uses_env` kenarıdır: `query TR_env_GPU_SYNC` değişkeni koyan betiği de verir
 // (eksikler listesi, ana oturum 2026-10-26: card_check.sh ve full_check.sh görünmüyordu). Betikler ve adlar
 // codegraph'ın çıkarıcısından bağımsız, git'in listesinden ve düz metin taramasıyla bulunur.

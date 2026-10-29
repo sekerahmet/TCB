@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// helpText --yardım çıktısıdır: kullanım satırı, programın açıklaması ve her seçeneğin
+// helpText --help çıktısıdır: kullanım satırı, programın açıklaması ve her seçeneğin
 // tipi, açıklaması ve varsayılanı.
 //
 //	Kullanım: tr egit.tr [seçenekler]
@@ -19,7 +19,7 @@ import (
 //	Seçenekler:
 //	  --öğrenme_oranı <Ondalık>   AdamW öğrenme oranı (varsayılan: 0.001)
 //	  --hızlı                     (varsayılan: yanlış)
-//	  --yardım, -h                bu yardımı gösterir
+//	  --help, -h                bu yardımı gösterir
 func helpText(command, description string, options []*option) string {
 	var b strings.Builder
 	b.WriteString(messages.Text(messages.H7232, command) + "\n")
@@ -83,5 +83,5 @@ func defaultText(v interp.Value) string {
 		}
 		return strings.Join(parts, ",")
 	}
-	return interp.DisplayText(v) // yardım görüntüdür (TR_DIL)
+	return interp.DisplayText(v) // yardım görüntüdür (TR_LANG)
 }

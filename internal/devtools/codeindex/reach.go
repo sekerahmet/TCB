@@ -1,6 +1,6 @@
 package codeindex
 
-// "Bir test bu işleve bir yardımcı üzerinden ulaşıyor" ilişkisinin TEK yürüyüşü: `tr dizin sınayanlar` (TestedBy) ve
+// "Bir test bu işleve bir yardımcı üzerinden ulaşıyor" ilişkisinin TEK yürüyüşü: `tr index tested_by` (TestedBy) ve
 // tools/codegraph (`tests-for`, yol sabitleri, gömülü dosyalar, ad kodu testleri) aynı fonksiyonu ve aynı sınırları
 // kullanır (bağımsız denetim T3: eskiden codeindex 4 adım ve sınırsız paket, codegraph 8 adım ve 1 paket sınırıydı).
 //

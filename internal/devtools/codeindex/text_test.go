@@ -155,10 +155,10 @@ func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
 }
 
 // Kural: araçların tek dosya listesinin (ListFiles) iki kipi vardır. TrackedFiles (depo araçları): git'in izlediği
-// dosyalar. AllFiles (tr dizin): kökün altındaki her dosya, .gitignore'a bakılmadan; scratch/ gibi yok sayılan bir
-// klasörde yazılan .tr da girer (DENETİM: 0fb3351e'de tr dizin scratch/deneme.tr'yi görmüyordu). İki kipte de atlama
+// dosyalar. AllFiles (tr index): kökün altındaki her dosya, .gitignore'a bakılmadan; scratch/ gibi yok sayılan bir
+// klasörde yazılan .tr da girer (DENETİM: 0fb3351e'de tr index scratch/deneme.tr'yi görmüyordu). İki kipte de atlama
 // listesindeki klasörün (testdata) altı girmez, izlense de; dirs ve keep süzer; git yoksa iki kip de gezintidir.
-// Dizin kipi Options.Tracked'tan alır: tr dizin yok sayılan klasördeki .tr'yi bulur, codegraph'ın dizini bulmaz.
+// Dizin kipi Options.Tracked'tan alır: tr index yok sayılan klasördeki .tr'yi bulur, codegraph'ın dizini bulmaz.
 func TestListFilesKeepsTwoRules(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{"lib/a.tr": "TR_func a() {\n    TR_return 1\n}\n", "lib/new.tr": "y",
@@ -213,7 +213,7 @@ func TestListFilesKeepsTwoRules(t *testing.T) {
 	}
 }
 
-// Kural (Ahmet, 2026-10-26): tr dizin git'in yok saydığı klasördeki .tr'yi de dizinler (kişinin scratch/ denemeleri), ama
+// Kural (Ahmet, 2026-10-26): tr index git'in yok saydığı klasördeki .tr'yi de dizinler (kişinin scratch/ denemeleri), ama
 // cevapta o satırlar depodakilerden sonra gelir ve "yok sayılan klasör" diye işaretlenir (H8870); belirsiz adda depodaki
 // aday önce gelir. ortak hem lib/'de hem yok sayılan deneme/'de tanımlı (alfabede önce gelir); deneme/'deki dosya lib/'deki işlevi de çağırır.
 func TestAnIgnoredFileComesAfterTheRepositoryAndIsMarked(t *testing.T) {

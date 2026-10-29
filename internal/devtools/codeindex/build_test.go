@@ -137,7 +137,7 @@ func TestSkippedFileKeepsItsModuleNode(t *testing.T) {
 	}
 }
 
-// Dizin yazım dilinden bağımsızdır: aynı proje TR_DIL=tr ve TR_DIL=en ile aynı olguları verir.
+// Dizin yazım dilinden bağımsızdır: aynı proje TR_LANG=tr ve TR_LANG=en ile aynı olguları verir.
 func TestIndexIndependentOfActiveLanguage(t *testing.T) {
 	testkit.AssertSameFactSet(t, "the index", 40, facts(buildWithLanguage(t, "tr")), facts(buildWithLanguage(t, "en")))
 }
@@ -157,9 +157,10 @@ func TestHelperBuildFixture(t *testing.T) {
 	}
 }
 
-// buildWithLanguage fikstürün dizinini TR_DIL=lang ortamında bir alt süreçte kurar.
+// buildWithLanguage fikstürün dizinini TR_LANG=lang ortamında bir alt süreçte kurar.
 func buildWithLanguage(t *testing.T, lang string) *Index {
 	t.Helper()
+	t.Setenv("TR_LANG", lang)
 	idx, err := DecodeIndex(testkit.RunWithLanguageFile(t, "TestHelperBuildFixture", "CODEINDEX_HELPER_OUT", lang))
 	if err != nil {
 		t.Fatal(err)

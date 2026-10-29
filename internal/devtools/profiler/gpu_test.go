@@ -40,7 +40,7 @@ func setupGPU(t *testing.T) {
 func TestProfileGPUKernelsAndMemory(t *testing.T) {
 	setupGPU(t)
 	if gpu.ProfileEnabled() {
-		t.Skip("TR_GPU_PROFIL açık: ölçümün açılıp kapanması sınanamaz")
+		t.Skip("TR_GPU_PROFILE açık: ölçümün açılıp kapanması sınanamaz")
 	}
 	g, _ := runWithClose(t, gpuTraining, Options{GPUMeasure: true})
 	if gpu.ProfileEnabled() {
@@ -84,7 +84,7 @@ func TestProfileGPUKernelsAndMemory(t *testing.T) {
 func TestProfileGPUMeasureOff(t *testing.T) {
 	setupGPU(t)
 	if gpu.ProfileEnabled() {
-		t.Skip("TR_GPU_PROFIL açık")
+		t.Skip("TR_GPU_PROFILE açık")
 	}
 	g, _ := runWithClose(t, gpuTraining, Options{})
 	if !g.GPU.Used || g.GPU.Measured || len(g.GPU.Kernels) != 0 || g.GPU.Note == "" {
@@ -99,7 +99,7 @@ func TestProfileGPUMeasureOff(t *testing.T) {
 }
 
 // runWithClose calistir gibidir; ek olarak program bitince (motorlar kapanmadan önce)
-// BeforeClose'yi çağırır (tr izle ve tr profil'in yaptığı gibi).
+// BeforeClose'yi çağırır (tr watch ve tr profile'in yaptığı gibi).
 func runWithClose(t *testing.T, code string, s Options) (*Snapshot, *Profile) {
 	t.Helper()
 	var pr *Profile

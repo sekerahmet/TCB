@@ -14,7 +14,7 @@ type Error struct {
 
 // Localized is a parameter value whose text depends on the language of the message it is put
 // in: a TR value, a type name. The catalog asks for it in the language it writes the message
-// in (TR_DIL, or the source language when the message falls back), so a message and the values
+// in (TR_LANG, or the source language when the message falls back), so a message and the values
 // inside it are always in one language. Like Fluent's FluentType.toString(scope); messages does
 // not know the values (interp implements it).
 type Localized interface {
@@ -31,7 +31,7 @@ func Text(c Code, args ...any) string { return catalogFor(c, args).render(c, arg
 
 // TextIn is the message's text in the given language instead of the process's (the source
 // language when that language has no text for it). A value's text follows the language of the
-// file the program is written in, not TR_DIL (docs/spec/03_tipler.md): '<function f>' in an
+// file the program is written in, not TR_LANG (docs/spec/03_tipler.md): '<function f>' in an
 // English file wherever it runs.
 func TextIn(lang string, c Code, args ...any) string {
 	load()

@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// FuzzParser: source is untrusted input ('tr kontrol', the formatter and the editor parse it
+// FuzzParser: source is untrusted input ('tr check', the formatter and the editor parse it
 // without running it). The parser must not panic or take long, and every error must carry a
 // position. Deep search:
 //

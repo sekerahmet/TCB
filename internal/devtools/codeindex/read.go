@@ -13,7 +13,7 @@ import (
 // sözcükleri kimlik yazımıyladır (TR_print, x.TR_map; dil tanımı 2.3a), sözcük çözümleyici onları kimliğe çevirir
 // (TR_fn_print, TR_type_GPT); kullanıcının adları yazıldığı gibidir. Başlıksız dosya ve görünüm (`# TR 4 view=tr`)
 // çalışmaz, okunmaz: dosya Index.Skipped'a nedeniyle yazılır (2.1). Konumlar diskteki metindir: satır dosyanın satırı
-// (başlık 1. satır), sütun diskteki karakter. Dosyanın dili yoktur; dizin TR_DIL'den bağımsızdır, okuyanın dilindeki
+// (başlık 1. satır), sütun diskteki karakter. Dosyanın dili yoktur; dizin TR_LANG'den bağımsızdır, okuyanın dilindeki
 // adları çıktı yazar (Reader.display).
 
 // parsed bir .tr dosyasının okunmuş hâlidir.

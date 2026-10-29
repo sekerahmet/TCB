@@ -13,7 +13,7 @@ import (
 
 // Çalışmadan önce modül denetimi (1.3): programın aktardığı bütün modüller (özyinelemeli)
 // çalışmadan önce ayrıştırılır ve CheckModule ile tip denetiminden geçer; hata varsa hiçbir satır
-// çalışmaz. 'tr kontrol', 'tr derle' (cmd/tr) ve çalıştıran her yol aynı CheckModule'ü aynı
+// çalışmaz. 'tr check', 'tr build' (cmd/tr) ve çalıştıran her yol aynı CheckModule'ü aynı
 // genel adlarla (ana programın en dış adları) kullanır; yürütme sırasında modül yalnız okunup
 // ayrıştırılır (runModule), ikinci bir denetim yolu yoktur. Dilin gömülü kitaplık modülleri
 // derlemeyle gelir, denetlenmez.

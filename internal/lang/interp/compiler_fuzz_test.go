@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// FuzzCompileSource: kaynak kod güvenilmeyen girdidir ('tr kontrol' ve düzenleyici bir dosyayı
+// FuzzCompileSource: kaynak kod güvenilmeyen girdidir ('tr check' ve düzenleyici bir dosyayı
 // çalıştırmadan denetler; 'aktar' başka dosyaları okur). Ayrıştırıcı (program ve modül
 // biçimi), tip denetleyicisi ve derleyici hiçbir girdide çökmemelidir. Program
 // ÇALIŞTIRILMAZ: yalnızca derlenir (hata ayıklama kipi tip denetimini atladığı için

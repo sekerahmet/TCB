@@ -395,12 +395,12 @@ func BenchmarkLoad(b *testing.B) {
 	}
 }
 
-// Geçersiz TR_DIL paketi yüklerken süreci kapatmaz: dil Türkçeye düşer, hata LanguageError
+// Geçersiz TR_LANG paketi yüklerken süreci kapatmaz: dil Türkçeye düşer, hata LanguageError
 // ile okunur (eskiden init içinde os.Exit(2) vardı; paketi kullanan her program kapanırdı).
 // Kontrol alt süreçte yapılır: etkin dil süreç başında bir kez kurulur.
 func TestInvalidLanguageFallsBack(t *testing.T) {
 	if os.Getenv("TR_CODES_CHILD") == "1" {
-		if err := LanguageError(); err == nil || !strings.Contains(err.Error(), "TR_DIL=xx") {
+		if err := LanguageError(); err == nil || !strings.Contains(err.Error(), "TR_LANG=xx") {
 			t.Fatalf("dil hatası beklenirdi: %v", err)
 		}
 		if Source().Code != "tr" {
@@ -442,7 +442,7 @@ func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 	}
 }
 
-// 'tr dizin' alt komutları (sub sınıfı) yalnızca dizin komutunun altında geçerlidir: üst düzey
+// 'tr index' alt komutları (sub sınıfı) yalnızca dizin komutunun altında geçerlidir: üst düzey
 // komut adı değildir, ama her gömülü dilin adı alt komut olarak kabul edilir (17.8).
 func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 	for _, name := range []string{"tanım", "kullananlar", "sınayanlar", "etki", "yeniden_adlandır", "definition", "references", "tested_by", "impact", "rename"} {

@@ -35,9 +35,10 @@ func TestHelperBuildFixture(t *testing.T) {
 	}
 }
 
-// buildWithLanguage fikstür grafiğini TR_DIL=lang ortamında bir alt süreçte kurar.
+// buildWithLanguage fikstür grafiğini TR_LANG=lang ortamında bir alt süreçte kurar.
 func buildWithLanguage(t *testing.T, lang string) *Graph {
 	t.Helper()
+	t.Setenv("TR_LANG", lang)
 	path := filepath.Join(t.TempDir(), "g_"+lang+".json")
 	if err := os.WriteFile(path, testkit.RunWithLanguageFile(t, "TestHelperBuildFixture", helperOut, lang), 0o644); err != nil {
 		t.Fatal(err)
@@ -66,7 +67,7 @@ func trFacts(g *Graph) []string {
 	return out
 }
 
-// Grafik etkin dilden bağımsızdır: TR_DIL=en ve TR_DIL=tr ile kurulan grafiklerde .tr düğümleri ve
+// Grafik etkin dilden bağımsızdır: TR_LANG=en ve TR_LANG=tr ile kurulan grafiklerde .tr düğümleri ve
 // kenarları (uses_name, calls, uses, imports, tests) aynıdır. Kodsuz dosya her zaman Türkçe, kodlu
 // dosya Türkçe görünümüyle okunur.
 func TestTRGraphIsIndependentOfTheActiveLanguage(t *testing.T) {

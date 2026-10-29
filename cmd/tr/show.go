@@ -15,10 +15,10 @@ import (
 
 // Görünüm komutu (docs/spec/17_kodlar.md, 17.7):
 //
-//	tr göster <dosya.tr> [--dil tr]  dosyayı bir yazım dilinde standart çıktıya basar
-//	tr göster - [--dil tr]           metni standart girişten okur, görünümünü çıkışa yazar
+//	tr show <dosya.tr> [--lang tr]  dosyayı bir yazım dilinde standart çıktıya basar
+//	tr show - [--lang tr]           metni standart girişten okur, görünümünü çıkışa yazar
 //
-// Yazım dili verilmezse kişinin yazım dilidir (codes.Display, TR_DIL). Görünüm yalnız okunur:
+// Yazım dili verilmezse kişinin yazım dilidir (codes.Display, TR_LANG). Görünüm yalnız okunur:
 // çalışmaz ve koda geri çevrilmez; kod yalnız kimliklerle yazılır.
 //
 // Standart giriş kipi ('-') düzenleyiciler içindir (VS Code eklentisi kodlu dosyanın görünümünü
@@ -37,7 +37,7 @@ func orDisplay(languageCode string) string {
 	return languageCode
 }
 
-// languageArgument standart giriş kipinin '--dil <kod>' argümanını okur (verilmemişse ""); başka
+// languageArgument standart giriş kipinin '--lang <kod>' argümanını okur (verilmemişse ""); başka
 // bir argüman hatadır.
 func languageArgument(args []string, command any) string {
 	languageCode, extra := parseLanguageArgs(command, args, messages.Text(messages.H8700, codes.OptionFlag(codes.OptLang), command))
@@ -47,8 +47,8 @@ func languageArgument(args []string, command any) string {
 	return languageCode
 }
 
-// parseLanguageArgs '--dil <kod>' argümanını (verilmemişse "") ve konumlu argümanları okur; dil
-// kodunu ve konumlu argümanları döndürür (kaç tane alınacağı çağıranındır). Değersiz '--dil'
+// parseLanguageArgs '--lang <kod>' argümanını (verilmemişse "") ve konumlu argümanları okur; dil
+// kodunu ve konumlu argümanları döndürür (kaç tane alınacağı çağıranındır). Değersiz '--lang'
 // missingValue iletisiyle (ileti çağıranındır), başka seçenek unknownOption ile çıkışa götürür.
 // '--'dan sonraki argüman seçenek sayılmaz.
 func parseLanguageArgs(command any, args []string, missingValue string) (languageCode string, files []string) {
@@ -128,7 +128,7 @@ func writeInPlace(filePath, text string) error {
 	return nil
 }
 
-// showCommand 'tr göster <dosya.tr> [--dil tr]' komutudur: dosya verilen yazım dilinde
+// showCommand 'tr show <dosya.tr> [--lang tr]' komutudur: dosya verilen yazım dilinde
 // (varsayılan kişinin yazım dili) standart çıktıya yazılır; gösterim başlığı ve satırları tutar,
 // başlıksız metin olduğu gibi kalır (source.Show). Dosya yerine '-' verilirse metin standart girişten
 // okunur (düzenleyiciler için; çıkış kodları yukarıda).

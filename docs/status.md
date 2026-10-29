@@ -982,8 +982,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.9
 
-- **Mevcut durum:** girdide her gömülü dilin adı kabul ediliyor ("tr çalıştır", "--dil", "TR_DIL"); Türkçe harfsiz biçim asıl adı öneriyor. Depoda Türkçe yazımlar [ölçüldü: izlenen dosyalar, git grep]: "TR_DIL" 233 satır (88 dosya), "tr dizin" 148, "--dil" 75, "tr göster" 48, "tr profil" 48, "tr kontrol" 40, "tr izle" 37, "tr kodla" 36, "tr derle" 32, "tr biçimle" 22, "tr çalıştır" 21.
-- **Yapılacaklar:** girdinin yalnız kimliğin adını kabul etmesi, iletinin kimliğin adını önermesi, yardımın yazılacak adı göstermesi; depodaki yazımların göçü (mekanik); `TestCommandLineNamesInEveryLanguage` kalkan davranışı sınıyor, değişir.
+- **Mevcut durum (Faz 0.4, 2026-10-30):** komut satırı girdisi ("cmd", "sub", "opt", "repl", "dbg", "env") yalnız kimliğin adını kabul ediyor ("tr run", "tr index definition", "--lang", "exit", "step", "TR_LANG"); gösterim dilindeki ad hata veriyor ve kimliğin adını öneriyor (H8875–H8879); yardım ve iletiler yazılacak kimlik adını ve kişinin dilindeki açıklamayı gösteriyor; depodaki yazımlar (186 dosya) kimlik adına göç ettirildi [ölçüldü: `eski_denetimler/faz0_4_betik.py`].
 
 ### 17.10
 
@@ -1069,8 +1068,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ### 19.11
 
-- **Mevcut durum:** iş klasörünün ortam değişkeni "TR_IS_KLASORU"; çubuğun dili "TR_DIL"'den okunuyor [ölçüldü: kod].
-- **Yapılacaklar:** "TR_JOB_DIR" ve "TR_LANG" (17.9'un göçüyle birlikte).
+- **Mevcut durum (Faz 0.4, 2026-10-30):** iş klasörünün ortam değişkeni `TR_JOB_DIR`; çubuğun dili `TR_LANG`'dan okunuyor [ölçüldü: kod].
 
 ## 20. Kontrol noktası
 

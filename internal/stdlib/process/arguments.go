@@ -22,13 +22,13 @@ const argLimit = 1 << 20
 // Kullanıcının yazdığı argümanlardaki hatanın çıkış kodu ("yanlış kullanım").
 const usageErrorCode = 2
 
-// Yardım seçeneği bir ad kodudur (TR_opt_help): her yazım dilinin adı kabul edilir (--yardım de
+// Yardım seçeneği bir ad kodudur (TR_opt_help): her yazım dilinin adı kabul edilir (--help de
 // --help de), yardımda ve iletilerde etkin dilin adı yazılır; -h simgedir.
 
-// helpOption yardım seçeneğinin etkin dildeki yazımıdır (--yardım).
+// helpOption yardım seçeneğinin etkin dildeki yazımıdır (--help).
 func helpOption() string { return codes.OptionFlag(codes.OptHelp) }
 
-// isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir dilde --yardım.
+// isHelpArgument argümanın yardımı istediğidir: -h ya da herhangi bir dilde --help.
 func isHelpArgument(a string) bool {
 	if a == "-h" {
 		return true
@@ -44,7 +44,7 @@ func isHelpName(name string) bool {
 }
 
 // applyArguments programın argümanlarını okur (okunmuş sayılırlar) ve seçeneklerin
-// değerleriyle yeni bir sözlük kurar. --yardım ya da hatalı argüman bir program çıkışı
+// değerleriyle yeni bir sözlük kurar. --help ya da hatalı argüman bir program çıkışı
 // isteği (interp.ExitRequest) döndürür.
 func applyArguments(m *interp.VM, options []*option, description string) (*interp.DictVal, error) {
 	var argv []string
@@ -178,7 +178,7 @@ func unknownOption(given string, options []*option) error {
 	if i := strings.IndexByte(given, '='); i >= 0 {
 		given = given[:i] + "=…"
 	}
-	// Yardım seçeneği her yazım dilinin adıyla kabul edilir (--yardım, --help): hepsi adaydır.
+	// Yardım seçeneği her yazım dilinin adıyla kabul edilir (--help, --help): hepsi adaydır.
 	helps := map[string]bool{}
 	var candidates []string
 	for _, lang := range codes.Languages() {
@@ -197,7 +197,7 @@ func unknownOption(given string, options []*option) error {
 	if o == "" && name != "h" {
 		return messages.New(messages.H7208, shorten(given))
 	}
-	// Programın seçeneği yazıldığı gibi önerilir; yardım seçeneği (-h ya da bir dildeki --yardım)
+	// Programın seçeneği yazıldığı gibi önerilir; yardım seçeneği (-h ya da bir dildeki --help)
 	// iletinin dilindeki adıyla: hiçbir dilin adı öncelikli değildir (17.8).
 	var suggestion any = o
 	if o == "" || (helps[o] && find(options, o) == nil) {
@@ -264,7 +264,7 @@ func parsePlainValue(t optKind, s string) (interp.Value, error) {
 }
 
 // Komut satırı kişinin girdisidir: değer adları her gömülü yazım dilinde kabul edilir (17.8;
-// komutlar ve seçenek adları gibi). Yardım varsayılanı kişinin dilinde gösterir (TR_DIL), betik
+// komutlar ve seçenek adları gibi). Yardım varsayılanı kişinin dilinde gösterir (TR_LANG), betik
 // kendi dilinde yazılmıştır; ikisinin yazımı da okunur.
 
 // boolName s bir gömülü yazım dilinde doğru ya da yanlışın adı mı (TR_kw_true, TR_kw_false)?

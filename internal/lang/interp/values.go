@@ -32,7 +32,7 @@ var (
 )
 
 // MessageText is the type's name in a message written in lang (messages.Localized): the type
-// names in messages follow the message's language (TR_DIL). A name that is not a type code's
+// names in messages follow the message's language (TR_LANG). A name that is not a type code's
 // (a struct's own name) stays as it is.
 func (t ValueType) MessageText(lang string) string {
 	if strings.HasPrefix(string(t), "(") && strings.HasSuffix(string(t), ")") {
@@ -49,7 +49,7 @@ func (t ValueType) MessageText(lang string) string {
 	return l.Name(k)
 }
 
-// Shown is v as a message parameter: its text follows the message's language (TR_DIL), like
+// Shown is v as a message parameter: its text follows the message's language (TR_LANG), like
 // the display (DisplayText); Inspect, the canonical text, is for data, not for messages.
 func Shown(v Value) messages.Localized {
 	if l, ok := v.(*ListVal); ok {

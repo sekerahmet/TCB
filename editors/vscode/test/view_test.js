@@ -58,7 +58,7 @@ async function openView(o) {
     return doc;
 }
 
-test('show: tr göster - --dil ile görünümü verir; ayrıştırılamayan metin EXIT_SYNTAX', async () => {
+test('show: tr show - --lang ile görünümü verir; ayrıştırılamayan metin EXIT_SYNTAX', async () => {
     const s = await view.show(TR, 'tr', CODED);
     assert.strictEqual(s.code, 0, s.error);
     assert.strictEqual(s.output.toString('utf8'), TURKISH_VIEW);

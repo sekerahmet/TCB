@@ -1,5 +1,5 @@
 // Package debugger TR'nin hata ayıklayıcısıdır: terminalde çalışan etkileşimli hata
-// ayıklayıcı ('tr hata_ayıkla', koddaki kesme_noktası) ve düzenleyicilerin bağlandığı
+// ayıklayıcı ('tr debug', koddaki kesme_noktası) ve düzenleyicilerin bağlandığı
 // hata ayıklama sunucusu ('tr dap', dap*.go). Yükleme anında kendini yorumlayıcıya
 // interp.NewDebugger ile kaydeder.
 //

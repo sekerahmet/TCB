@@ -41,7 +41,7 @@ func TestABrokenTurkishListFallsBackToIdentities(t *testing.T) {
 	}
 }
 
-// Kural: Türkçe liste geçerliyse kurulamayan bir gösterim dili (geçersiz TR_DIL) yalnız gösterim
+// Kural: Türkçe liste geçerliyse kurulamayan bir gösterim dili (geçersiz TR_LANG) yalnız gösterim
 // hatasıdır: gösterim Türkçe kalır, içerisi kimliktir.
 func TestAnInvalidDisplayLanguageKeepsTheTurkishList(t *testing.T) {
 	d, a, displayErr, sourceErr := startLanguages("xx", languages)

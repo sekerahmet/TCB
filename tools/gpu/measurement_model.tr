@@ -4,7 +4,7 @@
 # olarak lib/layers.tr'ye bağlanmaz: ölçüm programı PyTorch dosyasıyla katman katman eşleşir, kitaplık
 # değişince ölçüm sessizce değişmesin. Bu dosya aktaranın B, T, D, H, Dh, FF, KATMAN ve V adlarını
 # kullanır (aktar'dan önce tanımlı olmalıdır); ağırlık tohumları kurulum sırasına bağlıdır.
-# Kendisi program değildir: tr kontrol/çalıştırma aktaran dosyalardan yapılır.
+# Kendisi program değildir: tr check/çalıştırma aktaran dosyalardan yapılır.
 
 TR_var tohum_sayacı = 0
 TR_func ağırlık(şekil, ölçek) {

@@ -26,11 +26,11 @@
 | --- | --- | --- |
 | TR: Dosyayı Çalıştır | `tr.run` | `tr.exe <dosya>` |
 | TR: Hata Ayıkla (VS Code) | `tr.debugStart` | VS Code hata ayıklayıcısı (`tr.exe dap`) |
-| TR: Dosyayı Denetle | `tr.check` | `tr.exe kontrol <dosya>` |
-| TR: Terminal Hata Ayıklayıcısında Aç | `tr.debug` | `tr.exe hata_ayıkla <dosya>` |
+| TR: Dosyayı Denetle | `tr.check` | `tr.exe check <dosya>` |
+| TR: Terminal Hata Ayıklayıcısında Aç | `tr.debug` | `tr.exe debug <dosya>` |
 | TR: Tablo Görünümü | `tr.showTable` | Hata ayıklarken değişkeni tablo olarak gösterir |
 | TR: İzleme Masası | `tr.watchPanel` | Hata ayıklarken tüm değişkenleri tablo hâlinde gösteren paneli açar |
-| TR: Görünümü Göster (salt okunur) | `tr.showView` | Açık dosyanın yazım dilinizdeki görünümünü yanda salt okunur açar (`tr.exe göster - --dil <dil>`) |
+| TR: Görünümü Göster (salt okunur) | `tr.showView` | Açık dosyanın yazım dilinizdeki görünümünü yanda salt okunur açar (`tr.exe show - --lang <dil>`) |
 
 - Komut başlıkları VS Code'un gösterim dilini izler (`Configure Display Language`): Türkçe dil paketiyle yukarıdaki Türkçe başlıklar, aksi hâlde İngilizceleri görünür (`TR: Run File`, `TR: Check File` ...). Komut, ayar ve görev kimlikleri her dilde aynıdır ve İngilizcedir; `tasks.json`'da `{ "type": "tr", "command": "tr.run", "file": "${file}" }` yazılır.
 - Komutlar dosyayı önce kaydeder, sonra terminal panelinde çalıştırır. Hata ayıklayıcı komutlarını bu terminale yazabilirsiniz.
@@ -53,10 +53,10 @@ Tuşlar terminal hata ayıklayıcısında da (`TR_cmd_debug`) aynı anlamdadır:
 
 TR dosyaları diskte de düzenleyicide de dilden bağımsız kimliklerle yazılır: ilk satır `# TR 4`, dilin sözcükleri `TR_if`, `TR_print` gibi kimlikler; dosyanın dili yoktur (dil tanımı 17.7). Dosya olduğu gibi açılır, düzenlenir ve kaydedilir; eklenti dosyayı çevirmez.
 
-- **Görünüm:** Komut Paleti → "TR: Görünümü Göster" (ya da düzenleyicinin başlık çubuğundaki düğme) dosyanın **yazım dilinizdeki** (`tr.writingLanguage`) görünümünü yanda **salt okunur** açar. Görünümü `tr göster -` üretir; eklentide ikinci bir çevirici yoktur. Başlık satırı görünümde `# TR 4 view=tr` olur; satır numaraları dosyanınkiyle, hata iletileri ve hata ayıklayıcıyla birebir aynıdır. Görünümün adresi dosyanın kendi yoludur (şeması `tr-view:`).
+- **Görünüm:** Komut Paleti → "TR: Görünümü Göster" (ya da düzenleyicinin başlık çubuğundaki düğme) dosyanın **yazım dilinizdeki** (`tr.writingLanguage`) görünümünü yanda **salt okunur** açar. Görünümü `tr show -` üretir; eklentide ikinci bir çevirici yoktur. Başlık satırı görünümde `# TR 4 view=tr` olur; satır numaraları dosyanınkiyle, hata iletileri ve hata ayıklayıcıyla birebir aynıdır. Görünümün adresi dosyanın kendi yoludur (şeması `tr-view:`).
 - **Görünüm yalnız okunur:** düzenlenmez, kaydedilmez ve koda geri çevrilmez. Dosyayı düzenledikçe (kaydetmeden de) görünüm kısa bir beklemeyle yenilenir; yazım dilini değiştirince açık görünümler yeni dille yenilenir. Dosya o an ayrıştırılamıyorsa (yarım kod) görünüm son metninde kalır ve nedeni bir kez söylenir.
 - **Görünümden çalıştırma ve hata ayıklama:** görünüm etkinken ▶, F5 ve öbür komutlar dosyanın kendisinde çalışır.
-- **Görünüm dosyası çalışmaz:** `tr göster`'in çıktısını bir `.tr` dosyasına kaydedip çalıştırırsanız ileti kodlu dosyayı çalıştırmayı söyler.
+- **Görünüm dosyası çalışmaz:** `tr show`'in çıktısını bir `.tr` dosyasına kaydedip çalıştırırsanız ileti kodlu dosyayı çalıştırmayı söyler.
 - **Kısıtlı kip:** Güvenilmeyen çalışma alanında yorumlayıcı çalıştırılmadığından görünüm açılmaz ve nedeni söylenir; dosya yine okunup düzenlenebilir.
 - **Git farkları:** `git diff`'in Türkçe fark göstermesi için `TR_cmd_show`'u textconv olarak tanıtın ([kılavuz](../../docs/guide/01_baslangic.md#kodlu-dosyalar-düzenleyici-ve-git-farkları)). VS Code'un kaynak denetimi görünümündeki farklar kodlu metni gösterir.
 
@@ -92,7 +92,7 @@ Sınırlamalar: kesme noktaları yalnızca hata ayıklanan dosyada çalışır (
 
 Komutlar yalnızca güvenilen çalışma alanlarında çalışır. Güvenilmeyen (kısıtlı kipteki) klasörlerde renklendirme, şablonlar ve dosya okuma yine kullanılabilir; çalıştırma, denetleme ve hata ayıklama kapalıdır ve bu düğmeler görünmez. Görünüm bu kipte açılmaz.
 
-`tr.writingLanguage`: salt okunur görünümün ve kod şablonlarının kısayollarının yazım dili (`tr`, Türkçe, varsayılan; `en`, İngilizce). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik açık görünümleri yeniler. Ayar çalıştırma, terminal ve hata ayıklama süreçlerine `TR_DIL` olarak da geçer.
+`tr.writingLanguage`: salt okunur görünümün ve kod şablonlarının kısayollarının yazım dili (`tr`, Türkçe, varsayılan; `en`, İngilizce). Yalnızca kullanıcı ayarlarından okunur; her kişi kendisi seçer, dosyada saklanmaz. Değişiklik açık görünümleri yeniler. Ayar çalıştırma, terminal ve hata ayıklama süreçlerine `TR_LANG` olarak da geçer.
 
 Unicode işaretleme: VS Code kısıtlı kipte ASCII dışındaki her harfi sarı kutuyla işaretler. Eklenti `.tr` dosyalarında yalnızca Türk alfabesinin harflerini (ç, ğ, ı, İ, ö, ş, ü ve büyükleri) serbest bırakır (`editor.unicodeHighlight.nonBasicASCII: false` ve `allowedCharacters`); Latin harflerine benzeyen yabancı harfler (ör. Kiril `а`, `е`, Yunan `ο`) ve görünmez karakterler (ör. sıfır genişlikli boşluk) güvenilen ve güvenilmeyen klasörde yine kutuyla işaretlenir (`ambiguousCharacters` ve `invisibleCharacters` açık). Türkçe harfler hâlâ kutulu görünüyorsa eklentinin eski bir kopyası (1.7.0'dan önceki) çalışıyordur: Uzantılar görünümünden eski kopyayı kaldırıp güncelini kurun.
 

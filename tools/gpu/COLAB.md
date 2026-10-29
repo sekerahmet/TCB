@@ -143,7 +143,7 @@ verilebilir (PyTorch'un kurduğu kopya da olur):
 
 Her GPU değişikliği yan dalda kart sınamasından geçer: tek kart yeter; iş olgunlaşınca ve gerekirse iki kart, L4 ve G4 ([`docs/development.md`](../../docs/development.md#gönderim-sırası-cpu-ve-gpu)).
 [`card_check.sh`](card_check.sh) tek komutla kart bilgisini, derlemeyi, GPU testlerini (önce her kernelden sonra
-eşzamanlayarak, `TR_GPU_ESZAMANLI=1`: hata tam o kernelde bildirilir; sonra eşzamansız), dil tanımı testlerini ve
+eşzamanlayarak, `TR_GPU_SYNC=1`: hata tam o kernelde bildirilir; sonra eşzamansız), dil tanımı testlerini ve
 hedef modelde 120 adımlık hızı (ortanca ms/adım, tepe bellek) yapar. Kayıt aracıyla sarılır: kart, sürücü ve commit
 Drive'daki kayda girer (`TR_dili/olcumler/kart/`), kartlar ve zaman arasında oradan karşılaştırılır. GPU çalışma
 zamanında koşulur; yalnızca Go kurulumu ister (hücre B'deki satır). Sınama ikilisi paketin klasöründen çalışır: bazı
@@ -217,7 +217,7 @@ Kendi matris çarpımı çekirdeğimizle karşılaştırmak için (isteğe bağl
 
 ## 7. Profil: büyük modelin kernel dökümü
 
-`TR_GPU_PROFIL=1` her çekirdeği GPU olaylarıyla ölçer; program sonunda standart hataya özet
+`TR_GPU_PROFILE=1` her çekirdeği GPU olaylarıyla ölçer; program sonunda standart hataya özet
 yazar: adım başına duvar/GPU/boşluk/konak süreleri, aile ve kernel tabloları (çağrı, toplam
 ms, ortalama µs, %), bellek (ayrılmış, havuzda, canlı, tepeler).
 
@@ -225,7 +225,7 @@ ms, ortalama µs, %), bellek (ayrılmış, havuzda, canlı, tepeler).
 %%bash
 cd /content/tr
 echo '{"boyut": "buyuk_kisa", "veri": "/content/veri", "cihaz": "gpu"}' > compare_config.json
-TR_GPU_PROFIL=1 ./tr compare_gpu.tr 2>&1 | tail -70
+TR_GPU_PROFILE=1 ./tr compare_gpu.tr 2>&1 | tail -70
 ```
 
 ## 8. Dış profilleyiciler (isteğe bağlı)
@@ -272,7 +272,7 @@ cat /content/runs/deneme/speed.json
 
 Bellek yetmezse toplu işi bölün (adım başına aynı veri): `--toplu 64 --birikim 2` (ya da
 `--toplu 32 --birikim 4`). Karışık hassasiyet: `--hassasiyet bf16`. NorMuon: `--normuon`
-(öğrenme oranı AdamW ölçeğindedir: `--muon_oranı 0.003`). Bütün ayarlar: `./tr gpt_training.tr --yardım`.
+(öğrenme oranı AdamW ölçeğindedir: `--muon_oranı 0.003`). Bütün ayarlar: `./tr gpt_training.tr --help`.
 
 Uzun koşudan önce aynı komut `--prova` ile denenir: iki adım, geçici klasör, bütün dosyaların yazıldığı denetlenir
 (`Prova geçti` satırı).
@@ -320,7 +320,7 @@ Her adım sonunda kayıp okunur (GPU eşzamanlanır): iki tarafın da adım sür
 adımın başlatılması ile GPU'nun çalışması üst üste bindirilmediği için bu süre toplu koşudan
 biraz uzundur. TR'nin `TR_fn_time_ms`'i milisaniye çözünürlüklüdür; adımlar onlarca ms olduğundan
 yeter. Isınma adımları (`warmup`, ilki derleme dahil) ölçülenlerden (`measured`) ayrıdır. Tepe
-bellek PyTorch'ta `max_memory_allocated`, TR'de `tr profil --json` raporundan okunur (ikisi de
+bellek PyTorch'ta `max_memory_allocated`, TR'de `tr profile --json` raporundan okunur (ikisi de
 tensörlerin canlı tepesidir; ayrılan havuz değil).
 
 Kayıp eğrisi: ilk `loss_steps` adımın kaybı yazılır. Eager ve compile aynı tohum ve aynı
@@ -354,7 +354,7 @@ cd /content/tr
 for kip in eager compile max-autotune; do
   python phase3_torch.py --mode $kip --out p3_$kip.json > /dev/null 2> p3_$kip.err || tail -5 p3_$kip.err
 done
-./tr profil --json p3_tr_profil.json phase3_tr.tr --çıktı p3_tr.json > /dev/null 2> p3_tr.err || tail -5 p3_tr.err
+./tr profile --json p3_tr_profil.json phase3_tr.tr --çıktı p3_tr.json > /dev/null 2> p3_tr.err || tail -5 p3_tr.err
 python phase3_table.py p3_tr.json p3_eager.json p3_compile.json p3_max-autotune.json --tr-memory p3_tr_profil.json
 ```
 
@@ -464,10 +464,10 @@ done
 ### Hücre 3 · TR PROFİLİ · GPU
 
 ```bash
-# 3 · TR PROFİLİ: GPU KERNEL AİLELERİ VE TEPE BELLEK DÖKÜMÜ (tr profil, 20 ADIM) · GPU
+# 3 · TR PROFİLİ: GPU KERNEL AİLELERİ VE TEPE BELLEK DÖKÜMÜ (tr profile, 20 ADIM) · GPU
 mkdir -p /content/rgn/trveri && cd /content/rgn
 [ -f trveri/train.npy ] || python -c "import numpy as np; np.save('trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
-/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > profil.txt 2>&1
+/content/tr/tr profile /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > profil.txt 2>&1
 grep -A12 "^aile" profil.txt | head -14; grep -A14 "ayıran satıra göre" profil.txt
 ```
 
@@ -475,7 +475,7 @@ grep -A12 "^aile" profil.txt | head -14; grep -A14 "ayıran satıra göre" profi
 
 ```bash
 # 4 · TR HIZ VE BELLEK ÖLÇÜMÜ (SENTETİK VERİ, 120 ADIM) · GPU
-# Tepe bellek nvidia-smi (GiB = MiB/1024, hücre 2 ile aynı ölçü); tepe canlı/ayrılmış TR_GPU_PROFIL'den.
+# Tepe bellek nvidia-smi (GiB = MiB/1024, hücre 2 ile aynı ölçü); tepe canlı/ayrılmış TR_GPU_PROFILE'den.
 mkdir -p /content/rgn/trveri
 [ -f /content/rgn/trveri/train.npy ] || python -c "import numpy as np; np.save('/content/rgn/trveri/train.npy', np.random.default_rng(0).integers(1, 40000, size=40_000_000, dtype=np.uint16))"
 cd /content/rgn
@@ -483,7 +483,7 @@ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > mem.
 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 120 --çıktı hiz.json 2>&1 | tail -1
 kill $P; sleep 1
 printf "tepe (nvidia-smi): %.2f GiB\n" $(echo "$(sort -n mem.log | tail -1)/1024" | bc -l); cat hiz.json; echo
-TR_GPU_PROFIL=1 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 6 --logger 6 2>&1 | grep "^bellek"
+TR_GPU_PROFILE=1 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 6 --logger 6 2>&1 | grep "^bellek"
 ```
 
 ### Hücre 5 · GERÇEK VERİ: DRIVE'I BAĞLA VE KOPYALA · CPU
@@ -627,7 +627,7 @@ r = json.load(open("reference.json"))["steps"]; t = json.load(open("tr.json"))["
 d = max(abs(a["loss"] - b["loss"]) for a, b in zip(r, t)); g = max(abs(a["grad_norm"] - b["grad_norm"]) for a, b in zip(r, t))
 print(f"eşleşme (100 adım, bf16): en büyük kayıp farkı {d:.4f}, grad farkı {g:.4f}; son kayıp PT {r[-1]['loss']:.4f} TR {t[-1]['loss']:.4f}")
 PY
-cd /content/rgn && /content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > bir/profil.txt 2>&1
+cd /content/rgn && /content/tr/tr profile /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > bir/profil.txt 2>&1
 echo bitti > bir/bitti
 EOF
 setsid nohup bash bir/kos.sh > /dev/null 2>&1 < /dev/null &
@@ -698,7 +698,7 @@ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > hz/m
 /content/tr/tr /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 120 --çıktı hz/hiz.json > hz/tr.log 2>&1
 kill $P; sleep 1
 printf "tepe %.2f GiB | ortanca %s ms/adım | %s\n" $(echo "$(sort -n hz/mem.log | tail -1)/1024" | bc -l) $(python3 -c "import json;print(round(json.load(open('hz/hiz.json'))['measured']['median_ms'],1))") "$(grep -o 'kayıp [0-9.]*' hz/tr.log | tail -1)" >> hz/sonuc.txt
-/content/tr/tr profil /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > hz/profil.txt 2>&1
+/content/tr/tr profile /content/TCB/tools/gpu/rgn512.tr --veri trveri --step 20 --logger 20 > hz/profil.txt 2>&1
 echo bitti > hz/bitti
 EOF
 setsid nohup bash hz/kos.sh > /dev/null 2>&1 < /dev/null &
@@ -810,8 +810,8 @@ cat /content/yaris/sonuc.txt 2>/dev/null; [ -f /content/yaris/bitti ] && echo B�
 
 ## Ortam değişkenleri
 
-- `TR_GPU_PROFIL=1`: kernel ölçümü ve program sonunda özet (bkz. 7).
-- `TR_GPU_ESZAMANLI=1`: her kernelden sonra eşzamanlar; eşzamansız bir hata tam olarak onu
+- `TR_GPU_PROFILE=1`: kernel ölçümü ve program sonunda özet (bkz. 7).
+- `TR_GPU_SYNC=1`: her kernelden sonra eşzamanlar; eşzamansız bir hata tam olarak onu
   üreten kernelde bildirilir. Yavaştır; yalnızca teşhis için.
 - `TR_GPU_CUBLASLT=/tam/yol/libcublasLt.so.12`: matris çarpımı kitaplığının yolu.
 - `TR_GPU_OWN_GEMM=1`: kitaplık bulunsa da kendi matris çarpımı çekirdeğimiz.

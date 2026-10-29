@@ -93,7 +93,7 @@ func hasPythonModules(python string, modules ...string) bool {
 }
 
 // trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki Version sabiti) okur:
-// 'tr sürüm' çıktısı kaynaktaki sürümle karşılaştırılır.
+// 'tr version' çıktısı kaynaktaki sürümle karşılaştırılır.
 func trVersion(t *testing.T) string {
 	t.Helper()
 	fset := token.NewFileSet()

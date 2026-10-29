@@ -314,7 +314,7 @@ const (
 	// dosyalar; git yoksa klasör gezintisi. Depo kökündeki izlenmeyen dosyalar kullanıcınındır, grafiğe ve yazılan
 	// plana girmez.
 	TrackedFiles FileSet = iota
-	// AllFiles kullanıcı aracınındır (tr dizin; ileride dil sunucusu): kökün altındaki her dosya, .gitignore'a
+	// AllFiles kullanıcı aracınındır (tr index; ileride dil sunucusu): kökün altındaki her dosya, .gitignore'a
 	// bakılmadan; scratch/ gibi yok sayılan bir klasörde yazılan .tr da dizine girer (örnekler denemeleri orada
 	// yapmayı öğütler).
 	AllFiles

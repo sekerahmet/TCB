@@ -10,7 +10,7 @@ import (
 )
 
 // Komut satırı seçenekleri (docs/spec/19_surec_ve_kayit.md): argümanlar komut_satırı'na
-// gelir; --yardım standart çıktıya yazılır ve 0 ile, hatalı argüman standart hataya yazılır
+// gelir; --help standart çıktıya yazılır ve 0 ile, hatalı argüman standart hataya yazılır
 // ve 2 ile biter. İkisinde de ertele blokları çalışır; argüman uyarısı verilmez.
 func TestCommandLineOptions(t *testing.T) {
 	dir := t.TempDir()
@@ -20,8 +20,8 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 `)
 	for _, command := range [][]string{
 		{"egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
-		{"çalıştır", "egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
-		{"hata_ayıkla", "egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
+		{"run", "egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
+		{"debug", "egit.tr", "--adım", "20", "--oran=0.25", "--hızlı"},
 	} {
 		s := tr(t, dir, command...)
 		testkit.Wait(t, s, 0, []string{"adım=20 oran=0.25 hızlı=true", "ertelenen"}, nil)
@@ -29,7 +29,7 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 			t.Errorf("%v: okunan argümanlar için uyarı olmamalı: %q", command, s.Stderr)
 		}
 	}
-	s := tr(t, dir, "egit.tr", "--yardım")
+	s := tr(t, dir, "egit.tr", "--help")
 	testkit.Wait(t, s, 0, []string{"Kullanım: tr egit.tr [seçenekler]", "Deneme eğitimi", "--adım <Tam>", "(varsayılan: 10)", "ertelenen"}, nil)
 	if s.Stderr != "" || strings.Contains(s.Stdout, "adım=") {
 		t.Errorf("yardım programı bitirmeli, standart hata boş kalmalı: %+v", s)
@@ -41,7 +41,7 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 	}
 	// Derlenmiş uygulamada kullanım satırı uygulamanın adını gösterir.
 	exit := filepath.Join(t.TempDir(), "uyg.exe")
-	testkit.Wait(t, tr(t, dir, "derle", "egit.tr", exit), 0, nil, nil)
+	testkit.Wait(t, tr(t, dir, "build", "egit.tr", exit), 0, nil, nil)
 	testkit.Wait(t, testkit.RunBinary(t, exit, dir, "", nil, "-h"), 0, []string{"Kullanım: uyg.exe [seçenekler]"}, nil)
 	testkit.Wait(t, testkit.RunBinary(t, exit, dir, "", nil, "--oran", "0,5"), 2, nil, []string{"ondalık ayırıcı nokta olmalı", "Seçenekler için: uyg.exe --help"})
 }

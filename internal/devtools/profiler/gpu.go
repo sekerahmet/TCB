@@ -14,8 +14,8 @@ import (
 // (internal/compute/gpu, profile_api.go). Tensör sayaçları GPU işlemlerinde yalnızca
 // konakta geçen başlatma süresini görür; cihazda geçen süre buradan gelir.
 //
-// Çekirdek ölçümü (her başlatmanın iki zamanlama olayı arasına alınması) tr izle ve
-// tr profil altında açılır, arka plan işinin profilinde kapalıdır (her zaman açık
+// Çekirdek ölçümü (her başlatmanın iki zamanlama olayı arasına alınması) tr watch ve
+// tr profile altında açılır, arka plan işinin profilinde kapalıdır (her zaman açık
 // sayaçlar dışında yük eklenmez; GPU belleği yine görünür). Okumalar arka ucu beklemez.
 // Program bitmeden (motorlar kapanmadan) BeforeClose çağrılırsa son ölçümler cihaz
 // eşzamanlanarak çözülür ve arka ucun kendi raporu metin raporuna eklenir.

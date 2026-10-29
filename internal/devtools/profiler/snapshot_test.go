@@ -40,7 +40,7 @@ func jsonKeys(typ reflect.Type, prefix string, keys *[]string, errs *[]string) {
 	}
 }
 
-// Profil dosyasının JSON anahtarları okuyan araçların (tr izle, tools/gpu/phase3_table.py)
+// Profil dosyasının JSON anahtarları okuyan araçların (tr watch, tools/gpu/phase3_table.py)
 // sözleşmesidir: her alan açık bir anahtar taşır ve anahtar kümesi biçim sürümüne bağlıdır.
 // Anahtar eklemek, çıkarmak ya da değiştirmek FormatVersion'ı artırmayı gerektirir: yeni
 // sürümün anahtar kümesi testdata/keys_v<sürüm>.txt'ye (sıralı yollar, satırda bir) eklenir,

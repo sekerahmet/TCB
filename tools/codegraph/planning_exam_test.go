@@ -20,7 +20,7 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// Planlama sınavı: codegraph ve tr dizin ile gerçek bir işi planlarken sorulmuş sorular, beklenen cevaplarıyla
+// Planlama sınavı: codegraph ve tr index ile gerçek bir işi planlarken sorulmuş sorular, beklenen cevaplarıyla
 // (testdata/planning_questions.txt). Her satır bir komut, yapısal beklentiler ve kaynaktır; beklentiler çıktının birebir
 // metni değil, "şunu içerir / şu grubun ilk öğesi şudur / şu, şundan önce gelir" biçimindedir, böylece çıktı biçimi
 // iyileşince sınav kırılmaz ama kapatılmış bir kör nokta geri gelirse düşer. Depo üzerinde koşar (fikstür değil):
@@ -29,7 +29,7 @@ import (
 // examRecord dosyanın bir satırıdır.
 type examRecord struct {
 	line   int
-	tool   string   // "codegraph" ya da "tr dizin"
+	tool   string   // "codegraph" ya da "tr index"
 	args   []string // komut ve argümanlar
 	checks []string // "anahtar: değer" beklentileri
 	source string
@@ -56,10 +56,10 @@ func parseExam(t *testing.T, path string) []examRecord {
 		switch {
 		case len(words) >= 2 && words[0] == "codegraph":
 			r.tool, r.args = "codegraph", words[1:]
-		case len(words) >= 3 && words[0] == "tr" && words[1] == "dizin":
-			r.tool, r.args = "tr dizin", words[2:]
+		case len(words) >= 3 && words[0] == "tr" && words[1] == "index":
+			r.tool, r.args = "tr index", words[2:]
 		default:
-			t.Fatalf("%s:%d: a record starts with `codegraph` or `tr dizin`: %q", path, i+1, fields[0])
+			t.Fatalf("%s:%d: a record starts with `codegraph` or `tr index`: %q", path, i+1, fields[0])
 		}
 		for _, f := range fields[1:] {
 			if src, ok := strings.CutPrefix(f, "src: "); ok {
@@ -164,7 +164,7 @@ type examRunner struct {
 
 // answer bir sorunun birleşik çıktısını (stdout ve stderr) ve çıkış kodunu verir.
 func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
-	if r.tool == "tr dizin" {
+	if r.tool == "tr index" {
 		return x.trIndex(t, r)
 	}
 	var out, errb strings.Builder
@@ -178,16 +178,16 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 	return out.String() + errb.String(), code
 }
 
-// trIndex `tr dizin <alt komut> <ad> [--tümü]` sorusunu, komutun kendi kodu gibi codeindex'e sorar: alt komut adı
+// trIndex `tr index <alt komut> <ad> [--all]` sorusunu, komutun kendi kodu gibi codeindex'e sorar: alt komut adı
 // kodundan çözülür (TR_sub_definition tanım, TR_sub_references kullananlar, TR_sub_tested_by sınayanlar, TR_sub_impact etki), metin codeindex.Text'tir.
 func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
-	sub, ok := codes.Source().Find(codes.NamespaceSubcommand, r.args[0])
+	sub, ok := codes.FindSubcommand(r.args[0])
 	if !ok || len(r.args) < 2 {
-		t.Fatalf("planning_questions.txt:%d: unknown tr dizin subcommand %q", r.line, r.args[0])
+		t.Fatalf("planning_questions.txt:%d: unknown tr index subcommand %q", r.line, r.args[0])
 	}
 	o := codeindex.QueryOptions{Limit: 12}
 	if len(r.args) > 2 && strings.HasPrefix(r.args[2], "--") {
-		o.Limit = 0 // --tümü
+		o.Limit = 0 // --all
 	}
 	var res *codeindex.Result
 	switch sub {
@@ -200,7 +200,7 @@ func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	case codes.SubImpact:
 		res = x.reader.Impact(r.args[1], o)
 	default:
-		t.Fatalf("planning_questions.txt:%d: tr dizin %s is not a query", r.line, r.args[0])
+		t.Fatalf("planning_questions.txt:%d: tr index %s is not a query", r.line, r.args[0])
 	}
 	return codeindex.Text(res), codeindex.ExitCode(res.Status)
 }
@@ -344,10 +344,10 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 	}
 	x := &examRunner{root: root, graph: g, reader: codeindex.NewReader(idx)}
 	if bad, checked := trTestSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 100 {
-		t.Errorf("tr dizin sınayanlar and tests-for disagree on %d of %d TR functions:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+		t.Errorf("tr index tested_by and tests-for disagree on %d of %d TR functions:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
 	if bad, checked := trNameSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 20 {
-		t.Errorf("tr dizin and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+		t.Errorf("tr index and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
 	if bad, checked := testsListedTwice(g); len(bad) > 0 || checked < 100 {
 		t.Errorf("tests-for lists a test in two groups for %d of %d targets:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
@@ -371,13 +371,13 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 
 // repoIndex depo testlerinin TR dizinidir: kod grafiğiyle aynı dosya kümesi, git'in izlediği dosyalar (Tracked).
 // Depo testleri geliştiricinin izlenmeyen dosyalarına bağlı olmaz: ana kopyada scratch/ altındaki .gitignore'lu .tr
-// dosyaları tr dizin'e girer (AllFiles, T1 kararı) ama grafiğe girmez; iki aracı karşılaştıran sınav bu yüzden yalnız
+// dosyaları tr index'e girer (AllFiles, T1 kararı) ama grafiğe girmez; iki aracı karşılaştıran sınav bu yüzden yalnız
 // orada düşüyordu (TCB, 2026-10-24). TestToolComparisonsIgnoreUntrackedFiles korur.
 func repoIndex(root string) (*codeindex.Index, error) {
 	return codeindex.Build(root, codeindex.Options{Library: lib.Files, Tracked: true})
 }
 
-// trTestSetMismatches iki aracın her TR işlev ve metodu için verdiği TR test kümelerini karşılaştırır: `tr dizin
+// trTestSetMismatches iki aracın her TR işlev ve metodu için verdiği TR test kümelerini karşılaştırır: `tr index
 // sınayanlar` (codeindex.TestedBy) ile `tests-for`'un TR testleri (testDistances) aynı olmalı. Zincir kuralı tek
 // (codeindex.WalkCallers); giren çağıran kümesi de aynı olmalı (DENETİM doğrulaması T3).
 func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
@@ -404,23 +404,23 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 			}
 		}
 		if !maps.Equal(want, got) {
-			bad = append(bad, fmt.Sprintf("%s: tr dizin %d, tests-for %d", gn.Name, len(want), len(got)))
+			bad = append(bad, fmt.Sprintf("%s: tr index %d, tests-for %d", gn.Name, len(want), len(got)))
 		}
 	}
 	sort.Strings(bad)
 	return bad, checked
 }
 
-// trNameSetMismatches her TR adını iki araca sorar: `tr dizin` (codeindex.Resolve) ile codegraph (trByName, kaynakta
+// trNameSetMismatches her TR adını iki araca sorar: `tr index` (codeindex.Resolve) ile codegraph (trByName, kaynakta
 // yazıldığı gibi sorulunca lookup'ın kendisi) çıplak ad için aynı TR aday kümesini vermeli (deneme 7 R1: tanım 3,
 // yeniden_adlandır 7, query 4 aday veriyordu; bağımsız denetim grup 6 R1: büyük harfli sorgu, modül + yerleşik ve
 // yerleşik + test çakışması farklıydı). Adlar: her bildirimin kısa adı, modülün adı ve takma adları, testin açıklaması,
 // dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle, Türkçe ve ASCII büyük harfle (`GİZLİ_DURUM`, `GIZLI_DURUM`) sorulur.
-// Karşılaştırma tr dizin'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
+// Karşılaştırma tr index'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
 // sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
 func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
 	ix := newIndex(g)
-	known := map[string]bool{} // tr dizin'in düğümlerinin grafik kimlikleri
+	known := map[string]bool{} // tr index'in düğümlerinin grafik kimlikleri
 	names := map[string]bool{}
 	for _, n := range idx.Nodes {
 		id := graphID(n)
@@ -473,7 +473,7 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 				}
 			}
 			if !maps.Equal(want, got) {
-				bad = append(bad, fmt.Sprintf("%q: tr dizin %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
+				bad = append(bad, fmt.Sprintf("%q: tr index %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
 			}
 		}
 	}

@@ -11,8 +11,8 @@ import (
 	"os"
 )
 
-// formatCommand 'tr biçimle [--kontrol] <dosya.tr | klasör>...' komutudur. Dosyaları standart
-// biçime getirip yerine yazar; --kontrol ile yalnızca biçimlenmesi gereken dosyaları listeler
+// formatCommand 'tr format [--check] <dosya.tr | klasör>...' komutudur. Dosyaları standart
+// biçime getirip yerine yazar; --check ile yalnızca biçimlenmesi gereken dosyaları listeler
 // ve böyle bir dosya varsa 1 koduyla çıkar. Klasör verilirse içindeki (alt klasörler dahil)
 // tüm .tr dosyaları işlenir.
 func formatCommand(args []string) {

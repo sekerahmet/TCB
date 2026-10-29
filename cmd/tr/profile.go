@@ -14,14 +14,14 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// 'tr profil' ve 'tr izle' komutlarının ortak parçaları ve 'tr profil'. Profilin çekirdeği
+// 'tr profile' ve 'tr watch' komutlarının ortak parçaları ve 'tr profile'. Profilin çekirdeği
 // internal/devtools/profiler'dedir; burada yalnızca argümanlar, çıktı yerleri ve çıkış vardır.
 
 // profileOptions komutların program dosyasından önce yazılan seçenekleridir.
 type profileOptions struct {
 	json      string // TR_opt_json (--json): raporun JSON yolu (klasörse içine speed.json)
-	goProfile string // TR_opt_go_profile (--go-profili): yorumlayıcının Go CPU profili (geliştiriciler için)
-	output    string // TR_opt_output (--çıktı): tr izle'de programın çıktısının dosyası
+	goProfile string // TR_opt_go_profile (--go-profile): yorumlayıcının Go CPU profili (geliştiriciler için)
+	output    string // TR_opt_output (--output): tr watch'de programın çıktısının dosyası
 }
 
 // profileArguments seçenekleri, program dosyasını ve programın argümanlarını ayırır.
@@ -43,7 +43,7 @@ func profileArguments(command any, args []string, allowed ...codes.Code) (profil
 // prepareProgram dosyayı h hazırlığıyla hazırlar ve bir VM kurar (çalıştırma, profil, izleme ve
 // hata ayıklama aynı adımları kullanır).
 func prepareProgram(path string, arguments []string, h preparation) (*interp.VM, *ast.Program, string) {
-	// Çalışmadan önce program ve aktardığı modüller 'tr kontrol'ün yoluyla denetlenir (1.3).
+	// Çalışmadan önce program ve aktardığı modüller 'tr check'ün yoluyla denetlenir (1.3).
 	_, s := checkProgram(path, h, "❌ "+messages.Text(messages.H8632))
 	machine := interp.New()
 	machine.SourceFile = path
@@ -59,7 +59,7 @@ func warningWriter(machine *interp.VM) func(string) {
 	return func(m string) { machine.WriteOutput(os.Stderr, m+"\n") }
 }
 
-// startMeasuredProfile tr izle ve tr profil'in profilini başlatır: satır örneklemesi ve GPU
+// startMeasuredProfile tr watch ve tr profile'in profilini başlatır: satır örneklemesi ve GPU
 // çekirdek ölçümü açık; arka plan işiyse durum dosyası da yazılır. GPU'nun son ölçümleri
 // motorlar kapanmadan alınır (beforeClose).
 func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Program) *profiler.Profile {
@@ -71,7 +71,7 @@ func startMeasuredProfile(machine *interp.VM, path, code string, prog *ast.Progr
 	return p
 }
 
-// profileCommand 'tr profil [--json yol] [--go-profili dosya] program.tr [argümanlar]':
+// profileCommand 'tr profile [--json yol] [--go-profile dosya] program.tr [argümanlar]':
 // programı satır örneklemesiyle çalıştırır, bitince (hata ya da kesmeyle bitse de) metin
 // raporu standart çıktıya, istenmişse JSON raporu dosyaya yazar.
 func profileCommand(args []string) {
@@ -125,7 +125,7 @@ func startGoProfile(filePath string) {
 	})
 }
 
-// startJobProfile program bir arka plan işi olarak çalışıyorsa (TR_IS_KLASORU) iş klasörüne
+// startJobProfile program bir arka plan işi olarak çalışıyorsa (TR_JOB_DIR) iş klasörüne
 // saniyede bir profile.json yazar (yalnızca her zaman açık sayaçlar; satır örneklemesi
 // yok: ek maliyet saniyede bir dosya yazmasıdır). İş değilse hiçbir şey yapmaz.
 func startJobProfile(machine *interp.VM, path, code string, prog *ast.Program) {

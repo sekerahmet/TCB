@@ -13,7 +13,7 @@ import (
 // (internal/lang/source'taki BenchmarkPrepare de aynılarını kullanır).
 var speedFiles = []string{"lib/layers.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
 
-// BenchmarkCheckAndRun kodlu dosyada 'tr kontrol' ile çalıştırmanın süreç başından sonuna süresini
+// BenchmarkCheckAndRun kodlu dosyada 'tr check' ile çalıştırmanın süreç başından sonuna süresini
 // ölçer (derleme ve süreç açılışı dahil). Madde 15'in tabanıdır:
 // go test -run XXX -bench CheckAndRun -count 5 ./cmd/tr/e2e/
 func BenchmarkCheckAndRun(b *testing.B) {
@@ -25,7 +25,7 @@ func BenchmarkCheckAndRun(b *testing.B) {
 		}
 		name := filepath.Base(file)
 		testkit.WriteFile(b, dir, name, string(data))
-		for _, command := range [][]string{{"kontrol", name}, {name}} {
+		for _, command := range [][]string{{"check", name}, {name}} {
 			label := "run"
 			if len(command) == 2 {
 				label = "check"

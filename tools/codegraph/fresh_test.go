@@ -251,7 +251,7 @@ func TestRuleName(t *testing.T) {
 }
 
 // Kural: kod grafiği depo aracıdır, git'in izlediği dosyaları okur: .gitignore'daki bir klasörde yazılmış .tr (TR kökü
-// lib/ altında da olsa) ve .md grafiğe girmez; tr dizin ise aynı dosyayı bulur (codeindex TestListFilesKeepsTwoRules;
+// lib/ altında da olsa) ve .md grafiğe girmez; tr index ise aynı dosyayı bulur (codeindex TestListFilesKeepsTwoRules;
 // DENETİM T1 gerilemesi).
 func TestGraphSkipsIgnoredFolders(t *testing.T) {
 	root := gitFixture(t)

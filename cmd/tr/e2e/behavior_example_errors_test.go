@@ -100,12 +100,12 @@ func TestExampleErrors(t *testing.T) {
 			}
 			rel, _ := filepath.Rel(reporoot.Path(), p)
 			for _, display := range []string{"tr", "en"} {
-				s := testkit.RunBinary(t, trBinary, reporoot.Path(), "", []string{"TR_DIL=" + display}, filepath.ToSlash(rel))
+				s := testkit.RunBinary(t, trBinary, reporoot.Path(), "", []string{"TR_LANG=" + display}, filepath.ToSlash(rel))
 				if s.Code != 1 || !strings.Contains(s.Stderr, "❌") {
-					t.Errorf("%s (TR_DIL=%s): çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, display, s.Code, s.Stderr)
+					t.Errorf("%s (TR_LANG=%s): çıkış kodu %d (beklenen 1), hata çıktısı:\n%s", rel, display, s.Code, s.Stderr)
 				}
 				if beforeRun && s.Stdout != "" {
-					t.Errorf("%s (TR_DIL=%s): denetim hatasından önce satır çalıştı, çıktı:\n%s", rel, display, s.Stdout)
+					t.Errorf("%s (TR_LANG=%s): denetim hatasından önce satır çalıştı, çıktı:\n%s", rel, display, s.Stdout)
 				}
 			}
 		})

@@ -147,7 +147,7 @@ func (d *state) openProgress(m *interp.VM, args []interp.Value, named map[string
 }
 
 // setOutput çubuğun yazacağı yeri ve kipini seçer: standart hata (VM.Err) terminalse canlı
-// satır, değilse düz satırlar. Arka plan işinde (TR_IS_KLASORU) her zaman düz satır ve progress.json.
+// satır, değilse düz satırlar. Arka plan işinde (TR_JOB_DIR) her zaman düz satır ve progress.json.
 func (c *Progress) setOutput() {
 	c.w = c.m.Err
 	if c.w == nil {

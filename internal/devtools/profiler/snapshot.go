@@ -120,7 +120,7 @@ type GPUInfo struct {
 	Lines  []GPULineInfo `json:"lines,omitempty"`
 	Memory []GPUMemory   `json:"memory,omitempty"`
 	// summary GPU arka ucunun kendi son raporudur (adım başına GPU süresi, boşluk, çekirdek
-	// tabloları); yalnızca metin raporunda ve yalnızca ölçümü profil açtıysa (TR_GPU_PROFIL
+	// tabloları); yalnızca metin raporunda ve yalnızca ölçümü profil açtıysa (TR_GPU_PROFILE
 	// ile açıksa arka uç onu program sonunda kendisi yazar).
 	summary string
 }

@@ -441,9 +441,9 @@ build_tr() {
 format_checks() {
 	# Örnekler öğrenme yoludur: standart biçimde olmalı (kodlu dosya kodlu biçimlenir).
 	# Hata örnekleri (hatalar/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
-	summarize "tr biçimle --kontrol examples" "$TR" biçimle --kontrol examples/tr/[0-9]*.tr examples/tr/helpers
+	summarize "tr format --check examples" "$TR" format --check examples/tr/[0-9]*.tr examples/tr/helpers
 	# Kitaplık, testler ve araç betikleri de standart biçimde olmalı; tests/negative bilerek bozuktur.
-	summarize "tr biçimle --kontrol lib tests tools" "$TR" biçimle --kontrol lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
+	summarize "tr format --check lib tests tools" "$TR" format --check lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
 }
 
 # extension_tests VS Code eklentisinin davranış testlerini (editors/vscode/test/*_test.js) derlenen
@@ -476,7 +476,7 @@ run_examples() {
 	(
 		cd "$workdir" || exit 1
 		# Uyarılar Türkçe aranır (aşağıdaki 'Uyar'); ortamın dil ayarı bunu körleştirmesin.
-		export TR_DIL=tr
+		export TR_LANG=tr
 		if output=$("$TR" test examples 2>&1); then
 			echo "$output" | tail -1
 		else
@@ -581,7 +581,7 @@ for mode in $modes; do
 		go test "${p_flag[@]}" -short -run "^($(printf '%s|' "${repo_scans[@]}" | sed 's/|$//'))\$" \
 			./internal/lang/messages ./internal/lang/source ./internal/lang/hint ./tools/codegraph ./internal/lang/interp ./cmd/tr 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "depo taramaları"
-		step "TR dosyalarının biçimi (tr biçimle --kontrol) ve dil tanımı testleri (tr test tests, ~2 sn)"
+		step "TR dosyalarının biçimi (tr format --check) ve dil tanımı testleri (tr test tests, ~2 sn)"
 		# Go'nun kısa kipi dil tanımı testlerini atlıyor; ön denetim onları burada koşar.
 		if build_tr; then
 			format_checks

@@ -54,12 +54,12 @@ func TestExitCodes(t *testing.T) {
 func TestToolUsageErrorsExitTwo(t *testing.T) {
 	dir := t.TempDir()
 	for _, args := range [][]string{
-		{"çalıştır"},
-		{"kontrol"},
-		{"derle"},
-		{"hata_ayıkla"},
+		{"run"},
+		{"check"},
+		{"build"},
+		{"debug"},
 		{"--yok"},
-		{"çalıştır", "--yok", "a.tr"},
+		{"run", "--yok", "a.tr"},
 	} {
 		if s := tr(t, dir, args...); s.Code != 2 {
 			t.Errorf("%v: çıkış kodu %d, 2 bekleniyordu\n%s", args, s.Code, s.Stderr)
@@ -68,12 +68,12 @@ func TestToolUsageErrorsExitTwo(t *testing.T) {
 }
 
 // Çalışmadan önce program ve aktardığı modüller tek yoldan denetlenir (1.3): hata varsa hiçbir
-// satır çalışmaz, çıkış 1. 'tr kontrol', 'tr çalıştır' ve 'tr hata_ayıkla' aynı sonucu verir.
+// satır çalışmaz, çıkış 1. 'tr check', 'tr run' ve 'tr debug' aynı sonucu verir.
 func TestModulesAreCheckedBeforeAnyLineRuns(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "bozuk.tr", trProgram("TR_func f() -> TR_Int {", `    TR_return "a"`, "}"))
 	writeTR(t, dir, "ana.tr", trProgram(`TR_import "bozuk" TR_as b`, `TR_print("ilk satır")`, "TR_print(b.f())"))
-	for _, command := range [][]string{{"ana.tr"}, {"çalıştır", "ana.tr"}, {"hata_ayıkla", "ana.tr"}, {"kontrol", "ana.tr"}} {
+	for _, command := range [][]string{{"ana.tr"}, {"run", "ana.tr"}, {"debug", "ana.tr"}, {"check", "ana.tr"}} {
 		s := tr(t, dir, command...)
 		testkit.Wait(t, s, 1, nil, []string{"bozuk.tr"})
 		if strings.Contains(s.Stdout, "ilk satır") {

@@ -10,7 +10,7 @@ import (
 func tensorOps() string { return messages.Text(messages.H8206, codes.NameRef(codes.TypeTensor)) }
 
 // opName tensör işleminin raporda görünen adıdır. Dildeki bir yerleşiğe ya da metoda
-// karşılık gelen işlemler o adla, kişinin gösterim dilinde (TR_DIL, codes.DisplayName) yazılır:
+// karşılık gelen işlemler o adla, kişinin gösterim dilinde (TR_LANG, codes.DisplayName) yazılır:
 // kullanıcı kendi dilinde gördüğü adı görür, ad çevrilince rapor da çevrilir. Karşılığı tek bir
 // ad olmayanlar (işleçler, görünümler, kopyalar) açıklama iletisiyle yazılır.
 func opName(is tensor.OpKind) string {
