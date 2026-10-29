@@ -1,15 +1,17 @@
+# BİTTİ
+
 # Faz 0.6a — tip yazımı
 
 - Başlama: 2026-10-29 14:41 UTC
-- Bitiş: — (ölçütler koşuluyor)
+- Bitiş: 2026-10-29 15:52 UTC
 
 ## Biten adımlar
 
 1. **ast** (`b0ed1b4`): `ast.TypeRef` özyinelemeli: `Name`, `Token`, `Args` (tip argümanları), `Optional` (`?`), `Elems` (demet), `Params` + `Return` (fonksiyon tipi; `Return != nil` fonksiyon tipidir). `VarStatement.Type`, `Param.Type`, `StructField.Type` `*TypeRef` (yazılmamışsa nil); `FunctionLiteral`'ın `ReturnType`/`ReturnToken`/`ReturnTypes`'ı tek `ReturnType *TypeRef` oldu: birden çok değerin dönüşü (6.3) bir demet tipidir. Yorumlayıcı bu alanları okumuyor; ona dokunulmadı.
 2. **ayrıştırıcı** (`68df37b`, `60573a5`): `typeAfter` bütün yazımları okur, iç içe: ad ve tip argümanları (`TR_List[T]`, `TR_Dict[K, V]`, `Kutu[T]`, `TR_Tensor[TR_Int]`), demet `(A, B)` (en az iki öğe), fonksiyon `(T1, T2) -> R`, `() -> R` (sağdan birleşir), `T?` (ad ve demetten sonra; fonksiyon tipinin `?`'si dönüşündür). Parantezden sonra `->` varsa fonksiyon tipi, yoksa demet. Fonksiyon ifadesinin dönüşü ve arayüz metodunun dönüşü de `typeAfter`'dan geçer. Tip okuyucu `parser/types.go`'ya taşındı ve ifadelerin iç içelik sınırına (1000, H0155) sayılır. Tipin içindeki her ad `RoleType` alır.
-3. **denetleyici** (`af04482`, bu commit): yazılan tip asıl adına indirgenir: `TR_List[...]` → `TR_List`, `TR_Dict[...]` → `TR_Dict`, `TR_Tensor[...]` → `TR_Tensor`, `T?` → `T`, demet → Herhangi, fonksiyon tipi → `TR_Function` (bkz. Kararsız 1). İçteki her ad bugünkü gibi denetlenir (`TR_List[tam]` → H1006).
+3. **denetleyici** (`af04482`, `4fa2fb4`): yazılan tip asıl adına indirgenir: `TR_List[...]` → `TR_List`, `TR_Dict[...]` → `TR_Dict`, `TR_Tensor[...]` → `TR_Tensor`, `T?` → `T`, demet → Herhangi, fonksiyon tipi → `TR_Function` (bkz. Kararsız 1). İçteki her ad bugünkü gibi denetlenir (`TR_List[tam]` → H1006).
 4. **biçimlendirici** (`702c01e`): `?` tipine bitişik kalır (`TR_Int ?` olmuyordu).
-5. **testler** (`36805d7`, bu commit):
+5. **testler** (`36805d7`; `4fa2fb4` fonksiyon tipi satırları):
    - `parser/types_test.go`: `Dump` biçimli tablo (26 yazım, iç içe olanlar dahil), her konumda aynı okuyucu, 17 yanlış yazım hatası (`TR_List[`, `TR_Int??`, `-> {`...), tipin içindeki adların görevi; `context_test.go`'da iki derinlik girdisi.
    - `checker/type_names_test.go`: bileşik tipli program (değişken, parametre, alan, dönüş, `TR_none`'lu isteğe bağlı) hatasız; indirgenmiş tip ve içteki adlar bugünkü gibi hata verir.
    - `formatter/format_test.go`: bileşik tip aralıksız ve iki koşu aynı.
@@ -22,9 +24,19 @@
 - Üçü de `tr kontrol`'den hatasız. Biçimlendirici üçünde de tipleri değiştirmedi, ikinci koşu aynı.
 - Bir yanlışım oldu ve düzeltildi: `TR_only_2d(TR_name: TR_String, ...)`'e yazdığım `TR_String` doğru hatayı verdi (`TR_name` bir tip değeri); bileşik tiple ilgisi yok, açıklama kaldırıldı.
 
+## Bitti ölçütleri (son koşu `b1c4aae`'den önce, `4fa2fb4` üzerinde; `b1c4aae` yalnız bir yorum)
+
+1. Ayrıştırıcının Go testi: geçiyor (`TestTypeFormsParse`, `TestTypeFormsInEveryPosition`, `TestMalformedTypesAreErrors`, `TestNamesInsideTypesAreTypeRoles`).
+2. Denetleyicinin Go testi: geçiyor (`TestCompoundTypesReduceToTheirBaseName`).
+3. Sınama: 3 dosya, 55 açıklama, `tr kontrol` hatasız (yukarıda).
+4. Biçimlendirici: `TestStandardFormat/bileşik_tip` ve sınama kopyaları; iki koşu aynı, `TR_List[TR_Int]` ve `TR_Int?` aralıksız.
+5. Bilinen bloklar: iki satır silindi.
+6. Komutlar: `go build ./...`, `go vet ./internal/lang/...`, `go test ./internal/lang/...`, `go test ./internal/ ./internal/devtools/...`, `go test ./cmd/tr/e2e/ -run 'DocLinks|DocTRCodeBlocks'` geçiyor; `spec-refs` "0 error(s), 0 note(s)". `go test -short ./internal/reporoot ./tools/...`'te **tek kırmızı** `tools/codegraph` `TestEveryTrackedDataFileHasATestOrAReason`: `.devir/DURUM.md`'nin kendisi, bir teste bağlı olmayan izlenen dosya. Dosya dizinden çıkarılınca test geçiyor [ölçüldü]. `uncovered_data.txt`'ye satır eklemedim (liste yalnızca küçülür); önceki devirlerde olduğu gibi DURUM.md birleştirirken silinince kalkar.
+- Her commit'ten önce `codegraph dups --changed main`: 0 aday.
+
 ## Kalanlar
 
-- Ölçüt komutlarının son koşusu (aşağıda sonuç yazılacak).
+- Yok. Soruların yanıtına göre: tek öğeli parantez ve `((T) -> R)?`.
 
 ## Kararsız kaldıklarım
 
