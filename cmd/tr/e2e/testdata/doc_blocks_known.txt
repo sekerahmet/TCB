@@ -5,6 +5,5 @@ docs/spec/03_tipler.md:40
 docs/spec/03_tipler.md:68
 docs/spec/08_hata_yonetimi.md:23
 docs/spec/09_ertele.md:10
-docs/spec/15_tensorler.md:118
-docs/spec/15_tensorler.md:17
-docs/spec/15_tensorler.md:84
+docs/spec/15_tensorler.md:397
+docs/spec/15_tensorler.md:479

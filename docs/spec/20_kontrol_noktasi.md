@@ -30,11 +30,11 @@ Düz bir sayı, metin ya da mantık değeri doğrudan verilemez (kullanıcının
 **20.3** `kn.TR_update(n)` eğitimin adım sınırıdır: `n` tamamlanan adım sayısıdır (0 ya da pozitif `TR_Int`). Son kayıttan ya da kurulumdan beri `TR_every_minutes` geçtiyse nokta bu adımla kaydedilir ve `TR_true` döner; geçmediyse `TR_false`. Kayıt yalnız adım sınırında yapılır, yarım bir adım hiç kaydedilmez; `TR_update` iyileştiricinin adımından sonra çağrılır. Gradyanlar kaydedilmez.
 - *Test:* TR testi.
 
-**20.4** `kn.TR_save()` noktayı hemen, son `TR_update` adımıyla (hiç çağrılmadıysa `TR_resume_step` ile) kaydeder ve noktanın klasörünü `TR_Path` olarak verir: `<koşu>/checkpoints/step_0000001500` (adım 10 basamağa sıfırla doldurulur). Aynı adımın noktası varsa yerine konur. `TR_save`'deki yazma hatası açık hatadır (20.10'dan farklı olarak eğitim sürmez).
-- *Test:* TR testi.
+**20.4** `kn.TR_save()` noktayı hemen, son `TR_update` adımıyla (hiç çağrılmadıysa `TR_resume_step` ile) kaydeder ve noktanın klasörünü `TR_Path` olarak verir: `<koşu>/checkpoints/step_0000001500` (adım 10 basamağa sıfırla doldurulur). Aynı adımın noktası varsa yerine konur. `TR_save`'deki yazma hatası açık hatadır (20.10'dan farklı olarak eğitim sürmez). Her nokta her parametrenin donma durumunu (`.TR_requires_grad`, 15.34) da kaydeder; sürdürme (20.6) onu geri yükler.
+- *Test:* TR testi; donma durumunun kaydı uygulanınca TR testi.
 
 **20.5** Bir nokta klasörü üç dosyadır:
-- `tensors.trt`: modellerin tensörleri ve iyileştirici durumları, `TR_save_tensors` biçiminde, adları `<nesne>/<tensör adı>`;
+- `tensors.trt`: modellerin tensörleri ve iyileştirici durumları, `TR_save_tensors` biçiminde (her cins ve hassasiyet kendi tür koduyla; `TR_load_tensors` gibi `TR_AnyTensor` okunur, 15.46), adları `<nesne>/<tensör adı>`;
 - `state.json`: biçim sürümü, adım, zaman, program, işçi sayısı, komut satırı ayarları (gizli değerler maskeli), nesnelerin kaydı (okuyucu durumları, düz değerler, günlük uzunlukları). Düz değerdeki sonlu olmayan sayı `"NaN"`, `"Infinity"`, `"-Infinity"` yazılır ve yalnız bu yazımla okunur (19);
 - `digest.json`: öbür iki dosyanın bayt sayısı ve SHA-256 özeti; en son yazılır.
 
@@ -45,7 +45,7 @@ Düz bir sayı, metin ya da mantık değeri doğrudan verilemez (kullanıcının
 
 **20.6** Aynı koşu klasörüyle yeniden kurulan kontrol noktası en yeni noktayı yükler ve standart hataya kaldığı yerden devam ettiğini adımıyla yazar.
 - `kn.TR_resume_step` o adım olur.
-- Modellerin tensörleri **var olan** tensörlere yerinde yazılır; iyileştirici aynı tensörleri güncellemeyi sürdürür, cihazlar değişmez.
+- Modellerin tensörleri **var olan** tensörlere yerinde yazılır (nicemlenmiş yaprakta aynı belleğe, kodlar, ölçekler ve sıfırlar birlikte, bütün olarak; hassasiyet ya da şekil farklıysa hata, 15.54); iyileştirici aynı tensörleri güncellemeyi sürdürür, cihazlar değişmez.
 - İyileştirici durumu (momentler, adım sayaçları, 16 bitlik parametrelerin ana kopyaları) parametrelerin cihazına yüklenir.
 - Okuyucu kaydedilen konumdan sürer: sonraki toplu iş kesintisiz eğitimdekiyle aynıdır (16.7).
 - Düz değerler yerinde yenilenir; `TR_Float` `TR_Float` kalır, `TR_Int` anahtarlar korunur, NaN ve sonsuz korunur.
@@ -73,18 +73,18 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 ## Durumun parçaları
 
 **20.11** `TR_load_parameters(model, sözlük)` ad → tensör sözlüğünü (ör. `TR_load_tensors`'ın sonucu) modelin var olan parametrelerine, `TR_named_parameters`'ın adlarıyla yerinde yazar ve yazılan parametre sayısını (`TR_Int`) verir.
-- Tensörler parametrenin cihazına taşınır; hassasiyeti farklıysa çevrilir, cinsi farklıysa hata (15). Deponun sürümü artar (15).
+- Sözlük `TR_Dict[TR_String, TR_AnyTensor]`'dür (`TR_load_tensors`'ın ve `TR_named_parameters`'ın dönüşü); her tensör hedef parametrenin cinsine daraltılır (15.1), cins uymazsa hata. Tensörler parametrenin cihazına taşınır; hassasiyeti farklıysa 15.3'ün dönüşümüyle çevrilir, daraltan dönüşümde değer sığmazsa hata. Nicemlenmiş yaprağa yazma 15.54'teki gibi aynı belleğe, bütün olarak yapılır. Deponun sürümü artar (15).
 - Modelde olup sözlükte olmayan, sözlükte olup modelde olmayan ve şekli farklı ad hatadır; hiçbir şey yazılmaz.
 - Hazır ağırlıklarla ince ayar için de kullanılır.
 - *Test:* TR testi.
 
-**20.12** `op.TR_state` iyileştiricinin durumunu ad → tensör sözlüğü olarak (kopya) verir: AdamW'de "step", "step.k", "m.k", "v.k"; momentumlu SGD'de "momentum.k"; 16 bitlik parametrelerde "master.k" (k parametrenin listedeki sırası; adlar dilden bağımsızdır). Öğrenme oranı gibi ayarlar duruma girmez. `op.TR_load_state(sözlük)` durumu aynı tipte ve aynı parametre listesiyle kurulmuş bir iyileştiriciye yükler ve değer döndürmez (13). Bilinmeyen anahtar, şekli tutmayan girdi ve tensör olmayan değer hatadır; iyileştirici değişmez.
+**20.12** `op.TR_state` iyileştiricinin durumunu ad → tensör sözlüğü olarak (kopya) verir; sözlük karışık cinslidir ("step" tam sayı), tipi `TR_Dict[TR_String, TR_AnyTensor]`'dür (15.1): AdamW'de "step", "step.k", "m.k", "v.k"; momentumlu SGD'de "momentum.k"; 16 bitlik parametrelerde "master.k" (k parametrenin listedeki sırası; adlar dilden bağımsızdır). Öğrenme oranı gibi ayarlar duruma girmez. `op.TR_load_state(sözlük)` durumu aynı tipte ve aynı parametre listesiyle kurulmuş bir iyileştiriciye yükler ve değer döndürmez (13). Bilinmeyen anahtar, şekli tutmayan girdi ve tensör olmayan değer hatadır; iyileştirici değişmez.
 - *Test:* TR testi.
 
 **20.13** `ö.TR_state` okuyucunun kaldığı yeri düz değerli bir sözlük olarak verir; anahtarlar metindir: "kind" ("sampler", "sequential"), "batch", "context", (örnekleyicide) "seed", "dataset", (örnekleyicide) "epoch", "position", "window", "counter", (sıralıda) "done". Konum, `.TR_next()` ile alınan son toplu işten sonraki konumdur; önden yüklenip bekleyenler sayılmaz. `ö.TR_load_state(sözlük)` aynı ayarla kurulmuş bir okuyucuyu o konuma getirir ve değer döndürmez: sonraki `.TR_next()` kaydedilen okuyucunun vereceği toplu işi verir. Ayarı ya da veri kümesi farklı kayıt ve eksik alan hatadır; okuyucu değişmez.
 - *Test:* TR testi.
 
-**20.14** `kn.TR_rollback()` en yeni geçerli noktayı aynı programda yerinde yükler ve noktanın adımını (`TR_Int`) verir. Yükleme kurulumdakiyle aynı yoldur (20.6, 20.7, 20.9); günlüklere devam kaydı yazılır. `TR_resume_step` değişmez. Nokta yoksa açık hatadır. Bozuk bir adımdan geri dönüp sürdürülen eğitim, hiç bozulmamış eğitimle bit düzeyinde aynı biter. Bozuk adım kaydedilmeden önce dönülmelidir: denetim `TR_update`'ten önce yapılır.
+**20.14** `kn.TR_rollback()` en yeni geçerli noktayı aynı programda yerinde yükler ve noktanın adımını (`TR_Int`) verir. Yükleme kurulumdakiyle aynı yoldur (20.6, 20.7, 20.9; nicemlenmiş yaprakta 15.54); günlüklere devam kaydı yazılır. `TR_resume_step` değişmez. Nokta yoksa açık hatadır. Bozuk bir adımdan geri dönüp sürdürülen eğitim, hiç bozulmamış eğitimle bit düzeyinde aynı biter. Bozuk adım kaydedilmeden önce dönülmelidir: denetim `TR_update`'ten önce yapılır.
 - *Test:* TR testi; Go: `TestRollbackAfterNaNSameAsUninterrupted`, `TestRollbackWithoutCheckpointIsError`.
 
 **20.15** `ö.TR_skip(n)` okuyucunun sıradaki `n` toplu işini tensör kurmadan atlar ve atladığı sayıyı (`TR_Int`) verir: sonraki `.TR_next()`, `n` tane `.TR_next()`'ten sonra gelecek toplu işin aynısıdır ve durumun "counter"'ı `n` artar. Sıralı okuyucu biterse kalan kadar atlar. `n = 0` bir şey yapmaz; eksi sayı hatadır.
@@ -100,7 +100,7 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 
 **20.17** Bit düzeyinde aynılık. Kesilip sürdürülen eğitim kesintisiz eğitimle bit düzeyinde aynı parametreleri, iyileştirici durumunu, kayıp dizisini ve düz değerleri verir.
 - **Koşul, aynı cihaz türü:** kayıt ile devam aynı TR ikilisiyle ve aynı cihaz türünde (aynı GPU modeli ya da aynı CPU özellik kümesi) yapılır. CPU'nun indirgemeleri iş parçacığı sayısından bağımsızdır: 8 iş parçacığıyla başlayıp 1 ile sürdürülebilir.
-- **Rastgelelik:** tohumlu rastgelelik zaten aynıdır. Paylaşılan rastgele üreteç (tohumsuz `TR_randn`, `TR_sample`) her programda aynı sabit durumla başlar ve durumu kontrol noktasına kaydedilip geri yüklenir: tohumsuz rastgelelik de hem yeniden çalıştırmada hem kaldığı yerden aynı sonucu verir. Sınırlar: eşzamanlı görevler aynı üreteçten çekerse çekme sırası, dolayısıyla sonuç, belirsizdir; görev başına tohum verilir. Bir programda birden çok kontrol noktası varsa üretecin durumu her birine yazılır; yüklenen sonuncusu geçerlidir.
+- **Rastgelelik:** tohumlu rastgelelik zaten aynıdır. Paylaşılan rastgele üreteç (tohumsuz `TR_randn`, `TR_sample` ve `TR_dropout`, 15.23d) her programda aynı sabit durumla başlar ve durumu kontrol noktasına kaydedilip geri yüklenir: tohumsuz rastgelelik de hem yeniden çalıştırmada hem kaldığı yerden aynı sonucu verir. Sınırlar: eşzamanlı görevler aynı üreteçten çekerse çekme sırası, dolayısıyla sonuç, belirsizdir; görev başına tohum verilir. Tohumu olmayan `TR_dropout`'ta bu çare yoktur; görevler 10.8'in sınırıyladır. Bir programda birden çok kontrol noktası varsa üretecin durumu her birine yazılır; yüklenen sonuncusu geçerlidir.
 - **GPU'da** parametreler ve iyileştirici durumları kayıtta konağa indirilir, yüklemede aynı cihaza konur.
 - *Test:* Go: `TestCheckpointResumeBitExact`; paylaşılan üretecin kaydı uygulanınca TR testi.
 

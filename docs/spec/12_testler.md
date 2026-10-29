@@ -18,9 +18,10 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - Mesaj yerine `TR_Message(H…, …)` verilirse hata o iletinin koduyla fırlar (8.5).
 - Bir hatanın beklendiğini sınamak `TR_error_code { ... }` ile yazılır (8.5): `TR_assert_equal("H7221", TR_error_code { ... })`.
 - Değer döndürmez (13).
+- `TR_grad_check` (15.32) de bir doğrulamadır: değer döndürmez, gradyanlar uyuşmazsa hata fırlatır.
 - *Test:* TR testi.
 
-**12.4** `TR_assert_equal(beklenen, gerçek, mesaj)` iki değer 4.5'in `==`'siyle eşit değilse bir hata fırlatır; `mesaj` isteğe bağlıdır.
+**12.4** `TR_assert_equal(beklenen, gerçek, mesaj)` iki değer 4.5'in `==`'siyle (iki tensörde `TR_equal`'ın anlamıyla, aşağıda) eşit değilse bir hata fırlatır; `mesaj` isteğe bağlıdır.
 - İki argüman aynı tipten olmalıdır; ayrı tipler 4.5'teki gibi denetim hatasıdır, ileti iki tipi söyler.
 - İleti ikisini de gösterir: beklenen `[1, 2, 3]`, gerçek `[1, 2, 4]`; ilk farklı öğenin yerini de söyler.
 - Değer döndürmez (13).

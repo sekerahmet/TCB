@@ -27,8 +27,8 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 **10.3** Engelleyici işlemler kilidi bırakır: `TR_sleep`, beklemeler (`.TR_wait()`, `TR_wait_all`), girdi, dosya işleri, ağ istekleri, dış süreç ve sunucu beklemeleri. Bekleyen görevler böylece iç içe ilerler: dört görevde `TR_sleep(0.2)` toplam yaklaşık 0,2 saniye sürer.
 - *Test:* TR testi.
 
-**10.4** Görev başlatıldığı kapsamı yakalar; döngünün içinde başlatılan her görev o turun değişkenlerini görür (5.12). Görevin içinde tanımlanan ad görevin kapsamındadır.
-- *Test:* TR testi.
+**10.4** Görev başlatıldığı kapsamı yakalar; döngünün içinde başlatılan her görev o turun değişkenlerini görür (5.12). Görevin içinde tanımlanan ad görevin kapsamındadır. Görev açıldığı yerin türevsiz kipini ve `TR_mixed_precision` türünü de alır (15.4, 15.27); açıldıktan sonra açanın kipinin değişmesi ona geçmez.
+- *Test:* TR testi; kipin ve hesap türünün mirası uygulanınca TR testi.
 
 **10.5** `TR_wait_all()` başlatılmış bütün görevlerin bitmesini bekler. `TR_wait_all(görevler)` verilen görevleri bekler ve sonuçlarını **verildikleri sırayla** bir liste olarak verir (`TR_List[T]`).
 - Görevlerden biri hatayla bittiyse öbürleri de beklenir ve **verilen sırada ilk hatalı görevin** hatası fırlar; bitme zamanı hangi hatanın fırladığını değiştirmez. Öbür görevlerin hataları alınmış sayılır, 10.6'ya göre yazılmaz.

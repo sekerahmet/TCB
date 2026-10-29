@@ -38,6 +38,14 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 - **Dağıtık eğitim:** birçok GPU ve kümede eğitim, verinin süreçler arasında bölünmesi (örnekleyicinin sıra ve sayı argümanı). Amacın 2. işi ister.
 - **Hazır modelin sohbet biçimi:** sohbet şablonu (`tokenizer_config.json`'un şablonu) ve özel parçalar; amacın 4. işinin "sohbet etmek"i ister. Hazır modelleri yükleyen bölümle birlikte.
 
+**15. bölümün sonraya bıraktıkları** (2026-10-29, 15'in yeniden yazımı ve DENETİM'i). Her biri gelince 15'in yöntemiyle (dokuz iş tartısı, kaynaklı emsal, iki denetim) yazılır:
+- **"Paylaşmak"ın öbür biçimleri:** ONNX ve GGUF'a dışa verme; GGUF okuma ve K-nicemleme ailesi (`Q4_K` ...) (15.47a, 15.55).
+- **Başka hızlandırıcılar:** Apple, gömülü NPU; cihaz adları 15.37'nin kuralıyla.
+- **Türev:** etkinleştirme kaydı (`TR_recompute`) ve ikinci türev.
+- **Sinir ağı işlemleri:** havuzlama ve büyütme, ters evrişim (15.23c), CTC ve STFT (ses modelleri).
+- **Nicemleme:** sıra değiştiren gruplu GPTQ (`desc_act`, 15.52); NF4, 2 ve 3 bitlik biçimler, nicemlemeye duyarlı eğitim (QAT), ARM NEON çekirdekleri (15.51–15.53).
+- **Örnekleme:** `TR_sample`'a `TR_top_p:` (bugün top-p, 15.22'nin `TR_argsort`'u ve `TR_cumsum` ile yazılır; 15.26).
+
 **7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.
 - **Evre A** (1–7 yazılınca, uygulamadan önce): üç Claude modeli, 20 görev, iki bağlam (yalnız tek sayfalık başvuru; ya da 1–7'nin kuralları ve kimlik listesi). Programlar kural numarasıyla denetlenir; sık çiğnenen kural ya da başvuru yeniden tartılır. Başvuru (Araç işleri) Evre A'dan önce yazılır.
 - **Evre B** (1–7 uygulanınca): aynı görevler yeniden yazdırılır, denetlenir ve çalıştırılır; en çok 3 düzeltme turu, yalnız TR'nin iletileriyle. Python ve Gemini'yle karşılaştırılır.

@@ -4,7 +4,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Her kuralın emsali ve gerekçesi: [`rationale/09_defer.md`](rationale/09_defer.md).
 
-**9.1** `TR_defer { ... }` bloğun içinde bulunduğu kapsam bitince çalışacak işi kaydeder. Kapsam onu içeren en yakın `{ ... }` bloğudur (5.12): fonksiyonun ya da fonksiyon ifadesinin gövdesi, `TR_if`, `TR_else` ya da `TR_match` kolu, döngünün bir turu, `TR_try` ya da `TR_catch` bloğu, sondaki blok (6.7), ertelenen bloğun kendisi; en dışta program, `TR_async` içinde görev, testte test. Ertelenen bloğun içindeki `TR_defer` o bloğun sonunda çalışır. Birden çok ertele ters sırayla çalışır (son kaydedilen ilk). Tek yazım bloktur: `TR_defer f(x)` sözdizimi hatasıdır, ileti `TR_defer { f(x) }`'i önerir.
+**9.1** `TR_defer { ... }` bloğun içinde bulunduğu kapsam bitince çalışacak işi kaydeder. Kapsam onu içeren en yakın `{ ... }` bloğudur (5.12): fonksiyonun ya da fonksiyon ifadesinin gövdesi, `TR_if`, `TR_else` ya da `TR_match` kolu, döngünün bir turu, `TR_try` ya da `TR_catch` bloğu, sondaki blok (6.7), ertelenen bloğun kendisi; en dışta program, `TR_async` içinde görev, testte test. Ertelenen bloğun içindeki `TR_defer` o bloğun sonunda çalışır; `TR_no_grad` bloğundaki `TR_defer` kip kapanmadan, kipin içinde çalışır (15.27). Birden çok ertele ters sırayla çalışır (son kaydedilen ilk). Tek yazım bloktur: `TR_defer f(x)` sözdizimi hatasıdır, ileti `TR_defer { f(x) }`'i önerir.
 - *Test:* TR testi; kapsamın blok oluşu, ertelenen bloktaki ertele ve tek yazımın iletisi uygulanınca TR testi.
 
 ```tr

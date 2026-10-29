@@ -82,7 +82,7 @@ TR_test "15.6 işleçler ve yayınlama" {
     TR_assert_equal([5.0, 2.0], w.TR_tolist)
 }
 
-TR_test "15.6 bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
+TR_test "15.6d bitişik olmayan tensörde t[i], döngü öğesi ve şekillendir görünümdür" {
     TR_var t = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_var d = t.TR_transpose()
     d[0] = 9 # d'nin 0. satırı t'nin 0. sütunudur
@@ -280,7 +280,7 @@ TR_test "15.9 tamamen maskeli softmax satırı 0, log_softmax -sonsuz; gradyanı
     TR_assert_equal([0.0, 0.0, 0.0], x.TR_grad.TR_tolist[0])
 }
 
-TR_test "15.23 tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
+TR_test "15.23a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz entropi" {
     TR_assert_equal("H6212", TR_error_code { TR_mean(TR_Tensor([])) })
     TR_assert_equal("H6213", TR_error_code { TR_mean(TR_zeros([2, 0]), TR_dim: 1) })
     TR_assert_equal(0.0, TR_sum(TR_Tensor([])).TR_tolist)
@@ -961,7 +961,7 @@ TR_test "15.26 örnekle: dağılım kurulamayan satır her yolda hatadır (sıca
     TR_assert_equal(1, TR_sample(TR_Tensor([eksi_sonsuz, 3.0]), TR_top_k: 1, TR_seed: 1).TR_tolist)
 }
 
-TR_test "15.4 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
+TR_test "15.18 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensiz min dahil)" {
     TR_for tür TR_in ["bf16", "fp16"] {
         TR_var x = TR_Tensor([3.0, 1.0, 2.0], TR_dtype: tür)
         TR_assert_equal(tür, TR_max(x).TR_dtype)
@@ -1098,7 +1098,7 @@ TR_test "15.41 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği s�
     }
 }
 
-TR_test "15.49 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
+TR_test "15.6b yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     TR_assert_equal([2, 5], (t + TR_Tensor([[1.0], [2.0]])).TR_shape)
     TR_assert_equal([2, 5], (TR_Tensor([[1.0], [2.0]]) * t).TR_shape)
@@ -1106,7 +1106,7 @@ TR_test "15.49 yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_assert(hata_metni { t + TR_Tensor([1.0, 2.0]) }.TR_contains("5 ≠ 2"))
 }
 
-TR_test "15.49 tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
+TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
     TR_var a = TR_Tensor([1.0, 2.0]).TR_to_dtype("bf16")
     TR_var b = TR_Tensor([1.0, 2.0]).TR_to_dtype("fp16")
     TR_assert_equal("bf16", (a + a).TR_dtype)
@@ -1118,7 +1118,7 @@ TR_test "15.49 tür yükseltme: aynı tür korunur, farklı türler float32, say
     TR_assert_equal([0.0, 1.0], (TR_Tensor([1.0, 2.0]) > 1).TR_tolist)
 }
 
-TR_test "15.49 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
+TR_test "15.6d tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     TR_assert_equal(5.0, t[-1].TR_tolist)
     TR_assert_equal("H6709", TR_error_code { t[5] })
@@ -1130,7 +1130,7 @@ TR_test "15.49 tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     TR_assert_equal("H6720", TR_error_code { t.TR_slice(0, 1, 10) })
 }
 
-TR_test "15.49 sayı olmayan işlenen tensörle işleme girmez" {
+TR_test "15.6a sayı olmayan işlenen tensörle işleme girmez" {
     TR_var t = TR_Tensor([1.0, 2.0])
     TR_assert_equal("H6032", TR_error_code { t + "a" })
     TR_assert_equal("H6032", TR_error_code { t + TR_true })

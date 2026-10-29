@@ -37,7 +37,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - *Test:* TR testi; alan tipinin ve olmayan alanın denetimi uygulanınca denetleyicinin testi.
 
 **7.6** Yapı nesnesi listeler gibi başvuruyla paylaşılır (3.6): `TR_var q = p` aynı nesnedir, `q.x = 9` `p.x`'i de değiştirir; bu yüzden 4.10'un yineleme kuralına girer.
-- `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5). Alanlarından biri karşılaştırılamayan yapı karşılaştırılamaz, denetim hatasıdır: fonksiyon alanı ve tensör alanı (tensörün `==`'si öğe öğedir, sonraki bölümlerde) böyledir.
+- `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5). Alanlarından biri karşılaştırılamayan yapı karşılaştırılamaz, denetim hatasıdır: fonksiyon alanı ve tensör alanı (tensörün `==`'si öğe öğedir, 15.5) böyledir.
 - Metni kurma yazımıdır: "Nokta(x: 3.0, y: 4.0)"; alanlar 3.14'teki gibi yazılır.
 - Nesne kendine bağlanabilir (ağaçta ebeveyn, çift yönlü bağlantı). Metin, yazılmakta olan bir nesneye yeniden varınca orada "..." yazar. `==` karşılaştırılmakta olan bir nesne çiftine yeniden varırsa çalışma hatasıdır.
 - `TR_Type(p)` yapının kendisidir (`TR_Type(p) == Nokta`); yapının metni adıdır.
@@ -48,7 +48,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - Değer `Durum.Bekliyor` ya da `Durum.Çalışıyor(5)` ile kurulur (argümanlar 6.5'teki gibi). Alanlı durum çağrısız (`Durum.Çalışıyor`), alansız durum çağrıyla (`Durum.Bekliyor()`) yazılamaz: çalışma hatasıdır, ileti doğru yazımı verir. Durum bir fonksiyon değeri değildir (tip çağrısı gibi, 13.6); fonksiyon gerekirse ok yazılır: `(x) => Durum.Çalışıyor(x)`. Durumlu tipin kurucusu (`TR_init`) yoktur, sözdizimi hatasıdır: değer durumun kendi alanlarıyla kurulur. Değer değiştirilemez; alanları yalnız eşlemeyle okunur. Alanlarından biri başvuruyla paylaşılan tipteyse değer 4.10'un yineleme kuralına girer.
 - `TR_match`'te desen: `Durum.Bekliyor`; ya da `Durum.Çalışıyor(a)`, burada `a` alanın değerini bağlar ve yalnız o kolda görünür. Desen konumludur: her alana bir ad ya da `_`. Ad sayısı alan sayısını tutmazsa eşleme o kolu denerken çalışma hatasıdır, kol eşleşmez sayılmaz. Desende adlı alan (`Durum.Çalışıyor(adım: a)`) sözdizimi hatasıdır, ileti konumlu yazımı verir. Bağlanan ad dıştaki bir adla aynıysa 5.12'nin hatasıdır. `_` bir alanı atlar. Alanın içinde değer karşılaştırılmaz ve koşullu kol (`... TR_if koşul =>`) yoktur, sözdizimi hatasıdır; karşılaştırma kolun içinde yapılır.
 - Eşleme her durumu ya da `_`'yi kapsar (5.6).
-- `==` aynı durumu ve eşit alanları sınar. Metni kurma yazımıdır: "Durum.Çalışıyor(adım: 5)".
+- `==` aynı durumu ve eşit alanları sınar. Tensör içeren durumlu tipin `==`'si ve `==` isteyen deseni denetim hatasıdır; durum açan desen (`Cevap.Tamam(t) =>`) geçerlidir, alanı bağlar (15.5). Metni kurma yazımıdır: "Durum.Çalışıyor(adım: 5)".
 - Yapının deseni yoktur; yapıyla karşılaştırma parantezli ifadeyle yapılır (5.6).
 - *Test:* TR testi; kapsama ve tip parametresi uygulanınca TR testi.
 

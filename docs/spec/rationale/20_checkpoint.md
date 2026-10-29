@@ -20,7 +20,7 @@ Kurallar: [`20_kontrol_noktasi.md`](../20_kontrol_noktasi.md). Bu dosya her kura
 ### 20.4
 
 - *Emsal:* 20.3'teki gibi; ayrıca eğitimin sonunda elle kayıt.
-- *Gerekçe:* eğitimin sonunda ya da kullanıcının istediği bir anda nokta bırakmak; klasörü vermek sonucu araçlara iletmeyi kolaylaştırır.
+- *Gerekçe:* eğitimin sonunda ya da kullanıcının istediği bir anda nokta bırakmak; klasörü vermek sonucu araçlara iletmeyi kolaylaştırır. Donma durumu noktaya girer, çünkü donma bir değere bağlı olabilir (kayıp eşiğinde gövdeyi çözmek): kaydedilmeseydi sürdürülen eğitim başka bir donma durumuyla başlar ve 20.17'nin aynılığını bozardı (15.34).
 
 ### 20.5
 

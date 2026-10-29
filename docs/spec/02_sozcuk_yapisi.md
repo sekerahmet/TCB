@@ -70,7 +70,7 @@ TR_var t = 1 +
     2                    # t = 3
 ```
 
-**2.9** Anahtar kelimeler ayrılmıştır, ad olamaz. Her işin tek yazımı vardır: koşullu döngü `TR_for` ve bir koşulla, eşlemenin varsayılan kolu `_` ile yazılır. Başka dillerden alışkanlıkla yazılan `TR_while` ya da `TR_default` sözdizimi hatasıdır, ileti TR'deki yazımı söyler:
+**2.9** Anahtar kelimeler ayrılmıştır, ad olamaz. Her işin tek yazımı vardır: koşullu döngü `TR_for` ve bir koşulla, eşlemenin varsayılan kolu `_` ile yazılır; bir ad da iki iş yapmaz: `TR_no_grad` yalnız türevsiz kipin bloğudur, tensörü çizgeden ayırmak `.TR_detach()`'tir (15.27a). Başka dillerden alışkanlıkla yazılan `TR_while` ya da `TR_default` sözdizimi hatasıdır, ileti TR'deki yazımı söyler:
 
 | Görev | Anahtar kelimeler |
 | :-- | :-- |

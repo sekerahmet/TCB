@@ -49,7 +49,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 **16.7** `küme.TR_sampler(TR_batch_size: b, TR_context: c, TR_seed: s)` rastgele pencereler veren bir `TR_Sampler` kurar.
-- `.TR_next()` bir demet verir (3.6a): `TR_var girdi, hedef = ö.TR_next()`. İkisi de `[b, c]` şekilli `TR_Tensor[TR_Int]` "int64"tür; `hedef`, `girdi`nin bir kaydırılmışıdır. Pencere bir parçanın sınırını aşmaz.
+- `.TR_next()` bir demet verir (3.6a): `TR_var girdi, hedef = ö.TR_next()`. İkisi de `[b, c]` şekilli `TR_Tensor[TR_Int]` "int64"tür, parçanın diskteki türü ne olursa olsun (16.5): çapraz entropinin yok sayılan hedefi `-100` (15.23a) işaretsiz türde tutulamaz. `hedef`, `girdi`nin bir kaydırılmışıdır. Toplu işler varsayılan cihazda kurulur (15.38). Pencere bir parçanın sınırını aşmaz.
 - **Belirlenimci:** aynı küme, aynı argümanlar ve aynı tohum aynı toplu işleri verir. Örnekleyici sonsuzdur.
 - **Kaldığı yerden:** örnekleyici kontrol noktasına kaydedilir (20); geri yüklenince kaldığı yerden aynı toplu işleri verir.
 - Sonsuz olduğu için döngüyle gezilmez: `.TR_next()`'i isteğe bağlı değer vermez, 5.7'ye göre dolaşılamaz; `TR_for x TR_in ö` denetim hatasıdır, ileti adım sayısıyla döngüyü önerir.
