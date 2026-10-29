@@ -45,7 +45,7 @@ func TestEveryMessageCodeTokenIsAUse(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		l := b.IdentityLexer() // gövde başlık satırını içerir: satırlar dosyanınkidir (readIn gibi)
+		l := b.Lexer() // gövde başlık satırını içerir: satırlar dosyanınkidir (readIn gibi)
 		for tok := l.NextToken(); tok.Type != lexer.TokEOF; tok = l.NextToken() {
 			// İleti kodu bir metin olarak yazılır ("H6903").
 			if _, err := messages.Parse(tok.Literal); tok.Type != lexer.TokString || err != nil {

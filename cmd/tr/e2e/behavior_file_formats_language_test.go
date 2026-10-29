@@ -22,11 +22,8 @@ import (
 // kayıt alanları yazım dilinden bağımsızdır, çevrilmez. Aynı kodlu program varsayılan dilde ve
 // TR_DIL=en ile çalıştırılır; ürettiği dosyaların adları ve anahtar kümeleri aynı olmalı.
 func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
-	program := "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var g = TR_Logger(\"metrics.jsonl\")\nTR_var kn = TR_Checkpoint(\"kosu\", {\"w\": w})\nkn.güncelle(1)\nkn.kaydet()\ng.ekle({\"kayıp\": 1.5})\nTR_print(TR_Type(kn))\n"
-	coded, err := source.Encode(program)
-	if err != nil {
-		t.Fatal(err)
-	}
+	program := "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var g = TR_Logger(\"metrics.jsonl\")\nTR_var kn = TR_Checkpoint(\"kosu\", {\"w\": w})\nkn.TR_update(1)\nkn.TR_save()\ng.TR_append({\"kayıp\": 1.5})\nTR_print(TR_Type(kn))\n"
+	coded := source.Header + "\n" + program
 	var shapes, outputs [2]string
 	for i, env := range [][]string{nil, {"TR_DIL=en"}} {
 		dir := t.TempDir()
@@ -60,10 +57,7 @@ func TestFileFormatsIndependentOfWritingLanguage(t *testing.T) {
 // bayt aynıdır.
 func TestDataFormatsAreLanguageIndependent(t *testing.T) {
 	program := "TR_print(TR_json_string({\"a\": TR_true, \"b\": TR_none, \"c\": [1.5, TR_false], \"d\": \"x\"}))\nTR_print(TR_json_string(TR_parse_csv(\"a,b\\ndoğru,1\\n\")))\nTR_Logger(\"metrics.jsonl\").TR_append({\"hazır\": TR_true, \"boş\": TR_none})\nTR_print(TR_true)\n"
-	coded, err := source.Encode(program)
-	if err != nil {
-		t.Fatal(err)
-	}
+	coded := source.Header + "\n" + program
 	var data, logs [2]string
 	for i, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {
 		dir := t.TempDir()
@@ -94,11 +88,8 @@ func TestDataFormatsAreLanguageIndependent(t *testing.T) {
 // adıyla geçer (--step) ve çıktı her koşuda aynıdır, TR_print anahtarı tırnakla yazar. Kitaplığın
 // (tr/training) config.json'u İngilizce tanımlayıcılardır; program JSON'daki "step"'i ["step"] ile okur.
 func TestDictTextKeysOnDisk(t *testing.T) {
-	program := "TR_import \"tr/training\" TR_as e\nTR_var ayar = TR_command_line({\"step\": 3, \"lr\": 0.5})\nTR_var koşu = e.Koşu(\"kosu\", ayar, {}, TR_num_steps: ayar[\"step\"])\nkoşu.değerlendirildi(1, {\"loss\": 0.25})\nTR_var kn = TR_Checkpoint(\"nokta\", {\"w\": TR_Tensor([1.0]), \"sayaç\": {\"step\": 1}})\nkn.güncelle(1)\nkn.kaydet()\nTR_print(TR_json_string(ayar))\nTR_print(ayar)\nTR_print(TR_json_parse(`{\"step\": 4}`)[\"step\"])\n"
-	coded, err := source.Encode(program)
-	if err != nil {
-		t.Fatal(err)
-	}
+	program := "TR_import \"tr/training\" TR_as e\nTR_var ayar = TR_command_line({\"step\": 3, \"lr\": 0.5})\nTR_var koşu = e.TR_Run(\"kosu\", ayar, {}, TR_num_steps: ayar[\"step\"])\nkoşu.TR_evaluated(1, {\"loss\": 0.25})\nTR_var kn = TR_Checkpoint(\"nokta\", {\"w\": TR_Tensor([1.0]), \"sayaç\": {\"step\": 1}})\nkn.TR_update(1)\nkn.TR_save()\nTR_print(TR_json_string(ayar))\nTR_print(ayar)\nTR_print(TR_json_parse(`{\"step\": 4}`)[\"step\"])\n"
+	coded := source.Header + "\n" + program
 	const want = "{\"step\":2,\"lr\":0.5}\n{\"step\": 2, \"lr\": 0.5}\n4\n"
 	var shapes, logs [2]string
 	for i, option := range []string{"--step", "--step"} {
@@ -161,10 +152,7 @@ func TestNonFiniteNamesAreLanguageIndependent(t *testing.T) {
 // bağlı değildir (3.14; metin sabit İngilizce): İlerleme, Günlük, iyileştirici, kontrol noktası, satır okuyucu.
 func TestEngineValueTextIsLanguageIndependent(t *testing.T) {
 	program := "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_write_file(\"s.txt\", \"a\\nb\\n\")\nTR_print(TR_String(TR_Progress(2)))\nTR_print(TR_String(TR_Logger(\"m.jsonl\")))\nTR_print(TR_String(TR_AdamW([w], TR_lr: 0.1)))\nTR_print(TR_String(TR_Checkpoint(\"k\", {\"w\": w})))\nTR_print(TR_String(TR_read_lines(\"s.txt\")))\n"
-	coded, err := source.Encode(program)
-	if err != nil {
-		t.Fatal(err)
-	}
+	coded := source.Header + "\n" + program
 	want := []string{"Progress(step 0/2)", "Logger(m.jsonl, 0 records)",
 		"AdamW(parameters: 1, lr: 0.1, weight_decay: 0.01, beta1: 0.9, beta2: 0.999, eps: 1e-08, step: 0)",
 		"Checkpoint(k/checkpoints, step 0, 1 object)", "LineReader("}
@@ -184,12 +172,12 @@ func TestEngineValueTextIsLanguageIndependent(t *testing.T) {
 	}
 }
 
-// Görüntüler kişinin dilindedir (TR_DIL): kabuğun yankısı ve programın --yardım'ı (tip adları,
+// Görüntüler kişinin dilindedir (TR_DIL): kabuğun (kimliklerle yazılan satırın) yankısı ve programın --yardım'ı (tip adları,
 // varsayılan değerler; seçeneğin adı metin anahtarıdır: {"step": 3} → --step, 3.7) TR_DIL=en ile İngilizce.
 // Kodsuz seçenek (--hızlı) yazıldığı gibidir. Seçeneğe verilen değer kişinin dilinde okunur; değerin
 // metni dilden bağımsızdır.
 func TestDisplayFollowsPersonsLanguage(t *testing.T) {
-	repl := testkit.RunBinary(t, trBinary, "", "true\nType(1)\nexit\n", []string{"TR_DIL=en"})
+	repl := testkit.RunBinary(t, trBinary, "", "TR_true\nTR_Type(1)\nexit\n", []string{"TR_DIL=en"})
 	testkit.Wait(t, repl, 0, []string{"=> true", "=> Int"}, nil)
 	dir := t.TempDir()
 	writeTR(t, dir, "p.tr", source.Header+"\nTR_var ayar = TR_command_line({\"step\": 3, \"hızlı\": TR_true})\n")
@@ -243,13 +231,10 @@ func TestBoolTextComparisonWarns(t *testing.T) {
 // Önceden ad TR_DIL'de kurulup iletiye metin olarak veriliyordu (yakalanan hatada "tensör",
 // "devrik()", "türev_izle" kalıyordu).
 func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
-	coded, err := source.Encode("TR_try { TR_Tensor([1.0], TR_requires_grad: 5) } TR_catch h { TR_print(h) }\nTR_try { TR_print(TR_Tensor([[1.0]]).T) } TR_catch h { TR_print(h) }\nTR_try { TR_Tensor([1.0], türev_izl: TR_true) } TR_catch h { TR_print(h) }\nTR_print(TR_Tensor([[1.0]]).T)\n" +
+	coded := source.Header + "\n" + "TR_try { TR_Tensor([1.0], TR_requires_grad: 5) } TR_catch h { TR_print(h) }\nTR_try { TR_print(TR_Tensor([[1.0]]).T) } TR_catch h { TR_print(h) }\nTR_try { TR_Tensor([1.0], türev_izl: TR_true) } TR_catch h { TR_print(h) }\nTR_print(TR_Tensor([[1.0]]).T)\n" +
 		"" +
 		"" +
-		"")
-	if err != nil {
-		t.Fatal(err)
-	}
+		""
 	want := []string{"Tensor: requires_grad must be true or false", "Did you mean 'transpose()'?",
 		"Tensor() takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
 	dir := t.TempDir()
@@ -293,11 +278,8 @@ func TestSyntaxHintNamesInAFileAreSpellings(t *testing.T) {
 // İngilizcedir. Önceden parça messages.Text ile TR_DIL'de kurulup iletiye metin olarak giriyordu
 // ("only on tensörde").
 func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
-	coded, err := source.Encode("TR_try { TR_softmax([1.0, 2.0]) } TR_catch h { TR_print(h) }\n" +
-		"TR_try { TR_where([1, 2], 1, 2) } TR_catch h { TR_print(h) }\n")
-	if err != nil {
-		t.Fatal(err)
-	}
+	coded := source.Header + "\n" + "TR_try { TR_softmax([1.0, 2.0]) } TR_catch h { TR_print(h) }\n" +
+		"TR_try { TR_where([1, 2], 1, 2) } TR_catch h { TR_print(h) }\n"
 	dir := t.TempDir()
 	writeTR(t, dir, "p.tr", coded)
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr")
@@ -316,10 +298,7 @@ func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
 // iletiye metin olarak giriyordu ("the cache quota is insufficient: kota 107 bayt, ...").
 func TestDatasetErrorsFollowTheMessageLanguage(t *testing.T) {
 	data := filepath.ToSlash(reporoot.Path("tests/data/text"))
-	coded, err := source.Encode("TR_try {\n    TR_var k = TR_Dataset(\"" + data + "\", TR_cache: \"c2\", TR_quota_gb: 0.0000001)\n    TR_print(k.TR_sampler(TR_batch_size: 1, TR_context: 4).TR_next())\n} TR_catch h { TR_print(h) }\n")
-	if err != nil {
-		t.Fatal(err)
-	}
+	coded := source.Header + "\n" + "TR_try {\n    TR_var k = TR_Dataset(\"" + data + "\", TR_cache: \"c2\", TR_quota_gb: 0.0000001)\n    TR_print(k.TR_sampler(TR_batch_size: 1, TR_context: 4).TR_next())\n} TR_catch h { TR_print(h) }\n"
 	dir := t.TempDir()
 	writeTR(t, dir, "p.tr", coded)
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=tr"}, "p.tr")
@@ -405,10 +384,7 @@ func jsonKeys(t *testing.T, data []byte) string {
 // çalıştırır: çıktı iki koşuda da want'tır, çalıştıranın diline bağlı değildir.
 func sameOutputInEveryDisplayLanguage(t *testing.T, program, want string) {
 	t.Helper()
-	coded, err := source.Encode(program)
-	if err != nil {
-		t.Fatal(err)
-	}
+	coded := source.Header + "\n" + program
 	dir := t.TempDir()
 	writeTR(t, dir, "p.tr", coded)
 	for _, env := range [][]string{{"TR_DIL=tr"}, {"TR_DIL=en"}} {

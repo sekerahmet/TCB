@@ -43,7 +43,7 @@ func TestEveryMessageCodeUseIsAnEdge(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		l := b.IdentityLexer()
+		l := b.Lexer()
 		for tok := l.NextToken(); tok.Type != lexer.TokEOF; tok = l.NextToken() {
 			// İleti kodu bir metin olarak yazılır ("H6903").
 			if tok.Type == lexer.TokString && messageCodeName.MatchString(tok.Literal) {

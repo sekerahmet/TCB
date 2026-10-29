@@ -149,7 +149,7 @@ func (x *goExtractor) literalFields(fc *fileCtx, owner string, lit *ast.Composit
 	}
 }
 
-// keyedImplementations bileşik değerde ad kodunu anahtar, işlevi değer alan çiftin (`codes.CmdEncode: encodeCommand`)
+// keyedImplementations bileşik değerde ad kodunu anahtar, işlevi değer alan çiftin (`codes.CmdFormat: formatCommand`)
 // işleve giden kenarına kodu yazar (Edge.Via): kodun uygulaması o çiftin değeridir, aynı satırdaki öbür çiftlerinki değil
 // (implementationsAt). Kenar işlevin değer olarak kullanımıdır (calls, INFERRED; use ile aynı kenar).
 func (x *goExtractor) keyedImplementations(fc *fileCtx, owner string, lit *ast.CompositeLit) {

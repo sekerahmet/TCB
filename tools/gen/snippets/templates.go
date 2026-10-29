@@ -8,9 +8,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
-// Şablonların verisi dilden bağımsızdır (data.json): gövde (source) kodlu biçimde durur (TR_kw_func ...) ve
-// source.Show ile her dile, Türkçeye de, aynı yoldan çevrilir; Türkçe sözcük yalnız dil metinlerindedir
-// (text/<dil>.json: şablon adı, açıklama ve kullanıcıya önerilen sözcükler). Kullanıcının dolduracağı yerler
+// Şablonların verisi dilden bağımsızdır (data.json): gövde (source) kodlu biçimde durur (TR_func ...) ve her
+// dilde kimlik yazımıyla kalır; Türkçe sözcük yalnız dil metinlerindedir (text/<dil>.json: şablon adı,
+// açıklama ve kullanıcıya önerilen sözcükler). Kullanıcının dolduracağı yerler
 // "ph_" adlarıdır ve holes'ta VS Code şablon durağına (${1:varsayılan}) çevrilir; bir deliğin metnindeki
 // %sözcük% dilin sözcüğüyle gelir. Durak varsayılanında dil öğesi (anahtar kelime, yerleşik adı) bulunmaz.
 

@@ -16,8 +16,7 @@ import (
 // sözcük çözümleyici kurucusu) yalnızca lexer ve source paketlerindedir; öbür paketler başlığı
 // kendileri tanımaz, source.Split, source.Prepare ve source.HeaderLines'ı kullanır. Test, test dışı Go
 // kodunda başlık metnini (bugünkü '# TR ' ve eski '//! tr kodlu'), lexer.NewBody ve source.Header
-// kullanımlarını arar. Tek istisna çeviricidir (tools/migrate): eski başlığı okuyan yol yalnız orada
-// yaşar, yeni başlığı yazar.
+// kullanımlarını arar.
 func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 	root := reporoot.Root()
 	checked := 0
@@ -28,7 +27,7 @@ func TestHeaderRulesLiveOnlyInSourceAndLexer(t *testing.T) {
 			}
 			rel, _ := filepath.Rel(root, path)
 			rel = filepath.ToSlash(rel)
-			if strings.HasPrefix(rel, "internal/lang/source/") || strings.HasPrefix(rel, "internal/lang/lexer/") || strings.HasPrefix(rel, "tools/migrate/") {
+			if strings.HasPrefix(rel, "internal/lang/source/") || strings.HasPrefix(rel, "internal/lang/lexer/") {
 				return nil
 			}
 			f, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)

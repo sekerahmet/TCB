@@ -254,6 +254,20 @@ func TestCLIExpressionAndUndefinedAssign(t *testing.T) {
 	}
 }
 
+// Kural (17.7): hata ayıklayıcıya yazılan ifade koddur, kimlik yazımıyla okunur: TR_print(a) çalışır,
+// Türkçe adıyla yazılan yazdır(a) kullanıcının adıdır ve tanımsız ad hatası verir. Neden: kod yalnız
+// kimliklerle yazılır, görünüm koda geri çevrilmez; kabuk ve dosya da öyle okunur.
+func TestCLIExpressionIsWrittenWithIdentities(t *testing.T) {
+	code := "TR_var a = 2\nTR_print(a)\n"
+	out, _ := runCLI(t, "t.tr", code, "adım\nhesapla TR_String(a * 3)\nhesapla yazdır(a)\ndevam\n", nil)
+	if !strings.Contains(out, "Sonuç (Metin): 6") {
+		t.Errorf("kimlik yazımıyla ifade hesaplanmalı:\n%s", out)
+	}
+	if !strings.Contains(out, "'yazdır'") || strings.Contains(out, "Sonuç (Yok)") {
+		t.Errorf("Türkçe adıyla yazılan ifade tanımsız ad hatası vermeli:\n%s", out)
+	}
+}
+
 // Kural (B9): başlık kutusunun her satırı kenarlıkla aynı genişliktedir (sağ kenar hizalı), iletinin
 // dili ve dosya yolunun uzunluğu ne olursa olsun. Önceden dolgu yalnız yola uygulanıyordu.
 func TestScreenBoxRowsAlign(t *testing.T) {

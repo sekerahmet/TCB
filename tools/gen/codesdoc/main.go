@@ -217,12 +217,11 @@ func exampleBlock(k codes.Code, example string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		view, err := source.Show(source.Header+"\n"+example+"\n", lang)
+		view, err := source.ShowBody(example, lang)
 		if err != nil {
 			return "", fmt.Errorf("%s: the example's view in %s: %v", k, code, err)
 		}
-		_, body, _ := strings.Cut(view, "\n")
-		views = append(views, code+": "+strings.TrimSuffix(body, "\n"))
+		views = append(views, code+": "+view)
 	}
 	return block + text.Labels["views"] + ":\n\n```text\n" + strings.Join(views, "\n") + "\n```\n\n", nil
 }

@@ -16,7 +16,7 @@ import (
 )
 
 // Kapsam: dilin her adı examples/tr altındaki bir örnekte
-// geçer. Ad kontrolü metin aramasıyla değil kodlarladır: örnek `source.Encode` ile kodlanır ve
+// geçer. Ad kontrolü metin aramasıyla değil kodlarladır: kodlu örnek kimlik okuyucusuyla okunur ve
 // iskeletindeki kodlar (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr: ...) sayılır. Komut satırı adları (cmd, opt, repl, dbg, env:
 // `tr test`, `tr biçimle`, --dil ...) .tr dosyasında geçmez; örneklerin yorum satırlarında ve
 // examples/README.md'de aranır.
@@ -44,11 +44,7 @@ func exampleTexts(t *testing.T) map[string]string {
 			return rerr
 		}
 		rel, _ := filepath.Rel(root, p)
-		text := string(data)
-		if view, verr := source.Show(text, source.Turkish()); verr == nil {
-			text = view // kodlu örnek Türkçe görünümüyle okunur
-		}
-		out[filepath.ToSlash(rel)] = text
+		out[filepath.ToSlash(rel)] = string(data)
 		return nil
 	})
 	if err != nil {
@@ -62,21 +58,21 @@ func usedCodes(t *testing.T) map[string]bool {
 	t.Helper()
 	used := map[string]bool{}
 	for name, text := range exampleTexts(t) {
-		coded, err := source.Encode(text)
-		if err != nil {
-			// Bilerek hatalı hata örnekleri kodlanamaz; kodlanabilen kısmı yoktur.
+		b, err := source.Split(text)
+		if err != nil || !b.Coded {
+			t.Fatalf("examples/tr/%s: kodlu dosya değil: %v", name, err)
+		}
+		l := b.Lexer()
+		l.StartRecording()
+		p := parser.New(l)
+		p.ParseProgram()
+		if len(p.Errs()) > 0 {
+			// Bilerek hatalı hata örnekleri ayrıştırılamaz; sayılmazlar.
 			if strings.HasPrefix(name, "hatalar/") {
 				continue
 			}
-			t.Fatalf("examples/tr/%s kodlanamadı: %v", name, err)
+			t.Fatalf("examples/tr/%s ayrıştırılamadı: %v", name, p.Errs())
 		}
-		b, err := source.Split(coded)
-		if err != nil || !b.Coded {
-			t.Fatalf("examples/tr/%s: kodlu metin başlıksız: %v", name, err)
-		}
-		l := b.IdentityLexer()
-		l.StartRecording()
-		parser.New(l).ParseProgram()
 		for _, r := range l.Records() {
 			if r.Code != codes.None {
 				used[r.Code.String()] = true

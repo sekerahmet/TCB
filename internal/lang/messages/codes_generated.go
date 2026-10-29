@@ -203,7 +203,6 @@ const (
 	H2112 Code = 2112 // {path|q} modülü okunamadı: {reason}
 	H2113 Code = 2113 // {path|q} bulunamadı: {reason}
 	H2114 Code = 2114 // {path|q} listelenemedi: {reason}
-	H2115 Code = 2115 // {path|q} kodlanamadı: {reason}
 	H2130 Code = 2130 // bu bir klasör, dosya değil (klasörün içindeki bir dosyanın yolunu verin)
 	H2131 Code = 2131 // {dir|q} klasörü yok
 	H2132 Code = 2132 // böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)
@@ -359,11 +358,10 @@ const (
 	H2507 Code = 2507 // {fn}: standart girdi okunamadı: {reason}
 	H2508 Code = 2508 // '{language}' yazım dili yok; var olanlar: {languages}
 	H2509 Code = 2509 // {variable}={language}: {error}
-	H2510 Code = 2510 // dosya geçerli bir UTF-8 metni değil (2.1); bozuk baytlar çeviride korunamaz, dosyaya dokunulmadı: dosyayı UTF-8 olarak kaydedin
-	H2511 Code = 2511 // çeviri kayıpsız olmadı (programın anlamı ya da metni değişecekti), dosyaya dokunulmadı; lütfen bu dosyayı bir hata kaydıyla bildirin
+	H2510 Code = 2510 // dosya geçerli bir UTF-8 metni değil (2.1): dosyayı UTF-8 olarak kaydedin
 	H2512 Code = 2512 // '{line}' okunamayan bir başlık: TR dosyasının ilk satırı tam olarak '{header}' olmalıdır (ilk satır '#!' ile başlıyorsa ikinci satırı)
 	H2513 Code = 2513 // … ve {count} hata daha (ilk {max} hata gösterildi)
-	H2514 Code = 2514 // sözdizimi hatası olan kaynak çevrilmez: {error}
+	H2514 Code = 2514 // sözdizimi hatası olan kaynağın görünümü yazılmaz: {error}
 	H2515 Code = 2515 // {container} indeksi sınır dışı: {index} (uzunluk {length}); öğe olmayabilirse .{get}({index}) ?? varsayılan yazın
 	H2516 Code = 2516 // eşzamanlı görev hatası (satır {line|loc} başlatılan): {error}
 	H2517 Code = 2517 // eşitlik başarısız: {message} — beklenen {expected}, gerçek {actual}
@@ -379,10 +377,8 @@ const (
 	H2530 Code = 2530 // {fn}: durdurma istendi, yeni bekleme başlatılmadı. Program durdurmayı üstlendi: {requested}() doğruysa döngüden çıkıp temizliğe geçin; temizlikte beklemek gerekiyorsa onu '{defer}' bloğunda ya da bu hatayı yakalayan '{catch}' gövdesinde yapın
 	H2531 Code = 2531 // {fn}: çıkış kodu 0 ile 125 arasında bir Tam olmalı ({value} verildi). Örneğin '{exit}(4)' yazın (0 başarı, 1 hata, 2 kullanım hatası; kendi kodlarınız 4'ten başlar)
 	H2532 Code = 2532 // {fn}({code}) bir testin içinden çağrıldı: test başarısız sayıldı, program bitirilmez. Testte bir koşulu denetlemek için '{assert}(koşul)' yazın
-	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda). Bir yazım dilinde yazılmış metni kodlamak için: tr {encode} <dosya> --{lang} {code}
-	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var) ve çalışmaz; önce kodlayın: tr {encode} <dosya>
-	H2542 Code = 2542 // metin bir '{view}' görünümü, ama --{lang} {code} verildi: görünümün dili başlığındadır, --{lang} gerekmez
-	H2543 Code = 2543 // gösterim kurulamadı: dosyanın bu yazım dilindeki görünümü geri kodlanınca aynı programı vermiyor; lütfen bu dosyayı bir hata kaydıyla bildirin
+	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
+	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'tr {show}' ile yazılır)
 	H2600 Code = 2600 // koşul bir mantık değeri (Bool) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için 'x.{@length} == 0', yokluk için 'x != {@none}', sayı için 'x != 0'
 	H2601 Code = 2601 // '{@and}', '{@or}' ve '{@not}' yalnız mantık değeri (Bool) alır; {type} verildi. Açık bir sınama yazın: 'x.{@length} > 0', 'x != {@none}', 'x != 0'
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
@@ -1716,10 +1712,8 @@ const (
 	H8617 Code = 8617 // tr {command} <dosya.tr>	.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür
 	H8618 Code = 8618 // tr {command} [dosya.tr|klasör]	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
 	H8619 Code = 8619 // tr {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
-	H8620 Code = 8620 // tr {command} <dosya.tr|klasör> [{lang} tr]	Bir yazım dilinde yazılmış dosyaları yerinde kodlu biçime çevirir (dilin sözcükleri kodlarla saklanır)
 	H8622 Code = 8622 // tr {command} <dosya.tr> [{lang} tr]	Dosyayı bir yazım dilinde gösterir (kodlu dosya da)
 	H8623 Code = 8623 // tr {command} - [{lang} tr]	Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)
-	H8624 Code = 8624 // tr {command} - [{lang} tr]	Metni standart girişten okur, kodlu biçimini çıkışa yazar (düzenleyiciler için)
 	H8625 Code = 8625 // tr {command} <dosya.tr> [argümanlar]	Programı çalıştırır, hızını canlı gösterir (ms/adım, tensör işlemleri, sıcak satırlar, bellek)
 	H8626 Code = 8626 // tr {command} [{json} yol] <dosya.tr>	Programı çalıştırır, bitince hız raporu verir ({json}: rapor dosyası ya da koşu klasörü)
 	H8627 Code = 8627 // tr {command}	Düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)
@@ -1760,7 +1754,6 @@ const (
 	H8678 Code = 8678 // Profil raporu (JSON): {path}
 	H8679 Code = 8679 // Go profili dosyası açılamadı: {error}
 	H8680 Code = 8680 // Go profili başlatılamadı: {error}
-	H8681 Code = 8681 // {path|q} zaten kodlu, dokunulmadı
 	H8691 Code = 8691 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr {command} ornek.tr veya tr {command} {check} .
 	H8692 Code = 8692 // {path}: {error} — lütfen bu dosyayı bir hata kaydıyla bildirin
 	H8693 Code = 8693 // biçimlenmeli: {path}
@@ -1772,10 +1765,6 @@ const (
 	H8700 Code = 8700 // '{option}' bir yazım dili bekler. Örn: tr {command} - {option} tr
 	H8701 Code = 8701 // 'tr {command} -' metni standart girişten okur; fazladan argüman: {arg}
 	H8702 Code = 8702 // standart giriş okunamadı: {error}
-	H8703 Code = 8703 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr {command} ornek.tr veya tr {command} .
-	H8704 Code = 8704 // kodlandı
-	H8706 Code = 8706 // {total} dosya incelendi, {count} dosya {verb}.
-	H8707 Code = 8707 // {count} dosya çevrilemedi (yukarıdaki hatalara bakın).
 	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
 	H8709 Code = 8709 // 'tr {command}' tek bir dosya alır; fazladan argüman: {arg}
 	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr

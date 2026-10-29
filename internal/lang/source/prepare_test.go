@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -59,16 +60,30 @@ func TestCodedFileErrors(t *testing.T) {
 			t.Errorf("%q: %q içeren hata bekleniyordu: %v", src, part, s.Errors)
 		}
 	}
-	// Başlıksız metin dosya değildir (2.1): hata başlığı ve kodlama komutunu gösterir.
+	// Başlıksız metin dosya değildir (2.1): hata başlığı gösterir.
 	s := Prepare("TR_print(1)\n", Options{})
 	if s.Stage != StageSyntax || !strings.Contains(s.Errors[0].Error(), Header) {
 		t.Errorf("başlıksız dosya hatası başlığı göstermeli: %v", s.Errors)
 	}
-	// Ayrıştırılamayan kaynak çevrilmez.
+	// Ayrıştırılamayan kaynağın görünümü yazılmaz.
 	var sh *SyntaxError
-	if _, err := Encode("eğer {\n"); !errors.As(err, &sh) {
+	if _, err := Show(Header+"\nTR_if {\n", codes.Source()); !errors.As(err, &sh) {
 		t.Errorf("sözdizimi hatası bekleniyordu: %v", err)
 	}
+}
+
+// Kural (17.7): kabuğa yazılan satır kişinin yazdığı koddur, dosya gibi yalnız kimlik yazımıyla
+// okunur (Options.Body); bir yazım dilinin sözcüğü kullanıcının adıdır. Çerçevenin metni satırın
+// kendisidir. Neden: kod yalnız kimliklerle yazılır, görünüm koda geri çevrilmez.
+func TestTypedLineIsReadWithIdentities(t *testing.T) {
+	if s := Prepare("TR_var x = 2\nTR_print(x)", Options{Body: true, TypeCheck: true}); s.Stage != "" {
+		t.Errorf("kimlik yazımıyla satır okunmalı: %v", s.Errors)
+	}
+	s := Prepare("yazdır(1)", Options{Body: true, TypeCheck: true})
+	if s.Stage != StageType || len(s.Errors) != 1 || s.Text != "yazdır(1)" {
+		t.Fatalf("Türkçe adı tanımsız ad olmalı: %q %v", s.Text, s.Errors)
+	}
+	wantPos(t, s.Errors[0], 1, 1)
 }
 
 // A file with thousands of errors (often not a TR file at all) reports the first MaxErrors and

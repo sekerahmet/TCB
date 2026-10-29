@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -52,22 +51,21 @@ func TestDAPDisplayHelper(t *testing.T) {
 // dapExpressionOut ifade yardımcı testinin çıktı dosyasını veren ortam değişkenidir (yalnız alt süreçte).
 const dapExpressionOut = "TR_DAP_EXPRESSION_OUT"
 
-// TestDAPExpressionHelper koşullu kesme noktasının koşulunu ve izleme ifadesini kişinin gösterim
-// dilinde (TR_DIL) yazar; durduğu yerdeki i'yi, ifadenin değerini ve Türkçe harfsiz bir komutun
-// (adim) önerilip önerilmediğini dosyaya yazar. Yalnızca TestDAPExpressionsReadInPersonsLanguage'ın
-// alt süreçlerinde çalışır.
+// TestDAPExpressionHelper koşullu kesme noktasının koşulunu ve izleme ifadesini kimlik yazımıyla
+// yazar; durduğu yerdeki i'yi, ifadenin değerini ve Türkçe harfsiz bir komutun (adim) önerilip
+// önerilmediğini dosyaya yazar. Yalnızca TestDAPExpressionsAreWrittenWithIdentities'in alt
+// süreçlerinde çalışır.
 func TestDAPExpressionHelper(t *testing.T) {
 	out := os.Getenv(dapExpressionOut)
 	if out == "" {
-		t.Skip("yalnızca TestDAPExpressionsReadInPersonsLanguage'ın alt süreci")
+		t.Skip("yalnızca TestDAPExpressionsAreWrittenWithIdentities'in alt süreci")
 	}
-	sum := codes.Display().Name(codes.FnSum)
 	c := startDAP(t)
 	path := writeProgram(t, "TR_var l = [1, 2]\nTR_for i TR_in 0..3 {\n    TR_print(i)\n}\n")
-	c.launch(path, false, map[string]interface{}{"line": 4, "condition": sum + "(l) == i + 2"})
+	c.launch(path, false, map[string]interface{}{"line": 4, "condition": "TR_sum(l) == i + 2"})
 	c.event("stopped")
 	i := c.request("evaluate", map[string]interface{}{"expression": "i", "context": "watch"})["result"]
-	w := c.request("evaluate", map[string]interface{}{"expression": sum + "(l) * 2", "context": "watch"})["result"]
+	w := c.request("evaluate", map[string]interface{}{"expression": "TR_sum(l) * 2", "context": "watch"})["result"]
 	c.request("continue", map[string]interface{}{"threadId": 1})
 	c.event("terminated")
 	_, hinted := oldCommand("adim")
@@ -76,10 +74,10 @@ func TestDAPExpressionHelper(t *testing.T) {
 	}
 }
 
-// Kural: kişinin hata ayıklayıcıya yazdığı metin (koşul, izleme, komut) gösterim dilindedir (TR_DIL),
-// dosyanın dili değil: TR_DIL=en ile Türkçe programda "sum(l) == i + 2" koşulu ve "sum(l) * 2"
-// izlemesi doğru değeri verir; Türkçe harfsiz komut (adim) yalnızca Türkçe okuyana önerilir.
-func TestDAPExpressionsReadInPersonsLanguage(t *testing.T) {
+// Kural (17.7): kişinin hata ayıklayıcıya yazdığı ifade (koşul, izleme) koddur, kimlik yazımıyla
+// yazılır, TR_DIL ne olursa olsun: "TR_sum(l) == i + 2" koşulu ve "TR_sum(l) * 2" izlemesi her dilde
+// doğru değeri verir. Türkçe harfsiz komut (adim) yalnızca Türkçe okuyana önerilir.
+func TestDAPExpressionsAreWrittenWithIdentities(t *testing.T) {
 	for lang, want := range map[string]string{"en": "i=1 watch=6 adim=false", "tr": "i=1 watch=6 adim=true"} {
 		if got := string(testkit.RunWithLanguageFile(t, "TestDAPExpressionHelper", dapExpressionOut, lang)); got != want {
 			t.Errorf("TR_DIL=%s: %q, beklenen %q", lang, got, want)

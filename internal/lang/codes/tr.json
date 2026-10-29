@@ -513,7 +513,6 @@
   "TR_cmd_check": { "name": "kontrol", "family": "tr komutu", "description": "Programı çalıştırmadan ayrıştırır ve tip denetiminden geçirir." },
   "TR_cmd_dap": { "family": "tr komutu", "description": "Düzenleyicinin hata ayıklama protokolü (DAP) sunucusunu başlatır; düzenleyiciler kullanır." },
   "TR_cmd_debug": { "name": "hata_ayıkla", "family": "tr komutu", "description": "Programı terminal hata ayıklayıcısında başlatır." },
-  "TR_cmd_encode": { "name": "kodla", "family": "tr komutu", "description": "Dosyayı dilden bağımsız kodlu biçime çevirir." },
   "TR_cmd_format": { "name": "biçimle", "family": "tr komutu", "description": "TR dosyalarını standart biçime getirir." },
   "TR_cmd_help": { "name": "yardım", "family": "tr komutu", "description": "Komutların ve seçeneklerin kısa yardımını yazar." },
   "TR_cmd_index": { "name": "dizin", "family": "tr komutu", "description": "TR kodunun dizinini kurar ve ona sorar. Tek başına dizini kurar ve özetler; altında tanım, kullananlar, sınayanlar ve etki alt komutları vardır." },

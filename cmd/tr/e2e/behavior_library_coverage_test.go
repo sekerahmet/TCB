@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"os"
 	"path/filepath"
@@ -92,7 +93,7 @@ func libraryNames(t *testing.T) []string {
 			t.Fatal(err)
 		}
 		module := strings.TrimSuffix(filepath.Base(f), ".tr")
-		view, err := source.Show(string(data), source.Turkish()) // kodlu kitaplık Türkçe görünümüyle okunur
+		view, err := source.Show(string(data), codes.Source()) // adlar Türkçe görünümde aranır (anahtarlar Türkçe adlardır)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +114,8 @@ func libraryNames(t *testing.T) []string {
 	return names
 }
 
-// exampleCode örneklerin yorum satırları atılmış metnidir.
+// exampleCode örneklerin Türkçe görünümünün (kitaplığın adlarıyla aynı görünümde aranır) yorum satırları
+// atılmış metnidir.
 func exampleCode(t *testing.T) string {
 	t.Helper()
 	var b strings.Builder
@@ -121,7 +123,11 @@ func exampleCode(t *testing.T) string {
 		if strings.Contains(name, "/") {
 			continue // hata örnekleri ve yardımcı modüller
 		}
-		b.WriteString(lineComment.ReplaceAllString(text, ""))
+		view, err := source.Show(text, codes.Source())
+		if err != nil {
+			t.Fatalf("examples/tr/%s: %v", name, err)
+		}
+		b.WriteString(lineComment.ReplaceAllString(view, ""))
 		b.WriteString("\n")
 	}
 	return b.String()

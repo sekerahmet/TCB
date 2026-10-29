@@ -154,7 +154,7 @@ func (s *dapServer) interpolate(v *interp.VM, env *interp.Environment, text stri
 
 // evalQuiet bir ifadeyi debugger'ı tetiklemeden hesaplar.
 func (s *dapServer) evalQuiet(v *interp.VM, env *interp.Environment, expr string) (interp.Value, error) {
-	p := parser.New(source.TextLexerWithNames(expr, env.Names()))
+	p := parser.New(source.TypedLexer(expr))
 	prog := p.ParseProgram()
 	if len(p.Errors()) > 0 {
 		return nil, p.Errs()[0]

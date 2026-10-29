@@ -8,8 +8,9 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// langElement bir ad sözcüğünün (kodla yazılmamış, kaçışsız TANIMLAYICI) bulunduğu yerde
-// c.dil'in hangi öğesi olduğudur; kullanıcının adıysa kod.Yok (17.3):
+// langElement kodlu gövdedeki bir kullanıcı adı (kodla yazılmamış TANIMLAYICI) bulunduğu yerde
+// c.lang'de yazılınca dilin hangi öğesi gibi okunurdu; okunmazsa codes.None (17.3). Görünüm böyle
+// bir adı işaretler (needsEscape):
 //
 //   - tip açıklaması (değişken x: Tam): tip adı;
 //   - üye adı (x.ad) ile yapı alanı ve metodu tanımı: üye kodu (Y5, tipten bağımsız; 'kurucu'
@@ -48,15 +49,6 @@ func (c *analysis) langElement(r lexer.Record) codes.Code {
 		switch bg.Kind {
 		case checker.BindBuiltin, checker.BindImplicit, checker.BindNamed:
 			return bg.Code
-		case checker.BindUser:
-			// Kaçışla ($ad) tanımlanmış bir kullanıcı adı, kaçışsız geçtiği yerde dilin
-			// sözcüğüdür: gösterim dilin sözcüğüyle çakışan kullanıcı adını her yerde kaçışla
-			// yazar (2.11); kaçışsız biçim kullanıcının tanımına bağlanamaz.
-			if c.escapedNames[name] {
-				if k, ok := c.lang.Find(codes.NamespaceGlobal, name); ok && k.IsBuiltin() {
-					return k
-				}
-			}
 		}
 	}
 	return codes.None

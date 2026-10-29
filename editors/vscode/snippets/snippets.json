@@ -7,8 +7,8 @@
         "func"
       ],
       "body": [
-        "func ${1:name}(${2:parameter}) {",
-        "\treturn ${3:${2:parameter}}",
+        "TR_func ${1:name}(${2:parameter}) {",
+        "\tTR_return ${3:${2:parameter}}",
         "}"
       ]
     },
@@ -19,9 +19,9 @@
         "if"
       ],
       "body": [
-        "if ${1:condition} {",
+        "TR_if ${1:condition} {",
         "\t${2}",
-        "} else {",
+        "} TR_else {",
         "\t${3}",
         "}"
       ]
@@ -33,7 +33,7 @@
         "match"
       ],
       "body": [
-        "match ${1:value} {",
+        "TR_match ${1:value} {",
         "\t${2:1} => ${3:\"one\"}",
         "\t${4:2..10} => ${5:\"a few\"}",
         "\t_ => ${6:\"other\"}",
@@ -48,7 +48,7 @@
         ".filter"
       ],
       "body": [
-        ".filter((x) => x > ${1:2})"
+        ".TR_filter((x) => x > ${1:2})"
       ]
     },
     {
@@ -59,7 +59,7 @@
         ".map"
       ],
       "body": [
-        ".map((x) => x * ${1:2})"
+        ".TR_map((x) => x * ${1:2})"
       ]
     },
     {
@@ -70,7 +70,7 @@
         ".reduce"
       ],
       "body": [
-        ".reduce(${1:0}, (acc, x) => ${2:acc + x})"
+        ".TR_reduce(${1:0}, (acc, x) => ${2:acc + x})"
       ]
     },
     {
@@ -80,8 +80,8 @@
         "for"
       ],
       "body": [
-        "for ${1:i} in ${2:1..=10} {",
-        "\tprint(${1:i})",
+        "TR_for ${1:i} TR_in ${2:1..=10} {",
+        "\tTR_print(${1:i})",
         "}"
       ]
     },
@@ -92,7 +92,7 @@
         "list_comp"
       ],
       "body": [
-        "[${1:x * x} for ${2:x} in ${3:1..=10} if ${4:x % 2 == 0}]"
+        "[${1:x * x} TR_for ${2:x} TR_in ${3:1..=10} TR_if ${4:x % 2 == 0}]"
       ]
     },
     {
@@ -102,11 +102,11 @@
         "struct"
       ],
       "body": [
-        "struct ${1:Name} {",
-        "\t${2:field}: String",
+        "TR_struct ${1:Name} {",
+        "\t${2:field}: TR_String",
         "",
-        "\tfunc ${3:method}() {",
-        "\t\treturn self.${2:field}",
+        "\tTR_func ${3:method}() {",
+        "\t\tTR_return TR_self.${2:field}",
         "\t}",
         "}"
       ]
@@ -118,10 +118,10 @@
         "try"
       ],
       "body": [
-        "try {",
+        "TR_try {",
         "\t${1}",
-        "} catch err {",
-        "\tprint(\"Caught error: {err}\")",
+        "} TR_catch err {",
+        "\tTR_print(\"Caught error: {err}\")",
         "}"
       ]
     },
@@ -133,19 +133,19 @@
         "grad"
       ],
       "body": [
-        "var X = Tensor(${1:[[0.0], [1.0], [2.0], [3.0]]})",
-        "var Y = Tensor(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
-        "var w = Tensor(no_grad(randn([${3:1, 1}], seed: 1) * 0.1), requires_grad: true)",
-        "var b = Tensor([0.0], requires_grad: true)",
-        "var optimizer = AdamW([w, b], lr: ${4:0.1}, weight_decay: 0)",
-        "for step in 0..${5:300} {",
-        "\toptimizer.zero_grad()",
-        "\tvar loss = mean((X @ w + b - Y) ** 2)",
-        "\tbackward(loss)",
-        "\toptimizer.step()",
-        "\tif step % 100 == 0 { print(\"step \\(step): loss = \\(loss.tolist)\") }",
+        "TR_var X = TR_Tensor(${1:[[0.0], [1.0], [2.0], [3.0]]})",
+        "TR_var Y = TR_Tensor(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
+        "TR_var w = TR_Tensor(TR_no_grad(TR_randn([${3:1, 1}], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)",
+        "TR_var b = TR_Tensor([0.0], TR_requires_grad: TR_true)",
+        "TR_var optimizer = TR_AdamW([w, b], TR_lr: ${4:0.1}, TR_weight_decay: 0)",
+        "TR_for step TR_in 0..${5:300} {",
+        "\toptimizer.TR_zero_grad()",
+        "\tTR_var loss = TR_mean((X @ w + b - Y) ** 2)",
+        "\tTR_backward(loss)",
+        "\toptimizer.TR_step()",
+        "\tTR_if step % 100 == 0 { TR_print(\"step \\(step): loss = \\(loss.TR_tolist)\") }",
         "}",
-        "print(no_grad { X @ w + b })$0"
+        "TR_print(TR_no_grad { X @ w + b })$0"
       ]
     }
   ],
@@ -157,8 +157,8 @@
         "fonksiyon"
       ],
       "body": [
-        "fonksiyon ${1:isim}(${2:parametre}) {",
-        "\tsonuç ${3:${2:parametre}}",
+        "TR_func ${1:isim}(${2:parametre}) {",
+        "\tTR_return ${3:${2:parametre}}",
         "}"
       ]
     },
@@ -169,9 +169,9 @@
         "eğer"
       ],
       "body": [
-        "eğer ${1:koşul} {",
+        "TR_if ${1:koşul} {",
         "\t${2}",
-        "} değilse {",
+        "} TR_else {",
         "\t${3}",
         "}"
       ]
@@ -183,7 +183,7 @@
         "eşle"
       ],
       "body": [
-        "eşle ${1:değer} {",
+        "TR_match ${1:değer} {",
         "\t${2:1} => ${3:\"bir\"}",
         "\t${4:2..10} => ${5:\"birkaç\"}",
         "\t_ => ${6:\"diğer\"}",
@@ -198,7 +198,7 @@
         ".filtrele"
       ],
       "body": [
-        ".filtrele((x) => x > ${1:2})"
+        ".TR_filter((x) => x > ${1:2})"
       ]
     },
     {
@@ -209,7 +209,7 @@
         ".haritala"
       ],
       "body": [
-        ".haritala((x) => x * ${1:2})"
+        ".TR_map((x) => x * ${1:2})"
       ]
     },
     {
@@ -220,7 +220,7 @@
         ".indirge"
       ],
       "body": [
-        ".indirge(${1:0}, (birikim, x) => ${2:birikim + x})"
+        ".TR_reduce(${1:0}, (birikim, x) => ${2:birikim + x})"
       ]
     },
     {
@@ -230,8 +230,8 @@
         "döngü"
       ],
       "body": [
-        "döngü ${1:i} içinde ${2:1..=10} {",
-        "\tyazdır(${1:i})",
+        "TR_for ${1:i} TR_in ${2:1..=10} {",
+        "\tTR_print(${1:i})",
         "}"
       ]
     },
@@ -242,7 +242,7 @@
         "liste_üret"
       ],
       "body": [
-        "[${1:x * x} döngü ${2:x} içinde ${3:1..=10} eğer ${4:x % 2 == 0}]"
+        "[${1:x * x} TR_for ${2:x} TR_in ${3:1..=10} TR_if ${4:x % 2 == 0}]"
       ]
     },
     {
@@ -252,11 +252,11 @@
         "yapı"
       ],
       "body": [
-        "yapı ${1:İsim} {",
-        "\t${2:alan}: Metin",
+        "TR_struct ${1:İsim} {",
+        "\t${2:alan}: TR_String",
         "",
-        "\tfonksiyon ${3:metod}() {",
-        "\t\tsonuç kendi.${2:alan}",
+        "\tTR_func ${3:metod}() {",
+        "\t\tTR_return TR_self.${2:alan}",
         "\t}",
         "}"
       ]
@@ -268,10 +268,10 @@
         "dene"
       ],
       "body": [
-        "dene {",
+        "TR_try {",
         "\t${1}",
-        "} yakala hata {",
-        "\tyazdır(\"Hata yakalandı: {hata}\")",
+        "} TR_catch hata {",
+        "\tTR_print(\"Hata yakalandı: {hata}\")",
         "}"
       ]
     },
@@ -283,19 +283,19 @@
         "türev"
       ],
       "body": [
-        "değişken X = Tensör(${1:[[0.0], [1.0], [2.0], [3.0]]})",
-        "değişken Y = Tensör(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
-        "değişken w = Tensör(türevsiz(rastgele_normal([${3:1, 1}], tohum: 1) * 0.1), türev_izle: doğru)",
-        "değişken b = Tensör([0.0], türev_izle: doğru)",
-        "değişken iyileştirici = AdamW([w, b], öğrenme_oranı: ${4:0.1}, ağırlık_çürümesi: 0)",
-        "döngü adım içinde 0..${5:300} {",
-        "\tiyileştirici.sıfırla()",
-        "\tdeğişken kayıp = ortalama((X @ w + b - Y) ** 2)",
-        "\tgeri_yayılım(kayıp)",
-        "\tiyileştirici.adım()",
-        "\teğer adım % 100 == 0 { yazdır(\"adım \\(adım): kayıp = \\(kayıp.değer)\") }",
+        "TR_var X = TR_Tensor(${1:[[0.0], [1.0], [2.0], [3.0]]})",
+        "TR_var Y = TR_Tensor(${2:[[-1.0], [1.0], [3.0], [5.0]]})",
+        "TR_var w = TR_Tensor(TR_no_grad(TR_randn([${3:1, 1}], TR_seed: 1) * 0.1), TR_requires_grad: TR_true)",
+        "TR_var b = TR_Tensor([0.0], TR_requires_grad: TR_true)",
+        "TR_var iyileştirici = TR_AdamW([w, b], TR_lr: ${4:0.1}, TR_weight_decay: 0)",
+        "TR_for adım TR_in 0..${5:300} {",
+        "\tiyileştirici.TR_zero_grad()",
+        "\tTR_var kayıp = TR_mean((X @ w + b - Y) ** 2)",
+        "\tTR_backward(kayıp)",
+        "\tiyileştirici.TR_step()",
+        "\tTR_if adım % 100 == 0 { TR_print(\"adım \\(adım): kayıp = \\(kayıp.TR_tolist)\") }",
         "}",
-        "yazdır(türevsiz { X @ w + b })$0"
+        "TR_print(TR_no_grad { X @ w + b })$0"
       ]
     }
   ]

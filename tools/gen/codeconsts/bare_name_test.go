@@ -26,7 +26,7 @@ import (
 // yazıldığı yerde yakalanır:
 //   - tip adları (Tam, Liste ...) ve "_" içeren adlar (eşit_olmalı, öğrenme_oranı) her yerde;
 //   - çağrı: ad(  ;  üye: .ad  ;  adlı argüman: ad:  ;  tırnak içinde: 'ad', "ad", `ad`;
-//   - anahtar kelimeden sonra blok: ad {  ;  metnin tamamı bir ad: "doğru", "kodla" (üye ve
+//   - anahtar kelimeden sonra blok: ad {  ;  metnin tamamı bir ad: "doğru", "göster" (üye ve
 //     adlı argüman adı dışında; bkz. looksLikeCode).
 //
 // Aranan yazım Türkçedir: İngilizce yazımlar Go'nun protokol ve veri anahtarlarıyla aynı düşer
@@ -129,7 +129,7 @@ func looksLikeCode(s string, i, j int, entries []liveName) bool {
 		switch {
 		case whole && c.namespace != dk.NamespaceMember && c.namespace != dk.NamespaceParam:
 			// Metnin tamamı bir anahtar kelime, yerleşik, tip ya da komut satırı adı: "doğru",
-			// "kodla", "tanım". Üye ve adlı argüman adları veri biçimlerinin İngilizce anahtarlarıyla
+			// "göster", "tanım". Üye ve adlı argüman adları veri biçimlerinin İngilizce anahtarlarıyla
 			// aynı düşebilir (kontrol noktasının "momentum" durumu), onlar yalnız kod gibi yazıldığı
 			// yerde (.ad, ad:) yakalanır.
 			return true
@@ -234,7 +234,7 @@ func TestBareNameScanner(t *testing.T) {
 		"x.uzunluk yazın":                  "uzunluk",
 		"(tohum: 1)":                       "tohum",
 		"doğru":                            "doğru",
-		"kodla":                            "kodla",
+		"göster":                           "göster",
 		"tanım":                            "tanım",
 		"zıpla":                            "zıpla",
 		"momentum":                         "",

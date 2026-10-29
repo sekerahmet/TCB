@@ -18,17 +18,11 @@ func TestSliceMethodOnListGetsRangeHint(t *testing.T) {
 }
 
 // Kural (13.2): büyük_harf ve küçük_harf herkes için Unicode'un varsayılan harf dönüşümüdür
-// (Python str.upper, Swift uppercased(), Go strings.ToUpper gibi); dosyanın dili sonucu değiştirmez:
-// İngilizce ve Türkçe yazılmış aynı program aynı metni verir ("title" → "TITLE", "istanbul" →
-// "ISTANBUL", "LIST" → "list").
+// (Python str.upper, Swift uppercased(), Go strings.ToUpper gibi); dosyanın dili yoktur, kişinin dili
+// sonucu değiştirmez ("title" → "TITLE", "istanbul" → "ISTANBUL", "LIST" → "list").
 func TestCaseConversionIsTheSameInEveryLanguage(t *testing.T) {
 	want := "TITLE ISTANBUL list\n"
-	for lang, text := range map[string]string{
-		"en": `print("title".upper(), "istanbul".upper(), "LIST".lower())` + "\n",
-		"tr": `TR_print("title".TR_upper(), "istanbul".TR_upper(), "LIST".TR_lower())` + "\n",
-	} {
-		if got := runCoded(t, text, lang, nil); got != want {
-			t.Errorf("%s: %q, beklenen %q", lang, got, want)
-		}
+	if got := runCoded(t, `TR_print("title".TR_upper(), "istanbul".TR_upper(), "LIST".TR_lower())`+"\n", nil); got != want {
+		t.Errorf("%q, beklenen %q", got, want)
 	}
 }

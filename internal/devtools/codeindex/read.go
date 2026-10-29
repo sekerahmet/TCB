@@ -46,8 +46,7 @@ func readIn(text string, module, body bool) *parsed {
 	res.coded = b.Coded
 	res.lines = strings.Split(b.Body, "\n") // başlık satırı dahil: konumlar dosyadaki gerçek satırdır
 	res.header = source.HeaderLines(text)
-	b.Coded = true // başlıksız gövde de kodludur (source.Options.Body); başlıksız dosya yukarıda reddedildi
-	p := parser.New(b.IdentityLexer())
+	p := parser.New(b.Lexer()) // başlıksız gövde de kodludur (source.Options.Body); başlıksız dosya yukarıda reddedildi
 	p.RecordRoles()
 	if module {
 		res.program = p.ParseModule()

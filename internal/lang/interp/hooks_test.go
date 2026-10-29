@@ -135,7 +135,7 @@ func TestIntEdges(t *testing.T) {
 	}
 }
 
-// Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz. Program Türkçe
+// Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz. Program kimliklerle
 // yazılmıştır (runCoded); yakalanan hatanın metni dilden bağımsızdır (İngilizce), satırı dosyanındır.
 func TestInternalErrorLineOnce(t *testing.T) {
 	out := runCoded(t, `TR_var h = []
@@ -145,7 +145,7 @@ TR_try { [1].TR_filter(
 TR_try { [1].TR_map(1, 2) } TR_catch e { h.TR_append(TR_String(e)) }
 TR_try { TR_round(1.25, "x") } TR_catch e { h.TR_append(TR_String(e)) }
 TR_for s TR_in h { TR_print(s) }
-`, "tr", nil)
+`, nil)
 	want := "Line 3: Division by zero error\nLine 5: Division by zero error\n" +
 		"Line 6: list.map() takes 1 argument, 2 given (usage: list.map(function))\n" +
 		"Line 7: round() expects Int as argument 2, String (\"x\") given\n"
