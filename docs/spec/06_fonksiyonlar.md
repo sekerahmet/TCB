@@ -4,7 +4,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 
 Her kuralın emsali ve gerekçesi: [`rationale/06_functions.md`](rationale/06_functions.md).
 
-**6.1** `TR_func f(p: T, q: U) -> R { ... }` bir fonksiyon tanımlar. Her parametrenin tipi yazılır (1.2). Değer döndüren fonksiyon dönüş tipini `->` ile yazar; değer döndürmeyende `->` yazılmaz (`-> TR_NoneType` sözdizimi hatasıdır, ileti onu silmeyi önerir). Ad, bulunduğu bloğun her yerinden görünür (5.14). Aynı kapsamda aynı adla ikinci bir tanım denetim hatasıdır: bir ad tek fonksiyondur, parametre tipine göre ayrışma yoktur. Başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: `def f(x):`, dönüş tipinin `: R` ile yazılması, Python'un süsleyicisi (satır başında `@f`; ileti sondaki bloğu önerir, 6.7).
+**6.1** `TR_func f(p: T, q: U) -> R { ... }` bir fonksiyon tanımlar. Her parametrenin tipi yazılır (1.2). Değer döndüren fonksiyon dönüş tipini `->` ile yazar; değer döndürmeyende `->` yazılmaz (`-> TR_NoneType` sözdizimi hatasıdır, ileti onu silmeyi önerir). Ad, bulunduğu bloğun her yerinden görünür (5.14). Aynı kapsamda aynı adla ikinci bir tanım sözdizimi hatasıdır (1.3): bir ad tek fonksiyondur, parametre tipine göre ayrışma yoktur. Başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: `def f(x):`, dönüş tipinin `: R` ile yazılması, Python'un süsleyicisi (satır başında `@f`; ileti sondaki bloğu önerir, 6.7).
 - *Test:* TR testi; tipli parametre zorunluluğu uygulanınca denetleyicinin testi.
 
 ```tr
@@ -35,7 +35,7 @@ TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 - *Test:* TR testi; parametre tipinin çıkarımı ve zorunluluğu uygulanınca denetleyicinin testi.
 
 **6.7** Sondaki blok: bir çağrının ardından aynı satırda yazılan `{ ... }` (2.8) parametresiz bir fonksiyondur ve çağrının son argümanı olur: `TR_mixed_precision("bf16") { ... }`. Blok tek argümansa parantez yazılmaz (`TR_error_code { f(1) }`).
-- Bloğun değeri son ifadesidir (5.5'teki gibi). İçinde `TR_return` denetim hatasıdır; `TR_break` ve `TR_continue` 5.13'teki gibi sınırı geçemez.
+- Bloğun değeri son ifadesidir (5.5'teki gibi). İçinde `TR_return` sözdizimi hatasıdır; `TR_break` ve `TR_continue` 5.13'teki gibi sınırı geçemez.
 - Son argüman parametresiz bir fonksiyon ifadesiyse yalnız böyle yazılır: `f(() => { ... })` ve `f(() => x)` sözdizimi hatasıdır, ileti sondaki bloğu önerir. Parametreli fonksiyon ok ile verilir; sondaki blokta parametre yoktur.
 - `TR_if`, `TR_for` ve `TR_match` başlığında `{` her zaman gövdeyi başlatır; orada sondaki bloklu çağrı paranteze alınır.
 - *Test:* TR testi.
@@ -57,7 +57,7 @@ say()
 TR_print(say())   # çıktı: 2
 ```
 
-**6.9** Fonksiyon tipi `(T1, T2) -> R` diye yazılır: `(TR_Int) -> TR_Bool`, parametresizde `() -> R`. Değer döndürmeyen fonksiyonun tipi `(T) -> TR_NoneType`, birden çok değer döndürenin `(T) -> (A, B)`'dir. `->` sağdan birleşir: `-> (A, B) -> C` iki parametreli bir fonksiyon döndürür. Fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır; adlı argüman ve varsayılan yalnız tanımın adıyla yapılan çağrıda geçerlidir. Fonksiyonlar karşılaştırılamaz (4.5); fonksiyonun metni tipinin metnidir ("(Int) -> Bool", 3.14).
+**6.9** Fonksiyon tipi `(T1, T2) -> R` diye yazılır: `(TR_Int) -> TR_Bool`, parametresizde `() -> R`. `(TR_Int) -> TR_Bool?`'nin `?`'si dönüşündür; isteğe bağlı fonksiyon tipi parantezle yazılır (`((TR_Int) -> TR_Bool)?`, 3.6a). `-> (A, B) -> C` sağdan birleşir: dönüşü fonksiyon olan fonksiyon. Değer döndürmeyen fonksiyonun tipi `(T) -> TR_NoneType`, birden çok değer döndürenin `(T) -> (A, B)`'dir. `->` sağdan birleşir: `-> (A, B) -> C` iki parametreli bir fonksiyon döndürür. Fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır; adlı argüman ve varsayılan yalnız tanımın adıyla yapılan çağrıda geçerlidir. Fonksiyonlar karşılaştırılamaz (4.5); fonksiyonun metni tipinin metnidir ("(Int) -> Bool", 3.14).
 - *Test:* TR testi; fonksiyonun metni ("(Int) -> Bool") ve fonksiyon tipinin parametre ve dönüş tiplerinin denetimi tip denetimiyle (4a) uygulanınca TR testi.
 
 **6.10** Tip parametresi adla parametreler arasında köşeli parantezle yazılır: `TR_func baştaki[T](l: TR_List[T]) -> T? { ... }`. Çağrıda argümanlardan çıkar, çıkmıyorsa yazılır (`baştaki[TR_Int]([])`; tek istisna: `TR_Tensor`'un cinsi çıkmıyorsa `TR_Float`'tır, 15.2); bu yazım ile bir listenin öğesinin çağrısı (`fs[0](x)`) tiple ayrılır.

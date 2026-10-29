@@ -91,16 +91,23 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 - **Mevcut durum:** isteğe bağlı tip yok; `TR_Int` açıklamalı bir değişkene `TR_none` atanabiliyor [ölçüldü].
 - **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak denetim hatası.
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `T?` ayrıştırılıyor; denetleyici onu `T`'ye indirgiyor: isteğe bağlı tipin anlamı yok, `TR_Int` açıklamalı değişkene `TR_none` hâlâ atanabiliyor [ölçüldü: bulut 0.6a].
 
 ### 3.6
 
 - **Mevcut durum:** karışık tipli liste çalışıyor [ölçüldü].
 - **Yapılacaklar:** `TR_List[T]`; öğelerin tipi aynı, boş liste tipini yazar; `TR_none` içeren değişmez `TR_List[T?]`.
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_List[T]` ayrıştırılıyor, denetleyici `TR_List`'e indirgiyor: `TR_var l: TR_List[TR_Int] = ["a"]` hatasız [ölçüldü: bulut 0.6a]. Yapılacak: öğelerin tipinin denetimi; boş liste tipini yazar; `TR_none` içeren değişmez `TR_List[T?]` (4a2).
+
+### 3.6a
+
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** demet tipi `(A, B)` ayrıştırılıyor, her şeyle uyumlu sayılıyor; tip yerinde gruplama parantezi (`(TR_Int)`, `((T) -> R)?`) henüz hata, 0.6b'de.
 
 ### 3.7
 
 - **Mevcut durum:** anahtar ifade, erişim köşeli parantezle, olmayan anahtar hata (H2647), ondalık anahtar hata (H2646) [ölçüldü].
 - **Yapılacaklar:** `TR_Dict[K, V]` ve anahtar tipinin denetimi (4a).
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Dict[K, V]` ayrıştırılıyor, `TR_Dict`'e indirgeniyor [ölçüldü: bulut 0.6a].
 
 ### 3.7a
 
@@ -211,6 +218,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 - **Mevcut durum:** dönüş tipinin `:` ile yazımı, `-> TR_NoneType`, `def f(x):`, satır başındaki `@f` ve aynı blokta aynı adla ikinci tanım sözdizimi hatası, iletiler TR'deki yazımı söylüyor; parametre tipi zorunlu değil: `TR_func f(x)` denetimden geçiyor [ölçüldü: altı küçük program ve `tests/negative/fonksiyon_yazimi.tr`; denetim ve çalıştırma].
 - **Yapılacaklar:** parametre tipi zorunlu (tipsiz parametre denetim hatası); kitaplığın, örneklerin ve testlerin tipsiz parametreleri çevrilir (1.2); denetleyicinin testi.
+- **Dil tanımı düzeldi (2026-10-29):** aynı adla ikinci tanım artık tanımda da sözdizimi hatası (1.3); motor zaten öyle.
 
 ### 6.2
 
@@ -246,11 +254,13 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 - **Mevcut durum:** fonksiyon tipinin yazımı ayrışıyor (`(TR_Int) -> TR_Bool`, sağdan birleşen `->`, `() -> (TR_Int, TR_Int)`), ama denetlenmiyor: `(TR_Int) -> TR_Bool` tipli değişkene sayı döndüren ok atanabiliyor; fonksiyon değeri adlı argümanla ya da eksik argümanla çağrılınca H2710 (bugünkü 6.9 testi); metin tipin metni değil: adlı fonksiyon "<function f>", ok "<lambda>"; `TR_Type(f)` genel tip "Function" veriyor (3.11) [ölçüldü: main 1073aeab]. Fonksiyonların karşılaştırması 4.5'te.
 - **Yapılacaklar:** fonksiyonun metni tipinin metni ("(Int) -> Bool"), `TR_Type(f)` fonksiyon tipi; parametre ve dönüş tiplerinin denetimi (4a); kimlik listesindeki genel fonksiyon tipi kalkar (3.11); TR testi.
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `(T) -> R`, `() -> R`, `-> (A, B) -> C` ayrıştırılıyor; denetleyici `TR_Function`'a indirgiyor, parametre ve dönüşü denetlemiyor (4a2).
 
 ### 6.10
 
 - **Mevcut durum:** tip parametresi yok: `TR_func baştaki[T](l: TR_List[T]) -> T?` sözdizimi hatası ("'(' bekleniyordu"); çağrıda tip yazımı (`f[TR_Int]([3])`) denetimden geçiyor, çalışırken "Fonksiyon tipi indekslenemez" veriyor [ölçüldü: main 1073aeab].
 - **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı, tip yazımının listenin öğesinin çağrısından ayrılması; kısıtsız `T`'de yalnız her tipte geçerli işler, öbürleri kısıt ister (13.10, 7.8); TR testi.
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** tip yerinde `Kutu[TR_Int]` ve `T` ayrıştırılıyor, `Kutu`'ya indirgeniyor; tanımdaki tip parametresi (`TR_func f[T](...)`) hâlâ sözdizimi hatası (4c).
 
 ## 7. Yapılar
 
@@ -565,6 +575,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** bütün tensörler float32; tam sayı ve mantık tensörü yok, argmax'in sonucu bir "tam sayılı işaret" taşıyor. 2²⁴'ün üstündeki kimlik bozuluyor: `TR_Tensor([16777217.0])` → 16777216. float64, `TR_AnyTensor` ve `.TR_narrow[E]()` yok [ölçüldü].
 - **Yapılacaklar:** öğe cinsli tip (`TR_Tensor[E]`), `TR_Int` ve `TR_Bool` tensörleri, float64, `TR_AnyTensor` ve daraltma; TR testi. Bedel [kanıtlı: DENETİM'in sayımı]: motorun 45 yönteminin 12–15'i ile 7 GPU çekirdek dosyası. Motor "int32" ve bayt mantıkla başlayabilir; "int64" varsayılanı gelene kadar bu satırda yazılır.
+- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Tensor[E]` ayrıştırılıyor, `TR_Tensor`'a indirgeniyor; `TR_AnyTensor` henüz kod değil [ölçüldü: bulut 0.6a].
 
 ### 15.2
 
