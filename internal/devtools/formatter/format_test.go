@@ -51,6 +51,8 @@ func TestStandardFormat(t *testing.T) {
 		// Bileşik tip aralıksız kalır (3.5, 3.6, 3.6a, 6.9): TR_List[TR_Int], TR_Int?
 		{"bileşik tip", "TR_var l : TR_List [ TR_Int ] = []\nTR_var x:TR_Int ?=TR_none\nTR_func f(a:TR_Dict[TR_String,TR_List[TR_Int?]], g:(TR_Int)->TR_Bool?)->(TR_Int,TR_String)? { TR_return TR_none }\n",
 			"TR_var l: TR_List[TR_Int] = []\nTR_var x: TR_Int? = TR_none\nTR_func f(a: TR_Dict[TR_String, TR_List[TR_Int?]], g: (TR_Int) -> TR_Bool?) -> (TR_Int, TR_String)? { TR_return TR_none }\n"},
+		// Demet (3.6a): öğe okuma aralıksız (t.0, t.0.1), değişmezde virgülden sonra bir boşluk
+		{"demet", "t = ( 1 ,2 )\nu = ((1,2),3)\nTR_print(t . 0, u.0 .1)\n", "t = (1, 2)\nu = ((1, 2), 3)\nTR_print(t.0, u.0.1)\n"},
 		{"devam satırı", "t = 1 +\n2\nl\n.TR_sort()\n", "t = 1 +\n    2\nl\n    .TR_sort()\n"},
 		{"çok satırlı liste", "l = [\n1,\n  2\n    ]\n", "l = [\n    1,\n    2\n]\n"},
 		{"kapanışla başlayan satır", "f(() => {\nTR_print(1)\n}, 2)\n", "f(() => {\n    TR_print(1)\n}, 2)\n"},

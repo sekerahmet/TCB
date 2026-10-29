@@ -81,6 +81,8 @@ func SubExpressions(e Expression, visit func(Expression) bool) bool {
 		return each(x.Left, x.Index)
 	case *MemberExpression:
 		return visit(x.Object)
+	case *ElementExpression:
+		return visit(x.Object)
 	case *ListComprehension:
 		return visit(x.Iterable)
 	}
@@ -163,8 +165,8 @@ func StatementDefinedNames(st Statement, emit func(string)) {
 	}
 }
 
-// listOf SubExpressions için TR_return a, b'nin değerlerini (6.3) bir liste gibi verir; öbür ifadeler
-// olduğu gibi.
+// listOf SubExpressions için demetin (3.6a; TR_return a, b'nin değerleri, 6.3) öğelerini bir liste gibi
+// verir; öbür ifadeler olduğu gibi.
 func listOf(e Expression) Expression {
 	if t, ok := e.(*TupleExpression); ok {
 		return &ListLiteral{Token: t.Token, Elements: t.Elements}

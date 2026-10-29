@@ -310,10 +310,11 @@ func (ll *ListLiteral) expressionNode()      {}
 func (ll *ListLiteral) TokenLiteral() string { return ll.Token.Literal }
 func (ll *ListLiteral) Line() int            { return ll.Token.Line }
 
-// TupleExpression is the several values of 'TR_return a, b' (6.3): a function's results, not one value.
+// TupleExpression is a tuple (3.6a): the literal (a, b) or the values of 'TR_return a, b' (6.3).
 type TupleExpression struct {
-	Token    lexer.Token // the first value's first token
+	Token    lexer.Token // '(' of the literal; the first value's first token after TR_return
 	Elements []Expression
+	Parens   bool // written in parentheses: (a, b)
 }
 
 func (te *TupleExpression) expressionNode()      {}
@@ -481,6 +482,18 @@ type MemberExpression struct {
 func (me *MemberExpression) expressionNode()      {}
 func (me *MemberExpression) TokenLiteral() string { return me.Token.Literal }
 func (me *MemberExpression) Line() int            { return me.Token.Line }
+
+// ElementExpression reads a tuple's element by its index: t.0, t.1 (3.6a). t.0.1 is (t.0).1.
+type ElementExpression struct {
+	Token      lexer.Token // .
+	Object     Expression
+	Index      int
+	IndexToken lexer.Token // the index's token
+}
+
+func (ee *ElementExpression) expressionNode()      {}
+func (ee *ElementExpression) TokenLiteral() string { return ee.Token.Literal }
+func (ee *ElementExpression) Line() int            { return ee.Token.Line }
 
 // --- MULTI-ASSIGNMENT, LIST COMPREHENSION, DEFER ---
 

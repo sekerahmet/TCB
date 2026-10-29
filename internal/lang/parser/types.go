@@ -11,13 +11,14 @@ const arrowType lexer.TokenType = "->"
 
 // typeAfter imlecin ardındaki tipi okur; imleç tipin son belirtecinde kalır. Yazımlar:
 //   - ad ve tip argümanları: TR_Int, TR_List[TR_Int], TR_Dict[K, V], T[...] (3.6, 3.7, 6.10, 15.1);
-//   - demet tipi (A, B): en az iki öğe (3.6a);
+//   - demet tipi (A, B): en az iki öğe (3.6a); tek öğeli parantez gruplar;
 //   - fonksiyon tipi (T1, T2) -> R, () -> R; '->' sağdan birleşir (6.9);
 //   - isteğe bağlı T? (3.5): ad ve demet tipinden sonra; fonksiyon tipinin '?'si dönüş tipinindir.
 //
-// Parantezden sonra '->' geliyorsa fonksiyon tipi, gelmiyorsa demet tipidir. Tek öğeli '(T)' ve
-// '->'süz '()' tip değildir: tek öğeli parantezin tip mi gruplama mı olduğunu dil tanımı söylemez.
-// İç içelik ifadelerinkiyle aynı sınırdadır (enterDepth).
+// Parantezden sonra '->' geliyorsa fonksiyon tipi, gelmiyorsa demet tipidir. Tek öğeli '(T)'
+// gruplamadır (3.6a): '(TR_Int)' 'TR_Int'tir, '((T) -> R)?' isteğe bağlı fonksiyon tipidir; dönüşte
+// de '-> (TR_Int)' 'TR_Int'tir. '->'süz '()' tip değildir. İç içelik ifadelerinkiyle aynı sınırdadır
+// (enterDepth).
 func (p *Parser) typeAfter() (*ast.TypeRef, bool) {
 	if !p.enterDepth() {
 		return nil, false
@@ -40,7 +41,15 @@ func (p *Parser) typeAfter() (*ast.TypeRef, bool) {
 			t.Params, t.Return = list, ret
 			return t, true
 		}
-		if len(list) < 2 {
+		if len(list) == 1 {
+			// (T) gruplamadır, T'nin kendisi: ((T) -> R)? isteğe bağlı fonksiyon tipidir (3.6a)
+			inner := list[0]
+			if !inner.Optional {
+				return p.optionalMark(&inner), true
+			}
+			return &inner, true
+		}
+		if len(list) == 0 {
 			p.peekError(arrowType)
 			return nil, false
 		}

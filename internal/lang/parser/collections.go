@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"strconv"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -117,7 +119,18 @@ func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
 func (p *Parser) parseMemberExpression(left ast.Expression) ast.Expression {
 	tok := p.curToken()
 	safe := tok.Type == lexer.TokSafeDot
-	// Üye adı bir ad olmalıdır: başka bir sözcük (x.1, x.$, x.eğer) sessizce üye adı sayılmaz.
+	if !safe && p.peekTokenIs(lexer.TokInt) {
+		// t.0: demetin öğesi (3.6a); sözcük çözümleyici noktadan sonraki rakamları indeks okur
+		p.nextToken()
+		idx := p.curToken()
+		n, err := strconv.Atoi(idx.Literal)
+		if err != nil {
+			p.syntaxError(idx, messages.H0036, idx.Literal)
+			return nil
+		}
+		return &ast.ElementExpression{Token: tok, Object: left, Index: n, IndexToken: idx}
+	}
+	// Üye adı bir ad ya da demetin indeksidir: başka bir sözcük (x.$, x.eğer) sessizce üye adı sayılmaz.
 	if !p.expectPeek(lexer.TokIdent) {
 		return nil
 	}
