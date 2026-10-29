@@ -36,8 +36,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 **12.5** Test dosyasının en dışında yalnız tanımlar ve `TR_test` blokları bulunur (1.1); en dıştaki başka bir deyim ve sabit olmayan bir ilk değer sözdizimi hatasıdır. Testlerin ortak kurulumu (geçici klasör, model) en dışta tanımlanan bir fonksiyondur ve her test onu kendi çağırır; böylece her test öbürlerinden bağımsızdır.
-- Önce tanımlar kurulur; sonra her test bu tanımların üstünde açılan yeni bir kapsamda çalışır. Bir testin yerel adları öbürüne sızmaz.
-- **En dıştaki tanımlar her test için yeniden kurulur:** bir testin en dıştaki bir değişkene atadığı değer ya da en dıştaki bir listeye eklediği öğe sonraki teste geçmez.
+- **Her test kendi tanımlarıyla çalışır:** test dosyasının ve aktardığı modüllerin en dıştaki tanımları her test için yeniden kurulur; test bunların üstünde açılan yeni bir kapsamda çalışır. Bir testin en dıştaki bir değişkene atadığı değer, en dıştaki bir listeye eklediği öğe, bir modülün durumuna yaptığı değişiklik ve yerel adları sonraki teste geçmez. En dışta yalnız sabit ilk değer olduğu için (1.1) yeniden kurmanın bedeli küçüktür.
 - Kalan ya da hata veren test öbürlerini durdurmaz.
 - Testin başlattığı görevler beklenir; testteki `TR_defer` test bitince çalışır (9.1).
 - **Her test paylaşılan rastgele üreteci programın başlangıç durumunda (20.17) başlar:** tohumsuz rastgelelik bir testin sonucunu öbür testlere ve sıraya bağlamaz. Testin görevleri aynı üreteçten çekerse 10.8'in sınırı geçerlidir.
