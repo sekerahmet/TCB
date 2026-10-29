@@ -204,12 +204,13 @@ func (e *TeeWriter) String() string {
 
 // ScalesLinearly bir işin girdi boyuyla doğrusal büyüdüğünü sınar. prepare(n) n boylu girdiyi
 // hazırlar (süreye girmez) ve ölçülecek işi verir; iş tekrar çalıştırılabilir olmalıdır ve
-// işlediği birimi (dosya, yerleştirme, karakter) ve hatasını döndürür. n ve 4n'lik işler art
-// arda, yani aynı makine yükünde ölçülür; her süre beş denemenin en kısasıdır (Python timeit
-// belgesi: yüksek değerler çoğunlukla başka süreçlerin karışmasıdır) ve her denemeden önce çöp
-// toplanır (önceki işin çöpü ölçülen işe yüklenmesin). Üç deneme yüklü CI'da yetmedi: oran 8,4
-// ve 9,1'e çıktı, aynı kod boş makinede 45 koşuda en çok 5,8 verdi (2026-10-29, Linux). Sınırı
-// aşan ölçüm yeniden denenmez: tarihteki karesel gerileme 9–10 verdi, yeniden deneme onu gizler.
+// işlediği birimi (dosya, yerleştirme, karakter) ve hatasını döndürür. n ve 4n'lik işlerin
+// denemeleri dönüşümlüdür (n, 4n, n, 4n, …), yani iki boy aynı makine yükünde ölçülür; her süre
+// beş denemenin en kısasıdır (Python timeit belgesi: yüksek değerler çoğunlukla başka süreçlerin
+// karışmasıdır) ve her denemeden önce çöp toplanır. Art arda üç deneme yüklü CI'da yetmedi: oran
+// 8,4 ve 9,1'e çıktı, aynı kod boş makinede 45 koşuda en çok 5,8 verdi (2026-10-29, Linux).
+// Sınırı aşan ölçüm yeniden denenmez: tarihteki karesel gerileme 9–10 verdi, yeniden deneme onu
+// gizler.
 // Süreler ancak iki iş de hatasız ve tam bittiyse karşılaştırılır: iş hata verirse ya da 4n'lik
 // iş n'liğin 3,5–4,5 katı birim işlemezse (iş yarıda kaldı, girdi büyümedi; sabit pay için ±0,5)
 // test kalır. Süre oranı 8'i aşarsa da kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az),
@@ -255,25 +256,30 @@ type linearRun struct {
 // ratio r'nin süresinin small'ınkine oranıdır.
 func (r linearRun) ratio(small linearRun) float64 { return float64(r.best) / float64(small.best) }
 
-// linearRuns n ve linearFactor·n boylu işleri ölçer.
+// linearRuns n ve linearFactor·n boylu işleri ölçer. Denemeler dönüşümlüdür (n, 4n, n, 4n, …):
+// bir yük patlaması iki boyun da denemesine düşer. Art arda ölçerken 4n'in bütün denemelerini
+// kaplayan bir patlama oranı 8,5'e çıkardı (yüklü makinede 30 koşuda bir, 2026-10-29).
 func linearRuns(n int, prepare func(n int) func() (int, error)) (small, large linearRun) {
-	measure := func(f func() (int, error)) linearRun {
-		r := linearRun{best: time.Duration(1<<63 - 1)}
-		for i := 0; i < linearTrials; i++ {
-			runtime.GC()
-			start := time.Now()
-			units, err := f()
-			r.best = min(r.best, time.Since(start))
-			r.units = units
-			if r.err == nil {
-				r.err = err
-			}
-		}
-		r.best = max(r.best, time.Microsecond)
-		return r
-	}
 	fs, fl := prepare(n), prepare(linearFactor*n)
-	return measure(fs), measure(fl)
+	small.best, large.best = time.Duration(1<<63-1), time.Duration(1<<63-1)
+	for i := 0; i < linearTrials; i++ {
+		small.trial(fs)
+		large.trial(fl)
+	}
+	small.best, large.best = max(small.best, time.Microsecond), max(large.best, time.Microsecond)
+	return small, large
+}
+
+// trial f'yi bir kez ölçer; önceki işin çöpü ölçülen işe yüklenmesin diye önce çöp toplanır.
+func (r *linearRun) trial(f func() (int, error)) {
+	runtime.GC()
+	start := time.Now()
+	units, err := f()
+	r.best = min(r.best, time.Since(start))
+	r.units = units
+	if r.err == nil {
+		r.err = err
+	}
 }
 
 // GoStringLiterals bir Go dosyasındaki her metin sabitini çözülmüş değeri ve satırıyla fn'e verir;
