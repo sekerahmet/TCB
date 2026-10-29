@@ -6,7 +6,9 @@ ve kurallar (`go run ./tools/codegraph tests-for <dosya>`).
 
 Bir oturum depoda izlenen bir dosyayı ilk kez düzenleyince kanca `tests-for` cevabının ilk 30
 satırını ajana bağlam olarak verir (Claude Code'un `additionalContext` cevabı; çıkış kodu
-kullanılmaz, çünkü `go run` programın 2 kodunu 1'e çevirir). Düzenleme durmaz: 2026-10-28'e kadar
+kullanılmaz, çünkü `go run` programın 2 kodunu 1'e çevirir). Listenin başı tek başına yetmez (doğrudan testi olmayan
+bir dosyada ilk 30 satır başka paketlerin uzak testleriydi, 2026-10-29); Go dosyasında yeten, codegraph'ın en üste
+koyduğu satırlardır: koşu satırları (`run:`, koşmadıkları sayıyla) ve boyut satırı (`size (...)`). Düzenleme durmaz: 2026-10-28'e kadar
 kanca ilk düzenlemeyi durdurup yinelenmesini istiyordu; bu her dosyada bir tur alıyor, kararı
 değiştirmiyordu. Aynı oturumda aynı dosya için bir daha söylenmez (işaret geçici klasörde,
 `tr-edithook/<oturum>/`). Kabuktan (Python, sed) yapılan düzenlemeyi görmez; bu açık yol
@@ -61,7 +63,8 @@ birkaç saniye ve bir tekrar.
 ## Testler
 
 `main_test.go`: ilk düzenleme bir kez durur (JSON karar) ve cevap ajana gider, sonraki geçer, başka dosya ve
-başka oturum yeniden durur; izlenmeyen dosya, yolsuz girdi geçer, bozuk girdi çıkış 1; `locate`
+başka oturum yeniden durur; gösterilen ilk 30 satır gerçek codegraph cevabında koşu ve boyut satırlarını içerir (kısa
+kipte atlanır); izlenmeyen dosya, yolsuz girdi geçer, bozuk girdi çıkış 1; `locate`
 yalnızca izlenen dosyayı verir (gerçek bir git deposunda; Windows'un kısa yol adlarında da, git
 yolu kendisi verir); kabuk araçlarında ön plandaki uzun komut durur, arka plandaki, hedefli test ve
 komutu yalnızca anan metin geçer; ayar dosyası kancayı bütün düzenleme ve kabuk araçlarında çalıştırır.

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/layoutrules"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
@@ -46,7 +47,7 @@ func collectDecls(t *testing.T) declIndex {
 			case *ast.FuncDecl:
 				if dd.Recv == nil {
 					add(idx.pkgNames, pkg, dd.Name.Name)
-				} else if name, _, _ := strings.Cut(funcName(dd), "."); name != "" {
+				} else if name, _, _ := strings.Cut(layoutrules.FuncName(dd), "."); name != "" {
 					add(idx.members, name, dd.Name.Name)
 				}
 			case *ast.GenDecl:

@@ -76,7 +76,7 @@ func goFiles(t *testing.T) []goFile {
 			}
 			name := d.Name()
 			if d.IsDir() {
-				if skipped[name] || strings.HasPrefix(name, ".") || strings.HasPrefix(name, "_") {
+				if layoutrules.SkippedDir(name) {
 					return filepath.SkipDir
 				}
 				return nil
@@ -299,8 +299,8 @@ func TestLayoutFuncSize(t *testing.T) {
 			if !ok {
 				continue
 			}
-			n := d.fset.Position(fd.End()).Line - d.fset.Position(fd.Pos()).Line + 1
-			key := d.path + ":" + funcName(fd)
+			n := layoutrules.FuncLines(d.fset, fd)
+			key := d.path + ":" + layoutrules.FuncName(fd)
 			ceiling, listed := layoutrules.LongFuncs[key]
 			if listed {
 				visited[key] = true
@@ -316,23 +316,6 @@ func TestLayoutFuncSize(t *testing.T) {
 		}
 	}
 	checkExceptions(t, "LongFuncs", layoutrules.LongFuncs, longFuncReasons, layoutrules.MaxLongFuncs, visited)
-}
-
-func funcName(fd *ast.FuncDecl) string {
-	if fd.Recv == nil || len(fd.Recv.List) == 0 {
-		return fd.Name.Name
-	}
-	kind := fd.Recv.List[0].Type
-	if y, ok := kind.(*ast.StarExpr); ok {
-		kind = y.X
-	}
-	if g, ok := kind.(*ast.IndexExpr); ok {
-		kind = g.X
-	}
-	if id, ok := kind.(*ast.Ident); ok {
-		return id.Name + "." + fd.Name.Name
-	}
-	return fd.Name.Name
 }
 
 // checkExceptions istisna listesinin sabit üst sınırı aşmadığını, her kaydın gerekçeli

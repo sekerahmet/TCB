@@ -86,6 +86,25 @@ func TestFirstEditShowsTheGuardingTestsOnce(t *testing.T) {
 	}
 }
 
+// Kural: kancanın gösterdiği ilk maxLines satır, doğrudan testi olmayan uzun listeli bir Go dosyasında da koşu
+// satırlarını ve boyut satırını içerir (2026-10-29: compiler_assign.go'nun 496 testlik cevabının başında ne
+// düzenlenen paketin testi ne de compiler.assignTo'nun 80/80 satırı vardı). Gerçek codegraph'a sorar (grafı gerekirse
+// kurar), bu yüzden kısa kipte atlanır.
+func TestFirstEditShowsTheRunLineAndTheSizeLine(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds codegraph and the graph")
+	}
+	got := testsFor(target{reporoot.Root(), "internal/lang/interp/compiler_assign.go"})
+	lines := strings.Split(got, "\n")
+	if len(lines) > maxLines+2 { // bayat uyarısı ve "... more lines" satırı
+		t.Fatalf("%d lines shown, at most %d:\n%s", len(lines), maxLines, got)
+	}
+	if !strings.Contains(got, "\nrun: go test -short ./internal/lang/interp/\n") || !strings.Contains(got, "TestLayoutFuncSize|") ||
+		!strings.Contains(got, "\n  size (TestLayoutFileSize, TestLayoutFuncSize): file ") {
+		t.Fatalf("the first %d lines must hold the run lines and the size line:\n%s", maxLines, got)
+	}
+}
+
 // İzlenmeyen ya da depo dışındaki dosya ve yolu olmayan girdi sessizce geçer; bozuk girdi kancanın
 // hatasıdır (çıkış 1: Claude Code düzenlemeyi durdurmaz).
 func TestUntrackedFilesAndBadInputPass(t *testing.T) {

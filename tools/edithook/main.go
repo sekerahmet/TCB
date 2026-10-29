@@ -39,8 +39,11 @@ import (
 	"strings"
 )
 
-// maxLines tests-for çıktısından gösterilen en çok satırdır; uzun listenin başı (önce dosyanın
-// kendi testleri ve doğrudan testler) yeter, gerisi elle sorulur.
+// maxLines tests-for çıktısından gösterilen en çok satırdır. Listenin başı tek başına yetmez: doğrudan testi
+// olmayan bir dosyada ilk 30 satır başka paketlerin uzak testleriydi (2026-10-29, compiler_assign.go, 496 test).
+// Yeten, codegraph'ın Go dosyası için en üste koyduğu iki satırdır: koşu satırları (`run:`, dosyanın paketi, onu
+// tarayan kurallar ve konu edinen testler; koşmadıkları sayıyla) ve boyut satırı (`size (...)`: dosyanın ve sınıra
+// yakın fonksiyonların bugünkü boyu ve sınırı). Gruplar kanıt sırasıyla gelir; gerisi elle sorulur.
 const maxLines = 30
 
 type hookInput struct {

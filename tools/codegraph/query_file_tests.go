@@ -55,6 +55,7 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	}
 	s := ix.fileTests(file, ts)
 	printRunPlan(w, ix.runPlanFor(file, ts, s.about))
+	ix.printSizes(w, file)
 	fmt.Fprintf(w, "  declarations in this file: %d\n", decls)
 	ix.printFileTests(w, file, s, limit)
 	ix.printScans(w, file.File, limit)
