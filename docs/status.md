@@ -582,6 +582,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum:** `TR_Tensor([1], TR_dtype: "int64")` H6810 veriyor; cins veriden çıkmıyor, tam sayı listesi ondalık tensör kuruyor [ölçüldü].
 - **Yapılacaklar:** cinsin veriden çıkması ve tip parametresi; sığma denetimi. Göç [ölçüldü: DENETİM A2]: bütün öğeleri tam sayı değişmezi olan ve `TR_dtype:`'sız `TR_Tensor([...])` 91 yerde (tests/ 77, examples/ 11, lib/ 3); çalışmada 20 dosyada 158 kurulum. 4'ü `TR_requires_grad: TR_true`'lu (tests/tensor_test.tr:817-838) ve denetim hatası olur. Hepsi denetimde görünür; ileti `[[0.0], ...]`'i ya da `TR_Tensor[TR_Float](...)`'ı önerir.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
+- **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_zeros(..., TR_dtype: "q4")` gibi nicemlenmiş sıfır kurucu (T3).
 
 ### 15.3
 
@@ -752,6 +753,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** dikkatin maskesi 0/1 sayı tensörü [ölçüldü: main `8b115692`].
 - **Yapılacaklar:** maske `TR_Tensor[TR_Bool]`, 0/1 sayı maskesi denetim hatası.
+- **Gemini 15/2 (2026-10-29), uygulanacak:** tamamen −∞ sapmalı satır 0 verir (bugün NaN); CPU ve GPU (T2).
 
 ### 15.27
 
@@ -801,6 +803,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum:** `TR_default_device(" CPU ")` kabul ediliyor [ölçüldü]; `.TR_to_device(" CPU ")` de kabul ediliyor ve TR testi bunu sabitliyor (`tests/tensor_test.tr:1023`). `"gpu:0"`'a taşınan tensörün `.TR_device`'ı `"gpu"` veriyor, test bunu bekliyor (`tests/tensor_test.tr:1031`) [kanıtlı]. Desteklenen GPU yalnız NVIDIA.
 - **Yapılacaklar:** tek yazım (büyük harf ve boşluk hata); `.TR_device` uzun ad; iki test satırı tersine döner; TR testi. Başka hızlandırıcılar (Apple, gömülü NPU) yol haritasında.
 
+### 15.38
+
+- **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_load_tensors` varsayılan cihazda kurar (T3).
+
 ### 15.41
 
 - **Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları) ulp sınırı ölçülmedi; 15.11 GPU için "birkaç ulp" diyor.
@@ -811,11 +817,16 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum:** `TR_zeros`, `TR_ones`, `TR_randn` ve boş tensörün `.TR_reshape`'i ile `.TR_tolist()`'i şekli, sıfır eksenleri 1 sayarak 50 milyon öğelik koleksiyon sınırına göre denetliyor (`TR_zeros([0, 1000000000, 1000000000])` hata) [kanıtlı: bugünkü 15.42'nin metni]. GPU çekirdeklerinin indeksi 32 bit: bir uygulama sınırıdır, dil kuralı değildir; Llama 3 405B'nin gömmesi (~2,1·10⁹ öğe) bu sınıra dayanıyor.
 - **Yapılacaklar:** 50 milyon sınırı kalkar, yerine int64 taşma denetimi (yukarıdaki örnek artık hata değildir; dev sonuç ayrılırken yakalanır); 64 bitlik GPU indeksi yol haritasında.
 
+### 15.43
+
+- **Gemini 15/2 (2026-10-29), uygulanacak:** ifadede kurulan liste ve demet içindekilerin sahibidir (`TR_concat([a, b])` GC'yi beklemez); 0.6b'nin demet sahipliğiyle aynı kural, liste yanı D1.
+
 ### 15.44
 
 - **Mevcut durum:** `TR_fuse`'un kapanışından okunan sayı değişince sonuç sessizce eski kalıyor (sabit 2'den 5'e çıktı, sonuç `[2, 4]` kaldı) [ölçüldü]; CPU'da `TR_fuse` eski değeri, `TR_replay` yeni değeri veriyor, GPU'da `TR_replay` de sabitliyor: aynı program cihaza göre ayrı sonuç veriyor [ölçüldü: DENETİM]. Go testi `TestFuseCapturedNumberIsBakedIn` bu sessiz eskimeyi doğru davranış diye sabitliyor (`internal/stdlib/ml/builtin_fuse_test.go:8`). `TR_clamp`, `TR_atan2` ve `TR_where` kaynaştırılmıyor.
 - **Yapılacaklar:** kapanıştaki sayının kaydı ve her çağrıda, her cihazda denetimi; yolu olmayan sayıda kayıt hatası. Kural uygulanınca `TestFuseCapturedNumberIsBakedIn` tersine döner: değişen kapanış sayısı hata vermeli; TR testi.
 - **Uygulama sınırı:** `TR_clamp`, `TR_atan2` ve `TR_where` bugün kaynaştırılmıyor; `f`'de kullanılınca hata veriyor. Kural onları da kapsar.
+- **Gemini 15/2 (2026-10-29), uygulanacak:** kapanış yolunda liste indeksi ve sözlük anahtarı (2. kilometre taşının ön koşulu); `TR_fuse`'da float64 ve tam sayı kendi türünde (T3).
 
 ### 15.45
 
@@ -826,6 +837,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** tensörler yalnız float tutuyor; `TR_save_tensors` float32, bf16, fp16 yazıyor (sürüm 2; tür kodları 1, 2, 3) [ölçüldü]. Dosyada veri taşıyan tensör en çok 2³² öğe, verisiz şekil (sıfır eksenler 1 sayılarak) en çok 50 milyon öğe bildirebiliyor [kanıtlı: bugünkü 15.46'nın metni]; 15.46'nın sıfır uzunluklu eksen TR testi (`tests/tensor_test.tr:551`) `[1048576, 0, 8192]` şekilli verisiz tensörün reddini bekliyor.
 - **Yapılacaklar:** her cinsin ve hassasiyetin tür kodu (sürüm 2 kalır; bugünkü dosyalar okunmaya devam eder); `TR_AnyTensor` ve `.TR_narrow[E]()`; 2³² ve 50 milyon sınırları kalkar, öğe sayısı int64 taşma denetimiyle ve ayırma 15.42'nin bellek denetimiyle (sıfır eksen testi yeni kurala göre yeniden yazılır); uzantıyla biçim seçimi; TR testi.
+- **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_requires_grad: TR_true` yalnız nicemlenmemiş `TR_Float` tensörlerde (T3).
 
 ### 15.47
 
@@ -857,11 +869,13 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** uygulanmadı. Hugging Face'in `weight_scale_inv`'inin çarpılan ölçek olduğu bir hipotezdir [hipotez: DENETİM F2].
 - **Yapılacaklar:** `.TR_to_dtype` ile nicemleme ve açma (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar); yeni kimlikler `TR_quantized` (gösterim adı "nicemlenmiş") ve `TR_zero_point` ("sıfır_noktası"), onaylı; NaN ve aralık denetimleri 15.6'nın bekleyen işlemlerinde; `weight_scale_inv`'in anlamını gerçek bir FP8 modeliyle doğrulamak; TR testi. Sıra değiştiren gruplar (GPTQ `desc_act`, `g_idx`) Sonraya.
+- **Gemini 15/2 (2026-10-29), uygulanacak:** q4'ün sıfır bloğu −0.0 ölçek ve 8 kodla llama.cpp ile bit bit (baytlarla test); q4z128'in RTN formülü; fp8'in kısmi son bloğu (T3). **Açık karar:** GPTQ/AWQ ölçeği bf16 kalsın mı (dosya biçimi).
 
 ### 15.53
 
 - **Mevcut durum:** uygulanmadı.
 - **Yapılacaklar:** CPU'da (AVX2, ARM NEON) ve GPU'da blok blok açan çarpım ve gömme çekirdekleri; geri yönün ikinci çekirdeği; 2. kilometre taşının hız ölçütü; TR testi ve Go testi (CPU ve GPU, açılmış hesapla karşılaştırma). Nicemleme farkında eğitim (QAT) Sonraya.
+- **Gemini 15/2 (2026-10-29), uygulanacak:** devrik görünümün izinli kullanımları; fp8'in ilk eksen kuralı (T3).
 
 ### 15.54
 
@@ -1078,6 +1092,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 - **Mevcut durum:** tam sayılı işaretli tensör ve maske ondalık parametreye sessizce yazılıyor [ölçüldü: DENETİM].
 - **Yapılacaklar:** cins farkının hatası (15'in A'sı gelince); `TR_AnyTensor` sözlüğü ve parametrenin cinsine daraltma, daraltan hassasiyet dönüşümünde sığmama hatası, nicemlenmiş yaprağa bütün yazma (15.54) (15'in yan değişikliği, uygulanmadı).
 - **Açık (Sonraya, 2. kilometre taşında öne çekilmeli):** hazır `.safetensors` dosyaları tablo (RoPE) taşımaz; "bütün yapraklar sözlükte" kuralıyla yükleme alt yapıya yapılır. LoRA alanlarıyla aynı soru (15.34'ün açığı).
+- **Gemini 15/2 (2026-10-29), uygulanacak:** nicemlenmiş hassasiyet farkı yüklemede hata, sessiz açma yok (T2, 15.54 ile).
 
 ### 20.12, 20.13
 

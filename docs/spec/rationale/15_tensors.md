@@ -299,6 +299,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Sabit kapasiteli önbellek.** `TR_replay`'in sabit şeklinde `Tk` kapasitedir; sondan hizalı nedensellik orada yanlış konuma bakar. Doğru yazım maskeyle yazılır; yazılmamış yuvaya bakmak hata vermediği için madde bunu açıkça söyler.
   - **Hassasiyet** 15.6c'nin birleşme kuralıyladır: dört girdi için ayrı bir kural yok.
   - Etkinleştirme kaydı (`TR_recompute`) ve ikinci türev yol haritasındadır.
+- *Gerekçe (tamamen −∞ satır):* Hugging Face modelleri dolgu maskesini toplamsal sapmayla verir; NaN tamamen dolgu bir satırda bütün çıktıyı bozardı. Satır 15.9'un softmax'ı ve maddenin denkliğiyle aynı sonucu verir (Gemini 15/2).
 
 ### 15.25
 
@@ -418,6 +419,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* PyTorch `torch.compile` ve JAX `jit` bütün programı izleyip derler (genel derleyici; izlenemeyen yerde `torch.compile` sessizce kaynaşmamış yola döner); CuPy `cupy.fuse` öğe öğe bir Python fonksiyonunu tek çekirdeğe çevirir ama türev almaz; Julia'nın `@.` yayını sözdizimiyle kaynaştırır; Triton ve Liger elle yazılmış birleşik çekirdeklerdir [kanıtlı: bugünkü 15.44'ün "Karşılaştırma ve karar"ı]. Kapanıştaki sayıyı JAX'ın `jit`'i iz anında sessizce sabitler, `torch.compile` değişen değerde korumayla yeniden derler [kanıtlı: bugünkü 15.44'ün metni]. Bugün TR'de CPU'da `TR_fuse` eski değeri, `TR_replay` yeni değeri veriyor, GPU'da `TR_replay` de sabitliyor [ölçüldü: DENETİM].
 - *Gerekçe:* "Hazır modelleri çalıştırmak ... hızlı" ve "Hata riski az". TR `cupy.fuse`'un açık ve dar kapsamını alır: kullanıcı neyin kaynaştığını yazarak seçer, kaynaştırılamayan işlem sessizce geçilmez, hata verir; geri yönü `torch.compile` gibi ara değerleri yeniden hesaplayarak üretir ve ileri yön bit düzeyinde aynıdır (derleyicilerin aksine sonuç değişmez). **Kapanıştaki sayının denetimi:** bugün kapanıştan okunan sayı değişince sonuç sessizce eski değerle hesaplanıyor (`sabit` 2'den 5'e çıktı, sonuç `[2, 4]` kaldı [ölçüldü]); öğrenme oranı ya da adım gibi değişen değerler tam bu biçimde yazılır, sessiz eskime "Hata riski az"ın karşıtıdır. Yeniden kaydetmek (`torch.compile`'ın korumaları) doğru sonucu verirdi ama gizli bir maliyet taşır; hata, ajana değeri argüman yapmasını söyler. Aynı program cihaza göre ayrı sonuç vermesin diye denetim her cihazdadır.
+- *Gerekçe (yolda liste ve sözlük):* çok katmanlı bir modelin bir üretim adımı katman listesini dolaşır (`model.katmanlar[i].k_onbellek`); yol yalnız değişken ve alan olsaydı 2. kilometre taşının hız yolu yazılamazdı. `TR_fuse` float64 ve 2²⁴'ü aşan tam sayıda float32'de bit bit aynı olamazdı; her tür kendi türünde hesaplanır (Gemini 15/2).
 
 ### 15.45
 
@@ -519,6 +521,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **NaN'lı blok hata:** NaN bir bloğun ölçeğini NaN yapar ve 32 öğeyi birden bozar; sessizce yapılırsa model bozulmuş görünmeden kalite kaybeder ("Hata riski az").
   - **Aralık dışı kod, sıfır ve ölçek hata** (Gemini'nin bütün 15 raporu, 11.3; DENETİM doğruladı): paketli depoda aralık dışı kod komşu öğeyi bozar.
   - **Sıra değiştiren gruplar** (`desc_act`) desteklenmez: Sonraya (DENETİM F2'de kapandı).
+- *Gerekçe (sıfır blok ve q4z128):* llama.cpp'nin `quantize_row_q4_0_ref`'inde `max` +0.0'dan başlar ve yalnız mutlak değeri kesin büyük öğeyle değişir; sıfır blokta `d = 0 / −8 = −0.0`, kodlar 8 [kanıtlı: DENETİM, `ggml-quants.c`]. Gemini'nin "+0.0 ölçek" önerisi alınmadı: bit bit aynılık −0.0 ister. q4z128'in RTN formülü AutoGPTQ'nunkiyle aynı olmalı [hipotez: bir kez sınanacak]; ölçeğin bf16 kalıp kalmayacağı (GPTQ ve AWQ dosyalarında) bir dosya biçimi kararıdır, açık.
 
 ### 15.53
 

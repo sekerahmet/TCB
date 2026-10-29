@@ -75,7 +75,7 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 ## Durumun parçaları
 
 **20.11** `TR_load_parameters(model, sözlük)` ad → tensör sözlüğünü (ör. `TR_load_tensors`'ın sonucu) modelin var olan yapraklarına, `TR_named_parameters`'ın adlarıyla (15.33: parametreler, donmuşlar, tablolar ve tamponlar) yerinde yazar; modelin bütün yaprakları sözlükte olmalıdır, eksik ağırlık sessizce kalmaz ve yazılan parametre sayısını (`TR_Int`) verir.
-- Sözlük `TR_Dict[TR_String, TR_AnyTensor]`'dür (`TR_load_tensors`'ın ve `TR_named_parameters`'ın dönüşü); her tensör hedef parametrenin cinsine daraltılır (15.1), cins uymazsa hata. Tensörler parametrenin cihazına taşınır; hassasiyeti farklıysa 15.3'ün dönüşümüyle çevrilir, daraltan dönüşümde değer sığmazsa hata. Nicemlenmiş yaprağa yazma 15.54'teki gibi aynı belleğe, bütün olarak yapılır. Deponun sürümü artar (15).
+- Sözlük `TR_Dict[TR_String, TR_AnyTensor]`'dür (`TR_load_tensors`'ın ve `TR_named_parameters`'ın dönüşü); her tensör hedef parametrenin cinsine daraltılır (15.1), cins uymazsa hata. Tensörler parametrenin cihazına taşınır; hassasiyeti farklıysa 15.3'ün dönüşümüyle çevrilir, daraltan dönüşümde değer sığmazsa hata. Hedef ya da kaynak nicemlenmiş saklama hassasiyetindeyse hassasiyetler aynı olmalıdır; farklıysa çalışma hatası, ileti açmayı (`.TR_to_dtype("float32")`) ya da hedefi aynı hassasiyette kurmayı (`TR_zeros(şekil, TR_dtype: "q4")`) söyler: nicemlenmiş ağırlık sessizce açılmaz (15.53). Nicemlenmiş yaprağa yazma 15.54'teki gibi aynı belleğe, bütün olarak yapılır. Deponun sürümü artar (15).
 - Modelde olup sözlükte olmayan, sözlükte olup modelde olmayan ve şekli farklı ad hatadır; hiçbir şey yazılmaz.
 - Hazır ağırlıklarla ince ayar için de kullanılır.
 - *Test:* TR testi.
