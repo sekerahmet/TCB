@@ -33,7 +33,7 @@ func (c *compiler) exprSignal(k *compilerScope, expr ast.Expression) statementCo
 	case *ast.MatchExpression:
 		return c.matchExpr(k, e)
 	}
-	codeVal := c.resultsOf(k, expr) // deyim olarak çağrının sonuçları atılır (6.3)
+	codeVal := c.expression(k, expr)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := codeVal(v, env)
 		if err != nil {
@@ -87,7 +87,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 				elems = append(elems, val)
 			}
 			l := &ListVal{Elements: elems}
-			v.ownList(l)
+			v.ownContainer(l, l.Elements)
 			return l, nil
 		}
 
@@ -153,10 +153,13 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		}
 
 	case *ast.CallExpression:
-		return singleResult(c.callExpr(k, e), e)
+		return c.callExpr(k, e)
 
 	case *ast.TupleExpression:
-		return c.tuple(k, e)
+		return c.tuple(k, e) // tuple_value.go
+
+	case *ast.ElementExpression:
+		return c.element(k, e)
 
 	case *ast.IndexExpression:
 		leftFn := c.expression(k, e.Left)
@@ -197,7 +200,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	return nullCode
 }
 
-// callExpr çağrının kodudur; sonucu birden çok değer olabilir (bkz. resultsOf, singleResult).
+// callExpr çağrının kodudur.
 func (c *compiler) callExpr(k *compilerScope, e *ast.CallExpression) exprCode {
 	codeVal := c.call(k, e)
 	// Gölgelenmiş bir yerleşiğin çağrısı: hata mesajı gölgelemeyi söyler (shadow.go).

@@ -150,6 +150,9 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 	if len(elems) == 0 {
 		return Null, nil
 	}
+	if _, ok := elems[0].(*TupleVal); ok {
+		return extremeTuple(kd, elems, upper)
+	}
 	var picked Value
 	for i, el := range elems {
 		if !isNumber(el) {

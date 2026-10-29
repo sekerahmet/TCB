@@ -175,6 +175,9 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 		return val, err
 	}
 
+	if val, ok, err := tupleOrderOp(codeVal, op, left, right, line); ok {
+		return val, err // 3.6a: tuple_ops.go
+	}
 	if val, ok, err := sequenceOp(codeVal, left, right, line); ok {
 		return val, err
 	}
@@ -391,6 +394,12 @@ func ValuesEqual(a, b Value) bool {
 const equalityDepth = 10000
 
 func valuesEqual(a, b Value, nestDepth int) bool {
+	if x, ok := a.(*TupleVal); ok {
+		return tuplesEqual(x, b, nestDepth) // tuple_ops.go
+	}
+	if _, ok := b.(*TupleVal); ok {
+		return false // demet yalnız demete eşittir; a demet değil
+	}
 	if a.Type() == ValNull && b.Type() == ValNull {
 		return true
 	}

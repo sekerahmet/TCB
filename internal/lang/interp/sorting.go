@@ -75,6 +75,13 @@ func sortValues(name any, d []Value) error {
 		}
 		slices.SortStableFunc(d, func(a, b Value) int { return cmp.Compare(a.(*StringVal).Val, b.(*StringVal).Val) })
 		return nil
+	case *TupleVal:
+		// öğeleri sıralanabilen demetler (3.6a): 13.10'un sırasıyla öğe öğe (tuple_ops.go)
+		if err := tupleListError(name, d); err != nil {
+			return err
+		}
+		slices.SortStableFunc(d, sortOrder)
+		return nil
 	}
 	return sortTypeError(name, d[0], nil)
 }

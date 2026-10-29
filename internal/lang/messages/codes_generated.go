@@ -342,8 +342,8 @@ const (
 	H2487 Code = 2487 // {name|q} {path|q} modülüne özel bir ad (başı _); yalnızca o modülün içinde kullanılır (bkz. 11.7)
 	H2489 Code = 2489 // {fn}: dosya yolunda {what, select, tab {sekme} other {satır sonu}} karakteri var; metindeki ters bölü bir kaçış dizisi sayıldı ("\t" sekme, "\n" satır sonudur). Windows yolu için ham metin kullanın: `{path}` (ya da ters bölüleri ikileyin veya / yazın)
 	H2491 Code = 2491 // program {code} koduyla bitirildi
-	H2492 Code = 2492 // {fn}: {given} sıralanamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır
-	H2493 Code = 2493 // {fn}: {a} ile {b} karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır
+	H2492 Code = 2492 // {fn}: {given} sıralanamaz; liste yalnızca sayılardan, yalnızca metinlerden ya da yalnızca öğeleri sıralanabilen demetlerden oluşmalıdır
+	H2493 Code = 2493 // {fn}: {a} ile {b} karşılaştırılamaz; liste yalnızca sayılardan, yalnızca metinlerden ya da yalnızca öğeleri sıralanabilen demetlerden oluşmalıdır
 	H2495 Code = 2495 // {type} sözlük anahtarı olamaz: içeriği sonradan değişebilen değerler anahtar olarak kullanılamaz
 	H2496 Code = 2496 // <fonksiyon {name}>
 	H2497 Code = 2497 // <yerleşik {name}>
@@ -436,8 +436,7 @@ const (
 	H2704 Code = 2704 // dolaşılan sözlük dolaşma sürerken {before} anahtardan {after} anahtara değişti: dolaşılan sözlüğe anahtar eklenmez ve ondan anahtar çıkarılmaz (var olan anahtara atama serbesttir); değişiklikleri ayrı bir sözlükte toplayıp dolaşmadan sonra yazın
 	H2705 Code = 2705 // {kind} türündeki bir {@JSON} değeri {type} tipindeki bir değerle karşılaştırıldı (bir listenin, sözlüğün ya da eşleme deseninin içinde): JSON değeri yalnız JSON değerine eşit olabilir, sonuç hep yanlış olurdu; JSON'u önce tipiyle açın ({kind}(j)) ya da öbür yanı JSON yapın ({@JSON}(x))
 	H2706 Code = 2706 // fonksiyonlar karşılaştırılamaz (bir listenin, sözlüğün ya da eşleme deseninin içinde de): görünüşü aynı iki fonksiyon da eşit sayılmaz; fonksiyonları karşılaştırılan verinin dışında tutun ya da sonuçlarını karşılaştırın: f(x) == g(x)
-	H2708 Code = 2708 // bu çağrı {count} değer döndürür, tek bir değer değildir: sonuçları adlara açın (a, b = f()), aynı sonuçlarla TR_return f() yazarak iletin; başka bir çağrının argümanı olamaz
-	H2709 Code = 2709 // çağrı {count} değer döndürür ama {names} ada açılıyor: her sonuca bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
+	H2709 Code = 2709 // demetin {count} öğesi var ama {names} ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
 	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
@@ -461,6 +460,12 @@ const (
 	H2769 Code = 2769 // '{variant}' durumunun '{field}' alanı hem sırayla ({order}. argüman) hem adıyla verildi
 	H2770 Code = 2770 // '==' {struct} değerlerini karşılaştıramaz: '{field}' alanı bir {kind, select, tensor {tensör tutuyor (tensörün =='si öğe öğedir)} other {fonksiyon tutuyor (iki fonksiyon hiçbir zaman eşit sayılmaz)}}; {other, select, empty {onu karşılaştırılan verinin dışında tutun} other {gereken alanları tek tek karşılaştırın: a.{other} == b.{other}}}
 	H2771 Code = 2771 // '==' karşılaştırmakta olduğu bir {struct} çiftine yeniden vardı: değerler kendilerine bağlanıyor, karşılaştırma bitmezdi; {other, select, empty {gereken parçaları tek tek karşılaştırın} other {gereken alanları tek tek karşılaştırın: a.{other} == b.{other}}}
+	H2772 Code = 2772 // '{op}' demetleri öğe öğe sırayla karşılaştırır, ama {index}. öğe bir yanda {a}, öbür yanda {b}: yalnız sayılar, metinler ve onların demetleri sıralanır (4.4)
+	H2773 Code = 2773 // demet ancak bütün öğeleri anahtar olabiliyorsa sözlük anahtarıdır: {index}. öğe olamaz ({why})
+	H2774 Code = 2774 // demetin {count} öğesi var: .{index} yok; öğeleri .0'dan .{last}'e kadardır
+	H2775 Code = 2775 // '.{index}' demetin öğesini okur, ama değer bir {type}{kind, select, list {: listenin öğesi [{index}] ile okunur} other {}}
+	H2776 Code = 2776 // demetin öğesine atanamaz: demet değişmez (3.6a); yeni bir demet kurun, (a, t.1)
+	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün ==’si öğe öğedir (15.5); tensörleri TR_equal(a.{index}, b.{index}) ile karşılaştırın
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

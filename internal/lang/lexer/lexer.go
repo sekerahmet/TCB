@@ -306,10 +306,8 @@ func (l *Lexer) nextToken() Token {
 			name := l.readIdentifier()
 			l.checkName(name, line, col)
 			return l.nameToken(name, line, col)
-		} else if isDigit(l.ch) && l.places.prev == TokDot {
-			return l.elementIndex(line, col)
 		} else if isDigit(l.ch) {
-			return l.number(line, col)
+			return l.numberOrIndex(line, col)
 		} else {
 			tok = Token{Type: TokIllegal, Literal: string(l.ch), Line: line, Column: col}
 		}

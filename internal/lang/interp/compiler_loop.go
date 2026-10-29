@@ -431,7 +431,7 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 			results = append(results, outVal)
 		}
 		l := &ListVal{Elements: results}
-		v.ownList(l)
+		v.ownContainer(l, l.Elements)
 		for _, r := range results {
 			unpin(r)
 		}

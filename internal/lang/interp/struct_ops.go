@@ -290,6 +290,8 @@ func (w structComparison) walk(a, b Value, nestDepth int) error {
 			}
 			return nil
 		}
+	case *TupleVal:
+		return tupleComparisonError(x, b, nestDepth, w.walk) // tuple_ops.go
 	}
 	return comparisonError(a, b, nestDepth)
 }

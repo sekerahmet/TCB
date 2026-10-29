@@ -64,6 +64,8 @@ func valueKind(val interp.Value) string {
 			return "table"
 		}
 		return "list"
+	case *interp.TupleVal:
+		return "list" // demet: panelde listenin ikonu
 	case *interp.DictVal:
 		return "dict"
 	case *interp.StructInstanceVal:

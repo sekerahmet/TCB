@@ -193,7 +193,7 @@ func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) state
 
 // returnStatement 'dön' deyimini derler.
 func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) statementCode {
-	value := c.resultsOf(k, s.ReturnValue) // TR_return f(): sonuçlar iletilir (6.3)
+	value := c.expression(k, s.ReturnValue) // TR_return a, b bir demet döndürür (6.3)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
 		if err != nil {
@@ -352,17 +352,15 @@ func (c *compiler) breakpointStatement(k *compilerScope, s *ast.BreakpointStatem
 	}
 }
 
-// multiSides çoklu tanım ve atamanın sağ yanının kodudur: tek ifade bir çağrıysa sonuçları açılır.
+// multiSides çoklu tanım ve atamanın sağ yanının kodudur.
 func (c *compiler) multiSides(k *compilerScope, values []ast.Expression) []exprCode {
-	if len(values) == 1 {
-		return []exprCode{c.resultsOf(k, values[0])}
-	}
 	return c.expressions(k, values)
 }
 
-// multiValues çoklu tanım/atamanın sağ tarafını hesaplar; tek bir Liste birden çok ada
-// açılır. Değer sayısı ad sayısını tutmazsa çalışma hatasıdır (5.3): eksik ya da fazla değer
-// sessizce kaybolmaz.
+// multiValues çoklu tanım/atamanın sağ tarafını hesaplar; tek bir demet ya da liste birden çok
+// ada açılır (5.3, 6.3). Değer sayısı ad sayısını tutmazsa çalışma hatasıdır: eksik ya da fazla
+// değer sessizce kaybolmaz. Denetleyici sayıyı yalnız sağ yan bir demet yazımı ya da dönüşü
+// demet tipli bir fonksiyonun doğrudan çağrısıysa bilir (checker/unpack.go).
 func multiValues(v *VM, env *Environment, values []exprCode, nameCount, line int) ([]Value, error) {
 	evalVals := make([]Value, 0, len(values))
 	for _, d := range values {
@@ -373,12 +371,11 @@ func multiValues(v *VM, env *Environment, values []exprCode, nameCount, line int
 		evalVals = append(evalVals, val)
 	}
 	if len(evalVals) == 1 {
-		if m, ok := evalVals[0].(*MultiVal); ok {
-			// Çağrının sonuçları açılır (6.3); sayı tutmazsa hata.
-			if len(m.Values) != nameCount {
-				return nil, messages.At(line, 0, messages.New(messages.H2709, len(m.Values), nameCount))
+		if t, ok := evalVals[0].(*TupleVal); ok {
+			if len(t.Elements) != nameCount {
+				return nil, messages.At(line, 0, messages.New(messages.H2709, len(t.Elements), nameCount))
 			}
-			return m.Values, nil
+			return t.Elements, nil
 		}
 	}
 	if len(evalVals) == 1 && nameCount > 1 {
