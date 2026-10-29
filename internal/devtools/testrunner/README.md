@@ -23,7 +23,9 @@ Denetim: `TestRuleInItsOwnSection`, `TestEveryRuleHasATest`, `TestRuleTestLineFo
 bölümde madde ve Test satırları ve durum belgesinin (`docs/status.md`) her satırı ters
 tırnak içinde bir kodun hiçbir gösterim dilindeki adını (`aktar`, `import`) taşımaz, kimliğini
 (`TR_kw_import`) yazar; Emsal ve Gerekçe başka dillerin kodunu bilerek yazdığı için bakılmaz.
-Denetim: `TestReviewedSectionsWriteIdentities`.
+Kimlik istisnaları tablosunda (`identityExceptions`) dil tanımından çıkmış ya da artık kod olmuş
+bayat girdi kalmaz.
+Denetim: `TestReviewedSectionsWriteIdentities`, `TestIdentityExceptionsAreNotStale`, `TestStaleIdentityExceptions`.
 
 **Gözden geçirilmiş bölüm yalnız kuralı yazar.** Bugünkü uygulamanın kuraldan farkı ve
 yapılacaklar bölümde *Durum:* satırı olarak değil, `docs/status.md`'de bölümün başlığı altında
@@ -33,5 +35,6 @@ durur; gözden geçirilmiş her bölümün orada başlığı vardır. Denetim: `
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
+- `behavior_identity_exceptions_test.go`: kimlik istisnaları tablosunda (`identityExceptions`) dil tanımından çıkmış ya da artık kod olmuş bayat girdi kalmaması
 - `behavior_language_spec_test.go`: dil belirtimindeki her kuralın kendi bölümünde olması ve bir testi bulunması; belirtim testlerinin geçmesi
 - `behavior_rationale_test.go`: gerekçe dosyalarının (`docs/spec/rationale/`) düzeni ve kural numaralarıyla eşleşmesi
