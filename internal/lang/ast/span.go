@@ -2,7 +2,9 @@ package ast
 
 import (
 	"reflect"
+	"strings"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -65,4 +67,51 @@ func union(a, b messages.Range) messages.Range {
 		out.EndLine, out.EndCol = b.EndLine, b.EndCol
 	}
 	return out
+}
+
+// UnpackSuggestion builds the select key ("extra" when there are more names than elements,
+// "missing" when fewer) and the corrected statement example for a tuple unpack count mismatch
+// (5.3, 6.3). The right-hand side comes from ValueToken, cut from the source by token positions.
+func UnpackSuggestion(stmt Node, count int) (kind, example string) {
+	var prefix, rhs string
+	var names []string
+	switch s := stmt.(type) {
+	case *MultiVarStatement:
+		kw := codes.KwVar
+		if s.IsConst {
+			kw = codes.KwConst
+		}
+		prefix = codes.Spelling(kw) + " "
+		for _, n := range s.Names {
+			names = append(names, n.Value)
+		}
+		rhs = s.ValueToken.Literal
+	case *MultiAssignStatement:
+		for _, t := range s.Targets {
+			names = append(names, targetName(t))
+		}
+		rhs = s.ValueToken.Literal
+	}
+	if len(names) > count {
+		return "extra", prefix + strings.Join(names[:count], ", ") + " = " + rhs
+	}
+	padded := append([]string(nil), names...)
+	for len(padded) < count {
+		padded = append(padded, "_")
+	}
+	return "missing", prefix + strings.Join(padded, ", ") + " = " + rhs
+}
+
+func targetName(e Expression) string {
+	switch x := e.(type) {
+	case *Identifier:
+		return x.Value
+	case *MemberExpression:
+		dot := "."
+		if x.Safe {
+			dot = "?."
+		}
+		return targetName(x.Object) + dot + x.Property
+	}
+	return e.TokenLiteral()
 }

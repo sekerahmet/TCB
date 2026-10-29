@@ -41,6 +41,7 @@ func (c *Checker) checkUnpackCount(stmt ast.Node, values []ast.Expression, names
 		return
 	}
 	if n := c.tupleLen(values[0]); n > 0 && n != names {
-		c.addErrorAt(stmt, messages.New(messages.H1026, n, names))
+		kind, example := ast.UnpackSuggestion(stmt, n)
+		c.addErrorAt(stmt, messages.New(messages.H1026, n, names, kind, example))
 	}
 }

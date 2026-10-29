@@ -266,3 +266,64 @@ func TestCompilerShadowingAndConst(t *testing.T) {
 		t.Fatal("sabite atama hata vermeliydi")
 	}
 }
+
+// Kural (5.3, 6.3): demeti açarken ad sayısı öğe sayısını tutmayınca H2709 (çalışma) ve H1026
+// (denetim) öneriyi deyimin kendi adlarından ve kaynaktaki sağ yanından kurar; önerilen yazım
+// çalıştırılınca hatasız biter.
+func TestUnpackTupleCountSuggestion(t *testing.T) {
+	for _, tc := range []struct {
+		prefix, bad, wantExample, wantTR, wantEN, wantVal string
+	}{
+		{
+			"TR_func g(n, s) { TR_return n, s }\n",
+			`TR_var a, b, c = g(1, "x")`, `TR_var a, b = g(1, "x")`,
+			`demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = g(1, "x"))`,
+			`the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = g(1, "x"))`,
+			`[1, "x"]`,
+		},
+		{
+			"TR_func g(n, s) { TR_return n, s, n + 1 }\n",
+			`TR_var a, b = g(1, "x")`, `TR_var a, b, _ = g(1, "x")`,
+			`demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (TR_var a, b, _ = g(1, "x"))`,
+			`the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (TR_var a, b, _ = g(1, "x"))`,
+			`[1, "x"]`,
+		},
+		{
+			`TR_var t = (1, "x")` + "\n",
+			"TR_var a, b, c = t", "TR_var a, b = t",
+			"demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = t)",
+			"the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = t)",
+			`[1, "x"]`,
+		},
+		{
+			`TR_var t = (1, "x", 9)` + "\nTR_var a = 0\nTR_var b = \"\"\n",
+			"a, b = t", "a, b, _ = t",
+			"demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (a, b, _ = t)",
+			"the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (a, b, _ = t)",
+			`[1, "x"]`,
+		},
+	} {
+		_, _, err := runTROut(t, tc.prefix+tc.bad)
+		if !messages.Has(err, messages.H2709) {
+			t.Fatalf("%s: H2709 bekleniyordu, alınan: %v", tc.bad, err)
+		}
+		if gotTR := messages.ErrorIn(err, "tr"); !strings.Contains(gotTR, tc.wantTR) {
+			t.Fatalf("tr iletisi %q içermeli, alınan: %q", tc.wantTR, gotTR)
+		}
+		if gotEN := messages.ErrorIn(err, "en"); !strings.Contains(gotEN, tc.wantEN) {
+			t.Fatalf("en iletisi %q içermeli, alınan: %q", tc.wantEN, gotEN)
+		}
+		me, ok := messages.As(err)
+		if !ok {
+			t.Fatalf("messages.Error bekleniyordu: %v", err)
+		}
+		gotExample, _ := me.Args[3].(string)
+		if gotExample != tc.wantExample {
+			t.Fatalf("öneri %q bekleniyordu, alınan %q", tc.wantExample, gotExample)
+		}
+		_, val, err := runTROut(t, tc.prefix+gotExample+"\nTR_var result = [a, b]")
+		if err != nil || val.Inspect() != tc.wantVal {
+			t.Fatalf("önerilen yazım (%s) %s üretmeliydi: %v %v", gotExample, tc.wantVal, val, err)
+		}
+	}
+}

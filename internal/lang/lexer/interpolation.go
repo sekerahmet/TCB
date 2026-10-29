@@ -88,9 +88,8 @@ func (l *Lexer) sourcePos(i int) int32 {
 	return l.posMap[len(l.posMap)-1] + 1
 }
 
-// lineCol kökün girdisindeki bir indeksin satır ve sütunudur (1'den başlar; sütun karakter
-// sayar). Satır başları ilk istendiğinde bir kez çıkarılır.
-func (l *Lexer) lineCol(i int) (int, int) {
+// ensureLineStarts satır başlarını ilk istendiğinde bir kez çıkarır.
+func (l *Lexer) ensureLineStarts() {
 	if l.lineStarts == nil {
 		l.lineStarts = []int{0}
 		for j, r := range l.input {
@@ -99,8 +98,45 @@ func (l *Lexer) lineCol(i int) (int, int) {
 			}
 		}
 	}
+}
+
+// lineCol kökün girdisindeki bir indeksin satır ve sütunudur (1'den başlar; sütun karakter
+// sayar). Satır başları ilk istendiğinde bir kez çıkarılır.
+func (l *Lexer) lineCol(i int) (int, int) {
+	l.ensureLineStarts()
 	s := sort.SearchInts(l.lineStarts, i+1) - 1
 	return s + 1, i - l.lineStarts[s] + 1
+}
+
+// Slice returns the text in [start, end.End) from the root input using the tokens' positions.
+func (l *Lexer) Slice(start, end Token) string {
+	k := l.root
+	sr, er := start.Range(), end.Range()
+	from, to := k.offsetOf(sr.Line, sr.Col), k.offsetOf(er.EndLine, er.EndCol)
+	if from < 0 || to < from || to > len(k.input) {
+		return ""
+	}
+	return string(k.input[from:to])
+}
+
+// offsetOf kökün girdisinde (line, col) konumundaki (1'den başlar) karakterin indeksidir;
+// aralık dışındaysa -1.
+func (l *Lexer) offsetOf(line, col int) int {
+	l.ensureLineStarts()
+	if line < 1 || line > len(l.lineStarts) || col < 1 {
+		return -1
+	}
+	begin := l.lineStarts[line-1]
+	end := len(l.input)
+	if line < len(l.lineStarts) {
+		end = l.lineStarts[line] - 1
+	}
+	if len(l.shifts) == 0 {
+		return min(begin+col-1, end)
+	}
+	return begin + sort.Search(end-begin, func(i int) bool {
+		return i+1+l.lineShift(begin, begin+i) >= col
+	})
 }
 
 // Interpolation returns the sub-lexer for one '\(expr)' part of a string literal. text is the

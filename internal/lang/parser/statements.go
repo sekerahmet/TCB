@@ -180,33 +180,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 
 	// Çoklu değişken tanımı: değişken a, b = [10, 20] veya değişken a, b = 10, 20
 	if p.peekTokenIs(lexer.TokComma) {
-		names := []*ast.Identifier{firstIdent}
-		for p.peekTokenIs(lexer.TokComma) {
-			p.nextToken() // ','
-			if !p.expectPeek(lexer.TokIdent) {
-				return nil
-			}
-			names = append(names, &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal})
-		}
-		if p.peekTokenIs(lexer.TokWalrus) {
-			p.walrusInDeclError(tok)
-			return nil
-		}
-		if !p.peekTokenIs(lexer.TokAssign) {
-			tok := p.peekToken()
-			p.syntaxError(tok, messages.H0142, p.tokenDescription(tok))
-			return nil
-		}
-		p.nextToken() // '='
-		p.nextToken()
-		values := p.parseCommaExpressions(p.parseExpression(precLowest))
-		p.skipSemicolon()
-		return &ast.MultiVarStatement{
-			Token:   tok,
-			Names:   names,
-			Values:  values,
-			IsConst: isConst,
-		}
+		return p.parseMultiVarStatement(tok, firstIdent, isConst)
 	}
 
 	stmt := &ast.VarStatement{Token: tok, Name: firstIdent, IsConst: isConst}
@@ -241,6 +215,51 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 
 	p.skipSemicolon()
 	return stmt
+}
+
+func (p *Parser) parseMultiVarStatement(tok lexer.Token, firstIdent *ast.Identifier, isConst bool) ast.Statement {
+	names := []*ast.Identifier{firstIdent}
+	for p.peekTokenIs(lexer.TokComma) {
+		p.nextToken() // ','
+		if !p.expectPeek(lexer.TokIdent) {
+			return nil
+		}
+		names = append(names, &ast.Identifier{Token: p.curToken(), Value: p.curToken().Literal})
+	}
+	if p.peekTokenIs(lexer.TokWalrus) {
+		p.walrusInDeclError(tok)
+		return nil
+	}
+	if !p.peekTokenIs(lexer.TokAssign) {
+		tok := p.peekToken()
+		p.syntaxError(tok, messages.H0142, p.tokenDescription(tok))
+		return nil
+	}
+	p.nextToken() // '='
+	p.nextToken()
+	start := p.curToken()
+	values := p.parseCommaExpressions(p.parseExpression(precLowest))
+	valueTok := p.spanToken(start, p.curToken())
+	p.skipSemicolon()
+	return &ast.MultiVarStatement{
+		Token:      tok,
+		Names:      names,
+		Values:     values,
+		ValueToken: valueTok,
+		IsConst:    isConst,
+	}
+}
+
+// spanToken start ile end (dahil) arasındaki kaynak metni ve aralığını bir sözcük birimi olarak verir.
+func (p *Parser) spanToken(start, end lexer.Token) lexer.Token {
+	sr, er := start.Range(), end.Range()
+	return lexer.Token{
+		Literal:   p.l.Slice(start, end),
+		Line:      sr.Line,
+		Column:    sr.Col,
+		EndLine:   er.EndLine,
+		EndColumn: er.EndCol,
+	}
 }
 
 // underscoreReads '_'nin okunduğu her yeri sözdizimi hatası yapar (5.3): '_' bir ad değildir, gerekmeyen
@@ -346,12 +365,15 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		}
 		opTok := p.curToken()
 		p.nextToken()
+		start := p.curToken()
 		values := p.parseCommaExpressions(p.parseExpression(precLowest))
+		valueTok := p.spanToken(start, p.curToken())
 		p.skipSemicolon()
 		return &ast.MultiAssignStatement{
-			Token:   opTok,
-			Targets: targets,
-			Values:  values,
+			Token:      opTok,
+			Targets:    targets,
+			Values:     values,
+			ValueToken: valueTok,
 		}
 	}
 

@@ -496,12 +496,12 @@ func (ee *ElementExpression) TokenLiteral() string { return ee.Token.Literal }
 func (ee *ElementExpression) Line() int            { return ee.Token.Line }
 
 // --- MULTI-ASSIGNMENT, LIST COMPREHENSION, DEFER ---
-
 type MultiVarStatement struct {
-	Token   lexer.Token
-	Names   []*Identifier
-	Values  []Expression
-	IsConst bool
+	Token      lexer.Token
+	Names      []*Identifier
+	Values     []Expression
+	ValueToken lexer.Token
+	IsConst    bool
 }
 
 func (mv *MultiVarStatement) statementNode()       {}
@@ -509,9 +509,10 @@ func (mv *MultiVarStatement) TokenLiteral() string { return mv.Token.Literal }
 func (mv *MultiVarStatement) Line() int            { return mv.Token.Line }
 
 type MultiAssignStatement struct {
-	Token   lexer.Token
-	Targets []Expression
-	Values  []Expression
+	Token      lexer.Token
+	Targets    []Expression
+	Values     []Expression
+	ValueToken lexer.Token
 }
 
 func (ma *MultiAssignStatement) statementNode()       {}
