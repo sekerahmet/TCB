@@ -28,6 +28,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 **16.4** Kendi parçalayıcısını eğitmek: `TR_train_tokenizer(metinler, TR_vocab_size: n, TR_reserved_tokens: [...])` metinlerden bayt düzeyinde bir BPE parçalayıcısı eğitir ve `TR_Tokenizer` verir.
 - `metinler` bir `TR_List[TR_String]`'dir. Metin veren bir akış (5.7) 13.10'a "dolaşılabilir" kısıtı eklenince alınır.
 - `TR_reserved_tokens:` dağarcığın başına konan özel parçalardır (`["<|endoftext|>"]`); sırayla 0'dan kimlik alırlar.
+- `TR_vocab_size:` en az 256 artı ayrılmış parça sayısıdır (bayt düzeyinde BPE'nin tabanı 256 bayttır); daha küçüğü hatadır, ileti en küçük değeri söyler.
 - **Belirlenimci:** aynı metinler ve aynı argümanlar her makinede aynı parçalayıcıyı verir; birleştirmelerin eşitliği sabit bir kuralla bozulur.
 - `p.TR_save(yol)` parçalayıcıyı `tokenizer.json` biçiminde yazar; `TR_load_tokenizer` ve başka araçlar onu okur.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.

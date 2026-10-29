@@ -60,7 +60,8 @@ Kurallar: [`20_kontrol_noktasi.md`](../20_kontrol_noktasi.md). Bu dosya her kura
 ### 20.12
 
 - *Emsal:* PyTorch'un iyileştirici durum adları (`step`, `exp_avg`, `momentum_buffer`) dilden bağımsızdır [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* durum ayrı da kaydedilip taşınabilmeli; ayarlar (öğrenme oranı) programındır, duruma girmez. Yükleme bir iştir, değer döndürmez (13'ün "anlamsız dönüş yoktur" kuralı).
+- *Emsal (oran):* PyTorch'un `state_dict`'i oranı `param_groups`'ta kaydeder: "Each parameter group contains metadata specific to the optimizer, such as learning rate" [kanıtlı: docs.pytorch.org/docs/2.15, Gemini Koşu 4, DENETİM].
+- *Gerekçe:* durum ayrı da kaydedilip taşınabilmeli; oran durumdan ayrıdır ama kontrol noktası onu ayrıca kaydeder (20.5): kayba bağlı düşürülen oran program adımdan yeniden hesaplayamaz, sürdürme ayrılırdı. Yükleme bir iştir, değer döndürmez (13'ün "anlamsız dönüş yoktur" kuralı).
 
 ### 20.13
 

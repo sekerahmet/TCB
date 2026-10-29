@@ -399,7 +399,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.2
 
-- **Mevcut durum:** kilit süreyle değil, döngülerde 256 turda bir ve kullanıcı fonksiyonu çağrısında devrediliyor; tensör işlemleri, geri yayılım, iyileştiricinin adımı, örnekleme ve GPU beklemeleri kilidi tutuyor (`internal/stdlib/ml`'de kilidi bırakan sarmalayıcı yalnız `TR_save_tensors`'ta). 60 matris çarpımı sürerken 5 ms'de bir uyanan görev 301 ms bekledi [ölçüldü: DENETİM 10-1, main `5ec35e05`].
+- **Mevcut durum:** kilit süreyle değil, döngülerde 256 turda bir (bu bir uygulama sayısıdır; durdurma ve iptal her turda bakılır, 1.5) ve kullanıcı fonksiyonu çağrısında devrediliyor; tensör işlemleri, geri yayılım, iyileştiricinin adımı, örnekleme ve GPU beklemeleri kilidi tutuyor (`internal/stdlib/ml`'de kilidi bırakan sarmalayıcı yalnız `TR_save_tensors`'ta). 60 matris çarpımı sürerken 5 ms'de bir uyanan görev 301 ms bekledi [ölçüldü: DENETİM 10-1, main `5ec35e05`].
 - **Mevcut durum (bırakanlar):** `TR_sleep`, `TR_input`, dosya okuma ve yazma, `TR_wait_all`, modül yükleme beklemesi, veri kümesini açma ve okuma, dosya işleri, `TR_save_tensors`, `TR_load_tensors`, parçalayıcıyı yükleme ve büyük girdide kodlama [kanıtlı: DENETİM 10-1].
 - **Yapılacaklar:** süreyle devir (5 ms); uzun yerleşiklerin kilidi bırakması ve deponun okuma ve yazma izni (hepsi birden, geri çağırmadan önce bırakılır); gecikme sözünün Go testi. Önce ve sonra ölç: küçük tensör işlemli döngüde izinlerin bedeli (tahmin ~%5) [hipotez: DENETİM 10-2]. Geri çağıran yerleşikler: `TR_backward` (kullanıcı türeviyle), `TR_fuse`, anahtarlı sıralama, `TR_grad_check`. GPU'da iznin kuyruğun bitişine bağlanması [hipotez: GPU yolu açılmadı].
 
@@ -424,6 +424,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 - **Mevcut durum:** sabit hızlı döngünün süre ölçmesi için 13.1'in `TR_monotonic_ns`'i kod kaydında yok [ölçüldü: DENETİM 10-1].
 - **Yapılacaklar:** zaman aşımı, `TR_done`; TR testi.
+- **Açık:** zaman aşımı ve iptal hatalarının ileti kodları tanımsız (Gemini Koşu 4); 1.6'nın "durdurma istendi" hatasında da aynı boşluk. Adlı ayırma (yeni ad) Sonraya.
 
 ### 10.8
 
@@ -433,6 +434,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 - **Mevcut durum:** iptal 1.5'in noktalarını kullandığı için döngüde 256 tur sürebilir; ağır turlu döngüde bu saniyeler olabilir [hipotez: DENETİM 10-3]. 1.5'in noktası süreyle de sınırlanabilir; 1. bölümün işi.
 - **Yapılacaklar:** iptal (`TR_cancel`) 1.5'in noktalarıyla ve yerleşik ayrımıyla, alt görevlere geçmesi, ertelenen işlerin çalışması, iptalin yakalanmaması, iptal ve zaman aşımı ileti kodları (8.5); TR testi.
+- **Gemini Koşu 4 (2026-10-29):** iptal edilen görevin durmasını bekleme, görevin alt görevlerini bekleyip sonra ertelenenleri çalıştırması, `TR_wait_all`'da `TR_suppressed`, 10.6'nın yazma anı, 9.1'in son deyim `TR_defer` hatası, 9.4'ün durdurmada ertelenen hatası, 5.4'ün değerlendirme sırası uygulanacak.
 
 ## 11. Modüller
 
@@ -1016,6 +1018,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 - **Mevcut durum:** tam sayılı işaretli tensör ve maske ondalık parametreye sessizce yazılıyor [ölçüldü: DENETİM].
 - **Yapılacaklar:** cins farkının hatası (15'in A'sı gelince); `TR_AnyTensor` sözlüğü ve parametrenin cinsine daraltma, daraltan hassasiyet dönüşümünde sığmama hatası, nicemlenmiş yaprağa bütün yazma (15.54) (15'in yan değişikliği, uygulanmadı).
+- **Açık (Sonraya, 2. kilometre taşında öne çekilmeli):** hazır `.safetensors` dosyaları tablo (RoPE) taşımaz; "bütün yapraklar sözlükte" kuralıyla yükleme alt yapıya yapılır. LoRA alanlarıyla aynı soru (15.34'ün açığı).
 
 ### 20.12, 20.13
 
