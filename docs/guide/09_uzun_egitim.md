@@ -1,6 +1,6 @@
 # 9. Uzun eğitim: kontrol noktası ve devam
 
-Saatler süren bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basarsınız, makine yeniden başlar. TR'de bunun için tek bir satır yeter: `TR_type_Checkpoint` eğitimin bütün durumunu (model ağırlıkları, iyileştiricinin momentleri, veri okuyucusunun konumu, günlük, kendi sayaçlarınız) düzenli aralıklarla koşu klasörüne kaydeder; programı **aynı komutla** yeniden çalıştırdığınızda kaldığı adımdan sürer. Sürdürülen eğitim, hiç kesilmemiş bir eğitimle **bit düzeyinde aynı** sonucu verir. Kurallar: [`docs/spec/20_kontrol_noktasi.md`](../spec/20_kontrol_noktasi.md). Uçtan uca örnek: [`examples/tr/40_kontrol_noktasi.tr`](../../examples/tr/40_kontrol_noktasi.tr).
+Saatler süren bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basarsınız, makine yeniden başlar. TR'de bunun için tek bir satır yeter: `TR_Checkpoint` eğitimin bütün durumunu (model ağırlıkları, iyileştiricinin momentleri, veri okuyucusunun konumu, günlük, kendi sayaçlarınız) düzenli aralıklarla koşu klasörüne kaydeder; programı **aynı komutla** yeniden çalıştırdığınızda kaldığı adımdan sürer. Sürdürülen eğitim, hiç kesilmemiş bir eğitimle **bit düzeyinde aynı** sonucu verir. Kurallar: [`docs/spec/20_kontrol_noktasi.md`](../spec/20_kontrol_noktasi.md). Uçtan uca örnek: [`examples/tr/40_kontrol_noktasi.tr`](../../examples/tr/40_kontrol_noktasi.tr).
 
 ```tr
 # TR 4
@@ -25,11 +25,11 @@ TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
 kn.TR_save()
 ```
 
-**Ne kaydedilir.** Sözlükte verdiğiniz her şey: modeller (tensör içeren yapı, liste ya da sözlük; içindeki bütün tensörler — türev izleyen parametreler de, türev izlemeyen durum tensörleri de: kendi yazdığınız iyileştiricinin momentumu, sabit tablolar —; yüklemede var olan tensörlere yerinde yazılır; modelin tensör olmayan alanları — ayarlar, sayılar — kaydedilmez), iyileştiriciler (`TR_fn_AdamW`, `TR_fn_SGD`), okuyucular (`TR_mem_sampler`, `TR_mem_sequential`), günlükler ve düz değerli sözlükler (`{en_iyi_kayıp: 99.0, sayaç: 0}`). Sözlüğün anahtarları sizin adlarınızdır. Tek başına bir sayı verilemez (geri yüklenirken değişkeninize yazılamaz); bir sözlüğe koyun. Öğrenme oranı gibi ayarlar kaydedilmez: onları kodunuz ya da komut satırı verir.
+**Ne kaydedilir.** Sözlükte verdiğiniz her şey: modeller (tensör içeren yapı, liste ya da sözlük; içindeki bütün tensörler — türev izleyen parametreler de, türev izlemeyen durum tensörleri de: kendi yazdığınız iyileştiricinin momentumu, sabit tablolar —; yüklemede var olan tensörlere yerinde yazılır; modelin tensör olmayan alanları — ayarlar, sayılar — kaydedilmez), iyileştiriciler (`TR_AdamW`, `TR_SGD`), okuyucular (`.TR_sampler`, `.TR_sequential`), günlükler ve düz değerli sözlükler (`{en_iyi_kayıp: 99.0, sayaç: 0}`). Sözlüğün anahtarları sizin adlarınızdır. Tek başına bir sayı verilemez (geri yüklenirken değişkeninize yazılamaz); bir sözlüğe koyun. Öğrenme oranı gibi ayarlar kaydedilmez: onları kodunuz ya da komut satırı verir.
 
-**Ne zaman kaydedilir.** `kn.TR_mem_update(adım)` her adımın sonunda çağrılır; son kayıttan beri `her_dakika` (varsayılan 15) dakika geçtiyse orada kaydeder. Eğitimin sonunda `kn.TR_mem_save()` hemen kaydeder. Ctrl+C'ye bastığınızda program o anki adımı bitirir, noktayı kaydeder ve durur (`Kontrol noktası kaydedildi: adım 1532 ...`; kabuk 130 görür); hemen çıkmak için Ctrl+C'ye ikinci kez basın. Süreç öldürülürse (elektrik kesintisi, çalışma makinesinin geri alınması) en son düzenli noktadan sürülür; aradaki adımlar yeniden hesaplanır ve aynı sonucu verir.
+**Ne zaman kaydedilir.** `kn.TR_update(adım)` her adımın sonunda çağrılır; son kayıttan beri `her_dakika` (varsayılan 15) dakika geçtiyse orada kaydeder. Eğitimin sonunda `kn.TR_save()` hemen kaydeder. Ctrl+C'ye bastığınızda program o anki adımı bitirir, noktayı kaydeder ve durur (`Kontrol noktası kaydedildi: adım 1532 ...`; kabuk 130 görür); hemen çıkmak için Ctrl+C'ye ikinci kez basın. Süreç öldürülürse (elektrik kesintisi, çalışma makinesinin geri alınması) en son düzenli noktadan sürülür; aradaki adımlar yeniden hesaplanır ve aynı sonucu verir.
 
-**Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/checkpoints/step_0000001500)` yazar; `kn.TR_mem_resume_step` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--adım` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/checkpoints` klasörünü silin ya da yeni bir koşu klasörü verin.
+**Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/checkpoints/step_0000001500)` yazar; `kn.TR_resume_step` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--adım` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/checkpoints` klasörünü silin ya da yeni bir koşu klasörü verin.
 
 **Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"kind":"resume","step":1500}` kaydı yazar (günlüğün ve kontrol noktasının anahtarları dilden bağımsız İngilizce adlardır, programın hangi dilde yazıldığından bağımsız aynıdır). Bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir; kayıp eğrisi çizen araçlar bu kuralı uygular.
 
@@ -60,16 +60,16 @@ Oturum kapanınca klasörü Drive'dan yerel diske geri kopyalayıp aynı komutu 
 
 **Bozuk nokta.** Yarım kopyalanmış ya da değiştirilmiş bir nokta (dosyaların özeti tutmuyor) sessizce atlanmaz: program hangi dosyanın bozuk olduğunu ve bir önceki geçerli noktayı söyleyerek durur. Bozuk klasörü silerseniz bir önceki noktadan sürer.
 
-**Elle kaydetmek.** Kontrol noktası kullanmadan da parçaları kendiniz kaydedebilirsiniz: `TR_fn_save_tensors("op.trt", op.TR_mem_state)` ile iyileştiricinin durumu, `ö.TR_mem_state` ile okuyucunun konumu (düz bir sözlük, `TR_fn_json_string` ile yazılır) alınır; `op.TR_mem_load_state(TR_fn_load_tensors("op.trt"))` ve `ö.TR_mem_load_state(...)` geri yükler. Hazır ağırlıklarla ince ayar için `TR_fn_load_parameters(model, TR_fn_load_tensors("model.trt"))` ağırlıkları modelin var olan parametrelerine yazar; iyileştirici aynı tensörleri güncellemeyi sürdürür.
+**Elle kaydetmek.** Kontrol noktası kullanmadan da parçaları kendiniz kaydedebilirsiniz: `TR_save_tensors("op.trt", op.TR_state)` ile iyileştiricinin durumu, `ö.TR_state` ile okuyucunun konumu (düz bir sözlük, `TR_json_string` ile yazılır) alınır; `op.TR_load_state(TR_load_tensors("op.trt"))` ve `ö.TR_load_state(...)` geri yükler. Hazır ağırlıklarla ince ayar için `TR_load_parameters(model, TR_load_tensors("model.trt"))` ağırlıkları modelin var olan parametrelerine yazar; iyileştirici aynı tensörleri güncellemeyi sürdürür.
 
-**GPU.** Model GPU'daysa her şey aynı çalışır: ağırlıklar ve iyileştiricinin durumu kaydedilirken konağa indirilir, yüklenirken aynı cihaza konur. Kesintisiz ve sürdürülen eğitim aynı cihaz türünde bit düzeyinde aynıdır; CPU'da kaydedip GPU'da sürdürmek çalışır ama son bitte farklı sonuç verebilir. Rastgeleliği (`TR_fn_randn`, `TR_fn_sample`) her zaman `TR_arg_seed:` ile verin; kontrol noktası kurulduktan sonra tohumsuz rastgelelik kullanılırsa TR bir kez uyarır.
+**GPU.** Model GPU'daysa her şey aynı çalışır: ağırlıklar ve iyileştiricinin durumu kaydedilirken konağa indirilir, yüklenirken aynı cihaza konur. Kesintisiz ve sürdürülen eğitim aynı cihaz türünde bit düzeyinde aynıdır; CPU'da kaydedip GPU'da sürdürmek çalışır ama son bitte farklı sonuç verebilir. Rastgeleliği (`TR_randn`, `TR_sample`) her zaman `TR_seed:` ile verin; kontrol noktası kurulduktan sonra tohumsuz rastgelelik kullanılırsa TR bir kez uyarır.
 
 **NaN ve kayıp sıçraması.** Uzun bir eğitim bir gün bozuk bir gradyanla NaN'e düşebilir ya da kaybı birden sıçrayabilir. TR bunu yakalamanın parçalarını verir, ne yapılacağına siz karar verirsiniz:
 
-- `TR_fn_is_finite(x)` bir sayının ya da tensörün elemanlarının NaN ve sonsuz olmadığını söyler.
-- `TR_fn_clip_grad(..., TR_arg_error_if_nonfinite: TR_kw_true)` normu bozuk gradyanda hata verir.
-- `TR_kw_import "tr/egitim"` ile gelen `TR_type_SpikeGuard` her adımın kaybını ve gradyan normunu son 128 sağlam adımla karşılaştırır ve `TR_const_OK`, `TR_const_NONFINITE` ya da `TR_const_SPIKE` der.
-- `kn.TR_mem_rollback()` son kontrol noktasını yerinde yükleyip adımını verir; `ö.TR_mem_skip(n)` sorunlu toplu işleri atlar.
+- `TR_is_finite(x)` bir sayının ya da tensörün elemanlarının NaN ve sonsuz olmadığını söyler.
+- `TR_clip_grad(..., TR_error_if_nonfinite: TR_true)` normu bozuk gradyanda hata verir.
+- `TR_import "tr/egitim"` ile gelen `TR_SpikeGuard` her adımın kaybını ve gradyan normunu son 128 sağlam adımla karşılaştırır ve `TR_const_OK`, `TR_const_NONFINITE` ya da `TR_const_SPIKE` der.
+- `kn.TR_rollback()` son kontrol noktasını yerinde yükleyip adımını verir; `ö.TR_skip(n)` sorunlu toplu işleri atlar.
 
 ```tr
 # TR 4
@@ -98,4 +98,4 @@ TR_for adım < 1000 {
 }
 ```
 
-Denetimi `op.TR_mem_step()`'dan ve `kn.TR_mem_update`'den önce yapın: bozuk adım modele ve kontrol noktasına girmesin. Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../../examples/tr/44_egitim_kararliligi.tr).
+Denetimi `op.TR_step()`'dan ve `kn.TR_update`'den önce yapın: bozuk adım modele ve kontrol noktasına girmesin. Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../../examples/tr/44_egitim_kararliligi.tr).

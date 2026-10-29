@@ -1,6 +1,6 @@
 # 10. Hazır katmanlarla GPT
 
-Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples/tr/35_transformer.tr`](../../examples/tr/35_transformer.tr) bunu öğretmek için yapar). Dilin kitaplığı hazır katmanlar ve iyileştiricilerle gelir; TR ile yazılmıştır, `tr` ikilisine gömülüdür ve `TR_kw_import "tr/..."` ile alınır ([dil tanımı 11.6](../spec/11_moduller.md)). Kitaplığın kodu okunur: [`lib/katman.tr`](../../lib/katman.tr), [`lib/iyilestirici.tr`](../../lib/iyilestirici.tr); bütün adlar [`lib/README.md`](../../lib/README.md)'de. Uçtan uca örnek: [`examples/tr/41_gpt.tr`](../../examples/tr/41_gpt.tr).
+Bir dil modelini her seferinde ağırlık ağırlık yazmak gerekmez ([`examples/tr/35_transformer.tr`](../../examples/tr/35_transformer.tr) bunu öğretmek için yapar). Dilin kitaplığı hazır katmanlar ve iyileştiricilerle gelir; TR ile yazılmıştır, `tr` ikilisine gömülüdür ve `TR_import "tr/..."` ile alınır ([dil tanımı 11.6](../spec/11_moduller.md)). Kitaplığın kodu okunur: [`lib/katman.tr`](../../lib/katman.tr), [`lib/iyilestirici.tr`](../../lib/iyilestirici.tr); bütün adlar [`lib/README.md`](../../lib/README.md)'de. Uçtan uca örnek: [`examples/tr/41_gpt.tr`](../../examples/tr/41_gpt.tr).
 
 ## Model
 
@@ -14,13 +14,13 @@ TR_var kayıp = model.TR_loss([[1, 2, 3]], [[2, 3, 4]]) # ortalama çapraz entro
 TR_print(TR_parameters(model, TR_named: TR_true).TR_keys()[0..3])
 ```
 
-`TR_type_GPT` sıradan bir `TR_kw_struct`dır: `model.TR_mem_blocks[0].TR_mem_attention.TR_mem_q_proj.TR_mem_weight` bir tensördür, `TR_fn_parameters(model)` bütün ağırlıkları bulur, `TR_fn_save_tensors(yol, TR_fn_parameters(model, TR_arg_named: TR_kw_true))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok bakışlı dikkat (İngilizce *multi-head attention*; `TR_arg_num_kv_heads:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
+`TR_GPT` sıradan bir `TR_struct`dır: `model.TR_blocks[0].TR_attention.TR_q_proj.TR_weight` bir tensördür, `TR_parameters(model)` bütün ağırlıkları bulur, `TR_save_tensors(yol, TR_parameters(model, TR_named: TR_true))` kaydeder. İçinde döner konumlu (RoPE) nedensel çok bakışlı dikkat (İngilizce *multi-head attention*; `TR_num_kv_heads:` ile gruplu sorgu), SwiGLU ileri besleme ve ön-norm RMS normu vardır. Ağırlıklar N(0, 0.02) ile, artık yola yazan çıkış katmanları `0.02 / √(2 · katman)` ile başlar.
 
-Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalayıp `TR_kw_import "katman"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `TR_type_Linear(giriş, çıkış)`, `TR_type_Embedding`, `TR_type_RMSNorm`, `TR_type_CausalAttention`, `TR_type_SwiGLU`, `TR_type_TransformerBlock`; hepsinin ileri hesabı `ileri` metodudur.
+Modeli değiştirmek isterseniz `lib/katman.tr`'yi kendi klasörünüze kopyalayıp `TR_import "katman"` yazın: kopyanız sizindir, kitaplık değişmez. Tek bir katmanı da kullanabilirsiniz: `TR_Linear(giriş, çıkış)`, `TR_Embedding`, `TR_RMSNorm`, `TR_CausalAttention`, `TR_SwiGLU`, `TR_TransformerBlock`; hepsinin ileri hesabı `ileri` metodudur.
 
 ## Yerel dikkat, PLE ve hedef model seçenekleri
 
-`TR_type_GPT` ve `TR_type_TransformerBlock` daha büyük tariflere seçeneklerle uyar; hepsinin varsayılanı yukarıdaki sade modeldir. Katman başına yerel pencere (`TR_arg_windows: TR_fn_layer_windows("YYGYGYYG", [32, 64])`: G katmanı tam nedensel, Y katmanları son 32/64 konuma bakar), q/k normu (`TR_arg_qk_norm: TR_kw_true`), Muon'un K ve V'yi (`birleşik_kv`) ile SwiGLU'nun kapı ve yukarı matrislerini (`birleşik_kapı`) birlikte dikleştirmesi için birleşik matrisler, `epsilon`, sapmalar ve katman başına kelime gömmesi (`ple_boyutu`, Gemma 3n'deki PLE) vardır:
+`TR_GPT` ve `TR_TransformerBlock` daha büyük tariflere seçeneklerle uyar; hepsinin varsayılanı yukarıdaki sade modeldir. Katman başına yerel pencere (`TR_windows: TR_layer_windows("YYGYGYYG", [32, 64])`: G katmanı tam nedensel, Y katmanları son 32/64 konuma bakar), q/k normu (`TR_qk_norm: TR_true`), Muon'un K ve V'yi (`birleşik_kv`) ile SwiGLU'nun kapı ve yukarı matrislerini (`birleşik_kapı`) birlikte dikleştirmesi için birleşik matrisler, `epsilon`, sapmalar ve katman başına kelime gömmesi (`ple_boyutu`, Gemma 3n'deki PLE) vardır:
 
 ```tr
 # TR 4
@@ -32,9 +32,9 @@ TR_var model = TR_GPT(4096, TR_context: 64, TR_embed_dim: 64, TR_num_layers: 4, 
 TR_print(model.TR_generate([1, 2, 3], 10, TR_temperature: 0, TR_eos: 0)) # eos örneklenirse üretim durur
 ```
 
-`TR_mem_generate` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `TR_arg_cache_kind: "sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `TR_kw_none` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `TR_kw_var ö = model.TR_mem_build_cache()` ile `model.TR_mem_forward(kimlikler, TR_arg_cache: ö)` çağırır; `ö.TR_mem_strip(n)` önbelleği ilk `n` parçaya indirir (sonrakileri geri alır).
+`.TR_generate` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `TR_cache_kind: "sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `TR_none` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `TR_var ö = model.TR_build_cache()` ile `model.TR_forward(kimlikler, TR_cache: ö)` çağırır; `ö.TR_truncate(n)` önbelleği ilk `n` parçaya indirir (sonrakileri geri alır).
 
-Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `TR_type_MuonAndAdamW(model, TR_arg_muon_scale: "rms", TR_arg_adamw_weight_decay: 0.1, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], TR_arg_sparse: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`TR_type_RowRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
+Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `TR_MuonAndAdamW(model, TR_muon_scale: "rms", TR_adamw_weight_decay: 0.1, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], TR_sparse: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`TR_RowRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
 
 ## İyileştirici: Muon + AdamW
 
@@ -54,9 +54,9 @@ TR_for adım TR_in 0..3 {
 }
 ```
 
-`TR_type_MuonAndAdamW` modelin parametrelerini ikiye ayırır (`TR_fn_parameter_groups`): gizli katmanların 2 boyutlu ağırlıkları **Muon**'a, gömme tablosu, çıkış katmanı, norm ağırlıkları ve sapmalar **AdamW**'ye gider. Muon her ağırlığın momentumunu Newton–Schulz yinelemesiyle dikleştirir (`TR_fn_orthogonalize`): güncelleme bütün yönlerde aynı büyüklükte olur; küçük ve orta modellerde AdamW'den belirgin hızlı öğrenir. `TR_arg_normuon: TR_kw_true` NorMuon'u seçer (dikleştirmeden sonra nöron başına normalleştirme; öğrenme oranı AdamW ölçeğindedir, ör. `muon_oranı: 0.003`).
+`TR_MuonAndAdamW` modelin parametrelerini ikiye ayırır (`TR_parameter_groups`): gizli katmanların 2 boyutlu ağırlıkları **Muon**'a, gömme tablosu, çıkış katmanı, norm ağırlıkları ve sapmalar **AdamW**'ye gider. Muon her ağırlığın momentumunu Newton–Schulz yinelemesiyle dikleştirir (`TR_orthogonalize`): güncelleme bütün yönlerde aynı büyüklükte olur; küçük ve orta modellerde AdamW'den belirgin hızlı öğrenir. `TR_normuon: TR_true` NorMuon'u seçer (dikleştirmeden sonra nöron başına normalleştirme; öğrenme oranı AdamW ölçeğindedir, ör. `muon_oranı: 0.003`).
 
-`TR_fn_lr_schedule` ısınma–sabit–azalma (WSD) planıdır: ilk `ısınma` adımda 0'dan 1'e çıkar, sonra sabit kalır, son `azalma` kesrinde 0'a iner. Çarpan iki grubun oranını birlikte ölçekler.
+`TR_lr_schedule` ısınma–sabit–azalma (WSD) planıdır: ilk `ısınma` adımda 0'dan 1'e çıkar, sonra sabit kalır, son `azalma` kesrinde 0'a iner. Çarpan iki grubun oranını birlikte ölçekler.
 
 ## Kendi iyileştiricinizi yazmak
 
@@ -75,7 +75,7 @@ TR_func işaretli_sgd(ağırlıklar, oran) {
 }
 ```
 
-Muon'u değiştirmek için `lib/iyilestirici.tr`'yi kopyalayın: `TR_type_Muon.TR_mem_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_arg_requires_grad: TR_kw_true` ile kurarsanız `TR_type_Checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
+Muon'u değiştirmek için `lib/iyilestirici.tr`'yi kopyalayın: `TR_Muon.TR_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_requires_grad: TR_true` ile kurarsanız `TR_Checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
 
 ## Eğitim döngüsü, kontrol noktası ve GPU
 
@@ -105,7 +105,7 @@ TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
 TR_print(p.TR_decode(model.TR_generate(p.TR_encode("Bugün"), 12, TR_temperature: 0.8, TR_seed: 1)))
 ```
 
-Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.TR_mem_adamw` ve `op.TR_mem_muon.TR_mem_state`. GPU'da eğitmek için model kurulmadan önce `TR_fn_default_device("gpu")` çağrılır; ağırlıklar, Muon'un durumu ve toplu işler GPU'da olur ([15.38](../spec/15_tensorler.md)). Bulut not defterinde büyük bir eğitim için [`tools/gpu/gpt_training.tr`](../../tools/gpu/gpt_training.tr) hazır betiğine bakın (SimpleStories, d512, 8 katman; [`tools/gpu/COLAB.md`](../../tools/gpu/COLAB.md) 9. hücre).
+Kontrol noktasına modelin yanında iki iyileştiricinin durumu da verilir: `op.TR_adamw` ve `op.TR_muon.TR_state`. GPU'da eğitmek için model kurulmadan önce `TR_default_device("gpu")` çağrılır; ağırlıklar, Muon'un durumu ve toplu işler GPU'da olur ([15.38](../spec/15_tensorler.md)). Bulut not defterinde büyük bir eğitim için [`tools/gpu/gpt_training.tr`](../../tools/gpu/gpt_training.tr) hazır betiğine bakın (SimpleStories, d512, 8 katman; [`tools/gpu/COLAB.md`](../../tools/gpu/COLAB.md) 9. hücre).
 
 ## Hazır model, üretim ve kayıtlı oynatma
 
@@ -121,6 +121,6 @@ TR_var kimlikler = model.TR_generate(p.TR_encode("Bugün hava"), 20, TR_temperat
 TR_print(p.TR_decode(kimlikler))
 ```
 
-- **`ağırlık_türü`:** matris ağırlıklarının (gömme ve doğrusal katmanlar) türüdür (`"float32"`, `"bf16"`, `"fp16"`); normlar ve hesap float32 kalır. Hugging Face modelleri çoğunlukla bf16 saklanır, `TR_arg_weight_dtype: "bf16"` ağırlıkları yarı bellekle tutar. Ayrıntı: [`lib/README.md`](../../lib/README.md).
-- **`TR_mem_generate` ve önbellek:** `model.üret(kimlikler, en_fazla_yeni_parça, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:, cuda_çizgesi:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `önbellek_çeşidi` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `TR_kw_none` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `TR_arg_temperature: 0` her adımda en olası parçayı seçer (açgözlü); aynı `tohum` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
-- **`çizge` ve `TR_fn_replay`:** GPU'da sabit önbellekle (`TR_arg_cuda_graph: TR_kw_true`, varsayılan) her üretim adımı bir kez kaydedilir (CUDA Graph) ve sonraki adımlarda tek seferde oynatılır; yorumlayıcı adımı yeniden çalıştırmaz ve yüzlerce kernelin tek tek başlatılması ortadan kalkar. Aynı mekanizmayı kendi adımınız için `TR_fn_replay(f)` ile, durumu yerinde güncellemek için `yerine_yaz(hedef, kaynak, eksen:, başlangıç:)` ile kullanırsınız; değişen her değer (konum, parça kimliği) tensör olarak verilir. CPU'da `TR_fn_replay(f)` `f`'i doğrudan çağırır, sonuç aynıdır. Kurallar: [dil tanımı 15.45 ve 15.8](../spec/15_tensorler.md). Örnekler: [`46_hazir_model_ve_uretim.tr`](../../examples/tr/46_hazir_model_ve_uretim.tr), [`47_kendi_uretim_dongusu.tr`](../../examples/tr/47_kendi_uretim_dongusu.tr), [`45_tekrar_oynat.tr`](../../examples/tr/45_tekrar_oynat.tr).
+- **`ağırlık_türü`:** matris ağırlıklarının (gömme ve doğrusal katmanlar) türüdür (`"float32"`, `"bf16"`, `"fp16"`); normlar ve hesap float32 kalır. Hugging Face modelleri çoğunlukla bf16 saklanır, `TR_weight_dtype: "bf16"` ağırlıkları yarı bellekle tutar. Ayrıntı: [`lib/README.md`](../../lib/README.md).
+- **`.TR_generate` ve önbellek:** `model.üret(kimlikler, en_fazla_yeni_parça, sıcaklık:, en_iyi_k:, tohum:, eos:, önbellek_çeşidi:, cuda_çizgesi:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `önbellek_çeşidi` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `TR_none` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `TR_temperature: 0` her adımda en olası parçayı seçer (açgözlü); aynı `tohum` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
+- **`çizge` ve `TR_replay`:** GPU'da sabit önbellekle (`TR_cuda_graph: TR_true`, varsayılan) her üretim adımı bir kez kaydedilir (CUDA Graph) ve sonraki adımlarda tek seferde oynatılır; yorumlayıcı adımı yeniden çalıştırmaz ve yüzlerce kernelin tek tek başlatılması ortadan kalkar. Aynı mekanizmayı kendi adımınız için `TR_replay(f)` ile, durumu yerinde güncellemek için `yerine_yaz(hedef, kaynak, eksen:, başlangıç:)` ile kullanırsınız; değişen her değer (konum, parça kimliği) tensör olarak verilir. CPU'da `TR_replay(f)` `f`'i doğrudan çağırır, sonuç aynıdır. Kurallar: [dil tanımı 15.45 ve 15.8](../spec/15_tensorler.md). Örnekler: [`46_hazir_model_ve_uretim.tr`](../../examples/tr/46_hazir_model_ve_uretim.tr), [`47_kendi_uretim_dongusu.tr`](../../examples/tr/47_kendi_uretim_dongusu.tr), [`45_tekrar_oynat.tr`](../../examples/tr/45_tekrar_oynat.tr).
