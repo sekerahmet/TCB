@@ -4,7 +4,7 @@ TR'nin **terminalde** (`tr hata_ayıkla dosya.tr`, kabukta `/h`) çalışan bir 
 
 1. **Kod İçi Kesme Noktası (`TR_breakpoint`):**
    - Koşulsuz: `TR_breakpoint`
-   - Koşullu: `kesme_noktası eğer bakiye < 0`
+   - Koşullu: `TR_breakpoint TR_if bakiye < 0`
 2. **Adımlama ve Kontrol Komutları** (tuş adları VS Code'dakiyle aynı anlamdadır; terminalde tuş adını yazıp `Enter`'a basın):
    - `f11` (`adım` veya boş `Enter`): Tek adım ilerle (fonksiyonun içine girer)
    - `f10` (`geç`): Üstten geç (fonksiyonu tek adımda çalıştırır)
