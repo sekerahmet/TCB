@@ -1,6 +1,6 @@
 # 7. Test Yazma ve Çalıştırma (`tr test`)
 
-Testler kodun yanına `TR_ctx_test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test examples/tr/17_testler_test.tr`.
+Testler kodun yanına `TR_test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test examples/tr/17_testler_test.tr`.
 
 ```tr
 # TR 4
@@ -18,7 +18,7 @@ TR_test "eşitlik" {
 
 - `TR_assert(koşul, [mesaj])`: koşul yanlışsa test kalır.
 - `TR_assert_equal(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
-- `TR_ctx_test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `TR_var test = 5` gibi kullanımlar çalışmaya devam eder.
+- `TR_test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `TR_var test = 5` gibi kullanımlar çalışmaya devam eder.
 - Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
 
 ```text

@@ -40,7 +40,7 @@ Testler:
 | `internal/compute/tensor/elementwise_wide_test.go` (`gradSpec` kaydı) | float64 başvuruya karşı sonlu fark gradyanı ve bf16 gradyan toleransı (3e-2); kayıt yoksa `behavior_grad_coverage_test.go` düşer; sınır değerlerde türev `TestUnaryGradEdges` |
 | `internal/compute/gpu/backend_wide_test.go` | GPU'nun CPU ile aynı sonucu vermesi, bf16/fp16 |
 | `internal/stdlib/ml/builtin_math_test.go` | sayıda ve tensörde dönüş tipi, listede açık hata |
-| `tests/matematik_test.tr` | dil kuralı: `TR_ctx_test "15.11 ..."` (madde numarasıyla başlar) |
+| `tests/matematik_test.tr` | dil kuralı: `TR_test "15.11 ..."` (madde numarasıyla başlar) |
 | `tr.json`'daki örnek | kendiliğinden tip denetiminden geçer ve çalışır (`internal/lang/codes`, `internal/stdlib`) |
 
 Belge: `docs/spec/15_tensorler.md`'de ilgili madde (15.11 genişletilmiş eleman bazlı fonksiyonlar).
@@ -95,7 +95,7 @@ Testler: tipin dosyasının birim testi; metot hem doğru hem yanlış argümanl
 3. **Üret.** `go run ./tools/gen/msgconsts`.
 4. **Kullan.** Hata: `messages.New(messages.H7006, fn, path)`. Çıktı: `messages.Text(...)`. Konumlu hata: `messages.At(satır, sütun, ...)`. Yalnızca TR'nin kendi hatasıyla oluşabilen durum: `messages.Internal("English detail")`.
 5. **Test.** `messages.Has(err, messages.H7006)`; metne değil koda bakılır.
-6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_throw TR_Message(H6903, pencere)` ya da `TR_assert(koşul, TR_Message(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_if TR_not koşul { TR_throw TR_Message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_assert_equal(H6903, TR_error_code { ... })`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_Message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
+6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_throw TR_Message("H6903", pencere)` ya da `TR_assert(koşul, TR_Message("H6903", pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_if TR_not koşul { TR_throw TR_Message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_assert_equal(H6903, TR_error_code { ... })`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_Message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
 
 Denetimler: aynı metin iki kodda olamaz (bağlamı farklı etiketler gerekçeli izinle), her çağrının değer sayısı tanımla aynı, kullanılmayan kod kalmaz, geçirilmiş pakette `fmt.Errorf`/`errors.New` yok.
 

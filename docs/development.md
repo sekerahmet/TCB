@@ -19,7 +19,7 @@ Go test dosyalarının düzeni (birim testi `x_test.go`, davranış testi `behav
 
 | Yer | Neyi denetler | Nasıl koşulur |
 | :-- | :-- | :-- |
-| `tests/*_test.tr` | Dil tanımının kuralları; her testin adı kural numarasıyla başlar (`TR_ctx_test "5.2 sabit: ..."`, [`dil/`](spec/README.md)) | `bin/tr test tests` (tam denetim koşar) |
+| `tests/*_test.tr` | Dil tanımının kuralları; her testin adı kural numarasıyla başlar (`TR_test "5.2 sabit: ..."`, [`dil/`](spec/README.md)) | `bin/tr test tests` (tam denetim koşar) |
 | `lib/*_test.tr` | TR ile yazılmış standart kitaplık (`tr/katman`, `tr/iyilestirici`) | `bin/tr test lib` |
 | `examples/tr/` | Örneklerin hepsi çalışır: çıkış kodu 0, zaman aşımı yok, uyarısız; `*_test.tr` örnekleri ayrıca `tr test` ile. Her örnek iki gösterim dilinde (`TR_DIL=tr`, `TR_DIL=en`) aynı sayıları verir (`go test ./cmd/tr/e2e -run TestExamples`) | yalnızca tam denetim; tek örnek: `bin/tr examples/tr/01_merhaba.tr` |
 | Paketlerin yanında (`*_test.go`) | Go birim testleri: sözcük çözümleyici, ayrıştırıcı, denetleyici, yorumlayıcı, tensör ve türev, motorlar | `go test -short ./internal/...` ya da tek paket `go test ./internal/lang/interp -run Ad` |

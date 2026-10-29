@@ -72,7 +72,7 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 
 | | Kod listesi (`internal/lang/codes`) | İleti kataloğu (`internal/lang/messages`) |
 | :-- | :-- | :-- |
-| Kod | Kimlik `TR_<sınıf>_<İngilizce ad>` (`TR_kw_if`, `TR_fn_print`, `TR_mem_shape`); sınıf kodun ne olduğunu gösterir | `H` ve dört basamak (`H7003`); binler basamağı alanı gösterir |
+| Kod | Kimlik `TR_<sınıf>_<İngilizce ad>` (`TR_kw_if`, `TR_fn_print`, `TR_mem_shape`); sınıf kodun ne olduğunu gösterir; program metninde sınıfsız yazılır, yeri sınıfı belirler (`TR_if`, `TR_print(x)`, `x.TR_shape`, 17.2) | `H` ve dört basamak (`H7003`); binler basamağı alanı gösterir |
 | Dilden bağımsız | `definitions.json`: tür, imza, dönüş tipi, örnek | `definitions.json`: her kodun parametre adları |
 | Dile bağlı | her yazım dilinin bir dosyası: `tr.json`, `en.json` | her yazım dilinin bir dosyası: `tr.json`, `en.json` (her kodu taşır; eksik çeviri test hatasıdır) |
 | Go'dan kullanım | `codes.Name(codes.FnPrint)`, `codes.Find`, `codes.Active` | `messages.New(messages.H7003, ...)`, `messages.Text`, `messages.Has`, `messages.Internal` |
@@ -212,7 +212,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `cmd/tr/e2e` | Uçtan uca testler (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisi |
 | `devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`TR_cmd_dap`, Debug Adapter Protocol). Yüklenirken `interp.NewDebugger`'ı kurar; gizli değerleri düzenleyiciye göndermez |
 | `devtools/formatter` | `TR_cmd_format`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |
-| `devtools/testrunner` | `tr test`: `TR_ctx_test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, Türkçe raporlar |
+| `devtools/testrunner` | `tr test`: `TR_test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, Türkçe raporlar |
 | `devtools/profiler` | Canlı profil: `TR_cmd_watch` ve `TR_cmd_profile`'in çekirdeği, arka plan işinin `profile.json`'u (aşağıda) |
 | `devtools/codeindex` | TR kodunun dizini: tanım, kullananlar, sınayanlar, etki (`tr dizin ...` ve ileride dil sunucusu); `internal/lang` dışında bağımlılığı yok |
 | `editors/vscode` | VS Code eklentisi; renklendirme listeleri kod listesinden üretilir, hata ayıklama ve izleme komutları yukarıdaki sunucu ve profil dosyalarına bağlanır |

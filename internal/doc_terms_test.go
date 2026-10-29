@@ -143,7 +143,7 @@ func TestSharedNamesListed(t *testing.T) {
 			continue
 		}
 		if !ok {
-			t.Errorf("%q birden çok koda verilmiş (%v) ama docs/terimler.md eş adlar tablosunda TR_none", name, ks)
+			t.Errorf("%q birden çok koda verilmiş (%v) ama docs/terimler.md eş adlar tablosunda yok", name, ks)
 			continue
 		}
 		if got, want := row.codes, codeList(ks); got != want {

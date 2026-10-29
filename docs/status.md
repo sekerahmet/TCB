@@ -56,9 +56,13 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 ### 2.1
 
 - **Mevcut durum:**
-  - Belgelerde ters tırnak içinde sınıflı kimlik yazımı kalıyor (TR_kw_…, TR_fn_…, TR_mem_… biçimi; 48 belgede yaklaşık 2 770 yer, spec ve arşiv hariç) [ölçüldü: katman 1].
+  - Rehber ve kök belgelerdeki program metni kimlik yazımına çevrildi (2026-10-29). Kalan sınıflı yazım 17.2'nin "içeride" grubudur: tanım dosyalarının içeriği, eş adlar tablosunun kod sütunu, `code_identities.md`, disk biçimi örnekleri [ölçüldü: belgelerde program sınıflarının sınıflı yazımını arayan git grep].
+  - Üretilen kod listesi (`docs/codes.md`, 761 satır) başlıklarda sınıflı anahtarı yazıyor; örnekleri Türkçe görünümde (kod listesinin örnek alanından).
+  - Satır içi kod (ters tırnak) yalnız dil tanımında ve status'ta denetleniyor; öbür belgelerde yanlış kod gösteren ad (ör. aynı kısa adın başka sınıfı) hiçbir testte düşmüyor.
   - Bölüm 11 eski başlığı, dosyanın dilini ve iç içe aktarmayı anlatıyor (11.3'ün eşzamanlı aktarma cümlesi); bölüm yeniden yazılınca düzelir. 17 yeniden yazıldı (2026-10-29).
-- **Yapılacaklar:** belgelerdeki sınıflı yazım `tools/migrate`'in kimlik çevirisiyle çevrilir.
+- **Yapılacaklar:**
+  - kod listesinin üreticisi başlıkta program yazımını, yanında sınıflı anahtarı yazar; örnekler görünümden geri kodlama kalkınca (17.7) kimlikle yazılır;
+  - ters tırnak içindeki adların denetimi `docs/*.md`'ye genişler (üretilen ve donmuş belgeler ile eş adlar tablosunun kod sütunu hariç): program sınıflarının sınıflı yazımı hata, `.TR_x` yalnız üye, `TR_x:` yalnız adlı argüman.
 
 ### 2.3a
 

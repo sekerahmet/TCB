@@ -34,7 +34,7 @@ TR_print(model.TR_generate([1, 2, 3], 10, TR_temperature: 0, TR_eos: 0)) # eos �
 
 `.TR_generate` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `TR_cache_kind: "sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `TR_none` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `TR_var ö = model.TR_build_cache()` ile `model.TR_forward(kimlikler, TR_cache: ö)` çağırır; `ö.TR_truncate(n)` önbelleği ilk `n` parçaya indirir (sonrakileri geri alır).
 
-Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `TR_MuonAndAdamW(model, TR_muon_scale: "rms", TR_adamw_weight_decay: 0.1, ayrı: ["gömme", "ple_bağlamı.ctx_katmanı"], TR_sparse: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`TR_RowRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
+Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `TR_MuonAndAdamW(model, TR_muon_scale: "rms", TR_adamw_weight_decay: 0.1, TR_separated: ["gömme", "ple_bağlamı.ctx_katmanı"], TR_sparse: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`TR_RowRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
 
 ## İyileştirici: Muon + AdamW
 
