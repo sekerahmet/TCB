@@ -1,0 +1,10 @@
+# TR 4
+# TEST 3.6a demetin öğesi atanamaz: x.N hedefli her atama biçimi ayrıştırıcıda sözdizimi hatasıdır
+TR_var t = (1, 2)
+TR_var b = 0
+TR_var u = ((1, 2), 3)
+t.0 = 1 # ERROR H0298
+t.0 += 1 # ERROR H0298
+t.0, b = 1, 2 # ERROR H0298
+u.0.1 = 5 # ERROR H0298
+TR_if TR_false { t.0 = 5 } # ERROR H0298

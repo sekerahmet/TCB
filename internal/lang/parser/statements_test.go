@@ -219,3 +219,34 @@ func TestArrowParameterNeedsParentheses(t *testing.T) {
 		{"TR_print([1].TR_map(y => y + 1))", "y =>", messages.H0267, "TR_print([1].TR_map((y) => y + 1))", true},
 	})
 }
+
+// Kural (3.6a): demetin öğesine atama (t.0 = 1, t.0 += 1, t.0, b = ..., t.0.1 = ... ve ölü dalda)
+// ayrıştırıcıda H0298 sözdizimi hatasıdır.
+func TestTupleElementCannotBeAssigned(t *testing.T) {
+	for _, d := range []struct {
+		code, at string
+	}{
+		{"TR_var t = (1, 2)\nt.0 = 1", "0 =",
+		},
+		{"TR_var t = (1, 2)\nt.0 += 1", "0 +=",
+		},
+		{"TR_var t = (1, 2)\nTR_var b = 0\nt.0, b = 1, 2", "0, b",
+		},
+		{"TR_var t = ((1, 2), 3)\nt.0.1 = 5", "1 =",
+		},
+		{"TR_var t = (1, 2)\nTR_if TR_false { t.0 = 5 }", "0 =",
+		},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		errs := parseErrs(d.code)
+		if !hasErrAt(errs, line, col, messages.H0298) {
+			t.Fatalf("%q: %d:%d'de H0298 bekleniyordu, alınan: %v", d.code, line, col, errs)
+		}
+		if gotTR := messages.ErrorIn(errs[0], "tr"); !strings.Contains(gotTR, "demetin öğesine atanamaz: demet değişmez (3.6a); yeni bir demet kurun, (a, t.1)") {
+			t.Errorf("tr metni beklenmeyen: %q", gotTR)
+		}
+		if gotEN := messages.ErrorIn(errs[0], "en"); !strings.Contains(gotEN, "a tuple's element cannot be assigned: a tuple does not change (3.6a); build a new tuple, (a, t.1)") {
+			t.Errorf("en metni beklenmeyen: %q", gotEN)
+		}
+	}
+}

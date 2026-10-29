@@ -127,6 +127,10 @@
   "commit": "claude/magical-feynman-mgjmfn",
   "reason": "deleted: interp: several results are a tuple value (3.6a, 6.3), held, passed and put in a list"
  },
+ "H2776": {
+  "commit": "gemini-kucuk-isler-3",
+  "reason": "ayrıştırıcıya taşındı: H0298"
+ },
  "H3105": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"

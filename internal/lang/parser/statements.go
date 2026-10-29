@@ -364,6 +364,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 			return nil
 		}
 		opTok := p.curToken()
+		p.checkAssignTargets(targets...)
 		p.nextToken()
 		start := p.curToken()
 		values := p.parseCommaExpressions(p.parseExpression(precLowest))
@@ -384,6 +385,7 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		lexer.TokBitXorAssign, lexer.TokShlAssign, lexer.TokShrAssign:
 		p.nextToken()
 		opTok := p.curToken()
+		p.checkAssignTargets(expr)
 		p.nextToken()
 		val := p.parseExpression(precLowest)
 		p.skipSemicolon()
@@ -397,6 +399,16 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 
 	p.skipSemicolon()
 	return &ast.ExpressionStatement{Token: tok, Expression: expr}
+}
+
+// checkAssignTargets demetin öğesine atamayı (t.0 = ..., t.0 += ..., t.0, b = ..., t.0.1 = ...)
+// sözdizimi hatası yapar (3.6a).
+func (p *Parser) checkAssignTargets(targets ...ast.Expression) {
+	for _, t := range targets {
+		if ee, ok := t.(*ast.ElementExpression); ok {
+			p.syntaxError(ee.IndexToken, messages.H0298)
+		}
+	}
 }
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	defer p.allowBlocks()()

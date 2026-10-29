@@ -134,8 +134,3 @@ func notTupleError(obj Value, index int) error {
 	}
 	return messages.New(messages.H2775, index, obj.Type(), kind)
 }
-
-// elementAssignError t.0'a atamanın hatasıdır: demet değişmez (3.6a).
-func elementAssignError(line int) error {
-	return messages.At(line, 0, messages.New(messages.H2776))
-}

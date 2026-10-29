@@ -158,10 +158,11 @@ TR_test "3.6a öğe okuma t.0, t.0.1; sınır dışı indeks çalışma hatasıd
 }
 
 TR_test "3.6a demetin öğesi atanamaz" {
+    # Olumsuz fikstür: tests/negative/demet_ogeye_atama.tr
     TR_var t = (1, 2)
-    TR_assert_equal("H2776", TR_error_code { t.0 = 5 })
-    TR_assert_equal("H2776", TR_error_code { t.1 += 1 })
-    TR_assert_equal((1, 2), t)
+    TR_var a = 5
+    t = (a, t.1)
+    TR_assert_equal((5, 2), t)
 }
 
 TR_test "3.6a == öğe öğedir; öğeleri sıralanabilen demet sözlük sırasıyla karşılaştırılır" {
