@@ -31,12 +31,13 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 | `val` | değer adları (`TR_inf`, `TR_nan`, 3.2) | değer |
 | `type` | tipler, kitaplığın yapıları dahil | tip ve değer |
 | `fn`, `const` | yerleşik fonksiyonlar ve sabitler, kitaplığın fonksiyonları dahil | değer |
-| `mem` | metot ve özellikler (`x.ad`) | noktadan sonra |
-| `arg` | adlı argümanlar | çağrıda iki noktadan önce |
+| `mem` | metot ve özellikler (`x.ad`) | noktadan sonra; kitaplık yapısının alan ve metot tanımında |
+| `arg` | adlı argümanlar | çağrıda iki noktadan önce; kitaplık fonksiyonunun parametre tanımında ve gövdesinde o parametreye başvuruda (2.3a) |
 | `cmd`, `sub`, `opt` | `tr` komutları, alt komutları, seçenekleri | komut satırı |
 | `repl`, `dbg` | kabuğun ve hata ayıklayıcının komutları | kabuk, hata ayıklayıcı |
 | `env` | ortam değişkenleri | ortam |
 
+- Kitaplık gövdesinde aynı kısa ad hem parametre hem yerleşik olabilir (`TR_min`); kapsam ayırır: önce çevreleyen fonksiyonun parametreleri (2.3a). Görünüm ve kod dizini aynı kuralla seçer.
 - Bir gösterim adı yalnız kendi ad alanında benzersizdir: genel (`kw`, `ctx`, `fn`, `const`, `val`), tip, üye, adlı argüman ve komut satırının alanları.
 - *Test:* Go: `TestNamespacesUnique`, `TestNoTwoIdentitiesShareASpellingInAPlace`.
 
@@ -50,7 +51,8 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
   - ilişkili kodlar;
   - başka dillerden alışılmış adlar (`familiar`, 17.6);
   - varsa ortak adı (`common_name`, 17.5).
-- **Dil dosyaları:** `tr.json`, `en.json`, ve gelecek her dil için bir dosya (ISO 639-1: `es.json`, `pt-BR.json`); kod başına adı (`name`), grubu (`family`), bir-iki cümlelik açıklaması (`description`) ve tek satırlık çalışan örneği (`example`); ayrıca dilin gizli sözcükleri (19.4). Her dil dosyası her kodu adlandırır; ortak adı yazan dil dosyası yüklenmez.
+- **Dil dosyaları:** `tr.json`, `en.json`, ve gelecek her dil için bir dosya (ISO 639-1: `es.json`, `pt-BR.json`); kod başına grubu (`family`), bir-iki cümlelik açıklaması (`description`) ve ortak adı (17.5) olmayan kodun adı (`name`); ayrıca dilin gizli sözcükleri (19.4). Ortak adlı kodun adını yazan dil dosyası yüklenmez.
+- **Örnek dilden bağımsızdır:** kodun tek satırlık çalışan örneği kimliklerle (`TR_print(1 < 2)`) tanım dosyasında bir kez yazılır (`example`); her dilde görünümüyle gösterilir (17.7). Dil dosyası örnek taşımaz.
 - Dosyaların alan adları İngilizce tanımlayıcıdır; insan dili yalnız değerlerde görünür. Hepsi ikiliye gömülüdür; kodların başvuru belgesi [`docs/codes.md`](../codes.md) bunlardan üretilir.
 - **İletiler** kod değil, ileti koduyla tanımlanır (`H` ve dört basamak, `internal/lang/messages`); metni dil başına katalogdadır.
 - **Kayıtlı her kod canlıdır:** açıklaması ve çalışan örneği vardır, bir yerde kullanılır. Henüz uygulanmamış bir kod dil tanımında anılabilir ama tanım dosyasına uygulandığı gün girer. Belgelerde anılan her kimlik de kayıttadır ya da bilerek yazılmış adların listesindedir.
@@ -79,7 +81,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Anlam koda bağlıdır:** hangi yerleşiğin çağrıldığı, kullanıcının adları ve sonuç gösterim diline bağlı değildir.
 - **Değerin metni dilden bağımsızdır** (3.14): "true", "none", "List", `<builtin print>`. Tipin metni kimliğin adıdır: kitaplığın `TR_Linear`'ının metni "Linear"dir, sınıflı kimlik değil.
 - **Dosya biçimleri dilden bağımsızdır:** TR'nin, motorların ve kitaplığın diske yazdığı dosyaların (kontrol noktası, günlük, profil, paket, veri önbelleği) dosya ve alan adları İngilizce tanımlayıcıdır. Değeri dilin bir öğesi olan alan sınıflı kimliği taşır (`"optimizer": "TR_fn_AdamW"`); ağırlık adları kimlik yoludur.
-- **Kişinin dili yalnız görüntüdedir** (`TR_DIL`): iletiler, yardım, kabuk, hata ayıklayıcı ve görünüm.
+- **Kişinin dili yalnız görüntüdedir** (`TR_LANG`, 17.9): iletiler, yardım, kabuk, hata ayıklayıcı ve görünüm.
 - *Test:* Go: `TestValueTextIsLanguageIndependent`, `TestEveryTextConversionIsLanguageIndependent`, `TestCheckpointFormatIsLanguageIndependent`; kitaplık tipinin metni uygulanınca TR testi.
 
 ## Komut satırı

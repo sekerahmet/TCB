@@ -526,6 +526,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** ayırıcısız `TR_split()` tek ASCII boşluğa bölüyor, boş öğe veriyor, sekmede ve satır sonunda bölmüyor [ölçüldü: DENETİM]; harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
 - **Yapılacaklar:** ayırıcısız `TR_split()`'in Unicode boşluk dizilerine bölmesi.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** boş alt metin (motor bugün `"ab".TR_replace("", "x")`'te "xaxbx" veriyor [ölçüldü: DENETİM]; kurala göre hata) ve negatif indeks; `.TR_index_of` metinde henüz yok.
 
 ### 13.3
 
@@ -546,6 +547,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** JSON'a NaN yazmak hata (H7008) [ölçüldü]; `TR_json_parse` `TR_Dict` veriyor; `TR_json_string({1: 2})` anahtarı sessizce metne çeviriyor (`{"1":2}`); CSV hücresi sayıya benziyorsa sayı (`[["007", 7]]`) [ölçüldü].
 - **Yapılacaklar:** `TR_json_parse` `TR_JSON` verir (3.7a); metin olmayan anahtarın hatası; CSV hücresi hep metin (göç: `.tr`'de 10 kullanım).
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** `TR_json_string`'de yol ve tensörün yazımı; `TR_json_parse[T]`'de `null`, iç içe yapı ve tensör alanının hatası.
 
 ### 13.8a
 
@@ -556,12 +558,14 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** katalog 188 fonksiyon ve metottan 138 Go yerleşiğinin imzasını tutuyor; 50'si TR ile yazılmış kitaplıkta (29 fonksiyon, 21 metot), imzası kaynakta. Tipler öğesiz (`TR_List`, `TR_Dict`), fonksiyon tipi tek bir `TR_Function`, yerleşiğin tipi `TR_BuiltinFunction` (11 yerde), genel tip `TR_Any` 24 yerde [ölçüldü: DENETİM].
 - **Yapılacaklar:** imzalar öğe ve fonksiyon tipleriyle; `TR_BuiltinFunction` ve `TR_Any` kalkar; Go testi (4a).
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** yerleşiğin fonksiyon değeri olarak eşleşmesi (isteğe bağlı parametreler boş, adlı argümanlar varsayılanda; varsayılansız adlı argümanda hata). Denetleyicinin işi (4a2).
 
 ### 13.10
 
 - **Mevcut durum:** 35 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi), `TR_tolist`'in özelliği de; dönüşü argümanın değerine bağlı üç yer: `TR_tolist` (tensörün boyutu), `TR_decode` (toplu giriş), `TR_parameters` (`TR_named:`); 9 yerleşik değişken sayıda argüman alıyor; yalnız 7 metodun alıcıya göre ayrı imzası var [ölçüldü: DENETİM].
 - **Yapılacaklar:** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 19 ve 50 kullanım, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması, tek bir 4a işi: `TR_write_file`, `TR_assert` (`internal/lang/interp/test_support.go`), `.TR_load_state`, `TR_sleep`, `TR_wait_all` (argümanlı biçimi liste verir, 10.5), 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi; `tr.json`'un açıklamalarındaki "doğru döndürür" aynı commit'te değişir [ölçüldü: DENETİM 10-2, 10-3]; `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
 - **Mevcut durum (15'in yan değişiklikleri, uygulanmadı):** tensör verisi kısıtının cinse bağlanması, eşitlenebilirin tensörü dışlaması, varsayılansız adlı argüman, `TR_save_tensors`'un kabul kümesi, `TR_load_tensors` ve `.TR_narrow[E]()`'nin imzaları, `TR_quantized`'ın imzası, `TR_custom_grad`'ın dönüşü ve `TR_grad_check`'in değer döndürmemesi (15.32'nin status'unda) imzalarda yok.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** karşılaştıran yerleşiklerin kesin karşılaştırması (2⁵³ üstü); değeri kullanılmayan yalnız-değer çağrısı denetim hatası, tanım dosyasında işaret (4a2).
 
 ### 13.11
 
@@ -933,10 +937,15 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 - **Mevcut durum:** program metninde kısa yazım, içeride sınıflı kimlik uygulanmış (katman 1). 60 kısa ad birden çok sınıfta, hepsi yerle ayrılıyor; aynı yerde çakışan yok, `TestNoTwoIdentitiesShareASpellingInAPlace` sınıyor [ölçüldü: DENETİM].
 
+### 17.3
+
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** kitaplık parametresinin ve alanının yeri; görünüm ve kod dizini kitaplık gövdesinde kapsama bakar.
+
 ### 17.4
 
 - **Mevcut durum:** 565 kodun 245'i kitaplık kodu; kitaplık kodlarının hiçbirinin açıklaması ve örneği yok, `TestEveryCodeHasDescription` onları atlıyor ("madde 15 adım 3c") [ölçüldü].
 - **Yapılacaklar:** kitaplık kodlarının açıklaması ve örneği; atlama kalkar. Dil tanımına giren ama uygulanmamış adlar (13'ün ve 15'in yeni adları) uygulandıkları commit'te tanım ve dil dosyalarına girer.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** örnekler kimlik yazımıyla tanım dosyasına taşınır (bugün `tr.json`'da 320 örnek Türkçe görünümde, test onları Türkçe okuma yoluyla çalıştırıyor [ölçüldü: DENETİM]); dil dosyası örnek taşımaz. Faz 0.5'in parçası.
 
 ### 17.5
 
@@ -956,6 +965,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "List", "<builtin print>") [ölçüldü]. Kitaplık tipinin metni sınıflı kimlik veriyor: `TR_print(TR_Type(TR_Linear(2, 3, TR_seed: 1)))` → "TR_type_Linear" [ölçüldü: main `1ef66921`].
 - **Yapılacaklar:** tipin metni kimliğin adı ("Linear"); TR testi.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** kişinin dilinin ortam değişkeni 17.9 adıyla (Faz 0.4).
 
 ### 17.9
 

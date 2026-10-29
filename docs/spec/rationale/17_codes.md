@@ -22,6 +22,7 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 
 - *Emsal:* Swift ve Kotlin standart kitaplığının belgeleri kaynaktan üretilir; tanım ile belge aynı yerden gelir.
 - *Gerekçe:* tanım dilden bağımsızdır, ad dile bağlıdır: yeni bir gösterim dili tek bir dosyadır, tanıma dokunmaz. "Kayıtlı her kod canlıdır" kuralı ölü kodu önler: kayıtta durup hiçbir yerde çalışmayan bir ad, ajana var olmayan bir işi yazdırır. Bu yüzden dil tanımına yeni giren ad (15'in `TR_all`'ı gibi) tanım dosyasına uygulandığı gün girer; o güne kadar dil tanımının kimlik kapısı onu bilerek yazılmış ad olarak tanır.
+- *Gerekçe (örnek):* görünüm yalnız okunur (17.7); örnek görünümde yazılırsa onu çalıştırmak görünümü okumayı gerektirir. Kimlikle bir kez yazılan örnek her dilde görünümüyle gösterilir; yeni bir dil örnek çevirmez (Gemini Koşu 6).
 
 ### 17.5
 
