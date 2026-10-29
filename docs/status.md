@@ -630,6 +630,29 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Taslak (202
 
 - **Yapılacaklar:** `TR_write_lines` ve `TR_LineWriter` (atomik, `.gz`, satır sonu içeren satır hatası, program sonunda kapanma, açık yazıcının yolunu okuma ve ikinci yazıcı hatası); TR testi.
 
+## 19. Süreç ve kayıt
+
+Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Numaralar eski metinle aynı; eski başlıksız "Komut satırında yazım" 19.10, "Görünüm" 19.11 oldu.
+
+### 19.2
+
+- **Mevcut durum:** seçenekler bir sözlükle veriliyor (`TR_command_line({"oran": 0.5, ...})`), sonuç bir sözlük [ölçüldü: main `217ae940`].
+- **Yapılacaklar:** yapıyla yazım (13.10'un göçü: 19 kullanım); `tests/surec_ve_kayit_test.tr`, rehber ve örnekler; TR testi.
+
+### 19.5, 19.7
+
+- **Mevcut durum:** `TR_append` ve `TR_update` `TR_true` döndürüyor [ölçüldü]; kalkması 13.10'un tek 4a işinde.
+
+### 19.10
+
+- **Mevcut durum:** yardım seçeneğinin Türkçe ve İngilizce adı ikisi de çalışıyor; mantık değerinde Türkçe yazım da okunuyor; ondalıkta Türkçe "sonsuz" okunmuyor; yardım varsayılanları kişinin dilinde gösteriyor [ölçüldü: main `217ae940`].
+- **Yapılacaklar:** tek yazım: yalnız "--help" ve "-h", "true" ve "false", "inf", "-inf" ve "nan"; yardımın varsayılanları komut satırının yazımıyla; "help" ve "h" ayrılmış ad (bugün her dildeki yardım adı ayrılmış; `tests/kodlu_saklama_test.tr`'nin 19.2 testi); Go testleri.
+
+### 19.11
+
+- **Mevcut durum:** iş klasörünün ortam değişkeni "TR_IS_KLASORU"; çubuğun dili "TR_DIL"'den okunuyor [ölçüldü: kod].
+- **Yapılacaklar:** "TR_JOB_DIR" ve "TR_LANG" (17.9'un göçüyle birlikte).
+
 ## 20. Kontrol noktası
 
 Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. DENETİM bekleniyor.
