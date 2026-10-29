@@ -50,7 +50,7 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
   - ilişkili kodlar;
   - başka dillerden alışılmış adlar (`familiar`, 17.6);
   - varsa ortak adı (`common_name`, 17.5).
-- **Dil dosyaları:** `tr.json`, `en.json`, ve gelecek her dil için bir dosya (ISO 639-1: `es.json`, `pt-BR.json`); kod başına adı (`name`), grubu (`family`), bir-iki cümlelik açıklaması (`description`) ve tek satırlık çalışan örneği (`example`). Her dil dosyası her kodu adlandırır; ortak adı yazan dil dosyası yüklenmez.
+- **Dil dosyaları:** `tr.json`, `en.json`, ve gelecek her dil için bir dosya (ISO 639-1: `es.json`, `pt-BR.json`); kod başına adı (`name`), grubu (`family`), bir-iki cümlelik açıklaması (`description`) ve tek satırlık çalışan örneği (`example`); ayrıca dilin gizli sözcükleri (19.4). Her dil dosyası her kodu adlandırır; ortak adı yazan dil dosyası yüklenmez.
 - Dosyaların alan adları İngilizce tanımlayıcıdır; insan dili yalnız değerlerde görünür. Hepsi ikiliye gömülüdür; kodların başvuru belgesi [`docs/codes.md`](../codes.md) bunlardan üretilir.
 - **İletiler** kod değil, ileti koduyla tanımlanır (`H` ve dört basamak, `internal/lang/messages`); metni dil başına katalogdadır.
 - **Kayıtlı her kod canlıdır:** açıklaması ve çalışan örneği vardır, bir yerde kullanılır. Henüz uygulanmamış bir kod dil tanımında anılabilir ama tanım dosyasına uygulandığı gün girer. Belgelerde anılan her kimlik de kayıttadır ya da bilerek yazılmış adların listesindedir.

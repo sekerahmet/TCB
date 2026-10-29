@@ -15,7 +15,7 @@ Bir eğitim, ölçme ya da hizmet programının dış dünyayla dört bağı var
 - Argüman verilmemişse (`TR_cmd_test` ve kabuk dahil) varsayılanlar döner.
 - Programda bir kez çağrılır; ikinci çağrı hatadır. Sonuç bir değişkende tutulur.
 - Seçeneklerin tipi alanların tipidir; `ayar.adım` tipiyle okunur, yanlış alan adı denetim hatasıdır.
-- Her seçeneğin bir varsayılanı vardır (`Ayar()` varsayılansız alanda denetim hatasıdır, 7.2). Verilmesi gereken bir seçenek isteğe bağlı tiple yazılır ve program yokluğunu kendisi bildirir: `veri: TR_String? = TR_none`, sonra `TR_if ayar.veri == TR_none { TR_throw "--veri verilmeli" }`. Böylece `TR_cmd_test` ve kabuk argümansız çalışır.
+- Her seçeneğin bir varsayılanı vardır (`Ayar()` varsayılansız alanda denetim hatasıdır, 7.2). Verilmesi gereken bir seçenek isteğe bağlı tiple yazılır (`veri: TR_String? = TR_none`) ve program yokluğunu kendisi bildirir. Alan daraltılmadığı için (3.5) yerel bir kopya sınanır: `TR_var veri = ayar.veri`, `TR_if veri == TR_none { TR_print("--veri verilmeli"); TR_exit(2) }`, sonra `veri` `TR_String`'tir. `TR_exit(2)` 19.10'un kullanım hatasıyla aynı kodla bitirir. Böylece `TR_cmd_test` ve kabuk argümansız çalışır.
 - `TR_descriptions:` bir sözlük değişmeziyse bilinmeyen alan adı denetim hatasıdır; değişkenle gelende kurulum hatası (19.3).
 
 ```tr
