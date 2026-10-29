@@ -131,6 +131,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 - **Mevcut durum:** ayrı tipler sessizce eşit değil sayılıyor; fonksiyonlar yalnız üst düzey `==` ve `!=`'de hata veriyor (H2613), fonksiyon içeren liste kimlikle karşılaştırılıyor (`[f] == [f]` doğru) [ölçüldü].
 - **Yapılacaklar:** fonksiyon içeren kabın karşılaştırması çalışma hatası (3. katman, 3A); ayrı tipler ve fonksiyon içeren değer denetim hatası (4. katman).
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** eşitlenemeyen tipin isteğe bağlısı (tensör, tensör içeren değer) `TR_none` değişmeziyle karşılaştırılabilir (15.5).
 
 ### 4.7
 
@@ -499,6 +500,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 - **Mevcut durum:** toleranslı karşılaştırma yok; ondalık kesin eşitlikle kalıyor (0.1 + 0.2 ile 0.3) [ölçüldü].
 - **Yapılacaklar:** `TR_assert_close`, hassasiyete göre varsayılan toleranslar; TR testi.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** sonsuz öğe yalnız aynı işaretli sonsuza yakındır (15.18a ile aynı).
 
 ### 12.3, 12.4
 
@@ -518,6 +520,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Mevcut durum:** `TR_max` kazanan değerin tipini veriyor: `TR_max(2, 1.5)` `TR_Int` 2, `TR_max(1, 1.5)` `TR_Float` 1.5; metin argüman hata; `TR_max([])` `TR_none`; `TR_max(1)` 1 veriyor; `TR_mean(1, 2)` 1.5 (depoda 2 yer); `TR_round(5, 2)` `TR_Float` 5.0, `TR_round(3.7, 0)` `TR_Int` 4, `TR_round(TR_nan)` hata; `TR_print` yazdığı metni, `TR_sleep(0)` ve `TR_wait_all()` `TR_true` döndürüyor; boş listede `TR_mean`, `TR_std`, `TR_median` hata [ölçüldü: DENETİM].
 - **Mevcut durum:** 13.1'in −0.0 kuralı, telafili toplama (Neumaier) ve tek öğede `TR_std`'nin hatası uygulanmadı [ölçüldü: DENETİM C1]; `TR_max([-0.0, 0.0])` −0.0 veriyor [ölçüldü: main `8b115692`] (15'in yan bulgusu). Tensörde `TR_round`'un `TR_Float` dönüşü 15.16a'nın status'unda (15'in yan değişikliği, uygulanmadı).
 - **Yapılacaklar:** `TR_std` bugün n'ye bölüyor; ortalama ve sapma yolları (`interp/stats.go:38`) FMA'ya birleşebiliyor, `math.Exp` amd64'te işlemciye göre yol seçiyor [kanıtlı: DENETİM]; ikili veri: `TR_write_file` `TR_Bytes`'ın metnini yazıyor ("Bytes([0, 255, 128])", 20 karakter), `TR_read_bytes` yok, `TR_read_file` geçersiz UTF-8'i sessizce okuyor [ölçüldü]; düz ondalık toplam sıraya bağlı (`TR_sum([1e16, 1.0, -1e16])` 0.0, başka sırada 1.0) [ölçüldü]; `TR_time_ms` `time.Now().UnixMilli()`, `TR_monotonic_ns` yok [kanıtlı]; `TR_print` boşlukla birleştiriyor [ölçüldü]; karışık sayıların `TR_Float`'ı, metnin sıralanabilir sayılması, boş listede `TR_min`/`TR_max`'ın hatası, tek argümanın hatası, `TR_mean`/`TR_std`/`TR_median`'ın yalnız liste alması, `TR_round`'un üç imzası, değer döndürmeyen üç yerleşik.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_min` ve `TR_max`'ın anahtar fonksiyonlu biçimi sıralama sırasını kullanır; `TR_sum` tensör listesinde boşta hata (15.18).
 
 ### 13.2
 
@@ -587,6 +590,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** `TR_Tensor([1], TR_dtype: "int64")` H6810 veriyor; cins veriden çıkmıyor, tam sayı listesi ondalık tensör kuruyor [ölçüldü].
 - **Yapılacaklar:** cinsin veriden çıkması ve tip parametresi; sığma denetimi. Göç [ölçüldü: DENETİM A2]: bütün öğeleri tam sayı değişmezi olan ve `TR_dtype:`'sız `TR_Tensor([...])` 91 yerde (tests/ 77, examples/ 11, lib/ 3); çalışmada 20 dosyada 158 kurulum. 4'ü `TR_requires_grad: TR_true`'lu (tests/tensor_test.tr:817-838) ve denetim hatası olur. Hepsi denetimde görünür; ileti `[[0.0], ...]`'i ya da `TR_Tensor[TR_Float](...)`'ı önerir.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
 
 ### 15.3
 
@@ -603,11 +607,13 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** yeni görevler float32 ile başlıyor; `TR_logsumexp` yok, tensörde `TR_std` H2423 veriyor [ölçüldü].
 - **Yapılacaklar:** yeni görevin açıldığı yerin hesap türünü ve türevsiz kipini alması; `TR_logsumexp`, `TR_std` ve `TR_cumsum`'ın blok kuralı.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_cumsum` 16 bitlik girdiyi blokta float32'ye açar.
 
 ### 15.5
 
 - **Mevcut durum:** `a == b` tek bir mantık değeri veriyor; karşılaştırma float32 0/1 maske veriyor. Metin dört basamaklı ve bütün öğeler yazılıyor [ölçüldü].
 - **Yapılacaklar:** öğe öğe karşılaştırma ve `TR_Bool` maske, eşitlenemeyen değerlerin denetim hatası, metin; TR testi. Göç [ölçüldü: DENETİM]: değişen 0 boyutlu tensörün sayıyla karşılaştırması (tests/operatorler_test.tr'de 6 çalışma); bütün tensör karşılaştırmasının 85 yeri ve `TR_assert_equal`'ın 141 kullanımı değişmez. Dolaşmada öğenin hep tensör olması yalnız 15.5'in kendi testini değiştirir: tests/tensor_test.tr:575, :577 [ölçüldü: DENETİM A2].
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** isteğe bağlı tensör içeren her tipin `TR_none`'la karşılaştırması; gösterimde cinsin varsayılanı dışındaki hassasiyet.
 
 ### 15.6
 
@@ -655,15 +661,21 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum:** türev izleyen hedefe yalnız `TR_no_grad` içinde yazılıyor (türevsiz kipin üç kuralı değil); başlangıç tam sayı ya da tam sayı değerli 0 boyutlu ondalık tensör.
 - **Yapılacaklar:** 15.6d'nin üç kuralı; `TR_start`'ın `TR_Int` ya da 0 boyutlu `TR_Tensor[TR_Int]` olması; cins denetimi; `TR_replay`'de sınır dışı başlangıcın cihaz içi bayrakla hatası (15.45).
 
+### 15.13
+
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** sayı sınırda NaN'da NaN türev; tensör sınırda `TR_maximum` ve `TR_minimum` gibi (eşitlikte yarı yarıya, NaN öğe yayılır).
+
 ### 15.15
 
 - **Mevcut durum:** koşul "sıfırdan farklı" ondalık: `TR_where(TR_Tensor([2.0, 0.0, -1.0]), 1.0, 0.0)` → `[1.0, 0.0, 1.0]`, NaN da doğru [ölçüldü]; sayı imzası var.
 - **Yapılacaklar:** mantık koşulu, sayı imzasının kalkması; TR testi. Göç [ölçüldü: DENETİM B1]: çalışmada hiç 0/1 dışı koşul yok; durağan 4 satır ondalık koşul (tests/matematik_test.tr:168, :179, :182, :183) ve 3 satır sayı imzası (tests/matematik_test.tr:169-171).
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** iki sayılı biçimin cinsi ve hassasiyeti.
 
 ### 15.16a
 
 - **Mevcut durum:** `TR_maximum`, `TR_minimum`, tensörde `TR_round`, `TR_is_nan` ve tensörde `TR_is_finite` (`TR_Bool` veren) yok.
 - **Yapılacaklar:** dördü; TR testi.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_maximum` ve `TR_minimum`'un NaN konumundaki türevi iki işlenene de NaN.
 
 ### 15.17
 
@@ -674,16 +686,19 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin toplamı ve ortalaması ondalık (`2.0`, `0.6666667`); `TR_argmax`'in sonucunun toplamı ondalık `1.0` [ölçüldü]. `TR_std` tensörde H2423 veriyor, `TR_logsumexp` yok [ölçüldü]. `TR_max(TR_Tensor([-0.0, 0.0]))` −0.0 veriyor [ölçüldü]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
 - **Yapılacaklar:** eksen yalnız adla; göç 3 yer [ölçüldü: DENETİM C1]: `tests/tensor_test.tr:241`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, `TR_logsumexp`, liste eksen, −0.0 < 0.0; TR testleri.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş eksen ile boş tensörün ayrımı, boş tensör listesinde hata, `TR_std`'nin sıfır sapmadaki türevi 0.
 
 ### 15.18a
 
 - **Mevcut durum:** `TR_all`, `TR_any`, `TR_equal` ve `TR_all_close` yok; `TR_all` bilinmeyen kimlik [ölçüldü].
 - **Yapılacaklar:** dördü, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; hassasiyete göre toleranslar; TR testi.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_all_close`'da sonsuzun kuralı.
 
 ### 15.19
 
 - **Mevcut durum:** `TR_argmax` eksensizde son eksende çalışıyor: `TR_argmax(TR_Tensor([[1.0, 9.0], [4.0, 2.0]]))` → `[1, 0]` [ölçüldü]. `TR_argmin` yok. −0.0 ile 0.0 eşit sayılıyor.
 - **Yapılacaklar:** eksensiz biçim bütün öğelerde; göç 10 test yeri [ölçüldü: DENETİM C1]: `tests/matematik_test.tr:94`, `:182`, `:196`; `tests/tensor_test.tr:511`, `:516`, `:937`; Go dizeleri `builtin_reduce_test.go:12-13`, `:15`, `builtin_math_test.go:32`. İkisi `TR_cumsum`'u 0 boyutlu girdiye götürüp hataya döner; `tests/tensor_test.tr:937` `TR_sample` ile karşılaştırıyor, `TR_dim: -1` gerekir. Kullanıcı kodunda yok. `TR_argmin`, eksenli `TR_keepdim:`, argmax'e −0 için eşitlik dalı; TR testi.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş indirgemede hata.
 
 ### 15.20
 
@@ -788,6 +803,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** `TR_is_finite` float32 0/1 veriyor [ölçüldü]; 15.36'nın TR testi float listeleri bekliyor (`tests/matematik_test.tr:261-262`).
 - **Yapılacaklar:** `TR_Tensor[TR_Bool]` dönüşü (15.3); test ve 15.36'nın örneği (`.TR_item()` ile) buna göre.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** kalıp kaybı da sınar; belgelerdeki ve örneklerdeki eğitim döngüleri buna göre.
 
 ### 15.37
 
@@ -839,6 +855,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da 0 veriyor, `TR_where` NaN koşulu doğru sayıyor [ölçüldü]; yeni kural `TR_false` ve mantık koşulu (15.5, 15.15). `TR_logsumexp`, `TR_maximum` ve `TR_minimum` yok; `TR_max`/`TR_min` ±0'ı eşit sayıp ilk öğeyi alıyor.
 - **Yapılacaklar:** sayısal doğruluk işi (yol haritası Evre 4, madde 8); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
+- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN; iki cihazda aynı olduğunu sınayan test.
 
 ### 15.51
 

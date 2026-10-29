@@ -41,7 +41,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - **Tensörden:** `TR_Tensor(t)` kendi verisine sahip yeni bir yaprak kurar, cinsini ve hassasiyetini korur. Burada `TR_dtype:` verilmez (hassasiyetin tek yazımı `.TR_to_dtype`'tır); ileti `t.TR_to_dtype(...)`'yi önerir.
 - **Hazır kurucular:**
   - `TR_zeros(şekil)`, `TR_ones(şekil)` ve `TR_randn(şekil, TR_seed: n)` şekli liste olarak alır (`[2, 3]`); `TR_zeros(2, 3)` hatadır, ileti `TR_zeros([2, 3])`'ü önerir.
-  - `TR_zeros[TR_Int]([3])` gibi öğe cinsi yazılabilir; `TR_randn` yalnız `TR_Float`'tır.
+  - `TR_zeros[TR_Int]([3])` gibi öğe cinsi yazılabilir; `TR_randn` yalnız `TR_Float`'tır. `TR_zeros[TR_Bool]` `TR_false`, `TR_ones[TR_Bool]` `TR_true`, `TR_eye[TR_Bool]` köşegende `TR_true` kurar.
   - Ayrı bir `TR_arange` yoktur: PyTorch'un `arange`'ini yazan ajana ileti `TR_Tensor(0..n)`'yi önerir.
   - `TR_eye(n)` n×n birim matrisi kurar (`TR_Float`, `TR_eye[TR_Int](n)` de yazılabilir).
 - **Dosyadan:** dosyadan okunan tensör `TR_AnyTensor`'dür (15.1, 15.46): cinsi dosyadan gelir, tipte yazılı değildir; hesap için `.TR_narrow[E]()` ile daraltılır. Hassasiyet dosyadakidir ("bf16" "bf16" kalır). Dosyadaki tür TR'de yoksa çalışma hatasıdır; ileti anahtarı ve dosyadaki türü söyler.
@@ -71,22 +71,22 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - **Koşul:** tensör koşul olamaz (3.10). İleti koşula göre önerir: `a == b` ise önce `TR_equal(a, b)`'yi; başka öğe öğe koşulda `TR_all(...)`'ı ya da `TR_any(...)`'ı (15.18a); 0 boyutlu mantık tensöründe `.TR_item()`'ı.
 - *Test:* TR testi; cins dönüşümü, taşma ve öğe tipli liste uygulanınca TR testi.
 
-**15.4** Karışık hassasiyet: `TR_mixed_precision(h) { ... }` sondaki blokla (6.7) yazılır. Blokta `@` ve `TR_attention` girdileri `h` hassasiyetine çevrilir ve float32 biriktirmeyle `h`'de sonuç verir; sonucun gradyanı da `h`'dedir. `TR_softmax`, `TR_log_softmax`, `TR_logsumexp`, `TR_sum`, `TR_mean` ve `TR_std` 16 bitlik girdiyi float32'ye açar; `TR_cumsum` girdi boyunda bir çıktı verdiği için girdinin türünde kalır (`TR_layer_norm` gibi), biriktirmesi float32'dedir. `TR_layer_norm` ve `TR_rms_norm` ortalamayı ve varyansı float32'de hesaplar, sonucu girdinin türünde verir. Ağırlıklar ve sapmalar float32 kalır. Blokta `@`'nin iki gradyan çarpımı 16 bitlik girdiyle yapılır; float32 ağırlığın gradyanı float32 yazılır. Normlar 16 bitlik girdiyi açmadan okur. Normun çıktısı `TR_dtype:` ile doğrudan blok türünde yazılabilir: `TR_rms_norm(x, w, TR_dtype: TR_compute_dtype())` (`TR_layer_norm` da); hesap yine float32'dedir, değer float32 çıktının o türe bir kez yuvarlanmışıdır; daraltılmış çıktının gradyanı float32 tutulur, ileri ve geri yön çarpımın kendi dönüşümüyle bit bit aynıdır. Çapraz entropi, normlar, evrişim ve dikkat blokta kendi maddelerindeki gibidir (15.23a–15.25). Türev izleyen bir ara sonucun aynı türe dönüşümü, ara sonuç değişmediği sürece bir kez yapılır ve paylaşılır. Karışık hassasiyet cinsin içindedir; tipi değiştirmez. Bloğun içinde `TR_compute_dtype()` bloğun hesap türünü (`"bf16"`, `"fp16"`), dışında `"float32"` verir. Bloğun değeri son ifadesidir. `"float32"` bloğu karışık hassasiyeti kapatır; iç içe bloklarda en içteki geçerlidir ve blok bitince (hatayla da) önceki tür geri gelir. Hesap türü göreve bağlıdır; yeni bir `TR_async` görevi açıldığı yerin hesap türünü ve türevsiz kipini alır (15.27).
+**15.4** Karışık hassasiyet: `TR_mixed_precision(h) { ... }` sondaki blokla (6.7) yazılır. Blokta `@` ve `TR_attention` girdileri `h` hassasiyetine çevrilir ve float32 biriktirmeyle `h`'de sonuç verir; sonucun gradyanı da `h`'dedir. `TR_softmax`, `TR_log_softmax`, `TR_logsumexp`, `TR_sum`, `TR_mean`, `TR_std` ve `TR_cumsum` 16 bitlik girdiyi float32'ye açar. `TR_layer_norm` ve `TR_rms_norm` ortalamayı ve varyansı float32'de hesaplar, sonucu girdinin türünde verir. Ağırlıklar ve sapmalar float32 kalır. Blokta `@`'nin iki gradyan çarpımı 16 bitlik girdiyle yapılır; float32 ağırlığın gradyanı float32 yazılır. Normlar 16 bitlik girdiyi açmadan okur. Normun çıktısı `TR_dtype:` ile doğrudan blok türünde yazılabilir: `TR_rms_norm(x, w, TR_dtype: TR_compute_dtype())` (`TR_layer_norm` da); hesap yine float32'dedir, değer float32 çıktının o türe bir kez yuvarlanmışıdır; daraltılmış çıktının gradyanı float32 tutulur, ileri ve geri yön çarpımın kendi dönüşümüyle bit bit aynıdır. Çapraz entropi, normlar, evrişim ve dikkat blokta kendi maddelerindeki gibidir (15.23a–15.25). Türev izleyen bir ara sonucun aynı türe dönüşümü, ara sonuç değişmediği sürece bir kez yapılır ve paylaşılır. Karışık hassasiyet cinsin içindedir; tipi değiştirmez. Bloğun içinde `TR_compute_dtype()` bloğun hesap türünü (`"bf16"`, `"fp16"`), dışında `"float32"` verir. Bloğun değeri son ifadesidir. `"float32"` bloğu karışık hassasiyeti kapatır; iç içe bloklarda en içteki geçerlidir ve blok bitince (hatayla da) önceki tür geri gelir. Hesap türü göreve bağlıdır; yeni bir `TR_async` görevi açıldığı yerin hesap türünü ve türevsiz kipini alır (15.27).
 - *Test:* TR testi.
 
 **15.5** Dolaşmak, görmek ve karşılaştırmak:
 - **Dolaşmak:** `TR_for x TR_in t` ve liste üreteci tensörü ilk ekseni boyunca dolaşır. Her boyutta öğe `t[i]` ile aynı, (N−1) boyutlu ve aynı cinsten bir görünümdür; 1 boyutlu tensörde 0 boyutlu tensördür. Boyut sayısı tipte olmadığından öğenin tipi böylece her zaman bellidir: `TR_Tensor[E]`. Görünüm veriyi paylaşır ve türev izler; `x`'e atama yalnız döngü değişkenini değiştirir (5.12), görünüme yerinde yazmak tensörü değiştirir. Sayılarla dolaşmak `TR_for x TR_in t.TR_tolist()` ile yazılır. 0 boyutlu tensörde dolaşmak hatadır.
 - **Metin:** tensörün metni (3.14) onu kuran yazımdır, bayt dizisi (3.14) ve yapı (7.6) gibi: "Tensor([[1.5, 2.0], [3.0, 4.0]])".
-  - Cins `TR_Float` değilse tip parametresi yazılır: "Tensor[Int]([1, 2])". Yazdırma ve eklentinin gösterimi float32 dışındaki hassasiyeti de yazar.
+  - Cins `TR_Float` değilse tip parametresi yazılır: "Tensor[Int]([1, 2])". Yazdırma ve eklentinin gösterimi cinsinin varsayılanı dışındaki hassasiyeti de yazar.
   - Hassasiyet varsayılan değilse "dtype: "bf16"" argümanı, türev izliyorsa "requires_grad: true" eklenir; cihaz CPU değilse sonda ".to_device("gpu:0")" gelir (cihazın uzun adı, 15.37).
   - Ondalık öğe 15.3'teki en kısa ondalıkla yazılır.
   - 1000'den çok öğeli tensörde uzunluğu 6'yı aşan her eksenin ilk ve son üçü yazılır, arada "..."; kısa eksen bütün yazılır (`[2, 4096]`'nın iki satırı da); başta şekil "shape: [2, 4096]" diye verilir.
 - **Karşılaştırma:**
   - `==`, `!=`, `<`, `>`, `<=`, `>=` tensörde öğe öğedir (yayınla, 15.6b) ve `TR_Tensor[TR_Bool]` verir, türev izlemez. 0 boyutlu tensörün sayıyla karşılaştırması da 0 boyutlu `TR_Tensor[TR_Bool]`'dur; sayı isteyen yerde `t.TR_item() == 3.0` yazılır.
   - İki tensörün eşitliği (şekil dahil) `TR_equal(a, b)`'dir (15.18a). `TR_all(a == b)` yayınlı öğe eşitliğidir: `[1, 2]` ile `[2, 2]` şekilli iki tensörü uyarısız yayınlar ve doğru verebilir; bütün eşitlik için kullanılmaz. `TR_assert_equal(a, b)` iki tensörde `TR_equal`'ın anlamıyla sınar (13).
-  - **İstisna:** isteğe bağlı tensörün (`TR_Tensor?`) `TR_none`'la karşılaştırması 3.5'teki gibidir, `TR_Bool` verir: `TR_if g != TR_none { ... }`.
+  - **İstisna:** her isteğe bağlı değerin (`T?`) `TR_none` değişmeziyle `==` ve `!=`'si geçerlidir ve `TR_Bool` verir (3.5), `T` eşitlenebilir olmasa da: `TR_Tensor?`, `TR_AnyTensor?` (`d.TR_get(ad)`), tensör içeren yapı ve demet. `TR_if g != TR_none { ... }`.
   - Karşılaştırma zinciri (4.4) tensörde denetim hatasıdır, çünkü `TR_and` yalnız `TR_Bool` alır (4.6). Maskeler `&`, `|`, `^` ve `~` ile birleşir (15.6): `(0.0 <= t) & (t < 1.0)`; ileti bu yazımı önerir.
-  - Tensör ve tensör içeren her değer eşitlenebilir değildir (13.10): liste, sözlük, demet (3.6a), yapı (7.6) ve durumlu tip (7.7). Bunların `==`'si, `==` isteyen değer deseni (5.6) ve `.TR_contains`/`.TR_unique`/`.TR_index_of` (13.3) denetim hatasıdır; ileti `TR_equal`'ı önerir. Durum açan desen (7.7, `Cevap.Tamam(t) =>`) geçerlidir: alanı bağlar, karşılaştırmaz. İki `TR_Tensor?` arasında yalnız `TR_none` değişmeziyle karşılaştırma geçerlidir.
+  - Tensör ve tensör içeren her değer eşitlenebilir değildir (13.10): liste, sözlük, demet (3.6a), yapı (7.6) ve durumlu tip (7.7). Bunların `==`'si, `==` isteyen değer deseni (5.6) ve `.TR_contains`/`.TR_unique`/`.TR_index_of` (13.3) denetim hatasıdır; ileti `TR_equal`'ı önerir. Durum açan desen (7.7, `Cevap.Tamam(t) =>`) geçerlidir: alanı bağlar, karşılaştırmaz. İki isteğe bağlı tensör birbiriyle karşılaştırılamaz; yalnız `TR_none` değişmeziyle.
 - *Test:* TR testi; metin, öğe öğe karşılaştırma ve `TR_Bool` maskesi uygulanınca TR testi.
 
 ## İşleçler, indeks ve atama
@@ -194,20 +194,20 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 **15.12** `TR_floor`, `TR_ceil` ve `TR_sign` sayıda (13.7) ve tensörde çalışır. `TR_Float` tensörde aynı cins verir; `TR_Int` tensörde `TR_sign` aynı cinsi verir, `TR_floor` ve `TR_ceil` girdinin kendisini verir (bir şey yapmaz, 13.7'deki gibi). `TR_sign` NaN'ı ve sıfırın işaretini korur (13.7: `TR_sign(-0.0)` → −0.0). Türevleri her yerde 0'dır. Listede denetim hatası.
 - *Test:* TR testi.
 
-**15.13** `TR_clamp(x, TR_min: a, TR_max: b)` x'i [a, b] aralığına sınırlar; NaN öğe NaN kalır. Sınırlamak için yazılan `TR_min(x, 0)` ya da `TR_max(x, 0)` (bir tensör ve bir sayı) hatadır; ileti `TR_clamp(x, TR_max: 0)`'ı ya da `TR_relu`'yu önerir. Sınırlardan biri de verilebilir; ikisi de yoksa, `a > b` ise ya da bir sınır NaN ise hata. Sınırlar sayı ya da `x`'e yayınlanan aynı cinsten tensördür; sayı 15.6a'ya uyar: `TR_Int` tensörde `TR_Int` sınır. Tensör sınırda `a > b` öğe öğe sınanır (GPU'da bekleme, 15.6); hassasiyetler 15.6c'ye göre birleşir. Cins korunur. `x`'in türevi sınırların içinde (sınırlar dahil) 1, dışında 0'dır; tensör sınırlar türev izliyorsa gradyan seçildikleri yerde onlara akar (`TR_maximum` gibi). `TR_max(x, 0)` öğe öğe sınır değildir; ileti `TR_clamp(x, TR_min: 0)`'ı önerir.
+**15.13** `TR_clamp(x, TR_min: a, TR_max: b)` x'i [a, b] aralığına sınırlar; NaN öğe NaN kalır. Sınırlamak için yazılan `TR_min(x, 0)` ya da `TR_max(x, 0)` (bir tensör ve bir sayı) hatadır; ileti `TR_clamp(x, TR_max: 0)`'ı ya da `TR_relu`'yu önerir. Sınırlardan biri de verilebilir; ikisi de yoksa, `a > b` ise ya da sayı sınır NaN ise hata. Sınırlar sayı ya da `x`'e yayınlanan aynı cinsten tensördür; sayı 15.6a'ya uyar: `TR_Int` tensörde `TR_Int` sınır. Tensör sınırda yalnız `a > b` öğe öğe sınanır (GPU'da bekleme, 15.6); sınırdaki NaN öğe hata değildir, yayılır (`TR_maximum` gibi). Hassasiyetler 15.6c'ye göre birleşir. Cins korunur. Sayı sınırda `x`'in türevi sınırlar dahil aralıkta 1, dışında 0, NaN'da NaN'dır. Tensör sınırda `TR_clamp(x, TR_min: a)` `TR_maximum(x, a)` ile, `TR_max: b` `TR_minimum(x, b)` ile aynıdır, türevi dahil (15.16a: seçilen tarafa, tam eşitlikte yarı yarıya). `TR_max(x, 0)` öğe öğe sınır değildir; ileti `TR_clamp(x, TR_min: 0)`'ı önerir.
 - *Test:* TR testi.
 
 **15.14** `TR_atan2(y, x)` (x, y) noktasının açısını (−π, π] aralığında radyan olarak verir. İşaretli sıfırlar ve sonsuzlar IEEE kuralına uyar; `TR_atan2(0, 0)` 0'dır. İki sayıda `TR_Float`; en az biri tensörse yayınlar ve türev izleyen `TR_Float` tensör verir. Türevler ∂/∂y = x/(x² + y²), ∂/∂x = −y/(x² + y²)'dir; (0, 0)'da ikisi de 0 alınır.
 - *Test:* TR testi.
 
-**15.15** `TR_where(koşul, a, b)` öğe öğe seçimdir: `koşul` `TR_Tensor[TR_Bool]`'dur; doğru olduğu yerde `a`'yı, öbür yerlerde `b`'yi verir. Üçü yayınlanır. `a` ve `b` aynı cinsten tensör ya da 15.6a'ya uyan sayıdır; hassasiyet 15.6c'ye göre birleşir, ikisi de sayıysa ve `TR_Float` ise "float32"dir. Gradyan `a`'ya koşulun doğru, `b`'ye yanlış olduğu yerlerden akar; seçilmeyen dala yukarıdan gelen gradyan tam 0'dır, yukarıdan gelen NaN seçilmeyen dala geçmez. **Ama** dalın kendi türevi o yerde sonsuz ya da NaN ise 0 · sonsuz = NaN girdiye ulaşır: `TR_where(x > 0.0, TR_log(x), 0.0)`'ın `x = 0`'daki gradyanı NaN'dır. Doğru yazım girdiyi içeride maskelemektir: `TR_where(x > 0.0, TR_log(TR_where(x > 0.0, x, 1.0)), 0.0)`. Koşul türev almaz. Hiçbiri tensör değilse denetim hatası, ileti `TR_if`'i önerir. Ondalık ya da tam sayı koşul denetim hatasıdır; ileti `TR_where(t != 0, ...)`'ı önerir.
+**15.15** `TR_where(koşul, a, b)` öğe öğe seçimdir: `koşul` `TR_Tensor[TR_Bool]`'dur; doğru olduğu yerde `a`'yı, öbür yerlerde `b`'yi verir. Üçü yayınlanır. `a` ve `b` aynı cinsten tensör ya da 15.6a'ya uyan sayıdır; hassasiyet 15.6c'ye göre birleşir. `a` ve `b`'nin ikisi de sayıysa cins ve hassasiyet onlardan çıkar: iki `TR_Int` → `TR_Int` "int64"; `TR_Int` ile `TR_Float` → `TR_Float` "float32"; iki `TR_Bool` → `TR_Bool`. Gradyan `a`'ya koşulun doğru, `b`'ye yanlış olduğu yerlerden akar; seçilmeyen dala yukarıdan gelen gradyan tam 0'dır, yukarıdan gelen NaN seçilmeyen dala geçmez. **Ama** dalın kendi türevi o yerde sonsuz ya da NaN ise 0 · sonsuz = NaN girdiye ulaşır: `TR_where(x > 0.0, TR_log(x), 0.0)`'ın `x = 0`'daki gradyanı NaN'dır. Doğru yazım girdiyi içeride maskelemektir: `TR_where(x > 0.0, TR_log(TR_where(x > 0.0, x, 1.0)), 0.0)`. Koşul türev almaz. Hiçbiri tensör değilse denetim hatası, ileti `TR_if`'i önerir. Ondalık ya da tam sayı koşul denetim hatasıdır; ileti `TR_where(t != 0, ...)`'ı önerir.
 - *Test:* TR testi; mantık koşulu uygulanınca TR testi.
 
 **15.16** `TR_abs(x)` (13.1) tensörde de çalışır: `TR_Float` ve `TR_Int`'te aynı cins. İşaret biti silinir (`TR_abs(-0.0)` +0), NaN korunur, CPU ve GPU aynı bitleri verir. `TR_Int`'te en küçük değerin mutlak değeri taşmadır (15.3). Türev `TR_sign(x)`'tir; 0'da 0.
 - *Test:* TR testi.
 
 **15.16a** Öğe öğe iki tensör ve sınama:
-- `TR_maximum(a, b)` ve `TR_minimum(a, b)` iki tensörün (ya da tensörle sayının, 15.6a) öğe öğe en büyüğünü ve en küçüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır (15.50). ±0'da sıralama sırası (15.22b) kullanılır: `TR_maximum(-0.0, 0.0)` argüman sırası ne olursa olsun `0.0`'dır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya; ±0 eşit sayılmadığı için seçilen tarafa.
+- `TR_maximum(a, b)` ve `TR_minimum(a, b)` iki tensörün (ya da tensörle sayının, 15.6a) öğe öğe en büyüğünü ve en küçüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır (15.50). ±0'da sıralama sırası (15.22b) kullanılır: `TR_maximum(-0.0, 0.0)` argüman sırası ne olursa olsun `0.0`'dır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya; ±0 eşit sayılmadığı için seçilen tarafa. Bir konumda işlenenlerden biri NaN ise o konumda iki işlenene de NaN türev gider.
 - `TR_round(t)` 13'ün yarımı çifte kuralıyla öğe öğe yuvarlar. Tensörde sonuç `TR_Float`'tır, `TR_floor` gibi (sayıdaki `TR_round` ise 13.1'e göre `TR_Int` verir). NaN ve sonsuz korunur, öğe başına hata ve bekleme olmaz. `TR_Int` tensörde girdiyi verir. Basamaklı `TR_round(x, basamak)` yalnız sayıdadır. Nicemleme `TR_Tensor[TR_Int](TR_round(t))` yazar. Türevi 0'dır.
 - `TR_is_nan(t)` ve `TR_is_finite(t)` (13.7) `TR_Float` tensörde öğe öğe `TR_Tensor[TR_Bool]` verir. `t != t` de NaN'ı bulur ama okunmaz; ileti yok, ikisi de geçerli.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
@@ -221,7 +221,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 
 ## İndirgeme, arama ve sıralama
 
-**15.18** İndirgemeler: `TR_sum`, `TR_mean`, `TR_std`, `TR_max`, `TR_min` ve `TR_logsumexp`. Aynı şekilli tensörlerin listesinde `TR_sum` ve `TR_mean` tensörleri öğe öğe katlar (kayıpları toplamak); iç içe liste ya da listeyle `TR_dim:` hatadır.
+**15.18** İndirgemeler: `TR_sum`, `TR_mean`, `TR_std`, `TR_max`, `TR_min` ve `TR_logsumexp`. Aynı şekilli tensörlerin listesinde `TR_sum` ve `TR_mean` tensörleri öğe öğe katlar (kayıpları toplamak); iç içe liste ya da listeyle `TR_dim:` hatadır. Boş tensör listesinde `TR_sum` ve `TR_mean` çalışma hatasıdır: şekil, hassasiyet ve cihaz bilinmez.
 - **Yazım:** `TR_sum(t, TR_dim: k, TR_keepdim: b)`. Eksen yalnız adla verilir; `TR_sum(t, 1)` denetim hatasıdır, ileti `TR_sum(t, TR_dim: 1)`'i önerir. Negatif eksen sondan sayar; olmayan eksen çalışma hatası.
 - **Eksen verilmezse** bütün öğeler indirgenir ve 0 boyutlu tensör çıkar.
 - **Birden çok eksen:** `TR_dim:` bir `TR_Int` ya da `TR_List[TR_Int]` alır (13.10: dönüş aynı, parametrede kabul kümesi): `TR_mean(x, TR_dim: [1, 2])`. Bunu `TR_sum`, `TR_mean`, `TR_std`, `TR_max`, `TR_min`, `TR_logsumexp`, `TR_all` ve `TR_any` kabul eder. Aynı eksen iki kez (sondan sayılınca da: 2 boyutta `[1, -1]`) ya da olmayan eksen çalışma hatası. Boş liste değişmezi `[]` denetim hatası, değişkenle gelen boş liste çalışma hatası; ileti eksensiz yazımı önerir.
@@ -239,14 +239,14 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
   - `TR_Int` ve `TR_Bool` toplamı "int64"'te kesindir. **Matematiksel toplam** "int64"e sığmazsa çalışma hatasıdır (GPU'da bekleme, 15.6); ara toplamın taşması sayılmaz, böylece sonuç toplama sırasından ve cihazdan bağımsızdır (`[MAX, 1, -1]`'in toplamı MAX). Kasıtlı sarmanın indirgemesi yoktur; çok büyük toplam için önce `TR_Float`'a çevrilir.
   - `TR_mean` `TR_Int` ve `TR_Bool`'da "int64"'te kesin toplar, sonucu "float32"ye bir kez yuvarlar (15.3'ün tek kuralı): doğruluk oranı kesin sayımdan tek yuvarlamayla çıkar.
   - 16 bitlik girdi en az float32'de biriktirilir; sonuç girdinin hassasiyetine bir kez yuvarlanır.
-  - 13.1'in telafili (Neumaier) toplaması listeye özgüdür; tensör toplamının doğruluğu 15.22a'dadır. `TR_sum([1e16, 1.0, -1e16])` 1.0 verir, tensörü 0.0 verebilir. `TR_mixed_precision` bloğunda `TR_sum`, `TR_mean`, `TR_std` ve `TR_logsumexp` 16 bitlik girdiyi float32 verir; `TR_cumsum` girdinin türünde kalır (15.4).
+  - 13.1'in telafili (Neumaier) toplaması listeye özgüdür; tensör toplamının doğruluğu 15.22a'dadır. `TR_sum([1e16, 1.0, -1e16])` 1.0 verir, tensörü 0.0 verebilir. `TR_mixed_precision` bloğunda `TR_sum`, `TR_mean`, `TR_std`, `TR_logsumexp` ve `TR_cumsum` 16 bitlik girdiyi float32 verir (15.4).
   - 16 bitlik toplam ve `TR_cumsum` sonucun hassasiyetine sığmazsa sonsuzdur (fp16'da 65504'ün üstü; IEEE 754 gibi). Sonucu okumadan hata verilemez, ondalık işlem beklemez (15.6). Büyük toplam float32'ye çevrilerek ya da `TR_mean` ile alınır.
 - **Anlamlar:**
-  - `TR_std` örneklem sapmasıdır, n−1'e böler ve iki geçişlidir: önce ortalama, sonra farkların kareleri (13.1 gibi). İndirgenen eksende iki öğeden azsa çalışma hatası.
+  - `TR_std` örneklem sapmasıdır, n−1'e böler ve iki geçişlidir: önce ortalama, sonra farkların kareleri (13.1 gibi). İndirgenen eksende iki öğeden azsa çalışma hatası. Sapması 0 olan eksende türevi 0'dır (`TR_abs`'ın 0'daki ve `TR_atan2(0, 0)`'ın türevi gibi).
   - `TR_logsumexp(t, TR_dim: k)` `TR_log(Σ TR_exp(t))`'yi taşmadan hesaplar (en büyük öğe çıkarılarak). Özel değerler: bütün öğeleri −sonsuz olan satır ve boş satır −sonsuz, türevi 0 (15.9'un maskeli satırı gibi; boş toplamın logaritması); +sonsuz öğe varsa +sonsuz, türevi limitteki gibi o öğeye 1, öbürlerine 0 (15.50'nin "Limitler"i); birden çok +sonsuzda türev ilk +sonsuza 1, öbürlerine 0 (`TR_max` ve `TR_argmax` ile aynı öğe, belirlenimci); NaN varsa (+sonsuzla birlikte de) NaN.
   - `TR_max` ve `TR_min` NaN dışındaki sayılarda sıralama sırasını (15.22b) kullanır: −0.0 0.0'dan küçüktür. **NaN varsa sonuç NaN'dır:** indirgeme NaN'ı yayar, sıralama ise onu en büyük sayar; ikisi bilerek ayrıdır (15.22b). Eşitlerde ilk öğe alınır; türev o öğeye gider (`TR_argmax` ile aynı öğe).
   - `TR_max` ve `TR_min` eksenle de **yalnız değerleri** verir; indeks `TR_argmax`/`TR_argmin`'dir. `TR_max(x, TR_dim: 1)[0]` değerlerin ilk satırıdır.
-- **Boş:** boş tensörün ya da boş eksenin `TR_sum`'ı 0, `TR_logsumexp`'i −sonsuzdur; `TR_mean`, `TR_std`, `TR_max` ve `TR_min`'i çalışma hatasıdır (13.1'deki gibi; değerleri tanımsız).
+- **Boş:** indirgenen öğe sayısı sıfırsa (eksensiz biçimde boş tensör, eksenli biçimde uzunluğu 0 olan indirgenen eksen) `TR_sum` 0, `TR_logsumexp` −sonsuzdur; `TR_mean`, `TR_std`, `TR_max` ve `TR_min` çalışma hatasıdır (13.1'deki gibi; değerleri tanımsız). İndirgenen eksen boş değilse sonuç boş bir tensördür: `[0, 4]`'te `TR_dim: 1` → `[0]`.
 - **Özel değerler** 15.50'deki gibidir. Yalnız −0'lardan oluşan toplam +0'dır.
 - **Türev** `TR_Float`'ta izlenir.
 - **İki tensörün öğe öğe en büyüğü** `TR_maximum`'dur (15.16a). `TR_max(t, u)` ya da `TR_max(t, 0)` denetim hatasıdır; ileti `TR_maximum`'u ya da `TR_clamp`'i önerir.
@@ -261,7 +261,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
   - Cinsler aynı olmalıdır (denetim hatası); hassasiyet farkı değeri karşılaştırmaya engel değildir.
   - NaN hiçbir şeye eşit değildir, −0.0 0.0'a eşittir (4.5).
   - `TR_assert_equal(a, b)` tensörde bunu sınar (15.5).
-- `TR_all_close(a, b)` şekiller aynıysa ve her öğede `|a − b| ≤ TR_atol + TR_rtol · TR_max(|a|, |b|)` ise `TR_true` verir (simetrik; 12.4a ile aynı formül); yalnız `TR_Float`; NaN yanlış. Şekiller aynı değilse `TR_false`; yayın yoktur.
+- `TR_all_close(a, b)` şekiller aynıysa ve her öğede `|a − b| ≤ TR_atol + TR_rtol · TR_max(|a|, |b|)` ise `TR_true` verir (simetrik; 12.4a ile aynı formül); yalnız `TR_Float`. Yakınlık öğe öğedir: iki öğe de sonluysa formül uygulanır; sonsuz bir öğe yalnız aynı işaretli sonsuza yakındır; sonlu ile sonsuz ve zıt işaretli iki sonsuz yakın değildir; NaN hiçbir şeye yakın değildir. Şekiller aynı değilse `TR_false`; yayın yoktur.
   - Varsayılan toleranslar iki işlenenin daha az hassas olanına göredir; `TR_rtol:` ve `TR_atol:` üstüne yazar:
 
     | hassasiyet | `TR_rtol` | `TR_atol` |
@@ -277,6 +277,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 **15.19** `TR_argmax(t, TR_dim: k)` ve `TR_argmin(t, TR_dim: k)` en büyük ve en küçük öğenin indeksini `TR_Tensor[TR_Int]` "int64" olarak verir, türev izlemez.
 - **Eksen verilmezse** bütün öğeler üstünde çalışır ve düzleştirilmiş tensördeki indeksi 0 boyutlu tensörde verir (15.18'in "eksensiz bütün öğeler" kuralı). Eksen verilirse o eksen düşer; `TR_keepdim: TR_true` onu 1 uzunlukta korur (`[B, 1]`). Tek eksen alır; eksen yalnız adla (`TR_dim:`) verilir. `TR_keepdim:` yalnız eksenli imzadadır; eksensiz biçimde denetim hatasıdır.
 - Sıra 15.18'in `TR_max`'ı gibidir: eşitlerde ilk, −0.0 0.0'dan küçük (`TR_argmax(TR_Tensor([-0.0, 0.0]))` 1), NaN varsa ilk NaN'ın indeksi (`TR_argmin` için de: NaN indirgemede yayılır, 15.18). Bu yüzden NaN'lı tensörde `TR_argmin(t)` ile `TR_argsort(t)[0]` ayrılır.
+- İndirgenen öğe sayısı sıfırsa çalışma hatası (15.18'in `TR_max`'ı gibi).
 - `TR_Bool` tensörde denetim hatası.
 - *Test:* TR testi; eksensiz biçim ve `TR_argmin` uygulanınca TR testi.
 
@@ -475,15 +476,16 @@ TR_print(x.TR_grad)
   - Sonlu olmayan normda kırpma: NaN normda gradyanlar değişmez; sonsuz normda ölçek 0'dır, sonlu öğeler 0, sonsuz öğeler NaN olur.
   - Norm float32'de taşarsa (`[3e38, 3e38]`) sonsuzdur: ölçek 0'dır, sonlu gradyanlar 0 olur. Sonlu gradyanların sessizce sıfırlandığı tek durum budur; `TR_error_if_nonfinite: TR_true` onu yakalar.
   - Kırpma gradyanları yerinde yazar ve sürümünü artırır (15.3), ölçek 1'de de. CPU ve GPU normu float32'ye yuvarlayıp böler: ölçek iki cihazda aynıdır. Kırpmadan önce gradyanı saklamış bir hesabın geri yayılımı iki cihazda da aynı sürüm hatasını verir.
-- Adımı atlamak isteyen döngü normu kendisi denetler; atlanan adımda iyileştirici çalışmaz, gradyanlar sıfırlanır:
+- Adımı atlamak isteyen döngü kaybı ve normu kendisi denetler; atlanan adımda iyileştirici çalışmaz, gradyanlar sıfırlanır. Gradyan normu yalnız gradyanı sınar: türevi değerden bağımsız bir yol (`TR_sum`, `TR_mean`, toplama) kaybın NaN'ını gradyana taşımaz. Kalıp `&` iledir, `TR_and` değil (tensörde `TR_and` denetim hatası, 15.5):
 
 ```tr
 # TR 4
 TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var op = TR_AdamW([w])
-TR_backward(TR_sum(w * w))
+TR_var L = TR_sum(w * w)
+TR_backward(L)
 TR_var norm = TR_clip_grad([w], TR_max: 1.0)
-TR_if TR_is_finite(norm).TR_item() { op.TR_step() }
+TR_if (TR_is_finite(L) & TR_is_finite(norm)).TR_item() { op.TR_step() }
 op.TR_zero_grad()
 ```
 
@@ -618,16 +620,16 @@ op.TR_zero_grad()
 | Tamamen −∞ satır | `TR_softmax` 0, `TR_log_softmax` −∞, türevleri 0 (15.9; dikkatte de böyle, 15.24); +∞ ya da NaN içeren satır NaN'dır. |
 | `TR_logsumexp` | Bütün öğeleri −∞ olan satır ve boş satır −∞, türevi 0; +∞ öğe varsa +∞, türevi o öğeye 1, öbürlerine 0; birden çok +∞'da türev ilk +∞'a 1, öbürlerine 0; NaN varsa (+∞ ile birlikte de) NaN (15.18). |
 | `TR_sign` | `TR_sign`(−0) = −0, `TR_sign`(NaN) = NaN (15.12). |
-| `TR_relu`, `TR_abs` | `TR_relu`(−0) = +0, `TR_relu`(NaN) = NaN; `TR_relu`'nun türevi yalnız x > 0'da 1, 0'da ve NaN'da 0. `TR_abs`'ın türevi ±0'da 0, NaN'da NaN (15.16). |
+| `TR_relu`, `TR_abs` | `TR_relu`(−0) = +0, `TR_relu`(NaN) = NaN; `TR_relu`'nun türevi x > 0'da 1, 0'da 0, NaN'da NaN. `TR_abs`'ın türevi ±0'da 0, NaN'da NaN (15.16). |
 | `TR_max`, `TR_min` | NaN dışındaki sayılarda sıralama sırası (15.22b): −0 +0'dan küçüktür. Eşitlerde ilk öğe alınır, türev o öğeye gider (`TR_argmax` ile aynı öğe); NaN yayılır (15.18). |
-| `TR_maximum`, `TR_minimum` | ±0'da sıralama sırası (15.22b): `TR_maximum(-0.0, 0.0)` argüman sırası ne olursa olsun +0'dır; NaN yayılır; türev seçilen tarafa, tam eşitlikte yarı yarıya (15.16a). |
-| `TR_clamp` | NaN korunur; türevi sınırlar dahil aralıkta 1, dışında ve NaN'da 0 (15.13). |
+| `TR_maximum`, `TR_minimum` | ±0'da sıralama sırası (15.22b): `TR_maximum(-0.0, 0.0)` argüman sırası ne olursa olsun +0'dır; NaN yayılır; türev seçilen tarafa, tam eşitlikte yarı yarıya, NaN olan konumda iki işlenene de NaN (15.16a). |
+| `TR_clamp` | NaN korunur; sayı sınırda türevi sınırlar dahil aralıkta 1, dışında 0, NaN'da NaN; tensör sınırda `TR_maximum` ve `TR_minimum` gibi (15.13). |
 | `TR_atan2` türevi | (0, 0)'da 0, bir girdi sonsuzken 0 (limit), NaN girdide NaN (15.14). |
 
 Sınır: tablo özel değerler içindir. float32'nin ucundaki büyük sonlu sayılarda ara sonuç taşabilir (normlarda x², yani \|x\| ≳ 1,8e19; toplamın kendisi 3,4e38'i aşınca); bu durumda bir cihaz sonlu, öbürü sonsuz sonuç verebilir (15.22a). Trigonometrik işlevler GPU'da \|x\| ≤ 1e5'te doğrudur (15.11). 16 bitlik tensörler float32'de hesaplanıp kendi hassasiyetine yuvarlanır (15.6a); dönüşüm ±0, ±∞ ve NaN'ı korur.
 
 İki ek:
-- Sayıda `TR_sqrt` eksi girdide hata verir (13.1), tensörde NaN verir. Tensörün tek bir öğesi bütün işlemi durdurmaz; NaN, eğitimin kararlılık kuralıyla (15.36) yakalanır.
+- Sayıda `TR_sqrt` eksi girdide hata verir (13.1), tensörde NaN verir. Tensörün tek bir öğesi bütün işlemi durdurmaz; NaN, eğitimin kararlılık kuralıyla (15.36: kayıp ve gradyan normu) yakalanır.
 - Tam sayı ve mantık tensöründe özel değer yoktur.
 - *Test:* TR testi; Go: `TestSpecialValuesSameOnBothDevices`, `TestSpecialValuesTable`, `TestSumsKeepSpecialValues`.
 

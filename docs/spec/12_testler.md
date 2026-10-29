@@ -30,9 +30,10 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - *Test:* TR testi.
 
 **12.4a** `TR_assert_close(beklenen, gerçek, TR_rtol: r, TR_atol: a)` iki ondalık sayıyı ya da iki `TR_Float` tensörü toleransla karşılaştırır: her öğede fark, `a` ile `r` kere iki değerin mutlak değerinin büyüğünün toplamını aşmamalıdır. Formül simetriktir, argümanların sırası sonucu değiştirmez; 15.18a'nın aynı işi gören yerleşiği de bu formülü kullanır.
-- Formül: |x − y| ≤ a + r · en_büyük(|x|, |y|).
+- Formül: |x − y| ≤ a + r · `TR_max(|x|, |y|)`.
 - Varsayılan toleranslar hassasiyete göredir (15.18a'nın tablosu; sayıda "float64"ün satırı).
-- Tensörde şekiller aynı olmalıdır; yayın yoktur. NaN hiçbir şeye yakın değildir.
+- Tensörde şekiller aynı olmalıdır; yayın yoktur.
+- Yakınlık öğe öğedir: iki öğe de sonluysa formül uygulanır; sonsuz bir öğe yalnız aynı işaretli sonsuza yakındır; sonlu ile sonsuz ve zıt işaretli iki sonsuz yakın değildir; NaN hiçbir şeye yakın değildir. Sonsuz ve NaN bu yüzden formüle girmez: formül IEEE'de tersini verirdi.
 - İleti en büyük farkı, yerini ve kullanılan toleransları söyler.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 

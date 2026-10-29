@@ -27,6 +27,7 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 - *Emsal:* PyTorch'un `torch.testing.assert_close`'u toleransı hassasiyete göre seçer: float32 `1.3e-6 / 1e-5`, bf16 `1.6e-2 / 1e-5`, fp16 `1e-3 / 1e-5`, float64 `1e-7 / 1e-7` [ölçüldü: DENETİM, C'nin 2. turu, `torch.testing._comparison.default_tolerances`].
 - *Emsal (formül):* Python'un `math.isclose`'u simetriktir (`max(|a|, |b|)`); NumPy'nin `allclose`'u ve PyTorch'un `assert_close`'u ikinci argümanı başvuru alır [kanıtsız: belgeler bu tur açılmadı]. Ajan bir aracı öbürü sanınca bağıl toleransın ölçeği değişir; simetrik formül sırayı önemsiz kılar.
 - *Gerekçe:* ondalık sonuçlar kesin eşitlikle sınanamaz: `TR_assert_equal(0.1 + 0.2, 0.3)` kalır [ölçüldü]. ML testinde sınanan çoğu değer ondalık ve tensördür; ajan bir toleransı her seferinde uydurmak zorunda kalmamalıdır. 15.18a'nın `TR_all_close`'u ile aynı tablo.
+- *Gerekçe (sonsuz):* formül sonsuzda IEEE'de tersini verir (sonlu ile sonsuz yakın, aynı işaretli iki sonsuz uzak); NumPy ve PyTorch'un `isclose`'u gibi sonsuz ayrı ele alınır [ölçüldü: DENETİM, `numpy==2.1.1`, `torch==2.14`].
 
 ### 12.5
 

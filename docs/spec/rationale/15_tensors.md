@@ -55,7 +55,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 - *Emsal:* PyTorch'un autocast'i normu float32 verir, dönüşümü `torch.compile` normla kaynaştırır; ama Llama gibi büyük model kodları ve hedef modelin kendi RMSNorm'u (`tools/gpu/rgn512.py`) girdinin türünde verir. Flax `RMSNorm(dtype=...)` çıktının türünü katmanda seçtirir. PyTorch'un `torch.get_autocast_dtype` işlevi `TR_compute_dtype()`'ın karşılığıdır. Görev mirası Python'un `contextvars`'ı gibidir.
 - *Gerekçe:*
   - Normun çıktısı çoğunlukla bir çarpıma girer ve çarpım onu zaten blok türünde okur; float32 çıktı yalnız bellek tutar (hedef modelde ~4 GB). TR ikinci yolu (girdinin türünde) seçer; ağırlıklar ve sapmalar float32 kalır.
-  - `TR_cumsum` girdi boyunda bir çıktı verir: float32 çıktı belleği iki katına çıkarırdı; `TR_layer_norm` ile aynı gerekçeyle girdinin türünde kalır, biriktirmesi float32'dedir.
+  - `TR_cumsum` float32'ye açılır: birikimli toplam fp16'nın 65504 sınırını sessizce aşar (15.18); bellek bedeli doğruluktan sonra gelir. PyTorch'un CUDA autocast'i de `cumsum`'ı float32'ye açar [kanıtlı: PyTorch 2.15 AMP belgesi, "CUDA Ops that can autocast to float32"]. Normlar bilerek ayrılır (yukarıda); onların çıktısı bir çarpıma girer, toplam taşmaz.
   - Karışık hassasiyet cinsin içindedir: hassasiyet tipte olmadığından (15.1) blok tipi değiştirmez.
   - **Görev mirası:** yeni görev açıldığı yerin hesap türünü ve türevsiz kipini alır; ajanın beklediği budur (`TR_no_grad { TR_async üret(...) }`). Reddedilen yol: yeni görevlerin float32 ile başlaması.
 
@@ -162,7 +162,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.13
 
 - *Emsal:* PyTorch sınırı tensör olarak da alır; PyTorch'ta sınırdaki türev 0'dır.
-- *Gerekçe:* sınırdaki değer aralığın içindedir, türevi 1'dir. `TR_max(x, 0)` indirgemedir; öğe öğe sınırla karışmasın diye ileti `TR_clamp`'i önerir.
+- *Gerekçe:* sayı sınırda sınırdaki değer aralığın içindedir, türevi 1'dir. Tensör sınırda `TR_clamp(x, TR_min: a) ≡ TR_maximum(x, a)` özdeşliği türevde de korunur; PyTorch da tensör sınırda `maximum` gibi davranır [ölçüldü: DENETİM, `torch==2.14`, eşitlikte 0,5/0,5]. Tensör sınırdaki NaN öğe yayılır: sınırları öğe öğe NaN için sınamak her çağrıda bekleme olurdu (15.6). `TR_max(x, 0)` indirgemedir; öğe öğe sınırla karışmasın diye ileti `TR_clamp`'i önerir.
 
 ### 15.14
 
@@ -204,6 +204,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Birden çok eksen.** 13.10: "Dönüş tipi bütün parçalar için aynıysa bir parametre birkaç tip kabul edebilir ... değilse ayrı imzadır" [kanıtlı: `13_yerlesikler.md:86-87`, DENETİM C1]. Dönüş aynı olduğu için tek imza; `TR_dim:`'in kabul kümesi `TR_Int` ya da `TR_List[TR_Int]`. İç içe çağrı ortalamada doğrudur ama `TR_std`'de yanlıştır; ajanı ona itmemek gerekir. Boş liste ekosistemlerde ters anlamlı olduğu için hatadır. Reddedilen yol: iki imza (1. tur; yanlış araçtı).
   - **`TR_max` eksenle yalnız değer.** Demet dönüşü ile değer dönüşü aynı adda olursa ajan karıştırır; indeks `TR_argmax`'tır.
   - **Dokuz iş:** veri hazırlamada normalleştirme ve `TR_sum(maske)` sayımı; eğitimde kayıp ortalaması ve elle LayerNorm (`TR_mean`, `TR_keepdim`); ölçmede doğruluk oranı ve şaşkınlık; uyarlamada nicemleme ölçeği (`TR_max(TR_abs(w))`).
+  - **Boş eksen ile boş tensör ayrı.** Sıfır öğeli indirgeme tanımsızdır; `[0, 4]`'te `TR_dim: 1` her satırda dört öğe indirger ve boş sonuç verir. PyTorch da `mean(dim=1)`'i `[]` verir, boş eksende `amax`'ı ve `argmax`'ı hata verir [ölçüldü: DENETİM, `torch==2.14`]. Boş tensör listesinde sonucun şekli bilinmez. `TR_std`'nin sıfır sapmadaki türevi 0'dır, PyTorch'ta da [ölçüldü].
 
 ### 15.18a
 
@@ -215,6 +216,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **`TR_all_close`'un varsayılanı hassasiyete göre.** Sabit `rtol: 1e-5` bf16'nın bir ulp'inden (0.0078) çok küçüktür; bf16'da `1.0` ile `1.004` hep "değil" çıkar [ölçüldü: DENETİM C1, PyTorch `allclose` aynısını yapıyor]. Ekosistemler ayrıldığında yazımı açık tutma ilkesi burada zorunlu yazım isterdi; ama zorunlu yazım ajanı her çağrıda sayı uydurmaya iter. Hassasiyete göre varsayılan doğru sonucu verir ve yazım gerektirmez; tablo maddede yazılı.
   - Şekil farkında yayın yok: sınamanın sorusu "aynı mı"dır ("Hata riski az").
   - Bedel: GPU'da konağa okuma. Sıcak döngüde ajanın bilmesi gerekir; madde bunu yazar. Eksenli `TR_all`/`TR_any` beklemez.
+  - **Sonsuzda yakınlık.** Formül IEEE'de tersini verir: |0 − ∞| = ∞ ≤ ∞ yakın, |−∞ − (−∞)| = NaN uzak. NumPy ve PyTorch'un `isclose`'u sonsuzu ayrı ele alır, aynı işaretli sonsuzu yakın, sonlu ile sonsuzu uzak sayar [ölçüldü: DENETİM, `numpy==2.1.1`, `torch==2.14`]; TR de.
 
 ### 15.19
 
@@ -375,6 +377,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* Keras `TerminateOnNaN` ve Lightning `EarlyStopping(check_finite=True)` NaN'da eğitimi durdurur; PyTorch `GradScaler` inf/NaN gradyanlı adımı atlar (`optimizer.step()`'i çağırmaz); Megatron-LM NaN'ı ve kaybın ilk değerlerin en büyüğünün 10 katını aşmasını yakalayıp adımı yeniden koşar; OLMo-core kayıp ve gradyan normunun son 128 adıma göre 6 standart sapmalık sıçramasını yalnız kaydeder; PaLM kayıp sıçramasında yaklaşık 100 adım önceki kontrol noktasına dönüp 200–500 toplu işi atlamıştır (Chowdhery ve ark. 2022, §5.1) [kanıtlı: bugünkü 15.36'nın "Karşılaştırma ve karar"ı]. `TR_error_if_nonfinite` PyTorch'un `clip_grad_norm_(error_if_nonfinite=True)`'sudur. Sonlu olmayan normda kırpma ve float32'de taşan norm PyTorch'unkiyle aynıdır (PyTorch 2.14'te ölçüldü; PyTorch ölçek 1'de de yerinde çarpar) [ölçüldü: bugünkü 15.36'nın metni]. `TR_is_finite` `torch.isfinite` ve `numpy.isfinite`'in karşılığıdır.
 - *Gerekçe:* "Güvenilir" ve "Hata riski az": uzun eğitim sessizce bozulmamalı. Hiçbir emsal tek doğru politika değildir; TR politikayı dile gömmez, parçalarını verir: denetim (`TR_is_finite`, `TR_error_if_nonfinite`), geri dönme ve toplu iş atlama (20.14, 20.15), sıçrama bekçisi (`tr/training`). `TR_is_finite`'in `TR_Bool` vermesi 15.3'ün kararıdır (mantık ile sayı arasında dönüşüm yok; maske mantıktır). Kırpmanın ölçek 1'de de sürümü artırması, kırpmadan önce gradyanı kaydetmiş bir hesabın sonucunun norma bağlı olmamasını sağlar.
+  - **Kayıp da sınanır.** `TR_sum` ve `TR_mean`'in türevi değerden bağımsızdır: NaN'lı kayıpta gradyan sonlu çıkabilir, normun denetimi adımı geçirir [ölçüldü: DENETİM, `torch==2.14`'te de]. Kalıp kaybı ve normu birlikte sınar (Gemini Koşu 3).
 
 ### 15.37
 
@@ -493,10 +496,10 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Tamamen −∞ satır:** maskeli satır kuralı (15.9, 15.24).
   - **`TR_logsumexp`:** boş toplamın logaritması −∞'dur; +∞'da türev limitteki gibidir; birden çok +∞'da ilk öğe `TR_max` ve `TR_argmax` ile aynı öğedir (belirlenimci).
   - **`TR_sign`:** her x için (−0 dahil) `TR_sign(x)·TR_abs(x) = x`; NaN gizlenmez.
-  - **`TR_relu`:** max(0, x); IEEE 754-2019 `maximum`'da +0 > −0.
+  - **`TR_relu`:** max(0, x); IEEE 754-2019 `maximum`'da +0 > −0. NaN girdinin türevi NaN'dır (`TR_clamp` ve `TR_maximum` da): NaN geri yönde de görünür kalır. PyTorch'ta `relu`'(NaN) 1, `clamp`'(NaN) 0, `maximum(NaN, 1)` iki yana 1 [ölçüldü: DENETİM, `torch==2.14`]; bunlar uygulamanın sınamasının izidir (`x <= 0`, `x > 0`), TR bilerek ayrılır.
   - **`TR_max`, `TR_min`:** tek ve belirlenimci seçim (`TR_argmax` ile aynı öğe); ±0 sıralama sırasıyla ayrılır (15.22b).
   - **`TR_maximum`, `TR_minimum`:** sonuç argüman sırasından bağımsızdır.
-  - **`TR_clamp`:** sınırdaki değer aralığın içindedir.
+  - **`TR_clamp`:** sayı sınırda sınırdaki değer aralığın içindedir; tensör sınırda `TR_maximum` ve `TR_minimum` ile aynıdır (15.13).
   - **`TR_atan2` türevi:** matematiksel limit.
   - **Sayıda hata, tensörde NaN:** tensörün tek bir öğesi bütün işlemi durdurmamalı; NaN eğitimin kararlılık araçlarıyla (15.36) yakalanır.
   - Kural konurken bulunup düzeltilenler [ölçüldü: 2026-10-23]: GPU'da `tanh`, `tan`, `expm1` ve `sin` (`sin` CPU'da da) −0'ı +0'a çeviriyordu; GPU üssü C99'dan ayrılıyordu ((−0)³ = +0, (−∞)^0,5 = NaN, (±1)^∞ = NaN); CPU `tanh`(∞) 0,99999994 veriyordu; GPU −0'ların toplamını −0 veriyordu; GPU `atan2` türevi NaN'ı 0'a çeviriyor, CPU sonsuzda NaN veriyordu; tanh yaklaşımlı `gelu` −∞'da NaN veriyordu.

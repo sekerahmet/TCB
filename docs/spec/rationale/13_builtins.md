@@ -52,7 +52,7 @@ Kurallar: [`13_yerlesikler.md`](../13_yerlesikler.md). Bu dosya her kuralın ems
 ### 13.8a
 
 - *Emsal:* PyTorch tek öğeli tensörün sayısını ayrı bir adla verir: "Returns the value of this tensor as a standard Python number. This only works for tensors with one element. For other cases, see tolist()"; `parameters()` ile `named_parameters()` ayrıdır. transformers'ın `batch_decode`'u birden çok diziyi çözer ve `list[str]` döndürür. *Almadık:* tek adın dönüşünü boyuta ya da bir bayrağa göre değiştirmek. ([PyTorch 2.14 item](https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.item.html), [PyTorch 2.14 Module](https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html), [transformers](https://github.com/huggingface/transformers/blob/main/src/transformers/tokenization_utils_base.py))
-- *Gerekçe:* dönüşü değere bağlı bir yerleşiğin sonucu çalışmadan önce bilinemez (13.10). Tensörün tipinde boyut sayısı ve öğe tipi yoktur (15), bu yüzden `TR_tolist` yalnız 1 boyutta ve hep `TR_Float` verir; PyTorch'un iç içe ve dinamik tipli `tolist`'i [kanıtsız] statik tiple yazılamaz; ayrı ad her sonuca tek bir tip verir ve ajanların bildiği adlardır.
+- *Gerekçe:* dönüşü değere bağlı bir yerleşiğin sonucu çalışmadan önce bilinemez (13.10). Tensörün tipinde boyut sayısı yoktur, öğe cinsi vardır (15.1): `TR_tolist()` yalnız 1 boyutta çalışır ve `TR_List[E]` verir, `TR_item()` `E` verir; `TR_named_parameters` tam sayı tamponlarını ve donmuş parametreleri de verdiği için `TR_Dict[TR_String, TR_AnyTensor]`'dür (15.33); PyTorch'un iç içe ve dinamik tipli `tolist`'i [kanıtsız] statik tiple yazılamaz; ayrı ad her sonuca tek bir tip verir ve ajanların bildiği adlardır.
 
 ### 13.9
 
