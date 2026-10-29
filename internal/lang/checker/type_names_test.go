@@ -78,8 +78,9 @@ func TestTypeAnnotationSuggestionFollowsTheFileLanguage(t *testing.T) {
 }
 
 // Kural (3.5, 3.6, 3.6a, 3.7, 6.9, 15.1): bileşik tip bugün asıl adına indirgenir; denetleyici
-// onunla yeni hata vermez. Yalnız yapı açılır (TR_List[...] → TR_List, T? → T, demet ve fonksiyon
-// tipi her şeyle uyumlu); isteğe bağlı tipe TR_none verilir. İçteki adlar bugünkü gibi denetlenir.
+// onunla yeni hata vermez. Yalnız yapı açılır (TR_List[...] → TR_List, T? → T, demet tipi her
+// şeyle uyumlu, fonksiyon tipi bugünkü gibi TR_Function); isteğe bağlı tipe TR_none verilir. İçteki
+// adlar bugünkü gibi denetlenir.
 func TestCompoundTypesReduceToTheirBaseName(t *testing.T) {
 	noErrors(t, `TR_var l: TR_List[TR_Int] = [1, 2]
 TR_var bos: TR_List[TR_Int] = []
@@ -109,10 +110,12 @@ TR_print(l, bos, x, d, k, t, f, g, tensor, h(l), m(), ikili(), S([1.0]), y)
 		source string
 		code   messages.Code
 	}{
-		{"TR_var l: TR_List[TR_Int] = 1\n", messages.H1001},        // indirgenen tip bugünkü gibi denetlenir
-		{"TR_var x: TR_Int? = \"a\"\n", messages.H1001},            // T? → T
-		{"TR_var l: TR_List[tam] = [1]\n", messages.H1006},         // içteki ad
-		{"TR_func f(a: (Metin) -> TR_Bool) { }\n", messages.H1006}, // fonksiyon tipinin parametresi
+		{"TR_var l: TR_List[TR_Int] = 1\n", messages.H1001},               // indirgenen tip bugünkü gibi denetlenir
+		{"TR_var x: TR_Int? = \"a\"\n", messages.H1001},                   // T? → T
+		{"TR_var f: (TR_Int) -> TR_Bool = 3\n", messages.H1001},           // fonksiyon tipi → TR_Function
+		{"TR_func f() -> () -> TR_Int { TR_return 3 }\n", messages.H1003}, // fonksiyon döndüren
+		{"TR_var l: TR_List[tam] = [1]\n", messages.H1006},                // içteki ad
+		{"TR_func f(a: (Metin) -> TR_Bool) { }\n", messages.H1006},        // fonksiyon tipinin parametresi
 	} {
 		errs, coded := checkErrs(t, c.source)
 		if len(coded) != 1 || !messages.Has(coded[0], c.code) {
