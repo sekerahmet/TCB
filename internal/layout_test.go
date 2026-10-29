@@ -96,7 +96,7 @@ func goFiles(t *testing.T) []goFile {
 			rel, _ := filepath.Rel(root, path)
 			result = append(result, goFile{
 				path:      filepath.ToSlash(rel),
-				line:      strings.Count(string(data), "\n"),
+				line:      layoutrules.FileLines(data),
 				test:      strings.HasSuffix(name, "_test.go"),
 				generated: isGenerated(f),
 				file:      f,
@@ -273,15 +273,15 @@ func TestLayoutFileSize(t *testing.T) {
 		if d.generated {
 			continue
 		}
-		ceiling, listed := layoutrules.BigFiles[d.path]
+		max, listed := layoutrules.FileMax(d.path) // listede değilse FileLimit, istisnaysa tavan + düzeltme payı
 		visited[d.path] = listed
 		switch {
-		case !listed && d.line > layoutrules.FileLimit:
-			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", d.path, d.line, layoutrules.FileLimit)
+		case !listed && d.line > max:
+			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", d.path, d.line, max)
 		case listed && d.line <= layoutrules.FileLimit:
 			t.Errorf("%s: artık %d satır; layoutrules.BigFiles listesinden çıkarın (liste yalnızca küçülür)", d.path, d.line)
-		case listed && d.line > ceiling+layoutrules.FixMargin(ceiling):
-			t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna dosyası bölünmeli", d.path, d.line, ceiling, layoutrules.FixMargin(ceiling))
+		case listed && d.line > max:
+			t.Errorf("%s: %d satır, istisna sınırı %d (tavan %d + düzeltme payı); büyüyen istisna dosyası bölünmeli", d.path, d.line, max, layoutrules.BigFiles[d.path])
 		}
 	}
 	checkExceptions(t, "BigFiles", layoutrules.BigFiles, bigFileReasons, layoutrules.MaxBigFiles, visited)
@@ -301,17 +301,17 @@ func TestLayoutFuncSize(t *testing.T) {
 			}
 			n := layoutrules.FuncLines(d.fset, fd)
 			key := d.path + ":" + layoutrules.FuncName(fd)
-			ceiling, listed := layoutrules.LongFuncs[key]
+			max, listed := layoutrules.FuncMax(key) // listede değilse FuncLimit, istisnaysa tavan + düzeltme payı
 			if listed {
 				visited[key] = true
 			}
 			switch {
-			case !listed && n > layoutrules.FuncLimit:
-				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/development.md)", key, n, layoutrules.FuncLimit)
+			case !listed && n > max:
+				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/development.md)", key, n, max)
 			case listed && n <= layoutrules.FuncLimit:
 				t.Errorf("%s: artık %d satır; layoutrules.LongFuncs listesinden çıkarın (liste yalnızca küçülür)", key, n)
-			case listed && n > ceiling+layoutrules.FixMargin(ceiling):
-				t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna fonksiyonu bölünmeli", key, n, ceiling, layoutrules.FixMargin(ceiling))
+			case listed && n > max:
+				t.Errorf("%s: %d satır, istisna sınırı %d (tavan %d + düzeltme payı); büyüyen istisna fonksiyonu bölünmeli", key, n, max, layoutrules.LongFuncs[key])
 			}
 		}
 	}
