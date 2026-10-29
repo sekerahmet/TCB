@@ -1,16 +1,8 @@
 package internal_test
 
-// Kod düzeni standardının bugünkü istisnaları (kurallar: layout_test.go, docs/development.md).
-//
-// Listeler YALNIZCA KÜÇÜLEBİLİR: bir dosya ya da fonksiyon sınırın altına inince kaydı
-// silinir ve en fazla sayısı (max...) aynı miktarda azaltılır. Yeni kayıt eklenmez;
-// tavan yükseltilmez (küçük düzeltmeler için tavanın %10'u, en az 5 satır pay vardır; bkz. fixMargin). Taşınan bir fonksiyonun anahtarı değişirse eski kayıt silinip yenisi
-// aynı tavanla yazılabilir (sayı artmaz).
-
-type exception struct {
-	ceiling int    // bugünkü satır sayısı; istisna bundan uzun olamaz
-	reason  string // neden şimdilik bölünmediği
-}
+// Kod düzeni istisnalarının gerekçeleri (tavanları: internal/layoutrules/exceptions.go). Her kaydın bir gerekçesi
+// vardır, gerekçesi olan her kayıt listededir (checkExceptions). Gerekçe geliştiricinin notudur, metin sabiti olarak
+// burada (test dosyası) durur: kural paketi yalnızca sayıları taşır.
 
 // Ortak gerekçeler.
 const (
@@ -24,58 +16,54 @@ const (
 	reasonTokenizer = "parçalayıcı/düzenli ifade çekirdeği (veri ve parçalayıcı sahibinin alanı): başvuru uygulamasıyla birebir; hız ölçümüyle bölünmeli"
 )
 
-const maxBigFiles = 5
-
-// bigFiles fileLimit'i aşan el yazımı dosyalardır (üretilmiş dosyalar sayılmaz).
-var bigFiles = map[string]exception{
-	"internal/compute/tokenize/regex.go":          {915, "düzenli ifade ayrıştırıcısı ve sınıf tabloları; " + reasonTokenizer},
-	"internal/compute/tokenize/regex_match.go":    {615, "düzenli ifade eşleştiricisi; " + reasonTokenizer},
-	"internal/compute/tokenize/tokenizer_test.go": {737, "altın çıktı testleri ve kıyaslar (veri ve parçalayıcı sahibinin alanı); model türüne göre bölünebilir"},
-	"internal/compute/tensor/cpu_backend.go":      {737, "CPU arka ucunun işlem tabloları ve döngüleri; " + reasonKernel},
-	"internal/compute/dataload/cache.go":          {795, "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir"},
+// bigFileReasons layoutrules.BigFiles'ın gerekçeleridir.
+var bigFileReasons = map[string]string{
+	"internal/compute/tokenize/regex.go":          "düzenli ifade ayrıştırıcısı ve sınıf tabloları; " + reasonTokenizer,
+	"internal/compute/tokenize/regex_match.go":    "düzenli ifade eşleştiricisi; " + reasonTokenizer,
+	"internal/compute/tokenize/tokenizer_test.go": "altın çıktı testleri ve kıyaslar (veri ve parçalayıcı sahibinin alanı); model türüne göre bölünebilir",
+	"internal/compute/tensor/cpu_backend.go":      "CPU arka ucunun işlem tabloları ve döngüleri; " + reasonKernel,
+	"internal/compute/dataload/cache.go":          "önbellek durum makinesi ve kilitleri tek tipte (veri sahibinin alanı); getir/yaz/temizle olarak bölünebilir",
 }
 
-const maxLongFuncs = 40
-
-// longFuncs funcLimit'i aşan test dışı fonksiyonlardır ("dosya:Alici.Ad").
-var longFuncs = map[string]exception{
+// longFuncReasons layoutrules.LongFuncs'ın gerekçeleridir.
+var longFuncReasons = map[string]string{
 	// Dil çekirdeği
-	"internal/lang/interp/compiler_loop.go:compiler.inLoop":     {172, reasonHotPath + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)"},
-	"internal/lang/interp/compiler_expr.go:compiler.expression": {168, reasonDispatch},
-	"internal/lang/interp/compiler_op.go:compiler.binary":       {132, reasonHotPath + " (işleç başına tam sayı/ondalık hızlı yolları)"},
-	"internal/lang/interp/compiler_call.go:compiler.call":       {95, reasonHotPath + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)"},
-	"internal/lang/interp/operators.go:valuesEqual":             {90, reasonDispatch + " (değer tipi başına eşitlik)"},
-	"internal/lang/interp/methods.go:setupListMethods":          {88, reasonTable},
-	"internal/lang/checker/checker.go:Checker.checkStatement":   {147, reasonDispatch},
-	"internal/lang/checker/checker.go:Checker.inferExpression":  {115, reasonDispatch},
-	"internal/lang/codes/language.go:load":                      {160, reasonRead + " (dil dosyası)"},
-	"internal/lang/codes/definition.go:CheckDefinitions":        {113, reasonRead + " (tanım dosyasının tutarlılık denetimleri)"},
-	"internal/lang/codes/definition.go:ParseDefinitions":        {96, reasonRead + " (tanım dosyası)"},
+	"internal/lang/interp/compiler_loop.go:compiler.inLoop":     reasonHotPath + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)",
+	"internal/lang/interp/compiler_expr.go:compiler.expression": reasonDispatch,
+	"internal/lang/interp/compiler_op.go:compiler.binary":       reasonHotPath + " (işleç başına tam sayı/ondalık hızlı yolları)",
+	"internal/lang/interp/compiler_call.go:compiler.call":       reasonHotPath + " (yerleşik, metot ve fonksiyon çağrısının hızlı yolları)",
+	"internal/lang/interp/operators.go:valuesEqual":             reasonDispatch + " (değer tipi başına eşitlik)",
+	"internal/lang/interp/methods.go:setupListMethods":          reasonTable,
+	"internal/lang/checker/checker.go:Checker.checkStatement":   reasonDispatch,
+	"internal/lang/checker/checker.go:Checker.inferExpression":  reasonDispatch,
+	"internal/lang/codes/language.go:load":                      reasonRead + " (dil dosyası)",
+	"internal/lang/codes/definition.go:CheckDefinitions":        reasonRead + " (tanım dosyasının tutarlılık denetimleri)",
+	"internal/lang/codes/definition.go:ParseDefinitions":        reasonRead + " (tanım dosyası)",
 
 	// Araçlar
-	"internal/devtools/debugger/debugger.go:Debugger.promptCLI": {187, reasonDispatch + " (terminal hata ayıklayıcısının komutları)"},
-	"internal/devtools/formatter/format.go:format":              {119, "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde"},
-	"tools/gen/codesdoc/main.go:Generate":                       {151, reasonGenerator},
-	"tools/gen/grammar/main.go:Generate":                        {107, reasonGenerator},
-	"tools/bench/go/compare.go:main":                            {92, reasonGenerator + " (kıyas programları sırayla)"},
+	"internal/devtools/debugger/debugger.go:Debugger.promptCLI": reasonDispatch + " (terminal hata ayıklayıcısının komutları)",
+	"internal/devtools/formatter/format.go:format":              "biçimlendiricinin sözcük birimi döngüsü: girinti ve boşluk durumu tek döngüde",
+	"tools/gen/codesdoc/main.go:Generate":                       reasonGenerator,
+	"tools/gen/grammar/main.go:Generate":                        reasonGenerator,
+	"tools/bench/go/compare.go:main":                            reasonGenerator + " (kıyas programları sırayla)",
 
 	// Motorlar
-	"internal/stdlib/ml/custom_grad.go:checkGrad":     {181, reasonBuiltin + " (sayısal türev denetimi)"},
-	"internal/stdlib/ml/print.go:TensorValue.Text":    {120, "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede"},
-	"internal/stdlib/ml/model_tools.go:sampleBuiltin": {118, reasonBuiltin},
-	"internal/stdlib/ml/builtin_reduce.go:reduction":  {85, reasonBuiltin},
+	"internal/stdlib/ml/custom_grad.go:checkGrad":     reasonBuiltin + " (sayısal türev denetimi)",
+	"internal/stdlib/ml/print.go:TensorValue.Text":    "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede",
+	"internal/stdlib/ml/model_tools.go:sampleBuiltin": reasonBuiltin,
+	"internal/stdlib/ml/builtin_reduce.go:reduction":  reasonBuiltin,
 
 	// Hesap çekirdekleri
-	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": {146, reasonKernel},
-	"internal/compute/tensor/cpu_matmul.go:gemmPart":                   {115, reasonKernel},
-	"internal/compute/tensor/autograd.go:Tensor.BackwardCtx":           {89, reasonKernel},
-	"internal/compute/tensor/cpu_backend.go:cpuBackend.f32BinaryGrad":  {85, reasonKernel},
-	"internal/compute/tensor/cpu_backend.go:unaryGradLoop":             {81, reasonKernel},
-	"internal/compute/tokenize/regex_match.go:reMatcher.run":           {167, reasonTokenizer},
-	"internal/compute/tokenize/tokenizer.go:Parse":                     {131, reasonRead + " (tokenizer.json)"},
-	"internal/compute/tokenize/regex.go:reParser.group":                {103, reasonTokenizer},
-	"internal/compute/tokenize/model_bpe.go:newBPE":                    {99, reasonTokenizer},
-	"internal/compute/tokenize/model_other.go:unigram.encode":          {96, reasonTokenizer},
-	"internal/compute/tokenize/regex.go:reParser.classInner":           {89, reasonTokenizer},
-	"internal/compute/dataload/cache.go:cacheCore.fetch":               {112, "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)"},
+	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": reasonKernel,
+	"internal/compute/tensor/cpu_matmul.go:gemmPart":                   reasonKernel,
+	"internal/compute/tensor/autograd.go:Tensor.BackwardCtx":           reasonKernel,
+	"internal/compute/tensor/cpu_backend.go:cpuBackend.f32BinaryGrad":  reasonKernel,
+	"internal/compute/tensor/cpu_backend.go:unaryGradLoop":             reasonKernel,
+	"internal/compute/tokenize/regex_match.go:reMatcher.run":           reasonTokenizer,
+	"internal/compute/tokenize/tokenizer.go:Parse":                     reasonRead + " (tokenizer.json)",
+	"internal/compute/tokenize/regex.go:reParser.group":                reasonTokenizer,
+	"internal/compute/tokenize/model_bpe.go:newBPE":                    reasonTokenizer,
+	"internal/compute/tokenize/model_other.go:unigram.encode":          reasonTokenizer,
+	"internal/compute/tokenize/regex.go:reParser.classInner":           reasonTokenizer,
+	"internal/compute/dataload/cache.go:cacheCore.fetch":               "önbellekten getirme: kilit, bayatlık ve kopyalama durumları tek akışta (veri sahibinin alanı)",
 }

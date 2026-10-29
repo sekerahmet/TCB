@@ -23,6 +23,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
 | `cmd/tr` | `tr` komutu | hepsi (`internal/reporoot` dışında) |
 | `internal/sysmem` | Makinenin fiziksel belleği sorgusu | hiçbiri |
+| `internal/layoutrules` | Dosya ve fonksiyon boyu sınırlarının tek kaynağı (düzen testleri ve araçlar okur) | hiçbiri |
 | `internal/reporoot`, `lib` | Testlerin depo kökü yardımcısı; kitaplığın gömme dosyası | hiçbiri |
 | `tools/**` | Depo bakım araçları | `internal/**`, `lib` |
 

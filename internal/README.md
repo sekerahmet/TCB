@@ -14,6 +14,7 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 | Geliştirici araçları | `devtools/` | Hata ayıklayıcı, profilci, biçimlendirici, test çalıştırıcı, kod dizini, Go modül yükleyici (`tools/impact` ve `tools/codegraph` ortak kullanır) | `lang/`, `compute/`, `stdlib/`, `devtools/` |
 | Sistem belleği | `sysmem/` | Makinenin toplam fiziksel belleğini işletim sisteminden okuma | hiçbir iç paket |
 | Test yardımcısı | `reporoot/` | Testlerin depo kökünü bulması | hiçbir iç paket |
+| Düzen kuralları | `layoutrules/` | Dosya ve fonksiyon boyu sınırlarının ve istisnalarının tek kaynağı (düzen testleri ve `tools/codegraph` okur) | hiçbir iç paket |
 | Test yardımcısı | `testkit/`, `testkit/trrun/` | Paketler arası ortak test yardımcıları (dosya yazma, ikili çalıştırma, TR programı çalıştırma) | `testkit`: yalnızca `reporoot`; `trrun`: `lang/` |
 
 `cmd/tr` hepsini, `tools/` bütün `internal/`'ı ve araçların ortak yardımcılarını (`tools/internal/`: `repodir`) kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
@@ -32,9 +33,9 @@ Denetim: `layers_test.go` (`TestLayerRule`, `TestLangOrder`, `TestExternalDepend
 
 - **Adlar küçük harf ASCII'dir:** harf, rakam ve `_` (`compiler_loop.go`, `builtin_reduce.go`). Go'nun ekleri olduğu gibi kullanılır (`_test`, `_windows`, `_unix`, `_amd64`). Denetim: `TestLayoutFileNames`.
 - **Dosya başına tek konu.** Konusu birden çok olan dosya bölünür: `compiler_stmt.go`, `compiler_loop.go`, `compiler_call.go`.
-- **Dosya en çok ~600 satır** (testler dahil, üretilmiş dosyalar hariç). Denetim: `TestLayoutFileSize`.
-- **Fonksiyon en çok ~80 satır** (`func` satırından kapanış parantezine; test fonksiyonları hariç). Uzun bir `switch` dallarına, uzun bir kayıt listesi tabloya, uzun bir akış adımlarına bölünür. Denetim: `TestLayoutFuncSize`.
-- **İstisnalar** gerekçeleriyle `layout_exceptions_test.go`'dadır ve **yalnızca küçülür**: sınırın altına inen kayıt silinir, yeni kayıt eklenmez, tavan yükseltilmez. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
+- **Dosya boyu sınırlıdır** (testler dahil, üretilmiş dosyalar hariç). Sınır `layoutrules.FileLimit`'tir ([`layoutrules/layoutrules.go`](layoutrules/layoutrules.go)); sayı yalnız orada yazılır. Denetim: `TestLayoutFileSize`.
+- **Fonksiyon boyu sınırlıdır** (`func` satırından kapanış parantezine; test fonksiyonları hariç). Sınır `layoutrules.FuncLimit`'tir. Uzun bir `switch` dallarına, uzun bir kayıt listesi tabloya, uzun bir akış adımlarına bölünür. Denetim: `TestLayoutFuncSize`.
+- **İstisnalar** tavanlarıyla [`layoutrules/exceptions.go`](layoutrules/exceptions.go)'da, gerekçeleriyle `layout_exceptions_test.go`'dadır ve **yalnızca küçülür**: sınırın altına inen kayıt silinir, yeni kayıt eklenmez, tavan yükseltilmez. Sıcak yoldaki bir fonksiyon (yorumlayıcı döngüsü, hesap çekirdeği) ancak önce/sonra hız ölçümüyle bölünür.
 - **Taşıma ile davranış değişikliği ayrı commit'lerdir.** Bölünen dosyada fonksiyon gövdeleri değiştirilmez, yalnızca taşınır; değişiklik geçmişte izlenebilir kalır.
 
 ## Paket belgesi ve README
@@ -203,7 +204,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Ortam değişkeni adları | `internal/layout_test.go` (`TestLayoutEnvVarNames`) |
 | Go adları MixedCaps (C tarzı BÜYÜK_HARFLİ ad yok) | `internal/go_names_test.go` (`TestGoNamesMixedCaps`) |
 | Go metninde kullanıcıya görünen Türkçe metin yok | `internal/turkish_literals_test.go` (`TestNoTurkishLiterals`) |
-| Dosya ve fonksiyon boyu | `internal/layout_test.go`, istisnalar `internal/layout_exceptions_test.go` |
+| Dosya ve fonksiyon boyu | `internal/layout_test.go`; sınırlar ve istisnaların tavanları `internal/layoutrules`, gerekçeleri `internal/layout_exceptions_test.go` |
 | Test dosyası düzeni | `internal/layout_test.go` (`TestTestFileMatchesSource`) |
 | README'lerdeki `Denetim:` ve `Kural`/`Test` tablosu satırlarının ve dil tanımındaki `*Test:*` satırlarının andığı test işlevleri ve dosyaları depoda var | `internal/rule_tests_test.go` (`TestRuleTestsExist`) |
 | Kullanıcıya görünen adlar koddan | `tools/gen/codeconsts` (`TestNoBareNames`) |

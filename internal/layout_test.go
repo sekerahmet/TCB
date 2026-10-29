@@ -13,19 +13,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/layoutrules"
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // Kod düzeni standardı (docs/development.md): küçük dosyalar, kısa fonksiyonlar, Türkçe adlar,
 // her pakette görev ve katman belgesi, üretilmiş dosyalarda standart başlık. Bu dosya
-// kuralları, layout_exceptions_test.go bugünkü istisnaları tutar. İstisna listeleri
+// kuralları, internal/layoutrules bugünkü istisnaları tutar. İstisna listeleri
 // yalnızca küçülebilir: listedeki bir dosya ya da fonksiyon sınırın altına inince
-// listeden çıkarılmalıdır, yeni bir kayıt eklenemez (en fazla sayıları sabittir).
-
-const (
-	fileLimit = 600 // el yazımı bir dosyanın en fazla satırı
-	funcLimit = 80  // test dışı bir fonksiyonun en fazla satırı (func satırından kapanışa)
-)
+// listeden çıkarılmalıdır, yeni bir kayıt eklenemez (en fazla sayıları sabittir). Boyut sınırları ve istisnaları
+// internal/layoutrules'tadır (tek kaynak: kod grafiği de düzenleme anında onları gösterir).
 
 // layoutRoots Go kodunun bulunduğu klasörlerdir (depo köküne göre).
 var layoutRoots = []string{"cmd", "internal", "lib", "tools"}
@@ -44,6 +41,7 @@ var layerDoc = []struct{ prefix, line string }{
 	{"internal/testkit", "Layer: test helper (internal/testkit)"},
 	{"internal/reporoot", "Layer: test helper (internal/reporoot)"},
 	{"internal/sysmem", "Layer: system memory (internal/sysmem)"},
+	{"internal/layoutrules", "Layer: layout rules (internal/layoutrules)"},
 	{"cmd/", "Layer: command (cmd)"},
 	{"lib", "Layer: TR library (lib)"},
 	{"tools/", "Layer: tools (tools)"},
@@ -268,28 +266,28 @@ func TestLayoutEnvVarNames(t *testing.T) {
 	}
 }
 
-// El yazımı dosyalar en fazla fileLimit satırdır; mevcut istisnalar listededir ve büyüyemez.
+// El yazımı dosyalar en fazla layoutrules.FileLimit satırdır; mevcut istisnalar listededir ve büyüyemez.
 func TestLayoutFileSize(t *testing.T) {
 	visited := map[string]bool{}
 	for _, d := range goFiles(t) {
 		if d.generated {
 			continue
 		}
-		exc, listed := bigFiles[d.path]
+		ceiling, listed := layoutrules.BigFiles[d.path]
 		visited[d.path] = listed
 		switch {
-		case !listed && d.line > fileLimit:
-			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", d.path, d.line, fileLimit)
-		case listed && d.line <= fileLimit:
-			t.Errorf("%s: artık %d satır; bigFiles listesinden çıkarın (liste yalnızca küçülür)", d.path, d.line)
-		case listed && d.line > exc.ceiling+fixMargin(exc.ceiling):
-			t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna dosyası bölünmeli", d.path, d.line, exc.ceiling, fixMargin(exc.ceiling))
+		case !listed && d.line > layoutrules.FileLimit:
+			t.Errorf("%s: %d satır (sınır %d); dosyayı konularına göre bölün (docs/development.md)", d.path, d.line, layoutrules.FileLimit)
+		case listed && d.line <= layoutrules.FileLimit:
+			t.Errorf("%s: artık %d satır; layoutrules.BigFiles listesinden çıkarın (liste yalnızca küçülür)", d.path, d.line)
+		case listed && d.line > ceiling+layoutrules.FixMargin(ceiling):
+			t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna dosyası bölünmeli", d.path, d.line, ceiling, layoutrules.FixMargin(ceiling))
 		}
 	}
-	checkExceptions(t, "bigFiles", len(bigFiles), maxBigFiles, visited, bigFiles)
+	checkExceptions(t, "BigFiles", layoutrules.BigFiles, bigFileReasons, layoutrules.MaxBigFiles, visited)
 }
 
-// Test dışı fonksiyonlar en fazla funcLimit satırdır; mevcut istisnalar listededir.
+// Test dışı fonksiyonlar en fazla layoutrules.FuncLimit satırdır; mevcut istisnalar listededir.
 func TestLayoutFuncSize(t *testing.T) {
 	visited := map[string]bool{}
 	for _, d := range goFiles(t) {
@@ -303,21 +301,21 @@ func TestLayoutFuncSize(t *testing.T) {
 			}
 			n := d.fset.Position(fd.End()).Line - d.fset.Position(fd.Pos()).Line + 1
 			key := d.path + ":" + funcName(fd)
-			exc, listed := longFuncs[key]
+			ceiling, listed := layoutrules.LongFuncs[key]
 			if listed {
 				visited[key] = true
 			}
 			switch {
-			case !listed && n > funcLimit:
-				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/development.md)", key, n, funcLimit)
-			case listed && n <= funcLimit:
-				t.Errorf("%s: artık %d satır; longFuncs listesinden çıkarın (liste yalnızca küçülür)", key, n)
-			case listed && n > exc.ceiling+fixMargin(exc.ceiling):
-				t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna fonksiyonu bölünmeli", key, n, exc.ceiling, fixMargin(exc.ceiling))
+			case !listed && n > layoutrules.FuncLimit:
+				t.Errorf("%s: %d satır (sınır %d); fonksiyonu bölün (docs/development.md)", key, n, layoutrules.FuncLimit)
+			case listed && n <= layoutrules.FuncLimit:
+				t.Errorf("%s: artık %d satır; layoutrules.LongFuncs listesinden çıkarın (liste yalnızca küçülür)", key, n)
+			case listed && n > ceiling+layoutrules.FixMargin(ceiling):
+				t.Errorf("%s: %d satır, istisna tavanı %d (+%d düzeltme payı); büyüyen istisna fonksiyonu bölünmeli", key, n, ceiling, layoutrules.FixMargin(ceiling))
 			}
 		}
 	}
-	checkExceptions(t, "longFuncs", len(longFuncs), maxLongFuncs, visited, longFuncs)
+	checkExceptions(t, "LongFuncs", layoutrules.LongFuncs, longFuncReasons, layoutrules.MaxLongFuncs, visited)
 }
 
 func funcName(fd *ast.FuncDecl) string {
@@ -338,16 +336,22 @@ func funcName(fd *ast.FuncDecl) string {
 }
 
 // checkExceptions istisna listesinin sabit üst sınırı aşmadığını, her kaydın gerekçeli
-// olduğunu ve artık var olmayan kayıt bulunmadığını denetler.
-func checkExceptions(t *testing.T, list string, size, maxCount int, visited map[string]bool, records map[string]exception) {
+// olduğunu (gerekçeler layout_exceptions_test.go'da; gerekçesi olan her kayıt listede) ve artık var olmayan kayıt
+// bulunmadığını denetler.
+func checkExceptions(t *testing.T, list string, records map[string]int, reasons map[string]string, maxCount int, visited map[string]bool) {
 	t.Helper()
-	if size > maxCount {
-		t.Errorf("%s: %d kayıt, en fazla %d; istisna listesi büyüyemez", list, size, maxCount)
+	if len(records) > maxCount {
+		t.Errorf("%s: %d kayıt, en fazla %d; istisna listesi büyüyemez", list, len(records), maxCount)
+	}
+	for k := range reasons {
+		if _, ok := records[k]; !ok {
+			t.Errorf("%s: %s gerekçesi var ama kaydı yok; gerekçeyi layout_exceptions_test.go'dan silin", list, k)
+		}
 	}
 	var missing []string
-	for k, exc := range records {
-		if exc.reason == "" {
-			t.Errorf("%s: %s kaydının gerekçesi yok", list, k)
+	for k := range records {
+		if reasons[k] == "" {
+			t.Errorf("%s: %s kaydının gerekçesi yok (layout_exceptions_test.go)", list, k)
 		}
 		if !visited[k] {
 			missing = append(missing, k)
@@ -357,16 +361,6 @@ func checkExceptions(t *testing.T, list string, size, maxCount int, visited map[
 	for _, k := range missing {
 		t.Errorf("%s: %s bulunamadı (taşındı ya da silindi); listeden çıkarın", list, k)
 	}
-}
-
-// fixMargin bir istisnanın tavanını aşmadan alabileceği küçük büyümedir (tavanın %10'u,
-// en az 5 satır): hata düzeltmesi gibi küçük değişiklikler bölmeyi zorunlu kılmasın; kalıcı
-// büyüme yine bölmeyi gerektirir.
-func fixMargin(ceiling int) int {
-	if p := ceiling / 10; p > 5 {
-		return p
-	}
-	return 5
 }
 
 // testFileRuleRoots are the trees where the test file layout below is enforced. The list grows
