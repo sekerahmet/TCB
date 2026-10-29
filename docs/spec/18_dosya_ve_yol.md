@@ -35,7 +35,7 @@ Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 - **Kalıp** `/` ile ayrılmış bileşenlerdir. Bir bileşenin içinde `*` sıfır ya da çok karakter, `?` tek karakter, `[a-z]`, `[!a-z]` ve `[^a-z]` karakter kümesidir; `**` yalnız tam bir bileşen olarak sıfır ya da çok klasör eşler (sonda: alttaki her şey). `{a,b}` seçeneği yoktur.
 - **Eşleme her sistemde harf büyüklüğüne duyarlıdır:** `"*.jpg"` `A.JPG`'yi eşlemez. Aynı klasörde aynı program her sistemde aynı listeyi verir. Kameraların `.JPG` gibi büyük harfli uzantıları için `TR_ignore_case: TR_true` her sistemde harf büyüklüğüne bakmadan eşler.
 - Noktayla başlayan adlar, kalıbın o bileşeni de noktayla başlamadıkça listelenmez. `**` gizli klasörlere ve klasör bağlantılarının içine girmez (döngü olmaz); adıyla yazılmış bir bağlantının içine girilir.
-- Sonuçlar klasörün verildiği biçimle başlar: `TR_list_dir("veri", "*.npy")` → `[veri/a.npy, ...]`; mutlak klasörde mutlak yollar. Göreli klasör çalışma klasörünün dışında bulunduysa (18.16'nın okuma sırası) sonuçlar **mutlak** yollardır: sonuçlar değiştiren bir işe (`TR_remove`) verilince başka bir klasördeki aynı adlı dosyayı göstermez.
+- Sonuçlar klasörün verildiği biçimle başlar: `TR_list_dir("veri", "*.npy")` → `[veri/a.npy, ...]`; mutlak klasörde mutlak yollar. Göreli klasör 18.16'nın okuma sırasının ilk yerinde (çalışma klasöründe) bulunmadıysa sonuçlar **mutlak** yollardır: sonuçlar değiştiren bir işe (`TR_remove`) verilince başka bir klasördeki aynı adlı dosyayı göstermez.
 - Mutlak kalıp, `..` içeren kalıp, `a**` gibi yarım `**`, kapanmayan `[`, boş kalıp, olmayan klasör ve klasör yerine dosya hatadır. Okunamayan bir alt klasör atlanır ve tek bir uyarı yazılır.
 - *Test:* TR testi; harf büyüklüğüne duyarlı eşleme uygulanınca TR testi.
 
@@ -119,6 +119,6 @@ TR_print(TR_list_dir(k).TR_length) # program bitince k silinir
 - `.TR_write(satır)` bir `TR_String` satırını ve ardından `\n` yazar. Satır sonu (`\n` ya da `\r`) içeren satır hatadır: her `.TR_write` tam bir satırdır, JSONL gibi satır biçimleri bozulmaz.
 - Yazma atomiktir (18.13): satırlar aynı klasördeki geçici bir dosyaya gider, `.TR_close()`'ta diske işlenir ve yerine konur. Program yazıcı açıkken başarıyla biterse yazıcı kapanır ve dosya yerine konur; hatayla ya da durdurmayla biterse geçici dosya silinir, var olan dosya değişmez.
 - `.TR_close()` 18.15'teki gibidir; kapatılmış yazıcıya yazmak hatadır. Yazıcıyı kapatmak için `TR_defer` kullanılır (9.1).
-- Yazıcı açıkken aynı programda o yolu okumak (`TR_read_file`, `TR_read_lines`, `TR_read_csv`) ve o yola ikinci bir yazıcı açmak ya da yazmak hatadır: dosyanın yerinde henüz eski içerik vardır; ileti yazıcıyı önce kapatmayı söyler.
+- Yazıcı açıkken aynı programda yazıcının yazma kuralıyla çözülen yolunu (çalışma klasöründeki dosyayı) gösteren bir okuma (`TR_read_file`, `TR_read_lines`, `TR_read_csv`) ve o yola ikinci bir yazıcı açmak ya da yazmak hatadır: dosyanın yerinde henüz eski içerik vardır; ileti yazıcıyı önce kapatmayı söyler. Göreli okuma sırası o dosyada durur, başka klasördeki aynı adlı dosyaya geçmez; o dosya ancak mutlak yolla okunur.
 - Yazma yorumlayıcı kilidini diske işlerken bırakır; aynı yazıcıya yazan görevlerin her satırı bütün yazılır, satırların sırası 10.8'e göre tanımsızdır.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
