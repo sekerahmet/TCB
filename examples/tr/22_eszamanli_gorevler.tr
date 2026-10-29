@@ -24,5 +24,5 @@ TR_wait_all()
 TR_print("biten görev sayısı: \(biten)")
 
 # --- Kendin dene ---
-# 1. bekle(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?
+# 1. uyu(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?
 # 2. 1..=1000 sayılarının toplamını 10 eşzamanlı görevde parçalara bölerek hesapla.

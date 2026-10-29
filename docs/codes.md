@@ -1823,14 +1823,14 @@ yazdır(sinh(1.0), sinh(Tensör([0.0, 1.0])).değer)
 
 İlişkili: TR_fn_cosh `cosh`, TR_fn_tanh `tanh`
 
-#### TR_fn_sleep `bekle`
+#### TR_fn_sleep `uyu`
 
-    bekle(Tam | Ondalık) → Mantık
+    uyu(Tam | Ondalık) → Mantık
 
 Verilen saniye kadar bekler ve doğru döndürür; beklerken yorumlayıcı kilidini bırakır, öbür görevler ilerler.
 
 ```tr
-bekle(0.1); yazdır("0.1 saniye geçti")
+uyu(0.1); yazdır("0.1 saniye geçti")
 ```
 
 İlişkili: TR_fn_wait_all `bekle_hepsi`, TR_fn_time_ms `zaman_ms`
@@ -1974,10 +1974,10 @@ değişken k = geçici_klasör(); dosya_yaz(Yol(k, "not.txt"), "x"); yazdır(Yol
 Şimdiki zamanı 1970'ten bu yana geçen milisaniye olarak Tam verir; süre ölçmek için kullanılır.
 
 ```tr
-değişken baş = zaman_ms(); bekle(0.05); yazdır(zaman_ms() - baş >= 50)
+değişken baş = zaman_ms(); uyu(0.05); yazdır(zaman_ms() - baş >= 50)
 ```
 
-İlişkili: TR_fn_sleep `bekle`
+İlişkili: TR_fn_sleep `uyu`
 
 #### TR_fn_topk `en_büyük_k`
 
@@ -2001,7 +2001,7 @@ Başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru dönd
 değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s)
 ```
 
-İlişkili: TR_kw_async `eşzamanlı`, TR_fn_sleep `bekle`
+İlişkili: TR_kw_async `eşzamanlı`, TR_fn_sleep `uyu`
 
 #### TR_fn_where `koşullu`
 

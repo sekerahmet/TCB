@@ -1,7 +1,7 @@
 # TR 4
 # docs/spec/10_eszamanlilik.md §10 — Eşzamanlılık ve yorumlayıcı kilidi
 
-TR_test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" {
+TR_test "10.1 eşzamanlı blok ve çağrı biçimi görev başlatır" {
     TR_var sonuçlar = []
     TR_async { sonuçlar.TR_append("blok") }
     TR_func iş(x) { sonuçlar.TR_append(x) }
@@ -9,6 +9,17 @@ TR_test "10.1 eşzamanlı blok ve çağrı biçimi; bekle_hepsi hepsini bekler" 
     TR_wait_all()
     TR_assert_equal(2, sonuçlar.TR_length)
     TR_assert(sonuçlar.TR_contains("blok") TR_and sonuçlar.TR_contains("çağrı"))
+}
+
+TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
+    TR_var bitenler = []
+    TR_func iş(x) {
+        TR_sleep(0.01)
+        bitenler.TR_append(x)
+    }
+    TR_for i TR_in 0..3 { TR_async iş(i) }
+    TR_wait_all()
+    TR_assert_equal(3, bitenler.TR_length)
 }
 
 TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
@@ -20,10 +31,10 @@ TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
     TR_assert_equal(20100, birikim)
 }
 
-TR_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
-    # Duvar saatine bakılmaz: ana görev bekle() ile kilidi bırakmazsa görev hiç çalışamaz.
+TR_test "10.3 uyu(sn) kilidi bırakır; görevler iç içe ilerler" {
+    # Duvar saatine bakılmaz: ana görev uyu() ile kilidi bırakmazsa görev hiç çalışamaz.
     # Tur sayısı 256'dan azdır, döngünün kilit devrine (10.2) güvenilmez; görevin bayrağı
-    # yalnızca bekle() kilidi bıraktığı için görülebilir.
+    # yalnızca uyu() kilidi bıraktığı için görülebilir.
     TR_var görev_çalıştı = TR_false
     TR_async { görev_çalıştı = TR_true }
     TR_var tur = 0
@@ -31,7 +42,7 @@ TR_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
         TR_sleep(0.001)
         tur += 1
     }
-    TR_assert(görev_çalıştı, "ana görev bekle() ile kilidi bıraktığı hâlde görev çalışamadı")
+    TR_assert(görev_çalıştı, "ana görev uyu() ile kilidi bıraktığı hâlde görev çalışamadı")
     # Bekleyen görevler iç içe ilerler: her görev, öbürleri beklerken sırasını alır.
     TR_var iz = []
     TR_for i TR_in 1..=3 {
@@ -49,7 +60,7 @@ TR_test "10.3 bekle(sn) kilidi bırakır; görevler iç içe ilerler" {
     TR_assert_equal(3, ilk_bitiş, TR_String(iz))
 }
 
-TR_test "10.3 bekle() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
+TR_test "10.3 uyu() negatif, sayı olmayan ya da aşırı uzun süreyi reddeder" {
     TR_assert_equal("H2433", TR_error_code { TR_sleep(-5) })
     TR_assert_equal("H2433", TR_error_code { TR_sleep(TR_Float("nan")) })
     TR_assert_equal("H2434", TR_error_code { TR_sleep(1e300) })

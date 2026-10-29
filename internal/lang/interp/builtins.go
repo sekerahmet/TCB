@@ -233,8 +233,8 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	return True, nil
 }
 
-// sleepBuiltin bekle() yerleşiğidir.
-// maxSleepSeconds is the longest bekle(): the largest time.Duration, about 292 years.
+// sleepBuiltin uyu() yerleşiğidir.
+// maxSleepSeconds is the longest uyu(): the largest time.Duration, about 292 years.
 const maxSleepSeconds = float64(math.MaxInt64) / float64(time.Second)
 
 func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {

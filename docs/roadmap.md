@@ -27,7 +27,8 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 - **Hash:** sha256 ve hızlı hash'ler (xxhash gibi); yinelenen veriyi ayıklamak, veri kümesinin doğrulanması, önbellek anahtarı. Sarılan aritmetik (3.1) TR'de yazmayı mümkün kılar, hazır yerleşik hızı verir.
 - **Düzenli ifade:** metin temizleme ve parçalayıcının ön ayırması (GPT tarzı ön bölme).
 - **Unicode normalleştirmesi:** NFC ve NFKC; parçalayıcı eğitimi ve metin hazırlama.
-- **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır (tasarım yönteminin açık konusu).
+- **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır (tasarım yönteminin açık konusu). Yorumlayıcı kilidinin gecikmesi 10.2'nin kuralıdır (süreyle devir); ölçümü de buraya girer.
+- **Süreçlerle paralellik** (2026-10-29, 10'un tartısı): TR koduyla yazılmış veri temizleme ve süzme yorumlayıcı kilidi yüzünden tek çekirdekte kalır; işi süreçlere bölmek (Python'un `multiprocessing`'i gibi). Amacın 1. işi ister.
 - **Bayttan sayı okuma ve yazma** (bayt sırasıyla; 3.3a) ve CSV yazmak, yüzdelik gibi küçük yerleşikler; ilgili bölümler (16, 18, 13) yazılırken.
 - **Veriyi toplamak ve temizlemek** (2026-10-29, 16'nın tartısı): yinelenen veriyi ayıklamak (hash ile), süzmek, Unicode normalleştirmesi, metni dosyadan ve ağdan toplamak. 16 parçalayıcıyı ve veri parçalarını yazar; toplama ve temizleme 13'ün metin ve liste işleriyle, yukarıdaki hash, düzenli ifade ve normalleştirmeyle yazılır.
 - **Dağıtık eğitim:** birçok GPU ve kümede eğitim, verinin süreçler arasında bölünmesi (örnekleyicinin sıra ve sayı argümanı). Amacın 2. işi ister.

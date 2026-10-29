@@ -189,7 +189,7 @@ const (
 	FnSilu                      Code = 180 // TR_fn_silu: silu
 	FnSin                       Code = 181 // TR_fn_sin: sin
 	FnSinh                      Code = 182 // TR_fn_sinh: sinh
-	FnSleep                     Code = 183 // TR_fn_sleep: sleep · bekle
+	FnSleep                     Code = 183 // TR_fn_sleep: sleep · uyu
 	FnSoftmax                   Code = 184 // TR_fn_softmax: softmax
 	FnSqrt                      Code = 185 // TR_fn_sqrt: sqrt · karekök
 	FnStateTensor               Code = 186 // TR_fn_state_tensor: state_tensor · durum_tensörü

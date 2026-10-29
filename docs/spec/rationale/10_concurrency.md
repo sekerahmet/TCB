@@ -9,8 +9,9 @@ Kurallar: [`10_eszamanlilik.md`](../10_eszamanlilik.md). Bu dosya her kuralın e
 
 ### 10.2
 
-- *Emsal:* CPython'un küresel yorumlayıcı kilidi (GIL) aynı anda bir iş parçacığının Python kodu çalıştırmasına izin verir; NumPy ve PyTorch gibi kitaplıklar ağır hesapta kilidi bırakır [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* veri yarışı ajanın en zor gördüğü hatadır: bazen olur, bazen olmaz. Tek kilit onu dilden kaldırır; ajan kilit yazmaz. Hız kaybı ağır işin yerleşiklerde paralel çalışmasıyla karşılanır: yapay zekâ işinin ağır kısmı tensör ve veri işidir.
+- *Emsal:* CPython'un küresel yorumlayıcı kilidi (GIL) aynı anda bir iş parçacığının Python kodu çalıştırmasına izin verir ve kilidi süreyle devreder (`sys.getswitchinterval()` 0,005 s); NumPy matris çarpımında kilidi bırakır: 60 çarpım sürerken 5 ms'de bir uyanan iş parçacığının en büyük boşluğu 6,9 ms [ölçüldü: DENETİM 10-1, CPython 3.12.6]. NumPy kilidi bırakınca okunan dizinin başka iş parçacığından yazılmasını engellemez; *bunu almadık.*
+- *Gerekçe:* veri yarışı ajanın en zor gördüğü hatadır: bazen olur, bazen olmaz. Tek kilit onu dilden kaldırır; ajan kilit yazmaz. Saf TR döngüsü görevlerle hızlanmaz, CPython da hızlanmaz [ölçüldü: DENETİM 10-1]; yapay zekâ işinin ağır kısmı tensör ve veri işidir, o yerleşiklerde paralel çalışır.
+- *Gerekçe (devir ve bırakma):* amaç "Sunmak" ve "sabit hızlı bir döngüde, gecikmeye dayanıklı" çalışmayı ister. Kilit tur sayısıyla devredilir ve uzun yerleşikler kilidi tutarsa model çalıştıran görev öbür görevleri yüzlerce milisaniye bekletir: bir istek ya da algılayıcı okuması modelin bütün ileri geçişi kadar gecikir (60 çarpımda 301 ms) [ölçüldü: DENETİM 10-1]. Süreyle devir ve uzun yerleşiklerin kilidi bırakması bunu kapatır. Bölünmezlik kuralı veri yarışı yokluğunu tensörde de korur: bir yerleşiğin okuduğu ağırlığa başka görev o sırada yazamaz, yazan bekler.
 
 ### 10.3
 
@@ -24,20 +25,25 @@ Kurallar: [`10_eszamanlilik.md`](../10_eszamanlilik.md). Bu dosya her kuralın e
 
 ### 10.5
 
-- *Emsal:* Python'un `asyncio.gather`'ı sonuçları verilen sırayla döndürür [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* Güvenilir: sonuçlar görevlerin bitme sırasına göre değil verildikleri sıraya göre alınırsa program her çalışmada aynı sonucu verir.
+- *Emsal:* Python'un `asyncio.gather`'ı sonuçları verilen sırayla döndürür; hatalı bir görev olunca ilk hatayı hemen fırlatır, öbürlerini beklemez [ölçüldü: DENETİM 10-1, CPython 3.12.6]. *İkincisini almadık.*
+- *Gerekçe:* Güvenilir: sonuçlar görevlerin bitme sırasına göre değil verildikleri sıraya göre alınırsa program her çalışmada aynı sonucu verir. Hata için de aynısı: hangi hatanın fırladığı bitme zamanına bağlı olursa aynı program iki çalışmada iki ayrı hata verir; bütün görevleri bekleyip verilen sıradaki ilk hatayı fırlatmak belirlenimcidir.
 
 ### 10.6
 
-- *Emsal:* Python, hiç alınmayan görev hatası için yalnız bir uyarı yazar ("Task exception was never retrieved") [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* görevin hatası sessizce kaybolursa program yanlış sonuçla başarılı görünür. Hata beklenen yerde fırlar; beklenmediyse yazılır ve program hata koduyla biter. Bugün de böyle [ölçüldü: çıkış kodu 1].
+- *Emsal:* Python, hiç alınmayan görev hatası için yalnız bir uyarı yazar ("Task exception was never retrieved") ve program 0 koduyla biter [ölçüldü: DENETİM 10-1]. *Almadık.*
+- *Gerekçe:* görevin hatası sessizce kaybolursa program yanlış sonuçla başarılı görünür. Hata beklenen yerde fırlar; beklenmediyse yazılır ve program hata koduyla biter. İptal bir hata değil, istenen bir durmadır; yazılsaydı her zaman aşımı yanlış bir hata kaydı bırakırdı.
 
 ### 10.7
 
-- *Emsal:* Python'un `asyncio.wait_for`'ı ve Go'nun `context.WithTimeout`'u beklemeyi süreyle sınırlar [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* amaç "sabit hızlı bir döngüde, gecikmeye dayanıklı" çalışmayı ve uzak modeli kullanmayı ister; bir cevabı sınırsız beklemek döngüyü durdurur.
+- *Emsal:* Python'un `asyncio.wait_for`'ı süre dolunca `TimeoutError` verir ve görevi iptal eder [ölçüldü: DENETİM 10-1]; Go'nun `context.WithTimeout`'u da işi iptal ettirir [kanıtsız: bu tur açılmadı].
+- *Gerekçe:* amaç "sabit hızlı bir döngüde, gecikmeye dayanıklı" çalışmayı ve uzak modeli kullanmayı ister; bir cevabı sınırsız beklemek döngüyü durdurur. Süresi dolan görev sürseydi program bitmeden önce onu yine beklerdi (10.1) ve program uzak cevaba bağlı kalırdı. Görevi sürdürmek isteyen döngü beklemez, `TR_done` ile sorar.
 
 ### 10.8
 
 - *Emsal:* bütün eşzamanlı dillerde görevlerin sırası zamanlayıcıya bağlıdır.
 - *Gerekçe:* Güvenilir, sırayı belirlenimci yapmayı değil, sonucu sıradan bağımsız yazmayı ister. Bugün görevlerin paylaşılan listeye ekleme sırası beklemelere göre değişiyor: `[4, 3, 2, 1, 0]` [ölçüldü]. Kural bunu açıkça söyler ve doğru yazımı (dönüş değeri, sırayla toplama) verir.
+
+### 10.9
+
+- *Emsal:* Python'un `Task.cancel()`'ı görevi bir sonraki beklemesinde `CancelledError` ile durdurur, ama görev bu hatayı yakalayıp sürebilir; Trio ve Kotlin'in yapılı eşzamanlılığı iptali alt görevlere geçirir [kanıtsız: bu tur açılmadı].
+- *Gerekçe:* amaç uzak modeli kullanmayı, sunmayı ve gecikmeye dayanıklı çalışmayı ister; üçü de artık gerekmeyen bir işi durdurabilmeyi gerektirir. Yakalanabilen iptal, ajanın geniş bir `TR_catch` ile iptali farkında olmadan yutmasına yol açar; bu yüzden iptal yakalanmaz, yalnız ertelenen işler çalışır (kaynaklar kapanır). Alt görevlere geçmesi, iptal edilen görevin bıraktığı ve kimsenin beklemediği işlerin programı açık tutmasını önler.

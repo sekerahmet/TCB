@@ -26,7 +26,7 @@ import (
 // float32 ağırlıklarla çalışır.
 //
 // Blok durumu sürecin değil görevin (VM görünümünün, bkz. interp.(*VM).TaskValue) durumudur:
-// iç içe bloklar yığın gibi önceki türe döner; blok GIL'i bırakan bir çağrıdayken (bekle(),
+// iç içe bloklar yığın gibi önceki türe döner; blok GIL'i bırakan bir çağrıdayken (uyu(),
 // dosya/ağ beklemesi) çalışan başka bir eşzamanlı görev ya da web isteği bloktan etkilenmez.
 // Blok içinde başlatılan bir 'eşzamanlı' görev de kendi (boş) durumuyla başlar.
 

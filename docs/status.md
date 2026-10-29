@@ -373,16 +373,26 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ## 10. Eşzamanlılık
 
-Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı; kodları uygulandıkları gün kayda girer (17.4).
+Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). 2. tur (2026-10-29): DENETİM 10-1'in bulgularıyla (süreyle devir, uzun yerleşiklerin kilidi bırakması, iptal, 2.8'in istisnası, verilen sıradaki ilk hata). Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı, `TR_cancel` iptal_et, `TR_done` bitti_mi; kodları uygulandıkları gün kayda girer (17.4). `TR_sleep`'in Türkçe adı "bekle"den "uyu"ya döndü (görevi beklemekle karışmasın diye; uygulandı).
 
 ### 10.1
 
 - **Mevcut durum:** `TR_async` bir ifade değil: `TR_var g = TR_async f(3)` sözdizimi hatası; görevin sonucu alınamıyor [ölçüldü: main `6a525af7`].
 - **Yapılacaklar:** görev değeri `TR_Task[T]` ve `.TR_wait()`; TR testi.
 
+### 10.2
+
+- **Mevcut durum:** kilit süreyle değil, döngülerde 256 turda bir ve kullanıcı fonksiyonu çağrısında devrediliyor; tensör işlemleri, geri yayılım, iyileştiricinin adımı, örnekleme ve GPU beklemeleri kilidi tutuyor (`internal/stdlib/ml`'de kilidi bırakan sarmalayıcı yalnız `TR_save_tensors`'ta). 60 matris çarpımı sürerken 5 ms'de bir uyanan görev 301 ms bekledi [ölçüldü: DENETİM 10-1, main `5ec35e05`].
+- **Mevcut durum (bırakanlar):** `TR_sleep`, `TR_input`, dosya okuma ve yazma, `TR_wait_all`, modül yükleme beklemesi, veri kümesini açma ve okuma, dosya işleri, `TR_save_tensors`, `TR_load_tensors`, parçalayıcıyı yükleme ve büyük girdide kodlama [kanıtlı: DENETİM 10-1].
+- **Yapılacaklar:** süreyle devir (5 ms); uzun yerleşiklerin kilidi bırakması ve tensörlerin okuma ve yazma izni (bölünmezlik); gecikme ölçümü TR testi ya da Go testi olarak.
+
+### 10.3
+
+- **Mevcut durum:** listedeki ağ istekleri, dış süreç ve sunucu beklemeleri bugün yerleşik olarak yok [ölçüldü: DENETİM 10-1]; kural gelecek yerleşikler için (yol haritasının "Ağ" maddesi).
+
 ### 10.5
 
-- **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi; TR testi.
+- **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi ve verilen sıradaki ilk hatası; TR testi.
 
 ### 10.6
 
@@ -390,15 +400,20 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). Taslak (202
 
 ### 10.7
 
-- **Yapılacaklar:** zaman aşımı; TR testi.
+- **Mevcut durum:** sabit hızlı döngünün süre ölçmesi için 13.1'in `TR_monotonic_ns`'i kod kaydında yok [ölçüldü: DENETİM 10-1].
+- **Yapılacaklar:** zaman aşımı, `TR_done`; TR testi.
 
 ### 10.8
 
 - **Mevcut durum:** paylaşılan listeye görevlerden ekleme sırası zamana bağlı ([4, 3, 2, 1, 0]) [ölçüldü].
 
+### 10.9
+
+- **Yapılacaklar:** iptal (`TR_cancel`), alt görevlere geçmesi, ertelenen işlerin çalışması, iptalin yakalanmaması; TR testi.
+
 ## 11. Modüller
 
-Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Kitaplık modüllerinin İngilizce yolları (11.6) baş geliştiricinin onayını bekliyor.
+Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Kitaplık modüllerinin İngilizce yolları (11.6) onaylandı (2026-10-29): `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`.
 
 ### 11.1
 
@@ -417,7 +432,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). Taslak (2026-10-29)
 ### 11.6
 
 - **Mevcut durum:** kitaplığın dört modülünün yolu Türkçe sözcüklerle: `tr/katman`, `tr/iyilestirici`, `tr/hazir`, `tr/egitim` (`lib/`); 26 dosyada 43 aktarma satırı [ölçüldü].
-- **Yapılacaklar:** onaylanınca İngilizce yollar (öneri: `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`), `lib/` dosya adları, aktarma satırları, `tests/negative/kitaplik_turkce_harf.tr`'nin yazım örneği.
+- **Yapılacaklar:** İngilizce yollar (`tr/katman` → `tr/layers`, `tr/iyilestirici` → `tr/optimizers`, `tr/hazir` → `tr/pretrained`, `tr/egitim` → `tr/training`), `lib/` dosya adları, aktarma satırları, `tests/negative/kitaplik_turkce_harf.tr`'nin yazım örneği.
 
 ### 11.8
 

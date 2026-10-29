@@ -110,8 +110,8 @@ func TestAsyncCounterIncrementIsAtomic(t *testing.T) {
 	}
 }
 
-// Kilit bekle() sırasında bırakıldığı için görevler hâlâ iç içe (eşzamanlı) ilerlemeli.
-// bekle(sn) kilidi bıraktığı için görevler aynı anda bekler. Süre ölçülmez (yüklü makinede
+// Kilit uyu() sırasında bırakıldığı için görevler hâlâ iç içe (eşzamanlı) ilerlemeli.
+// uyu(sn) kilidi bıraktığı için görevler aynı anda bekler. Süre ölçülmez (yüklü makinede
 // ya da yarış dedektörü altında kararsız olurdu): aynı anda bekleyen görev sayısı sayılır;
 // görevler sıraya girseydi en çok 1 olurdu. Süre sınırı yalnızca takılmaya karşıdır.
 func TestAsyncTasksStillOverlapDuringSleep(t *testing.T) {

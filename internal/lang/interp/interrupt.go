@@ -306,7 +306,7 @@ func (v *VM) await(fn any, work func(), forNew bool) error {
 	return err
 }
 
-// sleep bekle() için süre kadar bekler (bkz. awaitReady).
+// sleep uyu() için süre kadar bekler (bkz. awaitReady).
 func (v *VM) sleep(fn any, d time.Duration) error {
 	if err := v.stopWaitError(fn); err != nil {
 		return err
