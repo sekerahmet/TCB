@@ -10,8 +10,7 @@ const { resolveWatchCommand } = require('./watch_commands');
 const { findInterpreter: findInterpreterRule, interpreterName, BIN_FOLDER } = require('./find_interpreter');
 const { programArguments } = require('./program_arguments');
 const { programTerminal } = require('./program_terminal');
-const codedFormat = require('./coded_format');
-const codedViewModule = require('./coded_view');
+const viewModule = require('./view');
 const snippets = require('./snippets');
 const { t } = require('./l10n');
 
@@ -61,24 +60,29 @@ async function interpreterNotFound(message) {
     }
 }
 
-// codedView, kodlu dosyaların Türkçe görünümüdür (coded_view.js); activate kurar.
-let codedView;
+// views, kodlu dosyaların salt okunur görünümüdür (view.js); activate kurar.
+let views;
 
-// localUri bir belgenin diskteki dosyasıdır (kodlu dosyanın Türkçe görünümünde de dosyanın
-// kendisi); yerel olmayan belgede undefined.
+// localUri bir belgenin diskteki dosyasıdır (görünümde de dosyanın kendisi); yerel olmayan belgede
+// undefined.
 function localUri(uri) {
-    return codedView ? codedView.localUri(uri) : (uri && uri.scheme === 'file' ? uri : undefined);
+    return views ? views.localUri(uri) : (uri && uri.scheme === 'file' ? uri : undefined);
 }
 
 // Komutun hedef belgesini bulur: başlık çubuğu/bağlam menüsünden gelen URI veya etkin düzenleyici.
-// Dosyanın Türkçe görünümü açıksa o seçilir (kaydedilmemiş değişiklikler oradadır).
+// Görünüm etkinse hedef görünümün dosyasıdır (görünüm salt okunurdur; kod dosyadadır).
 async function targetDocument(uri) {
-    if (uri instanceof vscode.Uri) {
-        const existing = vscode.workspace.textDocuments.find((b) => b.uri.toString() === uri.toString());
-        return (codedView && codedView.openView(uri)) || existing || vscode.workspace.openTextDocument(uri);
-    }
     const editor = vscode.window.activeTextEditor;
-    return editor ? editor.document : undefined;
+    const target = uri instanceof vscode.Uri ? uri : editor && editor.document.uri;
+    if (!target) {
+        return undefined;
+    }
+    const file = views && views.isView(target) ? views.localUri(target) : target;
+    if (editor && editor.document.uri.toString() === file.toString()) {
+        return editor.document;
+    }
+    const existing = vscode.workspace.textDocuments.find((b) => b.uri.toString() === file.toString());
+    return existing || vscode.workspace.openTextDocument(file);
 }
 
 // writingLanguage kişinin yazım dili ayarıdır (tr.writingLanguage).
@@ -216,19 +220,19 @@ const taskProvider = {
 // Ctrl+F5 ("Run Without Debugging") dosyayı terminalde çalıştırır (girdi() kullanılabilir).
 // ---------------------------------------------------------------------------
 
-// debugConfigurationFor açık belgenin hata ayıklama ayarıdır. Kodlu dosyanın Türkçe
-// görünümünde program diskteki dosyadır, "viewURI" görünümün adresidir (coded_view.js).
+// debugConfigurationFor açık belgenin hata ayıklama ayarıdır; görünümde de program diskteki
+// dosyadır (view.js).
 function debugConfigurationFor(document) {
     const local = localUri(document.uri) || document.uri;
     const folder = vscode.workspace.getWorkspaceFolder(local);
-    return codedView.withViewURI({
+    return {
         type: TASK_TYPE,
         request: 'launch',
         name: 'TR: Debug',
         program: local.fsPath,
         cwd: folder ? folder.uri.fsPath : path.dirname(local.fsPath),
         stopOnEntry: false
-    }, document);
+    };
 }
 
 const debugConfigProvider = {
@@ -246,8 +250,6 @@ const debugConfigProvider = {
                 return undefined;
             }
             y = Object.assign(debugConfigurationFor(editor.document), y.noDebug ? { noDebug: true } : {});
-        } else if (editor) {
-            y = codedView.resolveFileVariables(y, editor.document);
         }
         if (!vscode.workspace.isTrusted) {
             vscode.window.showWarningMessage(t('Debugging TR files requires trusting this workspace (Workspace Trust).'));
@@ -264,7 +266,7 @@ const debugConfigProvider = {
     // Burada ${file}, ${workspaceFolder} gibi değişkenler çözülmüştür; "args" programa iletilir.
     resolveDebugConfigurationWithSubstitutedVariables(folder, y) {
         if (!y || !y.noDebug) {
-            return codedView.programView(y);
+            return y;
         }
         const uri = y.program ? vscode.Uri.file(String(y.program)) : undefined;
         run(COMMANDS.run, uri, programArguments(y).args || []);
@@ -511,14 +513,13 @@ function watchPanelHtml(webview) {
 
 function activate(context) {
     extensionUri = context.extensionUri;
-    codedView = codedViewModule.create(vscode, {
+    views = viewModule.create(vscode, {
         findInterpreter,
-        translate: (...a) => codedFormat.translate(...a),
-        state: context.globalState,
+        show: (...a) => viewModule.show(...a),
         writingLanguage,
         interpreterNotFound
     });
-    codedView.setup(context);
+    views.setup(context);
     context.subscriptions.push(snippets.register(vscode, snippets.loadTable(context.extensionUri.fsPath), writingLanguage));
     context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory(TASK_TYPE, watchPanelTracker));
     context.subscriptions.push(vscode.commands.registerCommand('tr.watchPanel', () => {

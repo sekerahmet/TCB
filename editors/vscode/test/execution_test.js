@@ -74,7 +74,7 @@ test('F5: yapılandırma olduğu gibi kalır, yorumlayıcı "dap" ile başlar', 
     const { log, provider, adapterFactory } = setup({ setting: INTERPRETER, folder: FOLDER });
     const y = { type: 'tr', request: 'launch', name: 'TR', program: FILE, args: ['--adım', '5'], cwd: FOLDER };
     const resolved = await provider.resolveDebugConfiguration(undefined, y);
-    // Kodlu olmayan dosyada görünüm adresi eklenmez (kodlu dosyada: coded_view_test.js).
+    // Görünüm adresi eklenmez: hata ayıklanan program diskteki dosyadır (görünüm salt okunurdur, view.js).
     assert.strictEqual(await provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, resolved), y);
     assert.strictEqual(y.viewURI, undefined);
     // "args" başlatma isteğiyle (launch) 'tr dap'a gider; süreç argümanı yalnızca 'dap'.

@@ -301,22 +301,22 @@ func TestExtensionRestrictedMode(t *testing.T) {
 	if n := strings.Count(string(js), "if (!vscode.workspace.isTrusted)"); n < 2 {
 		t.Errorf("extension.js çalıştırmadan ve hata ayıklamadan önce çalışma alanı güvenini denetlemeli (%d denetim bulundu)", n)
 	}
-	// Kodlu dosyaların Türkçe görünümü 'tr göster -' ve 'tr kodla -' çalıştırır: yalnızca
-	// güvenilen çalışma alanında (kısıtlı kipte salt okunur ham gösterim; coded_view_test.js).
-	view, err := os.ReadFile(reporoot.Path("editors/vscode/coded_view.js"))
+	// Salt okunur görünüm 'tr göster -' çalıştırır: yalnızca güvenilen çalışma alanında (kısıtlı
+	// kipte görünüm açılmaz; view_test.js).
+	view, err := os.ReadFile(reporoot.Path("editors/vscode/view.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(view), "if (!vscode.workspace.isTrusted)") {
-		t.Error("coded_view.js yorumlayıcıyı çalıştırmadan önce çalışma alanı güvenini denetlemeli")
+	if n := strings.Count(string(view), "if (!vscode.workspace.isTrusted)"); n < 2 {
+		t.Errorf("view.js yorumlayıcıyı çalıştırmadan önce çalışma alanı güvenini denetlemeli (%d denetim bulundu)", n)
 	}
 }
 
 // Eklentinin JavaScript testleri (editors/vscode/test/*_test.js): İzleme Masası düğme →
 // VS Code komutu eşlemesi, yorumlayıcıyı bulma kuralı, sahte vscode modülüyle çalıştırma ve
-// stderr ayıklama yolları (F5, Ctrl+F5 ve "args") ve kodlu dosyaların Türkçe görünümü (aç,
-// düzenle, kaydet, geri al, bozuk dosya, satır eşlemesi, kısıtlı kip; bu testler TestMain'in
-// derlediği yorumlayıcıyı TR_YORUMLAYICI ile kullanır). Klasördeki her test kendiliğinden koşar.
+// stderr ayıklama yolları (F5, Ctrl+F5 ve "args") ve kodlu dosyanın salt okunur görünümü (yanda
+// açılır, satırlar dosyanınki, düzenlemeyle ve yazım diliyle yenilenir, kaydedilmez, kısıtlı kipte
+// açılmaz; bu testler TestMain'in derlediği yorumlayıcıyı TR_YORUMLAYICI ile kullanır). Klasördeki her test kendiliğinden koşar.
 // Node yoksa atlanır (otomatik sınamada node vardır).
 func TestExtensionJSTests(t *testing.T) {
 	node, err := exec.LookPath("node")
