@@ -275,10 +275,9 @@ f()
 1 5`)
 }
 
-// Liste yazımı (15.43) demet yazımı gibi içindeki değerlerin sahibidir: ifadede kurulan liste
-// (birleşim([a, b])'nin [a, b]'si) çağrıdan sonra bırakılır, değişkene bağlı öğeleri yaşar. Bir
-// değişkene bağlı listeye sonradan yazılan değer kaçar, liste ve öbür öğeleri kaçmaz: liste
-// bırakılınca kendi öğesi (4) bırakılır, eklenen (5) bırakılmaz.
+// Liste yazımı (15.43) demet yazımı gibi içindekilerin sahibidir: birleşim([a, b])'nin [a, b]'si
+// çağrıdan sonra bırakılır. Listeye sonradan yazılan değer kaçar, liste ve öbür öğeleri kaçmaz:
+// liste bırakılınca kendi öğesi (4) bırakılır, eklenen (5) bırakılmaz.
 func TestOwnershipListLiteralOwnsElementsLikeATuple(t *testing.T) {
 	expectOut(t, `
 TR_func f() {
@@ -342,8 +341,7 @@ f()
 1 5`)
 }
 
-// (b) Fonksiyonun döndürdüğü demetin içindeki taze değerler çağırana taşınır: dönen çerçeve
-// kapanınca bırakılmaz, demet bırakılınca bırakılır.
+// (b) Döndürülen demetin içindeki taze değerler çağırana taşınır: çerçeve kapanınca bırakılmaz.
 func TestOwnershipReturnedTupleMovesItsElementsToTheCaller(t *testing.T) {
 	expectOut(t, `
 TR_func f(p) {
@@ -366,8 +364,7 @@ g()
 [2, 5, 7, 6, 4, 3]`)
 }
 
-// (c) Listeye eklenen, sözlüğe, en dış değişkene ya da Go'nun tuttuğu yere konan demet öğeleriyle
-// birlikte kaçar: hiç bırakılmaz.
+// (c) Listeye eklenen, sözlüğe, en dış değişkene ya da Go'ya konan demet öğeleriyle kaçar.
 func TestOwnershipStoredTupleEscapes(t *testing.T) {
 	expectOut(t, `
 TR_func iki() { TR_return yeni(), yeni() }
@@ -404,8 +401,7 @@ TR_print(bırakılan())
 1 3`+"\n[2, 1, 3]")
 }
 
-// (e) Açılan demetin öğeleri demetle paylaşılır: demet bırakılınca öğeler adlara bağlı kalır, sonra
-// bir kez bırakılır.
+// (e) Açılan demetin öğeleri demetle paylaşılır: adlara bağlı kalır, sonra bir kez bırakılır.
 func TestOwnershipUnpackedTupleSharesElements(t *testing.T) {
 	expectOut(t, `
 TR_func iki() { TR_return yeni(), yeni() }

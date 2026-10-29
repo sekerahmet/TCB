@@ -25,6 +25,8 @@ func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 		{"indeks", "TR_var l = [1]\n" + `TR_var i = l[kare("a")]`},
 		{"indekslenen", `TR_var i = [kare("a")][0]`},
 		{"üye", `TR_var u = kare("a").x`},
+		{"demet", `TR_var d = (1, kare("a"))`},
+		{"demetin öğesi", `TR_var e = kare("a").0`},
 		{"indeks atama hedefi", "TR_var l = [1]\n" + `l[kare("a")] = 1`},
 		{"alan atama hedefi", `[kare("a")].x = 1`},
 		{"çoklu atama hedefi", "TR_var l = [1]\nTR_var y = 1\n" + `l[kare("a")], y = 1, 2`},

@@ -3,5 +3,4 @@
 docs/spec/03_tipler.md:108 hata
 docs/spec/03_tipler.md:70
 docs/spec/08_hata_yonetimi.md:23
-docs/spec/15_tensorler.md:399
 docs/spec/15_tensorler.md:481
