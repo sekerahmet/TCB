@@ -154,7 +154,7 @@
 "H1023": "ifadenin değeri kullanılmıyor (2.8): çağrı içermeyen bir ifade tek başına deyim olamaz; değeri bir değişkene atayın ({var} v = …) ya da satırı silin",
 "H1024": "{kind, select, method {'{name}' '{struct}' yapısının metodu, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; metodu {self}.{name}() diye çağırın} other {'{name}' '{struct}' yapısının alanı, ama metotta düz '{name}' yapının dışındaki '{name}' adıdır; alanı {self}.{name} diye okuyun ve atayın}}",
 "H1025": "{kind, select, method {'{name}' tanımlı değil; metotta '{struct}' yapısının metodu {self}.{name}() diye çağrılır} other {'{name}' tanımlı değil; metotta '{struct}' yapısının alanı {self}.{name} diye okunur ve atanır}}",
-"H1026": "demetin {count} öğesi var ama {names} ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (a, _ = f())",
+"H1026": "{names} ad {count} öğeli bir demeti açıyor: sayılar tutmalı; her öğeye bir ad, gerekmeyenin yerine _ yazın (a, _ = f())",
 "H1101": " ('{name}' TR'de yok; '{canonical}' yazmak mı istediniz?)",
 "H1103": " ('{name}' TR'de anahtar kelime değil; '{keyword}' yazmak mı istediniz?)",
 "H1104": ". Bunu mu demek istediniz: '{closest}'?",

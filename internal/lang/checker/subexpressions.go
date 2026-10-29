@@ -10,8 +10,8 @@ import (
 // bileşik ifadelerin çocukları, liste üreteci, yapı alanları ve metotları, fonksiyon
 // gövdeleri. İçteki bir hata (ör. listedeki bir çağrının tip hatası) sessizce geçmez.
 
-// inferNested bileşik ifadelerin (metin içi ifade, liste, liste üreteci, sözlük, aralık,
-// indeks, üye) çocuklarını denetler ve tipini verir; ifade bunlardan değilse ok false'tur.
+// inferNested bileşik ifadelerin (metin içi ifade, liste, demet, liste üreteci, sözlük, aralık,
+// indeks, üye, demetin öğesi) çocuklarını denetler ve tipini verir; ifade bunlardan değilse ok false'tur.
 func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 	switch e := expr.(type) {
 	case *ast.InterpolatedString:
@@ -57,6 +57,9 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 	case *ast.MemberExpression:
 		c.inferExpression(e.Object)
 		return typeAny, true
+	case *ast.ElementExpression:
+		c.inferExpression(e.Object)
+		return typeAny, true // demetin öğesi (3.6a); öğe tipleri 4a2'de
 	}
 	return "", false
 }
