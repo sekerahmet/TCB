@@ -164,7 +164,6 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	case *ast.IndexExpression:
 		leftFn := c.expression(k, e.Left)
 		index := c.expression(k, e.Index)
-		line := e.Line()
 		return func(v *VM, env *Environment) (Value, error) {
 			left, err := leftFn(v, env)
 			if err != nil {
@@ -175,7 +174,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 				return nil, err
 			}
 			newOp()
-			res, err := v.indexValue(left, idx, line)
+			res, err := v.indexValue(left, idx, e)
 			if err == nil {
 				v.afterIndex(res, left, idx)
 			}

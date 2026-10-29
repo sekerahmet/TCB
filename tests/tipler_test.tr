@@ -155,6 +155,7 @@ TR_test "3.6a öğe okuma t.0, t.0.1; sınır dışı indeks çalışma hatasıd
     TR_assert_equal(1, ((1, 2), 3).0.0)
     TR_assert_equal("H2774", TR_error_code { t.2 })
     TR_assert_equal("H2775", TR_error_code { [1, 2].0 })
+    TR_assert_equal("H2778", TR_error_code { t[0] })
 }
 
 TR_test "3.6a demetin öğesi atanamaz" {

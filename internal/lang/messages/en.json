@@ -458,6 +458,7 @@
 "H2774": "the tuple has {count} elements: .{index} does not exist; its elements are .0 to .{last}",
 "H2775": "'.{index}' reads a tuple's element, but the value is a {type}{kind, select, list {: a list's item is read with [{index}]} other {}}",
 "H2777": "'==' cannot compare tuples that hold a tensor (element {index}): a tensor's == is element by element (15.5); compare the tensors with TR_equal(a.{index}, b.{index})",
+"H2778": "the tuple {type} cannot be indexed with square brackets (3.6a): {kind, select, const {a tuple's element is read with a dot: {example}} same {a tuple's element is read only with a constant number; put it in a list: {example}} other {a tuple's element is read only with a constant number; unpack it: {example}}}",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

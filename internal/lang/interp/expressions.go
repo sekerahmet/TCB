@@ -76,7 +76,8 @@ func comprehensionItems(v *VM, iterVal Value, line int) ([]Value, error) {
 }
 
 // indexValue kap[idx] değerini döndürür.
-func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
+func (v *VM) indexValue(left Value, idx Value, e *ast.IndexExpression) (Value, error) {
+	line := e.Line()
 	switch container := left.(type) {
 	case *ListVal:
 		if iv, ok := idx.(*IntVal); ok {
@@ -111,32 +112,10 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		return val, nil
 
 	case *StringVal:
-		ascii, runes := v.textChars(container)
-		if iv, ok := idx.(*IntVal); ok && ascii {
-			// ASCII hızlı yolu: karakter = bayt, dönüşüm ve ayırma yok
-			n := len(container.Val)
-			pos, inRange := resolveIndex(iv.Val, n)
-			if !inRange {
-				return nil, indexRangeError(line, ValString, iv.Val, n)
-			}
-			return asciiChars[container.Val[pos]], nil
-		}
-		if ascii {
-			runes = []rune(container.Val) // ASCII dilimleme: nadir yol
-		}
-		if rng, ok := idx.(*RangeVal); ok {
-			start, end := SliceBounds(rng, len(runes))
-			return &StringVal{Val: string(runes[start:end])}, nil
-		}
-		iv, ok := idx.(*IntVal)
-		if !ok {
-			return nil, messages.At(line, 0, messages.New(messages.H2400, ValString, ValInt))
-		}
-		pos, inRange := resolveIndex(iv.Val, len(runes))
-		if !inRange {
-			return nil, indexRangeError(line, ValString, iv.Val, len(runes))
-		}
-		return &StringVal{Val: string(runes[pos])}, nil
+		return v.stringIndex(container, idx, line)
+
+	case *TupleVal:
+		return nil, messages.At(line, 0, tupleIndexError(container, e))
 
 	case Indexable:
 		val, err := container.Index(idx)
@@ -148,6 +127,35 @@ func (v *VM) indexValue(left Value, idx Value, line int) (Value, error) {
 		return nil, messages.At(line, 0, messages.New(messages.H2525, left.Type(), codes.NameRef(codes.KwFor), codes.NameRef(codes.KwIn), codes.NameRef(codes.MemNext)))
 	}
 	return nil, messages.At(line, 0, messages.New(messages.H2465, left.Type()))
+}
+
+func (v *VM) stringIndex(container *StringVal, idx Value, line int) (Value, error) {
+	ascii, runes := v.textChars(container)
+	if iv, ok := idx.(*IntVal); ok && ascii {
+		// ASCII hızlı yolu: karakter = bayt, dönüşüm ve ayırma yok
+		n := len(container.Val)
+		pos, inRange := resolveIndex(iv.Val, n)
+		if !inRange {
+			return nil, indexRangeError(line, ValString, iv.Val, n)
+		}
+		return asciiChars[container.Val[pos]], nil
+	}
+	if ascii {
+		runes = []rune(container.Val) // ASCII dilimleme: nadir yol
+	}
+	if rng, ok := idx.(*RangeVal); ok {
+		start, end := SliceBounds(rng, len(runes))
+		return &StringVal{Val: string(runes[start:end])}, nil
+	}
+	iv, ok := idx.(*IntVal)
+	if !ok {
+		return nil, messages.At(line, 0, messages.New(messages.H2400, ValString, ValInt))
+	}
+	pos, inRange := resolveIndex(iv.Val, len(runes))
+	if !inRange {
+		return nil, indexRangeError(line, ValString, iv.Val, len(runes))
+	}
+	return &StringVal{Val: string(runes[pos])}, nil
 }
 
 // memberValue nesne.özellik (ya da nesne?.özellik) değerini döndürür.

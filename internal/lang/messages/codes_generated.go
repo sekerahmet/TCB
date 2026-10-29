@@ -463,6 +463,7 @@ const (
 	H2774 Code = 2774 // demetin {count} öğesi var: .{index} yok; öğeleri .0'dan .{last}'e kadardır
 	H2775 Code = 2775 // '.{index}' demetin öğesini okur, ama değer bir {type}{kind, select, list {: listenin öğesi [{index}] ile okunur} other {}}
 	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün =='si öğe öğedir (15.5); tensörleri TR_equal(a.{index}, b.{index}) ile karşılaştırın
+	H2778 Code = 2778 // {type} demeti köşeli parantezle indekslenemez (3.6a): {kind, select, const {demetin öğesi noktayla okunur: {example}} same {demetin öğesi yalnız sabit sayıyla okunur; listeye koyun: {example}} other {demetin öğesi yalnız sabit sayıyla okunur; açın: {example}}}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

@@ -267,45 +267,16 @@ func TestCompilerShadowingAndConst(t *testing.T) {
 	}
 }
 
-// Kural (5.3, 6.3): demeti açarken ad sayısı öğe sayısını tutmayınca H2709 (çalışma) ve H1026
-// (denetim) öneriyi deyimin kendi adlarından ve kaynaktaki sağ yanından kurar; önerilen yazım
-// çalıştırılınca hatasız biter.
-func TestUnpackTupleCountSuggestion(t *testing.T) {
-	for _, tc := range []struct {
-		prefix, bad, wantExample, wantTR, wantEN, wantVal string
-	}{
-		{
-			"TR_func g(n, s) { TR_return n, s }\n",
-			`TR_var a, b, c = g(1, "x")`, `TR_var a, b = g(1, "x")`,
-			`demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = g(1, "x"))`,
-			`the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = g(1, "x"))`,
-			`[1, "x"]`,
-		},
-		{
-			"TR_func g(n, s) { TR_return n, s, n + 1 }\n",
-			`TR_var a, b = g(1, "x")`, `TR_var a, b, _ = g(1, "x")`,
-			`demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (TR_var a, b, _ = g(1, "x"))`,
-			`the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (TR_var a, b, _ = g(1, "x"))`,
-			`[1, "x"]`,
-		},
-		{
-			`TR_var t = (1, "x")` + "\n",
-			"TR_var a, b, c = t", "TR_var a, b = t",
-			"demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = t)",
-			"the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = t)",
-			`[1, "x"]`,
-		},
-		{
-			`TR_var t = (1, "x", 9)` + "\nTR_var a = 0\nTR_var b = \"\"\n",
-			"a, b = t", "a, b, _ = t",
-			"demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (a, b, _ = t)",
-			"the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (a, b, _ = t)",
-			`[1, "x"]`,
-		},
-	} {
+type suggestionCase struct {
+	prefix, bad, wantExample, wantTR, wantEN, checkRun, wantVal string
+}
+
+func checkRuntimeSuggestions(t *testing.T, code messages.Code, argIdx int, cases []suggestionCase) {
+	t.Helper()
+	for _, tc := range cases {
 		_, _, err := runTROut(t, tc.prefix+tc.bad)
-		if !messages.Has(err, messages.H2709) {
-			t.Fatalf("%s: H2709 bekleniyordu, alınan: %v", tc.bad, err)
+		if !messages.Has(err, code) {
+			t.Fatalf("%s: %v bekleniyordu, alınan: %v", tc.bad, code, err)
 		}
 		if gotTR := messages.ErrorIn(err, "tr"); !strings.Contains(gotTR, tc.wantTR) {
 			t.Fatalf("tr iletisi %q içermeli, alınan: %q", tc.wantTR, gotTR)
@@ -317,13 +288,99 @@ func TestUnpackTupleCountSuggestion(t *testing.T) {
 		if !ok {
 			t.Fatalf("messages.Error bekleniyordu: %v", err)
 		}
-		gotExample, _ := me.Args[3].(string)
+		gotExample, _ := me.Args[argIdx].(string)
 		if gotExample != tc.wantExample {
 			t.Fatalf("öneri %q bekleniyordu, alınan %q", tc.wantExample, gotExample)
 		}
-		_, val, err := runTROut(t, tc.prefix+gotExample+"\nTR_var result = [a, b]")
+		_, val, err := runTROut(t, tc.prefix+tc.checkRun)
 		if err != nil || val.Inspect() != tc.wantVal {
-			t.Fatalf("önerilen yazım (%s) %s üretmeliydi: %v %v", gotExample, tc.wantVal, val, err)
+			t.Fatalf("önerilen yazım (%s) %s üretmeliydi: %v %v", tc.checkRun, tc.wantVal, val, err)
 		}
 	}
+}
+
+// Kural (5.3, 6.3): demeti açarken ad sayısı öğe sayısını tutmayınca H2709 (çalışma) ve H1026
+// (denetim) öneriyi deyimin kendi adlarından ve kaynaktaki sağ yanından kurar; önerilen yazım
+// çalıştırılınca hatasız biter.
+func TestUnpackTupleCountSuggestion(t *testing.T) {
+	checkRuntimeSuggestions(t, messages.H2709, 3, []suggestionCase{
+		{
+			"TR_func g(n, s) { TR_return n, s }\n",
+			`TR_var a, b, c = g(1, "x")`, `TR_var a, b = g(1, "x")`,
+			`demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = g(1, "x"))`,
+			`the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = g(1, "x"))`,
+			`TR_var a, b = g(1, "x")` + "\nTR_var result = [a, b]", `[1, "x"]`,
+		},
+		{
+			"TR_func g(n, s) { TR_return n, s, n + 1 }\n",
+			`TR_var a, b = g(1, "x")`, `TR_var a, b, _ = g(1, "x")`,
+			`demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (TR_var a, b, _ = g(1, "x"))`,
+			`the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (TR_var a, b, _ = g(1, "x"))`,
+			`TR_var a, b, _ = g(1, "x")` + "\nTR_var result = [a, b]", `[1, "x"]`,
+		},
+		{
+			`TR_var t = (1, "x")` + "\n",
+			"TR_var a, b, c = t", "TR_var a, b = t",
+			"demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = t)",
+			"the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = t)",
+			"TR_var a, b = t\nTR_var result = [a, b]", `[1, "x"]`,
+		},
+		{
+			`TR_var t = (1, "x", 9)` + "\nTR_var a = 0\nTR_var b = \"\"\n",
+			"a, b = t", "a, b, _ = t",
+			"demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (a, b, _ = t)",
+			"the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (a, b, _ = t)",
+			"a, b, _ = t\nTR_var result = [a, b]", `[1, "x"]`,
+		},
+	})
+}
+
+// Kural (3.6a): demette köşeli parantezle okuma H2778 verir ve üç durumu ayırır: sabit sayıda t.0,
+// değişken indeksle aynı tipli öğelerde [t.0, t.1][i], farklı tipli öğelerde TR_var a, b = t;
+// önerilen yazım çalıştırılınca hatasız biter.
+func TestTupleIndexSuggestion(t *testing.T) {
+	checkRuntimeSuggestions(t, messages.H2778, 2, []suggestionCase{
+		{
+			`TR_var t = (10, "x")` + "\n",
+			"TR_print(t[0])", "t.0",
+			"(Tam, Metin) demeti köşeli parantezle indekslenemez (3.6a): demetin öğesi noktayla okunur: t.0",
+			"the tuple (Int, String) cannot be indexed with square brackets (3.6a): a tuple's element is read with a dot: t.0",
+			"TR_var result = t.0", "10",
+		},
+		{
+			`TR_var t = (10, "x")` + "\n",
+			"TR_print(t[1])", "t.1",
+			"demetin öğesi noktayla okunur: t.1",
+			"a tuple's element is read with a dot: t.1",
+			"TR_var result = t.1", "x",
+		},
+		{
+			"TR_var t = (10, 20)\nTR_var i = 1\n",
+			"TR_print(t[i])", "[t.0, t.1][i]",
+			"(Tam, Tam) demeti köşeli parantezle indekslenemez (3.6a): demetin öğesi yalnız sabit sayıyla okunur; listeye koyun: [t.0, t.1][i]",
+			"the tuple (Int, Int) cannot be indexed with square brackets (3.6a): a tuple's element is read only with a constant number; put it in a list: [t.0, t.1][i]",
+			"TR_var result = [t.0, t.1][i]", "20",
+		},
+		{
+			"TR_var t = (10, 20, 30)\nTR_var i = 2\n",
+			"TR_print(t[i])", "[t.0, t.1, t.2][i]",
+			"listeye koyun: [t.0, t.1, t.2][i]",
+			"put it in a list: [t.0, t.1, t.2][i]",
+			"TR_var result = [t.0, t.1, t.2][i]", "30",
+		},
+		{
+			`TR_var t = (10, "x")` + "\nTR_var i = 0\n",
+			"TR_print(t[i])", "TR_var a, b = t",
+			"(Tam, Metin) demeti köşeli parantezle indekslenemez (3.6a): demetin öğesi yalnız sabit sayıyla okunur; açın: TR_var a, b = t",
+			"the tuple (Int, String) cannot be indexed with square brackets (3.6a): a tuple's element is read only with a constant number; unpack it: TR_var a, b = t",
+			"TR_var a, b = t\nTR_var result = [a, b]", `[10, "x"]`,
+		},
+		{
+			`TR_var t = (10, "x", TR_true)` + "\nTR_var i = 0\n",
+			"TR_print(t[i])", "TR_var a, b, c = t",
+			"açın: TR_var a, b, c = t",
+			"unpack it: TR_var a, b, c = t",
+			"TR_var a, b, c = t\nTR_var result = [a, b, c]", `[10, "x", true]`,
+		},
+	})
 }

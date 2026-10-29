@@ -458,6 +458,7 @@
 "H2774": { "param": ["index", "count", "last"] },
 "H2775": { "param": ["index", "type", "kind"] },
 "H2777": { "param": ["index"] },
+"H2778": { "param": ["type", "kind", "example"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

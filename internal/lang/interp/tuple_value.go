@@ -1,9 +1,11 @@
 package interp
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -133,4 +135,43 @@ func notTupleError(obj Value, index int) error {
 		kind = "list"
 	}
 	return messages.New(messages.H2775, index, obj.Type(), kind)
+}
+
+// tupleIndexError demette t[i] okumasının hatasıdır (3.6a): sabit sayıda t.0, aynı tipli öğelerde
+// [t.0, t.1][i], farklı tipli öğelerde TR_var a, b = t önerilir.
+func tupleIndexError(t *TupleVal, e *ast.IndexExpression) error {
+	name := "t"
+	if id, ok := e.Left.(*ast.Identifier); ok {
+		name = id.Value
+	}
+	if lit, ok := e.Index.(*ast.IntegerLiteral); ok {
+		return messages.New(messages.H2778, t.Type(), "const", fmt.Sprintf("%s.%d", name, lit.Value))
+	}
+	if sameElementTypes(t.Elements) {
+		idxName := "i"
+		if id, ok := e.Index.(*ast.Identifier); ok {
+			idxName = id.Value
+		}
+		items := make([]string, len(t.Elements))
+		for i := range t.Elements {
+			items[i] = fmt.Sprintf("%s.%d", name, i)
+		}
+		example := "[" + strings.Join(items, ", ") + "][" + idxName + "]"
+		return messages.New(messages.H2778, t.Type(), "same", example)
+	}
+	names := make([]string, len(t.Elements))
+	for i := range t.Elements {
+		names[i] = string(rune('a' + i%26))
+	}
+	example := codes.Spelling(codes.KwVar) + " " + strings.Join(names, ", ") + " = " + name
+	return messages.New(messages.H2778, t.Type(), "diff", example)
+}
+
+func sameElementTypes(elems []Value) bool {
+	for i := 1; i < len(elems); i++ {
+		if elems[i].Type() != elems[0].Type() {
+			return false
+		}
+	}
+	return true
 }
