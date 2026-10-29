@@ -131,12 +131,7 @@ func (l *Lexer) offsetOf(line, col int) int {
 	if line < len(l.lineStarts) {
 		end = l.lineStarts[line] - 1
 	}
-	if len(l.shifts) == 0 {
-		return min(begin+col-1, end)
-	}
-	return begin + sort.Search(end-begin, func(i int) bool {
-		return i+1+l.lineShift(begin, begin+i) >= col
-	})
+	return min(begin+col-1, end)
 }
 
 // Interpolation returns the sub-lexer for one '\(expr)' part of a string literal. text is the
