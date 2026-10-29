@@ -205,13 +205,16 @@ func (e *TeeWriter) String() string {
 // ScalesLinearly bir işin girdi boyuyla doğrusal büyüdüğünü sınar. prepare(n) n boylu girdiyi
 // hazırlar (süreye girmez) ve ölçülecek işi verir; iş tekrar çalıştırılabilir olmalıdır ve
 // işlediği birimi (dosya, yerleştirme, karakter) ve hatasını döndürür. n ve 4n'lik işler art
-// arda, yani aynı makine yükünde ölçülür; her süre üç denemenin en kısasıdır (Python timeit
-// belgesi: yüksek değerler çoğunlukla başka süreçlerin karışmasıdır). Süreler ancak iki iş de
-// hatasız ve tam bittiyse karşılaştırılır: iş hata verirse ya da 4n'lik iş n'liğin 3,5–4,5 katı
-// birim işlemezse (iş yarıda kaldı, girdi büyümedi; sabit pay için ±0,5) test kalır. Süre oranı
-// 8'i aşarsa da kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az), karesel bir gerilemede
-// ~16'dır. Duvar saati tavanının aksine makinenin yükünden bağımsızdır: bütün takım paralel
-// koşarken tek bir sürenin 90 katına uzadığı ölçüldü (2026-10-23).
+// arda, yani aynı makine yükünde ölçülür; her süre beş denemenin en kısasıdır (Python timeit
+// belgesi: yüksek değerler çoğunlukla başka süreçlerin karışmasıdır) ve her denemeden önce çöp
+// toplanır (önceki işin çöpü ölçülen işe yüklenmesin). Üç deneme yüklü CI'da yetmedi: oran 8,4
+// ve 9,1'e çıktı, aynı kod boş makinede 45 koşuda en çok 5,8 verdi (2026-10-29, Linux). Sınırı
+// aşan ölçüm yeniden denenmez: tarihteki karesel gerileme 9–10 verdi, yeniden deneme onu gizler.
+// Süreler ancak iki iş de hatasız ve tam bittiyse karşılaştırılır: iş hata verirse ya da 4n'lik
+// iş n'liğin 3,5–4,5 katı birim işlemezse (iş yarıda kaldı, girdi büyümedi; sabit pay için ±0,5)
+// test kalır. Süre oranı 8'i aşarsa da kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az),
+// karesel bir gerilemede ~16'dır. Duvar saati tavanının aksine makinenin yükünden bağımsızdır:
+// bütün takım paralel koşarken tek bir sürenin 90 katına uzadığı ölçüldü (2026-10-23).
 func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func() (int, error)) {
 	t.Helper()
 	small, large := linearRuns(n, prepare)
@@ -236,12 +239,13 @@ func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func()
 
 const (
 	linearFactor = 4
+	linearTrials = 5
 	linearLimit  = 8.0
 	unitsLow     = 3.5
 	unitsHigh    = 4.5
 )
 
-// linearRun bir boyun ölçümüdür: üç denemenin en kısa süresi, son denemenin birimi ve ilk hata.
+// linearRun bir boyun ölçümüdür: denemelerin en kısa süresi, son denemenin birimi ve ilk hata.
 type linearRun struct {
 	best  time.Duration
 	units int
@@ -255,7 +259,8 @@ func (r linearRun) ratio(small linearRun) float64 { return float64(r.best) / flo
 func linearRuns(n int, prepare func(n int) func() (int, error)) (small, large linearRun) {
 	measure := func(f func() (int, error)) linearRun {
 		r := linearRun{best: time.Duration(1<<63 - 1)}
-		for i := 0; i < 3; i++ {
+		for i := 0; i < linearTrials; i++ {
+			runtime.GC()
 			start := time.Now()
 			units, err := f()
 			r.best = min(r.best, time.Since(start))
