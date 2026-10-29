@@ -1,6 +1,6 @@
 # Örnekler
 
-Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Örnekler [`tr/`](tr/) klasöründedir ve kodlu saklanır: aynı dosya her gösterim dilinde okunur (`tr göster tr/01_merhaba.tr --dil en` İngilizce gösterir). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri: [kök README](../README.md#örnekler); örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
+Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Örnekler [`tr/`](tr/) klasöründedir ve kodlu saklanır: aynı dosya her gösterim dilinde okunur (`tr göster tr/01_merhaba.tr --dil en` İngilizce gösterir). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri aşağıdadır; örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
 
 Her örnek tek başına çalışır:
 
@@ -11,7 +11,7 @@ TR_DIL=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 
 ## Sıralı liste
 
-Örnekler basitten zora numaralı bir öğrenme yoludur: her örnek tek bir yeni kavram getirir, öncekilerde öğretilmemiş hiçbir şeyi kullanmaz; başında ne öğrettiğini ve önceki örnekten ne aldığını söyler, sonunda "Kendin dene" alıştırmaları vardır. **Örnekler kodlu saklanır** ([`examples/tr/`](tr/)): aynı dosya her gösterim dilinde okunur, `tr göster examples/tr/01_merhaba.tr --dil en` İngilizce gösterir (bkz. [dil tanımı 17](docs/spec/17_kodlar.md)). Proje kökünden çalıştırın: `./bin/tr.exe examples/tr/01_merhaba.tr`.
+Örnekler basitten zora numaralı bir öğrenme yoludur: her örnek tek bir yeni kavram getirir, öncekilerde öğretilmemiş hiçbir şeyi kullanmaz; başında ne öğrettiğini ve önceki örnekten ne aldığını söyler, sonunda "Kendin dene" alıştırmaları vardır. **Örnekler kodlu saklanır** ([`examples/tr/`](tr/)): aynı dosya her gösterim dilinde okunur, `tr göster examples/tr/01_merhaba.tr --dil en` İngilizce gösterir (bkz. [dil tanımı 17](../docs/spec/17_kodlar.md)). Proje kökünden çalıştırın: `./bin/tr.exe examples/tr/01_merhaba.tr`.
 
 | No | Örnek | Ne öğretir |
 | :-- | :-- | :-- |
@@ -181,4 +181,4 @@ Hata ayıklayıcı komutları ([42](tr/42_hata_ayiklama.tr) ve [43](tr/43_hata_a
 
 ## Hata örnekleri
 
-[`tr/hatalar/`](tr/hatalar/) (ve [`en/errors/`](en/errors/)) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda nedenini ve düzeltilmiş hâlini söyler. Bu dosyalar çıkış koduyla biter; testler iletinin kodunu (`H…`) ve çıkış kodunu sınar.
+[`tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda nedenini ve düzeltilmiş hâlini söyler. Bu dosyalar çıkış koduyla biter; testler iletinin kodunu (`H…`) ve çıkış kodunu sınar.
