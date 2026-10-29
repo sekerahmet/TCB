@@ -215,7 +215,9 @@ func (e *TeeWriter) String() string {
 // iş n'liğin 3,5–4,5 katı birim işlemezse (iş yarıda kaldı, girdi büyümedi; sabit pay için ±0,5)
 // test kalır. Süre oranı 8'i aşarsa da kalır: doğrusal işte ~4 (sabit maliyet baskınsa daha az),
 // karesel bir gerilemede ~16'dır. Duvar saati tavanının aksine makinenin yükünden bağımsızdır:
-// bütün takım paralel koşarken tek bir sürenin 90 katına uzadığı ölçüldü (2026-10-23).
+// bütün takım paralel koşarken tek bir sürenin 90 katına uzadığı ölçüldü (2026-10-23). Küçük boy
+// (n'deki iş) en az 20 ms sürmelidir: aşırı yüklü makinede birkaç ms'lik iş zamanlayıcının bir
+// diliminde kesilmeden bitebilirken büyük boy hep kesilir ve oran bozulur.
 func ScalesLinearly(t testing.TB, what string, n int, prepare func(n int) func() (int, error)) {
 	t.Helper()
 	small, large := linearRuns(n, prepare)

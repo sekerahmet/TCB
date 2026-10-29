@@ -116,7 +116,8 @@ func TestMustContainReportsEveryMissingPart(t *testing.T) {
 }
 
 // Kural: ScalesLinearly'nin oranı doğrusal işi karesel işten ayırır (sınır 8: doğrusal ~4,
-// karesel ~16). İş, ölçüm çözünürlüğünün çok üstünde olsun diye büyük tutulur.
+// karesel ~16). Küçük boy ≥20 ms sürer: aşırı yüklü makinede birkaç ms'lik iş zamanlayıcının bir
+// diliminde kesilmeden bitebilirken büyük boy hep kesilir ve doğrusal işin oranı sınırı aşar.
 func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 	var sink int
 	work := func(steps int) func() (int, error) {
@@ -129,12 +130,16 @@ func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 			return steps, nil
 		}
 	}
-	linear := func(n int) func() (int, error) { return work(n * 20000) }
-	quadratic := func(n int) func() (int, error) { return work(n * n * 100) }
-	if small, large := linearRuns(200, linear); large.ratio(small) > linearLimit {
+	linear := func(n int) func() (int, error) { return work(n * 120000) }
+	quadratic := func(n int) func() (int, error) { return work(n * n * 600) }
+	small, large := linearRuns(200, linear)
+	t.Logf("doğrusal: %v at 200, %v at 800; ratio %.1f", small.best, large.best, large.ratio(small))
+	if large.ratio(small) > linearLimit {
 		t.Errorf("doğrusal iş oranı %.1f, en çok %g olmalı", large.ratio(small), linearLimit)
 	}
-	if small, large := linearRuns(200, quadratic); large.ratio(small) <= linearLimit {
+	small, large = linearRuns(200, quadratic)
+	t.Logf("karesel: %v at 200, %v at 800; ratio %.1f", small.best, large.best, large.ratio(small))
+	if large.ratio(small) <= linearLimit {
 		t.Errorf("karesel iş oranı %.1f, %g'i aşmalı", large.ratio(small), linearLimit)
 	}
 	_ = sink
