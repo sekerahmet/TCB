@@ -83,9 +83,12 @@ func (v *VM) listInPlace(codeVal uint8, cur, rhs Value, line int) (res Value, do
 // setIndex kap[idx] = değer atamasını yapar.
 func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line int) error {
 	if _, copies := left.(AssignCopier); !copies {
-		// Kaba yazılan değer kaçar; değişen sahip liste de (ownership.go).
-		escape(left)
+		// Kaba yazılan değer kaçar; listeden başka değişen kap da. Sahip liste öbür öğelerinin
+		// sahibi kalır (writeToList, ownership.go).
 		escape(rightVal)
+		if _, list := left.(*ListVal); !list {
+			escape(left)
+		}
 	}
 	switch container := left.(type) {
 	case *ListVal:
@@ -101,7 +104,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		if err != nil {
 			return err
 		}
-		escape(finalVal)
+		writeToList(container, container.Elements[pos], finalVal)
 		container.Elements[pos] = finalVal
 		return nil
 	case *DictVal:

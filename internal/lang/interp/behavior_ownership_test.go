@@ -62,7 +62,7 @@ func (w *fakeWorld) fresh() *fakeRes {
 	return r
 }
 
-// check değerlerin içindeki kaynakların (listelerde de) canlı olduğunu denetler.
+// check değerlerin içindeki kaynakların (listelerde ve demetlerde de) canlı olduğunu denetler.
 func (w *fakeWorld) check(vals ...Value) error {
 	for _, x := range vals {
 		switch v := x.(type) {
@@ -71,6 +71,10 @@ func (w *fakeWorld) check(vals ...Value) error {
 				return fmt.Errorf("bırakılmış k%d kullanıldı", v.id)
 			}
 		case *ListVal:
+			if err := w.check(v.Elements...); err != nil {
+				return err
+			}
+		case *TupleVal:
 			if err := w.check(v.Elements...); err != nil {
 				return err
 			}
@@ -269,6 +273,155 @@ f()
 [4, 3]
 [4, 3, 2]
 1 5`)
+}
+
+// Liste yazımı (15.43) demet yazımı gibi içindeki değerlerin sahibidir: ifadede kurulan liste
+// (birleşim([a, b])'nin [a, b]'si) çağrıdan sonra bırakılır, değişkene bağlı öğeleri yaşar. Bir
+// değişkene bağlı listeye sonradan yazılan değer kaçar, liste ve öbür öğeleri kaçmaz: liste
+// bırakılınca kendi öğesi (4) bırakılır, eklenen (5) bırakılmaz.
+func TestOwnershipListLiteralOwnsElementsLikeATuple(t *testing.T) {
+	expectOut(t, `
+TR_func f() {
+    TR_var a = yeni()
+    TR_var b = yeni()
+    TR_var c = birleşim([a, b])
+    TR_var l = [yeni(), a]
+    TR_print(bırakılan())
+    l.TR_append(yeni())
+    l = TR_none
+    TR_print(bırakılan())
+    TR_print(oku(a), oku(b), oku(c))
+}
+f()
+TR_print(bırakılan())
+`, `
+[]
+[4]
+1 2 3
+[4, 3, 2, 1]`)
+}
+
+// İndeksle atamada yazılan değer kaçar, yerine yazılan eski öğe (2) listeden düşünce bırakılır.
+func TestOwnershipIndexAssignmentEscapesOnlyTheWrittenValue(t *testing.T) {
+	expectOut(t, `
+TR_func f() {
+    TR_var a = yeni()
+    TR_var l = [yeni(), a]
+    l[0] = yeni()
+    TR_print(bırakılan())
+    l = TR_none
+    TR_print(bırakılan())
+    TR_print(oku(a))
+}
+f()
+TR_print(bırakılan())
+`, `
+[2]
+[2]
+1
+[2, 1]`)
+}
+
+// (a) Demet yazımı (3.6a, 15.43) öğelerinin sahibidir: demet bırakılınca öğeleri de bırakılır; saf
+// bir yerleşiğin ara sonuç argümanı (demet) çağrıdan hemen sonra bırakılır.
+func TestOwnershipTupleLiteralOwnsElements(t *testing.T) {
+	expectOut(t, `
+TR_func f() {
+    TR_var a = yeni()
+    TR_var t = (yeni(), a)
+    TR_var c = birleşim((a + a, yeni()))
+    TR_print(bırakılan())
+    t = TR_none
+    TR_print(bırakılan())
+    TR_print(oku(a), oku(c))
+}
+f()
+`, `
+[4, 3]
+[4, 3, 2]
+1 5`)
+}
+
+// (b) Fonksiyonun döndürdüğü demetin içindeki taze değerler çağırana taşınır: dönen çerçeve
+// kapanınca bırakılmaz, demet bırakılınca bırakılır.
+func TestOwnershipReturnedTupleMovesItsElementsToTheCaller(t *testing.T) {
+	expectOut(t, `
+TR_func f(p) {
+    TR_var t = yeni()
+    TR_var u = p + t
+    TR_return u, yeni()
+}
+TR_func g() {
+    TR_var q = yeni()
+    TR_var r = f(q)
+    TR_print(bırakılan())
+    TR_print(oku(q), oku(r.0), oku(r.1), oku(f(q).1))
+    r = TR_none
+    TR_print(bırakılan())
+}
+g()
+`, `
+[2]
+1 3 4 7
+[2, 5, 7, 6, 4, 3]`)
+}
+
+// (c) Listeye eklenen, sözlüğe, en dış değişkene ya da Go'nun tuttuğu yere konan demet öğeleriyle
+// birlikte kaçar: hiç bırakılmaz.
+func TestOwnershipStoredTupleEscapes(t *testing.T) {
+	expectOut(t, `
+TR_func iki() { TR_return yeni(), yeni() }
+TR_var dış = iki()
+TR_func g() {
+    TR_var l = [1]
+    l.TR_append(iki())
+    TR_var d = {"a": iki()}
+    sakla(iki())
+    TR_return l
+}
+TR_var l = g()
+TR_print(bırakılan())
+TR_print(oku(dış.0), oku(l[1].1))
+`, `
+[]
+1 4`)
+}
+
+// (d) Üzerine yazılan demet değişkeni bırakılır; içindeki değer bir kez, son bağı da kalkınca.
+func TestOwnershipOverwrittenTupleReleased(t *testing.T) {
+	expectOut(t, `
+TR_func f() {
+    TR_var a = yeni()
+    TR_var t = (a, yeni())
+    t = (yeni(), a)
+    TR_print(bırakılan())
+    TR_print(oku(a), oku(t.0))
+}
+f()
+TR_print(bırakılan())
+`, `
+[2]
+1 3`+"\n[2, 1, 3]")
+}
+
+// (e) Açılan demetin öğeleri demetle paylaşılır: demet bırakılınca öğeler adlara bağlı kalır, sonra
+// bir kez bırakılır.
+func TestOwnershipUnpackedTupleSharesElements(t *testing.T) {
+	expectOut(t, `
+TR_func iki() { TR_return yeni(), yeni() }
+TR_func f() {
+    TR_var t = (yeni(), yeni())
+    TR_var a, b = t
+    t = TR_none
+    TR_var x, y = iki()
+    TR_print(bırakılan())
+    TR_print(oku(a), oku(b), oku(x), oku(y))
+}
+f()
+TR_print(bırakılan())
+`, `
+[]
+1 2 3 4`+"\n[4, 3, 2, 1]")
 }
 
 // Sonradan değişen ya da bir alana yazılan sahip liste elemanlarıyla birlikte kaçar.

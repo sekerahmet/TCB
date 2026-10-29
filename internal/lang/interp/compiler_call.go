@@ -34,18 +34,18 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 						}
 					}
 				} else if m := findMethod(obj, u.core); m != nil {
-					// Metin/Liste/Sözlük metotları alıcıyı ve argümanları başka listelere
-					// koyabilir: sahip liste ve argümanlar kaçar (ownership.go).
-					escape(obj)
 					if l, listVal := obj.(*ListVal); listVal && add && nargs == 1 {
 						av, err := argCode[0](v, env)
 						if err != nil {
 							return nil, err
 						}
-						escape(av)
+						writeToList(l, nil, av) // eklenen kaçar, liste değil (15.43)
 						l.Elements = append(l.Elements, av)
 						return l, nil
 					}
+					// Metin/Liste/Sözlük metotları alıcıyı ve argümanları başka listelere
+					// koyabilir: sahip liste ve argümanlar kaçar (ownership.go).
+					escape(obj)
 					// Yerleşik çağrısıyla aynı sıra: önce tüm argümanlar, sonra gövde
 					args, err := arguments(v, env, argCode)
 					if err != nil {
