@@ -203,76 +203,54 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 ## 6. Fonksiyonlar
 
-Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, tipi tutmayan argüman çalışmadan önce bulunuyor [ölçüldü]; varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 (bugünkü testler).
+Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 6.7 ve 6.11 kurala uyuyor, maddeleri yok. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, sırayla verilen argümanın tipi tutmazsa çalışmadan önce bulunuyor, varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 [ölçüldü: küçük programlar; denetim ve çalıştırma].
 
-`tests/fonksiyonlar_test.tr` eski kuralları da sınıyor; testler koşulmadan önce yeni kurallara göre yeniden yazılır:
-- tipsiz parametreler (1.2);
-- tanımından önce çağrının hata vermesi (5.14'e aykırı);
-- son ifadenin örtük dönüşü (6.2);
-- dönüş tipinin `:` ile yazımı (6.1);
-- parantezsiz ok ve adsız `TR_func` (6.6);
-- `TR_it` ve `TR_acc`'li sondaki blok, son argümanda `() => { ... }` (6.7);
-- argüman hatalarını çalışırken yakalayan testler (eski 6.3 ve 6.4: eksik, fazla, iki kez verilen argüman, varsayılandaki ileri başvuru): artık denetim hatası olduklarından `tests/negative/` fikstürlerine taşınır, yoksa dosya denetimden geçmez (1.3);
-- 6.7 testinin adındaki `\{` (2.6), `//` yorumları ve eski başlık (2.1, 2.2);
-- numaralar: eski 6.3 → 6.4, 6.4 → 6.5, 6.5 → 6.8, 6.8 → 6.1, 6.3a → 6.11.
-
-Kapıların bu bölümdeki kırılmaları, testler yeniden yazılırken giderilir: 6.3'ün Test satırı "gerekmez" diyor ama eski 6.3 numaralı testler var; 6.11 "TR testi" diyor ama 6.11 numaralı test yok (bugün 6.3a) [DENETİM].
-
-Depodaki kullanımlar çevrilir: `.tr` dosyalarında `TR_it` 44, `TR_acc` 10, adsız `TR_func` 52, parantezsiz ok 21 yerde [ölçüldü]; bütün depoda (belgeler ve Go testleri dahil) `TR_it` 88, `TR_acc` 29, adsız `TR_func` 63 [ölçüldü, DENETİM]; 13.6'daki `TR_reduce` bloğu da.
+`tests/fonksiyonlar_test.tr` yeni yazımla yazılmış, 20 testi geçiyor; depoda `TR_it`, `TR_acc`, adsız `TR_func` ve parantezsiz ok kalmadı (yalnız olumsuz fikstürde) [ölçüldü: dosyanın testleri koşuldu; `.tr` dosyalarında git grep]. Eski kurala dayanan testler: 6.3'ün tek değer kullanımını H2708 ile yakalayan testi (demet gelince kalkar); eksik, fazla, iki kez verilen argümanı ve varsayılandaki ileri başvuruyu çalışırken yakalayan 6.4 ve 6.5 testleri (denetim hatası olunca `tests/negative/` fikstürlerine taşınır).
 
 ### 6.1
 
-- **Mevcut durum:** parametre tipi isteğe bağlı; dönüş tipi hem `:` hem `->` ile yazılıyor; aynı adla ikinci tanım hata vermiyor, ikincisi kazanıyor; `def f(x):` genel bir sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** parametre tipi zorunlu; dönüş tipinin tek yazımı `->`, `-> TR_NoneType` hata; aynı kapsamda ikinci tanım denetim hatası; `def`, `: R` ve süsleyici için iletiler.
+- **Mevcut durum:** dönüş tipinin `:` ile yazımı, `-> TR_NoneType`, `def f(x):`, satır başındaki `@f` ve aynı blokta aynı adla ikinci tanım sözdizimi hatası, iletiler TR'deki yazımı söylüyor; parametre tipi zorunlu değil: `TR_func f(x)` denetimden geçiyor [ölçüldü: altı küçük program ve `tests/negative/fonksiyon_yazimi.tr`; denetim ve çalıştırma].
+- **Yapılacaklar:** parametre tipi zorunlu (tipsiz parametre denetim hatası); kitaplığın, örneklerin ve testlerin tipsiz parametreleri çevrilir (1.2); denetleyicinin testi.
 
 ### 6.2
 
-- **Mevcut durum:** dönüş tipi yazılmış fonksiyonda `TR_return`'süz yol yokluk veriyor; gövdenin son ifadesi örtük dönüyor (`TR_func s(x) { x }` 4 veriyor) [ölçüldü].
-- **Yapılacaklar:** eksik dönüş denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler: `TR_return`, `TR_throw`, `TR_exit`, sonsuz döngü, bütün dalları biten `TR_if` ve `TR_match`; fonksiyon ifadesinin blok gövdesi de; örtük dönüş kalkar.
+- **Mevcut durum:** gövdenin son ifadesi dönüş değeri değil (örtük dönüş kalktı), programın en dışında `TR_return` sözdizimi hatası; eksik dönüş denetlenmiyor: dönüş tipi `TR_Int` olan fonksiyonda `TR_return`'süz yol denetimden geçiyor, çalışınca yokluk veriyor; fonksiyon tipi beklenen fonksiyon ifadesinin blok gövdesinde de [ölçüldü: dalı biten ve bitmeyen fonksiyonlar, `TR_throw`, sonsuz döngü, `TR_match` ve `TR_exit` ile biten yollar; denetim ve çalıştırma].
+- **Yapılacaklar:** bitmeyen yol denetim hatası, ileti `TR_return`'ü önerir; bitiren deyimler: `TR_return`, `TR_throw`, `TR_exit`, çıkışı olmayan sonsuz döngü, bütün dalları biten `TR_if` ve bütün kolları biten `TR_match`; denetleyicinin testi.
 
 ### 6.3
 
-- **Mevcut durum:** `TR_return 1, 2` sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** birden çok değer döndürme ve açma; `TR_return f()` ile iletme; tek değer olarak ve argüman olarak kullanımı denetim hatası.
+- **Mevcut durum:** `TR_return a, b`, dönüş tipinin `-> (TR_Float, TR_Int)` yazımı, açma ve `TR_return f()` ile iletme çalışıyor; sonuç bir değer değil: `TR_var t = f()`, argüman olarak ve listede kullanım çalışırken H2708 veriyor, `t.0` sözdizimi hatası; açmada değer sayısı tutmazsa denetim değil çalışma hatası (H2709) [ölçüldü: iki değer döndüren fonksiyonla altı kullanım; denetim ve çalıştırma].
+- **Yapılacaklar:** sonuç bir demet değeri (3.6a): tutulur, argüman olur, listeye konur, `t.0` ile okunur, H2708 kalkar; açmada sayı tutmazsa denetim hatası; TR testi.
 
 ### 6.4
 
-- **Mevcut durum:** varsayılansız parametrenin varsayılanlıdan sonra gelmesi ölçülmedi.
-- **Yapılacaklar:** varsayılanlı parametrelerden sonrakilerin de varsayılanı olur; varsayılanın denetimi çalışmadan önce.
+- **Mevcut durum:** varsayılansız parametrenin varsayılanlıdan sonra gelmesi sözdizimi hatası; varsayılan her çağrıda soldan sağa hesaplanıyor, önceki parametreleri görüyor, `[]` varsayılanı her çağrıda yeni liste; varsayılanda parametrenin kendisi ya da sonraki parametre ancak çalışırken bulunuyor (H2440) [ölçüldü: sıralama hatası, ileri başvuru, sayaçlı varsayılan ve liste varsayılanı; denetim ve çalıştırma].
+- **Yapılacaklar:** varsayılanda parametrenin kendisi ve sonraki parametreler denetim hatası; denetleyicinin testi.
 
 ### 6.5
 
-- **Mevcut durum:** eksik argüman ancak çalışırken bulunuyor ("'m' fonksiyonu 2 argüman bekler, 1 verildi"); Python'un `b=5` yazımı genel bir sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** eksik, fazla, bilinmeyen ve iki kez verilen argüman denetim hatası; `k=2` iletisi iki noktalı yazımı önerir.
+- **Mevcut durum:** adlı argümanlar her sırada veriliyor; `k=2` sözdizimi hatası, ileti `k: 2`'yi öneriyor; Python'un `*args`'ı genel bir sözdizimi hatası veriyor; sırayla verilen argümanın tipi tutmazsa denetim hatası. Eksik, fazla, bilinmeyen adlı ve hem sırayla hem adla verilen argüman ancak çalışırken bulunuyor (H2414, H2412, H2415, H2413); adlı argümanın tipi hiç denetlenmiyor (`b: "x"` hata ancak gövdedeki işlemde veriyor); parametre bekleyen yerleşiğe verilen sondaki blok çalışırken H2711 [ölçüldü: iki parametreli fonksiyona sekiz çağrı, liste ve sayı parametresine atama; denetim ve çalıştırma].
+- **Yapılacaklar:** eksik, fazla, bilinmeyen ve iki kez verilen argüman ile tipi tutmayan adlı argüman denetim hatası, ileti parametrenin adını söyler; denetleyicinin testi.
 
 ### 6.6
 
-- **Mevcut durum:** üç yazım da çalışıyor: `x => ...`, `(x) => ...`, adsız `TR_func(x) { ... }` (bugünkü 6.6 ve 6.5 testleri); `(_) => _` `_`'yi okuyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** yalnız parantezli ok; öbürleri ve `lambda` sözdizimi hatası, ileti oku önerir; `TR_func` tanımı ifade yerinde hata; `_` parametre okunamaz (3. katman, 3A).
-
-### 6.7
-
-- **Mevcut durum:** sondaki blok tek parametreli, parametresi `TR_it`; `TR_reduce` bloğunda `TR_acc` (bugünkü 6.7 testleri).
-- **Yapılacaklar:** sondaki blok parametresiz; `TR_it` ve `TR_acc` kalkar (2.9b); blokta `TR_return` denetim hatası; son argümanda `() => { ... }` ve `() => x` sözdizimi hatası, ileti sondaki bloğu önerir; sondaki blokta 5.12'nin gizleme yasağı.
+- **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken parametre tipi zorunlu değil: tipsiz `(x) => x * 2` denetimden geçiyor [ölçüldü: `tests/negative/fonksiyon_ifadesi.tr` ve üç ok programı; denetim ve çalıştırma]. Blok gövdesinin eksik dönüşü 6.2'de.
+- **Yapılacaklar:** beklenen fonksiyon tipi yokken tipsiz parametre denetim hatası; parametre tipinin beklenen tipten çıkarımı denetleyicide; denetleyicinin testi.
 
 ### 6.8
 
-- **Mevcut durum:** fonksiyon dıştaki değişkene uyarısız atıyor [ölçüldü].
-- **Yapılacaklar:** dıştaki değişkene okumadan önce atama uyarısı, ileti `TR_var`'ı önerir.
+- **Mevcut durum:** kapanış dıştaki değişkeni okuyor ve atıyor, değişiklik iki yanda görünüyor, özyineleme serbest; dıştaki değişkene okumadan önce atayan fonksiyon uyarı vermiyor [ölçüldü: dıştaki sayaca okumadan atayan fonksiyon; denetim ve çalıştırma].
+- **Yapılacaklar:** dıştaki değişkene bu fonksiyonda okumadan önce atama uyarısı, ileti `TR_var`'ı önerir; TR testi.
 
 ### 6.9
 
-- **Mevcut durum:** fonksiyonun metni dosyanın dilinde ve tipsiz: ok fonksiyonu için "<ok fonksiyonu>" yazılıyor [ölçüldü].
-- **Yapılacaklar:** fonksiyon tipinin yazımı (`(T) -> R`); metin tipin metni. Kimlik listesindeki genel fonksiyon tipi kalkar (3.11).
+- **Mevcut durum:** fonksiyon tipinin yazımı ayrışıyor (`(TR_Int) -> TR_Bool`, sağdan birleşen `->`, `() -> (TR_Int, TR_Int)`), ama denetlenmiyor: `(TR_Int) -> TR_Bool` tipli değişkene sayı döndüren ok atanabiliyor; fonksiyon değeri adlı argümanla ya da eksik argümanla çağrılınca H2710 (bugünkü 6.9 testi); metin tipin metni değil: adlı fonksiyon "<function f>", ok "<lambda>"; `TR_Type(f)` genel tip "Function" veriyor (3.11) [ölçüldü: main 1073aeab]. Fonksiyonların karşılaştırması 4.5'te.
+- **Yapılacaklar:** fonksiyonun metni tipinin metni ("(Int) -> Bool"), `TR_Type(f)` fonksiyon tipi; parametre ve dönüş tiplerinin denetimi (4a); kimlik listesindeki genel fonksiyon tipi kalkar (3.11); TR testi.
 
 ### 6.10
 
-- **Mevcut durum:** `TR_func f[T](l)` sözdizimi hatası veriyor [ölçüldü].
-- **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı; kısıtsız `T`'de izin verilen işlerin denetimi.
-
-### 6.11
-
-- **Açık:** 10000'in dayanağı (Go yığınına sığan derinlik mi, ML kodunun gereksinimi mi) ölçülmedi; gerekçeye yazılacak.
+- **Mevcut durum:** tip parametresi yok: `TR_func baştaki[T](l: TR_List[T]) -> T?` sözdizimi hatası ("'(' bekleniyordu"); çağrıda tip yazımı (`f[TR_Int]([3])`) denetimden geçiyor, çalışırken "Fonksiyon tipi indekslenemez" veriyor [ölçüldü: main 1073aeab].
+- **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı, tip yazımının listenin öğesinin çağrısından ayrılması; kısıtsız `T`'de yalnız her tipte geçerli işler, öbürleri kısıt ister (13.10, 7.8); TR testi.
 
 ## 7. Yapılar
 

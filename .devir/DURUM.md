@@ -13,9 +13,17 @@
 - Eskimiş olanlar (status'un dediği, bugün öyle değil): `:=` ve ilk değersiz `TR_var` artık sözdizimi hatası (5.1); öğe sayısı tutmazsa H2700/H2701, `_` okunamıyor (5.3); on iki bileşik atama ve yerinde `+=` çalışıyor (5.4); `TR_else`'siz değer veren `TR_if` hata (5.5); eşleşmeyen eşleme H2702, `TR_default` iletisi (5.6); dolaşırken ekleme H2703/H2704 (5.7); `TR_while` iletisi (5.8). Girişteki "testler eski kuralları sınıyor" listesi de eskimişti, çıkarıldı.
 - Yeni bulgu (status'ta yoktu): aktarılan modülün fonksiyonu aktaran dosyanın en dış adını okuyor (5.14); `TR_elif`'ten sonra ikinci, yanıltıcı sözdizimi hatası (5.5).
 
+### 6 (commit: status 6)
+
+- Silinen: 2 (6.7 kurala uyuyor; 6.11 kurala uyuyor, "Açık" notu aşağıda Sorular'a taşındı). Değişen: 9 (6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.8, 6.9, 6.10). Eklenen: 0.
+- Uyuyor: 6.7, 6.11.
+- Eskimiş olanlar: dönüş tipinin `:` yazımı, `def`, aynı adla ikinci tanım artık hata (6.1); örtük dönüş kalktı (6.2); `TR_return 1, 2` çalışıyor (6.3); varsayılanlıdan sonra varsayılansız parametre hata (6.4); `k=2` iletisi (6.5); parantezsiz ok, adsız `TR_func`, `lambda` hata (6.6); `TR_it`/`TR_acc` kalktı, `f(() => ...)` hata (6.7); ok fonksiyonunun metni artık "<lambda>" (6.9). Girişteki göç sayıları (`TR_it` 44 vb.) ve test listesi eskimişti: depoda kullanım kalmadı.
+- Yeni bulgu: adlı argümanın tipi hiç denetlenmiyor (6.5).
+- 6.9 ve 6.10 main `1073aeab`'nin ayrıştırıcısıyla ölçüldü, etiketleri istendiği gibi.
+
 ## Kalanlar
 
-6, 7.
+7.
 
 ## Kararsız kaldıklarım
 
@@ -24,4 +32,5 @@
 
 ## Sorular
 
-(henüz yok)
+1. **"Sözdizimi hatası" ile "denetim hatası" ayrımı.** 6.1 aynı adla ikinci tanımı, 6.7 sondaki bloktaki `TR_return`'ü "denetim hatası" diye yazıyor; motor ikisini "Sözdizimi hatası" olarak veriyor (H0260, H0263). Davranış aynı (hiçbir satır çalışmaz, çıkış 1, 1.3 ve 1.9). Dil tanımının başka yerleri (5.13 "sözdizimi hatasıdır: dosya okunurken bulunur", 7.1 "sözdizimi hatasıdır (tanımda bilinir)") ayrımı bilerek yapıyor gibi. Ayrım kullanıcıya görünen bir şey mi (ileti başlığı, `TR_cmd_check --json`'un türü), yoksa ikisi de "çalışmadan önce" mi? Görünürse 6.1 ve 6.7 için motor ya da tanım düzelir; ben bu yüzden madde açmadım, 6.7'yi uyuyor saydım.
+2. **6.11'in dayanağı.** Eski status'taki "Açık: 10000'in dayanağı (Go yığınına sığan derinlik mi, ML kodunun gereksinimi mi) ölçülmedi; gerekçeye yazılacak" notu motorun ayrılığı değil, gerekçenin eksiği; motor kurala uyduğu için maddeyi sildim. Gerekçede (`rationale/06_functions.md` 6.11) hâlâ yalnız Python'un 1000'i var, 10000'in nedeni yok. Bu bir gerekçe işi olarak başka bir listeye mi girmeli?
