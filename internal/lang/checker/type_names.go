@@ -205,6 +205,23 @@ func (c *Checker) checkedTypeName(name string, at lexer.Token) string {
 	return canonical
 }
 
+// writtenType yazılan tipin denetleyicideki adını verir (yazılmamışsa Herhangi); adın kabul
+// edilmeyen yazımı checkedTypeName'deki gibi hatadır.
+func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
+	if t == nil {
+		return typeAny
+	}
+	return c.checkedTypeName(t.Name, siteOf(t.Token, line))
+}
+
+// normalizedType yazılan tipin denetleyicideki adını hata eklemeden verir (yazılmamışsa Herhangi).
+func normalizedType(t *ast.TypeRef) string {
+	if t == nil {
+		return typeAny
+	}
+	return normalizeTypeName(t.Name)
+}
+
 // normalizeTypeName tip açıklamasındaki adı asıl tip adına çevirir (hata eklemeden).
 func normalizeTypeName(t string) string {
 	canonical, _ := resolveTypeAnnotation(t, nil)

@@ -191,8 +191,8 @@ func TestTrailingBlockRules(t *testing.T) {
 func TestMultipleResultsParse(t *testing.T) {
 	prog := New(codedLexer("TR_func f() -> (TR_Int, TR_String) { TR_return 1, \"a\" }")).ParseProgram()
 	f := prog.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.FunctionLiteral)
-	if len(f.ReturnTypes) != 2 || f.ReturnType != "" {
-		t.Errorf("dönüş tipleri: %v %q", f.ReturnTypes, f.ReturnType)
+	if f.ReturnType == nil || len(f.ReturnType.Elems) != 2 || f.ReturnType.Name != "" {
+		t.Errorf("dönüş tipleri: %+v", f.ReturnType)
 	}
 	ret := f.Body.Statements[0].(*ast.ReturnStatement)
 	if tup, ok := ret.ReturnValue.(*ast.TupleExpression); !ok || len(tup.Elements) != 2 {

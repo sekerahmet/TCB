@@ -122,7 +122,7 @@ func (b *structBody) field() bool {
 	fieldTok := p.curToken()
 	p.role(fieldTok, RoleStructField)
 	field := ast.StructField{Name: fieldTok.Literal, NameToken: fieldTok}
-	field.TypeName, field.TypeToken, field.DefaultValue = p.parseTypeAndDefault()
+	field.Type, field.DefaultValue = p.parseTypeAndDefault()
 	// Alan virgül, ';', satır sonu ya da '}' ile biter: aynı satırda başka bir şey
 	// (ör. 'yazdır("...")' çağrısının '(' işareti) alan değildir.
 	if next := p.peekToken(); next.Type != lexer.TokRBrace && next.Type != lexer.TokComma &&
@@ -230,8 +230,8 @@ func (p *Parser) pythonClassError() ast.Statement {
 // checkConstructor kurucunun değer döndürmediğini denetler (7.4): dönüş tipi ve değerli 'sonuç'
 // sözdizimi hatasıdır. Kurucunun içindeki fonksiyonların 'sonuç'ları kendilerinindir.
 func (p *Parser) checkConstructor(fn *ast.FunctionLiteral) {
-	if fn.ReturnType != "" {
-		p.syntaxError(fn.ReturnToken, messages.H0283, p.word(codes.CtxInit))
+	if fn.ReturnType != nil {
+		p.syntaxError(fn.ReturnType.Token, messages.H0283, p.word(codes.CtxInit))
 		return
 	}
 	ast.Walk(fn.Body, func(n any) bool {

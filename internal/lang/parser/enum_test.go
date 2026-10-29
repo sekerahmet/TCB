@@ -20,7 +20,7 @@ func TestEnumAndInterfaceDefinitions(t *testing.T) {
 		t.Errorf("enum %+v", enum)
 	}
 	iface := prog.Statements[1].(*ast.StructStatement)
-	if iface.Kind != ast.KindInterface || len(iface.Methods) != 2 || iface.Methods["f"].Body != nil || iface.Methods["f"].ReturnType == "" {
+	if iface.Kind != ast.KindInterface || len(iface.Methods) != 2 || iface.Methods["f"].Body != nil || iface.Methods["f"].ReturnType == nil {
 		t.Errorf("interface %+v", iface)
 	}
 }

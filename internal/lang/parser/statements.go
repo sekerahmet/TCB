@@ -215,7 +215,7 @@ func (p *Parser) parseVarStatement(isConst bool) ast.Statement {
 	if p.peekTokenIs(lexer.TokColon) {
 		p.nextToken() // ':'
 		var ok bool
-		if stmt.TypeName, stmt.TypeToken, ok = p.typeAfter(); !ok {
+		if stmt.Type, ok = p.typeAfter(); !ok {
 			return nil
 		}
 	}

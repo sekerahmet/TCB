@@ -140,7 +140,7 @@ func (p *Parser) variantFields(variant string) ([]ast.StructField, bool) {
 		}
 		tok := p.curToken()
 		f := ast.StructField{Name: tok.Literal, NameToken: tok}
-		f.TypeName, f.TypeToken, f.DefaultValue = p.parseTypeAndDefault()
+		f.Type, f.DefaultValue = p.parseTypeAndDefault()
 		switch {
 		case seen[f.Name]:
 			p.syntaxError(tok, messages.H0296, f.Name, variant)
@@ -190,7 +190,7 @@ func (b *structBody) signature() bool {
 	if p.peekTokenIs(lexer.TokMinus) {
 		p.nextToken() // '-'
 		if p.expectPeek(lexer.TokGt) && p.expectPeek(lexer.TokIdent) {
-			lit.ReturnType, lit.ReturnToken = p.curToken().Literal, p.curToken()
+			lit.ReturnType = &ast.TypeRef{Name: p.curToken().Literal, Token: p.curToken()}
 			p.role(p.curToken(), RoleType)
 		}
 	}
