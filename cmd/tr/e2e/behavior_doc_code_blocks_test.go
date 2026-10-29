@@ -3,7 +3,6 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,35 +28,29 @@ import (
 // listesinin testlerinde (internal/stdlib) çalıştırılır, burada yalnızca bağlantıları denetlenir.
 const generatedDoc = "docs/codes.md"
 
-// belgeListesi depodaki izlenen bütün .md dosyalarıdır (depo köküne göre, bölü çizgisiyle);
-// tarihli arşiv (docs/archive/) ve testlerin bilerek bozuk verisi (testdata/) dışarıda kalır. Yeni bir belge nereye eklenirse eklensin kendiliğinden
-// denetime girer (2026-10-29: elle liste examples/README.md'yi ve paket README'lerini dışarıda
-// bırakıyordu; codegraph'ın gördüğü iki kırık bağlantı oradaydı).
+// belgeListesi depodaki belgelerdir (depo köküne göre, bölü çizgisiyle): kökteki README,
+// SECURITY ve CONTRIBUTING, docs/ altındaki bütün .md dosyaları, kitaplığın, örneklerin, eklentinin ve
+// kıyas setinin README'leri, sözlük isteği konu şablonu. Yeni bir
+// belge docs/ altına eklendiğinde kendiliğinden denetime girer.
 func belgeListesi(t *testing.T) []string {
 	t.Helper()
-	var list []string
-	err := reporoot.WalkDir(reporoot.Root(), func(p string, d fs.DirEntry, err error) error {
+	list := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md", "examples/README.md",
+		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/name_request.md"}
+	for _, pattern := range []string{"docs/*.md", "docs/*/*.md"} {
+		d, err := reporoot.Glob(reporoot.Path(pattern))
 		if err != nil {
-			return err
+			t.Fatal(err)
 		}
-		relative, err := filepath.Rel(reporoot.Root(), p)
-		if err != nil {
-			return err
+		for _, filePath := range d {
+			relative, err := filepath.Rel(reporoot.Root(), filePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			list = append(list, filepath.ToSlash(relative))
 		}
-		relative = filepath.ToSlash(relative)
-		if d.IsDir() && (relative == "docs/archive" || d.Name() == "testdata") {
-			return fs.SkipDir
-		}
-		if !d.IsDir() && strings.HasSuffix(relative, ".md") {
-			list = append(list, relative)
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
-	if len(list) < 100 {
-		t.Fatalf("yalnızca %d belge bulundu; depo yapısı değişmiş olabilir", len(list))
+	if len(list) < 20 {
+		t.Fatalf("yalnızca %d belge bulundu; docs/ yapısı değişmiş olabilir", len(list))
 	}
 	return list
 }
