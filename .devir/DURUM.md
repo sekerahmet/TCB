@@ -12,9 +12,24 @@
 - 16:27 denetleyici (`f0fafb7`; H1026, `checker/unpack.go`): sayı `TypeInfo.TupleLen`'de, tip dizesinde değil; `tests/negative/demet_acma.tr`.
 - 16:30 (`2a4f3f1`) TR testleri (`tests/tipler_test.tr`'nin 8 "3.6a ..." testi), `bind` ve `codeindex` denemeleri, dil tanımı (3.6a, 6.3, 13.8), gerekçe, status (3.6a, 5.3, 6.3).
 
-## Kalanlar
+- 16:34 tam koşudan çıkan düzeltmeler: denetleyici `t.0`'ın içine iniyor (`f("x").0`'ın tip hatası), H1026'nın metni H2709'unkinden ayrı, `doc_blocks_known.txt`'ten artık geçen `15_tensorler.md:399` silindi (`-update`).
 
-- bitiş ölçütünün komutları ve hız ölçümü (sürüyor)
+## Bitiş ölçütü
+
+- `go build ./...`, `go vet ./internal/...`: temiz.
+- `go test ./internal/...`: SONUC_INTERNAL
+- `go test ./cmd/tr/e2e/ -run 'DocLinks|DocTRCodeBlocks'`: geçiyor.
+- `go run ./tools/codegraph spec-refs`: "0 error(s), 0 note(s)".
+- `go test -short ./internal/reporoot ./tools/...`: yalnız `TestEveryTrackedDataFileHasATestOrAReason` düşüyor (`.devir/DURUM.md`, beklenen).
+- `go run ./cmd/tr test tests`: 352 test, 352 geçti (`examples` 4/4, `lib` 69/69).
+- `git grep -n 'MultiVal' -- internal`: boş.
+- `go run ./tools/codegraph dups --changed main`: 0 aday.
+
+## Hız
+
+1 milyon kez `TR_var a, b = f(i)` (`f` iki değer döndürür), taban 4eb9a44'ten derlenmiş ikiliyle dönüşümlü koşu:
+- ilk ölçüm (3 koşunun en iyisi): önce 0,451 sn; bu ölçüm yanlışlıkla eski yerel `main`'den (23e7be2) derlenmiş ikiliyleydi, aşağıdakiler 4eb9a44'le.
+- 20 dönüşümlü koşu: en iyi önce 0,389 sn, sonra 0,384 sn (−%1); ortanca 0,434 / 0,459 sn (+%5,8). Makine gürültülü: aynı ikili turdan tura %10 oynuyor (10'luk iki tur: +%10 ve −%0,5). En iyiye göre yavaşlama yok; ortanca %5'i biraz aşıyor, gürültü olabilir, istenirse sessiz bir makinede yeniden ölçülmeli. Demetin tutulduğu biçim (`TR_var t = f(i)`, `t.0 + t.1`) 0,407 sn.
 
 ## `*ListVal` taraması (`git grep -nE '\*ListVal\b' -- internal`)
 
