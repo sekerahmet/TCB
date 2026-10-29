@@ -11,6 +11,7 @@ Kurallar: [`16_veri_parcalayici.md`](../16_veri_parcalayici.md). Bu dosya her ku
 
 - *Emsal:* `tokenizers`'ın `encode` ve `encode_batch`'i; PyTorch tarafında `add_special_tokens` bayrağı [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* tek metin ile metin listesinin dönüş tipi ayrıdır ve argümanın tipinden çalışmadan önce bellidir; 13.10'un iki imzasıdır. Ayrı bir toplu ad gerekmez.
+- *Gerekçe (metin içi özel parça):* `TR_special_tokens: TR_false` metin içindeki yazımı açık bırakırsa güvenilmeyen girdideki `<|im_end|>` bir kontrol kimliğine dönüşür, derlemdeki düz `<|endoftext|>` metni de belge sınırı sanılır (Gemini Koşu 7).
 
 ### 16.3
 
@@ -21,6 +22,7 @@ Kurallar: [`16_veri_parcalayici.md`](../16_veri_parcalayici.md). Bu dosya her ku
 
 - *Emsal:* `tokenizers` metinlerden eğitir ve tek dosyaya yazar: `tokenizer.train(files, trainer)`, `tokenizer.save(...)` ([tokenizers, Quicktour](https://huggingface.co/docs/tokenizers/quicktour)).
 - *Gerekçe:* amaç "kendi parçalayıcısını eğitmek"i veri hazırlamanın parçası sayar; bugün TR'de bu yok, Python'a gidilir. Bayt düzeyi BPE her dilde ve her baytta çalışır, bilinmeyen parça yoktur. Belirlenimcilik Güvenilir'in gereğidir: aynı veriyle eğitilen parçalayıcı aynı olmazsa aynı model iki kez kurulamaz. Emsal bunu sağlıyor: HF'nin BPE eğitimi 1 ve 8 iş parçacığında, metin sırası ters verildiğinde de aynı parçalayıcıyı verdi [ölçüldü: DENETİM, 16-1]. Biçim yaygın `tokenizer.json`'dur, böylece eğitilen parçalayıcı paylaşılır.
+- *Gerekçe (eşitlik kuralı ve dosya listesi):* "sabit bir kural" yazılmadan belirlenimcilik sınanamaz. Hugging Face `tokenizers` ile eşitlik bozmanın aynı olup olmadığı bir kez sınanır [hipotez]; ayrıysa fark buraya yazılır. Dosya listesinden eğitim Hugging Face'in `tokenizer.train(files, ...)`'i gibidir (Gemini Koşu 7).
 
 ### 16.5
 

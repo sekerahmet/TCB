@@ -353,11 +353,13 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 - **Mevcut durum:** her değer fırlatılabiliyor ve metne çevriliyor (`TR_throw {"kod": 5}` yakalanınca metin); `raise` sözdizimi hatası değil, denetleyicinin tanımsız ad önerisi `TR_throw`'u öneriyor; neden taşınamıyor [ölçüldü: DENETİM].
 - **Yapılacaklar:** fırlatılabilen dört tür (metin, ileti, durumlu tip değeri, `TR_Error`), başka tip çalışma hatası; `TR_Error(..., TR_cause: e)`; `raise`'in iletisi.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** yeniden fırlatmada çağrı yığını korunur.
 
 ### 8.3
 
 - **Mevcut durum:** yakalanan hata bir `TR_String`; ileti kodlu hatada kod kayboluyor, yakalayan yalnız metni görüyor [ölçüldü].
 - **Yapılacaklar:** `TR_Error` tipi ve üyeleri (`TR_code`, `TR_message`, `TR_value`, `TR_cause`); `TR_value`'nun kapalı birleşim tipi (4. katman); depodaki `TR_catch` kullanımları üyelere çevrilir.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** kapalı birleşimin yerel kopyası; hatayla biten kol eşlemenin tipine katılmaz (denetimi 4a2).
 
 ### 8.4
 
@@ -368,11 +370,13 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 - **Mevcut durum:** `TR_Message` ve `TR_error_code` çalışıyor (`H6903`); düz metin hata da kodlu: `TR_error_code { TR_throw "x" }` → H2441 [ölçüldü: DENETİM].
 - **Yapılacaklar:** düz metin hatanın kodu `TR_none`; nedenler zincirinde dıştan içe ilk kod.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** kodsuz hatada yeniden fırlatma (bugün sessizce yokluk veriyor [kanıtlı: DENETİM]). Programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Koşu 4, 6, 7).
 
 ### 8.6
 
 - **Mevcut durum:** yakalanmayan hata yalnız fırlatıldığı satırı gösteriyor, çağrı yığını yok [ölçüldü].
 - **Yapılacaklar:** çağrı yığını, en son çağrı en altta.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** yakalanmayan hatada nedenler zinciri.
 
 ## 9. Ertele
 
@@ -491,6 +495,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 ### 12.1
 
 - **Yapılacaklar:** test dosyasının tanımı (1.1'in en dış kuralı ona dayanıyor): rehber adı `_test.tr` ile biten dosya diyor, ama `tests/yardimci_testli.tr` de test bloğu içeriyor [kanıtlı: DENETİM 12-1]. Testin hangi cihazda koştuğu ve cihazlar arası tolerans 15'in E parçasında.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** test dosyası tanımı; en dışta deyim içeren iki dosya göç ister: `examples/tr/17_testler_test.tr:35`, `tests/ozel_turev_test.tr:11` [ölçüldü: DENETİM].
 
 ### 12.2
 
@@ -507,6 +512,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 - **Mevcut durum:** toleranslı karşılaştırma yok; ondalık kesin eşitlikle kalıyor (0.1 + 0.2 ile 0.3) [ölçüldü].
 - **Yapılacaklar:** `TR_assert_close`, hassasiyete göre varsayılan toleranslar; TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** sonsuz öğe yalnız aynı işaretli sonsuza yakındır (15.18a ile aynı).
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** sayı ile 0 boyutlu tensör, tek tolerans argümanı, isteğe bağlı mesaj.
 
 ### 12.3, 12.4
 
@@ -516,6 +522,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 - **Mevcut durum:** en dıştaki tanımlar testler arasında paylaşılıyor: bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `e16d39df`]; aktarılan modülün durumu da sızıyor [ölçüldü: DENETİM]. Test dosyasının en dışındaki deyim de testlerden önce çalışıyor (1 yer); sabit olmayan ilk değer 7 yerde (geçici klasör, komut satırı ayarı, kullanıcı tanımlı türev); rastgele üretecin durumu testten teste sürüyor [ölçüldü: DENETİM]. Rehber (`docs/guide/07_testler.md:3`) eski sınıflı yazımla.
 - **Yapılacaklar:** en dıştaki deyimin sözdizimi hatası (1.1); en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması; TR testleri.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** hatalı test bitmemiş görevlerini önce iptal eder (10.9); bugün sonsuz işçiyle asılı kalıyor.
 
 ## 13. Yerleşikler
 
@@ -896,6 +903,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Taslak (2026-10-29): ana oturum yeniden yazdı, önce CLAUDE.md'den türeterek (Ahmet: "dil maddeleri yalan yanlış olsa da düzeltmezsek bizi hep eskiye götürecek"). DENETİM bekleniyor. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_train_tokenizer` parçalayıcı_eğit, `TR_reserved_tokens` ayrılmış_parçalar, `TR_write_dataset` veri_kümesi_yaz, `TR_shard_tokens` parça_boyu; kodları uygulandıkları gün kayda girer (17.4).
 
+### 16.2
+
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** `TR_special_tokens: TR_false` metin içi özel parçayı da kapatır.
+
 ### 16.3
 
 - **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`].
@@ -909,21 +920,25 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 - **Mevcut durum:** parçalayıcı eğitmek yok; bugün Python'a gidiliyor.
 - **Yapılacaklar:** bayt düzeyinde BPE eğitimi, belirlenimci; `.TR_save` ile `tokenizer.json`; TR testi.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** dosya listesiyle eğitim; bayt düzeyi ön ayırıcı ve çözücü, eşitlik kuralı (Hugging Face ile bir kez sınanacak); özel parça eklemez.
 
 ### 16.5
 
 - **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 bit okuyor [kanıtlı: `internal/compute/dataload/npy.go`]; NumPy'nin varsayılanı olan işaretli 64 biti reddediyor [ölçüldü: DENETİM].
 - **Yapılacaklar:** işaretli 64 bit; TR testi.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** önbellek anahtarı (ad, bayt boyu, değiştirilme zamanı); aynı adlı parçalar ayrı.
 
 ### 16.6
 
 - **Mevcut durum:** veriyi yazan yerleşik yok; Go tarafında işaretsiz 16 bit yazıcı var (`WriteNpyU16`) [kanıtlı: `npy.go`].
 - **Yapılacaklar:** `TR_write_dataset`, tür seçimi ve `meta.json`; TR testi.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** var olan kümenin yerine atomik yazma.
 
 ### 16.7
 
 - **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi).
 - **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler.
+- **Gemini Koşu 7 (2026-10-29), uygulanacak:** pencere bağlam artı bir kimlik; kısa parçalar atlanır.
 
 ### 16.8
 
