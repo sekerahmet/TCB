@@ -61,7 +61,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 **13.8a** Dönüşü argümanın değerine bağlı olan üç iş ayrı adlarla yazılır (13.10):
 - `t.TR_tolist()` 1 boyutlu tensörü listeye çevirir; daha çok boyutlu tensörde hatadır, ileti `t.TR_reshape([-1]).TR_tolist()`'i ya da satırları dolaşmayı önerir; 0 boyutlu tensörde de hatadır, ileti `t.TR_item()`'ı önerir. Tek öğeli tensörün sayısı `t.TR_item()`'dır, başka tensörde hatadır. Öğe tipi tensörün cinsidir (15.1): `TR_Tensor[TR_Int]`'in (kimlikler, `TR_argmax`'in sonucu) listesi `TR_List[TR_Int]`'tir.
 - `k.TR_decode(kimlikler)` bir dizi kimliği metne çevirir; birden çok dizi `k.TR_batch_decode(diziler)` ile `TR_List[TR_String]`'e çevrilir.
-- `TR_parameters(model)` bir yapının (13.10) ya da bir tensör listesinin parametrelerini `TR_List[TR_Tensor]` olarak verir; adlarıyla birlikte `TR_named_parameters(model)` yalnız yapıda `TR_Dict[TR_String, TR_AnyTensor]` verir (tam sayı tamponları da girer, 15.33). `TR_named:` argümanı kalkar.
+- `TR_parameters(model)` bir yapının (13.10), yapı listesinin ya da bir tensör listesinin parametrelerini `TR_List[TR_Tensor]` olarak verir; adlarıyla birlikte `TR_named_parameters(model)` yalnız yapıda `TR_Dict[TR_String, TR_AnyTensor]` verir (tam sayı tamponları da girer, 15.33). `TR_named:` argümanı kalkar.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 **13.9** Her yerleşiğin (fonksiyon, metot, kitaplık tipinin çağrısı) imzası tek yerdedir: parametrelerin tipleri, adlı argümanlar (ad, tip, varsayılan) ve dönüş tipi.

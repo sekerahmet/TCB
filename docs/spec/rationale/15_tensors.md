@@ -330,6 +330,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.29
 
 - *Emsal:* 15.28'deki gibi (JAX `custom_vjp`).
+- *Emsal (geri yönün hesap türü):* PyTorch'un `custom_bwd`'i geri yönü ileri geçişin autocast durumuyla çalıştırır: "same autocast state as forward" [kanıtlı: PyTorch 2.15 belgesi, Gemini Koşu 1, DENETİM].
 - *Gerekçe:* tek girdide kendisi, birden çokta demet: 3.6a'da tek öğeli demet ve demet indeksi yoktur. Girdi sayısı `ileri`'nin parametre sayısıdır; fonksiyon ifadesinde öğe sayısı uyuşmazlığı denetim hatasıdır (tipler çalışmadan önce bilinir). `g` `geri`'nindir: yerinde yazmak başka bir gradyanı bozmaz, ajanın kopya alması gerekmez. Yayın yapılmaz: yanlış şekilli gradyan sessizce genişletilmez ("Hata riski az").
 
 ### 15.30

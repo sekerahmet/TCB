@@ -16,7 +16,7 @@ Uzun bir eğitim kesilebilir: not defterinin oturumu kapanır, Ctrl+C'ye basıl�
 - *Test:* TR testi.
 
 **20.2** `nesneler` kaydedilecek şeylerin sözlüğüdür; anahtarları metindir (3.7) ve olduğu gibi saklanır. Ad boş olmayan, en çok 200 baytlık, `/` ve denetim karakteri içermeyen bir metindir; en çok 1000 nesne. Değerler:
-- **Model:** tensör içeren bir yapı, liste ya da sözlük, ya da tek bir tensör. İçindeki bütün yaprak tensörler kaydedilir, her cinste (15.1): türev izleyenler (parametreler) ve izlemeyenler (durum: TR ile yazılmış iyileştiricinin momentumu, sabit tablolar, tam sayı tamponları). Adlar modelin içindeki yol adlarıdır (`m/w`, `m/kos`): parametrelerinki `TR_named_parameters`'ınkiyle (13.8a) aynıdır, durum tensörleri de aynı yolla adlanır. Aynı tensör bir kez kaydedilir. Ara sonuç (türev izleyen bir işlemin sonucu) kaydedilmez, tek başına verilirse hata. Modelin tensör olmayan alanları kaydedilmez.
+- **Model:** tensör içeren bir yapı, liste ya da sözlük, ya da tek bir tensör. İçindeki bütün yaprak tensörler kaydedilir, her cinste (15.1): türev izleyenler (parametreler) ve izlemeyenler (durum: TR ile yazılmış iyileştiricinin momentumu, sabit tablolar, tam sayı tamponları). Adlar modelin içindeki yol adlarıdır (`m/w`, `m/kos`): parametrelerinki `TR_named_parameters`'ınkiyle (13.8a) aynıdır, durum tensörleri de aynı yolla adlanır. Aynı tensör bir kez kaydedilir. Modelin içinde ya da tek başına türev izleyen bir ara sonuç hatadır (15.33). Modelin tensör olmayan alanları kaydedilmez.
 - **İyileştirici** (`TR_AdamW`, `TR_SGD`): `op.TR_state` (20.12).
 - **Okuyucu** (`TR_Sampler`, `TR_SequentialReader`): `ö.TR_state` (20.13).
 - **Günlük** (`TR_Logger`): dosyanın o anki bayt uzunluğu.
@@ -35,7 +35,7 @@ Düz bir sayı, metin ya da mantık değeri doğrudan verilemez (kullanıcının
 
 **20.5** Bir nokta klasörü üç dosyadır:
 - `tensors.trt`: modellerin tensörleri ve iyileştirici durumları, `TR_save_tensors` biçiminde (her cins ve hassasiyet kendi tür koduyla; `TR_load_tensors` gibi `TR_AnyTensor` okunur, 15.46), adları `<nesne>/<tensör adı>`;
-- `state.json`: biçim sürümü, adım, zaman, program, işçi sayısı, komut satırı ayarları (gizli değerler maskeli), nesnelerin kaydı (okuyucu durumları, düz değerler, günlük uzunlukları). Düz değerdeki sonlu olmayan sayı `"NaN"`, `"Infinity"`, `"-Infinity"` yazılır ve yalnız bu yazımla okunur (19);
+- `state.json`: biçim sürümü, adım, zaman, program, işçi sayısı, komut satırı ayarları (gizli değerler maskeli), nesnelerin kaydı (okuyucu durumları, düz değerler, günlük uzunlukları), parametrelerin donma durumu (20.4) ve paylaşılan üretecin durumu (20.17). Düz değerdeki sonlu olmayan sayı `"NaN"`, `"Infinity"`, `"-Infinity"` yazılır ve yalnız bu yazımla okunur (19);
 - `digest.json`: öbür iki dosyanın bayt sayısı ve SHA-256 özeti; en son yazılır.
 
 `checkpoints/latest.json` en son noktayı söyler; araçlar içindir, yükleme klasörlere bakar. Dosya ve alan adları dilden bağımsız İngilizce tanımlayıcılardır, iyileştiricinin adı sınıflı kimliğidir (`"optimizer": "TR_fn_AdamW"`, 17.8). **Atomik yazım:** nokta önce geçici bir klasöre yazılıp diske işlenir, tek bir yeniden adlandırmayla yerine konur, `latest.json` atomik güncellenir, sonra `TR_keep`'i aşan eski noktalar silinir. Hangi aşamada kesilirse kesilsin önceki geçerli nokta bozulmaz.
@@ -47,6 +47,7 @@ Düz bir sayı, metin ya da mantık değeri doğrudan verilemez (kullanıcının
 - `kn.TR_resume_step` o adım olur.
 - Modellerin tensörleri **var olan** tensörlere yerinde yazılır (nicemlenmiş yaprakta aynı belleğe, kodlar, ölçekler ve sıfırlar birlikte, bütün olarak; hassasiyet ya da şekil farklıysa hata, 15.54); iyileştirici aynı tensörleri güncellemeyi sürdürür, cihazlar değişmez.
 - İyileştirici durumu (momentler, adım sayaçları, 16 bitlik parametrelerin ana kopyaları) parametrelerin cihazına yüklenir.
+- Parametrelerin donma durumu noktadakine döner (20.4).
 - Okuyucu kaydedilen konumdan sürer: sonraki toplu iş kesintisiz eğitimdekiyle aynıdır (16.7).
 - Düz değerler yerinde yenilenir; `TR_Float` `TR_Float` kalır, `TR_Int` anahtarlar korunur, NaN ve sonsuz korunur.
 - Günlüklere bir devam kaydı yazılır (19).
@@ -84,7 +85,7 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 **20.13** `ö.TR_state` okuyucunun kaldığı yeri düz değerli bir sözlük olarak verir; anahtarlar metindir: "kind" ("sampler", "sequential"), "batch", "context", (örnekleyicide) "seed", "dataset", (örnekleyicide) "epoch", "position", "window", "counter", (sıralıda) "done". Konum, `.TR_next()` ile alınan son toplu işten sonraki konumdur; önden yüklenip bekleyenler sayılmaz. `ö.TR_load_state(sözlük)` aynı ayarla kurulmuş bir okuyucuyu o konuma getirir ve değer döndürmez: sonraki `.TR_next()` kaydedilen okuyucunun vereceği toplu işi verir. Ayarı ya da veri kümesi farklı kayıt ve eksik alan hatadır; okuyucu değişmez.
 - *Test:* TR testi.
 
-**20.14** `kn.TR_rollback()` en yeni geçerli noktayı aynı programda yerinde yükler ve noktanın adımını (`TR_Int`) verir. Yükleme kurulumdakiyle aynı yoldur (20.6, 20.7, 20.9; nicemlenmiş yaprakta 15.54); günlüklere devam kaydı yazılır. `TR_resume_step` değişmez. Nokta yoksa açık hatadır. Bozuk bir adımdan geri dönüp sürdürülen eğitim, hiç bozulmamış eğitimle bit düzeyinde aynı biter. Bozuk adım kaydedilmeden önce dönülmelidir: denetim `TR_update`'ten önce yapılır.
+**20.14** `kn.TR_rollback()` en yeni geçerli noktayı aynı programda yerinde yükler ve noktanın adımını (`TR_Int`) verir. Yükleme kurulumdakiyle aynı yoldur (20.6, 20.7, 20.9; nicemlenmiş yaprakta 15.54): parametrelerin `.TR_grad`'ı `TR_none` olur ve "gradyan eklendi" bilgileri (15.34) silinir (gradyanlar kaydedilmez, 20.3); donma durumu da noktadakine döner, programın sonradan çözdüğü parametre yeniden donar. Günlüklere devam kaydı yazılır. `TR_resume_step` değişmez. Nokta yoksa açık hatadır. Bozuk bir adımdan geri dönüp sürdürülen eğitim, hiç bozulmamış eğitimle bit düzeyinde aynı biter. Bozuk adım kaydedilmeden önce dönülmelidir: denetim `TR_update`'ten önce yapılır.
 - *Test:* TR testi; Go: `TestRollbackAfterNaNSameAsUninterrupted`, `TestRollbackWithoutCheckpointIsError`.
 
 **20.15** `ö.TR_skip(n)` okuyucunun sıradaki `n` toplu işini tensör kurmadan atlar ve atladığı sayıyı (`TR_Int`) verir: sonraki `.TR_next()`, `n` tane `.TR_next()`'ten sonra gelecek toplu işin aynısıdır ve durumun "counter"'ı `n` artar. Sıralı okuyucu biterse kalan kadar atlar. `n = 0` bir şey yapmaz; eksi sayı hatadır.
