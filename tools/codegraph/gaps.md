@@ -47,6 +47,13 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
+- **Dosya düzeyinde `tests-for` bildirim düzeyinin sırasını kullanmıyor; kancanın ilk 30 satırında düzenlenen paketin testi görünmüyor.** 2026-10-29, ana oturum; DENETİM yeniden üretti (main 01ed0bae) [ölçüldü].
+  - Komut: `go run ./tools/codegraph tests-for internal/lang/interp/assign.go`.
+  - Gelen: 355 test, ilk 12'si `checkpoint_test.*` (2 adım). `interp`'in 2 adımdaki 56 testinin ilki `--all` çıktısında 140. satırda. `compiler_assign.go`'da 496 test var, "weak evidence" grubu yok, 107'si 8 adımda.
+  - Beklenen: bildirim düzeyindeki gibi (`tests-for interp.compiler.assignTo`: "tests about it (2)", sonra "weak evidence (387)"; `query_tests.go:430-446`) eşit uzaklıkta aynı klasör önce, güçlü grup önce, uzun zincirler ayrı grupta. Ayrıca en başta koşu satırı: dosyanın paketi bütün olarak, dosyayı tarayan bütün depo kuralları, "tests about it". Satır `changed --go-tests`'in seçiminden üretilir; koşulmayan testlerin sayısı ve ön denetim komutu yazılır.
+  - Koşulan liste eksiltilmez (`99944e9f`'nin dersi: eksik liste yanlış güven verdi).
+  - Neden önemli: kancanın varsayımı (`edithook/main.go:42`, "başı yeter") doğrudan testi olmayan dosyada tutmuyor; `assignTo` değişikliğinde koşulacak test seçilemedi.
+
 - **Paket README'sinin test listesini okuyan test görünmüyor.** 2026-10-27, ana oturum. Komut: `go run ./tools/codegraph tests-for cmd/tr/e2e/README.md` → "no tests read it by name" [ölçüldü]. Beklenen: `internal_test.TestTestFileMatchesSource` (`internal/layout_test.go:416` her paketin README'sindeki "## Testler" listesini okuyup her `behavior_*_test.go`'nun orada anılmasını istiyor). Sonuç: yeni bir e2e test dosyası eklenirken README'nin güncellenmesi gerektiği görünmedi, tam denetim kaldı. İstenen genel çözüm: bir testin paket başına okuduğu belge (glob ya da `<paket>/README.md` kalıbı) o belgelerin `tests-for`'unda görünsün.
 
 - **1. bölüm numaralanınca specref'in iki yan etkisi.** 2026-10-27, Gemini buldu, DENETİM e70feb82'de yeniden üretti [ölçüldü: Gemini'nin `tools/internal/specref/audit_b1_1_test.go`'su kalıyor]. (a) Dil tanımı dışında "1.5 saniye" gibi bir ondalık sayı 1.5 maddesine zayıf atıf sayılıyor; `scan.go:302`'deki "bölümün numaralı maddesi yoksa (1 ve 14) sayılmaz" istisnası 1. bölüm artık numaralı olduğu için eskidi. (b) `[Go 1.12]` gibi bir ürün sürümü, madde 1.12 var olduğu için (`scan.go:311` `!exists`) numara değiştirmede (`Apply`) `[Go 1.13]`'e bozuluyor. İstenen genel çözüm: sayının ardından bir birim gelirse ya da ürün bağlamındaysa, madde var olsa da atıf sayılmaz. Koruyan test Gemini'nin testinden. Kanıt testi `C:\TCB - Denetim B1`'de, klasör taşınınca `C:\TCB - Denetim\eski_denetimler\b1\`'de.
@@ -55,6 +62,12 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu. Beklenen: yalnız işleci kastedenler; tip süzgeci, AST'nin işleç alanları `TokenType` olduktan sonra.
 
 ## Kalan işler (eksik değil, yeni yetenek)
+
+- **Boyut sınırına yakınlık `tests-for`'da görünmüyor.** 2026-10-29, ana oturum.
+  - Olay: `compiler.assignTo` 80/80 satırdaydı, iki satır eklendi, `TestLayoutFuncSize` commit'ten sonra düştü; `interp/hooks_test.go` `TestLayoutFileSize`'ı 3 satırla aştı. `tests-for` iki testin adını tarama satırında gösterdi, değeri göstermedi.
+  - İstek: dosyayı tarayan bir boyut kuralı için bugünkü değer ve sınır; %90'ı geçenler öne (istisnada sınır tavan + pay).
+  - Değer grafta var (`Node.Line`/`End`). Sınırlar yalnız test dosyasında (`internal/layout_test.go:25-28`, `layout_exceptions_test.go`), codegraph okuyamıyor: tek kaynağa (test dışı paket) taşınır. Sınıfı koruyan test: codegraph'ın boyu düzen testinin boyuna her dosya ve fonksiyon için eşit.
+  - Bugün %90'ı geçen: 28 fonksiyon, 23 dosya [ölçüldü: DENETİM, 01ed0bae].
 
 - **Her zaman atlanan testlerin listesi (istek, 2026-10-26, gerçek kullanım denemesi):** arşivdeki testleri (`t.Skip("ARŞİV …")`, bugün 56) toplu silmek için hepsinin listesi gerekiyor. codegraph her testin atlama koşulunu biliyor (`[skips when: always]`) ama bunları listeleyen bir sorgu yok; bugün grep ile bulunuyor. İstek: koşulu `always` olan testleri (gerekçe metniyle) veren bir sorgu ya da `query` süzgeci.
 
