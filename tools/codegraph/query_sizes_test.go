@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -12,38 +13,88 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/layoutrules"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kural: boyut satırının değeri düzen testinin ölçüsüdür. TestLayoutFileSize'ın taradığı her el yazımı Go dosyası için
-// codegraph'ın dosya boyu, test dışı dosyalarda her func bildiriminin boyu ve adı, düzen testinin hesabıyla
-// (layoutrules.FileLines, FuncLines, FuncName) eşittir; ölçü kayarsa "80/80" sessizce yanlışlaşmaz.
+// layoutWalk düzen testinin ölçtüğü Go dosyalarıdır, codegraph'tan bağımsız yürünür (internal/layout_test.go'nun
+// goFiles'ı gibi): sizeRoots altında, git'in izlediği, layoutrules.SkippedDir'e düşmeyen klasörlerdeki, üretilmiş
+// başlığı olmayan .go dosyaları. Dosya yolu -> içerik.
+func layoutWalk(t *testing.T, root string) map[string][]byte {
+	t.Helper()
+	out := map[string][]byte{}
+	for _, k := range sizeRoots {
+		err := reporoot.WalkDir(filepath.Join(root, k), func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				if layoutrules.SkippedDir(d.Name()) {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if !strings.HasSuffix(d.Name(), ".go") {
+				return nil
+			}
+			data, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			f, err := parser.ParseFile(token.NewFileSet(), p, data, parser.ParseComments|parser.PackageClauseOnly)
+			if err != nil {
+				return err
+			}
+			if !ast.IsGenerated(f) {
+				rel, _ := filepath.Rel(root, p)
+				out[filepath.ToSlash(rel)] = data
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return out
+}
+
+// sizeRoots internal/layout_test.go'nun layoutRoots'udur. Kopyadır, bilerek: tarama tanıyıcısı (scans.go) kuralın
+// kapsamını o test dosyasının paket düzeyi listesinden okur; liste başka pakete taşınırsa kapsam bilinmez olur.
+var sizeRoots = []string{"cmd", "internal", "lib", "tools"}
+
+// Kural: boyut satırının kapsamı ve değeri düzen testininkidir. Düzen testinin ölçtüğü her Go dosyası (yolu codegraph'tan
+// bağımsız yürünür: layoutWalk) boyut satırı alır, dosya kuralıyla; test dışıysa fonksiyon kuralıyla da. Dosya boyu, test
+// dışı dosyalarda her func bildiriminin boyu ve adı düzen testinin hesabıyla (layoutrules.FileLines, FuncLines, FuncName)
+// eşittir; codegraph'ın ölçmediği bir dosya da ölçtüğü fazladan bir dosya da düşer. Bir tarama tanıma eksiği boyut
+// satırını sessizce düşürmez, ölçü kayarsa "80/80" sessizce yanlışlaşmaz (DENETİM, birleşme denetimi: 1067/1067).
 func TestSizesMatchTheLayoutTest(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	ix.root = root
-	files, funcs := 0, 0
-	for i := range g.Nodes {
-		file := &g.Nodes[i]
-		if file.Kind != kindFile || !strings.HasSuffix(file.File, ".go") {
+	walked := layoutWalk(t, root)
+	funcs := 0
+	for rel, data := range walked {
+		file := ix.byID[fileID(rel)]
+		if file == nil {
+			t.Errorf("%s: the layout test measures it, the graph has no node for it", rel)
 			continue
 		}
 		whole, got, tests := ix.fileSizes(file)
-		if !slices.Contains(tests, fileSizeTest) {
+		if !slices.Contains(tests, fileSizeTest) || whole == nil {
+			t.Errorf("%s: the layout test measures it, tests-for shows no file size (scan rules: %v)", rel, tests)
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(file.File)))
-		if err != nil {
-			t.Fatal(err)
+		if whole.lines != layoutrules.FileLines(data) {
+			t.Errorf("%s: codegraph's file size %d, the layout test counts %d", rel, whole.lines, layoutrules.FileLines(data))
 		}
-		if whole == nil || whole.lines != layoutrules.FileLines(data) {
-			t.Errorf("%s: codegraph's file size %v, the layout test counts %d", file.File, whole, layoutrules.FileLines(data))
+		if isTestFile(rel) {
+			continue
 		}
-		files++
 		if !slices.Contains(tests, funcSizeTest) {
+			t.Errorf("%s: the layout test measures its functions, tests-for shows none", rel)
 			continue
 		}
 		fset := token.NewFileSet()
-		f, err := parser.ParseFile(fset, file.File, data, parser.SkipObjectResolution)
+		f, err := parser.ParseFile(fset, rel, data, parser.SkipObjectResolution)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,12 +110,21 @@ func TestSizesMatchTheLayoutTest(t *testing.T) {
 		slices.Sort(want)
 		slices.Sort(have)
 		if !slices.Equal(want, have) {
-			t.Errorf("%s: codegraph's functions %v, the layout test's %v", file.File, have, want)
+			t.Errorf("%s: codegraph's functions %v, the layout test's %v", rel, have, want)
 		}
 		funcs += len(want)
 	}
-	if files < 500 || funcs < 3000 {
-		t.Fatalf("only %d files and %d functions compared", files, funcs)
+	for i := range g.Nodes {
+		file := &g.Nodes[i]
+		if file.Kind != kindFile || !strings.HasSuffix(file.File, ".go") || walked[file.File] != nil {
+			continue
+		}
+		if _, _, tests := ix.fileSizes(file); len(tests) > 0 {
+			t.Errorf("%s: tests-for shows a size line, the layout test does not measure it", file.File)
+		}
+	}
+	if len(walked) < 1000 || funcs < 3000 {
+		t.Fatalf("only %d files and %d functions compared", len(walked), funcs)
 	}
 }
 
