@@ -5,11 +5,11 @@
 
 ## Biten adımlar
 
-(henüz yok)
+- 19:40 örneklerin taşınması (`1e8e0b3`): 320 örnek betikle (`.devir/move_examples`, bugünkü `source.Encode`) `definitions.json`'a (`example`) kimlik yazımıyla taşındı; `tr.json`'da ve `en.json`'da `"example"` yok (`en.json`'da zaten yoktu), dil dosyası ayrıştırıcısı alanı reddediyor. Komut satırı örnekleri (55: cmd, sub, opt, env, repl, dbg) kimliğin adıyla (`tr check eğit.tr`, `--go-profile`, `TR_LANG=en tr help`; kabuk `exit`, hata ayıklayıcı `quit`). `TestExamplesRun` örnekleri `lexer.NewBody` ile okuyup çalıştırıyor (265 program örneği; komut satırı örnekleri program değil, önceki gibi atlanıyor). `docs/codes.md` örneği kimlik yazımıyla ve altında her gömülü dilin görünümüyle (`en:`, `tr:`) gösteriyor.
+  - **Cherry-pick notu:** `1e8e0b3` betiği (`.devir/move_examples/main.go`) de taşıyor; commit'i ayırmak için geçmişi yeniden yazmak gerekiyordu, yapmadım. Alırken `.devir/` yolunu bırakın (`git cherry-pick -n 1e8e0b3 && git rm -rq --cached .devir`).
 
 ## Kalan
 
-1. Örneklerin taşınması (betikle, bugünkü kodlayıcıyla).
 2. Kodlamanın kalkması (`tr kodla`, `source.Encode*`, `TextLexer*`, kabuk, hata ayıklayıcı, görünüm iletisi).
 3. VS Code eklentisi: görünüm salt okunur.
 4. Belgeler, status 17.4 ve 17.7.
