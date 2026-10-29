@@ -99,6 +99,7 @@ func TestSuffixWithoutVowel(t *testing.T) {
 		{"k", Accusative, "k'yi"}, {"k", Dative, "k'ye"}, {"k", Locative, "k'de"},
 		{"fn", Dative, "fn'ye"}, {"TBMM", Dative, "TBMM'ye"}, {"x", Dative, "x'e"},
 		{"x", Locative, "x'te"}, {"q", Accusative, "q'yu"}, {"st", Ablative, "st'den"},
+		{"t.0", Dative, "t.0'a"}, {"t.1", Dative, "t.1'e"}, {"a.k", Dative, "a.k'ye"},
 		{"1000000000", Accusative, "1000000000'ı"}, {"1000000", Accusative, "1000000'u"},
 	} {
 		if got := Suffix(d.word, d.c); got != d.want {

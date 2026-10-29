@@ -405,9 +405,24 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 // sözdizimi hatası yapar (3.6a).
 func (p *Parser) checkAssignTargets(targets ...ast.Expression) {
 	for _, t := range targets {
-		if ee, ok := t.(*ast.ElementExpression); ok {
-			p.syntaxError(ee.IndexToken, messages.H0298, ee.ObjectToken.Literal, ee.Index)
+		ee, ok := t.(*ast.ElementExpression)
+		if !ok {
+			continue
 		}
+		root := ee
+		for {
+			inner, ok := root.Object.(*ast.ElementExpression)
+			if !ok {
+				break
+			}
+			root = inner
+		}
+		path := p.l.Slice(root.ObjectToken, ee.IndexToken)
+		kind, elem := "single", any(ee.Index)
+		if root != ee {
+			kind, elem = "nested", path
+		}
+		p.syntaxError(ee.IndexToken, messages.H0298, path, root.ObjectToken.Literal, kind, elem)
 	}
 }
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {

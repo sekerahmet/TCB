@@ -58,10 +58,13 @@ func NumberSuffix(n int64, grammarCase Case) string {
 	return Suffix(strconv.FormatInt(n, 10), grammarCase)
 }
 
-// pronounce ekin seçimine esas olan sözcüğü döndürür. Sayılar okunuşlarıyla değerlendirilir
-// (6 = "altı"); ünlüsü olmayan ad kısaltma gibi son harfinin adıyla okunur (TDK: k'ye,
-// TBMM'ye, x'e); diğer sözcükler kendileridir.
+// pronounce ekin seçimine esas olan sözcüğü döndürür. Noktalı yazımda (t.0, a.k) ek son öğeye
+// göre seçilir; sayılar okunuşlarıyla değerlendirilir (6 = "altı"); ünlüsü olmayan ad kısaltma
+// gibi son harfinin adıyla okunur (TDK: k'ye, TBMM'ye, x'e); diğer sözcükler kendileridir.
 func pronounce(s string) string {
+	if i := strings.LastIndexByte(s, '.'); i >= 0 && i+1 < len(s) {
+		s = s[i+1:]
+	}
 	if w, ok := lastNumberWord(s); ok {
 		return w
 	}
