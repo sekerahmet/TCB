@@ -6,6 +6,7 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 - *Emsal:* Python'un `pathlib.Path`'i ve Rust'ın `PathBuf`'u yolu metinden ayrı bir tip yapar; ikisinde de mutlak bir parça baştaki tabanı sessizce atar (`Path("veri") / "/etc"` → `/etc`) [kanıtsız: bu tur açılmadı]. *Bunu almadık.*
 - *Gerekçe:* yolu metinden ayırmak ajanın yolu metin gibi birleştirip ayırıcıyı yanlış yazmasını önler. Dışarıdan gelen bir ad (veri kümesindeki dosya adı) taban klasörü değiştirememelidir: sessizce `/etc`'ye giden bir yol "Hata riski az"ın karşıtıdır. Ayırıcının her sistemde `/` olması aynı programın her sistemde aynı metni yazmasını sağlar (Güvenilir).
+- *Gerekçe (`..`):* mutlak parça kuralının amacı dışarıdan gelen adın taban klasörü değiştirmemesidir; `..` aynı kaçışın göreli yoludur [ölçüldü: DENETİM, `TR_Path("veri", "../../gizli/ayar.json")` tabandan çıkıyordu]. Kök ve UNC önekleri temizlenince anlamı değişirdi; motor onları zaten koruyordu (Gemini Koşu 5).
 
 ### 18.2
 
@@ -86,3 +87,4 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 - *Emsal:* Python'da dosyaya satır satır yazmak `open(..., "w")` ile yapılır, atomik değildir ve satırın içindeki satır sonunu denetlemez; kapatılmadan biten programda Python tamponu yazar, Go'nun `bufio.Writer`'ı hiçbir şey yazmaz (0 bayt) [ölçüldü: DENETİM 18-1].
 - *Gerekçe:* amacın ilk işi veriyi temizleyip eğitime hazırlamaktır; temizlenen derlem bellekten büyüktür ve `TR_write_file` tek seferde yazar. Akışla yazan yazıcı olmadan bu iş TR'de yazılamaz. Atomiklik 18.13'ünküyle aynıdır: yarıda kalan bir temizleme eski çıktıyı bozmaz. İçinde satır sonu olan satır JSONL'ü sessizce bozar; hata bunu yazılırken gösterir. Açık yazıcının yolunu okumak eski içeriği verir; ajan yeni yazdığını okuduğunu sanar, bu yüzden hatadır.
+- *Gerekçe (çıkışın türü):* ertelenen kapatma hatayla çıkışta da çalışır (9.2); tek bir `.TR_close()` yarım dosyayı yerine koyardı. Go'nun `renameio`'su iki ad kullanır (`Cleanup` her çıkışta, `CloseAtomicallyReplace` yalnız başarıda); TR tek çağrıda birleştirir, ajan iki adı karıştırmaz (Gemini Koşu 5).

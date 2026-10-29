@@ -10,7 +10,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - Aktarmalar dosyanın başında, başlıktan sonra ve öbür tanımlardan önce yazılır (2.1).
 - Modülün en dışında yalnız tanımlar bulunur; ilk değerler sabittir (1.1). Bir modülün en dışında çalışan bir deyim sözdizimi hatasıdır.
 - Yol bir metindir; `.tr` uzantısı isteğe bağlıdır.
-- **Göreli yol** önce aktaran dosyanın klasörüne, bulunamazsa programın klasörüne göre çözülür; çalışma klasörüne bakılmaz (dosyası olmayan kabukta yol çalışma klasörüne göredir). Bu, veri dosyalarının yol kuralından (13) bilerek ayrılır: kod yazıldığı dosyanın yanındadır.
+- **Göreli yol** yalnız aktaran dosyanın klasörüne göre çözülür; çalışma klasörüne ve programın klasörüne bakılmaz (dosyası olmayan kabukta yol çalışma klasörüne göredir). Bulunamazsa hata; programın klasöründe aynı adlı dosya varsa ileti onu açık yolla önerir (`"../ad"`). Yolun harf büyüklüğü diskteki adla her sistemde aynı olmalıdır; farklıysa hata, ileti diskteki adı önerir (18.5 gibi). Bu, veri dosyalarının yol kuralından (13) bilerek ayrılır: kod yazıldığı dosyanın yanındadır.
 - Modül bulunamazsa ileti bakılan yerleri sayar. `tr/` önekli yollar diskte aranmaz (11.6).
 - *Test:* TR testi, olumsuz fikstür.
 
@@ -19,7 +19,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - Olmayan bir ad denetim hatasıdır; ileti modülün en yakın adını önerir.
 - *Test:* TR testi; köşeli ayraçla erişimin ve olmayan adın denetim hatası uygulanınca olumsuz fikstür.
 
-**11.3** Bir modül program boyunca bir kez yüklenir; sonraki aktarımlar aynı değerleri paylaşır. Başka bir görev aynı modülü o sırada yüklüyorsa aktarım yüklemenin bitmesini bekler. Döngüsel aktarım (yüklenmekte olan bir modülün kendi yükleme zincirinden yeniden aktarılması) hatadır.
+**11.3** Bir modül program boyunca bir kez yüklenir; sonraki aktarımlar aynı değerleri paylaşır. Döngüsel aktarım (yüklenmekte olan bir modülün kendi yükleme zincirinden yeniden aktarılması) hatadır.
 - *Test:* TR testi.
 
 **11.4** Program çalışmadan önce kendisi ve aktardığı bütün modüller (aktarılanların aktardıkları da) ayrıştırılır ve denetlenir (1.3). Herhangi birinde hata varsa programın hiçbir satırı çalışmaz; hata `TR_try`/`TR_catch` ile yakalanmaz, başlığı hatanın hangi modülde olduğunu söyler.
@@ -29,7 +29,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 **11.5** Kod tanımlandığı dosyanın bağlamında çalışır: bir modülde tanımlanan fonksiyon nereden çağrılırsa çağrılsın o modülün dosyasındadır.
 - Göreli dosya yolları 13'ün kuralıyla, göreli aktarma yolları 11.1'e göre o modülün klasöründen çözülür.
 - Başka bir dosyadan gelen çalışma hatası o dosyanın adı ve kendi satırıyla yazılır; `TR_throw` ile atılan değer değişmeden yakalanır.
-- Dosya bilgisi görevindir: bir görevin modül yüklerken beklemesi öbür görevlerin yollarını değiştirmez.
+- Dosya bilgisi çağrınındır: bir görevde çalışan bir modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur (18.16).
 - *Test:* TR testi.
 
 **11.6** `tr/` öneki TR'nin kendi kitaplığına ayrılmıştır: `TR_import "tr/<modül>"` diskten değil `tr` ikilisine gömülü kitaplıktan yüklenir.

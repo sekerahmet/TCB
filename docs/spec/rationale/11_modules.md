@@ -6,6 +6,7 @@ Kurallar: [`11_moduller.md`](../11_moduller.md). Bu dosya her kuralın emsalini 
 
 - *Emsal:* Go'da aktarma dosyanın başındadır; Python'un göreli aktarması paketin konumuna göredir [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* Güvenilir: başka bir klasörden çalıştırılan program yanındaki modül yerine çalışma klasöründe duran aynı adlı bir dosyayı yüklememelidir; kod, yazıldığı dosyanın yanındadır. Modülün en dışında yalnız tanım olması 1.1'in kuralıdır: aktarmak yan etki doğurmaz.
+- *Gerekçe (yedek yol yok):* programın klasörüne düşen yedek yol, kodun yazıldığı dosyanın yanında bulunmadığında başka bir modülü sessizce yüklüyordu; harf büyüklüğüne duyarsız disklerde (Windows, macOS) yanlış yazılmış ad başka sistemde kırılıyordu (Gemini Koşu 5).
 
 ### 11.2
 
@@ -41,4 +42,5 @@ Kurallar: [`11_moduller.md`](../11_moduller.md). Bu dosya her kuralın emsalini 
 
 - *Emsal:* Go'da aynı adla iki paket aktarmak derleme hatasıdır ("util redeclared in this block"); Python'un `from a import *` ve `from b import *`'ı sonrakini uyarısız kazandırır [ölçüldü: DENETİM 11-1, Go 1.26, Python 3.12]. Go'nunki alındı.
 - *Emsal (atama):* Python'da `from m import x` sonra `x = 5` yalnız aktaran dosyada yeni bir bağ kurar, modülün `x`'i değişmez; `m.x = 5` ise modülü değiştirir ve `from m import x as y` ile alınan `y` eski değerde kalır [ölçüldü: DENETİM 11-1]. JavaScript modüllerinde aktarılan bağ yalnız okunurdur, ona atama hatadır [kanıtsız: bu tur açılmadı]. JavaScript'inki alındı.
-- *Gerekçe:* iki aynı adın hangisinin kullanıldığını ajan bilmez; sonuç sessizce yanlış olur. Hata iki yeri gösterir ve `TR_as`'ı önerir. Aktarılan ada atamada aynı sessiz yanlış vardır: aktaran dosya modülün değerini değiştirdiğini sanır, modül ve öbür aktaranlar eski değeri görür. Dışarıdan atama yasak olunca modülün durumu yalnız kendi fonksiyonlarından değişir; değişikliğin nereden geldiği tek yerdedir.
+- *Gerekçe:* iki aynı adın hangisinin kullanıldığını ajan bilmez; sonuç sessizce yanlış olur. Hata iki yeri gösterir ve `TR_as`'ı önerir. Aktarılan ada atamada aynı sessiz yanlış vardır: aktaran dosya modülün değerini değiştirdiğini sanır, modül ve öbür aktaranlar eski değeri görür. Dışarıdan atama yasak olunca modülün bağı yalnız kendi fonksiyonlarından değişir; değişikliğin nereden geldiği tek yerdedir.
+- *Gerekçe (iç durum):* dışarıdan bağ değiştirilemez, değerin içi değişebilir; Python modülü ve JS `const` da böyledir. İç durumu korumak isteyen modül değeri `_` ile kendine ayırır (11.7) ve fonksiyonla verir (Gemini Koşu 5).

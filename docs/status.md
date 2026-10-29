@@ -449,11 +449,16 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 - **Mevcut durum:** aktarılan modülün en dışındaki deyimler çalışıyor: en dışta yazdırma yapan bir modül aktarılınca çıktı geliyor [ölçüldü: main `a9a1ba14`].
 - **Yapılacaklar:** modülün en dışındaki deyim sözdizimi hatası (1.1); olumsuz fikstür.
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** göreli modül yolunun programın klasörüne yedek yolu kalkar; harf büyüklüğü diskteki adla aynı olmalı.
 
 ### 11.2
 
 - **Mevcut durum:** `TR_as` bir `TR_Dict` bağlıyor; köşeli ayraçla erişim (m["PI"]) çalışıyor; modülde olmayan bir ad (m.yok) denetimden geçiyor ve çalışırken `TR_none` veriyor [ölçüldü: main `a9a1ba14`].
 - **Yapılacaklar:** modül değeri; adların tipi denetimde; köşeli ayraçla erişim ve olmayan ad denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
+
+### 11.3
+
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** "başka görev modülü yüklerken bekler" cümlesi kalktı (modüller program çalışmadan yüklenir); motor davranışı ölçülecek.
 
 ### 11.4
 
@@ -462,6 +467,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 ### 11.5
 
 - **Yapılacaklar:** dosya bilgisinin görevde tutulması (bir görevin modül yüklemesi öbür görevlerin yollarını değiştirmez); TR testi.
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** dosya bilgisi çağrınındır (görevde çalışan modül fonksiyonu kendi modülünün klasörüyle okur).
 
 ### 11.6
 
@@ -983,20 +989,46 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM. 2. tur (2026-10-29): DENETİM 18-1'in bulgularıyla. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_write_lines` satırları_yaz, `TR_LineWriter` SatırYazıcı, `TR_write` yaz (18.17); `TR_ignore_case` harf_duyarsız (18.5); kodları uygulandıkları gün kayda girer (17.4).
 
+### 18.1
+
+- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** kök ve UNC öneki korunuyor [ölçüldü: DENETİM]. **Gemini Koşu 5 (2026-10-29), uygulanacak:** `..` ile tabandan kaçış hatası (bugün `TR_Path("veri", "../../gizli/x.json")` tabandan çıkıyor [ölçüldü: DENETİM]).
+
+### 18.2
+
+- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** noktayla başlayan iki noktalı adlarda son uzantı [ölçüldü: DENETİM]. `.TR_parent`'in kökte değeri sınanacak.
+
 ### 18.5
 
 - **Mevcut durum:** Windows'ta kalıp harf büyüklüğüne bakmıyor: `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`].
 - **Mevcut durum:** başka bir klasörden çalışan programda `TR_list_dir("cikti", "*.tmp")` programın klasöründeki `cikti`'yi buluyor ve göreli yollar veriyor [ölçüldü: DENETİM 18-1].
 - **Yapılacaklar:** her sistemde harf büyüklüğüne duyarlı eşleme (göç: `internal/stdlib/files/list_test.go`'nun harf büyüklüğüne bakmayan dalı), `TR_ignore_case:`, başka klasörde bulunan sonuçların mutlak olması; TR testi.
 
+### 18.7
+
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** `TR_Logger` ile açık dosya da silinmez.
+
+### 18.8
+
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** son bileşeni bağlantı olan yolda bağlantının kendisi değerlendirilir.
+
+### 18.9
+
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** dolu klasörün yerine konması (eski klasör geçici ada, sonra silinir); 18.10 da.
+
+### 18.13
+
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** bağlantıya atomik yazmada geçici dosya hedefin klasöründe.
+
 ### 18.16
 
 - **Mevcut durum:** değiştiren işler de göreli yolu okuma sırasıyla çözüyor: başka bir klasörden çalışan program `TR_remove("yanda.txt")` ile programın klasöründeki dosyayı siliyor, `TR_write_file("prog_yolu.txt", ...)` programın klasöründeki dosyayı eziyor; `TR_make_dir` ve `TR_copy`'nin hedefi çalışma klasörüne gidiyor [ölçüldü: main `dc4930ca`].
 - **Yapılacaklar:** `TR_write_file`, `TR_remove`, `TR_move` ve 18.17 yalnız çalışma klasörüne göre; TR testi.
+- **Açık karar (Gemini Koşu 5):** okuma üç klasöre bakıyor, değiştirme yalnız çalışma klasörüne; `TR_list_dir`'in mutlak sonucu ve `.TR_exists` ile `TR_remove`'un ayrı dosyayı görmesi bu bakışımsızlıktan. İki yol: (a) her iş için tek kural, çalışma klasörü (Python ve Go gibi; programın yanındaki veri için açık bir taban gerekir, yeni ad); (b) bakışımı koruyup okuma sırasıyla başka klasörde bulunan yolu değiştiren işe verince hata. DENETİM (a)'yı öneriyor. Karar S1'in yönergesinden önce, programın klasöründen okuyan test ve örneklerin sayısı ölçülünce.
 
 ### 18.17
 
 - **Yapılacaklar:** `TR_write_lines` ve `TR_LineWriter` (atomik, `.gz`, satır sonu içeren satır hatası, program sonunda kapanma, açık yazıcının yolunu okuma ve ikinci yazıcı hatası); TR testi.
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** ertelenen `.TR_close()` çıkışın türüne göre işler ya da siler; yorumlayıcının ertelenen işe çıkışın türünü veren kancası (Faz 0, D1 ile S1'in ortak yeri).
 
 ## 19. Süreç ve kayıt
 
@@ -1010,16 +1042,23 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ### 19.4
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
+- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** büyük harf dizisinin sonunda bölme (`HFToken`) [kanıtlı: DENETİM, `process.go:84-86`]. Çoğullar ve Türkçe çoğullar uygulanacak.
 
 ### 19.5, 19.7
 
 - **Mevcut durum:** `TR_append` ve `TR_update` `TR_true` döndürüyor [ölçüldü]; kalkması 13.10'un tek 4a işinde.
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok; `g.TR_close()`.
+
+### 19.6
+
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** günlüğün kabul ettiği değerler 13.8'in JSON kümesi; `resume` kaydının `offset`'i.
 
 ### 19.10
 
 - **Mevcut durum:** yardım seçeneğinin Türkçe ve İngilizce adı ikisi de çalışıyor; mantık değerinde Türkçe yazım da okunuyor; ondalıkta Türkçe "sonsuz" okunmuyor; yardım varsayılanları kişinin dilinde gösteriyor [ölçüldü: main `217ae940`].
 - **Yapılacaklar:** tek yazım: yalnız "--help" ve "-h", "true" ve "false", "inf", "-inf" ve "nan"; yardımın varsayılanları komut satırının yazımıyla; yalnız "help" ve "h" ayrılmış ad (bugün her dildeki yardım adı ayrılmış); `internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri; Go testleri.
 - **Göç:** yardımın Türkçe adı 26 dosyada 47 satırda [ölçüldü: DENETİM 19-1]. İkiye ayrılır: `tr`'nin kendi seçeneği 17.9'un göçüdür (`cmd/tr/main.go`, `options.go`); programın seçeneği 19.10'unkudur (`internal/stdlib/process`, `examples/tr/37_komut_satirinda_ayar.tr`, `39_veri_ile_egitim.tr`, `tools/gpu/gpt_training.tr`, rehber).
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz; kullanım hatası iletisi gizli adlı seçeneğin değerini yazmaz. **Açık:** standart hataya yazan yerleşik yok (yol haritası).
 
 ### 19.11
 

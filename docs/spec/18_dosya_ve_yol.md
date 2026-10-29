@@ -8,17 +8,17 @@ Veriyi hazırlayan, modeli eğiten ve bir cihazda çalışan program dosyalarla 
 
 Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 
-**18.1** `TR_Path(parça, ...)` parçaları (her biri `TR_String` ya da `TR_Path`) birleştirip temizlenmiş bir `TR_Path` kurar: `a/./b/../c` → `a/c`, `a//b` → `a/b`, sondaki `/` atılır.
+**18.1** `TR_Path(parça, ...)` parçaları (her biri `TR_String` ya da `TR_Path`) birleştirip temizlenmiş bir `TR_Path` kurar: `a/./b/../c` → `a/c`, `a//b` → `a/b`, sondaki `/` atılır. Kök (`/`, `C:/`) ve UNC öneki (`//sunucu/pay`) bu daraltmadan ve sondaki `/`'yi atmaktan muaftır.
 - `TR_Path` değiştirilemez; ayırıcıyı her sistemde `/` ile saklar ve gösterir (Windows'ta `\` de kabul edilir, işletim sistemine giderken çevrilir).
 - `TR_print(y)`, `TR_String(y)` ve metin içine yerleştirme yolun metnini verir; `TR_json_string` yolu metin olarak yazar. `==` temizlenmiş yazımları karşılaştırır; bir `TR_Path` bir `TR_String`'e eşit değildir (4.5).
-- İlk parçadan sonra mutlak bir parça (`/etc`, `C:/x`, `C:x`, `\\sunucu`) hatadır: dışarıdan gelen bir ad taban klasörü sessizce değiştiremez. Boş parça ve sekme ya da satır sonu içeren parça (13.1a) hatadır. `..` temizlenir ama yasak değildir: `TR_Path("a", "..")` → `.`.
+- İlk parçadan sonra mutlak bir parça (`/etc`, `C:/x`, `C:x`, `\\sunucu`) hatadır: dışarıdan gelen bir ad taban klasörü sessizce değiştiremez. Boş parça ve sekme ya da satır sonu içeren parça (13.1a) hatadır. İlk parçadan sonraki parçalar temizlendiğinde ilk parçanın dışına çıkamaz: `TR_Path("veri", "../x")` hatadır (dışarıdan gelen ad taban klasörü değiştiremez). İlk parçanın kendi `..`'su temizlenir (`TR_Path("a/..")` → `.`); üst klasöre çıkmak `.TR_parent` iledir.
 - *Test:* TR testi.
 
 **18.2** Yolun yazımına soran özellikler diske bakmaz:
 - `.TR_name` son bileşendir (`.` ve kökte boş metin);
-- `.TR_extension` noktasıyla birlikte son uzantıdır (`"derlem.tar.gz"` → `".gz"`); uzantısız ad, noktayla biten ad ve noktayla başlayan ad (`.gitignore`) için boş metin;
+- `.TR_extension` noktasıyla birlikte son uzantıdır (`"derlem.tar.gz"` → `".gz"`); uzantısız ad, noktayla biten ad ve başındaki noktadan başka noktası olmayan ad (`.gitignore`) için boş metin (`.env.local` → `".local"`);
 - `.TR_stem` son uzantının atıldığı addır; `.TR_stem + .TR_extension` her zaman `.TR_name`'dir;
-- `.TR_parent` bulunduğu klasörün yoludur (tek bileşenli göreli yolda `.`).
+- `.TR_parent` bulunduğu klasörün yoludur (tek bileşenli göreli yolda `.`, `.`'da `..`); kökte kökün kendisidir (`/`, `C:/`).
 - *Test:* TR testi.
 
 **18.3** Diske soran özellikler yolu 18.16'nın okuma kuralıyla çözer:
@@ -47,7 +47,7 @@ Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 - Olmayan yol hatadır: yazım yanlışı sessiz geçmez. Joker karakter genişletilmez: `TR_remove("*.tmp")` `*.tmp` adlı dosyayı arar.
 - Salt okunur bir dosya zorla silinmez. Klasörün içinde salt okunur bir dosya varsa **hiçbir şey silinmez**: önce bütün ağaç denetlenir.
 - Bağlantının kendisi silinir, gösterdiği yere dokunulmaz. Gezinme sırasında bir alt klasör bir bağlantıyla değiştirilse de silme klasörün dışına çıkmaz; Windows'un dizin bağlantıları da bağlantıdır.
-- Bu programda bir `TR_LineReader` ya da `TR_LineWriter` ile açık olan bir dosyayı içeren yol silinmez (Windows'ta silme yarıda kalırdı); ileti okuyucuyu ya da yazıcıyı kapatmayı (18.15, 18.17) önerir.
+- Bu programda bir `TR_LineReader`, `TR_LineWriter` ya da `TR_Logger` ile açık olan bir dosyayı içeren yol silinmez (Windows'ta silme yarıda kalırdı); ileti okuyucuyu, yazıcıyı ya da günlüğü kapatmayı (18.15, 18.17, 19.5) önerir.
 - *Test:* TR testi.
 
 **18.8** `TR_remove` şu klasörleri silmez, nedenini söyleyen bir hata verir:
@@ -56,12 +56,12 @@ Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 - işletim sisteminin bilinen klasörleri ve üstleri (Windows: `%SystemRoot%`, `%ProgramFiles%`, `%ProgramFiles(x86)%`, `%ProgramData%`; öteki sistemler: `/bin`, `/boot`, `/dev`, `/etc`, `/lib`, `/lib64`, `/proc`, `/sbin`, `/sys`, `/usr`, `/var`, macOS'un `/System`, `/Library`, `/Applications`);
 - çalışma klasörü, kodun modülünün ve programın klasörü ve üstleri (depoda çalışan programın depo kökü de).
 
-Karşılaştırma bağlantıları çözülmüş mutlak yollarla yapılır (`.`, `..`, `a/..` aynı yeri gösterir). Aynı korumalar `TR_move`'un kaynağına ve `TR_overwrite: TR_true` ile yerine bir şey konan klasöre de uygulanır.
+Karşılaştırma yolun üst klasörlerinde bağlantıları çözülmüş mutlak yollarla yapılır (`.`, `..`, `a/..` aynı yeri gösterir); son bileşen bir bağlantıysa bağlantının kendisi değerlendirilir (18.7: bağlantı silinir, gösterdiğine dokunulmaz). Aynı korumalar `TR_move`'un kaynağına ve `TR_overwrite: TR_true` ile yerine bir şey konan klasöre de uygulanır.
 - *Test:* TR testi.
 
 **18.9** `TR_copy(kaynak, hedef, TR_overwrite: TR_false)` bir dosyayı ya da klasörü içindekilerle kopyalar ve son hedefin yolunu döndürür.
 - Hedef var olan bir klasörse kaynak onun içine aynı adla gider: `TR_copy("model.trt", "yedek")` → `yedek/model.trt`. `/` ile biten bir hedef metni var olan bir klasör olmalıdır.
-- Son hedef zaten varsa `TR_overwrite: TR_true` gerekir. Bir dosya bir klasörün, bir klasör bir dosyanın yerine konmaz. Kaynak ile hedef aynıysa ya da bir klasör kendi içine kopyalanıyorsa hatadır.
+- Son hedef zaten varsa `TR_overwrite: TR_true` gerekir. Bir dosya bir klasörün, bir klasör bir dosyanın yerine konmaz. Dolu bir klasörün yerine konurken eski klasör önce geçici bir ada çekilir, yeni klasör yerine konur, sonra eski silinir; arada kesilirse eski klasör geçici adıyla durur ve ileti onu söyler. Davranış her sistemde aynıdır, takas çağrısına dayanmaz. Kaynak ile hedef aynıysa ya da bir klasör kendi içine kopyalanıyorsa hatadır.
 - Kopya önce hedefin yanında geçici bir ada yazılır, sonra yerine konur: yarıda kalan bir kopya var olan hedefi bozmaz, geride geçici dosya kalmaz. İzinler ve değiştirilme zamanı korunur.
 - Kaynağın kendisi bir bağlantıysa hatadır; klasörün içindeki bağlantılar ve özel dosyalar atlanır ve tek bir uyarı yazılır.
 - *Test:* TR testi.
@@ -84,8 +84,8 @@ Karşılaştırma bağlantıları çözülmüş mutlak yollarla yapılır (`.`, 
 - *Test:* TR testi.
 
 **18.13** `TR_write_file` atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılır, diske işlenir, sonra eski dosyanın yerine konur. Yarıda kalan bir yazma (hata, disk dolması, çökme) var olan dosyayı bozmaz ve geride geçici dosya kalmaz.
-- Yol bir bağlantıysa gösterdiği dosya yazılır, bağlantı korunur. Var olan dosyanın izin bitleri korunur, yeni dosya `0644` açılır.
-- Yazılan bağlantı taban klasörün dışını gösterebilir: bağlantıyla yazmak klasörün dışına yazmaktır. Dışarıdan gelen adlarla yazan program 18.1'in mutlak parça kuralına ve kendi denetimine güvenir.
+- Yol bir bağlantıysa gösterdiği dosya yazılır, bağlantı korunur: geçici dosya bağlantının çözülmüş hedefinin klasöründe açılır. Var olan dosyanın izin bitleri korunur, yeni dosya `0644` açılır.
+- Yazılan bağlantı taban klasörün dışını gösterebilir: bağlantıyla yazmak klasörün dışına yazmaktır. Dışarıdan gelen adlarla yazan program 18.1'in mutlak parça ve `..` kuralına güvenir; bağlantının gösterdiği yer denetlenmez.
 - Bedelleri: her yazma diske işlendiği için çok sayıda küçük yazma yavaştır (büyük çıktı 18.17 ile yazılır); dosyanın başka sabit bağlantıları eski içeriği göstermeye devam eder; sahiplik, erişim listeleri ve Windows'un ek veri akışları klasörün varsayılanına döner; klasöre yazma izni gerekir; Windows'ta başka bir programın silmeye kapalı açtığı dosyanın yerine yazılamaz.
 - *Test:* TR testi.
 
@@ -118,7 +118,8 @@ TR_print(TR_list_dir(k).TR_length) # program bitince k silinir
 **18.17** `TR_write_lines(yol)` bir `TR_LineWriter` açar ve büyük çıktıyı **akışla** yazar: bellek çıktının boyutundan bağımsızdır.
 - `.TR_write(satır)` bir `TR_String` satırını ve ardından `\n` yazar. Satır sonu (`\n` ya da `\r`) içeren satır hatadır: her `.TR_write` tam bir satırdır, JSONL gibi satır biçimleri bozulmaz.
 - Yazma atomiktir (18.13): satırlar aynı klasördeki geçici bir dosyaya gider, `.TR_close()`'ta diske işlenir ve yerine konur. Program yazıcı açıkken başarıyla biterse yazıcı kapanır ve dosya yerine konur; hatayla ya da durdurmayla biterse geçici dosya silinir, var olan dosya değişmez.
-- `.TR_close()` 18.15'teki gibidir; kapatılmış yazıcıya yazmak hatadır. Yazıcıyı kapatmak için `TR_defer` kullanılır (9.1).
+- `.TR_close()` 18.15'teki gibidir; kapatılmış yazıcıya yazmak hatadır. Yazıcıyı kapatmak için `TR_defer` kullanılır (9.1): `TR_defer { yazıcı.TR_close() }`.
+- `.TR_close()` kapsam olağan biterken (sona gelme, `TR_return`, `TR_break`, `TR_continue`) çağrılırsa dosyayı diske işleyip yerine koyar. Kapsam bir hata, durdurma (1.5), iptal (10.9) ya da `TR_exit` ile terk edilirken ertelenen işte çağrılırsa geçici dosyayı siler, var olan dosya değişmez.
 - Yazıcı açıkken aynı programda yazıcının yazma kuralıyla çözülen yolunu (çalışma klasöründeki dosyayı) gösteren bir okuma (`TR_read_file`, `TR_read_lines`, `TR_read_csv`) ve o yola ikinci bir yazıcı açmak ya da yazmak hatadır: dosyanın yerinde henüz eski içerik vardır; ileti yazıcıyı önce kapatmayı söyler. Göreli okuma sırası o dosyada durur, başka klasördeki aynı adlı dosyaya geçmez; o dosya ancak mutlak yolla okunur.
 - Yazma yorumlayıcı kilidini diske işlerken bırakır; aynı yazıcıya yazan görevlerin her satırı bütün yazılır, satırların sırası 10.8'e göre tanımsızdır.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
