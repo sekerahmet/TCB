@@ -224,3 +224,7 @@ tr dizin tanım katman.TR_type_Linear.TR_mem_forward | contains: katman.Doğrusa
 # Gerçek kullanım denemesi bulguları (2026-10-26)
 codegraph tests-for tools/gen/snippets/data.json | group: <- tests ( => snippets.TestSnippetsUpToDate | group: <- tests ( => snippets.TestSnippetsParseInEveryLanguage | src: gerçek kullanım denemesi, 2026-10-26 (init()'in doldurduğu değişkeni okuyan testler)
 codegraph query TR_cmd_encode | group: registered or used in Go => -> tr.encodeCommand [ | not: tr.debugCommand | src: gerçek kullanım denemesi, 2026-10-26 (anahtar-değer çiftinin değeri, satırdaki öbürleri değil)
+
+# codegraph iyileştirmesi: dosya düzeyinde tests-for düzenleme anında yol gösterir (2026-10-29)
+codegraph tests-for internal/lang/interp/assign.go | first-of: <- tests, indirect ( => internal/lang/interp/ | not: tests that exercise the declarations | src: codegraph-iyilestirme, 2026-10-29 (dosya düzeyi bildirim düzeyinin sırasıyla: eşit uzaklıkta düzenlenen paketin testi önce; ilk öğe konu edinen gruptadır, H2406'yı bekleyen TR testi)
+codegraph tests-for internal/lang/interp/compiler_assign.go --all | group: tests about it => interp.TestAssignToUndeclaredNameIsError | group: weak evidence => 8 steps | src: codegraph-iyilestirme, 2026-10-29 (uzun zincirler ayrı grupta)

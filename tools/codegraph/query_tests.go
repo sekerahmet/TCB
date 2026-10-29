@@ -42,16 +42,35 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 		stem := strings.TrimSuffix(target.File, path.Ext(target.File))
 		return target.Kind == kindFile && strings.TrimSuffix(t.File, path.Ext(t.File)) == stem+"_test"
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].steps != out[j].steps {
-			return out[i].steps < out[j].steps
-		}
-		if a, b := own(out[i].test), own(out[j].test); a != b {
-			return a
-		}
-		return out[i].test.Name < out[j].test.Name
-	})
+	rank := func(it indirectTest) testRank { return newTestRank(target, it.test, it.steps, own(it.test)) }
+	sort.SliceStable(out, func(i, j int) bool { return rank(out[i]).before(rank(out[j])) })
 	return out
+}
+
+// testRank bir testin bir hedefe göre sıralama anahtarıdır. Bildirim düzeyi (indirectTests) ve dosya düzeyi
+// (printGoFileTests) aynı kuralla sıralar: kısa zincir önce; eşit uzaklıkta hedefin kendi test dosyasındaki, sonra
+// hedefle aynı klasördeki (düzenlenen paketin testi), sonra ada göre (DENETİM 2026-10-29: `tests-for assign.go`'da
+// interp'in 2 adımdaki ilk testi 140. satırdaydı, önünde başka paketlerin testleri alfabetik sırayla duruyordu).
+type testRank struct {
+	steps      int
+	own, local bool
+	name       string
+}
+
+func newTestRank(target, test *Node, steps int, own bool) testRank {
+	return testRank{steps, own, path.Dir(test.File) == path.Dir(target.File), test.Name}
+}
+
+func (a testRank) before(b testRank) bool {
+	switch {
+	case a.steps != b.steps:
+		return a.steps < b.steps
+	case a.own != b.own:
+		return a.own
+	case a.local != b.local:
+		return a.local
+	}
+	return a.name < b.name
 }
 
 // loaderTests bir dosyayı yükleyen dosyaları (`loads`, js_loads.go) geriye doğru izler ve onları koşan testleri verir:
@@ -467,10 +486,6 @@ func (ix *index) printInferred(w io.Writer, n *Node, indirect []indirectTest, vi
 		ix.printIndirect(w, strongInd, limit)
 		ix.printViaNames(w, strongNames, limit)
 	}
-	if len(weakInd)+len(weakNames) == 0 {
-		return
-	}
-	fmt.Fprintf(w, "  <- weak evidence (%d; chains longer than %d steps, often through shared machinery: read with care):\n", len(weakInd)+len(weakNames), weakSteps)
 	var lines []string
 	for _, it := range weakInd {
 		lines = append(lines, fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name))
@@ -478,6 +493,15 @@ func (ix *index) printInferred(w io.Writer, n *Node, indirect []indirectTest, vi
 	for _, t := range weakNames {
 		lines = append(lines, fmt.Sprintf("%s  via %s, %d steps  [INFERRED]", describe(t.test), t.name.Name, t.steps))
 	}
+	printWeak(w, lines, limit)
+}
+
+// printWeak "weak evidence" grubunu yazar; bildirim ve dosya düzeyi aynı başlığı kullanır.
+func printWeak(w io.Writer, lines []string, limit int) {
+	if len(lines) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  <- weak evidence (%d; chains longer than %d steps, often through shared machinery: read with care):\n", len(lines), weakSteps)
 	printLimited(w, lines, limit, "    ")
 }
 

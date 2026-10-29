@@ -86,7 +86,11 @@ backwards over the chain rule below (EXTRACTED `calls`, TR-to-TR `calls`, `uses`
 are shown nearest first as `N steps via <caller next to the target>`, always `[INFERRED]`. This is
 computed when you ask, not stored in `graph.json`. For a Go file, `tests-for path/file.go` lists the tests of the
 declarations in it (the collection `changed` uses) and the rules those tests guard, so "run tests-for <file> before
-touching it" answers for Go files too. The tests a test file declares come first as `this file's tests` (benchmarks
+touching it" answers for Go files too. Nothing is cut from that collection; it is written with the groups and the order
+of a declaration's answer (one rule, `testRank`): the tests about one of its declarations, then the direct tests, the
+chains of at most 4 steps, and the longer chains under "weak evidence"; at equal steps a test in the file's own folder
+(the edited package) comes first (2026-10-29: in `tests-for internal/lang/interp/assign.go` the first `interp` test was
+on line 140, behind other packages' tests in alphabetical order). The tests a test file declares come first as `this file's tests` (benchmarks
 are measurements and stay out), and so do, for `x.go`, the tests of its test file `x_test.go`, whether in the same package or the external `_test` one (`state.go` lists `dataset_test.TestReaderSkipSameAsNext`; `TestASourceFileListsItsTestFilesTestsFirst` reads every such pair with go/parser); `changed` lists a changed test the same way, as `changed tests (they run themselves)`. A function a test file uses as a value (a table entry
 `{"ceil", (*Tensor).Ceil}`, a method expression, `f := Cube`) is an INFERRED `calls` edge that the chain does not follow
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use

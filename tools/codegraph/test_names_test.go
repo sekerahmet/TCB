@@ -164,7 +164,8 @@ func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 }
 
 // Kural (parti K2, A): bir Go testi dizesindeki TR koduyla (tablo satırı dahil) X ad kodunu koşuyorsa ve aynı paketteki
-// bir bildirim X'i uyguluyorsa (uses_name), o bildirimin dosyasının tests-for cevabında test "direct"tir. Önceden
+// bir bildirim X'i uyguluyorsa (uses_name), o bildirimin dosyasının tests-for cevabında test "direct"tir (ya da daha
+// güçlü kanıtla, bildirim düzeyindeki gibi, "tests about it" grubundadır). Önceden
 // stats.go'nun kendi testi (`New().Run(mustParseProgram(t, c.code))`, tablodan) ad koduna bağlanmıyordu, 40. sırada
 // çağrı zinciriyle "2 steps" geliyordu.
 func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
@@ -193,8 +194,12 @@ func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
 					ix.printTestsFor(&out, ix.byID[fileID(decl.File)], 0)
 					answers[decl.File] = out.String()
 				}
-				own, _ := groupItems(strings.Split(answers[decl.File], "\n"), "  this file's tests (") // adaş test dosyasının testleri
-				if !strings.Contains(answers[decl.File], describe(test)+"  direct") && !slices.ContainsFunc(own, func(l string) bool { return strings.TrimSpace(l) == describe(test) }) {
+				lines := strings.Split(answers[decl.File], "\n")
+				own, _ := groupItems(lines, "  this file's tests (")   // adaş test dosyasının testleri
+				about, _ := groupItems(lines, "  <- tests about it (") // daha güçlü kanıt: konu edinen, doğrudan testten önce
+				listed := func(l string) bool { return strings.TrimSpace(l) == describe(test) }
+				inAbout := slices.ContainsFunc(about, func(l string) bool { return strings.HasPrefix(strings.TrimSpace(l), describe(test)+"  [") })
+				if !strings.Contains(answers[decl.File], describe(test)+"  direct") && !slices.ContainsFunc(own, listed) && !inAbout {
 					t.Errorf("tests-for %s: %s runs %s, which %s implements, but is not direct", decl.File, test.Name, name.Name, decl.Name)
 				}
 			}
