@@ -43,12 +43,12 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | çıkış | TR_dbg_quit, TR_repl_exit | aynı anlam: kabuktan ve hata ayıklayıcıdan çıkmak |
 | değer | TR_arg_value, TR_mem_tolist | aynı anlam: düz sayı değeri (`TR_SpikeGuard.TR_exceeds(değer, geçmiş)` izlenen sayıyı, tensörün `.TR_tolist`i tensörün düz değerini verir) |
 | dikkat | TR_fn_attention, TR_mem_attention | aynı anlam: dikkat hesabı (`TR_attention(q, k, v)` yerleşiği ve bloğun onu çalıştıran `.TR_attention` katmanı; PyTorch `scaled_dot_product_attention` ve `self_attn`) |
-| ileri | TR_arg_forward, TR_mem_forward | aynı anlam: ileri hesap (`TR_custom_grad(TR_forward:, TR_backward:)` ve katmanın `ileri` metodu; PyTorch `forward`) |
+| ileri | TR_arg_forward, TR_mem_forward | aynı anlam: ileri hesap (`TR_custom_grad(TR_forward:, TR_backward:)` ve katmanın `.TR_forward` metodu; PyTorch `forward`) |
 | kapı | TR_arg_gate, TR_mem_gate_proj | aynı anlam: kapı (`TR_ple_mix`'teki kapı değeri ve onu üreten `kapı` katmanı; SwiGLU ve PLE kapısı) |
 | kayıp | TR_arg_loss, TR_mem_loss | aynı anlam: eğitim kaybı (`TR_SpikeGuard.TR_observe(kayıp, norm)` ve kaybı hesaplayan `model.TR_loss(...)`) |
 | maske | TR_arg_mask, TR_mem_mask | aynı anlam: dikkat maskesi (`TR_attention(..., TR_mask:)` ve `TR_KVCache.TR_mask()` ile kurulan maske) |
 | parametreler | TR_arg_parameters, TR_fn_parameters, TR_mem_parameters | aynı anlam: modelin eğitilen tensörleri (`TR_parameters(model)`, `TR_Muon(parametreler)` ve iyileştiricinin `.TR_parameters` alanı; PyTorch `model.parameters()`, `Optimizer(params)`) |
-| rope_tabanı | TR_arg_rope_theta, TR_fn_rope_theta | aynı anlam: RoPE tabanı (`GPT(TR_rope_theta:)` ve onu Hugging Face ayarından okuyan `TR_rope_theta(ayar)`; Hugging Face `rope_theta`) |
+| rope_tabanı | TR_arg_rope_theta, TR_fn_rope_theta | aynı anlam: RoPE tabanı (`TR_GPT(TR_rope_theta:)` ve onu Hugging Face ayarından okuyan `TR_rope_theta(ayar)`; Hugging Face `rope_theta`) |
 | tablo | TR_dbg_table, TR_mem_table | ayrı alan: TR_dbg_table hata ayıklayıcıda bir değeri tablo olarak gösterir; TR_mem_table gömme katmanının ağırlık tablosudur |
 
 ## İleride karar verilecek
