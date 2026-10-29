@@ -140,16 +140,19 @@ func TestLinearRatioSeparatesLinearFromQuadratic(t *testing.T) {
 	_ = sink
 }
 
-// Kural: ScalesLinearly karesel büyüyen işte kalır; deneme sayısı ve her denemeden önceki çöp
-// toplama onu gizlemez. İş, tarihteki gerileme gibi doğrusal ve karesel payın toplamıdır (codeindex'te
-// CI'da oran 9-10): n'de karesel pay doğrusalın iki katı, oran (4+32)/(1+2) = 12, saf karesel işin
-// ~16'sının altında. Eşit paylı iş (oran 10) boş makinede 20 koşuda 8,9'a indi, yükte sınırın altına
-// düşebilir. İş ölçülen işlevde büyür: ScalesLinearly'nin dışarıdan gördüğü yol sınanır.
+// Kural: ScalesLinearly karesel büyüyen işte kalır; deneme sayısı, dönüşümlü ölçüm ve çöp toplama
+// onu gizlemez. İş, tarihteki gerileme gibi doğrusal ve karesel payın toplamıdır (codeindex'te CI'da
+// oran 9-10): n'de karesel pay doğrusalın dört katı, oran (4+64)/(1+4) ≈ 13,6, saf karesel işin
+// ~16'sının altında. Pay küçüldükçe sınama yükte kararsızlaşır: eşit pay (oran 10) boş makinede 8,9'a,
+// iki kat pay (oran 12) aşırı yükte 8,0'a indi. İş ölçülen işlevde büyür: ScalesLinearly'nin dışarıdan
+// gördüğü yol sınanır. Küçük boy ~20 ms sürer: çekirdekler aşırı yüklüyken zamanlayıcının bir diliminde
+// kesilmeden biten birkaç ms'lik iş, hep kesilen büyük boydan ayrıcalıklı ölçülür ve oran bozulur
+// (6 ms'lik işle 40 koşuda bir 4,1).
 func TestScalesLinearlyFailsQuadraticWork(t *testing.T) {
 	var sink int
 	r := &recorder{TB: t}
 	ScalesLinearly(r, "karesel", 100, func(n int) func() (int, error) {
-		steps := n*20000 + n*n*400
+		steps := n*40000 + n*n*1600
 		return func() (int, error) {
 			s := 0
 			for i := 0; i < steps; i++ {
