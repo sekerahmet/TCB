@@ -146,24 +146,9 @@ func (y *writer) value(val interp.Value, depth int) error {
 		// TR_JSON (3.7a): sayının tam ya da ondalık yazımı korunur.
 		y.b = append(y.b, v.JSONText()...)
 	case *interp.ListVal:
-		if err := y.walker.Enter(v, depth); err != nil {
-			return err
-		}
-		defer y.walker.Leave(v)
-		y.b = append(y.b, '[')
-		for i, elem := range v.Elements {
-			if i > 0 {
-				y.b = append(y.b, ',')
-			}
-			y.newline(depth + 1)
-			if err := y.value(elem, depth+1); err != nil {
-				return err
-			}
-		}
-		if len(v.Elements) > 0 {
-			y.newline(depth)
-		}
-		y.b = append(y.b, ']')
+		return y.array(v, v.Elements, depth)
+	case *interp.TupleVal:
+		return y.array(v, v.Elements, depth) // demet dizi olarak (13.8); geri dönüş tiple olur
 	case *interp.DictVal:
 		return y.dict(v, depth)
 	case interp.PlainValuer:
@@ -172,6 +157,29 @@ func (y *writer) value(val interp.Value, depth int) error {
 	default:
 		return notData(val)
 	}
+	return nil
+}
+
+// array listeyi ya da demeti (kap) öğeleriyle JSON dizisi olarak yazar.
+func (y *writer) array(v interp.Value, elems []interp.Value, depth int) error {
+	if err := y.walker.Enter(v, depth); err != nil {
+		return err
+	}
+	defer y.walker.Leave(v)
+	y.b = append(y.b, '[')
+	for i, elem := range elems {
+		if i > 0 {
+			y.b = append(y.b, ',')
+		}
+		y.newline(depth + 1)
+		if err := y.value(elem, depth+1); err != nil {
+			return err
+		}
+	}
+	if len(elems) > 0 {
+		y.newline(depth)
+	}
+	y.b = append(y.b, ']')
 	return nil
 }
 
