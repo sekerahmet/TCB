@@ -3,7 +3,7 @@
 # DURUM — TestBuildScalesLinearly: gürültü mü, gerileme mi?
 
 - Başlama: 2026-10-29 17:29 UTC
-- Bitiş: 2026-10-29 18:17 UTC
+- Bitiş: 2026-10-29 18:15 UTC
 - Dal: `claude/keen-volta-zqw48d` (taban `main` 6cd1e49)
 - Makine: Linux konteyner, 4 çekirdek, go1.26.10
 
