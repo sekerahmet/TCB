@@ -15,7 +15,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 
 ## 1. Eleman bazlı matematik fonksiyonu
 
-Örnek: `silu` (TR_fn_silu). Sayıda `TR_type_Float`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
+Örnek: `silu` (TR_fn_silu). Sayıda `TR_Float`, tensörde türev izleyen tensör verir; CPU ve GPU'da, 16 bitte de çalışır.
 
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
@@ -77,7 +77,7 @@ Testler: paketin birim testi (`formats_test.go`): davranış ve hatalar, hatalar
 
 ## 3. Bir tipe yeni metot ya da özellik
 
-Örnek: `TR_type_LineReader.TR_mem_next()` (`internal/stdlib/files/lines.go`).
+Örnek: `TR_LineReader.TR_next()` (`internal/stdlib/files/lines.go`).
 
 1. **Ad.** Üye kodu (`TR_mem_...`); `definitions.json`'da `"kind": "method"` ya da `"property"` ve hangi tiplerde geçerli olduğu (`"signatures": { "TR_type_LineReader": {...} }`).
 2. **Kanca.** Tip, yorumlayıcının arayüzünü uygular: üyeler için `GetProperty(kd codes.Code, prop string) (interp.Value, error)` (`interp.PropertyGetter`). Yineleme, indeksleme, işleçler için `interp.Iterable`, `interp.Indexable`, `interp.OperatorHook` ...
@@ -95,7 +95,7 @@ Testler: tipin dosyasının birim testi; metot hem doğru hem yanlış argümanl
 3. **Üret.** `go run ./tools/gen/msgconsts`.
 4. **Kullan.** Hata: `messages.New(messages.H7006, fn, path)`. Çıktı: `messages.Text(...)`. Konumlu hata: `messages.At(satır, sütun, ...)`. Yalnızca TR'nin kendi hatasıyla oluşabilen durum: `messages.Internal("English detail")`.
 5. **Test.** `messages.Has(err, messages.H7006)`; metne değil koda bakılır.
-6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_kw_throw TR_type_Message(H6903, pencere)` ya da `TR_fn_assert(koşul, TR_type_Message(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_kw_if TR_kw_not koşul { TR_kw_throw TR_type_Message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_fn_assert_equal(H6903, TR_fn_error_code { ... })`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_type_Message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
+6. **TR kodundan (`lib/*.tr`).** Kitaplık hata metni yazmaz, katalog iletisi kurar: `TR_throw TR_Message(H6903, pencere)` ya da `TR_assert(koşul, TR_Message(H6903, pencere))` (dil tanımı 8.5). Değerler tanımdaki sırayla verilir; kitaplığın kendi adları (parametre, alan, metot, yapı) değer değil ad yuvasıdır: `definitions.json`'da `"slots": {"num_heads": "TR_arg_num_heads"}`, şablonda `{@num_heads}` (iletinin dilindeki adıyla yazılır). Sıcak yolda ileti `TR_if TR_not koşul { TR_throw TR_Message(...) }` ile yalnız hatada kurulur. Test: iletinin metnine değil koduna bakılır, `TR_assert_equal(H6903, TR_error_code { ... })`. `tools/gen/msgconsts` `.tr` dosyalarındaki `TR_Message(H…)` çağrılarını da sayar (kod kullanılmış sayılır, değer sayısı tanımla aynı olmalı).
 
 Denetimler: aynı metin iki kodda olamaz (bağlamı farklı etiketler gerekçeli izinle), her çağrının değer sayısı tanımla aynı, kullanılmayan kod kalmaz, geçirilmiş pakette `fmt.Errorf`/`errors.New` yok.
 
