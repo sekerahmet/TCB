@@ -20,7 +20,7 @@ TR statik tiplidir (1.2): her değerin tipi çalışmadan önce bilinir. Tip den
 TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 ```
 
-**3.3a** `TR_Bytes`: değiştirilemez bayt dizisi (dosya, ağ, görüntü, ses verisi). `b[i]` 0–255 arası bir `TR_Int`, `b[a..c]` bir `TR_Bytes` verir; indeks ve dilim 3.3'teki gibidir. `TR_Bytes("ab")` metnin UTF-8 baytlarını, `TR_Bytes([0, 255])` bir tam sayı listesini verir; 0–255 dışındaki sayı çalışma hatasıdır. `TR_String(b)` UTF-8 okur; geçersiz UTF-8 çalışma hatasıdır. Metin ile bayt kendiliğinden dönüşmez. Birleştirme, tensörden kurma, parça parça yazma ve bayttan sayı okuyup sayıyı bayta yazma (bayt sırasıyla) sonraki bölümlerdedir.
+**3.3a** `TR_Bytes`: değiştirilemez bayt dizisi (dosya, ağ, görüntü, ses verisi). `b[i]` 0–255 arası bir `TR_Int`, `b[a..c]` bir `TR_Bytes` verir; indeks ve dilim 3.3'teki gibidir. `TR_Bytes("ab")` metnin UTF-8 baytlarını, `TR_Bytes([0, 255])` bir tam sayı listesini verir; 0–255 dışındaki sayı çalışma hatasıdır. `TR_String(b)` UTF-8 okur; geçersiz UTF-8 çalışma hatasıdır. Metin ile bayt kendiliğinden dönüşmez. Birleştirme ve yineleme 4.10'dadır; bayttan sayı okuyup sayıyı bayta yazma (bayt sırasıyla), tensörden kurma ve parça parça yazma yol haritasındadır.
 - *Test:* TR testi.
 
 **3.4** `TR_Bool`: `TR_true` ve `TR_false`; koşulda yalnız bu tip kullanılır (3.10).
@@ -34,7 +34,7 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
   - asıl tipten bir değer atanınca, sonraki atamaya kadar: `TR_if x == TR_none { x = 0 }`'dan sonra.
 - Yalnız değişkenin kendisine atama daraltmayı bozar; alanına atama (`x.alan = ...`) bozmaz. Alan ve indeks daraltılmaz; `??` ya da yerel bir kopyayla açılır.
 - İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak denetim hatasıdır (sonuç hep aynıdır).
-- Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (sonraki bölümlerde) ve tip değeri olarak yazılır.
+- Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (6.9) ve tip değeri olarak yazılır.
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
 
 ```tr
@@ -46,12 +46,13 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 ```
 
 **3.6** `TR_List[T]`: tek tipli, sıralı, değiştirilebilir dizi; tip parametresi köşeli parantezle yazılır. `[1, 2, 3]` bir `TR_List[TR_Int]`, `[1, 2.5]` bir `TR_List[TR_Float]`dır (değişmezde bir ondalık varsa tam sayı yazımları ondalıktır; `TR_none` varsa öğe tipi isteğe bağlıdır: `[1.0, TR_none]` bir `TR_List[TR_Float?]`); boş liste tipini yazar (`TR_var l: TR_List[TR_Int] = []`). Negatif indeks sondan sayar; sınır dışı okuma ve yazma çalışma hatasıdır, ileti indeksi ve uzunluğu söyler; `.TR_get(i)` `T?` verir. Dilim 3.3'teki gibidir. Liste, sözlük ve yapı nesnesi başvuruyla paylaşılır: `b = a`'dan sonra ikisi aynı listedir. Bu yüzden `TR_List[TR_Int]`, `TR_List[TR_Float]` beklenen yere verilmez. Kaplar tip parametresinde böyle değişmezdir: `TR_Dict[TR_String, TR_Tensor]` de bir `TR_Dict[TR_String, TR_AnyTensor]` değildir (15.1); her cinsten sözlük alan yerleşikler bunu 13.10'un kabul kümesiyle yazar.
+- Liste, sözlük, metin ve bayt dizisi her büyümede (`+`, `*`, `.TR_append`, `+=`, sözlüğe ekleme) belleği ayırmadan önce denetler, tensördeki gibi (15.42): makinenin belleğini aşan büyüme çalışma hatasıdır; öğe sayısının elle seçilmiş bir sınırı yoktur.
 - *Test:* TR testi; tek tipli liste uygulanınca denetleyicinin testi.
 
 **3.6a** Demet `(A, B, ...)`: sabit sayıda, her biri kendi tipinde değeri bir arada tutan değiştirilemez değer; `(1, "a")` bir `(TR_Int, TR_String)`'dir. En az iki öğesi vardır, `(x)` parantezdir. Öğeler `t.0`, `t.1` ile okunur, atanamaz. Birden çok değer döndüren fonksiyon (6.3) bir demet döndürür; demet 5.3'teki gibi açılır (`TR_var a, b = t`). `==` öğe öğedir (4.5; tensör içeren demette denetim hatası, 15.5); öğeleri sıralanabilen demet sözlük sırasıyla karşılaştırılır (`(1, 2) < (1, 3)`, 4.4); öğeleri anahtar olabilen demet sözlük anahtarı olabilir (3.7): `TR_Dict[(TR_Int, TR_Int), TR_Int]`. Metni "(1, "a")", tipinin metni "(Int, String)"dir.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
-**3.7** `TR_Dict[K, V]`: eklenme sırasını koruyan tablo (`{"k": 1}`); anahtar tipi `TR_Int`, `TR_String`, `TR_Bool`, `TR_Bytes`, öğeleri anahtar olabilen demet (3.6a) ya da alanlarının hepsi anahtar olabilen bir durumlu tip (sonraki bölümlerde); boş sözlük tipini yazar. Değişmezdeki anahtar bir ifadedir: `{k: 1}`'de `k` değişkendir. Anahtar yalnız köşeli parantezle okunur ve yazılır (`d["k"]`); nokta yalnız üyeleri verir (`.TR_length`, `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_get(k)`). Olmayan anahtarı köşeli parantezle okumak çalışma hatasıdır; `.TR_get(k)` `V?` verir. Tensör içeren sözlüğün `==`'si denetim hatasıdır (15.5).
+**3.7** `TR_Dict[K, V]`: eklenme sırasını koruyan tablo (`{"k": 1}`); anahtar tipi `TR_Int`, `TR_String`, `TR_Bool`, `TR_Bytes`, öğeleri anahtar olabilen demet (3.6a) ya da alanlarının hepsi anahtar olabilen bir durumlu tip (7.7); boş sözlük tipini yazar. Değişmezdeki anahtar bir ifadedir: `{k: 1}`'de `k` değişkendir. Anahtar yalnız köşeli parantezle okunur ve yazılır (`d["k"]`); nokta yalnız üyeleri verir (`.TR_length`, `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_get(k)`). Olmayan anahtarı köşeli parantezle okumak çalışma hatasıdır; `.TR_get(k)` `V?` verir. Tensör içeren sözlüğün `==`'si denetim hatasıdır (15.5).
 - *Test:* TR testi.
 
 **3.7a** `TR_JSON`: yapısı önceden bilinmeyen veri; JSON'un her değerini tutar: yokluk, mantık değeri, sayı, metin, dizi, nesne.
@@ -63,6 +64,7 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - **Dolaşmak:** dizide öğeler, nesnede anahtarlar (5.7); öbür türler dolaşılamaz.
 - **Yazmak:** `TR_json_string(j)` her zaman JSON metnini verir (metin tırnaklı: `"\"merhaba\""`). Değerin metni (`TR_print(j)`, yerleştirme, 3.14) JSON metin türünde metnin kendisidir (`"\(j["k"])"` → merhaba), öbür türlerde JSON metnidir.
 - Her değeri tutan genel bir tip yoktur.
+- Güvenilmeyen JSON'un iç içeliği en çok 1000'dir; daha derini çözülmeden hatadır (kaynak dosyanın sınırı gibi, 2.10).
 - *Test:* TR testi.
 
 ```tr
@@ -76,7 +78,7 @@ TR_var istek: TR_JSON = {"soru": metin, "en_fazla": 512, "akış": TR_false}
 **3.8** `TR_Range`: `a..b` (b hariç), `a..=b` (b dahil); uçlar `TR_Int`. `a >= b` ise `a..b`, `a > b` ise `a..=b` boştur; geriye `.TR_reverse()` sayar ve bir `TR_List` verir (`(0..3).TR_reverse()` → `[2, 1, 0]`). Sınırdaki uçlar taşmadan gezilir.
 - *Test:* TR testi.
 
-**3.9** Fonksiyon birinci sınıf değerdir: atanır, listeye konur, argüman olur, döndürülür. Tipi parametrelerinin ve dönüşünün tipleridir; yazımı sonraki bölümlerdedir.
+**3.9** Fonksiyon birinci sınıf değerdir: atanır, listeye konur, argüman olur, döndürülür. Tipi parametrelerinin ve dönüşünün tipleridir; yazımı 6.9'dadır.
 - *Test:* TR testi.
 
 **3.10** Koşul `TR_Bool` olmalıdır: `TR_if` ve koşullu `TR_for`'un koşulu, liste üretecinin koşulu, `TR_breakpoint TR_if`'in koşulu, `.TR_filter`'ın yükleminin sonucu, `TR_assert`'in koşulu (12.3), `TR_and`, `TR_or`, `TR_not`'un işlenenleri. Başka tip denetim hatasıdır; boşluk `.TR_length == 0`, yokluk `TR_none`'la karşılaştırma ile sorulur.
@@ -113,7 +115,7 @@ toplam += 0.5        # denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazı
 - Tam sayı ondalık rakamla, ondalık 3.2'deki gibi yazılır. Dilin değerleri ve tipleri kimliğin adıyla yazılır: "true", "false", "none", "inf", "-inf", "nan"; tip adıyla ("Int", "List[Int]", "Int?").
 - Metin kendisi olarak yazılır. Liste "[1, 2]", sözlük "{"k": 1}" biçimindedir; içlerindeki metin çift tırnakla ve kaçışla yazılır: `\n`, `\t`, `\r`, `\"`, `\\`, öbür denetim karakterleri ve 2.1a'nın yön karakterleri `\u{...}` ile (2.6). Kaptaki `TR_JSON` değeri JSON metniyle yazılır. Bayt dizisinin metni onu kuran çağrıdır: `Bytes([104, 105])`; 64 bayttan uzunsa boyu ve ilk 16 baytı.
 - İsteğe bağlı değer içindeki değerin ya da "none"ın metnini, `TR_JSON` JSON metin türünde metnin kendisini, öbür türlerde JSON metnini (3.7a), aralık "0..3" ya da "0..=3" metnini verir.
-- Bayt dizisinin, fonksiyonun ve yapı nesnesinin metni sonraki bölümlerdedir; tensörünki 15.5'tedir.
+- Fonksiyonun metni 6.9'da, yapı nesnesininki 7.6'da, tensörünki 15.5'tedir; bayt dizisininki yukarıda.
 - Program çıktısı çevrilmez; kişinin dilinde görünen yalnız iletiler, kabuk ve hata ayıklayıcıdır.
 - *Test:* TR testi.
 

@@ -44,6 +44,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 - **Türev:** etkinleştirme kaydı (`TR_recompute`) ve ikinci türev.
 - **Sinir ağı işlemleri:** havuzlama ve büyütme, ters evrişim (15.23c), CTC ve STFT (ses modelleri).
 - **Nicemleme:** sıra değiştiren gruplu GPTQ (`desc_act`, 15.52); NF4, 2 ve 3 bitlik biçimler, nicemlemeye duyarlı eğitim (QAT), ARM NEON çekirdekleri (15.51–15.53).
+- **Bayt dizisi:** bayttan sayı okuma ve sayıyı bayta yazma (bayt sırasıyla: WAV, `.npy`, algılayıcı paketi), tensörden kurma, parça parça yazma (3.3a).
 - **Örnekleme:** `TR_sample`'a `TR_top_p:` (bugün top-p, 15.22'nin `TR_argsort`'u ve `TR_cumsum` ile yazılır; 15.26).
 
 **7. bölümden sonra: ajan hata oranı deneyi** (Ahmet, 2026-10-27, plan onaylı). Kodlama modeli TR'yi alışkanlıkla doğru yazıyor mu, yanlış yazınca hata gürültülü mü; aynı görevlerde Python'la karşılaştırılır.

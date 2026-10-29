@@ -15,7 +15,7 @@ TR_func ölçekle(x: TR_Float, k: TR_Float = 2.0) -> TR_Float {
 TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 ```
 
-**6.2** `TR_return ifade` fonksiyondan değer döndürür; değer döndürmeyen fonksiyonda `TR_return` değersiz yazılır. Dönüş tipi yazılmış fonksiyonda ve dönüş tipi beklenen tipten gelen fonksiyon ifadesinin blok gövdesinde (6.6) her yol biter: `TR_return`, `TR_throw` (sonraki bölümlerde), `TR_exit`, çıkışı olmayan sonsuz döngü (5.9), bütün dalları biten `TR_if`/`TR_else` ya da bütün kolları biten `TR_match` ile. Bitmeyen yol denetim hatasıdır, ileti `TR_return`'ü önerir. Gövdenin son ifadesi dönüş değeri değildir. Programın en dışında `TR_return` yazılmaz (1.10).
+**6.2** `TR_return ifade` fonksiyondan değer döndürür; değer döndürmeyen fonksiyonda `TR_return` değersiz yazılır. Dönüş tipi yazılmış fonksiyonda ve dönüş tipi beklenen tipten gelen fonksiyon ifadesinin blok gövdesinde (6.6) her yol biter: `TR_return`, `TR_throw` (8.2), `TR_exit`, çıkışı olmayan sonsuz döngü (5.9), bütün dalları biten `TR_if`/`TR_else` ya da bütün kolları biten `TR_match` ile. Bitmeyen yol denetim hatasıdır, ileti `TR_return`'ü önerir. Gövdenin son ifadesi dönüş değeri değildir. Programın en dışında `TR_return` yazılmaz (1.10).
 - *Test:* TR testi; eksik dönüş hatası uygulanınca denetleyicinin testi.
 
 **6.3** Birden çok değer bir demettir (3.6a): dönüş tipi `-> (TR_Float, TR_Int)` diye yazılır, `TR_return a, b` bir demet döndürür. Sonuç 5.3'teki gibi açılır (`TR_var a, b = f(x)`) ya da bir değer olarak tutulur (`TR_var t = f(x)`, `t.0`), argüman olur (`g(f())`), listeye konur. Açmada değer sayısı tutmazsa denetim hatasıdır.
@@ -62,7 +62,7 @@ TR_print(say())   # çıktı: 2
 
 **6.10** Tip parametresi adla parametreler arasında köşeli parantezle yazılır: `TR_func baştaki[T](l: TR_List[T]) -> T? { ... }`. Çağrıda argümanlardan çıkar, çıkmıyorsa yazılır (`baştaki[TR_Int]([])`; tek istisna: `TR_Tensor`'un cinsi çıkmıyorsa `TR_Float`'tır, 15.2); bu yazım ile bir listenin öğesinin çağrısı (`fs[0](x)`) tiple ayrılır.
 - `T` tipindeki değerle yalnız her tipte geçerli işler yapılır: atamak, argüman olarak vermek, döndürmek, listeye ve sözlüğe değer olarak koymak, `TR_print`, `TR_String`, `TR_Type` ve yerleştirme (`\(x)`); `T?` değeri `TR_none`'la karşılaştırılır ve `??` ile açılır.
-- Öbür işlemler bir kısıt ister: `==`, `+`, üye, eşitlik isteyen liste üyeleri (`.TR_contains`, `.TR_sort()`), sözlük anahtarı olmak (3.7). Kısıtlar sonraki bölümlerdedir.
+- Öbür işlemler bir kısıt ister: `==`, `+`, üye, eşitlik isteyen liste üyeleri (`.TR_contains`, `.TR_sort()`), sözlük anahtarı olmak (3.7). Yerleşiklerin kısıtları 13.10'da, arayüz kısıtı 7.8'dedir.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
 **6.11** İç içe çağrı derinliği 10000'i aşarsa çalışma hatasıdır.

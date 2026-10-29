@@ -43,6 +43,11 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 - **Yapılacaklar:**
   - Bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır; CPU çekirdeğinin ortasında bırakma.
   - TR alt süreç açmaya başlarsa (19.1) bu madde ona göre genişler: istek alt sürece, kendisi zaten almadıysa iletilir.
+- **1–9 turu (2026-10-29):** kural "döngünün her turu" oldu; motor zaten her turda bakıyor (`vm.go` `loopTurn`), 256 yalnız kilit devrinin sayısıdır (10). Bunu sınayan Go testi yok: yazılacak.
+
+### 1.9
+
+- **Uygulamanın iç çöküşü:** Go çalışma zamanının ölümcül hatası 2 koduyla biter ve 2'nin "kullanım hatası" sözüyle karışır. Yol haritası: motor çöküşü kendi koduyla bitsin.
 
 ## 2. Sözcük yapısı
 
@@ -64,6 +69,10 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 - **Mevcut durum:** `TR_cmd_check --json` çalışıyor (katman 2b, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının, denetleyicinin ve komut satırının hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltmeyle JSON satırları olarak; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir. Metin kipinde denetleyicinin iletileri sütunu da yazıyor [ölçüldü].
 - **Yapılacaklar:** başlık hatasının (H2540) bitişi; ana dosyadaki okunamayan modülün (H2131) sütunu ve bitişi; iç içe modülün `TR_import` hatasının dosyası (yorumlayıcıda `ModuleError` sarmalayıcısı); `TR_cmd_check`'te dosyadan sonraki öbür argümanların durumu (1.4); aktarılan modülün uyarıları [ölçüldü: DENETİM].
+
+### 2.3b
+
+- **Mevcut durum:** harf büyüklüğü olmayan adlar (`TR_struct 学生`, `TR_struct طالب`) uyarı alıyor ve önerilen düzeltme adın kendisi; `TR_const 最大` uyarısız [ölçüldü: DENETİM]. **Yapılacaklar:** büyüklüğü olmayan karakter her biçime uyar (2.3b); TR testi.
 
 ## 3. Tipler ve değerler
 
@@ -93,6 +102,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 - **Mevcut durum:** `TR_JSON` kuruluyor, açılıyor, dolaşılıyor; üst düzey `j["a"] == 1` çalışma hatası. Ama kapta ve eşlemede JSON ile JSON olmayanın karşılaştırması hâlâ sessizce yanlış: `TR_List(j) == [1, 2]`, `TR_List(j).TR_contains(1)`, `[j[0]] == [1]` → false; `TR_match j["a"] { 1 => ... }` `_` koluna düşüyor [ölçüldü: DENETİM ve ana oturum].
 - **Yapılacaklar:** kapın içindeki karşılaştırma, `.TR_contains` ve eşleme deseni de çalışma hatası (3. katman, 3A); `TR_Type(j) == TR_JSON` denetim hatası ve genel tiplerin (Any, Object, StructType) kalkması (4a).
+- **Mevcut durum:** JSON çözmenin iç içelik sınırı 1000 motorda var (`json_ordered.go` `maxJSONDepth`); kural 1–9 turunda yazıldı.
 
 ### 3.10
 
@@ -132,6 +142,8 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 - **Mevcut durum:** başka tiple `+` ve `*` çalışma anında hata veriyor (H2609, H2614); öğeleri başvuruyla paylaşılan liste sessizce yineleniyor: `[[0] * 3] * 3`'ün üç satırı aynı liste [ölçüldü].
 - **Yapılacaklar:** ikisi de denetim hatası olur; paylaşılan listenin iletisi her satırı ayrı kuran yazımı önerir.
+- **Mevcut durum:** yineleme 2³¹ bayt ve 2²⁷ öğede kesiliyor (`sequence_ops.go` `maxRepeatBytes`, `maxRepeatItems`); kural artık bellekle denetler (3.6, 15.42); `.TR_append`, `+=` ve sözlüğe eklemenin bellek denetimi de uygulanacak. `tests/operatorler_test.tr:267-269`'un iki satırı (H2610, H2615) kural uygulanınca tersine döner.
+- `==`'nin iç içelik sınırı 10000 (`operators.go` `equalityDepth`) bir uygulama sınırıdır; 7.6'nın döngü kuralından ayrıdır.
 
 ## 5. Deyimler ve kontrol yapıları
 
@@ -258,6 +270,10 @@ Depodaki kullanımlar çevrilir: `.tr` dosyalarında `TR_it` 44, `TR_acc` 10, ad
 - **Mevcut durum:** `TR_func f[T](l)` sözdizimi hatası veriyor [ölçüldü].
 - **Yapılacaklar:** tip parametreleri ve çağrıda çıkarımı; kısıtsız `T`'de izin verilen işlerin denetimi.
 
+### 6.11
+
+- **Açık:** 10000'in dayanağı (Go yığınına sığan derinlik mi, ML kodunun gereksinimi mi) ölçülmedi; gerekçeye yazılacak.
+
 ## 7. Yapılar
 
 Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor (`q.x = 9` `p.x`'i de değiştiriyor), eşitlik alanlardan, çağrısız metot nesneye bağlı bir fonksiyon [ölçüldü].
@@ -317,6 +333,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 - **Mevcut durum:** arayüz yok.
 - **Yapılacaklar:** `TR_interface` (en az bir metot; boş arayüz denetim hatası), yapısal karşılama, eksik metodu söyleyen ileti, tip parametresinde kısıt, `TR_Type` sınamasıyla asıl tipe daraltma. Kimlik kapısının onaylı yeni adlar listesine `TR_enum` ve `TR_interface` girer.
+- **Karar (2026-10-29):** yapısal karşılama kalır; açık bildirimle karşılaştırması gerekçede (7.8). Eski gerekçe "kütüphanenin bugünkü yapılarını değiştirmeden" motora dayanıyordu, çıkarıldı.
 
 ## 8. Hata yönetimi
 

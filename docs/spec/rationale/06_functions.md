@@ -30,9 +30,9 @@ Kurallar: [`06_fonksiyonlar.md`](../06_fonksiyonlar.md). Bu dosya her kuralın e
 ### 6.6
 
 - *Emsal:* JavaScript, TypeScript ve C# fonksiyon ifadesini `(a, b) => ifade` diye yazar ([C# lambda](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/lambda-expressions), [TypeScript](https://www.typescriptlang.org/docs/handbook/2/functions.html)). *Almadık:* Python'un `lambda`'sı (yalnız tek ifade alır); bugünkü TR'nin üç yazımı (`x => ...`, `(x) => ...`, adsız `TR_func(x) { ... }`): aynı işin üç yazımı (2.9). ([MDN ok fonksiyonları](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions), [Python 3.15](https://docs.python.org/3/reference/expressions.html#lambda))
-- *Gerekçe:* depodaki fonksiyon ifadelerinin çoğu zaten parantezli oktur (487 kullanım; parantezsiz 21, adsız `TR_func` 52 [ölçüldü]). Tipin beklenen yerden çıkması `l.TR_filter((x) => x > 2)`'yi tip yazmadan bırakır. Fonksiyon ifadesine ad verilemeyince adın hangi kapsama girdiği sorusu da kalkar.
+- *Gerekçe:* bir işin tek yazımı vardır (2.9) ve ok, kodlama modellerinin JavaScript, TypeScript ve C#'tan tanıdığı biçimdir (`(x) => ...`). Tipin beklenen yerden çıkması `l.TR_filter((x) => x > 2)`'yi tip yazmadan bırakır. Fonksiyon ifadesine ad verilemeyince adın hangi kapsama girdiği sorusu da kalkar.
 - *Emsal (`_` parametre):* Rust'ta kapanış parametreleri kalıptır ("irrefutable patterns"), `|_| 0` geçerlidir; Kotlin'de kullanılmayan lambda parametresinin yerine `_` yazılır. ([Rust Reference: closure expressions](https://doc.rust-lang.org/reference/expressions/closure-expr.html), [Kotlin lambdalar](https://kotlinlang.org/docs/lambdas.html#underscore-for-unused-variables))
-- *Gerekçe:* argümanla çağrılan ama argümanı kullanmayan blok (3. katmanın göçü) adsız bir parametreyle yazılır; okunamadığı için yanlışlıkla kullanılamaz (5.3).
+- *Gerekçe:* argümanla çağrılan ama argümanı kullanmayan blok adsız bir parametreyle yazılır; okunamadığı için yanlışlıkla kullanılamaz (5.3).
 
 ### 6.7
 
