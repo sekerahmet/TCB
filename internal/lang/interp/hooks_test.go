@@ -347,3 +347,246 @@ func atLine(err error, line int, text string) bool {
 	var pe *messages.PosError
 	return errors.As(err, &pe) && pe.Line == line && pe.Err.Error() == text
 }
+
+// inPlaceValue yerinde bileşik atama kancasını (InPlaceOperator) sınar: '+' ve '-' yerinde
+// günceller, '*' ok=false döndürerek OperatorHook üzerinden yeni nesne üretir, '/' hata verir.
+type inPlaceValue struct{ n int64 }
+
+var (
+	_ InPlaceOperator = (*inPlaceValue)(nil)
+	_ OperatorHook    = (*inPlaceValue)(nil)
+)
+
+func (p *inPlaceValue) Type() ValueType { return "Yerinde" }
+func (p *inPlaceValue) Inspect() string { return NewInt(p.n).Inspect() }
+func (p *inPlaceValue) IsTruthy() bool  { return p.n != 0 }
+func (p *inPlaceValue) InPlaceOp(op string, rhs Value) (bool, error) {
+	v := rhs.(*IntVal).Val
+	switch op {
+	case "+":
+		p.n += v
+		return true, nil
+	case "-":
+		p.n -= v
+		return true, nil
+	case "/":
+		return true, errors.New("yerinde bölme yok")
+	}
+	return false, nil
+}
+func (p *inPlaceValue) Operator(op string, other Value, onRight bool) (Value, bool, error) {
+	if op == "*" && !onRight {
+		return &inPlaceValue{n: p.n * other.(*IntVal).Val}, true, nil
+	}
+	return nil, false, nil
+}
+
+func TestInPlaceOperatorHook(t *testing.T) {
+	w, elem := &inPlaceValue{n: 10}, &inPlaceValue{n: 20}
+	vmx := New()
+	vmx.GlobalEnv.Define("w0", w, false)
+	vmx.GlobalEnv.Define("e0", elem, false)
+	prog := mustParseProgram(t, `
+TR_struct Katman {
+    w
+    TR_func adım(d) { TR_self.w -= d }
+}
+TR_var k = Katman(w0)
+k.w += 5
+k.adım(3)
+TR_var l = [e0]
+l[0] += 4
+TR_var s = {"x": l[0]}
+s["x"] *= 2
+TR_var sayı = 7
+sayı += 3
+`)
+	if _, err := vmx.Run(prog); err != nil {
+		t.Fatal(err)
+	}
+	if w.n != 12 || elem.n != 24 {
+		t.Fatalf("yerinde güncelleme / ok=false ayrımı: w=%d, elem=%d", w.n, elem.n)
+	}
+	if sVal, _ := vmx.GlobalEnv.Get("s"); sVal.(*DictVal).Pairs["x"].Inspect() != "48" {
+		t.Fatalf("ok=false sonrası OperatorHook sonucu: %v", sVal)
+	}
+	if nVal, _ := vmx.GlobalEnv.Get("sayı"); nVal.Inspect() != "10" {
+		t.Fatalf("kancasız değerde bileşik atama: %v", nVal)
+	}
+	if _, err := vmx.Run(mustParseProgram(t, "TR_var l = [w0]\nl[0] /= 2")); !atLine(err, 2, "yerinde bölme yok") {
+		t.Fatalf("InPlaceOperator hatası satır önekli olmalı: %v", err)
+	}
+}
+
+// accumContainer indekste biriktirme kancasını (IndexAccumulator) sınar: '+' ve '-' indeks
+// listesindeki yinelenen konumları biriktirir ve okuma-uygula-yaz yolunu (ve öğenin
+// InPlaceOperator kancasını) atlar; '*' ok=false döndürerek okuma-uygula-yaz yoluna düşer.
+type accumContainer struct {
+	cells []*inPlaceValue
+	reads int
+}
+
+var (
+	_ Indexable        = (*accumContainer)(nil)
+	_ IndexAssignable  = (*accumContainer)(nil)
+	_ IndexAccumulator = (*accumContainer)(nil)
+)
+
+func (a *accumContainer) Type() ValueType { return "Biriktiren" }
+func (a *accumContainer) Inspect() string { return "biriktiren" }
+func (a *accumContainer) IsTruthy() bool  { return true }
+func (a *accumContainer) Index(idx Value) (Value, error) {
+	a.reads++
+	return a.cells[idx.(*IntVal).Val], nil
+}
+func (a *accumContainer) SetIndex(idx, val Value) error {
+	a.cells[idx.(*IntVal).Val] = val.(*inPlaceValue)
+	return nil
+}
+func (a *accumContainer) AccumulateIndex(op string, idx, rhs Value) (bool, error) {
+	if op == "/" {
+		return true, errors.New("biriktirme hatası")
+	}
+	if op != "+" && op != "-" {
+		return false, nil
+	}
+	d := rhs.(*IntVal).Val
+	if op == "-" {
+		d = -d
+	}
+	if list, ok := idx.(*ListVal); ok {
+		for _, el := range list.Elements {
+			a.cells[el.(*IntVal).Val].n += d * 10 // InPlaceOp'tan (+d) ayırt etmek için *10
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func TestIndexAccumulatorHook(t *testing.T) {
+	c := &accumContainer{cells: []*inPlaceValue{{n: 1}, {n: 2}}}
+	plain := &assignableValue{cell: map[int64]Value{0: NewInt(5)}}
+	vmx := New()
+	vmx.GlobalEnv.Define("c", c, false)
+	vmx.GlobalEnv.Define("plain", plain, false)
+	prog := mustParseProgram(t, `
+c[[0, 0, 1]] += 3
+c[1] += 4
+c[0] *= 2
+plain[0] += 6
+`)
+	if _, err := vmx.Run(prog); err != nil {
+		t.Fatal(err)
+	}
+	// c[[0, 0, 1]] += 3: AccumulateIndex çalıştı (Index okunmadı), cell[0] = 1 + 30 + 30 = 61, cell[1] = 2 + 30 = 32.
+	// c[1] += 4: tek indeks ok=false döndü -> Index + assignOp(InPlaceOperator) + SetIndex -> cell[1] = 36.
+	// c[0] *= 2: '*' ok=false döndü -> Index + assignOp(OperatorHook) + SetIndex -> cell[0] = 122.
+	if c.cells[0].n != 122 || c.cells[1].n != 36 || c.reads != 2 {
+		t.Fatalf("beklenmeyen biriktirme durumu: cells=[%d, %d], reads=%d", c.cells[0].n, c.cells[1].n, c.reads)
+	}
+	if plain.cell[0].Inspect() != "11" {
+		t.Fatalf("kancasız IndexAssignable davranışı değişmemeli: %v", plain.cell[0])
+	}
+	if _, err := vmx.Run(mustParseProgram(t, "\nc[0] /= 1")); !atLine(err, 2, "biriktirme hatası") {
+		t.Fatalf("IndexAccumulator hatası satır önekli olmalı: %v", err)
+	}
+}
+
+// invertibleValue tekli '~' kancasını (Invertible) sınar.
+type invertibleValue struct{ n int64 }
+
+var _ Invertible = (*invertibleValue)(nil)
+
+func (v *invertibleValue) Type() ValueType { return "Tersinir" }
+func (v *invertibleValue) Inspect() string { return NewInt(v.n).Inspect() }
+func (v *invertibleValue) IsTruthy() bool  { return true }
+func (v *invertibleValue) Invert() (Value, error) {
+	if v.n < 0 {
+		return nil, errors.New("negatif terslenemez")
+	}
+	return &invertibleValue{n: 100 - v.n}, nil
+}
+
+func TestInvertibleHook(t *testing.T) {
+	vmx := New()
+	vmx.GlobalEnv.Define("a", &invertibleValue{n: 30}, false)
+	vmx.GlobalEnv.Define("bozuk", &invertibleValue{n: -1}, false)
+	vmx.GlobalEnv.Define("sade", &fakeValue{n: 5}, false)
+	prog := mustParseProgram(t, "TR_var r = [~a, ~~a, ~5]")
+	if _, err := vmx.Run(prog); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := vmx.GlobalEnv.Get("r"); got == nil || got.Inspect() != "[70, 30, -6]" {
+		t.Fatalf("Invertible sonucu: %v", got)
+	}
+	if _, err := vmx.Run(mustParseProgram(t, "\n~bozuk")); !atLine(err, 2, "negatif terslenemez") {
+		t.Fatalf("Invertible hatası satır önekli olmalı: %v", err)
+	}
+	if _, err := vmx.Run(mustParseProgram(t, "~sade")); !codeAt(err, messages.H2608, 1) {
+		t.Fatalf("kancasız tipte '~' H2608 vermeli: %v", err)
+	}
+}
+
+// maskEqValue '==' ve '!=' için ValueEqualer kancasını sınar: sayı ile karşılaştırmada
+// Mantık yerine liste maskesi döndürür ('!=' '=='den türetilmez); TR_none ile ok=false
+// döndürerek genel eşitliğe düşer; Equaler (.TR_contains ve TR_match için) ayrı kalır.
+type maskEqValue struct{ items []int64 }
+
+var (
+	_ ValueEqualer = (*maskEqValue)(nil)
+	_ Equaler      = (*maskEqValue)(nil)
+)
+
+func (m *maskEqValue) Type() ValueType { return "Maskeli" }
+func (m *maskEqValue) Inspect() string { return "maskeli" }
+func (m *maskEqValue) IsTruthy() bool  { return true }
+func (m *maskEqValue) Equal(other Value) bool {
+	o, ok := other.(*maskEqValue)
+	return ok && len(m.items) == len(o.items)
+}
+func (m *maskEqValue) ValueEqual(op string, other Value) (Value, bool, error) {
+	iv, ok := other.(*IntVal)
+	if !ok {
+		return nil, false, nil
+	}
+	if iv.Val < 0 {
+		return nil, true, errors.New("negatif karşılaştırma")
+	}
+	out := make([]Value, len(m.items))
+	for i, x := range m.items {
+		match := (x == iv.Val) == (op == "==")
+		out[i] = &StringVal{Val: op + ":" + BoolToVal(match).Inspect()}
+	}
+	return &ListVal{Elements: out}, true, nil
+}
+
+func TestValueEqualerHook(t *testing.T) {
+	vmx := New()
+	vmx.GlobalEnv.Define("m", &maskEqValue{items: []int64{1, 2}}, false)
+	vmx.GlobalEnv.Define("m2", &maskEqValue{items: []int64{9, 8}}, false)
+	prog := mustParseProgram(t, `
+TR_var r1 = m == 1
+TR_var r2 = 2 != m
+TR_var r3 = [m == TR_none, m != TR_none, [m].TR_contains(m2), 5 == 5, 5 != 5]
+TR_var eşleşti = TR_match m {
+    m2 => "evet"
+    _ => "hayır"
+}
+`)
+	if _, err := vmx.Run(prog); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{
+		"r1":      `["==:true", "==:false"]`,
+		"r2":      `["!=:true", "!=:false"]`,
+		"r3":      `[false, true, true, true, false]`,
+		"eşleşti": `evet`,
+	} {
+		if got, _ := vmx.GlobalEnv.Get(name); got == nil || got.Inspect() != want {
+			t.Errorf("%s: beklenen %s, alınan %v", name, want, got)
+		}
+	}
+	if _, err := vmx.Run(mustParseProgram(t, "\n\nm == -1")); !atLine(err, 3, "negatif karşılaştırma") {
+		t.Fatalf("ValueEqualer hatası satır önekli olmalı: %v", err)
+	}
+}

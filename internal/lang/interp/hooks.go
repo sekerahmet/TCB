@@ -17,6 +17,15 @@ type Equaler interface {
 	Equal(other Value) bool
 }
 
+// ValueEqualer provides '==' and '!=' when equality can produce a value other than Mantık (e.g. a
+// mask tensor) or its own error. op is "==" or "!="; '!=' is not derived from '=='. It is called
+// only for the '==' and '!=' operators (the left operand's hook is tried first); when ok is false
+// the VM falls back to the regular equality path (Equaler, container equality). Other equality
+// checks (.contains, match value patterns, dict keys) do not call this hook.
+type ValueEqualer interface {
+	ValueEqual(op string, other Value) (outcome Value, ok bool, err error)
+}
+
 // OperatorHook provides binary operators ('+', '-', '*', '/', '@', '**', '%', '<', '>', '<=',
 // '>=' ...). op is the operator's text ("-", "**", "<" ...). With sagda=false the value is the
 // left operand (value op diger), with sagda=true the right one (diger op value); the left
@@ -39,6 +48,11 @@ type Negatable interface {
 	Negate() (Value, error)
 }
 
+// Invertible provides unary complement ('~x').
+type Invertible interface {
+	Invert() (Value, error)
+}
+
 // Indexable provides reading 'x[i]' (not assignment). t[i][j] is two separate reads; the first
 // read may itself return an Indexable value (e.g. a view).
 type Indexable interface {
@@ -51,6 +65,22 @@ type Indexable interface {
 // writes the result with SetIndex.
 type IndexAssignable interface {
 	SetIndex(idx Value, value Value) error
+}
+
+// InPlaceOperator provides in-place compound assignment ('x op= y', e.g. '+=' or '-='). op is the
+// binary operator's text ("+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>"). When ok
+// is true and err is nil, assignOp returns the existing value so callers write the same object
+// back and the binding does not change; when ok is false the VM falls back to the regular path.
+type InPlaceOperator interface {
+	InPlaceOp(op string, rhs Value) (ok bool, err error)
+}
+
+// IndexAccumulator provides compound assignment to an index ('x[i] op= y') when the container
+// performs the read-apply-write (or duplicate-index accumulation, e.g. 't[idx] += d') itself. It is
+// tried before InPlaceOperator on the IndexAssignable path; when ok is false the VM falls back to
+// reading with Index, applying the operation with assignOp, and writing with SetIndex.
+type IndexAccumulator interface {
+	AccumulateIndex(op string, idx Value, rhs Value) (ok bool, err error)
 }
 
 // MemberAssignable provides the assignment 'object.member = value' (e.g. an optimizer's
@@ -130,6 +160,21 @@ func (v *VM) tryOperandHook(op string, target, other Value, onRight bool) (Value
 	}
 	if k, ok := target.(OperatorHook); ok {
 		return k.Operator(op, other, onRight)
+	}
+	return nil, false, nil
+}
+
+// hookValueEqual '==' ve '!=' işleçlerini (varsa) değerlerin ValueEqualer kancalarıyla yapar.
+func hookValueEqual(op string, left, right Value, line int) (Value, bool, error) {
+	if eq, ok := left.(ValueEqualer); ok {
+		if val, ok, err := eq.ValueEqual(op, right); ok {
+			return val, true, lineSuffix(line, err)
+		}
+	}
+	if eq, ok := right.(ValueEqualer); ok {
+		if val, ok, err := eq.ValueEqual(op, left); ok {
+			return val, true, lineSuffix(line, err)
+		}
 	}
 	return nil, false, nil
 }

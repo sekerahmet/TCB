@@ -51,14 +51,23 @@ func (c *compiler) prefixText(k *compilerScope, e *ast.PrefixExpression) exprCod
 			return nil, messages.At(line, 0, messages.New(messages.H2445, right.Type()))
 		}
 	case "~":
-		// Bit tümlemesi yalnız TR_Int'te (4.12).
+		// Bit tümlemesi TR_Int'te (4.12) ve Invertible değerlerde (15.6).
 		return func(v *VM, env *Environment) (Value, error) {
 			right, err := rightFn(v, env)
 			if err != nil {
 				return nil, err
 			}
-			if rv, ok := right.(*IntVal); ok {
+			switch rv := right.(type) {
+			case *IntVal:
 				return NewInt(^rv.Val), nil
+			case Invertible:
+				newOp()
+				val, err := rv.Invert()
+				if err == nil {
+					v.adopt(val)
+					v.releaseTemp(right, val)
+				}
+				return val, lineSuffix(line, err)
 			}
 			return nil, messages.At(line, 0, messages.New(messages.H2608, right.Type()))
 		}

@@ -163,18 +163,16 @@ func (v *VM) evalInfixKod(codeVal uint8, op string, left Value, right Value, lin
 		}
 	}
 
-	// Değerlerin kendi işleç kancaları (ör. tensör @ tensör, 2 - tensör, tensör < 0);
-	// hatalarına satır bilgisi eklenir.
-	switch codeVal {
-	case opEq, opNe:
-	default:
-		if val, ok, err := v.hookOperator(op, left, right, line); ok {
+	// Değerlerin kendi işleç kancaları (ör. tensör @ tensör, 2 - tensör, tensör < 0,
+	// '==' ve '!=' için ValueEqualer); hatalarına satır bilgisi eklenir.
+	if codeVal == opEq || codeVal == opNe {
+		if val, ok, err := hookValueEqual(op, left, right, line); ok {
 			return val, err
 		}
-	}
-
-	if codeVal == opEq || codeVal == opNe {
 		return equalityResult(codeVal == opEq, op, left, right, line)
+	}
+	if val, ok, err := v.hookOperator(op, left, right, line); ok {
+		return val, err
 	}
 
 	if val, ok, err := sequenceOp(codeVal, left, right, line); ok {

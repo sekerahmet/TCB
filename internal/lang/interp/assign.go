@@ -13,6 +13,15 @@ func (v *VM) assignOp(codeVal uint8, cur Value, rhs Value, line int) (Value, err
 	if codeVal == opAssign {
 		return rhs, nil
 	}
+	if h, ok := cur.(InPlaceOperator); ok {
+		if done, err := h.InPlaceOp(assignOpText(codeVal), rhs); done {
+			if err != nil {
+				return nil, lineSuffix(line, err)
+			}
+			v.releaseTemp(rhs, cur)
+			return cur, nil
+		}
+	}
 	if res, done, err := v.listInPlace(codeVal, cur, rhs, line); done {
 		return res, err
 	}
@@ -93,6 +102,11 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		// Dış değerler (ör. tensör): bileşik atamada mevcut değer Indeks ile okunur.
 		finalVal := rightVal
 		if codeVal != opAssign {
+			if acc, ok := left.(IndexAccumulator); ok {
+				if done, err := acc.AccumulateIndex(assignOpText(codeVal), idx, rightVal); done {
+					return lineSuffix(line, err)
+				}
+			}
 			readCount, ok := left.(Indexable)
 			if !ok {
 				return messages.At(line, 0, messages.New(messages.H2402, left.Type()))
