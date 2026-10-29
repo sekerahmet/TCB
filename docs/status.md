@@ -425,19 +425,28 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). Taslak (2026-10-29)
 - **Mevcut durum:** `TR_as` bir `TR_Dict` bağlıyor; köşeli ayraçla erişim (m["PI"]) çalışıyor; modülde olmayan bir ad (m.yok) denetimden geçiyor ve çalışırken `TR_none` veriyor [ölçüldü: main `a9a1ba14`].
 - **Yapılacaklar:** modül değeri; adların tipi denetimde; köşeli ayraçla erişim ve olmayan ad denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
 
+### 11.4
+
+- **Yapılacaklar:** `tests/negative/hatali_modul_aktar.tr` bugün çalışma hatası bekliyor (RUN-ERROR); 11.4 uygulanınca hata çalışmadan önce verilir, fikstürün beklentisi değişir [kanıtlı: DENETİM 11-1].
+
 ### 11.5
 
 - **Yapılacaklar:** dosya bilgisinin görevde tutulması (bir görevin modül yüklemesi öbür görevlerin yollarını değiştirmez); TR testi.
 
 ### 11.6
 
-- **Mevcut durum:** kitaplığın dört modülünün yolu Türkçe sözcüklerle: `tr/katman`, `tr/iyilestirici`, `tr/hazir`, `tr/egitim` (`lib/`); 26 dosyada 43 aktarma satırı [ölçüldü].
-- **Yapılacaklar:** İngilizce yollar (`tr/katman` → `tr/layers`, `tr/iyilestirici` → `tr/optimizers`, `tr/hazir` → `tr/pretrained`, `tr/egitim` → `tr/training`), `lib/` dosya adları, aktarma satırları, `tests/negative/kitaplik_turkce_harf.tr`'nin yazım örneği.
+- **Mevcut durum:** kitaplığın dört modülünün yolu Türkçe sözcüklerle: `tr/katman`, `tr/iyilestirici`, `tr/hazir`, `tr/egitim` (`lib/`). Eski yollar 65 dosyada 875 satırda geçiyor; en büyüğü `internal/lang/codes/definitions.json`'un modül alanı, 245 kod (katman 135, iyilestirici 61, egitim 37, hazir 12) [ölçüldü: DENETİM 11-1, main `957eee87`].
+- **Yapılacaklar:** tek bir taşıma commit'iyle (davranış değişmeden) İngilizce yollar (`tr/katman` → `tr/layers`, `tr/iyilestirici` → `tr/optimizers`, `tr/hazir` → `tr/pretrained`, `tr/egitim` → `tr/training`), `definitions.json`'un modül alanı, `lib/` dosya adları, Go testlerindeki TR dizeleri, belgeler, aktarma satırları, `tests/negative/kitaplik_turkce_harf.tr`'nin yazım örneği.
 
 ### 11.8
 
-- **Mevcut durum:** iki aktarım aynı adı getirince sonraki sessizce kazanıyor; dosyanın kendi tanımı aktarılan adı sessizce gölgeliyor [ölçüldü: main `a9a1ba14`].
-- **Yapılacaklar:** denetim hatası, iki yeri gösteren ve `TR_as`'ı öneren ileti; olumsuz fikstür.
+- **Mevcut durum:** iki aktarım aynı adı getirince sonraki sessizce kazanıyor; dosyanın kendi tanımı aktarılan adı sessizce gölgeliyor [ölçüldü: main `a9a1ba14`]. Depodaki 135 dosyanın 50 aktarmasında çakışma yok; kural göçsüz girer [ölçüldü: DENETİM 11-1].
+- **Mevcut durum (atama):** takma adsız aktarılan ada atama (`PI = 7`) aktaran dosyada sessizce yerel bir kopya kuruyor, modülün değeri değişmiyor; `m.PI = 5` modülün değerini değiştiriyor ve öbür takma adlar da görüyor [ölçüldü: DENETİM 11-1].
+- **Yapılacaklar:** denetim hataları (çakışma, aktarılan ada atama), iki yeri gösteren ve `TR_as`'ı öneren ileti; olumsuz fikstürler.
+
+### 11.7
+
+- **Yapılacaklar:** yapı alanları ve metotları için `_` kuralı 11'in işi değil; 7'de karara bağlanmalı (eski 11.7 "ileride gelecektir" diyordu).
 
 ## 12. Testler
 

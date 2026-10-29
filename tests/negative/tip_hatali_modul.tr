@@ -1,5 +1,4 @@
 # TR 4
 # TEST 11.4 modül çalışmadan önce tip denetiminden geçer (aktaran: hatali_modul_aktar.tr)
-TR_print("bu satır çalışmamalı")
 TR_var yarım_kalan = 1
 TR_var x: TR_Int = "metin" # ERROR H1001

@@ -38,10 +38,13 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - Kitaplık modülünün içindeki göreli aktarma kitaplıkta çözülür.
 - Olmayan modül, `..` ile kitaplık dışına çıkan yol ve kitaplığın test dosyaları hatadır; ileti kitaplığın modüllerini ve en yakın adı söyler.
 - `TR_cmd_check` ve `TR_cmd_build` kitaplık modülünün varlığını denetler; kitaplık `TR_cmd_build`'in çıktısına, yorumlayıcının parçası olarak girer.
+- Kitaplığın sürümü `tr` ikilisinin sürümüdür; aynı ikili aynı kitaplığı verir (20.17).
 - *Test:* TR testi, olumsuz fikstür.
 
 **11.7** Başı `_` olan üst düzey adlar (tek başına `_` değil) modüle özeldir: modülün içinde kullanılır, dışa aktarılmaz. `TR_import "yol"` onları getirmez; modül değerinde (`m._iç`) yoktur, yazılırsa ileti adın modüle özel olduğunu söyler. Yalnız üst düzey adlara uygulanır.
 - *Test:* TR testi.
 
 **11.8** Ad çakışması denetim hatasıdır: iki aktarım aynı adı getirirse ya da dosya aktarılan bir adı yeniden tanımlarsa ileti iki yeri de gösterir ve `TR_as` ile aktarmayı önerir. Sonra gelenin sessizce kazanması yoktur.
+- **Aktarılan ad aktaran dosyada yeniden bağlanamaz:** takma adsız aktarılan bir ada atama (`PI = 7`) ve modül değerinin bir adına atama (`m.PI = 7`) denetim hatasıdır. Modülün en dışındaki değişken yalnız modülün kendi kodundan, onun fonksiyonlarıyla değişir; ileti modülün fonksiyonunu kullanmayı söyler.
+- Değerin içi değişebilir: modülün listesine eklemek (`m.kayıt.TR_append(x)`) modülün kendi listesini değiştirir ve her aktaran onu görür (11.3). Görevlerden yazmak 10.2'ye göre bozulmaz, sırası 10.8'e göre tanımsızdır.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca olumsuz fikstür.

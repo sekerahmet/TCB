@@ -1,6 +1,6 @@
 # TR 4
 # moduller_test.tr tarafından aktarılan yardımcı modül (kendisi test dosyası değildir)
-TR_var PI = 3
+TR_const PI = 3
 TR_var kayıt = []
 
 TR_func kare(x) {

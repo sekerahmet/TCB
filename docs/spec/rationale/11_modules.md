@@ -39,5 +39,6 @@ Kurallar: [`11_moduller.md`](../11_moduller.md). Bu dosya her kuralın emsalini 
 
 ### 11.8
 
-- *Emsal:* Go'da aynı adı iki paketten getirmek mümkün değildir (paket adıyla erişilir); Python'un `from a import *` ve `from b import *`'ı sonrakini sessizce kazandırır [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* bugün iki aktarım aynı adı getirince sonraki kazanıyor, dosyanın kendi tanımı aktarılanı sessizce gölgeliyor [ölçüldü]. Ajan hangi `kare`'nin çağrıldığını bilmez; sonuç sessizce yanlış olur. Hata iki yeri gösterir ve `TR_as`'ı önerir.
+- *Emsal:* Go'da aynı adla iki paket aktarmak derleme hatasıdır ("util redeclared in this block"); Python'un `from a import *` ve `from b import *`'ı sonrakini uyarısız kazandırır [ölçüldü: DENETİM 11-1, Go 1.26, Python 3.12]. Go'nunki alındı.
+- *Emsal (atama):* Python'da `from m import x` sonra `x = 5` yalnız aktaran dosyada yeni bir bağ kurar, modülün `x`'i değişmez; `m.x = 5` ise modülü değiştirir ve `from m import x as y` ile alınan `y` eski değerde kalır [ölçüldü: DENETİM 11-1]. JavaScript modüllerinde aktarılan bağ yalnız okunurdur, ona atama hatadır [kanıtsız: bu tur açılmadı]. JavaScript'inki alındı.
+- *Gerekçe:* iki aynı adın hangisinin kullanıldığını ajan bilmez; sonuç sessizce yanlış olur. Hata iki yeri gösterir ve `TR_as`'ı önerir. Aktarılan ada atamada aynı sessiz yanlış vardır: aktaran dosya modülün değerini değiştirdiğini sanır, modül ve öbür aktaranlar eski değeri görür. Dışarıdan atama yasak olunca modülün durumu yalnız kendi fonksiyonlarından değişir; değişikliğin nereden geldiği tek yerdedir.
