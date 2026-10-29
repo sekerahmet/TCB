@@ -22,14 +22,14 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 | `./bin/tr.exe test [dosya.tr \| klasör]` | Test bloklarını çalıştırır; klasör verilirse (varsayılan: bulunulan klasör) altındaki tüm `*_test.tr` dosyalarını tarar. Bir test bile kalırsa çıkış kodu 1'dir (bkz. §7) |
 | `./bin/tr.exe biçimle dosya.tr` | Kodu standart biçime getirip dosyaya yazar; klasör verilirse içindeki tüm `.tr` dosyalarını biçimler (bkz. §8) |
 | `./bin/tr.exe biçimle --kontrol dosya.tr` | Dosyayı değiştirmeden biçimlenmesi gerekip gerekmediğini söyler; gerekiyorsa çıkış kodu 1'dir |
-| `./bin/tr.exe kodla dosya.tr` | Dosyayı yerinde **kodlu biçime** çevirir: dilin sözcükleri dilden bağımsız kodlarla (`TR_kw_if`, `TR_fn_print`) saklanır, gerisi bayt bayt aynı kalır; klasör verilirse içindeki tüm `.tr` dosyalarını çevirir, zaten kodlu dosyaya dokunmaz. Kodlu dosya çevrilmeden çalışır, test edilir ve aktarılır (bkz. `docs/spec/17_kodlar.md`, Kodlu saklama) |
+| `./bin/tr.exe kodla dosya.tr` | Dosyayı yerinde **kodlu biçime** çevirir: dilin sözcükleri dilden bağımsız kodlarla (`TR_if`, `TR_print`) saklanır, gerisi bayt bayt aynı kalır; klasör verilirse içindeki tüm `.tr` dosyalarını çevirir, zaten kodlu dosyaya dokunmaz. Kodlu dosya çevrilmeden çalışır, test edilir ve aktarılır (bkz. `docs/spec/17_kodlar.md`, Kodlu saklama) |
 | `./bin/tr.exe çöz dosya.tr` | Kodlu dosyayı yerinde Türkçe yazıma geri çevirir (klasör de verilebilir) |
 | `./bin/tr.exe göster dosya.tr [--dil tr]` | Dosyayı bir yazım dilinde (`tr`, `en`; verilmezse kişinin dili, `TR_DIL`) standart çıktıya basar; kodlu dosyanın hata mesajlarındaki satır ve sütunlar bu gösterime göredir |
 | `./bin/tr.exe göster -`, `./bin/tr.exe kodla -` | Metni standart girişten okur, gösterimini ya da kodlu biçimini standart çıktıya yazar (düzenleyiciler için; çıkış kodu 2: metin ayrıştırılamadı, çevrilmedi) |
 | `./bin/tr.exe dap` | VS Code hata ayıklama sunucusu; eklenti kendisi başlatır, elle çalıştırılmaz |
 | `./bin/tr.exe yardım` / `-h`, `./bin/tr.exe sürüm` / `-v` | Yardımı ve sürümü gösterir |
 
-Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_kw_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), süreç Ctrl+C sinyaliyle biter (kabuk 130 görür); ikinci Ctrl+C hemen çıkar. Ayrıntılar: `docs/spec/01_program.md`.
+Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), süreç Ctrl+C sinyaliyle biter (kabuk 130 görür); ikinci Ctrl+C hemen çıkar. Ayrıntılar: `docs/spec/01_program.md`.
 
 Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr hata_ayıkla' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `çıkış` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `çıkış` yazmanızı söyler.
 
@@ -39,7 +39,7 @@ Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizc
 
 Kodlu bir dosyayı (ilk satırı `//! tr kodlu 2 dil=<dil>`) VS Code'da açtığınızda Türkçe yazımıyla görürsünüz; kaydedince diske yine kodlu yazılır, satır numaraları hata mesajlarıyla ve hata ayıklayıcıyla aynıdır (ayrıntılar: [eklenti belgesi](../../editors/vscode/README.md#kodlu-dosyalar); kurallar: [17_kodlar.md, Görünüm](../spec/17_kodlar.md#görünüm)).
 
-`git diff` kodlu dosyada kodları gösterir (`TR_kw_var x = 1`). Farkı Türkçe görmek için git'e `TR_cmd_show`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
+`git diff` kodlu dosyada kodları gösterir (`TR_var x = 1`). Farkı Türkçe görmek için git'e `TR_cmd_show`'i bir "textconv" (farktan önce metni çeviren komut) olarak tanıtın. Depodaki `.gitattributes` `.tr` dosyalarını `tr` adlı fark sürücüsüne bağlar (`*.tr diff=tr`); sürücüyü siz, kendi git ayarınızda bir kez tanımlarsınız:
 
 ```bash
 git config --global diff.tr.textconv "tr göster"                      # tr PATH üzerindeyse

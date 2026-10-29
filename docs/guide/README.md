@@ -13,5 +13,5 @@ TR, yapay zekâ için bir programlama dilidir; kod geliştiricinin kendi dilinde
 7. [Test yazma ve çalıştırma (`tr test`)](07_testler.md)
 8. [Kod biçimlendirme (`TR_cmd_format`)](08_bicimlendirme.md)
 9. [Uzun eğitim: kontrol noktası ve devam](09_uzun_egitim.md)
-10. [Hazır katmanlarla GPT (`TR_kw_import "tr/katman"`), Muon ve kendi iyileştiricin](10_hazir_katmanlarla_gpt.md)
+10. [Hazır katmanlarla GPT (`TR_import "tr/katman"`), Muon ve kendi iyileştiricin](10_hazir_katmanlarla_gpt.md)
 11. [Hızı izlemek: `TR_cmd_watch` ve `TR_cmd_profile`](11_hizi_izlemek.md)
