@@ -17,7 +17,7 @@ TR_const BELGELER = [
     "docs/spec/04_operatorler.md", "docs/spec/05_deyimler.md", "docs/spec/06_fonksiyonlar.md",
     "docs/spec/07_yapilar.md", "docs/spec/08_hata_yonetimi.md", "docs/spec/09_ertele.md",
     "docs/spec/10_eszamanlilik.md", "docs/spec/11_moduller.md", "docs/spec/12_testler.md",
-    "docs/spec/13_yerlesikler.md", "docs/spec/14_sinirlamalar.md", "docs/spec/15_tensorler.md",
+    "docs/spec/13_yerlesikler.md", "docs/spec/15_tensorler.md",
     "docs/spec/16_veri_parcalayici.md", "docs/spec/17_kodlar.md"
 ]
 TR_var metin_verisi = ""

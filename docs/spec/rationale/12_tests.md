@@ -31,7 +31,7 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 ### 12.5
 
 - *Emsal:* pytest her testi ayrı bir fonksiyon çağrısında çalıştırır; ama rastgele üretecin durumunu sıfırlamaz, bunu eklentiler yapar (`pytest-randomly`) [kanıtsız: bu tur açılmadı].
-- *Gerekçe:* Güvenilir: aynı test aynı sonucu vermeli. Bugün rastgele üretecin durumu testten teste sürüyor [ölçüldü]: bir testi eklemek ya da silmek öbür testlerin sonucunu değiştirir. Her testin aynı durumda başlaması bunu kapatır. En dışta yalnız tanım kuralı 1.1'dendir; bugün en dıştaki deyim de çalışıyor [ölçüldü]. Ortak kurulumu bir kez çalıştırmak (Go'nun `TestMain`'i, pytest'in modül fikstürü) yerine her testin bir fonksiyonu çağırması seçildi: tek kural, ve testler birbirinden bağımsız kalır.
+- *Gerekçe:* Güvenilir: aynı test aynı sonucu vermeli. Bugün rastgele üretecin durumu testten teste sürüyor [ölçüldü]: bir testi eklemek ya da silmek öbür testlerin sonucunu değiştirir. Her testin aynı durumda başlaması bunu kapatır. En dışta yalnız tanım kuralı 1.1'dendir; bugün en dıştaki deyim de çalışıyor [ölçüldü]. Ortak kurulumu bir kez çalıştırmak (Go'nun `TestMain`'i, pytest'in modül fikstürü) yerine her testin bir fonksiyonu çağırması seçildi: tek kural, ve testler birbirinden bağımsız kalır. Aynı nedenle en dıştaki tanımlar her test için yeniden kurulur: bugün bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `e16d39df`]; testlerin sırası sonucu değiştirir.
 
 ### 12.6
 

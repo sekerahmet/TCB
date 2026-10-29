@@ -1,6 +1,6 @@
 # TR Dil Tanımı
 
-Bu belge TR dilinin kısa tanımıdır. Dilin nasıl olması gerektiğini anlatır (Ahmet, 2026-10-27: "bugünkü koda göre değil doğru olana göre tasarım yapıyoruz"). Bugünkü uygulamanın (`internal/lang/lexer`, `internal/lang/parser`, `internal/lang/checker`, `internal/lang/interp`) bir kuraldan farkı ayrı bir konudur: gözden geçirilmiş bölümler için [`docs/status.md`](../status.md)'de, bölümün başlığı altında yazılır; gözden geçirilmemiş bölümlerde henüz kuralın altındaki *Durum:* satırındadır. Bilinen eksikler [§14](14_sinirlamalar.md)'te listelenmiştir. Dili örneklerle tanımak için önce `examples/tr/01_merhaba.tr`'yi çalıştırıp numaralı örnekleri sırayla izleyin (sıralı örnek listesi: [`examples/README.md`](../../examples/README.md), "Sıralı liste").
+Bu belge TR dilinin kısa tanımıdır. Dilin nasıl olması gerektiğini anlatır (Ahmet, 2026-10-27: "bugünkü koda göre değil doğru olana göre tasarım yapıyoruz"). Bugünkü uygulamanın (`internal/lang/lexer`, `internal/lang/parser`, `internal/lang/checker`, `internal/lang/interp`) bir kuraldan farkı ayrı bir konudur: gözden geçirilmiş bölümler için [`docs/status.md`](../status.md)'de, bölümün başlığı altında yazılır; gözden geçirilmemiş bölümlerde henüz kuralın altındaki *Durum:* satırındadır. Dili örneklerle tanımak için önce `examples/tr/01_merhaba.tr`'yi çalıştırıp numaralı örnekleri sırayla izleyin (sıralı örnek listesi: [`examples/README.md`](../../examples/README.md), "Sıralı liste").
 
 **Madde biçimi** (Ahmet, 2026-10-27). Madde kısa bir kuraldır; bir kodlama modeli bölümü okuyup dili doğru yazabilmelidir. Dilin sözcüklerini kimlikle yazar (`TR_import`; madde ve Test satırlarında ve durum belgesinde testle korunur). Hemen altında *Test:* satırı vardır. Her maddenin *Emsal:* (hangi dillerden alındı, neyi neden almadık; sürümlü kaynak bağlantısıyla, her karşılaştırmada Rust da) ve *Gerekçe:* satırları, "buna neden karar verdik" sorusu için ayrı dosyadadır: [`rationale/`](rationale/), bölümün numarasıyla (`rationale/01_program.md`), madde numarası başlığının (`### 1.1`) altında. Bugünkü uygulamanın kuraldan farkı ve yapılacaklar bölümde değil, `docs/status.md`'de bölümün başlığı altındadır (testle korunur). Test satırı satır başında `- *Test:*` ile yazılır ve üç biçimden biriyle başlar: `TR testi` (`tests/` altında numarasıyla başlayan test), `` Go: `TestX` `` (adı geçen Go testi) ya da `gerekmez` ve nedeni. Bir bölümde Test satırı varsa o bölümün her kuralı bir Test satırı ister. Bölüm 1–7 bu biçimdedir; öbür bölümler gözden geçirildikçe geçer.
 
@@ -21,7 +21,6 @@ Bu belge TR dilinin kısa tanımıdır. Dilin nasıl olması gerektiğini anlat�
 11. [Modüller](11_moduller.md)
 12. [Testler](12_testler.md)
 13. [Yerleşik fonksiyonlar ve metotlar](13_yerlesikler.md)
-14. [Bilinen sınırlamalar](14_sinirlamalar.md)
 15. [Tensörler ve otomatik türev](15_tensorler.md)
 16. [Veri ve parçalayıcı](16_veri_parcalayici.md)
 17. [Kodlar](17_kodlar.md)

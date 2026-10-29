@@ -24,7 +24,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.2
 
-- **Mevcut durum:** TR dinamik tiplidir; tip açıklaması isteğe bağlıdır (3.13).
+- **Mevcut durum:** TR dinamik tiplidir; tip açıklaması isteğe bağlıdır (3.13). Denetleyici sığdır: tipi çıkarılamayan değer `TR_Any` sayılıyor; parametre tipleri yalnız adıyla doğrudan çağrılan fonksiyonun konumlu argümanlarında denetleniyor, adlı argüman, metot ve fonksiyon değeri üstünden çağrı denetlenmiyor (eski 14. bölümün sözü) [kanıtsız: bu tur ölçülmedi].
 - **Yapılacaklar:** büyük tasarım, turlarla:
   - denetleyiciye tip çıkarımı;
   - kitaplığın, örneklerin ve testlerin imzaları;
@@ -186,7 +186,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 ### 5.14
 
-- **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor ve en yakın adı öneriyor; tanımından önce kullanılan ad ise çalışma hatası veriyor [ölçüldü]. Kendisinden sonra tanımlanan en dış değişkeni okuyan fonksiyon, değişkenden sonra çağrılınca çalışıyor [ölçüldü, DENETİM].
+- **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor ve en yakın adı öneriyor; tanımından önce kullanılan ad ise çalışma hatası veriyor [ölçüldü]. Fonksiyon ve yapı da öne alınmıyor: tanımından önce çağrılan fonksiyon denetimden geçiyor, çalışırken "böyle bir ad yok" hatası veriyor [ölçüldü: main `e16d39df`]. Kendisinden sonra tanımlanan en dış değişkeni okuyan fonksiyon, değişkenden sonra çağrılınca çalışıyor [ölçüldü, DENETİM].
 - **Yapılacaklar:** tanımından önce kullanma denetim hatası; öneri 2.3a'nın uzaklığıyla. Fonksiyonu çağıran ifade, fonksiyonun doğrudan ya da dolaylı kullandığı değişkenlerden sonra gelmeli; modülün en dışında sıradan bağımsızlık ve sabitler arasında döngü hatası.
 
 ## 6. Fonksiyonlar
@@ -442,7 +442,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 ### 11.8
 
 - **Mevcut durum:** iki aktarım aynı adı getirince sonraki sessizce kazanıyor; dosyanın kendi tanımı aktarılan adı sessizce gölgeliyor [ölçüldü: main `a9a1ba14`]. Depodaki 135 dosyanın 50 aktarmasında çakışma yok; kural göçsüz girer [ölçüldü: DENETİM 11-1].
-- **Mevcut durum (atama):** takma adsız aktarılan ada atama (`PI = 7`) aktaran dosyada sessizce yerel bir kopya kuruyor, modülün değeri değişmiyor; `m.PI = 5` modülün değerini değiştiriyor ve öbür takma adlar da görüyor [ölçüldü: DENETİM 11-1].
+- **Mevcut durum (atama):** takma adsız aktarılan ada atama (`PI = 7`) aktaran dosyada sessizce yerel bir kopya kuruyor, modülün değeri değişmiyor; `m.PI = 5` modülün değerini değiştiriyor ve öbür takma adlar da görüyor [ölçüldü: DENETİM 11-1]. Modülün sabiti de köşeli ayraçla değiştirilebiliyor (`m["AD"] = 1`; eski 14. bölümün sözü) [kanıtsız: bu tur ölçülmedi].
 - **Yapılacaklar:** denetim hataları (çakışma, aktarılan ada atama), iki yeri gösteren ve `TR_as`'ı öneren ileti; olumsuz fikstürler.
 
 ### 11.7
@@ -478,8 +478,8 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.5
 
-- **Mevcut durum:** test dosyasının en dışındaki deyim de testlerden önce çalışıyor (1 yer); sabit olmayan ilk değer 7 yerde (geçici klasör, komut satırı ayarı, kullanıcı tanımlı türev); rastgele üretecin durumu testten teste sürüyor [ölçüldü: DENETİM]. Rehber (`docs/guide/07_testler.md:3`) eski sınıflı yazımla.
-- **Yapılacaklar:** en dıştaki deyimin sözdizimi hatası (1.1); her testin üreteci aynı durumda başlatması; TR testleri.
+- **Mevcut durum:** en dıştaki tanımlar testler arasında paylaşılıyor: bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `e16d39df`]. Test dosyasının en dışındaki deyim de testlerden önce çalışıyor (1 yer); sabit olmayan ilk değer 7 yerde (geçici klasör, komut satırı ayarı, kullanıcı tanımlı türev); rastgele üretecin durumu testten teste sürüyor [ölçüldü: DENETİM]. Rehber (`docs/guide/07_testler.md:3`) eski sınıflı yazımla.
+- **Yapılacaklar:** en dıştaki deyimin sözdizimi hatası (1.1); en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması; TR testleri.
 
 ## 13. Yerleşikler
 
@@ -589,6 +589,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 ### 17.7
 
 - **Mevcut durum:** görünümden geri kodlama (`TR_cmd_encode`), düzenleyicide görünümde düzenleyip kaydetme (`editors/vscode/coded_*.js`, 743 satır), bayt bayt gidiş-dönüş testleri ve `$` kaçışı var [ölçüldü]. Bunlar 17.7'nin gerektirmediği işlerdir. `internal/lang/source` 1 870 satır, `cmd/tr/coded.go` 256 satır [ölçüldü]; kodlamayı başka bir şey (belgelerdeki kod blokları, `tests/negative`) kullanıyor mu ölçülmedi.
+- **Yaklaşık kodlama:** görünümden kodlama, kapsamı çalışırken belli olan adları yaklaşık kodluyor (takma adsız aktarmada yerleşik adı yerleşik sayılıyor, bir yerleşiği taşıyan değişkene verilen adlı argüman kullanıcının adı sayılıyor, `$` kaçışı gösterimde sütunu kaydırıyor; eski 14. bölümün sözü). Kodlama kalkınca bu da kalkar.
 - **Kabuk:** bugün kişinin dilinde yazmayı kabul ediyor: Türkçe adıyla yazılan bir yazdırma çağrısı çalışıyor [ölçüldü: DENETİM].
 - **İletiler:** başlıksız dosyanın iletisi de kodlamayı öneriyor ("tr kodla <dosya> --dil tr") [ölçüldü: DENETİM].
 - **Testler:** `TestEncodeShowCommands` ve `TestEnglishWritingLanguage` kalkacak davranışı (Türkçe metni kodlamayı, gidiş-dönüşü) sınıyor.
