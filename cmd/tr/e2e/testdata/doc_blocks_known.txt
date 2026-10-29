@@ -8,4 +8,3 @@ docs/spec/09_ertele.md:10
 docs/spec/15_tensorler.md:118
 docs/spec/15_tensorler.md:17
 docs/spec/15_tensorler.md:84
-docs/spec/18_dosya_ve_yol.md:35

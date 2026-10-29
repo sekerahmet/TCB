@@ -28,6 +28,7 @@ Yazıldı; DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). He
 - **Düzenli ifade:** metin temizleme ve parçalayıcının ön ayırması (GPT tarzı ön bölme).
 - **Unicode normalleştirmesi:** NFC ve NFKC; parçalayıcı eğitimi ve metin hazırlama.
 - **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır (tasarım yönteminin açık konusu). Yorumlayıcı kilidinin gecikmesi 10.2'nin kuralıdır (süreyle devir); ölçümü de buraya girer.
+- **zstd sıkıştırması** (2026-10-29, 18'in tartısı): büyük derlemlerin yaygın biçimi (`.jsonl.zst`); 18.12'nin `.gz` saydamlığı gibi okuma ve yazmada.
 - **Paket, bağımlılık ve sürüm sabitleme** (2026-10-29, 11'in tartısı): başkasının modülünü sürümüyle almak ve sürümü bir kilit dosyasında sabitlemek; amacın "Paylaşmak"ı ve "Güvenilir"i (aynı program aynı sonucu) ister. `tr/` kitaplığı ikiliyle gelir, ona gerekmez (11.6).
 - **Süreçlerle paralellik** (2026-10-29, 10'un tartısı): TR koduyla yazılmış veri temizleme ve süzme yorumlayıcı kilidi yüzünden tek çekirdekte kalır; işi süreçlere bölmek (Python'un `multiprocessing`'i gibi). Amacın 1. işi ister.
 - **Bayttan sayı okuma ve yazma** (bayt sırasıyla; 3.3a) ve CSV yazmak, yüzdelik gibi küçük yerleşikler; ilgili bölümler (16, 18, 13) yazılırken.
