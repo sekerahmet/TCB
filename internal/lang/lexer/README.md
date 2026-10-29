@@ -1,8 +1,9 @@
 # lexer
 
 Kaynak metni satır ve sütun bilgisiyle sözcük birimlerine (anahtar kelime, ad, sayı, metin,
-işleç, yorum) ayırır. Kodlu biçimi (`TR_if`, `TR_print` ...; içeride kod `TR_kw_if`, `TR_fn_print`) ve
-bir yazım dilindeki görünümü (kabuk satırı, `tr kodla`) okur.
+işleç, yorum) ayırır. Kodlu biçimi (`TR_if`, `TR_print` ...; içeride kod `TR_kw_if`, `TR_fn_print`) okur;
+program, kabuk satırı ve hata ayıklayıcının ifadesi bu biçimdedir (17.7). Bir yazım dilinde okuma kipi
+(`NewBodyIn`) bugün yalnız testlerdedir.
 
 ## Standartlar
 
@@ -15,8 +16,7 @@ olsa bile anahtar kelime sayılmaz. `TR_` ile başlayan adlar dilin kimliklerine
 ayrılmıştır; kullanıcı adı olamaz (2.3a); kodlu gövdede kod listesinde olmayan kimlik sözdizimi hatasıdır. Denetim: `TestCodedTokens`, `TestEscapedName`.
 
 **Konumlar dosyanın metnine göredir (2.1).** Satır ve sütun karakter sayar, bayt değil; başlık 1.
-satırdır. Kimliklerle okunan gövdede konum diskteki metindir (`NewBody`); kişinin dilinde yazılan
-metnin (kabuk satırı) konumlarını `NewBodyView` verir. Metin içi yerleştirmelerdeki sözcükler de
+satırdır. Kimliklerle okunan gövdede (dosya, kabuk satırı) konum yazılan metindir (`NewBody`). Metin içi yerleştirmelerdeki sözcükler de
 dosyadaki gerçek yerleriyle gelir. Hata mesajı, hata ayıklayıcı ve düzenleyici aynı yeri gösterir. Denetim: `TestLineAndColumnNumbers`, `TestInterpolationPositions`, `TestCodedTokens`.
 
 **Her işin tek yazımı vardır (2.2, 2.6).** Satır yorumu `#`'dir; `//` taban bölmedir. Satır başındaki

@@ -100,7 +100,7 @@ func (l *Lexer) lineCol(i int) (int, int) {
 		}
 	}
 	s := sort.SearchInts(l.lineStarts, i+1) - 1
-	return s + 1, i - l.lineStarts[s] + 1 + l.lineShift(l.lineStarts[s], i)
+	return s + 1, i - l.lineStarts[s] + 1
 }
 
 // Interpolation returns the sub-lexer for one '\(expr)' part of a string literal. text is the

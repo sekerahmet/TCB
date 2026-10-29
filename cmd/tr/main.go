@@ -1,5 +1,5 @@
 // tr, TR dilinin tek ikilisidir: alt komutları (çalıştır, kabuk, kontrol, derle, test,
-// biçimle, kodla, çöz, göster, izle, profil, hata_ayıkla, dap) ayrıştırır ve işi internal/
+// biçimle, göster, izle, profil, hata_ayıkla, dap) ayrıştırır ve işi internal/
 // altındaki paketlere bırakır.
 //
 // Layer: command (cmd); dil, motor, hesap ve araç katmanlarını içe aktarabilir.
@@ -380,10 +380,10 @@ func replCommand(machine *interp.VM, line string) (handled, quit bool) {
 	return false, false
 }
 
-// startsWithPrint satır yazdır yerleşiğinin (TR_fn_print) kanonik ya da kişinin yazım dilindeki bir
-// yazımıyla mı başlıyor (kabuk satırı kişinin dilinde yazılır)?
+// startsWithPrint satır yazdır yerleşiğinin (TR_fn_print) bir yazımıyla mı başlıyor (kabuk satırı
+// kimliklerle yazılır: TR_print, 17.7)?
 func startsWithPrint(ln string) bool {
-	for _, y := range append(codes.Spellings(codes.FnPrint), codes.Display().Spellings(codes.FnPrint)...) {
+	for _, y := range append(codes.Spellings(codes.FnPrint), codes.Spelling(codes.FnPrint)) {
 		if strings.HasPrefix(ln, y) {
 			return true
 		}
