@@ -1,4 +1,4 @@
 # TR 4
-# TEST 11.4 modülün üst düzeyinde TR_return kullanılamaz
+# TEST 11.4 modülün üst düzeyinde TR_return kullanılamaz (aktaran: ust_duzey_sonuc_aktar.tr)
 TR_var önce = 1
 TR_return önce # ERROR H0154

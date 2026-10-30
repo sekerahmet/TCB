@@ -78,6 +78,11 @@ type Checker struct {
 	// fileLanguage denetlenen yazılan satırın (kabuk) yazım dilinin kodudur; "": dosya, dili yoktur
 	// (2.1). İletiler dilin sözcüklerini dosyada kimlik yazımıyla, satırda o dilde adlandırır (word).
 	fileLanguage string
+	// fileKind ve fileLines denetlenen dosyanın türü ve satırlarıdır (1.1; module_rules.go);
+	// valueTypes en dıştaki ilk değerlerin çıkarılan tipleridir (iletinin önerisi için).
+	fileKind   FileKind
+	fileLines  []string
+	valueTypes map[ast.Expression]string
 }
 
 // New returns a checker with an empty global scope.
@@ -147,6 +152,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkNames(prog)
 	c.errors = append(c.errors, c.nameErrors...)
 	c.checkSkeletons(prog)
+	c.checkTopLevel(prog)
 	sortByLine(c.errors[start:])
 }
 
@@ -160,6 +166,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Name.Token)
 		declared := c.writtenType(s.Type, s.Line())
 		inferred := c.inferExpression(s.Value)
+		c.recordValueType(s.Value, inferred)
 		if s.Type != nil && !typesCompatible(declared, inferred) {
 			c.addErrorAt(s, messages.New(messages.H1001,
 				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
@@ -236,7 +243,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.MultiVarStatement:
 		for _, v := range s.Values {
-			c.inferExpression(v)
+			c.recordValueType(v, c.inferExpression(v))
 		}
 		c.checkUnpackCount(s, s.Values, len(s.Names))
 		for _, name := range s.Names {

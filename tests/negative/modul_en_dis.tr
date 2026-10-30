@@ -1,0 +1,12 @@
+# TR 4
+# TEST 1.1 modülün en dışında yalnız tanım bulunur, ilk değer sabit ifadedir (aktaran: modul_en_dis_aktar.tr)
+TR_const ADIM = 10 * 2
+TR_var ad = "model \(ADIM)"
+
+TR_func kur() -> TR_Int {
+    TR_return ADIM
+}
+
+TR_var sayaç = kur() # ERROR H1108
+TR_var kopya = ad # ERROR H1108
+TR_print(ad) # ERROR H1107

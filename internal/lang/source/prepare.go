@@ -93,6 +93,13 @@ func Prepare(text string, s Options) *Result {
 	if s.InGlobalScope {
 		chk.SetGlobalScope(s.GlobalNames, s.GlobalDynamic)
 	}
+	// A module and a test file (a file with TR_test, 12.1) hold only definitions at the top level (1.1).
+	switch {
+	case s.Module:
+		chk.SetFile(checker.ModuleFile, r.Text)
+	case checker.HasTests(r.Program):
+		chk.SetFile(checker.TestFile, r.Text)
+	}
 	chk.CheckProgram(r.Program)
 	r.Warnings = limitErrors(byPosition(chk.Warnings()))
 	if errs := chk.Errs(); len(errs) > 0 {

@@ -14,13 +14,10 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.1
 
-- **Mevcut durum:**
-  - Modülün ve test dosyasının en dışındaki deyimler de çalışıyor (11.1, 12.5).
-  - Modülde ilk değer her ifadeyi kabul ediyor (5.1, 5.2).
+- **Mevcut durum:** denetleyici modülde ve test dosyasında (`TR_test` içeren dosya, 12.1) en dıştaki tanım dışı deyimi (H1107) ve `TR_const`/`TR_var`'ın sabit olmayan ilk değerini (H1108) denetim hatası sayıyor; hata modülün satırında, aktaran modül hatasının başlığında; ileti deyimi fonksiyona alan yazımı veriyor ve yazım çalışıyor. Depodaki modüller ve test dosyaları kurala uyuyor. Dosyanın tanımlamadığı ad (aktarılan ya da genel) sabit sayılıyor; gömülü kitaplık modülleri aktarılırken denetlenmiyor, kuralları depo testinde denetleniyor [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`, `TestModuleRuleSuggestionRuns`, dal `claude/hopeful-brahmagupta-miw41q`].
 - **Yapılacaklar:**
-  - Denetleyici modülde ve test dosyasında en dışta tanım dışındaki deyimi hata sayar.
-  - Modülde ilk değer sabit ifade değilse hata verir; fonksiyon adı, dışarıdan değişken yakalamayan fonksiyon ifadesi, sonucu yalnız argümanlarına bağlı sayı yerleşikleri ve `TR_fuse`, `TR_replay`, `TR_custom_grad` serbesttir.
-  - `lib/`, `tests/` ve örnekler kurala göre düzeltilir.
+  - Aktarılan adın sabitliği modüller arası tip denetimiyle (4b) bilinir; bugün aktarılan ad sabit sayılıyor.
+  - 12.5'in metni en dıştaki deyimi "sözdizimi hatası" diyor; karar (2026-10-30) denetim hatası: metin uyarlanır.
 
 ### 1.2
 
