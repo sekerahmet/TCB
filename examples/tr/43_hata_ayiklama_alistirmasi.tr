@@ -22,7 +22,7 @@ TR_func kdv_ekle(tutar: TR_Int) -> TR_Float {
     TR_return tutar + kdv
 }
 
-TR_var genel_toplam = 0
+TR_var genel_toplam = 0.0
 TR_for s TR_in siparisler {
     TR_var kdvli = kdv_ekle(s["tutar"])
     genel_toplam += kdvli
