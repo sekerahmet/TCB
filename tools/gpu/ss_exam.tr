@@ -77,7 +77,7 @@ TR_for i TR_in 0..T { toplam_doğru += doğru_konum[i] }
 
 # --- Sondalar ve örnekler (açgözlü) ---
 # farklı_4: üretilen parçalarda farklı 4'lü oranı; döngüde: bir 4'lü en az 3 kez (evaluate.py distinct4).
-TR_func farklı_4(kimlikler) {
+TR_func farklı_4(kimlikler: TR_List[TR_Int]) -> (TR_Float, TR_Bool) {
     TR_if kimlikler.TR_length < 4 { TR_return 1.0, TR_false }
     TR_var sayım = {}
     TR_for i TR_in 0..kimlikler.TR_length - 3 {
@@ -89,7 +89,7 @@ TR_func farklı_4(kimlikler) {
     TR_return sayım.TR_length / (kimlikler.TR_length - 3), en_çok >= 3
 }
 TR_var istemler = ["Once upon a time", "The little dog", "One day, a girl named", "In a small village,"]
-TR_func açgözlü(istem, adet) {
+TR_func açgözlü(istem: TR_String, adet: TR_Int) -> (TR_List[TR_Int], TR_String) {
     TR_var başlangıç = p.TR_encode(istem)
     TR_var kimlikler = TR_none
     TR_mixed_precision(ayar["hassasiyet"]) { kimlikler = model.TR_generate(başlangıç, adet, TR_temperature: 0, TR_eos: ayar["eos"]) }

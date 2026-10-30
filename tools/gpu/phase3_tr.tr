@@ -38,7 +38,7 @@ TR_var ağırlıklar = TR_parameters(model)
 TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: TR_Float(c["lr"]), TR_weight_decay: 0.0)
 
 # adım_at: bir eğitim adımı; kaybın değerini döndürür (okumak GPU'yu bekler).
-TR_func adım_at(adım) {
+TR_func adım_at(adım: TR_Int) -> TR_Float {
     TR_var xy = sentetik[adım % 8]
     iyileştirici.TR_zero_grad()
     TR_var kayıp = TR_none
@@ -52,7 +52,7 @@ TR_func adım_at(adım) {
 }
 
 # yüzdelik: p. yüzdelik (en yakın sıra yöntemi).
-TR_func yüzdelik(değerler, p) {
+TR_func yüzdelik(değerler: TR_List[TR_Int], p: TR_Int) -> TR_Int {
     TR_var s = değerler.TR_sort()
     TR_return s[TR_max(0, TR_Int(TR_ceil(p / 100 * s.TR_length)) - 1)]
 }

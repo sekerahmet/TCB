@@ -1,5 +1,5 @@
 # TR 4
-TR_func fib(n) {
+TR_func fib(n: TR_Int) -> TR_Int {
     TR_if n < 2 { TR_return n }
     TR_return fib(n - 1) + fib(n - 2)
 }

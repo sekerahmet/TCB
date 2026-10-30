@@ -75,7 +75,7 @@ TR_print("model: \(TR_round(parametre_sayısı / 1000000, 2)) M parametre · cih
 
 # doğrulama_kaybı: valid.npy'nin baştan ardışık, örtüşmeyen pencerelerinden ilk toplu_sayısı toplu işin
 # parça başına ortalama kaybı (eksik son toplu iş satır sayısıyla ağırlıklanır).
-TR_func doğrulama_kaybı(toplu_sayısı) {
+TR_func doğrulama_kaybı(toplu_sayısı: TR_Int) -> TR_Float {
     TR_var okuyucu = TR_Dataset(TR_Path(ayar["veri"], "valid.npy")).TR_sequential(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"])
     TR_var toplam_kayıp = 0.0
     TR_var satır = 0
@@ -95,7 +95,7 @@ TR_func doğrulama_kaybı(toplu_sayısı) {
 }
 
 # örnek_yaz: her istemin devamı olarak örnek_sayısı metin üretir ve samples.json'a yazar.
-TR_func örnek_yaz(adım) {
+TR_func örnek_yaz(adım: TR_Int) {
     TR_var metinler = []
     TR_mixed_precision(ayar["hassasiyet"]) {
         TR_for j, istem TR_in ayar["istemler"].TR_split("|") {
