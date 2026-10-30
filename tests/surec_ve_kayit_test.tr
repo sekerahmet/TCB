@@ -4,17 +4,24 @@
 # --help, çıkış kodları ve terminaldeki çubuk Go testleriyle sınanır
 # (internal/stdlib/process, internal/stdlib/logging, cmd/tr/e2e).
 
-# Günlük dosyaları depo dışında, bu koşunun geçici klasöründe (18.14); program bitince silinir.
-TR_const KOŞU = TR_temp_dir()
+# Günlük dosyaları depo dışında, testin kendi geçici klasöründedir (18.14); program bitince silinir.
 
 # satırlar: günlük dosyasının JSON satırlarını JSON listesi olarak verir.
 TR_func satırlar(dosya_yolu: TR_String) -> TR_List[TR_JSON] {
     TR_return TR_read_file(dosya_yolu).TR_strip().TR_split("\n").TR_map((x) => TR_json_parse(x))
 }
 
-# Programın tek komut_satırı çağrısı (19.2, 19.4 bunu kullanır).
-TR_const AYAR = TR_command_line({"step": 100, "oran": 0.5, "veri": "veri/train", "katmanlar": [64, 32], "hızlı": TR_false, "etiket": TR_none, "api_anahtarı": "anahtar-varsayılan-1"},
-    TR_description: "Deneme", TR_descriptions: {"step": "eğitim adımı"})
+# ayar: programın tek komut_satırı çağrısı (19.2: ikinci çağrı hatadır); ilk çağıran test onu yapar,
+# sonrakiler aynı sonucu alır (19.2, 19.4). Argümansız koşuda varsayılanlar.
+TR_var ayar_sonucu = TR_none
+
+TR_func ayar() {
+    TR_if ayar_sonucu == TR_none {
+        ayar_sonucu = TR_command_line({"step": 100, "oran": 0.5, "veri": "veri/train", "katmanlar": [64, 32], "hızlı": TR_false, "etiket": TR_none, "api_anahtarı": "anahtar-varsayılan-1"},
+            TR_description: "Deneme", TR_descriptions: {"step": "eğitim adımı"})
+    }
+    TR_return ayar_sonucu
+}
 
 TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
     TR_assert_equal(TR_none, TR_env("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
@@ -25,16 +32,18 @@ TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
 }
 
 TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir değerde verir" {
-    TR_assert_equal(TR_Dict, TR_Type(AYAR))
-    TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], AYAR.TR_keys())
-    TR_assert_equal(100, AYAR["step"])
-    TR_assert_equal(0.5, AYAR["oran"])
-    TR_assert_equal([64, 32], AYAR["katmanlar"])
-    TR_assert_equal(TR_false, AYAR["hızlı"])
-    TR_assert_equal(TR_none, AYAR["etiket"])
+    TR_var seçenekler = ayar()
+    TR_assert_equal(TR_Dict, TR_Type(seçenekler))
+    TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], seçenekler.TR_keys())
+    TR_assert_equal(100, seçenekler["step"])
+    TR_assert_equal(0.5, seçenekler["oran"])
+    TR_assert_equal([64, 32], seçenekler["katmanlar"])
+    TR_assert_equal(TR_false, seçenekler["hızlı"])
+    TR_assert_equal(TR_none, seçenekler["etiket"])
 }
 
 TR_test "19.2 komut_satırı programda bir kez çağrılır" {
+    ayar()
     TR_assert_equal("H7218", TR_error_code { TR_command_line({"step": 1}) })
 }
 
@@ -48,16 +57,17 @@ TR_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
 
 TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
     # Değerin kendisi programda değişmez (yazdır'ın döndürdüğü metin de veridir).
-    TR_assert_equal("anahtar-varsayılan-1", AYAR["api_anahtarı"])
-    TR_var dosya_yolu = "\(KOŞU)/gizli.jsonl"
-    TR_Logger(dosya_yolu).TR_append({"anahtar": AYAR["api_anahtarı"]})
+    TR_var seçenekler = ayar()
+    TR_assert_equal("anahtar-varsayılan-1", seçenekler["api_anahtarı"])
+    TR_var dosya_yolu = "\(TR_temp_dir())/gizli.jsonl"
+    TR_Logger(dosya_yolu).TR_append({"anahtar": seçenekler["api_anahtarı"]})
     TR_var içerik = TR_read_file(dosya_yolu)
     TR_assert(içerik.TR_contains("\"anahtar\":\"***\""), içerik)
     TR_assert(TR_not içerik.TR_contains("anahtar-varsayılan-1"))
 }
 
 TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
-    TR_var dosya_yolu = "\(KOŞU)/kayit/egitim.jsonl"
+    TR_var dosya_yolu = "\(TR_temp_dir())/kayit/egitim.jsonl"
     TR_var g = TR_Logger(dosya_yolu)
     TR_assert_equal(TR_Logger, TR_Type(g))
     TR_assert_equal(TR_true, g.TR_append({"loss": 2.5, "step": 3, "nan": TR_Float("nan"), "kayıp_t": TR_Tensor([0.25])}))
@@ -82,8 +92,9 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
 }
 
 TR_test "19.6 günlük hataları" {
-    TR_assert_equal("H7319", TR_error_code { TR_Logger("\(KOŞU)/a.csv") })
-    TR_var g = TR_Logger("\(KOŞU)/h.jsonl")
+    TR_var koşu = TR_temp_dir()
+    TR_assert_equal("H7319", TR_error_code { TR_Logger("\(koşu)/a.csv") })
+    TR_var g = TR_Logger("\(koşu)/h.jsonl")
     TR_assert_equal("H7321", TR_error_code { g.TR_append({"kind": "x"}) })
     TR_assert_equal("H7300", TR_error_code { g.TR_append({"f": TR_print}) })
     TR_assert_equal("H2423", TR_error_code { g.TR_append(5) })
@@ -124,7 +135,7 @@ TR_test "19.8 ilerleme hataları" {
 }
 
 TR_test "19.9 günlüğe bağlı çubuk her güncellemeyi ve bitişi yazar" {
-    TR_var dosya_yolu = "\(KOŞU)/cubuk.jsonl"
+    TR_var dosya_yolu = "\(TR_temp_dir())/cubuk.jsonl"
     TR_var g = TR_Logger(dosya_yolu)
     TR_var ç = TR_Progress(2, TR_log: g)
     ç.TR_update({"loss": 0.9})

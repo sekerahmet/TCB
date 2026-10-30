@@ -45,7 +45,8 @@ lib/training.tr:115 parametre TR_ctx_init.TR_arg_config — config.json'a yazıl
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_folder — klasör TR_String ya da TR_Path (ikisi de çağrılıyor; TR_Path ikisini de alır)
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_objects — kontrol noktasının nesneleri: model, iyileştirici, okuyucu, sözlük karışık (20.2)
 tests/deyimler_test.tr:169 parametre tür.x — 5.6 testi: eşle deseni sayıyı ve metni karşılaştırır, x her ikisini alır
-tests/kontrol_noktasi_test.tr:154 dönüş eğit — {"model", "op", "ö", "izlenen", "kn", "g"} sözlüğü: değer tipi birden çok
+tests/kontrol_noktasi_test.tr:134 dönüş eğit — {"model", "op", "ö", "izlenen", "kn", "g"} sözlüğü: değer tipi birden çok
+tests/surec_ve_kayit_test.tr:18 dönüş ayar — komut_satırı sözlüğü: değerleri tam sayı, ondalık, metin, liste, mantık ve yok (değer tipi birden çok; 19.2 yapı diyor)
 tests/tensor_test.tr:991 alan Blok.mlp — 15.33 testi: TR_parameters'ın listeyi ve sözlüğü gezdiğini sınar, alan ikisini de tutar
 tests/yapilar_test.tr:166 alan Kutu.f — 7.6 testi: fonksiyon, sayı ve tensör tutan alanın karşılaştırması sınanır
 tools/gpu/training_model.tr:11 parametre eğitim_modeli.ayar — komut satırı sözlüğü ya da config.json'dan TR_JSON (dosyanın yorumu)
