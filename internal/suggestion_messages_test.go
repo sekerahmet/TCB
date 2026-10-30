@@ -64,9 +64,9 @@ var suggestionCases = []suggestionCase{
 	{messages.H7229, `TR_var ayar = TR_command_line({"adım": 1}, TR_descriptions: {"adim": "x"})`, "adim", "adım"},
 	{messages.H7900, "TR_var s = TR_sum(TR_Tensor([1.0, 2.0]), axis: 0)", "axis", "TR_dim"},
 	{messages.H7903, "TR_var t = TR_Tensor([1.0]).tür_", "tür_", "TR_dtype"},
-	{messages.H1109, "TR_func f(b = 0) -> TR_Int {\n    TR_return b\n}\nTR_print(f())", "f(b = 0)", "f(b: TR_Int = 0)"},
-	{messages.H1110, "TR_func f(a) -> TR_Int {\n    TR_return a\n}\nTR_print(f(1))", "f(a)", "f(a: TR_Int)"},
-	{messages.H1112, "TR_func f(a: TR_Int) {\n    TR_return a\n}\nTR_print(f(1))", "f(a: TR_Int) {", "f(a: TR_Int) -> TR_Int {"},
+	{messages.H1109, "TR_func f(b = 0) -> TR_Int { # ERROR H1109\n    TR_return b\n}\nTR_print(f())", "f(b = 0)", "f(b: TR_Int = 0)"},
+	{messages.H1110, "TR_func f(a) -> TR_Int { # ERROR H1110\n    TR_return a\n}\nTR_print(f(1))", "f(a)", "f(a: TR_Int)"},
+	{messages.H1112, "TR_func f(a: TR_Int) { # ERROR H1112\n    TR_return a\n}\nTR_print(f(1))", "f(a: TR_Int) {", "f(a: TR_Int) -> TR_Int {"},
 }
 
 // maxUntestedSuggestionCodes izin listesindeki kayıt sayısının üst sınırıdır; liste yalnız küçülür.

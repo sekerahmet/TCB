@@ -52,7 +52,7 @@
 "H0143": "'{keyword}' expects the module path as a string, but found {found}: write {keyword} \"{example, select, empty {helpers} other {{example}}}\"",
 "H0145": "the method '{name}' is defined twice in the struct '{struct}' (each field and method name is used once)",
 "H0146": "the field '{name}' is defined twice in the struct '{struct}' (each field and method name is used once)",
-"H0147": "a struct body can only contain fields (`name`, `name: {#Int}`, `name = value`) and function definitions; {what}",
+"H0147": "a struct body can only contain fields (`name: {#Int}`, `name: {#Int} = 0`) and function definitions; {what}",
 "H0148": "{found} is not a field definition",
 "H0149": "{found} after '{name}' is not a field definition (fields are separated by commas or line breaks)",
 "H0150": "a struct method needs a name: `{#func} name(...) {{ ... }}`",

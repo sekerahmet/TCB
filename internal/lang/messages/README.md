@@ -53,7 +53,7 @@ bir parametre ya dalların dışında ya `plural`/`select`'in her dalında geçe
 geçen değer öbür dal seçilince kaybolurdu). Sözcük sırası dilden dile değişebilir, parametreler
 adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSelect`, `TestCaseSuffix`, `TestTemplateErrors`, `TestCatalogErrors`, `TestParamUsedInEveryBranch`, `TestNumberSignInNestedSelect`, `TestNameSlot`, `TestNameSlotErrors`, `TestListFormat`, `TestPluralNumberTypes`.
 
-Kod örneği ters tırnak içinde yazılır; ters tırnak içinde ad yuvası `{#ad}`'dır, `{@ad}` yazılmaz; ters tırnak dışında `{#ad}` yazılmaz.
+Kod örneği ters tırnak içinde yazılır; ters tırnak içinde ad yuvası `{#ad}`'dır, `{@ad}` yazılmaz; ters tırnak dışında `{#ad}` yazılmaz. Kendi satırında başlayan çok satırlı blok da bir kod örneğidir (ör. H1107'nin `{func} kur() { ... }` önerisi): ters tırnak almaz, içindeki adlar kimlikle yazılır.
 Denetim: `TestCodeSlot`, `TestCodeSlotsInBackticks`, `TestCodeSlotsResolveToIdentities` (internal/lang/codes).
 
 **Dilbilgisi şablondadır, Go'da değil.**

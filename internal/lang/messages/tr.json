@@ -52,7 +52,7 @@
 "H0143": "'{keyword}' modül yolunu metin olarak bekler, ancak {found} bulundu: {keyword} \"{example, select, empty {yardımcı} other {{example}}}\" yazın",
 "H0145": "'{name}' metodu '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)",
 "H0146": "'{name}' alanı '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)",
-"H0147": "yapı gövdesinde yalnızca alanlar (`ad`, `ad: {#Int}`, `ad = değer`) ve fonksiyon tanımları bulunabilir; {what}",
+"H0147": "yapı gövdesinde yalnızca alanlar (`ad: {#Int}`, `ad: {#Int} = 0`) ve fonksiyon tanımları bulunabilir; {what}",
 "H0148": "{found} bir alan tanımı değil",
 "H0149": "'{name}' ardından gelen {found} bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)",
 "H0150": "yapı metodunun bir adı olmalı: `{#func} ad(...) {{ ... }}`",
