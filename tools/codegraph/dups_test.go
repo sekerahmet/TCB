@@ -487,3 +487,21 @@ func TestDupsClusterIDIsStable(t *testing.T) {
 		t.Errorf("json lacks the id field:\n%s", out.String())
 	}
 }
+
+// Kural: yerel dal ile karşılaştırılan dal arasında ortak ata bulunamadığında (sığ klon ya da eski yerel main)
+// `dups --changed` ve `changed` yalnız "exit status 1" demez; neyin bulunamadığını ve çaresini (`git fetch` ya da
+// `--changed origin/main`) açıklar.
+func TestDupsChangedAndChangedExplainMissingMergeBase(t *testing.T) {
+	root := branchWithCopy(t)
+	gitMust(t, root, "checkout", "-q", "--orphan", "claude/orphan")
+	gitMust(t, root, "commit", "-q", "-m", "orphan")
+	for _, arg := range []string{"main", "main..HEAD", "main...HEAD"} {
+		var out, errb bytes.Buffer
+		code := run([]string{"dups", "--root", root, "--changed", arg}, &out, &errb)
+		msg := errb.String()
+		if code != exitFail || !strings.Contains(msg, "no common ancestor") || !strings.Contains(msg, "git fetch") ||
+			!strings.Contains(msg, "--changed origin/main") || strings.Contains(msg, "exit status 1") {
+			t.Errorf("dups --changed %s without merge base: exit %d, stderr=%q", arg, code, msg)
+		}
+	}
+}

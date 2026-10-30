@@ -75,23 +75,41 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 	if b == "" {
 		b = "HEAD"
 	}
-	if !sameCommit(root, b, "HEAD") {
-		hs, err = diffHunks(root, rng)
-		return followFileRenames(root, b, hs), false, err
-	}
 	from := a
 	if from == "" {
 		from = "HEAD"
 	}
+	if !sameCommit(root, b, "HEAD") {
+		hs, err = diffHunks(root, rng)
+		if err != nil && strings.Contains(rng, "...") {
+			if _, mbErr := mergeBase(root, from, b); mbErr != nil {
+				return nil, false, mbErr
+			}
+		}
+		return followFileRenames(root, b, hs), false, err
+	}
 	if strings.Contains(rng, "...") {
-		mb, err := gitOut(root, "merge-base", from, "HEAD")
+		from, err = mergeBase(root, from, "HEAD")
 		if err != nil {
 			return nil, false, err
 		}
-		from = strings.TrimSpace(string(mb))
 	}
 	hs, err = diffHunks(root, from)
 	return hs, true, err
+}
+
+// mergeBase iki revizyonun ortak atasını verir; iki revizyon da geçerli birer commit iken ortak ata
+// bulunamazsa (sığ klon ya da eski yerel dal) neyin bulunamadığını ve çaresini açıklar.
+func mergeBase(root, from, to string) (string, error) {
+	mb, err := gitOut(root, "merge-base", from, to)
+	if err != nil {
+		if _, revErr := gitOut(root, "rev-parse", from+"^{commit}", to+"^{commit}"); revErr == nil {
+			remote := "origin/" + strings.TrimPrefix(from, "origin/")
+			return "", fmt.Errorf("no common ancestor (merge base) between %s and %s (shallow clone or outdated local %s): run `git fetch` or use `--changed %s`", from, to, from, remote)
+		}
+		return "", err
+	}
+	return strings.TrimSpace(string(mb)), nil
 }
 
 // diffHunks `git diff` parçalarını verir (yollar root'a göre); rng tek bir commit ise o commit'ten çalışma ağacına.

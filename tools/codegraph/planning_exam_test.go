@@ -171,9 +171,13 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 	args := append([]string{}, r.args[1:]...)
 	loaded := x.graph
 	if i := slices.Index(args, "--root"); i >= 0 && i+1 < len(args) {
-		args[i+1] = filepath.Join(x.root, filepath.FromSlash(args[i+1]))
-		args = append(args, "--graph", filepath.Join(t.TempDir(), "graph.json"))
-		loaded = nil
+		if r.args[0] == "dups" {
+			args[i+1] = orphanGitFixture(t)
+		} else {
+			args[i+1] = filepath.Join(x.root, filepath.FromSlash(args[i+1]))
+			args = append(args, "--graph", filepath.Join(t.TempDir(), "graph.json"))
+			loaded = nil
+		}
 	} else {
 		args = append(args, "--root", x.root)
 	}
@@ -338,6 +342,15 @@ func firstOr(items []string) string {
 		return ""
 	}
 	return strings.TrimSpace(items[0])
+}
+
+// orphanGitFixture ortak atası olmayan `main` ve `HEAD` dallarına sahip geçici bir git deposu kurar.
+func orphanGitFixture(t *testing.T) string {
+	t.Helper()
+	root := gitFixture(t)
+	gitMust(t, root, "checkout", "-q", "--orphan", "claude/orphan")
+	gitMust(t, root, "commit", "-q", "-m", "orphan")
+	return root
 }
 
 // Kural: planlama denemelerinde sorulan her soru bugün doğru cevaplanır (testdata/planning_questions.txt). Kapatılmış bir
