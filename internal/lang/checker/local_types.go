@@ -230,6 +230,29 @@ func indexType(left, index string) string {
 	return typeAny
 }
 
+// loopTypes dolaşılan kaynağın tipi iter olan döngünün değişkenlerinin tipleridir (5.7): tek
+// değişkenle (two false) value listede öğe, aralıkta tam sayı, metinde karakter (metin), sözlükte
+// anahtar; iki değişkenle (TR_for i, x) key indeks ya da anahtar, value öğe ya da değer. Başka kaynak
+// (bilinmeyen, isteğe bağlı, öğe tipsiz kap, okuyucu, TR_JSON) TR_Any.
+func loopTypes(iter string, two bool) (key, value string) {
+	s := shapeOf(iter)
+	key, value = typeAny, typeAny
+	switch {
+	case s.optional || s.elems != nil:
+	case s.base == typeList && len(s.args) == 1:
+		key, value = typeInt, s.args[0]
+	case iter == typeString:
+		key, value = typeInt, typeString
+	case iter == typeRange && !two:
+		value = typeInt
+	case s.base == typeDict && len(s.args) == 2 && two:
+		key, value = s.args[0], s.args[1]
+	case s.base == typeDict && len(s.args) == 2:
+		value = s.args[0]
+	}
+	return key, value
+}
+
 // tupleLiteralType demet değişmezinin tipidir (3.6a): (1, "a") → (TR_Int, TR_String). Bir öğesinin
 // tipi bilinmiyorsa demet TR_Any'dir.
 func (c *Checker) tupleLiteralType(elems []string) string {
