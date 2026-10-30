@@ -168,6 +168,20 @@ func hasConstructor(s *ast.StructStatement) bool {
 // captured is the first top-level TR_var a function expression reads (one it does not define
 // itself as a parameter, a variable or a nested function's parameter); nil when it reads none.
 func (k *constScope) captured(f *ast.FunctionLiteral) ast.Node {
+	own := ownNames(f)
+	var found ast.Node
+	ast.Walk(f.Body, func(n any) bool {
+		if id, ok := n.(*ast.Identifier); ok && found == nil && k.vars[id.Value] && !own[id.Value] {
+			found = id
+		}
+		return found == nil
+	})
+	return found
+}
+
+// ownNames are the names f defines itself: its parameters, its variables and the parameters of
+// the function expressions nested in it.
+func ownNames(f *ast.FunctionLiteral) map[string]bool {
 	own := map[string]bool{}
 	for _, p := range f.Parameters {
 		own[p.Name] = true
@@ -190,12 +204,35 @@ func (k *constScope) captured(f *ast.FunctionLiteral) ast.Node {
 		}
 		return true
 	})
-	var found ast.Node
-	ast.Walk(f.Body, func(n any) bool {
-		if id, ok := n.(*ast.Identifier); ok && found == nil && k.vars[id.Value] && !own[id.Value] {
-			found = id
+	return own
+}
+
+// sharedVars are the names functions assign to without defining them (ownNames): a top-level
+// TR_var among them is shared state (H1114).
+func sharedVars(prog *ast.Program) map[string]bool {
+	out := map[string]bool{}
+	ast.Walk(prog, func(n any) bool {
+		f, ok := n.(*ast.FunctionLiteral)
+		if !ok || f.Body == nil {
+			return true
 		}
-		return found == nil
+		own := ownNames(f)
+		ast.Walk(f.Body, func(m any) bool {
+			var targets []ast.Expression
+			switch s := m.(type) {
+			case *ast.AssignStatement:
+				targets = []ast.Expression{s.Target}
+			case *ast.MultiAssignStatement:
+				targets = s.Targets
+			}
+			for _, t := range targets {
+				if id, ok := t.(*ast.Identifier); ok && !own[id.Value] {
+					out[id.Value] = true
+				}
+			}
+			return true
+		})
+		return true
 	})
-	return found
+	return out
 }
