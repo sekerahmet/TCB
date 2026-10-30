@@ -21,10 +21,61 @@ var coreTypes = func() map[string]bool {
 	return m
 }()
 
-// knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi? Çekirdek tipler ve
-// programın yapıları.
+// knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi? Çekirdek tipler,
+// programın yapıları ve öğe tipleri tanınan kaplar.
 func (c *Checker) knownType(t string) bool {
-	return coreTypes[t] || c.knownStruct(t)
+	s := shapeOf(t)
+	if !coreTypes[s.base] && !c.knownStruct(s.base) {
+		return false
+	}
+	for _, a := range s.args {
+		if !c.knownType(a) {
+			return false
+		}
+	}
+	return true
+}
+
+// commonType değişmezdeki öğelerin ortak tipidir (3.6): hepsi aynı tanınan tipse o, tam sayı ve
+// ondalık karışıksa TR_Float (tam sayı yazımı ondalıktır); boşsa, karışıksa ya da bir öğenin tipi
+// bilinmiyorsa "".
+func (c *Checker) commonType(types []string) string {
+	if len(types) == 0 {
+		return ""
+	}
+	t := types[0]
+	for _, u := range types[1:] {
+		switch {
+		case u == t:
+		case numericType(t) && numericType(u):
+			t = typeFloat
+		default:
+			return ""
+		}
+	}
+	if !c.knownType(t) {
+		return ""
+	}
+	return t
+}
+
+// listLiteralType liste değişmezinin tipidir: öğelerin ortak tipi varsa TR_List[T], yoksa
+// (boş, karışık, bilinmeyen öğe) öğe tipsiz TR_List.
+func (c *Checker) listLiteralType(elems []string) string {
+	if t := c.commonType(elems); t != "" {
+		return containerType(typeList, []string{t})
+	}
+	return typeList
+}
+
+// dictLiteralType sözlük değişmezinin tipidir (3.7): anahtarların ve değerlerin ortak tipi varsa
+// TR_Dict[K, V], yoksa öğe tipsiz TR_Dict.
+func (c *Checker) dictLiteralType(keys, values []string) string {
+	k, v := c.commonType(keys), c.commonType(values)
+	if k != "" && v != "" {
+		return containerType(typeDict, []string{k, v})
+	}
+	return typeDict
 }
 
 // localType açıklamasız değişkenin ilk değerinden çıkan kalıcı tipidir: tanınan tip olduğu gibi,
@@ -46,16 +97,19 @@ func signType(operand string) string {
 }
 
 // sequenceType metnin ve listenin '+' ve '*' sonucudur (4.10): iki liste uç uca eklenir, metin ve
-// liste bir TR_Int kadar yinelenir.
+// liste bir TR_Int kadar yinelenir. Öğe tipleri ayrı iki listenin toplamı öğe tipsizdir.
 func sequenceType(op, left, right string) (string, bool) {
 	switch {
 	case op == "*" && (left == typeString && right == typeInt || left == typeInt && right == typeString):
 		return typeString, true
-	case op == "*" && left == typeList && right == typeInt:
+	case op == "*" && baseType(left) == typeList && right == typeInt:
 		return left, true
-	case op == "*" && left == typeInt && right == typeList:
+	case op == "*" && left == typeInt && baseType(right) == typeList:
 		return right, true
-	case op == "+" && left == typeList && right == typeList:
+	case op == "+" && baseType(left) == typeList && baseType(right) == typeList:
+		if left == right {
+			return left, true
+		}
 		return typeList, true
 	}
 	return "", false

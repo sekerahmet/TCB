@@ -172,7 +172,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		declared := c.writtenType(s.Type, s.Line())
 		inferred := c.inferExpression(s.Value)
 		c.recordValueType(s.Value, inferred)
-		if s.Type != nil && !c.assignable(declared, inferred) {
+		if s.Type != nil && !c.assignable(declared, inferred, s.Value) {
 			c.addErrorAt(s, messages.New(messages.H1001,
 				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
 		}
@@ -282,7 +282,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.ReturnStatement:
 		valType := c.inferExpression(s.ReturnValue)
-		if c.returnType != "" && !c.assignable(c.returnType, valType) {
+		if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
 			c.addErrorAt(s, messages.New(messages.H1003,
 				c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
 		}
@@ -419,7 +419,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		}
 		for i, arg := range e.Arguments {
 			argType := c.inferExpression(arg)
-			if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType) {
+			if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
 				c.addErrorAt(arg, messages.New(messages.H1004,
 					ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
 			}
@@ -449,11 +449,11 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			}
 			// Listede += ve *= listeyi yerinde değiştirir, bağ değişmez: sabit listede de geçerlidir
 			// (5.4, 5.2); tipi bilinmeyen sabitte karar çalışma anında verilir.
-			inPlace := (op == "+" || op == "*") && (info.TypeName == typeList || info.TypeName == typeAny)
+			inPlace := (op == "+" || op == "*") && (baseType(info.TypeName) == typeList || info.TypeName == typeAny)
 			if info.IsConst && !inPlace {
 				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
-			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType) {
+			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType, s.Value) {
 				c.addErrorAt(s, messages.New(messages.H1005,
 					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.divisionHint(info.TypeName, valType, op == "/" || op == "" && dividesAtTop(s.Value))))
 			}

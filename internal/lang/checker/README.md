@@ -48,9 +48,13 @@ tipi ilk değerinin çıkarılan tipidir; sonraki atama ona uyar (H1005: `TR_var
 aritmetiği). Çağrının tipi tipli fonksiyonun dönüşü, yapı kurucusunda yapının kendisi (`Nokta(1, 2)` →
 `Nokta`), tipi bilinen yapı nesnesinin metodunda metodun dönüşüdür. İki kullanıcı tipi ancak ikisi de
 programın yapısıysa ve ayrıysa uyumsuzdur; arayüz ya da bilinmeyen tip yapıyı karşılayabilir
-(`type_shapes.go`). Denetim: `TestLocalTypeIsPermanent`, `TestLocalTypeUnknownStaysAny`,
-`TestOperatorTypes`, `TestStructCallTypes`, `TestStructMeetsInterface`, `TestUserTypeCompatibility`,
-`TestRepoFirstValueTypes` (sayaç).
+(`type_shapes.go`). Liste ve sözlüğün tipi öğe tipini taşır (`[1, 2]` → `TR_List[TR_Int]`, yazılan
+`TR_List[TR_Int]` de); boş ya da karışık değişmez öğe tipsizdir (`TR_List`) ve asıl adla karşılaştırılır.
+Kap tip argümanında değişmezdir (3.6): `TR_List[TR_Int]` `TR_List[TR_Float]` yerine verilmez, değişmezdeki
+tam sayı yazımı ise ondalık beklenen yerde ondalıktır. Denetim: `TestLocalTypeIsPermanent`,
+`TestLocalTypeUnknownStaysAny`, `TestOperatorTypes`, `TestStructCallTypes`, `TestStructMeetsInterface`,
+`TestUserTypeCompatibility`, `TestCollectionLiteralTypes`, `TestCollectionElementTypes`,
+`TestContainerCompatibility`, `TestTypeShapeText`, `TestRepoFirstValueTypes` (sayaç).
 
 **Tek hata, tek mesaj.** Bir hata aynı satırda zincirleme ikinci bir hata üretmez (ör. yanlış
 yazılmış tip adı ayrıca bir tip uyuşmazlığı olarak bildirilmez). Denetim: `TestTypeNameASCIISuggestion`, `TestTypeNameCaseSpelling`.

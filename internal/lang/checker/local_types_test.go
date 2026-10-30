@@ -76,8 +76,9 @@ func TestOperatorTypes(t *testing.T) {
 		n + "TR_var v = n > 1 TR_and n < 3": typeBool,
 		s + "TR_var v = s * 3":              typeString,
 		s + "TR_var v = 3 * s":              typeString,
-		"TR_var v = [1] + [2]":              typeList,
-		"TR_var v = [0] * 4":                typeList,
+		"TR_var v = [1] + [2]":              listType(typeInt),
+		"TR_var v = [1] + [\"a\"]":          typeList,
+		"TR_var v = [0] * 4":                listType(typeInt),
 		ten + "TR_var v = t * 2":            typeTensor,
 		ten + "TR_var v = 1.0 - t":          typeTensor,
 		ten + "TR_var v = -t":               typeTensor,
@@ -120,4 +121,39 @@ func TestStructCallTypes(t *testing.T) {
 func TestStructMeetsInterface(t *testing.T) {
 	noErrors(t, shapes+"TR_var ş: Şekil = Kare(1.0)\nTR_func ölç(x: Şekil) -> TR_Float {\n    TR_return x.alan()\n}\nTR_print(ölç(Kare(2.0)))")
 	noErrors(t, shapes+"TR_func al() -> Şekil {\n    TR_return Kare(1.0)\n}")
+}
+
+// Kural (3.6, 3.7): liste ve sözlük değişmezinin tipi öğe tipini taşır; boş, karışık ya da öğesi
+// bilinmeyen değişmez öğe tipsizdir. Değişmezde ondalık varsa tam sayı yazımları ondalıktır.
+func TestCollectionLiteralTypes(t *testing.T) {
+	str := typeString
+	expectTypes(t, map[string]string{
+		"TR_var v = [1, 2]":                   listType(typeInt),
+		"TR_var v = [1, 2.5]":                 listType(typeFloat),
+		"TR_var v = [[1], [2]]":               listType(listType(typeInt)),
+		"TR_var v = []":                       typeList,
+		"TR_var v = [1, \"a\"]":               typeList,
+		"TR_var v = [1, TR_none]":             typeList,
+		"TR_var v = [TR_input()]":             typeList,
+		"TR_var v = {\"a\": 1}":               containerType(typeDict, []string{str, typeInt}),
+		"TR_var v = {1: [\"a\"]}":             containerType(typeDict, []string{typeInt, listType(str)}),
+		"TR_var v = {}":                       typeDict,
+		"TR_var v = {\"a\": 1, \"b\": \"x\"}": typeDict,
+	})
+}
+
+// Kural (3.6, 3.13): kap tip argümanında değişmezdir: TR_List[TR_Int] TR_List[TR_String] ya da
+// TR_List[TR_Float] beklenen yere verilmez; değişmezdeki tam sayı yazımı ondalık beklenen yerde
+// ondalıktır; öğe tipsiz kap (boş değişmez) asıl adıyla karşılaştırılır.
+func TestCollectionElementTypes(t *testing.T) {
+	singleError(t, `TR_var l: TR_List[TR_Int] = ["a"]`, messages.H1001, 1, `"TR_List[TR_Int]"`, `"TR_List[TR_String]"`)
+	singleError(t, "TR_var a = [1, 2]\nTR_var l: TR_List[TR_Float] = a", messages.H1001, 2, `"TR_List[TR_Float]"`, `"TR_List[TR_Int]"`)
+	singleError(t, "TR_var l = [1]\nl = [\"a\"]", messages.H1005, 2, `"l" değişkeni (TR_List[TR_Int])`)
+	singleError(t, `TR_var d: TR_Dict[TR_String, TR_Int] = {"a": "b"}`, messages.H1001, 1, `"TR_Dict[TR_String, TR_String]"`)
+	singleError(t, "TR_func f(l: TR_List[TR_Int]) { }\nf([\"a\"])", messages.H1004, 2, `"TR_List[TR_String]"`)
+	singleErrorIn(t, "en", `TR_var l: TR_List[TR_Int] = ["a"]`, messages.H1001, 1, "List[Int]", "List[String]")
+	noErrors(t, "TR_var l: TR_List[TR_Int] = []\nl = [1, 2]\nTR_var f: TR_List[TR_Float] = [1, 2]\nTR_var d: TR_Dict[TR_String, TR_Float] = {\"a\": 1}")
+	noErrors(t, "TR_var l = [1]\nl = []\nl += [2]\nl = l + [3]\nl = l * 2")
+	noErrors(t, "TR_func f(l: TR_List[TR_Int]) { }\nf([1])\nf([])\nTR_var m = [TR_input()]\nf(m)")
+	noErrors(t, shapes+"TR_var l: TR_List[Şekil] = [Kare(1.0)]")
 }
