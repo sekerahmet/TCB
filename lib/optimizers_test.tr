@@ -134,16 +134,16 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
             op.TR_step()
             kn.TR_update(adım + 1)
         }
-        TR_return [m, op]
+        TR_return m, op
     }
     eğit(TR_Path(klasör, "kesilen"), 2) # 2. adımda kaydedip durur
     TR_var sürdürülen = eğit(TR_Path(klasör, "kesilen"), 4) # kaldığı yerden sürer
     TR_var kesintisiz = eğit(TR_Path(klasör, "kesintisiz"), 4)
-    TR_assert_equal(TR_parameters(kesintisiz[0], TR_named: TR_true), TR_parameters(sürdürülen[0], TR_named: TR_true))
-    TR_assert_equal(kesintisiz[1].TR_muon.TR_state["momentum"], sürdürülen[1].TR_muon.TR_state["momentum"])
+    TR_assert_equal(TR_parameters(kesintisiz.0, TR_named: TR_true), TR_parameters(sürdürülen.0, TR_named: TR_true))
+    TR_assert_equal(kesintisiz.1.TR_muon.TR_state["momentum"], sürdürülen.1.TR_muon.TR_state["momentum"])
     # Durum tensörleri türev izlemez (parametre değildir); kontrol noktası onları da saklar.
-    TR_assert_equal(0, TR_parameters(sürdürülen[1].TR_muon.TR_state).TR_length)
-    TR_assert(TR_max(TR_abs(sürdürülen[1].TR_muon.TR_state["momentum"][0])).TR_tolist > 0, "momentum yüklenmeli")
+    TR_assert_equal(0, TR_parameters(sürdürülen.1.TR_muon.TR_state).TR_length)
+    TR_assert(TR_max(TR_abs(sürdürülen.1.TR_muon.TR_state["momentum"][0])).TR_tolist > 0, "momentum yüklenmeli")
 }
 
 # Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
