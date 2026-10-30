@@ -83,7 +83,7 @@ func CheckNamed(fn any, named map[string]interp.Value, names ...Named) error {
 		}
 		switch {
 		case o != "":
-			return messages.New(messages.H7900, fn, given, byName[o])
+			return messages.New(messages.H7900, fn, given, codes.Spelling(byName[o].Code))
 		case len(candidates) > 0:
 			codeList := make(nameList, len(names))
 			for i, a := range names {
@@ -108,12 +108,12 @@ func (l nameList) MessageText(lang string) string {
 	return strings.Join(parts, ", ")
 }
 
-// MemberError motor tiplerinde bulunamayan bir üye için hatadır: yazıma en yakın üyeyi, yakın
-// bir üye yoksa tipin üyelerini önerir (adlar iletinin dilinde). what tipin (ya da nesnenin)
-// ileti parametresi olarak adıdır (interp.ValueType ya da kodlu ileti).
+// MemberError motor tiplerinde bulunamayan bir üye için hatadır: yazıma en yakın üyeyi (programdaki
+// kimlik yazımıyla), yakın bir üye yoksa tipin üyelerini önerir (adlar iletinin dilinde). what tipin
+// (ya da nesnenin) ileti parametresi olarak adıdır (interp.ValueType ya da kodlu ileti).
 func MemberError(what any, prop string, members []codes.Code) error {
 	if o, ok := ClosestMember(prop, members); ok {
-		return messages.New(messages.H7903, what, prop, o)
+		return messages.New(messages.H7903, what, prop, codes.Spelling(o.Code))
 	}
 	return messages.New(messages.H7904, what, prop, nameList(members))
 }

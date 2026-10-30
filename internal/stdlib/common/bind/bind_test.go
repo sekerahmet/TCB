@@ -42,8 +42,8 @@ func TestNamedArg(t *testing.T) {
 // Kural: CheckNamed bilinmeyen adda öneriyi şu sırayla arar: (1) kod listesindeki öneri (ASCII
 // yazım), yalnızca bu fonksiyonun adlarındansa; (2) başka dillerden alışılmış ad (büyük-küçük harf
 // duyarsız), yine yalnızca bu fonksiyonun adlarındansa; (3) yazım yakınlığı. Öneri yoksa geçerli
-// adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir. Önerilen ve listelenen adlar
-// iletinin dilindedir: aynı hata Türkçede 'öğrenme_oranı', İngilizcede 'lr' önerir.
+// adlar listelenir; fonksiyon adlı argüman almıyorsa söylenir. Önerilen adlı argüman programdaki
+// kimlik yazımıyla ('TR_lr'), listelenen adlar iletinin dilindedir.
 func TestCheckNamedSuggestionOrder(t *testing.T) {
 	name := func(k codes.Code, lang string) string { return codes.NameRef(k).MessageText(lang) }
 	cases := []struct {
@@ -80,8 +80,8 @@ func TestCheckNamedSuggestionOrder(t *testing.T) {
 				if !strings.Contains(m, "deneme") || !strings.Contains(m, "'"+c.given+"'") {
 					t.Errorf("%s: ileti fonksiyonu ve verilen adı söylemeli: %s", lang, m)
 				}
-				if c.suggest != codes.None && !strings.Contains(m, "'"+name(c.suggest, lang)+"'?") {
-					t.Errorf("%s: öneri %q bekleniyordu: %s", lang, name(c.suggest, lang), m)
+				if c.suggest != codes.None && !strings.Contains(m, "'"+codes.Spelling(c.suggest)+"'?") {
+					t.Errorf("%s: öneri %q bekleniyordu: %s", lang, codes.Spelling(c.suggest), m)
 				}
 				for _, k := range c.listed {
 					if !strings.Contains(m, name(k, lang)) {

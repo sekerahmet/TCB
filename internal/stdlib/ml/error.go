@@ -40,8 +40,8 @@ var (
 )
 
 // codeExample iletideki bir kod örneğidir (ileti parametresi, messages.Localized): format'taki her
-// %s yerine bir parça gelir; dilin adları (kod başvurusu, adlı argüman) iletinin dilinde, başka
-// parçalar olduğu gibi yazılır. Örnekteki kullanıcı adları dilden bağımsızdır (x, g, s).
+// %s yerine bir parça gelir; dilin adları (kod, kod başvurusu, adlı argüman) programdaki kimlik
+// yazımıyla (codes.Spelling), başka parçalar olduğu gibi yazılır.
 type codeExample struct {
 	format string
 	parts  []any
@@ -49,25 +49,31 @@ type codeExample struct {
 
 func example(format string, parts ...any) codeExample { return codeExample{format, parts} }
 
-func (e codeExample) MessageText(lang string) string {
+func (e codeExample) MessageText(_ string) string {
 	texts := make([]any, len(e.parts))
 	for i, p := range e.parts {
-		if l, ok := p.(messages.Localized); ok {
-			p = l.MessageText(lang)
+		switch x := p.(type) {
+		case codes.Code:
+			texts[i] = codes.Spelling(x)
+		case codes.Ref:
+			texts[i] = codes.Spelling(x.Code)
+		case bind.Named:
+			texts[i] = codes.Spelling(x.Code)
+		default:
+			texts[i] = p
 		}
-		texts[i] = p
 	}
 	return fmt.Sprintf(e.format, texts...)
 }
 
-// tensorCallExample listeyi tensöre çevirerek yazılmış çağrı örneğidir: fn(tensör(...)<rest>);
+// tensorCallExample listeyi tensöre çevirerek yazılmış çağrı örneğidir: TR_fn(TR_Tensor(...)<rest>);
 // rest'in biçimi ve parçaları example'daki gibidir (", %s: -1", nameAxis).
 func tensorCallExample(fn codes.Ref, rest string, parts ...any) codeExample {
-	return example("%s(%s(...)"+rest+")", append([]any{fn, codes.NameRef(codes.TypeTensor)}, parts...)...)
+	return example("%s(%s(...)"+rest+")", append([]any{fn, codes.TypeTensor}, parts...)...)
 }
 
-// gradExample hata mesajlarındaki türev izleyen tensör örneğidir: tensör(..., türev_izle: doğru).
-var gradExample = example("%s(..., %s: %s)", codes.NameRef(codes.TypeTensor), nameRequiresGrad, codes.NameRef(codes.KwTrue))
+// gradExample hata mesajlarındaki türev izleyen tensör örneğidir: TR_Tensor(..., TR_requires_grad: TR_true).
+var gradExample = example("%s(..., %s: %s)", codes.TypeTensor, nameRequiresGrad, codes.KwTrue)
 
 // safe fn'i çalıştırır; çekirdekten gelen paniği Türkçe bir hataya dönüştürür.
 func safe[T any](fn func() T) (T, error) { return bind.Recover(fn, panicError) }

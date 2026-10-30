@@ -45,9 +45,8 @@ func registerCustomGrad(v *interp.VM) {
 }
 
 // customGradExample hata mesajlarındaki kullanım örneğidir (codeExample).
-var customGradExample = example("%s(%s: %s(x) { %s [x * x, [x]] }, %s: %s(s, g) { %s [g * 2 * s[0]] })",
-	codes.NameRef(codes.FnCustomGrad), nameForward, codes.NameRef(codes.KwFunc), codes.NameRef(codes.KwReturn),
-	nameBackward, codes.NameRef(codes.KwFunc), codes.NameRef(codes.KwReturn))
+var customGradExample = example("%s(%s: (x) => [x * x, [x]], %s: (s, g) => [g * 2 * s[0]])",
+	codes.FnCustomGrad, nameForward, nameBackward)
 
 // backwardError, geri yayılım sırasında (çekirdeğin içinden) kullanıcının geri hesabında
 // oluşan hatayı taşır; backprop paniği yakalayıp hatayı olduğu gibi döndürür.

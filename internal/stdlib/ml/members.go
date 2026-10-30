@@ -76,13 +76,13 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.namedMethod(memberSplit, d.split), nil
 	}
 	if k, _, ok := codes.FindForeign(codes.NamespaceMember, prop, isTensorMember); ok {
-		o := codes.NameRef(k)
+		o := codes.Spelling(k)
 		if k == memberTranspose {
-			o = o.Called() // metot
+			o += "()" // metot
 		}
 		return nil, messages.New(messages.H7903, interp.ValTensor, prop, o)
 	} else if o, ok := bind.ClosestMember(prop, tensorMemberCodes); ok {
-		return nil, messages.New(messages.H7903, interp.ValTensor, prop, o)
+		return nil, messages.New(messages.H7903, interp.ValTensor, prop, codes.Spelling(o.Code))
 	}
 	return nil, messages.New(messages.H6721, interp.ValTensor, prop)
 }

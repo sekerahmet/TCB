@@ -225,9 +225,9 @@ func TestBoolTextComparisonWarns(t *testing.T) {
 	}
 }
 
-// İletideki dil adları iletinin dilindedir (4E): kitaplık fonksiyonunun adı, adlı argümanın adı
-// ve "Bunu mu demek istediniz" önerisi programın yakaladığı hatada İngilizcedir (yakalanan hata
-// değerdir, metni dilden bağımsızdır; TR_LANG=tr'de de) ve TR_LANG=en görüntüsünde İngilizcedir.
+// İletideki dil adları iletinin dilindedir (4E): kitaplık fonksiyonunun adı ve adlı argümanın adı
+// programın yakaladığı hatada İngilizcedir (yakalanan hata değerdir, metni dilden bağımsızdır;
+// TR_LANG=tr'de de); "Bunu mu demek istediniz" önerisi ise kopyalanabilir kimlik yazımıyladır.
 // Önceden ad TR_LANG'de kurulup iletiye metin olarak veriliyordu (yakalanan hatada "tensör",
 // "devrik()", "türev_izle" kalıyordu).
 func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
@@ -235,8 +235,8 @@ func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 		"" +
 		"" +
 		""
-	want := []string{"Tensor: requires_grad must be true or false", "Did you mean 'transpose()'?",
-		"Tensor() takes no parameter named 'türev_izl'. Did you mean 'requires_grad'?"}
+	want := []string{"Tensor: requires_grad must be true or false", "Did you mean 'TR_transpose()'?",
+		"Tensor() takes no parameter named 'türev_izl'. Did you mean 'TR_requires_grad'?"}
 	dir := t.TempDir()
 	writeTR(t, dir, "p.tr", coded)
 	caught := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=tr"}, "p.tr")

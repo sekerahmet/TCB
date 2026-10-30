@@ -51,12 +51,23 @@ var suggestionCases = []suggestionCase{
 	{messages.H2709, "TR_func g() -> (TR_Int, TR_String) { TR_return 1, \"x\" }\nTR_var f = g\nTR_var a, b, c = f()", "TR_var a, b, c = f()", "TR_var a, b = f()"},
 	{messages.H2767, "TR_enum Sonuç { Tamam(değer: TR_Int), Boş }\nTR_var s: Sonuç = Sonuç.Tamam(deger: 1)", "deger", "değer"},
 	{messages.H2778, "TR_var t = (10, \"x\")\nTR_var v: TR_Int = t[0]", "t[0]", "t.0"},
+	{messages.H6104, "TR_func f(x: TR_List[TR_Float]) -> TR_List[TR_Float] { TR_return x }\nTR_var y = TR_relu(f([1.0, 2.0]))", "TR_relu(f", "TR_relu(TR_Tensor"},
+	{messages.H6402, "TR_var x = TR_Tensor([3.0], TR_requires_grad: TR_false)\nTR_backward(TR_sum(x * 2.0))", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
+	{messages.H6405, "TR_var f = TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
+	{messages.H6430, "TR_var f = TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
+	{messages.H6431, "TR_var f = TR_custom_grad()", "TR_custom_grad()", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
+	{messages.H6513, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_false)\nTR_var opt = TR_AdamW([w])", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
+	{messages.H6514, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var opt = TR_AdamW([w])", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
+	{messages.H6520, "TR_var m = {\"w\": TR_Tensor([1.0], TR_requires_grad: TR_false)}\nTR_load_parameters(m, {\"w\": TR_Tensor([2.0])})", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
+	{messages.H6700, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var g = w.TR_grad", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
 	{messages.H6811, `TR_var t: TR_Tensor = TR_zeros([1], TR_dtype: "float64")`, "float64", "float32"},
 	{messages.H7229, `TR_var ayar = TR_command_line({"adım": 1}, TR_descriptions: {"adim": "x"})`, "adim", "adım"},
+	{messages.H7900, "TR_var s = TR_sum(TR_Tensor([1.0, 2.0]), axis: 0)", "axis", "TR_dim"},
+	{messages.H7903, "TR_var t = TR_Tensor([1.0]).tür_", "tür_", "TR_dtype"},
 }
 
 // maxUntestedSuggestionCodes izin listesindeki kayıt sayısının üst sınırıdır; liste yalnız küçülür.
-const maxUntestedSuggestionCodes = 27
+const maxUntestedSuggestionCodes = 16
 
 // untestedSuggestionCodes definitions.json'da suggestion/example/fixed yuvası taşıyan ama henüz bu tabloda
 // sınanmayan kodlardır. Her yeni sınanan kod buradan silinir; liste büyüyemez.
@@ -66,24 +77,13 @@ var untestedSuggestionCodes = map[messages.Code]string{
 	messages.H5529: "henüz sınanmadı",
 	messages.H6001: "henüz sınanmadı",
 	messages.H6002: "henüz sınanmadı",
-	messages.H6104: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
-	messages.H6402: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
-	messages.H6405: "iletiler 2: customGradExample görünüm adıyla ve TR'de geçersiz fonksiyon(x) { ... } biçimiyle kuruluyor",
-	messages.H6430: "iletiler 2: customGradExample görünüm adıyla ve TR'de geçersiz fonksiyon(x) { ... } biçimiyle kuruluyor",
-	messages.H6431: "iletiler 2: customGradExample görünüm adıyla ve TR'de geçersiz fonksiyon(x) { ... } biçimiyle kuruluyor",
-	messages.H6513: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
-	messages.H6514: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
-	messages.H6520: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
 	messages.H6530: "henüz sınanmadı",
 	messages.H6532: "henüz sınanmadı",
-	messages.H6700: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
 	messages.H7203: "henüz sınanmadı",
 	messages.H7209: "henüz sınanmadı",
 	messages.H7319: "henüz sınanmadı",
 	messages.H7435: "henüz sınanmadı",
 	messages.H7453: "henüz sınanmadı",
-	messages.H7900: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
-	messages.H7903: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
 	messages.H8664: "henüz sınanmadı",
 	messages.H8768: "henüz sınanmadı",
 	messages.H8820: "henüz sınanmadı",

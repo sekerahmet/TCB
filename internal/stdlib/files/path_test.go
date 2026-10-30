@@ -56,7 +56,7 @@ func TestPathMembers(t *testing.T) {
 		}
 	}
 	errContains(t, `TR_Path("a").TR_embed_dim`, "özelliği ya da metodu bulunamadı")
-	errContains(t, `TR_Path("a").dosya_adi`, "dosya_adı")
+	errContains(t, `TR_Path("a").dosya_adi`, "TR_name")
 }
 
 func TestPathErrors(t *testing.T) {

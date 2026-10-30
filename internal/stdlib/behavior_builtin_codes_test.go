@@ -139,9 +139,13 @@ func TestEngineMemberASCIISpellingSuggestsTurkish(t *testing.T) {
 	}
 	for _, c := range []struct {
 		code string
-		want codes.Code
-	}{{"u_tensor.sekil", codes.MemShape}, {"u_iyilestirici.sifirla", codes.MemZeroGrad}, {"u_parcalayici.coz", codes.MemDecode}} {
-		want := "'" + codes.NameRef(c.want).MessageText("tr") + "'?"
+		want string
+	}{
+		{"u_tensor.sekil", codes.Spelling(codes.MemShape)},
+		{"u_iyilestirici.sifirla", codes.NameRef(codes.MemZeroGrad).MessageText("tr")},
+		{"u_parcalayici.coz", codes.Spelling(codes.MemDecode)},
+	} {
+		want := "'" + c.want + "'?"
 		if _, err := runSame(t, m, c.code); err == nil || !strings.Contains(messages.ErrorIn(err, "tr"), want) {
 			t.Errorf("%s: %q içeren hata bekleniyordu: %v", c.code, want, err)
 		}

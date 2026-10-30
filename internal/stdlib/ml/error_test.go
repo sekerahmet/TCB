@@ -9,13 +9,13 @@ import (
 )
 
 // Kural: iletideki kod örneği (listeyi tensöre çevir, türev izleyen tensör, özel_türev kullanımı)
-// iletinin dilinde yazılır: aynı hata İngilizce iletide İngilizce örnek verir, Türkçe sözcük taşımaz.
+// programdaki kimlik yazımıyla (codes.Spelling) yazılır; düz metin iletinin dilinde kalır.
 func TestCodeExamplesFollowTheMessageLanguage(t *testing.T) {
 	for code, want := range map[string]string{
-		"TR_exp([1.0, 2.0])":              "exp(Tensor(...))",
-		"TR_softmax([1.0, 2.0])":          "softmax(Tensor(...), dim: -1)",
-		"TR_backward(TR_Tensor(3.0) * 2)": "Tensor(..., requires_grad: true)",
-		"TR_custom_grad(1)":               "custom_grad(forward: func(x) { return [x * x, [x]] }, backward: func(s, g) { return [g * 2 * s[0]] })",
+		"TR_exp([1.0, 2.0])":              "TR_exp(TR_Tensor(...))",
+		"TR_softmax([1.0, 2.0])":          "TR_softmax(TR_Tensor(...), TR_dim: -1)",
+		"TR_backward(TR_Tensor(3.0) * 2)": "TR_Tensor(..., TR_requires_grad: TR_true)",
+		"TR_custom_grad(1)":               "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])",
 	} {
 		_, err := run(t, code)
 		if err == nil {

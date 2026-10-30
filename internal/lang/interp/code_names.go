@@ -104,6 +104,10 @@ func suggests(err error, k codes.Code) bool {
 			if v.Code == k {
 				return true
 			}
+		case string:
+			if v == codes.Spelling(k) || v == codes.Spelling(k)+"()" {
+				return true
+			}
 		case error:
 			if suggests(v, k) {
 				return true
