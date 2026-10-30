@@ -60,7 +60,7 @@ func TestModuleFirstValuesAreConstant(t *testing.T) {
 		}
 	}
 	notConstant := []string{`f()`, `v`, `v + 1`, `[f()]`, `{"a": v}`, `Kurulu(1)`, `(x: TR_Int) => x + v`,
-		`TR_temp_dir()`, `"\(v)"`, `Durum.Çalışıyor(f())`}
+		`TR_temp_dir()`, `"\(v)"`, `Durum.Çalışıyor(f())`, `TR_LineReader.TR_next(N)`}
 	for _, value := range notConstant {
 		text := moduleDefs + "TR_const S = " + value + "\n"
 		if got := moduleCodes(t, text, true); strings.Join(got, " ") != "H1108" {

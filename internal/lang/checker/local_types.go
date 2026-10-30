@@ -36,10 +36,10 @@ func (c *Checker) knownType(t string) bool {
 	return true
 }
 
-// commonType değişmezdeki öğelerin ortak tipidir (3.6): hepsi aynı tanınan tipse o, tam sayı ve
-// ondalık karışıksa TR_Float (tam sayı yazımı ondalıktır); boşsa, karışıksa ya da bir öğenin tipi
-// bilinmiyorsa "".
-func (c *Checker) commonType(types []string) string {
+// commonType değişmezdeki öğelerin ortak tipidir (3.6): hepsi aynı tanınan tipse o; tam sayı ve
+// ondalık karışıksa ve her tam sayı öğe bir tam sayı yazımıysa TR_Float (3.13: yazım ondalık olur);
+// boşsa, karışıksa (tam sayı değişkenle ondalık da) ya da bir öğenin tipi bilinmiyorsa "".
+func (c *Checker) commonType(types []string, exprs []ast.Expression) string {
 	if len(types) == 0 {
 		return ""
 	}
@@ -53,6 +53,13 @@ func (c *Checker) commonType(types []string) string {
 			return ""
 		}
 	}
+	if t == typeFloat {
+		for i, u := range types {
+			if u == typeInt && !integerSpelling(exprs[i]) {
+				return ""
+			}
+		}
+	}
 	if !c.knownType(t) {
 		return ""
 	}
@@ -61,8 +68,8 @@ func (c *Checker) commonType(types []string) string {
 
 // listLiteralType liste değişmezinin tipidir: öğelerin ortak tipi varsa TR_List[T], yoksa
 // (boş, karışık, bilinmeyen öğe) öğe tipsiz TR_List.
-func (c *Checker) listLiteralType(elems []string) string {
-	if t := c.commonType(elems); t != "" {
+func (c *Checker) listLiteralType(elems []string, exprs []ast.Expression) string {
+	if t := c.commonType(elems, exprs); t != "" {
 		return containerType(typeList, []string{t})
 	}
 	return typeList
@@ -70,12 +77,22 @@ func (c *Checker) listLiteralType(elems []string) string {
 
 // dictLiteralType sözlük değişmezinin tipidir (3.7): anahtarların ve değerlerin ortak tipi varsa
 // TR_Dict[K, V], yoksa öğe tipsiz TR_Dict.
-func (c *Checker) dictLiteralType(keys, values []string) string {
-	k, v := c.commonType(keys), c.commonType(values)
+func (c *Checker) dictLiteralType(keys, values []string, keyExprs, valueExprs []ast.Expression) string {
+	k, v := c.commonType(keys, keyExprs), c.commonType(values, valueExprs)
 	if k != "" && v != "" {
 		return containerType(typeDict, []string{k, v})
 	}
 	return typeDict
+}
+
+// integerSpelling e'nin sayı olarak yazılmış bir tam sayı olduğunu söyler (3, -3): 3.13'e göre
+// ondalıkların yanında TR_Float olan yazımdır; tam sayı değişkeni öyle değildir.
+func integerSpelling(e ast.Expression) bool {
+	if p, ok := e.(*ast.PrefixExpression); ok && p.Operator == "-" {
+		e = p.Right
+	}
+	_, ok := e.(*ast.IntegerLiteral)
+	return ok
 }
 
 // localType açıklamasız değişkenin ilk değerinden çıkan kalıcı tipidir: tanınan tip olduğu gibi,

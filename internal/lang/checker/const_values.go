@@ -125,11 +125,22 @@ func (k *constScope) call(c *ast.CallExpression) ast.Node {
 			return nil
 		}
 	case *ast.MemberExpression:
-		if k.typeName(f.Object) {
+		if k.enumName(f.Object) {
 			return nil
 		}
 	}
 	return c
+}
+
+// enumName says e names an enum of the file: calling its member builds a state (Renk.Özel(1)).
+// A call on any other type's member (TR_Tensor.TR_zeros) runs code (1.1: no other call).
+func (k *constScope) enumName(e ast.Expression) bool {
+	id, ok := e.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	s := k.structs[id.Value]
+	return s != nil && s.Kind == ast.KindEnum
 }
 
 // typeName says e names an enum of the file or a type of the language or its library (a state

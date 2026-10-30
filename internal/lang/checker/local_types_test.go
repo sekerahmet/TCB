@@ -124,21 +124,25 @@ func TestStructMeetsInterface(t *testing.T) {
 }
 
 // Kural (3.6, 3.7): liste ve sözlük değişmezinin tipi öğe tipini taşır; boş, karışık ya da öğesi
-// bilinmeyen değişmez öğe tipsizdir. Değişmezde ondalık varsa tam sayı yazımları ondalıktır.
+// bilinmeyen değişmez öğe tipsizdir. Değişmezde ondalık varsa tam sayı yazımları ondalıktır; tam
+// sayı değişkeni ondalık olmaz (çalışırken TR_Int kalır), o değişmez karışıktır.
 func TestCollectionLiteralTypes(t *testing.T) {
 	str := typeString
 	expectTypes(t, map[string]string{
-		"TR_var v = [1, 2]":                   listType(typeInt),
-		"TR_var v = [1, 2.5]":                 listType(typeFloat),
-		"TR_var v = [[1], [2]]":               listType(listType(typeInt)),
-		"TR_var v = []":                       typeList,
-		"TR_var v = [1, \"a\"]":               typeList,
-		"TR_var v = [1, TR_none]":             typeList,
-		"TR_var v = [TR_input()]":             typeList,
-		"TR_var v = {\"a\": 1}":               containerType(typeDict, []string{str, typeInt}),
-		"TR_var v = {1: [\"a\"]}":             containerType(typeDict, []string{typeInt, listType(str)}),
-		"TR_var v = {}":                       typeDict,
-		"TR_var v = {\"a\": 1, \"b\": \"x\"}": typeDict,
+		"TR_var v = [1, 2]":                               listType(typeInt),
+		"TR_var v = [1, 2.5]":                             listType(typeFloat),
+		"TR_var v = [-1, 2.5]":                            listType(typeFloat),
+		"TR_var a = 1\nTR_var v = [a, 2.5]":               typeList,
+		"TR_var b = 2\nTR_var v = {\"a\": b, \"c\": 0.5}": typeDict,
+		"TR_var v = [[1], [2]]":                           listType(listType(typeInt)),
+		"TR_var v = []":                                   typeList,
+		"TR_var v = [1, \"a\"]":                           typeList,
+		"TR_var v = [1, TR_none]":                         typeList,
+		"TR_var v = [TR_input()]":                         typeList,
+		"TR_var v = {\"a\": 1}":                           containerType(typeDict, []string{str, typeInt}),
+		"TR_var v = {1: [\"a\"]}":                         containerType(typeDict, []string{typeInt, listType(str)}),
+		"TR_var v = {}":                                   typeDict,
+		"TR_var v = {\"a\": 1, \"b\": \"x\"}":             typeDict,
 	})
 }
 

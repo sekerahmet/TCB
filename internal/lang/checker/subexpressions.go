@@ -24,7 +24,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		for i, el := range e.Elements {
 			elems[i] = c.inferExpression(el)
 		}
-		return c.listLiteralType(elems), true
+		return c.listLiteralType(elems, e.Elements), true
 	case *ast.TupleExpression:
 		elems := make([]string, len(e.Elements))
 		for i, el := range e.Elements {
@@ -44,11 +44,13 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		return typeList, true
 	case *ast.DictLiteral:
 		keys, values := make([]string, len(e.Pairs)), make([]string, len(e.Pairs))
+		keyExprs, valueExprs := make([]ast.Expression, len(e.Pairs)), make([]ast.Expression, len(e.Pairs))
 		for i, p := range e.Pairs {
 			keys[i] = c.inferExpression(p.Key)
 			values[i] = c.inferExpression(p.Value)
+			keyExprs[i], valueExprs[i] = p.Key, p.Value
 		}
-		return c.dictLiteralType(keys, values), true
+		return c.dictLiteralType(keys, values, keyExprs, valueExprs), true
 	case *ast.RangeExpression:
 		c.inferExpression(e.Start)
 		c.inferExpression(e.End)
