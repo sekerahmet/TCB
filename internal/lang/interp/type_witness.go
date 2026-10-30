@@ -59,12 +59,17 @@ func witnessReport(line string) {
 
 // witnessParams bağlanan parametreleri yazılan tipleriyle karşılaştırır.
 func (v *VM) witnessParams(fn *FuncVal, fk *funcCode, env *Environment) {
+	lits := v.witnessTakeLits(fn)
 	for i, p := range fn.Parameters {
 		if p.Type == nil || i >= len(fk.param) {
 			continue
 		}
 		val := env.vals[fk.param[i]]
-		if why := v.witnessMatch(p.Type, val, env); why != "" {
+		why := v.witnessMatch(p.Type, val, env)
+		if strings.HasPrefix(why, "TAM→ONDALIK") && (lits[fmt.Sprint(i)] || lits[p.Name] || isIntLit(p.DefaultValue)) {
+			why = "" // tam sayı değişmezi TR_Float yerinde ondalıktır (3.13)
+		}
+		if why != "" {
 			witnessReport(fmt.Sprintf("%s:%d: parametre %s.%s: yazılan %s, %s", v.witnessSourceName(fk.source), p.NameToken.Line, fn.Name, p.Name, typeRefText(p.Type), why))
 		}
 	}
@@ -86,7 +91,11 @@ func (v *VM) witnessFields(def *StructDefVal, fields []ast.StructField, inst *St
 	if env == nil {
 		env = v.GlobalEnv
 	}
-	for _, f := range fields {
+	lits := v.witnessTakeLits(def)
+	for i, f := range fields {
+		if f.Type != nil && (lits[fmt.Sprint(i)] || lits[f.Name] || isIntLit(f.DefaultValue)) && f.Type.Token.Code == codes.TypeFloat {
+			continue // tam sayı değişmezi TR_Float yerinde ondalıktır (3.13)
+		}
 		v.witnessField(def, f, inst.Fields[f.Name], env)
 	}
 }
@@ -351,4 +360,195 @@ func (v *VM) witnessOther(t *ast.TypeRef, val Value, env *Environment) string {
 		return "bilinmeyen tip adı (gelen " + string(val.Type()) + ")"
 	}
 	return "gelen " + string(val.Type())
+}
+
+// --- Gözlem kipi (GEÇİCİ) ---
+//
+// TR_TYPE_PROFILE=<dosya>: her kullanıcı fonksiyonu çağrısında parametrelerin, dönen değerin ve
+// kurulan nesnenin alanlarının gerçek tipini (liste ve sözlükte öğelerin tipleriyle, tensörde
+// kestirilen cinsle) "yer<TAB>tip" satırı olarak yazar; tip yazılmış olsun olmasın. Tiplerin kodun
+// gerçek kullanımından çıkması için: çağrı yerlerinin hepsi bir arada görülür.
+
+var profileFile = os.Getenv("TR_TYPE_PROFILE")
+
+func profileOn() bool { return profileFile != "" }
+
+func profileReport(place, typ string) { profileLine(place + "\t" + typ) }
+
+var profileSeen = map[string]bool{}
+
+func profileLine(line string) {
+	witnessMu.Lock()
+	defer witnessMu.Unlock()
+	if profileSeen[line] {
+		return
+	}
+	profileSeen[line] = true
+	f, err := os.OpenFile(profileFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintln(f, line)
+}
+
+func (v *VM) profileParams(fn *FuncVal, fk *funcCode, env *Environment) {
+	for i, p := range fn.Parameters {
+		if i >= len(fk.param) || p.NameToken.Line == 0 {
+			continue
+		}
+		profileReport(fmt.Sprintf("%s:%d parametre %s.%s", v.witnessSourceName(fk.source), p.NameToken.Line, fn.Name, p.Name), describeValue(env.vals[fk.param[i]], 0))
+	}
+}
+
+func (v *VM) profileReturn(fn *FuncVal, fk *funcCode, val Value) {
+	line := 0
+	if fn.Body != nil {
+		line = fn.Body.Token.Line
+	}
+	profileReport(fmt.Sprintf("%s:%d dönüş %s", v.witnessSourceName(fk.source), line, fn.Name), describeValue(val, 0))
+}
+
+func (v *VM) profileFields(def *StructDefVal, fields []ast.StructField, inst *StructInstanceVal) {
+	for _, f := range fields {
+		v.profileField(def, f, inst.Fields[f.Name])
+	}
+}
+
+func (v *VM) profileField(def *StructDefVal, f ast.StructField, val Value) {
+	profileReport(fmt.Sprintf("%s:%d alan %s.%s", v.witnessSourceName(def.witnessSource), f.NameToken.Line, def.Name, f.Name), describeValue(val, 0))
+}
+
+func (v *VM) profileSetField(inst *StructInstanceVal, prop string, val Value) {
+	for _, f := range inst.Def.Fields {
+		if f.Name == prop {
+			v.profileField(inst.Def, f, val)
+		}
+	}
+}
+
+// describeValue değerin tipini yazar: liste ve sözlükte görülen öğe tiplerinin birleşimiyle.
+func describeValue(val Value, depth int) string {
+	if val == nil {
+		return "None"
+	}
+	switch x := val.(type) {
+	case *NullVal:
+		return "None"
+	case *IntVal:
+		return "Int"
+	case *FloatVal:
+		return "Float"
+	case *StringVal:
+		return "String"
+	case *BoolVal:
+		return "Bool"
+	case *FuncVal, *BuiltinVal:
+		return "Function"
+	case *StructDefVal:
+		return "StructDef(" + x.Name + ")"
+	case *StructInstanceVal:
+		return x.Def.Name
+	case *TupleVal:
+		parts := make([]string, len(x.Elements))
+		for i, e := range x.Elements {
+			parts[i] = describeValue(e, depth+1)
+		}
+		return "(" + strings.Join(parts, ", ") + ")"
+	case *ListVal:
+		if depth > 4 {
+			return "List[...]"
+		}
+		return "List[" + unionOf(x.Elements, depth) + "]"
+	case *DictVal:
+		if depth > 4 {
+			return "Dict[...]"
+		}
+		var keys, vals []Value
+		for i, k := range x.Order {
+			if i >= 200 {
+				break
+			}
+			keys = append(keys, x.KeyValue(k))
+			vals = append(vals, x.Pairs[k])
+		}
+		return "Dict[" + unionOf(keys, depth) + ", " + unionOf(vals, depth) + "]"
+	}
+	if val.Type() == ValTensor {
+		if wk, ok := val.(WitnessTensorKind); ok {
+			return "Tensor[" + wk.WitnessKind() + "]"
+		}
+		return "Tensor"
+	}
+	return string(val.Type())
+}
+
+func unionOf(elems []Value, depth int) string {
+	if len(elems) == 0 {
+		return "?"
+	}
+	seen := map[string]bool{}
+	var out []string
+	for i, e := range elems {
+		if i >= 200 {
+			break
+		}
+		d := describeValue(e, depth+1)
+		if !seen[d] {
+			seen[d] = true
+			out = append(out, d)
+		}
+	}
+	return strings.Join(out, " | ")
+}
+
+// witnessLitsOf çağrının tam sayı değişmezi olan argümanlarıdır (sıra numarası ya da ad): 3.13'e göre
+// TR_Float beklenen yerde ondalıktır, tanık onları TAM→ONDALIK saymaz.
+func witnessLitsOf(e *ast.CallExpression) map[string]bool {
+	if !witnessOn() {
+		return nil
+	}
+	var out map[string]bool
+	isLit := isIntLit
+	for i, a := range e.Arguments {
+		if isLit(a) {
+			if out == nil {
+				out = map[string]bool{}
+			}
+			out[fmt.Sprint(i)] = true
+		}
+	}
+	for _, a := range e.NamedArgs {
+		if isLit(a.Value) {
+			if out == nil {
+				out = map[string]bool{}
+			}
+			out[a.Name] = true
+		}
+	}
+	return out
+}
+
+func (v *VM) witnessMark(fn Value, lits map[string]bool) {
+	if lits != nil {
+		v.witnessLitFn, v.witnessLits = fn, lits
+	}
+}
+
+// witnessTakeLits çağrılan fonksiyonun değişmez argümanlarını alır (başka bir çağrınınsa boş).
+func (v *VM) witnessTakeLits(fn Value) map[string]bool {
+	if v.witnessLitFn != fn {
+		return nil
+	}
+	lits := v.witnessLits
+	v.witnessLitFn, v.witnessLits = nil, nil
+	return lits
+}
+
+func isIntLit(x ast.Expression) bool {
+	if p, ok := x.(*ast.PrefixExpression); ok && p.Operator == "-" {
+		x = p.Right
+	}
+	_, ok := x.(*ast.IntegerLiteral)
+	return ok
 }

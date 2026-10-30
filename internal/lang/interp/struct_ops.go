@@ -109,12 +109,18 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 			codeVal:    initMethod.codeVal,
 			ReturnType: initMethod.ReturnType,
 		}
+		if v.witnessLitFn == Value(fn) {
+			v.witnessLitFn = boundInit
+		}
 		if _, err := v.ApplyFunction(boundInit, args, named, line); err != nil {
 			return nil, err
 		}
 	}
 	if witnessOn() {
 		v.witnessFields(fn, fn.Fields, inst)
+	}
+	if profileOn() {
+		v.profileFields(fn, fn.Fields, inst)
 	}
 	return inst, nil
 }
@@ -227,6 +233,9 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 	escape(finalVal)
 	if witnessOn() {
 		v.witnessSetField(inst, prop, finalVal)
+	}
+	if profileOn() {
+		v.profileSetField(inst, prop, finalVal)
 	}
 	inst.Fields[prop] = finalVal
 	return nil

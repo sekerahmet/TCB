@@ -235,6 +235,10 @@ type VM struct {
 	// owners çağrı derinliğine göre sahiplik çerçeveleri (0: üst düzey); yalnızca görevin
 	// kendi goroutine'i kullanır (ownership.go).
 	owners []*ownerFrame
+
+	// GEÇİCİ (tip tanığı): sıradaki çağrının tam sayı değişmezi olan argümanları (type_witness.go).
+	witnessLitFn Value
+	witnessLits  map[string]bool
 }
 
 // TaskValue returns the engine state bound to this task (VM view) under a key, or nil. The
