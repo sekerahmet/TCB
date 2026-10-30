@@ -226,14 +226,14 @@ tr: döngü i, x içinde ["a", "b"] { yazdır(i, x) }
 Fonksiyon tanımlar; parametrelere varsayılan değer verilebilir, tanım öne alınmaz (tanımdan önce çağrılamaz).
 
 ```tr
-TR_func topla(a, b = 1) { TR_return a + b }; TR_print(topla(2, 3), topla(5))
+TR_func topla(a: TR_Int, b: TR_Int = 1) -> TR_Int { TR_return a + b }; TR_print(topla(2, 3), topla(5))
 ```
 
 Görünümü:
 
 ```text
-en: func topla(a, b = 1) { return a + b }; print(topla(2, 3), topla(5))
-tr: fonksiyon topla(a, b = 1) { sonuç a + b }; yazdır(topla(2, 3), topla(5))
+en: func topla(a: Int, b: Int = 1) -> Int { return a + b }; print(topla(2, 3), topla(5))
+tr: fonksiyon topla(a: Tam, b: Tam = 1) -> Tam { sonuç a + b }; yazdır(topla(2, 3), topla(5))
 ```
 
 İlişkili: `TR_return`
@@ -377,14 +377,14 @@ tr: yazdır(yanlış veya doğru, 1 > 2 veya 3 > 2)
 Fonksiyondan değer döndürür; gövdenin son ifadesi dönüş değeri değildir, sonuç'suz biten fonksiyon yok döndürür; yalnız sonuç yok döndürür; programın en dışında yazılmaz (1.10), test gövdesinde de derleme hatasıdır.
 
 ```tr
-TR_func işaret(n) { TR_if n < 0 { TR_return "negatif" }; TR_return "pozitif" }; TR_print(işaret(-2))
+TR_func işaret(n: TR_Int) -> TR_String { TR_if n < 0 { TR_return "negatif" }; TR_return "pozitif" }; TR_print(işaret(-2))
 ```
 
 Görünümü:
 
 ```text
-en: func işaret(n) { if n < 0 { return "negatif" }; return "pozitif" }; print(işaret(-2))
-tr: fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
+en: func işaret(n: Int) -> String { if n < 0 { return "negatif" }; return "pozitif" }; print(işaret(-2))
+tr: fonksiyon işaret(n: Tam) -> Metin { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" }; yazdır(işaret(-2))
 ```
 
 İlişkili: `TR_func`
@@ -394,14 +394,14 @@ tr: fonksiyon işaret(n) { eğer n < 0 { sonuç "negatif" }; sonuç "pozitif" };
 Yapı metodunun içinde metodun çağrıldığı nesneyi gösterir; alanlar kendi ile okunur ve değiştirilir.
 
 ```tr
-TR_struct Sayaç { n = 0; TR_func artır() { TR_self.n += 1 } }; TR_var s = Sayaç(); s.artır(); s.artır(); TR_print(s.n)
+TR_struct Sayaç { n: TR_Int = 0; TR_func artır() { TR_self.n += 1 } }; TR_var s = Sayaç(); s.artır(); s.artır(); TR_print(s.n)
 ```
 
 Görünümü:
 
 ```text
-en: struct Sayaç { n = 0; func artır() { self.n += 1 } }; var s = Sayaç(); s.artır(); s.artır(); print(s.n)
-tr: yapı Sayaç { n = 0; fonksiyon artır() { kendi.n += 1 } }; değişken s = Sayaç(); s.artır(); s.artır(); yazdır(s.n)
+en: struct Sayaç { n: Int = 0; func artır() { self.n += 1 } }; var s = Sayaç(); s.artır(); s.artır(); print(s.n)
+tr: yapı Sayaç { n: Tam = 0; fonksiyon artır() { kendi.n += 1 } }; değişken s = Sayaç(); s.artır(); s.artır(); yazdır(s.n)
 ```
 
 İlişkili: `TR_struct`
@@ -411,14 +411,14 @@ tr: yapı Sayaç { n = 0; fonksiyon artır() { kendi.n += 1 } }; değişken s = 
 Alanları ve metotları olan bir yapı tanımlar; nesne yapının adıyla, alan sırasıyla ya da adlı argümanlarla oluşturulur. Kalıtım yoktur.
 
 ```tr
-TR_struct Nokta { x = 0, y = 0 }; TR_print(Nokta(3, 4), Nokta(y: 1).x)
+TR_struct Nokta { x: TR_Int = 0, y: TR_Int = 0 }; TR_print(Nokta(3, 4), Nokta(y: 1).x)
 ```
 
 Görünümü:
 
 ```text
-en: struct Nokta { x = 0, y = 0 }; print(Nokta(3, 4), Nokta(y: 1).x)
-tr: yapı Nokta { x = 0, y = 0 }; yazdır(Nokta(3, 4), Nokta(y: 1).x)
+en: struct Nokta { x: Int = 0, y: Int = 0 }; print(Nokta(3, 4), Nokta(y: 1).x)
+tr: yapı Nokta { x: Tam = 0, y: Tam = 0 }; yazdır(Nokta(3, 4), Nokta(y: 1).x)
 ```
 
 İlişkili: `TR_self`, `TR_init`
@@ -532,14 +532,14 @@ tr: dene { fırlat "patladı" } yakala { yazdır(hata) }
 Bu adlı metot nesne oluşturulurken aynı argümanlarla çağrılır; argümanlar kurucunun imzasına göre denetlenir.
 
 ```tr
-TR_struct Hesap { bakiye; TR_func TR_init(b) { TR_self.bakiye = b * 2 } }; TR_print(Hesap(5).bakiye)
+TR_struct Hesap { bakiye: TR_Int; TR_func TR_init(b: TR_Int) { TR_self.bakiye = b * 2 } }; TR_print(Hesap(5).bakiye)
 ```
 
 Görünümü:
 
 ```text
-en: struct Hesap { bakiye; func init(b) { self.bakiye = b * 2 } }; print(Hesap(5).bakiye)
-tr: yapı Hesap { bakiye; fonksiyon kurucu(b) { kendi.bakiye = b * 2 } }; yazdır(Hesap(5).bakiye)
+en: struct Hesap { bakiye: Int; func init(b: Int) { self.bakiye = b * 2 } }; print(Hesap(5).bakiye)
+tr: yapı Hesap { bakiye: Tam; fonksiyon kurucu(b: Tam) { kendi.bakiye = b * 2 } }; yazdır(Hesap(5).bakiye)
 ```
 
 İlişkili: `TR_struct`
@@ -708,14 +708,14 @@ tr: değişken küme = VeriKümesi("tests/data/numbers"); yazdır(küme, Tip(kü
 Eklenme sırasını koruyan anahtar–değer tablosu tipidir; anahtar köşeli parantezle okunur, olmayan anahtar hatadır, .varsa_al(k) yok verir (3.7).
 
 ```tr
-TR_var s: TR_Dict = {"ad": "Ali"}; TR_print(TR_Type(s), s["ad"])
+TR_var s: TR_Dict[TR_String, TR_String] = {"ad": "Ali"}; TR_print(TR_Type(s), s["ad"])
 ```
 
 Görünümü:
 
 ```text
-en: var s: Dict = {"ad": "Ali"}; print(Type(s), s["ad"])
-tr: değişken s: Sözlük = {"ad": "Ali"}; yazdır(Tip(s), s["ad"])
+en: var s: Dict[String, String] = {"ad": "Ali"}; print(Type(s), s["ad"])
+tr: değişken s: Sözlük[Metin, Metin] = {"ad": "Ali"}; yazdır(Tip(s), s["ad"])
 ```
 
 Üyeleri: `.TR_contains(...)`, `.TR_get(...)`, `.TR_keys(...)`, `.TR_length`, `.TR_values(...)`
@@ -906,14 +906,14 @@ tr: yazdır(Tip(yok), Tip(yok) == YokTipi)
 Yapıdan oluşturulan nesnelerin genel adıdır; Tip() bir nesne için Nesne değil yapının kendisini verir (Tip(p) == Nokta).
 
 ```tr
-TR_struct Nokta { x, y }; TR_var p = Nokta(1, 2); TR_print(TR_Type(p) == Nokta, p)
+TR_struct Nokta { x: TR_Int, y: TR_Int }; TR_var p = Nokta(1, 2); TR_print(TR_Type(p) == Nokta, p)
 ```
 
 Görünümü:
 
 ```text
-en: struct Nokta { x, y }; var p = Nokta(1, 2); print(Type(p) == Nokta, p)
-tr: yapı Nokta { x, y }; değişken p = Nokta(1, 2); yazdır(Tip(p) == Nokta, p)
+en: struct Nokta { x: Int, y: Int }; var p = Nokta(1, 2); print(Type(p) == Nokta, p)
+tr: yapı Nokta { x: Tam, y: Tam }; değişken p = Nokta(1, 2); yazdır(Tip(p) == Nokta, p)
 ```
 
 İlişkili: `TR_StructType`
@@ -1066,14 +1066,14 @@ tr: değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", M
 yapı ile tanımlanan yapının kendisinin tipidir; tip açıklamasında kullanılamaz.
 
 ```tr
-TR_struct Nokta { x, y }; TR_print(TR_Type(Nokta) == TR_StructType)
+TR_struct Nokta { x: TR_Int, y: TR_Int }; TR_print(TR_Type(Nokta) == TR_StructType)
 ```
 
 Görünümü:
 
 ```text
-en: struct Nokta { x, y }; print(Type(Nokta) == StructType)
-tr: yapı Nokta { x, y }; yazdır(Tip(Nokta) == YapıTanımı)
+en: struct Nokta { x: Int, y: Int }; print(Type(Nokta) == StructType)
+tr: yapı Nokta { x: Tam, y: Tam }; yazdır(Tip(Nokta) == YapıTanımı)
 ```
 
 İlişkili: `TR_struct`, `TR_Object`

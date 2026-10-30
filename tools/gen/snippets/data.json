@@ -7,7 +7,7 @@
           "code": "TR_kw_func"
         }
       ],
-      "source": "# TR 4\nTR_func ph_name(ph_param) {\n\tTR_return ph_return\n}\n",
+      "source": "# TR 4\nTR_func ph_name(ph_param: TR_Int) -> TR_Int {\n\tTR_return ph_return\n}\n",
       "holes": {
         "ph_name": "${1:%name%}",
         "ph_param": "${2:%param%}",

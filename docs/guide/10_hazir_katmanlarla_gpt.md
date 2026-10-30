@@ -64,7 +64,7 @@ TR_for adım TR_in 0..3 {
 
 ```tr
 # TR 4
-TR_func işaretli_sgd(ağırlıklar, oran) {
+TR_func işaretli_sgd(ağırlıklar: TR_List[TR_Tensor], oran: TR_Float) {
     TR_no_grad {
         TR_for p TR_in ağırlıklar {
             TR_if p.TR_grad != TR_none {

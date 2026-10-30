@@ -7,7 +7,7 @@
         "func"
       ],
       "body": [
-        "TR_func ${1:name}(${2:parameter}) {",
+        "TR_func ${1:name}(${2:parameter}: TR_Int) -> TR_Int {",
         "\tTR_return ${3:${2:parameter}}",
         "}"
       ]
@@ -157,7 +157,7 @@
         "fonksiyon"
       ],
       "body": [
-        "TR_func ${1:isim}(${2:parametre}) {",
+        "TR_func ${1:isim}(${2:parametre}: TR_Int) -> TR_Int {",
         "\tTR_return ${3:${2:parametre}}",
         "}"
       ]
