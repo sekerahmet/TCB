@@ -10,7 +10,7 @@
 | [`status.md`](status.md) | Geliştiriciler | Dil tanımının yeniden yazılan bölümlerine göre bugünkü durum ve yapılacaklar |
 | [`roadmap.md`](roadmap.md) | Herkes | Yol haritası: dil tanımının yeniden yazılan bölümlerinden gelen işler ve kilometre taşları; eskisi [`archive/`](archive/roadmap-2026-10-27.md) |
 | [`architecture.md`](architecture.md) | Depoda çalışanlar | Katmanlar, kim kimi içe aktarabilir, her paketin görevi, klasör haritası, sahiplik |
-| [`development.md`](development.md) | Depoda çalışanlar | Kod düzeni: dosya başına tek konu, dosya ve fonksiyon sınırları, Türkçe adlar, paket belgesi, testlerin yeri, yeni kod isteği, tam denetim, ölçüm disiplini |
+| [`development.md`](development.md) | Depoda çalışanlar | Kod düzeni: dosya başına tek konu, dosya ve fonksiyon sınırları, İngilizce kod tabanı ve diller, paket belgesi, testlerin yeri, yeni kod isteği, tam denetim, ölçüm disiplini |
 
 Depo kökündeki [`README.md`](../README.md) dilin amacını anlatır; eski, uzun hâli [`archive/`](archive/README-2026-10-27.md)'tedir; VS Code eklentisi [`editors/vscode/README.md`](../editors/vscode/README.md)'de, hız kıyas seti [`tools/bench/README.md`](../tools/bench/README.md)'dedir.
 

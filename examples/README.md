@@ -60,9 +60,9 @@ TR_LANG=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 | 43 | [`43_hata_ayiklama_alistirmasi.tr`](tr/43_hata_ayiklama_alistirmasi.tr) | Hata ayıklama alıştırması: VS Code hata ayıklayıcısıyla bir programı adım adım izlemek |
 | 44 | [`44_egitim_kararliligi.tr`](tr/44_egitim_kararliligi.tr) | Eğitimin kararlılığı: NaN'i ve kayıp sıçramasını yakalamak, son kontrol noktasına dönüp sorunlu toplu işleri atlamak |
 | 45 | [`45_tekrar_oynat.tr`](tr/45_tekrar_oynat.tr) | Kaydedip oynatmak: sık tekrarlanan küçük bir GPU adımını bir kez kaydedip tek seferde oynatmak (`TR_fn_replay`, `TR_fn_write_slice`) |
-| 46 | [`46_hazir_model_ve_uretim.tr`](tr/46_hazir_model_ve_uretim.tr) | Hazır model ve üretim: Hugging Face biçimindeki bir modeli yüklemek (`TR_fn_pretrained_model`, `ağırlık_türü`) ve `TR_mem_generate` ile parça üretmek (küçük, rastgele ağırlıklı model `tests/data/hf_tiny`) |
-| 47 | [`47_kendi_uretim_dongusu.tr`](tr/47_kendi_uretim_dongusu.tr) | Kendi üretim döngün: `TR_mem_build_cache`, önbellekli `ileri`, `TR_mem_strip`; elle yazılan döngü `TR_mem_generate` ile aynı diziyi verir; `gizli_durum` + `TR_mem_single_step` + `TR_fn_replay` |
-| 48 | [`48_egitim_kosusu.tr`](tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`TR_type_Run`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce `prova` |
+| 46 | [`46_hazir_model_ve_uretim.tr`](tr/46_hazir_model_ve_uretim.tr) | Hazır model ve üretim: Hugging Face biçimindeki bir modeli yüklemek (`TR_fn_pretrained_model`, `TR_arg_weight_dtype`) ve `TR_mem_generate` ile parça üretmek (küçük, rastgele ağırlıklı model `tests/data/hf_tiny`) |
+| 47 | [`47_kendi_uretim_dongusu.tr`](tr/47_kendi_uretim_dongusu.tr) | Kendi üretim döngün: `TR_mem_build_cache`, önbellekli `TR_mem_forward`, `TR_mem_truncate`; elle yazılan döngü `TR_mem_generate` ile aynı diziyi verir; `TR_mem_hidden_states` + `TR_mem_single_step` + `TR_fn_replay` |
+| 48 | [`48_egitim_kosusu.tr`](tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`TR_type_Run`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce prova (`TR_arg_dry_run`) |
 | 49 | [`49_programin_sonu.tr`](tr/49_programin_sonu.tr) | Programın sonu: `TR_exit` ile kendi çıkış kodu, `TR_handle_stop` ve `TR_stop_requested` ile Ctrl+C'yi programın kendisinin karşılaması |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
@@ -98,7 +98,7 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 
 ## Komut satırı
 
-Örneklerin hepsi bir `.tr` dosyasıdır; dilin komut satırı adları (`K` ailesi) dosyada geçmez, burada gösterilir. Komut, alt komut, seçenek, kabuk ve hata ayıklayıcı komutları ile ortam değişkenleri kimlik adıyla yazılır (17.9).
+Örneklerin hepsi bir `.tr` dosyasıdır; dilin komut satırı adları (`cmd`, `sub`, `opt`, `repl`, `dbg`, `env` sınıfları) dosyada geçmez, burada gösterilir. Komut, alt komut, seçenek, kabuk ve hata ayıklayıcı komutları ile ortam değişkenleri kimlik adıyla yazılır (17.9).
 
 | Komut | Ne yapar | Örnek |
 | :-- | :-- | :-- |
@@ -144,7 +144,7 @@ Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılı
 | `--clear` | `index` komutunda dizin önbelleğini siler | `tr index --clear` |
 | `--no-text` | `rename` sorgusunda belge, yorum ve ileti metni taramasını kapatır | `tr index rename baş bakış --no-text` |
 | `--term` | `rename` sorgusunda sembol aramaz, sözcüğü yalnızca metinde arar | `tr index rename çekirdek kernel --term` |
-| `--help` | Programın `komut_satırı` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --help` |
+| `--help` | Programın `TR_fn_command_line` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --help` |
 
 Ortam değişkenleri (kimlik adıyla yazılır ve okunur, 17.9):
 
