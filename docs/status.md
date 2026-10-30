@@ -21,11 +21,11 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.2
 
-- **Mevcut durum:** TR dinamik tiplidir; tip açıklaması isteğe bağlıdır (3.13). Denetleyici sığdır: tipi çıkarılamayan değer `TR_Any` sayılıyor; parametre tipleri yalnız adıyla doğrudan çağrılan fonksiyonun konumlu argümanlarında denetleniyor, adlı argüman, metot ve fonksiyon değeri üstünden çağrı denetlenmiyor (eski 14. bölümün sözü) [kanıtsız: bu tur ölçülmedi].
-- **Yapılacaklar:** büyük tasarım, turlarla:
-  - denetleyiciye tip çıkarımı;
-  - kitaplığın, örneklerin ve testlerin imzaları;
-  - "olabilir" tipi;
+- **Mevcut durum:** denetleyici yerel değişkenin tipini ilk değerinden çıkarıyor ve tipi kalıcı (3.13): değişmezler, aritmetik ve önek işleç, karşılaştırma, adıyla çağrılan tipli fonksiyonun ve tipi bilinen yapının metodunun dönüşü, yapı kurucusu, liste ve sözlüğün öğe tipi, demet; bilinmeyen `TR_Any` kalıyor. Depodaki programların 1884 ilk değerinden 1152'sinin tipi bilinmiyor (önce 1212); tipsiz parametre ve alan henüz hata değil, parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor [ölçüldü: `TestRepoFirstValueTypes`, dal `claude/hopeful-brahmagupta-miw41q`].
+- **Yapılacaklar:** turlarla:
+  - kapı: tipsiz parametre ve alan denetim hatası (6.1, 7.1; 4a1'in ikinci dilimi);
+  - çıkarımın kalanı: yerleşik ve kitaplık çağrılarının dönüşü (bilinmeyenlerin çoğu: 937, `TR_Tensor(...)` tek başına 218), indeks, üye ve alan erişimi, tipi bilinmeyen işlenenli işleç, `TR_if`/`TR_match` değeri, döngü değişkeni, kapanış, çoklu tanımın (`TR_var a, b = f()`) öğe tipleri, metot ve kurucu argümanlarının denetimi;
+  - isteğe bağlı `T?` ve `TR_none` daraltması (3.5): ilk denemesi denetleyici testlerinde 33 yeni hata açtı (tip yazımı testleri ilk değer olarak `TR_none` kullanıyor), geri alındı;
   - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği;
   - `TR_import ... TR_as m` modülü bugün `TR_Dict`'e bağlıyor (11.2), üyelerin tipi korunmalı; gerçek sürücü ile benzetim arasında seçim için ortak bir arayüz tipi.
 
@@ -120,8 +120,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ### 3.13
 
-- **Mevcut durum:** `0` ile başlayan değişkene ondalık eklenebiliyor [ölçüldü]; açıklamasız değişkenin tipi kalıcı değil.
-- **Yapılacaklar:** statik tip (1.2); kalıcı yerel tip; tam sayı yazımı ondalık beklenen yerde ondalık.
+- **Mevcut durum:** açıklamasız yerel değişkenin tipi ilk değerinden çıkıyor ve kalıcı: başka tipte atama (`TR_var birikim = 0` sonra `birikim += 0.5`) denetim hatası (H1005); dil tanımının 3.13 hata bloğu ve TR testi bunu sınıyor. Tipi çıkarılamayan ilk değerin değişkeni `TR_Any` kalıyor (1.2) [ölçüldü: `TestAssignmentTypeCheck`, `TestCompoundAssignment`, dal `claude/hopeful-brahmagupta-miw41q`].
+- **Yapılacaklar:** çıkarımın kalanı (1.2); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu; tam sayı yazımı ondalık beklenen yerde ondalık.
 
 ### 3.14
 
