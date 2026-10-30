@@ -157,3 +157,26 @@ func TestCollectionElementTypes(t *testing.T) {
 	noErrors(t, "TR_func f(l: TR_List[TR_Int]) { }\nf([1])\nf([])\nTR_var m = [TR_input()]\nf(m)")
 	noErrors(t, shapes+"TR_var l: TR_List[Şekil] = [Kare(1.0)]")
 }
+
+// Kural (3.6a): demetin tipi öğelerinin tipleridir; t.0 öğenin tipini verir. Öğesinin tipi
+// bilinmeyen demet TR_Any'dir; demet tipi yazılan dönüş de demettir.
+func TestTupleTypes(t *testing.T) {
+	pair := tupleType([]string{typeInt, typeString})
+	const f = "TR_func f() -> (TR_Int, TR_String) {\n    TR_return 1, \"a\"\n}\n"
+	expectTypes(t, map[string]string{
+		"TR_var v = (1, \"a\")":                            pair,
+		"TR_var v = (1, (2.5, TR_true))":                   tupleType([]string{typeInt, tupleType([]string{typeFloat, typeBool})}),
+		"TR_var v = (1, TR_input())":                       typeAny,
+		"TR_var p = (1, \"a\")\nTR_var v = p.1":            typeString,
+		"TR_var p = (1, (2.5, TR_true))\nTR_var v = p.1.0": typeFloat,
+		"TR_var p = (1, \"a\")\nTR_var v = p.2":            typeAny,
+		f + "TR_var v = f()":                               pair,
+		f + "TR_var v = f().0":                             typeInt,
+	})
+	singleError(t, "TR_var p = (1, \"a\")\np = (\"a\", 1)", messages.H1005, 2, `(TR_Int, TR_String)`, `(TR_String, TR_Int)`)
+	singleError(t, "TR_var p: (TR_Int, TR_Int) = (1, 2, 3)", messages.H1001, 1, `(TR_Int, TR_Int, TR_Int)`)
+	singleError(t, "TR_func f() -> (TR_Int, TR_String) {\n    TR_return \"a\", 1\n}", messages.H1003, 2, `(TR_String, TR_Int)`)
+	singleError(t, "TR_var n: TR_Int = (1, 2)", messages.H1001, 1, `(TR_Int, TR_Int)`)
+	singleErrorIn(t, "en", "TR_var p = (1, \"a\")\np = (\"a\", 1)", messages.H1005, 2, "(Int, String)", "(String, Int)")
+	noErrors(t, f+"TR_var p = f()\np = (2, \"b\")\nTR_var q: (TR_Float, TR_String) = (1, \"c\")\nTR_var a, b = f()")
+}

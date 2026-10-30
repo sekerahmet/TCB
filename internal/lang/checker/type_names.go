@@ -212,25 +212,30 @@ func (c *Checker) checkedTypeName(name string, at lexer.Token) string {
 }
 
 // writtenType yazılan tipin denetleyicideki adını verir (yazılmamışsa Herhangi). Liste ve sözlük
-// öğe tipiyle yazılır (TR_List[TR_Int], type_shapes.go); öbür bileşik tip bugün asıl adına
-// indirgenir: T? → T; demet tipi Herhangi'dir. Fonksiyon tipi, bu işten önceki gibi Fonksiyon'dur:
+// öğe tipiyle (TR_List[TR_Int]), demet öğelerinin tipleriyle ((TR_Int, TR_String)) yazılır
+// (type_shapes.go); öbür bileşik tip bugün asıl adına indirgenir: T? → T. Fonksiyon tipi, bu işten önceki gibi Fonksiyon'dur:
 // fonksiyon olmayan değer yine yakalanır. İçindeki her ad checkedTypeName'deki gibi denetlenir.
 func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 	if t == nil {
 		return typeAny
 	}
-	for _, inner := range [][]ast.TypeRef{t.Elems, t.Params} {
-		for i := range inner {
-			c.writtenType(&inner[i], line)
-		}
+	for i := range t.Params {
+		c.writtenType(&t.Params[i], line)
 	}
 	args := make([]string, len(t.Args))
 	for i := range t.Args {
 		args[i] = c.writtenType(&t.Args[i], line)
 	}
+	elems := make([]string, len(t.Elems))
+	for i := range t.Elems {
+		elems[i] = c.writtenType(&t.Elems[i], line)
+	}
 	if t.Return != nil {
 		c.writtenType(t.Return, line)
 		return typeFunction
+	}
+	if len(elems) >= 2 {
+		return tupleType(elems)
 	}
 	if t.Name == "" {
 		return typeAny
@@ -242,6 +247,13 @@ func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 func normalizedType(t *ast.TypeRef) string {
 	if t != nil && t.Return != nil {
 		return typeFunction
+	}
+	if t != nil && len(t.Elems) >= 2 {
+		elems := make([]string, len(t.Elems))
+		for i := range t.Elems {
+			elems[i] = normalizedType(&t.Elems[i])
+		}
+		return tupleType(elems)
 	}
 	if t == nil || t.Name == "" {
 		return typeAny

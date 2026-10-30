@@ -7,18 +7,23 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 )
 
-// Denetleyici tipleri metin olarak taşır; kabın metni öğe tipini de yazar (3.6, 3.7):
-// TR_List[TR_Int], TR_Dict[TR_String, TR_Int]. Öğe tipi bilinmeyen kap asıl adıyla kalır (TR_List).
-// Bu dosya metni böler, kurar ve iki tipin uyumuna karar verir.
+// Denetleyici tipleri metin olarak taşır; kabın metni öğe tipini, demetinki öğelerinin tiplerini de
+// yazar (3.6, 3.6a, 3.7): TR_List[TR_Int], TR_Dict[TR_String, TR_Int], (TR_Int, TR_String). Öğe tipi
+// bilinmeyen kap asıl adıyla kalır (TR_List). Bu dosya metni böler, kurar ve iki tipin uyumuna karar verir.
 
-// typeShape bir tip metninin parçalarıdır: asıl ad ve kabın tip argümanları.
+// typeShape bir tip metninin parçalarıdır: asıl ad ve kabın tip argümanları; demette asıl ad boştur,
+// elems öğelerin tipleridir.
 type typeShape struct {
-	base string
-	args []string
+	base  string
+	args  []string
+	elems []string
 }
 
 // shapeOf tip metnini parçalarına ayırır.
 func shapeOf(t string) typeShape {
+	if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
+		return typeShape{elems: splitTypes(t[1 : len(t)-1])}
+	}
 	if i := strings.IndexByte(t, '['); i > 0 && strings.HasSuffix(t, "]") {
 		return typeShape{base: t[:i], args: splitTypes(t[i+1 : len(t)-1])}
 	}
@@ -55,7 +60,10 @@ func containerType(name string, args []string) string {
 	return name
 }
 
-// baseType tipin asıl adıdır: TR_List[TR_Int] → TR_List.
+// tupleType öğelerinin tipleri elems olan demetin tipidir (3.6a): (TR_Int, TR_String).
+func tupleType(elems []string) string { return "(" + strings.Join(elems, ", ") + ")" }
+
+// baseType tipin asıl adıdır: TR_List[TR_Int] → TR_List; demette boş.
 func baseType(t string) string { return shapeOf(t).base }
 
 // mapTypeNames tip metnindeki her adı f'nin verdiğiyle değiştirir; ayraçlar ([, ], (, ), virgül,
@@ -123,6 +131,9 @@ func (k compat) types(expected, actual string) bool {
 // fits expected yerine actual konabilir mi; inner bir kabın tip argümanıdır.
 func (k compat) fits(expected, actual string, inner bool) bool {
 	e, a := shapeOf(expected), shapeOf(actual)
+	if e.elems != nil || a.elems != nil {
+		return k.tuplesFit(e, a)
+	}
 	e.base, a.base = normalizeTypeName(e.base), normalizeTypeName(a.base)
 	if e.base == typeAny || a.base == typeAny || a.base == typeNull {
 		return true
@@ -135,6 +146,25 @@ func (k compat) fits(expected, actual string, inner bool) bool {
 	}
 	for i := range e.args {
 		if !k.fits(e.args[i], a.args[i], true) {
+			return false
+		}
+	}
+	return true
+}
+
+// tuplesFit bir yanı demet olan iki tipin uyumudur (3.6a): iki demet aynı sayıda öğeli ve öğeleri
+// sırayla uyumluysa uyar; demetin karşısında Herhangi ya da bilinmeyen bir ad (tip parametresi) her
+// demeti karşılayabilir, öbür tipler karşılamaz.
+func (k compat) tuplesFit(e, a typeShape) bool {
+	if e.elems == nil || a.elems == nil {
+		other := normalizeTypeName(e.base + a.base)
+		return other == typeAny || other == typeNull || k.unknownName(other)
+	}
+	if len(e.elems) != len(a.elems) {
+		return false
+	}
+	for i := range e.elems {
+		if !k.fits(e.elems[i], a.elems[i], true) {
 			return false
 		}
 	}

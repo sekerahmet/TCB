@@ -22,13 +22,13 @@ var coreTypes = func() map[string]bool {
 }()
 
 // knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi? Çekirdek tipler,
-// programın yapıları ve öğe tipleri tanınan kaplar.
+// programın yapıları, öğe tipleri tanınan kaplar ve demetler.
 func (c *Checker) knownType(t string) bool {
 	s := shapeOf(t)
-	if !coreTypes[s.base] && !c.knownStruct(s.base) {
+	if s.elems == nil && !coreTypes[s.base] && !c.knownStruct(s.base) {
 		return false
 	}
-	for _, a := range s.args {
+	for _, a := range append(s.args, s.elems...) {
 		if !c.knownType(a) {
 			return false
 		}
@@ -160,4 +160,25 @@ func (c *Checker) callType(e *ast.CallExpression, info TypeInfo, found bool, obj
 		}
 	}
 	return typeAny
+}
+
+// tupleLiteralType demet değişmezinin tipidir (3.6a): (1, "a") → (TR_Int, TR_String). Bir öğesinin
+// tipi bilinmiyorsa demet TR_Any'dir.
+func (c *Checker) tupleLiteralType(elems []string) string {
+	for _, t := range elems {
+		if !c.knownType(t) {
+			return typeAny
+		}
+	}
+	return tupleType(elems)
+}
+
+// elementType demetin i. öğesinin tipidir (t.0); nesne tipi bilinen bir demet değilse ya da indeks
+// sınır dışındaysa TR_Any.
+func elementType(objType string, i int) string {
+	s := shapeOf(objType)
+	if s.elems == nil || i < 0 || i >= len(s.elems) {
+		return typeAny
+	}
+	return s.elems[i]
 }
