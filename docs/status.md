@@ -21,9 +21,8 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.2
 
-- **Mevcut durum:** denetleyici yerel değişkenin tipini ilk değerinden çıkarıyor ve tipi kalıcı (3.13): değişmezler, aritmetik ve önek işleç, karşılaştırma, adıyla çağrılan tipli fonksiyonun ve tipi bilinen yapının metodunun dönüşü, yapı kurucusu, liste ve sözlüğün öğe tipi, demet; bilinmeyen `TR_Any` kalıyor. Depodaki programların 1884 ilk değerinden 1152'sinin tipi bilinmiyor (önce 1212); tipsiz parametre ve alan henüz hata değil, parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor [ölçüldü: `TestRepoFirstValueTypes`, dal `claude/hopeful-brahmagupta-miw41q`].
+- **Mevcut durum:** denetleyici yerel değişkenin tipini ilk değerinden çıkarıyor ve tipi kalıcı (3.13): değişmezler, aritmetik ve önek işleç, karşılaştırma, adıyla çağrılan tipli fonksiyonun ve tipi bilinen yapının metodunun dönüşü, yapı kurucusu, liste ve sözlüğün öğe tipi, demet; bilinmeyen `TR_Any` kalıyor. Depodaki programların 1884 ilk değerinden 1152'sinin tipi bilinmiyor (önce 1212); tipsiz parametre, alan ve `->`'sız değerli dönüş denetim hatası (6.1, 7.1; kitaplığın 4c'yi bekleyen yerleri istisna), parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor [ölçüldü: `TestRepoFirstValueTypes`, dal `claude/hopeful-brahmagupta-miw41q`].
 - **Yapılacaklar:** turlarla:
-  - kapı: tipsiz parametre ve alan denetim hatası (6.1, 7.1; 4a1'in ikinci dilimi);
   - çıkarımın kalanı: yerleşik ve kitaplık çağrılarının dönüşü (bilinmeyenlerin çoğu: 937, `TR_Tensor(...)` tek başına 218), indeks, üye ve alan erişimi, tipi bilinmeyen işlenenli işleç, `TR_if`/`TR_match` değeri, döngü değişkeni, kapanış, çoklu tanımın (`TR_var a, b = f()`) öğe tipleri, metot ve kurucu argümanlarının denetimi;
   - isteğe bağlı `T?` ve `TR_none` daraltması (3.5): ilk denemesi denetleyici testlerinde 33 yeni hata açtı (tip yazımı testleri ilk değer olarak `TR_none` kullanıyor), geri alındı;
   - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği;
@@ -214,9 +213,8 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 ### 6.1
 
-- **Mevcut durum:** dönüş tipinin `:` ile yazımı, `-> TR_NoneType`, `def f(x):`, satır başındaki `@f` ve aynı blokta aynı adla ikinci tanım sözdizimi hatası, iletiler TR'deki yazımı söylüyor; parametre tipi zorunlu değil: `TR_func f(x)` denetimden geçiyor [ölçüldü: altı küçük program ve `tests/negative/fonksiyon_yazimi.tr`; denetim ve çalıştırma].
-- **Tipli yazıma göç bitti (Faz 0.9, 2026-10-30):** `lib/`, `tests/`, `examples/`, `tools/` (codegraph hariç), belgelerin ` ```tr ` blokları, tanım dosyasının örnekleri ve eklentinin şablonları parametre ve dönüş tiplerini yazıyor; başta 477 tipsiz parametre ve 199 `->`'sız değer döndüren fonksiyon vardı [ölçüldü: ayrıştırıcıyla, `TestTRCodeIsTyped`]. Kalan 29 parametre ve 7 dönüş birden çok tip alıyor (tip parametresi ve birleşim tipi yok, 4c), olumsuz fikstür ya da bugünkü denetleyicinin yanlışını bekliyor (bir yer); genel tiplerin kendi 5 örneği 3.11'i bekliyor; her biri nedeniyle `internal/testdata/typed_code_known.txt`'te, liste yalnız küçülür. Tipler çalışma anında bir tanıkla doğrulandı (argümanın, listenin öğesinin ve tensörün cinsinin yazılan tiple karşılaştırması). Go testlerindeki satır içi programlardan dil davranışını ve kitaplığı sınayanlar tipli; kalan 357 yer (parser, checker, interp birim testleri, ml, e2e) tipsiz.
-- **Yapılacaklar:** parametre tipi zorunlu (tipsiz parametre denetim hatası, 4a1); kapı açılınca `TestTRCodeIsTyped` ve izin listesi kalkar; denetleyicinin testi.
+- **Mevcut durum:** dönüş tipinin `:` ile yazımı, `-> TR_NoneType`, `def f(x):`, satır başındaki `@f` ve aynı blokta aynı adla ikinci tanım sözdizimi hatası, iletiler TR'deki yazımı söylüyor. Tipsiz parametre (fonksiyon, metot, kurucu) ve değer döndürüp `->` yazmayan `TR_func` denetim hatası (H1109–H1113, 4a1): ileti düzeltilmiş satırı veriyor; tip varsayılandan ya da `TR_return`'lerin ortak tipinden çıkınca düzeltme uygulanabilir, dosyadaki çağrıların ortak tipinden tahmin edilince uygulanamaz (ileti tahmin olduğunu söylüyor), bulunamazsa `x: <tip>` ve nedeni. Depodaki programlar tipli. Tek istisna gömülü kitaplığın 4c'yi bekleyen 29 yeri (genel ve birleşim tipi: birden çok tip alan parametre, alan ve dönüş): adla tutuluyor (dosya, sahip, ad), yalnız kitaplığın kendi dosyası denetlenirken tanı vermiyor, aynı yazım kullanıcının programında hata; liste yalnız küçülür, 4c'de kalkar (`internal/lang/checker/library_exceptions.go`, nedenleri `internal/testdata/typed_code_known.txt`) [ölçüldü: `TestUntypedFunctionParameter`, `TestUntypedMethodParameter`, `TestMissingReturnType`, `TestTypedSignatureSuggestionRuns`, `TestCheckJSONTypedSignatureFixesMakeTheFileClean`, `TestLibraryExceptionsAreUsed`, `TestRepoProgramsAreTyped`, dal `claude/charming-pasteur-q1vsvo`].
+- **Yapılacaklar:** kitaplığın 29 istisnası 4c'de (tip parametresi ve birleşim tipi) kalkar; argümanın parametre tipine göre denetimi metotta, kurucuda ve adlı argümanda (4a2).
 - **Dil tanımı düzeldi (2026-10-29):** aynı adla ikinci tanım artık tanımda da sözdizimi hatası (1.3); motor zaten öyle.
 
 ### 6.2
@@ -241,8 +239,8 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 ### 6.6
 
-- **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken parametre tipi zorunlu değil: tipsiz `(x) => x * 2` denetimden geçiyor [ölçüldü: `tests/negative/fonksiyon_ifadesi.tr` ve üç ok programı; denetim ve çalıştırma]. Blok gövdesinin eksik dönüşü 6.2'de.
-- **Yapılacaklar:** beklenen fonksiyon tipi yokken tipsiz parametre denetim hatası; parametre tipinin beklenen tipten çıkarımı denetleyicide; denetleyicinin testi.
+- **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken (tipi açıklanmamış değişkenin ilk değeri, doğrudan ya da liste, sözlük, demet değişmezinde) tipsiz parametre denetim hatası (H1111); denetleyici yerleşik imzalarını bilmediği için her çağrı argümanı, tipli değişken ve dönüş beklenen tipi olan yer sayılıyor, parametrenin tipi oradan çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`, dal `claude/charming-pasteur-q1vsvo`]. Blok gövdesinin eksik dönüşü 6.2'de.
+- **Yapılacaklar:** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9; 4a2); denetleyicinin testi.
 
 ### 6.8
 
@@ -273,9 +271,8 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ### 7.1
 
-- **Mevcut durum:** alan tipsiz yazılabiliyor (`y = 0`, yalnız ad); varsayılanlı alandan sonra varsayılansız alan, yinelenen alan ve metot, kalıtım yazımları sözdizimi hatası; yinelenen metot tek ileti veriyor; yapının tip parametresi yok: `TR_struct Kutu[T]` sözdizimi hatası ("'{' bekleniyordu") [ölçüldü: tipsiz alanlı ve tip parametreli yapı, `tests/negative/` yapı fikstürleri; denetim ve çalıştırma].
-- **Tipli yazıma göç bitti (Faz 0.9, 2026-10-30):** depodaki yapı ve durum alanları tipini yazıyor; başta 170 tipsiz alan vardı (`lib/`'de 97) [ölçüldü: ayrıştırıcıyla, `TestTRCodeIsTyped`]. Kalan 5 alan birden çok tip tutuyor (GPT'nin karışık değerli ayar sözlüğü, Muon ya da NorMuon tutan alan, örneğin karışık değerli sepeti, testlerin bilerek karışık alanları; 4c); nedenleri `internal/testdata/typed_code_known.txt`'te.
-- **Yapılacaklar:** her alanın tipi zorunlu (tipsiz alan denetim hatası, 4a1; kapı açılınca `TestTRCodeIsTyped` kalkar); yapının tip parametresi (6.10 ile); TR testi.
+- **Mevcut durum:** tipsiz alan (yapının alanı ve durumlu tipin durum alanı) denetim hatası (H1109–H1111, 4a1): ileti tipi varsayılandan (uygulanabilir düzeltme) ya da kurucusuz yapının kurma çağrılarından (tahmin, uygulanamaz) öneriyor, bulunamazsa `ad: <tip>` ve nedeni; varsayılanlı alandan sonra varsayılansız alan, yinelenen alan ve metot, kalıtım yazımları sözdizimi hatası; yinelenen metot tek ileti veriyor; yapının tip parametresi yok: `TR_struct Kutu[T]` sözdizimi hatası. Kitaplığın 4c'yi bekleyen iki alanı (GPT'nin karışık değerli ayar sözlüğü, Muon ya da NorMuon tutan alan) 6.1'in istisnası [ölçüldü: `TestUntypedStructField`, `TestUntypedEnumField`, `tests/negative/tipsiz_imza.tr`, dal `claude/charming-pasteur-q1vsvo`].
+- **Yapılacaklar:** kitaplığın iki alanının istisnası 4c'de kalkar; yapının tip parametresi (6.10 ile); TR testi.
 
 ### 7.2
 

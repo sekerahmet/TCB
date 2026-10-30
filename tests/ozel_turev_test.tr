@@ -133,7 +133,9 @@ TR_test "15.31 özel_türev: hatalar" {
     # Yanlış şekilli gradyan: yayınlama yapılmaz.
     TR_var şekilsiz = TR_custom_grad(TR_forward: (x) => { TR_return [x * 2, []] }, TR_backward: (k, g) => { TR_return [TR_sum(g)] })
     TR_assert_equal("H6418", TR_error_code { TR_backward(TR_sum(şekilsiz(x))) })
-    TR_assert(hata_metni { TR_backward(TR_sum(şekilsiz(x))) }.TR_contains("[1, 2]"))
+    TR_var ileti = ""
+    TR_try { TR_backward(TR_sum(şekilsiz(x))) } TR_catch h { ileti = h }
+    TR_assert(ileti.TR_contains("[1, 2]"), ileti)
     # Liste uzunluğu yanlış.
     TR_var eksik = TR_custom_grad(TR_forward: (a, b) => { TR_return [a + b, []] }, TR_backward: (k, g) => { TR_return [g] })
     TR_assert_equal("H6415", TR_error_code { TR_backward(TR_sum(eksik(x, x))) })
@@ -148,7 +150,9 @@ TR_test "15.31 özel_türev: hatalar" {
     TR_assert_equal("H3012", TR_error_code { TR_backward(TR_sum(y)) })
     # geri'deki hata dene/yakala ile yakalanır.
     TR_var fırlatan = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (k, g) => { TR_throw "geri bozuk" })
-    TR_assert(hata_metni { TR_backward(TR_sum(fırlatan(x))) }.TR_contains("geri bozuk"))
+    ileti = ""
+    TR_try { TR_backward(TR_sum(fırlatan(x))) } TR_catch h { ileti = h }
+    TR_assert(ileti.TR_contains("geri bozuk"), ileti)
     # Kullanım hataları.
     TR_assert_equal("H6430", TR_error_code { TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }) })
     TR_assert_equal("H6406", TR_error_code { TR_custom_grad(TR_forward: 3, TR_backward: (k, g) => { TR_return [g] }) })
@@ -164,7 +168,9 @@ TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
         TR_backward: (k, g) => { TR_return [g * k[0]] }
     )
     TR_assert_equal("H6432", TR_error_code { TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]) })
-    TR_assert(hata_metni { TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]) }.TR_contains("[0, 1]"))
+    TR_var ileti = ""
+    TR_try { TR_grad_check(yanlış_kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]) } TR_catch h { ileti = h }
+    TR_assert(ileti.TR_contains("[0, 1]"), ileti)
     # Sıradan TR fonksiyonlarında, çok girdide ve çok çıktıda da çalışır.
     TR_assert(TR_grad_check((a, b) => { TR_return a * TR_sigmoid(b) }, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true), TR_Tensor([[0.5, 2.0]], TR_requires_grad: TR_true)]))
     TR_assert(TR_grad_check((a, b) => [a * b, a + b], [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true), TR_Tensor([3.0], TR_requires_grad: TR_true)]))
@@ -314,6 +320,6 @@ TR_test "15.28 örnek: satıra özel kapılı nöron (özel türevli sürümler 
     TR_for f TR_in [kapılı_bileşik, kapılı_nöron, kapılı_nöron_tam] {
         TR_assert(TR_grad_check(f, [TR_Tensor(TR_randn([3, 2], TR_seed: 21), TR_requires_grad: TR_true), TR_Tensor(TR_randn([4, 6], TR_seed: 22), TR_requires_grad: TR_true), TR_Tensor([1, 3, 1])]))
     }
-    TR_var izli = (s) => TR_Tensor(TR_randn([3, 2], TR_seed: s), TR_requires_grad: TR_true)
+    TR_var izli = (s: TR_Int) => TR_Tensor(TR_randn([3, 2], TR_seed: s), TR_requires_grad: TR_true)
     TR_assert(TR_grad_check(kapı_çekirdeği, [izli(31), izli(32), izli(33), izli(34)]))
 }

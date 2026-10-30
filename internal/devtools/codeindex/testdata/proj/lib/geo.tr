@@ -5,7 +5,7 @@ TR_var sayaç = 0
 
 TR_struct Kare {
     kenar: TR_Int = 1
-    TR_func TR_init(kenar = 1) {
+    TR_func TR_init(kenar: TR_Int = 1) {
         TR_self.kenar = kenar
     }
     TR_func alan() -> TR_Int {
@@ -17,7 +17,7 @@ TR_func çevre_hesapla(k: Kare) -> TR_Int {
     TR_return 4 * k.kenar
 }
 
-TR_func yaz_alan(k) -> TR_Int {
+TR_func yaz_alan(k) -> TR_Int { # ERROR H1111
     TR_print(k.alan())
     TR_return çevre_hesapla(k)
 }

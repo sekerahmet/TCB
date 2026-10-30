@@ -34,6 +34,8 @@ var turkishLiteralAllowed = map[string]string{
 	// UTS #39 karıştırılabilir karakter tablosu (Unicode verisinden üretilir): harfler veridir.
 	"internal/lang/lexer/confusables_generated.go": "Unicode'un karıştırılabilir karakter tablosu; harfler veridir, ad ya da ileti değil",
 	// Dil tanımı atıf tarayıcısı Türkçe belgeleri okur: "PyTorch 2.14", "sürümü 2.1" gibi sürüm numaraları madde atfı sayılmaz.
+	// Kitaplığın 4c'yi bekleyen tipsiz yerleri adla tutulur (6.1, 7.1): adlar lib/ dosyalarındaki kullanıcı adlarıdır; liste 4c'de kalkar.
+	"internal/lang/checker/library_exceptions.go": "gömülü kitaplığın istisnalı yerlerinin adları (lib/ dosyalarındaki kullanıcı adları); 4c'de kalkar",
 	"tools/internal/specref/scan.go:\\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\\b[^.!?]*$": "belgedeki sürüm numarasını tanıyan desen; Türkçe belge sözcüğü, ad ya da ileti değil",
 }
 

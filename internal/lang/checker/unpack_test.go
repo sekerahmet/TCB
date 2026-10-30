@@ -72,7 +72,6 @@ func TestUnpackCountOfAKnownTuple(t *testing.T) {
 		"TR_var a, b = (1, 2)",
 		iki + "TR_var a, b = iki()",
 		iki + "TR_var g = iki\nTR_var a, b, c = g()",
-		"TR_func f() { TR_return 1, 2 }\nTR_var a, b, c = f()",
 		"TR_func f() -> (TR_Int, TR_Int)? { TR_return TR_none }\nTR_var a, b, c = f()",
 		"TR_func f() -> (TR_Int) { TR_return 1 }\nTR_var a, b = f()",
 		"TR_var a, b, c = [1, 2]",
@@ -80,4 +79,6 @@ func TestUnpackCountOfAKnownTuple(t *testing.T) {
 	} {
 		noErrors(t, src)
 	}
+	// Dönüş tipi yazılmamış fonksiyonun açılması sayıdan hata vermez; tek hata kapınındır (6.1)
+	singleError(t, "TR_func f() { TR_return 1, 2 } # ERROR H1112\nTR_var a, b, c = f()", messages.H1112, 1, "(TR_Int, TR_Int)")
 }

@@ -279,9 +279,12 @@ func TestFunctionParamTypes(t *testing.T) {
 	noErrors(t, two+"böl(1, 2)")
 	singleError(t, two+`böl(1, "iki")`, messages.H1004, 0, "2. parametresi", `"TR_Float"`, `"TR_String"`)
 
-	// Tipsiz parametreler her değeri kabul eder
-	noErrors(t, "TR_func f(a, b: TR_Int) { }\nf(\"x\", 2)")
-	singleError(t, "TR_func f(a, b: TR_Int) { }\nf(\"x\", \"y\")", messages.H1004, 0, "2. parametresi")
+	// Tipsiz parametre denetim hatasıdır (6.1); yanındaki tipli parametre yine denetlenir
+	singleError(t, "TR_func f(a, b: TR_Int) { } # ERROR H1110\nf(\"x\", 2)", messages.H1110, 1, `"a"`, "TR_String")
+	errs, coded := checkErrs(t, "TR_func f(a, b: TR_Int) { } # ERROR H1110\nf(\"x\", \"y\")")
+	if len(coded) != 2 || !messages.Has(coded[0], messages.H1110) || !messages.Has(coded[1], messages.H1004) || !strings.Contains(errs[1], "2. parametresi") {
+		t.Errorf("tipsiz parametrenin hatası ve 2. parametrenin tip hatası bekleniyordu: %v", errs)
+	}
 
 	// Parametreler fonksiyon gövdesinde bildirilen tipleriyle bilinir
 	singleError(t, "TR_func f(a: TR_String) {\n  TR_var b: TR_Int = a\n}", messages.H1001, 2, `"b"`, `"TR_String"`)
@@ -305,9 +308,9 @@ func TestFunctionReturnTypeInference(t *testing.T) {
 	// Parametresiz fonksiyonların dönüş tipi de kullanılır
 	singleError(t, "TR_func ad() -> TR_String { TR_return \"Ali\" }\nTR_var n: TR_Int = ad()", messages.H1001, 2, `"TR_Int"`, `"TR_String"`)
 
-	// Dönüş tipi belirtilmemişse sonuç bilinmez (Herhangi)
-	noErrors(t, "TR_func f(a: TR_Int) { TR_return a }\nTR_var s: TR_String = f(1)")
-	noErrors(t, "TR_func f() { TR_return 1 }\nTR_var s: TR_String = f()")
+	// Değer döndürüp dönüş tipini yazmayan fonksiyon denetim hatasıdır (6.1); sonucu bilinmez, tek hata odur
+	singleError(t, "TR_func f(a: TR_Int) { TR_return a } # ERROR H1112\nTR_var s: TR_String = f(1)", messages.H1112, 1, `"f"`, "TR_Int")
+	singleError(t, "TR_func f() { TR_return 1 } # ERROR H1112\nTR_var s: TR_String = f()", messages.H1112, 1, `"f"`, "TR_Int")
 }
 
 func TestReturnTypeCheck(t *testing.T) {
@@ -327,18 +330,21 @@ func TestReturnTypeCheck(t *testing.T) {
 		"TR_func f() -> TR_Float { TR_return 1 }",              // Tam -> Ondalık
 		"TR_func f() -> TR_List[TR_Int] { TR_return TR_none }", // 'yok' her tipe uyar
 		"TR_func f() -> TR_Int { TR_return }",                  // boş dönüş 'yok' sayılır
-		"TR_func f(x) -> TR_Int { TR_return x }",               // bilinmeyen tip
 		"TR_func f(x: TR_Int) -> TR_Int { TR_return x * 2 }",   // çıkarılan tip uyumlu
 		"TR_func f() -> TR_Bool { TR_return 1 < 2 }",           // karşılaştırma
 		"TR_func f() -> (TR_Int) -> TR_Int { TR_return (x: TR_Int) => x }",
-		`TR_func f() { TR_return "x" }`, // dönüş tipi yoksa denetim yok
 	} {
 		noErrors(t, source)
 	}
+	// Tipsiz parametre ve dönüş tipi yazılmamış değerli fonksiyon denetim hatasıdır (6.1): dönüş
+	// denetlenmez, tek hata kapınındır
+	singleError(t, "TR_func f(x) -> TR_Int { TR_return x } # ERROR H1111", messages.H1111, 1, `"x"`)
+	singleError(t, `TR_func f() { TR_return "x" } # ERROR H1112`, messages.H1112, 1, "TR_String")
 
-	// İç fonksiyonlar dış fonksiyonun dönüş tipini devralmaz
-	noErrors(t, "TR_func f() -> TR_Int {\n  TR_var g = (x) => \"metin\"\n  TR_return 1\n}")
-	noErrors(t, "TR_func f() -> TR_Int {\n  TR_func g() { TR_return \"metin\" }\n  TR_return 1\n}")
+	// İç fonksiyonlar dış fonksiyonun dönüş tipini devralmaz: tipsiz iç fonksiyonun dönüşü dışınkine
+	// göre denetlenmez, kendi dönüşünden tip önerilir
+	noErrors(t, "TR_func f() -> TR_Int {\n  TR_var g = (x: TR_Int) => \"metin\"\n  TR_return 1\n}")
+	singleError(t, "TR_func f() -> TR_Int {\n  TR_func g() { TR_return \"metin\" } # ERROR H1112\n  TR_return 1\n}", messages.H1112, 2, "TR_String")
 	// İç fonksiyonun kendi dönüş tipi denetlenir; dış fonksiyonunki geri yüklenir
 	errs, coded := checkErrs(t, "TR_func f() -> TR_Int {\n  TR_func g() -> TR_String { TR_return 1 }\n  TR_return \"x\"\n}")
 	if len(errs) != 2 || !messages.Has(coded[0], messages.H1003) || !messages.Has(coded[1], messages.H1003) ||
@@ -370,12 +376,12 @@ func TestNestedStatementsAreChecked(t *testing.T) {
 		"eşle konusu":      "TR_match " + invalid + " { _ => 1 }",
 		"ertele blok":      "TR_defer { " + invalid + " }",
 		"ertele çağrı":     "TR_defer " + invalid,
-		"sonuç":            "TR_func g() { TR_return " + invalid + " }",
+		"sonuç":            "TR_func g() -> TR_Int { TR_return " + invalid + " }",
 		"fırlat":           "TR_throw " + invalid,
 		"eşzamanlı blok":   "TR_async { " + invalid + " }",
 		"eşzamanlı çağrı":  "TR_async " + invalid,
 		"kesme noktası":    "TR_breakpoint TR_if " + invalid + " > 1",
-		"lambda":           "TR_var g = (y) => " + invalid,
+		"lambda":           "TR_var g = (y: TR_Int) => " + invalid,
 		"çoklu tanım":      "TR_var a, b = 1, " + invalid,
 		"çoklu atama":      "TR_var a = 1\nTR_var b = 2\na, b = " + invalid + ", 1",
 		"atama değeri":     "TR_var a = 1\na = " + invalid,
@@ -428,7 +434,7 @@ func TestBuiltinShadowingWarning(t *testing.T) {
 TR_func f(toplam: TR_Int, x: TR_Int) -> TR_Int {
     TR_return toplam + x
 }
-TR_func ` + c.input + `() { TR_return 1 }
+TR_func ` + c.input + `() -> TR_Int { TR_return 1 }
 TR_for i, ` + c.abs + ` TR_in ["a"] { TR_print(` + c.abs + `) }
 TR_try { TR_throw "x" } TR_catch ekle { TR_print(ekle) }
 TR_var a, sırala = 1, 2

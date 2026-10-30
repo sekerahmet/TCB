@@ -201,7 +201,7 @@ TR_print(bırakılan())
 // Fonksiyonun yerelleri dönüşte bırakılır, döndürdüğü çağırana geçer; argüman çağıranındır.
 func TestOwnershipReturnMovesToCallerLocalsReleased(t *testing.T) {
 	expectOut(t, `
-TR_func f(p) {
+TR_func f(p: Kaynak) -> Kaynak {
     TR_var t = yeni()
     TR_var u = p + t
     TR_return u
@@ -218,8 +218,8 @@ TR_print(oku(q), oku(r))
 // Dönüş değeri (çağırana geçer) ve iç içe çağrılar.
 func TestOwnershipReturnAndNestedCalls(t *testing.T) {
 	expectOut(t, `
-TR_func iç(a) { TR_return a + yeni() }
-TR_func dış(a) {
+TR_func iç(a: Kaynak) -> Kaynak { TR_return a + yeni() }
+TR_func dış(a: Kaynak) -> Kaynak {
     TR_var x = iç(a)
     TR_return iç(x)
 }
@@ -236,7 +236,7 @@ TR_print(bırakılan())
 func TestOwnershipEscapesAreNeverReleased(t *testing.T) {
 	expectOut(t, `
 TR_struct K {
-    alan
+    alan: Kaynak?
 }
 TR_var k = K(TR_none)
 k.alan = yeni()
@@ -344,7 +344,7 @@ f()
 // (b) Döndürülen demetin içindeki taze değerler çağırana taşınır: çerçeve kapanınca bırakılmaz.
 func TestOwnershipReturnedTupleMovesItsElementsToTheCaller(t *testing.T) {
 	expectOut(t, `
-TR_func f(p) {
+TR_func f(p: Kaynak) -> (Kaynak, Kaynak) {
     TR_var t = yeni()
     TR_var u = p + t
     TR_return u, yeni()
@@ -367,10 +367,10 @@ g()
 // (c) Listeye eklenen, sözlüğe, en dış değişkene ya da Go'ya konan demet öğeleriyle kaçar.
 func TestOwnershipStoredTupleEscapes(t *testing.T) {
 	expectOut(t, `
-TR_func iki() { TR_return yeni(), yeni() }
+TR_func iki() -> (Kaynak, Kaynak) { TR_return yeni(), yeni() }
 TR_var dış = iki()
-TR_func g() {
-    TR_var l = [1]
+TR_func g() -> TR_List[(Kaynak, Kaynak)] {
+    TR_var l: TR_List[(Kaynak, Kaynak)] = []
     l.TR_append(iki())
     TR_var d = {"a": iki()}
     sakla(iki())
@@ -378,7 +378,7 @@ TR_func g() {
 }
 TR_var l = g()
 TR_print(bırakılan())
-TR_print(oku(dış.0), oku(l[1].1))
+TR_print(oku(dış.0), oku(l[0].1))
 `, `
 []
 1 4`)
@@ -404,7 +404,7 @@ TR_print(bırakılan())
 // (e) Açılan demetin öğeleri demetle paylaşılır: adlara bağlı kalır, sonra bir kez bırakılır.
 func TestOwnershipUnpackedTupleSharesElements(t *testing.T) {
 	expectOut(t, `
-TR_func iki() { TR_return yeni(), yeni() }
+TR_func iki() -> (Kaynak, Kaynak) { TR_return yeni(), yeni() }
 TR_func f() {
     TR_var t = (yeni(), yeni())
     TR_var a, b = t
@@ -424,7 +424,7 @@ TR_print(bırakılan())
 func TestOwnershipMutatedOrStoredListEscapes(t *testing.T) {
 	expectOut(t, `
 TR_struct K {
-    liste
+    liste: TR_List[Kaynak]
 }
 TR_var l = [yeni()]
 l.TR_append(yeni())
@@ -472,7 +472,7 @@ TR_print(bırakılan())
 // Fonksiyonun içinden, döngünün ortasından dönen değer çağırana geçer.
 func TestOwnershipReturnFromLoop(t *testing.T) {
 	expectOut(t, `
-TR_func bul() {
+TR_func bul() -> Kaynak? {
     TR_for i TR_in 0..5 {
         TR_var t = yeni()
         TR_if i == 2 { TR_return t }
@@ -505,7 +505,7 @@ TR_print(oku(r))
 // Liste üreteci sonuçlarının sahibidir.
 func TestOwnershipComprehensionOwnsResults(t *testing.T) {
 	expectOut(t, `
-TR_func kat(x) { TR_return x + yeni() }
+TR_func kat(x: Kaynak) -> Kaynak { TR_return x + yeni() }
 TR_func f() {
     TR_var a = yeni()
     TR_var m = [kat(a) TR_for i TR_in 0..2]
@@ -551,7 +551,7 @@ TR_wait_all()
 // Özyineleme: her çağrının kendi çerçevesi vardır.
 func TestOwnershipRecursion(t *testing.T) {
 	expectOut(t, `
-TR_func zincir(n: TR_Int, x) {
+TR_func zincir(n: TR_Int, x: Kaynak) -> Kaynak {
     TR_if n == 0 { TR_return x }
     TR_var y = x + yeni()
     TR_return zincir(n - 1, y)
@@ -567,7 +567,7 @@ TR_print(oku(r), bırakılan().TR_length)
 // havuza sıfırlanarak verilir, kapanışı çağırmak 'ad yok' hatası verir.
 func TestDefaultParamClosureKeepsFunctionEnvironment(t *testing.T) {
 	expectOut(t, `
-TR_func kur(x = yeni(), g: () -> TR_Int = () => oku(x)) -> () -> TR_Int {
+TR_func kur(x: Kaynak = yeni(), g: () -> TR_Int = () => oku(x)) -> () -> TR_Int {
     TR_return g
 }
 TR_var f = kur()
@@ -583,7 +583,7 @@ TR_print(f())
 // kaynak hiç bırakılmaz.
 func TestFailingCallArgumentReleasesEarlierArguments(t *testing.T) {
 	expectOut(t, `
-TR_func hedef(a, b) { TR_return a }
+TR_func hedef(a: Kaynak, b: Kaynak) -> Kaynak { TR_return a }
 TR_func patla() { TR_throw "hata" }
 TR_func sına() {
     TR_var x = yeni()

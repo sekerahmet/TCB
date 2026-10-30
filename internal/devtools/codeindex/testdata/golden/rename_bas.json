@@ -158,7 +158,7 @@
       "where": "code",
       "match": "compound",
       "word": "kv_baş",
-      "context": "TR_func TR_init(boyut: TR_Int, baş: TR_Int, kv_baş = TR_none) {",
+      "context": "TR_func TR_init(boyut: TR_Int, baş: TR_Int, kv_baş: TR_Int? = TR_none) {",
       "replacement": "kv_bakış_sayısı"
     },
     {

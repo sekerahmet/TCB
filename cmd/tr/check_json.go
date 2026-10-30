@@ -146,7 +146,7 @@ func checkFileJSON(path string) {
 		writeJSONRecord(recordOf(messages.New(messages.H8657, turkish.FileError("", path, messages.H2100, err)), severityError, ""))
 		exit(1)
 	}
-	s := source.Prepare(string(data), source.Options{TypeCheck: true})
+	s := source.Prepare(string(data), source.Options{TypeCheck: true, Library: interp.LibraryFileName(path, string(data))})
 	failed := s.Stage == source.StageSyntax || s.Stage == source.StageType
 	for _, w := range s.Warnings {
 		writeJSONRecord(recordOf(w, severityWarning, file))

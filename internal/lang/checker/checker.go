@@ -87,6 +87,12 @@ type Checker struct {
 	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
 	// için (local_types.go).
 	structs map[string]*ast.StructStatement
+	// facts kapının (6.1, 7.1; signatures.go) son CheckProgram'da topladıklarıdır; libraryFile
+	// denetlenen gömülü kitaplık dosyasının adıdır ("": kitaplık değil), exceptionsUsed kullanılan
+	// istisnaları tutar (library_exceptions.go).
+	facts          signatureFacts
+	libraryFile    string
+	exceptionsUsed map[string]bool
 }
 
 // New returns a checker with an empty global scope.
@@ -149,6 +155,7 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
 	c.valueTypes = nil
+	c.facts = signatureFacts{}
 	for _, stmt := range prog.Statements {
 		c.checkStatement(stmt)
 	}
@@ -158,6 +165,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.errors = append(c.errors, c.nameErrors...)
 	c.checkSkeletons(prog)
 	c.checkTopLevel(prog)
+	c.checkSignatures(prog)
 	sortByLine(c.errors[start:])
 }
 
@@ -281,11 +289,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 
 	case *ast.ReturnStatement:
-		valType := c.inferExpression(s.ReturnValue)
-		if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
-			c.addErrorAt(s, messages.New(messages.H1003,
-				c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
-		}
+		c.checkReturn(s)
 
 	case *ast.ThrowStatement:
 		c.inferExpression(s.Value)
@@ -404,36 +408,53 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		c.functionBody(e, retType)
 		return typeFunction
 	case *ast.CallExpression:
-		var info TypeInfo
-		var found bool
-		ident, isIdent := e.Function.(*ast.Identifier)
-		member, isMember := e.Function.(*ast.MemberExpression)
-		objType := typeAny
-		switch {
-		case isIdent:
-			info, found = c.scope.Resolve(ident.Value)
-		case isMember:
-			objType = c.inferExpression(member.Object) // metodun nesnesi (local_types.go, callType)
-		default:
-			c.inferExpression(e.Function)
-		}
-		for i, arg := range e.Arguments {
-			argType := c.inferExpression(arg)
-			if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
-				c.addErrorAt(arg, messages.New(messages.H1004,
-					ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
-			}
-		}
-		for _, na := range e.NamedArgs {
-			c.inferExpression(na.Value)
-		}
-		return c.callType(e, info, found, objType)
+		return c.inferCall(e)
 	case *ast.IfExpression:
 		return c.inferIf(e, expr != c.statementExpr)
 	case *ast.MatchExpression:
 		return c.inferMatch(e, expr != c.statementExpr)
 	}
 	return typeAny
+}
+
+// inferCall çağrının argümanlarını denetler ve tipini verir; argümanlar kapının tahmini için
+// kaydedilir (signatures.go).
+func (c *Checker) inferCall(e *ast.CallExpression) string {
+	var info TypeInfo
+	var found bool
+	ident, isIdent := e.Function.(*ast.Identifier)
+	member, isMember := e.Function.(*ast.MemberExpression)
+	objType := typeAny
+	switch {
+	case isIdent:
+		info, found = c.scope.Resolve(ident.Value)
+	case isMember:
+		objType = c.inferExpression(member.Object) // metodun nesnesi (local_types.go, callType)
+	default:
+		c.inferExpression(e.Function)
+	}
+	for i, arg := range e.Arguments {
+		argType := c.inferExpression(arg)
+		c.noteCall(e, objType, i, "", arg, argType)
+		if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
+			c.addErrorAt(arg, messages.New(messages.H1004,
+				ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
+		}
+	}
+	for _, na := range e.NamedArgs {
+		c.noteCall(e, objType, -1, na.Name, na.Value, c.inferExpression(na.Value))
+	}
+	return c.callType(e, info, found, objType)
+}
+
+// checkReturn dönüş değerini fonksiyonun yazılan dönüş tipine göre denetler ve kapı için kaydeder.
+func (c *Checker) checkReturn(s *ast.ReturnStatement) {
+	valType := c.inferExpression(s.ReturnValue)
+	c.noteReturn(s, valType)
+	if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
+		c.addErrorAt(s, messages.New(messages.H1003,
+			c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
+	}
 }
 
 // checkAssign atamayı denetler: sabite atama ve açıklamalı değişkene uyumsuz tipte değer

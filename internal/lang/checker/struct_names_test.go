@@ -20,7 +20,7 @@ TR_struct N {
     TR_func a() { x = 5 }
     TR_func yerel(y: TR_Int) -> TR_Int {
         TR_var x = 3
-        TR_var f = (m) => m + x
+        TR_var f = (m: TR_Int) => m + x
         TR_return f(y) + TR_self.x + TR_self.m()
     }
 }`

@@ -9,7 +9,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/07_structs.md`](rationale/07_stru
 - Aynı adlı iki alan, iki metot ya da aynı adlı alan ve metot sözdizimi hatasıdır (tanımda bilinir).
 - Yapı 6.10'daki gibi tip parametresi alabilir: `TR_struct Kutu[T] { değer: T }`.
 - Kalıtım yoktur. Başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: Python'un `class A(B):`'si, `TR_struct A(B)`. Ortak davranış arayüzle (7.8), ortak parça alanla kurulur.
-- *Test:* TR testi; tipli alan uygulanınca TR testi.
+- *Test:* TR testi; tipli alan: olumsuz fikstür `tests/negative/tipsiz_imza.tr`, Go: `TestUntypedStructField`, `TestUntypedEnumField`, `TestTypedSignatureSuggestionRuns`.
 
 ```tr
 # TR 4

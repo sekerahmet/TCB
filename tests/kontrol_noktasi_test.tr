@@ -129,52 +129,69 @@ TR_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.j
     TR_assert_equal(["w/0"], TR_load_tensors(TR_Path(n, "tensors.trt")).TR_keys())
 }
 
+# Eğitim eğit'in sonucudur: modelin tensörleri, iyileştirici, örnekleyici, kontrol noktası ve
+# kontrol noktasıyla saklanan üç izlenen sözlük (ondalık, liste ve tam sayı anahtarlı değerler).
+TR_struct Eğitim {
+    model: TR_Dict[TR_String, TR_Tensor]
+    op: TR_Optimizer
+    ö: TR_Sampler
+    kn: TR_Checkpoint
+    en_iyi: TR_Dict[TR_String, TR_Float]
+    adımlar: TR_Dict[TR_String, TR_List[TR_Int]]
+    oranlar: TR_Dict[TR_Int, TR_Float]
+}
+
 # eğit: aynı tohumlarla kurulan küçük bir modeli koşu klasöründe kontrol noktasıyla son adıma
 # kadar eğitir; kesilip yeniden çağrılınca kaldığı adımdan sürer.
-TR_func eğit(k: TR_Path, son: TR_Int, günlük_adı: TR_String) {
+TR_func eğit(k: TR_Path, son: TR_Int, günlük_adı: TR_String) -> Eğitim {
     TR_var E = param([4096, 4], 1)
     TR_var w = param([4, 3], 2)
     TR_var model = {"E": E, "w": w}
     TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.05)
     TR_var ö = TR_Dataset("data/text").TR_sampler(TR_batch_size: 2, TR_context: 8, TR_seed: 4)
     TR_var g = TR_Logger("\(k)_\(günlük_adı).jsonl")
-    TR_var izlenen = {"en_iyi": 99.0, "adımlar": [], "oranlar": {1: 0.5}}
-    TR_var kn = TR_Checkpoint(k, {"model": model, "op": op, "ö": ö, "g": g, "izlenen": izlenen}, TR_every_minutes: 0)
+    TR_var en_iyi = {"değer": 99.0}
+    TR_var adımlar: TR_Dict[TR_String, TR_List[TR_Int]] = {"liste": []}
+    TR_var oranlar = {1: 0.5}
+    TR_var nesneler = {"model": model, "op": op, "ö": ö, "g": g, "en_iyi": en_iyi, "adımlar": adımlar, "oranlar": oranlar}
+    TR_var kn = TR_Checkpoint(k, nesneler, TR_every_minutes: 0)
     TR_for adım TR_in kn.TR_resume_step..son {
         TR_var giriş, hedef = ö.TR_next()
         op.TR_zero_grad()
         TR_var kayıp = TR_mean((TR_embedding_lookup(E, giriş) @ w) * (TR_embedding_lookup(E, hedef) @ w))
         TR_backward(kayıp)
         op.TR_step()
-        TR_if kayıp.TR_tolist < izlenen["en_iyi"] { izlenen["en_iyi"] = kayıp.TR_tolist }
-        izlenen["adımlar"].TR_append(adım)
+        TR_if kayıp.TR_tolist < en_iyi["değer"] { en_iyi["değer"] = kayıp.TR_tolist }
+        adımlar["liste"].TR_append(adım)
         g.TR_append({"adım_no": adım + 1, "loss": kayıp})
         kn.TR_update(adım + 1)
     }
-    TR_return {"model": model, "op": op, "ö": ö, "izlenen": izlenen, "kn": kn, "g": g}
+    TR_return Eğitim(model, op, ö, kn, en_iyi, adımlar, oranlar)
 }
 
 TR_test "20.6 yeniden kurulan kontrol noktası kaldığı yerden kesintisizle aynı sürer" {
     TR_var a = eğit(koşu("kesintisiz"), 6, "kesintisiz")
     TR_var kb = koşu("kesilen")
     TR_var ilk = eğit(kb, 3, "kesilen")
-    TR_var takma = ilk["izlenen"]
+    TR_var takma = ilk.adımlar
     TR_var b = eğit(kb, 6, "kesilen")
-    TR_assert_equal(3, b["kn"].TR_resume_step)
-    TR_assert_equal(a["model"]["E"].TR_tolist, b["model"]["E"].TR_tolist)
-    TR_assert_equal(a["model"]["w"].TR_tolist, b["model"]["w"].TR_tolist)
-    TR_assert_equal(a["op"].TR_state.TR_keys(), b["op"].TR_state.TR_keys())
-    TR_for ad TR_in a["op"].TR_state.TR_keys() {
-        TR_assert_equal(a["op"].TR_state[ad].TR_tolist, b["op"].TR_state[ad].TR_tolist)
+    TR_assert_equal(3, b.kn.TR_resume_step)
+    TR_assert_equal(a.model["E"].TR_tolist, b.model["E"].TR_tolist)
+    TR_assert_equal(a.model["w"].TR_tolist, b.model["w"].TR_tolist)
+    TR_assert_equal(a.op.TR_state.TR_keys(), b.op.TR_state.TR_keys())
+    TR_for ad TR_in a.op.TR_state.TR_keys() {
+        TR_assert_equal(a.op.TR_state[ad].TR_tolist, b.op.TR_state[ad].TR_tolist)
     }
-    TR_assert_equal(a["ö"].TR_state, b["ö"].TR_state)
-    TR_assert_equal(a["ö"].TR_next()[0].TR_tolist, b["ö"].TR_next()[0].TR_tolist)
-    TR_assert_equal(a["izlenen"], b["izlenen"])
-    TR_assert_equal([0, 1, 2, 3, 4, 5], b["izlenen"]["adımlar"])
-    TR_assert_equal(TR_Float, TR_Type(b["izlenen"]["en_iyi"]))
-    TR_assert_equal(0.5, b["izlenen"]["oranlar"][1])
+    TR_assert_equal(a.ö.TR_state, b.ö.TR_state)
+    TR_assert_equal(a.ö.TR_next()[0].TR_tolist, b.ö.TR_next()[0].TR_tolist)
+    TR_assert_equal(a.en_iyi, b.en_iyi)
+    TR_assert_equal(a.adımlar, b.adımlar)
+    TR_assert_equal(a.oranlar, b.oranlar)
+    TR_assert_equal([0, 1, 2, 3, 4, 5], b.adımlar["liste"])
+    TR_assert_equal(TR_Float, TR_Type(b.en_iyi["değer"]))
+    TR_assert_equal(0.5, b.oranlar[1])
     # İlk koşunun düz değerleri yerinde yüklenmedi; yeni koşunun sözlüğü yerinde yenilendi.
-    TR_assert_equal([0, 1, 2], takma["adımlar"])
+    TR_assert_equal([0, 1, 2], takma["liste"])
 }
 
 TR_test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
@@ -232,11 +249,13 @@ TR_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı ön
     TR_write_file(d, TR_read_file(d).TR_replace("\"workers\"", "\"workers\" "))
     TR_assert_equal("H7476", TR_error_code { TR_Checkpoint(k, {"w": w}) })
     # İleti bozuk noktayı ve bir önceki geçerli noktayı adıyla söyler.
-    TR_var m = hata_metni { TR_Checkpoint(k, {"w": w}) }
+    TR_var m = ""
+    TR_try { TR_Checkpoint(k, {"w": w}) } TR_catch h { m = h }
     TR_assert(m.TR_contains("step_0000000002") TR_and m.TR_contains("step_0000000001"), m)
     TR_remove(TR_Path(k, "checkpoints", "step_0000000001"), TR_recursive: TR_true)
     TR_assert_equal("H7476", TR_error_code { TR_Checkpoint(k, {"w": w}) })
-    m = hata_metni { TR_Checkpoint(k, {"w": w}) }
+    m = ""
+    TR_try { TR_Checkpoint(k, {"w": w}) } TR_catch h { m = h }
     TR_assert(m.TR_contains("step_0000000002") TR_and TR_not m.TR_contains("step_0000000001"), m)
     TR_remove(n, TR_recursive: TR_true)
     TR_assert_equal(0, TR_Checkpoint(k, {"w": w}).TR_resume_step)

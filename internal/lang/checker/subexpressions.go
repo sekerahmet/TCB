@@ -72,14 +72,14 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 func (c *Checker) checkStruct(s *ast.StructStatement) {
 	c.defineStruct(s)
 	for _, f := range s.Fields {
-		c.inferExpression(f.DefaultValue)
+		c.noteDefault(f.DefaultValue, c.inferExpression(f.DefaultValue))
 	}
 	// durumlu tipin durumu BüyükDeve bir addır (2.3b, 7.7; uymayan ad uyarıdır), alanları değerdir
 	for _, vr := range s.Variants {
 		c.checkNameStyle(vr.Name, kindType, siteOf(vr.NameToken, s.Line()))
 		for _, f := range vr.Fields {
 			c.checkNameStyle(f.Name, kindValue, siteOf(f.NameToken, s.Line()))
-			c.inferExpression(f.DefaultValue)
+			c.noteDefault(f.DefaultValue, c.inferExpression(f.DefaultValue))
 		}
 	}
 	for _, name := range sortedMethodNames(s) {
@@ -102,8 +102,9 @@ func (c *Checker) functionSignature(e *ast.FunctionLiteral) (paramTypes []string
 // functionBody parametrelerin tanımlı olduğu yeni bir kapsamda varsayılan değerleri ve
 // gövdeyi denetler; gövdedeki 'sonuç'lar retType'a göre denetlenir (açıklama yoksa denetlenmez).
 func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
-	prev, prevRet := c.scope, c.returnType
+	prev, prevRet, prevFunc := c.scope, c.returnType, c.facts.current
 	c.scope = NewScope(prev)
+	c.facts.current = e
 	c.returnType = ""
 	if e.ReturnType != nil {
 		c.returnType = retType
@@ -113,7 +114,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 	}
 	for _, p := range e.Parameters {
 		if p.DefaultValue != nil {
-			c.inferExpression(p.DefaultValue)
+			c.noteDefault(p.DefaultValue, c.inferExpression(p.DefaultValue))
 		}
 	}
 	if e.Body != nil {
@@ -123,7 +124,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 			c.checkStatement(stmt)
 		}
 	}
-	c.scope, c.returnType = prev, prevRet
+	c.scope, c.returnType, c.facts.current = prev, prevRet, prevFunc
 }
 
 // sortedMethodNames yapının metot adlarını sıralı verir; hatalar kararlı sırada çıkar.

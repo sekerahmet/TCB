@@ -12,7 +12,8 @@ TR_func satırlar(dosya_yolu: TR_String) -> TR_List[TR_JSON] {
 }
 
 # ayar: programın tek komut_satırı çağrısı (19.2: ikinci çağrı hatadır); ilk çağıran test onu yapar,
-# sonrakiler aynı sonucu alır (19.2, 19.4). Argümansız koşuda varsayılanlar.
+# sonuç ayar_sonucu'nda kalır ve sonrakiler onu okur (19.2, 19.4). Argümansız koşuda varsayılanlar.
+# Sonuç karışık değerli bir sözlüktür (19.2 yapı diyor); ayar onu döndürmez, tipi yazılamaz.
 TR_var ayar_sonucu = TR_none
 
 TR_func ayar() {
@@ -20,7 +21,6 @@ TR_func ayar() {
         ayar_sonucu = TR_command_line({"step": 100, "oran": 0.5, "veri": "veri/train", "katmanlar": [64, 32], "hızlı": TR_false, "etiket": TR_none, "api_anahtarı": "anahtar-varsayılan-1"},
             TR_description: "Deneme", TR_descriptions: {"step": "eğitim adımı"})
     }
-    TR_return ayar_sonucu
 }
 
 TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
@@ -32,7 +32,8 @@ TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
 }
 
 TR_test "19.2 komut_satırı argümansızken varsayılanları yeni bir değerde verir" {
-    TR_var seçenekler = ayar()
+    ayar()
+    TR_var seçenekler = ayar_sonucu
     TR_assert_equal(TR_Dict, TR_Type(seçenekler))
     TR_assert_equal(["step", "oran", "veri", "katmanlar", "hızlı", "etiket", "api_anahtarı"], seçenekler.TR_keys())
     TR_assert_equal(100, seçenekler["step"])
@@ -57,7 +58,8 @@ TR_test "19.3 seçenek tipleri ve adları kurulumda denetlenir" {
 
 TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda maskelenir, veride değişmez" {
     # Değerin kendisi programda değişmez (yazdır'ın döndürdüğü metin de veridir).
-    TR_var seçenekler = ayar()
+    ayar()
+    TR_var seçenekler = ayar_sonucu
     TR_assert_equal("anahtar-varsayılan-1", seçenekler["api_anahtarı"])
     TR_var dosya_yolu = "\(TR_temp_dir())/gizli.jsonl"
     TR_Logger(dosya_yolu).TR_append({"anahtar": seçenekler["api_anahtarı"]})

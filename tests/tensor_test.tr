@@ -38,7 +38,9 @@ TR_test "15.2 özellikler ve görünüm metotları" {
     # .gradyan: türev izlemeyen işlemin sonucu yapraktır (yok); türev izleyenin sonucunda hata.
     TR_assert_equal(TR_none, (TR_Tensor([1.0]) + TR_Tensor([2.0])).TR_grad)
     TR_var izlenen = TR_Tensor([1.0], TR_requires_grad: TR_true) * 2.0
-    TR_assert(hata_metni { izlenen.TR_grad } != "")
+    TR_var ileti = ""
+    TR_try { TR_var g = izlenen.TR_grad } TR_catch h { ileti = h }
+    TR_assert(ileti != "")
     # Tek liste argümanı zorunludur ([] 0 boyutlu şekil); sayı argümanları şekil sayılmaz.
     TR_assert_equal([], TR_Tensor([3.0]).TR_reshape([]).TR_shape)
     TR_assert_equal(3.0, TR_Tensor([3.0]).TR_reshape([]).TR_tolist)
@@ -253,7 +255,7 @@ TR_test "15.9 matematik fonksiyonları ve indirgemeler" {
 }
 
 TR_test "15.9 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {
-    TR_var nan_mı = (x) => x != x
+    TR_var nan_mı = (x: TR_Float) => x != x
     TR_var y = TR_Tensor([1.0, 0.0, 3.0]) / TR_Tensor([1.0, 0.0, 1.0]) # [1, NaN, 3]
     TR_var yg = TR_Tensor(y, TR_requires_grad: TR_true)
     TR_assert(nan_mı(TR_max(y).TR_tolist) TR_and nan_mı(TR_min(y).TR_tolist))
@@ -338,9 +340,13 @@ TR_test "15.27 türevsiz(x) veriyi paylaşan görünümdür, tensör(x) bağıms
 
 TR_test "15.27 türevsiz göreve bağlıdır; eşzamanlı görevlere sızmaz" {
     TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
-    TR_var izli = (t) => hata_metni { TR_backward(TR_sum(t)) } == ""
+    # izli: t'nin toplamının geri yayılımı hatasız mı (türev izleniyor mu)?
+    TR_func izli(t: TR_Tensor) -> TR_Bool {
+        TR_try { TR_backward(TR_sum(t)) } TR_catch h { TR_return TR_false }
+        TR_return TR_true
+    }
     TR_var d = {"başladı": TR_false, "devam": TR_false}
-    TR_var bekle_koşul = (k) => {
+    TR_var bekle_koşul = (k: () -> TR_Bool) => {
         TR_for i TR_in 0..1000 {
             TR_if k() { TR_return TR_true }
             TR_sleep(0.01)
@@ -858,7 +864,7 @@ TR_test "15.18 indirgemelerde boyutu_koru" {
 
 TR_test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
     TR_var nan = TR_Float("nan")
-    TR_var k_satırı = (k) => TR_is_finite(k.TR_grad).TR_tolist
+    TR_var k_satırı = (k: TR_Tensor) => TR_is_finite(k.TR_grad).TR_tolist
     # pencere: 1 ve nedensel: 1. sorgu (NaN) yalnızca 1. anahtara bakar; 0. anahtara yalnızca sonlu 0. sorgu bakar.
     TR_var q = TR_Tensor([[1.0, 0.0], [nan, 0.0]], TR_requires_grad: TR_true)
     TR_var k = TR_Tensor([[1.0, 0.0], [0.0, 1.0]], TR_requires_grad: TR_true)
@@ -988,15 +994,15 @@ TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç h
 TR_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_func p(x: TR_Float) -> TR_Tensor { TR_return TR_Tensor([x], TR_requires_grad: TR_true) }
     TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor }
-    TR_struct Blok { TR_attention: Dikkat, mlp }
+    TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
     TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor }
     TR_var ortak = p(9)
-    TR_var m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)]), Blok(Dikkat(p(4), p(5)), {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak)
+    TR_var m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)], {}), Blok(Dikkat(p(4), p(5)), [], {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak)
     TR_var l = TR_parameters(m)
     TR_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_tolist[0] TR_for x TR_in l])
     TR_assert(l[0] == m.TR_embedding)
     TR_var adlar = TR_parameters(m, TR_named: TR_true)
-    TR_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.mlp.W1"], adlar.TR_keys())
+    TR_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.yan.W1"], adlar.TR_keys())
     TR_assert_equal([4.0], adlar["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
     # Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
     TR_assert_equal(0, TR_parameters([p(1) * 2, TR_Tensor([1.0])]).TR_length)
@@ -1071,8 +1077,12 @@ TR_test "15.40 farklı cihazlardaki tensörlerle işlem hata" {
     TR_if TR_devices().TR_contains("gpu") {
         TR_var a = TR_Tensor([1.0])
         TR_var b = a.TR_to_device("gpu")
-        TR_assert(hata_metni { a + b }.TR_contains("tensörler farklı cihazlarda (cpu ve gpu); önce .cihaza(...)"))
-        TR_assert(hata_metni { TR_zeros([1, 1]) @ b.TR_reshape([1, 1]) }.TR_contains("farklı cihazlarda"))
+        TR_var ileti = ""
+        TR_try { TR_var s = a + b } TR_catch h { ileti = h }
+        TR_assert(ileti.TR_contains("tensörler farklı cihazlarda (cpu ve gpu); önce .cihaza(...)"), ileti)
+        ileti = ""
+        TR_try { TR_var s = TR_zeros([1, 1]) @ b.TR_reshape([1, 1]) } TR_catch h { ileti = h }
+        TR_assert(ileti.TR_contains("farklı cihazlarda"), ileti)
     }
 }
 
@@ -1092,7 +1102,8 @@ TR_test "15.41 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği s�
         TR_assert(TR_abs(c.0 - g1.0) < 0.0001)
         TR_assert_equal(g1, g2)
         TR_default_device("gpu")
-        TR_var m = hata_metni { TR_zeros([200000, 1]) + TR_zeros([200000]) }
+        TR_var m = ""
+        TR_try { TR_var s = TR_zeros([200000, 1]) + TR_zeros([200000]) } TR_catch h { m = h }
         TR_default_device("cpu")
         TR_assert(m.TR_contains("bellek ister"))
     }
@@ -1103,7 +1114,9 @@ TR_test "15.6b yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_assert_equal([2, 5], (t + TR_Tensor([[1.0], [2.0]])).TR_shape)
     TR_assert_equal([2, 5], (TR_Tensor([[1.0], [2.0]]) * t).TR_shape)
     TR_assert_equal("H6100", TR_error_code { t + TR_Tensor([1.0, 2.0]) })
-    TR_assert(hata_metni { t + TR_Tensor([1.0, 2.0]) }.TR_contains("5 ≠ 2"))
+    TR_var ileti = ""
+    TR_try { TR_var s = t + TR_Tensor([1.0, 2.0]) } TR_catch h { ileti = h }
+    TR_assert(ileti.TR_contains("5 ≠ 2"), ileti)
 }
 
 TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
@@ -1174,9 +1187,9 @@ TR_test "15.8 yerine_yaz: kaynağı eksendeki dilime başlangıçtan yerinde yaz
 
 TR_test "15.50 özel değerler: −0, sonsuz ve NaN tablodaki gibi" {
     TR_var sn = 1e308 * 10
-    TR_var nan_mı = (x) => x != x
+    TR_var nan_mı = (x: TR_Float) => x != x
     TR_var ez = TR_Tensor([0.0]) * -1 # [−0]
-    TR_var eksi = (t) => (1 / t).TR_tolist[0] < 0 # sıfırın işareti: 1 / −0 = −sonsuz
+    TR_var eksi = (t: TR_Tensor) => (1 / t).TR_tolist[0] < 0 # sıfırın işareti: 1 / −0 = −sonsuz
     # Tek işlevler sıfırın işaretini korur; üs tek tam sayıda da.
     TR_assert(eksi(TR_sin(ez)) TR_and eksi(TR_tanh(ez)) TR_and eksi(TR_expm1(ez)) TR_and eksi(ez ** 3))
     # Yalnızca −0'lardan oluşan toplam +0'dır (PyTorch ve NumPy gibi).

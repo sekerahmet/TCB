@@ -22,6 +22,8 @@ type preparation struct {
 	syntaxHeader string
 	// typeHeader boş değilse tip denetimi yapılır ve hataları bu başlıkla yazılır.
 	typeHeader string
+	// library gömülü kitaplığın dosya adıdır, metin o dosyaysa (interp.LibraryFileName).
+	library string
 }
 
 // Dosya çalıştırmada ve etkileşimli kabukta (REPL) ortak kullanılan hata başlıkları. Metinler
@@ -65,6 +67,7 @@ func readSource(path string) string {
 // denetimi için) ve hazırlığın sonucunu verir.
 func prepareFile(path string, h preparation) (string, *source.Result) {
 	text := readSource(path)
+	h.library = interp.LibraryFileName(path, text)
 	return text, prepareSource(text, h)
 }
 
@@ -72,7 +75,7 @@ func prepareFile(path string, h preparation) (string, *source.Result) {
 // varsa hepsini yazıp 1 koduyla çıkar. Hata çerçeveleri ve yorumlayıcının kaynak metni
 // sonucun gövdesidir (kodlu dosyada başlıktan sonrası).
 func prepareSource(text string, h preparation) *source.Result {
-	s := source.Prepare(text, source.Options{TypeCheck: h.typeHeader != ""})
+	s := source.Prepare(text, source.Options{TypeCheck: h.typeHeader != "", Library: h.library})
 	writeWarnings(s.Warnings, s.Text)
 	switch s.Stage {
 	case source.StageSyntax:

@@ -115,6 +115,11 @@ func defaultText(f *file, at Pos, next *Pos) string {
 	}
 	text := strings.TrimSpace(string(runes[from:to]))
 	text = strings.TrimSpace(strings.TrimSuffix(text, ","))
+	// Tipli parametrede adın ardından tip gelir (`ad: T = değer`); tip yazımında '=' geçmez, değer
+	// ilk '='den sonradır.
+	if _, value, typed := strings.Cut(text, "="); typed && strings.HasPrefix(text, ":") {
+		text = value
+	}
 	text = strings.TrimSpace(strings.TrimPrefix(text, "="))
 	if text == "" || to == len(runes) && depth != 0 {
 		return "…"

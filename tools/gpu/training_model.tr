@@ -7,8 +7,9 @@ TR_import "tr/layers"
 
 # eğitim_modeli: ayar.dağarcık 0 ise parçalayıcının dağarcığı kullanılır; büyükse dolgu satırları eklenir,
 # küçükse hatadır. 0 verilen kv_bakış_sayısı ve ara_boyut kitaplığın varsayılanıdır. Ayar config.json'dan
-# geliyorsa değerleri JSON'dur (3.7a): tip çağrısıyla açılır; komut satırı sözlüğünde aynı değeri verir.
-TR_func eğitim_modeli(ayar, parçalayıcı_dağarcığı: TR_Int) -> TR_GPT {
+# geliyorsa değerleri JSON'dur (3.7a): tip çağrısıyla açılır. Komut satırının karışık değerli sözlüğü
+# TR_JSON(ayar) ile verilir (tipi tek: TR_JSON).
+TR_func eğitim_modeli(ayar: TR_JSON, parçalayıcı_dağarcığı: TR_Int) -> TR_GPT {
     TR_if TR_Int(ayar["dağarcık"]) != 0 TR_and TR_Int(ayar["dağarcık"]) < parçalayıcı_dağarcığı {
         TR_throw ("--dağarcık \(TR_Int(ayar["dağarcık"])) parçalayıcının dağarcığından (\(parçalayıcı_dağarcığı)) küçük olamaz")
     }

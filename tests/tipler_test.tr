@@ -421,7 +421,7 @@ TR_test "3.8 başı sonundan büyük aralık boştur; geriye .reverse() sayar" {
 }
 
 TR_test "3.9 fonksiyonlar birinci sınıf değerlerdir" {
-    TR_var f = (x) => { TR_return x + 1 }
+    TR_var f = (x: TR_Int) => { TR_return x + 1 }
     TR_var l = [f]
     TR_assert_equal(2, l[0](1))
     TR_assert_equal(TR_Function, TR_Type(f))

@@ -75,7 +75,7 @@ TR_for ad, p TR_in TR_parameters(model, TR_named: TR_true) {
     parametre_sayısı += n
     TR_if iyileştirici.TR_name_matches(ad, "TR_mem_ple.TR_mem_table") { ple_tablo += n }
 }
-TR_var M = (n) => TR_round(n / 1000000.0, 1)
+TR_var M = (n: TR_Int) => TR_round(n / 1000000.0, 1)
 TR_print("hedef model (TR) | YYGYGYYG | \(M(parametre_sayısı))M parametre (PLE tabloları \(M(ple_tablo))M, gövde + gömme \(M(parametre_sayısı - ple_tablo))M) | \(arg["step"]) adım × \(adım_başına) parça | cihaz \(TR_default_device())")
 
 # Doğrulama kaybı: dosyanın başından ardışık pencereler (hedefle aynı), türevsiz, eğitimin hassasiyetiyle.

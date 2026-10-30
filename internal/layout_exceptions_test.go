@@ -35,7 +35,6 @@ var longFuncReasons = map[string]string{
 	"internal/lang/interp/operators.go:valuesEqual":             reasonDispatch + " (değer tipi başına eşitlik)",
 	"internal/lang/interp/methods.go:setupListMethods":          reasonTable,
 	"internal/lang/checker/checker.go:Checker.checkStatement":   reasonDispatch,
-	"internal/lang/checker/checker.go:Checker.inferExpression":  reasonDispatch,
 	"internal/lang/codes/language.go:load":                      reasonRead + " (dil dosyası)",
 	"internal/lang/codes/definition.go:CheckDefinitions":        reasonRead + " (tanım dosyasının tutarlılık denetimleri)",
 	"internal/lang/codes/definition.go:ParseDefinitions":        reasonRead + " (tanım dosyası)",

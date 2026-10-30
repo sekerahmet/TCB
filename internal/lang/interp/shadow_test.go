@@ -16,7 +16,7 @@ func TestShadowedBuiltinCall(t *testing.T) {
 		message messages.Code // gölgeleyen tanımın türünü anlatan ileti
 	}{
 		{"TR_var tip = 5\ntip([1, 2])", 2, messages.H2421},
-		{"TR_func f(toplam) {\n    TR_return toplam([1])\n}\nf(\"a\")", 2, messages.H2421},
+		{"TR_func f(toplam: TR_String) -> TR_Int {\n    TR_return toplam([1])\n}\nf(\"a\")", 2, messages.H2421},
 		{"TR_for metin TR_in [1] {\n    metin(1)\n}", 2, messages.H2421},
 	} {
 		_, _, err := runTRWithin(t, 5*time.Second, c.codeVal)

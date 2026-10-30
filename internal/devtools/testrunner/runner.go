@@ -88,7 +88,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		summary.Unloadable++
 		return summary
 	}
-	ready := source.Prepare(string(data), source.Options{TypeCheck: true})
+	ready := source.Prepare(string(data), source.Options{TypeCheck: true, Library: interp.LibraryFileName(fpath, string(data))})
 	text, prog := ready.Text, ready.Program
 	if len(ready.Warnings) > 0 {
 		// Uyarılar testleri durdurmaz ve sonucu etkilemez.

@@ -70,7 +70,7 @@ TR_var E = parametre([V, D], 0.1)
 TR_var W1 = parametre([D, GİZLİ], 0.1)
 TR_var W2 = parametre([GİZLİ, V], 0.1)
 
-TR_func ileri(giriş) -> TR_Tensor {
+TR_func ileri(giriş: TR_Tensor) -> TR_Tensor {
     TR_return TR_gelu(TR_embedding_lookup(E, giriş) @ W1) @ W2
 }
 
@@ -113,7 +113,7 @@ TR_print("doğrulama: \(toplu_sayısı) toplu iş, ortalama kayıp = \(TR_round(
 TR_var üretilen = p.TR_encode("Bugün")
 TR_no_grad {
     TR_for n TR_in 0..12 {
-        üretilen.TR_append(TR_argmax(ileri([üretilen]), TR_dim: -1).TR_tolist[0].TR_last)
+        üretilen.TR_append(TR_argmax(ileri(TR_Tensor([üretilen])), TR_dim: -1).TR_tolist[0].TR_last)
     }
 }
 TR_print("model şunu yazdı: \(p.TR_decode(üretilen))")

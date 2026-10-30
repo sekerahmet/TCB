@@ -15,7 +15,7 @@ import (
 const bindSource = `TR_struct Dikkat {
     baş: TR_Int
     kv_baş: TR_Int?
-    TR_func TR_init(boyut: TR_Int, baş: TR_Int, kv_baş = TR_none) {
+    TR_func TR_init(boyut: TR_Int, baş: TR_Int, kv_baş: TR_Int? = TR_none) {
         TR_self.baş = baş
         TR_self.kv_baş = kv_baş
     }
@@ -29,7 +29,7 @@ TR_func yap(baş: TR_Int) -> TR_Int {
     TR_return d.baş
 }
 
-TR_func gez(x) -> TR_Int {
+TR_func gez(x) -> TR_Int { # ERROR H1111
     TR_return x.baş
 }
 
@@ -170,8 +170,8 @@ var memberGuessFiles = map[string]string{
 		}
 		return b.String()
 	}(),
-	"kullan.tr": source.Header + "\nTR_import \"katman\"\n\nTR_func çalış(p) {\n    TR_print(p.ileri())\n    p.ağırlık = 2\n    TR_print(p.geri())\n}\n",
-	"başka.tr":  source.Header + "\nTR_func başka(p) {\n    TR_print(p.ileri())\n    TR_print(p.ağırlık)\n}\n",
+	"kullan.tr": source.Header + "\nTR_import \"katman\"\n\nTR_func çalış(p) { # ERROR H1111\n    TR_print(p.ileri())\n    p.ağırlık = 2\n    TR_print(p.geri())\n}\n",
+	"başka.tr":  source.Header + "\nTR_func başka(p) { # ERROR H1111\n    TR_print(p.ileri())\n    TR_print(p.ağırlık)\n}\n",
 }
 
 // Kural: alıcısı bilinmeyen üye erişimi (`p.ileri()`, `p.ağırlık = 2`) aynı adlı ve erişimin dosyasından görünen her

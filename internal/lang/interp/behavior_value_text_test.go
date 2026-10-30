@@ -67,7 +67,7 @@ TR_print(TR_String(b) == "true", TR_String(TR_none) == "none", TR_String(TR_Type
 
 // Kitaplığın ve yerel modülün fonksiyonu da aynı metni verir; geri çağırma da.
 func TestValueTextIsTheSameInEveryModule(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func anlat(x) -> TR_String { TR_return \"\\(x) \" + TR_String(TR_Type(x)) }\nTR_func uygula(f: (TR_Bool) -> TR_String) { TR_print(f(TR_true)) }\n" +
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func anlat(x: TR_Bool) -> TR_String { TR_return \"\\(x) \" + TR_String(TR_Type(x)) }\nTR_func uygula(f: (TR_Bool) -> TR_String) { TR_print(f(TR_true)) }\n" +
 		"" +
 		"")}})
 	out := runCoded(t, `TR_import "tr/kitap" TR_as k
@@ -75,7 +75,7 @@ TR_import "yerel" TR_as y
 TR_print(k.anlat(TR_true), y.anlat(TR_none))
 k.uygula((x) => "\(x) " + TR_String(x))
 y.uygula((x) => TR_String([x]))
-`, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x) -> TR_String { TR_return TR_String(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
+`, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x: TR_NoneType) -> TR_String { TR_return TR_String(x) }\nTR_func uygula(f: (TR_NoneType) -> TR_String) { TR_print(f(TR_none)) }\n"})
 	want := "true Bool none\ntrue true\n[none]\n"
 	if out != want {
 		t.Errorf("metin her modülde aynı olmalı:\n%s\nbeklenen:\n%s", out, want)

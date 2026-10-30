@@ -32,7 +32,6 @@ var LongFuncs = map[string]int{
 	"internal/lang/interp/operators.go:valuesEqual":             90,
 	"internal/lang/interp/methods.go:setupListMethods":          88,
 	"internal/lang/checker/checker.go:Checker.checkStatement":   147,
-	"internal/lang/checker/checker.go:Checker.inferExpression":  115,
 	"internal/lang/codes/language.go:load":                      160,
 	"internal/lang/codes/definition.go:CheckDefinitions":        113,
 	"internal/lang/codes/definition.go:ParseDefinitions":        96,

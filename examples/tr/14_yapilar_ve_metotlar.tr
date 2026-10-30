@@ -50,10 +50,10 @@ TR_struct Hesap {
 }
 TR_print(Hesap(5).bakiye)
 
-# Yapının kendisi YapıTanımı tipindedir; nesnenin tipi yapının kendisidir.
-# Nesne, yapıdan oluşan her değerin genel adıdır (tip bildirimlerinde kullanılır).
-TR_var hesap: TR_Object = Hesap(1)
-TR_print(TR_Type(Hesap) == TR_StructType, TR_Type(hesap) == Hesap)
+# Yapının kendisi YapıTanımı tipindedir; nesnenin tipi yapının kendisidir: tip bildiriminde
+# yapının adı yazılır. Nesne genel bir tiptir, tip yerine yazılmaz (3.11).
+TR_var hesap: Hesap = Hesap(1)
+TR_print(TR_Type(Hesap) == TR_StructType, TR_Type(hesap) == Hesap, TR_Type(hesap) == TR_Object)
 
 # Nesnenin metni kurma yazımıdır: programa kopyalanınca aynı değeri kurar.
 TR_print(Nokta(3.0, 4.0))
