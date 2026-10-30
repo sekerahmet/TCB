@@ -4,7 +4,7 @@
 TR_import "tr/training"
 
 # Hafif gürültülü, sabit bir kayıp ve norm dizisi (her biri 1,0 ± 0,01).
-TR_func besle(b, n) {
+TR_func besle(b: TR_SpikeGuard, n: TR_Int) {
     TR_for i TR_in 0..n {
         TR_var g = TR_if i % 2 == 0 { 0.01 } TR_else { -0.01 }
         TR_assert_equal(TR_OK, b.TR_observe(1.0 + g, 1.0 - g))
@@ -75,7 +75,7 @@ TR_test "SıçramaBekçisi: kesirli pencere ve sonsuz eşik reddedilir" {
 }
 
 # Küçük bir koşu: iki parametreli model, adım_sayısı adım, her adımda ölçü, sonda değerlendirme.
-TR_func koş(klasör, model, adım_sayısı, prova = TR_false) {
+TR_func koş(klasör: TR_Path, model: TR_Dict[TR_String, TR_Tensor], adım_sayısı: TR_Int, prova: TR_Bool = TR_false) -> TR_Run {
     TR_var koşu = TR_Run(klasör, {"deneme": 1}, {"model": model}, TR_num_steps: adım_sayısı, TR_dry_run: prova)
     TR_for adım TR_in koşu.TR_resume_step..koşu.TR_last_step {
         koşu.TR_step_done(adım + 1, {"loss": 1.0 / (adım + 1)})
