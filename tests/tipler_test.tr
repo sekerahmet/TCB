@@ -534,13 +534,15 @@ TR_test "3.13 tip açıklamaları tip denetleyicisince denetlenir" {
     # Olumsuz fikstür: tests/negative/tip_aciklamasi.tr
 }
 
-TR_test "3.13 açıklamasız değişkenin tipi kalıcı değildir" {
-    TR_var kayıp = 0
+TR_test "3.13 açıklamasız değişkenin tipi ilk değerinden çıkar ve kalıcıdır" {
+    # Ondalık biriktiren değişken 0.0 ile başlar; 0 ile başlasaydı TR_Int olurdu ve += 0.5
+    # denetim hatası olurdu (dil tanımının 3.13 hata bloğu).
+    TR_var kayıp = 0.0
     TR_for i TR_in 1..=4 { kayıp += 0.5 }
     TR_assert_equal(2.0, kayıp)
     TR_var x = 5
-    x = "beş"
-    TR_assert_equal(TR_String, TR_Type(x))
+    x = 7
+    TR_assert_equal(TR_Int, TR_Type(x))
     # '/' Tam / Tam'da tam bölünmezse Ondalık verir; denetleyici de böyle bilir
     TR_var oran: TR_Float = 7 / 2
     TR_assert_equal(3.5, oran)

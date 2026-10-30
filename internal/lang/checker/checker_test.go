@@ -194,11 +194,12 @@ func TestAssignmentTypeCheck(t *testing.T) {
 	singleError(t, "TR_var a: TR_Int = 1\na = \"x\"", messages.H1005, 2, `"a" değişkeni (TR_Int)`, `"TR_String"`)
 	noErrors(t, "TR_var a: TR_Float = 1\na = 2.5\na = 3")
 
-	// Dil dinamiktir: tip açıklaması olmayan değişkenin ilk değerden çıkarılan tipi kalıcı
-	// bir bildirim değildir; başka tipte değer atanabilir. Sabitlerin tipi kalır.
-	noErrors(t, "TR_var a = 5\na = \"beş\"")
-	noErrors(t, "TR_var x = TR_true\nx = 1")
-	noErrors(t, "TR_var kayıp = 0\nTR_for i TR_in 1..3 { kayıp += 0.5 }")
+	// Kural (3.13): tip açıklaması olmayan değişkenin tipi ilk değerinden çıkar ve kalıcıdır;
+	// başka tipte değer atanamaz. Sabitlerin tipi de kalır.
+	singleError(t, "TR_var a = 5\na = \"beş\"", messages.H1005, 2, `"a" değişkeni (TR_Int)`, `"TR_String"`)
+	singleError(t, "TR_var x = TR_true\nx = 1", messages.H1005, 2, `"x" değişkeni (TR_Bool)`, `"TR_Int"`)
+	singleError(t, "TR_var kayıp = 0\nTR_for i TR_in 1..3 { kayıp += 0.5 }", messages.H1005, 2, `"kayıp" değişkeni (TR_Int)`, `"TR_Float"`)
+	noErrors(t, "TR_var kayıp = 0.0\nTR_for i TR_in 1..3 { kayıp += 0.5 }")
 	singleError(t, "TR_const S = 5\nTR_var m: TR_String = S", messages.H1001, 2, `"TR_String"`, `"TR_Int"`)
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
@@ -217,14 +218,14 @@ func TestCompoundAssignment(t *testing.T) {
 	noErrors(t, "TR_var x = 1.5\nx += 1")
 	noErrors(t, "TR_var x: TR_Float = 1\nx *= 2.5")
 
-	// 'x = x + 0.5' gibi, Tam açıklamalı bir değişkene Ondalık sonuç atanamaz; açıklamasız
-	// değişken (biriktirici) serbesttir.
+	// 'x = x + 0.5' gibi, Tam tipli bir değişkene Ondalık sonuç atanamaz; tipi ilk değerinden çıkan
+	// değişken de (3.13).
 	singleError(t, "TR_var x: TR_Int = 1\nx += 0.5", messages.H1005, 2, `"x" değişkeni (TR_Int)`, `"TR_Float"`)
 	singleError(t, "TR_var x: TR_Int = 1\nx = x + 0.5", messages.H1005, 2, `"x" değişkeni (TR_Int)`, `"TR_Float"`)
-	noErrors(t, "TR_var x = 1\nx += 0.5")
+	singleError(t, "TR_var x = 1\nx += 0.5", messages.H1005, 2, `"x" değişkeni (TR_Int)`, `"TR_Float"`)
 
 	// Kural (4.2): '/' her zaman Ondalık verir (6 / 3 = 2.0); Tam beklenen yerde ileti '//'yi önerir.
-	noErrors(t, "TR_var x = 10\nx /= 4")
+	singleError(t, "TR_var x = 10\nx /= 4", messages.H1005, 2, `"TR_Float"`, "'//'")
 	singleError(t, "TR_var y: TR_Int = 10 / 4", messages.H1001, 1, `"TR_Float"`, "'//'")
 	singleError(t, "TR_var y: TR_Int = 10\ny /= 4", messages.H1005, 2, `"TR_Float"`, "'//'")
 	noErrors(t, "TR_var y: TR_Int = 10 // 4\nTR_var z: TR_Int = 10 % 4\nTR_var w: TR_Int = 2 ** 3 & 7")
