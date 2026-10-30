@@ -525,7 +525,6 @@ func TestKnownLimitations(t *testing.T) {
 		{"çoklu tanımda değişkenler tipsizdir", "TR_var a, b = 1, 2\na = \"x\""},
 		{"yapı alan tipleri", "TR_struct Nokta {\n  x: TR_Int\n}\nTR_var p = Nokta(\"a\")"},
 		{"uyumsuz işlenenler", "TR_var a = \"x\" - 1\nTR_var b = TR_true + 1"},
-		{"koşul tipi", "TR_if 5 { }\nTR_for \"x\" { }"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -16,7 +16,7 @@ Denetim: iletiyi yazan paketin testi önerinin metnini, dilin testi önerilen ya
 **Kod değişmez, metin değişebilir.** Kod `H` ve dört basamaktır; binler basamağı alanı gösterir:
 `H0` sözdizimi · `H1` tip denetimi · `H2` yorumlayıcı (ortak `H2000` = `{fn}: {error}`) · `H3`
 tensör ve CPU · `H4` GPU · `H5` veri ve parçalayıcı · `H6` stdlib/ml · `H7` standart kitaplığın
-geri kalanı · `H8` araçlar ve `tr` komutu · `H9` iç hatalar. Silinen bir kodun numarası bir daha
+geri kalanı · `H8` araçlar ve `tr` komutu · `H9` iç hatalar. 13.11'in istisnası: denetim, çalışma anındaki hatanın kodunu kullanır (aynı hata denetimde yakalanınca kodu değişmez: koşul H2600, metodun sayısı H2011, metodu olmayan tip H2474). Silinen bir kodun numarası bir daha
 kullanılmaz: silinenler `retired.json`'dadır (numara → commit ve gerekçe; ilk liste `go run ./tools/codegraph deleted --retired-json` ile üretildi), katalogda ya da tanımlarda yeniden bulunursa üreteç çalışmaz. Denetim: `TestParseCode`, `TestCatalogErrors`, `TestMessageUsage` (tools/gen/msgconsts: kullanılmayan kod), `TestRetiredCodesStayRetired`, `TestGenerateRejectsRetiredCode` (tools/gen/msgconsts).
 
 **Go kodu metin yazmaz, kod yazar.** `messages.New(messages.H7003, fn, path)` bir hata,

@@ -37,9 +37,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.scope = NewScope(prev)
 		c.scope.Define(e.VarName, TypeInfo{TypeName: value})
 		c.inferExpression(e.Output)
-		if e.Condition != nil {
-			c.inferExpression(e.Condition)
-		}
+		c.condition(e.Condition)
 		c.scope = prev
 		return typeList, true
 	case *ast.DictLiteral:

@@ -111,8 +111,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 ### 3.10
 
 - **Mevcut durum:** koşulda yalnız `TR_Bool`; başka tip çalışma anında hata veriyor (H2600), ileti açık sınamayı öneriyor (katman 2) [ölçüldü]. Hata ayıklayıcının koşullu durağı hâlâ doğruluk sınamasıyla (`IsTruthy`) okunuyor.
-- **Yapılacaklar:** başka tip denetim hatası da olur (katman 4); hata ayıklayıcının koşulu da yalnız `TR_Bool` alır.
-- **DENETİM 0.6b (2026-10-29):** demet koşulda (`TR_if (1, 2)`) bugün doğru sayılıyor (eski çoklu dönüş gibi); kurala göre koşul `TR_Bool` olmalı, hata (denetimi 4a2).
+- **4a2 (ilk dilim):** tipi bilinen koşul `TR_Bool` değilse denetim hatası, çalışma anının koduyla: `TR_if`/`TR_else TR_if`, koşullu `TR_for`, liste üretecinin ve `TR_breakpoint TR_if`'in koşulu H2600, `TR_and`/`TR_or`/`TR_not` işleneni H2601, `TR_assert`'in koşulu H2612; demet koşul (`TR_if (1, 2)`) da [ölçüldü: `TestConditionMustBeBool`, `tests/negative/kosul_mantik_degil.tr`]. Tipi bilinmeyen ve isteğe bağlı (`TR_Bool?`) koşul susar.
+- **Yapılacaklar:** `.TR_filter`'ın yükleminin dönüş tipi (fonksiyon tipleri, ikinci dilim); isteğe bağlı koşul (daraltma, 4b); hata ayıklayıcının durağının koşulu da yalnız `TR_Bool` alır.
 
 ### 3.13
 

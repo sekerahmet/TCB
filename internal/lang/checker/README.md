@@ -59,6 +59,8 @@ tam sayı yazımı ise ondalık beklenen yerde ondalıktır. Demetin tipi öğel
 
 **Yerleşik çağrısı imzasıyla denetlenir (13.9–13.11).** Tanım dosyasında `pure` işaretli yerleşiğin (yalnız yeni değer veren) çağrısı tek başına deyimse H1115: değer atılır; ileti atamayı önerir, alıcı atanabilir adsa uygulanabilir düzeltmeyle (`l = l.TR_sort()`; `pure_calls.go`). Tipi bilinen alıcıda (Metin, Liste, Sözlük, Aralık) yerleşik metodun konumlu argüman sayısı imzaya uymuyorsa çalışma anındaki hata (H2011, `hint.MemberArgCount`): ad ve kullanım kimlikle (`.TR_sort()`), `.TR_sort()`'a anahtar verilirse bugünkü yol (demet sıralaması; `builtin_calls.go`). Sayının tanımla aynı olduğu `TestMethodCountsMatchDefinitions` (interp), üyenin tiplerinin `TestMemberTypesMatchDefinitions` (stdlib) ile sınanır; uyuşmayan üye `MembersBeyondDefinitions`'tadır. Denetim: `TestPureCallValueUnused`, `TestMemberArgCount`, `TestMessageSuggestionsRunCleanly` (internal).
 
+**Koşul `TR_Bool`'dur (3.10).** Tipi bilinen koşul (`TR_if`, koşullu `TR_for`, liste üreteci, `TR_breakpoint TR_if`; H2600), `TR_and`/`TR_or`/`TR_not` işleneni (H2601) ve `TR_assert`'in koşulu (H2612) `TR_Bool` değilse çalışma anının koduyla denetim hatası (`conditions.go`); tipi bilinmeyen ve isteğe bağlı koşul susar. Denetim: `TestConditionMustBeBool`.
+
 **Tek hata, tek mesaj.** Bir hata aynı satırda zincirleme ikinci bir hata üretmez (ör. yanlış
 yazılmış tip adı ayrıca bir tip uyuşmazlığı olarak bildirilmez). Denetim: `TestTypeNameASCIISuggestion`, `TestTypeNameCaseSpelling`.
 

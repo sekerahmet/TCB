@@ -198,22 +198,9 @@ TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     TR_assert_equal(TR_true, TR_not TR_false)
 }
 
-TR_test "4.6 TR_and, TR_or ve TR_not'un işlenenleri TR_Bool'dur" {
-    TR_assert_equal("H2601", TR_error_code { TR_var z = 1 TR_and TR_true })
-    TR_assert_equal("H2601", TR_error_code { TR_var z = TR_true TR_and "a" })
-    TR_assert_equal("H2601", TR_error_code { TR_var z = TR_false TR_or [] })
-    TR_assert_equal("H2601", TR_error_code { TR_var z = TR_none TR_or TR_true })
-    TR_assert_equal("H2601", TR_error_code { TR_var z = TR_not 0 })
-    # kısa devrede sağ yan hesaplanmaz
-    TR_assert_equal(TR_false, TR_false TR_and 1)
-    TR_assert_equal(TR_true, TR_true TR_or 1)
-}
-
 TR_test "4.6 .TR_filter'ın yüklemi ve TR_assert'in koşulu TR_Bool'dur" {
     TR_assert_equal([2], [1, 2].TR_filter((x) => x > 1))
     TR_assert_equal("H2611", TR_error_code { TR_var z = [0, 1].TR_filter((x) => x) })
-    TR_assert_equal("H2612", TR_error_code { TR_assert([1]) })
-    TR_assert_equal("H2612", TR_error_code { TR_assert(1, "mesaj") })
 }
 
 TR_test "4.7 ?? yalnızca yok ise sağ tarafı verir" {

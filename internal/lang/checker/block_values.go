@@ -69,12 +69,12 @@ func (c *Checker) markBlockValue(b *ast.BlockStatement, used bool) {
 // bilinmiyorsa ya da dallar farklıysa TR_Any.
 func (c *Checker) inferIf(e *ast.IfExpression, used bool) string {
 	var b branchTypes
-	c.inferExpression(e.Condition)
+	c.condition(e.Condition)
 	c.markBlockValue(e.Consequence, used)
 	c.checkStatement(e.Consequence)
 	b.block(c, e.Consequence)
 	for _, elif := range e.ElseIfs {
-		c.inferExpression(elif.Condition)
+		c.condition(elif.Condition)
 		c.markBlockValue(elif.Consequence, used)
 		c.checkStatement(elif.Consequence)
 		b.block(c, elif.Consequence)
