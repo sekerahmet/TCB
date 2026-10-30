@@ -14,7 +14,7 @@ func TestTensorFromCyclicList(t *testing.T) {
 	if err == nil || !messages.Has(err, messages.H6018) {
 		t.Fatalf("döngüsel liste hatası beklenirdi: %v", err)
 	}
-	if out := mustRun(t, "TR_var a = [[1.0]]\nTR_for i TR_in 0..20 { a = [a] }\nTR_print(TR_Tensor(a).TR_shape.TR_length)"); strings.TrimSpace(out) != "22" {
+	if out := mustRun(t, "TR_var a: TR_List = [[1.0]]\nTR_for i TR_in 0..20 { a = [a] }\nTR_print(TR_Tensor(a).TR_shape.TR_length)"); strings.TrimSpace(out) != "22" {
 		t.Fatalf("derin ama düzgün liste: %q", out)
 	}
 }
