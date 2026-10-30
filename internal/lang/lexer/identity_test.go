@@ -29,6 +29,24 @@ func TestALineAfterABitOperatorContinuesTheValue(t *testing.T) {
 	}
 }
 
+// Kural (3.5, 7.1): satır sonundaki isteğe bağlı alan tipinin '?'si işleç değildir; sonraki satırın
+// adı yine yapının üyesidir (TR_mem_parameters), devam eden bir değerin adı değil.
+func TestALineAfterAnOptionalFieldTypeIsAMember(t *testing.T) {
+	src := "TR_struct A {\n    x: TR_Int?\n    TR_parameters: TR_Int?\n}\n"
+	found := false
+	for _, tok := range allOf(NewBody(src, true)) {
+		if tok.Literal == "TR_mem_parameters" {
+			found = true
+		}
+		if tok.Literal == "TR_fn_parameters" {
+			t.Errorf("'?' ile biten satırdan sonra TR_parameters fonksiyon okundu, üye olmalıydı:\n%s", src)
+		}
+	}
+	if !found {
+		t.Errorf("'?' ile biten satırdan sonra TR_mem_parameters bulunamadı:\n%s", src)
+	}
+}
+
 // Kural (3.12, 17.6): eski çevirme fonksiyonları tip çağrısı oldu; TR_ ile yazılmış eski ya da başka
 // dilin adı, aynı yazımlı bir üye kodu ya da yazımca yakın bir kimlik yerine tipi önerir; aralık için
 // ileti 0..n'yi ve TR_List(0..n)'yi söyler. Öneri kopyalanınca çalışan yazımdır.
