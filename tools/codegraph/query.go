@@ -44,16 +44,15 @@ func newIndex(g *Graph) *index {
 const minTextQuery = 3
 
 // lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün
-// düğümleri döner (birden çoksa belirsizdir). Çıplak ad (`.`, `/`, `:` içermeyen) TR adlarında (modül, TR bildirimi,
-// test, ad kodu) tr index'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar: kimlik, kimliğin "tür:"
-// önekleri atılmış hali, takma ad, tam ad, sınırda biten ad ("New" → "messages.New", yalnızca '.' ve '/' sınırında),
-// büyük-küçük harfsiz tam ad ve ad sonu; hiçbiri tutmazsa metin aramaları: adın başı, adın alt dizesi, açıklama metninin
-// alt dizesi (en az minTextQuery karakter).
+// düğümleri döner (birden çoksa belirsizdir). Çıplak ad (`.`, `/`, `:` içermeyen) ya da kimlik/üye yazımı (`x.TR_map`,
+// IdentityQuery) TR adlarında (modül, TR bildirimi, test, ad kodu) tr index'in kuralıyla çözülür (trByName); Go ve belge
+// düğümlerinde basamaklar lookupTiers'tedir.
 func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
-	bare, identity := !strings.ContainsAny(q, "./:"), codeindex.IdentityQuery(q)
+	identity := codeindex.IdentityQuery(q)
+	bare := !strings.ContainsAny(q, "./:") || identity
 	var tr []*Node
 	trFolded := false // TR adayları büyük harfli sorgunun harfsiz geçişinden (Go'nun harfsiz basamağıyla aynı sırada)
 	if bare {
@@ -62,46 +61,8 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 			return tr // modül ya da ad kodu: takma ad basamağıdır, Go adlarından önce gelir
 		}
 	}
-	foldTiers := 5   // basamak listesinde harfsiz basamakların başladığı yer
-	var qf [2]string // sorgunun iki katlaması (folds sırasıyla)
-	for k, f := range folds {
-		qf[k] = f(q)
-	}
 	nf := ix.nodeFolds()
-	anyFold := func(match func(k int) bool) bool { return match(0) || match(1) }
-	var cur *foldedNode // basamak döngüsünün o anki düğümünün katlanmışları
-	tiers := []func(n *Node) bool{
-		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
-		// (katman, tr/layers); düğümü, aynı adlı belge başlığından önce gelir.
-		func(n *Node) bool { return contains(n.Aliases, q) },
-		func(n *Node) bool {
-			return idTailEquals(n.ID, q) || idTailEquals(strings.ReplaceAll(n.ID, ix.g.Module+"/", ""), q)
-		},
-		func(n *Node) bool { return n.Name == q },
-		func(n *Node) bool { return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q) },
-		func(n *Node) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
-		// Büyük-küçük harf yok sayılarak tam ad, sonra ad sonu (foldEqual: Türkçe ya da Go kuralı).
-		func(n *Node) bool { return anyFold(func(k int) bool { return cur.name[k] == qf[k] }) },
-		func(n *Node) bool {
-			return anyFold(func(k int) bool {
-				return strings.HasSuffix(cur.name[k], "."+qf[k]) || strings.HasSuffix(cur.name[k], "/"+qf[k])
-			})
-		},
-		func(n *Node) bool { return hasStringValue(n, q) }, // değeri sorguya eşit dize sabiti: `"%"` → lexer.TokPercent
-	}
-	nameTiers := len(tiers)
-	if len([]rune(q)) >= minTextQuery { // metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi
-		tiers = append(tiers,
-			// Önce sözcüğün kendisi (harf katlamasıyla, sözcük sınırında): "ölü" sorusu "bölüm"ü değil, "ölü kod"u bulur.
-			func(n *Node) bool { return anyFold(func(k int) bool { return hasWordFolded(cur.name[k], qf[k]) }) },
-			func(n *Node) bool {
-				return anyFold(func(k int) bool { return hasWordFolded(cur.detail[k], qf[k]) || hasWordFolded(cur.doc[k], qf[k]) })
-			},
-			func(n *Node) bool { return anyFold(func(k int) bool { return strings.HasPrefix(cur.name[k], qf[k]) }) },
-			func(n *Node) bool { return anyFold(func(k int) bool { return strings.Contains(cur.name[k], qf[k]) }) },
-			func(n *Node) bool { return anyFold(func(k int) bool { return strings.Contains(cur.detail[k], qf[k]) }) },
-		)
-	}
+	tiers, nameTiers, foldTiers := ix.lookupTiers(q)
 	for ti, match := range tiers {
 		if len(tr) > 0 && ti >= nameTiers {
 			break // TR adayı varken metin aramasına inilmez
@@ -109,11 +70,10 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		var found []*Node
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
-			cur = &nf[i]
 			if bare && ti < nameTiers && isTRName(n) || identity && strings.HasPrefix(n.ID, "tr:") {
 				continue // çıplak TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
 			}
-			if (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n) {
+			if (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n, &nf[i]) {
 				found = append(found, n)
 			}
 		}
@@ -128,6 +88,60 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		}
 	}
 	return tr
+}
+
+// lookupTiers Go ve belge düğümlerinin arama basamaklarıdır: önce tam harfli ad basamakları, sonra harfsiz ad
+// basamakları (foldTiers'ten başlayarak), en sonda (sorgu en az minTextQuery karakterse) metin basamakları
+// (nameTiers'ten başlayarak).
+func (ix *index) lookupTiers(q string) (tiers []func(n *Node, cur *foldedNode) bool, nameTiers, foldTiers int) {
+	var qf [2]string // sorgunun iki katlaması (folds sırasıyla)
+	for k, f := range folds {
+		qf[k] = f(q)
+	}
+	anyFold := func(match func(k int) bool) bool { return match(0) || match(1) }
+	tiers = []func(n *Node, cur *foldedNode) bool{
+		// Takma ad: ad kodunun dildeki adı (zaman_ms, print) ya da bir .tr dosyasının modül adı
+		// (katman, tr/layers); düğümü, aynı adlı belge başlığından önce gelir.
+		func(n *Node, _ *foldedNode) bool { return contains(n.Aliases, q) },
+		func(n *Node, _ *foldedNode) bool {
+			return idTailEquals(n.ID, q) || idTailEquals(strings.ReplaceAll(n.ID, ix.g.Module+"/", ""), q)
+		},
+		func(n *Node, _ *foldedNode) bool { return n.Name == q },
+		func(n *Node, _ *foldedNode) bool {
+			return strings.HasSuffix(n.Name, "."+q) || strings.HasSuffix(n.Name, "/"+q)
+		},
+		func(n *Node, _ *foldedNode) bool { return strings.HasSuffix(n.ID, "/"+q) }, // yolla nitelenmiş: internal/lang/messages.New
+		// Büyük-küçük harf yok sayılarak tam ad, sonra ad sonu (foldEqual: Türkçe ya da Go kuralı).
+		func(_ *Node, cur *foldedNode) bool { return anyFold(func(k int) bool { return cur.name[k] == qf[k] }) },
+		func(_ *Node, cur *foldedNode) bool {
+			return anyFold(func(k int) bool {
+				return strings.HasSuffix(cur.name[k], "."+qf[k]) || strings.HasSuffix(cur.name[k], "/"+qf[k])
+			})
+		},
+		func(n *Node, _ *foldedNode) bool { return hasStringValue(n, q) }, // değeri sorguya eşit dize sabiti: `"%"` → lexer.TokPercent
+	}
+	foldTiers, nameTiers = 5, len(tiers)
+	if len([]rune(q)) >= minTextQuery { // metin aramaları: ad ya da (ileti, kural, başlık) açıklama metninin başı/alt dizesi
+		tiers = append(tiers,
+			// Önce sözcüğün kendisi (harf katlamasıyla, sözcük sınırında): "ölü" sorusu "bölüm"ü değil, "ölü kod"u bulur.
+			func(_ *Node, cur *foldedNode) bool {
+				return anyFold(func(k int) bool { return hasWordFolded(cur.name[k], qf[k]) })
+			},
+			func(_ *Node, cur *foldedNode) bool {
+				return anyFold(func(k int) bool { return hasWordFolded(cur.detail[k], qf[k]) || hasWordFolded(cur.doc[k], qf[k]) })
+			},
+			func(_ *Node, cur *foldedNode) bool {
+				return anyFold(func(k int) bool { return strings.HasPrefix(cur.name[k], qf[k]) })
+			},
+			func(_ *Node, cur *foldedNode) bool {
+				return anyFold(func(k int) bool { return strings.Contains(cur.name[k], qf[k]) })
+			},
+			func(_ *Node, cur *foldedNode) bool {
+				return anyFold(func(k int) bool { return strings.Contains(cur.detail[k], qf[k]) })
+			},
+		)
+	}
+	return tiers, nameTiers, foldTiers
 }
 
 // folds harfsiz karşılaştırmanın iki katlamasıdır: Türkçe kural (TR adları ve Türkçe metin: `I` → `ı`) ve Go'nun

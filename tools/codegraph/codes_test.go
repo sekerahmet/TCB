@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
@@ -160,5 +161,41 @@ func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
 	}
 	if checked < 20 {
 		t.Errorf("only %d name reads checked", checked)
+	}
+}
+
+// Kural: program metninde yazılan her kod yazımı (codeindex.SpelledNames: çıplak TR_print ve üye yazımı x.TR_map,
+// x.TR_forward) codegraph'ta doğrudan o kodun ad düğümüne (kitaplık kodunda kitaplıktaki bildirimlerine) çözülür;
+// noktalı üye yazımı metin aramasına düşüp belge ya da yorum adaylarıyla belirsiz dönmez.
+func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
+	_, _, g := repoGraph(t)
+	ix := newIndex(g)
+	checked := 0
+	for _, k := range codes.Codes() {
+		id := "name:" + k.String()
+		want := []string{id}
+		if k.IsLibrary() {
+			want = nil
+			for _, e := range ix.in[id] {
+				if e.Kind == edgeUsesName && strings.HasPrefix(e.From, "tr:") && !slices.Contains(want, e.From) {
+					want = append(want, e.From)
+				}
+			}
+			slices.Sort(want)
+		}
+		for _, s := range codeindex.SpelledNames(k) {
+			checked++
+			var got []string
+			for _, n := range ix.lookup(s) {
+				got = append(got, n.ID)
+			}
+			slices.Sort(got)
+			if !slices.Equal(got, want) {
+				t.Errorf("query %q (for %s): got %v, want %v", s, k, got, want)
+			}
+		}
+	}
+	if checked < 200 {
+		t.Errorf("only %d spelled names checked", checked)
 	}
 }

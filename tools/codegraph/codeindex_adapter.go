@@ -113,8 +113,8 @@ func graphNode(r *codeindex.Reader, n codeindex.Node, id string) Node {
 		codeindex.KindTest: kindTRTest, codeindex.KindParameter: kindTRParam, codeindex.KindOption: kindTROption,
 	}[n.Kind]
 	node := Node{ID: id, Kind: kind, Name: n.Qualified, File: n.Pos.File, Line: n.Pos.Line, End: n.Pos.EndLine, Detail: n.Signature, Doc: docLine(n.Doc)}
-	if k, err := codes.Parse(n.Code); err == nil {
-		node.Aliases = append(codeindex.LanguageNames(k), codeindex.SpelledNames(k)...)
+	if n.Code != "" {
+		node.Aliases = codeindex.DeclNames(&n)
 	}
 	node.Aliases = append(node.Aliases, r.QualifiedNames(&n)...)
 	return node
@@ -163,7 +163,7 @@ func libraryCodeEdges(idx *codeindex.Index, ids map[string]string, b *builder) {
 		}
 	}
 	for _, n := range idx.Nodes {
-		if k, err := codes.Parse(n.Code); err != nil || !k.IsLibrary() || !strings.HasPrefix(n.Pos.File, "lib/") || strings.HasSuffix(n.Pos.File, "_test.tr") {
+		if !codeindex.IsLibraryDecl(&n) {
 			continue // kitaplığın kendi bildirimi; çekirdekle ortak kod (TR_arg_step) ve kullanıcının aynı kodlu üyesi sayılmaz
 		}
 		name := "name:" + n.Code
@@ -201,28 +201,30 @@ func libraryTests(start []string, users map[string][]codeindex.Edge) []codeindex
 	return out
 }
 
-// declNames bir TR bildirim düğümünün çıplak sorguda aranan adlarıdır: kısa adı (son parça) ve takma adları. Kodlu
-// bildirimin kısa adı kimliğidir; kimlik ad düğümünü gösterir (nameNodeNames), bildirim dillerdeki adlarıyla bulunur.
+// declNames bir TR bildirim düğümünün çıplak sorguda aranan adlarıdır: kısa adı (son parça) ve çıplak/yazım takma
+// adları (DeclNames). Kodlu bildirimin kısa adı kimliğidir; kimlik ad düğümünü gösterir (nameNodeNames), bildirim
+// dillerdeki adlarıyla ve kitaplık yazımıyla bulunur.
 func declNames(n *Node) []string {
+	var out []string
 	if short := n.Name[strings.LastIndex(n.Name, ".")+1:]; !codes.IsReservedName(short) {
-		return append([]string{short}, n.Aliases...)
+		out = append(out, short)
 	}
-	return n.Aliases
+	for _, a := range n.Aliases {
+		if !strings.Contains(a, ".") || codeindex.IdentityQuery(a) {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
-// nameNodeNames bir ad kodu düğümünün sorguda aranan adlarıdır: kimliği, dillerdeki adları ve program metnindeki yazımı
-// (codeindex.SpelledNames: TR_kw_if → TR_if). Kitaplık kodunun dillerdeki adlarını ve yazımını kitaplıktaki bildirimi
-// taşır (libraryCodeEdges); kod yalnız kimliğiyle aranır, yoksa her kitaplık adı bildirimiyle birlikte iki aday olurdu.
+// nameNodeNames bir ad kodu düğümünün sorguda aranan adlarıdır (codeindex.BuiltinNames): kimliği, dillerdeki adları ve
+// program metnindeki yazımı (TR_kw_if → TR_if, TR_mem_map → x.TR_map). Kitaplık kodunun dillerdeki adlarını ve yazımını
+// kitaplıktaki bildirimi taşır (libraryCodeEdges); kod yalnız kimliğiyle aranır.
 func nameNodeNames(n *Node) []string {
-	k, err := codes.Parse(n.Name)
-	if err == nil && k.IsLibrary() {
-		return []string{n.Name}
+	if k, err := codes.Parse(n.Name); err == nil {
+		return codeindex.BuiltinNames(k)
 	}
-	names := append([]string{n.Name}, n.Aliases...)
-	if err == nil {
-		names = append(names, codeindex.SpelledNames(k)...)
-	}
-	return names
+	return append([]string{n.Name}, n.Aliases...)
 }
 
 // isErrorExample bilerek sözdizimi hatalı yazılmış hata örneklerinin klasöründeki dosya mı (examples/tr/hatalar): oradaki

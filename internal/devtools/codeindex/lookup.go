@@ -145,35 +145,17 @@ func PickByName(n int, class func(i int) NameClass) []int {
 }
 
 // builtinNames kodların her gömülü dildeki adlarını, okuyanın dilindeki adı ve program metnindeki yazımını
-// (SpelledNames: TR_print, x.TR_map) toplar: bir yerleşik, kimin hangi dilde yazdığına bakılmadan bulunur.
+// (BuiltinNames: TR_print, x.TR_map) toplar: bir yerleşik, kimin hangi dilde yazdığına bakılmadan bulunur.
 func builtinNames(idx *Index) map[string][]string {
 	names := map[string][]string{}
-	add := func(name, id string) {
-		if name != "" {
-			names[name] = append(names[name], id)
-		}
-	}
-	var langs []*codes.Language
-	for _, code := range codes.Languages() {
-		if l, err := codes.LoadLanguage(code); err == nil {
-			langs = append(langs, l)
-		}
-	}
 	for _, n := range idx.Nodes {
 		if n.Kind != KindBuiltin {
 			continue
 		}
-		k, err := codes.Parse(n.Name)
-		if err != nil {
-			continue
-		}
-		add(n.Name, n.ID)
-		add(codes.DisplayName(k), n.ID)
-		for _, l := range langs {
-			add(l.Name(k), n.ID)
-		}
-		for _, s := range SpelledNames(k) {
-			add(s, n.ID)
+		if k, err := codes.Parse(n.Name); err == nil {
+			for _, s := range BuiltinNames(k) {
+				names[s] = append(names[s], n.ID)
+			}
 		}
 	}
 	return names

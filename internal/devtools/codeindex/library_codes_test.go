@@ -63,7 +63,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	r := libraryProject(t)
 	for want, spellings := range map[string][]string{
 		"struct:lib/layers.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "layers.Linear", "layers.TR_Linear", "layers.TR_type_Linear"},
-		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
+		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"TR_forward", "x.TR_forward", "layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
 		"function:lib/layers.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
 		"parameter:lib/layers.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "layers.öğrenme_oranı_planı.adım_sayısı"},
 	} {

@@ -24,11 +24,44 @@ func declCode(name string) string {
 	return ""
 }
 
-// IdentityQuery sorgu (harf büyüklüğü ne olursa olsun) çıplak bir kimlik mi (`TR_ctx_init`, `tr_ctx_init`): kimlik kodun
-// kendi düğümünü gösterir (yerleşik, kitaplık bildirimi; codegraph'ta ad düğümü), bir bildirimin adının parçası değildir.
-// İki aracın tek kuralı.
+// IdentityQuery sorgu (harf büyüklüğü ne olursa olsun) çıplak bir kimlik ya da üye yazımı mı (`TR_ctx_init`,
+// `tr_ctx_init`, `x.TR_map`): kimlik kodun kendi düğümünü gösterir (yerleşik, kitaplık bildirimi; codegraph'ta ad
+// düğümü), bir bildirimin adının parçası değildir. İki aracın tek kuralı.
 func IdentityQuery(q string) bool {
-	return !strings.Contains(q, ".") && codes.IsReservedName(strings.ToUpper(q))
+	s := strings.TrimPrefix(strings.ToUpper(q), "X.")
+	return !strings.Contains(s, ".") && codes.IsReservedName(s)
+}
+
+// BuiltinNames bir yerleşik kodun (ya da ad kodunun) sorguda aranan adlarıdır: kimliği, okuyanın dilindeki adı, her
+// yazım dilindeki adı (LanguageNames) ve program metnindeki yazımı (SpelledNames: TR_print, x.TR_map). Kitaplık kodunun
+// dillerdeki adlarını ve yazımını kitaplıktaki bildirimi taşır (DeclNames), kod yalnız kimliğiyle aranır; iki aracın
+// (tr index ve codegraph) tek kuralı.
+func BuiltinNames(k codes.Code) []string {
+	if k.IsLibrary() {
+		return []string{k.String()}
+	}
+	out := []string{k.String()}
+	for _, s := range append(append([]string{codes.DisplayName(k)}, LanguageNames(k)...), SpelledNames(k)...) {
+		if s != "" && !slices.Contains(out, s) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// DeclNames bir bildirimin çıplak sorguda aranan adlarıdır: kodsuz bildirimde kısa adı; kodlu bildirimde her yazım
+// dilindeki adı ve kitaplığın kendi bildiriminde (IsLibraryDecl) program metnindeki yazımı (SpelledNames). Kullanıcının
+// aynı kodlu üyesi dillerdeki adıyla aranır; iki aracın (tr index ve codegraph) tek kuralı.
+func DeclNames(n *Node) []string {
+	k, err := codes.Parse(n.Code)
+	if err != nil {
+		return []string{shortName(n)}
+	}
+	names := LanguageNames(k)
+	if IsLibraryDecl(n) {
+		names = append(names, SpelledNames(k)...)
+	}
+	return names
 }
 
 // LanguageNames kodun her yazım dilindeki adıdır (yinelenen bir kez): kodlu bildirim (Node.Code) bu adlarla da aranır;
@@ -73,14 +106,13 @@ func SpelledNames(k codes.Code) []string {
 func codeNames(idx *Index) map[string][]string {
 	names := map[string][]string{}
 	for _, n := range idx.Nodes {
-		k, err := codes.Parse(n.Code)
-		if err != nil {
+		if n.Code == "" {
 			continue
 		}
-		spellings := LanguageNames(k)
-		if k.IsLibrary() && libraryDecl(&n) {
+		spellings := DeclNames(&n)
+		if IsLibraryDecl(&n) {
 			// kitaplığın kendi bildirimi kimliğiyle ve yazımıyla; kullanıcının aynı kodlu üyesi dillerdeki adıyla
-			spellings = append(append(spellings, n.Code), SpelledNames(k)...)
+			spellings = append(spellings, n.Code)
 		}
 		for _, s := range spellings {
 			if !slices.Contains(names[s], n.ID) {
@@ -172,4 +204,14 @@ func libraryDecl(n *Node) bool {
 	}
 	file := strings.TrimPrefix(n.Pos.File, libraryPrefix)
 	return strings.HasPrefix(file, "lib/") && !strings.HasSuffix(file, "_test.tr")
+}
+
+// IsLibraryDecl düğüm kitaplığın kendi kodlu bildirimi mi: kitaplık kodu taşır ve kitaplıktadır (libraryDecl; çekirdekle
+// ortak kod ve kullanıcının aynı kodla yazılmış üyesi değil).
+func IsLibraryDecl(n *Node) bool {
+	if !libraryDecl(n) {
+		return false
+	}
+	k, err := codes.Parse(n.Code)
+	return err == nil && k.IsLibrary()
 }

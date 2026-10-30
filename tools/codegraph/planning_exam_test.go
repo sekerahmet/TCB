@@ -428,8 +428,7 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 		switch n.Kind {
 		case codeindex.KindBuiltin:
 			if gn := ix.byID[id]; gn != nil {
-				names[gn.Name] = true
-				for _, a := range gn.Aliases {
+				for _, a := range nameNodeNames(gn) {
 					names[a] = true
 				}
 			}
@@ -441,7 +440,12 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 		case codeindex.KindTest:
 			names[n.Name] = true // açıklamada '.' olabilir: kısaltılmaz
 		default:
-			names[n.Name[strings.LastIndex(n.Name, ".")+1:]] = true
+			for _, a := range codeindex.DeclNames(&n) {
+				names[a] = true
+			}
+			if codeindex.IsLibraryDecl(&n) {
+				names[n.Code] = true
+			}
 		}
 	}
 	for name := range names {
@@ -456,7 +460,7 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 			}
 			got := map[string]bool{}
 			found, _ := ix.trByName(q, nil)
-			if vi == 0 && !strings.ContainsAny(q, "./:") {
+			if vi == 0 && (!strings.ContainsAny(q, "./:") || codeindex.IdentityQuery(q)) {
 				found = ix.lookup(q) // yazıldığı gibi sorulan adda sorgunun kendisi
 			}
 			for _, n := range found {
