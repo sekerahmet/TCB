@@ -23,7 +23,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 - **Mevcut durum:** denetleyici yerel değişkenin tipini ilk değerinden çıkarıyor ve tipi kalıcı (3.13): değişmezler, aritmetik ve önek işleç, karşılaştırma, adıyla çağrılan tipli fonksiyonun ve tipi bilinen yapının metodunun dönüşü, yapı kurucusu, liste ve sözlüğün öğe tipi, demet; bilinmeyen `TR_Any` kalıyor. Depodaki programların 1884 ilk değerinden 1152'sinin tipi bilinmiyor (önce 1212); tipsiz parametre, alan ve `->`'sız değerli dönüş denetim hatası (6.1, 7.1; kitaplığın 4c'yi bekleyen yerleri istisna), parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor [ölçüldü: `TestRepoFirstValueTypes`, dal `claude/hopeful-brahmagupta-miw41q`].
 - **Yapılacaklar:** turlarla:
   - çıkarımın kalanı: yerleşik ve kitaplık çağrılarının dönüşü (bilinmeyenlerin çoğu: 937, `TR_Tensor(...)` tek başına 218), indeks, üye ve alan erişimi, tipi bilinmeyen işlenenli işleç, `TR_if`/`TR_match` değeri, döngü değişkeni, kapanış, çoklu tanımın (`TR_var a, b = f()`) öğe tipleri, metot ve kurucu argümanlarının denetimi;
-  - isteğe bağlı `T?` ve `TR_none` daraltması (3.5): ilk denemesi denetleyici testlerinde 33 yeni hata açtı (tip yazımı testleri ilk değer olarak `TR_none` kullanıyor), geri alındı;
+  - `TR_none` daraltması ve isteğe bağlı değerin açılmamış kullanımı (3.5, 4b);
   - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği;
   - `TR_import ... TR_as m` modülü bugün `TR_Dict`'e bağlıyor (11.2), üyelerin tipi korunmalı; gerçek sürücü ile benzetim arasında seçim için ortak bir arayüz tipi.
 
@@ -83,10 +83,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ### 3.5
 
-- **Mevcut durum:** isteğe bağlı tip yok; `TR_Int` açıklamalı bir değişkene `TR_none` atanabiliyor [ölçüldü].
-- **Yapılacaklar:** `T?` tipi; açılmamış kullanım denetim hatası; daraltma yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz. `.TR_get` isteğe bağlı tip döner. Değer döndürmeyen çağrı değer olarak kullanılamaz; isteğe bağlı olmayanı `TR_none`'la karşılaştırmak denetim hatası.
-- **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `T?` ayrıştırılıyor; denetleyici onu `T`'ye indirgiyor: isteğe bağlı tipin anlamı yok, `TR_Int` açıklamalı değişkene `TR_none` hâlâ atanabiliyor [ölçüldü: bulut 0.6a].
-
+- **Mevcut durum:** denetleyici isteğe bağlı tipi `T?` olarak taşıyor: `TR_none` yalnız isteğe bağlı (ya da tipi bilinmeyen adlı) değişkene, parametreye, alana ve dönüşe veriliyor, öbürü denetim hatası (`TR_var a: TR_Int = TR_none`, `-> TR_Int` fonksiyonda değersiz `TR_return`); `x ?? d`'nin tipi asıl tip, `[1.0, TR_none]` `TR_List[TR_Float?]`. İsteğe bağlı değerin asıl tipin yerinde kullanılması denetlenmiyor (daraltma yok, aritmetikte tipi `TR_Any`) [ölçüldü: `TestOptionalTypes`, `TestTypeCompatibility`, dal `claude/charming-pasteur-q1vsvo`].
+- **Yapılacaklar:** açılmamış kullanım denetim hatası; daraltma (4b) yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz; ilk değeri `TR_none` olan açıklamasız değişkenin hatası (3.13).
 ### 3.6
 
 - **Mevcut durum:** karışık tipli liste çalışıyor [ölçüldü].

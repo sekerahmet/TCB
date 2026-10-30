@@ -124,7 +124,7 @@ func TestStructMeetsInterface(t *testing.T) {
 }
 
 // Kural (3.6, 3.7): liste ve sözlük değişmezinin tipi öğe tipini taşır; boş, karışık ya da öğesi
-// bilinmeyen değişmez öğe tipsizdir. Değişmezde ondalık varsa tam sayı yazımları ondalıktır; tam
+// bilinmeyen değişmez öğe tipsizdir. TR_none öğeli değişmezin öğe tipi isteğe bağlıdır (3.5). Değişmezde ondalık varsa tam sayı yazımları ondalıktır; tam
 // sayı değişkeni ondalık olmaz (çalışırken TR_Int kalır), o değişmez karışıktır.
 func TestCollectionLiteralTypes(t *testing.T) {
 	str := typeString
@@ -137,7 +137,9 @@ func TestCollectionLiteralTypes(t *testing.T) {
 		"TR_var v = [[1], [2]]":                           listType(listType(typeInt)),
 		"TR_var v = []":                                   typeList,
 		"TR_var v = [1, \"a\"]":                           typeList,
-		"TR_var v = [1, TR_none]":                         typeList,
+		"TR_var v = [1, TR_none]":                         listType(typeInt + "?"),
+		"TR_var v = [1.0, TR_none, 2]":                    listType(typeFloat + "?"),
+		"TR_var v = [TR_none, TR_none]":                   typeList,
 		"TR_var v = [TR_input()]":                         typeList,
 		"TR_var v = {\"a\": 1}":                           containerType(typeDict, []string{str, typeInt}),
 		"TR_var v = {1: [\"a\"]}":                         containerType(typeDict, []string{typeInt, listType(str)}),
@@ -183,4 +185,21 @@ func TestTupleTypes(t *testing.T) {
 	singleError(t, "TR_var n: TR_Int = (1, 2)", messages.H1001, 1, `(TR_Int, TR_Int)`)
 	singleErrorIn(t, "en", "TR_var p = (1, \"a\")\np = (\"a\", 1)", messages.H1005, 2, "(Int, String)", "(String, Int)")
 	noErrors(t, f+"TR_var p = f()\np = (2, \"b\")\nTR_var q: (TR_Float, TR_String) = (1, \"c\")\nTR_var a, b = f()")
+}
+
+// Kural (3.5, 4.7): isteğe bağlı tip T? olarak taşınır: TR_none ilk değerli ve tipi yazılı değişken
+// T?'dir, '??'nin sonucu asıl tiptir (T), TR_none yalnız isteğe bağlı yere verilir. İsteğe bağlı
+// değerin asıl tipin yerinde kullanılması daraltmayla (4b) denetlenir; bugün serbesttir.
+func TestOptionalTypes(t *testing.T) {
+	expectTypes(t, map[string]string{
+		"TR_var x: TR_Int? = TR_none\nTR_var v = x":           typeInt + "?",
+		"TR_var x: TR_Int? = TR_none\nTR_var v = x ?? 0":      typeInt,
+		"TR_var x: TR_String? = \"a\"\nTR_var v = x ?? \"b\"": typeString,
+		"TR_var v = TR_none ?? 2.5":                           typeFloat,
+	})
+	singleError(t, "TR_var a: TR_Int = TR_none", messages.H1001, 1, `"TR_NoneType"`)
+	singleError(t, "TR_var a = 0\na = TR_none", messages.H1005, 2, `"TR_NoneType"`)
+	singleError(t, "TR_func f(x: TR_Int) { }\nf(TR_none)", messages.H1004, 2)
+	noErrors(t, "TR_var a: TR_Int? = 0\na = TR_none\nTR_func f(x: TR_Int?) { }\nf(TR_none)\nf(a)")
+	noErrors(t, "TR_var a: TR_Int? = 0\nTR_var b: TR_Int = a") // daraltma 4b'nin
 }
