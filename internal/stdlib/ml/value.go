@@ -117,8 +117,6 @@ func (d *TensorValue) IntElements() (ids []int, bad float32, ok bool) {
 	return ids, 0, true
 }
 
-var _ interp.WitnessTensorKind = (*TensorValue)(nil)
-
 // WitnessKind (GEÇİCİ, Faz 0.9 tip tanığı) tensörün öğe cinsini kestirir: tam sayılı işaret
 // "Int"; ilk değerleri yalnız 0 ve 1 olan "Bool"; tam değerli "Integral"; öbürü "Float".
 func (d *TensorValue) WitnessKind() (kind string) {

@@ -149,9 +149,6 @@ func (v *VM) constructVariant(def *StructDefVal, mem *ast.MemberExpression, args
 	if witnessOn() {
 		v.witnessFields(def, vd.Fields, inst)
 	}
-	if profileOn() {
-		v.profileFields(def, vd.Fields, inst)
-	}
 	return inst, nil
 }
 

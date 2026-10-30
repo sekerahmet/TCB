@@ -12,7 +12,6 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	argCode := c.expressions(k, e.Arguments)
 	nargs := len(argCode)
 	line := e.Line()
-	lits := witnessLitsOf(e)
 
 	if len(e.NamedArgs) == 0 {
 		// x.metot(...): yapı metotları ile Metin/Liste/Sözlük yerleşik metotları, bağlı
@@ -31,7 +30,6 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 				if inst, ok := obj.(*StructInstanceVal); ok {
 					if _, field := inst.Fields[mem.Property]; !field {
 						if meth, ok := inst.Def.Methods[mem.Property]; ok && meth.codeVal != nil {
-							v.witnessMark(meth, lits)
 							return v.callMethod(meth, inst, argCode, env, line)
 						}
 					}
@@ -70,7 +68,6 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 				if err := valueCall(fnVal, mem.Property, nargs, false, line); err != nil {
 					return nil, err
 				}
-				v.witnessMark(fnVal, lits)
 				return v.callAt(fnVal, argCode, env, line)
 			}
 		}
@@ -83,7 +80,6 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 			if err := valueCall(fnVal, called, nargs, false, line); err != nil {
 				return nil, err
 			}
-			v.witnessMark(fnVal, lits)
 			return v.callAt(fnVal, argCode, env, line)
 		}
 	}
@@ -110,7 +106,6 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 		if err := checkArity(fnVal, nil, len(args), named, line); err != nil {
 			return nil, err
 		}
-		v.witnessMark(fnVal, lits)
 		return v.applyCompiled(fnVal, args, named, line)
 	}
 }
