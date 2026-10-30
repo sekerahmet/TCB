@@ -29,7 +29,7 @@ eklentiyle sözleşmedir, çevrilmez. Denetim: `TestWatchValueInterface` (derlem
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_dap_coded_files_test.go`: kodlu dosyanın düzenleyicide Türkçe görünümüyle açılması: kesme noktaları, çağrı yığını ve kaynak yolları
-- `behavior_dap_display_language_test.go`: düzenleyicinin değişken, değerlendirme ve İzleme Masası değer ve tiplerinin kişinin dilinde (TR_LANG) olması; her dil ayrı alt süreçte
+- `behavior_dap_display_language_test.go`: düzenleyicinin değişken, değerlendirme ve İzleme Masası değer ve tiplerinin kişinin dilinde (`TR_LANG`) olması, koşullu kesme noktası ve izleme ifadelerinin kimlik yazımıyla okunması; her dil ayrı alt süreçte
 - `behavior_dap_modules_test.go`: modül satırları, protokol alanlarıyla çakışan gizli değer ve göreli program yolu (DAP)
 - `behavior_dap_scope_test.go`: aynı adlı genel/yerel değişkenin değer değiştirme ve tablo isteğinde kapsama göre seçilmesi
 - `behavior_dap_secrets_test.go`: gizli değerlerin düzenleyiciye giden hiçbir iletide görünmemesi

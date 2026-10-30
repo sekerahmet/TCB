@@ -10,7 +10,7 @@ Bu belge **nasıl çalıştığını ve neden böyle kurulduğunu** anlatır. Ko
 araçlar (internal/devtools, cmd/tr) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
                                         │
                                         └──────▶ hesap çekirdekleri (internal/compute)
-TR ile yazılı kitaplık (lib/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (aktar "tr/...")
+TR ile yazılı kitaplık (lib/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (TR_import "tr/...")
 ```
 
 Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır, testler sınamak için üst katmanları da kullanabilir.
@@ -45,11 +45,11 @@ messages → turkish → codes → hint → lexer → ast → parser → checker
 | `turkish` | Türkçe harf kuralları, ünlü uyumuna göre ekler, en yakın ad önerisi, dosya hatası metinleri, kod çerçevesi |
 | `codes` | Dilin kullanıcıya görünen bütün adlarının sabit kodları (`TR_fn_print`...); dil dosyaları ve tanım dosyası |
 | `hint` | ASCII yazılan ve başka dillerden alışılmış adların, tanımsız ada en yakın adın ipuçları (tek kaynak) |
-| `lexer` | Sözcük çözümleyici; kodlu kaynağı kimlikleriyle (`TR_print`) okur, konumları istenen görünüme göre verir (kişinin dilindeki görünüm ya da diskteki metin) |
+| `lexer` | Sözcük çözümleyici; kodlu kaynağı kimlikleriyle (`TR_print`) okur, konumları dosyanın metnine göre verir |
 | `ast` | Sözdizimi ağacı düğümleri; yalnızca veri taşır, konumdan bağımsız döküm yazar |
 | `parser` | Öncelik tabanlı (Pratt) ifade ve özyinelemeli iniş deyim ayrıştırıcısı |
 | `checker` | Çalıştırmadan önce tip denetimi, uyarılar, tanımsız ad denetimi |
-| `source` | Kaynaktan programa tek giriş noktası, kodlu biçimin çeviricisi |
+| `source` | Kaynaktan programa tek giriş noktası, kodlu dosyanın görünümü (`source.Show`) |
 | `interp` | Derleyici ve yorumlayıcı; değerler, çekirdek yerleşikler, modüller, eşzamanlılık, kancalar |
 
 Sıra bir bağımlılık zinciri olduğu kadar bir döngü korumasıdır: sözcük çözümleyici yorumlayıcıyı, denetleyici yorumlayıcıyı bilmez. Yeni bir dil paketi listeye yerine göre eklenir.
@@ -64,9 +64,9 @@ Sıra bir bağımlılık zinciri olduğu kadar bir döngü korumasıdır: sözc�
 4. **Denetlenir.** `source.Prepare` istenirse `checker` ile tip ve ad denetimi yapar. Denetleyici hiçbir şey çalıştırmaz; emin olamadığında susar.
 5. **Derlenir.** `interp` ağacı bir kez Go kapanışlarına derler (`compiler*.go`): değişkenler yuvalara, üye adları kodlara çözülür; çalışma anında ad karşılaştırılmaz.
 6. **Çalışır.** `VM.Run` programı yürütür. Eşzamanlı görevler tek yorumlayıcı kilidi altında çalışır; uzun işler (disk, ağ, uyku, ağır hesap) `VM.Blocking` içinde kilidi bırakır.
-7. **Kapanır.** Program bitince (hata, `çıkış` ya da Ctrl+C ile de) motorların açık kaynakları kapatılır (`stdlib.Close`).
+7. **Kapanır.** Program bitince (hata, `TR_exit` ya da Ctrl+C ile de) motorların açık kaynakları kapatılır (`stdlib.Close`).
 
-Hatalar aşama aşama aynı yolu izler: ileti bir kodla (`messages.New`) kurulur, satırı `interp.LineError` (`messages.PosError`) ekler, kullanıcıya etkin dilin metniyle yazılır. Kesme isteği (Ctrl+C) hata değildir; `dene/yakala` onu yakalamaz.
+Hatalar aşama aşama aynı yolu izler: ileti bir kodla (`messages.New`) kurulur, satırı `interp.LineError` (`messages.PosError`) ekler, kullanıcıya etkin dilin metniyle yazılır. Kesme isteği (Ctrl+C) hata değildir; `TR_try`/`TR_catch` onu yakalamaz.
 
 ## Kod listesi ve ileti kataloğu
 
@@ -75,10 +75,10 @@ Kullanıcıya görünen her ad ve her ileti sabit bir koda bağlıdır; Go kodu 
 | | Kod listesi (`internal/lang/codes`) | İleti kataloğu (`internal/lang/messages`) |
 | :-- | :-- | :-- |
 | Kod | Kimlik `TR_<sınıf>_<İngilizce ad>` (`TR_kw_if`, `TR_fn_print`, `TR_mem_shape`); sınıf kodun ne olduğunu gösterir; program metninde sınıfsız yazılır, yeri sınıfı belirler (`TR_if`, `TR_print(x)`, `x.TR_shape`, 17.2) | `H` ve dört basamak (`H7003`); binler basamağı alanı gösterir |
-| Dilden bağımsız | `definitions.json`: tür, imza, dönüş tipi, örnek | `definitions.json`: her kodun parametre adları |
+| Dilden bağımsız | `definitions.json`: tür, imza, dönüş tipi, başka dillerden alışılmış adlar (`familiar`), örnek | `definitions.json`: her kodun parametre adları |
 | Dile bağlı | her yazım dilinin bir dosyası: `tr.json`, `en.json` | her yazım dilinin bir dosyası: `tr.json`, `en.json` (her kodu taşır; eksik çeviri test hatasıdır) |
 | Go'dan kullanım | `codes.Name(codes.FnPrint)`, `codes.Find`, `codes.Active` | `messages.New(messages.H7003, ...)`, `messages.Text`, `messages.Has`, `messages.Internal` |
-| Dil | Program kimliklerle okunur ve çalışır (`codes.Active` kimlik listesidir); hiçbir yazım dilinin ayrıcalığı yoktur. Kişinin yazım dili `TR_LANG` (`codes.Display`, `codes.DisplayName`) yalnızca gösterimdir (17.7). Kalan geçici istisna: başlıksız metin ve değerlerin `Inspect` metni Türkçedir (`codes.Source`) | iletilerin dili `TR_LANG` (`messages.LanguageEnvVar`); metni eksik ileti bugün Türkçeye düşer (geçici istisna) |
+| Dil | Program kimliklerle okunur ve çalışır (`codes.Active` kimlik listesidir); hiçbir yazım dilinin ayrıcalığı yoktur. Kişinin yazım dili `TR_LANG` (`codes.Display`, `codes.DisplayName`) yalnızca gösterimdir (17.7). Değerlerin metni ve `Inspect` dilden bağımsızdır (`codes.ValueNames`) | iletilerin dili `TR_LANG` (`messages.LanguageEnvVar`); metni eksik ileti bugün Türkçeye düşer (geçici istisna) |
 
 Yazım kuralları (kod değişmez, ad değişebilir; her işin tek adı; parametreler adlıdır; iç hata `H9000`) paketlerin README'lerindedir: [`codes`](../internal/lang/codes/README.md), [`messages`](../internal/lang/messages/README.md). Yeni ad için [`development.md`](development.md#yeni-kod-ad-isteği), yeni ileti için [`recipes.md`](recipes.md).
 
@@ -115,8 +115,8 @@ Bir motor değerinin dile uyması, `interp` içindeki arayüzlerden birini uygul
 
 | Arayüz (`interp`) | Ne sağlar |
 | :-- | :-- |
-| `Equaler`, `OperatorHook`, `TaskOperatorHook`, `Negatable` | Eşitlik, ikili ve tekli işleçler (tensör `+ - * / @ **`) |
-| `Indexable`, `IndexAssignable`, `MemberAssignable`, `TaskMemberHook` | `x[i]`, `x[i] = v`, `x.alan = v`, göreve özel üye okuma (sonucu çalışan koda bağlı özellikler) |
+| `Equaler`, `ValueEqualer`, `OperatorHook`, `TaskOperatorHook`, `Negatable`, `Invertible`, `InPlaceOperator` | Eşitlik ve değer kancası (`==`, `!=`), ikili ve tekli işleçler (tensör `+ - * / @ **`, `-x`, `~x`), yerinde bileşik atama (`x op= y`) |
+| `Indexable`, `IndexAssignable`, `IndexAccumulator`, `MemberAssignable`, `TaskMemberHook` | `x[i]`, `x[i] = v`, `x[i] op= v`, `x.alan = v`, göreve özel üye okuma (sonucu çalışan koda bağlı özellikler) |
 | `Iterable`, `Stream` | `TR_for x TR_in ...` ve liste üreteci: uzunluğu bilinen kaynak ya da tembel akış |
 | `PlainValuer` | Değerin düz Go karşılığı (JSON ve kontrol noktası yazımı) |
 | `PathValuer`, `PathArg` | Yol alan yerleşiklerin ortak okuyucusu (Metin ya da `TR_Path`) |
@@ -138,7 +138,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 | Kanca | Görevi |
 | :-- | :-- |
-| `logging.SetStepHook`, `logging.StepBoundary` | Eğitimin adım sınırı: `İlerleme.güncelle`'nin her çağrısında (yorumlayıcı kilidi altında) adım ve zamanla çağrılır. Canlı profil ms/adım'ı ve adım başına işlem dağılımını buradan ölçer; kanca yokken maliyet tek atomik okumadır |
+| `logging.SetStepHook`, `logging.StepBoundary` | Eğitimin adım sınırı: `TR_Progress`'in `.TR_step` çağrısında (yorumlayıcı kilidi altında) adım ve zamanla çağrılır. Canlı profil ms/adım'ı ve adım başına işlem dağılımını buradan ölçer; kanca yokken maliyet tek atomik okumadır |
 | `logging.JobDir` | Arka plan işinin klasörü (`TR_JOB_DIR`); canlı profil durumunu oraya yazar |
 | `logging.CloseAll`, `dataset.CloseAll`, `files.CloseAll`, `ml.Close` | Program bitince kaynakların kapanışı (`stdlib.Close` hepsini çağırır) |
 | `process.State.Settings` | Programın `TR_command_line` sonucu; günlüğün başlangıç kaydı yazar, kontrol noktası saklayabilir |
@@ -165,7 +165,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `common/bind` | Motorların ortak yardımcıları: adlı argüman denetimi, göreli yol, panikten hataya (`Recover`, `Safe`) |
 | `common/jsonwrite` | TR değerlerini JSON'a yazan tek yer |
 
-**Hesap çağrısı sınırı.** `compute` şekil ve sınır hatalarında panikler; `stdlib` her hesap çağrısını panikten hataya çeviren sarmalayıcıyla çağırır. Böylece kullanıcı `dene/yakala` ile yakalayabileceği bir TR hatası görür, süreç çökmez.
+**Hesap çağrısı sınırı.** `compute` şekil ve sınır hatalarında panikler; `stdlib` her hesap çağrısını panikten hataya çeviren sarmalayıcıyla çağırır. Böylece kullanıcı `TR_try`/`TR_catch` ile yakalayabileceği bir TR hatası görür, süreç çökmez.
 
 **Durumlu değerler.** Kesilip sürdürülen bir eğitimin kesintisizle aynı sonucu vermesi için veri okuyucuları, iyileştirici, model ve günlük birlikte saklanır. Kontrol noktası yazımı atomiktir (geçici klasör, sonra yerine konur); okuma her dosyanın boyunu ve özetini doğrular.
 
@@ -196,7 +196,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 - **Kayıt:** paket yüklenirken tembel bir arka uç kaydeder; sürücü ancak bir cihaz sorulunca (`TR_devices()`, `.TR_to_device`, `TR_default_device`) yüklenir (`gpu.go`). Sürücü yoksa program çökmez, GPU görünmez olur ve nedeni sorulabilir (`gpu.Status`).
 - **Sürücü:** cgo ve CUDA araç takımı gerekmez. Linux'ta `libcuda.so.1` dış bağımlılık olan dinamik yükleyiciyle (`cuda_linux.go`; yalnızca burası `purego` içe aktarır, `internal/layers_test.go` denetler), Windows'ta `nvcuda.dll` yalnızca sistem klasöründen yüklenir (`cuda_windows.go`). **Bedel:** bu yükleyici Linux ikilisini glibc'ye dinamik bağlar, GPU kullanmayan Linux kullanıcıları için de; musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. **Karar:** varsayılan ikili GPU desteklidir; statik ikili isteyen `GOOS=linux CGO_ENABLED=0 go build -tags gpusuz ./cmd/tr` ile derler (`cuda_other.go`). Tam denetim `gpusuz` derlemenin statik kaldığını `tools/checkstatic` ile doğrular.
-- **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın birincil bağlamını bağlar; bütün işler tek akışta sırayla yürür. Ayrı bir GPU gorutinine kanalla iş göndermek yerine bu yol seçildi: kanal gidiş-dönüşü ve gorutin geçişi yok, panikler (TR hataları) çağıranın gorutininde kalır (`dene/yakala`).
+- **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın birincil bağlamını bağlar; bütün işler tek akışta sırayla yürür. Ayrı bir GPU gorutinine kanalla iş göndermek yerine bu yol seçildi: kanal gidiş-dönüşü ve gorutin geçişi yok, panikler (TR hataları) çağıranın gorutininde kalır (`TR_try`/`TR_catch`).
 - **Çekirdekler:** Go içinden PTX olarak üretilir (`ptx*.go` yazıcı ve komut yardımcıları, `kernel_*.go` kernel aileleri, `backend_*.go` arka uç yöntemleri; taban hedef `sm_52`, `cp.async` kullananlar `sm_80`); sürücü ilk kullanımda karta derler, modüller süreç boyunca önbellekte. Çekirdek imzası her gösterici parametresinin yazılıp yazılmadığını bilir; başlatma yeri okuma/yazma bildirir ve uyuşmazlık iç hatadır. Birleşik kerneller: çapraz entropi (`kernel_ce.go`), dikkat (`kernel_flash*.go`: puan matrisi belleğe yazılmaz, döşemeli çevrimiçi softmax), çok tensörlü iyileştirici/ölçekleme/kareler toplamı (`kernel_multi.go`: bütün parametreler tek başlatmada), sıralama ve birikimli toplam (`kernel_sort.go`). Az çıktılı uzun indirgemeler iki aşamalı ve belirlenimcidir; çıktısını tümüyle yazan işlemler taze gradyanı sıfırlamadan üzerine yazar (`tensor.GemmSetter` vb.). Dikkat yolu `TR_GPU_ATTENTION=birlesik|carpim` ile zorlanabilir (ölçüm için).
 - **Matris çarpımı:** makinede NVIDIA cuBLASLt kuruluysa float32 çarpım onunla yapılır (TF32 kapalı; sürücü gibi çalışma anında yüklenir, TR dağıtmaz). Arama sırası ve güvenlik kuralları `gemm_lib_path.go`'dadır (`TR_GPU_CUBLASLT` tam yol; çalışma klasörü hiçbir zaman aranmaz; bkz. [`SECURITY.md`](../SECURITY.md)). Kitaplık bir şekli yapamazsa ya da çağrı hata dönerse panik yerine kendi çekirdeğimize düşülür (`kernel_gemm.go`; `TR_GPU_OWN_GEMM=1` onu zorlar). Tek satırlık çarpımlar (M = 1: çıkarımda bir parça) kitaplığa değil `kernel_gemv.go`'ya gider: ağırlık birleşik erişimle, çok blokla, belirlenimci sırayla okunur (`TR_GPU_GEMV=0` kapatır). Hangi yolun kullanıldığı `gpu.Status()`'ta ve profilde görünür.
 - **Bellek:** küçük bloklar için boyut sınıflı, 1 MB üstü için parçalı (best-fit, bölme, birleştirme) havuz (`memory.go`, `memory_blocks.go`). Depolama üç yoldan havuza döner (tek akış sayesinde eşzamanlama gerekmez): belirlenimci bırakma (aşağıda; son sahibi gidince), otomatik türevin ara gradyanları açıkça iade etmesi ve çöp toplayıcının temizliği (kaçan değerler). Çöp toplayıcı cihaz belleğini görmediğinden, son toplamadan bu yana verilip açıkça iade edilmeyen bellek eşiği aşınca toplama başlatılır (`TR_GPU_GC_THRESHOLD` MB ile değişir); her geri yayılımın sonunda `tensor.BackwardFinisher` çağrılır. Havuz canlı/havuzda/ayrılmış/tepe sayaçlarını tutar.
@@ -210,11 +210,11 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 | Paket | Görevi |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (çalıştır, kabuk, `kontrol`, `TR_cmd_build`, `test`, `TR_cmd_format`, `TR_cmd_show`, `izle`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
+| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (`TR_cmd_run`, kabuk, `TR_cmd_check`, `TR_cmd_build`, `TR_cmd_test`, `TR_cmd_format`, `TR_cmd_show`, `TR_cmd_watch`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`, `TR_cmd_index`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
 | `cmd/tr/e2e` | Uçtan uca testler (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisi |
 | `devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`TR_cmd_dap`, Debug Adapter Protocol). Yüklenirken `interp.NewDebugger`'ı kurar; gizli değerleri düzenleyiciye göndermez |
 | `devtools/formatter` | `TR_cmd_format`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |
-| `devtools/testrunner` | `tr test`: `TR_test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, Türkçe raporlar |
+| `devtools/testrunner` | `tr test`: `TR_test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, etkin dilde (`TR_LANG`) raporlar |
 | `devtools/profiler` | Canlı profil: `TR_cmd_watch` ve `TR_cmd_profile`'in çekirdeği, arka plan işinin `profile.json`'u (aşağıda) |
 | `devtools/codeindex` | TR kodunun dizini: tanım, kullananlar, sınayanlar, etki (`tr index ...` ve ileride dil sunucusu); `internal/lang` dışında bağımlılığı yok |
 | `editors/vscode` | VS Code eklentisi; renklendirme listeleri kod listesinden üretilir, hata ayıklama ve izleme komutları yukarıdaki sunucu ve profil dosyalarına bağlanır |
@@ -224,14 +224,14 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 `TR_cmd_watch` (canlı tablo) ve `TR_cmd_profile` (son rapor) aynı çekirdeği kullanır; arka plan işi olarak çalışan program (`TR_JOB_DIR` iş klasörünü verir) da canlı durumunu buradan `profile.json`'a yazar. Ağ portu açılmaz: dışarıya yalnızca dosya yazılır. Dört kaynaktan okur:
 
 - **Tensör sayaçları** (`internal/compute/tensor/counter*.go`): her zaman açık. Her işlem türü (`tensor.OpKind`), yön (ileri / geri yayılım) ve cihaz (CPU / GPU) için çağrı sayısı (kesin), ayrılan bayt (kesin) ve süre. CPU'da süre uyarlamalı örneklenir: kısa işlemlerde her çağrı p = 1/32 olasılıkla ölçülür ve ölçülen süre 1/p ile ağırlıklanır (Horvitz–Thompson; p yalnızca geçmiş ölçümlere bağlı olduğundan yansız); uzun işlemde (`longOpTicks`) her çağrı ölçülür. GPU işlemlerinin her çağrısı ölçülür. Saat amd64'te değişmez zaman damgası sayacıdır (`counter_clock_amd64.go`), başka yerde monoton saat. Sayaçlar kilitsizdir (yarış denetimli derlemede atomik: `counter_race.go`). Okuma: `tensor.CounterSnapshot`, `tensor.ActiveOp`.
-- **Örtük kopya sayaçları** (`internal/compute/tensor/implicit.go`): her zaman açık. Arka ucun her kopyası, tür dönüşümü ve ekleyerek yazması (`Copy`, `CopyStrided`, `AddTo`, `ExpandAdd`, `ScatterAdd`; GPU'da her `copyStrided`) o anda çalışan işleme (üst işlem; yoksa "diğer") bağlanır: çağrı ve eleman kesin, süre yalnızca CPU'da ve en az 4096 elemanlı kopyada ölçülür (GPU'da konak süresi yalnızca başlatmadır). PyTorch profilinde `aten::copy_` / `aten::to` çağıran işlemin altında görünür; burada tablo düzdür, üst işlem anahtardır. İşlemin kendisi olan kopyalar (`.kopya()`, `.TR_to_dtype`) işlem tablosundadır, örtük tabloya alınmaz. Okuma: `tensor.ImplicitSnapshot`.
+- **Örtük kopya sayaçları** (`internal/compute/tensor/implicit.go`): her zaman açık. Arka ucun her kopyası, tür dönüşümü ve ekleyerek yazması (`Copy`, `CopyStrided`, `AddTo`, `ExpandAdd`, `ScatterAdd`; GPU'da her `copyStrided`) o anda çalışan işleme (üst işlem; yoksa "diğer") bağlanır: çağrı ve eleman kesin, süre yalnızca CPU'da ve en az 4096 elemanlı kopyada ölçülür (GPU'da konak süresi yalnızca başlatmadır). PyTorch profilinde `aten::copy_` / `aten::to` çağıran işlemin altında görünür; burada tablo düzdür, üst işlem anahtardır. İşlemin kendisi olan kopyalar (`tensor.Tensor.Clone`, `.TR_to_dtype`) işlem tablosundadır, örtük tabloya alınmaz. Okuma: `tensor.ImplicitSnapshot`.
 - **Yorumlayıcı örneklemesi** (`sampler.go`): yalnızca `TR_cmd_watch` ve `TR_cmd_profile` altında. Yorumlayıcının hata ayıklayıcı yuvasına (`VM.Debugger`) bağlanır; yuva boşken yorumlayıcının her deyimdeki maliyeti bir nil denetimidir. Açıkken her deyim konumunu (fonksiyon, satır) çağrı derinliğinin yuvasına yazar; ayrı bir gorutin 1 ms'de bir o anki konuma geçen süreyi ve o an bir tensör işlemi çalışıyorsa tensör payını ekler. `TR_breakpoint` profil altında yok sayılır.
 - **Geri hesabın satırı** (`internal/compute/tensor/position.go`): örnekleme açıkken örnekleyici tensör paketine konum kaynağı olur (`tensor.SetPositionSource`); her düğüm oluştuğu satırı taşır, geri hesabı çalışırken o satır etkin geri konumdur (`tensor.BackwardPosition`) ve örnekleyici o ana düşen süreyi `TR_backward(...)` satırına değil, düğümü üreten ileri satıra yazar (satırın `geri_payı`). PyTorch'ta aynı eşleme `emit_nvtx`'in sıra numarasıyla yapılır (ileri `seq=N`, geri `stashed seq=N`); burada eşleme düğümün kendisindedir. Dış (özel) geri hesap TR kodu çalıştırdığından kendi satırlarında sayılır. Kapalıyken maliyet düğüm başına bir atomik gösterici okumasıdır.
 - **Adım sınırı** (`logging.SetStepHook`): ms/adım ve adım başına işlem dağılımı buradan. Program `TR_Progress(...)` kullanmıyorsa sınır iyileştiricinin adımıdır (`tensor.SetOptimizerStepHook`; AdamW/SGD `.TR_step()` bitince, birden çok iyileştiricide ilk adım atan): PyTorch profilinde adım `prof.step()`, JAX'ta `StepTraceAnnotation` ile işaretlenir, TR'de açık işaret `TR_Progress(...)`, iyileştirici yedektir.
 - **Adım evreleri** (`internal/compute/tensor/phase.go`): her adım sınırında önceki sınırdan bu yana geçen süre üçe bölünür: geri (geri yayılımların toplam süresi, sayaç saatiyle; iç içe geri yayılım bir kez), sonrası (son geri yayılımın bitişinden sınıra: iyileştirici, kırpma, günlük) ve ileri (kalan). Evreler kırpılmaz; toplamları adım süresidir. Konak süresidir: GPU'da işler eşzamansızdır, eşzamanlamada beklenen süre beklediği evreye düşer.
 - **GPU arka ucunun profili** (`gpu.KernelSamples`, `gpu.MemorySamples`): `TR_cmd_watch` ve `TR_cmd_profile` kernel ölçümünü açar (`gpu.EnableProfile`; `TR_GPU_PROFILE=1` ile zaten açıksa dokunmaz); program bitince, motorlar kapanmadan önce (`Profile.BeforeClose`, komut satırının `kapanmadanOnce` işleri) cihazı eşzamanlayıp arka ucun raporunu alır. Arka plan işinin profili ölçümü açmaz; GPU belleği yine okunur. Okumalar arka ucu beklemez. Ölçüm açıkken her çekirdek kaydı onu başlatan tensör işlemini ve TR konumunu taşır (`tensor.CurrentOwner`, `gpu.OwnerSamples`; geri yöndeki çekirdekler düğümü üreten ileri satırda): rapor GPU süresini işleme ve satıra göre ayrı tablolarda verir. Konakta ölçülen süre GPU'da yalnızca başlatma ve beklemedir; GPU'yu meşgul eden satır buradan okunur. PyTorch'ta aynı bağı CUPTI'nin `correlationId`'si kurar. Profil adım sınırını GPU arka ucuna da verir (`gpu.SetExternalSteps`, `gpu.MarkStep`): iyileştiricinin kendi işareti adımda birden çok iyileştiriciyle birden çok kez düşerdi (MuonVeAdamW'de 2).
 
-Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin farklarından pencere ölçülerini kurar (canlı tablonun hızları), dinleyiciye (canlı tablo) verir ve iş klasörü varsa dosyaya yazar. Program bitince (hata, `çıkış` ya da Ctrl+C ile bitse de) son raporu kurar. Sayaçlar süreç genelidir; profil başlangıcındaki değerler çıkarılır.
+Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin farklarından pencere ölçülerini kurar (canlı tablonun hızları), dinleyiciye (canlı tablo) verir ve iş klasörü varsa dosyaya yazar. Program bitince (hata, `TR_exit` ya da Ctrl+C ile bitse de) son raporu kurar. Sayaçlar süreç genelidir; profil başlangıcındaki değerler çıkarılır.
 
 **Canlı tablo** (`screen.go`): standart hata bir terminalse tablo ekranın başından denetim dizileriyle yeniden çizilir (Windows'ta konsolun sanal terminal kipi açılır; `live_windows.go`). Programın standart çıkışı ve hatası bir boruya alınır (`capture.go`): tamamı bir dosyaya yazılır, son satırları tablonun altında görünür, program bitince yeniden yazılır; boru terminal olmadığından ilerleme çubuğu düz satır kipine geçer. Terminal değilse çıktı olduğu gibi akar, 10 saniyede bir tek satırlık özet eklenir.
 
@@ -303,7 +303,7 @@ Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/wo
 | `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`TR_import "tr/layers"`, `TR_import "tr/optimizers"`; testleri `tr test lib`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`codes.md`](codes.md) (üretilir), [`roadmap.md`](roadmap.md), [`development.md`](development.md), [`recipes.md`](recipes.md), bu dosya |
-| `examples/` | Öğrenme sırasıyla numaralı örnek programlar: `tr/` Türkçe, `en/` İngilizce yazım (aynı numara aynı program) |
+| `examples/` | Öğrenme sırasıyla numaralı örnek programlar (`tr/*.tr`, kimlik yazımıyla; `TR_cmd_show` ile her dilde okunur) |
 | `tests/` | Dil tanımının kural testleri (`tr test tests`); `negative/`, `coded/`, `data/` |
 | `tools/` | Depo bakım araçları, kullanıcıya gitmez: `full_check.sh` ("bitti" tanımı), `fuzz.sh`, `gen/` (üreteçler), `impact/` (bir adın etkisini koddan hesaplar), `checkstatic/` (statik ikili denetimi), `bench/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas betikleri, `COLAB.md`) |
 | `bin/`, `scratch/` | Derleme çıktısı ve kişisel deneme klasörü; depoya girmez |

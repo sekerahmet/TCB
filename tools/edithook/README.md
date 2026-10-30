@@ -62,8 +62,8 @@ birkaç saniye ve bir tekrar.
 
 ## Testler
 
-`main_test.go`: ilk düzenleme bir kez durur (JSON karar) ve cevap ajana gider, sonraki geçer, başka dosya ve
-başka oturum yeniden durur; gösterilen ilk 30 satır gerçek codegraph cevabında koşu ve boyut satırlarını içerir (kısa
+`main_test.go`: ilk düzenlemeden sonra cevap bir kez bağlam olarak ajana gider (düzenleme durmaz), sonraki sessizce geçer, başka dosya ve
+başka oturum yeniden görür; gösterilen ilk 30 satır gerçek codegraph cevabında koşu ve boyut satırlarını içerir (kısa
 kipte atlanır); izlenmeyen dosya, yolsuz girdi geçer, bozuk girdi çıkış 1; `locate`
 yalnızca izlenen dosyayı verir (gerçek bir git deposunda; Windows'un kısa yol adlarında da, git
 yolu kendisi verir); kabuk araçlarında ön plandaki uzun komut durur, arka plandaki, hedefli test ve

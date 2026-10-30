@@ -1,7 +1,7 @@
 # testrunner
 
-`tr test` komutunun çekirdeği: `.tr` dosyalarındaki `TR_ctx_test "ad" { ... }` bloklarını bulur, her
-birini yalıtılmış bir kapsamda çalıştırır ve sonucu Türkçe raporlar.
+`TR_cmd_test` (`tr test`) komutunun çekirdeği: `.tr` dosyalarındaki `TR_test "ad" { ... }` bloklarını bulur, her
+birini yalıtılmış bir kapsamda çalıştırır ve sonucu etkin dilde (`TR_LANG`) raporlar.
 
 ## Standartlar
 
