@@ -26,12 +26,12 @@ TR_var Dh = 4
 TR_var FF = 8
 TR_var V = 16
 TR_var tohum_sayacı = 0
-TR_func ağırlık(şekil, ölçek) {
+TR_func ağırlık(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     tohum_sayacı += 1
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
 }
-TR_func başlar(x) { TR_return x.TR_reshape([B, T, H, Dh]).TR_permute([0, 2, 1, 3]) }
-TR_func eğit(cihaz) {
+TR_func başlar(x: TR_Tensor) -> TR_Tensor { TR_return x.TR_reshape([B, T, H, Dh]).TR_permute([0, 2, 1, 3]) }
+TR_func eğit(cihaz: TR_String) -> (TR_List[TR_Float], TR_String) {
     TR_default_device(cihaz)
     tohum_sayacı = 0
     TR_var E = ağırlık([V, D], 0.02)
@@ -70,13 +70,13 @@ TR_func eğit(cihaz) {
     }
     TR_var son_cihaz = E.TR_device + " " + son_x.TR_device + " " + son_k.TR_device
     TR_default_device("cpu")
-    TR_return [kayıplar, son_cihaz]
+    TR_return (kayıplar, son_cihaz)
 }
 TR_var c = eğit("cpu")
 TR_var g = eğit("gpu")
-TR_print(c[1])
-TR_print(g[1])
-TR_for i TR_in 0..3 { TR_print(c[0][i], g[0][i]) }
+TR_print(c.1)
+TR_print(g.1)
+TR_for i TR_in 0..3 { TR_print(c.0[i], g.0[i]) }
 `
 
 func TestGPUTrainingLanguageLevel(t *testing.T) {

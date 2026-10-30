@@ -57,7 +57,7 @@ func TestModuleImportWithAliasAndCircularProtection(t *testing.T) {
 	modPath := filepath.Join(tmpDir, "yardimci.tr")
 	err := os.WriteFile(modPath, []byte(source.Header+`
 		TR_const PI_SAYISI = 3.14
-		TR_func iki_kati(x) { TR_return x * 2 }
+		TR_func iki_kati(x: TR_Int) -> TR_Int { TR_return x * 2 }
 	`), 0644)
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +117,7 @@ func TestNewTaskVMStack(t *testing.T) {
 
 func TestConcurrentCallStackSafety(t *testing.T) {
 	code := `
-		TR_func hesapla(n) {
+		TR_func hesapla(n: TR_Int) -> TR_Int {
 			TR_return n * n
 		}
 		TR_for i TR_in 1..=20 {
@@ -158,7 +158,7 @@ func TestLockHandoffConcurrentTask(t *testing.T) {
 func TestLockHandoffRecursiveLoop(t *testing.T) {
 	_, val, err := runTROut(t, `
 		TR_var durdur = TR_false
-		TR_func dolas(n) {
+		TR_func dolas(n: TR_Int) -> TR_Int {
 			TR_if durdur TR_or n == 0 { TR_return n }
 			TR_return dolas(n - 1)
 		}

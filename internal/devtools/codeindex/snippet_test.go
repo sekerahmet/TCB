@@ -100,8 +100,8 @@ func TestSnippetListsTheCodesAProgramTextUses(t *testing.T) {
 // aktarma yol vermez; kitaplıksız çağrı (yalnız ad kodları) aktarma vermez.
 func TestSnippetListsTheLibraryModulesItImports(t *testing.T) {
 	library := fstest.MapFS{
-		"modelx.tr":  {Data: trText("modelx.tr", "TR_import \"katmanx\"\nTR_func modelx_kur() { TR_return 1 }\n")},
-		"katmanx.tr": {Data: trText("katmanx.tr", "TR_func gpt_kur() { TR_return 1 }\n")},
+		"modelx.tr":  {Data: trText("modelx.tr", "TR_import \"katmanx\"\nTR_func modelx_kur() -> TR_Int { TR_return 1 }\n")},
+		"katmanx.tr": {Data: trText("katmanx.tr", "TR_func gpt_kur() -> TR_Int { TR_return 1 }\n")},
 	}
 	src := "TR_import \"tr/modelx\"\nTR_import \"yerel\"\nTR_import \"tr/olmayan\"\nTR_import \"tr/katmanx\" TR_as k\nTR_import \"tr/modelx\" TR_as h\n" +
 		"TR_test \"t\" {\n    TR_print(modelx_kur(), k.gpt_kur())\n}\n"
@@ -122,8 +122,8 @@ func TestSnippetListsTheLibraryModulesItImports(t *testing.T) {
 // (adım: TR_arg_step) de sayılmaz. Go testi bir TR betiğini dosyaya yazıp tr ikilisiyle koşunca codegraph testi bu
 // kodlara bağlar (TestReadyModelMatchesTransformers → TR_fn_pretrained_model).
 func TestSnippetListsTheLibraryCodesItExercises(t *testing.T) {
-	library := fstest.MapFS{"hazirx.tr": {Data: trText("hazirx.tr", "TR_struct TR_GPT {\n    TR_func TR_forward(TR_x) {\n        TR_return TR_x\n    }\n}\n\n"+
-		"TR_func TR_pretrained_model(TR_folder, TR_step = 0) {\n    TR_return TR_GPT()\n}\n\nTR_func TR_lr_schedule(TR_step) {\n    TR_return TR_step\n}\n")}}
+	library := fstest.MapFS{"hazirx.tr": {Data: trText("hazirx.tr", "TR_struct TR_GPT {\n    TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {\n        TR_return TR_x\n    }\n}\n\n"+
+		"TR_func TR_pretrained_model(TR_folder: TR_String, TR_step: TR_Int = 0) -> TR_GPT {\n    TR_return TR_GPT()\n}\n\nTR_func TR_lr_schedule(TR_step: TR_Int) -> TR_Int {\n    TR_return TR_step\n}\n")}}
 	got := func(src string) string {
 		uses, _ := Snippet(src, library)
 		var out []string

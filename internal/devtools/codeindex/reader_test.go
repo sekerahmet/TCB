@@ -28,7 +28,7 @@ func TestAtFindsTheNameUnderTheCursor(t *testing.T) {
 		t.Error("a line without references has nothing under the cursor")
 	}
 	// Bildirimin adı da bir başvurudur (tanım rolüyle): "tanıma git" tanımın kendisinde de çalışır.
-	line, col := fixtureAt(t, "lib/geo.tr", "çevre_hesapla(k)")
+	line, col := fixtureAt(t, "lib/geo.tr", "çevre_hesapla(k:")
 	o, n := r.At("lib/geo.tr", line, col+2)
 	if o == nil || o.Role != RoleDefinition || n.ID != "function:lib/geo.tr#çevre_hesapla" {
 		t.Errorf("definition under cursor: %+v %+v", o, n)
@@ -75,7 +75,7 @@ func TestEmbeddedLibraryModule(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "main.tr"), trText(filepath.Join(dir, "main.tr"), "TR_import \"tr/layers\"\n\nTR_GPT(1)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	lib := fstest.MapFS{"layers.tr": {Data: trText("layers.tr", "TR_struct TR_GPT {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"layers.tr": {Data: trText("layers.tr", "TR_struct TR_GPT {\n    n: TR_Int = 1\n}\n")}}
 	idx, err := Build(dir, Options{Library: lib})
 	if err != nil {
 		t.Fatal(err)
@@ -137,8 +137,8 @@ func TestAliasAfterPlainImportOfTheSameModule(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("geo.tr", "TR_const PI = 3\nTR_func alan(r) {\n    TR_return PI * r\n}\n")
-	write("main.tr", "TR_import \"geo\"\nTR_import \"geo\" TR_as g\n\nTR_func f() {\n    TR_return g.alan(1) + g.PI\n}\n")
+	write("geo.tr", "TR_const PI = 3\nTR_func alan(r: TR_Int) -> TR_Int {\n    TR_return PI * r\n}\n")
+	write("main.tr", "TR_import \"geo\"\nTR_import \"geo\" TR_as g\n\nTR_func f() -> TR_Int {\n    TR_return g.alan(1) + g.PI\n}\n")
 	idx, err := Build(dir, Options{})
 	if err != nil {
 		t.Fatal(err)

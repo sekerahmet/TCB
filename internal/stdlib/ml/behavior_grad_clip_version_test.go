@@ -14,7 +14,7 @@ func TestGradClipStrictFailureLeavesGradsUntouched(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
 	out := mustRun(t, `
-TR_func sına(cihaz_adı) {
+TR_func sına(cihaz_adı: TR_String) -> TR_List[TR_Bool] {
     TR_default_device(cihaz_adı)
     TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(w * TR_Float("nan")))
@@ -43,7 +43,7 @@ func TestGradClipBumpsVersionOnBothDevices(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
 	out := mustRun(t, `
-TR_func sına(cihaz_adı) {
+TR_func sına(cihaz_adı: TR_String) -> TR_Bool {
     TR_default_device(cihaz_adı)
     TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(w * 0.1))

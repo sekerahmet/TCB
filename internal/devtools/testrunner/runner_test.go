@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-const exampleTests = `TR_func topla(a, b) { TR_return a + b }
+const exampleTests = `TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a + b }
 TR_var sayac = 0
 
 TR_test "toplama doğru" {

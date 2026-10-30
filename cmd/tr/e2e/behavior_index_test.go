@@ -13,7 +13,7 @@ func indexProject(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, ".git/HEAD", "ref: refs/heads/main\n")
-	writeTR(t, dir, "lib/geo.tr", "# Kare bir kenar uzunluğu taşır.\nTR_struct Kare {\n    kenar = 1\n    TR_func alan() {\n        TR_return TR_self.kenar * TR_self.kenar\n    }\n}\n\nTR_func çevre(k) {\n    TR_print(k.kenar)\n    TR_return 4 * k.kenar\n}\n")
+	writeTR(t, dir, "lib/geo.tr", "# Kare bir kenar uzunluğu taşır.\nTR_struct Kare {\n    kenar: TR_Int = 1\n    TR_func alan() -> TR_Int {\n        TR_return TR_self.kenar * TR_self.kenar\n    }\n}\n\nTR_func çevre(k: Kare) -> TR_Int {\n    TR_print(k.kenar)\n    TR_return 4 * k.kenar\n}\n")
 	writeTR(t, dir, "lib/geo_test.tr", "TR_import \"geo\"\n\nTR_test \"çevre hesaplanır\" {\n    çevre(Kare())\n}\n")
 	return dir
 }
@@ -44,7 +44,7 @@ func TestIndexSubcommandsInEveryLanguage(t *testing.T) {
 // Çıkış kodu sonucun durumudur: belirsiz ad 3, bulunamayan ad 4; --json kararlı şemadır.
 func TestIndexExitCodesAndJSON(t *testing.T) {
 	dir := indexProject(t)
-	writeTR(t, dir, "m.tr", "TR_struct A {\n    TR_func TR_forward() {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() {\n        TR_return 2\n    }\n}\n")
+	writeTR(t, dir, "m.tr", "TR_struct A {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 2\n    }\n}\n")
 	testkit.Wait(t, tr(t, dir, "index", "definition", "ileri"), 3, []string{"A.ileri", "B.ileri"}, nil)
 	testkit.Wait(t, tr(t, dir, "index", "definition", "yok_boyle_bir_ad"), 4, nil, nil)
 	s := tr(t, dir, "index", "references", "çevre", "--json")
@@ -97,7 +97,7 @@ func TestIndexCache(t *testing.T) {
 func TestIndexRename(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, ".git/HEAD", "ref: refs/heads/main\n")
-	writeTR(t, dir, "m.tr", "TR_struct Dikkat {\n    baş\n    TR_func say() {\n        TR_return TR_self.baş\n    }\n}\n\nTR_func yap(baş) {\n    TR_var d = Dikkat()\n    TR_return d.baş + baş\n}\n\nTR_var e = yap(baş: 4)\nTR_print(e)\n")
+	writeTR(t, dir, "m.tr", "TR_struct Dikkat {\n    baş: TR_Int = 0\n    TR_func say() -> TR_Int {\n        TR_return TR_self.baş\n    }\n}\n\nTR_func yap(baş: TR_Int) -> TR_Int {\n    TR_var d = Dikkat()\n    TR_return d.baş + baş\n}\n\nTR_var e = yap(baş: 4)\nTR_print(e)\n")
 	testkit.WriteFile(t, dir, "doc.md", "Dikkatin başı ve başka şey.\n")
 	r := tr(t, dir, "index", "rename", "Dikkat.baş", "bakış_sayısı", "--no-text")
 	testkit.Wait(t, r, 0, []string{"kesin (", "olası (", "m.tr:3:5", "m.tr:5:27", "hiçbir dosya değiştirilmedi"}, nil)

@@ -12,13 +12,13 @@ import (
 // ayrıştırılır (çalışması tests/yapilar_test.tr'de sınanır).
 func TestStructInheritanceSuggestsAField(t *testing.T) {
 	// alan tipi tek bir addır: noktalı yazımda çalışan bir öneri yoktur, ileti yazım önermez
-	errs := parseErrs("TR_struct A(nn.Module) { y = 2 }")
+	errs := parseErrs("TR_struct A(nn.Module) { y: TR_Int = 2 }")
 	if len(errs) != 1 || !messages.Has(errs[0], messages.H0280) {
 		t.Errorf("A(nn.Module): want one H0280, got %v", errs)
 	}
 	for _, c := range []struct{ code, want string }{
-		{"TR_struct B { x = 1 }\nTR_struct A(B) { y = 2 }", "TR_struct A { b: B }"},
-		{"TR_struct A(TR_Linear) { y = 2 }", "TR_struct A { linear: TR_Linear }"},
+		{"TR_struct B { x: TR_Int = 1 }\nTR_struct A(B) { y: TR_Int = 2 }", "TR_struct A { b: B }"},
+		{"TR_struct A(TR_Linear) { y: TR_Int = 2 }", "TR_struct A { linear: TR_Linear }"},
 	} {
 		errs := parseErrs(c.code)
 		if len(errs) != 1 || !messages.Has(errs[0], messages.H0275) {
@@ -40,18 +40,18 @@ func TestStructBodyErrorsAreReportedOnce(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{"TR_struct A {\n    TR_func f() { TR_return 1 }\n    TR_func f() { TR_return 2 }\n}\nTR_print(1)", messages.H0145},
-		{"TR_struct A {\n    x = 1\n    x = 2\n}\nTR_print(1)", messages.H0146},
-		{"TR_struct A {\n    x = 1\n    TR_func x() { TR_return 1 }\n}\nTR_print(1)", messages.H0277},
-		{"TR_struct A {\n    TR_func x() { TR_return 1 }\n    x = 1\n}\nTR_print(1)", messages.H0277},
-		{"TR_struct A {\n    x = 1\n    y\n}\nTR_print(1)", messages.H0276},
+		{"TR_struct A {\n    TR_func f() -> TR_Int { TR_return 1 }\n    TR_func f() -> TR_Int { TR_return 2 }\n}\nTR_print(1)", messages.H0145},
+		{"TR_struct A {\n    x: TR_Int = 1\n    x: TR_Int = 2\n}\nTR_print(1)", messages.H0146},
+		{"TR_struct A {\n    x: TR_Int = 1\n    TR_func x() -> TR_Int { TR_return 1 }\n}\nTR_print(1)", messages.H0277},
+		{"TR_struct A {\n    TR_func x() -> TR_Int { TR_return 1 }\n    x: TR_Int = 1\n}\nTR_print(1)", messages.H0277},
+		{"TR_struct A {\n    x: TR_Int = 1\n    y: TR_Int\n}\nTR_print(1)", messages.H0276},
 	} {
 		errs := parseErrs(c.code)
 		if len(errs) != 1 || !messages.Has(errs[0], c.want) {
 			t.Errorf("%q: want one %v, got %v", c.code, c.want, errs)
 		}
 	}
-	if errs := parseErrs("TR_struct A {\n    x\n    y: TR_Int = 1\n    z = 2\n}"); len(errs) != 0 {
+	if errs := parseErrs("TR_struct A {\n    x: TR_Int\n    y: TR_Int = 1\n    z: TR_Int = 2\n}"); len(errs) != 0 {
 		t.Errorf("fields without a default before defaulted ones: %v", errs)
 	}
 }
@@ -101,7 +101,7 @@ func TestConstructorReturnsNoValue(t *testing.T) {
 			t.Errorf("%q: want one %v, got %v", c.code, c.want, errs)
 		}
 	}
-	ok := "TR_struct D {\n    f\n    TR_func TR_init() {\n        TR_self.f = (x) => { TR_return x }\n        TR_if TR_true { TR_return }\n    }\n}"
+	ok := "TR_struct D {\n    f: (TR_Int) -> TR_Int\n    TR_func TR_init() {\n        TR_self.f = (x: TR_Int) => { TR_return x }\n        TR_if TR_true { TR_return }\n    }\n}"
 	if errs := parseErrs(ok); len(errs) != 0 {
 		t.Errorf("%q: %v", ok, errs)
 	}
@@ -114,10 +114,10 @@ func TestSelfParameterIsDeleted(t *testing.T) {
 		coded     bool
 		line, cut string
 	}{
-		{false, "fonksiyon m(kendi, k) { sonuç k }", "kendi, "},
-		{false, "fonksiyon m(kendi) { sonuç 1 }", "kendi"},
-		{true, "TR_func m(TR_self, k) { TR_return k }", "TR_self, "},
-		{true, "TR_func m(TR_self) { TR_return 1 }", "TR_self"},
+		{false, "fonksiyon m(kendi, k: Tam) -> Tam { sonuç k }", "kendi, "},
+		{false, "fonksiyon m(kendi) -> Tam { sonuç 1 }", "kendi"},
+		{true, "TR_func m(TR_self, k: TR_Int) -> TR_Int { TR_return k }", "TR_self, "},
+		{true, "TR_func m(TR_self) -> TR_Int { TR_return 1 }", "TR_self"},
 	} {
 		code := "yapı N {\n" + c.line + "\n}"
 		errs := parseErrsIn(code, codes.Source())

@@ -13,27 +13,27 @@ import (
 
 // bindSource üye erişimleri, parametreler, adlı argümanlar ve komut_satırı anahtarları için bir proje.
 const bindSource = `TR_struct Dikkat {
-    baş
-    kv_baş
-    TR_func TR_init(boyut, baş, kv_baş = TR_none) {
+    baş: TR_Int
+    kv_baş: TR_Int?
+    TR_func TR_init(boyut: TR_Int, baş: TR_Int, kv_baş = TR_none) {
         TR_self.baş = baş
         TR_self.kv_baş = kv_baş
     }
-    TR_func say() {
+    TR_func say() -> TR_Int {
         TR_return TR_self.baş
     }
 }
 
-TR_func yap(baş) {
+TR_func yap(baş: TR_Int) -> TR_Int {
     TR_var d = Dikkat(8, baş)
     TR_return d.baş
 }
 
-TR_func gez(x) {
+TR_func gez(x) -> TR_Int {
     TR_return x.baş
 }
 
-TR_func gölge(baş) {
+TR_func gölge(baş: TR_Int) -> TR_Int {
     TR_var baş = 3
     TR_return baş
 }
@@ -91,7 +91,7 @@ func TestParameterAndNamedArgumentOccurrences(t *testing.T) {
 		"definition@"+at("TR_func TR_init(", "kv_baş", 1)+"/EXTRACTED", "read@"+at("TR_self.kv_baş = kv_baş", "kv_baş", 2)+"/EXTRACTED",
 		"argument_name@"+at("Dikkat(8, 2, kv_baş: 1)", "kv_baş", 1)+"/EXTRACTED")
 	wantUses(t, r, "parameter:m.tr#yap.baş",
-		"definition@"+at("TR_func yap(baş)", "baş", 1)+"/EXTRACTED", "read@"+at("Dikkat(8, baş)", "baş", 1)+"/EXTRACTED",
+		"definition@"+at("TR_func yap(", "baş", 1)+"/EXTRACTED", "read@"+at("Dikkat(8, baş)", "baş", 1)+"/EXTRACTED",
 		"argument_name@"+at("yap(baş: 4)", "baş", 1)+"/EXTRACTED")
 }
 
@@ -164,7 +164,7 @@ var memberGuessFiles = map[string]string{
 		for i := 1; i <= 5; i++ {
 			fmt.Fprintf(&b, "TR_struct Katman%d {\n    ağırlık = %d\n    TR_func ileri() {\n        TR_return TR_self.ağırlık\n    }\n", i, i)
 			if i <= 2 {
-				b.WriteString("    TR_func geri() {\n        TR_return 0\n    }\n")
+				b.WriteString("    TR_func geri() -> TR_Int {\n        TR_return 0\n    }\n")
 			}
 			b.WriteString("}\n")
 		}
@@ -221,10 +221,10 @@ func TestMemberGuessesAreLikelyOnlyWhereTheMemberIsVisible(t *testing.T) {
 // dizin kurulurken düşmez; zincirin sonundaki gerçek üye (t.0.a) yine bir tahmin olarak dizinde kalır.
 func TestTupleElementIsNotAMemberUse(t *testing.T) {
 	const src = `TR_struct K {
-    a
+    a: TR_Int
 }
 
-TR_func f() {
+TR_func f() -> TR_Int {
     TR_var t = ((K(1), 2), 3)
     TR_return t.0.0.a + t.0.1 + t.1
 }

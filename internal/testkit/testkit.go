@@ -288,6 +288,12 @@ func (r *linearRun) trial(f func() (int, error)) {
 // yapı etiketleri ve içe aktarma yolları atlanır (metin değil, biçimdir). Go metnindeki kullanıcı
 // metnini ya da adını arayan kural testlerinin (Türkçe metin, çıplak ad) ortak gezintisidir.
 func GoStringLiterals(path string, fn func(value string, line int)) error {
+	return GoStringLiteralsRaw(path, func(value string, line int, _ bool) { fn(value, line) })
+}
+
+// GoStringLiteralsRaw GoStringLiterals gibidir; raw sabitin `...` ile yazılıp yazılmadığını da verir: raw
+// sabitin satırları Go dosyasının satırlarıdır, tırnaklı sabitin bütün satırları tek Go satırındadır.
+func GoStringLiteralsRaw(path string, fn func(value string, line int, raw bool)) error {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
 	if err != nil {
@@ -309,7 +315,7 @@ func GoStringLiterals(path string, fn func(value string, line int)) error {
 			return true
 		}
 		if s, err := strconv.Unquote(lit.Value); err == nil {
-			fn(s, fset.Position(lit.Pos()).Line)
+			fn(s, fset.Position(lit.Pos()).Line, strings.HasPrefix(lit.Value, "`"))
 		}
 		return true
 	})

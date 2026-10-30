@@ -12,7 +12,7 @@ import (
 // dedektörü olmayan yerde de test her VM'in doğru sonucu verdiğini sınar.
 func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 	const code = `
-		TR_func sayaç_yap() {
+		TR_func sayaç_yap() -> () -> TR_Int {
 			TR_var n = 0
 			TR_return () => { n += 1; TR_return n }
 		}
@@ -25,8 +25,8 @@ func TestOneProgramCompiledInParallelVMs(t *testing.T) {
 		TR_var j = 0
 		TR_for j < 5 { TR_var k = j; s(); j += 1 }
 		TR_var kapanışlar = [(() => { TR_return x }) TR_for x TR_in 1..=3]
-		TR_struct Nokta { x = 0
-			TR_func iki_kat() { TR_var d = TR_self.x * 2; TR_return d } }
+		TR_struct Nokta { x: TR_Int = 0
+			TR_func iki_kat() -> TR_Int { TR_var d = TR_self.x * 2; TR_return d } }
 		TR_var result = [toplam_, s(), kapanışlar[2](), Nokta(4).iki_kat()]`
 	prog := mustParseProgram(t, code)
 	const want = "[2100, 6, 3, 8]"

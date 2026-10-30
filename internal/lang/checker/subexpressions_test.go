@@ -30,10 +30,10 @@ func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 		{"indeks atama hedefi", "TR_var l = [1]\n" + `l[kare("a")] = 1`},
 		{"alan atama hedefi", `[kare("a")].x = 1`},
 		{"çoklu atama hedefi", "TR_var l = [1]\nTR_var y = 1\n" + `l[kare("a")], y = 1, 2`},
-		{"yapı alan varsayılanı", "TR_struct A {\n  alan = kare(\"a\")\n}"},
+		{"yapı alan varsayılanı", "TR_struct A {\n  alan: TR_Int = kare(\"a\")\n}"},
 		{"yapı metot gövdesi", "TR_struct A {\n  TR_func m() { kare(\"a\") }\n}"},
 		{"eşle deseni", `TR_var e = TR_match 1 { kare("a") => 1 }`},
-		{"parametre varsayılanı", `TR_func g(p = kare("a")) { }`},
+		{"parametre varsayılanı", `TR_func g(p: TR_Int = kare("a")) { }`},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -182,7 +182,7 @@ TR_command_line({"a": 1})`); err != nil || got != `{"a": 1}` {
 // Çıkış isteği dene/yakala ile yakalanmaz; ertele blokları çalışır.
 func TestExitRequestNotCaught(t *testing.T) {
 	_, m, err := commandLine(t, `TR_var iz = []
-TR_func kur() {
+TR_func kur() -> TR_Dict[TR_String, TR_Int] {
     TR_defer iz.TR_append("ertele")
     TR_try { TR_return TR_command_line({"a": 1}) } TR_catch h { iz.TR_append("yakalandı") }
 }

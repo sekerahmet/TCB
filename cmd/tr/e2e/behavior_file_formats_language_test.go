@@ -132,7 +132,7 @@ func TestDictTextKeysOnDisk(t *testing.T) {
 // bağlı değildir (3.14): aynı program her makinede aynı metni verir; metin sabit İngilizce, yerleşiğin
 // adı kimliğin adıdır.
 func TestFunctionTextIsLanguageIndependent(t *testing.T) {
-	program := "TR_func f() { TR_return 1 }\nTR_struct P { a }\nTR_var l = [1]\nTR_print(TR_String(f), TR_String(P), TR_String(TR_print), TR_String(l.TR_append), \"\\(f)\", TR_String((x) => x))\n" +
+	program := "TR_func f() -> TR_Int { TR_return 1 }\nTR_struct P { a: TR_Int }\nTR_var l = [1]\nTR_print(TR_String(f), TR_String(P), TR_String(TR_print), TR_String(l.TR_append), \"\\(f)\", TR_String((x) => x))\n" +
 		""
 	sameOutputInEveryDisplayLanguage(t, program,
 		"<function f> P <builtin print> <builtin append> <function f> <lambda>\n")

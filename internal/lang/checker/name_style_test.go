@@ -36,10 +36,10 @@ func TestNameStyleWarnings(t *testing.T) {
 		suggestion string
 	}{
 		{"TR_var öğrenciSayısı = 1", messages.H1012, 1, `"öğrenci_sayısı"`},
-		{"TR_func HazırModel() { TR_return 1 }", messages.H1012, 1, `"hazır_model"`},
-		{"TR_func f(GirdiBoyu) { TR_return GirdiBoyu }", messages.H1012, 1, `"girdi_boyu"`},
+		{"TR_func HazırModel() -> TR_Int { TR_return 1 }", messages.H1012, 1, `"hazır_model"`},
+		{"TR_func f(GirdiBoyu: TR_Int) -> TR_Int { TR_return GirdiBoyu }", messages.H1012, 1, `"girdi_boyu"`},
 		{"TR_for Eleman TR_in [1] { TR_print(Eleman) }", messages.H1012, 1, `"eleman"`},
-		{"TR_struct Nokta { SolKenar = 0 }", messages.H1012, 1, `"sol_kenar"`},
+		{"TR_struct Nokta { SolKenar: TR_Int = 0 }", messages.H1012, 1, `"sol_kenar"`},
 		{"TR_const en_büyük = 10", messages.H1013, 1, `"EN_BÜYÜK"`},
 		{"TR_const maxCount = 10", messages.H1013, 1, `"MAX_COUNT"`},
 		{"TR_struct önbellek_durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
@@ -70,9 +70,9 @@ TR_var Wq, dW, W1, QKV = 1, 2, 3, 4
 TR_var X_veri = 1
 TR_var _iç = 1
 TR_var eğer = 1
-TR_func hazır_model(B, T) { TR_return B * T }
-TR_struct GPT { katman = 1 }
-TR_struct SıçramaBekçisi { pencere = 20 }
+TR_func hazır_model(B: TR_Int, T: TR_Int) -> TR_Int { TR_return B * T }
+TR_struct GPT { katman: TR_Int = 1 }
+TR_struct SıçramaBekçisi { pencere: TR_Int = 20 }
 TR_for _ TR_in [1] { TR_print(1) }`
 	if w := warningsOf(t, source); len(w) > 0 {
 		t.Errorf("uyarı beklenmiyordu: %v", w)

@@ -94,7 +94,7 @@ func TestIncrementalReparsesOnlyChangedAndImporters(t *testing.T) {
 	// geo.tr'yi ana.tr ve geo_test.tr aktarıyor: üçü yeniden çözülür.
 	g := filepath.Join(dir, "lib", "geo.tr")
 	data, _ = os.ReadFile(g)
-	if err := os.WriteFile(g, append(data, []byte("\nTR_func yeni_ad() {\n    TR_return 1\n}\n")...), 0o644); err != nil {
+	if err := os.WriteFile(g, append(data, []byte("\nTR_func yeni_ad() -> TR_Int {\n    TR_return 1\n}\n")...), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, st, err = BuildCached(dir, Options{})
@@ -179,7 +179,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 	dir := t.TempDir()
 	const n = 12
 	genProject(t, dir, n)
-	lib := fstest.MapFS{"layers.tr": {Data: []byte("TR_struct Katman {\n    n = 1\n}\n")}}
+	lib := fstest.MapFS{"layers.tr": {Data: []byte("TR_struct Katman {\n    n: TR_Int = 1\n}\n")}}
 	opts := Options{Library: lib}
 	rng := rand.New(rand.NewSource(7))
 	extras := make([][]string, n)
@@ -232,7 +232,7 @@ func TestIncrementalEqualsFull(t *testing.T) {
 		}
 	}
 	// Dosya eklemek ve silmek baştan kurulumdur ve yine aynıdır.
-	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), trText(filepath.Join(dir, "yeni.tr"), "TR_import \"m3\"\nTR_func y() {\n    TR_return f3_0(1)\n}\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "yeni.tr"), trText(filepath.Join(dir, "yeni.tr"), "TR_import \"m3\"\nTR_func y() -> TR_Int {\n    TR_return f3_0(1)\n}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	inc, st, err := BuildCached(dir, opts)

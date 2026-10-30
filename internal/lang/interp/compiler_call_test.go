@@ -14,7 +14,7 @@ func TestTrailingBlockWithOPronoun(t *testing.T) {
 		TR_var b = sayılar.TR_filter((x) => x % 2 == 0)
 		TR_var c = [{"ad": "Ali"}, {"ad": "Ayşe"}].TR_map((x) => x["ad"])
 		TR_var d = [[1, 2], [3, 4]].TR_map((x) => x.TR_map((x2) => x2 * 10))
-		TR_func uygula(f) { TR_return f(21) }
+		TR_func uygula(f: (TR_Int) -> TR_Int) -> TR_Int { TR_return f(21) }
 		TR_var e = uygula((x) => x * 2)
 		TR_var result = [a, b, c, d, e]`)
 	if err != nil {

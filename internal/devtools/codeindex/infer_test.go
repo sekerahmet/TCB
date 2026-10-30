@@ -7,7 +7,7 @@ import (
 )
 
 const inferSource = `TR_struct S {
-    a
+    a: TR_Int
     TR_func TR_init() {
         TR_self.a = 1
     }
@@ -22,7 +22,7 @@ TR_func yap2() {
     TR_return s
 }
 
-TR_func karışık(b) {
+TR_func karışık(b: TR_Bool) {
     TR_if b {
         TR_return S()
     }
@@ -32,7 +32,7 @@ TR_func karışık(b) {
 TR_var g = yap2()
 TR_print(g.a)
 
-TR_func kullan() {
+TR_func kullan() -> TR_Int {
     TR_var t = yap()
     TR_var u = karışık(TR_true)
     TR_return t.a + u.a

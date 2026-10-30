@@ -60,7 +60,7 @@ func TestBoolTextComparisonWarning(t *testing.T) {
 		}
 	}
 	// metin gölgelenmişse kullanıcının fonksiyonudur.
-	if got := boolTextWarnings(t, "en", decl+"TR_func metin(x) { TR_return \"doğru\" }\nTR_print(metin(b) == \"doğru\")\n"); got != 0 {
+	if got := boolTextWarnings(t, "en", decl+"TR_func metin(x: TR_Bool) -> TR_String { TR_return \"doğru\" }\nTR_print(metin(b) == \"doğru\")\n"); got != 0 {
 		t.Errorf("gölgelenen metin: %d uyarı", got)
 	}
 }

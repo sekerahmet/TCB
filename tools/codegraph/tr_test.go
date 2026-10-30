@@ -23,7 +23,7 @@ func TestTRNodes(t *testing.T) {
 	want := map[string]int{
 		geoKare: line("TR_struct Kare"), geoAlan: line("TR_func alan()"), geoCevre: line("TR_func çevre_hesapla"),
 		"tr:func:" + geo + ":yaz_alan": line("TR_func yaz_alan"), "tr:const:" + geo + ":PI2": line("TR_const PI2"),
-		"tr:var:" + geo + ":sayaç": line("TR_var sayaç"), "tr:field:" + geo + ":Kare.kenar": line("    kenar = 1"),
+		"tr:var:" + geo + ":sayaç": line("TR_var sayaç"), "tr:field:" + geo + ":Kare.kenar": line("    kenar: TR_Int = 1"),
 		"tr:method:" + geo + ":Kare.TR_ctx_init": line("TR_func TR_init("),
 	}
 	for _, n := range g.Nodes {

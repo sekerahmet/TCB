@@ -23,9 +23,9 @@ import (
 const gpuCheckpointProgram = `
 TR_default_device("gpu")
 TR_var KOŞU = %q
-TR_func eğit(son) {
+TR_func eğit(son: TR_Int) -> (TR_Dict[TR_String, TR_Tensor], TR_Optimizer, TR_Dict[TR_String, TR_List[TR_Float]], TR_Checkpoint) {
     TR_var sayaç = 0
-    TR_func ağırlık(şekil) {
+    TR_func ağırlık(şekil: TR_List[TR_Int]) -> TR_Tensor {
         sayaç += 1
         TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * 0.2), TR_requires_grad: TR_true)
     }
@@ -43,7 +43,7 @@ TR_func eğit(son) {
         izlenen["losses"].TR_append(kayıp.TR_tolist)
         kn.TR_update(adım + 1)
     }
-    TR_return [model, op, izlenen, kn]
+    TR_return (model, op, izlenen, kn)
 }
 `
 
@@ -74,9 +74,9 @@ TR_var a = eğit(6)
 # "kesilen" koşu: 3 adım; sonra aynı koşu klasöründe başka tohumlu yeni nesnelerle 6. adıma
 # kadar sürdürülür (yükleme yeni nesnelerin değerlerinin üzerine yazar).
 TR_var b = eğit(3)
-TR_func sürdür() {
+TR_func sürdür() -> (TR_Dict[TR_String, TR_Tensor], TR_Optimizer, TR_Dict[TR_String, TR_List[TR_Float]]) {
     TR_var sayaç = 0
-    TR_func ağırlık(şekil) {
+    TR_func ağırlık(şekil: TR_List[TR_Int]) -> TR_Tensor {
         sayaç += 1
         TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç + 100) * 0.2), TR_requires_grad: TR_true)
     }
@@ -95,16 +95,16 @@ TR_func sürdür() {
         izlenen["losses"].TR_append(kayıp.TR_tolist)
         kn.TR_update(adım + 1)
     }
-    TR_return [model, op, izlenen]
+    TR_return (model, op, izlenen)
 }
 TR_var c = sürdür()
-TR_print("parametre:", a[0]["E"].TR_tolist == c[0]["E"].TR_tolist, a[0]["W"].TR_tolist == c[0]["W"].TR_tolist)
+TR_print("parametre:", a.0["E"].TR_tolist == c.0["E"].TR_tolist, a.0["W"].TR_tolist == c.0["W"].TR_tolist)
 TR_var ayni = TR_true
-TR_for ad TR_in a[1].TR_state.TR_keys() {
-    TR_if a[1].TR_state[ad].TR_tolist != c[1].TR_state[ad].TR_tolist { ayni = TR_false }
+TR_for ad TR_in a.1.TR_state.TR_keys() {
+    TR_if a.1.TR_state[ad].TR_tolist != c.1.TR_state[ad].TR_tolist { ayni = TR_false }
 }
-TR_print("durum:", ayni, a[1].TR_state.TR_keys() == c[1].TR_state.TR_keys())
-TR_print("kayıp:", a[2]["losses"] == c[2]["losses"], c[2]["losses"].TR_length)
+TR_print("durum:", ayni, a.1.TR_state.TR_keys() == c.1.TR_state.TR_keys())
+TR_print("kayıp:", a.2["losses"] == c.2["losses"], c.2["losses"].TR_length)
 # parametreleri_yükle CPU'daki tensörleri iyileştiricinin tuttuğu GPU tensörüne yazar.
 TR_var p = {"w": TR_Tensor(TR_ones([4]), TR_requires_grad: TR_true)}
 TR_var sgd = TR_SGD(TR_parameters(p), TR_lr: 0.5)

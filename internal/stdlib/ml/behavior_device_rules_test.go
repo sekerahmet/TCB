@@ -31,7 +31,7 @@ func TestReplayIndexAssignScalarIsFilledOnDevice(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 
 	out := mustRun(t, `TR_default_device("gpu")
-TR_func sıfırla_ilk(x) {
+TR_func sıfırla_ilk(x: TR_Tensor) -> TR_Tensor {
     x[0] = 0.0
     TR_return x * 2
 }

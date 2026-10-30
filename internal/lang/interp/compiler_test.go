@@ -159,13 +159,13 @@ func TestSortValuesStable(t *testing.T) {
 // Havuzdan alınan çağrı ortamları özyinelemede ve hata sonrasında karışmamalı.
 func TestCallEnvPool(t *testing.T) {
 	_, val, err := runTROut(t, `
-		TR_func fib(n) {
+		TR_func fib(n: TR_Int) -> TR_Int {
 			TR_if n < 2 { TR_return n }
 			TR_return fib(n - 1) + fib(n - 2)
 		}
-		TR_func bol(a, b) { TR_return a / b }
+		TR_func bol(a: TR_Int, b: TR_Int) -> TR_Float { TR_return a / b }
 		TR_try { bol(1, 0) } TR_catch h { }
-		TR_func iki(x, y = 10) {
+		TR_func iki(x: TR_Int, y: TR_Int = 10) -> TR_Int {
 			TR_var z = x * y
 			TR_return z
 		}
@@ -201,7 +201,7 @@ func TestDirectMethodCalls(t *testing.T) {
 func TestStructDefaultInDefScope(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "modk.tr")
-	if err := os.WriteFile(module, []byte(source.Header+"\nTR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() { TR_return K() }\n"), 0o644); err != nil {
+	if err := os.WriteFile(module, []byte(source.Header+"\nTR_const VARS = 5\nTR_struct K { a: TR_Int = VARS }\nTR_func K_yap() -> K { TR_return K() }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, val, err := runTROut(t, `
@@ -230,8 +230,8 @@ func TestFastPathSemantics(t *testing.T) {
 		d[2] = "iki"
 		TR_struct P {
 			x: TR_Int = 3
-			f = TR_none
-			TR_func m(k = 1) { TR_return TR_self.x * k }
+			f: (() -> TR_String)? = TR_none
+			TR_func m(k: TR_Int = 1) -> TR_Int { TR_return TR_self.x * k }
 		}
 		TR_var p = P()
 		p.f = () => "alan"
@@ -244,7 +244,7 @@ func TestFastPathSemantics(t *testing.T) {
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}
-	_, _, err = runTROut(t, "TR_struct Q { TR_func m(a) { TR_return a } }\nTR_var q = Q()\nq.m()\n")
+	_, _, err = runTROut(t, "TR_struct Q { TR_func m(a: TR_Int) -> TR_Int { TR_return a } }\nTR_var q = Q()\nq.m()\n")
 	if !messages.Has(err, messages.H2414) {
 		t.Fatalf("metot argüman denetimi: %v", err)
 	}
@@ -305,14 +305,14 @@ func checkRuntimeSuggestions(t *testing.T, code messages.Code, argIdx int, cases
 func TestUnpackTupleCountSuggestion(t *testing.T) {
 	checkRuntimeSuggestions(t, messages.H2709, 3, []suggestionCase{
 		{
-			"TR_func g(n, s) { TR_return n, s }\n",
+			"TR_func g(n: TR_Int, s: TR_String) -> (TR_Int, TR_String) { TR_return n, s }\n",
 			`TR_var a, b, c = g(1, "x")`, `TR_var a, b = g(1, "x")`,
 			`demetin 2 öğesi var ama 3 ada açılıyor: fazla adı silin (TR_var a, b = g(1, "x"))`,
 			`the tuple has 2 elements but is unpacked into 3 names: remove the extra names (TR_var a, b = g(1, "x"))`,
 			`TR_var a, b = g(1, "x")` + "\nTR_var result = [a, b]", `[1, "x"]`,
 		},
 		{
-			"TR_func g(n, s) { TR_return n, s, n + 1 }\n",
+			"TR_func g(n: TR_Int, s: TR_String) -> (TR_Int, TR_String, TR_Int) { TR_return n, s, n + 1 }\n",
 			`TR_var a, b = g(1, "x")`, `TR_var a, b, _ = g(1, "x")`,
 			`demetin 3 öğesi var ama 2 ada açılıyor: her öğeye bir ad yazın, gerekmeyenin yerine _ yazın (TR_var a, b, _ = g(1, "x"))`,
 			`the tuple has 3 elements but is unpacked into 2 names: write a name for each element, and _ for one that is not needed (TR_var a, b, _ = g(1, "x"))`,
@@ -348,9 +348,9 @@ func TestTupleIndexSuggestion(t *testing.T) {
 		{"", "TR_print((1, 2)[0])", "(1, 2).0", "demetin öğesi noktayla okunur: (1, 2).0", "a tuple's element is read with a dot: (1, 2).0", "TR_var result = (1, 2).0", "1"},
 		{"TR_var i = 1\n", "TR_print((1, 2)[i])", "[(1, 2).0, (1, 2).1][i]", "listeye koyun: [(1, 2).0, (1, 2).1][i]", "put it in a list: [(1, 2).0, (1, 2).1][i]", "TR_var result = [(1, 2).0, (1, 2).1][i]", "2"},
 		{"TR_var i = 0\n", `TR_print((1, "x")[i])`, `TR_var a, b = (1, "x")`, `açın: TR_var a, b = (1, "x")`, `unpack it: TR_var a, b = (1, "x")`, "TR_var a, b = (1, \"x\")\nTR_var result = [a, b]", `[1, "x"]`},
-		{"TR_func f() { TR_return 10, 20 }\n", "TR_print(f()[0])", "f().0", "demetin öğesi noktayla okunur: f().0", "a tuple's element is read with a dot: f().0", "TR_var result = f().0", "10"},
-		{"TR_func f() { TR_return 10, 20 }\nTR_var i = 1\n", "TR_print(f()[i])", "[f().0, f().1][i]", "listeye koyun: [f().0, f().1][i]", "put it in a list: [f().0, f().1][i]", "TR_var result = [f().0, f().1][i]", "20"},
-		{"TR_func f() { TR_return 10, \"x\" }\nTR_var i = 0\n", "TR_print(f()[i])", "TR_var a, b = f()", "açın: TR_var a, b = f()", "unpack it: TR_var a, b = f()", "TR_var a, b = f()\nTR_var result = [a, b]", `[10, "x"]`},
+		{"TR_func f() -> (TR_Int, TR_Int) { TR_return 10, 20 }\n", "TR_print(f()[0])", "f().0", "demetin öğesi noktayla okunur: f().0", "a tuple's element is read with a dot: f().0", "TR_var result = f().0", "10"},
+		{"TR_func f() -> (TR_Int, TR_Int) { TR_return 10, 20 }\nTR_var i = 1\n", "TR_print(f()[i])", "[f().0, f().1][i]", "listeye koyun: [f().0, f().1][i]", "put it in a list: [f().0, f().1][i]", "TR_var result = [f().0, f().1][i]", "20"},
+		{"TR_func f() -> (TR_Int, TR_String) { TR_return 10, \"x\" }\nTR_var i = 0\n", "TR_print(f()[i])", "TR_var a, b = f()", "açın: TR_var a, b = f()", "unpack it: TR_var a, b = f()", "TR_var a, b = f()\nTR_var result = [a, b]", `[10, "x"]`},
 		{mDiff, "TR_print(m.t[0])", "m.t.0", "demetin öğesi noktayla okunur: m.t.0", "a tuple's element is read with a dot: m.t.0", "TR_var result = m.t.0", "10"},
 		{mSame, "TR_print(m.t[i])", "[m.t.0, m.t.1][i]", "listeye koyun: [m.t.0, m.t.1][i]", "put it in a list: [m.t.0, m.t.1][i]", "TR_var result = [m.t.0, m.t.1][i]", "10"},
 		{mSame, "TR_print(m.t[i + 1])", "[m.t.0, m.t.1][i + 1]", "listeye koyun: [m.t.0, m.t.1][i + 1]", "put it in a list: [m.t.0, m.t.1][i + 1]", "TR_var result = [m.t.0, m.t.1][i + 1]", "20"},

@@ -94,31 +94,31 @@ TR_print(TR_mixed_precision("bf16") { 5 }, TR_mixed_precision("bf16") {})`)
 
 // Blok içindeki gradyanlar float32 gradyanlarına yakındır; ağırlıklar float32 kalır.
 func TestMixedPrecisionGradient(t *testing.T) {
-	out := mustRun(t, `TR_func hesap(karışık) {
+	out := mustRun(t, `TR_func hesap(karışık: TR_Bool) -> (TR_Float, TR_List[TR_List[TR_Float]], TR_List[TR_Float], TR_String, TR_String) {
     TR_var x = TR_randn([16, 32], TR_seed: 1)
     TR_var w = TR_Tensor(TR_randn([32, 8], TR_seed: 2) * 0.2, TR_requires_grad: TR_true)
     TR_var g = TR_Tensor(TR_ones([8]), TR_requires_grad: TR_true)
-    TR_func ileri() {
+    TR_func ileri() -> TR_Tensor {
         TR_var h = TR_layer_norm(TR_gelu(x @ w), g)
         TR_return TR_mean(TR_log_softmax(h, TR_dim: -1) * -1)
     }
     TR_var k = TR_none
     TR_if karışık { k = TR_mixed_precision("bf16") { ileri() } } TR_else { k = ileri() }
     TR_backward(k)
-    TR_return [k.TR_tolist, w.TR_grad.TR_tolist, g.TR_grad.TR_tolist, w.TR_dtype, k.TR_dtype]
+    TR_return (k.TR_tolist, w.TR_grad.TR_tolist, g.TR_grad.TR_tolist, w.TR_dtype, k.TR_dtype)
 }
 TR_var a = hesap(TR_false)
 TR_var b = hesap(TR_true)
-TR_print(a[3], b[3], b[4])
+TR_print(a.3, b.3, b.4)
 TR_var en = 0.0
 TR_var ölçek = 0.0
 TR_for i TR_in 0..32 {
     TR_for j TR_in 0..8 {
-        en = TR_max(en, TR_abs(a[1][i][j] - b[1][i][j]))
-        ölçek = TR_max(ölçek, TR_abs(a[1][i][j]))
+        en = TR_max(en, TR_abs(a.1[i][j] - b.1[i][j]))
+        ölçek = TR_max(ölçek, TR_abs(a.1[i][j]))
     }
 }
-TR_print(TR_abs(a[0] - b[0]) < 0.01, en < 0.05 * ölçek)`)
+TR_print(TR_abs(a.0 - b.0) < 0.01, en < 0.05 * ölçek)`)
 	if out != "float32 float32 float32\ntrue true\n" {
 		t.Fatalf("karışık hassasiyet gradyanı:\n%s", out)
 	}
@@ -234,7 +234,7 @@ func writeClipped(t *testing.T, dir string, data []byte, n int) string {
 
 // İyileştiricilerin ana_kopya seçeneği SetMasterWeights'e bağlanır.
 func TestOptimizerMasterCopy(t *testing.T) {
-	out := mustRun(t, `TR_func eğit(ad, ana) {
+	out := mustRun(t, `TR_func eğit(ad: TR_String, ana: TR_Bool) -> TR_Float {
     TR_var p = TR_Tensor([1.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
     TR_var o = TR_none
     TR_if ad == "SGD" { o = TR_SGD([p], TR_lr: 0.001, TR_master_weights: ana) } TR_else { o = TR_AdamW([p], TR_lr: 0.001, TR_weight_decay: 0.0, TR_master_weights: ana) }

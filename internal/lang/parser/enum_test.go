@@ -10,7 +10,7 @@ import (
 // Durumlu tip (7.7) yapının deyimiyle okunur: durumlar tanım sırasıyla, alanları 7.1'deki gibi; metotlar
 // durumlardan sonra. Arayüz (7.8) gövdesiz metot imzalarıdır.
 func TestEnumAndInterfaceDefinitions(t *testing.T) {
-	p := New(codedLexer("TR_enum D {\n    A\n    B(n: TR_Int, m = 2)\n    TR_func f() { TR_return 1 }\n}\nTR_interface K {\n    TR_func f(x: TR_Float) -> TR_Float\n    TR_func g()\n}"))
+	p := New(codedLexer("TR_enum D {\n    A\n    B(n: TR_Int, m: TR_Int = 2)\n    TR_func f() -> TR_Int { TR_return 1 }\n}\nTR_interface K {\n    TR_func f(x: TR_Float) -> TR_Float\n    TR_func g()\n}"))
 	prog := p.ParseProgram()
 	if errs := p.Errs(); len(errs) != 0 {
 		t.Fatalf("errors: %v", errs)
@@ -28,8 +28,8 @@ func TestEnumAndInterfaceDefinitions(t *testing.T) {
 // Durumlu tip ve arayüz gövdesinde metot adı yapınınki gibi üyedir: kitaplığın metot adı yazılabilir.
 func TestLibraryMethodNameInEnumAndInterface(t *testing.T) {
 	for _, code := range []string{
-		"TR_interface K {\n    TR_func TR_forward(x)\n}",
-		"TR_enum D {\n    A\n    TR_func TR_forward(x) { TR_return x }\n}",
+		"TR_interface K {\n    TR_func TR_forward(x: TR_Tensor) -> TR_Tensor\n}",
+		"TR_enum D {\n    A\n    TR_func TR_forward(x: TR_Tensor) -> TR_Tensor { TR_return x }\n}",
 	} {
 		if errs := parseErrs(code); len(errs) != 0 {
 			t.Errorf("%q: %v", code, errs)
@@ -62,12 +62,12 @@ func TestEnumAndInterfaceErrors(t *testing.T) {
 		want messages.Code
 	}{
 		{"TR_enum D {\n    A\n    TR_func TR_init() { }\n}", messages.H0285},
-		{"TR_enum D {\n    TR_func f() { TR_return 1 }\n    A\n}", messages.H0286},
+		{"TR_enum D {\n    TR_func f() -> TR_Int { TR_return 1 }\n    A\n}", messages.H0286},
 		{"TR_enum D {\n    A\n    A\n}", messages.H0293},
-		{"TR_enum D {\n    A\n    TR_func f() { TR_return 1 }\n    TR_func f() { TR_return 2 }\n}", messages.H0293},
+		{"TR_enum D {\n    A\n    TR_func f() -> TR_Int { TR_return 1 }\n    TR_func f() -> TR_Int { TR_return 2 }\n}", messages.H0293},
 		{"TR_enum D {\n    A\n    TR_func A() { TR_return 1 }\n}", messages.H0294},
-		{"TR_enum D {\n    A(n, n)\n}", messages.H0296},
-		{"TR_enum D {\n    A(n = 1, m)\n}", messages.H0297},
+		{"TR_enum D {\n    A(n: TR_Int, n: TR_Int)\n}", messages.H0296},
+		{"TR_enum D {\n    A(n: TR_Int = 1, m: TR_Int)\n}", messages.H0297},
 		{"TR_interface K {\n    TR_func f()\n    TR_func f()\n}", messages.H0295},
 		{"TR_interface K {\n}", messages.H0288},
 		{"TR_interface K {\n    x\n}", messages.H0289},

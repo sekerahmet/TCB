@@ -556,7 +556,7 @@ func indentOutput(out string) string {
 func TestToolComparisonsIgnoreUntrackedFiles(t *testing.T) {
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, ".gitignore", "scratch/\n")
-	testkit.WriteFile(t, root, "scratch/deneme.tr", "TR_func kenar(kenar) {\n    TR_return kenar\n}\n")
+	testkit.WriteFile(t, root, "scratch/deneme.tr", "TR_func kenar(kenar: TR_Int) -> TR_Int {\n    TR_return kenar\n}\n")
 	g, err := buildGraph(root)
 	if err != nil {
 		t.Fatal(err)

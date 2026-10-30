@@ -160,7 +160,7 @@ func TestProfileCallerLineAfterReturn(t *testing.T) {
 	if !hasDepth {
 		t.Skip("yarış denetimli derlemede örnekleyici çağrı derinliğini okumaz")
 	}
-	code := `TR_func küçük() {
+	code := `TR_func küçük() -> TR_Int {
     TR_return 1
 }
 TR_var a = TR_randn([256, 256], TR_seed: 1)
@@ -367,11 +367,11 @@ func TestProfileNonTerminalOutput(t *testing.T) {
 func TestProfileModuleLines(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "yardımcı.tr")
-	code := "TR_var ısınma = 0\nTR_for j TR_in 0..300000 {\n    ısınma += j % 3\n}\nTR_func ileri(x) {\n    TR_var s = 0\n    TR_for i TR_in 0..300000 {\n        s += i % 7\n    }\n    TR_return s + x\n}\n"
+	code := "TR_var ısınma = 0\nTR_for j TR_in 0..300000 {\n    ısınma += j % 3\n}\nTR_func ileri(x: TR_Int) -> TR_Int {\n    TR_var s = 0\n    TR_for i TR_in 0..300000 {\n        s += i % 7\n    }\n    TR_return s + x\n}\n"
 	if err := os.WriteFile(module, []byte(source.Header+"\n"+code), 0644); err != nil {
 		t.Fatal(err)
 	}
-	main := "TR_import \"" + filepath.ToSlash(module) + "\" TR_as m\nTR_func ileri(x) {\n    TR_return x\n}\nTR_print(m.ileri(ileri(1)))\n"
+	main := "TR_import \"" + filepath.ToSlash(module) + "\" TR_as m\nTR_func ileri(x: TR_Int) -> TR_Int {\n    TR_return x\n}\nTR_print(m.ileri(ileri(1)))\n"
 	g, _ := run(t, main, Options{SampleLines: true})
 	want := map[int]string{4: "ısınma += j % 3", 9: "s += i % 7"}
 	found := 0

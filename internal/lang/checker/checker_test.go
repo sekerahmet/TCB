@@ -47,8 +47,8 @@ func TestTypeNameNormalization(t *testing.T) {
 func TestTypeNameASCIISuggestion(t *testing.T) {
 	singleErrorIn(t, "tr", "TR_var a: ondalik = 1.5", messages.H1007, 1, "'ondalik'", "'Ondalık'")
 	singleErrorIn(t, "tr", "TR_var a: TR_Bool = TR_true\nTR_var b: tensor = TR_none", messages.H1007, 2, "'tensor'", "'Tensör'")
-	singleErrorIn(t, "tr", "TR_func f(x: sozluk) { TR_return x }", messages.H1007, 1, "'sozluk'", "'Sözlük'")
-	singleErrorIn(t, "tr", "TR_func f(x) -> mantik { TR_return TR_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
+	singleErrorIn(t, "tr", "TR_func f(x: sozluk) -> TR_Dict[TR_String, TR_Int] { TR_return x }", messages.H1007, 1, "'sozluk'", "'Sözlük'")
+	singleErrorIn(t, "tr", "TR_func f(x: TR_Int) -> mantik { TR_return TR_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
 	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
 		"bool": "Mantık", "null": "YokTipi", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
 		singleErrorIn(t, "tr", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
@@ -70,8 +70,8 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 			singleErrorIn(t, lang, "TR_var a: "+name+" = TR_none", messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
 		}
 	}
-	singleErrorIn(t, "tr", "TR_func f(x: liste) { TR_return x }", messages.H1006, 1, "'liste'", "'Liste'")
-	singleErrorIn(t, "tr", "TR_func f(x) -> sözlük { TR_return {} }", messages.H1006, 1, "'sözlük'", "'Sözlük'")
+	singleErrorIn(t, "tr", "TR_func f(x: liste) -> TR_List[TR_Int] { TR_return x }", messages.H1006, 1, "'liste'", "'Liste'")
+	singleErrorIn(t, "tr", "TR_func f(x: TR_Int) -> sözlük { TR_return {} }", messages.H1006, 1, "'sözlük'", "'Sözlük'")
 	singleErrorIn(t, "tr", "TR_var a: tam = 1\nTR_var b: TR_Int = a", messages.H1006, 1, "'tam'")
 }
 
@@ -122,15 +122,15 @@ func TestTypedVarCompatible(t *testing.T) {
 		"TR_var a: TR_Bool = 1 < 2",
 		"TR_var a: TR_Bool = TR_not TR_false",
 		"TR_var a: TR_Bool = TR_true TR_and TR_false",
-		"TR_var a: TR_List = [1, 2]",
+		"TR_var a: TR_List[TR_Int] = [1, 2]",
 		"TR_var a: TR_Range = 1..=5",
 		"TR_var a: TR_Float = 7 / 2",
 		"TR_var a: TR_Float = 2 ** -1",
 		"TR_var a: TR_Int = 7 % 2",
 		"TR_var a: TR_Int = (2 ** 3) * 4",
 		"TR_var a = 7 / 2",
-		"TR_var a: TR_List = [x * 2 TR_for x TR_in 1..3]",
-		`TR_var a: TR_Dict = {"a": 1}`,
+		"TR_var a: TR_List[TR_Int] = [x * 2 TR_for x TR_in 1..3]",
+		`TR_var a: TR_Dict[TR_String, TR_Int] = {"a": 1}`,
 		"TR_var m1 = TR_eye(2)\nTR_var m2 = m1\nTR_var a: TR_Tensor = m1 @ m2",
 		"TR_var a: TR_Int = TR_none",
 		"TR_var bilinmeyen_tip = TR_input()\nTR_var a: TR_Int = bilinmeyen_tip",
@@ -140,7 +140,7 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_String = TR_none ?? "varsayılan"`,
 		"TR_var a: TR_Int = -5",
 		"TR_var a: TR_Int = 2 ** 3",
-		"TR_var a: TR_Function = (x) => { TR_return x }",
+		"TR_var a: (TR_Int) -> TR_Int = (x: TR_Int) => { TR_return x }",
 		"TR_const a: TR_Int = 1",
 	} {
 		noErrors(t, source)
@@ -158,10 +158,10 @@ func TestTypedVarIncompatible(t *testing.T) {
 		{"TR_var a: TR_Bool = 1", "TR_Bool", "TR_Int"},
 		{"TR_var a: TR_Int = 1 == 1", "TR_Int", "TR_Bool"},
 		{"TR_var a: TR_Int = TR_not TR_true", "TR_Int", "TR_Bool"},
-		{`TR_var a: TR_List = {"a": 1}`, "TR_List", "TR_Dict"},
-		{"TR_var a: TR_Dict = [1]", "TR_Dict", "TR_List"},
+		{`TR_var a: TR_List[TR_Int] = {"a": 1}`, "TR_List", "TR_Dict"},
+		{"TR_var a: TR_Dict[TR_String, TR_Int] = [1]", "TR_Dict", "TR_List"},
 		{"TR_var a: TR_Int = 1..5", "TR_Int", "TR_Range"},
-		{"TR_var a: TR_List = 1..5", "TR_List", "TR_Range"},
+		{"TR_var a: TR_List[TR_Int] = 1..5", "TR_List", "TR_Range"},
 		{"TR_var a: TR_Int = 7 / 2", "TR_Int", "TR_Float"},
 		{"TR_var a: TR_Int = 6 / 3", "TR_Int", "TR_Float"},
 		{"TR_var a: TR_Int = 7 // 2.0", "TR_Int", "TR_Float"},
@@ -255,7 +255,7 @@ func TestConstCannotChange(t *testing.T) {
 // İç kapsamda aynı adla tanımlanan değişken/parametre dış sabiti gölgeler.
 func TestConstShadowing(t *testing.T) {
 	noErrors(t, "TR_const x = 1\nTR_if TR_true {\n  TR_var x = 2\n  x = 3\n}")
-	noErrors(t, "TR_const x = 1\nTR_func f(x) {\n  x = 5\n}")
+	noErrors(t, "TR_const x = 1\nTR_func f(x: TR_Int) {\n  x = 5\n}")
 	noErrors(t, "TR_const x = 1\nTR_for x TR_in [1, 2] {\n  x = 5\n}")
 	noErrors(t, "TR_const i = 1\nTR_for i, x TR_in [1, 2] {\n  i = 5\n}")
 	noErrors(t, "TR_const e = 1\nTR_try {\n} TR_catch e {\n  e = \"x\"\n}")
@@ -268,7 +268,7 @@ func TestConstShadowing(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestFunctionParamTypes(t *testing.T) {
-	def := "TR_func kare(x: TR_Int) { TR_return x * x }\n"
+	def := "TR_func kare(x: TR_Int) -> TR_Int { TR_return x * x }\n"
 	singleError(t, def+`kare("üç")`, messages.H1004, 2, `"kare"`, "1. parametresi", `"TR_Int"`, `"TR_String"`)
 	noErrors(t, def+"kare(3)")
 	noErrors(t, def+"kare(TR_input())")
@@ -286,7 +286,7 @@ func TestFunctionParamTypes(t *testing.T) {
 	singleError(t, "TR_func f(a: TR_String) {\n  TR_var b: TR_Int = a\n}", messages.H1001, 2, `"b"`, `"TR_String"`)
 
 	// Özyinelemeli çağrılar da denetlenir (ad, gövdeden önce tanımlanır)
-	singleError(t, "TR_func f(n: TR_Int) {\n  TR_return f(\"x\")\n}", messages.H1004, 2)
+	singleError(t, "TR_func f(n: TR_Int) -> TR_Int {\n  TR_return f(\"x\")\n}", messages.H1004, 2)
 
 	// İç içe çağrılar denetlenir
 	singleError(t, def+`TR_print(kare("a"))`, messages.H1004, 2)
@@ -319,17 +319,17 @@ func TestReturnTypeCheck(t *testing.T) {
 	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int) -> TR_Float { TR_return a / b }")
 
 	// İç bloklardaki dönüşler de denetlenir
-	singleError(t, "TR_func f(x) -> TR_Int {\n  TR_if x {\n    TR_return \"a\"\n  }\n  TR_return 1\n}", messages.H1003, 3)
-	singleError(t, "TR_func f(x) -> TR_Int {\n  TR_for i TR_in x {\n    TR_return TR_true\n  }\n}", messages.H1003, 3)
+	singleError(t, "TR_func f(x: TR_Bool) -> TR_Int {\n  TR_if x {\n    TR_return \"a\"\n  }\n  TR_return 1\n}", messages.H1003, 3)
+	singleError(t, "TR_func f(x: TR_List[TR_Int]) -> TR_Int {\n  TR_for i TR_in x {\n    TR_return TR_true\n  }\n}", messages.H1003, 3)
 
 	for _, source := range []string{
-		"TR_func f() -> TR_Float { TR_return 1 }",            // Tam -> Ondalık
-		"TR_func f() -> TR_List { TR_return TR_none }",       // 'yok' her tipe uyar
-		"TR_func f() -> TR_Int { TR_return }",                // boş dönüş 'yok' sayılır
-		"TR_func f(x) -> TR_Int { TR_return x }",             // bilinmeyen tip
-		"TR_func f(x: TR_Int) -> TR_Int { TR_return x * 2 }", // çıkarılan tip uyumlu
-		"TR_func f() -> TR_Bool { TR_return 1 < 2 }",         // karşılaştırma
-		"TR_func f() -> TR_Function { TR_return (x) => x }",
+		"TR_func f() -> TR_Float { TR_return 1 }",              // Tam -> Ondalık
+		"TR_func f() -> TR_List[TR_Int] { TR_return TR_none }", // 'yok' her tipe uyar
+		"TR_func f() -> TR_Int { TR_return }",                  // boş dönüş 'yok' sayılır
+		"TR_func f(x) -> TR_Int { TR_return x }",               // bilinmeyen tip
+		"TR_func f(x: TR_Int) -> TR_Int { TR_return x * 2 }",   // çıkarılan tip uyumlu
+		"TR_func f() -> TR_Bool { TR_return 1 < 2 }",           // karşılaştırma
+		"TR_func f() -> (TR_Int) -> TR_Int { TR_return (x: TR_Int) => x }",
 		`TR_func f() { TR_return "x" }`, // dönüş tipi yoksa denetim yok
 	} {
 		noErrors(t, source)
@@ -351,7 +351,7 @@ func TestReturnTypeCheck(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNestedStatementsAreChecked(t *testing.T) {
-	def := "TR_func kare(x: TR_Int) { TR_return x * x }\n"
+	def := "TR_func kare(x: TR_Int) -> TR_Int { TR_return x * x }\n"
 	invalid := `kare("a")`
 	tests := map[string]string{
 		"eğer":             "TR_if TR_true { " + invalid + " }",
@@ -424,7 +424,7 @@ func TestBuiltinShadowingWarning(t *testing.T) {
 		"en": {"input", "abs", "girdi"},
 	} {
 		source := `TR_var uzunluk = 5
-TR_func f(toplam, x) {
+TR_func f(toplam: TR_Int, x: TR_Int) -> TR_Int {
     TR_return toplam + x
 }
 TR_func ` + c.input + `() { TR_return 1 }
@@ -433,7 +433,7 @@ TR_try { TR_throw "x" } TR_catch ekle { TR_print(ekle) }
 TR_var a, sırala = 1, 2
 TR_struct Nokta {
     x: TR_Int
-    TR_func TR_length() { TR_return 1 }
+    TR_func TR_length() -> TR_Int { TR_return 1 }
 }
 TR_var sayaç = uzunluk + sırala
 TR_var ` + c.other + ` = 1`

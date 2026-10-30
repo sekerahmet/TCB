@@ -12,13 +12,13 @@ import (
 func TestPlainMemberNameInAMethod(t *testing.T) {
 	const src = `TR_var x = 99
 TR_struct N {
-    x = 1
-    y = 2
-    TR_func m() { TR_return x }
-    TR_func k() { TR_return y }
+    x: TR_Int = 1
+    y: TR_Int = 2
+    TR_func m() -> TR_Int { TR_return x }
+    TR_func k() -> TR_Int { TR_return y }
     TR_func j() { m() }
     TR_func a() { x = 5 }
-    TR_func yerel(y) {
+    TR_func yerel(y: TR_Int) -> TR_Int {
         TR_var x = 3
         TR_var f = (m) => m + x
         TR_return f(y) + TR_self.x + TR_self.m()
@@ -50,8 +50,8 @@ TR_struct N {
 	// önerilen yazım denetimden geçer
 	fixed := `TR_var x = 99
 TR_struct N {
-    x = 1
-    TR_func m() { TR_return TR_self.x }
+    x: TR_Int = 1
+    TR_func m() -> TR_Int { TR_return TR_self.x }
     TR_func j() { TR_self.m() }
     TR_func a() { TR_self.x = 5 }
 }`

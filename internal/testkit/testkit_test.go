@@ -196,7 +196,7 @@ func TestScalesLinearlyChecksTheWorkIsDone(t *testing.T) {
 }
 
 // Kural: GoStringLiterals her metin sabitini çözülmüş değeri ve satırıyla verir; yapı etiketleri
-// ve içe aktarma yolları atlanır.
+// ve içe aktarma yolları atlanır. GoStringLiteralsRaw sabitin `...` ile yazıldığını da söyler.
 func TestGoStringLiteralsSkipsTagsAndImports(t *testing.T) {
 	path := WriteFile(t, t.TempDir(), "a.go", "package a\n\nimport \"strings\"\n\ntype T struct {\n\tA int `json:\"a\"`\n}\n\nvar x = \"merhaba\"\nvar y = `ham`\nvar _ = strings.ToUpper\n")
 	var got []string
@@ -205,6 +205,13 @@ func TestGoStringLiteralsSkipsTagsAndImports(t *testing.T) {
 	}
 	if want := []string{"9:merhaba", "10:ham"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+	var raw []bool
+	if err := GoStringLiteralsRaw(path, func(_ string, _ int, r bool) { raw = append(raw, r) }); err != nil {
+		t.Fatal(err)
+	}
+	if want := []bool{false, true}; !reflect.DeepEqual(raw, want) {
+		t.Errorf("raw %v, want %v", raw, want)
 	}
 }
 

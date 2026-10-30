@@ -93,7 +93,7 @@ func TestSelfContainingContainers(t *testing.T) {
 		d["ben"] = d
 		d["l"] = [d]
 		TR_print(d)
-		TR_struct D { TR_next = TR_none }
+		TR_struct D { TR_next: D? = TR_none }
 		TR_var n = D()
 		n.TR_next = n
 		TR_print(n)
@@ -389,7 +389,7 @@ func TestInPlaceOperatorHook(t *testing.T) {
 	prog := mustParseProgram(t, `
 TR_struct Katman {
     w
-    TR_func adım(d) { TR_self.w -= d }
+    TR_func adım(d: TR_Int) { TR_self.w -= d }
 }
 TR_var k = Katman(w0)
 k.w += 5

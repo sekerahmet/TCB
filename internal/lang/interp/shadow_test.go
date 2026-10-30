@@ -25,7 +25,7 @@ func TestShadowedBuiltinCall(t *testing.T) {
 		}
 	}
 	// Gölgelemeyen kapsamda yerleşik çalışır; fonksiyonla gölgelemek de çalışır.
-	val, err := runTR(t, "TR_func f() { TR_var uzunluk = 1\n TR_return uzunluk }\nTR_func toplam(x) { TR_return 7 }\nTR_var result = [f(), [1, 2].TR_length, toplam([1])]")
+	val, err := runTR(t, "TR_func f() -> TR_Int { TR_var uzunluk = 1\n TR_return uzunluk }\nTR_func toplam(x: TR_List[TR_Int]) -> TR_Int { TR_return 7 }\nTR_var result = [f(), [1, 2].TR_length, toplam([1])]")
 	if err != nil || val.Inspect() != "[1, 2, 7]" {
 		t.Errorf("[1, 2, 7] bekleniyordu: %v %v", val, err)
 	}

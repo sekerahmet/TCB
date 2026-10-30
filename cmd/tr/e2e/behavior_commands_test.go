@@ -278,7 +278,7 @@ func TestBuildEmbedsModules(t *testing.T) {
 		`}`,
 	}, "\n")+"\n")
 	// Modül içindeki aktarım, modülün klasörüne göre çözülür (yorumlayıcıdaki kural).
-	writeTR(t, source, "proje/lib/yardimci.tr", "TR_import \"ic.tr\"\nTR_var SELAM = \"merhaba\"\nTR_func topla(a, b) {\n    TR_return a + b + IC\n}\n")
+	writeTR(t, source, "proje/lib/yardimci.tr", "TR_import \"ic.tr\"\nTR_var SELAM = \"merhaba\"\nTR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {\n    TR_return a + b + IC\n}\n")
 	writeTR(t, source, "proje/lib/ic.tr", "\xef\xbb\xbf# TR 4\nTR_var IC = 100\n")
 	writeTR(t, source, "proje/alt/derin.tr", "TR_import \"../lib/ic\"\nTR_var DERIN = IC + 1\n")
 
@@ -300,7 +300,7 @@ func TestBuildEmbedsModules(t *testing.T) {
 		t.Fatal(err)
 	}
 	other := t.TempDir()
-	writeTR(t, other, "lib/yardimci.tr", "TR_var SELAM = \"SAHTE\"\nTR_func topla(a, b) { TR_return 0 }\n")
+	writeTR(t, other, "lib/yardimci.tr", "TR_var SELAM = \"SAHTE\"\nTR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { TR_return 0 }\n")
 	temp := t.TempDir()
 	env := []string{"TMP=" + temp, "TEMP=" + temp, "TMPDIR=" + temp}
 	s = testkit.RunBinary(t, exit, other, "", env)
@@ -316,7 +316,7 @@ func TestBuildEmbedsModules(t *testing.T) {
 func TestBuildCleansUpOnRunError(t *testing.T) {
 	source := t.TempDir()
 	writeTR(t, source, "ana.tr", "TR_import \"m\"\nTR_print(bol(1))\n")
-	writeTR(t, source, "m.tr", "TR_func bol(a) {\n    TR_return a / 0\n}\n")
+	writeTR(t, source, "m.tr", "TR_func bol(a: TR_Int) -> TR_Float {\n    TR_return a / 0\n}\n")
 	exit := filepath.Join(t.TempDir(), "app.exe")
 	testkit.Wait(t, tr(t, source, "build", "ana.tr", exit), 0, nil, nil)
 

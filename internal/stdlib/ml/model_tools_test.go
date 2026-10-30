@@ -99,7 +99,7 @@ TR_assert(TR_abs(w.TR_grad.TR_tolist[0][0] - 0.1875) < 0.000001)
 // Başvuru bakış önde ([B, H, T, dh]) kurulur; dikkat [B, T, H, dh] düzenini alır (bd çevirir).
 func TestAttentionBuiltin(t *testing.T) {
 	mustRun(t, `
-TR_func bd(x) { TR_return x.TR_permute([0, 2, 1, 3]) }
+TR_func bd(x: TR_Tensor) -> TR_Tensor { TR_return x.TR_permute([0, 2, 1, 3]) }
 TR_var q = TR_Tensor(TR_randn([2, 4, 6, 8], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var k = TR_Tensor(TR_randn([2, 4, 6, 8], TR_seed: 2), TR_requires_grad: TR_true)
 TR_var v = TR_Tensor(TR_randn([2, 4, 6, 8], TR_seed: 3), TR_requires_grad: TR_true)
@@ -110,7 +110,7 @@ TR_for i TR_in 0..6 {
     satırlar.TR_append(s)
 }
 TR_var ek = TR_Tensor(satırlar)
-TR_func fark(a, b) {
+TR_func fark(a: TR_Tensor, b: TR_Tensor) -> TR_Float {
     TR_var d = a - b
     TR_return TR_max(d * d).TR_tolist
 }
@@ -134,7 +134,7 @@ TR_assert(fark(v2.TR_grad, gv) < 0.0000000001, "dv")
 
 func TestAttentionOptions(t *testing.T) {
 	out := mustRun(t, `
-TR_func fark(a, b) {
+TR_func fark(a: TR_Tensor, b: TR_Tensor) -> TR_Float {
     TR_var d = a - b
     TR_return TR_max(d * d).TR_tolist
 }
@@ -186,7 +186,7 @@ TR_print(TR_attention(q, k, v, TR_mask: TR_none).TR_shape)
 // dışında bf16 girdilerle yapılan dikkatle aynıdır.
 func TestAttentionMixedPrecision(t *testing.T) {
 	out := mustRun(t, `
-TR_func fark(a, b) {
+TR_func fark(a: TR_Tensor, b: TR_Tensor) -> TR_Float {
     TR_var d = a - b
     TR_return TR_max(d * d).TR_tolist
 }
@@ -255,10 +255,10 @@ TR_var cikti = s`)
 func TestParameters(t *testing.T) {
 	fpath := filepath.ToSlash(filepath.Join(t.TempDir(), "model.trt"))
 	out := mustRun(t, `
-TR_func p(x) { TR_return TR_Tensor([x], TR_requires_grad: TR_true) }
-TR_struct Dikkat { Wq, Wk, ölçek }
-TR_struct Blok { TR_attention, mlp }
-TR_struct Model { TR_embedding, TR_blocks, TR_last, ad, ek = TR_none }
+TR_func p(x: TR_Float) -> TR_Tensor { TR_return TR_Tensor([x], TR_requires_grad: TR_true) }
+TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor, ölçek: TR_Float }
+TR_struct Blok { TR_attention: Dikkat, mlp }
+TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor, ad: TR_String, ek: TR_Tensor? = TR_none }
 TR_var ortak = p(9)
 TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak]), Blok(Dikkat(p(5), ortak, 1), {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
 m.ek = p(7)
@@ -303,7 +303,7 @@ TR_print(TR_parameters(l).TR_length)
 // AlanlariGez tanım sırasını, ardından sonradan eklenen alanları ad sırasıyla verir.
 func TestFieldWalkOrder(t *testing.T) {
 	v := value(t, `
-TR_struct A { z, a, b = TR_none, y = TR_none }
+TR_struct A { z: TR_Int, a: TR_Int, b: TR_Int? = TR_none, y: TR_Int? = TR_none }
 TR_var x = A(1, 2)
 x.y = 3
 x.b = 4

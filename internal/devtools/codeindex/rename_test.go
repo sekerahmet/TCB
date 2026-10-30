@@ -200,7 +200,7 @@ func TestRenameImpactGolden(t *testing.T) {
 
 // Terim kipi sembol aramaz: yalnızca metin eşleşmeleri (belge, yorum, metin), Go'da kod adları hariç.
 func TestRenameTermMode(t *testing.T) {
-	src := "# çekirdek derlenir\nTR_func çekirdek_ekle() {\n    TR_return 1\n}\n"
+	src := "# çekirdek derlenir\nTR_func çekirdek_ekle() -> TR_Int {\n    TR_return 1\n}\n"
 	dir := writeTree(t, map[string]string{
 		"m.tr":   src,
 		"doc.md": "GPU çekirdeği ve işlemci çekirdeği.\n",

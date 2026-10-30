@@ -63,7 +63,7 @@ func TestCheckerRecordsAreAtTheirNodes(t *testing.T) {
 		{"type mismatch is at the declaration", "TR_var a: TR_Int = \"x\"", messages.H1001, 1, "TR_var a: TR_Int = \"x\""},
 		{"assignment to a constant is at the name", "TR_const b = 1\nb = 2", messages.H1002, 2, "b"},
 		{"return type mismatch is at the return", "TR_func f() -> TR_Int { TR_return \"x\" }", messages.H1003, 1, "TR_return \"x\""},
-		{"argument type mismatch is at the argument", "TR_func f(x: TR_String) { TR_return x }\nf(5)", messages.H1004, 2, "5"},
+		{"argument type mismatch is at the argument", "TR_func f(x: TR_String) -> TR_String { TR_return x }\nf(5)", messages.H1004, 2, "5"},
 		{"assignment type mismatch is at the assignment", "TR_var n: TR_Int = 1\nn = \"s\"", messages.H1005, 2, "n = \"s\""},
 		{"unused value statement", "TR_var a = 1\na + 1", messages.H1023, 2, "a + 1"},
 		{"look-alike name is at the second name", "TR_var m = 1\nTR_var rn = 2", messages.H1020, 2, "rn"},
@@ -104,7 +104,7 @@ func TestCheckerWarningsAreAtTheirNodes(t *testing.T) {
 		{"variable name style", "TR_var MyVar = 1", messages.H1012, 1, "MyVar"},
 		{"struct name style", "TR_struct point { x: TR_Int }", messages.H1014, 1, "point"},
 		{"field name style", "TR_struct Point { xValue_Total: TR_Int }", messages.H1012, 1, "xValue_Total"},
-		{"parameter name style", "TR_func f(BigName) { TR_return BigName }", messages.H1012, 1, "BigName"},
+		{"parameter name style", "TR_func f(BigName: TR_Int) -> TR_Int { TR_return BigName }", messages.H1012, 1, "BigName"},
 		{"loop variable name style", "TR_for BigName TR_in [1] { TR_print(BigName) }", messages.H1012, 1, "BigName"},
 		{"foreign interpolation is at the text", "TR_var name = 1\nTR_print(\"hi {name}\")", messages.H1022, 2, "\"hi {name}\""},
 	}

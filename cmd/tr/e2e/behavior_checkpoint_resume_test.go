@@ -38,15 +38,15 @@ TR_var V = 2048
 TR_var D = 64
 TR_var H = 128
 TR_var sayaç = 0
-TR_func param(şekil, ölçek) {
+TR_func param(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     sayaç += 1
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }
 TR_var model = {"E": param([V, D], 0.05), "g": TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true), "Wq": param([D, D], 0.1), "Wk": param([D, D], 0.1),
     "Wv": param([D, D], 0.1), "W1": param([D, H], 0.1), "W2": param([H, V], 0.1)}
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.003)
-TR_func bakışlara_ayır(x) { TR_return x.TR_reshape([8, 32, 4, 16]).TR_permute([0, 2, 1, 3]) }
-TR_func ileri(giriş) {
+TR_func bakışlara_ayır(x: TR_Tensor) -> TR_Tensor { TR_return x.TR_reshape([8, 32, 4, 16]).TR_permute([0, 2, 1, 3]) }
+TR_func ileri(giriş: TR_Tensor[TR_Int]) -> TR_Tensor {
     TR_var x = TR_embedding_lookup(model["E"], giriş)
     TR_var h = TR_rms_norm(x, model["g"])
     TR_var y = TR_attention(bakışlara_ayır(h @ model["Wq"]), bakışlara_ayır(h @ model["Wk"]), bakışlara_ayır(h @ model["Wv"]), TR_causal: TR_true)

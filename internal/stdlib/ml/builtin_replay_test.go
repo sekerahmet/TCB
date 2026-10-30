@@ -21,17 +21,17 @@ import (
 // sonucu döndürür. Aynı adım hem tekrar_oynat ile hem doğrudan çağrılır.
 const replayStep = `
 TR_var w = TR_randn([6, 4], TR_seed: 1)
-TR_func kur() { TR_return TR_zeros([1, 5, 4]) }
-TR_func adım(ön, id, konum) {
+TR_func kur() -> TR_Tensor { TR_return TR_zeros([1, 5, 4]) }
+TR_func adım(ön: TR_Tensor, id: TR_Tensor[TR_Int], konum: TR_Tensor[TR_Int]) -> TR_Tensor {
     TR_var e = TR_embedding_lookup(w, id)
     TR_write_slice(ön, e.TR_reshape([1, 1, 4]), TR_dim: 1, TR_start: konum)
     TR_return e * 2 + 1
 }
-TR_func sür(f, ön) {
+TR_func sür(f: (TR_Tensor[TR_Int], TR_Tensor[TR_Int]) -> TR_Tensor, ön: TR_Tensor) -> TR_List[TR_List[TR_List[TR_List[TR_Float]]]] {
     TR_var sonuçlar = []
     TR_no_grad {
         TR_for i TR_in 0..5 {
-            sonuçlar.TR_append(f(TR_Tensor([(i * 2) % 6 * 1.0]), TR_Tensor(i * 1.0)).TR_tolist)
+            sonuçlar.TR_append(f(TR_Tensor([(i * 2) % 6]), TR_Tensor(i)).TR_tolist)
         }
     }
     TR_return [sonuçlar, ön.TR_tolist]
@@ -93,7 +93,7 @@ f(TR_Tensor([1.0]))`)
 		t.Errorf("H6440 bloğun adını ad kodundan almalı: %v", e.Args)
 	}
 	out, err := run(t, `TR_default_device("gpu")
-TR_func g(x) {
+TR_func g(x: TR_Tensor) -> TR_Tensor {
     TR_print(TR_sum(x).TR_tolist)
     TR_return x * 2
 }
@@ -217,7 +217,7 @@ func recordedEntry(t *testing.T) *replayEntry {
 	m := interp.New()
 	m.Out = &bytes.Buffer{}
 	if _, err := m.Run(parser.New(lexer.NewBody(`TR_default_device("gpu")
-TR_func f(x) { TR_return x * 2 + 1 }`, true)).ParseProgram()); err != nil {
+TR_func f(x: TR_Tensor) -> TR_Tensor { TR_return x * 2 + 1 }`, true)).ParseProgram()); err != nil {
 		t.Fatal(err)
 	}
 	f, _ := m.GlobalEnv.Get("f")
@@ -302,7 +302,7 @@ func TestReplayArgumentsKeepDirectCallMeaning(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	out := mustRun(t, `TR_default_device("gpu")
-TR_func adım(ön, yeni, konum) {
+TR_func adım(ön: TR_Tensor, yeni: TR_Tensor, konum: TR_Tensor[TR_Int]) -> TR_Tensor {
     TR_write_slice(ön, yeni, TR_dim: 0, TR_start: konum)
     TR_return ön * 1
 }
@@ -318,7 +318,7 @@ TR_var h = TR_replay((x, c) => [x * 2, c * 3])
 TR_no_grad {
     TR_for i TR_in 0..3 {
         TR_var v = TR_Tensor([(i + 1) * 10.0])
-        TR_var k = TR_Tensor(i * 1.0)
+        TR_var k = TR_Tensor(i)
         oynat(ö1, v, k)
         adım(ö2, v, k)
     }
@@ -346,7 +346,7 @@ func TestWriteSliceSameRulesInsideAndOutsideRecording(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	out := mustRun(t, `TR_default_device("gpu")
-TR_func kur() { TR_return TR_Tensor([i * 1.0 TR_for i TR_in 0..64]) }
+TR_func kur() -> TR_Tensor { TR_return TR_Tensor([i * 1.0 TR_for i TR_in 0..64]) }
 TR_var a = kur()
 TR_var b = kur()
 TR_no_grad { TR_write_slice(a, a.TR_slice(0, 0, 48), TR_dim: 0, TR_start: TR_Tensor(16.0)) }

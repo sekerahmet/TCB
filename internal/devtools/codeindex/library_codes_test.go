@@ -18,13 +18,13 @@ func libraryProject(t testing.TB) *Reader {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
 		"lib/layers.tr": `TR_struct TR_Linear {
-    TR_weight = 1
-    TR_func TR_forward(TR_x) {
+    TR_weight: TR_Int = 1
+    TR_func TR_forward(TR_x: TR_Int) -> TR_Int {
         TR_return TR_x * TR_self.TR_weight
     }
 }
 
-TR_func TR_lr_schedule(TR_step, TR_num_steps, TR_warmup = TR_none) {
+TR_func TR_lr_schedule(TR_step: TR_Int, TR_num_steps: TR_Int, TR_warmup: TR_Int? = TR_none) -> TR_Float {
     TR_return TR_step / TR_num_steps
 }
 `,
@@ -38,7 +38,7 @@ TR_test "doğrusal" {
 `,
 		"examples/a.tr": `TR_import "tr/layers"
 
-TR_func ileri(x) {
+TR_func ileri(x: TR_Int) -> TR_Int {
     TR_return x
 }
 
