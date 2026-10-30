@@ -26,10 +26,11 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		}
 		return c.listLiteralType(elems), true
 	case *ast.TupleExpression:
-		for _, el := range e.Elements {
-			c.inferExpression(el)
+		elems := make([]string, len(e.Elements))
+		for i, el := range e.Elements {
+			elems[i] = c.inferExpression(el)
 		}
-		return typeAny, true // birden çok değer (6.3); denetimi 4a'da
+		return c.tupleLiteralType(elems), true
 	case *ast.ListComprehension:
 		c.inferExpression(e.Iterable)
 		prev := c.scope
@@ -60,8 +61,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.inferExpression(e.Object)
 		return typeAny, true
 	case *ast.ElementExpression:
-		c.inferExpression(e.Object)
-		return typeAny, true // demetin öğesi (3.6a); öğe tipleri 4a2'de
+		return elementType(c.inferExpression(e.Object), e.Index), true // demetin öğesi (3.6a)
 	}
 	return "", false
 }

@@ -51,10 +51,11 @@ programın yapısıysa ve ayrıysa uyumsuzdur; arayüz ya da bilinmeyen tip yap�
 (`type_shapes.go`). Liste ve sözlüğün tipi öğe tipini taşır (`[1, 2]` → `TR_List[TR_Int]`, yazılan
 `TR_List[TR_Int]` de); boş ya da karışık değişmez öğe tipsizdir (`TR_List`) ve asıl adla karşılaştırılır.
 Kap tip argümanında değişmezdir (3.6): `TR_List[TR_Int]` `TR_List[TR_Float]` yerine verilmez, değişmezdeki
-tam sayı yazımı ise ondalık beklenen yerde ondalıktır. Denetim: `TestLocalTypeIsPermanent`,
+tam sayı yazımı ise ondalık beklenen yerde ondalıktır. Demetin tipi öğelerinin tipleridir (`(1, "a")` →
+`(TR_Int, TR_String)`, yazılan demet tipi de); `t.0` öğenin tipini verir. Denetim: `TestLocalTypeIsPermanent`,
 `TestLocalTypeUnknownStaysAny`, `TestOperatorTypes`, `TestStructCallTypes`, `TestStructMeetsInterface`,
 `TestUserTypeCompatibility`, `TestCollectionLiteralTypes`, `TestCollectionElementTypes`,
-`TestContainerCompatibility`, `TestTypeShapeText`, `TestRepoFirstValueTypes` (sayaç).
+`TestContainerCompatibility`, `TestTypeShapeText`, `TestTupleTypes`, `TestRepoFirstValueTypes` (sayaç).
 
 **Tek hata, tek mesaj.** Bir hata aynı satırda zincirleme ikinci bir hata üretmez (ör. yanlış
 yazılmış tip adı ayrıca bir tip uyuşmazlığı olarak bildirilmez). Denetim: `TestTypeNameASCIISuggestion`, `TestTypeNameCaseSpelling`.

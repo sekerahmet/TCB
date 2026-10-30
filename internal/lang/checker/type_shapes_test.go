@@ -40,10 +40,15 @@ func TestTypeShapeText(t *testing.T) {
 	if got := typeSpelling(d).MessageText("tr"); got != "TR_Dict[TR_String, TR_List[TR_Int]]" {
 		t.Errorf("typeSpelling(%q) = %q", d, got)
 	}
+	pair := tupleType([]string{typeInt, d})
+	if s := shapeOf(pair); s.base != "" || len(s.elems) != 2 || s.elems[1] != d {
+		t.Errorf("shapeOf(%q) = %+v", pair, s)
+	}
 }
 
-// Kural (3.6): kap tip argümanında değişmezdir; değişmezde tam sayı yazımı ondalıktır; kabın içinde
-// bilinmeyen ad (tip parametresi, arayüz) her tipi karşılayabilir.
+// Kural (3.6, 3.6a): kap tip argümanında değişmezdir; değişmezde tam sayı yazımı ondalıktır; kabın
+// içinde bilinmeyen ad (tip parametresi, arayüz) her tipi karşılayabilir. Demet ancak aynı sayıda ve
+// sırayla uyumlu öğeli demete uyar.
 func TestContainerCompatibility(t *testing.T) {
 	ints, floats := listType(typeInt), listType(typeFloat)
 	for _, tt := range []struct {
@@ -59,6 +64,14 @@ func TestContainerCompatibility(t *testing.T) {
 		{compat{}, listType("T"), ints, true},
 		{compat{}, ints, listType(typeString), false},
 		{compat{}, ints, typeDict, false},
+		{compat{}, tupleType([]string{typeInt, ints}), tupleType([]string{typeInt, typeList}), true},
+		{compat{}, tupleType([]string{typeInt, typeInt}), tupleType([]string{typeInt, typeString}), false},
+		{compat{}, tupleType([]string{typeInt, typeInt}), tupleType([]string{typeInt, typeInt, typeInt}), false},
+		{compat{}, tupleType([]string{typeFloat, typeInt}), tupleType([]string{typeInt, typeInt}), false},
+		{compat{literal: true}, tupleType([]string{typeFloat, typeInt}), tupleType([]string{typeInt, typeInt}), true},
+		{compat{}, typeInt, tupleType([]string{typeInt, typeInt}), false},
+		{compat{}, "T", tupleType([]string{typeInt, typeInt}), true},
+		{compat{}, tupleType([]string{typeInt, typeInt}), typeAny, true},
 	} {
 		if got := tt.k.types(tt.expected, tt.actual); got != tt.want {
 			t.Errorf("types(%q, %q) = %v, beklenen %v", tt.expected, tt.actual, got, tt.want)
