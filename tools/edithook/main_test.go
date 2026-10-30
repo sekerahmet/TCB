@@ -89,19 +89,12 @@ func TestFirstEditShowsTheGuardingTestsOnce(t *testing.T) {
 // Kural: kancanın gösterdiği ilk maxLines satır, doğrudan testi olmayan uzun listeli bir Go dosyasında da koşu
 // satırlarını ve boyut satırını içerir (2026-10-29: compiler_assign.go'nun 496 testlik cevabının başında ne
 // düzenlenen paketin testi ne de compiler.assignTo'nun 80/80 satırı vardı). Gerçek codegraph'a sorar, bu yüzden
-// kısa kipte atlanır. Graf yoksa (CI'ın taze çekimi) önce kurulur: codegraph yalnız var olan grafı tazeler.
+// kısa kipte atlanır.
 func TestFirstEditShowsTheRunLineAndTheSizeLine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds codegraph and the graph")
 	}
 	root := reporoot.Root()
-	if _, err := os.Stat(filepath.Join(root, ".codegraph", "graph.json")); os.IsNotExist(err) {
-		build := exec.Command("go", "run", "./tools/codegraph", "build")
-		build.Dir = root
-		if out, err := build.CombinedOutput(); err != nil {
-			t.Fatalf("codegraph build: %v\n%s", err, out)
-		}
-	}
 	got := testsFor(target{root, "internal/lang/interp/compiler_assign.go"})
 	lines := strings.Split(got, "\n")
 	if len(lines) > maxLines+2 { // bayat uyarısı ve "... more lines" satırı

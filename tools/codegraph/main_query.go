@@ -89,10 +89,10 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	return ix.dispatch(cmd, fs.Args(), o)
 }
 
-// loadGraph grafiği okur ve gerekirse tazeler; okunamazsa nil ve çıkış kodunu verir.
+// loadGraph grafiği okur ve gerekirse (yoksa ya da eskiyse) kurar; okunamaz ya da kurulamazsa nil ve çıkış kodunu verir.
 func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	g, err := readGraph(path)
-	if err != nil {
+	if err != nil && (!os.IsNotExist(err) || noRebuild) {
 		if os.IsNotExist(err) {
 			fmt.Fprintf(o.stderr, "codegraph: %s not found; run `go run ./tools/codegraph build` first\n", path)
 		} else {
@@ -102,7 +102,9 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	}
 	switch {
 	case !noRebuild:
-		g = refresh(g, o.root, path, o.stderr)
+		if g = refresh(g, o.root, path, o.stderr); g == nil {
+			return nil, exitFail
+		}
 	case g.Extractor != extractorRevision:
 		fmt.Fprintf(o.stderr, "codegraph: warning: the graph was built by an older codegraph (extractor %d, now %d); results may be incomplete; run build\n", g.Extractor, extractorRevision)
 	}

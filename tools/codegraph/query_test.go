@@ -108,11 +108,35 @@ func TestUsageErrors(t *testing.T) {
 	}
 }
 
+// Kural: graf dosyası henüz yokken (taze klon) sorgu komutları grafı kendisi kurar ve soruyu cevaplar;
+// yalnız `--no-rebuild` verildiğinde eksik graf hata verir.
 func TestMissingGraphFile(t *testing.T) {
 	var so, se bytes.Buffer
-	code := run([]string{"query", "--graph", filepath.Join(t.TempDir(), "none.json"), "x"}, &so, &se)
+	code := run([]string{"query", "--no-rebuild", "--graph", filepath.Join(t.TempDir(), "none.json"), "x"}, &so, &se)
 	if code != exitFail || !strings.Contains(se.String(), "run `go run ./tools/codegraph build`") {
-		t.Errorf("exit %d: %s", code, se.String())
+		t.Errorf("with --no-rebuild: exit %d: %s", code, se.String())
+	}
+	root := gitFixture(t)
+	for _, tc := range []struct {
+		cmd, arg, want string
+	}{
+		{"tests-for", "shape/shape.go", "shape.TestDescribe"},
+		{"query", "shape.Describe", "shape.Describe [func]"},
+		{"who-uses", "H0001", "shape.Describe [func]"},
+		{"callees", "shape.Twice", "shape.Describe"},
+	} {
+		graph := filepath.Join(t.TempDir(), "graph.json")
+		so.Reset()
+		se.Reset()
+		if code := run([]string{tc.cmd, "--root", root, "--graph", graph, tc.arg}, &so, &se); code != exitOK {
+			t.Fatalf("%s without graph.json: exit %d: %s", tc.cmd, code, se.String())
+		}
+		if !strings.HasPrefix(se.String(), "graph rebuilt (") || !strings.Contains(so.String(), tc.want) {
+			t.Errorf("%s without graph.json: stdout=%q stderr=%q", tc.cmd, so.String(), se.String())
+		}
+		if _, err := readGraph(graph); err != nil {
+			t.Errorf("%s did not write a readable %s: %v", tc.cmd, graph, err)
+		}
 	}
 }
 

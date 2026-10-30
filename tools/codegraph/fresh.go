@@ -150,22 +150,22 @@ func changedEntries(status []byte) []changedEntry {
 	return out
 }
 
-// refresh grafik eskiyse yeniden kurar. İmzası olmayan grafik (git'siz kurulmuş ya da elle
-// yazılmış) denetlenmez. Hata olursa eski grafik kalır ve stderr'e uyarı yazılır.
+// refresh grafik yoksa ya da eskiyse yeniden kurar. İmzası olmayan grafik (git'siz kurulmuş ya da elle
+// yazılmış) denetlenmez. Hata olursa var olan eski grafik kalır ve stderr'e uyarı yazılır.
 func refresh(g *Graph, root, graphPath string, stderr io.Writer) *Graph {
-	outdated := g.Extractor != extractorRevision // eski sürümün kurduğu grafik: imza aynı olsa da eksik alanlar olabilir
-	if g.Stamp == "" && !outdated {
+	outdated := g == nil || g.Extractor != extractorRevision // henüz kurulmamış ya da eski sürümün kurduğu grafik
+	if !outdated && g.Stamp == "" {
 		return g
 	}
 	now, err := sourceStamp(root)
 	if err != nil && outdated {
-		now, err = "", nil // git yok: imza karşılaştırılamaz, ama grafik eski sürümden; yine de kur
+		now, err = "", nil // git yok: imza karşılaştırılamaz, ama grafik yok ya da eski sürümden; yine de kur
 	}
 	if err != nil {
 		fmt.Fprintf(stderr, "codegraph: warning: cannot check whether the graph is stale (%v); using the existing graph\n", err)
 		return g
 	}
-	if now == g.Stamp && !outdated {
+	if !outdated && now == g.Stamp {
 		return g
 	}
 	start := time.Now()
@@ -174,6 +174,10 @@ func refresh(g *Graph, root, graphPath string, stderr io.Writer) *Graph {
 		err = writeGraph(graphPath, fresh)
 	}
 	if err != nil {
+		if g == nil {
+			fmt.Fprintln(stderr, "codegraph:", err)
+			return nil
+		}
 		fmt.Fprintf(stderr, "codegraph: warning: rebuild failed (%v); using the existing, stale graph\n", firstLine(err))
 		return g
 	}

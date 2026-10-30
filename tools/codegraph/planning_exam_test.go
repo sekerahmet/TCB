@@ -168,10 +168,18 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 		return x.trIndex(t, r)
 	}
 	var out, errb strings.Builder
-	args := append(append([]string{}, r.args[1:]...), "--root", x.root)
+	args := append([]string{}, r.args[1:]...)
+	loaded := x.graph
+	if i := slices.Index(args, "--root"); i >= 0 && i+1 < len(args) {
+		args[i+1] = filepath.Join(x.root, filepath.FromSlash(args[i+1]))
+		args = append(args, "--graph", filepath.Join(t.TempDir(), "graph.json"))
+		loaded = nil
+	} else {
+		args = append(args, "--root", x.root)
+	}
 	var code int
 	if queryCommands[r.args[0]] {
-		code = runQueryOn(x.graph, r.args[0], args, &out, &errb) // grafik bir kez kurulur, her soru ona sorulur
+		code = runQueryOn(loaded, r.args[0], args, &out, &errb) // grafik bir kez kurulur, her soru ona sorulur
 	} else {
 		code = run(append([]string{r.args[0]}, args...), &out, &errb)
 	}
