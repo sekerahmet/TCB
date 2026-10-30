@@ -75,7 +75,7 @@ Birim testleri sınadıkları dosyanın adını taşır. Birden çok dosyayı ke
 - **Kod tabanı İngilizcedir:** klasör, dosya, paket, Go adları (dışa açık ve iç), test ve kıyas adları. Geliştirici belgeleri, betikler, test verisi ve eklenti dosyaları da dahildir; kullanıcı katmanı istisnadır: kullanıcı belgeleri (`docs/spec`, `docs/guide`) Türkçe yazılır, `examples/` ve `*.tr` dosyalarının adları bugün denetimin dışındadır. `.tr` dosyalarının içeriği diskte kodludur (dilden bağımsız kimlikler); dil dosyaları (`tr.json`, `en.json`) her yazım dilinin adlarını taşır, hiçbirinin ayrıcalığı yoktur. Denetim: `TestLayoutEnglishFileNames`.
 - **Go yorumları Türkçedir.** Başka ürün, şirket ya da kitaplık adı yoruma yazılmaz.
 - **Go adları Go biçimindedir (MixedCaps):** C tarzı BÜYÜK_HARFLİ ad yazılmaz; sabit önekleri `Tok` (belirteç türü), `Val` (değer tipi), `prec` (öncelik). Dış API adları (CUDA, Windows) ve ortam değişkeni adları metin olarak olduğu gibi kalır. Denetim: `TestGoNamesMixedCaps`; istisna listesi `internal/go_names_test.go` içindedir ve yalnızca küçülür.
-- **Go metninde kullanıcıya görünen Türkçe yoktur:** ad ad kodudur, ileti ileti kodudur; geliştiriciye giden iç hata ayrıntısı ve araç çıktısı İngilizcedir. Türkçe harfli metin sabiti yalnızca izinli yerdedir: `internal/lang/turkish` (dilbilgisi tabloları), yapı alanı etiketleri ve gerekçeli `dosya:TR_type_String` kayıtları (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). Denetim: `TestNoTurkishLiterals`; izin listesi `internal/turkish_literals_test.go` içindedir ve yalnızca küçülür.
+- **Go metninde kullanıcıya görünen Türkçe yoktur:** ad ad kodudur, ileti ileti kodudur; geliştiriciye giden iç hata ayrıntısı ve araç çıktısı İngilizcedir. Türkçe harfli metin sabiti yalnızca izinli yerdedir: `internal/lang/turkish` (dilbilgisi tabloları), yapı alanı etiketleri ve gerekçeli `dosya:metin` kayıtları (veri biçimi anahtarları, Türkçe belge üreten aracın içeriği). Denetim: `TestNoTurkishLiterals`; izin listesi `internal/turkish_literals_test.go` içindedir ve yalnızca küçülür.
 - **Kullanıcıya görünen adlar Go metnine yazılmaz.** Anahtar kelime, yerleşik, tip, üye ve adlı argüman adları sabit kodlara bağlıdır (`lang/codes`, `tr.json`). Go kodu kodu yazar, ad dil dosyasından gelir:
 
   ```go
@@ -114,7 +114,7 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
 
 ## Hatalar ve panikler
 
-- **Hata döndürülür, yazdırılmaz.** Yerleşik bir hatayı `error` olarak döndürür; satır öneki (`Satır 12: ...`) ve kod çerçevesi yorumlayıcıda eklenir (`interp.LineError`). Hata `dene/yakala` ile yakalanabilir olmalıdır; program çökmez.
+- **Hata döndürülür, yazdırılmaz.** Yerleşik bir hatayı `error` olarak döndürür; satır öneki (`Satır 12: ...`) ve kod çerçevesi yorumlayıcıda eklenir (`interp.LineError`). Hata `TR_try`/`TR_catch` ile yakalanabilir olmalıdır; program çökmez.
 - **Hesap çekirdeği panikle bildirir, sınırda hataya çevrilir.** `compute` şekil ve sınır hatalarında panikler; `stdlib` her hesap çağrısını `bind.Recover` (ml'de `safe`) ile sarar. Kesme (Ctrl+C) paniği hata değildir, yutulmaz (`interp.IsInterrupt`).
 - **İşletim sisteminin İngilizce metni kullanıcıya gitmez:** dosya hataları `turkish.FileError` ile anlatılır, özgün hata `Unwrap` ile korunur (`errors.Is(err, fs.ErrNotExist)` çalışır).
 - **Sarma zinciri korunur:** hata sarılırken neden kaybolmaz (`%w` ya da ileti parametresi olarak hata); testler kodu zincirde arar (`messages.Has`).
