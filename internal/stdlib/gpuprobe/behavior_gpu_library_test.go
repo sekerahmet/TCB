@@ -36,14 +36,14 @@ TR_func eğit(cihaz, normuon) {
     }
     TR_var c = m.TR_embedding.TR_table.TR_device + " " + m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_device + " " + op.TR_muon.TR_state["momentum"][0].TR_device
     TR_default_device("cpu")
-    TR_return [kayıplar, c]
+    TR_return kayıplar, c
 }
 TR_for normuon TR_in [TR_false, TR_true] {
     TR_var c = eğit("cpu", normuon)
     TR_var g = eğit("gpu", normuon)
-    TR_print(c[1])
-    TR_print(g[1])
-    TR_for i TR_in 0..3 { TR_print(c[0][i], g[0][i]) }
+    TR_print(c.1)
+    TR_print(g.1)
+    TR_for i TR_in 0..3 { TR_print(c.0[i], g.0[i]) }
 }
 `
 
