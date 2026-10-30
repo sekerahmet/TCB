@@ -588,6 +588,6 @@ TR_test "GPT: ağırlık_türü PLE tablolarına ve katmanlarına da iletilir" {
 TR_test "NedenselDikkat ve KVÖnbellek: kv bakış sayısı, kapasite, cihaz adımı ve kısaltma sınırları ileti koduyla bildirilir" {
     TR_assert_equal("H6902", TR_error_code { TR_CausalAttention(8, 4, TR_num_kv_heads: 3) })
     TR_assert_equal("H6907", TR_error_code { TR_KVCache(2, TR_kind: "sabit", TR_capacity: 0) })
-    TR_assert_equal("H6908", TR_error_code { TR_KVCache(2, TR_kind: "büyüyen").TR_device_step(1) })
+    TR_assert_equal("H6908", TR_error_code { TR_KVCache(2, TR_kind: "büyüyen").TR_device_step(TR_Tensor([1])) })
     TR_assert_equal("H6910", TR_error_code { TR_KVCache(2, TR_kind: "sabit", TR_capacity: 4).TR_truncate(1) })
 }

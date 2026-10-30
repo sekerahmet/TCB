@@ -522,10 +522,10 @@ TR_struct TR_GPT {
         TR_self.TR_cos_table = tablolar[0]
         TR_self.TR_sin_table = tablolar[1]
     }
-    # gömülü: kimlikleri gömer; [x, bağlamlar] verir (bağlamlar: katman başına PLE bağlamı ya da yok).
+    # gömülü: kimlikleri gömer; (x, bağlamlar) demetini verir (bağlamlar: katman başına PLE bağlamı ya da yok).
     TR_func TR_embed(TR_token_ids) {
         TR_var x = TR_self.TR_embedding.TR_forward(TR_token_ids)
-        TR_return [x, TR_if TR_self.TR_ple_context == TR_none { TR_none } TR_else { TR_self.TR_ple_context.TR_forward(x) }]
+        TR_return x, TR_if TR_self.TR_ple_context == TR_none { TR_none } TR_else { TR_self.TR_ple_context.TR_forward(x) }
     }
     # blokları_işle: x'i bloklardan sırayla geçirir (gizli_durum ve tek_adım ortak gövdesi).
     TR_func TR_run_blocks(TR_x, TR_ple_contexts, TR_cos_table, TR_sin_table, TR_token_ids, TR_cache) {
@@ -539,8 +539,7 @@ TR_struct TR_GPT {
     # önbellek verilirse (KVÖnbellek) kimlikler önbellekteki konumdan devam eder: döner konum
     # tabloları o konumdan dilimlenir, anahtar ve değerler önbelleğe eklenir, konum ilerler.
     TR_func TR_hidden_states(TR_token_ids, TR_cache = TR_none) {
-        TR_var gb = TR_self.TR_embed(TR_token_ids)
-        TR_var x = gb[0]
+        TR_var x, bağlamlar = TR_self.TR_embed(TR_token_ids)
         TR_var cos_tablosu = TR_self.TR_cos_table
         TR_var sin_tablosu = TR_self.TR_sin_table
         TR_var T = x.TR_shape[1]
@@ -550,7 +549,7 @@ TR_struct TR_GPT {
             cos_tablosu = cos_tablosu.TR_slice(0, baş, baş + T)
             sin_tablosu = sin_tablosu.TR_slice(0, baş, baş + T)
         }
-        x = TR_self.TR_run_blocks(x, gb[1], cos_tablosu, sin_tablosu, TR_token_ids, TR_cache)
+        x = TR_self.TR_run_blocks(x, bağlamlar, cos_tablosu, sin_tablosu, TR_token_ids, TR_cache)
         TR_if TR_cache != TR_none { TR_cache.TR_advance(T) }
         # Gizli durumu yalnızca çıkış çarpımı (ya da doğrusal_çapraz_entropi) okur.
         TR_return TR_self.TR_final_norm.TR_forward(x, TR_output_dtype: TR_compute_dtype())
@@ -560,11 +559,11 @@ TR_struct TR_GPT {
     # konum sayacını çağıran ilerletir); bu yüzden tekrar_oynat ile kaydedilip oynatılabilir
     # (dil tanımı 15.45). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
     TR_func TR_single_step(TR_token_id, TR_position, TR_cache) {
-        TR_var gb = TR_self.TR_embed(TR_token_id)
+        TR_var gömülü, bağlamlar = TR_self.TR_embed(TR_token_id)
         TR_var cos_tablosu = TR_embedding_lookup(TR_self.TR_cos_table, TR_position)
         TR_var sin_tablosu = TR_embedding_lookup(TR_self.TR_sin_table, TR_position)
         TR_cache.TR_device_step(TR_position)
-        TR_var x = TR_self.TR_run_blocks(gb[0], gb[1], cos_tablosu, sin_tablosu, TR_token_id, TR_cache)
+        TR_var x = TR_self.TR_run_blocks(gömülü, bağlamlar, cos_tablosu, sin_tablosu, TR_token_id, TR_cache)
         TR_cache.TR_device_step(TR_none)
         TR_return TR_self.TR_logits(TR_self.TR_final_norm.TR_forward(x, TR_output_dtype: TR_compute_dtype()))[0][0]
     }

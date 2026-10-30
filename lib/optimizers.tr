@@ -73,7 +73,7 @@ TR_func TR_orthogonalize_stack(TR_updates, TR_ns_iterations, TR_ns_dtype) {
 }
 
 # _grup_momentumu bir şekil grubunun (grup: ağırlık sıraları) momentumlarını yerinde b·m + (1 − b)·g
-# ile günceller; gradyanı olmayan ağırlıklar atlanır. [sıra, güncellemeler] verir: güncellemeler
+# ile günceller; gradyanı olmayan ağırlıklar atlanır. (sıra, güncellemeler) demetini verir: güncellemeler
 # dikleştirilecek matrislerdir (nesterov: b·m + (1 − b)·g, değilse momentumun kendisi).
 # Yalnızca türevsiz blokta çağrılır.
 TR_func _grup_momentumu(ağırlıklar, momentumlar, grup, b, nesterov) {
@@ -87,7 +87,7 @@ TR_func _grup_momentumu(ağırlıklar, momentumlar, grup, b, nesterov) {
         güncellemeler.TR_append(TR_if nesterov { b * m + (1 - b) * g } TR_else { m })
         sıra.TR_append(i)
     }
-    TR_return [sıra, güncellemeler]
+    TR_return sıra, güncellemeler
 }
 
 # _ağırlık_güncelle p'yi yerinde günceller: önce ağırlık çürümesi (p ← p·(1 − oran·çürüme), çürüme > 0
@@ -161,10 +161,9 @@ TR_struct TR_Muon {
     TR_func TR_step() {
         TR_no_grad {
             TR_for grup TR_in TR_self.TR_groups {
-                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_momentum, TR_self.TR_nesterov)
-                TR_var sıra = sg[0]
+                TR_var sıra, güncellemeler = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_momentum, TR_self.TR_nesterov)
                 TR_if sıra.TR_length == 0 { TR_continue }
-                TR_var O = TR_orthogonalize_stack(sg[1], TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
+                TR_var O = TR_orthogonalize_stack(güncellemeler, TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
                 TR_for j, i TR_in sıra {
                     _ağırlık_güncelle(TR_self.TR_parameters[i], TR_self.TR_lr, TR_self.TR_weight_decay, (TR_self.TR_lr * TR_self.TR_scales[i]) * O[j])
                 }
@@ -218,10 +217,9 @@ TR_struct TR_NorMuon {
         TR_var oran = TR_self.TR_lr
         TR_no_grad {
             TR_for grup TR_in TR_self.TR_groups {
-                TR_var sg = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_beta1, TR_false)
-                TR_var sıra = sg[0]
+                TR_var sıra, güncellemeler = _grup_momentumu(TR_self.TR_parameters, TR_self.TR_state["momentum"], grup, TR_self.TR_beta1, TR_false)
                 TR_if sıra.TR_length == 0 { TR_continue }
-                TR_var yığın = TR_orthogonalize_stack(sg[1], TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
+                TR_var yığın = TR_orthogonalize_stack(güncellemeler, TR_self.TR_ns_iterations, TR_self.TR_ns_dtype)
                 TR_for j, i TR_in sıra {
                     TR_var p = TR_self.TR_parameters[i]
                     TR_var v = TR_self.TR_state["ikinci_moment"][i]
