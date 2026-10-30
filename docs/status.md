@@ -160,7 +160,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 ## 5. Deyimler ve kontrol yapıları
 
-Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 5.2, 5.8, 5.9, 5.10 ve 5.13 kurala uyuyor, maddeleri yok. `tests/deyimler_test.tr` yeni kurallara göre yazılmış, 23 testi geçiyor [ölçüldü: dosyanın testleri koşuldu]; eski kuraldan kalan iki yer: 5.6 testindeki `TR_Any` parametresi (3.11'de genel tip yok) ve 5.14 testindeki tipsiz alanlı yapı (`n = 0`, 7.1).
+Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 5.2, 5.8, 5.9, 5.10 ve 5.13 kurala uyuyor, maddeleri yok. `tests/deyimler_test.tr` yeni kurallara göre yazılmış, 23 testi geçiyor [ölçüldü: dosyanın testleri koşuldu]; eski kuraldan kalan iki yer Faz 0.9'da kalktı: 5.6 testinin `TR_Any` parametresi tipsiz bırakıldı (sayıyı ve metni alır, 4c'yi bekler), 5.14 testindeki yapının alanı tipli.
 
 `TR_elif` bilerek kimliği olmayan addır; kimlik kapısı düzelince bilerek yanlış örnekler listesine girer (2. bölümün girişi). Yeni denetim hataları (5.1'in uyarısı, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır.
 
@@ -218,7 +218,8 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 ### 6.1
 
 - **Mevcut durum:** dönüş tipinin `:` ile yazımı, `-> TR_NoneType`, `def f(x):`, satır başındaki `@f` ve aynı blokta aynı adla ikinci tanım sözdizimi hatası, iletiler TR'deki yazımı söylüyor; parametre tipi zorunlu değil: `TR_func f(x)` denetimden geçiyor [ölçüldü: altı küçük program ve `tests/negative/fonksiyon_yazimi.tr`; denetim ve çalıştırma].
-- **Yapılacaklar:** parametre tipi zorunlu (tipsiz parametre denetim hatası); kitaplığın, örneklerin ve testlerin tipsiz parametreleri çevrilir (1.2); denetleyicinin testi.
+- **Tipli yazıma göç bitti (Faz 0.9, 2026-10-30):** `lib/`, `tests/`, `examples/`, `tools/` (codegraph hariç), belgelerin ` ```tr ` blokları, tanım dosyasının örnekleri ve eklentinin şablonları parametre ve dönüş tiplerini yazıyor; başta 477 tipsiz parametre ve 199 `->`'sız değer döndüren fonksiyon vardı [ölçüldü: ayrıştırıcıyla, `TestTRCodeIsTyped`]. Kalan 29 parametre ve 7 dönüş birden çok tip alıyor (tip parametresi ve birleşim tipi yok, 4c), olumsuz fikstür ya da bugünkü denetleyicinin yanlışını bekliyor (bir yer); genel tiplerin kendi 5 örneği 3.11'i bekliyor; her biri nedeniyle `internal/testdata/typed_code_known.txt`'te, liste yalnız küçülür. Tipler çalışma anında bir tanıkla doğrulandı (argümanın, listenin öğesinin ve tensörün cinsinin yazılan tiple karşılaştırması). Go testlerindeki satır içi programlardan dil davranışını ve kitaplığı sınayanlar tipli; kalan 357 yer (parser, checker, interp birim testleri, ml, e2e) tipsiz.
+- **Yapılacaklar:** parametre tipi zorunlu (tipsiz parametre denetim hatası, 4a1); kapı açılınca `TestTRCodeIsTyped` ve izin listesi kalkar; denetleyicinin testi.
 - **Dil tanımı düzeldi (2026-10-29):** aynı adla ikinci tanım artık tanımda da sözdizimi hatası (1.3); motor zaten öyle.
 
 ### 6.2
@@ -265,18 +266,19 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 ## 7. Yapılar
 
-Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`); her kuralda bir ayrılık kaldı. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor, eşitlik alanlardan, metin kurma yazımıyla ve döngüde "...", çağrısız metot nesneye bağlı bir fonksiyon; yapı tanımının sözdizimi hataları (kalıtım ve Python sınıfı iletileri, yinelenen alan ve metot, alan sırası), metotta düz alan adı, parametre olarak `TR_self`, kurucunun değerli dönüşü ve dönüş tipi, durumlu tipin ve arayüzün tanım ve desen hataları çalışmadan önce bulunuyor [ölçüldü: küçük programlar ve `tests/negative/` yapı, durumlu tip ve arayüz fikstürleri; denetim ve çalıştırma]. `tests/yapilar_test.tr` 24 testi geçiyor; tipsiz alanlar (7.1) ve verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`); her kuralda bir ayrılık kaldı. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor, eşitlik alanlardan, metin kurma yazımıyla ve döngüde "...", çağrısız metot nesneye bağlı bir fonksiyon; yapı tanımının sözdizimi hataları (kalıtım ve Python sınıfı iletileri, yinelenen alan ve metot, alan sırası), metotta düz alan adı, parametre olarak `TR_self`, kurucunun değerli dönüşü ve dönüş tipi, durumlu tipin ve arayüzün tanım ve desen hataları çalışmadan önce bulunuyor [ölçüldü: küçük programlar ve `tests/negative/` yapı, durumlu tip ve arayüz fikstürleri; denetim ve çalıştırma]. `tests/yapilar_test.tr` 24 testi geçiyor; alanları tipli (Faz 0.9); verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
 
 Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
 
-Kütüphanenin bedeli: `.tr` dosyalarında 63 yapı tanımı (`lib/`'de 16) [ölçüldü: satır başındaki `TR_struct` için git grep]; alanlar ve kurucu parametreleri tipsiz, tipli yazıma çevrilir. Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/layers.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
+Kütüphanenin bedeli: `.tr` dosyalarında 63 yapı tanımı (`lib/`'de 16) [ölçüldü: satır başındaki `TR_struct` için git grep]; alanlar ve kurucu parametreleri tipli yazıma çevrildi (Faz 0.9, 6.1 ve 7.1'e bakın). Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/layers.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
 
 JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde'si, Python'un pydantic'i gibi) henüz hiçbir bölümde yok; sonraki bölümlerde tasarlanır.
 
 ### 7.1
 
 - **Mevcut durum:** alan tipsiz yazılabiliyor (`y = 0`, yalnız ad); varsayılanlı alandan sonra varsayılansız alan, yinelenen alan ve metot, kalıtım yazımları sözdizimi hatası; yinelenen metot tek ileti veriyor; yapının tip parametresi yok: `TR_struct Kutu[T]` sözdizimi hatası ("'{' bekleniyordu") [ölçüldü: tipsiz alanlı ve tip parametreli yapı, `tests/negative/` yapı fikstürleri; denetim ve çalıştırma].
-- **Yapılacaklar:** her alanın tipi zorunlu (tipsiz alan denetim hatası); yapının tip parametresi (6.10 ile); kitaplığın ve testlerin tipsiz alanları çevrilir; TR testi.
+- **Tipli yazıma göç bitti (Faz 0.9, 2026-10-30):** depodaki yapı ve durum alanları tipini yazıyor; başta 170 tipsiz alan vardı (`lib/`'de 97) [ölçüldü: ayrıştırıcıyla, `TestTRCodeIsTyped`]. Kalan 5 alan birden çok tip tutuyor (GPT'nin karışık değerli ayar sözlüğü, Muon ya da NorMuon tutan alan, örneğin karışık değerli sepeti, testlerin bilerek karışık alanları; 4c); nedenleri `internal/testdata/typed_code_known.txt`'te.
+- **Yapılacaklar:** her alanın tipi zorunlu (tipsiz alan denetim hatası, 4a1; kapı açılınca `TestTRCodeIsTyped` kalkar); yapının tip parametresi (6.10 ile); TR testi.
 
 ### 7.2
 
