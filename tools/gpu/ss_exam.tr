@@ -78,7 +78,7 @@ TR_for i TR_in 0..T { toplam_doğru += doğru_konum[i] }
 # --- Sondalar ve örnekler (açgözlü) ---
 # farklı_4: üretilen parçalarda farklı 4'lü oranı; döngüde: bir 4'lü en az 3 kez (evaluate.py distinct4).
 TR_func farklı_4(kimlikler) {
-    TR_if kimlikler.TR_length < 4 { TR_return [1.0, TR_false] }
+    TR_if kimlikler.TR_length < 4 { TR_return 1.0, TR_false }
     TR_var sayım = {}
     TR_for i TR_in 0..kimlikler.TR_length - 3 {
         TR_var anahtar = "\(kimlikler[i]),\(kimlikler[i + 1]),\(kimlikler[i + 2]),\(kimlikler[i + 3])"
@@ -86,7 +86,7 @@ TR_func farklı_4(kimlikler) {
     }
     TR_var en_çok = 0
     TR_for a, s TR_in sayım { en_çok = TR_max(en_çok, s) }
-    TR_return [sayım.TR_length / (kimlikler.TR_length - 3), en_çok >= 3]
+    TR_return sayım.TR_length / (kimlikler.TR_length - 3), en_çok >= 3
 }
 TR_var istemler = ["Once upon a time", "The little dog", "One day, a girl named", "In a small village,"]
 TR_func açgözlü(istem, adet) {
@@ -95,16 +95,16 @@ TR_func açgözlü(istem, adet) {
     TR_mixed_precision(ayar["hassasiyet"]) { kimlikler = model.TR_generate(başlangıç, adet, TR_temperature: 0, TR_eos: ayar["eos"]) }
     TR_var yeni = kimlikler[başlangıç.TR_length..kimlikler.TR_length]
     TR_if yeni.TR_length > 0 TR_and yeni.TR_last == ayar["eos"] { yeni = yeni[0..yeni.TR_length - 1] }
-    TR_return [yeni, istem + p.TR_decode(yeni)]
+    TR_return yeni, istem + p.TR_decode(yeni)
 }
 TR_var sondalar = []
 TR_for istem TR_in istemler[0..2] {
     TR_var g = açgözlü(istem, ayar["sonda_uzunluğu"])
-    TR_var f = farklı_4(g[0])
-    sondalar.TR_append({"istem": istem, "metin": g[1], "farklı_4": f[0], "döngüde": f[1]})
+    TR_var f = farklı_4(g.0)
+    sondalar.TR_append({"istem": istem, "metin": g.1, "farklı_4": f.0, "döngüde": f.1})
 }
 TR_var örnekler = []
-TR_for istem TR_in istemler { örnekler.TR_append({"istem": istem, "metin": açgözlü(istem, ayar["örnek_uzunluğu"])[1]}) }
+TR_for istem TR_in istemler { örnekler.TR_append({"istem": istem, "metin": açgözlü(istem, ayar["örnek_uzunluğu"]).1}) }
 
 TR_var sınav = {"loss": kayıp, "ppl": TR_exp(TR_min(kayıp, 50.0)), "bpb": kayıp / TR_log(2.0) / ayar["bayt_parça"],
     "doğruluk": toplam_doğru / TR_max(parça, 1), "bantlar": bantlar, "parça": parça, "pencere": pencere,
