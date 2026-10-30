@@ -17,7 +17,7 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 - `l.TR_reduce([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].TR_reduce(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `TR_none`) döner. Fonksiyon son argümandır ve iki parametrelidir (birikim, eleman): `[1, 2, 3].TR_reduce(1, (a, x) => a * x)` → `6`.
 - `TR_mean(l)` boş listede ve sayı olmayan elemanda hata verir (`ortalama(): boş listenin ortalaması yoktur`), `TR_sum(l)` sayı olmayan elemanda hata verir.
 - `l.TR_sort()` yalnızca sayılardan ya da yalnızca metinlerden oluşan listeyi sıralar; karışık liste hatadır (`liste.sırala(): Tam (2) ile Metin ("a") karşılaştırılamaz; liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır`). `TR_min` ve `TR_max` sayı olmayan değerde (metin dahil) hata, boş listede `TR_none` verir.
-- Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler: `metin.içerir() 1 argüman bekler, 0 verildi (kullanım: metin.içerir(alt))`, `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
+- Metotlar da yerleşikler gibi argüman sayısını ve tipini denetler. Alıcının tipi biliniyorsa yanlış sayı çalışmadan önce, denetimde yakalanır (13.11): `.TR_contains() 1 argüman bekler, 0 verildi (kullanım: ``.TR_contains(alt)``)`; tip hatası bugün çalışırken: `liste.filtrele() 1. argüman olarak Fonksiyon bekler, Tam (3) verildi`.
 - Yerleşikler ve metotlar yalnızca imzalarındaki adlı argümanları kabul eder; bilinmeyen bir adlı argüman sessizce yok sayılmaz: `yazdır() 'ayraç' adında bir parametre almaz (adlı argüman almaz)`, `Tensör() 'ölçek' adında bir parametre almaz (geçerli adlar: türev_izle, tür)`.
 
 ## Fonksiyon argümanı ve sondaki blok
@@ -28,9 +28,9 @@ Elemanla çalışan metotlara fonksiyon ok ile verilir, parantez her zaman yazı
 # TR 4
 TR_var sayılar = [1, 2, 3, 4]
 TR_var personel = [{"ad": "Ali"}, {"ad": "Ayşe"}]
-sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x)   # sayılar.filtrele((x) => x > 2)... ile aynı
-personel.TR_map((x) => x["ad"])
-TR_sum(sayılar.TR_filter((x) => x % 2 == 0))      # fonksiyon çağrıyla: toplam(sayılar.filtrele((x) => ...))
+TR_print(sayılar.TR_filter((x) => x > 2).TR_map((x) => x * x))   # sayılar.filtrele((x) => x > 2)... ile aynı
+TR_print(personel.TR_map((x) => x["ad"]))
+TR_print(TR_sum(sayılar.TR_filter((x) => x % 2 == 0)))      # fonksiyon çağrıyla: toplam(sayılar.filtrele((x) => ...))
 ```
 
 - İç içe fonksiyonlarda parametrelere ayrı ad verin: `[[1, 2]].TR_map((x) => x.TR_map((y) => y * 10))`.

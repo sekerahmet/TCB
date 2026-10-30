@@ -192,7 +192,7 @@ func TestDirectMethodCalls(t *testing.T) {
 		t.Fatalf("beklenmeyen: %v %v", val, err)
 	}
 	_, _, err = runTROut(t, "TR_var l = [1]\nl.TR_map(1, 2)\n")
-	if err == nil || err.Error() != "Satır 2: liste.haritala() 1 argüman bekler, 2 verildi (kullanım: liste.haritala(fonksiyon))" {
+	if err == nil || err.Error() != "Satır 2: .TR_map() 1 argüman bekler, 2 verildi (kullanım: `.TR_map(fonksiyon)`)" {
 		t.Fatalf("metot hatası: %v", err)
 	}
 }

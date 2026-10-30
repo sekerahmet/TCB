@@ -147,7 +147,7 @@ TR_try { TR_round(1.25, "x") } TR_catch e { h.TR_append(TR_String(e)) }
 TR_for s TR_in h { TR_print(s) }
 `, nil)
 	want := "Line 3: Division by zero error\nLine 5: Division by zero error\n" +
-		"Line 6: list.map() takes 1 argument, 2 given (usage: list.map(function))\n" +
+		"Line 6: .TR_map() takes 1 argument, 2 given (usage: `.TR_map(function)`)\n" +
 		"Line 7: round() expects Int as argument 2, String (\"x\") given\n"
 	if out != want {
 		t.Fatalf("beklenmeyen:\n%s\nbeklenen:\n%s", out, want)

@@ -512,6 +512,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** `.TR_sort()` −0.0 ile 0.0'ı eşit sayıyor: `[0.0, -0.0].TR_sort()` `[0.0, -0.0]` veriyor [ölçüldü: main `8b115692`] (15'in yan değişikliği, uygulanmadı).
 - **Yapılacaklar:** 13.10'un sıralama sırası (−0.0 0.0'dan önce, NaN'lar en sonda ve birbirine eşit; demette öğe öğe); 15.22b ile birlikte; TR testi.
+- **Anahtarlı sıralama:** `.TR_sort(f)` motorda yok: `.TR_sort()` argüman almıyor (H2011; 4a2'den beri denetimde de), ileti bugünkü yolu, anahtarı demetin ilk öğesi yapan sıralamayı gösteriyor (H1116) [ölçüldü: `TestMemberArgCount`]. Eklenmesi ayrı bir dil kararı (ana oturum, 2026-10-30).
 
 ### 13.6
 
@@ -545,12 +546,13 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Mevcut durum:** 35 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi), `TR_tolist`'in özelliği de; dönüşü argümanın değerine bağlı üç yer: `TR_tolist` (tensörün boyutu), `TR_decode` (toplu giriş), `TR_parameters` (`TR_named:`); 9 yerleşik değişken sayıda argüman alıyor; yalnız 7 metodun alıcıya göre ayrı imzası var [ölçüldü: DENETİM].
 - **Yapılacaklar:** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 19 ve 50 kullanım, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması, tek bir 4a işi: `TR_write_file`, `TR_assert` (`internal/lang/interp/test_support.go`), `.TR_load_state`, `TR_sleep`, `TR_wait_all` (argümanlı biçimi liste verir, 10.5), 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi; `tr.json`'un açıklamalarındaki "doğru döndürür" aynı commit'te değişir [ölçüldü: DENETİM 10-2, 10-3]; `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
 - **Mevcut durum (15'in yan değişiklikleri, uygulanmadı):** tensör verisi kısıtının cinse bağlanması, eşitlenebilirin tensörü dışlaması, varsayılansız adlı argüman, `TR_save_tensors`'un kabul kümesi, `TR_load_tensors` ve `.TR_narrow[E]()`'nin imzaları, `TR_quantized`'ın imzası, `TR_custom_grad`'ın dönüşü ve `TR_grad_check`'in değer döndürmemesi (15.32'nin status'unda) imzalarda yok.
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** karşılaştıran yerleşiklerin kesin karşılaştırması (2⁵³ üstü); değeri kullanılmayan yalnız-değer çağrısı denetim hatası, tanım dosyasında işaret (4a2).
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** karşılaştıran yerleşiklerin kesin karşılaştırması (2⁵³ üstü).
+- **Değeri kullanılmayan çağrı (4a2, ilk dilim):** uygulandı. Tanım dosyasında `pure` (39 yerleşik: 13.2–13.4'ün yeni değer veren metotları, 13.7'nin hesapları); çağrısı tek başına deyimse H1115, ileti atamayı önerir, alıcı atanabilir adsa uygulanabilir düzeltme [ölçüldü: `TestPureCallValueUnused`, `TestPureMarksOnlyValueBuiltins`, öneri tablosu]. Tensör işlemlerinin işareti ve 13.1'in hesapları ikinci dilimde.
 
 ### 13.11
 
-- **Mevcut durum:** yanlış tip ve sayı çalışma anında, iletiyle: "sqrt() expects Int or Float as argument 1, String (\"a\") given", "sqrt() takes 1 argument, 2 given (usage: sqrt(number))" [ölçüldü].
-- **Yapılacaklar:** denetleyicide aynı kodla (4a).
+- **Mevcut durum:** yanlış tip ve sayı çalışma anında, iletiyle: "sqrt() expects Int or Float as argument 1, String (\"a\") given", "sqrt() takes 1 argument, 2 given (usage: sqrt(number))" [ölçüldü]. 4a2 (ilk dilim): tipi bilinen alıcıda (Metin, Liste, Sözlük, Aralık) yerleşik metodun konumlu argüman sayısı denetimde de, aynı kodla (H2011); metodun sayı iletisi çalışma anında da denetimde de kimlikle: ".TR_sort() takes 0 arguments, 1 given (usage: `.TR_sort()`)", `.TR_sort()`'a anahtar verilince demet sıralamasının yolu (H1116) [ölçüldü: `TestMemberArgCount`, `TestMemberArgCountUsesIdentities`, `TestMethodCountsMatchDefinitions`].
+- **Yapılacaklar:** argümanların tip denetimi (ikinci dilim); fonksiyonların ve öbür alıcı tiplerinin (tensör, kitaplık tipleri) sayı denetimi; fonksiyonların H2011 iletisi hâlâ görünüm adıyla (`round()`).
 
 ## 15. Tensörler ve otomatik türev
 

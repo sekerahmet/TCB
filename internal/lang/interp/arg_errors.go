@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -99,7 +100,7 @@ func argTypeErrorByName(name any, order int, expected any, given Value) error {
 func ArgCountError(kd codes.Code, expected any, given int, usage ...any) error {
 	name := CallName(kd)
 	if len(usage) > 0 {
-		return messages.New(messages.H2011, name, expected, given, usageByName(name, usage))
+		return messages.New(messages.H2011, name, expected, given, usageByName(name, usage), (*messages.Error)(nil))
 	}
 	return argCountErrorByName(name, expected, given)
 }
@@ -110,17 +111,7 @@ func argCountErrorByName(name any, expected any, given int) error {
 
 // Counts are the accepted argument counts for ArgCountError, a message part written in the
 // message's language: Counts(1, 2) → "1 ya da 2" (en "1 or 2"), Counts(0, 1, 2) → "0, 1 ya da 2".
-func Counts(ns ...int) messages.Localized { return counts(ns) }
-
-type counts []int
-
-func (c counts) MessageText(lang string) string {
-	parts := make([]string, len(c))
-	for i, n := range c {
-		parts[i] = strconv.Itoa(n)
-	}
-	return messages.OrListIn(lang, parts...)
-}
+func Counts(ns ...int) messages.Localized { return hint.Counts(ns...) }
 
 // AtLeast is "en az n" (en "n or more") for ArgCountError, a message part.
 func AtLeast(n int) *messages.Error { return messages.New(messages.H2016, n) }

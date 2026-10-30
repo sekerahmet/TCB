@@ -106,15 +106,10 @@ TR_test "13.3 sırala sayıları tam, metinleri karakter sırasıyla dizer; kar�
     TR_assert_equal("H2492", TR_error_code { [TR_true, TR_false].TR_sort() })
 }
 
-TR_test "13.2 metotlar argüman sayısını ve tipini denetler" {
-    TR_assert_equal("H2011", TR_error_code { "abc".TR_contains() })
+TR_test "13.2 metotlar argümanın tipini denetler" {
     TR_assert_equal("H2423", TR_error_code { "a1".TR_contains(1) })
-    TR_assert_equal("H2011", TR_error_code { "abc".TR_upper(1) })
     TR_assert_equal("H2423", TR_error_code { "a,b".TR_split(1) })
-    TR_assert_equal("H2011", TR_error_code { "abc".TR_replace("a") })
     TR_assert_equal("H2423", TR_error_code { [1, 2].TR_filter(3) })
-    TR_assert_equal("H2011", TR_error_code { [1].TR_append() })
-    TR_assert_equal("H2011", TR_error_code { {"a": 1}.TR_keys(1) })
     # Liste ve sözlük içerir her tipte değer arar
     TR_assert(TR_not [1, 2].TR_contains("1"))
     TR_assert([1, 2].TR_contains(1.0))

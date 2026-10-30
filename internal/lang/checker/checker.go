@@ -456,6 +456,9 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	for _, na := range e.NamedArgs {
 		c.noteCall(e, objType, -1, na.Name, na.Value, c.inferExpression(na.Value))
 	}
+	if isMember {
+		c.checkMemberCall(e, objType)
+	}
 	return c.callType(e, info, found, objType)
 }
 

@@ -14,9 +14,20 @@
 - **Testler:** `TestPureCallValueUnused` (checker; 13.2, 13.3, 13.4, 13.7, ad olmayan alıcı, sabit; işaretsiz `.TR_append`, kullanılan değer, bloğun değeri hatasız), `TestPureMarksOnlyValueBuiltins` (codes; şema), öneri tablosu satırı (H1115), TR testi `tests/yerlesikler_test.tr` "13.10 ...", olumsuz fikstür `tests/negative/degeri_atilan_cagri.tr`, 13.10'un Test satırı.
 - **Sayım:** kural açılmadan önce depodaki `.tr` dosyalarında (olumsuz fikstürler hariç) bu kalıpta 0 yer [ölçüldü: `tr check` her dosyada]. Go testlerindeki TR programlarında ve belge bloklarında da yeni hata çıkmadı (paket testleri).
 
+## Adım 2b — argüman sayısı (13.11): bitti
+
+- **Kural:** tipi bilinen alıcıda (`TR_String`, `TR_List`, `TR_Dict`, `TR_Range`) kodla yazılmış yerleşik metodun konumlu argüman sayısı tanımın imzasına (`params`; `?` isteğe bağlı, `*`/`+` sınırsız; `codes.Signature.PositionalCounts`) uymazsa denetim hatası (`internal/lang/checker/builtin_calls.go`). Adlı argümanlar 13.5'in işi, sayılmadı. Tensör ve kitaplık tiplerinin metotları sayılmıyor: motorlarının sayısı tanımla sınanmadı.
+- **Kod:** çalışma anındaki **H2011** (yeni kod yok). İleti tek kaynak: `hint.MemberArgCount` (çalışma anı `interp/methods.go` ve denetleyici aynı fonksiyonu çağırıyor). Ad ve kullanım kimlikle: ".TR_sort() takes 0 arguments, 1 given (usage: \`.TR_sort()\`)"; görünüm adı (`list.sort`) ve `<nil>` yok. Kullanımın parametre adları (`eski, yeni`, `[ayırıcı]`) `interp`'teki `signature.parameters`'tan `hint`'in `memberForms` tablosuna taşındı (iletinin dilinde; önceden `messages.Text` ile etkin dilde donuyordu, İngilizce iletide Türkçe çıkıyordu).
+- **(c) sıralama anahtarı:** `.TR_sort()`'a argüman verilince H2011'in yeni `hint` parametresi **H1116**: anahtarlı sıralama henüz yok, bugünkü yol `[(f(l[i]), i) TR_for i TR_in 0..l.TR_length].TR_sort().TR_map((p) => l[p.1])` (çalışır, öneri tablosunda). `TR_for i, x TR_in` liste üretecinde sözdizimi hatası, bu yüzden indeksle yazıldı.
+- **Ön şart (sayı):** `TestMethodCountsMatchDefinitions` (interp): bütün çekirdek metotların (Metin, Liste, Sözlük, Aralık) motor sayısı tanımla aynı; uyuşmazlık yok.
+- **Testler:** `TestMemberArgCount` (checker; 5 alıcı/metot, anahtarlı sıralama, doğru sayı, `TR_JSON`, isteğe bağlı alıcı hatasız), `TestMemberArgCountUsesIdentities` (interp; çalışma anı iletisinde görünüm adı ve `<nil>` yok), öneri tablosunda H2011'in demet yolu, olumsuz fikstür `tests/negative/metot_arguman_sayisi.tr`. `compiler_test` ve `hooks_test`'in beklenen metni yeni biçime güncellendi; `docs/guide/03_zincirleme_metotlar.md` cümlesi güncellendi.
+- **Yeni hatalar (depo):** 5, hepsi **testin konusu**: `tests/yerlesikler_test.tr` "13.2 metotlar argüman sayısını ve tipini denetler" testinde `TR_error_code { "abc".TR_contains() }` gibi çalışma anı sayı hatasını bekleyen 5 satır (110, 112, 114, 116, 117). Artık denetim hatası oldukları için olumsuz fikstüre taşındı; TR testinin adı "13.2 metotlar argümanın tipini denetler" oldu. Bulunan yanlış: 0.
+
 ## Kalan
 
 ## Kararsız
+
+- Fonksiyonların H2011 iletisi (`ArgCountError`, ör. `round()`) hâlâ görünüm adıyla; yalnız metot yolu kimliğe geçti (görevin sınırı metodun iletisi). Fonksiyonların sayı denetimi de bu dilimde yok.
 
 - `.TR_map`, `.TR_filter`, `.TR_reduce` `pure` işaretli (görev listesi böyle diyor). Fonksiyon argümanı yan etkili olabilir (`l.TR_map((x) => TR_print(x))`); bugün bu da H1115. Ölçüt "argümanlarını değiştirmez" diyor, yan etkili fonksiyonu konuşmuyor.
 - 13.1'in hesapları (`TR_sum`, `TR_mean`, `TR_min`, `TR_max`, `TR_abs`, `TR_sqrt`, `TR_round` ...) ölçüte uyuyor ama 13.10'un listesinde yok; işaretlenmedi.
@@ -24,9 +35,16 @@
 
 ## Bulunan yanlış
 
+- **Tanım dosyasının `types`'ı eksik (2a'nın ön şartı):** `TestMemberTypesMatchDefinitions` `TR_JSON`'u, `TR_Bytes`'ı, yokluğu, iletiyi, tipi, yapıyı ve nesnesini kapsamıyordu; genişletildi. Motor `.TR_get` ve `.TR_length`'i `TR_JSON` ve `TR_Bytes`'ta, `.TR_keys`'i `TR_JSON`'da da destekliyor; tanım yalnız Metin/Liste/Sözlük diyor. Düzeltilmedi: üç kod `checker.MembersBeyondDefinitions`'ta, metodu olmayan tip kuralına (2a) girmiyor; test listeyle tanımın uyuşmamasını bekliyor (tanım düzelince listeden çıkar). Denetleyici `TR_JSON` ve `TR_Bytes`'ı bugün tanımadığı için yanlış alarm zaten çıkmazdı.
+- **13.3 ile motor çelişiyor:** dil tanımı `.TR_sort(f)`'i (anahtarlı sıralama) kural olarak yazıyor; motor ve tanım dosyası `.TR_sort()`'u argümansız veriyor. Görev "sıralama anahtarı ayrı dil kararı" dediği için ileti "henüz yok" diyor; status 13.3'e yazıldı.
+
 ## Sorular
 
+- `tools/codegraph`'ın `TestEveryTrackedDataFileHasATestOrAReason` testi bu dalda yalnız `.devir/DURUM.md` yüzünden düşüyor (izlenen, teste bağlı olmayan veri dosyası; `uncovered_data.txt` yalnız küçülür). 4a1 dalında da aynı; birleştirmede `.devir` dışarıda kalırsa geçer. Başka bir çözüm isteniyorsa söyleyin.
+
 ## Codegraph
+
+- **Eksik (adım 1, kendi hatam da):** adım 1'in commit'inden önce `go test ./cmd/...` koşmadım; `tests-for definition.go`/`checker.go`'nun `run:` satırları `cmd/tr/e2e`'yi (belge blokları `TestDocTRCodeBlocks`, eklenti şablonları `TestExtensionTemplatesBuild`) saymıyordu, oysa yeni denetim kuralı oradaki TR kodunu da denetliyor. Adım 1'in commit'i (`661d62b`) bu iki testte kırıktı; 2b'nin commit'inde düzeltildi (belge bloğu `TR_print` ile, şablon testi metot şablonunu atamanın sağına yazıyor).
 
 - Adım 1: yanlış ya da yanıltıcı cevap yok. `tests-for definition.go` dosyanın sınırda olduğunu doğru söyledi (540/600, `ParseDefinitions` 99/105); taşıma sonrası `LongFuncs` istisnasının yolu (`internal/layoutrules/exceptions.go`, `internal/layout_exceptions_test.go`) güncellendi.
 

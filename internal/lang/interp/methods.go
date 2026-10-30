@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -22,6 +23,7 @@ type builtinMethod struct {
 	name     string    // bağlı yerleşiğin adı (kod listesindeki ad)
 	fullName codes.Ref // hata mesajlarındaki tipli adı (metin.içerir; iletinin dilinde)
 	f        methodBody
+	sig      signature // argüman sayısı: tanım dosyasıyla aynı olduğu sınanır (denetleyici onu kullanır)
 }
 
 // coreMethod bir üye kodunun Metin, Liste ve Sözlük üzerindeki gövdeleridir (tipte yoksa
@@ -53,12 +55,11 @@ var (
 	funcArg = &argKind{codes.TypeFunction, callable}
 )
 
-// signature bir metodun argüman sayısı ve tipleridir: en az enAz, en çok enCok (< 0: sınırsız)
-// argüman; tipler[i] i. argümanın tipi (nil ya da eksikse her tip). parametreler kullanım
-// metnindeki parametre adlarıdır ("alt", "eski, yeni").
+// signature bir metodun argüman sayısı ve tipleridir: en az minN, en çok maxN (< 0: sınırsız)
+// argüman; typesOf[i] i. argümanın tipi (nil ya da eksikse her tip). Sayı hatasının kullanım
+// metni denetleyiciyle ortaktır (hint.MemberArgCount).
 type signature struct {
 	minN, maxN int
-	parameters any // kullanım biçimi: metin ya da ileti parçası (usage)
 	typesOf    []*argKind
 }
 
@@ -81,14 +82,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 	bodyBlock := f
 	f = func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if len(args) < im.minN || (im.maxN >= 0 && len(args) > im.maxN) {
-			var expected any = im.minN
-			switch {
-			case im.maxN < 0:
-				expected = AtLeast(im.minN)
-			case im.maxN != im.minN:
-				expected = Counts(im.minN, im.maxN)
-			}
-			return nil, messages.New(messages.H2011, fullName, expected, len(args), usageByName(fullName, []any{im.parameters}))
+			return nil, hint.MemberArgCount(typeCodes[typ], kd, im.minN, im.maxN, len(args))
 		}
 		for i, a := range args {
 			if i < len(im.typesOf) && im.typesOf[i] != nil && !im.typesOf[i].warn(a) {
@@ -97,7 +91,7 @@ func addMethod(typ int, kd codes.Code, im signature, f methodBody) {
 		}
 		return bodyBlock(y, inst, args, line)
 	}
-	m := &builtinMethod{name: codes.Name(kd), fullName: fullName, f: f}
+	m := &builtinMethod{name: codes.Name(kd), fullName: fullName, f: f, sig: im}
 	switch typ {
 	case typeString:
 		cm.text = m
@@ -212,7 +206,7 @@ func setupStringMethods() {
 	addMethod(typeString, codes.MemStrip, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
 	})
-	addMethod(typeString, codes.MemSplit, signature{0, 1, messages.Text(messages.H2331), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.MemSplit, signature{0, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := " "
 		if len(args) > 0 {
 			sep = y.textOf(args[0])
@@ -224,19 +218,19 @@ func setupStringMethods() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	addMethod(typeString, codes.MemReplace, signature{2, 2, "eski, yeni", []*argKind{textArg, textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.MemReplace, signature{2, 2, []*argKind{textArg, textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.ReplaceAll(inst.(*StringVal).Val, y.textOf(args[0]), y.textOf(args[1]))}, nil
 	})
-	addMethod(typeString, codes.MemContains, signature{1, 1, "alt", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.MemContains, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.Contains(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
-	addMethod(typeString, codes.MemStartsWith, signature{1, 1, messages.Text(messages.H2332), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.MemStartsWith, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
-	addMethod(typeString, codes.MemEndsWith, signature{1, 1, "sonek", []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.MemEndsWith, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
-	addMethod(typeString, codes.MemGet, signature{1, 1, "indeks", []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeString, codes.MemGet, signature{1, 1, []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		runes := []rune(inst.(*StringVal).Val)
 		if pos, ok := optionalIndex(args[0], len(runes)); ok {
 			return &StringVal{Val: string(runes[pos])}, nil
@@ -274,8 +268,8 @@ func listFilter(y *VM, inst Value, args []Value, line int) (Value, error) {
 
 // setupListMethods Liste tipinin metotlarını kaydeder.
 func setupListMethods() {
-	addMethod(typeList, codes.MemFilter, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, listFilter)
-	addMethod(typeList, codes.MemMap, signature{1, 1, codes.ReceiverRef(codes.TypeFunction), []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemFilter, signature{1, 1, []*argKind{funcArg}}, listFilter)
+	addMethod(typeList, codes.MemMap, signature{1, 1, []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))
 		for _, item := range elems {
@@ -296,7 +290,7 @@ func setupListMethods() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	addMethod(typeList, codes.MemGet, signature{1, 1, "indeks", []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemGet, signature{1, 1, []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		if pos, ok := optionalIndex(args[0], len(elems)); ok {
 			return elems[pos], nil
@@ -311,7 +305,7 @@ func setupListMethods() {
 		}
 		return &ListVal{Elements: copied}, nil
 	})
-	addMethod(typeList, codes.MemJoin, signature{0, 1, messages.Text(messages.H2331), []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemJoin, signature{0, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		sep := ""
 		if len(args) > 0 {
 			sep = y.textOf(args[0])
@@ -324,7 +318,7 @@ func setupListMethods() {
 		}
 		return &StringVal{Val: strings.Join(parts, sep)}, nil
 	})
-	addMethod(typeList, codes.MemContains, signature{1, 1, messages.Text(messages.H2301), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemContains, signature{1, 1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		for _, el := range inst.(*ListVal).Elements {
 			eq, err := EqualValues(el, args[0])
 			if err != nil {
@@ -356,12 +350,12 @@ func setupListMethods() {
 		}
 		return &ListVal{Elements: unique}, nil
 	})
-	addMethod(typeList, codes.MemAppend, signature{1, -1, "eleman, ...", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemAppend, signature{1, -1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		l := inst.(*ListVal)
 		l.Elements = append(l.Elements, args...)
 		return l, nil
 	})
-	addMethod(typeList, codes.MemReduce, signature{1, 2, messages.Text(messages.H2333, codes.ReceiverRef(codes.TypeFunction)), nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeList, codes.MemReduce, signature{1, 2, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return listReduce(y, inst.(*ListVal).Elements, args, line)
 	})
 }
@@ -384,7 +378,7 @@ func setupDictMethods() {
 		}
 		return &ListVal{Elements: elems}, nil
 	})
-	addMethod(typeDict, codes.MemContains, signature{1, 1, "anahtar", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeDict, codes.MemContains, signature{1, 1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if err := DictKeyError(args[0]); err != nil {
 			return nil, messages.At(line, 0, err)
 		}
@@ -392,7 +386,7 @@ func setupDictMethods() {
 		return BoolToVal(ok), nil
 	})
 	// d.get(k): olmayan anahtarda yok (3.7; köşeli parantez hata verir).
-	addMethod(typeDict, codes.MemGet, signature{1, 1, "anahtar", nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+	addMethod(typeDict, codes.MemGet, signature{1, 1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		if err := DictKeyError(args[0]); err != nil {
 			return nil, messages.At(line, 0, err)
 		}

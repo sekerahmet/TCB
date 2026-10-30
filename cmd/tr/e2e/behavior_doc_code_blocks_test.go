@@ -174,8 +174,9 @@ func TestExtensionTemplatesBuild(t *testing.T) {
 		body := strings.Join(s.Body, "\n")
 		code := openTemplate(body)
 		if strings.HasPrefix(code, ".") {
-			// Metot şablonları (.filtrele { o }) bir listenin ardına yazılır
-			code = "TR_var liste = [1, 2, 3]\nliste" + code
+			// Metot şablonları (.filtrele((x) => x > 2)) bir listenin ardına, bir atamanın sağına
+			// yazılır: yeni değer veren metodun değeri atılamaz (13.10).
+			code = "TR_var liste = [1, 2, 3]\nTR_var sonuç = liste" + code
 		}
 		if strings.HasPrefix(code, "[") {
 			// İfade şablonu (liste üreteci) bir atamanın sağına yazılır (2.8).
