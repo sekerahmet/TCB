@@ -247,19 +247,6 @@ func normalizeTypeName(t string) string {
 	return canonical
 }
 
-func typesCompatible(expected, actual string) bool {
-	exp := normalizeTypeName(expected)
-	act := normalizeTypeName(actual)
-	if exp == typeAny || act == typeAny || act == typeNull {
-		return true
-	}
-	// Tam sayı Ondalık beklenen yere atanabilir
-	if exp == typeFloat && act == typeInt {
-		return true
-	}
-	return exp == act
-}
-
 // divisionHint Tam beklenen yere '/'nin sonucu verildiğinde yol gösterir: '/' her zaman Ondalık
 // verir (4.2), tam bölme '//'dir. İletinin bir parçasıdır (dıştaki iletinin dilinde yazılır);
 // yol yoksa boş metin.

@@ -45,7 +45,11 @@ tipi ilk değerinin çıkarılan tipidir; sonraki atama ona uyar (H1005: `TR_var
 `toplam += 0.5` hatadır, ondalık değişkene tam sayı atamak değildir). Tipi çıkarılamayan ilk değer,
 `TR_none` ve denetleyicinin tanımadığı tip (`local_types.go`, `knownType`) değişkeni `TR_Any` bırakır.
 İşlecin sonucu çalışma anının kuralıyla çıkar (önek `-`, metnin ve listenin `+` ve `*`'ı, tensörün
-aritmetiği). Denetim: `TestLocalTypeIsPermanent`, `TestLocalTypeUnknownStaysAny`, `TestOperatorTypes`,
+aritmetiği). Çağrının tipi tipli fonksiyonun dönüşü, yapı kurucusunda yapının kendisi (`Nokta(1, 2)` →
+`Nokta`), tipi bilinen yapı nesnesinin metodunda metodun dönüşüdür. İki kullanıcı tipi ancak ikisi de
+programın yapısıysa ve ayrıysa uyumsuzdur; arayüz ya da bilinmeyen tip yapıyı karşılayabilir
+(`type_shapes.go`). Denetim: `TestLocalTypeIsPermanent`, `TestLocalTypeUnknownStaysAny`,
+`TestOperatorTypes`, `TestStructCallTypes`, `TestStructMeetsInterface`, `TestUserTypeCompatibility`,
 `TestRepoFirstValueTypes` (sayaç).
 
 **Tek hata, tek mesaj.** Bir hata aynı satırda zincirleme ikinci bir hata üretmez (ör. yanlış
