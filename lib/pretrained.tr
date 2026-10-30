@@ -113,7 +113,6 @@ TR_const TR_BLOCK_NAMES = {
 # gömmede lm_head.weight varsa gömmeyle aynı olmalıdır ve atlanır; dönüş tabloları
 # (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır.
 TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config) -> TR_Dict[TR_String, TR_Tensor] {
-
     TR_var paylaşımlı = TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", TR_false))
     TR_var sonuç_sözlük = {}
     TR_var parçalı = {} # TR adı → [ilk parça, ikinci parça]

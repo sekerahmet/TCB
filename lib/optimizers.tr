@@ -421,7 +421,6 @@ TR_struct TR_MuonAndAdamW {
 # İlk `ısınma` adımda 0'dan 1'e doğrusal artar, sonra 1'de kalır, son `azalma` oranındaki
 # adımlarda (0.2: son %20) doğrusal olarak en_az'a iner.
 TR_func TR_lr_schedule(TR_step: TR_Int, TR_num_steps: TR_Int, TR_warmup: TR_Int = 0, TR_decay_fraction: TR_Float = 0.2, TR_min: TR_Float = 0.0) -> TR_Float {
-
     TR_if TR_step < TR_warmup { TR_return 1.0 * (TR_step + 1) / TR_warmup }
     TR_var azalma_adımı = TR_Int(TR_num_steps * TR_decay_fraction)
     TR_var baş = TR_num_steps - azalma_adımı

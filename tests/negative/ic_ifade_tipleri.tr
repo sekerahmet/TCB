@@ -14,4 +14,4 @@ TR_struct A {
     TR_func m() -> TR_Int { TR_return kare("j") } # ERROR H1004
 }
 TR_var e = TR_match 1 { kare("k") => 1 } # ERROR H1004
-TR_func g(p: TR_Int = kare("l")) { } # ERROR H1004
+TR_func g(p: TR_Int = kare("l")) {} # ERROR H1004

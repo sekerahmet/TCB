@@ -606,7 +606,6 @@ TR_struct TR_GPT {
     # tekrar_oynat ile kaydedilip oynatılır (kernel başlatmalarının konak yükü kalkar); sonuç
     # kayıtsızla aynı parçalardır. Sabit önbellek en çok başlangıç + adet konum tutar.
     TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_Int? = TR_none, TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true) -> TR_List[TR_Int] {
-
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
         TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none

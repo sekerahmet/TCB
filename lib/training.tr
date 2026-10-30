@@ -151,7 +151,7 @@ TR_struct TR_Run {
     }
     # geri_dön son kontrol noktasına döner ve onun adımını verir (sıçrama bekçisinin kararıyla).
     TR_func TR_rollback() -> TR_Int { TR_return
- TR_self.TR_checkpoint.TR_rollback() }
+        TR_self.TR_checkpoint.TR_rollback() }
     # bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
     # dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
     TR_func TR_finish(TR_model) {
