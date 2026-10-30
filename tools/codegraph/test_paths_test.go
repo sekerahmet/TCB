@@ -218,6 +218,15 @@ func TestEmbeddedDataFilesLinkToTheTestsThatWalkThem(t *testing.T) {
 		!strings.Contains(walks, "Kural: her girdi gezilir.") || strings.Contains(walks, "TestLooksOneUp") {
 		t.Errorf("tests-for TR_if (TR_kw_if) must list only the walking test, with its rule line first:\n%s", out.String())
 	}
+	out.Reset()
+	if code := run([]string{"tests-for", "internal/lang/codes/tr.json", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for tr.json: %d %s", code, errb.String())
+	}
+	fileWalks, fileDirect, ok := strings.Cut(out.String(), "<- tests (")
+	if !ok || !strings.Contains(fileWalks, "tests that walk the whole list (1") || !strings.Contains(fileWalks, "TestWalksEveryEntry") ||
+		!strings.Contains(fileDirect, "TestLooksOneUp") || strings.Contains(fileDirect, "TestWalksEveryEntry") {
+		t.Errorf("tests-for internal/lang/codes/tr.json must list whole-list walkers before general //go:embed tests:\n%s", out.String())
+	}
 }
 
 var fileTestFiles = map[string]string{

@@ -91,6 +91,13 @@ func TestALibraryModuleIsTestedByTheTestsThatImportIt(t *testing.T) {
 		strings.Index(text, "app.TestEveryLibraryFile") < strings.Index(text, "among other files") {
 		t.Errorf("tests-for lib/modelx.tr: the importing test first, the pattern reader in its own group last:\n%s", text)
 	}
+	out.Reset()
+	ix.printTestsFor(&out, ix.byID["tr:file:lib/katmanx.tr"], 0)
+	own, rest, ok := strings.Cut(out.String(), "  <- tests (")
+	if !ok || !strings.Contains(own, "this file's tests (1):") || !strings.Contains(own, "katmanx_test: k [tr_test]") ||
+		!strings.Contains(rest, "app.TestCoded") || strings.Contains(rest, "katmanx_test: k") {
+		t.Errorf("tests-for lib/katmanx.tr: sibling _test.tr tests in 'this file's tests' before Go tests:\n%s", out.String())
+	}
 	ts := newTouchSet()
 	ts.files["lib/katmanx.tr"] = true
 	out.Reset()
@@ -236,6 +243,12 @@ func TestALibraryFileListsItsBehaviourTestsFirst(t *testing.T) {
 			break
 		}
 		checked++
+		if sibling := ix.byID[trFileID(strings.TrimSuffix(n.File, ".tr")+"_test.tr")]; sibling != nil {
+			items, ok := groupItems(strings.Split(out.String(), "\n"), "  this file's tests (")
+			if !ok || len(items) == 0 || strings.Index(out.String(), "  this file's tests (") > strings.Index(out.String(), "  <- tests (") {
+				t.Errorf("tests-for %s must list %s in 'this file's tests' before '<- tests (':\n%s", n.File, sibling.File, out.String())
+			}
+		}
 	}
 	if checked < 4 {
 		t.Errorf("only %d library files checked", checked)

@@ -125,10 +125,7 @@ func (ix *index) fileTests(file *Node, ts *touchSet) fileTestSet {
 // testler, kısa zincirler (en çok weakSteps adım) ve "weak evidence"; alt süreç testleri en sonda.
 func (ix *index) printFileTests(w io.Writer, file *Node, s fileTestSet, limit int) {
 	defer ix.printSubprocessTests(w, s.subprocess)
-	if len(s.own) > 0 {
-		fmt.Fprintf(w, "  this file's tests (%d):\n", len(s.own))
-		forEachLimited(w, s.own, limit, "    ", moreHint, describe)
-	}
+	printOwnTests(w, s.own, limit)
 	if len(s.own)+len(s.about)+len(s.others)+len(s.subprocess) == 0 {
 		fmt.Fprintln(w, "  tests: none found for the declarations in this file")
 		return
@@ -154,6 +151,50 @@ func (ix *index) printFileTests(w io.Writer, file *Node, s fileTestSet, limit in
 		printLimited(w, strong, limit, "    ")
 	}
 	printWeak(w, weak, limit)
+}
+
+func printOwnTests(w io.Writer, own []*Node, limit int) {
+	if len(own) > 0 {
+		fmt.Fprintf(w, "  this file's tests (%d):\n", len(own))
+		forEachLimited(w, own, limit, "    ", moreHint, describe)
+	}
+}
+
+// trFileOwnTests bir .tr dosyasının kendi bildirdiği testleri ve (dosya *_test.tr değilse) adaş *_test.tr dosyasının
+// bildirdiği testlerdir (Go dosyasındaki adaş test kuralı gibi: ilk grupta).
+func (ix *index) trFileOwnTests(n *Node) []*Node {
+	if n.Kind != kindFile || !strings.HasSuffix(n.File, ".tr") {
+		return nil
+	}
+	ts := newTouchSet()
+	collect := func(f *Node) {
+		if f == nil {
+			return
+		}
+		for _, e := range ix.out[f.ID] {
+			if t := ix.byID[e.To]; e.Kind == edgeContains && t != nil && t.Kind == kindTRTest {
+				ts.nodes[t.ID] = t
+			}
+		}
+	}
+	collect(n)
+	if !strings.HasSuffix(n.File, "_test.tr") {
+		collect(ix.byID[trFileID(strings.TrimSuffix(n.File, ".tr")+"_test.tr")])
+	}
+	return ownTests(ts)
+}
+
+func (ix *index) directTestEdges(n *Node) (tests, measured []*Edge) {
+	for _, e := range ix.in[n.ID] {
+		switch {
+		case e.Kind != edgeTests:
+		case isMeasurement(ix.byID[e.From]):
+			measured = append(measured, e)
+		default:
+			tests = append(tests, e)
+		}
+	}
+	return tests, measured
 }
 
 // fileDecls bir Go dosyasının bildirimleridir (işlev, metot, tip, değer).

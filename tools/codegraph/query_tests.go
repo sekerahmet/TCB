@@ -213,16 +213,8 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		ix.printGoFileTests(w, n, limit)
 		return
 	}
-	var tests, measured []*Edge
-	for _, e := range ix.in[n.ID] {
-		switch {
-		case e.Kind != edgeTests:
-		case isMeasurement(ix.byID[e.From]):
-			measured = append(measured, e)
-		default:
-			tests = append(tests, e)
-		}
-	}
+	own := ix.trFileOwnTests(n)
+	tests, measured := ix.directTestEdges(n)
 	walks := ix.walkEdges(n)
 	asValue, _ := splitMeasurements(ix.valueTests(n), func(t indirectTest) *Node { return t.test })
 	indirect, indirectMeasured := splitMeasurements(ix.indirectTests(n), func(t indirectTest) *Node { return t.test })
@@ -231,16 +223,16 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	allTests, allIndirect := tests, indirect // koruduğu kurallar bütün testlerden
 	// Tek sıralama (deneme 8 S1 ve M): önce onu konu edinen testler, sonra doğrudan kullananlar, sonra kısa ve aynı paket
 	// zincirleri, en sonda zayıf kanıt; her test bir kez, en güçlü kanıtının grubunda. Adaylar bütün gruplardır.
-	about := ix.aboutTests(n, ix.testsListed(nil, tests, walks, asValue, indirect, viaNames))
-	walks, tests, asValue, indirect, viaNames = keepStrongest(about, walks, tests, asValue, indirect, viaNames)
-	listed := ix.testsListed(about, allTests, walks, asValue, indirect, viaNames)
+	about := ix.aboutTests(n, ix.testsListed(nil, nil, tests, walks, asValue, indirect, viaNames))
+	walks, tests, asValue, indirect, viaNames = keepStrongest(own, about, walks, tests, asValue, indirect, viaNames)
+	listed := ix.testsListed(own, about, allTests, walks, asValue, indirect, viaNames)
 	cites := ix.citingTests(n, listed)
 	rules := ix.docRules(n)
 	var scans []scanHit
 	if n.Kind == kindFile || n.Kind == kindDoc {
 		scans = ix.scansCovering(n.File)
 	}
-	found := len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
+	found := len(own) + len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
 	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 && len(cites)+len(rules)+len(scans) == 0 {
 		if !ix.printLinkedBinaries(w, n) {
 			fmt.Fprintln(w, "  no tests found"+searchedFor(n))
@@ -256,10 +248,16 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	case found == 0:
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
+	printOwnTests(w, own, limit)
 	ix.printAboutTests(w, about, limit)
 	tests, withOthers := ix.splitSharedSites(tests)
+	if n.Kind == kindFile {
+		ix.printWalks(w, walks, limit) // veri dosyasında bütün listeyi gezenler önce (README)
+	}
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // sonra doğrudan testler: bu adı ya da dosyayı kullananlar
-	ix.printWalks(w, walks, limit)
+	if n.Kind != kindFile {
+		ix.printWalks(w, walks, limit)
+	}
 	ix.printValueTests(w, asValue, limit)
 	ix.printInferred(w, n, indirect, viaNames, limit)
 	ix.printSharedSites(w, withOthers, limit)
@@ -271,7 +269,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	printAllSkipNote(w, listed)
 	ix.printSubprocessTests(w, subprocess)
 	ix.printMeasurements(w, measured, indirectMeasured, limit)
-	ix.printGuardedRules(w, allTests, allIndirect, limit)
+	ix.printGuardedRules(w, own, allTests, allIndirect, limit)
 	ix.printOtherConfigsExcept(w, n, limit, listed)
 }
 
@@ -308,8 +306,11 @@ func (ix *index) printSharedSites(w io.Writer, list []*Edge, limit int) {
 // doğrudan test ad kodu grubunda bir kez daha yazılıyordu): önce onu konu edinenler, sonra bütün listeyi gezenler,
 // doğrudan kullananlar, değer olarak kullananlar; zincir ve ad kodu grupları kanıt gücüne göre sıralanır
 // (printInferred), ikisinde birden olan test daha kısa olanında kalır.
-func keepStrongest(about []aboutTest, walks, tests []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) ([]*Edge, []*Edge, []indirectTest, []indirectTest, []nameTest) {
+func keepStrongest(own []*Node, about []aboutTest, walks, tests []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) ([]*Edge, []*Edge, []indirectTest, []indirectTest, []nameTest) {
 	shown := map[string]bool{}
+	for _, t := range own {
+		shown[t.ID] = true
+	}
 	for _, a := range about {
 		shown[a.test.ID] = true
 	}
@@ -400,8 +401,11 @@ func (ix *index) printIndirect(w io.Writer, list []indirectTest, limit int) {
 }
 
 // printGuardedRules testlerin koruduğu kuralları (rule düğümleri) yazar.
-func (ix *index) printGuardedRules(w io.Writer, tests []*Edge, indirect []indirectTest, limit int) {
+func (ix *index) printGuardedRules(w io.Writer, own []*Node, tests []*Edge, indirect []indirectTest, limit int) {
 	froms := map[string]bool{}
+	for _, t := range own {
+		froms[t.ID] = true
+	}
 	for _, e := range tests {
 		froms[e.From] = true
 	}
@@ -506,8 +510,8 @@ func printWeak(w io.Writer, lines []string, limit int) {
 }
 
 // testsListed test gruplarında yazılan testlerdir (atlama notu ve başka yapılandırma grubu bunlara bakar).
-func (ix *index) testsListed(about []aboutTest, tests, walks []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) []*Node {
-	var all []*Node
+func (ix *index) testsListed(own []*Node, about []aboutTest, tests, walks []*Edge, asValue, indirect []indirectTest, viaNames []nameTest) []*Node {
+	all := slices.Clone(own)
 	for _, a := range about {
 		all = append(all, a.test)
 	}
