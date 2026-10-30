@@ -49,7 +49,7 @@ TR_if TR_String(ayar["veri"]) != "" {
         sentetik.TR_append([tümü.TR_slice(1, 0, T), tümü.TR_slice(1, 1, T + 1)])
     }
 }
-TR_func toplu_iş(adım) {
+TR_func toplu_iş(adım: TR_Int) -> TR_List[TR_Tensor[TR_Int]] {
     TR_if ö != TR_none { TR_return ö.TR_next() }
     TR_return sentetik[adım % 8]
 }

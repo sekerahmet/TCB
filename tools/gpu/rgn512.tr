@@ -80,7 +80,7 @@ TR_print("hedef model (TR) | YYGYGYYG | \(M(parametre_sayısı))M parametre (PLE
 
 # Doğrulama kaybı: dosyanın başından ardışık pencereler (hedefle aynı), türevsiz, eğitimin hassasiyetiyle.
 TR_var doğrulama_kümesi = TR_if arg["doğrulama"] == "" { TR_none } TR_else { TR_Dataset(arg["doğrulama"]) }
-TR_func değerlendir() {
+TR_func değerlendir() -> TR_Float {
     TR_var s = doğrulama_kümesi.TR_sequential(TR_batch_size: arg["mikro"], TR_context: arg["bağlam"])
     TR_var n = TR_max(1, arg["değerlendirme_parça"] // arg["bağlam"] // arg["mikro"])
     TR_var kayıp_toplamı = 0.0

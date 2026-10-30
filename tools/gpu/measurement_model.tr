@@ -7,21 +7,21 @@
 # Kendisi program değildir: tr check/çalıştırma aktaran dosyalardan yapılır.
 
 TR_var tohum_sayacı = 0
-TR_func ağırlık(şekil, ölçek) {
+TR_func ağırlık(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     tohum_sayacı += 1
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
 }
 
 TR_struct Blok {
-    g1
-    g2
-    Wq
-    Wk
-    Wv
-    Wo
-    Wg
-    Wu
-    W2
+    g1: TR_Tensor
+    g2: TR_Tensor
+    Wq: TR_Tensor
+    Wk: TR_Tensor
+    Wv: TR_Tensor
+    Wo: TR_Tensor
+    Wg: TR_Tensor
+    Wu: TR_Tensor
+    W2: TR_Tensor
     TR_func TR_init() {
         TR_self.g1 = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
         TR_self.g2 = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
@@ -33,8 +33,8 @@ TR_struct Blok {
         TR_self.Wu = ağırlık([D, FF], 0.02)
         TR_self.W2 = ağırlık([FF, D], 0.01)
     }
-    TR_func TR_starts_with(x) { TR_return x.TR_reshape([B, T, H, Dh]) } # dikkat'in düzeni [B, T, H, Dh]
-    TR_func TR_forward(x) {
+    TR_func TR_starts_with(x: TR_Tensor) -> TR_Tensor { TR_return x.TR_reshape([B, T, H, Dh]) } # dikkat'in düzeni [B, T, H, Dh]
+    TR_func TR_forward(x: TR_Tensor) -> TR_Tensor {
         TR_var h = TR_rms_norm(x, TR_self.g1)
         TR_var y = TR_attention(TR_self.TR_starts_with(h @ TR_self.Wq), TR_self.TR_starts_with(h @ TR_self.Wk), TR_self.TR_starts_with(h @ TR_self.Wv), TR_causal: TR_true)
         TR_var s = x + y.TR_reshape([B, T, D]) @ TR_self.Wo
@@ -44,15 +44,15 @@ TR_struct Blok {
 }
 
 TR_struct Model {
-    E
-    TR_blocks
-    gs
+    E: TR_Tensor
+    TR_blocks: TR_List[Blok]
+    gs: TR_Tensor
     TR_func TR_init() {
         TR_self.E = ağırlık([V, D], 0.02)
         TR_self.TR_blocks = TR_List(0..KATMAN).TR_map((_) => Blok())
         TR_self.gs = TR_Tensor(TR_ones([D]), TR_requires_grad: TR_true)
     }
-    TR_func TR_forward(kimlikler) {
+    TR_func TR_forward(kimlikler: TR_Tensor[TR_Int]) -> TR_Tensor {
         TR_var x = TR_embedding_lookup(TR_self.E, kimlikler)
         TR_for bl TR_in TR_self.TR_blocks { x = bl.TR_forward(x) }
         TR_return TR_rms_norm(x, TR_self.gs) @ TR_self.E.TR_transpose() # paylaşımlı çıkış
