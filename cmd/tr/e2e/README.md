@@ -15,14 +15,14 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_trt_python_test.go`: TR tensör dosyasının (.trt) Python'da yazılıp TR'de okunması ve tersi (`tools/gpu/trt_io.py`)
 - `behavior_ready_model_test.go`: `tr/pretrained` ile yüklenen Hugging Face biçimindeki küçük Llama ve Qwen3 modellerinin transformers'la aynı logitleri vermesi (transformers varsa)
 - `behavior_target_model_stability_test.go`: hedef modelin eğitiminin bir NaN'de son kontrol noktasına dönüp toplu işleri atlayarak sürmesi, kontrol noktası yoksa açık hatayla durması (Evre 3 bitiş ölçütü)
-- `behavior_target_model_outputs_test.go`: hedef modelin eğitiminin tek adım sayısında da hız dosyasını, kayıp kaydını ve son ağırlıkları yazması; kaydedilen ağırlıkların `--adım 0` ile değerlendirilince son doğrulama kaybını vermesi
+- `behavior_target_model_outputs_test.go`: hedef modelin eğitiminin tek adım sayısında da hız dosyasını, kayıp kaydını ve son ağırlıkları yazması; kaydedilen ağırlıkların `--step 0` ile değerlendirilince son doğrulama kaybını vermesi
 - `behavior_target_model_parity_test.go`: hedef modelin TR karşılığının PyTorch sürümüyle aynı başlangıçtan float32'de adım adım aynı kaybı ve gradyan normunu vermesi (PyTorch varsa)
 - `behavior_check_json_test.go`: `tr check --json` (dil tanımı 2.13): her alanın varlığı ve biçimi, konumun kaynakta tam o metni göstermesi (`end` dışlayıcı, sütun karakter), iki dilde aynı kod/konum/düzeltme ve farklı ileti, `applicable` düzeltmenin dosyayı hatasız bırakması, ilgili konum, aktarılan modülün dosyası, kullanım hataları (çıkış 2) ve dosyadan sonra yazılan `--json`'ın hatası
-- `behavior_commands_test.go`: komutların (çalıştır, kontrol, test, biçimle, derle, DAP, REPL) uçtan uca davranışı, hata iletileri ve çıkış kodları
+- `behavior_commands_test.go`: komutların (`TR_cmd_run`, `TR_cmd_check`, `TR_cmd_test`, `TR_cmd_format`, `TR_cmd_build`, `TR_cmd_dap`, REPL) uçtan uca davranışı, hata iletileri ve çıkış kodları
 - `behavior_doc_code_blocks_test.go`: belgelerdeki TR kod bloklarının ve eklenti şablonlarının derlenmesi
 - `behavior_doc_links_test.go`: belgelerdeki bağlantıların ve başlık çapalarının geçerliliği
 - `behavior_file_formats_language_test.go`: dosya biçimlerinin (kontrol noktası, günlük) yazım diline göre değişmemesi: TR_LANG=en ile aynı dosya adları ve anahtarlar
-- `behavior_index_test.go`: `TR_cmd_index` ve alt komutları (tanım, kullananlar, sınayanlar, etki, yeniden_adlandır): sonuçlar, her dilin alt komut adı, üst düzeyde komut olmaması, çıkış kodları 3/4, `--json`, proje kökü bulma
+- `behavior_index_test.go`: `TR_cmd_index` ve alt komutları (`TR_sub_definition`, `TR_sub_references`, `TR_sub_tested_by`, `TR_sub_impact`, `TR_sub_rename`): sonuçlar, kimlik adıyla alt komutlar, üst düzeyde komut olmaması, çıkış kodları 3/4, `--json`, proje kökü bulma ve önbellek
 - `behavior_example_errors_test.go`: hata örneklerinin (`examples/tr/hatalar`) beklenen ileti kodunu üretmesi, her gösterim dilinde çıkış kodu 1 ve denetimde düşen örnekte hiçbir satırın çalışmaması (dil tanımı 1.3)
 - `behavior_program_test.go`: programın tek dosya olması: en dıştaki deyimlerin yukarıdan aşağı çalışması, `main` adlı fonksiyonun kendiliğinden çağrılmaması (dil tanımı 1.1)
 - `behavior_library_coverage_test.go`: `lib/*.tr`'nin kullanıcıya açık adlarının (üst düzey ve metot) bir örnekte geçmesi; geçmeyenler gerekçeli, yalnızca küçülen listede
@@ -34,6 +34,6 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_interrupt_windows_test.go`: kesme testlerinin Windows'ta süreç hazırlığı ve sinyal gönderimi; konsol olayı gönderilemeyip atlanan testlerin sayısı `TestMain` sonunda bir `UYARI` satırıyla yazılır
 - `behavior_library_test.go`: kitaplık modüllerinin yüklenmesi ve GPT eğitim betiğinin duman testi
 - `behavior_process_logging_test.go`: komut satırı seçenekleri, gizli değerlerin çıktıda maskelenmesi ve ilerleme çıktısı
-- `behavior_profile_watch_test.go`: profil ve izle komutları, profil dosyası ve GPU raporu
-- `behavior_speed_test.go`: hız tabanı (madde 15): aynı dosyanın kodsuz ve kodlu kopyasında `TR_cmd_check` ve çalıştırmanın süresi (`BenchmarkCheckAndRun`)
+- `behavior_profile_watch_test.go`: `TR_cmd_profile` ve `TR_cmd_watch` komutları, profil dosyası ve GPU raporu
+- `behavior_speed_test.go`: hız tabanı (madde 15): kodlu dosyada `TR_cmd_check` ve çalıştırmanın süresi (`BenchmarkCheckAndRun`)
 - `behavior_temp_dir_test.go`: komutların geçici klasör bırakmaması

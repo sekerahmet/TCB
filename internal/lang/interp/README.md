@@ -60,6 +60,6 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_determinism_test.go`: sözlük, yapı ve döngü çıktısının her çalıştırmada aynı sırada olduğu
 - `behavior_checker_parity_test.go`: denetçinin ve çalışma anının tanımsız ad hatasını aynı sözlerle anlattığı
 - `behavior_ownership_test.go`: sahiplik kuralları (dil tanımı 15.43): sahte bir kaynak değeriyle her kuralda değerin ulaşılabilirken hiç bırakılmadığı ve beklenen noktada bırakıldığı
-- `behavior_named_args_language_test.go`: kodlu bir adlı argüman, bildirimi metin olan kullanıcı parametresiyle ve alanıyla kodun herhangi bir yazım dilindeki adı üzerinden eşleşir (metot, `TR_kw_self.metot(...)`, fonksiyon, yapı alanı, başka dilde yazılmış modül)
-- `behavior_value_text_test.go`: değerin metni işlemin yazıldığı dosyanın dilindedir (İngilizce program, Türkçe modül ve kitaplık, geri çağırma); `Inspect` kanonik kalır
+- `behavior_named_args_language_test.go`: kodlu bir adlı argüman, bildirimi metin olan kullanıcı parametresiyle ve alanıyla kodun herhangi bir yazım dilindeki adı üzerinden eşleşir (metot, `TR_self.TR_step(...)`, fonksiyon, yapı alanı, başka dilde adlandırılmış modül)
+- `behavior_value_text_test.go`: değerin metni dilden bağımsızdır (`true`, `none`, `Int`; modül, kitaplık ve geri çağırmada da aynı); yakalanan hatanın metni İngilizce katalogdan kurulur; `Inspect` aynı metni verir
 - `behavior_scope_walkers_test.go`: ad ve yakalama çözümlemesinin ortak ifade gezgini (`ast.SubExpressions`) eski ayrı gezginlerle `tests/`, `lib/`, `examples/` altındaki her programda aynı adları ve aynı yakalama kararını verir (referans kopya testin içindedir)

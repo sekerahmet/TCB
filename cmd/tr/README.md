@@ -1,6 +1,6 @@
 # cmd/tr
 
-`tr` komutunun giriş noktası: komutları ayrıştırır (çalıştır, kontrol, test, biçimle, derle, profil, izle, dizin ...) ve her birini ilgili paketin çekirdeğine bağlar. Uçtan uca komut testleri `e2e/` klasöründedir.
+`tr` komutunun giriş noktası: komutları ayrıştırır (`TR_cmd_run`, `TR_cmd_check`, `TR_cmd_test`, `TR_cmd_format`, `TR_cmd_show`, `TR_cmd_build`, `TR_cmd_profile`, `TR_cmd_watch`, `TR_cmd_index` ...) ve her birini ilgili paketin çekirdeğine bağlar. Uçtan uca komut testleri `e2e/` klasöründedir.
 
 ## Testler
 
