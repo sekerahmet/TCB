@@ -175,6 +175,7 @@ const (
 	H1112 Code = 1112 // {fn|q} değer döndürüyor ama dönüş tipini yazmıyor (6.1): tip {return} ifadelerinden çıkar ({type}). Şöyle yazın:\n{line}
 	H1113 Code = 1113 // {fn|q} değer döndürüyor ama dönüş tipini yazmıyor (6.1) ve tip {return} ifadelerinden bulunamadı: {reason, select, none {bir yol değer döndürmüyor ya da yokluk döndürüyor} other {değerlerin tipleri farklı ya da bilinmiyor}}. Parametrelerden sonra yazın: -> <tip>
 	H1114 Code = 1114 // {file, select, testfile {test dosyasının} other {modülün}} en dışındaki {name|q} değişkeninin ilk değeri sabit ifade değil: {part|q} sabit değil ({file, select, testfile {test dosyası} other {modül}} yüklenirken kod çalışmaz, 1.1). Fonksiyonlar {name|q} değişkenine atadığı için o paylaşılan bir durumdur: yoklukla başlatın; onu kullanan her fonksiyon ya da test önce {name}_kur() çağırsın, ilk çağrı değeri bir kez kurar:\n{var} {name}: {type, select, empty {<tip>} other {{type}}}? = {none}\n{func} {name}_kur() {{\n    {if} {name} == {none} {{\n        {name} = {value}\n    }}\n}}
+	H1115 Code = 1115 // `{kind, select, member {.{call}()} other {{call}()}}` yeni bir değer döndürür; alıcısını ve argümanlarını yerinde değiştirmez, değeri atılan çağrı hiçbir iş yapmaz (13.10). Değeri atayın: {target, select, empty {`<ad> = {suggestion}`} other {`{suggestion}`}}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
