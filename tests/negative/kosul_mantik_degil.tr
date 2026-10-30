@@ -1,0 +1,17 @@
+# TR 4
+# TEST 3.10 tipi bilinen koşul TR_Bool değilse denetim hatasıdır (çalışma anındaki kod)
+TR_var l = [1]
+TR_if l { TR_print(1) } # ERROR H2600
+TR_if (1, 2) { TR_print(2) } # ERROR H2600
+TR_var n = 0
+TR_for n { TR_break } # ERROR H2600
+TR_var c = [x TR_for x TR_in l TR_if x] # ERROR H2600
+TR_var z = 1 TR_and TR_true # ERROR H2601
+TR_var y = TR_false TR_or [] # ERROR H2601
+TR_var u = TR_true TR_and "a" # ERROR H2601
+TR_var v = TR_none TR_or TR_true # ERROR H2601
+TR_var w = TR_not 0 # ERROR H2601
+TR_var k = TR_false TR_and 1 # ERROR H2601
+TR_assert([1]) # ERROR H2612
+TR_assert(1, "mesaj") # ERROR H2612
+TR_print(c, z, y, u, v, w, k)

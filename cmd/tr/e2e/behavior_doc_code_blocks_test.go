@@ -131,7 +131,8 @@ var namePlaceholderRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 // definePlaceholders şablonun kullanıcının dolduracağı ad yer tutucularını (eğer
 // ${1:koşul}, eşle ${1:değer}) şablon kendisi tanımlamıyorsa kodun başında tanımlar:
 // tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
-// olduğunu varsayar.
+// olduğunu varsayar. Ad tipsiz (TR_Any) tanımlanır: eğer'in koşulu TR_Bool olmalıdır (3.10),
+// bir sayının yerini tutan ad sayıdır.
 func definePlaceholders(body, code string) string {
 	defined, _ := checker.TopLevelNames(parser.New(source.Parts{Body: code}.Lexer()).ParseProgram())
 	var on strings.Builder
@@ -142,7 +143,7 @@ func definePlaceholders(body, code string) string {
 			continue
 		}
 		seen[ad] = true
-		fmt.Fprintf(&on, "TR_var %s = 1\n", ad)
+		fmt.Fprintf(&on, "TR_var %s: TR_Any = 1\n", ad) // tipi kullanıcının değerinindir: koşul da sayı da olabilir
 	}
 	return on.String() + code
 }

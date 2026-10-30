@@ -34,6 +34,17 @@
 
 - 2b'nin commit'inde `MembersBeyondDefinitions`'ın İngilizce gerekçe metinlerindeki çıplak tip adı (`JSON`) `TestNoBareNames`'i (tools/gen/codeconsts) düşürüyordu; değer artık tip kodlarının listesi.
 
+## Adım 4 — koşul `TR_Bool` olmalı (3.10): bitti
+
+- **Kural:** tipi bilinen koşul `TR_Bool` değilse denetim hatası (`internal/lang/checker/conditions.go`): `TR_if` ve `TR_else TR_if`, koşullu `TR_for`, liste üretecinin koşulu, `TR_breakpoint TR_if`'in koşulu (çalışma anında hepsi `truth`, H2600); `TR_and`/`TR_or`/`TR_not` işlenenleri (H2601); `TR_assert`'in koşulu (H2612). Demet koşul (`TR_if (1, 2)`) da hata. Tipi bilinmeyen (`TR_Any`, tanınmayan tip), isteğe bağlı (`TR_Bool?`; daraltma 4b) koşul susar; `TR_none` koşul hata.
+- **Kod:** çalışma anındakiler (yeni kod yok). `internal/lang/messages/README.md`'nin kod paragrafına "13.11'in istisnası: denetim, çalışma anındaki hatanın kodunu kullanır" cümlesi eklendi.
+- `inferExpression` sınırdaydı (79/80): önek işlecin dalı `prefixType`'a (`conditions.go`) taşındı.
+- **Testler:** `TestConditionMustBeBool` (checker; 10 hata, 4 hatasız), olumsuz fikstür `tests/negative/kosul_mantik_degil.tr` (14 satır), 3.10'un Test satırı. `TestKnownLimitations`'ın "koşul tipi" satırı sınırlama kalktığı için silindi (aynı programlar `TestConditionMustBeBool`'da hata bekliyor).
+- **Yeni hatalar:** 9 (depo `.tr`) + 1 (Go testi), hepsi **testin konusu**:
+  - `tests/operatorler_test.tr` "4.6 TR_and, TR_or ve TR_not'un işlenenleri TR_Bool'dur" (7 satır: 5 çalışma anı H2601 beklentisi, 2 kısa devrede sağ yanın tipi denetlenmez: `TR_false TR_and 1`) ve "4.6 .TR_filter'ın yüklemi ..." testindeki 2 `TR_assert` H2612 beklentisi. Olumsuz fikstüre taşındı; ilk test boşaldığı için silindi (4.6'nın kısa devre ve `.TR_filter` testleri duruyor). Kısa devrenin sağ yanı artık denetimde `TR_Bool` olmalı (3.10'un sözü).
+  - `cmd/tr/e2e` `TestExtensionTemplatesBuild`: eklenti şablonunun yer tutucusu (`TR_if koşul`) `TR_var koşul = 1` diye tanımlanıyordu; artık `TR_var koşul: TR_Any = 1`.
+  - Bulunan yanlış: 0.
+
 ## Kalan
 
 ## Kararsız

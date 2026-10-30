@@ -231,7 +231,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope = prev
 
 	case *ast.WhileStatement:
-		c.inferExpression(s.Condition)
+		c.condition(s.Condition)
 		c.checkStatement(s.Body)
 
 	case *ast.TryCatchStatement:
@@ -310,7 +310,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 
 	case *ast.BreakpointStatement:
-		c.inferExpression(s.Condition)
+		c.condition(s.Condition)
 
 	case *ast.TestStatement:
 		c.checkStatement(s.Body)
@@ -376,24 +376,18 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		}
 		return typeAny
 	case *ast.PrefixExpression:
-		right := c.inferExpression(e.Right)
-		switch e.Operator {
-		case "!":
-			return typeBool
-		case "~":
-			if right == typeInt {
-				return typeInt
-			}
-			return typeAny
-		}
-		return signType(right)
+		return c.prefixType(e)
 	case *ast.InfixExpression:
 		left := c.inferExpression(e.Left)
 		right := c.inferExpression(e.Right)
 		c.checkTypeTextComparison(e)
 		c.checkBoolTextComparison(e)
 		switch e.Operator {
-		case "==", "!=", "<", ">", "<=", ">=", "&&", "||":
+		case "&&", "||":
+			c.requireBool(e.Left, left, messages.H2601)
+			c.requireBool(e.Right, right, messages.H2601)
+			return typeBool
+		case "==", "!=", "<", ">", "<=", ">=":
 			return typeBool
 		case "??":
 			if left != typeNull && left != typeAny {
@@ -460,6 +454,8 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	}
 	if isMember {
 		c.checkMemberCall(e, objType, argTypes)
+	} else if k, _ := c.calledBuiltin(e); k == codes.FnAssert && len(argTypes) > 0 {
+		c.requireBool(e.Arguments[0], argTypes[0], messages.H2612) // 3.10, 12.3
 	}
 	return c.callType(e, info, found, objType)
 }
