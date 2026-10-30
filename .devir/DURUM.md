@@ -1,4 +1,4 @@
-# SÜRÜYOR
+# BİTTİ
 
 # DURUM — Faz 1, 4a1, ilk dilim
 
@@ -43,3 +43,60 @@
 
 - **(a) yapının adı değer olarak:** denetleyici yapının adını kendi tipinde sayıyordu; artık `TR_Type` (3.11; `TestStructNameIsATypeValue`). `lib/optimizers.tr:117` `TR_only_2d(TR_name: TR_Type, ...)` tiplendi, izin listesinin "4a'yı bekleyen" başlığı kalktı. `tr test lib`/`tests` 0.
 - **(b) yalnız not:** `TR_SpikeGuard` (`lib/training.tr:39`, H6930) ve `TR_Run.TR_init` (`lib/training.tr:116`, H6932) çalışma anında `TR_Type(x) != TR_Int` sınıyor; `lib/training_test.tr:73` `TR_history_limit: 2.5` ile H6930 bekliyor. Kapı (tipsiz/yanlış tipli argüman denetim hatası) ikinci dilimde açılınca bu sınamalar ve test kalkar (tip denetimi yakalar).
+
+## Adım 3: yerel tip çıkarımı (1.2, 3.13), başlangıç
+
+Alt ajan yaptı, ben gözden geçirip 3.13 testlerini düzelttim. Sayaç `TestRepoFirstValueTypes` (`internal/lang/checker/behavior_repo_inference_test.go`): lib, tests, examples, tools/gpu programlarının 1884 `TR_var`/`TR_const` ilk değerinden tipi `TR_Any` kalan.
+
+| Madde | Commit | `TR_Any` önce → sonra | Yeni hata |
+|---|---|---|---|
+| Sayaç | 4825f80 | 1212 | 0 |
+| Kalıcı tip (3.13) | 737e9c2 | 1212 → 1199 | 3 `.tr` + 5 Go denetleyici testi (aşağıda) |
+| Önek ve aritmetik (metin/liste `*`, liste `+`, tensörle sayı) | 34246af | 1199 → 1192 | 0 |
+| Yapı kurucusu ve metot dönüşü | e8f2997 | 1192 → 1174 | 0 |
+| Liste ve sözlüğün öğe tipi | 7aaf638 | 1174 → 1174 | 1 Go test programı |
+| Demet ve `t.0` | 2739844 | 1174 → 1152 | 0 |
+| İsteğe bağlı `T?` | geri alındı | – | ~33 (eşik 20) |
+
+- **İsteğe bağlı geri alındı:** hataların hepsi `TR_none`'ı isteğe bağlı olmayan yere vermekten: `checker_test.go:49, 54 (9), 57 (3), 70 (15), 146, 275, 335 (2)`, `type_names_test.go:85` (tip yazımı testleri ilk değer olarak `TR_none` kullanıyor). Depodaki `.tr`'de 0. Yalnız `T?` yazımı ve `??`'nin asıl tipi ayrıca ölçüldü: 0 yeni hata; ikinci dilimde önce o girebilir.
+- **Kapsanan:** değişmezler, aritmetik, karşılaştırma, tipli fonksiyonun dönüşü (adıyla çağrı; tipi bilinen yapının metodu), liste ve sözlük değişmezi (öğe tipi; boş/karışık öğe tipsiz, asıl adla karşılaştırılır; kap tip argümanında değişmez: `TR_List[TR_Int]` → `TR_List[TR_Float]` verilmez), demet, yapı kurucusu. Yeni kod `local_types.go`, `type_shapes.go`.
+- **Kalan (ikinci dilim):** isteğe bağlı ve `TR_none` daraltması; yerleşik ve kitaplık çağrılarının dönüşü (bilinmeyen 1152'nin 937'si çağrı; `TR_Tensor(...)` 218, `TR_randn`, `TR_Int(...)`/`TR_Float(...)`, `GPT`, `AdamW`, `Checkpoint`, `.forward`, `.next`, `.reshape`); indeks (69); üye ve alan (59); tipi bilinmeyen işlenenli işleç (64); `TR_if` (9), `TR_match` (8); döngü değişkeni; kapanış; çoklu tanımın öğe tipleri; metot ve kurucu argümanlarının denetimi; `[1.0, TR_none]` (`TR_List[TR_Float?]`) karışık sayılıyor; arayüzün karşılanması denetlenmiyor; `TR_JSON`, arayüz ve tip parametresi `TR_Any` kalıyor.
+
+### Bulunan yanlış (3. adım)
+
+- `examples/tr/43_hata_ayiklama_alistirmasi.tr:25`: `genel_toplam = 0` ondalık topluyordu → `0.0`, çıktı aynı (bb44695).
+- `internal/stdlib/ml/conversion_test.go:17`: liste her turda kendini sarıp derinleşiyor, öğe tipi değişiyor → `TR_var a: TR_List = ...` (77c38d6; öğe tipsiz liste izin listesinde gerekçeli).
+- Dil tanımının `03_tipler.md` 3.13 hata bloğu artık gerçekten hata veriyor: `cmd/tr/e2e/testdata/doc_blocks_known.txt`'ten silindi.
+
+### Testin konusu / eski kuralı sınayan testler
+
+- Alt ajan `checker_test.go` `TestAssignmentTypeCheck` (3 satır), `TestCompoundAssignment` (2 satır) ve `tests/tipler_test.tr` "3.13 açıklamasız değişkenin tipi kalıcı değildir"i "testin konusu" diye bırakmıştı (düşüyorlardı, `tr test tests` 1). **Katılmadım:** dil tanımı 3.13 "tipi ilk değerinden çıkar ve değişmez" diyor ve örneği `toplam += 0.5`'i denetim hatası sayıyor; bu testler eski dinamik kuralın kalıntısı. Dil tanımına göre güncellendi (ayrı commit): denetleyici testleri H1005 bekliyor, TR testi 0.0 ile biriktiriyor ve "kalıcıdır" diyor. `tr test tests` 353/353.
+- `TestTypedVarIncompatible`'ın üç beklenen metni yeni tam tiple (`"TR_List"` → `"TR_List[TR_Int]"`): hata aynı, ileti daha kesin.
+- Gerçek "testin konusu" listesi (dokunulmadı) 1. adımın "İkinci dilime giden liste"sindedir.
+
+## Sınav (`TestPlanningQuestionsAreAnswered`)
+
+Her commit'te geçti; düşen soru olmadı, cevap değişmedi.
+
+## Bitti ölçütü (son koşu)
+
+- `go build ./...` 0, `go vet ./...` 0, `gofmt -l` boş.
+- `go test ./internal/... ./cmd/... ./tools/...`: yalnız `tools/codegraph` `TestEveryTrackedDataFileHasATestOrAReason` düşüyor (`.devir/DURUM.md`; ana dala alınmadığından ana dalda düşmez). İzin listesi satır kayması bu koşuda yakalandı ve düzeltildi (`internal` 0).
+- `tr test tests` 0 (353/353), `tr test lib` 0, `spec-refs` "0 error(s), 0 note(s)".
+- `docs/status.md` 1.1, 1.2, 3.13 güncel.
+
+## Kararsız / sorular (ana oturuma)
+
+1. **12.5'in metni** en dıştaki deyimi "sözdizimi hatası" diyor; karar denetim hatası. Metin değiştirilmedi (yalnız `status.md`'ye ve 1.1'in Test satırına dokundum); ana oturum 12.5'i uyarlamalı.
+2. **Test dosyasının tanımı:** 12.1'e göre "`TR_test` içeren dosya" uygulandı (`checker.HasTests`); `tests/yardimci_testli.tr` modülde test bloğu tutuyor ve 12.1 buna izin veriyor (status 12.1'in "test dosyasının tanımı" maddesi bununla kapanabilir; dokunmadım).
+3. **Aktarılan adın sabitliği:** dosyanın tanımlamadığı ad (aktarılan, takma adlı modülün üyesi `o.kimden`, genel ad) sabit sayılıyor (yanlış alarm vermez); 4b ile bilinir.
+4. **H1108'in önerisi** bir fonksiyon (`TR_func taban() -> T`); her çağrı değeri yeniden kurar (`TR_temp_dir()` her seferinde yeni klasör). İleti "kullanan her fonksiyon ya da test onu bir kez çağırıp sonucu bir değişkende tutsun" diyor; `TR_var` gerçekten paylaşılan durumsa (sayaç) öneri yetmez — ikinci dilimde `TR_var x: T? = TR_none` + kur fonksiyonu önerilebilir. Tip bilinmezse öneride `-> T` yok (kapı açılınca dönüş tipi gerekecek).
+5. **Fikstür testi:** fikstür, başka fikstürün aktardığı ise modül, değilse program olarak denetleniyor (eskiden hepsi modül). Uygun mu?
+6. `TR_is_finite`'in tipi (bulunan yanlış, 1. adım): tanım mı gerçekleme mi düzelecek?
+
+## Codegraph
+
+- `dups --changed origin/main` tek başına "no common ancestor (merge base) between main and HEAD ... use `--changed origin/main`" diyor: bayrak zaten verilmişti; asıl eksik `--base origin/main` (varsayılan taban yerel `main`, sığ klonda eski: 23e7be2). İleti yanıltıcı: çare olarak `--base origin/main` önermeli.
+- `tests-for` ve `spec-refs` doğru; alt ajan: dış test paketinden `source.Options{Checker: ...}`'a denetleyici vermek codegraph'ın tip denetiminde "aynı tip değil" hatası verdi (sayaç iç test paketinde yazıldı). Başka yanlış cevap yok.
+
+- Bitiş: 2026-10-30 09:12 UTC.

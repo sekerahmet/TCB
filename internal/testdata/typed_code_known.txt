@@ -69,13 +69,13 @@ internal/devtools/codeindex/reader_test.go:60 dönüş f — testin konusu: tan�
 internal/devtools/codeindex/testdata/proj/lib/geo.tr:20 parametre yaz_alan.k — testin konusu: k.alan() kenarı alıcının tipi bilinmediği için INFERRED (build_test.go)
 internal/devtools/codeindex/testdata/proj/lib/geo.tr:8 parametre TR_ctx_init.kenar — tip yazılınca dizinin imzası bozuluyor (params.go defaultText); düzelince tiplenir
 internal/devtools/debugger/dap_test.go:182 parametre ekle_maas.k — sözlüğün değerleri metin ve tam sayı ({"ad": "Ali", "maas": 60}): değer tipi birden çok (birleşim yok, 4c); hata ayıklayıcının tablo görünümü bu sözlüğü sınar
-internal/lang/checker/checker_test.go:282 parametre f.a — 1.2 testi: tipsiz parametre her değeri kabul eder (tipsizliği sınar; kapı ikinci dilimde açılınca test değişir)
-internal/lang/checker/checker_test.go:283 parametre f.a — 1.2 testi: tipsiz parametre hata vermez (tipsizliği sınar)
-internal/lang/checker/checker_test.go:308 dönüş f — 6.1 testi: dönüş tipi yazılmamışsa sonuç bilinmez (tipsizliği sınar)
+internal/lang/checker/checker_test.go:283 parametre f.a — 1.2 testi: tipsiz parametre her değeri kabul eder (tipsizliği sınar; kapı ikinci dilimde açılınca test değişir)
+internal/lang/checker/checker_test.go:284 parametre f.a — 1.2 testi: tipsiz parametre hata vermez (tipsizliği sınar)
 internal/lang/checker/checker_test.go:309 dönüş f — 6.1 testi: dönüş tipi yazılmamışsa sonuç bilinmez (tipsizliği sınar)
-internal/lang/checker/checker_test.go:329 parametre f.x — 1.2 testi: tipi bilinmeyen parametre (tipsizliği sınar)
-internal/lang/checker/checker_test.go:333 dönüş f — 6.1 testi: dönüş tipi yoksa dönüş denetlenmez (tipsizliği sınar)
-internal/lang/checker/checker_test.go:340 dönüş g — 6.1 testi: tipsiz iç fonksiyon dış fonksiyonun dönüş tipini devralmaz (tipsizliği sınar)
+internal/lang/checker/checker_test.go:310 dönüş f — 6.1 testi: dönüş tipi yazılmamışsa sonuç bilinmez (tipsizliği sınar)
+internal/lang/checker/checker_test.go:330 parametre f.x — 1.2 testi: tipi bilinmeyen parametre (tipsizliği sınar)
+internal/lang/checker/checker_test.go:334 dönüş f — 6.1 testi: dönüş tipi yoksa dönüş denetlenmez (tipsizliği sınar)
+internal/lang/checker/checker_test.go:341 dönüş g — 6.1 testi: tipsiz iç fonksiyon dış fonksiyonun dönüş tipini devralmaz (tipsizliği sınar)
 internal/lang/checker/unpack_test.go:75 dönüş f — 6.3 testi: tipsiz dönüşün açılması hata vermez (tipsizliği sınar)
 internal/lang/interp/behavior_ownership_test.go:204 dönüş f — sahiplik testi: yeni()'nin Go değerini döndürür (TR tipi yok)
 internal/lang/interp/behavior_ownership_test.go:204 parametre f.p — sahiplik testi: Go değeri (yeni()) alır
@@ -110,6 +110,7 @@ internal/lang/interp/shadow_test.go:19 parametre f.toplam — 2.3 testi: gölgel
 internal/lang/parser/struct_test.go:97 dönüş TR_ctx_init — 7.4 testi: kurucunun değerli TR_return'ü H0282; dönüş tipi yazılınca hata H0283 olur
 internal/lang/parser/struct_test.go:98 dönüş TR_ctx_init — 7.4 testi: kurucunun değerli TR_return'ü H0282 (aynı test)
 internal/lang/parser/types_test.go:142 parametre f.a — bilerek bozuk tip yazımı (TR_List[): ayrıştırma hatası sınanır
+internal/stdlib/ml/conversion_test.go:17 öğe-tipi TR_type_List — 15.2 testi: liste her turda kendini sarıp derinleşir ([[1.0]], [[[1.0]]] ...): öğe tipi turdan tura değişir, tek bir öğe tipi yok
 internal/stdlib/ml/model_tools_test.go:260 alan Blok.mlp — 15.33 testi: TR_parameters listeyi ve sözlüğü gezer; alan bir blokta liste, öbüründe sözlük tutar
 tools/codegraph/testdata/mod/lib/geo.tr:20 parametre yaz_alan.k — testin konusu: k.alan() kenarı INFERRED (tr_test.go)
 tools/codegraph/testdata/mod/lib/geo.tr:8 parametre TR_ctx_init.kenar — tip yazılınca dizinin imzası bozuluyor (params.go defaultText; tr_test.go "kenar = 1" bekler)
