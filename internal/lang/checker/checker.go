@@ -173,10 +173,10 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.addErrorAt(s, messages.New(messages.H1001,
 				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
 		}
-		// Dil dinamiktir: açıklamasız bir değişkenin ilk değerden çıkarılan tipi kalıcı bir
-		// bildirim değildir (değişken sonra başka tipte değer alabilir), bu yüzden tipsiz
-		// sayılır. Sabitler yeniden atanamadığı için çıkarılan tipleri kalır.
-		finalType := typeAny
+		// Yerel değişkenin tipi ilk değerinden çıkar ve değişmez (1.2, 3.13): sonraki atama ona uyar.
+		// Çıkarılamayan tip ve TR_none'la başlayan açıklamasız değişken TR_Any kalır (local_types.go).
+		// Sabit yeniden atanamaz; çıkarılan tipi olduğu gibi kalır.
+		finalType := c.localType(inferred)
 		switch {
 		case s.Type != nil:
 			finalType = declared

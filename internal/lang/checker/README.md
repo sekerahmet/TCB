@@ -40,6 +40,12 @@ alan, ilk değeri bir fonksiyonun sonucu yapan yazımı dosyadaki metinden kurar
 `TestModuleFirstValuesAreConstant`, `TestModuleRuleMessages`, `TestRepoModulesHoldOnlyDefinitions`,
 `TestModuleRuleSuggestionRuns` (interp).
 
+**Yerel değişkenin tipi ilk değerinden çıkar ve değişmez (1.2, 3.13).** Açıklamasız `TR_var`'ın
+tipi ilk değerinin çıkarılan tipidir; sonraki atama ona uyar (H1005: `TR_var toplam = 0` sonra
+`toplam += 0.5` hatadır, ondalık değişkene tam sayı atamak değildir). Tipi çıkarılamayan ilk değer,
+`TR_none` ve denetleyicinin tanımadığı tip (`local_types.go`, `knownType`) değişkeni `TR_Any` bırakır.
+Denetim: `TestLocalTypeIsPermanent`, `TestLocalTypeUnknownStaysAny`, `TestRepoFirstValueTypes` (sayaç).
+
 **Tek hata, tek mesaj.** Bir hata aynı satırda zincirleme ikinci bir hata üretmez (ör. yanlış
 yazılmış tip adı ayrıca bir tip uyuşmazlığı olarak bildirilmez). Denetim: `TestTypeNameASCIISuggestion`, `TestTypeNameCaseSpelling`.
 
