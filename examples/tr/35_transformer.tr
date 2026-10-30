@@ -76,16 +76,16 @@ TR_func toplu_iş_üret() {
         }
         girdiler.TR_append(g)
     }
-    TR_return [girdiler, hedefler]
+    TR_return girdiler, hedefler
 }
 
 TR_var ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
 TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: 0.01, TR_weight_decay: 0.0)
 
 TR_for adım TR_in 0..300 {
-    TR_var veri = toplu_iş_üret()
+    TR_var girdiler, hedefler = toplu_iş_üret()
     iyileştirici.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(ileri(veri[0]), veri[1])
+    TR_var kayıp = TR_cross_entropy(ileri(girdiler), hedefler)
     TR_backward(kayıp)
     iyileştirici.TR_step()
     TR_if adım % 50 == 0 {
@@ -94,11 +94,11 @@ TR_for adım TR_in 0..300 {
 }
 
 # Öğrendi mi? Bir diziyi verip tahminleri yazdır.
-TR_var deneme = toplu_iş_üret()
-TR_var tahmin = TR_no_grad { ileri(deneme[0]) }
+TR_var deneme, _ = toplu_iş_üret()
+TR_var tahmin = TR_no_grad { ileri(deneme) }
 TR_var olasılıklar = tahmin[0] # ilk dizinin [T, V] çıktısı
 TR_var tahminler = TR_argmax(olasılıklar, TR_dim: -1).TR_tolist # her konumda en büyük olasılığın indeksi
-TR_print("girdi  : \(deneme[0][0])")
+TR_print("girdi  : \(deneme[0])")
 TR_print("tahmin : \(tahminler)")
 
 # dikkat'in iki ek ayarı: pencere: her sorguyu son w konumla sınırlar (yerel dikkat);
