@@ -17,3 +17,7 @@ Faz 1, 4a1, ikinci dilim: tipli yazımın kapısı (6.1, 7.1), iki denetleyici d
 - **Testler:** `TestUntypedFunctionParameter`, `TestUntypedMethodParameter`, `TestUntypedFunctionExpressionParameter`, `TestUntypedStructField`, `TestUntypedEnumField`, `TestMissingReturnType` (yer başına bir test, her öneri yolu alt test); `TestTypedSignatureSuggestionRuns` (interp: iletinin satırı kopyalanınca modül çalışır); `TestCheckJSONTypedSignatureFixesMakeTheFileClean` (e2e); `TestLibraryExceptionsAreUsed`, `TestLibraryExceptionIsOnlyTheLibraryFiles`, `TestLibraryFileNameIsOnlyTheEmbeddedText`; `TestRepoProgramsAreTyped`; olumsuz fikstür `tests/negative/tipsiz_imza.tr` (6.1, 7.1). Dil tanımının 6.1, 6.6, 7.1 Test satırları güncellendi.
 - **`internal/suggestion_messages_test.go`'ya dokunulmadı:** H1109–H1113'ü önerinin çalıştığı tabloya ana oturum birleştirmede ekler. Yeni iletilerin kod örnekleri olduğu gibi yazıldı (iletiler 2'nin biçimine birleştirmede çevrilir).
 - `checkStatement`'ın dönüş kolu `checkReturn`'e, `inferExpression`'ın çağrı kolu `inferCall`'a alındı; `inferExpression` 76 satıra indi, `layoutrules.LongFuncs`'tan çıktı.
+
+## Adım 3: iki küçük denetleyici düzeltmesi
+
+- **(a)** `const_values.go` `captured()`: iç içe fonksiyon ifadesinin parametresi artık kendi adı sayılıyor; en dıştaki aynı adlı `TR_var` için yanlış H1108 yok. Test: `TestModuleFirstValuesAreConstant`'ın sabit listesinde `(x: TR_Int) => ((v: TR_Int) => v + x)` (önce H1108 veriyordu, düzeltmeden önce düştüğü görüldü). `status.md` 1.1'in maddesi silindi.

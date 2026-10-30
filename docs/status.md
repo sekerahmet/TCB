@@ -17,7 +17,6 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 - **Mevcut durum:** denetleyici modülde ve test dosyasında (`TR_test` içeren dosya, 12.1) en dıştaki tanım dışı deyimi (H1107) ve `TR_const`/`TR_var`'ın sabit olmayan ilk değerini (H1108) denetim hatası sayıyor; hata modülün satırında, aktaran modül hatasının başlığında; ileti deyimi fonksiyona alan yazımı veriyor ve yazım çalışıyor. Depodaki modüller ve test dosyaları kurala uyuyor. Dosyanın tanımlamadığı ad (aktarılan ya da genel) sabit sayılıyor; gömülü kitaplık modülleri aktarılırken denetlenmiyor, kuralları depo testinde denetleniyor [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`, `TestModuleRuleSuggestionRuns`, dal `claude/hopeful-brahmagupta-miw41q`].
 - **Yapılacaklar:**
   - Aktarılan adın sabitliği modüller arası tip denetimiyle (4b) bilinir; bugün aktarılan ad sabit sayılıyor.
-  - İç içe fonksiyon ifadesinin parametresi dıştaki ifadenin yakalama denetiminde kendi adı sayılmıyor: aynı adlı en dıştaki `TR_var` varsa yanlış H1108 verir [kanıtlı: DENETİM, 2026-10-30].
 
 ### 1.2
 

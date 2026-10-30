@@ -166,7 +166,7 @@ func hasConstructor(s *ast.StructStatement) bool {
 }
 
 // captured is the first top-level TR_var a function expression reads (one it does not define
-// itself as a parameter or a variable of its own); nil when it reads none.
+// itself as a parameter, a variable or a nested function's parameter); nil when it reads none.
 func (k *constScope) captured(f *ast.FunctionLiteral) ast.Node {
 	own := map[string]bool{}
 	for _, p := range f.Parameters {
@@ -174,6 +174,11 @@ func (k *constScope) captured(f *ast.FunctionLiteral) ast.Node {
 	}
 	ast.Walk(f.Body, func(n any) bool {
 		switch s := n.(type) {
+		case *ast.FunctionLiteral:
+			// iç fonksiyon ifadesinin parametresi de kendi adıdır (en dıştaki aynı adlı TR_var değil)
+			for _, p := range s.Parameters {
+				own[p.Name] = true
+			}
 		case *ast.VarStatement:
 			own[s.Name.Value] = true
 		case *ast.MultiVarStatement:

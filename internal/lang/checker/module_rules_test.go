@@ -53,7 +53,9 @@ func moduleCodes(t *testing.T, text string, module bool) []string {
 func TestModuleFirstValuesAreConstant(t *testing.T) {
 	constant := []string{`1`, `-2.5`, `"a \(N)"`, `TR_true`, `TR_none`, `N * 2 + 1`, `[1, N]`, `{"a": N}`,
 		`(1, "a")`, `0..N`, `Nokta(x: N)`, `Durum.Bekliyor`, `Durum.Çalışıyor(N)`, `TR_Bytes([1, 2])`, `f`,
-		`(x: TR_Int) => x + N`, `TR_sqrt(64.0)`, `TR_max(N, 3)`, `[1, 2][0]`, `TR_fuse(f)`}
+		`(x: TR_Int) => x + N`, `TR_sqrt(64.0)`, `TR_max(N, 3)`, `[1, 2][0]`, `TR_fuse(f)`,
+		// iç fonksiyon ifadesinin parametresi kendi adıdır: en dıştaki aynı adlı v değildir
+		`(x: TR_Int) => ((v: TR_Int) => v + x)`}
 	for _, value := range constant {
 		if got := moduleCodes(t, moduleDefs+"TR_const S = "+value+"\n", true); len(got) != 0 {
 			t.Errorf("%s sabittir: %v", value, got)
