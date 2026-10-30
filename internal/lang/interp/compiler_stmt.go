@@ -419,14 +419,16 @@ func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statement
 				Body:       m.lit.Body,
 				Env:        env,
 				codeVal:    m.codeVal,
+				ReturnType: m.lit.ReturnType,
 			}
 		}
 		def := &StructDefVal{
-			Name:      s.Name,
-			Fields:    s.Fields,
-			Methods:   methods,
-			fieldCode: fieldCode,
-			fieldEnv:  env,
+			Name:          s.Name,
+			Fields:        s.Fields,
+			Methods:       methods,
+			fieldCode:     fieldCode,
+			fieldEnv:      env,
+			witnessSource: v.source,
 		}
 		definition(env, def, true)
 		return def, signalNone, nil

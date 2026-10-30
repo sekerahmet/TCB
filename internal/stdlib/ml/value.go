@@ -116,3 +116,31 @@ func (d *TensorValue) IntElements() (ids []int, bad float32, ok bool) {
 	}
 	return ids, 0, true
 }
+
+// WitnessKind (GEÇİCİ, Faz 0.9 tip tanığı) tensörün öğe cinsini kestirir: tam sayılı işaret
+// "Int"; ilk değerleri yalnız 0 ve 1 olan "Bool"; tam değerli "Integral"; öbürü "Float".
+func (d *TensorValue) WitnessKind() (kind string) {
+	if d.hasInts {
+		return "Int"
+	}
+	defer func() {
+		if recover() != nil {
+			kind = "Float" // okunamayan (kaynaştırılan ya da bırakılmış) tensör
+		}
+	}()
+	data := d.t.Data()
+	kind = "Bool"
+	for i, x := range data {
+		if i >= 4096 {
+			break
+		}
+		switch {
+		case x == 0 || x == 1:
+		case x == float32(int64(x)):
+			kind = "Integral"
+		default:
+			return "Float"
+		}
+	}
+	return kind
+}

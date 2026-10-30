@@ -46,9 +46,9 @@ func (c *compiler) typeDef(k *compilerScope, s *ast.StructStatement) statementCo
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		methods := make(map[string]*FuncVal, len(s.Methods))
 		for name, lit := range s.Methods {
-			methods[name] = &FuncVal{Name: name, Parameters: lit.Parameters, Body: lit.Body, Env: env, codeVal: methodList[name].codeVal}
+			methods[name] = &FuncVal{Name: name, Parameters: lit.Parameters, Body: lit.Body, Env: env, codeVal: methodList[name].codeVal, ReturnType: lit.ReturnType}
 		}
-		def := &StructDefVal{Name: s.Name, Methods: methods, Kind: s.Kind, fieldEnv: env}
+		def := &StructDefVal{Name: s.Name, Methods: methods, Kind: s.Kind, fieldEnv: env, witnessSource: v.source}
 		for i, vr := range s.Variants {
 			vd := &VariantDef{Name: vr.Name, Fields: vr.Fields, fieldCode: variantCode[i]}
 			if len(vr.Fields) == 0 {
@@ -145,6 +145,9 @@ func (v *VM) constructVariant(def *StructDefVal, mem *ast.MemberExpression, args
 			return nil, messages.At(line, 0, messages.New(messages.H2750, label, f.Name))
 		}
 		escape(inst.Fields[f.Name])
+	}
+	if witnessOn() {
+		v.witnessFields(def, vd.Fields, inst)
 	}
 	return inst, nil
 }

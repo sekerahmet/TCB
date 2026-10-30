@@ -107,10 +107,14 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 			Env:        initMethod.Env,
 			BoundSelf:  inst,
 			codeVal:    initMethod.codeVal,
+			ReturnType: initMethod.ReturnType,
 		}
 		if _, err := v.ApplyFunction(boundInit, args, named, line); err != nil {
 			return nil, err
 		}
+	}
+	if witnessOn() {
+		v.witnessFields(fn, fn.Fields, inst)
 	}
 	return inst, nil
 }
@@ -132,6 +136,7 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 			Env:        method.Env,
 			BoundSelf:  inst,
 			codeVal:    method.codeVal,
+			ReturnType: method.ReturnType,
 		}, nil
 	}
 	// '?.' yalnız yokluğu açar (4.8): var olan nesnede olmayan alan '.' ile aynı hatadır (7.5)
@@ -220,6 +225,9 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 		return err
 	}
 	escape(finalVal)
+	if witnessOn() {
+		v.witnessSetField(inst, prop, finalVal)
+	}
 	inst.Fields[prop] = finalVal
 	return nil
 }
