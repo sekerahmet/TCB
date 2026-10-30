@@ -823,17 +823,17 @@ tr: dosya_yaz("okuyucu.txt", "a\nb"); değişken o = dosya_satırları("okuyucu.
 
 #### `TR_List` (`TR_type_List`, `Liste`)
 
-Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyla paylaşılır.
+Sıralı, tek tipli, değiştirilebilir dizi tipidir; öğe tipi köşeli parantezle yazılır (TR_List[TR_Int]); listeler başvuruyla paylaşılır.
 
 ```tr
-TR_var l: TR_List = [1, "iki", 3.0]; TR_print(TR_Type(l), l[-1])
+TR_var l: TR_List[TR_Int] = [1, 2, 3]; TR_print(TR_Type(l), l[-1])
 ```
 
 Görünümü:
 
 ```text
-en: var l: List = [1, "iki", 3.0]; print(Type(l), l[-1])
-tr: değişken l: Liste = [1, "iki", 3.0]; yazdır(Tip(l), l[-1])
+en: var l: List[Int] = [1, 2, 3]; print(Type(l), l[-1])
+tr: değişken l: Liste[Tam] = [1, 2, 3]; yazdır(Tip(l), l[-1])
 ```
 
 Üyeleri: `.TR_append(...)`, `.TR_contains(...)`, `.TR_filter(...)`, `.TR_first`, `.TR_get(...)`, `.TR_join(...)`, `.TR_last`, `.TR_length`, `.TR_map(...)`, `.TR_reduce(...)`, `.TR_reverse(...)`, `.TR_sort(...)`, `.TR_unique(...)`
