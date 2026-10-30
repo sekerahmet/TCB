@@ -238,7 +238,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		for name, m := range s.Methods {
 			c.checkNameStyle(name, kindValue, siteOf(m.NameToken, m.Line()))
 		}
-		c.scope.Define(s.Name, TypeInfo{TypeName: s.Name})
+		// Yapının adı değer olarak bir tip değeridir (3.11): tipi TR_Type'tır, yapının kendisi değil.
+		c.scope.Define(s.Name, TypeInfo{TypeName: typeType})
 		c.checkStruct(s)
 
 	case *ast.MultiVarStatement:

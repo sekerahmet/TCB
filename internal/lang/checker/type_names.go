@@ -24,6 +24,7 @@ var (
 	typeFunction = codes.Name(codes.TypeFunction)
 	typeTensor   = codes.Name(codes.TypeTensor)
 	typeAny      = codes.Name(codes.TypeAny)
+	typeType     = codes.Name(codes.TypeType)
 )
 
 // typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı

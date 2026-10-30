@@ -54,9 +54,6 @@ tools/gpu/training_model.tr:11 parametre eğitim_modeli.ayar — komut satırı 
 ## olumsuz fikstür: sınadığı hata tipin kendisidir ya da tip yazılınca fikstür başka bir hatayı sınar
 tests/negative/yapi_kurucu_deger.tr:5 dönüş TR_ctx_init — 7.4: kurucunun değerli TR_return'ü sözdizimi hatasıdır; kurucuya dönüş tipi yazılamaz (H0283)
 
-## 4a'yı bekleyen (denetleyici): tip bilinir, bugünkü denetleyici yazılınca yanlış hata verir
-lib/optimizers.tr:117 parametre TR_fn_only_2d.TR_arg_name — yapının adı (TR_Muon) TR_Type'tır (3.11); denetleyici yapının adını yapının kendi tipinde sayıyor
-
 ## Go testlerinin ve araç deneme projelerinin programları (4a1): testin konusu tipsizliktir, değer Go'dan gelir (TR tipi yok) ya da birden çok tiptedir
 internal/devtools/codeindex/bind_test.go:173 parametre çalış.p — testin konusu: alıcısı bilinmeyen p.ileri() ve p.ağırlık için ad tahmini (INFERRED) sınanır
 internal/devtools/codeindex/bind_test.go:174 parametre başka.p — testin konusu: aktarmayan dosyada alıcısı bilinmeyen üye

@@ -123,3 +123,10 @@ TR_print(l, bos, x, d, k, t, f, g, tensor, h(l), m(), ikili(), S([1.0]), y)
 		}
 	}
 }
+
+// Kural (3.11): yapının adı değer olarak bir tip değeridir, tipi TR_Type'tır: TR_Type parametresine
+// verilir; yapının kendi tipinde tanımlanan yere verilmez.
+func TestStructNameIsATypeValue(t *testing.T) {
+	noErrors(t, "TR_struct Nokta {\n    x: TR_Int = 0\n}\nTR_func ad(t: TR_Type) {\n    TR_print(t)\n}\nad(Nokta)\nTR_var t: TR_Type = Nokta\n")
+	singleError(t, "TR_struct Nokta {\n    x: TR_Int = 0\n}\nTR_var p: Nokta = Nokta\n", messages.H1001, 4, "TR_Type")
+}
