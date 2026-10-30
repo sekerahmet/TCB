@@ -50,7 +50,7 @@
   "TR_type_KVCache": { "kind": "type", "module": "tr/layers" },
   "TR_type_LineReader": { "kind": "type", "related": ["TR_fn_read_lines", "TR_mem_next", "TR_mem_close"], "example": "TR_write_file(\"okuyucu.txt\", \"a\\nb\"); TR_var o = TR_read_lines(\"okuyucu.txt\"); TR_print(TR_Type(o) == TR_LineReader, o.TR_next(), o.TR_next(), o.TR_next())" },
   "TR_type_Linear": { "kind": "type", "module": "tr/layers" },
-  "TR_type_List": { "kind": "type", "familiar": ["list"], "example": "TR_var l: TR_List = [1, \"iki\", 3.0]; TR_print(TR_Type(l), l[-1])" },
+  "TR_type_List": { "kind": "type", "familiar": ["list"], "example": "TR_var l: TR_List[TR_Int] = [1, 2, 3]; TR_print(TR_Type(l), l[-1])" },
   "TR_type_Logger": { "kind": "type", "params": ["TR_type_String|TR_type_Path"], "returns": "TR_type_Logger", "related": ["TR_mem_append", "TR_type_Progress"], "familiar": ["logger"], "example": "TR_var g = TR_Logger(\"kayit/egitim.jsonl\"); g.TR_append({\"kayıp\": 2.31, \"doğruluk\": 0.5}); TR_print(g, TR_Type(g) == TR_Logger)" },
   "TR_type_Message": { "kind": "type", "params": ["TR_type_String", "TR_type_Any*"], "returns": "TR_type_Message", "related": ["TR_fn_error_code", "TR_fn_assert", "TR_kw_throw"], "example": "TR_var i = TR_Message(\"H6903\", -1); TR_print(TR_Type(i), i)" },
   "TR_type_Muon": { "kind": "type", "common_name": "Muon", "module": "tr/optimizers" },

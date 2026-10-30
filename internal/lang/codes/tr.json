@@ -50,7 +50,7 @@
   "TR_type_KVCache": { "name": "KVÖnbellek", "family": "kitaplık: tr/layers", "description": "" },
   "TR_type_LineReader": { "name": "SatırOkuyucu", "family": "tip adı: dosya", "description": "dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir; .kapat() dosyayı sonuna kadar okumadan bırakır." },
   "TR_type_Linear": { "name": "Doğrusal", "family": "kitaplık: tr/layers", "description": "" },
-  "TR_type_List": { "name": "Liste", "family": "tip adı", "description": "Sıralı, karışık tipli, değiştirilebilir dizi tipidir; listeler başvuruyla paylaşılır." },
+  "TR_type_List": { "name": "Liste", "family": "tip adı", "description": "Sıralı, tek tipli, değiştirilebilir dizi tipidir; öğe tipi köşeli parantezle yazılır (TR_List[TR_Int]); listeler başvuruyla paylaşılır." },
   "TR_type_Logger": { "name": "Günlük", "family": "tip adı: kayıt ve ilerleme", "description": "Her satırı bir JSON kaydı olan eğitim günlüğü dosyasının (.jsonl) tipidir; Günlük(yol) açar: dosya varsa sonuna eklenir, klasörü yoksa oluşturulur. İlk kayıttan önce program adı ve komut satırı ayarlarıyla bir başlangıç kaydı yazılır; .ekle(...) bir kayıt yazar." },
   "TR_type_Message": { "name": "İleti", "family": "tip adı: hata", "description": "Katalog iletisinin tipidir: İleti(\"H6903\", ...) iletiyi kodu ve değerleriyle (katalogdaki parametre sırasıyla) kurar; metni gösterilirken iletinin dilinde kurulur. fırlat ve doğrula ona verilince hata o kodla fırlar. Kitaplık hata metnini böyle yazar." },
   "TR_type_Muon": { "family": "kitaplık: tr/optimizers", "description": "" },
