@@ -30,6 +30,7 @@
 "H0034": { "param": [] },
 "H0035": { "param": [] },
 "H0036": { "param": ["literal"] },
+"H0037": { "param": ["name", "class", "suggestion"] },
 "H0100": { "param": ["error"] },
 "H0110": { "param": [] },
 "H0111": { "param": [] },

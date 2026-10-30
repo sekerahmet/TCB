@@ -30,6 +30,7 @@
 "H0034": "Kiril",
 "H0035": "Yunan",
 "H0036": "'{literal}' bir öğe indeksi değil: noktadan sonra demetin öğesi yalnız ondalık rakamlarla, başta sıfır olmadan yazılır (t.0, t.1, t.10; 3.6a)",
+"H0037": "'{name}' sınıflı kimlik yazımıdır: {class, select, cmd {bu bir komut satırı adıdır ve programda yazılmaz; komut satırında '{suggestion}' olarak kullanılır (17.9)} sub {bu bir komut satırı adıdır ve programda yazılmaz; komut satırında '{suggestion}' olarak kullanılır (17.9)} opt {bu bir komut satırı adıdır ve programda yazılmaz; komut satırında '{suggestion}' seçeneği olarak kullanılır (17.9)} repl {bu bir komut satırı adıdır ve programda yazılmaz; etkileşimli kabukta '{suggestion}' komutu olarak kullanılır (17.9)} dbg {bu bir komut satırı adıdır ve programda yazılmaz; hata ayıklayıcıda '{suggestion}' komutu olarak kullanılır (17.9)} env {bu bir komut satırı adıdır ve programda yazılmaz; ortam değişkeni olarak '{suggestion}' kullanılır (17.9)} mem {programda sınıf öneki ('{class}_') yazılmaz, üye noktadan sonra '{suggestion}' olarak yazılır (2.3a)} arg {programda sınıf öneki ('{class}_') yazılmaz, adlı argüman '{suggestion}' olarak yazılır (2.3a)} other {programda sınıf öneki ('{class}_') yazılmaz, '{suggestion}' yazın (2.3a)}}",
 "H0100": "Sözdizimi hatası — {error}",
 "H0110": "dosya sonu",
 "H0111": "bir ad",

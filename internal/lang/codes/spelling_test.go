@@ -1,6 +1,9 @@
 package codes
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Kural (2.3a): dilin sözcükleri TR_ ve kimliğin adıyla yazılır, sınıfı yeri belirler. Bu yüzden bir
 // yerde aynı yazımlı iki kimlik olamaz: TR_print öbür yerde tek bir kodu, x.TR_map üye yerinde tek bir
@@ -53,5 +56,23 @@ func TestSpellingAndSuggestion(t *testing.T) {
 	}
 	if got, ok := SuggestIdentity("öğrenci_sayısı"); ok {
 		t.Errorf("kullanıcı adına öneri olmamalı: %q", got)
+	}
+}
+
+// Kural (2.3a): program metninde sınıf öneki yazılmaz (TR_fn_print yerine TR_print). Sözcük
+// çözümleyicinin sınıflı yazımı (TR_<sınıf>_<ad>) sınıfsız yazımdan ayırabilmesi için hiçbir kodun
+// kısa adı bir sınıf önekiyle (<sınıf>_) başlamamalıdır.
+func TestNoShortNameStartsWithAClassPrefix(t *testing.T) {
+	for i, id := range identities {
+		k := Code(i)
+		if id == "" || k == None {
+			continue
+		}
+		short := strings.TrimPrefix(Spelling(k), IdentityPrefix)
+		for _, c := range Classes {
+			if strings.HasPrefix(short, string(c.Class)+"_") {
+				t.Errorf("%s kodunun kısa adı (%s) %s_ sınıf önekiyle başlıyor", k, short, c.Class)
+			}
+		}
 	}
 }

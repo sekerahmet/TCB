@@ -296,6 +296,9 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 			return k
 		}
 	}
+	if l.classedIdentity(place, second, fallback, lit, line, col) {
+		return codes.None
+	}
 	switch l.places.prev {
 	case TokVar, TokConst, TokFunction, TokStruct:
 		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), ileti başka bir ad önerir. Önek
@@ -368,6 +371,9 @@ var removedWords = map[string]messages.Code{
 // identityError place'te geçerli olmayan lit için iletidir: kalkmış sözcükse TR'deki yazımı, başka
 // bir yerde geçerliyse doğru yeri, değilse bu yerde yazımca en yakın kimliği önerir.
 func identityError(place codes.Place, lit string) error {
+	if _, err := classedIdentityError(lit); err != nil {
+		return err
+	}
 	switch removedWords[lit] {
 	case messages.H0021:
 		return messages.New(messages.H0021, lit, codes.Spelling(codes.KwFor))

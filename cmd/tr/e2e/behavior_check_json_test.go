@@ -270,6 +270,27 @@ func TestCheckJSONApplicableFixesMakeTheFileClean(t *testing.T) {
 	if suggestions != 2 {
 		t.Errorf("ad yazılışı ve tanımsız ad için iki öneri bekleniyordu, %d", suggestions)
 	}
+
+	// Sınıflı kimlik yazımları (H0037): sözcüğü değiştirmek yettiğinde applicable düzeltmedir ve
+	// uygulanınca dosya temiz geçer; noktasız üye (TR_mem_length) applicable değildir.
+	classedProg := "# TR 4\nTR_kw_var x: TR_type_Int = [1, 2].TR_mem_map((n) => TR_clamp(n, TR_min: 0, TR_arg_max: 5)).TR_mem_length\nTR_fn_print(x)\n"
+	writeTR(t, dir, "classed.tr", classedProg)
+	cRecords, _ := checkRecords(t, checkJSON(t, dir, "tr", "classed.tr").Stdout)
+	cSource, cApplied := classedProg, 0
+	for i := len(cRecords) - 1; i >= 0; i-- {
+		for _, f := range cRecords[i].Fixes {
+			if f.Applicable {
+				cSource, cApplied = applyFix(t, cSource, f), cApplied+1
+			}
+		}
+	}
+	if cApplied != 6 {
+		t.Fatalf("altı applicable H0037 düzeltmesi bekleniyordu, %d: %+v", cApplied, cRecords)
+	}
+	writeTR(t, dir, "classed_fixed.tr", cSource)
+	if r := checkJSON(t, dir, "tr", "classed_fixed.tr"); r.Code != 0 || r.Stdout != "" {
+		t.Errorf("düzeltilmiş sınıflı kimlik dosyası hatasız geçmeli: çıkış %d\n%s", r.Code, r.Stdout)
+	}
 }
 
 // Birbirine benzeyen iki ad: hata ikinciyi gösterir, ilgili konum ilkini (dosyası, yeri ve iletisiyle).

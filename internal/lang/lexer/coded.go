@@ -111,3 +111,75 @@ func (l *Lexer) nulChar(line, col int) Token {
 	l.readChar()
 	return Token{Type: TokIllegal, Literal: "\x00", Line: line, Column: col}
 }
+
+// verbatim metni ileti şablonuna olduğu gibi geçirir: IdentityNames geçerli bir kimliği (TR_fn_print)
+// görünüm adına (yazdır) çevirmesin diye yazılan sözcük bu türle sarılır.
+type verbatim string
+
+func (v verbatim) MessageText(string) string { return string(v) }
+func (v verbatim) String() string            { return string(v) }
+
+// classedIdentity sınıflı kimlik yazımını (TR_<sınıf>_<ad>) denetler; gerçek bir kimlikse H0037
+// iletisini (ve program sınıflarında düzeltmesini) kaydeder.
+func (l *Lexer) classedIdentity(place, second codes.Place, fallback bool, lit string, line, col int) bool {
+	k, err := classedIdentityError(lit)
+	if err == nil {
+		return false
+	}
+	target, inProgram := codes.PlaceOf(k)
+	if !inProgram {
+		l.addError(line, col, err)
+		return true
+	}
+	applicable := false
+	switch target {
+	case codes.PlaceMember:
+		applicable = l.places.prev == TokDot || l.places.prev == TokSafeDot
+	case codes.PlaceArg:
+		applicable = place == codes.PlaceArg && l.colonAhead()
+	case codes.PlaceOther:
+		applicable = (place == codes.PlaceOther || fallback && second == codes.PlaceOther) &&
+			l.places.prev != TokVar && l.places.prev != TokConst && !(l.places.top().open == TokLBrace && l.colonAhead())
+	}
+	e := l.newError(line, col, err)
+	l.errors = append(l.errors, e.WithFix(messages.Fix{Range: e.Range(), Replacement: codes.Spelling(k), Applicable: applicable}))
+	return true
+}
+
+func classedIdentityError(lit string) (codes.Code, error) {
+	cls := codes.IdentityClass(lit)
+	for _, c := range codes.Classes {
+		if c.Class == cls {
+			if k, err := codes.Parse(lit); err == nil {
+				return k, messages.New(messages.H0037, verbatim(lit), string(cls), classedSpelling(k))
+			}
+			break
+		}
+	}
+	return codes.None, nil
+}
+
+func classedSpelling(k codes.Code) string {
+	if place, ok := codes.PlaceOf(k); ok {
+		s := codes.Spelling(k)
+		switch place {
+		case codes.PlaceMember:
+			return "." + s
+		case codes.PlaceArg:
+			return s + ":"
+		}
+		if k.Class() == codes.ClassFunction {
+			return s + "(...)"
+		}
+		return s
+	}
+	switch k.Class() {
+	case codes.ClassCommand:
+		return "tr " + codes.CommandLineName(k)
+	case codes.ClassSubcommand:
+		return "tr " + codes.CommandLineName(codes.CmdIndex) + " " + codes.CommandLineName(k)
+	case codes.ClassOption:
+		return codes.OptionFlag(k)
+	}
+	return codes.CommandLineName(k)
+}

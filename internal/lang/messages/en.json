@@ -30,6 +30,7 @@
 "H0034": "Cyrillic",
 "H0035": "Greek",
 "H0036": "'{literal}' is not an element index: after the dot a tuple's element is written with decimal digits only, without a leading zero (t.0, t.1, t.10; 3.6a)",
+"H0037": "'{name}' is a class-prefixed identity: {class, select, cmd {this is a command-line name and is not written in programs; use '{suggestion}' on the command line (17.9)} sub {this is a command-line name and is not written in programs; use '{suggestion}' on the command line (17.9)} opt {this is a command-line name and is not written in programs; use the '{suggestion}' option on the command line (17.9)} repl {this is a command-line name and is not written in programs; use the '{suggestion}' command in the interactive shell (17.9)} dbg {this is a command-line name and is not written in programs; use the '{suggestion}' command in the debugger (17.9)} env {this is a command-line name and is not written in programs; use '{suggestion}' as an environment variable (17.9)} mem {the class prefix ('{class}_') is not written in programs, write the member after a dot as '{suggestion}' (2.3a)} arg {the class prefix ('{class}_') is not written in programs, write the named argument as '{suggestion}' (2.3a)} other {the class prefix ('{class}_') is not written in programs, write '{suggestion}' (2.3a)}}",
 "H0100": "Syntax error — {error}",
 "H0110": "end of file",
 "H0111": "a name",

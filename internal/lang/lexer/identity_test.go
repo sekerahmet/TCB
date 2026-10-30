@@ -72,3 +72,81 @@ func TestAnOldConversionNameSuggestsTheType(t *testing.T) {
 		t.Errorf("TR_prnt: %v", err)
 	}
 }
+
+// Kural (2.3a, 17.9): program metninde sınıflı kimlik (TR_<sınıf>_<ad>) yazılırsa H0037 yazılanı
+// anar ve doğru yazımı önerir; program sınıflarında önerilen yazım çalışır ve sözcüğü değiştirmek
+// yetiyorsa düzeltme applicable'dır. Gerçek kimlik olmayan sınıflı yazım bugünkü H0001 yolunda kalır.
+func TestClassPrefixedIdentitiesSuggestWorkingSpelling(t *testing.T) {
+	if len(codes.Classes) != 14 {
+		t.Fatalf("14 sınıf bekleniyordu, %d bulundu", len(codes.Classes))
+	}
+	samples := map[codes.Class]struct {
+		code codes.Code
+		src  string
+		want string
+	}{
+		codes.ClassKeyword:     {codes.KwIf, "TR_kw_if TR_true { TR_print(1) }", "TR_if"},
+		codes.ClassContextual:  {codes.CtxAs, "TR_import \"tr/math\" TR_ctx_as m\nTR_print(1)", "TR_as"},
+		codes.ClassValueName:   {codes.ValInf, "TR_print(TR_val_inf)", "TR_inf"},
+		codes.ClassType:        {codes.TypeInt, "TR_var x: TR_type_Int = 1\nTR_print(x)", "TR_Int"},
+		codes.ClassFunction:    {codes.FnPrint, "TR_fn_print(\"x\")", "TR_print(...)"},
+		codes.ClassConstant:    {codes.ConstPi, "TR_print(TR_const_pi)", "TR_pi"},
+		codes.ClassNamedArg:    {codes.ArgMax, "TR_print(TR_clamp(5, TR_min: 0, TR_arg_max: 3))", "TR_max:"},
+		codes.ClassMember:      {codes.MemMap, "TR_print([1, 2].TR_mem_map((x) => x + 1))", ".TR_map"},
+		codes.ClassCommand:     {codes.CmdRun, "TR_cmd_run", "tr run"},
+		codes.ClassSubcommand:  {codes.SubDefinition, "TR_sub_definition", "tr index definition"},
+		codes.ClassOption:      {codes.OptLang, "TR_opt_lang", "--lang"},
+		codes.ClassShell:       {codes.ReplExit, "TR_repl_exit", "exit"},
+		codes.ClassDebugger:    {codes.DbgStep, "TR_dbg_step", "step"},
+		codes.ClassEnvironment: {codes.EnvLang, "TR_env_LANG", "TR_LANG"},
+	}
+	for _, c := range codes.Classes {
+		s, ok := samples[c.Class]
+		if !ok || s.code.Class() != c.Class {
+			t.Fatalf("%s sınıfı için örnek eksik ya da yanlış: %+v", c.Class, s)
+		}
+		checkClassedSample(t, s.code, s.src, s.want)
+	}
+	if _, err := classedIdentityError(codes.OptGoProfile.String()); err == nil || !strings.Contains(err.Error(), "'--go-profile'") {
+		t.Errorf("TR_opt_go_profile: %v", err)
+	}
+	for _, src := range []string{"TR_mem_map(x)", "TR_arg_max"} {
+		l := NewBody(src, true)
+		allOf(l)
+		if len(l.Errs()) != 1 || !messages.Has(l.Errs()[0], messages.H0037) || l.Errs()[0].(*messages.PosError).Fixes[0].Applicable {
+			t.Errorf("%q: applicable olmayan H0037 bekleniyordu: %+v", src, l.Errs())
+		}
+	}
+	if l := NewBody(codes.IdentityPrefix+string(codes.ClassFunction)+"_yok", true); allOf(l) == nil || len(l.Errs()) != 1 || !messages.Has(l.Errs()[0], messages.H0001) {
+		t.Errorf("var olmayan sınıflı kimlik H0001 vermeli: %v", l.Errors())
+	}
+}
+
+func checkClassedSample(t *testing.T, k codes.Code, src, want string) {
+	t.Helper()
+	l := NewBody(src, true)
+	allOf(l)
+	if len(l.Errs()) != 1 || !messages.Has(l.Errs()[0], messages.H0037) {
+		t.Fatalf("%s (%s): H0037 bekleniyordu, gelen: %v", k.Class(), k, l.Errors())
+	}
+	pe := l.Errs()[0].(*messages.PosError)
+	trMsg, enMsg := messages.ErrorIn(pe, "tr"), messages.ErrorIn(pe, "en")
+	for _, msg := range []string{trMsg, enMsg} {
+		if !strings.Contains(msg, "'"+k.String()+"'") || !strings.Contains(msg, "'"+want+"'") {
+			t.Errorf("%s: ileti %q ve %q içermeli: %s", k.Class(), k.String(), want, msg)
+		}
+	}
+	if _, inProgram := codes.PlaceOf(k); !inProgram {
+		if !strings.Contains(trMsg, "bu bir komut satırı adıdır") || !strings.Contains(enMsg, "this is a command-line name") || len(pe.Fixes) != 0 {
+			t.Errorf("%s: komut satırı iletisi ya da düzeltmesi hatalı:\ntr: %s\nen: %s\nfixes: %+v", k.Class(), trMsg, enMsg, pe.Fixes)
+		}
+		return
+	}
+	if len(pe.Fixes) != 1 || !pe.Fixes[0].Applicable || pe.Fixes[0].Replacement != codes.Spelling(k) {
+		t.Fatalf("%s: düzeltme %+v, beklenen applicable replacement=%q", k.Class(), pe.Fixes, codes.Spelling(k))
+	}
+	fixed := strings.Replace(src, k.String(), pe.Fixes[0].Replacement, 1)
+	if l2 := NewBody(fixed, true); allOf(l2) == nil || len(l2.Errs()) != 0 {
+		t.Errorf("%s: önerilen yazım (%q) hatasız okunmalı: %v", k.Class(), fixed, l2.Errors())
+	}
+}
