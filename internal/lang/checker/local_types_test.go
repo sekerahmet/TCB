@@ -52,7 +52,7 @@ func TestLocalTypeIsPermanent(t *testing.T) {
 // denetleyicinin tanımadığı tip (ör. TR_JSON; tip parametresi, arayüz) değişkene verilmez; değişken TR_Any kalır.
 func TestLocalTypeUnknownStaysAny(t *testing.T) {
 	noErrors(t, "TR_var a = TR_none\na = 5\na = \"x\"")
-	noErrors(t, "TR_var a = TR_input()\na = 5\na = \"x\"")
+	noErrors(t, "TR_var a = TR_json_parse(\"1\")\na = 5\na = \"x\"")
 	noErrors(t, "TR_func oku() -> TR_JSON {\n    TR_return TR_json_parse(\"1\")\n}\nTR_var y = oku()\ny = \"a\"")
 }
 
@@ -61,29 +61,29 @@ func TestLocalTypeUnknownStaysAny(t *testing.T) {
 func TestOperatorTypes(t *testing.T) {
 	const n, f, s, ten = "TR_var n = 2\n", "TR_var f = 0.5\n", "TR_var s = \"a\"\n", "TR_var t = TR_Tensor([1.0]) @ TR_Tensor([1.0])\n"
 	expectTypes(t, map[string]string{
-		"TR_var v = 1":                      typeInt,
-		"TR_var v = 1.5":                    typeFloat,
-		"TR_var v = \"a\"":                  typeString,
-		"TR_var v = TR_true":                typeBool,
-		n + "TR_var v = -n":                 typeInt,
-		f + "TR_var v = -f":                 typeFloat,
-		s + "TR_var v = -s":                 typeAny,
-		n + "TR_var v = TR_not n > 1":       typeBool,
-		n + "TR_var v = n / 2":              typeFloat,
-		n + "TR_var v = n // 2":             typeInt,
-		n + f + "TR_var v = n * f":          typeFloat,
-		n + "TR_var v = n == 2":             typeBool,
-		n + "TR_var v = n > 1 TR_and n < 3": typeBool,
-		s + "TR_var v = s * 3":              typeString,
-		s + "TR_var v = 3 * s":              typeString,
-		"TR_var v = [1] + [2]":              listType(typeInt),
-		"TR_var v = [1] + [\"a\"]":          typeList,
-		"TR_var v = [0] * 4":                listType(typeInt),
-		ten + "TR_var v = t * 2":            typeTensor,
-		ten + "TR_var v = 1.0 - t":          typeTensor,
-		ten + "TR_var v = -t":               typeTensor,
-		s + "TR_var v = s - 1":              typeAny,
-		"TR_var v = TR_input() + 1":         typeAny,
+		"TR_var v = 1":                        typeInt,
+		"TR_var v = 1.5":                      typeFloat,
+		"TR_var v = \"a\"":                    typeString,
+		"TR_var v = TR_true":                  typeBool,
+		n + "TR_var v = -n":                   typeInt,
+		f + "TR_var v = -f":                   typeFloat,
+		s + "TR_var v = -s":                   typeAny,
+		n + "TR_var v = TR_not n > 1":         typeBool,
+		n + "TR_var v = n / 2":                typeFloat,
+		n + "TR_var v = n // 2":               typeInt,
+		n + f + "TR_var v = n * f":            typeFloat,
+		n + "TR_var v = n == 2":               typeBool,
+		n + "TR_var v = n > 1 TR_and n < 3":   typeBool,
+		s + "TR_var v = s * 3":                typeString,
+		s + "TR_var v = 3 * s":                typeString,
+		"TR_var v = [1] + [2]":                listType(typeInt),
+		"TR_var v = [1] + [\"a\"]":            typeList,
+		"TR_var v = [0] * 4":                  listType(typeInt),
+		ten + "TR_var v = t * 2":              typeTensor,
+		ten + "TR_var v = 1.0 - t":            typeTensor,
+		ten + "TR_var v = -t":                 typeTensor,
+		s + "TR_var v = s - 1":                typeAny,
+		"TR_var v = TR_json_parse(\"1\") + 1": typeAny,
 	})
 }
 
@@ -140,7 +140,7 @@ func TestCollectionLiteralTypes(t *testing.T) {
 		"TR_var v = [1, TR_none]":                         listType(typeInt + "?"),
 		"TR_var v = [1.0, TR_none, 2]":                    listType(typeFloat + "?"),
 		"TR_var v = [TR_none, TR_none]":                   typeList,
-		"TR_var v = [TR_input()]":                         typeList,
+		"TR_var v = [TR_json_parse(\"1\")]":               typeList,
 		"TR_var v = {\"a\": 1}":                           containerType(typeDict, []string{str, typeInt}),
 		"TR_var v = {1: [\"a\"]}":                         containerType(typeDict, []string{typeInt, listType(str)}),
 		"TR_var v = {}":                                   typeDict,
@@ -160,7 +160,7 @@ func TestCollectionElementTypes(t *testing.T) {
 	singleErrorIn(t, "en", `TR_var l: TR_List[TR_Int] = ["a"]`, messages.H1001, 1, "List[Int]", "List[String]")
 	noErrors(t, "TR_var l: TR_List[TR_Int] = []\nl = [1, 2]\nTR_var f: TR_List[TR_Float] = [1, 2]\nTR_var d: TR_Dict[TR_String, TR_Float] = {\"a\": 1}")
 	noErrors(t, "TR_var l = [1]\nl = []\nl += [2]\nl = l + [3]\nl = l * 2")
-	noErrors(t, "TR_func f(l: TR_List[TR_Int]) { }\nf([1])\nf([])\nTR_var m = [TR_input()]\nf(m)")
+	noErrors(t, "TR_func f(l: TR_List[TR_Int]) { }\nf([1])\nf([])\nTR_var m = [TR_json_parse(\"1\")]\nf(m)")
 	noErrors(t, shapes+"TR_var l: TR_List[Şekil] = [Kare(1.0)]")
 }
 
@@ -172,7 +172,7 @@ func TestTupleTypes(t *testing.T) {
 	expectTypes(t, map[string]string{
 		"TR_var v = (1, \"a\")":                            pair,
 		"TR_var v = (1, (2.5, TR_true))":                   tupleType([]string{typeInt, tupleType([]string{typeFloat, typeBool})}),
-		"TR_var v = (1, TR_input())":                       typeAny,
+		"TR_var v = (1, TR_json_parse(\"1\"))":             typeAny,
 		"TR_var p = (1, \"a\")\nTR_var v = p.1":            typeString,
 		"TR_var p = (1, (2.5, TR_true))\nTR_var v = p.1.0": typeFloat,
 		"TR_var p = (1, \"a\")\nTR_var v = p.2":            typeAny,
@@ -215,7 +215,7 @@ func TestFieldTypes(t *testing.T) {
 		nokta + "TR_var v = p.iki()":                       typeFloat,
 		nokta + "TR_var v = p.y":                           typeAny,
 		nokta + "TR_var v = p?.x":                          typeAny,
-		"TR_var p = TR_input()\nTR_var v = p.x":            typeAny,
+		"TR_var p = TR_json_parse(\"1\")\nTR_var v = p.x":  typeAny,
 		"TR_enum D {\n    A(n: TR_Int)\n}\nTR_var v = D.A": typeAny,
 	})
 	singleError(t, nokta+"TR_var v = p.x\nv = \"a\"", messages.H1005, 11, "TR_Float")
@@ -255,7 +255,7 @@ func TestLoopVariableTypes(t *testing.T) {
 	} {
 		singleError(t, "TR_for "+head+" {\n    TR_var s: TR_Bool = x\n}", messages.H1001, 2, `"`+want+`"`)
 	}
-	noErrors(t, "TR_for x TR_in TR_input() {\n    TR_var s: TR_Bool = x\n}")
+	noErrors(t, "TR_for x TR_in TR_json_parse(\"1\") {\n    TR_var s: TR_Bool = x\n}")
 	noErrors(t, "TR_var l = [1, \"a\"]\nTR_for x TR_in l {\n    TR_var s: TR_Bool = x\n}")
 	singleError(t, "TR_func f(n: TR_Int) -> TR_Int {\n    TR_return n\n}\nTR_var l = [f(x) TR_for x TR_in [\"a\"]]", messages.H1004, 4, `"TR_String"`)
 }

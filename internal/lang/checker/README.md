@@ -46,7 +46,8 @@ tipi ilk değerinin çıkarılan tipidir; sonraki atama ona uyar (H1005: `TR_var
 `TR_none` ve denetleyicinin tanımadığı tip (`local_types.go`, `knownType`) değişkeni `TR_Any` bırakır.
 İşlecin sonucu çalışma anının kuralıyla çıkar (önek `-`, metnin ve listenin `+` ve `*`'ı, tensörün
 aritmetiği). Çağrının tipi tipli fonksiyonun dönüşü, yapı kurucusunda yapının kendisi (`Nokta(1, 2)` →
-`Nokta`), tipi bilinen yapı nesnesinin metodunda metodun dönüşüdür. İki kullanıcı tipi ancak ikisi de
+`Nokta`), tipi bilinen yapı nesnesinin metodunda metodun dönüşü, yerleşikte tanım dosyasının tek tipli dönüşüdür
+(`builtin_returns.go`; motorla uyuştuğu `TestSingleReturnsMatchEngine` ile sınanır, uyuşmayan `ReturnsNotVerified`'dadır). İki kullanıcı tipi ancak ikisi de
 programın yapısıysa ve ayrıysa uyumsuzdur; arayüz ya da bilinmeyen tip yapıyı karşılayabilir
 (`type_shapes.go`). Liste ve sözlüğün tipi öğe tipini taşır (`[1, 2]` → `TR_List[TR_Int]`, yazılan
 `TR_List[TR_Int]` de); boş ya da karışık değişmez öğe tipsizdir (`TR_List`) ve asıl adla karşılaştırılır.

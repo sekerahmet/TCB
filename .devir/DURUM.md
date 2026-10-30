@@ -1,6 +1,8 @@
+# BİTTİ
+
 # DURUM — Faz 1, 4a2 ilk dilim (dal `claude/upbeat-hypatia-c890s3`)
 
-- Başlama: 2026-10-30 13:14 UTC. Taban: `main` `5c90d096`.
+- Başlama: 2026-10-30 13:14 UTC. Bitiş: 2026-10-30 14:11 UTC. Taban: `main` `5c90d096`.
 - Sıra: 1 (13.10) → 2b (argüman sayısı) → 2a (metodu olmayan tip) → 4 (3.10) → 3 (dönüş tipi).
 
 ## Adım 1 — değeri kullanılmayan çağrı (13.10): bitti
@@ -45,7 +47,26 @@
   - `cmd/tr/e2e` `TestExtensionTemplatesBuild`: eklenti şablonunun yer tutucusu (`TR_if koşul`) `TR_var koşul = 1` diye tanımlanıyordu; artık `TR_var koşul: TR_Any = 1`.
   - Bulunan yanlış: 0.
 
+## Adım 3 — yerleşik çağrının dönüş tipi (1.2, 13.9): bitti
+
+- **Ön şart:** `TestSingleReturnsMatchEngine` (`internal/stdlib/behavior_returns_test.go`): tek tipli dönüşü olan her yerleşiğin (fonksiyon, bütün alıcılarında aynı tek tipi döndüren metot, tip çağrısı; `checker.SingleReturn`) tanım örneğindeki her çağrısı, beklenen tipte yazılmış bir kayıt fonksiyonuyla sarılıp koşuluyor; çalışırken dönen tip `returns` değilse kaydediliyor. **97 kod doğrulandı**; uyuşmayan tek kod `TR_json_parse` (bulunan yanlış), `checker.ReturnsNotVerified`'da, çıkarıma girmiyor. Örnekte çağrısı olmayan ya da örneği bitmeyen kod çıkmadı.
+- **Çıkarım** (`builtin_returns.go`, `callType`): tek tipli dönüş denetleyicinin tanıdığı çekirdek tipse çağrının tipi o (kap öğe tipsiz: `TR_List`); `TR_BuiltinFunction` 13.9'a göre `TR_Function` sayılıyor (yoksa `TR_replay`'in değeri `TR_Function` parametresine verilince yanlış alarm çıkıyordu: `TestReplayMatchesDirectCalls`). Birleşim, `TR_Any`, yokluk, alıcıya göre değişen dönüş (`.TR_reverse`: metinde metin) ve tanınmayan tip (`TR_Path`, `TR_JSON` ...) `TR_Any` kalıyor.
+- **`TestRepoFirstValueTypes`'ın `TR_Any` sayısı:** önce 1115 / 1894 ilk değer (çağrı 927), sonra **622** / 1893 (çağrı 461). (Bir ilk değer eksik: `tests/tensor_test.tr`'den taşınan satır.)
+- **Testler:** `TestBuiltinReturnTypes` (checker; 12 tip, H1005), `TestSingleReturnsMatchEngine` (stdlib, ön şart), `TestConditionMustBeBool`'a tensör koşulu.
+- **Yeni hatalar:** 1 depo `.tr` + 15 Go testi; bulunan yanlış 1 (yanlış alarm), gerisi **testin konusu / testin aracı**:
+  - **bulunan yanlış (denetleyicinin):** `TR_BuiltinFunction` dönüşü `TR_Function` parametresine uymuyor sayılıyordu (`internal/stdlib/ml` `TestReplayMatchesDirectCalls`); dönüş fonksiyon tipi sayılarak düzeldi.
+  - testin konusu: `tests/tensor_test.tr:55` `TR_error_code { TR_var z = TR_not TR_Tensor([0.0]) }` (çalışma anı H2601) → olumsuz fikstüre; `internal/stdlib/ml` `TestTensorIsNotACondition` tensörü `TR_no_grad { ... }` ile (tipi bilinmeyen) verip çalışma anı yolunu sınamaya devam ediyor.
+  - testin aracı: denetleyici testlerinde "tipi bilinmeyen değer" olarak kullanılan `TR_input()` (11 yer: `checker_test.go`, `local_types_test.go`, `block_values_test.go`) artık `TR_String`; yerine `TR_json_parse("1")` (`TR_JSON` denetleyicide tanınmıyor). `TestTypedVarCompatible`'ın `TR_var a: TR_Int = TR_print("x")` satırı `TR_abs(-5)` (birleşim dönüş) oldu. E2e şablon testinin yer tutucusu da `TR_json_parse("1")`.
+- `TR_input()` yerine konan `TR_json_parse("1")` geçici bir araç: denetleyici `TR_JSON`'u tanıyınca bu testler yeniden bilinmeyen kaynak ister.
+
 ## Kalan
+
+- Bu dilimin adımları bitti. "İkinci dilime" listesi aşağıda; ek olarak bu dilimde açılanlar:
+  - fonksiyonların argüman sayısı ve H2011 iletisinin kimliğe geçmesi (bugün yalnız metotlar);
+  - tensör ve kitaplık tiplerinin metotlarının sayı denetimi (motor sayıları tanımla sınanmadı);
+  - alıcıya göre değişen dönüş (`.TR_reverse`, `.TR_get` ...) alıcının tipiyle seçilebilir; doğrulama testi de alıcı başına olmalı;
+  - `.TR_filter`'ın yükleminin `TR_Bool` dönüşü (fonksiyon tipleri).
+
 
 ## Kararsız
 
@@ -57,6 +78,11 @@
 
 ## Bulunan yanlış
 
+- **`TR_json_parse`'ın dönüşü:** tanım `TR_JSON`, motor `TR_Dict` veriyor (status 13.8'de bilinen; `TestSingleReturnsMatchEngine` ölçtü). Düzeltilmedi; `checker.ReturnsNotVerified`'da.
+- **`TR_print`'in dönüşü:** tanım ve motor `TR_String` veriyor; 13.10 "anlamsız dönüş yoktur" diyor (`TR_print` değer döndürmez). Uyuştukları için çıkarıma giriyor (`TR_var a: TR_Int = TR_print("x")` artık H1005). Düzeltilmedi.
+- **`TR_topk`:** tanım ve motor liste, 15.21 demet diyor (görevde bilinen); tanım ve motor uyuştuğu için test yakalamaz, çıkarımda `TR_List`.
+- **Denetleyicinin `TR_BuiltinFunction`'ı:** `TR_Function` yerine verilemiyor sayılıyor (13.9'a aykırı); yerleşik dönüşünde fonksiyon tipi sayılarak aşıldı, tip uyumu kuralının kendisi değişmedi.
+
 - **Tanım dosyasının `types`'ı eksik (2a'nın ön şartı):** `TestMemberTypesMatchDefinitions` `TR_JSON`'u, `TR_Bytes`'ı, yokluğu, iletiyi, tipi, yapıyı ve nesnesini kapsamıyordu; genişletildi. Motor `.TR_get` ve `.TR_length`'i `TR_JSON` ve `TR_Bytes`'ta, `.TR_keys`'i `TR_JSON`'da da destekliyor; tanım yalnız Metin/Liste/Sözlük diyor. Düzeltilmedi: üç kod `checker.MembersBeyondDefinitions`'ta, metodu olmayan tip kuralına (2a) girmiyor; test listeyle tanımın uyuşmamasını bekliyor (tanım düzelince listeden çıkar). Denetleyici `TR_JSON` ve `TR_Bytes`'ı bugün tanımadığı için yanlış alarm zaten çıkmazdı.
 - **13.3 ile motor çelişiyor:** dil tanımı `.TR_sort(f)`'i (anahtarlı sıralama) kural olarak yazıyor; motor ve tanım dosyası `.TR_sort()`'u argümansız veriyor. Görev "sıralama anahtarı ayrı dil kararı" dediği için ileti "henüz yok" diyor; status 13.3'e yazıldı.
 
@@ -65,6 +91,9 @@
 - `tools/codegraph`'ın `TestEveryTrackedDataFileHasATestOrAReason` testi bu dalda yalnız `.devir/DURUM.md` yüzünden düşüyor (izlenen, teste bağlı olmayan veri dosyası; `uncovered_data.txt` yalnız küçülür). 4a1 dalında da aynı; birleştirmede `.devir` dışarıda kalırsa geçer. Başka bir çözüm isteniyorsa söyleyin.
 
 ## Codegraph
+
+- **Eksik (2b–3):** `tests-for`'un `run:` satırları `internal/stdlib/ml`'i (`TestReplayMatchesDirectCalls`, `TestTensorIsNotACondition`: TR programlarını önce denetleyiciden geçiren Go testleri) ve `tools/gen/codeconsts`'un `TestNoBareNames`'ini saymadı; ikisi yalnız ağacın tamamı koşulunca çıktı. 2b'nin commit'i `TestNoBareNames`'te ve `TestReviewedSectionsWriteIdentities`'te kırıktı (2a'da düzeldi).
+- `TestPlanningQuestionsAreAnswered` her tam koşuda geçti; düşen sınav satırı olmadı, `planning_questions.txt` değişmedi.
 
 - **Eksik (adım 1, kendi hatam da):** adım 1'in commit'inden önce `go test ./cmd/...` koşmadım; `tests-for definition.go`/`checker.go`'nun `run:` satırları `cmd/tr/e2e`'yi (belge blokları `TestDocTRCodeBlocks`, eklenti şablonları `TestExtensionTemplatesBuild`) saymıyordu, oysa yeni denetim kuralı oradaki TR kodunu da denetliyor. Adım 1'in commit'i (`661d62b`) bu iki testte kırıktı; 2b'nin commit'inde düzeltildi (belge bloğu `TR_print` ile, şablon testi metot şablonunu atamanın sağına yazıyor).
 
