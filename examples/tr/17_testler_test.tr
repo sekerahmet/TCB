@@ -31,8 +31,8 @@ TR_struct Sepet {
     }
 }
 
-# Bu satır her iki kipte de çalışır: testlerden önce dosyanın kendisi çalışır.
-TR_print("Test blokları yalnızca şu komutla çalışır: tr test examples/tr/17_testler_test.tr")
+# Test dosyasının en dışında yalnız tanımlar ve testler bulunur (1.1, 12.5): ortak kurulum bir
+# fonksiyondur, her test onu kendisi çağırır.
 
 # --- Testler ---
 TR_test "toplama" {
