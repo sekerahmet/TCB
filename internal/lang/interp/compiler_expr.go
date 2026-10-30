@@ -145,7 +145,6 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 				Body:       e.Body,
 				Env:        env,
 				codeVal:    fk,
-				ReturnType: e.ReturnType,
 			}
 			if definition != nil {
 				definition(env, fn, false)

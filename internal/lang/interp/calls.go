@@ -302,15 +302,9 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 			fnEnv.store(slot, Null)
 		}
 	}
-	if witnessOn() {
-		v.witnessParams(fn, fk, fnEnv)
-	}
 	val, sig, err := fk.bodyBlock.run(v, fnEnv)
 	if err != nil {
 		return nil, err
-	}
-	if witnessOn() && sig == signalReturn {
-		v.witnessReturn(fn, fk, fnEnv, val)
 	}
 	if sig != signalReturn && !fk.blockValue {
 		return Null, nil // örtük dönüş yoktur (6.2): TR_return'süz biten fonksiyon değer döndürmez

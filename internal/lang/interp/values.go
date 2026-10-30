@@ -467,7 +467,6 @@ type FuncVal struct {
 	Body       *ast.BlockStatement
 	Env        *Environment
 	BoundSelf  Value
-	ReturnType *ast.TypeRef // GEÇİCİ: tip tanığı
 	// codeVal fonksiyonun derlenmiş hâlidir (nil ise ilk çağrıda derlenir).
 	codeVal *funcCode
 }
@@ -533,8 +532,7 @@ type StructDefVal struct {
 	// Kind tanımın türüdür: yapı, durumlu tip (Variants) ya da arayüz (Methods yalnız imza; enum_ops.go).
 	Kind ast.StructKind
 	// Variants durumlu tipin durumlarıdır, tanım sırasıyla.
-	Variants      []*VariantDef
-	witnessSource *Source // GEÇİCİ: tip tanığı
+	Variants []*VariantDef
 }
 
 func (s *StructDefVal) Type() ValueType { return ValStruct }
