@@ -1,6 +1,8 @@
+# BİTTİ
+
 # DURUM — Faz 0.9: TR kodunun tipli yazıma göçü
 
-Başlama: 2026-10-30 04:50 UTC. Bitiş: (aşağıda, `# BİTTİ` ile). Dal: `claude/vibrant-feynman-b6x2dz`, taban `main` 862d848 (origin/main bir commit ilerde: 1ec69a3, debugger/vscode; bu işin dosyalarına dokunmuyor).
+Başlama: 2026-10-30 04:50 UTC. Bitiş: 2026-10-30 05:38 UTC. Dal: `claude/vibrant-feynman-b6x2dz`, taban `main` 862d848 (origin/main bir commit ilerde: 1ec69a3, debugger/vscode; bu işin dosyalarına dokunmuyor).
 
 ## Birleştirme (cherry-pick) notu
 
@@ -106,4 +108,8 @@ Main'e girmeyecek dört commit: tanığın iki commit'i ve onları geri alan iki
 - `go run ./cmd/tr test tests`: 352/352; `go run ./cmd/tr test lib`: 69/69.
 - `go run ./tools/codegraph spec-refs`: "278 item(s), 3709 mention(s), 0 error(s), 0 note(s)".
 - `TestTRCodeIsTyped`: geçti, 46 satır.
-- `go test ./internal/... ./cmd/... ./tools/...`: (aşağıda)
+- `go test ./internal/... ./cmd/... ./tools/...` (bir kez, sonda): iki düşüş çıktı, biri düzeltildi:
+  - `internal/reporoot` `TestTestsListFilesThroughReporoot`: yeni depo testi `filepath.WalkDir`/`Glob` kullanıyordu; `reporoot.WalkDir`/`Glob`'a çevrildi (`internal: TestTRCodeIsTyped lists files through reporoot`). Ardından `tools/codegraph` `TestEveryRepositoryScanIsRecognized` taramayı tanıyor (yeniden koşuldu, geçti).
+  - `tools/codegraph` `TestEveryTrackedDataFileHasATestOrAReason`: yalnız `.devir/DURUM.md` (bu devir dosyası; main'e girmez, main'de düşüş yok). Dokunulmadı (codegraph alanı).
+  - Öbür bütün paketler geçti (`cmd/tr/e2e` dahil: örnekler iki gösterim dilinde aynı, belge blokları, şablonlar, hata örnekleri).
+- Tanığın geri alınmasından sonra `internal/lang/interp` ve `internal/stdlib/ml`'nin kaynak (test dışı) dosyaları tabanla aynı [ölçüldü: `git diff 862d848`].
