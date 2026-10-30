@@ -161,6 +161,8 @@
 "H1104": { "param": ["closest"] },
 "H1105": { "param": ["fn", "op", "text", "example"] },
 "H1106": { "param": ["name", "suggestion"] },
+"H1107": { "param": ["file", "func", "body"] },
+"H1108": { "param": ["file", "name", "part", "func", "fn", "type", "return", "value"] },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

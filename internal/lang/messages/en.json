@@ -161,6 +161,8 @@
 "H1104": ". Did you mean '{closest}'?",
 "H1105": "a type value cannot be compared with a string: instead of {fn}(x) {op} {text|q} write {fn}(x) {op} {example} (type names are written without quotes)",
 "H1106": "there is no variable or function named '{name}'{suggestion}",
+"H1107": "only definitions are written at the top level of {file, select, testfile {a test file} other {a module}}; this statement does not run {file, select, testfile {outside the tests} other {when the module is imported}} (1.1): move it into a function and call setup() {file, select, testfile {in the test that needs it} other {in the importing program}}:\n{func} setup() {{\n{body}\n}}",
+"H1108": "the first value of {name|q} at the top level of {file, select, testfile {a test file} other {a module}} is not a constant expression: {part|q} is not constant (loading {file, select, testfile {a test file} other {a module}} runs no code, 1.1). Build the value in a function; each function or test that uses it calls {fn}() once and keeps the result in a variable:\n{func} {fn}(){type, select, empty {} other { -> {type}}} {{\n    {return} {value}\n}}",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

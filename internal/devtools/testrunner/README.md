@@ -37,4 +37,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_identity_exceptions_test.go`: kimlik istisnaları tablosunda (`identityExceptions`) dil tanımından çıkmış ya da artık kod olmuş bayat girdi kalmaması
 - `behavior_language_spec_test.go`: dil belirtimindeki her kuralın kendi bölümünde olması ve bir testi bulunması; belirtim testlerinin geçmesi
+- `behavior_negative_fixtures_test.go`: olumsuz fikstürlerin (`tests/negative/`) etiketlediği tanıları, yalnız onları vermesi; başka bir fikstürün aktardığı fikstür modül olarak denetlenir
 - `behavior_rationale_test.go`: gerekçe dosyalarının (`docs/spec/rationale/`) düzeni ve kural numaralarıyla eşleşmesi

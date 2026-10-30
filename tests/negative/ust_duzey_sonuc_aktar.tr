@@ -1,0 +1,4 @@
+# TR 4
+TR_import "ust_duzey_sonuc" # RUN-ERROR H0154
+# TEST 11.4 aktarılan modülün en dışındaki TR_return aktarılınca hatadır; hiçbir satır çalışmaz
+TR_print("bu satır çalışmamalı")

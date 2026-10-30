@@ -2,7 +2,11 @@
 # moduller_test.tr tarafından aktarılan yardımcı modül (kendisi test dosyası değildir)
 TR_const PI = 3
 TR_var kayıt = []
+# 1.1: en dıştaki ilk değer sabit ifadedir (sabitler, işlemleri, liste ve sözlük, fonksiyon adı).
+TR_const ÖLÇÜLER = {"pi": PI, "pi_kare": PI * PI, "kenarlar": [PI, PI + 1]}
 
 TR_func kare(x: TR_Int) -> TR_Int {
     TR_return x * x
 }
+
+TR_const KARE_AL = kare

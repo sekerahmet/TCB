@@ -5,7 +5,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 Her kuralın emsali ve gerekçesi: [`rationale/01_program.md`](rationale/01_program.md).
 
 **1.1** Program, `tr`'ye verilen tek bir `.tr` dosyasıdır; en dışındaki deyimler yukarıdan aşağı çalışır, `main` yoktur. Modül (`TR_import` ile alınan dosya) ve test dosyası en dışta yalnız tanım içerir: `TR_func`, `TR_struct`, `TR_enum`, `TR_interface`, `TR_const`, `TR_var`, `TR_import`; test dosyasında `TR_test` de. Oradaki `TR_const` ve `TR_var`'ın ilk değeri sabit ifadedir: sayı; yerleştirdiği ifadeler sabit olan metin (2.7); mantık değeri; `TR_none`; başka bir sabit ve bunların işlemleri; öğeleri sabit liste ve sözlük; alanları sabit olan kurucusuz yapı ve durumlu tip değeri; sabit argümanlı `TR_Bytes(...)` (bayt dizisi değiştirilemez); fonksiyon adı ya da dış değişken yakalamayan fonksiyon ifadesi; sonucu yalnız argümanına bağlı sayı yerleşiği (`TR_sqrt(64.0)`); fonksiyonu çalıştırmadan fonksiyon döndüren yerleşik (`TR_fuse`, `TR_replay`, `TR_custom_grad`). Başka çağrı yoktur; modül aktarmak kod çalıştırmaz.
-- *Test:* Go: `TestProgramRunsTopToBottom`. Modül ve test dosyası kısmı uygulanınca denetleyicinin testleri.
+- *Test:* TR testi (`tests/moduller_test.tr`); Go: `TestProgramRunsTopToBottom`, `TestModuleTopLevelHoldsOnlyDefinitions`, `TestModuleFirstValuesAreConstant`, `TestModuleRuleSuggestionRuns`, `TestRepoModulesHoldOnlyDefinitions`; olumsuz fikstür `tests/negative/modul_en_dis.tr`.
 
 ```tr
 # TR 4

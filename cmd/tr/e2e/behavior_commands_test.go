@@ -394,13 +394,14 @@ func TestCheckModules(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "check", "ana.tr"), 0, []string{"başarıyla denetlendi"}, nil)
 }
 
-// Modüldeki çalışma hatası modülün adı, satırı ve kod çerçevesiyle yazılır.
+// Modüldeki çalışma hatası modülün adı, satırı ve kod çerçevesiyle yazılır. Modülün en dışı çalışmaz
+// (1.1): hata modülün fonksiyonunda.
 func TestModuleRunErrorFrame(t *testing.T) {
 	dir := t.TempDir()
-	writeTR(t, dir, "ana.tr", "TR_import \"m2\"\n\nTR_print(1)\n")
-	writeTR(t, dir, "m2.tr", "TR_var x = 1\n\nTR_var z = x / 0\n")
+	writeTR(t, dir, "ana.tr", "TR_import \"m2\"\n\nTR_print(z())\n")
+	writeTR(t, dir, "m2.tr", "TR_var x = 1\n\nTR_func z() -> TR_Float {\n    TR_return x / 0\n}\n")
 	s := tr(t, dir, "ana.tr")
-	testkit.Wait(t, s, 1, nil, []string{"• m2.tr, Satır 4: Sıfıra bölme hatası", "4 | TR_var z = x / 0"})
+	testkit.Wait(t, s, 1, nil, []string{"• m2.tr, Satır 5: Sıfıra bölme hatası", "5 |     TR_return x / 0"})
 	if strings.Contains(s.Stderr, "TR_import \"m2\"") {
 		t.Errorf("çerçeve ana programın satırını göstermemeli:\n%s", s.Stderr)
 	}

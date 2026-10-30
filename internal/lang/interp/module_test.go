@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -66,7 +67,7 @@ func TestModulePassesTypeCheck(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	out, err := runWithModules(t, root, map[string]string{
-		"m5.tr":  "TR_var t: TR_Int = \"metin\"\nTR_func f(a: TR_Int) -> TR_Int { TR_return \"yanlış tip\" }\nTR_print(\"m5 çalıştı\")\n",
+		"m5.tr":  "TR_var t: TR_Int = \"metin\"\nTR_func f(a: TR_Int) -> TR_Int { TR_return \"yanlış tip\" }\nTR_func g() {\n    TR_print(\"m5 çalıştı\")\n}\n",
 		"ana.tr": "TR_import \"m5\"\n",
 	})
 	if err == nil {
@@ -90,20 +91,21 @@ func TestModulePassesTypeCheck(t *testing.T) {
 	}
 }
 
-// Modüldeki çalışma hatası ana programın aynı numaralı satırını gösteriyordu.
+// Modüldeki çalışma hatası ana programın aynı numaralı satırını gösteriyordu. Modülün en dışı
+// çalışmaz (1.1): hata modülün fonksiyonunda, modülün değişkeniyle.
 func TestModuleRuntimeErrorWithOwnFile(t *testing.T) {
 	root := t.TempDir()
 	runInDir(t, root)
 	_, err := runWithModules(t, root, map[string]string{
-		"m2.tr":  "TR_var x = 1\n\nTR_var z = x / 0\n",
-		"ana.tr": "TR_import \"m2\"\n\nTR_print(1)\n",
+		"m2.tr":  "TR_var x = 1\n\nTR_func z() -> TR_Float {\n    TR_return x / 0\n}\n",
+		"ana.tr": "TR_import \"m2\"\n\nz()\n",
 	})
 	var mh *ModuleError
-	if err == nil || !errors.As(err, &mh) || !strings.HasPrefix(err.Error(), "m2.tr, Satır 4: Sıfıra bölme hatası") {
+	if err == nil || !errors.As(err, &mh) || !strings.HasPrefix(err.Error(), "m2.tr, Satır 5: Sıfıra bölme hatası") {
 		t.Fatalf("m2.tr'nin satırı bekleniyordu: %v", err)
 	}
-	m := ErrorItems(err, "TR_import \"m2\"\n\nTR_print(1)\n")
-	if len(m) != 1 || !strings.Contains(m[0].Frame, "4 | TR_var z = x / 0") {
+	m := ErrorItems(err, "TR_import \"m2\"\n\nz()\n")
+	if len(m) != 1 || !strings.Contains(m[0].Frame, "5 |     TR_return x / 0") {
 		t.Fatalf("çerçeve modülden çizilmeli: %+v", m)
 	}
 
@@ -124,5 +126,38 @@ func TestModuleRuntimeErrorWithOwnFile(t *testing.T) {
 	})
 	if err == nil || !strings.HasSuffix(strings.SplitN(err.Error(), ",", 2)[0], "ana.tr") || !strings.Contains(err.Error(), "Satır 3: Sıfıra bölme") {
 		t.Fatalf("hata ana.tr'nin 3. satırına ait olmalı: %v", err)
+	}
+}
+
+// Kural (1.1, iletinin önerisi çalışır): modülün en dışındaki deyim (H1107) ve sabit olmayan ilk
+// değer (H1108) aktaranın denetiminde hatadır; iletinin önerdiği yazım modüle kopyalanınca modül
+// denetimden geçer ve aktaran program öneriyi çağırarak aynı sonucu alır.
+func TestModuleRuleSuggestionRuns(t *testing.T) {
+	for _, c := range []struct {
+		name, wrong, call, want string
+		code                    messages.Code
+	}{
+		{"deyim", "TR_print(ad)", "kur()", "x\n", messages.H1107},
+		{"ilk değer", "TR_const KOPYA = ad + \"y\"", "TR_print(kopya())", "xy\n", messages.H1108},
+	} {
+		module := "TR_var ad = \"x\"\n" + c.wrong + "\n"
+		_, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\"\n"})
+		var mh *ModuleError
+		if !errors.As(err, &mh) || len(mh.Errors) != 1 || !messages.Has(mh.Errors[0], c.code) {
+			t.Fatalf("%s: modülün %v hatası bekleniyordu: %v", c.name, c.code, err)
+		}
+		message := mh.Errors[0].Error()
+		if !strings.Contains(message, "m.tr") && !strings.Contains(err.Error(), "\"m\"") {
+			t.Errorf("%s: aktarılan modül iletide anılmalı: %v", c.name, err)
+		}
+		_, fix, ok := strings.Cut(message, ":\n")
+		if !ok {
+			t.Fatalf("%s: iletide önerilen yazım yok: %s", c.name, message)
+		}
+		fixed := strings.Replace(module, c.wrong, fix, 1)
+		out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": fixed, "ana.tr": "TR_import \"m\"\n" + c.call + "\n"})
+		if err != nil || out != c.want {
+			t.Errorf("%s: önerilen yazım çalışmalı:\n%s\nçıktı %q, hata %v", c.name, fixed, out, err)
+		}
 	}
 }

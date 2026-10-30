@@ -1,0 +1,4 @@
+# TR 4
+TR_import "modul_en_dis" # RUN-ERROR H1108
+# TEST 1.1 aktarılan modülün en dışındaki deyim ve sabit olmayan ilk değer denetim hatasıdır; hiçbir satır çalışmaz
+TR_print("bu satır çalışmamalı")

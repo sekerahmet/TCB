@@ -166,6 +166,8 @@ const (
 	H1104 Code = 1104 // . Bunu mu demek istediniz: '{closest}'?
 	H1105 Code = 1105 // tip değeri metinle karşılaştırılamaz: {fn}(x) {op} {text|q} yerine {fn}(x) {op} {example} yazın (tip adları tırnaksız yazılır)
 	H1106 Code = 1106 // '{name}' adında bir değişken ya da fonksiyon yok{suggestion}
+	H1107 Code = 1107 // {file, select, testfile {test dosyasının} other {modülün}} en dışında yalnız tanım yazılır, bu deyim {file, select, testfile {testlerin dışında} other {aktarılınca}} çalışmaz (1.1): onu bir fonksiyona alın ve {file, select, testfile {gereken testte} other {aktaran programda}} kur() diye çağırın:\n{func} kur() {{\n{body}\n}}
+	H1108 Code = 1108 // {file, select, testfile {test dosyasının} other {modülün}} en dışındaki {name|q} tanımının ilk değeri sabit ifade değil: {part|q} sabit değil ({file, select, testfile {test dosyası} other {modül}} yüklenirken kod çalışmaz, 1.1). Değeri bir fonksiyonla kurun; onu kullanan her fonksiyon ya da test {fn}() çağrısını bir kez yapıp sonucu bir değişkende tutsun:\n{func} {fn}(){type, select, empty {} other { -> {type}}} {{\n    {return} {value}\n}}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
