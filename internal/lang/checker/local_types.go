@@ -31,3 +31,40 @@ func (c *Checker) localType(inferred string) string {
 	}
 	return typeAny
 }
+
+// signType önek '-' ve '+'nın sonucunun tipidir: sayı ve tensör kendi tipinde kalır, başka
+// işlenenin hatası çalışma anındadır (denetleyici tip iddia etmez).
+func signType(operand string) string {
+	if numericType(operand) || operand == typeTensor {
+		return operand
+	}
+	return typeAny
+}
+
+// sequenceType metnin ve listenin '+' ve '*' sonucudur (4.10): iki liste uç uca eklenir, metin ve
+// liste bir TR_Int kadar yinelenir.
+func sequenceType(op, left, right string) (string, bool) {
+	switch {
+	case op == "*" && (left == typeString && right == typeInt || left == typeInt && right == typeString):
+		return typeString, true
+	case op == "*" && left == typeList && right == typeInt:
+		return left, true
+	case op == "*" && left == typeInt && right == typeList:
+		return right, true
+	case op == "+" && left == typeList && right == typeList:
+		return typeList, true
+	}
+	return "", false
+}
+
+// tensorArithmetic işlem bir tensörün öğe öğe aritmetiği mi (15.6): bir yan tensör, öbür yan tensör
+// ya da sayı. Sonuç bir tensördür.
+func tensorArithmetic(op, left, right string) bool {
+	switch op {
+	case "+", "-", "*", "/", "//", "%", "**":
+	default:
+		return false
+	}
+	return left == typeTensor && (right == typeTensor || numericType(right)) ||
+		right == typeTensor && numericType(left)
+}
