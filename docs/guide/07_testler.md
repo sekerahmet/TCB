@@ -5,7 +5,7 @@ Testler kodun yanına `TR_test "ad" { ... }` bloklarıyla yazılır. Dosya norma
 ```tr
 # TR 4
 # hesap_test.tr
-TR_func topla(a, b) { TR_return a + b }
+TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a + b }
 
 TR_test "toplama doğru" {
     TR_assert(topla(2, 2) == 4)
