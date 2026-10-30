@@ -2,6 +2,6 @@
 # TEST 6.6 fonksiyon ifadesinin tek yazımı (x) => ...: parantezsiz ok, adsız TR_func, ifade yerinde adlı TR_func ve Python'un lambda'sı sözdizimi hatasıdır, ileti oku önerir
 TR_var tamam = (x) => x * 2
 TR_var a = x => x * 2 # ERROR H0267
-TR_var b = TR_func(x) { TR_return x } # ERROR H0268
-TR_var c = (TR_func yedi() { TR_return 7 })() # ERROR H0269
+TR_var b = TR_func(x: TR_Int) -> TR_Int { TR_return x } # ERROR H0268
+TR_var c = (TR_func yedi() -> TR_Int { TR_return 7 })() # ERROR H0269
 TR_var d = lambda x: x * 2 # ERROR H0270

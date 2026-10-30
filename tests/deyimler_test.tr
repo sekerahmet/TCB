@@ -166,7 +166,7 @@ TR_test "5.6 hiçbir kolla eşleşmeyen eşleme çalışma hatasıdır" {
 TR_test "5.6 eşle: parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
     TR_var sınır = 10
     TR_var kırmızı = "#f00"
-    TR_func tür(x: TR_Any) -> TR_String {
+    TR_func tür(x) -> TR_String {
         TR_return TR_match x {
             (sınır) => "sınırda"
             (sınır * 2) => "iki katı"
@@ -322,7 +322,7 @@ TR_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış 
     TR_try { TR_throw "x" } TR_catch { yakalanan = TR_error }
     TR_assert_equal("x", yakalanan)
     TR_assert_equal([0, 2], [k * 2 TR_for k TR_in 0..2])
-    TR_struct Sayaç { n = 0; TR_func artır() { TR_self.n += 1 } }
+    TR_struct Sayaç { n: TR_Int = 0; TR_func artır() { TR_self.n += 1 } }
     TR_var s = Sayaç()
     s.artır()
     TR_assert_equal(1, s.n)

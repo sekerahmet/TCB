@@ -1,8 +1,8 @@
 # TR 4
 # TEST 7.4 kurucunun dönüş tipi yazılmaz
 TR_struct D {
-    n = 0
-    TR_func TR_init(a) -> D { # ERROR H0283
+    n: TR_Int = 0
+    TR_func TR_init(a: TR_Int) -> D { # ERROR H0283
         TR_self.n = a
     }
 }

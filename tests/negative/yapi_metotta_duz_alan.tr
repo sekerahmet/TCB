@@ -2,18 +2,18 @@
 # TEST 7.3 metotta düz ad alan ya da metot değildir; dıştaki bir ada çözülse de çözülmese de ileti TR_self ile yazımı önerir
 TR_var x = 99
 TR_struct N {
-    x = 1
-    y = 2
-    TR_func m() {
+    x: TR_Int = 1
+    y: TR_Int = 2
+    TR_func m() -> TR_Int {
         TR_return x # ERROR H1024
     }
-    TR_func k() {
+    TR_func k() -> TR_Int {
         TR_return y # ERROR H1025
     }
     TR_func j() {
         m() # ERROR H1025
     }
-    TR_func yerel(y) {
+    TR_func yerel(y: TR_Int) -> TR_Int {
         TR_var x = 3
         TR_return x + y
     }

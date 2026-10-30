@@ -10,8 +10,8 @@ TR_var i = l[kare("f")] # ERROR H1004
 TR_var u = kare("g")["x"] # ERROR H1004
 l[kare("h")] = 1 # ERROR H1004
 TR_struct A {
-    alan = kare("i") # ERROR H1004
-    TR_func m() { TR_return kare("j") } # ERROR H1004
+    alan: TR_Int = kare("i") # ERROR H1004
+    TR_func m() -> TR_Int { TR_return kare("j") } # ERROR H1004
 }
 TR_var e = TR_match 1 { kare("k") => 1 } # ERROR H1004
-TR_func g(p = kare("l")) { } # ERROR H1004
+TR_func g(p: TR_Int = kare("l")) { } # ERROR H1004

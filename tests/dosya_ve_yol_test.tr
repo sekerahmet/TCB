@@ -68,7 +68,7 @@ TR_test "18.5 klasörü_listele kalıba uyan dosya ve klasörleri sıralı verir
     TR_write_file(TR_Path(k, "alt/c.npy"), "1")
     TR_write_file(TR_Path(k, "alt/derin/d.npy"), "1")
     TR_write_file(TR_Path(k, ".gizli/e.npy"), "1")
-    TR_func adlar(liste) {
+    TR_func adlar(liste: TR_List[TR_Path]) -> TR_List[TR_String] {
         TR_return [TR_String(p).TR_split(TR_String(k) + "/")[1] TR_for p TR_in liste]
     }
     TR_assert_equal(["a.txt", "alt", "b.npy"], adlar(TR_list_dir(k)))

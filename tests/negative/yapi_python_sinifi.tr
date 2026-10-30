@@ -1,7 +1,7 @@
 # TR 4
 # TEST 7.1 Python'un sınıf tanımı sözdizimi hatasıdır; ileti yapıyı ve ortak parçayı alanla kurmayı söyler (H0164: parser.go'nun genel 'class' ipucu da gelir)
 TR_struct B {
-    x = 1
+    x: TR_Int = 1
 }
 class A(B): # ERROR H0164 H0279
     y = 2

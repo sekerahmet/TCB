@@ -1,5 +1,5 @@
 # TR 4
 # moduller_test.tr tarafından aktarılan yardımcı modül: başı _ olan adlar modüle özeldir (11.7).
 TR_const _ÇARPAN = 3
-TR_func _iç_hesap(x) { TR_return x * _ÇARPAN }
-TR_func dış_hesap(x) { TR_return _iç_hesap(x) + 1 }
+TR_func _iç_hesap(x: TR_Int) -> TR_Int { TR_return x * _ÇARPAN }
+TR_func dış_hesap(x: TR_Int) -> TR_Int { TR_return _iç_hesap(x) + 1 }

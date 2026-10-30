@@ -1,6 +1,6 @@
 # TR 4
 # TEST 7.1 aynı metot iki kez tanımlanamaz; yapının geri kalanı okunmaya devam eder
 TR_struct A {
-    TR_func f() { TR_return 1 }
-    TR_func f() { TR_return 2 } # ERROR H0145
+    TR_func f() -> TR_Int { TR_return 1 }
+    TR_func f() -> TR_Int { TR_return 2 } # ERROR H0145
 }

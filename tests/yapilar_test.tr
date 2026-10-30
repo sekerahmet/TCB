@@ -3,11 +3,11 @@
 
 TR_struct Nokta {
     x: TR_Int = 0
-    y = 0
-    TR_func uzaklık_kare() {
+    y: TR_Int = 0
+    TR_func uzaklık_kare() -> TR_Int {
         TR_return TR_self.x ** 2 + TR_self.y ** 2
     }
-    TR_func taşı(dx, dy) {
+    TR_func taşı(dx: TR_Int, dy: TR_Int) {
         TR_self.x += dx
         TR_self.y += dy
     }
@@ -17,13 +17,13 @@ TR_test "7.1 yapı alanları ve varsayılan değerleri" {
     TR_var p = Nokta()
     TR_assert_equal(0, p.x)
     TR_assert_equal(0, p.y)
-    TR_struct Satır { a, c, b: TR_Int = 2 }
+    TR_struct Satır { a: TR_Int, c: TR_Int, b: TR_Int = 2 }
     TR_var s = Satır(1, 3)
     TR_assert_equal([1, 2, 3], [s.a, s.b, s.c])
 }
 
 TR_test "7.1 kalıtım yok: ortak parça alanla kurulur (H0275'in önerdiği yazım)" {
-    TR_struct Taban { x = 1 }
+    TR_struct Taban { x: TR_Int = 1 }
     TR_struct A { taban: Taban }
     TR_assert_equal(1, A(Taban()).taban.x)
 }
@@ -39,8 +39,8 @@ TR_test "7.2 fazla konumlu ya da bilinmeyen adlı argüman hatadır" {
     TR_assert_equal("H2418", TR_error_code { Nokta(yy: 9) })
     # kurucu varsa argümanlar kurucunun imzasına göre denetlenir
     TR_struct Hesap {
-        bakiye
-        TR_func TR_init(b, kat = 2) { TR_self.bakiye = b * kat }
+        bakiye: TR_Int
+        TR_func TR_init(b: TR_Int, kat: TR_Int = 2) { TR_self.bakiye = b * kat }
     }
     TR_assert_equal(15, Hesap(5, 3).bakiye)
     TR_assert_equal("H2412", TR_error_code { Hesap(1, 2, 3) })
@@ -50,8 +50,8 @@ TR_test "7.2 bir alan hem sırayla hem adıyla verilemez" {
     TR_assert_equal("H2420", TR_error_code { Nokta(1, x: 2) })
     TR_assert_equal(2, Nokta(1, y: 2).y)
     TR_struct Hesap {
-        bakiye
-        TR_func TR_init(b, kat = 2) { TR_self.bakiye = b * kat }
+        bakiye: TR_Int
+        TR_func TR_init(b: TR_Int, kat: TR_Int = 2) { TR_self.bakiye = b * kat }
     }
     TR_assert_equal("H2413", TR_error_code { Hesap(1, b: 2) })
 }
@@ -64,7 +64,7 @@ TR_test "7.3 metotlar kendi ile nesneye erişir" {
 }
 
 TR_test "7.2 varsayılanı olmayan alan verilmezse çalışma hatasıdır" {
-    TR_struct N { x, y = 2 }
+    TR_struct N { x: TR_Int, y: TR_Int = 2 }
     TR_assert_equal("H2750", TR_error_code { N() })
     TR_assert_equal("H2750", TR_error_code { N(y: 3) })
     TR_assert_equal([1, 2], [N(1).x, N(1).y])
@@ -73,9 +73,9 @@ TR_test "7.2 varsayılanı olmayan alan verilmezse çalışma hatasıdır" {
 
 TR_test "7.4 kurucu varsa nesne yalnız onun imzasıyla kurulur; argüman alana gitmez" {
     TR_struct D {
-        n
-        k = 10
-        TR_func TR_init(a) { TR_self.k = TR_self.k + a }
+        n: TR_Int?
+        k: TR_Int = 10
+        TR_func TR_init(a: TR_Int) { TR_self.k = TR_self.k + a }
     }
     TR_var d = D(3)
     TR_assert_equal(TR_none, d.n)
@@ -85,13 +85,13 @@ TR_test "7.4 kurucu varsa nesne yalnız onun imzasıyla kurulur; argüman alana 
 
 TR_test "7.4 varsayılanlı alanlar kurucudan önce, tanım sırasıyla değer alır" {
     TR_var sıra = []
-    TR_func iz(x) {
+    TR_func iz(x: TR_Int) -> TR_Int {
         sıra.TR_append(x)
         TR_return x
     }
     TR_struct E {
-        a = iz(1)
-        b = iz(2)
+        a: TR_Int = iz(1)
+        b: TR_Int = iz(2)
         TR_func TR_init() { iz(3) }
     }
     E()
@@ -100,8 +100,8 @@ TR_test "7.4 varsayılanlı alanlar kurucudan önce, tanım sırasıyla değer a
 
 TR_test "7.3 nesnesiz metot ve alan yoktur; ileti nesneyi kurmayı önerir" {
     TR_struct S {
-        x = 1
-        TR_func m() { TR_return TR_self.x + 1 }
+        x: TR_Int = 1
+        TR_func m() -> TR_Int { TR_return TR_self.x + 1 }
     }
     TR_assert_equal("H2751", TR_error_code { S.m() })
     TR_assert_equal("H2752", TR_error_code { S.x })
@@ -112,8 +112,8 @@ TR_test "7.3 nesnesiz metot ve alan yoktur; ileti nesneyi kurmayı önerir" {
 
 TR_test "7.4 kurucu metodu oluşturmada çağrılır" {
     TR_struct Hesap {
-        bakiye
-        TR_func TR_init(b) { TR_self.bakiye = b * 2 }
+        bakiye: TR_Int
+        TR_func TR_init(b: TR_Int) { TR_self.bakiye = b * 2 }
     }
     TR_assert_equal(10, Hesap(5).bakiye)
 }
@@ -162,7 +162,7 @@ TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini
 
 TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
     TR_struct Kutu {
-        ad
+        ad: TR_String
         f = TR_none
     }
     TR_assert(Kutu("a") == Kutu("a"))
@@ -178,9 +178,9 @@ TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
 
 TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa hatadır" {
     TR_struct Düğüm {
-        ad
-        ebeveyn = TR_none
-        çocuklar = []
+        ad: TR_String
+        ebeveyn: Düğüm? = TR_none
+        çocuklar: TR_List[Düğüm] = []
     }
     TR_var a = Düğüm("kök")
     a.çocuklar = [Düğüm("yaprak", a)]
@@ -193,7 +193,7 @@ TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa h
 TR_enum Durum {
     Bekliyor
     Çalışıyor(adım: TR_Int)
-    Bitti(kayıp: TR_Float, not = "")
+    Bitti(kayıp: TR_Float, not: TR_String = "")
     TR_func bitti_mi() -> TR_Bool {
         TR_return TR_match TR_self {
             Durum.Bitti(_, _) => TR_true
@@ -266,7 +266,7 @@ TR_test "7.7 değer değişmez, sözlük anahtarı olur; anahtarın eşitliği '
     TR_assert_equal(TR_none, s.TR_get(Durum.Çalışıyor(6)))
     TR_assert_equal(0, s[Durum.Bekliyor])
     # alanı değişebilen (liste) durum anahtar olmaz
-    TR_enum Kutu { Dolu(öğeler: TR_List) }
+    TR_enum Kutu { Dolu(öğeler: TR_List[TR_Int]) }
     TR_assert_equal("H2766", TR_error_code { TR_var k = {Kutu.Dolu([1]): 1} })
 }
 

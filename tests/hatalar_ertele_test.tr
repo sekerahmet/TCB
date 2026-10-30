@@ -54,7 +54,7 @@ TR_test "9.1 ertele fonksiyon bitince ters sırayla çalışır" {
 
 TR_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
     TR_var iz = []
-    TR_func erken() {
+    TR_func erken() -> TR_Int {
         TR_defer iz.TR_append("temizlik")
         TR_return 1
     }
@@ -79,7 +79,7 @@ TR_test "9.3 blok içindeki ertele, bloğu değil fonksiyonu bekler" {
 
 TR_test "9.4 ertele içindeki hata yutulmaz" {
     TR_var iz = []
-    TR_func başarılı() {
+    TR_func başarılı() -> TR_Int {
         TR_defer { TR_throw "ertele içinde hata" }
         iz.TR_append("gövde")
         TR_return 1
@@ -111,7 +111,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
 
 TR_test "9.3 ertele çağrısının argümanları fonksiyon biterken hesaplanır" {
     TR_var görülen = []
-    TR_func kaydet(x) { görülen.TR_append(x) }
+    TR_func kaydet(x: TR_Int) { görülen.TR_append(x) }
     TR_func f() {
         TR_var x = 1
         TR_defer kaydet(x)

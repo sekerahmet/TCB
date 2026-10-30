@@ -4,7 +4,7 @@
 TR_test "10.1 eşzamanlı blok ve çağrı biçimi görev başlatır" {
     TR_var sonuçlar = []
     TR_async { sonuçlar.TR_append("blok") }
-    TR_func iş(x) { sonuçlar.TR_append(x) }
+    TR_func iş(x: TR_String) { sonuçlar.TR_append(x) }
     TR_async iş("çağrı")
     TR_wait_all()
     TR_assert_equal(2, sonuçlar.TR_length)
@@ -13,7 +13,7 @@ TR_test "10.1 eşzamanlı blok ve çağrı biçimi görev başlatır" {
 
 TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
     TR_var bitenler = []
-    TR_func iş(x) {
+    TR_func iş(x: TR_Int) {
         TR_sleep(0.01)
         bitenler.TR_append(x)
     }

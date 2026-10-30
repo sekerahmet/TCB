@@ -39,7 +39,7 @@ TR_test "17.1 hiçbir gösterim dili asıl dil değildir: dillerin sözcükleri 
     # sözcükleri yalnız TR_ ile yazılır. '$ad' kaçışı dosyada yoktur: tests/negative/dolar_isareti.tr
     TR_var var = 1
     TR_var print = var + 1
-    TR_func if(x) { TR_return x * 2 }
+    TR_func if(x: TR_Int) -> TR_Int { TR_return x * 2 }
     TR_assert_equal(4, if(print))
     TR_var eğer = 3
     TR_var değişken = eğer + 1

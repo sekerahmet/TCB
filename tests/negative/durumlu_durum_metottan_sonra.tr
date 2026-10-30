@@ -2,6 +2,6 @@
 # TEST 7.7 durumlar metotlardan önce yazılır
 TR_enum D {
     A
-    TR_func f() { TR_return 1 }
+    TR_func f() -> TR_Int { TR_return 1 }
     B # ERROR H0286
 }
