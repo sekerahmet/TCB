@@ -193,6 +193,21 @@ func (c *Checker) callType(e *ast.CallExpression, info TypeInfo, found bool, obj
 	return typeAny
 }
 
+// fieldType tipi bilinen yapı nesnesinin alanının yazılan tipidir (p.x, TR_self.x; 7.5): denetleyicinin
+// tanıdığı tipse o, değilse (metot, tipsiz alan, bilinmeyen nesne, ?.) TR_Any.
+func (c *Checker) fieldType(objType string, e *ast.MemberExpression) string {
+	s := c.structs[objType]
+	if s == nil || e.Safe {
+		return typeAny
+	}
+	for _, f := range s.Fields {
+		if f.Name == e.Property && f.Type != nil {
+			return c.localType(normalizedType(f.Type))
+		}
+	}
+	return typeAny
+}
+
 // tupleLiteralType demet değişmezinin tipidir (3.6a): (1, "a") → (TR_Int, TR_String). Bir öğesinin
 // tipi bilinmiyorsa demet TR_Any'dir.
 func (c *Checker) tupleLiteralType(elems []string) string {

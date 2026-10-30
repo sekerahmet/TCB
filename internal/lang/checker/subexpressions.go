@@ -60,8 +60,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.inferExpression(e.Index)
 		return typeAny, true
 	case *ast.MemberExpression:
-		c.inferExpression(e.Object)
-		return typeAny, true
+		return c.fieldType(c.inferExpression(e.Object), e), true // tipi bilinen yapının alanı (7.5)
 	case *ast.ElementExpression:
 		return elementType(c.inferExpression(e.Object), e.Index), true // demetin öğesi (3.6a)
 	}
@@ -82,12 +81,18 @@ func (c *Checker) checkStruct(s *ast.StructStatement) {
 			c.noteDefault(f.DefaultValue, c.inferExpression(f.DefaultValue))
 		}
 	}
+	// Metotta TR_self yapının tipindedir (7.3); durumlu tip ve arayüz kurulmaz, bilinmez.
+	prevSelf := c.selfType
+	if s.Kind == ast.KindStruct {
+		c.selfType = s.Name
+	}
 	for _, name := range sortedMethodNames(s) {
 		// metodun adı kapsama tanımlanmaz: yalnızca 'nesne.metot' ile çağrılır
 		m := s.Methods[name]
 		_, retType := c.functionSignature(m)
 		c.functionBody(m, retType)
 	}
+	c.selfType = prevSelf
 }
 
 // functionSignature parametre ve dönüş tiplerinin yazımını denetler; parametre tiplerini ve
