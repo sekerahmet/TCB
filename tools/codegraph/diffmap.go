@@ -9,7 +9,7 @@ import (
 
 // hunk bir `git diff -U0` parçasıdır. added ve removed değişen satırların "+"/"-" önekli metnidir.
 type hunk struct {
-	file               string
+	file, oldFile      string
 	oldStart, oldCount int
 	newStart, newCount int
 	changedLines       []string
@@ -17,23 +17,38 @@ type hunk struct {
 
 var hunkHeader = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@`)
 
-// parseDiff `git diff -U0 --no-renames` çıktısını parçalara ayırır.
+// parseDiff `git diff -U0 -M` çıktısını parçalara ayırır.
 func parseDiff(out string) []hunk {
 	var hs []hunk
-	file := ""
-	inHeader := false
+	file, oldFile := "", ""
+	inHeader, renamed, hunksInFile := false, false, 0
+	flushRename := func() {
+		if renamed && hunksInFile == 0 && file != "" {
+			hs = append(hs, hunk{file: file, oldFile: oldFile, oldStart: 1, newStart: 1})
+		}
+	}
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimRight(line, "\r")
 		switch {
 		case strings.HasPrefix(line, "diff --git "):
-			inHeader = true
-			file = line[strings.LastIndex(line, " b/")+3:]
+			flushRename()
+			inHeader, renamed, hunksInFile = true, false, 0
+			i := strings.LastIndex(line, " b/")
+			file = line[i+3:]
+			oldFile = strings.TrimPrefix(line[:i], "diff --git a/")
+		case inHeader && strings.HasPrefix(line, "rename from "):
+			oldFile, renamed = line[len("rename from "):], true
+		case inHeader && strings.HasPrefix(line, "rename to "):
+			file, renamed = line[len("rename to "):], true
+		case inHeader && strings.HasPrefix(line, "--- a/"):
+			oldFile = line[6:]
 		case inHeader && strings.HasPrefix(line, "+++ b/"):
 			file = line[6:]
 		case strings.HasPrefix(line, "@@"):
 			inHeader = false
 			if m := hunkHeader.FindStringSubmatch(line); m != nil {
-				hs = append(hs, hunk{file: file, oldStart: atoi(m[1]), oldCount: count(m[2]),
+				hunksInFile++
+				hs = append(hs, hunk{file: file, oldFile: oldFile, oldStart: atoi(m[1]), oldCount: count(m[2]),
 					newStart: atoi(m[3]), newCount: count(m[4])})
 			}
 		case !inHeader && len(hs) > 0 && (line[:min(1, len(line))] == "+" || line[:min(1, len(line))] == "-"):
@@ -41,6 +56,7 @@ func parseDiff(out string) []hunk {
 			h.changedLines = append(h.changedLines, line)
 		}
 	}
+	flushRename()
 	return hs
 }
 
@@ -86,8 +102,13 @@ func (ix *index) touched(hs []hunk, newSide bool) *touchSet {
 	ts := newTouchSet()
 	spans := ix.spans()
 	for _, h := range hs {
-		ts.files[h.file] = true
-		if isDictionaryFile(h.file) {
+		file := h.file
+		if !newSide && h.oldFile != "" && len(spans[file]) == 0 && ix.byID[trFileID(file)] == nil &&
+			(len(spans[h.oldFile]) > 0 || ix.byID[trFileID(h.oldFile)] != nil) {
+			file = h.oldFile
+		}
+		ts.files[file] = true
+		if isDictionaryFile(file) {
 			ix.touchCodes(ts, h)
 			continue
 		}
@@ -97,7 +118,7 @@ func (ix *index) touched(hs []hunk, newSide bool) *touchSet {
 		}
 		lo, hi := start, start+max(n, 1)-1
 		hit := false
-		for _, node := range spans[h.file] {
+		for _, node := range spans[file] {
 			end := max(node.End, node.Line)
 			// Sayı 0: satırlar start'tan SONRA eklendi/silindi; düğümün içindeyse (kapanışından
 			// önceyse) değişmiş sayılır, hemen ardındaki ekleme sayılmaz.
@@ -107,8 +128,12 @@ func (ix *index) touched(hs []hunk, newSide bool) *touchSet {
 			}
 		}
 		if !hit {
+			if node := ix.byID[trFileID(file)]; node != nil {
+				ts.nodes[node.ID] = node
+				continue
+			}
 			ts.unmappedHunks = append(ts.unmappedHunks, h)
-			ts.unmapped[h.file]++
+			ts.unmapped[file]++
 		}
 	}
 	return ts

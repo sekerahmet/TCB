@@ -77,7 +77,7 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 	}
 	if !sameCommit(root, b, "HEAD") {
 		hs, err = diffHunks(root, rng)
-		return hs, false, err
+		return followFileRenames(root, b, hs), false, err
 	}
 	from := a
 	if from == "" {
@@ -96,11 +96,33 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 
 // diffHunks `git diff` parçalarını verir (yollar root'a göre); rng tek bir commit ise o commit'ten çalışma ağacına.
 func diffHunks(root, rng string) ([]hunk, error) {
-	out, err := gitOut(root, "diff", "-U0", "--no-color", "--no-ext-diff", "--no-renames", "--relative", rng)
+	out, err := gitOut(root, "diff", "-U0", "--no-color", "--no-ext-diff", "-M", "--relative", rng)
 	if err != nil {
 		return nil, err
 	}
 	return parseDiff(string(out)), nil
+}
+
+// followFileRenames geçmişteki bir commit'ten (from) bugünkü HEAD'e kadar yeniden adlandırılan dosyaların
+// hunk yollarını bugünkü yola taşır (99f04289~1..99f04289'daki lib/egitim.tr -> lib/training.tr).
+func followFileRenames(root, from string, hs []hunk) []hunk {
+	out, err := gitOut(root, "log", "--diff-filter=R", "-M", "--name-status", "--format=", "--reverse", from+"..HEAD")
+	if err != nil {
+		return hs
+	}
+	renames := map[string]string{}
+	for _, line := range nonEmptyLines(string(out)) {
+		if f := strings.Split(line, "\t"); len(f) == 3 && strings.HasPrefix(f[0], "R") {
+			renames[f[1]] = f[2]
+		}
+	}
+	if len(renames) == 0 {
+		return hs
+	}
+	for i := range hs {
+		hs[i].file = finalKey(renames, hs[i].file)
+	}
+	return hs
 }
 
 // sameCommit iki revizyon aynı commit'e çözülüyor mu.

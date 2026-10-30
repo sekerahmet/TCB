@@ -79,7 +79,7 @@ codegraph query "ölü" | not: bölüm | not: Bölüm | contains: source.langNam
 # Bağımsız denetim: "bu bir test mi / bu test neyi sınıyor" tek kural (Y1, Y3, T3) (2026-10-23)
 codegraph tests-for pretrained.ayar_değeri | not: no tests found | group: tests, indirect => lib/pretrained_test.tr | src: bağımsız denetim Y1, 2026-10-23
 codegraph tests-for layers.GPT.göm | not: no tests found | first-of: tests, indirect => lib/layers_test.tr | src: bağımsız denetim Y1, 2026-10-23
-codegraph changed 56d6fd1d~1..56d6fd1d | contains: kontrol_noktasi_test.koşu | not: none found for the changed code | group: tests that exercise the changed code => tests/kontrol_noktasi_test.tr | src: bağımsız denetim Y3, 2026-10-23
+codegraph changed 99f04289~1..99f04289 | contains: training.TR_type_Run.TR_mem_finish | not: none found for the changed code | group: tests that exercise the changed code => lib/training_test.tr | src: bağımsız denetim Y3, 2026-10-23
 tr index tested_by ayar_değeri | contains: lib/pretrained_test.tr | src: bağımsız denetim T3 (tr index ile tests-for aynı zincir kuralı), 2026-10-23
 
 # Bağımsız denetim: değer olarak geçen işlevler ve alt süreç testleri (Y2, Y5) (2026-10-24)
@@ -235,3 +235,4 @@ codegraph tests-for internal/lang/interp/hooks_test.go | contains: size (TestLay
 # codegraph-1: gaps.md'den beş açık tanımlı eksik (2026-10-30)
 codegraph query x.TR_map | contains: TR_mem_map [name] | not: is ambiguous | src: codegraph-1 madde 1, 2026-10-30 (üye yazımı ad koduna çözülür)
 tr index definition x.TR_map | contains: TR_mem_map | not: birden çok düğüme | src: codegraph-1 madde 1, 2026-10-30 (iki araçta tek ad çözümü kuralı)
+codegraph changed --all 35351e98~1..35351e98 | group: code => lib/layers.tr [file] | group: tests that exercise the changed code => lib/layers_test.tr | not: lib/katman.tr | not: lib/layers.tr (1 hunks) | src: codegraph-1 madde 2, 2026-10-30 (changed yeniden adlandırmayı izler)

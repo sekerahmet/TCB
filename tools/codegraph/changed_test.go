@@ -185,6 +185,62 @@ func TestParseDiff(t *testing.T) {
 		hs[1].oldCount != 0 || hs[1].newStart != 10 || hs[1].newCount != 2 || len(hs[0].changedLines) != 3 {
 		t.Errorf("hunks: %+v", hs)
 	}
+	pureRename := "diff --git a/old.tr b/new.tr\nsimilarity index 100%\nrename from old.tr\nrename to new.tr\n"
+	if r := parseDiff(pureRename); len(r) != 1 || r[0].file != "new.tr" || r[0].oldFile != "old.tr" || r[0].newCount != 0 {
+		t.Errorf("pure rename: %+v", r)
+	}
+}
+
+// Kural: `changed` ve `dups --changed` yeniden adlandırmayı (`git diff -M` ve aralıktan HEAD'e ad zinciri) izler:
+// adı değişen dosya "mapped to no node"a düşmez, bugünkü düğümlerine ve testlerine bağlanır; yeniden adlandırılan
+// Go dosyasındaki dokunulmamış kopya dalın yeni tekrarı sayılmaz.
+func TestChangedAndDupsChangedFollowRenames(t *testing.T) {
+	root := gitFixture(t)
+	replaceIn(t, filepath.Join(root, "lib", "geo.tr"), "TR_print(k.alan())", "TR_print(k.alan()) # iz")
+	commitAll(t, root, "edit-geo")
+	gitMust(t, root, "mv", "lib/geo.tr", "lib/shapes.tr")
+	gitMust(t, root, "mv", "lib/geo_test.tr", "lib/shapes_test.tr")
+	replaceIn(t, filepath.Join(root, "lib", "shapes.tr"), "# geo:", "# shapes:")
+	replaceIn(t, filepath.Join(root, "lib", "shapes_test.tr"), `TR_import "tr/geo"`, `TR_import "tr/shapes"`)
+	commitAll(t, root, "rename-geo")
+	graph := buildInto(t, root)
+
+	code, out, errOut := commandIn("changed", root, graph, "--no-rebuild", "HEAD~2..HEAD~1")
+	if code != exitOK {
+		t.Fatalf("before rename: exit %d: %s", code, errOut)
+	}
+	testkit.MustContain(t, out, "shapes.yaz_alan [tr_func] lib/shapes.tr:", "lib/shapes_test.tr")
+	if strings.Contains(out, "mapped to no node") || strings.Contains(out, "none found") {
+		t.Errorf("commit before rename must map to today's file and tests:\n%s", out)
+	}
+
+	code, out, errOut = commandIn("changed", root, graph, "--no-rebuild", "HEAD~1..HEAD")
+	if code != exitOK {
+		t.Fatalf("rename commit: exit %d: %s", code, errOut)
+	}
+	testkit.MustContain(t, out, "lib/shapes.tr [file] lib/shapes.tr:1", "lib/shapes_test.tr")
+	if strings.Contains(out, "mapped to no node") || strings.Contains(out, "lib/geo.tr") {
+		t.Errorf("rename commit must map to new file nodes, not old paths or unmapped:\n%s", out)
+	}
+
+	dupRoot := branchWithCopy(t)
+	gitMust(t, dupRoot, "mv", "old2.go", "renamed.go")
+	gitMust(t, dupRoot, "commit", "-q", "-m", "rename old2")
+	var so, se bytes.Buffer
+	if code := run([]string{"dups", "--root", dupRoot, "--min", "60", "--json", "--changed", "main"}, &so, &se); code != exitOK {
+		t.Fatalf("dups: exit %d: %s", code, se.String())
+	}
+	var res dupResult
+	if err := json.Unmarshal(so.Bytes(), &res); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range res.Clusters {
+		for _, l := range c.Locs {
+			if l.Changed && l.File != "new.go" {
+				t.Errorf("untouched duplicate in renamed file %s marked changed: %+v", l.File, l)
+			}
+		}
+	}
 }
 
 // Eski bir sürümün kurduğu grafik (düğümlerde son satır yok) imzası aynı olsa da yeniden
