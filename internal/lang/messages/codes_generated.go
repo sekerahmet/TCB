@@ -57,7 +57,7 @@ const (
 	H0143 Code = 143  // '{keyword}' modül yolunu metin olarak bekler, ancak {found} bulundu: {keyword} "{example, select, empty {yardımcı} other {{example}}}" yazın
 	H0145 Code = 145  // '{name}' metodu '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
 	H0146 Code = 146  // '{name}' alanı '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
-	H0147 Code = 147  // yapı gövdesinde yalnızca alanlar (`ad`, `ad: {#Int}`, `ad = değer`) ve fonksiyon tanımları bulunabilir; {what}
+	H0147 Code = 147  // yapı gövdesinde yalnızca alanlar (`ad: {#Int}`, `ad: {#Int} = 0`) ve fonksiyon tanımları bulunabilir; {what}
 	H0148 Code = 148  // {found} bir alan tanımı değil
 	H0149 Code = 149  // '{name}' ardından gelen {found} bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)
 	H0150 Code = 150  // yapı metodunun bir adı olmalı: `{#func} ad(...) {{ ... }}`
