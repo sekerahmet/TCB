@@ -38,7 +38,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - İleti en büyük farkı, yerini ve kullanılan toleransları söyler.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 
-**12.5** Test dosyasının en dışında yalnız tanımlar ve `TR_test` blokları bulunur (1.1); en dıştaki başka bir deyim ve sabit olmayan bir ilk değer sözdizimi hatasıdır. Testlerin ortak kurulumu (geçici klasör, model) en dışta tanımlanan bir fonksiyondur ve her test onu kendi çağırır; böylece her test öbürlerinden bağımsızdır.
+**12.5** Test dosyasının en dışında yalnız tanımlar ve `TR_test` blokları bulunur (1.1); en dıştaki başka bir deyim ve sabit olmayan bir ilk değer denetim hatasıdır. Testlerin ortak kurulumu (geçici klasör, model) en dışta tanımlanan bir fonksiyondur ve her test onu kendi çağırır; böylece her test öbürlerinden bağımsızdır.
 - **Her test kendi tanımlarıyla çalışır:** test dosyasının ve aktardığı modüllerin en dıştaki tanımları her test için yeniden kurulur; test bunların üstünde açılan yeni bir kapsamda çalışır. Bir testin en dıştaki bir değişkene atadığı değer, en dıştaki bir listeye eklediği öğe, bir modülün durumuna yaptığı değişiklik ve yerel adları sonraki teste geçmez. En dışta yalnız sabit ilk değer olduğu için (1.1) yeniden kurmanın bedeli küçüktür.
 - Kalan ya da hata veren test öbürlerini durdurmaz.
 - Test bir görev gibi biter (10.9): gövdesi bitince önce başlattığı görevleri bekler, sonra `TR_defer` çalışır (9.1). Hatayla bittiyse (`TR_assert`, yakalanmayan hata, 1.12'nin `TR_exit`'i) bitmemiş görevleri önce iptal edilir, durmaları beklenir, sonra `TR_defer` çalışır.

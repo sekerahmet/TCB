@@ -8,7 +8,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 
 **11.1** `TR_import "yol"` başka bir `.tr` dosyasının tanımlarını yükler ve en dış adlarını dosyanın kapsamına getirir.
 - Aktarmalar dosyanın başında, başlıktan sonra ve öbür tanımlardan önce yazılır (2.1).
-- Modülün en dışında yalnız tanımlar bulunur; ilk değerler sabittir (1.1). Bir modülün en dışında çalışan bir deyim sözdizimi hatasıdır.
+- Modülün en dışında yalnız tanımlar bulunur; ilk değerler sabittir (1.1). Bir modülün en dışında çalışan bir deyim denetim hatasıdır.
 - Yol bir metindir; `.tr` uzantısı isteğe bağlıdır.
 - **Göreli yol** yalnız aktaran dosyanın klasörüne göre çözülür; çalışma klasörüne ve programın klasörüne bakılmaz (dosyası olmayan kabukta yol çalışma klasörüne göredir). Bulunamazsa hata; programın klasöründe aynı adlı dosya varsa ileti onu açık yolla önerir (`"../ad"`). Yolun harf büyüklüğü diskteki adla her sistemde aynı olmalıdır; farklıysa hata, ileti diskteki adı önerir (18.5 gibi). Bu, veri dosyalarının yol kuralından (13) bilerek ayrılır: kod yazıldığı dosyanın yanındadır.
 - Modül bulunamazsa ileti bakılan yerleri sayar. `tr/` önekli yollar diskte aranmaz (11.6).

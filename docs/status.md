@@ -17,7 +17,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 - **Mevcut durum:** denetleyici modülde ve test dosyasında (`TR_test` içeren dosya, 12.1) en dıştaki tanım dışı deyimi (H1107) ve `TR_const`/`TR_var`'ın sabit olmayan ilk değerini (H1108) denetim hatası sayıyor; hata modülün satırında, aktaran modül hatasının başlığında; ileti deyimi fonksiyona alan yazımı veriyor ve yazım çalışıyor. Depodaki modüller ve test dosyaları kurala uyuyor. Dosyanın tanımlamadığı ad (aktarılan ya da genel) sabit sayılıyor; gömülü kitaplık modülleri aktarılırken denetlenmiyor, kuralları depo testinde denetleniyor [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`, `TestModuleRuleSuggestionRuns`, dal `claude/hopeful-brahmagupta-miw41q`].
 - **Yapılacaklar:**
   - Aktarılan adın sabitliği modüller arası tip denetimiyle (4b) bilinir; bugün aktarılan ad sabit sayılıyor.
-  - 12.5'in metni en dıştaki deyimi "sözdizimi hatası" diyor; karar (2026-10-30) denetim hatası: metin uyarlanır.
+  - İç içe fonksiyon ifadesinin parametresi dıştaki ifadenin yakalama denetiminde kendi adı sayılmıyor: aynı adlı en dıştaki `TR_var` varsa yanlış H1108 verir [kanıtlı: DENETİM, 2026-10-30].
 
 ### 1.2
 
@@ -121,7 +121,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 ### 3.13
 
 - **Mevcut durum:** açıklamasız yerel değişkenin tipi ilk değerinden çıkıyor ve kalıcı: başka tipte atama (`TR_var birikim = 0` sonra `birikim += 0.5`) denetim hatası (H1005); dil tanımının 3.13 hata bloğu ve TR testi bunu sınıyor. Tipi çıkarılamayan ilk değerin değişkeni `TR_Any` kalıyor (1.2) [ölçüldü: `TestAssignmentTypeCheck`, `TestCompoundAssignment`, dal `claude/hopeful-brahmagupta-miw41q`].
-- **Yapılacaklar:** çıkarımın kalanı (1.2); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu; tam sayı yazımı ondalık beklenen yerde ondalık.
+- **Yapılacaklar:** çıkarımın kalanı (1.2); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu; tam sayı yazımı ondalık beklenen yerde ondalık: denetleyici `[1, 2.5]`'i `TR_List[TR_Float]` sayıyor, motor ilk öğeyi çalışırken `TR_Int` tutuyor [ölçüldü: DENETİM, 2026-10-30] (tam sayı değişkeni `[a, 2.5]`'te karışık sayılıyor, ondalık değil).
 
 ### 3.14
 
@@ -424,8 +424,8 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ### 11.1
 
-- **Mevcut durum:** aktarılan modülün en dışındaki deyimler çalışıyor: en dışta yazdırma yapan bir modül aktarılınca çıktı geliyor [ölçüldü: main `a9a1ba14`].
-- **Yapılacaklar:** modülün en dışındaki deyim sözdizimi hatası (1.1); olumsuz fikstür.
+- **Mevcut durum:** modülün en dışındaki deyim denetim hatası (H1107, 1.1); olumsuz fikstür `tests/negative/modul_en_dis.tr` [ölçüldü: `TestModuleTopLevelHoldsOnlyDefinitions`, 4a1 ilk dilim].
+- **Yapılacaklar:** yok (1.1'e bağlı kalanlar 1.1'in maddesinde).
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** göreli modül yolunun programın klasörüne yedek yolu kalkar; harf büyüklüğü diskteki adla aynı olmalı.
 
 ### 11.2
@@ -493,7 +493,8 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 ### 12.5
 
 - **Mevcut durum:** en dıştaki tanımlar testler arasında paylaşılıyor: bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `e16d39df`]; aktarılan modülün durumu da sızıyor [ölçüldü: DENETİM]. Test dosyasının en dışındaki deyim de testlerden önce çalışıyor (1 yer); sabit olmayan ilk değer 7 yerde (geçici klasör, komut satırı ayarı, kullanıcı tanımlı türev); rastgele üretecin durumu testten teste sürüyor [ölçüldü: DENETİM]. Rehber (`docs/guide/07_testler.md:3`) eski sınıflı yazımla.
-- **Yapılacaklar:** en dıştaki deyimin sözdizimi hatası (1.1); en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması; TR testleri.
+- **4a1 ilk dilim (2026-10-30):** test dosyasının en dışındaki deyim ve sabit olmayan ilk değer denetim hatası (H1107, H1108); depodaki yerler (1 deyim, geçici klasör ve komut satırı ayarı) kurulum fonksiyonuna alındı [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`].
+- **Yapılacaklar:** en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması; TR testleri.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** hatalı test bitmemiş görevlerini önce iptal eder (10.9); bugün sonsuz işçiyle asılı kalıyor.
 
 ## 13. Yerleşikler
