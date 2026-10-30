@@ -203,3 +203,21 @@ func TestOptionalTypes(t *testing.T) {
 	noErrors(t, "TR_var a: TR_Int? = 0\na = TR_none\nTR_func f(x: TR_Int?) { }\nf(TR_none)\nf(a)")
 	noErrors(t, "TR_var a: TR_Int? = 0\nTR_var b: TR_Int = a") // daraltma 4b'nin
 }
+
+// Kural (7.3, 7.5, 3.13): tipi bilinen yapı nesnesinin alanı yazılan tipindedir; metotta TR_self
+// yapının tipindedir (alanı ve metodunun dönüşü bilinir). Tipsiz alan, metot değeri, ?. ve tipi
+// bilinmeyen nesne TR_Any kalır.
+func TestFieldTypes(t *testing.T) {
+	nokta := "TR_struct Nokta {\n    x: TR_Float\n    ad: TR_String? = TR_none\n    TR_func iki() -> TR_Float {\n        TR_var v = TR_self.x * 2\n        TR_return v\n    }\n}\nTR_var p = Nokta(1.0)\n"
+	expectTypes(t, map[string]string{
+		nokta + "TR_var v = p.x":                           typeFloat,
+		nokta + "TR_var v = p.ad":                          typeString + "?",
+		nokta + "TR_var v = p.iki()":                       typeFloat,
+		nokta + "TR_var v = p.y":                           typeAny,
+		nokta + "TR_var v = p?.x":                          typeAny,
+		"TR_var p = TR_input()\nTR_var v = p.x":            typeAny,
+		"TR_enum D {\n    A(n: TR_Int)\n}\nTR_var v = D.A": typeAny,
+	})
+	singleError(t, nokta+"TR_var v = p.x\nv = \"a\"", messages.H1005, 11, "TR_Float")
+	singleError(t, "TR_struct S {\n    n: TR_Int\n    TR_func m() -> TR_String {\n        TR_return TR_self.n\n    }\n}", messages.H1003, 4, `"TR_Int"`)
+}

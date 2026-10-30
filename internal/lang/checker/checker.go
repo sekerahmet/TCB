@@ -93,6 +93,8 @@ type Checker struct {
 	facts          signatureFacts
 	libraryFile    string
 	exceptionsUsed map[string]bool
+	// selfType gövdesi denetlenen metodun yapısıdır: TR_self onun tipindedir ("": metot dışı).
+	selfType string
 }
 
 // New returns a checker with an empty global scope.
@@ -360,6 +362,9 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	case *ast.NullLiteral:
 		return typeNull
 	case *ast.Identifier:
+		if e.Token.Type == lexer.TokSelf && c.selfType != "" {
+			return c.selfType
+		}
 		if info, ok := c.scope.Resolve(e.Value); ok {
 			return info.TypeName
 		}
