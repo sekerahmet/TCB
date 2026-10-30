@@ -1,0 +1,8 @@
+# TR 4
+# TEST 13.10 yalnız değer veren yerleşiğin çağrısı tek başına deyim olamaz: değeri atılır
+TR_var l = [3, 1, 2]
+l.TR_sort() # ERROR H1115
+TR_var m = " a "
+m.TR_strip() # ERROR H1115
+TR_floor(2.5) # ERROR H1115
+TR_print(l, m)

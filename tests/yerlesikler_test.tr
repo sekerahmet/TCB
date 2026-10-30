@@ -29,6 +29,18 @@ TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı o
     TR_assert_equal(4, TR_round(3.6))
 }
 
+TR_test "13.10 yalnız değer veren yerleşik yeni değer döndürür, alıcısını değiştirmez" {
+    TR_var l = [3, 1, 2]
+    TR_var s = l.TR_sort()
+    TR_assert_equal([3, 1, 2], l)
+    TR_assert_equal([1, 2, 3], s)
+    l = l.TR_sort()
+    TR_assert_equal([1, 2, 3], l)
+    TR_var m = " a "
+    TR_assert_equal("a", m.TR_strip())
+    TR_assert_equal(" a ", m)
+}
+
 TR_test "13.11 yerleşiklerin argüman hataları tek biçimdedir" {
     TR_assert_equal("H2423", TR_error_code { TR_sqrt("a") })
     TR_assert_equal("H2423", TR_error_code { [1].TR_filter(3) })

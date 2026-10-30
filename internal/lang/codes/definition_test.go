@@ -152,6 +152,25 @@ func TestParseDefinitions(t *testing.T) {
 	}
 }
 
+// Kural (13.10): "pure" yalnız yeni değer veren yerleşiği işaretler; okunur ve yalnız yerleşik
+// fonksiyon ya da metotta yazılır (TR_print ve TR_mem_append gibi durum değiştirenler işaretsizdir).
+func TestPureMarksOnlyValueBuiltins(t *testing.T) {
+	defs, _, err := ParseDefinitions([]byte(`{"TR_fn_floor": {"kind": "function", "pure": true}}`))
+	if err != nil || !defs[FnFloor].Pure {
+		t.Fatalf("pure okunmalı: %+v %v", defs[FnFloor], err)
+	}
+	for _, k := range []Code{MemSort, MemStrip, FnFloor} {
+		if d, _ := DefinitionOf(k); !d.Pure {
+			t.Errorf("%s pure işaretli olmalı", k)
+		}
+	}
+	for _, k := range []Code{FnPrint, FnInput, MemAppend, FnLoadParameters} {
+		if d, _ := DefinitionOf(k); d.Pure {
+			t.Errorf("%s pure işaretli olmamalı: değeri bilerek atılabilir", k)
+		}
+	}
+}
+
 // Kural (17, kitaplık kodu): definitions.json'da "module" alanı olan kod standart kitaplığın
 // (tr/…) kodudur; yerleşik değildir. Alan yalnız kitaplığın dışa açık adlarının sınıflarında
 // (tip, fonksiyon, sabit, üye, adlı argüman) yazılır.

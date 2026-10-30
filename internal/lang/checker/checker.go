@@ -97,6 +97,8 @@ type Checker struct {
 	exceptionsUsed map[string]bool
 	// selfType gövdesi denetlenen metodun yapısıdır: TR_self onun tipindedir ("": metot dışı).
 	selfType string
+	// receivers metot çağrılarının nesnesinin çıkarılan tipidir (pure_calls.go).
+	receivers map[*ast.CallExpression]string
 }
 
 // New returns a checker with an empty global scope.
@@ -159,6 +161,7 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
 	c.valueTypes = nil
+	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
 	for _, stmt := range prog.Statements {
 		c.checkStatement(stmt)
@@ -321,6 +324,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.noteBlockValue(s, c.inferExpression(s.Expression))
 		c.statementExpr = prev
 		c.checkUnusedValue(s)
+		c.checkPureCall(s)
 	}
 }
 
@@ -437,6 +441,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		info, found = c.scope.Resolve(ident.Value)
 	case isMember:
 		objType = c.inferExpression(member.Object) // metodun nesnesi (local_types.go, callType)
+		c.receivers[e] = objType
 	default:
 		c.inferExpression(e.Function)
 	}

@@ -33,7 +33,7 @@ var LongFuncs = map[string]int{
 	"internal/lang/interp/methods.go:setupListMethods":          88,
 	"internal/lang/checker/checker.go:Checker.checkStatement":   147,
 	"internal/lang/codes/language.go:load":                      160,
-	"internal/lang/codes/definition.go:CheckDefinitions":        113,
+	"internal/lang/codes/definition_check.go:CheckDefinitions":  113,
 	"internal/lang/codes/definition.go:ParseDefinitions":        96,
 
 	// Araçlar
