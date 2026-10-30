@@ -1,0 +1,55 @@
+# Tipsiz kalan yerler (TestTRCodeIsTyped, internal/typed_code_test.go): "yol:satır tür ad — neden".
+# Liste yalnız küçülür: tipi yazılan yer silinir (-update-typed). Yeni satır yalnız nedeniyle eklenir.
+# Bu dosya ve test 4a1 tipsiz parametreyi ve alanı denetim hatası yapınca kalkar.
+
+## 4c'yi bekleyen (genel tip): birden çok tip alan ya da tutan yer; tip parametresi (6.10) ve birleşim tipi bugün yok
+docs/codes.md:607 dönüş kimlik — TR_type_Any'nin kendi örneği: her değeri geri veren kimlik fonksiyonu (genel T); 3.11 Herhangi'yi kaldırınca örnek yeniden yazılır
+docs/codes.md:607 genel-tip TR_type_Any — TR_type_Any'nin kendi örneği; tip 3.11'de kalkar
+docs/codes.md:639 genel-tip TR_type_BuiltinFunction — TR_type_BuiltinFunction'ın kendi örneği; tip 3.11'de kalkar
+docs/codes.md:749 genel-tip TR_type_Function — TR_type_Function'ın kendi örneği; tip 3.11'de kalkar, yerine (T) -> R (6.9)
+examples/tr/12_tip_adlari.tr:30 dönüş kimlik — Herhangi'yi öğreten örneğin kimlik fonksiyonu: 5, "beş" ve [1, 2] alır, aynısını döndürür (genel T)
+examples/tr/12_tip_adlari.tr:30 genel-tip TR_type_Any — örnek Herhangi'yi öğretiyor; 3.11 tipi kaldırınca örnek yeniden yazılır
+examples/tr/14_yapilar_ve_metotlar.tr:55 genel-tip TR_type_Object — örnek Nesne'yi öğretiyor; 3.11 tipi kaldırınca örnek yeniden yazılır
+examples/tr/17_testler_test.tr:23 alan Sepet.ürünler — öğeleri {"ad": metin, "fiyat": sayı} sözlükleri: değer tipi birden çok (birleşim yok)
+examples/tr/39_veri_ile_egitim.tr:73 parametre ileri.giriş — hem kimlik listesi (TR_List[TR_List[TR_Int]]) hem kimlik tensörü (TR_Tensor[TR_Int]) alır
+lib/layers.tr:52 parametre TR_mem_forward.TR_arg_token_ids — GömmeKatmanı kimlikleri hem iç içe liste hem TR_Tensor[TR_Int] olarak alır (üret liste, tek_adım tensör verir)
+lib/layers.tr:310 parametre TR_mem_forward.TR_arg_token_ids — PLEBloğu kimlikleri bloktan geldiği gibi alır: iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:343 parametre TR_mem_forward.TR_arg_token_ids — TransformerBloğu kimlikleri: iç içe liste, TR_Tensor[TR_Int] ya da yok
+lib/layers.tr:491 alan TR_type_GPT.TR_mem_config — ayar sözlüğünün değerleri tam sayı, ondalık, mantık, metin, liste ve yok: değer tipi birden çok
+lib/layers.tr:526 parametre TR_mem_embed.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int] (gizli_durum ve tek_adım)
+lib/layers.tr:531 parametre TR_mem_run_blocks.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:541 parametre TR_mem_hidden_states.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int] (README: kimlikler [B, T] liste; örnekleyici tensör verir)
+lib/layers.tr:571 parametre TR_mem_forward.TR_arg_token_ids — GPT.ileri kimlikleri iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:582 parametre TR_mem_loss.TR_arg_targets — hedefler iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:582 parametre TR_mem_loss.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
+lib/optimizers.tr:265 parametre TR_fn_parameter_groups.TR_arg_model — model TR_parameters'ın okuduğu her değerdir (yapı, liste, sözlük; 13.8a)
+lib/optimizers.tr:276 parametre parametre_kümeleri.model — model TR_parameters'ın okuduğu her değerdir
+lib/optimizers.tr:362 alan TR_type_MuonAndAdamW.TR_mem_muon — TR_Muon ya da TR_NorMuon tutar (normuon: seçeneği); ortak arayüz tanımlanmadı (7.8)
+lib/optimizers.tr:371 parametre TR_ctx_init.TR_arg_model — model TR_parameters'ın okuduğu her değerdir
+lib/optimizers_test.tr:167 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
+lib/optimizers_test.tr:367 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
+lib/optimizers_test.tr:367 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
+lib/pretrained.tr:30 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
+lib/pretrained.tr:30 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
+lib/pretrained.tr:30 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
+lib/pretrained.tr:52 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:81 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:89 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:115 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
+lib/pretrained_test.tr:7 dönüş qwen3_ayarı — Hugging Face ayarının sözlüğü: değerleri metin, sayı, mantık, sözlük ve yok
+lib/training.tr:115 parametre TR_ctx_init.TR_arg_config — config.json'a yazılan ayar sözlüğü: değer tipi birden çok (tam sayı, ondalık, metin ...)
+lib/training.tr:115 parametre TR_ctx_init.TR_arg_folder — klasör TR_String ya da TR_Path (ikisi de çağrılıyor; TR_Path ikisini de alır)
+lib/training.tr:115 parametre TR_ctx_init.TR_arg_objects — kontrol noktasının nesneleri: model, iyileştirici, okuyucu, sözlük karışık (20.2)
+lib/training.tr:157 parametre TR_mem_finish.TR_arg_model — model TR_parameters'ın okuduğu her değer (testte sözlük, eğitimde GPT)
+tests/deyimler_test.tr:169 parametre tür.x — 5.6 testi: eşle deseni sayıyı ve metni karşılaştırır, x her ikisini alır
+tests/kontrol_noktasi_test.tr:154 dönüş eğit — {"model", "op", "ö", "izlenen", "kn", "g"} sözlüğü: değer tipi birden çok
+tests/tensor_test.tr:991 alan Blok.mlp — 15.33 testi: TR_parameters'ın listeyi ve sözlüğü gezdiğini sınar, alan ikisini de tutar
+tests/yapilar_test.tr:166 alan Kutu.f — 7.6 testi: fonksiyon, sayı ve tensör tutan alanın karşılaştırması sınanır
+tests/yardimci_test_araclari.tr:7 parametre hata_metni.f — her dönüş tipindeki bloğu alır (() -> T)
+tools/gpu/training_model.tr:11 parametre eğitim_modeli.ayar — komut satırı sözlüğü ya da config.json'dan TR_JSON (dosyanın yorumu)
+
+## olumsuz fikstür: sınadığı hata tipin kendisidir ya da tip yazılınca fikstür başka bir hatayı sınar
+tests/negative/yapi_kurucu_deger.tr:5 dönüş TR_ctx_init — 7.4: kurucunun değerli TR_return'ü sözdizimi hatasıdır; kurucuya dönüş tipi yazılamaz (H0283)
+
+## 4a'yı bekleyen (denetleyici): tip bilinir, bugünkü denetleyici yazılınca yanlış hata verir
+lib/optimizers.tr:117 parametre TR_fn_only_2d.TR_arg_name — yapının adı (TR_Muon) TR_Type'tır (3.11); denetleyici yapının adını yapının kendi tipinde sayıyor
