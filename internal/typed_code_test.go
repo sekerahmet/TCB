@@ -73,7 +73,7 @@ func typedFiles(t *testing.T) []trSource {
 	t.Helper()
 	var out []trSource
 	for _, dir := range typedSources {
-		err := filepath.WalkDir(reporoot.Path(dir), func(p string, d os.DirEntry, err error) error {
+		err := reporoot.WalkDir(reporoot.Path(dir), func(p string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(p, ".tr") {
 				return err
 			}
@@ -98,7 +98,7 @@ func typedDocBlocks(t *testing.T) []trSource {
 	t.Helper()
 	docs := slices.Clone(typedDocs)
 	for _, pattern := range []string{"docs/*.md", "docs/*/*.md"} {
-		found, err := filepath.Glob(reporoot.Path(pattern))
+		found, err := reporoot.Glob(reporoot.Path(pattern))
 		if err != nil {
 			t.Fatal(err)
 		}
