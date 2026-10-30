@@ -23,7 +23,7 @@ TR_print(TR_Type(kare) == TR_Function, TR_Type(TR_print) == TR_BuiltinFunction, 
 # Tip bildirimi: ad: Tip. Tip denetleyicisi yanlış atamayı program çalışmadan yakalar.
 TR_var hazır: TR_Bool = TR_true
 TR_var boş: TR_NoneType = TR_none
-TR_var sayılar: TR_List = [1, 2, 3]
+TR_var sayılar: TR_List[TR_Int] = [1, 2, 3]
 TR_print(hazır, boş, sayılar)
 
 # Herhangi: her değer verilebilir, tipi bilinmeyen değerler için kullanılır.

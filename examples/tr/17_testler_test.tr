@@ -10,11 +10,11 @@
 # Bir test kalırsa `tr test` 1 ile çıkar; CI'da kapı olarak kullanılabilir.
 
 # --- Sınanacak kod ---
-TR_func topla(a, b) {
+TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {
     TR_return a + b
 }
 
-TR_func ortalama_al(liste) {
+TR_func ortalama_al(liste: TR_List[TR_Int]) -> TR_Float {
     TR_if liste.TR_length == 0 { TR_throw "boş listenin ortalaması alınamaz" }
     TR_return TR_sum(liste) / liste.TR_length
 }
@@ -22,11 +22,11 @@ TR_func ortalama_al(liste) {
 TR_struct Sepet {
     ürünler = []
 
-    TR_func ekle(ad, fiyat) {
+    TR_func ekle(ad: TR_String, fiyat: TR_Int) {
         TR_self.ürünler.TR_append({"ad": ad, "fiyat": fiyat})
     }
 
-    TR_func tutar() {
+    TR_func tutar() -> TR_Int {
         TR_return TR_sum(TR_self.ürünler.TR_map((x) => x["fiyat"]))
     }
 }

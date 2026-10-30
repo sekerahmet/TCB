@@ -12,11 +12,11 @@ TR_struct Geliştirici {
     deneyim: TR_Int = 1 # varsayılan değer
 
     # Yapının içindeki fonksiyon metottur; kendi, üzerinde çalışılan nesnedir.
-    TR_func tanıt() {
+    TR_func tanıt() -> TR_String {
         TR_return "\(TR_self.ad) (\(TR_self.deneyim) yıl)"
     }
 
-    TR_func deneyim_ekle(yıl) {
+    TR_func deneyim_ekle(yıl: TR_Int) {
         TR_self.deneyim += yıl
     }
 }
@@ -33,7 +33,7 @@ TR_struct Nokta {
     x: TR_Float
     y: TR_Float
 
-    TR_func uzaklık() {
+    TR_func uzaklık() -> TR_Float {
         TR_return TR_sqrt(TR_self.x ** 2 + TR_self.y ** 2)
     }
 }
@@ -42,9 +42,9 @@ TR_print(noktalar.TR_map((x) => x.uzaklık()))
 
 # kurucu adlı metot nesne oluşturulurken çağrılır; alanları hesaplayarak başlatabilir.
 TR_struct Hesap {
-    bakiye
+    bakiye: TR_Int
 
-    TR_func TR_init(ilk) {
+    TR_func TR_init(ilk: TR_Int) {
         TR_self.bakiye = ilk * 2
     }
 }
@@ -78,7 +78,7 @@ TR_print(anlat(Cevap.Tamam("42")), anlat(Cevap.Hata(404, "yok")), Cevap.Bekliyor
 TR_interface Ölçen {
     TR_func ölç() -> TR_Float
 }
-TR_func toplam(ölçenler: TR_List) -> TR_Float {
+TR_func toplam(ölçenler: TR_List[Ölçen]) -> TR_Float {
     TR_var t = 0.0
     TR_for ö TR_in ölçenler { t += ö.ölç() }
     TR_return t

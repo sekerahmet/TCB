@@ -6,7 +6,7 @@
 # Çalıştırma (proje kökünden): tr examples/tr/08_fonksiyonlar.tr
 
 # fonksiyon ad(parametreler) { ... sonuç değer }: sonuç değeri çağırana geri verir.
-TR_func topla(a, b) {
+TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {
     TR_return a + b
 }
 TR_print(topla(2, 3))
@@ -20,7 +20,7 @@ TR_print(alan(2.5, 4.0))
 
 # Varsayılan değer: argüman verilmezse o kullanılır.
 # Adlı argüman: parametre adıyla verilir, sıra önemsizdir.
-TR_func selam(ad, ek = "!") {
+TR_func selam(ad: TR_String, ek: TR_String = "!") -> TR_String {
     TR_return "Selam \(ad)\(ek)"
 }
 TR_print(selam("Ayşe"))
@@ -28,21 +28,21 @@ TR_print(selam("Ali", "?"))
 TR_print(selam(ek: "...", ad: "Veli"))
 
 # sonuç fonksiyonu hemen bitirir; koşulla birlikte erken çıkış yapılabilir.
-TR_func mutlak_değer(x) {
+TR_func mutlak_değer(x: TR_Int) -> TR_Int {
     TR_if x < 0 { TR_return -x }
     TR_return x
 }
 TR_print(mutlak_değer(-7), mutlak_değer(7))
 
 # Fonksiyon kendini çağırabilir (özyineleme); mutlaka duran bir koşulu olmalıdır.
-TR_func faktöriyel(n) {
+TR_func faktöriyel(n: TR_Int) -> TR_Int {
     TR_if n <= 1 { TR_return 1 }
     TR_return n * faktöriyel(n - 1)
 }
 TR_print("5! = \(faktöriyel(5)), 10! = \(faktöriyel(10))")
 
 # Fonksiyonun içindeki değişkenler dışarıdan görünmez.
-TR_func say_ve_yaz(sınır) {
+TR_func say_ve_yaz(sınır: TR_Int) {
     TR_var birikmiş = 0
     TR_for i TR_in 1..=sınır { birikmiş += i }
     TR_print("1..\(sınır) toplamı \(birikmiş)")

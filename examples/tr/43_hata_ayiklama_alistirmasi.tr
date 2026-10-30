@@ -17,7 +17,7 @@ TR_var siparisler = [
     {"müşteri": "Elif", "ürün": "Kulaklık", "tutar": 3500}
 ]
 
-TR_func kdv_ekle(tutar) {
+TR_func kdv_ekle(tutar: TR_Int) -> TR_Float {
     TR_var kdv = tutar * oran
     TR_return tutar + kdv
 }

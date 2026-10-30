@@ -7,7 +7,7 @@
 #     yazdır(selam(ad: "Ali"))
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/09_bilinmeyen_adli_arguman.tr   (çıkış kodu 1)
 
-TR_func selam(ad) {
+TR_func selam(ad: TR_String) -> TR_String {
     TR_return "Selam \(ad)"
 }
 TR_print(selam(isim: "Ali"))

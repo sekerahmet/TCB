@@ -10,7 +10,7 @@ TR_var iki_katı = (x) => x * 2
 TR_print(iki_katı(21))
 
 # Fonksiyon bir değerdir: başka fonksiyona parametre olarak verilir.
-TR_func uygula(f, değer) {
+TR_func uygula(f: (TR_Int) -> TR_Int, değer: TR_Int) -> TR_Int {
     TR_return f(değer)
 }
 TR_print(uygula(iki_katı, 8))

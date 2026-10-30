@@ -22,15 +22,15 @@ TR_var V = p.TR_vocab_size
 TR_var doğrulama_girişi, doğrulama_hedefi = TR_Dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 2).TR_next()
 
 # eğit bir koşuyu baştan sona sürer; prova doğruysa aynı eğitim kısa bir denemedir.
-TR_func eğit(prova) {
+TR_func eğit(prova: TR_Bool) -> TR_Run {
     TR_var ö = TR_Dataset("../../tests/data/text").TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 1)
     TR_var parametre_tohumu = 0
-    TR_func parametre(şekil, ölçek) {
+    TR_func parametre(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
         parametre_tohumu += 1
         TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
     }
     TR_var model = {"E": parametre([V, 32], 0.1), "W1": parametre([32, 64], 0.1), "W2": parametre([64, V], 0.1)}
-    TR_func ileri(giriş) {
+    TR_func ileri(giriş: TR_Tensor[TR_Int]) -> TR_Tensor {
         TR_return TR_gelu(TR_embedding_lookup(model["E"], giriş) @ model["W1"]) @ model["W2"]
     }
     TR_var op = TR_AdamW(TR_parameters(model), TR_lr: ayar["lr"], TR_weight_decay: 0.0)
