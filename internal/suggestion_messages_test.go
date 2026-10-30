@@ -26,7 +26,9 @@ type suggestionCase struct {
 }
 
 var suggestionCases = []suggestionCase{
+	{messages.H0018, "TR_var x: TR_Int = 0X1F", "0X1F", "0x1F"},
 	{messages.H0026, "TR_pritn(1)", "TR_pritn", "TR_print"},
+	{messages.H0032, "TR_var x: TR_Float = .5", ".5", "0.5"},
 	{messages.H0027, "TR_var x: TR_List[TR_Int] = [1, 2]\nTR_var y: TR_Int = TR_length", "TR_length", "x.TR_length"},
 	{messages.H0029, "TR_var x: TR_Int = 1\nTR_var y: TR_Bool = x.TR_true", "x.TR_true", "TR_true"},
 	{messages.H0037, "TR_var x: TR_type_Int = 1", "TR_type_Int", "TR_Int"},
@@ -56,7 +58,7 @@ var suggestionCases = []suggestionCase{
 // maxUntestedSuggestionCodes izin listesindeki kayıt sayısının üst sınırıdır; liste yalnız küçülür.
 const maxUntestedSuggestionCodes = 27
 
-// untestedSuggestionCodes definitions.json'da suggestion/example yuvası taşıyan ama henüz bu tabloda
+// untestedSuggestionCodes definitions.json'da suggestion/example/fixed yuvası taşıyan ama henüz bu tabloda
 // sınanmayan kodlardır. Her yeni sınanan kod buradan silinir; liste büyüyemez.
 var untestedSuggestionCodes = map[messages.Code]string{
 	messages.H0028: "henüz sınanmadı",
@@ -64,24 +66,24 @@ var untestedSuggestionCodes = map[messages.Code]string{
 	messages.H5529: "henüz sınanmadı",
 	messages.H6001: "henüz sınanmadı",
 	messages.H6002: "henüz sınanmadı",
-	messages.H6104: "henüz sınanmadı",
-	messages.H6402: "henüz sınanmadı",
-	messages.H6405: "henüz sınanmadı",
-	messages.H6430: "henüz sınanmadı",
-	messages.H6431: "henüz sınanmadı",
-	messages.H6513: "henüz sınanmadı",
-	messages.H6514: "henüz sınanmadı",
-	messages.H6520: "henüz sınanmadı",
+	messages.H6104: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
+	messages.H6402: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
+	messages.H6405: "iletiler 2: customGradExample görünüm adıyla ve TR'de geçersiz fonksiyon(x) { ... } biçimiyle kuruluyor",
+	messages.H6430: "iletiler 2: customGradExample görünüm adıyla ve TR'de geçersiz fonksiyon(x) { ... } biçimiyle kuruluyor",
+	messages.H6431: "iletiler 2: customGradExample görünüm adıyla ve TR'de geçersiz fonksiyon(x) { ... } biçimiyle kuruluyor",
+	messages.H6513: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
+	messages.H6514: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
+	messages.H6520: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
 	messages.H6530: "henüz sınanmadı",
 	messages.H6532: "henüz sınanmadı",
-	messages.H6700: "henüz sınanmadı",
+	messages.H6700: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
 	messages.H7203: "henüz sınanmadı",
 	messages.H7209: "henüz sınanmadı",
 	messages.H7319: "henüz sınanmadı",
 	messages.H7435: "henüz sınanmadı",
 	messages.H7453: "henüz sınanmadı",
-	messages.H7900: "henüz sınanmadı",
-	messages.H7903: "henüz sınanmadı",
+	messages.H7900: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
+	messages.H7903: "iletiler 2: öneri görünüm adıyla kuruluyor (codes.NameRef / bind.NamedArg), programa kopyalanamaz",
 	messages.H8664: "henüz sınanmadı",
 	messages.H8768: "henüz sınanmadı",
 	messages.H8820: "henüz sınanmadı",
@@ -158,7 +160,7 @@ func checkSuggestionCoverage(t *testing.T, tested map[messages.Code]bool) {
 		reason, inAllow := untestedSuggestionCodes[c]
 		switch {
 		case !inTable && !inAllow:
-			t.Errorf("%s: suggestion/example yuvalı ileti ne suggestionCases tablosunda ne de untestedSuggestionCodes izin listesinde", c)
+			t.Errorf("%s: suggestion/example/fixed yuvalı ileti ne suggestionCases tablosunda ne de untestedSuggestionCodes izin listesinde", c)
 		case inTable && inAllow:
 			t.Errorf("%s: hem suggestionCases tablosunda hem untestedSuggestionCodes izin listesinde; izin listesinden çıkarın", c)
 		case inAllow && strings.TrimSpace(reason) == "":
@@ -167,7 +169,7 @@ func checkSuggestionCoverage(t *testing.T, tested map[messages.Code]bool) {
 	}
 	for c := range untestedSuggestionCodes {
 		if !slices.Contains(defined, c) {
-			t.Errorf("%s: untestedSuggestionCodes içinde ama definitions.json'da suggestion/example yuvası yok", c)
+			t.Errorf("%s: untestedSuggestionCodes içinde ama definitions.json'da suggestion/example/fixed yuvası yok", c)
 		}
 	}
 }
@@ -186,7 +188,7 @@ func definitionSuggestionCodes(t *testing.T) []messages.Code {
 	for _, c := range defs.Codes {
 		for _, p := range defs.Params[c] {
 			lp := strings.ToLower(p)
-			if strings.Contains(lp, "suggestion") || strings.Contains(lp, "example") {
+			if strings.Contains(lp, "suggestion") || strings.Contains(lp, "example") || strings.Contains(lp, "fixed") {
 				out = append(out, c)
 				break
 			}
