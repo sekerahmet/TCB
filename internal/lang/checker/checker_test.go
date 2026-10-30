@@ -135,8 +135,8 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_Dict[TR_String, TR_Int] = {"a": 1}`,
 		"TR_var m1 = TR_eye(2)\nTR_var m2 = m1\nTR_var a: TR_Tensor = m1 @ m2",
 		"TR_var a: TR_Int? = TR_none",
-		"TR_var bilinmeyen_tip = TR_input()\nTR_var a: TR_Int = bilinmeyen_tip",
-		`TR_var a: TR_Int = TR_print("x")`,
+		"TR_var bilinmeyen_tip = TR_json_parse(\"1\")\nTR_var a: TR_Int = bilinmeyen_tip",
+		"TR_var a: TR_Int = TR_abs(-5)", // birleşim dönüş (TR_Int|TR_Float|TR_Tensor): tip bilinmez
 		"TR_var a: TR_Int = TR_Int(5)",
 		"TR_var a: TR_Int = (5 ?? 6)",
 		`TR_var a: TR_String = TR_none ?? "varsayılan"`,
@@ -206,7 +206,7 @@ func TestAssignmentTypeCheck(t *testing.T) {
 
 	// 'yok' veya bilinmeyen tipte başlayan değişkenler serbestçe atanabilir
 	noErrors(t, "TR_var a = TR_none\na = 5\na = \"x\"")
-	noErrors(t, "TR_var a = TR_input()\na = 5\na = \"x\"")
+	noErrors(t, "TR_var a = TR_json_parse(\"1\")\na = 5\na = \"x\"")
 
 	// Tanımlanmamış bir hedefe atama tanımsız ad hatasıdır (5.4, 5.14)
 	singleError(t, "tanımsız = 5", messages.H1010, 1, "'tanımsız'")
@@ -274,7 +274,7 @@ func TestFunctionParamTypes(t *testing.T) {
 	def := "TR_func kare(x: TR_Int) -> TR_Int { TR_return x * x }\n"
 	singleError(t, def+`kare("üç")`, messages.H1004, 2, `"kare"`, "1. parametresi", `"TR_Int"`, `"TR_String"`)
 	noErrors(t, def+"kare(3)")
-	noErrors(t, def+"kare(TR_input())")
+	noErrors(t, def+"kare(TR_json_parse(\"1\"))")
 	// TR_none yalnız isteğe bağlı parametreye verilir (3.5)
 	singleError(t, def+"kare(TR_none)", messages.H1004, 2, `"TR_Int"`, `"TR_NoneType"`)
 

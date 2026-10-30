@@ -24,6 +24,7 @@ func TestConditionMustBeBool(t *testing.T) {
 		{"TR_var z = TR_true TR_or [1]", messages.H2601},
 		{"TR_var z = TR_not 0", messages.H2601},
 		{"TR_assert([1])", messages.H2612},
+		{"TR_if TR_Tensor([0.0]) { }", messages.H2600}, // tensör koşul değildir (yerleşiğin dönüşü)
 	}
 	for _, tc := range cases {
 		_, errs := checkErrs(t, tc.source)

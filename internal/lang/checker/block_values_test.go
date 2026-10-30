@@ -102,7 +102,7 @@ func TestIfAndMatchValueTypes(t *testing.T) {
 		"TR_var a = 1\nTR_var v = TR_if a > 0 { \"+\" } TR_else { \"-\" }":                     typeString,
 		"TR_var a = 1\nTR_var v = TR_if a > 0 { 1 } TR_else TR_if a < 0 { 2.5 } TR_else { 0 }": typeFloat,
 		"TR_var a = 1\nTR_var v = TR_if a > 0 { 1 } TR_else { \"x\" }":                         typeAny,
-		"TR_var a = 1\nTR_var v = TR_if a > 0 { TR_input() } TR_else { \"x\" }":                typeAny,
+		"TR_var a = 1\nTR_var v = TR_if a > 0 { TR_json_parse(\"1\") } TR_else { \"x\" }":      typeAny,
 		"TR_var a = 1\nTR_var v = TR_match a { 1 => \"bir\"\n    _ => \"çok\" }":               typeString,
 		"TR_var a = 1\nTR_var v = TR_match a { 1 => { TR_var b = 2\n        b }\n    _ => 0 }": typeInt,
 		"TR_var a = 1\nTR_var v = TR_match a { 1 => [1]\n    _ => { TR_throw \"yok\" } }":      listType(typeInt),

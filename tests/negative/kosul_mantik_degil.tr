@@ -12,6 +12,7 @@ TR_var u = TR_true TR_and "a" # ERROR H2601
 TR_var v = TR_none TR_or TR_true # ERROR H2601
 TR_var w = TR_not 0 # ERROR H2601
 TR_var k = TR_false TR_and 1 # ERROR H2601
+TR_var g = TR_not TR_Tensor([0.0]) # ERROR H2601
 TR_assert([1]) # ERROR H2612
 TR_assert(1, "mesaj") # ERROR H2612
-TR_print(c, z, y, u, v, w, k)
+TR_print(c, z, y, u, v, w, k, g)
