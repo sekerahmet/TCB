@@ -4,7 +4,9 @@ Başlama: 2026-10-30 04:50 UTC. Dal: `claude/vibrant-feynman-b6x2dz` (taban `mai
 
 ## Biten
 - Sayaç (ayrıştırıcıyla, `internal/typed_code_test.go`, henüz commit'te değil): ilk sayım aşağıda.
-- Tip tanığı (geçici commit): `TR_TYPE_WITNESS=<dosya>` ile açılır.
+- Tip tanığı (iki geçici commit): `TR_TYPE_WITNESS=<dosya>` uyuşmazlığı, `TR_TYPE_PROFILE=<dosya>` gözlenen tipleri yazar.
+- Bulunan yanlış: sözcük çözümleyici satır sonundaki `?`'yi işleç sayıyordu (afcfc5a).
+- lib (a392e62 demet, a5f14d0 tipler), tests (75b8db0 demet, b9124e0 tipler), examples (karışık liste → demet, tipler), tools/gpu + bench (demet, tipler).
 
 ## İlk sayım [ölçüldü: ayrıştırıcıyla, lib + tests + examples + tools (codegraph hariç) + belgelerin ```tr blokları + docs/codes.md]
 - tipsiz parametre: 477 (lib 325)
@@ -15,7 +17,7 @@ Başlama: 2026-10-30 04:50 UTC. Dal: `claude/vibrant-feynman-b6x2dz` (taban `mai
 - [1. tur]: 473 parametre, 97 alan.
 
 ## Kalan
-- hepsi
+- belge blokları, definitions.json örnekleri (docs/codes.md), şablonlar; Go testlerindeki TR parçaları (sayım); izin listesi; depo testi; status; tanığın geri alınması.
 
 ## Kararsız / sorular
 - yok
