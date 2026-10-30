@@ -219,6 +219,11 @@ func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 	if t == nil {
 		return typeAny
 	}
+	if t.Optional {
+		inner := *t
+		inner.Optional = false
+		return optionalType(c.writtenType(&inner, line))
+	}
 	for i := range t.Params {
 		c.writtenType(&t.Params[i], line)
 	}
@@ -245,6 +250,11 @@ func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 
 // normalizedType writtenType'ın indirgemesini hata eklemeden yapar.
 func normalizedType(t *ast.TypeRef) string {
+	if t != nil && t.Optional {
+		inner := *t
+		inner.Optional = false
+		return optionalType(normalizedType(&inner))
+	}
 	if t != nil && t.Return != nil {
 		return typeFunction
 	}

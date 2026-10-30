@@ -46,15 +46,15 @@ func TestTypeNameNormalization(t *testing.T) {
 // dosyada başka bir yazım dilinin adı (Ondalık) İngilizce adı önerir.
 func TestTypeNameASCIISuggestion(t *testing.T) {
 	singleErrorIn(t, "tr", "TR_var a: ondalik = 1.5", messages.H1007, 1, "'ondalik'", "'Ondalık'")
-	singleErrorIn(t, "tr", "TR_var a: TR_Bool = TR_true\nTR_var b: tensor = TR_none", messages.H1007, 2, "'tensor'", "'Tensör'")
+	singleErrorIn(t, "tr", "TR_var a: TR_Bool = TR_true\nTR_var b: tensor? = TR_none", messages.H1007, 2, "'tensor'", "'Tensör'")
 	singleErrorIn(t, "tr", "TR_func f(x: sozluk) -> TR_Dict[TR_String, TR_Int] { TR_return x }", messages.H1007, 1, "'sozluk'", "'Sözlük'")
 	singleErrorIn(t, "tr", "TR_func f(x: TR_Int) -> mantik { TR_return TR_true }", messages.H1007, 1, "'mantik'", "'Mantık'")
 	for name, canonical := range map[string]string{"int": "Tam", "float": "Ondalık", "str": "Metin", "string": "Metin",
 		"bool": "Mantık", "null": "YokTipi", "list": "Liste", "dict": "Sözlük", "map": "Sözlük", "matrix": "Tensör"} {
-		singleErrorIn(t, "tr", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "tr", "TR_var a: "+name+"? = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 	for name, canonical := range map[string]string{"Ondalık": "Float", "Tam": "Int", "Sözlük": "Dict"} {
-		singleErrorIn(t, "en", "TR_var a: "+name+" = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
+		singleErrorIn(t, "en", "TR_var a: "+name+"? = TR_none", messages.H1007, 1, "'"+name+"'", "'"+canonical+"'")
 	}
 }
 
@@ -67,7 +67,7 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 		"en": {"int": "Int", "FLOAT": "Float", "string": "String", "bool": "Bool", "list": "List"},
 	} {
 		for name, canonical := range names {
-			singleErrorIn(t, lang, "TR_var a: "+name+" = TR_none", messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
+			singleErrorIn(t, lang, "TR_var a: "+name+"? = TR_none", messages.H1006, 1, "'"+name+"'", "'"+canonical+"'")
 		}
 	}
 	singleErrorIn(t, "tr", "TR_func f(x: liste) -> TR_List[TR_Int] { TR_return x }", messages.H1006, 1, "'liste'", "'Liste'")
@@ -75,7 +75,7 @@ func TestTypeNameCaseSpelling(t *testing.T) {
 	singleErrorIn(t, "tr", "TR_var a: tam = 1\nTR_var b: TR_Int = a", messages.H1006, 1, "'tam'")
 }
 
-// Tip uyumu kimlikler üzerindedir: Tam Ondalık beklenen yere, yok her tipe atanabilir; Herhangi
+// Tip uyumu kimlikler üzerindedir: Tam Ondalık beklenen yere, yok yalnız isteğe bağlı tipe (3.5) atanabilir; Herhangi
 // her şeyle uyumludur; kabul edilmeyen harf yazımı ayrıca uyuşmazlık sayılmaz (hatayı
 // checkedTypeName verir).
 func TestTypeCompatibility(t *testing.T) {
@@ -90,7 +90,9 @@ func TestTypeCompatibility(t *testing.T) {
 		{s, i, false},
 		{typeAny, s, true},
 		{s, typeAny, true},
-		{l, typeNull, true},
+		{l, typeNull, false},
+		{l + "?", typeNull, true},
+		{i + "?", i, true},
 		{typeNull, i, false},
 		{"tam", i, true},
 		{"Nokta", "Nokta", true},
@@ -132,7 +134,7 @@ func TestTypedVarCompatible(t *testing.T) {
 		"TR_var a: TR_List[TR_Int] = [x * 2 TR_for x TR_in 1..3]",
 		`TR_var a: TR_Dict[TR_String, TR_Int] = {"a": 1}`,
 		"TR_var m1 = TR_eye(2)\nTR_var m2 = m1\nTR_var a: TR_Tensor = m1 @ m2",
-		"TR_var a: TR_Int = TR_none",
+		"TR_var a: TR_Int? = TR_none",
 		"TR_var bilinmeyen_tip = TR_input()\nTR_var a: TR_Int = bilinmeyen_tip",
 		`TR_var a: TR_Int = TR_print("x")`,
 		"TR_var a: TR_Int = TR_Int(5)",
@@ -273,7 +275,8 @@ func TestFunctionParamTypes(t *testing.T) {
 	singleError(t, def+`kare("üç")`, messages.H1004, 2, `"kare"`, "1. parametresi", `"TR_Int"`, `"TR_String"`)
 	noErrors(t, def+"kare(3)")
 	noErrors(t, def+"kare(TR_input())")
-	noErrors(t, def+"kare(TR_none)")
+	// TR_none yalnız isteğe bağlı parametreye verilir (3.5)
+	singleError(t, def+"kare(TR_none)", messages.H1004, 2, `"TR_Int"`, `"TR_NoneType"`)
 
 	two := "TR_func böl(a: TR_Float, b: TR_Float) -> TR_Float { TR_return a / b }\n"
 	noErrors(t, two+"böl(1, 2)")
@@ -322,16 +325,20 @@ func TestReturnTypeCheck(t *testing.T) {
 	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a // b }")
 	noErrors(t, "TR_func ort(a: TR_Int, b: TR_Int) -> TR_Float { TR_return a / b }")
 
+	// TR_none ve boş dönüş isteğe bağlı olmayan dönüş tipine uymaz (3.5)
+	singleError(t, "TR_func f() -> TR_List[TR_Int] { TR_return TR_none }", messages.H1003, 1, `"TR_NoneType"`)
+	singleError(t, "TR_func f() -> TR_Int { TR_return }", messages.H1003, 1, `"TR_NoneType"`)
+
 	// İç bloklardaki dönüşler de denetlenir
 	singleError(t, "TR_func f(x: TR_Bool) -> TR_Int {\n  TR_if x {\n    TR_return \"a\"\n  }\n  TR_return 1\n}", messages.H1003, 3)
 	singleError(t, "TR_func f(x: TR_List[TR_Int]) -> TR_Int {\n  TR_for i TR_in x {\n    TR_return TR_true\n  }\n}", messages.H1003, 3)
 
 	for _, source := range []string{
-		"TR_func f() -> TR_Float { TR_return 1 }",              // Tam -> Ondalık
-		"TR_func f() -> TR_List[TR_Int] { TR_return TR_none }", // 'yok' her tipe uyar
-		"TR_func f() -> TR_Int { TR_return }",                  // boş dönüş 'yok' sayılır
-		"TR_func f(x: TR_Int) -> TR_Int { TR_return x * 2 }",   // çıkarılan tip uyumlu
-		"TR_func f() -> TR_Bool { TR_return 1 < 2 }",           // karşılaştırma
+		"TR_func f() -> TR_Float { TR_return 1 }",               // Tam -> Ondalık
+		"TR_func f() -> TR_List[TR_Int]? { TR_return TR_none }", // isteğe bağlı dönüşe 'yok' (3.5)
+		"TR_func f() -> TR_Int? { TR_return }",                  // boş dönüş 'yok' sayılır
+		"TR_func f(x: TR_Int) -> TR_Int { TR_return x * 2 }",    // çıkarılan tip uyumlu
+		"TR_func f() -> TR_Bool { TR_return 1 < 2 }",            // karşılaştırma
 		"TR_func f() -> (TR_Int) -> TR_Int { TR_return (x: TR_Int) => x }",
 	} {
 		noErrors(t, source)

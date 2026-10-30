@@ -38,8 +38,22 @@ func (c *Checker) knownType(t string) bool {
 
 // commonType değişmezdeki öğelerin ortak tipidir (3.6): hepsi aynı tanınan tipse o; tam sayı ve
 // ondalık karışıksa ve her tam sayı öğe bir tam sayı yazımıysa TR_Float (3.13: yazım ondalık olur);
-// boşsa, karışıksa (tam sayı değişkenle ondalık da) ya da bir öğenin tipi bilinmiyorsa "".
+// öğelerden bazıları TR_none ise öbürlerinin ortak tipinin isteğe bağlısı (T?, 3.5); boşsa,
+// karışıksa (tam sayı değişkenle ondalık da) ya da bir öğenin tipi bilinmiyorsa "".
 func (c *Checker) commonType(types []string, exprs []ast.Expression) string {
+	var rest []string
+	var restExprs []ast.Expression
+	for i, t := range types {
+		if t != typeNull {
+			rest, restExprs = append(rest, t), append(restExprs, exprs[i])
+		}
+	}
+	if len(rest) < len(types) {
+		if t := c.commonType(rest, restExprs); t != "" {
+			return optionalType(t)
+		}
+		return ""
+	}
 	if len(types) == 0 {
 		return ""
 	}

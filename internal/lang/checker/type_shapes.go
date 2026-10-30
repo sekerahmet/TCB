@@ -12,15 +12,21 @@ import (
 // bilinmeyen kap asıl adıyla kalır (TR_List). Bu dosya metni böler, kurar ve iki tipin uyumuna karar verir.
 
 // typeShape bir tip metninin parçalarıdır: asıl ad ve kabın tip argümanları; demette asıl ad boştur,
-// elems öğelerin tipleridir.
+// elems öğelerin tipleridir. optional sondaki '?'dir (T?, 3.5).
 type typeShape struct {
-	base  string
-	args  []string
-	elems []string
+	base     string
+	args     []string
+	elems    []string
+	optional bool
 }
 
 // shapeOf tip metnini parçalarına ayırır.
 func shapeOf(t string) typeShape {
+	if inner, ok := strings.CutSuffix(t, "?"); ok {
+		s := shapeOf(inner)
+		s.optional = true
+		return s
+	}
 	if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
 		return typeShape{elems: splitTypes(t[1 : len(t)-1])}
 	}
@@ -65,6 +71,17 @@ func tupleType(elems []string) string { return "(" + strings.Join(elems, ", ") +
 
 // baseType tipin asıl adıdır: TR_List[TR_Int] → TR_List; demette boş.
 func baseType(t string) string { return shapeOf(t).base }
+
+// optionalType t'nin isteğe bağlı hâlidir (T → T?, 3.5); bilinmeyen tip ve yokluk olduğu gibi kalır.
+func optionalType(t string) string {
+	if t == typeAny || t == typeNull || strings.HasSuffix(t, "?") {
+		return t
+	}
+	return t + "?"
+}
+
+// requiredType isteğe bağlı tipin asıl tipidir (T? → T): '??'nin sonucu (4.7).
+func requiredType(t string) string { return strings.TrimSuffix(t, "?") }
 
 // mapTypeNames tip metnindeki her adı f'nin verdiğiyle değiştirir; ayraçlar ([, ], (, ), virgül,
 // boşluk, ?) kalır. İleti bileşik tipin adlarını böyle yazar (typeText, typeSpelling).
@@ -131,11 +148,17 @@ func (k compat) types(expected, actual string) bool {
 // fits expected yerine actual konabilir mi; inner bir kabın tip argümanıdır.
 func (k compat) fits(expected, actual string, inner bool) bool {
 	e, a := shapeOf(expected), shapeOf(actual)
+	if actual == typeNull {
+		// TR_none yalnız isteğe bağlı yere verilir (3.5); bilinmeyen adın (tip parametresi, arayüz)
+		// isteğe bağlı olup olmadığı bilinmez.
+		base := normalizeTypeName(e.base)
+		return e.optional || base == typeAny || base == typeNull || e.elems == nil && k.unknownName(base)
+	}
 	if e.elems != nil || a.elems != nil {
 		return k.tuplesFit(e, a)
 	}
 	e.base, a.base = normalizeTypeName(e.base), normalizeTypeName(a.base)
-	if e.base == typeAny || a.base == typeAny || a.base == typeNull {
+	if e.base == typeAny || a.base == typeAny {
 		return true
 	}
 	if e.base != a.base {

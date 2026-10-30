@@ -19,7 +19,9 @@ func TestUserTypeCompatibility(t *testing.T) {
 		{compat{}, "Nokta", "Kare", true},
 		{structs, typeInt, "Kare", false},
 		{structs, "Kare", typeInt, false},
-		{structs, "Kare", typeNull, true},
+		{structs, "Kare", typeNull, false},
+		{structs, "Kare?", typeNull, true},
+		{structs, "Kare?", "Kare", true},
 		{structs, typeNull, "Kare", false},
 	} {
 		if got := tt.k.types(tt.expected, tt.actual); got != tt.want {

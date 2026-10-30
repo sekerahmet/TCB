@@ -386,7 +386,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			return typeBool
 		case "??":
 			if left != typeNull && left != typeAny {
-				return left
+				return requiredType(left)
 			}
 			return right
 		case "@":
