@@ -114,7 +114,7 @@ TR_func TR_zero_grads(TR_parameters: TR_List[TR_Tensor]) {
 }
 
 # yalnızca_2b ağırlıkların hepsinin 2 boyutlu olduğunu denetler.
-TR_func TR_only_2d(TR_name, TR_parameters: TR_List[TR_Tensor]) {
+TR_func TR_only_2d(TR_name: TR_Type, TR_parameters: TR_List[TR_Tensor]) {
     TR_for i, p TR_in TR_parameters {
         TR_assert(p.TR_shape.TR_length == 2, TR_Message("H6920", TR_name, i, p.TR_shape))
     }

@@ -38,3 +38,8 @@
 - **Kural yüzünden değişen Go testleri:** interp `TestModulePassesTypeCheck` (modülün `TR_print`'i fonksiyona), `TestModuleRuntimeErrorWithOwnFile` ve e2e `TestModuleRunErrorFrame` (modülün en dıştaki sıfıra bölmesi modül fonksiyonuna; aktaran onu çağırıyor): testin konusu (modül hatasının kendi dosyası ve satırı) aynı.
 - 1.1'in Test satırı güncellendi (`docs/spec/01_program.md`; `TestEveryRuleHasATest` TR testini anmayı istiyor).
 - **Dalda bilinen düşüş:** `tools/codegraph` `TestEveryTrackedDataFileHasATestOrAReason` `.devir/DURUM.md` için düşüyor; `.devir` ana dala alınmadığından ana dalda düşmez.
+
+## Adım 4: 0.9'dan kalan iki yanlış
+
+- **(a) yapının adı değer olarak:** denetleyici yapının adını kendi tipinde sayıyordu; artık `TR_Type` (3.11; `TestStructNameIsATypeValue`). `lib/optimizers.tr:117` `TR_only_2d(TR_name: TR_Type, ...)` tiplendi, izin listesinin "4a'yı bekleyen" başlığı kalktı. `tr test lib`/`tests` 0.
+- **(b) yalnız not:** `TR_SpikeGuard` (`lib/training.tr:39`, H6930) ve `TR_Run.TR_init` (`lib/training.tr:116`, H6932) çalışma anında `TR_Type(x) != TR_Int` sınıyor; `lib/training_test.tr:73` `TR_history_limit: 2.5` ile H6930 bekliyor. Kapı (tipsiz/yanlış tipli argüman denetim hatası) ikinci dilimde açılınca bu sınamalar ve test kalkar (tip denetimi yakalar).
