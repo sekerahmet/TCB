@@ -7,7 +7,7 @@
 #     yazdır(topla(1, 2)) // ya da: fonksiyon topla(a, b = 0)
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/08_eksik_arguman.tr   (çıkış kodu 1)
 
-TR_func topla(a, b) {
+TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {
     TR_return a + b
 }
 TR_print(topla(1))

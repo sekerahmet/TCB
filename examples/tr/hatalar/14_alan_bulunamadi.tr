@@ -12,7 +12,7 @@
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
 
 TR_struct Nokta {
-    x
-    y
+    x: TR_Int
+    y: TR_Int
 }
 TR_print(Nokta(1, 2).z)

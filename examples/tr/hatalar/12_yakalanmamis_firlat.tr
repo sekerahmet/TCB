@@ -11,7 +11,7 @@
 #     }
 # Çalıştırma (proje kökünden): tr examples/tr/hatalar/12_yakalanmamis_firlat.tr   (çıkış kodu 1)
 
-TR_func yaş_denetle(yaş) {
+TR_func yaş_denetle(yaş: TR_Int) -> TR_Int {
     TR_if yaş < 0 { TR_throw "yaş negatif olamaz" }
     TR_return yaş
 }

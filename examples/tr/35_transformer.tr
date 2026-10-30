@@ -15,7 +15,7 @@ TR_var B = 4 # toplu iş boyutu
 
 # Öğrenilen parametre: küçük rastgele değerlerle başlar, gradyanı izlenir.
 TR_var parametre_tohumu = 1
-TR_func parametre(şekil, ölçek) {
+TR_func parametre(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     parametre_tohumu += 1 # her parametreye farklı ama sabit bir tohum: sonuç tekrar üretilebilir
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
 }
@@ -36,12 +36,12 @@ TR_var Wu = parametre([D, V], 0.2)
 
 TR_var konumlar = TR_List(0..T)
 
-TR_func başlara_ayır(x) {
+TR_func başlara_ayır(x: TR_Tensor) -> TR_Tensor {
     # [B, T, D] -> [B, T, H, Dh]: dikkat bu düzeni okur, eksen sıralamaya gerek yok
     TR_return x.TR_reshape([B, T, H, Dh])
 }
 
-TR_func ileri(girdiler) {
+TR_func ileri(girdiler: TR_List[TR_List[TR_Int]]) -> TR_Tensor {
     TR_var x = TR_embedding_lookup(E, girdiler) + TR_embedding_lookup(P, konumlar) # [B, T, D]
     TR_var q = başlara_ayır(x @ Wq)
     TR_var k = başlara_ayır(x @ Wk)
@@ -59,12 +59,12 @@ TR_func ileri(girdiler) {
 
 # Basit, tekrar üretilebilir sözde rastgele sayılar
 TR_var tohum = 12345
-TR_func rastgele_tam(n) {
+TR_func rastgele_tam(n: TR_Int) -> TR_Int {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
     TR_return tohum % n
 }
 
-TR_func toplu_iş_üret() {
+TR_func toplu_iş_üret() -> (TR_List[TR_List[TR_Int]], TR_List[TR_Int]) {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {

@@ -6,7 +6,7 @@
 
 # ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
 # Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.
-TR_func dosya_işlemi() {
+TR_func dosya_işlemi() -> TR_String {
     TR_defer TR_print("  [ertele 1] bağlantı kapatıldı")
     TR_defer TR_print("  [ertele 2] önbellek temizlendi") # önce bu çalışır
     TR_print("  [işlem] veri işleniyor...")
@@ -22,7 +22,7 @@ TR_func başarısız_işlem() {
 TR_try { başarısız_işlem() } TR_catch h { TR_print("yakalandı: \(h)") }
 
 # Döngü içinde fonksiyon çağrısıyla her tur için ertele çalıştırılabilir.
-TR_func tur(n) {
+TR_func tur(n: TR_Int) {
     TR_defer TR_print("  tur \(n) bitti")
     TR_print("tur \(n) başladı")
 }

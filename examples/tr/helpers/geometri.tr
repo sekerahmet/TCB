@@ -4,6 +4,6 @@
 
 TR_const PI = 3.14159
 
-TR_func daire_alanı(r) {
+TR_func daire_alanı(r: TR_Float) -> TR_Float {
     TR_return PI * r * r
 }

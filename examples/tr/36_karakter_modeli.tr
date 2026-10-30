@@ -48,13 +48,13 @@ TR_const KATMAN = 2
 # --- Parametreler ---
 TR_var parametre_tohumu = 1
 TR_var ağırlıklar = []
-TR_func parametre(şekil, ölçek) {
+TR_func parametre(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     parametre_tohumu += 1
     TR_var p = TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
     ağırlıklar.TR_append(p)
     TR_return p
 }
-TR_func sabit_parametre(şekil, değer) {
+TR_func sabit_parametre(şekil: TR_List[TR_Int], değer: TR_Float) -> TR_Tensor {
     TR_var p = TR_Tensor(TR_ones(şekil) * değer, TR_requires_grad: TR_true)
     ağırlıklar.TR_append(p)
     TR_return p
@@ -82,7 +82,7 @@ TR_print("veri: \(veri.TR_length) karakter, sözlük: \(V) karakter, parametre: 
 # --- Model ---
 TR_var konumlar = TR_List(0..T)
 
-TR_func ileri(girdiler, b) {
+TR_func ileri(girdiler: TR_List[TR_List[TR_Int]], b: TR_Int) -> TR_Tensor {
     TR_var x = TR_embedding_lookup(E, girdiler) + TR_embedding_lookup(P, konumlar)
     TR_for L TR_in katmanlar {
         # Ön normalizasyonlu blok: dikkat, ardından ileri besleme
@@ -101,11 +101,11 @@ TR_func ileri(girdiler, b) {
 
 # --- Veri örnekleme (tekrar üretilebilir) ---
 TR_var tohum = 12345
-TR_func rastgele_tam(n) {
+TR_func rastgele_tam(n: TR_Int) -> TR_Int {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
     TR_return tohum % n
 }
-TR_func toplu_iş() {
+TR_func toplu_iş() -> (TR_List[TR_List[TR_Int]], TR_List[TR_Int]) {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {

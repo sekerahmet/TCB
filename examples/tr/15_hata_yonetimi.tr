@@ -14,7 +14,7 @@ TR_try {
 }
 
 # fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
-TR_func yaş_denetle(yaş) {
+TR_func yaş_denetle(yaş: TR_Int) -> TR_Int {
     TR_if yaş < 0 { TR_throw "yaş negatif olamaz" }
     TR_return yaş
 }
@@ -22,10 +22,10 @@ TR_try { yaş_denetle(-3) } TR_catch h { TR_print("yakalandı: \(h)") }
 TR_print("geçerli yaş: \(yaş_denetle(30))")
 
 # Hata, çağrı zincirinde yukarı çıkar; ilk yakala onu ele alır.
-TR_func sayıya_çevir(yazı) {
+TR_func sayıya_çevir(yazı: TR_String) -> TR_Int {
     TR_return TR_Int(yazı)
 }
-TR_func güvenli_çevir(yazı, varsayılan_değer) {
+TR_func güvenli_çevir(yazı: TR_String, varsayılan_değer: TR_Int) -> TR_Int {
     TR_try {
         TR_return sayıya_çevir(yazı)
     } TR_catch h {
@@ -45,7 +45,7 @@ TR_try {
 
 # Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
 # kodla fırlar. Metin okuyanın dilinde yazılır; testler metni değil kodu sınar (hata_kodu).
-TR_func pencere_denetle(pencere) {
+TR_func pencere_denetle(pencere: TR_Int) -> TR_Int {
     TR_if pencere < 0 { TR_throw TR_Message("H6903", pencere) }
     TR_return pencere
 }

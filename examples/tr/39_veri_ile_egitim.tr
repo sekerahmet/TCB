@@ -60,7 +60,7 @@ TR_print(TR_Type(ö) == TR_Sampler)
 # şimdiki parçaya bakılarak tahmin edilir; dikkatli bir model için examples/tr/35_transformer.tr) ---
 TR_var ağırlıklar = []
 TR_var parametre_tohumu = 0
-TR_func parametre(şekil, ölçek) {
+TR_func parametre(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     parametre_tohumu += 1
     TR_var w = TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: parametre_tohumu) * ölçek), TR_requires_grad: TR_true)
     ağırlıklar.TR_append(w)
@@ -70,7 +70,7 @@ TR_var E = parametre([V, D], 0.1)
 TR_var W1 = parametre([D, GİZLİ], 0.1)
 TR_var W2 = parametre([GİZLİ, V], 0.1)
 
-TR_func ileri(giriş) {
+TR_func ileri(giriş) -> TR_Tensor {
     TR_return TR_gelu(TR_embedding_lookup(E, giriş) @ W1) @ W2
 }
 
