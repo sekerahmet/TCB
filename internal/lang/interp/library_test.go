@@ -53,7 +53,7 @@ func TestImportIgnoresWorkingDir(t *testing.T) {
 // Kitaplık modülünün hatası "tr/..." adıyla ve kendi satırıyla yazılır; göreli dosya yolları
 // kitaplığın (diskte olmayan) klasörüne göre aranmaz.
 func TestLibraryModuleError(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"m.tr": {Data: []byte(source.Header + "\nTR_func böl(a) {\n    TR_return a / 0\n}\n")}})
+	withLibrary(t, fstest.MapFS{"m.tr": {Data: []byte(source.Header + "\nTR_func böl(a: TR_Int) -> TR_Float {\n    TR_return a / 0\n}\n")}})
 	root := t.TempDir()
 	runInDir(t, root)
 	_, err := runWithModules(t, root, map[string]string{"ana.tr": "TR_import \"tr/m\"\nböl(1)\n"})
