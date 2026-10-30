@@ -8,6 +8,6 @@ TR_if TR_true {
     TR_var iç = 1
 }
 TR_print(iç) # ERROR H1106
-TR_func f() {
+TR_func f() -> TR_Int {
     TR_return bilinmeyen_ad + 1 # ERROR H1106
 }

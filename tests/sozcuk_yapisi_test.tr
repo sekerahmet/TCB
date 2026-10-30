@@ -60,16 +60,16 @@ TR_test "2.3a dilin sözcükleri TR_ ve kimliğin adıyla yazılır; sınıfı y
     TR_var ayar = {"step": 3}
     TR_assert_equal(3, ayar["step"])
     # Fonksiyonun TR_ ile yazılmış parametresi adlı argümandır (gösterimde yazımıyla kalır).
-    TR_func ölçekle(x, TR_lr) { TR_return x * TR_lr }
+    TR_func ölçekle(x: TR_Int, TR_lr: TR_Int) -> TR_Int { TR_return x * TR_lr }
     TR_assert_equal(6, ölçekle(3, TR_lr: 2))
     # Yanlış yerdeki ve yanlış yazılan kimlik: tests/negative/kimlik_yeri.tr, kodlu_bilinmeyen.tr
 }
 
 TR_test "2.3a yapı gövdesinde '=' ya da işleçten sonraki satır değerin devamıdır, üye değil" {
     TR_struct Ayar {
-        TR_eps =
+        TR_eps: TR_Int =
             TR_abs(-2)
-        boy = 1 +
+        boy: TR_Int = 1 +
             TR_max(2, 3)
     }
     TR_var a = Ayar()
@@ -97,7 +97,7 @@ TR_test "2.3b yazılış kuralına uymayan ad uyarıdır, hata değildir" {
 
 TR_test "2.3b yerel sabit küçük harfle yazılır" {
     TR_const en_büyük = 10
-    TR_func iki_kat() {
+    TR_func iki_kat() -> TR_Int {
         TR_const çarpan = 2
         TR_return en_büyük * çarpan
     }

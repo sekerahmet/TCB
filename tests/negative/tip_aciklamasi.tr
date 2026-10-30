@@ -2,4 +2,4 @@
 # TEST 3.13 açıklanan tiple atanan değerin tipi uyuşmazsa program çalıştırılmadan reddedilir
 TR_var yaş: TR_Int = 25
 TR_var ad: TR_Int = "Ali" # ERROR H1001
-TR_var r: TR_List = 0..3 # ERROR H1001
+TR_var r: TR_List[TR_Int] = 0..3 # ERROR H1001

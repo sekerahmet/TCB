@@ -77,7 +77,7 @@ TR_test "6.4 varsayılan değer önceki parametreleri görür" {
     TR_var a = 100
     TR_func f(a: TR_Int, b: TR_Int = a * 2) -> TR_Int { TR_return b }
     TR_assert_equal(2, f(1))
-    TR_func g(x: TR_Int, y: TR_Int = x + 1, z: TR_Int = x + y) -> TR_List { TR_return [x, y, z] }
+    TR_func g(x: TR_Int, y: TR_Int = x + 1, z: TR_Int = x + y) -> TR_List[TR_Int] { TR_return [x, y, z] }
     TR_assert_equal([1, 2, 3], g(1))
     TR_assert_equal([1, 5, 6], g(1, 5))
     TR_assert_equal([1, 2, 9], g(1, z: 9))
@@ -86,7 +86,7 @@ TR_test "6.4 varsayılan değer önceki parametreleri görür" {
     TR_func h(a: TR_Int = b, b: TR_Int = 1) -> TR_Int { TR_return a }
     TR_assert_equal("H2440", TR_error_code { h() })
     # Varsayılan her çağrıda yeniden hesaplanır
-    TR_func liste_al(l: TR_List = []) -> TR_List { l.TR_append(1); TR_return l }
+    TR_func liste_al(l: TR_List[TR_Int] = []) -> TR_List[TR_Int] { l.TR_append(1); TR_return l }
     TR_assert_equal([1], liste_al())
     TR_assert_equal([1], liste_al())
 }
@@ -100,7 +100,7 @@ TR_test "6.5 adlı argümanlar" {
 }
 
 TR_test "6.5 aynı parametre hem sırayla hem adıyla verilemez" {
-    TR_func f(a: TR_Int, b: TR_Int = 10) -> TR_List { TR_return [a, b] }
+    TR_func f(a: TR_Int, b: TR_Int = 10) -> TR_List[TR_Int] { TR_return [a, b] }
     TR_assert_equal([1, 20], f(1, b: 20))
     TR_assert_equal("H2413", TR_error_code { f(1, a: 2) })
     # adlı argümanlar varken eksik zorunlu parametre adıyla söylenir

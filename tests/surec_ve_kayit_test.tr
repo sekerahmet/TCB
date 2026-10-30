@@ -8,7 +8,7 @@
 TR_const KOŞU = TR_temp_dir()
 
 # satırlar: günlük dosyasının JSON satırlarını JSON listesi olarak verir.
-TR_func satırlar(dosya_yolu) {
+TR_func satırlar(dosya_yolu: TR_String) -> TR_List[TR_JSON] {
     TR_return TR_read_file(dosya_yolu).TR_strip().TR_split("\n").TR_map((x) => TR_json_parse(x))
 }
 

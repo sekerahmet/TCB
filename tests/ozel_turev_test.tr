@@ -4,7 +4,7 @@
 TR_import "yardimci_test_araclari"
 
 # yakın: iki tensör eleman eleman 1e-4'ten yakın mı?
-TR_func yakın(a, b) {
+TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool {
     TR_return en_büyük_kare_fark(a, b) < 0.00000001
 }
 
@@ -213,7 +213,7 @@ TR_test "15.32 türev_denetle: sayısal gradyanla karşılaştırma" {
 # --- kapılı nöron tanımları başı ---
 
 # Bileşik sürüm: her adım çizgeye kaydedilir.
-TR_func kapılı_bileşik(x, W, indeks) {
+TR_func kapılı_bileşik(x: TR_Tensor, W: TR_Tensor, indeks: TR_Tensor[TR_Int]) -> TR_Tensor {
     TR_var d = x.TR_shape[1]
     TR_var satırlar = TR_embedding_lookup(W, indeks)
     TR_var a = TR_sum(satırlar.TR_slice(1, 0, d) * x, TR_dim: 1)
@@ -249,7 +249,7 @@ TR_var kapı_çekirdeği = TR_custom_grad(
 )
 
 # Satır seçimi (ve tablo gradyanının satırlara dağıtılması) gömme'ye bırakılır.
-TR_func kapılı_nöron(x, W, indeks) {
+TR_func kapılı_nöron(x: TR_Tensor, W: TR_Tensor, indeks: TR_Tensor[TR_Int]) -> TR_Tensor {
     TR_var d = x.TR_shape[1]
     TR_var satırlar = TR_embedding_lookup(W, indeks)
     TR_return kapı_çekirdeği(x, satırlar.TR_slice(1, 0, d), satırlar.TR_slice(1, d, 2 * d), satırlar.TR_slice(1, 2 * d, 3 * d))

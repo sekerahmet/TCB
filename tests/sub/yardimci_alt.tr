@@ -1,7 +1,7 @@
 # TR 4
 # moduller_test.tr (11.5): alt klasördeki modül; kodu kendi dosyasının bağlamında çalışır.
-TR_func alt_veri() { TR_return TR_read_file("sub_data.txt").TR_strip() }
-TR_func sıfıra_böl(x) {
+TR_func alt_veri() -> TR_String { TR_return TR_read_file("sub_data.txt").TR_strip() }
+TR_func sıfıra_böl(x: TR_Int) -> TR_Float {
     TR_return x / 0
 }
 TR_func özel_fırlat() { TR_throw "özel hata" }

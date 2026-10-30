@@ -1,6 +1,6 @@
 # TR 4
 # TEST 7.1 varsayılanlı alandan sonraki alanın da varsayılanı olur
 TR_struct A {
-    x = 1
-    y # ERROR H0276
+    x: TR_Int = 1
+    y: TR_Int # ERROR H0276
 }

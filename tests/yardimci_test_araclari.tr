@@ -4,7 +4,7 @@
 # (lib/) testleri buradan aktarmaz; her lib test dosyası kendi tanımını taşır.
 
 # hata_metni: f çalışırken oluşan hatanın mesajını döndürür (hata yoksa boş metin).
-TR_func hata_metni(f) {
+TR_func hata_metni(f) -> TR_String {
     TR_try {
         f()
     } TR_catch h {
@@ -15,7 +15,7 @@ TR_func hata_metni(f) {
 
 # en_büyük_kare_fark: iki tensörün elemanları arasındaki en büyük kare fark (eşikler kare ölçeğindedir:
 # 1e-8 kare fark ≈ 1e-4 mutlak fark). lib testlerindeki en_büyük_mutlak_fark başka bir ölçüdür.
-TR_func en_büyük_kare_fark(a, b) {
+TR_func en_büyük_kare_fark(a: TR_Tensor, b: TR_Tensor) -> TR_Float {
     TR_var d = a - b
     TR_return TR_max(d * d).TR_tolist
 }

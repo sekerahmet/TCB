@@ -1,8 +1,8 @@
 # TR 4
 # TEST 7.1 kalıtım yoktur: yapı A(B) sözdizimi hatasıdır, ileti ortak parçayı alanla kurmayı söyler
 TR_struct B {
-    x = 1
+    x: TR_Int = 1
 }
 TR_struct A(B) { # ERROR H0275
-    y = 2
+    y: TR_Int = 2
 }

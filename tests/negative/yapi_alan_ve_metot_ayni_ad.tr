@@ -1,6 +1,6 @@
 # TR 4
 # TEST 7.1 aynı adlı alan ve metot tanımda hatadır
 TR_struct A {
-    x = 1
-    TR_func x() { TR_return 1 } # ERROR H0277
+    x: TR_Int = 1
+    TR_func x() -> TR_Int { TR_return 1 } # ERROR H0277
 }

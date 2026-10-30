@@ -2,5 +2,5 @@
 # TEST 2.3b yazılış kuralına uymayan ad uyarıdır, hata değildir: modül yüklenir, adları kullanılır (tests/sozcuk_yapisi_test.tr)
 TR_var öğrenciSayısı = 3 # WARNING H1012
 TR_const en_büyük = 10 # WARNING H1013
-TR_struct önbellek_durumu { dolu = TR_false } # WARNING H1014
-TR_func HazırModel() { TR_return öğrenciSayısı * en_büyük } # WARNING H1012
+TR_struct önbellek_durumu { dolu: TR_Bool = TR_false } # WARNING H1014
+TR_func HazırModel() -> TR_Int { TR_return öğrenciSayısı * en_büyük } # WARNING H1012

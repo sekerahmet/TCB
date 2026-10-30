@@ -140,7 +140,7 @@ TR_test "13.6 hedef tipin adını taşıyan dönüştürücüler kurucudur ve ti
     TR_assert_equal("[1, 2]", TR_String([1, 2]))
     TR_assert_equal(TR_List, TR_Type([1]))
     # Yapının 'tip' alanı yerleşik tip() ile çakışmaz
-    TR_struct Ürün { ad, tip }
+    TR_struct Ürün { ad: TR_String, tip: TR_String }
     TR_var ü = Ürün("kalem", "kırtasiye")
     TR_assert_equal("kırtasiye", ü.tip)
     TR_assert_equal(Ürün, TR_Type(ü))
@@ -164,7 +164,7 @@ TR_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör
     TR_assert_equal("H2475", TR_error_code { l.TR_reduce((a, x) => a + x, 0) })
     # Metot adları genel kapsamda sıradan adlardır
     TR_var uzunluk = 5
-    TR_func sırala(x) { TR_return x }
+    TR_func sırala(x: TR_Int) -> TR_Int { TR_return x }
     TR_assert_equal([5, 3], [uzunluk, sırala(3)])
 }
 

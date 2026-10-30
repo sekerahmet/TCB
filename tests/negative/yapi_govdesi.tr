@@ -1,6 +1,6 @@
 # TR 4
 # TEST 7.1 yapı gövdesinde yalnız alanlar ve fonksiyon tanımları bulunur
 TR_struct A {
-    x = 1
+    x: TR_Int = 1
     TR_print("...") # ERROR H0147
 }

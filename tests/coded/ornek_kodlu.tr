@@ -2,20 +2,20 @@
 # Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1, 17.7): dilin sözcükleri
 # kodlarla yazılır, kullanıcının adları, metinler, sayılar ve yorumlar olduğu gibi kalır.
 # Türkçe gösterimi: tr show tests/coded/ornek_kodlu.tr --lang tr
-TR_func kareler(liste) {
+TR_func kareler(liste: TR_List[TR_Int]) -> TR_List[TR_Int] {
     TR_return liste.TR_map((x) => x * x)
 }
 
 # Kullanıcının yapısının alanı ve metodu onun adlarıdır, dilin bir üyesiyle aynı anlamda olsa da (17.1).
 TR_struct Sayac {
-    toplam_değer = 0
-    TR_func ekle(x) {
+    toplam_değer: TR_Int = 0
+    TR_func ekle(x: TR_Int) {
         TR_self.toplam_değer += x
     }
 }
 
 # Kimliksiz yazılan ad kullanıcının adıdır: 'toplam' kod değil (TR_sum ile karışmaz).
-TR_func golge() {
+TR_func golge() -> TR_Int {
     TR_var toplam = 5
     TR_return toplam
 }
@@ -23,11 +23,11 @@ TR_func golge() {
 # Kod olmayan her ad kullanıcının adıdır, Türkçenin bir anahtar kelimesiyle aynı olsa bile.
 TR_var eğer = 7
 
-TR_func bilgi() {
+TR_func bilgi() -> TR_String {
     TR_return "toplam: \(TR_sum(TR_Tensor([1, 2, 3]), TR_dim: 0).TR_tolist), eğer: \(eğer), ham: " + `{TR_fn_sum}`
 }
 
-TR_func yakalanan() {
+TR_func yakalanan() -> TR_String {
     TR_try {
         TR_throw "x"
     } TR_catch {

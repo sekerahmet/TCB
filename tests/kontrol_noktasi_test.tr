@@ -13,7 +13,7 @@ TR_const TABAN = TR_temp_dir()
 TR_const GÜNLÜKLER = TR_temp_dir()
 
 # koşu: testin kendi boş koşu klasörünün yolu (önceki bir koşudan kalmışsa silinir).
-TR_func koşu(ad) {
+TR_func koşu(ad: TR_String) -> TR_Path {
     TR_var k = TR_Path(TABAN, ad)
     TR_if k.TR_exists {
         TR_remove(k, TR_recursive: TR_true)
@@ -27,7 +27,7 @@ TR_func temizle() {
     }
 }
 
-TR_func param(şekil, tohum) {
+TR_func param(şekil: TR_List[TR_Int], tohum: TR_Int) -> TR_Tensor {
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum) * 0.1), TR_requires_grad: TR_true)
 }
 
@@ -151,7 +151,7 @@ TR_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.j
 
 # eğit: aynı tohumlarla kurulan küçük bir modeli koşu klasöründe kontrol noktasıyla son adıma
 # kadar eğitir; kesilip yeniden çağrılınca kaldığı adımdan sürer.
-TR_func eğit(k, son, günlük_adı) {
+TR_func eğit(k: TR_Path, son: TR_Int, günlük_adı: TR_String) {
     TR_var E = param([4096, 4], 1)
     TR_var w = param([4, 3], 2)
     TR_var model = {"E": E, "w": w}

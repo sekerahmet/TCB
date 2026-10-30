@@ -110,7 +110,7 @@ TR_test "4.4 sıralama zinciri Python'daki gibi okunur, ortadaki ifade bir kez h
     TR_assert_equal(TR_true, 1 < 2 < 3 < 4)
     TR_assert_equal(TR_false, 3 > 2 > 2)
     TR_var sayaç = 0
-    TR_func orta() {
+    TR_func orta() -> TR_Int {
         sayaç += 1
         TR_return 2
     }
@@ -161,8 +161,8 @@ TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırıl
     TR_var h = TR_none
     TR_assert(h == TR_none TR_and f != TR_none TR_and TR_none != TR_print)
     TR_struct Kutu {
-        d = 0
-        TR_func al() { TR_return TR_self.d }
+        d: TR_Int = 0
+        TR_func al() -> TR_Int { TR_return TR_self.d }
     }
     TR_var k = Kutu(1)
     TR_assert_equal("H2613", TR_error_code { TR_var z = k.al == k.al })
@@ -188,7 +188,7 @@ TR_test "4.5 fonksiyon içeren kap da karşılaştırılamaz: kabın içinde, .T
 
 TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     TR_var cagrildi = TR_false
-    TR_func yan_etki() {
+    TR_func yan_etki() -> TR_Bool {
         cagrildi = TR_true
         TR_return TR_true
     }
@@ -235,7 +235,7 @@ TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
 TR_test "4.9 fonksiyon çağrıyla, metot '.' ile zincirlenir; üyelik .TR_contains ile sorulur" {
     # '&&', '||', '!', '|>' ve ifadedeki 'TR_in' sözdizimi hatasıdır: tests/negative/baska_dil_islecleri.tr
     TR_assert_equal(6, TR_sum([1, 2, 3]))
-    TR_func katları(l, k) { TR_return l.TR_filter((x) => x % k == 0) }
+    TR_func katları(l: TR_List[TR_Int], k: TR_Int) -> TR_List[TR_Int] { TR_return l.TR_filter((x) => x % k == 0) }
     TR_assert_equal([2, 4], katları([1, 2, 3, 4], 2))
     TR_assert_equal(12, TR_sum([1, 2, 3].TR_map((x) => x * 2)))
     TR_assert([1, 2].TR_contains(2) TR_and TR_not [1, 2].TR_contains(3))

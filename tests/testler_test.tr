@@ -14,7 +14,7 @@ TR_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada
 
 TR_test "12.2 test yalnızca deyim başında ve ardından metin gelince anahtar kelimedir" {
     TR_assert_equal(TR_String, TR_Type(test))
-    TR_func test_et(test) { TR_return test + 1 }
+    TR_func test_et(test: TR_Int) -> TR_Int { TR_return test + 1 }
     TR_assert_equal(2, test_et(1))
 }
 
@@ -37,7 +37,7 @@ TR_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar gör
 }
 
 TR_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
-    TR_func iç() { TR_return 7 }
+    TR_func iç() -> TR_Int { TR_return 7 }
     TR_assert_equal(7, iç())
     # Olumsuz fikstür: tests/negative/test_govdesi_sonuc.tr
 }

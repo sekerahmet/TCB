@@ -6,7 +6,7 @@
 TR_import "yardimci_test_araclari"
 
 # yakın_mı: iki sayının farkı tolerans içinde mi?
-TR_func yakın_mı(a, b, tol = 0.000001) {
+TR_func yakın_mı(a: TR_Float, b: TR_Float, tol: TR_Float = 0.000001) -> TR_Bool {
     TR_return TR_abs(a - b) <= tol * (1 + TR_abs(b))
 }
 
@@ -232,7 +232,7 @@ TR_test "15.22 sıralama_indeksi: kararlı, NaN sonda; türevsiz" {
 TR_test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
     TR_if TR_devices().TR_contains("gpu") {
         TR_var v = TR_randn([4, 7], TR_seed: 5)
-        TR_func hesap(c) {
+        TR_func hesap(c: TR_String) -> (TR_List[TR_List[TR_Float]], TR_List[TR_List[TR_Int]], TR_List[TR_List[TR_Int]], TR_List[TR_List[TR_Float]]) {
             TR_var x = TR_Tensor(v.TR_to_device(c), TR_requires_grad: TR_true)
             TR_var y = TR_silu(x) + TR_atan2(x, 1.5) + TR_clamp(x, TR_min: -0.5, TR_max: 0.5) + TR_cumsum(x, TR_dim: 0)
             TR_var k = TR_topk(x, 3)
