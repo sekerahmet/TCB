@@ -117,15 +117,15 @@ TR_func toplu_iş() {
         }
         girdiler.TR_append(satır)
     }
-    TR_return [girdiler, hedefler]
+    TR_return girdiler, hedefler
 }
 
 # --- Eğitim ---
 TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: 0.003, TR_weight_decay: 0.0)
 TR_for adım TR_in 0..ADIM {
-    TR_var tb = toplu_iş()
+    TR_var girdiler, hedefler = toplu_iş()
     iyileştirici.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(ileri(tb[0], B), tb[1])
+    TR_var kayıp = TR_cross_entropy(ileri(girdiler, B), hedefler)
     TR_backward(kayıp)
     iyileştirici.TR_step()
     TR_if adım % 50 == 0 TR_or adım == ADIM - 1 {
