@@ -14,7 +14,7 @@ Denetim: `TestNoBareCodes` (`tools/gen/codeconsts`), `TestNamedArg`.
 önerilir; başka dillerden alışılmış adlar da tanınıp doğrusu gösterilir.
 Denetim: `TestCheckNamedSuggestionOrder`.
 
-**Panik programı çökertmez.** Motordaki bir Go paniği, TR'nin `dene/yakala` ile yakalayabildiği
+**Panik programı çökertmez.** Motordaki bir Go paniği, TR'nin `TR_try`/`TR_catch` ile yakalayabildiği
 bir hataya çevrilir; kullanıcının kesmesi (Ctrl+C) yutulmaz.
 Denetim: `TestPanicBecomesError`, `TestRecoverKeepsInterrupt`.
 
