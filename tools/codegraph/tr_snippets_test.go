@@ -4,7 +4,7 @@ import "testing"
 
 var snippetFiles = map[string]string{
 	"internal/lang/codes/tr.json": "{\n  \"TR_type_Checkpoint\": { \"name\": \"KontrolNoktası\", \"family\": \"x\" },\n  \"TR_arg_every_minutes\": { \"name\": \"her_dakika\", \"family\": \"x\" },\n  \"TR_mem_update\": { \"name\": \"güncelle\", \"family\": \"x\" },\n  \"TR_fn_pretrained_model\": { \"name\": \"hazır_model\", \"family\": \"x\" }\n}\n",
-	"lib/hazirx.tr":               "TR_func TR_pretrained_model(TR_folder) {\n    TR_return TR_folder\n}\n",
+	"lib/hazirx.tr":               "TR_func TR_pretrained_model(TR_folder: TR_String) -> TR_String {\n    TR_return TR_folder\n}\n",
 	"internal/lang/lexer/lexer.go": `package lexer
 
 // New TR metnini okur.

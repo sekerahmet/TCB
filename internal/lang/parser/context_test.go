@@ -83,7 +83,7 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 		}
 	}
 	for _, codeVal := range []string{
-		"TR_test \"t\" { TR_func f() { TR_return 1 }; TR_assert_equal(1, f()) }",
+		"TR_test \"t\" { TR_func f() -> TR_Int { TR_return 1 }; TR_assert_equal(1, f()) }",
 		"TR_test \"t\" { TR_var f = (x) => x + 1 }",
 	} {
 		if h := parseErrors(codeVal); len(h) > 0 {
@@ -109,7 +109,7 @@ func TestProgramTopLevelReturnIsError(t *testing.T) {
 			t.Errorf("%q: en dıştaki 'sonuç' hatası (H0171) bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
-	if h := parseErrs("TR_func f() { TR_return 1 }\nTR_var g = (x) => x"); len(h) > 0 {
+	if h := parseErrs("TR_func f() -> TR_Int { TR_return 1 }\nTR_var g = (x) => x"); len(h) > 0 {
 		t.Errorf("fonksiyon içindeki sonuç geçerli olmalıydı: %v", h)
 	}
 }
@@ -127,7 +127,7 @@ func TestModuleTopLevelReturnIsError(t *testing.T) {
 			t.Errorf("%q: modül hatası (H0154) bekleniyordu, alınan: %v", codeVal, h)
 		}
 	}
-	if h := moduleErrors("TR_func f() { TR_return 1 }\nTR_var g = (x) => x"); len(h) > 0 {
+	if h := moduleErrors("TR_func f() -> TR_Int { TR_return 1 }\nTR_var g = (x) => x"); len(h) > 0 {
 		t.Errorf("fonksiyon içindeki sonuç geçerli olmalıydı: %v", h)
 	}
 }

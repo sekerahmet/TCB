@@ -9,23 +9,23 @@ import (
 )
 
 const linkedSource = `TR_struct Dikkat {
-    baş
-    TR_func TR_init(boyut, baş) {
+    baş: TR_Int
+    TR_func TR_init(boyut: TR_Int, baş: TR_Int) {
         TR_self.baş = baş
     }
 }
 
 TR_struct Blok {
-    TR_attention
-    TR_func TR_init(boyut, baş) {
+    TR_attention: Dikkat
+    TR_func TR_init(boyut: TR_Int, baş: TR_Int) {
         TR_self.TR_attention = Dikkat(boyut, baş)
     }
 }
 
 TR_struct Model {
-    TR_config
-    blok
-    TR_func TR_init(boyut, baş = 2) {
+    TR_config: TR_Dict[TR_String, TR_Int]
+    blok: Blok
+    TR_func TR_init(boyut: TR_Int, baş: TR_Int = 2) {
         TR_self.TR_config = {"embed_dim": boyut, "baş": baş}
         TR_self.blok = Blok(boyut, baş: baş)
     }
@@ -87,7 +87,7 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 // (bağımsız denetim Y12: ağırlık_başlat'ı yalnızca Doğrusal'ın kurucusu çağırıyordu, iki araç da "sınayan yok" diyordu).
 func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 	dir := t.TempDir()
-	src := "TR_func başlat(n) {\n    TR_return n\n}\n\nTR_struct Katman {\n    w\n    TR_func TR_init(n) {\n        TR_self.w = başlat(n)\n    }\n}\n"
+	src := "TR_func başlat(n: TR_Int) -> TR_Int {\n    TR_return n\n}\n\nTR_struct Katman {\n    w: TR_Int\n    TR_func TR_init(n: TR_Int) {\n        TR_self.w = başlat(n)\n    }\n}\n"
 	test := "TR_test \"katman kurulur\" {\n    TR_var k = Katman(2)\n    TR_assert(k.w == 2)\n}\n"
 	for name, text := range map[string]string{"m_test.tr": src + "\n" + test} { // aynı dosya: aktarma gerekmez
 		if err := os.WriteFile(filepath.Join(dir, name), trText(filepath.Join(dir, name), text), 0o644); err != nil {
@@ -105,21 +105,21 @@ func TestAConstructorCallReachesItsKurucu(t *testing.T) {
 
 // forwardSource konumlu iletimde sıra ve alana atamada gölgeleme: `f`'nin `a`'sı `g`'nin `b`'sine gider (bağ yok),
 // `h`'nin `a`'sı `g`'nin `a`'sına (bağ var); Kişi'nin kurucusunda döngü değişkeni `ad` parametreyi gölgeler (bağ yok).
-const forwardSource = `TR_func g(b, a) {
+const forwardSource = `TR_func g(b: TR_Int, a: TR_Int) -> TR_Int {
     TR_return b + a
 }
 
-TR_func f(a) {
+TR_func f(a: TR_Int) -> TR_Int {
     TR_return g(a, 1)
 }
 
-TR_func h(a) {
+TR_func h(a: TR_Int) -> TR_Int {
     TR_return g(1, a)
 }
 
 TR_struct Kişi {
-    ad
-    TR_func TR_init(ad, adlar) {
+    ad: TR_String
+    TR_func TR_init(ad: TR_String, adlar: TR_List[TR_String]) {
         TR_for ad TR_in adlar {
             TR_self.ad = ad
         }
@@ -127,8 +127,8 @@ TR_struct Kişi {
 }
 
 TR_struct Yer {
-    ad
-    TR_func TR_init(ad) {
+    ad: TR_String
+    TR_func TR_init(ad: TR_String) {
         TR_self.ad = ad
     }
 }

@@ -4,20 +4,20 @@ TR_const PI2 = 6.28
 TR_var sayaç = 0
 
 TR_struct Kare {
-    kenar = 1
+    kenar: TR_Int = 1
     TR_func TR_init(kenar = 1) {
         TR_self.kenar = kenar
     }
-    TR_func alan() {
+    TR_func alan() -> TR_Int {
         TR_return TR_self.kenar * TR_self.kenar
     }
 }
 
-TR_func çevre_hesapla(k) {
+TR_func çevre_hesapla(k: Kare) -> TR_Int {
     TR_return 4 * k.kenar
 }
 
-TR_func yaz_alan(k) {
+TR_func yaz_alan(k) -> TR_Int {
     TR_print(k.alan())
     TR_return çevre_hesapla(k)
 }

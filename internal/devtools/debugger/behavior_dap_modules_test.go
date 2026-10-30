@@ -18,7 +18,7 @@ func frameSourcePath(f interface{}) string {
 func TestDAPModuleSourceLines(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join(dir, "m.tr")
-	if err := os.WriteFile(module, []byte(withHeader("TR_func f(x) {\n    TR_var y = x\n    TR_return y\n}\n")), 0644); err != nil {
+	if err := os.WriteFile(module, []byte(withHeader("TR_func f(x: TR_Int) -> TR_Int {\n    TR_var y = x\n    TR_return y\n}\n")), 0644); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "program.tr")

@@ -147,7 +147,7 @@ func TestLineReaderClosedWhenUnreachable(t *testing.T) {
 	k := tmpWork(t)
 	write(t, filepath.Join(k, "s.txt"), "1\n2\n3\n")
 	closeReaders()
-	if got := mustRunTR(t, `TR_func bırak() { TR_var o = TR_read_lines("s.txt"); TR_return o.TR_next() }
+	if got := mustRunTR(t, `TR_func bırak() -> TR_String? { TR_var o = TR_read_lines("s.txt"); TR_return o.TR_next() }
 bırak()
 bırak()`); got != `1` {
 		t.Fatalf("sonuç: %s", got)

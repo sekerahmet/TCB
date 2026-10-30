@@ -241,7 +241,7 @@ TR_struct K {
 TR_var k = K(TR_none)
 k.alan = yeni()
 sakla(yeni())
-TR_func yapıcı() {
+TR_func yapıcı() -> () -> TR_Int {
     TR_var gizli = yeni()
     TR_return () => oku(gizli)
 }
@@ -551,7 +551,7 @@ TR_wait_all()
 // Özyineleme: her çağrının kendi çerçevesi vardır.
 func TestOwnershipRecursion(t *testing.T) {
 	expectOut(t, `
-TR_func zincir(n, x) {
+TR_func zincir(n: TR_Int, x) {
     TR_if n == 0 { TR_return x }
     TR_var y = x + yeni()
     TR_return zincir(n - 1, y)
@@ -567,7 +567,7 @@ TR_print(oku(r), bırakılan().TR_length)
 // havuza sıfırlanarak verilir, kapanışı çağırmak 'ad yok' hatası verir.
 func TestDefaultParamClosureKeepsFunctionEnvironment(t *testing.T) {
 	expectOut(t, `
-TR_func kur(x = yeni(), g = () => oku(x)) {
+TR_func kur(x = yeni(), g: () -> TR_Int = () => oku(x)) -> () -> TR_Int {
     TR_return g
 }
 TR_var f = kur()

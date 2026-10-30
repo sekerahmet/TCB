@@ -111,7 +111,7 @@ func TestModuleRuntimeErrorWithOwnFile(t *testing.T) {
 	root2 := t.TempDir()
 	runInDir(t, root2)
 	_, err = runWithModules(t, root2, map[string]string{
-		"lib.tr": "TR_func böl(a) {\n    TR_return a / 0\n}\n",
+		"lib.tr": "TR_func böl(a: TR_Int) -> TR_Float {\n    TR_return a / 0\n}\n",
 		"ana.tr": "TR_import \"lib\"\nTR_print(\"x\")\nböl(1)\n",
 	})
 	if err == nil || !strings.HasPrefix(err.Error(), "lib.tr, Satır 3: Sıfıra bölme hatası") {
@@ -119,8 +119,8 @@ func TestModuleRuntimeErrorWithOwnFile(t *testing.T) {
 	}
 	// Modülün geri çağırdığı ana program fonksiyonunun hatası ana dosyaya ait kalır.
 	_, err = runWithModules(t, root2, map[string]string{
-		"uygula.tr": "TR_func uygula(f) {\n    TR_return f()\n}\n",
-		"ana.tr":    "TR_import \"uygula\"\nTR_func g() {\n    TR_return 1 / 0\n}\nuygula(g)\n",
+		"uygula.tr": "TR_func uygula(f: () -> TR_Float) -> TR_Float {\n    TR_return f()\n}\n",
+		"ana.tr":    "TR_import \"uygula\"\nTR_func g() -> TR_Float {\n    TR_return 1 / 0\n}\nuygula(g)\n",
 	})
 	if err == nil || !strings.HasSuffix(strings.SplitN(err.Error(), ",", 2)[0], "ana.tr") || !strings.Contains(err.Error(), "Satır 3: Sıfıra bölme") {
 		t.Fatalf("hata ana.tr'nin 3. satırına ait olmalı: %v", err)

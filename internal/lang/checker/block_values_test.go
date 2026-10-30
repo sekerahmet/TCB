@@ -53,7 +53,7 @@ func TestUnusedValueIsAnError(t *testing.T) {
 		"TR_var b = 2\nTR_var a = 1 -\n    b\nTR_var c = -b",
 		"TR_var l = [1]\nl.TR_append(2)",
 		"TR_var x = 1\nTR_String(x + 2)",
-		"TR_func f() { TR_return 1 }\n-f()",
+		"TR_func f() -> TR_Int { TR_return 1 }\n-f()",
 	} {
 		if errs := checkBodyIn(t, code, nil, false); len(errs) != 0 {
 			t.Errorf("kullanılan değerde ya da çağrıda hata olmamalı: %q: %v", code, errs)

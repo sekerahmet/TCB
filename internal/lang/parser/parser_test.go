@@ -81,7 +81,7 @@ func TestMalformedStructMethodReportsErrorInsteadOfPanic(t *testing.T) {
 }
 
 func TestValidStructMethodStillParses(t *testing.T) {
-	p := New(codedLexer("TR_struct A {\n  ad: TR_String\n  TR_func selam() { TR_return TR_self.ad }\n}"))
+	p := New(codedLexer("TR_struct A {\n  ad: TR_String\n  TR_func selam() -> TR_String { TR_return TR_self.ad }\n}"))
 	p.ParseProgram()
 	if len(p.Errors()) != 0 {
 		t.Fatalf("geçerli yapı hata vermemeli: %v", p.Errors())
@@ -336,7 +336,7 @@ func TestTestIsContextualKeyword(t *testing.T) {
 	}
 
 	// Ad olarak kullanım bozulmamalı
-	for _, code := range []string{"TR_var test = 5\ntest = test + 1\nTR_print(test)", "TR_var test = [1]\ntest[0]", "TR_func test(a) { TR_return a }\ntest(\"x\")"} {
+	for _, code := range []string{"TR_var test = 5\ntest = test + 1\nTR_print(test)", "TR_var test = [1]\ntest[0]", "TR_func test(a: TR_String) -> TR_String { TR_return a }\ntest(\"x\")"} {
 		p := New(codedLexer(code))
 		prog := p.ParseProgram()
 		if len(p.Errors()) != 0 {
@@ -379,7 +379,7 @@ func TestUnclosedBlockBraceIsReported(t *testing.T) {
 	// Hata kapatılmayan ilk '{'dedir; atBrace false ise konuma bakılmaz.
 	for code, atBrace := range map[string]bool{
 		"TR_if TR_false {\n    TR_print(\"gizli\")\nTR_print(\"son\")":   true,
-		"TR_func f() {\n    TR_return 1\nTR_print(f())":                  true,
+		"TR_func f() -> TR_Int {\n    TR_return 1\nTR_print(f())":        true,
 		"TR_struct Kişi {\n    ad: TR_String\n":                          true,
 		"TR_var x = TR_match 1 {\n    1 => \"bir\"\n":                    false,
 		"TR_for i TR_in 1..3 {\n    TR_if i == 2 {\n        TR_break\n}": true,

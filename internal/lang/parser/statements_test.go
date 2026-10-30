@@ -96,7 +96,7 @@ func TestFloorDivisionWithoutRightSideSuggestsAComment(t *testing.T) {
 func TestDeclarationNeedsTRVarAndAFirstValue(t *testing.T) {
 	checkFixedCases(t, []fixedCase{
 		{"b := 2", ":=", messages.H0250, "TR_var b = 2", true},
-		{"TR_func f() {\n    toplam := [1]\n    TR_return toplam\n}", ":=", messages.H0250, "TR_func f() {\n    TR_var toplam = [1]\n    TR_return toplam\n}", true},
+		{"TR_func f() -> TR_List[TR_Int] {\n    toplam := [1]\n    TR_return toplam\n}", ":=", messages.H0250, "TR_func f() -> TR_List[TR_Int] {\n    TR_var toplam = [1]\n    TR_return toplam\n}", true},
 		{"TR_var x := 5", ":=", messages.H0251, "TR_var x = 5", true},
 		{"TR_var a, b := 1, 2", ":=", messages.H0251, "TR_var a, b = 1, 2", true},
 		{"TR_const K := 5", ":=", messages.H0251, "TR_const K = 5", true},
@@ -161,7 +161,7 @@ func TestTrailingBlockRules(t *testing.T) {
 		want     messages.Code
 	}{
 		{"TR_print(TR_error_code(() => { 1 }))", "() =>", messages.H0262},
-		{"TR_func f(a, g) { TR_return g() }\nTR_print(f(1, () => 2))", "() =>", messages.H0262},
+		{"TR_func f(a: TR_Int, g: () -> TR_Int) -> TR_Int { TR_return g() }\nTR_print(f(1, () => 2))", "() =>", messages.H0262},
 		{"TR_print(TR_error_code { TR_return 1 })", "TR_return", messages.H0263},
 	} {
 		line, col := posOf(t, d.code, d.at)
@@ -176,7 +176,7 @@ func TestTrailingBlockRules(t *testing.T) {
 	// İletilerin önerdiği yazımlar hatasız ayrıştırılır; blok son ifadesiyle biter, içinde TR_if serbest.
 	for _, ok := range []string{
 		"TR_print(TR_error_code { 1 })",
-		"TR_func f(a, g) { TR_return g() }\nTR_print(f(1) { 2 })",
+		"TR_func f(a: TR_Int, g: () -> TR_Int) -> TR_Int { TR_return g() }\nTR_print(f(1) { 2 })",
 		"TR_var l = [1]\nTR_for x TR_in (l.TR_filter { TR_true }) { TR_print(x) }",
 		"TR_var b = TR_error_code { TR_if TR_true { 1 } TR_else { 2 } }",
 		"TR_var g = () => 1\nTR_var h = [() => 1]",
@@ -207,8 +207,8 @@ func TestMultipleResultsParse(t *testing.T) {
 // gibi uygulanır; ardından gelen argümanlar okunmaya devam eder.
 func TestNamedArgumentWithEqualsSign(t *testing.T) {
 	checkFixedCases(t, []fixedCase{
-		{"TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k=2))", "=2", messages.H0266, "TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k: 2))", true},
-		{"TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k = 2))", "= 2", messages.H0266, "TR_func f(a, k = 1) { TR_return a + k }\nTR_print(f(1, k : 2))", true},
+		{"TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }\nTR_print(f(1, k=2))", "=2", messages.H0266, "TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }\nTR_print(f(1, k: 2))", true},
+		{"TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }\nTR_print(f(1, k = 2))", "= 2", messages.H0266, "TR_func f(a: TR_Int, k: TR_Int = 1) -> TR_Int { TR_return a + k }\nTR_print(f(1, k : 2))", true},
 	})
 }
 

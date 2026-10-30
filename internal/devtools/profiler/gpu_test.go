@@ -147,7 +147,7 @@ func TestProfileGPUPeakAfterCallReturn(t *testing.T) {
 	}
 	setupGPU(t)
 	const code = `TR_default_device("gpu")
-TR_func küçük() { TR_return TR_randn([4, 4], TR_seed: 1) }
+TR_func küçük() -> TR_Tensor { TR_return TR_randn([4, 4], TR_seed: 1) }
 TR_var büyük = TR_sum(küçük()) + TR_randn([512, 512], TR_seed: 2)
 TR_default_device("cpu")
 `

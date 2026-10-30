@@ -56,7 +56,7 @@ TR_var KOŞU = %q
 TR_var V = 4096
 TR_var D = 16
 TR_var sayaç = 0
-TR_func parametre(şekil, ölçek) {
+TR_func parametre(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     sayaç += 1
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: sayaç) * ölçek), TR_requires_grad: TR_true)
 }

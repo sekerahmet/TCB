@@ -7,11 +7,11 @@ import (
 // watchedTR, bir tensörün hesap çizgesine kaydedilip kaydedilmediğini (geri yayılım
 // yapılabiliyor mu) söyleyen TR yardımcısıdır; bekle_koşul koşul doğru olana dek (en çok
 // 10 sn) kilidi bırakarak bekler. Testler süreye değil el sıkışmaya (bayraklara) dayanır.
-const watchedTR = `TR_func izli(t) {
+const watchedTR = `TR_func izli(t: TR_Tensor) -> TR_Bool {
     TR_try { TR_backward(TR_sum(t)) } TR_catch h { TR_return TR_false }
     TR_return TR_true
 }
-TR_func bekle_koşul(k) {
+TR_func bekle_koşul(k: () -> TR_Bool) -> TR_Bool {
     TR_for i TR_in 0..1000 {
         TR_if k() { TR_return TR_true }
         TR_sleep(0.01)
@@ -27,7 +27,7 @@ TR_var d = {"başladı": TR_false, "devam": TR_false}
 // veriyordu).
 func TestNoGradTaskBound(t *testing.T) {
 	out := mustRun(t, `TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
-TR_func f(x) { TR_return x * 2 }
+TR_func f(x: TR_Tensor) -> TR_Tensor { TR_return x * 2 }
 TR_var bitti = TR_false
 TR_async {
     TR_no_grad {

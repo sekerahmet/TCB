@@ -37,20 +37,20 @@ func TestShowTranslatesOnlyTheLanguageWords(t *testing.T) {
 		{"ileti kodu bir ad değildir", "TR_print(TR_Message(\"H6903\", 1))\n", "yazdır(İleti(\"H6903\", 1))\n"},
 		{"anahtar kelime ve yerleşik", "TR_var x = 1\nTR_print(x)\n", "değişken x = 1\nyazdır(x)\n"},
 		{"kullanıcının adı kullanıcınındır",
-			"TR_func f() {\n    TR_var toplam = 1\n    TR_return toplam\n}\nTR_print(TR_sum([1, 2]))\n",
-			"fonksiyon f() {\n    değişken toplam = 1\n    sonuç toplam\n}\nyazdır(toplam([1, 2]))\n"},
+			"TR_func f() -> TR_Int {\n    TR_var toplam = 1\n    TR_return toplam\n}\nTR_print(TR_sum([1, 2]))\n",
+			"fonksiyon f() -> Tam {\n    değişken toplam = 1\n    sonuç toplam\n}\nyazdır(toplam([1, 2]))\n"},
 		{"yorum ve ham metin çevrilmez",
 			"# eğer yazdır\nTR_var y = `yazdır {eğer}` # değişken\n",
 			"# eğer yazdır\ndeğişken y = `yazdır {eğer}` # değişken\n"},
 		{"metin içi yerleştirme ve iç içe yerleştirme",
-			"TR_print(\"a\\n\\(TR_sum([1])) {x} \\(\"iç \\(uzunluk_x(1)) \\(TR_print)\")\")\nTR_func uzunluk_x(a) { TR_return a }\n",
-			"yazdır(\"a\\n\\(toplam([1])) {x} \\(\"iç \\(uzunluk_x(1)) \\(yazdır)\")\")\nfonksiyon uzunluk_x(a) { sonuç a }\n"},
+			"TR_print(\"a\\n\\(TR_sum([1])) {x} \\(\"iç \\(uzunluk_x(1)) \\(TR_print)\")\")\nTR_func uzunluk_x(a: TR_Int) -> TR_Int { TR_return a }\n",
+			"yazdır(\"a\\n\\(toplam([1])) {x} \\(\"iç \\(uzunluk_x(1)) \\(yazdır)\")\")\nfonksiyon uzunluk_x(a: Tam) -> Tam { sonuç a }\n"},
 		{"kurucu bağlamsal sözcüktür",
-			"TR_struct N {\n    a\n    TR_func TR_init(a) { TR_self.a = a }\n}\n",
-			"yapı N {\n    a\n    fonksiyon kurucu(a) { kendi.a = a }\n}\n"},
+			"TR_struct N {\n    a: TR_Int\n    TR_func TR_init(a: TR_Int) { TR_self.a = a }\n}\n",
+			"yapı N {\n    a: Tam\n    fonksiyon kurucu(a: Tam) { kendi.a = a }\n}\n"},
 		{"adlı argüman",
-			"TR_func f(eksen = 0) { TR_return eksen }\nTR_print(TR_sum([1], TR_dim: 0), f(eksen: 1))\n",
-			"fonksiyon f(eksen = 0) { sonuç eksen }\nyazdır(toplam([1], eksen: 0), f(eksen: 1))\n"},
+			"TR_func f(eksen: TR_Int = 0) -> TR_Int { TR_return eksen }\nTR_print(TR_sum([1], TR_dim: 0), f(eksen: 1))\n",
+			"fonksiyon f(eksen: Tam = 0) -> Tam { sonuç eksen }\nyazdır(toplam([1], eksen: 0), f(eksen: 1))\n"},
 		{"örtük adlar",
 			"TR_var o = 1\nTR_print([1].TR_map { o * 2 }, [1].TR_reduce(0, (birikim, x) => birikim + x), (o) => o)\nTR_try { TR_throw \"x\" } TR_catch { TR_print(TR_error) }\nTR_try { TR_throw \"y\" } TR_catch hata { TR_print(hata) }\n",
 			"değişken o = 1\nyazdır([1].haritala { o * 2 }, [1].indirge(0, (birikim, x) => birikim + x), (o) => o)\ndene { fırlat \"x\" } yakala { yazdır(hata) }\ndene { fırlat \"y\" } yakala hata { yazdır(hata) }\n"},
@@ -64,8 +64,8 @@ func TestShowTranslatesOnlyTheLanguageWords(t *testing.T) {
 			"TR_var İSİM_ı = \"Iİ\"\nTR_var g100 = 1\nTR_print(İSİM_ı, g100)\n",
 			"değişken İSİM_ı = \"Iİ\"\ndeğişken g100 = 1\nyazdır(İSİM_ı, g100)\n"},
 		{"satır düzeni korunur",
-			"# başlık yorumu\n\nTR_func f(a) {\n    TR_return a + 1\n}\n\n# iki\n# satırlık\nTR_print(f(1))\nTR_var s = \"çok\nsatırlı \\(f(2))\"\n",
-			"# başlık yorumu\n\nfonksiyon f(a) {\n    sonuç a + 1\n}\n\n# iki\n# satırlık\nyazdır(f(1))\ndeğişken s = \"çok\nsatırlı \\(f(2))\"\n"},
+			"# başlık yorumu\n\nTR_func f(a: TR_Int) -> TR_Int {\n    TR_return a + 1\n}\n\n# iki\n# satırlık\nTR_print(f(1))\nTR_var s = \"çok\nsatırlı \\(f(2))\"\n",
+			"# başlık yorumu\n\nfonksiyon f(a: Tam) -> Tam {\n    sonuç a + 1\n}\n\n# iki\n# satırlık\nyazdır(f(1))\ndeğişken s = \"çok\nsatırlı \\(f(2))\"\n"},
 	}
 	for _, d := range cases {
 		t.Run(d.name, func(t *testing.T) {
@@ -114,8 +114,8 @@ func fakeLanguage(t *testing.T) *codes.Language {
 // Kural (17.7): görünüm, dilin bir sözcüğüyle aynı yazılan kullanıcı adını işaretleyebilir ('$ad');
 // bu bir kural değildir, okuyanı uyarır. Çakışmayan dilde işaret yoktur.
 func TestShowMarksUserNamesThatReadAsWords(t *testing.T) {
-	body := "TR_var kutu = 1\nTR_var sayaç = 2\nTR_print(kutu, sayaç)\nTR_struct K {\n    TR_func koy() { TR_return 1 }\n}\nTR_var bu = 3\nTR_print([1].TR_map((x) => x + bu))\n"
-	want := "tanım $kutu = 1\ntanım $sayaç = 2\nsayaç($kutu, $sayaç)\nyapı K {\n    fonksiyon $koy() { sonuç 1 }\n}\ntanım bu = 3\nsayaç([1].haritala((x) => x + bu))\n"
+	body := "TR_var kutu = 1\nTR_var sayaç = 2\nTR_print(kutu, sayaç)\nTR_struct K {\n    TR_func koy() -> TR_Int { TR_return 1 }\n}\nTR_var bu = 3\nTR_print([1].TR_map((x) => x + bu))\n"
+	want := "tanım $kutu = 1\ntanım $sayaç = 2\nsayaç($kutu, $sayaç)\nyapı K {\n    fonksiyon $koy() -> Tam { sonuç 1 }\n}\ntanım bu = 3\nsayaç([1].haritala((x) => x + bu))\n"
 	if got := shownBody(t, body, fakeLanguage(t)); got != want {
 		t.Errorf("sahte dilde gösterim:\n%s\nbeklenen:\n%s", got, want)
 	}
@@ -257,7 +257,7 @@ func TestShowWritesNFC(t *testing.T) {
 // dilin sözcüğüyle gösterilir. Neden: düz yazılmış kullanıcı parametrelerinin çoğu (x, n, adım) bir
 // dilin parametre sözcüğüdür; görünüm kullanıcının kimlikle yazdığını kimlik olarak gösterir.
 func TestUserFunctionIdentityParameterStaysSpelled(t *testing.T) {
-	coded := Header + "\nTR_func ölçekle(x, TR_lr) { TR_return x * TR_lr }\nTR_print(ölçekle(3, TR_lr: 2))\nTR_print(TR_AdamW([], TR_lr: 0.1))\n"
+	coded := Header + "\nTR_func ölçekle(x: TR_Int, TR_lr: TR_Int) -> TR_Int { TR_return x * TR_lr }\nTR_print(ölçekle(3, TR_lr: 2))\nTR_print(TR_AdamW([], TR_lr: 0.1))\n"
 	for _, code := range codes.Languages() {
 		lang, err := codes.LoadLanguage(code)
 		if err != nil {

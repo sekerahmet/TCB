@@ -40,7 +40,7 @@ func hitLine(pos Pos, where, match string) string { return pos.String() + " " + 
 // Olası bölümün yanlış pozitifleri: başka, başla gibi sözcükler listelenmez ama sayılır; ekli ve
 // bileşik biçimler ayrı etiketlenir; kodda, yorumda ve metinde bulunduğu yer söylenir.
 func TestScanTextClassifiesMatches(t *testing.T) {
-	src := "TR_var baş = 1 # baş sayısı\nTR_print(\"baş \\(baş)\")\nTR_func başla() {\n    TR_return 1\n}\n"
+	src := "TR_var baş = 1 # baş sayısı\nTR_print(\"baş \\(baş)\")\nTR_func başla() -> TR_Int {\n    TR_return 1\n}\n"
 	dir := writeTree(t, map[string]string{
 		"doc.md":     "Dikkat başı ve başları. Başka şey. Başla! kv_baş ve baş_boyutu. Her baş için.\n",
 		"ileti.json": "{\"H1\": \"baş sayısı\"}\n",
@@ -161,8 +161,8 @@ func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
 // Dizin kipi Options.Tracked'tan alır: tr index yok sayılan klasördeki .tr'yi bulur, codegraph'ın dizini bulmaz.
 func TestListFilesKeepsTwoRules(t *testing.T) {
 	dir := t.TempDir()
-	for name, text := range map[string]string{"lib/a.tr": "TR_func a() {\n    TR_return 1\n}\n", "lib/new.tr": "y",
-		"scratch/deneme.tr": "TR_func deneme_fonk() {\n    TR_return 1\n}\n", "lib/testdata/f.tr": "w", "docs/d.md": "m",
+	for name, text := range map[string]string{"lib/a.tr": "TR_func a() -> TR_Int {\n    TR_return 1\n}\n", "lib/new.tr": "y",
+		"scratch/deneme.tr": "TR_func deneme_fonk() -> TR_Int {\n    TR_return 1\n}\n", "lib/testdata/f.tr": "w", "docs/d.md": "m",
 		".gitignore": "scratch/\n"} {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
 			t.Fatal(err)
@@ -223,9 +223,9 @@ func TestAnIgnoredFileComesAfterTheRepositoryAndIsMarked(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{
 		".gitignore":    "deneme/\n",
-		"lib/m.tr":      "TR_func ortak() {\n    TR_return 1\n}\n\nTR_func kitaplık_işi() {\n    TR_return 2\n}\n",
+		"lib/m.tr":      "TR_func ortak() -> TR_Int {\n    TR_return 1\n}\n\nTR_func kitaplık_işi() -> TR_Int {\n    TR_return 2\n}\n",
 		"examples/a.tr": "TR_import \"tr/m\"\nTR_print(kitaplık_işi())\n",
-		"deneme/d.tr":   "TR_import \"tr/m\"\nTR_func ortak() {\n    TR_return kitaplık_işi()\n}\n",
+		"deneme/d.tr":   "TR_import \"tr/m\"\nTR_func ortak() -> TR_Int {\n    TR_return kitaplık_işi()\n}\n",
 	} {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
 			t.Fatal(err)

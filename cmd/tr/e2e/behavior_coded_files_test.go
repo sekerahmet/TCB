@@ -159,7 +159,7 @@ func TestUserNamesNeverBecomeLanguageWords(t *testing.T) {
 	cases := map[string]string{
 		"it.tr":    "TR_var it = 4\nTR_print([1, 2].TR_map((x) => x + it))\n",
 		"acc.tr":   "TR_var acc = 1\nTR_print([1, 2].TR_reduce(0, (a, x) => a + x + acc))\n",
-		"init.tr":  "TR_struct K {\n    a\n    TR_func init() { TR_return 5 }\n}\nTR_print(K(1).init())\n",
+		"init.tr":  "TR_struct K {\n    a: TR_Int\n    TR_func init() -> TR_Int { TR_return 5 }\n}\nTR_print(K(1).init())\n",
 		"print.tr": "TR_var print = 5\nTR_print(print)\n",
 	}
 	want := map[string]string{"it.tr": "[5, 6]\n", "acc.tr": "5\n", "init.tr": "5\n", "print.tr": "5\n"}

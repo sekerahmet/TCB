@@ -29,7 +29,7 @@ func TestDAPWatchPanelButtons(t *testing.T) {
 
 	c := startDAP(t)
 	path := writeProgram(t, `TR_var toplam = 0
-TR_func kare(x) {
+TR_func kare(x: TR_Int) -> TR_Int {
     TR_return x * x
 }
 TR_for s TR_in [1, 2, 3] {

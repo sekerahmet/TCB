@@ -16,6 +16,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Kural (1.2, 6.1, 7.1): depodaki TR kodu tiplidir. Her parametre ve her alan tipini yazar, liste ve
@@ -34,11 +35,13 @@ var updateTyped = flag.Bool("update-typed", false, "testdata/typed_code_known.tx
 
 const typedKnownFile = "testdata/typed_code_known.txt"
 
-// typedSources taranan .tr dosyalarıdır. tools/codegraph ve internal/devtools/codeindex'in deneme
-// projeleri o araçların sahibinindir; onlar kendi işlerinde tiplenir.
-var typedSources = []string{"lib", "tests", "examples", "tools"}
+// typedSources taranan .tr dosyalarıdır; araçların deneme projeleri de (tools/codegraph/testdata,
+// internal/devtools/codeindex/testdata).
+var typedSources = []string{"lib", "tests", "examples", "tools", "internal/devtools/codeindex/testdata"}
 
-var skippedTypedDirs = []string{"tools/codegraph/"}
+// typedGoRoots altındaki Go testlerinin metin sabitleri de TR kaynağı olarak taranır: TR programı
+// olmayan sabit tipsiz yer vermez. fmt.Sprintf ya da + ile kurulan program parça parça görülür.
+var typedGoRoots = []string{"cmd", "internal", "tools"}
 
 // typedDocs ```tr bloklarına bakılan belgelerdir; docs/ altındaki bütün belgeler eklenir. Arşiv
 // geçmişi olduğu gibi saklar, sayılmaz. docs/codes.md tanım dosyasının örneklerinden üretilir:
@@ -48,11 +51,13 @@ var typedDocs = []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/REA
 
 var typedBlockRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
 
-// trSource taranan bir TR metnidir: yolu, metnin dosyadaki ilk satırı ve başlıksız gövde olup olmadığı.
+// trSource taranan bir TR metnidir: yolu ve metnin dosyadaki ilk satırı. oneLine metnin bütün
+// satırlarının dosyanın tek satırında olduğunu söyler (Go'nun tırnaklı metin sabiti).
 type trSource struct {
 	path      string
 	firstLine int
 	text      string
+	oneLine   bool
 }
 
 func TestTRCodeIsTyped(t *testing.T) {
@@ -62,6 +67,11 @@ func TestTRCodeIsTyped(t *testing.T) {
 	if files < 150 || len(sources)-files < 300 {
 		t.Fatalf("yalnız %d dosya ve %d kod bloğu bulundu; depo düzeni değişmiş olabilir", files, len(sources)-files)
 	}
+	goStrings := typedGoStrings(t)
+	if len(goStrings) < 5000 {
+		t.Fatalf("Go testlerinde yalnız %d metin sabiti bulundu; depo düzeni değişmiş olabilir", len(goStrings))
+	}
+	sources = append(sources, goStrings...)
 	var found []string
 	for _, s := range sources {
 		found = append(found, untypedPlaces(s)...)
@@ -78,14 +88,29 @@ func typedFiles(t *testing.T) []trSource {
 				return err
 			}
 			rel := filepath.ToSlash(strings.TrimPrefix(p, reporoot.Root()+string(filepath.Separator)))
-			for _, skip := range skippedTypedDirs {
-				if strings.HasPrefix(rel, skip) {
-					return nil
-				}
-			}
 			data, err := os.ReadFile(p)
 			out = append(out, trSource{path: rel, firstLine: 1, text: string(data)})
 			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return out
+}
+
+func typedGoStrings(t *testing.T) []trSource {
+	t.Helper()
+	var out []trSource
+	for _, dir := range typedGoRoots {
+		err := reporoot.WalkDir(reporoot.Path(dir), func(p string, d os.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !strings.HasSuffix(p, "_test.go") {
+				return err
+			}
+			rel := filepath.ToSlash(strings.TrimPrefix(p, reporoot.Root()+string(filepath.Separator)))
+			return testkit.GoStringLiteralsRaw(p, func(value string, line int, raw bool) {
+				out = append(out, trSource{path: rel, firstLine: line, text: value, oneLine: !raw})
+			})
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -132,6 +157,9 @@ func untypedPlaces(s trSource) []string {
 	offset := s.firstLine - 1
 	var out []string
 	add := func(line int, kind, name string) {
+		if s.oneLine {
+			line = 1
+		}
 		out = append(out, fmt.Sprintf("%s:%d %s %s", s.path, line+offset, kind, name))
 	}
 	ast.Walk(r.Program, func(n any) bool {

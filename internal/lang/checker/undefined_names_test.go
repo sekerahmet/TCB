@@ -18,7 +18,7 @@ func TestUndefinedNameIsError(t *testing.T) {
 	singleErrorAt(t, "TR_var öğrenci_sayısı = 1\nTR_print(öğrenci_sayis)", 2, 10, "'öğrenci_sayis' adında bir değişken ya da fonksiyon yok", "Bunu mu demek istediniz: 'öğrenci_sayısı'?")
 	singleErrorAt(t, "tanımsız = 3", 1, 1, "'tanımsız'")
 	singleError(t, "TR_if TR_true { TR_var iç = 1 }\nTR_print(iç)", messages.H1010, 2, "'iç'")
-	singleError(t, "TR_func f() { TR_return g() }", messages.H1010, 1, "'g'")
+	singleError(t, "TR_func f() -> TR_Int { TR_return g() }", messages.H1010, 1, "'g'")
 	singleError(t, "TR_test \"a\" { TR_var yerel = 1 }\nTR_test \"b\" { TR_print(yerel) }", messages.H1010, 2, "'yerel'")
 	singleError(t, `TR_print("\(bilinmeyen)")`, messages.H1010, 1, "'bilinmeyen'")
 	singleError(t, "TR_var l = [1, 2]\nTR_print([x * 2 TR_for x TR_in l TR_if y > 0])", messages.H1010, 2, "'y'")
@@ -80,26 +80,26 @@ func singleErrorAt(t *testing.T, source string, line, col int, parts ...string) 
 // Dinamik dilde yanlış alarm yok: aşağıdakilerin hepsi tanımlıdır.
 func TestUndefinedNameNoFalseAlarm(t *testing.T) {
 	cases := map[string]string{
-		"sonra tanımlanan fonksiyon":          "TR_func a() { TR_return b() }\nTR_func b() { TR_return 1 }\nTR_print(a())",
-		"özyineleme":                          "TR_func f(n) { TR_return TR_if n < 1 { 0 } TR_else { f(n - 1) } }",
+		"sonra tanımlanan fonksiyon":          "TR_func a() -> TR_Int { TR_return b() }\nTR_func b() -> TR_Int { TR_return 1 }\nTR_print(a())",
+		"özyineleme":                          "TR_func f(n: TR_Int) -> TR_Int { TR_return TR_if n < 1 { 0 } TR_else { f(n - 1) } }",
 		"sondaki blok o":                      "TR_print([1, 2].TR_map((x) => x * 2).TR_filter((x) => x > 2))",
 		"ok fonksiyonu":                       "TR_var k = (x) => x * x\nTR_print(k(3), [1].TR_map((y) => y + 1))",
 		"yakala hata":                         `TR_try { TR_throw "x" } TR_catch { TR_print(TR_error) }`,
 		"yakala adlı":                         `TR_try { TR_throw "x" } TR_catch h { TR_print(h) }`,
 		"döngü değişkenleri":                  "TR_for i, x TR_in [5, 6] { TR_print(i, x) }",
 		"liste üreteci":                       "TR_print([x * x TR_for x TR_in 0..3 TR_if x > 0])",
-		"yapı ve kendi":                       "TR_struct Sayaç { n = 0; TR_func artır(k) { TR_self.n += k } }\nTR_var s = Sayaç()\ns.artır(2)\nTR_print(s.n)",
+		"yapı ve kendi":                       "TR_struct Sayaç { n: TR_Int = 0; TR_func artır(k: TR_Int) { TR_self.n += k } }\nTR_var s = Sayaç()\ns.artır(2)\nTR_print(s.n)",
 		"üye ve adlı argüman":                 "TR_var l = [3, 1]\nTR_print(l.TR_sort(ters: TR_true).TR_length)",
 		"sabit ve çoklu":                      "TR_const PI2 = 6.28\nTR_var a, b = 1, 2\na, b = b, a\nTR_print(PI2, a, b)",
 		"dış değişkene atama":                 "TR_var n = 0\nTR_func art() { n += 1 }\nart()",
 		"eşle":                                "TR_var p = 5\nTR_var s = 3\nTR_print(TR_match p { s => \"eşit\"\n 1..10 => \"aralık\"\n _ => \"diğer\" })",
-		"ertele ve eşzamanlı":                 "TR_func f() { TR_var iz = []\n TR_defer iz.TR_append(1)\n TR_async { TR_print(iz) }\n TR_return iz }",
+		"ertele ve eşzamanlı":                 "TR_func f() -> TR_List[TR_Int] { TR_var iz = []\n TR_defer iz.TR_append(1)\n TR_async { TR_print(iz) }\n TR_return iz }",
 		"takma adsız aktar":                   "TR_import \"yardimci_modul\"\nTR_print(kare(PI))",
 		"takma adlı aktar":                    "TR_import \"yardimci_modul\" TR_as ym\nTR_print(ym.kare(2))",
-		"değer olarak verilen adlı fonksiyon": "TR_func ikiye(x) { TR_return x * 2 }\nTR_var l = [1].TR_map(ikiye)\nTR_print(ikiye(3))",
+		"değer olarak verilen adlı fonksiyon": "TR_func ikiye(x: TR_Int) -> TR_Int { TR_return x * 2 }\nTR_var l = [1].TR_map(ikiye)\nTR_print(ikiye(3))",
 		"test bloğu genel ad":                 "TR_var g = 1\nTR_test \"t\" { TR_assert_equal(1, g) }",
 		"kesme noktası koşulu":                "TR_var x = 1\nTR_breakpoint TR_if x > 10",
-		"varsayılan parametre":                "TR_var taban = 2\nTR_func üs(x, k = taban) { TR_return x ** k }",
+		"varsayılan parametre":                "TR_var taban = 2\nTR_func üs(x: TR_Int, k: TR_Int = taban) -> TR_Int { TR_return x ** k }",
 	}
 	for name, source := range cases {
 		if errs := check(t, source); len(errs) > 0 {
@@ -169,7 +169,7 @@ func TestUndefinedNameModuleGlobalScope(t *testing.T) {
 	if errs := checkModule(nil, true); len(errs) != 0 {
 		t.Fatalf("dinamik genel kapsamda tanımsız ad aranmamalı: %v", errs)
 	}
-	names, dynamic := TopLevelNames(parser.New(lexer.NewBody("TR_var a = 1\nTR_struct Y { x }\nTR_func f() {}\nTR_import \"m\" TR_as mm\nTR_if TR_true { TR_var iç = 2 }", true)).ParseProgram())
+	names, dynamic := TopLevelNames(parser.New(lexer.NewBody("TR_var a = 1\nTR_struct Y { x: TR_Int }\nTR_func f() {}\nTR_import \"m\" TR_as mm\nTR_if TR_true { TR_var iç = 2 }", true)).ParseProgram())
 	if strings.Join(names, ",") != "Y,a,f,mm" || dynamic {
 		t.Fatalf("üst düzey adlar: %v %v", names, dynamic)
 	}

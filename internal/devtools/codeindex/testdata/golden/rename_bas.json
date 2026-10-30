@@ -23,7 +23,7 @@
         "line": 3,
         "col": 5,
         "end_line": 3,
-        "end_col": 8
+        "end_col": 16
       },
       "signature": "baş",
       "qualified": "m.Dikkat.baş"
@@ -41,7 +41,7 @@
       "node": "field:m.tr#Dikkat.baş",
       "role": "definition",
       "confidence": "EXTRACTED",
-      "context": "baş",
+      "context": "baş: TR_Int",
       "replacement": "bakış_sayısı"
     },
     {
@@ -144,21 +144,21 @@
       "where": "code",
       "match": "compound",
       "word": "kv_baş",
-      "context": "kv_baş",
+      "context": "kv_baş: TR_Int?",
       "replacement": "kv_bakış_sayısı"
     },
     {
       "pos": {
         "file": "m.tr",
         "line": 5,
-        "col": 33,
+        "col": 49,
         "end_line": 5,
-        "end_col": 39
+        "end_col": 55
       },
       "where": "code",
       "match": "compound",
       "word": "kv_baş",
-      "context": "TR_func TR_init(boyut, baş, kv_baş = TR_none) {",
+      "context": "TR_func TR_init(boyut: TR_Int, baş: TR_Int, kv_baş = TR_none) {",
       "replacement": "kv_bakış_sayısı"
     },
     {
@@ -245,7 +245,7 @@
       "where": "code",
       "match": "exact",
       "word": "baş",
-      "context": "TR_func gölge(baş) {",
+      "context": "TR_func gölge(baş: TR_Int) -\u003e TR_Int {",
       "replacement": "bakış_sayısı"
     },
     {
@@ -355,9 +355,9 @@
       "pos": {
         "file": "m.tr",
         "line": 5,
-        "col": 28,
+        "col": 36,
         "end_line": 5,
-        "end_col": 31
+        "end_col": 39
       },
       "signature": "baş",
       "qualified": "m.Dikkat.kurucu.baş"

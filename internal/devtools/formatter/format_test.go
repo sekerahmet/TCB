@@ -34,7 +34,7 @@ func TestStandardFormat(t *testing.T) {
 		{"değil", "a = TR_not b\nc = TR_not (d)\n", "a = TR_not b\nc = TR_not (d)\n"},
 		{"girinti 4 boşluk", "TR_if x {\n  TR_print(1)\n\t\tTR_if y {\nTR_print(2)\n}\n}\n",
 			"TR_if x {\n    TR_print(1)\n    TR_if y {\n        TR_print(2)\n    }\n}\n"},
-		{"süslü aynı satırda", "TR_func f(a)\n{\n    TR_return a\n}\n", "TR_func f(a) {\n    TR_return a\n}\n"},
+		{"süslü aynı satırda", "TR_func f(a: TR_Int) -> TR_Int\n{\n    TR_return a\n}\n", "TR_func f(a: TR_Int) -> TR_Int {\n    TR_return a\n}\n"},
 		{"değilse önceki satıra", "TR_if x {\n    a()\n}\nTR_else\n{\n    b()\n}\n", "TR_if x {\n    a()\n} TR_else {\n    b()\n}\n"},
 		{"yakala önceki satıra", "TR_try {\n    a()\n}\nTR_catch h {\n    b(h)\n}\n", "TR_try {\n    a()\n} TR_catch h {\n    b(h)\n}\n"},
 		// Başlık bir yorum satırıdır: ardındaki boş satırlar da teke iner.
@@ -221,17 +221,17 @@ func TestBOMKept(t *testing.T) {
 // Kodlu dosya kodlu biçimde biçimlenir (17): başlık ve BOM korunur, kodlar olduğu gibi kalır,
 // satır sonları (başlığınki de) LF olur.
 func TestCodedFileFormats(t *testing.T) {
-	src := "\ufeff# TR 4\r\nTR_func   f(a){TR_return a+1}\r\nTR_print( f(1) )\r\n"
+	src := "\ufeff# TR 4\r\nTR_func   f(a:TR_Int)->TR_Int{TR_return a+1}\r\nTR_print( f(1) )\r\n"
 	got, err := Format(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "\ufeff# TR 4\nTR_func f(a) { TR_return a + 1 }\nTR_print(f(1))\n"; got != want {
+	if want := "\ufeff# TR 4\nTR_func f(a: TR_Int) -> TR_Int { TR_return a + 1 }\nTR_print(f(1))\n"; got != want {
 		t.Errorf("kodlu biçimleme:\n%q\nbeklenen:\n%q", got, want)
 	}
 	// Biçimin değişmesi (kodlu ↔ Türkçe) anlam denetiminde reddedilir; bilerek Türkçe gösterim.
 	var meaning *MeaningChangedError
-	if err := SameMeaning(got, "fonksiyon f(a) { sonuç a + 1 }\nyazdır(f(1))\n"); !errors.As(err, &meaning) {
+	if err := SameMeaning(got, "fonksiyon f(a: Tam) -> Tam { sonuç a + 1 }\nyazdır(f(1))\n"); !errors.As(err, &meaning) {
 		t.Errorf("kodlu ve Türkçe biçim aynı sayıldı: %v", err)
 	}
 	// Kodlu sözcük kodla, kullanıcı adı metinle karşılaştırılır: TR_print ile adı 'yazdır' olan

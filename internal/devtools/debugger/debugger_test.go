@@ -87,7 +87,7 @@ func screens(out string) int { return strings.Count(out, "TR HATA AYIKLAYICI") }
 // İzleme koşulu bir kullanıcı fonksiyonunu çağırınca fonksiyonun deyimleri hata ayıklayıcıyı
 // yeniden tetiklemez: koşul her deyimde yeniden hesaplanıp sonsuz özyinelemeye girmez.
 func TestCLIWatchConditionCallsFunction(t *testing.T) {
-	code := "TR_func g() {\n    TR_return 1\n}\nTR_var a = 0\na = 1\n"
+	code := "TR_func g() -> TR_Int {\n    TR_return 1\n}\nTR_var a = 0\na = 1\n"
 	out, _ := runCLI(t, "t.tr", code, "continue\ncontinue\ncontinue\n", func(d *Debugger) {
 		d.Mode = StepContinue
 		d.Watchpoints = append(d.Watchpoints, &Watchpoint{ID: 1, Expression: "g() == 1", IsCond: true})
@@ -100,7 +100,7 @@ func TestCLIWatchConditionCallsFunction(t *testing.T) {
 // Duraklamada 'hesapla' ya da 'değiştir' bir kullanıcı fonksiyonunu çağırınca fonksiyonun
 // gövdesinde yeniden durulmaz.
 func TestCLIEvaluateCallsFunctionQuietly(t *testing.T) {
-	code := "TR_func g() {\n    TR_return 7\n}\nTR_var a = 0\nTR_print(a)\n"
+	code := "TR_func g() -> TR_Int {\n    TR_return 7\n}\nTR_var a = 0\nTR_print(a)\n"
 	out, machine := runCLI(t, "t.tr", code, "step\nstep\neval g()\nset a = g()\ncontinue\n", nil)
 	if screens(out) != 3 || !strings.Contains(out, "Sonuç (Tam): 7") {
 		t.Fatalf("başta ve iki adım sonrası olmak üzere üç duruş bekleniyordu (%d):\n%s", screens(out), out)
@@ -127,7 +127,7 @@ func TestCLIJump(t *testing.T) {
 }
 
 func TestCLIJumpOutsideBlockRejected(t *testing.T) {
-	code := "TR_func f() {\n    TR_var x = 1\n    TR_return x\n}\nTR_var a = f()\na = 5\n"
+	code := "TR_func f() -> TR_Int {\n    TR_var x = 1\n    TR_return x\n}\nTR_var a = f()\na = 5\n"
 	// f'nin içinde (2. satır) durup gövdenin dışına (6. satır) zıplamak reddedilir.
 	out, machine := runCLI(t, "t.tr", code, "step\nstep\njump 6\ncontinue\n", nil)
 	if !strings.Contains(out, "çalışan bloğun dışında") || strings.Contains(out, "SATIRA ZIPLANDI") {
@@ -142,7 +142,7 @@ func TestCLIJumpOutsideBlockRejected(t *testing.T) {
 // modülün içine adımlanınca modülün satırları gösterilir.
 func TestCLIModuleLines(t *testing.T) {
 	dir := t.TempDir()
-	module := "TR_func f(x) {\n    TR_var modül_satırı = x\n    TR_return modül_satırı\n}\n"
+	module := "TR_func f(x: TR_Int) -> TR_Int {\n    TR_var modül_satırı = x\n    TR_return modül_satırı\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m.tr"), []byte(withHeader(module)), 0644); err != nil {
 		t.Fatal(err)
 	}

@@ -1,5 +1,5 @@
 # TR 4
-TR_func kodlu_işlev(x) {
+TR_func kodlu_işlev(x: TR_Int) -> TR_Int {
     TR_print(x)
     TR_return x
 }

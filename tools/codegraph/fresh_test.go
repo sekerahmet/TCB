@@ -256,7 +256,7 @@ func TestRuleName(t *testing.T) {
 func TestGraphSkipsIgnoredFolders(t *testing.T) {
 	root := gitFixture(t)
 	testkit.WriteFile(t, root, ".gitignore", "scratch/\nlib/yerel/\n")
-	testkit.WriteFile(t, root, "lib/yerel/deneme.tr", "TR_func deneme_fonk() {\n    TR_return 1\n}\n")
+	testkit.WriteFile(t, root, "lib/yerel/deneme.tr", "TR_func deneme_fonk() -> TR_Int {\n    TR_return 1\n}\n")
 	testkit.WriteFile(t, root, "scratch/notes.md", "# Deneme notu\n")
 	g, err := buildGraph(root)
 	if err != nil {

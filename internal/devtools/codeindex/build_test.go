@@ -67,7 +67,7 @@ func TestBuildDeclarations(t *testing.T) {
 	want := map[string]Pos{
 		"struct:lib/geo.tr#Kare":                                block(geo, "TR_struct Kare", "}", 1),
 		"method:lib/geo.tr#Kare.alan":                           block(geo, "TR_func alan()", "    }", 5),
-		"field:lib/geo.tr#Kare.kenar":                           one(geo, "    kenar = 1", 5),
+		"field:lib/geo.tr#Kare.kenar":                           one(geo, "    kenar: TR_Int = 1", 5),
 		"function:lib/geo.tr#çevre_hesapla":                     block(geo, "TR_func çevre_hesapla", "}", 1),
 		"constant:lib/geo.tr#PI2":                               one(geo, "TR_const PI2", 1),
 		"variable:lib/geo.tr#sayaç":                             one(geo, "TR_var sayaç", 1),

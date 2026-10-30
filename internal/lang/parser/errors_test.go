@@ -56,7 +56,7 @@ func TestSingleErrorNoCascade(t *testing.T) {
 		// Parametre listesindeki eksik virgül; gövde atlanır
 		"TR_func f(a b) {\n    TR_return a\n}\nTR_print(1)": 1,
 		// Bloğu kapatan '}' hatalı deyimde yutulmaz: "'{' kapatılmadı" hatası çıkmaz
-		"TR_func g() {\n    TR_if TR_true { TR_print( }\n    TR_return 3\n}\nTR_print(g())": 1,
+		"TR_func g() -> TR_Int {\n    TR_if TR_true { TR_print( }\n    TR_return 3\n}\nTR_print(g())": 1,
 		// Eşle bloğundaki hata kalan durumları da bozmaz
 		"TR_match 3 {\n    1 \"bir\"\n    2 => \"iki\"\n    _ => \"çok\"\n}\nTR_print(1)": 1,
 		// Ayrı satırlardaki bağımsız hatalar ayrı ayrı bildirilir

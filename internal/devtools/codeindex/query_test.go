@@ -29,7 +29,7 @@ func TestDefinition(t *testing.T) {
 func TestResolveTiers(t *testing.T) {
 	r := fixtureReader(t)
 	callLine, callCol := fixtureAt(t, "lib/geo_test.tr", "yaz_alan(k)")
-	declLine, declCol := fixtureAt(t, "lib/geo.tr", "çevre_hesapla(k)")
+	declLine, declCol := fixtureAt(t, "lib/geo.tr", "çevre_hesapla(k:")
 	cases := map[string]string{
 		"struct:lib/geo.tr#Kare": "struct:lib/geo.tr#Kare",
 		"Kare":                   "struct:lib/geo.tr#Kare",
@@ -81,7 +81,7 @@ func buildSource(t *testing.T, src string) *Reader {
 }
 
 func TestTurkishCaseFolding(t *testing.T) {
-	r := buildSource(t, "TR_func Işık() {\n    TR_return 1\n}\n")
+	r := buildSource(t, "TR_func Işık() -> TR_Int {\n    TR_return 1\n}\n")
 	if got := r.Resolve("ışık", ""); len(got) != 1 {
 		t.Errorf("ışık (dotless ı) must match Işık: %v", got)
 	}
@@ -95,14 +95,14 @@ func TestTurkishCaseFolding(t *testing.T) {
 // sorguda geçiş yoktur (bağımsız denetim grup 6 ve 7, R1).
 func TestCaseRuleExactFirstThenFolded(t *testing.T) {
 	r := buildSource(t, `TR_struct Kare {
-    a
+    a: TR_Int
 }
 
-TR_func kare() {
+TR_func kare() -> TR_Int {
     TR_return 1
 }
 
-TR_func gizli_işlev() {
+TR_func gizli_işlev() -> TR_String {
     TR_return TR_String(1)
 }
 `)
@@ -167,7 +167,7 @@ TR_test "yalnız bir test" {
 }
 
 func TestAmbiguousAndNotFound(t *testing.T) {
-	r := buildSource(t, "TR_struct A {\n    TR_func TR_forward() {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() {\n        TR_return 2\n    }\n}\n")
+	r := buildSource(t, "TR_struct A {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 2\n    }\n}\n")
 	res := r.Definition("ileri", QueryOptions{})
 	if res.Status != StatusAmbiguous || len(res.Candidates) != 2 || ExitCode(res.Status) != ExitAmbiguous {
 		t.Fatalf("%+v", res)
