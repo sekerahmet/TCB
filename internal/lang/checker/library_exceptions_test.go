@@ -58,6 +58,9 @@ func checkLibraryFile(t *testing.T, file, library string) *Checker {
 	return c
 }
 
+// maxLibraryExceptions istisna listesinin üst sınırıdır; liste yalnız küçülür, sınır onunla iner.
+const maxLibraryExceptions = 29
+
 // Kural (6.1, 7.1): gömülü kitaplığın 4c'yi bekleyen yerleri kitaplık dosyası denetlenirken tanı
 // vermez (ne hata ne uyarı); aynı dosya kullanıcının programı olarak denetlenince aynı yerler
 // kapının hatasıdır. İstisna adla tutulur ve her kaydı kullanılır (liste yalnız küçülür, 4c'de
@@ -96,6 +99,9 @@ func TestLibraryExceptionsAreUsed(t *testing.T) {
 	sort.Strings(stale)
 	if len(stale) > 0 {
 		t.Errorf("kullanılmayan istisnalar (yer tiplendi ya da adı değişti; listeden silin): %v", stale)
+	}
+	if len(libraryExceptions) > maxLibraryExceptions {
+		t.Errorf("libraryExceptions: %d kayıt, en çok %d; liste yalnız küçülür (yeni tipsiz yer kitaplığa eklenmez, tipi yazılır)", len(libraryExceptions), maxLibraryExceptions)
 	}
 	if asUser != len(libraryExceptions) {
 		t.Errorf("kullanıcı programı olarak denetlenen kitaplık dosyalarında %d istisnalı yerin her biri hata vermeli; %d hata", len(libraryExceptions), asUser)
