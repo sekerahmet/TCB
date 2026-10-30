@@ -3,10 +3,7 @@ package messages
 import (
 	"fmt"
 	"maps"
-	"math"
-	"math/big"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -20,6 +17,7 @@ import (
 //	{ad|list}                    liste değeri, dilin "ya da" kalıbıyla (OrList): a, b ya da c
 //	{@ad} {@ad|dat}              ad yuvası: tanımın "slots" tablosundaki kitaplık adı (kimlik),
 //	                             iletinin dilindeki adıyla; TR kaynağı adı geçirmez, katalog anar
+//	{#ad}                        kod yuvası: aynı "slots" tablosundaki kimliğin programdaki yazımı
 //	{ad, plural, one {..} other {..}}  sayıya göre biçim (CLDR çoğul kuralı); dalda (içindeki
 //	                                   seçim dallarında da) # sayıdır, "=N" tam eşleşme (N
 //	                                   sayının tek yazımı: =0, =1.5) kategoriden önce gelir
@@ -35,12 +33,13 @@ import (
 type segKind uint8
 
 const (
-	segText   segKind = iota // düz metin
-	segArg                   // {ad}, {ad|biçim}
-	segPlural                // {ad, plural, ...}
-	segSelect                // {ad, select, ...}
-	segNumber                // çoğul dalındaki #
-	segSlot                  // {@ad}: kimliği iletinin dilindeki adıyla yazar
+	segText     segKind = iota // düz metin
+	segArg                     // {ad}, {ad|biçim}
+	segPlural                  // {ad, plural, ...}
+	segSelect                  // {ad, select, ...}
+	segNumber                  // çoğul dalındaki #
+	segSlot                    // {@ad}: kimliği iletinin dilindeki adıyla yazar
+	segCodeSlot                // {#ad}: kimliği programdaki yazımıyla yazar
 )
 
 // segment bir ileti şablonunun parçasıdır.
@@ -257,6 +256,9 @@ func (p *parser) placeholder(inPlural bool) (segment, error) {
 		if strings.HasPrefix(head, "@") {
 			return p.slot(head[1:])
 		}
+		if strings.HasPrefix(head, "#") {
+			return p.codeSlot(head[1:])
+		}
 		name, mod, _ := strings.Cut(head, "|")
 		n, err := p.param(name)
 		if err != nil {
@@ -282,6 +284,20 @@ func (p *parser) slot(head string) (segment, error) {
 	}
 	p.slotsUsed[name] = true
 	return segment{kind: segSlot, text: identity, mod: mod}, nil
+}
+
+// codeSlot "{#ad}" biçimini (süslü parantezler okunmuş) çözer; kod yuvası hâl ya da biçim eki almaz.
+func (p *parser) codeSlot(head string) (segment, error) {
+	if strings.Contains(head, "|") {
+		name, _, _ := strings.Cut(head, "|")
+		return segment{}, fmt.Errorf("{#%s}: code slot takes no format or case suffix", name)
+	}
+	identity, ok := p.slots[head]
+	if !ok {
+		return segment{}, fmt.Errorf("{#%s}: no such name slot in the definition (slots: %v)", head, slices.Sorted(maps.Keys(p.slots)))
+	}
+	p.slotsUsed[head] = true
+	return segment{kind: segCodeSlot, text: identity}, nil
 }
 
 // choice "{ad, plural|select, anahtar {dal} ...}" biçimini virgülden sonrasından okur. Bir
@@ -360,16 +376,6 @@ func (p *parser) skipSpace() {
 	}
 }
 
-// isExact "=N" anahtarıdır; N sayının tek (kanonik) yazımıdır: =0.0 ya da =+1 hiçbir değerle
-// eşleşmezdi.
-func isExact(key string) bool {
-	if len(key) < 2 || key[0] != '=' {
-		return false
-	}
-	f, err := strconv.ParseFloat(key[1:], 64)
-	return err == nil && strconv.FormatFloat(f, 'f', -1, 64) == key[1:]
-}
-
 // render şablonu değerlerle doldurur. Eksik değer {ad?} olarak görünür (denetim testi çağrı
 // yerlerindeki değer sayısını tanımla karşılaştırır; bu yalnızca bir güvence).
 func (c *Catalog) render(code Code, args []any) string {
@@ -388,7 +394,7 @@ func (c *Catalog) render(code Code, args []any) string {
 // write parçaları b'ye yazar; number çoğul dalındaki # yerine geçen sayıdır.
 func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []any, number any) {
 	for _, s := range segs {
-		if s.kind == segSlot {
+		if s.kind == segSlot || s.kind == segCodeSlot {
 			c.writeSlot(b, s)
 			continue
 		}
@@ -437,8 +443,13 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 	}
 }
 
-// writeSlot ad yuvasını iletinin dilindeki adıyla yazar (kimlik çözücüsü yoksa kimliğin kendisi).
+// writeSlot ad yuvasını ({@ad}) iletinin dilindeki adıyla, kod yuvasını ({#ad}) programdaki
+// kimlik yazımıyla yazar.
 func (c *Catalog) writeSlot(b *strings.Builder, s segment) {
+	if s.kind == segCodeSlot {
+		b.WriteString(codeSpelling(s.text))
+		return
+	}
 	name := s.text
 	if IdentityNames != nil {
 		name = IdentityNames(name, c.Language)
@@ -447,6 +458,19 @@ func (c *Catalog) writeSlot(b *strings.Builder, s segment) {
 		name = inflect(c.Language, name, s.mod)
 	}
 	b.WriteString(name)
+}
+
+// codeSpelling tanımın slots tablosundaki kimliğin (TR_mem_length) programdaki yazımıdır (TR_length).
+func codeSpelling(identity string) string {
+	if IdentitySpelling != nil {
+		return IdentitySpelling(identity)
+	}
+	if rest, ok := strings.CutPrefix(identity, "TR_"); ok {
+		if _, short, ok := strings.Cut(rest, "_"); ok {
+			return "TR_" + short
+		}
+	}
+	return identity
 }
 
 // Listed is a parameter value that is a list of alternatives ({name|list}): the catalog writes
@@ -466,6 +490,10 @@ func (c *Catalog) listText(a any, text string) string {
 
 // IdentityNames metindeki kimlikleri lang'deki adlarıyla değiştirir; codes paketi kurar.
 var IdentityNames func(text, lang string) string
+
+// IdentitySpelling tanımın slots tablosundaki kimliğin (TR_mem_length) programdaki yazımını
+// (TR_length) verir; codes paketi kurar.
+var IdentitySpelling func(identity string) string
 
 // codedText değer bir kodlu hataysa onun bu katalogdaki metnidir: iç ileti dıştakiyle aynı
 // dilde yazılır (catalogFor ikisinin de bu dilde metni olduğunu denetlemiştir). Dile bağlı
@@ -502,94 +530,4 @@ func (c *Catalog) codedText(a any) (string, bool) {
 		return e.Err.Error(), true
 	}
 	return "", false
-}
-
-// pluralKey değerin dalını seçer: önce "=N" tam eşleşme, sonra dilin CLDR kategorisi, yoksa
-// "other". Sayı olmayan değer "other"dır.
-func (c *Catalog) pluralKey(branches map[string][]segment, v any) string {
-	text, ok := exactText(v)
-	if !ok {
-		return "other"
-	}
-	if _, exact := branches["="+text]; exact {
-		return "=" + text
-	}
-	rule := pluralRules[c.Language]
-	if rule == nil {
-		return "other"
-	}
-	o, _ := operands(v)
-	if k := rule(o); branches[k] != nil {
-		return k
-	}
-	return "other"
-}
-
-// exactText sayının "=N" anahtarındaki yazımıdır; değer sayı değilse ok false'tur.
-func exactText(v any) (string, bool) {
-	if x, ok := integerValue(v); ok {
-		return x.String(), true
-	}
-	switch x := v.(type) {
-	case float64:
-		return strconv.FormatFloat(x, 'f', -1, 64), true
-	case float32:
-		return strconv.FormatFloat(float64(x), 'f', -1, 32), true
-	}
-	return "", false
-}
-
-// operands değerin CLDR işlenenleridir. Tam sayı türünde v = 0'dır; ondalık türü (float) en
-// az bir ondalık basamaklı sayılır: CLDR'de 1.0 yazılan sayı İngilizcede "one" değildir.
-func operands(v any) (pluralOperands, bool) {
-	if x, ok := integerValue(v); ok {
-		x.Abs(x)
-		n, _ := new(big.Float).SetInt(x).Float64()
-		return pluralOperands{n: n, i: x.Uint64()}, true
-	}
-	var text string
-	switch x := v.(type) {
-	case float64:
-		text = strconv.FormatFloat(math.Abs(x), 'f', -1, 64)
-	case float32:
-		text = strconv.FormatFloat(math.Abs(float64(x)), 'f', -1, 32)
-	default:
-		return pluralOperands{}, false
-	}
-	whole, frac, _ := strings.Cut(text, ".")
-	if frac == "" {
-		frac = "0"
-	}
-	o := pluralOperands{v: len(frac)}
-	o.n, _ = strconv.ParseFloat(text, 64)
-	o.i, _ = strconv.ParseUint(whole, 10, 64)
-	o.f, _ = strconv.ParseUint(frac, 10, 64)
-	return o, true
-}
-
-// integerValue Go'nun bütün tam sayı türlerini kayıpsız okur.
-func integerValue(v any) (*big.Int, bool) {
-	switch x := v.(type) {
-	case int:
-		return big.NewInt(int64(x)), true
-	case int8:
-		return big.NewInt(int64(x)), true
-	case int16:
-		return big.NewInt(int64(x)), true
-	case int32:
-		return big.NewInt(int64(x)), true
-	case int64:
-		return big.NewInt(x), true
-	case uint:
-		return new(big.Int).SetUint64(uint64(x)), true
-	case uint8:
-		return new(big.Int).SetUint64(uint64(x)), true
-	case uint16:
-		return new(big.Int).SetUint64(uint64(x)), true
-	case uint32:
-		return new(big.Int).SetUint64(uint64(x)), true
-	case uint64:
-		return new(big.Int).SetUint64(x), true
-	}
-	return nil, false
 }

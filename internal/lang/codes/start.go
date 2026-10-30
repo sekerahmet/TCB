@@ -109,6 +109,12 @@ func init() {
 		}
 		return text
 	}
+	messages.IdentitySpelling = func(identity string) string {
+		if k, err := Parse(identity); err == nil {
+			return Spelling(k)
+		}
+		return identity
+	}
 }
 
 // IdentityLanguage kimlik listesinin dil kodudur: hiçbir yazım dili değildir.

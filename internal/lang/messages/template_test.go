@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -225,12 +226,141 @@ func TestNameSlotErrors(t *testing.T) {
 	for _, bad := range []string{
 		`{"H0001": { "param": [], "slots": {"": "TR_fn_run"} }}`,
 		`{"H0001": { "param": [], "slots": {"a b": "TR_fn_run"} }}`,
+		`{"H0001": { "param": [], "slots": {"a#b": "TR_fn_run"} }}`,
 		`{"H0001": { "param": [], "slots": {"a": ""} }}`,
 	} {
 		if _, err := ParseDefinitions([]byte(bad)); err == nil {
 			t.Errorf("geçersiz yuva kabul edildi: %s", bad)
 		}
 	}
+}
+
+// Kod yuvası ({#ad}) tanımın slots tablosundaki kimliği programdaki yazımıyla yazar; hâl ya da
+// biçim eki almaz ve çoğul dalındaki ICU # sayısıyla karışmaz.
+func TestCodeSlot(t *testing.T) {
+	IdentityNames = func(id, lang string) string { return lang + ":" + id }
+	defer func() { IdentityNames = nil }()
+	IdentitySpelling = func(id string) string {
+		if rest, ok := strings.CutPrefix(id, "TR_"); ok {
+			if _, short, ok := strings.Cut(rest, "_"); ok {
+				return "TR_" + short
+			}
+		}
+		return id
+	}
+	defer func() { IdentitySpelling = nil }()
+
+	tr, err := slotCatalog(t, "tr", "{n, plural, one {# öğe: `{#fn}({#heads}: #)`} other {# öğe: `{#fn}({#heads}: #)`}}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tr.render(1, []any{3}); got != "3 öğe: `TR_run(TR_heads: 3)`" {
+		t.Errorf("tr: %q", got)
+	}
+	en, err := slotCatalog(t, "en", "{@fn}: write `{#fn}({#heads}: {n})`")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := en.render(1, []any{4}); got != "en:TR_fn_run: write `TR_run(TR_heads: 4)`" {
+		t.Errorf("en: %q", got)
+	}
+	for _, c := range []struct{ text, want string }{
+		{"`{#fn}` `{#x}` {n}", "no such name slot"},
+		{"`{#fn}` `{#heads|dat}` {n}", "code slot takes no format or case suffix"},
+		{"`{#fn}` `{#heads|q}` {n}", "code slot takes no format or case suffix"},
+		{"`{#fn}` {n}", `name slot "heads" is not used`},
+	} {
+		if _, err := slotCatalog(t, "tr", c.text); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %q içeren hata beklenirdi: %v", c.text, c.want, err)
+		}
+	}
+}
+
+// Kural: kod örneği ters tırnak içinde yazılır; ters tırnak içinde ad yuvası {#ad}'dır, {@ad}
+// yazılmaz; ters tırnak dışında {#ad} yazılmaz. Şablondaki metin değişmezi ("...") ayıklanır;
+// kesme işaretli çekim ve '…' alıntısı yanlış alarm vermez.
+func TestCodeSlotsInBackticks(t *testing.T) {
+	for lang, data := range languageFiles {
+		var raw map[string]string
+		if err := strictUnmarshal(data, &raw); err != nil {
+			t.Fatalf("%s.json: %v", lang, err)
+		}
+		for code, text := range raw {
+			if err := checkCodeSlotBackticks(text); err != nil {
+				t.Errorf("%s.json %s: %v\n\t%s", lang, code, err, text)
+			}
+		}
+	}
+	for _, okText := range []string{
+		"'.{@filter}'in fonksiyonu: `l.{#filter}((x) => x != 0)`",
+		"JSON değerinin .{@length}'u: `{#String}(j).{#length}`",
+		"'{name}' tanımsız; \"{@and} `{@or}` {#not}\" metin değişmezidir",
+		"kapatılmamış ham metin: ` ile başlayan metin",
+		"{n, plural, one {# öğe} other {#. öğeler}}: `{#fn}()`",
+	} {
+		if err := checkCodeSlotBackticks(okText); err != nil {
+			t.Errorf("%q geçmeliydi: %v", okText, err)
+		}
+	}
+	for _, badText := range []string{
+		"kod örneğinde ad yuvası: `x.{@length} == 0`",
+		"düz metinde kod yuvası: {#length} kullanılmaz",
+		"kapanmamış `x.{#length}",
+	} {
+		if err := checkCodeSlotBackticks(badText); err == nil {
+			t.Errorf("%q hata vermeliydi", badText)
+		}
+	}
+}
+
+func checkCodeSlotBackticks(text string) error {
+	cleaned := stripDoubleQuoted(strings.ReplaceAll(strings.ReplaceAll(text, " ` ", " _ "), "'`'", "'_'"))
+	inBacktick := false
+	for i := 0; i < len(cleaned); i++ {
+		if cleaned[i] == '`' {
+			inBacktick = !inBacktick
+			continue
+		}
+		if i+2 < len(cleaned) && cleaned[i] == '{' && isASCIILetter(cleaned[i+2]) {
+			switch cleaned[i+1] {
+			case '@':
+				if inBacktick {
+					return fmt.Errorf("ters tırnak içinde {@...} var (kod örneğinde {#ad} yazılır)")
+				}
+			case '#':
+				if !inBacktick {
+					return fmt.Errorf("ters tırnak dışında {#...} var (düz metinde {@ad} yazılır)")
+				}
+			}
+		}
+	}
+	if inBacktick {
+		return fmt.Errorf("eşleşmemiş ters tırnak")
+	}
+	return nil
+}
+
+func isASCIILetter(b byte) bool {
+	return ('a' <= b && b <= 'z') || ('A' <= b && b <= 'Z')
+}
+
+func stripDoubleQuoted(s string) string {
+	var b strings.Builder
+	inQuote := false
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+1 < len(s) {
+			i++
+			continue
+		}
+		if s[i] == '"' {
+			inQuote = !inQuote
+			continue
+		}
+		if !inQuote {
+			b.WriteByte(s[i])
+		}
+	}
+	return b.String()
 }
 
 type fakeList []string

@@ -79,17 +79,17 @@ const (
 	H0169 Code = 169  // '\' ve sekme
 	H0170 Code = 170  // dilimin uçları ':' ile değil '..' ile ayrılır: x[a..b]
 	H0171 Code = 171  // '{keyword}' programın en dışında yazılmaz; yalnızca fonksiyonun içinde kullanılır. Programı bitirmek için '{exit}(0)' yazın (başarı için 0; kendi hata kodlarınız 4'ten başlar)
-	H0200 Code = 200  // '{op}' karşılaştırma zincirinde yazılmaz: içinde '==' ya da '!=' olan zincir ('a < b == c', 'a == b == c') iki ayrı anlama gelebilir. Karşılaştırmayı parantezle ayırın ('(a < b) == c') ya da '{@and}' ile yazın ('a == b {@and} b == c')
+	H0200 Code = 200  // '{op}' karşılaştırma zincirinde yazılmaz: içinde '==' ya da '!=' olan zincir (`a < b == c`, `a == b == c`) iki ayrı anlama gelebilir. Karşılaştırmayı parantezle ayırın (`(a < b) == c`) ya da `{#and}` ile yazın (`a == b {#and} b == c`)
 	H0201 Code = 201  // '??' işlecinin sağında parantezsiz '{op}' yazılmaz: 'a ?? 0 {op} 1', 'a ?? (0 {op} 1)' diye okunur. Varsayılanla açılan değerle işlem için '(a ?? 0) {op} 1', sağ yanın işlemi için 'a ?? (0 {op} 1)' yazın
-	H0202 Code = 202  // '&&' TR'de yok; mantıksal ve '{@and}' ile yazılır: a {@and} b
-	H0203 Code = 203  // '||' TR'de yok; mantıksal veya '{@or}' ile yazılır: a {@or} b
-	H0204 Code = 204  // tekli '!' TR'de yok; mantıksal tersi '{@not}' ile yazılır: {@not} a ('!=' eşit değil işlecidir)
+	H0202 Code = 202  // '&&' TR'de yok; mantıksal ve `{#and}` ile yazılır: `a {#and} b`
+	H0203 Code = 203  // '||' TR'de yok; mantıksal veya `{#or}` ile yazılır: `a {#or} b`
+	H0204 Code = 204  // tekli '!' TR'de yok; mantıksal tersi `{#not}` ile yazılır: `{#not} a` ('!=' eşit değil işlecidir)
 	H0205 Code = 205  // '|>' TR'de yok; fonksiyon çağrıyla yazılır: x |> f(y) yerine f(x, y)
-	H0206 Code = 206  // '{@in}' yalnız döngüde ve liste üretecinde yazılır ({@for} x {@in} l); üyelik l.{@contains}(x) ile sorulur
+	H0206 Code = 206  // `{#in}` yalnız döngüde ve liste üretecinde yazılır (`{#for} x {#in} l`); üyelik `l.{#contains}(x)` ile sorulur
 	H0240 Code = 240  // '{spelling}' bir sözlük anahtarı olamaz: anahtar bir ifadedir ve '{spelling}' burada bir değer değil; metin anahtarı için "{name}" yazın
 	H0241 Code = 241  // '{name}' tanımlı değil: sözlük anahtarı bir ifadedir, burada bir değişken; metin anahtarı için "{name}" yazın
-	H0242 Code = 242  // '{name}' TR'de yok: aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
-	H0243 Code = 243  // . Aralık başlangıç..bitiş yazılır (0..n, 0'dan n-1'e sayar); sayılarının listesi için {@List}(0..n) yazın
+	H0242 Code = 242  // '{name}' TR'de yok: aralık başlangıç..bitiş yazılır (`0..n`, 0'dan n-1'e sayar); sayılarının listesi için `{#List}(0..n)` yazın
+	H0243 Code = 243  // . Aralık başlangıç..bitiş yazılır (`0..n`, 0'dan n-1'e sayar); sayılarının listesi için `{#List}(0..n)` yazın
 	H0250 Code = 250  // TR'de ':=' yok; değişken {var} ile tanımlanır: '{name} :=' yerine '{var} {name} =' yazın
 	H0251 Code = 251  // TR'de ':=' yok; {decl} tanımının değeri '=' ile yazılır: {decl} x = 5
 	H0252 Code = 252  // '{name}' ilk değeri yazılmadan tanımlandı; {decl} tanımında ilk değer her zaman yazılır, tip ondan çıkar: adın (ya da tipin) ardına '= ' ve başlangıç değerini ekleyin (değer henüz yoksa '= {none}')
@@ -388,59 +388,59 @@ const (
 	H2532 Code = 2532 // {fn}({code}) bir testin içinden çağrıldı: test başarısız sayıldı, program bitirilmez. Testte bir koşulu denetlemek için '{assert}(koşul)' yazın
 	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'tr {show}' ile yazılır)
-	H2600 Code = 2600 // koşul bir mantık değeri (Bool) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için 'x.{@length} == 0', yokluk için 'x != {@none}', sayı için 'x != 0'
-	H2601 Code = 2601 // '{@and}', '{@or}' ve '{@not}' yalnız mantık değeri (Bool) alır; {type} verildi. Açık bir sınama yazın: 'x.{@length} > 0', 'x != {@none}', 'x != 0'
+	H2600 Code = 2600 // koşul bir mantık değeri (Bool) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
+	H2601 Code = 2601 // `{#and}`, `{#or}` ve `{#not}` yalnız mantık değeri (Bool) alır; {type} verildi. Açık bir sınama yazın: `x.{#length} > 0`, `x != {#none}`, `x != 0`
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
 	H2603 Code = 2603 // iki tam sayının üssünde üs eksi olamaz ({a} ** {b}); ondalık sonuç için {base} ** {b} yazın
 	H2604 Code = 2604 // sıfırın eksi üssü tanımsızdır ({a} ** {b}); üssü almadan önce tabanın sıfır olmadığını sınayın
 	H2605 Code = 2605 // eksi sayının tam olmayan üssü gerçek sayı değildir ({a} ** {b}); tabanın mutlak değeriyle hesaplayıp işareti ayrıca verin
 	H2606 Code = 2606 // kaydırma miktarı 0 ile 63 arasında olmalı ('{op}' için {n} verildi)
-	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı (Int) alır; {left} ve {right} verildi. Mantık değerleri '{@and}' ve '{@or}' ile birleştirilir
-	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi '{@not}' ile yazılır
+	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı (Int) alır; {left} ve {right} verildi. Mantık değerleri `{#and}` ve `{#or}` ile birleştirilir
+	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi `{#not}` ile yazılır
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
 	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
-	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: l.{@filter}((x) => x != 0)
-	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: {@assert}(x == beklenen) ya da {@assert_equal}(beklenen, x)
+	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: `l.{#filter}((x) => x != 0)`
+	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
-	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için l + [x] ya da l.{@append}(x) yazın
+	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için `l + [x]` ya da `l.{#append}(x)` yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar
-	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için {@Int}({@Float}(x)) yazın
-	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); {@Float}(...) ile okuyun
+	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
+	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); `{#Float}(...)` ile okuyun
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
 	H2643 Code = 2643 // {@Bool}(): {value|q} bir mantık değeri değil; yalnız "true" ve "false" okunur
-	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (x != 0, l.{@length} > 0)
+	H2644 Code = 2644 // {@Bool}() yalnız "true" ya da "false" metnini okur, {given} verildi; bunun yerine karşılaştırmayla sorun (`x != 0`, `l.{#length} > 0`)
 	H2645 Code = 2645 // {type} tipi çağrılamaz; değer kuran ya da çeviren tipler {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type}, {@JSON}, {@Bytes} ve kitaplığın tipleridir
-	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı {@Int}(x) ya da {@String}(x) ile çevirin
-	H2647 Code = 2647 // {key} anahtarı sözlükte yok; olmayabilecek bir anahtar için .{@get}({key}) ?? varsayılan yazın
-	H2648 Code = 2648 // sözlük anahtarı noktayla değil köşeli parantezle okunur ve yazılır: ["{name}"] yazın (nokta yalnız sözlüğün üyelerini verir, .{@keys}() gibi)
-	H2649 Code = 2649 // JSON nesnesinde {key} anahtarı yok; olmayabilecek bir anahtar için .{@get}({key}) yazıp yokla karşılaştırın
+	H2646 Code = 2646 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur (ondalık anahtar yuvarlama yüzünden bulunamayabilirdi); anahtarı `{#Int}(x)` ya da `{#String}(x)` ile çevirin
+	H2647 Code = 2647 // {key} anahtarı sözlükte yok; olmayabilecek bir anahtar için `.{#get}({key}) ?? varsayılan` yazın
+	H2648 Code = 2648 // sözlük anahtarı noktayla değil köşeli parantezle okunur ve yazılır: `["{name}"]` yazın (nokta yalnız sözlüğün üyelerini verir, `.{#keys}()` gibi)
+	H2649 Code = 2649 // JSON nesnesinde {key} anahtarı yok; olmayabilecek bir anahtar için `.{#get}({key})` yazıp yokla karşılaştırın
 	H2650 Code = 2650 // bu JSON değerinin türü {kind}, {given} ile indekslenmez: nesne {@String} anahtarla, dizi {@Int} ile indekslenir
-	H2651 Code = 2651 // .{member} JSON nesnesinde ya da dizisinde çalışır (.{@keys}() yalnız nesnede); bu JSON değerinin türü {kind}
-	H2652 Code = 2652 // {type}() bu JSON değerini açamaz: türü {kind}; türünü {@Type}(j) ile sorup uygun tiple açın
+	H2651 Code = 2651 // .{member} JSON nesnesinde ya da dizisinde çalışır (`.{#keys}()` yalnız nesnede); bu JSON değerinin türü {kind}
+	H2652 Code = 2652 // {type}() bu JSON değerini açamaz: türü {kind}; türünü `{#Type}(j)` ile sorup uygun tiple açın
 	H2653 Code = 2653 // {value} JSON'a giremez: JSON'da sonsuz ya da tanımsız sayı yoktur
 	H2654 Code = 2654 // {given} {@JSON} içine giremez: JSON yokluk, mantık değeri, sayı, metin, liste ve {@String} anahtarlı sözlük tutar
 	H2655 Code = 2655 // {@Bytes}() 0 ile 255 arası {@Int} sayılardan kurar; {index} indeksindeki öğe {value}
 	H2656 Code = 2656 // {@String}(): baytlar geçerli UTF-8 değil (ilk geçersiz bayt {offset} indeksinde); UTF-8 olmayan veri {@Bytes} olarak kalır
-	H2657 Code = 2657 // {@Range} çağrılmaz: aralık başlangıç..bitiş yazılır (0..n); sayılarının listesi için {@List}(0..n) yazın
-	H2658 Code = 2658 // ; JSON nesnesinin anahtarı köşeli parantezle okunur: ["{name}"], olmayabilecekse .{@get}("{name}")
-	H2659 Code = 2659 // ; bayt dizisinin üyeleri .{@length} ve .{@get}(i)'dir, metin gibi indekslenir ve dilimlenir (b[i], b[a..c])
+	H2657 Code = 2657 // {@Range} çağrılmaz: aralık başlangıç..bitiş yazılır (`0..n`); sayılarının listesi için `{#List}(0..n)` yazın
+	H2658 Code = 2658 // ; JSON nesnesinin anahtarı köşeli parantezle okunur: `["{name}"]`, olmayabilecekse `.{#get}("{name}")`
+	H2659 Code = 2659 // ; bayt dizisinin üyeleri `.{#length}` ve `.{#get}(i)`'dir, metin gibi indekslenir ve dilimlenir (`b[i]`, `b[a..c]`)
 	H2660 Code = 2660 // {@JSON} değeri {op} ile yalnız JSON değeriyle ya da yoklukla karşılaştırılır; bunun türü {kind}: önce açın, {kind}(j) {op} x
-	H2661 Code = 2661 // {kind} türündeki {@JSON} değeri {op} ile yalnız JSON değeriyle karşılaştırılır: j {op} {@JSON}(x)
+	H2661 Code = 2661 // {kind} türündeki {@JSON} değeri {op} ile yalnız JSON değeriyle karşılaştırılır: `j {op} {#JSON}(x)`
 	H2662 Code = 2662 // {op} bir {@JSON} değerinde çalışmaz; bunun türü {kind}: önce açın, {kind}(j) {op} x
 	H2663 Code = 2663 // {op} {kind} türündeki bir {@JSON} değerinde çalışmaz; bir değeri ["k"] ya da [i] ile okuyup tipiyle açın
-	H2664 Code = 2664 // {kind} türündeki bir {@JSON} değerinde dönülmez: dizi öğelerini, nesne anahtarlarını verir; metnin karakterleri için {@String}(j) üzerinde dönün
+	H2664 Code = 2664 // {kind} türündeki bir {@JSON} değerinde dönülmez: dizi öğelerini, nesne anahtarlarını verir; metnin karakterleri için `{#String}(j)` üzerinde dönün
 	H2665 Code = 2665 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi; JSON değerini önce tipiyle açın: {open}(j)
-	H2666 Code = 2666 // JSON değerinin .{@length}'u nesnenin anahtarlarını ya da dizinin öğelerini sayar; bu bir metin: önce açın, {@String}(j).{@length}
-	H2667 Code = 2667 // {fn}: nan bir sayı değildir, {@Int} değeri yoktur; önce {@is_finite}(x) ile sorun
-	H2668 Code = 2668 // {type}() mantık değerinden sayı kurmaz; {@if} b {{ 1 }} {@else} {{ 0 }} yazın
+	H2666 Code = 2666 // JSON değerinin .{@length}'u nesnenin anahtarlarını ya da dizinin öğelerini sayar; bu bir metin: önce açın, `{#String}(j).{#length}`
+	H2667 Code = 2667 // {fn}: nan bir sayı değildir, {@Int} değeri yoktur; önce `{#is_finite}(x)` ile sorun
+	H2668 Code = 2668 // {type}() mantık değerinden sayı kurmaz; `{#if} b {{ 1 }} {#else} {{ 0 }}` yazın
 	H2669 Code = 2669 // {type} bir sözlük anahtarı olamaz: anahtarlar {@Int}, {@String}, {@Bool} ya da {@Bytes} olur
-	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: {@String}(j) ya da {@Int}(j)
+	H2670 Code = 2670 // {@JSON} değeri sözlük anahtarı olamaz; önce açın: `{#String}(j)` ya da `{#Int}(j)`
 	H2700 Code = 2700 // liste {names} ada açılıyor ama {count} öğesi var: öğe sayısı ad sayısıyla aynı olmalı; yalnız baştaki öğeler gerekiyorsa onları indeksle alın: a, b = l[0], l[1]
 	H2701 Code = 2701 // {names} ada {count} değer verildi: her ada bir değer yazılır (a, b = 1, 2); gerekmeyen değerin yerine _ yazılır
 	H2702 Code = 2702 // {value}, {@match|gen} hiçbir koluyla eşleşmedi: eşleşme her durumu kapsar; öbür durumlar için son kol olarak '_ => ...' yazın (_ her şeyle eşleşir)
 	H2703 Code = 2703 // dolaşılan liste dolaşma sürerken {before} öğeden {after} öğeye değişti: dolaşılan listeye öğe eklenmez ve ondan öğe çıkarılmaz (var olan öğeye atama serbesttir); eklenecekleri ayrı bir listede toplayıp dolaşmadan sonra ekleyin: l += yeniler
 	H2704 Code = 2704 // dolaşılan sözlük dolaşma sürerken {before} anahtardan {after} anahtara değişti: dolaşılan sözlüğe anahtar eklenmez ve ondan anahtar çıkarılmaz (var olan anahtara atama serbesttir); değişiklikleri ayrı bir sözlükte toplayıp dolaşmadan sonra yazın
-	H2705 Code = 2705 // {kind} türündeki bir {@JSON} değeri {type} tipindeki bir değerle karşılaştırıldı (bir listenin, sözlüğün ya da eşleme deseninin içinde): JSON değeri yalnız JSON değerine eşit olabilir, sonuç hep yanlış olurdu; JSON'u önce tipiyle açın ({kind}(j)) ya da öbür yanı JSON yapın ({@JSON}(x))
+	H2705 Code = 2705 // {kind} türündeki bir {@JSON} değeri {type} tipindeki bir değerle karşılaştırıldı (bir listenin, sözlüğün ya da eşleme deseninin içinde): JSON değeri yalnız JSON değerine eşit olabilir, sonuç hep yanlış olurdu; JSON'u önce tipiyle açın (`{kind}(j)`) ya da öbür yanı JSON yapın (`{#JSON}(x)`)
 	H2706 Code = 2706 // fonksiyonlar karşılaştırılamaz (bir listenin, sözlüğün ya da eşleme deseninin içinde de): görünüşü aynı iki fonksiyon da eşit sayılmaz; fonksiyonları karşılaştırılan verinin dışında tutun ya da sonuçlarını karşılaştırın: f(x) == g(x)
 	H2709 Code = 2709 // demetin {count} öğesi var ama {names} ada açılıyor: {kind, select, extra {fazla adı silin} other {her öğeye bir ad yazın, gerekmeyenin yerine _ yazın}} ({example})
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)

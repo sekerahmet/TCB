@@ -42,6 +42,7 @@ Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogV
 | `{ad\|decimal}` | sayının ondalık ayırıcısı iletinin dilinde (Go noktayla yazar; tr `1,5`, en `1.5`). İleti dışı görüntüde `messages.Decimal` |
 | `{ad\|list}` | liste değeri (`messages.Listed`), dilin "ya da" kalıbıyla (`OrList`): tr "a, b ya da c", en "a, b, or c" |
 | `{@ad}`, `{@ad\|dat}` | **ad yuvası**: tanımın `slots` tablosundaki kitaplık adı (kimlik, `TR_arg_kind`), iletinin dilindeki adıyla yazılır; hâl eki yuvaya da gelir. Değer değildir, `param` sayısına girmez; TR kodunda kitaplığın iletisi adı geçirmez, katalog anar (parametre ya da alan adı TR'de değer olarak geçirilemez, ad değişince ileti eskimez). `definitions.json`: `"H6900": { "param": [...], "slots": {"num_heads": "TR_arg_num_heads"} }`. Her dil tanımdaki bütün yuvaları kullanır |
+| `{#ad}` | **kod yuvası**: tanımın `slots` tablosundaki kitaplık adını programdaki kimlik yazımıyla (`TR_length`, `TR_print`) yazar; kimlik çekimlenmediği için hâl eki almaz. `{` ile başladığından ICU çoğul dalındaki yalın `#` sayısıyla karışmaz |
 | `{ad\|acc}`, `{ad\|dat}`, `{ad\|loc}`, `{ad\|abl}`, `{ad\|gen}` | hâl eki: dilin çekimcisi ekler (`Satır {line\|dat}` → "Satır 12'ye"); çekimcisi olmayan dilde ad olduğu gibi kalır |
 | `{n, plural, one {..} other {..}}` | sayıya göre biçim, dilin CLDR çoğul kuralıyla; dalda (içindeki `select` dallarında da) `#` sayıdır, `=0` gibi tam eşleşme önce gelir (N sayının tek yazımı: `=0.0` reddedilir); `other` zorunlu |
 | `{x, select, a {..} other {..}}` | metin değerine göre dal; boş değer `empty` dalını seçer |
@@ -51,6 +52,9 @@ Her dilin metni kodun **bütün** parametrelerini kullanır (çeviride düşen d
 bir parametre ya dalların dışında ya `plural`/`select`'in her dalında geçer (yalnız bir dalda
 geçen değer öbür dal seçilince kaybolurdu). Sözcük sırası dilden dile değişebilir, parametreler
 adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSelect`, `TestCaseSuffix`, `TestTemplateErrors`, `TestCatalogErrors`, `TestParamUsedInEveryBranch`, `TestNumberSignInNestedSelect`, `TestNameSlot`, `TestNameSlotErrors`, `TestListFormat`, `TestPluralNumberTypes`.
+
+Kod örneği ters tırnak içinde yazılır; ters tırnak içinde ad yuvası `{#ad}`'dır, `{@ad}` yazılmaz; ters tırnak dışında `{#ad}` yazılmaz.
+Denetim: `TestCodeSlot`, `TestCodeSlotsInBackticks`, `TestCodeSlotsResolveToIdentities` (internal/lang/codes).
 
 **Dilbilgisi şablondadır, Go'da değil.**
 - Go kodu sayıya bakıp sözcük seçmez (`argümanı`/`argümanları`): şablonda `plural`. Denetim: `TestPlural`.

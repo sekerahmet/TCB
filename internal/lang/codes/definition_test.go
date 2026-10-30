@@ -3,6 +3,7 @@ package codes
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -205,6 +206,81 @@ func TestMessageSlotsAreNames(t *testing.T) {
 			if _, ok := Source().Entry(k); !ok {
 				t.Errorf("%s {@%s}: %s kaynak dilde adı olan bir kod değil", code, slot, identity)
 			}
+		}
+	}
+}
+
+// Kural: her {#ad} kod yuvası her iki dilde de bir kimlik yazımı üretir; üretilen yazım
+// codes.FromSpelling ile aynı koda geri çözülür ve fonksiyonda '(', üyede '.' doğru yerdedir.
+func TestCodeSlotsResolveToIdentities(t *testing.T) {
+	slotRe := regexp.MustCompile(`\{#([A-Za-z0-9_]+)\}`)
+	allSlots := messages.Slots()
+	for _, lang := range []string{"tr", "en"} {
+		data, err := os.ReadFile("../messages/" + lang + ".json")
+		if err != nil {
+			t.Fatalf("%s.json: %v", lang, err)
+		}
+		var raw map[string]string
+		if err := json.Unmarshal(data, &raw); err != nil {
+			t.Fatalf("%s.json: %v", lang, err)
+		}
+		count := 0
+		for key, tmpl := range raw {
+			code, err := messages.Parse(key)
+			if err != nil {
+				t.Fatalf("%s: %v", key, err)
+			}
+			matches := slotRe.FindAllStringSubmatchIndex(tmpl, -1)
+			if len(matches) == 0 {
+				continue
+			}
+			nParams, _ := messages.ParamCount(code)
+			args := make([]any, nParams)
+			for i := range args {
+				args[i] = "x"
+			}
+			rendered := messages.TextIn(lang, code, args...)
+			for _, m := range matches {
+				count++
+				slot := tmpl[m[2]:m[3]]
+				identity := allSlots[code][slot]
+				want, err := Parse(identity)
+				if err != nil {
+					t.Errorf("%s.json %s {#%s}: geçersiz kimlik %q: %v", lang, key, slot, identity, err)
+					continue
+				}
+				place, ok := PlaceOf(want)
+				if !ok {
+					t.Errorf("%s.json %s {#%s}: %s program metninde yazılan bir kod değil", lang, key, slot, want)
+					continue
+				}
+				spelling := messages.IdentitySpelling(identity)
+				if got, ok := FromSpelling(place, spelling); !ok || got != want {
+					t.Errorf("%s.json %s {#%s}: FromSpelling(%v, %q) = (%v, %v), want %v", lang, key, slot, place, spelling, got, ok, want)
+				}
+				if !strings.Contains(rendered, spelling) {
+					t.Errorf("%s.json %s {#%s}: üretilen metinde %q yok: %s", lang, key, slot, spelling, rendered)
+				}
+				switch want.Class() {
+				case ClassFunction:
+					if m[1] >= len(tmpl) || tmpl[m[1]] != '(' {
+						t.Errorf("%s.json %s {#%s} (%s): fonksiyon kod yuvasından hemen sonra '(' gelmeli: %s", lang, key, slot, want, tmpl)
+					}
+					if !strings.Contains(rendered, spelling+"(") {
+						t.Errorf("%s.json %s {#%s}: üretilen metinde %q yok: %s", lang, key, slot, spelling+"(", rendered)
+					}
+				case ClassMember:
+					if m[0] == 0 || tmpl[m[0]-1] != '.' {
+						t.Errorf("%s.json %s {#%s} (%s): üye kod yuvasından hemen önce '.' gelmeli: %s", lang, key, slot, want, tmpl)
+					}
+					if !strings.Contains(rendered, "."+spelling) {
+						t.Errorf("%s.json %s {#%s}: üretilen metinde %q yok: %s", lang, key, slot, "."+spelling, rendered)
+					}
+				}
+			}
+		}
+		if count == 0 {
+			t.Fatalf("%s.json içinde hiç {#ad} bulunamadı", lang)
 		}
 	}
 }

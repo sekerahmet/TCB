@@ -201,7 +201,7 @@ func ParseDefinitions(data []byte) (*Definitions, error) {
 			seen[p] = true
 		}
 		for slot, identity := range raw[k].Slots {
-			if slot == "" || strings.ContainsAny(slot, "{}|@ ") || identity == "" {
+			if slot == "" || strings.ContainsAny(slot, "{}|@# ") || identity == "" {
 				return nil, fmt.Errorf("%s: name slot %q or its identity %q is empty or invalid", k, slot, identity)
 			}
 		}
