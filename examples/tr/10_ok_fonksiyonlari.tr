@@ -6,7 +6,7 @@
 # Çalıştırma (proje kökünden): tr examples/tr/10_ok_fonksiyonlari.tr
 
 # Ok fonksiyonu adsız, tek ifadelik bir fonksiyondur; bir değişkende saklanabilir.
-TR_var iki_katı = (x) => x * 2
+TR_var iki_katı = (x: TR_Int) => x * 2
 TR_print(iki_katı(21))
 
 # Fonksiyon bir değerdir: başka fonksiyona parametre olarak verilir.

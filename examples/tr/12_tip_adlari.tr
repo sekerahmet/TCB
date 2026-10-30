@@ -1,7 +1,7 @@
 # TR 4
 # 12 — Tip adları: değerlerin tipini sormak ve bildirmek.
 # Ne öğretir: tip() ve tip adlarının (Mantık, Yok, Liste, Sözlük, Aralık, Fonksiyon,
-# YerleşikFonksiyon, Herhangi, Tip) ifadede değer olması, ad: Tip ile tip bildirmek.
+# YerleşikFonksiyon, Tip) ifadede değer olması, ad: Tip ile tip bildirmek.
 # Önceki örnekten: tipler (03), listeler (09), ok fonksiyonları (10), sözlükler (11).
 # Çalıştırma (proje kökünden): tr examples/tr/12_tip_adlari.tr
 
@@ -17,7 +17,7 @@ TR_print(TR_Type(1..5) == TR_Range, TR_Type(TR_List(0..5)) == TR_List, TR_List(0
 
 # Fonksiyonlar birinci sınıf değerdir: ok fonksiyonu ve fonksiyon Fonksiyon,
 # dilin kendi fonksiyonları YerleşikFonksiyon tipindedir.
-TR_var kare = (x) => x * x
+TR_var kare = (x: TR_Int) => x * x
 TR_print(TR_Type(kare) == TR_Function, TR_Type(TR_print) == TR_BuiltinFunction, kare(7))
 
 # Tip bildirimi: ad: Tip. Tip denetleyicisi yanlış atamayı program çalışmadan yakalar.
@@ -26,11 +26,10 @@ TR_var boş: TR_NoneType = TR_none
 TR_var sayılar: TR_List[TR_Int] = [1, 2, 3]
 TR_print(hazır, boş, sayılar)
 
-# Herhangi: her değer verilebilir, tipi bilinmeyen değerler için kullanılır.
-TR_func kimlik(x: TR_Any) {
-    TR_return x
-}
-TR_print(kimlik(5), kimlik("beş"), kimlik([1, 2]))
+# Her tipten değer alan yalnız dilin yerleşikleridir (yazdır, Metin, tip); kendi fonksiyonun
+# her parametrenin tipini yazar. Herhangi genel bir tiptir, tip yerine yazılmaz (3.11): hiçbir
+# değerin tipi o değildir.
+TR_print(TR_String(5), TR_String("beş"), TR_String([1, 2]), TR_Type(5) == TR_Any)
 
 # tip() sonucunun kendi tipi de Tip'tir ve bir değişkende saklanabilir.
 TR_var t: TR_Type = TR_Type(42)

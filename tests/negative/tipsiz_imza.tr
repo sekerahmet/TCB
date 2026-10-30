@@ -1,0 +1,19 @@
+# TR 4
+# TEST 6.1 her parametre tipini yazar, değer döndüren fonksiyon dönüş tipini '->' ile yazar: tipsiz parametre ve '->'sız değerli dönüş denetim hatasıdır, ileti tipi varsayılandan, dönüşlerden ya da çağrılardan önerir
+# TEST 7.1 her alan tipini yazar: tipsiz alan denetim hatasıdır, ileti tipi varsayılandan önerir
+TR_struct Nokta {
+    ad # ERROR H1111
+    x = 0.0 # ERROR H1109
+}
+
+TR_func kat(a: TR_Int, b = 2) { # ERROR H1109 H1112
+    TR_return a * 2
+}
+
+TR_func yaz(değer) { # ERROR H1110
+    TR_print(değer)
+}
+
+TR_var iki_katı = (x) => x * 2 # ERROR H1111
+yaz("bir")
+yaz("iki")

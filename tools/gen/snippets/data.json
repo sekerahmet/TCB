@@ -126,7 +126,7 @@
           "code": "TR_kw_struct"
         }
       ],
-      "source": "# TR 4\nTR_struct ph_Name {\n\tph_field: TR_String\n\n\tTR_func ph_method() {\n\t\tTR_return TR_self.ph_field\n\t}\n}\n",
+      "source": "# TR 4\nTR_struct ph_Name {\n\tph_field: TR_String\n\n\tTR_func ph_method() -> TR_String {\n\t\tTR_return TR_self.ph_field\n\t}\n}\n",
       "holes": {
         "ph_Name": "${1:%Name%}",
         "ph_field": "${2:%field%}",

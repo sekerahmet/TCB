@@ -150,7 +150,7 @@ TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 ü
 }
 
 TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırılır" {
-    TR_var f = (x) => x
+    TR_var f = (x: TR_Int) => x
     TR_var g = f
     TR_assert_equal("H2613", TR_error_code { TR_var z = f == g })
     TR_assert_equal("H2613", TR_error_code { TR_var z = ((x) => x) != ((x) => x * 2) })
@@ -171,7 +171,7 @@ TR_test "4.5 fonksiyonlar karşılaştırılamaz; sonuçları karşılaştırıl
 }
 
 TR_test "4.5 fonksiyon içeren kap da karşılaştırılamaz: kabın içinde, .TR_contains'te ve eşleme deseninde" {
-    TR_var f = (x) => x
+    TR_var f = (x: TR_Int) => x
     TR_assert_equal("H2706", TR_error_code { TR_var z = [f] == [f] })
     TR_assert_equal("H2706", TR_error_code { TR_var z = {"f": f} == {"f": f} })
     TR_assert_equal("H2706", TR_error_code { TR_var z = [f].TR_contains(f) })

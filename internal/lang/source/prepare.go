@@ -38,6 +38,9 @@ type Options struct {
 	// program built in memory): it is read as coded, with identities (17.7), line 1 is its first
 	// line. A file needs the header (2.1).
 	Body bool
+	// Library is the embedded library's file name when the text is that file ("layers.tr";
+	// interp.LibraryFileName): its places that wait for 4c give no diagnostic (6.1, 7.1).
+	Library string
 }
 
 // Result is the outcome of preparation. On error, Stage is the error's stage and Program is
@@ -99,7 +102,10 @@ func Prepare(text string, s Options) *Result {
 		chk.SetFile(checker.ModuleFile, r.Text)
 	case checker.HasTests(r.Program):
 		chk.SetFile(checker.TestFile, r.Text)
+	default:
+		chk.SetFile(checker.ProgramFile, r.Text)
 	}
+	chk.SetLibraryFile(s.Library)
 	chk.CheckProgram(r.Program)
 	r.Warnings = limitErrors(byPosition(chk.Warnings()))
 	if errs := chk.Errs(); len(errs) > 0 {

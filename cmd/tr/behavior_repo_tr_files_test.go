@@ -93,7 +93,7 @@ func TestRepoTRFilesPassCheck(t *testing.T) {
 			}
 			r = interp.CheckModule(code, names, g.dynamic)
 		} else {
-			r = source.Prepare(code, source.Options{TypeCheck: true})
+			r = source.Prepare(code, source.Options{TypeCheck: true, Library: interp.LibraryFileName(filePath, code)})
 		}
 		for _, h := range r.Errors {
 			t.Errorf("%s: %s", relative, h)

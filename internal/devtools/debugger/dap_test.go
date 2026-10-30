@@ -179,11 +179,11 @@ func (c *dapClient) launch(path string, stopOnEntry bool, breakpoints ...map[str
 
 const dapProgram = `TR_var toplam = 0
 TR_var liste = [{"ad": "Ali", "maas": 60}, {"ad": "Ayşe", "maas": 90}]
-TR_func ekle_maas(k) -> TR_Int {
-    TR_return k["maas"] + 10
+TR_func ekle_maas(maas: TR_Int) -> TR_Int {
+    TR_return maas + 10
 }
 TR_for i TR_in 0..2 {
-    toplam += ekle_maas(liste[i])
+    toplam += ekle_maas(liste[i]["maas"])
 }
 TR_print("toplam: \(toplam)")
 `

@@ -166,19 +166,25 @@ TR_test "5.6 hiçbir kolla eşleşmeyen eşleme çalışma hatasıdır" {
 TR_test "5.6 eşle: parantezli desen değeriyle karşılaştırılır (ok fonksiyonu değildir)" {
     TR_var sınır = 10
     TR_var kırmızı = "#f00"
-    TR_func tür(x) -> TR_String {
+    TR_func tür(x: TR_Int) -> TR_String {
         TR_return TR_match x {
             (sınır) => "sınırda"
             (sınır * 2) => "iki katı"
+            _ => "başka"
+        }
+    }
+    TR_func renk(x: TR_String) -> TR_String {
+        TR_return TR_match x {
             (kırmızı), "#ff0000" => "kırmızı"
             _ => "başka"
         }
     }
     TR_assert_equal("sınırda", tür(10))
     TR_assert_equal("iki katı", tür(20))
-    TR_assert_equal("kırmızı", tür("#f00"))
-    TR_assert_equal("kırmızı", tür("#ff0000"))
+    TR_assert_equal("kırmızı", renk("#f00"))
+    TR_assert_equal("kırmızı", renk("#ff0000"))
     TR_assert_equal("başka", tür(3))
+    TR_assert_equal("başka", renk("#0f0"))
     # Kolun sonucu bir ok fonksiyonu olabilir
     TR_var f = TR_match 1 { 1 => (y) => y + 1 }
     TR_assert_equal(5, f(4))

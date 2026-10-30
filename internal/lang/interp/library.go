@@ -120,3 +120,17 @@ func FileDirs(files ...string) []string {
 	}
 	return dirs
 }
+
+// LibraryFileName is the embedded library's file name ("layers.tr") when text is that file read
+// from path (its test files too); otherwise "". A file is the library's only when its text is the
+// embedded text: a user's file of the same name is not (6.1, 7.1: the library's exceptions).
+func LibraryFileName(filePath, text string) string {
+	if libraryFiles == nil {
+		return ""
+	}
+	name := pathpkg.Base(strings.ReplaceAll(filePath, `\`, "/"))
+	if payload, err := fs.ReadFile(libraryFiles, name); err == nil && string(payload) == text {
+		return name
+	}
+	return ""
+}

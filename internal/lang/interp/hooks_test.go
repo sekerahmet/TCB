@@ -74,7 +74,7 @@ func TestValueHooks(t *testing.T) {
 // Kaplar eleman eleman karşılaştırılır; sözlüklerde sıra önemsizdir.
 func TestContainerEquality(t *testing.T) {
 	_, val, err := runTROut(t, `
-		TR_struct N { x }
+		TR_struct N { x: TR_Float }
 		TR_var result = [[1, 2] == [1.0, 2], [0.1 + 0.2] == [0.3], {"a": 1, "b": 2} == {"b": 2, "a": 1},
 			{1: "x"} == {"1": "x"}, N(1) == N(1.0), N(1) == N(2), ["1"] == [1]]
 	`)
@@ -388,7 +388,7 @@ func TestInPlaceOperatorHook(t *testing.T) {
 	vmx.GlobalEnv.Define("e0", elem, false)
 	prog := mustParseProgram(t, `
 TR_struct Katman {
-    w
+    w: Yerinde
     TR_func adım(d: TR_Int) { TR_self.w -= d }
 }
 TR_var k = Katman(w0)
@@ -402,7 +402,7 @@ TR_var sayı = 7
 sayı += 3
 TR_var g = w0
 g += 100
-TR_func yerel(x) { TR_var y = x; y -= 50 }
+TR_func yerel(x: Yerinde) { TR_var y = x; y -= 50 }
 yerel(w0)
 `)
 	if _, err := vmx.Run(prog); err != nil {

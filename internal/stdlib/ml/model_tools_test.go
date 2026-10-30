@@ -257,10 +257,10 @@ func TestParameters(t *testing.T) {
 	out := mustRun(t, `
 TR_func p(x: TR_Float) -> TR_Tensor { TR_return TR_Tensor([x], TR_requires_grad: TR_true) }
 TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor, ölçek: TR_Float }
-TR_struct Blok { TR_attention: Dikkat, mlp }
+TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
 TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor, ad: TR_String, ek: TR_Tensor? = TR_none }
 TR_var ortak = p(9)
-TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak]), Blok(Dikkat(p(5), ortak, 1), {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
+TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak], {}), Blok(Dikkat(p(5), ortak, 1), [], {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
 m.ek = p(7)
 TR_var liste = TR_parameters(m)
 TR_print(liste.TR_length, [x.TR_tolist[0] TR_for x TR_in liste])
@@ -282,7 +282,7 @@ TR_print(TR_parameters(l).TR_length)
 	expected := []string{
 		"8 [1.0, 2.0, 3.0, 4.0, 9.0, 5.0, 6.0, 7.0]",
 		// Ağırlık adı kimlik yoludur: kitaplığın üye adlarıyla aynı alanlar (gömme, bloklar, dikkat) kodludur.
-		`["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.0.mlp.1", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.mlp.W1", "ek"]`,
+		`["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.0.mlp.1", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.yan.W1", "ek"]`,
 		"true [5.0]",
 		`0 1 ["0"]`,
 		"1",

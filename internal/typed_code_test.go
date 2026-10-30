@@ -26,10 +26,14 @@ import (
 // Sayılmayanlar: fonksiyon ifadesinin parametresi ((x) => ..., 6.6: tipi beklenen tipten çıkar) ve
 // TR_self (parametre değildir, 7.3).
 //
-// Bu test geçicidir: 4a1 tipsiz parametreyi ve alanı denetleyicinin hatası yapınca kalkar (o gün
-// kural her programda denetlenir). O güne kadar kalan yerler izin listesindedir
-// (testdata/typed_code_known.txt): her satırın nedeni yazılıdır, liste yalnız küçülür (listede olup
-// artık tipli olan satır da testi düşürür; -update-typed siler).
+// Tipsiz parametre, alan ve '->'sız değer döndüren fonksiyon denetim hatasıdır (4a1, H1109–H1113);
+// denetleyici bunu her programda denetler. Bu test depoda iki şeyi korur: öğe tipi ve genel tip
+// kuralını (denetleyici bunları henüz denetlemiyor) ve gömülü kitaplığın 4c'yi bekleyen istisna
+// listesini (testdata/typed_code_known.txt; denetleyicide adla, internal/lang/checker/
+// library_exceptions.go). Listede yalnız lib/ satırları durur, her satırın nedeni yazılıdır, liste
+// yalnız küçülür (listede olup artık tipli olan satır da testi düşürür; -update-typed siler).
+// Sayılmayanlar: ayrışmayan kaynak (denetleyici ona inmez; bilerek hatalı fikstür) ve satırı kapının
+// hatasını bekleyen yer ("# ERROR H1111" gibi): o program tipsizliği sınayan olumsuz testtir.
 
 var updateTyped = flag.Bool("update-typed", false, "testdata/typed_code_known.txt'ten artık tipli olan satırları sil")
 
@@ -50,6 +54,9 @@ var typedDocs = []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/REA
 	"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/name_request.md"}
 
 var typedBlockRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
+
+// gateErrorRe satırın kapının bir hatasını (H1109–H1119) beklediğini söyleyen işarettir.
+var gateErrorRe = regexp.MustCompile(`#\s*ERROR\s+H11(09|1[0-9])\b`)
 
 // trSource taranan bir TR metnidir: yolu ve metnin dosyadaki ilk satırı. oneLine metnin bütün
 // satırlarının dosyanın tek satırında olduğunu söyler (Go'nun tırnaklı metin sabiti).
@@ -148,15 +155,22 @@ func typedDocBlocks(t *testing.T) []trSource {
 	return out
 }
 
-// untypedPlaces kaynağın tipsiz yerlerini "yol:satır tür ad" diye verir. Ayrışmayan kaynak
-// (bilerek hatalı fikstür) ayrıştırıcının kurabildiği kadarıyla sayılır.
+// untypedPlaces kaynağın tipsiz yerlerini "yol:satır tür ad" diye verir. Ayrışmayan kaynak ve satırı
+// kapının hatasını bekleyen yer sayılmaz.
 func untypedPlaces(s trSource) []string {
 	body := !strings.HasPrefix(strings.TrimPrefix(s.text, "\uFEFF"), source.Header)
 	r := source.Prepare(s.text, source.Options{Body: body})
+	if r.Stage == source.StageSyntax {
+		return nil
+	}
 	// Dosyanın satırları başlık dahil sayılır; başlıksız gövdenin 1. satırı metnin ilk satırıdır.
 	offset := s.firstLine - 1
+	lines := strings.Split(r.Text, "\n")
 	var out []string
 	add := func(line int, kind, name string) {
+		if line >= 1 && line <= len(lines) && gateErrorRe.MatchString(lines[line-1]) {
+			return
+		}
 		if s.oneLine {
 			line = 1
 		}

@@ -71,3 +71,32 @@ func TestLibraryFollowsNameStyle(t *testing.T) {
 		}
 	}
 }
+
+// Kural (6.1, 7.1): depodaki programlarda tipsiz parametre, alan ve dönüş yoktur (kapının hatası
+// çıkmaz); gömülü kitaplığın dosyaları kendi adlarıyla denetlenir, 4c'yi bekleyen yerleri istisnadır.
+// Olumsuz fikstürler (tests/negative) sayılmaz: hatayı onlar bekler.
+func TestRepoProgramsAreTyped(t *testing.T) {
+	gate := []messages.Code{messages.H1109, messages.H1110, messages.H1111, messages.H1112, messages.H1113}
+	files := testkit.GlobFiles(t, "lib/*.tr", "tests/*.tr", "examples/tr/*.tr", "examples/tr/helpers/*.tr", "tools/gpu/*.tr", "tools/bench/tr/*.tr")
+	if len(files) < 60 {
+		t.Fatalf("yalnız %d dosya bulundu; depo düzeni değişmiş olabilir", len(files))
+	}
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		library := ""
+		if filepath.Base(filepath.Dir(file)) == "lib" {
+			library = filepath.Base(file)
+		}
+		r := source.Prepare(string(data), source.Options{TypeCheck: true, Library: library})
+		for _, err := range append(r.Errors, r.Warnings...) {
+			for _, code := range gate {
+				if messages.Has(err, code) {
+					t.Errorf("%s: %v", file, err)
+				}
+			}
+		}
+	}
+}

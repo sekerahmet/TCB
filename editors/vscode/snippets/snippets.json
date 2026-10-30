@@ -105,7 +105,7 @@
         "TR_struct ${1:Name} {",
         "\t${2:field}: TR_String",
         "",
-        "\tTR_func ${3:method}() {",
+        "\tTR_func ${3:method}() -> TR_String {",
         "\t\tTR_return TR_self.${2:field}",
         "\t}",
         "}"
@@ -255,7 +255,7 @@
         "TR_struct ${1:İsim} {",
         "\t${2:alan}: TR_String",
         "",
-        "\tTR_func ${3:metod}() {",
+        "\tTR_func ${3:metod}() -> TR_String {",
         "\t\tTR_return TR_self.${2:alan}",
         "\t}",
         "}"

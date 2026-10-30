@@ -13,16 +13,16 @@ const inferSource = `TR_struct S {
     }
 }
 
-TR_func yap() {
+TR_func yap() { # ERROR H1112
     TR_return S()
 }
 
-TR_func yap2() {
+TR_func yap2() { # ERROR H1113
     TR_var s = yap()
     TR_return s
 }
 
-TR_func karışık(b: TR_Bool) {
+TR_func karışık(b: TR_Bool) { # ERROR H1113
     TR_if b {
         TR_return S()
     }
@@ -80,7 +80,7 @@ func TestInferredTypesBindMemberAccess(t *testing.T) {
 // grafiği bu türle işleci doğru uygulamaya bağlar (deneme 9 H1; değer dili tasarımı 3. tur).
 func TestConstructsRecordOperatorsWithOperandTypes(t *testing.T) {
 	dir := t.TempDir()
-	src := "TR_func f(x, y) {\n    TR_var a = TR_String(x) == \"1\"\n    TR_var b = TR_Tensor([1.0]) @ y\n    TR_return x + y\n}\n"
+	src := "TR_func f(x, y) { # ERROR H1111\n    TR_var a = TR_String(x) == \"1\"\n    TR_var b = TR_Tensor([1.0]) @ y\n    TR_return x + y\n}\n"
 	if err := os.WriteFile(filepath.Join(dir, "m.tr"), trText(filepath.Join(dir, "m.tr"), src), 0o644); err != nil {
 		t.Fatal(err)
 	}

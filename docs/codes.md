@@ -604,14 +604,14 @@ tr: yazdır(nan, nan == nan)
 Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herhangi açıklamalı bir ada her değer verilebilir.
 
 ```tr
-TR_func kimlik(x: TR_Any) { TR_return x }; TR_print(kimlik(5), kimlik("beş"))
+TR_print(TR_Any, TR_Type(TR_Any) == TR_Type, TR_String(5), TR_String("beş"))
 ```
 
 Görünümü:
 
 ```text
-en: func kimlik(x: Any) { return x }; print(kimlik(5), kimlik("beş"))
-tr: fonksiyon kimlik(x: Herhangi) { sonuç x }; yazdır(kimlik(5), kimlik("beş"))
+en: print(Any, Type(Any) == Type, String(5), String("beş"))
+tr: yazdır(Herhangi, Tip(Herhangi) == Tip, Metin(5), Metin("beş"))
 ```
 
 #### `TR_Bool` (`TR_type_Bool`, `Mantık`)
@@ -636,14 +636,14 @@ tr: değişken hazır: Mantık = doğru; yazdır(Tip(hazır))
 Dilin yerleşik fonksiyonlarının tipidir.
 
 ```tr
-TR_var f: TR_BuiltinFunction = TR_print; f(TR_Type(f))
+TR_var f = TR_print; f(TR_Type(f), TR_Type(f) == TR_BuiltinFunction)
 ```
 
 Görünümü:
 
 ```text
-en: var f: BuiltinFunction = print; f(Type(f))
-tr: değişken f: YerleşikFonksiyon = yazdır; f(Tip(f))
+en: var f = print; f(Type(f), Type(f) == BuiltinFunction)
+tr: değişken f = yazdır; f(Tip(f), Tip(f) == YerleşikFonksiyon)
 ```
 
 İlişkili: `TR_Function`
@@ -746,14 +746,14 @@ tr: değişken oran: Ondalık = 0.75; yazdır(Tip(oran), Ondalık("3.14"), Ondal
 Kullanıcı tanımlı fonksiyonların ve ok fonksiyonlarının tipidir; fonksiyonlar birinci sınıf değerdir.
 
 ```tr
-TR_var f: TR_Function = (x) => x * 2; TR_print(TR_Type(f), f(3))
+TR_var f: (TR_Int) -> TR_Int = (x) => x * 2; TR_print(TR_Type(f), f(3))
 ```
 
 Görünümü:
 
 ```text
-en: var f: Function = (x) => x * 2; print(Type(f), f(3))
-tr: değişken f: Fonksiyon = (x) => x * 2; yazdır(Tip(f), f(3))
+en: var f: (Int) -> Int = (x) => x * 2; print(Type(f), f(3))
+tr: değişken f: (Tam) -> Tam = (x) => x * 2; yazdır(Tip(f), f(3))
 ```
 
 İlişkili: `TR_func`, `TR_BuiltinFunction`

@@ -18,6 +18,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_target_model_outputs_test.go`: hedef modelin eğitiminin tek adım sayısında da hız dosyasını, kayıp kaydını ve son ağırlıkları yazması; kaydedilen ağırlıkların `--step 0` ile değerlendirilince son doğrulama kaybını vermesi
 - `behavior_target_model_parity_test.go`: hedef modelin TR karşılığının PyTorch sürümüyle aynı başlangıçtan float32'de adım adım aynı kaybı ve gradyan normunu vermesi (PyTorch varsa)
 - `behavior_check_json_test.go`: `tr check --json` (dil tanımı 2.13): her alanın varlığı ve biçimi, konumun kaynakta tam o metni göstermesi (`end` dışlayıcı, sütun karakter), iki dilde aynı kod/konum/düzeltme ve farklı ileti, `applicable` düzeltmenin dosyayı hatasız bırakması, ilgili konum, aktarılan modülün dosyası, kullanım hataları (çıkış 2) ve dosyadan sonra yazılan `--json`'ın hatası
+- `behavior_check_json_gate_test.go`: tipsiz parametre, alan ve dönüşün (6.1, 7.1) `tr check --json` düzeltmeleri: varsayılandan ve dönüşlerden çıkan tip uygulanabilir, hepsi uygulanınca dosya hatasız geçer; çağrılardan tahmin uygulanamaz
 - `behavior_commands_test.go`: komutların (`TR_cmd_run`, `TR_cmd_check`, `TR_cmd_test`, `TR_cmd_format`, `TR_cmd_build`, `TR_cmd_dap`, REPL) uçtan uca davranışı, hata iletileri ve çıkış kodları
 - `behavior_doc_code_blocks_test.go`: belgelerdeki TR kod bloklarının ve eklenti şablonlarının derlenmesi
 - `behavior_doc_links_test.go`: belgelerdeki bağlantıların ve başlık çapalarının geçerliliği

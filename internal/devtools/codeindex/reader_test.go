@@ -57,7 +57,7 @@ func TestUnresolvedNamesAreCounted(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	src := "TR_func f() {\n    TR_return bilinmeyen_ad(1)\n}\n"
+	src := "TR_func f() { # ERROR H1113\n    TR_return bilinmeyen_ad(1)\n}\n"
 	write("a.tr", src)
 	idx, err := Build(dir, Options{})
 	if err != nil {

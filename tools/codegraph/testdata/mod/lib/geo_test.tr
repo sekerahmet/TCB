@@ -7,7 +7,7 @@ TR_test "kare alanı yazılır" {
 }
 
 TR_test "çevre" {
-    TR_var yazdır = (x) => { TR_return x }
+    TR_var yazdır = (x: TR_Int) => { TR_return x }
     yazdır(2)
     çevre_hesapla(Kare(2))
 }

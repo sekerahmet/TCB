@@ -163,17 +163,21 @@ TR_test "7.6 nesneler içerikle karşılaştırılır; tip() yapının kendisini
 TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
     TR_struct Kutu {
         ad: TR_String
-        f = TR_none
+        f: ((TR_Int) -> TR_Int)? = TR_none
+    }
+    TR_struct TensörKutusu {
+        ad: TR_String
+        t: TR_Tensor
     }
     TR_assert(Kutu("a") == Kutu("a"))
     TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) })
     # listenin içinde de
-    TR_assert_equal("H2770", TR_error_code { TR_var s = [Kutu("a", (x) => x)] == [Kutu("a", 1)] })
+    TR_assert_equal("H2770", TR_error_code { TR_var s = [Kutu("a", (x) => x)] == [Kutu("a", (x) => x + 1)] })
     TR_var ileti = ""
     TR_try { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) } TR_catch e { ileti = e }
     TR_assert(ileti.TR_contains("a.ad == b.ad"), ileti)
     # tensörün '=='si öğe öğedir; tensör alanı da karşılaştırılamaz
-    TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", TR_zeros([2])) == Kutu("a", TR_zeros([2])) })
+    TR_assert_equal("H2770", TR_error_code { TR_var s = TensörKutusu("a", TR_zeros([2])) == TensörKutusu("a", TR_zeros([2])) })
 }
 
 TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa hatadır" {

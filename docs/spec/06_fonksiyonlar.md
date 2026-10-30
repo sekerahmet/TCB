@@ -5,7 +5,7 @@ Bu bölümün kurallarına göre bugünkü durum ve yapılacaklar: [`docs/status
 Her kuralın emsali ve gerekçesi: [`rationale/06_functions.md`](rationale/06_functions.md).
 
 **6.1** `TR_func f(p: T, q: U) -> R { ... }` bir fonksiyon tanımlar. Her parametrenin tipi yazılır (1.2). Değer döndüren fonksiyon dönüş tipini `->` ile yazar; değer döndürmeyende `->` yazılmaz (`-> TR_NoneType` sözdizimi hatasıdır, ileti onu silmeyi önerir). Ad, bulunduğu bloğun her yerinden görünür (5.14). Aynı kapsamda aynı adla ikinci bir tanım sözdizimi hatasıdır (1.3): bir ad tek fonksiyondur, parametre tipine göre ayrışma yoktur. Başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: `def f(x):`, dönüş tipinin `: R` ile yazılması, Python'un süsleyicisi (satır başında `@f`; ileti sondaki bloğu önerir, 6.7).
-- *Test:* TR testi; tipli parametre zorunluluğu uygulanınca denetleyicinin testi.
+- *Test:* TR testi; olumsuz fikstür `tests/negative/tipsiz_imza.tr`; Go: `TestUntypedFunctionParameter`, `TestUntypedMethodParameter`, `TestMissingReturnType`, `TestTypedSignatureSuggestionRuns`, `TestCheckJSONTypedSignatureFixesMakeTheFileClean`, `TestLibraryExceptionsAreUsed`, `TestRepoProgramsAreTyped`.
 
 ```tr
 # TR 4
@@ -32,7 +32,7 @@ TR_print(ölçekle(1.5), ölçekle(1.5, k: 10.0))   # çıktı: 3.0 15.0
 - *Test:* TR testi; denetim hataları uygulanınca denetleyicinin testi.
 
 **6.6** Fonksiyon ifadesi `(a, b) => ifade` ya da `(a) => { ... }` bir fonksiyon değeridir; blok gövdesi değerini `TR_return` ile verir (6.2). Parametre tipleri beklenen fonksiyon tipinden çıkar (`l.TR_filter((x) => x > 2)`); beklenen tip yoksa yazılır (`(x: TR_Int) => x * 2`). Parantez her zaman yazılır. Değeri gerekmeyen parametrenin yerine `_` yazılabilir (`(_) => 0`); `_` okunamaz (5.3). Fonksiyon ifadesinin tek yazımı budur: adsız `TR_func(x) { ... }`, parantezsiz `x => ...` ve Python'un `lambda x: ...`'i sözdizimi hatasıdır, ileti `(x) => ...`'i önerir. `TR_func` tanımı yalnız deyim olarak yazılır; ifade yerinde sözdizimi hatasıdır.
-- *Test:* TR testi; parametre tipinin çıkarımı ve zorunluluğu uygulanınca denetleyicinin testi.
+- *Test:* TR testi; zorunluluğun denetleyici testi `TestUntypedFunctionExpressionParameter` (olumsuz fikstür `tests/negative/tipsiz_imza.tr`); parametre tipinin beklenen tipten çıkarımı uygulanınca denetleyicinin testi.
 
 **6.7** Sondaki blok: bir çağrının ardından aynı satırda yazılan `{ ... }` (2.8) parametresiz bir fonksiyondur ve çağrının son argümanı olur: `TR_mixed_precision("bf16") { ... }`. Blok tek argümansa parantez yazılmaz (`TR_error_code { f(1) }`).
 - Bloğun değeri son ifadesidir (5.5'teki gibi). İçinde `TR_return` sözdizimi hatasıdır; `TR_break` ve `TR_continue` 5.13'teki gibi sınırı geçemez.

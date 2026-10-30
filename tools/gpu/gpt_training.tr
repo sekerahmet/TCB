@@ -61,7 +61,7 @@ TR_var p = TR_load_tokenizer(TR_Path(ayar["veri"], "tokenizer.json"))
 TR_var eğitim_verisi = TR_Dataset(TR_Path(ayar["veri"], "train.npy"))
 TR_var ö = eğitim_verisi.TR_sampler(TR_batch_size: ayar["toplu"], TR_context: ayar["bağlam"], TR_seed: ayar["tohum"])
 
-TR_var model = eğitim_modeli(ayar, p.TR_vocab_size)
+TR_var model = eğitim_modeli(TR_JSON(ayar), p.TR_vocab_size)
 TR_var op = TR_MuonAndAdamW(model, TR_muon_lr: ayar["muon_oranı"], TR_adamw_lr: ayar["adamw_oranı"],
     TR_weight_decay: ayar["weight_decay"], TR_adamw_weight_decay: ayar["adamw_çürümesi"], TR_muon_scale: ayar["muon_ölçeği"],
     TR_ns_dtype: ayar["ns_dtype"], TR_normuon: ayar["normuon"])

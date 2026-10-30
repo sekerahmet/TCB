@@ -45,7 +45,7 @@ func (s *dapServer) launch(msg *dapMessage) {
 		s.respondErr(msg, messages.Text(messages.H8121, path, turkish.FileErrorReason(path, err)))
 		return
 	}
-	ready := source.Prepare(string(data), source.Options{TypeCheck: true})
+	ready := source.Prepare(string(data), source.Options{TypeCheck: true, Library: interp.LibraryFileName(path, string(data))})
 	code, prog := ready.Text, ready.Program
 	if !s.reportDiagnostics(msg, path, ready) {
 		return

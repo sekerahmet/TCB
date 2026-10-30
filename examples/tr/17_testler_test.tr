@@ -19,15 +19,20 @@ TR_func ortalama_al(liste: TR_List[TR_Int]) -> TR_Float {
     TR_return TR_sum(liste) / liste.TR_length
 }
 
+TR_struct Ürün {
+    ad: TR_String
+    fiyat: TR_Int
+}
+
 TR_struct Sepet {
-    ürünler = []
+    ürünler: TR_List[Ürün] = []
 
     TR_func ekle(ad: TR_String, fiyat: TR_Int) {
-        TR_self.ürünler.TR_append({"ad": ad, "fiyat": fiyat})
+        TR_self.ürünler.TR_append(Ürün(ad, fiyat))
     }
 
     TR_func tutar() -> TR_Int {
-        TR_return TR_sum(TR_self.ürünler.TR_map((x) => x["fiyat"]))
+        TR_return TR_sum(TR_self.ürünler.TR_map((x) => x.fiyat))
     }
 }
 

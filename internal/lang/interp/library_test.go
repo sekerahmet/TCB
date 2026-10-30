@@ -61,3 +61,20 @@ func TestLibraryModuleError(t *testing.T) {
 		t.Fatalf("hata kitaplık modülünün adı ve satırıyla gelmeli: %v", err)
 	}
 }
+
+// Kural (6.1, 7.1): kitaplığın istisnası yalnız gömülü dosyanın kendi metnine verilir: aynı adlı ama
+// başka metinli kullanıcı dosyası kitaplık dosyası değildir; test dosyası da kitaplığındır.
+func TestLibraryFileNameIsOnlyTheEmbeddedText(t *testing.T) {
+	withLibrary(t, fstest.MapFS{"layers.tr": {Data: []byte("a")}, "layers_test.tr": {Data: []byte("b")}})
+	for _, c := range []struct{ path, text, want string }{
+		{"lib/layers.tr", "a", "layers.tr"},
+		{`C:\lib\layers.tr`, "a", "layers.tr"},
+		{"lib/layers_test.tr", "b", "layers_test.tr"},
+		{"proje/layers.tr", "a ", ""},
+		{"lib/optimizers.tr", "a", ""},
+	} {
+		if got := LibraryFileName(c.path, c.text); got != c.want {
+			t.Errorf("LibraryFileName(%q, %q) = %q, %q bekleniyordu", c.path, c.text, got, c.want)
+		}
+	}
+}
