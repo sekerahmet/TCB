@@ -39,7 +39,7 @@ func moduleCodes(t *testing.T, text string, module bool) []string {
 	}
 	var out []string
 	for _, err := range r.Errors {
-		for _, code := range []messages.Code{messages.H1107, messages.H1108} {
+		for _, code := range []messages.Code{messages.H1107, messages.H1108, messages.H1114} {
 			if messages.Has(err, code) {
 				out = append(out, code.String())
 			}
@@ -107,6 +107,28 @@ func TestModuleRuleMessages(t *testing.T) {
 	r = source.Prepare("TR_print(1)\nTR_test \"t\" {\n    TR_assert(TR_true)\n}\n", source.Options{TypeCheck: true, Body: true})
 	if len(r.Errors) != 1 || !strings.Contains(r.Errors[0].Error(), "test dosyasının en dışında") {
 		t.Errorf("test dosyasının iletisi bekleniyordu: %v", r.Errors)
+	}
+}
+
+// Kural (1.1): fonksiyonların atadığı en dıştaki TR_var paylaşılan durumdur: değeri döndüren fonksiyon
+// her çağrıda yeni değer kurduğu için yetmez; ileti (H1114) değişkeni yoklukla başlatıp bir kez kuran
+// fonksiyonu önerir. Atanmayan TR_var, kendi yerelini atayan fonksiyon ve TR_const H1108'dir.
+// Önerinin çalıştığı: interp TestModuleSharedStateSuggestionRuns.
+func TestModuleSharedStateMessage(t *testing.T) {
+	shared := "TR_func taban() -> TR_String {\n    TR_return \"k\"\n}\nTR_var yol = taban()\nTR_func yaz(s: TR_String) {\n    yol = s\n}\n"
+	if got := moduleCodes(t, shared, true); strings.Join(got, " ") != "H1114" {
+		t.Fatalf("paylaşılan durum H1114 vermeli: %v", got)
+	}
+	r := source.Prepare(shared, source.Options{TypeCheck: true, Module: true, Body: true})
+	testkitContains(t, r.Errors[0].Error(), `"yol"`, "TR_var yol: TR_String? = TR_none\nTR_func yol_kur() {\n    TR_if yol == TR_none {\n        yol = taban()\n    }\n}")
+	for _, text := range []string{
+		"TR_var yol = TR_temp_dir()\nTR_func oku() -> TR_String {\n    TR_return yol\n}\n",
+		"TR_var yol = TR_temp_dir()\nTR_func yaz(s: TR_String) {\n    TR_var yol = \"\"\n    yol = s\n}\n",
+		"TR_const YOL = TR_temp_dir()\nTR_func yaz(s: TR_String) {\n    TR_print(YOL, s)\n}\n",
+	} {
+		if got := moduleCodes(t, text, true); strings.Join(got, " ") != "H1108" {
+			t.Errorf("paylaşılmayan değer H1108 vermeli: %v\n%s", got, text)
+		}
 	}
 }
 

@@ -62,6 +62,7 @@ func (c *Checker) checkTopLevel(prog *ast.Program) {
 		return
 	}
 	k := newConstScope(prog)
+	shared := sharedVars(prog)
 	for i, stmt := range prog.Statements {
 		next := len(c.fileLines) + 1
 		if i+1 < len(prog.Statements) {
@@ -69,12 +70,12 @@ func (c *Checker) checkTopLevel(prog *ast.Program) {
 		}
 		switch s := stmt.(type) {
 		case *ast.VarStatement:
-			c.checkConstValue(k, s.Name.Value, s.Value, next)
+			c.checkConstValue(k, s.Name.Value, s.Value, next, !s.IsConst && shared[s.Name.Value])
 			k.define(s.Name.Value, s.IsConst)
 		case *ast.MultiVarStatement:
 			for j, v := range s.Values {
 				name := s.Names[min(j, len(s.Names)-1)].Value
-				c.checkConstValue(k, name, v, next)
+				c.checkConstValue(k, name, v, next, false)
 			}
 			for _, name := range s.Names {
 				k.define(name.Value, s.IsConst)
@@ -99,8 +100,9 @@ func (c *Checker) topLevelStatement(stmt ast.Statement, next int) {
 }
 
 // checkConstValue reports a top-level first value that is not a constant expression (H1108); the
-// fix makes the value a function's result.
-func (c *Checker) checkConstValue(k *constScope, name string, value ast.Expression, next int) {
+// fix makes the value a function's result. A TR_var that functions assign to is shared state
+// (H1114): the fix starts it as none and builds it once in a setup function.
+func (c *Checker) checkConstValue(k *constScope, name string, value ast.Expression, next int, shared bool) {
 	bad := k.nonConstant(value)
 	if bad == nil {
 		return
@@ -110,6 +112,11 @@ func (c *Checker) checkConstValue(k *constScope, name string, value ast.Expressi
 	shown := ""
 	if typ := c.valueTypes[value]; typ != "" && typ != typeAny && typ != typeNull {
 		shown = c.typeArg(typ).MessageText(messages.ActiveLanguage())
+	}
+	if shared {
+		c.addErrorAt(bad, messages.New(messages.H1114, c.fileSelect(), name, c.nodeText(bad), c.word(codes.KwVar), shown,
+			c.word(codes.KwNone), c.word(codes.KwFunc), c.word(codes.KwIf), strings.ReplaceAll(text, "\n", "\n        ")))
+		return
 	}
 	c.addErrorAt(bad, messages.New(messages.H1108, c.fileSelect(), name, c.nodeText(bad),
 		c.word(codes.KwFunc), snake(name), shown, c.word(codes.KwReturn), strings.ReplaceAll(text, "\n", "\n    ")))
