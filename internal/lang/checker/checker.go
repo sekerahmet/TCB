@@ -368,7 +368,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			}
 			return typeAny
 		}
-		return right
+		return signType(right)
 	case *ast.InfixExpression:
 		left := c.inferExpression(e.Left)
 		right := c.inferExpression(e.Right)

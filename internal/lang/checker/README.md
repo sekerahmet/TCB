@@ -44,7 +44,9 @@ alan, ilk değeri bir fonksiyonun sonucu yapan yazımı dosyadaki metinden kurar
 tipi ilk değerinin çıkarılan tipidir; sonraki atama ona uyar (H1005: `TR_var toplam = 0` sonra
 `toplam += 0.5` hatadır, ondalık değişkene tam sayı atamak değildir). Tipi çıkarılamayan ilk değer,
 `TR_none` ve denetleyicinin tanımadığı tip (`local_types.go`, `knownType`) değişkeni `TR_Any` bırakır.
-Denetim: `TestLocalTypeIsPermanent`, `TestLocalTypeUnknownStaysAny`, `TestRepoFirstValueTypes` (sayaç).
+İşlecin sonucu çalışma anının kuralıyla çıkar (önek `-`, metnin ve listenin `+` ve `*`'ı, tensörün
+aritmetiği). Denetim: `TestLocalTypeIsPermanent`, `TestLocalTypeUnknownStaysAny`, `TestOperatorTypes`,
+`TestRepoFirstValueTypes` (sayaç).
 
 **Tek hata, tek mesaj.** Bir hata aynı satırda zincirleme ikinci bir hata üretmez (ör. yanlış
 yazılmış tip adı ayrıca bir tip uyuşmazlığı olarak bildirilmez). Denetim: `TestTypeNameASCIISuggestion`, `TestTypeNameCaseSpelling`.

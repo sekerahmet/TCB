@@ -299,6 +299,12 @@ func arithmeticType(op, left, right string) string {
 	if op == "+" && (left == typeString || right == typeString) {
 		return typeString
 	}
+	if t, ok := sequenceType(op, left, right); ok {
+		return t
+	}
+	if tensorArithmetic(op, left, right) {
+		return typeTensor
+	}
 	if bitOperator(op) {
 		if left == typeInt && right == typeInt {
 			return typeInt
