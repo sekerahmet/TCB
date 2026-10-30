@@ -1,6 +1,6 @@
 # TR (`.tr`) — Kullanım Kılavuzu
 
-TR, yapay zekâ için bir programlama dilidir; kod geliştiricinin kendi dilinde yazılır (ana yazım Türkçe, bugün İngilizce de; [dil tanımı 17](../spec/17_kodlar.md)). Kılavuz dili kullanmayı Türkçe yazımla anlatır; dilin kuralları [`docs/spec/`](../spec/README.md) altındadır, her adın imzası ve örneği [`docs/codes.md`](../codes.md)'dedir.
+TR, yapay zekâ için kimlik kodlu bir programlama dilidir: kod dilden bağımsız kimliklerle (`TR_if`, `TR_print`) yazılır, insanların okuması için kendi dillerinde (`tr show`, bugün Türkçe ve İngilizce; [dil tanımı 17](../spec/17_kodlar.md)) gösterilir. Kılavuz dili kullanmayı Türkçe açıklamalar ve kimlik kodlu örneklerle anlatır; dilin kuralları [`docs/spec/`](../spec/README.md) altındadır, her adın imzası ve örneği [`docs/codes.md`](../codes.md)'dedir.
 
 ## Bölümler
 

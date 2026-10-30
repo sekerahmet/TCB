@@ -34,7 +34,7 @@ TR_print(model.TR_generate([1, 2, 3], 10, TR_temperature: 0, TR_eos: 0)) # eos �
 
 `.TR_generate` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, sonraki her adım yalnızca yeni parçayı hesaplar (anahtar ve değerler katman başına önbellekte tutulur). `TR_cache_kind: "sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` (her adımda uzar) ya da `TR_none` (her adımda bütün dizi) seçilebilir; sonuç üçünde de aynıdır. Kendi üretim döngüsünü yazan `TR_var ö = model.TR_build_cache()` ile `model.TR_forward(kimlikler, TR_cache: ö)` çağırır; `ö.TR_truncate(n)` önbelleği ilk `n` parçaya indirir (sonrakileri geri alır).
 
-Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `TR_MuonAndAdamW(model, TR_muon_scale: "rms", TR_adamw_weight_decay: 0.1, TR_separated: ["gömme", "ple_bağlamı.ctx_katmanı"], TR_sparse: ["ple.tablo"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`TR_RowRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
+Ayrıntılı anlatım ve formüller [`lib/README.md`](../../lib/README.md)'dedir. İyileştirici tarafında aynı tarif için `TR_MuonAndAdamW(model, TR_muon_scale: "rms", TR_adamw_weight_decay: 0.1, TR_separated: ["TR_mem_embedding", "TR_mem_ple_context.TR_mem_context_proj"], TR_sparse: ["TR_mem_ple.TR_mem_table"])` yazılır: parametreler ada göre (önek, sonek ya da tam yol) gruplanır, PLE tabloları satır seyrek RMS iyileştiricisine (`TR_RowRMS`, yalnızca o adımda gradyanı olan satırları günceller) gider.
 
 ## İyileştirici: Muon + AdamW
 
@@ -54,7 +54,7 @@ TR_for adım TR_in 0..3 {
 }
 ```
 
-`TR_MuonAndAdamW` modelin parametrelerini ikiye ayırır (`TR_parameter_groups`): gizli katmanların 2 boyutlu ağırlıkları **Muon**'a, gömme tablosu, çıkış katmanı, norm ağırlıkları ve sapmalar **AdamW**'ye gider. Muon her ağırlığın momentumunu Newton–Schulz yinelemesiyle dikleştirir (`TR_orthogonalize`): güncelleme bütün yönlerde aynı büyüklükte olur; küçük ve orta modellerde AdamW'den belirgin hızlı öğrenir. `TR_normuon: TR_true` NorMuon'u seçer (dikleştirmeden sonra nöron başına normalleştirme; öğrenme oranı AdamW ölçeğindedir, ör. `muon_oranı: 0.003`).
+`TR_MuonAndAdamW` modelin parametrelerini ikiye ayırır (`TR_parameter_groups`): gizli katmanların 2 boyutlu ağırlıkları **Muon**'a, gömme tablosu, çıkış katmanı, norm ağırlıkları ve sapmalar **AdamW**'ye gider. Muon her ağırlığın momentumunu Newton–Schulz yinelemesiyle dikleştirir (`TR_orthogonalize`): güncelleme bütün yönlerde aynı büyüklükte olur; küçük ve orta modellerde AdamW'den belirgin hızlı öğrenir. `TR_normuon: TR_true` NorMuon'u seçer (dikleştirmeden sonra nöron başına normalleştirme; öğrenme oranı AdamW ölçeğindedir, ör. `TR_muon_lr: 0.003`).
 
 `TR_lr_schedule` ısınma–sabit–azalma (WSD) planıdır: ilk `TR_warmup:` adımda 0'dan 1'e çıkar, sonra sabit kalır, son `TR_decay_fraction:` kesrinde 0'a iner. Çarpan iki grubun oranını birlikte ölçekler.
 
@@ -75,7 +75,7 @@ TR_func işaretli_sgd(ağırlıklar: TR_List[TR_Tensor], oran: TR_Float) {
 }
 ```
 
-Muon'u değiştirmek için `lib/optimizers.tr`'yi kopyalayın: `TR_Muon.TR_step()` on satırdır. Durum tensörlerini (momentum gibi) `TR_requires_grad: TR_true` ile kurarsanız `TR_Checkpoint` onları da saklar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
+Muon'u değiştirmek için `lib/optimizers.tr`'yi kopyalayın: `TR_Muon.TR_step()` on satırdır. Durum tensörlerini (momentum gibi) bir sözlükte ya da yapıda (`op.TR_muon.TR_state` gibi, türev izlemeden) tutarsanız `TR_Checkpoint` onları da saklayıp yerinde geri yazar ([`lib/README.md`](../../lib/README.md), kontrol noktası).
 
 ## Eğitim döngüsü, kontrol noktası ve GPU
 
@@ -122,5 +122,5 @@ TR_print(p.TR_decode(kimlikler))
 ```
 
 - **`TR_weight_dtype:`:** matris ağırlıklarının (gömme ve doğrusal katmanlar) türüdür (`"float32"`, `"bf16"`, `"fp16"`); normlar ve hesap float32 kalır. Hugging Face modelleri çoğunlukla bf16 saklanır, `TR_weight_dtype: "bf16"` ağırlıkları yarı bellekle tutar. Ayrıntı: [`lib/README.md`](../../lib/README.md).
-- **`.TR_generate` ve önbellek:** `model.TR_generate(kimlikler, TR_max_new_tokens:, TR_temperature:, TR_top_k:, TR_seed:, eos:, TR_cache_kind:, TR_cuda_graph:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `TR_cache_kind:` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `TR_none` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `TR_temperature: 0` her adımda en olası parçayı seçer (açgözlü); aynı `TR_seed:` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
+- **`.TR_generate` ve önbellek:** `model.TR_generate(kimlikler, en_fazla_yeni_parça, TR_temperature:, TR_top_k:, TR_seed:, TR_eos:, TR_cache_kind:, TR_cuda_graph:)` KV önbelleğiyle çalışır: başlangıç bir kez işlenir, her sonraki adım yalnızca yeni parçayı hesaplar. `TR_cache_kind:` `"sabit"` (varsayılan; bir kez ayrılır, yerine yazılır), `"büyüyen"` ya da `TR_none` (her adımda bütün dizi) olabilir; sonuç üçünde de aynıdır. `TR_temperature: 0` her adımda en olası parçayı seçer (açgözlü); aynı `TR_seed:` aynı örneği verir. Ayrıntı: [`lib/README.md`](../../lib/README.md) "Üretim".
 - **`TR_cuda_graph:` ve `TR_replay`:** GPU'da sabit önbellekle (`TR_cuda_graph: TR_true`, varsayılan) her üretim adımı bir kez kaydedilir (CUDA Graph) ve sonraki adımlarda tek seferde oynatılır; yorumlayıcı adımı yeniden çalıştırmaz ve yüzlerce kernelin tek tek başlatılması ortadan kalkar. Aynı mekanizmayı kendi adımınız için `TR_replay(f)` ile, durumu yerinde güncellemek için `TR_write_slice(hedef, kaynak, TR_dim:, TR_start:)` ile kullanırsınız; değişen her değer (konum, parça kimliği) tensör olarak verilir. CPU'da `TR_replay(f)` `f`'i doğrudan çağırır, sonuç aynıdır. Kurallar: [dil tanımı 15.45 ve 15.8](../spec/15_tensorler.md). Örnekler: [`46_hazir_model_ve_uretim.tr`](../../examples/tr/46_hazir_model_ve_uretim.tr), [`47_kendi_uretim_dongusu.tr`](../../examples/tr/47_kendi_uretim_dongusu.tr), [`45_tekrar_oynat.tr`](../../examples/tr/45_tekrar_oynat.tr).

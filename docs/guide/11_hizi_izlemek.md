@@ -20,7 +20,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`TR_co
 
 **Geri yayılımın satırı.** Satır tablosunda geri yayılımın süresi `TR_backward(kayıp)` satırında toplanmaz: her işlemin geri hesabı, o işlemi yapan ileri satıra yazılır. `geri %` sütunu satırın süresinin ne kadarının geri hesaptan geldiğini gösterir; örneğin `geri %97` olan bir satırda maliyet neredeyse tamamen o satırın türevindedir.
 
-**Sıcak satırlar.** `TR_cmd_watch` ve `TR_cmd_profile` programınızı milisaniyede bir örnekler: o an hangi satır çalışıyor ve bir tensör işleminin içinde mi. "Öz süre" o satırın kendisinde geçen zamandır (çağırdığı fonksiyonların satırları ayrıca sayılır). `tensörde` sütunu satırın zamanının ne kadarının tensör işlemlerinde geçtiğidir: yüksekse satır hesap yapıyordur, düşükse zaman TR kodunda, dosya okumada ya da beklemede geçiyordur. Aktarılan bir modüldeki satır `TR_func():satır` diye yazılır (`dikleştir():34`).
+**Sıcak satırlar.** `TR_cmd_watch` ve `TR_cmd_profile` programınızı milisaniyede bir örnekler: o an hangi satır çalışıyor ve bir tensör işleminin içinde mi. "Öz süre" o satırın kendisinde geçen zamandır (çağırdığı fonksiyonların satırları ayrıca sayılır). `tensörde` sütunu satırın zamanının ne kadarının tensör işlemlerinde geçtiğidir: yüksekse satır hesap yapıyordur, düşükse zaman TR kodunda, dosya okumada ya da beklemede geçiyordur. Aktarılan bir modüldeki satır modülün kendi dosyası ve metniyle (`dosya:satır`, ör. `optimizers.tr:53`) yazılır.
 
 **GPU.** GPU kullanan programda iki komut GPU'nun kernel ölçümünü de açar: kernellerin cihazda geçen süresi (`kerneller %63 meşgul`), adım başına GPU süresi ve en pahalı kernel aileleri (`carpim`, `dikkat_satir`, `cok_adamw` ...). GPU işleri eşzamansızdır: tensör tablosunda GPU işlemlerinin süresi konakta geçen başlatma süresidir, programın GPU'yu beklediği zaman `konağa okuma` satırında görünür (`.TR_tolist`, yazdırma, `ç.TR_update({"loss": kayıp})`). Çekirdek ölçümü her başlatmaya iki zamanlama olayı ekler; GPU'yu tam hızda ölçmek için ölçümsüz bir koşuyla karşılaştırın. `TR_cmd_profile` raporu GPU süresini ayrıca işleme ve satıra göre verir (`GPU süresi satıra göre`): GPU'da satır tablosundaki süre konakta geçen başlatma ve beklemedir, GPU'yu asıl meşgul eden satır bu tablodadır; geri yöndeki çekirdekler ileri satırında, `geri %` ile.
 
@@ -38,8 +38,8 @@ Tensör işlemleri (en pahalı)             pay   ms/adım  çağrı/adım  ciha
   geri · matris çarpımı (@)              %25      4,08        15,1    cpu
   ...
 Sıcak satırlar (öz süre)             pay tensörde
-  28_gpt.tr:49                       %39      %99  geri_yayılım(kayıp)
-  dikleştir():34                     %21      %96  (aktarılan modülde)
+  41_gpt.tr:49                       %39      %99  TR_backward(kayıp)
+  optimizers.tr:53                   %21      %96  X = a * X + (b * A + c * (A @ A)) @ X
   ...
 Bellek     Go yığını 7,5 MB · CPU tensör ayırması 10,2 MB/adım
 Çöp top.   423 kez, toplam duraklama 113 ms (son 5 sn: 165 kez, 54,7 ms)
@@ -48,7 +48,7 @@ Bellek     Go yığını 7,5 MB · CPU tensör ayırması 10,2 MB/adım
 Tablonun hız satırları **son 5 saniyenin** ölçüleridir; program bitince bütün koşunun raporu yazılır. Terminalde tablo ekranın üstünde yeniden çizilir; programınızın kendi çıktısı (yazdır, ilerleme çubuğu, hatalar) tabloyla karışmasın diye bir dosyaya yazılır, son satırları tablonun altında görünür ve program bitince yeniden gösterilir. Dosyanın yerini `--output yol.txt` ile seçebilirsiniz (verilmezse geçici klasördedir; tablo yolunu yazar). Çıktı bir terminal değilse (bir dosyaya yönlendirildiyse ya da not defteri hücresindeyse) programın çıktısı olduğu gibi akar ve 10 saniyede bir tek satırlık özet eklenir:
 
 ```text
-⏱ 10 sn · adım 607/1 500 · 15,8 ms/adım · tensör %96 (matris çarpımı (@) %44, geri · matris çarpımı (@) %24, dikkat %3,7) · satır 28_gpt.tr:49 %37 · Go yığını 9,1 MB · çöp toplama 361 (84,3 ms)
+⏱ 10 sn · adım 607/1 500 · 15,8 ms/adım · tensör %96 (matris çarpımı (@) %44, geri · matris çarpımı (@) %24, dikkat %3,7) · satır 41_gpt.tr:49 %37 · Go yığını 9,1 MB · çöp toplama 361 (84,3 ms)
 ```
 
 Ctrl+C her zamanki gibi programı nazikçe durdurur (kontrol noktası varsa kaydedilir); rapor yine yazılır.

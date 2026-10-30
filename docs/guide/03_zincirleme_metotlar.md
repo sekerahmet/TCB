@@ -9,9 +9,9 @@ Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'d
 **Metot mu, fonksiyon mu?** Bir değeri dönüştüren ya da ona soru soran iş metottur (`l.TR_length`, `l.TR_filter((x) => x > 2)`, `l.TR_sort()`, `l.TR_append(x)`, `t.TR_transpose()`); matematik ve tensör işi fonksiyondur (`TR_sum(l)`, `TR_mean(l)`, `TR_min(l)`, `TR_max(l)`, `TR_relu(t)`). Hedef tipin adını taşıyan dönüştürücüler (`TR_Int(x)`, `TR_Float(x)`, `TR_String(x)`) kurucudur, `TR_Type(x)` de genel bir sorudur; ikisi de fonksiyondur. Her işin tek biçimi vardır; öbür biçim yazılınca hata doğrusunu gösterir:
 
 ```text
-'uzunluk(...)' TR'de bir fonksiyon değil; 'x.uzunluk' yazın
-'filtrele(...)' TR'de bir fonksiyon değil; 'liste.filtrele(...)' yazın
-'liste.toplam()' TR'de yok; 'toplam(liste)' yazın
+'TR_length' bir üyedir ve noktadan sonra yazılır: x.TR_length
+'TR_filter' bir üyedir ve noktadan sonra yazılır: x.TR_filter
+'TR_sum' noktadan sonra ya da adlı argüman olarak yazılmaz: TR_sum(...)
 ```
 
 - `l.TR_reduce([başlangıç], fn)` listeyi soldan sağa `fn(birikim, eleman)` ile tek değere indirger: `[1, 2, 3].TR_reduce(0, (a, x) => a + x)` → `6`. Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (yoksa `TR_none`) döner. Fonksiyon son argümandır ve iki parametrelidir (birikim, eleman): `[1, 2, 3].TR_reduce(1, (a, x) => a * x)` → `6`.
@@ -44,13 +44,13 @@ Hatalar konumuyla, kaynak satırıyla ve mümkünse bir öneriyle gösterilir:
 
 ```text
 ❌ Tip ve Güvenlik Denetimi Hataları:
-  • Satır 3, Sütun 12: Tanımsız ad — 'toplm' adında bir değişken ya da fonksiyon yok. Bunu mu demek istediniz: 'toplam'?
-     3 |     yazdır(toplm + 1)
-       |            ^^^^^
+  • Satır 3, Sütun 14: Tanımsız değişken veya fonksiyon: 'toplm'. Bunu mu demek istediniz: 'toplam'?
+     3 |     TR_print(toplm + 1)
+       |              ^^^^^
 ```
 
-Tanımsız adlar (yazım hatası, eski ya da Türkçe harfsiz yazılmış yerleşik: `'yazdir' TR'de yok; 'yazdır' yazmak mı istediniz?`) program çalışmadan önce, tip hatalarıyla ve yerleşik ad gölgeleme uyarılarıyla birlikte bildirilir; `TR_cmd_check` aynı denetimi yapar (dil tanımı 5.14).
+Tanımsız adlar (yazım hatası, `TR_`'siz ya da Türkçe harfsiz yazılmış yerleşik: `'yazdir' TR'de yok; 'TR_print' yazmak mı istediniz?`) program çalışmadan önce, tip hatalarıyla ve uyarılarla birlikte bildirilir; `TR_cmd_check` aynı denetimi yapar (dil tanımı 5.14).
 
 Bir modülde (`TR_import`) oluşan hata, modülün adı ve satırıyla, modülün kendi kod çerçevesiyle yazılır (`• m2.tr, Satır 3: Sıfıra bölme hatası`); bulunamayan modül `❌ Modül hatası:` başlığıyla bildirilir (`"olmayan" modülü bulunamadı`). `TR_import` yolu yalnızca metin olarak alır; tırnaksız yazım sözdizimi hatasıdır ve doğrusunu söyler (`'aktar' modül yolunu metin olarak bekler, ancak 'yardımcı' adı bulundu: aktar "yardımcı" yazın`). `TR_cmd_check` programın aktardığı modülleri de (çalıştırmadan) aynı denetimden geçirir; modüldeki hata `❌ Tip ve Güvenlik Denetimi Hataları (lib/ic.tr modülünde):` gibi modülün adıyla yazılır.
 
-Kendi tanımladığınız adlarda öneriler Türkçe harf farkını hata saymaz (`degisken_adi` yazılınca `değişken_adı` önerilir). Dilin kelimelerinde öneri her zaman asıl Türkçe adı gösterir (bkz. §2). Mesajlardaki ekler sayının okunuşuna göre seçilir (`Satır 6'ya`, `Satır 9'a`, `Satır 3'te`).
+Kendi tanımladığınız adlarda öneriler Türkçe harf farkını hata saymaz (`degisken_adi` yazılınca `değişken_adı` önerilir). Dilin kelimelerinde öneri her zaman kimliği (`TR_print`, `TR_var`) gösterir (bkz. §2). Mesajlardaki ekler sayının okunuşuna göre seçilir (`Satır 6'ya`, `Satır 9'a`, `Satır 3'te`).

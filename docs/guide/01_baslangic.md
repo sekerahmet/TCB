@@ -12,7 +12,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 
 | Komut | Açıklama |
 | :--- | :--- |
-| `./bin/tr.exe` | Etkileşimli TR kabuğunu (REPL) kişinin yazım dilinde başlatır (`/h` ile hata ayıklayıcı açılır) |
+| `./bin/tr.exe` | Etkileşimli TR kabuğunu (REPL) başlatır (satırlar kimliklerle yazılır, yankı ve iletiler kişinin dilinde gösterilir; `/h` ile hata ayıklayıcı açılır) |
 | `./bin/tr.exe dosya.tr [argümanlar]` | `.tr` kaynak dosyasını derler ve anında çalıştırır (`./bin/tr.exe run dosya.tr` ile aynı). Dosya adından sonrakiler programa iletilir; program okumazsa çıkışta uyarı yazılır |
 | `./bin/tr.exe watch dosya.tr [argümanlar]` | Programı çalıştırır ve hızını canlı gösterir: ms/adım, en pahalı tensör işlemleri, en sıcak satırlar, GPU, bellek; bitince rapor (bkz. §11) |
 | `./bin/tr.exe profile [--json yol] dosya.tr [argümanlar]` | Programı çalıştırır, bitince hız raporu verir; `--json` ile JSON raporu (klasör verilirse içine `speed.json`) (bkz. §11) |
@@ -29,9 +29,9 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 
 Çalışan bir programı **Ctrl+C** nazikçe durdurur: program sıradaki döngü turunda ya da çağrıda durur, `TR_defer` blokları çalışır (dosyalar kapanır, kayıtlar yazılır), süreç Ctrl+C sinyaliyle biter (kabuk 130 görür); ikinci Ctrl+C hemen çıkar. Ayrıntılar: `docs/spec/01_program.md`.
 
-Her komutun tek, Türkçe bir adı vardır; Türkçe karaktersiz ya da İngilizce yazımlar (`calistir`, `bicimle`, `debug`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'debug' TR'de bir komut değil; 'tr debug' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `exit` ile çıkılır; `exit` ya da `cikis` yazılınca kabuk `exit` yazmanızı söyler.
+Her komutun tek bir kimlik adı vardır (`run`, `format`, `debug`, `help` ...); gösterim dilindeki ya da Türkçe karaktersiz yazımlar (`çalıştır`, `calistir`, `biçimle`, `hata_ayıkla`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'çalıştır' TR'de bir komut değil; 'tr run' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `exit` ile çıkılır; `çıkış`, `cikis` ya da `quit` yazılınca kabuk `exit` yazmanızı söyler.
 
-Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `45_tekrar_oynat.tr`; örnekler kodlu saklanır, `tr show <örnek> --lang en` İngilizce gösterir; liste ve açıklamalar `README.md`'nin "Örnekler" bölümünde).
+Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `49_programin_sonu.tr`; örnekler kodlu saklanır, `tr show <örnek> --lang en` İngilizce gösterir; liste ve açıklamalar [`examples/README.md`](../../examples/README.md)'de).
 
 ## Kodlu dosyalar: düzenleyici ve git farkları
 
@@ -41,7 +41,7 @@ TR dosyası (ilk satırı `# TR 4`) kimliklerle yazılır ve VS Code'da olduğu 
 
 ```bash
 git config --global diff.tr.textconv "tr show"                      # tr PATH üzerindeyse
-git config --global diff.tr.textconv "'C:/Projeler/TR/bin/tr.exe' göster"   # ya da tam yolla (boşluklu yol tek tırnakta)
+git config --global diff.tr.textconv "'C:/Projeler/TR/bin/tr.exe' show"     # ya da tam yolla (boşluklu yol tek tırnakta)
 ```
 
 Sonra `git diff`, `git log -p` ve `git show` kodlu dosyalarda Türkçe fark gösterir (başlıksız dosyalar olduğu gibi gösterilir); ham farkı görmek için `git diff --no-textconv`. Sürücü tanımlı değilse git olağan farkı gösterir, hiçbir şey bozulmaz. Textconv yalnızca gösterimi değiştirir: depoya kodlu metin girer, birleştirme de kodlu metin üzerinde yapılır. Bir birleştirme çakışması dosyayı ayrıştırılamaz bıraktıysa `TR_cmd_show` hata verir (git "textconv failed" der); çakışmayı düzeltin ya da `--no-textconv` kullanın. VS Code'un kendi kaynak denetimi görünümündeki farklar ham (kodlu) metni gösterir.

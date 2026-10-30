@@ -25,28 +25,28 @@ TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
 kn.TR_save()
 ```
 
-**Ne kaydedilir.** Sözlükte verdiğiniz her şey: modeller (tensör içeren yapı, liste ya da sözlük; içindeki bütün tensörler — türev izleyen parametreler de, türev izlemeyen durum tensörleri de: kendi yazdığınız iyileştiricinin momentumu, sabit tablolar —; yüklemede var olan tensörlere yerinde yazılır; modelin tensör olmayan alanları — ayarlar, sayılar — kaydedilmez), iyileştiriciler (`TR_AdamW`, `TR_SGD`), okuyucular (`.TR_sampler`, `.TR_sequential`), günlükler ve düz değerli sözlükler (`{en_iyi_kayıp: 99.0, sayaç: 0}`). Sözlüğün anahtarları sizin adlarınızdır. Tek başına bir sayı verilemez (geri yüklenirken değişkeninize yazılamaz); bir sözlüğe koyun. Öğrenme oranı gibi ayarlar kaydedilmez: onları kodunuz ya da komut satırı verir.
+**Ne kaydedilir.** Sözlükte verdiğiniz her şey: modeller (tensör içeren yapı, liste ya da sözlük; içindeki bütün tensörler — türev izleyen parametreler de, türev izlemeyen durum tensörleri de: kendi yazdığınız iyileştiricinin momentumu, sabit tablolar —; yüklemede var olan tensörlere yerinde yazılır; modelin tensör olmayan alanları — ayarlar, sayılar — kaydedilmez), iyileştiriciler (`TR_AdamW`, `TR_SGD`), okuyucular (`.TR_sampler`, `.TR_sequential`), günlükler ve düz değerli sözlükler (`{"en_iyi_kayıp": 99.0, "sayaç": 0}`). Sözlüğün anahtarları sizin adlarınızdır. Tek başına bir sayı verilemez (geri yüklenirken değişkeninize yazılamaz); bir sözlüğe koyun. Öğrenme oranı gibi ayarlar kaydedilmez: onları kodunuz ya da komut satırı verir.
 
 **Ne zaman kaydedilir.** `kn.TR_update(adım)` her adımın sonunda çağrılır; son kayıttan beri `TR_every_minutes:` (varsayılan 15) dakika geçtiyse orada kaydeder. Eğitimin sonunda `kn.TR_save()` hemen kaydeder. Ctrl+C'ye bastığınızda program o anki adımı bitirir, noktayı kaydeder ve durur (`Kontrol noktası kaydedildi: adım 1532 ...`; kabuk 130 görür); hemen çıkmak için Ctrl+C'ye ikinci kez basın. Süreç öldürülürse (elektrik kesintisi, çalışma makinesinin geri alınması) en son düzenli noktadan sürülür; aradaki adımlar yeniden hesaplanır ve aynı sonucu verir.
 
-**Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/checkpoints/step_0000001500)` yazar; `kn.TR_resume_step` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--adım` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/checkpoints` klasörünü silin ya da yeni bir koşu klasörü verin.
+**Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/checkpoints/step_0000001500)` yazar; `kn.TR_resume_step` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--step` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/checkpoints` klasörünü silin ya da yeni bir koşu klasörü verin.
 
-**Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"kind":"resume","step":1500}` kaydı yazar (günlüğün ve kontrol noktasının anahtarları dilden bağımsız İngilizce adlardır, programın hangi dilde yazıldığından bağımsız aynıdır). Bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir; kayıp eğrisi çizen araçlar bu kuralı uygular.
+**Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"kind":"resume","step":1500}` kaydı yazar (günlüğün ve kontrol noktasının anahtarları dilden bağımsız İngilizce adlardır, 17.8). Bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir; kayıp eğrisi çizen araçlar bu kuralı uygular.
 
 **Koşu klasörü.** Her eğitim kendi klasörüne yazar; kontrol noktaları onun `checkpoints/` alt klasöründedir, öbür dosyalarınıza dokunulmaz. Önerilen düzen:
 
 ```text
 runs/deneme1/
-  config.json            ayarlar: dosya_yaz(Yol(koşu, "config.json"), json_metin(ayar))
+  config.json            ayarlar: TR_write_file(TR_Path(koşu, "config.json"), TR_json_string(ayar))
   metrics.jsonl          günlük: her adımın ölçüleri
   samples.json           üretilen örnek metinler
   results.json           son değerlendirme
   speed.json             hız ölçümleri
-  model.trt              son ağırlıklar: tensör_kaydet(..., parametreler(model, adlarıyla: doğru))
+  model.trt              son ağırlıklar: TR_save_tensors(..., TR_parameters(model, TR_named: TR_true))
   checkpoints/
     latest.json          en son nokta
     step_0000001500/     tensors.trt, state.json, digest.json
-    step_0000001000/     tut: 2 → bir önceki de durur
+    step_0000001000/     TR_keep: 2 → bir önceki de durur
 ```
 
 **Bulut not defteri ve Drive.** Bağlanmış Drive klasörüne doğrudan yazmak yavaştır ve kaydın son adımı (yeniden adlandırma) orada başarısız olabilir. Koşu klasörünü çalışma makinesinin yerel diskinde (`/content/koşular/deneme1`) tutun ve ara ara Drive'a kopyalayın:
