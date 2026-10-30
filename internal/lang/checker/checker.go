@@ -84,6 +84,9 @@ type Checker struct {
 	fileKind   FileKind
 	fileLines  []string
 	valueTypes map[ast.Expression]string
+	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
+	// için (local_types.go).
+	structs map[string]*ast.StructStatement
 }
 
 // New returns a checker with an empty global scope.
@@ -169,7 +172,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		declared := c.writtenType(s.Type, s.Line())
 		inferred := c.inferExpression(s.Value)
 		c.recordValueType(s.Value, inferred)
-		if s.Type != nil && !typesCompatible(declared, inferred) {
+		if s.Type != nil && !c.assignable(declared, inferred) {
 			c.addErrorAt(s, messages.New(messages.H1001,
 				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
 		}
@@ -279,7 +282,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.ReturnStatement:
 		valType := c.inferExpression(s.ReturnValue)
-		if c.returnType != "" && !typesCompatible(c.returnType, valType) {
+		if c.returnType != "" && !c.assignable(c.returnType, valType) {
 			c.addErrorAt(s, messages.New(messages.H1003,
 				c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
 		}
@@ -404,14 +407,19 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		var info TypeInfo
 		var found bool
 		ident, isIdent := e.Function.(*ast.Identifier)
-		if isIdent {
+		member, isMember := e.Function.(*ast.MemberExpression)
+		objType := typeAny
+		switch {
+		case isIdent:
 			info, found = c.scope.Resolve(ident.Value)
-		} else {
+		case isMember:
+			objType = c.inferExpression(member.Object) // metodun nesnesi (local_types.go, callType)
+		default:
 			c.inferExpression(e.Function)
 		}
 		for i, arg := range e.Arguments {
 			argType := c.inferExpression(arg)
-			if found && i < len(info.ParamTypes) && !typesCompatible(info.ParamTypes[i], argType) {
+			if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType) {
 				c.addErrorAt(arg, messages.New(messages.H1004,
 					ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
 			}
@@ -419,10 +427,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		for _, na := range e.NamedArgs {
 			c.inferExpression(na.Value)
 		}
-		if found && info.TypeName == typeFunction && info.ReturnType != "" {
-			return info.ReturnType
-		}
-		return typeAny
+		return c.callType(e, info, found, objType)
 	case *ast.IfExpression:
 		return c.inferIf(e, expr != c.statementExpr)
 	case *ast.MatchExpression:
@@ -448,7 +453,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			if info.IsConst && !inPlace {
 				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
-			if info.TypeName != typeAny && info.TypeName != typeNull && !typesCompatible(info.TypeName, valType) {
+			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType) {
 				c.addErrorAt(s, messages.New(messages.H1005,
 					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.divisionHint(info.TypeName, valType, op == "/" || op == "" && dividesAtTop(s.Value))))
 			}

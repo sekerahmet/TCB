@@ -85,3 +85,39 @@ func TestOperatorTypes(t *testing.T) {
 		"TR_var v = TR_input() + 1":         typeAny,
 	})
 }
+
+// shapes yapı ve arayüz testlerinin ortak tanımlarıdır.
+const shapes = `TR_interface Şekil {
+    TR_func alan() -> TR_Float
+}
+TR_struct Kare {
+    a: TR_Float = 1.0
+    TR_func alan() -> TR_Float { TR_return TR_self.a * TR_self.a }
+    TR_func adı() { TR_print("kare") }
+}
+TR_struct Nokta {
+    x: TR_Int = 0
+}
+`
+
+// Kural (7.2, 7.3): yapı kurucusunun çağrısı yapının kendisidir; tipi bilinen yapı nesnesinin
+// metodu yazılan dönüş tipini verir. Yapının adı değer olarak bir tip değeridir (3.11).
+func TestStructCallTypes(t *testing.T) {
+	expectTypes(t, map[string]string{
+		shapes + "TR_var v = Kare(2.0)":                      "Kare",
+		shapes + "TR_var k = Kare(2.0)\nTR_var v = k.alan()": typeFloat,
+		shapes + "TR_var k = Kare(2.0)\nTR_var v = k.adı()":  typeAny,
+		shapes + "TR_var k = Kare(2.0)\nTR_var v = k.yok()":  typeAny,
+		shapes + "TR_var v = Kare":                           typeType,
+	})
+	singleError(t, shapes+"TR_var p = Nokta(1)\np = Kare(1.0)", messages.H1005, 13, `"p" değişkeni (Nokta)`, `"Kare"`)
+	singleError(t, shapes+"TR_var n: TR_Int = Kare(1.0)", messages.H1001, 12, `"TR_Int"`, `"Kare"`)
+	singleError(t, shapes+"TR_var k = Kare(1.0)\nTR_var n: TR_String = k.alan()", messages.H1001, 13, `"TR_String"`, `"TR_Float"`)
+}
+
+// Kural (7.8, yanlış alarm vermez): arayüz tipi beklenen yere onu karşılayabilecek bir yapı verilir;
+// denetleyici arayüzün karşılanıp karşılanmadığına (bu dilimde) karar vermez.
+func TestStructMeetsInterface(t *testing.T) {
+	noErrors(t, shapes+"TR_var ş: Şekil = Kare(1.0)\nTR_func ölç(x: Şekil) -> TR_Float {\n    TR_return x.alan()\n}\nTR_print(ölç(Kare(2.0)))")
+	noErrors(t, shapes+"TR_func al() -> Şekil {\n    TR_return Kare(1.0)\n}")
+}

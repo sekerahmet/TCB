@@ -1,10 +1,13 @@
 package checker
 
-import "github.com/sekerahmet/TCB/internal/lang/codes"
+import (
+	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+)
 
 // Yerel tip çıkarımı (1.2, 3.13): fonksiyon parametrelerinin ve dönüşünün tipini yazar, yerel
 // değişkenin tipi ilk değerinden çıkar ve değişmez. Denetleyici bir tipi ancak tanıyorsa
-// (çekirdek tip) değişkene verir; tanımadığı tip (tip parametresi T, arayüz, başka modülün tipi)
+// (çekirdek tip, programın yapısı) değişkene verir; tanımadığı tip (tip parametresi T, arayüz, başka modülün tipi)
 // ve bilinemeyen değer TR_Any kalır: yarım çıkarım yanlış alarm vermez.
 
 // coreTypes denetleyicinin anlamını bildiği tip adlarıdır (3.11'in çekirdek tipleri, TR_NoneType hariç).
@@ -18,9 +21,10 @@ var coreTypes = func() map[string]bool {
 	return m
 }()
 
-// knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi?
+// knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi? Çekirdek tipler ve
+// programın yapıları.
 func (c *Checker) knownType(t string) bool {
-	return coreTypes[t]
+	return coreTypes[t] || c.knownStruct(t)
 }
 
 // localType açıklamasız değişkenin ilk değerinden çıkan kalıcı tipidir: tanınan tip olduğu gibi,
@@ -67,4 +71,39 @@ func tensorArithmetic(op, left, right string) bool {
 	}
 	return left == typeTensor && (right == typeTensor || numericType(right)) ||
 		right == typeTensor && numericType(left)
+}
+
+// defineStruct yapıyı kaydeder: kurucusunun çağrısı yapının tipini, metodunun çağrısı metodun
+// yazılan dönüş tipini verir (callType). Durumlu tip ve arayüz kurulmaz; kaydedilmez.
+func (c *Checker) defineStruct(s *ast.StructStatement) {
+	if s.Kind != ast.KindStruct {
+		return
+	}
+	if c.structs == nil {
+		c.structs = map[string]*ast.StructStatement{}
+	}
+	c.structs[s.Name] = s
+}
+
+// knownStruct ad denetleyicinin bildiği bir yapının adı mı?
+func (c *Checker) knownStruct(name string) bool {
+	return c.structs[name] != nil
+}
+
+// callType çağrının tipidir: adıyla çağrılan tipli fonksiyonun dönüş tipi, yapı kurucusunun
+// çağrısında yapının kendisi (Nokta(1, 2) → Nokta), tipi bilinen bir yapı nesnesinin metodunda
+// metodun yazılan dönüş tipi (objType nesnenin tipidir). Öbür çağrılar TR_Any'dir.
+func (c *Checker) callType(e *ast.CallExpression, info TypeInfo, found bool, objType string) string {
+	if found && info.TypeName == typeFunction && info.ReturnType != "" {
+		return info.ReturnType
+	}
+	if ident, ok := e.Function.(*ast.Identifier); ok && found && info.TypeName == typeType && c.knownStruct(ident.Value) {
+		return ident.Value
+	}
+	if m, ok := e.Function.(*ast.MemberExpression); ok && !m.Safe && c.knownStruct(objType) {
+		if f := c.structs[objType].Methods[m.Property]; f != nil && f.ReturnType != nil {
+			return c.localType(normalizedType(f.ReturnType))
+		}
+	}
+	return typeAny
 }
