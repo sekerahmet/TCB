@@ -64,24 +64,86 @@ func (c *Checker) markBlockValue(b *ast.BlockStatement, used bool) {
 
 // inferIf eğer ifadesinin koşulunu ve dallarını denetler; used, değerinin kullanıldığıdır (deyim olarak
 // yazılmadı): o zaman dalların son ifadesi değerdir.
+// Değer veren eğer ve eşlenin tipi (5.5, 5.6) bütün dallarının ortak tipidir: dalın değeri son
+// ifadesidir; TR_return ya da TR_throw ile biten dal değer vermez, sayılmaz. Bir dalın tipi
+// bilinmiyorsa ya da dallar farklıysa TR_Any.
 func (c *Checker) inferIf(e *ast.IfExpression, used bool) string {
+	var b branchTypes
 	c.inferExpression(e.Condition)
 	c.markBlockValue(e.Consequence, used)
 	c.checkStatement(e.Consequence)
+	b.block(c, e.Consequence)
 	for _, elif := range e.ElseIfs {
 		c.inferExpression(elif.Condition)
 		c.markBlockValue(elif.Consequence, used)
 		c.checkStatement(elif.Consequence)
+		b.block(c, elif.Consequence)
 	}
-	if e.Alternative != nil {
-		c.markBlockValue(e.Alternative, used)
-		c.checkStatement(e.Alternative)
+	if e.Alternative == nil {
+		return typeAny
+	}
+	c.markBlockValue(e.Alternative, used)
+	c.checkStatement(e.Alternative)
+	b.block(c, e.Alternative)
+	if !used {
+		return typeAny
+	}
+	return b.common(c)
+}
+
+// branchTypes dalların değerleridir; unknown, değeri bilinmeyen bir dal vardır.
+type branchTypes struct {
+	types   []string
+	exprs   []ast.Expression
+	unknown bool
+}
+
+func (b *branchTypes) add(e ast.Expression, t string) {
+	b.types, b.exprs = append(b.types, t), append(b.exprs, e)
+}
+
+// block bloğun değerini ekler: son ifade deyiminin tipi; TR_return ve TR_throw ile biten blok değer vermez.
+func (b *branchTypes) block(c *Checker, blk *ast.BlockStatement) {
+	if blk == nil || len(blk.Statements) == 0 {
+		b.unknown = true
+		return
+	}
+	switch s := blk.Statements[len(blk.Statements)-1].(type) {
+	case *ast.ExpressionStatement:
+		if t, ok := c.blockTypes[s]; ok {
+			b.add(s.Expression, t)
+			return
+		}
+	case *ast.ReturnStatement, *ast.ThrowStatement:
+		return
+	}
+	b.unknown = true
+}
+
+func (b *branchTypes) common(c *Checker) string {
+	if b.unknown || len(b.types) == 0 {
+		return typeAny
+	}
+	if t := c.commonType(b.types, b.exprs); t != "" {
+		return t
 	}
 	return typeAny
 }
 
+// noteBlockValue değeri kullanılan bloğun son ifadesinin tipini kaydeder.
+func (c *Checker) noteBlockValue(s *ast.ExpressionStatement, t string) {
+	if !c.blockValues[s] {
+		return
+	}
+	if c.blockTypes == nil {
+		c.blockTypes = map[*ast.ExpressionStatement]string{}
+	}
+	c.blockTypes[s] = t
+}
+
 // inferMatch eşle ifadesinin konusunu, desenlerini ve kollarını denetler; used inferIf'teki gibidir.
 func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
+	var b branchTypes
 	c.inferExpression(e.Subject)
 	for _, mc := range e.Cases {
 		for _, p := range mc.Patterns {
@@ -90,10 +152,14 @@ func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
 		if mc.Body != nil {
 			c.markBlockValue(mc.Body, used)
 			c.checkStatement(mc.Body)
+			b.block(c, mc.Body)
 		}
 		if mc.ValueExpr != nil {
-			c.inferExpression(mc.ValueExpr)
+			b.add(mc.ValueExpr, c.inferExpression(mc.ValueExpr))
 		}
 	}
-	return typeAny
+	if !used {
+		return typeAny
+	}
+	return b.common(c)
 }

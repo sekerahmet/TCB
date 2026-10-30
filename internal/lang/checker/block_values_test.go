@@ -93,3 +93,20 @@ func TestBlockValueIsNotAnUnusedValue(t *testing.T) {
 		}
 	}
 }
+
+// Kural (5.5, 5.6, 1.2): değer veren eğer ve eşlenin tipi dallarının ortak tipidir (değişmezdeki gibi
+// tam sayı yazımı ondalığın yanında ondalıktır); TR_return ya da TR_throw ile biten kol değer
+// vermez. Dallar farklıysa ya da biri bilinmiyorsa TR_Any.
+func TestIfAndMatchValueTypes(t *testing.T) {
+	expectTypes(t, map[string]string{
+		"TR_var a = 1\nTR_var v = TR_if a > 0 { \"+\" } TR_else { \"-\" }":                     typeString,
+		"TR_var a = 1\nTR_var v = TR_if a > 0 { 1 } TR_else TR_if a < 0 { 2.5 } TR_else { 0 }": typeFloat,
+		"TR_var a = 1\nTR_var v = TR_if a > 0 { 1 } TR_else { \"x\" }":                         typeAny,
+		"TR_var a = 1\nTR_var v = TR_if a > 0 { TR_input() } TR_else { \"x\" }":                typeAny,
+		"TR_var a = 1\nTR_var v = TR_match a { 1 => \"bir\"\n    _ => \"çok\" }":               typeString,
+		"TR_var a = 1\nTR_var v = TR_match a { 1 => { TR_var b = 2\n        b }\n    _ => 0 }": typeInt,
+		"TR_var a = 1\nTR_var v = TR_match a { 1 => [1]\n    _ => { TR_throw \"yok\" } }":      listType(typeInt),
+		"TR_var a = 1\nTR_var v = TR_match a { 1 => 1\n    _ => \"x\" }":                       typeAny,
+	})
+	singleError(t, "TR_var a = 1\nTR_var v = TR_if a > 0 { \"+\" } TR_else { \"-\" }\nv = 3", messages.H1005, 3, "TR_String")
+}

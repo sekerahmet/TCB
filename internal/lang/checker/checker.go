@@ -69,6 +69,8 @@ type Checker struct {
 	// ifade deyiminin ifadesidir (eğer deyimi olarak yazılan eğer).
 	blockValues   map[*ast.ExpressionStatement]bool
 	statementExpr ast.Expression
+	// blockTypes değeri kullanılan bloğun son ifadesinin tipidir (block_values.go).
+	blockTypes map[*ast.ExpressionStatement]string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
 	returnType string
 	// globalNames tanımsız ad denetiminin genel kapsamıdır (kabukta satırlar arasında kalır);
@@ -316,7 +318,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		if c.blockValues[s] {
 			c.statementExpr = nil // bloğun değeri: içindeki eğer'in değeri de kullanılır
 		}
-		c.inferExpression(s.Expression)
+		c.noteBlockValue(s, c.inferExpression(s.Expression))
 		c.statementExpr = prev
 		c.checkUnusedValue(s)
 	}
