@@ -61,3 +61,56 @@ func TestArgErrorsFormat(t *testing.T) {
 		t.Errorf("nil: %s", got)
 	}
 }
+
+// Kural (13.11): çekirdek metodun sayı hatası (H2011) denetleyicininkiyle aynıdır: ad ve kullanım
+// programdaki kimlikle yazılır; görünüm adı (list.sort) ve argümansız metodun boş kullanımı yerine
+// Go'nun <nil>'i iletiye girmez.
+func TestMemberArgCountUsesIdentities(t *testing.T) {
+	for _, c := range []struct{ source, want string }{
+		{"[3, 1].TR_sort((a, b) => a)", "`.TR_sort()`"},
+		{"[\"a\"].TR_join(\" \", 1)", "`.TR_join([separator])`"},
+		{"[1].TR_append()", "`.TR_append(eleman, ...)`"},
+	} {
+		_, _, err := runTROut(t, c.source+"\n")
+		got := messages.ErrorIn(err, "en")
+		if !messages.Has(err, messages.H2011) || !strings.Contains(got, c.want) || strings.Contains(got, "<nil>") || strings.Contains(got, "list.") {
+			t.Errorf("%s: kimlikli H2011 beklenirdi (%s), gelen %q", c.source, c.want, got)
+		}
+	}
+}
+
+// Kural (13.11, ön şart): çekirdek metotların (Metin, Liste, Sözlük, Aralık) argüman sayısı tanım
+// dosyasının imzasıyla aynıdır; denetleyici sayıyı oradan okur (zorunlu, '?' isteğe bağlı, '*' ve
+// '+' sınırsız).
+func TestMethodCountsMatchDefinitions(t *testing.T) {
+	n := 0
+	for k, cm := range coreMethods {
+		def, _ := codes.DefinitionOf(k)
+		for typ, m := range []*builtinMethod{cm.text, cm.listVal, cm.dictVal, cm.rangeVal} {
+			if m == nil {
+				continue
+			}
+			n++
+			sig, ok := memberSignatureOf(def, typeCodes[typ])
+			if !ok {
+				t.Errorf("%s: %s tanımda bu tipte yok", k, typeCodes[typ])
+				continue
+			}
+			if minN, maxN := sig.PositionalCounts(); minN != m.sig.minN || maxN != m.sig.maxN {
+				t.Errorf("%s (%s): motor %d..%d argüman alıyor, tanım %d..%d", k, typeCodes[typ], m.sig.minN, m.sig.maxN, minN, maxN)
+			}
+		}
+	}
+	if n < 20 {
+		t.Errorf("yalnız %d metot sınandı", n)
+	}
+}
+
+func memberSignatureOf(def codes.Definition, typ codes.Code) (codes.Signature, bool) {
+	for _, u := range def.Members {
+		if u.Type == typ {
+			return u.Signature, true
+		}
+	}
+	return codes.Signature{}, false
+}

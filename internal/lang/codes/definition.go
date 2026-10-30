@@ -114,6 +114,23 @@ type Signature struct {
 	Return TypeExpr
 }
 
+// PositionalCounts are the least and the most positional arguments the signature takes: a
+// parameter is required unless optional (?) or zero or more (*); maxN < 0 is no upper bound (*, +).
+func (s Signature) PositionalCounts() (minN, maxN int) {
+	for _, p := range s.Params {
+		if p.Many || p.AtLeastOne {
+			maxN = -1
+		}
+		if !p.Optional && !p.Many {
+			minN++
+		}
+	}
+	if maxN == 0 {
+		maxN = len(s.Params)
+	}
+	return minN, maxN
+}
+
 // TypeSignature is a member's signature on one type.
 type TypeSignature struct {
 	Type      Code

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -249,8 +250,11 @@ func TestNamedArgsMatchDefinitions(t *testing.T) {
 }
 
 // Kural: üye tanımlarındaki tip listeleri, üyeyi gerçekten destekleyen tiplerle aynıdır: her
-// tipten bir örnek değer üzerinde her üye kimliğiyle okunur (kodlu gövde; metotlar çağrılmaz, bağlı
-// değer olarak döner); okuma hatasızsa (sözlükte: yok dönmezse) tip üyeyi destekler.
+// tipten (çekirdek tipler, TR_JSON, TR_Bytes, yokluk, ileti, tip, yapı ve nesnesi, kitaplık tipleri)
+// bir örnek değer üzerinde her üye kimliğiyle okunur (kodlu gövde; metotlar çağrılmaz, bağlı
+// değer olarak döner); okuma hatasızsa (sözlükte: yok dönmezse) tip üyeyi destekler. Denetleyici
+// üyenin tipini buradan okur (13.11); uyuşmayan üye checker.MembersBeyondDefinitions'tadır ve
+// tanım düzelince listeden çıkar.
 func TestMemberTypesMatchDefinitions(t *testing.T) {
 	m := interp.New()
 	m.Out, m.Err = io.Discard, io.Discard
@@ -272,11 +276,14 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeProgress, `TR_Progress(3)`},
 		{codes.TypeLogger, `TR_Logger("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
 		{codes.TypeCheckpoint, `TR_Checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": TR_Tensor([1.0], TR_requires_grad: TR_true)})`},
+		{codes.TypeJSON, `TR_JSON({"a": [1, 2]})`}, {codes.TypeJSON, `TR_JSON([1, 2])`}, {codes.TypeJSON, `TR_JSON("abc")`},
+		{codes.TypeBytes, `TR_Bytes("ab")`}, {codes.TypeNoneType, `TR_none`}, {codes.TypeMessage, `TR_Message("H6903", -1)`},
+		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}
 	t.Cleanup(logging.CloseAll)
-	var setup []string
+	setup := []string{"TR_struct UyeOrnegi { x: TR_Int }"}
 	for i, o := range examples {
-		setup = append(setup, "TR_var u_"+string(rune('a'+i))+" = "+o.setup)
+		setup = append(setup, "TR_var u_"+strconv.Itoa(i)+" = "+o.setup)
 	}
 	if _, err := runSame(t, m, strings.Join(setup, "\n")); err != nil {
 		t.Fatal(err)
@@ -289,7 +296,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		}
 		var real []codes.Code
 		for i, o := range examples {
-			v, err := runCoded(t, m, "u_"+string(rune('a'+i))+"."+codes.Spelling(k))
+			v, err := runCoded(t, m, "u_"+strconv.Itoa(i)+"."+codes.Spelling(k))
 			if err == nil && !(o.typ == codes.TypeDict && v == interp.Null) {
 				real = append(real, o.typ)
 			}
@@ -298,8 +305,12 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		real = slices.Compact(real) // aynı tipten birden çok örnek (AdamW, SGD: İyileştirici)
 		def := tn.Types()
 		slices.Sort(def)
-		if !slices.Equal(real, def) {
+		_, listed := checker.MembersBeyondDefinitions[k]
+		switch equal := slices.Equal(real, def); {
+		case !equal && !listed:
 			t.Errorf("%s: üyeyi destekleyen tipler %v, tanımda %v", k, real, def)
+		case equal && listed:
+			t.Errorf("%s: tanım artık motorla uyuşuyor; checker.MembersBeyondDefinitions'tan çıkarın", k)
 		}
 	}
 }
