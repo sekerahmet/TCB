@@ -62,12 +62,19 @@ var ReturnsNotVerified = map[codes.Code]string{
 	codes.FnJsonParse: "13.8: the engine gives another type than the definition",
 }
 
+// ReturnsIgnored are builtins whose return the definition and the engine agree on but 13.10 says
+// is meaningless ("no meaningless return"): the checker does not use it until the return is removed.
+var ReturnsIgnored = map[codes.Code]string{
+	codes.FnPrint: "13.10: TR_print returns no value; its TR_String return is to be removed",
+}
+
 // builtinReturnType yerleşik çağrısının tipidir (1.2, 13.9): tek tipli dönüş (SingleReturn) denetleyicinin
 // tanıdığı çekirdek tipse o tip (TR_BuiltinFunction TR_Function'dır, 13.9); kapsa öğe tipsiz (TR_List: imzalarda öğe tipi henüz yok). Dönüşü
 // motorla doğrulanmamış yerleşik (ReturnsNotVerified), birleşim ve tanınmayan tip "" (TR_Any).
 func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) string {
 	k := c.builtinCallCode(e, objType)
-	if _, unverified := ReturnsNotVerified[k]; unverified || k == codes.None {
+	_, ignored := ReturnsIgnored[k]
+	if _, unverified := ReturnsNotVerified[k]; unverified || ignored || k == codes.None {
 		return ""
 	}
 	ret, ok := SingleReturn(k)

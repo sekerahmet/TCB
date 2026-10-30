@@ -25,15 +25,15 @@ func checkFileErrs(t *testing.T, source string) []error {
 
 // Kural (13.10): "pure" işaretli yerleşiğin (13.2–13.4'ün yeni değer veren metotları, 13.7'nin
 // hesapları) çağrısı tek başına deyim olamaz; ileti atamayı önerir. Alıcı atanabilir bir adsa
-// düzeltme uygulanabilir, değilse ileti biçimi "<ad> = ..." ile gösterir.
+// düzeltme uygulanabilir, değilse ileti yeni bir değişkenle gösterir: "TR_var <ad> = ...".
 func TestPureCallValueUnused(t *testing.T) {
 	cases := []struct{ source, suggestion string }{
-		{"TR_var l = [3, 1, 2]\nl.TR_sort()", "`l = l.TR_sort()`"},                                       // 13.3
-		{"TR_var m = \" a \"\nm.TR_strip()", "`m = m.TR_strip()`"},                                       // 13.2
-		{"TR_var d = {\"a\": 1}\nd.TR_keys()", "`d = d.TR_keys()`"},                                      // 13.4
-		{"TR_var x = 3.7\nTR_floor(x)", "`<ad> = TR_floor(x)`"},                                          // 13.7
-		{"TR_func f() -> TR_List[TR_Int] { TR_return [2, 1] }\nf().TR_sort()", "`<ad> = f().TR_sort()`"}, // alıcı ad değil
-		{"TR_const L = [2, 1]\nL.TR_reverse()", "`<ad> = L.TR_reverse()`"},                               // sabite atanmaz
+		{"TR_var l = [3, 1, 2]\nl.TR_sort()", "`l = l.TR_sort()`"},                                              // 13.3
+		{"TR_var m = \" a \"\nm.TR_strip()", "`m = m.TR_strip()`"},                                              // 13.2
+		{"TR_var d = {\"a\": 1}\nd.TR_keys()", "`d = d.TR_keys()`"},                                             // 13.4
+		{"TR_var x = 3.7\nTR_floor(x)", "`TR_var <ad> = TR_floor(x)`"},                                          // 13.7
+		{"TR_func f() -> TR_List[TR_Int] { TR_return [2, 1] }\nf().TR_sort()", "`TR_var <ad> = f().TR_sort()`"}, // alıcı ad değil
+		{"TR_const L = [2, 1]\nL.TR_reverse()", "`TR_var <ad> = L.TR_reverse()`"},                               // sabite atanmaz
 	}
 	for _, tc := range cases {
 		errs := checkFileErrs(t, tc.source)
@@ -46,7 +46,7 @@ func TestPureCallValueUnused(t *testing.T) {
 		}
 		pos, _ := messages.Find(errs[0])
 		fixed := pos != nil && len(pos.Fixes) == 1 && pos.Fixes[0].Applicable
-		if strings.HasPrefix(tc.suggestion, "`<ad>") == fixed {
+		if strings.HasPrefix(tc.suggestion, "`TR_var <ad>") == fixed {
 			t.Errorf("düzeltme yalnız atanabilir adda uygulanabilir: %+v\nkaynak:\n%s", pos, tc.source)
 		}
 	}
