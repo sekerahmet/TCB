@@ -77,7 +77,7 @@ func (ix *index) printCallees(n *Node, o *queryOpts) int {
 		total += len(list)
 	}
 	sort.Strings(names)
-	fmt.Fprintf(o.stdout, "  calls %d distinct functions in %d packages%s:\n", total, len(names), inClause(o.in))
+	fmt.Fprintf(o.stdout, "  calls %s in %s%s:\n", countOf(total, "distinct function"), countOf(len(names), "package"), inClause(o.in))
 	for _, d := range names {
 		list := byDir[d]
 		sort.Slice(list, func(i, j int) bool { return ix.byID[list[i].To].Name < ix.byID[list[j].To].Name })
@@ -143,7 +143,7 @@ func (ix *index) printCallsInto(pkg *Node, o *queryOpts) int {
 		}
 		return found[i].node.Name < found[j].node.Name
 	})
-	fmt.Fprintf(o.stdout, "functions calling at least %d distinct functions of %s%s: %d\n", o.min, target, inClause(o.in), len(found))
+	fmt.Fprintf(o.stdout, "functions calling at least %s of %s%s: %d\n", countOf(o.min, "distinct function"), target, inClause(o.in), len(found))
 	printCallers(o.stdout, found, o.limit)
 	return exitOK
 }

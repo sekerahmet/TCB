@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strings"
 )
 
 // pkgUse bir paketin bir düğümü kullanışının özetidir.
@@ -50,15 +49,16 @@ func (ix *index) printWhoUsesByPackage(w io.Writer, n *Node, limit int) {
 		}
 		return list[i].dir < list[j].dir
 	})
-	fmt.Fprintf(w, "  users by package (%d packages):\n", len(list))
+	fmt.Fprintf(w, "  users by package (%s):\n", countOf(len(list), "package"))
 	lines := make([]string, len(list))
 	for i, p := range list {
-		lines[i] = fmt.Sprintf("%s: %d functions, %d use sites", p.dir, len(p.funcs), p.uses)
+		funcs := countOf(len(p.funcs), "function")
+		if len(p.funcs) == 0 {
+			funcs = "only in tests"
+		}
+		lines[i] = fmt.Sprintf("%s: %s, %s", p.dir, funcs, countOf(p.uses, "use site"))
 		if len(p.testFuncs) > 0 {
 			lines[i] += fmt.Sprintf(" (users in tests: %d)", len(p.testFuncs))
-		}
-		if len(p.funcs) == 0 {
-			lines[i] = strings.Replace(lines[i], "0 functions, ", "only in tests, ", 1)
 		}
 	}
 	printLimited(w, lines, limit, "    ")

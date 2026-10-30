@@ -259,11 +259,11 @@ func TestCalleesAndCallsInto(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	testkit.MustContain(t, out, "calls 2 distinct functions in 1 packages", "internal/lang/messages (2):", "messages.New [func]", "messages.Text [func]")
+	testkit.MustContain(t, out, "calls 2 distinct functions in 1 package:", "internal/lang/messages (2):", "messages.New [func]", "messages.Text [func]")
 	_, out, _ = cli(t, "callees", "shape.Describe", "--in", "messages")
-	testkit.MustContain(t, out, "(in messages)", "messages.New")
-	if strings.Contains(out, "Shape.Area") {
-		t.Errorf("--in must restrict the packages:\n%s", out)
+	testkit.MustContain(t, out, "calls 1 distinct function in 1 package (in messages):", "(in messages)", "messages.New")
+	if strings.Contains(out, "Shape.Area") || strings.Contains(out, "1 distinct functions") || strings.Contains(out, "1 packages") {
+		t.Errorf("--in must restrict the packages and use singular nouns for 1:\n%s", out)
 	}
 	if code, _, errOut := cli(t, "callees", "shape.Square"); code != exitUsage || !strings.Contains(errOut, "needs a function") {
 		t.Errorf("a type has no callees: exit %d: %s", code, errOut)
@@ -275,7 +275,7 @@ func TestCalleesAndCallsInto(t *testing.T) {
 		t.Errorf("Describe calls only one function of messages:\n%s", out)
 	}
 	_, out, _ = cli(t, "calls-into", "messages", "--min", "1", "--in", "shape")
-	testkit.MustContain(t, out, "shape.Describe [func]", "shape.Both [func]")
+	testkit.MustContain(t, out, "at least 1 distinct function of internal/lang/messages", "shape.Describe [func]", "shape.Both [func]")
 	_, out, _ = cli(t, "calls-into", "messages", "--min", "1", "--in", "internal/lang/codes")
 	testkit.MustContain(t, out, ": 0")
 	if code, _, _ := cli(t, "calls-into", "shape.Describe"); code != exitNotFound {
@@ -313,7 +313,15 @@ func TestWhoUsesByPackage(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit %d", code)
 	}
-	testkit.MustContain(t, out, "users by package (1 packages):", "shape: 2 functions, 3 use sites")
+	testkit.MustContain(t, out, "users by package (1 package):", "shape: 2 functions, 3 use sites")
+	if strings.Contains(out, "1 packages") {
+		t.Errorf("singular package count must not use plural noun:\n%s", out)
+	}
+	_, out, _ = cli(t, "who-uses", "messages.Text", "--by-package")
+	testkit.MustContain(t, out, "users by package (1 package):", "shape: 1 function, 1 use site")
+	if strings.Contains(out, "1 functions") || strings.Contains(out, "1 use sites") {
+		t.Errorf("singular function and use site counts must not use plural nouns:\n%s", out)
+	}
 }
 
 // Kural: tür düğümünde alanlar metotlardan ayrı bir grupta ve sınırdan bağımsız hep gösterilir; metotlar ayrı grupta
