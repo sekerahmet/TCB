@@ -44,3 +44,35 @@ func TestMemberArgCount(t *testing.T) {
 		noErrors(t, source)
 	}
 }
+
+// Kural (13.10, 13.11): tipi bilinen alıcının tipinde olmayan yerleşik metot denetim hatasıdır;
+// kod çalışma anındakidir (H2474), ipucu metodun hangi tiplerde olduğunu söyler. Metot tek
+// argümanın tipinde varsa ipucu yer değiştirmeyi önerir (" ".TR_join(l) → l.TR_join(" ")).
+func TestMissingMember(t *testing.T) {
+	cases := []struct{ source, want string }{
+		{"TR_var l = [\"a\", \"b\"]\nTR_print(\" \".TR_join(l))", "`l.TR_join(\" \")`"},
+		{"TR_var l = [\"a\"]\nTR_print(l.TR_strip())", "`.TR_strip` TR_String tipinin metodudur"},
+		{"TR_print((0..3).TR_sort())", "`.TR_sort` TR_List tipinin metodudur"},
+		{"TR_var t: TR_Tensor = TR_Tensor([1.0])\nTR_print(t.TR_sort())", "`.TR_sort` TR_List tipinin metodudur"},
+		{"TR_var l = [1]\nTR_print(\"a\".TR_join(1))", "`.TR_join` TR_List tipinin metodudur"}, // argüman liste değil: yer değiştirme yok
+	}
+	for _, tc := range cases {
+		errs := checkFileErrs(t, tc.source)
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H2474) {
+			t.Errorf("tek H2474 beklenirdi, gelen %v\nkaynak:\n%s", errs, tc.source)
+			continue
+		}
+		text := messages.ErrorIn(errs[0], "tr")
+		if !strings.Contains(text, tc.want) || strings.Contains(tc.want, "metodudur") && strings.Contains(text, "yeri değişmiş") {
+			t.Errorf("ileti %s içermeli (yer değiştirme yalnız argümanın tipinde): %s", tc.want, text)
+		}
+	}
+	// Metot alıcının tipinde, alıcının tipi bilinmiyor (TR_JSON) ya da isteğe bağlı: hatasız.
+	for _, source := range []string{
+		"TR_var l = [\"a\"]\nTR_print(l.TR_join(\" \"), \" a \".TR_strip(), {\"a\": 1}.TR_keys())",
+		`TR_print(TR_json_parse("1").TR_strip())`,
+		"TR_var m: TR_String? = TR_none\nTR_print(m?.TR_sort())",
+	} {
+		noErrors(t, source)
+	}
+}

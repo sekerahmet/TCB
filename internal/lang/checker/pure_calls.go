@@ -65,16 +65,11 @@ func (c *Checker) checkPureCall(s *ast.ExpressionStatement) {
 	}
 }
 
-// callText çağrının dosyadaki yazımıdır; satır bilinmiyorsa (tek satıra sığmayan çağrı, dosyası
-// verilmemiş denetim) kodun yazımıyla kısaltılmış biçimi.
+// callText çağrının dosyadaki yazımıdır (exprText); satır bilinmiyorsa kodun yazımıyla
+// kısaltılmış biçimi.
 func (c *Checker) callText(call *ast.CallExpression, k codes.Code, receiver ast.Expression) string {
-	r := ast.RangeOf(call)
-	if r.Line >= 1 && r.Line <= len(c.fileLines) && r.EndLine == r.Line && r.Col >= 1 {
-		if line := []rune(c.fileLines[r.Line-1]); r.EndCol-1 <= len(line) && r.Col < r.EndCol {
-			if text, ok := closeParens(line[r.Col-1:r.EndCol-1], line[r.EndCol-1:]); ok {
-				return text
-			}
-		}
+	if text, ok := c.exprText(call); ok {
+		return text
 	}
 	args := "()"
 	if len(call.Arguments)+len(call.NamedArgs) > 0 {
@@ -84,6 +79,20 @@ func (c *Checker) callText(call *ast.CallExpression, k codes.Code, receiver ast.
 		return id.Value + "." + codes.Spelling(k) + args
 	}
 	return codes.Spelling(k) + args
+}
+
+// exprText ifadenin dosyadaki yazımıdır; ok false ise satır bilinmiyor ya da ifade tek satıra
+// sığmıyor (dosyası verilmemiş denetim).
+func (c *Checker) exprText(n ast.Expression) (string, bool) {
+	r := ast.RangeOf(n)
+	if r.Line < 1 || r.Line > len(c.fileLines) || r.EndLine != r.Line || r.Col < 1 {
+		return "", false
+	}
+	line := []rune(c.fileLines[r.Line-1])
+	if r.EndCol-1 > len(line) || r.Col >= r.EndCol {
+		return "", false
+	}
+	return closeParens(line[r.Col-1:r.EndCol-1], line[r.EndCol-1:])
 }
 
 // closeParens çağrının ağaçtaki aralığına (kapanan ')' ağaçta tutulmaz) satırın devamından eksik
