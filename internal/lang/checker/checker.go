@@ -215,13 +215,13 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope = prev
 
 	case *ast.ForInStatement:
-		c.inferExpression(s.Iterable)
+		key, value := loopTypes(c.inferExpression(s.Iterable), s.KeyVar != "")
 		prev := c.scope
 		c.scope = NewScope(prev)
 		if s.KeyVar != "" {
-			c.defineName(s.KeyVar, kindVariable, siteOf(s.KeyToken, s.Line()), TypeInfo{TypeName: typeAny})
+			c.defineName(s.KeyVar, kindVariable, siteOf(s.KeyToken, s.Line()), TypeInfo{TypeName: key})
 		}
-		c.defineName(s.ValueVar, kindVariable, siteOf(s.ValueToken, s.Line()), TypeInfo{TypeName: typeAny})
+		c.defineName(s.ValueVar, kindVariable, siteOf(s.ValueToken, s.Line()), TypeInfo{TypeName: value})
 		for _, bs := range s.Body.Statements {
 			c.checkStatement(bs)
 		}

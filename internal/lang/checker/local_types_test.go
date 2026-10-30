@@ -239,3 +239,23 @@ func TestIndexTypes(t *testing.T) {
 	})
 	singleError(t, "TR_var l = [1, 2]\nTR_var v = l[0]\nv = \"a\"", messages.H1005, 3, "TR_Int")
 }
+
+// Kural (5.7, 5.11): döngü değişkeni dolaşılan kaynağın öğe tipindedir: listede öğe, aralıkta tam
+// sayı, metinde karakter, sözlükte anahtar; iki değişkenle indeks ve öğe, sözlükte anahtar ve değer.
+// Liste üretecinin değişkeni de. Bilinmeyen kaynak TR_Any.
+func TestLoopVariableTypes(t *testing.T) {
+	for head, want := range map[string]string{
+		"x TR_in [1.5, 2.0]":    "TR_Float",
+		"x TR_in 0..3":          "TR_Int",
+		"x TR_in \"abc\"":       "TR_String",
+		"x TR_in {\"a\": 1}":    "TR_String",
+		"k, x TR_in {\"a\": 1}": "TR_Int",
+		"x, y TR_in [\"a\"]":    "TR_Int",
+		"i, x TR_in [\"a\"]":    "TR_String",
+	} {
+		singleError(t, "TR_for "+head+" {\n    TR_var s: TR_Bool = x\n}", messages.H1001, 2, `"`+want+`"`)
+	}
+	noErrors(t, "TR_for x TR_in TR_input() {\n    TR_var s: TR_Bool = x\n}")
+	noErrors(t, "TR_var l = [1, \"a\"]\nTR_for x TR_in l {\n    TR_var s: TR_Bool = x\n}")
+	singleError(t, "TR_func f(n: TR_Int) -> TR_Int {\n    TR_return n\n}\nTR_var l = [f(x) TR_for x TR_in [\"a\"]]", messages.H1004, 4, `"TR_String"`)
+}

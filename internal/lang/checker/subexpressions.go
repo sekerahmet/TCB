@@ -32,10 +32,10 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		}
 		return c.tupleLiteralType(elems), true
 	case *ast.ListComprehension:
-		c.inferExpression(e.Iterable)
+		_, value := loopTypes(c.inferExpression(e.Iterable), false)
 		prev := c.scope
 		c.scope = NewScope(prev)
-		c.scope.Define(e.VarName, TypeInfo{TypeName: typeAny})
+		c.scope.Define(e.VarName, TypeInfo{TypeName: value})
 		c.inferExpression(e.Output)
 		if e.Condition != nil {
 			c.inferExpression(e.Condition)
