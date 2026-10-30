@@ -208,6 +208,28 @@ func (c *Checker) fieldType(objType string, e *ast.MemberExpression) string {
 	return typeAny
 }
 
+// indexType indekslemenin tipidir (3.6, 3.7, 15.7): listenin tam sayıyla indeksi öğe tipini, aralıkla
+// dilimi listenin kendi tipini verir; metinde ikisi de metin; sözlükte değer tipi; tensörde tensör.
+// İsteğe bağlı kap, tipi bilinmeyen kap ya da indeks TR_Any'dir.
+func indexType(left, index string) string {
+	s := shapeOf(left)
+	switch {
+	case s.optional || s.elems != nil:
+		return typeAny
+	case left == typeTensor:
+		return typeTensor
+	case index == typeRange && (s.base == typeList || left == typeString):
+		return left
+	case index == typeInt && s.base == typeList && len(s.args) == 1:
+		return s.args[0]
+	case index == typeInt && left == typeString:
+		return typeString
+	case index != typeRange && s.base == typeDict && len(s.args) == 2:
+		return s.args[1]
+	}
+	return typeAny
+}
+
 // tupleLiteralType demet değişmezinin tipidir (3.6a): (1, "a") → (TR_Int, TR_String). Bir öğesinin
 // tipi bilinmiyorsa demet TR_Any'dir.
 func (c *Checker) tupleLiteralType(elems []string) string {

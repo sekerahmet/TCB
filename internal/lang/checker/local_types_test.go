@@ -221,3 +221,21 @@ func TestFieldTypes(t *testing.T) {
 	singleError(t, nokta+"TR_var v = p.x\nv = \"a\"", messages.H1005, 11, "TR_Float")
 	singleError(t, "TR_struct S {\n    n: TR_Int\n    TR_func m() -> TR_String {\n        TR_return TR_self.n\n    }\n}", messages.H1003, 4, `"TR_Int"`)
 }
+
+// Kural (3.6, 3.7, 15.7): tipi bilinen kabın indeksi öğe tipindedir: listenin tam sayıyla indeksi öğe,
+// aralıkla dilimi listenin kendisi; metnin indeksi ve dilimi metin; sözlüğün indeksi değer tipi;
+// tensörün indeksi tensör. İsteğe bağlı ya da öğe tipi bilinmeyen kap TR_Any.
+func TestIndexTypes(t *testing.T) {
+	expectTypes(t, map[string]string{
+		"TR_var l = [1, 2]\nTR_var v = l[0]":                      typeInt,
+		"TR_var l = [[1.5], [2.0]]\nTR_var v = l[-1]":             listType(typeFloat),
+		"TR_var l = [1, 2]\nTR_var v = l[0..1]":                   listType(typeInt),
+		"TR_var s = \"abc\"\nTR_var v = s[1]":                     typeString,
+		"TR_var s = \"abc\"\nTR_var v = s[1..2]":                  typeString,
+		"TR_var d = {\"a\": 1.5}\nTR_var v = d[\"a\"]":            typeFloat,
+		"TR_var t: TR_Tensor = TR_Tensor([1.0])\nTR_var v = t[0]": typeTensor,
+		"TR_var l = [1, \"a\"]\nTR_var v = l[0]":                  typeAny,
+		"TR_var l: TR_List[TR_Int]? = [1]\nTR_var v = l[0]":       typeAny,
+	})
+	singleError(t, "TR_var l = [1, 2]\nTR_var v = l[0]\nv = \"a\"", messages.H1005, 3, "TR_Int")
+}
