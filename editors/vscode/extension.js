@@ -121,7 +121,7 @@ function createTask(def, documentUri, interpreter, extra) {
     return task;
 }
 
-// calistir komutu (tanim) dosyada çalıştırır; ek, dosyadan sonra yorumlayıcıya verilen
+// run komutu (tanim) dosyada çalıştırır; ek, dosyadan sonra yorumlayıcıya verilen
 // program argümanlarıdır (Ctrl+F5'te launch.json'daki "args").
 async function run(def, uri, extra) {
     if (!vscode.workspace.isTrusted) {

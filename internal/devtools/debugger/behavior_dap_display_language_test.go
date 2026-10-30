@@ -79,7 +79,6 @@ func TestDAPExpressionHelper(t *testing.T) {
 // doğru değeri verir. Türkçe harfsiz komut (adim) yalnızca Türkçe okuyana önerilir.
 func TestDAPExpressionsAreWrittenWithIdentities(t *testing.T) {
 	for lang, want := range map[string]string{"en": "i=1 watch=6 adim=false", "tr": "i=1 watch=6 adim=true"} {
-		t.Setenv("TR_LANG", lang)
 		if got := string(testkit.RunWithLanguageFile(t, "TestDAPExpressionHelper", dapExpressionOut, lang)); got != want {
 			t.Errorf("TR_LANG=%s: %q, beklenen %q", lang, got, want)
 		}
@@ -91,9 +90,7 @@ func TestDAPExpressionsAreWrittenWithIdentities(t *testing.T) {
 // tipi "Tensor [2]". Önceden değer TR_LANG'de, tip kanonik Türkçeydi ("true | Mantık").
 // TR_LANG süreç başında okunduğu için her dil ayrı bir alt süreçte koşar.
 func TestDAPDisplayFollowsPersonsLanguage(t *testing.T) {
-	t.Setenv("TR_LANG", "en")
 	en := string(testkit.RunWithLanguageFile(t, "TestDAPDisplayHelper", dapDisplayOut, "en"))
-	t.Setenv("TR_LANG", "tr")
 	tr := string(testkit.RunWithLanguageFile(t, "TestDAPDisplayHelper", dapDisplayOut, "tr"))
 	for _, want := range []string{"var b | true | Bool", "var l | (2) [true, none] | List", "| Tensor", "panel t | ", "Tensor [2]", "eval b | true | Bool"} {
 		if !strings.Contains(en, want) {
