@@ -56,9 +56,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.inferExpression(e.End)
 		return typeRange, true
 	case *ast.IndexExpression:
-		c.inferExpression(e.Left)
-		c.inferExpression(e.Index)
-		return typeAny, true
+		return indexType(c.inferExpression(e.Left), c.inferExpression(e.Index)), true
 	case *ast.MemberExpression:
 		return c.fieldType(c.inferExpression(e.Object), e), true // tipi bilinen yapının alanı (7.5)
 	case *ast.ElementExpression:
