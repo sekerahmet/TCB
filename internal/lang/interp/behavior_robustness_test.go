@@ -212,12 +212,12 @@ func TestPanicInsideAsyncDoesNotCrashProcess(t *testing.T) {
 // Test raporu K1: sınırsız özyineleme Go yığınını taşırıp süreci yakalanamaz biçimde
 // çökertiyordu. Artık sınırda 'dene/yakala' ile yakalanabilen bir hata döner.
 func TestDeepRecursionIsCatchableError(t *testing.T) {
-	_, _, err := runTRWithin(t, 30*time.Second, "TR_func f(n) { TR_return f(n + 1) }\nf(0)")
+	_, _, err := runTRWithin(t, 30*time.Second, "TR_func f(n: TR_Int) -> TR_Int { TR_return f(n + 1) }\nf(0)")
 	if !messages.Has(err, messages.H2422) {
 		t.Fatalf("özyineleme sınırı hatası bekleniyordu, alınan: %v", err)
 	}
 	_, val, err := runTRWithin(t, 30*time.Second, `
-		TR_func f(n) { TR_return f(n + 1) }
+		TR_func f(n: TR_Int) -> TR_Int { TR_return f(n + 1) }
 		TR_var yakalandı = TR_false
 		TR_try { f(0) } TR_catch hata { yakalandı = TR_true }
 		TR_var result = yakalandı`)
@@ -225,7 +225,7 @@ func TestDeepRecursionIsCatchableError(t *testing.T) {
 		t.Fatalf("özyineleme hatası dene/yakala ile yakalanmalıydı: %v / %v", val, err)
 	}
 	// Sınırın altındaki derin ama sonlu özyineleme çalışmaya devam etmeli
-	_, val, err = runTRWithin(t, 30*time.Second, "TR_func say(n) { TR_if n == 0 { TR_return 0 } TR_return 1 + say(n - 1) }\nTR_var result = say(5000)")
+	_, val, err = runTRWithin(t, 30*time.Second, "TR_func say(n: TR_Int) -> TR_Int { TR_if n == 0 { TR_return 0 } TR_return 1 + say(n - 1) }\nTR_var result = say(5000)")
 	if err != nil || val.Inspect() != "5000" {
 		t.Fatalf("5000 derinlik çalışmalı: %v / %v", val, err)
 	}
@@ -238,20 +238,20 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 		want messages.Code
 		line int // 0: satır denetlenmez
 	}{
-		{"TR_func topla(a, b) { TR_return a + b }\ntopla(1)", messages.H2414, 2},
-		{"TR_func topla(a, b) { TR_return a + b }\ntopla(1, 2, 3)", messages.H2412, 2},
-		{"TR_func f(isim) { TR_return isim }\nf(isimm: 1)", messages.H2410, 0},
+		{"TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a + b }\ntopla(1)", messages.H2414, 2},
+		{"TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a + b }\ntopla(1, 2, 3)", messages.H2412, 2},
+		{"TR_func f(isim: TR_Int) -> TR_Int { TR_return isim }\nf(isimm: 1)", messages.H2410, 0},
 		{"TR_var g = (x, y) => x + y\ng(1)", messages.H2414, 0},
-		{"TR_func iki(a, b) { TR_return a }\niki(5)", messages.H2414, 0},
+		{"TR_func iki(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a }\niki(5)", messages.H2414, 0},
 		// aynı parametre hem sırayla hem adıyla: adlı değer eskiden sessizce yok sayılırdı
-		{"TR_func f(a, b = 10) { TR_return [a, b] }\nf(1, a: 2)", messages.H2413, 2},
-		{"TR_func f(a, b) { TR_return [a, b] }\nf(1, 2, b: 3)", messages.H2413, 0},
-		{"TR_func f(a, b) { TR_return a }\nf(5, a: 1)", messages.H2413, 0},
-		{"TR_struct Nokta { x\n y }\nNokta(1, x: 2).x", messages.H2420, 3},
-		{"TR_struct H { b\n TR_func TR_init(v) { TR_self.b = v } }\nH(1, v: 2)", messages.H2413, 0},
+		{"TR_func f(a: TR_Int, b: TR_Int = 10) -> TR_List[TR_Int] { TR_return [a, b] }\nf(1, a: 2)", messages.H2413, 2},
+		{"TR_func f(a: TR_Int, b: TR_Int) -> TR_List[TR_Int] { TR_return [a, b] }\nf(1, 2, b: 3)", messages.H2413, 0},
+		{"TR_func f(a: TR_Int, b: TR_Int) -> TR_Int { TR_return a }\nf(5, a: 1)", messages.H2413, 0},
+		{"TR_struct Nokta { x: TR_Int\n y: TR_Int }\nNokta(1, x: 2).x", messages.H2420, 3},
+		{"TR_struct H { b: TR_Int\n TR_func TR_init(v: TR_Int) { TR_self.b = v } }\nH(1, v: 2)", messages.H2413, 0},
 		// eksik zorunlu parametre: sayılar kendisiyle çelişmemeli ("1 bekler, 1 verildi")
-		{"TR_func f(a, b = 10) { TR_return a }\nf(b: 20)", messages.H2415, 2},
-		{"TR_func f(a, b, c = 1) { TR_return a }\nf(c: 2)", messages.H2415, 0},
+		{"TR_func f(a: TR_Int, b: TR_Int = 10) -> TR_Int { TR_return a }\nf(b: 20)", messages.H2415, 2},
+		{"TR_func f(a: TR_Int, b: TR_Int, c: TR_Int = 1) -> TR_Int { TR_return a }\nf(c: 2)", messages.H2415, 0},
 	}
 	for _, c := range cases {
 		_, _, err := runTRWithin(t, 5*time.Second, c.code)
@@ -261,7 +261,7 @@ func TestUserFunctionArityIsChecked(t *testing.T) {
 	}
 	// Varsayılan değerler, adlandırılmış argümanlar ve geri çağrılar (fazladan argüman alabilir) çalışmalı
 	_, val, err := runTRWithin(t, 5*time.Second, `
-		TR_func selam(ad, ek = "!") { TR_return ad + ek }
+		TR_func selam(ad: TR_String, ek: TR_String = "!") -> TR_String { TR_return ad + ek }
 		TR_var a = selam("Ali")
 		TR_var b = selam(ek: "?", ad: "Ayşe")
 		TR_var c = [1, 2, 3].TR_filter((x) => x > 1)

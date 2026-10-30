@@ -19,7 +19,7 @@ import (
 const gpuLibraryProgram = `
 TR_import "tr/layers"
 TR_import "tr/optimizers"
-TR_func eğit(cihaz, normuon) {
+TR_func eğit(cihaz: TR_String, normuon: TR_Bool) -> (TR_List[TR_Float], TR_String) {
     TR_default_device(cihaz)
     TR_var m = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_num_kv_heads: 1, TR_seed: 3)
     TR_var op = TR_MuonAndAdamW(m, TR_normuon: normuon, TR_adamw_lr: 0.01)

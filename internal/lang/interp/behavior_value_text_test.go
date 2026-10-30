@@ -67,7 +67,7 @@ TR_print(TR_String(b) == "true", TR_String(TR_none) == "none", TR_String(TR_Type
 
 // Kitaplığın ve yerel modülün fonksiyonu da aynı metni verir; geri çağırma da.
 func TestValueTextIsTheSameInEveryModule(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func anlat(x) { TR_return \"\\(x) \" + TR_String(TR_Type(x)) }\nTR_func uygula(f) { TR_print(f(TR_true)) }\n" +
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func anlat(x) -> TR_String { TR_return \"\\(x) \" + TR_String(TR_Type(x)) }\nTR_func uygula(f) { TR_print(f(TR_true)) }\n" +
 		"" +
 		"")}})
 	out := runCoded(t, `TR_import "tr/kitap" TR_as k
@@ -75,7 +75,7 @@ TR_import "yerel" TR_as y
 TR_print(k.anlat(TR_true), y.anlat(TR_none))
 k.uygula((x) => "\(x) " + TR_String(x))
 y.uygula((x) => TR_String([x]))
-`, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x) { TR_return TR_String(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
+`, map[string]string{"yerel.tr": source.Header + "\nTR_func anlat(x) -> TR_String { TR_return TR_String(x) }\nTR_func uygula(f) { TR_print(f(TR_none)) }\n"})
 	want := "true Bool none\ntrue true\n[none]\n"
 	if out != want {
 		t.Errorf("metin her modülde aynı olmalı:\n%s\nbeklenen:\n%s", out, want)
@@ -114,7 +114,7 @@ TR_try { TR_Float("sonsuz") } TR_catch e { TR_print("not read") }
 // süreç dili (TR_LANG) Türkçedir.
 func TestOneValueTextForEveryValue(t *testing.T) {
 	out := runCoded(t, `TR_func f() {}
-TR_struct P { a }
+TR_struct P { a: TR_Int }
 TR_print([TR_print, TR_Int, f, P, P(1), TR_inf, -TR_inf, TR_nan, 1e6, 1234567.0, 1e15, 1e16, 0.00001, -0.0, (x) => x])
 TR_print(TR_String(TR_print), "\(f)", TR_String(1e15), TR_String(TR_inf) == "inf")
 `, nil)
@@ -136,7 +136,7 @@ TR_print(TR_String(TR_print), "\(f)", TR_String(1e15), TR_String(TR_inf) == "inf
 // içindeki tip ve değerlerle; süreç Türkçe olsa (TR_LANG) ve hata Türkçe adlı bir kitaplık fonksiyonunda
 // oluşsa da aynıdır. Satır dosyanın satırıdır (başlık 1. satır).
 func TestCaughtErrorTextIsEnglish(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() { TR_return [1][5] }\n")}})
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() -> TR_Int { TR_return [1][5] }\n")}})
 	out := runCoded(t, "TR_import \"tr/kitap\" TR_as k\nTR_try { [1].TR_join(TR_true) } TR_catch e { TR_print(e) }\nTR_try { k.taşır() } TR_catch e { TR_print(e) }\n", nil)
 	for _, want := range []string{"Line 3:", "list.join() expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
 		if !strings.Contains(out, want) {
@@ -184,7 +184,7 @@ func TestDictKeysAreTextNotMembers(t *testing.T) {
 // ile eklenmez, 4.10), birleştir, dosya_yaz'ın içeriği, girdi'nin istemi; kitaplığın içinde de.
 func TestEveryTextConversionIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
-		"TR_func ekle(x) { TR_return \"a\\(x),\" + [x, TR_none].TR_join(\"/\") }\n")}})
+		"TR_func ekle(x: TR_Bool) -> TR_String { TR_return \"a\\(x),\" + [x, TR_none].TR_join(\"/\") }\n")}})
 	out := runCoded(t, `TR_import "tr/kitap" TR_as k
 TR_print("x\(TR_true)", "\(TR_none)!", [TR_true, TR_none, TR_Int].TR_join(","), k.ekle(TR_false))
 TR_write_file("out.txt", [TR_false])
@@ -211,9 +211,9 @@ func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
 // argüman hatası Yapı.metot'u söyler (Python: Point.__init__(), Point.go()).
 func TestStructCallErrorsNameTheStruct(t *testing.T) {
 	out := runCoded(t, `TR_struct Point {
-	x
-	TR_func TR_init(a, b = 2) { TR_self.x = a + b }
-	TR_func go(n) { TR_self.x = n }
+	x: TR_Int
+	TR_func TR_init(a: TR_Int, b: TR_Int = 2) { TR_self.x = a + b }
+	TR_func go(n: TR_Int) { TR_self.x = n }
 }
 TR_try { Point(1, 2, 3) } TR_catch e { TR_print(e) }
 TR_try { Point(1, z: 2) } TR_catch e { TR_print(e) }
