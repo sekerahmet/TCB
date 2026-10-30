@@ -100,3 +100,7 @@ Her commit'te geçti; düşen soru olmadı, cevap değişmedi.
 - `tests-for` ve `spec-refs` doğru; alt ajan: dış test paketinden `source.Options{Checker: ...}`'a denetleyici vermek codegraph'ın tip denetiminde "aynı tip değil" hatası verdi (sayaç iç test paketinde yazıldı). Başka yanlış cevap yok.
 
 - Bitiş: 2026-10-30 09:12 UTC.
+
+## Birleştirme notu
+
+- 737e9c2 (kalıcı tip) ile 2348999 arasındaki commit'lerde `tr test tests` ve denetleyici testleri düşer (eski kuralı sınayan testler 2348999'da güncellendi); 77c38d6 ile ba93869 arasında `TestTRCodeIsTyped` düşer (izin listesi ba93869'da). Cherry-pick'te bu aralık birlikte alınmalı ya da 2348999 ve ba93869 sırayla eklenmeli. Öbür commit'lerin her biri tek başına geçer.
