@@ -172,6 +172,7 @@
 "H1114": "the first value of {name|q} at the top level of {file, select, testfile {a test file} other {a module}} is not a constant expression: {part|q} is not constant (loading {file, select, testfile {a test file} other {a module}} runs no code, 1.1). Functions assign to {name|q}, so it is shared state: start it as none; each function or test that uses it calls setup_{name}() first, and the first call builds the value once:\n{var} {name}: {type, select, empty {<type>} other {{type}}}? = {none}\n{func} setup_{name}() {{\n    {if} {name} == {none} {{\n        {name} = {value}\n    }}\n}}",
 "H1115": "`{kind, select, member {.{call}()} other {{call}()}}` returns a new value; it does not change its receiver or arguments in place, and a call whose value is dropped does nothing (13.10). Assign the value: {target, select, empty {`<name> = {suggestion}`} other {`{suggestion}`}}",
 "H1116": "; sorting by a key (13.3) is not there yet, `.{#sort}()` takes no arguments. Today make the key the first item of a tuple, where `f` is the key function: `[(f(l[i]), i) {#for} i {#in} 0..l.{#length}].{#sort}().{#map}((p) => l[p.1])`",
+"H1117": "; `.{member}` is a method of {types}{swap, select, empty {} other {. The receiver and the argument are swapped: `{swap}`}}",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

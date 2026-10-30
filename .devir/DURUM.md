@@ -23,6 +23,17 @@
 - **Testler:** `TestMemberArgCount` (checker; 5 alıcı/metot, anahtarlı sıralama, doğru sayı, `TR_JSON`, isteğe bağlı alıcı hatasız), `TestMemberArgCountUsesIdentities` (interp; çalışma anı iletisinde görünüm adı ve `<nil>` yok), öneri tablosunda H2011'in demet yolu, olumsuz fikstür `tests/negative/metot_arguman_sayisi.tr`. `compiler_test` ve `hooks_test`'in beklenen metni yeni biçime güncellendi; `docs/guide/03_zincirleme_metotlar.md` cümlesi güncellendi.
 - **Yeni hatalar (depo):** 5, hepsi **testin konusu**: `tests/yerlesikler_test.tr` "13.2 metotlar argüman sayısını ve tipini denetler" testinde `TR_error_code { "abc".TR_contains() }` gibi çalışma anı sayı hatasını bekleyen 5 satır (110, 112, 114, 116, 117). Artık denetim hatası oldukları için olumsuz fikstüre taşındı; TR testinin adı "13.2 metotlar argümanın tipini denetler" oldu. Bulunan yanlış: 0.
 
+## Adım 2a — metodu olmayan tipte çağrı (13.11): bitti
+
+- **Ön şart:** `TestMemberTypesMatchDefinitions` (stdlib) bütün alıcı tiplerine genişletildi (`TR_JSON` nesne/liste/metin, `TR_Bytes`, yokluk, ileti, tip, yapı nesnesi ve yapı tipi). Uyuşmayan üç kod (`.TR_get`, `.TR_keys`, `.TR_length`; "Bulunan yanlış") `checker.MembersBeyondDefinitions`'ta, kurala girmiyor. Kural ön şart geçtikten sonra açıldı.
+- **Kural:** tipi bilinen alıcı (denetleyicinin tanıdığı çekirdek tip: Metin, Liste, Sözlük, Aralık, Tensör, Tam, Ondalık, Mantık, Fonksiyon, Tip; isteğe bağlı değil) ve kodla yazılmış, kitaplığın olmayan yerleşik metot alıcının tipinde yoksa (tanımın `types`/`signatures`'ı) denetim hatası (`builtin_calls.go`, `reportMissingMember`).
+- **Kod:** çalışma anındaki **H2474** ("property or method "join" not found on type String"); `hint` parametresi yeni **H1117**: metodun hangi tiplerde olduğu (`typeArg` biçimiyle) ve, genel kural olarak, tek argümanın tipinde varsa ve o tipte bir argüman alıyorsa yer değiştirme: `" ".TR_join(l)` → `` `l.TR_join(" ")` `` (alıcı ve argüman dosyadaki yazımlarıyla).
+- **Testler:** `TestMissingMember` (checker; yer değiştirme, Liste'de `.TR_strip`, Aralık'ta ve Tensör'de `.TR_sort`, argümanın tipinde de olmayan metotta yer değiştirme yok; doğru tip, `TR_JSON` alıcı, isteğe bağlı alıcı hatasız), öneri tablosunda H2474'ün yer değiştirmesi (öneri kopyalanınca program denetimden ve çalışmadan geçiyor), olumsuz fikstür `tests/negative/metodu_olmayan_tip.tr`.
+- **Yeni hatalar (depo):** 0 (`.tr` dosyaları `tr check` ile; Go testleri ve belge blokları paket testleriyle).
+- 2b'nin commit'inde `docs/status.md`'ye yazdığım `round()` kimliksiz addı `TestReviewedSectionsWriteIdentities`'i düşürüyordu; bu commit'te düzeldi.
+
+- 2b'nin commit'inde `MembersBeyondDefinitions`'ın İngilizce gerekçe metinlerindeki çıplak tip adı (`JSON`) `TestNoBareNames`'i (tools/gen/codeconsts) düşürüyordu; değer artık tip kodlarının listesi.
+
 ## Kalan
 
 ## Kararsız

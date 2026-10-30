@@ -552,7 +552,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.11
 
 - **Mevcut durum:** yanlış tip ve sayı çalışma anında, iletiyle: "sqrt() expects Int or Float as argument 1, String (\"a\") given", "sqrt() takes 1 argument, 2 given (usage: sqrt(number))" [ölçüldü]. 4a2 (ilk dilim): tipi bilinen alıcıda (Metin, Liste, Sözlük, Aralık) yerleşik metodun konumlu argüman sayısı denetimde de, aynı kodla (H2011); metodun sayı iletisi çalışma anında da denetimde de kimlikle: ".TR_sort() takes 0 arguments, 1 given (usage: `.TR_sort()`)", `.TR_sort()`'a anahtar verilince demet sıralamasının yolu (H1116) [ölçüldü: `TestMemberArgCount`, `TestMemberArgCountUsesIdentities`, `TestMethodCountsMatchDefinitions`].
-- **Yapılacaklar:** argümanların tip denetimi (ikinci dilim); fonksiyonların ve öbür alıcı tiplerinin (tensör, kitaplık tipleri) sayı denetimi; fonksiyonların H2011 iletisi hâlâ görünüm adıyla (`round()`).
+- **Yapılacaklar:** argümanların tip denetimi (ikinci dilim); fonksiyonların ve öbür alıcı tiplerinin (tensör, kitaplık tipleri) sayı denetimi; fonksiyonların H2011 iletisi hâlâ görünüm adıyla (`TR_round` için "round()").
 
 ## 15. Tensörler ve otomatik türev
 

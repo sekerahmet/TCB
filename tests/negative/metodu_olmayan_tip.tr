@@ -1,0 +1,6 @@
+# TR 4
+# TEST 13.11 tipi bilinen alıcının tipinde olmayan yerleşik metot denetim hatasıdır (çalışma anındaki kod)
+TR_var l = ["a", "b"]
+TR_print(" ".TR_join(l)) # ERROR H2474
+TR_print(l.TR_strip()) # ERROR H2474
+TR_print((0..3).TR_sort()) # ERROR H2474

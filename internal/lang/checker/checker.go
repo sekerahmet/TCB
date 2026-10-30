@@ -445,8 +445,10 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	default:
 		c.inferExpression(e.Function)
 	}
+	argTypes := make([]string, len(e.Arguments))
 	for i, arg := range e.Arguments {
 		argType := c.inferExpression(arg)
+		argTypes[i] = argType
 		c.noteCall(e, objType, i, "", arg, argType)
 		if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
 			c.addErrorAt(arg, messages.New(messages.H1004,
@@ -457,7 +459,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		c.noteCall(e, objType, -1, na.Name, na.Value, c.inferExpression(na.Value))
 	}
 	if isMember {
-		c.checkMemberCall(e, objType)
+		c.checkMemberCall(e, objType, argTypes)
 	}
 	return c.callType(e, info, found, objType)
 }
