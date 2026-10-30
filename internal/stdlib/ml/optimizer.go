@@ -225,7 +225,7 @@ func gradClip(_ *interp.VM, args []interp.Value, named map[string]interp.Value) 
 		n := float64(probe.Data()[0])
 		probe.Drop()
 		if math.IsNaN(n) || math.IsInf(n, 0) {
-			return nil, messages.New(messages.H6534, fn, n, codes.NameRef(codes.FnIsFinite))
+			return nil, messages.New(messages.H6534, fn, n, codes.Spelling(codes.FnIsFinite))
 		}
 	}
 	norm, err := safe(func() *tensor.Tensor { return tensor.ClipGradNormTensor(params, maxVal) })

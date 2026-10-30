@@ -175,7 +175,7 @@ TR_try { f() } TR_catch e { TR_print(e) }
 // da) hatadır ve iletisi köşeli parantezli yazımı verir (sabit İngilizce, yakalanan hata).
 func TestDictKeysAreTextNotMembers(t *testing.T) {
 	out := runCoded(t, "TR_var cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nTR_print(cfg, cfg[\"step\"], cfg.TR_keys())\nTR_try { TR_print(cfg.TR_step) } TR_catch e { TR_print(e) }\n", nil)
-	if want := "{\"step\": 2} 2 [\"step\"]\n"; !strings.HasPrefix(out, want) || !strings.Contains(out, `write ["step"]`) {
+	if want := "{\"step\": 2} 2 [\"step\"]\n"; !strings.HasPrefix(out, want) || !strings.Contains(out, "write `[\"step\"]`") {
 		t.Errorf("sözlük anahtarı metin olmalı, noktayla okuma hata vermeli:\n%s", out)
 	}
 }

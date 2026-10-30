@@ -57,10 +57,10 @@ const (
 	H0143 Code = 143  // '{keyword}' modül yolunu metin olarak bekler, ancak {found} bulundu: {keyword} "{example, select, empty {yardımcı} other {{example}}}" yazın
 	H0145 Code = 145  // '{name}' metodu '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
 	H0146 Code = 146  // '{name}' alanı '{struct}' yapısında iki kez tanımlandı (her alan ve metot adı bir kez kullanılır)
-	H0147 Code = 147  // yapı gövdesinde yalnızca alanlar (ad, ad: Tip, ad = değer) ve fonksiyon tanımları bulunabilir; {what}
+	H0147 Code = 147  // yapı gövdesinde yalnızca alanlar (`ad`, `ad: {#Int}`, `ad = değer`) ve fonksiyon tanımları bulunabilir; {what}
 	H0148 Code = 148  // {found} bir alan tanımı değil
 	H0149 Code = 149  // '{name}' ardından gelen {found} bir alan tanımı değil (alanlar virgül ya da satır sonuyla ayrılır)
-	H0150 Code = 150  // yapı metodunun bir adı olmalı: fonksiyon ad(...) {{ ... }}
+	H0150 Code = 150  // yapı metodunun bir adı olmalı: `{#func} ad(...) {{ ... }}`
 	H0151 Code = 151  // '{keyword}' yalnızca bir döngünün içinde kullanılabilir{exit, select, empty {} other {; fonksiyondan çıkmak için '{exit}' yazın}}
 	H0153 Code = 153  // '{keyword}' test gövdesinde kullanılamaz; test kendi sonuna kadar çalışır (erken bitirmek istediğiniz kısmı bir '{block}' bloğuna alın)
 	H0154 Code = 154  // '{keyword}' modülün üst düzeyinde kullanılamaz; modül bir fonksiyon değildir, aktaran programı bitiremez
@@ -384,23 +384,23 @@ const (
 	H2528 Code = 2528 // {fn}: {code|q} tanımlı bir ileti kodu değil
 	H2529 Code = 2529 // {fn}: {code} iletisi {expected} değer alır, {given} verildi
 	H2530 Code = 2530 // {fn}: durdurma istendi, yeni bekleme başlatılmadı. Program durdurmayı üstlendi: {requested}() doğruysa döngüden çıkıp temizliğe geçin; temizlikte beklemek gerekiyorsa onu '{defer}' bloğunda ya da bu hatayı yakalayan '{catch}' gövdesinde yapın
-	H2531 Code = 2531 // {fn}: çıkış kodu 0 ile 125 arasında bir Tam olmalı ({value} verildi). Örneğin '{exit}(4)' yazın (0 başarı, 1 hata, 2 kullanım hatası; kendi kodlarınız 4'ten başlar)
+	H2531 Code = 2531 // {fn}: çıkış kodu 0 ile 125 arasında bir {@Int} olmalı ({value} verildi). Örneğin '{exit}(4)' yazın (0 başarı, 1 hata, 2 kullanım hatası; kendi kodlarınız 4'ten başlar)
 	H2532 Code = 2532 // {fn}({code}) bir testin içinden çağrıldı: test başarısız sayıldı, program bitirilmez. Testte bir koşulu denetlemek için '{assert}(koşul)' yazın
 	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'tr {show}' ile yazılır)
-	H2600 Code = 2600 // koşul bir mantık değeri (Bool) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
-	H2601 Code = 2601 // `{#and}`, `{#or}` ve `{#not}` yalnız mantık değeri (Bool) alır; {type} verildi. Açık bir sınama yazın: `x.{#length} > 0`, `x != {#none}`, `x != 0`
+	H2600 Code = 2600 // koşul bir mantık değeri ({@Bool}) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
+	H2601 Code = 2601 // `{#and}`, `{#or}` ve `{#not}` yalnız mantık değeri ({@Bool}) alır; {type} verildi. Açık bir sınama yazın: `x.{#length} > 0`, `x != {#none}`, `x != 0`
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
 	H2603 Code = 2603 // iki tam sayının üssünde üs eksi olamaz ({a} ** {b}); ondalık sonuç için {base} ** {b} yazın
 	H2604 Code = 2604 // sıfırın eksi üssü tanımsızdır ({a} ** {b}); üssü almadan önce tabanın sıfır olmadığını sınayın
 	H2605 Code = 2605 // eksi sayının tam olmayan üssü gerçek sayı değildir ({a} ** {b}); tabanın mutlak değeriyle hesaplayıp işareti ayrıca verin
 	H2606 Code = 2606 // kaydırma miktarı 0 ile 63 arasında olmalı ('{op}' için {n} verildi)
-	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı (Int) alır; {left} ve {right} verildi. Mantık değerleri `{#and}` ve `{#or}` ile birleştirilir
-	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı (Int) alır; {type} verildi. Mantık değerinin tersi `{#not}` ile yazılır
+	H2607 Code = 2607 // '{op}' bit işlecidir ve yalnız iki tam sayı ({@Int}) alır; {left} ve {right} verildi. Mantık değerleri `{#and}` ve `{#or}` ile birleştirilir
+	H2608 Code = 2608 // '~' bit tümlemesidir ve yalnız tam sayı ({@Int}) alır; {type} verildi. Mantık değerinin tersi `{#not}` ile yazılır
 	H2609 Code = 2609 // '+' iki sayıyı toplar ya da aynı tipten iki metni ya da iki listeyi uç uca ekler; {left} ile {right} eklenmez. Değeri metne yerleştirmek için "metin \(x)" yazın
 	H2610 Code = 2610 // yineleme çok büyük: {n} kez yinelemek {limit} baytlık metni aşar
-	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri (Bool) döndürmeli; {type} döndü. Açık bir sınama döndürün: `l.{#filter}((x) => x != 0)`
-	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri (Bool) alır; {type} verildi. Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`
+	H2611 Code = 2611 // '.{@filter}'in fonksiyonu mantık değeri ({@Bool}) döndürmeli; {type} döndü. Açık bir sınama döndürün: `l.{#filter}((x) => x != 0)`
+	H2612 Code = 2612 // '{@assert}' koşul olarak mantık değeri ({@Bool}) alır; {type} verildi. Karşılaştırmayı yazın: `{#assert}(x == beklenen)` ya da `{#assert_equal}(beklenen, x)`
 	H2613 Code = 2613 // fonksiyonlar '{op}' ile karşılaştırılamaz: görünüşü aynı iki fonksiyon da eşit sayılmaz. Sonuçlarını karşılaştırın: f(x) == g(x)
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için `l + [x]` ya da `l.{#append}(x)` yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar
@@ -448,7 +448,7 @@ const (
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
 	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
 	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}
-	H2754 Code = 2754 // ; '{prop}' içinde değer tutmak için onu {struct} yapısına tipiyle alan olarak ekleyin: {prop}: <Tip>
+	H2754 Code = 2754 // ; '{prop}' içinde değer tutmak için onu {struct} yapısına tipiyle alan olarak ekleyin: `{prop}: {#Int}`
 	H2755 Code = 2755 // '{variant}' alan taşır ve çağrıyla kurulur: {variant}({args})
 	H2756 Code = 2756 // '{enum}.{method}': metot durumlu tipin bir değerinde çağrılır, d değeri için d.{method}() gibi
 	H2757 Code = 2757 // '{variant}' alan taşımaz ve çağrılmaz: {variant} yazın
@@ -470,7 +470,7 @@ const (
 	H2773 Code = 2773 // demet ancak bütün öğeleri anahtar olabiliyorsa sözlük anahtarıdır: {index}. öğe olamaz ({why})
 	H2774 Code = 2774 // demetin {count} öğesi var: .{index} yok; öğeleri .0'dan .{last}'e kadardır
 	H2775 Code = 2775 // '.{index}' demetin öğesini okur, ama değer bir {type}{kind, select, list {: listenin öğesi [{index}] ile okunur} other {}}
-	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün =='si öğe öğedir (15.5); tensörleri TR_equal(a.{index}, b.{index}) ile karşılaştırın
+	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün =='si öğe öğedir (15.5); tensörlerin değerlerini `a.{index}.{#tolist} == b.{index}.{#tolist}` ile karşılaştırın
 	H2778 Code = 2778 // {type} demeti köşeli parantezle indekslenemez (3.6a): {kind, select, const {demetin öğesi noktayla okunur: {example}} same {demetin öğesi yalnız sabit sayıyla okunur; listeye koyun: {example}} other {demetin öğesi yalnız sabit sayıyla okunur; açın: {example}}}
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
@@ -795,7 +795,7 @@ const (
 	H5224 Code = 5224 // {index}. dağarcık girdisi [parça, puan] biçiminde değil
 	H5225 Code = 5225 // {index}. dağarcık girdisi: {error}
 	H5226 Code = 5226 // unk_id {id} dağarcık dışında
-	H5227 Code = 5227 // desen (pattern) String ya da Regex olmalı
+	H5227 Code = 5227 // desen (pattern) "String" ya da "Regex" olmalı
 	H5228 Code = 5228 // şablon öğesi çözümlenemedi: {error}
 	H5229 Code = 5229 // bilinmeyen dizi kimliği {id|q}
 	H5230 Code = 5230 // şablondaki özel token {id|q} tanımlı değil
@@ -1157,7 +1157,7 @@ const (
 	H6531 Code = 6531 // {fn}: {source} {count} fazla ad var, ilki {first|q} modelde bir parametre değil
 	H6532 Code = 6532 // {fn}: {source} {count} fazla ad var, ilki {first|q} modelde bir parametre değil. Bunu mu demek istediniz: '{suggestion}'?
 	H6533 Code = 6533 // sözlükte
-	H6534 Code = 6534 // {fn}: gradyanların toplam normu sonlu değil ({norm}); bir gradyanda NaN ya da sonsuz var. Kaynağı kayıp, öğrenme oranı ya da veri olabilir; adımı atlamak isteyen eğitim hata yerine normu {finiteFn}(norm.değer) ile denetler
+	H6534 Code = 6534 // {fn}: gradyanların toplam normu sonlu değil ({norm}); bir gradyanda NaN ya da sonsuz var. Kaynağı kayıp, öğrenme oranı ya da veri olabilir; adımı atlamak isteyen eğitim hata yerine normu `{finiteFn}(norm.{#tolist})` ile denetler
 	H6600 Code = 6600 // {what} okunamadı: {error}
 	H6601 Code = 6601 // dosya bozuk ya da eksik: {what} okunurken dosya bitti
 	H6602 Code = 6602 // {fn}: dosya yolu metin olmalıdır, {given} verildi
@@ -1380,7 +1380,7 @@ const (
 	H7235 Code = 7235 // bu yardımı gösterir
 	H7236 Code = 7236 // boş liste
 	H7237 Code = 7237 // (varsayılan: {value}; kapatmak için --{name}={false})
-	H7238 Code = 7238 // '--{name}' Mantık bir seçenek; değeri ayrı argüman olarak değil = ile verilir: --{name}={value}
+	H7238 Code = 7238 // '--{name}' {@Bool} bir seçenek; değeri ayrı argüman olarak değil = ile verilir: --{name}={value}
 	H7300 Code = 7300 // {fn}: '{name}' ölçüsünün değeri {types} ya da {null} olmalı; {given} verildi
 	H7301 Code = 7301 // {sec|decimal} sn
 	H7302 Code = 7302 // {min|decimal} dk
