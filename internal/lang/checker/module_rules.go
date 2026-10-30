@@ -26,11 +26,9 @@ func (c *Checker) SetFile(kind FileKind, text string) {
 	c.fileKind, c.fileLines = kind, strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
 }
 
-// recordValueType keeps a module's top-level first value's type for the fix of H1108.
+// recordValueType keeps the inferred type of every TR_var's and TR_const's first value (nested
+// ones too): a module's top-level ones give the fix of H1108, all of them the inference counter.
 func (c *Checker) recordValueType(value ast.Expression, typ string) {
-	if c.fileKind == ProgramFile {
-		return
-	}
 	if c.valueTypes == nil {
 		c.valueTypes = map[ast.Expression]string{}
 	}
