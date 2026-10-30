@@ -181,14 +181,15 @@ func (l *Lexer) placeOf(line int) (place, second codes.Place, fallback bool) {
 }
 
 // expectsOperand t'den sonra bir değer beklenir mi: atama, işleç, açılan parantez, ':' (değer
-// satır sonundan sonra sürer).
+// satır sonundan sonra sürer). '?' işleç değildir, isteğe bağlı tipin sonudur (3.5): satır sonundaki
+// 'TR_k_proj: TR_Linear?'ten sonraki satır yeni bir üyedir.
 func expectsOperand(t TokenType) bool {
 	switch t {
 	case TokAssign, TokWalrus, TokPlus, TokMinus, TokAsterisk, TokSlash, TokSlashSlash, TokPercent,
 		TokPower, TokMatmul, TokBang, TokEq, TokNotEq, TokLt, TokGt, TokLte, TokGte, TokAnd, TokOr,
 		TokPipe, TokNullCoalesc, TokArrow, TokRange, TokRangeIncl, TokPlusAssign, TokMinusAssign,
 		TokMulAssign, TokDivAssign, TokFloorDivAssign, TokModAssign, TokPowAssign, TokBitAndAssign,
-		TokBitOrAssign, TokBitXorAssign, TokShlAssign, TokShrAssign, TokColon, TokQuestion, TokLParen, TokLBracket,
+		TokBitOrAssign, TokBitXorAssign, TokShlAssign, TokShrAssign, TokColon, TokLParen, TokLBracket,
 		TokBitAnd, TokBitOr, TokBitXor, TokTilde, TokShl, TokShr:
 		return true
 	}
