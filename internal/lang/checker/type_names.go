@@ -28,15 +28,18 @@ var (
 )
 
 // typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı
-// iletinin dilinde yazılır (Tam → Int); kullanıcının sınıf adı olduğu gibi kalır. Denetleyici
+// iletinin dilinde yazılır (Tam → Int; kabın öğe tipi de: TR_List[TR_Int] → List[Int]); kullanıcının
+// sınıf adı olduğu gibi kalır. Denetleyici
 // tipleri kanonik adla taşır (karşılaştırma için); ad yalnız iletide dile çevrilir.
 type typeText string
 
 func (t typeText) MessageText(lang string) string {
-	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
-		return codes.NameRef(k).MessageText(lang)
-	}
-	return string(t)
+	return mapTypeNames(string(t), func(name string) string {
+		if k, ok := codes.Find(codes.NamespaceType, name); ok {
+			return codes.NameRef(k).MessageText(lang)
+		}
+		return name
+	})
 }
 
 // typeSpelling typeText'in dosyadaki hâlidir: tip adı dosyada yazıldığı gibi, kimlik yazımıyla
@@ -44,10 +47,12 @@ func (t typeText) MessageText(lang string) string {
 type typeSpelling string
 
 func (t typeSpelling) MessageText(lang string) string {
-	if k, ok := codes.Find(codes.NamespaceType, string(t)); ok {
-		return codes.Spelling(k)
-	}
-	return string(t)
+	return mapTypeNames(string(t), func(name string) string {
+		if k, ok := codes.Find(codes.NamespaceType, name); ok {
+			return codes.Spelling(k)
+		}
+		return name
+	})
 }
 
 // typeArg denetleyicinin t tipinin ileti parametresidir: dosyada kimlik yazımıyla (typeSpelling),
@@ -206,19 +211,22 @@ func (c *Checker) checkedTypeName(name string, at lexer.Token) string {
 	return canonical
 }
 
-// writtenType yazılan tipin denetleyicideki adını verir (yazılmamışsa Herhangi). Bileşik tip
-// bugün asıl adına indirgenir, yalnız yapısı açılır: TR_List[...] → TR_List, T? → T; demet tipi
-// Herhangi'dir. Fonksiyon tipi, bu işten önceki gibi Fonksiyon'dur: fonksiyon olmayan değer
-// yine yakalanır. İçindeki her ad checkedTypeName'deki gibi denetlenir. Tiplerin anlamı 4a2, 4b
-// ve 4c'de gelir.
+// writtenType yazılan tipin denetleyicideki adını verir (yazılmamışsa Herhangi). Liste ve sözlük
+// öğe tipiyle yazılır (TR_List[TR_Int], type_shapes.go); öbür bileşik tip bugün asıl adına
+// indirgenir: T? → T; demet tipi Herhangi'dir. Fonksiyon tipi, bu işten önceki gibi Fonksiyon'dur:
+// fonksiyon olmayan değer yine yakalanır. İçindeki her ad checkedTypeName'deki gibi denetlenir.
 func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 	if t == nil {
 		return typeAny
 	}
-	for _, inner := range [][]ast.TypeRef{t.Args, t.Elems, t.Params} {
+	for _, inner := range [][]ast.TypeRef{t.Elems, t.Params} {
 		for i := range inner {
 			c.writtenType(&inner[i], line)
 		}
+	}
+	args := make([]string, len(t.Args))
+	for i := range t.Args {
+		args[i] = c.writtenType(&t.Args[i], line)
 	}
 	if t.Return != nil {
 		c.writtenType(t.Return, line)
@@ -227,7 +235,7 @@ func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 	if t.Name == "" {
 		return typeAny
 	}
-	return c.checkedTypeName(t.Name, siteOf(t.Token, line))
+	return containerType(c.checkedTypeName(t.Name, siteOf(t.Token, line)), args)
 }
 
 // normalizedType writtenType'ın indirgemesini hata eklemeden yapar.
@@ -238,7 +246,11 @@ func normalizedType(t *ast.TypeRef) string {
 	if t == nil || t.Name == "" {
 		return typeAny
 	}
-	return normalizeTypeName(t.Name)
+	args := make([]string, len(t.Args))
+	for i := range t.Args {
+		args[i] = normalizedType(&t.Args[i])
+	}
+	return containerType(normalizeTypeName(t.Name), args)
 }
 
 // normalizeTypeName tip açıklamasındaki adı asıl tip adına çevirir (hata eklemeden).
