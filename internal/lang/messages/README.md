@@ -23,8 +23,8 @@ kullanılmaz: silinenler `retired.json`'dadır (numara → commit ve gerekçe; i
 `messages.Text(...)` hata olmayan çıktı (uyarı, not) verir. Değerler tanımdaki parametre sırasıyla
 verilir; metin hata yazılırken etkin dilde kurulur. İleti ve içindeki dil adları tek dildedir:
 ad iletiye kodla verilir (`codes.NameRef`, `interp.CallName`, `bind.Named`; denetleyicide
-`typeText`), katalog onu iletinin dilinde yazar; `codes.Name`, `codes.DisplayName`,
-`codes.ReceiverName` ya da `.TR` ile kurulmuş ad ne doğrudan, ne bir değişkenle, ne de adı iletiye ileten bir fonksiyonun parametresiyle verilir (`TestNoFixedNamesInMessages`). Sabitler üretilir
+`typeText`), katalog onu iletinin dilinde yazar; `codes.Name`, `codes.DisplayName`
+ya da `.TR` ile kurulmuş ad ne doğrudan, ne bir değişkenle, ne de adı iletiye ileten bir fonksiyonun parametresiyle verilir (`TestNoFixedNamesInMessages`). Sabitler üretilir
 (`go run ./tools/gen/msgconsts`); katalogda olmayan kod derlemeyi düşürür. Denetim: `TestMessageUsage`, `TestGeneratedUpToDate` (tools/gen/msgconsts).
 
 **Dosyalar.** `definitions.json` dilden bağımsızdır: her kodun parametre adları
@@ -74,7 +74,7 @@ adla anıldığı için serbesttir. Denetim: `TestRender`, `TestPlural`, `TestSe
 
 İngilizce: `en.json` her kodun metnini taşır; `TR_LANG=en` ile gösterilir. `en.json`'da olmayan kod hatadır; yeni kod `tr.json`'la birlikte `en.json`'a da yazılır. Denetim: `TestEnglishCoversEveryCode`.
 
-**TR kodu da ileti kurar.** `lib/*.tr` hata metni yazmaz: `TR_throw TR_message("H6903", pencere)` kodu (bir metin değeri) ve değerleri taşır, metin hata gösterilirken bu katalogdan kurulur (dil tanımı 8.5). `ParamCount` `TR_message` çağrısını tanımla denetler (tanımsız kod H2528, yanlış değer sayısı H2529). Kitaplığın kendi adları ad yuvasıdır (`{@ad}`, yukarıda). Denetim: `TestParamCount`, `TestMessageUsage` (tools/gen/msgconsts: `.tr` çağrıları), `TestMessageSlotsAreNames` (internal/lang/codes).
+**TR kodu da ileti kurar.** `lib/*.tr` hata metni yazmaz: `TR_throw TR_Message("H6903", pencere)` kodu (bir metin değeri) ve değerleri taşır, metin hata gösterilirken bu katalogdan kurulur (dil tanımı 8.5). `ParamCount` `TR_Message` çağrısını tanımla denetler (tanımsız kod H2528, yanlış değer sayısı H2529). Kitaplığın kendi adları ad yuvasıdır (`{@ad}`, yukarıda). Denetim: `TestParamCount`, `TestMessageUsage` (tools/gen/msgconsts: `.tr` çağrıları), `TestMessageSlotsAreNames` (internal/lang/codes).
 
 **Testler metni değil kodu denetler.** `messages.Has(err, messages.H7003)` hata zincirinde kodu
 arar; metin değişince test kırılmaz.

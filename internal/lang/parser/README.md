@@ -19,5 +19,5 @@ kaynak yığını taşırmadan hatayla reddedilir. Denetim: `FuzzParser`, `TestN
 fonksiyonda geçerlidir; ihlal çalıştırmadan önce sözdizimi hatasıdır. Denetim: `TestBreakContinueOutsideLoopIsError`, `TestReturnInTestBodyIsError`, `TestModuleTopLevelReturnIsError`.
 
 **Ağaçta düğümü olmayan adlar da kaybolmaz.** Tip açıklamaları, üye ve alan adları, bağlamsal
-sözcükler gibi ayrı düğümü olmayan adların görevi kaydedilebilir; kodlu biçime çevirici bu
+sözcükler gibi ayrı düğümü olmayan adların görevi kaydedilebilir; görünüm (`source.Show`) bu
 kayda dayanır. Denetim: `TestRolesRecordedForNamesWithoutNodes`, `TestRolesOffByDefault`.
