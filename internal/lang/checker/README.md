@@ -48,5 +48,6 @@ yazılmış tip adı ayrıca bir tip uyuşmazlığı olarak bildirilmez). Deneti
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_read_only_test.go`: denetçinin içe aktarmaları (yorumlayıcı, dosya, süreç, ağ yok): kod çalıştırmaz
+- `behavior_repo_inference_test.go`: sayaç (1.2, 3.13): depodaki programların `TR_var` ve `TR_const` ilk değerlerinden kaçının tipi çıkarılamıyor (`TR_Any`); düşmez, yazar
 - `behavior_repo_modules_test.go`: depodaki modüller ve test dosyaları 1.1'e uyar (en dışta yalnız tanım, sabit ilk değer)
 - `behavior_repo_programs_test.go`: depodaki programlar (örnekler, kitaplık, GPU araçları, dil tanımı testleri) diskteki kodlu biçimleriyle okunup hatasız, uyarısız ve yazılış kuralına uygun denetlenir (dış test paketi: `source` denetçiyi içe aktarır)

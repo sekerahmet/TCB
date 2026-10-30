@@ -79,7 +79,8 @@ type Checker struct {
 	// (2.1). İletiler dilin sözcüklerini dosyada kimlik yazımıyla, satırda o dilde adlandırır (word).
 	fileLanguage string
 	// fileKind ve fileLines denetlenen dosyanın türü ve satırlarıdır (1.1; module_rules.go);
-	// valueTypes en dıştaki ilk değerlerin çıkarılan tipleridir (iletinin önerisi için).
+	// valueTypes son CheckProgram'daki TR_var ve TR_const ilk değerlerinin (iç içe olanlar da)
+	// çıkarılan tipleridir: en dıştakiler iletinin önerisi için (H1108), hepsi çıkarımın sayacı için.
 	fileKind   FileKind
 	fileLines  []string
 	valueTypes map[ast.Expression]string
@@ -144,6 +145,7 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 // check checks prog and records the errors it found.
 func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
+	c.valueTypes = nil
 	for _, stmt := range prog.Statements {
 		c.checkStatement(stmt)
 	}
