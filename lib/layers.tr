@@ -16,7 +16,7 @@
 
 # ağırlık_başlat şekli verilen, N(0, std) ile başlayan, türev izleyen bir ağırlık kurar; tür
 # verilirse ağırlık o türde tutulur (ör. "bf16": hazır modellerin saklandığı tür).
-TR_func TR_init_weight(TR_shape, TR_init_std, TR_seed, TR_dtype = "float32") {
+TR_func TR_init_weight(TR_shape: TR_List[TR_Int], TR_init_std: TR_Float, TR_seed: TR_Int, TR_dtype: TR_String = "float32") -> TR_Tensor {
     TR_return TR_Tensor(TR_no_grad((TR_randn(TR_shape, TR_seed: TR_seed) * TR_init_std).TR_to_dtype(TR_dtype)), TR_requires_grad: TR_true)
 }
 
@@ -28,13 +28,13 @@ TR_func TR_init_weight(TR_shape, TR_init_std, TR_seed, TR_dtype = "float32") {
 # Flax'ın Dense'i (dtype sapmayı da kapsar) böyledir; sapmanın gradyanı float32 birikir (15.3).
 # Hedef modelde float32 ara sonuçları ve geri dönüşümleri kaldırır (221 → 203 ms/adım).
 TR_struct TR_Linear {
-    TR_weight
-    TR_bias
-    TR_func TR_init(TR_in_features, TR_out_features, TR_use_bias = TR_false, TR_init_std = 0.02, TR_seed = 1, TR_dtype = "float32") {
+    TR_weight: TR_Tensor
+    TR_bias: TR_Tensor?
+    TR_func TR_init(TR_in_features: TR_Int, TR_out_features: TR_Int, TR_use_bias: TR_Bool = TR_false, TR_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_dtype: TR_String = "float32") {
         TR_self.TR_weight = TR_init_weight([TR_in_features, TR_out_features], TR_init_std, TR_seed, TR_dtype: TR_dtype)
         TR_self.TR_bias = TR_if TR_use_bias { TR_Tensor(TR_zeros([TR_out_features]), TR_requires_grad: TR_true) } TR_else { TR_none }
     }
-    TR_func TR_forward(TR_x) {
+    TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {
         TR_if TR_self.TR_bias == TR_none { TR_return TR_x @ TR_self.TR_weight }
         TR_var y = TR_x @ TR_self.TR_weight
         TR_return y + TR_self.TR_bias.TR_to_dtype(y.TR_dtype)
@@ -45,11 +45,11 @@ TR_struct TR_Linear {
 # (`gömme` yerleşiğiyle): [B, T] → [B, T, boyut]. tür tablonun türüdür; float32 olmayan tablonun
 # satırları hesap türüne çevrilir (karışık hassasiyet dışında float32: etkinleşmeler 32 bit kalır).
 TR_struct TR_Embedding {
-    TR_table
-    TR_func TR_init(TR_vocab_size, TR_embed_dim, TR_init_std = 0.02, TR_seed = 1, TR_dtype = "float32") {
+    TR_table: TR_Tensor
+    TR_func TR_init(TR_vocab_size: TR_Int, TR_embed_dim: TR_Int, TR_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_dtype: TR_String = "float32") {
         TR_self.TR_table = TR_init_weight([TR_vocab_size, TR_embed_dim], TR_init_std, TR_seed, TR_dtype: TR_dtype)
     }
-    TR_func TR_forward(TR_token_ids) {
+    TR_func TR_forward(TR_token_ids) -> TR_Tensor {
         TR_var e = TR_embedding_lookup(TR_self.TR_table, TR_token_ids)
         TR_if TR_self.TR_table.TR_dtype == "float32" { TR_return e }
         TR_return e.TR_to_dtype(TR_compute_dtype())
@@ -63,13 +63,13 @@ TR_struct TR_Embedding {
 # çarpım için bf16'ya çeviren ayrı dönüşüm kalkar (PyTorch'ta torch.compile normu dönüşümle
 # kaynaştırır; Flax'ta RMSNorm(dtype=...)). Hedef modelde 167 → 163 ms/adım, kayıplar aynı.
 TR_struct TR_RMSNorm {
-    TR_weight
-    TR_eps = 0.00001
-    TR_func TR_init(TR_embed_dim, TR_eps = 0.00001) {
+    TR_weight: TR_Tensor
+    TR_eps: TR_Float = 0.00001
+    TR_func TR_init(TR_embed_dim: TR_Int, TR_eps: TR_Float = 0.00001) {
         TR_self.TR_weight = TR_Tensor(TR_ones([TR_embed_dim]), TR_requires_grad: TR_true)
         TR_self.TR_eps = TR_eps
     }
-    TR_func TR_forward(TR_x, TR_output_dtype = TR_none) {
+    TR_func TR_forward(TR_x: TR_Tensor, TR_output_dtype: TR_String? = TR_none) -> TR_Tensor {
         TR_if TR_output_dtype == TR_none { TR_return TR_rms_norm(TR_x, TR_self.TR_weight, TR_eps: TR_self.TR_eps) }
         TR_return TR_rms_norm(TR_x, TR_self.TR_weight, TR_eps: TR_self.TR_eps, TR_dtype: TR_output_dtype)
     }
@@ -79,7 +79,7 @@ TR_struct TR_RMSNorm {
 # açıyla döndürülür; sorgu ile anahtarın iç çarpımı böylece yalnızca aradaki uzaklığa bağlı
 # olur. döner_konum_tablosu [kosinüs, sinüs] verir, ikisi de [bağlam, bakış_boyutu / 2].
 # Frekanslar taban^(-2i / bakış_boyutu). Tablolar türev izlemez (öğrenilmez).
-TR_func TR_rotary_table(TR_context, TR_head_dim, TR_rope_theta = 10000.0) {
+TR_func TR_rotary_table(TR_context: TR_Int, TR_head_dim: TR_Int, TR_rope_theta: TR_Float = 10000.0) -> TR_List[TR_Tensor] {
     TR_var yarım = TR_head_dim // 2
     TR_var frekanslar = [TR_rope_theta ** (-2.0 * i / TR_head_dim) TR_for i TR_in 0..yarım]
     TR_var konumlar = TR_Tensor([[t] TR_for t TR_in 0..TR_context]) # [bağlam, 1]
@@ -94,7 +94,7 @@ TR_func TR_rotary_table(TR_context, TR_head_dim, TR_rope_theta = 10000.0) {
 # geçişin sonunda yapılır: değer aynıdır (bir kez yuvarlanır), float32 sonuç ve ayrı dönüşüm
 # kalkar. döner_konum_uygula aynı hesabın kaynaşmış biçimidir (kaynaştır, dil tanımı 15.44):
 # zincir tek geçişte hesaplanır, ara sonuçlar belleğe yazılmaz; sonuç aynıdır.
-TR_func TR_apply_rotary(TR_x, TR_cos_table, TR_sin_table) {
+TR_func TR_apply_rotary(TR_x: TR_Tensor, TR_cos_table: TR_Tensor, TR_sin_table: TR_Tensor) -> TR_Tensor {
     TR_var T = TR_x.TR_shape[-3]
     TR_var a, b = TR_x.TR_split(2, TR_dim: -1)
     TR_var c = TR_cos_table[0..T].TR_reshape([T, 1, TR_cos_table.TR_shape[-1]])
@@ -121,18 +121,18 @@ TR_var TR_apply_rotary_fused = TR_fuse(TR_apply_rotary)
 #            [boyut, bakış_sayısı · bakış_boyutu], çıkış katmanı [bakış_sayısı · bakış_boyutu, boyut] olur. Döner konum
 #            başı iki yarıya böldüğünden çift olmalıdır.
 TR_struct TR_CausalAttention {
-    TR_num_heads
-    TR_num_kv_heads
-    TR_head_dim
-    TR_window
-    TR_q_proj
-    TR_k_proj
-    TR_v_proj
-    TR_kv_proj
-    TR_q_norm
-    TR_k_norm
-    TR_o_proj
-    TR_func TR_init(TR_embed_dim, TR_num_heads, TR_num_kv_heads = TR_none, TR_use_bias = TR_false, TR_init_std = 0.02, TR_output_init_std = 0.02, TR_seed = 1, TR_window = 0, TR_qk_norm = TR_false, TR_merged_kv = TR_false, TR_eps = 0.00001, TR_head_dim = TR_none, TR_weight_dtype = "float32") {
+    TR_num_heads: TR_Int
+    TR_num_kv_heads: TR_Int
+    TR_head_dim: TR_Int
+    TR_window: TR_Int
+    TR_q_proj: TR_Linear
+    TR_k_proj: TR_Linear?
+    TR_v_proj: TR_Linear?
+    TR_kv_proj: TR_Linear?
+    TR_q_norm: TR_RMSNorm?
+    TR_k_norm: TR_RMSNorm?
+    TR_o_proj: TR_Linear
+    TR_func TR_init(TR_embed_dim: TR_Int, TR_num_heads: TR_Int, TR_num_kv_heads: TR_Int? = TR_none, TR_use_bias: TR_Bool = TR_false, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_window: TR_Int = 0, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_eps: TR_Float = 0.00001, TR_head_dim: TR_Int? = TR_none, TR_weight_dtype: TR_String = "float32") {
         TR_if TR_num_kv_heads == TR_none { TR_num_kv_heads = TR_num_heads }
         TR_if TR_head_dim == TR_none {
             TR_assert(TR_embed_dim % TR_num_heads == 0, TR_Message("H6900", TR_embed_dim, TR_num_heads))
@@ -163,7 +163,7 @@ TR_struct TR_CausalAttention {
     # x [B, T, D]; cos_tablosu/sin_tablosu döner_konum_tablosu'ndan (önbellekli çağrıda konumdan başlayan
     # satırlar). önbellek verilirse (KVÖnbellek) yeni anahtar ve değerler katman no'ya eklenir ve
     # sorgular önbellekteki bütün konumlara bakar (dikkat'te nedensellik sondan hizalıdır, 15.24).
-    TR_func TR_forward(TR_x, TR_cos_table, TR_sin_table, TR_cache = TR_none, TR_layer_idx = 0) {
+    TR_func TR_forward(TR_x: TR_Tensor, TR_cos_table: TR_Tensor, TR_sin_table: TR_Tensor, TR_cache: TR_KVCache? = TR_none, TR_layer_idx: TR_Int = 0) -> TR_Tensor {
         TR_var B = TR_x.TR_shape[0]
         TR_var T = TR_x.TR_shape[1]
         TR_var k_ham = TR_none
@@ -206,14 +206,14 @@ TR_struct TR_CausalAttention {
 
 # swiglu_ara_boyutu: SwiGLU'nun ara boyutu için yaygın seçim, 8/3 · boyut, 32'nin katına
 # yukarı yuvarlanır (üç matrisli ileri besleme, 4 · boyut'luk iki matrisliyle aynı büyüklükte).
-TR_func TR_swiglu_intermediate_dim(TR_embed_dim) {
+TR_func TR_swiglu_intermediate_dim(TR_embed_dim: TR_Int) -> TR_Int {
     TR_return TR_Int(TR_ceil(8.0 * TR_embed_dim / 3.0 / 32.0)) * 32
 }
 
 # swiglu_kapısı: SwiGLU'nun kapısı silu(g) · u; birleşik [G | U] çıktısında g ve u yarılardır.
 # İkisi de kaynaşmıştır (tek geçiş).
-TR_func TR_swiglu_gate(TR_g_swiglu, TR_u) { TR_return TR_silu(TR_g_swiglu) * TR_u }
-TR_func TR_swiglu_merged_gate(TR_gu) {
+TR_func TR_swiglu_gate(TR_g_swiglu: TR_Tensor, TR_u: TR_Tensor) -> TR_Tensor { TR_return TR_silu(TR_g_swiglu) * TR_u }
+TR_func TR_swiglu_merged_gate(TR_gu: TR_Tensor) -> TR_Tensor {
     TR_var g, u = TR_gu.TR_split(2, TR_dim: -1)
     TR_return TR_silu(g) * u
 }
@@ -225,11 +225,11 @@ TR_var TR_swiglu_merged_gate_fused = TR_fuse(TR_swiglu_merged_gate)
 # `.böl(2)` ile ayrılır (Muon ikisini birlikte dikleştirir); kapı ve yukarı o zaman yok'tur.
 # sapmalı: bütün katmanların sapması (birleşikte kapı_yukarı'nın sapması [2·ara]).
 TR_struct TR_SwiGLU {
-    TR_gate_proj
-    TR_up_proj
-    TR_gate_up_proj
-    TR_down_proj
-    TR_func TR_init(TR_embed_dim, TR_intermediate_dim = TR_none, TR_use_bias = TR_false, TR_init_std = 0.02, TR_output_init_std = 0.02, TR_seed = 1, TR_merged = TR_false, TR_weight_dtype = "float32") {
+    TR_gate_proj: TR_Linear?
+    TR_up_proj: TR_Linear?
+    TR_gate_up_proj: TR_Linear?
+    TR_down_proj: TR_Linear
+    TR_func TR_init(TR_embed_dim: TR_Int, TR_intermediate_dim: TR_Int? = TR_none, TR_use_bias: TR_Bool = TR_false, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_merged: TR_Bool = TR_false, TR_weight_dtype: TR_String = "float32") {
         TR_if TR_intermediate_dim == TR_none { TR_intermediate_dim = TR_swiglu_intermediate_dim(TR_embed_dim) }
         TR_if TR_merged {
             TR_self.TR_gate_proj = TR_none
@@ -242,7 +242,7 @@ TR_struct TR_SwiGLU {
         }
         TR_self.TR_down_proj = TR_Linear(TR_intermediate_dim, TR_embed_dim, TR_use_bias: TR_use_bias, TR_init_std: TR_output_init_std, TR_seed: TR_seed + 2, TR_dtype: TR_weight_dtype)
     }
-    TR_func TR_forward(TR_x) {
+    TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {
         TR_if TR_self.TR_gate_up_proj != TR_none {
             TR_return TR_self.TR_down_proj.TR_forward(TR_swiglu_merged_gate_fused(TR_self.TR_gate_up_proj.TR_forward(TR_x)))
         }
@@ -251,13 +251,13 @@ TR_struct TR_SwiGLU {
 }
 
 # ple_gelu PLE'nin etkinleştirmesidir: tam (erf tabanlı) GELU, hedef modelin F.gelu'su gibi.
-TR_func TR_ple_gelu(TR_x) { TR_return TR_gelu(TR_x, TR_approximate: TR_false) }
+TR_func TR_ple_gelu(TR_x: TR_Tensor) -> TR_Tensor { TR_return TR_gelu(TR_x, TR_approximate: TR_false) }
 
 # ple_karışımı PLE bloğunun eleman bazlı zinciridir: GELU(kapı) ⊙ (bağlam + ölçek · satır) / √2
 # (ölçek = √P); ple_karış onun kaynaşmış biçimidir. Sonuç kapının türündedir (karışık
 # hassasiyette bf16): float32 tablo satırı zinciri float32'ye yükseltir, sonucu yalnızca
 # izdüşüm çarpımı okur; dönüşüm kaynaşık geçişin sonunda yapılır (bkz. döner_konum_hesapla).
-TR_func TR_ple_mix(TR_gate, TR_ple_context, TR_row, TR_scale) {
+TR_func TR_ple_mix(TR_gate: TR_Tensor, TR_ple_context: TR_Tensor, TR_row: TR_Tensor, TR_scale: TR_Float) -> TR_Tensor {
     TR_return (TR_ple_gelu(TR_gate) * ((TR_ple_context + TR_scale * TR_row) / TR_sqrt(2.0))).TR_to_dtype(TR_gate.TR_dtype)
 }
 TR_var TR_ple_mix_fused = TR_fuse(TR_ple_mix)
@@ -269,19 +269,19 @@ TR_var TR_ple_mix_fused = TR_fuse(TR_ple_mix)
 # `ileri(x)` katman sayısı kadar [B, T, P] tensörlük bir liste verir; i. eleman i. bloğun
 # PLEBloğu.ileri'sine girer. ağırlık_türü W_ctx'in türüdür (GPT'den iletilir).
 TR_struct TR_PLEContext {
-    TR_embed_dim
-    TR_num_layers
-    TR_ple_dim
-    TR_context_proj
-    TR_norm
-    TR_func TR_init(TR_embed_dim, TR_num_layers, TR_ple_dim, TR_eps = 0.00001, TR_init_std = 0.02, TR_seed = 1, TR_weight_dtype = "float32") {
+    TR_embed_dim: TR_Int
+    TR_num_layers: TR_Int
+    TR_ple_dim: TR_Int
+    TR_context_proj: TR_Linear
+    TR_norm: TR_RMSNorm
+    TR_func TR_init(TR_embed_dim: TR_Int, TR_num_layers: TR_Int, TR_ple_dim: TR_Int, TR_eps: TR_Float = 0.00001, TR_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_embed_dim = TR_embed_dim
         TR_self.TR_num_layers = TR_num_layers
         TR_self.TR_ple_dim = TR_ple_dim
         TR_self.TR_context_proj = TR_Linear(TR_embed_dim, TR_num_layers * TR_ple_dim, TR_init_std: TR_init_std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
         TR_self.TR_norm = TR_RMSNorm(TR_ple_dim, TR_eps: TR_eps)
     }
-    TR_func TR_forward(TR_x) {
+    TR_func TR_forward(TR_x: TR_Tensor) -> TR_List[TR_Tensor] {
         TR_var h = TR_self.TR_context_proj.TR_forward(TR_x) / TR_sqrt(TR_self.TR_embed_dim)
         TR_return [TR_self.TR_norm.TR_forward(parça) TR_for parça TR_in h.TR_split(TR_self.TR_num_layers, TR_dim: -1)]
     }
@@ -294,12 +294,12 @@ TR_struct TR_PLEContext {
 # W_g (kapı) [D, P], W_p (izdüşüm) [P, D]; izdüşüm artık yola yazar, çıkış_std ile başlar.
 # ağırlık_türü tablonun ve iki matrisin türüdür (GPT'den iletilir).
 TR_struct TR_PLEBlock {
-    TR_ple_dim
-    TR_table
-    TR_gate_proj
-    TR_proj
-    TR_norm
-    TR_func TR_init(TR_embed_dim, TR_vocab_size, TR_ple_dim, TR_eps = 0.00001, TR_init_std = 0.02, TR_output_init_std = 0.02, TR_seed = 1, TR_weight_dtype = "float32") {
+    TR_ple_dim: TR_Int
+    TR_table: TR_Tensor
+    TR_gate_proj: TR_Linear
+    TR_proj: TR_Linear
+    TR_norm: TR_RMSNorm
+    TR_func TR_init(TR_embed_dim: TR_Int, TR_vocab_size: TR_Int, TR_ple_dim: TR_Int, TR_eps: TR_Float = 0.00001, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_ple_dim = TR_ple_dim
         TR_self.TR_table = TR_init_weight([TR_vocab_size, TR_ple_dim], TR_init_std, TR_seed, TR_weight_dtype)
         TR_self.TR_gate_proj = TR_Linear(TR_embed_dim, TR_ple_dim, TR_init_std: TR_init_std, TR_seed: TR_seed + 1, TR_dtype: TR_weight_dtype)
@@ -307,7 +307,7 @@ TR_struct TR_PLEBlock {
         TR_self.TR_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
     }
     # h [B, T, D]; kimlikler [B, T]; bağlam bu katmanın PLEBağlamı çıktısı [B, T, P].
-    TR_func TR_forward(TR_h, TR_token_ids, TR_ple_context) {
+    TR_func TR_forward(TR_h: TR_Tensor, TR_token_ids, TR_ple_context: TR_Tensor) -> TR_Tensor {
         TR_var karışım = TR_ple_mix_fused(TR_self.TR_gate_proj.TR_forward(TR_h), TR_ple_context, TR_embedding_lookup(TR_self.TR_table, TR_token_ids), TR_sqrt(TR_self.TR_ple_dim))
         TR_return TR_h + TR_self.TR_norm.TR_forward(TR_self.TR_proj.TR_forward(karışım))
     }
@@ -323,12 +323,12 @@ TR_struct TR_PLEBlock {
 #   ple_boyutu (P) ve dağarcık: PLE için ikisi de verilmeli; yoksa blokta PLE yoktur (ple = yok).
 # ileri(x, cos_tablosu, sin_tablosu, kimlikler, bağlam): kimlikler ve bağlam yalnızca PLE varken kullanılır.
 TR_struct TR_TransformerBlock {
-    TR_input_norm
-    TR_attention
-    TR_post_attention_norm
-    TR_feed_forward
-    TR_ple
-    TR_func TR_init(TR_embed_dim, TR_num_heads, TR_num_kv_heads = TR_none, TR_intermediate_dim = TR_none, TR_init_std = 0.02, TR_output_init_std = 0.02, TR_seed = 1, TR_eps = 0.00001, TR_window = 0, TR_qk_norm = TR_false, TR_merged_kv = TR_false, TR_use_bias = TR_false, TR_ff_use_bias = TR_false, TR_merged_gate = TR_false, TR_ple_dim = TR_none, TR_vocab_size = TR_none, TR_head_dim = TR_none, TR_weight_dtype = "float32") {
+    TR_input_norm: TR_RMSNorm
+    TR_attention: TR_CausalAttention
+    TR_post_attention_norm: TR_RMSNorm
+    TR_feed_forward: TR_SwiGLU
+    TR_ple: TR_PLEBlock?
+    TR_func TR_init(TR_embed_dim: TR_Int, TR_num_heads: TR_Int, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_init_std: TR_Float = 0.02, TR_output_init_std: TR_Float = 0.02, TR_seed: TR_Int = 1, TR_eps: TR_Float = 0.00001, TR_window: TR_Int = 0, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_use_bias: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ple_dim: TR_Int? = TR_none, TR_vocab_size: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_input_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
         TR_self.TR_attention = TR_CausalAttention(TR_embed_dim, TR_num_heads, TR_num_kv_heads: TR_num_kv_heads, TR_use_bias: TR_use_bias, TR_init_std: TR_init_std, TR_output_init_std: TR_output_init_std, TR_seed: TR_seed, TR_window: TR_window, TR_qk_norm: TR_qk_norm, TR_merged_kv: TR_merged_kv, TR_eps: TR_eps, TR_head_dim: TR_head_dim, TR_weight_dtype: TR_weight_dtype)
         TR_self.TR_post_attention_norm = TR_RMSNorm(TR_embed_dim, TR_eps: TR_eps)
@@ -340,7 +340,7 @@ TR_struct TR_TransformerBlock {
             TR_self.TR_ple = TR_none
         }
     }
-    TR_func TR_forward(TR_x, TR_cos_table, TR_sin_table, TR_token_ids = TR_none, TR_ple_context = TR_none, TR_cache = TR_none, TR_layer_idx = 0) {
+    TR_func TR_forward(TR_x: TR_Tensor, TR_cos_table: TR_Tensor, TR_sin_table: TR_Tensor, TR_token_ids = TR_none, TR_ple_context: TR_Tensor? = TR_none, TR_cache: TR_KVCache? = TR_none, TR_layer_idx: TR_Int = 0) -> TR_Tensor {
         # Norm çıktılarını yalnızca dikkatin ve ileri beslemenin ilk çarpımları okur.
         TR_var h = TR_x + TR_self.TR_attention.TR_forward(TR_self.TR_input_norm.TR_forward(TR_x, TR_output_dtype: TR_compute_dtype()), TR_cos_table, TR_sin_table, TR_cache: TR_cache, TR_layer_idx: TR_layer_idx)
         h = h + TR_self.TR_feed_forward.TR_forward(TR_self.TR_post_attention_norm.TR_forward(h, TR_output_dtype: TR_compute_dtype()))
@@ -352,7 +352,7 @@ TR_struct TR_TransformerBlock {
 # katman_pencereleri "YYGYGYYG" gibi bir düzen metninden katman başına pencere listesi kurar:
 # G (genel) katman 0 (tam nedensel); Y (yerel) katmanlar `pencereler`i sırayla (döngüyle) alır.
 # katman_pencereleri("YYGYGYYG", [32, 64]) → [32, 64, 0, 32, 0, 64, 32, 0]
-TR_func TR_layer_windows(TR_layout, TR_windows) {
+TR_func TR_layer_windows(TR_layout: TR_String, TR_windows: TR_List[TR_Int]) -> TR_List[TR_Int] {
     TR_var liste = []
     TR_var y = 0
     TR_for harf TR_in TR_layout {
@@ -384,15 +384,15 @@ TR_func TR_layer_windows(TR_layout, TR_windows) {
 # değiştirmez: konum sayacını çağıran ilerletir. Sabit boylu tampon ve cihazdaki konum
 # transformers'ın sabit önbelleğiyle (cache_position) aynı yoldur.
 TR_struct TR_KVCache {
-    TR_kind
-    TR_capacity
-    TR_position
-    TR_k_buffers
-    TR_v_buffers
-    TR_step_position
-    TR_positions
-    TR_masks
-    TR_func TR_init(TR_num_layers, TR_kind = "sabit", TR_capacity = 0) {
+    TR_kind: TR_String
+    TR_capacity: TR_Int
+    TR_position: TR_Int
+    TR_k_buffers: TR_List[TR_Tensor?]
+    TR_v_buffers: TR_List[TR_Tensor?]
+    TR_step_position: TR_Tensor[TR_Int]?
+    TR_positions: TR_Tensor[TR_Int]?
+    TR_masks: TR_Dict[TR_String, TR_Tensor[TR_Bool]]
+    TR_func TR_init(TR_num_layers: TR_Int, TR_kind: TR_String = "sabit", TR_capacity: TR_Int = 0) {
         TR_assert(TR_kind == "sabit" TR_or TR_kind == "büyüyen", TR_Message("H6906", TR_kind))
         TR_assert(TR_kind != "sabit" TR_or TR_capacity > 0, TR_Message("H6907", TR_capacity))
         TR_self.TR_kind = TR_kind
@@ -405,14 +405,14 @@ TR_struct TR_KVCache {
         TR_self.TR_masks = {}
     }
     # cihaz_adımı: sonraki ekle'ler konumu (cihazdaki [1] tensörü; yok: konak konumu) kullanır.
-    TR_func TR_device_step(TR_position) {
+    TR_func TR_device_step(TR_position: TR_Tensor[TR_Int]?) {
         TR_assert(TR_position == TR_none TR_or TR_self.TR_kind == "sabit", TR_Message("H6908"))
         TR_self.TR_step_position = TR_position
         TR_self.TR_masks = {}
     }
     # maske: cihaz adımında bakılacak konumlar ([en_çok], 0/1); pencere başına adımda bir kez
     # kurulur, aynı pencereli katmanlar paylaşır.
-    TR_func TR_mask(TR_window = 0) {
+    TR_func TR_mask(TR_window: TR_Int = 0) -> TR_Tensor[TR_Bool] {
         TR_var anahtar = "\(TR_window)"
         TR_if TR_not TR_self.TR_masks.TR_contains(anahtar) {
             TR_var m = TR_self.TR_positions <= TR_self.TR_step_position
@@ -423,7 +423,7 @@ TR_struct TR_KVCache {
     }
     # ekle: katman no'nun yeni anahtar ve değerlerini ([B, T, kv_bakış, bakış_boyutu]) konumdan
     # başlayarak ekler; o katmanın 0..konum+T anahtar ve değerlerini verir.
-    TR_func TR_append(TR_layer_idx, TR_k, TR_v) {
+    TR_func TR_append(TR_layer_idx: TR_Int, TR_k: TR_Tensor, TR_v: TR_Tensor) -> TR_List[TR_Tensor] {
         TR_var son = TR_self.TR_position + TR_k.TR_shape[1]
         TR_if TR_self.TR_kind == "sabit" TR_and TR_self.TR_step_position == TR_none {
             TR_if son > TR_self.TR_capacity { TR_throw TR_Message("H6909", son, TR_self.TR_capacity) }
@@ -436,7 +436,7 @@ TR_struct TR_KVCache {
     # tampon_ekle: anahtar ya da değer tamponları listesinde (liste) katman no'nun tamponuna yeni
     # parçayı çeşide göre ekler ve katmanın görünür kısmını verir: büyüyen bitiştirir, cihaz adımında
     # yerine yazar, sabit tamponu ilk kullanımda ayırıp konumdan başlayarak dilime yazar.
-    TR_func TR_append_buffer(TR_buffers, TR_layer_idx, TR_new_chunk, TR_end) {
+    TR_func TR_append_buffer(TR_buffers: TR_List[TR_Tensor?], TR_layer_idx: TR_Int, TR_new_chunk: TR_Tensor, TR_end: TR_Int) -> TR_Tensor {
         TR_if TR_self.TR_kind == "büyüyen" {
             TR_if TR_buffers[TR_layer_idx] == TR_none {
                 TR_buffers[TR_layer_idx] = TR_new_chunk
@@ -456,9 +456,9 @@ TR_struct TR_KVCache {
         TR_return TR_buffers[TR_layer_idx].TR_slice(1, 0, TR_end)
     }
     # ilerle: bir ileri hesabın T parçası bütün katmanlara yazıldıktan sonra konumu ilerletir.
-    TR_func TR_advance(TR_T) { TR_self.TR_position = TR_self.TR_position + TR_T }
+    TR_func TR_advance(TR_T: TR_Int) { TR_self.TR_position = TR_self.TR_position + TR_T }
     # kırp: önbelleği ilk n parçaya indirir (n ≤ konum).
-    TR_func TR_truncate(TR_n) {
+    TR_func TR_truncate(TR_n: TR_Int) {
         TR_assert(TR_n >= 0 TR_and TR_n <= TR_self.TR_position, TR_Message("H6910", TR_self.TR_position, TR_n))
         TR_self.TR_position = TR_n
     }
@@ -489,14 +489,14 @@ TR_struct TR_KVCache {
 # başlatma kuralı ve `üret` aynıdır; fark yalnızca blok ayarıdır, bir kopya ikinci bakım yükü olurdu.
 TR_struct TR_GPT {
     TR_config
-    TR_embedding
-    TR_blocks
-    TR_final_norm
-    TR_logit_layer
-    TR_ple_context
-    TR_cos_table
-    TR_sin_table
-    TR_func TR_init(TR_vocab_size, TR_context = 256, TR_embed_dim = 256, TR_num_layers = 4, TR_num_heads = 4, TR_num_kv_heads = TR_none, TR_intermediate_dim = TR_none, TR_tied = TR_false, TR_seed = 1, TR_windows = TR_none, TR_qk_norm = TR_false, TR_merged_kv = TR_false, TR_merged_gate = TR_false, TR_ff_use_bias = TR_false, TR_eps = 0.00001, TR_ple_dim = TR_none, TR_head_dim = TR_none, TR_rope_theta = 10000.0, TR_weight_dtype = "float32") {
+    TR_embedding: TR_Embedding
+    TR_blocks: TR_List[TR_TransformerBlock]
+    TR_final_norm: TR_RMSNorm
+    TR_logit_layer: TR_Linear?
+    TR_ple_context: TR_PLEContext?
+    TR_cos_table: TR_Tensor
+    TR_sin_table: TR_Tensor
+    TR_func TR_init(TR_vocab_size: TR_Int, TR_context: TR_Int = 256, TR_embed_dim: TR_Int = 256, TR_num_layers: TR_Int = 4, TR_num_heads: TR_Int = 4, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_tied: TR_Bool = TR_false, TR_seed: TR_Int = 1, TR_windows: TR_List[TR_Int]? = TR_none, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_eps: TR_Float = 0.00001, TR_ple_dim: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_rope_theta: TR_Float = 10000.0, TR_weight_dtype: TR_String = "float32") {
         TR_self.TR_config = {"dağarcık": TR_vocab_size, "bağlam": TR_context, "embed_dim": TR_embed_dim, "katman": TR_num_layers, "num_heads": TR_num_heads, "head_dim": TR_head_dim,
             "num_kv_heads": TR_num_kv_heads, "ara_boyut": TR_intermediate_dim, "paylaşımlı": TR_tied, "tohum": TR_seed,
             "pencereler": TR_windows, "qk_normu": TR_qk_norm, "birleşik_kv": TR_merged_kv, "birleşik_kapı": TR_merged_gate,
@@ -523,12 +523,12 @@ TR_struct TR_GPT {
         TR_self.TR_sin_table = tablolar[1]
     }
     # gömülü: kimlikleri gömer; (x, bağlamlar) demetini verir (bağlamlar: katman başına PLE bağlamı ya da yok).
-    TR_func TR_embed(TR_token_ids) {
+    TR_func TR_embed(TR_token_ids) -> (TR_Tensor, TR_List[TR_Tensor]?) {
         TR_var x = TR_self.TR_embedding.TR_forward(TR_token_ids)
         TR_return x, TR_if TR_self.TR_ple_context == TR_none { TR_none } TR_else { TR_self.TR_ple_context.TR_forward(x) }
     }
     # blokları_işle: x'i bloklardan sırayla geçirir (gizli_durum ve tek_adım ortak gövdesi).
-    TR_func TR_run_blocks(TR_x, TR_ple_contexts, TR_cos_table, TR_sin_table, TR_token_ids, TR_cache) {
+    TR_func TR_run_blocks(TR_x: TR_Tensor, TR_ple_contexts: TR_List[TR_Tensor]?, TR_cos_table: TR_Tensor, TR_sin_table: TR_Tensor, TR_token_ids, TR_cache: TR_KVCache?) -> TR_Tensor {
         TR_for i, blok TR_in TR_self.TR_blocks {
             TR_x = blok.TR_forward(TR_x, TR_cos_table, TR_sin_table, TR_token_ids, TR_if TR_ple_contexts == TR_none { TR_none } TR_else { TR_ple_contexts[i] }, TR_cache: TR_cache, TR_layer_idx: i)
         }
@@ -538,7 +538,7 @@ TR_struct TR_GPT {
     # hassasiyette hesap türünde (çıkış çarpımı için).
     # önbellek verilirse (KVÖnbellek) kimlikler önbellekteki konumdan devam eder: döner konum
     # tabloları o konumdan dilimlenir, anahtar ve değerler önbelleğe eklenir, konum ilerler.
-    TR_func TR_hidden_states(TR_token_ids, TR_cache = TR_none) {
+    TR_func TR_hidden_states(TR_token_ids, TR_cache: TR_KVCache? = TR_none) -> TR_Tensor {
         TR_var x, bağlamlar = TR_self.TR_embed(TR_token_ids)
         TR_var cos_tablosu = TR_self.TR_cos_table
         TR_var sin_tablosu = TR_self.TR_sin_table
@@ -558,7 +558,7 @@ TR_struct TR_GPT {
     # tensörleri → son konumun logiti [dağarcık]. Konakta hiçbir şey değiştirmez (önbelleğin
     # konum sayacını çağıran ilerletir); bu yüzden tekrar_oynat ile kaydedilip oynatılabilir
     # (dil tanımı 15.45). Önbellek sabit olmalı ve ilk parçalar gizli_durum ile işlenmiş olmalı.
-    TR_func TR_single_step(TR_token_id, TR_position, TR_cache) {
+    TR_func TR_single_step(TR_token_id: TR_Tensor[TR_Int], TR_position: TR_Tensor[TR_Int], TR_cache: TR_KVCache) -> TR_Tensor {
         TR_var gömülü, bağlamlar = TR_self.TR_embed(TR_token_id)
         TR_var cos_tablosu = TR_embedding_lookup(TR_self.TR_cos_table, TR_position)
         TR_var sin_tablosu = TR_embedding_lookup(TR_self.TR_sin_table, TR_position)
@@ -568,18 +568,18 @@ TR_struct TR_GPT {
         TR_return TR_self.TR_logits(TR_self.TR_final_norm.TR_forward(x, TR_output_dtype: TR_compute_dtype()))[0][0]
     }
     # kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]; önbellek: gizli_durum.
-    TR_func TR_forward(TR_token_ids, TR_cache = TR_none) {
+    TR_func TR_forward(TR_token_ids, TR_cache: TR_KVCache? = TR_none) -> TR_Tensor {
         TR_return TR_self.TR_logits(TR_self.TR_hidden_states(TR_token_ids, TR_cache: TR_cache))
     }
     # logit: gizli durumu ([B, T, boyut]) sözlüğe çevirir (paylaşımlı gömmede tablonun devriği).
-    TR_func TR_logits(TR_x) {
+    TR_func TR_logits(TR_x: TR_Tensor) -> TR_Tensor {
         TR_if TR_self.TR_logit_layer == TR_none { TR_return TR_x @ TR_self.TR_embedding.TR_table.TR_transpose() }
         TR_return TR_self.TR_logit_layer.TR_forward(TR_x)
     }
     # kayıp: bir sonraki parçayı tahmin etmenin ortalama çapraz entropisi. Çıkış sapmasızsa
     # (paylaşımlı gömme ya da sapmasız Doğrusal) logitler bütün olarak tutulmaz:
     # doğrusal_çapraz_entropi aynı kaybı dilim dilim hesaplar (dil tanımı 15.25).
-    TR_func TR_loss(TR_token_ids, TR_targets) {
+    TR_func TR_loss(TR_token_ids, TR_targets) -> TR_Tensor {
         TR_if TR_self.TR_logit_layer == TR_none {
             TR_return TR_linear_cross_entropy(TR_self.TR_hidden_states(TR_token_ids), TR_self.TR_embedding.TR_table.TR_transpose(), TR_targets)
         }
@@ -590,7 +590,7 @@ TR_struct TR_GPT {
     }
     # önbellek_kur: bu modelin katman sayısında bir KVÖnbellek ("sabit" ya da "büyüyen"); sabit
     # önbellek en_çok konum tutar (verilmezse bağlam).
-    TR_func TR_build_cache(TR_kind = "sabit", TR_capacity = TR_none) {
+    TR_func TR_build_cache(TR_kind: TR_String = "sabit", TR_capacity: TR_Int? = TR_none) -> TR_KVCache {
         TR_return TR_KVCache(TR_self.TR_blocks.TR_length, TR_kind: TR_kind, TR_capacity: TR_if TR_capacity == TR_none { TR_self.TR_config["bağlam"] } TR_else { TR_capacity })
     }
     # üret: başlangıç kimliklerinin (liste) ardına adet kadar parça örnekler ve bütün listeyi
@@ -605,7 +605,8 @@ TR_struct TR_GPT {
     # çizge: doğru (varsayılan) ise GPU'da sabit önbellekle her adım tek_adım'dır ve
     # tekrar_oynat ile kaydedilip oynatılır (kernel başlatmalarının konak yükü kalkar); sonuç
     # kayıtsızla aynı parçalardır. Sabit önbellek en çok başlangıç + adet konum tutar.
-    TR_func TR_generate(TR_prompt, TR_max_new_tokens, TR_temperature = 1.0, TR_top_k = 0, TR_seed = TR_none, TR_eos = TR_none, TR_cache_kind = "sabit", TR_cuda_graph = TR_true) {
+    TR_func TR_generate(TR_prompt: TR_List[TR_Int], TR_max_new_tokens: TR_Int, TR_temperature: TR_Float = 1.0, TR_top_k: TR_Int = 0, TR_seed: TR_Int? = TR_none, TR_eos: TR_Int? = TR_none, TR_cache_kind: TR_String? = "sabit", TR_cuda_graph: TR_Bool = TR_true) -> TR_List[TR_Int] {
+
         TR_var kimlikler = [k TR_for k TR_in TR_prompt]
         TR_var bağlam = TR_self.TR_config["bağlam"]
         TR_var ö = TR_none

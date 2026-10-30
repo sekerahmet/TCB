@@ -4,7 +4,7 @@
 TR_import "tr/layers"
 TR_import "tr/optimizers" # gradyanları_sıfırla
 
-TR_func rastgele_girdi(şekil, tohum) {
+TR_func rastgele_girdi(şekil: TR_List[TR_Int], tohum: TR_Int) -> TR_Tensor {
     TR_return TR_Tensor(TR_randn(şekil, TR_seed: tohum), TR_requires_grad: TR_true)
 }
 
@@ -15,7 +15,7 @@ TR_test "Doğrusal: şekil, sapma ve türev" {
     TR_assert_equal([2, 4, 5], d.TR_forward(TR_randn([2, 4, 3], TR_seed: 1)).TR_shape)
     TR_assert_equal(TR_none, TR_Linear(3, 5).TR_bias)
     TR_assert_equal(2, TR_parameters(d).TR_length)
-    TR_func f(x, w, b) {
+    TR_func f(x: TR_Tensor, w: TR_Tensor, b: TR_Tensor) -> TR_Tensor {
         d.TR_weight = w
         d.TR_bias = b
         TR_return d.TR_forward(x)
@@ -50,7 +50,7 @@ TR_test "Doğrusal: başlatma ölçeği std'dir, aynı tohum aynı ağırlığı
 TR_test "GömmeKatmanı: şekil ve türev" {
     TR_var g = TR_Embedding(7, 4, TR_seed: 1)
     TR_assert_equal([2, 3, 4], g.TR_forward([[1, 2, 3], [6, 0, 1]]).TR_shape)
-    TR_func f(t) {
+    TR_func f(t: TR_Tensor) -> TR_Tensor {
         g.TR_table = t
         TR_return g.TR_forward([[1, 2], [2, 6]])
     }
@@ -64,7 +64,7 @@ TR_test "RMSNormKatmanı: şekil, birim ölçek ve türev" {
     TR_assert_equal([3, 4], y.TR_shape)
     TR_var rms = TR_sqrt(TR_mean(y * y)).TR_tolist
     TR_assert(rms > 0.999 TR_and rms < 1.001, "normlu çıktının RMS'i 1 olmalı, \(rms)")
-    TR_func f(x, w) {
+    TR_func f(x: TR_Tensor, w: TR_Tensor) -> TR_Tensor {
         n.TR_weight = w
         TR_return n.TR_forward(x)
     }
@@ -87,7 +87,7 @@ TR_test "döner konum: normu korur, iç çarpım yalnızca uzaklığa bağlıdı
     TR_var a = p[3][1].TR_tolist
     TR_var b = p[6][4].TR_tolist
     TR_assert(TR_abs(a - b) < 0.0001, "iç çarpım yalnızca i - j'ye bağlı olmalı: \(a) / \(b)")
-    TR_func f(x) { TR_return TR_apply_rotary_fused(x, cos_tablosu, sin_tablosu) }
+    TR_func f(x: TR_Tensor) -> TR_Tensor { TR_return TR_apply_rotary_fused(x, cos_tablosu, sin_tablosu) }
     TR_assert(TR_grad_check(f, [rastgele_girdi([2, 5, 3, 4], 3)]))
 }
 
@@ -117,7 +117,7 @@ TR_test "NedenselDikkat: şekil, gruplu sorgu ve türev" {
     TR_assert_equal([8, 4], d.TR_k_proj.TR_weight.TR_shape) # 2 kv bakışı × 2 bakış boyutu
     TR_assert_equal([2, 3, 8], d.TR_forward(TR_randn([2, 3, 8], TR_seed: 1), tablolar[0], tablolar[1]).TR_shape)
     TR_var k = TR_CausalAttention(4, 2, TR_num_kv_heads: 1, TR_seed: 3)
-    TR_func f(x, wq, wk, wv, wo) {
+    TR_func f(x: TR_Tensor, wq: TR_Tensor, wk: TR_Tensor, wv: TR_Tensor, wo: TR_Tensor) -> TR_Tensor {
         k.TR_q_proj.TR_weight = wq
         k.TR_k_proj.TR_weight = wk
         k.TR_v_proj.TR_weight = wv
@@ -149,7 +149,7 @@ TR_test "SwiGLU: ara boyut, şekil ve türev" {
     TR_assert_equal(96, TR_swiglu_intermediate_dim(32))
     TR_var s = TR_SwiGLU(4, TR_intermediate_dim: 6, TR_seed: 1)
     TR_assert_equal([2, 3, 4], s.TR_forward(TR_randn([2, 3, 4], TR_seed: 1)).TR_shape)
-    TR_func f(x, wg, wu, wd) {
+    TR_func f(x: TR_Tensor, wg: TR_Tensor, wu: TR_Tensor, wd: TR_Tensor) -> TR_Tensor {
         s.TR_gate_proj.TR_weight = wg
         s.TR_up_proj.TR_weight = wu
         s.TR_down_proj.TR_weight = wd
@@ -162,7 +162,7 @@ TR_test "TransformerBloğu: şekil ve türev" {
     TR_var tablolar = TR_rotary_table(3, 2)
     TR_var b = TR_TransformerBlock(4, 2, TR_intermediate_dim: 4, TR_seed: 1)
     TR_assert_equal([2, 3, 4], b.TR_forward(TR_randn([2, 3, 4], TR_seed: 1), tablolar[0], tablolar[1]).TR_shape)
-    TR_func f(x, wq, w2) {
+    TR_func f(x: TR_Tensor, wq: TR_Tensor, w2: TR_Tensor) -> TR_Tensor {
         b.TR_attention.TR_q_proj.TR_weight = wq
         b.TR_feed_forward.TR_down_proj.TR_weight = w2
         TR_return b.TR_forward(x, tablolar[0], tablolar[1])
@@ -295,7 +295,7 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
 
 # Kopyalama görevi: [a b c d | a b c d]; ikinci yarı ilk yarıdan tahmin edilebilir.
 TR_var kopya_tohumu = 11
-TR_func kopya_toplu(B, V, yarım) {
+TR_func kopya_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> TR_List[TR_List[TR_List[TR_Int]]] {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {
@@ -333,7 +333,7 @@ TR_test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin dü�
 # ---- Hedef model (RGN) için seçenekler: pencere, qk normu, birleşik KV/[G|U], epsilon, PLE, düzen, eos ----
 
 # en_büyük_mutlak_fark: iki tensörün elemanları arasındaki en büyük mutlak fark.
-TR_func en_büyük_mutlak_fark(a, b) { TR_return TR_max(TR_abs(a - b)).TR_tolist }
+TR_func en_büyük_mutlak_fark(a: TR_Tensor, b: TR_Tensor) -> TR_Float { TR_return TR_max(TR_abs(a - b)).TR_tolist }
 
 TR_test "NedenselDikkat: varsayılan seçenekler eski yapıyı verir (kv_katmanı, q_norm, k_norm yok)" {
     TR_var d = TR_CausalAttention(8, 4, TR_num_kv_heads: 2, TR_seed: 1)
@@ -383,7 +383,7 @@ TR_test "NedenselDikkat: qk_normu q ve k'yı bakış boyutunda normlar (sorgu ö
     TR_assert(en_büyük_mutlak_fark(y0, n.TR_forward(x, tablolar[0], tablolar[1])) > 0.001, "normsuzda ölçek çıktıyı değiştirir")
     TR_var e = TR_CausalAttention(8, 2, TR_qk_norm: TR_true, TR_eps: 0.000001)
     TR_assert_equal(0.000001, e.TR_q_norm.TR_eps)
-    TR_func f(x, wq, wq_n) {
+    TR_func f(x: TR_Tensor, wq: TR_Tensor, wq_n: TR_Tensor) -> TR_Tensor {
         d.TR_q_proj.TR_weight = wq
         d.TR_q_norm.TR_weight = wq_n
         TR_return d.TR_forward(x, tablolar[0], tablolar[1])
@@ -404,7 +404,7 @@ TR_test "NedenselDikkat: birleşik KV, ayrı K ve V ile aynı sonucu verir ([K |
     b.TR_o_proj.TR_weight = a.TR_o_proj.TR_weight
     b.TR_kv_proj.TR_weight = TR_concat([a.TR_k_proj.TR_weight, a.TR_v_proj.TR_weight], TR_dim: 1)
     TR_assert(en_büyük_mutlak_fark(a.TR_forward(x, tablolar[0], tablolar[1]), b.TR_forward(x, tablolar[0], tablolar[1])) < 0.000001, "birleşik KV ayrıyla aynı olmalı")
-    TR_func f(x, w) {
+    TR_func f(x: TR_Tensor, w: TR_Tensor) -> TR_Tensor {
         b.TR_kv_proj.TR_weight = w
         TR_return b.TR_forward(x, tablolar[0], tablolar[1])
     }
@@ -426,7 +426,7 @@ TR_test "SwiGLU: birleşik [G | U] ayrı kapı ve yukarı ile aynıdır; sapmal�
     TR_assert_equal([12], s.TR_gate_up_proj.TR_bias.TR_shape)
     TR_assert_equal([4], s.TR_down_proj.TR_bias.TR_shape)
     TR_assert_equal(4, TR_parameters(s).TR_length)
-    TR_func f(x, w, b1, b2) {
+    TR_func f(x: TR_Tensor, w: TR_Tensor, b1: TR_Tensor, b2: TR_Tensor) -> TR_Tensor {
         s.TR_gate_up_proj.TR_weight = w
         s.TR_gate_up_proj.TR_bias = b1
         s.TR_down_proj.TR_bias = b2
@@ -489,7 +489,7 @@ TR_test "TransformerBloğu: PLE'siz varsayılan değişmez; PLE, epsilon, pencer
     TR_assert_equal([8], b.TR_feed_forward.TR_down_proj.TR_bias.TR_shape)
     TR_var bağlam = TR_randn([2, 4, 4], TR_seed: 3)
     TR_assert_equal([2, 4, 8], b.TR_forward(x, tablolar[0], tablolar[1], [[1, 2, 3, 4], [5, 6, 7, 8]], bağlam).TR_shape)
-    TR_func f(x, w, t, bağlam) {
+    TR_func f(x: TR_Tensor, w: TR_Tensor, t: TR_Tensor, bağlam: TR_Tensor) -> TR_Tensor {
         b.TR_ple.TR_gate_proj.TR_weight = w
         b.TR_ple.TR_table = t
         TR_return b.TR_forward(x, tablolar[0], tablolar[1], [[1, 2, 3, 4]], bağlam)

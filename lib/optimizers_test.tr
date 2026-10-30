@@ -6,7 +6,7 @@ TR_import "tr/layers"
 TR_import "tr/optimizers"
 
 # sapma_rms ‖XᵀX − I‖'nın eleman başına kök ortalama karesidir (dik matriste 0).
-TR_func sapma_rms(X) {
+TR_func sapma_rms(X: TR_Tensor) -> TR_Float {
     TR_var n = X.TR_shape[1]
     TR_return TR_sqrt(TR_mean((X.TR_transpose() @ X - TR_eye(n)) ** 2)).TR_tolist
 }
@@ -87,7 +87,7 @@ TR_test "oran_planı: ısınma, sabit, azalma" {
 }
 
 TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½: yarım adım)" {
-    TR_func kur() {
+    TR_func kur() -> TR_GPT {
         TR_var m = TR_GPT(6, TR_context: 3, TR_embed_dim: 4, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 3)
         TR_backward(m.TR_loss([[1, 2, 3]], [[2, 3, 4]]))
         TR_return m
@@ -124,7 +124,7 @@ TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (
 
 TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükler" {
     TR_var klasör = TR_temp_dir()
-    TR_func eğit(koşu, son) {
+    TR_func eğit(koşu: TR_Path, son: TR_Int) -> (TR_GPT, TR_MuonAndAdamW) {
         TR_var m = TR_GPT(6, TR_context: 3, TR_embed_dim: 4, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 3)
         TR_var op = TR_MuonAndAdamW(m)
         TR_var kn = TR_Checkpoint(koşu, {"model": m, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state}, TR_every_minutes: 0)
@@ -148,7 +148,7 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
 
 # Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
 TR_var ters_tohumu = 1
-TR_func ters_toplu(B, V, yarım) {
+TR_func ters_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> TR_List[TR_List[TR_List[TR_Int]]] {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {
@@ -164,7 +164,7 @@ TR_func ters_toplu(B, V, yarım) {
     TR_return [girdiler, hedefler]
 }
 
-TR_func ters_eğit(kur, adım_sayısı) {
+TR_func ters_eğit(kur, adım_sayısı: TR_Int) -> TR_List[TR_Float] {
     ters_tohumu = 1
     TR_var m = TR_GPT(8, TR_context: 10, TR_embed_dim: 32, TR_num_layers: 2, TR_num_heads: 4, TR_seed: 4)
     TR_var op = kur(m)
@@ -194,7 +194,7 @@ TR_test "Muon ve NorMuon küçük bir görevde AdamW'den kötü değildir" {
 # ---- Hedef model (RGN) için seçenekler: ad desenleri, ayrı çürümeli AdamW, Muon ölçeği, SatırRMS ----
 
 # en_büyük_mutlak_fark: iki tensörün elemanları arasındaki en büyük mutlak fark.
-TR_func en_büyük_mutlak_fark(a, b) { TR_return TR_max(TR_abs(a - b)).TR_tolist }
+TR_func en_büyük_mutlak_fark(a: TR_Tensor, b: TR_Tensor) -> TR_Float { TR_return TR_max(TR_abs(a - b)).TR_tolist }
 
 TR_test "ad_uyar_mı: tam, önek ve sonek eşleşmesi yol parçası sınırındadır" {
     TR_assert(TR_name_matches("TR_mem_embedding.TR_mem_table", "TR_mem_embedding.TR_mem_table"))
@@ -210,7 +210,7 @@ TR_test "ad_uyar_mı: tam, önek ve sonek eşleşmesi yol parçası sınırında
     TR_assert(TR_not TR_any_pattern_matches("TR_mem_logit_layer.TR_mem_weight", []))
 }
 
-TR_func ple_modeli() {
+TR_func ple_modeli() -> TR_GPT {
     TR_return TR_GPT(10, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_intermediate_dim: 8, TR_seed: 1, TR_ple_dim: 4, TR_ff_use_bias: TR_true)
 }
 
@@ -250,7 +250,7 @@ TR_test "Muon: ölçek \"rms\" güncellemeyi 0.2·√max(giriş, çıkış) ile 
 }
 
 # bir_adım: model parametrelerine sabit gradyan basıp op.adım() çalıştırır (kayıp = Σ p · G).
-TR_func sabit_gradyanla_adım(model, op) {
+TR_func sabit_gradyanla_adım(model: TR_GPT, op: TR_MuonAndAdamW) {
     op.TR_zero_grad()
     TR_var k = 0.0
     TR_for p TR_in TR_parameters(model) { k = k + TR_sum(p * (0.01 + 0 * p)) }

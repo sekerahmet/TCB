@@ -30,12 +30,12 @@ TR_const TR_SPIKE = "sıçrama"
 TR_const TR_MIN_RELATIVE_STD = 0.01
 
 TR_struct TR_SpikeGuard {
-    TR_history_limit
-    TR_threshold
-    TR_losses
-    TR_norms
-    TR_spike_count = 0
-    TR_func TR_init(TR_history_limit = 128, TR_threshold = 6.0) {
+    TR_history_limit: TR_Int
+    TR_threshold: TR_Float
+    TR_losses: TR_List[TR_Float]
+    TR_norms: TR_List[TR_Float]
+    TR_spike_count: TR_Int = 0
+    TR_func TR_init(TR_history_limit: TR_Int = 128, TR_threshold: TR_Float = 6.0) {
         TR_if TR_Type(TR_history_limit) != TR_Int TR_or TR_history_limit < 2 { TR_throw TR_Message("H6930", TR_history_limit) }
         TR_if TR_not TR_is_finite(TR_threshold) TR_or TR_not (TR_threshold > 0) { TR_throw TR_Message("H6931", TR_threshold) }
         TR_self.TR_history_limit = TR_history_limit
@@ -45,7 +45,7 @@ TR_struct TR_SpikeGuard {
     }
     # gözle bir adımın kaybını ve gradyan normunu (sayı) değerlendirir; TAMAM, SONLU_DEĞİL ya da
     # SIÇRAMA verir. Yalnızca TAMAM olan değerler geçmişe girer.
-    TR_func TR_observe(TR_loss, TR_norm) {
+    TR_func TR_observe(TR_loss: TR_Float, TR_norm: TR_Float) -> TR_String {
         TR_if TR_not TR_is_finite(TR_loss) TR_or TR_not TR_is_finite(TR_norm) { TR_return TR_NONFINITE }
         TR_if TR_self.TR_losses.TR_length >= TR_self.TR_history_limit {
             TR_if TR_self.TR_exceeds(TR_self.TR_losses, TR_loss) TR_or TR_self.TR_exceeds(TR_self.TR_norms, TR_norm) {
@@ -58,8 +58,8 @@ TR_struct TR_SpikeGuard {
         TR_return TR_OK
     }
     # geçmiş_uzunluğu geçmişteki sağlam adım sayısıdır (en çok pencere).
-    TR_func TR_history_length() { TR_return TR_self.TR_losses.TR_length }
-    TR_func TR_exceeds(TR_history, TR_value) {
+    TR_func TR_history_length() -> TR_Int { TR_return TR_self.TR_losses.TR_length }
+    TR_func TR_exceeds(TR_history: TR_List[TR_Float], TR_value: TR_Float) -> TR_Bool {
         TR_var m = TR_abs(TR_value)
         TR_for x TR_in TR_history { m = TR_max(m, TR_abs(x)) }
         TR_if m == 0 { TR_return TR_false }
@@ -69,7 +69,7 @@ TR_struct TR_SpikeGuard {
         TR_if s == 0 { TR_return TR_false } # geçmiş tamamen sıfır: karar yok
         TR_return TR_value / m > o + TR_self.TR_threshold * s
     }
-    TR_func TR_append(TR_history, TR_value) {
+    TR_func TR_append(TR_history: TR_List[TR_Float], TR_value: TR_Float) -> TR_List[TR_Float] {
         TR_history.TR_append(TR_value)
         TR_if TR_history.TR_length > TR_self.TR_history_limit { TR_return TR_history[1..TR_history.TR_length] }
         TR_return TR_history
@@ -105,14 +105,14 @@ TR_struct TR_SpikeGuard {
 TR_const TR_DRY_RUN_STEPS = 2
 
 TR_struct TR_Run {
-    TR_folder
-    TR_dry_run
-    TR_logger
-    TR_bar
-    TR_checkpoint
-    TR_resume_step
-    TR_last_step
-    TR_func TR_init(TR_folder, TR_config, TR_objects, TR_num_steps, TR_every_minutes = 15.0, TR_dry_run = TR_false) {
+    TR_folder: TR_Path
+    TR_dry_run: TR_Bool
+    TR_logger: TR_Logger
+    TR_bar: TR_Progress
+    TR_checkpoint: TR_Checkpoint
+    TR_resume_step: TR_Int
+    TR_last_step: TR_Int
+    TR_func TR_init(TR_folder, TR_config, TR_objects, TR_num_steps: TR_Int, TR_every_minutes: TR_Float = 15.0, TR_dry_run: TR_Bool = TR_false) {
         TR_if TR_Type(TR_num_steps) != TR_Int TR_or TR_num_steps < 1 { TR_throw TR_Message("H6932", TR_num_steps) }
         TR_self.TR_dry_run = TR_dry_run
         TR_self.TR_last_step = TR_if TR_dry_run { TR_min(TR_num_steps, TR_DRY_RUN_STEPS) } TR_else { TR_num_steps }
@@ -135,7 +135,7 @@ TR_struct TR_Run {
     # adım_bitti eğitimin adım sınırıdır: ölçüler verilirse (sözlük; okumak GPU'yu bekletir, bu yüzden
     # her adımda değil) çubuk ve günlük güncellenir; son adımda ölçü verilmese de çubuk kapanır.
     # Kontrol noktası zamanı geldiyse kaydedilir; kayıt yapıldıysa doğru verir.
-    TR_func TR_step_done(TR_step, TR_metrics = TR_none) {
+    TR_func TR_step_done(TR_step: TR_Int, TR_metrics: TR_Dict[TR_String, TR_Float]? = TR_none) -> TR_Bool {
         TR_if TR_metrics != TR_none {
             TR_self.TR_bar.TR_update(TR_metrics, TR_step: TR_step)
         } TR_else TR_if TR_step == TR_self.TR_last_step {
@@ -144,13 +144,14 @@ TR_struct TR_Run {
         TR_return TR_self.TR_checkpoint.TR_update(TR_step)
     }
     # değerlendirildi bir değerlendirmenin ölçülerini (sözlük) adımıyla günlüğe yazar.
-    TR_func TR_evaluated(TR_step, TR_metrics) {
+    TR_func TR_evaluated(TR_step: TR_Int, TR_metrics: TR_Dict[TR_String, TR_Float]) {
         TR_var kayıt = {"step": TR_step}
         TR_for ad, d TR_in TR_metrics { kayıt[ad] = d }
         TR_self.TR_logger.TR_append(kayıt)
     }
     # geri_dön son kontrol noktasına döner ve onun adımını verir (sıçrama bekçisinin kararıyla).
-    TR_func TR_rollback() { TR_return TR_self.TR_checkpoint.TR_rollback() }
+    TR_func TR_rollback() -> TR_Int { TR_return
+ TR_self.TR_checkpoint.TR_rollback() }
     # bitir önce modelin ağırlıklarını (model.trt) yazar, sonra son kontrol noktasını; provada koşunun
     # dosyalarının hepsinin yazıldığını denetler ve sonucu yazar.
     TR_func TR_finish(TR_model) {

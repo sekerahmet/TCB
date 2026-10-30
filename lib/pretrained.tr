@@ -27,7 +27,7 @@ TR_const TR_SUPPORTED_ARCHITECTURES = ["llama", "qwen3"]
 
 # ayar_değeri ayarda (config.json'un JSON nesnesi ya da sözlük) anahtar varsa ve değeri yok (JSON null)
 # değilse onu, yoksa öntanımlıyı verir. Değer JSON olabilir: çağıran tip çağrısıyla açar (Tam(...), 3.7a).
-TR_func TR_config_value(TR_config, TR_key, TR_fallback) {
+TR_func TR_config_value(TR_config, TR_key: TR_String, TR_fallback) {
     TR_var v = TR_config.TR_get(TR_key)
     TR_if v == TR_none TR_or TR_Type(v) == TR_NoneType { TR_return TR_fallback }
     TR_return v
@@ -39,7 +39,7 @@ TR_func TR_config_value(TR_config, TR_key, TR_fallback) {
 # olduğu gibi tutar (sonuç float32 ağırlıkla aynı matematiktir), GPU'da okunan bayt yarıya iner.
 # Dosyada F32 saklanan ağırlıklar "bf16" ile bf16'ya yuvarlanır (sonuç float32 yüklemeden biraz
 # ayrılır); dosyanın türünü korumak için config.json'daki torch_dtype'a uyan tür seçilir.
-TR_func TR_pretrained_model(TR_folder, TR_weight_dtype = "float32") {
+TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "float32") -> TR_GPT {
     TR_var k = TR_Path(TR_folder)
     TR_var ayar = TR_json_parse(TR_read_file(TR_Path(k, "config.json")))
     TR_var model = TR_build_pretrained_model(ayar, TR_weight_dtype: TR_weight_dtype)
@@ -49,7 +49,7 @@ TR_func TR_pretrained_model(TR_folder, TR_weight_dtype = "float32") {
 }
 
 # hazır_model_kur config.json sözlüğünden (ağırlıklar yüklenmeden) GPT'yi kurar.
-TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype = "float32") {
+TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype: TR_String = "float32") -> TR_GPT {
     TR_var mimari = TR_String(TR_config_value(TR_config, "model_type", ""))
     TR_if TR_not TR_SUPPORTED_ARCHITECTURES.TR_contains(mimari) {
         TR_throw TR_Message("H6940", mimari, TR_SUPPORTED_ARCHITECTURES)
@@ -78,7 +78,7 @@ TR_func TR_build_pretrained_model(TR_config, TR_weight_dtype = "float32") {
 
 # rope_tabanı: üst düzeyde rope_theta (eski transformers) ya da rope_parameters.rope_theta (5.x);
 # ikisi de yoksa Llama'nın varsayılanı 10000.
-TR_func TR_rope_theta(TR_config) {
+TR_func TR_rope_theta(TR_config) -> TR_Float {
     TR_var üst = TR_config_value(TR_config, "rope_theta", TR_none)
     TR_if üst != TR_none { TR_return TR_Float(üst) }
     TR_var p = TR_config_value(TR_config, "rope_parameters", TR_none)
@@ -86,7 +86,7 @@ TR_func TR_rope_theta(TR_config) {
     TR_return 10000.0
 }
 
-TR_func TR_has_rope_scaling(TR_config) {
+TR_func TR_has_rope_scaling(TR_config) -> TR_Bool {
     TR_var ölçek = TR_config_value(TR_config, "rope_scaling", TR_none)
     TR_if ölçek != TR_none { TR_return TR_true }
     TR_var p = TR_config_value(TR_config, "rope_parameters", TR_none)
@@ -112,7 +112,8 @@ TR_const TR_BLOCK_NAMES = {
 # hugging_face_eşle Hugging Face adlı ağırlık sözlüğünü TR parametre adlarına çevirir. Paylaşımlı
 # gömmede lm_head.weight varsa gömmeyle aynı olmalıdır ve atlanır; dönüş tabloları
 # (rotary_emb.inv_freq) hesaplanır, atlanır. Tanınmayan ad hatadır.
-TR_func TR_map_hugging_face(TR_weights, TR_config) {
+TR_func TR_map_hugging_face(TR_weights: TR_Dict[TR_String, TR_Tensor], TR_config) -> TR_Dict[TR_String, TR_Tensor] {
+
     TR_var paylaşımlı = TR_Bool(TR_config_value(TR_config, "tie_word_embeddings", TR_false))
     TR_var sonuç_sözlük = {}
     TR_var parçalı = {} # TR adı → [ilk parça, ikinci parça]
