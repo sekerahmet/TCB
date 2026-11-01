@@ -421,7 +421,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 ### 11.2
 
 - **Mevcut durum:** `TR_as` bir `TR_Dict` bağlıyor; köşeli ayraçla erişim (m["PI"]) çalışıyor; modülde olmayan bir ad (m.yok) denetimden geçiyor ve çalışırken `TR_none` veriyor [ölçüldü: main `a9a1ba14`].
-- **Yapılacaklar:** modül değeri; adların tipi denetimde; köşeli ayraçla erişim ve olmayan ad denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
+- **Yapılacaklar:** modül değeri; adların tipi denetimde; köşeli ayraçla erişim, olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
 
 ### 11.3
 
@@ -478,9 +478,9 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.5
 
-- **Mevcut durum:** en dıştaki tanımlar testler arasında paylaşılıyor: bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `85a19c36`, en dıştaki sayaç ve onu artıran fonksiyonla]; aktarılan modülün durumu da sızıyor [ölçüldü: DENETİM]. Rastgele üretecin durumu testten teste sürüyor (iki testin `TR_randn([2])`'si farklı) [ölçüldü: main `85a19c36`].
+- **Mevcut durum:** en dıştaki tanımlar testler arasında paylaşılıyor: bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `85a19c36`, en dıştaki sayaç ve onu artıran fonksiyonla]; aktarılan modülün durumu da sızıyor [ölçüldü: DENETİM]. Tohumsuz rastgelelik testten teste ve koşudan koşuya değişiyor: 12'nin kuralı her testi programın başlangıç durumunda başlatır, ama 20.17'nin sabit başlangıç durumu yok [ölçüldü: main `85a19c36`, iki testin `TR_randn([2])`'si; DENETİM, aynı dosyanın iki koşusu].
 - **4a1 ilk dilim (2026-10-30):** test dosyasının en dışındaki deyim ve sabit olmayan ilk değer denetim hatası (H1107, H1108); depodaki yerler (1 deyim, geçici klasör ve komut satırı ayarı) kurulum fonksiyonuna alındı [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`].
-- **Yapılacaklar:** en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması; TR testleri.
+- **Yapılacaklar:** en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması (20.17'nin sabit başlangıç durumundan sonra); TR testleri.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** hatalı test bitmemiş görevlerini önce iptal eder (10.9); bugün sonsuz işçiyle asılı kalıyor.
 
 ## 13. Yerleşikler
@@ -903,7 +903,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 ### 16.5
 
 - **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 bit okuyor [kanıtlı: `internal/compute/dataload/npy.go`]; NumPy'nin varsayılanı olan işaretli 64 biti reddediyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** işaretli 64 bit; TR testi.
+- **Yapılacaklar:** işaretli 64 bit; TR testi; önbelleğin TR testi (aynı adlı iki parça ayrı; Go'da `TestCache*` var).
 
 ### 16.6
 
@@ -914,7 +914,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 ### 16.7
 
 - **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi).
-- **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler.
+- **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler; örnekleyicinin TR testi (kısa parça atlanır; Go'da `TestSampler*` var).
 
 ### 16.8
 
@@ -1006,6 +1006,11 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 - **Mevcut durum:** dolu klasörün yerine konması uygulandı (Gemini Koşu 5): eski klasör geçici ada çekiliyor, yenisi yerine konunca siliniyor, yerine koyma olmazsa eski geri konuyor; `TR_copy`'de `TestCopyDir` sınıyor, `TR_move` (18.10) aynı yolu kullanıyor [ölçüldü: main `85a19c36`, `internal/stdlib/files/copy_run.go:60-86`, dolu klasör üstüne kopyalama ve taşıma].
 - **Yapılacaklar:** arada kesilince geçici adıyla kalan eski klasörü söyleyen ileti; `TR_move`'un dolu klasörün yerine konmasını sınayan Go testi.
+
+### 18.13
+
+- **Mevcut durum:** bağlantıya atomik yazma çalışıyor, ama onu ayırt eden test yok: `TestWriteAtomicSymlinkAndPerm` bağlantıyla hedefi aynı klasörde sınıyor, Windows'ta iki yarısı da atlanıyor [kanıtlı: DENETİM, `internal/lang/interp/file_stream_test.go:18-34`].
+- **Yapılacaklar:** bağlantı ile hedefi ayrı klasörlerde olan atomik yazmanın testi (geçici dosya hedefin klasöründe).
 
 ### 18.16
 
