@@ -221,6 +221,29 @@ func TestDeferredBlockIsAnExitBoundary(t *testing.T) {
 	}
 }
 
+// Kural (9.1): ertelenin tek yazımı bloktur; çağrı yazımı sözdizimi hatasıdır (H0300) ve ileti yazılan
+// çağrıyı bloğa alır. Önerilen yazım hatasız ayrıştırılır. TR_async'in çağrı biçimi (10.1) geçerlidir.
+func TestDeferIsWrittenOnlyWithABlock(t *testing.T) {
+	for _, call := range []string{`TR_print("ş")`, "iz.TR_append(1 + 2)", "f(x)"} {
+		code := "TR_func g() {\n    TR_defer " + call + "\n}"
+		line, col := posOf(t, code, call)
+		errs := parseErrs(code)
+		if !hasErrAt(errs, line, col, messages.H0300) {
+			t.Fatalf("%q: %d:%d'de H0300 bekleniyordu, alınan: %v", code, line, col, errs)
+		}
+		fixed := "TR_defer { " + call + " }"
+		if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, fixed) {
+			t.Errorf("%q: ileti %q önermeli: %s", code, fixed, text)
+		}
+		if errs := parseErrs("TR_func g() {\n    " + fixed + "\n}"); len(errs) != 0 {
+			t.Errorf("önerilen yazım ayrıştırılmalı: %v", errs)
+		}
+	}
+	if errs := parseErrs("TR_func f() { }\nTR_async f()"); len(errs) != 0 {
+		t.Errorf("TR_async'in çağrı biçimi geçerli kalmalı: %v", errs)
+	}
+}
+
 // Kural (6.3): birden çok değerin dönüş tipi parantez içinde yazılır, TR_return virgülle hepsini döndürür.
 func TestMultipleResultsParse(t *testing.T) {
 	prog := New(codedLexer("TR_func f() -> (TR_Int, TR_String) { TR_return 1, \"a\" }")).ParseProgram()

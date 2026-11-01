@@ -1,0 +1,6 @@
+# TR 4
+# TEST 9.1 ertelenin tek yazımı bloktur: çağrı yazımı sözdizimi hatasıdır, ileti çağrıyı bloğa alır
+TR_func f() {
+    TR_defer TR_print("temizlik") # ERROR H0300
+    TR_print("iş")
+}

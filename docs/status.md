@@ -343,8 +343,8 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ### 9.1
 
-- **Mevcut durum:** kapsam en yakın blok: dal, döngünün ve koşullu döngünün turu, `TR_try` ve `TR_catch` bloğu, eşleme kolu; iş blok nasıl biterse bitsin (son deyim, `TR_continue`, `TR_break`, `TR_return`, hata) o bloğun sonunda, ters sırayla çalışıyor; ertelenen bloğun içindeki ertele o bloğun sonunda çalışıyor. Eskiden ertele fonksiyona bağlıydı ve ertelenen bloktaki ertele kayboluyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestDeferScopeIsTheNearestBlock`, `TestDeferInsideADeferredBlockRunsAtItsEnd`, `tests/hatalar_ertele_test.tr`'nin 9.1 testleri]. Çağrı yazımı (`TR_defer TR_print(x)`) bugün çalışıyor.
-- **Yapılacaklar:** çağrı yazımı sözdizimi hatası, ileti blok yazımını önerir (H0300); bir bloğun son deyimi olan `TR_defer`'in denetim hatası (denetleyici).
+- **Mevcut durum:** kapsam en yakın blok: dal, döngünün ve koşullu döngünün turu, `TR_try` ve `TR_catch` bloğu, eşleme kolu; iş blok nasıl biterse bitsin (son deyim, `TR_continue`, `TR_break`, `TR_return`, hata) o bloğun sonunda, ters sırayla çalışıyor; ertelenen bloğun içindeki ertele o bloğun sonunda çalışıyor. Eskiden ertele fonksiyona bağlıydı ve ertelenen bloktaki ertele kayboluyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestDeferScopeIsTheNearestBlock`, `TestDeferInsideADeferredBlockRunsAtItsEnd`, `tests/hatalar_ertele_test.tr`'nin 9.1 testleri]. Çağrı yazımı (`TR_defer f(x)`) sözdizimi hatası H0300, ileti çağrıyı bloğa alıyor (`TR_defer { f(x) }`); depodaki bütün çağrı yazımları bloğa göçtü [ölçüldü: aynı dal, `TestDeferIsWrittenOnlyWithABlock`, `tests/negative/ertele_cagri.tr`, `git grep -n 'TR_defer [^{]'`].
+- **Yapılacaklar:** bir bloğun son deyimi olan `TR_defer`'in denetim hatası (denetleyici).
 
 ### 9.3
 
