@@ -578,9 +578,9 @@ op.TR_zero_grad()
 - *Test:* TR testi; Go: `TestSafetensorsLoad`, `TestSafetensorsRejects`, `FuzzSafetensorsDecode`.
 
 **15.47a** `.safetensors` yoluna `TR_save_tensors` safetensors yazar: Hugging Face, PyTorch ve öbür araçlar modeli doğrudan okur.
-- Başlık safetensors belirtimine uyar ve Python'un `safetensors`'ının yaptığı gibi yazılır: başlık boşlukla 8 bayta tamamlanır, tensörler hizaya göre sıralanır (önce geniş türler). `__metadata__`'ya `{"format": "pt"}` yazılır.
+- Başlık safetensors belirtimine uyar ve Python'un `safetensors`'ının yaptığı gibi yazılır: başlık boşlukla 8 bayta tamamlanır, tensörler hizaya göre yazılır: önce geniş türler, aynı genişlikte yazılan sırayla (adla sıralanmaz). `__metadata__`'ya `{"format": "pt"}` yazılır.
 - CRC yoktur (biçimde yeri yok); kontrol noktası TR biçimini kullanır (20).
-- Yazılan dosya 15.47'nin okuyucusundan ve Python'un `safetensors`'ından geçer: gidiş dönüşte her tensörün adı, cinsi, şekli ve verisi bit bit aynıdır; sıra yazılan sıradır, sözlüğün sırası değil.
+- Yazılan dosya 15.47'nin okuyucusundan ve Python'un `safetensors`'ından geçer: gidiş dönüşte her tensörün adı, cinsi, şekli ve verisi bit bit aynıdır. 15.47 veri sırasıyla okuduğu için geri okunan sıra yazılan sıradır, yalnız türler karışıksa geniş türler öne geçer. Nicemlenmiş tensör: 15.55.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go testi (Python `safetensors` ile gidiş dönüş).
 
 ## Hatalar ve özel değerler
