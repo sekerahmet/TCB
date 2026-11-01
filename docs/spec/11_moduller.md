@@ -17,7 +17,7 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 **11.2** `TR_import "yol" TR_as m` modülü tek bir **modül değeri** olarak `m`'ye bağlar. Adlarına `m.ad` ile erişilir ve her adın tipi çalışmadan önce bilinir: `m.kare(2)`, `m.PI`.
 - Modül değeri bir sözlük değildir: `m["PI"]` denetim hatasıdır, ileti `m.PI`'yi önerir.
 - Olmayan bir ad denetim hatasıdır; ileti modülün en yakın adını önerir.
-- *Test:* TR testi; köşeli ayraçla erişimin ve olmayan adın denetim hatası uygulanınca olumsuz fikstür.
+- *Test:* TR testi; olumsuz fikstür `tests/negative/modul_koseli_ayrac.tr` (köşeli ayraç); olmayan adın denetim hatası uygulanınca olumsuz fikstür.
 
 **11.3** Bir modül program boyunca bir kez yüklenir; sonraki aktarımlar aynı değerleri paylaşır. Döngüsel aktarım (yüklenmekte olan bir modülün kendi yükleme zincirinden yeniden aktarılması) hatadır.
 - *Test:* TR testi.

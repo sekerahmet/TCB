@@ -54,6 +54,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.inferExpression(e.End)
 		return typeRange, true
 	case *ast.IndexExpression:
+		c.checkModuleIndex(e) // modül değeri köşeli ayraçla okunmaz ve atanmaz (11.2)
 		return indexType(c.inferExpression(e.Left), c.inferExpression(e.Index)), true
 	case *ast.MemberExpression:
 		obj := c.inferExpression(e.Object)

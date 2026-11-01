@@ -24,6 +24,8 @@ type TypeInfo struct {
 	// TupleLen dönüşü demet tipi olarak yazılmış fonksiyonun öğe sayısıdır (6.3; unpack.go); 0:
 	// bilinmiyor ya da demet değil.
 	TupleLen int
+	// Module takma adlı aktarımın bağladığı modül değeridir (11.2; module_values.go).
+	Module bool
 }
 
 // Scope is one level of the checker's type scope.
@@ -206,6 +208,8 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			IsConst:  s.IsConst,
 		})
 
+	case *ast.ImportStatement:
+		c.defineModuleAlias(s)
 	case *ast.AssignStatement:
 		c.checkAssign(s)
 
@@ -505,6 +509,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		}
 	} else {
 		// indeks ve alan hedefleri (l[i] = ..., p.x = ...) okunan ifadeler içerir
+		c.checkModuleAssign(s.Target)
 		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
 		c.inferExpression(s.Target)
 	}

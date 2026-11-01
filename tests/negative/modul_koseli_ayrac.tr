@@ -1,0 +1,5 @@
+# TR 4
+# TEST 11.2 modül değeri bir sözlük değildir: köşeli ayraçla okunması ve atanması denetim hatasıdır (çalışma anındaki kod)
+TR_import "../yardimci_modul" TR_as m
+TR_print(m["PI"]) # ERROR H2904
+m["PI"] = 9 # ERROR H2904

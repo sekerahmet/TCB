@@ -30,8 +30,10 @@ TR_test "1.1 modülün en dışı yalnız tanımdır: sabit ilk değerler aktar�
 TR_test "11.2 olarak ile modül tek bir değer olarak bağlanır; adlarına nokta ile erişilir" {
     TR_assert_equal(4, ym.kare(2))
     TR_assert_equal(3, ym.PI)
-    # Modül değeri bir sözlük değildir: köşeli ayraçla okunmaz (çalışma anı; denetim yanı 4a ile)
-    TR_assert_equal("H2904", TR_error_code { ym["PI"] })
+    # Modül değeri bir sözlük değildir: köşeli ayraçla okunmaz. Denetim takma adda yakalar
+    # (tests/negative/modul_koseli_ayrac.tr); tipi bilinmeyen kopyada çalışma anı aynı kodu verir.
+    TR_var ym_kopya = ym
+    TR_assert_equal("H2904", TR_error_code { ym_kopya["PI"] })
 }
 
 TR_test "11.3 modül değerinin adı modülün değişkenini okur, yüklemedeki kopyasını değil" {
@@ -78,9 +80,12 @@ TR_test "11.7 takma adsız aktar modüle özel adları getirmez" {
 }
 
 TR_test "11.8 modülün en dış adı aktaran dosyadan yeniden bağlanmaz; değerin içi değişebilir" {
-    TR_assert_equal("H2901", TR_error_code { ym.PI = 7 })
-    TR_assert_equal("H2901", TR_error_code { ym.modül_sayacı += 1 })
-    TR_assert_equal("H2904", TR_error_code { ym["PI"] = 7 })
+    # Denetim takma adda yakalar (tests/negative/modul_adina_atama.tr); tipi bilinmeyen kopyada
+    # çalışma anı aynı kodu verir.
+    TR_var ym_kopya = ym
+    TR_assert_equal("H2901", TR_error_code { ym_kopya.PI = 7 })
+    TR_assert_equal("H2901", TR_error_code { ym_kopya.modül_sayacı += 1 })
+    TR_assert_equal("H2904", TR_error_code { ym_kopya["PI"] = 7 })
     TR_assert_equal(3, ym.PI)
     ym.modül_noktası.x = 5
     TR_assert_equal(5, modül_noktası.x)
