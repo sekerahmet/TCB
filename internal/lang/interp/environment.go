@@ -46,6 +46,16 @@ func (k *scopeInfo) slot(name string) int {
 type envExtra struct {
 	defers []func() error
 	consts []bool // yuva başına 'sabit' bayrağı
+	// links takma adsız aktarılan adların yuvalarıdır (11.3): yuva boş kalır, değer modülün
+	// ortamındaki yuvadan okunur; modülün kendi fonksiyonu değişkeni değiştirince aktaran da
+	// yeni değeri görür.
+	links map[int]envLink
+}
+
+// envLink bir yuvanın bağlı olduğu, modülün ortamındaki yuvadır.
+type envLink struct {
+	env  *Environment
+	slot int
 }
 
 // Environment holds the variables of a scope. Values live in slots that match indexes in the
@@ -206,9 +216,62 @@ func addDeferError(current, extra error) error {
 // local adın bu ortamdaki değerini döndürür (tanımlı değilse nil).
 func (e *Environment) local(name string) (int, Value) {
 	if i, ok := e.scope.index[name]; ok && i < len(e.vals) {
-		return i, e.vals[i]
+		return i, e.slotValue(i)
 	}
 	return -1, nil
+}
+
+// slotValue i. yuvanın değeridir; yuva boşsa ve bir modülün yuvasına bağlıysa (11.3) oradaki
+// bugünkü değer.
+func (e *Environment) slotValue(i int) Value {
+	if val := e.vals[i]; val != nil || e.extra == nil || e.extra.links == nil {
+		return val
+	}
+	if l, ok := e.extra.links[i]; ok && l.slot < len(l.env.vals) {
+		return l.env.slotValue(l.slot)
+	}
+	return nil
+}
+
+// isLinked i. yuva bir modülün yuvasına bağlı ve kendi değeri yok mu (11.3)?
+func (e *Environment) isLinked(i int) bool {
+	if e.vals[i] != nil || e.extra == nil {
+		return false
+	}
+	_, ok := e.extra.links[i]
+	return ok
+}
+
+// link takma adsız aktarılan adı (11.1) modülün ortamındaki yuvasına bağlar: ad kopyalanmaz,
+// her okumada modülün değişkeninin bugünkü değeri okunur (11.3). Modülün ortamında yuvası yoksa
+// ad değeriyle tanımlanır.
+func (e *Environment) link(name string, mod *Environment, val Value) {
+	slot, ok := mod.scope.index[name]
+	if !ok {
+		e.Define(name, val, false)
+		return
+	}
+	i := e.scope.slot(name)
+	for len(e.vals) <= i {
+		e.vals = append(e.vals, nil)
+	}
+	e.vals[i] = nil
+	if e.extra == nil {
+		e.extra = &envExtra{}
+	}
+	if i < len(e.extra.consts) {
+		e.extra.consts[i] = false
+	}
+	if e.extra.links == nil {
+		e.extra.links = map[int]envLink{}
+	}
+	e.extra.links[i] = envLink{env: mod, slot: slot}
+	if fn, ok := val.(*FuncVal); ok && fn.Name == name {
+		if e.scope.funcs == nil {
+			e.scope.funcs = map[string]bool{}
+		}
+		e.scope.funcs[name] = true
+	}
 }
 
 // localValue adın yalnızca bu ortamdaki değerini döndürür (yoksa nil).
@@ -240,6 +303,11 @@ func (e *Environment) Define(name string, val Value, isConst bool) {
 func (e *Environment) Assign(name string, val Value) error {
 	for cur := e; cur != nil; cur = cur.outer {
 		if i, old := cur.local(name); old != nil {
+			if cur.isLinked(i) {
+				// Aktarılan ad aktaran dosyada yeniden bağlanmaz (11.8); değişken modülün kendi
+				// fonksiyonuyla değişir.
+				return messages.New(messages.H2901, name)
+			}
 			if cur.isConstant(i) {
 				return messages.New(messages.H2447, name, codes.NameRef(codes.KwConst))
 			}
@@ -294,7 +362,7 @@ func (e *Environment) EachLocal(fn func(name string, val Value)) {
 		if i >= len(e.vals) {
 			break
 		}
-		if val := e.vals[i]; val != nil {
+		if val := e.slotValue(i); val != nil {
 			fn(name, val)
 		}
 	}

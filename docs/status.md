@@ -434,8 +434,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 ### 11.3
 
 - **Mevcut durum:** modüller program çalışmadan yükleniyor; `TR_import` yalnız dosya başında yazılabilir (H0024, `tests/negative/aktarma_yeri.tr`), görevlerin modül yüklemesi yok [ölçüldü: main `85a19c36`, fonksiyon içinde `TR_import`].
-- **Mevcut durum (paylaşılan değer):** modül değerinin adı (`m.sayaç`) modülün değişkeninin bugünkü değerini veriyor; modülün kendi fonksiyonu değişkeni değiştirince her takma ad yeni değeri görüyor, eskiden yüklemedeki kopyayı veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestModuleValueReadsTheModulesVariable`, `tests/moduller_test.tr`'nin 11.3 testi]. Takma adsız aktarılan ad (`TR_import "m"` sonra `sayaç`) hâlâ yüklemedeki kopya: `say()` iki kez çağrılınca `sayaç` 0, modülün okuyan fonksiyonu 2 veriyor [ölçüldü: aynı dal, CLI].
-- **Yapılacaklar:** takma adsız aktarılan adın da modülün değişkenini okuması (aktaranın ad çözümü).
+- **Mevcut durum (paylaşılan değer):** modül değerinin adı (`m.sayaç`) modülün değişkeninin bugünkü değerini veriyor; modülün kendi fonksiyonu değişkeni değiştirince her takma ad yeni değeri görüyor, eskiden yüklemedeki kopyayı veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestModuleValueReadsTheModulesVariable`, `tests/moduller_test.tr`'nin 11.3 testi]. Takma adsız aktarılan ad (`TR_import "m"` sonra `sayaç`) da modülün değişkenine bağlı: `say()` iki kez çağrılınca `sayaç` 2 (en dışta, fonksiyonda ve adı aktaran bir modülden geçince de); eskiden yüklemedeki kopyaydı, 0 veriyordu. Bu ada aktarandan atama çalışma anında H2901 [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestImportedNameReadsTheModulesVariable`, `tests/moduller_test.tr`'nin 11.3 testi].
 
 ### 11.4
 

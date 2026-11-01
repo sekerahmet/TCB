@@ -200,8 +200,8 @@ type moduleLoading struct {
 
 // imp 'aktar' deyimini çalıştırır. Modül, genel kapsamın altında kendi ortamında çalışır
 // ve ortamının tüm adları dışa aktarılır. takma, 'aktar ... olarak ad' biçiminde takma adı
-// çağıranın kapsamına tanımlar; takma adsız aktarımda adlar çağıranın ortamına adla
-// tanımlanır.
+// çağıranın kapsamına tanımlar; takma adsız aktarımda adlar çağıranın ortamında modülün
+// yuvalarına bağlanır (Environment.link, 11.3).
 func (v *VM) imp(s *ast.ImportStatement, env *Environment, alias func(*Environment, Value, bool)) (Value, flowSignal, error) {
 	path := s.Path
 	if !strings.HasSuffix(path, ".tr") {
@@ -215,8 +215,10 @@ func (v *VM) imp(s *ast.ImportStatement, env *Environment, alias func(*Environme
 		alias(env, mod, true)
 		return mod, signalNone, nil
 	}
+	// Takma adsız aktarılan ad modülün değişkenine bağlanır (11.3): modülün kendi fonksiyonu
+	// değişkeni değiştirince aktaran da yeni değeri okur, yüklemedeki kopyayı değil.
 	for _, k := range mod.Order {
-		env.Define(k, mod.Pairs[k], false)
+		env.link(k, mod.module.env, mod.Pairs[k])
 	}
 	return mod, signalNone, nil
 }

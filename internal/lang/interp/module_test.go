@@ -238,3 +238,26 @@ func TestModuleValueReadsTheModulesVariable(t *testing.T) {
 		t.Errorf("çıktı %q, hata %v; \"2 2 2\" beklenirdi", out, err)
 	}
 }
+
+// Kural (11.3): takma adsız aktarılan ad da modülün değişkeninin bugünkü değerini verir: modülün
+// kendi fonksiyonu değişkeni değiştirince aktaranın okuması (en dışta da fonksiyonda da) yeni değeri
+// görür; adı aktaran bir modülden geçen ad da (eskiden yüklemedeki kopyaydı: say() iki kez
+// çağrılınca sayac 0'dı). Aktaran dosyadan bu ada atama H2901'dir (11.8), modülün değeri değişmez.
+func TestImportedNameReadsTheModulesVariable(t *testing.T) {
+	module := "TR_var sayac = 0\nTR_func say() {\n    sayac += 1\n}\nTR_func oku() -> TR_Int {\n    TR_return sayac\n}\n"
+	files := map[string]string{
+		"m.tr":   module,
+		"ara.tr": "TR_import \"m\"\nTR_func ara_oku() -> TR_Int {\n    TR_return sayac\n}\n",
+		"ana.tr": "TR_import \"m\"\nTR_import \"ara\" TR_as a\nTR_func ana_oku() -> TR_Int {\n    TR_return sayac\n}\nsay()\nsay()\nTR_print(sayac, ana_oku(), oku(), a.ara_oku(), a.sayac)\n",
+	}
+	out, err := runWithModules(t, t.TempDir(), files)
+	if err != nil || out != "2 2 2 2 2\n" {
+		t.Errorf("çıktı %q, hata %v; \"2 2 2 2 2\" beklenirdi", out, err)
+	}
+	for _, wrong := range []string{"sayac = 5", "sayac += 1"} {
+		out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\"\n" + wrong + "\n"})
+		if !messages.Has(err, messages.H2901) {
+			t.Errorf("%s: H2901 beklenirdi, gelen %v (%s)", wrong, err, out)
+		}
+	}
+}

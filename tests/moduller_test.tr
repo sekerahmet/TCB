@@ -44,6 +44,14 @@ TR_test "11.3 modül değerinin adı modülün değişkenini okur, yüklemedeki 
     TR_assert_equal(sayı + 1, ym.modül_sayacı)
 }
 
+TR_test "11.3 takma adsız aktarılan ad modülün değişkenini okur, yüklemedeki kopyasını değil" {
+    # Modülün kendi fonksiyonu değişkenini değiştirince takma adsız aktarılan ad da yeni değeri verir.
+    TR_var sayı = modülde_say()
+    TR_assert_equal(sayı, modül_sayacı)
+    TR_assert_equal(sayı + 1, ym.modülde_say())
+    TR_assert_equal(sayı + 1, modül_sayacı)
+}
+
 TR_test "11.3 modül bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır" {
     ym.kayıt.TR_append("x")
     TR_assert_equal(["x"], kayıt)
