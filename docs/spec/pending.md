@@ -27,5 +27,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **15.55, nicemlenmiş tensörü açmak (2026-11-01, T1'in ilk dilimi):** 15.55 "ileti açmayı ya da TR biçimini önerir" diyor, ama açma yerleşiği dil tanımında ve sözlükte yok; H6950 yalnız TR biçimini öneriyor [kanıtlı: T1, `t1-dilim1-devir.md`; `grep -n quant internal/lang/codes/definitions.json` boş]. Öneri: açma yerleşiği ya adlandırılır ya da 15.55'ten "açmayı" çıkar.
+- **15.2, aralıktan tensör (2026-11-01, T1'in ilk dilimi):** `TR_Tensor(0..3)` bugün H6032; 15.2 aralıktan kurmayı söylemiyor, 15.1'in ara kuralı ise "tam sayı listesi ya da aralık" diyor [kanıtlı: T1, `t1-dilim1-devir.md`, ölçüm]. Öneri: 15.2 aralığı kabul eder ya da 15.1'in cümlesinden "aralık" çıkar.
 - **15.47a, `__metadata__` adı (2026-11-01, T1'in ilk dilimi):** safetensors başlığında `__metadata__` ayrılmış bir anahtardır; bu adlı bir tensörü yazmak T1'de çalışma hatası (H6951), ama 15.47a bunu yazmıyor [kanıtlı: T1, `t1-dilim1-devir.md`]. Öneri: 15.47a'ya bir cümle.
 - **15.46, uzantının harfi (2026-11-01, T1'in ilk dilimi):** biçim uzantıya göre seçilir, ama `.SAFETENSORS` gibi büyük harfli uzantının ne olacağı yazılı değil [kanıtlı: T1, `t1-dilim1-devir.md`]. Öneri: 15.46'ya harfe duyarlılık için bir cümle.

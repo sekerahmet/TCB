@@ -76,6 +76,8 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
+- **TR çağrı yerleri argümanın biçimine göre (istek, 2026-11-01, T1'in ilk dilimi):** `codegraph calls TR_argmax --without-arg TR_dim` gibi bir sorgu; T1'in eksensiz `TR_argmax` göç sayımı grep'le yapıldı, Go testlerindeki TR dizgeleri dahil (`t1-dilim1-devir.md`, Codegraph). Ana oturum yeniden üretmedi.
+- **Bileşik atamanın hedefi tensör olan yerler (istek, 2026-11-01, T1'in ilk dilimi):** `codegraph query --compound-assign --type TR_Tensor` gibi tip bilgili bir tarama; T1'in 15.6d taraması ad eşlemesiyle yapıldı (`t1-dilim1-devir.md`, Codegraph). Ana oturum yeniden üretmedi.
 - **İzlenmeyen dosya için uyarı (istek, 2026-11-01, bulut 4a2 ikinci dilim):** `tests-for` izlenmeyen bir dosyada da "these commands run every Go test the pre-check selects for this file" diyor; oysa depo taramaları (`TestHeaderRulesLiveOnlyInSourceAndLexer` vb.) yalnız izlenen dosyaları görür. Bulut oturumu yeni `parser/type_text.go`'yu `git add`'lemeden ön denetimi geçti, dosya eklenince aynı test kaldı. Yeniden üretildi: `internal/lang/checker/zz_deneme.go` (izlenmeyen) için `tests-for` uyarısız [ölçüldü: 2026-11-01 18:36]. İstenen: "izlenmiyor; depo taramaları görmez, `git add`" satırı (`tests-for` ve `changed --go-tests`).
 
 - **`.tr` ve veri dosyalarında `tests-for`'un koşu satırı yok.** 2026-10-29, DENETİM (codegraph birleşmesinin denetimi). Go dosyaları `run:` satırı ve boyut satırı alıyor (`ca99f125`); `.tr` ve veri dosyaları için aynı kısa koşu komutu (ör. `tr test dosya`) yok.
