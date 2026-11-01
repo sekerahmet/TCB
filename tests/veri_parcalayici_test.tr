@@ -77,6 +77,22 @@ TR_test "16.5 veri_kümesi: klasör ya da tek .npy dosyası" {
     TR_assert(TR_String(TR_Dataset("data/text")).TR_contains("(2 "), TR_String(TR_Dataset("data/text")))
 }
 
+TR_test "16.5 aynı adlı iki parça aynı önbellek klasöründe ayrı kalır" {
+    TR_var k = TR_temp_dir()
+    TR_var d1 = TR_make_dir(TR_Path(k, "küme1"))
+    TR_var d2 = TR_make_dir(TR_Path(k, "küme2"))
+    TR_var önb = TR_Path(k, "önbellek")
+    TR_copy("data/numbers/a.npy", TR_Path(d1, "ortak.npy"))
+    TR_copy("data/numbers/b.npy", TR_Path(d2, "ortak.npy"))
+    TR_var k1 = TR_Dataset(d1, TR_cache: önb, TR_quota_gb: 0.01)
+    TR_var k2 = TR_Dataset(d2, TR_cache: önb, TR_quota_gb: 0.01)
+    TR_var ilk1 = k1.TR_sequential(TR_batch_size: 1, TR_context: 4).TR_next()
+    TR_var ilk2 = k2.TR_sequential(TR_batch_size: 1, TR_context: 4).TR_next()
+    TR_assert_equal([[0.0, 1.0, 2.0, 3.0]], ilk1[0].TR_tolist)
+    TR_assert_equal([[1000.0, 1001.0, 1002.0, 1003.0]], ilk2[0].TR_tolist)
+    TR_assert_equal(2, TR_list_dir(önb, "*.cache.npy").TR_length)
+}
+
 TR_test "16.7 örnekleyici: girdi ve hedef tensörleri, tohumla tekrar üretilebilir" {
     TR_var küme = TR_Dataset("data/numbers")
     TR_var ö = küme.TR_sampler(TR_batch_size: 3, TR_context: 5, TR_seed: 1)
@@ -108,6 +124,17 @@ TR_test "16.7 örnekleyici: girdi ve hedef tensörleri, tohumla tekrar üretileb
     TR_var çıktı = TR_embedding_lookup(E, giriş) @ W
     TR_assert_equal([3, 5, 1200], çıktı.TR_shape)
     TR_assert_equal([], TR_cross_entropy(çıktı, hedef).TR_shape)
+}
+
+TR_test "16.7 örnekleyici bağlamdan kısa parçayı atlar" {
+    # data/numbers içinde a.npy 100, b.npy 150 kimliktir; bağlam 100 iken pencere 101 kimlik ister, a.npy atlanır.
+    TR_var ö = TR_Dataset("data/numbers").TR_sampler(TR_batch_size: 4, TR_context: 100, TR_seed: 1)
+    TR_for adım TR_in 0..5 {
+        TR_var giriş, hedef = ö.TR_next()
+        TR_for satır TR_in 0..4 {
+            TR_assert(giriş.TR_tolist[satır][0] >= 1000.0)
+        }
+    }
 }
 
 TR_test "16.8 sıralı: pencereler sırayla, bitince yok" {

@@ -899,8 +899,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.5
 
-- **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 ve 64 biti okuyor, `int32`'ye sığmayan `<u4` ve `<i8` değerlerini reddediyor (`TestHeaderVersions`, `TestShardU32Overflow`, `tests/veri_parcalayici_test.tr`) [kanıtlı: `internal/compute/dataload/npy.go:43`, `internal/compute/dataload/shard.go:278`; ölçüldü: `go test -short ./internal/compute/dataload/` ve `go run ./cmd/tr test tests/veri_parcalayici_test.tr`, 2026-11-01].
-- **Yapılacaklar:** önbelleğin TR testi (aynı adlı iki parça ayrı; Go'da `TestCache*` var).
+- **Mevcut durum (Faz 1, 2026-11-01):** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 ve 64 biti okuyor, `int32`'ye sığmayan `<u4` ve `<i8` değerlerini reddediyor (`TestHeaderVersions`, `TestShardU32Overflow`, `tests/veri_parcalayici_test.tr`); aynı önbellek klasöründeki aynı adlı parçalar ayrı tutuluyor (`TestCache*`, `tests/veri_parcalayici_test.tr`: `"16.5 aynı adlı iki parça aynı önbellek klasöründe ayrı kalır"`) [kanıtlı: `internal/compute/dataload/npy.go:43`, `internal/compute/dataload/shard.go:278`, `internal/compute/dataload/cache.go:290-300`; ölçüldü: `go test -short ./internal/compute/dataload/` ve `go run ./cmd/tr test tests/veri_parcalayici_test.tr`, 2026-11-01].
 
 ### 16.6
 
@@ -910,8 +909,8 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.7
 
-- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi).
-- **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler; örnekleyicinin TR testi (kısa parça atlanır; Go'da `TestSampler*` var).
+- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi); bağlamdan kısa parçalar atlanıyor (`TestSamplerWindowBoundsAndShift`, `tests/veri_parcalayici_test.tr`: `"16.7 örnekleyici bağlamdan kısa parçayı atlar"`) [kanıtlı: `internal/compute/dataload/sampler.go:206-209`; ölçüldü: `go run ./cmd/tr test tests/veri_parcalayici_test.tr`, 2026-11-01].
+- **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler.
 
 ### 16.8
 
