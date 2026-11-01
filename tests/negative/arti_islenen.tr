@@ -1,0 +1,10 @@
+# TR 4
+# TEST 4.10 '+' başka tiple metni ya da listeyi eklemez: denetim hatasıdır (çalışma anındaki kod); x += y de (5.4)
+TR_var a = "a" + 1 # ERROR H2609
+TR_var b = 1 + "a" # ERROR H2609
+TR_var c = [1] + 2 # ERROR H2614
+TR_var d = 2 + [1] # ERROR H2614
+TR_var e = "a" + [1] # ERROR H2609
+TR_var s = "a"
+s += 1 # ERROR H2609
+TR_print(a, b, c, d, e, s)

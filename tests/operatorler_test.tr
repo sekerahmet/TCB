@@ -234,11 +234,8 @@ TR_test "4.10 '+' yalnız iki metni ya da iki listeyi uç uca ekler" {
     TR_assert_equal([1, 2], [1] + [2])
     TR_var n = 1
     TR_assert_equal("a1", "a\(n)")
-    TR_assert_equal("H2609", TR_error_code { TR_var z = "a" + 1 })
-    TR_assert_equal("H2609", TR_error_code { TR_var z = 1 + "a" })
-    TR_assert_equal("H2614", TR_error_code { TR_var z = [1] + 2 })
-    TR_assert_equal("H2614", TR_error_code { TR_var z = 2 + [1] })
-    TR_assert_equal("H2609", TR_error_code { TR_var z = "a" + [1] })
+    # Başka tiple '+' denetim hatasıdır (çalışma anındaki kodla): tests/negative/arti_islenen.tr; çalışma
+    # anı yolu internal/lang/interp/operators_test.go'da.
 }
 
 TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi boş verir" {

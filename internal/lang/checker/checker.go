@@ -397,6 +397,9 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		case "@":
 			return typeTensor
 		case "+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>":
+			if e.Operator == "+" {
+				c.checkPlus(e, left, right) // 4.10
+			}
 			return arithmeticType(string(e.Operator), left, right)
 		}
 		return typeAny
@@ -483,6 +486,9 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		if info, found := c.scope.Resolve(ident.Value); found {
 			// Bileşik atamada (x += y) atanan değer 'x + y' ifadesinin sonucudur
 			op := strings.TrimSuffix(string(s.Operator), "=")
+			if op == "+" {
+				c.checkPlus(s, info.TypeName, valType) // x += y, x = x + y'dir (5.4, 4.10)
+			}
 			if op != "" {
 				valType = arithmeticType(op, info.TypeName, valType)
 			}

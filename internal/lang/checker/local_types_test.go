@@ -44,7 +44,7 @@ func TestLocalTypeIsPermanent(t *testing.T) {
 	singleError(t, "TR_var m = \"a\"\nTR_func f() {\n    m = TR_true\n}", messages.H1005, 3, `"m" değişkeni (TR_String)`, `"TR_Bool"`)
 	singleError(t, "TR_var x = 10\nx /= 4", messages.H1005, 2, `"TR_Float"`, "'//'")
 	noErrors(t, "TR_var toplam = 0.0\ntoplam += 1\ntoplam = 2")
-	noErrors(t, "TR_var s = \"a\"\ns += 1\ns = \"b\"")
+	noErrors(t, "TR_var s = \"a\"\ns += \"b\"\ns = \"c\"")
 	noErrors(t, "TR_var n = 0\nn += 1\nn = n * 2 - 1\nn //= 2")
 }
 

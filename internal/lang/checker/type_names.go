@@ -317,8 +317,8 @@ func bitOperator(op string) bool {
 // üssü çalışma hatasıdır), bir yanı Ondalıksa Ondalık verir. Bit işleçleri yalnız iki Tam'da
 // tanımlıdır; başka işlenenin hatası çalışma anındadır, denetleyici tip iddia etmez.
 func arithmeticType(op, left, right string) string {
-	if op == "+" && (left == typeString || right == typeString) {
-		return typeString
+	if op == "+" && left == typeString && right == typeString {
+		return typeString // metne başka tip eklenmez (4.10, plus_operands.go)
 	}
 	if t, ok := sequenceType(op, left, right); ok {
 		return t

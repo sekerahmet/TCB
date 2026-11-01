@@ -140,8 +140,8 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: metin
 
 ### 4.10
 
-- **Mevcut durum:** başka tiple `+` ve `*` çalışma anında hata veriyor (H2609, H2614); öğeleri başvuruyla paylaşılan liste sessizce yineleniyor: `[[0] * 3] * 3`'ün üç satırı aynı liste [ölçüldü].
-- **Yapılacaklar:** ikisi de denetim hatası olur; paylaşılan listenin iletisi her satırı ayrı kuran yazımı önerir.
+- **Mevcut durum:** başka tiple `+` tipi bilinen işlenenlerde denetimde, çalışma anının koduyla (H2609 metinde, H2614 metinsiz listede; 4a2 ikinci dilim) [ölçüldü: `TestPlusOperands`, `tests/negative/arti_islenen.tr`]; `*` çalışma anında; öğeleri başvuruyla paylaşılan liste sessizce yineleniyor: `[[0] * 3] * 3`'ün üç satırı aynı liste [ölçüldü].
+- **Yapılacaklar:** `*`'ın denetim hatası; ayrı öğe tipli iki listenin `+`'sı (`[1] + ["a"]`, bugün iki yanda da hatasız); paylaşılan listenin iletisi her satırı ayrı kuran yazımı önerir; H2609 ve H2614'ün önerisi genel bir kalıp (`"metin \\(x)"`, `l + [x]`), programın kendi yazımı değil.
 - **Mevcut durum:** yineleme 2³¹ bayt ve 2²⁷ öğede kesiliyor (`sequence_ops.go` `maxRepeatBytes`, `maxRepeatItems`); kural artık bellekle denetler (3.6, 15.42); `.TR_append`, `+=` ve sözlüğe eklemenin bellek denetimi de uygulanacak. `tests/operatorler_test.tr:255-256`'nın iki satırı (H2610, H2615) kural uygulanınca tersine döner.
 - `==`'nin iç içelik sınırı 10000 (`operators.go` `equalityDepth`) bir uygulama sınırıdır; 7.6'nın döngü kuralından ayrıdır.
 
@@ -163,7 +163,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 ### 5.4
 
-- **Mevcut durum:** on iki bileşik atama, listede yerinde `+=` ve `*=`, hedefin bir kez hesaplanması, alan hedefi, tanımsız ada atamanın `TR_var`'ı öneren denetim hatası ve sonucun tipi kurala uyuyor: tam sayı değişkende `x /= 2` ve `x += 1.5` denetim hatası (H1005). `/=`'nin iletisi `//=`'yi değil `//`'yi öneriyor. İşlenenlerin tipi denetlenmiyor: `s += 1` (ve `s + 1`) denetimden geçiyor, çalışırken hata veriyor [ölçüldü: main `85a19c36`, on iki işleç, `l[f()] += 1`, `p.x += 4`, `x /= 2`, `x += 1.5`, `s += 1`; denetim ve çalıştırma; `TestCompoundAssignment`]. Tensörde indeksle biriktirme 15.6d'de.
+- **Mevcut durum:** on iki bileşik atama, listede yerinde `+=` ve `*=`, hedefin bir kez hesaplanması, alan hedefi, tanımsız ada atamanın `TR_var`'ı öneren denetim hatası ve sonucun tipi kurala uyuyor: tam sayı değişkende `x /= 2` ve `x += 1.5` denetim hatası (H1005). `/=`'nin iletisi `//=`'yi değil `//`'yi öneriyor. İşlenenlerin tipi `+` ve `+=`'da denetimde (4a2 ikinci dilim): `s += 1` ve `s + 1` (`s` metin) H2609 [ölçüldü: main `85a19c36`, on iki işleç, `l[f()] += 1`, `p.x += 4`, `x /= 2`, `x += 1.5`, `s += 1`; denetim ve çalıştırma; `TestCompoundAssignment`]. Tensörde indeksle biriktirme 15.6d'de.
 - **Yapılacaklar:** `/=` iletisi `//=`'yi önerir.
 
 ### 5.5

@@ -119,7 +119,6 @@ func TestTypedVarCompatible(t *testing.T) {
 		`TR_var a: TR_String = "merhaba"`,
 		`TR_var x = 1
 		 TR_var a: TR_String = "x = \(x)"`,
-		`TR_var a: TR_String = "a" + 1`,
 		"TR_var a: TR_Bool = TR_true",
 		"TR_var a: TR_Bool = 1 < 2",
 		"TR_var a: TR_Bool = TR_not TR_false",
@@ -213,9 +212,10 @@ func TestAssignmentTypeCheck(t *testing.T) {
 }
 
 func TestCompoundAssignment(t *testing.T) {
-	// 's += 1' ile 's = s + 1' aynı şekilde değerlendirilmeli (Metin + Tam = Metin)
-	noErrors(t, "TR_var s = \"a\"\ns += 1")
-	noErrors(t, "TR_var s = \"a\"\ns = s + 1")
+	// 's += 1', 's = s + 1' demektir; metne tam sayı eklenmez (4.10, 5.4): ikisi de çalışma anının
+	// koduyla denetim hatası (H2609)
+	singleError(t, "TR_var s = \"a\"\ns += 1", messages.H2609, 2, "TR_String", "TR_Int")
+	singleError(t, "TR_var s = \"a\"\ns = s + 1", messages.H2609, 2, "TR_String", "TR_Int")
 	noErrors(t, "TR_var x = 10\nx += 1\nx -= 2\nx *= 3")
 	noErrors(t, "TR_var x = 1.5\nx += 1")
 	noErrors(t, "TR_var x: TR_Float = 1\nx *= 2.5")
