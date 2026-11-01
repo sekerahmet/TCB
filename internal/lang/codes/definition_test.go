@@ -139,8 +139,11 @@ func TestParseDefinitions(t *testing.T) {
 	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != TypeFloat {
 		t.Fatalf("TipCoz: %+v %v", ti, err)
 	}
-	if _, err := ParseType("TR_Int?", false); err == nil {
-		t.Error("dönüş tipinde sonek hata olmalı")
+	if _, err := ParseType("TR_Int+", false); err == nil {
+		t.Error("dönüş tipinde argüman soneki (+, *) hata olmalı")
+	}
+	if r, err := ParseType("T?", false); err != nil || r.Optional || r.Types[0] != TypeAny || r.Text[0] != "T?" {
+		t.Errorf("dönüşte T? isteğe bağlı tiptir (3.5), tip parametresi TR_Any'dir: %+v %v", r, err)
 	}
 	if _, err := ParseType("TR_type_Int", true); err == nil {
 		t.Error("tipin sınıflı yazımı (TR_type_Int) hata olmalı: tip kimlikle yazılır (TR_Int, 13.9)")

@@ -6,10 +6,12 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
+func init() { ast.RegisterTypeTextParser(ParseTypeText) }
+
 // ParseTypeText reads a type written as text with identities, as a program writes it after ':' (13.9:
 // TR_Int, TR_List[T], TR_Dict[TR_String, T], T?, (T) -> U). It is the only reader of a type text: the
 // definitions' types (internal/lang/codes/definitions.json) are read with it, with the grammar of
-// typeAfter. Text left after the type is an error.
+// typeAfter; the checker reaches it through ast.ParseTypeText. Text left after the type is an error.
 func ParseTypeText(text string) (*ast.TypeRef, error) {
 	p := New(lexer.New(":" + text))
 	t, ok := p.typeAfter()

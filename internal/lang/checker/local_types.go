@@ -177,8 +177,8 @@ func (c *Checker) knownStruct(name string) bool {
 
 // callType çağrının tipidir: adıyla çağrılan tipli fonksiyonun dönüş tipi, yapı kurucusunun
 // çağrısında yapının kendisi (Nokta(1, 2) → Nokta), tipi bilinen bir yapı nesnesinin metodunda
-// metodun yazılan dönüş tipi (objType nesnenin tipidir), yerleşiğin tek tipli dönüşü
-// (builtinReturnType). Öbür çağrılar TR_Any'dir.
+// metodun yazılan dönüş tipi (objType nesnenin tipidir), tipi bilinen çekirdek alıcıda metodun öğe
+// tipli dönüşü (memberValueType), yerleşiğin tek tipli dönüşü (builtinReturnType). Öbür çağrılar TR_Any'dir.
 func (c *Checker) callType(e *ast.CallExpression, info TypeInfo, found bool, objType string) string {
 	if found && info.TypeName == typeFunction && info.ReturnType != "" {
 		return info.ReturnType
@@ -189,6 +189,11 @@ func (c *Checker) callType(e *ast.CallExpression, info TypeInfo, found bool, obj
 	if m, ok := e.Function.(*ast.MemberExpression); ok && !m.Safe && c.knownStruct(objType) {
 		if f := c.structs[objType].Methods[m.Property]; f != nil && f.ReturnType != nil {
 			return c.localType(normalizedType(f.ReturnType))
+		}
+	}
+	if m, ok := e.Function.(*ast.MemberExpression); ok {
+		if t := c.memberValueType(m, objType, true); t != "" {
+			return t // çekirdek alıcıda metodun öğe tipli dönüşü (memberValueType)
 		}
 	}
 	if t := c.builtinReturnType(e, objType); t != "" {

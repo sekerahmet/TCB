@@ -1,13 +1,15 @@
 package checker
 
 import (
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 // SingleReturn yerleşiğin tek tipli dönüşüdür (1.2, 13.9): tanım dosyasında dönüşü tek bir tip olan
 // fonksiyon, bütün alıcılarında aynı tek tipi döndüren metot ve tip çağrısı (3.12, dönüşü tipin
-// kendisi). Birleşim (TR_Int|TR_Float), TR_Any, yokluk (değer döndürmeyen yerleşik) ve kitaplık kodu
+// kendisi). Birleşim (TR_Int|TR_Float), isteğe bağlı tip (T?), TR_Any, yokluk (değer döndürmeyen yerleşik) ve kitaplık kodu
 // (imzası kaynaktadır) tek tipli değildir.
 func SingleReturn(k codes.Code) (codes.Code, bool) {
 	def, ok := codes.DefinitionOf(k)
@@ -33,7 +35,7 @@ func SingleReturn(k codes.Code) (codes.Code, bool) {
 }
 
 func singleType(t codes.TypeExpr) (codes.Code, bool) {
-	if len(t.Types) != 1 || t.Optional || t.Types[0] == codes.TypeAny || t.Types[0] == codes.TypeNoneType {
+	if len(t.Types) != 1 || t.Optional || t.Types[0] == codes.TypeAny || t.Types[0] == codes.TypeNoneType || strings.HasSuffix(t.Text[0], "?") {
 		return codes.None, false
 	}
 	return t.Types[0], true

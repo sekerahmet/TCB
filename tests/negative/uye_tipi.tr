@@ -1,0 +1,4 @@
+# TR 4
+# TEST 1.2 tipi bilinen alıcıda yerleşik üyenin değeri tanımdaki tipindedir, öğe tipi alıcıdan
+TR_var n: TR_String = [1, 2].TR_length # ERROR H1001
+TR_var k: TR_List[TR_Int] = {"a": 1}.TR_keys() # ERROR H1001

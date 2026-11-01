@@ -55,7 +55,14 @@ func TestDefinitionTypesParse(t *testing.T) {
 						t.Errorf("%s: %q okunmadı: %v", k, text, err)
 						continue
 					}
-					if ty.Name != e.Types[i].String() {
+					head := ty.Name
+					switch {
+					case ty.Return != nil:
+						head = codes.TypeFunction.String()
+					case codes.TypeParameter(ty.Name):
+						head = codes.TypeAny.String()
+					}
+					if head != e.Types[i].String() {
 						t.Errorf("%s: %q'nın asıl adı %s, tanımın kodu %s", k, text, ty.Name, e.Types[i])
 					}
 				}

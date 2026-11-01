@@ -56,7 +56,11 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 	case *ast.IndexExpression:
 		return indexType(c.inferExpression(e.Left), c.inferExpression(e.Index)), true
 	case *ast.MemberExpression:
-		return c.fieldType(c.inferExpression(e.Object), e), true // tipi bilinen yapının alanı (7.5)
+		obj := c.inferExpression(e.Object)
+		if t := c.memberValueType(e, obj, false); t != "" {
+			return t, true // tipi bilinen çekirdek alıcının özelliği (1.2, 13.9)
+		}
+		return c.fieldType(obj, e), true // tipi bilinen yapının alanı (7.5)
 	case *ast.ElementExpression:
 		return elementType(c.inferExpression(e.Object), e.Index), true // demetin öğesi (3.6a)
 	}

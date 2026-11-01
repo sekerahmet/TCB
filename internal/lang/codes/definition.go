@@ -28,7 +28,10 @@ import (
 //
 // A type is written as in a program, with identities (13.9: TR_Int, TR_List); a type expression is a
 // union of types joined with "|" (TR_Int|TR_Float). On a positional parameter the suffix "?" means
-// optional, "*" zero or more, "+" one or more. Each alternative is kept as written (TypeExpr.Text):
+// optional, "*" zero or more, "+" one or more. A type may carry its element types and a type
+// parameter (TR_List[T], T?, TR_List[K]): in a member's signature T is the element type of a
+// TR_List receiver, K and V the key and value types of a TR_Dict receiver. Each alternative is kept
+// as written (TypeExpr.Text):
 // its structure is read by the language's own type parser (parser.ParseTypeText), not here. The
 // receivers ("types", the keys of "signatures") are written the same way. The type of AdamW and SGD
 // is a type too: İyileştirici, TR_Optimizer. A named argument is a [code, type, default] triple; the
@@ -415,7 +418,7 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 		}
 	}
 	for _, p := range strings.Split(s, "|") {
-		k, err := typeIdentity(p)
+		k, err := typeHead(p)
 		if err != nil {
 			return t, messages.Internalf("type expression %q: %v", s, err)
 		}
@@ -424,6 +427,29 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 	}
 	return t, nil
 }
+
+// typeHead is the type code of an alternative's head (13.9): the identity of TR_Int and of
+// TR_List[T]; TR_Function for a function type ((T) -> U); TR_Any for a type parameter (T, K, V, U),
+// whose type comes from the receiver or the arguments. A last '?' (T?, an optional type in a return)
+// is not part of the head. Only the head is resolved here; the structure is read by
+// parser.ParseTypeText.
+func typeHead(s string) (Code, error) {
+	s = strings.TrimSuffix(s, "?")
+	switch {
+	case strings.HasPrefix(s, "("):
+		return TypeFunction, nil
+	case TypeParameter(s):
+		return TypeAny, nil
+	}
+	if i := strings.IndexByte(s, '['); i > 0 {
+		s = s[:i]
+	}
+	return typeIdentity(s)
+}
+
+// TypeParameter reports whether s is a type parameter of a builtin's signature: one capital letter
+// (T, U; a receiver's T of TR_List[T], K and V of TR_Dict[K, V]).
+func TypeParameter(s string) bool { return len(s) == 1 && s[0] >= 'A' && s[0] <= 'Z' }
 
 // typeIdentity is the type code written as s, a type's identity in program text (TR_Int → TR_type_Int).
 func typeIdentity(s string) (Code, error) {

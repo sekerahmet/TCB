@@ -13,7 +13,7 @@ TR_print("Merhaba, dünya!")
 ```
 
 **1.2** TR statik tiplidir: her değerin tipi çalışmadan önce bilinir. Fonksiyonun parametreleri ve dönüşü tipini yazar; yerel değişkenin tipi ilk değerinden çıkar.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca denetleyicinin testleri.
+- *Test:* TR testi (olumsuz fikstür `tests/negative/uye_tipi.tr`); Go: `TestLocalTypeIsPermanent`, `TestBuiltinReturnTypes`, `TestMemberValueTypes`; çıkarımın kalanı uygulanınca denetleyicinin testleri.
 
 **1.3** Çalışmadan önce program, aktardığı modüllerle birlikte, bütünüyle ayrıştırılır ve tip denetiminden geçer (tip hataları ve tanımsız adlar); hata varsa hiçbir satır çalışmaz, çıkış kodu 1'dir. Sözdizimi hatası ayrıştırmada, denetim hatası tip denetiminde bulunur; ikisi de çalışmadan önce verilir ve iletinin başlığı türü söyler. `TR_import` yalnız dosyanın başında, başlıktan (2.1) sonra ve öbür tanım ve deyimlerden önce yazılır; koşullu aktarma ve koşullu modül yoktur, her modül her makinede denetlenir. Platform ve cihaz farkı çalışırken bakılan değerlerle çözülür (`TR_default_device()`); makinede olmayan bir donanım onu kullanan satırda çalışma hatası verir.
 - *Test:* Go: `TestExampleErrors` (hatadan önceki satırın çalışmadığı da), `TestModulesAreCheckedBeforeAnyLineRuns`, `TestCheckImportedModules`; olumsuz fikstür `tests/negative/aktarma_yeri.tr` (aktarmanın yeri).
