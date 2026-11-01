@@ -26,8 +26,8 @@ import (
 // kalırdı.
 //
 // Kapsam dışı: hesap katmanı (internal/compute) dil adlarını bilmez, ona verilen işlem etiketi
-// veridir; katalogda example adlı parametre örnek koddur (dile çevrilmesi ayrı tasarım, yol
-// haritası 10). Gerekçeli tek tek istisnalar probes'tadır.
+// veridir; katalogda example adlı parametre örnek koddur (kimlikle yazılır, dile
+// çevrilmez: internal/lang/messages/README.md). Gerekçeli tek tek istisnalar probes'tadır.
 func TestNoFixedNamesInMessages(t *testing.T) {
 	for _, v := range fixedNameFlows(t, reporoot.Root()) {
 		t.Errorf("%s: iletiye %s ile yazılmış ad ulaşıyor; ileti ve içindeki adlar tek dildedir, kodu verin (codes.NameRef, interp.CallName, bind.Named)", v.pos, v.code)
@@ -40,8 +40,8 @@ var probes = map[[2]string]string{
 	{"interp.memberSuggestionError", ".GetProperty"}: "önerilen üyeyi kanonik adıyla yoklar; hata atılır",
 }
 
-// exampleParams katalogda örnek kod ya da kullanım metni taşıyan parametre adlarıdır (dile
-// çevrilmeleri ayrı tasarım, yol haritası 10).
+// exampleParams katalogda örnek kod ya da kullanım metni taşıyan parametre adlarıdır (kimlikle
+// yazılır, dile çevrilmez: internal/lang/messages/README.md).
 var exampleParams = map[string]bool{"example": true, "usage": true, "signature": true, "customGradExample": true}
 
 // displayLayers iletileri yalnız kişinin dilinde (TR_LANG) gösteren katmanlardır: burada hiçbir

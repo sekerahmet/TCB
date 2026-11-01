@@ -72,7 +72,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ## 3. Tipler ve değerler
 
-Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). Sonra verilen kararlar (yukarıdaki liste) DENETİM'den geçti, Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
 
 ### 3.3a
 
@@ -122,7 +122,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: DENETİM'den ge
 
 ## 4. İşleçler
 
-Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. 4.1–4.4, 4.6, 4.9, 4.11 ve 4.12'nin çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar. Tip isteyen denetim hataları katman 4'tedir.
+Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`); 4.5'in isteğe bağlı karşılaştırması Gemini Koşu 3'ten (`0edb6f20`). Sonraki kararlar (4.3, 4.12, 4.10) Gemini'nin araştırmasını bekliyor. 4.1–4.4, 4.6, 4.9, 4.11 ve 4.12'nin çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar. Tip isteyen denetim hataları katman 4'tedir.
 
 ### 4.5
 
@@ -149,7 +149,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: DENET
 
 ## 5. Deyimler ve kontrol yapıları
 
-Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 5.2, 5.8, 5.9, 5.10 ve 5.13 kurala uyuyor, maddeleri yok. `tests/deyimler_test.tr` yeni kurallara göre yazılmış, 23 testi geçiyor [ölçüldü: dosyanın testleri koşuldu]; eski kuraldan kalan iki yer Faz 0.9'da kalktı: 5.6 testinin `TR_Any` parametresi tipsiz bırakıldı (sayıyı ve metni alır, 4c'yi bekler), 5.14 testindeki yapının alanı tipli.
+Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`), 5.4 Gemini Koşu 4'ten (`23e7be25`). 5.7 ve 5.11'in sonraki kararları Gemini'nin araştırmasını bekliyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 5.2, 5.8, 5.9, 5.10 ve 5.13 kurala uyuyor, maddeleri yok. `tests/deyimler_test.tr` yeni kurallara göre yazılmış, 23 testi geçiyor [ölçüldü: dosyanın testleri koşuldu]; eski kuraldan kalan iki yer Faz 0.9'da kalktı: 5.6 testinin `TR_Any` parametresi tipsiz bırakıldı (sayıyı ve metni alır, 4c'yi bekler), 5.14 testindeki yapının alanı tipli.
 
 `TR_elif` bilerek kimliği olmayan addır; kimlik kapısı düzelince bilerek yanlış örnekler listesine girer (2. bölümün girişi). Yeni denetim hataları (5.1'in uyarısı, 5.5, 5.6, 5.12, 5.14) uygulanırken depodaki kodlu dosyalar da düzeltilir; yoksa `TestRepoTRFilesPassCheck` kapısı kalır.
 
@@ -200,7 +200,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: DENETİM'de
 
 ## 6. Fonksiyonlar
 
-Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 6.7 ve 6.11 kurala uyuyor, maddeleri yok. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, sırayla verilen argümanın tipi tutmazsa çalışmadan önce bulunuyor, varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 [ölçüldü: küçük programlar; denetim ve çalıştırma].
+Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). 6.1, 6.6, 6.7 ve 6.9'un sonraki kararları Gemini'nin araştırmasını bekliyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`): 6.7 ve 6.11 kurala uyuyor, maddeleri yok. Kuralla aynı olanlar: döngüde kurulan kapanış o turun değerini görüyor, fonksiyon dıştaki değişkene atayabiliyor, sırayla verilen argümanın tipi tutmazsa çalışmadan önce bulunuyor, varsayılan her çağrıda yeniden hesaplanıyor, derinlik sınırı 10000 [ölçüldü: küçük programlar; denetim ve çalıştırma].
 
 `tests/fonksiyonlar_test.tr` yeni yazımla yazılmış, 20 testi geçiyor; depoda `TR_it`, `TR_acc`, adsız `TR_func` ve parantezsiz ok kalmadı (yalnız olumsuz fikstürde) [ölçüldü: dosyanın testleri koşuldu; `.tr` dosyalarında git grep]. Eski kurala dayanan testler: eksik, fazla, iki kez verilen argümanı ve varsayılandaki ileri başvuruyu çalışırken yakalayan 6.4 ve 6.5 testleri (denetim hatası olunca `tests/negative/` fikstürlerine taşınır).
 
@@ -254,7 +254,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: DEN
 
 ## 7. Yapılar
 
-Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: DENETİM'den geçti, bulguları işlendi (2026-10-27); Gemini'nin araştırması bekleniyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`); her kuralda bir ayrılık kaldı. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor, eşitlik alanlardan, metin kurma yazımıyla ve döngüde "...", çağrısız metot nesneye bağlı bir fonksiyon; yapı tanımının sözdizimi hataları (kalıtım ve Python sınıfı iletileri, yinelenen alan ve metot, alan sırası), metotta düz alan adı, parametre olarak `TR_self`, kurucunun değerli dönüşü ve dönüş tipi, durumlu tipin ve arayüzün tanım ve desen hataları çalışmadan önce bulunuyor [ölçüldü: küçük programlar ve `tests/negative/` yapı, durumlu tip ve arayüz fikstürleri; denetim ve çalıştırma]. `tests/yapilar_test.tr` 24 testi geçiyor; alanları tipli (Faz 0.9); verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
+Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). 7.1, 7.3, 7.4 ve 7.8'in sonraki kararları Gemini'nin araştırmasını bekliyor. Motor 2026-10-29'da dil tanımının bugünkü metnine göre yeniden ölçüldü (main `1073aea`); her kuralda bir ayrılık kaldı. Kuralla aynı olanlar: nesne başvuruyla paylaşılıyor, eşitlik alanlardan, metin kurma yazımıyla ve döngüde "...", çağrısız metot nesneye bağlı bir fonksiyon; yapı tanımının sözdizimi hataları (kalıtım ve Python sınıfı iletileri, yinelenen alan ve metot, alan sırası), metotta düz alan adı, parametre olarak `TR_self`, kurucunun değerli dönüşü ve dönüş tipi, durumlu tipin ve arayüzün tanım ve desen hataları çalışmadan önce bulunuyor [ölçüldü: küçük programlar ve `tests/negative/` yapı, durumlu tip ve arayüz fikstürleri; denetim ve çalıştırma]. `tests/yapilar_test.tr` 24 testi geçiyor; alanları tipli (Faz 0.9); verilmeyen alanı, olmayan alanı çalışırken yakalayan 7.2, 7.4 ve 7.5 testleri eski kurala dayanıyor (denetim hatası olunca `tests/negative/` fikstürlerine taşınır), 7.6 testi StructType'ı sınıyor.
 
 Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
 
@@ -305,7 +305,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ## 8. Hata yönetimi
 
-Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den `TR_error` kalktı, Ahmet 2026-10-28), Gemini'nin araştırması bekleniyor. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den `TR_error` kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
 
 ### 8.1
 
@@ -343,7 +343,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 ## 9. Ertele
 
-Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM bekleniyor. `tests/hatalar_ertele_test.tr` ve `examples/tr/16_ertele.tr` eski kuralı sınıyor (fonksiyona bağlı kapsam, çağrı yazımı, birleşik hata metni); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): ana oturum yazdı; metin DENETİM'den geçti (`9c511225`); kararlar Gemini Koşu 4'ten geçti (DENETİM doğruladı, `23e7be25`, 2026-10-29). `tests/hatalar_ertele_test.tr` ve `examples/tr/16_ertele.tr` eski kuralı sınıyor (fonksiyona bağlı kapsam, çağrı yazımı, birleşik hata metni); kural uygulanırken yeniden yazılır.
 
 ### 9.1
 
@@ -362,7 +362,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ## 10. Eşzamanlılık
 
-Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı** (2026-10-29, DENETİM 11-18-2). 2. tur (2026-10-29): DENETİM 10-1'in bulgularıyla (süreyle devir, uzun yerleşiklerin kilidi bırakması, iptal, 2.8'in istisnası, verilen sıradaki ilk hata). 3. tur: DENETİM 10-2'nin bulgularıyla (gecikme sözü 10 ms, izin depoda ve hepsi birden, geri çağırmada bırakılır; iptal 1.5'in noktaları ve yerleşik ayrımıyla; alt görevi bekleyen de iptal hatası alır; iptal ve zaman aşımı ileti kodları). Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı, `TR_cancel` iptal_et, `TR_done` bitti_mi; kodları uygulandıkları gün kayda girer (17.4). `TR_sleep`'in Türkçe adı "bekle"den "uyu"ya döndü (görevi beklemekle karışmasın diye; uygulandı).
+Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı** (2026-10-29, DENETİM 11-18-2); kararlar sonra Gemini Koşu 4'ten de geçti (DENETİM doğruladı, `23e7be25`). 2. tur (2026-10-29): DENETİM 10-1'in bulgularıyla (süreyle devir, uzun yerleşiklerin kilidi bırakması, iptal, 2.8'in istisnası, verilen sıradaki ilk hata). 3. tur: DENETİM 10-2'nin bulgularıyla (gecikme sözü 10 ms, izin depoda ve hepsi birden, geri çağırmada bırakılır; iptal 1.5'in noktaları ve yerleşik ayrımıyla; alt görevi bekleyen de iptal hatası alır; iptal ve zaman aşımı ileti kodları). Yeni adların gösterim adları onaylandı (2026-10-29): `TR_Task` Görev, `TR_wait` sonucu_bekle, `TR_timeout` zaman_aşımı, `TR_cancel` iptal_et, `TR_done` bitti_mi; kodları uygulandıkları gün kayda girer (17.4). `TR_sleep`'in Türkçe adı "bekle"den "uyu"ya döndü (görevi beklemekle karışmasın diye; uygulandı).
 
 ### 10.1
 
@@ -410,7 +410,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ## 11. Modüller
 
-Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM. Kitaplık modüllerinin İngilizce yolları (11.6) onaylandı (2026-10-29): `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`.
+Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM; kararlar Gemini Koşu 5'ten geçti (DENETİM doğruladı, `d31c9226`). Kitaplık modüllerinin İngilizce yolları (11.6) onaylandı (2026-10-29): `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training`.
 
 ### 11.1
 
@@ -448,7 +448,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ## 12. Testler
 
-Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; DENETİM bekleniyor. Yeni ad `TR_assert_close`'un gösterim adı onaylandı (yakın_olmalı); kodu uygulandığı gün kayda girer (17.4).
+Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı; metin DENETİM 12-1'den geçti, bulguları işlendi (`913fd2a6`); kararlar Gemini Koşu 7'den (`59efe468`) ve 12.4a Koşu 3'ten (`0edb6f20`) geçti. Kapanış turu (işlenmiş metnin yeniden okunması) yapılmadı. Yeni ad `TR_assert_close`'un gösterim adı onaylandı (yakın_olmalı); kodu uygulandığı gün kayda girer (17.4).
 
 ### 12.1
 
@@ -485,7 +485,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ## 13. Yerleşikler
 
-Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tur (2026-10-28): ana oturum yazdı; dört turu DENETİM, 1. turu ana oturum, 5. turu (dokuz iş) ikisi, 6. turu Gemini'nin araştırması (DENETİM doğruladı: 7 onay, 5 koşullu) inceledi; bulgular işlendi. Uygulama 6. ve 7. turun kararlarını henüz almadı: ayırıcısız `TR_split`, `TR_std`'nin n−1'i, telafili toplama, `TR_split("")`'in hatası, JSON'un yinelenen anahtarı, yarımı çifte yuvarlama, `TR_median([1.0, 2.0, TR_nan])` (bugün 1.0), sıfırın işareti (`TR_max(-0.0, 0.0)` sıraya bağlı), yazma yolunun programın klasörüne düşmesi, `TR_clamp(5)`'in iletisindeki eski kimlik, fonksiyon yerine verilen tipin iletisi eski davranışta [ölçüldü: DENETİM]. `tests/yerlesikler_test.tr` eski kuralları da sınıyor (kazanan değerin tipi, sayı hücreli CSV, `TR_mean`'in tek tek değerleri); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tur (2026-10-28): ana oturum yazdı; dört turu DENETİM, 1. turu ana oturum, 5. turu (dokuz iş) ikisi, 6. turu Gemini'nin araştırması (DENETİM doğruladı: 7 onay, 5 koşullu) inceledi; bulgular işlendi. Sonra Gemini Koşu 6 (`c784c47a`) ve Koşu 3'ün 13.1 ile 13.10 bulguları (`0edb6f20`) işlendi (2026-10-29). Uygulama 6. ve 7. turun kararlarını henüz almadı: ayırıcısız `TR_split`, `TR_std`'nin n−1'i, telafili toplama, `TR_split("")`'in hatası, JSON'un yinelenen anahtarı, yarımı çifte yuvarlama, `TR_median([1.0, 2.0, TR_nan])` (bugün 1.0), sıfırın işareti (`TR_max(-0.0, 0.0)` sıraya bağlı), yazma yolunun programın klasörüne düşmesi, `TR_clamp(5)`'in iletisindeki eski kimlik, fonksiyon yerine verilen tipin iletisi eski davranışta [ölçüldü: DENETİM]. `tests/yerlesikler_test.tr` eski kuralları da sınıyor (kazanan değerin tipi, sayı hücreli CSV, `TR_mean`'in tek tek değerleri); kural uygulanırken yeniden yazılır.
 
 ### 13.1
 
@@ -549,7 +549,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 ## 15. Tensörler ve otomatik türev
 
-Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-29'da altı parçada (A–F) CLAUDE.md'den türetilerek yeniden yazıldı; aşağıda bugünkü motorun kurallardan ayrıldığı yerler ve göç.
+Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-29'da altı parçada (A–F) CLAUDE.md'den türetilerek yeniden yazıldı. Metin DENETİM'den (A–F, birleşme, commit öncesi), kararlar Gemini'nin taslak okumalarından (AB, ABC, TÜM) ve üç koşusundan geçti (Koşu 1 `4afda971`, Koşu 2 `70a1e6fe`, Koşu 3 `0edb6f20`; DENETİM doğruladı); aşağıda bugünkü motorun kurallardan ayrıldığı yerler ve göç.
 
 
 **En büyük göç kalemleri** [ölçüldü: DENETİM, main `8b115692`]:
@@ -847,7 +847,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.50
 
 - **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da 0 veriyor, `TR_where` NaN koşulu doğru sayıyor [ölçüldü]; yeni kural `TR_false` ve mantık koşulu (15.5, 15.15). `TR_logsumexp`, `TR_maximum` ve `TR_minimum` yok; `TR_max`/`TR_min` ±0'ı eşit sayıp ilk öğeyi alıyor.
-- **Yapılacaklar:** sayısal doğruluk işi (yol haritası Evre 4, madde 8); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
+- **Yapılacaklar:** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN; iki cihazda aynı olduğunu sınayan test.
 
 ### 15.51
@@ -879,7 +879,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ## 16. Veri ve parçalayıcı
 
-Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Taslak (2026-10-29): ana oturum yeniden yazdı, önce CLAUDE.md'den türeterek (Ahmet: "dil maddeleri yalan yanlış olsa da düzeltmezsek bizi hep eskiye götürecek"). DENETİM bekleniyor. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_train_tokenizer` parçalayıcı_eğit, `TR_reserved_tokens` ayrılmış_parçalar, `TR_write_dataset` veri_kümesi_yaz, `TR_shard_tokens` parça_boyu; kodları uygulandıkları gün kayda girer (17.4).
+Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Taslak (2026-10-29): ana oturum yeniden yazdı, önce CLAUDE.md'den türeterek (Ahmet: "dil maddeleri yalan yanlış olsa da düzeltmezsek bizi hep eskiye götürecek"). Metin DENETİM 16-1'den geçti, bulguları işlendi (`0cd455a4`); kararlar Gemini Koşu 7'den (`59efe468`; 16.4'ün tabanı Koşu 4, `23e7be25`) geçti. Kapanış turu yapılmadı. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_train_tokenizer` parçalayıcı_eğit, `TR_reserved_tokens` ayrılmış_parçalar, `TR_write_dataset` veri_kümesi_yaz, `TR_shard_tokens` parça_boyu; kodları uygulandıkları gün kayda girer (17.4).
 
 ### 16.2
 
@@ -923,7 +923,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ## 17. Kodlar
 
-Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur); 3. turda DENETİM'in 1. turunun görünümden bağımsız bulguları alındı. DENETİM bekleniyor. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
+Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur); 3. turda DENETİM'in 1. turunun görünümden bağımsız bulguları, 4. turda 17-2'nin bulguları alındı (`0f1d6029`); kararlar Gemini Koşu 6'dan geçti (DENETİM doğruladı, `c784c47a`). Kapanış turu yapılmadı. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
 
 ### 17.1
 
@@ -964,6 +964,8 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "List", "<builtin print>") [ölçüldü]. Kitaplık tipinin metni sınıflı kimlik veriyor: `TR_print(TR_Type(TR_Linear(2, 3, TR_seed: 1)))` → "TR_type_Linear" (`TR_import "tr/layers"` ile) [ölçüldü: main `85a19c36`].
 - **Yapılacaklar:** tipin metni kimliğin adı ("Linear"); TR testi.
+- **Mevcut durum (kitaplığın sözlük anahtarları):** `TR_GPT`'nin `.TR_config` sözlüğünün anahtarları Türkçe ve İngilizce karışık ("dağarcık", "bağlam", "katman", "tohum" ... ile "embed_dim", "num_heads") [ölçüldü: `lib/layers.tr:500-503`, main `aad41d1e`]. Değer metni dilden bağımsız olmalı. Sözlük kayda giderse anahtarlar diske Türkçe yazılır.
+- **Yapılacaklar:** anahtarlar kimlik adlarıyla, parametre adının kendisi ("vocab_size", "context" ...), ya da sözlük yerine bir yapı; göç: `.TR_config`'i okuyan yerler; TR testi.
 
 ### 17.9
 
@@ -978,7 +980,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ## 18. Dosya ve yol
 
-Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM. 2. tur (2026-10-29): DENETİM 18-1'in bulgularıyla. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_write_lines` satırları_yaz, `TR_LineWriter` SatırYazıcı, `TR_write` yaz (18.17); `TR_ignore_case` harf_duyarsız (18.5); kodları uygulandıkları gün kayda girer (17.4).
+Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM; kararlar Gemini Koşu 5'ten geçti (DENETİM doğruladı, `d31c9226`). Açık: 18.16'nın göreli yol kuralı. 2. tur (2026-10-29): DENETİM 18-1'in bulgularıyla. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_write_lines` satırları_yaz, `TR_LineWriter` SatırYazıcı, `TR_write` yaz (18.17); `TR_ignore_case` harf_duyarsız (18.5); kodları uygulandıkları gün kayda girer (17.4).
 
 ### 18.1
 
@@ -1025,7 +1027,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ## 19. Süreç ve kayıt
 
-Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM. Numaralar eski metinle aynı; eski başlıksız "Komut satırında yazım" 19.10, "Görünüm" 19.11 oldu.
+Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM; kararlar Gemini Koşu 5'ten geçti (DENETİM doğruladı, `d31c9226`). Numaralar eski metinle aynı; eski başlıksız "Komut satırında yazım" 19.10, "Görünüm" 19.11 oldu.
 
 ### 19.2
 
@@ -1059,7 +1061,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## 20. Kontrol noktası
 
-Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. DENETİM bekleniyor.
+Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. Metin DENETİM 20-1'den geçti, bulguları işlendi (`6a525af7`); kararlar Gemini Koşu 1 (`4afda971`), Koşu 4 (`23e7be25`) ve Koşu 2 (20.11, `70a1e6fe`) ile geçti. Kapanış turu yapılmadı.
 
 ### 20.1
 

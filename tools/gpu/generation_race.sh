@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Üretim hızı yarışı: TR, transformers (eager ve static + compile) ve llama.cpp (f32, f16);
 # SmolLM2-135M ve Qwen3-0.6B; GPU ve CPU. Sonuçlar SONUC dosyasına "model | cihaz | yol | parça/sn"
-# satırları olarak yazılır (COLAB.md §12; yol haritası Evre 5 "Üretim hızı" tablosu).
+# satırları olarak yazılır (COLAB.md §12; özeti yol haritasının 2. kilometre taşında, tablo docs/archive/roadmap-2026-10-27.md Evre 5 "Üretim hızı").
 # Kullanım: generation_race.sh TR_IKILISI CALISMA_KLASORU
 # Gerekenler: Python'da torch, transformers, huggingface_hub; CUDA araç takımı (llama.cpp için).
 set -u

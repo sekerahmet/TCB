@@ -22,7 +22,7 @@ var (
 
 // specialInputs tekli işlemlerin girdileri: sıfırlar, sonsuzlar, NaN, sıradan sayılar, alt
 // normaller ve büyük sayılar. float32'nin ucundaki sayılarda (3e38) ara sonuç taşabilir
-// (x·ln10, x², toplam); oradaki farklar sayısal doğruluk işidir (yol haritası Evre 4, madde 8).
+// (x·ln10, x², toplam); oradaki farklar sayısal doğruluk işidir (status 15.50).
 var specialInputs = []float32{0, negZero, posInf, negInf, qNaN, 1, -1, 0.5, -2.5, 1e-40, -1e-40, 1e30, -1e30}
 
 // trigInputs trigonometrik işlemler için: aralık indirgemesi GPU'da |x| ≤ 1e5'te doğrudur

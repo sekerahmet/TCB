@@ -7,7 +7,7 @@
 #   go run ./tools/record --name kart --out <kayıt kökü> -- bash tools/gpu/card_check.sh
 #
 # Hız: tools/gpu/rgn512.tr sentetik veriyle 120 adım (ortanca ms/adım); tepe bellek nvidia-smi yoklamasıyla
-# (sürecin ayırıcısı; dilden okunması yol haritası Evre 4 madde 12). GPU testleri paketin klasöründe koşar:
+# (sürecin ayırıcısı; dilden okunması yol haritasında, "15. bölümün sonraya bıraktıkları", GPU belleği). GPU testleri paketin klasöründe koşar:
 # bazı testler paketin kaynak dosyalarını okur. Çıkış kodu: hepsi geçtiyse 0, değilse 1.
 set -u
 cd "$(dirname "$0")/../.."

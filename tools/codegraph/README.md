@@ -414,7 +414,7 @@ parser output with the same node sequence; see the hand-over note for the propos
 
 ## Audits (`dead-methods`, `package-state`, `time-ceilings`, `spec-refs`)
 
-Four audits that were once done by hand (roadmap Evre 4 item 7). They read the sources directly
+Four audits that were once done by hand (item 7 of Evre 4 in the old roadmap, `docs/archive/roadmap-2026-10-27.md`). They read the sources directly
 (type-checked with `goload`, or plain text for `spec-refs`), need no graph, and print **lists to
 review, not decisions**. All take `--in DIR` (only results under a path), `--json`, `--limit N`.
 
