@@ -347,3 +347,22 @@ func TestTupleElementCannotBeAssigned(t *testing.T) {
 		}
 	}
 }
+
+// Kural (8.1): yakalanan hatanın adı her zaman yazılır: adsız TR_catch { ... } sözdizimi hatasıdır
+// (H2910), ileti TR_catch e'yi önerir; eskiden ad hazır TR_error'du. Adlı yazım hatasızdır.
+func TestCatchWithoutANameIsASyntaxError(t *testing.T) {
+	code := "TR_try { TR_throw \"x\" } TR_catch { TR_print(1) }"
+	line, col := posOf(t, code, "TR_catch")
+	errs := parseErrs(code)
+	if !hasErrAt(errs, line, col, messages.H2910) {
+		t.Fatalf("%d:%d'de H2910 bekleniyordu, alınan: %v", line, col, errs)
+	}
+	for _, e := range errs {
+		if messages.Has(e, messages.H2910) && !strings.Contains(messages.ErrorIn(e, "en"), "`TR_catch e`") {
+			t.Errorf("ileti TR_catch e'yi önermeli: %s", messages.ErrorIn(e, "en"))
+		}
+	}
+	if errs := parseErrs("TR_try { TR_throw \"x\" } TR_catch e { TR_print(e) }"); len(errs) > 0 {
+		t.Errorf("adlı yakalama hatasız olmalı: %v", errs)
+	}
+}

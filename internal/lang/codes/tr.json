@@ -28,7 +28,6 @@
   "TR_kw_try": { "name": "dene", "family": "anahtar kelime: hata yönetimi", "description": "Bloktaki hatayı yakala bloğuna yönlendirir; çalışma zamanı hataları da yakalanır." },
   "TR_kw_var": { "name": "değişken", "family": "anahtar kelime: bildirim", "description": "Bulunulan kapsamda ilk değeriyle yeni bir ad tanımlar, tipi ilk değerden çıkar (ilk değersiz tanım ve := sözdizimi hatasıdır); virgülle birden çok ad tanımlanabilir." },
   "TR_ctx_as": { "name": "olarak", "family": "bağlamsal sözcük: aktar ... olarak", "description": "aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağlar." },
-  "TR_ctx_error": { "name": "hata", "family": "bağlamsal sözcük: yakala bloğunda adı verilmeyen hata değişkeni", "description": "yakala bloğunda ad verilmediğinde hata mesajının bağlandığı değişkendir." },
   "TR_ctx_init": { "name": "kurucu", "family": "bağlamsal sözcük: yapının oluşturulurken çağrılan metodu", "description": "Bu adlı metot nesne oluşturulurken aynı argümanlarla çağrılır; argümanlar kurucunun imzasına göre denetlenir." },
   "TR_ctx_test": { "family": "bağlamsal sözcük: test \"ad\" { }", "description": "test \"ad\" { ... } bir test tanımlar; testler yalnızca tr test ile çalışır, normal çalıştırmada atlanır. Deyim başı dışında sıradan bir addır." },
   "TR_val_inf": { "name": "inf", "family": "değer adı: sonsuz sayı", "description": "Ondalık sonsuz değerdir; metni her dilde inf, eksi sonsuzunki -inf'tir (3.2). Ondalık(\"inf\") metinden okur." },

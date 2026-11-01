@@ -16,13 +16,13 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// contextWords bağlamsal sözcüklerin (test, olarak, yakala'nın varsayılan hata adı) yazımları ve
-// 'kendi'nin adıdır; kod listesinden, sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes:
-// TR_ctx_test, TR_ctx_as, TR_ctx_error, TR_kw_self). Programlar kimliklerle okunur (codes.Active); bir
+// contextWords bağlamsal sözcüklerin (test, olarak) yazımları ve 'kendi'nin adıdır; kod listesinden,
+// sözcük çözümleyicinin okuduğu dilde gelir (internal/lang/codes: TR_ctx_test, TR_ctx_as,
+// TR_kw_self). Programlar kimliklerle okunur (codes.Active); bir
 // yazım dilindeki metin kendi dilinde okunur (lexer.NewBodyIn).
 type contextWords struct {
-	test, as  []string
-	self, err string
+	test, as []string
+	self     string
 }
 
 // contextWordsByLanguage dil kodu → o dilin bağlamsal sözcükleri (bir kez kurulur).
@@ -34,7 +34,7 @@ func contextWordsOf(lang *codes.Language) *contextWords {
 	}
 	w := &contextWords{
 		test: lang.Spellings(codes.CtxTest), as: lang.Spellings(codes.CtxAs),
-		self: lang.Name(codes.KwSelf), err: lang.Name(codes.CtxError),
+		self: lang.Name(codes.KwSelf),
 	}
 	v, _ := contextWordsByLanguage.LoadOrStore(lang.Code, w)
 	return v.(*contextWords)

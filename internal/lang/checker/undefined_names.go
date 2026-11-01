@@ -252,10 +252,6 @@ func (d *nameChecker) statement(st ast.Statement, k *nameScope) {
 		d.block(s.TryBody, k)
 		ck := newNameScope(k)
 		ck.define(s.ErrorVar)
-		if s.ImplicitErrorVar {
-			ck.implicit[0] = codes.CtxError
-		}
-		// Örtük ad üst kapsamda kalır; gövdenin kendi 'hata' tanımı onu gölgeler.
 		d.blockInScope(s.CatchBody, newNameScope(ck))
 	case *ast.StructStatement:
 		for _, f := range s.Fields {

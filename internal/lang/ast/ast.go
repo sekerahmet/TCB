@@ -196,12 +196,10 @@ type TryCatchStatement struct {
 	Token    lexer.Token // dene
 	TryBody  *BlockStatement
 	ErrorVar string
-	// ErrorToken is the token of the error variable's name (zero when it is not written).
+	// ErrorToken is the token of the error variable's name (zero when it is not written: a syntax
+	// error, 8.1).
 	ErrorToken lexer.Token
-	// ImplicitErrorVar reports that the error variable's name was not written, so it is the
-	// contextual word 'hata' (TR_ctx_error); in coded form its uses in the body are coded (17.3).
-	ImplicitErrorVar bool
-	CatchBody        *BlockStatement
+	CatchBody  *BlockStatement
 }
 
 func (tc *TryCatchStatement) statementNode()       {}

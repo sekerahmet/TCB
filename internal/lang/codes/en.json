@@ -28,7 +28,6 @@
   "TR_kw_try": { "name": "try" },
   "TR_kw_var": { "name": "var" },
   "TR_ctx_as": { "name": "as" },
-  "TR_ctx_error": { "name": "error" },
   "TR_ctx_init": { "name": "init" },
   "TR_val_inf": { "name": "inf" },
   "TR_val_nan": { "name": "nan" },

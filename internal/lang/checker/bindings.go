@@ -23,8 +23,7 @@ const (
 	// language (Code). Under an 'aktar' with no alias it also counts as builtin (the module's
 	// names arrive at run time; whether a module shadows a builtin is known only then).
 	BindBuiltin
-	// BindImplicit: the name is a contextual implicit name (Code: TR_ctx_error hata, the error of a catch
-	// block that names none).
+	// BindImplicit: the name is a contextual implicit name (Code).
 	BindImplicit
 	// BindNamed: a named argument's name is a name of the language (Code: the arg parameter
 	// code, or the member code of a field name in a struct constructor).

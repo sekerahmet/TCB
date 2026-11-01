@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 564 kod: 28 anahtar kelime, 4 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 563 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
 
 ## İçindekiler
 
@@ -102,7 +102,7 @@ en: try { var z = 1 / 0 } catch h { print(h) }
 tr: dene { değişken z = 1 / 0 } yakala h { yazdır(h) }
 ```
 
-İlişkili: `TR_try`, `TR_error`
+İlişkili: `TR_try`
 
 #### `TR_const` (`TR_kw_const`, `sabit`)
 
@@ -509,23 +509,6 @@ tr: aktar "tests/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym.PI)
 ```
 
 İlişkili: `TR_import`
-
-#### `TR_error` (`TR_ctx_error`, `hata`)
-
-yakala bloğunda ad verilmediğinde hata mesajının bağlandığı değişkendir.
-
-```tr
-TR_try { TR_throw "patladı" } TR_catch { TR_print(TR_error) }
-```
-
-Görünümü:
-
-```text
-en: try { throw "patladı" } catch { print(error) }
-tr: dene { fırlat "patladı" } yakala { yazdır(hata) }
-```
-
-İlişkili: `TR_catch`
 
 #### `TR_init` (`TR_ctx_init`, `kurucu`)
 

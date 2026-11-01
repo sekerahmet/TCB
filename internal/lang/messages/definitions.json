@@ -484,6 +484,7 @@
 "H2902": { "param": ["given"], "slots": {"sort": "TR_mem_sort"} },
 "H2903": { "param": ["a", "b"], "slots": {"sort": "TR_mem_sort"} },
 "H2904": { "param": ["module", "name"] },
+"H2910": { "param": [], "slots": {"catch": "TR_kw_catch"} },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

@@ -489,6 +489,7 @@ const (
 	H2902 Code = 2902 // `.{#sort}(f)`: anahtar fonksiyonu {given} verdi, bu sıralanamaz; anahtar sayı, metin ya da öğeleri sıralanabilen bir demet olmalıdır
 	H2903 Code = 2903 // `.{#sort}(f)`: anahtar fonksiyonunun verdiği {a} ile {b} karşılaştırılamaz; anahtarlar yalnızca sayı, yalnızca metin ya da yalnızca öğeleri sıralanabilen demetler olmalıdır
 	H2904 Code = 2904 // modül değeri bir sözlük değildir, köşeli ayraçla okunmaz ve ona köşeli ayraçla atanmaz; modülün adına noktayla erişin: {module, select, empty {`.{name}`} other {`{module}.{name}`}}
+	H2910 Code = 2910 // adsız yakalama yoktur: yakalanan hataya bir ad verin, `{#catch} e`; blokta hata o adla okunur
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

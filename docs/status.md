@@ -311,12 +311,13 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ## 8. Hata yönetimi
 
-Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den `TR_error` kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). Yeni adların gösterim adları onaylandı (Ahmet, 2026-11-01): `TR_Error` Hata, `TR_code` kod, `TR_value` fırlatılan (üye ad alanında "değer" dolu), `TR_cause` neden (üye ve adlı argüman), `TR_suppressed` bastırılanlar; kodları uygulandıkları gün kayda girer (17.4). `TR_throw`'un katalogdaki açıklaması ("yakalayan değişken her zaman Metin") 8.3'ten önceki kuralı anlatıyor; `TR_Error` gelince düzelir. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den yakalamanın hazır adı kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). Yeni adların gösterim adları onaylandı (Ahmet, 2026-11-01): `TR_Error` Hata, `TR_code` kod, `TR_value` fırlatılan (üye ad alanında "değer" dolu), `TR_cause` neden (üye ve adlı argüman), `TR_suppressed` bastırılanlar; kodları uygulandıkları gün kayda girer (17.4). `TR_throw`'un katalogdaki açıklaması ("yakalayan değişken her zaman Metin") 8.3'ten önceki kuralı anlatıyor; `TR_Error` gelince düzelir. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
 
 ### 8.1
 
 - **Mevcut durum:** `TR_try`/`TR_catch` çalışıyor, `TR_catch` zorunlu; `TR_try` ifade olarak sözdizimi hatası; `TR_finally` bilinmeyen kimlik; Python'un `except`'i ipucu alıyor [ölçüldü].
-- **Yapılacaklar:** ifade olarak `TR_try`; adsız `TR_catch` sözdizimi hatası (ileti `TR_catch e`; göç: depodaki 7 adsız yakalama ve 4 `TR_error`), `TR_error` kimliği kalkar; parantezli adın ve Python'un `except`/`finally`'sinin iletileri.
+- **Mevcut durum (ad):** adsız `TR_catch { ... }` sözdizimi hatası H2910, ileti `TR_catch e`'yi öneriyor; yakalamanın hazır adı (bağlamsal kimlik) kalktı. Göç: `.tr` dosyalarında 6 adsız yakalama ve hazır adın 4 kullanımı, Go testlerindeki TR programlarında 5 adsız yakalama ve hazır adın 2 kullanımı adlı yazıma geçti [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `git grep "TR_catch *{"`; `TestCatchWithoutANameIsASyntaxError`, öneri tablosu].
+- **Yapılacaklar:** ifade olarak `TR_try`; parantezli adın ve Python'un `except`/`finally`'sinin iletileri; adsız yakalamanın olumsuz TR fikstürü.
 
 ### 8.2
 

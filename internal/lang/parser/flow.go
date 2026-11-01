@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 func (p *Parser) parseForStatement() ast.Statement {
@@ -92,10 +93,12 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		return nil
 	}
 
-	errVar := p.words.err
+	var errVar string
 	var errTok lexer.Token
-	implicit := !p.peekTokenIs(lexer.TokIdent) && !p.peekTokenIs(lexer.TokLParen)
-	if p.peekTokenIs(lexer.TokIdent) {
+	if p.peekTokenIs(lexer.TokLBrace) {
+		// Ad her zaman yazılır (8.1): adsız yakalama yoktur, ileti adı önerir.
+		p.syntaxError(p.curToken(), messages.H2910)
+	} else if p.peekTokenIs(lexer.TokIdent) {
 		p.nextToken()
 		errVar, errTok = p.curToken().Literal, p.curToken()
 	} else if p.peekTokenIs(lexer.TokLParen) {
@@ -112,12 +115,11 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 	catchBody := p.parseBlockStatement()
 
 	return &ast.TryCatchStatement{
-		Token:            tok,
-		TryBody:          tryBody,
-		ErrorVar:         errVar,
-		ErrorToken:       errTok,
-		ImplicitErrorVar: implicit,
-		CatchBody:        catchBody,
+		Token:      tok,
+		TryBody:    tryBody,
+		ErrorVar:   errVar,
+		ErrorToken: errTok,
+		CatchBody:  catchBody,
 	}
 }
 func (p *Parser) parseThrowStatement() *ast.ThrowStatement {
