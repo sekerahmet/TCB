@@ -25,14 +25,15 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
 - **Dil tanımı:** 20 bölümün hepsi yazıldı (1–13, 15–20; 14 yok). Her bölüm DENETİM'den ve Gemini'nin karar araştırmasından en az bir kez geçti. Bölüm başına kaydı `status.md`'nin bölüm başlarında.
 - **Açık denetimler** (sıradaki dil tanımı turunda):
   - Uygulama sırasında verilen kararlar DENETİM'den geçti, ama Gemini'nin karar araştırmasından geçmedi. Liste yalnız `status.md`'de: "Uygulamada verilen, dil tanımı turunda denetlenecek kararlar" bölümü ve bölüm başları. Burada kopyası tutulmaz.
+  - **Tur 1 bitti (2026-11-01):** 2026-10-28'in 24 geçici kararı ve dört bulgu Gemini'nin araştırmasından ve DENETİM'in kaynak denetiminden geçti; "değiştir" denenlerin dördü yazıldı (3.6a, 3.7a, 3.14, 18.2), 13.8 tur 2'ye kaldı. **Tur 2'nin girdisi** `docs/spec/pending.md`: geçici kararlar (10.2, 13.8, 15.47a'nın sırası, 20.5'in `"rng"` alanı) ve olağan bulgular.
   - 12, 16, 17 ve 20. bölümlerin kapanış turu: bulguları işleyen commit'in farkını DENETİM'in yeniden okuması. 10, 11, 18 ve 19'da yapıldı.
 - **Uygulama fazlar hâlinde ilerliyor.** Her fazın işleri dosya sahipliğine göre ayrılır, paralel kollar aynı dosyaya dokunmaz.
   - **Faz 0, bitti:** toplu ve sıralı işler (kancalar, ad göçleri, ortak sorgular).
   - **Faz 1, sürüyor** (kolların günlük durumu bu belgede tutulmaz; ana oturum depo dışında takip eder):
     - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi;
-    - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON;
+    - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. İlk dilim birleşti; ikinci dilim hata değeri (`TR_Error`) ve 10.2'nin kilidi, üçüncü dilim görevler ve iptal;
     - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç;
-    - **T1, tensör çekirdeği;**
+    - **T1, tensör çekirdeği:** ilk dilim yeni cins istemeyen sessiz yanlışlar (safetensors yazımı, paylaşılan üretecin kaydı, −0.0 sırası, türevin yazma kuralları, yerinde bileşik atama); ikinci dilim cinsli tensör (`TR_Int`, `TR_Bool`, float64);
     - **iletiler:** önerinin ve kod örneğinin kimlikle yazılması.
   - **Faz 2:**
     - **4b, akış:** daraltma, kapsama, eksik dönüş;

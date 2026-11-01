@@ -12,7 +12,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/08_errors.md`](rationale/08_error
 
 **8.3** Hata değeri `TR_Error` şunları taşır:
 - `e.TR_code`: iletinin kodu (`"H6903"`, metin; 8.5) ya da kodu olmayan hatada (düz metin, durumlu tip değeri) `TR_none`;
-- `e.TR_message`: iletinin metni; değerin metni gibi dilden bağımsızdır (3.14), okuyana göre değişmez;
+- `e.TR_message`: `TR_String(e.TR_value)`: iletide onu kuran çağrının metni (`Message("H6903", -1)`, 3.14), düz metinde metnin kendisi; okuyana göre değişmez;
 - `e.TR_value`: fırlatılan değer; çalışma hatasında iletisi. Tipi kapalı bir birleşimdir (metin, `TR_Message` ya da durumlu tip değeri): yalnız `TR_match`'in deseniyle ya da `TR_Type` sınamasıyla açılır, başka kullanımı denetim hatasıdır (3.7a'daki `TR_JSON` gibi). Yerel bir değişkene kopyalanabilir (aynı kapalı birleşim tipiyle); kopya da aynı yollarla açılır, `TR_Type` ile daraltılan kopya `_`'siz bir `TR_match`'le bir hata tipinin bütün durumlarını kapsar (7.8). Hatayla biten kol (`_ => { TR_throw e }`) eşlemenin değer tipine katılmaz;
 - `e.TR_cause`: nedeni olan hata (`TR_Error?`);
 - `e.TR_suppressed`: hata kapsamdan çıkarken ertelenen işlerin verdiği öbür hatalar, çalışma sırasıyla (`TR_List[TR_Error]`, çoğunlukla boş; 9.4).
