@@ -170,7 +170,7 @@ Kodlama modelleri TR'yi doğru yazıyor mu, yanlış yazınca hata gürültülü
 Dilin kuralı değil; kodlama modellerinin ve insanların dili rahat kullanması için.
 
 - **Makinece okunur dilbilgisi dosyası:** model kod üretirken sözdizimine uymayan sözcüğü baştan dışarıda bırakabilsin.
-- **Kodlama modeline tek sayfalık başvuru:** var (`sekerahmet/tcb-research`, Evre A ve B). Zor-3'ten önce düzeltilir: anahtarlı sıralama, sık hatalar.
+- **Kodlama modeline tek sayfalık başvuru:** var (`sekerahmet/tcb-research`, Evre A ve B). Zor-3'ten önce düzeltilir: anahtarlı sıralama (dilde var: `.TR_sort((x) => anahtar)`, 13.3, 2026-11-01), `TR_defer` yalnız blokla (9.1), sık hatalar.
 - **Claude Code kancaları** ([`tools/edithook`](../tools/edithook/README.md)): her kanca ajanı gerçekten doğru şeye yönlendiriyor mu, bedeli ne, diye tartılır. Açık kalanlar:
   - düzenleme kancası kabuktan (Python, sed) yapılan düzenlemeyi görmez;
   - bilgi listesinin hangi testleri öne alacağı;
