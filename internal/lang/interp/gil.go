@@ -1,7 +1,6 @@
 package interp
 
 import (
-	"runtime"
 	"sync"
 	"time"
 )
@@ -123,10 +122,10 @@ func (v *VM) loopTurn() {
 	v.checkInterrupt()
 }
 
-// handOffLock kilidi kuyruğun başındaki göreve verir ve kuyruğun sonuna geçer.
+// handOffLock kilidi kuyruğun başındaki göreve verir ve kuyruğun sonuna geçer. Bırakma kilidi
+// doğrudan bekleyene verdiği için ayrıca işlemciyi bırakmak (runtime.Gosched) gerekmez.
 func (v *VM) handOffLock() {
 	v.releaseGIL()
-	runtime.Gosched() // kilidi alan görev bu işlemcide hemen çalışabilsin
 	v.acquireGIL()
 	v.checkInterrupt()
 }
