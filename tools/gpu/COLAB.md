@@ -103,12 +103,66 @@ cd /content/TCB && bash /content/is_baslat.sh tam-denetim "tam denetim: bash too
 
 ```bash
 %%bash
-# İ2 · CPU TEMEL ÖLÇÜMÜ (KAYITLI) · CPU High-RAM · ~11 dk, arka planda
+# İ2 · CPU TEMEL ÖLÇÜMÜ (KAYITLI) · CPU High-RAM · ~8–12 dk, arka planda
 # tools/bench/cpu_baseline.sh: karakter modeli TR ve PyTorch, dil kıyası, tensör kernelleri. PyTorch PyPI'daki son
 # sürümüyle ölçülür (Colab'ın hazır sürümü geride kalabilir); TORCH güncellenir.
 TORCH=2.14.1
 python3 -c "import torch,sys; sys.exit(torch.__version__.split('+')[0] != '$TORCH')" || pip install -q torch==$TORCH --index-url https://download.pytorch.org/whl/cpu 2>&1 | tail -2
 cd /content/TCB && bash /content/is_baslat.sh cpu-temel "CPU temel ölçümü: karakter modeli TR/PyTorch $TORCH, dil kıyası, tensör kernelleri; 5 tekrar" -- bash tools/bench/cpu_baseline.sh
+```
+
+```bash
+%%bash
+# İ3 · PYTORCH TEMEL ÇİZGİSİ (KAYITLI) · G4 · ~2 dk, arka planda
+# Hedef model (tools/gpu/rgn512.py), sentetik veri, 120 adım: torch.compile ve derlemesiz; ms/adım ve tepe bellek
+# (nvidia-smi). §11 hücre 2'nin kayıt aracıyla sarılmış hâli; ölçümler metrics.json'a. Kart sınaması GPU'yu
+# kullanırken başlamaz (en çok 10 dk bekler). 2026-11-01'de 129 sn sürdü.
+for i in $(seq 1 120); do [ ! -d /content/is/kart ] || [ -f /content/is/kart/bitti ] && break; sleep 5; done
+cat > /content/pytorch_temel.sh <<'EOF'
+set -u
+mkdir -p /content/rgn && cd /content/rgn
+[ -f train.npy ] || python3 -c "
+import numpy as np
+r = np.random.default_rng(0)
+np.save('train.npy', r.integers(1, 40000, size=40_000_000, dtype=np.uint16))
+np.save('valid.npy', r.integers(1, 40000, size=2_000_000, dtype=np.uint16))"
+for kip in compile eager; do
+  ek=""; [ $kip = eager ] && ek="--no_compile"
+  nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 100 > mem_$kip.log & M=$!
+  python3 /content/TCB/tools/gpu/rgn512.py train --data train.npy --valid valid.npy --out kosu_$kip --steps 120 $ek > rgn_$kip.out 2>&1
+  kill $M; sleep 1
+  tail -5 rgn_$kip.out
+  cp rgn_$kip.out "$TR_RECORD_DIR/"
+done
+python3 - <<'PY'
+import json, os, re
+d = os.environ["TR_RECORD_DIR"]; m = {"torch": __import__("torch").__version__}
+for kip in ("compile", "eager"):
+    ms = re.findall(r"(\d+) ms/adım", open(f"/content/rgn/rgn_{kip}.out", encoding="utf-8").read())
+    mem = max(int(x) for x in open(f"/content/rgn/mem_{kip}.log") if x.strip())
+    m[kip] = {"ms_adım": int(ms[-1]) if ms else None, "tepe_gib": round(mem / 1024, 2)}
+json.dump(m, open(f"{d}/metrics.json", "w"), ensure_ascii=False)
+print(m)
+PY
+EOF
+cd /content/TCB && bash /content/is_baslat.sh pytorch-temel "PyTorch temel çizgisi, hedef model, sentetik veri, 120 adım, torch.compile ve derlemesiz" -- bash /content/pytorch_temel.sh
+```
+
+```bash
+%%bash
+# İ4 · DİL KIYASI: TR, PYTHON, GO, RUST (KAYITLI) · CPU High-RAM · ~1 dk kurulum + ~1 dk, arka planda
+# Rust araç zinciri rustup ile (kararlı sürüm, Colab makinesine); run.py rustc'yi PATH'te bulunca Rust sütununu ekler.
+[ -x $HOME/.cargo/bin/rustc ] || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal 2>&1 | tail -2
+cat > /content/dil_kiyasi.sh <<'EOF'
+set -u
+export PATH=$HOME/.cargo/bin:$PATH
+rustc --version | tee "$TR_RECORD_DIR/rustc.txt"
+python3 tools/bench/run.py --repeat 5 dongu fib sirala metin sozluk matris_dongu matris_yerlesik --json "$TR_RECORD_DIR/bench.json"
+s=$?
+cp "$TR_RECORD_DIR/bench.json" "$TR_RECORD_DIR/metrics.json"
+exit $s
+EOF
+cd /content/TCB && bash /content/is_baslat.sh dil-kiyasi "Dil kıyası TR / Python / Go / Rust (rustc -C opt-level=3), 5 tekrar" -- bash /content/dil_kiyasi.sh
 ```
 
 ## 1. Kodu çek ve derle, GPU durumu

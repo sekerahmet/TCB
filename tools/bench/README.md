@@ -39,6 +39,20 @@ Faz 0'ın tipli yazıma göçü, D1'in ilk dilimi ve Gemini'nin Faz 1 işinden s
 
 Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [hesap: geometrik ortalama]; en büyük fark metin (2,9) ve fonksiyon çağrısı (2,3). Aynı makinede 30 dakika önceki koşu (`b0b4c579`) 0,7–2,9 arası [ölçüldü: `cpu-temel/20261101181506.log`].
 
+**Rust ile** (aynı makine türü, başka bir örnek; rustc 1.99.1 `-C opt-level=3`, `rs/compare.rs`; 5 tekrarın en iyisi; `5cc01e96`; dört sürümün sonuç değerleri aynı) [ölçüldü: `dil-kiyasi/20261101190057.log`]:
+
+| Test | TR | Python | Go | Rust |
+| :-- | --: | --: | --: | --: |
+| `dongu` | 377 ms | 251 | 2 | 0 |
+| `fib` | 101 | 39 | 1 | 0 |
+| `sirala` | 166 | 221 | 38 | 13 |
+| `metin` | 117 | 42 | 12 | 12 |
+| `sozluk` | 368 | 185 | 106 | 122 |
+| `matris_dongu` | 415 | 165 | 3 | 3 |
+| `matris_yerlesik` | 6 | 20 (NumPy) | 292 | 122 |
+
+Bu örnekte bütün diller yukarıdaki koşudan yavaş; TR/Python oranları aynı aralıkta (0,8–2,8). Rust ve Go sıkı döngüde ve özyinelemede milisaniyenin altında; derlenmiş dille yorumlanan dil arasındaki fark bu iki testte iki-üç basamaktır. `matris_yerlesik`'te Go ve Rust düz üçlü döngüdür, TR ve NumPy hazır çekirdek: bu satır dili değil yerleşiği karşılaştırır.
+
 **Karakter modeli, CPU** (aynı makine ve koşu, PyTorch 2.14.1; ikisinin kaybı 300 adımda 2,21):
 
 | İş parçacığı | TR ms/adım | PyTorch ms/adım | TR/PyTorch |
