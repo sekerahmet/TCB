@@ -63,10 +63,10 @@ func Register(v *interp.VM) {
 func registerConstructors(v *interp.VM) {
 	// --- Oluşturucular ---
 	v.RegisterTypeCall(codes.TypeTensor, &interp.BuiltinVal{Fn: guarded(newBuiltin(tensorBuiltin)(nil)), Pure: true})
-	wrap(v, codes.FnZeros, newBuiltin(shapedConstructor(codes.FnZeros, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
+	wrap(v, codes.FnZeros, newBuiltin(shapedConstructor(codes.FnZeros, func(_ *interp.VM, sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
 		return tensor.Zeros(sh...), nil
 	})))
-	wrap(v, codes.FnOnes, newBuiltin(shapedConstructor(codes.FnOnes, func(sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
+	wrap(v, codes.FnOnes, newBuiltin(shapedConstructor(codes.FnOnes, func(_ *interp.VM, sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
 		return tensor.Ones(sh...), nil
 	})))
 	wrap(v, codes.FnRandn, newBuiltin(shapedConstructor(codes.FnRandn, randomNormal)))

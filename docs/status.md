@@ -1091,9 +1091,10 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.17
 
-- **Mevcut durum:** paylaşılan üreteç `math/rand` (v1), saatle tohumlanıyor ve durumu yazılamıyor; kontrol noktası kurulduktan sonra tohumsuz rastgelelik bir uyarı veriyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** sabit başlangıç durumu ve yazılabilen bir üreteç (Go'nun `math/rand/v2` PCG'si `MarshalBinary` veriyor); kaydı ve geri yüklenmesi; TR testi.
-- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** "rng" algoritma önekli ("pcg:" ve 32 onaltılık rakam), bilinmeyen önek yükleme hatası; cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte. Bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde].
+- **Mevcut durum:** paylaşılan üreteç programa bağlı bir PCG (`math/rand/v2`), `"pcg:00000000000054520000000000002017"` ile başlıyor, durumu `state.json`'un `"rng"` alanına yazılıyor ve yüklenince geri konuyor; kesilip sürdürülen eğitim tohumsuz `TR_randn` ve `TR_sample` ile bit bit aynı [test: TestCheckpointResumeBitExact].
+- **Yapılacaklar:** `TR_dropout` (15.23d) geldiğinde aynı üreteçten çekmesi.
+- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte; bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde]. "rng"'nin "pcg:" öneki ve bilinmeyen önekin yükleme hatası (H6953) T1'de geldi [test: checkpoint behavior_security_test.go].
+- **Yapılacaklar (T1 birleşmesi, 2026-11-01):** 20.17'nin Test satırındaki TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir; bugün yalnız Go testlerinde [ölçüldü: `git grep 54520000000000002017`].
 
 ### 20.14
 

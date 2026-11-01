@@ -247,6 +247,10 @@
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
  },
+ "H7410": {
+  "commit": "t1-dilim1",
+  "reason": "deleted: checkpoint: 20.17, the shared generator is saved (paylaşılan üreteç kaydediliyor); unseeded randomness no longer warns"
+ },
  "H7414": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"

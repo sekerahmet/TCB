@@ -274,7 +274,7 @@ func checkMask(fn any, mt, q, k *tensor.Tensor) error {
 // en_iyi_k > 0 ise yalnızca en olası k arasından seçer; sıcaklık 0 en olasıyı verir
 // (argmax ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
 // izlemeyen bir tensördür.
-func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnSample)
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6336, fn, nameTemperature, nameTopK, nameSeed, codes.NameRef(codes.KwNone), len(args))
@@ -332,12 +332,11 @@ func sampleBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 				u[i] = rng.Float64()
 			}
 		} else {
-			reportUnseeded()
-			isRandom.Lock()
-			for i := range u {
-				u[i] = randomStream.Float64()
-			}
-			isRandom.Unlock()
+			sharedRandomOf(m).draw(func(stream *rand.Rand) {
+				for i := range u {
+					u[i] = stream.Float64()
+				}
+			})
 		}
 	}
 	idx := make([]int, C)

@@ -27,6 +27,8 @@ import (
 // entropi, gradyan kırpma, AdamW) CPU çekirdeklerinin paralel yoluna girecek kadar büyüktür
 // (çarpım ve [256, 2048] eleman bazlı işler); kesintisiz koşu GOMAXPROCS=1 ve 8 ile, öldürülen
 // koşu 8 işçiyle başlayıp 1 işçiyle sürdürülür (indirgemeler işçi sayısından bağımsız olmalı).
+// İleri geçiş tohumsuz TR_randn'la gürültü ekler, her adım tohumsuz TR_sample'la bir örnek çeker:
+// paylaşılan üretecin durumu noktayla sürer (20.17).
 //
 // Test belirlenimcidir, zamana bağlı değildir: kayıtlar adım sayısıyla yapılır (--kayıt_her N:
 // her N adımda kn.kaydet()) ve süreç --dur K ile K. adımın sınırında durup bekler (bekliyor.txt
@@ -47,7 +49,7 @@ TR_var model = {"E": param([V, D], 0.05), "g": TR_Tensor(TR_ones([D]), TR_requir
 TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.003)
 TR_func bakışlara_ayır(x: TR_Tensor) -> TR_Tensor { TR_return x.TR_reshape([8, 32, 4, 16]).TR_permute([0, 2, 1, 3]) }
 TR_func ileri(giriş: TR_Tensor[TR_Int]) -> TR_Tensor {
-    TR_var x = TR_embedding_lookup(model["E"], giriş)
+    TR_var x = TR_embedding_lookup(model["E"], giriş) + TR_randn([D]) * 0.001
     TR_var h = TR_rms_norm(x, model["g"])
     TR_var y = TR_attention(bakışlara_ayır(h @ model["Wq"]), bakışlara_ayır(h @ model["Wk"]), bakışlara_ayır(h @ model["Wv"]), TR_causal: TR_true)
     x = x + y.TR_permute([0, 2, 1, 3]).TR_reshape([8, 32, D])
@@ -55,7 +57,7 @@ TR_func ileri(giriş: TR_Tensor[TR_Int]) -> TR_Tensor {
 }
 TR_var ö = TR_Dataset(ayar["veri"]).TR_sampler(TR_batch_size: 8, TR_context: 32, TR_seed: 11)
 TR_var g = TR_Logger(TR_Path(ayar["koşu"], "metrics.jsonl"))
-TR_var izlenen = {"en_iyi": 99.0, "adım_sayısı": 0}
+TR_var izlenen = {"en_iyi": 99.0, "adım_sayısı": 0, "örnekler": [-1]}
 TR_var kn = TR_Checkpoint(ayar["koşu"], {"model": model, "op": op, "ö": ö, "g": g, "izlenen": izlenen}, TR_every_minutes: 60.0)
 TR_var ç = TR_Progress(ayar["step"], TR_log: g)
 TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
@@ -67,6 +69,7 @@ TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
     op.TR_step()
     TR_if kayıp.TR_tolist < izlenen["en_iyi"] { izlenen["en_iyi"] = kayıp.TR_tolist }
     izlenen["adım_sayısı"] += 1
+    izlenen["örnekler"].TR_append(TR_sample(TR_Tensor([[1.0, 2.0, 3.0, 4.0]])).TR_tolist[0])
     ç.TR_update({"loss": kayıp}, TR_step: adım + 1)
     kn.TR_update(adım + 1)
     TR_if ayar["kayıt_her"] > 0 TR_and (adım + 1) % ayar["kayıt_her"] == 0 { kn.TR_save() }

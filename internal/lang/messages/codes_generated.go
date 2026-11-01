@@ -1295,6 +1295,8 @@ const (
 	H6946 Code = 6946 // {@pretrained_model}: {target|q} için iki parçadan biri eksik
 	H6950 Code = 6950 // {fn}: {name|q} tensörü nicemlenmiş ({dtype}); safetensors'ta nicemlenmiş tür yok: TR biçimiyle kaydedin, yolu `.trt` ile bitirin
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
+	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok; bu nokta bu TR'nin biçiminde değil
+	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
@@ -1430,7 +1432,6 @@ const (
 	H7407 Code = 7407 // {fn}: {path|q} bir dosya; koşu klasörü olmalı (noktalar {dir}/ altına yazılır)
 	H7408 Code = 7408 // {fn}: {name} 0 ile {max} arasında bir sayı (dakika) olmalı, {given} verildi
 	H7409 Code = 7409 // {fn}: {name} 1 ile 1000 arasında bir {type} olmalı (saklanacak nokta sayısı), {given} verildi
-	H7410 Code = 7410 // Uyarı: {setup} kurulduktan sonra tohumsuz rastgelelik kullanıldı ({seed_fn} ya da {random_fn}, {seed}: verilmeden); sürdürülen eğitim kesintisizle aynı olmayacak. Rastgeleliği {seed}: ile verin.
 	H7411 Code = 7411 // {fn}: tamamlanan adım sayısı 0 ya da pozitif bir {type} olmalı, {given} verildi
 	H7412 Code = 7412 // {error}; kontrol noktası art arda {count} kez kaydedilemedi, eğitim durduruldu. {last}
 	H7413 Code = 7413 // Uyarı: {error} ({count}/{max}; eğitim sürüyor, {time} sonra yeniden denenecek). {last}

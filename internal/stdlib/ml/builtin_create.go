@@ -7,9 +7,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"math/rand"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 // ----------------------------------------------------------------------------
@@ -90,7 +87,7 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 // shapedConstructor şekli liste olarak alan oluşturucular (sıfırlar([2, 3]) ...) içindir.
 // Şeklin tek yazımı listedir: sıfırlar(2, 3) biçimi kaldırıldı, yazılınca liste biçimini
 // önerir.
-func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]interp.Value) (*tensor.Tensor, error)) interp.BuiltinFunc {
+func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named map[string]interp.Value) (*tensor.Tensor, error)) interp.BuiltinFunc {
 	ad := codes.NameRef(kd)
 	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) == 0 {
@@ -120,7 +117,7 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 		if err != nil {
 			return nil, err
 		}
-		t, err := create(sh, named)
+		t, err := create(m, sh, named)
 		if err != nil {
 			return nil, err
 		}
@@ -137,34 +134,9 @@ func shapedConstructor(kd codes.Code, create func(sh []int, named map[string]int
 	}
 }
 
-var (
-	isRandom     sync.Mutex
-	randomStream = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
-
-// unseededHook tohumsuz rastgelelik (paylaşılan, saate göre tohumlanmış üreteç) her
-// kullanıldığında çağrılır. Kontrol noktası, sürdürülen eğitimin kesintisizle aynı
-// olmayacağını bir kez bildirmek için kurar; kanca yoksa maliyet tek bir atomik okumadır.
-var unseededHook atomic.Pointer[func()]
-
-// SetUnseededHook tohumsuz rastgelelik kancasını kurar (nil: kaldırır). Kanca
-// yorumlayıcı kilidi altında çağrılır; kısa olmalı ve TR kodu çalıştırmamalıdır.
-func SetUnseededHook(f func()) {
-	if f == nil {
-		unseededHook.Store(nil)
-		return
-	}
-	unseededHook.Store(&f)
-}
-
-// reportUnseeded paylaşılan üreteç kullanılmadan önce çağrılır.
-func reportUnseeded() {
-	if f := unseededHook.Load(); f != nil {
-		(*f)()
-	}
-}
-
-func randomNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, error) {
+// randomNormal tohumlu çağrıda kendi üretecini, tohumsuzda programın paylaşılan üretecini
+// (shared_random.go, 20.17) kullanır.
+func randomNormal(m *interp.VM, sh []int, named map[string]interp.Value) (*tensor.Tensor, error) {
 	if s, ok := bind.GetNamed(named, nameSeed); ok {
 		seed, ok := s.(*interp.IntVal)
 		if !ok {
@@ -172,8 +144,7 @@ func randomNormal(sh []int, named map[string]interp.Value) (*tensor.Tensor, erro
 		}
 		return tensor.Randn(rand.New(rand.NewSource(seed.Val)), sh...), nil
 	}
-	reportUnseeded()
-	isRandom.Lock()
-	defer isRandom.Unlock()
-	return tensor.Randn(randomStream, sh...), nil
+	var t *tensor.Tensor
+	sharedRandomOf(m).draw(func(stream *rand.Rand) { t = tensor.Randn(stream, sh...) })
+	return t, nil
 }

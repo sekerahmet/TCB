@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
 // Kontrol noktası dosya biçimi (sürüm 3). Dosya ve klasör adları, JSON anahtarları ve kayıt
@@ -84,6 +85,9 @@ type stateRecord struct {
 	TR      string `json:"tr"`      // TR sürümü (bilgi için)
 	Program string `json:"program"` // programın dosya adı (bilgi için)
 	Workers int    `json:"workers"` // GOMAXPROCS (bilgi için)
+	// RNG paylaşılan rastgele üretecin durumudur (20.17): "pcg:" ve 32 küçük onaltılık rakam
+	// (ml.SharedRandomState); zorunludur.
+	RNG string `json:"rng"`
 	// Settings programın komut_satırı sonucudur (gizli değerler maskeli); sürdürmede
 	// farklıysa uyarı verilir.
 	Settings json.RawMessage `json:"settings,omitempty"`
@@ -187,6 +191,12 @@ func decodeState(b []byte, step int64) (*stateRecord, error) {
 	}
 	if d.Step != step {
 		return nil, messages.New(messages.H7424, stateFile, d.Step, step)
+	}
+	if d.RNG == "" {
+		return nil, messages.New(messages.H6952, stateFile)
+	}
+	if _, _, ok := ml.ParseSharedRandomState(d.RNG); !ok {
+		return nil, messages.New(messages.H6953, stateFile, d.RNG)
 	}
 	if len(d.Objects) == 0 || len(d.Objects) > maxObjects {
 		return nil, messages.New(messages.H7428, stateFile, len(d.Objects), maxObjects)

@@ -38,7 +38,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -48,7 +47,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/files"
-	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 	"github.com/sekerahmet/TCB/internal/stdlib/process"
 )
 
@@ -59,7 +57,6 @@ var CheckpointType = interp.TypeName(codes.TypeCheckpoint)
 var (
 	nameEveryMinutes = bind.NamedArg(codes.ArgEveryMinutes)
 	nameKeep         = bind.NamedArg(codes.ArgKeep)
-	nameSeed         = bind.NamedArg(codes.ArgSeed)
 )
 
 // Varsayılanlar ve sınırlar.
@@ -186,7 +183,6 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 	}
 	kn.lastSave = clock()
 	m.DeferStops(kn.stopWindow)
-	setupUnseededWarning(m)
 	return kn, nil
 }
 
@@ -229,18 +225,6 @@ func options(fn any, named map[string]interp.Value) (time.Duration, int, error) 
 		keep = int(n.Val)
 	}
 	return time.Duration(minutes * float64(time.Minute)), keep, nil
-}
-
-// setupUnseededWarning tohumsuz rastgelelik kullanılınca bir kez uyarır: sürdürülen eğitim
-// kesintisizle aynı olmayacaktır (paylaşılan üretecin durumu kaydedilemez).
-func setupUnseededWarning(m *interp.VM) {
-	var one sync.Once
-	ml.SetUnseededHook(func() {
-		one.Do(func() {
-			m.WriteOutput(m.Err, messages.Text(messages.H7410,
-				codes.NameRef(codes.TypeCheckpoint), codes.NameRef(codes.FnRandn), codes.NameRef(codes.FnSample), nameSeed)+"\n")
-		})
-	})
 }
 
 // stepArg güncelle'nin tamamlanan adım argümanını okur.

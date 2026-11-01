@@ -145,7 +145,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `checkpoint.Stateful` | Kontrol noktasına katılan motor değerleri: `StateDict` ve `LoadState` (TR'de `.TR_state`, `.TR_load_state`); bugün veri okuyucuları (`dataset`). Arayüzü uygulayan bir motor `checkpoint` paketini içe aktarmaz |
 | `ml.CollectParams`, `ml.CollectTensors`, `ml.CheckParamShapes`, `ml.CopyInto` | Modelin parametreleri ve adları, yüklenecek kaynakla uyum denetimi, var olan tensöre yerinde yazma; tensör dosyası yükleme ve kontrol noktası ortak kullanır |
 | `ml.TensorWriter`, `ml.WalkTensorFile` | Tensör dosyasını girdi girdi yazma ve okuma (büyük modelde bellekte ikinci kopya yok) |
-| `ml.SetUnseededHook` | Tohumsuz rastgelelik kullanılınca çağrılır (kontrol noktası bir kez uyarır) |
+| `ml.SharedRandomState`, `ml.ParseSharedRandomState`, `ml.SetSharedRandomState` | Programın paylaşılan rastgele üretecinin durumu (`"pcg:"` ve iki durum sözcüğü); kontrol noktası `state.json`'un `"rng"` alanına yazar ve yüklerken geri koyar (20.17) |
 | `debugger.WatchValue`, `debugger.WatchSummarizer` | Tensör, veri kümesi, parçalayıcı gibi motor değerlerinin İzleme Masası'nda gösterimi |
 
 ## Standart kitaplık (`internal/stdlib`)

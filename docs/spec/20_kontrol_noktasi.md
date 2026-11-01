@@ -107,7 +107,7 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 - **Koşul, aynı cihaz türü:** kayıt ile devam aynı TR ikilisiyle ve aynı cihaz türünde (aynı GPU modeli ya da aynı CPU özellik kümesi) yapılır. CPU'nun indirgemeleri iş parçacığı sayısından bağımsızdır: 8 iş parçacığıyla başlayıp 1 ile sürdürülebilir.
 - **Rastgelelik:** tohumlu rastgelelik zaten aynıdır. Paylaşılan rastgele üreteç (tohumsuz `TR_randn`, `TR_sample` ve `TR_dropout`, 15.23d) her programda aynı sabit durumla başlar ve durumu, cihazın sayaçlı üreteci (15.45) kullanıldıysa onunki de, kontrol noktasına kaydedilip geri yüklenir (20.5): tohumsuz rastgelelik de hem yeniden çalıştırmada hem kaldığı yerden aynı sonucu verir. Sınırlar: eşzamanlı görevler aynı üreteçten çekerse çekme sırası, dolayısıyla sonuç, belirsizdir; görev başına tohum verilir. Tohumu olmayan `TR_dropout`'ta bu çare yoktur; görevler 10.8'in sınırıyladır. Bir programda birden çok kontrol noktası varsa üretecin durumu her birine yazılır; yüklenen sonuncusu geçerlidir.
 - **GPU'da** parametreler ve iyileştirici durumları kayıtta konağa indirilir, yüklemede aynı cihaza konur.
-- *Test:* Go: `TestCheckpointResumeBitExact`; paylaşılan üretecin kaydı uygulanınca TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir.
+- *Test:* TR testi; Go: `TestCheckpointResumeBitExact` (tohumsuz `TR_randn` ve `TR_sample` ile), `TestSharedRandomResumesFromCheckpoint`, `TestSharedRandomStartsFixed`, `TestSharedRandomStateRoundTrip`, `TestSeededRandomUnchanged`. Yazılacak TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir.
 
 **20.18** Kontrol noktası dosyaları güvenilmeyen girdidir (başkasından gelen ya da yarım kopyalanmış koşu klasörü).
 - `digest.json` en çok 64 KB, `state.json` en çok 64 MB okunur; JSON katı çözülür (bilinmeyen alan ve fazladan veri hata).
@@ -115,4 +115,4 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 - Adım, klasör adında, `digest.json`'da ve `state.json`'da aynı olmalıdır; tensör dosyası `TR_load_tensors`'ın bütün sınırlarıyla okunur.
 - Biçimde yalnız veri vardır: kod çalıştıran, nesne kuran ya da yol çözen alan yoktur.
 - Büyük modeller bellekte ikinci bir kopya toplanmadan yazılır ve okunur. Kayıt sürerken eşzamanlı görevler bekler.
-- *Test:* Go: `FuzzCheckpointFiles`, `TestTamperedCheckpointRejected`, `TestCheckpointFormatIsLanguageIndependent`.
+- *Test:* Go: `FuzzCheckpointFiles`, `TestTamperedCheckpointRejected`, `TestCheckpointFormatIsLanguageIndependent`, `TestStateRequiresSharedRandom`.

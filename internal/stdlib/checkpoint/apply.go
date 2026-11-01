@@ -80,6 +80,9 @@ func (kn *Checkpoint) apply(m *interp.VM, fn any, o *loadedCkpt) error {
 			kn.writeLogResume(m, fn, n, o)
 		}
 	}
+	// Paylaşılan üreteç noktadaki durumuyla sürer (20.17); decodeState yazımı denetledi.
+	hi, lo, _ := ml.ParseSharedRandomState(o.state.RNG)
+	ml.SetSharedRandomState(m, hi, lo)
 	return nil
 }
 

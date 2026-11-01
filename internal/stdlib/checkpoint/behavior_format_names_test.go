@@ -89,7 +89,7 @@ kn.TR_save()
 		{filepath.Join(ckpt, "digest.json"), []string{"files"}, []string{"files", "step", "version"}},
 		{filepath.Join(ckpt, "state.json"), []string{"settings", "objects.value"},
 			[]string{"objects", "objects.kind", "objects.length", "objects.name", "objects.optimizer", "objects.param_count", "objects.value",
-				"program", "step", "time", "tr", "version", "workers"}},
+				"program", "rng", "step", "time", "tr", "version", "workers"}},
 	}
 	for _, c := range cases {
 		got := formatKeys(t, c.file, c.user...)

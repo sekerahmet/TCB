@@ -143,9 +143,7 @@ func devicesBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.V
 }
 
 // Close program sonunda çağrılır (motor.Kapat): GPU ölçümü açıksa (TR_GPU_PROFILE=1) özeti
-// standart hataya yazar ve bağlı dış profilleyicilere topladıkları veriyi yazdırır; programın
-// kurduğu tohumsuz rastgelelik kancasını kaldırır (aynı süreçte sonraki programa geçmesin).
+// standart hataya yazar ve bağlı dış profilleyicilere topladıkları veriyi yazdırır.
 func Close() {
-	SetUnseededHook(nil)
 	gpu.Close()
 }

@@ -165,27 +165,80 @@ TR_print("döngü bitti")
 	}
 }
 
-// Kontrol noktası kurulduktan sonra tohumsuz rastgelelik kullanılırsa bir kez uyarılır.
-func TestUnseededRandomWarning(t *testing.T) {
-	output, err := run(t, fmt.Sprintf(`
+// Kural (20.17): paylaşılan üreteç her programda aynı sabit durumla başlar ve durumu noktaya
+// yazılır; noktadan sürdürülen program tohumsuz TR_randn ve TR_sample'da kesintisizle aynı sayıları
+// çeker. Tohumsuz rastgelelik artık uyarı vermez.
+func TestSharedRandomResumesFromCheckpoint(t *testing.T) {
+	// Sürdüren program kurulumdan önce kaydedenden farklı sayıda çeker: aynı sayılar ancak
+	// üretecin noktadaki durumu geri yüklenirse gelir.
+	program := func(runDir string, save bool) string {
+		before, saving := "[2]", "TR_true"
+		if !save {
+			before, saving = "[7]", "TR_false"
+		}
+		return fmt.Sprintf(`
 TR_var w = TR_Tensor(TR_randn([2]), TR_requires_grad: TR_true)
+TR_randn(%s)
 TR_var kn = TR_Checkpoint(%q, {"w": w})
-TR_randn([2], TR_seed: 1)
-TR_randn([2])
-TR_sample(TR_Tensor([[0.1, 0.2]]), TR_temperature: 1.0)
-`, trPath(t.TempDir())))
+TR_if %s { kn.TR_update(1); kn.TR_save() }
+TR_print(TR_randn([3]).TR_tolist, TR_sample(TR_Tensor([[0.1, 0.2, 0.3, 0.4]])).TR_tolist)
+`, before, runDir, saving)
+	}
+	first := trPath(t.TempDir())
+	a, err := run(t, program(first, true))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Count(output, "tohumsuz rastgelelik kullanıldı") != 1 || !strings.Contains(output, "rastgele_normal ya da örnekle, tohum: verilmeden") {
-		t.Fatalf("bir kez uyarı bekleniyordu:\n%s", output)
+	b, err := run(t, program(trPath(t.TempDir()), true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a != b {
+		t.Fatalf("iki koşu aynı başlamalı:\n%s\n%s", a, b)
+	}
+	resumed, err := run(t, program(first, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := func(s string) string { l := strings.Split(strings.TrimSpace(s), "\n"); return l[len(l)-1] }
+	if last(resumed) != last(a) || strings.Contains(resumed+a, "tohumsuz") {
+		t.Fatalf("sürdürülen koşu kayıttan sonraki sayıları çekmeli, uyarısız:\nkesintisiz:\n%s\nsürdürülen:\n%s", a, resumed)
+	}
+}
+
+// Kural (20.5, 20.18): "rng" alanı zorunludur; yoksa (H6952) ya da "pcg:" ve 32 küçük onaltılık
+// rakam değilse (H6953) state.json reddedilir.
+func TestStateRequiresSharedRandom(t *testing.T) {
+	state := func(rng string) []byte {
+		return []byte(`{"version":3,"step":2,"time":"","tr":"","program":"","workers":1` + rng + `,"objects":[{"name":"d","kind":"values","value":{"dict":[["a",1]]}}]}`)
+	}
+	if _, err := checkpoint.DecodeState(state(`,"rng":"pcg:00000000000054520000000000002017"`), 2); err != nil {
+		t.Fatalf("geçerli durum reddedildi: %v", err)
+	}
+	cases := []struct {
+		rng  string
+		want messages.Code
+	}{
+		{``, messages.H6952},
+		{`,"rng":""`, messages.H6952},
+		{`,"rng":"pcg:0000000000005452000000000000201"`, messages.H6953},
+		{`,"rng":"pcg:000000000000545200000000000020170"`, messages.H6953},
+		{`,"rng":"pcg:00000000000054520000000000002O17"`, messages.H6953},
+		{`,"rng":"pcg:000000000000545200000000000020AB"`, messages.H6953},
+		{`,"rng":"PCG:00000000000054520000000000002017"`, messages.H6953},
+		{`,"rng":"pcg:+0000000000054520000000000002017"`, messages.H6953},
+	}
+	for _, c := range cases {
+		if _, err := checkpoint.DecodeState(state(c.rng), 2); !messages.Has(err, c.want) {
+			t.Errorf("%s: %v, beklenen %s", c.rng, err, c.want)
+		}
 	}
 }
 
 // Biçim çözücüleri rastgele girdide çökmez; geçerli bir noktanın dosyaları tohumdur.
 func FuzzCheckpointFiles(f *testing.F) {
 	f.Add([]byte(`{"version":3,"step":2,"files":{"state.json":{"bytes":1,"sha256":"00"},"tensors.trt":{"bytes":1,"sha256":"00"}}}`))
-	f.Add([]byte(`{"version":3,"step":2,"time":"","tr":"","program":"","workers":1,"objects":[{"name":"d","kind":"values","value":{"dict":[["a",1]]}}]}`))
+	f.Add([]byte(`{"version":3,"step":2,"time":"","tr":"","program":"","workers":1,"rng":"pcg:00000000000054520000000000002017","objects":[{"name":"d","kind":"values","value":{"dict":[["a",1]]}}]}`))
 	f.Add([]byte(`{"dict":[[1,{"float":"NaN"}],["b",[null,true,"x"]]]}`))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		_, _ = checkpoint.DecodeDigest(b, 2)

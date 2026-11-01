@@ -402,3 +402,21 @@ TR_test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan ba�
     TR_assert_equal("a", izlenen["ad"])
     TR_assert(izlenen["kayıt"] == kayıt)
 }
+
+TR_test "20.17 paylaşılan üretecin durumu noktaya yazılır; yüklenen nokta onu geri koyar" {
+    TR_var k = koşu("üreteç")
+    TR_var w = param([2], 1)
+    TR_var kn = TR_Checkpoint(k, {"w": w})
+    kn.TR_update(1)
+    TR_var n = kn.TR_save()
+    TR_var olasılık = TR_Tensor([[0.1, 0.2, 0.3, 0.4], [0.4, 0.3, 0.2, 0.1]])
+    TR_var ilk = [TR_randn([3]).TR_tolist, TR_sample(olasılık).TR_tolist]
+    # Yeniden kurulan nokta üreteci kaydedildiği duruma koyar: tohumsuz çekmeler yinelenir.
+    TR_var yeni = TR_Checkpoint(k, {"w": w})
+    TR_assert_equal(1, yeni.TR_resume_step)
+    TR_assert_equal(ilk, [TR_randn([3]).TR_tolist, TR_sample(olasılık).TR_tolist])
+    TR_var durum = TR_json_parse(TR_read_file(TR_Path(n, "state.json")))
+    TR_var rng = TR_String(durum["rng"])
+    TR_assert(rng.TR_starts_with("pcg:"))
+    TR_assert_equal(36, rng.TR_length)
+}

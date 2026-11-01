@@ -93,7 +93,7 @@ func (kn *Checkpoint) save(m *interp.VM) (string, error) {
 // collect durum kaydını ve tensör planını yorumlayıcı kilidi altında hazırlar.
 func (kn *Checkpoint) collect(m *interp.VM) ([]byte, []tensorPlan, error) {
 	d := stateRecord{Version: formatVersion, Step: kn.step, Time: clock().Format(time.RFC3339), TR: trVersion(),
-		Program: filepath.Base(m.SourceFile), Workers: runtime.GOMAXPROCS(0)}
+		Program: filepath.Base(m.SourceFile), Workers: runtime.GOMAXPROCS(0), RNG: ml.SharedRandomState(m)}
 	if kn.process != nil {
 		d.Settings = settingsText(m, kn.process.Settings())
 	}
