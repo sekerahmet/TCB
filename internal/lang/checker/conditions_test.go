@@ -35,7 +35,7 @@ func TestConditionMustBeBool(t *testing.T) {
 	for _, source := range []string{
 		"TR_var l = [1]\nTR_if l.TR_length == 0 TR_and TR_not TR_false { TR_print(1) }",
 		"TR_var b: TR_Bool? = TR_none\nTR_if b == TR_true { }",
-		`TR_var j = TR_json_parse("1")` + "\nTR_if j == 1 { }",
+		`TR_var j = ` + unknownValue + "\nTR_if j == 1 { }",
 		"TR_assert(1 < 2)",
 	} {
 		noErrors(t, source)

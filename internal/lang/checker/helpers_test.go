@@ -9,6 +9,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
+// unknownValue tipi denetleyicinin bilmediği bir değerin yazımıdır: TR_abs birleşik dönüşlüdür
+// (TR_Int, TR_Float ya da TR_Tensor), denetleyici tipini bilmez (TestUnknownValueHasNoType). "Tipi
+// bilinmeyen değer" isteyen testler bunu kullanır; bir sonraki tanıma tek yerden göçer.
+const unknownValue = "TR_abs(1)"
+
 // check kaynağı ayrıştırır (sözdizimi hatası testi düşürür) ve tip denetimi hatalarını döndürür.
 func check(t *testing.T, source string) []string {
 	t.Helper()

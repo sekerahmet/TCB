@@ -30,3 +30,9 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		t.Errorf("metin değişkenine tam sayı H1005 olmalı: %v", errs)
 	}
 }
+
+// Kural (yanlış alarm vermez): birleşik dönüşlü yerleşiğin (TR_abs: TR_Int, TR_Float ya da TR_Tensor)
+// çağrısının tipi bilinmez; testlerin "tipi bilinmeyen değer"i (unknownValue) budur.
+func TestUnknownValueHasNoType(t *testing.T) {
+	expectTypes(t, map[string]string{"TR_var v = " + unknownValue: typeAny})
+}

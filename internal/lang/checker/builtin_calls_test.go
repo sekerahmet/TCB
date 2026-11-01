@@ -65,7 +65,7 @@ func TestMissingMember(t *testing.T) {
 	// Metot alıcının tipinde, alıcının tipi bilinmiyor (TR_JSON) ya da isteğe bağlı: hatasız.
 	for _, source := range []string{
 		"TR_var l = [\"a\"]\nTR_print(l.TR_join(\" \"), \" a \".TR_strip(), {\"a\": 1}.TR_keys())",
-		`TR_print(TR_json_parse("1").TR_strip())`,
+		`TR_print(` + unknownValue + `.TR_strip())`,
 		"TR_var m: TR_String? = TR_none\nTR_print(m?.TR_sort())",
 	} {
 		noErrors(t, source)
@@ -116,7 +116,7 @@ func TestMemberArgType(t *testing.T) {
 	}
 	for _, source := range []string{
 		`TR_print("a,b".TR_split(","), [1].TR_filter((x) => x > 0), [1].TR_reduce(0, (a, x) => a + x))`,
-		`TR_print("a,b".TR_split(TR_json_parse("1")))`,
+		`TR_print("a,b".TR_split(` + unknownValue + `))`,
 		`TR_print([1].TR_reduce((a, x) => a + x))`,
 	} {
 		noErrors(t, source)

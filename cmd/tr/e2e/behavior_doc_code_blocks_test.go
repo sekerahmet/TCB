@@ -125,13 +125,17 @@ func openTemplate(body string) string {
 	return templateEmptyRe.ReplaceAllString(body, "")
 }
 
+// unknownValue tipi denetleyicinin bilmediği bir değerin yazımıdır: TR_abs birleşik dönüşlüdür,
+// denetleyici tipini bilmez (checker.TestUnknownValueHasNoType).
+const unknownValue = "TR_abs(1)"
+
 // namePlaceholderRe yer tutucunun varsayılanı tek bir ad mı (eğer ${1:koşul})?
 var namePlaceholderRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 
 // definePlaceholders şablonun kullanıcının dolduracağı ad yer tutucularını (eğer
 // ${1:koşul}, eşle ${1:değer}) şablon kendisi tanımlamıyorsa kodun başında tanımlar:
 // tanımsız ad çalışmadan önce hatadır (5.14), şablon ise bu adların kullanıcıda var
-// olduğunu varsayar. Adın tipi denetleyicinin bilmediği bir tiptir (TR_JSON): eğer'in koşulu
+// olduğunu varsayar. Adın tipi denetleyicinin bilmediği bir tiptir (unknownValue): eğer'in koşulu
 // TR_Bool olmalıdır (3.10), bir sayının yerini tutan ad sayıdır.
 func definePlaceholders(body, code string) string {
 	defined, _ := checker.TopLevelNames(parser.New(source.Parts{Body: code}.Lexer()).ParseProgram())
@@ -143,7 +147,7 @@ func definePlaceholders(body, code string) string {
 			continue
 		}
 		seen[ad] = true
-		fmt.Fprintf(&on, "TR_var %s = TR_json_parse(\"1\")\n", ad) // tipi kullanıcının değerinindir: denetleyici bilmez
+		fmt.Fprintf(&on, "TR_var %s = %s\n", ad, unknownValue) // tipi kullanıcının değerinindir: denetleyici bilmez
 	}
 	return on.String() + code
 }
