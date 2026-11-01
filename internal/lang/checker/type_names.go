@@ -25,6 +25,7 @@ var (
 	typeTensor   = codes.Name(codes.TypeTensor)
 	typeAny      = codes.Name(codes.TypeAny)
 	typeType     = codes.Name(codes.TypeType)
+	typeJSON     = codes.Name(codes.TypeJSON)
 )
 
 // typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı
@@ -67,7 +68,7 @@ func (c *Checker) typeArg(t string) messages.Localized {
 // annotationTypes tip açıklamasında (değişken x: Tam) kullanılabilen tiplerin kodlarıdır:
 // 3.11'deki çekirdek tip adları.
 var annotationTypes = []codes.Code{codes.TypeInt, codes.TypeFloat, codes.TypeString, codes.TypeBool,
-	codes.TypeList, codes.TypeDict, codes.TypeRange, codes.TypeFunction, codes.TypeBuiltinFunction, codes.TypeTensor, codes.TypeNoneType, codes.TypeType}
+	codes.TypeList, codes.TypeDict, codes.TypeRange, codes.TypeFunction, codes.TypeBuiltinFunction, codes.TypeTensor, codes.TypeNoneType, codes.TypeType, codes.TypeJSON}
 
 // typeSpellings tip açıklamasında kabul edilen yazımlar → tip adıdır. Yazımlar sözlükten
 // gelir ve tektir (3.14): yalnızca tip adının tam yazımı (Tam, Ondalık); büyük/küçük harfi

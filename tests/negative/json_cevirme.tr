@@ -1,0 +1,14 @@
+# TR 4
+# TEST 3.7a TR_JSON(x)'te tipi bilinen ve JSON'a giremeyen değer ya da öğe (demet, tensör, yapı, fonksiyon, aralık, metin olmayan anahtarlı sözlük) denetim hatasıdır: çalışma anının kodu H2654; TR_json_parse bir TR_JSON verir
+TR_struct Nokta { x: TR_Int }
+TR_func bir() -> TR_Int { TR_return 1 }
+TR_var a = TR_JSON((1, 2)) # ERROR H2654
+TR_var b = TR_JSON([1, (1, 2)]) # ERROR H2654
+TR_var c = TR_JSON(TR_Tensor([1.0])) # ERROR H2654
+TR_var d = TR_JSON(Nokta(1)) # ERROR H2654
+TR_var e = TR_JSON(bir) # ERROR H2654
+TR_var f = TR_JSON(0..3) # ERROR H2654
+TR_var g = TR_JSON({1: 2}) # ERROR H2654
+TR_var h = TR_JSON({"a": {1: 2}}) # ERROR H2654
+TR_var i: TR_Int = TR_json_parse("1") # ERROR H1001
+TR_print(a, b, c, d, e, f, g, h, i)

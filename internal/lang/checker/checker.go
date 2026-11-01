@@ -451,7 +451,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	}
 	argTypes := make([]string, len(e.Arguments))
 	for i, arg := range e.Arguments {
-		argType := c.inferExpression(arg)
+		argType := c.itemType(arg) // TR_List(j)'nin tipi argümanın tipine bakar (json_values.go)
 		argTypes[i] = argType
 		c.noteCall(e, objType, i, "", arg, argType)
 		if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
@@ -471,6 +471,9 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		c.checkMemberCall(e, objType, argTypes)
 	} else if k, _ := c.calledBuiltin(e); k == codes.FnAssert && len(argTypes) > 0 {
 		c.requireBool(e.Arguments[0], argTypes[0], messages.H2612) // 3.10, 12.3
+	}
+	if len(argTypes) == 1 && c.builtinCallCode(e, objType) == codes.TypeJSON {
+		c.checkJSONConversion(e.Arguments[0], argTypes[0]) // 3.7a "Kurmak" (json_values.go)
 	}
 	return c.callType(e, info, found, objType)
 }

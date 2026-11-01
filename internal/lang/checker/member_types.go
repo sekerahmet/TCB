@@ -21,6 +21,9 @@ var MemberReturnsNotVerified = map[codes.Code][]codes.Code{}
 // metodun sonucu, çağrısız yazımda özelliğin değeri. Çağrısız metot (6.9'un bağlı fonksiyonu),
 // çağrılan özellik (H2421), motorla doğrulanmamış dönüş ve birden çok seçenekli dönüş "" verir.
 func (c *Checker) memberValueType(m *ast.MemberExpression, objType string, called bool) string {
+	if objType == typeJSON {
+		return jsonMemberType(m, called) // 3.7a "Okumak" (json_values.go)
+	}
 	k, recv, def, ok := memberOf(m, objType)
 	if !ok || !countedReceivers[recv] || called != (def.Kind == codes.KindMethod) {
 		return ""

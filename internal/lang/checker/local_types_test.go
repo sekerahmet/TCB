@@ -49,11 +49,10 @@ func TestLocalTypeIsPermanent(t *testing.T) {
 }
 
 // Kural (yanlış alarm vermez): tipi çıkarılamayan ilk değer (bilinmeyen çağrı, TR_none) ve
-// denetleyicinin tanımadığı tip (ör. TR_JSON; tip parametresi, arayüz) değişkene verilmez; değişken TR_Any kalır.
+// denetleyicinin tanımadığı tip (tip parametresi, arayüz) değişkene verilmez; değişken TR_Any kalır.
 func TestLocalTypeUnknownStaysAny(t *testing.T) {
 	noErrors(t, "TR_var a = TR_none\na = 5\na = \"x\"")
 	noErrors(t, "TR_var a = "+unknownValue+"\na = 5\na = \"x\"")
-	noErrors(t, "TR_func oku() -> TR_JSON {\n    TR_return TR_json_parse(\"1\")\n}\nTR_var y = oku()\ny = \"a\"")
 }
 
 // Kural (4.2, 4.10, 15.6): değişmezin, aritmetiğin ve karşılaştırmanın tipi çalışma anının

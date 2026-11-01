@@ -99,6 +99,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 
 ### 3.7a
 
+- **Mevcut durum (4a3, 2026-11-01):** denetleyici `TR_JSON`'u tanıyor: `TR_json_parse(m)`, `TR_JSON(x)`, `j[k]`, `j[i]` `TR_JSON`; `TR_List(j)` `TR_List[TR_JSON]`; `.TR_get` `TR_JSON?`, `.TR_keys()`, `.TR_length` tipli; `TR_var a: TR_Int = TR_json_parse("1")` H1001. `TR_JSON(x)`'te tipi bilinen JSON olmayan değer ve öğe H2654 (çalışma anının kodu); tipi bilinmeyen yerde çalışma hatası kalır [test: `TestJSONTypes`, `TestJSONConversionKinds`, `TestJSONReturnsAreJSONValues`, `tests/negative/json_cevirme.tr`].
 - **Mevcut durum:** `TR_JSON` kuruluyor, açılıyor, dolaşılıyor; JSON ile JSON olmayanın karşılaştırması üst düzeyde, kabın içinde, `.TR_contains`'te ve eşleme deseninde çalışma hatası (kapta H2705): `j["a"] == 1`, `TR_List(j) == [1, 2]`, `TR_List(j).TR_contains(1)`, `[j[0]] == [1]`, `TR_match j["a"] { 1 => ... }` [ölçüldü: main `85a19c36`, CLI; `tests/tipler_test.tr`'nin 3.7a testleri].
 - **Yapılacaklar:** `TR_Type(j) == TR_JSON` denetim hatası (bugün denetim geçer, çalışmada `TR_false`) ve genel tiplerin (Any, Object, StructType) kalkması (4a).
 - **Yapılacaklar (2026-11-01, tur 2'nin örneklemesi):** `TR_JSON(liste)` çevirmesi (3.7a "Kurmak"); `d6b4827c`'de denetim reddediyor ("TR_Dict tipinde değer atandı") [ölçüldü: DENETİM]. Çalışma anı doğru: `TR_JSON(l)` kopyalıyor, demet öğesi çalışma hatası [ölçüldü: `d93648ab`, çalıştırma].

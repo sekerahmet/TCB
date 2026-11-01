@@ -227,6 +227,8 @@ func indexType(left, index string) string {
 		return typeAny
 	case left == typeTensor:
 		return typeTensor
+	case left == typeJSON && index != typeRange:
+		return typeJSON // j["k"], j[i] (3.7a "Okumak")
 	case index == typeRange && (s.base == typeList || left == typeString):
 		return left
 	case index == typeInt && s.base == typeList && len(s.args) == 1:

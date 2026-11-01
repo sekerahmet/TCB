@@ -60,9 +60,7 @@ func (c *Checker) builtinCallCode(e *ast.CallExpression, objType string) codes.C
 // ReturnsNotVerified are single-return builtins whose return the engine does not give in the
 // definition's example, or whose example does not let the test see it
 // (stdlib.TestSingleReturnsMatchEngine): the checker does not use their return.
-var ReturnsNotVerified = map[codes.Code]string{
-	codes.FnJsonParse: "13.8: the engine gives another type than the definition",
-}
+var ReturnsNotVerified = map[codes.Code]string{}
 
 // ReturnsIgnored are builtins whose return the definition and the engine agree on but 13.10 says
 // is meaningless ("no meaningless return"): the checker does not use it until the return is removed.
@@ -75,6 +73,9 @@ var ReturnsIgnored = map[codes.Code]string{
 // motorla doğrulanmamış yerleşik (ReturnsNotVerified), birleşim ve tanınmayan tip "" (TR_Any).
 func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) string {
 	k := c.builtinCallCode(e, objType)
+	if t := c.jsonCallType(e, k); t != "" {
+		return t // TR_JSON'u veren yerleşik (json_values.go)
+	}
 	_, ignored := ReturnsIgnored[k]
 	if _, unverified := ReturnsNotVerified[k]; unverified || ignored || k == codes.None {
 		return ""

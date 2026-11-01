@@ -18,9 +18,9 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = {\"a\": 1}.TR_keys()":    listType(typeString),
 		"TR_var v = TR_Tensor([1.0])":        typeTensor,
 		"TR_var v = TR_time_ms()":            typeInt,
-		"TR_var v = TR_floor(1.5)":           typeAny, // birleşim: TR_Int|TR_Float|TR_Tensor
-		"TR_var v = TR_json_parse(\"1\")":    typeAny, // dönüşü motorla uyuşmuyor (13.8)
-		"TR_var v = TR_Path(\"a\")":          typeAny, // tanınmayan tip
+		"TR_var v = TR_floor(1.5)":           typeAny,  // birleşim: TR_Int|TR_Float|TR_Tensor
+		"TR_var v = TR_json_parse(\"1\")":    typeJSON, // 3.7a; motorla doğrulaması TestJSONReturnsAreJSONValues (stdlib)
+		"TR_var v = TR_Path(\"a\")":          typeAny,  // tanınmayan tip
 		"TR_var v = [\"a\"].TR_join(\",\")":  typeString,
 		"TR_var v = (0..3).TR_reverse()":     listType(typeInt), // alıcıdaki imza: aralıkta TR_List[TR_Int]
 		"TR_var v = [1].TR_contains(1)":      typeBool,

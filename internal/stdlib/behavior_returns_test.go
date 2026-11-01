@@ -41,7 +41,8 @@ func TestSingleReturnsMatchEngine(t *testing.T) {
 	for _, k := range codes.Codes() {
 		ret, ok := checker.SingleReturn(k)
 		def, _ := codes.DefinitionOf(k)
-		if !ok || def.Example == "" {
+		_, json := checker.JSONReturns[k] // TR_Type JSON'un türünü verir: TestJSONReturnsAreJSONValues
+		if !ok || def.Example == "" || json {
 			continue
 		}
 		got := probeReturns(t, k, ret)
