@@ -21,15 +21,17 @@ import (
 //
 // File format (each entry is one line or a short block, codes in ascending order):
 //
-//	"TR_fn_round": { "kind": "function", "params": ["TR_type_Int|TR_type_Float", "TR_type_Int?"], "returns": "TR_type_Int|TR_type_Float" },
-//	"TR_fn_sum": { "kind": "function", "params": ["TR_type_List|TR_type_Tensor"], "named": [["TR_arg_dim", "TR_type_Int"], ["TR_arg_keepdim", "TR_type_Bool", false]], "returns": "TR_type_Int|TR_type_Float|TR_type_Tensor" },
-//	"TR_mem_length": { "kind": "property", "types": ["TR_type_String", "TR_type_List", "TR_type_Dict"], "returns": "TR_type_Int" },
-//	"TR_mem_split": { "kind": "method", "signatures": { "TR_type_String": { "params": ["TR_type_String?"], "returns": "TR_type_List" }, "TR_type_Tensor": { ... } } },
+//	"TR_fn_round": { "kind": "function", "params": ["TR_Int|TR_Float", "TR_Int?"], "returns": "TR_Int|TR_Float" },
+//	"TR_fn_sum": { "kind": "function", "params": ["TR_List|TR_Tensor"], "named": [["TR_arg_dim", "TR_Int"], ["TR_arg_keepdim", "TR_Bool", false]], "returns": "TR_Int|TR_Float|TR_Tensor" },
+//	"TR_mem_length": { "kind": "property", "types": ["TR_String", "TR_List", "TR_Dict"], "returns": "TR_Int" },
+//	"TR_mem_split": { "kind": "method", "signatures": { "TR_String": { "params": ["TR_String?"], "returns": "TR_List" }, "TR_Tensor": { ... } } },
 //
-// A type expression is a union of type codes joined with "|" (TR_type_Int|TR_type_Float: Tam or
-// Ondalık). On a positional parameter the suffix "?" means optional, "*" zero or more, "+" one
-// or more. Type codes are the type class (the type of AdamW and SGD is a type code too:
-// İyileştirici, TR_type_Optimizer). A named argument is a [code, type, default] triple; the
+// A type is written as in a program, with identities (13.9: TR_Int, TR_List); a type expression is a
+// union of types joined with "|" (TR_Int|TR_Float). On a positional parameter the suffix "?" means
+// optional, "*" zero or more, "+" one or more. Each alternative is kept as written (TypeExpr.Text):
+// its structure is read by the language's own type parser (parser.ParseTypeText), not here. The
+// receivers ("types", the keys of "signatures") are written the same way. The type of AdamW and SGD
+// is a type too: İyileştirici, TR_Optimizer. A named argument is a [code, type, default] triple; the
 // default is a JSON value (null: none) and is omitted when there is no single default. A public
 // name of a standard library module also carries "module" (the module, "tr/layers"); the code is
 // then a library code, not a builtin.
@@ -87,9 +89,10 @@ func (k Code) ExpectedKind() Kind {
 }
 
 // TypeExpr is the type of a parameter or return value: one of Types (unspecified when
-// empty).
+// empty). Text holds each alternative as written in definitions.json, with identities (TR_Int).
 type TypeExpr struct {
 	Types []Code
+	Text  []string
 	// Optional is an optional argument (?), Many zero or more (*), AtLeastOne one or more (+).
 	Optional, Many, AtLeastOne bool
 }
@@ -354,7 +357,12 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 			return im
 		}
 		t.Signature = sig(h.Param, h.Named, h.Return)
-		for _, typ := range codeList("types", h.Types) {
+		for _, s := range h.Types {
+			typ, err := typeIdentity(s)
+			if err != nil {
+				errorf("%s types: %v", k, err)
+				continue
+			}
 			t.Members = append(t.Members, TypeSignature{Type: typ, Signature: t.Signature})
 		}
 		if len(h.Signatures) > 0 {
@@ -362,7 +370,7 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 				errorf("%s: \"types\", \"params\", \"named\" and \"returns\" must not be written when \"signatures\" is present", k)
 			}
 			for s, hi := range h.Signatures {
-				typ, err := Parse(s)
+				typ, err := typeIdentity(s)
 				if err != nil {
 					errorf("%s signatures: %v", k, err)
 					continue
@@ -392,8 +400,8 @@ func ParseDefinitions(data []byte) (map[Code]Definition, []Code, error) {
 	return out, order, nil
 }
 
-// ParseType parses a type expression such as "TR_type_Int|TR_type_Float?"; suffixes are valid only on
-// positional parameters (when parametre is true).
+// ParseType parses a type expression written with identities such as "TR_Int|TR_Float?"; suffixes
+// are valid only on positional parameters (when isParam is true).
 func ParseType(s string, isParam bool) (TypeExpr, error) {
 	var t TypeExpr
 	if isParam && s != "" {
@@ -407,13 +415,23 @@ func ParseType(s string, isParam bool) (TypeExpr, error) {
 		}
 	}
 	for _, p := range strings.Split(s, "|") {
-		k, err := Parse(p)
+		k, err := typeIdentity(p)
 		if err != nil {
 			return t, messages.Internalf("type expression %q: %v", s, err)
 		}
 		t.Types = append(t.Types, k)
+		t.Text = append(t.Text, p)
 	}
 	return t, nil
+}
+
+// typeIdentity is the type code written as s, a type's identity in program text (TR_Int → TR_type_Int).
+func typeIdentity(s string) (Code, error) {
+	k, ok := FromSpelling(PlaceOther, s)
+	if !ok || k.Class() != ClassType {
+		return None, messages.Internalf("%q is not a type's identity (TR_Int)", s)
+	}
+	return k, nil
 }
 
 func parseNamed(a []json.RawMessage) (NamedArg, error) {

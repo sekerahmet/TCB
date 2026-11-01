@@ -135,12 +135,18 @@ func checkSortedOnePerLine(t *testing.T, data []byte, requiredField string) {
 
 // Tip ifadeleri çözülür; geçersiz bir tanım satırı hatayla bildirilir.
 func TestParseDefinitions(t *testing.T) {
-	ti, err := ParseType("TR_type_Int|TR_type_Float?", true)
+	ti, err := ParseType("TR_Int|TR_Float?", true)
 	if err != nil || !ti.Optional || len(ti.Types) != 2 || ti.Types[1] != TypeFloat {
 		t.Fatalf("TipCoz: %+v %v", ti, err)
 	}
-	if _, err := ParseType("TR_type_Int?", false); err == nil {
+	if _, err := ParseType("TR_Int?", false); err == nil {
 		t.Error("dönüş tipinde sonek hata olmalı")
+	}
+	if _, err := ParseType("TR_type_Int", true); err == nil {
+		t.Error("tipin sınıflı yazımı (TR_type_Int) hata olmalı: tip kimlikle yazılır (TR_Int, 13.9)")
+	}
+	if ti.Text[0] != "TR_Int" || ti.Text[1] != "TR_Float" {
+		t.Errorf("Text yazıldığı gibi olmalı: %q", ti.Text)
 	}
 	_, _, err = ParseDefinitions([]byte(`{"TR_fn_print": {"kind": "function", "bilinmeyen": 1}}`))
 	if err == nil || !strings.Contains(err.Error(), "bilinmeyen") {

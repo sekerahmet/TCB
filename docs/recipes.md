@@ -20,7 +20,7 @@ TR'ye yeni bir şey eklerken hangi dosyalara, hangi sırayla dokunulduğu ve "bi
 | Adım | Dosya | Ne eklenir |
 | :-- | :-- | :-- |
 | Ad | `internal/lang/codes/tr.json` | `"TR_fn_silu": { "family": ..., "description": ..., "example": "yazdır(silu(Tensör([-1.0, 0.0, 2.0])).değer)" }` (ad yok: `silu` ortak addır; ortak adı olmayan kodda `"name": ...` ilk alandır, `en.json`'a da `{ "ad": ... }` satırı girer) |
-| İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "kind": "function", "common_name": "silu", "params": ["TR_type_Tensor\|TR_type_Int\|TR_type_Float"], "returns": "TR_type_Tensor\|TR_type_Float" }` |
+| İmza | `internal/lang/codes/definitions.json` | `"TR_fn_silu": { "kind": "function", "common_name": "silu", "params": ["TR_Tensor\|TR_Int\|TR_Float"], "returns": "TR_Tensor\|TR_Float" }` |
 | Üret | — | `go generate ./internal/lang/codes`: Go sabitleri, `docs/codes.md`, düzenleyici renklendirmesi |
 | İşlem | `internal/compute/tensor/device.go` | `UnOp` listesinin sonuna, `numUnOps` sayacının **önüne** `OpSilu` (sayaç her zaman son kalır; kapsam testi işlemleri onunla sayar) |
 | Türev testi | `internal/compute/tensor/elementwise_wide_test.go` | `registerGrad` ile bir `gradSpec` kaydı: float64 başvuru işlevi ve türevi |
@@ -53,7 +53,7 @@ Bitti: NaN ve sonsuzlar tanımlı; türev sınırlarda doğru; 16 bit tensörde 
 
 Örnek: `csv_oku` (TR_fn_read_csv), `internal/stdlib/formats`.
 
-1. **Ad ve imza.** `tr.json`'a ad, açıklama, çalışan tek satırlık örnek; `definitions.json`'a tür, konumlu parametreler (`"TR_type_String|TR_type_Path"`), adlı argümanlar (`[kod, tip, varsayılan]`), dönüş. Adlı argüman da bir koddur (`arg` sınıfı: `TR_arg_dim`). Sonra `go generate ./internal/lang/codes`.
+1. **Ad ve imza.** `tr.json`'a ad, açıklama, çalışan tek satırlık örnek; `definitions.json`'a tür, konumlu parametreler (`"TR_String|TR_Path"`, tipler programdaki kimlik yazımıyla, 13.9), adlı argümanlar (`[kod, tip, varsayılan]`), dönüş. Adlı argüman da bir koddur (`arg` sınıfı: `TR_arg_dim`). Sonra `go generate ./internal/lang/codes`.
 2. **Kayıt.** Paketin `Register(v *interp.VM)` fonksiyonunda:
 
    ```go
@@ -79,7 +79,7 @@ Testler: paketin birim testi (`formats_test.go`): davranış ve hatalar, hatalar
 
 Örnek: `TR_LineReader.TR_next()` (`internal/stdlib/files/lines.go`).
 
-1. **Ad.** Üye kodu (`TR_mem_...`); `definitions.json`'da `"kind": "method"` ya da `"property"` ve hangi tiplerde geçerli olduğu (`"signatures": { "TR_type_LineReader": {...} }`).
+1. **Ad.** Üye kodu (`TR_mem_...`); `definitions.json`'da `"kind": "method"` ya da `"property"` ve hangi tiplerde geçerli olduğu (`"signatures": { "TR_LineReader": {...} }`).
 2. **Kanca.** Tip, yorumlayıcının arayüzünü uygular: üyeler için `GetProperty(kd codes.Code, prop string) (interp.Value, error)` (`interp.PropertyGetter`). Yineleme, indeksleme, işleçler için `interp.Iterable`, `interp.Indexable`, `interp.OperatorHook` ...
 3. **Derleme anı denetimi.** Her kanca için: `var _ interp.PropertyGetter = (*LineReader)(nil)`. Adı değişen bir metot kancayı sessizce koparmasın.
 4. **Bulunamayan üye** `bind.MemberError(ne, ad, üyeler)` ile en yakın üyeyi önerir.
