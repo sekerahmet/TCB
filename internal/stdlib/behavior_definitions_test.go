@@ -277,7 +277,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeLogger, `TR_Logger("` + filepath.ToSlash(filepath.Join(t.TempDir(), "u.jsonl")) + `")`},
 		{codes.TypeCheckpoint, `TR_Checkpoint("` + filepath.ToSlash(t.TempDir()) + `", {"w": TR_Tensor([1.0], TR_requires_grad: TR_true)})`},
 		{codes.TypeJSON, `TR_JSON({"a": [1, 2]})`}, {codes.TypeJSON, `TR_JSON([1, 2])`}, {codes.TypeJSON, `TR_JSON("abc")`},
-		{codes.TypeBytes, `TR_Bytes("ab")`}, {codes.TypeNoneType, `TR_none`}, {codes.TypeMessage, `TR_Message("H6903", -1)`},
+		{codes.TypeBytes, `TR_Bytes("ab")`}, {codes.TypeNoneType, `TR_none`}, {codes.TypeMessage, `TR_Message("H6903", -1)`}, {codes.TypeError, `TR_Error("x")`},
 		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}
 	t.Cleanup(logging.CloseAll)

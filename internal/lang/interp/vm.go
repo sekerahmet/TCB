@@ -301,6 +301,7 @@ func New() *VM {
 	v.registerEngines()
 	v.registerTestBuiltins()
 	v.registerMessageBuiltins()
+	v.registerErrorType()
 	return v
 }
 

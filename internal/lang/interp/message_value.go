@@ -1,39 +1,53 @@
 package interp
 
 import (
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// MessageVal is a catalog message built in TR code with ileti(H6903, values): its code and the
-// values in the order of the catalog definition. It has no text of its own; the text is built
-// from the catalog when it is shown, in the language it is shown in (a program's text of it
-// follows its file's language, a displayed error the person's). fırlat and doğrula throw it as
-// the message itself, so the library's errors are catalog messages in every language.
+// MessageVal is a catalog message built in TR code with TR_Message(code, values): its code and the
+// values in the order of the catalog definition. Its text is the call that builds it (3.14):
+// Message("H6903", -1), the same for every reader; the message's text in the reader's language is
+// built only when the error is shown (8.5, 8.6). TR_throw and TR_assert throw it as the message
+// itself, so the library's errors are catalog messages in every language.
 type MessageVal struct {
 	Code messages.Code
 	Args []Value
+	// source is the run-time error the message was taken from (a caught error's TR_value, 8.3):
+	// throwing it again shows that error's text.
+	source *messages.Error
 }
 
 // ValMessage is the type name of MessageVal.
 var ValMessage = TypeName(codes.TypeMessage)
 
-var _ LanguageText = (*MessageVal)(nil)
-
 func (m *MessageVal) Type() ValueType { return ValMessage }
 func (m *MessageVal) IsTruthy() bool  { return true }
 
-// Inspect is the value's text (3.14): the message in the fixed catalog of values' text
-// (messages.ValueLanguage), like a caught error; shown to a person it is in their language.
-func (m *MessageVal) Inspect() string { return m.Text(codes.ValueNames()) }
-
-// Text is the message in lang.
-func (m *MessageVal) Text(lang *codes.Language) string {
-	return messages.TextIn(lang.Code, m.Code, m.params()...)
+// Inspect is the value's text (3.14): the call that builds it, with the type's name;
+// `TR_Message("H6903", -1)` is written Message("H6903", -1).
+func (m *MessageVal) Inspect() string {
+	var sb strings.Builder
+	sb.WriteString(codes.ValueNames().Name(codes.TypeMessage))
+	sb.WriteByte('(')
+	sb.WriteString(QuoteText(m.Code.String()))
+	for _, a := range m.Args {
+		sb.WriteString(", ")
+		sb.WriteString(writeElement(a, nil, nil))
+	}
+	sb.WriteByte(')')
+	return sb.String()
 }
 
 // Error is the message as an error: the catalog code with its values.
-func (m *MessageVal) Error() *messages.Error { return messages.New(m.Code, m.params()...) }
+func (m *MessageVal) Error() *messages.Error {
+	if m.source != nil {
+		return m.source
+	}
+	return messages.New(m.Code, m.params()...)
+}
 
 // params are the values as message parameters; each is written in the message's language.
 func (m *MessageVal) params() []any {

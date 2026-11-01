@@ -112,10 +112,10 @@ TR_async {
 }
 bekle_koşul { d["başladı"] }
 TR_var h = ""
-TR_try { w[0] = 5 } TR_catch e { h = "\(e)" }
+TR_try { w[0] = 5 } TR_catch e { h = TR_String(e.TR_code) }
 d["devam"] = TR_true
 TR_wait_all()
-TR_print(w.TR_tolist, h.TR_contains("no_grad"))`)
+TR_print(w.TR_tolist, h == "H6716")`)
 	if out != "[1.0, 2.0] true\n" {
 		t.Fatalf("başka görevin türevsiz bloğu atamaya izin verdi:\n%s", out)
 	}
@@ -136,10 +136,10 @@ TR_var k2 = TR_sum(o * 2)
 TR_async { TR_backward(k1) }
 bekle_koşul { d["başladı"] }
 TR_var h = ""
-TR_try { TR_backward(k2) } TR_catch e { h = "\(e)" }
+TR_try { TR_backward(k2) } TR_catch e { h = TR_String(e.TR_code) }
 d["devam"] = TR_true
 TR_wait_all()
-TR_print(h.TR_contains("another backward pass"), w.TR_grad.TR_tolist)`)
+TR_print(h == "H3015", w.TR_grad.TR_tolist)`)
 	if out != "true [3.0, 3.0]\n" {
 		t.Fatalf("aynı çizgeden eşzamanlı geri yayılım:\n%s", out)
 	}

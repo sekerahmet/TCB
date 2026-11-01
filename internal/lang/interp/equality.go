@@ -32,6 +32,11 @@ func comparisonError(a, b Value, nestDepth int) error {
 	if (isFunction(a) || isFunction(b)) && a.Type() != ValNull && b.Type() != ValNull {
 		return messages.New(messages.H2706)
 	}
+	// Hata değerinin kendisi karşılaştırılmaz (8.3): kodu ya da fırlatılan değeri karşılaştırılır;
+	// yoklukla karşılaştırma serbesttir (e.TR_cause == TR_none).
+	if (a.Type() == ValError || b.Type() == ValError) && a.Type() != ValNull && b.Type() != ValNull {
+		return messages.New(messages.H2913)
+	}
 	switch x := a.(type) {
 	case *ListVal:
 		if y, ok := b.(*ListVal); ok && x != y && len(x.Elements) == len(y.Elements) {

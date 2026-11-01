@@ -16,8 +16,8 @@ import (
 
 // Değerin metni dilden bağımsızdır (3.14 ilk yanı; dosyanın dili yoktur, 2.1): Metin(), yazdır,
 // metin yerleştirmesi ve Tip() adları kimliğin adıyla çıkar (true, none, Int) — programı hangi dilde
-// okursa okusun, kitaplıkta da, her makinede aynı. Yakalanan hatanın metni sabit İngilizce katalogdan
-// kurulur (caughtErrorLanguage). Testlerin programları dosya gibi kimliklerle yazılır.
+// okursa okusun, kitaplıkta da, her makinede aynı. Yakalanan hatanın metni fırlatılan değerin metnidir
+// (iletide onu kuran çağrı, 8.3). Testlerin programları dosya gibi kimliklerle yazılır.
 
 // runCoded kimliklerle yazılmış main gövdesini (başlıksız) programın kendisi gibi çalıştırır; files
 // çalışma klasörüne olduğu gibi yazılır.
@@ -82,19 +82,36 @@ y.uygula((x) => TR_String([x]))
 	}
 }
 
-// Fırlatılan değerin ve doğrula'nın mesaj değerinin metni de dilden bağımsızdır.
+// Kural (3.14, 8.3): yakalanan hatanın metni fırlatılan değerin metnidir ve dilden bağımsızdır: durumlu
+// tip değeri, kitaplıktan fırlayan ileti, doğrula'nın mesaj değeri, fırlatılamayan değerin hatası
+// (H2911, değerleriyle). Süreç Türkçedir (TR_LANG). Eskiden her değer fırlatılıp metne çevriliyordu.
 func TestThrownValueTextIsLanguageIndependent(t *testing.T) {
-	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func at() { TR_throw [TR_true, TR_none] }\n")}})
+	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func at() { TR_throw TR_Message(\"H6903\", [TR_true, TR_none]) }\n")}})
 	out := runCoded(t, `TR_import "tr/kitap" TR_as k
-TR_try { TR_throw TR_true } TR_catch e { TR_print(e, TR_String(e) == "true") }
+TR_enum Durum {
+	Bozuk(n: TR_Int)
+}
+TR_try { TR_throw Durum.Bozuk(1) } TR_catch e { TR_print(e) }
 TR_try { TR_throw [TR_none, TR_Int] } TR_catch e { TR_print(e) }
 TR_try { k.at() } TR_catch e { TR_print(e) }
-TR_try { TR_assert(TR_false, TR_none) } TR_catch e { TR_print(TR_String(e).TR_ends_with(": none")) }
+TR_try { TR_assert(TR_false, TR_none) } TR_catch e { TR_print(e) }
 `, nil)
-	want := "true true\n[none, Int]\n[true, none]\ntrue\n"
+	want := "Durum.Bozuk(n: 1)\nMessage(\"H2911\", \"TR_throw\", Message(\"H2424\", \"List\", \"[none, Int]\"))\n" +
+		"Message(\"H6903\", [true, none])\nMessage(\"H2456\", \"none\")\n"
 	if out != want {
 		t.Errorf("yakalanan değerin metni dilden bağımsız olmalı:\n%s\nbeklenen:\n%s", out, want)
 	}
+}
+
+// shownError programı çalıştırır ve yakalanmayan hatasının okuyanın dilindeki (lang) metnini verir
+// (8.5): iletinin içeriği (öneri, yapının adı, yol) gösterilen hatadadır.
+func shownError(t *testing.T, main, lang string) string {
+	t.Helper()
+	out, err := runCodedErr(t, main, nil)
+	if err == nil {
+		t.Fatalf("hata bekleniyordu:\n%s", out)
+	}
+	return messages.ErrorIn(err, lang)
 }
 
 // Ondalık() sonsuz ve tanımsız sayının dilden bağımsız adını okur ("inf", "nan"); bir dildeki ad
@@ -132,51 +149,54 @@ TR_print(TR_String(TR_print), "\(f)", TR_String(1e15), TR_String(TR_inf) == "inf
 	}
 }
 
-// Yakalanan çalışma anı hatası programın Metin değeridir: ileti sabit İngilizce katalogdan kurulur,
-// içindeki tip ve değerlerle; süreç Türkçe olsa (TR_LANG) ve hata Türkçe adlı bir kitaplık fonksiyonunda
-// oluşsa da aynıdır. Satır dosyanın satırıdır (başlık 1. satır).
-func TestCaughtErrorTextIsEnglish(t *testing.T) {
+// Kural (3.14, 8.3): yakalanan çalışma hatası bir TR_Error'dır; metni iletisidir: onu kuran çağrı, kodu ve
+// değerleriyle, her dilde aynı. Süreç Türkçe olsa (TR_LANG) ve hata Türkçe adlı bir kitaplık
+// fonksiyonunda oluşsa da aynıdır. Satır ve ileti metni yalnız gösterilen hatadadır (8.5). Eskiden
+// yakalanan hata İngilizce ileti metniydi ("Line 3: list.join() expects ...").
+func TestCaughtRunTimeErrorTextIsItsMessage(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() -> TR_Int { TR_return [1][5] }\n")}})
-	out := runCoded(t, "TR_import \"tr/kitap\" TR_as k\nTR_try { [1].TR_join(TR_true) } TR_catch e { TR_print(e) }\nTR_try { k.taşır() } TR_catch e { TR_print(e) }\n", nil)
-	for _, want := range []string{"Line 3:", "list.join() expects String as argument 1, Bool (true) given", "List index out of range: 5 (length 1)"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("%q yok:\n%s", want, out)
-		}
+	out := runCoded(t, "TR_import \"tr/kitap\" TR_as k\nTR_try { [1].TR_join(TR_true) } TR_catch e { TR_print(e, e.TR_code) }\nTR_try { k.taşır() } TR_catch e { TR_print(e) }\n", nil)
+	want := "Message(\"H2423\", \"TR_join\", 1, \"String\", Message(\"H2424\", \"Bool\", \"true\")) H2423\n" +
+		"Message(\"H2515\", \"List\", 5, 1, \"TR_get\")\n"
+	if out != want {
+		t.Errorf("yakalanan hatanın metni:\n%s\nbeklenen:\n%s", out, want)
 	}
-	if strings.Contains(out, "Satır") || strings.Contains(out, "Mantık") {
-		t.Errorf("yakalanan hata Türkçe:\n%s", out)
+	if shown := shownError(t, "[1].TR_join(TR_true)\n", "en"); !strings.Contains(shown, "list.join() expects String as argument 1, Bool (true) given") {
+		t.Errorf("gösterilen hata: %q", shown)
 	}
 }
 
-// Kodlu ileti olmayan hata türleri de (dosya hatası, ertele hatası; messages.Localized) yakalanınca
-// İngilizce yazılır. Her hata türünün Localized olduğunu TestEveryErrorTypeIsLocalized (messages) korur.
-func TestCaughtErrorTypesAreEnglish(t *testing.T) {
+// Kural (8.3, 9.4): kodlu ileti olmayan hata türleri de (dosya hatası, ertele hatası) yakalanınca bir
+// TR_Error'dır: dosya hatasının değeri asıl nedenin iletisidir; kapsamın hatası korunur, ertelenen
+// işin hatası bastırılanlardadır. Değerlerde Türkçe yoktur; gösterilen hata okuyanın dilindedir.
+func TestCaughtErrorTypesAreErrorValues(t *testing.T) {
 	out := runCoded(t, `TR_try { TR_read_file("missing.txt") } TR_catch e { TR_print(e) }
 TR_func f() {
 	TR_defer { TR_var a = [1][7] }
 	TR_var b = [1][5]
 }
-TR_try { f() } TR_catch e { TR_print(e) }
+TR_try { f() } TR_catch e { TR_print(e, e.TR_suppressed) }
 `, nil)
-	for _, want := range []string{`read_file(): "missing.txt" could not be read: no such file or folder`, "error in defer as well:"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("%q yok:\n%s", want, out)
-		}
+	want := "Message(\"H2132\")\nMessage(\"H2515\", \"List\", 5, 1, \"TR_get\") [Message(\"H2515\", \"List\", 7, 1, \"TR_get\")]\n"
+	if out != want {
+		t.Errorf("yakalanan hatalar:\n%s\nbeklenen:\n%s", out, want)
 	}
-	for _, turkish := range []string{"okunamadı", "dosya_oku", "ertele", "Satır", "bakılan"} {
-		if strings.Contains(out, turkish) {
-			t.Errorf("yakalanan hatada Türkçe %q:\n%s", turkish, out)
-		}
+	if shown := shownError(t, "TR_read_file(\"missing.txt\")\n", "en"); !strings.Contains(shown, `read_file(): "missing.txt" could not be read: no such file or folder`) {
+		t.Errorf("gösterilen hata: %q", shown)
 	}
 }
 
 // Kural (3.7): sözlük anahtarı bir metindir ve çevrilmez: {"step": 1} her gösterimde aynı anahtardır,
 // yazdır onu tırnakla yazar. Anahtar yalnız köşeli parantezle okunur; noktayla okuma (bir üye adıyla
-// da) hatadır ve iletisi köşeli parantezli yazımı verir (sabit İngilizce, yakalanan hata).
+// da) hatadır ve gösterilen iletisi köşeli parantezli yazımı verir; yakalanan hatanın değeri iletinin
+// kodu ve anahtarıdır (8.3).
 func TestDictKeysAreTextNotMembers(t *testing.T) {
 	out := runCoded(t, "TR_var cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nTR_print(cfg, cfg[\"step\"], cfg.TR_keys())\nTR_try { TR_print(cfg.TR_step) } TR_catch e { TR_print(e) }\n", nil)
-	if want := "{\"step\": 2} 2 [\"step\"]\n"; !strings.HasPrefix(out, want) || !strings.Contains(out, "write `[\"step\"]`") {
+	if want := "{\"step\": 2} 2 [\"step\"]\nMessage(\"H2648\", \"step\")\n"; out != want {
 		t.Errorf("sözlük anahtarı metin olmalı, noktayla okuma hata vermeli:\n%s", out)
+	}
+	if shown := shownError(t, "TR_var cfg = {\"step\": 1}\nTR_print(cfg.TR_step)\n", "en"); !strings.Contains(shown, "write `[\"step\"]`") {
+		t.Errorf("gösterilen hata köşeli parantezli yazımı vermeli: %q", shown)
 	}
 }
 
@@ -210,38 +230,37 @@ func TestIndexErrorHintWritesTheGetCall(t *testing.T) {
 // Kural (B1): kurucusu olan yapının oluşturulmasındaki argüman hatası yapının adını, metodun
 // argüman hatası Yapı.metot'u söyler (Python: Point.__init__(), Point.go()).
 func TestStructCallErrorsNameTheStruct(t *testing.T) {
-	out := runCoded(t, `TR_struct Point {
+	point := `TR_struct Point {
 	x: TR_Int
 	TR_func TR_init(a: TR_Int, b: TR_Int = 2) { TR_self.x = a + b }
 	TR_func go(n: TR_Int) { TR_self.x = n }
 }
-TR_try { Point(1, 2, 3) } TR_catch e { TR_print(e) }
-TR_try { Point(1, z: 2) } TR_catch e { TR_print(e) }
-TR_try { Point(1).go(1, 2) } TR_catch e { TR_print(e) }
-TR_try { Point(1).go() } TR_catch e { TR_print(e) }
-`, nil)
-	for _, want := range []string{"the struct 'Point' takes at most 2 arguments, 3 given",
-		"the struct 'Point' takes no parameter named 'z'", "the function 'Point.go' takes at most 1 argument, 2 given",
-		"the function 'Point.go'"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("%q yok:\n%s", want, out)
+`
+	for call, want := range map[string]string{
+		"Point(1, 2, 3)":    "the struct 'Point' takes at most 2 arguments, 3 given",
+		"Point(1, z: 2)":    "the struct 'Point' takes no parameter named 'z'",
+		"Point(1).go(1, 2)": "the function 'Point.go' takes at most 1 argument, 2 given",
+		"Point(1).go()":     "the function 'Point.go'",
+	} {
+		shown := shownError(t, point+call+"\n", "en")
+		if !strings.Contains(shown, want) {
+			t.Errorf("%s: %q yok: %q", call, want, shown)
 		}
-	}
-	if strings.Contains(out, "'init'") || strings.Contains(out, "kurucu") {
-		t.Errorf("kurucunun adı geçmemeli:\n%s", out)
+		if strings.Contains(shown, "'init'") || strings.Contains(shown, "kurucu") {
+			t.Errorf("%s: kurucunun adı geçmemeli: %q", call, shown)
+		}
 	}
 }
 
 // Kural (B11, 2.3a): tanımsız ada öneri dilin adlarını her yazım dilindeki yazımıyla karşılaştırır ve
 // kimliğin yazımıyla önerir (prnt → 'TR_print': dosyaya olduğu gibi yazılır); kullanıcının adı olduğu gibi.
 func TestUndefinedNameSuggestionIsTheIdentity(t *testing.T) {
-	out := runCoded(t, `TR_var counter = 1
-TR_try { prnt(1) } TR_catch e { TR_print(e) }
-TR_try { TR_print(countr) } TR_catch e { TR_print(e) }
-`, nil)
-	for _, want := range []string{"Did you mean 'TR_print'?", "Did you mean 'counter'?"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("%q yok:\n%s", want, out)
+	for main, want := range map[string]string{
+		"prnt(1)\n":                              "Did you mean 'TR_print'?",
+		"TR_var counter = 1\nTR_print(countr)\n": "Did you mean 'counter'?",
+	} {
+		if shown := shownError(t, main, "en"); !strings.Contains(shown, want) {
+			t.Errorf("%q yok: %q", want, shown)
 		}
 	}
 }

@@ -50,9 +50,9 @@ TR_func sına(cihaz_adı: TR_String) -> TR_Bool {
     TR_var v = TR_Tensor([1.0, 1.0], TR_requires_grad: TR_true)
     TR_var y = v * w.TR_grad
     TR_clip_grad([w], TR_max: 100.0)
-    TR_var mesaj = ""
-    TR_try { TR_backward(TR_sum(y)) } TR_catch h { mesaj = h }
-    TR_return mesaj.TR_contains("modified in place")
+    TR_var kod = ""
+    TR_try { TR_backward(TR_sum(y)) } TR_catch h { kod = TR_String(h.TR_code) }
+    TR_return kod == "H3012"
 }
 TR_print("CPU:", sına("cpu"))
 TR_print("GPU:", sına("gpu"))

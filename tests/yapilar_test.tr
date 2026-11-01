@@ -135,9 +135,10 @@ TR_test "7.5 ileti en yakın alanı önerir, yoksa alanı eklemeyi" {
     TR_try { TR_print(p.yy) } TR_catch e { iletiler.TR_append(TR_String(e)) }
     TR_try { p.xx = 3 } TR_catch e { iletiler.TR_append(TR_String(e)) }
     TR_try { TR_print(p.renk) } TR_catch e { iletiler.TR_append(TR_String(e)) }
-    TR_assert(iletiler[0].TR_contains("'y'"), iletiler[0])
-    TR_assert(iletiler[1].TR_contains("'x'"), iletiler[1])
-    TR_assert(iletiler[2].TR_contains("renk: "), iletiler[2])
+    # Öneri iletinin değerlerindedir: en yakın alan (H1104) ya da alanı eklemek (H2754).
+    TR_assert(iletiler[0].TR_ends_with(`Message("H1104", "y"))`), iletiler[0])
+    TR_assert(iletiler[1].TR_ends_with(`Message("H1104", "x"))`), iletiler[1])
+    TR_assert(iletiler[2].TR_ends_with(`Message("H2754", "renk", "Nokta"))`), iletiler[2])
     # önerilen yazım
     p.x = 3
     TR_assert_equal([3, 2], [p.x, p.y])
@@ -175,7 +176,8 @@ TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
     TR_assert_equal("H2770", TR_error_code { TR_var s = [Kutu("a", (x) => x)] == [Kutu("a", (x) => x + 1)] })
     TR_var ileti = ""
     TR_try { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) } TR_catch e { ileti = TR_String(e) }
-    TR_assert(ileti.TR_contains("a.ad == b.ad"), ileti)
+    # İleti karşılaştırılabilen alanı (ad) önerir: a.ad == b.ad.
+    TR_assert(ileti.TR_ends_with(`"ad")`), ileti)
     # tensörün '=='si öğe öğedir; tensör alanı da karşılaştırılamaz
     TR_assert_equal("H2770", TR_error_code { TR_var s = TensörKutusu("a", TR_zeros([2])) == TensörKutusu("a", TR_zeros([2])) })
 }

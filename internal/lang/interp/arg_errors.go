@@ -72,8 +72,12 @@ func (t typeNames) MessageText(lang string) string {
 	return messages.OrListIn(l.Code, names...)
 }
 
-// languageNamed iletinin dilinin kod listesidir; bilinmeyen dilde bugün Türkçe (codes.Source; geçici istisna).
+// languageNamed iletinin dilinin kod listesidir; değerin metninde (messages.ValueLanguage, 3.14)
+// kimliklerin adları; bilinmeyen dilde bugün Türkçe (codes.Source; geçici istisna).
 func languageNamed(lang string) *codes.Language {
+	if lang == messages.ValueLanguage {
+		return codes.ValueNames()
+	}
 	if l, err := codes.LoadLanguage(lang); err == nil {
 		return l
 	}

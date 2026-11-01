@@ -225,33 +225,42 @@ func TestBoolTextComparisonWarns(t *testing.T) {
 	}
 }
 
+// caughtAndShown her satırı yakalanmış (TR_LANG=tr'de yazdırılan) ve yakalanmamış (TR_LANG=en'de
+// gösterilen) olarak çalıştırır; yakalanan değerlerin çıktısını ve gösterilen hataları verir.
+func caughtAndShown(t *testing.T, statements []string) (caught string, shown []string) {
+	t.Helper()
+	dir := t.TempDir()
+	var all strings.Builder
+	for i, st := range statements {
+		all.WriteString("TR_try {\n    " + strings.ReplaceAll(st, "\n", "\n    ") + "\n} TR_catch h { TR_print(h) }\n")
+		name := fmt.Sprintf("p%d.tr", i)
+		writeTR(t, dir, name, source.Header+"\n"+st+"\n")
+		shown = append(shown, testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, name).Stderr)
+	}
+	writeTR(t, dir, "all.tr", source.Header+"\n"+all.String())
+	return testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=tr"}, "all.tr").Stdout, shown
+}
+
 // İletideki dil adları iletinin dilindedir (4E): kitaplık fonksiyonunun adı ve adlı argümanın adı
-// programın yakaladığı hatada İngilizcedir (yakalanan hata değerdir, metni dilden bağımsızdır;
-// TR_LANG=tr'de de); "Bunu mu demek istediniz" önerisi ise kopyalanabilir kimlik yazımıyladır.
-// Önceden ad TR_LANG'de kurulup iletiye metin olarak veriliyordu (yakalanan hatada "tensör",
-// "devrik()", "türev_izle" kalıyordu).
+// gösterilen hatada okuyanın dilindedir (TR_LANG=en: İngilizce); "Bunu mu demek istediniz" önerisi
+// kopyalanabilir kimlik yazımıyladır. Programın yakaladığı hata bir değerdir, metni iletiyi kuran
+// çağrıdır (8.3): TR_LANG=tr'de de Türkçe ad taşımaz. Önceden ad TR_LANG'de kurulup iletiye metin
+// olarak veriliyordu (yakalanan hatada "tensör", "devrik()", "türev_izle" kalıyordu).
 func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
-	coded := source.Header + "\n" + "TR_try { TR_Tensor([1.0], TR_requires_grad: 5) } TR_catch h { TR_print(h) }\nTR_try { TR_print(TR_Tensor([[1.0]]).T) } TR_catch h { TR_print(h) }\nTR_try { TR_Tensor([1.0], türev_izl: TR_true) } TR_catch h { TR_print(h) }\nTR_print(TR_Tensor([[1.0]]).T)\n" +
-		"" +
-		"" +
-		""
+	caught, shown := caughtAndShown(t, []string{"TR_Tensor([1.0], TR_requires_grad: 5)", "TR_print(TR_Tensor([[1.0]]).T)", "TR_var x = TR_Tensor([1.0], türev_izl: TR_true)"})
 	want := []string{"Tensor: requires_grad must be true or false", "Did you mean 'TR_transpose()'?",
 		"Tensor() takes no parameter named 'türev_izl'. Did you mean 'TR_requires_grad'?"}
-	dir := t.TempDir()
-	writeTR(t, dir, "p.tr", coded)
-	caught := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=tr"}, "p.tr")
-	shown := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, "p.tr")
 	for i, w := range want {
-		if !strings.Contains(caught.Stdout, w) {
-			t.Errorf("yakalanan hatada %q yok:\n%s", w, caught.Stdout)
-		}
-		if i == 1 && !strings.Contains(shown.Stderr, w) {
-			t.Errorf("TR_LANG=en görüntüsünde %q yok:\n%s", w, shown.Stderr)
+		if !strings.Contains(shown[i], w) {
+			t.Errorf("TR_LANG=en görüntüsünde %q yok:\n%s", w, shown[i])
 		}
 	}
+	if strings.Count(caught, "Message(\"H79") != 3 {
+		t.Errorf("yakalanan hatalar iletiyi kuran çağrı olmalı:\n%s", caught)
+	}
 	for _, turkish := range []string{"tensör", "devrik", "türev_izle"} {
-		if strings.Contains(caught.Stdout, turkish) {
-			t.Errorf("yakalanan hatada Türkçe ad %q:\n%s", turkish, caught.Stdout)
+		if strings.Contains(caught, turkish) {
+			t.Errorf("yakalanan hatada Türkçe ad %q:\n%s", turkish, caught)
 		}
 	}
 }
@@ -274,40 +283,42 @@ func TestSyntaxHintNamesInAFileAreSpellings(t *testing.T) {
 }
 
 // İletiye değer olarak giden hazır metin de iletinin dilindedir (DENETİM 4D, bulgu 3): listede
-// çalışmayan tensör işlevinin "yalnızca ..." parçası programın yakaladığı hatada (TR_LANG=tr'de de)
-// İngilizcedir. Önceden parça messages.Text ile TR_LANG'de kurulup iletiye metin olarak giriyordu
-// ("only on tensörde").
+// çalışmayan tensör işlevinin "yalnızca ..." parçası gösterilen hatada okuyanın dilindedir; yakalanan
+// hatanın değerinde parça bir iletidir, Türkçe metin taşımaz (8.3). Önceden parça messages.Text ile
+// TR_LANG'de kurulup iletiye metin olarak giriyordu ("only on tensörde").
 func TestMessagePartsFollowTheMessageLanguage(t *testing.T) {
-	coded := source.Header + "\n" + "TR_try { TR_softmax([1.0, 2.0]) } TR_catch h { TR_print(h) }\n" +
-		"TR_try { TR_where([1, 2], 1, 2) } TR_catch h { TR_print(h) }\n"
-	dir := t.TempDir()
-	writeTR(t, dir, "p.tr", coded)
-	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=tr"}, "p.tr")
-	if strings.Count(s.Stdout, "does not work on lists, only on tensors") != 2 {
-		t.Errorf("yakalanan hatada parça İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
+	caught, shown := caughtAndShown(t, []string{"TR_var s = TR_softmax([1.0, 2.0])", "TR_var w = TR_where([1, 2], 1, 2)"})
+	for _, sh := range shown {
+		if !strings.Contains(sh, "does not work on lists, only on tensors") {
+			t.Errorf("gösterilen hatada parça İngilizce olmalı:\n%s", sh)
+		}
+	}
+	if strings.Count(caught, "Message(\"H6104\", ") != 2 {
+		t.Errorf("yakalanan hatalar iletiyi kuran çağrı olmalı:\n%s", caught)
 	}
 	for _, turkish := range []string{"tensörde", "sayıda", "Mantık"} {
-		if strings.Contains(s.Stdout, turkish) {
-			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
+		if strings.Contains(caught, turkish) {
+			t.Errorf("Türkçe parça %q:\n%s", turkish, caught)
 		}
 	}
 }
 
-// Veri kümesi hataları da iletinin dilindedir (B19): önbellek kotası yetmeyince programın yakaladığı
-// hata ayrıntısıyla İngilizcedir (TR_LANG=tr'de de). Önceden ayrıntı TR_LANG'de metne çevrilip
+// Veri kümesi hataları da iletinin dilindedir (B19): önbellek kotası yetmeyince gösterilen hata
+// ayrıntısıyla okuyanın dilindedir; programın yakaladığı hatanın değerinde Türkçe parça yoktur
+// (TR_LANG=tr'de de; 8.3). Önceden ayrıntı TR_LANG'de metne çevrilip
 // iletiye metin olarak giriyordu ("the cache quota is insufficient: kota 107 bayt, ...").
 func TestDatasetErrorsFollowTheMessageLanguage(t *testing.T) {
 	data := filepath.ToSlash(reporoot.Path("tests/data/text"))
-	coded := source.Header + "\n" + "TR_try {\n    TR_var k = TR_Dataset(\"" + data + "\", TR_cache: \"c2\", TR_quota_gb: 0.0000001)\n    TR_print(k.TR_sampler(TR_batch_size: 1, TR_context: 4).TR_next())\n} TR_catch h { TR_print(h) }\n"
-	dir := t.TempDir()
-	writeTR(t, dir, "p.tr", coded)
-	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=tr"}, "p.tr")
-	if !strings.Contains(s.Stdout, "the cache quota is insufficient") || !strings.Contains(s.Stdout, "bytes are needed") {
-		t.Errorf("yakalanan hatanın ayrıntısı İngilizce olmalı:\n%s%s", s.Stdout, s.Stderr)
+	caught, shown := caughtAndShown(t, []string{"TR_var k = TR_Dataset(\"" + data + "\", TR_cache: \"c2\", TR_quota_gb: 0.0000001)\nTR_print(k.TR_sampler(TR_batch_size: 1, TR_context: 4).TR_next())"})
+	if !strings.Contains(shown[0], "the cache quota is insufficient") || !strings.Contains(shown[0], "bytes are needed") {
+		t.Errorf("gösterilen hatanın ayrıntısı İngilizce olmalı:\n%s", shown[0])
+	}
+	if !strings.HasPrefix(caught, "Message(\"H5") {
+		t.Errorf("yakalanan hata iletiyi kuran çağrı olmalı:\n%s", caught)
 	}
 	for _, turkish := range []string{"kota", "bayt", "gerekli", "veri:"} {
-		if strings.Contains(s.Stdout, turkish) {
-			t.Errorf("Türkçe parça %q:\n%s", turkish, s.Stdout)
+		if strings.Contains(caught, turkish) {
+			t.Errorf("Türkçe parça %q:\n%s", turkish, caught)
 		}
 	}
 }

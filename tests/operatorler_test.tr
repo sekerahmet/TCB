@@ -213,10 +213,9 @@ TR_test "4.8 ?. yok üzerinde hata yerine yok verir" {
     TR_var kişi = TR_none
     TR_assert_equal(TR_none, kişi?.ad)
     TR_assert_equal("H2466", TR_error_code { kişi.ad })
-    # Hata '?.' güvenli erişimini önerir (işleç her dilde aynı yazılır).
-    TR_var mesaj = ""
-    TR_try { TR_var ad = kişi.ad } TR_catch h { mesaj = TR_String(h) }
-    TR_assert(mesaj.TR_contains("?."), mesaj)
+    # Gösterilen hata '?.' güvenli erişimini önerir (TestShownErrorKeepsTheMessageText); yakalanan
+    # hatanın değeri iletinin kodu ve değerleridir (8.3).
+    TR_try { TR_var ad = kişi.ad } TR_catch h { TR_assert_equal(`Message("H2466", "TR_none", "ad")`, TR_String(h)) }
 }
 
 TR_test "4.9 fonksiyon çağrıyla, metot '.' ile zincirlenir; üyelik .TR_contains ile sorulur" {

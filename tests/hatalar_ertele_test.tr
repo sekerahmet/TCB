@@ -1,6 +1,12 @@
 # TR 4
 # docs/spec/08_hata_yonetimi.md §8 — Hata yönetimi, §9 — ertele
 
+# 8.2: durumlu tip değeri de fırlatılır.
+TR_enum AyarHatası {
+    Yok(yol: TR_String)
+    Bozuk(satır: TR_Int)
+}
+
 TR_test "8.1 dene / yakala; yakalanan hatanın adı yazılır" {
     TR_var yakalanan = ""
     TR_try { TR_throw "a" } TR_catch h { yakalanan = TR_String(h) }
@@ -15,20 +21,57 @@ TR_test "8.1 hata yoksa yakala bloğu çalışmaz" {
     TR_assert(TR_not çalıştı)
 }
 
-TR_test "8.2 fırlat her değeri hata metnine çevirir" {
-    TR_var yakalanan = TR_none
-    TR_try { TR_throw {"kod": 5} } TR_catch h { yakalanan = TR_String(h) }
-    TR_assert_equal(TR_String, TR_Type(yakalanan))
-    TR_assert_equal(`{"kod": 5}`, yakalanan)
+TR_test "8.2 fırlatılan değer metin, ileti, durumlu tip değeri ya da hatadır; başka tip çalışma hatasıdır" {
+    TR_try { TR_throw AyarHatası.Yok("ayar.json") } TR_catch e {
+        TR_assert_equal(AyarHatası.Yok("ayar.json"), e.TR_value)
+        TR_assert_equal(TR_none, e.TR_code)
+    }
+    TR_assert_equal("H2911", TR_error_code { TR_throw {"kod": 5} })
+    TR_assert_equal("H2911", TR_error_code { TR_throw 5 })
+    TR_assert_equal("H2911", TR_error_code { TR_var e = TR_Error([1]) })
 }
 
-TR_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi içerir" {
+TR_test "8.2 yakalanan hata TR_throw e ile olduğu gibi yeniden fırlar" {
+    TR_try {
+        TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_throw e }
+    } TR_catch f {
+        TR_assert_equal("H6903", f.TR_code)
+        TR_assert_equal(`Message("H6903", -1)`, TR_String(f))
+    }
+}
+
+TR_test "8.2 yeni hata eskisini neden olarak taşır; kodu, metni ve değeri yeni değerinkidir" {
+    TR_try { TR_throw "okunamadı" } TR_catch e {
+        TR_try { TR_throw TR_Error(TR_Message("H6903", -1), TR_cause: e) } TR_catch f {
+            TR_assert_equal("H6903", f.TR_code)
+            TR_assert_equal(`Message("H6903", -1)`, TR_String(f))
+            TR_assert_equal("okunamadı", TR_String(f.TR_cause))
+            TR_assert_equal(TR_none, f.TR_cause.TR_cause)
+        }
+    }
+    TR_assert_equal("H2912", TR_error_code { TR_var e = TR_Error("x", TR_cause: "y") })
+}
+
+TR_test "8.3 çalışma hatası kodu ve iletisiyle yakalanır; hatanın metni iletisidir, okuyana göre değişmez" {
     TR_assert_equal("H2469", TR_error_code { TR_var z = [1] - 1 })
-    # Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
-    TR_var mesaj = ""
-    TR_try { TR_var z = [1] - 1 } TR_catch h { mesaj = TR_String(h) }
-    TR_var önek = mesaj.TR_split(":")[0]
-    TR_assert("0123456789".TR_contains(önek[önek.TR_length - 1]), mesaj)
+    TR_try { TR_var z = [1] - 1 } TR_catch h {
+        TR_assert_equal("H2469", h.TR_code)
+        TR_assert_equal(`Message("H2469", "List", "Int", "-")`, TR_String(h))
+        TR_assert_equal(TR_Message, TR_Type(h.TR_value))
+        TR_assert_equal(TR_Error, TR_Type(h))
+        TR_assert_equal(0, h.TR_suppressed.TR_length)
+        TR_assert_equal(TR_none, h.TR_cause)
+    }
+    TR_try { TR_throw "düz" } TR_catch h {
+        TR_assert_equal(TR_none, h.TR_code)
+        TR_assert_equal("düz", h.TR_value)
+    }
+    TR_try { TR_assert(TR_false, "olmadı") } TR_catch h { TR_assert_equal("H2456", h.TR_code) }
+    # Hata değerinin kendisi karşılaştırılmaz; kodu ya da değeri karşılaştırılır.
+    TR_assert_equal("H2913", TR_error_code { TR_try { TR_throw "a" } TR_catch h { TR_var b = h == h } })
+    TR_try { TR_throw "a" } TR_catch h {
+        TR_try { TR_throw "b" } TR_catch g { TR_assert(h.TR_code == g.TR_code) }
+    }
 }
 
 TR_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
@@ -119,12 +162,14 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
         TR_defer { TR_print(1 / 0) }
         TR_throw "gövde hatası"
     }
-    TR_try { iki_hata() } TR_catch h { m = TR_String(h) }
-    # Parçalar sırayla: gövdenin hatası, sıfıra bölme, ilk ertelenen işin hatası.
-    TR_var parçalar = m.TR_split("; ")
-    TR_assert_equal(3, parçalar.TR_length, m)
-    TR_assert_equal("gövde hatası", parçalar[0])
-    TR_assert(parçalar[2].TR_ends_with("ilk ertele"), m)
+    TR_try { iki_hata() } TR_catch h {
+        # İlk hata korunur; ertelenen işlerin hataları çalışma sırasıyla bastırılanlardadır:
+        # sıfıra bölme, ilk ertelenen işin hatası.
+        TR_assert_equal("gövde hatası", TR_String(h))
+        TR_assert_equal(2, h.TR_suppressed.TR_length)
+        TR_assert_equal("H2470", h.TR_suppressed[0].TR_code)
+        TR_assert_equal("ilk ertele", TR_String(h.TR_suppressed[1]))
+    }
     # Ertelenen işler hata verse de hepsi çalışır
     TR_func temizlik() {
         TR_defer { iz.TR_append("ikinci temizlik") }
@@ -161,8 +206,8 @@ TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi 
     TR_var yeniden = ""
     TR_try { TR_error_code { TR_throw "düz metin" } } TR_catch h { yeniden = TR_String(h) }
     TR_assert_equal("düz metin", yeniden)
-    TR_try { TR_error_code { TR_throw 5 } } TR_catch h { yeniden = TR_String(h) }
-    TR_assert_equal("5", yeniden)
+    TR_try { TR_error_code { TR_throw AyarHatası.Bozuk(3) } } TR_catch h { yeniden = TR_String(h) }
+    TR_assert_equal("AyarHatası.Bozuk(satır: 3)", yeniden)
     TR_var yakalanan = ""
     TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { yakalanan = TR_String(h) }
     TR_assert(yakalanan.TR_contains("-1"), yakalanan)

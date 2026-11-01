@@ -223,8 +223,9 @@ func TestJSONTextOrderNaNAndCycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := val.Inspect()
-	// Yakalanan hatanın metni dilden bağımsızdır (İngilizce, 3.14).
-	if strings.Count(m, "contains itself") != 2 || strings.Count(m, "cannot be written to JSON") != 4 || strings.Contains(m, "unsupported") {
+	// Yakalanan hatanın metni iletiyi kuran çağrıdır, dilden bağımsız (3.14, 8.3): iki döngü (H2020),
+	// JSON'a yazılamayan iki sayı (H7008).
+	if want := `["Message(\"H2020\")", "Message(\"H2020\")", "Message(\"H7008\", \"nan\")", "Message(\"H7008\", \"inf\")"]`; m != want {
 		t.Fatalf("döngü ve NaN hataları bekleniyordu: %s", m)
 	}
 	// BOM'lu JSON metni de çözülür

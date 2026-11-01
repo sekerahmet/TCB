@@ -1,7 +1,7 @@
 # TR 4
 # 15 — Hata yönetimi: beklenmedik durumda programı düzgün yönetmek.
 # Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek, katalog iletisiyle (ileti) hata fırlatmak,
-# hatanın nerede ele alınacağına karar vermek, ad verilmeyen yakala'da hata değişkeni.
+# hatanın nerede ele alınacağına karar vermek, yakalanan hatanın kodu ve fırlatılan değeri (Hata).
 # Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
 # Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
 
@@ -10,7 +10,8 @@ TR_try {
     TR_var x = 10 / 0
     TR_print("buraya gelinmez")
 } TR_catch hata {
-    TR_print("yakalandı: \(hata)")
+    # Yakalanan değer bir Hata'dır: kodu (TR_code) çalışma hatasını ayırır.
+    TR_print("yakalandı: \(hata.TR_code)")
 }
 
 # fırlat: kendi hatanı üret. Fonksiyon kuralı bozan girdiyi kabul etmez.
@@ -36,15 +37,16 @@ TR_func güvenli_çevir(yazı: TR_String, varsayılan_değer: TR_Int) -> TR_Int 
 TR_print(güvenli_çevir("42", 0))
 TR_print(güvenli_çevir("abc", 0))
 
-# yakala yakalanan hataya her zaman bir ad verir.
+# yakala yakalanan hataya her zaman bir ad verir; düz metin hatanın kodu yoktur, metni kendisidir.
 TR_try {
     TR_throw "patladı"
 } TR_catch h {
-    TR_print("yakalandı: \(h)")
+    TR_print("yakalandı: \(h), kodu: \(h.TR_code)")
 }
 
 # Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
-# kodla fırlar. Metin okuyanın dilinde yazılır; testler metni değil kodu sınar (hata_kodu).
+# kodla fırlar. Yakalanan hatanın metni iletiyi kuran çağrıdır, her makinede aynı; okuyanın dilindeki
+# metin yalnız yakalanmayan hatada yazılır. Testler metni değil kodu sınar (hata_kodu).
 TR_func pencere_denetle(pencere: TR_Int) -> TR_Int {
     TR_if pencere < 0 { TR_throw TR_Message("H6903", pencere) }
     TR_return pencere
@@ -54,6 +56,18 @@ TR_print(TR_error_code { pencere_denetle(-1) })
 TR_print(TR_error_code { pencere_denetle(4) })
 TR_var iletim: TR_Message = TR_Message("H6903", 5)
 TR_print(TR_Type(iletim))
+
+# Yeni bir hata eskisini neden olarak taşır: Hata(değer, neden: e). Türüne göre ayırma koda ya da
+# fırlatılan değere göre yapılır, metne göre değil.
+TR_try {
+    TR_try {
+        TR_var ayar = TR_read_file("olmayan_ayar.json")
+    } TR_catch e {
+        TR_throw TR_Error("ayar okunamadı", TR_cause: e)
+    }
+} TR_catch h {
+    TR_print(h.TR_value, h.TR_cause.TR_code, h.TR_suppressed, TR_Type(h) == TR_Error)
+}
 
 # --- Kendin dene ---
 # 1. Boş listenin ortalamasını isteyen bir fonksiyon yaz; boşsa fırlat ile hata ver ve yakala.

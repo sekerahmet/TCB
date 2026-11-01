@@ -124,7 +124,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "inf"); tipin metni öğe tipsiz: `TR_Type([1])` "List" [ölçüldü].
 - **Yapılacaklar:** "List[Int]" ve "Int?" (öğe tipi ister; 4a).
-- **Yapılacaklar (2026-11-01, D1'in ikinci dilimi):** iletinin metni onu kuran çağrı, "Message("H6903", -1)"; `d6b4827c`'de `TR_print(TR_Message(...))` İngilizce katalog metnini veriyor [ölçüldü: DENETİM, `kol-denetim-d1-dilim2-tasarim-sonuc.md`].
+- **Mevcut durum (ileti):** iletinin (`TR_Message`) metni onu kuran çağrı, tip adıyla: `TR_print(TR_Message("H6903", -1))` "Message("H6903", -1)" yazıyor, her dilde aynı; eskiden İngilizce katalog metniydi. Hata değerinin metni fırlatılan değerin metni [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestMessageValueTextIsItsCall`, `TestThrownValueTextIsLanguageIndependent`].
 
 ## 4. İşleçler
 
@@ -311,7 +311,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ## 8. Hata yönetimi
 
-Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den yakalamanın hazır adı kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). Yeni adların gösterim adları onaylandı (Ahmet, 2026-11-01): `TR_Error` Hata, `TR_code` kod, `TR_value` fırlatılan (üye ad alanında "değer" dolu), `TR_cause` neden (üye ve adlı argüman), `TR_suppressed` bastırılanlar; kodları uygulandıkları gün kayda girer (17.4). `TR_throw`'un katalogdaki açıklaması ("yakalayan değişken her zaman Metin") 8.3'ten önceki kuralı anlatıyor; `TR_Error` gelince düzelir. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den yakalamanın hazır adı kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). Yeni adların gösterim adları onaylandı (Ahmet, 2026-11-01): `TR_Error` Hata, `TR_code` kod, `TR_value` fırlatılan (üye ad alanında "değer" dolu), `TR_cause` neden (üye ve adlı argüman), `TR_suppressed` bastırılanlar; kodları uygulandıkları gün kayda girer (17.4). `TR_throw` ve `TR_catch`'in katalogdaki açıklamaları ve `tests/` altındaki 8. bölüm testleri `TR_Error`'a göre yeniden yazıldı (D1 ikinci dilim).
 
 ### 8.1
 
@@ -321,14 +321,14 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 ### 8.2
 
-- **Mevcut durum:** her değer fırlatılabiliyor ve metne çevriliyor (`TR_throw {"kod": 5}` yakalanınca metin); `raise` sözdizimi hatası değil, denetleyicinin tanımsız ad önerisi `TR_throw`'u öneriyor; neden taşınamıyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** fırlatılabilen dört tür (metin, ileti, durumlu tip değeri, `TR_Error`), başka tip çalışma hatası; `TR_Error(..., TR_cause: e)`; `raise`'in iletisi.
+- **Mevcut durum:** fırlatılabilen dört tür: metin, ileti, durumlu tip değeri, `TR_Error`; başka tip çalışma hatası H2911 (`TR_throw` ve `TR_Error(...)`), ileti `TR_String(x)`'i öneriyor. `TR_throw e` yakalanan hatayı olduğu gibi (kodu, değeri, nedeni, bastırılanları ve ilk fırlatıldığı yer) yeniden fırlatıyor; `TR_Error(v, TR_cause: e)` yeni hata kuruyor, nedeni hata değilse H2912. Python'un `raise x`'i sözdizimi hatası H2914, ileti `TR_throw`'u öneriyor [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 8.2 testleri, `TestPythonRaiseIsASyntaxError`, öneri tablosu].
+- **Yapılacaklar:** yakalanmayan hatada nedenin ve çağrı yığınının gösterilmesi (8.6).
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** yeniden fırlatmada çağrı yığını korunur.
 
 ### 8.3
 
-- **Mevcut durum:** yakalanan hata bir `TR_String`; ileti kodlu hatada kod kayboluyor, yakalayan yalnız metni görüyor [ölçüldü].
-- **Yapılacaklar:** `TR_Error` tipi ve üyeleri (`TR_code`, `TR_value`, `TR_cause`, `TR_suppressed`; metin üyesi yok, `TR_String(e)`, 2.9); `TR_value`'nun kapalı birleşim tipi (4. katman); depodaki `TR_catch` kullanımları üyelere çevrilir.
+- **Mevcut durum:** yakalanan hata bir `TR_Error` ("TR_Type(e)" "Error"); üyeleri `e.TR_code` (iletinin kodu ya da `TR_none`), `e.TR_value` (fırlatılan değer; çalışma hatasında asıl nedenin iletisi, `TR_error_code`'un verdiği kodla), `e.TR_cause`, `e.TR_suppressed`; metni fırlatılan değerin metni ("Message("H2469", "List", "Int", "-")"), okuyana göre değişmiyor. `e == f` çalışma hatası H2913, ileti `e.TR_code == f.TR_code`'u öneriyor; yoklukla karşılaştırma serbest. `TR_assert`'in başarısızlığı kodlarıyla yakalanıyor. Sarmalayan iletinin bağlamı (dosyanın yolu, önerilen kontrol noktası) yalnız gösterilen hatada [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 8.3 testi, `TestCaughtRunTimeErrorTextIsItsMessage`, `TestCaughtErrorTypesAreErrorValues`]. Göç: yakalanan hatayı metin gibi kullanan 35 `.tr` ve 8 Go satırı önce `TR_String(h)`'ye geçti (çıktılar bayt bayt aynı); kuraldan sonra sessiz değişen 2 örnek satırı ve sesli düşen testler yeni kurala yazıldı (liste D1 devir notunda).
+- **Yapılacaklar:** `TR_value`'nun kapalı birleşim tipi ve `e == f`'nin denetim hatası (denetleyici, 4a); kopyanın daraltılması (4b), `_`'siz eşlemenin kapsaması (4c).
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** kapalı birleşimin yerel kopyası; hatayla biten kol eşlemenin tipine katılmaz (denetimi 4a2).
 
 ### 8.4
@@ -362,8 +362,8 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ### 9.4
 
-- **Mevcut durum:** hatasız kapsamda ertelenen işin hatası yakalanıyor; iki hata tek metinde birleşiyor ("govde hatasi; error in defer as well: ertele hatasi") [ölçüldü].
-- **Yapılacaklar:** ilk hata korunur, öbürleri `e.TR_suppressed`'e (8.3 ile).
+- **Mevcut durum:** kapsamın hatası, kapsam hatasız bittiyse ilk ertelenen işin hatası korunuyor; ertelenen işlerin öbür hataları çalışma sırasıyla `e.TR_suppressed`'de; eskiden yakalanan metinde birleşiyordu ("govde hatasi; error in defer as well: ...") [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 9.4 testi, `TestCaughtErrorTypesAreErrorValues`].
+- **Yapılacaklar:** yakalanmayan hatada bastırılanların kodu ve iletisiyle gösterilmesi (8.6); gösterilen metin bugün birleşik.
 
 ## 10. Eşzamanlılık
 

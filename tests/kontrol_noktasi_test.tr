@@ -248,15 +248,11 @@ TR_test "20.9 bozuk nokta açık hata verir ve bir önceki geçerli noktayı ön
     TR_var d = TR_Path(n, "state.json")
     TR_write_file(d, TR_read_file(d).TR_replace("\"workers\"", "\"workers\" "))
     TR_assert_equal("H7476", TR_error_code { TR_Checkpoint(k, {"w": w}) })
-    # İleti bozuk noktayı ve bir önceki geçerli noktayı adıyla söyler.
-    TR_var m = ""
-    TR_try { TR_Checkpoint(k, {"w": w}) } TR_catch h { m = TR_String(h) }
-    TR_assert(m.TR_contains("step_0000000002") TR_and m.TR_contains("step_0000000001"), m)
+    # Gösterilen ileti bozuk noktayı ve bir önceki geçerli noktayı adıyla söyler; yakalanan hatanın
+    # değeri dilden bağımsız asıl nedendir (8.3), öneri Go testindedir (TestTamperedCheckpointRejected).
+    TR_try { TR_Checkpoint(k, {"w": w}) } TR_catch h { TR_assert_equal(`Message("H7476", "state.json")`, TR_String(h)) }
     TR_remove(TR_Path(k, "checkpoints", "step_0000000001"), TR_recursive: TR_true)
     TR_assert_equal("H7476", TR_error_code { TR_Checkpoint(k, {"w": w}) })
-    m = ""
-    TR_try { TR_Checkpoint(k, {"w": w}) } TR_catch h { m = TR_String(h) }
-    TR_assert(m.TR_contains("step_0000000002") TR_and TR_not m.TR_contains("step_0000000001"), m)
     TR_remove(n, TR_recursive: TR_true)
     TR_assert_equal(0, TR_Checkpoint(k, {"w": w}).TR_resume_step)
     # Yarıda kalmış bir kaydın geçici klasörü sessizce temizlenir.

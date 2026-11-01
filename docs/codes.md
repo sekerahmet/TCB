@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 563 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 44 tip, 127 fonksiyon, 11 sabit, 61 metot, 97 özellik, 136 adlı argüman.
+Toplam 569 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 45 tip, 127 fonksiyon, 11 sabit, 61 metot, 101 özellik, 137 adlı argüman.
 
 ## İçindekiler
 
@@ -89,7 +89,7 @@ tr: değişken x = 2; kesme_noktası eğer x > 5; yazdır(x)
 
 #### `TR_catch` (`TR_kw_catch`, `yakala`)
 
-dene bloğunda hata olursa çalışır ve hata mesajını verilen ada (ad verilmezse hata adına) Metin olarak bağlar.
+dene bloğunda hata olursa çalışır ve hatayı verilen ada bir Hata değeri olarak bağlar; ad her zaman yazılır (yakala e).
 
 ```tr
 TR_try { TR_var z = 1 / 0 } TR_catch h { TR_print(h) }
@@ -425,7 +425,7 @@ tr: yapı Nokta { x: Tam = 0, y: Tam = 0 }; yazdır(Nokta(3, 4), Nokta(y: 1).x)
 
 #### `TR_throw` (`TR_kw_throw`, `fırlat`)
 
-Bir hata başlatır; verilen değer metne çevrilir, yakalayan değişken her zaman Metin'dir.
+Bir hata başlatır; fırlatılan değer metin, ileti, durumlu tip değeri ya da yakalanmış bir hatadır (o olduğu gibi yeniden fırlar). Yakalayan değişken bir Hata değeridir.
 
 ```tr
 TR_try { TR_throw {"kod": 5} } TR_catch h { TR_print(TR_Type(h), h) }
@@ -706,6 +706,23 @@ tr: değişken s: Sözlük[Metin, Metin] = {"ad": "Ali"}; yazdır(Tip(s), s["ad"
 #### `TR_Embedding` (`TR_type_Embedding`, `GömmeKatmanı`)
 
 
+
+#### `TR_Error` (`TR_type_Error`, `Hata`)
+
+Yakalanan hatanın tipidir (8.3): yakala'nın adı bu değeri tutar. Üyeleri kod, fırlatılan, neden ve bastırılanlar; metni fırlatılan değerin metnidir. Hata(v, neden: e) yeni bir hata kurar: v metin, ileti ya da durumlu tip değeri, e onun nedeni olan hatadır.
+
+```tr
+TR_try { TR_throw "okunamadı" } TR_catch e { TR_print(TR_Error("yüklenemedi", TR_cause: e).TR_cause) }
+```
+
+Görünümü:
+
+```text
+en: try { throw "okunamadı" } catch e { print(Error("yüklenemedi", cause: e).cause) }
+tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden: e).neden) }
+```
+
+Üyeleri: `.TR_cause`, `.TR_code`, `.TR_suppressed`, `.TR_value` · İlişkili: `TR_catch`, `TR_throw`, `TR_Message`
 
 #### `TR_Float` (`TR_type_Float`, `Ondalık`)
 
@@ -3407,6 +3424,23 @@ tr: değişken q = rastgele_normal([4, 8], tohum: 1); yazdır(dikkat(q, q, q, ne
 
 Kullananlar: `TR_attention(...)` · İlişkili: `TR_window:`, `TR_mask:`
 
+#### `TR_cause:` (`TR_arg_cause`, `neden`)
+
+Hata(v, neden: e): yeni hatanın nedeni olan yakalanmış hata.
+
+```tr
+TR_try { TR_throw "okunamadı" } TR_catch e { TR_print(TR_Error("yüklenemedi", TR_cause: e)) }
+```
+
+Görünümü:
+
+```text
+en: try { throw "okunamadı" } catch e { print(Error("yüklenemedi", cause: e)) }
+tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden: e)) }
+```
+
+Kullananlar: `TR_Error` · İlişkili: `TR_Error`, `.TR_cause`
+
 #### `TR_config:` (`TR_arg_config`, `ayar`)
 
 
@@ -4439,6 +4473,25 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_cause` (`TR_mem_cause`, `neden`)
+
+    Hata.neden → Hata
+
+Hatanın nedeni olan hatadır (Hata(v, neden: e) ile kurulur); yoksa yok. Parantezsiz yazılan bir özelliktir.
+
+```tr
+TR_try { TR_throw "okunamadı" } TR_catch e { TR_try { TR_throw TR_Error("yüklenemedi", TR_cause: e) } TR_catch f { TR_print(f.TR_cause) } }
+```
+
+Görünümü:
+
+```text
+en: try { throw "okunamadı" } catch e { try { throw Error("yüklenemedi", cause: e) } catch f { print(f.cause) } }
+tr: dene { fırlat "okunamadı" } yakala e { dene { fırlat Hata("yüklenemedi", neden: e) } yakala f { yazdır(f.neden) } }
+```
+
+İlişkili: `TR_cause:`
+
 #### `.TR_checkpoint` (`TR_mem_checkpoint`, `nokta`)
 
 
@@ -4461,6 +4514,25 @@ tr: dosya_yaz("kapat.txt", "a\nb"); değişken o = dosya_satırları("kapat.txt"
 ```
 
 İlişkili: `.TR_next(...)`, `TR_read_lines(...)`
+
+#### `.TR_code` (`TR_mem_code`, `kod`)
+
+    Hata.kod → Metin
+
+Hatanın ileti kodudur ("H6903" gibi bir Metin); düz metinle ya da durumlu tip değeriyle fırlatılan hatada yok. Parantezsiz yazılan bir özelliktir.
+
+```tr
+TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_print(e, e.TR_code, e.TR_value, e.TR_cause, e.TR_suppressed) }
+```
+
+Görünümü:
+
+```text
+en: try { throw Message("H6903", -1) } catch e { print(e, e.code, e.value, e.cause, e.suppressed) }
+tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlatılan, e.neden, e.bastırılanlar) }
+```
+
+İlişkili: `.TR_value`, `TR_error_code(...)`
 
 #### `.TR_config` (`TR_mem_config`, `ayar`)
 
@@ -5657,6 +5729,25 @@ en: print("  merhaba  ".strip())
 tr: yazdır("  merhaba  ".kırp())
 ```
 
+#### `.TR_suppressed` (`TR_mem_suppressed`, `bastırılanlar`)
+
+    Hata.bastırılanlar → Liste
+
+Hata kapsamdan çıkarken ertelenen işlerin verdiği öbür hatalardır, çalışma sırasıyla (9.4); çoğunlukla boş liste. Parantezsiz yazılan bir özelliktir.
+
+```tr
+TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_print(e, e.TR_code, e.TR_value, e.TR_cause, e.TR_suppressed) }
+```
+
+Görünümü:
+
+```text
+en: try { throw Message("H6903", -1) } catch e { print(e, e.code, e.value, e.cause, e.suppressed) }
+tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlatılan, e.neden, e.bastırılanlar) }
+```
+
+İlişkili: `TR_defer`
+
 #### `.TR_table` (`TR_mem_table`, `tablo`)
 
 
@@ -5829,6 +5920,25 @@ tr: yazdır("merhaba".büyük_harf())
 #### `.TR_v_proj` (`TR_mem_v_proj`, `değer_katmanı`)
 
 
+
+#### `.TR_value` (`TR_mem_value`, `fırlatılan`)
+
+    Hata.fırlatılan → Herhangi
+
+Fırlatılan değerdir: metin, ileti ya da durumlu tip değeri; çalışma hatasında iletisi. Hatanın türüne göre ayırma bununla ya da kodla yapılır, metinle değil. Parantezsiz yazılan bir özelliktir.
+
+```tr
+TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_print(e, e.TR_code, e.TR_value, e.TR_cause, e.TR_suppressed) }
+```
+
+Görünümü:
+
+```text
+en: try { throw Message("H6903", -1) } catch e { print(e, e.code, e.value, e.cause, e.suppressed) }
+tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlatılan, e.neden, e.bastırılanlar) }
+```
+
+İlişkili: `.TR_code`, `TR_match`
 
 #### `.TR_values(...)` (`TR_mem_values`, `değerler`)
 

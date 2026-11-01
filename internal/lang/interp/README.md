@@ -41,11 +41,11 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 metin yaptığı her yer (`TR_String()`, `TR_print`, metin yerleştirmesi, Metin ile `+`, `TR_join`,
 `TR_write_file`, `TR_input`'un istemi, metin metotlarının argümanları) değeri kimliğin adıyla yazar
 (`true`, `none`, `Int`; tek yol: `VM.textOf`/`valueText`, dil `codes.ValueNames()`): aynı program her
-makinede ve her `TR_LANG`'de aynı çıktıyı verir. Yakalanan hatanın metni sabit İngilizce katalogdan kurulur
-(`caughtErrorLanguage`, `messages.ValueLanguage`). `Inspect` aynı metni verir (3.14). Sözlük anahtarı bir
+makinede ve her `TR_LANG`'de aynı çıktıyı verir. Yakalanan hata bir `TR_Error` değeridir (`ErrorVal`, 8.3);
+metni fırlatılan değerin metnidir, iletinin metni onu kuran çağrıdır (`Message("H6903", -1)`). `Inspect` aynı metni verir (3.14). Sözlük anahtarı bir
 ifadedir ve metin anahtarı çevrilmez (`{"step": 1}`; 3.7): `TR_keys()`, `d["step"]` ve veri biçimleri (JSON,
 günlük, kontrol noktası; `KeyText`) aynı anahtarı görür. Anahtar yalnız köşeli parantezle okunur ve yazılır;
-`d.ad` hatadır (H2648), olmayan anahtar da (H2647; `.TR_get(k)` yok verir). Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtErrorTextIsEnglish`, `TestOneValueTextForEveryValue`, `TestDictKeysAreTextNotMembers`, `TestDataFormatsAreLanguageIndependent` ve `TestDictTextKeysOnDisk` (cmd/tr/e2e).
+`d.ad` hatadır (H2648), olmayan anahtar da (H2647; `.TR_get(k)` yok verir). Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtRunTimeErrorTextIsItsMessage`, `TestCaughtErrorTypesAreErrorValues`, `TestOneValueTextForEveryValue`, `TestDictKeysAreTextNotMembers`, `TestDataFormatsAreLanguageIndependent` ve `TestDictTextKeysOnDisk` (cmd/tr/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.
@@ -63,5 +63,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_checker_parity_test.go`: denetçinin ve çalışma anının tanımsız ad hatasını aynı sözlerle anlattığı
 - `behavior_ownership_test.go`: sahiplik kuralları (dil tanımı 15.43): sahte bir kaynak değeriyle her kuralda değerin ulaşılabilirken hiç bırakılmadığı ve beklenen noktada bırakıldığı
 - `behavior_named_args_language_test.go`: kodlu bir adlı argüman, bildirimi metin olan kullanıcı parametresiyle ve alanıyla kodun herhangi bir yazım dilindeki adı üzerinden eşleşir (metot, `TR_self.TR_step(...)`, fonksiyon, yapı alanı, başka dilde adlandırılmış modül)
-- `behavior_value_text_test.go`: değerin metni dilden bağımsızdır (`true`, `none`, `Int`; modül, kitaplık ve geri çağırmada da aynı); yakalanan hatanın metni İngilizce katalogdan kurulur; `Inspect` aynı metni verir
+- `behavior_value_text_test.go`: değerin metni dilden bağımsızdır (`true`, `none`, `Int`; modül, kitaplık ve geri çağırmada da aynı); yakalanan hatanın metni fırlatılan değerin metnidir (ileti: onu kuran çağrı), iletinin okuyanın dilindeki metni yalnız gösterilen hatadadır; `Inspect` aynı metni verir
 - `behavior_scope_walkers_test.go`: ad ve yakalama çözümlemesinin ortak ifade gezgini (`ast.SubExpressions`) eski ayrı gezginlerle `tests/`, `lib/`, `examples/` altındaki her programda aynı adları ve aynı yakalama kararını verir (referans kopya testin içindedir)

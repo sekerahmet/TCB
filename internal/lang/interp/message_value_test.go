@@ -9,8 +9,8 @@ import (
 )
 
 // ileti(H…, değerler) katalog iletisini bir değer olarak kurar; fırlat ona verilince hata o
-// kodla fırlar, yakalanan metni kataloğun metnidir ve içindeki kitaplık adları (ad yuvaları)
-// dosyanın dilinin adlarıdır.
+// kodla fırlar. Yakalanan hatanın metni iletiyi kuran çağrıdır (3.14, 8.3); kataloğun metni yalnız
+// gösterilen hatadadır (eskiden yakalanan metin kataloğun metniydi).
 func TestMessageThrown(t *testing.T) {
 	out, _, err := runTROut(t, `
 		TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { TR_print(h) }
@@ -19,7 +19,7 @@ func TestMessageThrown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "cannot be negative, got -1") || !strings.Contains(out, "Message") {
+	if out != "Message(\"H6903\", -1)\nMessage\n" {
 		t.Errorf("çıktı: %q", out)
 	}
 	_, _, err = runTROut(t, "TR_throw TR_Message(\"H6903\", -1)")
@@ -83,18 +83,24 @@ func TestMessageErrors(t *testing.T) {
 	}
 }
 
-// Bir iletinin metni, metnin istendiği dilde kurulur: İngilizce dosyada İngilizce katalog ve
-// İngilizce adlar.
-func TestMessageTextLanguage(t *testing.T) {
+// Kural (3.14, 8.5): iletinin değer olarak metni onu kuran çağrıdır, tip adıyla, her dilde aynı
+// (eskiden metnin istendiği dilin katalog metniydi); okuyanın dilindeki metin yalnız gösterilen
+// hatada kurulur.
+func TestMessageValueTextIsItsCall(t *testing.T) {
 	m := &MessageVal{Code: messages.H6903, Args: []Value{&IntVal{Val: -1}}}
 	en, err := codes.LoadLanguage("en")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := m.Text(en); !strings.Contains(got, "cannot be negative, got -1") {
-		t.Errorf("en: %q", got)
+	for _, got := range []string{m.Inspect(), valueText(m, en), valueText(m, codes.Source())} {
+		if got != `Message("H6903", -1)` {
+			t.Errorf("değerin metni %q", got)
+		}
 	}
-	if got := m.Text(codes.Source()); !strings.Contains(got, "negatif olamaz, -1 verildi") {
-		t.Errorf("tr: %q", got)
+	if got := messages.ErrorIn(m.Error(), "en"); !strings.Contains(got, "cannot be negative, got -1") {
+		t.Errorf("gösterilen hata, en: %q", got)
+	}
+	if got := messages.ErrorIn(m.Error(), "tr"); !strings.Contains(got, "negatif olamaz, -1 verildi") {
+		t.Errorf("gösterilen hata, tr: %q", got)
 	}
 }

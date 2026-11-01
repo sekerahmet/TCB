@@ -54,11 +54,9 @@ TR_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce ç
     # Programın klasöründeki dosya, program başka bir klasörden çalıştırılsa da bulunur
     TR_assert(TR_read_file("data/tokenizer.json").TR_contains("model"))
     TR_assert_equal("H2132", TR_error_code { TR_read_file("data/olmayan_dosya.txt") })
-    # İleti dosyanın yolunu söyler; işletim sisteminin kendi metni sızmaz.
-    TR_var m = ""
-    TR_try { TR_read_file("data/olmayan_dosya.txt") } TR_catch h { m = TR_String(h) }
-    TR_assert(m.TR_contains("\"data/olmayan_dosya.txt\""), m)
-    TR_assert(TR_not m.TR_contains("system cannot"), m)
+    # Gösterilen ileti dosyanın yolunu söyler, işletim sisteminin kendi metni sızmaz
+    # (TestShownErrorKeepsTheMessageText); yakalanan hatanın değeri asıl nedendir (8.3).
+    TR_try { TR_read_file("data/olmayan_dosya.txt") } TR_catch h { TR_assert_equal(`Message("H2132")`, TR_String(h)) }
     TR_assert_equal("H2130", TR_error_code { TR_read_file("data") })
     TR_assert_equal("H2131", TR_error_code { TR_write_file("olmayan_klasör_tr/a.txt", "x") })
     TR_assert_equal("H2423", TR_error_code { TR_read_file(5) })
@@ -70,9 +68,9 @@ TR_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham met
     # Önerilen ham metin, iletinin dilinden bağımsız olarak yolun kendisidir.
     TR_var m = ""
     TR_try { TR_read_file("C:\tokenizer.json") } TR_catch h { m = TR_String(h) }
-    TR_assert(m.TR_contains("`C:\\tokenizer.json`"), m)
+    TR_assert_equal(`Message("H2489", "TR_read_file", "tab", "C:\\tokenizer.json")`, m)
     TR_try { TR_write_file("D:\new\rapor.txt", "x") } TR_catch h { m = TR_String(h) }
-    TR_assert(m.TR_contains(`D:\new\rapor.txt`), m)
+    TR_assert_equal(`Message("H2489", "TR_write_file", "newline", "D:\\new\\rapor.txt")`, m)
     TR_assert_equal("H2489", TR_error_code { TR_load_tensors("a\tb.trt") })
     TR_assert_equal("H2489", TR_error_code { TR_load_tokenizer("a\tb.json") })
     TR_assert_equal("H2489", TR_error_code { TR_Dataset("veri\tsayilar") })

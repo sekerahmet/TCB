@@ -490,6 +490,10 @@ const (
 	H2903 Code = 2903 // `.{#sort}(f)`: anahtar fonksiyonunun verdiği {a} ile {b} karşılaştırılamaz; anahtarlar yalnızca sayı, yalnızca metin ya da yalnızca öğeleri sıralanabilen demetler olmalıdır
 	H2904 Code = 2904 // modül değeri bir sözlük değildir, köşeli ayraçla okunmaz ve ona köşeli ayraçla atanmaz; modülün adına noktayla erişin: {module, select, empty {`.{name}`} other {`{module}.{name}`}}
 	H2910 Code = 2910 // adsız yakalama yoktur: yakalanan hataya bir ad verin, `{#catch} e`; blokta hata o adla okunur
+	H2911 Code = 2911 // {fn} yalnız metin, ileti (`{#Message}`), durumlu tip değeri ya da hata alır; {given} verildi: değeri metne çevirin, `{#String}(x)`
+	H2912 Code = 2912 // `{#cause}:` yakalanmış bir hata alır (`{#catch} e`'nin `e`'si) ya da yok; {given} verildi
+	H2913 Code = 2913 // hata değerinin kendisi karşılaştırılamaz: kodunu ya da fırlatılan değeri karşılaştırın, `e.{#code} == f.{#code}`
+	H2914 Code = 2914 // Python'un 'raise'i TR'de yoktur: hata `{#throw}` ile fırlatılır
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

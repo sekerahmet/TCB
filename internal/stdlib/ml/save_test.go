@@ -149,19 +149,23 @@ func TestSavedShapesOutputLimited(t *testing.T) {
 	if err := os.WriteFile(fpath, file, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	output, err := run(t, `TR_var p = TR_load_tensors("`+filepath.ToSlash(fpath)+`")
-TR_try {
+	program := `TR_var p = TR_load_tensors("` + filepath.ToSlash(fpath) + `")
+`
+	output, err := run(t, program+`TR_try {
     p["A"] @ p["B"]
     TR_print("hata bekleniyordu")
 } TR_catch h {
-    TR_print(h)
+    TR_print(h.TR_code)
 }`)
-	if err != nil {
-		t.Fatalf("hata yakalanmalıydı: %v", err)
+	if err != nil || output != "H3085\n" {
+		t.Fatalf("hata kodu H3085 ile yakalanmalıydı: %q %v", output, err)
 	}
-	for _, p := range []string{"matris çarpımı: the result tensor of shape [46000000, 46000000]", "PB of memory", "this machine"} {
-		if !strings.Contains(output, p) {
-			t.Fatalf("mesajda %q yok: %s", p, output)
+	// Şekil ve bellek gösterilen hatanın metnindedir (yakalanan hatanın metni iletiyi kuran çağrıdır, 8.3).
+	_, err = run(t, program+`TR_var c = p["A"] @ p["B"]`)
+	shown := messages.ErrorIn(err, "en")
+	for _, p := range []string{"the result tensor of shape [46000000, 46000000]", "PB of memory", "this machine"} {
+		if !strings.Contains(shown, p) {
+			t.Fatalf("gösterilen hatada %q yok: %s", p, shown)
 		}
 	}
 }

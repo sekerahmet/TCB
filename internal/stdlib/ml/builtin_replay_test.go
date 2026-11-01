@@ -100,10 +100,10 @@ TR_func g(x: TR_Tensor) -> TR_Tensor {
 TR_var f = TR_replay(g)
 TR_no_grad {
     f(TR_Tensor([1.0]))
-    TR_try { f(TR_Tensor([2.0])) } TR_catch h { TR_print("hata:", h) }
+    TR_try { f(TR_Tensor([2.0])) } TR_catch h { TR_print("hata:", h.TR_code) }
     TR_print(f(TR_Tensor([3.0])).TR_tolist)
 }`)
-	if err != nil || !strings.Contains(out, "while a GPU recording is in progress, data cannot be read") || !strings.HasSuffix(out, "[6.0]\n") {
+	if err != nil || !strings.Contains(out, "hata: H4065") || !strings.HasSuffix(out, "[6.0]\n") {
 		t.Fatalf("kayıtta konağa okuma hatası ve sonra çalışma bekleniyordu:\n%s\n%v", out, err)
 	}
 }

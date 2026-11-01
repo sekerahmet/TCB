@@ -206,12 +206,6 @@ func (c *compiler) returnStatement(k *compilerScope, s *ast.ReturnStatement) sta
 	}
 }
 
-// caughtErrorLanguage yakalanan hatanın metninin kurulduğu ileti kataloğudur: program çıktısı
-// çevrilmez (3.14), aynı program her makinede aynı metni verir; değerin metniyle aynı katalog
-// (messages.ValueLanguage, İngilizce). Hata değerinin metni hata yönetimi bölümünde yeniden
-// tartılır.
-const caughtErrorLanguage = messages.ValueLanguage
-
 // tryCatchStatement 'dene'/'yakala' deyimini derler.
 func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement) statementCode {
 	tryBlock := c.blockStatement(k, s.TryBody)
@@ -227,10 +221,9 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	sub.predefine(catchStatements)
 	catchClause := c.scopedStatements(sub, catchStatements)
 	info := sub.info
-	// Yakalanan hata programın Metin değeri olur: değerin metni gibi hiçbir dosyanın ve kişinin
-	// diline bağlı değildir (3.14), sabit bir katalogla kurulur (caughtErrorLanguage); yakalanmayan
-	// hata ekranda TR_LANG'dedir (görüntü).
-	lang := caughtErrorLanguage
+	// Yakalanan hata bir TR_Error değeridir (8.3): kodu, fırlatılan değeri, nedeni ve bastırılan
+	// hatalarıyla; metni fırlatılan değerin metnidir, okuyanın diline bağlı değildir (3.14).
+	// Yakalanmayan hata ekranda TR_LANG'dedir (görüntü, 8.5).
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, sig, err := tryBlock(v, env)
 		if err != nil {
@@ -238,7 +231,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 				return nil, signalNone, err // kesilme (Ctrl+C) ve program çıkışı isteği yakalanmaz
 			}
 			catchEnv := newEnv(env, info)
-			catchEnv.define(errSlot, &StringVal{Val: messages.ErrorIn(caughtError(err), lang)}, false)
+			catchEnv.define(errSlot, errorValue(err), false)
 			if IsStopRequestedError(err) {
 				// Durdurma hatasını yakalayan gövde bir temizlik işidir: orada beklemeler normal çalışır (1.6)
 				v.cleanupDepth++
@@ -250,9 +243,10 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 	}
 }
 
-// throwStatement 'fırlat' deyimini derler. Hata fırlatıldığı satırı taşır: yakalanmazsa program
-// konum ve kod çerçevesiyle durur, görev raporu satırı söyler (8.3); yakalanırsa metni
-// programın değeridir, öneksiz (8.2, caughtError).
+// throwStatement 'fırlat' deyimini derler. Fırlatılabilen değer metin, ileti, durumlu tip değeri ya
+// da hatadır (8.2); başkası çalışma hatasıdır. Hata fırlatıldığı satırı taşır: yakalanmazsa program
+// konum ve kod çerçevesiyle durur, görev raporu satırı söyler; yakalanırsa fırlatılan değeriyle bir
+// TR_Error olur (8.3). Yakalanmış hata (TR_throw e) olduğu gibi yeniden fırlar.
 func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) statementCode {
 	value := c.expression(k, s.Value)
 	line := s.Line()
@@ -261,16 +255,22 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 		if err != nil {
 			return nil, signalNone, err
 		}
-		if m, ok := val.(*MessageVal); ok {
-			return nil, signalNone, messages.At(line, 0, &thrownError{m.Error()}) // katalog iletisi kendi koduyla
+		if e, ok := val.(*ErrorVal); ok {
+			return nil, signalNone, e.raise(line)
 		}
-		// Değerin metni programa geri döner: dosyanın dilinde (3).
-		return nil, signalNone, messages.At(line, 0, &thrownError{messages.New(messages.H2441, v.textOf(val))})
+		if !throwable(val) {
+			return nil, signalNone, messages.At(line, 0, messages.New(messages.H2911, codes.NameRef(codes.KwThrow), TypeAndSummary(val)))
+		}
+		return nil, signalNone, (&ErrorVal{thrown: val}).raise(line)
 	}
 }
 
-// thrownError 'fırlat' ile başlatılan hatadır; metni fırlatılan değerin metnidir.
-type thrownError struct{ value *messages.Error }
+// thrownError 'fırlat' ile başlatılan hatadır; metni fırlatılan değerin metnidir. caught onu
+// yakalayanın göreceği TR_Error'dır (errorValue).
+type thrownError struct {
+	value  *messages.Error
+	caught *ErrorVal
+}
 
 func (e *thrownError) Error() string { return e.value.Error() }
 
@@ -278,35 +278,6 @@ func (e *thrownError) Error() string { return e.value.Error() }
 func (e *thrownError) MessageText(lang string) string { return messages.ErrorIn(e.value, lang) }
 
 func (e *thrownError) Unwrap() error { return e.value }
-
-// caughtError yakalanan hatanın metne çevrilecek hâlidir: 'fırlat'ın hatası konum sarmaları
-// (satır, başka bir dosyanın adı) olmadan (yakalanan metin programın değeridir, 8.2); ertele
-// hatasında (9.4) parçaları da öyle; öbür hatalar olduğu gibi (Satır N: ..., 8.3).
-func caughtError(err error) error {
-	inner := err
-	for {
-		if p, ok := inner.(*messages.PosError); ok {
-			inner = p.Err
-			continue
-		}
-		if m, ok := inner.(*ModuleError); ok && len(m.Errors) == 0 {
-			inner = m.Err
-			continue
-		}
-		break
-	}
-	switch e := inner.(type) {
-	case *thrownError:
-		return e
-	case *deferError:
-		extras := make([]error, len(e.extras))
-		for i, x := range e.extras {
-			extras[i] = caughtError(x)
-		}
-		return &deferError{mainSrc: caughtError(e.mainSrc), extras: extras}
-	}
-	return err
-}
 
 // importStatement 'aktar' deyimini derler.
 func (c *compiler) importStatement(k *compilerScope, s *ast.ImportStatement) statementCode {

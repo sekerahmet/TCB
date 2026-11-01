@@ -127,30 +127,29 @@ func TestIntEdges(t *testing.T) {
 		sonuclar.TR_append(en_kucuk % b)
 		TR_var result = sonuclar
 	`)
-	want := `["Line 5: Int overflow (-9223372036854775808 // -1); for a decimal result write e.g. -9223372036854775808.0 // -1", ` +
-		`"Line 6: Int overflow (-(-9223372036854775808)); for a decimal result write e.g. -(-9223372036854775808.0)", ` +
+	// Yakalanan hatanın metni iletiyi kuran çağrıdır (3.14, 8.3): taşmanın kodu ve değerleri.
+	want := `["Message(\"H2473\", \"Int\", -9223372036854775808, \"//\", -1)", ` +
+		`"Message(\"H2444\", \"Int\", -9223372036854775808)", ` +
 		`"bileşik taşma", false, true, false, true, 0]`
 	if err != nil || val.Inspect() != want {
 		t.Fatalf("beklenmeyen:\n%v\n%v", val, err)
 	}
 }
 
-// Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz. Program kimliklerle
-// yazılmıştır (runCoded); yakalanan hatanın metni dilden bağımsızdır (İngilizce), satırı dosyanındır.
+// Yerleşiğin geri çağırdığı fonksiyonun hatası zaten satırlıysa ikinci kez sarılmaz: gösterilen hatada
+// satır bir kez ve dosyanın satırıdır (eskiden yakalanan metinde sınanıyordu; yakalanan hatanın metni
+// artık iletiyi kuran çağrıdır, 8.3). Program kimliklerle yazılmıştır (runCoded).
 func TestInternalErrorLineOnce(t *testing.T) {
-	out := runCoded(t, `TR_var h = []
-TR_try { [1].TR_filter((x) => x / 0) } TR_catch e { h.TR_append(TR_String(e)) }
-TR_try { [1].TR_filter(
-	(x) => x / 0) } TR_catch e { h.TR_append(TR_String(e)) }
-TR_try { [1].TR_map(1, 2) } TR_catch e { h.TR_append(TR_String(e)) }
-TR_try { TR_round(1.25, "x") } TR_catch e { h.TR_append(TR_String(e)) }
-TR_for s TR_in h { TR_print(s) }
-`, nil)
-	want := "Line 3: Division by zero error\nLine 5: Division by zero error\n" +
-		"Line 6: .TR_map() takes 1 argument, 2 given (usage: `.TR_map(function)`)\n" +
-		"Line 7: round() expects Int as argument 2, String (\"x\") given\n"
-	if out != want {
-		t.Fatalf("beklenmeyen:\n%s\nbeklenen:\n%s", out, want)
+	for main, want := range map[string]string{
+		"TR_var y = [1].TR_filter((x) => x / 0)\n":     "Line 2: Division by zero error",
+		"TR_var y = [1].TR_filter(\n\t(x) => x / 0)\n": "Line 3: Division by zero error",
+		"TR_var y = [1].TR_map(1, 2)\n":                "Line 2: .TR_map() takes 1 argument, 2 given (usage: `.TR_map(function)`)",
+		"TR_var y = TR_round(1.25, \"x\")\n":           "Line 2: round() expects Int as argument 2, String (\"x\") given",
+	} {
+		shown := shownError(t, main, "en")
+		if !strings.HasPrefix(shown, want) || strings.Count(shown, "Line ") != 1 {
+			t.Errorf("%q: gösterilen hata %q, beklenen başı %q", main, shown, want)
+		}
 	}
 	var sh *LineError
 	e := lineSuffix(4, errors.New("iç"))

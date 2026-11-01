@@ -232,14 +232,18 @@ TR_try { p.TR_encode(["iyi", "`+bad+`"]) } TR_catch e { h2 = TR_String(e) }
 	if strings.Count(warning, "Uyarı: parçalayıcı") != 1 || !strings.Contains(warning, "riskli desen") {
 		t.Fatalf("uyarı bir kez yazılmalıydı:\n%s", warning)
 	}
+	// Yakalanan hatanın metni iletiyi kuran çağrıdır (8.3): adım sınırının kodu (H5623) ve toplu
+	// kodlamada metnin sırası (H5629, 2. metin).
 	for _, name := range []string{"h1", "h2"} {
-		h := al(t, m, name).Inspect()
-		if !strings.Contains(h, "exceeded the step limit") || !strings.Contains(h, "smaller pieces") {
+		if h := al(t, m, name).Inspect(); !strings.HasPrefix(h, `Message("H5623", `) {
 			t.Fatalf("%s: adım sınırı hatası bekleniyordu: %q", name, h)
 		}
 	}
-	if !strings.Contains(al(t, m, "h2").Inspect(), "string 2 of the list") {
-		t.Fatalf("toplu hatada metnin sırası belirtilmeli: %s", al(t, m, "h2").Inspect())
+	if h := al(t, m, "h2").Inspect(); !strings.Contains(h, `Message("H5629", "TR_encode", 2)`) {
+		t.Fatalf("toplu hatada metnin sırası belirtilmeli: %s", h)
+	}
+	if text := messages.ErrorIn(messages.New(messages.H5623, "f", "x", 1, 0), "en"); !strings.Contains(text, "exceeded the step limit") || !strings.Contains(text, "smaller pieces") {
+		t.Fatalf("gösterilen ileti yol göstermeli: %q", text)
 	}
 }
 

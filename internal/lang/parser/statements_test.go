@@ -366,3 +366,18 @@ func TestCatchWithoutANameIsASyntaxError(t *testing.T) {
 		t.Errorf("adlı yakalama hatasız olmalı: %v", errs)
 	}
 }
+
+// Kural (8.2): Python'un raise'i sözdizimi hatasıdır (H2914), ileti TR_throw'u önerir; eskiden yalnız
+// denetleyicinin tanımsız ad önerisiydi. raise adlı bir değişken ve onun kullanımı geçerlidir.
+func TestPythonRaiseIsASyntaxError(t *testing.T) {
+	for _, code := range []string{"raise \"x\"", "raise ValueError(\"x\")", "TR_func f() {\n    raise 5\n}"} {
+		line, col := posOf(t, code, "raise")
+		errs := parseErrs(code)
+		if !hasErrAt(errs, line, col, messages.H2914) {
+			t.Errorf("%q: %d:%d'de H2914 bekleniyordu, alınan: %v", code, line, col, errs)
+		}
+	}
+	if errs := parseErrs("TR_var raise = 1\nTR_print(raise)\nraise = 2"); len(errs) > 0 {
+		t.Errorf("raise adlı değişken geçerli olmalı: %v", errs)
+	}
+}

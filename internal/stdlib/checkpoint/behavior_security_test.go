@@ -277,27 +277,29 @@ TR_save_tensors(%q, {
 
 	// Başlangıçta w = [1.0, 2.0, 3.0]. Yükleme hata verdiğinde w hiç değişmemiş
 	// olmalı ve hata mesajı bir önceki sağlam noktayı (step_0000000001) önermelidir.
-	output, err := run(t, fmt.Sprintf(`
+	load := fmt.Sprintf(`TR_Checkpoint(%q, {"w": w, "op": TR_AdamW([w]), "d": {"a": 1}})`, trPath(runDir))
+	output, err := run(t, `
 TR_var w = TR_Tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
-TR_var hata_metni = ""
+TR_var kod = ""
 TR_try {
-    TR_Checkpoint(%q, {"w": w, "op": TR_AdamW([w]), "d": {"a": 1}})
+    `+load+`
 } TR_catch h {
-    hata_metni = TR_String(h)
+    kod = TR_String(h.TR_code)
 }
 TR_print("W:", w.TR_tolist)
-TR_print("HATA:", hata_metni)
-`, trPath(runDir)))
+TR_print("HATA:", kod)
+`)
 	if err != nil {
 		t.Fatalf("beklenmeyen çalışma hatası: %v\n%s", err, output)
 	}
-	if !strings.Contains(output, "W: [1.0, 2.0, 3.0]") {
-		t.Errorf("kontrol_noktası yükleme hatasında model parametresi w yerinde bozuldu (atomiklik ihlali):\n%s", output)
+	if !strings.Contains(output, "W: [1.0, 2.0, 3.0]") || !strings.Contains(output, "HATA: H") {
+		t.Errorf("kontrol_noktası yükleme hatasında model parametresi w yerinde bozuldu (atomiklik ihlali) ya da hata kodsuz:\n%s", output)
 	}
-	// Yakalanan hatanın metni dilden bağımsızdır (İngilizce); program onu yazdırır.
+	// Öneri gösterilen hatadadır (yakalanan hatanın metni iletiyi kuran çağrıdır, 8.3).
+	_, err = run(t, "TR_var w = TR_Tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)\n"+load+"\n")
 	wantHint := messages.TextIn("en", messages.H7471, "step_0000000001", 1)
-	if !strings.Contains(output, wantHint) {
-		t.Errorf("bozuk son noktada bir önceki sağlam nokta (%s) önerilmedi:\n%s", wantHint, output)
+	if shown := messages.ErrorIn(err, "en"); !strings.Contains(shown, wantHint) {
+		t.Errorf("bozuk son noktada bir önceki sağlam nokta (%s) önerilmedi:\n%s", wantHint, shown)
 	}
 }
 

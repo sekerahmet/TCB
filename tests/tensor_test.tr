@@ -1182,7 +1182,8 @@ TR_test "15.6b yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_assert_equal("H6100", TR_error_code { t + TR_Tensor([1.0, 2.0]) })
     TR_var ileti = ""
     TR_try { TR_var s = t + TR_Tensor([1.0, 2.0]) } TR_catch h { ileti = TR_String(h) }
-    TR_assert(ileti.TR_contains("5 ≠ 2"), ileti)
+    # Değerler: şekiller, eksen ve uymayan boylar (1. eksende 5 ile 2).
+    TR_assert(ileti.TR_ends_with(", 1, 5, 2)"), ileti)
 }
 
 TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {

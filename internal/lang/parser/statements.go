@@ -405,6 +405,13 @@ func (p *Parser) parseExpressionOrAssignmentStatement() ast.Statement {
 		}
 	}
 
+	// Python'un raise'i (8.2): 'raise x' TR'de yan yana iki ifade olurdu; ileti TR_throw'u önerir.
+	if id, ok := expr.(*ast.Identifier); ok && id.Value == "raise" && p.peekToken().Line == tok.Line {
+		switch p.peekToken().Type {
+		case lexer.TokIdent, lexer.TokString, lexer.TokInt, lexer.TokFloat:
+			p.syntaxError(tok, messages.H2914)
+		}
+	}
 	p.skipSemicolon()
 	return &ast.ExpressionStatement{Token: tok, Expression: expr}
 }
