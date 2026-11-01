@@ -51,7 +51,8 @@ func languageSpec(t *testing.T) map[string]string {
 	}
 	sections := map[string]string{}
 	for _, d := range files {
-		if filepath.Base(d) == "README.md" {
+		// README bölümleri listeler; pending.md bekleyen bulgulardır, kural değil (bkz. o dosya).
+		if b := filepath.Base(d); b == "README.md" || b == "pending.md" {
 			continue
 		}
 		if !sectionFileRe.MatchString(filepath.Base(d)) {
