@@ -367,6 +367,32 @@ func TestCatchWithoutANameIsASyntaxError(t *testing.T) {
 	}
 }
 
+// Kural (8.1): başka dillerin yazımları sözdizimi hatasıdır ve ileti TR'deki yazımı söyler: Python'un
+// except'i (H2915, TR_catch), finally'si (H2916, TR_defer; yakalamadan sonra da yerine de), parantez
+// içinde ad (H2917, TR_catch e). Eskiden parantezli ad kabul ediliyordu, except ve finally genel
+// sözdizimi hatası veriyordu.
+func TestOtherLanguagesCatchSpellingsAreSyntaxErrors(t *testing.T) {
+	for _, d := range []struct {
+		code, at string
+		want     messages.Code
+	}{
+		{"TR_try { TR_throw \"x\" } except e { TR_print(e) }", "except", messages.H2915},
+		{"TR_try { TR_throw \"x\" } TR_catch e { TR_print(e) }\nfinally {\n    TR_print(2)\n}", "finally", messages.H2916},
+		{"TR_try { TR_throw \"x\" } finally { TR_print(2) }", "finally", messages.H2916},
+		{"TR_try { TR_throw \"x\" } TR_catch (e) { TR_print(e) }", "(e)", messages.H2917},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		if errs := parseErrs(d.code); !hasErrAt(errs, line, col, d.want) {
+			t.Errorf("%q: %d:%d'de %s bekleniyordu, alınan: %v", d.code, line, col, d.want, errs)
+		}
+	}
+	for _, ok := range []string{"TR_var except = 1\nTR_var finally = except + 1"} {
+		if errs := parseErrs(ok); len(errs) > 0 {
+			t.Errorf("%q: hata beklenmiyordu: %v", ok, errs)
+		}
+	}
+}
+
 // Kural (8.2): Python'un raise'i sözdizimi hatasıdır (H2914), ileti TR_throw'u önerir; eskiden yalnız
 // denetleyicinin tanımsız ad önerisiydi. raise adlı bir değişken ve onun kullanımı geçerlidir.
 func TestPythonRaiseIsASyntaxError(t *testing.T) {

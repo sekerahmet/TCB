@@ -315,9 +315,9 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 ### 8.1
 
-- **Mevcut durum:** `TR_try`/`TR_catch` çalışıyor, `TR_catch` zorunlu; `TR_try` ifade olarak sözdizimi hatası; `TR_finally` bilinmeyen kimlik; Python'un `except`'i ipucu alıyor [ölçüldü].
+- **Mevcut durum:** `TR_try`/`TR_catch` çalışıyor, `TR_catch` zorunlu. `TR_try` ifade olarak da çalışıyor, değeri çalışan bloğun son ifadesi (`TR_var n = TR_try { TR_Int(m) } TR_catch e { 0 }`); eskiden sözdizimi hatasıydı. Python'un `except`'i H2915 (`TR_catch`'i öneriyor), `finally`'si yakalamadan sonra da yerine de H2916 (`TR_defer`'i öneriyor), parantezli ad `TR_catch (e)` H2917 (`TR_catch e`'yi öneriyor; eskiden kabul ediliyordu, depodaki tek kullanım göçtü) [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 8.1 ifade testi, `TestOtherLanguagesCatchSpellingsAreSyntaxErrors`, öneri tablosu].
 - **Mevcut durum (ad):** adsız `TR_catch { ... }` sözdizimi hatası H2910, ileti `TR_catch e`'yi öneriyor; yakalamanın hazır adı (bağlamsal kimlik) kalktı. Göç: `.tr` dosyalarında 6 adsız yakalama ve hazır adın 4 kullanımı, Go testlerindeki TR programlarında 5 adsız yakalama ve hazır adın 2 kullanımı adlı yazıma geçti [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `git grep "TR_catch *{"`; `TestCatchWithoutANameIsASyntaxError`, öneri tablosu].
-- **Yapılacaklar:** ifade olarak `TR_try`; parantezli adın ve Python'un `except`/`finally`'sinin iletileri; adsız yakalamanın olumsuz TR fikstürü.
+- **Yapılacaklar:** ifade olarak `TR_try`'da dalların tipinin aynı olması ve blokların içindeki adların denetimi (denetleyici; bugün ifadenin bloklarına inmiyor: içindeki tanımsız ad ve farklı dal tipleri denetimden geçiyor [ölçüldü: `tr check`, dal `claude/d1-dilim2-c89bbc`]); sözdizimi hatalarının olumsuz TR fikstürleri (adsız, parantezli ad, `except`, `finally`, `raise`).
 
 ### 8.2
 

@@ -206,6 +206,17 @@ func (tc *TryCatchStatement) statementNode()       {}
 func (tc *TryCatchStatement) TokenLiteral() string { return tc.Token.Literal }
 func (tc *TryCatchStatement) Line() int            { return tc.Token.Line }
 
+// TryExpression is TR_try used as an expression (8.1): its value is the last expression of the
+// block that ran (TR_var n = TR_try { TR_Int(m) } TR_catch e { 0 }).
+type TryExpression struct {
+	Token     lexer.Token // dene
+	Statement *TryCatchStatement
+}
+
+func (te *TryExpression) expressionNode()      {}
+func (te *TryExpression) TokenLiteral() string { return te.Token.Literal }
+func (te *TryExpression) Line() int            { return te.Token.Line }
+
 type ThrowStatement struct {
 	Token lexer.Token // fırlat
 	Value Expression

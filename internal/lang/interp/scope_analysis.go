@@ -113,6 +113,8 @@ func (fc blockFlagCache) exprCaptures(e ast.Expression) bool {
 		return false
 	case *ast.FunctionLiteral:
 		return true
+	case *ast.TryExpression:
+		return fc.doesBlockCapture(x.Statement.TryBody) || fc.doesBlockCapture(x.Statement.CatchBody)
 	case *ast.IfExpression:
 		if fc.doesBlockCapture(x.Consequence) || fc.doesBlockCapture(x.Alternative) {
 			return true
@@ -168,6 +170,8 @@ func statementHasDefer(st ast.Statement) bool {
 // exprHasDefer 'eğer' ve 'eşle' dallarındaki blokları inceler (dallar deyim olarak çalışır).
 func exprHasDefer(e ast.Expression) bool {
 	switch x := e.(type) {
+	case *ast.TryExpression:
+		return statementHasDefer(x.Statement)
 	case *ast.IfExpression:
 		if statementHasDefer(x.Consequence) || statementHasDefer(x.Alternative) {
 			return true

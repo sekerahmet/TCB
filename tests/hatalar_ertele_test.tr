@@ -15,6 +15,21 @@ TR_test "8.1 dene / yakala; yakalanan hatanın adı yazılır" {
     TR_assert_equal("b", yakalanan)
 }
 
+TR_test "8.1 TR_try ifade olarak da kullanılır: değeri çalışan bloğun son ifadesidir" {
+    TR_func çevir(m: TR_String) -> TR_Int {
+        TR_return TR_try { TR_Int(m) } TR_catch e { 0 }
+    }
+    TR_assert_equal(42, çevir("42"))
+    TR_assert_equal(0, çevir("abc"))
+    TR_var kod = TR_try {
+        TR_var z = 1 / 0
+        "olmadı"
+    } TR_catch e {
+        TR_String(e.TR_code)
+    }
+    TR_assert_equal("H2470", kod)
+}
+
 TR_test "8.1 hata yoksa yakala bloğu çalışmaz" {
     TR_var çalıştı = TR_false
     TR_try { TR_var x = 1 } TR_catch h { çalıştı = TR_true }

@@ -57,6 +57,13 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		leftExp = p.parseIfExpression()
 	case lexer.TokMatch:
 		leftExp = p.parseMatchExpression()
+	case lexer.TokTry:
+		// TR_try ifade olarak da kullanılır (8.1): değeri çalışan bloğun son ifadesidir.
+		st := p.parseTryCatchStatement()
+		if st == nil {
+			return nil
+		}
+		leftExp = &ast.TryExpression{Token: st.Token, Statement: st}
 	case lexer.TokFunction:
 		leftExp = p.parseFunctionLiteral()
 	case lexer.TokLBracket:
@@ -231,7 +238,7 @@ func (p *Parser) startsExpression() bool {
 	switch p.curToken().Type {
 	case lexer.TokIdent, lexer.TokSelf, lexer.TokInt, lexer.TokFloat, lexer.TokString,
 		lexer.TokTrue, lexer.TokFalse, lexer.TokNil, lexer.TokBang, lexer.TokMinus, lexer.TokTilde,
-		lexer.TokKwNot, lexer.TokLParen, lexer.TokIf, lexer.TokMatch, lexer.TokFunction,
+		lexer.TokKwNot, lexer.TokLParen, lexer.TokIf, lexer.TokMatch, lexer.TokTry, lexer.TokFunction,
 		lexer.TokLBracket, lexer.TokLBrace:
 		return true
 	}

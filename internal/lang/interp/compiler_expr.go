@@ -131,6 +131,9 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	case *ast.MatchExpression:
 		return nestedStatements(noSignal(c.matchExpr(k, e)))
 
+	case *ast.TryExpression:
+		return nestedStatements(noSignal(c.tryCatchStatement(k, e.Statement)))
+
 	case *ast.FunctionLiteral:
 		fk := c.function(k, e.Parameters, e.Body, false)
 		fk.blockValue = e.Token.Type == lexer.TokLBrace

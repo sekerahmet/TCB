@@ -494,6 +494,9 @@ const (
 	H2912 Code = 2912 // `{#cause}:` yakalanmış bir hata alır (`{#catch} e`'nin `e`'si) ya da yok; {given} verildi
 	H2913 Code = 2913 // hata değerinin kendisi karşılaştırılamaz: kodunu ya da fırlatılan değeri karşılaştırın, `e.{#code} == f.{#code}`
 	H2914 Code = 2914 // Python'un 'raise'i TR'de yoktur: hata `{#throw}` ile fırlatılır
+	H2915 Code = 2915 // Python'un 'except'i TR'de `{#catch}`'tir: `{#catch} e`
+	H2916 Code = 2916 // Python'un 'finally'si TR'de yoktur: kapsamdan nasıl çıkılırsa çıkılsın çalışacak iş `{#defer}` bloğuyla yazılır
+	H2917 Code = 2917 // yakalanan hatanın adı parantezsiz yazılır: `{#catch} {name}`
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

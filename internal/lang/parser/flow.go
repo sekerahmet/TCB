@@ -89,7 +89,16 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 	}
 	tryBody := p.parseBlockStatement()
 
-	if !p.expectPeek(lexer.TokCatch) {
+	// Başka dillerin yazımları sözdizimi hatasıdır, ileti TR'deki yazımı söyler (8.1): Python'un
+	// except'i TR_catch'tir; finally yoktur, iş TR_defer ile yazılır.
+	switch {
+	case p.peekWord("except"):
+		p.nextToken()
+		p.syntaxError(p.curToken(), messages.H2915)
+	case p.peekWord("finally"):
+		p.skipFinally()
+		return nil
+	case !p.expectPeek(lexer.TokCatch):
 		return nil
 	}
 
@@ -102,9 +111,12 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		p.nextToken()
 		errVar, errTok = p.curToken().Literal, p.curToken()
 	} else if p.peekTokenIs(lexer.TokLParen) {
+		// Ad parantezsiz yazılır (8.1): TR_catch (e) bir yazım hatasıdır, ileti TR_catch e'yi önerir.
+		open := p.peekToken()
 		p.nextToken() // '('
 		if p.expectPeek(lexer.TokIdent) {
 			errVar, errTok = p.curToken().Literal, p.curToken()
+			p.syntaxError(open, messages.H2917, errVar)
 		}
 		p.expectPeek(lexer.TokRParen)
 	}
@@ -113,6 +125,9 @@ func (p *Parser) parseTryCatchStatement() *ast.TryCatchStatement {
 		return nil
 	}
 	catchBody := p.parseBlockStatement()
+	if p.peekWord("finally") && p.peekTokenN(2).Type == lexer.TokLBrace {
+		p.skipFinally()
+	}
 
 	return &ast.TryCatchStatement{
 		Token:      tok,
@@ -133,4 +148,19 @@ func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 	tok := p.curToken()
 	body, call := p.parseBlockOrCall(false)
 	return &ast.AsyncStatement{Token: tok, Body: body, Call: call}
+}
+
+// peekWord sıradaki belirteç w yazımlı bir ad mı (başka bir dilin anahtar kelimesi: except, finally)?
+func (p *Parser) peekWord(w string) bool {
+	return p.peekTokenIs(lexer.TokIdent) && p.peekToken().Literal == w
+}
+
+// skipFinally Python'un finally bloğunu hatasıyla atlar (8.1): TR'de temizlik TR_defer'le yazılır.
+func (p *Parser) skipFinally() {
+	p.nextToken()
+	p.syntaxError(p.curToken(), messages.H2916)
+	if p.peekTokenIs(lexer.TokLBrace) {
+		p.nextToken()
+		p.parseBlockStatement()
+	}
 }
