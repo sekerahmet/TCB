@@ -28,12 +28,12 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
   - 12, 16, 17 ve 20. bölümlerin kapanış turu: bulguları işleyen commit'in farkını DENETİM'in yeniden okuması. 10, 11, 18 ve 19'da yapıldı.
 - **Uygulama fazlar hâlinde ilerliyor.** Her fazın işleri dosya sahipliğine göre ayrılır, paralel kollar aynı dosyaya dokunmaz.
   - **Faz 0, bitti:** toplu ve sıralı işler (kancalar, ad göçleri, ortak sorgular).
-  - **Faz 1, sürüyor:**
-    - **4a, denetleyici:** 4a1 (çıkarım, tipsiz parametre ve alan denetim hatası) ve 4a2'nin ilk dilimi (değeri kullanılmayan çağrı, metodun sayısı, dönüş tipi, koşulun tipi) birleşti; 4a2'nin ikinci dilimi sürüyor.
-    - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. İlk dilimi sürüyor.
-    - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç. Başlamadı.
-    - **T1, tensör çekirdeği.** Başlamadı.
-    - İletiler 1 ve 2 birleşti; iletiler 3 sırada.
+  - **Faz 1, sürüyor** (kolların günlük durumu bu belgede tutulmaz; ana oturum depo dışında takip eder):
+    - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi;
+    - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON;
+    - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç;
+    - **T1, tensör çekirdeği;**
+    - **iletiler:** önerinin ve kod örneğinin kimlikle yazılması.
   - **Faz 2:**
     - **4b, akış:** daraltma, kapsama, eksik dönüş;
     - **4c, genel tipler;**
