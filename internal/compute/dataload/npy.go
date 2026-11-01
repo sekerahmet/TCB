@@ -39,6 +39,8 @@ const (
 	DTypeU32
 	// DTypeI32 küçük uçlu işaretli 32 bit ('<i4').
 	DTypeI32
+	// DTypeI64 küçük uçlu işaretli 64 bit ('<i8').
+	DTypeI64
 )
 
 // Size, bir elemanın bayt cinsinden boyutudur.
@@ -48,6 +50,8 @@ func (t DType) Size() int {
 		return 2
 	case DTypeU32, DTypeI32:
 		return 4
+	case DTypeI64:
+		return 8
 	}
 	return 0
 }
@@ -61,6 +65,8 @@ func (t DType) String() string {
 		return "<u4"
 	case DTypeI32:
 		return "<i4"
+	case DTypeI64:
+		return "<i8"
 	}
 	return messages.Text(messages.H5092)
 }
@@ -73,6 +79,8 @@ func parseDType(descr string) (DType, error) {
 		return DTypeU32, nil
 	case "<i4":
 		return DTypeI32, nil
+	case "<i8":
+		return DTypeI64, nil
 	}
 	if len(descr) == 3 && descr[0] == '>' {
 		return DTypeInvalid, messages.New(messages.H5028, descr)

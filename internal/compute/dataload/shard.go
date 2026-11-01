@@ -251,7 +251,7 @@ func (p *Shard) Close() error {
 // Küçük uçlu çözme döngüleri
 // ---------------------------------------------------------------------------
 
-// decodeI32 b'yi dst'ye çözer; '<u4' değerlerinin hepsi int32'ye sığıyorsa doğru verir
+// decodeI32 b'yi dst'ye çözer; '<u4' ve '<i8' değerlerinin hepsi int32'ye sığıyorsa doğru verir
 // (öbür türlerde her zaman doğru).
 func decodeI32(dst []int32, b []byte, t DType) bool {
 	switch t {
@@ -274,6 +274,17 @@ func decodeI32(dst []int32, b []byte, t DType) bool {
 		for i := range dst {
 			dst[i] = int32(binary.LittleEndian.Uint32(b[4*i:]))
 		}
+	case DTypeI64:
+		b = b[:8*len(dst)]
+		fits := true
+		for i := range dst {
+			v := int64(binary.LittleEndian.Uint64(b[8*i:]))
+			if v < math.MinInt32 || v > math.MaxInt32 {
+				fits = false
+			}
+			dst[i] = int32(v)
+		}
+		return fits
 	}
 	return true
 }

@@ -2,6 +2,7 @@ package dataset_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -48,6 +49,16 @@ func sampleFiles(t *testing.T) map[string][]byte {
 		}
 		return b.Bytes()
 	}
+	npyI64 := func(v []int64) []byte {
+		var b bytes.Buffer
+		if err := dataload.WriteHeader(&b, dataload.DTypeI64, int64(len(v)), 1); err != nil {
+			t.Fatal(err)
+		}
+		for _, x := range v {
+			b.Write(binary.LittleEndian.AppendUint64(nil, uint64(x)))
+		}
+		return b.Bytes()
+	}
 	d := map[string][]byte{}
 	// Parçalayıcılar: bayt düzeyi BPE (özel tokenlı, <|endoftext|> içerir) ve BERT
 	// tarzı WordPiece (son işleyicisi [CLS]/[SEP] ekler; çift kodlama için).
@@ -66,6 +77,7 @@ func sampleFiles(t *testing.T) map[string][]byte {
 	}
 	d["numbers/a.npy"] = npyU16(a)
 	d["numbers/b.npy"] = npyI32(b)
+	d["i64.npy"] = npyI64([]int64{10, 20, 30, 40, 50, 60})
 
 	// metin/: örnek Türkçe metnin satırları belge sayılıp kodlanır, aralarına
 	// <|endoftext|> konur ve iki parçaya bölünür; meta.json parça token sayılarını verir.

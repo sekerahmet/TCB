@@ -43,6 +43,7 @@ func TestHeaderVersions(t *testing.T) {
 		{1, "{'descr': '<u2', 'fortran_order': False, 'shape': (250000000,), }", DTypeU16, 250000000},
 		{2, "{'descr': '<u4', 'fortran_order': False, 'shape': (7,), }", DTypeU32, 7},
 		{3, "{'descr': '<i4', 'fortran_order': False, 'shape': (0,), }", DTypeI32, 0},
+		{1, "{'descr': '<i8', 'fortran_order': False, 'shape': (9,), }", DTypeI64, 9},
 		{1, `{"shape": (12L,), "descr": "<u2", "fortran_order": False}`, DTypeU16, 12},
 		{1, "{'descr':'<u2','fortran_order':False,'shape':(5,)}", DTypeU16, 5},
 	}
@@ -65,7 +66,7 @@ func TestHeaderVersions(t *testing.T) {
 
 func TestWriteHeaderRoundTrip(t *testing.T) {
 	for _, version := range []int{1, 2} {
-		for _, dtype := range []DType{DTypeU16, DTypeU32, DTypeI32} {
+		for _, dtype := range []DType{DTypeU16, DTypeU32, DTypeI32, DTypeI64} {
 			var b bytes.Buffer
 			if err := WriteHeader(&b, dtype, 123456789, version); err != nil {
 				t.Fatal(err)

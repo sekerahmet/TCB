@@ -155,8 +155,8 @@ func TestShardEmptyFile(t *testing.T) {
 	}
 }
 
-// TestShardU32Overflow int32'ye sığmayan bir '<u4' değerinin (eksiye dönüp çapraz entropide
-// yok sayılacak hedef) hata verdiğini, öbür aralıkların okunduğunu denetler.
+// TestShardU32Overflow int32'ye sığmayan bir '<u4' ya da '<i8' değerinin (eksiye dönüp ya da
+// kesilip çapraz entropide yok sayılacak hedef) hata verdiğini, öbür aralıkların okunduğunu denetler.
 func TestShardU32Overflow(t *testing.T) {
 	checkShardLeak(t)
 	var b bytes.Buffer
@@ -168,6 +168,17 @@ func TestShardU32Overflow(t *testing.T) {
 	}
 	path := filepath.Join(t.TempDir(), "u4.npy")
 	if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var b64 bytes.Buffer
+	if err := WriteHeader(&b64, DTypeI64, 5, 1); err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range []int64{-100, math.MinInt32, math.MaxInt32, math.MaxInt32 + 1, math.MinInt32 - 1} {
+		b64.Write(binary.LittleEndian.AppendUint64(nil, uint64(v)))
+	}
+	path64 := filepath.Join(t.TempDir(), "i8.npy")
+	if err := os.WriteFile(path64, b64.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	for _, noMmap := range []bool{false, true} {
@@ -183,6 +194,22 @@ func TestShardU32Overflow(t *testing.T) {
 			t.Fatalf("eşlemesiz=%v: 2^31 hata vermedi: %v", noMmap, err)
 		}
 		p.Close()
+
+		p64, err := OpenShard(path64, ShardOptions{NoMmap: noMmap})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ok64 := make([]int32, 3)
+		if err := p64.Read(ok64, 0); err != nil || ok64[0] != -100 || ok64[1] != math.MinInt32 || ok64[2] != math.MaxInt32 {
+			t.Fatalf("eşlemesiz=%v: i8 sığan aralık okunamadı: %v %v", noMmap, ok64, err)
+		}
+		if err := p64.Read(make([]int32, 2), 2); !messages.Has(err, messages.H5086) {
+			t.Fatalf("eşlemesiz=%v: i8 üst taşma hata vermedi: %v", noMmap, err)
+		}
+		if err := p64.Read(make([]int32, 1), 4); !messages.Has(err, messages.H5086) {
+			t.Fatalf("eşlemesiz=%v: i8 alt taşma hata vermedi: %v", noMmap, err)
+		}
+		p64.Close()
 	}
 }
 

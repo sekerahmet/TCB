@@ -12,7 +12,7 @@ import (
 //
 //	go test ./internal/compute/dataload -run '^$' -fuzz FuzzNpyBaslik -fuzztime 5m
 func FuzzNpyHeader(f *testing.F) {
-	for _, dtype := range []DType{DTypeU16, DTypeU32, DTypeI32} {
+	for _, dtype := range []DType{DTypeU16, DTypeU32, DTypeI32, DTypeI64} {
 		for _, version := range []int{1, 2} {
 			var b bytes.Buffer
 			if err := WriteHeader(&b, dtype, 3, version); err != nil {

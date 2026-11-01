@@ -900,8 +900,8 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.5
 
-- **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 bit okuyor [kanıtlı: `internal/compute/dataload/npy.go`]; NumPy'nin varsayılanı olan işaretli 64 biti reddediyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** işaretli 64 bit; TR testi; önbelleğin TR testi (aynı adlı iki parça ayrı; Go'da `TestCache*` var).
+- **Mevcut durum:** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 ve 64 biti okuyor, `int32`'ye sığmayan `<u4` ve `<i8` değerlerini reddediyor (`TestHeaderVersions`, `TestShardU32Overflow`, `tests/veri_parcalayici_test.tr`) [kanıtlı: `internal/compute/dataload/npy.go:43`, `internal/compute/dataload/shard.go:278`; ölçüldü: `go test -short ./internal/compute/dataload/` ve `go run ./cmd/tr test tests/veri_parcalayici_test.tr`, 2026-11-01].
+- **Yapılacaklar:** önbelleğin TR testi (aynı adlı iki parça ayrı; Go'da `TestCache*` var).
 
 ### 16.6
 
