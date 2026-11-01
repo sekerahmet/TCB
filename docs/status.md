@@ -1048,10 +1048,10 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ### 19.10
 
-- **Mevcut durum:** yardım seçeneği yalnız "--help" ve "-h" (Türkçe "--yardım" bilinmeyen seçenek); "help" ve "h" dışında ad ayrılmış değil; ondalıkta Türkçe "sonsuz" okunmuyor, "inf", "-inf" ve "nan" okunuyor; mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış"); kullanım hatası iletisi gizli adlı seçeneğin değerini gizli değer süzgeciyle "***" yazıyor (`TestCommandLineSecretLeaks`), ama süzgeç 6 karakterden kısa değeri almıyor: "--api_key GIZLI" iletide açık yazılıyor [ölçüldü: main `85a19c36`, "--help", "--yardım", "--hızlı=doğru", "--üst=sonsuz", "--api_key" ile çalıştırma; `internal/lang/interp/output.go` `MinSecretLength`].
+- **Mevcut durum:** yardım seçeneği yalnız "--help" ve "-h" (Türkçe "--yardım" bilinmeyen seçenek); "help" ve "h" dışında ad ayrılmış değil; ondalıkta Türkçe "sonsuz" okunmuyor, "inf", "-inf" ve "nan" okunuyor; mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış"); kullanım hatası iletisi gizli adlı seçeneğin değerini uzunluğuna bakmadan iletiye hiç koymuyor (`TestCommandLineSecretLeaks`, `internal/stdlib/process/arguments.go` `errorValue`) [ölçüldü: `go test -short ./internal/stdlib/process/`, 2026-11-01; main `85a19c36`, "--help", "--yardım", "--hızlı=doğru", "--üst=sonsuz" ile çalıştırma].
 - **Yapılacaklar:** mantık değerinde yalnız "true" ve "false" (`internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri çıkar); yardımın varsayılanları komut satırının yazımıyla; Go testleri.
 - **Göç:** yardımın Türkçe adının göçü bitti (depoda yalnız ipucu testi ve iki yorum kaldı) [ölçüldü: main `85a19c36`, `git grep`].
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz (bugün "(default: none)"); kullanım hatası iletisi gizli adlı seçeneğin değerini yazmaz (bugün kısa değer yazılıyor). **Açık:** standart hataya yazan yerleşik yok (yol haritası).
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz (bugün "(default: none)"). **Açık:** standart hataya yazan yerleşik yok (yol haritası).
 
 ### 19.11
 

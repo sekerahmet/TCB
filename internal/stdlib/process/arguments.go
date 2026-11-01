@@ -215,12 +215,12 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		if b, ok := boolName(value); ok {
 			return interp.BoolToVal(b), nil
 		}
-		return nil, messages.New(messages.H7210, s.display(), codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), shorten(value))
+		return nil, messages.New(messages.H7210, s.display(), codes.NameRef(codes.TypeBool), codes.NameRef(codes.KwTrue), codes.NameRef(codes.KwFalse), errorValue(s, value))
 	}
 	if s.optKind != kindList {
 		v, err := parsePlainValue(s.optKind, value)
 		if err != nil {
-			return nil, messages.New(messages.H7211, s.display(), codes.NameRef(s.optKind.typeCode()), shorten(value), err)
+			return nil, messages.New(messages.H7211, s.display(), codes.NameRef(s.optKind.typeCode()), errorValue(s, value), err)
 		}
 		return v, nil
 	}
@@ -229,13 +229,23 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 		return list, nil
 	}
 	for i, p := range strings.Split(value, ",") {
-		v, err := parsePlainValue(s.itemKind, strings.TrimSpace(p))
+		item := strings.TrimSpace(p)
+		v, err := parsePlainValue(s.itemKind, item)
 		if err != nil {
-			return nil, messages.New(messages.H7212, s.display(), codes.NameRef(s.itemKind.typeCode()), i+1, shorten(p), err)
+			return nil, messages.New(messages.H7212, s.display(), codes.NameRef(s.itemKind.typeCode()), i+1, errorValue(s, p), err)
 		}
 		list.Elements = append(list.Elements, v)
 	}
 	return list, nil
+}
+
+// errorValue kullanım hatasında gösterilecek argüman değeridir: gizli adlı seçeneğin değeri
+// uzunluğuna bakılmadan iletiye konmaz (19.4, 19.10).
+func errorValue(s *option, value string) string {
+	if s.secret || IsSecretName(s.name) {
+		return interp.SecretMask
+	}
+	return shorten(value)
 }
 
 // parsePlainValue Tam, Ondalık, Mantık ya da Metin bir değeri çözer. Hata metni, mesaja eklenecek

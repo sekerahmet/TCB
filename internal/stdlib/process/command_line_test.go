@@ -212,12 +212,35 @@ func TestCommandLineSecretValue(t *testing.T) {
 	}
 }
 
-// Tek tireyle yanlış yazılmış bir seçeneğin değeri (-api_key=...) hata mesajında görünmez;
-// liste türündeki gizli seçeneğin her öğesi de (varsayılanda ve komut satırında) gizlenir.
+// Kullanım hatası gizli adlı seçeneğin değerini (kısa ya da uzun, tanımlı ya da tanımsız,
+// tek tireli) iletiye koymaz; gizli olmayan seçeneğin hatalı değeri ise yazılır (19.4, 19.10).
+// Liste türündeki gizli seçeneğin her öğesi de (varsayılanda ve komut satırında) gizlenir.
 func TestCommandLineSecretLeaks(t *testing.T) {
-	_, _, err := commandLine(t, `TR_command_line({"api_key": ""})`, "-api_key=gizlideger99")
-	if c, ok := interp.IsExitRequest(err); !ok || strings.Contains(c.Message, "gizlideger99") {
-		t.Errorf("tek tireli seçeneğin değeri mesajda olmamalı: %v", err)
+	code := `TR_command_line({"api_key": 1, "hf_token": TR_false, "gizli_liste": [1], "adım": 1, "max_tokens": 1})`
+	for _, d := range []struct {
+		arg    []string
+		secret string
+	}{
+		{[]string{"--api_key", "GIZLI"}, "GIZLI"},
+		{[]string{"--api_key=GIZLI"}, "GIZLI"},
+		{[]string{"--api_key", "uzungizlideger"}, "uzungizlideger"},
+		{[]string{"--hf_token=GIZLI"}, "GIZLI"},
+		{[]string{"--gizli_liste", "1,GIZLI"}, "GIZLI"},
+		{[]string{"--hf_token_x=GIZLI"}, "GIZLI"},
+		{[]string{"--hf_token_x", "GIZLI"}, "GIZLI"},
+		{[]string{"-hf_token_x=GIZLI"}, "GIZLI"},
+		{[]string{"-api_key=gizlideger99"}, "gizlideger99"},
+	} {
+		_, _, err := commandLine(t, code, d.arg...)
+		if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 || strings.Contains(c.Message, d.secret) {
+			t.Errorf("%v: gizli değer %q kullanım hatasında görünmemeli: %v", d.arg, d.secret, err)
+		}
+	}
+	for _, arg := range [][]string{{"--adım", "GIZLI"}, {"--max_tokens", "GIZLI"}} {
+		_, _, err := commandLine(t, code, arg...)
+		if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 || !strings.Contains(c.Message, `"GIZLI"`) {
+			t.Errorf("%v: gizli olmayan seçeneğin değeri kullanım hatasında yazılmalı: %v", arg, err)
+		}
 	}
 	_, m, err := commandLine(t, `TR_command_line({"api_key": ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
 	if err != nil {
