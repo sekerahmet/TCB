@@ -160,6 +160,12 @@ def main():
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:
             json.dump(results, f, ensure_ascii=False, indent=1)
+    # A program that failed leaves (None, its last error line); say so and fail the run, or a broken
+    # comparison reads as a missing number (2026-11-01: four nulls went unnoticed).
+    failed = [f"{t} {lang}: {err}" for t, r in results.items() for lang, (ms, err) in r.items() if ms is None]
+    if failed:
+        print("FAILED:\n  " + "\n  ".join(failed), file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

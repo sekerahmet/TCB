@@ -11,12 +11,15 @@ set -u
 cd "$(dirname "$0")/../.."
 out=${TR_RECORD_DIR:?tools/record ile çalıştırın}
 python3 -c "import sys, json, platform, torch, numpy; json.dump({'python': platform.python_version(), 'torch': torch.__version__, 'numpy': numpy.__version__}, open(sys.argv[1], 'w'))" "$out/versions.json"
+# Bir kıyas düşerse koşu sürer (öbür ölçümler yine alınır) ama betik sonunda sıfır olmayan kodla çıkar:
+# kayıtta "çıkış 0" yalnız her ölçüm geldiyse yazar.
+kaldi=0
 for n in 1 2 4 8; do
   echo "== Karakter modeli (TR/PyTorch, $n iş parçacığı, 5 tekrar)"
-  python3 tools/bench/run.py karakter_modeli --threads "$n" --repeat 5 --json "$out/model_$n.json"
+  python3 tools/bench/run.py karakter_modeli --threads "$n" --repeat 5 --json "$out/model_$n.json" || kaldi=1
 done
 echo "== Dil kıyası (5 tekrar)"
-python3 tools/bench/run.py --repeat 5 dongu fib sirala metin sozluk matris_dongu matris_yerlesik --json "$out/bench.json"
+python3 tools/bench/run.py --repeat 5 dongu fib sirala metin sozluk matris_dongu matris_yerlesik --json "$out/bench.json" || kaldi=1
 echo "== Tensör kernelleri (BenchmarkSpeed*, 5 tekrar)"
 go test -run XXX -bench 'BenchmarkSpeed' -count 5 ./internal/compute/tensor/ | tee "$out/tensor_bench.txt"
 echo "== Özet"
@@ -40,3 +43,4 @@ for n, r in model.items():
 cvs = sorted(v['cv_pct'] for v in tensor.values())
 print(f"tensör kıyasları: {len(tensor)}, CV ortanca %{st.median(cvs):.2f}, en kötü %{cvs[-1]:.2f}")
 PY
+[ $kaldi = 0 ] || { echo "KALDI: en az bir kıyas düştü (yukarıdaki FAILED satırları)"; exit 1; }
