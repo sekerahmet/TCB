@@ -218,7 +218,7 @@ func (v *VM) apply(fnVal Value, args []Value, named map[string]Value, line int) 
 		return v.construct(fn, args, named, line)
 	}
 
-	return nil, messages.At(line, 0, messages.New(messages.H2421, fnVal.Type()))
+	return nil, messages.At(line, 0, messages.New(messages.H2421, fnVal.Type(), ""))
 }
 
 // callPrepared bir kullanıcı fonksiyonunu fnEnv ortamında çalıştırır. args nil değilse

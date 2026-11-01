@@ -146,7 +146,7 @@ func (c *Checker) checkPropertyCall(e *ast.CallExpression, sig codes.Signature) 
 	if !ok || ret == codes.TypeFunction || ret == codes.TypeBuiltinFunction || !coreTypes[codes.Name(ret)] {
 		return
 	}
-	c.addErrorAt(e, messages.New(messages.H2421, c.typeArg(codes.Name(ret))))
+	c.addErrorAt(e, messages.New(messages.H2421, c.typeArg(codes.Name(ret)), ""))
 }
 
 // reportMissingMember alıcının tipinde olmayan yerleşik metodu bildirir (13.10, 13.11): çalışma

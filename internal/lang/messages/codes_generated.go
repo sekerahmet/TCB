@@ -300,9 +300,9 @@ const (
 	H2418 Code = 2418 // '{struct}' yapısının '{field}' adında bir alanı yok{suggestion}
 	H2419 Code = 2419 // '{struct}' yapısı en fazla {max} argüman alır (alanlar: {fields}), {given} verildi
 	H2420 Code = 2420 // '{struct}' yapısının '{field}' alanı hem sırayla ({order}. argüman) hem adıyla verildi
-	H2421 Code = 2421 // {type} tipi bir fonksiyon olarak çağrılamaz
+	H2421 Code = 2421 // {type} tipi bir fonksiyon olarak çağrılamaz{hint}
 	H2422 Code = 2422 // Özyineleme derinliği sınırı aşıldı (en fazla {max} iç içe çağrı); fonksiyon kendini durmadan çağırıyor olabilir
-	H2423 Code = 2423 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi
+	H2423 Code = 2423 // {fn}() {order}. argüman olarak {expected} bekler, {given} verildi{hint}
 	H2424 Code = 2424 // {type} ({summary})
 	H2425 Code = 2425 // {preview}, {count} eleman
 	H2426 Code = 2426 // {count} anahtarlı sözlük

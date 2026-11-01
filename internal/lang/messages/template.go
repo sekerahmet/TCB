@@ -6,12 +6,13 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"unicode"
 )
 
 // Şablon dili ICU MessageFormat'ın küçük bir alt kümesidir; çevirmen araçları bu biçimi tanır:
 //
 //	{ad}                         değer
-//	{ad|q}                       Go'nun %q biçimiyle tırnaklı (denetim karakterleri kaçırılır)
+//	{ad|q}                       TR'nin metin yazımıyla tırnaklı (2.6, 8.4: denetim karakterleri \u{1b})
 //	{ad|acc} {ad|dat} {ad|loc}   hâl eki: dilin çekimcisi ekler (tr: 'f'yi, 'f'ye, 'f'de ...);
 //	{ad|abl} {ad|gen}            çekimcisi olmayan dilde ad olduğu gibi kalır
 //	{ad|list}                    liste değeri, dilin "ya da" kalıbıyla (OrList): a, b ya da c
@@ -415,9 +416,9 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 			}
 			switch {
 			case s.mod == "q" && coded:
-				fmt.Fprintf(b, "%q", text)
+				b.WriteString(quoteText(text))
 			case s.mod == "q":
-				fmt.Fprintf(b, "%q", a)
+				b.WriteString(quoteText(fmt.Sprint(a)))
 			case s.mod == "decimal":
 				b.WriteString(localDecimal(text, c.Language))
 			case s.mod == "list":
@@ -530,4 +531,35 @@ func (c *Catalog) codedText(a any) (string, bool) {
 		return e.Err.Error(), true
 	}
 	return "", false
+}
+
+// quoteText s'nin TR'deki metin yazımıdır (2.6; 8.4'ün kaçışı): çift tırnak içinde, kaçışlar \n \t
+// \r \" \\; öbür denetim karakterleri ve yön değiştiren karakterler (2.1a) \u{...} ile, küçük
+// onaltılık rakamla. İletiye giren dış veri (dosya adı, JSON değeri) terminali silemez ve metni
+// gizleyemez; Go'nun %q'su \x1b yazardı, TR'de öyle bir kaçış yoktur.
+func quoteText(s string) string {
+	var sb strings.Builder
+	sb.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\t':
+			sb.WriteString(`\t`)
+		case '\r':
+			sb.WriteString(`\r`)
+		case '"':
+			sb.WriteString(`\"`)
+		case '\\':
+			sb.WriteString(`\\`)
+		default:
+			if unicode.IsControl(r) || unicode.Is(unicode.Bidi_Control, r) {
+				fmt.Fprintf(&sb, `\u{%x}`, r)
+			} else {
+				sb.WriteRune(r)
+			}
+		}
+	}
+	sb.WriteByte('"')
+	return sb.String()
 }

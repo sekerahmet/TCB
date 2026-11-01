@@ -53,7 +53,7 @@ func MemberArgCount(typ, k codes.Code, minN, maxN, given int) error {
 // is written as the program writes it (.TR_split), expected and given are the types in the message's
 // language. The checker gives it before the program runs.
 func MemberArgType(k codes.Code, order int, expected, given any) error {
-	return messages.New(messages.H2423, memberCode(k), order, expected, given)
+	return messages.New(messages.H2423, memberCode(k), order, expected, given, "")
 }
 
 // memberCode is a member as the program writes it, without its receiver: .TR_sort.

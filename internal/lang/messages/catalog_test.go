@@ -82,7 +82,8 @@ func TestRender(t *testing.T) {
 	old := definitions
 	definitions = d
 	defer func() { definitions = old }()
-	if got := c.render(1, []any{"csv_oku", "a\x1b[2Jb"}); got != `csv_oku: "a\x1b[2Jb" {bir} klasör` {
+	// {ad|q} TR'nin metin yazımıyla tırnaklar (2.6, 8.4): denetim karakteri \u{1b}, Go'nun \x1b'si değil.
+	if got := c.render(1, []any{"csv_oku", "a\x1b[2Jb\u202e\"\\"}); got != `csv_oku: "a\u{1b}[2Jb\u{202e}\"\\" {bir} klasör` {
 		t.Errorf("metin: %s", got)
 	}
 	if got := c.render(1, []any{"csv_oku"}); got != `csv_oku: {path?} {bir} klasör` {

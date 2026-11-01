@@ -38,7 +38,7 @@ Her kod bir satırdır, kodlar artan sıradadır. Denetim: `TestEmbeddedCatalogV
 | Yazım | Anlamı |
 | :-- | :-- |
 | `{ad}` | değer olduğu gibi |
-| `{ad\|q}` | Go tırnağıyla, denetim karakterleri kaçırılarak (kullanıcı verisi için) |
+| `{ad\|q}` | TR'nin metin yazımıyla tırnaklı (kullanıcı verisi için): denetim ve yön karakterleri 2.6'nın kaçışıyla, `\u{1b}` (8.4) |
 | `{ad\|decimal}` | sayının ondalık ayırıcısı iletinin dilinde (Go noktayla yazar; tr `1,5`, en `1.5`). İleti dışı görüntüde `messages.Decimal` |
 | `{ad\|list}` | liste değeri (`messages.Listed`), dilin "ya da" kalıbıyla (`OrList`): tr "a, b ya da c", en "a, b, or c" |
 | `{@ad}`, `{@ad\|dat}` | **ad yuvası**: tanımın `slots` tablosundaki kitaplık adı (kimlik, `TR_arg_kind`), iletinin dilindeki adıyla yazılır; hâl eki yuvaya da gelir. Değer değildir, `param` sayısına girmez; TR kodunda kitaplığın iletisi adı geçirmez, katalog anar (parametre ya da alan adı TR'de değer olarak geçirilemez, ad değişince ileti eskimez). `definitions.json`: `"H6900": { "param": [...], "slots": {"num_heads": "TR_arg_num_heads"} }`. Her dil tanımdaki bütün yuvaları kullanır |

@@ -156,7 +156,7 @@ TR_print(TR_String(TR_print), "\(f)", TR_String(1e15), TR_String(TR_inf) == "inf
 func TestCaughtRunTimeErrorTextIsItsMessage(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func taşır() -> TR_Int { TR_return [1][5] }\n")}})
 	out := runCoded(t, "TR_import \"tr/kitap\" TR_as k\nTR_try { [1].TR_join(TR_true) } TR_catch e { TR_print(e, e.TR_code) }\nTR_try { k.taşır() } TR_catch e { TR_print(e) }\n", nil)
-	want := "Message(\"H2423\", \"TR_join\", 1, \"String\", Message(\"H2424\", \"Bool\", \"true\")) H2423\n" +
+	want := "Message(\"H2423\", \"TR_join\", 1, \"String\", Message(\"H2424\", \"Bool\", \"true\"), \"\") H2423\n" +
 		"Message(\"H2515\", \"List\", 5, 1, \"TR_get\")\n"
 	if out != want {
 		t.Errorf("yakalanan hatanın metni:\n%s\nbeklenen:\n%s", out, want)
