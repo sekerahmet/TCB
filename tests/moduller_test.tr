@@ -60,6 +60,13 @@ TR_test "11.5 modülün kodu kendi dosyasının bağlamında çalışır" {
     TR_assert_equal("özel hata", mesaj)
 }
 
+TR_test "11.5 görevde çalışan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur" {
+    TR_var okunan = ""
+    TR_async { okunan = alt_veri() }
+    TR_wait_all()
+    TR_assert_equal("alt klasörün verisi", okunan)
+}
+
 TR_test "11.7 başı _ olan üst düzey adlar modüle özeldir" {
     TR_assert_equal(7, özel.dış_hesap(2))
     TR_assert_equal("H2487", TR_error_code { özel._iç_hesap(2) })

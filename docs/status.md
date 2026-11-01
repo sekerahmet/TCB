@@ -432,8 +432,7 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ### 11.5
 
-- **Yapılacaklar:** dosya bilgisinin görevde tutulması (bir görevin modül yüklemesi öbür görevlerin yollarını değiştirmez); TR testi.
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** dosya bilgisi çağrınındır (görevde çalışan modül fonksiyonu kendi modülünün klasörüyle okur).
+- **Mevcut durum (Faz 1, 2026-11-01):** dosya bilgisi görevde ve çağrıda tutuluyor (`NewTaskVM`, `callInSource`); görevden çağrılan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okuyor (`tests/moduller_test.tr`: `"11.5 modülün kodu kendi dosyasının bağlamında çalışır"`, `"11.5 görevde çalışan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur"`) [kanıtlı: `internal/lang/interp/vm.go:310`, `internal/lang/interp/calls.go:230-232`, `internal/lang/interp/module.go:168-177`; ölçüldü: `go run ./cmd/tr test tests/moduller_test.tr`, 2026-11-01].
 
 ### 11.6
 
