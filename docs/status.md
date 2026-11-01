@@ -80,6 +80,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 ### 3.5
 
 - **Mevcut durum:** denetleyici isteğe bağlı tipi `T?` olarak taşıyor: `TR_none` yalnız isteğe bağlı (ya da tipi bilinmeyen adlı) değişkene, parametreye, alana ve dönüşe veriliyor, öbürü denetim hatası (`TR_var a: TR_Int = TR_none`, `-> TR_Int` fonksiyonda değersiz `TR_return`); `x ?? d`'nin tipi asıl tip, `[1.0, TR_none]` `TR_List[TR_Float?]`. İsteğe bağlı değerin asıl tipin yerinde kullanılması denetlenmiyor (daraltma yok, aritmetikte tipi `TR_Any`) [ölçüldü: `TestOptionalTypes`, `TestTypeCompatibility`, dal `claude/charming-pasteur-q1vsvo`].
+- **Mevcut durum (ölçüm, 2026-11-01):** bulut 4a2-2'den sonra öğe tipli dönüşler `T?` (`.TR_first`, `.TR_get`); ad olmayan bir `T?` ifadesi `T` beklenen yere hatasız veriliyor ve çalışırken tipli değişkene `TR_none` giriyor: `TR_var x: TR_Int = l.TR_first` (boş liste) denetimden geçer, `TR_print(x)` yok yazar, hata ancak `x + 1`'de çıkar [ölçüldü: denetim ve çalıştırma, `a2417c16` öncesi birleştirme dalı]. Sessiz yanlış; akış analizi istemez, 4a'nın sonraki diliminde, önce depodaki yerleri sayılarak (DENETİM, `kol-denetim-bulut-4a2-2-sonuc.md`).
 - **Yapılacaklar:** açılmamış kullanım denetim hatası; daraltma (4b) yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz; ilk değeri `TR_none` olan açıklamasız değişkenin hatası (3.13).
 ### 3.6
 
@@ -100,6 +101,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 
 - **Mevcut durum:** `TR_JSON` kuruluyor, açılıyor, dolaşılıyor; JSON ile JSON olmayanın karşılaştırması üst düzeyde, kabın içinde, `.TR_contains`'te ve eşleme deseninde çalışma hatası (kapta H2705): `j["a"] == 1`, `TR_List(j) == [1, 2]`, `TR_List(j).TR_contains(1)`, `[j[0]] == [1]`, `TR_match j["a"] { 1 => ... }` [ölçüldü: main `85a19c36`, CLI; `tests/tipler_test.tr`'nin 3.7a testleri].
 - **Yapılacaklar:** `TR_Type(j) == TR_JSON` denetim hatası (bugün denetim geçer, çalışmada `TR_false`) ve genel tiplerin (Any, Object, StructType) kalkması (4a).
+- **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** `j == TR_none` ve JSON olmayan değerle karşılaştırma (`j == 1`) denetim hatası (3.7a, 3.5, 4.5), ileti iki yazımı önerir (`TR_Type(j) == TR_NoneType`, `j.TR_get(k) == TR_none`); denetleyicinin işi (4a'nın sonraki dilimi). Bugün çalışma anında H2660/H2661 ya da `TR_false`. Uygulama commit'i `tests/tipler_test.tr`'nin bu karşılaştırmaları sınayan satırlarını (DENETİM: 350, 351, 354, 357, 386) olumsuz fikstüre taşır.
 - **Mevcut durum:** iç içelik sınırı 1000 kap: sınama kap açılırken yapılıyor, 1000 kap geçer, 1001 kap düşer (H2500), içteki değer ne olursa olsun; çözmede ve `TR_JSON(x)`'te aynı, kaba konan JSON değerinin kapları da sayılıyor. Eskiden sınır en içteki dizinin boş olup olmamasına bağlıydı [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/tipler_test.tr`'nin 3.7a iç içelik testi, `TestJSONDepthCountsContainers`, `TestMakeJSONDepthCountsContainers`].
 
 ### 3.10
@@ -900,6 +902,10 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 - **Mevcut durum:** parçalayıcı eğitmek yok; bugün Python'a gidiliyor.
 - **Yapılacaklar:** bayt düzeyinde BPE eğitimi, belirlenimci; `.TR_save` ile `tokenizer.json`; TR testi.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** dosya listesiyle eğitim; bayt düzeyi ön ayırıcı ve çözücü, eşitlik kuralı (Hugging Face ile bir kez sınanacak); özel parça eklemez.
+
+### 16.5
+
+- **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** okuyucu `int64`'e geçer; `int32`'ye sığmayan `<u4` ve `<i8` değerini reddetmek (H5086) dil tanımına aykırı: 16.5 yalnız tür kümesini söyler, 16.6 2³²'ye kadar işaretsiz kimliğe izin verir, 16.7 `"int64"` tensör üretir [kanıtlı: Gemini `TUR1_RAPORU.md` satır 27, DENETİM `kol-denetim-tur1-rapor-sonuc.md`]. Bugün `internal/compute/dataload/shard.go:282` (`decodeI32`, 256) reddediyor; `TestShardU32Overflow`'un `<i8` satırları ve `tests/veri_parcalayici_test.tr`'nin sınırı ters döner. S1'in işi.
 
 ### 16.6
 

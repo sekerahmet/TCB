@@ -18,7 +18,7 @@ Göreli yolların ve bağlantıların ortak kuralı 18.16'dadır.
 - `.TR_name` son bileşendir (`.` ve kökte boş metin);
 - `.TR_extension` noktasıyla birlikte son uzantıdır (`"derlem.tar.gz"` → `".gz"`); uzantısız ad, noktayla biten ad ve başındaki noktadan başka noktası olmayan ad (`.gitignore`) için boş metin (`.env.local` → `".local"`);
 - `.TR_stem` son uzantının atıldığı addır; `.TR_stem + .TR_extension` her zaman `.TR_name`'dir;
-- `.TR_parent` bulunduğu klasörün yoludur (tek bileşenli göreli yolda `.`, `.`'da `..`); kökte kökün kendisidir (`/`, `C:/`).
+- `.TR_parent` bulunduğu klasörün yoludur (tek bileşenli göreli yolda `.`, `.`'da `..`; yalnız `..` bileşenlerinden oluşan yolda sonuna `/..` eklenir: `..`'da `../..`); kökte kökün kendisidir (`/`, `C:/`).
 - *Test:* TR testi.
 
 **18.3** Diske soran özellikler yolu 18.16'nın okuma kuralıyla çözer:

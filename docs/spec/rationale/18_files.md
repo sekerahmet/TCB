@@ -10,7 +10,7 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 
 ### 18.2
 
-- *Emsal:* Python `pathlib`'in `name`, `suffix`, `stem`, `parent`'ı aynı tanımlardır (`".gitignore"`'ın `suffix`'i boş) [kanıtsız: bu tur açılmadı].
+- *Emsal:* Python `pathlib`'in `name`, `suffix`, `stem`'i aynı tanımlardır (`".gitignore"`'ın `suffix`'i boş); `parent` ise yolun çapasını ve boş yolu geçmez, `.`'nın üst klasörü `.`'dır [kaynak: Python 3.15.2 belgesi, `pathlib.PurePath.parent`, "You cannot go past an anchor, or empty path"; Gemini `TUR1_RAPORU.md` 2.5]. *Almadık:* 18.1 üst klasöre çıkmayı ikinci parçada yasaklayıp `.TR_parent`'a bırakır; `.TR_parent` `.`'da kalsaydı göreli yolda üst klasöre çıkmanın yolu olmazdı.
 - *Gerekçe:* ajanın en çok bildiği tanımlar; diske bakmadıkları için sonuçları yalnız yazıma bağlıdır.
 
 ### 18.3
