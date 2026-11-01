@@ -438,7 +438,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 ### 15.47a
 
-- *Emsal:* Python'un `safetensors`'ı başlığı boşlukla 8 bayta tamamlar ve tensörleri hizaya göre sıralar (önce geniş türler) [ölçüldü: DENETİM]. transformers `__metadata__`'ya `{"format": "pt"}` yazar, okumada denetlemez [ölçüldü: DENETİM]. I64, U8 ve BOOL Python'da okunuyor [ölçüldü: DENETİM].
+- *Emsal:* Python'un `safetensors`'ı başlığı boşlukla 8 bayta tamamlar ve tensörleri hizaya göre sıralar (önce geniş türler), aynı türde ada göre [ölçüldü: DENETİM, 0.8.0]. transformers `__metadata__`'ya `{"format": "pt"}` yazar, okumada denetlemez [ölçüldü: DENETİM]. I64, U8 ve BOOL Python'da okunuyor [ölçüldü: DENETİM].
 - *Gerekçe:* CLAUDE.md "eğitilen modeli yaygın biçimlerde dışarı vermek"i ister ("Paylaşmak"); bugün yalnız okunuyor. İki biçim kalır: TR biçimi CRC taşıdığı için kontrol noktası onu kullanır ("Güvenilir"), safetensors paylaşmak içindir. Yazarken uzantıyla seçmek 18.13'ün `.gz`'si gibidir; okumada içerikten anlaşılır. Python'unkiyle aynı düzen, başka araçların dosyayı hiçbir ayar olmadan okumasını sağlar. ONNX ve GGUF dışa verme yol haritasındadır (DENETİM E1'in hükmü).
 - *Gerekçe (sıra, 2026-11-01, geçici):* hiza sıfır kopyalı ve eşlemeli (mmap) okumaya izin verir (hız); aynı genişlikte yazılan sırayı korumak adla sıralamaktan daha az şaşırtır, tek türlü bir modelde (bütün ağırlıklar bf16) gidiş dönüş sırayı aynen korur. *Almadık:* hizasız, yazılan sırayla yazmak (NumPy ve PyTorch okur [ölçüldü: DENETİM], ama sıfır kopyalı okuyucuyu yavaşlatabilir [hipotez]); yazılan sırayı `__metadata__`'ya koymak (biçime yeni bir öğe).
 
