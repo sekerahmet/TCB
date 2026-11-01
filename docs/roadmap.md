@@ -102,7 +102,7 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 - **Standart hataya yazmak:** programın kendi kullanım hatasını ve hizmetin hata çıktısını standart hataya yazacak bir yol yok. 19.10 bunu ister; yeni ad ya da adlı argüman gerekir. `TR_command_line[Ayar]()` ile zorunlu seçenek de 4c'den sonra gelir.
 - **Tarih ve saat** (arşiv).
 - **Bellek ve gerçek zaman:** çöp toplayıcının duraklamasının robotun sabit hızlı döngüsüne etkisi; ölçüm ve gerekirse sınır. Yorumlayıcı kilidinin gecikmesi 10.2'nin kuralıdır; ölçümü buraya girer.
-- **Yorumlayıcı hızı:** arşiv yorumlayıcının Python'dan yaklaşık 1,5 kat yavaş olduğunu yazıyor [kanıtsız: arşivin sözü, bugün ölçülmedi].
+- **Yorumlayıcı hızı:** yorumlayıcı işinde TR, Python'dan ortalama 1,75 kat yavaş; en büyük fark metin (2,9 kat) ve fonksiyon çağrısı (2,3 kat). Ağır işte önde: CPU'da karakter modeli PyTorch'un 0,82–0,94 katı süre [ölçüldü: Colab CPU High-RAM, `6d21ed09`, [`tools/bench/README.md`](../tools/bench/README.md) "Güncel taban"].
 - **Paket, bağımlılık ve sürüm sabitleme:** başkasının modülünü sürümüyle almak, kilit dosyası. `tr/` kitaplığı ikiliyle gelir, ona gerekmez (11.6).
 - **Sürüm politikası:** 0.y.z numarası; kararlı, beta ve prototip etiketleri; dil ve dosya biçimini dondurma kuralları; yayın ikilileri (arşiv).
 - **Hazır modelin sohbet biçimi:** sohbet şablonu (`tokenizer_config.json`'un şablonu) ve özel parçalar; "sohbet etmek" ister.
@@ -221,7 +221,7 @@ Kilometre taşı, dili gerçek bir işte sınayan ve bitiş ölçütü ölçüle
 - **Sonuç, 2026-10-23'te bitiş ölçütü sağlandı:**
   - 0,8 milyar parçalık iki tohumlu koşuda PyTorch'tan daha düşük doğrulama kaybı;
   - bellekte derlenmiş PyTorch'la başa baş;
-  - adım süresi derlenmiş PyTorch'un 1,07 katı, yani TR %7 yavaş (RTX PRO 6000; A100'de 1,15) [kanıtlı: `docs/archive/roadmap-2026-10-27.md:17,133,232`];
+  - adım süresi derlenmiş PyTorch'un 1,07 katı, yani TR %7 yavaş (RTX PRO 6000; A100'de 1,15) [kanıtlı: `docs/archive/roadmap-2026-10-27.md:17,133,232`]; 2026-11-01'de Faz 0'dan sonra aynı oran, 145 / 136 ms/adım, TR'nin belleği 10,57 / 10,83 GiB [ölçüldü: Colab G4, `e9c64a45`, [`tools/bench/README.md`](../tools/bench/README.md) "Güncel taban"];
   - üç kart türünde (RTX PRO 6000, A100, L4) GPU testleri geçiyor.
 
   Ayrıntı [arşivde](archive/roadmap-2026-10-27.md).

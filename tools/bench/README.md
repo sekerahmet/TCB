@@ -21,6 +21,47 @@ python tools/bench/run.py --json sonuc.json         # sonuçları dosyaya yaz
 | `matris_dongu` | 120×120 matris çarpımı, iç içe döngülerle: liste indeksleme |
 | `matris_yerlesik` | 512×512 matrisle iki çarpım, yerleşik `@` ile (Python sürümü bir dizi kütüphanesi ister; bkz. `py/compare.py`) |
 
+## Güncel taban (2026-11-01, T1 öncesi)
+
+Faz 0'ın tipli yazıma göçü, D1'in ilk dilimi ve Gemini'nin Faz 1 işinden sonra, tensör çekirdeğini değiştirecek T1'den önce. Ham kayıtlar Drive'da `TR_dili/olcumler/` (`OZET.md`, `cpu-temel/`, `kart/`); kayıt aracı (`tools/record`) her koşuya commit'i ve sürümleri yazar.
+
+**Dil kıyası** (Colab CPU High-RAM, AMD EPYC 7B12, 8 sanal çekirdek, Python 3.13.18; 5 tekrarın en iyisi; main `6d21ed09`; üç sürümün sonuç değerleri aynı) [ölçüldü: `cpu_baseline.sh`, `cpu-temel/20261101183359.log`]:
+
+| Test | TR | Python | Go | TR/Python |
+| :-- | --: | --: | --: | --: |
+| `dongu` | 276 ms | 204 ms | 2 ms | 1,35 |
+| `fib` | 71 | 31 | 1 | 2,29 |
+| `sirala` | 117 | 166 | 32 | 0,70 |
+| `metin` | 82 | 28 | 8 | 2,93 |
+| `sozluk` | 284 | 138 | 125 | 2,06 |
+| `matris_dongu` | 306 | 142 | 2 | 2,15 |
+| `matris_yerlesik` | 7 | 8 (NumPy 2.1.3) | 185 | 0,88 |
+
+Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [hesap: geometrik ortalama]; en büyük fark metin (2,9) ve fonksiyon çağrısı (2,3). Aynı makinede 30 dakika önceki koşu (`b0b4c579`) 1,3–2,9 arası, aynı sıralamayla.
+
+**Karakter modeli, CPU** (aynı makine ve koşu, PyTorch 2.14.1; ikisinin kaybı 300 adımda 2,21):
+
+| İş parçacığı | TR ms/adım | PyTorch ms/adım | TR/PyTorch |
+| --: | --: | --: | --: |
+| 1 | 22,37 | 27,32 | 0,82 |
+| 2 | 19,38 | 20,62 | 0,94 |
+| 4 | 16,74 | 18,01 | 0,93 |
+| 8 | 17,70 | 18,75 | 0,94 |
+
+**Hedef model, GPU** (Colab G4, RTX PRO 6000 Blackwell, sürücü 580.82.07; sentetik veri, 120 adım; main `e9c64a45`, motor dosyaları `6d21ed09`'a kadar değişmedi [ölçüldü: `git diff e9c64a45..6d21ed09 -- internal cmd lib`]):
+
+| | ms/adım (ortanca) | Tepe bellek |
+| :-- | --: | --: |
+| TR | 145 | 10,57 GiB |
+| PyTorch 2.11, `torch.compile` | 136 | 10,83 GiB |
+| PyTorch 2.11, derlemesiz | 346 | 16,95 GiB |
+
+TR derlenmiş PyTorch'un 1,07 katı [hesap: 145/136]; 2026-10-23'teki oranla aynı. Bulut 4a2'nin ikinci dilimi birleştikten sonra (`a2417c16`) aynı ölçüm: TR 145 ms/adım ve 10.823 MiB, GPU testleri ve dil tanımı testlerinin hepsi geçti [ölçüldü: `kart/20261101185157`]; PyTorch derlenmiş 136, derlemesiz 347 ms/adım, bellek aynı [ölçüldü: `pytorch-temel/20261101185327`, kayıt aracıyla].
+
+**Bu koşularda bulunan ve düzelen kırılmalar:** karakter modeli kıyası Faz 0'dan beri çalışmıyordu (`run.py` eski yazımı, `py/char_model.py` silinmiş 14. bölümü arıyordu; `7b5f9958`, `6d21ed09`); düşen kıyas sessizce boş sonuç veriyordu (`02dee59b`); iki GPU testi iletiyi Türkçe metinle arıyordu ve İngilizce makinede kaldı (`02dee59b`).
+
+## Ölçüm notları
+
 Derlemeler varsayılan ayarla yapılır (ortamdaki `GOAMD64` geçerlidir). AVX2/FMA kernelleri çalışma
 anında seçilir; `TR_CPU_AVX2=0` taşınabilir Go eşlerini kullandırır. Matris çarpımı AVX2 kerneliyle
 taşınabilir kernelden çok daha hızlıdır: 512×512 iki çarpım 20 turun ortalamasında 1 çekirdekte
