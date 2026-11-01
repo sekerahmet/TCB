@@ -177,6 +177,8 @@
 "H1123": { "param": ["order", "elem", "list", "given"], "slots": {"append": "TR_mem_append"} },
 "H1124": { "param": ["field", "struct", "declared", "given"] },
 "H1125": { "param": ["field", "struct", "declared", "given"] },
+"H1130": { "param": ["value", "given", "kind"], "slots": {"none": "TR_kw_none"} },
+"H1135": { "param": ["given", "container", "elem", "hint"] },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

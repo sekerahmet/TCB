@@ -79,6 +79,11 @@ var suggestionCases = []suggestionCase{
 	{messages.H0299, "TR_var x = 1\nTR_func f() -> TR_Int {\n    TR_defer { TR_return 5 }\n    TR_return 1\n}\nTR_print(f())", "TR_defer { TR_return 5 }", "TR_defer { TR_if x > 0 { TR_print(x) } }"},
 	{messages.H0300, "TR_func f() {\n    TR_defer TR_print(1)\n}\nf()", "TR_defer TR_print(1)", "TR_defer { TR_print(1) }"},
 	{messages.H2900, "TR_var l = [3, 1, 2]\nTR_print(l.TR_sort((a, b) => b - a))", "l.TR_sort((a, b) => b - a)", "l.TR_sort((x) => -x)"},
+	{messages.H1130, "TR_var l: TR_List[TR_Int] = []\nTR_var x: TR_Int = l.TR_first\nTR_print(x)", "l.TR_first", "l.TR_first ?? 0"},
+	{messages.H1130, "TR_func f(l: TR_List[TR_Float]) -> TR_Float {\n    TR_return l.TR_get(2)\n}\nTR_print(f([]))", "l.TR_get(2)", "l.TR_get(2) ?? 0.0"},
+	{messages.H1130, "TR_var l = [\"a\"]\nTR_var s = \"\"\ns = l.TR_last\nTR_print(s)", "l.TR_last", "l.TR_last ?? \"\""},
+	{messages.H1130, "TR_var l: TR_List[TR_List[TR_Int]] = []\nTR_var k: TR_List[TR_Int] = l.TR_first\nTR_print(k)", "l.TR_first", "l.TR_first ?? []"},
+	{messages.H1135, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm[0] = l.TR_first\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
 }
 
 // maxUntestedSuggestionCodes izin listesindeki kayıt sayısının üst sınırıdır; liste yalnız küçülür.

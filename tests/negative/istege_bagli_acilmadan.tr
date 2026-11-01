@@ -1,0 +1,23 @@
+# TR 4
+# TEST 3.5 ad olmayan isteğe bağlı (T?) ifade T beklenen yere açılmadan verilmez: konumun kendi kodu; değişmezin öğesinde de, öğesi isteğe bağlı olmayan kabın indeksine atamada H1135
+TR_struct Nokta { x: TR_Int }
+TR_func son(l: TR_List[TR_Int]) -> TR_Int {
+    TR_return l.TR_last # ERROR H1003
+}
+TR_func iki_kat(n: TR_Int) -> TR_Int { TR_return n * 2 }
+TR_func ana() {
+    TR_var l: TR_List[TR_Int] = []
+    TR_var a: TR_Int = l.TR_first # ERROR H1001
+    TR_var b = 0
+    b = l.TR_first # ERROR H1005
+    TR_print(iki_kat([1].TR_get(5))) # ERROR H1004
+    TR_var p = Nokta(l.TR_first) # ERROR H1125
+    p.x = l.TR_first # ERROR H1124
+    TR_print([1].TR_get(l.TR_first)) # ERROR H2423
+    l.TR_append(l.TR_first) # ERROR H1123
+    TR_var k: TR_List[TR_Int] = [1, l.TR_first] # ERROR H1001
+    TR_var d: TR_Dict[TR_String, TR_Int] = {"a": l.TR_first} # ERROR H1001
+    k[0] = l.TR_first # ERROR H1135
+    d["a"] = l.TR_first # ERROR H1135
+    TR_print(son(l), a, b, p, k, d)
+}

@@ -182,6 +182,8 @@ const (
 	H1123 Code = 1123 // `.{#append}`'in {order}. argümanı listenin öğe tipinde ({elem}) olmalı: {list} listesine {given} eklenmez (liste tek tiplidir, 3.6)
 	H1124 Code = 1124 // {struct} yapısının `{field}` alanı {declared} tipindedir: ona {given} tipinde değer atanmaz (7.5)
 	H1125 Code = 1125 // {struct} kurulurken `{field}` alanına {given} verildi; alan {declared} tipindedir (7.2)
+	H1130 Code = 1130 // ; `{value}` isteğe bağlıdır ({given}): önce açın, {kind, select, int {bir varsayılanla: `{value} ?? 0`} float {bir varsayılanla: `{value} ?? 0.0`} string {bir varsayılanla: `{value} ?? ""`} list {bir varsayılanla: `{value} ?? []`} other {`??` ve bir varsayılanla ya da bir değişkene alıp onu önce `{#none}` ile karşılaştırarak} } (3.5)
+	H1135 Code = 1135 // {container} kabının öğeleri {elem} tipindedir: ona isteğe bağlı {given} tipinde değer yazılmaz (3.5){hint}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

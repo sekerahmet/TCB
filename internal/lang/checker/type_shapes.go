@@ -126,8 +126,11 @@ func typesCompatible(expected, actual string) bool {
 }
 
 // assignable value'nun (tipi actual) beklenen tipin yerine verilip verilemeyeceğidir; programın
-// yapılarını bilir.
+// yapılarını bilir. Ad olmayan bir T? ifadesi T beklenen yere verilmez (3.5).
 func (c *Checker) assignable(expected, actual string, value ast.Expression) bool {
+	if bad, _ := c.unopened(expected, actual, value); bad != nil {
+		return false // açılmamış isteğe bağlı değer (3.5, optional_values.go)
+	}
 	return compat{isStruct: c.knownStruct, literal: literalValue(value)}.types(expected, actual)
 }
 

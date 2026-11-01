@@ -22,13 +22,13 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 	case *ast.ListLiteral:
 		elems := make([]string, len(e.Elements))
 		for i, el := range e.Elements {
-			elems[i] = c.inferExpression(el)
+			elems[i] = c.itemType(el)
 		}
 		return c.listLiteralType(elems, e.Elements), true
 	case *ast.TupleExpression:
 		elems := make([]string, len(e.Elements))
 		for i, el := range e.Elements {
-			elems[i] = c.inferExpression(el)
+			elems[i] = c.itemType(el)
 		}
 		return c.tupleLiteralType(elems), true
 	case *ast.ListComprehension:
@@ -44,8 +44,8 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		keys, values := make([]string, len(e.Pairs)), make([]string, len(e.Pairs))
 		keyExprs, valueExprs := make([]ast.Expression, len(e.Pairs)), make([]ast.Expression, len(e.Pairs))
 		for i, p := range e.Pairs {
-			keys[i] = c.inferExpression(p.Key)
-			values[i] = c.inferExpression(p.Value)
+			keys[i] = c.itemType(p.Key)
+			values[i] = c.itemType(p.Value)
 			keyExprs[i], valueExprs[i] = p.Key, p.Value
 		}
 		return c.dictLiteralType(keys, values, keyExprs, valueExprs), true
@@ -55,7 +55,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		return typeRange, true
 	case *ast.IndexExpression:
 		c.checkModuleIndex(e) // modül değeri köşeli ayraçla okunmaz ve atanmaz (11.2)
-		return indexType(c.inferExpression(e.Left), c.inferExpression(e.Index)), true
+		return indexType(c.itemType(e.Left), c.inferExpression(e.Index)), true
 	case *ast.MemberExpression:
 		obj := c.inferExpression(e.Object)
 		if t := c.memberValueType(e, obj, false); t != "" {

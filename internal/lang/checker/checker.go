@@ -88,6 +88,8 @@ type Checker struct {
 	fileKind   FileKind
 	fileLines  []string
 	valueTypes map[ast.Expression]string
+	// itemTypes liste, sözlük ve demet değişmezlerinin öğelerinin çıkarılan tipleridir (optional_values.go).
+	itemTypes map[ast.Expression]string
 	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
 	// için (local_types.go).
 	structs map[string]*ast.StructStatement
@@ -163,6 +165,7 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
 	c.valueTypes = nil
+	c.itemTypes = map[ast.Expression]string{}
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
 	for _, stmt := range prog.Statements {
@@ -191,7 +194,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.recordValueType(s.Value, inferred)
 		if s.Type != nil && !c.assignable(declared, inferred, s.Value) {
 			c.addErrorAt(s, messages.New(messages.H1001,
-				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.divisionHint(declared, inferred, dividesAtTop(s.Value))))
+				s.Name.Value, c.typeArg(declared), c.typeArg(inferred), c.typeHint(declared, inferred, s.Value, dividesAtTop(s.Value))))
 		}
 		// Yerel değişkenin tipi ilk değerinden çıkar ve değişmez (1.2, 3.13): sonraki atama ona uyar.
 		// Çıkarılamayan tip ve TR_none'la başlayan açıklamasız değişken TR_Any kalır (local_types.go).
@@ -478,7 +481,7 @@ func (c *Checker) checkReturn(s *ast.ReturnStatement) {
 	c.noteReturn(s, valType)
 	if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
 		c.addErrorAt(s, messages.New(messages.H1003,
-			c.typeArg(c.returnType), c.typeArg(valType), c.divisionHint(c.returnType, valType, dividesAtTop(s.ReturnValue))))
+			c.typeArg(c.returnType), c.typeArg(valType), c.typeHint(c.returnType, valType, s.ReturnValue, dividesAtTop(s.ReturnValue))))
 	}
 }
 
@@ -504,7 +507,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			}
 			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType, s.Value) {
 				c.addErrorAt(s, messages.New(messages.H1005,
-					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.divisionHint(info.TypeName, valType, op == "/" || op == "" && dividesAtTop(s.Value))))
+					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.typeHint(info.TypeName, valType, s.Value, op == "/" || op == "" && dividesAtTop(s.Value))))
 			}
 		}
 	} else {
@@ -512,5 +515,6 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		c.checkModuleAssign(s.Target)
 		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
 		c.inferExpression(s.Target)
+		c.checkIndexAssign(s, valType) // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
 	}
 }
