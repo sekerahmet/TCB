@@ -38,6 +38,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **13.1, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** `TR_unsigned_shift_right`.
 - **13.8, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** yapının JSON'u iki yönlü.
 - **13.3, kritik (2026-11-01, D1):** "Anahtar fonksiyonu her öğe için bir kez çağrılır." Anahtarlı sıralamanın uygulanması bu cümleye bağlıydı; ana oturum aynı gün karar verdi (D1'in dalında, birleşince main'de).
+- **10.2, kritik (2026-11-01, D1'in 10.2 ölçümü, `d1-10-2-olcum.md`):** eski söz "kilidi bekleyen bir görev en çok 10 ms içinde kilidi alır" 5 ms'lik devirle üç ve daha çok meşgul görevde tutamazdı ((k − 1) × 5 ms) [hesap]; liste ve sözlük metotlarının istisnası sözde yazılı değildi. Ana oturum aynı gün karar verdi: kilit geliş sırasıyla alınır; tutan görev bekleyen varken en çok 5 ms ve o anki deyimin sonuna kadar tutar; önünde n görev bekleyen görev en çok (n + 1) × 5 ms ve n + 1 deyim bekler; liste, sözlük ve metin yerleşikleri sözün dışında. Geçici, turda denetlenecek.
 
 ## Ara
 
