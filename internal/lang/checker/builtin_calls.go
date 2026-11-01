@@ -21,9 +21,9 @@ var MembersBeyondDefinitions = map[codes.Code][]codes.Code{
 	codes.MemLength: {codes.TypeJSON, codes.TypeBytes},
 }
 
-// memberOf tipi bilinen alıcıda çağrılan yerleşik metodun kodu, alıcının tip kodu ve tanımıdır
-// (13.9): alıcı isteğe bağlı değil, tipi bir çekirdek tip (denetleyicinin tanıdığı; kullanıcı
-// yapısı değil) ve metot kodla yazılmış, kitaplığın olmayan bir üyedir. ok false ise kural uygulanmaz.
+// memberOf tipi bilinen alıcıda çağrılan yerleşik metodun ya da özelliğin kodu, alıcının tip kodu ve
+// tanımıdır (13.9): alıcı isteğe bağlı değil, tipi bir çekirdek tip (denetleyicinin tanıdığı; kullanıcı
+// yapısı değil) ve üye kodla yazılmış, kitaplığın olmayan bir üyedir. ok false ise kural uygulanmaz.
 func memberOf(m *ast.MemberExpression, objType string) (k, recv codes.Code, def codes.Definition, ok bool) {
 	if m == nil || m.Safe {
 		return
@@ -38,7 +38,7 @@ func memberOf(m *ast.MemberExpression, objType string) (k, recv codes.Code, def 
 		return
 	}
 	def, found = codes.DefinitionOf(k)
-	return k, recv, def, found && def.Kind == codes.KindMethod
+	return k, recv, def, found && (def.Kind == codes.KindMethod || def.Kind == codes.KindProperty)
 }
 
 // memberSignature üyenin recv tipindeki imzasıdır; üye o tipte yoksa ok false.
@@ -63,6 +63,12 @@ func (c *Checker) checkMemberCall(e *ast.CallExpression, objType string, argType
 		return
 	}
 	sig, found := memberSignature(def, recv)
+	if def.Kind == codes.KindProperty {
+		if found {
+			c.checkPropertyCall(e, sig)
+		}
+		return
+	}
 	if !found {
 		if _, untrusted := MembersBeyondDefinitions[k]; !untrusted {
 			c.reportMissingMember(e, m, k, def, objType, argTypes)
@@ -76,6 +82,18 @@ func (c *Checker) checkMemberCall(e *ast.CallExpression, objType string, argType
 	if minN, maxN := sig.PositionalCounts(); given < minN || maxN >= 0 && given > maxN {
 		c.addErrorAt(e, hint.MemberArgCount(recv, k, minN, maxN, given))
 	}
+}
+
+// checkPropertyCall özelliğin çağrılmasını denetler (13.11): özellik bir değerdir, çağrılmaz
+// ([1].TR_length(1)). Değerinin tipi tek ve fonksiyon olmayan bir çekirdek tipse çalışma anındaki
+// hatanın kendisidir (H2421, değerin tipiyle); tipi bilinmeyen ya da fonksiyon olabilen değer
+// ([f].TR_first()) çağrılabilir, denetlenmez.
+func (c *Checker) checkPropertyCall(e *ast.CallExpression, sig codes.Signature) {
+	ret, ok := singleType(sig.Return)
+	if !ok || ret == codes.TypeFunction || ret == codes.TypeBuiltinFunction || !coreTypes[codes.Name(ret)] {
+		return
+	}
+	c.addErrorAt(e, messages.New(messages.H2421, c.typeArg(codes.Name(ret))))
 }
 
 // reportMissingMember alıcının tipinde olmayan yerleşik metodu bildirir (13.10, 13.11): çalışma

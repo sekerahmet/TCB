@@ -71,3 +71,26 @@ func TestMissingMember(t *testing.T) {
 		noErrors(t, source)
 	}
 }
+
+// Kural (13.11): tipi bilinen alıcının özelliği çağrılmaz; değeri fonksiyon olmayan bir tipse
+// çalışma anındaki hatanın kendisi denetimde verilir (H2421). Tipi bilinmeyen alıcı, değeri
+// fonksiyon olabilen özellik ve parantezsiz özellik hatasızdır.
+func TestPropertyCall(t *testing.T) {
+	for _, source := range []string{
+		"TR_print([1].TR_length(1))",
+		"TR_var l = [1, 2]\nTR_print(l.TR_length())",
+		`TR_print({"a": 1}.TR_length())`,
+	} {
+		_, errs := checkErrs(t, source)
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H2421) {
+			t.Errorf("tek H2421 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+		}
+	}
+	for _, source := range []string{
+		"TR_print([1].TR_length, \"ab\".TR_length)",
+		`TR_print(TR_json_parse("[1]").TR_length())`,
+		"TR_func f() -> TR_Int {\n    TR_return 1\n}\nTR_print([f].TR_first())",
+	} {
+		noErrors(t, source)
+	}
+}

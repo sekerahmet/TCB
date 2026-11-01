@@ -1,0 +1,5 @@
+# TR 4
+# TEST 13.11 tipi bilinen alıcının özelliği çağrılmaz: değeri fonksiyon değilse denetim hatasıdır (çalışma anındaki kod)
+TR_var l = [1, 2]
+TR_print(l.TR_length()) # ERROR H2421
+TR_print("ab".TR_length(1)) # ERROR H2421
