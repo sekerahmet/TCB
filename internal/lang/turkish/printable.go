@@ -6,9 +6,9 @@ import (
 	"unicode/utf8"
 )
 
-// Printable returns s with control characters made visible (\x1b, \x07, \u009b ...), for
-// writing errors and warnings to a terminal: data from outside (a file name, a JSON value) in a
-// message cannot clear the screen or hide text. Newline and tab are kept; invalid UTF-8 becomes
+// Printable returns s with control characters made visible in 2.6's escape (\u{1b}, \u{7},
+// \u{9b} ...), for writing errors and warnings to a terminal (8.4): data from outside (a file
+// name, a JSON value) in a message cannot clear the screen or hide text. Newline and tab are kept; invalid UTF-8 becomes
 // U+FFFD. Program output (yazdır) is not passed through this: colors there are the program's
 // own choice.
 func Printable(s string) string {
@@ -20,10 +20,8 @@ func Printable(s string) string {
 		switch {
 		case r == '\n' || r == '\t':
 			b.WriteRune(r)
-		case r < 0x20 || r == 0x7f:
-			fmt.Fprintf(&b, `\x%02x`, r)
-		case r >= 0x80 && r < 0xa0:
-			fmt.Fprintf(&b, `\u%04x`, r)
+		case r < 0x20 || r == 0x7f || r >= 0x80 && r < 0xa0:
+			fmt.Fprintf(&b, `\u{%x}`, r) // 2.6'nın kaçışı (8.4): TR'de yazıldığı gibi okunur
 		default:
 			b.WriteRune(r) // geçersiz UTF-8 burada U+FFFD olarak gelir
 		}

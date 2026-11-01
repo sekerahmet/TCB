@@ -324,8 +324,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 ### 8.4
 
-- **Mevcut durum:** denetim karakterleri kaçırılıyor, ama `\x` yazımıyla: `TR_throw "a\u{1b}[2Jb\u{7}c"` → `a\x1b[2Jb\x07c` [ölçüldü: DENETİM].
-- **Yapılacaklar:** 2.6'nın kaçışı (`\u{1b}`).
+- **Mevcut durum:** denetim karakterleri 2.6'nın kaçışıyla yazılıyor: `TR_throw "a\u{1b}[2Jb\u{7}c"` → `a\u{1b}[2Jb\u{7}c`; eskiden `\x1b` [ölçüldü: dal `claude/d1-dilim1-bf7baf`, CLI; `TestPrintable`]. TR testi yakalanan metnin değişmediğini sınıyor; terminal çıktısı Go testinde. İletideki `{ad|q}` alıntısı Go'nun `\x1b` kaçışını kullanıyor [kanıtlı: `internal/lang/messages/catalog_test.go:85`] (bu dilimde değil).
 
 ### 8.5
 
