@@ -513,12 +513,12 @@ TR_test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda 
 
 TR_test "15.19 argmax" {
     TR_var x = TR_Tensor([[1, 9, 3], [7, 2, 7]])
-    TR_assert_equal([1, 0], TR_argmax(x).TR_tolist)
+    TR_assert_equal([1, 0], TR_argmax(x, TR_dim: -1).TR_tolist)
     TR_assert_equal([1, 0, 1], TR_argmax(x, TR_dim: 0).TR_tolist)
     TR_assert_equal(1, TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist)
     # .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
     TR_var harfler = ["a", "b", "c"]
-    TR_assert_equal("b", harfler[TR_argmax(x).TR_tolist[0]])
+    TR_assert_equal("b", harfler[TR_argmax(x, TR_dim: -1).TR_tolist[0]])
 }
 
 TR_test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma öncesi normu tensör olarak verir" {
@@ -956,7 +956,7 @@ TR_test "15.26 örnekle: sıcaklık, en_iyi_k, tohum" {
     TR_var l = TR_Tensor([[0.0, 3.0, 1.0], [2.0, 0.0, 0.5]])
     TR_var e = TR_sample(l, TR_temperature: 0)
     TR_assert_equal([1, 0], e.TR_tolist)
-    TR_assert_equal(TR_argmax(l).TR_tolist, e.TR_tolist)
+    TR_assert_equal(TR_argmax(l, TR_dim: -1).TR_tolist, e.TR_tolist)
     TR_assert_equal(TR_Int, TR_Type(TR_sample(TR_Tensor([1.0, 2.0])).TR_tolist))
     TR_assert_equal([], TR_sample(TR_Tensor([1.0, 2.0])).TR_shape)
     TR_assert_equal(TR_sample(l, TR_seed: 4).TR_tolist, TR_sample(l, TR_seed: 4).TR_tolist)

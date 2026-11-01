@@ -29,7 +29,7 @@ TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, 3.14159 < TR_pi <
 }
 
 func TestWideMathTensor(t *testing.T) {
-	out := mustRun(t, `TR_var i = TR_argmax(TR_Tensor([[1, 5], [7, 2]]))
+	out := mustRun(t, `TR_var i = TR_argmax(TR_Tensor([[1, 5], [7, 2]]), TR_dim: -1)
 TR_print(TR_floor(i).TR_tolist, TR_sign(i - 1).TR_tolist, TR_clamp(i, TR_min: 0, TR_max: 0).TR_tolist, TR_clamp(i, TR_max: 0.5).TR_tolist)
 TR_var x = TR_Tensor([-2.0, 0.5, 3.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(TR_clamp(x, TR_min: -1, TR_max: 1) + TR_floor(x) * 5))

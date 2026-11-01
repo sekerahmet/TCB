@@ -10,9 +10,9 @@ import (
 
 func TestArgMax(t *testing.T) {
 	out := mustRun(t, `TR_var x = TR_Tensor([[1, 9, 3], [7, 2, 7]])
-TR_print(TR_argmax(x).TR_tolist, TR_argmax(x, TR_dim: 0).TR_tolist, TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist)
-TR_print(TR_Int(TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist), TR_argmax(x).TR_shape)
-TR_print(TR_embedding_lookup(TR_Tensor([[0, 0], [1, 1], [2, 2]]), TR_argmax(TR_Tensor([[0, 0, 5]]))).TR_tolist)
+TR_print(TR_argmax(x, TR_dim: -1).TR_tolist, TR_argmax(x, TR_dim: 0).TR_tolist, TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist)
+TR_print(TR_Int(TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist), TR_argmax(x, TR_dim: -1).TR_shape)
+TR_print(TR_embedding_lookup(TR_Tensor([[0, 0], [1, 1], [2, 2]]), TR_argmax(TR_Tensor([[0, 0, 5]]), TR_dim: -1)).TR_tolist)
 TR_var harfler = ["a", "b", "c"]
 TR_var i = TR_argmax(TR_Tensor([[[0, 9, 1], [5, 0, 0]]]), TR_dim: -1)
 TR_print(harfler[i.TR_tolist[0][0]] + harfler[i.TR_tolist[0][1]], TR_Type(i.TR_tolist[0][1]), TR_Type(TR_argmax(TR_Tensor([1, 3])).TR_tolist))
