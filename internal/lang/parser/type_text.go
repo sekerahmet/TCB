@@ -11,7 +11,7 @@ import (
 // definitions' types (internal/lang/codes/definitions.json) are read with it, with the grammar of
 // typeAfter. Text left after the type is an error.
 func ParseTypeText(text string) (*ast.TypeRef, error) {
-	p := New(lexer.NewBody(":"+text, true))
+	p := New(lexer.New(":" + text))
 	t, ok := p.typeAfter()
 	if errs := p.Errs(); len(errs) > 0 {
 		return nil, errs[0]
