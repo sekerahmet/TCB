@@ -336,3 +336,17 @@ func TestTupleIsNotGivenToAListParameter(t *testing.T) {
 		t.Fatalf("liste geçmeli: %v %v", v, err)
 	}
 }
+
+// Kural (3.14): adlı argümanın adı bir iletinin değerinde (yakalanan hatanın metni) programdaki
+// yazımıyla durur: TR_requires_grad; sınıflı iç yazım (TR_arg_requires_grad) ve görünüm adı
+// değere girmez. Gösterilen hatada okuyanın dilindedir. Eskiden değer dili yüklenemediği için
+// sınıflı iç yazım çıkıyordu.
+func TestNamedArgInAMessageValueIsItsSpelling(t *testing.T) {
+	a := NamedArg(codes.ArgRequiresGrad)
+	if got := a.MessageText(messages.ValueLanguage); got != "TR_requires_grad" {
+		t.Errorf("değerdeki ad %q, beklenen TR_requires_grad", got)
+	}
+	if got := messages.ErrorIn(messages.New(messages.H7905, "f", a, "Int"), "en"); !strings.Contains(got, "requires_grad") || strings.Contains(got, "TR_arg_") {
+		t.Errorf("gösterilen hata: %q", got)
+	}
+}
