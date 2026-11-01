@@ -500,9 +500,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 ### 13.3
 
-- **Mevcut durum:** `.TR_sort()` −0.0 ile 0.0'ı eşit sayıyor: `[0.0, -0.0].TR_sort()` `[0.0, -0.0]` veriyor [ölçüldü: main `8b115692`] (15'in yan değişikliği, uygulanmadı).
-- **Yapılacaklar:** 13.10'un sıralama sırası (−0.0 0.0'dan önce, NaN'lar en sonda ve birbirine eşit; demette öğe öğe); 15.22b ile birlikte; TR testi.
-- **Anahtarlı sıralama:** `.TR_sort(f)` motorda yok: `.TR_sort()` argüman almıyor (H2011; 4a2'den beri denetimde de), ileti bugünkü yolu, anahtarı demetin ilk öğesi yapan sıralamayı gösteriyor (H1116) [ölçüldü: `TestMemberArgCount`]. Eklenmesi ayrı bir dil kararı (ana oturum, 2026-10-30).
+- **Mevcut durum:** 13.10'un sıralama sırası uygulandı (−0.0 0.0'dan önce, NaN'lar sonda ve birbirine eşit, demette öğe öğe); anahtarlı sıralama `.TR_sort(f)` motorda: anahtar her öğe için bir kez çağrılır, sıra kararlı, iki parametreli karşılaştırıcı H2900, sıralanamayan anahtar H2902 ve H2903, asıl listeyi değiştiren anahtar H2703 [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/yerlesikler_test.tr`'nin 13.3 testleri, `interp/sorting_test.go`].
+- **Yapılacaklar:** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
 
 ### 13.6
 

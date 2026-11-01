@@ -5,85 +5,129 @@ import (
 	"math"
 	"slices"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// sortValues değerleri sırala() kuralıyla kararlı (eşitlerin sırası korunarak) sıralar.
-// Liste ya yalnızca sayılardan (Tam ve Ondalık) ya da yalnızca metinlerden oluşmalıdır;
-// başka bir tip ya da sayı ile metin karışımı karşılaştırılamaz ve hata verir. Sayılar
-// tam olarak karşılaştırılır (iki Tam int64 olarak; Tam ile Ondalık Ondalığa yuvarlanmadan),
-// NaN'lar sona konur. Metinler karakter kodu sırasıyla dizilir. ad hata mesajındaki adıdır.
+// listSort .TR_sort() ve .TR_sort(f) metotlarının gövdesidir (13.3): listenin sıralanmış yeni bir
+// kopyasını verir. Anahtar fonksiyonu f tek parametre alır ve her öğe için bir kez çağrılır; öğeler
+// anahtarların sıralama sırasıyla (13.10) kararlı dizilir. f'nin dolaşılan listeye öğe eklemesi ya da
+// ondan öğe çıkarması 5.7'deki gibi hatadır.
+func listSort(y *VM, inst Value, args []Value, line int) (Value, error) {
+	list := inst.(*ListVal)
+	n := len(list.Elements)
+	copied := make([]Value, n)
+	copy(copied, list.Elements)
+	if len(args) == 0 {
+		if err := sortValues(CallPrefix(codes.MemSort), copied); err != nil {
+			return nil, err
+		}
+		return &ListVal{Elements: copied}, nil
+	}
+	if fn, ok := args[0].(*FuncVal); ok && len(fn.Parameters) != 1 {
+		return nil, messages.New(messages.H2900, len(fn.Parameters))
+	}
+	keys := make([]Value, n)
+	for i, item := range copied {
+		key, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
+		if err != nil {
+			return nil, err
+		}
+		if err := sizeChanged(list, n, line); err != nil {
+			return nil, err
+		}
+		keys[i] = key
+	}
+	if a, b := sortFault(keys); a != nil {
+		if b == nil {
+			return nil, messages.New(messages.H2902, TypeAndSummary(a))
+		}
+		return nil, messages.New(messages.H2903, TypeAndSummary(a), TypeAndSummary(b))
+	}
+	sortByKeys(keys, copied)
+	return &ListVal{Elements: copied}, nil
+}
+
+// sortValues değerleri 13.10'un sıralama sırasıyla kararlı (eşitlerin sırası korunarak) sıralar.
+// Liste ya yalnızca sayılardan (Tam ve Ondalık), ya yalnızca metinlerden ya da yalnızca öğeleri
+// sıralanabilen demetlerden oluşmalıdır; başka bir tip ya da karışım karşılaştırılamaz ve hata verir.
+// Sayılar tam olarak karşılaştırılır (iki Tam int64 olarak; Tam ile Ondalık Ondalığa yuvarlanmadan),
+// -0.0 0.0'dan önce gelir, NaN'lar sona konur. ad hata mesajındaki adıdır.
 func sortValues(name any, d []Value) error {
-	if len(d) < 2 {
-		if len(d) == 1 && !isNumber(d[0]) {
-			if _, text := d[0].(*StringVal); !text {
-				return sortTypeError(name, d[0], nil)
-			}
-		}
-		return nil
+	if a, b := sortFault(d); a != nil {
+		return sortTypeError(name, a, b)
 	}
-	switch d[0].(type) {
-	case *IntVal, *FloatVal:
+	if allInts(d) {
 		// Hızlı yol: hepsi Tam (en sık durum: anahtarlar bir kez çıkarılır)
-		ints := true
-		for _, x := range d {
-			switch x.(type) {
-			case *IntVal:
-			case *FloatVal:
-				ints = false
-			default:
-				return sortTypeError(name, d[0], x)
-			}
+		type keyed struct {
+			k int64
+			v Value
 		}
-		if ints {
-			type keyed struct {
-				k int64
-				v Value
-			}
-			pair := make([]keyed, len(d))
-			for i, x := range d {
-				pair[i] = keyed{x.(*IntVal).Val, x}
-			}
-			// Eşit Tam'lar ayırt edilemez; kararsız sıralama aynı sonucu verir.
-			slices.SortFunc(pair, func(a, b keyed) int { return cmp.Compare(a.k, b.k) })
-			for i := range pair {
-				d[i] = pair[i].v
-			}
-			return nil
+		pair := make([]keyed, len(d))
+		for i, x := range d {
+			pair[i] = keyed{x.(*IntVal).Val, x}
 		}
-		slices.SortStableFunc(d, func(a, b Value) int {
-			c, ok := compareNumbers(a, b)
-			if ok {
-				return c
-			}
-			// NaN'lar sona (kendi aralarında eşit)
-			an, bn := isNaN(a), isNaN(b)
-			switch {
-			case an && bn:
-				return 0
-			case an:
-				return 1
-			}
-			return -1
-		})
-		return nil
-	case *StringVal:
-		for _, x := range d {
-			if _, ok := x.(*StringVal); !ok {
-				return sortTypeError(name, d[0], x)
-			}
+		// Eşit Tam'lar ayırt edilemez; kararsız sıralama aynı sonucu verir.
+		slices.SortFunc(pair, func(a, b keyed) int { return cmp.Compare(a.k, b.k) })
+		for i := range pair {
+			d[i] = pair[i].v
 		}
-		slices.SortStableFunc(d, func(a, b Value) int { return cmp.Compare(a.(*StringVal).Val, b.(*StringVal).Val) })
-		return nil
-	case *TupleVal:
-		// öğeleri sıralanabilen demetler (3.6a): 13.10'un sırasıyla öğe öğe (tuple_ops.go)
-		if err := tupleListError(name, d); err != nil {
-			return err
-		}
-		slices.SortStableFunc(d, sortOrder)
 		return nil
 	}
-	return sortTypeError(name, d[0], nil)
+	slices.SortStableFunc(d, sortOrder)
+	return nil
+}
+
+// sortByKeys vals'i keys'in (aynı sırada, sortFault'tan geçmiş) sıralama sırasıyla kararlı dizer.
+func sortByKeys(keys, vals []Value) {
+	type keyed struct{ k, v Value }
+	pair := make([]keyed, len(vals))
+	for i := range vals {
+		pair[i] = keyed{keys[i], vals[i]}
+	}
+	slices.SortStableFunc(pair, func(a, b keyed) int { return sortOrder(a.k, b.k) })
+	for i := range pair {
+		vals[i] = pair[i].v
+	}
+}
+
+// sortFault sıralanamayan bir listenin hatalı öğeleridir (13.10): ilk öğe sıralanamıyorsa (a, nil),
+// iki öğe birbiriyle karşılaştırılamıyorsa (a, b); liste sıralanabilirse (nil, nil).
+func sortFault(d []Value) (a, b Value) {
+	if len(d) == 0 {
+		return nil, nil
+	}
+	first := d[0]
+	var same func(Value) bool
+	switch f := first.(type) {
+	case *IntVal, *FloatVal:
+		same = isNumber
+	case *StringVal:
+		same = func(x Value) bool { _, ok := x.(*StringVal); return ok }
+	case *TupleVal:
+		// öğeleri sıralanabilen demetler (3.6a): öğe çiftleri ilk demetinkilerle sıralanabilir
+		same = func(x Value) bool { t, ok := x.(*TupleVal); return ok && orderedPair("<", f, t) == nil }
+	default:
+		return first, nil
+	}
+	for _, x := range d {
+		if !same(x) {
+			if x == first {
+				return first, nil
+			}
+			return first, x
+		}
+	}
+	return nil, nil
+}
+
+func allInts(d []Value) bool {
+	for _, x := range d {
+		if _, ok := x.(*IntVal); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func isNaN(v Value) bool {

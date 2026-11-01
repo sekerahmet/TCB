@@ -281,15 +281,7 @@ func setupListMethods() {
 		}
 		return &ListVal{Elements: result}, nil
 	})
-	addMethod(typeList, codes.MemSort, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		elems := inst.(*ListVal).Elements
-		copied := make([]Value, len(elems))
-		copy(copied, elems)
-		if err := sortValues(CallPrefix(codes.MemSort), copied); err != nil {
-			return nil, err
-		}
-		return &ListVal{Elements: copied}, nil
-	})
+	addMethod(typeList, codes.MemSort, signature{0, 1, []*argKind{funcArg}}, listSort)
 	addMethod(typeList, codes.MemGet, signature{1, 1, []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		if pos, ok := optionalIndex(args[0], len(elems)); ok {

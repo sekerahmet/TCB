@@ -29,11 +29,11 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 - *Test:* TR testi.
 
 **13.3** Liste metotları: `.TR_length`, `.TR_get(i)` (`T?`, 3.6), `.TR_first` ve `.TR_last` (boş listede `TR_none`, tipi `T?`), `.TR_filter(f)`, `.TR_map(f)`, `.TR_reduce(...)` (13.6), `.TR_sort()`, `.TR_reverse()`, `.TR_join(ayırıcı)` (`TR_List[TR_String]`'te), `.TR_unique()`, `.TR_contains(x)` (4.5'in eşitliğiyle), `.TR_index_of(x)` (`TR_Int?`), `.TR_append(x, ...)` (bir ya da daha çok öğe ekler, listeyi yerinde değiştirir, değer döndürmez), `.TR_pop()` (son öğeyi çıkarıp verir, boş listede hata), `.TR_remove_at(i)` (i'deki öğeyi çıkarıp verir). `.TR_get(i)` ve `.TR_remove_at(i)`'de negatif `i` sondan sayar (3.6).
-- `.TR_sort()` yeni bir liste verir. Öğeler sıralanabilir olmalıdır ve 13.10'un sıralama sırasıyla dizilir: sayılar tam karşılaştırılır, `-0.0` `0.0`'dan önce gelir, eşitlerin sırası korunur, `TR_nan` sona gelir; metinler karakter kodu sırasıyladır; demetler sözlük sırasıyla (3.6a). `.TR_sort(f)` öğeleri `f`'nin verdiği sıralanabilir anahtara göre dizer: `kutular.TR_sort((k) => -k.puan)`, `belgeler.TR_sort((b) => (b.puan, b.kimlik))`. Azalan sıra eksi anahtarla ya da `.TR_reverse()` ile yazılır; `.TR_reverse()` eşitlerin sırasını da çevirir (tensörde kararlı azalan sıra `TR_argsort(t, TR_descending: TR_true)`'dur, 15.22).
+- `.TR_sort()` yeni bir liste verir. Öğeler sıralanabilir olmalıdır ve 13.10'un sıralama sırasıyla dizilir: sayılar tam karşılaştırılır, `-0.0` `0.0`'dan önce gelir, eşitlerin sırası korunur, `TR_nan` sona gelir; metinler karakter kodu sırasıyladır; demetler sözlük sırasıyla (3.6a). `.TR_sort(f)` öğeleri `f`'nin verdiği sıralanabilir anahtara göre dizer: `kutular.TR_sort((k) => -k.puan)`, `belgeler.TR_sort((b) => (b.puan, b.kimlik))`. Anahtar fonksiyonu her öğe için bir kez çağrılır. Azalan sıra eksi anahtarla ya da `.TR_reverse()` ile yazılır; `.TR_reverse()` eşitlerin sırasını da çevirir (tensörde kararlı azalan sıra `TR_argsort(t, TR_descending: TR_true)`'dur, 15.22).
 - `.TR_unique()` eşitlenebilir öğe ister ve ilk görülme sırasını koruyan yeni bir liste verir; 4.5'e göre NaN hiçbir şeye eşit olmadığından her NaN kalır.
 - `TR_map`, `TR_filter`, `TR_reduce` ve anahtarlı `TR_sort`'un fonksiyonu dolaşılan listeye öğe ekler ya da çıkarırsa 5.7'deki gibi çalışma hatasıdır.
 - Listenin toplamı ve ortalaması fonksiyondur: `TR_sum(l)`, `TR_mean(l)` (13.6).
-- *Test:* TR testi; sıralama sırası uygulanınca TR testi.
+- *Test:* TR testi.
 
 **13.4** Sözlük metotları: `.TR_length`, `.TR_get(k)` (`V?`, 3.7), `.TR_keys()` (`TR_List[K]`), `.TR_values()` (`TR_List[V]`), `.TR_contains(anahtar)`, `.TR_remove(k)` (anahtarı yerinde silip değerini verir, `V?`; anahtar yoksa `TR_none`).
 - *Test:* TR testi.

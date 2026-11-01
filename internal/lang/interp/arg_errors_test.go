@@ -67,7 +67,8 @@ func TestArgErrorsFormat(t *testing.T) {
 // Go'nun <nil>'i iletiye girmez.
 func TestMemberArgCountUsesIdentities(t *testing.T) {
 	for _, c := range []struct{ source, want string }{
-		{"[3, 1].TR_sort((a, b) => a)", "`.TR_sort()`"},
+		{"[3, 1].TR_reverse(1)", "`.TR_reverse()`"},
+		{"[3, 1].TR_sort((x) => x, 1)", "`.TR_sort([function])`"},
 		{"[\"a\"].TR_join(\" \", 1)", "`.TR_join([separator])`"},
 		{"[1].TR_append()", "`.TR_append(eleman, ...)`"},
 	} {

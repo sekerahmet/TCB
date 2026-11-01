@@ -5,4 +5,4 @@ TR_print("abc".TR_upper(1)) # ERROR H2011
 TR_print("abc".TR_replace("a")) # ERROR H2011
 [1].TR_append() # ERROR H2011
 TR_print({"a": 1}.TR_keys(1)) # ERROR H2011
-TR_print([3, 1, 2].TR_sort((x) => -x)) # ERROR H2011
+TR_print([3, 1, 2].TR_sort((x) => -x, 1)) # ERROR H2011

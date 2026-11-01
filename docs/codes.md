@@ -5507,19 +5507,19 @@ tr: yazdır(Tensör([[1, 2, 3], [4, 5, 6]]).dilim(1, 0, 2).değer)
 
 #### `.TR_sort(...)` (`TR_mem_sort`, `sırala`)
 
-    Liste.sırala() → Liste
+    Liste.sırala([Fonksiyon]) → Liste
 
-Listenin küçükten büyüğe sıralanmış yeni bir kopyasını verir. Liste yalnızca sayılardan ya da yalnızca metinlerden oluşmalıdır.
+Listenin küçükten büyüğe sıralanmış yeni bir kopyasını verir; anahtar fonksiyonu verilirse öğeleri anahtarına göre dizer, fonksiyon her öğe için bir kez çağrılır. Eşitlerin sırası korunur. Öğeler (anahtar verilirse anahtarlar) yalnızca sayı, yalnızca metin ya da yalnızca öğeleri sıralanabilen demet olmalıdır.
 
 ```tr
-TR_print([3, 1, 2].TR_sort())
+TR_print([3, 1, 2].TR_sort(), ["bb", "a"].TR_sort((m) => m.TR_length))
 ```
 
 Görünümü:
 
 ```text
-en: print([3, 1, 2].sort())
-tr: yazdır([3, 1, 2].sırala())
+en: print([3, 1, 2].sort(), ["bb", "a"].sort((m) => m.length))
+tr: yazdır([3, 1, 2].sırala(), ["bb", "a"].sırala((m) => m.uzunluk))
 ```
 
 İlişkili: `.TR_reverse(...)`

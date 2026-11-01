@@ -69,7 +69,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H1112, "TR_func f(a: TR_Int) { # ERROR H1112\n    TR_return a\n}\nTR_print(f(1))", "f(a: TR_Int) {", "f(a: TR_Int) -> TR_Int {"},
 	{messages.H1115, "TR_var l = [3, 1, 2]\nl.TR_sort()\nTR_print(l)", "l.TR_sort()", "l = l.TR_sort()"},
 	{messages.H2474, "TR_var l = [\"a\", \"b\"]\nTR_print(\" \".TR_join(l))", "\" \".TR_join(l)", "l.TR_join(\" \")"},
-	{messages.H2011, "TR_var l = [3, 1, 2]\nTR_func f(x: TR_Int) -> TR_Int { TR_return -x }\nTR_print(l.TR_sort(f))", "l.TR_sort(f)", "[(f(l[i]), i) TR_for i TR_in 0..l.TR_length].TR_sort().TR_map((p) => l[p.1])"},
+	{messages.H2900, "TR_var l = [3, 1, 2]\nTR_print(l.TR_sort((a, b) => b - a))", "l.TR_sort((a, b) => b - a)", "l.TR_sort((x) => -x)"},
 }
 
 // maxUntestedSuggestionCodes izin listesindeki kayıt sayısının üst sınırıdır; liste yalnız küçülür.

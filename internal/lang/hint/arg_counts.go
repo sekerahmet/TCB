@@ -43,16 +43,10 @@ func ExpectedCount(minN, maxN int) any {
 }
 
 // MemberArgCount is the error of core member k on receiver type typ (codes.TypeList ...) called
-// with given positional arguments where it takes minN to maxN (maxN < 0: no upper bound). An
-// argument to .TR_sort() is a sort key, which is not there yet (13.3): the message shows today's
-// way, sorting tuples whose first item is the key (H1116).
+// with given positional arguments where it takes minN to maxN (maxN < 0: no upper bound).
 func MemberArgCount(typ, k codes.Code, minN, maxN, given int) error {
-	var sortKey *messages.Error
-	if k == codes.MemSort && given > 0 {
-		sortKey = messages.New(messages.H1116)
-	}
 	return messages.New(messages.H2011, memberCode(k), ExpectedCount(minN, maxN), given,
-		memberUsage{k, memberForms[memberKey{typ, k}]}, sortKey)
+		memberUsage{k, memberForms[memberKey{typ, k}]}, (*messages.Error)(nil))
 }
 
 // memberCode is a member as the program writes it, without its receiver: .TR_sort.
@@ -88,6 +82,11 @@ type textPart struct {
 
 func (p textPart) MessageText(lang string) string { return messages.TextIn(lang, p.c, p.args...) }
 
+// optionalPart is an optional parameter of a usage in square brackets: [TR_Function].
+type optionalPart struct{ part messages.Localized }
+
+func (p optionalPart) MessageText(lang string) string { return "[" + p.part.MessageText(lang) + "]" }
+
 // memberForms are the parameters of the core members' usage that take arguments; a parameter in
 // square brackets is optional.
 var memberForms = map[memberKey]any{
@@ -99,6 +98,7 @@ var memberForms = map[memberKey]any{
 	{codes.TypeString, codes.MemGet}:        "indeks",
 	{codes.TypeList, codes.MemFilter}:       codes.ReceiverRef(codes.TypeFunction),
 	{codes.TypeList, codes.MemMap}:          codes.ReceiverRef(codes.TypeFunction),
+	{codes.TypeList, codes.MemSort}:         optionalPart{codes.ReceiverRef(codes.TypeFunction)},
 	{codes.TypeList, codes.MemGet}:          "indeks",
 	{codes.TypeList, codes.MemJoin}:         textPart{messages.H2331, nil},
 	{codes.TypeList, codes.MemContains}:     textPart{messages.H2301, nil},

@@ -12,7 +12,7 @@ import (
 // anındakidir (H2011): ad ve kullanım kimlikle, görünüm adı ve <nil> olmadan.
 func TestMemberArgCount(t *testing.T) {
 	cases := []struct{ source, want string }{
-		{"TR_var l = [3, 1, 2]\nTR_print(l.TR_sort(1))", "`.TR_sort()`"},
+		{"TR_var l = [3, 1, 2]\nTR_print(l.TR_reverse(1))", "`.TR_reverse()`"},
 		{`TR_print("abc".TR_replace("a"))`, "`.TR_replace(eski, yeni)`"},
 		{`TR_print({"a": 1}.TR_get())`, "`.TR_get(anahtar)`"},
 		{"TR_print((0..3).TR_reverse(1))", "`.TR_reverse()`"},
@@ -29,17 +29,12 @@ func TestMemberArgCount(t *testing.T) {
 			t.Errorf("ileti %s kullanımını kimlikle vermeli: %s", tc.want, text)
 		}
 	}
-	// .TR_sort()'a verilen anahtar fonksiyonu: ileti bugünkü yolu (demet sıralaması) da gösterir.
-	_, errs := checkErrs(t, "TR_var l = [3, 1, 2]\nTR_print(l.TR_sort((x) => -x))")
-	if len(errs) != 1 || !strings.Contains(messages.ErrorIn(errs[0], "en"), "].TR_sort().TR_map((p) => l[p.1])`") {
-		t.Errorf("anahtarlı sıralamada demet yolu beklenirdi: %v", errs)
-	}
 	// Doğru sayı, tipi bilinmeyen alıcı (TR_JSON denetleyicide tanınmıyor), isteğe bağlı alıcı
 	// ve henüz sayısı sınanmayan alıcı tipi (tensör) hatasızdır.
 	for _, source := range []string{
 		"TR_var l = [3, 1, 2]\nTR_print(l.TR_sort(), l.TR_join(), [\"a\"].TR_join(\",\"))",
-		`TR_print(TR_json_parse("[1]").TR_sort(1))`,
-		"TR_var l: TR_List[TR_Int]? = TR_none\nTR_print(l?.TR_sort(1))",
+		`TR_print(TR_json_parse("[1]").TR_sort(1, 2))`,
+		"TR_var l: TR_List[TR_Int]? = TR_none\nTR_print(l?.TR_sort(1, 2))",
 	} {
 		noErrors(t, source)
 	}
