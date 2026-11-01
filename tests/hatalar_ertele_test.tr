@@ -44,7 +44,7 @@ TR_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
 TR_test "9.1 ertele fonksiyon bitince ters sırayla çalışır" {
     TR_var iz = []
     TR_func f() {
-        TR_defer iz.TR_append("1. ertele")
+        TR_defer { iz.TR_append("1. ertele") }
         TR_defer { iz.TR_append("2. ertele") }
         iz.TR_append("gövde")
     }
@@ -68,12 +68,12 @@ TR_test "9.1 ertelenen bloğun kendisi bir kapsamdır: içindeki ertele o bloğu
 TR_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
     TR_var iz = []
     TR_func erken() -> TR_Int {
-        TR_defer iz.TR_append("temizlik")
+        TR_defer { iz.TR_append("temizlik") }
         TR_return 1
     }
     erken()
     TR_func hatalı() {
-        TR_defer iz.TR_append("hata sonrası temizlik")
+        TR_defer { iz.TR_append("hata sonrası temizlik") }
         TR_throw "x"
     }
     TR_try { hatalı() } TR_catch { iz.TR_append("yakalandı") }
@@ -118,7 +118,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
     # Fonksiyon zaten hata verdiyse ilk hata korunur, ertelenen işin hatası ona eklenir
     TR_func iki_hata() {
         TR_defer { TR_throw "ilk ertele" }
-        TR_defer TR_print(1 / 0)
+        TR_defer { TR_print(1 / 0) }
         TR_throw "gövde hatası"
     }
     TR_try { iki_hata() } TR_catch h { m = h }
@@ -129,7 +129,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
     TR_assert(parçalar[2].TR_ends_with("ilk ertele"), m)
     # Ertelenen işler hata verse de hepsi çalışır
     TR_func temizlik() {
-        TR_defer iz.TR_append("ikinci temizlik")
+        TR_defer { iz.TR_append("ikinci temizlik") }
         TR_defer { TR_throw "bozuk" }
     }
     TR_try { temizlik() } TR_catch h { m = h }
@@ -141,7 +141,7 @@ TR_test "9.3 ertele çağrısının argümanları fonksiyon biterken hesaplanır
     TR_func kaydet(x: TR_Int) { görülen.TR_append(x) }
     TR_func f() {
         TR_var x = 1
-        TR_defer kaydet(x)
+        TR_defer { kaydet(x) }
         x = 2
     }
     f()

@@ -6,7 +6,7 @@
   "TR_kw_catch": { "kind": "keyword", "related": ["TR_kw_try", "TR_ctx_error"], "familiar": ["except"], "example": "TR_try { TR_var z = 1 / 0 } TR_catch h { TR_print(h) }" },
   "TR_kw_const": { "kind": "keyword", "related": ["TR_kw_var"], "example": "TR_const PI = 3.14; TR_print(PI * 2)" },
   "TR_kw_continue": { "kind": "keyword", "related": ["TR_kw_break"], "example": "TR_for x TR_in 1..=5 { TR_if x % 2 == 0 { TR_continue }; TR_print(x) }" },
-  "TR_kw_defer": { "kind": "keyword", "example": "TR_func iş() { TR_defer TR_print(\"temizlik\"); TR_print(\"iş\") }; iş()" },
+  "TR_kw_defer": { "kind": "keyword", "example": "TR_func iş() { TR_defer { TR_print(\"temizlik\") }; TR_print(\"iş\") }; iş()" },
   "TR_kw_else": { "kind": "keyword", "related": ["TR_kw_if"], "familiar": ["elif", "elsif"], "example": "TR_var n = -3; TR_var tür = TR_if n < 0 { \"negatif\" } TR_else TR_if n == 0 { \"sıfır\" } TR_else { \"pozitif\" }; TR_print(tür)" },
   "TR_kw_enum": { "kind": "keyword", "related": ["TR_kw_struct", "TR_kw_match"], "example": "TR_enum D { Bekliyor; Bitti(n: TR_Int) }; TR_print(D.Bitti(3), D.Bekliyor != D.Bitti(1))" },
   "TR_kw_false": { "kind": "keyword", "related": ["TR_kw_true"], "familiar": ["False"], "example": "TR_print(TR_false TR_or TR_true, TR_not TR_false)" },

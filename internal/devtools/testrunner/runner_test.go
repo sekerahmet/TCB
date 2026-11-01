@@ -159,7 +159,7 @@ func TestUnloadableFile(t *testing.T) {
 // Test içindeki 'ertele' test bitince çalışmalı; testin kendisi kalsa bile.
 func TestDeferAndOutput(t *testing.T) {
 	fpath := writeTR(t, t.TempDir(), "e_test.tr", `TR_test "ertele" {
-    TR_defer TR_print("temizlik")
+    TR_defer { TR_print("temizlik") }
     TR_print("gövde")
     TR_assert(TR_false)
 }

@@ -143,14 +143,14 @@ tr: döngü x içinde 1..=5 { eğer x % 2 == 0 { devam }; yazdır(x) }
 Çağrıyı ya da bloğu içinde bulunduğu fonksiyon bitince çalıştırır; birden çok ertele ters sırayla çalışır, erken sonuç ve hata durumunda da çalışır.
 
 ```tr
-TR_func iş() { TR_defer TR_print("temizlik"); TR_print("iş") }; iş()
+TR_func iş() { TR_defer { TR_print("temizlik") }; TR_print("iş") }; iş()
 ```
 
 Görünümü:
 
 ```text
-en: func iş() { defer print("temizlik"); print("iş") }; iş()
-tr: fonksiyon iş() { ertele yazdır("temizlik"); yazdır("iş") }; iş()
+en: func iş() { defer { print("temizlik") }; print("iş") }; iş()
+tr: fonksiyon iş() { ertele { yazdır("temizlik") }; yazdır("iş") }; iş()
 ```
 
 #### `TR_else` (`TR_kw_else`, `değilse`)

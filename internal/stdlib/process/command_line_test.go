@@ -183,10 +183,10 @@ TR_command_line({"a": 1})`); err != nil || got != `{"a": 1}` {
 func TestExitRequestNotCaught(t *testing.T) {
 	_, m, err := commandLine(t, `TR_var iz = []
 TR_func kur() -> TR_Dict[TR_String, TR_Int] {
-    TR_defer iz.TR_append("ertele")
+    TR_defer { iz.TR_append("ertele") }
     TR_try { TR_return TR_command_line({"a": 1}) } TR_catch h { iz.TR_append("yakalandı") }
 }
-TR_defer TR_print(iz)
+TR_defer { TR_print(iz) }
 kur()`, "--b")
 	if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 {
 		t.Fatalf("çıkış isteği bekleniyordu: %v", err)

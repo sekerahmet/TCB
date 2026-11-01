@@ -14,7 +14,7 @@ import (
 // ve 2 ile biter. İkisinde de ertele blokları çalışır; argüman uyarısı verilmez.
 func TestCommandLineOptions(t *testing.T) {
 	dir := t.TempDir()
-	writeTR(t, dir, "egit.tr", `TR_defer TR_print("ertelenen")
+	writeTR(t, dir, "egit.tr", `TR_defer { TR_print("ertelenen") }
 TR_var ayar = TR_command_line({"adım": 10, "oran": 0.5, "hızlı": TR_false}, TR_description: "Deneme eğitimi")
 TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])")
 `)

@@ -93,7 +93,7 @@ func TestUndefinedNameNoFalseAlarm(t *testing.T) {
 		"sabit ve çoklu":                      "TR_const PI2 = 6.28\nTR_var a, b = 1, 2\na, b = b, a\nTR_print(PI2, a, b)",
 		"dış değişkene atama":                 "TR_var n = 0\nTR_func art() { n += 1 }\nart()",
 		"eşle":                                "TR_var p = 5\nTR_var s = 3\nTR_print(TR_match p { s => \"eşit\"\n 1..10 => \"aralık\"\n _ => \"diğer\" })",
-		"ertele ve eşzamanlı":                 "TR_func f() -> TR_List[TR_Int] { TR_var iz = []\n TR_defer iz.TR_append(1)\n TR_async { TR_print(iz) }\n TR_return iz }",
+		"ertele ve eşzamanlı":                 "TR_func f() -> TR_List[TR_Int] { TR_var iz = []\n TR_defer { iz.TR_append(1) }\n TR_async { TR_print(iz) }\n TR_return iz }",
 		"takma adsız aktar":                   "TR_import \"yardimci_modul\"\nTR_print(kare(PI))",
 		"takma adlı aktar":                    "TR_import \"yardimci_modul\" TR_as ym\nTR_print(ym.kare(2))",
 		"değer olarak verilen adlı fonksiyon": "TR_func ikiye(x: TR_Int) -> TR_Int { TR_return x * 2 }\nTR_var l = [1].TR_map(ikiye)\nTR_print(ikiye(3))",

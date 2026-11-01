@@ -382,7 +382,7 @@ func TestNestedStatementsAreChecked(t *testing.T) {
 		"eşle ifade":       "TR_match 1 { 1 => " + invalid + " }",
 		"eşle konusu":      "TR_match " + invalid + " { _ => 1 }",
 		"ertele blok":      "TR_defer { " + invalid + " }",
-		"ertele çağrı":     "TR_defer " + invalid,
+		"ertele çağrı":     "TR_defer { " + invalid + " }",
 		"sonuç":            "TR_func g() -> TR_Int { TR_return " + invalid + " }",
 		"fırlat":           "TR_throw " + invalid,
 		"eşzamanlı blok":   "TR_async { " + invalid + " }",
