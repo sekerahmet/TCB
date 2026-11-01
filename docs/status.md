@@ -998,7 +998,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.8
 
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** son bileşeni bağlantı olan yolda bağlantının kendisi değerlendirilir.
+- **Mevcut durum (Faz 1, 2026-11-01):** son bileşeni bağlantı olan yolda bağlantının kendisi değerlendiriliyor; korunan çalışma klasörüne giden bağlantı siliniyor, hedef klasöre dokunulmuyor (`TestDeleteProtections`) [kanıtlı: `internal/stdlib/files/protect.go:29-42`, `internal/stdlib/files/delete_test.go:127-133`; ölçüldü: `go test -short ./internal/stdlib/files/`, 2026-11-01].
 
 ### 18.9
 

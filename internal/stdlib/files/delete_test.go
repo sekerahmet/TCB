@@ -124,6 +124,13 @@ func TestDeleteProtections(t *testing.T) {
 	if !exists(filepath.Join(program, "x.txt")) {
 		t.Fatal("korunan klasörden bir şey silindi")
 	}
+	// Son bileşeni bağlantı olan yolda bağlantının kendisi değerlendirilir (18.8):
+	// korunan çalışma klasörüne giden bağlantı silinir, çalışma klasörüne dokunulmaz.
+	dirLink(t, k, filepath.Join(k, "calisma_bag"))
+	s := runTR(t, program, `TR_remove("calisma_bag")`)
+	if s.failure != nil || s.value.Inspect() != "1" || exists(filepath.Join(k, "calisma_bag")) || !exists(filepath.Join(program, "x.txt")) {
+		t.Fatalf("korunan klasöre giden bağlantı silinemedi ya da hedef bozuldu: err=%v val=%v", s.failure, s.value)
+	}
 }
 
 // Sistem klasörleri ve üstleri: koruma işlevi doğrudan sınanır (silme denenmez).
