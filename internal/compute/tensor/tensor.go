@@ -46,6 +46,9 @@ type Tensor struct {
 	// sonucun verisi böylece geri yayılımı beklemeden serbest kalır (PyTorch'un grad_fn
 	// ile saved tensors ayrımı).
 	n *node
+	// viewOf, depoyu paylaşan bir görünümde türev izleyen tabanın düğümüdür (görünüm türevsiz
+	// kipte kurulup kendi düğümü olmasa da); yerinde yazmanın kuralı ona bakar (GradTarget).
+	viewOf *node
 	// Ömür (lifetime.go): oluşturulma sırası, bırakıldı mı ve başlığı saran değer sayısı.
 	serial  uint64
 	dropped atomic.Bool
@@ -307,6 +310,21 @@ func (t *Tensor) SetRequiresGrad(b bool) *Tensor {
 
 // IsLeaf tensörün bir işlem sonucu değil, doğrudan oluşturulmuş olup olmadığı.
 func (t *Tensor) IsLeaf() bool { return t.n == nil || t.n.backward == nil }
+
+// GradTarget yerinde yazmanın türev kuralı (15.6d "Türev") için t'nin verisinin kime ait
+// olduğunu söyler: tracked, verinin türev izleyen bir tensörün (t'nin kendisinin ya da türevsiz
+// kipte de olsa görünümü alınan tabanın) olduğu; leaf, o tensörün yaprak ya da yaprağın görünümü
+// olduğudur. Türev izleyen bir işlemin sonucu ve onun görünümü yaprak değildir.
+func (t *Tensor) GradTarget() (tracked, leaf bool) {
+	n := t.n
+	if n == nil || !n.wants() {
+		n = t.viewOf
+	}
+	if n == nil {
+		return false, false
+	}
+	return true, n.leafOrLeafView()
+}
 
 // Detach aynı veriyi paylaşan, çizgeden kopuk ve gradyansız bir görünüm verir.
 func (t *Tensor) Detach() *Tensor {

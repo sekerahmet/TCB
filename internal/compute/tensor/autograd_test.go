@@ -402,3 +402,35 @@ func TestGradHandoff(t *testing.T) {
 	near(t, "bağımsızlık", x.Grad().Data(), g, 0)
 	near(t, "ikinci yaprak", y.Grad().Data(), []float32{1, 1, 1, 1, 1, 1}, 0)
 }
+
+// Kural (15.6d "Türev"): GradTarget yerinde yazmanın kuralı için verinin sahibini söyler: türev
+// izleyen yaprak ve onun görünümü yapraktır; türev izleyen işlemin sonucu ve onun görünümü değil;
+// kopya ve dönüşüm yeni veridir. Türevsiz kipte kurulan görünüm de tabanını bilir.
+func TestGradTarget(t *testing.T) {
+	w := New([]float32{1, 2, 3, 4}, 2, 2)
+	w.SetRequiresGrad(true)
+	h := w.MulScalar(2)
+	var noGradLeafView, noGradInnerView *Tensor
+	NoGrad(func() { noGradLeafView, noGradInnerView = w.Slice(0, 0, 1), h.Slice(0, 0, 1) })
+	cases := []struct {
+		ad            string
+		x             *Tensor
+		tracked, leaf bool
+	}{
+		{"yaprak", w, true, true},
+		{"yaprağın görünümü", w.Slice(0, 0, 1), true, true},
+		{"görünümün görünümü", w.Slice(0, 0, 1).Reshape(2), true, true},
+		{"ara sonuç", h, true, false},
+		{"ara sonucun görünümü", h.Slice(0, 1, 2), true, false},
+		{"yaprağın kopyası", w.Clone(), true, false},
+		{"türevsiz kipte yaprağın görünümü", noGradLeafView, true, true},
+		{"türevsiz kipte ara sonucun görünümü", noGradInnerView, true, false},
+		{"türev izlemeyen", New([]float32{1}, 1), false, false},
+		{"ayrılmış", w.Detach(), false, false},
+	}
+	for _, c := range cases {
+		if tracked, leaf := c.x.GradTarget(); tracked != c.tracked || leaf != c.leaf {
+			t.Errorf("%s: (%v, %v), beklenen (%v, %v)", c.ad, tracked, leaf, c.tracked, c.leaf)
+		}
+	}
+}

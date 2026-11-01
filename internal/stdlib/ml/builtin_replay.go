@@ -374,8 +374,8 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	if err := checkDevice(fn, dst.t, src); err != nil {
 		return nil, err
 	}
-	if dst.t.RequiresGrad() && tensor.GradEnabled() {
-		return nil, messages.New(messages.H6716, codes.NameRef(codes.FnNoGrad))
+	if err := checkWrite(dst.t, src, false); err != nil {
+		return nil, err
 	}
 	if !dst.t.IsContiguous() {
 		return nil, messages.New(messages.H6443, fn)

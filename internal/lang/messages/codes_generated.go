@@ -1298,6 +1298,8 @@ const (
 	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok; bu nokta bu TR'nin biçiminde değil
 	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
 	H6954 Code = 6954 // {fn}: {index} konumundaki tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
+	H6955 Code = 6955 // türev izleyen bir ara sonuca (türev izleyen bir işlemin sonucuna ya da onun görünümüne) yerinde yazılamaz, türevsiz kipte de: geri yayılım onun değerine dayanır. {kind, select, whole {Adı yeni bir tensöre bağlayın: `h = h + d`} other {Yerinde olmayan bir yazımla yeni bir tensör kurun: `h = {#where}(m, d, h)`}}
+	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa değeri türevsiz yazın: `t[i] = {#no_grad}(d)`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

@@ -161,3 +161,46 @@ TR_print(t[0..=9223372036854775807].TR_tolist)`)
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
 	}
 }
+
+// Kural (15.6d "Türev"): yerinde yazmanın üç kuralı kipe bağlıdır, sözcüksel değil.
+//   - türev izleyen yaprağa ve görünümüne yalnız türevsiz kipte yazılır (H6716);
+//   - türev izleyen ara sonuca yerinde yazmak türevsiz kipte de hatadır (H6955);
+//   - türev izlemeyen hedefe kipin dışında türev izleyen değer yazmak hatadır (H6956).
+//
+// Aynı kurallar TR_write_slice'ta da geçerlidir.
+func TestWriteRulesForGradients(t *testing.T) {
+	setup := `TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var h = w * 2.0
+TR_var havuz = TR_zeros([2])
+TR_var kv = TR_zeros([2, 2])
+`
+	expectCodes(t, []codeCase{
+		{setup + "w[0] = 5.0", messages.H6716},
+		{setup + "w[0..1][0] = 5.0", messages.H6716},
+		{setup + "TR_var v = w[0..2]\nv[0] = 1.0", messages.H6716},
+		{setup + "TR_write_slice(w, TR_Tensor([3.0]), TR_dim: 0, TR_start: 0)", messages.H6716},
+		{setup + "TR_func yaz(t: TR_Tensor) { t[0] = 9.0 }\nyaz(w)", messages.H6716},
+		{setup + "h[1] = 0.0", messages.H6955},
+		{setup + "TR_no_grad { h[1] = 0.0 }", messages.H6955},
+		{setup + "TR_no_grad { h[0..1][0] = 0.0 }", messages.H6955},
+		{setup + "TR_no_grad { TR_write_slice(h, TR_Tensor([3.0]), TR_dim: 0, TR_start: 0) }", messages.H6955},
+		{setup + "havuz[0] = (w * 2.0)[0]", messages.H6956},
+		{setup + "havuz[0..2] = h", messages.H6956},
+		{setup + "TR_write_slice(kv, TR_Tensor([[1.0, 1.0]]) * w, TR_dim: 0, TR_start: 0)", messages.H6956},
+	})
+	// Türevsiz kipte (bloktan çağrılan fonksiyonda da) yaprağa ve görünümüne yazılır; türev
+	// izlemeyen hedefe türev izleyen değer yazılır, bağ bilerek kopar.
+	out := mustRun(t, setup+`TR_func yaz(t: TR_Tensor) { t[0] = 9.0 }
+TR_var v = w[0..2]
+TR_no_grad {
+    yaz(w)
+    v[1] = 7.0
+    havuz[0..2] = h
+    TR_write_slice(kv, TR_Tensor([[1.0, 1.0]]) * w, TR_dim: 0, TR_start: 1)
+}
+havuz[0] = 3.0
+TR_print(w.TR_tolist, havuz.TR_tolist, kv.TR_tolist)`)
+	if want := "[9.0, 7.0] [3.0, 4.0] [[0.0, 0.0], [9.0, 7.0]]\n"; out != want {
+		t.Fatalf("türevsiz kipte yazmalar %q, beklenen %q", out, want)
+	}
+}

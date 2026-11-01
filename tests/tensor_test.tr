@@ -1194,6 +1194,32 @@ TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, say
     TR_assert_equal([0.0, 1.0], (TR_Tensor([1.0, 2.0]) > 1).TR_tolist)
 }
 
+TR_test "15.6d türevin üç yazma kuralı kipe bağlıdır" {
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_var h = w * 2.0
+    TR_var havuz = TR_zeros([2])
+    # Türev izleyen yaprağa (ve görünümüne) yalnız türevsiz kipte yazılır.
+    TR_assert_equal("H6716", TR_error_code { w[0] = 5.0 })
+    TR_var ilk = w[0..1]
+    TR_assert_equal("H6716", TR_error_code { ilk[0] = 5.0 })
+    TR_no_grad { ilk[0] = 5.0 }
+    TR_assert_equal([5.0, 2.0], w.TR_tolist)
+    # Yaprak olmayan türevli tensöre türevsiz kipte de yazılmaz; yerinde olmayan yazım çalışır.
+    TR_assert_equal("H6955", TR_error_code { TR_no_grad { h[1] = 0.0 } })
+    TR_var m = TR_Tensor([0.0, 1.0])
+    h = TR_where(m, 0.0, h)
+    TR_assert_equal([2.0, 0.0], h.TR_tolist)
+    # Türev izlemeyen hedefe kipin dışında türev izleyen değer yazılmaz: bağ sessizce koparırdı.
+    TR_assert_equal("H6956", TR_error_code { havuz[0] = (w * 2.0)[0] })
+    TR_no_grad { havuz[0] = (w * 2.0)[0] }
+    TR_assert_equal([10.0, 0.0], havuz.TR_tolist)
+    # Kural kipe bağlıdır: türevsiz bloktan çağrılan fonksiyon da kiptedir.
+    TR_func sıfırla(t: TR_Tensor) { t[0] = 0.0 }
+    TR_assert_equal("H6716", TR_error_code { sıfırla(w) })
+    TR_no_grad { sıfırla(w) }
+    TR_assert_equal([0.0, 2.0], w.TR_tolist)
+}
+
 TR_test "15.6d tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     TR_assert_equal(5.0, t[-1].TR_tolist)

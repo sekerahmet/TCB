@@ -303,11 +303,11 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 // SetIndex t[i] = değer ve t[baş..son] = değer atamasıdır (t[i][j] = değer, t[i]
 // görünümüne atamadır). Değer bir sayıysa hedefin tüm elemanlarına yazılır; liste ya da
 // tensörse şekli hedefin şekliyle aynı olmalıdır. Veri yerinde değişir: bu tensörü kullanmış,
-// henüz geri yayılmamış bir hesap çizgesi varsa geri yayılım hata verir. Türev izlenen bir
-// tensöre yalnızca türevsiz { ... } içinde atanabilir.
+// henüz geri yayılmamış bir hesap çizgesi varsa geri yayılım hata verir. Türevin yazma
+// kuralları checkWrite'tadır.
 func (d *TensorValue) SetIndex(idx, value interp.Value) error {
-	if d.t.RequiresGrad() && tensor.GradEnabled() {
-		return messages.New(messages.H6716, codes.NameRef(codes.FnNoGrad))
+	if err := checkWrite(d.t, valueTensor(value), false); err != nil {
+		return err
 	}
 	var target *tensor.Tensor
 	var view *TensorValue
@@ -354,6 +354,36 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 		return true
 	})
 	return err
+}
+
+// checkWrite yerinde yazmanın türev kurallarını (15.6d "Türev") uygular. dst yazılan tensördür
+// (görünümse görünümün kendisi), src yazılan değer (tensör değilse nil); whole bütün hedefe
+// yazmaktır (bileşik atama), değilse indeksli hedeftir. Kip sözcüksel değildir: türevsiz bloktan
+// çağrılan fonksiyon da kiptedir (tensor.GradEnabled bloğun çalıştığı süreyi söyler).
+//   - türev izleyen yaprağa (ve görünümüne) yalnız türevsiz kipte yazılır (H6716);
+//   - türev izleyen ara sonuca yerinde yazmak türevsiz kipte de hatadır (H6955);
+//   - türev izlemeyen hedefe kipin dışında türev izleyen değer yazmak hatadır (H6956).
+func checkWrite(dst, src *tensor.Tensor, whole bool) error {
+	tracked, leaf := dst.GradTarget()
+	switch {
+	case tracked && leaf:
+		if tensor.GradEnabled() {
+			return messages.New(messages.H6716, codes.NameRef(codes.FnNoGrad))
+		}
+	case tracked:
+		return messages.New(messages.H6955, map[bool]string{true: "whole", false: "index"}[whole])
+	case src != nil && src.RequiresGrad() && tensor.GradEnabled():
+		return messages.New(messages.H6956)
+	}
+	return nil
+}
+
+// valueTensor yazılan değerin tensörüdür; tensör değilse (sayı, liste) nil: türev izlemez.
+func valueTensor(v interp.Value) *tensor.Tensor {
+	if t, ok := v.(*TensorValue); ok {
+		return t.t
+	}
+	return nil
 }
 
 // Compile-time checks: the interpreter finds these hooks with type assertions, so a

@@ -86,6 +86,9 @@ type node struct {
 	// passGrad, gradyanı girdisine olduğu gibi aktaran işlemin (dönüşüm, görünüm, kopya,
 	// cihaz değiştirme) düğümünü işaretler: gradyanının türü girdininkidir (bkz. gradDType).
 	passGrad bool
+	// leafView, türev izleyen bir yaprağın (ya da onun görünümünün) depoyu paylaşan görünümünü
+	// işaretler: yerinde yazmada yaprak sayılır (15.6d "Türev"), kopya ve dönüşüm sayılmaz.
+	leafView bool
 	// wideGrad, float32 bir hesabın sonunda 16 bite daraltılmış çıktının düğümünü işaretler
 	// (normun tür:'ü, kaynaşık programın son dönüşümü): gradyanı float32 tutulur; daraltma ayrı
 	// bir dönüşümle yapılsaydı (passGrad) gradyan da float32 olurdu, sonuç aynı kalır.
@@ -191,9 +194,21 @@ func trackPass(out *Tensor, op string, t *Tensor, bw func(o *node)) *Tensor {
 	r := track(out, op, []*Tensor{t}, bw)
 	if r.n != nil {
 		r.n.passGrad = true
+		r.n.leafView = r.storage == t.storage && t.n.wants() && t.n.leafOrLeafView()
+	}
+	if r.storage == t.storage {
+		// Görünüm: türevsiz kipte kurulsa da (düğümsüz) tabanının türev düğümünü bilir.
+		if t.n != nil && t.n.wants() {
+			r.viewOf = t.n
+		} else {
+			r.viewOf = t.viewOf
+		}
 	}
 	return r
 }
+
+// leafOrLeafView düğüm bir yaprağın ya da yaprağın görünümünün düğümü mü?
+func (n *node) leafOrLeafView() bool { return n.backward == nil || n.leafView }
 
 // gradDType gradyan depolamasının türü:
 //   - float32 tensörde float32;
