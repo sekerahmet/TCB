@@ -373,3 +373,21 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 
 // IsModulePrivate ad modüle özel mi (başı _, ama tek başına _ değil; 11.7)?
 func IsModulePrivate(name string) bool { return len(name) > 1 && name[0] == '_' }
+
+// moduleIndexError modül değerinin köşeli ayraçla okunmasının ya da ona köşeli ayraçla atamanın
+// hatasıdır (11.2: modül değeri bir sözlük değildir). İleti noktayla erişimi önerir (m.PI); köşeli
+// ayracın solu bir ad değilse yalnız .PI. Değer modül değilse nil.
+func moduleIndexError(d *DictVal, left ast.Expression, idx Value) error {
+	if d.module == nil {
+		return nil
+	}
+	module := ""
+	if id, ok := left.(*ast.Identifier); ok {
+		module = id.Value
+	}
+	name := idx.Inspect()
+	if s, ok := idx.(*StringVal); ok {
+		name = s.Val
+	}
+	return messages.New(messages.H2904, module, name)
+}

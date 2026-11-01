@@ -27,7 +27,7 @@
   "TR_kw_true": { "kind": "keyword", "related": ["TR_kw_false"], "familiar": ["True"], "example": "TR_var hazır = TR_true; TR_if hazır { TR_print(\"hazır\") }" },
   "TR_kw_try": { "kind": "keyword", "related": ["TR_kw_catch", "TR_kw_throw"], "example": "TR_try { TR_throw \"patladı\" } TR_catch h { TR_print(\"yakalandı:\", h) }" },
   "TR_kw_var": { "kind": "keyword", "related": ["TR_kw_const"], "familiar": ["let"], "example": "TR_var a, b = 1, 2; a, b = b, a; TR_print(a, b)" },
-  "TR_ctx_as": { "kind": "contextual", "related": ["TR_kw_import"], "familiar": ["as"], "example": "TR_import \"tests/yardimci_modul\" TR_as ym; TR_print(ym.kare(2), ym[\"PI\"])" },
+  "TR_ctx_as": { "kind": "contextual", "related": ["TR_kw_import"], "familiar": ["as"], "example": "TR_import \"tests/yardimci_modul\" TR_as ym; TR_print(ym.kare(2), ym.PI)" },
   "TR_ctx_error": { "kind": "contextual", "related": ["TR_kw_catch"], "example": "TR_try { TR_throw \"patladı\" } TR_catch { TR_print(TR_error) }" },
   "TR_ctx_init": { "kind": "contextual", "related": ["TR_kw_struct"], "example": "TR_struct Hesap { bakiye: TR_Int; TR_func TR_init(b: TR_Int) { TR_self.bakiye = b * 2 } }; TR_print(Hesap(5).bakiye)" },
   "TR_ctx_test": { "kind": "contextual", "common_name": "test", "related": ["TR_fn_assert", "TR_fn_assert_equal"], "example": "TR_test \"toplama\" { TR_assert_equal(4, 2 + 2) }" },

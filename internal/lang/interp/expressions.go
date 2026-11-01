@@ -97,6 +97,9 @@ func (v *VM) indexValue(left Value, idx Value, e *ast.IndexExpression) (Value, e
 		return nil, messages.At(line, 0, messages.New(messages.H2400, ValList, ValInt))
 
 	case *DictVal:
+		if err := moduleIndexError(container, e.Left, idx); err != nil {
+			return nil, messages.At(line, 0, err)
+		}
 		if err := DictKeyError(idx); err != nil {
 			return nil, messages.At(line, 0, err)
 		}

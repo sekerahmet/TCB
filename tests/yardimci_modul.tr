@@ -10,3 +10,13 @@ TR_func kare(x: TR_Int) -> TR_Int {
 }
 
 TR_const KARE_AL = kare
+
+# 11.8: modülün değişkeni yalnız kendi fonksiyonuyla değişir; değerin içi aktarandan da değişebilir.
+TR_struct ModülNoktası { x: TR_Int }
+TR_var modül_noktası = ModülNoktası(x: 0)
+TR_var modül_sayacı = 0
+
+TR_func modülde_say() -> TR_Int {
+    modül_sayacı += 1
+    TR_return modül_sayacı
+}

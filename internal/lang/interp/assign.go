@@ -168,18 +168,11 @@ func (v *VM) setMember(obj Value, prop string, u memberInfo, codeVal uint8, righ
 		if inst.module == nil {
 			return messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
 		}
+		// Modülün en dış adı aktaran dosyadan yeniden bağlanmaz (11.8): modül değeri her aktaranda
+		// aynıdır, değişken yalnız modülün kendi fonksiyonlarıyla değişir. Değerin içi (m.nokta.x,
+		// m.kayıt.TR_append) değişebilir; o atamalar buraya modül değeriyle gelmez.
 		key, _ := u.moduleKey(inst, prop)
-		cur := inst.Pairs[key]
-		if cur == nil {
-			cur = Null
-		}
-		finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
-		if err != nil {
-			return err
-		}
-		escape(finalVal)
-		inst.Set(key, finalVal)
-		return nil
+		return messages.At(line, 0, messages.New(messages.H2901, key))
 	case MemberAssignable:
 		// Dış değerler (ör. iyileştirici): bileşik atamada mevcut değer GetProperty ile okunur.
 		finalVal := rightVal

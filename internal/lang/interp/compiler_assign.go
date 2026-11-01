@@ -68,21 +68,7 @@ func (c *compiler) assignTo(k *compilerScope, target ast.Expression, codeVal uin
 		}
 
 	case *ast.IndexExpression:
-		// A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır (tensör satırı veriyi
-		// paylaşan bir görünümdür; bkz. IndeksAtanabilir).
-		leftFn := c.expression(k, t.Left)
-		index := c.expression(k, t.Index)
-		return func(v *VM, env *Environment, rhs Value) error {
-			left, err := leftFn(v, env)
-			if err != nil {
-				return err
-			}
-			idx, err := index(v, env)
-			if err != nil {
-				return err
-			}
-			return v.setIndex(left, idx, codeVal, rhs, line)
-		}
+		return c.assignToIndex(k, t, codeVal, line)
 
 	case *ast.MemberExpression:
 		object := c.expression(k, t.Object)
@@ -126,4 +112,28 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 		return messages.At(line, 0, err)
 	}
 	return nil
+}
+
+// assignToIndex A[i] = değer atamasını derler. A[i][j] = değer, A[i] okumasının sonucuna [j] ile
+// atamadır (tensör satırı veriyi paylaşan bir görünümdür; bkz. IndeksAtanabilir). Modül değerine
+// köşeli ayraçla atanmaz (11.2).
+func (c *compiler) assignToIndex(k *compilerScope, t *ast.IndexExpression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
+	leftFn := c.expression(k, t.Left)
+	index := c.expression(k, t.Index)
+	return func(v *VM, env *Environment, rhs Value) error {
+		left, err := leftFn(v, env)
+		if err != nil {
+			return err
+		}
+		idx, err := index(v, env)
+		if err != nil {
+			return err
+		}
+		if d, ok := left.(*DictVal); ok {
+			if err := moduleIndexError(d, t.Left, idx); err != nil {
+				return messages.At(line, 0, err)
+			}
+		}
+		return v.setIndex(left, idx, codeVal, rhs, line)
+	}
 }

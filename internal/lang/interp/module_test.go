@@ -183,3 +183,46 @@ func TestModuleSharedStateSuggestionRuns(t *testing.T) {
 		t.Errorf("önerilen yazım çalışmalı:\n%s\nçıktı %q, hata %v", fixed, out, err)
 	}
 }
+
+// Kural (11.8): modülün en dış adına aktaran dosyadan atama H2901'dir; tipi bilinen yol da
+// (m.PI = 7), denetimin göremediği yol da (listeden okunan modül değeri, bileşik atama) çalışma
+// anında yakalanır ve modülün değeri değişmez. Değerin içi (alan, listeye ekleme) ve modülün kendi
+// fonksiyonunun kendi değişkenini değiştirmesi geçerlidir.
+func TestModuleNameIsNotReboundFromTheImporter(t *testing.T) {
+	module := "TR_struct Nokta { x: TR_Int }\nTR_const PI = 3\nTR_var nokta = Nokta(x: 0)\nTR_var kayit = []\nTR_var sayac = 0\nTR_func say() -> TR_Int {\n    sayac += 1\n    TR_return sayac\n}\n"
+	for _, wrong := range []string{
+		"m.PI = 7",
+		"m.sayac += 1",
+		"TR_var modüller = [m]\nmodüller[0].PI = 7",
+	} {
+		out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\" TR_as m\n" + wrong + "\n"})
+		if !messages.Has(err, messages.H2901) {
+			t.Errorf("%s: H2901 beklenirdi, gelen %v (%s)", wrong, err, out)
+		}
+	}
+	valid := "TR_import \"m\" TR_as m\nTR_import \"m\" TR_as n\nm.nokta.x = 1\nm.kayit.TR_append(5)\nTR_print(n.nokta.x, n.kayit, m.say(), n.say(), n.PI)\n"
+	out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": valid})
+	if err != nil || out != "1 [5] 1 2 3\n" {
+		t.Errorf("geçerli yollar: çıktı %q, hata %v", out, err)
+	}
+}
+
+// Kural (11.2): modül değeri bir sözlük değildir: köşeli ayraçla okunması da ona köşeli ayraçla atama
+// da H2904'tür, modülün değeri değişmez. İletinin önerdiği nokta yazımı kopyalanınca çalışır.
+func TestModuleValueIsNotIndexed(t *testing.T) {
+	module := "TR_const PI = 3\n"
+	for _, wrong := range []string{"TR_print(m[\"PI\"])", "m[\"PI\"] = 9", "TR_var modüller = [m]\nTR_print(modüller[0][\"PI\"])"} {
+		out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\" TR_as m\n" + wrong + "\n"})
+		if !messages.Has(err, messages.H2904) {
+			t.Errorf("%s: H2904 beklenirdi, gelen %v (%s)", wrong, err, out)
+		}
+	}
+	_, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\" TR_as m\nTR_print(m[\"PI\"])\n"})
+	if text := messages.ErrorIn(err, "en"); !strings.Contains(text, "`m.PI`") {
+		t.Fatalf("ileti m.PI'yi önermeli: %q", text)
+	}
+	out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": "TR_import \"m\" TR_as m\nTR_print(m.PI)\n"})
+	if err != nil || out != "3\n" {
+		t.Errorf("önerilen yazım çalışmalı: çıktı %q, hata %v", out, err)
+	}
+}

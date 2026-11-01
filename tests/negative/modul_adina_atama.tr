@@ -1,0 +1,5 @@
+# TR 4
+# TEST 11.8 modül değerinin en dış adına aktaran dosyadan atama hatadır; değer değişmez (denetim yanı 4a2 ile)
+TR_import "../yardimci_modul" TR_as m
+m.PI = 7 # RUN-ERROR H2901
+TR_print(m.PI)

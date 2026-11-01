@@ -12,7 +12,7 @@ TR_test "2.1 ilk satırı başlık olan dosya çevrilmeden çalışır" {
 
 TR_test "17.1 dilin sözcükleri kimlikle, kullanıcının adları adıyla yazılır" {
     # Kimlik olmayan her ad kullanıcının adıdır: modüldeki 'eğer' bir değişkendir.
-    TR_assert_equal(7, m["eğer"])
+    TR_assert_equal(7, m.eğer)
     TR_assert_equal("x", m.yakalanan())
 }
 

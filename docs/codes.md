@@ -498,14 +498,14 @@ tr: değişken a, b = 1, 2; a, b = b, a; yazdır(a, b)
 aktar ile alınan modülün adlarını tek bir Sözlük olarak verilen ada bağlar.
 
 ```tr
-TR_import "tests/yardimci_modul" TR_as ym; TR_print(ym.kare(2), ym["PI"])
+TR_import "tests/yardimci_modul" TR_as ym; TR_print(ym.kare(2), ym.PI)
 ```
 
 Görünümü:
 
 ```text
-en: import "tests/yardimci_modul" as ym; print(ym.kare(2), ym["PI"])
-tr: aktar "tests/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym["PI"])
+en: import "tests/yardimci_modul" as ym; print(ym.kare(2), ym.PI)
+tr: aktar "tests/yardimci_modul" olarak ym; yazdır(ym.kare(2), ym.PI)
 ```
 
 İlişkili: `TR_import`
