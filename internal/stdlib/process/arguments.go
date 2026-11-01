@@ -89,6 +89,7 @@ func requestExit(m *interp.VM, code int, message string) error {
 // parse argümanları seçeneklere göre çözer: seçenek adı → değer.
 func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Value, error) {
 	given := map[string]interp.Value{}
+	afterSecretFlag := false
 	for i := 0; i < len(argv); i++ {
 		a := argv[i]
 		if len(a) > argLimit {
@@ -96,8 +97,14 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 		}
 		name, value, valued, err := optionName(a, options)
 		if err != nil {
+			// Gizli adlı mantık seçeneği değer almaz; arkasındaki argüman büyük olasılıkla onun
+			// değeridir (--hf_token GIZLI): iletiye uzunluğuna bakılmadan konmaz (19.10).
+			if afterSecretFlag && a != "--" && !strings.HasPrefix(a, "--") {
+				return nil, messages.New(messages.H7207, interp.SecretMask)
+			}
 			return nil, err
 		}
+		afterSecretFlag = false
 		if valued && IsSecretName(name) && m != nil {
 			addSecretItems(m, value) // hata mesajında da görünmesin
 		}
@@ -133,6 +140,7 @@ func parse(m *interp.VM, argv []string, options []*option) (map[string]interp.Va
 			return nil, err
 		}
 		given[s.name] = v
+		afterSecretFlag = !valued && s.optKind == kindBool && (s.secret || IsSecretName(s.name))
 	}
 	return given, nil
 }

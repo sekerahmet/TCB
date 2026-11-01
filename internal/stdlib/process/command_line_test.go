@@ -216,7 +216,7 @@ func TestCommandLineSecretValue(t *testing.T) {
 // tek tireli) iletiye koymaz; gizli olmayan seçeneğin hatalı değeri ise yazılır (19.4, 19.10).
 // Liste türündeki gizli seçeneğin her öğesi de (varsayılanda ve komut satırında) gizlenir.
 func TestCommandLineSecretLeaks(t *testing.T) {
-	code := `TR_command_line({"api_key": 1, "hf_token": TR_false, "gizli_liste": [1], "adım": 1, "max_tokens": 1})`
+	code := `TR_command_line({"api_key": 1, "hf_token": TR_false, "gizli_liste": [1], "adım": 1, "max_tokens": 1, "hızlı": TR_false})`
 	for _, d := range []struct {
 		arg    []string
 		secret string
@@ -230,6 +230,9 @@ func TestCommandLineSecretLeaks(t *testing.T) {
 		{[]string{"--hf_token_x", "GIZLI"}, "GIZLI"},
 		{[]string{"-hf_token_x=GIZLI"}, "GIZLI"},
 		{[]string{"-api_key=gizlideger99"}, "gizlideger99"},
+		// Mantık seçeneği değer almaz; arkasındaki argüman onun değeri sanılabilir (DENETİM, 2026-11-01).
+		{[]string{"--hf_token", "GIZLI"}, "GIZLI"},
+		{[]string{"--hf_token", "-GIZLI"}, "GIZLI"},
 	} {
 		_, _, err := commandLine(t, code, d.arg...)
 		if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 || strings.Contains(c.Message, d.secret) {
@@ -241,6 +244,10 @@ func TestCommandLineSecretLeaks(t *testing.T) {
 		if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 || !strings.Contains(c.Message, `"GIZLI"`) {
 			t.Errorf("%v: gizli olmayan seçeneğin değeri kullanım hatasında yazılmalı: %v", arg, err)
 		}
+	}
+	// Gizli olmayan mantık seçeneğinden sonraki argüman gizlenmez: kullanıcı neyi yanlış yazdığını görür.
+	if _, _, err := commandLine(t, code, "--hızlı", "GIZLI"); err == nil || !strings.Contains(err.Error(), "GIZLI") {
+		t.Errorf("--hızlı GIZLI: konumlu argüman iletide yazılmalı: %v", err)
 	}
 	_, m, err := commandLine(t, `TR_command_line({"api_key": ["varsayilangizli1"]})`, "--api_key=anahtarbir1,anahtariki2")
 	if err != nil {
