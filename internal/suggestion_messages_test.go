@@ -53,7 +53,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H2778, "TR_var t = (10, \"x\")\nTR_var v: TR_Int = t[0]", "t[0]", "t.0"},
 	{messages.H6104, "TR_func f(x: TR_List[TR_Float]) -> TR_List[TR_Float] { TR_return x }\nTR_var y = TR_relu(f([1.0, 2.0]))", "TR_relu(f", "TR_relu(TR_Tensor"},
 	{messages.H6955, "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var h = w * 2.0\nTR_var m = TR_Tensor([0.0, 1.0])\nTR_var d = 0.0\nh[1] = d", "h[1] = d", "h = TR_where(m, d, h)"},
-	{messages.H6956, "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var t = TR_zeros([2])\nTR_var i = 0\nTR_var d = (w * 2.0)[0]\nt[i] = d", "t[i] = d", "t[i] = TR_no_grad(d)"},
+	{messages.H6956, "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var t = TR_zeros([2])\nTR_var i = 0\nTR_var d = (w * 2.0)[0]\nt[i] = d", "t[i] = d", "TR_no_grad { t[i] = d }"},
 	{messages.H6956, "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var t = TR_zeros([2])\nTR_var m = TR_Tensor([1.0, 0.0])\nTR_var d = w * 2.0\nt[0..2] = d", "t[0..2] = d", "t = TR_where(m, d, t)"},
 	{messages.H6955, "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var h = w * 2.0\nTR_var d = 1.0\nTR_no_grad { h += d }", "h += d", "h = h + d"},
 	{messages.H6958, "TR_var t = TR_zeros([1])\nTR_var u = TR_ones([3])\nt += u", "t += u", "t = t + u"},

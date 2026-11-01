@@ -291,11 +291,13 @@ func TestCodeSlotsResolveToIdentities(t *testing.T) {
 				}
 				switch want.Class() {
 				case ClassFunction:
-					if m[1] >= len(tmpl) || tmpl[m[1]] != '(' {
-						t.Errorf("%s.json %s {#%s} (%s): fonksiyon kod yuvasından hemen sonra '(' gelmeli: %s", lang, key, slot, want, tmpl)
+					// Çağrı ya da sondaki blok (6.7): `{#no_grad} {{ ... }}` blok yazımıdır.
+					block := strings.HasPrefix(tmpl[m[1]:], " {{")
+					if !block && (m[1] >= len(tmpl) || tmpl[m[1]] != '(') {
+						t.Errorf("%s.json %s {#%s} (%s): fonksiyon kod yuvasından hemen sonra '(' ya da sondaki blok (' {{') gelmeli: %s", lang, key, slot, want, tmpl)
 					}
-					if !strings.Contains(rendered, spelling+"(") {
-						t.Errorf("%s.json %s {#%s}: üretilen metinde %q yok: %s", lang, key, slot, spelling+"(", rendered)
+					if call := spelling + map[bool]string{true: " {", false: "("}[block]; !strings.Contains(rendered, call) {
+						t.Errorf("%s.json %s {#%s}: üretilen metinde %q yok: %s", lang, key, slot, call, rendered)
 					}
 				case ClassMember:
 					if m[0] == 0 || tmpl[m[0]-1] != '.' {
