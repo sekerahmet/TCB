@@ -41,6 +41,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H1014, "TR_struct önbellek_durumu { x: TR_Int = 0 }", "önbellek_durumu", "ÖnbellekDurumu"},
 	{messages.H1015, "TR_var ADIM: TR_Int = 300", "ADIM", "adım"},
 	{messages.H1026, "TR_var a, b, c = (1, 2)", "TR_var a, b, c = (1, 2)", "TR_var a, b = (1, 2)"},
+	{messages.H1026, "TR_var t = (1, 2)\nTR_var a, b, c = t\nTR_print(a, b)", "TR_var a, b, c = t", "TR_var a, b = t"},
 	{messages.H1105, `TR_var t: TR_Bool = TR_Type(1) == "Int"`, `"Int"`, "TR_Int"},
 	{messages.H1106, "TR_var sayac: TR_Int = 1\nTR_print(sayaç)", "sayaç", "sayac"},
 	{messages.H2410, "TR_func f(isim: TR_Int) -> TR_Int { TR_return isim }\nTR_var x: TR_Int = f(isimm: 1)", "isimm", "isim"},

@@ -1,7 +1,15 @@
 # TR 4
-# TEST 6.3 açmada öğe sayısı tutmazsa denetim hatasıdır: sağ yan bir demet yazımı ya da dönüşü demet tipli fonksiyonun doğrudan çağrısıysa
+# TEST 6.3 açmada öğe sayısı tutmazsa denetim hatasıdır: sağ yan bir demet yazımı, dönüşü demet tipli fonksiyonun doğrudan çağrısı ya da tipi bilinen bir demetse (değişken, tipli parametre; 5.3, 3.6a)
 TR_func iki() -> (TR_Int, TR_Int) { TR_return 1, 2 }
 TR_var a, b, c = iki() # ERROR H1026
 TR_var x, y, z = (7, 8) # ERROR H1026
 TR_var p, q = iki()
 p, q, x = iki() # ERROR H1026
+TR_var t = (1, 2)
+TR_var d, e, f = t # ERROR H1026
+d, e, f = t # ERROR H1026
+TR_func aç(u: (TR_Int, TR_Int)) -> TR_Int {
+    TR_var k, l, m = u # ERROR H1026
+    TR_return k
+}
+TR_print(a, b, c, x, y, z, p, q, d, e, f, aç(t))

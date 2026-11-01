@@ -7,10 +7,11 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kural (5.3, 6.3): sağ yanı bir demet yazımı ya da dönüşü '-> (A, B)' diye yazılmış fonksiyonun
-// doğrudan çağrısı olan açmada öğe sayısı ad sayısını tutmazsa denetim hatasıdır. Sayının bilinmediği
-// yerler (fonksiyon değeri, dönüş tipi yazılmamış fonksiyon, isteğe bağlı demet, liste) denetimden
-// geçer; sayıyı çalışırken H2709 ve H2700 denetler.
+// Kural (5.3, 6.3, 3.6a): sağ yanı bir demet yazımı, dönüşü '-> (A, B)' diye yazılmış fonksiyonun
+// doğrudan çağrısı ya da tipi bilinen bir demet (değişken, tipli parametre) olan açmada öğe sayısı ad
+// sayısını tutmazsa denetim hatasıdır: demetin uzunluğu tipindedir. Sayının bilinmediği yerler
+// (fonksiyon değeri, dönüş tipi yazılmamış fonksiyon, isteğe bağlı demet, liste, tipi bilinmeyen
+// değer) denetimden geçer; sayıyı çalışırken H2709 ve H2700 denetler.
 func TestUnpackCountOfAKnownTuple(t *testing.T) {
 	const (
 		iki = "TR_func iki() -> (TR_Int, TR_Int) { TR_return 1, 2 }\n"
@@ -46,6 +47,18 @@ func TestUnpackCountOfAKnownTuple(t *testing.T) {
 			2,
 		},
 		{
+			"TR_var t = (1, 2)\n", "TR_var a, b, c = t", "TR_var a, b = t",
+			"fazla adı silin (TR_var a, b = t)",
+			"remove the extra names (TR_var a, b = t)",
+			2,
+		},
+		{
+			"TR_var t = (1, 2)\nTR_var a = 0\nTR_var b = 0\nTR_var c = 0\n", "a, b, c = t", "a, b = t",
+			"fazla adı silin (a, b = t)",
+			"remove the extra names (a, b = t)",
+			5,
+		},
+		{
 			"TR_func üç() -> (TR_Int, (TR_Int, TR_Int), TR_Int) { TR_return 1, (2, 3), 4 }\n",
 			"TR_var a, b = üç()", "TR_var a, b, _ = üç()",
 			"her öğeye bir ad, gerekmeyenin yerine _ yazın (TR_var a, b, _ = üç())",
@@ -76,9 +89,14 @@ func TestUnpackCountOfAKnownTuple(t *testing.T) {
 		"TR_func f() -> (TR_Int) { TR_return 1 }\nTR_var a, b = f()",
 		"TR_var a, b, c = [1, 2]",
 		"TR_var a, b = 1, 2",
+		"TR_var t = (1, 2)\nTR_var a, b = t",
+		"TR_var t: (TR_Int, TR_Int)? = TR_none\nTR_var a, b, c = t",
+		"TR_var t = " + unknownValue + "\nTR_var a, b, c = t",
 	} {
 		noErrors(t, src)
 	}
+	// Tipli parametredeki demet: sayı tipindedir
+	singleError(t, "TR_func f(t: (TR_Int, TR_String, TR_Int)) {\n    TR_var a, b = t\n}", messages.H1026, 2, "(TR_var a, b, _ = t)")
 	// Dönüş tipi yazılmamış fonksiyonun açılması sayıdan hata vermez; tek hata kapınındır (6.1)
 	singleError(t, "TR_func f() { TR_return 1, 2 } # ERROR H1112\nTR_var a, b, c = f()", messages.H1112, 1, "(TR_Int, TR_Int)")
 }

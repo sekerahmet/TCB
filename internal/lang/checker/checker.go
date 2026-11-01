@@ -271,7 +271,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.MultiVarStatement:
 		for _, v := range s.Values {
-			c.recordValueType(v, c.inferExpression(v))
+			c.recordValueType(v, c.itemType(v))
 		}
 		c.checkUnpackCount(s, s.Values, len(s.Names))
 		for _, name := range s.Names {
@@ -280,7 +280,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 
 	case *ast.MultiAssignStatement:
 		for _, v := range s.Values {
-			c.inferExpression(v)
+			c.itemType(v)
 		}
 		c.checkUnpackCount(s, s.Values, len(s.Targets))
 		for _, t := range s.Targets {
@@ -395,7 +395,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.requireBool(e.Right, right, messages.H2601)
 			return typeBool
 		case "==", "!=", "<", ">", "<=", ">=":
-			c.checkJSONComparison(e, left, right) // 3.7a (json_comparison.go)
+			c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
+			c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
 			return typeBool
 		case "??":
 			if left != typeNull && left != typeAny {

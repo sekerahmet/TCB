@@ -90,7 +90,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 ### 3.6a
 
 - **Mevcut durum (Faz 0.6b, 2026-10-29):** demet bir değer (`TupleVal`): değişmez `(a, b)`, `(x)` parantez; `t.0`, `t.0.1` okunur, atamak sözdizimi hatası (H0298), köşeli parantezle indeksleme çalışma hatası (H2778: sabit sayıda `t.0`, değişken indekste aynı tipli öğelerde `[t.0, t.1][i]`, farklı tipli öğelerde `TR_var a, b = t` önerir); sınır dışı indeks çalışma hatası, ileti öğe sayısını söylüyor (H2774); `==` öğe öğe, tensör tutan demette çalışma hatası (H2777); `<` sözlük sırasıyla (IEEE), `.TR_sort`, `TR_min`, `TR_max` 13.10'un sırasıyla; öğeleri anahtar olabilen demet sözlük anahtarı, olamayan öğeli demet anahtarda hata (H2773); metni "(1, "a")", tipinin metni "(Int, String)"; `TR_json_string` dizi yazıyor; kontrol noktasında desteklenmeyen değer (H7457). Tipte tek öğeli parantez gruplar: `(TR_Int)` `TR_Int`, `((TR_Int) -> TR_Bool)?` isteğe bağlı fonksiyon tipi [ölçüldü: `tests/tipler_test.tr`'nin 3.6a testleri, `tests/negative/demet_ogeye_atama.tr`, `parser/types_test.go`, `parser/statements_test.go`, `interp/compiler_test.go`].
-- **Yapılacaklar:** denetleyici demet tipini öğe sayısı ve tipleriyle taşıyor (`TestTupleTypes`); sınır dışı indeksin (`t.2`), tensör tutan demetin `==`'sinin ve sıralanamayan öğeli `<`'nin denetim hatası olması hâlâ eksik, üçü bugün çalışma hatası (H2774, H2777, 4.4) (4a2); `TR_json_parse[T]` (13.8) motorda yok, demet tipli alanın diziden kurulması onunla gelir.
+- **Mevcut durum (4a3, 2026-11-01):** tipi bilinen demette sınır dışı indeks (`t.2`) H2774, tensör tutan demetin `==`/`!=`'si H2777, sıralanamayan öğe çiftli `<`/`>`/`<=`/`>=` H2772 denetim hatası (çalışma anının kodları); tipi bilinmeyen demette çalışma hatası kalır. Çalışma anı listede tensör tutan demetin `==`'sini hatasız yapıyor (`(1, [x]) == (1, [x])` `TR_true`) [test: `TestTupleTypeRules`, `tests/negative/demet_tipi.tr`, `tests/tipler_test.tr`'nin 3.6a testleri; ölçüldü: tabanın ikilisi].
+- **Yapılacaklar:** `TR_json_parse[T]` (13.8) motorda yok, demet tipli alanın diziden kurulması onunla gelir.
 
 ### 3.7
 
@@ -166,7 +167,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 ### 5.3
 
 - **Mevcut durum:** takas, listeden ve demetten açma ve `_` kurala uyuyor; öğe sayısı tutmazsa H2700, H2701 ya da (demette) H2709 çalışma hatası, sağ yan demet yazımıysa denetim hatası (H1026), H1026 ve H2709 örneğini deyimin adlarından ve kaynaktaki sağ yanından kuruyor (eksikte `_` ekler, fazlada sondaki adları siler); `_` okunamıyor (sözdizimi hatası) [ölçüldü: takas, `TR_var p, q = [1, 2, 3]`, okunan `_`, `TR_var x, y = (7, 8)`; `tests/negative/demet_acma.tr`, `checker/unpack_test.go`, `interp/compiler_test.go`; Faz 0.6b].
-- **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** demeti açmada öğe sayısı tutmazsa her yerde denetim hatası (5.3, 6.3; demetin uzunluğu tipindedir). Bugün değişkendeki demet çalışma hatası veriyor: `TR_var t = (1, 2)` sonra `TR_var a, b, c = t` H2709 [ölçüldü: `d6b4827c`'nin ikilisi, 2026-11-01 20:1x]; fonksiyonun dönüşü denetimde yakalanıyor (`TR_var a, b, c = f()`). Denetleyicinin işi (4a'nın sonraki dilimi). Listede sayı hatası çalışma hatası kalır.
+- **Mevcut durum (4a3, 2026-11-01):** tipi bilinen demeti (değişken, tipli parametre) yanlış sayıda ada açmak da denetim hatası (H1026, öneri programın yazımıyla); fonksiyon değerinin çağrısı, isteğe bağlı ve tipi bilinmeyen demet çalışırken (H2709). Listede sayı hatası çalışma hatası kalır [test: `TestUnpackCountOfAKnownTuple`, `tests/negative/demet_acma.tr`].
 
 ### 5.4
 

@@ -63,7 +63,9 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		}
 		return c.fieldType(obj, e), true // tipi bilinen yapının alanı (7.5)
 	case *ast.ElementExpression:
-		return elementType(c.inferExpression(e.Object), e.Index), true // demetin öğesi (3.6a)
+		obj := c.inferExpression(e.Object)
+		c.checkTupleIndex(e, obj)
+		return elementType(obj, e.Index), true // demetin öğesi (3.6a)
 	}
 	return "", false
 }
