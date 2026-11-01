@@ -360,7 +360,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	// Başı _ olan adlar modüle özeldir (11.7, Dart'ın kitaplığa özel adları gibi): dışa
 	// aktarılmaz; takma adla erişim açık bir hata verir.
 	modDict := NewDictVal()
-	modDict.module = &moduleExports{path: s.Path, private: map[string]bool{}}
+	modDict.module = &moduleExports{path: s.Path, private: map[string]bool{}, env: modEnv}
 	modEnv.EachLocal(func(k string, exportedVal Value) {
 		if IsModulePrivate(k) {
 			modDict.module.private[k] = true
@@ -390,4 +390,16 @@ func moduleIndexError(d *DictVal, left ast.Expression, idx Value) error {
 		name = s.Val
 	}
 	return messages.New(messages.H2904, module, name)
+}
+
+// moduleName modül değerinin adının bugünkü değeridir (11.3): modülün kendi fonksiyonu en dış
+// değişkenini değiştirdiyse yeni değer, yüklemedeki kopya değil. Yükleme sözlüğü (d.Pairs) adların
+// kümesini ve sırasını tutar; ortamda olmayan ad için oradaki değer verilir.
+func moduleName(d *DictVal, key string) Value {
+	if env := d.module.env; env != nil {
+		if val := env.localValue(key); val != nil {
+			return val
+		}
+	}
+	return d.Pairs[key]
 }

@@ -34,6 +34,14 @@ TR_test "11.2 olarak ile modül tek bir değer olarak bağlanır; adlarına nokt
     TR_assert_equal("H2904", TR_error_code { ym["PI"] })
 }
 
+TR_test "11.3 modül değerinin adı modülün değişkenini okur, yüklemedeki kopyasını değil" {
+    # Modülün kendi fonksiyonu değişkenini değiştirince modül değeri de yeni değeri verir.
+    TR_var sayı = ym.modülde_say()
+    TR_assert_equal(sayı, ym.modül_sayacı)
+    TR_assert_equal(sayı + 1, ym.modülde_say())
+    TR_assert_equal(sayı + 1, ym.modül_sayacı)
+}
+
 TR_test "11.3 modül bir kez çalıştırılır; sonraki aktarımlar aynı değerleri paylaşır" {
     ym.kayıt.TR_append("x")
     TR_assert_equal(["x"], kayıt)
@@ -71,8 +79,8 @@ TR_test "11.8 modülün en dış adı aktaran dosyadan yeniden bağlanmaz; değe
     TR_assert_equal(5, modül_noktası.x)
     ym.kayıt.TR_append("11.8")
     TR_assert(kayıt.TR_contains("11.8"))
-    TR_assert_equal(1, ym.modülde_say())
-    TR_assert_equal(2, modülde_say())
+    TR_var sayı = ym.modülde_say()
+    TR_assert_equal(sayı + 1, modülde_say())
 }
 
 TR_test "11.6 tr/ öneki dilin kitaplığındandır; diskteki tr/ klasörü onu gölgeleyemez" {

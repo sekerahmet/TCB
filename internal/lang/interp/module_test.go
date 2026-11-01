@@ -226,3 +226,15 @@ func TestModuleValueIsNotIndexed(t *testing.T) {
 		t.Errorf("önerilen yazım çalışmalı: çıktı %q, hata %v", out, err)
 	}
 }
+
+// Kural (11.3): modül değerinin adı modülün değişkeninin bugünkü değerini verir: modülün kendi
+// fonksiyonu değişkenini değiştirince her takma ad yeni değeri görür (eskiden yüklemedeki kopyayı
+// veriyordu: m.say() iki kez çağrılınca m.sayac 0'dı). H2901'in önerdiği yol böyle doğru sonuç verir.
+func TestModuleValueReadsTheModulesVariable(t *testing.T) {
+	module := "TR_var sayac = 0\nTR_func say() {\n    sayac += 1\n}\nTR_func oku() -> TR_Int {\n    TR_return sayac\n}\n"
+	main := "TR_import \"m\" TR_as m\nTR_import \"m\" TR_as n\nm.say()\nm.say()\nTR_print(m.sayac, n.sayac, m.oku())\n"
+	out, err := runWithModules(t, t.TempDir(), map[string]string{"m.tr": module, "ana.tr": main})
+	if err != nil || out != "2 2 2\n" {
+		t.Errorf("çıktı %q, hata %v; \"2 2 2\" beklenirdi", out, err)
+	}
+}

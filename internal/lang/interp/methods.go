@@ -447,7 +447,7 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 			return nil, messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
 		}
 		if key, ok := u.moduleKey(d, prop); ok {
-			return d.Pairs[key], nil
+			return moduleName(d, key), nil
 		}
 		if err := d.privateNameError(prop); err != nil {
 			return nil, messages.At(line, 0, err)

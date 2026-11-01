@@ -224,6 +224,7 @@ type DictVal struct {
 type moduleExports struct {
 	path    string
 	private map[string]bool
+	env     *Environment // modülün ortamı: adın bugünkü değeri (11.3, moduleName)
 }
 
 // privateNameError ad bu modül sözlüğünün dışa aktarmadığı bir adsa hatayı verir.
