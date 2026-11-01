@@ -169,9 +169,13 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(n), nil
 }
 
-// waitAllBuiltin bekle_hepsi() yerleşiğidir.
+// waitAllBuiltin bekle_hepsi() yerleşiğidir. Argüman almaz: görev listesi biçimi (10.5) görev değeriyle
+// (10.1) gelir; o gelene dek verilen argüman sessizce yok sayılmaz, hatadır.
 // Eşzamanlılık, Zaman ve Dosya İşlemleri
 func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) > 0 {
+		return nil, messages.New(messages.H2014, CallName(codes.FnWaitAll), len(args))
+	}
 	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
 	if y.asyncTask {
 		return nil, messages.New(messages.H2432, CallPrefix(codes.FnWaitAll), codes.NameRef(codes.KwAsync))

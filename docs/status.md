@@ -384,6 +384,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.5
 
+- **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor; argümanlı çağrı (`TR_wait_all([1, 2])`) H2014 veriyor, eskiden listeyi kabul edip `TR_true` veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/eszamanli_test.tr`'nin 10.5 testleri]. Liste biçimi 10.1'i bekliyor: görev değeri yok (`TR_var g = TR_async f(3)` sözdizimi hatası, `TR_Task` ve `.TR_wait()` tanım dosyasında yok).
 - **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi ve verilen sıradaki ilk hatası; TR testi.
 
 ### 10.6

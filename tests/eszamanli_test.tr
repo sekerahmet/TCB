@@ -22,6 +22,10 @@ TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
     TR_assert_equal(3, bitenler.TR_length)
 }
 
+TR_test "10.5 bekle_hepsi() argüman almaz; görev listesi biçimi görev değeriyle (10.1) gelir" {
+    TR_assert_equal("H2014", TR_error_code { TR_wait_all([1, 2]) })
+}
+
 TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
     TR_var birikim = 0
     TR_for i TR_in 1..=200 {
