@@ -119,7 +119,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "inf"); tipin metni öğe tipsiz: `TR_Type([1])` "List" [ölçüldü].
 - **Yapılacaklar:** "List[Int]" ve "Int?" (öğe tipi ister; 4a).
-- **Yapılacaklar (2026-11-01, D1'in ikinci dilimi):** iletinin metni onu kuran çağrı, `Message("H6903", -1)`; `d6b4827c`'de `TR_print(TR_Message(...))` İngilizce katalog metnini veriyor [ölçüldü: DENETİM, `kol-denetim-d1-dilim2-tasarim-sonuc.md`].
+- **Yapılacaklar (2026-11-01, D1'in ikinci dilimi):** iletinin metni onu kuran çağrı, "Message("H6903", -1)"; `d6b4827c`'de `TR_print(TR_Message(...))` İngilizce katalog metnini veriyor [ölçüldü: DENETİM, `kol-denetim-d1-dilim2-tasarim-sonuc.md`].
 
 ## 4. İşleçler
 
