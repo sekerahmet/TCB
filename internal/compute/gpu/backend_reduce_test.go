@@ -130,6 +130,12 @@ func TestMax(t *testing.T) {
 			t.Fatalf("GPU'da sıfırların en büyüğü %v (%d. satır)", z.Max(1, false).Data(), i)
 		}
 	}
+	// En küçük, ml'nin TR_min'i gibi −max(−x) ile kurulur: her satırda −0.0 seçilir.
+	for i, v := range z.Neg().Max(1, false).Neg().Data() {
+		if v != 0 || !math.Signbit(float64(v)) {
+			t.Fatalf("GPU'da sıfırların en küçüğü %v (%d. satır), beklenen -0", z.Neg().Max(1, false).Neg().Data(), i)
+		}
+	}
 	s := tensor.NewOn(gpuDevice, []float32{0, n0, 0, n0}, 4)
 	if got := fmt.Sprint(s.ArgSort(0).Data()); got != "[1 3 0 2]" {
 		t.Fatalf("GPU'da sıfırların sıralaması %s, beklenen [1 3 0 2]", got)
