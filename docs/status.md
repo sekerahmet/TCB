@@ -62,7 +62,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 ### 2.13
 
 - **Mevcut durum:** `TR_cmd_check --json` çalışıyor (katman 2b, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının, denetleyicinin ve komut satırının hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltmeyle JSON satırları olarak; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir. Metin kipinde denetleyicinin iletileri sütunu da yazıyor [ölçüldü].
-- **Yapılacaklar:** başlık hatasının (H2540) bitişi; ana dosyadaki okunamayan modülün (H2131) sütunu ve bitişi; iç içe modülün `TR_import` hatasının dosyası (yorumlayıcıda `ModuleError` sarmalayıcısı); `TR_cmd_check`'te dosyadan sonraki öbür argümanların durumu (1.4); aktarılan modülün uyarıları [ölçüldü: DENETİM].
+- **Yapılacaklar:** başlık hatasının (H2540) bitişi; ana dosyadaki okunamayan modülün (H2132; olmayan klasör H2131) sütunu ve bitişi [kanıtlı: `internal/lang/turkish/file_error.go:131-133`]; iç içe modülün `TR_import` hatasının dosyası (yorumlayıcıda `ModuleError` sarmalayıcısı); `TR_cmd_check`'te dosyadan sonraki öbür argümanların durumu (1.4); aktarılan modülün uyarıları [ölçüldü: DENETİM].
 
 ### 2.3b
 
@@ -70,7 +70,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ## 3. Tipler ve değerler
 
-Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). Sonra verilen kararlar (yukarıdaki liste) DENETİM'den geçti, Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/` altındaki 3. bölüm testleri eski kuralları da sınıyor (karışık tipli liste, doğruluk sınaması, çıplak ad anahtarı, açıklamasız değişkenin tipi); testler koşulmadan önce yeni kurallara göre yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). Sonra verilen kararlar (yukarıdaki liste) DENETİM'den geçti, Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/tipler_test.tr` altındaki 3. bölüm testlerinden yalnız 3.6 testi (`tests/tipler_test.tr:116-117`) eski kuralı (karışık tipli liste) sınıyor; doğruluk sınaması (3.10), çıplak ad anahtarı (3.7) ve açıklamasız değişkenin tipi (3.13) yeni kurallara geçti [kanıtlı: `tests/tipler_test.tr:116-117, 234-244, 430-448, 537-549`]; karışık tipli liste testi kural uygulanırken yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
 
 ### 3.3a
 
@@ -256,7 +256,7 @@ Kurallar: [`docs/spec/07_yapilar.md`](spec/07_yapilar.md). Taslak: metin DENETİ
 
 Yapının tipi olan genel tip (StructType) kalkar; yapının tipi `TR_Type`'tır (3.11). Örneklerdeki eski genel tipler de kalkar: StructType, Function, BuiltinFunction, Object ve `TR_Any` (`examples/tr/12_tip_adlari.tr`, `14_yapilar_ve_metotlar.tr`) [ölçüldü: örneklerde git grep].
 
-Kütüphanenin bedeli: `.tr` dosyalarında 63 yapı tanımı (`lib/`'de 16) [ölçüldü: satır başındaki `TR_struct` için git grep]; alanlar ve kurucu parametreleri tipli yazıma çevrildi (Faz 0.9, 6.1 ve 7.1'e bakın). Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/layers.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
+Kütüphanenin bedeli: `.tr` dosyalarında satır başında 47 yapı tanımı (`lib/`'de 16; girintili tanımlar da sayılırsa 67) [ölçüldü: `git grep -nE '^TR_struct' -- '*.tr'` ve `git grep -nE '^\s*TR_struct\b' -- '*.tr'`, main `c39e0b56`]; alanlar ve kurucu parametreleri tipli yazıma çevrildi (Faz 0.9, 6.1 ve 7.1'e bakın). Alan daraltılmadığı için (3.5) `lib/`'deki 9 `TR_self.alan != TR_none` sınaması [ölçüldü: `lib/` için git grep] yerel kopyaya ya da `?.`'ya çevrilir; "yoksa varsayılan ata" kalıbının 4 yeri 3.5'in atamayla daraltmasıyla geçerli kalır; `lib/layers.tr`'nin kurucuları 7.4'e uyuyor [ölçüldü: DENETİM].
 
 JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde'si, Python'un pydantic'i gibi) henüz hiçbir bölümde yok; sonraki bölümlerde tasarlanır.
 
@@ -396,7 +396,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.8
 
-- **Mevcut durum:** paylaşılan listeye görevlerden ekleme sırası zamana bağlı ([4, 3, 2, 1, 0]) [ölçüldü].
+- **Mevcut durum:** paylaşılan listeye görevlerden ekleme sırası zamana bağlı ve her koşuda değişken (ör. `0..5` görevinde beş koşuda `[4, 2, 0, 1, 3]`, `[4, 0, 1, 2, 3]`, `[2, 1, 0, 3, 4]` ...) [ölçüldü: `0..5` döngüsünde `TR_async { l.TR_append(i) }` ile ardışık çalıştırma, `b77644dd`].
 
 ### 10.9
 
@@ -432,11 +432,11 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ### 11.5
 
-- **Mevcut durum (Faz 1, 2026-11-01):** dosya bilgisi görevde ve çağrıda tutuluyor (`NewTaskVM`, `callInSource`); görevden çağrılan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okuyor (`tests/moduller_test.tr`: `"11.5 modülün kodu kendi dosyasının bağlamında çalışır"`, `"11.5 görevde çalışan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur"`) [kanıtlı: `internal/lang/interp/vm.go:310`, `internal/lang/interp/calls.go:230-232`, `internal/lang/interp/module.go:168-177`; ölçüldü: `go run ./cmd/tr test tests/moduller_test.tr`, 2026-11-01].
+- **Mevcut durum (Faz 1, 2026-11-01):** dosya bilgisi görevde ve çağrıda tutuluyor (`NewTaskVM`, `callInSource`); görevden çağrılan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okuyor (`tests/moduller_test.tr`: "11.5 modülün kodu kendi dosyasının bağlamında çalışır", "11.5 görevde çalışan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur") [kanıtlı: `internal/lang/interp/vm.go:310`, `internal/lang/interp/calls.go:230-232`, `internal/lang/interp/module.go:168-177`; ölçüldü: `tests/moduller_test.tr` çalıştırması, `622862db`].
 
 ### 11.6
 
-- **Mevcut durum (Faz 0.2, 2026-10-29):** kitaplığın dört modülü İngilizce yollarda: `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training` (`lib/`); eski Türkçe yol H2478 verir (`tests/negative/kitaplik_turkce_harf.tr`). Eski yollar göçten önce 90 dosyada 976 satırda geçiyordu; şimdi yalnız `docs/archive/`'da ve o negatif testte [ölçüldü: `git grep`].
+- **Mevcut durum (Faz 0.2, 2026-10-29):** kitaplığın dört modülü İngilizce yollarda: `tr/layers`, `tr/optimizers`, `tr/pretrained`, `tr/training` (`lib/`); eski Türkçe yol H2478 verir (`tests/negative/kitaplik_turkce_harf.tr`). Eski yollar göçten önce 90 dosyada 976 satırda geçiyordu; şimdi `docs/archive/` ve o negatif test dışında yalnız gerekçenin tarihçe cümlesinde (`docs/spec/rationale/11_modules.md:34`) ve iki Go testinin yapay `tr/katmanx` adlarında (`internal/devtools/codeindex/snippet_test.go:106,111`, `tools/codegraph/library_imports_test.go:25,27,29`) geçiyor [ölçüldü: `git grep -nE 'tr/(katman|iyilestirici|egitim|hazir_modeller)' -- ':!docs/archive/*'`, main `c39e0b56`].
 
 ### 11.8
 
@@ -511,7 +511,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.7
 
 - **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik); tensörde `TR_is_finite` float32 0/1 veriyor (15.36); `TR_where`'in sayı imzası var: `TR_where(TR_true, 2, 3)` 2 veriyor [ölçüldü: main `8b115692`] (15'in yan değişikliği, uygulanmadı).
-- **Yapılacaklar:** `TR_is_nan`'ın sayı ve tensör imzası; tensörde `TR_Tensor[TR_Bool]` dönüşü; `TR_where`'in sayı imzasının kalkması, göçü 15.15'in status'unda (`tests/matematik_test.tr:169-171`); TR testi.
+- **Yapılacaklar:** `TR_is_nan`'ın sayı ve tensör imzası; tensörde `TR_Tensor[TR_Bool]` dönüşü; `TR_where`'in sayı imzasının kalkması, göçü 15.15'in status'unda (`tests/matematik_test.tr:170-171`; `:169` skaler `TR_Bool` koşul + tensör dalı) [kanıtlı: `tests/matematik_test.tr:169-171`]; TR testi.
 
 ### 13.8
 
@@ -552,8 +552,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 **En büyük göç kalemleri** [ölçüldü: DENETİM, main `8b115692`]:
 1. tam sayı değişmezli tensörler: 91 yer (`tests/` 77, `examples/` 11, `lib/` 3), çalışırken 20 dosyada 158 kurulum (15.1–15.3);
 2. karşılaştırmanın mantık tensörü vermesi: kaba sayım ~40 yer, çoğu testte (`TR_where` 16, karşılaştırmanın `.TR_tolist` 16, aritmetikte 1, toplamda 1, maske 4) (15.6, 15.15);
-3. `TR_grad_check`: 40 çağrı, 31'i dönüşünü kullanıyor (15.32);
-4. çapraz entropi ve gömmenin indeks cinsi: 33 + 24 çağrı (15.23, 15.23a);
+3. `TR_grad_check`: `.tr` dosyalarında 40 çağrı, 34'ü dönüşünü kullanıyor (`31` `TR_assert(TR_grad_check(...))`, `1` `TR_assert_equal(TR_true, ...)` `tests/matematik_test.tr:114`, `2` `TR_print(...)` `examples/tr/27_ozel_turev.tr:23-24`; kalan `6`'sı `TR_error_code`/`TR_try` bloğunda deyim) [ölçüldü: `git grep -n 'TR_grad_check(' -- '*.tr'`, main `c39e0b56`] (15.32);
+4. çapraz entropi ve gömmenin indeks cinsi: `.tr` dosyalarında 33 satırda 34 çağrı (25 `TR_cross_entropy` + 9 `TR_linear_cross_entropy`; `tests/tensor_test.tr:207`'de ikisi aynı satırda) + 24 satırda 27 `TR_embedding_lookup` çağrısı [ölçüldü: `git grep -n 'TR_cross_entropy(' -- '*.tr'`, `git grep -n 'TR_linear_cross_entropy(' -- '*.tr'` ve `git grep -n 'TR_embedding_lookup(' -- '*.tr'`, main `c39e0b56`] (15.23, 15.23a);
 5. `TR_custom_grad` 22 ve `TR_no_grad(x)` 20 satır (15.27a, 15.28);
 6. tensörde bileşik atamanın yerinde yazması: `.tr`'de ada bileşik atama 76 satır, çoğu sayaç; önce ve sonra koşup karşılaştırmak yeter (15.6d).
 
@@ -566,13 +566,13 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.2
 
 - **Mevcut durum:** `TR_Tensor([1], TR_dtype: "int64")` H6810 veriyor; cins veriden çıkmıyor, tam sayı listesi ondalık tensör kuruyor [ölçüldü].
-- **Yapılacaklar:** cinsin veriden çıkması ve tip parametresi; sığma denetimi. Göç [ölçüldü: DENETİM A2]: bütün öğeleri tam sayı değişmezi olan ve `TR_dtype:`'sız `TR_Tensor([...])` 91 yerde (tests/ 77, examples/ 11, lib/ 3); çalışmada 20 dosyada 158 kurulum. 4'ü `TR_requires_grad: TR_true`'lu (tests/tensor_test.tr:817-838) ve denetim hatası olur. Hepsi denetimde görünür; ileti `[[0.0], ...]`'i ya da `TR_Tensor[TR_Float](...)`'ı önerir.
+- **Yapılacaklar:** cinsin veriden çıkması ve tip parametresi; sığma denetimi. Göç [ölçüldü: DENETİM A2; kanıtlı: `tests/tensor_test.tr:822-843`]: bütün öğeleri tam sayı değişmezi olan ve `TR_dtype:`'sız `TR_Tensor([...])` 91 yerde (tests/ 77, examples/ 11, lib/ 3); çalışmada 20 dosyada 158 kurulum. 4'ü `TR_requires_grad: TR_true`'lu (`tests/tensor_test.tr:822-843`: `:822, 823, 832` tam sayı değişmezli, `:843` boş liste) ve denetim hatası olur. Hepsi denetimde görünür; ileti `[[0.0], ...]`'i ya da `TR_Tensor[TR_Float](...)`'ı önerir.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_zeros(..., TR_dtype: "q4")` gibi nicemlenmiş sıfır kurucu (T3).
 
 ### 15.3
 
-- **Mevcut durum:** sürüm motorda var (depo başına sayaç, H3012) [kanıtlı: DENETİM, device.go:154-181, autograd.go:169-172, 226]; ama ileti `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM]. Cins dönüşümü, tam sayı taşması ve öğe tipli liste yok (bütün tensörler float32).
+- **Mevcut durum:** sürüm motorda var (depo başına sayaç, H3012) [kanıtlı: internal/compute/tensor/device.go:154-156, 166-181, `internal/compute/tensor/autograd.go:169-173, 226-227`]; ama ileti `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM]. Cins dönüşümü, tam sayı taşması ve öğe tipli liste yok (bütün tensörler float32).
 - **Yapılacaklar:**
   - cins dönüşümü (tip çağrısı, hedef hassasiyetiyle), tam sayı taşmasının hatası ve `TR_wrapping_add`, `TR_wrapping_sub` ve `TR_wrapping_mul`'ın tensör imzası;
   - GPU'da çekirdeklerin hata bildireceği bir cihaz bayrağı yok [kanıtlı: DENETİM]: taşmanın hatası için yeni düzenek ve işlemden hemen sonra okuma (15.6'nın bekleme listesi);
@@ -596,7 +596,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.6
 
 - **Mevcut durum:** argmax'in tam sayılı işareti `+ 1`'de düşüyor (sonuç `2.0`, `TR_Float`); `/ 2` ve `* 2.5` tam sayılı tensörü ondalık yapıyor. `t // 2`, `t % 2` ve bit işleçleri H6703 veriyor; `@` yalnız ondalık [ölçüldü].
-- **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi. Göç: kesirli aritmetiğe giren argmax sonucu (tools/gpu/ss_exam.tr:58) [ölçüldü: DENETİM]; kitaplıkta maske aritmetiği 3 yer [ölçüldü: DENETİM B1]: lib/optimizers.tr:341 (`n + geçti` → `TR_where` ya da `TR_sum`), :344 (oranın `geçti * g` ile çarpımı → `TR_where(geçti, ..., 0.0)`), lib/layers.tr:419 (`m * (...)` → `m & (...)`).
+- **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi. Göç: kesirli aritmetiğe giren argmax sonucu (`tools/gpu/ss_exam.tr:58`) [kanıtlı: `tools/gpu/ss_exam.tr:58`]; kitaplıkta maske aritmetiği 3 yer [kanıtlı: `lib/optimizers.tr:339, 342`, `lib/layers.tr:419`]: `lib/optimizers.tr:339` (`n + geçti` → `TR_where` ya da `TR_sum`), `:342` (oranın `geçti * g` ile çarpımı → `TR_where(geçti, ..., 0.0)`), `lib/layers.tr:419` (`m * (...)` → `m & (...)`).
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
 
 ### 15.6a
@@ -646,7 +646,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.15
 
 - **Mevcut durum:** koşul "sıfırdan farklı" ondalık: `TR_where(TR_Tensor([2.0, 0.0, -1.0]), 1.0, 0.0)` → `[1.0, 0.0, 1.0]`, NaN da doğru [ölçüldü]; sayı imzası var.
-- **Yapılacaklar:** mantık koşulu, sayı imzasının kalkması; TR testi. Göç [ölçüldü: DENETİM B1]: çalışmada hiç 0/1 dışı koşul yok; durağan 4 satır ondalık koşul (tests/matematik_test.tr:168, :179, :182, :183) ve 3 satır sayı imzası (tests/matematik_test.tr:169-171).
+- **Yapılacaklar:** mantık koşulu, sayı imzasının kalkması; TR testi. Göç [ölçüldü: DENETİM B1; kanıtlı: `tests/matematik_test.tr:168-171, 179, 182-183`]: çalışmada hiç 0/1 dışı koşul yok; durağan 4 satır ondalık/tam sayı tensör koşul (`tests/matematik_test.tr:168, :179, :182, :183`), 1 satır skaler `TR_Bool` koşul + tensör dalı (`:169`) ve 2 satır sayı imzası (`tests/matematik_test.tr:170-171`).
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** iki sayılı biçimin cinsi ve hassasiyeti.
 
 ### 15.16a
@@ -663,7 +663,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.18
 
 - **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin toplamı ve ortalaması ondalık (`2.0`, `0.6666667`); `TR_argmax`'in sonucunun toplamı ondalık `1.0` [ölçüldü]. `TR_std` tensörde H2423 veriyor, `TR_logsumexp` yok [ölçüldü]. `TR_max(TR_Tensor([-0.0, 0.0]))` −0.0 veriyor [ölçüldü]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
-- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [ölçüldü: DENETİM C1]: `tests/tensor_test.tr:241`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, `TR_logsumexp`, liste eksen, −0.0 < 0.0; TR testleri.
+- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, `TR_logsumexp`, liste eksen, −0.0 < 0.0; TR testleri.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş eksen ile boş tensörün ayrımı, boş tensör listesinde hata, `TR_std`'nin sıfır sapmadaki türevi 0.
 
 ### 15.18a
@@ -675,7 +675,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.19
 
 - **Mevcut durum:** `TR_argmax` eksensizde son eksende çalışıyor: `TR_argmax(TR_Tensor([[1.0, 9.0], [4.0, 2.0]]))` → `[1, 0]` [ölçüldü]. `TR_argmin` yok. −0.0 ile 0.0 eşit sayılıyor.
-- **Yapılacaklar:** eksensiz biçim bütün öğelerde; göç 10 test yeri [ölçüldü: DENETİM C1]: `tests/matematik_test.tr:94`, `:182`, `:196`; `tests/tensor_test.tr:511`, `:516`, `:937`; Go dizeleri `builtin_reduce_test.go:12-13`, `:15`, `builtin_math_test.go:32`. İkisi `TR_cumsum`'u 0 boyutlu girdiye götürüp hataya döner; `tests/tensor_test.tr:937` `TR_sample` ile karşılaştırıyor, `TR_dim: -1` gerekir. Kullanıcı kodunda yok. `TR_argmin`, eksenli `TR_keepdim:`, argmax'e −0 için eşitlik dalı; TR testi.
+- **Yapılacaklar:** eksensiz biçim bütün öğelerde; göç 10 test yeri [kanıtlı: `tests/matematik_test.tr:94, 182, 196`, `tests/tensor_test.tr:516, 521, 942`, `internal/stdlib/ml/builtin_reduce_test.go:13-15`, `internal/stdlib/ml/builtin_math_test.go:32`]: `tests/matematik_test.tr:94`, `:182`, `:196`; `tests/tensor_test.tr:516`, `:521`, `:942`; Go dizeleri `internal/stdlib/ml/builtin_reduce_test.go:13-14`, `:15`, `internal/stdlib/ml/builtin_math_test.go:32`. İkisi `TR_cumsum`'u 0 boyutlu girdiye götürüp hataya döner; `tests/tensor_test.tr:942` `TR_sample` ile karşılaştırıyor, `TR_dim: -1` gerekir. Kullanıcı kodunda yok. `TR_argmin`, eksenli `TR_keepdim:`, argmax'e −0 için eşitlik dalı; TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş indirgemede hata.
 
 ### 15.20
@@ -696,7 +696,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.22
 
-- **Mevcut durum:** `TR_topk` ve `TR_argsort`'ta sıralanan eksen en çok 2²⁴ uzunlukta (indeksler float32 depoda); `TR_descending:` yok (motorda `Backend.Sort(..., desc)` hazır [kanıtlı: DENETİM C1]). −0 ile +0 eşit sayılıyor: `cpu_sort.go:47` ve `kernel_sort.go:22`'nin yorumu "−0 = +0", `orderKey`'in sıfır satırı `cpu_sort.go:55-56`.
+- **Mevcut durum:** `TR_topk` ve `TR_argsort`'ta sıralanan eksen en çok 2²⁴ uzunlukta (indeksler float32 depoda); `TR_descending:` yok (motorda `Backend.Sort(..., desc)` hazır [kanıtlı: internal/compute/tensor/device.go:347]). −0 ile +0 eşit sayılıyor: `internal/compute/tensor/cpu_sort.go:47-48` ve `internal/compute/gpu/kernel_sort.go:22`'nin yorumu "−0 = +0", `orderKey`'in sıfır satırı `internal/compute/tensor/cpu_sort.go:55-56` (GPU `orderKeyPTX`'te `internal/compute/gpu/kernel_sort.go:135, 137`) [kanıtlı: `internal/compute/tensor/cpu_sort.go:47-48, 55-56`, `internal/compute/gpu/kernel_sort.go:22, 135, 137`].
 - **Yapılacaklar:** 2²⁴ sınırı tam sayı depolamasıyla (15.1) kalkar, yeni sınır 2³² − 1; `TR_descending:`; `orderKey`'in sıfır satırı silinir [kanıtlı: DENETİM C1]; TR testi.
 - **GPU'nun yolu:** her satır 64 bitlik (sıra anahtarı, indeks) çiftleriyle bitonik ağla sıralanıyor; ikinin kuvvetine tamamlanmış uzunluğu 4096'ya kadar olan satır paylaşımlı bellekte tek başlatmayla, daha uzunu genel bellekte her bitonik adım için bir başlatmayla (log₂P·(log₂P + 1)/2) sıralanıyor.
 - **Uygulama sınırı:** GPU'da sıralanan anahtarın alt 32 biti indekstir; bu yüzden eksen en çok 2³² − 1 uzunlukta ve sıra anahtarı 32 bit (float32'de yeter; int64 ve float64 tensörde ve daha uzun eksende yeni bir yol gerekir). Aynı sınır `TR_topk`'ta. Kural bir sınır koymaz (bellek dışında, 15.42).
@@ -765,7 +765,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.32
 
 - **Mevcut durum:** `TR_grad_check` `TR_true` döndürüyor [ölçüldü].
-- **Yapılacaklar:** değer döndürmez; `girdiler` demet; göç 40 satır, 31'i dönüşünü kullanıyor (tek tek) [ölçüldü: DENETİM, `git grep` main `8b115692`].
+- **Yapılacaklar:** değer döndürmez; `girdiler` demet; göç `.tr` dosyalarında 40 satır, 34'ü dönüşünü kullanıyor (`31` `TR_assert(TR_grad_check(...))`, `1` `TR_assert_equal(TR_true, ...)` `tests/matematik_test.tr:114`, `2` `TR_print(...)` `examples/tr/27_ozel_turev.tr:23-24`; kalan `6`'sı `tests/ozel_turev_test.tr:170, 172, 183, 186, 188, 189`'da `TR_error_code`/`TR_try` bloğunda deyim; ayrıca Go testinde 2 `TR_print` satırı `internal/stdlib/ml/custom_grad_test.go:30, 272`) [ölçüldü: `git grep -n 'TR_grad_check(' -- '*.tr' '*.go'`, main `c39e0b56`].
 
 ### 15.33
 
@@ -802,7 +802,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.42
 
 - **Mevcut durum:** sıfır eksenli (verisiz) şekil, sıfır eksenleri 1 sayarak 50 milyon öğelik koleksiyon sınırına göre denetleniyor: `TR_zeros`, `TR_ones`, `TR_randn` ve boş tensörün `.TR_reshape`'i `TR_zeros([0, 1000000000, 1000000000])`'u reddediyor; veri taşıyan tensörün sınırı ise 2³² öğe (`TR_zeros([60000000])` başarılı, `TR_zeros([100000, 100000])` "at most 4294967296 elements") [ölçüldü: main `85a19c36`, çalıştırma; `internal/lang/interp/builtins.go:283`]. GPU çekirdeklerinin indeksi 32 bit: bir uygulama sınırıdır, dil kuralı değildir; Llama 3 405B'nin gömmesi (~2,1·10⁹ öğe) bu sınıra dayanıyor.
-- **Yapılacaklar:** 50 milyon sınırı kalkar, yerine int64 taşma denetimi (yukarıdaki örnek artık hata değildir; dev sonuç ayrılırken yakalanır); 64 bitlik GPU indeksi yol haritasında.
+- **Yapılacaklar:** 50 milyon sınırı (sıfır eksenli şekillerde; veri taşıyanda 2³² sınırı da kalkar) [kanıtlı: internal/stdlib/ml/error.go:188-209, `internal/lang/interp/builtins.go:283`] kalkar, yerine int64 taşma denetimi (yukarıdaki örnek artık hata değildir; dev sonuç ayrılırken yakalanır); 64 bitlik GPU indeksi yol haritasında.
 
 ### 15.43
 
@@ -899,17 +899,17 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.5
 
-- **Mevcut durum (Faz 1, 2026-11-01):** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 ve 64 biti okuyor, `int32`'ye sığmayan `<u4` ve `<i8` değerlerini reddediyor (`TestHeaderVersions`, `TestShardU32Overflow`, `tests/veri_parcalayici_test.tr`); aynı önbellek klasöründeki aynı adlı parçalar ayrı tutuluyor (`TestCache*`, `tests/veri_parcalayici_test.tr`: `"16.5 aynı adlı iki parça aynı önbellek klasöründe ayrı kalır"`) [kanıtlı: `internal/compute/dataload/npy.go:43`, `internal/compute/dataload/shard.go:278`, `internal/compute/dataload/cache.go:290-300`; ölçüldü: `go test -short ./internal/compute/dataload/` ve `go run ./cmd/tr test tests/veri_parcalayici_test.tr`, 2026-11-01].
+- **Mevcut durum (Faz 1, 2026-11-01):** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 ve 64 biti okuyor, `int32`'ye sığmayan `<u4` ve `<i8` değerlerini reddediyor (`TestHeaderVersions`, `TestShardU32Overflow`, `tests/veri_parcalayici_test.tr`); aynı önbellek klasöründeki aynı adlı parçalar ayrı tutuluyor (`TestCache*`, `tests/veri_parcalayici_test.tr`: "16.5 aynı adlı iki parça aynı önbellek klasöründe ayrı kalır") [kanıtlı: `internal/compute/dataload/npy.go:43`, `internal/compute/dataload/shard.go:278`, `internal/compute/dataload/cache.go:290-300`; ölçüldü: `internal/compute/dataload` ve `tests/veri_parcalayici_test.tr`, `21468919`].
 
 ### 16.6
 
-- **Mevcut durum:** veriyi yazan yerleşik yok; Go tarafında işaretsiz 16 bit yazıcı var (`WriteNpyU16`) [kanıtlı: `npy.go`].
+- **Mevcut durum:** veriyi yazan yerleşik yok; Go tarafında işaretsiz 16 bit ve işaretli 32 bit yazıcı var (`WriteNpyU16`, `WriteNpyI32`) [kanıtlı: `internal/compute/dataload/npy.go:512,525`].
 - **Yapılacaklar:** `TR_write_dataset`, tür seçimi ve `meta.json`; TR testi.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** var olan kümenin yerine atomik yazma.
 
 ### 16.7
 
-- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi); bağlamdan kısa parçalar atlanıyor (`TestSamplerWindowBoundsAndShift`, `tests/veri_parcalayici_test.tr`: `"16.7 örnekleyici bağlamdan kısa parçayı atlar"`) [kanıtlı: `internal/compute/dataload/sampler.go:206-209`; ölçüldü: `go run ./cmd/tr test tests/veri_parcalayici_test.tr`, 2026-11-01].
+- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef); tensörler float32 ve "tam sayılı işaretli" [ölçüldü]. Örnekleyici kontrol noktasına giriyor (20.2'nin TR testi); bağlamdan kısa parçalar atlanıyor (`TestSamplerWindowBoundsAndShift`, `tests/veri_parcalayici_test.tr`: "16.7 örnekleyici bağlamdan kısa parçayı atlar") [kanıtlı: internal/compute/dataload/sampler.go:206-209; ölçüldü: `tests/veri_parcalayici_test.tr`, `21468919`].
 - **Yapılacaklar:** demet dönüşü (3.6a) ve `TR_Tensor[TR_Int]` (15'in A'sı); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler.
 
 ### 16.8
@@ -932,7 +932,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.3
 
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** kitaplık parametresinin ve alanının yeri; görünüm ve kod dizini kitaplık gövdesinde kapsama bakar.
+- **Mevcut durum (Gemini Koşu 6, 2026-10-29):** kitaplık parametresinin (`PlaceArg`) ve yapı alanının/metodunun (`PlaceMember`) yeri sözcük çözümleyicide uygulanmış (`internal/lang/lexer/identity.go:169-176`); fonksiyon gövdesinde `paramInScope` önce çevreleyen fonksiyonun `TR_` parametresine bakar (`identity.go:285-293, 328-349`), görünüm (internal/lang/source/show.go:149) ve kod dizini (`internal/devtools/codeindex/read.go:49`, `bind.go:20-24, 135-153`) aynı sözcük çözümleyiciyle kitaplık gövdesinde kapsama göre seçer (`lib/optimizers.tr:423, 428`'deki `TR_min` parametresi "TR_arg_min" olarak çözülür: görünümde "en_az", dizinde `TR_lr_schedule`'ın "TR_arg_min" parametresi) [ölçüldü: `TR_cmd_show` ve `TR_cmd_index` `TR_sub_references`, `b77644dd`].
 
 ### 17.4
 
@@ -965,7 +965,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 
 ### 17.9
 
-- **Mevcut durum (Faz 0.4, 2026-10-30):** komut satırı girdisi ("cmd", "sub", "opt", "repl", "dbg", "env") yalnız kimliğin adını kabul ediyor ("tr run", "tr index definition", "--lang", "exit", "step", "TR_LANG"); gösterim dilindeki ad hata veriyor ve kimliğin adını öneriyor (H8875–H8876) [test: `internal/lang/codes/language_test.go`, `cmd/tr/e2e/behavior_commands_test.go`]; yardım ve iletiler yazılacak kimlik adını ve kişinin dilindeki açıklamayı gösteriyor; depodaki yazımlar (186 dosya) kimlik adına göç ettirildi [ölçüldü: `eski_denetimler/faz0_4_betik.py`].
+- **Mevcut durum (Faz 0.4, 2026-10-30):** komut satırı girdisi ("cmd", "sub", "opt", "repl", "dbg", "env") yalnız kimliğin adını kabul ediyor ("tr run", "tr index definition", "--lang", "exit", "step", "TR_LANG"); gösterim dilindeki ad hata veriyor ve kimliğin adını öneriyor (komut H8602 `cmd/tr/main.go:81`, `cmd/tr/options.go:84`; alt komut H8876 cmd/tr/index.go:50; seçenek H8674 `cmd/tr/options.go:59` ve program seçeneği H7209 `internal/stdlib/process/arguments.go:206`; ortam değişkeni H8875 `internal/lang/codes/environment.go:52`) [test: `internal/lang/codes/language_test.go`, `cmd/tr/e2e/behavior_commands_test.go`]; yardım ve iletiler yazılacak kimlik adını ve kişinin dilindeki açıklamayı gösteriyor; depodaki yazımlar (commit `ca471b63`'te 192 dosya; önceki "186 dosya" sayısı depoda bulunmayan `eski_denetimler/faz0_4_betik.py`'den geldiği için doğrulanamıyor) kimlik adına göç ettirildi [ölçüldü: git show --stat `ca471b63`, main `c39e0b56`].
 
 ### 17.10
 
@@ -984,7 +984,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.2
 
-- **Mevcut durum:** noktayla başlayan iki noktalı adlarda son uzantı (`.env.local` → `".local"`), `.TR_parent`'in `.`'da `".."`, `..`'da `"../.."` ve kökte (`"/"`, `"C:/"`) kökün kendisi olması uygulanmış ve testli (`TestPathMembers`, `tests/dosya_ve_yol_test.tr`) [kanıtlı: `internal/stdlib/files/path.go:117-125`; ölçüldü: `go test -short ./internal/stdlib/files/` ve `go run ./cmd/tr test tests/dosya_ve_yol_test.tr`, 2026-11-01].
+- **Mevcut durum:** noktayla başlayan iki noktalı adlarda son uzantı (".env.local" → `".local"`), `.TR_parent`'in `.`'da `".."`, `..`'da `"../.."` ve kökte (`"/"`, `"C:/"`) kökün kendisi olması uygulanmış ve testli (`TestPathMembers`, `tests/dosya_ve_yol_test.tr`) [kanıtlı: `internal/stdlib/files/path.go:117-125`; ölçüldü: `internal/stdlib/files` ve `tests/dosya_ve_yol_test.tr`, `c3e3ea47`].
 
 ### 18.5
 
@@ -998,7 +998,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.8
 
-- **Mevcut durum (Faz 1, 2026-11-01):** son bileşeni bağlantı olan yolda bağlantının kendisi değerlendiriliyor; korunan çalışma klasörüne giden bağlantı siliniyor, hedef klasöre dokunulmuyor (`TestDeleteProtections`) [kanıtlı: `internal/stdlib/files/protect.go:29-42`, `internal/stdlib/files/delete_test.go:127-133`; ölçüldü: `go test -short ./internal/stdlib/files/`, 2026-11-01].
+- **Mevcut durum (Faz 1, 2026-11-01):** son bileşeni bağlantı olan yolda bağlantının kendisi değerlendiriliyor; korunan çalışma klasörüne giden bağlantı siliniyor, hedef klasöre dokunulmuyor (`TestDeleteProtections`) [kanıtlı: `internal/stdlib/files/protect.go:29-42`, `internal/stdlib/files/delete_test.go:127-133`; ölçüldü: `TestDeleteProtections`, `87f9736c`].
 
 ### 18.9
 
@@ -1007,7 +1007,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.13
 
-- **Mevcut durum (Faz 1, 2026-11-01):** bağlantıya atomik yazma geçici dosyayı hedefin klasöründe açıyor ve bağlantı ile hedef ayrı klasörlerdeyken sınanıyor (`TestWriteAtomicSymlinkAndPerm`, `TestWriteAtomicSymlinkDifferentDirs`) [kanıtlı: `internal/lang/interp/atomic_write.go:30,62-68`, `internal/lang/interp/file_stream_test.go:46-85`; ölçüldü: `go test -v ./internal/lang/interp/ -run TestWriteAtomicSymlink`, 2026-11-01].
+- **Mevcut durum (Faz 1, 2026-11-01):** bağlantıya atomik yazma geçici dosyayı hedefin klasöründe açıyor ve bağlantı ile hedef ayrı klasörlerdeyken sınanıyor (`TestWriteAtomicSymlinkAndPerm`, `TestWriteAtomicSymlinkDifferentDirs`) [kanıtlı: `internal/lang/interp/atomic_write.go:30,62-68`, `internal/lang/interp/file_stream_test.go:46-85`; ölçüldü: `TestWriteAtomicSymlinkDifferentDirs`, `b77644dd`].
 
 ### 18.16
 
@@ -1045,7 +1045,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ### 19.10
 
-- **Mevcut durum:** yardım seçeneği yalnız "--help" ve "-h" (Türkçe "--yardım" bilinmeyen seçenek); "help" ve "h" dışında ad ayrılmış değil; ondalıkta Türkçe "sonsuz" okunmuyor, "inf", "-inf" ve "nan" okunuyor; mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış"); kullanım hatası iletisi gizli adlı seçeneğin değerini uzunluğuna bakmadan iletiye hiç koymuyor (`TestCommandLineSecretLeaks`, `internal/stdlib/process/arguments.go` `errorValue`) [ölçüldü: `go test -short ./internal/stdlib/process/`, 2026-11-01; main `85a19c36`, "--help", "--yardım", "--hızlı=doğru", "--üst=sonsuz" ile çalıştırma].
+- **Mevcut durum:** yardım seçeneği yalnız "--help" ve "-h" (Türkçe "--yardım" bilinmeyen seçenek); "help" ve "h" dışında ad ayrılmış değil; ondalıkta Türkçe "sonsuz" okunmuyor, "inf", "-inf" ve "nan" okunuyor; mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış"); kullanım hatası iletisi gizli adlı seçeneğin değerini uzunluğuna bakmadan iletiye hiç koymuyor (`TestCommandLineSecretLeaks`, `internal/stdlib/process/arguments.go` `errorValue`) [ölçüldü: `TestCommandLineSecretLeaks`, `a93c9e53`; main `85a19c36`, "--help", "--yardım", "--hızlı=doğru", "--üst=sonsuz" ile çalıştırma].
 - **Yapılacaklar:** mantık değerinde yalnız "true" ve "false" (`internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri çıkar); yardımın varsayılanları komut satırının yazımıyla; Go testleri.
 - **Göç:** yardımın Türkçe adının göçü bitti (depoda yalnız ipucu testi ve iki yorum kaldı) [ölçüldü: main `85a19c36`, `git grep`].
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz (bugün "(default: none)"). **Açık:** standart hataya yazan yerleşik yok (yol haritası).
