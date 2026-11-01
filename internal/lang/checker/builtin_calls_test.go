@@ -94,3 +94,40 @@ func TestPropertyCall(t *testing.T) {
 		noErrors(t, source)
 	}
 }
+
+// Kural (13.11): tipi bilinen çekirdek alıcıda metodun tek tipli parametresine uymayan, tipi bilinen
+// argüman çalışma anının koduyla denetim hatasıdır (H2423); ileti metodu kimlikle yazar. Tipi bilinmeyen
+// argüman, TR_JSON, motorun denetlemediği parametre (ParamsNotVerified) ve doğru tip hatasızdır.
+func TestMemberArgType(t *testing.T) {
+	for _, source := range []string{
+		`TR_print("a,b".TR_split(1))`,
+		`TR_print([1, 2].TR_join(1))`,
+		`TR_print("ab".TR_starts_with(TR_none))`,
+		`TR_print([1].TR_filter(3))`,
+	} {
+		_, errs := checkErrs(t, source)
+		if len(errs) != 1 || !messages.Has(errs[0], messages.H2423) {
+			t.Errorf("tek H2423 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+			continue
+		}
+		if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, ": .TR_") || strings.Contains(text, "string.") || strings.Contains(text, "list.") {
+			t.Errorf("ileti metodu kimlikle yazmalı: %s", text)
+		}
+	}
+	for _, source := range []string{
+		`TR_print("a,b".TR_split(","), [1].TR_filter((x) => x > 0), [1].TR_reduce(0, (a, x) => a + x))`,
+		`TR_print("a,b".TR_split(TR_json_parse("1")))`,
+		`TR_print([1].TR_reduce((a, x) => a + x))`,
+	} {
+		noErrors(t, source)
+	}
+}
+
+// Kural (3.6): liste tek tiplidir; öğe tipi bilinen listeye .TR_append ile başka tipte değer eklemek
+// denetim hatasıdır (H1123; çalışma anı öğe tipini taşımaz). Tam sayı yazımı ondalık listeye eklenir
+// (3.13); öğe tipi bilinmeyen listeye her değer eklenir.
+func TestAppendElementType(t *testing.T) {
+	singleError(t, "TR_var l = [1]\nl.TR_append(\"a\")", messages.H1123, 2, "TR_List[TR_Int]", "TR_String")
+	singleError(t, "TR_var l: TR_List[TR_String] = []\nl.TR_append(\"a\", 2)", messages.H1123, 2, "2.", "TR_Int")
+	noErrors(t, "TR_var f: TR_List[TR_Float] = []\nf.TR_append(1, 2.5)\nTR_var l = [[1]]\nl.TR_append([2])\nTR_var j = TR_json_parse(\"[1]\")\nj.TR_append(\"a\")\nTR_print(f, l, j)")
+}

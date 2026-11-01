@@ -356,7 +356,7 @@
   "TR_mem_adamw_lr": { "kind": "property", "module": "tr/optimizers" },
   "TR_mem_adamw_no_decay": { "kind": "property", "module": "tr/optimizers" },
   "TR_mem_advance": { "kind": "method", "module": "tr/layers" },
-  "TR_mem_append": { "kind": "method", "signatures": { "TR_List": { "params": ["TR_Any+"], "returns": "TR_List" }, "TR_Logger": { "params": ["TR_Dict|TR_String"], "returns": "TR_Bool" } }, "related": ["TR_mem_first", "TR_mem_last"], "example": "TR_var l = [1]; l.TR_append(2, 3); TR_print(l)" },
+  "TR_mem_append": { "kind": "method", "signatures": { "TR_List": { "params": ["T+"], "returns": "TR_List" }, "TR_Logger": { "params": ["TR_Dict|TR_String"], "returns": "TR_Bool" } }, "related": ["TR_mem_first", "TR_mem_last"], "example": "TR_var l = [1]; l.TR_append(2, 3); TR_print(l)" },
   "TR_mem_append_buffer": { "kind": "method", "module": "tr/layers" },
   "TR_mem_attention": { "kind": "property", "module": "tr/layers" },
   "TR_mem_bar": { "kind": "property", "module": "tr/training" },

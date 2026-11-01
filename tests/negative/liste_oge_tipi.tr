@@ -1,0 +1,6 @@
+# TR 4
+# TEST 3.6 liste tek tiplidir: öğe tipi bilinen listeye başka tipte değer eklemek denetim hatasıdır
+TR_var l = [1, 2]
+l.TR_append("a") # ERROR H1123
+l.TR_append(3, 4.5) # ERROR H1123
+TR_print(l)

@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
@@ -81,7 +83,58 @@ func (c *Checker) checkMemberCall(e *ast.CallExpression, objType string, argType
 	given := len(e.Arguments)
 	if minN, maxN := sig.PositionalCounts(); given < minN || maxN >= 0 && given > maxN {
 		c.addErrorAt(e, hint.MemberArgCount(recv, k, minN, maxN, given))
+		return
 	}
+	if !slices.Contains(ParamsNotVerified[k], recv) {
+		c.checkMemberArgTypes(e, k, sig, argTypes)
+	}
+}
+
+// checkMemberArgTypes çekirdek metodun konumlu argümanlarının tipini imzaya göre denetler (13.11):
+// tek tipli parametreye (ParamType) uymayan, tipi bilinen argüman çalışma anındaki hatanın kendisidir
+// (H2423). Tipi bilinmeyen, TR_JSON (çalışma anında H2665, açma önerisiyle) ve fonksiyon beklenen yere
+// verilen tip (13.9'un ok önerisi, sonraki iş) denetlenmez.
+func (c *Checker) checkMemberArgTypes(e *ast.CallExpression, k codes.Code, sig codes.Signature, argTypes []string) {
+	for i, arg := range e.Arguments {
+		p, ok := paramAt(sig, i)
+		want, single := ParamType(p)
+		given := argTypes[i]
+		if ok && k == codes.MemAppend && p.Text[0] == "T" {
+			c.checkElementArg(e, i, given)
+			continue
+		}
+		if !ok || !single || given == typeAny || given == codes.Name(codes.TypeJSON) || want == codes.TypeFunction && given == typeType {
+			continue
+		}
+		if !c.assignable(codes.Name(want), given, arg) {
+			c.addErrorAt(arg, hint.MemberArgType(k, i+1, c.typeArg(codes.Name(want)), c.typeArg(given)))
+		}
+	}
+}
+
+// checkElementArg listeye eklenen değerin tipini listenin öğe tipine göre denetler (3.6: liste tek
+// tiplidir; imzada T): öğe tipi bilinen listeye uymayan tipte değer H1123'tür. Çalışma anı öğe tipini
+// taşımadığı için bu hatanın çalışma anında kodu yoktur.
+func (c *Checker) checkElementArg(e *ast.CallExpression, i int, given string) {
+	recvType := c.receivers[e]
+	s := shapeOf(recvType)
+	if s.base != typeList || len(s.args) != 1 || s.optional || given == typeAny || s.args[0] == typeAny {
+		return
+	}
+	if !c.assignable(s.args[0], given, e.Arguments[i]) {
+		c.addErrorAt(e.Arguments[i], messages.New(messages.H1123, i+1, c.typeArg(s.args[0]), c.typeArg(recvType), c.typeArg(given)))
+	}
+}
+
+// paramAt i. konumlu argümanın parametresidir; sondaki '*' ya da '+' parametresi kalan argümanları alır.
+func paramAt(sig codes.Signature, i int) (codes.TypeExpr, bool) {
+	if i < len(sig.Params) {
+		return sig.Params[i], true
+	}
+	if n := len(sig.Params); n > 0 && (sig.Params[n-1].Many || sig.Params[n-1].AtLeastOne) {
+		return sig.Params[n-1], true
+	}
+	return codes.TypeExpr{}, false
 }
 
 // checkPropertyCall özelliğin çağrılmasını denetler (13.11): özellik bir değerdir, çağrılmaz
@@ -130,4 +183,21 @@ func (t typeChoices) MessageText(lang string) string {
 		names[i] = k.MessageText(lang)
 	}
 	return messages.OrListIn(lang, names...)
+}
+
+// ParamsNotVerified are core members whose single-typed parameters in definitions.json the engine
+// does not check with the same type on a receiver (member → the receivers;
+// interp.TestParamsMatchEngineKinds): the checker does not check their argument types there.
+var ParamsNotVerified = map[codes.Code][]codes.Code{
+	// tanımın ilk parametresi isteğe bağlı (["TR_Any?", "TR_Function"]): tek argüman fonksiyondur, motor denetlemez
+	codes.MemReduce: {codes.TypeList},
+}
+
+// ParamType is the type a positional parameter of a core member's signature asks for when the checker
+// checks it (13.11): one type alternative, not TR_Any, not a type parameter, no element type.
+func ParamType(p codes.TypeExpr) (codes.Code, bool) {
+	if len(p.Types) != 1 || p.Types[0] == codes.TypeAny || p.Text[0] != codes.Spelling(p.Types[0]) {
+		return codes.None, false
+	}
+	return p.Types[0], true
 }

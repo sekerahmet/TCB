@@ -179,6 +179,7 @@ const (
 	H1114 Code = 1114 // {file, select, testfile {test dosyasının} other {modülün}} en dışındaki {name|q} değişkeninin ilk değeri sabit ifade değil: {part|q} sabit değil ({file, select, testfile {test dosyası} other {modül}} yüklenirken kod çalışmaz, 1.1). Fonksiyonlar {name|q} değişkenine atadığı için o paylaşılan bir durumdur: yoklukla başlatın; onu kullanan her fonksiyon ya da test önce {name}_kur() çağırsın, ilk çağrı değeri bir kez kurar:\n{var} {name}: {type, select, empty {<tip>} other {{type}}}? = {none}\n{func} {name}_kur() {{\n    {if} {name} == {none} {{\n        {name} = {value}\n    }}\n}}
 	H1115 Code = 1115 // `{kind, select, member {.{call}()} other {{call}()}}` yeni bir değer döndürür; alıcısını ve argümanlarını yerinde değiştirmez, değeri atılan çağrı hiçbir iş yapmaz (13.10). Değeri atayın: {target, select, empty {`TR_var <ad> = {suggestion}`} other {`{suggestion}`}}
 	H1117 Code = 1117 // ; `.{member}` {types} tipinin metodudur{swap, select, empty {} other {. Alıcı ile argümanın yeri değişmiş: `{swap}`}}
+	H1123 Code = 1123 // `.{#append}`'in {order}. argümanı listenin öğe tipinde ({elem}) olmalı: {list} listesine {given} eklenmez (liste tek tiplidir, 3.6)
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

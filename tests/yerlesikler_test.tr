@@ -43,7 +43,9 @@ TR_test "13.10 yalnız değer veren yerleşik yeni değer döndürür, alıcıs�
 
 TR_test "13.11 yerleşiklerin argüman hataları tek biçimdedir" {
     TR_assert_equal("H2423", TR_error_code { TR_sqrt("a") })
-    TR_assert_equal("H2423", TR_error_code { [1].TR_filter(3) })
+    # tipi denetimde bilinmeyen değer çalışma anına ulaşır; denetim yanı tests/negative/metot_arguman_tipi.tr
+    TR_var üç = TR_json_parse("3")
+    TR_assert_equal("H2423", TR_error_code { [1].TR_filter(üç) })
     TR_assert_equal("H2011", TR_error_code { TR_sum() })
     TR_assert_equal("H2423", TR_error_code { TR_round(1.25, "x") })
 }
@@ -140,9 +142,11 @@ TR_test "13.3 anahtarlı sıralamanın hataları" {
 }
 
 TR_test "13.2 metotlar argümanın tipini denetler" {
-    TR_assert_equal("H2423", TR_error_code { "a1".TR_contains(1) })
-    TR_assert_equal("H2423", TR_error_code { "a,b".TR_split(1) })
-    TR_assert_equal("H2423", TR_error_code { [1, 2].TR_filter(3) })
+    # tipi denetimde bilinmeyen değer çalışma anına ulaşır; denetim yanı tests/negative/metot_arguman_tipi.tr
+    TR_var bir = TR_json_parse("1")
+    TR_assert_equal("H2423", TR_error_code { "a1".TR_contains(bir) })
+    TR_assert_equal("H2423", TR_error_code { "a,b".TR_split(bir) })
+    TR_assert_equal("H2423", TR_error_code { [1, 2].TR_filter(bir) })
     # Liste ve sözlük içerir her tipte değer arar
     TR_assert(TR_not [1, 2].TR_contains("1"))
     TR_assert([1, 2].TR_contains(1.0))

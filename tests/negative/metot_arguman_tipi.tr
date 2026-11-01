@@ -1,0 +1,5 @@
+# TR 4
+# TEST 13.11 tipi bilinen alıcıda yerleşik metoda yanlış tipte argüman denetim hatasıdır (çalışma anındaki kod)
+TR_print("a1".TR_contains(1)) # ERROR H2423
+TR_print("a,b".TR_split(1)) # ERROR H2423
+TR_print([1, 2].TR_filter(3)) # ERROR H2423
