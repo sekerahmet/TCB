@@ -37,7 +37,7 @@ Faz 0'ın tipli yazıma göçü, D1'in ilk dilimi ve Gemini'nin Faz 1 işinden s
 | `matris_dongu` | 306 | 142 | 2 | 2,15 |
 | `matris_yerlesik` | 7 | 8 (NumPy 2.1.3) | 185 | 0,88 |
 
-Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [hesap: geometrik ortalama]; en büyük fark metin (2,9) ve fonksiyon çağrısı (2,3). Aynı makinede 30 dakika önceki koşu (`b0b4c579`) 1,3–2,9 arası, aynı sıralamayla.
+Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [hesap: geometrik ortalama]; en büyük fark metin (2,9) ve fonksiyon çağrısı (2,3). Aynı makinede 30 dakika önceki koşu (`b0b4c579`) 0,7–2,9 arası [ölçüldü: `cpu-temel/20261101181506.log`].
 
 **Karakter modeli, CPU** (aynı makine ve koşu, PyTorch 2.14.1; ikisinin kaybı 300 adımda 2,21):
 
@@ -54,7 +54,9 @@ Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [
 | :-- | --: | --: |
 | TR | 145 | 10,57 GiB |
 | PyTorch 2.11, `torch.compile` | 136 | 10,83 GiB |
-| PyTorch 2.11, derlemesiz | 346 | 16,95 GiB |
+| PyTorch 2.11, derlemesiz | 347 | 16,95 GiB |
+
+İlk G4 koşusu (`kart/20261101175825`) "KALDI" ile bitti: hız sayısı geçerli, ama yalnız GPU'da koşan iki dil tanımı testi (15.40, 15.41) iletiyi Türkçe metinle arıyordu ve İngilizce makinede kaldı; `02dee59b` ileti koduna geçirdi, `kart/20261101185157` GEÇTİ. PyTorch sayıları kayıt aracıyla alınan `pytorch-temel/20261101185327`'den.
 
 TR derlenmiş PyTorch'un 1,07 katı [hesap: 145/136]; 2026-10-23'teki oranla aynı. Bulut 4a2'nin ikinci dilimi birleştikten sonra (`a2417c16`) aynı ölçüm: TR 145 ms/adım ve 10.823 MiB, GPU testleri ve dil tanımı testlerinin hepsi geçti [ölçüldü: `kart/20261101185157`]; PyTorch derlenmiş 136, derlemesiz 347 ms/adım, bellek aynı [ölçüldü: `pytorch-temel/20261101185327`, kayıt aracıyla].
 
