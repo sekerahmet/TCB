@@ -1295,7 +1295,7 @@ const (
 	H6946 Code = 6946 // {@pretrained_model}: {target|q} için iki parçadan biri eksik
 	H6950 Code = 6950 // {fn}: {name|q} tensörü nicemlenmiş ({dtype}); safetensors'ta nicemlenmiş tür yok: TR biçimiyle kaydedin, yolu `.trt` ile bitirin
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
-	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok; bu nokta bu TR'nin biçiminde değil
+	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok: nokta bu TR'den eski bir sürümle yazılmış ve bu sürümle yüklenmez. Eğitimi yeni bir koşu klasörüyle baştan başlatın ya da noktayı yazan TR sürümüyle sürdürün
 	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
 	H6954 Code = 6954 // {fn}: {index, select, empty {} other {{index} konumundaki }}tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
 	H6955 Code = 6955 // türev izleyen bir ara sonuca (türev izleyen bir işlemin sonucuna ya da onun görünümüne) yerinde yazılamaz, türevsiz kipte de: geri yayılım onun değerine dayanır. {kind, select, whole {Adı yeni bir tensöre bağlayın: `h = h + d`} other {Yerinde olmayan bir yazımla yeni bir tensör kurun: `h = {#where}(m, d, h)`}}

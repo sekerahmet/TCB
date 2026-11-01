@@ -1290,7 +1290,7 @@
 "H6946": "{@pretrained_model}: one of the two parts of {target|q} is missing",
 "H6950": "{fn}: tensor {name|q} is quantized ({dtype}); safetensors has no quantized type: save it in the TR format by ending the path with `.trt`",
 "H6951": "{fn}: {name|q} is the reserved key of the safetensors header and cannot be a tensor name; give the tensor another name",
-"H6952": "{file}: the \"rng\" field (the state of the shared random generator) is missing; this checkpoint is not in this TR's format",
+"H6952": "{file}: the \"rng\" field (the state of the shared random generator) is missing: the checkpoint was written by an older TR and this version does not load it. Start the training again in a new run folder, or continue it with the TR version that wrote the checkpoint",
 "H6953": "{file}: the \"rng\" field {given|q} could not be decoded: \"pcg:\" followed by 32 lowercase hexadecimal digits was expected",
 "H6954": "{fn}: the integer {value}{index, select, empty {} other { at {index}}} cannot be written exactly in float32 (it would become {rounded}); integer tensors do not exist in this version. If rounding is acceptable, write the value as a decimal: `{value}.0`",
 "H6955": "a tensor that tracks gradients and is an intermediate result (the result of an operation that tracks gradients, or a view of one) cannot be written in place, not even in no-gradient mode: backpropagation relies on its value. {kind, select, whole {Bind the name to a new tensor: `h = h + d`} other {Build a new tensor without writing in place: `h = {#where}(m, d, h)`}}",
