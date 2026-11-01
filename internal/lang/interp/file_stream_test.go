@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 // AtomikYaz bağlantının gösterdiği dosyayı yazar (bağlantı korunur) ve var olan dosyanın izin
@@ -55,13 +56,13 @@ func TestWriteAtomicSymlinkDifferentDirs(t *testing.T) {
 	}
 	var tempInTarget, tempInLink bool
 	err := WriteAtomic(link, func(w io.Writer) error {
-		entries, _ := os.ReadDir(targetDir)
+		entries, _ := reporoot.ReadDir(targetDir)
 		for _, e := range entries {
 			if strings.HasSuffix(e.Name(), ".yaziliyor") {
 				tempInTarget = true
 			}
 		}
-		linkEntries, _ := os.ReadDir(linkDir)
+		linkEntries, _ := reporoot.ReadDir(linkDir)
 		for _, e := range linkEntries {
 			if strings.HasSuffix(e.Name(), ".yaziliyor") {
 				tempInLink = true
