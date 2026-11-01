@@ -438,16 +438,18 @@ TR_struct TR_KVCache {
     # yerine yazar, sabit tamponu ilk kullanımda ayırıp konumdan başlayarak dilime yazar.
     TR_func TR_append_buffer(TR_buffers: TR_List[TR_Tensor?], TR_layer_idx: TR_Int, TR_new_chunk: TR_Tensor, TR_end: TR_Int) -> TR_Tensor {
         TR_if TR_self.TR_kind == "büyüyen" {
-            TR_if TR_buffers[TR_layer_idx] == TR_none {
-                TR_buffers[TR_layer_idx] = TR_new_chunk
-            } TR_else {
-                TR_buffers[TR_layer_idx] = TR_concat([TR_buffers[TR_layer_idx].TR_slice(1, 0, TR_self.TR_position), TR_new_chunk], TR_dim: 1)
+            TR_var tampon = TR_new_chunk
+            TR_if TR_buffers[TR_layer_idx] != TR_none {
+                tampon = TR_concat([TR_buffers[TR_layer_idx].TR_slice(1, 0, TR_self.TR_position), TR_new_chunk], TR_dim: 1)
             }
-            TR_return TR_buffers[TR_layer_idx]
+            TR_buffers[TR_layer_idx] = tampon
+            TR_return tampon
         }
         TR_if TR_self.TR_step_position != TR_none {
-            TR_write_slice(TR_buffers[TR_layer_idx], TR_new_chunk, TR_dim: 1, TR_start: TR_self.TR_step_position[0])
-            TR_return TR_buffers[TR_layer_idx]
+            TR_var tampon = TR_buffers[TR_layer_idx]
+            TR_if tampon == TR_none { TR_throw "KV önbelleği: \(TR_layer_idx). katmanın tamponu ayrılmadan cihaz adımına gelindi" }
+            TR_write_slice(tampon, TR_new_chunk, TR_dim: 1, TR_start: TR_self.TR_step_position[0])
+            TR_return tampon
         }
         TR_if TR_buffers[TR_layer_idx] == TR_none {
             TR_buffers[TR_layer_idx] = TR_zeros([TR_new_chunk.TR_shape[0], TR_self.TR_capacity, TR_new_chunk.TR_shape[2], TR_new_chunk.TR_shape[3]], TR_dtype: TR_new_chunk.TR_dtype).TR_to_device(TR_new_chunk.TR_device)
