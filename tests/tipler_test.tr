@@ -581,6 +581,20 @@ TR_test "3.14 liste ve sözlükteki metin tırnaklı ve 2.6'nın kaçışlarıyl
     TR_assert_equal("a\tb", TR_String("a\tb"))
 }
 
+TR_test "3.14 bayt dizisinin metni onu kuran çağrıdır; 64 bayttan uzunsa boyu ve ilk 16 baytı" {
+    TR_var b = TR_Bytes([104, 105])
+    TR_assert_equal("Bytes([104, 105])", "\(b)")
+    TR_assert_equal("[Bytes([104, 105])]", TR_String([b]))
+    # TR_String(b) metne çevirmedir: UTF-8 okur (3.3a)
+    TR_assert_equal("hi", TR_String(b))
+    TR_var l: TR_List[TR_Int] = []
+    TR_for i TR_in 0..64 { l.TR_append(i) }
+    TR_assert_equal(64, TR_Bytes(l).TR_length)
+    TR_assert(TR_not "\(TR_Bytes(l))".TR_contains("length"), "64 bayt bütün yazılır")
+    l.TR_append(64)
+    TR_assert_equal("Bytes(length 65, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, …])", "\(TR_Bytes(l))")
+}
+
 TR_test "8.5 İleti: kodu ve değerleriyle kurulur, metni gösterilirken katalogdan yazılır" {
     TR_var i = TR_Message("H6903", -1)
     TR_assert_equal(TR_Message, TR_Type(i))

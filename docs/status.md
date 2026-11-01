@@ -74,7 +74,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 
 ### 3.3a
 
-- **Mevcut durum:** `TR_Bytes` kuruluyor, okunuyor, birleşiyor; metni "Bytes([104, 105])" [ölçüldü].
+- **Mevcut durum:** `TR_Bytes` kuruluyor, okunuyor, birleşiyor; metni "Bytes([104, 105])" [ölçüldü]. 64 bayttan uzunda "Bytes(length 65, [0, 1, …, 15, …])" ve `TR_String(b)`'nin UTF-8 okuması 3.14'ün tur 1 yazımıyla aynı [test: `tests/tipler_test.tr`, "3.14 bayt dizisinin metni"].
 - **Yapılacaklar:** dosya ve ağ okumalarının bayt da vermesi (ölçülmedi).
 
 ### 3.5
@@ -161,7 +161,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 ### 5.3
 
 - **Mevcut durum:** takas, listeden ve demetten açma ve `_` kurala uyuyor; öğe sayısı tutmazsa H2700, H2701 ya da (demette) H2709 çalışma hatası, sağ yan demet yazımıysa denetim hatası (H1026), H1026 ve H2709 örneğini deyimin adlarından ve kaynaktaki sağ yanından kuruyor (eksikte `_` ekler, fazlada sondaki adları siler); `_` okunamıyor (sözdizimi hatası) [ölçüldü: takas, `TR_var p, q = [1, 2, 3]`, okunan `_`, `TR_var x, y = (7, 8)`; `tests/negative/demet_acma.tr`, `checker/unpack_test.go`, `interp/compiler_test.go`; Faz 0.6b].
-- **Yapılacaklar:** yok.
+- **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** demeti açmada öğe sayısı tutmazsa her yerde denetim hatası (5.3, 6.3; demetin uzunluğu tipindedir). Bugün değişkendeki demet çalışma hatası veriyor: `TR_var t = (1, 2)` sonra `TR_var a, b, c = t` H2709 [ölçüldü: `d6b4827c`'nin ikilisi, 2026-11-01 20:1x]; fonksiyonun dönüşü denetimde yakalanıyor (`TR_var a, b, c = f()`). Denetleyicinin işi (4a'nın sonraki dilimi). Listede sayı hatası çalışma hatası kalır.
 
 ### 5.4
 
