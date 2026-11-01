@@ -80,8 +80,12 @@ var suggestionCases = []suggestionCase{
 	{messages.H0299, "TR_var x = 1\nTR_func f() -> TR_Int {\n    TR_defer { TR_return 5 }\n    TR_return 1\n}\nTR_print(f())", "TR_defer { TR_return 5 }", "TR_defer { TR_if x > 0 { TR_print(x) } }"},
 	{messages.H0300, "TR_func f() {\n    TR_defer TR_print(1)\n}\nf()", "TR_defer TR_print(1)", "TR_defer { TR_print(1) }"},
 	{messages.H2910, "TR_try { TR_throw \"x\" } TR_catch { TR_print(1) }", "TR_catch", "TR_catch e"},
-	{messages.H2911, "TR_var x = [1]\nTR_var e = TR_Error(x)\nTR_print(e)", "TR_Error(x)", "TR_String(x)"},
-	{messages.H2913, "TR_try { TR_throw \"a\" } TR_catch e {\n    TR_try { TR_throw \"b\" } TR_catch f { TR_print(e == f) }\n}", "e == f", "e.TR_code == f.TR_code"},
+	// H2911'in TR_throw'daki önerisi (TR_throw TR_String(sayı)) düzeltilince de fırlatır: tabloya sığmaz,
+	// TestNotThrowableSuggestsTheProgramsSpelling (interp) sınar. Burada TR_Error(...) yolu: öneri adı anar.
+	{messages.H2911, "TR_var sayı = [1]\nTR_var e = TR_Error(sayı)\nTR_print(e)", "TR_Error", "TR_String"},
+	// Öneri programın kendi adlarıyladır (ilk, son; e, f).
+	{messages.H2913, "TR_var ilk = TR_Error(\"a\")\nTR_var son = TR_Error(\"b\")\nTR_print(ilk == son)", "ilk == son", "ilk.TR_code == son.TR_code"},
+	{messages.H2913, "TR_try { TR_throw \"a\" } TR_catch e {\n    TR_try { TR_throw \"b\" } TR_catch f { TR_print(e != f) }\n}", "e != f", "e.TR_code != f.TR_code"},
 	{messages.H2914, "TR_try { raise \"x\" } TR_catch e { TR_print(e) }", "raise", "TR_throw"},
 	{messages.H2915, "TR_try { TR_throw \"x\" } except e { TR_print(e) }", "except e", "TR_catch e"},
 	{messages.H2916, "TR_try { TR_print(1) } TR_catch e { TR_print(e) }\nfinally { TR_print(2) }", "finally", "TR_defer"},

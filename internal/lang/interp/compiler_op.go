@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -186,6 +187,36 @@ func intBitFunc(codeVal uint8) intFast {
 	}
 	return nil
 }
+
+// infixExpression ikili bir işlemi derler; '==' ve '!=' hata değerinin önerisini taşır (errorComparison).
+func (c *compiler) infixExpression(k *compilerScope, e *ast.InfixExpression) exprCode {
+	code := c.binary(k, e)
+	if op := opCode(string(e.Operator)); !e.Chained && (op == opEq || op == opNe) {
+		return errorComparison(code, e)
+	}
+	return code
+}
+
+// errorComparison hata değerinin karşılaştırılmasının (H2913) önerisini programın kendi yazımıyla
+// kurar: iki yan da adsa ilk.TR_code == son.TR_code (kopyalanınca çalışır); değilse öneri yalnız
+// üyeyi anar. Yalnız hata yolunda bakılır.
+func errorComparison(code exprCode, e *ast.InfixExpression) exprCode {
+	left, right := ast.TargetName(e.Left), ast.TargetName(e.Right)
+	if left == "" || right == "" {
+		return code
+	}
+	member := "." + codes.Spelling(codes.MemCode)
+	example := left + member + " " + string(e.Operator) + " " + right + member
+	line := e.Line()
+	return func(v *VM, env *Environment) (Value, error) {
+		val, err := code(v, env)
+		if err != nil && messages.Has(err, messages.H2913) {
+			return nil, messages.At(line, 0, messages.New(messages.H2913, example))
+		}
+		return val, err
+	}
+}
+
 func (c *compiler) binary(k *compilerScope, e *ast.InfixExpression) exprCode {
 	if e.Chained {
 		link := c.chainLink(k, e)

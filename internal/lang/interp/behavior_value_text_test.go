@@ -96,7 +96,7 @@ TR_try { TR_throw [TR_none, TR_Int] } TR_catch e { TR_print(e) }
 TR_try { k.at() } TR_catch e { TR_print(e) }
 TR_try { TR_assert(TR_false, TR_none) } TR_catch e { TR_print(e) }
 `, nil)
-	want := "Durum.Bozuk(n: 1)\nMessage(\"H2911\", \"TR_throw\", Message(\"H2424\", \"List\", \"[none, Int]\"))\n" +
+	want := "Durum.Bozuk(n: 1)\nMessage(\"H2911\", \"TR_throw\", Message(\"H2424\", \"List\", \"[none, Int]\"), \"\")\n" +
 		"Message(\"H6903\", [true, none])\nMessage(\"H2456\", \"none\")\n"
 	if out != want {
 		t.Errorf("yakalanan değerin metni dilden bağımsız olmalı:\n%s\nbeklenen:\n%s", out, want)

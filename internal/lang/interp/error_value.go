@@ -193,7 +193,7 @@ func (v *VM) registerErrorType() {
 			return nil, ArgCountError(codes.TypeError, 1, len(args))
 		}
 		if !throwable(args[0]) {
-			return nil, messages.New(messages.H2911, codes.NameRef(codes.TypeError), TypeAndSummary(args[0]))
+			return nil, messages.New(messages.H2911, codes.NameRef(codes.TypeError), TypeAndSummary(args[0]), "")
 		}
 		e := &ErrorVal{thrown: args[0]}
 		if inner, ok := args[0].(*ErrorVal); ok {

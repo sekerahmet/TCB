@@ -250,6 +250,12 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) statementCode {
 	value := c.expression(k, s.Value)
 	line := s.Line()
+	// Fırlatılamayan değerin önerisi programın kendi yazımıyladır (TR_throw TR_String(sayı)):
+	// kopyalanınca çalışır; değer bir ad değilse öneri yalnız TR_String'i anar.
+	example := ""
+	if name := ast.TargetName(s.Value); name != "" {
+		example = codes.Spelling(codes.KwThrow) + " " + codes.Spelling(codes.TypeString) + "(" + name + ")"
+	}
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
 		if err != nil {
@@ -259,7 +265,7 @@ func (c *compiler) throwStatement(k *compilerScope, s *ast.ThrowStatement) state
 			return nil, signalNone, e.raise(line)
 		}
 		if !throwable(val) {
-			return nil, signalNone, messages.At(line, 0, messages.New(messages.H2911, codes.NameRef(codes.KwThrow), TypeAndSummary(val)))
+			return nil, signalNone, messages.At(line, 0, messages.New(messages.H2911, codes.NameRef(codes.KwThrow), TypeAndSummary(val), example))
 		}
 		return nil, signalNone, (&ErrorVal{thrown: val}).raise(line)
 	}

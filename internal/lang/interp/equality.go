@@ -35,7 +35,7 @@ func comparisonError(a, b Value, nestDepth int) error {
 	// Hata değerinin kendisi karşılaştırılmaz (8.3): kodu ya da fırlatılan değeri karşılaştırılır;
 	// yoklukla karşılaştırma serbesttir (e.TR_cause == TR_none).
 	if (a.Type() == ValError || b.Type() == ValError) && a.Type() != ValNull && b.Type() != ValNull {
-		return messages.New(messages.H2913)
+		return messages.New(messages.H2913, "") // öneri programın yazımıyla '=='nın derlendiği yerde kurulur (errorComparison)
 	}
 	switch x := a.(type) {
 	case *ListVal:

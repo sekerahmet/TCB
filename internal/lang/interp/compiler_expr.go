@@ -123,7 +123,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		return c.prefixText(k, e)
 
 	case *ast.InfixExpression:
-		return c.binary(k, e)
+		return c.infixExpression(k, e)
 
 	case *ast.IfExpression:
 		return nestedStatements(noSignal(c.ifExpr(k, e)))

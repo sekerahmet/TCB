@@ -490,9 +490,9 @@ const (
 	H2903 Code = 2903 // `.{#sort}(f)`: anahtar fonksiyonunun verdiği {a} ile {b} karşılaştırılamaz; anahtarlar yalnızca sayı, yalnızca metin ya da yalnızca öğeleri sıralanabilen demetler olmalıdır
 	H2904 Code = 2904 // modül değeri bir sözlük değildir, köşeli ayraçla okunmaz ve ona köşeli ayraçla atanmaz; modülün adına noktayla erişin: {module, select, empty {`.{name}`} other {`{module}.{name}`}}
 	H2910 Code = 2910 // adsız yakalama yoktur: yakalanan hataya bir ad verin, `{#catch} e`; blokta hata o adla okunur
-	H2911 Code = 2911 // {fn} yalnız metin, ileti (`{#Message}`), durumlu tip değeri ya da hata alır; {given} verildi: değeri metne çevirin, `{#String}(x)`
+	H2911 Code = 2911 // {fn} yalnız metin, ileti (`{#Message}`), durumlu tip değeri ya da hata alır; {given} verildi: değeri `{#String}` ile metne çevirin{example, select, empty {} other {, `{example}`}}
 	H2912 Code = 2912 // `{#cause}:` yakalanmış bir hata alır (`{#catch} e`'nin `e`'si) ya da yok; {given} verildi
-	H2913 Code = 2913 // hata değerinin kendisi karşılaştırılamaz: kodunu ya da fırlatılan değeri karşılaştırın, `e.{#code} == f.{#code}`
+	H2913 Code = 2913 // hata değerinin kendisi karşılaştırılamaz: kodunu (`.{#code}`) ya da fırlatılan değeri karşılaştırın{example, select, empty {} other {, `{example}`}}
 	H2914 Code = 2914 // Python'un 'raise'i TR'de yoktur: hata `{#throw}` ile fırlatılır
 	H2915 Code = 2915 // Python'un 'except'i TR'de `{#catch}`'tir: `{#catch} e`
 	H2916 Code = 2916 // Python'un 'finally'si TR'de yoktur: kapsamdan nasıl çıkılırsa çıkılsın çalışacak iş `{#defer}` bloğuyla yazılır
