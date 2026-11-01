@@ -166,7 +166,7 @@ func (p *Parser) parseBlockOrCall(deferred bool) (body *ast.BlockStatement, call
 	call = p.parseExpression(precLowest)
 	if deferred {
 		// Tek yazım bloktur (9.1): ileti yazılan çağrıyı bloğa alır, kopyalanınca çalışır.
-		p.syntaxError(start, messages.H0300, p.word(codes.KwDefer), p.l.Slice(start, p.curToken()))
+		p.syntaxError(start, messages.H0300, p.l.Slice(start, p.curToken()))
 	}
 	p.skipSemicolon()
 	return nil, call

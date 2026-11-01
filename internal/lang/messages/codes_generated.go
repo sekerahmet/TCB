@@ -137,8 +137,8 @@ const (
 	H0296 Code = 296  // '{name}' alanı '{variant}' durumunda iki kez yazıldı
 	H0297 Code = 297  // '{variant}' durumunun '{name}' alanının varsayılanı yok ama varsayılanlı '{prev}' alanından sonra geliyor; varsayılansız alanları önce yazın
 	H0298 Code = 298  // {path|dat} atanamaz: demet değişmez (3.6a); {target|dat} yeni bir demet bağlayın, {kind, select, nested {{element} öğesinin} other {{element}. öğenin}} yerine yeni değeri yazarak
-	H0299 Code = 299  // ertelenen bloktan '{keyword}' ile çıkılmaz: ertelenen iş kapsamın sonucunu değiştirmez ve bloğun sonuna dek çalışır; bloğun gerisini atlamak için onu bir koşula alın: {if} c {{ ... }}
-	H0300 Code = 300  // '{keyword}' yalnız blokla yazılır, çağrı yazımı yoktur: {keyword} {{ {call} }}
+	H0299 Code = 299  // ertelenen bloktan '{keyword}' ile çıkılmaz: ertelenen iş kapsamın sonucunu değiştirmez ve bloğun sonuna dek çalışır; bloğun bir kısmını atlamak için onu koşula alın: `{#defer} {{ {#if} x > 0 {{ {#print}(x) }} }}`
+	H0300 Code = 300  // `{#defer}` yalnız blokla yazılır, çağrı yazımı yoktur: `{#defer} {{ {call} }}`
 	H1001 Code = 1001 // Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}
 	H1002 Code = 1002 // Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez
 	H1003 Code = 1003 // Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}

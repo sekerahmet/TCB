@@ -69,6 +69,8 @@ var suggestionCases = []suggestionCase{
 	{messages.H1112, "TR_func f(a: TR_Int) { # ERROR H1112\n    TR_return a\n}\nTR_print(f(1))", "f(a: TR_Int) {", "f(a: TR_Int) -> TR_Int {"},
 	{messages.H1115, "TR_var l = [3, 1, 2]\nl.TR_sort()\nTR_print(l)", "l.TR_sort()", "l = l.TR_sort()"},
 	{messages.H2474, "TR_var l = [\"a\", \"b\"]\nTR_print(\" \".TR_join(l))", "\" \".TR_join(l)", "l.TR_join(\" \")"},
+	{messages.H0299, "TR_var x = 1\nTR_func f() -> TR_Int {\n    TR_defer { TR_return 5 }\n    TR_return 1\n}\nTR_print(f())", "TR_defer { TR_return 5 }", "TR_defer { TR_if x > 0 { TR_print(x) } }"},
+	{messages.H0300, "TR_func f() {\n    TR_defer TR_print(1)\n}\nf()", "TR_defer TR_print(1)", "TR_defer { TR_print(1) }"},
 	{messages.H2900, "TR_var l = [3, 1, 2]\nTR_print(l.TR_sort((a, b) => b - a))", "l.TR_sort((a, b) => b - a)", "l.TR_sort((x) => -x)"},
 }
 

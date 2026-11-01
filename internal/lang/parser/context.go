@@ -93,7 +93,7 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 		return
 	}
 	if p.ctx.deferred {
-		p.syntaxError(tok, messages.H0299, p.tokenName(tok), p.word(codes.KwIf))
+		p.syntaxError(tok, messages.H0299, p.tokenName(tok))
 		return
 	}
 	if p.ctx.block {
@@ -113,7 +113,7 @@ func (p *Parser) checkReturn(tok lexer.Token) {
 	if p.ctx.deferred {
 		// Ertelenen blok 5.13'ün sınırıdır (9.3): oradaki TR_return fonksiyonun sonucunu sessizce
 		// değiştirmeye çalışırdı (eskiden yok sayılıyordu).
-		p.syntaxError(tok, messages.H0299, p.tokenName(tok), p.word(codes.KwIf))
+		p.syntaxError(tok, messages.H0299, p.tokenName(tok))
 		return
 	}
 	if p.ctx.block {
