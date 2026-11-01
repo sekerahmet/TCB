@@ -11,7 +11,7 @@ TR_test "8.1 dene / yakala; yakalanan hatanın adı yazılır" {
     TR_var yakalanan = ""
     TR_try { TR_throw "a" } TR_catch h { yakalanan = TR_String(h) }
     TR_assert_equal("a", yakalanan)
-    TR_try { TR_throw "b" } TR_catch (e) { yakalanan = TR_String(e) }
+    TR_try { TR_throw "b" } TR_catch e { yakalanan = TR_String(e) }
     TR_assert_equal("b", yakalanan)
 }
 
