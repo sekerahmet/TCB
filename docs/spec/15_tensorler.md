@@ -569,7 +569,7 @@ op.TR_zero_grad()
 - **Her cins ve hassasiyet saklanır:** float32, bf16, fp16, float64; int64, int32, int16, int8, uint8 ve öbürleri; mantık. Nicemlenmiş saklama hassasiyetleri de (15.55). Yüklenen tensör kaydedildiği cins ve hassasiyettedir.
 - **Tip:** bir dosya birden çok cins taşır (model ve adım sayacı, 20.12; Hugging Face'in I64 tamponları). `TR_load_tensors` `TR_Dict[TR_String, TR_AnyTensor]` verir: `TR_AnyTensor` cinsi çalışırken bilinen tensördür (15.1). Üstünde yalnız okuma işleri yapılır (15.1: `.TR_shape`, `.TR_dtype`, `.TR_device`, yazdırma, `TR_save_tensors`); görünüm, yazma ve hesap için `.TR_narrow[E]()` ile daraltılır (15.1; kopyasız): `d["w"].TR_narrow[TR_Float]()`, `d["step"].TR_narrow[TR_Int]()`. Cins uymazsa çalışma hatasıdır, ileti dosyadaki cinsi söyler. `TR_save_tensors` her cinsten tensör sözlüğünü alır (13.10'un kabul kümesi; kaplar değişmezdir).
 - Dosya güvenilmeyen girdidir: bildirilen veri dosyada olmalı (eksik veri ayırmadan önce hata), bir tensör en çok 32 eksen bildirebilir; öğe sayısı taşma denetimli hesaplanır (sıfır eksenler 1 sayılarak da, 15.42), verisi dosyada olmalıdır ve ayırma 15.42'nin bellek denetiminden geçer. Eski sürüm, bilinmeyen tür, eksik, bozuk ya da başka türden dosya açık bir hatayla reddedilir.
-- *Test:* TR testi; her cins uygulanınca TR testi.
+- *Test:* TR testi; Go: `TestSaveTensorsChoosesFormatByExtension`; her cins uygulanınca TR testi.
 
 **15.47** `TR_load_tensors(yol)` safetensors dosyasını da okur (Hugging Face ve PyTorch ağırlıklarının biçimi). Okumada biçim uzantıdan değil içerikten anlaşılır: `TRTENSOR` ile başlayan dosya TR biçimidir, 9. baytı `{` olan safetensors'tur; ikisi de değilse ileti iki biçimi de anar.
 - Desteklenen türler 15.1'in bütün cinsleri ve hassasiyetleridir (F32, F64, BF16, F16, I64, I32, I16, I8, U8, BOOL ...); `F8_E4M3` ölçeği 1 olan "fp8" olarak okunur (15.55); karşılığı olmayan tür (`F8_E5M2`, U64) açık hatadır.
@@ -581,7 +581,7 @@ op.TR_zero_grad()
 - Başlık safetensors belirtimine uyar: başlık boşlukla 8 bayta tamamlanır, tensörler hizaya göre yazılır: önce geniş türler, aynı genişlikte yazılan sırayla. Python'un `safetensors`'ından farklı olarak adla sıralanmaz. `__metadata__`'ya `{"format": "pt"}` yazılır.
 - CRC yoktur (biçimde yeri yok); kontrol noktası TR biçimini kullanır (20).
 - Yazılan dosya 15.47'nin okuyucusundan ve Python'un `safetensors`'ından geçer: gidiş dönüşte her tensörün adı, cinsi, şekli ve verisi bit bit aynıdır. 15.47 veri sırasıyla okuduğu için geri okunan sıra yazılan sıradır, yalnız türler karışıksa geniş türler öne geçer. Nicemlenmiş tensör: 15.55.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go testi (Python `safetensors` ile gidiş dönüş).
+- *Test:* TR testi; Go: `TestSafetensorsWriteRoundTrip`, `TestSafetensorsWriteEmptyDict`, `TestSafetensorsWriteRejects`, `TestSafetensorsPythonRoundTrip` (Python `safetensors` ile iki yönde gidiş dönüş; Python ya da `safetensors` yoksa atlanır).
 
 ## Hatalar ve özel değerler
 

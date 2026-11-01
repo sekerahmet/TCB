@@ -1288,6 +1288,8 @@
 "H6944": { "param": [], "slots": {"pretrained_model": "TR_fn_pretrained_model"} },
 "H6945": { "param": ["weight"], "slots": {"pretrained_model": "TR_fn_pretrained_model"} },
 "H6946": { "param": ["target"], "slots": {"pretrained_model": "TR_fn_pretrained_model"} },
+"H6950": { "param": ["fn", "name", "dtype"] },
+"H6951": { "param": ["fn", "name"] },
 "H7000": { "param": ["fn", "text", "given"] },
 "H7001": { "param": ["error"] },
 "H7003": { "param": ["fn", "path"] },

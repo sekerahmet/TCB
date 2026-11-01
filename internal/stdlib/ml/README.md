@@ -22,7 +22,8 @@ Denetim: `TestMixedPrecisionBlock`, `TestMixedPrecisionTaskIsolation`, `TestMixe
 **Tensör dosyası doğrulanır.** Başlık, sürüm, tür, boyutlar, eleman sınırı, uzunluk ve sağlama
 toplamı denetlenir; bozuk ya da eksik dosya açık bir hatayla reddedilir. Biçim değişirse sürüm
 artar; deneme döneminde eski sürümler okunmaz, açık bir sürüm hatası verilir (uyumluluk sözü sürüm politikasıyla gelir; yerel ağırlık biçimi de safetensors olacak).
-Denetim: `TestTensorSaveLoad`, `TestTensorSaveVersion2`, `TestSaveZeroAxisLimit`, `FuzzTensorFileDecode`.
+Biçim yolun uzantısından seçilir: `.safetensors` ile biten yol safetensors yazar (dil tanımı 15.47a; tensörler hizaya göre, önce geniş türler, aynı genişlikte sözlüğün sırasıyla), öbürleri TR biçimini.
+Denetim: `TestTensorSaveLoad`, `TestTensorSaveVersion2`, `TestSaveZeroAxisLimit`, `FuzzTensorFileDecode`, `TestSaveTensorsChoosesFormatByExtension`, `TestSafetensorsPythonRoundTrip`.
 
 **Hata panik değildir.** Çekirdeğin panikleri (şekil, cihaz belleği) TR hatasına çevrilir;
 ileti hangi işlemin neden yapılamadığını ve ne yapılacağını söyler.

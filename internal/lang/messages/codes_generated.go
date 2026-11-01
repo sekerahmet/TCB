@@ -1293,6 +1293,8 @@ const (
 	H6944 Code = 6944 // {@pretrained_model}: kayan pencereli dikkat (use_sliding_window) henüz desteklenmiyor
 	H6945 Code = 6945 // {@pretrained_model}: tanınmayan ağırlık {weight|q}
 	H6946 Code = 6946 // {@pretrained_model}: {target|q} için iki parçadan biri eksik
+	H6950 Code = 6950 // {fn}: {name|q} tensörü nicemlenmiş ({dtype}); safetensors'ta nicemlenmiş tür yok: TR biçimiyle kaydedin, yolu `.trt` ile bitirin
+	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

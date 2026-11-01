@@ -6,7 +6,6 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
-	"math"
 	"os"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -92,6 +91,7 @@ func yolArg(fn any, v interp.Value) (string, error) {
 }
 
 // tensorSave adları tensör olan bir sözlüğü dosyaya yazar: tensör_kaydet(yol, sözlük).
+// `.safetensors` ile biten yol safetensors (save_safetensors.go), öbürleri TR biçimini yazar (15.46).
 func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnSaveTensors)
 	if len(args) != 2 {
@@ -128,9 +128,16 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		inputs = append(inputs, fileEntry{ad: k, shape: sh, dtype: d.t.DType(), data: d.t.Data()})
 	}
 	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. interp.(*VM).ResolvePath).
+	write := writeToFile
+	if isSafetensorsPath(fpath) {
+		if err := checkSafetensorsEntries(fn, inputs); err != nil {
+			return nil, err
+		}
+		write = writeSafetensorsFile
+	}
 	decoded := bind.ResolvePath(m, fpath)
 	var writeErr error
-	m.Blocking(func() { writeErr = writeToFile(decoded, inputs) })
+	m.Blocking(func() { writeErr = write(decoded, inputs) })
 	if writeErr != nil {
 		return nil, turkish.FileError(fn, fpath, messages.H2101, writeErr)
 	}
@@ -205,17 +212,8 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 	for _, d := range shape {
 		y.u64(uint64(d))
 	}
-	on6 := dtype == tensor.BFloat16 || dtype == tensor.Float16
-	for i := 0; i < len(data); {
-		t := y.buffer[:0]
-		for ; i < len(data) && len(t) < cap(t); i++ {
-			if on6 {
-				t = binary.LittleEndian.AppendUint16(t, tensor.Bits16(dtype, data[i]))
-			} else {
-				t = binary.LittleEndian.AppendUint32(t, math.Float32bits(data[i]))
-			}
-		}
-		y.write(t)
+	if y.failure == nil {
+		y.failure = writeValues(y.w, dtype, data, y.buffer)
 	}
 	return y.failure
 }
