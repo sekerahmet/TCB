@@ -1,0 +1,13 @@
+# TR 4
+# TEST 9.3 ertelenen bloktan TR_return, TR_break ya da TR_continue ile çıkılmaz: sözdizimi hatasıdır
+TR_func f() -> TR_Int {
+    TR_defer {
+        TR_return 5 # ERROR H0299
+    }
+    TR_return 1
+}
+TR_for i TR_in 0..3 {
+    TR_defer {
+        TR_break # ERROR H0299
+    }
+}

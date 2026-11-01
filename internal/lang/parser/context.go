@@ -16,6 +16,9 @@ type stmtContext struct {
 	funcs int  // içinde bulunulan fonksiyon sayısı
 	test  bool // bir test gövdesindeyiz (fonksiyon dışı)
 	block bool // bir sondaki bloğun gövdesindeyiz (iç içe fonksiyon dışı; 6.7)
+	// deferred bir ertelenen bloğun gövdesindeyiz (iç içe fonksiyon dışı): ondan TR_return,
+	// TR_break ya da TR_continue ile çıkılmaz (9.3); içindeki döngüde TR_break ve TR_continue geçerlidir.
+	deferred bool
 }
 
 // ParseModule parses the code as a module (a file brought in with 'aktar'): the same as
@@ -53,6 +56,7 @@ func (p *Parser) withinLimit(fnExpr, test bool, fn func()) {
 		p.ctx.funcs++
 		p.ctx.test = false
 		p.ctx.block = false
+		p.ctx.deferred = false
 	}
 	if test {
 		p.ctx = stmtContext{test: true}
@@ -88,6 +92,10 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 	if p.ctx.loops > 0 {
 		return
 	}
+	if p.ctx.deferred {
+		p.syntaxError(tok, messages.H0299, p.tokenName(tok), p.word(codes.KwIf))
+		return
+	}
 	if p.ctx.block {
 		// Sondaki blok bir döngü de fonksiyon da değildir: blok son ifadesiyle biter (6.7).
 		p.syntaxError(tok, messages.H0264, p.tokenName(tok), p.word(codes.KwIf), p.word(codes.KwElse))
@@ -102,6 +110,12 @@ func (p *Parser) checkSignal(tok lexer.Token) {
 
 // checkReturn 'sonuç' deyiminin bulunduğu yerde geçerli olduğunu denetler.
 func (p *Parser) checkReturn(tok lexer.Token) {
+	if p.ctx.deferred {
+		// Ertelenen blok 5.13'ün sınırıdır (9.3): oradaki TR_return fonksiyonun sonucunu sessizce
+		// değiştirmeye çalışırdı (eskiden yok sayılıyordu).
+		p.syntaxError(tok, messages.H0299, p.tokenName(tok), p.word(codes.KwIf))
+		return
+	}
 	if p.ctx.block {
 		// Sondaki blokta TR_return yoktur (6.7): Python'un with içinden dönme alışkanlığı sessizce
 		// yanlış yere dönmesin; blok son ifadesiyle biter.

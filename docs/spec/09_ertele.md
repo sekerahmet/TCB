@@ -23,7 +23,7 @@ Her turun ertelenen işi o turun sonunda çalışır, fonksiyonun sonunu bekleme
 - *Test:* TR testi.
 
 **9.3** Ertelenen işin bloğu çalıştığı anda okur: içindeki adlar kapsam biterkenki değerlerini verir, kayıt anındakileri değil. Kayıt anındaki değer gerekiyorsa önce bir sabite alınır: `TR_const eski_x = x`, sonra `TR_defer { TR_print(eski_x) }`. Ertelenen işin bloğundan `TR_return`, `TR_break` ya da `TR_continue` ile çıkılamaz: ertelenen blok 5.13'ün sınırıdır, çıkış sözdizimi hatasıdır (dosya okunurken bulunur); ertelenen iş kapsamın sonucunu değiştirmez. Bloğun içindeki bir döngüde `TR_break` ve `TR_continue` geçerlidir.
-- *Test:* TR testi; bloktan çıkışın hatası uygulanınca TR testi.
+- *Test:* TR testi ve olumsuz fikstür (bloktan çıkışın hatası).
 
 **9.4** Ertelenen işteki hata yutulmaz. Bir ertelenen iş hata verse de sonraki ertelenen işler çalışır. Kapsamın hatası, kapsam hatasız bittiyse ilk ertelenen işin hatası korunur: kodu, değeri ve nedeni değişmez. Ertelenen işlerin öbür hataları çalışma sırasıyla korunan hatanın `e.TR_suppressed` listesine (`TR_List[TR_Error]`, 8.3) eklenir. Kapsamdan durdurma isteği (1.5), iptal (10.9) ya da `TR_exit` (1.10) ile çıkılırken ertelenen işin verdiği hata `TR_catch` ile yakalanmaz: hata yazılır ve durdurma, iptal ya da çıkış sürer; çıkış kodu 1.9 ve 1.14'teki gibidir.
 - *Test:* TR testi; `TR_suppressed` uygulanınca TR testi.

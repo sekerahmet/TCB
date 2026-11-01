@@ -187,6 +187,40 @@ func TestTrailingBlockRules(t *testing.T) {
 	}
 }
 
+// Kural (9.3): ertelenen blok 5.13'ün sınırıdır: ondan TR_return, TR_break ya da TR_continue ile
+// çıkılmaz (sözdizimi hatası H0299; TR_return eskiden sessizce yok sayılıyordu). Bloğun içindeki
+// döngüde TR_break ve TR_continue, içindeki fonksiyonda TR_return geçerlidir; ileti TR_return'ü önermez.
+func TestDeferredBlockIsAnExitBoundary(t *testing.T) {
+	for _, d := range []struct{ code, at string }{
+		{"TR_func f() -> TR_Int {\n    TR_defer { TR_return 5 }\n    TR_return 1\n}", "TR_return 5"},
+		{"TR_for i TR_in 0..3 {\n    TR_defer { TR_break }\n}", "TR_break"},
+		{"TR_for TR_true {\n    TR_defer { TR_continue }\n}", "TR_continue"},
+		{"TR_func f() {\n    TR_defer {\n        TR_if TR_true { TR_return }\n    }\n}", "TR_return"},
+		{"TR_defer { TR_return }", "TR_return"},
+		{"TR_for { TR_defer { TR_break } }", "TR_break"},
+	} {
+		line, col := posOf(t, d.code, d.at)
+		errs := parseErrs(d.code)
+		if !hasErrAt(errs, line, col, messages.H0299) {
+			t.Errorf("%q: %d:%d'de H0299 bekleniyordu, alınan: %v", d.code, line, col, errs)
+		}
+		for _, e := range errs {
+			if strings.Contains(messages.ErrorIn(e, "en"), "write 'TR_return'") {
+				t.Errorf("%q: ileti TR_return'ü önermemeli: %v", d.code, e)
+			}
+		}
+	}
+	for _, ok := range []string{
+		"TR_func f() {\n    TR_defer {\n        TR_for i TR_in 0..3 {\n            TR_if i == 1 { TR_continue }\n            TR_break\n        }\n    }\n}",
+		"TR_func f() {\n    TR_defer {\n        TR_func g() -> TR_Int { TR_return 1 }\n        TR_print(g())\n    }\n}",
+		"TR_func f() {\n    TR_defer {\n        TR_if TR_true { TR_print(1) }\n    }\n}",
+	} {
+		if errs := parseErrs(ok); len(errs) != 0 {
+			t.Errorf("%q: hata beklenmiyordu: %v", ok, errs)
+		}
+	}
+}
+
 // Kural (6.3): birden çok değerin dönüş tipi parantez içinde yazılır, TR_return virgülle hepsini döndürür.
 func TestMultipleResultsParse(t *testing.T) {
 	prog := New(codedLexer("TR_func f() -> (TR_Int, TR_String) { TR_return 1, \"a\" }")).ParseProgram()

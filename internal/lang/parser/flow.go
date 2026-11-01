@@ -129,6 +129,6 @@ func (p *Parser) parseThrowStatement() *ast.ThrowStatement {
 }
 func (p *Parser) parseAsyncStatement() *ast.AsyncStatement {
 	tok := p.curToken()
-	body, call := p.parseBlockOrCall()
+	body, call := p.parseBlockOrCall(false)
 	return &ast.AsyncStatement{Token: tok, Body: body, Call: call}
 }

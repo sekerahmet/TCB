@@ -132,6 +132,7 @@
 "H0296": { "param": ["name", "variant"] },
 "H0297": { "param": ["name", "prev", "variant"] },
 "H0298": { "param": ["path", "target", "kind", "element"] },
+"H0299": { "param": ["keyword", "if"] },
 "H1001": { "param": ["name", "declared", "given", "hint"] },
 "H1002": { "param": ["name", "keyword"] },
 "H1003": { "param": ["expected", "given", "hint"] },

@@ -14,7 +14,8 @@ import (
 
 // Döngü dışındaki 'çık'/'devam' çalışma anında sessizce yok sayılıyor (fonksiyon 'yok'
 // dönüyor, testler yanlışlıkla geçiyordu). Derleme hatasıdır: fonksiyon, ok fonksiyonu,
-// sondaki blok, test, ertele ve eşzamanlı gövdesi döngünün içini kesmez, sınır sayılır.
+// sondaki blok, test, ertele ve eşzamanlı gövdesi döngünün içini kesmez, sınır sayılır (ertelenen
+// bloktan çıkış H0299: TestDeferredBlockIsAnExitBoundary).
 func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 	bad := []string{
 		"TR_break",
@@ -24,7 +25,6 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 		"TR_var f = (x) => { TR_continue }",
 		"TR_var g = (a, b) => { TR_break }",
 		"TR_test \"t\" { TR_break }",
-		"TR_for { TR_defer { TR_break } }",
 		"TR_for { TR_async { TR_continue } }",
 		"TR_if TR_true { TR_break }",
 	}
@@ -94,14 +94,14 @@ func TestReturnInTestBodyIsError(t *testing.T) {
 
 // Programın en dışındaki 'sonuç' sözdizimi hatasıdır (1.10): program yalnız TR_exit ile erken biter;
 // ileti çıkış çağrısını adıyla ve başarı koduyla söyler. Fonksiyon içinde geçerlidir; ertele ve
-// eşzamanlı blok programın en dışındaysa fonksiyon sayılmaz, orada da hatadır.
+// eşzamanlı blok programın en dışındaysa fonksiyon sayılmaz, orada da hatadır (ertelenen bloktaki
+// TR_return H0299: TestDeferredBlockIsAnExitBoundary).
 func TestProgramTopLevelReturnIsError(t *testing.T) {
 	for _, codeVal := range []string{
 		"TR_return 5",
 		"TR_var a = 1\nTR_return",
 		"TR_if TR_true { TR_return 1 }",
 		"TR_for { TR_return 1 }",
-		"TR_defer { TR_return }",
 		"TR_async { TR_return 2 }",
 	} {
 		h := parseErrs(codeVal)

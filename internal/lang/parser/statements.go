@@ -146,16 +146,19 @@ func (p *Parser) parseBreakpointStatement() *ast.BreakpointStatement {
 }
 func (p *Parser) parseDeferStatement() *ast.DeferStatement {
 	tok := p.curToken()
-	body, call := p.parseBlockOrCall()
+	body, call := p.parseBlockOrCall(true)
 	return &ast.DeferStatement{Token: tok, Body: body, Call: call}
 }
 
 // parseBlockOrCall ertele ve eşzamanlı'nın gövdesini okur: ardından '{' geliyorsa blok (call yok),
-// değilse tek bir ifade (body yok).
-func (p *Parser) parseBlockOrCall() (body *ast.BlockStatement, call ast.Expression) {
+// değilse tek bir ifade (body yok). deferred ertelenen bloğu söyler (9.3).
+func (p *Parser) parseBlockOrCall(deferred bool) (body *ast.BlockStatement, call ast.Expression) {
 	if p.peekTokenIs(lexer.TokLBrace) {
 		p.nextToken()
-		p.withinLimit(false, false, func() { body = p.parseBlockStatement() })
+		p.withinLimit(false, false, func() {
+			p.ctx.deferred = deferred
+			body = p.parseBlockStatement()
+		})
 		return body, nil
 	}
 	p.nextToken()
