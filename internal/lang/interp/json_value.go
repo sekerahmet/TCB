@@ -191,10 +191,8 @@ func MakeJSON(v Value) (*JSONVal, error) {
 	return &JSONVal{v: c}, nil
 }
 
+// jsonCopy v'nin JSON kopyasıdır; depth v'yi saran kapların sayısıdır.
 func jsonCopy(v Value, depth int) (Value, error) {
-	if depth > maxJSONDepth {
-		return nil, messages.New(messages.H2500, maxJSONDepth)
-	}
 	switch x := v.(type) {
 	case *NullVal, *BoolVal, *IntVal, *StringVal:
 		return v, nil
@@ -204,8 +202,14 @@ func jsonCopy(v Value, depth int) (Value, error) {
 		}
 		return v, nil
 	case *JSONVal:
-		return x.v, nil
+		if depth == 0 {
+			return x.v, nil
+		}
+		return jsonCopy(x.v, depth) // kabın içindeki JSON'un kapları da sayılır
 	case *ListVal:
+		if err := jsonDepthError(depth); err != nil {
+			return nil, err
+		}
 		elems := make([]Value, len(x.Elements))
 		for i, e := range x.Elements {
 			c, err := jsonCopy(e, depth+1)
@@ -216,6 +220,9 @@ func jsonCopy(v Value, depth int) (Value, error) {
 		}
 		return &ListVal{Elements: elems}, nil
 	case *DictVal:
+		if err := jsonDepthError(depth); err != nil {
+			return nil, err
+		}
 		d := NewDictVal()
 		for _, k := range x.Order {
 			if _, text := x.KeyValue(k).(*StringVal); !text {

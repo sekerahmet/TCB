@@ -9,9 +9,19 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// maxJSONDepth iç içe JSON nesne/dizi derinliğinin üst sınırıdır. JSON dışarıdan (dosyadan,
-// kullanıcıdan) gelebildiği için sınırsız derinlik yığın taşmasına yol açabilirdi.
+// maxJSONDepth iç içe JSON nesne/dizi derinliğinin üst sınırıdır (3.7a): en çok 1000 kap iç içe
+// açılır, içteki değer ne olursa olsun. JSON dışarıdan (dosyadan, kullanıcıdan) gelebildiği için
+// sınırsız derinlik yığın taşmasına yol açabilirdi.
 const maxJSONDepth = 1000
+
+// jsonDepthError, depth kabın içinde yeni bir kap açılırken sınırı aşıyorsa hatadır; depth açılan
+// kabı saran kapların sayısıdır.
+func jsonDepthError(depth int) error {
+	if depth >= maxJSONDepth {
+		return messages.New(messages.H2500, maxJSONDepth)
+	}
+	return nil
+}
 
 // JSONToTR converts JSON text to a TR value made of core values (JSONVal holds it). Unlike Go's
 // map-based decoding it keeps the key order of objects: json_çöz("{\"b\": 1, \"a\": 2}") gives b, a.
@@ -30,16 +40,17 @@ func JSONToTR(data []byte) (Value, error) {
 	return val, nil
 }
 
+// jsonValue sıradaki değeri okur; depth onu saran kapların sayısıdır.
 func jsonValue(dec *json.Decoder, depth int) (Value, error) {
-	if depth > maxJSONDepth {
-		return nil, messages.New(messages.H2500, maxJSONDepth)
-	}
 	tok, err := dec.Token()
 	if err != nil {
 		return nil, err
 	}
 	switch t := tok.(type) {
 	case json.Delim:
+		if err := jsonDepthError(depth); err != nil {
+			return nil, err
+		}
 		switch t {
 		case '{':
 			d := NewDictVal()

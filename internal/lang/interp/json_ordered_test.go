@@ -25,6 +25,29 @@ func TestJSONDecodeRejectsBadInput(t *testing.T) {
 	}
 }
 
+// Kural (3.7a): JSON çözmede en çok 1000 kap iç içe açılır; sınır içteki değere bağlı değildir (boş
+// en içteki dizi de, sayı taşıyan da 1001. kapta düşer). Nesne de bir kaptır.
+func TestJSONDepthCountsContainers(t *testing.T) {
+	nest := func(n int, open, inner, close string) string {
+		return strings.Repeat(open, n) + inner + strings.Repeat(close, n)
+	}
+	for _, inner := range []string{"", "1"} {
+		if _, err := JSONToTR([]byte(nest(maxJSONDepth, "[", inner, "]"))); err != nil {
+			t.Errorf("%d iç içe dizi (içte %q) geçmeli: %v", maxJSONDepth, inner, err)
+		}
+		if _, err := JSONToTR([]byte(nest(maxJSONDepth+1, "[", inner, "]"))); !messages.Has(err, messages.H2500) {
+			t.Errorf("%d iç içe dizi (içte %q) H2500 vermeli: %v", maxJSONDepth+1, inner, err)
+		}
+	}
+	// en içteki {} de bir kaptır: n sarmalayıcı + 1
+	if _, err := JSONToTR([]byte(nest(maxJSONDepth-1, `{"a":`, "{}", "}"))); err != nil {
+		t.Errorf("%d iç içe nesne geçmeli: %v", maxJSONDepth, err)
+	}
+	if _, err := JSONToTR([]byte(nest(maxJSONDepth, `{"a":`, "{}", "}"))); !messages.Has(err, messages.H2500) {
+		t.Errorf("%d iç içe nesne H2500 vermeli: %v", maxJSONDepth+1, err)
+	}
+}
+
 // Kural (3.7a): Tam aralığının (64 bit işaretli) dışındaki JSON tam sayısının türü Ondalık'tır; sessizce
 // başka bir Tam'a kırpılmaz ya da mimariye göre farklı değer olmaz. Ondalık yazımlı sayı tam değerli
 // olsa da Ondalık kalır (2.0); sonsuza taşan sayı hatadır.

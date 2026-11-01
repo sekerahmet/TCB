@@ -331,6 +331,19 @@ TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_assert_equal("H2654", TR_error_code { TR_JSON(0..3) })
 }
 
+TR_test "3.7a JSON en çok 1000 kap iç içe açılır, içteki değer ne olursa olsun" {
+    TR_func iç_içe(n: TR_Int, iç: TR_String) -> TR_String {
+        TR_return "[" * n + iç + "]" * n
+    }
+    TR_var boş = TR_json_parse(iç_içe(1000, ""))
+    TR_var dolu = TR_json_parse(iç_içe(1000, "1"))
+    TR_assert_equal("H2500", TR_error_code { TR_json_parse(iç_içe(1001, "")) })
+    TR_assert_equal("H2500", TR_error_code { TR_json_parse(iç_içe(1001, "1")) })
+    TR_assert_equal(dolu, TR_JSON(dolu))
+    TR_assert_equal("H2500", TR_error_code { TR_JSON([boş]) })
+    TR_assert_equal("H2500", TR_error_code { TR_JSON([dolu]) })
+}
+
 TR_test "3.7a JSON değeri JSON olmayan değerle karşılaştırılmaz, işleçte açılır; ileti açan yazımı önerir" {
     TR_var j = TR_json_parse(`{"k": 3, "s": "xy", "a": [1, 2], "o": {}, "n": null}`)
     # j["k"] == 3 hep yanlış olurdu: çalışma hatası, ileti TR_Int(j) == x'i önerir; önerilen yazım çalışır

@@ -100,7 +100,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 
 - **Mevcut durum:** `TR_JSON` kuruluyor, açılıyor, dolaşılıyor; JSON ile JSON olmayanın karşılaştırması üst düzeyde, kabın içinde, `.TR_contains`'te ve eşleme deseninde çalışma hatası (kapta H2705): `j["a"] == 1`, `TR_List(j) == [1, 2]`, `TR_List(j).TR_contains(1)`, `[j[0]] == [1]`, `TR_match j["a"] { 1 => ... }` [ölçüldü: main `85a19c36`, CLI; `tests/tipler_test.tr`'nin 3.7a testleri].
 - **Yapılacaklar:** `TR_Type(j) == TR_JSON` denetim hatası (bugün denetim geçer, çalışmada `TR_false`) ve genel tiplerin (Any, Object, StructType) kalkması (4a).
-- **Mevcut durum:** JSON çözmenin iç içelik sınırı 1000 motorda var (`json_ordered.go` `maxJSONDepth`); kural 1–9 turunda yazıldı.
+- **Mevcut durum:** iç içelik sınırı 1000 kap: sınama kap açılırken yapılıyor, 1000 kap geçer, 1001 kap düşer (H2500), içteki değer ne olursa olsun; çözmede ve `TR_JSON(x)`'te aynı, kaba konan JSON değerinin kapları da sayılıyor. Eskiden sınır en içteki dizinin boş olup olmamasına bağlıydı [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/tipler_test.tr`'nin 3.7a iç içelik testi, `TestJSONDepthCountsContainers`, `TestMakeJSONDepthCountsContainers`].
 
 ### 3.10
 
