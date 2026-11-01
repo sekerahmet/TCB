@@ -11,10 +11,32 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 
-Uygulama sırasında çıkan çelişki ya da dil tanımının sustuğu yer için ana oturumun kararı aynı gün dil tanımına yazılır; denetimi sıradaki dil tanımı turunda (Gemini ve DENETİM) yapılır. 2026-10-28, 2. katmandan: 3.7a (açmada `TR_List(j)`, karşılaştırma, dolaşma), 3.8 (`.TR_reverse()` liste verir), 3.10 (koşulun geçtiği öbür yerler), 3.12 (mantık değerinden sayı, metinden liste kurulmaz), 3.14 (yön karakterleri, kaptaki JSON, bayt dizisinin metni), 4.5 (fonksiyon içeren kap, isteğe bağlı fonksiyon ve `TR_none`), 4.9 (ifadenin ardındaki `TR_in`), 5.7 (dolaşılamayan JSON türleri), 6.6 (`_` parametre), 12.3 (koşul `TR_Bool`). Gerekçeleri ve kaynaklı emsalleri `docs/spec/rationale/`'de; kaynaklar o turda bağımsız denetlenir.
+Uygulama sırasında verilip aynı gün dil tanımına yazılan kararlar. DENETİM'den geçtiler; Gemini'nin karar araştırmasından geçmediler. Gerekçeleri ve kaynaklı emsalleri `docs/spec/rationale/`'de; kaynaklar turda bağımsız denetlenir.
+Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamıştı: onaltılık hash sabiti sözdizimi hatasıydı ve iletisi ".0 ekle" diyordu; hash çarpımının taşma iletisi ondalık öneriyordu; yapı dolaşılamıyordu; sözlük üreteci "expected a value" veriyordu [ölçüldü: 2026-10-28]. Bugünkü durumları status'ta.
 
-2026-10-28, 1–9'un amacın dokuz işine karşı tartısından (ana oturum ve DENETİM, `bolum1-9-dokuz-is`): 2.4 (onaltılık yazım bit deseni), 3.1 ve 13.1 (sarılan aritmetik), 3.6a (demet; 6.3'ün birden çok dönüşü demet, H2708 kalkar), 3.7 (demet anahtar), 3.7a (yinelenen JSON anahtarı hata), 4.3 (kesirli üs her makinede aynı), 4.12 ve 13.1 (`TR_unsigned_shift_right`), 5.7 ve 7.8 (`TR_next` ile dolaşma), 5.11 (sözlük üreteci), 13.8 (yapının JSON'u iki yönlü). Uygulanmadılar; bugün: onaltılık hash sabiti sözdizimi hatası ve iletisi ".0 ekle" diyor, hash çarpımının taşma iletisi ondalık öneriyor, yapı dolaşılamıyor, sözlük üreteci "expected a value" veriyor [ölçüldü]. Hepsi 4a'dan önce ya da 4a ile.
-
+- **2.4, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** onaltılık yazım bit deseni.
+- **3.1, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** sarılan aritmetik.
+- **3.6a, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** demet; 6.3'ün birden çok dönüşü demet, H2708 kalkar.
+- **3.7, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** demet anahtar.
+- **3.7a, geçici (2026-10-28, 2. katman):** JSON'un açılmasında `TR_List(j)`, karşılaştırma, dolaşma.
+- **3.7a, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** yinelenen JSON anahtarı hata.
+- **3.8, geçici (2026-10-28, 2. katman):** `.TR_reverse()` liste verir.
+- **3.10, geçici (2026-10-28, 2. katman):** koşulun geçtiği öbür yerler.
+- **3.12, geçici (2026-10-28, 2. katman):** mantık değerinden sayı, metinden liste kurulmaz.
+- **3.14, geçici (2026-10-28, 2. katman):** yön karakterleri, kaptaki JSON, bayt dizisinin metni.
+- **4.3, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** kesirli üs her makinede aynı.
+- **4.5, geçici (2026-10-28, 2. katman):** fonksiyon içeren kap, isteğe bağlı fonksiyon ve `TR_none`.
+- **4.9, geçici (2026-10-28, 2. katman):** ifadenin ardındaki `TR_in`.
+- **4.12, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** `TR_unsigned_shift_right`.
+- **5.7, geçici (2026-10-28, 2. katman):** dolaşılamayan JSON türleri.
+- **5.7, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** `TR_next` ile dolaşma.
+- **5.11, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** sözlük üreteci.
+- **6.6, geçici (2026-10-28, 2. katman):** `_` parametre.
+- **7.8, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** `TR_next` ile dolaşma.
+- **12.3, geçici (2026-10-28, 2. katman):** koşul `TR_Bool`.
+- **13.1, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** sarılan aritmetik.
+- **13.1, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** `TR_unsigned_shift_right`.
+- **13.8, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** yapının JSON'u iki yönlü.
 - **13.3, kritik (2026-11-01, D1):** "Anahtar fonksiyonu her öğe için bir kez çağrılır." Anahtarlı sıralamanın uygulanması bu cümleye bağlıydı; ana oturum aynı gün karar verdi (D1'in dalında, birleşince main'de).
 
 ## Ara
