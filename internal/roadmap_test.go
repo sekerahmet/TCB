@@ -32,7 +32,8 @@ func TestNoReferenceToTheOldRoadmapNumbers(t *testing.T) {
 		t.Skipf("git ls-files: %v", err)
 	}
 	for _, rel := range strings.Split(strings.TrimSpace(string(listed)), "\n") {
-		if strings.HasPrefix(rel, "docs/archive/") || !textFile(rel) {
+		// Bu dosya kuralın örneklerini anar.
+		if strings.HasPrefix(rel, "docs/archive/") || rel == "internal/roadmap_test.go" || !textFile(rel) {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
