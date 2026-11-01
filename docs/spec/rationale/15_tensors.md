@@ -27,6 +27,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 - *Gerekçe:*
   - **Cins veriden çıkar.** 6.10'un "argümandan çıkar" kuralı tek kuraldır. Cins yazılmazsa `TR_Float` olsaydı `TR_Tensor(kimlikler)` tam sayı listesini sessizce ondalığa çevirirdi: bu hem 3.6'ya (`TR_List[TR_Int]` `TR_List[TR_Float]` yerine verilmez) hem 15.49'a aykırıdır ve 2²⁴ sorununu geri getirir. Beklenen tip yalnız değişmezdeki tam sayı yazımını ondalık yapar (3.13): değişkenle gelen tam sayı listesi açık dönüşüm ister.
   - **Sığmak.** Sessiz sarma bilinen bir sessiz yanlıştır; 15.49 "sessiz kırpma yoktur" der. Kurmak, `.TR_to_dtype` ve atama aynı kurala bağlıdır.
+- *Gerekçe (tam sayıdan ondalığa, 2026-11-01, tur 2):* ondalık tensörde tam yazılamayan tam sayı hata olsaydı "bf16"de 256'nın, "fp16"da 2048'in üstündeki tam sayılar hata verirdi ve GPU'da ondalık işlem sınama için konağı beklerdi (15.6: ondalık aritmetik beklemez); 15.3 tam sayıdan ondalığa geçişte zaten en yakına yuvarlar, PyTorch da aynı bitleri verir. Kimlik listesinin sessizce ondalığa geçmesini 15.2'nin cins kuralı zaten önler (DENETİM'in bulgusu; Gemini `TUR2_RAPORU.md` 3.2'nin 10. maddesi, "öneri kabul": yuvarlama).
   - **`TR_arange` yok.** Aralık (`0..n`) zaten dilin yazımıdır; ikinci bir ad ajana ikinci bir yol öğretir. İleti PyTorch alışkanlığını doğru yazıma çevirir.
   - **Şekil liste olarak.** `TR_zeros(2, 3)` ile `TR_zeros([2, 3])` iki yazım olurdu; tek yazım liste.
 
@@ -68,6 +69,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Öğe öğe karşılaştırma ve `TR_Bool` maske.** 7.6 karşılaştırmayı "öğe öğe" diye söz vermişti. `TR_if t == u` 3.10'a göre denetim hatası olur ve ileti `TR_equal(t, u)`'yu önerir: bütün tensörün eşitliğini öğe öğe eşitlikle karıştırma hatası çalışmadan önce görünür. `TR_all(a == b)`'nin yayın tuzağı yüzünden ilk öneri `TR_equal`'dır. Reddedilen yollar: `a == b`'yi tek bir mantık değerine indirmek; float32 0/1 maske (kimlik ile maske karışır).
   - **İki istisna, anlamları gereği:** `TR_none`'la karşılaştırma öğe karşılaştırması değil, isteğe bağlı değerin var olup olmadığı sorusudur (3.5); cevabı tek bir `TR_Bool`'dur. `TR_assert_equal(a, b)` bir sınamadır ve "bu iki tensör aynı mı" diye sorar; öğe öğe maske bir sınamanın cevabı olamaz.
   - **Zincir:** `TR_and` yalnız `TR_Bool` aldığından (4.6) TR bunu denetimde yakalar ve `&`'li yazımı önerir.
+- *Gerekçe (kısaltmanın işareti, 2026-11-01, tur 2):* tek işaret: 3.14'ün bayt dizisi ve motor zaten "…" (U+2026) yazıyor; TR'de `..` ve `..=` aralık olduğu için üç nokta kodla karışırdı (TCB'nin bulgusu; Gemini `TUR2_RAPORU.md` 3.2'nin 8. maddesi, "öneri kabul").
 
 ### 15.6
 
@@ -440,7 +442,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* Python'un `safetensors`'ı başlığı boşlukla 8 bayta tamamlar ve tensörleri hizaya göre sıralar (önce geniş türler), aynı türde ada göre [ölçüldü: DENETİM, 0.8.0]. transformers `__metadata__`'ya `{"format": "pt"}` yazar, okumada denetlemez [ölçüldü: DENETİM]. I64, U8 ve BOOL Python'da okunuyor [ölçüldü: DENETİM].
 - *Gerekçe:* CLAUDE.md "eğitilen modeli yaygın biçimlerde dışarı vermek"i ister ("Paylaşmak"); bugün yalnız okunuyor. İki biçim kalır: TR biçimi CRC taşıdığı için kontrol noktası onu kullanır ("Güvenilir"), safetensors paylaşmak içindir. Yazarken uzantıyla seçmek 18.13'ün `.gz`'si gibidir; okumada içerikten anlaşılır. Python'unkiyle aynı düzen, başka araçların dosyayı hiçbir ayar olmadan okumasını sağlar. ONNX ve GGUF dışa verme yol haritasındadır (DENETİM E1'in hükmü).
-- *Gerekçe (sıra, 2026-11-01, geçici):* hiza sıfır kopyalı ve eşlemeli (mmap) okumaya izin verir (hız); aynı genişlikte yazılan sırayı korumak adla sıralamaktan daha az şaşırtır, tek türlü bir modelde (bütün ağırlıklar bf16) gidiş dönüş sırayı aynen korur. *Almadık:* hizasız, yazılan sırayla yazmak (NumPy ve PyTorch okur [ölçüldü: DENETİM], ama sıfır kopyalı okuyucuyu yavaşlatabilir [hipotez]); yazılan sırayı `__metadata__`'ya koymak (biçime yeni bir öğe).
+- *Gerekçe (sıra, 2026-11-01, tur 2'de kabul):* hiza sıfır kopyalı ve eşlemeli (mmap) okumaya izin verir (hız); aynı genişlikte yazılan sırayı korumak adla sıralamaktan daha az şaşırtır, tek türlü bir modelde (bütün ağırlıklar bf16) gidiş dönüş sırayı aynen korur. *Almadık:* hizasız, yazılan sırayla yazmak (NumPy ve PyTorch okur [ölçüldü: DENETİM], ama sıfır kopyalı okuyucuyu yavaşlatabilir [hipotez]); yazılan sırayı `__metadata__`'ya koymak (biçime yeni bir öğe).
 
 ### 15.48
 
@@ -506,6 +508,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **`TR_atan2` türevi:** matematiksel limit.
   - **Sayıda hata, tensörde NaN:** tensörün tek bir öğesi bütün işlemi durdurmamalı; NaN eğitimin kararlılık araçlarıyla (15.36) yakalanır.
   - Kural konurken bulunup düzeltilenler [ölçüldü: 2026-10-23]: GPU'da `tanh`, `tan`, `expm1` ve `sin` (`sin` CPU'da da) −0'ı +0'a çeviriyordu; GPU üssü C99'dan ayrılıyordu ((−0)³ = +0, (−∞)^0,5 = NaN, (±1)^∞ = NaN); CPU `tanh`(∞) 0,99999994 veriyordu; GPU −0'ların toplamını −0 veriyordu; GPU `atan2` türevi NaN'ı 0'a çeviriyor, CPU sonsuzda NaN veriyordu; tanh yaklaşımlı `gelu` −∞'da NaN veriyordu.
+- *Gerekçe (`!=` ve NaN, 2026-11-01, tur 2):* eski metin "karşılaştırma NaN'da `TR_false`" diyordu (15.49'un tablosu ve bu tablo); IEEE 754'te ve 4.5'te `NaN != x` doğrudur, bu yüzden 15.15'in önerdiği `TR_where(t != 0, ...)` NaN'ı doğru dala koyar (DENETİM'in bulgusu; Gemini `TUR2_RAPORU.md` 3.2'nin 9. maddesi, "öneri kabul").
 
 ### 15.51
 

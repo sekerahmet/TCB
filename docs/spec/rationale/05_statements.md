@@ -57,6 +57,7 @@ Kurallar: [`05_deyimler.md`](../05_deyimler.md). Bu dosya her kuralın emsalini 
 
 - *Emsal:* Python'un liste üreteci (PEP 202). ([PEP 202](https://peps.python.org/pep-0202/)) Python: "dict comprehensions can be used to create dictionaries from arbitrary key and value expressions". ([Python 3.15 öğretici](https://docs.python.org/3/tutorial/datastructures.html#dictionaries))
 - *Gerekçe:* kodlama modelleri listeyi en sık bu biçimle kurar; değişkenin üretecin dışına sızmaması Python 3'teki gibidir (`x = 1; [x for x in [5, 6]]` sonrasında `x` 1 kalır [ölçüldü: Python 3.12.6]). Üretecin değişkeni bu yüzden 5.12'nin dışındadır: Python alışkanlığıyla yazılan kod aynı sonucu verir, sessiz bir fark doğmaz. Sözlük üreteci (`{w: i TR_for i, w TR_in sözlük}`) ajanın en sık yazdığı biçimlerdendir ve liste üretecinin eşidir; tek yazım bozulmaz.
+- *Gerekçe (iki değişkenli biçim ve "üreteç", 2026-11-01, tur 2):* iki değişkenli biçim yukarıdaki örnekte kullanılıyordu ama kuralda yazılı değildi; döngünün (5.7) biçimi üreteçte de aynıdır, ajan ikinci bir kural öğrenmez. Sözlük üreteci gelince 3.10, 4.9, 5.7 ve 15.5'in "liste üreteci" sözü iki üreteci de kapsayan "üreteç" oldu (Gemini tur 1'in ve `TUR2_RAPORU.md` §4'ün bulgusu; tur 2, "öneri kabul").
 
 ### 5.12
 

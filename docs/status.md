@@ -103,6 +103,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 - **Yapılacaklar:** `TR_Type(j) == TR_JSON` denetim hatası (bugün denetim geçer, çalışmada `TR_false`) ve genel tiplerin (Any, Object, StructType) kalkması (4a).
 - **Yapılacaklar (2026-11-01):** `TR_JSON` değiştirilemez (3.7a): `j["a"] = 2` denetimden geçiyor, çalışırken "Bu tipe indeks ile atama yapılamaz (JSON)" veriyor [ölçüldü: `d6b4827c`'nin ikilisiyle denetim ve çalıştırma]; denetim hatası denetleyicinin işi (4a).
 - **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** `j == TR_none` ve JSON olmayan değerle karşılaştırma (`j == 1`) denetim hatası (3.7a, 3.5, 4.5), ileti iki yazımı önerir (`TR_Type(j) == TR_NoneType`, `j.TR_get(k) == TR_none`); denetleyicinin işi (4a'nın sonraki dilimi). Bugün çalışma anında H2660/H2661 ya da `TR_false`. Uygulama commit'i `tests/tipler_test.tr`'nin bu karşılaştırmaları sınayan satırlarını (DENETİM: 350, 351, 354, 357, 386) olumsuz fikstüre taşır.
+- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** değişkendeki liste ya da sözlük (`l` bir liste değişkeniyken `TR_var j: TR_JSON = {"a": l}`) denetim hatası, ileti `{"a": TR_JSON(l)}`'yi önerir; denetleyicinin işi (4a). Bugün denetim reddediyor ama genel tip uyuşmazlığıyla, önerisiz; önerilen `{"a": TR_JSON(l)}` ve `TR_JSON` değişkeni de (`{"a": a}`) reddediliyor, oysa 3.7a değişmezin içinde `TR_JSON`'a izin verir; `TR_JSON({"a": l})` geçiyor ve kopyalıyor [ölçüldü: main fd6a84d3'ün ikilisi, denetim ve çalıştırma].
 - **Mevcut durum:** iç içelik sınırı 1000 kap: sınama kap açılırken yapılıyor, 1000 kap geçer, 1001 kap düşer (H2500), içteki değer ne olursa olsun; çözmede ve `TR_JSON(x)`'te aynı, kaba konan JSON değerinin kapları da sayılıyor. Eskiden sınır en içteki dizinin boş olup olmamasına bağlıydı [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/tipler_test.tr`'nin 3.7a iç içelik testi, `TestJSONDepthCountsContainers`, `TestMakeJSONDepthCountsContainers`].
 
 ### 3.10
@@ -189,7 +190,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 - **Mevcut durum:** liste üreteci koşullu ve koşulsuz çalışıyor, değişkeni dıştaki aynı adlı değişkeni değiştirmiyor; sözlük üreteci yok: `{k: k * 2 TR_for k TR_in 0..3}` sözdizimi hatası veriyor ("burada bir değer ya da ifade bekleniyordu") [ölçüldü: iki liste ve iki sözlük üreteci; denetim ve çalıştırma].
 - **Yapılacaklar:** sözlük üreteci, yinelenen anahtarda son değer; TR testi.
-
+- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** üreteçte iki değişkenli biçim (`{x: i TR_for i, x TR_in l}`); `fd6a84d3`'de sözdizimi hatası [ölçüldü: tur 2'nin yazımı, `[i TR_for i, x TR_in l]`].
 ### 5.12
 
 - **Mevcut durum:** blok kapsamı, iç adın dışarıda görünmemesi (denetim hatası), turun kendi kapsamı ve fonksiyon sınırında gizleme kurala uyuyor. Yasak yeniden tanım hata vermiyor: iç bloktaki `TR_var t = 5` dıştaki `t`'yi gizliyor, dıştaki 0 kalıyor; aynı kapsamda ikinci `TR_var b` ve parametreyle aynı adlı gövde değişkeni de geçiyor [ölçüldü: iç blokta, aynı kapsamda ve parametreyle yeniden tanım; denetim ve çalıştırma].
@@ -334,6 +335,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 - **Mevcut durum:** `TR_Message` ve `TR_error_code` çalışıyor (`H6903`); kodsuz hatada (düz metin, sayı, sözlük, durumlu tip değeri) `TR_error_code` koda dönmüyor, hatayı olduğu gibi yeniden fırlatıyor; eskiden hepsi H2441 veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestErrorCodeRethrowsACodelessError`, `tests/hatalar_ertele_test.tr`'nin 8.5 testi]. Yakalanmayan düz metin hata içte H2441 taşımayı sürdürüyor (`examples/tr/hatalar/12_yakalanmamis_firlat.tr` onu sınıyor).
 - **Yapılacaklar:** nedenler zincirinde dıştan içe ilk kod (8.2'nin `TR_cause`'u ile); programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Gemini Koşu 4, 6, 7).
+- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** işletim sisteminin hatası kendi koduna ve değerlerine (yol) çevrilir, sistemin metni değere girmez (8.5). Bugün dosya hatasının değerine Go'nun hata metni giriyor (internal/stdlib/ml/save.go:135, H2101) [kanıtlı: DENETİM]; Windows'ta bu metin İngilizce dil paketi yoksa sistemin dilindedir [kaynak: Go go1.24.0 syscall_windows.go; DENETİM kol-denetim-tur2-rapor-sonuc.md].
 
 ### 8.6
 
@@ -374,6 +376,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 - **Mevcut durum (ölçüm, 2026-11-01):** devir yalnız döngünün 256 turunda (`vm.go:337`) ve fonksiyon girişinde (`calls.go:235`); süreye bakan yer yok, `internal/compute`'ta kilidi bırakan çağrı yok. Bir görev 5 ms'de bir uyurken en büyük gecikme: TR döngüsü ve fonksiyon çağrısı 4 ms, 4×4 tensör döngüsü 5 ms; 1024×1024 `@` 60 kez 833 ms, 1 milyon öğeli `.TR_sort()` 598 ms, AdamW `.TR_step()` 212 ms, kullanıcı türevli `TR_backward` 39 ms; yüksüz taban 6 ms [ölçüldü: D1, `e9c64a45`, 230 koşu, `d1-10-2-olcum.md`]. `TR_time_ms` sıkı döngüde 10–11 ms sıçradı; gecikme sözü TR'nin içinden bu saatle sınanamaz, Go testi tekdüze saatle ölçer.
 - **Mevcut durum (bırakanlar):** `TR_sleep`, `TR_input`, dosya okuma ve yazma, `TR_wait_all`, modül yükleme beklemesi, veri kümesini açma ve okuma, dosya işleri, `TR_save_tensors`, `TR_load_tensors`, parçalayıcıyı yükleme ve büyük girdide kodlama [kanıtlı: DENETİM 10-1].
 - **Yapılacaklar:** süreyle devir (5 ms); uzun yerleşiklerin kilidi bırakması ve deponun okuma ve yazma izni (hepsi birden, geri çağırmadan önce bırakılır); gecikme sözünün Go testi. Önce ve sonra ölç: küçük tensör işlemli döngüde izinlerin bedeli (tahmin ~%5) [hipotez: DENETİM 10-2]. Geri çağıran yerleşikler: `TR_backward` (kullanıcı türeviyle), `TR_fuse`, anahtarlı sıralama, `TR_grad_check`. GPU'da iznin kuyruğun bitişine bağlanması [hipotez: GPU yolu açılmadı].
+- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** döngünün ve üretecin (5.11) her turu devir noktası (10.2) ve güvenli noktadır (1.5, 10.9): gövdesi boş döngü ve büyük üreteç de süreyle devreder ve durur. Bugün devir döngünün 256 turunda ve fonksiyon girişinde (yukarıdaki 2026-11-01 ölçümü); üretecin turu ölçülmedi. Go testi gecikme sözünün testiyle.
 
 ### 10.3
 
@@ -1088,6 +1091,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 - **Mevcut durum:** paylaşılan üreteç `math/rand` (v1), saatle tohumlanıyor ve durumu yazılamıyor; kontrol noktası kurulduktan sonra tohumsuz rastgelelik bir uyarı veriyor [ölçüldü: DENETİM].
 - **Yapılacaklar:** sabit başlangıç durumu ve yazılabilen bir üreteç (Go'nun `math/rand/v2` PCG'si `MarshalBinary` veriyor); kaydı ve geri yüklenmesi; TR testi.
+- **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** "rng" algoritma önekli ("pcg:" ve 32 onaltılık rakam), bilinmeyen önek yükleme hatası; cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte. Bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde].
 
 ### 20.14
 

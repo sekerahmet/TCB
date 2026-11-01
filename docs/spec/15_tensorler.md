@@ -37,7 +37,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 
   Tam sayı listesinden ondalık tensör sessizce kurulmaz: `TR_Tensor[TR_Float](kimlikler)` çağrısı cins dönüşümüdür (15.3) ve açıkça yazılır. `TR_Tensor[TR_Int]([1.5])` denetim hatasıdır.
 - **Hassasiyet:** `TR_dtype:` argümanı cinsin içinde seçer (`TR_Tensor([1.5], TR_dtype: "bf16")`; `TR_zeros`, `TR_ones` ve `TR_randn`'da da). Hassasiyetin adı bir metindir; bilinmeyen ad (`"bfloat16"`) en yakın geçerli adı öneren bir hatadır. Değerler en yakına, eşitlikte çifte yuvarlanır. Başka cinsin hassasiyeti hatadır; ileti tip parametresini önerir: `TR_Tensor([1.5], TR_dtype: "int64")` → `TR_Tensor[TR_Int](...)`, `TR_zeros([3], TR_dtype: "int64")` → `TR_zeros[TR_Int]([3])`. `TR_Tensor([1, 2], TR_dtype: "uint8")` geçerlidir (cins veriden `TR_Int`).
-- **Sığmak:** tam sayı hassasiyetine yazılan her değer o hassasiyete sığmalıdır: kurmakta (`TR_Tensor([300], TR_dtype: "uint8")`), `.TR_to_dtype`'ta, atamada ve bileşik atamada (15.6d). Sığmayan değer çalışma hatasıdır; ileti ilk öğenin indeksini ve değerini söyler. Sessiz sarma yoktur (15.49).
+- **Sığmak:** tam sayı hassasiyetine yazılan her değer o hassasiyete sığmalıdır: kurmakta (`TR_Tensor([300], TR_dtype: "uint8")`), `.TR_to_dtype`'ta, atamada ve bileşik atamada (15.6d). Sığmayan değer çalışma hatasıdır; ileti ilk öğenin indeksini ve değerini söyler. Sessiz sarma yoktur (15.49). Sığma hatası yalnız tam sayı hassasiyetlerindedir: tam sayıdan `TR_Float` tensöre çevirme en yakına yuvarlar (`TR_Tensor[TR_Float]([16777217])`'nin öğesi float32'de 16777216'dır, 15.3).
 - **Tensörden:** `TR_Tensor(t)` kendi verisine sahip yeni bir yaprak kurar, cinsini ve hassasiyetini korur. Burada `TR_dtype:` verilmez (hassasiyetin tek yazımı `.TR_to_dtype`'tır); ileti `t.TR_to_dtype(...)`'yi önerir.
 - **Hazır kurucular:**
   - `TR_zeros(şekil)`, `TR_ones(şekil)` ve `TR_randn(şekil, TR_seed: n)` şekli liste olarak alır (`[2, 3]`); `TR_zeros(2, 3)` hatadır, ileti `TR_zeros([2, 3])`'ü önerir.
@@ -75,12 +75,12 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - *Test:* TR testi.
 
 **15.5** Dolaşmak, görmek ve karşılaştırmak:
-- **Dolaşmak:** `TR_for x TR_in t` ve liste üreteci tensörü ilk ekseni boyunca dolaşır. Her boyutta öğe `t[i]` ile aynı, (N−1) boyutlu ve aynı cinsten bir görünümdür; 1 boyutlu tensörde 0 boyutlu tensördür. Boyut sayısı tipte olmadığından öğenin tipi böylece her zaman bellidir: `TR_Tensor[E]`. Görünüm veriyi paylaşır ve türev izler; `x`'e atama yalnız döngü değişkenini değiştirir (5.12), görünüme yerinde yazmak tensörü değiştirir. Sayılarla dolaşmak `TR_for x TR_in t.TR_tolist()` ile yazılır. 0 boyutlu tensörde dolaşmak hatadır.
+- **Dolaşmak:** `TR_for x TR_in t` ve üreteç (5.11) tensörü ilk ekseni boyunca dolaşır. Her boyutta öğe `t[i]` ile aynı, (N−1) boyutlu ve aynı cinsten bir görünümdür; 1 boyutlu tensörde 0 boyutlu tensördür. Boyut sayısı tipte olmadığından öğenin tipi böylece her zaman bellidir: `TR_Tensor[E]`. Görünüm veriyi paylaşır ve türev izler; `x`'e atama yalnız döngü değişkenini değiştirir (5.12), görünüme yerinde yazmak tensörü değiştirir. Sayılarla dolaşmak `TR_for x TR_in t.TR_tolist()` ile yazılır. 0 boyutlu tensörde dolaşmak hatadır.
 - **Metin:** tensörün metni (3.14) onu kuran yazımdır, bayt dizisi (3.14) ve yapı (7.6) gibi: "Tensor([[1.5, 2.0], [3.0, 4.0]])".
   - Cins `TR_Float` değilse tip parametresi yazılır: "Tensor[Int]([1, 2])". Yazdırma ve eklentinin gösterimi cinsinin varsayılanı dışındaki hassasiyeti de yazar.
   - Hassasiyet varsayılan değilse "dtype: "bf16"" argümanı, türev izliyorsa "requires_grad: true" eklenir; cihaz CPU değilse sonda ".to_device("gpu:0")" gelir (cihazın uzun adı, 15.37).
   - Ondalık öğe 15.3'teki en kısa ondalıkla yazılır.
-  - 1000'den çok öğeli tensörde uzunluğu 6'yı aşan her eksenin ilk ve son üçü yazılır, arada "..."; kısa eksen bütün yazılır (`[2, 4096]`'nın iki satırı da); başta şekil "shape: [2, 4096]" diye verilir.
+  - 1000'den çok öğeli tensörde uzunluğu 6'yı aşan her eksenin ilk ve son üçü yazılır, arada "…" (U+2026, 3.14'ün bayt dizisi gibi); kısa eksen bütün yazılır (`[2, 4096]`'nın iki satırı da); başta şekil "shape: [2, 4096]" diye verilir.
 - **Karşılaştırma:**
   - `==`, `!=`, `<`, `>`, `<=`, `>=` tensörde öğe öğedir (yayınla, 15.6b) ve `TR_Tensor[TR_Bool]` verir, türev izlemez. 0 boyutlu tensörün sayıyla karşılaştırması da 0 boyutlu `TR_Tensor[TR_Bool]`'dur; sayı isteyen yerde `t.TR_item() == 3.0` yazılır.
   - İki tensörün eşitliği (şekil dahil) `TR_equal(a, b)`'dir (15.18a). `TR_all(a == b)` yayınlı öğe eşitliğidir: `[1, 2]` ile `[2, 2]` şekilli iki tensörü uyarısız yayınlar ve doğru verebilir; bütün eşitlik için kullanılmaz. `TR_assert_equal(a, b)` iki tensörde `TR_equal`'ın anlamıyla sınar (13).
@@ -554,7 +554,7 @@ op.TR_zero_grad()
 - `f`'nin yerinde değiştirdiği argüman (`TR_write_slice`, indeksle atama) her oynatmadan sonra çağıranın tensörüne yazılır; aynı tensör iki argümanda verilirse kayıtta da tek tensördür. Argümanlar farklı cihazlardaysa, ayrı argümanlar aynı tensörün farklı görünümleriyse ya da cihazda zaten bir kayıt sürüyorsa (iç içe `TR_replay`, iç işin kaydı dıştakine girer) `f` doğrudan çağrılır; bir argüman kapanıştan okunan bir tensörle aynı depoyu paylaşıyorsa da.
 - Çıktı her çağrıda kopyalanarak verilir. Sonuç doğrudan çağrıyla bit bit aynıdır (aynı çekirdekler, aynı sıra). İşlemlerin sayı işlenenleri cihazda doldurulur, kayıtta da çalışır.
 - Oynatma aynı işi aynı bellekte yapar: `f`'nin içindeki konak hesabı (`TR_if`, döngü sayıları) kayıtta sabitlenir. **Kapanıştan okunan sayılar 15.44'teki gibi denetlenir;** kapanıştan okunan tensör (15.44'ün aksine) kullanılabilir, kayıt onun deposunu tutar ve depo da yoluyla denetlenir: aynı yol başka bir depoya bağlanmışsa çalışma hatasıdır, ileti yerinde güncellemeyi ya da tensörü argüman yapmayı söyler (yoksa kayıt eski bellekle oynatırdı). Her çağrıda değişmesi gereken değer tensör argümanıdır; kalıcı durum (KV önbelleği) kapanıştan verilir ve yerinde güncellenir (argüman olarak verilen tensör her oynatmada kopyalanıp geri yazılır).
-- **Rastgele üreteç:** kayıtta paylaşılan üreteçten çeken işlemler (`TR_sample`, `TR_dropout`, tohumsuz `TR_randn`) cihazın sayaçlı üretecini kullanır; her oynatma üreteci kayıtta çektiği kadar ilerletir. Oynatma doğrudan çağrıyla aynı sayıları verir; 20.17'nin kaydı oynatmadan sonra da doğrudur.
+- **Rastgele üreteç:** kayıtta paylaşılan üreteçten çeken işlemler (`TR_sample`, `TR_dropout`, tohumsuz `TR_randn`) cihazın sayaçlı üretecini kullanır; her oynatma üreteci kayıtta çektiği kadar ilerletir. Oynatma doğrudan çağrıyla aynı sayıları verir; 20.17'nin kaydı oynatmadan sonra da doğrudur: sayaçlı üretecin durumu kontrol noktasına girer (20.5'in `"rng_device"`'ı).
 - Yalnız türevsiz kipte çağrılır. Kayıt sırasında cihazdan konağa okuma (boş tensörde de), konaktan yeni veri ve eşzamanlama hatadır; kayıt bırakılır, sonraki çağrılar yeniden kaydetmeyi dener.
 - **Hatalar kırpılmaz:** kayıtta `TR_embedding_lookup`'ın tensör indeksi, `TR_write_slice`'ın tensör başlangıcı ve 15.6'nın bekleyen işlemleri cihaz içi hata bayrağına yazar; bayrak ilk hatayı tutar, sınır dışı erişim belleğe dokunmadan bayrağı yazar; bayrak oynatmanın sonunda bir kez okunur ve ileti kaydedilen satırı söyler. Hata verilen oynatmada yerinde değiştirilen argümanların ve kapanış tensörlerinin (KV önbelleği) içeriği tanımsızdır: hata o ana kadar yapılmış yazmaları geri almaz, program durumu yeniden kurar.
 - Kayıt sırasında kilit başka göreve geçmez; kayıtta görev beklemek hatadır. Kayda giren tensörlerin belleğini kayıt tutar; `TR_replay`'in döndürdüğü fonksiyona ulaşılamayınca kayıt ve bellek bırakılır.
@@ -604,7 +604,7 @@ op.TR_zero_grad()
 | Tensör dilimi | `t[a..b]` sınır dışı uçları kırpar (3.3'ün dilimi gibi). | 15.6d |
 | `.TR_slice` | Sınır dışında hata. | 15.3 |
 | Sayı olmayan işlenen | `t + "a"` ve `t + TR_true` hata. | 15.6a |
-| NaN | Karşılaştırma NaN'da `TR_false`; `TR_max`/`TR_min` NaN'ı yayar; bütün özel değerler 15.50'de. | 15.50 |
+| NaN | `!=` dışındaki karşılaştırmalar NaN'da `TR_false`, `!=` `TR_true` verir; `TR_max`/`TR_min` NaN'ı yayar; bütün özel değerler 15.50'de. | 15.50 |
 
 - *Test:* gerekmez: özet madde; her satırın testi kendi maddesindedir (15.6a–15.6d, 15.13, 15.18, 15.22b).
 
@@ -612,7 +612,7 @@ op.TR_zero_grad()
 
 | Kural | TR |
 | :-- | :-- |
-| NaN yayılır | NaN girdili aritmetik işlem, indirgeme (toplam, ortalama, `TR_max`), softmax ve norm NaN verir. İstisnalar: karşılaştırma NaN'da `TR_false` verir (15.5), bu yüzden NaN `TR_where`'in koşuluna `TR_false` olarak girer (koşul mantık tensörüdür, 15.15); x⁰ = 1 ve 1ᵖ = 1; sıralamada NaN her sayıdan büyüktür (15.21, 15.22, 15.22b). |
+| NaN yayılır | NaN girdili aritmetik işlem, indirgeme (toplam, ortalama, `TR_max`), softmax ve norm NaN verir. İstisnalar: `!=` dışındaki karşılaştırmalar NaN'da `TR_false`, `!=` `TR_true` verir (15.5, 4.5), bu yüzden NaN `TR_where`'in koşuluna karşılaştırmasına göre girer: `t > 0.0` ile `TR_false`, 15.15'in önerdiği `t != 0` ile `TR_true` (koşul mantık tensörüdür, 15.15); x⁰ = 1 ve 1ᵖ = 1; sıralamada NaN her sayıdan büyüktür (15.21, 15.22, 15.22b). |
 | Tek işlevler sıfırın işaretini korur | f(±0) = ±0: `TR_sin`, `TR_tan`, `TR_tanh`, `TR_asin`, `TR_atan`, `TR_sinh`, `TR_expm1`, `TR_log1p`, `TR_sqrt`, `TR_silu`, `TR_gelu` (iki biçimi de). |
 | Toplam | Yalnız −0'lardan oluşan toplam, ortalama ve birikimli toplam +0'dır; +∞ ile −∞'un toplamı NaN. |
 | Üs (`x ** p`) | p tek tam sayıysa −0 ve −∞ işaretini korur ((−0)³ = −0, (−0)⁻¹ = −∞, (−∞)⁻¹ = −0); (−∞)^0,5 = +∞; (±1)^(±∞) = 1; (±0)^(−∞) = +∞; sonlu negatif taban ve tam sayı olmayan üs NaN (15.6e). |
