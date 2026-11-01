@@ -27,10 +27,16 @@ TR_test "18.2 dosya_adı, uzantı, uzantısız_ad ve üst_klasör yolun yazımı
     TR_assert_equal("derlem.tar", y.TR_stem)
     TR_assert_equal(y.TR_name, y.TR_stem + y.TR_extension)
     TR_assert_equal("", TR_Path(".gitignore").TR_extension)
+    TR_assert_equal(".local", TR_Path(".env.local").TR_extension)
+    TR_assert_equal(".env", TR_Path(".env.local").TR_stem)
     TR_assert_equal("", TR_Path("Makefile").TR_extension)
     TR_assert_equal("", TR_Path(".").TR_name)
     TR_assert_equal("veri", TR_String(y.TR_parent))
     TR_assert_equal(".", TR_String(TR_Path("a.txt").TR_parent))
+    TR_assert_equal("..", TR_String(TR_Path(".").TR_parent))
+    TR_assert_equal("../..", TR_String(TR_Path("..").TR_parent))
+    TR_assert_equal("/", TR_String(TR_Path("/").TR_parent))
+    TR_assert_equal("/", TR_String(TR_Path("/a").TR_parent))
     TR_assert_equal(TR_Path, TR_Type(y.TR_parent))
 }
 

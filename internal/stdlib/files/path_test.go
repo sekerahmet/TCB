@@ -43,12 +43,21 @@ func TestPathMembers(t *testing.T) {
 		`TR_Path("Makefile").TR_extension`:           "",
 		`TR_Path(".").TR_name`:                       "",
 		`TR_Path("a.txt").TR_parent`:                 ".",
+		`TR_Path(".").TR_parent`:                     "..",
+		`TR_Path("..").TR_parent`:                    "../..",
+		`TR_Path("../a").TR_parent`:                  "..",
+		`TR_Path("/").TR_parent`:                     "/",
+		`TR_Path("/a").TR_parent`:                    "/",
 		`TR_Path("veri/eğitim/a.npy").TR_parent`:     "veri/eğitim",
 		`TR_Type(TR_Path("a").TR_parent)`:            "Path",
 		`TR_Path("a") == TR_Path("a/./")`:            "true",
 		`TR_Path("a") == "a"`:                        "false",
 		`"\(TR_Path("x", "y"))"`:                     "x/y",
 		`TR_json_string({"y": TR_Path("a/b")})`:      `{"y":"a/b"}`,
+	}
+	if runtime.GOOS == "windows" {
+		cases[`TR_Path("C:/").TR_parent`] = "C:/"
+		cases[`TR_Path("C:/veri").TR_parent`] = "C:/"
 	}
 	for code, wants := range cases {
 		if got := mustRunTR(t, code); got != wants {

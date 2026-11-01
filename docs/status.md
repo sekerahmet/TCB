@@ -986,7 +986,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.2
 
-- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** noktayla başlayan iki noktalı adlarda son uzantı [ölçüldü: DENETİM]. `.TR_parent`'in kökte değeri sınanacak.
+- **Mevcut durum:** noktayla başlayan iki noktalı adlarda son uzantı (`.env.local` → `".local"`), `.TR_parent`'in `.`'da `".."`, `..`'da `"../.."` ve kökte (`"/"`, `"C:/"`) kökün kendisi olması uygulanmış ve testli (`TestPathMembers`, `tests/dosya_ve_yol_test.tr`) [kanıtlı: `internal/stdlib/files/path.go:117-125`; ölçüldü: `go test -short ./internal/stdlib/files/` ve `go run ./cmd/tr test tests/dosya_ve_yol_test.tr`, 2026-11-01].
 
 ### 18.5
 

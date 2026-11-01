@@ -101,7 +101,7 @@ func (y *Path) TaskMember(m *interp.VM, kd codes.Code, name string) (interp.Valu
 		a := y.fileName()
 		return &interp.StringVal{Val: a[:len(a)-len(ext(a))]}, nil
 	case codes.MemParent:
-		return &Path{fpath: filepath.ToSlash(filepath.Dir(filepath.FromSlash(y.fpath)))}, nil
+		return y.parent(), nil
 	case codes.MemAbsolute:
 		return y.abs(m), nil
 	case codes.MemExists, codes.MemIsFile, codes.MemIsDir:
@@ -110,6 +110,18 @@ func (y *Path) TaskMember(m *interp.VM, kd codes.Code, name string) (interp.Valu
 		return y.size(m)
 	}
 	return nil, bind.MemberError(PathType, name, pathMemberCodes)
+}
+
+// parent yolun üst klasörüdür: tek bileşenli göreli yolda ".", "." için "..", ".." zincirinde
+// bir üst "..", kökte kökün kendisidir (18.2).
+func (y *Path) parent() *Path {
+	switch {
+	case y.fpath == ".":
+		return &Path{fpath: ".."}
+	case y.fpath == ".." || strings.HasSuffix(y.fpath, "/.."):
+		return &Path{fpath: y.fpath + "/.."}
+	}
+	return &Path{fpath: filepath.ToSlash(filepath.Dir(filepath.FromSlash(y.fpath)))}
 }
 
 // fileName son bileşendir; . ve kök için boştur.
