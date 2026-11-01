@@ -264,3 +264,14 @@ func TestUndefinedNameSuggestionIsTheIdentity(t *testing.T) {
 		}
 	}
 }
+
+// Kural (3.14): iletinin değerindeki dil adı programdaki yazımıyla durur (TR_ ve kimliğin adı); sınıflı
+// iç yazım ve görünüm adı değere girmez, kullanım biçimi küçük harfe çevrilmez. Eskiden kullanım
+// "`.TR_map(tr_type_function)`" yazıyordu (adlı argümanın örneği e2e'de:
+// TestMessageNamesFollowTheMessageLanguage).
+func TestNamesInAMessageValueAreSpellings(t *testing.T) {
+	out := runCoded(t, "TR_try { TR_var y = [1].TR_map(1, 2) } TR_catch e { TR_print(e) }\n", nil)
+	if want := "Message(\"H2011\", \".TR_map\", 1, 2, \"`.TR_map(TR_Function)`\", none)\n"; out != want {
+		t.Errorf("yakalanan hatanın metni:\n%s\nbeklenen:\n%s", out, want)
+	}
+}

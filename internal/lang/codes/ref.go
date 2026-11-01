@@ -70,6 +70,9 @@ func (r Ref) Called() Ref {
 // MessageText writes the element in lang (messages.Localized); a language that does not name
 // the code writes the canonical name.
 func (r Ref) MessageText(lang string) string {
+	if lang == ValueLanguage {
+		return r.valueText()
+	}
 	l, err := LoadLanguage(lang)
 	if err != nil {
 		l = active
@@ -85,6 +88,19 @@ func (r Ref) MessageText(lang string) string {
 		return nameIn(l, r.Code) + "()"
 	}
 	return nameIn(l, r.Code)
+}
+
+// valueText is the element in a value's text (3.14: a message's value, a caught error's text): the
+// language's name is written as in a program, TR_ and the identity's name (TR_requires_grad,
+// TR_Function), the same in every language; neither the classed identity (TR_arg_requires_grad)
+// nor a display name enters a value. A call form adds the parentheses.
+func (r Ref) valueText() string {
+	s := Spelling(r.Code)
+	switch r.Form {
+	case RefCall, RefNameCall:
+		return s + "()"
+	}
+	return s
 }
 
 // String is the display name (TR_LANG), for text that is not a message.

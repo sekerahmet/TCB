@@ -263,6 +263,10 @@ func TestMessageNamesFollowTheMessageLanguage(t *testing.T) {
 			t.Errorf("yakalanan hatada Türkçe ad %q:\n%s", turkish, caught)
 		}
 	}
+	// Değerdeki dil adı programdaki yazımıyladır (3.14): sınıflı iç yazım (TR_arg_...) girmez.
+	if !strings.Contains(caught, `"TR_requires_grad"`) || strings.Contains(caught, "TR_arg_") || strings.Contains(caught, "TR_type_") {
+		t.Errorf("yakalanan hatadaki adlar program yazımıyla olmalı:\n%s", caught)
+	}
 }
 
 // Dosyanın sözdizimi ipucundaki dil sözcüğü kimlik yazımıyladır (dosyanın dili yoktur, 2.1; öneri

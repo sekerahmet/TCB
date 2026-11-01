@@ -125,6 +125,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "inf"); tipin metni öğe tipsiz: `TR_Type([1])` "List" [ölçüldü].
 - **Yapılacaklar:** "List[Int]" ve "Int?" (öğe tipi ister; 4a).
 - **Mevcut durum (ileti):** iletinin (`TR_Message`) metni onu kuran çağrı, tip adıyla: `TR_print(TR_Message("H6903", -1))` "Message("H6903", -1)" yazıyor, her dilde aynı; eskiden İngilizce katalog metniydi. Hata değerinin metni fırlatılan değerin metni [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestMessageValueTextIsItsCall`, `TestThrownValueTextIsLanguageIndependent`].
+- **Mevcut durum (iletinin değerindeki ad):** dil adı programdaki yazımıyla: "TR_requires_grad", kullanım "`.TR_map(TR_Function)`"; eskiden sınıflı iç yazımla ("TR_arg_requires_grad") ve küçük harfli iç adla ("tr_type_function") giriyordu [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestNamesInAMessageValueAreSpellings`, `TestMessageNamesFollowTheMessageLanguage`].
 
 ## 4. İşleçler
 
