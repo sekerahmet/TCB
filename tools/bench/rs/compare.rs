@@ -27,9 +27,10 @@ fn main() {
         "dongu" => {
             let t = Instant::now();
             let mut toplam: i64 = 0;
-            // Sınır black_box'tan geçer: derleyici sabit sınırlı toplamı kapalı biçime indirip döngüyü atlamasın.
+            // Her adımın değeri black_box'tan geçer: LLVM sınır bilinmese de 0+1+…+(n−1) toplamını n(n−1)/2'ye
+            // indirebiliyor (2026-11-01: yalnız sınır gizlenince yine 0,0 ms çıktı); döngü gerçekten koşsun.
             for i in 0..black_box(3_000_000i64) {
-                toplam += i;
+                toplam += black_box(i);
             }
             println!("dongu {} {}", black_box(toplam), ms(t));
         }
