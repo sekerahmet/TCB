@@ -82,7 +82,7 @@ TR_print(w.TR_tolist)`)
 	for _, d := range []struct{ code, expected string }{
 		{"TR_var M = TR_Tensor([[1, 2], [3, 4]])\nM[2][0] = 1", "Satır 2: tensör indeksi sınır dışı: 2"},
 		{"TR_var M = TR_Tensor([[1, 2], [3, 4]])\nM[0] = [1, 2, 3]", "Satır 2: tensör ataması: [2] şeklindeki yere [3] şeklinde veri atanamaz"},
-		{"TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)\nw[0] = 2", "Satır 2: türev izlenen tensöre indeksle atama yapılamaz"},
+		{"TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)\nw[0] = 2", "Satır 2: türev izleyen bir yaprağa (ve görünümüne) türevsiz kipin dışında yerinde yazılamaz"},
 	} {
 		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
 			t.Errorf("%q: %v (içermeli: %s)", d.code, err, d.expected)

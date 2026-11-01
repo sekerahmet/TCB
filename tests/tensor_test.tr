@@ -1220,6 +1220,44 @@ TR_test "15.6d türevin üç yazma kuralı kipe bağlıdır" {
     TR_assert_equal([0.0, 2.0], w.TR_tolist)
 }
 
+TR_test "15.6d bileşik atama tensörü yerinde değiştirir; paylaşan her ad görür" {
+    TR_var p = TR_Tensor([1.0, 2.0])
+    TR_var q = p
+    p -= 0.5
+    TR_assert_equal([0.5, 1.5], q.TR_tolist)
+    # Paylaşımın tuzağı: artık bağlantıda yeni tensör bağlanır, yerinde değiştirilmez.
+    TR_var h = TR_Tensor([1.0, 1.0])
+    TR_var kalıntı = h
+    h = h + h * 2.0
+    TR_assert_equal([1.0, 1.0], kalıntı.TR_tolist)
+    # Hassasiyet hedefinkidir; yayın yalnız sağ taraftadır.
+    TR_var b = TR_Tensor([1.0, 2.0], TR_dtype: "bf16")
+    b += TR_Tensor([0.5, 0.5])
+    TR_assert_equal("bf16", b.TR_dtype)
+    TR_var m = TR_zeros([2, 2])
+    m += TR_Tensor([1.0, 2.0])
+    TR_assert_equal([[1.0, 2.0], [1.0, 2.0]], m.TR_tolist)
+    TR_assert_equal("H6958", TR_error_code { m += TR_ones([2, 2, 2]) })
+    # İndeksli hedef görünüm üstünde yerindedir; örtüşen kaynak önce kopyalanır.
+    TR_var o = TR_Tensor([1.0, 2.0, 3.0, 4.0])
+    o[1..4] += o[0..3]
+    TR_assert_equal([1.0, 3.0, 5.0, 7.0], o.TR_tolist)
+    # Türevin üç yazma kuralı bileşik atamada da geçerli.
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_assert_equal("H6716", TR_error_code { w -= 0.1 })
+    TR_var ara = w * 2.0
+    TR_assert_equal("H6955", TR_error_code { TR_no_grad { ara += 1.0 } })
+    TR_var havuz = TR_zeros([2])
+    TR_assert_equal("H6956", TR_error_code { havuz += w * 2.0 })
+    TR_no_grad { w -= 0.5 }
+    TR_assert_equal([0.5, 1.5], w.TR_tolist)
+    # Sürüm artar: geri yayılım için saklanmış tensörün değişmesi yakalanır.
+    TR_var c = TR_Tensor([2.0, 2.0])
+    TR_var y = TR_sum(w * c)
+    c += 1.0
+    TR_assert_equal("H3012", TR_error_code { TR_backward(y) })
+}
+
 TR_test "15.6d tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     TR_assert_equal(5.0, t[-1].TR_tolist)

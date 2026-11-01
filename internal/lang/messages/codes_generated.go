@@ -1240,7 +1240,7 @@ const (
 	H6713 Code = 6713 // {fn}: {shape} şeklindeki {dims} boyutlu tensör için {dims} eksen verilmeli, {given} verildi
 	H6714 Code = 6714 // {fn}: eksenler tam sayı olmalıdır, {value} verildi
 	H6715 Code = 6715 // {fn}: {axis}. eksen birden çok kez verildi; her eksen bir kez yer almalı
-	H6716 Code = 6716 // türev izlenen tensöre indeksle atama yapılamaz; değeri {noGrad} {{ ... }} içinde değiştirin
+	H6716 Code = 6716 // türev izleyen bir yaprağa (ve görünümüne) türevsiz kipin dışında yerinde yazılamaz; değeri {noGrad} {{ ... }} içinde değiştirin
 	H6717 Code = 6717 // {fn}(eksen, baş, son) 3 parametre bekler, {given} verildi
 	H6718 Code = 6718 // {fn}(eksen, baş, son) tam sayılar bekler, {value} verildi
 	H6719 Code = 6719 // tensör ataması: {target} şeklindeki yere {given} şeklinde veri atanamaz (şekiller aynı olmalı)
@@ -1300,6 +1300,8 @@ const (
 	H6954 Code = 6954 // {fn}: {index} konumundaki tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
 	H6955 Code = 6955 // türev izleyen bir ara sonuca (türev izleyen bir işlemin sonucuna ya da onun görünümüne) yerinde yazılamaz, türevsiz kipte de: geri yayılım onun değerine dayanır. {kind, select, whole {Adı yeni bir tensöre bağlayın: `h = h + d`} other {Yerinde olmayan bir yazımla yeni bir tensör kurun: `h = {#where}(m, d, h)`}}
 	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa değeri türevsiz yazın: `t[i] = {#no_grad}(d)`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
+	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın
+	H6958 Code = 6958 // bileşik atamada ({op}=) sonucun şekli {result}, hedefinki {target}: yayın yalnız sağ taraftadır, hedef genişlemez. Hedefi genişletmek için adı yeni bir tensöre bağlayın: `t = t {op} u`
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
