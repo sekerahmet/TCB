@@ -148,12 +148,14 @@ TR_test "3.6a demet değişmezi: en az iki öğe, (x) parantezdir" {
     TR_assert_equal(TR_none, u.1.1)
 }
 
-TR_test "3.6a öğe okuma t.0, t.0.1; sınır dışı indeks çalışma hatasıdır" {
+TR_test "3.6a öğe okuma t.0, t.0.1; sınır dışı indeks tipi bilinen demette denetim, bilinmeyende çalışma hatasıdır" {
     TR_var t = ((1, 2), "b")
     TR_assert_equal(2, t.0.1)
     TR_assert_equal(2, (t.0).1)
     TR_assert_equal(1, ((1, 2), 3).0.0)
-    TR_assert_equal("H2774", TR_error_code { t.2 })
+    # Tipi bilinen demette denetim hatası: tests/negative/demet_tipi.tr
+    TR_var bilinmeyen = [t, 1][0]
+    TR_assert_equal("H2774", TR_error_code { bilinmeyen.2 })
     TR_assert_equal("H2775", TR_error_code { [1, 2].0 })
     TR_assert_equal("H2778", TR_error_code { t[0] })
 }
@@ -181,10 +183,13 @@ TR_test "3.6a == öğe öğedir; öğeleri sıralanabilen demet sözlük sıras�
     TR_assert(l[0] > l[1])
     TR_assert_equal((1, 5), TR_min([(2, 1), (1, 5)]))
     TR_assert_equal((2, 1), TR_max([(2, 1), (1, 5)]))
-    TR_assert_equal("H2772", TR_error_code { (1, [1]) < (1, [2]) })
+    # Sıralanamayan öğe ve tensör tutan demetin ==si (15.5): tipi bilinen demette denetim hatası
+    # (tests/negative/demet_tipi.tr), bilinmeyende çalışma hatası
+    TR_var listeli = [(1, [1]), 1][0]
+    TR_var tensörlü = [(TR_Tensor([1.0]), 1), 1][0]
+    TR_assert_equal("H2772", TR_error_code { listeli < (1, [2]) })
     TR_assert_equal("H2493", TR_error_code { [(1, 2), 3].TR_sort() })
-    # Tensör tutan demetin ==si hatadır (15.5)
-    TR_assert_equal("H2777", TR_error_code { (TR_Tensor([1.0]), 1) == (TR_Tensor([1.0]), 1) })
+    TR_assert_equal("H2777", TR_error_code { tensörlü == (TR_Tensor([1.0]), 1) })
 }
 
 TR_test "3.6a öğeleri anahtar olabilen demet sözlük anahtarıdır" {
