@@ -306,7 +306,7 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ## 8. Hata yönetimi
 
-Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den `TR_error` kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). Yeni adların gösterim adları onaylandı (Ahmet, 2026-11-01): `TR_Error` Hata, `TR_code` kod, `TR_message` ileti, `TR_value` fırlatılan (üye ad alanında "değer" dolu), `TR_cause` neden (üye ve adlı argüman), `TR_suppressed` bastırılanlar; kodları uygulandıkları gün kayda girer (17.4). `TR_throw`'un katalogdaki açıklaması ("yakalayan değişken her zaman Metin") 8.3'ten önceki kuralı anlatıyor; `TR_Error` gelince düzelir. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2026-10-28): ana oturum yazdı, DENETİM'den geçti (1–7 ile tutarlılık; bulguları işlendi; Ç1: yakalamanın adı zorunlu, 2.9b'den `TR_error` kalktı, Ahmet 2026-10-28); kararlar Gemini Koşu 7'den geçti (DENETİM doğruladı, `59efe468`, 2026-10-29). Yeni adların gösterim adları onaylandı (Ahmet, 2026-11-01): `TR_Error` Hata, `TR_code` kod, `TR_value` fırlatılan (üye ad alanında "değer" dolu), `TR_cause` neden (üye ve adlı argüman), `TR_suppressed` bastırılanlar; kodları uygulandıkları gün kayda girer (17.4). `TR_throw`'un katalogdaki açıklaması ("yakalayan değişken her zaman Metin") 8.3'ten önceki kuralı anlatıyor; `TR_Error` gelince düzelir. `tests/` altındaki 8. bölüm testleri eski kuralı da sınıyor (yakalanan hatanın metin olması, her değerin fırlatılıp metne çevrilmesi, adsız yakalamada eski ad); kural uygulanırken yeniden yazılır.
 
 ### 8.1
 
@@ -322,7 +322,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 ### 8.3
 
 - **Mevcut durum:** yakalanan hata bir `TR_String`; ileti kodlu hatada kod kayboluyor, yakalayan yalnız metni görüyor [ölçüldü].
-- **Yapılacaklar:** `TR_Error` tipi ve üyeleri (`TR_code`, `TR_message`, `TR_value`, `TR_cause`); `TR_value`'nun kapalı birleşim tipi (4. katman); depodaki `TR_catch` kullanımları üyelere çevrilir.
+- **Yapılacaklar:** `TR_Error` tipi ve üyeleri (`TR_code`, `TR_value`, `TR_cause`, `TR_suppressed`; metin üyesi yok, `TR_String(e)`, 2.9); `TR_value`'nun kapalı birleşim tipi (4. katman); depodaki `TR_catch` kullanımları üyelere çevrilir.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** kapalı birleşimin yerel kopyası; hatayla biten kol eşlemenin tipine katılmaz (denetimi 4a2).
 
 ### 8.4

@@ -117,7 +117,7 @@ toplam += 0.5        # denetim hatası: toplam bir TR_Int; ilk değeri 0.0 yazı
 - Bayt dizisinin metni (yazdırma, yerleştirme, kabın içi) onu kuran çağrıdır, tip adıyla: `Bytes([104, 105])`; `TR_Bytes([104, 105])` diye yazılınca aynı değeri kurar. 64 bayttan uzunsa boyu ve ilk 16 baytı, sonra "…" (U+2026): `TR_Bytes` 0'dan 64'e 65 baytın metni `Bytes(length 65, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, …])`'dir; `length` kimliğin adıdır (`.TR_length`). `TR_String(b)` ise baytları UTF-8 olarak okur (3.3a).
 - İsteğe bağlı değer içindeki değerin ya da "none"ın metnini, `TR_JSON` JSON metin türünde metnin kendisini, öbür türlerde JSON metnini (3.7a), aralık "0..3" ya da "0..=3" metnini verir.
 - Fonksiyonun metni 6.9'da, yapı nesnesininki 7.6'da, tensörünki 15.5'tedir; bayt dizisininki yukarıda.
-- İletinin (`TR_Message`, 8.5) metni onu kuran çağrıdır, tip adıyla: `TR_Message("H6903", -1)` → `Message("H6903", -1)`. Hata değerinin (`TR_Error`) metni iletisidir (8.3). İletinin okuyanın dilindeki metni yalnız gösterilen hatada kurulur (8.5, 8.6).
+- İletinin (`TR_Message`, 8.5) metni onu kuran çağrıdır, tip adıyla: `TR_Message("H6903", -1)` → `Message("H6903", -1)`. Hata değerinin (`TR_Error`) metni fırlatılan değerin metnidir (8.3). İletinin okuyanın dilindeki metni yalnız gösterilen hatada kurulur (8.5, 8.6).
 - Program çıktısı çevrilmez; kişinin dilinde görünen yalnız iletiler, kabuk ve hata ayıklayıcıdır.
 - *Test:* TR testi.
 
