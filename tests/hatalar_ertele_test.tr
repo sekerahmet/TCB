@@ -1,10 +1,8 @@
 # TR 4
 # docs/spec/08_hata_yonetimi.md §8 — Hata yönetimi, §9 — ertele
 
-TR_test "8.1 dene / yakala; hata değişkeninin varsayılan adı hata" {
+TR_test "8.1 dene / yakala; yakalanan hatanın adı yazılır" {
     TR_var yakalanan = ""
-    TR_try { TR_throw "patladı" } TR_catch { yakalanan = TR_error }
-    TR_assert_equal("patladı", yakalanan)
     TR_try { TR_throw "a" } TR_catch h { yakalanan = h }
     TR_assert_equal("a", yakalanan)
     TR_try { TR_throw "b" } TR_catch (e) { yakalanan = e }
@@ -13,7 +11,7 @@ TR_test "8.1 dene / yakala; hata değişkeninin varsayılan adı hata" {
 
 TR_test "8.1 hata yoksa yakala bloğu çalışmaz" {
     TR_var çalıştı = TR_false
-    TR_try { TR_var x = 1 } TR_catch { çalıştı = TR_true }
+    TR_try { TR_var x = 1 } TR_catch h { çalıştı = TR_true }
     TR_assert(TR_not çalıştı)
 }
 
@@ -76,7 +74,7 @@ TR_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
         TR_defer { iz.TR_append("hata sonrası temizlik") }
         TR_throw "x"
     }
-    TR_try { hatalı() } TR_catch { iz.TR_append("yakalandı") }
+    TR_try { hatalı() } TR_catch h { iz.TR_append("yakalandı") }
     TR_assert_equal(["temizlik", "hata sonrası temizlik", "yakalandı"], iz)
 }
 

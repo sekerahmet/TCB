@@ -30,7 +30,7 @@ TR_func bilgi() -> TR_String {
 TR_func yakalanan() -> TR_String {
     TR_try {
         TR_throw "x"
-    } TR_catch {
-        TR_return TR_error
+    } TR_catch h {
+        TR_return h
     }
 }

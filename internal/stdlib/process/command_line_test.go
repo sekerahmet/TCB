@@ -173,7 +173,7 @@ func TestCommandLineSetupErrors(t *testing.T) {
 		}
 	}
 	// Kurulum hatası çağrıyı tüketmez; dene/yakala yakalar.
-	if got, _, err := commandLine(t, `TR_try { TR_command_line({"a b": 1}) } TR_catch { }
+	if got, _, err := commandLine(t, `TR_try { TR_command_line({"a b": 1}) } TR_catch h { }
 TR_command_line({"a": 1})`); err != nil || got != `{"a": 1}` {
 		t.Errorf("hatalı kurulumdan sonra çağrı geçerli olmalı: %s %v", got, err)
 	}

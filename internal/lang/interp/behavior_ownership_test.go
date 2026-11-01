@@ -589,7 +589,7 @@ TR_func sına() {
     TR_var x = yeni()
     TR_try {
         hedef(x, patla())
-    } TR_catch {
+    } TR_catch h {
     }
 }
 sına()

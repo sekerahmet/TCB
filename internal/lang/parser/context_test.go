@@ -56,7 +56,7 @@ func TestBreakContinueOutsideLoopIsError(t *testing.T) {
 		"TR_for TR_true { TR_continue }",
 		"TR_for i TR_in 1..3 { TR_if i > 1 { TR_break } }",
 		"TR_for i TR_in 1..3 { TR_match i { 1 => { TR_continue } _ => { TR_break } } }",
-		"TR_for x < 3 { TR_try { TR_break } TR_catch { TR_continue } }",
+		"TR_for x < 3 { TR_try { TR_break } TR_catch h { TR_continue } }",
 		"TR_func f() { TR_for { TR_break } }",
 		"TR_print(TR_error_code { TR_for { TR_break }; 1 })",
 		"TR_for { TR_for { TR_break }; TR_break }",

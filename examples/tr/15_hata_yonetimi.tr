@@ -36,11 +36,11 @@ TR_func güvenli_çevir(yazı: TR_String, varsayılan_değer: TR_Int) -> TR_Int 
 TR_print(güvenli_çevir("42", 0))
 TR_print(güvenli_çevir("abc", 0))
 
-# yakala'ya ad verilmezse hata iletisi hata adlı değişkende gelir.
+# yakala yakalanan hataya her zaman bir ad verir.
 TR_try {
     TR_throw "patladı"
-} TR_catch {
-    TR_print("yakalandı: \(TR_error)")
+} TR_catch h {
+    TR_print("yakalandı: \(h)")
 }
 
 # Kitaplığın hataları katalog iletisidir: ileti(kod, değerler) onu kurar, fırlat ona verilince hata o
