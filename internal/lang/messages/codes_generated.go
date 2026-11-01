@@ -180,6 +180,8 @@ const (
 	H1115 Code = 1115 // `{kind, select, member {.{call}()} other {{call}()}}` yeni bir değer döndürür; alıcısını ve argümanlarını yerinde değiştirmez, değeri atılan çağrı hiçbir iş yapmaz (13.10). Değeri atayın: {target, select, empty {`TR_var <ad> = {suggestion}`} other {`{suggestion}`}}
 	H1117 Code = 1117 // ; `.{member}` {types} tipinin metodudur{swap, select, empty {} other {. Alıcı ile argümanın yeri değişmiş: `{swap}`}}
 	H1123 Code = 1123 // `.{#append}`'in {order}. argümanı listenin öğe tipinde ({elem}) olmalı: {list} listesine {given} eklenmez (liste tek tiplidir, 3.6)
+	H1124 Code = 1124 // {struct} yapısının `{field}` alanı {declared} tipindedir: ona {given} tipinde değer atanmaz (7.5)
+	H1125 Code = 1125 // {struct} kurulurken `{field}` alanına {given} verildi; alan {declared} tipindedir (7.2)
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

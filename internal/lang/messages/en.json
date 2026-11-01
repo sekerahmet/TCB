@@ -175,6 +175,8 @@
 "H1115": "`{kind, select, member {.{call}()} other {{call}()}}` returns a new value; it does not change its receiver or arguments in place, and a call whose value is dropped does nothing (13.10). Assign the value: {target, select, empty {`TR_var <name> = {suggestion}`} other {`{suggestion}`}}",
 "H1117": "; `.{member}` is a method of {types}{swap, select, empty {} other {. The receiver and the argument are swapped: `{swap}`}}",
 "H1123": "argument {order} of `.{#append}` must have the list's element type ({elem}): {given} is not added to a {list} (a list holds one type, 3.6)",
+"H1124": "the field `{field}` of {struct} has type {declared}: a value of type {given} is not assigned to it (7.5)",
+"H1125": "building {struct}, {given} was given for the field `{field}`, which has type {declared} (7.2)",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

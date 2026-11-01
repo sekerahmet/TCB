@@ -267,8 +267,8 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ### 7.2
 
-- **Mevcut durum:** sırayla ve adla kurma, her kurmada yeniden hesaplanan varsayılan kurala uyuyor; varsayılanı olmayan alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda ancak çalışırken hata (H2750, H2419, H2418, H2420); alanın tipi kurmada denetlenmiyor: `TR_Int` alana metin veriliyor [ölçüldü: iki alanlı yapıyla altı kurma; denetim ve çalıştırma].
-- **Yapılacaklar:** zorunlu alanın verilmemesi ve 6.5'in argüman hataları denetim hatası; alanın tipinin denetimi; denetleyicinin testi.
+- **Mevcut durum:** sırayla ve adla kurma, her kurmada yeniden hesaplanan varsayılan kurala uyuyor; varsayılanı olmayan alan verilmezse, fazla ya da bilinmeyen argümanda ve iki kez verilen alanda ancak çalışırken hata (H2750, H2419, H2418, H2420); alanın tipi kurmada denetimde (4a2 ikinci dilim, H1125; kurucusu olmayan yapıda konumlu ve adlı argüman), çalışma anı alanın tipini denetlemiyor [ölçüldü: `TestConstructionFieldTypes`, `tests/negative/alan_tipi.tr`].
+- **Yapılacaklar:** zorunlu alanın verilmemesi ve 6.5'in argüman hataları denetim hatası; kurucusu olan yapıda kurucunun parametre tipleri (7.4); denetleyicinin testi.
 
 ### 7.3
 
@@ -282,8 +282,8 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 ### 7.5
 
-- **Mevcut durum:** alan okunuyor ve atanıyor, `TR_const` nesnenin alanı atanabiliyor; olmayan alan ve metoda atama ancak çalışırken bulunuyor (H2468, H2405, H2404); ileti en yakın adı öneriyor ama alanla eşit uzaklıktaki metodu da seçebiliyor (`p.y` için `m`), yakın ad yoksa alanı eklemeyi öneriyor; alanın tipi denetlenmiyor: `TR_Int` alana metin atanıyor [ölçüldü: bir alanlı ve bir metotlu yapıda okuma ve atama; denetim ve çalıştırma].
-- **Yapılacaklar:** alan tipinin denetimi; olmayan alan ve metoda atama denetim hatası, ileti en yakın alanı önerir; denetleyicinin testi.
+- **Mevcut durum:** alan okunuyor ve atanıyor, `TR_const` nesnenin alanı atanabiliyor; olmayan alan ve metoda atama ancak çalışırken bulunuyor (H2468, H2405, H2404); ileti en yakın adı öneriyor ama alanla eşit uzaklıktaki metodu da seçebiliyor (`p.y` için `m`), yakın ad yoksa alanı eklemeyi öneriyor; alanın tipi denetimde (4a2 ikinci dilim, H1124: tipi bilinen ad ya da `TR_self` üzerinden atama, bileşik atama da) [ölçüldü: `TestFieldAssignType`, `tests/negative/alan_tipi.tr`].
+- **Yapılacaklar:** olmayan alan ve metoda atama denetim hatası, ileti en yakın alanı önerir; denetleyicinin testi.
 
 ### 7.6
 

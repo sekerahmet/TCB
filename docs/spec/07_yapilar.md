@@ -25,7 +25,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 ```
 
 **7.2** Yapının adı çağrılınca nesne kurulur: alanlar tanım sırasıyla ya da adla verilir (`Nokta(3.0, 4.0)`, `Nokta(y: 4.0)`); argüman kuralları 6.5'tekidir. Varsayılanı olmayan alan verilmezse denetim hatasıdır. Varsayılan her kurmada yeniden, yapının tanımlandığı kapsamda hesaplanır (6.4). Yapının kurucusu varsa kurma onun imzasıyla yapılır (7.4).
-- *Test:* TR testi; zorunlu alanın denetimi uygulanınca denetleyicinin testi.
+- *Test:* TR testi; alanın tipi: `TestConstructionFieldTypes`, olumsuz fikstür `tests/negative/alan_tipi.tr`; zorunlu alanın denetimi uygulanınca denetleyicinin testi.
 
 **7.3** Metot gövdedeki `TR_func`'tır ve `p.m(...)` ile çağrılır. Metot nesneye `TR_self` ile erişir: alan her zaman `TR_self.x` diye okunur ve atanır, başka metot `TR_self.m()` diye çağrılır. Metotta düz `x` ya da `m()` alan ya da metot değildir. Düz ad yapının bir alanının ya da metodunun adıysa ve dıştaki bir ada çözülüyorsa denetim hatasıdır; hiçbir ada çözülmüyorsa 5.14'ün hatasıdır. İkisinde de ileti `TR_self.x`'i önerir. `TR_self` parametre olarak yazılmaz; metodun ilk parametresinin adı self ise (Python alışkanlığı) sözdizimi hatasıdır, ileti `TR_self`'in örtük olduğunu söyler. Çağrısız `p.m` `p`'ye bağlı bir fonksiyon değeridir (6.9). Nesnesiz metot (yapının adıyla, nesne olmadan çağrılan) yoktur; yapıya bağlı olmayan iş dosyanın fonksiyonu olarak yazılır. Metot `TR_self` kullanmayabilir: alansız bir yapı (`TR_struct Relu { ... }`) bir arayüzü (7.8) böyle karşılar.
 - *Test:* TR testi; denetleyicinin testi (düz alan adı).
@@ -34,7 +34,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 - *Test:* TR testi; alanların atanma denetimi uygulanınca denetleyicinin testi.
 
 **7.5** Alan `p.x` ile okunur, `p.x = ifade` ile atanır; atanan değerin tipi alanın tipidir (3.13). Olmayan alana erişmek ve metoda değer atamak denetim hatasıdır; ileti en yakın alanı önerir (2.3a'nın uzaklığıyla), yakın alan yoksa alanı yapıya `k: T` diye eklemeyi. Bağı sabit bir nesnenin (`TR_const p`) alanları atanabilir (5.2).
-- *Test:* TR testi; alan tipinin ve olmayan alanın denetimi uygulanınca denetleyicinin testi.
+- *Test:* TR testi; alanın tipi: `TestFieldAssignType`, olumsuz fikstür `tests/negative/alan_tipi.tr`; olmayan alanın denetimi uygulanınca denetleyicinin testi.
 
 **7.6** Yapı nesnesi listeler gibi başvuruyla paylaşılır (3.6): `TR_var q = p` aynı nesnedir, `q.x = 9` `p.x`'i de değiştirir; bu yüzden 4.10'un yineleme kuralına girer.
 - `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5). Alanlarından biri karşılaştırılamayan yapı karşılaştırılamaz, denetim hatasıdır: fonksiyon alanı ve tensör alanı (tensörün `==`'si öğe öğedir, 15.5) böyledir.

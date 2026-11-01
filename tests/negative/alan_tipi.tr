@@ -1,0 +1,9 @@
+# TR 4
+# TEST 7.5 alana atanan değer alanın tipindedir; yapı kurulurken alana verilen değer de (7.2)
+TR_struct Nokta {
+    x: TR_Float
+}
+TR_var p = Nokta("a") # ERROR H1125
+TR_var q = Nokta(1.0)
+q.x = "b" # ERROR H1124
+TR_print(p, q)

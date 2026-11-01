@@ -523,7 +523,6 @@ func TestKnownLimitations(t *testing.T) {
 		{"TR_const sözlüğün alanını değiştirme", "TR_const p = {\"x\": 1}\np.x = 5"},
 		{"çoklu atamada tip denetimi yok", "TR_var x: TR_Int = 1\nTR_var y = 2\nx, y = \"a\", 2"},
 		{"çoklu tanımda değişkenler tipsizdir", "TR_var a, b = 1, 2\na = \"x\""},
-		{"yapı alan tipleri", "TR_struct Nokta {\n  x: TR_Int\n}\nTR_var p = Nokta(\"a\")"},
 		{"uyumsuz işlenenler", "TR_var a = \"x\" - 1\nTR_var b = TR_true + 1"},
 	}
 	for _, tt := range tests {

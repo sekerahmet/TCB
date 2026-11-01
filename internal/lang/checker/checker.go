@@ -449,8 +449,13 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 				ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
 		}
 	}
-	for _, na := range e.NamedArgs {
-		c.noteCall(e, objType, -1, na.Name, na.Value, c.inferExpression(na.Value))
+	namedTypes := make([]string, len(e.NamedArgs))
+	for i, na := range e.NamedArgs {
+		namedTypes[i] = c.inferExpression(na.Value)
+		c.noteCall(e, objType, -1, na.Name, na.Value, namedTypes[i])
+	}
+	if found && info.TypeName == typeType {
+		c.checkConstruction(e, ident.Value, argTypes, namedTypes) // alanların tipi (7.2)
 	}
 	if isMember {
 		c.checkMemberCall(e, objType, argTypes)
@@ -494,6 +499,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		}
 	} else {
 		// indeks ve alan hedefleri (l[i] = ..., p.x = ...) okunan ifadeler içerir
+		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
 		c.inferExpression(s.Target)
 	}
 }
