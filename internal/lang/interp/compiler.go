@@ -223,6 +223,7 @@ func (b *blockCode) runList(v *VM, env *Environment) (Value, flowSignal, error) 
 			// Önceki deyimin değeri kullanılmayacak: bağı kalmayan sahipli değerler
 			// bırakılır (ownership.go).
 			v.boundary()
+			v.yieldPoint() // deyim sınırı: bekleyen varsa kilit 5 ms'den sonra devredilir (10.2)
 		}
 		if v.Debugger != nil {
 			if j, jump := b.consultDebugger(v, i, env); jump {

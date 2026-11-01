@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -118,12 +117,18 @@ type vmShared struct {
 	// paylaşılan Liste/Sözlük/Yapı değerleri eşzamanlı yazımda bozulmaz ve 's += 1' gibi
 	// işlemler bölünmez. Kilit; bekle(), bekle_hepsi(), ağ/disk/süreç beklemeleri gibi
 	// engelleyici işlemlerde bırakılır (bkz. Blocking), böylece görevler yine iç içe ilerler.
-	gil sync.Mutex
-	// pending, kilidi almak için bekleyen görev sayısıdır. Kilidi tutan görev döngü
-	// turlarında ve fonksiyon çağrılarında bu sayaca bakar; bekleyen varsa kilidi devreder
-	// (bkz. devret). Böylece CPU-yoğun bir döngü eşzamanlı görevleri sonuna kadar
-	// bekletmez.
+	// Bekleyenler kilidi geldikleri sırayla alır (gil.go, 10.2).
+	gil gilQueue
+	// pending, kilidi almak için bekleyen görev sayısıdır (durdurma da bir ekler, bkz.
+	// Interrupt). Kilidi tutan görev her deyim sınırında bu sayaca bakar; sıfır değilse ve kilidi
+	// lockHold'dan uzun tuttuysa devreder (yieldPoint). Böylece CPU-yoğun bir döngü eşzamanlı
+	// görevleri sonuna kadar bekletmez.
 	pending atomic.Int32
+	// gilSince kilidi tutan görevin onu aldığı andır (monotonic); yalnız kilidi tutan okur ve yazar.
+	gilSince time.Duration
+	// gilWaitHook yalnız testler içindir: kilidi bekleyerek alan görev, kuyruğa girdiğinde önünde
+	// bekleyen sayısını, numarasını ve bekleme süresini (tekdüze saatle) bildirir.
+	gilWaitHook func(ahead int, ticket uint64, waited time.Duration)
 	// taskHooks, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
 	taskHooks []func(*VM)
@@ -308,50 +313,6 @@ func (v *VM) NewTaskVM() *VM {
 	// başlatılan görev o modülü aktarırsa bu döngüdür, beklemek kilitlenirdi).
 	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
 		source: v.source, loading: slices.Clip(v.loading)}
-}
-
-func (v *VM) acquireGIL() {
-	v.pending.Add(1)
-	v.gil.Lock()
-	v.pending.Add(-1)
-	v.holdsGIL = true
-	for _, f := range v.taskHooks {
-		f(v)
-	}
-}
-
-// handOff, kilidi bekleyen bir görev varsa kilidi bırakıp yeniden alır. Yalnızca deyimler
-// arasında (döngü turu başında, fonksiyon çağrısı girişinde) çağrılır; bir deyimin
-// okuma-yazma adımları ('s += 1') bu yüzden bölünmez. Sayaç denetimi tek görevli
-// programlarda yalnızca bir bellek okumasıdır.
-func (v *VM) handOff() {
-	if v.pending.Load() != 0 && v.holdsGIL && v.exclusive == nil {
-		v.handOffLock()
-	}
-}
-
-// loopTurn döngü turunun başındaki güvenli noktadır. Uygulanmış durdurma her turda fark edilir
-// (1.5): turu yalnız yerleşik çağıran bir döngüde de durdurmanın gecikmesi tur sayısına değil
-// tek bir turun süresine bağlıdır. Bekleyen göreve kilit 256 turda bir devredilir.
-func (v *VM) loopTurn(turn *uint32) {
-	if *turn++; *turn&255 == 0 {
-		v.handOff()
-	}
-	v.checkInterrupt()
-}
-
-func (v *VM) handOffLock() {
-	v.releaseGIL()
-	// Bekleyen görev kilidi alabilsin; sync.Mutex 1 ms'den uzun bekleyen göreve kilidi
-	// doğrudan devreder (açlık kipi), Gosched ise uyanan göreve hemen sıra verir.
-	runtime.Gosched()
-	v.acquireGIL()
-	v.checkInterrupt()
-}
-
-func (v *VM) releaseGIL() {
-	v.holdsGIL = false
-	v.gil.Unlock()
 }
 
 // Blocking runs fn with the interpreter lock released, so other tasks make progress during

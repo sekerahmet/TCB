@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -247,5 +248,66 @@ func TestDecodersRequireText(t *testing.T) {
 	out, _, err := run(t, `TR_print(TR_json_parse("[1, 2]"), TR_parse_csv("a,b\n1,2"))`)
 	if err != nil || out != "[1,2] [[\"a\", \"b\"], [1, 2]]\n" {
 		t.Fatalf("metin argümanı: %q, %v", out, err)
+	}
+}
+
+// lockTakes, sayım açıkken yorumlayıcı kilidinin kaç kez alındığıdır (lockTakesOf).
+var (
+	countLockTakes atomic.Bool
+	lockTakes      atomic.Int32
+)
+
+func init() {
+	interp.AddEngine(func(v *interp.VM) {
+		v.AddTaskHook(func(*interp.VM) {
+			if countLockTakes.Load() {
+				lockTakes.Add(1)
+			}
+		})
+	})
+}
+
+// lockTakesOf programı çalıştırır ve kilidin kaç kez alındığını verir: kilidi bırakan her yerleşik
+// dönerken bir kez (program başlarken ve görevler beklenirken alınanlar da sayılır; testler boş
+// programın sayısıyla karşılaştırır).
+func lockTakesOf(t *testing.T, code string) int32 {
+	t.Helper()
+	lockTakes.Store(0)
+	countLockTakes.Store(true)
+	defer countLockTakes.Store(false)
+	if _, _, err := run(t, code); err != nil {
+		t.Fatalf("%v\n%s", err, code)
+	}
+	return lockTakes.Load()
+}
+
+// Kural (10.2): değişmez girdiyi okuyup yeni değer kuran yerleşik uzun sürünce kilidi bırakır:
+// büyük metinde TR_json_parse, büyük TR_JSON'da TR_json_string. Liste ve sözlük değişebilir (başka
+// görev yazarken okunamaz): TR_json_string onlarda kilidi tutar, listenin metotları gibi. Küçük
+// girdide kilit bırakılmaz (bırakmanın bedeli işten büyük olurdu). Eskiden ikisi de hep tutuyordu.
+func TestJSONReleasesTheLockOnlyForLargeUnchangeableInput(t *testing.T) {
+	nums := make([]string, 3000)
+	for i := range nums {
+		nums[i] = fmt.Sprint(i)
+	}
+	big := "[" + strings.Join(nums, ",") + "]" // longJSONBytes'tan büyük, longJSONNodes'tan çok düğüm
+	if len(big) < longJSONBytes {
+		t.Fatalf("girdi %d bayt, eşik %d", len(big), longJSONBytes)
+	}
+	base := lockTakesOf(t, "TR_var x = 1")
+	list := "TR_var l = []\nTR_for i TR_in 0..3000 {\n    l.TR_append({\"a\": i})\n}\n"
+	for _, c := range []struct {
+		code     string
+		releases int32
+	}{
+		{`TR_var j = TR_json_parse("[1, 2]")`, 0},
+		{`TR_var j = TR_json_string(TR_json_parse("[1, 2]"))`, 0},
+		{`TR_var j = TR_json_parse("` + big + `")`, 1},
+		{`TR_var j = TR_json_string(TR_json_parse("` + big + `"))`, 2},
+		{list + `TR_var s = TR_json_string(l)`, 0},
+	} {
+		if got := lockTakesOf(t, c.code) - base; got != c.releases {
+			t.Errorf("kilit %d kez bırakıldı, %d beklenirdi:\n%.120s", got, c.releases, c.code)
+		}
 	}
 }

@@ -206,14 +206,20 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 		return nil, err
 	}
 	resolved, searched := y.ResolvePath(filePath)
-	var data []byte
-	if waitErr := y.Abandonable(func() { data, err = ReadFileContent(resolved) }); waitErr != nil {
+	// Okuma da metne dönüşüm de (büyük dosyada kopya) kilit bırakılarak yapılır (10.2).
+	var text string
+	if waitErr := y.Abandonable(func() {
+		var data []byte
+		if data, err = ReadFileContent(resolved); err == nil {
+			text = string(data)
+		}
+	}); waitErr != nil {
 		return nil, waitErr
 	}
 	if err != nil {
 		return nil, ReadError(CallPrefix(codes.FnReadFile), filePath, messages.H2100, err, searched)
 	}
-	return &StringVal{Val: string(data)}, nil
+	return &StringVal{Val: text}, nil
 }
 
 // writeFileBuiltin dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).

@@ -198,10 +198,10 @@ func init() {
 // setupStringMethods Metin tipinin metotlarını kaydeder.
 func setupStringMethods() {
 	addMethod(typeString, codes.MemUpper, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.ToUpper(inst.(*StringVal).Val)}, nil // Unicode kuralı, dilden bağımsız (13.2)
+		return longText(y, inst, strings.ToUpper), nil // Unicode kuralı, dilden bağımsız (13.2)
 	})
 	addMethod(typeString, codes.MemLower, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.ToLower(inst.(*StringVal).Val)}, nil
+		return longText(y, inst, strings.ToLower), nil
 	})
 	addMethod(typeString, codes.MemStrip, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
@@ -211,18 +211,24 @@ func setupStringMethods() {
 		if len(args) > 0 {
 			sep = y.textOf(args[0])
 		}
-		parts := strings.Split(inst.(*StringVal).Val, sep)
-		elems := make([]Value, len(parts))
-		for i, p := range parts {
-			elems[i] = &StringVal{Val: p}
-		}
+		var elems []Value
+		textWork(y, inst, func(s string) {
+			parts := strings.Split(s, sep)
+			elems = make([]Value, len(parts))
+			for i, p := range parts {
+				elems[i] = &StringVal{Val: p}
+			}
+		})
 		return &ListVal{Elements: elems}, nil
 	})
 	addMethod(typeString, codes.MemReplace, signature{2, 2, []*argKind{textArg, textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return &StringVal{Val: strings.ReplaceAll(inst.(*StringVal).Val, y.textOf(args[0]), y.textOf(args[1]))}, nil
+		old, repl := y.textOf(args[0]), y.textOf(args[1])
+		return longText(y, inst, func(s string) string { return strings.ReplaceAll(s, old, repl) }), nil
 	})
 	addMethod(typeString, codes.MemContains, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return BoolToVal(strings.Contains(inst.(*StringVal).Val, y.textOf(args[0]))), nil
+		part, found := y.textOf(args[0]), false
+		textWork(y, inst, func(s string) { found = strings.Contains(s, part) })
+		return BoolToVal(found), nil
 	})
 	addMethod(typeString, codes.MemStartsWith, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return BoolToVal(strings.HasPrefix(inst.(*StringVal).Val, y.textOf(args[0]))), nil
@@ -231,19 +237,44 @@ func setupStringMethods() {
 		return BoolToVal(strings.HasSuffix(inst.(*StringVal).Val, y.textOf(args[0]))), nil
 	})
 	addMethod(typeString, codes.MemGet, signature{1, 1, []*argKind{intArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		runes := []rune(inst.(*StringVal).Val)
+		var runes []rune
+		textWork(y, inst, func(s string) { runes = []rune(s) })
 		if pos, ok := optionalIndex(args[0], len(runes)); ok {
 			return &StringVal{Val: string(runes[pos])}, nil
 		}
 		return Null, nil
 	})
 	addMethod(typeString, codes.MemReverse, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		runes := []rune(inst.(*StringVal).Val)
-		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-			runes[i], runes[j] = runes[j], runes[i]
-		}
-		return &StringVal{Val: string(runes)}, nil
+		return longText(y, inst, func(s string) string {
+			runes := []rune(s)
+			for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+				runes[i], runes[j] = runes[j], runes[i]
+			}
+			return string(runes)
+		}), nil
 	})
+}
+
+// longTextBytes, metin metodunun yorumlayıcı kilidini bıraktığı girdi boyudur: ~1 ms'lik iş
+// (2026-11-01 ölçümü: .TR_upper 1,1 MB'ta 12 ms, en pahalısı).
+const longTextBytes = 64 << 10
+
+// textWork metin metodunun işini yapar; metin büyükse yorumlayıcı kilidi bırakılarak (10.2):
+// metin değişmezdir, iş yalnız yeni değer kurar, paylaşılan duruma dokunmaz.
+func textWork(y *VM, inst Value, work func(s string)) {
+	s := inst.(*StringVal).Val
+	if len(s) >= longTextBytes {
+		y.Blocking(func() { work(s) })
+		return
+	}
+	work(s)
+}
+
+// longText metinden yeni bir metin kuran metodun sonucudur (textWork ile).
+func longText(y *VM, inst Value, f func(string) string) Value {
+	var out string
+	textWork(y, inst, func(s string) { out = f(s) })
+	return &StringVal{Val: out}
 }
 
 // listFilter liste.TR_filter(f): f'nin TR_true döndürdüğü öğeler. Yüklem TR_Bool döndürür

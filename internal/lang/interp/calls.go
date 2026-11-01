@@ -232,7 +232,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 		return v.callInSource(fn, fk, fnEnv, self, args, nargs, named, line)
 	}
 	fnEnv.IsFuncRoot = true
-	v.handOff() // özyinelemeli (döngüsüz) hesaplarda da kilit devredilebilsin
+	v.callBoundary() // fonksiyon girişi bir deyim sınırıdır (10.2): özyinelemeli hesapta ve tek deyimli gövdede de
 	if fk.hasDefer {
 		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır; hataları yutulmaz (9.4)
 		defer func() {

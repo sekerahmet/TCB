@@ -21,10 +21,9 @@ import (
 //     .güncelle ya da .kaydet noktayı kaydeder ve durur; süre dolarsa istek uygulanır (1.6).
 //   - Program biterken (StopFinishing) ertelenen işleri kesmez (1.15).
 //
-// Interrupt kilit bekleyen görev sayacını (pending) artırır: fonksiyon çağrıları bu sayaca
-// baktığından kilit devri yoluna (handOffLock) girer ve durdurma orada fark edilir. Döngü turu
-// kilidi 256 turda bir devreder; durdurmaya ise her turda bakar (loopTurn), yalnız yerleşik
-// çağıran bir döngü de bir sonraki turda durur.
+// Interrupt kilit bekleyen görev sayacını (pending) artırır: fonksiyon girişi bu sayaca
+// baktığından yieldSlow'a girer ve durdurma orada fark edilir (callBoundary). Döngü turu durdurmaya
+// her turda bakar (loopTurn), yalnız yerleşik çağıran bir döngü de bir sonraki turda durur.
 
 // ErrInterrupted reports that the program was stopped by an interrupt signal; dene/yakala does
 // not catch it.
@@ -168,7 +167,7 @@ func (v *VM) Interrupt() bool {
 	}
 	v.stopMu.Unlock()
 	close(v.interruptChan)
-	v.pending.Add(1) // döngüler ve çağrılar kilit devri yoluna girsin (bkz. handOffLock)
+	v.pending.Add(1) // fonksiyon girişleri durdurmaya baksın (bkz. callBoundary)
 	return true
 }
 

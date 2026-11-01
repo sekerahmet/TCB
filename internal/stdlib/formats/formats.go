@@ -23,33 +23,87 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
 )
 
+// Büyük girdide JSON çözme ve yazma yorumlayıcı kilidi bırakılarak yapılır (10.2): girdi
+// değişmezdir (metin, TR_JSON), iş yalnız yeni değer kurar, paylaşılan duruma dokunmaz. Eşikler
+// ~1 ms'lik iştir (2026-11-01 ölçümü: çözme ~120 ms/MB, yazma kayıt başına ~2 µs).
+const (
+	longJSONBytes = 8 << 10 // TR_json_parse: metnin bayt sayısı
+	longJSONNodes = 500     // TR_json_string: TR_JSON değerinin düğüm sayısı
+)
+
+// jsonParse TR_json_parse yerleşiğidir.
+func jsonParse(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(codes.FnJsonParse, 1, len(args), codes.ReceiverRef(codes.TypeString))
+	}
+	s, ok := args[0].(*interp.StringVal)
+	if !ok {
+		return nil, messages.New(messages.H7000, codes.NameRef(codes.FnJsonParse), codes.NameRef(codes.TypeString), args[0].Type())
+	}
+	var val interp.Value
+	var err error
+	parse := func() { val, err = interp.JSONToTR([]byte(stripBOM(s.Val))) }
+	if len(s.Val) >= longJSONBytes {
+		vm.Blocking(parse)
+	} else {
+		parse()
+	}
+	if err != nil {
+		return nil, messages.New(messages.H7001, err)
+	}
+	return interp.NewJSON(val), nil
+}
+
+// jsonString TR_json_string yerleşiğidir. Girdi büyük bir TR_JSON ise kilit bırakılır; liste,
+// sözlük ve yapı değişebilir (başka bir görev yazarken okunamaz), onlarda kilit tutulur: listenin
+// ve sözlüğün metotları gibi (10.2'nin istisnası).
+func jsonString(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	if len(args) != 1 {
+		return nil, interp.ArgCountError(codes.FnJsonString, 1, len(args), messages.Text(messages.H2301))
+	}
+	var b []byte
+	var err error
+	write := func() { b, err = jsonwrite.Write(args[0]) }
+	if j, ok := args[0].(*interp.JSONVal); ok && nodesLeft(j.Unwrap(), longJSONNodes) <= 0 {
+		vm.Blocking(write)
+	} else {
+		write()
+	}
+	if err != nil {
+		return nil, messages.New(messages.H2000, codes.NameRef(codes.FnJsonString), err)
+	}
+	return &interp.StringVal{Val: string(b)}, nil
+}
+
+// nodesLeft değerin düğümlerini sayarak bütçeden düşer ve kalanı verir; bütçe bitince sayım durur
+// (sıfır ya da eksi: değer en az bütçe kadar düğümlüdür).
+func nodesLeft(v interp.Value, budget int) int {
+	budget--
+	switch x := v.(type) {
+	case *interp.ListVal:
+		for _, e := range x.Elements {
+			if budget <= 0 {
+				break
+			}
+			budget = nodesLeft(e, budget)
+		}
+	case *interp.DictVal:
+		for _, k := range x.Order {
+			if budget <= 0 {
+				break
+			}
+			budget = nodesLeft(x.Pairs[k], budget)
+		}
+	case *interp.JSONVal:
+		return nodesLeft(x.Unwrap(), budget+1)
+	}
+	return budget
+}
+
 // Register JSON ve CSV yerleşiklerini VM'ye kaydeder.
 func Register(v *interp.VM) {
-	v.RegisterNoNamed(codes.FnJsonParse, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.FnJsonParse, 1, len(args), codes.ReceiverRef(codes.TypeString))
-		}
-		s, ok := args[0].(*interp.StringVal)
-		if !ok {
-			return nil, messages.New(messages.H7000, codes.NameRef(codes.FnJsonParse), codes.NameRef(codes.TypeString), args[0].Type())
-		}
-		val, err := interp.JSONToTR([]byte(stripBOM(s.Val)))
-		if err != nil {
-			return nil, messages.New(messages.H7001, err)
-		}
-		return interp.NewJSON(val), nil
-	})
-
-	v.RegisterNoNamed(codes.FnJsonString, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-		if len(args) != 1 {
-			return nil, interp.ArgCountError(codes.FnJsonString, 1, len(args), messages.Text(messages.H2301))
-		}
-		b, err := jsonwrite.Write(args[0])
-		if err != nil {
-			return nil, messages.New(messages.H2000, codes.NameRef(codes.FnJsonString), err)
-		}
-		return &interp.StringVal{Val: string(b)}, nil
-	})
+	v.RegisterNoNamed(codes.FnJsonParse, jsonParse)
+	v.RegisterNoNamed(codes.FnJsonString, jsonString)
 
 	v.RegisterNoNamed(codes.FnReadCsv, func(vm *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 		if len(args) != 1 {

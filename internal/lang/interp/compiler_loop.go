@@ -76,7 +76,6 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 		pin(iterVal) // gövdenin deyim sınırları gezilen kaynağı bırakmasın
 		defer kind.close(iterVal)
 		var lastVal Value = Null
-		var handoff uint32
 		switch it := iterVal.(type) {
 		case *RangeVal:
 			first, last, step, empty := rangeSteps(it)
@@ -86,7 +85,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			idx := int64(0)
 			// Son değer dahil gezilir ve döngü onda biter: int64 sınırında taşma olmaz.
 			for i := first; ; i += step {
-				v.loopTurn(&handoff)
+				v.loopTurn()
 				loopEnv := kind.turn(v)
 				// Tam sayılar sahiplenilemez: yuvaya doğrudan yazılır (ownership.go).
 				if keySlot >= 0 {
@@ -113,7 +112,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 		case *ListVal:
 			size := len(it.Elements)
 			for idx, item := range it.Elements {
-				v.loopTurn(&handoff)
+				v.loopTurn()
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, NewInt(int64(idx)))
@@ -138,7 +137,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 		case *DictVal:
 			size := len(it.Order)
 			for _, key := range it.Order {
-				v.loopTurn(&handoff)
+				v.loopTurn()
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, it.KeyValue(key))
@@ -164,7 +163,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 
 		case *StringVal:
 			for idx, ch := range []rune(it.Val) {
-				v.loopTurn(&handoff)
+				v.loopTurn()
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, NewInt(int64(idx)))
@@ -190,7 +189,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				return nil, signalNone, lineSuffix(line, err)
 			}
 			for idx := 0; idx < n; idx++ {
-				v.loopTurn(&handoff)
+				v.loopTurn()
 				item, err := it.IterItem(idx)
 				if err != nil {
 					return nil, signalNone, lineSuffix(line, err)
@@ -227,9 +226,8 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 // Öğe sayısı önceden bilinmediğinden her tur Sonraki ile istenir.
 func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyBlock *blockCode, line int) (Value, flowSignal, error) {
 	var lastVal Value = Null
-	var handoff uint32
 	for idx := int64(0); ; idx++ {
-		v.loopTurn(&handoff)
+		v.loopTurn()
 		item, cont, err := it.Next(v)
 		if err != nil {
 			return nil, signalNone, lineSuffix(line, err)
@@ -285,9 +283,8 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 		bodyBlock := c.statements(k, bodyStatements)
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
 			var lastVal Value = Null
-			var handoff uint32
 			for {
-				v.loopTurn(&handoff)
+				v.loopTurn()
 				v.boundary()
 				cond, err := condition(v, env)
 				if err != nil {
@@ -323,9 +320,8 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 		var lastVal Value = Null
 		kind := loopScope{outerEnv: env, info: info, again: again}
 		defer kind.close(nil)
-		var handoff uint32
 		for {
-			v.loopTurn(&handoff)
+			v.loopTurn()
 			cond, err := condition(v, env)
 			if err != nil {
 				return nil, signalNone, err
@@ -404,9 +400,8 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 		// kurulunca ona bağlanır.
 		pin(iterVal)
 		defer kind.close(iterVal)
-		var handoff uint32
 		for _, item := range items {
-			v.loopTurn(&handoff)
+			v.loopTurn()
 			compEnv := kind.fresh()
 			compEnv.store(varSlot, item)
 			if condition != nil {
