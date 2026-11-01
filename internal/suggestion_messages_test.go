@@ -52,6 +52,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H2767, "TR_enum Sonuç { Tamam(değer: TR_Int), Boş }\nTR_var s: Sonuç = Sonuç.Tamam(deger: 1)", "deger", "değer"},
 	{messages.H2778, "TR_var t = (10, \"x\")\nTR_var v: TR_Int = t[0]", "t[0]", "t.0"},
 	{messages.H6104, "TR_func f(x: TR_List[TR_Float]) -> TR_List[TR_Float] { TR_return x }\nTR_var y = TR_relu(f([1.0, 2.0]))", "TR_relu(f", "TR_relu(TR_Tensor"},
+	{messages.H6954, "TR_var t = TR_Tensor([16777217])", "16777217", "16777217.0"},
 	{messages.H6402, "TR_var x = TR_Tensor([3.0], TR_requires_grad: TR_false)\nTR_backward(TR_sum(x * 2.0))", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
 	{messages.H6405, "TR_var f = TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
 	{messages.H6430, "TR_var f = TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},

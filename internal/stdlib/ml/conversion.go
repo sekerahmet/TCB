@@ -2,6 +2,9 @@ package ml
 
 import (
 	"errors"
+	"strconv"
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -56,10 +59,20 @@ func toTensorOn(fn any, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor
 	})
 }
 
-// listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder.
+// listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder. Bütün
+// öğeleri tam sayı olan bir listede float32'de tam yazılamayan değer (|n| > 2²⁴) çalışma
+// hatasıdır (15.1'in ara kuralı: tam sayı tensörü bu sürümde yok, yuvarlama sessiz olurdu);
+// karışık liste ([1, 2.5]) ondalıktır ve yuvarlar (15.2).
 func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 	var data []float32
+	ints, inexact := true, -1
+	var inexactVal int64
 	sh, err := walkList(fn, l, func(n int) { data = make([]float32, 0, n) }, func(v interp.Value) error {
+		if n, integer := v.(*interp.IntVal); !integer {
+			ints = false
+		} else if inexact < 0 && !exactInFloat32(n.Val) {
+			inexact, inexactVal = len(data), n.Val
+		}
 		f, ok := interp.ToFloat(v)
 		if !ok {
 			return messages.New(messages.H6007, fn, interp.Shown(v), typeName(v))
@@ -70,7 +83,32 @@ func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if ints && inexact >= 0 {
+		rounded := strconv.FormatFloat(float64(data[inexact]), 'f', -1, 32)
+		return nil, nil, messages.New(messages.H6954, fn, positionText(inexact, sh), inexactVal, rounded)
+	}
 	return data, sh, nil
+}
+
+// exactInFloat32 n float32'de tam yazılabilir mi? 2²⁴'e kadar her tam sayı yazılır; üstünde
+// yalnız yuvarlanınca aynı kalanlar.
+func exactInFloat32(n int64) bool {
+	if n >= -1<<24 && n <= 1<<24 {
+		return true
+	}
+	f := float64(float32(n))
+	// 2⁶³'e yuvarlanan değer int64'e sığmaz; n ondan küçük olduğu için tam değildir.
+	return f < 1<<63 && f >= -(1<<63) && int64(f) == n
+}
+
+// positionText düz konumu iç içe listedeki indeks yazımına çevirir: [1][0].
+func positionText(flat int, sh []int) string {
+	idx := make([]string, len(sh))
+	for a := len(sh) - 1; a >= 0; a-- {
+		idx[a] = "[" + strconv.Itoa(flat%sh[a]) + "]"
+		flat /= sh[a]
+	}
+	return strings.Join(idx, "")
 }
 
 // listInts iç içe tam sayı listesini düz dizi ve şekle çevirir. Değerler doğrudan

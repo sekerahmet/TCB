@@ -1297,6 +1297,7 @@ const (
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
 	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok; bu nokta bu TR'nin biçiminde değil
 	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
+	H6954 Code = 6954 // {fn}: {index} konumundaki tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

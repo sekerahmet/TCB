@@ -1292,6 +1292,7 @@
 "H6951": { "param": ["fn", "name"] },
 "H6952": { "param": ["file"] },
 "H6953": { "param": ["file", "given"] },
+"H6954": { "param": ["fn", "index", "value", "rounded"] },
 "H7000": { "param": ["fn", "text", "given"] },
 "H7001": { "param": ["error"] },
 "H7003": { "param": ["fn", "path"] },

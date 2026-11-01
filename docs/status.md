@@ -573,6 +573,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.1
 
 - **Mevcut durum:** bütün tensörler float32; tam sayı ve mantık tensörü yok, argmax'in sonucu bir "tam sayılı işaret" taşıyor. 2²⁴'ün üstündeki kimlik bozuluyor: `TR_Tensor([16777217.0])` → 16777216. float64, `TR_AnyTensor` ve `.TR_narrow[E]()` yok [ölçüldü].
+- **Mevcut durum (ara kural):** bütün öğeleri tam sayı olan listede float32'de tam yazılamayan değer tensör kurmayı çalışma hatası yapıyor (H6954; ileti ondalık yazımı öneriyor) [test: TestIntListInexactInFloat32]. Tek tam sayı (`TR_Tensor(16777217)`) ve aralık bu kurala girmiyor. `TR_Int` tensörü gelince bu hata kalkar.
 - **Yapılacaklar:** öğe cinsli tip (`TR_Tensor[E]`), `TR_Int` ve `TR_Bool` tensörleri, float64, `TR_AnyTensor` ve daraltma; TR testi. Bedel [kanıtlı: DENETİM'in sayımı]: motorun 45 yönteminin 12–15'i ile 7 GPU çekirdek dosyası. Motor "int32" ve bayt mantıkla başlayabilir; "int64" varsayılanı gelene kadar bu satırda yazılır.
 - **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Tensor[E]` ayrıştırılıyor, `TR_Tensor`'a indirgeniyor; `TR_AnyTensor` henüz kod değil [ölçüldü: bulut 0.6a].
 

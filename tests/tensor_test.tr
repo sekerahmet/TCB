@@ -31,6 +31,19 @@ TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_assert_equal(16777216.0, TR_Tensor([16777217.0]).TR_tolist[0])
 }
 
+TR_test "15.1 ara kural: float32'de tam yazılamayan tam sayıdan tensör kurulmaz" {
+    # Tam sayı tensörü gelene kadar (15.2) tam sayı listesi float32 tensör kurar; sessiz yuvarlama hatadır.
+    TR_assert_equal("H6954", TR_error_code { TR_Tensor([16777217]) })
+    TR_assert_equal("H6954", TR_error_code { TR_Tensor([-16777217]) })
+    TR_assert_equal("H6954", TR_error_code { TR_Tensor([[1, 2], [3, 33554433]]) })
+    # 2²⁴ ve float32'de tam yazılan büyük sayılar kurulur.
+    TR_assert_equal([16777216.0, -16777216.0], TR_Tensor([16777216, -16777216]).TR_tolist)
+    TR_assert_equal([16777218.0, 33554432.0], TR_Tensor([16777218, 33554432]).TR_tolist)
+    # Ondalık yazım ve karışık liste ondalıktır, yuvarlar (15.2); iletinin önerisi budur.
+    TR_assert_equal([16777216.0], TR_Tensor([16777217.0]).TR_tolist)
+    TR_assert_equal([2.5, 16777216.0], TR_Tensor([2.5, 16777217]).TR_tolist)
+}
+
 TR_test "15.2 özellikler ve görünüm metotları" {
     TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
     TR_assert_equal([3, 2], a.TR_reshape([3, 2]).TR_shape)
