@@ -349,15 +349,17 @@ TR_test "3.7a JSON en çok 1000 kap iç içe açılır, içteki değer ne olursa
 
 TR_test "3.7a JSON değeri JSON olmayan değerle karşılaştırılmaz, işleçte açılır; ileti açan yazımı önerir" {
     TR_var j = TR_json_parse(`{"k": 3, "s": "xy", "a": [1, 2], "o": {}, "n": null}`)
-    # j["k"] == 3 hep yanlış olurdu: çalışma hatası, ileti TR_Int(j) == x'i önerir; önerilen yazım çalışır
-    TR_assert_equal("H2660", TR_error_code { j["k"] == 3 })
-    TR_assert_equal("H2660", TR_error_code { "xy" != j["s"] })
+    # j["k"] == 3 hep yanlış olurdu: tipi bilinen yerde denetim hatası (tests/negative/json_karsilastirma.tr),
+    # bilinmeyen yerde çalışma hatası; ileti TR_Int(j) == x'i önerir, önerilen yazım çalışır
+    TR_var bilinmeyen = [j["k"], j["o"], 1]
+    TR_assert_equal("H2660", TR_error_code { bilinmeyen[0] == 3 })
+    TR_assert_equal("H2661", TR_error_code { bilinmeyen[1] == {} })
     TR_assert(TR_Int(j["k"]) == 3)
     TR_assert(TR_String(j["s"]) == "xy")
-    TR_assert_equal("H2661", TR_error_code { j["o"] == {} })
     TR_assert(j["o"] == TR_JSON({}))
-    # Yoklukla ve JSON değeriyle karşılaştırma serbesttir; JSON null bir JSON değeridir (3.7a)
-    TR_assert(j["n"] != TR_none)
+    # JSON değeriyle karşılaştırma serbesttir; JSON null bir JSON değeridir, TR_none değildir (3.7a)
+    TR_assert(TR_Type(j["n"]) == TR_NoneType)
+    TR_assert(j.TR_get("yok") == TR_none)
     TR_assert(j["k"] == TR_JSON(3))
     # Öbür işleçler: önce tipiyle açılır
     TR_assert_equal("H2662", TR_error_code { j["k"] + 1 })
@@ -373,20 +375,18 @@ TR_test "3.7a JSON değeri JSON olmayan değerle karşılaştırılmaz, işleçt
 
 TR_test "3.7a kabın içinde, .TR_contains'te ve eşleme deseninde de JSON yalnız JSON'la karşılaştırılır" {
     TR_var j = TR_json_parse(`{"a": [1, 2]}`)
-    TR_assert_equal("H2705", TR_error_code { TR_var z = TR_List(j["a"]) == [1, 2] })
-    TR_assert_equal("H2705", TR_error_code { TR_var z = [j["a"][0]] == [1] })
-    TR_assert_equal("H2705", TR_error_code { TR_var z = TR_List(j["a"]).TR_contains(1) })
-    TR_assert_equal("H2705", TR_error_code {
-        TR_var z = TR_match j["a"][0] {
-            1 => "bir"
-            _ => "başka"
-        }
-    })
-    # İletinin önerileri: önce tipiyle açmak ya da öbür yanı JSON yapmak; yoklukla karşılaştırma serbest
+    # Tipi bilinen yerde denetim hatası (tests/negative/json_karsilastirma.tr), bilinmeyen yerde çalışma hatası
+    TR_var bilinmeyen = [TR_List(j["a"]), 1]
+    TR_assert_equal("H2705", TR_error_code { TR_var z = bilinmeyen[0] == [1, 2] })
+    # İletinin önerileri: önce tipiyle açmak ya da öbür yanı JSON yapmak; JSON yokluğu TR_JSON(TR_none)
     TR_assert([TR_Int(j["a"][0])] == [1])
     TR_assert(TR_List(j["a"]) == [TR_JSON(1), TR_JSON(2)])
     TR_assert(TR_List(j["a"]).TR_contains(TR_JSON(2)))
-    TR_assert([j["a"]] != [TR_none])
+    TR_assert(TR_not TR_List(j["a"]).TR_contains(TR_JSON(TR_none)))
+    TR_assert_equal("bir", TR_match j["a"][0] {
+        TR_JSON(1) => "bir"
+        _ => "başka"
+    })
 }
 
 TR_test "5.7 JSON dizisinde öğeler, nesnesinde anahtarlar dolaşılır; iki değişkenle anahtar ve değer" {

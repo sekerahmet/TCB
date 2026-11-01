@@ -95,8 +95,8 @@ func (c *Checker) exprText(n ast.Expression) (string, bool) {
 	return closeParens(line[r.Col-1:r.EndCol-1], line[r.EndCol-1:])
 }
 
-// closeParens ifadenin ağaçtaki aralığına (kapanan ')' ve ']' ağaçta tutulmaz) satırın devamından
-// eksik kapanan parantezleri ve köşeli parantezleri sırayla ekler; metin içindekiler sayılmaz.
+// closeParens ifadenin ağaçtaki aralığına (kapanan ')', ']' ve '}' ağaçta tutulmaz) satırın devamından
+// eksik kapanan parantezleri sırayla ekler; metin içindekiler sayılmaz.
 func closeParens(text, rest []rune) (string, bool) {
 	var open []rune // kapanmayı bekleyenler, en içteki sonda
 	quote := rune(0)
@@ -112,7 +112,9 @@ func closeParens(text, rest []rune) (string, bool) {
 			open = append(open, ')')
 		case r == '[':
 			open = append(open, ']')
-		case (r == ')' || r == ']') && len(open) > 0:
+		case r == '{':
+			open = append(open, '}')
+		case (r == ')' || r == ']' || r == '}') && len(open) > 0:
 			open = open[:len(open)-1]
 		}
 	}

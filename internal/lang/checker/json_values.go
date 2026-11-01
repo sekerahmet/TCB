@@ -104,3 +104,11 @@ func (c *Checker) jsonKind(t string) bool {
 	}
 	return true
 }
+
+// checkJSONIndexAssign TR_JSON değerine indeksle atamayı denetler (3.7a "Değişmez"): j["k"] = 2
+// çalışma anının hatasıdır (H2403); değiştirmek için önce açılır.
+func (c *Checker) checkJSONIndexAssign(s *ast.AssignStatement) {
+	if ix, ok := s.Target.(*ast.IndexExpression); ok && c.itemTypes[ix.Left] == typeJSON {
+		c.addErrorAt(s, messages.New(messages.H2403, c.typeArg(typeJSON)))
+	}
+}

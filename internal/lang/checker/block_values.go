@@ -144,10 +144,10 @@ func (c *Checker) noteBlockValue(s *ast.ExpressionStatement, t string) {
 // inferMatch eşle ifadesinin konusunu, desenlerini ve kollarını denetler; used inferIf'teki gibidir.
 func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
 	var b branchTypes
-	c.inferExpression(e.Subject)
+	subject := c.inferExpression(e.Subject)
 	for _, mc := range e.Cases {
 		for _, p := range mc.Patterns {
-			c.inferExpression(p)
+			c.checkJSONPatterns(e, subject, p, c.inferExpression(p)) // 3.7a (json_comparison.go)
 		}
 		if mc.Body != nil {
 			c.markBlockValue(mc.Body, used)

@@ -183,6 +183,9 @@ const (
 	H1124 Code = 1124 // {struct} yapısının `{field}` alanı {declared} tipindedir: ona {given} tipinde değer atanmaz (7.5)
 	H1125 Code = 1125 // {struct} kurulurken `{field}` alanına {given} verildi; alan {declared} tipindedir (7.2)
 	H1130 Code = 1130 // ; `{value}` isteğe bağlıdır ({given}): önce açın, {kind, select, int {bir varsayılanla: `{value} ?? 0`} float {bir varsayılanla: `{value} ?? 0.0`} string {bir varsayılanla: `{value} ?? ""`} list {bir varsayılanla: `{value} ?? []`} other {`??` ve bir varsayılanla ya da bir değişkene alıp onu önce `{#none}` ile karşılaştırarak} } (3.5)
+	H1131 Code = 1131 // {@JSON} değeri {other} tipinde bir değerle karşılaştırılıyor{kind, select, inner { (listede, sözlükte, içerme sınamasında ya da eşleme deseninde)} other {}}: JSON değeri yalnız JSON değerine eşit olur, sonuç hep aynı olurdu (3.7a, 4.5); {open, select, empty {} other {JSON'u tipiyle açın, `{open}`, ya da }}{wrap, select, empty {öbür yanı JSON değerine çevirin} other {öbür yanı JSON'a çevirin, `{wrap}`}}
+	H1132 Code = 1132 // {@JSON} değeri `{#none}` ile karşılaştırılıyor{kind, select, inner { (listede, içerme sınamasında ya da eşleme deseninde)} other {}}: {@JSON} isteğe bağlı değildir, sonuç hep aynı olurdu (3.7a, 3.5); {absent, select, empty {karşılaştırmadan önce açın} other {JSON yokluğu için `{absent}` yazın}}{missing, select, empty {} other {, eksik alan için `{missing}`}}
+	H1134 Code = 1134 // `{#Type}` {@JSON} değerinin türünü verir (yokluk, mantık değeri, sayı, metin, liste ya da sözlük), {@JSON|acc} hiç vermez; sonuç hep aynı olurdu (3.7a); {suggestion, select, empty {türlerden birini sınayın} other {türlerden birini sınayın: `{suggestion}`}}
 	H1135 Code = 1135 // {container} kabının öğeleri {elem} tipindedir: ona isteğe bağlı {given} tipinde değer yazılmaz (3.5){hint}
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}

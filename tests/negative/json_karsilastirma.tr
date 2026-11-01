@@ -1,0 +1,21 @@
+# TR 4
+# TEST 3.7a JSON değeri JSON olmayan değerle (H1131) ve TR_none'la (H1132) karşılaştırılmaz: üst düzeyde, kabın içinde, .TR_contains'te ve eşleme deseninde; TR_Type(j) == TR_JSON hep yanlıştır (H1134); JSON değiştirilemez (H2403)
+TR_var j = TR_json_parse(`{"k": 3, "s": "xy", "a": [1, 2], "o": {}, "n": null}`)
+TR_var a = j["k"] == 3 # ERROR H1131
+TR_var b = "xy" != j["s"] # ERROR H1131
+TR_var c = j["o"] == {} # ERROR H1131
+TR_var d = j["n"] != TR_none # ERROR H1132
+TR_var e = TR_List(j["a"]) == [1, 2] # ERROR H1131
+TR_var f = [j["a"][0]] == [1] # ERROR H1131
+TR_var g = TR_List(j["a"]).TR_contains(1) # ERROR H1131
+TR_var h = TR_List(j["a"]).TR_contains(TR_none) # ERROR H1132
+TR_var i = [j["a"]] != [TR_none] # ERROR H1132
+TR_var k = TR_match j["a"][0] {
+    1 => "bir" # ERROR H1131
+    TR_none => "yok" # ERROR H1132
+    _ => "başka"
+}
+TR_var m = TR_Type(j) == TR_JSON # ERROR H1134
+TR_var n = TR_Type(j["k"]) != TR_JSON # ERROR H1134
+j["k"] = 2 # ERROR H2403
+TR_print(a, b, c, d, e, f, g, h, i, k, m, n)

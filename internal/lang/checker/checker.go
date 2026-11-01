@@ -395,6 +395,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.requireBool(e.Right, right, messages.H2601)
 			return typeBool
 		case "==", "!=", "<", ">", "<=", ">=":
+			c.checkJSONComparison(e, left, right) // 3.7a (json_comparison.go)
 			return typeBool
 		case "??":
 			if left != typeNull && left != typeAny {
@@ -469,6 +470,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	}
 	if isMember {
 		c.checkMemberCall(e, objType, argTypes)
+		c.checkJSONContains(e, objType, argTypes) // 3.7a (json_comparison.go)
 	} else if k, _ := c.calledBuiltin(e); k == codes.FnAssert && len(argTypes) > 0 {
 		c.requireBool(e.Arguments[0], argTypes[0], messages.H2612) // 3.10, 12.3
 	}
@@ -519,5 +521,6 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
 		c.inferExpression(s.Target)
 		c.checkIndexAssign(s, valType) // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
+		c.checkJSONIndexAssign(s)      // TR_JSON değiştirilemez (3.7a, json_values.go)
 	}
 }
