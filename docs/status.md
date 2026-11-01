@@ -338,7 +338,8 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 ### 8.5
 
 - **Mevcut durum:** `TR_Message` ve `TR_error_code` çalışıyor (`H6903`); kodsuz hatada (düz metin, sayı, sözlük, durumlu tip değeri) `TR_error_code` koda dönmüyor, hatayı olduğu gibi yeniden fırlatıyor; eskiden hepsi H2441 veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestErrorCodeRethrowsACodelessError`, `tests/hatalar_ertele_test.tr`'nin 8.5 testi]. Yakalanmayan düz metin hata içte H2441 taşımayı sürdürüyor (`examples/tr/hatalar/12_yakalanmamis_firlat.tr` onu sınıyor).
-- **Yapılacaklar:** nedenler zincirinde dıştan içe ilk kod (8.2'nin `TR_cause`'u ile); programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Gemini Koşu 4, 6, 7).
+- **Mevcut durum (zincir):** `TR_error_code` hatanın kodunu, o yoksa nedenler zincirinde (`TR_cause`) dıştan içe ilk kodu veriyor; zincirde kod yoksa hata, nedeniyle birlikte yeniden fırlıyor; durdurma ve `TR_exit` geçiyor [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestErrorCodeFollowsTheCauseChain`, `tests/hatalar_ertele_test.tr`'nin 8.5 zincir testi: üç halka, kodlu dış, kodsuz zincir].
+- **Yapılacaklar:** programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Gemini Koşu 4, 6, 7).
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** işletim sisteminin hatası kendi koduna ve değerlerine (yol) çevrilir, sistemin metni değere girmez (8.5). Bugün dosya hatasının değerine Go'nun hata metni giriyor (internal/stdlib/ml/save.go:135, H2101) [kanıtlı: DENETİM]; Windows'ta bu metin İngilizce dil paketi yoksa sistemin dilindedir [kaynak: Go go1.24.0 syscall_windows.go; DENETİM kol-denetim-tur2-rapor-sonuc.md].
 
 ### 8.6
@@ -362,7 +363,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ### 9.4
 
-- **Mevcut durum:** kapsamın hatası, kapsam hatasız bittiyse ilk ertelenen işin hatası korunuyor; ertelenen işlerin öbür hataları çalışma sırasıyla `e.TR_suppressed`'de; eskiden yakalanan metinde birleşiyordu ("govde hatasi; error in defer as well: ...") [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 9.4 testi, `TestCaughtErrorTypesAreErrorValues`].
+- **Mevcut durum:** kapsamın hatası, kapsam hatasız bittiyse ilk ertelenen işin hatası korunuyor; ertelenen işlerin öbür hataları çalışma sırasıyla `e.TR_suppressed`'de; eskiden yakalanan metinde birleşiyordu ("govde hatasi; error in defer as well: ...") [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 9.4 testi (gövde hatası ve iki ertele hatası; hatasız kapsamda iki ertele hatası), `TestCaughtErrorTypesAreErrorValues`].
 - **Yapılacaklar:** yakalanmayan hatada bastırılanların kodu ve iletisiyle gösterilmesi (8.6); gösterilen metin bugün birleşik.
 
 ## 10. Eşzamanlılık

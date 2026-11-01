@@ -56,14 +56,35 @@ func TestErrorCode(t *testing.T) {
 }
 
 // Kural (8.5): düz metin hatanın kodu yoktur; kodsuz hatada TR_error_code koda dönmez, hatayı olduğu
-// gibi yeniden fırlatır (eskiden her değer H2441 veriyordu): metin, sayı, sözlük, durumlu tip değeri.
+// gibi yeniden fırlatır (eskiden her değer H2441 veriyordu): metin, durumlu tip değeri. Fırlatılamayan
+// değer (sayı, sözlük) kendi çalışma hatasıdır (H2911, 8.2).
 func TestErrorCodeRethrowsACodelessError(t *testing.T) {
-	for _, thrown := range []string{`"düz metin"`, "5", `{"kod": 5}`, "Renk.Kırmızı"} {
+	for thrown, want := range map[string]string{`"düz metin"`: "\ndüz metin\n", "Renk.Kırmızı": "\nRenk.Kırmızı\n", "5": "H2911\n\n", `{"kod": 5}`: "H2911\n\n"} {
 		source := "TR_enum Renk { Kırmızı }\nTR_var m = \"\"\nTR_try { TR_print(TR_error_code { TR_throw " + thrown + " }) } TR_catch h { m = TR_String(h) }\nTR_print(m)\n"
 		out, _, err := runTROut(t, source)
-		if err != nil || strings.Contains(out, "H2441") || strings.TrimSpace(out) == "" {
-			t.Errorf("TR_throw %s: hata yeniden fırlatılıp yakalanmalı; çıktı %q, hata %v", thrown, out, err)
+		if err != nil || out != strings.TrimPrefix(want, "\n") {
+			t.Errorf("TR_throw %s: çıktı %q, beklenen %q, hata %v", thrown, out, strings.TrimPrefix(want, "\n"), err)
 		}
+	}
+}
+
+// Kural (8.5): TR_error_code hatanın kodunu, o yoksa nedenler zincirinde (TR_cause) dıştan içe ilk
+// kodu verir; zincirde kod yoksa hata, nedeniyle birlikte yeniden fırlar. Eskiden kodsuz bir hatanın
+// nedenine bakılmıyordu.
+func TestErrorCodeFollowsTheCauseChain(t *testing.T) {
+	out, _, err := runTROut(t, `
+		TR_func zincir(iç: TR_Bool) {
+			TR_try {
+				TR_try { TR_if iç { TR_throw TR_Message("H6903", -1) } TR_else { TR_throw "iç" } } TR_catch e { TR_throw TR_Error("orta", TR_cause: e) }
+			} TR_catch f {
+				TR_throw TR_Error("dış", TR_cause: f)
+			}
+		}
+		TR_print(TR_error_code { zincir(TR_true) })
+		TR_try { TR_print(TR_error_code { zincir(TR_false) }) } TR_catch h { TR_print(h, h.TR_cause, h.TR_cause.TR_cause) }
+	`)
+	if want := "H6903\ndış orta iç\n"; err != nil || out != want {
+		t.Errorf("çıktı %q, beklenen %q, hata %v", out, want, err)
 	}
 }
 

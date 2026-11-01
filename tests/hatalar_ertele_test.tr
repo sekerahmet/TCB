@@ -177,6 +177,16 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
     }
     TR_try { temizlik() } TR_catch h { m = TR_String(h) }
     TR_assert_equal(["gövde", "ikinci temizlik"], iz)
+    # Kapsam hatasız bittiyse ilk ertelenen işin hatası fırlar, sonrakiler onun bastırılanlarındadır.
+    TR_func iki_ertele_hatası() {
+        TR_defer { TR_throw "ikinci" }
+        TR_defer { TR_throw TR_Message("H6903", -1) }
+    }
+    TR_try { iki_ertele_hatası() } TR_catch h {
+        TR_assert_equal("H6903", h.TR_code)
+        TR_assert_equal(1, h.TR_suppressed.TR_length)
+        TR_assert_equal("ikinci", TR_String(h.TR_suppressed[0]))
+    }
 }
 
 TR_test "9.3 ertelenen blok adları kapsam biterkenki değerleriyle okur, kayıt anındakilerle değil" {
@@ -213,6 +223,30 @@ TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi 
     TR_assert(yakalanan.TR_contains("-1"), yakalanan)
     TR_try { TR_Message("H6903") } TR_catch h { yakalanan = TR_String(h) }
     TR_assert(yakalanan.TR_contains("H6903"), yakalanan)
+}
+
+TR_test "8.5 hata_kodu hatanın kodunu, yoksa nedenler zincirinde dıştan içe ilk kodu verir; zincirde kod yoksa hatayı yeniden fırlatır" {
+    # Üç halka: dıştaki ve ortadaki kodsuz, içteki iletili.
+    TR_func üç_halka() {
+        TR_try {
+            TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_throw TR_Error("orta", TR_cause: e) }
+        } TR_catch f {
+            TR_throw TR_Error("dış", TR_cause: f)
+        }
+    }
+    TR_assert_equal("H6903", TR_error_code { üç_halka() })
+    # Dıştaki kodluysa onun kodu.
+    TR_func kodlu_dış() {
+        TR_try { TR_throw TR_Message("H6903", -1) } TR_catch e { TR_throw TR_Error(TR_Message("H6900", 10, 4), TR_cause: e) }
+    }
+    TR_assert_equal("H6900", TR_error_code { kodlu_dış() })
+    # Kodsuz zincir: hata olduğu gibi, nedeniyle yeniden fırlar.
+    TR_func kodsuz() {
+        TR_try { TR_throw "iç" } TR_catch e { TR_throw TR_Error("dış", TR_cause: e) }
+    }
+    TR_var yeniden = ""
+    TR_try { TR_error_code { kodsuz() } } TR_catch h { yeniden = TR_String(h) + "/" + TR_String(h.TR_cause) }
+    TR_assert_equal("dış/iç", yeniden)
 }
 
 TR_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl nedenin, modülün denetim hatasında ilk tanının kodu" {
