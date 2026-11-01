@@ -19,6 +19,9 @@ TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı o
     TR_assert(TR_max([9007199254740993, 9007199254740992]) != 9007199254740992)
     TR_assert_equal(TR_Int, TR_Type(TR_max(9223372036854775807, 1)))
     TR_assert_equal(-7, TR_min(3, -7, 0.5))
+    # -0.0 0.0'dan küçük sayılır (13.10'un sıralama sırası), listede de değerlerde de, sıra fark etmez.
+    TR_assert_equal("0.0 0.0 0.0", "\(TR_max([-0.0, 0.0])) \(TR_max([0.0, -0.0])) \(TR_max(-0.0, 0.0))")
+    TR_assert_equal("-0.0 -0.0 -0.0", "\(TR_min([0.0, -0.0])) \(TR_min([-0.0, 0.0])) \(TR_min(0.0, -0.0))")
     TR_assert_equal(TR_none, TR_max([]))
     TR_assert_equal("H2486", TR_error_code { TR_max([1, "a", 5]) })
     TR_assert_equal("H2423", TR_error_code { TR_min("abc") })

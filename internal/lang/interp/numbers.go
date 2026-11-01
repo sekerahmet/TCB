@@ -169,6 +169,9 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 			continue
 		}
 		c, _ := compareNumbers(el, picked)
+		if c == 0 {
+			c = zeroSignOrder(el, picked) // -0.0 0.0'dan küçük sayılır (13.1, 13.10)
+		}
 		if (upper && c > 0) || (!upper && c < 0) {
 			picked = el
 		}
@@ -223,4 +226,21 @@ func SliceBounds(r *RangeVal, n int) (begin, last int) {
 		begin = last
 	}
 	return begin, last
+}
+
+// zeroSignOrder eşit iki sayının işarete göre sırasıdır: ikisi de sıfırsa -0.0 0.0'dan küçüktür
+// (13.10'un sıralama sırası; TR_max(-0.0, 0.0) 0.0, TR_min(0.0, -0.0) -0.0). Tam sayı sıfırı artı
+// sayılır. Öbür eşitliklerde 0.
+func zeroSignOrder(a, b Value) int {
+	neg := func(v Value) bool {
+		f, ok := v.(*FloatVal)
+		return ok && f.Val == 0 && math.Signbit(f.Val)
+	}
+	switch na, nb := neg(a), neg(b); {
+	case na && !nb:
+		return -1
+	case nb && !na:
+		return 1
+	}
+	return 0
 }
