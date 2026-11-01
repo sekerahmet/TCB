@@ -144,8 +144,13 @@ TR_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca ter
 TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi olduğu gibi fırlatır; hata_kodu kodu verir" {
     TR_assert_equal("H6903", TR_error_code { TR_throw TR_Message("H6903", -1) })
     TR_assert_equal("H6900", TR_error_code { TR_assert(TR_false, TR_Message("H6900", 10, 4)) })
-    TR_assert_equal("H2441", TR_error_code { TR_throw "düz metin" })
     TR_assert_equal(TR_none, TR_error_code { 1 + 1 })
+    # Düz metin hatanın kodu yoktur: hata_kodu koda dönmez, hatayı olduğu gibi yeniden fırlatır.
+    TR_var yeniden = ""
+    TR_try { TR_error_code { TR_throw "düz metin" } } TR_catch h { yeniden = h }
+    TR_assert_equal("düz metin", yeniden)
+    TR_try { TR_error_code { TR_throw 5 } } TR_catch h { yeniden = h }
+    TR_assert_equal("5", yeniden)
     TR_var yakalanan = ""
     TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { yakalanan = h }
     TR_assert(yakalanan.TR_contains("-1"), yakalanan)

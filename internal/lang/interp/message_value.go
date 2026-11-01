@@ -70,7 +70,8 @@ func (v *VM) registerMessageBuiltins() {
 	}})
 
 	// hata_kodu(f): f'yi çalıştırır; hatanın en içteki nedeninin kodunu (Metin) verir, hata
-	// yoksa yok.
+	// yoksa yok. Kodsuz hata (düz metin, durumlu tip değeri ya da başka bir değerle TR_throw; içte
+	// H2441 taşınır) koda dönmez, olduğu gibi yeniden fırlatılır (8.5): düz metin hatanın kodu yoktur.
 	v.RegisterNoNamed(codes.FnErrorCode, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, ArgCountError(codes.FnErrorCode, 1, len(args))
@@ -79,7 +80,7 @@ func (v *VM) registerMessageBuiltins() {
 		if err == nil {
 			return Null, nil
 		}
-		if coded, ok := messages.Root(err); ok {
+		if coded, ok := messages.Root(err); ok && coded.Code != messages.H2441 {
 			return &StringVal{Val: coded.Code.String()}, nil
 		}
 		return nil, err

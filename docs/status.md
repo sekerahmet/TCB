@@ -329,9 +329,8 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 
 ### 8.5
 
-- **Mevcut durum:** `TR_Message` ve `TR_error_code` çalışıyor (`H6903`); düz metin hata da kodlu: `TR_error_code { TR_throw "x" }` → H2441 [ölçüldü: DENETİM].
-- **Yapılacaklar:** düz metin hatanın kodu `TR_none`; nedenler zincirinde dıştan içe ilk kod.
-- **Gemini Koşu 7 (2026-10-29), uygulanacak:** kodsuz hatada yeniden fırlatma (bugün düz metin, sayı, sözlük ve durumlu tip değeri hep H2441 kodunu veriyor, `TR_none` ya da yeniden fırlatma yok) [ölçüldü: main `85a19c36`, `TR_error_code { TR_throw ... }` beş çeşit değerle]. Programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Koşu 4, 6, 7).
+- **Mevcut durum:** `TR_Message` ve `TR_error_code` çalışıyor (`H6903`); kodsuz hatada (düz metin, sayı, sözlük, durumlu tip değeri) `TR_error_code` koda dönmüyor, hatayı olduğu gibi yeniden fırlatıyor; eskiden hepsi H2441 veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestErrorCodeRethrowsACodelessError`, `tests/hatalar_ertele_test.tr`'nin 8.5 testi]. Yakalanmayan düz metin hata içte H2441 taşımayı sürdürüyor (`examples/tr/hatalar/12_yakalanmamis_firlat.tr` onu sınıyor).
+- **Yapılacaklar:** nedenler zincirinde dıştan içe ilk kod (8.2'nin `TR_cause`'u ile); programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Gemini Koşu 4, 6, 7).
 
 ### 8.6
 

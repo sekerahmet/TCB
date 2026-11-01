@@ -45,14 +45,25 @@ func TestErrorCode(t *testing.T) {
 		TR_print(TR_error_code { TR_throw TR_Message("H6903", -1) })
 		TR_print(TR_error_code { TR_assert(TR_false, TR_Message("H6900", 10, 4)) })
 		TR_print(TR_error_code { 1 + 1 })
-		TR_print(TR_error_code { TR_throw "metin" } == "H2441")
 		TR_print(TR_error_code { TR_throw TR_Message("H6903", -1) } == "H6903")
 	`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "H6903\nH6900\nnone\ntrue\ntrue\n"; out != want {
+	if want := "H6903\nH6900\nnone\ntrue\n"; out != want {
 		t.Errorf("çıktı %q, %q bekleniyordu", out, want)
+	}
+}
+
+// Kural (8.5): düz metin hatanın kodu yoktur; kodsuz hatada TR_error_code koda dönmez, hatayı olduğu
+// gibi yeniden fırlatır (eskiden her değer H2441 veriyordu): metin, sayı, sözlük, durumlu tip değeri.
+func TestErrorCodeRethrowsACodelessError(t *testing.T) {
+	for _, thrown := range []string{`"düz metin"`, "5", `{"kod": 5}`, "Renk.Kırmızı"} {
+		source := "TR_enum Renk { Kırmızı }\nTR_var m = \"\"\nTR_try { TR_print(TR_error_code { TR_throw " + thrown + " }) } TR_catch h { m = h }\nTR_print(m)\n"
+		out, _, err := runTROut(t, source)
+		if err != nil || strings.Contains(out, "H2441") || strings.TrimSpace(out) == "" {
+			t.Errorf("TR_throw %s: hata yeniden fırlatılıp yakalanmalı; çıktı %q, hata %v", thrown, out, err)
+		}
 	}
 }
 
