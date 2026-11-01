@@ -209,3 +209,23 @@ func TestSafetensorsPythonRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+// Kural (15.46, 15.55): TR biçimi kodu olmayan türü (nicemlenmiş Int8, Int4) float32 koduyla
+// yazmaz, açık hata verir (H6959); hiçbir girdi yazılmadan durur. Nicemlenmiş tensör TR'den
+// kurulamadığı için yazıcı türle doğrudan sınanır.
+func TestTensorFileRejectsTypeWithoutCode(t *testing.T) {
+	for _, dt := range []tensor.DType{tensor.Int8, tensor.Int4} {
+		var b bytes.Buffer
+		err := writeEntries(&b, []fileEntry{{ad: "q", shape: []int{2}, dtype: dt, data: []float32{1, 2}}})
+		if !messages.Has(err, messages.H6959) {
+			t.Fatalf("%v: %v, beklenen H6959", dt, err)
+		}
+	}
+	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16} {
+		if code, ok := dtypeCode(dt); !ok {
+			t.Fatalf("%v kodu yok", dt)
+		} else if back, ok := dtypeFromCode(code); !ok || back != dt {
+			t.Fatalf("%v kodu %d geri %v", dt, code, back)
+		}
+	}
+}

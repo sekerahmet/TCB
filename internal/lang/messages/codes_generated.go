@@ -1302,6 +1302,7 @@ const (
 	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa değeri türevsiz yazın: `t[i] = {#no_grad}(d)`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
 	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın
 	H6958 Code = 6958 // bileşik atamada ({op}=) sonucun şekli {result}, hedefinki {target}: yayın yalnız sağ taraftadır, hedef genişlemez. Hedefi genişletmek için adı yeni bir tensöre bağlayın: `t = t {op} u`
+	H6959 Code = 6959 // TR tensör dosyası {name|q} tensörünün türünü ({dtype}) saklayamıyor: bu sürümde yalnız float32, bf16 ve fp16 yazılır
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

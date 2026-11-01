@@ -45,15 +45,19 @@ const (
 	maxDims      = 32
 )
 
-// dtypeCode çekirdek türünün dosyadaki kodu.
-func dtypeCode(dt tensor.DType) byte {
+// dtypeCode çekirdek türünün dosyadaki kodu; kodu olmayan türde (nicemlenmiş Int8, Int4) ok
+// yanlıştır: o tür float32 koduyla yazılsaydı dosya sessizce yanlış olurdu (15.55: her nicemli
+// hassasiyetin kendi tür kodu vardır).
+func dtypeCode(dt tensor.DType) (byte, bool) {
 	switch dt {
+	case tensor.Float32:
+		return dtypeFloat32, true
 	case tensor.BFloat16:
-		return dtypeBF16
+		return dtypeBF16, true
 	case tensor.Float16:
-		return dtypeFP16
+		return dtypeFP16, true
 	}
-	return dtypeFloat32
+	return 0, false
 }
 
 // dtypeFromCode dosyadaki tür kodunu çekirdek türüne çevirir.
@@ -205,10 +209,14 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 	case len(shape) > maxDims:
 		return messages.New(messages.H6620, ad, maxDims, tensor.ShapeText(shape))
 	}
+	code, ok := dtypeCode(dtype)
+	if !ok {
+		return messages.New(messages.H6959, ad, dtype.String())
+	}
 	y.remaining--
 	y.u32(uint32(len(ad)))
 	y.write([]byte(ad))
-	y.write([]byte{dtypeCode(dtype), byte(len(shape))})
+	y.write([]byte{code, byte(len(shape))})
 	for _, d := range shape {
 		y.u64(uint64(d))
 	}
