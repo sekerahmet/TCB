@@ -39,19 +39,21 @@ Faz 0'ın tipli yazıma göçü, D1'in ilk dilimi ve Gemini'nin Faz 1 işinden s
 
 Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [hesap: geometrik ortalama]; en büyük fark metin (2,9) ve fonksiyon çağrısı (2,3). Aynı makinede 30 dakika önceki koşu (`b0b4c579`) 0,7–2,9 arası [ölçüldü: `cpu-temel/20261101181506.log`].
 
-**Rust ile** (aynı makine türü, başka bir örnek; rustc 1.99.1 `-C opt-level=3`, `rs/compare.rs`; 5 tekrarın en iyisi; `5cc01e96`; dört sürümün sonuç değerleri aynı) [ölçüldü: `dil-kiyasi/20261101190057.log`]:
+**Rust ile** (aynı makine türü, başka bir örnek; rustc 1.99.1 `-C opt-level=3`, `rs/compare.rs`; 5 tekrarın en iyisi; `2ec818a2`; dört sürümün sonuç değerleri aynı; Go ve Rust süreyi mikrosaniye çözünürlükte yazar) [ölçüldü: `dil-kiyasi/20261101191238.log`]:
 
-| Test | TR | Python | Go | Rust |
-| :-- | --: | --: | --: | --: |
-| `dongu` | 377 ms | 251 | 2 | 0 |
-| `fib` | 101 | 39 | 1 | 0 |
-| `sirala` | 166 | 221 | 38 | 13 |
-| `metin` | 117 | 42 | 12 | 12 |
-| `sozluk` | 368 | 185 | 106 | 122 |
-| `matris_dongu` | 415 | 165 | 3 | 3 |
-| `matris_yerlesik` | 6 | 20 (NumPy) | 292 | 122 |
+| Test | TR | Python | Go | Rust | TR/Rust |
+| :-- | --: | --: | --: | --: | --: |
+| `dongu` | 378 ms | 252 | 1,14 | 2,35 | 161 |
+| `fib` | 100 | 39 | 1,38 | 0,90 | 111 |
+| `sirala` | 172 | 223 | 39,7 | 13,0 | 13 |
+| `metin` | 118 | 43 | 11,6 | 12,4 | 9,5 |
+| `sozluk` | 370 | 184 | 112 | 124 | 3,0 |
+| `matris_dongu` | 413 | 165 | 2,97 | 3,45 | 120 |
+| `matris_yerlesik` | 5 | 8 (NumPy) | 321 | 125 | 0,04 |
 
-Bu örnekte bütün diller yukarıdaki koşudan yavaş; TR/Python oranları aynı aralıkta (0,8–2,8). Rust ve Go sıkı döngüde ve özyinelemede milisaniyenin altında; derlenmiş dille yorumlanan dil arasındaki fark bu iki testte iki-üç basamaktır. `matris_yerlesik`'te Go ve Rust düz üçlü döngüdür, TR ve NumPy hazır çekirdek: bu satır dili değil yerleşiği karşılaştırır.
+Bu örnekte TR ve Python yukarıdaki koşudan yavaş; ilk altı testte TR/Python oranları 0,8–2,7. Saf hesapta (döngü, çağrı, indeksleme) TR derlenmiş dillerden iki basamak yavaştır (111–161 kat [hesap]); iş bir yerleşiğe düşünce (sözlük, sıralama, metin) fark 3–13 kata iner. `matris_yerlesik`'te Go ve Rust düz üçlü döngüdür, TR ve NumPy hazır çekirdek: bu satır dili değil yerleşiği karşılaştırır.
+
+Rust'ın ilk iki koşusu `dongu` ve `fib`'de 0 ms verdi: LLVM sabit ya da bilinmeyen sınırlı toplamı n(n−1)/2'ye indiriyor, tam milisaniye 1 ms'nin altını gizliyordu. Rust sürümü her adımı `black_box`'tan geçirir, Go ve Rust küsuratlı milisaniye yazar (`d220e814`, `2ec818a2`; DENETİM'in okumasından).
 
 **Karakter modeli, CPU** (aynı makine ve koşu, PyTorch 2.14.1; ikisinin kaybı 300 adımda 2,21):
 
