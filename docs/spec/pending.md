@@ -41,7 +41,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Ara
 
-- **11.8'in örneği `m.nokta.x = 1` (2026-11-01, D1):** `nokta` bir kodun adı (`TR_mem_checkpoint`); status'ta aynı örnek `TestReviewedSectionsWriteIdentities`'i düşürdü. Öneri: `m.yer.x = 1`. D1 birleşince düzeltilir.
+- **11.8'in örneği `m.nokta.x = 1` (2026-11-01, D1):** `nokta` bir kodun adı (`TR_mem_checkpoint`); status'ta aynı örnek `TestReviewedSectionsWriteIdentities`'i düşürdü. **Düzeltildi** (2026-11-01, D1 birleştikten sonra): `m.yer.x = 1`.
 
 ## Olağan
 
