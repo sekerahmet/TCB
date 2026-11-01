@@ -14,7 +14,7 @@ const pointStruct = "TR_struct Nokta {\n    x: TR_Float\n    ad: TR_String = \"\
 func TestFieldAssignType(t *testing.T) {
 	singleError(t, pointStruct+"TR_var p = Nokta(1.0)\np.x = \"b\"", messages.H1124, 6, "`x`", "TR_Float", "TR_String")
 	singleError(t, pointStruct+"TR_func f(p: Nokta) {\n    p.ad = TR_true\n}", messages.H1124, 6, "`ad`", "TR_Bool")
-	noErrors(t, pointStruct+"TR_var p = Nokta(1.0)\np.x = 2\np.x += 1\np.ad = \"a\"\nTR_var j = TR_json_parse(\"{}\")\nj.x = \"b\"\nTR_print(p, j)")
+	noErrors(t, pointStruct+"TR_var p = Nokta(1.0)\np.x = 2\np.x += 1\np.ad = \"a\"\nTR_var j = "+unknownValue+"\nj.x = \"b\"\nTR_print(p, j)")
 }
 
 // Kural (7.2, 3.13): yapı kurulurken alana verilen değer (konumlu: tanım sırasıyla; adlı: alanın adıyla)

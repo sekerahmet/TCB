@@ -29,11 +29,11 @@ func TestMemberArgCount(t *testing.T) {
 			t.Errorf("ileti %s kullanımını kimlikle vermeli: %s", tc.want, text)
 		}
 	}
-	// Doğru sayı, tipi bilinmeyen alıcı (TR_JSON denetleyicide tanınmıyor), isteğe bağlı alıcı
+	// Doğru sayı, tipi bilinmeyen alıcı (unknownValue), isteğe bağlı alıcı
 	// ve henüz sayısı sınanmayan alıcı tipi (tensör) hatasızdır.
 	for _, source := range []string{
 		"TR_var l = [3, 1, 2]\nTR_print(l.TR_sort(), l.TR_join(), [\"a\"].TR_join(\",\"))",
-		`TR_print(TR_json_parse("[1]").TR_sort(1, 2))`,
+		`TR_print(` + unknownValue + `.TR_sort(1, 2))`,
 		"TR_var l: TR_List[TR_Int]? = TR_none\nTR_print(l?.TR_sort(1, 2))",
 	} {
 		noErrors(t, source)
@@ -88,7 +88,7 @@ func TestPropertyCall(t *testing.T) {
 	}
 	for _, source := range []string{
 		"TR_print([1].TR_length, \"ab\".TR_length)",
-		`TR_print(TR_json_parse("[1]").TR_length())`,
+		`TR_print(` + unknownValue + `.TR_length())`,
 		"TR_func f() -> TR_Int {\n    TR_return 1\n}\nTR_print([f].TR_first())",
 	} {
 		noErrors(t, source)
@@ -129,5 +129,5 @@ func TestMemberArgType(t *testing.T) {
 func TestAppendElementType(t *testing.T) {
 	singleError(t, "TR_var l = [1]\nl.TR_append(\"a\")", messages.H1123, 2, "TR_List[TR_Int]", "TR_String")
 	singleError(t, "TR_var l: TR_List[TR_String] = []\nl.TR_append(\"a\", 2)", messages.H1123, 2, "2.", "TR_Int")
-	noErrors(t, "TR_var f: TR_List[TR_Float] = []\nf.TR_append(1, 2.5)\nTR_var l = [[1]]\nl.TR_append([2])\nTR_var j = TR_json_parse(\"[1]\")\nj.TR_append(\"a\")\nTR_print(f, l, j)")
+	noErrors(t, "TR_var f: TR_List[TR_Float] = []\nf.TR_append(1, 2.5)\nTR_var l = [[1]]\nl.TR_append([2])\nTR_var j = "+unknownValue+"\nj.TR_append(\"a\")\nTR_print(f, l, j)")
 }

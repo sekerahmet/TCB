@@ -21,7 +21,7 @@ func TestMemberValueTypes(t *testing.T) {
 		"TR_var l: TR_List[TR_String] = []\nTR_var v = l.TR_filter((s) => s != \"\")": listType(typeString),
 		"TR_var v = [1, 2].TR_get(0)":                                                 optionalType(typeInt),
 		"TR_var v = [\"b\", \"a\"].TR_unique()":                                       listType(typeString),
-		"TR_var v = TR_json_parse(\"[1]\").TR_first":                                  typeAny, // alıcının tipi bilinmiyor
+		"TR_var v = " + unknownValue + ".TR_first":                                    typeAny, // alıcının tipi bilinmiyor
 		"TR_var v = [3, 1].TR_sort":                                                   typeAny, // çağrısız metot: fonksiyon değeri
 	})
 }
