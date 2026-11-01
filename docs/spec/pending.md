@@ -19,6 +19,7 @@ Uygulama sırasında verilip aynı gün dil tanımına yazılan kararlar. DENET�
 Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamıştı: onaltılık hash sabiti sözdizimi hatasıydı ve iletisi ".0 ekle" diyordu; hash çarpımının taşma iletisi ondalık öneriyordu; yapı dolaşılamıyordu; sözlük üreteci "expected a value" veriyordu [ölçüldü: 2026-10-28]. Bugünkü durumları status'ta.
 
 - **13.8, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** yapının JSON'u iki yönlü. **Tur 1 (2026-11-01, Gemini `TUR1_RAPORU.md`, DENETİM `kol-denetim-tur1-rapor-sonuc.md`): değiştir; yazılacak.**
+- **3.7a, geçici (2026-11-01, 4a'nın üçüncü diliminin yönergesi, `f85743e4`):** "Açmak"a `TR_Dict(j)` → `TR_Dict[TR_String, TR_JSON]`; "Kurmak"ta değişmez olmayan her liste ve sözlük (değişken, alan, çağrı) denetim hatası; `TR_JSON(x)`'e yalnız JSON türleri (`4b5053f8`). Kritik, çünkü H2403'ün önerisi ve 4a3'ün 2c adımı buna bağlıydı ve dil tanımı söylemiyordu. DENETİM'in yönerge incelemesinden geçti (`kol-denetim-4a-dilim3-yonerge-sonuc.md` 3 ve 4); Gemini'nin araştırmasından geçmedi.
 
 ## Ara
 
