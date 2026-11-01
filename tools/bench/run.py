@@ -47,7 +47,7 @@ def run(command, repeat):
         if r.returncode != 0 or not lines:
             return None, (r.stderr.strip().splitlines() or ["error"])[-1]
         parts = lines[-1].split()
-        ms = int(parts[-1])
+        ms = float(parts[-1])  # Go and Rust write fractional ms (microsecond resolution)
         best = ms if best is None else min(best, ms)
         value = parts[1]
     return best, value

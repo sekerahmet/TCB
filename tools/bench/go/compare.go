@@ -14,7 +14,11 @@ import (
 	"time"
 )
 
-func ms(t time.Time) int64 { return time.Since(t).Milliseconds() }
+// ms geçen süreyi mikrosaniye çözünürlükte, milisaniye olarak yazar: derlenmiş sürümlerde süre çoğu kez 1 ms'nin
+// altındadır ve tam sayıya kesilince 0 görünürdü.
+func ms(t time.Time) string {
+	return strconv.FormatFloat(float64(time.Since(t).Microseconds())/1000, 'f', 3, 64)
+}
 
 func fib(n int) int {
 	if n < 2 {

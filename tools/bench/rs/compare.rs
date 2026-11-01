@@ -5,10 +5,12 @@
 // Layer: tools (tools); kullanıcıya gitmez.
 use std::collections::HashMap;
 use std::env;
+use std::hint::black_box;
 use std::time::Instant;
 
-fn ms(t: Instant) -> u128 {
-    t.elapsed().as_millis()
+// Geçen süre mikrosaniye çözünürlükte, milisaniye olarak (Go sürümü gibi): derlenmiş sürümde süre çoğu kez 1 ms'nin altında.
+fn ms(t: Instant) -> String {
+    format!("{:.3}", t.elapsed().as_micros() as f64 / 1000.0)
 }
 
 fn fib(n: i64) -> i64 {
@@ -25,14 +27,16 @@ fn main() {
         "dongu" => {
             let t = Instant::now();
             let mut toplam: i64 = 0;
-            for i in 0..3_000_000i64 {
+            // Sınır black_box'tan geçer: derleyici sabit sınırlı toplamı kapalı biçime indirip döngüyü atlamasın.
+            for i in 0..black_box(3_000_000i64) {
                 toplam += i;
             }
-            println!("dongu {} {}", toplam, ms(t));
+            println!("dongu {} {}", black_box(toplam), ms(t));
         }
         "fib" => {
             let t = Instant::now();
-            println!("fib {} {}", fib(27), ms(t));
+            let f = fib(black_box(27));
+            println!("fib {} {}", f, ms(t));
         }
         "sirala" => {
             let t = Instant::now();
@@ -116,7 +120,7 @@ fn main() {
             let t = Instant::now();
             let c = mul(&a, &b);
             let d = mul(&c, &b);
-            std::hint::black_box(d);
+            black_box(d);
             println!("matris_yerlesik - {}", ms(t));
         }
         _ => {
