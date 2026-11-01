@@ -51,9 +51,9 @@ Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,75 kat yavaş [
 | `matris_dongu` | 413 | 165 | 2,97 | 3,45 | 120 |
 | `matris_yerlesik` | 5 | 8 (NumPy) | 321 | 125 | 0,04 |
 
-Bu örnekte TR ve Python yukarıdaki koşudan yavaş; ilk altı testte TR/Python oranları 0,8–2,7. Saf hesapta (döngü, çağrı, indeksleme) TR derlenmiş dillerden iki basamak yavaştır (111–161 kat [hesap]); iş bir yerleşiğe düşünce (sözlük, sıralama, metin) fark 3–13 kata iner. `matris_yerlesik`'te Go ve Rust düz üçlü döngüdür, TR ve NumPy hazır çekirdek: bu satır dili değil yerleşiği karşılaştırır.
+Bu örnekte TR ve Python yukarıdaki koşudan yavaş; ilk altı testte TR/Python oranları 0,8–2,7. Saf hesapta (döngü, çağrı, indeksleme) TR derlenmiş dillerden iki basamak yavaştır: Rust'a göre 111–161, Go'ya göre 73–333 kat [hesap]; iş bir yerleşiğe düşünce (sözlük, sıralama, metin) fark 3–13 kata iner. `matris_yerlesik`'te Go ve Rust düz üçlü döngüdür, TR ve NumPy hazır çekirdek: bu satır dili değil yerleşiği karşılaştırır.
 
-Rust'ın ilk iki koşusu `dongu` ve `fib`'de 0 ms verdi: LLVM sabit ya da bilinmeyen sınırlı toplamı n(n−1)/2'ye indiriyor, tam milisaniye 1 ms'nin altını gizliyordu. Rust sürümü her adımı `black_box`'tan geçirir, Go ve Rust küsuratlı milisaniye yazar (`d220e814`, `2ec818a2`; DENETİM'in okumasından).
+Rust'ın ilk iki koşusu `dongu` ve `fib`'de 0 ms verdi: LLVM sabit ya da bilinmeyen sınırlı toplamı n(n−1)/2'ye indiriyor, tam milisaniye 1 ms'nin altını gizliyordu. Rust sürümü her adımı `black_box`'tan geçirir, Go ve Rust küsuratlı milisaniye yazar (`d220e814`, `2ec818a2`; DENETİM'in okumasından). Her adımdaki `black_box` döngünün vektörlenmesini de engeller: `dongu`'da Rust tur başına 0,78 ns, Go 0,38 ns [hesap]; Rust'ın `dongu` değeri gerçeğinden yavaştır ve TR/Rust 161 bir alt sınırdır. `fib`'de `black_box` yalnız argümandadır, 0,90 ms gerçek değerdir.
 
 **Karakter modeli, CPU** (aynı makine ve koşu, PyTorch 2.14.1; ikisinin kaybı 300 adımda 2,21):
 
