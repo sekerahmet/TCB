@@ -279,7 +279,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Sıra 15.18'in `TR_max`'ı gibidir: eşitlerde ilk, −0.0 0.0'dan küçük (`TR_argmax(TR_Tensor([-0.0, 0.0]))` 1), NaN varsa ilk NaN'ın indeksi (`TR_argmin` için de: NaN indirgemede yayılır, 15.18). Bu yüzden NaN'lı tensörde `TR_argmin(t)` ile `TR_argsort(t)[0]` ayrılır.
 - İndirgenen öğe sayısı sıfırsa çalışma hatası (15.18'in `TR_max`'ı gibi).
 - `TR_Bool` tensörde denetim hatası.
-- *Test:* TR testi; eksensiz biçim ve `TR_argmin` uygulanınca TR testi.
+- *Test:* TR testi; `TR_argmin` uygulanınca TR testi.
 
 **15.20** `TR_cumsum(t, TR_dim: k)` her konumda o konuma kadarki (kendisi dahil) öğelerin toplamını verir; şekil korunur. **`TR_dim:` zorunludur.**
 - Cins ve hassasiyet 15.18'in `TR_sum`'ı gibidir: `TR_Float` aynı hassasiyet (16 bitlik girdi float32'de toplanır), `TR_Int` ve `TR_Bool` "int64", taşma çalışma hatası.
@@ -316,7 +316,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - *Test:* Go: `TestSumParallelPaths`, `TestSumAllParallel`, `TestParallelKernelsMatchSerial`, `TestDeterministic`.
 
 **15.22b** Sıralama sırası. Tanımı 13.10'dadır ("sıralanabilir" kısıtının yanında: −0.0 < 0.0, NaN her sayıdan büyük; işleçler, 4.4 ve 4.5, ise IEEE 754 karşılaştırmasıdır). Tensörde bu sırayı **bütünüyle** kullananlar: `TR_topk` ve `TR_argsort`. `TR_max`, `TR_min`, `TR_argmax`, `TR_argmin`, `TR_maximum` ve `TR_minimum` (15.16a) onu NaN dışındaki sayılarda kullanır (−0.0 < 0.0); NaN'ı ise yayar ya da ilk NaN'ı seçer (15.18, 15.19).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi; Go: `TestMaxNegativeZeroOrder`, `TestArgSortAndTopK`, `TestSpecialValuesTable`, GPU'da `TestMax` ve `TestSort`; `TR_argmin`, `TR_maximum` ve `TR_minimum` uygulanınca TR testi.
 
 ## Sinir ağı işlemleri
 

@@ -675,8 +675,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.18
 
-- **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin toplamı ve ortalaması ondalık (`2.0`, `0.6666667`); `TR_argmax`'in sonucunun toplamı ondalık `1.0` [ölçüldü]. `TR_std` tensörde H2423 veriyor, `TR_logsumexp` yok [ölçüldü]. `TR_max(TR_Tensor([-0.0, 0.0]))` −0.0 veriyor [ölçüldü]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
-- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, `TR_logsumexp`, liste eksen, −0.0 < 0.0; TR testleri.
+- **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin toplamı ve ortalaması ondalık (`2.0`, `0.6666667`); `TR_argmax`'in sonucunun toplamı ondalık `1.0` [ölçüldü]. `TR_std` tensörde H2423 veriyor, `TR_logsumexp` yok [ölçüldü]. `TR_max` ve `TR_min` NaN dışındaki sayılarda −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
+- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, `TR_logsumexp`, liste eksen; TR testleri.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş eksen ile boş tensörün ayrımı, boş tensör listesinde hata, `TR_std`'nin sıfır sapmadaki türevi 0.
 
 ### 15.18a
@@ -687,8 +687,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.19
 
-- **Mevcut durum:** `TR_argmax` eksensizde son eksende çalışıyor: `TR_argmax(TR_Tensor([[1.0, 9.0], [4.0, 2.0]]))` → `[1, 0]` [ölçüldü]. `TR_argmin` yok. −0.0 ile 0.0 eşit sayılıyor.
-- **Yapılacaklar:** eksensiz biçim bütün öğelerde; göç 10 test yeri [kanıtlı: `tests/matematik_test.tr:94, 182, 196`, `tests/tensor_test.tr:516, 521, 942`, `internal/stdlib/ml/builtin_reduce_test.go:13-15`, `internal/stdlib/ml/builtin_math_test.go:32`]: `tests/matematik_test.tr:94`, `:182`, `:196`; `tests/tensor_test.tr:516`, `:521`, `:942`; Go dizeleri `internal/stdlib/ml/builtin_reduce_test.go:13-14`, `:15`, `internal/stdlib/ml/builtin_math_test.go:32`. İkisi `TR_cumsum`'u 0 boyutlu girdiye götürüp hataya döner; `tests/tensor_test.tr:942` `TR_sample` ile karşılaştırıyor, `TR_dim: -1` gerekir. Kullanıcı kodunda yok. `TR_argmin`, eksenli `TR_keepdim:`, argmax'e −0 için eşitlik dalı; TR testi.
+- **Mevcut durum:** eksensiz `TR_argmax` bütün öğelerde, satır sırasıyla düzleştirilmiş indeksi 0 boyutlu tensörde veriyor; −0.0 0.0'dan küçük [test: 15.22b'nin TR testi]. `TR_argmin` yok.
+- **Yapılacaklar:** `TR_argmin`, eksenli `TR_keepdim:`; TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş indirgemede hata.
 
 ### 15.20
@@ -698,8 +698,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.21
 
-- **Mevcut durum:** `TR_topk` liste veriyor (`TR_Type`'ı `TR_List`) [ölçüldü]; −0 ile +0 eşit sayılıyor.
-- **Yapılacaklar:** demet dönüşü (önce 3.6a'nın demeti); göç 9 çağrı [ölçüldü: DENETİM C1]: `examples/tr/25_secme_ve_siralama.tr:22-23`, `tests/matematik_test.tr` 7 satır, Go 1. Sıralama sırası (15.22b); TR testi.
+- **Mevcut durum:** `TR_topk` liste veriyor (`TR_Type`'ı `TR_List`) [ölçüldü]; sıralama sırası 15.22b'nin (−0.0 < 0.0) [test: TestArgSortAndTopK].
+- **Yapılacaklar:** demet dönüşü (önce 3.6a'nın demeti); göç 9 çağrı [ölçüldü: DENETİM C1]: `examples/tr/25_secme_ve_siralama.tr:22-23`, `tests/matematik_test.tr` 7 satır, Go 1; TR testi.
 - **DENETİM 0.6b (2026-10-29):** `TR_topk` hâlâ liste döndürüyor; kurala göre demet (T1). Demetin değeri motorda var (0.6b).
 
 ### 15.21a
@@ -709,8 +709,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.22
 
-- **Mevcut durum:** `TR_topk` ve `TR_argsort`'ta sıralanan eksen en çok 2²⁴ uzunlukta (indeksler float32 depoda); `TR_descending:` yok (motorda `Backend.Sort(..., desc)` hazır [kanıtlı: internal/compute/tensor/device.go:347]). −0 ile +0 eşit sayılıyor: `internal/compute/tensor/cpu_sort.go:47-48` ve `internal/compute/gpu/kernel_sort.go:22`'nin yorumu "−0 = +0", `orderKey`'in sıfır satırı `internal/compute/tensor/cpu_sort.go:55-56` (GPU `orderKeyPTX`'te `internal/compute/gpu/kernel_sort.go:135, 137`) [kanıtlı: `internal/compute/tensor/cpu_sort.go:47-48, 55-56`, `internal/compute/gpu/kernel_sort.go:22, 135, 137`].
-- **Yapılacaklar:** 2²⁴ sınırı tam sayı depolamasıyla (15.1) kalkar, yeni sınır 2³² − 1; `TR_descending:`; `orderKey`'in sıfır satırı silinir [kanıtlı: DENETİM C1]; TR testi.
+- **Mevcut durum:** `TR_topk` ve `TR_argsort`'ta sıralanan eksen en çok 2²⁴ uzunlukta (indeksler float32 depoda); `TR_descending:` yok (motorda `Backend.Sort(..., desc)` hazır [kanıtlı: internal/compute/tensor/device.go:347]). −0.0 0.0'dan küçük, CPU ve GPU'da (`orderKey` ve `orderKeyPTX`) [test: TestArgSortAndTopK, GPU'da TestSort].
+- **Yapılacaklar:** 2²⁴ sınırı tam sayı depolamasıyla (15.1) kalkar, yeni sınır 2³² − 1; `TR_descending:`; TR testi.
 - **GPU'nun yolu:** her satır 64 bitlik (sıra anahtarı, indeks) çiftleriyle bitonik ağla sıralanıyor; ikinin kuvvetine tamamlanmış uzunluğu 4096'ya kadar olan satır paylaşımlı bellekte tek başlatmayla, daha uzunu genel bellekte her bitonik adım için bir başlatmayla (log₂P·(log₂P + 1)/2) sıralanıyor.
 - **Uygulama sınırı:** GPU'da sıralanan anahtarın alt 32 biti indekstir; bu yüzden eksen en çok 2³² − 1 uzunlukta ve sıra anahtarı 32 bit (float32'de yeter; int64 ve float64 tensörde ve daha uzun eksende yeni bir yol gerekir). Aynı sınır `TR_topk`'ta. Kural bir sınır koymaz (bellek dışında, 15.42).
 
@@ -721,8 +721,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.22b
 
-- **Mevcut durum:** sıralama sırası uygulanmadı: tensörde ve listede −0.0 ile 0.0 eşit sayılıyor; listenin `TR_max([-0.0, 0.0])`'ı −0.0 veriyor (13.1'e aykırı) [ölçüldü: main `85a19c36`, `[0.0, -0.0].TR_sort()` `[0.0, -0.0]`, `TR_max([-0.0, 0.0])` −0.0]. Go testi `TestArgSortAndTopK` −0 ile +0'ın eşitliğini sabitliyor (`internal/compute/tensor/cumsum_sort_test.go:134-136`); GPU'nun sıralama karşılaştırması da −0'ı CPU ile aynı eşitlikte bekliyor (`internal/compute/gpu/backend_wide_test.go:200`, `sortCompare`) [kanıtlı: grep].
-- **Yapılacaklar:** −0.0 < 0.0 her sıralamada (tensör, `.TR_sort`); iki Go testi yeni sıraya; TR testi.
+- **Mevcut durum:** tensörde uygulandı: `TR_topk`, `TR_argsort`, `TR_max`, `TR_min` ve `TR_argmax` −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. Listede `[0.0, -0.0].TR_sort()` `[-0.0, 0.0]` veriyor, ama listenin `TR_max([-0.0, 0.0])`'ı −0.0 (13.1'e aykırı) [ölçüldü: T1, `4426eb72`'nin üstündeki çalışma ağacı].
+- **Yapılacaklar:** listenin `TR_max` ve `TR_min`'i (`internal/lang/interp/builtins.go`); `TR_argmin`, `TR_maximum`, `TR_minimum` gelince aynı sıra.
 
 ### 15.23
 

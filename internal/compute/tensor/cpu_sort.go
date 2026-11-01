@@ -44,16 +44,15 @@ func (cpuBackend) f32CumSumGrad(gx, g Storage, shape []int, axis int) {
 	f32CumSum(cd(gx), cd(g), shape, axis, true, true)
 }
 
-// orderKey float32'yi sıralama düzenini koruyan 32 bitlik anahtara çevirir: -0 ile +0
-// eşittir, NaN (işaretinden bağımsız) en büyüktür. azalan doğruysa düzen tersine çevrilir
-// (NaN en küçük, yani ilk olur). GPU arka ucu aynı anahtarı kullanır.
+// orderKey float32'yi sıralama sırasını (13.10, 15.22b) koruyan 32 bitlik anahtara çevirir:
+// −0.0 0.0'dan küçüktür, NaN (işaretinden bağımsız) en büyüktür, NaN'lar eşittir. azalan
+// doğruysa düzen tersine çevrilir (NaN en küçük, yani ilk olur). GPU arka ucu aynı anahtarı
+// kullanır.
 func orderKey(v float32, descending bool) uint32 {
 	var a uint32
 	switch b := math.Float32bits(v); {
 	case v != v:
 		a = math.MaxUint32
-	case v == 0:
-		a = 1 << 31
 	case b>>31 == 1:
 		a = ^b
 	default:

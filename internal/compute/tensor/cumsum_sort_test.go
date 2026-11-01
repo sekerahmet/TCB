@@ -70,10 +70,16 @@ func sortRef(x []float32, shape []int, axis int, desc bool) []float32 {
 			slices.SortStableFunc(idx, func(p, q int) int {
 				a, b := value(p), value(q)
 				an, bn := a != a, b != b
+				// Sıralama sırası (15.22b): −0.0 < 0.0, NaN en büyük, NaN'lar eşit.
+				as, bs := math.Signbit(float64(a)), math.Signbit(float64(b))
 				var c int
 				switch {
-				case an && bn, a == b:
+				case an && bn, a == b && as == bs:
 					c = 0
+				case a == b && as:
+					c = -1
+				case a == b:
+					c = 1
 				case an:
 					c = 1
 				case bn:
@@ -130,9 +136,11 @@ func TestArgSortAndTopK(t *testing.T) {
 			}
 		}
 	}
-	// -0 ile +0 eşittir: kararlı sıralama ilk geleni önce koyar.
+	// −0.0 0.0'dan küçüktür (15.22b): artan sırada önce, azalan sırada sonra gelir.
 	z := New([]float32{0, float32(math.Copysign(0, -1)), -1, 1}, 4)
-	nanSame(t, "sıfırlar", z.ArgSort(0).Data(), []float32{2, 0, 1, 3})
+	nanSame(t, "sıfırlar", z.ArgSort(0).Data(), []float32{2, 1, 0, 3})
+	_, zi := z.TopK(3, 0)
+	nanSame(t, "sıfırlar azalan", zi.Data(), []float32{3, 0, 1})
 	_, ti := New([]float32{3, nan32, 3, 5}, 4).TopK(3, 0)
 	nanSame(t, "NaN en büyük", ti.Data(), []float32{1, 3, 0})
 }

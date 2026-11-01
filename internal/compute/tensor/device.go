@@ -343,7 +343,7 @@ type Backend interface {
 	// Sort eksen boyunca kararlı sıralamanın (desc: büyükten küçüğe) ilk k elemanını
 	// yazar: idx eksen indeksleri (float32 tam sayı), vals (nil olabilir) değerler; ikisi
 	// de bitişik, x'in şekli eksende k ile. NaN her sayıdan büyüktür; eşitlerde küçük
-	// indeks önce gelir (-0 ile +0 eşittir).
+	// indeks önce gelir; −0.0 0.0'dan küçüktür (15.22b).
 	Sort(vals, idx Storage, x View, axis, k int, desc bool)
 	// GatherGrad gx (shape, bitişik) += eksen boyunca idx (k uzunluklu eksen; bir satırda
 	// her indeks en çok bir kez) konumlarına g.

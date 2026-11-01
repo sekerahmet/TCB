@@ -19,7 +19,7 @@ import (
 // yalnızca L'ye bağlıdır (belirlenimci).
 //
 // Sıralama: her eleman 64 bitlik bir anahtara çevrilir: üst 32 bit değerin sıra anahtarı
-// (CPU siraAnahtari ile aynı: −0 = +0, NaN en büyük; azalan sıralamada tersi), alt 32 bit
+// (CPU orderKey ile aynı: −0.0 < 0.0, NaN en büyük; azalan sıralamada tersi), alt 32 bit
 // eksen indeksi. Anahtarlar tekil olduğundan bitonik sıralama (kararsız bir ağ) kararlı
 // sıralama verir: eşitlerde küçük indeks önce. Satır ikinin kuvvetine (P) dolgu
 // anahtarlarıyla (her gerçek anahtardan büyük) tamamlanır. P ≤ ortakSiralamaSiniri ise satır
@@ -131,10 +131,9 @@ func (k *emitter) orderKeyPTX(v, d reg, descending bool) reg {
 	k.e("or.b32", a2, b, uint32(0x80000000))
 	a := k.r()
 	k.e("selp.b32", a, a1, a2, neg)
-	zero, nan := k.p(), k.p()
-	k.e("setp.eq.f32", zero, v, float32(0))
+	// −0.0 0.0'dan küçüktür (15.22b): işaret biti anahtarın sırasını verir; NaN en büyük.
+	nan := k.p()
 	k.e("setp.nan.f32", nan, v, v)
-	k.e("selp.b32", a, uint32(0x80000000), a, zero)
 	k.e("selp.b32", a, uint32(0xFFFFFFFF), a, nan)
 	if descending {
 		k.e("not.b32", a, a)

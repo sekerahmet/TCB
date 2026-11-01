@@ -102,12 +102,13 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 	})
 }
 
-// argMax verilen eksende en büyük elemanın indeksini verir: argmax(x, eksen: -1).
-// Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış şekilde; 1 boyutlu
-// girdide 0 boyutlu) ve türev izlemez. Tensör tam sayılı olarak işaretlenir: .değer Tam
-// (ya da Tam listesi) verir, böylece liste indeksi olarak doğrudan kullanılabilir; sonuç
-// gömme(...) ve çapraz_entropi(...) indeksi olarak da verilebilir.
-// Eşitlikte ilk en büyük eleman seçilir.
+// argMax verilen eksende en büyük elemanın indeksini verir: argmax(x, eksen: -1). Eksen
+// verilmezse bütün öğeler üstünde çalışır ve satır sırasıyla düzleştirilmiş indeksi 0 boyutlu
+// tensörde verir (15.19). Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış
+// şekilde) ve türev izlemez. Tensör tam sayılı olarak işaretlenir: .değer Tam (ya da Tam
+// listesi) verir, böylece liste indeksi olarak doğrudan kullanılabilir; sonuç gömme(...) ve
+// çapraz_entropi(...) indeksi olarak da verilebilir.
+// Eşitlikte ilk en büyük eleman seçilir; −0.0 0.0'dan küçüktür, NaN varsa ilk NaN (15.22b).
 func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.NameRef(codes.FnArgmax)
 	if len(args) != 1 {
@@ -128,11 +129,15 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 	if err != nil {
 		return nil, err
 	}
-	if !given {
-		e = -1
-	}
 	sh := t.Shape()
-	if e, err = parseAxis(ad, e, sh); err != nil {
+	if !given {
+		if t.Numel() == 0 {
+			return nil, messages.New(messages.H6211, ad, tensor.ShapeText(sh))
+		}
+		// Bütün öğeler: düzleştirilmiş tensörün tek ekseni, sonuç 0 boyutlu.
+		tensor.NoGrad(func() { t = t.Reshape(t.Numel()) })
+		e, sh = 0, t.Shape()
+	} else if e, err = parseAxis(ad, e, sh); err != nil {
 		return nil, err
 	}
 	if sh[e] == 0 {

@@ -137,7 +137,8 @@ func (cpuBackend) f32SumAll(out Storage, x View, scale float32) {
 
 // argmaxCPU her (dış, iç) satırı için ilk en büyük elemanın eksen indeksini verir. NaN
 // her sayıdan büyük sayılır: satırda NaN varsa sonuç ilk NaN'dır (yerinde NaN yayılır;
-// max, min = -max(-x) ve argmax tutarlı kalır).
+// max, min = -max(-x) ve argmax tutarlı kalır). −0.0 0.0'dan küçüktür (sıralama sırası,
+// 15.22b): eşit sayılan iki sıfırdan +0 kazanır; min = -max(-x) böylece −0'ı seçer.
 func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)) {
 	parallelFor(outer, dim*inner, func(lo, hi int) {
 		for o := lo; o < hi; o++ {
@@ -146,7 +147,7 @@ func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)
 				best := float32(math.Inf(-1))
 				bi := 0
 				for d := 0; d < dim; d++ {
-					if v := xd[base+d*inner+i]; v > best || (v != v && best == best) {
+					if v := xd[base+d*inner+i]; v > best || (v != v && best == best) || (v == 0 && best == 0 && negZero(best) && !negZero(v)) {
 						best, bi = v, d
 					}
 				}
@@ -155,6 +156,9 @@ func argmaxCPU(xd []float32, outer, dim, inner int, fn func(k, d int, v float32)
 		}
 	})
 }
+
+// negZero v'nin işaret biti açık mı (−0.0 ya da eksi sayı)?
+func negZero(v float32) bool { return math.Float32bits(v)>>31 == 1 }
 
 func (cpuBackend) f32Max(out Storage, x View, axis int) {
 	xd := gatherCPU(x)

@@ -519,6 +519,42 @@ TR_test "15.19 argmax" {
     # .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
     TR_var harfler = ["a", "b", "c"]
     TR_assert_equal("b", harfler[TR_argmax(x, TR_dim: -1).TR_tolist[0]])
+    # Eksensiz biçim bütün öğeler üstündedir: satır sırasıyla düzleştirilmiş indeks, 0 boyutlu.
+    TR_var m = TR_Tensor([[1.0, 9.0], [5.0, 2.0]])
+    TR_assert_equal(1, TR_argmax(m).TR_tolist)
+    TR_assert_equal([], TR_argmax(m).TR_shape)
+    TR_assert_equal(3, TR_argmax(TR_Tensor([[1.0, 2.0], [3.0, 9.0]])).TR_tolist)
+    TR_assert_equal(0, TR_argmax(TR_Tensor(4.0)).TR_tolist)
+    TR_assert_equal(2, TR_argmax(TR_Tensor([[1.0, 2.0], [TR_nan, 0.0]])).TR_tolist)
+    TR_assert_equal("H6211", TR_error_code { TR_argmax(TR_zeros([2, 0])) })
+}
+
+TR_test "15.22b sıralama sırası: −0.0 0.0'dan küçük; indirgemeler NaN'ı yayar" {
+    # İşleçler IEEE 754'tür (4.4): −0.0 == 0.0. Sıralamada ve en büyük/en küçükte işaret bitine bakılır.
+    TR_assert(-0.0 == 0.0)
+    TR_assert_equal("0.0", TR_String(TR_max(TR_Tensor([-0.0, 0.0])).TR_tolist))
+    TR_assert_equal("0.0", TR_String(TR_max(TR_Tensor([0.0, -0.0])).TR_tolist))
+    TR_assert_equal("-0.0", TR_String(TR_min(TR_Tensor([0.0, -0.0])).TR_tolist))
+    TR_assert_equal("-0.0", TR_String(TR_min(TR_Tensor([-0.0, 0.0])).TR_tolist))
+    TR_assert_equal("-0.0", TR_String(TR_min(TR_Tensor([[0.0, -0.0]]), TR_dim: 1).TR_tolist[0]))
+    TR_assert_equal(1, TR_argmax(TR_Tensor([-0.0, 0.0])).TR_tolist)
+    TR_assert_equal(0, TR_argmax(TR_Tensor([0.0, -0.0])).TR_tolist)
+    TR_assert_equal([1, 0], TR_argmax(TR_Tensor([[-0.0, 0.0], [0.0, -0.0]]), TR_dim: 1).TR_tolist)
+    TR_assert_equal([1, 0], TR_argsort(TR_Tensor([0.0, -0.0])).TR_tolist)
+    TR_assert_equal([1, 3, 0, 2], TR_argsort(TR_Tensor([0.0, -0.0, 0.0, -0.0])).TR_tolist)
+    TR_var v, ix = TR_topk(TR_Tensor([-0.0, 0.0]), 1)
+    TR_assert_equal([1], ix.TR_tolist)
+    TR_assert_equal("0.0", TR_String(v.TR_tolist[0]))
+    TR_var _, ix2 = TR_topk(TR_Tensor([0.0, -0.0, 0.0]), 3)
+    TR_assert_equal([0, 2, 1], ix2.TR_tolist)
+    # NaN: indirgeme yayar ya da ilk NaN'ı seçer; sıralama onu en büyük sayar (değişmedi).
+    TR_assert(TR_not TR_is_finite(TR_max(TR_Tensor([1.0, TR_nan, 3.0])).TR_tolist))
+    TR_assert_equal(1, TR_argmax(TR_Tensor([1.0, TR_nan, 3.0, TR_nan])).TR_tolist)
+    TR_assert_equal([0, 2, 1], TR_argsort(TR_Tensor([1.0, TR_nan, 3.0])).TR_tolist)
+    # Eşitlerde ilk öğe; türev o öğeye gider.
+    TR_var w = TR_Tensor([-0.0, 0.0, 0.0], TR_requires_grad: TR_true)
+    TR_backward(TR_max(w))
+    TR_assert_equal([0.0, 1.0, 0.0], w.TR_grad.TR_tolist)
 }
 
 TR_test "15.36 gradyan_kırp normu aşan gradyanları küçültür, kırpma öncesi normu tensör olarak verir" {

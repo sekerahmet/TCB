@@ -157,3 +157,37 @@ func init() {
 }
 
 func TestGradReduce(t *testing.T) { runGradGroup(t, "reduce") }
+
+// bitsOf değerlerin bit desenleri: −0.0 ile 0.0'ı ayırır.
+func bitsOf(v []float32) []uint32 {
+	out := make([]uint32, len(v))
+	for i, x := range v {
+		out[i] = math.Float32bits(x)
+	}
+	return out
+}
+
+// Kural (15.18, 15.19, 15.22b): en büyük ve indeksi NaN dışındaki sayılarda sıralama sırasını
+// kullanır: −0.0 0.0'dan küçüktür, sıradan bağımsız +0 seçilir ve türev ona gider; eşit
+// sayılarda ilk öğe, NaN varsa ilk NaN (değişmedi). 16 bitlik türlerde de aynı.
+func TestMaxNegativeZeroOrder(t *testing.T) {
+	n0 := float32(math.Copysign(0, -1))
+	for _, dt := range []DType{Float32, BFloat16, Float16} {
+		x := New([]float32{n0, 0, 0, n0, n0, n0, 2, 2}, 4, 2).Cast(dt)
+		if got, want := bitsOf(x.Max(1, false).Data()), bitsOf([]float32{0, 0, n0, 2}); fmt.Sprint(got) != fmt.Sprint(want) {
+			t.Fatalf("%v en büyük: %x, beklenen %x", dt, got, want)
+		}
+		if got := x.ArgMax(1); fmt.Sprint(got) != "[1 0 0 0]" {
+			t.Fatalf("%v en büyük indeksi: %v", dt, got)
+		}
+	}
+	w := New([]float32{n0, 0, n0}, 3)
+	w.SetRequiresGrad(true)
+	w.Max(0, false).Backward()
+	nanSame(t, "türev +0'a gider", w.Grad().Data(), []float32{0, 1, 0})
+	// Sütun yolu (eksen 0) da aynı sırayı kullanır.
+	c := New([]float32{n0, 0, 0, n0}, 2, 2)
+	if got := c.ArgMax(0); fmt.Sprint(got) != "[1 0]" {
+		t.Fatalf("sütunda en büyük indeksi: %v", got)
+	}
+}

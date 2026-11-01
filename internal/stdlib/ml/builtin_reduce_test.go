@@ -32,7 +32,9 @@ TR_print(TR_Type((i * 2).TR_tolist[0][0]), TR_Type(TR_Tensor(i).TR_tolist[0][0])
 		{"TR_argmax([1, 2])", messages.H6217},
 		{"TR_argmax(TR_Tensor([1, 2]), 0)", messages.H6215},
 		{"TR_argmax(TR_Tensor([1, 2]), TR_dim: 1)", messages.H6016},
-		{"TR_argmax(TR_zeros([0]))", messages.H6209},
+		{"TR_argmax(TR_zeros([0]))", messages.H6211},
+		{"TR_argmax(TR_zeros([2, 0]))", messages.H6211},
+		{"TR_argmax(TR_zeros([2, 0]), TR_dim: 1)", messages.H6209},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)

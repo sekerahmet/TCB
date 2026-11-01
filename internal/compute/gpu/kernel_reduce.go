@@ -299,7 +299,8 @@ func (k *emitter) storeReduced(a reduceConfig, ha, acc, scaleF reg) {
 }
 
 // argmaxKernel her korunan çıktı için tek eksen boyunca ilk en büyük elemanı bulur
-// (NaN her sayıdan büyük sayılır, ilk NaN kazanır: CPU argmaxCPU ile aynı kural). kip:
+// (NaN her sayıdan büyük sayılır, ilk NaN kazanır; −0.0 0.0'dan küçüktür: CPU argmaxCPU ile
+// aynı kural). kip:
 // 0 değer yazar, 1 indeksi (32 bitlik tam sayı) yazar, 2 gradyanı (gx[konum] += g[j])
 // ekler. Çıktı başına bir iş parçacığı ekseni sırayla gezer.
 // Meta: korunan eksenler için şekil, x adımı, gx adımı; ardından eksen boyu, x adımı,
@@ -330,6 +331,17 @@ func argmaxKernel(nk, mode2 int) func() *emitter {
 			k.e("setp.num.f32", bCount, best, best)
 			k.e("and.pred", vNan, vNan, bCount)
 			k.e("or.pred", pick, large, vNan)
+			// Eşit iki sıfırdan +0 kazanır: eşitlik yalnız ±0'da işaret bitleri ayrıyken olur.
+			vBits, bBits := k.r(), k.r()
+			k.e("mov.b32", vBits, v)
+			k.e("mov.b32", bBits, best)
+			eq, bNeg, vPos := k.p(), k.p(), k.p()
+			k.e("setp.eq.f32", eq, v, best)
+			k.e("setp.lt.s32", bNeg, bBits, 0)
+			k.e("setp.ge.s32", vPos, vBits, 0)
+			k.e("and.pred", eq, eq, bNeg)
+			k.e("and.pred", eq, eq, vPos)
+			k.e("or.pred", pick, pick, eq)
 			k.e("selp.f32", best, v, best, pick)
 			k.e("selp.b32", bi, d, bi, pick)
 			k.e("add.s32", ofs, ofs, sx)

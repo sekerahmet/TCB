@@ -119,4 +119,22 @@ func TestMax(t *testing.T) {
 	if fmt.Sprint(gi) != fmt.Sprint(ci) {
 		t.Fatalf("NaN'lı en büyük indeks: GPU %v, CPU %v", gi, ci)
 	}
+	// −0.0 0.0'dan küçüktür (15.22b): sıradan bağımsız +0 seçilir; sıralamada −0 önce gelir.
+	n0 := float32(math.Copysign(0, -1))
+	z := tensor.NewOn(gpuDevice, []float32{n0, 0, 0, n0, n0, n0}, 3, 2)
+	if got := fmt.Sprint(z.ArgMax(1)); got != "[1 0 0]" {
+		t.Fatalf("GPU'da sıfırların en büyük indeksi %s, beklenen [1 0 0]", got)
+	}
+	for i, v := range z.Max(1, false).Data() {
+		if want := []bool{false, false, true}[i]; math.Signbit(float64(v)) != want {
+			t.Fatalf("GPU'da sıfırların en büyüğü %v (%d. satır)", z.Max(1, false).Data(), i)
+		}
+	}
+	s := tensor.NewOn(gpuDevice, []float32{0, n0, 0, n0}, 4)
+	if got := fmt.Sprint(s.ArgSort(0).Data()); got != "[1 3 0 2]" {
+		t.Fatalf("GPU'da sıfırların sıralaması %s, beklenen [1 3 0 2]", got)
+	}
+	if _, ti := s.TopK(2, 0); fmt.Sprint(ti.Data()) != "[0 2]" {
+		t.Fatalf("GPU'da sıfırların en büyük 2'si %v, beklenen [0 2]", ti.Data())
+	}
 }

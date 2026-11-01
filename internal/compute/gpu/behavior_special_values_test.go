@@ -337,9 +337,9 @@ func TestSpecialValuesTable(t *testing.T) {
 			f: func(x *tensor.Tensor) *tensor.Tensor { return x.Mean(1, false) }},
 		{ad: "birikimli_toplam", in: []float32{n0, n0}, shape: []int{1, 2}, want: []float32{0, 0},
 			f: func(x *tensor.Tensor) *tensor.Tensor { return x.CumSum(1) }},
-		// En büyük: NaN yayılır; eşitlerde (−0 ile +0 eşit) ilk eleman.
+		// En büyük: NaN yayılır; −0.0 0.0'dan küçüktür (15.22b), sıradan bağımsız +0 kazanır.
 		{ad: "en_büyük", in: []float32{1, nan, negZero, 0, 0, negZero, -inf, 1}, shape: []int{4, 2},
-			want: []float32{nan, n0, 0, 1}, f: func(x *tensor.Tensor) *tensor.Tensor { return x.Max(1, false) }},
+			want: []float32{nan, 0, 0, 1}, f: func(x *tensor.Tensor) *tensor.Tensor { return x.Max(1, false) }},
 		// Tamamen −∞ (maskeli) satır: softmax 0, log_softmax −∞; +∞ ya da NaN'lı satır NaN.
 		{ad: "softmax", in: []float32{-inf, -inf, -inf, 1, inf, 1, nan, 1}, shape: []int{4, 2},
 			want: []float32{0, 0, 0, 1, nan, nan, nan, nan}, f: func(x *tensor.Tensor) *tensor.Tensor { return x.Softmax(1) }},

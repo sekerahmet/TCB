@@ -151,7 +151,8 @@ func minAll(t *tensor.Tensor) *tensor.Tensor {
 	data := t.Data()
 	m := data[0]
 	for _, x := range data[1:] {
-		if x < m || x != x { // NaN yayılır (max ile tutarlı)
+		// NaN yayılır (max ile tutarlı); −0.0 0.0'dan küçüktür (15.22b).
+		if x < m || x != x || (x == 0 && m == 0 && math.Signbit(float64(x)) && !math.Signbit(float64(m))) {
 			m = x
 			if x != x {
 				break
