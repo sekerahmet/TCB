@@ -334,6 +334,19 @@ TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_assert_equal("H2654", TR_error_code { TR_JSON(aralıklı) })
 }
 
+TR_test "3.7a TR_JSON(x) listeyi ve sözlüğü kopyalayarak çevirir: sonra asıl kabı değiştirmek JSON değerini etkilemez" {
+    TR_var l = [1, 2]
+    TR_var d = {"a": l}
+    TR_var j = TR_JSON(l)
+    TR_var k = TR_JSON(d)
+    l.TR_append(3)
+    d["b"] = [4]
+    TR_assert_equal("[1,2]", TR_json_string(j))
+    TR_assert_equal(`{"a":[1,2]}`, TR_json_string(k))
+    TR_assert_equal(2, j.TR_length)
+    TR_assert(TR_Type(j) == TR_List)
+}
+
 TR_test "3.7a JSON en çok 1000 kap iç içe açılır, içteki değer ne olursa olsun" {
     TR_func iç_içe(n: TR_Int, iç: TR_String) -> TR_String {
         TR_return "[" * n + iç + "]" * n
