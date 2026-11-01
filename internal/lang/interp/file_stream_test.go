@@ -42,6 +42,48 @@ func TestWriteAtomicSymlinkAndPerm(t *testing.T) {
 	}
 }
 
+// AtomikYaz bağlantı ile hedef ayrı klasörlerdeyken geçici dosyayı hedefin klasöründe açar (18.13).
+func TestWriteAtomicSymlinkDifferentDirs(t *testing.T) {
+	targetDir, linkDir := t.TempDir(), t.TempDir()
+	actual := filepath.Join(targetDir, "hedef.txt")
+	if err := os.WriteFile(actual, []byte("eski"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(linkDir, "bag.txt")
+	if err := os.Symlink(actual, link); err != nil {
+		t.Skipf("sembolik bağlantı kurulamadı: %v", err)
+	}
+	var tempInTarget, tempInLink bool
+	err := WriteAtomic(link, func(w io.Writer) error {
+		entries, _ := os.ReadDir(targetDir)
+		for _, e := range entries {
+			if strings.HasSuffix(e.Name(), ".yaziliyor") {
+				tempInTarget = true
+			}
+		}
+		linkEntries, _ := os.ReadDir(linkDir)
+		for _, e := range linkEntries {
+			if strings.HasSuffix(e.Name(), ".yaziliyor") {
+				tempInLink = true
+			}
+		}
+		_, writeErr := w.Write([]byte("yeni"))
+		return writeErr
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !tempInTarget || tempInLink {
+		t.Fatalf("geçici dosya hedefin klasöründe açılmalıydı: hedef=%v bağlantı=%v", tempInTarget, tempInLink)
+	}
+	if b, _ := os.Lstat(link); b.Mode()&os.ModeSymlink == 0 {
+		t.Error("bağlantı sıradan dosyayla değiştirildi")
+	}
+	if b, _ := os.ReadFile(actual); string(b) != "yeni" {
+		t.Errorf("gösterilen dosya yazılmadı: %q", b)
+	}
+}
+
 func TestGzipHelpers(t *testing.T) {
 	k := t.TempDir()
 	filePath := filepath.Join(k, "a.TXT.GZ")

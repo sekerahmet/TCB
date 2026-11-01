@@ -1007,8 +1007,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.13
 
-- **Mevcut durum:** bağlantıya atomik yazma çalışıyor, ama onu ayırt eden test yok: `TestWriteAtomicSymlinkAndPerm` bağlantıyla hedefi aynı klasörde sınıyor, Windows'ta iki yarısı da atlanıyor [kanıtlı: DENETİM, `internal/lang/interp/file_stream_test.go:18-34`].
-- **Yapılacaklar:** bağlantı ile hedefi ayrı klasörlerde olan atomik yazmanın testi (geçici dosya hedefin klasöründe).
+- **Mevcut durum (Faz 1, 2026-11-01):** bağlantıya atomik yazma geçici dosyayı hedefin klasöründe açıyor ve bağlantı ile hedef ayrı klasörlerdeyken sınanıyor (`TestWriteAtomicSymlinkAndPerm`, `TestWriteAtomicSymlinkDifferentDirs`) [kanıtlı: `internal/lang/interp/atomic_write.go:30,62-68`, `internal/lang/interp/file_stream_test.go:46-85`; ölçüldü: `go test -v ./internal/lang/interp/ -run TestWriteAtomicSymlink`, 2026-11-01].
 
 ### 18.16
 
