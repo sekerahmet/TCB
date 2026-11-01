@@ -165,6 +165,27 @@ func identifier(k *compilerScope, name string) func(env *Environment, val Value,
 type blockCode struct {
 	statements []ast.Statement
 	codeList   []statementCode
+	// scoped: blok doğrudan bir TR_defer içerir ve kendi ortamında çalışır; o ortam ertelenen işlerin
+	// kapsamıdır, iş blok bitince çalışır (9.1). scopedStatements kurar.
+	scoped bool
+}
+
+// scopedStatements bir bloğun deyimlerini derler; blok doğrudan bir TR_defer içeriyorsa kendi
+// ertele kapsamıdır (9.1): çağıran onu bloğun kendi ortamında çalıştırır (hasDirectDefer).
+func (c *compiler) scopedStatements(k *compilerScope, stmts []ast.Statement) *blockCode {
+	b := c.statements(k, stmts)
+	b.scoped = hasDirectDefer(stmts)
+	return b
+}
+
+// hasDirectDefer deyimlerden biri (iç bloklara inmeden) bir TR_defer mi?
+func hasDirectDefer(stmts []ast.Statement) bool {
+	for _, st := range stmts {
+		if _, ok := st.(*ast.DeferStatement); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *compiler) statements(k *compilerScope, stmts []ast.Statement) *blockCode {
@@ -176,6 +197,25 @@ func (c *compiler) statements(k *compilerScope, stmts []ast.Statement) *blockCod
 }
 
 func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
+	if b.scoped {
+		return b.runScoped(v, env)
+	}
+	return b.runList(v, env)
+}
+
+// runScoped bloğu kendi ortamında ertele kapsamı olarak çalıştırır: blokta kaydedilen işler blok
+// nasıl biterse bitsin (son deyim, TR_return, TR_break, TR_continue, hata) sonunda ters sırayla
+// çalışır, hataları yutulmaz (9.1, 9.2, 9.4).
+func (b *blockCode) runScoped(v *VM, env *Environment) (Value, flowSignal, error) {
+	env.IsFuncRoot = true
+	val, sig, err := b.runList(v, env)
+	if derr := v.runDefers(env); derr != nil {
+		return nil, signalNone, addDeferError(err, derr)
+	}
+	return val, sig, err
+}
+
+func (b *blockCode) runList(v *VM, env *Environment) (Value, flowSignal, error) {
 	var lastVal Value = Null
 	codeList := b.codeList
 	for i := 0; i < len(codeList); i++ {
@@ -270,12 +310,12 @@ func (c *compiler) blockStatement(k *compilerScope, b *ast.BlockStatement) state
 	if b == nil {
 		return emptyStatement
 	}
-	if c.blockFlags(b)&blockDefines == 0 {
+	if c.blockFlags(b)&blockDefines == 0 && !hasDirectDefer(b.Statements) {
 		return c.statements(k, b.Statements).run
 	}
 	sub := subScope(k)
 	sub.predefine(b.Statements)
-	bk := c.statements(sub, b.Statements)
+	bk := c.scopedStatements(sub, b.Statements)
 	info := sub.info
 	info.local = c.blockFlags(b)&blockCaptures == 0
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {

@@ -59,7 +59,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 		again = c.blockFlags(s.Body)&blockCaptures == 0
 	}
 	sub.predefine(bodyStatements)
-	bodyBlock := c.statements(sub, bodyStatements)
+	bodyBlock := c.scopedStatements(sub, bodyStatements)
 	info := sub.info
 	info.local = again
 	line := s.Line()
@@ -281,7 +281,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	if s.Body != nil {
 		bodyStatements = s.Body.Statements
 	}
-	if s.Body == nil || c.blockFlags(s.Body)&blockDefines == 0 {
+	if s.Body == nil || c.blockFlags(s.Body)&blockDefines == 0 && !hasDirectDefer(bodyStatements) {
 		bodyBlock := c.statements(k, bodyStatements)
 		return func(v *VM, env *Environment) (Value, flowSignal, error) {
 			var lastVal Value = Null
@@ -315,7 +315,7 @@ func (c *compiler) whileStmt(k *compilerScope, s *ast.WhileStatement) statementC
 	}
 	sub := subScope(k)
 	sub.predefine(bodyStatements)
-	bodyBlock := c.statements(sub, bodyStatements)
+	bodyBlock := c.scopedStatements(sub, bodyStatements)
 	info := sub.info
 	again := c.blockFlags(s.Body)&blockCaptures == 0
 	info.local = again

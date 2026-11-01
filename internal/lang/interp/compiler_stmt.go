@@ -225,7 +225,7 @@ func (c *compiler) tryCatchStatement(k *compilerScope, s *ast.TryCatchStatement)
 		catchStatements = s.CatchBody.Statements
 	}
 	sub.predefine(catchStatements)
-	catchClause := c.statements(sub, catchStatements)
+	catchClause := c.scopedStatements(sub, catchStatements)
 	info := sub.info
 	// Yakalanan hata programın Metin değeri olur: değerin metni gibi hiçbir dosyanın ve kişinin
 	// diline bağlı değildir (3.14), sabit bir katalogla kurulur (caughtErrorLanguage); yakalanmayan

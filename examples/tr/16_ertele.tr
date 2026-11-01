@@ -1,10 +1,11 @@
 # TR 4
 # 16 — Ertele: temizliği her durumda yapmak.
-# Ne öğretir: ertele ile bir işi fonksiyondan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
+# Ne öğretir: ertele ile bir işi bloktan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
 # Önceki örnekten: fonksiyonlar (08), hata yönetimi (15).
 # Çalıştırma (proje kökünden): tr examples/tr/16_ertele.tr
 
-# ertele ifadesi hemen çalışmaz; fonksiyon bitince çalışır. Birden çoksa sonuncu önce çalışır.
+# ertele hemen çalışmaz; içinde yazıldığı blok (burada fonksiyonun gövdesi) bitince çalışır.
+# Birden çoksa sonuncu önce çalışır.
 # Açılan her şeyin (dosya, bağlantı) kapatılması bu sayede unutulmaz.
 TR_func dosya_işlemi() -> TR_String {
     TR_defer TR_print("  [ertele 1] bağlantı kapatıldı")
@@ -21,12 +22,11 @@ TR_func başarısız_işlem() {
 }
 TR_try { başarısız_işlem() } TR_catch h { TR_print("yakalandı: \(h)") }
 
-# Döngü içinde fonksiyon çağrısıyla her tur için ertele çalıştırılabilir.
-TR_func tur(n: TR_Int) {
+# Döngünün gövdesi de bir bloktur: her turun ertelenen işi o turun sonunda çalışır.
+TR_for n TR_in 1..=3 {
     TR_defer TR_print("  tur \(n) bitti")
     TR_print("tur \(n) başladı")
 }
-TR_for n TR_in 1..=3 { tur(n) }
 
 # --- Kendin dene ---
 # 1. Üç ertele yaz ve hangi sırayla çalıştıklarını gözle.

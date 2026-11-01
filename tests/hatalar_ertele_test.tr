@@ -80,14 +80,28 @@ TR_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
     TR_assert_equal(["temizlik", "hata sonrası temizlik", "yakalandı"], iz)
 }
 
-TR_test "9.3 blok içindeki ertele, bloğu değil fonksiyonu bekler" {
+TR_test "9.1 kapsam en yakın bloktur: dal, döngü turu, dene ve yakala bloğu bitince ertele çalışır" {
     TR_var iz = []
     TR_func f() {
-        TR_if TR_true { TR_defer iz.TR_append("ertele") }
-        iz.TR_append("blok sonrası")
+        TR_if TR_true {
+            TR_defer { iz.TR_append("dal bitti") }
+            iz.TR_append("dal")
+        }
+        TR_for ad TR_in ["a", "b"] {
+            TR_defer { iz.TR_append("\(ad) bitti") }
+            iz.TR_append("\(ad) başladı")
+        }
+        TR_try {
+            TR_defer { iz.TR_append("dene bitti") }
+            TR_throw "x"
+        } TR_catch e {
+            TR_defer { iz.TR_append("yakala bitti") }
+            iz.TR_append("yakalandı")
+        }
+        iz.TR_append("son")
     }
     f()
-    TR_assert_equal(["blok sonrası", "ertele"], iz)
+    TR_assert_equal(["dal", "dal bitti", "a başladı", "a bitti", "b başladı", "b bitti", "dene bitti", "yakalandı", "yakala bitti", "son"], iz)
 }
 
 TR_test "9.4 ertele içindeki hata yutulmaz" {
