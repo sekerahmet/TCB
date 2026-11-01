@@ -4,7 +4,7 @@ Aynı veri, aynı karakter sözlüğü sırası, aynı boyutlar (V, T=64, D=64, 
 aynı toplu iş örnekleme (aynı sözde rastgele üreteç) ve aynı iyileştirici ayarları.
 Kullanım (proje kökünden):  python tools/bench/py/char_model.py [adım] [iş parçacığı]
 """
-import sys, time
+import re, sys, time
 import torch
 import torch.nn.functional as F
 
@@ -13,15 +13,13 @@ if len(sys.argv) > 2:
     torch.set_num_threads(int(sys.argv[2]))
 torch.manual_seed(1)
 
-# examples/tr/36_karakter_modeli.tr'deki BELGELER listesiyle aynı dosyalar, aynı sırayla.
-BELGELER = [f"docs/guide/{a}.md" for a in (
-    "01_baslangic", "02_anahtar_kelimeler", "03_zincirleme_metotlar", "04_yapay_zeka_ve_veri",
-    "05_hata_ayiklayici", "06_vscode_kisayollari", "07_testler", "08_bicimlendirme")] + [
-    f"docs/spec/{a}.md" for a in (
-    "01_program", "02_sozcuk_yapisi", "03_tipler", "04_operatorler", "05_deyimler",
-    "06_fonksiyonlar", "07_yapilar", "08_hata_yonetimi", "09_ertele", "10_eszamanlilik",
-    "11_moduller", "12_testler", "13_yerlesikler", "14_sinirlamalar", "15_tensorler",
-    "16_veri_parcalayici", "17_kodlar")]
+# Belge listesi examples/tr/36_karakter_modeli.tr'nin BELGELER'inden okunur: iki taraf aynı dosyalarla, aynı
+# sırayla eğitilir. Liste eskiden elle kopyalanmıştı; dil tanımından 14. bölüm çıkınca iki taraf ayrıldı ve
+# PyTorch tarafı açılamadı (2026-11-01).
+_ornek = open("examples/tr/36_karakter_modeli.tr", encoding="utf-8").read()
+BELGELER = re.findall(r'"(docs/[^"]+\.md)"', _ornek.split("TR_const BELGELER = [", 1)[1].split("]", 1)[0])
+if not BELGELER:
+    raise SystemExit("examples/tr/36_karakter_modeli.tr: BELGELER listesi okunamadı")
 metin = "".join(open(b, encoding="utf-8").read() for b in BELGELER)
 harfler, harf_no, veri = [], {}, []
 for h in metin:

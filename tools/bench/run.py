@@ -7,7 +7,7 @@ be the same in all three languages. The interpreter and the Go program are rebui
 folder on every run (GOAMD64 and TR_CPU_AVX2 from the environment apply; AVX2 kernels are chosen at
 run time). The Python version of matris_yerlesik needs numpy; without it the test is skipped.
 """
-import argparse, json, os, subprocess, sys, tempfile, time
+import argparse, json, os, re, subprocess, sys, tempfile, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BENCH = os.path.join(ROOT, "tools", "bench")
@@ -118,6 +118,13 @@ def main():
     if a.check_model:
         with tempfile.TemporaryDirectory() as tmp:
             model_program(tmp, 1)
+        # Both sides train on example 36's BELGELER (py/char_model.py reads the same list); a listed document
+        # that no longer exists stops the PyTorch side (2026-11-01: docs/spec/14_sinirlamalar.md).
+        with open(os.path.join(ROOT, MODEL_TR), encoding="utf-8") as f:
+            listed = re.findall(r'"(docs/[^"]+\.md)"', f.read().split("TR_const BELGELER = [", 1)[1].split("]", 1)[0])
+        missing = [p for p in listed if not os.path.exists(os.path.join(ROOT, p))]
+        if not listed or missing:
+            raise SystemExit(f"{MODEL_TR}: BELGELER lists missing documents: {missing or 'none found'}")
         return
     if a.repeat < 1:
         parser().error("--repeat must be at least 1")
