@@ -58,6 +58,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H6955, "TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)\nTR_var h = w * 2.0\nTR_var d = 1.0\nTR_no_grad { h += d }", "h += d", "h = h + d"},
 	{messages.H6958, "TR_var t = TR_zeros([1])\nTR_var u = TR_ones([3])\nt += u", "t += u", "t = t + u"},
 	{messages.H6954, "TR_var t = TR_Tensor([16777217])", "16777217", "16777217.0"},
+	{messages.H6954, "TR_var t = TR_Tensor(16777217)", "16777217", "16777217.0"},
 	{messages.H6402, "TR_var x = TR_Tensor([3.0], TR_requires_grad: TR_false)\nTR_backward(TR_sum(x * 2.0))", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
 	{messages.H6405, "TR_var f = TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
 	{messages.H6430, "TR_var f = TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},

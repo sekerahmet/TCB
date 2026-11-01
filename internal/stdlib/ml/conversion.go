@@ -21,6 +21,9 @@ func toTensor(fn any, v interp.Value) (*tensor.Tensor, error) {
 	case *TensorValue:
 		return x.t, nil
 	case *interp.IntVal:
+		if !exactInFloat32(x.Val) {
+			return nil, inexactIntError(fn, "", x.Val)
+		}
 		return tensor.Scalar(float32(x.Val)), nil
 	case *interp.FloatVal:
 		return tensor.Scalar(float32(x.Val)), nil
@@ -60,8 +63,8 @@ func toTensorOn(fn any, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor
 }
 
 // listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder. Bütün
-// öğeleri tam sayı olan bir listede float32'de tam yazılamayan değer (|n| > 2²⁴) çalışma
-// hatasıdır (15.1'in ara kuralı: tam sayı tensörü bu sürümde yok, yuvarlama sessiz olurdu);
+// öğeleri tam sayı olan bir listede (tek tam sayıda da, toTensor) float32'de tam yazılamayan
+// değer (|n| > 2²⁴) çalışma hatasıdır (15.1'in ara kuralı: tam sayı tensörü bu sürümde yok, yuvarlama sessiz olurdu);
 // karışık liste ([1, 2.5]) ondalıktır ve yuvarlar (15.2).
 func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 	var data []float32
@@ -84,10 +87,16 @@ func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 		return nil, nil, err
 	}
 	if ints && inexact >= 0 {
-		rounded := strconv.FormatFloat(float64(data[inexact]), 'f', -1, 32)
-		return nil, nil, messages.New(messages.H6954, fn, positionText(inexact, sh), inexactVal, rounded)
+		return nil, nil, inexactIntError(fn, positionText(inexact, sh), inexactVal)
 	}
 	return data, sh, nil
+}
+
+// inexactIntError float32'de tam yazılamayan tam sayıdan tensör kurmanın hatasıdır (H6954);
+// position listedeki konumdur, tek sayıda boş.
+func inexactIntError(fn any, position string, n int64) error {
+	rounded := strconv.FormatFloat(float64(float32(n)), 'f', -1, 32)
+	return messages.New(messages.H6954, fn, position, n, rounded)
 }
 
 // exactInFloat32 n float32'de tam yazılabilir mi? 2²⁴'e kadar her tam sayı yazılır; üstünde

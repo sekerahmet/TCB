@@ -1297,7 +1297,7 @@ const (
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
 	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok; bu nokta bu TR'nin biçiminde değil
 	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
-	H6954 Code = 6954 // {fn}: {index} konumundaki tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
+	H6954 Code = 6954 // {fn}: {index, select, empty {} other {{index} konumundaki }}tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
 	H6955 Code = 6955 // türev izleyen bir ara sonuca (türev izleyen bir işlemin sonucuna ya da onun görünümüne) yerinde yazılamaz, türevsiz kipte de: geri yayılım onun değerine dayanır. {kind, select, whole {Adı yeni bir tensöre bağlayın: `h = h + d`} other {Yerinde olmayan bir yazımla yeni bir tensör kurun: `h = {#where}(m, d, h)`}}
 	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa değeri türevsiz yazın: `t[i] = {#no_grad}(d)`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
 	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın

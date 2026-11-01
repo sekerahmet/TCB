@@ -30,7 +30,17 @@ func TestIntListInexactInFloat32(t *testing.T) {
 		{"TR_Tensor([1, -16777217])", messages.H6954},
 		{"TR_Tensor([[1, 2], [3, 33554433]])", messages.H6954},
 		{"TR_Tensor([9223372036854775807])", messages.H6954},
+		{"TR_Tensor(16777217)", messages.H6954},
+		{"TR_Tensor(-16777217)", messages.H6954},
+		{"TR_Tensor(9223372036854775807)", messages.H6954},
 	})
+	_, err0 := run(t, "TR_Tensor(16777219)")
+	if e, ok := messages.As(err0); !ok || len(e.Args) != 4 || fmt.Sprint(e.Args[1:]) != "[ 16777219 16777220]" {
+		t.Fatalf("tek tam sayının iletisi: %v", err0)
+	}
+	if got := mustRun(t, `TR_print(TR_Tensor(16777216).TR_tolist, TR_Tensor(-16777216).TR_tolist, TR_Tensor(16777218).TR_tolist, TR_Tensor(16777217.0).TR_tolist)`); got != "16777216.0 -16777216.0 16777218.0 16777216.0\n" {
+		t.Fatalf("tek tam sayının sınırları %q", got)
+	}
 	_, err := run(t, "TR_Tensor([[1, 2], [16777219, 33554433]])")
 	if e, ok := messages.As(err); !ok || len(e.Args) != 4 || fmt.Sprint(e.Args[1:]) != "[[1][0] 16777219 16777220]" {
 		t.Fatalf("ilk yanlış öğe ve konumu: %v", err)

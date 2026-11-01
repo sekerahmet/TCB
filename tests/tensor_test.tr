@@ -36,6 +36,9 @@ TR_test "15.1 ara kural: float32'de tam yazılamayan tam sayıdan tensör kurulm
     TR_assert_equal("H6954", TR_error_code { TR_Tensor([16777217]) })
     TR_assert_equal("H6954", TR_error_code { TR_Tensor([-16777217]) })
     TR_assert_equal("H6954", TR_error_code { TR_Tensor([[1, 2], [3, 33554433]]) })
+    TR_assert_equal("H6954", TR_error_code { TR_Tensor(16777217) })
+    TR_assert_equal("H6954", TR_error_code { TR_Tensor(-16777217) })
+    TR_assert_equal([16777216.0, -16777216.0], [TR_Tensor(16777216).TR_tolist, TR_Tensor(-16777216).TR_tolist])
     # 2²⁴ ve float32'de tam yazılan büyük sayılar kurulur.
     TR_assert_equal([16777216.0, -16777216.0], TR_Tensor([16777216, -16777216]).TR_tolist)
     TR_assert_equal([16777218.0, 33554432.0], TR_Tensor([16777218, 33554432]).TR_tolist)
