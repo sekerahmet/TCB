@@ -38,6 +38,17 @@ func TestIntListInexactInFloat32(t *testing.T) {
 	if e, ok := messages.As(err0); !ok || len(e.Args) != 4 || fmt.Sprint(e.Args[1:]) != "[ 16777219 16777220]" {
 		t.Fatalf("tek tam sayının iletisi: %v", err0)
 	}
+	// Yuvarlanmış değer float32'nin tam değeridir; büyük sayıda en kısa yazımı tam sayı değildir.
+	for _, c := range []struct{ code, want string }{
+		{"TR_Tensor(9007199254740993)", "[ 9007199254740993 9007199254740992]"},
+		{"TR_Tensor([1, 9007199254740993])", "[[1] 9007199254740993 9007199254740992]"},
+		{"TR_Tensor(-9223372036854775807)", "[ -9223372036854775807 -9223372036854775808]"},
+	} {
+		_, err := run(t, c.code)
+		if e, ok := messages.As(err); !ok || fmt.Sprint(e.Args[1:]) != c.want {
+			t.Errorf("%s: %v, beklenen değerler %s", c.code, err, c.want)
+		}
+	}
 	if got := mustRun(t, `TR_print(TR_Tensor(16777216).TR_tolist, TR_Tensor(-16777216).TR_tolist, TR_Tensor(16777218).TR_tolist, TR_Tensor(16777217.0).TR_tolist)`); got != "16777216.0 -16777216.0 16777218.0 16777216.0\n" {
 		t.Fatalf("tek tam sayının sınırları %q", got)
 	}

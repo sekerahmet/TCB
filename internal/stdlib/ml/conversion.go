@@ -93,9 +93,11 @@ func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 }
 
 // inexactIntError float32'de tam yazılamayan tam sayıdan tensör kurmanın hatasıdır (H6954);
-// position listedeki konumdur, tek sayıda boş.
+// position listedeki konumdur, tek sayıda boş. rounded float32'nin tam değeridir (en kısa
+// float32 yazımı, en kısa float64 yazımı da değil: 2⁵³ + 1 için 9007199254740992, −2⁶³ için
+// -9223372036854775808).
 func inexactIntError(fn any, position string, n int64) error {
-	rounded := strconv.FormatFloat(float64(float32(n)), 'f', -1, 32)
+	rounded := strconv.FormatFloat(float64(float32(n)), 'f', 0, 64) // 2²⁴'ün üstünde float32 tam sayıdır
 	return messages.New(messages.H6954, fn, position, n, rounded)
 }
 
