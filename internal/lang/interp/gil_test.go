@@ -3,7 +3,7 @@ package interp
 import (
 	"fmt"
 	"io"
-	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -47,26 +47,35 @@ func lockWaits(t *testing.T, busy int) (aheads []int, tickets []uint64, waits []
 // görev kilidi en çok (n + 1) × 5 ms ve n + 1 deyim içinde alır. Süre kilit isteği ile alınması
 // arasında, acquireGIL'in içinde tekdüze saatle ölçülür (TR_time_ms duvar saatidir, 10-11 ms
 // sıçrar); iki ve üç meşgul görevle. Eskiden devir 256 turda bir ve sıra yoktu (sync.Mutex).
-// Sıra her koşuda kesin sınanır. Süre işletim sisteminin zamanlamasına da bağlıdır: yüklü makinede
-// (paralel testler) tek bir koşu aşabilir, bu yüzden üç koşudan biri sınıra sığmalıdır; kuralı
-// bozan bir değişiklik (sayıyla ya da hiç devretmek) üçünü de aşar.
+// Sıra her koşuda kesin sınanır. Süre işletim sisteminin zamanlamasına da bağlıdır: Windows'ta (saat
+// adımı ~0,5 ms, yüklü makinede paralel testler) üç koşu yapılır ve biri sınıra sığmalıdır, kuralı
+// bozan bir değişiklik (sayıyla ya da hiç devretmek) üçünü de aşar; Linux'ta tek koşu ve kesin
+// sınır. Her koşunun ölçümü testin çıktısına yazılır (go test -v).
 func TestLockIsTakenInArrivalOrderWithinTheDelay(t *testing.T) {
+	runs := 3
+	if runtime.GOOS == "linux" {
+		runs = 1
+	}
 	for _, busy := range []int{2, 3} {
-		var over []string
-		for attempt := 0; attempt < 3; attempt++ {
-			over = lockWaitsOverLimit(t, busy)
+		within := false
+		var last []string
+		for run := 1; run <= runs; run++ {
+			over := lockWaitsOverLimit(t, busy, run)
 			if len(over) == 0 {
-				break
+				within = true
+			} else {
+				last = over
 			}
 		}
-		if len(over) > 0 {
-			t.Errorf("%d meşgul görev: üç koşuda da sınır aşıldı; sonuncusu:\n%s", busy, strings.Join(over, "\n"))
+		if !within {
+			t.Errorf("%d meşgul görev: %d koşunun hiçbiri sınıra sığmadı; sonuncusu:\n%s", busy, runs, strings.Join(last, "\n"))
 		}
 	}
 }
 
-// lockWaitsOverLimit bir koşuda sırayı ve ilerlemeyi kesin sınar; süre sınırını aşan beklemeleri verir.
-func lockWaitsOverLimit(t *testing.T, busy int) []string {
+// lockWaitsOverLimit bir koşuda sırayı ve ilerlemeyi kesin sınar, ölçümü testin çıktısına yazar ve
+// süre sınırını aşan beklemeleri verir.
+func lockWaitsOverLimit(t *testing.T, busy, run int) []string {
 	t.Helper()
 	aheads, tickets, waits, turns := lockWaits(t, busy)
 	if len(tickets) < 20 {
@@ -87,8 +96,7 @@ func lockWaitsOverLimit(t *testing.T, busy int) []string {
 		}
 		worst = max(worst, w-time.Duration(aheads[i]+1)*lockHold)
 	}
-	if os.Getenv("TR_LOCK_WAIT_REPORT") != "" {
-		t.Logf("%d meşgul görev: %d bekleme, sınırın en çok %v üstünde (eksi: altında); turlar %s", busy, len(waits), worst, turns)
-	}
+	t.Logf("%s, %d meşgul görev, %d. koşu: %d bekleme, sınırı aşan %d; (n + 1) × 5 ms'nin en çok %v üstünde (eksi: altında), pay %v; turlar %s",
+		runtime.GOOS, busy, run, len(waits), len(over), worst, lockWaitSlack, turns)
 	return over
 }
