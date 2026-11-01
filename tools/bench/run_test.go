@@ -50,6 +50,15 @@ func TestRunPyArguments(t *testing.T) {
 	}
 }
 
+// run.py rewrites two lines of example 36 to build the model comparison; a change in the example's
+// spelling broke it silently once (2026-11-01: the identity-code migration left it looking for
+// "sabit ADIM = 300", and every CPU baseline since recorded no model result).
+func TestRunPyModelProgramBuilds(t *testing.T) {
+	if out, err := run(t, "--check-model"); err != nil {
+		t.Fatalf("--check-model: %v\n%s", err, out)
+	}
+}
+
 // Every test run.py lists has a program in each of the three languages.
 func TestRunPyTestsExist(t *testing.T) {
 	out, err := run(t, "--list")

@@ -47,8 +47,8 @@ def model_program(tmp, steps):
     """A copy of the TR character model example that trains `steps` steps and reads the data from ROOT."""
     with open(os.path.join(ROOT, MODEL_TR), encoding="utf-8") as f:
         source = f.read()
-    for old, new in (("sabit ADIM = 300", f"sabit ADIM = {steps}"),
-                     ('dosya_oku("../../"', 'dosya_oku("' + ROOT.replace("\\", "/") + '/"')):
+    for old, new in (("TR_const ADIM = 300", f"TR_const ADIM = {steps}"),
+                     ('TR_read_file("../../"', 'TR_read_file("' + ROOT.replace("\\", "/") + '/"')):
         if source.count(old) != 1:
             raise SystemExit(f"{MODEL_TR}: '{old}' not found once; update model_program")
         source = source.replace(old, new)
@@ -105,6 +105,8 @@ def parser():
     ap.add_argument("--only", choices=["tr", "py", "go"], help="run only this language")
     ap.add_argument("--json", help="write the results to this file")
     ap.add_argument("--list", action="store_true", help="print the test names and exit")
+    ap.add_argument("--check-model", action="store_true",
+                    help=f"build the {MODEL} TR program without running it and exit (fails if the example changed)")
     return ap
 
 
@@ -112,6 +114,10 @@ def main():
     a = parser().parse_args()
     if a.list:
         print("\n".join(TESTS + [MODEL]))
+        return
+    if a.check_model:
+        with tempfile.TemporaryDirectory() as tmp:
+            model_program(tmp, 1)
         return
     if a.repeat < 1:
         parser().error("--repeat must be at least 1")
