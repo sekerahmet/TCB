@@ -59,7 +59,7 @@ func TestRunPyModelProgramBuilds(t *testing.T) {
 	}
 }
 
-// Every test run.py lists has a program in each of the three languages.
+// Every test run.py lists has a program in each of the four languages.
 func TestRunPyTestsExist(t *testing.T) {
 	out, err := run(t, "--list")
 	if err != nil {
@@ -73,6 +73,7 @@ func TestRunPyTestsExist(t *testing.T) {
 		return string(b)
 	}
 	goSrc, pySrc := read(filepath.Join("go", "compare.go")), read(filepath.Join("py", "compare.py"))
+	rsSrc := read(filepath.Join("rs", "compare.rs"))
 	names := strings.Fields(out)
 	if len(names) == 0 {
 		t.Fatal("run.py --list printed nothing")
@@ -95,6 +96,9 @@ func TestRunPyTestsExist(t *testing.T) {
 		}
 		if !strings.Contains(pySrc, `"`+name+`"`) {
 			t.Errorf("%s: not in py/compare.py", name)
+		}
+		if !strings.Contains(rsSrc, `"`+name+`" =>`) {
+			t.Errorf("%s: no arm in rs/compare.rs", name)
 		}
 	}
 }

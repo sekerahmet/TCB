@@ -1,13 +1,13 @@
-"""TR speed comparison: runs the same programs in TR, Python and Go and compares the times.
+"""TR speed comparison: runs the same programs in TR, Python, Go and Rust and compares the times.
 
 Usage (from the repository root):  python tools/bench/run.py [--repeat 3] [--only tr] [--threads 2] [--list] [test ...]
 
 Each program prints its own measured time (ms) and a result value; the result values are expected to
-be the same in all three languages. The interpreter and the Go program are rebuilt into a temporary
+be the same in all languages. Rust runs when rustc is on PATH. The interpreter and the Go program are rebuilt into a temporary
 folder on every run (GOAMD64 and TR_CPU_AVX2 from the environment apply; AVX2 kernels are chosen at
 run time). The Python version of matris_yerlesik needs numpy; without it the test is skipped.
 """
-import argparse, json, os, re, subprocess, sys, tempfile, time
+import argparse, json, os, re, shutil, subprocess, sys, tempfile, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BENCH = os.path.join(ROOT, "tools", "bench")
@@ -26,6 +26,16 @@ def build(tmp):
     subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=ROOT, check=True, env=env)
     subprocess.run(["go", "build", "-o", go, "./tools/bench/go"], cwd=ROOT, check=True, env=env)
     return tr, go
+
+
+def build_rust(tmp):
+    """The Rust version, or None when there is no rustc (the Rust column is then left out)."""
+    if shutil.which("rustc") is None:
+        return None
+    rs = os.path.join(tmp, "compare_rs" + EXE)
+    subprocess.run(["rustc", "-C", "opt-level=3", "-o", rs, os.path.join(BENCH, "rs", "compare.rs")],
+                   cwd=ROOT, check=True)
+    return rs
 
 
 def run(command, repeat):
@@ -102,7 +112,7 @@ def parser():
     ap.add_argument("--threads", type=int, default=2,
                     help=f"threads for {MODEL} (GOMAXPROCS in TR, torch.set_num_threads; default 2)")
     ap.add_argument("--repeat", type=int, default=3, help="runs per test; the best time counts (default 3)")
-    ap.add_argument("--only", choices=["tr", "py", "go"], help="run only this language")
+    ap.add_argument("--only", choices=["tr", "py", "go", "rs"], help="run only this language (rs: Rust, needs rustc)")
     ap.add_argument("--json", help="write the results to this file")
     ap.add_argument("--list", action="store_true", help="print the test names and exit")
     ap.add_argument("--check-model", action="store_true",
@@ -131,13 +141,19 @@ def main():
     if a.threads < 1:
         parser().error("--threads must be at least 1")
     tests = a.tests or TESTS + [MODEL]
-    langs = [a.only] if a.only else ["tr", "py", "go"]
+    langs = [a.only] if a.only else ["tr", "py", "go", "rs"]
     results = {}
     with tempfile.TemporaryDirectory() as tmp:
         tr, go = build(tmp)
+        rs = build_rust(tmp) if "rs" in langs else None
+        if "rs" in langs and rs is None:
+            if a.only == "rs":
+                parser().error("--only rs needs rustc")
+            print("rustc not found: the Rust column is left out", flush=True)
+            langs.remove("rs")
         for t in tests:
             if t == MODEL:
-                if a.only == "go":
+                if a.only in ("go", "rs"):
                     continue
                 results[t] = model(tr, tmp, a.threads, a.repeat, langs)
                 cells = [f"{lang.upper():>2} {'-' if ms is None else ms:>7} ms/step" for lang, (ms, _) in results[t].items()]
@@ -151,6 +167,7 @@ def main():
                 "tr": [tr, os.path.join(BENCH, "tr", t + ".tr")],
                 "py": [sys.executable, os.path.join(BENCH, "py", "compare.py"), t],
                 "go": [go, t],
+                "rs": [rs, t],
             }
             results[t] = {lang: run(commands[lang], a.repeat) for lang in langs}
             cells = []
