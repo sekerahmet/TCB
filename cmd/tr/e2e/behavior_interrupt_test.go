@@ -107,7 +107,7 @@ func TestInterruptGracefulExit(t *testing.T) {
 		`        TR_write_file("hazir.txt", "1")`,
 		`        TR_for { }`,
 		`    } TR_catch h {`,
-		`        TR_write_file("yakalandi.txt", h)`,
+		`        TR_write_file("yakalandi.txt", TR_String(h))`,
 		`    }`,
 		`}`,
 		`iş()`,

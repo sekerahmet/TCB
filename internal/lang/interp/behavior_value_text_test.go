@@ -86,10 +86,10 @@ y.uygula((x) => TR_String([x]))
 func TestThrownValueTextIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\nTR_func at() { TR_throw [TR_true, TR_none] }\n")}})
 	out := runCoded(t, `TR_import "tr/kitap" TR_as k
-TR_try { TR_throw TR_true } TR_catch e { TR_print(e, e == "true") }
+TR_try { TR_throw TR_true } TR_catch e { TR_print(e, TR_String(e) == "true") }
 TR_try { TR_throw [TR_none, TR_Int] } TR_catch e { TR_print(e) }
 TR_try { k.at() } TR_catch e { TR_print(e) }
-TR_try { TR_assert(TR_false, TR_none) } TR_catch e { TR_print(e.TR_ends_with(": none")) }
+TR_try { TR_assert(TR_false, TR_none) } TR_catch e { TR_print(TR_String(e).TR_ends_with(": none")) }
 `, nil)
 	want := "true true\n[none, Int]\n[true, none]\ntrue\n"
 	if out != want {

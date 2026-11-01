@@ -56,7 +56,7 @@ TR_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce ç
     TR_assert_equal("H2132", TR_error_code { TR_read_file("data/olmayan_dosya.txt") })
     # İleti dosyanın yolunu söyler; işletim sisteminin kendi metni sızmaz.
     TR_var m = ""
-    TR_try { TR_read_file("data/olmayan_dosya.txt") } TR_catch h { m = h }
+    TR_try { TR_read_file("data/olmayan_dosya.txt") } TR_catch h { m = TR_String(h) }
     TR_assert(m.TR_contains("\"data/olmayan_dosya.txt\""), m)
     TR_assert(TR_not m.TR_contains("system cannot"), m)
     TR_assert_equal("H2130", TR_error_code { TR_read_file("data") })
@@ -69,9 +69,9 @@ TR_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham met
     TR_assert_equal("H2489", TR_error_code { TR_write_file("D:\new\rapor.txt", "x") })
     # Önerilen ham metin, iletinin dilinden bağımsız olarak yolun kendisidir.
     TR_var m = ""
-    TR_try { TR_read_file("C:\tokenizer.json") } TR_catch h { m = h }
+    TR_try { TR_read_file("C:\tokenizer.json") } TR_catch h { m = TR_String(h) }
     TR_assert(m.TR_contains("`C:\\tokenizer.json`"), m)
-    TR_try { TR_write_file("D:\new\rapor.txt", "x") } TR_catch h { m = h }
+    TR_try { TR_write_file("D:\new\rapor.txt", "x") } TR_catch h { m = TR_String(h) }
     TR_assert(m.TR_contains(`D:\new\rapor.txt`), m)
     TR_assert_equal("H2489", TR_error_code { TR_load_tensors("a\tb.trt") })
     TR_assert_equal("H2489", TR_error_code { TR_load_tokenizer("a\tb.json") })

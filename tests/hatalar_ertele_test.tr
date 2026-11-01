@@ -3,9 +3,9 @@
 
 TR_test "8.1 dene / yakala; yakalanan hatanın adı yazılır" {
     TR_var yakalanan = ""
-    TR_try { TR_throw "a" } TR_catch h { yakalanan = h }
+    TR_try { TR_throw "a" } TR_catch h { yakalanan = TR_String(h) }
     TR_assert_equal("a", yakalanan)
-    TR_try { TR_throw "b" } TR_catch (e) { yakalanan = e }
+    TR_try { TR_throw "b" } TR_catch (e) { yakalanan = TR_String(e) }
     TR_assert_equal("b", yakalanan)
 }
 
@@ -17,7 +17,7 @@ TR_test "8.1 hata yoksa yakala bloğu çalışmaz" {
 
 TR_test "8.2 fırlat her değeri hata metnine çevirir" {
     TR_var yakalanan = TR_none
-    TR_try { TR_throw {"kod": 5} } TR_catch h { yakalanan = h }
+    TR_try { TR_throw {"kod": 5} } TR_catch h { yakalanan = TR_String(h) }
     TR_assert_equal(TR_String, TR_Type(yakalanan))
     TR_assert_equal(`{"kod": 5}`, yakalanan)
 }
@@ -26,7 +26,7 @@ TR_test "8.3 çalışma zamanı hataları yakalanabilir; mesaj satır bilgisi i�
     TR_assert_equal("H2469", TR_error_code { TR_var z = [1] - 1 })
     # Satır bilgisi iletinin başındadır ("Satır 28: ..."): sözcük dosyanın dilindedir, numara değil.
     TR_var mesaj = ""
-    TR_try { TR_var z = [1] - 1 } TR_catch h { mesaj = h }
+    TR_try { TR_var z = [1] - 1 } TR_catch h { mesaj = TR_String(h) }
     TR_var önek = mesaj.TR_split(":")[0]
     TR_assert("0123456789".TR_contains(önek[önek.TR_length - 1]), mesaj)
 }
@@ -35,7 +35,7 @@ TR_test "8.3 hata fonksiyon çağrılarından yukarı yayılır" {
     TR_func iç() { TR_throw "derinde" }
     TR_func dış() { iç() }
     TR_var mesaj = ""
-    TR_try { dış() } TR_catch h { mesaj = h }
+    TR_try { dış() } TR_catch h { mesaj = TR_String(h) }
     TR_assert_equal("derinde", mesaj)
 }
 
@@ -110,7 +110,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
         TR_return 1
     }
     TR_var m = ""
-    TR_try { başarılı() } TR_catch h { m = h }
+    TR_try { başarılı() } TR_catch h { m = TR_String(h) }
     TR_assert_equal("ertele içinde hata", m)
     TR_assert_equal(["gövde"], iz)
     # Fonksiyon zaten hata verdiyse ilk hata korunur, ertelenen işin hatası ona eklenir
@@ -119,7 +119,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
         TR_defer { TR_print(1 / 0) }
         TR_throw "gövde hatası"
     }
-    TR_try { iki_hata() } TR_catch h { m = h }
+    TR_try { iki_hata() } TR_catch h { m = TR_String(h) }
     # Parçalar sırayla: gövdenin hatası, sıfıra bölme, ilk ertelenen işin hatası.
     TR_var parçalar = m.TR_split("; ")
     TR_assert_equal(3, parçalar.TR_length, m)
@@ -130,7 +130,7 @@ TR_test "9.4 ertele içindeki hata yutulmaz" {
         TR_defer { iz.TR_append("ikinci temizlik") }
         TR_defer { TR_throw "bozuk" }
     }
-    TR_try { temizlik() } TR_catch h { m = h }
+    TR_try { temizlik() } TR_catch h { m = TR_String(h) }
     TR_assert_equal(["gövde", "ikinci temizlik"], iz)
 }
 
@@ -148,7 +148,7 @@ TR_test "9.3 ertelenen blok adları kapsam biterkenki değerleriyle okur, kayıt
 
 TR_test "8.4 yakalanan hata metni değişmez; denetim karakterleri yalnızca terminale yazılırken görünür olur" {
     TR_var m = ""
-    TR_try { TR_throw "kötü\rveri" } TR_catch h { m = h }
+    TR_try { TR_throw "kötü\rveri" } TR_catch h { m = TR_String(h) }
     TR_assert(m.TR_contains("\r"), "yakalanan metin kaçırılmamalı")
     TR_assert_equal("kötü\rveri", m)
 }
@@ -159,14 +159,14 @@ TR_test "8.5 ileti fırlatılınca hata kendi koduyla çıkar; doğrula iletiyi 
     TR_assert_equal(TR_none, TR_error_code { 1 + 1 })
     # Düz metin hatanın kodu yoktur: hata_kodu koda dönmez, hatayı olduğu gibi yeniden fırlatır.
     TR_var yeniden = ""
-    TR_try { TR_error_code { TR_throw "düz metin" } } TR_catch h { yeniden = h }
+    TR_try { TR_error_code { TR_throw "düz metin" } } TR_catch h { yeniden = TR_String(h) }
     TR_assert_equal("düz metin", yeniden)
-    TR_try { TR_error_code { TR_throw 5 } } TR_catch h { yeniden = h }
+    TR_try { TR_error_code { TR_throw 5 } } TR_catch h { yeniden = TR_String(h) }
     TR_assert_equal("5", yeniden)
     TR_var yakalanan = ""
-    TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { yakalanan = h }
+    TR_try { TR_throw TR_Message("H6903", -1) } TR_catch h { yakalanan = TR_String(h) }
     TR_assert(yakalanan.TR_contains("-1"), yakalanan)
-    TR_try { TR_Message("H6903") } TR_catch h { yakalanan = h }
+    TR_try { TR_Message("H6903") } TR_catch h { yakalanan = TR_String(h) }
     TR_assert(yakalanan.TR_contains("H6903"), yakalanan)
 }
 

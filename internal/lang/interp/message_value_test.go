@@ -59,7 +59,7 @@ func TestErrorCode(t *testing.T) {
 // gibi yeniden fırlatır (eskiden her değer H2441 veriyordu): metin, sayı, sözlük, durumlu tip değeri.
 func TestErrorCodeRethrowsACodelessError(t *testing.T) {
 	for _, thrown := range []string{`"düz metin"`, "5", `{"kod": 5}`, "Renk.Kırmızı"} {
-		source := "TR_enum Renk { Kırmızı }\nTR_var m = \"\"\nTR_try { TR_print(TR_error_code { TR_throw " + thrown + " }) } TR_catch h { m = h }\nTR_print(m)\n"
+		source := "TR_enum Renk { Kırmızı }\nTR_var m = \"\"\nTR_try { TR_print(TR_error_code { TR_throw " + thrown + " }) } TR_catch h { m = TR_String(h) }\nTR_print(m)\n"
 		out, _, err := runTROut(t, source)
 		if err != nil || strings.Contains(out, "H2441") || strings.TrimSpace(out) == "" {
 			t.Errorf("TR_throw %s: hata yeniden fırlatılıp yakalanmalı; çıktı %q, hata %v", thrown, out, err)

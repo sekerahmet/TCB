@@ -55,7 +55,7 @@ TR_test "15.2 özellikler ve görünüm metotları" {
     TR_assert_equal(TR_none, (TR_Tensor([1.0]) + TR_Tensor([2.0])).TR_grad)
     TR_var izlenen = TR_Tensor([1.0], TR_requires_grad: TR_true) * 2.0
     TR_var ileti = ""
-    TR_try { TR_var g = izlenen.TR_grad } TR_catch h { ileti = h }
+    TR_try { TR_var g = izlenen.TR_grad } TR_catch h { ileti = TR_String(h) }
     TR_assert(ileti != "")
     # Tek liste argümanı zorunludur ([] 0 boyutlu şekil); sayı argümanları şekil sayılmaz.
     TR_assert_equal([], TR_Tensor([3.0]).TR_reshape([]).TR_shape)
@@ -769,7 +769,7 @@ TR_test "15.4 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     TR_try {
         TR_mixed_precision("bf16") { TR_throw "dur" }
     } TR_catch h {
-        TR_assert(h.TR_contains("dur"))
+        TR_assert(TR_String(h).TR_contains("dur"))
     }
     TR_assert_equal([[1.001]], (x @ y).TR_tolist)
     # Softmax, kayıp ve indirgemeler 16 bitlik girdiyi float32'de hesaplayıp float32 verir;
@@ -809,7 +809,7 @@ TR_test "15.4 normun çıktı türü (tür:) ve hesap_türü()" {
         TR_assert_equal("bf16", TR_rms_norm(x, w, TR_dtype: TR_compute_dtype()).TR_dtype)
         TR_assert_equal("float32", TR_rms_norm(x, w).TR_dtype)
     }
-    TR_try { TR_rms_norm(x, TR_dtype: "int3") } TR_catch h { TR_assert(h.TR_contains("int3")) }
+    TR_try { TR_rms_norm(x, TR_dtype: "int3") } TR_catch h { TR_assert(TR_String(h).TR_contains("int3")) }
 }
 
 TR_test "15.4 karışık_hassasiyet göreve bağlıdır; eşzamanlı görevlere sızmaz" {
@@ -1181,7 +1181,7 @@ TR_test "15.6b yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_assert_equal([2, 5], (TR_Tensor([[1.0], [2.0]]) * t).TR_shape)
     TR_assert_equal("H6100", TR_error_code { t + TR_Tensor([1.0, 2.0]) })
     TR_var ileti = ""
-    TR_try { TR_var s = t + TR_Tensor([1.0, 2.0]) } TR_catch h { ileti = h }
+    TR_try { TR_var s = t + TR_Tensor([1.0, 2.0]) } TR_catch h { ileti = TR_String(h) }
     TR_assert(ileti.TR_contains("5 ≠ 2"), ileti)
 }
 

@@ -224,9 +224,9 @@ TR_var p = TR_load_tokenizer("`+path+`")
 TR_var p2 = TR_load_tokenizer("`+path+`")
 TR_var iyi = p.TR_encode("merhaba dünya")
 TR_var h1 = ""
-TR_try { p.TR_encode("`+bad+`") } TR_catch e { h1 = e }
+TR_try { p.TR_encode("`+bad+`") } TR_catch e { h1 = TR_String(e) }
 TR_var h2 = ""
-TR_try { p.TR_encode(["iyi", "`+bad+`"]) } TR_catch e { h2 = e }
+TR_try { p.TR_encode(["iyi", "`+bad+`"]) } TR_catch e { h2 = TR_String(e) }
 `)
 	})
 	if strings.Count(warning, "Uyarı: parçalayıcı") != 1 || !strings.Contains(warning, "riskli desen") {

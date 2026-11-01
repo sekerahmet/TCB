@@ -52,7 +52,7 @@ TR_test "ortalama" {
 
 TR_test "boş listede hata fırlatılır" {
     TR_var mesaj = ""
-    TR_try { ortalama_al([]) } TR_catch h { mesaj = h }
+    TR_try { ortalama_al([]) } TR_catch h { mesaj = TR_String(h) }
     TR_assert(mesaj.TR_contains("boş liste"), "beklenen hata gelmedi: \(mesaj)")
 }
 

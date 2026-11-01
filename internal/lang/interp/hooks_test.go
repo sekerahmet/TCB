@@ -116,8 +116,8 @@ func TestIntEdges(t *testing.T) {
 		TR_var en_kucuk = -9223372036854775807 - 1
 		TR_var b = -1
 		TR_var sonuclar = []
-		TR_try { sonuclar.TR_append(en_kucuk // b) } TR_catch h { sonuclar.TR_append(h) }
-		TR_try { sonuclar.TR_append(-en_kucuk) } TR_catch h { sonuclar.TR_append(h) }
+		TR_try { sonuclar.TR_append(en_kucuk // b) } TR_catch h { sonuclar.TR_append(TR_String(h)) }
+		TR_try { sonuclar.TR_append(-en_kucuk) } TR_catch h { sonuclar.TR_append(TR_String(h)) }
 		TR_try { TR_var x = en_kucuk
 			x *= -1 } TR_catch h { sonuclar.TR_append("bileşik taşma") }
 		sonuclar.TR_append(9007199254740993 == 9007199254740992)

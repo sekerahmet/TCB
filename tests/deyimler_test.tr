@@ -325,7 +325,7 @@ TR_test "5.14 tanımsız ad çalışmadan önce bulunur; dinamik adlar yanlış 
     TR_assert_equal(2, önce())
     TR_assert_equal([2, 3], [1, 2].TR_map((x) => x + 1))
     TR_var yakalanan = ""
-    TR_try { TR_throw "x" } TR_catch h { yakalanan = h }
+    TR_try { TR_throw "x" } TR_catch h { yakalanan = TR_String(h) }
     TR_assert_equal("x", yakalanan)
     TR_assert_equal([0, 2], [k * 2 TR_for k TR_in 0..2])
     TR_struct Sayaç { n: TR_Int = 0; TR_func artır() { TR_self.n += 1 } }
