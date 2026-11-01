@@ -50,6 +50,12 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
+- **`tests-for`'un `run:` satırları, denetleyiciden geçen TR programlarını koşan testleri saymıyor.** 2026-10-30, 4a2 ilk dilim bulut oturumu bildirdi (DURUM'un Codegraph başlığı); ana oturum 2026-11-01'de yeniden üretti.
+  - Komut: `go run ./tools/codegraph tests-for internal/lang/checker/checker.go` [ölçüldü: main `9046c102`].
+  - Gelen: `run:` satırları `./internal/lang/checker/` ve depo taramaları.
+  - Beklenen: ayrıca `cmd/tr/e2e`'nin `TestDocTRCodeBlocks`'u (`behavior_doc_code_blocks_test.go:72`) ve `internal/stdlib/ml`'in `TestTensorIsNotACondition`'ı (`value_test.go:14`). İkisi de TR programını önce denetleyiciden geçiriyor; denetleyicinin kuralı değişince düşüyorlar. 4a2'nin ilk diliminde bu yüzden `go test ./cmd/...` atlandı.
+  - Sınıf: ince ayar. Ön denetim (`--kip=on`) bunları ayrıca yakalıyor; yanlış değişikliğe götürmüyor, geç uyarıyor.
+
 - **`dups --changed`'in "ortak ata yok" iletisi yanlış çare öneriyor.** 2026-10-30, 4a1 bulut oturumu. Komut (sığ klonda): `go run ./tools/codegraph dups --changed origin/main` → "no common ancestor (merge base) between main and HEAD ... use `--changed origin/main`": bayrak zaten verilmiş; asıl neden varsayılan tabanın yerel `main` olması (sığ klonda eski). Beklenen: ileti `--base origin/main`'i önerir (işe yarayan o).
 - **codeindex parametre tipini imzada göstermiyor ve alıcı çıkarımında kullanmıyor.** 2026-10-30, 4a1 bulut oturumu, DENETİM doğruladı. İmzada parametre tipi ve dönüş görünmüyor; parametre tipi alıcı çıkarımında kullanılmıyor (`çevre_hesapla(k: Kare)` içinde `k.kenar` ad tahminiyle bağlanıyor). Beklenen: imza tiplerle; tipli parametrenin üyesi tipinden bağlanır. (Tipli ve varsayılanlı parametrenin bozuk imzası, `"kv_baş = : TR_Int? = TR_none"`, 4a1'in ikinci diliminde düzeldi: `params.go` `defaultText` değeri ilk `=`'den sonra okuyor.)
 - **Üye yazımı yalnız `x.` önekiyle çözülüyor.** 2026-10-30, DENETİM (codegraph 1 okuması). Kapanan kritik maddeden kalan: `codeindex.IdentityQuery` yalnız `x.TR_map`'i tanıyor; `model.TR_forward`, `l.TR_map` ve `.TR_map` metin aramasına düşüyor. Beklenen: alıcı adı ne olursa olsun (ve alıcısız `.TR_x`) üye koduna çözülür; sınıfı koruyan test her alıcı biçimini sorar.
