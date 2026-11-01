@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -291,10 +292,9 @@ func TestCodeSlotsResolveToIdentities(t *testing.T) {
 				}
 				switch want.Class() {
 				case ClassFunction:
-					// Çağrı ya da sondaki blok (6.7): `{#no_grad} {{ ... }}` blok yazımıdır.
-					block := strings.HasPrefix(tmpl[m[1]:], " {{")
-					if !block && (m[1] >= len(tmpl) || tmpl[m[1]] != '(') {
-						t.Errorf("%s.json %s {#%s} (%s): fonksiyon kod yuvasından hemen sonra '(' ya da sondaki blok (' {{') gelmeli: %s", lang, key, slot, want, tmpl)
+					block, problem := functionSlotFollow(tmpl[m[1]:], want)
+					if problem != "" {
+						t.Errorf("%s.json %s {#%s} (%s): %s: %s", lang, key, slot, want, problem, tmpl)
 					}
 					if call := spelling + map[bool]string{true: " {", false: "("}[block]; !strings.Contains(rendered, call) {
 						t.Errorf("%s.json %s {#%s}: üretilen metinde %q yok: %s", lang, key, slot, call, rendered)
@@ -311,6 +311,58 @@ func TestCodeSlotsResolveToIdentities(t *testing.T) {
 		}
 		if count == 0 {
 			t.Fatalf("%s.json içinde hiç {#ad} bulunamadı", lang)
+		}
+	}
+}
+
+// functionSlotFollow fonksiyon kod yuvasından sonra gelenin (rest) geçerli bir yazım olduğunu
+// denetler: çağrının '('i, ya da yalnız son konumlu parametresi fonksiyon alan yerleşikte sondaki
+// blok (6.7; şablonda " {{"). block sondaki blok yazımıdır; problem boş değilse yazım yanlıştır.
+func functionSlotFollow(rest string, k Code) (block bool, problem string) {
+	if strings.HasPrefix(rest, " {{") {
+		if !takesTrailingBlock(k) {
+			return true, "fonksiyon sondaki blok almıyor (son konumlu parametresi fonksiyon değil); yuvadan sonra '(' gelmeli"
+		}
+		return true, ""
+	}
+	if !strings.HasPrefix(rest, "(") {
+		return false, "fonksiyon kod yuvasından hemen sonra '(' ya da sondaki blok (' {{') gelmeli"
+	}
+	return false, ""
+}
+
+// takesTrailingBlock k'nin son konumlu parametresi fonksiyon alıyor mu (sondaki blok, 6.7)?
+func takesTrailingBlock(k Code) bool {
+	d, ok := DefinitionOf(k)
+	if !ok || len(d.Signature.Params) == 0 {
+		return false
+	}
+	return slices.Contains(d.Signature.Params[len(d.Signature.Params)-1].Types, TypeFunction)
+}
+
+// Kural (6.7, iletiler README'si): fonksiyon yuvasından sonra çağrı ya da, yalnız sondaki bloğu
+// alan yerleşikte, blok gelir: `{#no_grad} {{ ... }}` geçer, `{#print} {{ ... }}` ve parantezsiz
+// yuva geçmez.
+func TestFunctionSlotFollow(t *testing.T) {
+	cases := []struct {
+		rest    string
+		k       Code
+		block   bool
+		problem bool
+	}{
+		{"(x)", FnPrint, false, false},
+		{"(m, d, t)", FnWhere, false, false},
+		{" {{ t[i] = d }}`", FnNoGrad, true, false},
+		{"(f)", FnNoGrad, false, false},
+		{" {{ x }}`", FnPrint, true, true},
+		{" {{ x }}`", FnWhere, true, true},
+		{" x", FnPrint, false, true},
+		{"", FnPrint, false, true},
+	}
+	for _, c := range cases {
+		block, problem := functionSlotFollow(c.rest, c.k)
+		if block != c.block || (problem != "") != c.problem {
+			t.Errorf("%s %q: (%v, %q), beklenen blok %v, hata %v", c.k, c.rest, block, problem, c.block, c.problem)
 		}
 	}
 }
