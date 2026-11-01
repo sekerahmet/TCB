@@ -43,6 +43,9 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 - **11.8'in örneği `m.nokta.x = 1` (2026-11-01, D1):** `nokta` bir kodun adı (`TR_mem_checkpoint`); status'ta aynı örnek `TestReviewedSectionsWriteIdentities`'i düşürdü. **Düzeltildi** (2026-11-01, D1 birleştikten sonra): `m.yer.x = 1`.
 
+- **18.2'nin örneği (2026-11-01, Gemini Faz 1 paralel):** "`.TR_parent` bulunduğu klasörün yoludur (tek bileşenli göreli yolda `.`, `.`'da `..`)". `..`'nın üst klasörü yazılmamış; uygulama ana cümleden `../..` veriyor (eskiden `.`, sessiz yanlış) [kanıtlı: `internal/stdlib/files/path.go:117-125`; test: `tests/dosya_ve_yol_test.tr`]. Öneri: örneğe "`..`'da `../..`" eklenir.
+
 ## Olağan
 
 - **8.5, "nedenler zincirinde dıştan içe ilk kod" (2026-11-01, D1):** `TR_error_code`'un uygulaması `messages.Root` ile en içteki kodu veriyor [kanıtlı: `internal/lang/messages/error.go:150`]; madde dıştan içe ilk kodu söylüyor (`docs/spec/08_hata_yonetimi.md:45`). 8.2'nin `TR_cause`'u gelince bakılır.
+- **16.5, `int32` sınırı (2026-11-01, Gemini Faz 1 paralel):** madde "işaretsiz 16 ya da 32 bit, işaretli 32 ya da 64 bit" okunur diyor [kanıtlı: `docs/spec/16_veri_parcalayici.md:40`]; `int32`'ye sığmayan `<u4` ve `<i8` değeri okumada H5086 ile reddediliyor [kanıtlı: `internal/compute/dataload/shard.go:278`]. Gürültülü, sessiz yanlış değil; dil tanımı sınırı söylemiyor. Gemini'nin raporu bu sınırı dil tanımına mal etti, metinde yok. Öneri: turda ya sınır maddeye yazılır ya da okuyucu `int64`'e geçer (16.7'nin tensörü zaten `int64`).

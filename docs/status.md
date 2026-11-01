@@ -70,7 +70,7 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ## 3. Tipler ve değerler
 
-Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). Sonra verilen kararlar (yukarıdaki liste) DENETİM'den geçti, Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/tipler_test.tr` altındaki 3. bölüm testlerinden yalnız 3.6 testi (`tests/tipler_test.tr:116-117`) eski kuralı (karışık tipli liste) sınıyor; doğruluk sınaması (3.10), çıplak ad anahtarı (3.7) ve açıklamasız değişkenin tipi (3.13) yeni kurallara geçti [kanıtlı: `tests/tipler_test.tr:116-117, 234-244, 430-448, 537-549`]; karışık tipli liste testi kural uygulanırken yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
+Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'den geçti, bulguları işlendi (2026-10-27); kararlar Gemini'nin 1–7 araştırmasından geçti (DENETİM doğruladı, `84ee01b8`). Sonra verilen kararlar (yukarıdaki liste) DENETİM'den geçti, Gemini'nin araştırması bekleniyor. TR bugün dinamik tipli; tip açıklamalarını yalnız çalışmadan önceki denetleyici kullanıyor. `tests/tipler_test.tr` altındaki 3. bölüm testlerinden yalnız 3.6 testi (`tests/tipler_test.tr:116-117`) eski kuralı (karışık tipli liste) sınıyor; doğruluk sınaması (3.10), çıplak ad anahtarı (3.7) ve açıklamasız değişkenin tipi (3.13) yeni kurallara geçti [kanıtlı: `tests/tipler_test.tr:116-117, 234-244, 443-461, 550-562`]; karışık tipli liste testi kural uygulanırken yeniden yazılır. 3.2, 3.3a, 3.7, 3.7a, 3.8, 3.12 ve 3.14'ün çalışma anı uygulandı (katman 2, DENETİM'den geçti, 2026-10-28; 3.2, 3.8 ve 3.12 bitti, buradan silindi); aşağıda kalanlar. Eski 3.14 (tip adının tek yazımı) 2.3a'ya düştü; eski 3.15 (katalog iletisinin tipi) hata bölümüne gider, `tests/` altındaki 3.15 testi o bölüm yazılınca taşınır.
 
 ### 3.3a
 
@@ -429,10 +429,6 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 ### 11.4
 
 - **Mevcut durum:** aktarılan modülün tip hatası program çalışmadan önce verilir, hiçbir satır çalışmaz; fikstür `tests/negative/hatali_modul_aktar.tr` (RUN-ERROR H1001 etiketiyle; fikstür sınaması modülü çalışmadan önce denetler ve hatadan önce çıktı yazılmadığına bakar) [ölçüldü: main `85a19c36`, denetim ve çalıştırma; `TestNegativeFixtures`].
-
-### 11.5
-
-- **Mevcut durum (Faz 1, 2026-11-01):** dosya bilgisi görevde ve çağrıda tutuluyor (`NewTaskVM`, `callInSource`); görevden çağrılan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okuyor (`tests/moduller_test.tr`: "11.5 modülün kodu kendi dosyasının bağlamında çalışır", "11.5 görevde çalışan modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur") [kanıtlı: `internal/lang/interp/vm.go:310`, `internal/lang/interp/calls.go:230-232`, `internal/lang/interp/module.go:168-177`; ölçüldü: `tests/moduller_test.tr` çalıştırması, `622862db`].
 
 ### 11.6
 
@@ -801,8 +797,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.42
 
-- **Mevcut durum:** sıfır eksenli (verisiz) şekil, sıfır eksenleri 1 sayarak 50 milyon öğelik koleksiyon sınırına göre denetleniyor: `TR_zeros`, `TR_ones`, `TR_randn` ve boş tensörün `.TR_reshape`'i `TR_zeros([0, 1000000000, 1000000000])`'u reddediyor; veri taşıyan tensörün sınırı ise 2³² öğe (`TR_zeros([60000000])` başarılı, `TR_zeros([100000, 100000])` "at most 4294967296 elements") [ölçüldü: main `85a19c36`, çalıştırma; `internal/lang/interp/builtins.go:283`]. GPU çekirdeklerinin indeksi 32 bit: bir uygulama sınırıdır, dil kuralı değildir; Llama 3 405B'nin gömmesi (~2,1·10⁹ öğe) bu sınıra dayanıyor.
-- **Yapılacaklar:** 50 milyon sınırı (sıfır eksenli şekillerde; veri taşıyanda 2³² sınırı da kalkar) [kanıtlı: internal/stdlib/ml/error.go:188-209, `internal/lang/interp/builtins.go:283`] kalkar, yerine int64 taşma denetimi (yukarıdaki örnek artık hata değildir; dev sonuç ayrılırken yakalanır); 64 bitlik GPU indeksi yol haritasında.
+- **Mevcut durum:** sıfır eksenli (verisiz) şekil, sıfır eksenleri 1 sayarak 50 milyon öğelik koleksiyon sınırına göre denetleniyor: `TR_zeros`, `TR_ones`, `TR_randn` ve boş tensörün `.TR_reshape`'i `TR_zeros([0, 1000000000, 1000000000])`'u reddediyor; veri taşıyan tensörün sınırı ise 2³² öğe (`TR_zeros([60000000])` başarılı, `TR_zeros([100000, 100000])` "at most 4294967296 elements") [ölçüldü: main `85a19c36`, çalıştırma; `internal/lang/interp/builtins.go:287`]. GPU çekirdeklerinin indeksi 32 bit: bir uygulama sınırıdır, dil kuralı değildir; Llama 3 405B'nin gömmesi (~2,1·10⁹ öğe) bu sınıra dayanıyor.
+- **Yapılacaklar:** 50 milyon sınırı (sıfır eksenli şekillerde; veri taşıyanda 2³² sınırı da kalkar) [kanıtlı: internal/stdlib/ml/error.go:188-209, `internal/lang/interp/builtins.go:287`] kalkar, yerine int64 taşma denetimi (yukarıdaki örnek artık hata değildir; dev sonuç ayrılırken yakalanır); 64 bitlik GPU indeksi yol haritasında.
 
 ### 15.43
 
@@ -897,10 +893,6 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 - **Yapılacaklar:** bayt düzeyinde BPE eğitimi, belirlenimci; `.TR_save` ile `tokenizer.json`; TR testi.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** dosya listesiyle eğitim; bayt düzeyi ön ayırıcı ve çözücü, eşitlik kuralı (Hugging Face ile bir kez sınanacak); özel parça eklemez.
 
-### 16.5
-
-- **Mevcut durum (Faz 1, 2026-11-01):** `.npy` okuyucusu işaretsiz 16 ve 32 bit ile işaretli 32 ve 64 biti okuyor, `int32`'ye sığmayan `<u4` ve `<i8` değerlerini reddediyor (`TestHeaderVersions`, `TestShardU32Overflow`, `tests/veri_parcalayici_test.tr`); aynı önbellek klasöründeki aynı adlı parçalar ayrı tutuluyor (`TestCache*`, `tests/veri_parcalayici_test.tr`: "16.5 aynı adlı iki parça aynı önbellek klasöründe ayrı kalır") [kanıtlı: `internal/compute/dataload/npy.go:43`, `internal/compute/dataload/shard.go:278`, `internal/compute/dataload/cache.go:290-300`; ölçüldü: `internal/compute/dataload` ve `tests/veri_parcalayici_test.tr`, `21468919`].
-
 ### 16.6
 
 - **Mevcut durum:** veriyi yazan yerleşik yok; Go tarafında işaretsiz 16 bit ve işaretli 32 bit yazıcı var (`WriteNpyU16`, `WriteNpyI32`) [kanıtlı: `internal/compute/dataload/npy.go:512,525`].
@@ -982,10 +974,6 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 - **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** kök ve UNC öneki korunuyor [ölçüldü: DENETİM]. **Gemini Koşu 5 (2026-10-29), uygulanacak:** `..` ile tabandan kaçış hatası (bugün `TR_Path("veri", "../../gizli/x.json")` tabandan çıkıyor [ölçüldü: DENETİM]).
 
-### 18.2
-
-- **Mevcut durum:** noktayla başlayan iki noktalı adlarda son uzantı (".env.local" → `".local"`), `.TR_parent`'in `.`'da `".."`, `..`'da `"../.."` ve kökte (`"/"`, `"C:/"`) kökün kendisi olması uygulanmış ve testli (`TestPathMembers`, `tests/dosya_ve_yol_test.tr`) [kanıtlı: `internal/stdlib/files/path.go:117-125`; ölçüldü: `internal/stdlib/files` ve `tests/dosya_ve_yol_test.tr`, `c3e3ea47`].
-
 ### 18.5
 
 - **Mevcut durum:** Windows'ta kalıp harf büyüklüğüne bakmıyor: `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`].
@@ -996,18 +984,10 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** `TR_Logger` ile açık dosya da silinmez.
 
-### 18.8
-
-- **Mevcut durum (Faz 1, 2026-11-01):** son bileşeni bağlantı olan yolda bağlantının kendisi değerlendiriliyor; korunan çalışma klasörüne giden bağlantı siliniyor, hedef klasöre dokunulmuyor (`TestDeleteProtections`) [kanıtlı: `internal/stdlib/files/protect.go:29-42`, `internal/stdlib/files/delete_test.go:127-133`; ölçüldü: `TestDeleteProtections`, `87f9736c`].
-
 ### 18.9
 
 - **Mevcut durum:** dolu klasörün yerine konması uygulandı (Gemini Koşu 5): eski klasör geçici ada çekiliyor, yenisi yerine konunca siliniyor, yerine koyma olmazsa eski geri konuyor; `TR_copy`'de `TestCopyDir` sınıyor, `TR_move` (18.10) aynı yolu kullanıyor [ölçüldü: main `85a19c36`, `internal/stdlib/files/copy_run.go:60-86`, dolu klasör üstüne kopyalama ve taşıma].
 - **Yapılacaklar:** arada kesilince geçici adıyla kalan eski klasörü söyleyen ileti; `TR_move`'un dolu klasörün yerine konmasını sınayan Go testi.
-
-### 18.13
-
-- **Mevcut durum (Faz 1, 2026-11-01):** bağlantıya atomik yazma geçici dosyayı hedefin klasöründe açıyor ve bağlantı ile hedef ayrı klasörlerdeyken sınanıyor (`TestWriteAtomicSymlinkAndPerm`, `TestWriteAtomicSymlinkDifferentDirs`) [kanıtlı: `internal/lang/interp/atomic_write.go:30,62-68`, `internal/lang/interp/file_stream_test.go:46-85`; ölçüldü: `TestWriteAtomicSymlinkDifferentDirs`, `b77644dd`].
 
 ### 18.16
 
