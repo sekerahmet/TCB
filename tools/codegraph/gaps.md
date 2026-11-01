@@ -50,6 +50,12 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
+- **Derleme kırıkken `tests-for` bayat grafikten boyut veriyor; uyarı gözden kaçıyor.** 2026-11-01, D1 oturumu bildirdi (devir notunun Codegraph başlığı).
+  - Durum: `undefined: messages.H2900` ile derleme düşükken `tests-for interp/values.go` "using the existing, stale graph" deyip eski boyutu (594/600) verdi; eklemeyle sınır aşılacaktı.
+  - Uyarı var, yani cevap yanlış değil; ama boyut satırı bayat olduğunu kendisi söylemiyor.
+  - Öneri: bayat grafikte boyut satırının başına "(bayat)" yazılsın.
+  - Yeniden üretilmedi: derleme kırık bir ağaç ister [kanıtsız: oturumun bildirimi].
+
 - **`tests-for`'un `run:` satırları, denetleyiciden geçen TR programlarını koşan testleri saymıyor.** 2026-10-30, 4a2 ilk dilim bulut oturumu bildirdi (DURUM'un Codegraph başlığı); ana oturum 2026-11-01'de yeniden üretti.
   - Komut: `go run ./tools/codegraph tests-for internal/lang/checker/checker.go` [ölçüldü: main `9046c102`].
   - Gelen: `run:` satırları `./internal/lang/checker/` ve depo taramaları.
