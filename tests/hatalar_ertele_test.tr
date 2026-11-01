@@ -52,6 +52,19 @@ TR_test "9.1 ertele fonksiyon bitince ters sırayla çalışır" {
     TR_assert_equal(["gövde", "2. ertele", "1. ertele"], iz)
 }
 
+TR_test "9.1 ertelenen bloğun kendisi bir kapsamdır: içindeki ertele o bloğun sonunda çalışır" {
+    TR_var iz = []
+    TR_func f() {
+        TR_defer {
+            TR_defer { iz.TR_append("iç") }
+            iz.TR_append("dış")
+        }
+        iz.TR_append("gövde")
+    }
+    f()
+    TR_assert_equal(["gövde", "dış", "iç"], iz)
+}
+
 TR_test "9.2 ertele erken sonuç ve hata durumunda da çalışır" {
     TR_var iz = []
     TR_func erken() -> TR_Int {

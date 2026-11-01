@@ -177,8 +177,13 @@ func (c *compiler) deferStatement(k *compilerScope, s *ast.DeferStatement) state
 		// Ertelenen işin hatası yutulmaz; fonksiyonun hatasına eklenir (9.4).
 		env.AddDefer(func() error {
 			if bodyBlock != nil {
-				_, _, err := bodyBlock.run(v, newEnv(capturedEnv, bodyInfo))
-				return err
+				// Ertelenen bloğun kendisi bir kapsamdır (9.1): içinde kaydedilen ertele bloğun sonunda
+				// çalışır. Fonksiyonun kökü kendi listesini çoktan boşalttığından oraya kaydedilen iş
+				// kaybolurdu.
+				blockEnv := newEnv(capturedEnv, bodyInfo)
+				blockEnv.IsFuncRoot = true
+				_, _, err := bodyBlock.run(v, blockEnv)
+				return addDeferError(err, v.runDefers(blockEnv))
 			} else if call != nil {
 				_, err := call(v, capturedEnv)
 				return err

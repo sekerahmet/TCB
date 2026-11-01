@@ -345,7 +345,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 ### 9.1
 
-- **Mevcut durum:** ertele fonksiyona bağlı: döngüde kaydedilen işler fonksiyonun sonunda toplu çalışıyor ("tur 0, tur 1, tur 2, son, kapat 2, kapat 1, kapat 0"), `TR_if` içindeki de fonksiyonu bekliyor; ertelenen bloğun içinde kaydedilen ertele hiç çalışmıyor, sessizce kayboluyor; ters sıra doğru; çağrı yazımı (`TR_defer TR_print(x)`) ve blok yazımı ikisi de çalışıyor. Depoda 15 ertele: 11 çağrı yazımı, 4 blok, 2 dosyada [ölçüldü: main `85a19c36`, `git grep -o TR_defer -- '*.tr'`].
+- **Mevcut durum:** ertele fonksiyona bağlı: döngüde kaydedilen işler fonksiyonun sonunda toplu çalışıyor ("tur 0, tur 1, tur 2, son, kapat 2, kapat 1, kapat 0"), `TR_if` içindeki de fonksiyonu bekliyor; ertelenen bloğun içinde kaydedilen ertele o bloğun sonunda çalışıyor (eskiden kayboluyordu; dal `claude/d1-dilim1-bf7baf`, `TestDeferInsideADeferredBlockRunsAtItsEnd`); ters sıra doğru; çağrı yazımı (`TR_defer TR_print(x)`) ve blok yazımı ikisi de çalışıyor. Depoda 15 ertele: 11 çağrı yazımı, 4 blok, 2 dosyada [ölçüldü: main `85a19c36`, `git grep -o TR_defer -- '*.tr'`].
 - **Yapılacaklar:** kapsamın blok oluşu; çağrı yazımı sözdizimi hatası, ileti blok yazımını önerir; göç: 11 çağrı yazımı bloğa, fonksiyona bağlı kapsamı sınayan testler ve örneğin "her tur için ayrı fonksiyon" bölümü. Sayım türü (kuralı uygulayan katman): fonksiyon, test, görev ya da program gövdesi dışındaki blokta kaydedilen ertele; durumu geri koyan bir ertele (`TR_default_device` gibi) orada sessizce erken çalışır. Bugün depoda tek yer: `tests/hatalar_ertele_test.tr:73` [ölçüldü: DENETİM].
 
 ### 9.3
