@@ -327,8 +327,11 @@ TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_assert_equal(j, TR_JSON({"a": "x", "n": [1, 2.5]}))
     TR_assert_equal("H2653", TR_error_code { TR_JSON([TR_inf]) })
     TR_assert_equal("H2653", TR_error_code { TR_JSON(TR_nan) })
-    TR_assert_equal("H2654", TR_error_code { TR_JSON({1: 2}) })
-    TR_assert_equal("H2654", TR_error_code { TR_JSON(0..3) })
+    # JSON'a giremeyen değer: tipi bilinmeyen yerde çalışma hatası (tipi bilinen yerde denetim hatası, 3.7a)
+    TR_var anahtarı_sayı = [1, {1: 2}]
+    TR_var aralıklı = [1, 0..3]
+    TR_assert_equal("H2654", TR_error_code { TR_JSON(anahtarı_sayı) })
+    TR_assert_equal("H2654", TR_error_code { TR_JSON(aralıklı) })
 }
 
 TR_test "3.7a JSON en çok 1000 kap iç içe açılır, içteki değer ne olursa olsun" {
