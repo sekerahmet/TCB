@@ -44,18 +44,18 @@ func newIndex(g *Graph) *index {
 const minTextQuery = 3
 
 // lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün
-// düğümleri döner (birden çoksa belirsizdir). Çıplak ad (`.`, `/`, `:` içermeyen) ya da kimlik/üye yazımı (`x.TR_map`,
-// IdentityQuery) TR adlarında (modül, TR bildirimi, test, ad kodu) tr index'in kuralıyla çözülür (trByName); Go ve belge
-// düğümlerinde basamaklar lookupTiers'tedir.
+// düğümleri döner (birden çoksa belirsizdir). TR adları (çıplak ad, nitelenmiş ad `Model.TR_forward` ve üye yazımı
+// `x.TR_map`, `l.TR_map`, `.TR_map`) tr index'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar
+// lookupTiers'tedir.
 func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
 		return []*Node{n}
 	}
 	identity := codeindex.IdentityQuery(q)
-	bare := !strings.ContainsAny(q, "./:") || identity
+	trQuery := !strings.ContainsAny(q, "/:")
 	var tr []*Node
 	trFolded := false // TR adayları büyük harfli sorgunun harfsiz geçişinden (Go'nun harfsiz basamağıyla aynı sırada)
-	if bare {
+	if trQuery {
 		tr, trFolded = ix.trByName(q, kinds)
 		if !trFolded && slices.ContainsFunc(tr, func(n *Node) bool { return !strings.HasPrefix(n.ID, "tr:") || n.Kind == kindFile }) {
 			return tr // modül ya da ad kodu: takma ad basamağıdır, Go adlarından önce gelir
@@ -70,8 +70,8 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		var found []*Node
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
-			if bare && ti < nameTiers && isTRName(n) || identity && strings.HasPrefix(n.ID, "tr:") {
-				continue // çıplak TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
+			if trQuery && ti < nameTiers && isTRName(n) && !(n.Kind == kindFile && n.File == q) || identity && strings.HasPrefix(n.ID, "tr:") {
+				continue // TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
 			}
 			if (len(kinds) == 0 || contains(kinds, n.Kind)) && match(n, &nf[i]) {
 				found = append(found, n)
@@ -203,16 +203,17 @@ func isTRName(n *Node) bool {
 	return strings.HasPrefix(n.ID, "tr:") || strings.HasPrefix(n.ID, "name:")
 }
 
-// trName çıplak adla çözülen bir TR düğümüdür: sınıfı ve karşılaştırılan adları (katlanmışlarıyla).
+// trName çıplak ya da nitelenmiş adla çözülen bir TR düğümüdür: sınıfı, çıplak adları ve nitelenmiş adları.
 type trName struct {
-	node   *Node
-	class  codeindex.NameClass
-	names  []string
-	folded []string
+	node      *Node
+	class     codeindex.NameClass
+	names     []string
+	folded    []string
+	qualified [][2]string
 }
 
 // trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar tr index'inkilerdir: modülün adı ve takma adları, bildirimin
-// kısa adı (kodlu bildirimde dillerdeki adları da), testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
+// kısa adı (kodlu bildirimde dillerdeki adları da) ve nitelenmiş adları, testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
 func (ix *index) trNameTable() []trName {
 	if ix.trNames != nil {
 		return ix.trNames
@@ -228,8 +229,15 @@ func (ix *index) trNameTable() []trName {
 			c.class, c.names = codeindex.ClassBuiltin, nameNodeNames(n)
 		case n.Kind == kindTRTest:
 			c.class, c.names = codeindex.ClassTest, []string{n.Name[strings.Index(n.Name, ": ")+2:]} // "modül: açıklama"
+			c.qualified = [][2]string{{n.Name, codeindex.Fold(n.Name)}}
 		case strings.HasPrefix(n.ID, "tr:"):
 			c.class, c.names = codeindex.ClassDeclaration, declNames(n)
+			c.qualified = [][2]string{{n.Name, codeindex.Fold(n.Name)}}
+			for _, a := range n.Aliases {
+				if strings.Contains(a, ".") && !codeindex.IdentityQuery(a) {
+					c.qualified = append(c.qualified, [2]string{a, codeindex.Fold(a)})
+				}
+			}
 		default:
 			continue
 		}
@@ -241,11 +249,11 @@ func (ix *index) trNameTable() []trName {
 	return ix.trNames
 }
 
-// trByName çıplak adın TR adaylarıdır; tr index'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
-// codeindex.PickByName sınıf sırası), böylece `query`, `tr index definition` ve `tr index rename` aynı aday kümesini
-// görür (deneme 7 R1, bağımsız denetim grup 6 R1). folded adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse
-// true'dur. Grafikte tr index'in bilmediği ad kodları da vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da
-// yerleşik sınıfındadır.
+// trByName bir sorgunun TR adaylarıdır; tr index'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
+// codeindex.PickByName çıplak ad sırası, codeindex.QualifiedMatch nitelenmiş ad kuralı ve codeindex.MemberQuery üye
+// yazımı geri düşüşü), böylece `query`, `tr index definition` ve `tr index rename` aynı aday kümesini görür. folded
+// adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse true'dur. Grafikte tr index'in bilmediği ad kodları da
+// vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da yerleşik sınıfındadır.
 func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool) {
 	table := ix.trNameTable()
 	for ki, k := range codeindex.NameKeys(q) {
@@ -261,12 +269,24 @@ func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool)
 			}
 			return codeindex.ClassNone
 		})
+		if len(picked) == 0 && !codeindex.IdentityQuery(q) {
+			picked = codeindex.QualifiedMatch(len(table), k, func(i int) [][2]string {
+				c := &table[i]
+				if len(kinds) > 0 && !contains(kinds, c.node.Kind) {
+					return nil
+				}
+				return c.qualified
+			})
+		}
 		for _, i := range picked {
 			found = append(found, table[i].node)
 		}
 		if len(found) > 0 {
 			return found, ki > 0
 		}
+	}
+	if mq := codeindex.MemberQuery(q); mq != "" {
+		return ix.trByName(mq, kinds)
 	}
 	return nil, false
 }

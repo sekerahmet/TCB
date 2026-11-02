@@ -211,23 +211,40 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 		if IdentityQuery(q) {
 			continue // çıplak kimlik kodun kendi düğümüdür (yerleşik ya da kitaplık bildirimi), nitelenmiş bir adın sonu değil
 		}
-		for _, match := range []func(i int) bool{
-			func(i int) bool {
-				return r.qualifiedMatch(i, func(name, folded string) bool { return k.Match(name, folded) })
-			},
-			func(i int) bool {
-				return r.qualifiedMatch(i, func(name, folded string) bool { return k.HasSuffix(name, folded, ".") })
-			},
-		} {
-			var found []int
-			for i := range nodes {
-				if (kind == "" || string(nodes[i].Kind) == kind) && nodes[i].Qualified != "" && match(i) {
+		if found := QualifiedMatch(len(nodes), k, func(i int) [][2]string {
+			if kind != "" && string(nodes[i].Kind) != kind || nodes[i].Qualified == "" {
+				return nil
+			}
+			return r.qualifiedPairs(i)
+		}); len(found) > 0 {
+			return at(found)
+		}
+	}
+	if mq := MemberQuery(q); mq != "" {
+		return r.Resolve(mq, kind)
+	}
+	return nil
+}
+
+// QualifiedMatch nitelenmiş adın adaylarını seçer; iki aracın (tr index ve codegraph) tek nitelenmiş ad kuralı:
+// önce tam nitelenmiş ad (`layers.Doğrusal.ileri`, `layers.TR_Linear.TR_forward`), tutmazsa `.` sınırında biten sonu
+// (`Doğrusal.ileri`, `TR_Linear.TR_forward`, `Model.TR_forward`).
+func QualifiedMatch(n int, k NameKey, names func(i int) [][2]string) []int {
+	for _, match := range []func(name, folded string) bool{
+		k.Match,
+		func(name, folded string) bool { return k.HasSuffix(name, folded, ".") },
+	} {
+		var found []int
+		for i := 0; i < n; i++ {
+			for _, q := range names(i) {
+				if match(q[0], q[1]) {
 					found = append(found, i)
+					break
 				}
 			}
-			if len(found) > 0 {
-				return at(found)
-			}
+		}
+		if len(found) > 0 {
+			return found
 		}
 	}
 	return nil
@@ -285,17 +302,9 @@ func idsFor(k NameKey, names, folded map[string][]string) []string {
 	return append(slices.Clone(folded[k.Key]), folded[k.Alt]...)
 }
 
-// qualifiedMatch i. düğümün nitelenmiş adı (kimlikle yazılmış Qualified ya da kodlu parçaları bir yazım dilinde) uyuyor mu.
-func (r *Reader) qualifiedMatch(i int, match func(name, folded string) bool) bool {
-	if match(r.Index.Nodes[i].Qualified, r.folded[i].qualified) {
-		return true
-	}
-	for _, q := range r.folded[i].qualifiedIn {
-		if match(q[0], q[1]) {
-			return true
-		}
-	}
-	return false
+// qualifiedPairs i. düğümün nitelenmiş adlarıdır (kimlikle yazılmış Qualified ve kodlu parçaları yazım dillerinde).
+func (r *Reader) qualifiedPairs(i int) [][2]string {
+	return append([][2]string{{r.Index.Nodes[i].Qualified, r.folded[i].qualified}}, r.folded[i].qualifiedIn...)
 }
 
 // atQuery konum sorgusunu düğüme çevirir; sütun verilmediyse satırdaki ilk başvuru alınır.

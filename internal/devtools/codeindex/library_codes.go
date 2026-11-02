@@ -32,6 +32,17 @@ func IdentityQuery(q string) bool {
 	return !strings.Contains(s, ".") && codes.IsReservedName(s)
 }
 
+// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir üye yazımıysa `x.TR_<ad>` karşılığını verir;
+// değilse boş döner. Nitelenmiş ad basamakları (`Model.TR_forward`, `layers.TR_GPT`) denendikten sonra hiçbir aday
+// bulunamazsa her alıcı `x.` gibi çözülür; iki aracın (tr index ve codegraph) tek kuralı.
+func MemberQuery(q string) string {
+	recv, member, ok := strings.Cut(q, ".")
+	if !ok || strings.EqualFold(recv, "x") || strings.ContainsAny(recv, "/:") || !IdentityQuery("x."+member) {
+		return ""
+	}
+	return "x." + member
+}
+
 // BuiltinNames bir yerleşik kodun (ya da ad kodunun) sorguda aranan adlarıdır: kimliği, okuyanın dilindeki adı, her
 // yazım dilindeki adı (LanguageNames) ve program metnindeki yazımı (SpelledNames: TR_print, x.TR_map). Kitaplık kodunun
 // dillerdeki adlarını ve yazımını kitaplıktaki bildirimi taşır (DeclNames), kod yalnız kimliğiyle aranır; iki aracın

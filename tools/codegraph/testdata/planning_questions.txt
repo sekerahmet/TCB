@@ -242,3 +242,15 @@ codegraph tests-for lib/layers.tr | first-item: layers_test: | group: this file'
 codegraph tests-for internal/lang/codes/tr.json | before: tests that walk the whole list => <- tests ( | group: tests that walk the whole list => codes.TestNamespacesUnique | src: codegraph-1 madde 5b, 2026-10-30 (veri dosyasında bütün listeyi gezen testler //go:embed üzerinden gelen genel testlerden önce)
 codegraph who-uses edithook.testsFor --by-package | contains: users by package (1 package): | contains: tools/edithook: 1 function, | not: 1 packages | not: 1 functions | src: codegraph-1 madde 6, 2026-10-30 (who-uses --by-package tekil/çoğul uyumu)
 codegraph callees edithook.testsFor | contains: calls 1 distinct function in 1 package: | not: 1 distinct functions | not: 1 packages | src: codegraph-1 madde 6, 2026-10-30 (callees tekil/çoğul uyumu)
+
+# codegraph-2: gaps.md'den altı açık tanımlı eksik (2026-11-02)
+codegraph query Model.TR_forward | contains: measurement_model.Model.TR_mem_forward [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (kullanıcı tipiyle nitelenmiş üye yazımı)
+codegraph query model.TR_forward | contains: measurement_model.Model.TR_mem_forward [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (harfsiz kullanıcı tipiyle nitelenmiş üye yazımı)
+codegraph query TR_Linear.TR_forward | contains: layers.TR_type_Linear.TR_mem_forward [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (kodlu tip adıyla nitelenmiş üye yazımı)
+codegraph query l.TR_map | contains: TR_mem_map [name] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (alıcı adı ne olursa olsun üye yazımı ad koduna çözülür)
+tr index definition l.TR_map | contains: TR_mem_map | not: bulunamadı | src: codegraph-2 madde 1, 2026-11-02 (iki araçta tek üye yazımı kuralı)
+codegraph query .TR_map | contains: TR_mem_map [name] | not: id: heading: | src: codegraph-2 madde 1, 2026-11-02 (alıcısız üye yazımı başlığa değil ad koduna çözülür)
+tr index definition .TR_map | contains: TR_mem_map | not: bulunamadı | src: codegraph-2 madde 1, 2026-11-02 (alıcısız üye yazımı)
+codegraph query TR_self.TR_forward | exit: 3 | contains: layers.TR_type_Linear.TR_mem_forward | src: codegraph-2 madde 1, 2026-11-02 (TR_self alıcılı kitaplık üyesi x.TR_forward gibi çözülür)
+tr index definition TR_self.TR_forward | exit: 3 | contains: layers.Doğrusal.ileri | src: codegraph-2 madde 1, 2026-11-02 (TR_self alıcılı kitaplık üyesi iki araçta aynı)
+
