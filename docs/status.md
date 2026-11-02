@@ -672,8 +672,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.15
 
-- **Mevcut durum:** koşul "sıfırdan farklı" ondalık: `TR_where(TR_Tensor([2.0, 0.0, -1.0]), 1.0, 0.0)` → `[1.0, 0.0, 1.0]`, NaN da doğru [ölçüldü]; sayı imzası var.
-- **Yapılacaklar:** mantık koşulu, sayı imzasının kalkması; TR testi. Göç [ölçüldü: DENETİM B1; kanıtlı: `tests/matematik_test.tr:168-171, 179, 182-183`]: çalışmada hiç 0/1 dışı koşul yok; durağan 4 satır ondalık/tam sayı tensör koşul (`tests/matematik_test.tr:168, :179, :182, :183`), 1 satır skaler `TR_Bool` koşul + tensör dalı (`:169`) ve 2 satır sayı imzası (`tests/matematik_test.tr:170-171`).
+- **Mevcut durum (T1 dilim 2):** koşul `TR_Tensor[TR_Bool]`; ondalık ya da tam sayı koşul ve sayı imzası (`TR_where(TR_true, 2, 3)`) çalışmada H6207 (ileti `t != 0`'ı ya da `TR_if`'i önerir); iki sayı dalın cinsi onlardan çıkar; TR testi `tests/matematik_test.tr` [ölçüldü]. GPU'da mantık koşul (türevli ondalık yolda koşul float32'ye çevrilir).
+- **Yapılacaklar:** hataların denetimde verilmesi (tanımdaki `TR_where` imzası bugün `TR_Bool|TR_Int|TR_Float` koşul ve sayı dönüşü yazıyor; satır bu dilimin değil); `tr.json`'daki açıklamanın "0/1 maskesi" metni. Göç yapıldı (T1 dilim 2: `tests/` 6 satır, Go testleri 4, `lib/optimizers.tr:340`). Göç [ölçüldü: DENETİM B1; kanıtlı: `tests/matematik_test.tr:168-171, 179, 182-183`]: çalışmada hiç 0/1 dışı koşul yok; durağan 4 satır ondalık/tam sayı tensör koşul (`tests/matematik_test.tr:168, :179, :182, :183`), 1 satır skaler `TR_Bool` koşul + tensör dalı (`:169`) ve 2 satır sayı imzası (`tests/matematik_test.tr:170-171`).
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** iki sayılı biçimin cinsi ve hassasiyeti.
 
 ### 15.16a

@@ -2,6 +2,7 @@ package ml
 
 import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -10,14 +11,6 @@ import (
 // 15.6a'ya uyan sayıdır. İki sayıda cins onlardan çıkar: iki TR_Int → "int64", TR_Int ile
 // TR_Float → "float32", iki mantık değeri → TR_Bool. Hesap ondalığı dallar türevi taşır
 // (tensor.Where TR_Bool koşulu kabul eder); öbür cinsler türev izlemez.
-
-// needsTypedWhere koşul TR_Bool tensör mü, ya da bir dal cinsli tensör mü.
-func needsTypedWhere(args []interp.Value) bool {
-	if c, ok := args[0].(*TensorValue); ok && c.t.Elem() == tensor.ElemBool {
-		return true
-	}
-	return isTypedOperand(args[1]) || isTypedOperand(args[2])
-}
 
 // typedWhere koşul ve dalları kurar ve seçer.
 func typedWhere(m *interp.VM, ad any, args []interp.Value) (interp.Value, error) {
@@ -50,26 +43,17 @@ func typedWhere(m *interp.VM, ad any, args []interp.Value) (interp.Value, error)
 	})
 }
 
-// whereCond koşulu TR_Bool tensöre çevirir: mantık değeri 0 boyutlu tensör olur; ondalık ya da
-// tam sayı tensörü (bu dilimin geçiş yolu: karşılaştırma 2a'nın 4. adımına kadar 0/1 ondalık
-// verir) sıfırdan farklı öğeleriyle doğru sayılır (NaN doğrudur).
+// whereCond koşulun TR_Tensor[TR_Bool] olduğunu denetler (15.15): ondalık ya da tam sayı tensör
+// maskeye karşılaştırmayla çevrilir (`t != 0`); tensör olmayan koşulda seçim TR_if'tir.
 func whereCond(ad any, v interp.Value) (*tensor.Tensor, error) {
-	switch x := v.(type) {
-	case *TensorValue:
-		if x.t.Elem() == tensor.ElemBool {
-			return x.t, nil
-		}
-		return safe(func() *tensor.Tensor {
-			zero := tensor.Float64sOn(x.t.Device(), []float64{0})
-			if x.t.Elem() == tensor.ElemInt {
-				zero = tensor.Int64sOn(x.t.Device(), x.t.DType(), []int64{0})
-			}
-			return tensor.CompareTyped(x.t, zero, tensor.CmpNe)
-		})
-	case *interp.BoolVal:
-		return safe(func() *tensor.Tensor { return tensor.Int64sOn(tensor.CPU, tensor.Bool, []int64{b2i(x.Val)}) })
+	x, isTensor := v.(*TensorValue)
+	switch {
+	case isTensor && x.t.Elem() == tensor.ElemBool:
+		return x.t, nil
+	case isTensor:
+		return nil, messages.New(messages.H6207, ad, codes.NameRef(kindOf(x.t.DType())), "number")
 	}
-	return nil, messages.New(messages.H6207, ad, "TR_Bool", typeName(v))
+	return nil, messages.New(messages.H6207, ad, typeName(v), "other")
 }
 
 // whereBranches a ve b'yi aynı türden tensörlere çevirir (koşulun cihazında).

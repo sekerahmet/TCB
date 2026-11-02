@@ -1038,7 +1038,7 @@
 "H6204": { "param": ["fn", "given"] },
 "H6205": { "param": ["fn", "value", "axisArg", "clampFn", "limit"] },
 "H6206": { "param": ["fn", "axisArg", "given"] },
-"H6207": { "param": ["fn", "boolType", "given"] },
+"H6207": { "param": ["fn", "given", "case"], "slots": {"if": "TR_kw_if"} },
 "H6208": { "param": ["fn", "intType", "given"] },
 "H6209": { "param": ["fn", "shape", "axis"] },
 "H6210": { "param": ["fn", "k", "shape", "axis", "length"] },

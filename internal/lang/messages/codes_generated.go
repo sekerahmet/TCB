@@ -1043,7 +1043,7 @@ const (
 	H6204 Code = 6204 // {fn}: a ve b sayı ya da tensör olmalıdır, {given} verildi
 	H6205 Code = 6205 // {fn}(x, {value}): eksen için {fn}(x, {axisArg}: {value}) yazın; eleman bazlı sınır için {clampFn}(x, {limit}: {value}) kullanın
 	H6206 Code = 6206 // {fn}(x, {axisArg}: ...) en fazla 2 parametre alır, {given} verildi
-	H6207 Code = 6207 // {fn}: koşul {boolType}, sayı ya da tensör olmalıdır, {given} verildi
+	H6207 Code = 6207 // {fn}: koşul mantık tensörüdür, {given} verildi (15.15); {case, select, number {sayı tensöründen maske karşılaştırmayla kurulur: `t != 0`} other {tek değere bağlı seçim `{#if}` ile yazılır}}
 	H6208 Code = 6208 // {fn}: k bir {intType} olmalıdır, {given} verildi
 	H6209 Code = 6209 // {fn}: {shape} şeklinde {axis}. eksen boş
 	H6210 Code = 6210 // {fn}: k = {k}, ama {shape} şeklinde {axis}. eksenin uzunluğu {length}; k 0 ile {length} arasında olmalı

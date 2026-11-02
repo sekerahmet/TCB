@@ -189,13 +189,20 @@ TR_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türe
     TR_assert_equal("H6100", TR_error_code { TR_atan2(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0, 3.0])) })
 }
 
-TR_test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
+TR_test "15.15 koşullu: koşul mantık tensörüdür, yayınlar; gradyan seçilen dala akar, NaN sızmaz" {
     TR_var x = TR_Tensor([-1.0, 2.0, -3.0], TR_requires_grad: TR_true)
     TR_assert_equal([0.0, 2.0, 0.0], TR_where(x > 0, x, 0).TR_tolist)
     TR_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_where(TR_Tensor([[TR_true], [TR_false]]), TR_Tensor([1.0, 2.0]), -1).TR_tolist)
     TR_assert_equal([7.0], TR_where(TR_Tensor([TR_false]), TR_Tensor([1.0]), 7).TR_tolist)
-    TR_assert_equal(2, TR_where(TR_true, 2, 3))
-    TR_assert_equal(3, TR_where(0, 2, 3))
+    # Sayı imzası yok (seçim TR_if'tir); ondalık ya da tam sayı koşul karşılaştırmayla maske olur.
+    TR_assert_equal("H6207", TR_error_code { TR_where(TR_true, 2, 3) })
+    TR_assert_equal("H6207", TR_error_code { TR_where(TR_false, TR_Tensor([1.0]), 7) })
+    TR_assert_equal("H6207", TR_error_code { TR_where(TR_Tensor([1.0, 0.0]), 1.0, 0.0) })
+    TR_assert_equal("H6207", TR_error_code { TR_where(TR_Tensor([1, 0]), 1, 0) })
+    TR_assert_equal([1.0, 0.0], TR_where(TR_Tensor([1.0, 0.0]) != 0, 1.0, 0.0).TR_tolist)
+    # İki sayı dalda cins onlardan çıkar: iki TR_Int → TR_Int, TR_Int ile TR_Float → TR_Float, iki TR_Bool → TR_Bool.
+    TR_var k = TR_Tensor([TR_true, TR_false])
+    TR_assert_equal(["int64", "float32", "bool"], [TR_where(k, 1, 0).TR_dtype, TR_where(k, 1, 0.5).TR_dtype, TR_where(k, TR_false, TR_true).TR_dtype])
     # Seçilmeyen dalın NaN'ı gradyana sızmaz: log(x) negatifte NaN'dır ama seçilmez.
     TR_var p = TR_Tensor([-1.0, 4.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_where(p > 0, TR_sqrt(TR_clamp(p, TR_min: 0.0001)), 0)))

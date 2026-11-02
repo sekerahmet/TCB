@@ -201,7 +201,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - *Test:* TR testi.
 
 **15.15** `TR_where(koşul, a, b)` öğe öğe seçimdir: `koşul` `TR_Tensor[TR_Bool]`'dur; doğru olduğu yerde `a`'yı, öbür yerlerde `b`'yi verir. Üçü yayınlanır. `a` ve `b` aynı cinsten tensör ya da 15.6a'ya uyan sayıdır; hassasiyet 15.6c'ye göre birleşir. `a` ve `b`'nin ikisi de sayıysa cins ve hassasiyet onlardan çıkar: iki `TR_Int` → `TR_Int` "int64"; `TR_Int` ile `TR_Float` → `TR_Float` "float32"; iki `TR_Bool` → `TR_Bool`. Gradyan `a`'ya koşulun doğru, `b`'ye yanlış olduğu yerlerden akar; seçilmeyen dala yukarıdan gelen gradyan tam 0'dır, yukarıdan gelen NaN seçilmeyen dala geçmez. **Ama** dalın kendi türevi o yerde sonsuz ya da NaN ise 0 · sonsuz = NaN girdiye ulaşır: `TR_where(x > 0.0, TR_log(x), 0.0)`'ın `x = 0`'daki gradyanı NaN'dır. Doğru yazım girdiyi içeride maskelemektir: `TR_where(x > 0.0, TR_log(TR_where(x > 0.0, x, 1.0)), 0.0)`. Koşul türev almaz. Hiçbiri tensör değilse denetim hatası, ileti `TR_if`'i önerir. Ondalık ya da tam sayı koşul denetim hatasıdır; ileti `TR_where(t != 0, ...)`'ı önerir.
-- *Test:* TR testi; mantık koşulu uygulanınca TR testi.
+- *Test:* TR testi (mantık koşulu, sayı imzasının ve sayı koşulunun hatası, sayı dalların cinsi).
 
 **15.16** `TR_abs(x)` (13.1) tensörde de çalışır: `TR_Float` ve `TR_Int`'te aynı cins. İşaret biti silinir (`TR_abs(-0.0)` +0), NaN korunur, CPU ve GPU aynı bitleri verir. `TR_Int`'te en küçük değerin mutlak değeri taşmadır (15.3). Türev `TR_sign(x)`'tir; 0'da 0.
 - *Test:* TR testi.

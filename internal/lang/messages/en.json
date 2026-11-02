@@ -1038,7 +1038,7 @@
 "H6204": "{fn}: a and b must be numbers or tensors, {given} given",
 "H6205": "{fn}(x, {value}): for an axis write {fn}(x, {axisArg}: {value}); for an element-wise bound use {clampFn}(x, {limit}: {value})",
 "H6206": "{fn}(x, {axisArg}: ...) takes at most 2 parameters, {given} given",
-"H6207": "{fn}: the condition must be {boolType}, a number or a tensor, {given} given",
+"H6207": "{fn}: the condition is a boolean tensor, got {given} (15.15); {case, select, number {a mask is built from a number tensor by comparison: `t != 0`} other {a choice on a single value is written with `{#if}`}}",
 "H6208": "{fn}: k must be an {intType}, {given} given",
 "H6209": "{fn}: axis {axis} of shape {shape} is empty",
 "H6210": "{fn}: k = {k}, but the length of axis {axis} of shape {shape} is {length}; k must be between 0 and {length}",
