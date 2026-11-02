@@ -32,9 +32,9 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 - *Test:* TR testi; kipin ve hesap türünün mirası uygulanınca TR testi.
 
 **10.5** `TR_wait_all()` başlatılmış bütün görevlerin bitmesini bekler. `TR_wait_all(görevler)` verilen görevleri bekler ve sonuçlarını **verildikleri sırayla** bir liste olarak verir (`TR_List[T]`).
-- Görevlerden biri hatayla bittiyse öbürleri de beklenir ve **verilen sırada ilk hatalı görevin** hatası fırlar; bitme zamanı hangi hatanın fırladığını değiştirmez. Öbür hatalı görevlerin hataları, verilen sırayla, fırlayan hatanın `e.TR_suppressed` listesine eklenir (9.4 gibi); hiçbir hata kaybolmaz.
+- Görevlerden biri hatayla bittiyse öbürleri de beklenir ve **verilen sırada ilk hatalı görevin** hatası fırlar; bitme zamanı hangi hatanın fırladığını değiştirmez. Öbür hatalı görevlerin hataları, verilen sırayla, fırlayan hatanın `e.TR_suppressed` listesine eklenir (9.4 gibi); hiçbir hata kaybolmaz. Aynı görev listede birden çok kez verilirse hatası bir kez sayılır.
 - Argümansız `TR_wait_all()` sonuç vermez; iptal edilmiş bir görev onu hataya düşürmez (iptal hata değildir, 10.6), hatayla biten görevlerin hatası 10.6'ya göre yazılır.
-- *Test:* TR testi; liste biçimi uygulanınca TR testi.
+- *Test:* TR testi: `tests/eszamanli_test.tr` (liste biçiminde sonuçların verilen sırası, ilk hatalı görevin hatası ve öbürlerinin bastırılanları, aynı görevin hatasının bir kez sayılması); argümansız biçimin sonuç vermemesi uygulanınca TR testi.
 
 **10.6** Görevin hatası kaybolmaz. Beklenen görevin hatası `.TR_wait()`'te ya da `TR_wait_all`'da fırlar. Değeri bir ada bağlanmamış görevin (deyim olarak yazılan `TR_async`, 10.1) hatası görev hatayla bitince hemen; değeri tutulan ama hiç beklenmeyen görevin hatası program ya da test biterken hata çıktısına (komut satırında standart hata, testte testin raporu, hata ayıklamada hata ayıklama konsolu) görevin başladığı satırla yazılır; program sürer ve sonunda hata koduyla biter (1.9). Sonradan `TR_try { g.TR_wait() }` ile yakalanan hata çıkış kodunu bozmaz.
 - İptal edilen görevin (10.9) iptali bir hata olarak yazılmaz; iptalden önce görevin kendi hatası olduysa o yazılır.
@@ -44,6 +44,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 **10.7** `g.TR_wait(TR_timeout: saniye)` en çok verilen süre kadar bekler. Görev o sürede biterse sonucunu verir ya da hatasını fırlatır; süre dolarsa **görev iptal edilir** (10.9), durması beklenir ve zaman aşımı hatası görev durunca fırlar; toplam bekleme bu yüzden süreyi aşabilir. Sabit hızlı bir döngü ve uzak bir modele sorulan soru böyle sınırlanır; program uzak cevabı beklemeye bağlı kalmaz.
 - İptal görevi onu bekleyen herkes için durdurur: aynı görevi başka bir yer de bekliyorsa o da iptal hatası alır.
 - Zaman aşımı hatasının (H2921) ve iptal hatasının (H2920) kendi ileti kodları vardır (8.5); `TR_error_code { g.TR_wait(TR_timeout: 1) }` ile sınanır.
+- Süre dolduğunda görevin kendi hatası ve ertelenen işlerinin hataları kaybolmaz: verilen sırayla zaman aşımı hatasının `e.TR_suppressed` listesine eklenir (9.4, 10.5 gibi). İptalin kendi hatası eklenmez; o, zaman aşımının yaptığı iştir.
 - Görevi iptal etmeden sonucunu sormak için `g.TR_done()` kullanılır: görev bittiyse (sonuçla, hatayla ya da iptalle) `TR_true` verir, beklemez. Sabit hızlı bir döngü her turda böyle sorar, bitmemişse önceki sonucu kullanır.
 - *Test:* TR testi: `tests/eszamanli_test.tr` (süresinde biten görev, süre dolan görevin iptali, ertelenen işi ve H2921, aynı görevi sonra bekleyenin H2920'si, görevin kendi hatasının ve ertelenen işin hatasının H2921'in bastırılanlarına girmesi); Go: `TestAWaitWithATimeout` (süre denetimi), `TestATimeoutStopsABusyLoopSoon` (ağır turlu döngüde iptalin gecikmesi, tekdüze saat); aynı görevi aynı anda bekleyen ikinci yerin ve sabit hızlı döngünün testi yok.
 
