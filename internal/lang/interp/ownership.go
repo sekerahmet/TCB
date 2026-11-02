@@ -106,6 +106,11 @@ var ownershipOff = os.Getenv("TR_RELEASE") == "0"
 // bir yüklemedir). Ondan önce hiçbir değer bir çerçevenin sahipliğinde değildir: bağ, bağ
 // kaldırma ve kaçış yapacak bir şey yoktur, yuva yazımı sahiplik denetimi yapmaz (sahipli
 // değer üretmeyen programlar bedel ödemez).
+//
+// Değişmez: ownActive bir kez açılınca kapanmaz (yalnız adopt true yazar) ve kapalıyken hiçbir
+// değer ownHeld değildir (ownHeld'i yalnız adopt, ownActive'i açtıktan sonra, ve adoptContainer,
+// yalnız sahipli bir eleman görünce, kurar). releaseTemp ve afterIndex kapalıyken buna dayanıp
+// işi atlar. Test: TestOwnershipIsNeverSwitchedOffAndNothingIsHeldBeforeIt.
 var ownActive atomic.Bool
 
 // ownGen derlenmiş kodun her işlem çağrısından önce artan damgadır. Motor bir değeri
@@ -299,8 +304,15 @@ func escapeAll(args []Value, named map[string]Value) {
 
 // releaseTemp bir işlemin ara sonucunu (işleneni ya da saf yerleşiğin argümanı) işlem
 // biter bitmez bırakır: bağı sıfır ve çalışan çağrının çerçevesindeyse ona yalnızca bu
-// ifade ulaşıyordu. Sonucun kendisi bırakılmaz.
+// ifade ulaşıyordu. Sonucun kendisi bırakılmaz. Sahiplik kapalıyken bırakılacak değer yoktur
+// (ownActive'in değişmezi); denetim satır içinde kalsın diye iş releaseHeld'dedir.
 func (v *VM) releaseTemp(val, result Value) {
+	if ownActive.Load() {
+		v.releaseHeld(val, result)
+	}
+}
+
+func (v *VM) releaseHeld(val, result Value) {
 	o, own := ownershipOf(val)
 	if own == nil || val == result {
 		return
@@ -434,8 +446,13 @@ func (v *VM) infix(codeVal uint8, op string, left, right Value, line int) (Value
 // afterIndex indeks okumasının taze sonucunu (tensör dilimi) sahiplenir. Listenin dilimi
 // elemanlarını yeni bir listeye koyduğundan kaynak liste kaçar; ara sonuç olan kaynak (ör.
 // bir işlemin döndürdüğü liste) bırakılır; okunan eleman o listeye bağlı olduğundan
-// deyim sınırına kadar korunur.
+// deyim sınırına kadar korunur. Sahiplik kapalıyken sade sonuçta iş yoktur: sade değer
+// sahiplenilmez, kaynak ve indeks sahipli olamaz (ownActive'in değişmezi). Sade olmayan sonuç
+// (tensör dilimi) sahiplenilir; sahipliği o açar.
 func (v *VM) afterIndex(res, left, idx Value) {
+	if !ownActive.Load() && plain(res) {
+		return
+	}
 	if _, list := res.(*ListVal); list {
 		if _, src := left.(*ListVal); src {
 			escape(left)
