@@ -306,6 +306,8 @@ TR_test "3.7a JSON: çözme, okuma, tür ve açma" {
     TR_assert_equal(7.0, TR_Float(cevap["id"]))
     TR_assert_equal(TR_true, TR_Bool(cevap["b"]))
     TR_assert_equal(["content", "id", "f", "n", "b"], cevap.TR_keys())
+    # Nesne kaynaktaki anahtar sırasını korur, iç içe de; geri yazma da bu sıradadır.
+    TR_assert_equal(`{"b":1,"a":{"z":1,"y":2}}`, TR_json_string(TR_json_parse(`{"b": 1, "a": {"z": 1, "y": 2}}`)))
     TR_assert_equal([5, 1], [cevap.TR_length, cevap["content"].TR_length])
     TR_assert_equal(TR_none, cevap.TR_get("yok"))
     TR_assert(TR_Type(cevap.TR_get("n")) == TR_NoneType)
