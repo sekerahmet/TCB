@@ -122,6 +122,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 - **Mevcut durum:** açıklamasız yerel değişkenin tipi ilk değerinden çıkıyor ve kalıcı: başka tipte atama (`TR_var birikim = 0` sonra `birikim += 0.5`) denetim hatası (H1005); dil tanımının 3.13 hata bloğu ve TR testi bunu sınıyor. Tipi çıkarılamayan ilk değerin değişkeni `TR_Any` kalıyor (1.2) [ölçüldü: `TestAssignmentTypeCheck`, `TestCompoundAssignment`, dal `claude/hopeful-brahmagupta-miw41q`].
 - **Yapılacaklar:** çıkarımın kalanı (1.2; bu dilimde isteğe bağlı tip, alan, `TR_if`/`TR_match`, indeks ve döngü değişkeni eklendi); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu. Tam sayının ondalık beklenen yerde ondalık olmasının kalanı tip haritasını ister: kabın öğesi (`l.TR_append(1)`, `l: TR_List[TR_Float]`, `[1]` ve `TR_Int` kalıyor; `d["a"] = 1` de) [ölçüldü: DENETİM istek 27 D-5], tam sayı değişkenli değişmez (`[a, 2.5]`) ve tipi ilk değerinden çıkan değişkene atama (`TR_var t = 0.0` sonra `t = 1`). `TR_Int` tipli değişkenin `TR_Float` yerine verilmesi (`f(i)`) denetim hatası olacak, bugün geçiyor ve motor değeri ondalığa çeviriyor; denetleyicinin işi.
 - **Mevcut durum (D1 dilim 3, 2026-11-02):** tipi açıkça `TR_Float` (ya da `TR_Float?`) yazılmış yerde tam sayı ondalık kuruluyor: bildirim (`TR_var r: TR_Float = 1` → `TR_Type(r)` `TR_Float`, metni "1.0"), parametre (argüman ve varsayılan, çağrılanın girişinde; `TR_Int` değişkenin değeri de), dönüş, yapı alanı ve bunlara sonradan atama (`r = 2`). Açıklamasız `TR_var i = 1` `TR_Int` kalıyor [test: `TestAFloatPlaceMakesAnIntegerDecimal`, `tests/tipler_test.tr`'nin "3.13 tam sayı yazımı TR_Float beklenen yerde ondalıktır" testi].
+- **Geri alınabilir göç (T1 dilim 2, bulgu 2):** T1, 3.13 yokken `TR_Float` parametresine tam sayı veren yerleri ondalık yazıma çevirdi (`p(n)` → `p(n.0)`): `tests/tensor_test.tr` "15.33 parametreler" testi ve `internal/stdlib/ml/model_tools_test.go`'nun `TestParameters`'ı. 3.13 main'de olduğuna göre bu yerler tam sayı yazımına dönebilir.
 
 ### 3.14
 
@@ -585,14 +586,15 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.1
 
 - **Mevcut durum:** `TR_Int` ("int64" … "uint8"), `TR_Bool` ve float64 depolaması var; argmax, sıralama indeksleri, örnekleme ve veri kümesi kimlikleri `TR_Int` ("int64") veriyor; cinsli işleçler (15.6'nın tablosu), `TR_sum`/`TR_mean`/`TR_max`/`TR_min`/`TR_cumsum`, `TR_where`, `TR_clamp` CPU'da [test: TestTypedStorageRoundTrip, TestTypedIntArith, TestTypedConvert; TR testi "15.1 TR_Int ve TR_Bool tensörü"]. GPU'da yalnız taşıma; öbür cinsli işlemler ve ondalık çekirdeğe giren cinsli tensör 15.48'in hassasiyet hatası (H6960) [test: TestTypedStorageOnGPU, TestTypedInGPUFloatKernelIsPrecisionError]. `TR_AnyTensor` ve `.TR_narrow[E]()` yok.
-- **GPU (T1 dilim 2, adım 8):** cinsli depolama ve taşıma; argmax'in `TR_Int` sonucu cihazda; karşılaştırma (hesap ondalıkları, "int64", mantıkta `==`/`!=`) `TR_Bool` verir; mantıkta `& | ^ ~`; `TR_where` mantık koşulla; "int64" ve mantıktan float32'ye tip çağrısı cihazda; tam sayı içinde `.TR_to_dtype` ve tam sayıya tip çağrısı konakta yapılıp cihaza döner (bekleyen işlem, `TR_replay` kaydında çalışmaz); öbür cinsli işlem H6969 [test: TestTypedPathsOnGPU, TestTypedMaskPathsOnGPU, TestGPUGenerateWithTypedPositions; PTX benzetiminde, gerçek kartta koşulmadı].
+- **GPU (T1 dilim 2, adım 8):** cinsli depolama ve taşıma; argmax'in `TR_Int` sonucu cihazda; karşılaştırma (hesap ondalıkları, "int64", mantıkta `==`/`!=`) `TR_Bool` verir; mantıkta `& | ^ ~`; `TR_where` mantık koşulla; "int64" ve mantıktan float32'ye tip çağrısı cihazda; tam sayı içinde `.TR_to_dtype` ve tam sayıya tip çağrısı konakta yapılıp cihaza döner (bekleyen işlem, `TR_replay` kaydında çalışmaz); öbür cinsli işlem H6969 [test: TestTypedPathsOnGPU, TestTypedMaskPathsOnGPU, TestGPUGenerateWithTypedPositions]. Gerçek kart (G4, 2026-11-02) benzetimin geçirdiği iki hatayı yakaladı, ikisi de düzeldi: cinsli çekirdeklerin PTX `.entry` adı geçersizdi (`[`, boşluk; `ee5550bc`, paket artık her çekirdeğin adını denetliyor) ve ham bayt depolamasının konak gölgesi yoktu, kimlik okumaları kuyruğu boşaltıyordu (hedef modelde +%6; `c1bbd329`, G4 ABAB taban 145 ↔ uç 146 ms/adım [ölçüldü]). Düzeltmelerden sonra GPU testlerinin listesi kartta yeniden koşulacak.
+- **Açık küçükler (DENETİM istek 54 ve 56):** cinsli çekirdek bileşimlerinin (`gpuTypedOK`'un açtığı hepsi) ad, benzersizlik ve ayrışma testi; benzetimin `.target` denetimi (`mma.sync`, `cvt.rn.*x2.f32`); Colab'da bir kez ptxas karşılaştırması; `checkKernelNames` yalnız bütün testler geçince basıyor; benzetimde ns/op güvenilmez, `BenchmarkIDBatchToHost`'un ölçütü `eşzamanlama/op`. Veri kümesi kimlikleri float32 kurulup "int64"e çevriliyor (`dataset.go` → `ml.NewInt`): 2²⁴'ün üstündeki kimlik orada bozulur ve 32K öğe başına ~0,3 ms konak işi var (T1 bulgu 12) [ölçüldü: T1, benzetimde profil; 2²⁴ sınırı kanıtlı: float32'nin anlamlı bitleri].
 - **Yapılacaklar:** öğe cinsli tip (`TR_Tensor[E]`, tip denetimi 4c), `TR_AnyTensor` ve daraltma; GPU'da cinsli tensörün genel çekirdekleri (2b); `TR_replay` kaydında tam sayı tensörünün kopyası ve tam sayı tensörünün sayıyla işlemi (sayı bugün konaktan yükleniyor).
 - **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Tensor[E]` ayrıştırılıyor, `TR_Tensor`'a indirgeniyor; `TR_AnyTensor` henüz kod değil [ölçüldü: bulut 0.6a].
 
 ### 15.2
 
 - **Mevcut durum:** cins çalışırken veriden çıkıyor: tam sayı ve aralık `TR_Int` ("int64", float32'den geçmez), mantık değeri `TR_Bool`, ondalıklı sayı verisi `TR_Float`; boş liste `TR_Float`. `TR_Tensor[E](veri)`, `TR_zeros[E]`, `TR_ones[E]`, `TR_eye[E]` cinsi seçiyor; `TR_randn` yalnız `TR_Float`. `TR_dtype:` cinsin bütün hassasiyetlerini alıyor; başka cinsin hassasiyeti H6976 (ileti tip argümanını öneriyor), sığmayan değer H6964, sayıyla mantık değeri H6975, tam sayı ve mantıkta türev H6973. H6954'ün ara kuralı kalktı [test: TestTensorKindFromData; TR testi "15.2 cins veriden çıkar", "15.2 tip argümanı öğe cinsini seçer"].
-- **Mevcut durum (sınır):** cins çalışırken değerden çıkıyor, tip denetiminden değil: 3.13'ün "tam sayı yazımı `TR_Float` beklenen yerde ondalıktır" kuralı yorumlayıcıda yok (`TR_var y: TR_Float = 2`'de `TR_Type(y)` `TR_Int`), bu yüzden `TR_Float` parametresine verilen tam sayı yazımından kurulan tensör `TR_Int` olur [ölçüldü]. Beklenen tipin ondalık yapması ve tip denetiminin önerisi (`TR_Tensor[TR_Float](kimlikler)`) 4c'de.
+- **Mevcut durum (sınır):** cins çalışırken değerden çıkıyor, tip denetiminden değil. D1 dilim 3'ün 3.13'üyle birleşince `TR_Float` parametresine verilen tam sayı yazımı ondalık geliyor ve ondan kurulan tensör `TR_Float` (`p(2)` → `[2.0000]`) [ölçüldü: main `d24b95ea`]; tipi ilk değerinden çıkan değişken (`TR_var i = 1`) `TR_Int` kalıyor. Tip denetiminin önerisi (`TR_Tensor[TR_Float](kimlikler)`) 4c'de.
 - **Göç (yapıldı, T1 dilim 2):** `.tr` dosyalarında 88 değişmez ve `lib/layers.tr:85` (`858007c8`), Go testlerinin TR metinlerinde 110 değişmez (`ac9f855b`), `TR_Float` parametresine tam sayı yazımı veren iki test (`tests/tensor_test.tr`, `TestParameters`) ondalık yazıma geçti; çıktılar önce ve sonra aynı [ölçüldü]. DENETİM'in saydığı 4 `TR_requires_grad: TR_true`'lu yerden (`a1d5b545`'te `tests/tensor_test.tr:891, 892, 901, 912`) üçü ondalığa geçti, `:912` boş liste (zaten `TR_Float`).
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_zeros(..., TR_dtype: "q4")` gibi nicemlenmiş sıfır kurucu (T3).
@@ -654,7 +656,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar:**
   - tensörle ve maskeyle indeks, `.TR_select`, `.TR_unsqueeze`, `.TR_fill` (üçü de türevin yazma kurallarıyla), tensörle indekste biriktirme, `//=` ve `%=` (cinsli tensörle); TR testi;
   - kitaplığın `TR_Tensor(TR_no_grad(...), TR_requires_grad: TR_true)` dolambacı (lib/layers.tr:20) yaprağın tanımıyla sadeleşir;
-  - indeksli hedefte yerinde olmayan bir biriktirme (index_add türü) yok; açık soru.
+  - indeksli hedefte yerinde olmayan bir biriktirme (index_add türü) yok; açık soru;
+  - liste değeri cinsli hedefe atanınca (`t[0..2] = [1, 2]`) H6966 veriyor; 15.6d'nin önerdiği `TR_Tensor(...)` yazımını öneren ileti değil (T1 dilim 2, DENETİM istek 49 Y3).
 - **Tersine dönecek Go testi:** `TestMatrixIndexAndAssign` (`internal/stdlib/ml/matrix_test.go:50`) tam sayı değişmezli matrisi ondalık bekliyor (15.2), 0 boyutlu tensörde `.TR_tolist` okuyor (13.8a) ve liste değerli atama yapıyor (`M[-1] = [8, 9]`; değer sayı ya da tensör olmalı). Aynı dosyanın öbür testlerine de bakılmalı.
 
 ### 15.6e
@@ -766,8 +769,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.24
 
-- **Mevcut durum:** dikkatin maskesi 0/1 sayı tensörü [ölçüldü: main `8b115692`].
-- **Yapılacaklar:** maske `TR_Tensor[TR_Bool]`, 0/1 sayı maskesi denetim hatası.
+- **Mevcut durum (T1 dilim 2):** `TR_attention` `TR_Bool` maskeyi alıyor (içeride float32), kitaplığın maskeleri `TR_Bool`; ondalık 0/1 maske de geçiyor. Tam sayı verisinden kurulan maske (`TR_Tensor([[1, 1, 0]])`, cins veriden `TR_Int`) H6960 veriyor (T1 bulgu 1) [ölçüldü: T1].
+- **Yapılacaklar:** maske yalnız `TR_Tensor[TR_Bool]`; ondalık ve tam sayı maskenin denetim hatası, ileti `m != 0`'ı önerir. T1'in sorusu (maske hangi cinsleri alır) dil tanımında cevaplı: 15.24 yalnız `TR_Bool` diyor, uygulama ona uyar (TCB, 2026-11-02).
 - **Gemini 15/2 (2026-10-29), uygulanacak:** tamamen −∞ sapmalı satır 0 verir (bugün NaN); CPU ve GPU (T2).
 
 ### 15.27
@@ -868,8 +871,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.49
 
-- **Mevcut durum:** karşılaştırma float32 0/1 maske veriyor; tam sayı ve mantık tensörü olmadığından cinslerin karışmaması, tam sayı taşması ve daraltma satırları uygulanmadı.
-- **Yapılacaklar:** satırlar kendi maddeleriyle (15.2, 15.3, 15.5, 15.6a–15.6d) uygulanır; TR testi.
+- **Mevcut durum (T1 dilim 2):** cinsler ve tam sayı taşması kendi maddelerinde (15.2, 15.3, 15.5, 15.6a–15.6d). Tensörün `==`'si ve `!=`'si eşitlik kancasından gidiyor: iki yan birden genişlediğinde yayın uyarısı `<` için yazılıyor, `==` için yazılmıyor (T1 bulgu 7).
+- **Yapılacaklar:** `==`/`!=`'de yayın uyarısı; satırların kalanı kendi maddeleriyle; TR testi.
 
 ### 15.50
 
@@ -1109,7 +1112,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.12, 20.13
 
-- **Mevcut durum:** `TR_load_state`'in mantık değeri dönüşü 13.10'un status'unda. Bütün tensörler float32 olduğu için `op.TR_state`'in "step"i de ondalık tensör (15.3'ün status'u); karışık cinsli `TR_Dict[TR_String, TR_AnyTensor]` yok (15'in yan değişikliği, uygulanmadı).
+- **Mevcut durum:** `TR_load_state`'in mantık değeri dönüşü 13.10'un status'unda. Kontrol noktası cinsli tensör yazmıyor: Go'daki kontrol noktası paketi `TensorWriter.Write`'ı ondalık veriyle çağırıyor, bu yüzden `op.TR_state`'in "step"i ondalık tensör; `TR_Int` için `WriteRaw` ve `ml.TensorEntry.Ham` T1 dilim 2'den beri hazır, paket bağlanmadı (T1 bulgu 11); karışık cinsli `TR_Dict[TR_String, TR_AnyTensor]` yok (15'in yan değişikliği, uygulanmadı).
 
 ### 20.16
 
