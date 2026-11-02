@@ -30,8 +30,10 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	rng, right := o.base+"..."+ref, ref
 	if _, b, ok := splitRange(ref); ok {
 		rng, right = ref, b
+	} else if ref == "main" && !sameCommit(o.root, ref, "HEAD") {
+		rng, right = o.base+"...HEAD", "HEAD"
 	}
-	hs, live, err := changeHunks(o.root, rng)
+	hs, live, err := changeHunks(o.root, rng, "--base")
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return exitFail
@@ -69,8 +71,8 @@ func splitRange(ref string) (a, b string, ok bool) {
 // ise fark çalışma ağacına kadar alınır (live): commit'lenmiş, sahnelenmiş ve sahnelenmemiş değişiklik, izlenen yeni dosyalar
 // dahil; `A...B` birleşme tabanından, `A..B` A'dan. Grafik ve tekrar derlemi çalışma ağacından kurulduğu için satırlar o
 // zaman onlarınkiyle aynıdır; commit'ten önce koşan denetim de commit'lenmemiş kopyayı görür. Sağ uç başka bir commit ise
-// fark o commit'e kadardır (live=false). Boş uç git'teki gibi HEAD'dir.
-func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
+// fark o commit'e kadardır (live=false). Boş uç git'teki gibi HEAD'dir. flag, sol ucun geldiği bayraktır (--changed ya da --base).
+func changeHunks(root, rng, flag string) (hs []hunk, live bool, err error) {
 	a, b, _ := splitRange(rng)
 	if b == "" {
 		b = "HEAD"
@@ -82,14 +84,14 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 	if !sameCommit(root, b, "HEAD") {
 		hs, err = diffHunks(root, rng)
 		if err != nil && strings.Contains(rng, "...") {
-			if _, mbErr := mergeBase(root, from, b); mbErr != nil {
+			if _, mbErr := mergeBase(root, from, b, flag); mbErr != nil {
 				return nil, false, mbErr
 			}
 		}
 		return followFileRenames(root, b, hs), false, err
 	}
 	if strings.Contains(rng, "...") {
-		from, err = mergeBase(root, from, "HEAD")
+		from, err = mergeBase(root, from, "HEAD", flag)
 		if err != nil {
 			return nil, false, err
 		}
@@ -99,13 +101,14 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 }
 
 // mergeBase iki revizyonun ortak atasını verir; iki revizyon da geçerli birer commit iken ortak ata
-// bulunamazsa (sığ klon ya da eski yerel dal) neyin bulunamadığını ve çaresini açıklar.
-func mergeBase(root, from, to string) (string, error) {
+// bulunamazsa (sığ klon ya da eski yerel dal) ortak atası bulunamayan revizyonu hangi bayrağın (flag:
+// --changed ya da --base) verdiğini ve o bayrağın düzeltilmiş hâlini açıklar.
+func mergeBase(root, from, to, flag string) (string, error) {
 	mb, err := gitOut(root, "merge-base", from, to)
 	if err != nil {
 		if _, revErr := gitOut(root, "rev-parse", from+"^{commit}", to+"^{commit}"); revErr == nil {
 			remote := "origin/" + strings.TrimPrefix(from, "origin/")
-			return "", fmt.Errorf("no common ancestor (merge base) between %s and %s (shallow clone or outdated local %s): run `git fetch` or use `--changed %s`", from, to, from, remote)
+			return "", fmt.Errorf("no common ancestor (merge base) between %s (from %s) and %s (shallow clone or outdated local %s): run `git fetch` or use `%s %s`", from, flag, to, from, flag, remote)
 		}
 		return "", err
 	}

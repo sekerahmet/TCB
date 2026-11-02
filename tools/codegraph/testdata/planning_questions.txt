@@ -253,4 +253,5 @@ codegraph query .TR_map | contains: TR_mem_map [name] | not: id: heading: | src:
 tr index definition .TR_map | contains: TR_mem_map | not: bulunamadı | src: codegraph-2 madde 1, 2026-11-02 (alıcısız üye yazımı)
 codegraph query TR_self.TR_forward | exit: 3 | contains: layers.TR_type_Linear.TR_mem_forward | src: codegraph-2 madde 1, 2026-11-02 (TR_self alıcılı kitaplık üyesi x.TR_forward gibi çözülür)
 tr index definition TR_self.TR_forward | exit: 3 | contains: layers.Doğrusal.ileri | src: codegraph-2 madde 1, 2026-11-02 (TR_self alıcılı kitaplık üyesi iki araçta aynı)
+codegraph dups --root tools/codegraph/testdata/mod --changed HEAD | exit: 1 | contains: no common ancestor | contains: from --base | contains: --base origin/main | not: --changed origin/main | src: codegraph-2 madde 2, 2026-11-02 (ortak ata yokken taban --base'den geliyorsa --base origin/main önerilir)
 

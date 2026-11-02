@@ -489,19 +489,65 @@ func TestDupsClusterIDIsStable(t *testing.T) {
 }
 
 // Kural: yerel dal ile karşılaştırılan dal arasında ortak ata bulunamadığında (sığ klon ya da eski yerel main)
-// `dups --changed` ve `changed` yalnız "exit status 1" demez; neyin bulunamadığını ve çaresini (`git fetch` ya da
-// `--changed origin/main`) açıklar.
+// `dups --changed` ve `changed` yalnız "exit status 1" demez; ortak atası bulunamayan revizyonu hangi bayrağın
+// (`--changed` ya da `--base`) verdiğini ve o bayrağın düzeltilmiş hâlini (`--changed origin/main` ya da
+// `--base origin/main`) açıklar, önerilen komut koşulunca hata kalkar.
 func TestDupsChangedAndChangedExplainMissingMergeBase(t *testing.T) {
 	root := branchWithCopy(t)
 	gitMust(t, root, "checkout", "-q", "--orphan", "claude/orphan")
 	gitMust(t, root, "commit", "-q", "-m", "orphan")
+	gitMust(t, root, "update-ref", "refs/remotes/origin/main", "HEAD")
+	gitMust(t, root, "branch", "claude/side", "HEAD")
+	testkit.WriteFile(t, root, "new2.go", "package p\n")
+	gitMust(t, root, "add", "new2.go")
+	gitMust(t, root, "commit", "-q", "-m", "ahead")
+
+	// 1. yol: revizyon --changed'den (main, main..HEAD, main...HEAD).
 	for _, arg := range []string{"main", "main..HEAD", "main...HEAD"} {
 		var out, errb bytes.Buffer
 		code := run([]string{"dups", "--root", root, "--changed", arg}, &out, &errb)
 		msg := errb.String()
-		if code != exitFail || !strings.Contains(msg, "no common ancestor") || !strings.Contains(msg, "git fetch") ||
-			!strings.Contains(msg, "--changed origin/main") || strings.Contains(msg, "exit status 1") {
+		if code != exitFail || !strings.Contains(msg, "no common ancestor") || !strings.Contains(msg, "from --changed") ||
+			!strings.Contains(msg, "git fetch") || !strings.Contains(msg, "--changed origin/main") ||
+			strings.Contains(msg, "--base origin/main") || strings.Contains(msg, "exit status 1") {
 			t.Errorf("dups --changed %s without merge base: exit %d, stderr=%q", arg, code, msg)
+		}
+		fixed := strings.Replace(arg, "main", "origin/main", 1)
+		out.Reset()
+		errb.Reset()
+		if code := run([]string{"dups", "--root", root, "--changed", fixed}, &out, &errb); code != exitOK {
+			t.Errorf("dups --changed %s (suggested fix): exit %d, stderr=%q", fixed, code, errb.String())
+		}
+	}
+
+	// 2. yol: revizyon --base'den (HEAD, claude/orphan, ..HEAD, ...HEAD).
+	for _, arg := range []string{"HEAD", "claude/orphan", "..HEAD", "...HEAD"} {
+		var out, errb bytes.Buffer
+		code := run([]string{"dups", "--root", root, "--changed", arg}, &out, &errb)
+		msg := errb.String()
+		if code != exitFail || !strings.Contains(msg, "no common ancestor") || !strings.Contains(msg, "from --base") ||
+			!strings.Contains(msg, "git fetch") || !strings.Contains(msg, "--base origin/main") ||
+			strings.Contains(msg, "--changed origin/main") || strings.Contains(msg, "exit status 1") {
+			t.Errorf("dups --changed %s without merge base: exit %d, stderr=%q", arg, code, msg)
+		}
+		out.Reset()
+		errb.Reset()
+		if code := run([]string{"dups", "--root", root, "--changed", arg, "--base", "origin/main"}, &out, &errb); code != exitOK {
+			t.Errorf("dups --changed %s --base origin/main (suggested fix): exit %d, stderr=%q", arg, code, errb.String())
+		}
+	}
+
+	// codegraph changed de --base kullanır (changed.go:85 ve :92 yolları).
+	testkit.WriteFile(t, root, "go.mod", "module example.com/orphan\n\ngo 1.25\n")
+	graph := buildInto(t, root)
+	for _, arg := range []string{"main", "claude/orphan", "claude/side", "HEAD"} {
+		code, _, msg := commandIn("changed", root, graph, "--no-rebuild", arg)
+		if code != exitFail || !strings.Contains(msg, "no common ancestor") || !strings.Contains(msg, "from --base") ||
+			!strings.Contains(msg, "--base origin/main") || strings.Contains(msg, "--changed origin/main") {
+			t.Errorf("changed %s without merge base: exit %d, stderr=%q", arg, code, msg)
+		}
+		if code, _, errOut := commandIn("changed", root, graph, "--no-rebuild", "--base", "origin/main", arg); code != exitOK {
+			t.Errorf("changed --base origin/main %s (suggested fix): exit %d, stderr=%q", arg, code, errOut)
 		}
 	}
 }
