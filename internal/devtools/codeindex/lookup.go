@@ -225,7 +225,7 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 
 func (r *Reader) resolveMember(q, kind string) []*Node {
 	nodes := r.Index.Nodes
-	mq, types := MemberQuery(q, len(nodes), func(i int) Kind { return nodes[i].Kind }, r.qualifiedPairs)
+	mq, types := MemberQuery(q, len(nodes), func(i int) Kind { return nodes[i].Kind }, r.qualifiedPairs, r.importAliases)
 	if mq == "" {
 		return nil
 	}

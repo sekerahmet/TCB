@@ -1,6 +1,7 @@
 package codeindex
 
 import (
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -32,13 +33,14 @@ func IdentityQuery(q string) bool {
 	return !strings.Contains(s, ".") && codes.IsReservedName(s)
 }
 
-// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa üye kodunda `x.TR_<ad>`, kitaplık
-// bildiriminde `TR_<ad>` karşılığını verir; değilse boş döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip
-// adıysa boş döner ("bulunamadı"). Alıcı kodsuz bir ad olup bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`,
-// `Linear.TR_map`, `GPT.TR_map`), `x.TR_<ad>` hedefiyle birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>`
-// bir şey bulursa cevap tip ve değer adaylarıyla belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). İki
-// aracın (tr index ve codegraph) tek kuralı.
-func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][2]string) (string, []int) {
+// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa üye kodunda `x.TR_<ad>`, dizindeki bir
+// `TR_import … TR_as <ad>` takma adıyla sorulan kitaplık bildiriminde (`katman.TR_GPT`, `k.TR_Linear`) `TR_<ad>`
+// karşılığını verir; değilse boş döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip adıysa boş döner
+// ("bulunamadı"). Alıcı kodsuz bir ad olup bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`, `Linear.TR_map`,
+// `GPT.TR_map`), `x.TR_<ad>` hedefiyle birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>` bir şey bulursa
+// cevap tip ve değer adaylarıyla belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). İki aracın (tr index ve
+// codegraph) tek kuralı.
+func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][2]string, importAliases map[string]bool) (string, []int) {
 	recv, member, ok := strings.Cut(q, ".")
 	if !ok || strings.EqualFold(recv, "x") || strings.ContainsAny(recv, "/:") || !IdentityQuery("x."+member) {
 		return "", nil
@@ -65,11 +67,27 @@ func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][
 		}
 	}
 	if _, ok := codes.FromSpelling(codes.PlaceMember, member); !ok {
-		if k, ok := codes.FromSpelling(codes.PlaceOther, member); ok && k.IsLibrary() {
-			return member, nil
+		if importAliases[recv] {
+			if k, ok := codes.FromSpelling(codes.PlaceOther, member); ok && k.IsLibrary() {
+				return member, nil
+			}
 		}
 	}
 	return "x." + member, nil
+}
+
+// ImportAliases dizindeki `TR_import … TR_as <ad>` takma adlarını toplar; MemberQuery'nin kitaplık yedeği yalnız bu
+// alıcılarda çalışır.
+func ImportAliases(idx *Index) map[string]bool {
+	aliases := map[string]bool{}
+	for _, n := range idx.Nodes {
+		for _, imp := range n.Imports {
+			if imp.Alias != "" {
+				aliases[imp.Alias] = true
+			}
+		}
+	}
+	return aliases
 }
 
 // MemberTypeNote ve MemberValueNote tiple aynı adı taşıyan kodsuz alıcıda (`A.TR_shape`, `Model.TR_append`) belirsiz
@@ -250,11 +268,22 @@ func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 }
 
 // QualifiedNames düğümün nitelenmiş adının her yazım dilindeki biçimleridir (qualifiedSpellings): codegraph onları
-// düğümün takma adları yapar.
+// düğümün takma adları yapar; üst düzey kitaplık bildiriminde dizindeki `TR_as` takma adlarıyla yazılmış biçimleri de
+// (`katman.TR_GPT`, `k.TR_Linear`) eklenir.
 func (r *Reader) QualifiedNames(n *Node) []string {
 	var out []string
 	for _, q := range r.qualifiedSpellings(n) {
 		out = append(out, q[0])
+	}
+	if IsLibraryDecl(n) && !strings.Contains(n.Name, ".") {
+		if k, err := codes.Parse(n.Code); err == nil {
+			leaf := "." + codes.Spelling(k)
+			for _, a := range slices.Sorted(maps.Keys(r.importAliases)) {
+				if !slices.Contains(out, a+leaf) {
+					out = append(out, a+leaf)
+				}
+			}
+		}
 	}
 	return out
 }

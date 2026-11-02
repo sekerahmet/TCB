@@ -37,6 +37,7 @@ TR_test "doğrusal" {
 }
 `,
 		"examples/a.tr": `TR_import "tr/layers"
+TR_import "tr/layers" TR_as katman
 
 TR_struct Model {
     a: TR_Int = 1
@@ -68,7 +69,7 @@ TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward:
 func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	r := libraryProject(t)
 	for want, spellings := range map[string][]string{
-		"struct:lib/layers.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "layers.Linear", "layers.TR_Linear", "layers.TR_type_Linear"},
+		"struct:lib/layers.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "layers.Linear", "layers.TR_Linear", "layers.TR_type_Linear", "katman.TR_Linear"},
 		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"TR_forward", "x.TR_forward", "l.TR_forward", "uzun_alici.TR_forward", "TR_self.TR_forward", ".TR_forward", "TR_Linear.TR_forward", "tr_linear.TR_forward", "Linear.TR_forward", "Doğrusal.TR_forward", "doğrusal.TR_forward", "layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
 		"function:lib/layers.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
 		"parameter:lib/layers.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "layers.öğrenme_oranı_planı.adım_sayısı"},
@@ -118,7 +119,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	if res := r.Definition("model.TR_append", QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_append" {
 		t.Errorf("Definition(\"model.TR_append\") = %+v, want builtin:TR_mem_append", res)
 	}
-	for _, q := range []string{"TR_Linear.TR_map", "layers.TR_map", "Model.TR_GPT"} {
+	for _, q := range []string{"TR_Linear.TR_map", "layers.TR_map", "Model.TR_GPT", "foo.TR_Linear", "model.TR_Linear", "TR_self.TR_Linear", ".TR_Linear", "x.TR_Linear"} {
 		if res := r.Definition(q, QueryOptions{}); res.Status != StatusNotFound {
 			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
 		}

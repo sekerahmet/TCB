@@ -217,7 +217,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		"Linear.TR_forward", "Doğrusal.TR_forward", "doğrusal.TR_forward", "GPT.TR_generate",
 		"model.TR_generate", "a.TR_shape", "A.TR_shape", "A.TR_tolist", "model.TR_append", "tr_linear.TR_map",
 		"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
-		"layers.TR_Linear.TR_forward", "layers.TR_GPT", "katman.TR_GPT",
+		"layers.TR_Linear.TR_forward", "layers.TR_GPT", "katman.TR_GPT", "k.TR_Linear", "iyileştirici.TR_lr_schedule", "eğitim.TR_SpikeGuard",
 		"l.TR_map", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
 		".TR_map", ".TR_forward", "TR_self.TR_map", "TR_self.TR_forward",
 	} {
@@ -241,6 +241,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 	}
 	for _, q := range []string{
 		"TR_Linear.TR_map", "A.TR_GPT",
+		"foo.TR_GPT", "model.TR_GPT", "TR_self.TR_GPT", ".TR_GPT", "x.TR_GPT",
 		"layers.TR_map", "layers.TR_append", "layers.TR_Linear.TR_map",
 	} {
 		if got := ix.lookup(q); len(got) != 0 {

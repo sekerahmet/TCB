@@ -23,6 +23,7 @@ type index struct {
 	in         map[string][]*Edge
 	note       func(*Node) string         // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
 	trNames    []trName                   // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
+	trAliases  map[string]bool            // dizindeki `TR_import … TR_as <ad>` takma adları (trNameTable; tembel)
 	folded     []foldedNode               // düğümlerin katlanmış adları (nodeFolds; tembel)
 	linked     map[string]map[string]bool // paket -> ikilisine giren paketler (inTestBinary; tembel)
 }
@@ -221,6 +222,7 @@ func (ix *index) trNameTable() []trName {
 		return ix.trNames
 	}
 	ix.trNames = []trName{}
+	ix.trAliases = map[string]bool{}
 	for i := range ix.g.Nodes {
 		n := &ix.g.Nodes[i]
 		c := trName{node: n}
@@ -238,8 +240,13 @@ func (ix *index) trNameTable() []trName {
 		case strings.HasPrefix(n.ID, "tr:"):
 			c.class, c.names = codeindex.ClassDeclaration, declNames(n)
 			c.qualified = [][2]string{{n.Name, codeindex.Fold(n.Name)}}
+			mod, _, _ := strings.Cut(n.Name, ".")
 			for _, a := range n.Aliases {
-				if strings.Contains(a, ".") && !codeindex.IdentityQuery(a) {
+				if prefix, _, ok := strings.Cut(a, "."); ok && !codeindex.IdentityQuery(a) {
+					if prefix != mod {
+						ix.trAliases[prefix] = true
+						continue
+					}
 					c.qualified = append(c.qualified, [2]string{a, codeindex.Fold(a)})
 				}
 			}
@@ -302,7 +309,7 @@ func (ix *index) trMember(q string, kinds []string, table []trName) (found []*No
 			return codeindex.KindModule
 		}
 		return ""
-	}, func(i int) [][2]string { return table[i].qualified })
+	}, func(i int) [][2]string { return table[i].qualified }, ix.trAliases)
 	if mq == "" {
 		return nil, false
 	}
