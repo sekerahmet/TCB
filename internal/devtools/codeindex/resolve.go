@@ -1,8 +1,12 @@
 package codeindex
 
 import (
+	"fmt"
+	"path"
+	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -208,6 +212,65 @@ func (x *indexer) message(f *file, o owner, s *ast.StringLiteral) {
 		x.nodes[id] = &Node{ID: id, Kind: KindMessage, Name: s.Value}
 	}
 	x.link(o, id, EdgeUses, Extracted, RoleRead, tokenPos(f, s.Token.Line, s.Token.Column, s.Value))
+}
+
+var (
+	fixtureLabelRe = regexp.MustCompile(`#\s*(ERROR|WARNING|RUN-ERROR)((?:\s+H\d{4})+)\s*$`)
+	fixtureBareRe  = regexp.MustCompile(`#\s*(ERROR|WARNING|RUN-ERROR)\b`)
+)
+
+// FixtureDiag bir negatif fikstürün beklenen ya da alınan tanısıdır: tür (ERROR, WARNING,
+// RUN-ERROR), satır ve ileti kodu.
+type FixtureDiag struct {
+	Kind string
+	Line int
+	Code string
+}
+
+func (d FixtureDiag) String() string { return fmt.Sprintf("%d: %s %s", d.Line, d.Kind, d.Code) }
+
+// IsNegativeFixture yol bir negatif fikstür (.tr) dosyası mı (negative/*.tr).
+func IsNegativeFixture(rel string) bool {
+	return path.Base(path.Dir(rel)) == "negative" && strings.HasSuffix(rel, ".tr")
+}
+
+// FixtureLabels negatif fikstürün satır sonu etiketlerini (`# ERROR H1234`, `# WARNING H1012`,
+// `# RUN-ERROR H2478`) satır sırasıyla okur; problems biçime uymayan etiketlerdir.
+func FixtureLabels(text string) (want []FixtureDiag, problems []string) {
+	for i, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		m := fixtureLabelRe.FindStringSubmatch(line)
+		switch {
+		case m == nil && fixtureBareRe.MatchString(line):
+			problems = append(problems, fmt.Sprintf("line %d: label must be at the end of the line as '# ERROR H1234'", i+1))
+		case m == nil:
+		case strings.TrimSpace(line) == strings.TrimSpace(m[0]):
+			problems = append(problems, fmt.Sprintf("line %d: label cannot stand alone; place it at the end of the failing line", i+1))
+		default:
+			for _, code := range strings.Fields(m[2]) {
+				want = append(want, FixtureDiag{Kind: m[1], Line: i + 1, Code: code})
+			}
+		}
+	}
+	return want, problems
+}
+
+// fixtureMessages negatif fikstürün etiketlerindeki ileti kodlarını modül düğümüne bağlar:
+// sözdizimi hatası taşıyan fikstürler AST üretmese de bekledikleri iletiye bağlı kalır.
+func (x *indexer) fixtureMessages(rel, text, mod string) {
+	if !IsNegativeFixture(rel) {
+		return
+	}
+	want, _ := FixtureLabels(text)
+	for _, d := range want {
+		if _, err := messages.Parse(d.Code); err != nil {
+			continue
+		}
+		id := NodeID(KindMessage, "", d.Code)
+		if x.nodes[id] == nil {
+			x.nodes[id] = &Node{ID: id, Kind: KindMessage, Name: d.Code}
+		}
+		x.link(owner{mod, KindModule}, id, EdgeUses, Extracted, RoleRead, Pos{File: rel, Line: d.Line})
+	}
 }
 
 func (x *indexer) call(f *file, o owner, sc *scope, c *ast.CallExpression) {

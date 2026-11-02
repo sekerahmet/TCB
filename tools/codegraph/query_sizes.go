@@ -19,8 +19,9 @@ import (
 // Bu dosya tests-for <Go dosyası>'nın boyut satırını kurar: dosyayı tarayan boyut kuralları (TestLayoutFileSize,
 // TestLayoutFuncSize) için bugünkü değer ve sınır (DENETİM 2026-10-29: compiler.assignTo 80/80 satırdaydı, iki satır
 // eklendi, TestLayoutFuncSize commit'ten sonra düştü; tests-for testin adını gösteriyordu, değeri göstermiyordu).
-// Sınırlar internal/layoutrules'tan (düzen testinin okuduğu kaynak), fonksiyon boyu graftan (Node.Line, Node.End),
-// dosya boyu sorgu anında dosyadan okunur (graf dosyanın boyunu tutmaz).
+// Sınırlar internal/layoutrules'tan (düzen testinin okuduğu kaynak), dosya ve fonksiyon boyları sorgu anında dosyadan
+// okunur (fonksiyonlar go/parser ve düzenin ölçüsüyle: derleme kırıkken ve eski grafik kullanılırken de günceldir;
+// sözdizimi hatası yüzünden ayrıştırılamıyorsa boyut satırı boyun bayat olduğunu açıkça söyler).
 
 // nearPercent bu orandan (yüzde) büyük ya da eşit boyda olan fonksiyon sınıra yakındır ve yazılır.
 const nearPercent = 90
@@ -61,10 +62,11 @@ func (s sized) String() string {
 
 // fileSizes dosyanın boy kurallarına göre bugünkü boyudur: dosya (TestLayoutFileSize tarıyorsa) ve fonksiyonları
 // (TestLayoutFuncSize tarıyorsa ve dosya test dosyası değilse). Düzenin ölçmediği dosya (üretilmiş, testdata gibi
-// atlanan bir klasörde) ve okunamayan dosya sayılmaz.
-func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, tests []string) {
+// atlanan bir klasörde) ve okunamayan dosya sayılmaz. Dosya sözdizimi hatası yüzünden ayrıştırılamıyorsa staleFuncs
+// true döner ve boyut satırı fonksiyon boyunun bayat olduğunu açıkça yazar.
+func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, staleFuncs bool, tests []string) {
 	if file.Detail == "generated" || ix.root == "" || slices.ContainsFunc(strings.Split(path.Dir(file.File), "/"), layoutrules.SkippedDir) {
-		return nil, nil, nil
+		return nil, nil, false, nil
 	}
 	scanned := map[string]bool{}
 	for _, h := range ix.scansCovering(file.File) {
@@ -74,7 +76,7 @@ func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, tests []str
 	}
 	data, err := os.ReadFile(filepath.Join(ix.root, filepath.FromSlash(file.File)))
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, false, nil
 	}
 	if scanned[fileSizeTest] {
 		max, exc := layoutrules.FileMax(file.File)
@@ -82,41 +84,32 @@ func (ix *index) fileSizes(file *Node) (whole *sized, funcs []sized, tests []str
 		tests = append(tests, fileSizeTest)
 	}
 	if scanned[funcSizeTest] && !isTestFile(file.File) {
-		funcs = ix.funcSizes(file, data)
+		var ok bool
+		funcs, ok = funcSizes(file.File, data)
+		staleFuncs = !ok
 		tests = append(tests, funcSizeTest)
 	}
-	return whole, funcs, tests
+	return whole, funcs, staleFuncs, tests
 }
 
-// funcSizes dosyadaki func bildirimlerinin boyudur; adları düzen testinin istisna anahtarındaki gibi ("Alici.Ad"). Boy
-// graftandır (Node.Line, Node.End); bu makinede derlenmeyen dosyada (cuda_linux.go) aynı adlı bildirimin düğümü öbür
-// sürümün yerini taşıyabilir, o dosya burada go/parser'la düzenin ölçüsüyle okunur.
-func (ix *index) funcSizes(file *Node, data []byte) []sized {
+// funcSizes dosyadaki func bildirimlerinin boyudur; adları düzen testinin istisna anahtarındaki gibi ("Alici.Ad").
+// Her Go dosyası sorgu anında go/parser ve düzen testinin ölçüsüyle (layoutrules.FuncName, FuncLines) okunur; böylece
+// derleme kırıkken ve eski grafik kullanılırken de fonksiyon boyları günceldir. Sözdizimi hatası varsa false döner.
+func funcSizes(file string, data []byte) ([]sized, bool) {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, file, data, parser.SkipObjectResolution)
+	if err != nil {
+		return nil, false
+	}
 	var out []sized
-	add := func(name string, lines int) {
-		max, exc := layoutrules.FuncMax(file.File + ":" + name)
-		out = append(out, sized{name, lines, max, exc})
-	}
-	if strings.HasPrefix(file.Detail, otherConfigDetail) {
-		fset := token.NewFileSet()
-		f, err := parser.ParseFile(fset, file.File, data, parser.SkipObjectResolution)
-		if err != nil {
-			return nil
-		}
-		for _, d := range f.Decls {
-			if fd, ok := d.(*ast.FuncDecl); ok {
-				add(layoutrules.FuncName(fd), layoutrules.FuncLines(fset, fd))
-			}
-		}
-		return sortSizes(out)
-	}
-	for _, e := range ix.out[file.ID] {
-		d := ix.byID[e.To]
-		if e.Kind == edgeContains && d != nil && (d.Kind == kindFunc || d.Kind == kindMethod) && d.File == file.File && d.End > 0 {
-			add(d.Name[strings.Index(d.Name, ".")+1:], d.End-d.Line+1) // paket adı düşer: interp.compiler.assignTo -> compiler.assignTo
+	for _, d := range f.Decls {
+		if fd, ok := d.(*ast.FuncDecl); ok {
+			name := layoutrules.FuncName(fd)
+			max, exc := layoutrules.FuncMax(file + ":" + name)
+			out = append(out, sized{name, layoutrules.FuncLines(fset, fd), max, exc})
 		}
 	}
-	return sortSizes(out)
+	return sortSizes(out), true
 }
 
 // sortSizes sınırı aşanları önce, sonra sınıra oranca en yakın olanı koyar.
@@ -135,9 +128,9 @@ func sortSizes(out []sized) []sized {
 }
 
 // printSizes boyut satırını yazar (koşu satırlarının altında, kancanın gösterdiği ilk satırlarda): dosyanın boyu ve
-// sınıra %nearPercent'ten yakın fonksiyonlar; yakın yoksa sınıra en yakını.
+// sınıra %nearPercent'ten yakın fonksiyonlar; yakın yoksa sınıra en yakını; sözdizimi hatası varsa bayat uyarısı.
 func (ix *index) printSizes(w io.Writer, file *Node) {
-	whole, funcs, tests := ix.fileSizes(file)
+	whole, funcs, staleFuncs, tests := ix.fileSizes(file)
 	if len(tests) == 0 {
 		return
 	}
@@ -145,7 +138,10 @@ func (ix *index) printSizes(w io.Writer, file *Node) {
 	if whole != nil {
 		parts = append(parts, whole.String())
 	}
-	if len(funcs) > 0 {
+	switch {
+	case staleFuncs:
+		parts = append(parts, "functions: stale (syntax error: cannot parse file)")
+	case len(funcs) > 0:
 		var near []string
 		for _, f := range funcs {
 			if f.lines > f.max || f.near() {

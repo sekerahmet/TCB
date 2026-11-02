@@ -132,22 +132,61 @@ func (ix *index) producedOnlyBy(m *Node, own map[string]bool) bool {
 	return true
 }
 
-func (ix *index) aboutReason(t, target *Node, names []string, msgs []*Node) string {
-	title := testTitle(t)
-	own, qual := ownName(target)
-	for _, name := range names {
-		if name == own && qual != "" && ix.pkgOf(t.ID) != ix.pkgOf(target.ID) {
-			// Başka paketteki test bir Go işlevinin kısa adını ancak niteleyicisiyle anar (`TestTensorData`,
-			// `codes.Name`): kısa ad çoğu zaman yaygın bir sözcüktür (bağımsız denetim grup 7: `codes.Name` için
-			// checker'ın "Name" geçen 12 testi "about" sayılıyordu).
-			if containsWords(nameWords(title), append(nameWords(qual), nameWords(own)...)) || hasWord(t.Doc, qual+"."+own) {
-				return "names it"
+// fixtureTests hedefin ürettiği bir iletiyi bekleyen negatif TR fikstür dosyalarıdır (tests/negative/*.tr).
+func (ix *index) fixtureTests(n *Node) []*Node {
+	var out []*Node
+	for _, m := range ix.producedMessages(n) {
+		for _, e := range ix.in[m.ID] {
+			if f := ix.byID[e.From]; e.Kind == edgeUsesMessage && isNegativeFixture(f) && !slices.Contains(out, f) {
+				out = append(out, f)
 			}
+		}
+	}
+	return out
+}
+
+// fixtureRunners bir negatif TR fikstür dosyasını etiketleriyle koşan Go testleridir (testrunner.TestNegativeFixtures).
+func (ix *index) fixtureRunners(f *Node) []*Node {
+	if !isNegativeFixture(f) {
+		return nil
+	}
+	var all, runners []*Node
+	for _, e := range ix.in[f.ID] {
+		t := ix.byID[e.From]
+		if e.Kind != edgeTests || !isTestNode(t) || t.Kind != kindFunc || slices.Contains(all, t) {
 			continue
 		}
-		if hasWord(title, name) || hasWord(t.Doc, name) ||
-			strings.HasPrefix(t.ID, "go:") && containsWords(nameWords(title), nameWords(name)) {
-			return "names it"
+		all = append(all, t)
+		if slices.ContainsFunc(ix.out[t.ID], func(c *Edge) bool {
+			return c.Kind == edgeCalls && strings.HasSuffix(c.To, ".FixtureLabels")
+		}) {
+			runners = append(runners, t)
+		}
+	}
+	if len(runners) > 0 {
+		return runners
+	}
+	return all
+}
+
+func (ix *index) aboutReason(t, target *Node, names []string, msgs []*Node) string {
+	if !isNegativeFixture(t) {
+		title := testTitle(t)
+		own, qual := ownName(target)
+		for _, name := range names {
+			if name == own && qual != "" && ix.pkgOf(t.ID) != ix.pkgOf(target.ID) {
+				// Başka paketteki test bir Go işlevinin kısa adını ancak niteleyicisiyle anar (`TestTensorData`,
+				// `codes.Name`): kısa ad çoğu zaman yaygın bir sözcüktür (bağımsız denetim grup 7: `codes.Name` için
+				// checker'ın "Name" geçen 12 testi "about" sayılıyordu).
+				if containsWords(nameWords(title), append(nameWords(qual), nameWords(own)...)) || hasWord(t.Doc, qual+"."+own) {
+					return "names it"
+				}
+				continue
+			}
+			if hasWord(title, name) || hasWord(t.Doc, name) ||
+				strings.HasPrefix(t.ID, "go:") && containsWords(nameWords(title), nameWords(name)) {
+				return "names it"
+			}
 		}
 	}
 	for _, m := range msgs {

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -21,49 +22,16 @@ import (
 // Olumsuz fikstürler (tests/negative/*.tr) bilerek hatalı dosyalardır. Beklenti dosyanın içinde,
 // hatalı satırın sonunda yorumla yazılır: `# ERROR H1106` denetimin (sözdizimi ya da tip) o satırda
 // verdiği hata, `# WARNING H1012` uyarı, `# RUN-ERROR H2478` denetimden geçen dosyanın çalışırken
-// o satırda verdiği hata; bir satırda birden çok kod boşlukla yazılır. Her fikstürde en az bir
-// `# TEST 2.6 açıklama` satırı sınadığı kuralı söyler (TestEveryRuleHasATest onu tests/ altındaki
-// bir TR testi sayar). Aktarmalar dosyanın başında olduğundan (2.1) bir TR testi hatalı bir modülü
-// içeride aktarıp kodunu yakalayamaz.
-var (
-	fixtureLabelRe = regexp.MustCompile(`#\s*(ERROR|WARNING|RUN-ERROR)((?:\s+H\d{4})+)\s*$`)
-	fixtureBareRe  = regexp.MustCompile(`#\s*(ERROR|WARNING|RUN-ERROR)\b`)
-	fixtureTestRe  = regexp.MustCompile(`(?m)^# TEST (\d+\.\d+[a-z]?)\s`)
-)
-
-// fixtureDiag bir fikstürün beklenen ya da alınan tanısıdır: tür (ERROR, WARNING, RUN-ERROR),
-// satır ve kod.
-type fixtureDiag struct {
-	kind string
-	line int
-	code string
-}
-
-func (d fixtureDiag) String() string { return fmt.Sprintf("%d: %s %s", d.line, d.kind, d.code) }
-
-// fixtureLabels fikstürün etiketlerini satır sırasıyla okur; problems biçime uymayan etiketlerdir.
-func fixtureLabels(text string) (want []fixtureDiag, problems []string) {
-	for i, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
-		m := fixtureLabelRe.FindStringSubmatch(line)
-		switch {
-		case m == nil && fixtureBareRe.MatchString(line):
-			problems = append(problems, fmt.Sprintf("%d. satır: etiket satırın sonunda '# ERROR H1234' biçiminde yazılır", i+1))
-		case m == nil:
-		case strings.TrimSpace(line) == strings.TrimSpace(m[0]):
-			problems = append(problems, fmt.Sprintf("%d. satır: etiket tek başına yazılmaz, hatalı satırın sonuna yazılır", i+1))
-		default:
-			for _, code := range strings.Fields(m[2]) {
-				want = append(want, fixtureDiag{m[1], i + 1, code})
-			}
-		}
-	}
-	return want, problems
-}
+// o satırda verdiği hata; bir satırda birden çok kod boşlukla yazılır (codeindex.FixtureLabels). Her
+// fikstürde en az bir `# TEST 2.6 açıklama` satırı sınadığı kuralı söyler (TestEveryRuleHasATest onu
+// tests/ altındaki bir TR testi sayar). Aktarmalar dosyanın başında olduğundan (2.1) bir TR testi
+// hatalı bir modülü içeride aktarıp kodunu yakalayamaz.
+var fixtureTestRe = regexp.MustCompile(`(?m)^# TEST (\d+\.\d+[a-z]?)\s`)
 
 // fixtureDiags tanıları fikstürün etiketleriyle karşılaştırılacak biçime çevirir: kod en içteki
 // nedenin kodudur (TR_error_code gibi), satır dosyanın satırıdır.
-func fixtureDiags(kind string, errs []error) []fixtureDiag {
-	var out []fixtureDiag
+func fixtureDiags(kind string, errs []error) []codeindex.FixtureDiag {
+	var out []codeindex.FixtureDiag
 	for _, err := range errs {
 		line, _, _ := messages.Pos(err)
 		var me *interp.ModuleError
@@ -74,7 +42,7 @@ func fixtureDiags(kind string, errs []error) []fixtureDiag {
 		if m, ok := messages.Root(err); ok {
 			code = m.Code.String()
 		}
-		out = append(out, fixtureDiag{kind, line, code})
+		out = append(out, codeindex.FixtureDiag{Kind: kind, Line: line, Code: code})
 	}
 	return out
 }
@@ -99,7 +67,7 @@ func TestNegativeFixtures(t *testing.T) {
 			t.Fatal(err)
 		}
 		text := string(data)
-		want, problems := fixtureLabels(text)
+		want, problems := codeindex.FixtureLabels(text)
 		for _, p := range problems {
 			t.Errorf("%s: %s", name, p)
 		}
@@ -111,7 +79,7 @@ func TestNegativeFixtures(t *testing.T) {
 		}
 		run := false
 		for _, w := range want {
-			run = run || w.kind == "RUN-ERROR"
+			run = run || w.Kind == "RUN-ERROR"
 		}
 		r := source.Prepare(text, source.Options{TypeCheck: true, Module: modules[filepath.Base(f)]})
 		got := append(fixtureDiags("ERROR", r.Errors), fixtureDiags("WARNING", r.Warnings)...)
@@ -158,24 +126,24 @@ func importedFixtures(t *testing.T, fixtures []string) map[string]bool {
 
 var fixtureImportRe = regexp.MustCompile(`(?m)^TR_import "([^"/]+)"`)
 
-func sortFixtureDiags(d []fixtureDiag) {
+func sortFixtureDiags(d []codeindex.FixtureDiag) {
 	sort.Slice(d, func(i, j int) bool {
-		if d[i].line != d[j].line {
-			return d[i].line < d[j].line
+		if d[i].Line != d[j].Line {
+			return d[i].Line < d[j].Line
 		}
-		return d[i].kind+d[i].code < d[j].kind+d[j].code
+		return d[i].Kind+d[i].Code < d[j].Kind+d[j].Code
 	})
 }
 
 // Etiketin biçimi: satırın sonunda bir ya da birden çok kod; tek başına ya da kodsuz etiket
 // yakalanır.
 func TestFixtureLabels(t *testing.T) {
-	want, problems := fixtureLabels("# TR 4\nTR_var a = \"\\q\" # ERROR H0008 H0008\nTR_var b = 1 # WARNING H1012\r\nTR_import \"x\" # RUN-ERROR H2478\n")
+	want, problems := codeindex.FixtureLabels("# TR 4\nTR_var a = \"\\q\" # ERROR H0008 H0008\nTR_var b = 1 # WARNING H1012\r\nTR_import \"x\" # RUN-ERROR H2478\n")
 	if fmt.Sprint(want) != "[2: ERROR H0008 2: ERROR H0008 3: WARNING H1012 4: RUN-ERROR H2478]" || len(problems) != 0 {
 		t.Errorf("etiketler: %v, sorunlar: %v", want, problems)
 	}
 	for _, text := range []string{"# ERROR H0008\nTR_var a = 1\n", "TR_var a = 1 # ERROR\n", "TR_var a = 1 # ERROR 0008\n"} {
-		if _, problems := fixtureLabels(text); len(problems) != 1 {
+		if _, problems := codeindex.FixtureLabels(text); len(problems) != 1 {
 			t.Errorf("%q: bir sorun bekleniyordu: %v", text, problems)
 		}
 	}

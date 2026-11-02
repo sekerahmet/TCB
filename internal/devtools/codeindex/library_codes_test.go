@@ -38,11 +38,17 @@ TR_test "doğrusal" {
 `,
 		"examples/a.tr": `TR_import "tr/layers"
 
+TR_struct Model {
+    a: TR_Int = 1
+}
+
 TR_func ileri(x: TR_Int) -> TR_Int {
     TR_return x
 }
 
 TR_var d = TR_Linear()
+TR_var l = [1, 2].TR_map((x) => x)
+l.TR_append(3)
 TR_print(d.TR_forward(ileri(3)), TR_lr_schedule(1, 4))
 TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (s, g) => { TR_return [g] })
 `,
@@ -63,7 +69,7 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	r := libraryProject(t)
 	for want, spellings := range map[string][]string{
 		"struct:lib/layers.tr#TR_type_Linear":                        {"TR_Linear", "TR_type_Linear", "Doğrusal", "Linear", "layers.Linear", "layers.TR_Linear", "layers.TR_type_Linear"},
-		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"TR_forward", "x.TR_forward", "layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
+		"method:lib/layers.tr#TR_type_Linear.TR_mem_forward":         {"TR_forward", "x.TR_forward", "l.TR_forward", "uzun_alici.TR_forward", "TR_self.TR_forward", ".TR_forward", "TR_Linear.TR_forward", "tr_linear.TR_forward", "layers.Doğrusal.ileri", "layers.Linear.forward", "Linear.forward", "layers.TR_Linear.TR_forward", "layers.TR_type_Linear.TR_mem_forward"},
 		"function:lib/layers.tr#TR_fn_lr_schedule":                   {"TR_lr_schedule", "TR_fn_lr_schedule", "öğrenme_oranı_planı", "lr_schedule", "LR_SCHEDULE"},
 		"parameter:lib/layers.tr#TR_fn_lr_schedule.TR_arg_num_steps": {"lr_schedule.num_steps", "layers.öğrenme_oranı_planı.adım_sayısı"},
 	} {
@@ -103,6 +109,16 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	turkish = slices.DeleteFunc(turkish, func(id string) bool { return id == "function:examples/a.tr#ileri" })
 	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/layers.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_arg_forward") {
 		t.Errorf("ileri -> %v, forward -> %v: the library method and the builtin are candidates under both names", turkish, english)
+	}
+	for _, q := range []string{"l.TR_map", ".TR_map"} {
+		if res := r.Definition(q, QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_map" {
+			t.Errorf("Definition(%q) = %+v, want builtin:TR_mem_map", q, res)
+		}
+	}
+	for _, q := range []string{"Model.TR_append", "model.TR_append", "TR_Linear.TR_map", "tr_linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map", "layers.TR_map"} {
+		if res := r.Definition(q, QueryOptions{}); res.Status != StatusNotFound {
+			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
+		}
 	}
 }
 

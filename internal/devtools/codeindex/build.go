@@ -146,6 +146,9 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 		x.skipped = append(x.skipped, Skipped{File: rel, Reason: readErr.Error()})
 		return
 	}
+	if !x.snippet {
+		x.fixtureMessages(rel, string(data), mod.ID)
+	}
 	res := readFile(string(data), x.snippet)
 	mod.Coded = res.coded
 	if len(res.errs) > 0 {

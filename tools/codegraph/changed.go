@@ -27,19 +27,27 @@ type changeOpts struct {
 // satırlar) eşlenir, bu ana dal henüz kımıldamadıysa doğrudur. Yalnızca eklenen kod (eski
 // tarafta karşılığı yok) "mapped to no node" altında dosya olarak sayılır.
 func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) int {
-	rng, right := o.base+"..."+ref, ref
+	rng, right, flag := o.base+"..."+ref, ref, "--base"
 	if _, b, ok := splitRange(ref); ok {
-		rng, right = ref, b
+		rng, right, flag = ref, b, ""
+	} else if ref == "main" && !sameCommit(o.root, ref, "HEAD") {
+		rng, right = o.base+"...HEAD", "HEAD"
 	}
-	hs, live, err := changeHunks(o.root, rng)
+	hs, live, err := changeHunks(o.root, rng, flag)
 	if err != nil {
 		fmt.Fprintln(stderr, "codegraph:", err)
 		return exitFail
 	}
 	oldSide := ix.touched(hs, false)
 	main, mapping := oldSide, "old-side lines (the merge base); the graph is of the checked-out tree, so this is exact only while it equals the merge base"
+	var untracked []string
 	if live {
+		untracked = untrackedWorkingFiles(o.root)
 		main, mapping = ix.touched(hs, true), "new-side lines up to the working tree, uncommitted edits included (the graph is of this very tree)"
+		ix.touchUntracked(main, untracked)
+	}
+	for _, f := range untracked {
+		printUntrackedWarning(stdout, f)
 	}
 	if o.goTests {
 		ix.printGoTests(stdout, main)
@@ -69,8 +77,8 @@ func splitRange(ref string) (a, b string, ok bool) {
 // ise fark çalışma ağacına kadar alınır (live): commit'lenmiş, sahnelenmiş ve sahnelenmemiş değişiklik, izlenen yeni dosyalar
 // dahil; `A...B` birleşme tabanından, `A..B` A'dan. Grafik ve tekrar derlemi çalışma ağacından kurulduğu için satırlar o
 // zaman onlarınkiyle aynıdır; commit'ten önce koşan denetim de commit'lenmemiş kopyayı görür. Sağ uç başka bir commit ise
-// fark o commit'e kadardır (live=false). Boş uç git'teki gibi HEAD'dir.
-func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
+// fark o commit'e kadardır (live=false). Boş uç git'teki gibi HEAD'dir. flag, sol ucun geldiği bayraktır (--changed ya da --base).
+func changeHunks(root, rng, flag string) (hs []hunk, live bool, err error) {
 	a, b, _ := splitRange(rng)
 	if b == "" {
 		b = "HEAD"
@@ -82,14 +90,14 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 	if !sameCommit(root, b, "HEAD") {
 		hs, err = diffHunks(root, rng)
 		if err != nil && strings.Contains(rng, "...") {
-			if _, mbErr := mergeBase(root, from, b); mbErr != nil {
+			if _, mbErr := mergeBase(root, from, b, flag); mbErr != nil {
 				return nil, false, mbErr
 			}
 		}
 		return followFileRenames(root, b, hs), false, err
 	}
 	if strings.Contains(rng, "...") {
-		from, err = mergeBase(root, from, "HEAD")
+		from, err = mergeBase(root, from, "HEAD", flag)
 		if err != nil {
 			return nil, false, err
 		}
@@ -99,13 +107,19 @@ func changeHunks(root, rng string) (hs []hunk, live bool, err error) {
 }
 
 // mergeBase iki revizyonun ortak atasını verir; iki revizyon da geçerli birer commit iken ortak ata
-// bulunamazsa (sığ klon ya da eski yerel dal) neyin bulunamadığını ve çaresini açıklar.
-func mergeBase(root, from, to string) (string, error) {
+// bulunamazsa (sığ klon ya da eski yerel dal) ortak atası bulunamayan revizyonu hangi bayrağın (flag:
+// --changed ya da --base) verdiğini ve o bayrağın düzeltilmiş hâlini (bayrak yoksa konumsal aralığın
+// düzeltilmiş hâlini: `changed origin/main...HEAD`) açıklar.
+func mergeBase(root, from, to, flag string) (string, error) {
 	mb, err := gitOut(root, "merge-base", from, to)
 	if err != nil {
 		if _, revErr := gitOut(root, "rev-parse", from+"^{commit}", to+"^{commit}"); revErr == nil {
 			remote := "origin/" + strings.TrimPrefix(from, "origin/")
-			return "", fmt.Errorf("no common ancestor (merge base) between %s and %s (shallow clone or outdated local %s): run `git fetch` or use `--changed %s`", from, to, from, remote)
+			src, fix := from, "changed "+remote+"..."+to
+			if flag != "" {
+				src, fix = from+" (from "+flag+")", flag+" "+remote
+			}
+			return "", fmt.Errorf("no common ancestor (merge base) between %s and %s (shallow clone or outdated local %s): run `git fetch` or use `%s`", src, to, from, fix)
 		}
 		return "", err
 	}
@@ -237,6 +251,21 @@ func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
 	}
 }
 
+// touchUntracked çalışma ağacındaki izlenmeyen kaynak dosyalarını ve bildirimlerini değişen kümeye ekler.
+func (ix *index) touchUntracked(ts *touchSet, files []string) {
+	for _, f := range files {
+		ts.files[f] = true
+		if file := ix.byID[fileID(f)]; file != nil {
+			for id, d := range ix.fileDecls(file).nodes {
+				ts.nodes[id] = d
+			}
+		}
+		if tr := ix.byID[trFileID(f)]; tr != nil {
+			ts.nodes[tr.ID] = tr
+		}
+	}
+}
+
 // goTest `go test`'in koşabildiği bir testtir: paketin klasörü ve Test/Fuzz adı.
 type goTest struct{ dir, name string }
 
@@ -274,10 +303,16 @@ func (ix *index) goTestSelection(ts *touchSet) []goTest {
 	}
 	seen := map[goTest]bool{}
 	var out []goTest
-	for _, n := range nodes {
+	add := func(n *Node) {
 		if t, ok := goTestOf(n); ok && !seen[t] {
 			seen[t] = true
 			out = append(out, t)
+		}
+	}
+	for _, n := range nodes {
+		add(n)
+		for _, r := range ix.fixtureRunners(n) {
+			add(r)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].dir+" "+out[i].name < out[j].dir+" "+out[j].name })
@@ -294,7 +329,7 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, own
 	}
 	ids := make([]string, 0, len(best))
 	for id := range best {
-		if isTestNode(ix.byID[id]) && ts.nodes[id] == nil {
+		if (isTestNode(ix.byID[id]) || isNegativeFixture(ix.byID[id])) && ts.nodes[id] == nil {
 			ids = append(ids, id)
 		}
 	}

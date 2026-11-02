@@ -14,33 +14,34 @@ import (
 // changedLines dosya başına değişen (eklenen ya da değişen) satır aralıklarıdır.
 type changedLines map[string][][2]int
 
-// changedRange --changed değerini git aralığına çevirir; her biçim `git diff A...B` gibi birleşme
-// tabanından B'ye bakar (ağaç farkı değil: A sonradan ilerlediyse A'daki yeni işler B'nin değişikliği
-// sayılmaz):
+// changedRange --changed değerini git aralığına çevirir ve sol ucun hangi bayraktan (--changed ya da --base)
+// geldiğini verir; her biçim `git diff A...B` gibi birleşme tabanından B'ye bakar (ağaç farkı değil: A sonradan
+// ilerlediyse A'daki yeni işler B'nin değişikliği sayılmaz):
 //   - `A..B` ve `A...B`: tabandan B'ye (B boşsa HEAD, A boşsa base);
 //   - çıkış yapılmış dalın adı: base...dal;
 //   - başka bir ad (main gibi): ad...HEAD, yani çıkış yapılmış dalda o ada göre ne yeni.
-func changedRange(root, base, ref string) (rng, right string) {
+func changedRange(root, base, ref string) (rng, right, flag string) {
 	if a, b, ok := splitRange(ref); ok {
+		flag = "--changed"
 		if a == "" {
-			a = base
+			a, flag = base, "--base"
 		}
 		if b == "" {
 			b = "HEAD"
 		}
-		return a + "..." + b, b
+		return a + "..." + b, b, flag
 	}
 	if sameCommit(root, ref, "HEAD") {
-		return base + "..." + ref, ref
+		return base + "..." + ref, ref, "--base"
 	}
-	return ref + "...HEAD", "HEAD"
+	return ref + "...HEAD", "HEAD", "--changed"
 }
 
 // changedGoLines --changed değerinin Go dosyalarında çalışma ağacındaki değişen satırlarını verir (aralığın
 // sağ ucu çıkış yapılmış olmalıdır).
 func changedGoLines(root, base, ref string) (changedLines, error) {
-	rng, right := changedRange(root, base, ref)
-	hs, live, err := changeHunks(root, rng)
+	rng, right, flag := changedRange(root, base, ref)
+	hs, live, err := changeHunks(root, rng, flag)
 	if err != nil {
 		return nil, err
 	}

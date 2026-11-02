@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // runPlanFiles koşu satırı sınanan dosyalardır: olayın dosyası (2026-10-29) ve depodan sıralı bir örnek.
@@ -13,7 +15,7 @@ func runPlanFiles(g *Graph) []*Node {
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
 		if n.Kind == kindFile && strings.HasSuffix(n.File, ".go") && !strings.Contains(n.File, "/testdata/") &&
-			(n.File == "internal/lang/interp/compiler_assign.go" || strings.HasPrefix(n.File, "internal/lang/interp/") && i%7 == 0) {
+			(n.File == "internal/lang/interp/compiler_assign.go" || n.File == "internal/lang/checker/unpack.go" || strings.HasPrefix(n.File, "internal/lang/interp/") && i%7 == 0) {
 			out = append(out, n)
 		}
 	}
@@ -47,6 +49,7 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 		}
 		for _, a := range s.about {
 			want = append(want, a.test)
+			want = append(want, ix.fixtureRunners(a.test)...)
 		}
 		for _, n := range want {
 			if gt, ok := goTestOf(n); ok && !inRun(gt) {
@@ -132,5 +135,64 @@ func TestTheRemainingCountSaysWhereTheTestsAre(t *testing.T) {
 		if !strings.Contains(out.String(), "not run by these commands: "+c.want+"; before committing") {
 			t.Errorf("want %q:\n%s", c.want, out.String())
 		}
+	}
+}
+
+// untrackedGitFixture geçici bir git deposunda izlenen (`shape/shape.go`) ve izlenmeyen (`shape/untracked.go`)
+// iki Go dosyası kurar ve grafiğini derler.
+func untrackedGitFixture(t *testing.T) (string, string) {
+	t.Helper()
+	root := gitFixture(t)
+	replaceIn(t, path.Join(root, "shape/shape_test.go"), "check(t, Square{2})", "check(t, Square{Untracked()})")
+	gitMust(t, root, "add", "shape/shape_test.go")
+	testkit.WriteFile(t, root, "shape/untracked.go", "package shape\n\nfunc Untracked() float64 { return 2 }\n")
+	return root, buildInto(t, root)
+}
+
+// Kural: git tarafından izlenmeyen bir dosyada tests-for (run: satırlarından önce) ve changed --go-tests dosyanın
+// izlenmediğini, depo taramalarının yalnız izlenen dosyaları gördüğünü ve `git add` gerektiğini aynı uyarıyla söyler;
+// izlenen dosyada (ya da dosya `git add` ile eklendikten sonra) bu uyarı çıkmaz.
+func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
+	root, graph := untrackedGitFixture(t)
+	wantWarn := "untracked: shape/untracked.go is not tracked by git; repository-wide checks do not see it (run `git add shape/untracked.go`)"
+
+	// 1. İzlenmeyen dosyada tests-for: uyarı run: satırlarından önce çıkar.
+	code, out, errOut := commandIn("tests-for", root, graph, "--no-rebuild", "shape/untracked.go")
+	if code != exitOK {
+		t.Fatalf("tests-for untracked: exit %d: %s", code, errOut)
+	}
+	wIdx := strings.Index(out, wantWarn)
+	rIdx := strings.Index(out, "\nrun: go test -short ./shape/")
+	if wIdx < 0 || rIdx < 0 || wIdx > rIdx {
+		t.Errorf("tests-for untracked must print warning before run: lines:\n%s", out)
+	}
+
+	// 2. İzlenen dosyada tests-for: uyarı çıkmaz.
+	code, out, errOut = commandIn("tests-for", root, graph, "--no-rebuild", "shape/shape.go")
+	if code != exitOK {
+		t.Fatalf("tests-for tracked: exit %d: %s", code, errOut)
+	}
+	if strings.Contains(out, "untracked:") || strings.Contains(out, "not tracked by git") {
+		t.Errorf("tests-for tracked file must not print untracked warning:\n%s", out)
+	}
+
+	// 3. İzlenmeyen dosya varken changed --go-tests: aynı uyarıyı verir ve dosyanın testlerini seçer.
+	code, out, errOut = commandIn("changed", root, graph, "--no-rebuild", "--go-tests", "HEAD")
+	if code != exitOK {
+		t.Fatalf("changed --go-tests with untracked: exit %d: %s", code, errOut)
+	}
+	if !strings.Contains(out, wantWarn) || !strings.Contains(out, "shape TestDescribe") {
+		t.Errorf("changed --go-tests must warn about untracked file and select its tests:\n%s", out)
+	}
+
+	// 4. Dosya `git add` ile izlenmeye başlanınca iki komutta da uyarı kalkar.
+	gitMust(t, root, "add", "shape/untracked.go")
+	code, out, errOut = commandIn("tests-for", root, graph, "--no-rebuild", "shape/untracked.go")
+	if code != exitOK || strings.Contains(out, "untracked:") {
+		t.Errorf("after git add, tests-for must not warn: exit %d\n%s%s", code, out, errOut)
+	}
+	code, out, errOut = commandIn("changed", root, graph, "--no-rebuild", "--go-tests", "HEAD")
+	if code != exitOK || strings.Contains(out, "untracked:") || !strings.Contains(out, "shape TestDescribe") {
+		t.Errorf("after git add, changed --go-tests must not warn: exit %d\n%s%s", code, out, errOut)
 	}
 }
