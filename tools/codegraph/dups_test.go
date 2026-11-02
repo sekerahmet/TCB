@@ -488,6 +488,15 @@ func TestDupsClusterIDIsStable(t *testing.T) {
 	}
 }
 
+// orphanGitFixture ortak atası olmayan `main` ve `HEAD` dallarına sahip geçici bir git deposu kurar.
+func orphanGitFixture(t *testing.T) string {
+	t.Helper()
+	root := gitFixture(t)
+	gitMust(t, root, "checkout", "-q", "--orphan", "claude/orphan")
+	gitMust(t, root, "commit", "-q", "-m", "orphan")
+	return root
+}
+
 // Kural: yerel dal ile karşılaştırılan dal arasında ortak ata bulunamadığında (sığ klon ya da eski yerel main)
 // `dups --changed` ve `changed` yalnız "exit status 1" demez; ortak atası bulunamayan revizyonu hangi bayrağın
 // (`--changed` ya da `--base`) verdiğini ve o bayrağın düzeltilmiş hâlini (`--changed origin/main` ya da

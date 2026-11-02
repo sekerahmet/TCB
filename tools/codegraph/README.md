@@ -102,9 +102,10 @@ Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scan
 TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to
 test files too, the function limit does not; generated files and skipped folders (`testdata`) are not measured. The
-limits come from `internal/layoutrules`, the source the layout tests read; a function's size from the graph (`Line`,
-`End`; in a file not built here, from go/parser, since a node of the same name may carry the other version's lines),
-the file's from the file at query time. `TestSizesMatchTheLayoutTest` compares both with the layout test's measure
+limits come from `internal/layoutrules`, the source the layout tests read; both the file's and its functions' sizes are
+read from the file at query time (functions with `go/parser` and `layoutrules.FuncName`/`FuncLines`, so a broken build
+that uses the stale graph still shows the current function sizes; when the file has a syntax error and cannot be parsed,
+the line says `functions: stale (syntax error: cannot parse file)`). `TestSizesMatchTheLayoutTest` compares both with the layout test's measure
 (`layoutrules.FileLines`, `FuncLines`, `FuncName`) for every measured file and function. The tests a test file declares come first as `this file's tests` (benchmarks
 are measurements and stay out), and so do, for `x.go`, the tests of its test file `x_test.go`, whether in the same package or the external `_test` one (`state.go` lists `dataset_test.TestReaderSkipSameAsNext`; `TestASourceFileListsItsTestFilesTestsFirst` reads every such pair with go/parser); `changed` lists a changed test the same way, as `changed tests (they run themselves)`. A function a test file uses as a value (a table entry
 `{"ceil", (*Tensor).Ceil}`, a method expression, `f := Cube`) is an INFERRED `calls` edge that the chain does not follow
