@@ -1143,7 +1143,7 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (
 
 ## 23. Sinyal ve spektrum
 
-Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı) yazdı; metin denetimi bekliyor.
+Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı, istek 43 kararları okudu) yazdı; metin DENETİM istek 44'ten, düzeltmeleri istek 45 ve 46'dan geçti (2026-11-02).
 
 ### 23.1–23.6
 
@@ -1152,7 +1152,7 @@ Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
 
 ## 24. Sohbet biçimi
 
-Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı, istek 43 kararları okudu) yazdı; metin denetimi bekliyor.
+Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı, istek 43 kararları okudu) yazdı; metin DENETİM istek 44'ten, düzeltmeleri istek 45 ve 46'dan geçti (2026-11-02).
 
 ### 24.1–24.4
 
