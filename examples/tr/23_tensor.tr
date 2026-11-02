@@ -44,6 +44,10 @@ TR_print(TR_zeros([2, 3, 4]).TR_permute([2, 0, 1]).TR_shape)
 TR_print(t.TR_slice(1, 0, 2).TR_tolist)
 TR_print(TR_concat([TR_ones([2, 1]), TR_zeros([2, 2])], TR_dim: -1).TR_shape)
 
+# aynı iki tensörün şekli ve bütün öğeleri aynıysa doğrudur; hepsi mantık tensörünün bütün
+# öğelerini sorar; tek_değer tek öğeli tensörün sayısını verir.
+TR_print(TR_equal(t, TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])), TR_all(TR_Tensor[TR_Bool]([TR_true, TR_false])), TR_sum(t).TR_item())
+
 # --- Kendin dene ---
 # 1. 3x3 bir matris kur ve onu birim_matris(3) ile çarp: sonuç ne?
 # 2. tensör([-2.0, 0.0, 3.0]) için relu ve sigmoid sonuçlarını karşılaştır.

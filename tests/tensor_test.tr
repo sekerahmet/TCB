@@ -73,6 +73,29 @@ TR_test "15.3 hassasiyet cinsin içinde değişir, cinsler arası dönüşüm ti
     TR_assert_equal([2.0, 2.0], w.TR_grad.TR_tolist)
 }
 
+TR_test "15.18a TR_all ve TR_equal bütün tensörü sorar, 13.8a .TR_item() tek öğeyi verir" {
+    TR_var m = TR_Tensor[TR_Bool]([TR_true, TR_false])
+    TR_assert_equal([TR_false, TR_true, TR_true], [TR_all(m), TR_all(TR_Tensor[TR_Bool]([TR_true, TR_true])), TR_all(TR_Tensor[TR_Bool]([]))])
+    TR_assert_equal("H6979", TR_error_code { TR_all(TR_Tensor([1.0])) })
+    TR_assert_equal("H6979", TR_error_code { TR_all([TR_true]) })
+    # Şekil dahil, yayın yok; NaN hiçbir şeye eşit değil, −0.0 0.0'a eşit; hassasiyet farkı engel değil.
+    TR_assert(TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0])))
+    TR_assert(TR_not TR_equal(TR_Tensor([2.0, 2.0]), TR_Tensor([[2.0, 2.0]])))
+    TR_assert(TR_not TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 3.0])))
+    TR_assert(TR_not TR_equal(TR_Tensor([TR_Float("nan")]), TR_Tensor([TR_Float("nan")])))
+    TR_assert(TR_equal(TR_Tensor([-0.0]), TR_Tensor([0.0])))
+    TR_assert(TR_equal(TR_Tensor([1.5]), TR_Tensor([1.5], TR_dtype: "bf16")))
+    TR_assert(TR_equal(TR_Tensor([16777217]), TR_Tensor([16777217], TR_dtype: "int32")))
+    TR_assert(TR_not TR_equal(TR_Tensor([16777217]), TR_Tensor([16777216])))
+    TR_assert(TR_equal(m, TR_Tensor[TR_Bool]([TR_true, TR_false])))
+    TR_assert_equal("H6966", TR_error_code { TR_equal(TR_Tensor([1.0]), TR_Tensor([1])) })
+    TR_assert_equal("H6979", TR_error_code { TR_equal(TR_Tensor([1.0]), 1.0) })
+    # Öğe tipi tensörün cinsidir; ondalık en kısa ondalıkla gelir; başka tensörde hata.
+    TR_assert_equal([3.5, 7, TR_true, 0.1], [TR_sum(TR_Tensor([1.5, 2.0])).TR_item(), TR_Tensor([7]).TR_item(), TR_Tensor[TR_Bool]([TR_true]).TR_item(), TR_Tensor([[0.1]]).TR_item()])
+    TR_assert_equal(TR_Int, TR_Type(TR_Tensor([7]).TR_item()))
+    TR_assert_equal("H3068", TR_error_code { TR_Tensor([1.0, 2.0]).TR_item() })
+}
+
 TR_test "15.1 TR_Int ve TR_Bool tensörü: argmax'in sonucu TR_Int, cins işlemlerde korunur" {
     TR_var i = TR_argmax(TR_Tensor([[0.0, 9.0, 1.0], [5.0, 0.0, 7.0]]), TR_dim: -1)
     TR_assert_equal("int64", i.TR_dtype)

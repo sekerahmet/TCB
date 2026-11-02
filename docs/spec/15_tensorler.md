@@ -272,7 +272,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
     | "bf16" | 1.6e-2 | 1e-5 |
 
 - Bu dördünün `TR_Bool` veren eksensiz biçimleri GPU'da sonucu konağa okur; bir beklemedir. Eksenli `TR_all`/`TR_any` tensör verir, beklemez.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi (eksensiz `TR_all` ve `TR_equal`); `TR_any`, `TR_all_close` ve eksenli biçim uygulanınca TR testi.
 
 **15.19** `TR_argmax(t, TR_dim: k)` ve `TR_argmin(t, TR_dim: k)` en büyük ve en küçük öğenin indeksini `TR_Tensor[TR_Int]` "int64" olarak verir, türev izlemez.
 - **Eksen verilmezse** bütün öğeler üstünde çalışır ve düzleştirilmiş tensördeki indeksi 0 boyutlu tensörde verir (15.18'in "eksensiz bütün öğeler" kuralı). Eksen verilirse o eksen düşer; `TR_keepdim: TR_true` onu 1 uzunlukta korur (`[B, 1]`). Tek eksen alır; eksen yalnız adla (`TR_dim:`) verilir. `TR_keepdim:` yalnız eksenli imzadadır; eksensiz biçimde denetim hatasıdır.

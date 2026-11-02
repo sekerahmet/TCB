@@ -28,10 +28,11 @@ const (
 	memberSlice     = codes.MemSlice
 	memberToDevice  = codes.MemToDevice
 	memberToDType   = codes.MemToDtype
+	memberItem      = codes.MemItem
 )
 
 // tensorMemberCodes öneri listesinin sırasıdır.
-var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit}
+var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit, memberItem}
 
 func isTensorMember(k codes.Code) bool { return slices.Contains(tensorMemberCodes, k) }
 
@@ -74,6 +75,8 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.method(memberToDevice, d.toDevice), nil
 	case memberSplit:
 		return d.namedMethod(memberSplit, d.split), nil
+	case memberItem:
+		return d.method(memberItem, d.item), nil
 	}
 	if k, _, ok := codes.FindForeign(codes.NamespaceMember, prop, isTensorMember); ok {
 		o := codes.Spelling(k)

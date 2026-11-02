@@ -544,7 +544,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.8a
 
 - **Mevcut durum:** `t.TR_tolist` tensörün boyutuna göre liste ya da sayı, `k.TR_decode` toplu girişte liste, `TR_parameters(x, TR_named: TR_true)` sözlük veriyor [ölçüldü: DENETİM].
-- **Yapılacaklar:** `TR_item`, `TR_batch_decode`, `TR_named_parameters` (yeni kimlikler, 4a); `TR_tolist`'in yalnız 1 boyutta, öğe tipi tensörün cinsi olan liste vermesi, 0 boyutta hatası (15'in yan değişikliği, uygulanmadı); `TR_named_parameters`'ın `TR_Dict[TR_String, TR_AnyTensor]` dönüşü (aynı) (argmax'in sonucunu indeks olarak kullanan kod `TR_Int(t.TR_item)` yazar, göçte sayılır). Dil tanımı her yerde çağrıyla yazıyor (`t.TR_tolist()`, on yer), motorda bir özellik: `t.TR_tolist()` "Liste tipi bir fonksiyon olarak çağrılamaz" veriyor, `lib/` ve `tests/`'te 456 çağrısız yazım var [ölçüldü: DENETİM, `kol-denetim-istek21-sonuc.md` 3]; motor dil tanımına uyar, yazımlar göçle değişir.
+- **Mevcut durum (T1 dilim 2):** `t.TR_item()` var: tek öğeli tensörün öğesi, öğe tipi tensörün cinsi; başka tensörde H3068 [ölçüldü: `tests/tensor_test.tr`].
+- **Yapılacaklar:** `TR_batch_decode`, `TR_named_parameters` (yeni kimlikler, 4a); `TR_item`'ın iletisi (H3068'in metni "Item" diyor, `.TR_item()`'ı adıyla anmıyor); `TR_tolist`'in yalnız 1 boyutta, öğe tipi tensörün cinsi olan liste vermesi, 0 boyutta hatası (15'in yan değişikliği, uygulanmadı); `TR_named_parameters`'ın `TR_Dict[TR_String, TR_AnyTensor]` dönüşü (aynı) (argmax'in sonucunu indeks olarak kullanan kod `TR_Int(t.TR_item)` yazar, göçte sayılır). Dil tanımı her yerde çağrıyla yazıyor (`t.TR_tolist()`, on yer), motorda bir özellik: `t.TR_tolist()` "Liste tipi bir fonksiyon olarak çağrılamaz" veriyor, `lib/` ve `tests/`'te 456 çağrısız yazım var [ölçüldü: DENETİM, `kol-denetim-istek21-sonuc.md` 3]; motor dil tanımına uyar, yazımlar göçle değişir.
 
 ### 13.9
 
@@ -693,8 +694,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.18a
 
-- **Mevcut durum:** `TR_all`, `TR_any`, `TR_equal` ve `TR_all_close` yok; `TR_all` bilinmeyen kimlik [ölçüldü].
-- **Yapılacaklar:** dördü, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; hassasiyete göre toleranslar; TR testi.
+- **Mevcut durum (T1 dilim 2):** eksensiz `TR_all` ve `TR_equal` var, TR testi `tests/tensor_test.tr`'de [ölçüldü]. `TR_equal` iki tensörü CPU'da karşılaştırır (sonuç zaten konağa okunur); cins farkı H6966, tensör olmayan argüman H6979. Tensör olmayan argümanı denetleyici yakalamıyor, çalışmada hata.
+- **Yapılacaklar:** `TR_any`, `TR_all_close`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; hassasiyete göre toleranslar; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979).
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_all_close`'da sonsuzun kuralı.
 
 ### 15.19

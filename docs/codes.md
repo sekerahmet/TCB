@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 574 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 64 metot, 101 özellik, 138 adlı argüman.
+Toplam 577 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 129 fonksiyon, 11 sabit, 65 metot, 101 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -1114,7 +1114,7 @@ en: var t: Tensor = Tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad: true); print
 tr: değişken t: Tensör = Tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
 ```
 
-Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_permute(...)`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
+Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
 
 #### `TR_Tokenizer` (`TR_type_Tokenizer`, `Parçalayıcı`)
 
@@ -1233,6 +1233,25 @@ tr: yazdır(acos(0.0), acos(Tensör([1.0, -1.0])).değer)
 ```
 
 İlişkili: `TR_asin(...)`, `TR_cos(...)`
+
+#### `TR_all(...)` (`TR_fn_all`, `hepsi`)
+
+    hepsi(Tensör) → Mantık
+
+Mantık tensörünün bütün öğeleri doğruysa doğru verir (boş tensörde doğru); koşulda kullanılır. Sayı tensörü verilmez: önce karşılaştırın (t != 0).
+
+```tr
+TR_print(TR_all(TR_Tensor[TR_Bool]([TR_true, TR_true])), TR_all(TR_Tensor[TR_Bool]([TR_true, TR_false])))
+```
+
+Görünümü:
+
+```text
+en: print(all(Tensor[Bool]([true, true])), all(Tensor[Bool]([true, false])))
+tr: yazdır(hepsi(Tensör[Mantık]([doğru, doğru])), hepsi(Tensör[Mantık]([doğru, yanlış])))
+```
+
+İlişkili: `TR_equal(...)`
 
 #### `TR_any_pattern_matches(...)` (`TR_fn_any_pattern_matches`, `bir_desen_uyar_mı`)
 
@@ -1738,6 +1757,25 @@ tr: değişken klasör = ortam_değişkeni("VERİ_KLASÖRÜ") ?? "veri"; yazdır
 ```
 
 İlişkili: `TR_command_line(...)`
+
+#### `TR_equal(...)` (`TR_fn_equal`, `aynı`)
+
+    aynı(Tensör, Tensör) → Mantık
+
+İki tensörün şekli ve bütün öğeleri aynıysa doğru verir. Cinsleri aynı olmalıdır; hassasiyet farkı karşılaştırmaya engel değildir. NaN hiçbir şeye eşit değildir, −0.0 0.0'a eşittir.
+
+```tr
+TR_print(TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0])), TR_equal(TR_Tensor([2.0, 2.0]), TR_Tensor([[2.0, 2.0]])))
+```
+
+Görünümü:
+
+```text
+en: print(equal(Tensor([1.0, 2.0]), Tensor([1.0, 2.0])), equal(Tensor([2.0, 2.0]), Tensor([[2.0, 2.0]])))
+tr: yazdır(aynı(Tensör([1.0, 2.0]), Tensör([1.0, 2.0])), aynı(Tensör([2.0, 2.0]), Tensör([[2.0, 2.0]])))
+```
+
+İlişkili: `TR_all(...)`, `TR_assert_equal(...)`
 
 #### `TR_error_code(...)` (`TR_fn_error_code`, `hata_kodu`)
 
@@ -4979,6 +5017,25 @@ tr: klasör_oluştur("bir_klasör"); yazdır(Yol("bir_klasör").dosya_mı)
 ```
 
 İlişkili: `.TR_exists`, `.TR_is_dir`
+
+#### `.TR_item(...)` (`TR_mem_item`, `tek_değer`)
+
+    Tensör.tek_değer() → Tam | Ondalık | Mantık
+
+Tek öğeli tensörün öğesini sayı (ya da mantık değeri) olarak verir; öğe tipi tensörün cinsidir. Başka tensörde hatadır.
+
+```tr
+TR_print(TR_sum(TR_Tensor([1.5, 2.0])).TR_item(), TR_Tensor[TR_Int]([7]).TR_item())
+```
+
+Görünümü:
+
+```text
+en: print(sum(Tensor([1.5, 2.0])).item(), Tensor[Int]([7]).item())
+tr: yazdır(toplam(Tensör([1.5, 2.0])).tek_değer(), Tensör[Tam]([7]).tek_değer())
+```
+
+İlişkili: `.TR_tolist`
 
 #### `.TR_join(...)` (`TR_mem_join`, `birleştir`)
 

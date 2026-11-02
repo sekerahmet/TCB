@@ -74,7 +74,8 @@ func registerConstructors(v *interp.VM) {
 
 	// --- Matris (2 boyutlu tensör) oluşturucusu (matris.go) ---
 	wrap(v, codes.FnEye, newBuiltin(identity))
-	registerTypeArgs(v, tensorFn) // type_args.go
+	registerTypeArgs(v, tensorFn)
+	registerWhole(v) // type_args.go
 
 	// --- Görünüm ---
 	wrap(v, codes.FnConcat, newBuiltin(concatBuiltin)) // model_araclari.go
