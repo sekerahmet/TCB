@@ -66,6 +66,27 @@ type emitter struct {
 
 func newEmitter(ad string) *emitter { return &emitter{ad: ad, target: 52} }
 
+// validPTXName adın PTX tanıtıcısı olup olmadığıdır (PTX ISA, "Identifiers"): harfle başlayıp
+// harf, rakam, _ ve $ ile sürer ya da _, $ veya % ile başlayıp en az bir böyle karakterle sürer.
+// Çekirdeğin .entry adı ve cuModuleGetFunction'ın aldığı ad budur; benzetim kuralı denetlemezse
+// geçen ad sürücüde ptxas'ın sözdizimi hatası olur.
+func validPTXName(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i, c := range []byte(s) {
+		letter := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+		follow := letter || c >= '0' && c <= '9' || c == '_' || c == '$'
+		switch {
+		case i > 0 && !follow:
+			return false
+		case i == 0 && !letter && (c != '_' && c != '$' && c != '%' || len(s) == 1):
+			return false
+		}
+	}
+	return true
+}
+
 func (k *emitter) fresh2(t int) reg {
 	k.counter[t]++
 	return reg(regInfo[t].prefix + strconv.Itoa(k.counter[t]))

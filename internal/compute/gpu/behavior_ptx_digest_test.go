@@ -34,12 +34,66 @@ var ptxSeen = struct {
 	m map[string]string
 }{m: map[string]string{}}
 
+// ptxBadNames bu koşuda derlenen ve .entry adı PTX tanıtıcısı olmayan çekirdeklerdir (anahtar →
+// ad). Kural (gerçek kart, 2026-11-02): `cinsli_0_0_0_[float32 float32]_bool` benzetimde geçti,
+// ptxas "Parsing error near '['" ile reddetti.
+var ptxBadNames = struct {
+	sync.Mutex
+	m map[string]string
+}{m: map[string]string{}}
+
 // recordPTX TestMain'de kernelBuilt'e kurulur.
 func recordPTX(key, text string) {
 	h := sha256.Sum256([]byte(text))
 	ptxSeen.Lock()
 	ptxSeen.m[key] = hex.EncodeToString(h[:])
 	ptxSeen.Unlock()
+	if name := entryName(text); !validPTXName(name) {
+		ptxBadNames.Lock()
+		ptxBadNames.m[key] = name
+		ptxBadNames.Unlock()
+	}
+}
+
+// entryName PTX metnindeki .entry adıdır.
+func entryName(text string) string {
+	_, rest, _ := strings.Cut(text, ".visible .entry ")
+	name, _, _ := strings.Cut(rest, "(")
+	return name
+}
+
+// checkKernelNames m.Run'dan sonra çağrılır: derlenen her çekirdeğin .entry adı PTX tanıtıcısıdır
+// (gerçek GPU'da da). Uymayan varsa yazar ve 1 döner.
+func checkKernelNames() int {
+	ptxBadNames.Lock()
+	defer ptxBadNames.Unlock()
+	if len(ptxBadNames.m) == 0 {
+		return 0
+	}
+	keys := make([]string, 0, len(ptxBadNames.m))
+	for k := range ptxBadNames.m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	fmt.Printf("%d çekirdeğin .entry adı PTX tanıtıcısı değil ([A-Za-z][A-Za-z0-9_$]*):\n", len(keys))
+	for _, k := range keys {
+		fmt.Printf("  %s: %q\n", k, ptxBadNames.m[k])
+	}
+	return 1
+}
+
+// Kural: validPTXName PTX ISA'nın tanıtıcı kuralıdır; gerçek kartın reddettiği ad reddedilir.
+func TestValidPTXName(t *testing.T) {
+	for name, want := range map[string]bool{
+		"cinsli_0_0_0_float32_float32_bool": true, "ham_kopya_1_8": true, "kaynasik_00ff": true,
+		"_a": true, "$a1": true, "%r1": true, "a$b": true,
+		"cinsli_0_0_0_[float32 float32]_bool": false, "": false, "_": false, "1a": false,
+		"a b": false, "a:b": false, "a(b)": false, "a-b": false, "dtype(12)": false, "çarpım": false,
+	} {
+		if got := validPTXName(name); got != want {
+			t.Errorf("validPTXName(%q) = %v, beklenen %v", name, got, want)
+		}
+	}
 }
 
 // checkPTXDigest m.Run'dan sonra çağrılır; özetle uyuşmazlık varsa yazar ve 1 döner.
