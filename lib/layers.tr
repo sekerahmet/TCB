@@ -416,7 +416,7 @@ TR_struct TR_KVCache {
         TR_var anahtar = "\(TR_window)"
         TR_if TR_not TR_self.TR_masks.TR_contains(anahtar) {
             TR_var m = TR_self.TR_positions <= TR_self.TR_step_position
-            TR_if TR_window > 0 { m = m & (TR_self.TR_positions > TR_self.TR_step_position - TR_window) }
+            TR_if TR_window > 0 { m = m & (TR_Tensor[TR_Float](TR_self.TR_positions) > TR_Tensor[TR_Float](TR_self.TR_step_position) - TR_window) } # sınır ondalıkta (konum < 2²⁴ kesin): GPU'da tam sayı çıkarması yok, dönüşüm cihaz içi
             TR_self.TR_masks[anahtar] = m
         }
         TR_return TR_self.TR_masks[anahtar]
@@ -428,7 +428,7 @@ TR_struct TR_KVCache {
         TR_if TR_self.TR_kind == "sabit" TR_and TR_self.TR_step_position == TR_none {
             TR_if son > TR_self.TR_capacity { TR_throw TR_Message("H6909", son, TR_self.TR_capacity) }
             TR_if TR_self.TR_k_buffers[TR_layer_idx] == TR_none TR_and TR_self.TR_positions == TR_none {
-                TR_self.TR_positions = TR_Tensor([i * 1.0 TR_for i TR_in 0..TR_self.TR_capacity]).TR_to_device(TR_k.TR_device)
+                TR_self.TR_positions = TR_Tensor(0..TR_self.TR_capacity).TR_to_device(TR_k.TR_device)
             }
         }
         TR_return [TR_self.TR_append_buffer(TR_self.TR_k_buffers, TR_layer_idx, TR_k, son), TR_self.TR_append_buffer(TR_self.TR_v_buffers, TR_layer_idx, TR_v, son)]
@@ -632,7 +632,7 @@ TR_struct TR_GPT {
                         TR_var öö = ö
                         adım = TR_replay((kimlik, konum) => TR_self.TR_single_step(kimlik, konum, öö))
                     }
-                    son = adım(TR_Tensor([[kimlikler[-1] * 1.0]]).TR_to_device(cihaz), TR_Tensor([ö.TR_position * 1.0]).TR_to_device(cihaz))
+                    son = adım(TR_Tensor([[kimlikler[-1]]]).TR_to_device(cihaz), TR_Tensor([ö.TR_position]).TR_to_device(cihaz))
                     ö.TR_advance(1)
                 } TR_else {
                     x = TR_self.TR_hidden_states([[kimlikler[-1]]], TR_cache: ö)

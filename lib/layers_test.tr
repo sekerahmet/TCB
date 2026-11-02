@@ -285,16 +285,18 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
         TR_for i, id TR_in [5, 7, 2, 9] {
             TR_var x = m.TR_hidden_states([[id]], TR_cache: ö1)
             TR_var beklenen = m.TR_logits(x)[0][0]
-            TR_var l = m.TR_single_step(TR_Tensor([[id * 1.0]]), TR_Tensor([ö2.TR_position * 1.0]), ö2)
+            TR_var l = m.TR_single_step(TR_Tensor([[id]]), TR_Tensor([ö2.TR_position]), ö2)
             ö2.TR_advance(1)
             TR_assert(en_büyük_mutlak_fark(l, beklenen) < 0.00001, "adım \(i): tek_adım farklı")
         }
+        # Önbelleğin konumları TR_Int'tir (15.2).
+        TR_assert_equal("int64", ö2.TR_positions.TR_dtype)
         TR_var boş = m.TR_build_cache(TR_capacity: 8)
         TR_assert_equal("H6913", TR_error_code { m.TR_single_step(TR_Tensor([[5.0]]), TR_Tensor([0.0]), boş) })
         TR_assert(boş.TR_step_position == TR_none, "H6913'ten sonra önbellek cihaz adımında kaldı")
         # İletinin önerisi aynı önbellekte çalışır: önce gizli_durum, sonra tek_adım.
         m.TR_hidden_states([[1, 2, 3]], TR_cache: boş)
-        TR_var l = m.TR_single_step(TR_Tensor([[5.0]]), TR_Tensor([boş.TR_position * 1.0]), boş)
+        TR_var l = m.TR_single_step(TR_Tensor([[5]]), TR_Tensor([boş.TR_position]), boş)
         TR_assert_equal([16], l.TR_shape)
     }
     TR_assert_equal(m.TR_generate([1, 2, 3], 9, TR_temperature: 0, TR_cuda_graph: TR_false), m.TR_generate([1, 2, 3], 9, TR_temperature: 0))

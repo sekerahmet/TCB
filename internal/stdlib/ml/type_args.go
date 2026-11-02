@@ -70,7 +70,17 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 	}
 	rest := withoutNamed(named, nameRequiresGrad)
 	var t *tensor.Tensor
-	if _, isTensor := a[0].(*TensorValue); k == codes.TypeTensor && len(a) == 1 && !isTensor {
+	src, isTensor := a[0].(*TensorValue)
+	if k == codes.TypeTensor && len(a) == 1 && isTensor && kindOf(src.t.DType()) != kind {
+		// Cins dönüşümü (15.3) doğrudan cihazdadır, ara kopya yok: TR_replay kaydında konağa okumaz.
+		if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {
+			return nil, err
+		}
+		if (src.t.Elem() == tensor.ElemBool) != (kind == codes.TypeBool) {
+			return nil, messages.New(messages.H6978, fn, codes.NameRef(kindOf(src.t.DType())), codes.NameRef(kind))
+		}
+		t = src.t
+	} else if k == codes.TypeTensor && len(a) == 1 && !isTensor {
 		if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {
 			return nil, err
 		}
@@ -81,7 +91,7 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 		if r, err = base(m, a, withoutNamed(rest, nameDType)); err == nil {
 			t = r.(*TensorValue).t
 		}
-		if src, isTensor := a[0].(*TensorValue); err == nil && isTensor && (src.t.Elem() == tensor.ElemBool) != (kind == codes.TypeBool) {
+		if err == nil && isTensor && (src.t.Elem() == tensor.ElemBool) != (kind == codes.TypeBool) {
 			// Mantık ile sayı arasında dönüşüm yoktur (3.12, 15.3).
 			err = messages.New(messages.H6978, fn, codes.NameRef(kindOf(src.t.DType())), codes.NameRef(kind))
 		}
