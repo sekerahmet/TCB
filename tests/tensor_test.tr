@@ -76,6 +76,35 @@ TR_test "15.1 TR_Int ve TR_Bool tensörü: argmax'in sonucu TR_Int, cins işleml
     TR_assert_equal("H6960", TR_error_code { TR_softmax(i, TR_dim: 0) })
 }
 
+TR_test "15.2 tip argümanı öğe cinsini seçer: TR_Tensor[E], TR_zeros[E], TR_ones[E], TR_eye[E]" {
+    TR_var i = TR_Tensor[TR_Int]([[1, 2], [3, 9007199254740993]])
+    TR_assert_equal("int64", i.TR_dtype)
+    TR_assert_equal([[1, 2], [3, 9007199254740993]], i.TR_tolist)
+    TR_assert_equal([TR_true, TR_false], TR_Tensor[TR_Bool]([TR_true, TR_false]).TR_tolist)
+    TR_assert_equal("float32", TR_Tensor[TR_Float]([1, 2]).TR_dtype)
+    # Tensörden cins dönüşümü ondalığı sıfıra doğru keser (15.3).
+    TR_assert_equal([1, -2], TR_Tensor[TR_Int](TR_Tensor([1.5, -2.5])).TR_tolist)
+    TR_assert_equal([0, 0, 0], TR_zeros[TR_Int]([3]).TR_tolist)
+    TR_assert_equal([TR_true, TR_true], TR_ones[TR_Bool]([2]).TR_tolist)
+    TR_assert_equal([[1, 0], [0, 1]], TR_eye[TR_Int](2).TR_tolist)
+    TR_assert_equal([[TR_true, TR_false], [TR_false, TR_true]], TR_eye[TR_Bool](2).TR_tolist)
+    TR_assert_equal([2], TR_randn[TR_Float]([2], TR_seed: 1).TR_shape)
+    # Dönen değer yalnız çağrılır: değişkende de çağrılabilir.
+    TR_var sifir = TR_zeros[TR_Bool]
+    TR_assert_equal([TR_false], sifir([1]).TR_tolist)
+    # Tip olmayan ya da tensör cinsi olmayan argüman, TR_randn'ın tam sayısı, başka cinsten veri ve
+    # tam sayıda türev hatadır.
+    TR_assert_equal("H6970", TR_error_code { TR_zeros[3] })
+    TR_assert_equal("H6971", TR_error_code { TR_zeros[TR_String] })
+    TR_assert_equal("H6972", TR_error_code { TR_randn[TR_Int] })
+    TR_assert_equal("H6974", TR_error_code { TR_Tensor[TR_Int]([1, 2.5]) })
+    TR_assert_equal("H6974", TR_error_code { TR_Tensor[TR_Bool]([1]) })
+    TR_assert_equal("H6973", TR_error_code { TR_zeros[TR_Int]([2], TR_requires_grad: TR_true) })
+    # Karşılaştırma sessizce yanlış vermez (4.5); kayıtlı olmayan kodun indekslenmesi bugünkü gibidir.
+    TR_assert_equal("H2613", TR_error_code { TR_Type(i) == TR_Tensor[TR_Int] })
+    TR_assert_equal("H2465", TR_error_code { TR_sum[TR_Int] })
+}
+
 TR_test "15.2 özellikler ve görünüm metotları" {
     TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
     TR_assert_equal([3, 2], a.TR_reshape([3, 2]).TR_shape)

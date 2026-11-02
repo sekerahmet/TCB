@@ -174,6 +174,8 @@ func typedArith(op string, a, b *tensor.Tensor) (interp.Value, error) {
 	return typedResult(op, op, r, f)
 }
 
+var _ interp.Invertible = (*TensorValue)(nil)
+
 // Invert tekli `~`dir: TR_Bool'da değil, TR_Int'te tümleme (4.12); ondalıkta tanımsız.
 func (d *TensorValue) Invert() (interp.Value, error) {
 	if d.t.Elem() == tensor.ElemFloat {

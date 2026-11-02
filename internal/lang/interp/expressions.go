@@ -129,6 +129,9 @@ func (v *VM) indexValue(left Value, idx Value, e *ast.IndexExpression) (Value, e
 		// Sırayla okunan değer (satır okuyucu, veri okuyucusu) indekslenmez; nasıl okunacağı söylenir.
 		return nil, messages.At(line, 0, messages.New(messages.H2525, left.Type(), codes.NameRef(codes.KwFor), codes.NameRef(codes.KwIn), codes.NameRef(codes.MemNext)))
 	}
+	if r, ok, err := v.typeArgsIndex(left, idx); ok {
+		return r, lineSuffix(line, err)
+	}
 	return nil, messages.At(line, 0, messages.New(messages.H2465, left.Type()))
 }
 

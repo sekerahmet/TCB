@@ -1331,6 +1331,11 @@ const (
 	H6967 Code = 6967 // `{op}` {dtype} tensörde tanımsız (15.6): {case, select, bool_order {mantık tensöründe sıralama karşılaştırması yok; yalnız `==` ve `!=`} matmul {matris çarpımı ondalık tensörde yapılır; tam sayı tensörünü önce ondalığa çevirin} float_bit {bit ve mantık işleçleri tam sayı ve mantık tensöründedir; maske karşılaştırmayla kurulur: `t > 0.0`} none {bu işleç bu cinste yok} other {mantık tensöründe aritmetik yok; sayı için `{#where}(m, 1.0, 0.0)`, birleştirmek için `&`, `|`, `~`}}
 	H6968 Code = 6968 // {op}: {dtype} tensörle {value} birleşmez (15.6a): {kind, select, float {tam sayı tensöründe yalnız tam sayı geçer; ondalık hesap için tensörü çevirin} bool {mantık tensöründe yalnız mantık değeri, yalnız `&`, `|`, `^`, `==`, `!=` ile} number {sayı mantık tensörüyle işlenmez} other {liste işlenen değildir; tensör kurun: `{#Tensor}([...])`}}
 	H6969 Code = 6969 // bu işlem {dtype} tensörde {device} cihazında yapılamaz (15.48): bu sürümde GPU'da tam sayı ve mantık tensörü yalnız kıyasta, maskede, seçimde (`{#where}(m, a, b)`) ve taşımada kullanılır; işlemi CPU'da yapın: `t.{#to_device}("cpu")`
+	H6970 Code = 6970 // `{fn}[...]` tip argümanı olarak tek bir öğe cinsi alır, {given} verildi (15.2): `{fn}[{#Int}]`
+	H6971 Code = 6971 // `{fn}[{given}]`: tensörün öğe cinsi `{#Float}`, `{#Int}` ya da `{#Bool}` olur (15.1, 15.2)
+	H6972 Code = 6972 // `{fn}[{given}]`: `{fn}` yalnız ondalık tensör kurar (15.2); tip argümanını yazmayın ya da `{fn}[{#Float}]` yazın
+	H6973 Code = 6973 // {fn}: `{grad}: {true}` yalnız ondalık tensörde geçerlidir; {dtype} tensör türev izlemez (15.2)
+	H6974 Code = 6974 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} bir {kind} değeri değil (15.2): verinin öğeleri tip argümanındaki cinsten olmalı
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

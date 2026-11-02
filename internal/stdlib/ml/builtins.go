@@ -62,7 +62,8 @@ func Register(v *interp.VM) {
 // registerConstructors tensör oluşturucularını (matris ve görünüm dahil) kaydeder.
 func registerConstructors(v *interp.VM) {
 	// --- Oluşturucular ---
-	v.RegisterTypeCall(codes.TypeTensor, &interp.BuiltinVal{Fn: guarded(newBuiltin(tensorBuiltin)(nil)), Pure: true})
+	tensorFn := guarded(newBuiltin(tensorBuiltin)(nil))
+	v.RegisterTypeCall(codes.TypeTensor, &interp.BuiltinVal{Fn: tensorFn, Pure: true})
 	wrap(v, codes.FnZeros, newBuiltin(shapedConstructor(codes.FnZeros, func(_ *interp.VM, sh []int, _ map[string]interp.Value) (*tensor.Tensor, error) {
 		return tensor.Zeros(sh...), nil
 	})))
@@ -73,6 +74,7 @@ func registerConstructors(v *interp.VM) {
 
 	// --- Matris (2 boyutlu tensör) oluşturucusu (matris.go) ---
 	wrap(v, codes.FnEye, newBuiltin(identity))
+	registerTypeArgs(v, tensorFn) // type_args.go
 
 	// --- Görünüm ---
 	wrap(v, codes.FnConcat, newBuiltin(concatBuiltin)) // model_araclari.go
