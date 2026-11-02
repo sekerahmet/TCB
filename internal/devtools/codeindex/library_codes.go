@@ -32,27 +32,54 @@ func IdentityQuery(q string) bool {
 	return !strings.Contains(s, ".") && codes.IsReservedName(s)
 }
 
-// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa ve alıcısı bilinen bir tip ya da modül
-// adına (tam harfle) uymuyorsa üye kodunda `x.TR_<ad>`, `TR_as` modül takma adıyla yazılmış kitaplık bildiriminde
-// (`katman.TR_GPT`, `k.TR_Linear`) `TR_<ad>` karşılığını verir; değilse boş döner. Nitelenmiş ad basamakları
-// (`Model.TR_forward`, `Linear.TR_forward`, `layers.TR_GPT`) denendikten sonra hiçbir aday bulunamazsa küçük harfli
-// değişken alıcıları (`model`, `a`, `n`, `cevap`) ve tip/modül olmayan alıcılar çözülür; var olan bir tipin ya da
-// modülün olmayan üyesi (`Model.TR_append`, `TR_Linear.TR_map`, `Linear.TR_map`) "bulunamadı" kalır. İki aracın
-// (tr index ve codegraph) tek kuralı.
-func MemberQuery(q string, n int, typeOrModule func(i int) [][2]string) string {
+// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa üye kodunda `x.TR_<ad>`, kitaplık
+// bildiriminde `TR_<ad>` karşılığını verir; değilse boş döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip
+// adıysa boş döner ("bulunamadı"). Alıcı kodsuz bir ad olup bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`,
+// `Linear.TR_map`, `GPT.TR_map`), `x.TR_<ad>` hedefiyle birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>`
+// bir şey bulursa cevap tip ve değer adaylarıyla belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). İki
+// aracın (tr index ve codegraph) tek kuralı.
+func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][2]string) (string, []int) {
 	recv, member, ok := strings.Cut(q, ".")
 	if !ok || strings.EqualFold(recv, "x") || strings.ContainsAny(recv, "/:") || !IdentityQuery("x."+member) {
-		return ""
+		return "", nil
 	}
-	if recv != "" && len(QualifiedMatch(n, NameKey{Key: recv}, typeOrModule)) > 0 {
-		return ""
+	if recv != "" {
+		if len(QualifiedMatch(n, NameKey{Key: recv}, func(i int) [][2]string {
+			if kindOf(i) == KindModule {
+				return names(i)
+			}
+			return nil
+		})) > 0 {
+			return "", nil
+		}
+		if types := QualifiedMatch(n, NameKey{Key: recv}, func(i int) [][2]string {
+			if kindOf(i) == KindStruct {
+				return names(i)
+			}
+			return nil
+		}); len(types) > 0 {
+			if codes.IsReservedName(recv) {
+				return "", nil
+			}
+			return "x." + member, types
+		}
 	}
 	if _, ok := codes.FromSpelling(codes.PlaceMember, member); !ok {
 		if k, ok := codes.FromSpelling(codes.PlaceOther, member); ok && k.IsLibrary() {
-			return member
+			return member, nil
 		}
 	}
-	return "x." + member
+	return "x." + member, nil
+}
+
+// MemberTypeNote ve MemberValueNote tiple aynı adı taşıyan kodsuz alıcıda (`A.TR_shape`, `Model.TR_append`) belirsiz
+// cevabın iki aday kümesinin etiketleridir; iki aracın (tr index ve codegraph) tek biçimi.
+func MemberTypeNote(recv, member string) string {
+	return "type " + recv + ": no member " + member
+}
+
+func MemberValueNote(recv, member string) string {
+	return "if " + recv + " is a value: x." + member
 }
 
 // BuiltinNames bir yerleşik kodun (ya da ad kodunun) sorguda aranan adlarıdır: kimliği, okuyanın dilindeki adı, her

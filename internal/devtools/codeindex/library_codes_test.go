@@ -118,9 +118,16 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	if res := r.Definition("model.TR_append", QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_append" {
 		t.Errorf("Definition(\"model.TR_append\") = %+v, want builtin:TR_mem_append", res)
 	}
-	for _, q := range []string{"Model.TR_append", "TR_Linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map", "layers.TR_map"} {
+	for _, q := range []string{"TR_Linear.TR_map", "layers.TR_map", "Model.TR_GPT"} {
 		if res := r.Definition(q, QueryOptions{}); res.Status != StatusNotFound {
 			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
+		}
+	}
+	for _, q := range []string{"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map"} {
+		res := r.Definition(q, QueryOptions{})
+		out := Text(res)
+		if res.Status != StatusAmbiguous || len(res.Candidates) != 2 || !strings.Contains(out, "no member") || !strings.Contains(out, "is a value: x.") {
+			t.Errorf("Definition(%q) = %s (%d candidates):\n%s", q, res.Status, len(res.Candidates), out)
 		}
 	}
 }

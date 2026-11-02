@@ -53,6 +53,8 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	}
 	identity := codeindex.IdentityQuery(q)
 	trQuery := !strings.ContainsAny(q, "/:")
+	_, memberPart, hasDot := strings.Cut(q, ".")
+	trMember := trQuery && hasDot && codeindex.IdentityQuery("x."+memberPart)
 	var tr []*Node
 	trFolded := false // TR adayları büyük harfli sorgunun harfsiz geçişinden (Go'nun harfsiz basamağıyla aynı sırada)
 	if trQuery {
@@ -64,8 +66,8 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	nf := ix.nodeFolds()
 	tiers, nameTiers, foldTiers := ix.lookupTiers(q)
 	for ti, match := range tiers {
-		if len(tr) > 0 && ti >= nameTiers {
-			break // TR adayı varken metin aramasına inilmez
+		if (len(tr) > 0 || trMember) && ti >= nameTiers {
+			break // TR adayı ya da noktalı üye yazımı varken metin aramasına inilmez
 		}
 		var found []*Node
 		for i := range ix.g.Nodes {
@@ -288,15 +290,38 @@ func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool)
 			return found, ki > 0
 		}
 	}
-	if mq := codeindex.MemberQuery(q, len(table), func(i int) [][2]string {
-		if c := &table[i]; c.node.Kind == kindTRStruct || c.class == codeindex.ClassModule {
-			return c.qualified
+	return ix.trMember(q, kinds, table)
+}
+
+func (ix *index) trMember(q string, kinds []string, table []trName) (found []*Node, folded bool) {
+	mq, types := codeindex.MemberQuery(q, len(table), func(i int) codeindex.Kind {
+		switch {
+		case table[i].node.Kind == kindTRStruct:
+			return codeindex.KindStruct
+		case table[i].class == codeindex.ClassModule:
+			return codeindex.KindModule
 		}
-		return nil
-	}); mq != "" {
-		return ix.trByName(mq, kinds)
+		return ""
+	}, func(i int) [][2]string { return table[i].qualified })
+	if mq == "" {
+		return nil, false
 	}
-	return nil, false
+	vals, f := ix.trByName(mq, kinds)
+	if len(types) == 0 || len(vals) == 0 {
+		return vals, f
+	}
+	recv, member, _ := strings.Cut(q, ".")
+	for _, i := range types {
+		cp := *table[i].node
+		cp.Captured = []string{codeindex.MemberTypeNote(recv, member)}
+		found = append(found, &cp)
+	}
+	for _, v := range vals {
+		cp := *v
+		cp.Captured = []string{codeindex.MemberValueNote(recv, member)}
+		found = append(found, &cp)
+	}
+	return found, false
 }
 
 // idTailEquals kimliğin ':' sonrası kuyruklarından biri q mu (doc:docs/a.md#b için docs/a.md#b).
@@ -324,6 +349,9 @@ func describe(n *Node) string {
 	s := fmt.Sprintf("%s [%s]", n.Name, n.Kind)
 	if w := where(n.File, n.Line); w != "" {
 		s += " " + w
+	}
+	if n.Kind != kindClosure && len(n.Captured) > 0 {
+		s += "  [" + n.Captured[0] + "]"
 	}
 	if n.Skip != "" {
 		s += "  [skips when: " + n.Skip + "]" // yalnızca koşul yanlışken koşar (test_skips.go)
