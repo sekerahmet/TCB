@@ -348,6 +348,9 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 		case *ast.FunctionLiteral:
 			d.function(y, k)
 			return false
+		case *ast.AsyncExpression:
+			d.statement(y.Statement, k) // görevin gövdesi ya da çağrısı (10.1)
+			return false
 		case *ast.IfExpression:
 			d.expression(y.Condition, k)
 			d.block(y.Consequence, k)

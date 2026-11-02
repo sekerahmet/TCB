@@ -377,7 +377,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.1
 
-- **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_async f(x)` ve `TR_async { ... }` bir ifade, görev değeri (`TR_Task`) veriyor; deyim olarak yazılınca değer atılıyor (ayrıştırıcıda `AsyncExpression` deyimi sarar, `TR_try`'ın ifadesi gibi). `g.TR_wait()` sonucu veriyor (blokta `TR_none`) ya da görevin hatasını fırlatıyor; `g.TR_done()` beklemeden durup durmadığını söylüyor; görevin metni "Task" (3.14, tipinin adı). Görevin kendi değerini beklemesi H2918 [test: `TestATaskValueGivesItsResult`, `TestWaitThrowsTheTasksError`, `TestATaskCannotWaitForItself`, `TestAsyncIsAnExpression`, `tests/eszamanli_test.tr`'nin "10.1 eşzamanlı bir ifadedir" testi].
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_async f(x)` ve `TR_async { ... }` bir ifade, görev değeri (`TR_Task`) veriyor; deyim olarak yazılınca değer atılıyor (ayrıştırıcıda `AsyncExpression` deyimi sarar, `TR_try`'ın ifadesi gibi). `g.TR_wait()` sonucu veriyor (blokta `TR_none`) ya da görevin hatasını fırlatıyor; `g.TR_done()` beklemeden durup durmadığını söylüyor; görevin metni "Task" (3.14, tipinin adı). Görevin kendi değerini beklemesi H2918; görevde olmayan üye H2474 (denetimdekiyle aynı). Denetleyici görevin tipini biliyor: `TR_async f(x)` `TR_Task[T]` (T çağrının tipi), blok `TR_Task[TR_NoneType]`; `g.TR_wait()` T, `g.TR_done()` `TR_Bool`; `TR_Task[TR_String]` yere `TR_Task[TR_Int]` görev H1001. Dönüşü bilinmeyen çağrının görevi parametresiz `TR_Task` (denetleyicinin iç tipi): `.TR_wait()`'in tipi bilinmiyor, tipli yere verilebiliyor. Tip açıklamasında ve tip değerinde yeni kabul yok. Görev ifadesinin içi de denetleniyor (çağrıdaki ya da bloktaki tanımsız ad H1010) [test: `TestATaskValueGivesItsResult`, `TestWaitThrowsTheTasksError`, `TestATaskCannotWaitForItself`, `TestATaskHasOnlyItsMembers`, `TestAsyncIsAnExpression`, `TestATaskHasItsCallsType`, `TestATaskValuesInsideIsChecked`, `tests/eszamanli_test.tr`'nin "10.1 eşzamanlı bir ifadedir" testi].
 
 ### 10.2
 
@@ -399,7 +399,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 ### 10.5
 
 - **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor ve `TR_true` veriyor; 10.5 "sonuç vermez" diyor [ölçüldü: `9abf8ed5`].
-- **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_wait_all(görevler)` görevlerin hepsini bekliyor, sonuçları verilen sırayla liste olarak veriyor (bitme sırası değiştirmiyor). Hatalarda verilen sıradaki ilk hatalı görevin hatası fırlıyor, öbürleri onun `TR_suppressed`'ine sırayla ekleniyor. Görev olmayan öğe H2919, ikiden çok argüman H2012 [test: `TestWaitAllGivesResultsAndTheFirstErrorInTheGivenOrder`, `TestWaitAllTakesNoneOrATaskList`, `tests/eszamanli_test.tr`'nin 10.5 testleri].
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_wait_all(görevler)` görevlerin hepsini bekliyor, sonuçları verilen sırayla liste olarak veriyor (bitme sırası değiştirmiyor). Hatalarda verilen sıradaki ilk hatalı görevin hatası fırlıyor, öbürleri onun `TR_suppressed`'ine sırayla ekleniyor. Görev olmayan öğe H2919, birden çok argüman H2012. Denetleyicide `TR_List[TR_Task[T]]` için sonuç `TR_List[T]` [test: `TestWaitAllGivesResultsAndTheFirstErrorInTheGivenOrder`, `TestWaitAllTakesNoneOrATaskList`, `TestATaskHasItsCallsType`, `tests/eszamanli_test.tr`'nin 10.5 testleri].
 - **Yapılacaklar:** argümansız `TR_wait_all()` sonuç vermez (bugün `TR_true`).
 
 ### 10.6

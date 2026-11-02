@@ -55,6 +55,8 @@ func MemberReturn(text, recvType string) string {
 		vars["T"] = s.args[0]
 	case s.base == typeDict && len(s.args) == 2:
 		vars["K"], vars["V"] = s.args[0], s.args[1]
+	case s.base == typeTask && len(s.args) == 1:
+		vars["T"] = s.args[0] // TR_Task[T].TR_wait() T verir (10.1)
 	}
 	t := boundType(ref, vars)
 	if t == typeAny || !coreTypes[baseType(requiredType(t))] {

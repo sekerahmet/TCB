@@ -1,6 +1,10 @@
 package interp
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Kural (10.1): TR_async f(x) ve TR_async { ... } görev değeri verir. g.TR_wait() görev bitene kadar
 // bekler ve sonucunu verir (blokta TR_none); g.TR_done() beklemeden görevin durup durmadığını söyler.
@@ -51,6 +55,14 @@ TR_print(TR_error_code { h.TR_wait() })
 	_, _, err = runTROut(t, "TR_var h = TR_async { TR_print(1) }\nh.TR_wait()\nh.TR_done(1)\n")
 	if err == nil {
 		t.Fatal("argümanlı TR_done hata vermeli")
+	}
+}
+
+// Kural (13.11): görevde olmayan üye, denetimdeki hatanın kendisidir (H2474).
+func TestATaskHasOnlyItsMembers(t *testing.T) {
+	_, err := runTR(t, "TR_var g = TR_async TR_sum([1])\ng.TR_wait()\ng.TR_append(1)\n")
+	if !messages.Has(err, messages.H2474) {
+		t.Fatalf("H2474 beklenirdi, gelen %v", err)
 	}
 }
 

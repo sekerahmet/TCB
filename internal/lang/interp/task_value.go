@@ -68,7 +68,7 @@ func (t *TaskVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			return BoolToVal(t.stopped()), nil
 		}}, nil
 	}
-	return nil, messages.New(messages.H2428, ValTask, name, "")
+	return nil, messages.New(messages.H2474, ValTask, name, "") // denetimdeki hatanın kendisi (13.11)
 }
 
 // wait waits until the task stops and gives its result or its error.

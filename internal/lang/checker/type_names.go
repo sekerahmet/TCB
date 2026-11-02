@@ -26,6 +26,7 @@ var (
 	typeAny      = codes.Name(codes.TypeAny)
 	typeType     = codes.Name(codes.TypeType)
 	typeJSON     = codes.Name(codes.TypeJSON)
+	typeTask     = codes.Name(codes.TypeTask)
 )
 
 // typeText denetleyicinin tip adıdır, ileti parametresi olarak (messages.Localized): tip adı

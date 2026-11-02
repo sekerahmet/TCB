@@ -57,10 +57,11 @@ func splitTypes(text string) []string {
 	return append(out, strings.TrimSpace(text[start:]))
 }
 
-// containerType yazılan ya da çıkarılan bir kabın tipidir: TR_List'in bir, TR_Dict'in iki tip
-// argümanı varsa onlarla (TR_List[TR_Int]), yoksa asıl adıyla. Öbür adların argümanı tipe girmez.
+// containerType yazılan ya da çıkarılan bir kabın tipidir: TR_List'in ve TR_Task'ın (10.1) bir,
+// TR_Dict'in iki tip argümanı varsa onlarla (TR_List[TR_Int]), yoksa asıl adıyla. Öbür adların
+// argümanı tipe girmez.
 func containerType(name string, args []string) string {
-	if name == typeList && len(args) == 1 || name == typeDict && len(args) == 2 {
+	if (name == typeList || name == typeTask) && len(args) == 1 || name == typeDict && len(args) == 2 {
 		return name + "[" + strings.Join(args, ", ") + "]"
 	}
 	return name

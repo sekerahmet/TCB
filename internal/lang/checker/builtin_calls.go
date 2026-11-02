@@ -12,7 +12,7 @@ import (
 // countedReceivers argüman sayısı denetlenen alıcı tipleridir: çekirdek metotların (Metin,
 // Liste, Sözlük, Aralık) sayısının tanım dosyasıyla aynı olduğu sınanır
 // (interp.TestMethodCountsMatchDefinitions); öbür tiplerin metotları henüz sınanmadı.
-var countedReceivers = map[codes.Code]bool{codes.TypeString: true, codes.TypeList: true, codes.TypeDict: true, codes.TypeRange: true}
+var countedReceivers = map[codes.Code]bool{codes.TypeString: true, codes.TypeList: true, codes.TypeDict: true, codes.TypeRange: true, codes.TypeTask: true}
 
 // MembersBeyondDefinitions are members whose "types" in definitions.json leave out types the engine
 // supports them on (member → the types left out) (stdlib.TestMemberTypesMatchDefinitions, 2026-10-30); the missing-member check
