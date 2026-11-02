@@ -55,7 +55,7 @@ TR_no_grad {
         TR_var n = iş[0].TR_shape[0] * T
         toplam_kayıp += TR_cross_entropy(logit, iş[1]).TR_tolist * n
         parça += n
-        TR_var isabet = TR_abs(TR_argmax(logit, TR_dim: -1) - iş[1]) < 1
+        TR_var isabet = TR_where(TR_argmax(logit, TR_dim: -1) == iş[1], 1.0, 0.0)
         TR_var konum = TR_sum(isabet, 0).TR_tolist
         TR_for i TR_in 0..T { doğru_konum[i] += konum[i] }
     }
