@@ -430,8 +430,9 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 ### 15.46
 
-- *Emsal:* cinsi çalışırken bilinen tensör tipi Rust'ın `safetensors`'ının `TensorView`'una benzer: cins çalışırken, kullanırken daraltılır [kanıtsız: bu tur açılmadı]. Yazarken uzantıyla biçim seçmek 18.13'ün `.gz`'si gibidir.
+- *Emsal:* cinsi çalışırken bilinen tensör tipi Rust'ın `safetensors`'ının `TensorView`'una benzer: cins çalışırken, kullanırken daraltılır [kanıtsız: bu tur açılmadı]. Yazarken uzantıyla biçim seçmek 18.12'nin `.gz`'si gibidir.
 - *Gerekçe:* "Güvenilir" ve "Paylaşmak". 15.1 cinsleri tipe koydu; dosya bunları saklayamazsa tam sayı tensörü (dizgecik kimlikleri, maskeler, adım sayacı) kaydedilemez ya da float'a sessizce çevrilir. Biçim yalnız tür kodu kazanır, sürüm 2 kalır. Tip için üç yol tartıldı: cinsi silinmiş tensör tipi, `TR_load_tensors[E]` (bütün dosya tek cins: model ile adım sayacı birlikte okunamaz), cins başına sözlük (her okuyucu üç sözlüğü birleştirir). Birincisi alındı (DENETİM'in önerisi); daraltma tip çağrısı değil `.TR_narrow[E]()`'dir (15.1), cins uymazsa hata. TR biçimi CRC taşıdığı için kontrol noktası onu kullanır; safetensors paylaşmak içindir. Dosya güvenilmeyen girdidir: bildirilen veri ayırmadan önce dosyayla denetlenir; öğe sayısında elle seçilmiş sınır yoktur (15.42'nin gerekçesi), 2³² kalktı.
+- *Gerekçe (uzantının harfi, 2026-11-02, tur 3):* `.SAFETENSORS` "öbürleri" sayılsaydı dosya sessizce TR biçiminde yazılır, başka araç onu okuyamazdı: sessiz yanlış. 18.12 `.gz`'de de harfi saymaz; iki kural aynı olunca ajan bir kez öğrenir.
 
 ### 15.47
 
@@ -441,8 +442,9 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 ### 15.47a
 
 - *Emsal:* Python'un `safetensors`'ı başlığı boşlukla 8 bayta tamamlar ve tensörleri hizaya göre sıralar (önce geniş türler), aynı türde ada göre [ölçüldü: DENETİM, 0.8.0]. transformers `__metadata__`'ya `{"format": "pt"}` yazar, okumada denetlemez [ölçüldü: DENETİM]. I64, U8 ve BOOL Python'da okunuyor [ölçüldü: DENETİM].
-- *Gerekçe:* CLAUDE.md "eğitilen modeli yaygın biçimlerde dışarı vermek"i ister ("Paylaşmak"); bugün yalnız okunuyor. İki biçim kalır: TR biçimi CRC taşıdığı için kontrol noktası onu kullanır ("Güvenilir"), safetensors paylaşmak içindir. Yazarken uzantıyla seçmek 18.13'ün `.gz`'si gibidir; okumada içerikten anlaşılır. Python'unkiyle aynı düzen, başka araçların dosyayı hiçbir ayar olmadan okumasını sağlar. ONNX ve GGUF dışa verme yol haritasındadır (DENETİM E1'in hükmü).
+- *Gerekçe:* CLAUDE.md "eğitilen modeli yaygın biçimlerde dışarı vermek"i ister ("Paylaşmak"); bugün yalnız okunuyor. İki biçim kalır: TR biçimi CRC taşıdığı için kontrol noktası onu kullanır ("Güvenilir"), safetensors paylaşmak içindir. Yazarken uzantıyla seçmek 18.12'nin `.gz`'si gibidir; okumada içerikten anlaşılır. Python'unkiyle aynı düzen, başka araçların dosyayı hiçbir ayar olmadan okumasını sağlar. ONNX ve GGUF dışa verme yol haritasındadır (DENETİM E1'in hükmü).
 - *Gerekçe (sıra, 2026-11-01, tur 2'de kabul):* hiza sıfır kopyalı ve eşlemeli (mmap) okumaya izin verir (hız); aynı genişlikte yazılan sırayı korumak adla sıralamaktan daha az şaşırtır, tek türlü bir modelde (bütün ağırlıklar bf16) gidiş dönüş sırayı aynen korur. *Almadık:* hizasız, yazılan sırayla yazmak (NumPy ve PyTorch okur [ölçüldü: DENETİM], ama sıfır kopyalı okuyucuyu yavaşlatabilir [hipotez]); yazılan sırayı `__metadata__`'ya koymak (biçime yeni bir öğe).
+- *Gerekçe (`__metadata__` adı, 2026-11-02, tur 3):* safetensors belirtimi `__metadata__`'yı ayrılmış anahtar sayar ve yinelenen anahtarı yasaklar ("A special key `__metadata__` is allowed to contain free form string-to-string map"; "Duplicate keys are disallowed") [kaynak: https://raw.githubusercontent.com/huggingface/safetensors/v0.8.0/README.md, v0.8.0]. Bu adlı tensör ya yinelenen anahtar olur ya da üstveriyi ezer; gidiş dönüş (15.47a) bozulurdu.
 
 ### 15.48
 
@@ -546,3 +548,4 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
 
 - *Emsal:* safetensors'ta nicemlenmiş tür yoktur; GPTQ modelleri `qweight`, `qzeros`, `scales`'i ayrı tam sayı ve ondalık tensörler olarak saklar; FP8 modelleri ağırlığı safetensors'un `F8_E4M3` türünde, ölçeği (`weight_scale_inv`) ayrı tensörde saklar [kanıtsız: taslakta etiketsiz].
 - *Gerekçe:* "Güvenilir": TR biçimi nicemlenmiş tensörü kendi hassasiyetinde saklar, yeniden yükleme aynı bitleri verir; biçim yalnız tür kodu kazanır, sürüm 2 kalır (15.46'nın gerekçesi). "Paylaşmak": hazır modellerin parçaları olduğu gibi okunur, birleştirmek kitaplığın işidir. `.safetensors`'a nicemlenmiş tensör yazmak, başka araçların okuyamayacağı bir tür uydurmak olurdu; hata açmayı ya da TR biçimini önerir. GGUF okuma Sonraya: Hugging Face'in en çok indirilen 15 nicemlenmiş deposunun hepsi GGUF, yaygın tür K ailesi [ölçüldü: DENETİM, API]; en yaygın dağıtım bu yüzden bugün kapsam dışıdır (yol haritası).
+- *Gerekçe (açmanın yazımı, 2026-11-02, tur 3):* açmak 15.52'nin `.TR_to_dtype("float32")`'sidir; yeni ad gerekmez (2.9). Dış araçlar TR biçimini okuyamaz; modeli safetensors'la paylaşmak isteyen ajana ileti açmayı da göstermelidir. Uygulamada "açma yerleşiği yok" bulgusu, cümlenin yazımı adlandırmamasından çıktı.

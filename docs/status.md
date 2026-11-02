@@ -123,7 +123,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 ### 3.14
 
 - **Mevcut durum:** değerin metni dilden bağımsız ("true", "none", "inf"); tipin metni öğe tipsiz: `TR_Type([1])` "List" [ölçüldü].
-- **Yapılacaklar:** "List[Int]" ve "Int?" (öğe tipi ister; 4a).
+- **Yapılacaklar:** "List[Int]" ve "Int?" (öğe tipi ister; 4a). Değer öğe tipini taşımadığı için `TR_Type([1]) == TR_Type(["a"])` `TR_true`, boş kapta `TR_Type(l)` "List" [ölçüldü: DENETİM, 2026-11-02, `kol-denetim-istek25-sonuc.md` A2]; parametrenin nereden geleceği (denetimde katlama ya da tip haritası) `pending.md` 3.11'de.
+- **Yapılacaklar (3.14'ten kalan):** derleyicinin `textLang` alanı her zaman `codes.ValueNames()` (`compiler.go`), `interpolation`'ın ikinci dalı ölü ve canlı daldan hızlı; dört yorum hâlâ "dosyanın dilinde" diyor (`compiler.go`, `compiler_expr.go`, `printing.go`) [kanıtlı: Gemini'nin tip haritası, DENETİM istek 25 B3]. Temizlik ölçerek (hız değişikliği), `interp`'in sahibiyle.
 - **Mevcut durum (ileti):** iletinin (`TR_Message`) metni onu kuran çağrı, tip adıyla: `TR_print(TR_Message("H6903", -1))` "Message("H6903", -1)" yazıyor, her dilde aynı; eskiden İngilizce katalog metniydi. Hata değerinin metni fırlatılan değerin metni [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestMessageValueTextIsItsCall`, `TestThrownValueTextIsLanguageIndependent`].
 - **Mevcut durum (iletinin değerindeki ad):** dil adı programdaki yazımıyla: "TR_requires_grad", kullanım "`.TR_map(TR_Function)`"; eskiden sınıflı iç yazımla ("TR_arg_requires_grad") ve küçük harfli iç adla ("tr_type_function") giriyordu [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestNamesInAMessageValueAreSpellings`, `TestMessageNamesFollowTheMessageLanguage`].
 
@@ -587,6 +588,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar:** cinsin veriden çıkması ve tip parametresi; sığma denetimi. Göç [ölçüldü: DENETİM A2; kanıtlı: `tests/tensor_test.tr:822-843`]: bütün öğeleri tam sayı değişmezi olan ve `TR_dtype:`'sız `TR_Tensor([...])` 91 yerde (tests/ 77, examples/ 11, lib/ 3); çalışmada 20 dosyada 158 kurulum. 4'ü `TR_requires_grad: TR_true`'lu (`tests/tensor_test.tr:822-843`: `:822, 823, 832` tam sayı değişmezli, `:843` boş liste) ve denetim hatası olur. Hepsi denetimde görünür; ileti `[[0.0], ...]`'i ya da `TR_Tensor[TR_Float](...)`'ı önerir.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_zeros(..., TR_dtype: "q4")` gibi nicemlenmiş sıfır kurucu (T3).
+- **Yapılacaklar (tur 3, 2026-11-02):** aralıktan tensör (`TR_Tensor(0..n)`, `TR_Int`; dil tanımı zaten söylüyor): `definitions.json`'da `TR_Tensor`'un `params`'ına `TR_Range`, H6032 ve H6033 aralığı da saysın; cinsli tensörle (T1).
 
 ### 15.3
 
@@ -842,6 +844,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum:** tensörler yalnız float tutuyor; `TR_save_tensors` float32, bf16, fp16 yazıyor (sürüm 2; tür kodları 1, 2, 3) [ölçüldü]; biçim uzantıya göre seçiliyor [test: TestSaveTensorsChoosesFormatByExtension]. Dosyada veri taşıyan tensör en çok 2³² öğe, verisiz şekil (sıfır eksenler 1 sayılarak) en çok 50 milyon öğe bildirebiliyor [kanıtlı: bugünkü 15.46'nın metni]; 15.46'nın sıfır uzunluklu eksen TR testi (`tests/tensor_test.tr:560`) `[1048576, 0, 8192]` şekilli verisiz tensörün reddini bekliyor.
 - **Yapılacaklar:** her cinsin ve hassasiyetin tür kodu (sürüm 2 kalır; bugünkü dosyalar okunmaya devam eder); `TR_AnyTensor` ve `.TR_narrow[E]()`; 2³² ve 50 milyon sınırları kalkar, öğe sayısı int64 taşma denetimiyle ve ayırma 15.42'nin bellek denetimiyle (sıfır eksen testi yeni kurala göre yeniden yazılır); TR testi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_requires_grad: TR_true` yalnız nicemlenmemiş `TR_Float` tensörlerde (T3).
+- **Yapılacaklar (tur 3, 2026-11-02):** uzantının harf büyüklüğü fark etmez (`.SAFETENSORS` safetensors yazar); bugün `strings.HasSuffix(fpath, ".safetensors")` [kanıtlı: `internal/stdlib/ml/save_safetensors.go:35`], büyük harfli uzantı sessizce TR biçimi yazıyor.
 
 ### 15.47
 
@@ -852,6 +855,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** `.safetensors` yolu float32, bf16 ve fp16 tensörleri hizaya göre yazıyor; Python `safetensors` ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip].
 - **Yapılacaklar:** öbür cinsler (`TR_Int`, `TR_Bool`, float64) cinsli tensörle.
+- **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
 
 ### 15.49
 
@@ -889,7 +893,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.55
 
 - **Mevcut durum:** uygulanmadı; safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni].
-- **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası; kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
+- **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası (H6950 bugün yalnız TR biçimini öneriyor; `.TR_to_dtype("float32")` önerisi 15.52 uygulanınca, öneri tablosunda koşulabilsin diye); kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
 
 ## 16. Veri ve parçalayıcı
 
