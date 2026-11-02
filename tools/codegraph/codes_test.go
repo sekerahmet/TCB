@@ -3,9 +3,15 @@ package main
 import (
 	"go/ast"
 	"go/types"
+	"maps"
+	"os"
+	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -208,7 +214,9 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 	for _, q := range []string{
 		"x.TR_map", "x.TR_forward",
 		"model.TR_forward", "Model.TR_forward", "TR_Linear.TR_forward", "tr_linear.tr_forward",
-		"layers.TR_Linear.TR_forward", "layers.TR_GPT",
+		"Linear.TR_forward", "Doğrusal.TR_forward", "doğrusal.TR_forward", "GPT.TR_generate",
+		"model.TR_generate", "a.TR_shape", "model.TR_append", "tr_linear.TR_map",
+		"layers.TR_Linear.TR_forward", "layers.TR_GPT", "katman.TR_GPT",
 		"l.TR_map", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
 		".TR_map", ".TR_forward", "TR_self.TR_map", "TR_self.TR_forward",
 	} {
@@ -226,8 +234,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		}
 	}
 	for _, q := range []string{
-		"Model.TR_append", "model.TR_append",
-		"TR_Linear.TR_map", "tr_linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map",
+		"Model.TR_append", "TR_Linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map",
 		"layers.TR_map", "layers.TR_append", "layers.TR_Linear.TR_map",
 	} {
 		if got := ix.lookup(q); len(got) != 0 {
@@ -235,6 +242,70 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		}
 		if got := reader.Resolve(q, ""); len(got) != 0 {
 			t.Errorf("tr index Resolve %q: got %v, want not found", q, got)
+		}
+	}
+}
+
+// lowercaseMemberExceptions depodaki .tr dosyalarında küçük harfli alıcıyla yazılmış ama dilde üye ya da kitaplık
+// bildirimi karşılığı gerçekten bulunmayan `<alıcı>.TR_<ad>` yazımlarıdır; her istisna gerekçesiyle yazılır.
+var lowercaseMemberExceptions = map[string]string{
+	"l.TR_print": "tests/negative/kimlik_yeri.tr:4 (# ERROR H0029): TR_fn_print genel yerleşiktir, nokta sonrasında üye yeri hatasını sınar",
+}
+
+// Kural (DENETİM istek 48): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) küçük harfli alıcıyla
+// yazılmış her `<değişken>.TR_<üye>` yazımı iki araçta da (codegraph ve tr index) bulunur ya da aday listesi verir;
+// gerçekten tanımı olmayan negatif fikstür yazımları gerekçeli istisna listesindedir.
+func TestEveryLowercaseMemberSpellingInRepoTRFilesResolves(t *testing.T) {
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	idx, err := repoIndex(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := codeindex.NewReader(idx)
+	re := regexp.MustCompile(`[\p{L}\p{N}_]+\.TR_[\p{L}\p{N}_]+`)
+	seen := map[string]bool{}
+	files := codeindex.ListFiles(root, []string{"lib", "examples", "tests", "tools"}, codeindex.DefaultSkipDirs, codeindex.TrackedFiles, func(rel string) bool {
+		return strings.HasSuffix(rel, ".tr")
+	})
+	for _, rel := range files {
+		data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, m := range re.FindAllString(string(data), -1) {
+			recv, _, _ := strings.Cut(m, ".")
+			if r, _ := utf8.DecodeRuneInString(recv); unicode.IsLower(r) {
+				seen[m] = true
+			}
+		}
+	}
+	if len(seen) < 600 {
+		t.Fatalf("only %d lowercase member spellings found in .tr files", len(seen))
+	}
+	for _, q := range slices.Sorted(maps.Keys(seen)) {
+		var gotCG, gotTR []string
+		for _, n := range ix.lookup(q) {
+			gotCG = append(gotCG, n.ID)
+		}
+		for _, n := range reader.Resolve(q, "") {
+			gotTR = append(gotTR, graphID(*n))
+		}
+		slices.Sort(gotCG)
+		slices.Sort(gotTR)
+		if lowercaseMemberExceptions[q] != "" {
+			if len(gotCG) != 0 || len(gotTR) != 0 {
+				t.Errorf("exception %q resolved (codegraph=%v, tr index=%v); remove from lowercaseMemberExceptions", q, gotCG, gotTR)
+			}
+			continue
+		}
+		if len(gotCG) == 0 || !slices.Equal(gotCG, gotTR) {
+			t.Errorf("%q: codegraph=%v, tr index=%v", q, gotCG, gotTR)
+		}
+	}
+	for q := range lowercaseMemberExceptions {
+		if !seen[q] {
+			t.Errorf("stale exception %q: no longer appears in .tr files", q)
 		}
 	}
 }
