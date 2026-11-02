@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -99,4 +100,125 @@ func lockWaitsOverLimit(t *testing.T, busy, run int) []string {
 	t.Logf("%s, %d meşgul görev, %d. koşu: %d bekleme, sınırı aşan %d; (n + 1) × 5 ms'nin en çok %v üstünde (eksi: altında), pay %v; turlar %s",
 		runtime.GOOS, busy, run, len(waits), len(over), worst, lockWaitSlack, turns)
 	return over
+}
+
+// Kuşak (10.2): kilidi tutanın süresini zamanlayıcı ölçer ve süresi dolan kuşağı yazar. Eski
+// tutan için kurulmuş, geç kalan bir zamanlayıcı yeni tutanı devretmez; kendi kuşağının
+// zamanlayıcısı devreder. Zamanlayıcı ve yedek saat kapalı, süre elle doldurulur (uykusuz).
+func TestAnOldHoldersTimerDoesNotHandOffTheNewHolder(t *testing.T) {
+	machine := New()
+	machine.gil.timerOff, machine.gil.clockOff = true, true
+	machine.acquireGIL()
+	old := machine.gilGen
+	machine.handOffLock()
+	current := machine.gilGen
+	if current == old {
+		t.Fatalf("kilit el değiştirince kuşak artmalıydı: %d", current)
+	}
+	machine.pending.Add(1) // bekleyen var: deyim sınırı süreye bakar
+	machine.gil.expire(old)
+	machine.yieldPoint()
+	if machine.gilGen != current {
+		t.Fatalf("eski tutanın (%d. kuşak) süresi yeni tutanı (%d. kuşak) devretti", old, current)
+	}
+	machine.gil.expire(current)
+	machine.yieldPoint()
+	if machine.gilGen == current {
+		t.Fatalf("tutanın kendi kuşağının (%d) süresi dolunca kilit devredilmeliydi", current)
+	}
+	machine.pending.Add(-1)
+	machine.releaseGIL()
+}
+
+// slowTurn yavaş() yerleşiğinin süresidir: kilidi tutarak bu kadar çalışır, içinde deyim sınırı
+// yoktur.
+const slowTurn = 250 * time.Microsecond
+
+// slowPhaseWaits iki meşgul görev çalıştırır: biri hep hızlı bir döngüde, öbürü 200 000 hızlı
+// turdan sonra her turu yavaş bir kullanıcı fonksiyonu olan bir döngüde; ana görev geçişten sonra
+// 0,3 s bekler. Geçiş, öbürü kilidi beklerken bir tutuşun ortasında olur. Yavaş evre başladıktan
+// sonra alınan kilitlerin beklemelerini döndürür (geçişte süren bekleme dahil). setup
+// zamanlayıcıyı ya da yedek saati kapatır.
+func slowPhaseWaits(t *testing.T, setup func(*VM)) (aheads []int, waits []time.Duration) {
+	t.Helper()
+	code := "TR_var dur = TR_false\nTR_var sayaç = 0\n" +
+		"TR_func yavaşla() {\n    yavaş()\n}\n" +
+		"TR_async {\n    TR_for sayaç < 200000 {\n        sayaç += 1\n    }\n    TR_for TR_not dur {\n        yavaşla()\n    }\n}\n" +
+		"TR_async {\n    TR_var b = 0\n    TR_for TR_not dur {\n        b += 1\n    }\n}\n" +
+		"TR_for sayaç < 200000 {\n    TR_sleep(0.01)\n}\nTR_sleep(0.3)\ndur = TR_true\nTR_wait_all()\n"
+	machine := New()
+	machine.Out = io.Discard
+	setup(machine)
+	var slowSince atomic.Int64 // yavaş evrenin başladığı an (monotonic; 0: başlamadı)
+	machine.RegisterBuiltin("yavaş", func(*VM, []Value, map[string]Value) (Value, error) {
+		start := monotonic()
+		slowSince.CompareAndSwap(0, int64(start))
+		for monotonic()-start < slowTurn {
+		}
+		return Null, nil
+	})
+	var mu sync.Mutex
+	machine.gilWaitHook = func(ahead int, _ uint64, waited time.Duration) {
+		if slowSince.Load() != 0 {
+			mu.Lock()
+			aheads, waits = append(aheads, ahead), append(waits, waited)
+			mu.Unlock()
+		}
+	}
+	_, err := machine.Run(mustParseProgram(t, code))
+	machine.WaitAsync()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(waits) < 3 {
+		t.Fatalf("yavaş evrede kilit yalnız %d kez beklenerek alındı", len(waits))
+	}
+	return aheads, waits
+}
+
+// slowPhaseOverLimit bir koşunun yavaş evresinde (n + 1) × 5 ms + payı aşan beklemeleri verir ve
+// ölçümü testin çıktısına yazar.
+func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), run int) []string {
+	t.Helper()
+	aheads, waits := slowPhaseWaits(t, setup)
+	var over []string
+	var worst time.Duration
+	for i, w := range waits {
+		if limit := time.Duration(aheads[i]+1)*lockHold + lockWaitSlack; w > limit {
+			over = append(over, fmt.Sprintf("önünde %d bekleyenle %v beklendi, sınır %v", aheads[i], w, limit))
+		}
+		worst = max(worst, w)
+	}
+	t.Logf("%s, %s, %d. koşu: yavaş evrede %d bekleme, sınırı aşan %d, en uzun %v", runtime.GOOS, name, run, len(waits), len(over), worst)
+	return over
+}
+
+// Geçiş (10.2): hızlı bir döngüden sonra deyimler yavaşlayınca (her tur ~0,25 ms) bekleyen yine
+// (n + 1) × 5 ms + pay içinde alır; devir, geçmiş deyimlerin hızından ayarlanan bir sayıya
+// (k × yavaş aralık) kalmaz. Zamanlayıcıyla ve yalnız yedek saatle (zamanlayıcı geç kalırsa sözü
+// o tutar; k ≤ 64, en çok 64 × 0,25 ms = 16 ms; tavansız k hızlı döngüde yüzlere çıkar ve sınırı
+// aşar). Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra sığmalıdır.
+func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
+	runs := 3
+	if runtime.GOOS == "linux" {
+		runs = 1
+	}
+	modes := []struct {
+		name  string
+		setup func(*VM)
+	}{
+		{"zamanlayıcıyla", func(*VM) {}},
+		{"yalnız yedek saatle", func(m *VM) { m.gil.timerOff = true }},
+	}
+	for _, mode := range modes {
+		within := false
+		var last []string
+		for run := 1; run <= runs && !within; run++ {
+			last = slowPhaseOverLimit(t, mode.name, mode.setup, run)
+			within = len(last) == 0
+		}
+		if !within {
+			t.Errorf("%s: %d koşunun hiçbiri sınıra sığmadı; sonuncusu:\n%s", mode.name, runs, strings.Join(last, "\n"))
+		}
+	}
 }

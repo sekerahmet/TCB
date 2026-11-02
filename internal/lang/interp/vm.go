@@ -124,8 +124,6 @@ type vmShared struct {
 	// lockHold'dan uzun tuttuysa devreder (yieldPoint). Böylece CPU-yoğun bir döngü eşzamanlı
 	// görevleri sonuna kadar bekletmez.
 	pending atomic.Int32
-	// gilSince kilidi tutan görevin onu aldığı andır (monotonic); yalnız kilidi tutan okur ve yazar.
-	gilSince time.Duration
 	// gilWaitHook yalnız testler içindir: kilidi bekleyerek alan görev, kuyruğa girdiğinde önünde
 	// bekleyen sayısını, numarasını ve bekleme süresini (tekdüze saatle) bildirir.
 	gilWaitHook func(ahead int, ticket uint64, waited time.Duration)
@@ -213,6 +211,11 @@ type VM struct {
 	// exclusive boş değilse görev kilidi başka göreve devretmez (bkz. Exclusive); değeri kipi
 	// isteyen yerleşiğin kullanıcıya görünen adıdır.
 	exclusive any
+	// gilGen ve gilSince bu görevin tuttuğu kilidin kuşağı ve alındığı andır (monotonic); clock
+	// yedek saattir (gil.go). Yalnız kilidi tutan görev okur ve yazar.
+	gilGen   uint64
+	gilSince time.Duration
+	clock    lockClock
 
 	// source şu an çalışan kodun dosyasıdır (nil: ana program; bkz. Kaynak). Paylaşılan
 	// durumda değil görevde tutulur: bir modül yüklenirken kilidi bırakınca başka bir görev
