@@ -129,6 +129,7 @@ func run(o options, command []string, stdout io.Writer) (int, error) {
 	}
 	code, err := execute(filepath.Join(job, id+".log"), work, command, stdout)
 	if err != nil {
+		os.RemoveAll(work)
 		return 2, err
 	}
 	end := time.Now().In(turkey)
@@ -230,18 +231,31 @@ func attach(work, job, id string) ([]string, error) {
 		return move(p, filepath.Join(job, name))
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w (the command's remaining files are in %s)", err, work)
 	}
 	sort.Strings(names)
 	return names, os.RemoveAll(work)
 }
 
+// rename taşımanın ilk denemesidir; testler onu başarısız kılarak kopyalama yolunu sınar.
+var rename = os.Rename
+
 // move dosyayı taşır; geçici klasör başka bir dosya sistemindeyse (Drive bağı) adlandırma
-// yapılamaz, o zaman kopyalar ve kaynağı siler.
+// yapılamaz, o zaman kopyalar ve kaynağı siler. Kaynak silinmeden önce kapanır (Windows açık
+// dosyayı silmez); kopyalama yarıda kalırsa yarım hedef silinir, kaynak yerinde durur.
 func move(from, to string) error {
-	if os.Rename(from, to) == nil {
+	if rename(from, to) == nil {
 		return nil
 	}
+	if err := copyFile(from, to); err != nil {
+		os.Remove(to)
+		return err
+	}
+	return os.Remove(from)
+}
+
+// copyFile from'u to'ya kopyalar; iki dosyayı da dönmeden kapatır.
+func copyFile(from, to string) error {
 	src, err := os.Open(from)
 	if err != nil {
 		return err
@@ -255,10 +269,7 @@ func move(from, to string) error {
 		dst.Close()
 		return err
 	}
-	if err := dst.Close(); err != nil {
-		return err
-	}
-	return os.Remove(from)
+	return dst.Close()
 }
 
 // write kaydı kendi dosyasına (girintili) ve dizine (tek satır) yazar.

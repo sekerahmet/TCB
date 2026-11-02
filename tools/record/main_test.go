@@ -29,9 +29,23 @@ func TestMain(m *testing.M) {
 
 // Kural: kayıt aracı komutu çalıştırır ve çıkış kodunu geçirir. Her koşu iş klasöründe zaman
 // adlıdır: <zaman>.json (kayıt, metrics.json gömülü), <zaman>.log (çıktı), <zaman>_<dosya> (komutun
-// bıraktıkları; geçici klasör silinir). Her koşu index.jsonl'a bir satır ekler.
+// bıraktıkları; geçici klasör silinir). Her koşu index.jsonl'a bir satır ekler. Adlandırma tutmazsa
+// (geçici klasör başka dosya sisteminde, Colab'ın Drive bağı) dosyalar kopyalanır; sonuç aynıdır.
 func TestRunWritesRecordAndIndex(t *testing.T) {
+	t.Run("rename", checkRunWritesRecordAndIndex)
+	t.Run("copy", func(t *testing.T) {
+		rename = func(string, string) error { return os.ErrInvalid }
+		t.Cleanup(func() { rename = os.Rename })
+		checkRunWritesRecordAndIndex(t)
+	})
+}
+
+func checkRunWritesRecordAndIndex(t *testing.T) {
 	out := t.TempDir()
+	tmp := t.TempDir() // komutun geçici klasörünün kökü: koşudan sonra boş kalmalı
+	t.Setenv("TMPDIR", tmp)
+	t.Setenv("TMP", tmp)
+	t.Setenv("TEMP", tmp)
 	t.Setenv("TR_RECORD_HELPER", "1")
 	self, _ := os.Executable()
 	var stdout bytes.Buffer
@@ -72,8 +86,11 @@ func TestRunWritesRecordAndIndex(t *testing.T) {
 	entries, _ := reporoot.ReadDir(filepath.Join(out, "deneme"))
 	for _, e := range entries {
 		if e.IsDir() {
-			t.Errorf("temporary folder left: %s", e.Name())
+			t.Errorf("folder in the job folder: %s", e.Name())
 		}
+	}
+	if left, _ := reporoot.ReadDir(tmp); len(left) != 0 {
+		t.Errorf("temporary folder left: %s", left[0].Name())
 	}
 }
 
