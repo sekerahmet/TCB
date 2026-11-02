@@ -89,10 +89,8 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 - **Dosya biçimleri:**
   - zstd ve zip (`.jsonl.zst`; 18.12'nin `.gz` saydamlığı gibi);
   - Parquet;
-  - CSV yazmak;
-  - bayttan sayı okuma ve sayıyı bayta yazma (bayt sırasıyla: WAV, `.npy`, algılayıcı paketi; 3.3a).
+  - CSV yazmak.
 - **Uzak depolama:** S3 ve GCS'ten akışla okuma (arşiv).
-- **Alt süreç:** dış bir programı (ffmpeg gibi) çalıştırıp beklemek; 10.3'ün "dış süreç beklemeleri" ona bağlıdır. Güvenlik tartısı gerekir.
 - **Süreçlerle paralellik:** TR koduyla yazılmış veri işi yorumlayıcı kilidi yüzünden tek çekirdekte kalır; işi süreçlere bölmek.
 
 **Eğitmek ve ölçmek:**
@@ -112,6 +110,7 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
   - **Sıra:** yorumlayıcıda ucuz yerel kazançlar; denetleyicinin tip haritası ve tip uyuşması kipi (her ifadenin değeri denetleyicinin tipinde mi); derleyicinin ilk dilimi; bütün dil. Derleyiciden önce Go araç zincirinin kullanıcıya nasıl gideceği Ahmet'e sorulur.
   - **Hedefler:** saf hesapta (`dongu`, `fib`, `matris`) taşma denetimli ve aynı veri düzenli (matriste iç içe liste) Go'nun ≤ 1,5 katı; ağır işte PyTorch'un ≤ 1,0 katı; tensör işi yapan bir görev varken de 100 Hz'lik döngüde kaçan tur 0. Yorumlayıcının hedefi yerel kazançlar ölçülünce konur; eski "TR/CPython ≤ 1,0" hedefi kalktı, o hız derleyiciden gelir.
 - **Paket, bağımlılık ve sürüm sabitleme:** başkasının modülünü sürümüyle almak, kilit dosyası. `tr/` kitaplığı ikiliyle gelir, ona gerekmez (11.6).
+  - Başkasının modülü gelince izin modeli de yazılır: dosya, ağ ve dış program (21) için tek tasarım. Bugün dilde izin modeli yok; yalnız dış programa izin koymak yarım bir model olurdu (DENETİM, 2026-11-02).
 - **Sürüm politikası:** 0.y.z numarası; kararlı, beta ve prototip etiketleri; dil ve dosya biçimini dondurma kuralları; yayın ikilileri (arşiv).
 - **Hazır modelin sohbet biçimi:** sohbet şablonu (`tokenizer_config.json`'un şablonu) ve özel parçalar; "sohbet etmek" ister.
 - **Karo dili:** GPU çekirdeklerini TR'de yazmak (arşiv).
@@ -290,7 +289,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
   - **Yol (2026-11-02):**
     - Küçük bir modelde dizgecik başına yükün ≈ %7'si yorumlayıcıda, ≈ %56'sı tensör yerleşiklerinde (çağrı, küçük tensör ayırma ve işlemin kendisi birlikte) [ölçüldü: DENETİM, tensör işi ≈ 0 olan 28 katmanlı küçük bir GPT (gömme 16), `tr profile --go-profile`; gerçek modelin profili yok]. Gerçek modelde işlemin payı büyür, yorumlayıcınınki küçülür [hipotez]. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
     - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
-      - bölümü olmayanlar: alt süreç, bayttan sayı (WAV, PCM), sohbet biçimi, canlı ses (ilk sürüm alt süreçle), gömme; ses üretimi için fonemleştirme;
+      - bölümü olmayanlar: sohbet biçimi, canlı ses (ilk sürüm dış programla), gömme; ses üretimi için fonemleştirme. Dış programlar ve bayttan sayı artık 21 ve 22'de;
       - 15'in sonraya bıraktıkları: STFT ve Mel; ses üretimi için ters evrişim ve ONNX okuma.
     - Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar; ses üretiminin üç işi de bu karara girer (Ahmet, 2026-11-02). Uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.

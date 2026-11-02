@@ -20,7 +20,7 @@ TR statik tiplidir (1.2): her değerin tipi çalışmadan önce bilinir. Tip den
 TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 ```
 
-**3.3a** `TR_Bytes`: değiştirilemez bayt dizisi (dosya, ağ, görüntü, ses verisi). `b[i]` 0–255 arası bir `TR_Int`, `b[a..c]` bir `TR_Bytes` verir; indeks ve dilim 3.3'teki gibidir. `TR_Bytes("ab")` metnin UTF-8 baytlarını, `TR_Bytes([0, 255])` bir tam sayı listesini verir; 0–255 dışındaki sayı çalışma hatasıdır. `TR_String(b)` UTF-8 okur; geçersiz UTF-8 çalışma hatasıdır. Metin ile bayt kendiliğinden dönüşmez. Birleştirme ve yineleme 4.10'dadır; bayttan sayı okuyup sayıyı bayta yazma (bayt sırasıyla), tensörden kurma ve parça parça yazma yol haritasındadır.
+**3.3a** `TR_Bytes`: değiştirilemez bayt dizisi (dosya, ağ, görüntü, ses verisi). `b[i]` 0–255 arası bir `TR_Int`, `b[a..c]` bir `TR_Bytes` verir; indeks ve dilim 3.3'teki gibidir. `TR_Bytes("ab")` metnin UTF-8 baytlarını, `TR_Bytes([0, 255])` bir tam sayı listesini verir; 0–255 dışındaki sayı çalışma hatasıdır. `TR_String(b)` UTF-8 okur; geçersiz UTF-8 çalışma hatasıdır. Metin ile bayt kendiliğinden dönüşmez. Birleştirme ve yineleme 4.10'dadır; bayttan sayı ve tensör okumak, sayıyı ve tensörü bayta yazmak 22'dedir; parça parça yazma yol haritasındadır.
 - *Test:* TR testi.
 
 **3.4** `TR_Bool`: `TR_true` ve `TR_false`; koşulda yalnız bu tip kullanılır (3.10).

@@ -1113,3 +1113,21 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 ### 20.14
 
 - **Mevcut durum:** geri dönüş `.TR_grad`'ları temizlemiyor, donma durumunu döndürmüyor (Gemini Koşu 1, DENETİM). **Yapılacaklar:** 20.14'ün yeni cümlesi; TR testi.
+
+## 21. Dış programlar
+
+Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin denetimi bekliyor.
+
+### 21.1–21.8
+
+- **Mevcut durum:** uygulanmadı; `TR_run_process` ve `TR_spawn_process` kimlikleri yok [ölçüldü: main `ec26382c`, `definitions.json`].
+- **Yapılacaklar:** uygulama Jarvis'in sırasıyla; 1.5'in alt süreç Go testi bununla.
+
+## 22. Bayt ve sayı
+
+Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin denetimi bekliyor.
+
+### 22.1–22.4
+
+- **Mevcut durum:** uygulanmadı; `TR_from_bytes` kimliği ve `tr/audio` kitaplığı yok [ölçüldü: main `ec26382c`, `definitions.json`].
+- **Yapılacaklar:** uygulama Jarvis'in sırasıyla.
