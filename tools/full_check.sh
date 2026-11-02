@@ -2,7 +2,7 @@
 # Tam denetim: bir işin "bitti" sayılması için gereken bütün sınamalar, tek komutla. Otomatik
 # sınama (.github/workflows/ci.yml) da bu betiği çağırır; "bitti"nin tek tanımı burasıdır.
 #
-# Kullanım (depo kökünden): bash tools/full_check.sh [--hizli] [--kip=KİP]
+# Kullanım (depo kökünden): bash tools/full_check.sh [--hizli] [--kip=KİP] [--ilk-kalanda-dur]
 #   (bayraksız)       dagitim ve go-esleri kipleri art arda (yerelde birleştirmeden önce)
 #   --kip=dagitim     kullanıcıya giden yapılandırma: düz `go build` (GOAMD64=v1), AVX2
 #                     çekirdekleri çalışma anında seçilir. Durağan denetimler, ARM derlemesi,
@@ -26,6 +26,9 @@
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
 #   --taban=<commit>  ön denetimin "değişen"i bu commit'e göre bulur (yan dalda varsayılan yerel main,
 #                     ana dalda origin/main): bir maddenin sonunda yalnız o maddenin değiştirdikleri
+#   --ilk-kalanda-dur ilk kalan adımda denetimi bitirir: koşan go test ya da örnek durdurulur,
+#                     sonraki adımlar koşmaz, sonuç satırı ❌ olur. Yalnız betiğin kendi alt süreçleri
+#                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
 #                     ileti kullanımı), öbür paketlerdeki depo taramaları, .tr dosyalarının biçimi, dil
@@ -59,9 +62,11 @@ cd "$(dirname "$0")/.."
 
 modes="dagitim go-esleri"
 base_override=""
+stop_first=""
 for arg in "$@"; do
 	case "$arg" in
 	--taban=*) base_override=${arg#--taban=} ;;
+	--ilk-kalanda-dur) stop_first=1 ;;
 	--hizli | --kip=dagitim) modes=dagitim ;;
 	--kip=go-esleri | --kip=v1) modes=go-esleri ;;
 	--kip=v3) modes=v3 ;;
@@ -70,7 +75,7 @@ for arg in "$@"; do
 	--kip=zorlama) modes=zorlama ;;
 	--kip=on) modes=on ;;
 	*)
-		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on] [--taban=<commit>])" >&2
+		echo "bilinmeyen argüman: $arg (kullanım: bash tools/full_check.sh [--hizli] [--kip=dagitim|go-esleri|v3|yaris|uzun|zorlama|on] [--taban=<commit>] [--ilk-kalanda-dur])" >&2
 		exit 2
 		;;
 	esac
@@ -85,6 +90,7 @@ repo_scans=(
 )
 
 failed=0
+stopped_early=0
 failures=()
 durations=()
 step_names=()
@@ -120,7 +126,7 @@ write_metrics() {
 	[ -n "${TR_RECORD_DIR:-}" ] || return 0
 	local i sep=""
 	{
-		printf '{"modes":%s,"passed":%s,"seconds":%d,"steps":[' "$(json_text "$modes")" "$([ $failed -eq 0 ] && echo true || echo false)" "$SECONDS"
+		printf '{"modes":%s,"passed":%s,"stopped_early":%s,"seconds":%d,"steps":[' "$(json_text "$modes")" "$([ $failed -eq 0 ] && echo true || echo false)" "$([ $stopped_early -eq 1 ] && echo true || echo false)" "$SECONDS"
 		for i in "${!step_names[@]}"; do
 			printf '%s{"name":%s,"seconds":%d}' "$sep" "$(json_text "${step_names[$i]}")" "${step_seconds[$i]}"
 			sep=","
@@ -141,6 +147,11 @@ record_failure() {
 	if [ "${GITHUB_ACTIONS:-}" = "true" ]; then echo "::error title=Tam denetim::$1"; fi
 	failures+=("$1")
 	failed=1
+	if [ -n "$stop_first" ]; then
+		stopped_early=1
+		echo "!! İlk kalanda durdu (--ilk-kalanda-dur): sonraki adımlar koşmadı"
+		finish
+	fi
 }
 
 # fail kalan adımı yazar ve kaydeder.
@@ -163,6 +174,58 @@ summarize() {
 
 ext=""
 case "$(uname -s)" in MINGW* | MSYS* | CYGWIN*) ext=".exe" ;; esac
+
+# children bir sürecin doğrudan alt süreçlerini yazar. Git Bash'in ps'i -o bilmez; sütunları
+# PID PPID PGID WINPID'dir.
+children() {
+	if [ -n "$ext" ]; then
+		ps -e | awk -v p="$1" 'NR > 1 && $2 == p { print $1 }'
+	else
+		ps -o pid= --ppid "$1"
+	fi
+}
+# stop_tree bir süreci alt süreçleriyle durdurur. Windows'ta go.exe'nin açtığı test ikilileri
+# Git Bash'in süreç ağacında görünmez: Windows'un ağacı taskkill /T ile durdurulur.
+stop_tree() {
+	local c w
+	for c in $(children "$1"); do stop_tree "$c"; done
+	if [ -n "$ext" ]; then
+		w=$(ps -e | awk -v p="$1" 'NR > 1 && $1 == p { print $4 }')
+		[ -z "$w" ] || taskkill //T //F //PID "$w" >/dev/null 2>&1
+	fi
+	kill "$1" 2>/dev/null
+}
+# stop_siblings ilk kalanda koşan adımı durdurur: betiğin ($$) çağıran dışındaki bütün alt
+# süreçleri. Borudaki izleyici kendisi de betiğin alt sürecidir ($BASHPID); kendini durdurmaz.
+# Betiğin kendisi ve onu çağıran kabuk bu ağacın dışındadır.
+stop_siblings() {
+	local c
+	for c in $(children $$); do
+		[ "$c" = "$BASHPID" ] || stop_tree "$c"
+	done
+}
+# watch_failures bir adımın çıktısını olduğu gibi geçirir; --ilk-kalanda-dur'da ilk kalan
+# satırında adımı durdurur. Kalan satır go test'in paket özetidir ("FAIL<sekme>paket"): Go kalan
+# paketin çıktısını bir bütün olarak yazar, özet testin adından ve ayrıntısından sonra gelir;
+# "--- FAIL"de durulsaydı ayrıntı kaybolurdu. Borunun son halkasıdır: önündeki grep satır satır
+# yazmalı (--line-buffered), yoksa satırlar tamponda bekler ve durdurulunca kaybolur. Adımın
+# kendi çıkış kodu kalanı kaydeder.
+watch_failures() {
+	if [ -z "$stop_first" ]; then
+		cat
+		return
+	fi
+	local line
+	while IFS= read -r line; do
+		printf '%s\n' "$line"
+		case "$line" in
+		"FAIL"$'\t'* | "!! KALDI: "*)
+			stop_siblings
+			return
+			;;
+		esac
+	done
+}
 TR="$PWD/bin/tr${ext}"
 p_flag=()
 if [ -n "${TAM_DENETIM_P:-}" ]; then p_flag=(-p "$TAM_DENETIM_P"); fi
@@ -335,7 +398,7 @@ go_tests() {
 	step "Go testleri ($name: GOAMD64=$GOAMD64, TR_CPU_AVX2=${TR_CPU_AVX2:-otomatik})"
 	local okfile
 	okfile=$(mktemp)
-	go test "${p_flag[@]}" "$@" "${test_paketleri[@]}" 2>&1 | tee "$okfile" | grep -v '^ok\|no test files'
+	go test "${p_flag[@]}" "$@" "${test_paketleri[@]}" 2>&1 | tee "$okfile" | grep --line-buffered -v '^ok\|no test files' | watch_failures
 	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test ($name)"
 	slowest_packages "$okfile"
 	rm -f "$okfile"
@@ -407,7 +470,7 @@ selected_tests() {
 	# Windows'ta komut satırı ~32 000 karakterdir: çok büyük seçimde (bir tr.json değişikliği 428 test, 12 500
 	# karakter, 67 sn ölçüldü) seçilen paketler bütün olarak koşar.
 	if [ ${#run} -gt 20000 ]; then run=.; fi
-	go test "${p_flag[@]}" -short -run "$run" "${dirs[@]}" 2>&1 | grep -v '^ok\|no test files'
+	go test "${p_flag[@]}" -short -run "$run" "${dirs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen dosyaları koruyan testler"
 }
 
@@ -508,11 +571,44 @@ run_examples() {
 	) | while IFS= read -r line; do
 		case "$line" in "!! KALDI: "*) echo "${line#!! KALDI: }" >>"$workdir.failures" ;; esac
 		echo "$line"
+		case "$line" in "!! KALDI: "*) [ -z "$stop_first" ] || { stop_siblings; break; } ;; esac
 	done
-	if [ -f "$workdir.failures" ]; then
-		while IFS= read -r line; do record_failure "$line"; done <"$workdir.failures"
-	fi
+	local failed_lines=()
+	if [ -f "$workdir.failures" ]; then mapfile -t failed_lines <"$workdir.failures"; fi
 	rm -rf "$workdir" "$workdir.failures"
+	for line in "${failed_lines[@]}"; do record_failure "$line"; done
+}
+
+# finish sonucu yazar ve çıkar: adım süreleri, metrics.json, sonuç satırı. İlk kalanda durunca da
+# buradan çıkılır (o zaman depodaki iz denetlenmez: adım yarıda kesildi).
+finish() {
+	step_end
+	if [ $stopped_early -eq 0 ] && [ "$(repo_state)" != "$initial_state" ]; then
+		stop_first=""
+		fail "denetim depoda iz bıraktı (git status değişti): $(diff <(echo "$initial_state") <(repo_state) | head -10)"
+	fi
+
+	echo
+	echo "Adım süreleri:"
+	printf '%s\n' "${durations[@]}"
+	write_metrics
+	if [ "$modes" = on ]; then
+		# Ön denetim tam denetimin yerini tutmaz; sonuç satırı push koşulundaki satırla karışmasın.
+		if [ $failed -eq 0 ]; then
+			echo "✅ Ön denetim geçti (tam denetim değildir)"
+		else
+			echo "❌ Ön denetimde kalan var:"
+			printf '  - %s\n' "${failures[@]}"
+		fi
+		exit $failed
+	fi
+	if [ $failed -eq 0 ]; then
+		echo "✅ Tam denetim geçti"
+	else
+		echo "❌ Tam denetimde kalan var:"
+		printf '  - %s\n' "${failures[@]}"
+	fi
+	exit $failed
 }
 
 for mode in $modes; do
@@ -590,7 +686,7 @@ for mode in $modes; do
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
-			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep -v '^ok\|no test files'
+			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 			[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen paketlerin testleri"
 		fi
 		selected_tests "${changed[@]}"
@@ -598,30 +694,4 @@ for mode in $modes; do
 		;;
 	esac
 done
-step_end
-
-if [ "$(repo_state)" != "$initial_state" ]; then
-	fail "denetim depoda iz bıraktı (git status değişti): $(diff <(echo "$initial_state") <(repo_state) | head -10)"
-fi
-
-echo
-echo "Adım süreleri:"
-printf '%s\n' "${durations[@]}"
-write_metrics
-if [ "$modes" = on ]; then
-	# Ön denetim tam denetimin yerini tutmaz; sonuç satırı push koşulundaki satırla karışmasın.
-	if [ $failed -eq 0 ]; then
-		echo "✅ Ön denetim geçti (tam denetim değildir)"
-	else
-		echo "❌ Ön denetimde kalan var:"
-		printf '  - %s\n' "${failures[@]}"
-	fi
-	exit $failed
-fi
-if [ $failed -eq 0 ]; then
-	echo "✅ Tam denetim geçti"
-else
-	echo "❌ Tam denetimde kalan var:"
-	printf '  - %s\n' "${failures[@]}"
-fi
-exit $failed
+finish
