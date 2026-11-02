@@ -175,6 +175,10 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 			args[i+1] = orphanGitFixture(t)
 		} else if args[i+1] == "broken" {
 			args[i+1] = brokenBuildFixture(t, x.root)
+		} else if args[i+1] == "untracked" {
+			root, graph := untrackedGitFixture(t)
+			args[i+1], loaded = root, nil
+			args = append(args, "--graph", graph)
 		} else {
 			args[i+1] = filepath.Join(x.root, filepath.FromSlash(args[i+1]))
 			args = append(args, "--graph", filepath.Join(t.TempDir(), "graph.json"))

@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // Bu dosya tests-for <Go dosyası>'nın koşu satırlarını kurar: düzenleme döngüsünde koşulacak kısa komut. Koşulan liste
@@ -129,4 +133,54 @@ func countOf(n int, noun string) string {
 		return "1 " + noun
 	}
 	return fmt.Sprintf("%d %ss", n, noun)
+}
+
+// isUntracked dosya bir git deposunda olduğu halde git tarafından izlenmiyor mu (git ls-files --others).
+// Depo taramaları (TestHeaderRulesLiveOnlyInSourceAndLexer, TestLayoutFileSize vb.) yalnız izlenen dosyaları
+// gördüğü için izlenmeyen dosyada tests-for ve changed --go-tests uyarı verir.
+func isUntracked(root, rel string) bool {
+	if rel == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
+		return false
+	}
+	out, err := gitOut(root, "--literal-pathspecs", "ls-files", "--others", "--exclude-standard", "--", rel)
+	return err == nil && strings.TrimSpace(string(out)) != ""
+}
+
+// printUntrackedWarning izlenmeyen dosya için depo taramalarının onu görmediğini ve `git add` gerektiğini yazar.
+func printUntrackedWarning(w io.Writer, file string) {
+	fmt.Fprintf(w, "untracked: %s is not tracked by git; repository-wide checks do not see it (run `git add %s`)\n", file, file)
+}
+
+// untrackedWorkingFiles çalışma ağacında git'in izlemediği kaynak dosyalarını (.go, .tr, go.mod) sıralı verir.
+// Yalnızca grafiğe giren ve depo taramalarının denetlediği dosyalar alınır (testdata, .claude, .codegraph, eski atlanır).
+func untrackedWorkingFiles(root string) []string {
+	if _, err := os.Stat(filepath.Join(root, ".git")); err != nil {
+		return nil
+	}
+	out, err := gitOut(root, "ls-files", "-z", "--others", "--exclude-standard", "--", ".")
+	if err != nil {
+		return nil
+	}
+	var files []string
+	for _, p := range strings.Split(string(out), "\x00") {
+		if p == "" || (!untrackedSource(p) && !strings.EqualFold(filepath.Ext(p), ".tr")) || skippedUntrackedDir(p) {
+			continue
+		}
+		files = append(files, p)
+	}
+	sort.Strings(files)
+	return files
+}
+
+func skippedUntrackedDir(rel string) bool {
+	parts := strings.Split(rel, "/")
+	for _, part := range parts[:len(parts)-1] {
+		if codeindex.DefaultSkipDirs[part] || part == "eski" {
+			return true
+		}
+	}
+	return false
 }

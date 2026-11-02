@@ -213,6 +213,9 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		ix.printGoFileTests(w, n, limit)
 		return
 	}
+	if n.Kind == kindFile && isUntracked(ix.root, n.File) {
+		printUntrackedWarning(w, n.File)
+	}
 	own := ix.trFileOwnTests(n)
 	tests, measured := ix.directTestEdges(n)
 	walks := ix.walkEdges(n)

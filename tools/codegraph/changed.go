@@ -40,8 +40,14 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 	}
 	oldSide := ix.touched(hs, false)
 	main, mapping := oldSide, "old-side lines (the merge base); the graph is of the checked-out tree, so this is exact only while it equals the merge base"
+	var untracked []string
 	if live {
+		untracked = untrackedWorkingFiles(o.root)
 		main, mapping = ix.touched(hs, true), "new-side lines up to the working tree, uncommitted edits included (the graph is of this very tree)"
+		ix.touchUntracked(main, untracked)
+	}
+	for _, f := range untracked {
+		printUntrackedWarning(stdout, f)
 	}
 	if o.goTests {
 		ix.printGoTests(stdout, main)
@@ -237,6 +243,21 @@ func (ix *index) testsToRun(ts *touchSet) (best map[string]int, subprocess map[s
 func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
 	for _, t := range ix.goTestSelection(ts) {
 		fmt.Fprintln(w, t.dir+" "+t.name)
+	}
+}
+
+// touchUntracked çalışma ağacındaki izlenmeyen kaynak dosyalarını ve bildirimlerini değişen kümeye ekler.
+func (ix *index) touchUntracked(ts *touchSet, files []string) {
+	for _, f := range files {
+		ts.files[f] = true
+		if file := ix.byID[fileID(f)]; file != nil {
+			for id, d := range ix.fileDecls(file).nodes {
+				ts.nodes[id] = d
+			}
+		}
+		if tr := ix.byID[trFileID(f)]; tr != nil {
+			ts.nodes[tr.ID] = tr
+		}
 	}
 }
 
