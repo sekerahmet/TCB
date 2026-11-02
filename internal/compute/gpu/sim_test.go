@@ -116,6 +116,28 @@ func TestPTXCompileErrorLog(t *testing.T) {
 	}
 }
 
+// Kural: benzetim de ptxas gibi .entry adı PTX tanıtıcısı olmayan modülü reddeder (gerçek kart
+// `cinsli_0_0_0_[float32 float32]_bool`'u reddetmişti, benzetim geçirmişti).
+func TestSimRejectsInvalidEntryName(t *testing.T) {
+	g := newSimBackend(1 << 20)
+	g.enter()
+	defer g.exit()
+	t.Cleanup(func() { // bilerek bozuk ad: paketin ad ve özet denetimlerine girmez
+		ptxBadNames.Lock()
+		delete(ptxBadNames.m, "kotu_ad")
+		ptxBadNames.Unlock()
+		ptxSeen.Lock()
+		delete(ptxSeen.m, "kotu_ad")
+		ptxSeen.Unlock()
+	})
+	err := testkit.PanicError(func() {
+		g.takeKernel("kotu_ad", func() *emitter { return newEmitter("cinsli_0_0_0_[float32 float32]_bool") })
+	})
+	if !strings.Contains(fmt.Sprint(err), "CUDA_ERROR_INVALID_PTX") || !strings.Contains(fmt.Sprint(err), "not a PTX identifier") {
+		t.Fatalf("geçersiz .entry adı: %v", err)
+	}
+}
+
 // TestParamDeclChecked yazan çekirdeğe "oku" ile verilen depolamanın iç hata
 // olduğunu denetler (gölge silinmesinin unutulamaması bunun üzerine kuruludur).
 func TestParamDeclChecked(t *testing.T) {

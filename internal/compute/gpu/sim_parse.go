@@ -237,8 +237,12 @@ func (a *simParser) row(s string, body *bool) error {
 	case strings.HasPrefix(s, ".version"), strings.HasPrefix(s, ".target"), strings.HasPrefix(s, ".address_size"):
 		return nil
 	case strings.HasPrefix(s, ".visible .entry "):
-		ad := strings.TrimSuffix(strings.TrimPrefix(s, ".visible .entry "), "(")
-		a.is.ad = strings.TrimSpace(ad)
+		ad := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(s, ".visible .entry "), "("))
+		if !validPTXName(ad) {
+			// ptxas da reddeder ("Parsing error"); benzetim geçirseydi hata yalnız gerçek kartta çıkardı.
+			return internalf("entry name %q is not a PTX identifier", ad)
+		}
+		a.is.ad = ad
 		return nil
 	case strings.HasPrefix(s, ".param "):
 		return a.declareParam(strings.TrimSuffix(s, ","))
