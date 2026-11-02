@@ -24,7 +24,7 @@ go run ./tools/record --name zorlama --out /content/drive/MyDrive/TR_dili/olcuml
 
 Zaman koşunun başladığı andır, Türkiye saatiyle (UTC+3), `YYYYAAGGSSDDSS`: adlar tarih sırasıyla dizilir ve kayıtları okuyanın saatiyle uyuşur. Her makine zamanı Türkiye saatine çevirdiği için (Colab UTC'dir) farklı makinelerden gelen kayıtlar karışmaz; Türkiye 2016'dan beri yaz saati uygulamadığından fark sabittir. Kayıttaki zamanlar `+03:00` ekiyle yazılır.
 
-Komut, koşu sürerken dosyalarını `TR_RECORD_DIR` ortam değişkeninin gösterdiği geçici klasöre (`<out>/<name>/.<zaman>/`) yazar; koşu bitince araç onları zaman önekiyle iş klasörüne taşır ve geçici klasörü siler. Komut oraya `metrics.json` bırakırsa içeriği kayda `metrics` olarak da gömülür: `tools/full_check.sh` adım sürelerini, kalan adımları ve sonucu böyle yazar.
+Komut, koşu sürerken dosyalarını `TR_RECORD_DIR` ortam değişkeninin gösterdiği yerel geçici klasöre (`os.TempDir()` altında `tr-record-<zaman>-…`) yazar; koşu bitince araç onları zaman önekiyle iş klasörüne taşır (başka dosya sistemindeyse kopyalar) ve geçici klasörü siler. Klasör iş klasöründe değildir: Colab'ın Drive bağında koşu sürerken kayboldu (2026-11-02). Komut oraya `metrics.json` bırakırsa içeriği kayda `metrics` olarak da gömülür: `tools/full_check.sh` adım sürelerini, kalan adımları ve sonucu böyle yazar.
 
 ## Kayıt
 

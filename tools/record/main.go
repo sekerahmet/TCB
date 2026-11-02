@@ -15,7 +15,7 @@
 //	<out>/<name>/20261023143005.log      komutun çıktısı
 //	<out>/<name>/20261023143005_<dosya>  komutun bıraktığı dosyalar
 //
-// Komut, koşu sürerken dosyalarını TR_RECORD_DIR ortam değişkeninin gösterdiği geçici klasöre
+// Komut, koşu sürerken dosyalarını TR_RECORD_DIR ortam değişkeninin gösterdiği yerel geçici klasöre
 // yazar; koşu bitince araç onları zaman önekiyle iş klasörüne taşır. Komut metrics.json bırakırsa
 // içeriği kayda "metrics" olarak da gömülür (tools/full_check.sh adım sürelerini ve sonucu böyle
 // yazar). Çıkış kodu komutunkidir. Kayıt biçimi pytest-benchmark'ın commit bilgisini (id, branch,
@@ -117,8 +117,14 @@ func run(o options, command []string, stdout io.Writer) (int, error) {
 	start := time.Now().In(turkey)
 	id := start.Format(stamp)
 	job := filepath.Join(o.out, o.name)
-	work := filepath.Join(job, "."+id) // komutun geçici dosyaları; koşudan sonra taşınır
-	if err := os.MkdirAll(work, 0o755); err != nil {
+	if err := os.MkdirAll(job, 0o755); err != nil {
+		return 2, err
+	}
+	// Komutun geçici dosyaları yerel geçici klasörde durur, koşudan sonra taşınır. İş klasöründe
+	// açılan noktalı klasör Colab'ın Drive bağında koşu sürerken kayboldu (2026-11-02, metrics.json
+	// yazılamadı).
+	work, err := os.MkdirTemp("", "tr-record-"+id+"-")
+	if err != nil {
 		return 2, err
 	}
 	code, err := execute(filepath.Join(job, id+".log"), work, command, stdout)
@@ -221,13 +227,38 @@ func attach(work, job, id string) ([]string, error) {
 		rel, _ := filepath.Rel(work, p)
 		name := id + "_" + strings.ReplaceAll(filepath.ToSlash(rel), "/", "_")
 		names = append(names, name)
-		return os.Rename(p, filepath.Join(job, name))
+		return move(p, filepath.Join(job, name))
 	})
 	if err != nil {
 		return nil, err
 	}
 	sort.Strings(names)
 	return names, os.RemoveAll(work)
+}
+
+// move dosyayı taşır; geçici klasör başka bir dosya sistemindeyse (Drive bağı) adlandırma
+// yapılamaz, o zaman kopyalar ve kaynağı siler.
+func move(from, to string) error {
+	if os.Rename(from, to) == nil {
+		return nil
+	}
+	src, err := os.Open(from)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	dst, err := os.Create(to)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(dst, src); err != nil {
+		dst.Close()
+		return err
+	}
+	if err := dst.Close(); err != nil {
+		return err
+	}
+	return os.Remove(from)
 }
 
 // write kaydı kendi dosyasına (girintili) ve dizine (tek satır) yazar.
