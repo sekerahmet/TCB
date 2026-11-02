@@ -32,21 +32,24 @@ func IdentityQuery(q string) bool {
 	return !strings.Contains(s, ".") && codes.IsReservedName(s)
 }
 
-// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir üye yazımıysa ve alıcısı bilinen bir tip ya da
-// modül adına uymuyorsa `x.TR_<ad>` karşılığını verir; değilse boş döner. Nitelenmiş ad basamakları (`Model.TR_forward`,
-// `layers.TR_GPT`) denendikten sonra hiçbir aday bulunamazsa yalnızca tip ya da modül olmayan alıcı `x.` gibi çözülür;
-// var olan bir tipin ya da modülün olmayan üyesi (`Model.TR_append`, `TR_Linear.TR_map`) "bulunamadı" kalır. İki aracın
+// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa ve alıcısı bilinen bir tip ya da modül
+// adına (tam harfle) uymuyorsa üye kodunda `x.TR_<ad>`, `TR_as` modül takma adıyla yazılmış kitaplık bildiriminde
+// (`katman.TR_GPT`, `k.TR_Linear`) `TR_<ad>` karşılığını verir; değilse boş döner. Nitelenmiş ad basamakları
+// (`Model.TR_forward`, `Linear.TR_forward`, `layers.TR_GPT`) denendikten sonra hiçbir aday bulunamazsa küçük harfli
+// değişken alıcıları (`model`, `a`, `n`, `cevap`) ve tip/modül olmayan alıcılar çözülür; var olan bir tipin ya da
+// modülün olmayan üyesi (`Model.TR_append`, `TR_Linear.TR_map`, `Linear.TR_map`) "bulunamadı" kalır. İki aracın
 // (tr index ve codegraph) tek kuralı.
 func MemberQuery(q string, n int, typeOrModule func(i int) [][2]string) string {
 	recv, member, ok := strings.Cut(q, ".")
 	if !ok || strings.EqualFold(recv, "x") || strings.ContainsAny(recv, "/:") || !IdentityQuery("x."+member) {
 		return ""
 	}
-	if recv != "" {
-		for _, k := range NameKeys(recv) {
-			if len(QualifiedMatch(n, k, typeOrModule)) > 0 {
-				return ""
-			}
+	if recv != "" && len(QualifiedMatch(n, NameKey{Key: recv}, typeOrModule)) > 0 {
+		return ""
+	}
+	if _, ok := codes.FromSpelling(codes.PlaceMember, member); !ok {
+		if k, ok := codes.FromSpelling(codes.PlaceOther, member); ok && k.IsLibrary() {
+			return member
 		}
 	}
 	return "x." + member
@@ -183,8 +186,9 @@ func signatureIn(n *Node, lang *codes.Language) string {
 }
 
 // qualifiedSpellings düğümün nitelenmiş adının dilin öğesi olan parçaları her yazım dilinde yazılmış biçimleridir
-// (kimlikle yazılmış Qualified'dan farklı olanlar): `layers.Linear.forward`, `layers.Doğrusal.ileri`. Yolunda kodlu
-// düğüm olmayan düğümde boştur.
+// (kimlikle yazılmış Qualified'dan farklı olanlar): `layers.Linear.forward`, `layers.Doğrusal.ileri`, ayrıca görünen
+// adlı tipin kod yazımlı üyesi (`layers.Linear.TR_forward`, `layers.Doğrusal.TR_forward`, `layers.GPT.TR_generate`).
+// Yolunda kodlu düğüm olmayan düğümde boştur.
 func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 	coded := false
 	for c := n; c != nil && c.Kind != KindModule; c = r.byID[r.parent[c.ID]] {
@@ -194,13 +198,25 @@ func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 		return nil
 	}
 	var out [][2]string
+	add := func(q string) {
+		if q != n.Qualified && !slices.ContainsFunc(out, func(s [2]string) bool { return s[0] == q }) {
+			out = append(out, [2]string{q, Fold(q)})
+		}
+	}
 	spells := []func(codes.Code) string{codes.Spelling} // program metnindeki yazım: layers.TR_Linear.TR_forward
 	for _, l := range writingLanguages() {
 		spells = append(spells, l.Name)
 	}
 	for _, spell := range spells {
-		if q := r.qualifiedIn(n, spell); q != n.Qualified && !slices.ContainsFunc(out, func(s [2]string) bool { return s[0] == q }) {
-			out = append(out, [2]string{q, Fold(q)})
+		add(r.qualifiedIn(n, spell))
+	}
+	if p := r.byID[r.parent[n.ID]]; p != nil && p.Kind != KindModule && strings.Contains(n.Name, ".") && strings.HasSuffix(n.Qualified, n.Name) {
+		if k, err := codes.Parse(n.Code); err == nil {
+			prefix := strings.TrimSuffix(n.Qualified, n.Name)
+			leaf := "." + codes.Spelling(k)
+			for _, l := range writingLanguages() {
+				add(prefix + r.pathIn(p, l.Name) + leaf)
+			}
 		}
 	}
 	return out
