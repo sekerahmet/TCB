@@ -110,7 +110,7 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
   - **Sıra:** yorumlayıcıda ucuz yerel kazançlar; denetleyicinin tip haritası ve tip uyuşması kipi (her ifadenin değeri denetleyicinin tipinde mi); derleyicinin ilk dilimi; bütün dil. Derleyiciden önce Go araç zincirinin kullanıcıya nasıl gideceği Ahmet'e sorulur.
   - **Hedefler:** saf hesapta (`dongu`, `fib`, `matris`) taşma denetimli ve aynı veri düzenli (matriste iç içe liste) Go'nun ≤ 1,5 katı; ağır işte PyTorch'un ≤ 1,0 katı; tensör işi yapan bir görev varken de 100 Hz'lik döngüde kaçan tur 0. Yorumlayıcının hedefi yerel kazançlar ölçülünce konur; eski "TR/CPython ≤ 1,0" hedefi kalktı, o hız derleyiciden gelir.
 - **Paket, bağımlılık ve sürüm sabitleme:** başkasının modülünü sürümüyle almak, kilit dosyası. `tr/` kitaplığı ikiliyle gelir, ona gerekmez (11.6).
-  - Başkasının modülü gelince izin modeli de yazılır: dosya, ağ ve dış program (21) için tek tasarım. Bugün dilde izin modeli yok; yalnız dış programa izin koymak yarım bir model olurdu (DENETİM, 2026-11-02).
+  - Başkasının modülü gelince izin modeli de yazılır: dosya, ağ ve dış program (21) için tek tasarım. 2026-11-02'de dilde izin modeli yok; yalnız dış programa izin koymak yarım bir model olurdu (TCB'nin kararı, DENETİM'in kanıtıyla).
 - **Sürüm politikası:** 0.y.z numarası; kararlı, beta ve prototip etiketleri; dil ve dosya biçimini dondurma kuralları; yayın ikilileri (arşiv).
 - **Hazır modelin sohbet biçimi:** sohbet şablonu (`tokenizer_config.json`'un şablonu) ve özel parçalar; "sohbet etmek" ister.
 - **Karo dili:** GPU çekirdeklerini TR'de yazmak (arşiv).

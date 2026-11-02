@@ -6,4 +6,4 @@ docs/spec/21_dis_programlar.md:18
 docs/spec/21_dis_programlar.md:34
 docs/spec/22_bayt_ve_sayi.md:17
 docs/spec/22_bayt_ve_sayi.md:37
-docs/spec/22_bayt_ve_sayi.md:54
+docs/spec/22_bayt_ve_sayi.md:56

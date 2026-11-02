@@ -20,7 +20,7 @@ Karşılaştırma:
 ### 21.1
 
 - *Emsal:* Go `os/exec` "intentionally does not invoke the system shell" [DENETİM açtı: pkg.go.dev/os/exec, 2026-11-02]. Rust'ın `Command`'ı ve Deno'nun `Deno.Command`'ı da programı ve argümanları ayrı alır [rapordan: doc.rust-lang.org/std/process/struct.Command.html; docs.deno.com/api/deno/~/Deno.Command]. Python'un `shell=True`'su ve Node'un `exec`'i kabukla çalışır [rapordan]. *Kabuk seçeneğini almadık.* Boş aygıt varsayılanı Go'dan: "If Stdin is nil, the process reads from the null device" [DENETİM açtı: pkg.go.dev/os/exec].
-- *Gerekçe:* ajan `"ffmpeg -i " + yol` yazdığında boşluklu bir dosya adı komutu böler, `;` içeren bir ad yeni bir komut başlatır. Kabuk yoksa argüman her zaman tek argümandır, enjeksiyon ve kırılma yazımdan kalkar. Program ile argümanların iki ayrı parametre olması, Go ve Rust'taki gibi, adın argümanla karışmasını önler. Varsayılan girdinin boş aygıt olması, girdiden okuyan bir programın (`-nostdin`'i unutulmuş `ffmpeg`) sonsuza dek beklemesini kökten kaldırır. Bütün çıktının belleğe alınması tek sonuçlu kısa işler içindir; akış 21.2'dedir.
+- *Gerekçe:* ajan `"ffmpeg -i " + yol` yazdığında boşluklu bir dosya adı komutu böler, `;` içeren bir ad yeni bir komut başlatır. Kabuk yoksa argüman her zaman tek argümandır, enjeksiyon ve kırılma yazımdan kalkar. Program ile argümanların iki ayrı parametre olması, Go ve Rust'taki gibi, adın argümanla karışmasını önler. Yol argümanı `TR_String(yol)` ile `/` ayırıcılı gider (18.1); `ffmpeg` bunu her sistemde kabul eder, `cmd`'nin iç komutları gibi bazı araçlar Windows'ta etmeyebilir [hipotez]. Bu, yolun her sistemde tek yazımının bilinçli bedelidir. Varsayılan girdinin boş aygıt olması, girdiden okuyan bir programın (`-nostdin`'i unutulmuş `ffmpeg`) sonsuza dek beklemesini kökten kaldırır. Bütün çıktının belleğe alınması tek sonuçlu kısa işler içindir; akış 21.2'dedir.
 
 ### 21.2
 
@@ -39,7 +39,7 @@ Karşılaştırma:
 
 ### 21.5
 
-- *Emsal:* Go'nun `Cmd.Cancel` ve `WaitDelay` ikilisi önce isteği gönderir, süre dolunca öldürür [DENETİM açtı: pkg.go.dev/os/exec, `WaitDelay`]. Windows'ta iş nesnesinin `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`'u süreç ağacını birlikte kapatır [rapordan: learn.microsoft.com, JOBOBJECT_EXTENDED_LIMIT_INFORMATION].
+- *Emsal:* Go'da `CommandContext`'in varsayılan `Cancel`'ı doğrudan `Kill`dir; iki adım ancak `Cancel`'a istek gönderen bir fonksiyon verilince olur, `WaitDelay` dolunca `Kill` gelir [DENETİM açtı: pkg.go.dev/os/exec, "By default, CommandContext sets Cancel to call the Kill method"]. *İki adımı varsayılan yaptık.* Windows'ta iş nesnesinin `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`'u süreç ağacını birlikte kapatır [rapordan: learn.microsoft.com, JOBOBJECT_EXTENDED_LIMIT_INFORMATION].
 - *Gerekçe:* söz kesmede (Jarvis'te kullanıcı konuşunca cevabın kesilmesi) konuşma görevinin iptali `aplay`'i de hemen durdurmalıdır. Hemen öldürmek dosya yazan bir `ffmpeg`'e yarım dosya bıraktırır [hipotez], bu yüzden önce nazik istek gider. 2 saniye bir seçimdir; ölçülmüş bir emsali yoktur, uygulamada ölçülüp düzeltilebilir. Süreç grubu olmadan yalnız doğrudan çocuk ölür, torunları boruyu açık tutar ve bekleme bitmez [rapordan]. Ctrl+C'nin önce TR'ye gelmesi 1.5'in "ilk istek programı nazikçe durdurur" kuralını dış programla da aynı tutar [hipotez: Windows'ta `CREATE_NEW_PROCESS_GROUP` ile; Win32 belgesi açılmadı]. Engellenmiş okumanın hemen dönmesi gerekir, çünkü iptalin ulaşmadığı bir bekleme sessizce uzar (DENETİM istek 35, Ş1).
 
 ### 21.6

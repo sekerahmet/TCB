@@ -31,11 +31,11 @@ Karşılaştırma:
 
 ### 22.4
 
-- *Emsal:* Whisper'ın `load_audio`'su `ffmpeg`'den `s16le` alır ve `/ 32768.0` ile böler [DENETİM açtı: github.com/openai/whisper, `whisper/audio.py`, v20250625]. libsndfile okurken 32768'e böler, yazarken 32767 ile çarpar [DENETİM açtı: libsndfile FAQ, S10]. Python'un `wave`'i ham bayt verir ve 32 bit ondalık WAV okumaz; `soundfile` ve `torchaudio.load` [-1, 1) ondalık verir [rapordan]. Şekil `[kanal, örnek]` torchaudio'nunkidir [rapordan: docs.pytorch.org/audio, torchaudio.load].
+- *Emsal:* Whisper'ın `load_audio`'su `ffmpeg`'den `s16le` alır ve `/ 32768.0` ile böler [DENETİM açtı: github.com/openai/whisper, `whisper/audio.py`, v20250625]. libsndfile okurken 32768'e böler, yazarken 32767 ile çarpar [DENETİM açtı: libsndfile FAQ, S10]. Python'un `wave`'i ham bayt verir ve 32 bit ondalık WAV okumaz; `soundfile` ve `torchaudio.load` [-1, 1) ondalık verir [rapordan]. Şekil `[kanal, örnek]` torchaudio'nunkidir: "If channels_first=True, shape is [channel, time]", varsayılan `channels_first=True` [DENETİM açtı: docs.pytorch.org/audio, torchaudio.load].
 - *Gerekçe:* ses okuma Jarvis'in, veriyi hazırlamanın ve konuşmayı yazıya çeviren her modelin girdisidir. Bayttan sayı yerleşikleri onu yazmaya yeter; bu yüzden okuyucu yerleşik değil, TR ile yazılmış bir kitaplıktır (11.6). Ajanın en sık yanlışları [rapordan]:
   - başlığı 44 bayt sanıp `LIST` parçasını ses diye okumak;
   - 32767'ye bölüp -32768'de -1'i aşmak ve Whisper'dan ayrılmak.
   - Okuyucu ikisini de kaldırır.
 - İlk sürümün biçimleri Jarvis'in zinciridir (`arecord -f S16_LE`, Whisper'ın `s16le`'si) [DENETİM açtı: whisper `cmd`]. 24 bit reddedilir, çünkü 15.1'de "int24" yoktur ve dönüştürme yolu (`ffmpeg`) zaten bağımlılıktır.
-- Yazarken 32767 ile çarpmak, 1.0'ın "int16"ya sığmasını sağlar (15.2'nin "sığmak" kuralı). Ölçek iki yönde aynı değildir; libsndfile de böyledir. Yuvarlamanın en yakına olması bir seçimdir [hipotez: libsndfile'ın yuvarlama yöntemi açılmadı].
+- Yazarken 32767 ile çarpmak, 1.0'ın "int16"ya sığmasını sağlar (15.2'nin "sığmak" kuralı). Aralık dışı örnek hatadır, çünkü taşan ses bir modelin ya da kazancın taştığını gösterir; sessizce kırpmak 15.49'a aykırıdır (DENETİM istek 37, Ş1). Ölçek iki yönde aynı değildir; libsndfile de böyledir. Yuvarlamanın en yakına olması bir seçimdir [hipotez: libsndfile'ın yuvarlama yöntemi açılmadı].
 - Yeniden örnekleme kitaplıkta yoktur, çünkü Whisper'la aynı sonuç `ffmpeg`'in kendi yeniden örneklemesiyle alınır [DENETİM açtı: whisper `cmd`'de `-ar`]. Basit bir ara değerleme örtüşmeyle doğruluğu düşürür [rapordan].
