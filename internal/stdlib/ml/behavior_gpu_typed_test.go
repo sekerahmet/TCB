@@ -52,16 +52,19 @@ TR_for s TR_in g { TR_print(s) }`
 TR_print((t.TR_to_device("cpu") + 1).TR_tolist)`); out != "[2, 3]\n" {
 		t.Errorf("H6969'un önerisi: %q, beklenen [2, 3]", out)
 	}
-	// Cinsli hedefe atama (15.6d) GPU'da CPU ile aynıdır: sayı, başka hassasiyetten tensör, mantık.
+	// Cinsli hedefe atama (15.6d) GPU'da CPU ile aynıdır: sayı, başka hassasiyetten tensör, mantık;
+	// maskede `&=` yerindedir (takma ad u değişikliği görür).
 	if out := mustRun(t, `TR_func ata(cihaz: TR_String) -> TR_String {
     TR_var t = TR_Tensor([0, 0, 0]).TR_to_device(cihaz)
     t[2] = 5
     t[0..2] = TR_Tensor([7, 8], TR_dtype: "int32").TR_to_device(cihaz)
     TR_var m = TR_Tensor([TR_true, TR_false]).TR_to_device(cihaz)
     m[1] = TR_true
-    TR_return TR_String(t.TR_to_device("cpu").TR_tolist) + " " + TR_String(m.TR_to_device("cpu").TR_tolist)
+    TR_var u = m
+    m &= TR_Tensor([TR_true, TR_false]).TR_to_device(cihaz)
+    TR_return TR_String(t.TR_to_device("cpu").TR_tolist) + " " + TR_String(u.TR_to_device("cpu").TR_tolist)
 }
-TR_print(ata("cpu"), ata("gpu") == ata("cpu"))`); out != "[7, 8, 5] [true, true] true\n" {
+TR_print(ata("cpu"), ata("gpu") == ata("cpu"))`); out != "[7, 8, 5] [true, false] true\n" {
 		t.Errorf("GPU'da cinsli atama: %q", out)
 	}
 }
