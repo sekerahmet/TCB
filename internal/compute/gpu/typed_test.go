@@ -92,6 +92,17 @@ func TestTypedShadowReadsWithoutSync(t *testing.T) {
 			t.Fatalf("%s sonrası okunan değer eski: %v", ad, got)
 		}
 	}
+	// Adımlı hedef çekirdek başlatmasıyla yazılır (ham_kopya; yukarıdakiler sürücü yolundandır):
+	// başlatma yazdığı depolamanın ham gölgesini de siler.
+	s = g.FromRaw(raw(seq...), tensor.Int64)
+	g.CopyStrided(tensor.View{S: s, Shape: []int{n / 2}, Strides: []int{2}}, flatView(g.FromRaw(raw(seven[:n/2]...), tensor.Int64), n/2))
+	want := slices.Clone(seq)
+	for i := 0; i < n; i += 2 {
+		want[i] = 7
+	}
+	if got := g.ToRaw(plain(s)); !slices.Equal(got, raw(want...)) {
+		t.Fatalf("adımlı CopyStrided (çekirdek) sonrası okunan değer eski: %v", got)
+	}
 }
 
 // syncCount arka ucun şimdiye kadarki eşzamanlama sayısıdır.
