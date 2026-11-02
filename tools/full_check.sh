@@ -26,8 +26,10 @@
 #   --hizli           --kip=dagitim ile aynı (iş sırasında; birleştirmeden önce bayraksız koşulur)
 #   --taban=<commit>  ön denetimin "değişen"i bu commit'e göre bulur (yan dalda varsayılan yerel main,
 #                     ana dalda origin/main): bir maddenin sonunda yalnız o maddenin değiştirdikleri
-#   --ilk-kalanda-dur ilk kalan adımda denetimi bitirir: koşan go test ya da örnek durdurulur,
-#                     sonraki adımlar koşmaz, sonuç satırı ❌ olur. Yalnız betiğin kendi alt süreçleri
+#   --ilk-kalanda-dur ilk kalan adımda denetimi bitirir: izlenen adımlarda (Go testleri, değişen
+#                     paketlerin ve dosyaların testleri, örnekler) koşan go test ya da örnek kalan
+#                     satırında durdurulur, öbür adımlar (düzen kuralları, depo taramaları, yarış,
+#                     zorlama) bitince durulur; sonraki adımlar koşmaz, sonuç satırı ❌ olur. Yalnız betiğin kendi alt süreçleri
 #                     durur, betiği çağıran kabuk durmaz. Kipler bu bayrakla birleşir.
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
@@ -91,6 +93,10 @@ repo_scans=(
 
 failed=0
 stopped_early=0
+# seen_fail izleyicinin gördüğü kalan satırları tutar; izlenen adımın sonucu ona da bakar, yalnız
+# durdurulan sürecin çıkış koduna değil (kalan satırını yazıp 0 dönen süreç ✅ veriyordu; DENETİM istek 51).
+seen_fail=$(mktemp)
+go_okfile=""
 failures=()
 durations=()
 step_names=()
@@ -220,11 +226,16 @@ watch_failures() {
 		printf '%s\n' "$line"
 		case "$line" in
 		"FAIL"$'\t'* | "!! KALDI: "*)
+			printf '%s\n' "$line" >>"$seen_fail"
 			stop_siblings
 			return
 			;;
 		esac
 	done
+}
+# watched_ok izlenen adımın sonucu: süreç 0 ile bitti ve izleyici kalan satırı görmedi.
+watched_ok() {
+	[ "$1" -eq 0 ] && [ ! -s "$seen_fail" ]
 }
 TR="$PWD/bin/tr${ext}"
 p_flag=()
@@ -398,8 +409,9 @@ go_tests() {
 	step "Go testleri ($name: GOAMD64=$GOAMD64, TR_CPU_AVX2=${TR_CPU_AVX2:-otomatik})"
 	local okfile
 	okfile=$(mktemp)
+	go_okfile=$okfile
 	go test "${p_flag[@]}" "$@" "${test_paketleri[@]}" 2>&1 | tee "$okfile" | grep --line-buffered -v '^ok\|no test files' | watch_failures
-	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "go test ($name)"
+	watched_ok "${PIPESTATUS[0]}" || fail "go test ($name)"
 	slowest_packages "$okfile"
 	rm -f "$okfile"
 }
@@ -471,7 +483,7 @@ selected_tests() {
 	# karakter, 67 sn ölçüldü) seçilen paketler bütün olarak koşar.
 	if [ ${#run} -gt 20000 ]; then run=.; fi
 	go test "${p_flag[@]}" -short -run "$run" "${dirs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
-	[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen dosyaları koruyan testler"
+	watched_ok "${PIPESTATUS[0]}" || fail "değişen dosyaları koruyan testler"
 }
 
 # gpu_race GPU paketi değiştiyse ve bir C derleyicisi varsa (yarış dedektörü cgo ister) GPU
@@ -586,7 +598,12 @@ finish() {
 	if [ $stopped_early -eq 0 ] && [ "$(repo_state)" != "$initial_state" ]; then
 		stop_first=""
 		fail "denetim depoda iz bıraktı (git status değişti): $(diff <(echo "$initial_state") <(repo_state) | head -10)"
+	elif [ $stopped_early -eq 1 ] && [ "$(repo_state)" != "$initial_state" ]; then
+		# Durdurulan test izini silemeyebilir; kalan sayılmaz ama görünsün, sonraki koşunun
+		# başlangıç durumuna sessizce girmesin.
+		echo "bilgi: durdurulan adım depoda iz bıraktı (git status değişti): $(diff <(echo "$initial_state") <(repo_state) | head -10)"
 	fi
+	rm -f "$seen_fail" "$go_okfile"
 
 	echo
 	echo "Adım süreleri:"
@@ -687,7 +704,7 @@ for mode in $modes; do
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
 			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
-			[ "${PIPESTATUS[0]}" -eq 0 ] || fail "değişen paketlerin testleri"
+			watched_ok "${PIPESTATUS[0]}" || fail "değişen paketlerin testleri"
 		fi
 		selected_tests "${changed[@]}"
 		dups_check
