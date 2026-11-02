@@ -289,6 +289,8 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
             ö2.TR_advance(1)
             TR_assert(en_büyük_mutlak_fark(l, beklenen) < 0.00001, "adım \(i): tek_adım farklı")
         }
+        TR_var boş = m.TR_build_cache(TR_capacity: 8)
+        TR_assert_equal("H6913", TR_error_code { m.TR_single_step(TR_Tensor([[5.0]]), TR_Tensor([0.0]), boş) })
     }
     TR_assert_equal(m.TR_generate([1, 2, 3], 9, TR_temperature: 0, TR_cuda_graph: TR_false), m.TR_generate([1, 2, 3], 9, TR_temperature: 0))
 }

@@ -1279,6 +1279,7 @@
 "H6910": { "param": ["position", "n"], "slots": {"truncate": "TR_mem_truncate"} },
 "H6911": { "param": ["windows_len", "num_layers"], "slots": {"windows": "TR_arg_windows", "num_layers": "TR_arg_num_layers"} },
 "H6912": { "param": ["needed", "context"], "slots": {"hidden_states": "TR_mem_hidden_states", "context": "TR_arg_context"} },
+"H6913": { "param": ["layer"], "slots": {"single_step": "TR_mem_single_step", "hidden_states": "TR_mem_hidden_states"} },
 "H6920": { "param": ["optimizer", "index", "shape"], "slots": {"AdamW": "TR_fn_AdamW", "parameter_groups": "TR_fn_parameter_groups"} },
 "H6921": { "param": ["given"], "slots": {"Muon": "TR_type_Muon", "scale": "TR_arg_scale"} },
 "H6922": { "param": ["multiplier"], "slots": {"MuonAndAdamW": "TR_type_MuonAndAdamW", "multiplier": "TR_arg_multiplier"} },

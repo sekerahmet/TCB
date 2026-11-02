@@ -447,7 +447,7 @@ TR_struct TR_KVCache {
         }
         TR_if TR_self.TR_step_position != TR_none {
             TR_var tampon = TR_buffers[TR_layer_idx]
-            TR_if tampon == TR_none { TR_throw "KV önbelleği: \(TR_layer_idx). katmanın tamponu ayrılmadan cihaz adımına gelindi" }
+            TR_if tampon == TR_none { TR_throw TR_Message("H6913", TR_layer_idx) }
             TR_write_slice(tampon, TR_new_chunk, TR_dim: 1, TR_start: TR_self.TR_step_position[0])
             TR_return tampon
         }

@@ -1279,6 +1279,7 @@
 "H6910": "{@truncate}: must be between 0 and {position}, got {n}",
 "H6911": "{@windows} ({windows_len, plural, one {# element} other {# elements}}) must equal {@num_layers} ({num_layers})",
 "H6912": "{@hidden_states}: {needed, plural, one {# position} other {# positions}} exceed {@context} ({context})",
+"H6913": "{@single_step}: layer {layer} has no cache buffer yet; process the first tokens with {@hidden_states} first",
 "H6920": "{optimizer} only supports 2-dimensional weights; weight {index} has shape {shape} (give embedding, output, norm and bias weights to {@AdamW}: {@parameter_groups})",
 "H6921": "{@Muon}: {@scale} must be \"oran\" or \"rms\", got {given|q}",
 "H6922": "{@MuonAndAdamW}: {@multiplier} must be positive, got {multiplier}",

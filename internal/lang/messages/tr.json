@@ -1279,6 +1279,7 @@
 "H6910": "{@truncate}: 0 ile {position} arasında olmalı, {n} verildi",
 "H6911": "{@windows} ({windows_len} eleman), {@num_layers} değerine ({num_layers}) eşit olmalı",
 "H6912": "{@hidden_states}: {needed} konum, {@context} değerini ({context}) aşıyor",
+"H6913": "{@single_step}: {layer}. katmanın önbellek tamponu henüz yok; önce ilk parçaları {@hidden_states} ile işleyin",
 "H6920": "{optimizer} yalnızca 2 boyutlu ağırlıklar içindir; {index}. ağırlığın şekli {shape} (gömme, çıkış, norm ve sapma ağırlıklarını {@AdamW|dat} verin: {@parameter_groups})",
 "H6921": "{@Muon}: {@scale} \"oran\" ya da \"rms\" olmalı, {given|q} verildi",
 "H6922": "{@MuonAndAdamW}: {@multiplier} pozitif olmalı, {multiplier} verildi",
