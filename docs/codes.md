@@ -1104,14 +1104,14 @@ tr: değişken g: Görev[Tam] = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
 N boyutlu sayı dizisi tipidir (matris 2 boyutlu tensördür); elemanlar varsayılan olarak float32'dir. Tensör(x) iç içe sayı listesinden, tek sayıdan ya da başka bir tensörden yeni bir yaprak tensör kurar; türev_izle varsayılan olarak yanlıştır; tür verilmezse listeden float32 olur, tensörden kaynağın türü korunur (tensörün türünü değiştirmek için tür: değil .türe kullanılır).
 
 ```tr
-TR_var t: TR_Tensor = TR_Tensor([[1, 2], [3, 4]], TR_requires_grad: TR_true); TR_print(TR_Type(t), t.TR_shape, t.TR_dtype)
+TR_var t: TR_Tensor = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true); TR_print(TR_Type(t), t.TR_shape, t.TR_dtype)
 ```
 
 Görünümü:
 
 ```text
-en: var t: Tensor = Tensor([[1, 2], [3, 4]], requires_grad: true); print(Type(t), t.shape, t.dtype)
-tr: değişken t: Tensör = Tensör([[1, 2], [3, 4]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
+en: var t: Tensor = Tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad: true); print(Type(t), t.shape, t.dtype)
+tr: değişken t: Tensör = Tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
 ```
 
 Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_permute(...)`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
@@ -3813,14 +3813,14 @@ Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_weight_decay:`, `
 [..., H, Tq, Tk] şekline yayınlanabilen 0/1 tensörüdür; sıfırdan farklı yerlere bakılır. Türev izlemez; varsayılan yok'tur.
 
 ```tr
-TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]])).TR_shape)
+TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).TR_shape)
 ```
 
 Görünümü:
 
 ```text
-en: var q = randn([3, 4], seed: 1); print(attention(q, q, q, causal: false, mask: Tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]])).shape)
-tr: değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[1, 1, 0], [1, 1, 0], [1, 1, 1]])).şekil)
+en: var q = randn([3, 4], seed: 1); print(attention(q, q, q, causal: false, mask: Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).shape)
+tr: değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).şekil)
 ```
 
 Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`
