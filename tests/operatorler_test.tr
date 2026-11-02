@@ -132,8 +132,8 @@ TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     TR_assert(TR_none != TR_false)
     # 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
     TR_assert(TR_Tensor(7.0) == 7 TR_and 7 == TR_Tensor(7.0))
-    TR_assert(TR_Tensor([[1, 2]])[0][1] == 2.0)
-    TR_assert(TR_sum(TR_Tensor([1, 2, 3, 4])) == 10)
+    TR_assert(TR_Tensor([[1.0, 2.0]])[0][1] == 2.0)
+    TR_assert(TR_sum(TR_Tensor([1.0, 2.0, 3.0, 4.0])) == 10)
     TR_assert(TR_Tensor([7.0]) != 7)
 }
 
@@ -255,7 +255,7 @@ TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi bo�
 }
 
 TR_test "4.11 @ matris çarpımıdır" {
-    TR_var m = TR_Tensor([[1, 2], [3, 4]]) @ TR_Tensor([[1], [1]])
+    TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]]) @ TR_Tensor([[1.0], [1.0]])
     TR_assert_equal([2, 1], m.TR_shape)
     TR_assert_equal(7.0, m[1][0])
 }

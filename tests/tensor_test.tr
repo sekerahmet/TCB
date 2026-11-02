@@ -4,11 +4,11 @@
 TR_import "yardimci_test_araclari"
 
 TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_assert_equal(TR_Tensor, TR_Type(a))
     TR_assert_equal([2, 3], a.TR_shape)
     TR_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], a.TR_tolist)
-    TR_assert_equal([2, 3], TR_Tensor(TR_Tensor([[1, 2, 3], [4, 5, 6]])).TR_shape)
+    TR_assert_equal([2, 3], TR_Tensor(TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])).TR_shape)
     TR_assert_equal([[0.0, 0.0]], TR_zeros([1, 2]).TR_tolist)
     TR_assert_equal([1.0, 1.0, 1.0], TR_ones([3]).TR_tolist)
     TR_assert_equal([4, 5], TR_randn([4, 5]).TR_shape)
@@ -21,8 +21,8 @@ TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_var s = TR_Tensor(3.0)
     TR_assert_equal([], s.TR_shape)
     TR_assert_equal(TR_none, s.TR_grad)
-    TR_assert_equal([TR_Tensor, TR_Tensor], [TR_Type(TR_Tensor([[1]])), TR_Type(TR_eye(2))])
-    TR_var m = TR_Tensor([[1, 2], [3, 4]])
+    TR_assert_equal([TR_Tensor, TR_Tensor], [TR_Type(TR_Tensor([[1.0]])), TR_Type(TR_eye(2))])
+    TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
     TR_assert_equal([2, 2, 2], [m.TR_shape[0], m.TR_shape[1], m.TR_shape.TR_length])
     TR_assert_equal([10.0, 2.5], [TR_sum(m).TR_tolist, TR_mean(m).TR_tolist])
     # Hesaplar float32 ile yapılır.
@@ -106,7 +106,7 @@ TR_test "15.2 tip argümanı öğe cinsini seçer: TR_Tensor[E], TR_zeros[E], TR
 }
 
 TR_test "15.2 özellikler ve görünüm metotları" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_assert_equal([3, 2], a.TR_reshape([3, 2]).TR_shape)
     TR_assert_equal([6], a.TR_reshape([-1]).TR_shape)
     # .gradyan: türev izlemeyen işlemin sonucu yapraktır (yok); türev izleyenin sonucunda hata.
@@ -123,7 +123,7 @@ TR_test "15.2 özellikler ve görünüm metotları" {
     TR_assert_equal([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], a.TR_transpose().TR_tolist)
     TR_assert_equal([[2.0, 3.0], [5.0, 6.0]], a.TR_slice(1, 1, 3).TR_tolist)
     TR_assert_equal([[4.0, 5.0, 6.0]], a.TR_slice(0, -1, 2).TR_tolist)
-    TR_var üç = TR_Tensor([[[1, 2], [3, 4]]])
+    TR_var üç = TR_Tensor([[[1.0, 2.0], [3.0, 4.0]]])
     TR_assert_equal([[[1.0, 3.0], [2.0, 4.0]]], üç.TR_permute([0, 2, 1]).TR_tolist)
     TR_assert(TR_Tensor([0.1]).TR_tolist[0] == 0.1)
     TR_assert_equal("cpu", a.TR_device)
@@ -132,14 +132,14 @@ TR_test "15.2 özellikler ve görünüm metotları" {
 }
 
 TR_test "15.6 işleçler ve yayınlama" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
-    TR_var b = TR_Tensor([[1, 0], [0, 1], [1, 1]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    TR_var b = TR_Tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
     TR_assert_equal([[4.0, 5.0], [10.0, 11.0]], (a @ b).TR_tolist)
     TR_assert_equal([[11.0, 22.0, 33.0], [14.0, 25.0, 36.0]], (a + [10, 20, 30]).TR_tolist)
-    TR_assert_equal([[2.0, 4.0, 6.0], [12.0, 15.0, 18.0]], (a * TR_Tensor([[2], [3]])).TR_tolist)
+    TR_assert_equal([[2.0, 4.0, 6.0], [12.0, 15.0, 18.0]], (a * TR_Tensor([[2.0], [3.0]])).TR_tolist)
     TR_assert_equal([[1.0, 3.0, 5.0], [7.0, 9.0, 11.0]], (2 * a - 1).TR_tolist)
     TR_assert_equal([[0.5, 1.0, 1.5], [2.0, 2.5, 3.0]], (a / 2).TR_tolist)
-    TR_assert_equal(6.0, (TR_Tensor([1, 2, 3]) @ TR_Tensor([1, 1, 1])).TR_tolist)
+    TR_assert_equal(6.0, (TR_Tensor([1.0, 2.0, 3.0]) @ TR_Tensor([1.0, 1.0, 1.0])).TR_tolist)
     # İndeksle atama veriyi yerinde değiştirir.
     TR_var t = TR_zeros([2, 3])
     t[0] = 1
@@ -291,11 +291,11 @@ TR_test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) il
 }
 
 TR_test "15.9 matematik fonksiyonları ve indirgemeler" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_assert_equal([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], TR_relu(a - 3).TR_tolist)
-    TR_assert_equal([2.0, 3.0], TR_sqrt(TR_Tensor([4, 9])).TR_tolist)
-    TR_assert_equal([1.0], TR_exp(TR_Tensor([0])).TR_tolist)
-    TR_assert_equal([0.0], TR_log(TR_Tensor([1])).TR_tolist)
+    TR_assert_equal([2.0, 3.0], TR_sqrt(TR_Tensor([4.0, 9.0])).TR_tolist)
+    TR_assert_equal([1.0], TR_exp(TR_Tensor([0.0])).TR_tolist)
+    TR_assert_equal([0.0], TR_log(TR_Tensor([1.0])).TR_tolist)
     TR_assert_equal(0.5, TR_sigmoid(TR_zeros([1])).TR_tolist[0])
     TR_assert_equal(0.0, TR_tanh(TR_zeros([1])).TR_tolist[0])
     TR_assert_equal(0.0, TR_gelu(TR_zeros([1])).TR_tolist[0])
@@ -317,7 +317,7 @@ TR_test "15.9 matematik fonksiyonları ve indirgemeler" {
     # Eski liste davranışı korunur; listedeki tensörler katlanır, iç içe liste hatadır.
     TR_assert_equal(6, TR_sum([1, 2, 3]))
     TR_assert_equal(2.0, TR_mean([1, 2, 3]))
-    TR_assert_equal([4.0, 6.0], TR_sum([TR_Tensor([1, 2]), TR_Tensor([3, 4])]).TR_tolist)
+    TR_assert_equal([4.0, 6.0], TR_sum([TR_Tensor([1.0, 2.0]), TR_Tensor([3.0, 4.0])]).TR_tolist)
     TR_assert_equal("H6220", TR_error_code { TR_sum([[1, 2], [3, 4]]) })
     TR_assert_equal("H6205", TR_error_code { TR_max(a, 0) })
     TR_assert_equal("H6020", TR_error_code { TR_zeros(2, 3, TR_requires_grad: TR_true) })
@@ -369,19 +369,19 @@ TR_test "15.23a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz
 }
 
 TR_test "15.23 sinir ağı fonksiyonları" {
-    TR_var tablo = TR_Tensor([[1, 1], [2, 2], [3, 3]])
+    TR_var tablo = TR_Tensor([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
     TR_assert_equal([[3.0, 3.0], [1.0, 1.0]], TR_embedding_lookup(tablo, [2, 0]).TR_tolist)
     TR_assert_equal([2, 2, 2], TR_embedding_lookup(tablo, [[0, 1], [2, 2]]).TR_shape)
     TR_assert_equal(0.417, TR_round(TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), [0]).TR_tolist, 3))
-    TR_var n = TR_layer_norm(TR_Tensor([[1, 2, 3]]), TR_ones([3]), TR_zeros([3]))
+    TR_var n = TR_layer_norm(TR_Tensor([[1.0, 2.0, 3.0]]), TR_ones([3]), TR_zeros([3]))
     TR_assert_equal([-1.2247, 0.0, 1.2247], n.TR_tolist[0].TR_map((x) => TR_round(x, 4)))
-    TR_var r = TR_rms_norm(TR_Tensor([[3, 4]]), TR_ones([2]))
+    TR_var r = TR_rms_norm(TR_Tensor([[3.0, 4.0]]), TR_ones([2]))
     TR_assert_equal([0.8485, 1.1314], r.TR_tolist[0].TR_map((x) => TR_round(x, 4)))
 }
 
 TR_test "15.27 geri yayılım, gradyan ve türevsiz" {
     TR_var w = TR_Tensor([[0.5], [-0.5]], TR_requires_grad: TR_true)
-    TR_var x = TR_Tensor([[1, 2], [3, 4]])
+    TR_var x = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
     TR_var y = x @ w
     TR_backward(TR_mean(y * y))
     TR_assert_equal([[-2.0], [-3.0]], w.TR_grad.TR_tolist)
@@ -501,7 +501,7 @@ TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamay
 
 TR_test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     # y = 2·x1 - 3·x2 + 0.5
-    TR_var X = TR_Tensor([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
+    TR_var X = TR_Tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [2.0, 1.0], [1.0, 2.0]])
     TR_var Y = TR_Tensor([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
     TR_var w = TR_Tensor([[0.0], [0.0]], TR_requires_grad: TR_true)
     TR_var b = TR_Tensor([0.0], TR_requires_grad: TR_true)
@@ -586,10 +586,10 @@ TR_test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda 
 }
 
 TR_test "15.19 argmax" {
-    TR_var x = TR_Tensor([[1, 9, 3], [7, 2, 7]])
+    TR_var x = TR_Tensor([[1.0, 9.0, 3.0], [7.0, 2.0, 7.0]])
     TR_assert_equal([1, 0], TR_argmax(x, TR_dim: -1).TR_tolist)
     TR_assert_equal([1, 0, 1], TR_argmax(x, TR_dim: 0).TR_tolist)
-    TR_assert_equal(1, TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist)
+    TR_assert_equal(1, TR_argmax(TR_Tensor([4.0, 8.0, 1.0])).TR_tolist)
     # .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
     TR_var harfler = ["a", "b", "c"]
     TR_assert_equal("b", harfler[TR_argmax(x, TR_dim: -1).TR_tolist[0]])
@@ -690,7 +690,7 @@ TR_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle
 }
 
 TR_test "15.5 tensör üzerinde döngü ve liste üreteci" {
-    TR_var t = TR_Tensor([[1, 2], [3, 4], [5, 6]])
+    TR_var t = TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
     TR_var satırlar = []
     TR_for s TR_in t {
         satırlar.TR_append(s.TR_tolist)
@@ -707,7 +707,7 @@ TR_test "15.5 tensör üzerinde döngü ve liste üreteci" {
     TR_assert_equal([3.0, 5.0], [x * 2 TR_for x TR_in TR_Tensor([1.5, 2.5])])
     TR_assert_equal([3.0, 7.0, 11.0], [TR_sum(s).TR_tolist TR_for s TR_in t])
     TR_assert_equal([2.5], [x TR_for x TR_in TR_Tensor([0.5, 2.5]) TR_if x > 1])
-    TR_assert_equal([TR_Int, TR_Int], [TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1, 5], [7, 0]]), TR_dim: -1)])
+    TR_assert_equal([TR_Int, TR_Int], [TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1.0, 5.0], [7.0, 0.0]]), TR_dim: -1)])
     # Görünümler veriyi paylaşır: satıra atama tensörü değiştirir.
     TR_var z = TR_zeros([2, 2])
     TR_for satır TR_in z {
@@ -722,7 +722,7 @@ TR_test "15.48 hatalar şekli gösterir ve yakalanabilir" {
     TR_assert_equal("H6100", TR_error_code { TR_zeros([2, 3]) + TR_zeros([4]) })
     TR_assert_equal("H6016", TR_error_code { TR_sum(TR_zeros([2, 3]), TR_dim: 2) })
     TR_assert_equal("H6710", TR_error_code { TR_zeros([2, 3]).TR_reshape([4, 2]) })
-    TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1, 2], [3]]) })
+    TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1.0, 2.0], [3.0]]) })
     TR_assert_equal("H6305", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [5]) })
     TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), [[0, 1, 0], [1, 0, 0]]) })
     TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_Tensor(3.0)]) })
@@ -765,7 +765,7 @@ TR_test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
     TR_assert_equal("H6811", TR_error_code { TR_zeros([2], TR_dtype: "float16") })
     TR_assert_equal("H6811", TR_error_code { TR_Tensor([1.0]).TR_to_dtype("float64") })
     TR_assert_equal("H6803", TR_error_code { TR_Tensor([1], TR_dtype: 16) })
-    TR_assert_equal("H7901", TR_error_code { TR_Tensor([1], dtype: "bf16") })
+    TR_assert_equal("H7901", TR_error_code { TR_Tensor([1.0], dtype: "bf16") })
     TR_assert_equal("H6807", TR_error_code { TR_mixed_precision("bf16") })
     TR_assert_equal("H6810", TR_error_code { TR_mixed_precision("int8") { 1 } })
 }
@@ -946,24 +946,24 @@ TR_test "15.10 sin ve cos: sayıda ve tensörde, listede değil; türevli" {
 }
 
 TR_test "15.7 bitiştir ve .böl" {
-    TR_var a = TR_Tensor([[1, 2], [3, 4]], TR_requires_grad: TR_true)
-    TR_var b = TR_Tensor([[5], [6]], TR_requires_grad: TR_true)
+    TR_var a = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([[5.0], [6.0]], TR_requires_grad: TR_true)
     TR_var c = TR_concat([a, b], TR_dim: -1)
     TR_assert_equal([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.TR_tolist)
     TR_assert_equal([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], TR_concat([a, a], TR_dim: 0).TR_tolist)
-    TR_backward(TR_sum(c * TR_Tensor([1, 2, 3])))
+    TR_backward(TR_sum(c * TR_Tensor([1.0, 2.0, 3.0])))
     TR_assert_equal([[3.0], [3.0]], b.TR_grad.TR_tolist)
-    TR_assert_equal("H6311", TR_error_code { TR_concat([a, TR_Tensor([[1, 2, 3]])], TR_dim: 0) })
+    TR_assert_equal("H6311", TR_error_code { TR_concat([a, TR_Tensor([[1.0, 2.0, 3.0]])], TR_dim: 0) })
     TR_assert_equal("H6307", TR_error_code { TR_concat([]) })
     # .böl eşit parçalar verir; parçalar türev izleyen görünümlerdir.
-    TR_var t = TR_Tensor([[1, 2, 3, 4, 5, 6]], TR_requires_grad: TR_true)
+    TR_var t = TR_Tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]], TR_requires_grad: TR_true)
     TR_var parçalar = t.TR_split(3)
     TR_assert_equal(3, parçalar.TR_length)
     TR_assert_equal([[5.0, 6.0]], parçalar[2].TR_tolist)
-    TR_assert_equal([[3.0, 4.0]], TR_Tensor([[1, 2], [3, 4]]).TR_split(2, TR_dim: 0)[1].TR_tolist)
+    TR_assert_equal([[3.0, 4.0]], TR_Tensor([[1.0, 2.0], [3.0, 4.0]]).TR_split(2, TR_dim: 0)[1].TR_tolist)
     TR_backward(TR_sum(parçalar[1]))
     TR_assert_equal([[0.0, 0.0, 1.0, 1.0, 0.0, 0.0]], t.TR_grad.TR_tolist)
-    TR_assert_equal("H6318", TR_error_code { TR_Tensor([1, 2, 3]).TR_split(2) })
+    TR_assert_equal("H6318", TR_error_code { TR_Tensor([1.0, 2.0, 3.0]).TR_split(2) })
     # Metin'in .böl'ü aynı addır ve değişmez.
     TR_assert_equal(["a", "b"], "a b".TR_split(" "))
     # Boş yaprak girdinin gradyanı da boş tensördür (yok değil), tek başına toplamdaki gibi.
@@ -976,7 +976,7 @@ TR_test "15.7 bitiştir ve .böl" {
 }
 
 TR_test "15.18 indirgemelerde boyutu_koru" {
-    TR_var x = TR_Tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    TR_var x = TR_Tensor([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
     TR_assert_equal([2, 2, 1], TR_sum(x, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
     TR_assert_equal([[[2.0], [4.0]], [[6.0], [8.0]]], TR_max(x, TR_dim: -1, TR_keepdim: TR_true).TR_tolist)
     TR_assert_equal([2, 1, 2], TR_mean(x, TR_dim: 1, TR_keepdim: TR_true).TR_shape)

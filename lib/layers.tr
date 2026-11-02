@@ -82,7 +82,7 @@ TR_struct TR_RMSNorm {
 TR_func TR_rotary_table(TR_context: TR_Int, TR_head_dim: TR_Int, TR_rope_theta: TR_Float = 10000.0) -> TR_List[TR_Tensor] {
     TR_var yarım = TR_head_dim // 2
     TR_var frekanslar = [TR_rope_theta ** (-2.0 * i / TR_head_dim) TR_for i TR_in 0..yarım]
-    TR_var konumlar = TR_Tensor([[t] TR_for t TR_in 0..TR_context]) # [bağlam, 1]
+    TR_var konumlar = TR_Tensor([[t * 1.0] TR_for t TR_in 0..TR_context]) # [bağlam, 1]
     TR_var açılar = konumlar @ TR_Tensor([frekanslar]) # [bağlam, yarım]
     TR_return [TR_cos(açılar), TR_sin(açılar)]
 }

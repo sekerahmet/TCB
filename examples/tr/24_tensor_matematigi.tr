@@ -27,7 +27,7 @@ TR_print("log_softmax:", TR_log_softmax(TR_Tensor([1.0, 2.0, 3.0])).TR_tolist)
 
 # Eksen boyunca indirgeme: eksen: -1 son eksen demektir.
 # boyutu_koru: doğru indirgenen ekseni 1 uzunlukta tutar; sonuç girdiye yayınlanabilir.
-TR_var m = TR_Tensor([[1, 2], [3, 4]])
+TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
 TR_print(TR_sum(m, TR_dim: -1).TR_shape, TR_sum(m, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
 TR_print(TR_sum(m, TR_dim: 0).TR_tolist, TR_mean(m, TR_dim: -1).TR_tolist)
 

@@ -568,10 +568,10 @@ TR_test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsay
     TR_var m = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_num_kv_heads: 1, TR_head_dim: 16, TR_seed: 3)
     TR_assert_equal([8, 32], m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_shape)
     TR_assert_equal([6, 8], m.TR_cos_table.TR_shape)
-    TR_assert_equal([2, 6, 12], m.TR_forward(TR_Tensor([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).TR_shape)
+    TR_assert_equal([2, 6, 12], m.TR_forward(TR_Tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], [6.0, 5.0, 4.0, 3.0, 2.0, 1.0]])).TR_shape)
     TR_var a = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 3)
     TR_var b = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_head_dim: 4, TR_seed: 3)
-    TR_assert_equal(a.TR_forward(TR_Tensor([[1, 2, 3]])).TR_tolist, b.TR_forward(TR_Tensor([[1, 2, 3]])).TR_tolist)
+    TR_assert_equal(a.TR_forward(TR_Tensor([[1.0, 2.0, 3.0]])).TR_tolist, b.TR_forward(TR_Tensor([[1.0, 2.0, 3.0]])).TR_tolist)
 }
 
 TR_test "GPT: rope_tabanı döner konum tablolarının tabanıdır; varsayılan 10000 (Hugging Face rope_theta)" {
