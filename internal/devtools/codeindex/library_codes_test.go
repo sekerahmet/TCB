@@ -38,11 +38,17 @@ TR_test "doğrusal" {
 `,
 		"examples/a.tr": `TR_import "tr/layers"
 
+TR_struct Model {
+    a: TR_Int = 1
+}
+
 TR_func ileri(x: TR_Int) -> TR_Int {
     TR_return x
 }
 
 TR_var d = TR_Linear()
+TR_var l = [1, 2].TR_map((x) => x)
+l.TR_append(3)
 TR_print(d.TR_forward(ileri(3)), TR_lr_schedule(1, 4))
 TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (s, g) => { TR_return [g] })
 `,
@@ -103,6 +109,16 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	turkish = slices.DeleteFunc(turkish, func(id string) bool { return id == "function:examples/a.tr#ileri" })
 	if !slices.Equal(turkish, english) || !slices.Contains(english, "method:lib/layers.tr#TR_type_Linear.TR_mem_forward") || !slices.Contains(english, "builtin:TR_arg_forward") {
 		t.Errorf("ileri -> %v, forward -> %v: the library method and the builtin are candidates under both names", turkish, english)
+	}
+	for _, q := range []string{"l.TR_map", ".TR_map"} {
+		if res := r.Definition(q, QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_map" {
+			t.Errorf("Definition(%q) = %+v, want builtin:TR_mem_map", q, res)
+		}
+	}
+	for _, q := range []string{"Model.TR_append", "model.TR_append", "TR_Linear.TR_map", "tr_linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map", "layers.TR_map"} {
+		if res := r.Definition(q, QueryOptions{}); res.Status != StatusNotFound {
+			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
+		}
 	}
 }
 

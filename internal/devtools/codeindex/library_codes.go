@@ -32,13 +32,22 @@ func IdentityQuery(q string) bool {
 	return !strings.Contains(s, ".") && codes.IsReservedName(s)
 }
 
-// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir üye yazımıysa `x.TR_<ad>` karşılığını verir;
-// değilse boş döner. Nitelenmiş ad basamakları (`Model.TR_forward`, `layers.TR_GPT`) denendikten sonra hiçbir aday
-// bulunamazsa her alıcı `x.` gibi çözülür; iki aracın (tr index ve codegraph) tek kuralı.
-func MemberQuery(q string) string {
+// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir üye yazımıysa ve alıcısı bilinen bir tip ya da
+// modül adına uymuyorsa `x.TR_<ad>` karşılığını verir; değilse boş döner. Nitelenmiş ad basamakları (`Model.TR_forward`,
+// `layers.TR_GPT`) denendikten sonra hiçbir aday bulunamazsa yalnızca tip ya da modül olmayan alıcı `x.` gibi çözülür;
+// var olan bir tipin ya da modülün olmayan üyesi (`Model.TR_append`, `TR_Linear.TR_map`) "bulunamadı" kalır. İki aracın
+// (tr index ve codegraph) tek kuralı.
+func MemberQuery(q string, n int, typeOrModule func(i int) [][2]string) string {
 	recv, member, ok := strings.Cut(q, ".")
 	if !ok || strings.EqualFold(recv, "x") || strings.ContainsAny(recv, "/:") || !IdentityQuery("x."+member) {
 		return ""
+	}
+	if recv != "" {
+		for _, k := range NameKeys(recv) {
+			if len(QualifiedMatch(n, k, typeOrModule)) > 0 {
+				return ""
+			}
+		}
 	}
 	return "x." + member
 }

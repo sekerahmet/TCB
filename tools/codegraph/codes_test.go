@@ -167,7 +167,8 @@ func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
 // Kural: program metninde yazılan her kod yazımı (codeindex.SpelledNames: çıplak TR_print ve üye yazımı x.TR_map,
 // x.TR_forward; ayrıca TR_self.TR_x, tek harf alıcı, uzun alıcı ve alıcısız .TR_x) ve nitelenmiş yazımlar
 // (tip adıyla, kullanıcı tipiyle, harfsiz tiple ve modülle) iki araçta da (codegraph ve tr index) aynı düğüm kümesine
-// çözülür; noktalı üye yazımı metin aramasına düşüp belge ya da yorum adaylarıyla belirsiz dönmez.
+// çözülür; var olan bir tipin ya da modülün olmayan üyesi yerleşiğe düşmez, "bulunamadı" kalır; noktalı üye yazımı metin
+// aramasına düşüp belge ya da yorum adaylarıyla belirsiz dönmez.
 func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
@@ -189,21 +190,15 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 			}
 			slices.Sort(want)
 		}
-		for _, s := range codeindex.SpelledNames(k) {
-			queries := []string{s}
-			if after, ok := strings.CutPrefix(s, "x."); ok {
-				queries = append(queries, "TR_self."+after, "l."+after, "uzun_alici."+after, "."+after)
+		for _, q := range codeindex.SpelledNames(k) {
+			checked++
+			var got []string
+			for _, n := range ix.lookup(q) {
+				got = append(got, n.ID)
 			}
-			for _, q := range queries {
-				checked++
-				var got []string
-				for _, n := range ix.lookup(q) {
-					got = append(got, n.ID)
-				}
-				slices.Sort(got)
-				if !slices.Equal(got, want) {
-					t.Errorf("query %q (for %s): got %v, want %v", q, k, got, want)
-				}
+			slices.Sort(got)
+			if !slices.Equal(got, want) {
+				t.Errorf("query %q (for %s): got %v, want %v", q, k, got, want)
 			}
 		}
 	}
@@ -228,6 +223,18 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		slices.Sort(gotTR)
 		if len(gotCG) == 0 || !slices.Equal(gotCG, gotTR) {
 			t.Errorf("query %q: codegraph %v, tr index %v", q, gotCG, gotTR)
+		}
+	}
+	for _, q := range []string{
+		"Model.TR_append", "model.TR_append",
+		"TR_Linear.TR_map", "tr_linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map",
+		"layers.TR_map", "layers.TR_append", "layers.TR_Linear.TR_map",
+	} {
+		if got := ix.lookup(q); len(got) != 0 {
+			t.Errorf("codegraph lookup %q: got %v, want not found", q, got)
+		}
+		if got := reader.Resolve(q, ""); len(got) != 0 {
+			t.Errorf("tr index Resolve %q: got %v, want not found", q, got)
 		}
 	}
 }

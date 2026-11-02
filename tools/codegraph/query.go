@@ -225,6 +225,9 @@ func (ix *index) trNameTable() []trName {
 		switch {
 		case strings.HasPrefix(n.ID, "tr:file:"):
 			c.class, c.names = codeindex.ClassModule, append([]string{n.Name}, n.Aliases...)
+			for _, a := range n.Aliases {
+				c.qualified = append(c.qualified, [2]string{a, codeindex.Fold(a)})
+			}
 		case strings.HasPrefix(n.ID, "name:"):
 			c.class, c.names = codeindex.ClassBuiltin, nameNodeNames(n)
 		case n.Kind == kindTRTest:
@@ -285,7 +288,12 @@ func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool)
 			return found, ki > 0
 		}
 	}
-	if mq := codeindex.MemberQuery(q); mq != "" {
+	if mq := codeindex.MemberQuery(q, len(table), func(i int) [][2]string {
+		if c := &table[i]; c.node.Kind == kindTRStruct || c.class == codeindex.ClassModule {
+			return c.qualified
+		}
+		return nil
+	}); mq != "" {
 		return ix.trByName(mq, kinds)
 	}
 	return nil, false

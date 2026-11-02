@@ -220,7 +220,12 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			return at(found)
 		}
 	}
-	if mq := MemberQuery(q); mq != "" {
+	if mq := MemberQuery(q, len(nodes), func(i int) [][2]string {
+		if k := nodes[i].Kind; k == KindStruct || k == KindModule {
+			return r.qualifiedPairs(i)
+		}
+		return nil
+	}); mq != "" {
 		return r.Resolve(mq, kind)
 	}
 	return nil
@@ -302,8 +307,16 @@ func idsFor(k NameKey, names, folded map[string][]string) []string {
 	return append(slices.Clone(folded[k.Key]), folded[k.Alt]...)
 }
 
-// qualifiedPairs i. düğümün nitelenmiş adlarıdır (kimlikle yazılmış Qualified ve kodlu parçaları yazım dillerinde).
+// qualifiedPairs i. düğümün nitelenmiş adlarıdır (kimlikle yazılmış Qualified ve kodlu parçaları yazım dillerinde;
+// modül düğümünde takma adları).
 func (r *Reader) qualifiedPairs(i int) [][2]string {
+	if r.Index.Nodes[i].Kind == KindModule {
+		var out [][2]string
+		for j, a := range r.Index.Nodes[i].Aliases {
+			out = append(out, [2]string{a, r.folded[i].aliases[j]})
+		}
+		return out
+	}
 	return append([][2]string{{r.Index.Nodes[i].Qualified, r.folded[i].qualified}}, r.folded[i].qualifiedIn...)
 }
 
