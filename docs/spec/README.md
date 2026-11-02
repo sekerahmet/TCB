@@ -30,3 +30,4 @@ Bu belge TR dilinin kısa tanımıdır. Dilin nasıl olması gerektiğini anlat�
 21. [Dış programlar](21_dis_programlar.md)
 22. [Bayt ve sayı](22_bayt_ve_sayi.md)
 23. [Sinyal ve spektrum](23_sinyal_ve_spektrum.md)
+24. [Sohbet biçimi](24_sohbet_bicimi.md)

@@ -15,15 +15,34 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 - *Test:* TR testi.
 
 **16.2** `p.TR_encode(metin)` metni kimliklere çevirir ve `TR_List[TR_Int]` verir. `p.TR_encode(metinler)` (`TR_List[TR_String]`) her metni ayrı çevirir, sırayı korur ve `TR_List[TR_List[TR_Int]]` verir (13.10: iki imza).
-- Metnin içinde yazılan özel parça (`<|endoftext|>`) tek bir kimlik olur.
-- `TR_special_tokens: TR_false` parçalayıcının kendi eklediği özel parçaları (başa ve sona) da, metnin içinde geçen özel parça yazımlarını da kapatır: metindeki `<|endoftext|>` sıradan baytlar olarak kodlanır; özel parçayı isteyen kimliğini açıkça ekler (`p.TR_token_id(...)`). Varsayılan `TR_true`. Güvenilmeyen girdi (sunmak) ve derlem (veri hazırlamak) `TR_false` ile kodlanır.
+- Metnin içinde yazılan eklenmiş parça (`tokenizer.json`'un `added_tokens`'ı: `<|endoftext|>` gibi özel ya da `<think>` gibi özel olmayan) tek bir kimlik olur.
+- `TR_special_tokens: TR_false` parçalayıcının kendi eklediği özel parçaları (başa ve sona) da, metnin içinde geçen eklenmiş parça yazımlarını da kapatır, özel olsun olmasın: metindeki `<|endoftext|>` ve `<think>` sıradan baytlar olarak kodlanır; parçayı isteyen kimliğini açıkça ekler (`p.TR_token_id(...)`). Varsayılan `TR_true`.
+- Güvenilmeyen girdi (sunmak) ve ham metin derlemi (ön eğitim verisi) `TR_false` ile kodlanır. Sohbet derlemi 24.4'tedir.
 - `TR_pair:` ikinci metni (ya da metin listesini) çift olarak kodlar; listeyle verilirse uzunlukları aynı olmalıdır.
-- *Test:* TR testi.
+- *Test:* TR testi; metin içi parçaların `TR_false` ile kapanması uygulanınca TR testi.
 
 **16.3** `p.TR_decode(kimlikler)` tek bir diziyi metne çevirir: `TR_List[TR_Int]` ya da 1 boyutlu `TR_Tensor[TR_Int]`. Birden çok dizi `p.TR_batch_decode(diziler)` ile `TR_List[TR_String]` verir (13.8a).
 - Özel parçalar varsayılan olarak yazılmaz; `TR_special_tokens: TR_true` onları da yazar.
 - **Dağarcıkta olmayan kimlik çalışma hatasıdır;** ileti kimliği ve dağarcık boyunu söyler. Modelin çıktı boyu dağarcıktan büyükse (dolgu) ajan örneklemeyi dağarcığa sınırlar.
+- Bayt düzeyindeki bir parçalayıcıda dizi bir karakterin ortasında biterse yarım kalan bayt dizisi U+FFFD (`"�"`) olur, hata değildir: kesilen bir üretimin metni okunabilir kalır. Her yarım dizi bir U+FFFD'dir.
 - *Test:* TR testi; dağarcık dışı kimliğin hatası uygulanınca TR testi.
+
+**16.3a** Akışlı çözme: `p.TR_decode_stream(TR_special_tokens: b)` bir `TR_DecodeStream` verir; `akış.TR_step(kimlik)` o kimlikle tamamlanan yeni metni verir.
+- Yarım kalan karakter beklenir: son kimlik bir karakterin ortasında bitiyorsa `.TR_step` `""` verir, karakter sonraki kimlikle tamamlanınca birlikte verilir. Kimlikleri tek tek `p.TR_decode([k])` ile çözmek her yarımda U+FFFD yazar (16.3).
+- `akış.TR_finish()` kalan metni verir; yarım kalan dizi 16.3'teki gibi U+FFFD olur. Sonra `.TR_step` hatadır.
+- **Söz:** bir akıştaki bütün `.TR_step` ve `.TR_finish` sonuçlarının birleşimi, aynı kimliklerin `p.TR_decode(kimlikler, TR_special_tokens: b)`'siyle aynı metindir.
+
+```tr
+# TR 4
+TR_var p = TR_load_tokenizer("data/tokenizer.json")
+TR_var akış = p.TR_decode_stream(TR_special_tokens: TR_false)
+TR_for k TR_in p.TR_encode("güneş") {
+    TR_print(akış.TR_step(k)) # yarım karakterde ""
+}
+TR_print(akış.TR_finish())
+```
+
+- *Test:* gerekmez, henüz uygulanmadı.
 
 **16.4** Kendi parçalayıcısını eğitmek: `TR_train_tokenizer(metinler, TR_vocab_size: n, TR_reserved_tokens: [...])` metinlerden bayt düzeyinde bir BPE parçalayıcısı eğitir ve `TR_Tokenizer` verir.
 - `metinler` bir `TR_List[TR_String]` ya da dosya yollarının `TR_List[TR_Path]`'idir: her dosya bir metindir, satır satır okunur (`.gz` 18.12 gibi); dosya listesiyle eğitim derlemi belleğe almaz. Metin veren bir akış (5.7) 13.10'a "dolaşılabilir" kısıtı eklenince alınır.

@@ -922,6 +922,11 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 - **Test:** `tests/veri_parcalayici_test.tr`'nin 16.3 testi bugünkü toplu çözümü (liste listesi, 2 boyutlu tensör) sınıyor; `TR_batch_decode` gelince değişir.
 
+### 16.3a
+
+- **Mevcut durum:** uygulanmadı; akışlı çözme yok, `p.TR_decode` yarım karakterde U+FFFD veriyor [ölçüldü: 2026-11-02, main `705b721b`].
+- **Yapılacaklar:** `TR_DecodeStream`, `.TR_step`, `.TR_finish`; birleşimin toplu çözümle aynı olduğunu sınayan TR testi (bayt düzeyi ve baştaki boşluklu çözücüde).
+
 ### 16.4
 
 - **Mevcut durum:** parçalayıcı eğitmek yok; bugün Python'a gidiliyor.
@@ -1144,3 +1149,13 @@ Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
 
 - **Mevcut durum:** uygulanmadı; `TR_rfft`, `TR_stft`, `TR_mel_filterbank` kimlikleri ve `tr/audio` kitaplığı yok [ölçüldü: main `705b721b`, `internal/lang/codes/tr.json`].
 - **Yapılacaklar:** uygulama Jarvis'in sırasıyla, konuşmayı yazıya çevirmekle. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.5); o gelene kadar GPU'da hata. 22.4'ün `TR_Sound` kuruluşu da 23.6'nın iletisi için gerekir.
+
+## 24. Sohbet biçimi
+
+Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı, istek 43 kararları okudu) yazdı; metin denetimi bekliyor.
+
+### 24.1–24.4
+
+- **Mevcut durum:** uygulanmadı; `tr/chat` kitaplığı yok [ölçüldü: main `705b721b`, `lib/`].
+- **Yapılacaklar:** önce 16.2'nin `TR_false` kapatması (ön koşul); sonra `tr/chat` ve Qwen3 biçimi, transformers'la altın testlerle.
+- **Yapılacaklar (Jarvis B kararı, `lib/layers.tr`):** `TR_generate`'in `TR_eos`'u `TR_List[TR_Int] = []` olur, çünkü modeller birden çok durdurma parçası taşır: Qwen3-0.6B `[151645, 151643]`, Llama-3.1-8B-Instruct `[128001, 128008, 128009]` [kaynak: DENETİM istek 42, `generation_config.json`]. Çağıranların göçüyle: `lib/layers_test.tr`, `examples/tr/46_hazir_model_ve_uretim.tr`, `tools/gpu/ss_exam.tr`, `docs/guide/10_hazir_katmanlarla_gpt.md` [ölçüldü: DENETİM istek 43]. T1'in alanı.
