@@ -1135,3 +1135,12 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (
 
 - **Mevcut durum:** uygulanmadı; `TR_from_bytes` kimliği ve `tr/audio` kitaplığı yok [ölçüldü: main `ec26382c`, `definitions.json`].
 - **Yapılacaklar:** uygulama Jarvis'in sırasıyla.
+
+## 23. Sinyal ve spektrum
+
+Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı) yazdı; metin denetimi bekliyor.
+
+### 23.1–23.8
+
+- **Mevcut durum:** uygulanmadı; `TR_rfft`, `TR_stft`, `TR_mel_filterbank` kimlikleri ve `tr/audio` kitaplığı yok [ölçüldü: main `705b721b`, `internal/lang/codes/tr.json`].
+- **Yapılacaklar:** uygulama Jarvis'in sırasıyla: 23.1–23.4, 23.6–23.8 konuşmayı yazıya çevirmekle; 23.5 ses üretimiyle. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.7).

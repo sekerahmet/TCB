@@ -132,10 +132,10 @@ Her biri gelince 15'in yöntemiyle yazılır.
 - **Tensör işlemleri:**
   - çok eksenli indeks;
   - `TR_stack`, `TR_pad`, `.TR_repeat` (15'in gerekçesi `TR_pad` ve çok eksenli indeks için buraya gönderiyor);
-  - doğrusal cebir ve FFT.
+  - doğrusal cebir. FFT 23. bölümde (2026-11-02).
 - **Sinir ağı işlemleri:**
   - havuzlama ve büyütme, ters evrişim (15.23c);
-  - CTC, STFT ve Mel (ses modelleri);
+  - CTC (ses modelleri). STFT ve Mel 23. bölümde (2026-11-02);
   - BatchNorm;
   - uzman karışımı (MoE): yönlendirici ve koşullu uzman çarpımı. Qwen3-30B-A3B ve gpt-oss bunu ister.
 - **Kayıp ve başlatma:** BCE, karşıtsal kayıp, z-loss; Xavier ve Kaiming başlatma.
@@ -290,7 +290,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     - Küçük bir modelde dizgecik başına yükün ≈ %7'si yorumlayıcıda, ≈ %56'sı tensör yerleşiklerinde (çağrı, küçük tensör ayırma ve işlemin kendisi birlikte) [ölçüldü: DENETİM, tensör işi ≈ 0 olan 28 katmanlı küçük bir GPT (gömme 16), `tr profile --go-profile`; gerçek modelin profili yok]. Gerçek modelde işlemin payı büyür, yorumlayıcınınki küçülür [hipotez]. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
     - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
       - bölümü olmayanlar: sohbet biçimi, canlı ses (ilk sürüm dış programla), gömme; ses üretimi için fonemleştirme. Dış programlar ve bayttan sayı artık 21 ve 22'de;
-      - 15'in sonraya bıraktıkları: STFT ve Mel; ses üretimi için ters evrişim ve ONNX okuma.
+      - 15'in sonraya bıraktıkları: ses üretimi için ters evrişim ve ONNX okuma. STFT ve Mel artık 23'te, iSTFT'nin imzası dahil;
     - Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar; ses üretiminin üç işi de bu karara girer (Ahmet, 2026-11-02). Uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
 - **Uyarlamak:** hazır bir modeli ince ayarla kendi işine uyarlamak, uçtan uca. LoRA'yı dil yazabiliyor; ama PEFT düzeninde kayıt, ince ayar örneği ve bitiş ölçütü yok (arşiv).

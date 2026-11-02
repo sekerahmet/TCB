@@ -19,7 +19,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - **Nicemlenmiş ağırlık `TR_Float`'un saklama hassasiyetidir.** Değeri ondalıktır; `TR_Int`'e konsa ölçek kaybolur, her işlem açık dönüşüm ister. Adları "int8" gibi `TR_Int` adlarıyla çakışmaz: `.TR_dtype`'in değeri cinsi tek başına söyler. Ham 4 bitlik veriyi elle açmak isteyen `TR_Tensor[TR_Int]` "uint8" ve bit işleçleriyle yazar.
   - **float64 bir hassasiyettir.** safetensors'ta `F64` vardır; float64 olmazsa okumak ya hata ya sessiz yuvarlama olur, 15.49 sessizi yasaklar. TR'nin sayısı 64 bittir (3.2): `TR_item()` ile tensör ile sayı arasında kayıpsız geçiş ölçümde gerekir. Desteklemeyen cihazda hata verilir, sessiz düşürme yoktur; taşınabilirlik hatası açıktır. Reddedilen yol: float64'ü hiç almamak (taşınabilirlik; sayı zaten 64 bit; biriktirme çekirdekte): okunan `F64` ağırlığı sessizce yuvarlanırdı. `.npy` okuyucusu bugün ondalık okumuyor [kanıtlı: `npy.go`]; okursa (16, 18) bu da gerekçe olur.
   - **"uint64" yok:** `TR_Int`'e sığmaz; okurken hata, ileti dönüşümü önerir.
-  - **Karmaşık sayı cinsi yok.** Ses modellerinin katmanları gerçek değerlidir; karmaşık sayı yalnız STFT'nin ara adımındadır. `TR_stft` gerçek ve sanal kısmı demetle (3.6a) verir; ses yerleşikleri yol haritasında.
+  - **Karmaşık sayı cinsi yok.** Ses modellerinin katmanları gerçek değerlidir; karmaşık sayı yalnız STFT'nin ara adımındadır. `TR_stft` gerçek ve sanal kısmı demetle (3.6a) verir; ses yerleşikleri 23. bölümde.
 
 ### 15.2
 
