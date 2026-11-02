@@ -260,9 +260,9 @@ TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor, ölçek: TR_Float }
 TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
 TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor, ad: TR_String, ek: TR_Tensor? = TR_none }
 TR_struct Halka { w: TR_Tensor, öbür: TR_List[Halka] }
-TR_var ortak = p(9)
-TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak], {}), Blok(Dikkat(p(5), ortak, 1), [], {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
-m.ek = p(7)
+TR_var ortak = p(9.0)
+TR_var m = Model(p(1.0), [Blok(Dikkat(p(2.0), p(3.0), 0.5), [p(4.0), ortak], {}), Blok(Dikkat(p(5.0), ortak, 1), [], {"W1": p(6.0), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
+m.ek = p(7.0)
 TR_var liste = TR_parameters(m)
 TR_print(liste.TR_length, [x.TR_tolist[0] TR_for x TR_in liste])
 TR_var adlar = TR_parameters(m, TR_named: TR_true)
@@ -273,9 +273,9 @@ TR_save_tensors("`+fpath+`", adlar)
 TR_var y = TR_load_tensors("`+fpath+`")
 TR_print(y.TR_keys() == adlar.TR_keys(), y["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
 # Ara sonuçlar ve türev izlemeyenler parametre değildir.
-TR_print(TR_parameters([p(1) * 2, TR_Tensor([1.0])]).TR_length, TR_parameters(p(1)).TR_length, TR_parameters(p(1), TR_named: TR_true).TR_keys())
+TR_print(TR_parameters([p(1.0) * 2, TR_Tensor([1.0])]).TR_length, TR_parameters(p(1.0)).TR_length, TR_parameters(p(1.0), TR_named: TR_true).TR_keys())
 # Döngülü yapılar sonsuz döngüye girmez: kendine bağlanan nesne (7.6; liste tek tipli olduğu için kendini içermez, 3.6).
-TR_var h = Halka(p(1), [])
+TR_var h = Halka(p(1.0), [])
 h.öbür.TR_append(h)
 TR_print(TR_parameters(h).TR_length)
 `)

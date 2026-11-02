@@ -1122,8 +1122,8 @@ TR_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor }
     TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
     TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor }
-    TR_var ortak = p(9)
-    TR_var m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)], {}), Blok(Dikkat(p(4), p(5)), [], {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak)
+    TR_var ortak = p(9.0)
+    TR_var m = Model(p(1.0), [Blok(Dikkat(p(2.0), ortak), [p(3.0)], {}), Blok(Dikkat(p(4.0), p(5.0)), [], {"W1": p(6.0), "sabit": TR_Tensor([0.0])})], ortak)
     TR_var l = TR_parameters(m)
     TR_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_tolist[0] TR_for x TR_in l])
     TR_assert(l[0] == m.TR_embedding)
@@ -1131,7 +1131,7 @@ TR_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.yan.W1"], adlar.TR_keys())
     TR_assert_equal([4.0], adlar["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
     # Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
-    TR_assert_equal(0, TR_parameters([p(1) * 2, TR_Tensor([1.0])]).TR_length)
+    TR_assert_equal(0, TR_parameters([p(1.0) * 2, TR_Tensor([1.0])]).TR_length)
     # Sonuç doğrudan iyileştiriciye verilebilir.
     TR_var op = TR_SGD(TR_parameters(m), TR_lr: 1.0)
     TR_backward(TR_sum(m.TR_embedding * 2))
