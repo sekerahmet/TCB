@@ -36,6 +36,11 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, about []aboutTest) runPlan
 		if t, ok := goTestOf(n); ok && t.dir != p.pkg {
 			extra[t] = true
 		}
+		for _, r := range ix.fixtureRunners(n) {
+			if t, ok := goTestOf(r); ok && t.dir != p.pkg {
+				extra[t] = true
+			}
+		}
 	}
 	for _, h := range ix.scansCovering(file.File) {
 		for _, t := range h.tests {

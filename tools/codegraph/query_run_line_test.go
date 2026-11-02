@@ -13,7 +13,7 @@ func runPlanFiles(g *Graph) []*Node {
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
 		if n.Kind == kindFile && strings.HasSuffix(n.File, ".go") && !strings.Contains(n.File, "/testdata/") &&
-			(n.File == "internal/lang/interp/compiler_assign.go" || strings.HasPrefix(n.File, "internal/lang/interp/") && i%7 == 0) {
+			(n.File == "internal/lang/interp/compiler_assign.go" || n.File == "internal/lang/checker/unpack.go" || strings.HasPrefix(n.File, "internal/lang/interp/") && i%7 == 0) {
 			out = append(out, n)
 		}
 	}
@@ -47,6 +47,7 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 		}
 		for _, a := range s.about {
 			want = append(want, a.test)
+			want = append(want, ix.fixtureRunners(a.test)...)
 		}
 		for _, n := range want {
 			if gt, ok := goTestOf(n); ok && !inRun(gt) {

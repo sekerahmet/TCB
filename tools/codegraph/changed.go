@@ -277,10 +277,16 @@ func (ix *index) goTestSelection(ts *touchSet) []goTest {
 	}
 	seen := map[goTest]bool{}
 	var out []goTest
-	for _, n := range nodes {
+	add := func(n *Node) {
 		if t, ok := goTestOf(n); ok && !seen[t] {
 			seen[t] = true
 			out = append(out, t)
+		}
+	}
+	for _, n := range nodes {
+		add(n)
+		for _, r := range ix.fixtureRunners(n) {
+			add(r)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].dir+" "+out[i].name < out[j].dir+" "+out[j].name })
@@ -297,7 +303,7 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, own
 	}
 	ids := make([]string, 0, len(best))
 	for id := range best {
-		if isTestNode(ix.byID[id]) && ts.nodes[id] == nil {
+		if (isTestNode(ix.byID[id]) || isNegativeFixture(ix.byID[id])) && ts.nodes[id] == nil {
 			ids = append(ids, id)
 		}
 	}

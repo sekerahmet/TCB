@@ -223,7 +223,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	allTests, allIndirect := tests, indirect // koruduğu kurallar bütün testlerden
 	// Tek sıralama (deneme 8 S1 ve M): önce onu konu edinen testler, sonra doğrudan kullananlar, sonra kısa ve aynı paket
 	// zincirleri, en sonda zayıf kanıt; her test bir kez, en güçlü kanıtının grubunda. Adaylar bütün gruplardır.
-	about := ix.aboutTests(n, ix.testsListed(nil, nil, tests, walks, asValue, indirect, viaNames))
+	about := ix.aboutTests(n, append(ix.testsListed(nil, nil, tests, walks, asValue, indirect, viaNames), ix.fixtureTests(n)...))
 	walks, tests, asValue, indirect, viaNames = keepStrongest(own, about, walks, tests, asValue, indirect, viaNames)
 	listed := ix.testsListed(own, about, allTests, walks, asValue, indirect, viaNames)
 	cites := ix.citingTests(n, listed)

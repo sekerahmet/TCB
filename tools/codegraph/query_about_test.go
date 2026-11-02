@@ -4,6 +4,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
 
 // Kural (README, tests-for'un ilk grubu): bir testin "expects Hxxxx" ile hedefi konu edinmesi için iletiyi hedef ve
@@ -19,7 +21,7 @@ func TestAnExpectedMessageIsTheTargetsOwn(t *testing.T) {
 	var candidates []*Node
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
-		if !isTestNode(n) {
+		if !isTestNode(n) && !isNegativeFixture(n) {
 			continue
 		}
 		for _, e := range ix.out[n.ID] {
@@ -65,7 +67,7 @@ func TestAnExpectedMessageIsTheTargetsOwn(t *testing.T) {
 
 // testCode test ya da test dosyasındaki (Go ya da TR) yardımcı mı (isTestCode'dan bağımsız yazım).
 func testCode(n *Node) bool {
-	return n.Kind == kindTRTest || strings.HasSuffix(n.File, "_test.go") || strings.HasSuffix(n.File, "_test.tr")
+	return n.Kind == kindTRTest || strings.HasSuffix(n.File, "_test.go") || strings.HasSuffix(n.File, "_test.tr") || codeindex.IsNegativeFixture(n.File)
 }
 
 // ownFunctions hedefin işlevleri ve yalnız onların çağırdığı işlevlerdir (README kuralının düz kenarlarla yazımı).

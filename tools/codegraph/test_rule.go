@@ -1,6 +1,10 @@
 package main
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
+)
 
 // "Bu bir test mi" sorusunun TEK cevabı burada (bağımsız denetim Y1, Y3, T3): test dosyası, test işlevi adı, test düğümü
 // ve satır aralığı taşıyan düğüm türleri. `tests-for`, `changed`, kural satırları, ad kodu testleri, madde atıfları ve
@@ -34,10 +38,15 @@ func isTestFile(file string) bool { return strings.HasSuffix(file, "_test.go") }
 // inTestFile düğüm bir Go test dosyasında mı tanımlı.
 func inTestFile(n *Node) bool { return isTestFile(n.File) }
 
-// isTestCode düğüm test kodu mu: bir test, ya da bir Go test dosyasında ya da TR test dosyasında (_test.tr) tanımlı
-// yardımcı.
+// isNegativeFixture düğüm bir negatif TR fikstür dosyası mı (tests/negative/*.tr).
+func isNegativeFixture(n *Node) bool {
+	return n != nil && n.Kind == kindFile && codeindex.IsNegativeFixture(n.File)
+}
+
+// isTestCode düğüm test kodu mu: bir test, negatif bir TR fikstür dosyası, ya da bir Go test dosyasında ya da TR test
+// dosyasında (_test.tr) tanımlı yardımcı.
 func isTestCode(n *Node) bool {
-	return n != nil && (isTestNode(n) || inTestFile(n) || strings.HasSuffix(n.File, "_test.tr"))
+	return n != nil && (isTestNode(n) || isNegativeFixture(n) || inTestFile(n) || strings.HasSuffix(n.File, "_test.tr"))
 }
 
 // isTestNode düğüm bir test mi: Go test dosyasındaki TestX/BenchmarkX/FuzzX/ExampleX işlevi ya da TR test bloğu.

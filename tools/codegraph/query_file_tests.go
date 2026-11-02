@@ -16,7 +16,7 @@ import (
 func (ix *index) testDistances(n *Node) map[string]int {
 	best := map[string]int{}
 	note := func(id string, d int) {
-		if t := ix.byID[id]; t == nil || !isTestNode(t) || isMeasurement(t) {
+		if t := ix.byID[id]; t == nil || (!isTestNode(t) && !isNegativeFixture(t)) || isMeasurement(t) {
 			return
 		}
 		if old, ok := best[id]; !ok || d < old {
@@ -27,6 +27,9 @@ func (ix *index) testDistances(n *Node) map[string]int {
 		if e.Kind == edgeTests {
 			note(e.From, 0)
 		}
+	}
+	for _, f := range ix.fixtureTests(n) {
+		note(f.ID, 0)
 	}
 	for _, e := range ix.walkEdges(n) {
 		note(e.From, 0)
