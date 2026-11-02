@@ -90,6 +90,9 @@ type vmShared struct {
 	// test bitince testin hatası olurlar (10.1). nil iken görev hataları Err'e yazılır.
 	taskErrorsMu sync.Mutex
 	taskErrors   *[]error
+	// heldTasks are the tasks whose value was kept and that ended with an error; at the end of the
+	// program or the test the ones nobody waited for are written (10.6, reportUnwaitedTasks).
+	heldTasks []heldTaskError
 	// loaded yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
@@ -395,6 +398,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 	if derr := v.runDefers(v.GlobalEnv); derr != nil {
 		val, err = nil, addDeferError(err, derr)
 	}
+	v.reportUnwaitedTasks() // ertelenen iş görevi bekleyebilir: ondan sonra (10.6)
 	return val, err
 }
 

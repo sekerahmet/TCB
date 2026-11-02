@@ -121,5 +121,6 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 		}
 	}()
 	v.Blocking(v.wg.Wait)
+	v.reportUnwaitedTasks() // beklenmeyen görevin hatası testin hatası olur (10.6)
 	return err
 }

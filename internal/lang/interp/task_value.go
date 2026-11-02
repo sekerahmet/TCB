@@ -1,6 +1,8 @@
 package interp
 
 import (
+	"sync/atomic"
+
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -21,9 +23,17 @@ type TaskVal struct {
 	done   chan struct{} // closes when the task has stopped
 	result Value         // the task's result: the function's return, none for a block
 	err    error         // the task's error; nil when it ended without one
+	// held says the task's value was kept (TR_async as an expression): its error waits for a
+	// waiter and is written only if nobody waited for it (10.6).
+	held bool
+	// waited says a .TR_wait() or TR_wait_all(görevler) got the task's end: its error was thrown
+	// there, so it is not written again (10.6).
+	waited atomic.Bool
 }
 
-func newTask(line int) *TaskVal { return &TaskVal{line: line, done: make(chan struct{})} }
+func newTask(line int, held bool) *TaskVal {
+	return &TaskVal{line: line, done: make(chan struct{}), held: held}
+}
 
 func (t *TaskVal) Type() ValueType { return ValTask }
 func (t *TaskVal) IsTruthy() bool  { return true }
@@ -80,19 +90,51 @@ func (t *TaskVal) wait(y *VM) (Value, error) {
 }
 
 // await waits until the task stops, with the interpreter lock released; fn is the waiting builtin
-// (for its errors). A stop applied to the program abandons the wait (1.5).
+// (for its errors). A stop applied to the program abandons the wait (1.5). Once it returns nil the
+// task counts as waited: its error reaches the waiter (10.6).
 func (t *TaskVal) await(y *VM, fn codes.Code) error {
-	if t.stopped() {
-		return nil
+	if !t.stopped() {
+		if y.task == t {
+			// Görev kendi durmasını bekleyemez: sonsuza dek kilitlenirdi.
+			return messages.New(messages.H2918, CallPrefix(fn), t.line)
+		}
+		if y.exclusive != nil {
+			return messages.New(messages.H2522, CallPrefix(fn), y.exclusive)
+		}
+		if err := y.awaitReady(nil, t.done, false); err != nil {
+			return err
+		}
 	}
-	if y.task == t {
-		// Görev kendi durmasını bekleyemez: sonsuza dek kilitlenirdi.
-		return messages.New(messages.H2918, CallPrefix(fn), t.line)
+	t.waited.Store(true)
+	return nil
+}
+
+// holdTaskError keeps the error of a held task until the program or the test ends (10.6).
+func (v *VM) holdTaskError(t *TaskVal, err error) {
+	v.taskErrorsMu.Lock()
+	v.heldTasks = append(v.heldTasks, heldTaskError{t, err})
+	v.taskErrorsMu.Unlock()
+}
+
+// reportUnwaitedTasks writes the errors of the held tasks nobody waited for, with the line each
+// task started on, as reportAsyncError writes them (10.6): the program then ends with code 1, a
+// test fails. A task waited for later (a TR_defer's g.TR_wait()) is not written.
+func (v *VM) reportUnwaitedTasks() {
+	v.taskErrorsMu.Lock()
+	held := v.heldTasks
+	v.heldTasks = nil
+	v.taskErrorsMu.Unlock()
+	for _, h := range held {
+		if !h.task.waited.Load() {
+			v.reportAsyncError(h.task.line, h.err)
+		}
 	}
-	if y.exclusive != nil {
-		return messages.New(messages.H2522, CallPrefix(fn), y.exclusive)
-	}
-	return y.awaitReady(nil, t.done, false)
+}
+
+// heldTaskError is a held task that ended with an error, and the error to write.
+type heldTaskError struct {
+	task *TaskVal
+	err  error
 }
 
 // waitTasks is TR_wait_all(görevler) (10.5): it waits for every task of the list and gives their

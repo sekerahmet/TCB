@@ -430,7 +430,7 @@ func (c *compiler) fieldDefaults(k *compilerScope, fields []ast.StructField) []e
 
 // concurrent 'eşzamanlı' deyimini derler: görev başlar, değeri atılır (10.1).
 func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statementCode {
-	start := c.taskStart(k, s)
+	start := c.taskStart(k, s, false)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		start(v, env)
 		return True, signalNone, nil

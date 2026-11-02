@@ -439,6 +439,33 @@ func TestDAPTaskError(t *testing.T) {
 	c.event("terminated")
 }
 
+// 10.6: değeri tutulan ama beklenmeyen görevin hatası program biterken hata ayıklama konsoluna gelir.
+func TestDAPUnwaitedTaskError(t *testing.T) {
+	c := startDAP(t)
+	path := writeProgram(t, "TR_var g = TR_async {\n    TR_var x = 1 / 0\n}\nTR_sleep(0.05)\nTR_print(\"bitti\")\n")
+	c.launch(path, false)
+	// Görev "bitti"den önce düşer; hatası programın sonunda, "bitti"den sonra gelir.
+	if c.next(func(m map[string]interface{}) bool {
+		if m["type"] != "event" || m["event"] != "output" {
+			return false
+		}
+		return strings.Contains(m["body"].(map[string]interface{})["output"].(string), "bitti")
+	}, "bitti çıktısı") == nil {
+		t.Fatal("bitti gelmedi")
+	}
+	stderr := c.next(func(m map[string]interface{}) bool {
+		if m["type"] != "event" || m["event"] != "output" {
+			return false
+		}
+		b := m["body"].(map[string]interface{})
+		return b["category"] == "stderr" && strings.Contains(b["output"].(string), "Eşzamanlı görev hatası")
+	}, "beklenmeyen görevin hatası")
+	if stderr == nil {
+		t.Fatal("beklenmeyen görevin hatası gelmedi")
+	}
+	c.event("terminated")
+}
+
 func TestTableData(t *testing.T) {
 	machine, _, err := runTRWithin(t, 5*time.Second, `TR_var tablo = [{"ad": "Ali", "yaş": 30}, {"ad": "Ayşe", "şehir": "İzmir"}]`)
 	if err != nil {

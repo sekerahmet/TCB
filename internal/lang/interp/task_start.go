@@ -9,8 +9,10 @@ import (
 
 // taskStart 'eşzamanlı'yı derler: dönen kod görevi başlatır ve görev değerini verir (10.1). Gövde
 // ya da çağrı kendi kök ortamında, ayrı bir görünümle (NewTaskVM) ayrı bir goroutine'de çalışır.
-// Deyim biçimi değeri atar (concurrent), ifade biçimi verir.
-func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement) func(v *VM, env *Environment) *TaskVal {
+// Deyim biçimi değeri atar (concurrent), ifade biçimi verir (held). Değeri atılan görevin hatası
+// görev bitince yazılır; değeri tutulanınki bekleyende fırlar, kimse beklemezse program ya da test
+// biterken yazılır (10.6).
+func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement, held bool) func(v *VM, env *Environment) *TaskVal {
 	sub := subScope(k)
 	var bodyBlock *blockCode
 	var call exprCode
@@ -28,7 +30,7 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement) func(v *VM
 		asyncEnv := newEnv(env, info)
 		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
 		task := v.NewTaskVM()
-		t := newTask(line)
+		t := newTask(line, held)
 		task.task = t
 		go func(e *Environment) {
 			defer v.wg.Done()
@@ -36,11 +38,20 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement) func(v *VM
 			defer task.releaseGIL()
 			var result Value
 			var err error
+			report := func(err error) {
+				switch {
+				case err == nil:
+				case held:
+					task.holdTaskError(t, err)
+				default:
+					task.reportAsyncError(line, err)
+				}
+			}
 			defer func() {
 				if r := recover(); r != nil {
 					if !IsInterrupt(r) {
 						err = messages.Internal(fmt.Sprint(r))
-						task.reportAsyncError(line, err)
+						report(err)
 					} else {
 						err = ErrInterrupted
 					}
@@ -51,9 +62,7 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement) func(v *VM
 				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
 				// Durdurma ya da TR_exit yüzünden bitmek bir görev hatası değildir.
 				err = addDeferError(err, task.runDefers(e))
-				if reported := taskError(err); reported != nil {
-					task.reportAsyncError(line, reported)
-				}
+				report(taskError(err))
 			}()
 			if bodyBlock != nil {
 				_, _, err = bodyBlock.run(task, e) // bloğun değeri yoktur (10.1: TR_NoneType)

@@ -405,6 +405,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 ### 10.6
 
 - **Mevcut durum:** beklenmeyen görevin yakalanmamış hatası yazılıyor, program sürüyor ve 1 koduyla bitiyor [ölçüldü].
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** deyim olarak yazılan görevin hatası görev bitince yazılıyor. Değeri tutulan görevin hatası `.TR_wait()`'te ya da `TR_wait_all(görevler)`'de fırlıyor; kimse beklemediyse program biterken (en dıştaki ertelenenlerden sonra: ertelenen iş görevi bekleyebilir) ya da test biterken başladığı satırla yazılıyor: komut satırında standart hata ve çıkış kodu 1, testte testin hatası, hata ayıklamada konsol. Beklenip `TR_try` ile yakalanan hata çıkış kodunu bozmuyor [test: `TestExitCodes`'un "beklenmeyen görevin hatası 1" ve "yakalanan görev hatası 0" satırları, `TestUnwaitedTaskErrorShownInReport`, `TestDAPUnwaitedTaskError`, `tests/eszamanli_test.tr`'nin 10.5 hata sırası testi ve "10.1 eşzamanlı bir ifadedir" testinin son satırları; dil tanımındaki 10.6 *Test:* satırı TR testini anınca 10.6 numarasını alır].
 
 ### 10.7
 

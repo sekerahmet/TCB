@@ -137,7 +137,7 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 		return nestedStatements(noSignal(c.matchExpr(k, e)))
 
 	case *ast.AsyncExpression:
-		start := c.taskStart(k, e.Statement)
+		start := c.taskStart(k, e.Statement, true)
 		return func(v *VM, env *Environment) (Value, error) { return start(v, env), nil }
 
 	case *ast.TryExpression:

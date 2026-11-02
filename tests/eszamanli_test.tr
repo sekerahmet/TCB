@@ -25,6 +25,12 @@ TR_test "10.1 eşzamanlı bir ifadedir ve görev değeri verir; bekle sonucu ver
     TR_func böl(x: TR_Int) -> TR_Int { TR_return 10 // x }
     TR_var h = TR_async böl(5)
     TR_assert_equal(2, h.TR_wait())
+    # Hatayla biten görevin hatası bekleyende fırlar; yakalanınca testi düşürmez (ertelenen iş de bekleyebilir)
+    TR_var s = TR_async böl(0)
+    TR_sleep(0.01)
+    TR_assert_equal("H2470", TR_error_code { s.TR_wait() })
+    TR_var e = TR_async böl(0)
+    TR_defer { TR_assert_equal("H2470", TR_error_code { e.TR_wait() }) }
 }
 
 TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
@@ -47,6 +53,21 @@ TR_test "10.5 bekle_hepsi(görevler) sonuçları verilen sırayla verir; bitme s
     TR_assert_equal([10, 20, 30], TR_wait_all(görevler))
     TR_assert_equal([], TR_wait_all([]))
     TR_assert_equal("H2919", TR_error_code { TR_wait_all([1, 2]) })
+}
+
+TR_test "10.5 bekle_hepsi(görevler) verilen sıradaki ilk hatayı fırlatır, öbürleri bastırılanlarına eklenir" {
+    TR_func hata(m: TR_String, süre: TR_Float) -> TR_Int {
+        TR_sleep(süre)
+        TR_throw m
+    }
+    TR_var görevler = [TR_async hata("ikinci", 0.03), TR_async hata("üçüncü", 0.0)]
+    TR_try {
+        TR_wait_all(görevler)
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("ikinci", TR_String(e))
+        TR_assert_equal(["üçüncü"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
 }
 
 TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {
