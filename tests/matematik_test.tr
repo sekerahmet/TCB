@@ -233,6 +233,22 @@ TR_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
     TR_assert_equal("H6015", TR_error_code { TR_cumsum(TR_Tensor(2.0)) })
 }
 
+TR_test "15.18 tam sayı toplamı ve ortalaması kesindir: eksi öğeler, ara toplam sayılmaz, iki yönde taşma" {
+    TR_assert_equal(1, TR_sum(TR_Tensor([-1, 2])).TR_tolist)
+    TR_assert_equal(-4, TR_sum(TR_Tensor([-1, -3])).TR_tolist)
+    TR_assert_equal(-2.0, TR_mean(TR_Tensor([-1, -3])).TR_tolist)
+    TR_assert_equal([-1, 3], TR_sum(TR_Tensor([[-3, 4], [2, -1]]), TR_dim: 0).TR_tolist)
+    TR_assert_equal([-1.0, 1.5], TR_mean(TR_Tensor([[-3, 4], [1, -1]]), TR_dim: 0).TR_tolist)
+    TR_var en_büyük = 9223372036854775807
+    TR_var en_küçük = -9223372036854775807 - 1
+    TR_assert_equal(en_büyük, TR_sum(TR_Tensor([en_büyük, 1, -1])).TR_tolist)
+    TR_assert_equal(en_küçük, TR_sum(TR_Tensor([en_küçük, -1, 1])).TR_tolist)
+    # Toplamı -2⁶⁴ olan iki öğenin ortalaması: 128 bitlik ara değer, tek yuvarlama.
+    TR_assert_equal(-9223372036854775808.0, TR_mean(TR_Tensor([en_küçük, en_küçük])).TR_tolist)
+    TR_assert_equal("H6961", TR_error_code { TR_sum(TR_Tensor([en_büyük, 1])) })
+    TR_assert_equal("H6961", TR_error_code { TR_sum(TR_Tensor([en_küçük, -1])) })
+}
+
 TR_test "15.21 en_büyük_k: değerler ve indeksler; eşitlikte küçük indeks; türev seçilenlere" {
     TR_var s = TR_topk(TR_Tensor([3.0, 1.0, 4.0, 1.5]), 2)
     TR_assert_equal([4.0, 3.0], s[0].TR_tolist)
