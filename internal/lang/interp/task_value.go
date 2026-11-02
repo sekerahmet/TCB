@@ -37,6 +37,9 @@ type TaskVal struct {
 	mu        sync.Mutex
 	children  []*TaskVal // the tasks it started, to wait for (and cancel) before its defers
 	ended     bool
+	// ownErr is a cancelled task's error before the cancel error replaced it: its own error and
+	// its defers' errors, which a timeout keeps (10.7, waitFor).
+	ownErr error
 }
 
 func newTask(line int, held bool) *TaskVal {
@@ -69,6 +72,7 @@ func (t *TaskVal) finish(y *VM, result Value, err error) {
 	t.ended = true
 	if t.cancelled.Load() {
 		y.pending.Add(-1) // iptalin açtığı güvenli nokta yolu kapanır (cancel)
+		t.ownErr = err
 		err = t.cancelError(y, err)
 	}
 	t.mu.Unlock()
@@ -128,16 +132,23 @@ func (t *TaskVal) wait(y *VM) (Value, error) {
 // (for its errors). A stop applied to the program abandons the wait (1.5). Once it returns nil the
 // task counts as waited: its error reaches the waiter (10.6).
 func (t *TaskVal) await(y *VM, fn codes.Code) error {
-	if !t.stopped() {
-		if err := t.waitable(y, fn); err != nil {
-			return err
-		}
-		if err := y.awaitReady(nil, t.done, false); err != nil {
-			return err
-		}
+	if err := t.awaitStop(y, fn); err != nil {
+		return err
 	}
 	t.waited.Store(true)
 	return nil
+}
+
+// awaitStop is await without counting the task as waited: the waiter marks it once the error has
+// a place to go (TR_wait_all waits for the whole list first).
+func (t *TaskVal) awaitStop(y *VM, fn codes.Code) error {
+	if t.stopped() {
+		return nil
+	}
+	if err := t.waitable(y, fn); err != nil {
+		return err
+	}
+	return y.awaitReady(nil, t.done, false)
 }
 
 // waitable says whether y may wait for the task: a task cannot wait for its own stop, and nothing
@@ -184,7 +195,9 @@ type heldTaskError struct {
 // waitTasks is TR_wait_all(görevler) (10.5): it waits for every task of the list and gives their
 // results in the list's order. When tasks ended with an error, all are still waited; the first one
 // in the list's order is thrown and the others join its TR_suppressed in order (9.4), so none is
-// lost. The finishing order does not change which error is thrown.
+// lost. The finishing order does not change which error is thrown. The tasks count as waited only
+// once the whole list is: a wait stopped halfway (a cancel, 1.5) leaves their errors to be written
+// at the end of the program or the test (10.6).
 func waitTasks(y *VM, arg Value) (Value, error) {
 	l, ok := arg.(*ListVal)
 	if !ok {
@@ -198,12 +211,15 @@ func waitTasks(y *VM, arg Value) (Value, error) {
 		}
 		tasks[i] = t
 	}
+	for _, t := range tasks {
+		if err := t.awaitStop(y, codes.FnWaitAll); err != nil {
+			return nil, err
+		}
+	}
 	results := make([]Value, len(tasks))
 	var thrown error
 	for i, t := range tasks {
-		if err := t.await(y, codes.FnWaitAll); err != nil {
-			return nil, err
-		}
+		t.waited.Store(true)
 		results[i] = t.result
 		thrown = addDeferError(thrown, t.err)
 	}

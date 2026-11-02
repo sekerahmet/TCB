@@ -96,6 +96,8 @@ func (t *TaskVal) cancelError(y *VM, err error) error {
 // waitFor is g.TR_wait(TR_timeout: limit) (10.7): it waits at most limit seconds. A task that stops
 // in time gives its result or throws its error; otherwise the task is cancelled, its stop is
 // waited for (so the whole wait may exceed the limit), and the timeout error (H2921) is thrown.
+// The task's own error and its defers' errors join the timeout error's TR_suppressed in order, as
+// in 10.5: none is lost (timeoutError).
 func (t *TaskVal) waitFor(y *VM, limit Value) (Value, error) {
 	d, err := seconds(codes.MemWait, limit)
 	if err != nil {
@@ -126,9 +128,26 @@ func (t *TaskVal) waitFor(y *VM, limit Value) (Value, error) {
 			if err := t.await(y, codes.MemWait); err != nil {
 				return nil, err
 			}
-			return nil, messages.New(messages.H2921, CallPrefix(codes.MemWait), Shown(limit), t.line)
+			return nil, t.timeoutError(limit)
 		}
 	}
 	t.waited.Store(true)
 	return t.result, t.err
+}
+
+// timeoutError is the timeout error (H2921) of a task that stopped after its cancel: the task's
+// own error (one it ended with before the cancel) and its defers' errors are added to it in order.
+// The cancel itself (H2920) is not an error of the task: it is what the timeout did.
+func (t *TaskVal) timeoutError(limit Value) error {
+	var out error = messages.New(messages.H2921, CallPrefix(codes.MemWait), Shown(limit), t.line)
+	err := t.err
+	if t.cancelled.Load() {
+		err = t.ownErr
+	}
+	deferred, main := splitProgramErrors(err)
+	out = addDeferError(out, main)
+	for _, d := range deferred {
+		out = addDeferError(out, d)
+	}
+	return out
 }

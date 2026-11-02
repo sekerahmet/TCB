@@ -90,6 +90,31 @@ TR_test "10.7 bekle(süre_sınırı) süresinde biteni verir; süre dolunca gör
     TR_assert_equal("H2920", TR_error_code { u.TR_wait() })
 }
 
+TR_test "10.7 süre dolunca görevin kendi hatası ve ertelenen işin hatası zaman aşımı hatasının bastırılanlarına girer" {
+    TR_var k = TR_async {
+        TR_defer { TR_sleep(0.3) }
+        TR_throw "kendi hatası"
+    }
+    TR_try {
+        k.TR_wait(TR_timeout: 0.05)
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("H2921", e.TR_code)
+        TR_assert_equal(["kendi hatası"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
+    TR_var d = TR_async {
+        TR_defer { TR_throw "ertele hatası" }
+        TR_sleep(10)
+    }
+    TR_try {
+        d.TR_wait(TR_timeout: 0.02)
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("H2921", e.TR_code)
+        TR_assert_equal(["ertele hatası"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
+}
+
 TR_test "10.9 iptal görevi güvenli noktada durdurur, içeride yakalanmaz, alt görevlere geçer" {
     TR_var iz = []
     TR_var g = TR_async {

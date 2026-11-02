@@ -258,3 +258,26 @@ ana.TR_wait()
 		t.Fatalf("liste budanmalıydı: %q (%v)", out.String(), err)
 	}
 }
+
+// Kural (10.6, 10.5): TR_wait_all(görevler) listedeki görevleri ancak bütün liste beklenince
+// beklenmiş sayar. Bekleyen görev yarıda iptal edilirse listenin hatalı biten görevi beklenmemiş
+// kalır: hatası program biterken yazılır, çıkış kodu 1.
+func TestAnAbandonedWaitAllKeepsTheErrors(t *testing.T) {
+	prog := mustParseProgram(t, `TR_func hata() -> TR_Int { TR_throw "a hatası" }
+TR_var a = TR_async hata()
+TR_var b = TR_async { TR_sleep(10) }
+TR_var w = TR_async { TR_wait_all([a, b]) }
+TR_sleep(0.05)
+w.TR_cancel()
+b.TR_cancel()
+TR_print(TR_error_code { w.TR_wait() })
+`)
+	var outBuf, failure bytes.Buffer
+	machine := New()
+	machine.Out, machine.Err = &outBuf, &failure
+	_, err := machine.Run(prog)
+	end := machine.End(err)
+	if outBuf.String() != "H2920\n" || end.Code != 1 || !strings.Contains(failure.String(), "a hatası") {
+		t.Fatalf("a'nın hatası program sonunda yazılmalıydı: çıktı %q, kod %d, hata çıktısı %q", outBuf.String(), end.Code, failure.String())
+	}
+}
