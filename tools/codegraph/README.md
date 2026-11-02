@@ -284,7 +284,8 @@ repository (a failing git is an error, exit 1).
   older key's commits; see the renames below); a file or doc uses `git log --follow`.
 - `changed <branch|range>`: maps the hunks of `git diff -U0 <base>...<branch>` (`--base`, default
   `main`; or a literal `a..b` / `a...b`) onto Go and TR declaration and doc-section line ranges, and onto
-  the codes named in changed dictionary lines. Then it lists the tests that exercise the changed
+  the codes named in changed dictionary lines. On another branch, `changed main` compares `<base>...HEAD`
+  (what is new on the checked-out branch since `--base`, rather than an empty `main...main` diff). Then it lists the tests that exercise the changed
   code (the same tests `tests-for` lists for each changed node; direct first, then indirect with their distance,
   first `--limit`), and the other local `claude/` branches not yet merged into the base that touch the same nodes or
   files, with the result of a
