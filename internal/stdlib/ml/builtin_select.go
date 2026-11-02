@@ -26,6 +26,9 @@ func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 			return nil, err
 		}
 	}
+	if needsTypedWhere(args) {
+		return typedWhere(m, ad, args)
+	}
 	if !isTensor(args) {
 		d, err := condValue(ad, args[0])
 		if err != nil {
@@ -52,9 +55,7 @@ func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if err != nil {
 		return nil, err
 	}
-	s := New(r)
-	s.hasInts = isIntValued(args[1]) && isIntValued(args[2])
-	return s, nil
+	return New(r), nil
 }
 
 // condValue tensör olmayan koşulun doğruluğu: Mantık ya da sayı (0 dışı doğru).
@@ -66,17 +67,6 @@ func condValue(ad any, v interp.Value) (bool, error) {
 		return f != 0, nil
 	}
 	return false, messages.New(messages.H6207, ad, codes.NameRef(codes.TypeBool), typeName(v))
-}
-
-// isIntValued değer tam sayılı bir tensör ya da Tam mı (sonucun tam sayılı kalması için).
-func isIntValued(v interp.Value) bool {
-	switch x := v.(type) {
-	case *TensorValue:
-		return x.hasInts
-	case *interp.IntVal:
-		return true
-	}
-	return false
 }
 
 // condTensors koşul, a ve b'yi aynı cihazda tensöre çevirir. Mantık koşul 1 ya da 0

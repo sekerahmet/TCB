@@ -256,13 +256,16 @@ func (t cleanupInfo) back() {
 
 // allocate n elemanlı dt türünde depolama verir; sifirla doğruysa içerik sıfırdır.
 func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
-	if dt != tensor.Float32 && dt != tensor.BFloat16 && dt != tensor.Float16 {
+	if !dt.IsFloat() && !dt.IsTyped() {
 		none(messages.H4050, dt.String())
 	}
 	if n < 0 {
 		panic(internalf("negative element count %d", n))
 	}
 	byteN := uint64(n) * uint64(dtypeSize(dt))
+	if dt.IsTyped() {
+		byteN = (byteN + 3) &^ 3 // ham bayt türleri 4 bayta yuvarlanır: sıfırlama 32 bitliktir
+	}
 	if byteN > g.sr.totalMemory() {
 		panic(tensor.SizeError(n, dt, int64(g.sr.totalMemory()), tensor.PlaceGPU))
 	}
@@ -311,9 +314,12 @@ func (g *backend) reset(d *storage) {
 	}
 	d.host = nil
 	ev := g.measureStart()
-	if d.dtype == tensor.Float32 {
+	switch {
+	case d.dtype == tensor.Float32:
 		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, uint64(d.n)))
-	} else {
+	case d.dtype.IsTyped():
+		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, uint64((d.n*dtypeSize(d.dtype)+3)/4)))
+	default:
 		g.try_("cuMemsetD16Async", g.sr.fill16(d.addr, 0, uint64(d.n)))
 	}
 	g.measureEnd("surucu_sifirla", ev)

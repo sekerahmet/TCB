@@ -52,10 +52,10 @@ TR_print(b.TR_dtype, b.TR_tolist, h.TR_dtype, h.TR_tolist, m.TR_tolist, o.TR_tol
 		{"TR_var t = TR_zeros([2, 1])\nt *= TR_ones([2, 3])", messages.H6958},
 		{"TR_var t = TR_zeros([2])\nt[0] += TR_ones([2])", messages.H6958},
 	})
-	if err := checkInPlaceDType(tensor.Int8); !messages.Has(err, messages.H6957) {
+	if err := checkInPlaceDType(tensor.Q8); !messages.Has(err, messages.H6957) {
 		t.Fatalf("nicemlenmiş hedef: %v", err)
 	}
-	if err := checkInPlaceDType(tensor.Int4); !messages.Has(err, messages.H6957) {
+	if err := checkInPlaceDType(tensor.Q4); !messages.Has(err, messages.H6957) {
 		t.Fatalf("4 bitlik hedef: %v", err)
 	}
 }

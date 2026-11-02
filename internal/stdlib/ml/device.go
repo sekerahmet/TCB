@@ -98,9 +98,7 @@ func (d *TensorValue) toDevice(_ *interp.VM, args []interp.Value, _ map[string]i
 	if r == d.t {
 		return d, nil // aynı cihaz: başlık yeniden sarılmaz (sahiplik tek değerde kalır)
 	}
-	result := New(r)
-	result.hasInts = d.hasInts
-	return result, nil
+	return New(r), nil
 }
 
 // defaultDeviceBuiltin varsayılan_cihaz([ad]): argümanla cihazı seçer; her durumda

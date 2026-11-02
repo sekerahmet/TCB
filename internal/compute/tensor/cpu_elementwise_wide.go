@@ -373,7 +373,7 @@ func (b cpuBackend) Where(out Storage, outShape []int, c, a, bv View) {
 	var gt temp
 	defer gt.finish()
 	o, last := gt.write(out, false)
-	b.f32Where(o, outShape, gt.read(c), gt.read(a), gt.read(bv))
+	b.f32Where(o, outShape, gt.readCond(c), gt.read(a), gt.read(bv))
 	last()
 }
 
@@ -381,7 +381,7 @@ func (b cpuBackend) WhereGrad(dst Storage, dstShape, outShape []int, g Storage, 
 	var gt temp
 	defer gt.finish()
 	d, last := gt.write(dst, true)
-	b.f32WhereGrad(d, dstShape, outShape, gt.readD(g), gt.read(c), pick)
+	b.f32WhereGrad(d, dstShape, outShape, gt.readD(g), gt.readCond(c), pick)
 	last()
 }
 

@@ -47,6 +47,35 @@ TR_test "15.1 ara kural: float32'de tam yazılamayan tam sayıdan tensör kurulm
     TR_assert_equal([2.5, 16777216.0], TR_Tensor([2.5, 16777217]).TR_tolist)
 }
 
+TR_test "15.1 TR_Int ve TR_Bool tensörü: argmax'in sonucu TR_Int, cins işlemlerde korunur" {
+    TR_var i = TR_argmax(TR_Tensor([[0.0, 9.0, 1.0], [5.0, 0.0, 7.0]]), TR_dim: -1)
+    TR_assert_equal("int64", i.TR_dtype)
+    TR_assert_equal([1, 2], i.TR_tolist)
+    TR_assert_equal(TR_Int, TR_Type(i.TR_tolist[0]))
+    TR_assert_equal([2, 3], (i + 1).TR_tolist)
+    TR_assert_equal([0, 1], (i // 2).TR_tolist)
+    # `/` tam sayıdan ondalığa geçiştir: "float32" (15.3, 15.6).
+    TR_assert_equal([0.5, 1.0], (i / 2).TR_tolist)
+    TR_assert_equal("float32", (i / 2).TR_dtype)
+    TR_assert_equal(3, TR_sum(i).TR_tolist)
+    TR_assert_equal(1.5, TR_mean(i).TR_tolist)
+    # Karşılaştırma TR_Bool verir; maskeler & | ~ ile birleşir.
+    TR_var m = i < 2
+    TR_assert_equal("bool", m.TR_dtype)
+    TR_assert_equal([TR_true, TR_false], m.TR_tolist)
+    TR_assert_equal([TR_false, TR_true], (~m).TR_tolist)
+    TR_assert_equal([TR_false, TR_false], (m & (i > 1)).TR_tolist)
+    TR_assert_equal(1, TR_sum(m).TR_tolist)
+    TR_assert_equal([1, 9], TR_where(m, i, 9).TR_tolist)
+    # Taşma, sıfıra bölme, cins uyuşmazlığı ve ondalık çekirdek açık hatadır (15.3, 15.48, 15.49).
+    TR_assert_equal("H6961", TR_error_code { i * 9223372036854775807 })
+    TR_assert_equal("H6962", TR_error_code { i // 0 })
+    TR_assert_equal("H6966", TR_error_code { i + TR_Tensor([1.0, 2.0]) })
+    TR_assert_equal("H6968", TR_error_code { i + 2.5 })
+    TR_assert_equal("H6967", TR_error_code { m + m })
+    TR_assert_equal("H6960", TR_error_code { TR_softmax(i, TR_dim: 0) })
+}
+
 TR_test "15.2 özellikler ve görünüm metotları" {
     TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
     TR_assert_equal([3, 2], a.TR_reshape([3, 2]).TR_shape)

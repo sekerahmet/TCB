@@ -1,6 +1,8 @@
 package ml
 
 import (
+	"slices"
+
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -46,6 +48,9 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 				return nil, err
 			}
 			t := args[0].(*TensorValue).t
+			if t.DType().IsTyped() {
+				return typedReduceCall(kd, ad, t, args, named, keep)
+			}
 			if !maxMin {
 				// Karışık hassasiyet bloğunda toplam/ortalama float32'de yapılır.
 				if t, err = highPrecision(m, t); err != nil {
@@ -102,11 +107,80 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 	})
 }
 
+// typedReduceCall cinsli tensörde indirgemenin eksenini çözer ve typedReduce'u çağırır.
+func typedReduceCall(kd codes.Code, ad any, t *tensor.Tensor, args []interp.Value, named map[string]interp.Value, keep bool) (interp.Value, error) {
+	e, given, err := axisArg(ad, args, named)
+	if err != nil {
+		return nil, err
+	}
+	if given {
+		if e, err = parseAxis(ad, e, t.Shape()); err != nil {
+			return nil, err
+		}
+	}
+	return typedReduce(kd, ad, t, e, given, keep)
+}
+
+// typedReduce indirgemelerin cinsli tensör yolu (15.18'in tablosu): TR_Int ve TR_Bool toplamı
+// "int64"te kesin (sonuç sığmalı), ortalaması "float32"ye bir kez yuvarlanır; en büyük ve en
+// küçük TR_Int'te aynı hassasiyet, TR_Bool'da tanımsız. float64 float64'te biriktirilir.
+func typedReduce(kd codes.Code, ad any, t *tensor.Tensor, e int, given, keep bool) (interp.Value, error) {
+	sh := t.Shape()
+	axis := -1
+	if given {
+		axis = e
+	}
+	if (kd == codes.FnMax || kd == codes.FnMin) && (given && sh[e] == 0 || !given && t.Numel() == 0) {
+		return nil, messages.New(messages.H6211, ad, tensor.ShapeText(sh))
+	}
+	isInt := t.Elem() != tensor.ElemFloat
+	var f *tensor.ElemFault
+	r, err := safe(func() (r *tensor.Tensor) {
+		switch {
+		case kd == codes.FnSum:
+			r, f = tensor.ReduceTyped(t, tensor.ReduceSum, axis)
+		case (kd == codes.FnMax || kd == codes.FnMin) && t.Elem() != tensor.ElemBool:
+			r, f = tensor.ReduceTyped(t, map[bool]tensor.ReduceKind{true: tensor.ReduceMax, false: tensor.ReduceMin}[kd == codes.FnMax], axis)
+		case kd == codes.FnMean && isInt:
+			r = tensor.MeanIntTyped(t, axis)
+		case kd == codes.FnMean:
+			s, _ := tensor.ReduceTyped(t, tensor.ReduceSum, axis)
+			n := float64(t.Numel())
+			if given {
+				n = float64(sh[e])
+			}
+			r, _ = tensor.Arith(s, tensor.Float64sOn(t.Device(), []float64{n}), tensor.ArithDiv, tensor.Float64)
+		case isInt:
+			panic(messages.New(messages.H6967, ad, t.DType().Name(), "none"))
+		default:
+			panic(tensor.PrecisionError(t.DType(), t.Device()))
+		}
+		if keep && given {
+			r = r.Unsqueeze(e)
+		} else if keep {
+			r = r.Reshape(slices.Repeat([]int{1}, len(sh))...)
+		}
+		return r
+	})
+	if err != nil {
+		return nil, panicReasonError(err)
+	}
+	return typedResult(ad, "+", r, f)
+}
+
+// panicReasonError çekirdeğin panikle verdiği ileti hatasını (H6006'nın içindeki) kendisi yapar.
+func panicReasonError(err error) error {
+	if e, ok := panicReason(err).(*messages.Error); ok {
+		return e
+	}
+	return err
+}
+
 // argMax verilen eksende en büyük elemanın indeksini verir: argmax(x, eksen: -1). Eksen
 // verilmezse bütün öğeler üstünde çalışır ve satır sırasıyla düzleştirilmiş indeksi 0 boyutlu
-// tensörde verir (15.19). Sonuç her zaman tam sayı değerli bir tensördür (o eksen kaldırılmış
-// şekilde) ve türev izlemez. Tensör tam sayılı olarak işaretlenir: .değer Tam (ya da Tam
-// listesi) verir, böylece liste indeksi olarak doğrudan kullanılabilir; sonuç gömme(...) ve
+// tensörde verir (15.19). Sonuç her zaman TR_Int ("int64") tensörüdür (o eksen kaldırılmış
+// şekilde) ve türev izlemez: .değer Tam (ya da Tam listesi) verir, böylece liste indeksi
+// olarak doğrudan kullanılabilir; sonuç gömme(...) ve
 // çapraz_entropi(...) indeksi olarak da verilebilir.
 // Eşitlikte ilk en büyük eleman seçilir; −0.0 0.0'dan küçüktür, NaN varsa ilk NaN (15.22b).
 func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
@@ -144,20 +218,23 @@ func argMax(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		return nil, messages.New(messages.H6209, ad, tensor.ShapeText(sh), e)
 	}
 	r, err := safe(func() *tensor.Tensor {
-		idx := t.ArgMax(e)
-		data := make([]float32, len(idx))
+		var idx []int
+		if t.DType().IsTyped() {
+			idx = tensor.ArgMaxTyped(t, e)
+		} else {
+			idx = t.ArgMax(e)
+		}
+		data := make([]int64, len(idx))
 		for i, x := range idx {
-			data[i] = float32(x)
+			data[i] = int64(x)
 		}
 		output := append(append([]int{}, sh[:e]...), sh[e+1:]...)
-		return tensor.NewOn(t.Device(), data, output...)
+		return tensor.Int64sOn(t.Device(), tensor.Int64, data, output...)
 	})
 	if err != nil {
 		return nil, err
 	}
-	result := New(r)
-	result.hasInts = true
-	return result, nil
+	return New(r), nil
 }
 
 // nonTensorReduce ilk argümanı tensör olmayan indirgeme çağrılarını işler. Eski

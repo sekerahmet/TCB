@@ -25,9 +25,6 @@ type TensorValue struct {
 	// bilgi oluşturma anında saklanır; böylece ara tensörün .gradyan'ı sessizce 'yok'
 	// dönmez ve ara tensör iyileştirici parametresi olarak kabul edilmez.
 	intermediate bool
-	// hasInts, değerlerin tam sayı olduğunu (ör. argmax sonucu) gösterir: .değer
-	// Tam döndürür, yazdırma ondalıksız yapılır. İşlem sonuçlarına geçmez.
-	hasInts bool
 	// own yorumlayıcının sahiplik durumudur: değer bırakılınca başlığın bu sarıcısı düşer
 	// (dil tanımı 15.43; internal/lang/interp/ownership.go).
 	own interp.Ownership
@@ -77,12 +74,22 @@ func markFresh(v interp.Value, start uint64) {
 	}
 }
 
-// NewInt değerleri tam sayı olan (ör. token kimlikleri) bir tensörü sarar: .değer Tam
-// verir ve tensör ondalıksız yazdırılır.
-func NewInt(t *tensor.Tensor) *TensorValue {
-	d := New(t)
-	d.hasInts = true
-	return d
+// NewInt değerleri tam sayı olan bir tensörü (veri kümesinin kimlikleri, sıralama indeksleri)
+// TR_Int tensörü ("int64", 15.1) olarak sarar; ondalık tensör aynı cihazda çevrilir.
+func NewInt(t *tensor.Tensor) *TensorValue { return New(intTensor(t)) }
+
+// intTensor tam sayı değerli ondalık tensörü "int64" tensörüne çevirir (konakta; değerler zaten
+// tam sayıdır, kesmek bir şey değiştirmez); tam sayı tensörü aynen döner.
+func intTensor(t *tensor.Tensor) *tensor.Tensor {
+	if t.Elem() == tensor.ElemInt {
+		return t
+	}
+	data := t.Data()
+	vals := make([]int64, len(data))
+	for i, x := range data {
+		vals[i] = int64(x)
+	}
+	return tensor.Int64sOn(t.Device(), tensor.Int64, vals, t.Shape()...)
 }
 
 // Tensor sarılı çekirdek tensörünü verir.
@@ -98,14 +105,45 @@ func (d *TensorValue) IsTruthy() bool {
 	case 0:
 		return false
 	case 1:
+		if d.t.DType().IsTyped() {
+			return d.scalarValue().IsTruthy() || isNonzeroFloat(d.scalarValue())
+		}
 		return d.t.Item() != 0
 	}
 	return true
 }
 
+// isNonzeroFloat Ondalık değerin 0'dan farklı olduğu (float64 tensörün doğruluk değeri).
+func isNonzeroFloat(v interp.Value) bool {
+	f, ok := v.(*interp.FloatVal)
+	return ok && f.Val != 0
+}
+
 // IntElements tensörün bütün elemanlarını düz tam sayı dizisi olarak verir. Tam sayı olmayan bir
 // eleman varsa ok yanlıştır ve bad o ilk elemandır (çağıran kendi iletisini kurar).
 func (d *TensorValue) IntElements() (ids []int, bad float32, ok bool) {
+	if d.t.Elem() == tensor.ElemInt {
+		vals := d.t.Int64s()
+		ids = make([]int, len(vals))
+		for i, v := range vals {
+			ids[i] = int(v)
+		}
+		return ids, 0, true
+	}
+	if d.t.Elem() == tensor.ElemBool {
+		return nil, 0, false
+	}
+	if d.t.DType() == tensor.Float64 {
+		vals := d.t.Float64s()
+		ids = make([]int, len(vals))
+		for i, f := range vals {
+			if float64(int(f)) != f {
+				return nil, float32(f), false
+			}
+			ids[i] = int(f)
+		}
+		return ids, 0, true
+	}
 	data := d.t.Data()
 	ids = make([]int, len(data))
 	for i, f := range data {

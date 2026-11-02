@@ -102,8 +102,8 @@ func TestSafetensorsWriteRejects(t *testing.T) {
 		in   fileEntry
 		want messages.Code
 	}{
-		{fileEntry{ad: "q", shape: []int{1}, dtype: tensor.Int8}, messages.H6950},
-		{fileEntry{ad: "q", shape: []int{2}, dtype: tensor.Int4}, messages.H6950},
+		{fileEntry{ad: "q", shape: []int{1}, dtype: tensor.Q8}, messages.H6950},
+		{fileEntry{ad: "q", shape: []int{2}, dtype: tensor.Q4}, messages.H6950},
 		{fileEntry{ad: "__metadata__", shape: []int{1}, dtype: tensor.Float32, data: []float32{1}}, messages.H6951},
 	}
 	for _, c := range cases {
@@ -214,7 +214,7 @@ func TestSafetensorsPythonRoundTrip(t *testing.T) {
 // yazmaz, açık hata verir (H6959); hiçbir girdi yazılmadan durur. Nicemlenmiş tensör TR'den
 // kurulamadığı için yazıcı türle doğrudan sınanır.
 func TestTensorFileRejectsTypeWithoutCode(t *testing.T) {
-	for _, dt := range []tensor.DType{tensor.Int8, tensor.Int4} {
+	for _, dt := range []tensor.DType{tensor.Q8, tensor.Q4} {
 		var b bytes.Buffer
 		err := writeEntries(&b, []fileEntry{{ad: "q", shape: []int{2}, dtype: dt, data: []float32{1, 2}}})
 		if !messages.Has(err, messages.H6959) {

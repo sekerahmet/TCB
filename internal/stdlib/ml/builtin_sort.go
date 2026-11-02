@@ -55,13 +55,20 @@ func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 	if err != nil {
 		return nil, err
 	}
+	if d.t.DType().IsTyped() {
+		// Tam sayı ve mantık "int64"te biriktirilir, taşma hatadır (15.3, 15.20).
+		var f *tensor.ElemFault
+		r, err := safe(func() (r *tensor.Tensor) { r, f = tensor.ReduceTyped(d.t, tensor.ReduceCumSum, e); return })
+		if err != nil {
+			return nil, err
+		}
+		return typedResult(ad, "+", r, f)
+	}
 	r, err := safe(func() *tensor.Tensor { return d.t.CumSum(e) })
 	if err != nil {
 		return nil, err
 	}
-	s := New(r)
-	s.hasInts = d.hasInts
-	return s, nil
+	return New(r), nil
 }
 
 // topKBuiltin en_büyük_k(t, k, eksen: -1) → [değerler, indeksler].
@@ -83,9 +90,7 @@ func topKBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if _, err := safe(func() *tensor.Tensor { vals, idx = d.t.TopK(int(k.Val), e); return vals }); err != nil {
 		return nil, err
 	}
-	v := New(vals)
-	v.hasInts = d.hasInts
-	return &interp.ListVal{Elements: []interp.Value{v, NewInt(idx)}}, nil
+	return &interp.ListVal{Elements: []interp.Value{New(vals), NewInt(idx)}}, nil
 }
 
 // argsortBuiltin sıralama_indeksi(t, eksen: -1): kararlı, küçükten büyüğe.

@@ -25,7 +25,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - Üstünde yalnız **okuma** işleri yapılır: `.TR_shape`, `.TR_dtype`, `.TR_device`, yazdırma, `TR_save_tensors`. Yazma, görünüm, `TR_concat`, `TR_where`, `==` ve hesap tiplenemez: önce daraltılır.
 - **Daraltma** `t.TR_narrow[E]()` iledir: kopyasız ve çevirmeyen bir görünüm verir (`d["w"].TR_narrow[TR_Float]()`, `d["step"].TR_narrow[TR_Int]()`); cins uymazsa çalışma hatasıdır, ileti dosyadaki cinsi söyler. Tip çağrısı (`TR_Tensor(t)`) daraltma değildir: o kopya ve cins dönüşümüdür (15.3, 15.27a).
 - Her `TR_Tensor[E]` değeri bir `TR_AnyTensor` yerine verilebilir (değerin kendisi; sözlük kurulurken). **Kaplar tip parametresinde değişmezdir:** `TR_Dict[TR_String, TR_Tensor]` bir `TR_Dict[TR_String, TR_AnyTensor]` değildir, çünkü ona tam sayı tensörü yazılabilirdi. Her cinsten sözlük alan yerleşikler bunu 13.10'un kabul kümesiyle yazar (`TR_save_tensors`).
-- *Test:* TR testi (tam sayı tensörü gelene kadarki ara kural da: `TestIntListInexactInFloat32`); öğe cinsli tip, tam sayı tensörü ve float64 uygulanınca TR testi.
+- *Test:* TR testi (tam sayı tensörü gelene kadarki ara kural da: `TestIntListInexactInFloat32`); Go: `TestTypedStorageRoundTrip`, `TestTypedInFloatKernelIsPrecisionError`, GPU'da `TestTypedStorageOnGPU`; öğe cinsli tip uygulanınca TR testi.
 
 **15.2** Kurmak:
 - **Veriden:** `TR_Tensor[E](veri)` tensör verisinden (13.10) yeni bir tensör kurar: `TR_Float`'ta ve `TR_Int`'te sayı ya da aralık, `TR_Bool`'da mantık değeri, ya da öğeleri bunlar olan iç içe liste. Aralık `TR_Int` verir: `TR_Tensor(0..n)` `TR_Tensor[TR_Int]`'tir. Tek sayı 0 boyutlu tensör verir: `TR_Tensor(3.0)`'ün şekli `[]`'dir. Düzensiz liste hatadır.

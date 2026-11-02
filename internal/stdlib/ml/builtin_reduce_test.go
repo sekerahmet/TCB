@@ -21,7 +21,7 @@ TR_print(TR_Type((i * 2).TR_tolist[0][0]), TR_Type(TR_Tensor(i).TR_tolist[0][0])
 	want := "[1, 0] [1, 0, 1] 1\n1 [2]\n[[2.0, 2.0]]\n" +
 		"ba Int Int\n" +
 		"Tensor[1×2] [\n  [1, 0]\n] Tensor(0)\n" +
-		"Float Float\n"
+		"Int Int\n" // TR_Int tensörün işlemi ve kopyası TR_Int'tir (15.2, 15.6)
 	if out != want {
 		t.Fatalf("argmax:\n%q\nbeklenen:\n%q", out, want)
 	}

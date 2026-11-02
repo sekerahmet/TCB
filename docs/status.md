@@ -583,9 +583,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.1
 
-- **Mevcut durum:** bütün tensörler float32; tam sayı ve mantık tensörü yok, argmax'in sonucu bir "tam sayılı işaret" taşıyor. 2²⁴'ün üstündeki kimlik bozuluyor: `TR_Tensor([16777217.0])` → 16777216. float64, `TR_AnyTensor` ve `.TR_narrow[E]()` yok [ölçüldü].
+- **Mevcut durum:** `TR_Int` ("int64" … "uint8"), `TR_Bool` ve float64 depolaması var; argmax, sıralama indeksleri, örnekleme ve veri kümesi kimlikleri `TR_Int` ("int64") veriyor; cinsli işleçler (15.6'nın tablosu), `TR_sum`/`TR_mean`/`TR_max`/`TR_min`/`TR_cumsum`, `TR_where`, `TR_clamp` CPU'da [test: TestTypedStorageRoundTrip, TestTypedIntArith, TestTypedConvert; TR testi "15.1 TR_Int ve TR_Bool tensörü"]. GPU'da yalnız taşıma; öbür cinsli işlemler ve ondalık çekirdeğe giren cinsli tensör 15.48'in hassasiyet hatası (H6960) [test: TestTypedStorageOnGPU, TestTypedInGPUFloatKernelIsPrecisionError]. `TR_AnyTensor` ve `.TR_narrow[E]()` yok.
 - **Mevcut durum (ara kural):** bütün öğeleri tam sayı olan listede float32'de tam yazılamayan değer tensör kurmayı çalışma hatası yapıyor (H6954; ileti ondalık yazımı öneriyor) [test: TestIntListInexactInFloat32]. Tek tam sayıdan kurmak da (`TR_Tensor(16777217)`) aynı hata [test: TestIntListInexactInFloat32]; aralıktan tensör kurmak bugün yok (H6032). `TR_Int` tensörü gelince bu hata kalkar.
-- **Yapılacaklar:** öğe cinsli tip (`TR_Tensor[E]`), `TR_Int` ve `TR_Bool` tensörleri, float64, `TR_AnyTensor` ve daraltma; TR testi. Bedel [kanıtlı: DENETİM'in sayımı]: motorun 45 yönteminin 12–15'i ile 7 GPU çekirdek dosyası. Motor "int32" ve bayt mantıkla başlayabilir; "int64" varsayılanı gelene kadar bu satırda yazılır.
+- **Yapılacaklar:** öğe cinsli tip (`TR_Tensor[E]`, tip denetimi 4c), `TR_AnyTensor` ve daraltma; GPU'da cinsli tensörün genel çekirdekleri (2b).
 - **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Tensor[E]` ayrıştırılıyor, `TR_Tensor`'a indirgeniyor; `TR_AnyTensor` henüz kod değil [ölçüldü: bulut 0.6a].
 
 ### 15.2

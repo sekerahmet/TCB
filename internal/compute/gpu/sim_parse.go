@@ -79,6 +79,7 @@ type simType uint8
 
 const (
 	simNone simType = iota
+	simU8
 	simU16
 	simU32
 	simS32
@@ -91,6 +92,7 @@ const (
 )
 
 var simTypeNames = map[string]simType{
+	"b8": simU8, "u8": simU8, "s8": simU8,
 	"b16": simU16, "u16": simU16, "s16": simU16, "f16": simF16,
 	"b32": simU32, "u32": simU32, "s32": simS32, "f32": simF32,
 	"b64": simU64, "u64": simU64, "s64": simS64, "f64": simF64, "pred": simPred,

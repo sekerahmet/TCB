@@ -248,14 +248,20 @@ func (k *emitter) us(x, p reg) reg {
 
 // dtypeSize depolama türünün eleman baytı (desteklenen kayan noktalı türler).
 func dtypeSize(dt tensor.DType) int {
-	if dt == tensor.Float32 {
+	switch {
+	case dt == tensor.Float32:
 		return 4
+	case dt.IsTyped():
+		return dt.Bits() / 8
 	}
 	return 2
 }
 
 // load adresteki dt türündeki elemanı float32 olarak yükler.
 func (k *emitter) load(dt tensor.DType, addr reg) reg {
+	if !dt.IsFloat() {
+		panic(tensor.PrecisionError(dt, tensor.GPU(0)))
+	}
 	v := k.f()
 	switch dt {
 	case tensor.Float32:
@@ -278,6 +284,9 @@ func (k *emitter) load(dt tensor.DType, addr reg) reg {
 // store float32 v'yi dt türüne (en yakına-çifte) yuvarlayıp adrese yazar. bfloat16 NaN
 // sessiz NaN olarak (işaret korunarak) kalır; taşma sonsuza gider (CPU f32ToBF16 ile aynı).
 func (k *emitter) store(dt tensor.DType, addr, v reg) {
+	if !dt.IsFloat() {
+		panic(tensor.PrecisionError(dt, tensor.GPU(0)))
+	}
 	switch dt {
 	case tensor.Float32:
 		k.e("st.global.f32", mem(addr, 0), v)

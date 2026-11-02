@@ -40,6 +40,7 @@ func (t *temp) finish() {
 // read görünümü float32 bitişik görünüme çevirir (zaten öyleyse aynen).
 func (t *temp) read(v tensor.View) tensor.View {
 	d := t.g.storageOf(v.S)
+	t.g.checkFloat(d)
 	if d.dtype == tensor.Float32 && v.IsContiguous() {
 		return v
 	}
@@ -88,6 +89,7 @@ func (t *temp) readD(s tensor.Storage) *storage {
 		return nil
 	}
 	d := t.g.storageOf(s)
+	t.g.checkFloat(d)
 	if d.dtype == tensor.Float32 {
 		return d
 	}
@@ -101,6 +103,7 @@ func (t *temp) write(s tensor.Storage, old bool) (*storage, func()) {
 		return nil, func() {}
 	}
 	d := t.g.storageOf(s)
+	t.g.checkFloat(d)
 	if d.dtype == tensor.Float32 {
 		return d, func() {}
 	}
@@ -146,6 +149,9 @@ func (g *backend) FromHost(data []float32, dt tensor.DType) tensor.Storage {
 	g.enter()
 	defer g.exit()
 	g.noCapture(messages.H4066) // boş veri de: kayıtta yükleme kuralı veriden bağımsızdır
+	if !dt.IsFloat() {
+		panic(tensor.PrecisionError(dt, g.dev))
+	}
 	n := len(data)
 	d := g.allocate(n, dt, false)
 	if n == 0 {
@@ -171,6 +177,7 @@ func (g *backend) FromHost(data []float32, dt tensor.DType) tensor.Storage {
 func (g *backend) ToHost(src tensor.View) []float32 {
 	g.enter()
 	defer g.exit()
+	g.checkFloat(g.storageOf(src.S))
 	g.noCapture(messages.H4065) // gölgeden ya da boş tensörden okuma da: kaydedilen iş henüz çalışmadı
 	d := g.storageOf(src.S)
 	n := src.Numel()
@@ -228,5 +235,6 @@ func (g *backend) CopyStrided(dst, src tensor.View) {
 func (g *backend) Fill(dst tensor.Storage, v float32) {
 	g.enter()
 	defer g.exit()
+	g.checkFloat(g.storageOf(dst))
 	g.fill(g.storageOf(dst), v)
 }

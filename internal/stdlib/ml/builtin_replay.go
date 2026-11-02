@@ -18,7 +18,7 @@ import (
 //
 // tekrar_oynat(f) f'in cihaz işini bir kez kaydedip sonraki çağrılarda oynatır (GPU'da CUDA
 // Graph; PyTorch torch.cuda.graph ve make_graphed_callables gibi). Girdi bileşimi başına
-// (tensörlerin şekli, türü, cihazı, tam sayı işareti, aynı tensörün tekrarı; sayı argümanlarının
+// (tensörlerin şekli, türü, cihazı, aynı tensörün tekrarı; sayı argümanlarının
 // değeri; hesap_türü()) ilk çağrı f'i olduğu gibi çalıştırır (ısınma: çekirdekler derlenir,
 // kitaplık planları ve tembel kurulan durum, ör. KV önbelleği, hazırlanır), ikinci çağrı tensör
 // argümanlarını kaydın kendi girdi tensörlerine kopyalayıp f'i kayıt altında çalıştırır, sonraki
@@ -54,7 +54,6 @@ type replayEntry struct {
 	alias   []int
 	mutated []int
 	outs    []*tensor.Tensor
-	ints    []bool
 	single  bool
 }
 
@@ -166,7 +165,7 @@ func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.V
 			shared = shared || t.SharesStorage(d.t)
 		}
 		inputs, alias = append(inputs, d.t), append(alias, same)
-		fmt.Fprintf(&key, "%v:%s:%v:%v:%d;", d.t.Shape(), d.t.DType(), d.t.Device(), d.hasInts, same)
+		fmt.Fprintf(&key, "%v:%s:%v:%d;", d.t.Shape(), d.t.DType(), d.t.Device(), same)
 	}
 	rec := recorderOf(inputs)
 	if rec == nil || shared {
@@ -248,9 +247,7 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 			in = d.t.Clone()
 		}
 		// Değerin sarıcısı kaydındır: f'e geçen değer yorumlayıcıya kaçar, bırakılmaz.
-		v := New(in)
-		v.hasInts = d.hasInts
-		vals[i] = v
+		vals[i] = New(in)
 		e.inputs, e.alias = append(e.inputs, in), append(e.alias, alias[k])
 		versions = append(versions, in.Version())
 	}
@@ -269,17 +266,16 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 	rec.BeginCapture()
 	res, err := m.ApplyFunction(f, vals, nil, 0)
 	var outs []*tensor.Tensor
-	var ints []bool
 	single := false
 	if err == nil {
-		outs, ints, single, err = takeOutputs(fn, res, start)
+		outs, single, err = takeOutputs(fn, res, start)
 	}
 	if err != nil {
 		rec.AbortCapture()
 		e.release()
 		return err
 	}
-	e.outs, e.ints, e.single = outs, ints, single
+	e.outs, e.single = outs, single
 	for i, in := range e.inputs {
 		if e.alias[i] < 0 && in.Version() != versions[i] {
 			e.mutated = append(e.mutated, i)
@@ -292,10 +288,10 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 // takeOutputs f'in sonucunu çıktılara ayırır ve her konum için bir sarıcıyı kayda alır: f'in
 // içinde oluşan başlığın kaçan değerinin sarıcısı zaten çağıranındır (ilk geçtiği konumda);
 // önceden var olan başlık (girdi, dışarıdaki bir tensör) ya da tekrarı için yeni sarıcı alınır.
-func takeOutputs(fn any, res interp.Value, start uint64) ([]*tensor.Tensor, []bool, bool, error) {
-	outs, ints, single, err := replayOutputs(fn, res)
+func takeOutputs(fn any, res interp.Value, start uint64) ([]*tensor.Tensor, bool, error) {
+	outs, single, err := replayOutputs(fn, res)
 	if err != nil {
-		return nil, nil, false, err
+		return nil, false, err
 	}
 	vals := []interp.Value{res}
 	if l, ok := res.(*interp.ListVal); ok {
@@ -310,36 +306,34 @@ func takeOutputs(fn any, res interp.Value, start uint64) ([]*tensor.Tensor, []bo
 		}
 		v.t.Wrap()
 	}
-	return outs, ints, single, nil
+	return outs, single, nil
 }
 
 // replayOutputs f'in sonucunu (tensör ya da tensör listesi) çıktılara ayırır.
-func replayOutputs(fn any, res interp.Value) (outs []*tensor.Tensor, ints []bool, single bool, err error) {
+func replayOutputs(fn any, res interp.Value) (outs []*tensor.Tensor, single bool, err error) {
 	switch x := res.(type) {
 	case *TensorValue:
-		return []*tensor.Tensor{x.t}, []bool{x.hasInts}, true, nil
+		return []*tensor.Tensor{x.t}, true, nil
 	case *interp.ListVal:
 		for _, el := range x.Elements {
 			d, ok := el.(*TensorValue)
 			if !ok {
-				return nil, nil, false, messages.New(messages.H6439, fn, typeName(res))
+				return nil, false, messages.New(messages.H6439, fn, typeName(res))
 			}
-			outs, ints = append(outs, d.t), append(ints, d.hasInts)
+			outs = append(outs, d.t)
 		}
 		if len(outs) > 0 {
-			return outs, ints, false, nil
+			return outs, false, nil
 		}
 	}
-	return nil, nil, false, messages.New(messages.H6439, fn, typeName(res))
+	return nil, false, messages.New(messages.H6439, fn, typeName(res))
 }
 
 // result kaydın çıktılarının kopyalarını TR değeri olarak verir.
 func (e *replayEntry) result() interp.Value {
 	el := make([]interp.Value, len(e.outs))
 	for i, o := range e.outs {
-		v := New(o.Clone())
-		v.hasInts = e.ints[i]
-		el[i] = v
+		el[i] = New(o.Clone())
 	}
 	if e.single {
 		return el[0]
@@ -405,7 +399,9 @@ func writeSliceBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 			return nil
 		}
 		start, integer := 0, true
-		if isTensor {
+		if isTensor && st.t.Elem() == tensor.ElemInt {
+			start = int(st.t.Int64s()[0])
+		} else if isTensor {
 			x := st.t.Item()
 			start, integer = int(x), float32(int(x)) == x
 		} else {

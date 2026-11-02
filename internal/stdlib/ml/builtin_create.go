@@ -59,6 +59,9 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		dt := d.t.DType()
 		var err error
 		t, err = safe(func() *tensor.Tensor {
+			if dt.IsTyped() {
+				return tensor.FromRawOn(d.t.Device(), dt, d.t.Raw(), d.t.Shape()...)
+			}
 			if dt == tensor.Float32 {
 				return tensor.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
 			}

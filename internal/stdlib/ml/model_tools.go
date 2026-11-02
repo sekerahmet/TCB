@@ -54,15 +54,12 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, messages.New(messages.H6307, fn)
 	}
 	ts := make([]*tensor.Tensor, len(l.Elements))
-	ints := true // hepsi tam sayılı tensörse (ör. token kimlikleri) sonuç da tam sayılıdır
 	for i, el := range l.Elements {
 		t, err := toTensor(messages.New(messages.H6344, fn, i+1), el)
 		if err != nil {
 			return nil, err
 		}
 		ts[i] = t
-		tv, ok := el.(*TensorValue)
-		ints = ints && ok && tv.hasInts
 	}
 	e, given, err := axisArg(fn, args, named)
 	if err != nil {
@@ -88,14 +85,16 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		if err := checkDevice(fn, ts[0], t); err != nil {
 			return nil, err
 		}
+		if t.Elem() != ts[0].Elem() || t.DType().IsTyped() && t.DType() != ts[0].DType() {
+			// Aynı cins (15.7); cinsli tensörlerde hassasiyet birleşmesi bu dilimde yok.
+			return nil, messages.New(messages.H6966, fn, ts[0].DType().Name(), t.DType().Name())
+		}
 	}
 	r, err := safe(func() *tensor.Tensor { return tensor.Concat(ts, e) })
 	if err != nil {
 		return nil, err
 	}
-	result := New(r)
-	result.hasInts = ints
-	return result, nil
+	return New(r), nil
 }
 
 // split .böl(parça_sayısı, eksen: -1) metodudur: tensörü verilen eksende eşit parçalara
@@ -132,9 +131,7 @@ func (d *TensorValue) split(_ *interp.VM, args []interp.Value, named map[string]
 	}
 	el := make([]interp.Value, len(parts))
 	for i, p := range parts {
-		y := New(p)
-		y.hasInts = d.hasInts
-		el[i] = y
+		el[i] = New(p)
 	}
 	return &interp.ListVal{Elements: el}, nil
 }
@@ -272,7 +269,7 @@ func checkMask(fn any, mt, q, k *tensor.Tensor) error {
 // sampleBuiltin örnekle(logit, sıcaklık: 1.0, en_iyi_k: 0, tohum: yok) yerleşiğidir:
 // son eksen üzerindeki softmax(logit / sıcaklık) dağılımından bir indeks örnekler.
 // en_iyi_k > 0 ise yalnızca en olası k arasından seçer; sıcaklık 0 en olasıyı verir
-// (argmax ile aynı). Sonuç son ekseni düşürülmüş, tam sayılı işaretli ve türev
+// (argmax ile aynı). Sonuç son ekseni düşürülmüş, `TR_Int` ("int64") ve türev
 // izlemeyen bir tensördür.
 func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnSample)

@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Genişletilmiş matematik yerleşikleri: sayıda ve tensörde dönüş tipleri, tam sayılı işaretin
+// Genişletilmiş matematik yerleşikleri: sayıda ve tensörde dönüş tipleri, TR_Int cinsinin
 // korunması, adlı argümanlar, yayınlama, türev ve yol gösteren hatalar.
 
 func TestWideMathReturnTypes(t *testing.T) {
@@ -30,7 +30,7 @@ TR_print(TR_log2(8), TR_log10(1000), TR_atan2(0, -1) == TR_pi, 3.14159 < TR_pi <
 
 func TestWideMathTensor(t *testing.T) {
 	out := mustRun(t, `TR_var i = TR_argmax(TR_Tensor([[1, 5], [7, 2]]), TR_dim: -1)
-TR_print(TR_floor(i).TR_tolist, TR_sign(i - 1).TR_tolist, TR_clamp(i, TR_min: 0, TR_max: 0).TR_tolist, TR_clamp(i, TR_max: 0.5).TR_tolist)
+TR_print(TR_floor(i).TR_tolist, TR_sign(i - 1).TR_tolist, TR_clamp(i, TR_min: 0, TR_max: 0).TR_tolist, TR_clamp(i, TR_max: 0).TR_tolist)
 TR_var x = TR_Tensor([-2.0, 0.5, 3.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(TR_clamp(x, TR_min: -1, TR_max: 1) + TR_floor(x) * 5))
 TR_print(x.TR_grad.TR_tolist)
@@ -40,7 +40,7 @@ TR_print(TR_argsort(TR_Tensor([2, 1, 2, 0]), TR_dim: 0).TR_tolist, TR_cumsum(i).
 TR_var m = TR_Tensor([[1.0], [0.0]])
 TR_print(TR_where(m, TR_Tensor([1.0, 2.0]), -1).TR_tolist, TR_where(TR_false, TR_Tensor([1.0]), 7).TR_tolist)
 TR_print((TR_Tensor([1, 2, 3]) >= TR_Tensor([[2], [1]])).TR_tolist, (2 < TR_Tensor([1, 2, 3])).TR_tolist)`)
-	want := "[1, 0] [0.0, -1.0] [0, 0] [0.5, 0.0]\n" + // i - 1 tam sayılı değil (15.19)
+	want := "[1, 0] [0, -1] [0, 0] [0, 0]\n" + // TR_Int tensörde işlemler TR_Int verir (15.6, 15.12, 15.13)
 		"[0.0, 1.0, 0.0]\n" +
 		"[[3.0, 3.0], [2.0, 1.0]] [[0, 2], [1, 2]] Int\n" +
 		"[3, 1, 0, 2] [1, 1]\n" +
@@ -48,6 +48,14 @@ TR_print((TR_Tensor([1, 2, 3]) >= TR_Tensor([[2], [1]])).TR_tolist, (2 < TR_Tens
 		"[[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]] [0.0, 0.0, 1.0]\n"
 	if out != want {
 		t.Fatalf("tensör yolları:\n%q\nbeklenen:\n%q", out, want)
+	}
+}
+
+// Kural (15.13): TR_Int tensörün sınırı TR_Int'tir; ondalık sınır hatadır (ileti cinsi söyler).
+func TestClampIntTensorNeedsIntLimits(t *testing.T) {
+	_, err := run(t, "TR_clamp(TR_argmax(TR_Tensor([[1.0, 5.0]]), TR_dim: -1), TR_max: 0.5)")
+	if !messages.Has(err, messages.H6968) {
+		t.Fatalf("TR_Int tensörde ondalık sınır: %v", err)
 	}
 }
 
@@ -137,14 +145,15 @@ TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_Tensor([
 	}
 }
 
-// Kural (15.36): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; tam sayılı
-// işaretli girdide (argmax, sıralama_indeksi) de, kaynaştır içindekiyle aynı.
+// Kural (15.36): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; TR_Int
+// girdide (argmax, sıralama_indeksi) de. Kaynaştırılan fonksiyonun ondalık girdisinde de aynı.
 // Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
+// TR_Bool sonuç 15.16a ile gelir (2b).
 func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {
 	out := mustRun(t, `TR_var idx = TR_argsort(TR_Tensor([20.0, 10.0]))
 TR_var f = TR_fuse((x) => { TR_return TR_is_finite(x) })
-TR_print(TR_is_finite(idx).TR_tolist, f(idx).TR_tolist)`)
-	if out != "[1.0, 1.0] [1.0, 1.0]\n" {
+TR_print(TR_is_finite(idx).TR_tolist, f(TR_Tensor([1.0, TR_nan])).TR_tolist)`)
+	if out != "[1.0, 1.0] [1.0, 0.0]\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
 }

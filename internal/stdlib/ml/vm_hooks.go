@@ -23,6 +23,9 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 	o, ok := otherVal.(*TensorValue)
 	if !ok {
 		if f, number := interp.ToFloat(otherVal); number && d.t.Dim() == 0 {
+			if d.t.DType().IsTyped() {
+				return interp.ValuesEqual(d.scalarValue(), otherVal)
+			}
 			return shortFloat64(d.t.Item()) == f
 		}
 		return false
@@ -38,6 +41,9 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 		if a[i] != b[i] {
 			return false
 		}
+	}
+	if d.t.DType().IsTyped() || o.t.DType().IsTyped() {
+		return d.t.Elem() == o.t.Elem() && interp.ValuesEqual(d.nestedList(), o.nestedList())
 	}
 	ad, bd := d.t.Data(), o.t.Data()
 	for i := range ad {
@@ -59,6 +65,14 @@ func (d *TensorValue) Negate() (interp.Value, error) {
 }
 
 func (d *TensorValue) negate() (interp.Value, error) {
+	if d.t.DType().IsTyped() {
+		var f *tensor.ElemFault
+		r, err := safe(func() (r *tensor.Tensor) { r, f = tensor.Neg(d.t); return })
+		if err != nil {
+			return nil, err
+		}
+		return typedResult(codes.NameRef(codes.TypeTensor), "-", r, f)
+	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Neg() })
 	if err != nil {
 		return nil, err
@@ -110,6 +124,10 @@ func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DT
 
 // operator ikili işleci uygular; m işlemi yapan görevdir (nil: program yok, uyarı yazılmaz).
 func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
+	if d.t.DType().IsTyped() || isTypedOperand(otherVal) {
+		v, err := d.typedOperator(m, op, otherVal, onRight)
+		return v, true, err
+	}
 	switch op {
 	case "+", "*":
 		// Değişmeli: yön sonucu değiştirmez.
@@ -264,14 +282,8 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 	return d.view(r), nil
 }
 
-// view t'nin bir görünümünü (indeks, dilim, döngü öğesi) sarar. Görünüm aynı veriyi
-// taşıdığından tam sayılı tensörün görünümü de tam sayılıdır (ör. token kimliği
-// tensörünün satırları).
-func (d *TensorValue) view(r *tensor.Tensor) *TensorValue {
-	g := New(r)
-	g.hasInts = d.hasInts
-	return g
-}
+// view t'nin bir görünümünü (indeks, dilim, döngü öğesi) sarar; görünüm cinsi korur.
+func (d *TensorValue) view(r *tensor.Tensor) *TensorValue { return New(r) }
 
 // IterLen 'döngü x içinde t' ve liste üretecinde gezilecek öğe sayısıdır (ilk
 // eksenin uzunluğu). 0 boyutlu tensör üzerinde döngü kurulamaz.
@@ -290,12 +302,16 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 	if d.t.Dim() != 1 {
 		return d.Index(interp.NewInt(int64(i)))
 	}
+	if d.t.DType().IsTyped() {
+		v, err := d.Index(interp.NewInt(int64(i)))
+		if err != nil {
+			return nil, err
+		}
+		return v.(*TensorValue).scalarValue(), nil
+	}
 	x, err := safe(func() float32 { return d.t.At(i) })
 	if err != nil {
 		return nil, err
-	}
-	if d.hasInts {
-		return interp.NewInt(int64(x)), nil
 	}
 	return &interp.FloatVal{Val: shortFloat64(x)}, nil
 }
