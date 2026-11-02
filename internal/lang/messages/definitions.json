@@ -1332,6 +1332,8 @@
 "H6974": { "param": ["fn", "index", "value", "kind"] },
 "H6975": { "param": ["fn", "index", "value", "first"] },
 "H6976": { "param": ["fn", "dtype", "kind", "given"] },
+"H6977": { "param": ["fn", "dtype", "kind", "given"], "slots": {"Tensor": "TR_type_Tensor"} },
+"H6978": { "param": ["fn", "given", "kind"], "slots": {"where": "TR_fn_where"} },
 "H7000": { "param": ["fn", "text", "given"] },
 "H7001": { "param": ["error"] },
 "H7003": { "param": ["fn", "path"] },

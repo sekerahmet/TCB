@@ -91,8 +91,10 @@ func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 	return safe(func() *tensor.Tensor { return t.Cast(dt) })
 }
 
-// toDType .türe("bf16") metodudur: tensörün verilen türe dönüştürülmüş kopyası. Türevlenebilir:
-// gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
+// toDType .TR_to_dtype("bf16") metodudur (15.3): cinsin içinde hassasiyeti değiştirilmiş kopya.
+// Hesap ondalıkları arasında türevlenebilir: gradyan kaynak tensöre (kendi türünde) geri akar.
+// Tam sayıda dar hassasiyete geçişte değer sığmalıdır. Hassasiyet zaten aynıysa tensörün kendisi
+// döner. Başka cinsin hassasiyeti hatadır: cins dönüşümü tip çağrısıdır.
 func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6806, codes.NameRef(memberToDType), len(args))
@@ -100,14 +102,18 @@ func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[strin
 	if err := bind.CheckNamed(codes.NameRef(memberToDType).Called(), named); err != nil {
 		return nil, err
 	}
-	dt, err := parseDTypeValue(codes.NameRef(memberToDType), args[0])
+	fn := codes.NameRef(memberToDType)
+	dt, name, err := anyDType(fn, args[0])
 	if err != nil {
+		return nil, err
+	}
+	if err := kindChangeError(fn, d.t.DType(), dt, name); err != nil {
 		return nil, err
 	}
 	if dt == d.t.DType() {
 		return d, nil
 	}
-	r, err := castTo(d.t, dt)
+	r, err := convertKind(fn, d.t, dt)
 	if err != nil {
 		return nil, err
 	}
@@ -224,21 +230,40 @@ func constructorDType(fn codes.Ref, named map[string]interp.Value, kind codes.Co
 	if !given {
 		return kindDTypes[kind], nil
 	}
-	s, isString := v.(*interp.StringVal)
-	if !isString {
-		return 0, messages.New(messages.H6803, fn, typeName(v))
-	}
-	dt, ok := kindDTypeNames[s.Val]
-	if !ok {
-		var err error
-		if dt, err = parseDTypeName(fn, s.Val); err != nil {
-			return 0, err
-		}
+	dt, name, err := anyDType(fn, v)
+	if err != nil {
+		return 0, err
 	}
 	if k := kindOf(dt); k != kind {
-		return 0, messages.New(messages.H6976, fn, s.Val, codes.NameRef(k), codes.NameRef(kind))
+		return 0, messages.New(messages.H6976, fn, name, codes.NameRef(k), codes.NameRef(kind))
 	}
 	return dt, nil
+}
+
+// anyDType her cinsin hassasiyet adını (metin) çözer; bilinmeyen adda en yakın adı önerir.
+func anyDType(fn any, v interp.Value) (tensor.DType, string, error) {
+	s, isString := v.(*interp.StringVal)
+	if !isString {
+		return 0, "", messages.New(messages.H6803, fn, typeName(v))
+	}
+	if dt, ok := kindDTypeNames[s.Val]; ok {
+		return dt, s.Val, nil
+	}
+	dt, err := parseDTypeName(fn, s.Val)
+	return dt, s.Val, err
+}
+
+// kindChangeError cins dönüşümünün hatası (15.3): mantık ile sayı arasında dönüşüm yoktur (H6978);
+// öbür cinsler arası dönüşüm tip çağrısıdır (H6977, .TR_to_dtype'ta). Aynı cinste nil.
+func kindChangeError(fn any, from, to tensor.DType, name string) error {
+	fk, tk := kindOf(from), kindOf(to)
+	switch {
+	case fk == tk:
+		return nil
+	case fk == codes.TypeBool || tk == codes.TypeBool:
+		return messages.New(messages.H6978, fn, codes.NameRef(fk), codes.NameRef(tk))
+	}
+	return messages.New(messages.H6977, fn, name, codes.NameRef(tk), codes.NameRef(fk))
 }
 
 // convertKind t'yi dt'ye çevirir (aynıysa kendisi): ondalıklar arasında yuvarlar (türevlenebilir),

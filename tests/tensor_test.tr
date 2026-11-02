@@ -51,6 +51,28 @@ TR_test "15.2 cins veriden çıkar: tam sayı ve aralık TR_Int, mantık TR_Bool
     TR_assert_equal("H6973", TR_error_code { TR_Tensor([1, 2], TR_requires_grad: TR_true) })
 }
 
+TR_test "15.3 hassasiyet cinsin içinde değişir, cinsler arası dönüşüm tip çağrısıdır" {
+    TR_assert_equal(["int8", "bf16"], [TR_Tensor([1, 2]).TR_to_dtype("int8").TR_dtype, TR_Tensor([1.5]).TR_to_dtype("bf16").TR_dtype])
+    TR_assert_equal([1.5], TR_Tensor([1.5]).TR_to_dtype("float64").TR_tolist)
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor([300]).TR_to_dtype("uint8") })
+    TR_assert_equal("H6977", TR_error_code { TR_Tensor([1.5]).TR_to_dtype("int64") })
+    TR_assert_equal("H6977", TR_error_code { TR_Tensor([1]).TR_to_dtype("float32") })
+    # Tip çağrısı: ondalık sıfıra doğru kesilir; NaN ve sonsuz hatadır; hedef hassasiyet alınır.
+    TR_assert_equal([2, -2], TR_Tensor[TR_Int](TR_Tensor([2.7, -2.7])).TR_tolist)
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor[TR_Int](TR_Tensor([1.0, TR_Float("nan")])) })
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor[TR_Int](TR_Tensor([TR_Float("inf")])) })
+    TR_assert_equal([16777217.0], TR_Tensor[TR_Float](TR_Tensor([16777217]), TR_dtype: "float64").TR_tolist)
+    TR_assert_equal([16777216.0], TR_Tensor[TR_Float](TR_Tensor([16777217])).TR_tolist)
+    # Mantık ile sayı arasında dönüşüm yoktur.
+    TR_assert_equal("H6978", TR_error_code { TR_Tensor[TR_Float](TR_Tensor([TR_true])) })
+    TR_assert_equal("H6978", TR_error_code { TR_Tensor[TR_Bool](TR_Tensor([1])) })
+    TR_assert_equal("H6978", TR_error_code { TR_Tensor([1]).TR_to_dtype("bool") })
+    # Hesap ondalıkları arasında türevlenebilir.
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(w.TR_to_dtype("bf16") * 2.0))
+    TR_assert_equal([2.0, 2.0], w.TR_grad.TR_tolist)
+}
+
 TR_test "15.1 TR_Int ve TR_Bool tensörü: argmax'in sonucu TR_Int, cins işlemlerde korunur" {
     TR_var i = TR_argmax(TR_Tensor([[0.0, 9.0, 1.0], [5.0, 0.0, 7.0]]), TR_dim: -1)
     TR_assert_equal("int64", i.TR_dtype)
@@ -767,7 +789,7 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
 TR_test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
     TR_assert_equal("H6811", TR_error_code { TR_Tensor([1], TR_dtype: "bfloat16") })
     TR_assert_equal("H6811", TR_error_code { TR_zeros([2], TR_dtype: "float16") })
-    TR_assert_equal("H6811", TR_error_code { TR_Tensor([1.0]).TR_to_dtype("float64") })
+    TR_assert_equal("H6811", TR_error_code { TR_Tensor([1.0]).TR_to_dtype("float") })
     TR_assert_equal("H6803", TR_error_code { TR_Tensor([1], TR_dtype: 16) })
     TR_assert_equal("H7901", TR_error_code { TR_Tensor([1.0], dtype: "bf16") })
     TR_assert_equal("H6807", TR_error_code { TR_mixed_precision("bf16") })

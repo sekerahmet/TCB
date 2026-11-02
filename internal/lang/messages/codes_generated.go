@@ -1337,6 +1337,8 @@ const (
 	H6974 Code = 6974 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} bir {kind} değeri değil (15.2): verinin öğeleri tip argümanındaki cinsten olmalı
 	H6975 Code = 6975 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} ilk öğe {first} ile aynı tensörde olamaz: mantık değeri sayıyla karışmaz (15.2)
 	H6976 Code = 6976 // {fn}: "{dtype}" {kind} hassasiyetidir, kurulan tensörün cinsi {given} (15.1, 15.2); cinsi tip argümanıyla seçin: `{fn}[{kind}](...)`
+	H6977 Code = 6977 // {fn}: "{dtype}" {kind} hassasiyetidir, tensör {given} (15.3); hassasiyet cinsin içinde değişir, cinsler arası dönüşüm tip çağrısıdır: `{#Tensor}[{kind}](t)`
+	H6978 Code = 6978 // {fn}: {given} ile {kind} arasında dönüşüm yok (3.12, 15.3); maskeden sayı `{#where}(m, 1.0, 0.0)` ile, sayıdan maske karşılaştırmayla kurulur: `t != 0`
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

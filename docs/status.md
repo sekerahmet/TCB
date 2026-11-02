@@ -597,9 +597,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.3
 
-- **Mevcut durum:** sürüm motorda var (depo başına sayaç, H3012) [kanıtlı: internal/compute/tensor/device.go:154-156, 166-181, `internal/compute/tensor/autograd.go:169-173, 226-227`]; ama ileti `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM]. Cins dönüşümü, tam sayı taşması ve öğe tipli liste yok (bütün tensörler float32).
+- **Mevcut durum:** sürüm motorda var (depo başına sayaç, H3012) [kanıtlı: internal/compute/tensor/device.go:154-156, 166-181, `internal/compute/tensor/autograd.go:169-173, 226-227`]; ama ileti `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM].
+- **Mevcut durum (T1 dilim 2):** `.TR_to_dtype` cinsin bütün hassasiyetlerini alıyor ("int8", "float64" ...; tam sayıda sığma denetimi H6964), başka cinsin hassasiyeti H6977 (ileti tip çağrısını öneriyor). Cins dönüşümü tip çağrısı: `TR_Tensor[TR_Int](t)` sıfıra doğru kesiyor, NaN ve sonsuz H6964; `TR_Tensor[TR_Float](i, TR_dtype: "float64")` hedef hassasiyeti alıyor; mantık ile sayı arasında dönüşüm H6978. Tam sayı taşması H6961 (CPU). `.TR_tolist()` öğe tipli liste veriyor (`TR_List[TR_Int]`) [test: TestTypedConvert, TestTypedIntArith; TR testi "15.3 hassasiyet cinsin içinde değişir"]. Hesap ondalığından float64'e `.TR_to_dtype` türev izlemiyor [ölçüldü].
 - **Yapılacaklar:**
-  - cins dönüşümü (tip çağrısı, hedef hassasiyetiyle), tam sayı taşmasının hatası ve `TR_wrapping_add`, `TR_wrapping_sub` ve `TR_wrapping_mul`'ın tensör imzası;
+  - `TR_wrapping_add`, `TR_wrapping_sub` ve `TR_wrapping_mul`'ın tensör imzası; PyTorch'un `.float()`/`.long()`/`.bool()`/`.to(...)` alışkanlığına doğru yazımı öneren ileti (bugün genel "özellik ya da metot bulunamadı");
   - GPU'da çekirdeklerin hata bildireceği bir cihaz bayrağı yok [kanıtlı: DENETİM]: taşmanın hatası için yeni düzenek ve işlemden hemen sonra okuma (15.6'nın bekleme listesi);
   - sürüm iletisinin girdi ile çıktıyı ayırması;
   - yaprak olmayan türevli tensöre yerinde yazmanın türevsiz kipte de hatası;

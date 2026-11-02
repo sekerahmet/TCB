@@ -76,12 +76,14 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 		}
 		t, err = kindData(fn, kind, a[0])
 	} else {
-		if k != codes.TypeTensor {
-			rest = withoutNamed(rest, nameDType) // tensörden kurarken TR_dtype: hatadır (H6008)
-		}
+		// TR_dtype: hedef hassasiyettir (yukarıda okundu); cinssiz kurucuya gitmez.
 		var r interp.Value
-		if r, err = base(m, a, rest); err == nil {
+		if r, err = base(m, a, withoutNamed(rest, nameDType)); err == nil {
 			t = r.(*TensorValue).t
+		}
+		if src, isTensor := a[0].(*TensorValue); err == nil && isTensor && (src.t.Elem() == tensor.ElemBool) != (kind == codes.TypeBool) {
+			// Mantık ile sayı arasında dönüşüm yoktur (3.12, 15.3).
+			err = messages.New(messages.H6978, fn, codes.NameRef(kindOf(src.t.DType())), codes.NameRef(kind))
 		}
 	}
 	if err != nil {
