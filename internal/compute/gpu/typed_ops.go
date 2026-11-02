@@ -105,10 +105,15 @@ func cmpMode(c tensor.CmpOp, float bool) string {
 }
 
 // typedKernel tek iş parçacığı bir öğe: girdiler yayınlamalı (meta: şekil, girdi adımları),
-// çıktı bitişik.
+// çıktı bitişik. Çekirdeğin adı PTX adıdır: türler alt çizgiyle ayrılır (`%v`'nin köşeli
+// parantezi ve boşluğu ptxas'ta sözdizimi hatasıdır).
 func typedKernel(op tensor.TypedOp, nd int, ins []tensor.DType, out tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter(fmt.Sprintf("cinsli_%d_%d_%d_%v_%s", op.Kind, op.Sub, nd, ins, out))
+		name := fmt.Sprintf("cinsli_%d_%d_%d", op.Kind, op.Sub, nd)
+		for _, dt := range append(ins[:len(ins):len(ins)], out) {
+			name += "_" + dt.String()
+		}
+		k := newEmitter(name)
 		ptrs := make([]reg, len(ins))
 		for i := range ins {
 			ptrs[i] = k.pointer(fmt.Sprintf("g%d", i))
