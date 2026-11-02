@@ -195,9 +195,9 @@ type heldTaskError struct {
 // waitTasks is TR_wait_all(görevler) (10.5): it waits for every task of the list and gives their
 // results in the list's order. When tasks ended with an error, all are still waited; the first one
 // in the list's order is thrown and the others join its TR_suppressed in order (9.4), so none is
-// lost. The finishing order does not change which error is thrown. The tasks count as waited only
-// once the whole list is: a wait stopped halfway (a cancel, 1.5) leaves their errors to be written
-// at the end of the program or the test (10.6).
+// lost; a task given twice adds its error once. The finishing order does not change which error is
+// thrown. The tasks count as waited only once the whole list is: a wait stopped halfway (a cancel,
+// 1.5) leaves their errors to be written at the end of the program or the test (10.6).
 func waitTasks(y *VM, arg Value) (Value, error) {
 	l, ok := arg.(*ListVal)
 	if !ok {
@@ -218,10 +218,17 @@ func waitTasks(y *VM, arg Value) (Value, error) {
 	}
 	results := make([]Value, len(tasks))
 	var thrown error
+	var counted map[*TaskVal]bool // hatası sayılan görevler: aynı görev iki kez verilse de bir kez
 	for i, t := range tasks {
 		t.waited.Store(true)
 		results[i] = t.result
-		thrown = addDeferError(thrown, t.err)
+		if t.err != nil && !counted[t] {
+			if counted == nil {
+				counted = map[*TaskVal]bool{}
+			}
+			counted[t] = true
+			thrown = addDeferError(thrown, t.err)
+		}
 	}
 	if thrown != nil {
 		return nil, thrown

@@ -49,7 +49,7 @@ TR_test "10.5 bekle_hepsi(görevler) sonuçları verilen sırayla verir; bitme s
     TR_assert_equal("H2919", TR_error_code { TR_wait_all([1, 2]) })
 }
 
-TR_test "10.5 bekle_hepsi(görevler) verilen sıradaki ilk hatayı fırlatır, öbürleri bastırılanlarına eklenir" {
+TR_test "10.5 bekle_hepsi(görevler) verilen sıradaki ilk hatayı fırlatır, öbürleri bastırılanlarına eklenir; iki kez verilen görevin hatası bir kez sayılır" {
     TR_func hata(m: TR_String, süre: TR_Float) -> TR_Int {
         TR_sleep(süre)
         TR_throw m
@@ -61,6 +61,14 @@ TR_test "10.5 bekle_hepsi(görevler) verilen sıradaki ilk hatayı fırlatır, �
     } TR_catch e {
         TR_assert_equal("ikinci", TR_String(e))
         TR_assert_equal(["üçüncü"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
+    TR_var a = görevler[0]
+    TR_try {
+        TR_wait_all([a, a])
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("ikinci", TR_String(e))
+        TR_assert_equal(0, e.TR_suppressed.TR_length)
     }
 }
 
