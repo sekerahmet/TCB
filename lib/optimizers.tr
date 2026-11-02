@@ -335,7 +335,7 @@ TR_struct TR_RowRMS {
                 TR_var satırlar = p.TR_shape[0]
                 TR_var v = TR_self.TR_state["ikinci_moment"][i]
                 TR_var n = TR_self.TR_state["sayaç"][i]
-                TR_var geçti = TR_sum(TR_abs(g), TR_dim: 1, TR_keepdim: TR_true) > 0 # [satır, 1] 0/1
+                TR_var geçti = TR_where(TR_sum(TR_abs(g), TR_dim: 1, TR_keepdim: TR_true) > 0, 1.0, 0.0) # [satır, 1] 0/1
                 n[0..satırlar] = n + geçti
                 v[0..satırlar] = TR_where(geçti, b2 * v + (1 - b2) * TR_mean(g * g, TR_dim: 1, TR_keepdim: TR_true), v)
                 TR_var düzeltme = 1 - TR_exp(TR_where(n > 0, n, 1.0) * TR_log(b2)) # 1 − β2ⁿ (n = 0 satırı maskeli)

@@ -268,7 +268,7 @@ TR_print(liste.TR_length, [x.TR_tolist[0] TR_for x TR_in liste])
 TR_var adlar = TR_parameters(m, TR_named: TR_true)
 TR_print(adlar.TR_keys())
 # Aynı tensör nesnesidir: iyileştirici ile güncellenir.
-TR_assert(liste[0] == m.TR_embedding)
+TR_assert(TR_equal(liste[0], m.TR_embedding))
 TR_save_tensors("`+fpath+`", adlar)
 TR_var y = TR_load_tensors("`+fpath+`")
 TR_print(y.TR_keys() == adlar.TR_keys(), y["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)

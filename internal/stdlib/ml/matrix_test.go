@@ -21,7 +21,7 @@ TR_print((G @ A).TR_tolist, (G + A).TR_tolist, (G - 1).TR_tolist, (2 * G).TR_tol
 TR_print((G + TR_Tensor([10.0, 20.0])).TR_tolist, G.TR_transpose().TR_tolist, G.TR_transpose().TR_tolist, TR_Tensor([[1.0, 2.0]]).TR_transpose().TR_shape)
 TR_print(TR_zeros([2, 3]).TR_shape, TR_zeros([1, 4]).TR_shape, TR_ones([2, 2]).TR_tolist, TR_eye(3).TR_tolist)
 TR_print(TR_softmax(TR_Tensor([[1.0, 2.0], [3.0, 3.0]])).TR_tolist, TR_sigmoid(TR_zeros([1, 2])).TR_tolist, TR_tanh(TR_zeros([1, 1])).TR_tolist)
-TR_print(TR_Tensor(G) == G)`)
+TR_print(TR_equal(TR_Tensor(G), G))`)
 	want := "Tensor [2, 2] Tensor Tensor Tensor Tensor\n" +
 		"Tensor[2×2] [\n  [2.5000, 3.5000],\n  [5.5000, 6.5000]\n]\n" +
 		"[[2.5, 3.5], [5.5, 6.5]] [[1.5, 1.5], [4.0, 6.0]] [[0.0, 1.0], [2.0, 3.0]] [[2.0, 4.0], [6.0, 8.0]] [[0.5, 1.0], [1.5, 2.0]] [[0.5, -1.0], [3.0, 8.0]]\n" +
@@ -52,7 +52,7 @@ func TestMatrixIndexAndAssign(t *testing.T) {
 M[0][1] = 10
 M[1][0] += 5
 M[-1] = [8, 9]
-TR_print(M[0][1] == 10, M[1][0].TR_tolist, M[1].TR_tolist, M.TR_tolist)
+TR_print(M[0][1].TR_item() == 10, M[1][0].TR_tolist, M[1].TR_tolist, M.TR_tolist)
 TR_var T = TR_zeros([2, 2, 2])
 T[1] = 7
 T[0][1] = [1, 2]

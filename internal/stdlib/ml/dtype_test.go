@@ -160,7 +160,7 @@ func TestTensorSaveVersion2(t *testing.T) {
 TR_save_tensors("`+fpath+`", p)
 TR_var y = TR_load_tensors("`+fpath+`", TR_requires_grad: TR_true)
 TR_print(y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype)
-TR_print(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].TR_tolist)
+TR_print(TR_equal(y["a"], p["a"]), TR_equal(y["b"], p["b"]), TR_equal(y["c"], p["c"]), y["a"].TR_tolist)
 TR_print(y["b"].TR_grad, y["b"])`)
 	want := "bf16 fp16 float32\n" +
 		"true true true [[1.5, -2.25], [3.0, 0.100097656]]\n" +

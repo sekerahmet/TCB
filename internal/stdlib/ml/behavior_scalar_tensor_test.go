@@ -12,7 +12,7 @@ func TestScalarTensor(t *testing.T) {
 	out := mustRun(t, `TR_var x = TR_Tensor(3.0, TR_requires_grad: TR_true)
 TR_var y = x * x + 2 * x + 1
 TR_backward(y)
-TR_print(y.TR_tolist, x.TR_grad.TR_tolist, x.TR_grad == 8.0, x.TR_shape, TR_Type(x.TR_grad))
+TR_print(y.TR_tolist, x.TR_grad.TR_tolist, x.TR_grad.TR_item() == 8.0, x.TR_shape, TR_Type(x.TR_grad))
 TR_print(x)
 TR_print(TR_Tensor(3.0), TR_Tensor(2.0), TR_Tensor(2.0, TR_true))
 # İki tensör türü yoktur: 0 boyutlu tensör çok boyutlularla işleme girer.
@@ -40,7 +40,7 @@ TR_backward(w * w)
 op.TR_step()
 TR_print(w.TR_tolist)
 TR_save_tensors("`+fpath+`", {"w": w})
-TR_print(TR_load_tensors("`+fpath+`")["w"].TR_tolist, TR_Tensor(7.0) == 7, TR_Tensor(7.0) != 7.5, TR_Tensor([7.0]) == 7)`)
+TR_print(TR_load_tensors("`+fpath+`")["w"].TR_tolist, TR_Tensor(7.0).TR_item() == 7, TR_Tensor(7.0).TR_item() != 7.5, TR_equal(TR_Tensor([7.0]), TR_Tensor(7.0)))`)
 	want := "16.0 8.0 true [] Tensor\n" +
 		"Tensor(3.0000, requires grad)\n" +
 		"Tensor(3.0000) Tensor(2.0000) Tensor(2.0000, requires grad)\n" +

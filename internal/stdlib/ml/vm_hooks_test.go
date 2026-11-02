@@ -11,9 +11,9 @@ import (
 func TestVMHooks(t *testing.T) {
 	out := mustRun(t, `
 		TR_var t = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
-		TR_print(TR_Tensor([1.00001]) == TR_Tensor([1.0]))
-		TR_print(TR_Tensor([1.0, 2.0]) == TR_Tensor([1.0, 2.0]))
-		TR_print(TR_Tensor([1.0, 2.0]) != TR_Tensor([[1.0, 2.0]]))
+		TR_print(TR_equal(TR_Tensor([1.00001]), TR_Tensor([1.0])))
+		TR_print(TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0])))
+		TR_print(TR_not TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([[1.0, 2.0]])))
 		TR_print((10 - t).TR_tolist)
 		TR_print((12 / t).TR_tolist)
 		TR_print((-t).TR_tolist)
