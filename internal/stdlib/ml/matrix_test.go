@@ -18,9 +18,9 @@ TR_var A = TR_Tensor([[0.5, -0.5], [1.0, 2.0]])
 TR_print(TR_Type(G), G.TR_shape, TR_Type(G @ A), TR_Type(TR_zeros([2, 3])), TR_Type(TR_eye(2)), TR_Type(TR_randn([2, 2])))
 TR_print(TR_relu(G @ A))
 TR_print((G @ A).TR_tolist, (G + A).TR_tolist, (G - 1).TR_tolist, (2 * G).TR_tolist, (G / 2).TR_tolist, (G * A).TR_tolist)
-TR_print((G + TR_Tensor([10, 20])).TR_tolist, G.TR_transpose().TR_tolist, G.TR_transpose().TR_tolist, TR_Tensor([[1, 2]]).TR_transpose().TR_shape)
+TR_print((G + TR_Tensor([10.0, 20.0])).TR_tolist, G.TR_transpose().TR_tolist, G.TR_transpose().TR_tolist, TR_Tensor([[1.0, 2.0]]).TR_transpose().TR_shape)
 TR_print(TR_zeros([2, 3]).TR_shape, TR_zeros([1, 4]).TR_shape, TR_ones([2, 2]).TR_tolist, TR_eye(3).TR_tolist)
-TR_print(TR_softmax(TR_Tensor([[1, 2], [3, 3]])).TR_tolist, TR_sigmoid(TR_zeros([1, 2])).TR_tolist, TR_tanh(TR_zeros([1, 1])).TR_tolist)
+TR_print(TR_softmax(TR_Tensor([[1.0, 2.0], [3.0, 3.0]])).TR_tolist, TR_sigmoid(TR_zeros([1, 2])).TR_tolist, TR_tanh(TR_zeros([1, 1])).TR_tolist)
 TR_print(TR_Tensor(G) == G)`)
 	want := "Tensor [2, 2] Tensor Tensor Tensor Tensor\n" +
 		"Tensor[2×2] [\n  [2.5000, 3.5000],\n  [5.5000, 6.5000]\n]\n" +
@@ -37,8 +37,8 @@ TR_print(TR_Tensor(G) == G)`)
 		code string
 		want messages.Code
 	}{
-		{"TR_Tensor([[1]]).T", messages.H7903},
-		{"TR_var A = TR_Tensor([[1]])\nA.TR_transpose @ A", messages.H6033},
+		{"TR_Tensor([[1.0]]).T", messages.H7903},
+		{"TR_var A = TR_Tensor([[1.0]])\nA.TR_transpose @ A", messages.H6033},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%q: %v (beklenen: %s)", d.code, err, d.want)
@@ -48,7 +48,7 @@ TR_print(TR_Tensor(G) == G)`)
 
 // Matris hücresine ve satırına indeksle atama, eski matris gibi çalışır.
 func TestMatrixIndexAndAssign(t *testing.T) {
-	out := mustRun(t, `TR_var M = TR_Tensor([[1, 2], [3, 4]])
+	out := mustRun(t, `TR_var M = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
 M[0][1] = 10
 M[1][0] += 5
 M[-1] = [8, 9]
@@ -71,7 +71,7 @@ TR_print(w.TR_tolist)`)
 		code string
 		want messages.Code
 	}{
-		{"TR_var M = TR_Tensor([[1, 2], [3, 4]])\nM[0][0] = \"a\"", messages.H6032},
+		{"TR_var M = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])\nM[0][0] = \"a\"", messages.H6032},
 		{"TR_var t = TR_Tensor(1.0)\nt[0] = 2", messages.H6704},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
@@ -80,8 +80,8 @@ TR_print(w.TR_tolist)`)
 	}
 	// Satır öneki iletinin başındadır (biçim denetimi).
 	for _, d := range []struct{ code, expected string }{
-		{"TR_var M = TR_Tensor([[1, 2], [3, 4]])\nM[2][0] = 1", "Satır 2: tensör indeksi sınır dışı: 2"},
-		{"TR_var M = TR_Tensor([[1, 2], [3, 4]])\nM[0] = [1, 2, 3]", "Satır 2: tensör ataması: [2] şeklindeki yere [3] şeklinde veri atanamaz"},
+		{"TR_var M = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])\nM[2][0] = 1", "Satır 2: tensör indeksi sınır dışı: 2"},
+		{"TR_var M = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])\nM[0] = [1, 2, 3]", "Satır 2: tensör ataması: [2] şeklindeki yere [3] şeklinde veri atanamaz"},
 		{"TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)\nw[0] = 2", "Satır 2: türev izleyen bir yaprağa (ve görünümüne) türevsiz kipin dışında yerinde yazılamaz"},
 	} {
 		if _, err := run(t, d.code); err == nil || !strings.Contains(err.Error(), d.expected) {
@@ -110,9 +110,9 @@ func TestMatrixShapeCheck(t *testing.T) {
 		`TR_randn([2, -7])`,
 		`TR_randn([2, 2], TR_seed: "a")`,
 		`TR_zeros([100000, 100000])`,
-		`TR_Tensor([[1, 2], [3]])`,
+		`TR_Tensor([[1.0, 2.0], [3.0]])`,
 		`TR_Tensor([["a"]])`,
-		`TR_Tensor([1, 2]).TR_transpose()`,
+		`TR_Tensor([1.0, 2.0]).TR_transpose()`,
 	} {
 		_, err := run(t, code)
 		if err == nil {

@@ -14,7 +14,7 @@ TR_var y = x * x + 2 * x + 1
 TR_backward(y)
 TR_print(y.TR_tolist, x.TR_grad.TR_tolist, x.TR_grad == 8.0, x.TR_shape, TR_Type(x.TR_grad))
 TR_print(x)
-TR_print(TR_Tensor(3.0), TR_Tensor(2), TR_Tensor(2, TR_true))
+TR_print(TR_Tensor(3.0), TR_Tensor(2.0), TR_Tensor(2.0, TR_true))
 # İki tensör türü yoktur: 0 boyutlu tensör çok boyutlularla işleme girer.
 TR_print((TR_Tensor(3.0) + TR_Tensor([1.0, 2.0])).TR_tolist, TR_exp(TR_Tensor(0.0)).TR_tolist, TR_sum([TR_Tensor(1.0), TR_Tensor([2.0])]).TR_tolist)
 # Eleman bazlı fonksiyonların türevi: σ'(0) = 0.25, tanh'(0) = 1, relu'(2) = 1.

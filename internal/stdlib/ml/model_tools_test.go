@@ -28,18 +28,18 @@ TR_assert(TR_abs(z.TR_grad.TR_tolist[0] + TR_sin(0.5)) < 0.000001)
 
 func TestConcatAndSplit(t *testing.T) {
 	mustRun(t, `
-TR_var a = TR_Tensor([[1, 2], [3, 4]], TR_requires_grad: TR_true)
-TR_var b = TR_Tensor([[5], [6]], TR_requires_grad: TR_true)
+TR_var a = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+TR_var b = TR_Tensor([[5.0], [6.0]], TR_requires_grad: TR_true)
 TR_var c = TR_concat([a, b])
 TR_assert_equal([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.TR_tolist)
 TR_assert_equal([4, 2], TR_concat([a, a], TR_dim: 0).TR_shape)
-TR_backward(TR_sum(c * TR_Tensor([1, 2, 3])))
+TR_backward(TR_sum(c * TR_Tensor([1.0, 2.0, 3.0])))
 TR_assert_equal([[1.0, 2.0], [1.0, 2.0]], a.TR_grad.TR_tolist)
 TR_assert_equal([[3.0], [3.0]], b.TR_grad.TR_tolist)
-TR_var p = TR_Tensor([[1, 2, 3, 4, 5, 6]], TR_requires_grad: TR_true).TR_split(3)
+TR_var p = TR_Tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]], TR_requires_grad: TR_true).TR_split(3)
 TR_assert_equal(3, p.TR_length)
 TR_assert_equal([[3.0, 4.0]], p[1].TR_tolist)
-TR_var s = TR_Tensor([[1, 2], [3, 4], [5, 6], [7, 8]]).TR_split(2, TR_dim: 0)
+TR_var s = TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]).TR_split(2, TR_dim: 0)
 TR_assert_equal([[5.0, 6.0], [7.0, 8.0]], s[1].TR_tolist)
 # Metin'in .böl'ü değişmedi.
 TR_assert_equal(["a", "b"], "a,b".TR_split(","))
@@ -49,13 +49,13 @@ TR_assert_equal(["a", "b"], "a,b".TR_split(","))
 		want messages.Code
 	}{
 		{"TR_concat([])", messages.H6307},
-		{"TR_concat(TR_Tensor([1]))", messages.H6306},
-		{"TR_concat([TR_Tensor([[1, 2]]), TR_Tensor([[1, 2, 3]])], TR_dim: 0)", messages.H6311},
-		{"TR_concat([TR_Tensor([[1, 2]]), TR_Tensor([1, 2])])", messages.H6309},
-		{"TR_concat([TR_Tensor([1]), TR_Tensor([2])], TR_dim: 3)", messages.H6016},
-		{"TR_concat([TR_Tensor([1])], axis: 0)", messages.H7900},
-		{"TR_Tensor([1, 2, 3]).TR_split(2)", messages.H6318},
-		{"TR_Tensor([1, 2]).TR_split(0)", messages.H6317},
+		{"TR_concat(TR_Tensor([1.0]))", messages.H6306},
+		{"TR_concat([TR_Tensor([[1.0, 2.0]]), TR_Tensor([[1.0, 2.0, 3.0]])], TR_dim: 0)", messages.H6311},
+		{"TR_concat([TR_Tensor([[1.0, 2.0]]), TR_Tensor([1.0, 2.0])])", messages.H6309},
+		{"TR_concat([TR_Tensor([1.0]), TR_Tensor([2.0])], TR_dim: 3)", messages.H6016},
+		{"TR_concat([TR_Tensor([1.0])], axis: 0)", messages.H7900},
+		{"TR_Tensor([1.0, 2.0, 3.0]).TR_split(2)", messages.H6318},
+		{"TR_Tensor([1.0, 2.0]).TR_split(0)", messages.H6317},
 	}
 	for _, h := range errs {
 		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
@@ -66,7 +66,7 @@ TR_assert_equal(["a", "b"], "a,b".TR_split(","))
 
 func TestKeepDim(t *testing.T) {
 	mustRun(t, `
-TR_var x = TR_Tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+TR_var x = TR_Tensor([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
 TR_assert_equal([2, 2, 1], TR_sum(x, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
 TR_assert_equal([2, 1, 2], TR_mean(x, TR_dim: 1, TR_keepdim: TR_true).TR_shape)
 TR_assert_equal([[[4.0, 6.0]], [[12.0, 14.0]]], TR_sum(x, TR_dim: 1, TR_keepdim: TR_true).TR_tolist)
@@ -79,7 +79,7 @@ TR_assert_equal([1, 1, 1], TR_max(x, TR_keepdim: TR_true).TR_shape)
 TR_var w = TR_Tensor([[1.0, 3.0]], TR_requires_grad: TR_true)
 TR_var n = w / TR_sum(w, TR_dim: -1, TR_keepdim: TR_true)
 TR_assert_equal([[0.25, 0.75]], n.TR_tolist)
-TR_backward(TR_sum(n * TR_Tensor([1, 0])))
+TR_backward(TR_sum(n * TR_Tensor([1.0, 0.0])))
 TR_assert(TR_abs(w.TR_grad.TR_tolist[0][0] - 0.1875) < 0.000001)
 `)
 	for _, h := range []struct {
@@ -87,7 +87,7 @@ TR_assert(TR_abs(w.TR_grad.TR_tolist[0][0] - 0.1875) < 0.000001)
 		want messages.Code
 	}{
 		{"TR_sum([1, 2], TR_keepdim: TR_true)", messages.H6218},
-		{"TR_sum(TR_Tensor([1, 2]), TR_keepdim: 1)", messages.H7905},
+		{"TR_sum(TR_Tensor([1.0, 2.0]), TR_keepdim: 1)", messages.H7905},
 	} {
 		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
 			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)

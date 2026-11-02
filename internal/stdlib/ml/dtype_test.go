@@ -49,14 +49,14 @@ TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 		code string
 		want messages.Code
 	}{
-		{`TR_Tensor([1], TR_dtype: "bfloat16")`, messages.H6811},
-		{`TR_Tensor([1], TR_dtype: "bf61")`, messages.H6811},
+		{`TR_Tensor([1.0], TR_dtype: "bfloat16")`, messages.H6811},
+		{`TR_Tensor([1.0], TR_dtype: "bf61")`, messages.H6811},
 		{`TR_ones([1], TR_dtype: "half")`, messages.H6811},
 		{`TR_zeros([1], TR_dtype: "float64")`, messages.H6811},
 		{`TR_Tensor([1.0]).TR_to_dtype("fp32")`, messages.H6811},
 		{`TR_Tensor([1.0]).TR_to_dtype()`, messages.H6806},
-		{`TR_Tensor([1], TR_dtype: TR_none)`, messages.H6803},
-		{`TR_Tensor([1], dtype: "bf16")`, messages.H7901},
+		{`TR_Tensor([1.0], TR_dtype: TR_none)`, messages.H6803},
+		{`TR_Tensor([1.0], dtype: "bf16")`, messages.H7901},
 		{`TR_Tensor([1.0]).tür_`, messages.H7903},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {

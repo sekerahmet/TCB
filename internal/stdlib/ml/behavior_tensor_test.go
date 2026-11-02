@@ -8,8 +8,8 @@ import (
 )
 
 func TestForwardOps(t *testing.T) {
-	code := `TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
-TR_var b = TR_Tensor([[1, 0], [0, 1], [1, 1]])
+	code := `TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+TR_var b = TR_Tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
 `
 	cases := []struct {
 		expr  string
@@ -20,7 +20,7 @@ TR_var b = TR_Tensor([[1, 0], [0, 1], [1, 1]])
 		{"a + [10, 20, 30]", []float32{11, 22, 33, 14, 25, 36}, []int{2, 3}},
 		{"2 * a - 1", []float32{1, 3, 5, 7, 9, 11}, []int{2, 3}},
 		{"a / 2", []float32{0.5, 1, 1.5, 2, 2.5, 3}, []int{2, 3}},
-		{"a * TR_Tensor([[2], [3]])", []float32{2, 4, 6, 12, 15, 18}, []int{2, 3}},
+		{"a * TR_Tensor([[2.0], [3.0]])", []float32{2, 4, 6, 12, 15, 18}, []int{2, 3}},
 		{"1 + a", []float32{2, 3, 4, 5, 6, 7}, []int{2, 3}},
 		{"TR_sum(a)", []float32{21}, []int{}},
 		{"TR_sum(a, TR_dim: 1)", []float32{6, 15}, []int{2}},
@@ -29,23 +29,23 @@ TR_var b = TR_Tensor([[1, 0], [0, 1], [1, 1]])
 		{"TR_min(a, TR_dim: -1)", []float32{1, 4}, []int{2}},
 		{"TR_max(a, TR_dim: 0)", []float32{4, 5, 6}, []int{3}},
 		{"TR_relu(a - 3)", []float32{0, 0, 0, 1, 2, 3}, []int{2, 3}},
-		{"TR_sqrt(TR_Tensor([4, 9]))", []float32{2, 3}, []int{2}},
-		{"TR_exp(TR_Tensor([0]))", []float32{1}, []int{1}},
-		{"TR_log(TR_Tensor([1]))", []float32{0}, []int{1}},
+		{"TR_sqrt(TR_Tensor([4.0, 9.0]))", []float32{2, 3}, []int{2}},
+		{"TR_exp(TR_Tensor([0.0]))", []float32{1}, []int{1}},
+		{"TR_log(TR_Tensor([1.0]))", []float32{0}, []int{1}},
 		{"a.TR_reshape([3, 2]).TR_shape.TR_length", nil, nil},
 		{"a.TR_transpose()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
 		{"a.TR_transpose()", []float32{1, 4, 2, 5, 3, 6}, []int{3, 2}},
 		{"a.TR_reshape([-1])", []float32{1, 2, 3, 4, 5, 6}, []int{6}},
 		{"a.TR_slice(1, 1, 3)", []float32{2, 3, 5, 6}, []int{2, 2}},
 		{"a.TR_slice(0, -1, 2)", []float32{4, 5, 6}, []int{1, 3}},
-		{"TR_Tensor([[[1, 2], [3, 4]]]).TR_permute([0, 2, 1])", []float32{1, 3, 2, 4}, []int{1, 2, 2}},
-		{"TR_Tensor([1, 2, 3]) @ TR_Tensor([1, 1, 1])", []float32{6}, []int{}},
+		{"TR_Tensor([[[1.0, 2.0], [3.0, 4.0]]]).TR_permute([0, 2, 1])", []float32{1, 3, 2, 4}, []int{1, 2, 2}},
+		{"TR_Tensor([1.0, 2.0, 3.0]) @ TR_Tensor([1.0, 1.0, 1.0])", []float32{6}, []int{}},
 		{"TR_zeros([2, 3])", []float32{0, 0, 0, 0, 0, 0}, []int{2, 3}},
 		{"TR_ones([2])", []float32{1, 1}, []int{2}},
-		{"TR_embedding_lookup(TR_Tensor([[1, 1], [2, 2], [3, 3]]), [2, 0])", []float32{3, 3, 1, 1}, []int{2, 2}},
-		{"TR_embedding_lookup(TR_Tensor([[1, 1], [2, 2], [3, 3]]), 1)", []float32{2, 2}, []int{2}},
-		{"TR_layer_norm(TR_Tensor([[1, 2, 3]]), TR_ones([3]), TR_zeros([3]))", []float32{-1.2247, 0, 1.2247}, []int{1, 3}},
-		{"TR_rms_norm(TR_Tensor([[3, 4]]), TR_none)", []float32{0.8485, 1.1314}, []int{1, 2}},
+		{"TR_embedding_lookup(TR_Tensor([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]), [2, 0])", []float32{3, 3, 1, 1}, []int{2, 2}},
+		{"TR_embedding_lookup(TR_Tensor([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]), 1)", []float32{2, 2}, []int{2}},
+		{"TR_layer_norm(TR_Tensor([[1.0, 2.0, 3.0]]), TR_ones([3]), TR_zeros([3]))", []float32{-1.2247, 0, 1.2247}, []int{1, 3}},
+		{"TR_rms_norm(TR_Tensor([[3.0, 4.0]]), TR_none)", []float32{0.8485, 1.1314}, []int{1, 2}},
 	}
 	for _, d := range cases {
 		if d.data == nil {
@@ -82,9 +82,9 @@ TR_print(TR_randn([2, 3], TR_seed: 7).TR_shape)`)
 }
 
 func TestPrintFormat(t *testing.T) {
-	out := mustRun(t, `TR_print(TR_Tensor([[1, 2], [3, 4]]))
+	out := mustRun(t, `TR_print(TR_Tensor([[1.0, 2.0], [3.0, 4.0]]))
 TR_print(TR_Tensor([1.5, -2]))
-TR_print(TR_sum(TR_Tensor([1, 2], TR_requires_grad: TR_true)))`)
+TR_print(TR_sum(TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)))`)
 	want := "Tensor[2×2] [\n  [1.0000, 2.0000],\n  [3.0000, 4.0000]\n]\n" +
 		"Tensor[2] [ 1.5000, -2.0000]\n" +
 		"Tensor(3.0000, requires grad)\n"
@@ -108,7 +108,7 @@ TR_backward(y)
 TR_print(x.TR_tolist, y.TR_tolist, x.TR_grad, TR_Type(x))
 TR_print(TR_zeros([2, 3]).TR_shape, TR_Type(TR_ones([2, 2])), TR_Type(TR_zeros([3])))
 TR_print(TR_sum([1, 2, 3]), TR_min([3, 1, 2]), TR_max(4, 9), TR_sqrt(9), TR_mean([1, 2, 3]))
-TR_print(TR_softmax(TR_Tensor([1.0, 1.0])).TR_tolist, TR_relu(-2), TR_Type(TR_Tensor([[1, 2]]).TR_transpose()))`)
+TR_print(TR_softmax(TR_Tensor([1.0, 1.0])).TR_tolist, TR_relu(-2), TR_Type(TR_Tensor([[1.0, 2.0]]).TR_transpose()))`)
 	want := "3.0 16.0 Tensor(8.0000) Tensor\n[2, 3] Tensor Tensor\n6 1 9 3.0 2.0\n[0.5, 0.5] 0.0 Tensor\n"
 	if out != want {
 		t.Fatalf("eski davranış:\n%q\nbeklenen:\n%q", out, want)
@@ -118,7 +118,7 @@ TR_print(TR_softmax(TR_Tensor([1.0, 1.0])).TR_tolist, TR_relu(-2), TR_Type(TR_Te
 func TestBackwardGradient(t *testing.T) {
 	// k = ortalama((x @ w)^2), dk/dw = 2/N · xᵀ (x @ w)
 	v := value(t, `TR_var w = TR_Tensor([[0.5], [-0.5]], TR_requires_grad: TR_true)
-TR_var x = TR_Tensor([[1, 2], [3, 4]])
+TR_var x = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
 TR_var y = x @ w
 TR_backward(TR_mean(y * y))
 TR_var cikti = w.TR_grad`)
@@ -159,7 +159,7 @@ TR_try { TR_backward(TR_sum(a)) } TR_catch h { TR_print("hata") }`)
 
 func TestLinearRegressionAdamW(t *testing.T) {
 	// y = 2·x1 - 3·x2 + 0.5 verisinden ağırlıklar AdamW ile öğrenilir.
-	out := mustRun(t, `TR_var X = TR_Tensor([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
+	out := mustRun(t, `TR_var X = TR_Tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [2.0, 1.0], [1.0, 2.0]])
 TR_var Y = TR_Tensor([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
 TR_var w = TR_Tensor([[0.0], [0.0]], TR_requires_grad: TR_true)
 TR_var b = TR_Tensor([0.0], TR_requires_grad: TR_true)
@@ -189,7 +189,7 @@ func TestErrors(t *testing.T) {
 		{"TR_print(TR_zeros([2, 3]).TR_to_device(\"tpu\"))", messages.H6800},
 		{"TR_print(TR_zeros([2, 3]).TR_slice(1, 2, 5))", messages.H6720},
 		{"TR_print(TR_zeros([2, 3]).TR_permute([0, 0]))", messages.H6715},
-		{"TR_print(TR_Tensor([[1, 2], [3]]))", messages.H6027},
+		{"TR_print(TR_Tensor([[1.0, 2.0], [3.0]]))", messages.H6027},
 		{"TR_print(TR_Tensor([1, \"a\"]))", messages.H6007},
 		{"TR_backward(TR_zeros([2], TR_requires_grad: TR_true) * 2)", messages.H6401},
 		{"TR_backward(TR_sum(TR_zeros([2])))", messages.H6402},
@@ -243,7 +243,7 @@ func TestPanicToError(t *testing.T) {
 }
 
 func TestWatchPanel(t *testing.T) {
-	v := value(t, "TR_var cikti = TR_Tensor([[1, 2, 3], [4, 5, 6]])")
+	v := value(t, "TR_var cikti = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])")
 	d := v.(*TensorValue)
 	if d.WatchLabel() != "Tensör [2×3]" || d.WatchKind() != "tensor" {
 		t.Fatalf("etiket/tür: %q %q", d.WatchLabel(), d.WatchKind())

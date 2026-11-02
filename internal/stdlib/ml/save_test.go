@@ -80,8 +80,8 @@ TR_print(z["sapma"].TR_grad.TR_tolist)`)
 		want messages.Code
 	}{
 		{`TR_save_tensors("` + fpath + `", {"a": 1})`, messages.H6608},
-		{`TR_save_tensors("` + fpath + `", {1: TR_Tensor([1])})`, messages.H6606},
-		{`TR_save_tensors("` + fpath + `", [TR_Tensor([1])])`, messages.H6605},
+		{`TR_save_tensors("` + fpath + `", {1: TR_Tensor([1.0])})`, messages.H6606},
+		{`TR_save_tensors("` + fpath + `", [TR_Tensor([1.0])])`, messages.H6605},
 		{`TR_save_tensors("", {})`, messages.H6603},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
