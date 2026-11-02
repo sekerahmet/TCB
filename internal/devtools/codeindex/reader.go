@@ -21,6 +21,7 @@ type Reader struct {
 	// codeNames kodlu düğümlerin (Node.Code) kodu ve her yazım dilindeki adı -> düğüm kimlikleri; codeNamesFolded
 	// aynısı Türkçe katlanmış.
 	codeNames, codeNamesFolded map[string][]string
+	importAliases              map[string]bool     // dizindeki `aktar ... olarak <ad>` takma adları
 	parent                     map[string]string   // düğüm -> onu tanımlayan (defines kenarları, ters)
 	ignored                    map[string]bool     // git'in yok saydığı dosyalar (Index.Ignored)
 	children                   map[string][]string // düğüm -> tanımladıkları
@@ -47,6 +48,7 @@ func NewReader(idx *Index) *Reader {
 	r.builtinsFolded = foldNames(r.builtins)
 	r.codeNames = codeNames(idx)
 	r.codeNamesFolded = foldNames(r.codeNames)
+	r.importAliases = ImportAliases(idx)
 	r.folded = make([]foldedNames, len(idx.Nodes))
 	for i := range idx.Nodes {
 		n := &idx.Nodes[i]

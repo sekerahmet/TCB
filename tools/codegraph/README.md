@@ -265,7 +265,7 @@ stays the tool for Go code, messages and codes, docs and history.
   distance of it, also checked against the part after the last `.` or `/`).
 - A built-in's name in either language, its identity and its spelling in program text resolve to its name code:
   `query zaman_ms` (or `time_ms`, `TR_fn_time_ms`, `TR_time_ms`; a member also as `x.TR_map`, `l.TR_map` or `.TR_map`, the rule of
-  `codeindex.SpelledNames` and `codeindex.MemberQuery`, the same in both tools)
+  `codeindex.SpelledNames` and `codeindex.MemberQuery`, the same in both tools: when an uncoded receiver matches a known type that lacks the member while `x.<member>` resolves, the answer is ambiguous with the type and value candidates; a coded type or module receiver without the member is not found; the library-declaration fallback runs only when the receiver is an import alias in the index, such as `katman.TR_GPT`)
   prints the code, its Go constant, where the code is used or registered with the implementation
   named on the same line (`{codes.FnTimeMs, timeMsBuiltin}`; when the code keys a pair, `codes.CmdFormat: formatCommand`,
   only that pair's value, even with several pairs on one line), and the heading in `docs/codes.md`.

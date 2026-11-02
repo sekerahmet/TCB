@@ -220,15 +220,32 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			return at(found)
 		}
 	}
-	if mq := MemberQuery(q, len(nodes), func(i int) [][2]string {
-		if k := nodes[i].Kind; k == KindStruct || k == KindModule {
-			return r.qualifiedPairs(i)
-		}
+	return r.resolveMember(q, kind)
+}
+
+func (r *Reader) resolveMember(q, kind string) []*Node {
+	nodes := r.Index.Nodes
+	mq, types := MemberQuery(q, len(nodes), func(i int) Kind { return nodes[i].Kind }, r.qualifiedPairs, r.importAliases)
+	if mq == "" {
 		return nil
-	}); mq != "" {
-		return r.Resolve(mq, kind)
 	}
-	return nil
+	vals := r.Resolve(mq, kind)
+	if len(types) == 0 || len(vals) == 0 {
+		return vals
+	}
+	recv, member, _ := strings.Cut(q, ".")
+	var out []*Node
+	for _, i := range types {
+		cp := nodes[i]
+		cp.Note = MemberTypeNote(recv, member)
+		out = append(out, &cp)
+	}
+	for _, v := range vals {
+		cp := *v
+		cp.Note = MemberValueNote(recv, member)
+		out = append(out, &cp)
+	}
+	return out
 }
 
 // QualifiedMatch nitelenmiş adın adaylarını seçer; iki aracın (tr index ve codegraph) tek nitelenmiş ad kuralı:

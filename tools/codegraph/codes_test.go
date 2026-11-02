@@ -215,8 +215,9 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		"x.TR_map", "x.TR_forward",
 		"model.TR_forward", "Model.TR_forward", "TR_Linear.TR_forward", "tr_linear.tr_forward",
 		"Linear.TR_forward", "Doğrusal.TR_forward", "doğrusal.TR_forward", "GPT.TR_generate",
-		"model.TR_generate", "a.TR_shape", "model.TR_append", "tr_linear.TR_map",
-		"layers.TR_Linear.TR_forward", "layers.TR_GPT", "katman.TR_GPT",
+		"model.TR_generate", "a.TR_shape", "A.TR_shape", "A.TR_tolist", "model.TR_append", "tr_linear.TR_map",
+		"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
+		"layers.TR_Linear.TR_forward", "layers.TR_GPT", "katman.TR_GPT", "k.TR_Linear", "iyileştirici.TR_lr_schedule", "eğitim.TR_SpikeGuard",
 		"l.TR_map", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
 		".TR_map", ".TR_forward", "TR_self.TR_map", "TR_self.TR_forward",
 	} {
@@ -233,8 +234,14 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 			t.Errorf("query %q: codegraph %v, tr index %v", q, gotCG, gotTR)
 		}
 	}
+	for _, q := range []string{"A.TR_shape", "A.TR_tolist", "Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map"} {
+		if got := ix.lookup(q); len(got) != 2 {
+			t.Errorf("codegraph lookup %q: got %d candidates (%v), want 2", q, len(got), got)
+		}
+	}
 	for _, q := range []string{
-		"Model.TR_append", "TR_Linear.TR_map", "Linear.TR_map", "Doğrusal.TR_map",
+		"TR_Linear.TR_map", "A.TR_GPT",
+		"foo.TR_GPT", "model.TR_GPT", "TR_self.TR_GPT", ".TR_GPT", "x.TR_GPT",
 		"layers.TR_map", "layers.TR_append", "layers.TR_Linear.TR_map",
 	} {
 		if got := ix.lookup(q); len(got) != 0 {
@@ -246,16 +253,16 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 	}
 }
 
-// lowercaseMemberExceptions depodaki .tr dosyalarında küçük harfli alıcıyla yazılmış ama dilde üye ya da kitaplık
-// bildirimi karşılığı gerçekten bulunmayan `<alıcı>.TR_<ad>` yazımlarıdır; her istisna gerekçesiyle yazılır.
-var lowercaseMemberExceptions = map[string]string{
+// memberSpellingExceptions depodaki .tr dosyalarında yazılmış ama dilde üye ya da kitaplık bildirimi karşılığı
+// gerçekten bulunmayan `<alıcı>.TR_<ad>` yazımlarıdır; her istisna gerekçesiyle yazılır.
+var memberSpellingExceptions = map[string]string{
 	"l.TR_print": "tests/negative/kimlik_yeri.tr:4 (# ERROR H0029): TR_fn_print genel yerleşiktir, nokta sonrasında üye yeri hatasını sınar",
 }
 
-// Kural (DENETİM istek 48): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) küçük harfli alıcıyla
-// yazılmış her `<değişken>.TR_<üye>` yazımı iki araçta da (codegraph ve tr index) bulunur ya da aday listesi verir;
-// gerçekten tanımı olmayan negatif fikstür yazımları gerekçeli istisna listesindedir.
-func TestEveryLowercaseMemberSpellingInRepoTRFilesResolves(t *testing.T) {
+// Kural (DENETİM istek 48, 55): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) zincir başı ve rakamla
+// başlamayan her `<alıcı>.TR_<üye>` yazımı (büyük harfli alıcılar dahil) iki araçta da (codegraph ve tr index) bulunur
+// ya da aynı aday kümesini verir; gerçekten tanımı olmayan negatif fikstür yazımları gerekçeli istisna listesindedir.
+func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 	root, _, g := repoGraph(t)
 	ix := newIndex(g)
 	idx, err := repoIndex(root)
@@ -273,15 +280,20 @@ func TestEveryLowercaseMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, m := range re.FindAllString(string(data), -1) {
+		s := string(data)
+		for _, loc := range re.FindAllStringIndex(s, -1) {
+			if loc[0] > 0 && (s[loc[0]-1] == '.' || s[loc[0]-1] == ']' || s[loc[0]-1] == ')') {
+				continue
+			}
+			m := s[loc[0]:loc[1]]
 			recv, _, _ := strings.Cut(m, ".")
-			if r, _ := utf8.DecodeRuneInString(recv); unicode.IsLower(r) {
+			if r, _ := utf8.DecodeRuneInString(recv); !unicode.IsDigit(r) && !strings.HasPrefix(recv, "TR_mem_") {
 				seen[m] = true
 			}
 		}
 	}
-	if len(seen) < 600 {
-		t.Fatalf("only %d lowercase member spellings found in .tr files", len(seen))
+	if len(seen) < 695 {
+		t.Fatalf("only %d member spellings found in .tr files", len(seen))
 	}
 	for _, q := range slices.Sorted(maps.Keys(seen)) {
 		var gotCG, gotTR []string
@@ -293,9 +305,9 @@ func TestEveryLowercaseMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 		}
 		slices.Sort(gotCG)
 		slices.Sort(gotTR)
-		if lowercaseMemberExceptions[q] != "" {
+		if memberSpellingExceptions[q] != "" {
 			if len(gotCG) != 0 || len(gotTR) != 0 {
-				t.Errorf("exception %q resolved (codegraph=%v, tr index=%v); remove from lowercaseMemberExceptions", q, gotCG, gotTR)
+				t.Errorf("exception %q resolved (codegraph=%v, tr index=%v); remove from memberSpellingExceptions", q, gotCG, gotTR)
 			}
 			continue
 		}
@@ -303,7 +315,7 @@ func TestEveryLowercaseMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 			t.Errorf("%q: codegraph=%v, tr index=%v", q, gotCG, gotTR)
 		}
 	}
-	for q := range lowercaseMemberExceptions {
+	for q := range memberSpellingExceptions {
 		if !seen[q] {
 			t.Errorf("stale exception %q: no longer appears in .tr files", q)
 		}
