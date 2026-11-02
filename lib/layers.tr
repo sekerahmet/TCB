@@ -565,8 +565,8 @@ TR_struct TR_GPT {
         TR_var cos_tablosu = TR_embedding_lookup(TR_self.TR_cos_table, TR_position)
         TR_var sin_tablosu = TR_embedding_lookup(TR_self.TR_sin_table, TR_position)
         TR_cache.TR_device_step(TR_position)
+        TR_defer { TR_cache.TR_device_step(TR_none) } # hata verse de önbellek konak konumuna döner
         TR_var x = TR_self.TR_run_blocks(gömülü, bağlamlar, cos_tablosu, sin_tablosu, TR_token_id, TR_cache)
-        TR_cache.TR_device_step(TR_none)
         TR_return TR_self.TR_logits(TR_self.TR_final_norm.TR_forward(x, TR_output_dtype: TR_compute_dtype()))[0][0]
     }
     # kimlikler [B, T] (T ≤ bağlam) → logit [B, T, dağarcık]; önbellek: gizli_durum.
