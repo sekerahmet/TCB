@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"slices"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -39,9 +40,13 @@ func (t *TaskVal) cancel(y *VM) {
 }
 
 // addChild child'ı görevin alt görevi olarak kaydeder: görev bitmeden önce beklenir. İptal
-// edilmiş görevin yeni alt görevi de iptal edilir.
+// edilmiş görevin yeni alt görevi de iptal edilir. Liste dolunca bitmiş alt görevler budanır:
+// her turda görev başlatan uzun ömürlü bir görevin listesi bitmişlerle büyümez.
 func (t *TaskVal) addChild(y *VM, child *TaskVal) {
 	t.mu.Lock()
+	if len(t.children) == cap(t.children) {
+		t.children = slices.DeleteFunc(slices.Clone(t.children), (*TaskVal).stopped)
+	}
 	t.children = append(t.children, child)
 	cancelled := t.cancelled.Load()
 	t.mu.Unlock()
@@ -52,11 +57,11 @@ func (t *TaskVal) addChild(y *VM, child *TaskVal) {
 
 // endChildren görev gövdesi bitince alt görevleri bekler (10.9: görev program gibi biter); görev
 // hatayla ya da iptalle bittiyse (failed) önce onları iptal eder. Bekleme bir temizlik işidir:
-// durdurma ya da iptal onu kesmez. y görevin kendi görünümüdür.
+// durdurma ya da iptal onu kesmez. Liste bekleme bitene kadar kalır: bekleme sürerken gelen iptal
+// (süre sınırınınki de, 10.7) alt görevlere geçer. y görevin kendi görünümüdür.
 func (t *TaskVal) endChildren(y *VM, failed bool) {
 	t.mu.Lock()
 	children := t.children
-	t.children = nil
 	t.mu.Unlock()
 	if failed {
 		for _, c := range children {
@@ -68,6 +73,9 @@ func (t *TaskVal) endChildren(y *VM, failed bool) {
 	for _, c := range children {
 		_ = y.awaitReady(nil, c.done, false) // temizlikte bırakılmaz, hep nil döner
 	}
+	t.mu.Lock()
+	t.children = nil
+	t.mu.Unlock()
 }
 
 // cancelError iptal edilen görevin bitiş hatasıdır: iptalin kendisi (görevin durması) iptal

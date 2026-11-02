@@ -199,3 +199,62 @@ TR_print(TR_error_code { d.TR_wait(TR_timeout: 0.05) })
 	}
 	t.Fatalf("%d koşunun hiçbiri 50 ms ile %v arasında bitmedi: %v", runs, limit, took)
 }
+
+// Kural (10.9, 10.7): gövdesi bitmiş, alt görevini bekleyen görevin iptali de alt göreve geçer:
+// bekleme alt görevin kendiliğinden bitmesini beklemez. Süre sınırlı bekleme sınır kadar, düz iptal
+// hemen biter; alt görev 5 saniye uyur. Süre tekdüze saatle (time.Since) ölçülür.
+func TestCancelReachesAFinishedBodysChildren(t *testing.T) {
+	const timeout = `TR_var ana = TR_async {
+    TR_async { TR_sleep(5) }
+}
+TR_sleep(0.02)
+TR_print(TR_error_code { ana.TR_wait(TR_timeout: 0.1) })
+`
+	const cancel = `TR_var ana = TR_async {
+    TR_async { TR_sleep(5) }
+}
+TR_sleep(0.02)
+ana.TR_cancel()
+TR_print(TR_error_code { ana.TR_wait() })
+`
+	for _, c := range []struct{ name, source, want string }{
+		{"süre sınırı", timeout, "H2921\n"},
+		{"iptal", cancel, "H2920\n"},
+	} {
+		start := time.Now()
+		out, _, err := runTROut(t, c.source)
+		elapsed := time.Since(start)
+		if err != nil || out != c.want {
+			t.Fatalf("%s: %q beklenirdi, gelen %q (%v)", c.name, c.want, out, err)
+		}
+		if elapsed > 2*time.Second {
+			t.Fatalf("%s: bekleme alt görevin kendi bitişini bekledi: %v", c.name, elapsed)
+		}
+		t.Logf("%s: %v", c.name, elapsed)
+	}
+}
+
+// Kural (10.9): uzun ömürlü görevin alt görev listesi bitmiş alt görevlerle büyümez: liste dolunca
+// bitmişler budanır. Görev her turda biten bir alt görev başlatır; listede birkaç görev kalır.
+func TestAFinishedChildIsNotKept(t *testing.T) {
+	prog := mustParseProgram(t, `TR_var ana = TR_async {
+    TR_for i TR_in 0..200 {
+        TR_async { }
+        TR_sleep(0.001)
+    }
+    TR_print(altlar() < 64)
+}
+ana.TR_wait()
+`)
+	machine := New()
+	var out bytes.Buffer
+	machine.Out = &out
+	machine.RegisterBuiltin("altlar", func(y *VM, _ []Value, _ map[string]Value) (Value, error) {
+		y.task.mu.Lock()
+		defer y.task.mu.Unlock()
+		return NewInt(int64(len(y.task.children))), nil
+	})
+	if _, err := machine.Run(prog); err != nil || out.String() != "true\n" {
+		t.Fatalf("liste budanmalıydı: %q (%v)", out.String(), err)
+	}
+}
