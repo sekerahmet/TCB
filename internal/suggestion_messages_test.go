@@ -131,6 +131,8 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var a = TR_Tensor([4, 6])\nTR_var b = TR_Tensor([2, 0])\nTR_print((a // TR_where(b == 0, 1, b)).TR_tolist)", "[2, 6]\n"},
 	{messages.H6966, "TR_var x = TR_Tensor([1.0, 2.0])\nTR_var m = x > 1.5\nTR_print((m + x).TR_tolist)", "TR_where(m, 1.0, 0.0)",
 		"TR_var x = TR_Tensor([1.0, 2.0])\nTR_var m = x > 1.5\nTR_print((TR_where(m, 1.0, 0.0) + x).TR_tolist)", "[1.0, 3.0]\n"},
+	{messages.H6966, "TR_var t = TR_Tensor([0, 0, 5])\nTR_var m = TR_Tensor([TR_true, TR_false])\nt[0..2] = m\nTR_print(t.TR_tolist)", "TR_where(m, 1, 0)",
+		"TR_var t = TR_Tensor([0, 0, 5])\nTR_var m = TR_Tensor([TR_true, TR_false])\nt[0..2] = TR_where(m, 1, 0)\nTR_print(t.TR_tolist)", "[1, 0, 5]\n"},
 	{messages.H6966, "TR_var t = TR_Tensor([3, 4])\nTR_var p = t\nt /= 2\nTR_print(p.TR_tolist)", "//=",
 		"TR_var t = TR_Tensor([3, 4])\nTR_var p = t\nt //= 2\nTR_print(p.TR_tolist)", "[1, 2]\n"},
 	{messages.H6967, "TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print((m + m).TR_tolist)", "TR_where(m, 1.0, 0.0)",

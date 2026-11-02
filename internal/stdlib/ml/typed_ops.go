@@ -94,7 +94,7 @@ func (d *TensorValue) typedOperator(m *interp.VM, op string, other interp.Value,
 		a, b = o, d.t
 	}
 	if a.Elem() != b.Elem() {
-		return nil, messages.New(messages.H6966, op, a.DType().Name(), b.DType().Name(), "other")
+		return nil, kindMismatch(op, a.DType(), b.DType())
 	}
 	if err := checkBroadcast(m, op, a, b); err != nil {
 		return nil, err

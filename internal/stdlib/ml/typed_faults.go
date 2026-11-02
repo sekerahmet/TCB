@@ -59,3 +59,15 @@ func typedResult(fn any, op string, r *tensor.Tensor, f *tensor.ElemFault) (*Ten
 	}
 	return New(r), nil
 }
+
+// kindMismatch iki yanı başka cinsten olan işlemin iletisidir (H6966). İleti mantıktan sayı
+// kurmayı önerir; öbür yan tam sayıysa öneri tam sayı verir (`TR_where(m, 1, 0)`), ondalık
+// öneri aynı hatayı yeniden verirdi.
+func kindMismatch(op any, left, right tensor.DType) error {
+	branch := "other"
+	if left.Elem() == tensor.ElemBool && right.Elem() == tensor.ElemInt ||
+		left.Elem() == tensor.ElemInt && right.Elem() == tensor.ElemBool {
+		branch = "int"
+	}
+	return messages.New(messages.H6966, op, left.Name(), right.Name(), branch)
+}

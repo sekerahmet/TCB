@@ -424,7 +424,7 @@ func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
 		return src, nil
 	}
 	if src.Elem() != target.Elem() {
-		return nil, messages.New(messages.H6966, "=", target.DType().Name(), src.DType().Name(), "other")
+		return nil, kindMismatch("=", target.DType(), src.DType())
 	}
 	return convertKind("=", src, target.DType())
 }
