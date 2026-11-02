@@ -38,8 +38,15 @@ TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
     TR_assert_equal(3, bitenler.TR_length)
 }
 
-TR_test "10.5 bekle_hepsi() argüman almaz; görev listesi biçimi görev değeriyle (10.1) gelir" {
-    TR_assert_equal("H2014", TR_error_code { TR_wait_all([1, 2]) })
+TR_test "10.5 bekle_hepsi(görevler) sonuçları verilen sırayla verir; bitme sırası değiştirmez" {
+    TR_func iş(x: TR_Int, süre: TR_Float) -> TR_Int {
+        TR_sleep(süre)
+        TR_return x * 10
+    }
+    TR_var görevler = [TR_async iş(1, 0.03), TR_async iş(2, 0.0), TR_async iş(3, 0.01)]
+    TR_assert_equal([10, 20, 30], TR_wait_all(görevler))
+    TR_assert_equal([], TR_wait_all([]))
+    TR_assert_equal("H2919", TR_error_code { TR_wait_all([1, 2]) })
 }
 
 TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {

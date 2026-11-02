@@ -493,6 +493,7 @@
 "H2916": { "param": [], "slots": {"defer": "TR_kw_defer"} },
 "H2917": { "param": ["name"], "slots": {"catch": "TR_kw_catch"} },
 "H2918": { "param": ["fn", "line"] },
+"H2919": { "param": ["fn", "index", "given"], "slots": {"async": "TR_kw_async"} },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

@@ -71,22 +71,60 @@ func (t *TaskVal) GetProperty(kd codes.Code, name string) (Value, error) {
 	return nil, messages.New(messages.H2428, ValTask, name, "")
 }
 
-// wait waits until the task stops, with the interpreter lock released, and gives its result or its
-// error. A stop applied to the program abandons the wait (1.5).
+// wait waits until the task stops and gives its result or its error.
 func (t *TaskVal) wait(y *VM) (Value, error) {
-	if !t.stopped() {
-		if y.task == t {
-			// Görev kendi durmasını bekleyemez: sonsuza dek kilitlenirdi.
-			return nil, messages.New(messages.H2918, CallPrefix(codes.MemWait), t.line)
-		}
-		if y.exclusive != nil {
-			return nil, messages.New(messages.H2522, CallPrefix(codes.MemWait), y.exclusive)
-		}
-		if err := y.awaitReady(nil, t.done, false); err != nil {
-			return nil, err
-		}
+	if err := t.await(y, codes.MemWait); err != nil {
+		return nil, err
 	}
 	return t.result, t.err
+}
+
+// await waits until the task stops, with the interpreter lock released; fn is the waiting builtin
+// (for its errors). A stop applied to the program abandons the wait (1.5).
+func (t *TaskVal) await(y *VM, fn codes.Code) error {
+	if t.stopped() {
+		return nil
+	}
+	if y.task == t {
+		// Görev kendi durmasını bekleyemez: sonsuza dek kilitlenirdi.
+		return messages.New(messages.H2918, CallPrefix(fn), t.line)
+	}
+	if y.exclusive != nil {
+		return messages.New(messages.H2522, CallPrefix(fn), y.exclusive)
+	}
+	return y.awaitReady(nil, t.done, false)
+}
+
+// waitTasks is TR_wait_all(görevler) (10.5): it waits for every task of the list and gives their
+// results in the list's order. When tasks ended with an error, all are still waited; the first one
+// in the list's order is thrown and the others join its TR_suppressed in order (9.4), so none is
+// lost. The finishing order does not change which error is thrown.
+func waitTasks(y *VM, arg Value) (Value, error) {
+	l, ok := arg.(*ListVal)
+	if !ok {
+		return nil, ArgTypeError(codes.FnWaitAll, 1, arg, codes.TypeList)
+	}
+	tasks := make([]*TaskVal, len(l.Elements))
+	for i, e := range l.Elements {
+		t, ok := e.(*TaskVal)
+		if !ok {
+			return nil, messages.New(messages.H2919, CallPrefix(codes.FnWaitAll), i, TypeAndSummary(e))
+		}
+		tasks[i] = t
+	}
+	results := make([]Value, len(tasks))
+	var thrown error
+	for i, t := range tasks {
+		if err := t.await(y, codes.FnWaitAll); err != nil {
+			return nil, err
+		}
+		results[i] = t.result
+		thrown = addDeferError(thrown, t.err)
+	}
+	if thrown != nil {
+		return nil, thrown
+	}
+	return &ListVal{Elements: results}, nil
 }
 
 // Compile-time check: the interpreter finds the members by type assertion.

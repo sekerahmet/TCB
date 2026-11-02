@@ -398,8 +398,9 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.5
 
-- **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor; argümanlı çağrı (`TR_wait_all([1, 2])`) H2014 veriyor, eskiden listeyi kabul edip `TR_true` veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/eszamanli_test.tr`'nin 10.5 testleri]. Liste biçimi 10.1'i bekliyor: görev değeri yok (`TR_var g = TR_async f(3)` sözdizimi hatası, `TR_Task` ve `.TR_wait()` tanım dosyasında yok).
-- **Yapılacaklar:** `TR_wait_all(görevler)`'in sonuç listesi ve verilen sıradaki ilk hatası; TR testi.
+- **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor ve `TR_true` veriyor; 10.5 "sonuç vermez" diyor [ölçüldü: `9abf8ed5`].
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_wait_all(görevler)` görevlerin hepsini bekliyor, sonuçları verilen sırayla liste olarak veriyor (bitme sırası değiştirmiyor). Hatalarda verilen sıradaki ilk hatalı görevin hatası fırlıyor, öbürleri onun `TR_suppressed`'ine sırayla ekleniyor. Görev olmayan öğe H2919, ikiden çok argüman H2012 [test: `TestWaitAllGivesResultsAndTheFirstErrorInTheGivenOrder`, `TestWaitAllTakesNoneOrATaskList`, `tests/eszamanli_test.tr`'nin 10.5 testleri].
+- **Yapılacaklar:** argümansız `TR_wait_all()` sonuç vermez (bugün `TR_true`).
 
 ### 10.6
 

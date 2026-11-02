@@ -53,3 +53,30 @@ TR_print(TR_error_code { h.TR_wait() })
 		t.Fatal("argümanlı TR_done hata vermeli")
 	}
 }
+
+// Kural (10.5): TR_wait_all(görevler) görevlerin hepsini bekler, sonuçları verilen sırayla bir liste
+// olarak verir. Hatalarda verilen sıradaki ilk hatalı görevin hatası fırlar (bitme sırası değiştirmez),
+// öbürleri onun TR_suppressed'ine eklenir. Görev olmayan öğe H2919.
+func TestWaitAllGivesResultsAndTheFirstErrorInTheGivenOrder(t *testing.T) {
+	const source = `TR_func iş(x: TR_Int, süre: TR_Float) -> TR_Int {
+    TR_sleep(süre)
+    TR_return x * 10
+}
+TR_func hata(m: TR_String, süre: TR_Float) -> TR_Int {
+    TR_sleep(süre)
+    TR_throw m
+}
+TR_print(TR_wait_all([TR_async iş(1, 0.03), TR_async iş(2, 0.0), TR_async iş(3, 0.01)]), TR_wait_all([]))
+TR_try {
+    TR_wait_all([TR_async iş(1, 0.0), TR_async hata("ikinci", 0.03), TR_async hata("üçüncü", 0.0)])
+} TR_catch e {
+    TR_print(e, e.TR_suppressed)
+}
+TR_print(TR_error_code { TR_wait_all([TR_async iş(1, 0.0), 5]) })
+`
+	out, _, err := runTROut(t, source)
+	const want = "[10, 20, 30] []\nikinci [üçüncü]\nH2919\n"
+	if err != nil || out != want {
+		t.Fatalf("%q beklenirdi, gelen %q (%v)", want, out, err)
+	}
+}

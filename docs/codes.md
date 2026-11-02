@@ -3095,19 +3095,19 @@ tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].
 
 #### `TR_wait_all(...)` (`TR_fn_wait_all`, `bekle_hepsi`)
 
-    bekle_hepsi() → Mantık
+    bekle_hepsi([Liste]) → Liste | Mantık
 
-Başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır.
+Argümansız başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır. Bir görev listesiyle o görevleri bekler ve sonuçlarını verilen sırayla liste olarak verir; hatalı görev varsa verilen sıradaki ilk görevin hatasını fırlatır, öbürlerinin hataları onun bastırılanlarına eklenir.
 
 ```tr
-TR_var s = 0; TR_for i TR_in 1..=3 { TR_async { s += i } }; TR_wait_all(); TR_print(s)
+TR_var s = 0; TR_for i TR_in 1..=3 { TR_async { s += i } }; TR_wait_all(); TR_print(s, TR_wait_all([TR_async TR_sum([1, 2]), TR_async TR_sum([3])]))
 ```
 
 Görünümü:
 
 ```text
-en: var s = 0; for i in 1..=3 { async { s += i } }; wait_all(); print(s)
-tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s)
+en: var s = 0; for i in 1..=3 { async { s += i } }; wait_all(); print(s, wait_all([async sum([1, 2]), async sum([3])]))
+tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s, bekle_hepsi([eşzamanlı toplam([1, 2]), eşzamanlı toplam([3])]))
 ```
 
 İlişkili: `TR_async`, `TR_sleep(...)`
