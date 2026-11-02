@@ -269,8 +269,12 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	}
 	v.endCall(depth, val)
 	if !fk.hasDefer {
-		if derr := v.runDefers(fnEnv); derr != nil {
-			val, err = nil, addDeferError(err, derr)
+		// Gövdede 'ertele' yoksa da ortama iş eklenebilir (hata ayıklayıcının ExecStatements'ı).
+		// Denetim burada: runDefers satır içine alınmıyor, her çağrıda boşuna çağrılmasın.
+		if fnEnv.hasDefers() {
+			if derr := v.runDefers(fnEnv); derr != nil {
+				val, err = nil, addDeferError(err, derr)
+			}
 		}
 		// Hata ayıklayıcı bağlıyken ortam onun elinde kalabilir; havuza konmaz.
 		if fk.pooled && v.Debugger == nil {

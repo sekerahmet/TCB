@@ -147,10 +147,13 @@ func (e *Environment) AddDefer(fn func() error) {
 	target.extra.defers = append(target.extra.defers, fn)
 }
 
+// hasDefers ortamda çalışmayı bekleyen ertelenen iş olup olmadığıdır.
+func (e *Environment) hasDefers() bool { return e.extra != nil && len(e.extra.defers) > 0 }
+
 // RunDefers runs the recorded deferred work in reverse order. An error in one does not stop
 // the rest; the errors are joined in run order and returned (see erteleHatasiEkle).
 func (e *Environment) RunDefers() error {
-	if e.extra == nil || len(e.extra.defers) == 0 {
+	if !e.hasDefers() {
 		return nil
 	}
 	list := e.extra.defers
