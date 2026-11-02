@@ -119,6 +119,9 @@ func TestPTXCompileErrorLog(t *testing.T) {
 // Kural: benzetim de ptxas gibi .entry adı PTX tanıtıcısı olmayan modülü reddeder (gerçek kart
 // `cinsli_0_0_0_[float32 float32]_bool`'u reddetmişti, benzetim geçirmişti).
 func TestSimRejectsInvalidEntryName(t *testing.T) {
+	old := ptxDumpDir // derlenemeyen PTX'in dökümü testin klasörüne (TestPTXCompileErrorLog gibi)
+	ptxDumpDir = t.TempDir()
+	t.Cleanup(func() { ptxDumpDir = old })
 	g := newSimBackend(1 << 20)
 	g.enter()
 	defer g.exit()
