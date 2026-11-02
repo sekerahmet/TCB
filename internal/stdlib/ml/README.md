@@ -33,6 +33,7 @@ Denetim: `TestPanicToError`, `TestWrappedBuiltinPanicIsCatchable`.
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
+- `behavior_gpu_typed_test.go`: GPU'da cinsli yolların (argmax'in `TR_Int` sonucu, taşıma, tam sayı içinde dönüşüm, `TR_Bool` karşılaştırma ve maske, `TR_where`) CPU ile aynı olması; öbür cinsli işlemin hassasiyet hatası (2a adım 8)
 - `behavior_device_rules_test.go`: indeksle atamada cihaz kuralları (15.40) ve `TR_recompute` kaydında sayı işleneninin cihazda doldurulması (15.45)
 - `behavior_device_args_test.go`: liste argümanlarının girdinin cihazında çevrilmesi (15.38) ve farklı cihaz iletisinin `.TR_to_device(...)` önermesi (15.40)
 - `behavior_file_paths_test.go`: tensör dosya işlemlerinde yol çözümü ve Türkçe hata iletileri

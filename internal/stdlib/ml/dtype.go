@@ -275,9 +275,28 @@ func convertKind(fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, err
 	if t.DType().IsFloat() && dt.IsFloat() {
 		return castTo(t, dt)
 	}
+	dev := t.Device()
+	onHost := dev != tensor.CPU && dt.Elem() == tensor.ElemInt
 	var r *tensor.Tensor
 	var f *tensor.ElemFault
-	if _, err := safe(func() *tensor.Tensor { r, f = tensor.Convert(t, dt); return r }); err != nil {
+	if _, err := safe(func() *tensor.Tensor {
+		src := t
+		if onHost {
+			// Tam sayıya dönüşüm GPU'da sonucu bekleyen işlemdir (15.6: sığma ve NaN denetimi);
+			// bu dilimde denetim ve dönüşüm konakta yapılır, sonuç cihaza döner.
+			src = t.To(tensor.CPU)
+		}
+		r, f = tensor.Convert(src, dt)
+		if onHost {
+			if f == nil {
+				host := r
+				r = host.To(dev)
+				host.Drop()
+			}
+			src.Drop()
+		}
+		return r
+	}); err != nil {
 		return nil, err
 	}
 	if f != nil {
