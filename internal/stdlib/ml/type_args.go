@@ -35,7 +35,7 @@ func kindConstructor(k codes.Code, base interp.BuiltinFunc) interp.TypeArgsFunc 
 	return func(_ *interp.VM, args []*interp.TypeVal) (*interp.BuiltinVal, error) {
 		kind := args[0].Code
 		if _, ok := kindDTypes[kind]; !ok || args[0].Struct != nil || args[0].Elems != nil {
-			return nil, messages.New(messages.H6971, fn, interp.Shown(args[0]))
+			return nil, messages.New(messages.H6971, fn, interp.Shown(args[0]), codes.Spelling(k))
 		}
 		if k == codes.FnRandn && kind != codes.TypeFloat {
 			// İletinin bütün adları kod örneğindedir: kimlik yazımıyla.

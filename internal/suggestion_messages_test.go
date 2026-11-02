@@ -3,6 +3,7 @@ package internal_test
 import (
 	"bytes"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -130,21 +131,25 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var a = TR_Tensor([4, 6])\nTR_var b = TR_Tensor([2, 0])\nTR_print((a // TR_where(b == 0, 1, b)).TR_tolist)", "[2, 6]\n"},
 	{messages.H6966, "TR_var x = TR_Tensor([1.0, 2.0])\nTR_var m = x > 1.5\nTR_print((m + x).TR_tolist)", "TR_where(m, 1.0, 0.0)",
 		"TR_var x = TR_Tensor([1.0, 2.0])\nTR_var m = x > 1.5\nTR_print((TR_where(m, 1.0, 0.0) + x).TR_tolist)", "[1.0, 3.0]\n"},
+	{messages.H6966, "TR_var t = TR_Tensor([3, 4])\nt /= 2\nTR_print(t.TR_tolist)", "//=",
+		"TR_var t = TR_Tensor([3, 4])\nt //= 2\nTR_print(t.TR_tolist)", "[1, 2]\n"},
 	{messages.H6967, "TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print((m + m).TR_tolist)", "TR_where(m, 1.0, 0.0)",
 		"TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print((TR_where(m, 1.0, 0.0) + TR_where(m, 1.0, 0.0)).TR_tolist)", "[2.0, 0.0]\n"},
 	{messages.H6967, "TR_var t = TR_Tensor([1.0, -1.0])\nTR_print((~t).TR_tolist)", "t > 0.0",
 		"TR_var t = TR_Tensor([1.0, -1.0])\nTR_print((~(t > 0.0)).TR_tolist)", "[false, true]\n"},
-	{messages.H6968, "TR_var t = TR_Tensor([1, 2])\nTR_print((t + [1, 2]).TR_tolist)", "TR_Tensor([",
+	{messages.H6968, "TR_var t = TR_Tensor([1, 2])\nTR_print((t + [1, 2]).TR_tolist)", "TR_Tensor([...])",
 		"TR_var t = TR_Tensor([1, 2])\nTR_print((t + TR_Tensor([1, 2])).TR_tolist)", "[2, 4]\n"},
+	{messages.H6968, "TR_var t = TR_Tensor([1, 2])\nTR_print((t * 2.5).TR_tolist)", "TR_Tensor[TR_Float](t)",
+		"TR_var t = TR_Tensor([1, 2])\nTR_print((TR_Tensor[TR_Float](t) * 2.5).TR_tolist)", "[2.5, 5.0]\n"},
 	{messages.H6970, "TR_print(TR_zeros[\"int\"]([2]).TR_tolist)", "TR_zeros[TR_Int]",
 		"TR_print(TR_zeros[TR_Int]([2]).TR_tolist)", "[0, 0]\n"},
-	{messages.H6971, "TR_print(TR_Tensor[TR_String]([1]).TR_tolist)", "TR_Int",
+	{messages.H6971, "TR_print(TR_Tensor[TR_String]([1]).TR_tolist)", "TR_Tensor[TR_Int](...)",
 		"TR_print(TR_Tensor[TR_Int]([1]).TR_tolist)", "[1]\n"},
 	{messages.H6972, "TR_print(TR_randn[TR_Int]([2]).TR_dtype)", "TR_randn[TR_Float]",
 		"TR_print(TR_randn[TR_Float]([2]).TR_dtype)", "float32\n"},
-	{messages.H6976, "TR_var t = TR_Tensor([1, 2], TR_dtype: \"float64\")\nTR_print(t.TR_tolist, t.TR_dtype)", "TR_Tensor[TR_Float](",
+	{messages.H6976, "TR_var t = TR_Tensor([1, 2], TR_dtype: \"float64\")\nTR_print(t.TR_tolist, t.TR_dtype)", "TR_Tensor[TR_Float](...)",
 		"TR_var t = TR_Tensor[TR_Float]([1, 2], TR_dtype: \"float64\")\nTR_print(t.TR_tolist, t.TR_dtype)", "[1.0, 2.0] float64\n"},
-	{messages.H6976, "TR_print(TR_zeros([2], TR_dtype: \"bool\").TR_tolist)", "TR_zeros[TR_Bool](",
+	{messages.H6976, "TR_print(TR_zeros([2], TR_dtype: \"bool\").TR_tolist)", "TR_zeros[TR_Bool](...)",
 		"TR_print(TR_zeros[TR_Bool]([2], TR_dtype: \"bool\").TR_tolist)", "[false, false]\n"},
 	{messages.H6976, "TR_print(TR_randn([2], TR_dtype: \"int64\").TR_dtype)", "TR_dtype: \"float32\"",
 		"TR_print(TR_randn([2], TR_dtype: \"float32\").TR_dtype)", "float32\n"},
@@ -231,12 +236,13 @@ func verifySuggestionResult(t *testing.T, tc suggestionResultCase) {
 	if matched == nil {
 		t.Fatalf("%s (%q): beklenen kod üretilmedi", tc.code, tc.wrong)
 	}
+	// Öneri iletinin tam bir kod parçasıdır (iki ters tırnağın arası), parçasının bir kesiti değil.
 	for _, lang := range []string{"tr", "en"} {
-		if text := messages.ErrorIn(matched, lang); !strings.Contains(text, tc.suggestion) {
-			t.Errorf("%s (%s): ileti %q önerisini içermiyor: %q", tc.code, lang, tc.suggestion, text)
+		if text := messages.ErrorIn(matched, lang); !strings.Contains(text, "`"+tc.suggestion+"`") {
+			t.Errorf("%s (%s): ileti %q önerisini tam kod parçası olarak içermiyor: %q", tc.code, lang, tc.suggestion, text)
 		}
 	}
-	if !strings.Contains(tc.fixed, tc.suggestion) {
+	if !containsFilled(tc.fixed, tc.suggestion) {
 		t.Fatalf("%s: düzeltilmiş program önerinin yazımını (%q) içermiyor", tc.code, tc.suggestion)
 	}
 	diags, out := runProgram(tc.fixed)
@@ -245,6 +251,16 @@ func verifySuggestionResult(t *testing.T, tc suggestionResultCase) {
 	} else if out != tc.out {
 		t.Errorf("%s: önerilen yazımın (%q) çıktısı %q, beklenen %q", tc.code, tc.fixed, out, tc.out)
 	}
+}
+
+// containsFilled program önerinin yazımını içeriyor mu; önerideki "..." programın yazdığı
+// argümanların yeridir (`TR_zeros[TR_Bool](...)`): öbür parçalar aynı satırda sırayla bulunur.
+func containsFilled(program, suggestion string) bool {
+	parts := strings.Split(suggestion, "...")
+	for i, p := range parts {
+		parts[i] = regexp.QuoteMeta(p)
+	}
+	return regexp.MustCompile(strings.Join(parts, `[^\n]+`)).MatchString(program)
 }
 
 func firstWithCode(diags []error, code messages.Code) error {

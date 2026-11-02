@@ -60,7 +60,7 @@ func (d *TensorValue) typedOperandFor(fn any, op string, other interp.Value, onR
 		}
 		return nil, mismatch("bool")
 	case *interp.ListVal:
-		return nil, mismatch("other")
+		return nil, mismatch("list")
 	}
 	return nil, messages.New(messages.H6204, fn, typeName(other))
 }
