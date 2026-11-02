@@ -850,19 +850,19 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.46
 
 - **Mevcut durum:** tensörler yalnız float tutuyor; `TR_save_tensors` float32, bf16, fp16 yazıyor (sürüm 2; tür kodları 1, 2, 3) [ölçüldü]; biçim uzantıya göre seçiliyor [test: TestSaveTensorsChoosesFormatByExtension]. Dosyada veri taşıyan tensör en çok 2³² öğe, verisiz şekil (sıfır eksenler 1 sayılarak) en çok 50 milyon öğe bildirebiliyor [kanıtlı: bugünkü 15.46'nın metni]; 15.46'nın sıfır uzunluklu eksen TR testi (`tests/tensor_test.tr:560`) `[1048576, 0, 8192]` şekilli verisiz tensörün reddini bekliyor.
-- **Yapılacaklar:** her cinsin ve hassasiyetin tür kodu (sürüm 2 kalır; bugünkü dosyalar okunmaya devam eder); `TR_AnyTensor` ve `.TR_narrow[E]()`; 2³² ve 50 milyon sınırları kalkar, öğe sayısı int64 taşma denetimiyle ve ayırma 15.42'nin bellek denetimiyle (sıfır eksen testi yeni kurala göre yeniden yazılır); TR testi.
+- **T1 dilim 2:** her cinsin ve hassasiyetin tür kodu var (sürüm 2 kaldı; 1–3 aynı, 4 float64, 5–8 int64/int32/int16/int8, 9–11 uint32/uint16/uint8, 12 mantık); `TR_requires_grad: TR_true` yalnız hesap ondalıklarında türevi açar; uzantının harf büyüklüğü fark etmiyor (`.SAFETENSORS`, `.TRT`); TR testi `tests/tensor_test.tr` "15.46 ve 15.47a dosyada her cins" [ölçüldü]. Kontrol noktası (20) cinsli tensör yazmıyor (paketine dokunulmadı; `ml.TensorEntry`'ye `Ham` alanı eklendi).
+- **Yapılacaklar:** `TR_AnyTensor` ve `.TR_narrow[E]()`; nicemlenmiş saklama hassasiyetlerinin tür kodları (15.55); 2³² ve 50 milyon sınırları kalkar, öğe sayısı int64 taşma denetimiyle ve ayırma 15.42'nin bellek denetimiyle (sıfır eksen testi yeni kurala göre yeniden yazılır); TR testi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_requires_grad: TR_true` yalnız nicemlenmemiş `TR_Float` tensörlerde (T3).
-- **Yapılacaklar (tur 3, 2026-11-02):** uzantının harf büyüklüğü fark etmez (`.SAFETENSORS` safetensors yazar); bugün `strings.HasSuffix(fpath, ".safetensors")` [kanıtlı: `internal/stdlib/ml/save_safetensors.go:35`], büyük harfli uzantı sessizce TR biçimi yazıyor.
+- **Tur 3 (2026-11-02):** uzantının harf büyüklüğü — T1 dilim 2'de yapıldı (yukarıda).
 
 ### 15.47
 
-- **Mevcut durum:** safetensors yalnız okunuyor; yalnız F32, BF16, F16 destekli [ölçüldü], öbür türler (I64, U8, F8 ...) hata [kanıtlı: bugünkü 15.47'nin metni].
-- **Yapılacaklar:** 15.1'in bütün cinsleri ve hassasiyetleri; `F8_E4M3`'ün ölçeği 1 "fp8" olarak okunması (15.55).
+- **Mevcut durum (T1 dilim 2):** F32, F64, BF16, F16, I64, I32, I16, I8, U32, U16, U8 ve BOOL okunuyor (BOOL'da sıfırdan farklı bayt doğru); U64 ve F8 türleri H6643 [ölçüldü: Go `TestSafetensorsRejects`, `TestSafetensorsPythonRoundTrip`].
+- **Yapılacaklar:** `F8_E4M3`'ün ölçeği 1 "fp8" olarak okunması (15.55).
 
 ### 15.47a
 
-- **Mevcut durum:** `.safetensors` yolu float32, bf16 ve fp16 tensörleri hizaya göre yazıyor; Python `safetensors` ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip].
-- **Yapılacaklar:** öbür cinsler (`TR_Int`, `TR_Bool`, float64) cinsli tensörle.
+- **Mevcut durum (T1 dilim 2):** `.safetensors` yolu her cinsi (F32, BF16, F16, F64, I64, I32, I16, I8, U32, U16, U8, BOOL) hizaya göre yazıyor; Python `safetensors` (torch) ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip, bu makinede torch 2.14 ile koştu].
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
 
 ### 15.49

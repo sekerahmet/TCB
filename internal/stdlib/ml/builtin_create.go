@@ -80,6 +80,12 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		if err != nil {
 			return nil, err
 		}
+		if dt == tensor.Float64 && kind == codes.TypeFloat {
+			// float64 veri float32'den geçmeden yeniden kurulur (15.2: hassasiyet TR_dtype'tır).
+			if t, err = kindData(fn, kind, dt, args[0]); err != nil {
+				return nil, err
+			}
+		}
 		if t, err = convertKind(fn, t, dt); err != nil {
 			return nil, err
 		}

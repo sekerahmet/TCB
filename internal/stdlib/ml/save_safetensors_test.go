@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -28,6 +29,32 @@ func safetensorsSample() []fileEntry {
 	}
 }
 
+// safetensorsTypedSample cinsli türlerin örnekleri (15.47a): ham bayt, küçük uçlu; uç değerler.
+func safetensorsTypedSample() []fileEntry {
+	ints := func(dt tensor.DType, vals ...int64) []byte {
+		eb := dt.Bits() / 8
+		raw := make([]byte, len(vals)*eb)
+		for i, v := range vals {
+			tensor.PutRawInt(dt, raw[i*eb:(i+1)*eb], v)
+		}
+		return raw
+	}
+	f64 := make([]byte, 16)
+	tensor.PutRawFloat64(f64, 0.1)
+	tensor.PutRawFloat64(f64[8:], math.Inf(-1))
+	return []fileEntry{
+		{ad: "i64", shape: []int{3}, dtype: tensor.Int64, raw: ints(tensor.Int64, 1, -2, 1<<53+1)},
+		{ad: "i32", shape: []int{1}, dtype: tensor.Int32, raw: ints(tensor.Int32, math.MinInt32)},
+		{ad: "i16", shape: []int{1}, dtype: tensor.Int16, raw: ints(tensor.Int16, 300)},
+		{ad: "i8", shape: []int{1}, dtype: tensor.Int8, raw: ints(tensor.Int8, -128)},
+		{ad: "u32", shape: []int{1}, dtype: tensor.UInt32, raw: ints(tensor.UInt32, math.MaxUint32)},
+		{ad: "u16", shape: []int{1}, dtype: tensor.UInt16, raw: ints(tensor.UInt16, math.MaxUint16)},
+		{ad: "u8", shape: []int{1}, dtype: tensor.UInt8, raw: ints(tensor.UInt8, 255)},
+		{ad: "mantık", shape: []int{3}, dtype: tensor.Bool, raw: ints(tensor.Bool, 1, 0, 1)},
+		{ad: "f64", shape: []int{2}, dtype: tensor.Float64, raw: f64},
+	}
+}
+
 func encodeSafetensors(t *testing.T, inputs []fileEntry) []byte {
 	t.Helper()
 	if err := checkSafetensorsEntries("f", inputs); err != nil {
@@ -41,6 +68,9 @@ func encodeSafetensors(t *testing.T, inputs []fileEntry) []byte {
 }
 
 func entryBits(g fileEntry) string {
+	if g.dtype.IsTyped() {
+		return hex.EncodeToString(g.raw)
+	}
 	var b bytes.Buffer
 	if err := writeValues(&b, g.dtype, g.data, make([]byte, 0, 64)); err != nil {
 		panic(err)
@@ -166,7 +196,7 @@ func TestSafetensorsPythonRoundTrip(t *testing.T) {
 	}
 	dir := t.TempDir()
 	src, dst, script := filepath.Join(dir, "tr.safetensors"), filepath.Join(dir, "py.safetensors"), filepath.Join(dir, "rt.py")
-	in := safetensorsSample()
+	in := append(safetensorsSample(), safetensorsTypedSample()...)
 	if err := os.WriteFile(src, encodeSafetensors(t, in), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -178,9 +208,16 @@ func TestSafetensorsPythonRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("python: %v\n%s", err, got)
 	}
-	torchNames := map[tensor.DType]string{tensor.Float32: "torch.float32", tensor.BFloat16: "torch.bfloat16", tensor.Float16: "torch.float16"}
+	torchNames := map[tensor.DType]string{tensor.Float32: "torch.float32", tensor.BFloat16: "torch.bfloat16", tensor.Float16: "torch.float16",
+		tensor.Float64: "torch.float64", tensor.Int64: "torch.int64", tensor.Int32: "torch.int32", tensor.Int16: "torch.int16", tensor.Int8: "torch.int8",
+		tensor.UInt32: "torch.uint32", tensor.UInt16: "torch.uint16", tensor.UInt8: "torch.uint8", tensor.Bool: "torch.bool"}
 	lines := []string{"meta {'format': 'pt'}"}
-	for _, name := range []string{"<a&b>", "b16", "boş", "h", "w"} {
+	names := make([]string, 0, len(in))
+	for _, g := range in {
+		names = append(names, g.ad)
+	}
+	sort.Strings(names) // Python'un sorted'ı: kod noktası sırası (UTF-8 bayt sırasıyla aynı)
+	for _, name := range names {
 		for _, g := range in {
 			if g.ad == name {
 				lines = append(lines, name+" "+torchNames[g.dtype]+" "+strings.ReplaceAll(fmt.Sprint(g.shape), " ", ", ")+" "+entryBits(g))
@@ -221,7 +258,8 @@ func TestTensorFileRejectsTypeWithoutCode(t *testing.T) {
 			t.Fatalf("%v: %v, beklenen H6959", dt, err)
 		}
 	}
-	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16} {
+	for _, dt := range []tensor.DType{tensor.Float32, tensor.BFloat16, tensor.Float16, tensor.Float64, tensor.Int64, tensor.Int32,
+		tensor.Int16, tensor.Int8, tensor.UInt32, tensor.UInt16, tensor.UInt8, tensor.Bool} {
 		if code, ok := dtypeCode(dt); !ok {
 			t.Fatalf("%v kodu yok", dt)
 		} else if back, ok := dtypeFromCode(code); !ok || back != dt {

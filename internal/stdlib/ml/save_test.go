@@ -54,7 +54,7 @@ TR_print(z["sapma"].TR_grad.TR_tolist)`)
 	version[8] = 9
 	dtype := append([]byte{}, data...)
 	// İlk girdinin tür baytı: başlık (14) + ad uzunluğu (4) + "gömme" (6 bayt).
-	dtype[14+4+len("gömme")] = 7
+	dtype[14+4+len("gömme")] = 200 // 1–12 tür kodudur (15.46)
 	cases := []struct {
 		fpath string
 		want  messages.Code

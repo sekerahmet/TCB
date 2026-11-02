@@ -118,12 +118,20 @@ func dataTensor(fn any, v interp.Value) (*tensor.Tensor, codes.Code, error) {
 		t, err := d.exact(fn, kind)
 		return t, kind, err
 	}
-	t, err := d.float()
+	t, err := d.float(tensor.Float32)
 	return t, kind, err
 }
 
-// float sayı verisini float32 tensöre çevirir (tam sayılar en yakına yuvarlanır).
-func (d dataLeaves) float() (*tensor.Tensor, error) {
+// float sayı verisini ondalık tensöre çevirir (tam sayılar en yakına yuvarlanır): dt "float64"
+// ise değerler float32'den geçmez; öbür hassasiyetlerde float32 kurulur, çağıran çevirir.
+func (d dataLeaves) float(dt tensor.DType) (*tensor.Tensor, error) {
+	if dt == tensor.Float64 {
+		vals := make([]float64, len(d.leaves))
+		for i, x := range d.leaves {
+			vals[i], _ = interp.ToFloat(x)
+		}
+		return safe(func() *tensor.Tensor { return tensor.Float64sOn(tensor.DefaultDevice(), vals, d.shape...) })
+	}
 	data := make([]float32, len(d.leaves))
 	for i, x := range d.leaves {
 		f, _ := interp.ToFloat(x)

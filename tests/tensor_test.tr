@@ -729,6 +729,24 @@ TR_test "15.47a .safetensors yolu safetensors yazar (15.46: biçim uzantıya gö
     TR_assert_equal("H6951", TR_error_code { TR_save_tensors(TR_Path(k, "x.safetensors"), {"__metadata__": TR_Tensor([1.0])}) })
 }
 
+TR_test "15.46 ve 15.47a dosyada her cins ve hassasiyet saklanır; uzantının harf büyüklüğü fark etmez" {
+    TR_var k = TR_temp_dir()
+    TR_var d = {"m": TR_Tensor([TR_true, TR_false]), "u8": TR_Tensor([255], TR_dtype: "uint8"), "i": TR_Tensor([1, -2, 16777217]), "i32": TR_Tensor([-7], TR_dtype: "int32"), "i16": TR_Tensor([300], TR_dtype: "int16"), "i8": TR_Tensor([-128], TR_dtype: "int8"), "u32": TR_Tensor([4294967295], TR_dtype: "uint32"), "u16": TR_Tensor([65535], TR_dtype: "uint16"), "f64": TR_Tensor([0.1], TR_dtype: "float64"), "f": TR_Tensor([1.5])}
+    TR_var türler = ["bool", "uint8", "int64", "int32", "int16", "int8", "uint32", "uint16", "float64", "float32"]
+    TR_for ad TR_in ["m.trt", "m.TRT", "m.safetensors", "m.SafeTensors"] {
+        TR_save_tensors(TR_Path(k, ad), d)
+        TR_var y = TR_load_tensors(TR_Path(k, ad), TR_requires_grad: TR_true)
+        TR_assert_equal(türler, [y[a].TR_dtype TR_for a TR_in d.TR_keys()], ad)
+        TR_assert_equal([[TR_true, TR_false], [255], [1, -2, 16777217], [-7], [300], [-128], [4294967295], [65535], [0.1], [1.5]], [y[a].TR_tolist TR_for a TR_in d.TR_keys()], ad)
+        # TR_requires_grad yalnız hesap ondalığında türevi açar; TR_Int ve TR_Bool türevsiz yüklenir.
+        TR_backward(TR_sum(y["f"] * 2.0))
+        TR_assert_equal([2.0], y["f"].TR_grad.TR_tolist, ad)
+    }
+    # Büyük harfli uzantı da safetensors yazar: geniş türler öne geçer (TR biçimi verilen sırayı tutar).
+    TR_assert_equal(["i", "f64", "i32", "u32", "f", "i16", "u16", "m", "u8", "i8"], TR_load_tensors(TR_Path(k, "m.SafeTensors")).TR_keys())
+    TR_assert_equal(d.TR_keys(), TR_load_tensors(TR_Path(k, "m.TRT")).TR_keys())
+}
+
 TR_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
     # tensor_zero_axis.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
     # tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi

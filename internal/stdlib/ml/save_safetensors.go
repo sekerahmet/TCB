@@ -30,9 +30,14 @@ const safetensorsSuffix = ".safetensors"
 const safetensorsMetadataKey = "__metadata__"
 
 // safetensorsNames çekirdek türlerinin safetensors adları; safetensorsDTypes'ın tersi.
-var safetensorsNames = map[tensor.DType]string{tensor.Float32: "F32", tensor.BFloat16: "BF16", tensor.Float16: "F16"}
+var safetensorsNames = map[tensor.DType]string{tensor.Float32: "F32", tensor.BFloat16: "BF16", tensor.Float16: "F16",
+	tensor.Float64: "F64", tensor.Int64: "I64", tensor.Int32: "I32", tensor.Int16: "I16", tensor.Int8: "I8",
+	tensor.UInt32: "U32", tensor.UInt16: "U16", tensor.UInt8: "U8", tensor.Bool: "BOOL"}
 
-func isSafetensorsPath(fpath string) bool { return strings.HasSuffix(fpath, safetensorsSuffix) }
+// isSafetensorsPath uzantı harf büyüklüğüne bakmadan karşılaştırılır (15.46, 18.12: `.SAFETENSORS`).
+func isSafetensorsPath(fpath string) bool {
+	return strings.HasSuffix(strings.ToLower(fpath), safetensorsSuffix)
+}
 
 // checkSafetensorsEntries yazmadan önce girdilerin safetensors'ta yazılabildiğini denetler:
 // nicemlenmiş tensörün safetensors'ta türü yoktur (15.55), __metadata__ başlığın ayrılmış
@@ -79,7 +84,9 @@ func writeSafetensors(f io.Writer, inputs []fileEntry) error {
 	bw.Write(header)
 	buffer := make([]byte, 0, 1<<16)
 	for _, g := range ordered {
-		if err := writeValues(bw, g.dtype, g.data, buffer); err != nil {
+		if g.dtype.IsTyped() {
+			bw.Write(g.raw)
+		} else if err := writeValues(bw, g.dtype, g.data, buffer); err != nil {
 			return err
 		}
 	}
@@ -96,7 +103,7 @@ func safetensorsHeaderBytes(ordered []fileEntry) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		size := uint64(len(g.data)) * uint64(g.dtype.Bits()/8)
+		size := uint64(g.count()) * uint64(g.dtype.Bits()/8)
 		h.WriteByte(',')
 		h.Write(name)
 		h.WriteString(`:{"dtype":"` + safetensorsNames[g.dtype] + `","shape":[`)

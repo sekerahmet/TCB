@@ -83,7 +83,7 @@ func TestSafetensorsRejects(t *testing.T) {
 		{"JSON değil", safetensorsBytes(`{"w":`, nil), messages.H6641},
 		{"bilinmeyen alan", safetensorsBytes(entry(`{"dtype":"F32","shape":[1],"data_offsets":[0,4],"x":1}`), one), messages.H6654},
 		{"yinelenen anahtar", safetensorsBytes(`{"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"w":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}}`, append(one, one...)), messages.H6642},
-		{"desteklenmeyen tür", safetensorsBytes(entry(`{"dtype":"I64","shape":[1],"data_offsets":[0,8]}`), make([]byte, 8)), messages.H6643},
+		{"desteklenmeyen tür", safetensorsBytes(entry(`{"dtype":"U64","shape":[1],"data_offsets":[0,8]}`), make([]byte, 8)), messages.H6643},
 		{"boşluk", safetensorsBytes(entry(`{"dtype":"F32","shape":[1],"data_offsets":[4,8]}`), append(one, one...)), messages.H6644},
 		{"ters aralık", safetensorsBytes(entry(`{"dtype":"F32","shape":[1],"data_offsets":[4,0]}`), one), messages.H6644},
 		{"örtüşme", safetensorsBytes(`{"a":{"dtype":"F32","shape":[2],"data_offsets":[0,8]},"b":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}}`, append(one, one...)), messages.H6644},

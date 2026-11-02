@@ -106,6 +106,7 @@ type TensorEntry struct {
 	Sekil []int
 	Tur   tensor.DType
 	Veri  []float32
+	Ham   []byte // cinsli türlerde (float64, TR_Int, TR_Bool) ham baytlar; Veri boştur
 }
 
 // WalkTensorFile tensör_kaydet biçimindeki bir dosyayı (boyut bayt) r'den sırayla çözer
@@ -115,7 +116,7 @@ type TensorEntry struct {
 // noktası dosyayı önce yalnızca denetler, sonra yükler). Hata dosya biçimi hatasıdır.
 func WalkTensorFile(r io.Reader, dim int64, each func(TensorEntry) error) error {
 	return walkFile(r, dim, func(g fileEntry) error {
-		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.data})
+		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.data, Ham: g.raw})
 	})
 }
 
@@ -181,11 +182,7 @@ func (k *fileReader) input(gi int, names map[string]bool) (fileEntry, error) {
 	if err != nil {
 		return fileEntry{}, err
 	}
-	data, err := k.data(order, dtype, shape, n)
-	if err != nil {
-		return fileEntry{}, err
-	}
-	return fileEntry{ad: ad, shape: shape, dtype: dtype, data: data}, nil
+	return k.data(fileEntry{ad: ad, shape: shape, dtype: dtype}, order, n)
 }
 
 // shape boyut eksenli şekli ve eleman sayısını okur. Eleman sınırı sıfır uzunluklu eksenler
@@ -215,17 +212,23 @@ func (k *fileReader) shape(order any, dim int) ([]int, int64, error) {
 	return shape, n, nil
 }
 
-// data n elemanlık veriyi okur ve float32'ye açar.
-func (k *fileReader) data(order any, dtype tensor.DType, shape []int, n int64) ([]float32, error) {
-	size := int64(dtype.Bits() / 8) // eleman başına bayt
+// data n elemanlık veriyi okur: hesap ondalığında float32'ye açar, cinsli türde ham bayt tutar.
+func (k *fileReader) data(g fileEntry, order any, n int64) (fileEntry, error) {
+	size := int64(g.dtype.Bits() / 8) // eleman başına bayt
 	if n*size > k.remaining-4 {
-		return nil, messages.New(messages.H6623, order, tensor.ShapeText(shape), n*size, max(k.remaining-4, 0))
+		return fileEntry{}, messages.New(messages.H6623, order, tensor.ShapeText(g.shape), n*size, max(k.remaining-4, 0))
 	}
-	data, ok := decodeValues(int(n), dtype, k.integer)
+	ok := true
+	if g.dtype.IsTyped() {
+		g.raw = make([]byte, n*size)
+		ok = k.integer(g.raw)
+	} else {
+		g.data, ok = decodeValues(int(n), g.dtype, k.integer)
+	}
 	if !ok {
-		return nil, k.missing(messages.New(messages.H6635, order))
+		return fileEntry{}, k.missing(messages.New(messages.H6635, order))
 	}
-	return data, nil
+	return g, nil
 }
 
 // decodeValues n elemanlık küçük uçlu veriyi 64 KiB'lık parçalarla readChunk ile okur ve

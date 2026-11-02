@@ -84,7 +84,7 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 		if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {
 			return nil, err
 		}
-		t, err = kindData(fn, kind, a[0])
+		t, err = kindData(fn, kind, dt, a[0])
 	} else {
 		// TR_dtype: hedef hassasiyettir (yukarıda okundu); cinssiz kurucuya gitmez.
 		var r interp.Value
@@ -111,7 +111,7 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 // kindData TR_Tensor[E](veri)'nin verisini kurar: TR_Int ve TR_Bool'da öğeler o cinsten olmalı
 // (doğrudan okunur, float32'den geçmez); TR_Float'ta sayılar en yakına yuvarlanır (tam sayı
 // listesinden ondalık tensör, açık cins dönüşümü), mantık değeri hatadır.
-func kindData(fn codes.Ref, kind codes.Code, v interp.Value) (*tensor.Tensor, error) {
+func kindData(fn codes.Ref, kind codes.Code, dt tensor.DType, v interp.Value) (*tensor.Tensor, error) {
 	d, err := readData(fn, v)
 	if err != nil {
 		return nil, err
@@ -124,5 +124,5 @@ func kindData(fn codes.Ref, kind codes.Code, v interp.Value) (*tensor.Tensor, er
 			return nil, messages.New(messages.H6974, fn, d.position(i), interp.Shown(x), codes.NameRef(kind))
 		}
 	}
-	return d.float()
+	return d.float(dt)
 }

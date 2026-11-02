@@ -1203,7 +1203,7 @@ const (
 	H6613 Code = 6613 // dosya bozuk: {entry} adının uzunluğu {length} geçersiz
 	H6614 Code = 6614 // dosya bozuk: {entry} adı geçerli UTF-8 değil
 	H6615 Code = 6615 // dosya bozuk: {name|q} adı iki kez geçiyor
-	H6616 Code = 6616 // {entry}: desteklenmeyen veri türü kodu {code} (bu TR sürümü float32 = {float32Code}, bf16 = {bf16Code}, fp16 = {fp16Code} okuyabilir)
+	H6616 Code = 6616 // {entry}: desteklenmeyen veri türü kodu {code} (bu TR sürümü float32 = {float32Code}, bf16 = {bf16Code}, fp16 = {fp16Code} ve cinsli türlerin 4–12 kodlarını okuyabilir, 15.46)
 	H6617 Code = 6617 // dosya bozuk: {entry} {dims} eksenli bildiriliyor (en fazla {maxDims})
 	H6618 Code = 6618 // tensör dosyasına bildirilenden fazla girdi yazılıyor ({name|q})
 	H6619 Code = 6619 // {name|q} adı çok uzun ({bytes} bayt; en fazla {maxNameLen})
@@ -1228,7 +1228,7 @@ const (
 	H6640 Code = 6640 // safetensors başlığı geçerli UTF-8 değil
 	H6641 Code = 6641 // safetensors başlığı geçersiz: {error}
 	H6642 Code = 6642 // safetensors başlığında {name|q} iki kez geçiyor
-	H6643 Code = 6643 // {name|q}: desteklenmeyen veri türü {dtype|q} (bu TR sürümü F32, BF16 ve F16 okuyabilir)
+	H6643 Code = 6643 // {name|q}: desteklenmeyen veri türü {dtype|q} (bu TR sürümü F32, F64, BF16, F16, I64, I32, I16, I8, U32, U16, U8 ve BOOL okuyabilir)
 	H6644 Code = 6644 // {name|q}: veri aralığı [{begin}, {end}) önceki tensörün bittiği {expected}. baytta başlamalı (aralıklar ardışık, boşluksuz ve örtüşmesiz olmalı)
 	H6645 Code = 6645 // {name|q}: {shape} şekli {want} bayt veri ister, veri aralığı {got} bayt
 	H6646 Code = 6646 // safetensors veri alanı {buffer} bayt, tensörler {used} bayt kullanıyor (dosyada eksik ya da fazla veri var)
@@ -1319,7 +1319,7 @@ const (
 	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa yazmayı türevsiz kipte yapın: `{#no_grad} {{ t[i] = d }}`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
 	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın
 	H6958 Code = 6958 // bileşik atamada ({op}=) sonucun şekli {result}, hedefinki {target}: yayın yalnız sağ taraftadır, hedef genişlemez. Hedefi genişletmek için adı yeni bir tensöre bağlayın: `t = t {op} u`
-	H6959 Code = 6959 // TR tensör dosyası {name|q} tensörünün türünü ({dtype}) saklayamıyor: bu sürümde yalnız float32, bf16 ve fp16 yazılır
+	H6959 Code = 6959 // TR tensör dosyası {name|q} tensörünün türünü ({dtype}) saklayamıyor: bu sürümde nicemlenmiş saklama hassasiyetleri yazılmaz
 	H6960 Code = 6960 // bu işlem {dtype} tensörde {device} cihazında yapılamaz (15.48): {kind, select, int {ondalık hesap için tam sayı tensörünü ondalığa çevirin} bool {mantık tensörünü sayı olarak işlemek için ondalığa çevirin} other {bu hesap float32, bf16 ya da fp16 ister}}: `t.{#to_dtype}("float32")`
 	H6961 Code = 6961 // {fn}: {index, select, empty {} other {{index} konumunda }}{expr} {dtype} hassasiyetine sığmıyor (taşma, 15.3); {wide, select, yes {değerleri küçültün: int64 en geniş tam sayıdır} other {daha geniş hassasiyette hesaplayın: `t.{#to_dtype}("int64")`}}
 	H6962 Code = 6962 // {fn}: {index, select, empty {} other {{index} konumunda }}sıfıra bölme: {expr} (4.2a); böleni sıfırsız yapın: `{#where}(b == 0, 1, b)`
