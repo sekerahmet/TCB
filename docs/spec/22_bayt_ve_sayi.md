@@ -49,7 +49,7 @@ TR_print(başlık.TR_read_int(24, TR_dtype: "uint32", TR_byte_order: "little")) 
 - Okunan biçimler: 16 bit tam sayı PCM, 32 bit ondalık ve bunların `WAVE_FORMAT_EXTENSIBLE` biçimi. Öbürleri (8, 24 ve 32 bit tam sayı PCM, sıkıştırılmış ses) hatadır. İleti `ffmpeg` ile 16 bite çevirmenin yazımını verir: `TR_run_process("ffmpeg", ["-nostdin", "-i", girdi, "-c:a", "pcm_s16le", çıktı])`.
 - 16 bit tam sayı 32768'e bölünür: tam sayı ses ondalığa `TR_Tensor[TR_Float](ham) / 32768.0` ile çevrilir.
 - `TR_write_wav(yol, ses)` 16 bit tam sayı PCM yazar. Ondalık değer 32767 ile çarpılır ve en yakın tam sayıya yuvarlanır.
-  - [-1, 1] dışındaki örnek hatadır: taşan bir ses sessizce kırpılmaz (15.49). İleti ilk böyle örneğin indeksini ve değerini söyler, kırpmanın açık yazımını önerir: `TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`.
+  - [-1, 1] dışındaki ve NaN örnek hatadır: taşan bir ses sessizce kırpılmaz (15.49). İleti ilk böyle örneğin indeksini ve değerini söyler. Aralık dışında kırpmanın açık yazımını önerir: `TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`; NaN'da önermez, çünkü `TR_clamp` NaN'ı değiştirmez (15.13).
   - Okuma 32768'e böler, yazma 32767 ile çarpar: okunup yeniden yazılan dosyanın bazı örnekleri bir birim değişir, kopya kayıpsız değildir.
 - Yeniden örnekleme kitaplıkta yoktur; `ffmpeg` ile yapılır (21.1'in örneğindeki `-ar 16000`).
 

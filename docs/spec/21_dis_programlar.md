@@ -29,7 +29,7 @@ TR_var ses = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](ham, TR_dtype: "int16", T
 - `p.TR_wait()` girdiyi kapatır, programın bitmesini bekler ve çıkış kodunu `TR_Int` olarak verir (21.4). `p.TR_wait(TR_timeout: saniye)` 10.7'deki gibidir. `p.TR_done()` programın bitip bitmediğini söyler, beklemez.
 - `p.TR_cancel()` programı 21.5'teki gibi durdurur; bitmiş programda etkisi yoktur.
 - `TR_read`, `TR_write` ve `TR_wait` beklerken kilidi bırakır (10.3). İptal, durdurma ve süre sınırı bu beklemeleri de bitirir (21.5).
-- Program biterken (hatayla ya da durdurmayla da) hâlâ süren bütün süreçler 21.5'teki gibi durdurulur: geride yetim süreç kalmaz. Hiç beklenmemiş bir süreç kabul edilmeyen bir kodla kendiliğinden bittiyse hatası program biterken yazılır ve program 1 koduyla biter (10.6 gibi). TR'nin durdurduğu sürecin durması hata olarak yazılmaz (21.4).
+- Program biterken (hatayla ya da durdurmayla da) hâlâ süren bütün süreçler 21.5'teki gibi durdurulur: geride yetim süreç kalmaz (TR'nin kendisi öldürülür ya da çökerse 21.5'in sınırı geçerlidir). Hiç beklenmemiş bir süreç kabul edilmeyen bir kodla kendiliğinden bittiyse hatası program biterken yazılır ve program 1 koduyla biter (10.6 gibi). TR'nin durdurduğu sürecin durması hata olarak yazılmaz (21.4).
 
 ```tr
 # TR 4
@@ -67,7 +67,7 @@ TR_for {
 - Önce nazik bir istek gider: Unix'te SIGTERM, Windows'ta Ctrl+Break olayı.
 - Program 2 saniye içinde durmazsa öldürülür.
 - İstek ve öldürme programın başlattığı süreçlere de gider: program kendi süreç grubunda başlar (Windows'ta bir iş nesnesinde). Kendini gruptan bilerek ayıran bir torun süreç bunun dışında kalır.
-- Uçbirimde basılan Ctrl+C önce TR programına gelir, dış programa gelmez. TR programı durursa dış program da bu kurala göre durur (1.5). Durdurmayı üstlenen programda (1.6) dış program, TR programı durana kadar sürer.
+- Uçbirimde basılan Ctrl+C önce TR programına gelir, dış programa gelmez. TR programı durursa dış program da bu kurala göre durur (1.5). Durdurmayı üstlenen programda (1.6) dış program, TR programı durana kadar sürer. 1.6'nın sınıflarıyla: `p.TR_read` yeni bir şey bekler, istekten sonra "durdurma istendi" hatasıyla döner; `p.TR_write`, `p.TR_wait` ve `TR_run_process` süren bir işi bitirir, sürer.
 - TR hemen biterken (1.7) önce süreç gruplarını öldürür. TR'nin kendisi öldürülür ya da çökerse Unix'te gruptaki süreçler kalabilir; Windows'ta iş nesnesi onları da kapatır.
 - Bekleyen `TR_read`, `TR_write` ve `TR_wait` program durunca hemen döner: iptalde iptal hatasıyla, süre sınırında zaman aşımı hatasıyla.
 - *Test:* gerekmez, henüz uygulanmadı.
