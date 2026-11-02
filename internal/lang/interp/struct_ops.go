@@ -97,7 +97,12 @@ func (v *VM) construct(fn *StructDefVal, args []Value, named map[string]Value, l
 		default:
 			return nil, messages.At(line, 0, messages.New(messages.H2750, fn.Name, f.Name))
 		}
-		escape(inst.Fields[f.Name]) // nesne alanına yazılan değer kaçar
+		val, err := placeOf(f.Type).bind(inst.Fields[f.Name])
+		if err != nil {
+			return nil, err
+		}
+		inst.Fields[f.Name] = val
+		escape(val) // nesne alanına yazılan değer kaçar
 	}
 	if withCtor {
 		boundInit := &FuncVal{
@@ -216,6 +221,9 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 		cur = Null
 	}
 	finalVal, err := v.assignOp(codeVal, cur, rightVal, line)
+	if err == nil && codeVal == opAssign {
+		finalVal, err = inst.Def.fieldPlace(prop).bind(finalVal) // tipi yazılı alan (3.13)
+	}
 	if err != nil {
 		return err
 	}

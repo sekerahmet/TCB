@@ -131,6 +131,9 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 	if bad, _ := c.unopened(expected, actual, value); bad != nil {
 		return false // açılmamış isteğe bağlı değer (3.5, optional_values.go)
 	}
+	if jsonLiteral(expected, value) {
+		return true
+	}
 	return compat{isStruct: c.knownStruct, literal: literalValue(value)}.types(expected, actual)
 }
 
@@ -139,6 +142,19 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 func literalValue(value ast.Expression) bool {
 	switch value.(type) {
 	case *ast.ListLiteral, *ast.DictLiteral, *ast.TupleExpression:
+		return true
+	}
+	return false
+}
+
+// jsonLiteral beklenen tipi TR_JSON (ya da TR_JSON?) olan yere verilen değer bir liste ya da sözlük
+// değişmezi mi: değişmez JSON değeri olarak kurulur (3.7a "Kurmak"), öğeleri de.
+func jsonLiteral(expected string, value ast.Expression) bool {
+	if s := shapeOf(expected); s.elems != nil || normalizeTypeName(s.base) != typeJSON {
+		return false
+	}
+	switch value.(type) {
+	case *ast.ListLiteral, *ast.DictLiteral:
 		return true
 	}
 	return false

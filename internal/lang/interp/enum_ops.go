@@ -35,7 +35,7 @@ func (c *compiler) typeDef(k *compilerScope, s *ast.StructStatement) statementCo
 	methodList := map[string]methodCode{}
 	if s.Kind == ast.KindEnum {
 		for name, fnLit := range s.Methods {
-			methodList[name] = methodCode{lit: fnLit, codeVal: c.function(k, fnLit.Parameters, fnLit.Body, true)}
+			methodList[name] = methodCode{lit: fnLit, codeVal: c.methodFunction(k, fnLit)}
 		}
 	}
 	variantCode := make([][]exprCode, len(s.Variants))
@@ -144,7 +144,12 @@ func (v *VM) constructVariant(def *StructDefVal, mem *ast.MemberExpression, args
 		default:
 			return nil, messages.At(line, 0, messages.New(messages.H2750, label, f.Name))
 		}
-		escape(inst.Fields[f.Name])
+		val, err := placeOf(f.Type).bind(inst.Fields[f.Name])
+		if err != nil {
+			return nil, err
+		}
+		inst.Fields[f.Name] = val
+		escape(val)
 	}
 	return inst, nil
 }

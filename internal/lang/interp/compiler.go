@@ -65,6 +65,9 @@ func (k *compilerScope) predefine(stmts []ast.Statement) {
 	for _, st := range stmts {
 		ast.StatementDefinedNames(st, k.define)
 		k.statementShadows(st)
+		if vs, ok := st.(*ast.VarStatement); ok {
+			k.recordPlace(vs.Name.Value, placeOf(vs.Type))
+		}
 		if es, ok := st.(*ast.ExpressionStatement); ok && k.info != nil {
 			if fl, ok := es.Expression.(*ast.FunctionLiteral); ok && fl.Name != "" {
 				if k.info.funcs == nil {

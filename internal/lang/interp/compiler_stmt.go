@@ -81,7 +81,7 @@ func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode
 
 // varStatement 'değişken'/'sabit' tanımını derler.
 func (c *compiler) varStatement(k *compilerScope, s *ast.VarStatement) statementCode {
-	value := c.expression(k, s.Value)
+	value := placeOf(s.Type).code(c.expression(k, s.Value), s.Line())
 	definition := identifier(k, s.Name.Value)
 	constant := s.IsConst
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -113,6 +113,9 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 // assignStatement atamayı (bileşik atama dahil) derler.
 func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) statementCode {
 	value := c.expression(k, s.Value)
+	if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == "=" {
+		value = k.placeOfName(id.Value).code(value, s.Line()) // tipi yazılı ada atama (3.13)
+	}
 	dest := c.assignTarget(k, s.Target, opCode(string(s.Operator)), s.Line())
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
@@ -386,7 +389,7 @@ func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statement
 	}
 	methodList := make([]methodCode, 0, len(s.Methods))
 	for name, fnLit := range s.Methods {
-		methodList = append(methodList, methodCode{name: name, lit: fnLit, codeVal: c.function(k, fnLit.Parameters, fnLit.Body, true)})
+		methodList = append(methodList, methodCode{name: name, lit: fnLit, codeVal: c.methodFunction(k, fnLit)})
 	}
 	// Alan varsayılanları yapının tanımlandığı kapsamda derlenir ve o ortamda
 	// değerlendirilir (modüldeki bir yapı modülün adlarını görür).

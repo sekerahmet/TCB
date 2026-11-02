@@ -14,7 +14,8 @@ TR_test "13.1 genel yerleşikler" {
 TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     TR_assert_equal(2.0, TR_max([2.0, 1.5]))
     TR_assert_equal(TR_Float, TR_Type(TR_max([2.0, 1.5])))
-    TR_assert_equal(TR_Int, TR_Type(TR_min([1, 2.5])))
+    # [1, 2.5] bir TR_List[TR_Float]'tır (3.6): öğeleri ondalık.
+    TR_assert_equal(TR_Float, TR_Type(TR_min([1, 2.5])))
     TR_assert_equal(9007199254740993, TR_max([9007199254740993, 1]))
     TR_assert(TR_max([9007199254740993, 9007199254740992]) != 9007199254740992)
     TR_assert_equal(TR_Int, TR_Type(TR_max(9223372036854775807, 1)))

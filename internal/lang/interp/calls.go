@@ -302,6 +302,13 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 			fnEnv.store(slot, Null)
 		}
 	}
+	for _, p := range fk.typed {
+		val, err := p.place.bind(fnEnv.vals[p.slot])
+		if err != nil {
+			return nil, err
+		}
+		fnEnv.store(p.slot, val)
+	}
 	val, sig, err := fk.bodyBlock.run(v, fnEnv)
 	if err != nil {
 		return nil, err
@@ -309,5 +316,5 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	if sig != signalReturn && !fk.blockValue {
 		return Null, nil // örtük dönüş yoktur (6.2): TR_return'süz biten fonksiyon değer döndürmez
 	}
-	return val, nil
+	return fk.ret.bind(val)
 }
