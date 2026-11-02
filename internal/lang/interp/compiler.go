@@ -45,6 +45,24 @@ type compilerScope struct {
 	// adlarıdır: varsayılan yalnızca önceki parametreleri görür; bu adlar dış kapsamdaki
 	// aynı adlı değişkene çözülmez, okunursa hata verir.
 	notYet map[string]bool
+	// defs bu kapsamdaki adlı TR_func tanımlarının gövdeleridir (definitionBody); çoğu kapsamda nil.
+	defs map[string]*ast.BlockStatement
+}
+
+// definitionBody adı name olan bir TR_func tanımının gövdesidir; tanım bu ya da dış kapsamlarda
+// derlenmiyorsa nil. Çağrı yeri onu tanımın kimliği olarak kullanır (compiler_call.go): gövdesi bu
+// düğüm olan her fonksiyon değeri bu tanımdan kurulmuştur ve adı name'dir. Bu yüzden bulunan
+// tanımın, adın çözüldüğü tanım olması gerekmez; değer başka bir tanımdansa gövde tutmaz.
+func (k *compilerScope) definitionBody(name string) *ast.BlockStatement {
+	if name == "" {
+		return nil
+	}
+	for c := k; c != nil; c = c.parent {
+		if b, ok := c.defs[name]; ok {
+			return b
+		}
+	}
+	return nil
 }
 
 // define bir adı kapsamın tablosuna ekler (derleme anı).
@@ -74,6 +92,10 @@ func (k *compilerScope) predefine(stmts []ast.Statement) {
 					k.info.funcs = map[string]bool{}
 				}
 				k.info.funcs[fl.Name] = true
+				if k.defs == nil {
+					k.defs = map[string]*ast.BlockStatement{}
+				}
+				k.defs[fl.Name] = fl.Body
 			}
 		}
 	}

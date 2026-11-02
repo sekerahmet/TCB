@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"bytes"
 	"testing"
 	"time"
 )
@@ -70,5 +71,68 @@ func TestControlHeadersDoNotTakeTrailingBlocks(t *testing.T) {
 	want := `["eğer", "döngü-1", "döngü-2", "iken-6", "altı", "parantez"]`
 	if val.Inspect() != want {
 		t.Fatalf("%s bekleniyordu, %s alındı", want, val.Inspect())
+	}
+}
+
+// İki fonksiyon: f'nin ve g'nin ikinci parametresi varsayılanlı. f(1) tanımın adıyla çağrıdır,
+// varsayılan kullanılabilir; yuvaya g konunca f(1) değer üzerinden çağrıdır (H2710, 6.9).
+const twoDefaults = `TR_func f(x: TR_Int, y: TR_Int = 1) -> TR_Int {
+    TR_return x + y
+}
+TR_func g(x: TR_Int, y: TR_Int = 10) -> TR_Int {
+    TR_return x * 100 + y
+}
+TR_func h() -> TR_Int {
+    TR_return f(1)
+}
+`
+
+// Kural (6.9): çağrı tanımın adıyla yapılıyorsa varsayılan kullanılır; tanımın adına başka bir
+// fonksiyon atanınca (f = g) aynı çağrı yeri yuvadaki değeri çağırır ve değer üzerinden çağrının
+// kuralı çalışır. İç içe tanım her dış çağrıda yeni bir değerdir; tanımın adıyla çağrısı yine
+// doğrudandır. (Çağrı yeri tanımı gövdesiyle tanır, compiler_call.go positionalCall.)
+func TestACallByTheDefinitionsNameFollowsTheSlot(t *testing.T) {
+	const source = twoDefaults + `TR_func dış(n: TR_Int) -> TR_Int {
+    TR_func iç(x: TR_Int, y: TR_Int = n) -> TR_Int {
+        TR_return x + y
+    }
+    TR_return iç(1)
+}
+TR_print(f(1), h(), dış(1), dış(5))
+f = g
+TR_print(f(1, 2), TR_error_code { f(1) }, TR_error_code { h() })
+`
+	out, _, err := runTROut(t, source)
+	const want = "2 2 2 6\n102 H2710 H2710\n"
+	if err != nil || out != want {
+		t.Fatalf("%q beklenirdi, gelen %q (%v)", want, out, err)
+	}
+}
+
+// Kural (6.9, kabuk ve hata ayıklayıcı): her kabuk girdisi ayrı derlenir; sonraki girdi önceki
+// girdinin tanımının adına yazabilir. Hata ayıklayıcının değerlendirmesi de (ExecStatements) tanımı
+// yeniden yükleyebilir. Önceki girdinin derlenmiş çağrısı yuvadaki yeni değeri çağırır.
+func TestAnEarlierInputsCallSeesALaterAssignment(t *testing.T) {
+	machine := New()
+	var out bytes.Buffer
+	machine.Out = &out
+	run := func(code string) {
+		t.Helper()
+		if _, err := machine.Run(mustParseProgram(t, code)); err != nil {
+			t.Fatalf("%q: %v", code, err)
+		}
+	}
+	run(twoDefaults)
+	run("TR_print(h())\n")
+	// Hata ayıklayıcının değerlendirmesi: tanım yeniden yüklenir, adı ve imzası aynı.
+	redefine := mustParseProgram(t, "TR_func f(x: TR_Int, y: TR_Int = 50) -> TR_Int {\n    TR_return x + y\n}\n")
+	if _, err := machine.ExecStatements(redefine.Statements, machine.GlobalEnv); err != nil {
+		t.Fatal(err)
+	}
+	run("TR_print(h())\n")
+	run("f = g\n")
+	run("TR_print(TR_error_code { h() })\n")
+	if got, want := out.String(), "2\n51\nH2710\n"; got != want {
+		t.Fatalf("%q beklenirdi, gelen %q", want, got)
 	}
 }
