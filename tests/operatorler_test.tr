@@ -130,11 +130,12 @@ TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     TR_assert({"a": 1} == {"a": 1})
     TR_assert(TR_none == TR_none)
     TR_assert(TR_none != TR_false)
-    # 0 boyutlu tensör değerine eşit sayıya eşittir; eksenli tensör sayıya eşit değildir.
-    TR_assert(TR_Tensor(7.0) == 7 TR_and 7 == TR_Tensor(7.0))
-    TR_assert(TR_Tensor([[1.0, 2.0]])[0][1] == 2.0)
-    TR_assert(TR_sum(TR_Tensor([1.0, 2.0, 3.0, 4.0])) == 10)
-    TR_assert(TR_Tensor([7.0]) != 7)
+    # 0 boyutlu tensörün sayısı .TR_item() ile karşılaştırılır (15.5); eksenli tensör 0 boyutlu
+    # tensörle aynı değildir.
+    TR_assert(TR_Tensor(7.0).TR_item() == 7 TR_and 7 == TR_Tensor(7.0).TR_item())
+    TR_assert(TR_Tensor([[1.0, 2.0]])[0][1].TR_item() == 2.0)
+    TR_assert(TR_sum(TR_Tensor([1.0, 2.0, 3.0, 4.0])).TR_item() == 10)
+    TR_assert(TR_not TR_equal(TR_Tensor([7.0]), TR_Tensor(7.0)))
 }
 
 TR_test "4.5 Tam ile Ondalık değerleriyle kesin karşılaştırılır (2^53 üstünde de)" {

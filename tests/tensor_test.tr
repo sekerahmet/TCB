@@ -705,8 +705,8 @@ TR_test "15.46 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyalar�
     TR_var y = TR_load_tensors("data/tensor_version2.trt")
     TR_assert_equal(["a", "b", "c"], y.TR_keys())
     TR_assert_equal(["bf16", "fp16", "float32"], [y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype])
-    TR_assert(y["a"] == TR_Tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16"))
-    TR_assert(y["b"] == TR_Tensor([0.1, 65504.0], TR_dtype: "fp16"))
+    TR_assert(TR_equal(y["a"], TR_Tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16")))
+    TR_assert(TR_equal(y["b"], TR_Tensor([0.1, 65504.0], TR_dtype: "fp16")))
     TR_assert_equal([0.1], y["c"].TR_tolist)
     # tensor_version1.trt: eski TR'nin yazdığı sürüm 1 dosyası artık okunmaz.
     TR_assert_equal("H6611", TR_error_code { TR_load_tensors("data/tensor_version1.trt") })
@@ -803,7 +803,7 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
     TR_backward(TR_sum(y * 3))
     TR_assert_equal([[3.0, 3.0]], w.TR_grad.TR_tolist)
     TR_assert_equal("float32", w.TR_grad.TR_dtype)
-    TR_assert(w.TR_to_dtype("float32") == w)
+    TR_assert(TR_equal(w.TR_to_dtype("float32"), w))
     # Yazdırma türü yalnızca float32 dışındaki türlerde gösterir.
     TR_assert(TR_String(a).TR_contains("[2×2] bf16"), TR_String(a))
     TR_assert(TR_not TR_String(TR_Tensor([1.0])).TR_contains("float32"))
@@ -1175,7 +1175,7 @@ TR_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_var m = Model(p(1.0), [Blok(Dikkat(p(2.0), ortak), [p(3.0)], {}), Blok(Dikkat(p(4.0), p(5.0)), [], {"W1": p(6.0), "sabit": TR_Tensor([0.0])})], ortak)
     TR_var l = TR_parameters(m)
     TR_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_tolist[0] TR_for x TR_in l])
-    TR_assert(l[0] == m.TR_embedding)
+    TR_assert(TR_equal(l[0], m.TR_embedding))
     TR_var adlar = TR_parameters(m, TR_named: TR_true)
     TR_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.yan.W1"], adlar.TR_keys())
     TR_assert_equal([4.0], adlar["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)

@@ -281,7 +281,7 @@ TR_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
     TR_save_tensors(dosya, {"katman.w": TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), "katman.b": TR_Tensor([0.5, 0.5, 0.5])})
     TR_var eski_w = model["katman"]["w"]
     TR_assert_equal(2, TR_load_parameters(model, TR_load_tensors(dosya)))
-    TR_assert(eski_w == model["katman"]["w"])
+    TR_assert(TR_equal(eski_w, model["katman"]["w"]))
     TR_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], model["katman"]["w"].TR_tolist)
     TR_backward(TR_sum(model["katman"]["b"]))
     op.TR_step()

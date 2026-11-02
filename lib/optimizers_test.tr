@@ -403,5 +403,5 @@ TR_test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştir
     TR_backward(TR_sum(B * TR_randn([4, 8], TR_seed: 7)))
     m.TR_step()
     TR_assert_equal(TR_ones([4, 8]), TR_no_grad(A))
-    TR_assert(TR_no_grad(B) != TR_ones([4, 8]), "gradyanı olan ağırlık güncellenmeli")
+    TR_assert(TR_not TR_equal(TR_no_grad(B), TR_ones([4, 8])), "gradyanı olan ağırlık güncellenmeli")
 }
