@@ -133,3 +133,44 @@ TR_print(d.TR_tolist, d.TR_dtype, m.TR_tolist, f.TR_tolist, f.TR_dtype)`)
 		{setup + "m += m", messages.H6967},
 	})
 }
+
+// Kural (15.6d): bileşik atamaların hepsi (//=, %= ve bit işleçleri dahil) tensörü yerinde
+// değiştirir; tensörü paylaşan ad (p = t) değişikliği her cinste görür. İndeksli hedefte de.
+func TestTypedCompoundAssignAliases(t *testing.T) {
+	cases := []struct{ setup, op, rhs, want string }{
+		{"TR_Tensor([5, 7])", "+", "1", "[6, 8]"},
+		{"TR_Tensor([5, 7])", "-", "1", "[4, 6]"},
+		{"TR_Tensor([5, 7])", "*", "2", "[10, 14]"},
+		{"TR_Tensor([5, 7])", "**", "2", "[25, 49]"},
+		{"TR_Tensor([5, 7])", "//", "2", "[2, 3]"},
+		{"TR_Tensor([5, 7])", "%", "3", "[2, 1]"},
+		{"TR_Tensor([5, 7])", "&", "6", "[4, 6]"},
+		{"TR_Tensor([5, 7])", "|", "8", "[13, 15]"},
+		{"TR_Tensor([5, 7])", "^", "1", "[4, 6]"},
+		{"TR_Tensor([5, 7])", "<<", "1", "[10, 14]"},
+		{"TR_Tensor([5, 7])", ">>", "1", "[2, 3]"},
+		{"TR_Tensor([5, 7], TR_dtype: \"int8\")", "//", "2", "[2, 3]"},
+		{"TR_Tensor([5, 7], TR_dtype: \"int8\")", "<<", "1", "[10, 14]"},
+		{"TR_Tensor([TR_true, TR_false])", "&", "TR_Tensor([TR_true, TR_true])", "[true, false]"},
+		{"TR_Tensor([TR_true, TR_false])", "|", "TR_Tensor([TR_false, TR_true])", "[true, true]"},
+		{"TR_Tensor([TR_true, TR_false])", "^", "TR_Tensor([TR_true, TR_true])", "[false, true]"},
+		{"TR_Tensor([5.5, 7.0], TR_dtype: \"float64\")", "+", "1", "[6.5, 8.0]"},
+		{"TR_Tensor([5.5, 7.0], TR_dtype: \"float64\")", "/", "2", "[2.75, 3.5]"},
+		{"TR_Tensor([5.5, 7.0], TR_dtype: \"float64\")", "%", "2", "[1.5, 1.0]"},
+	}
+	for _, c := range cases {
+		program := "TR_var t = " + c.setup + "\nTR_var p = t\nt " + c.op + "= " + c.rhs +
+			"\nTR_var u = " + c.setup + "\nTR_var q = u\nu[0..2] " + c.op + "= " + c.rhs +
+			"\nTR_print(p.TR_tolist, q.TR_tolist, p.TR_dtype == " + c.setup + ".TR_dtype)"
+		if out := mustRun(t, program); out != c.want+" "+c.want+" true\n" {
+			t.Errorf("%s %s= %s: %q, beklenen p ve q %s", c.setup, c.op, c.rhs, out, c.want)
+		}
+	}
+	// Cinsin tanımlamadığı işleç yerinde yolda da işlecin hatasını verir.
+	expectCodes(t, []codeCase{
+		{"TR_var f = TR_Tensor([5.0, 7.0])\nf //= 2.0", messages.H6703},
+		{"TR_var f = TR_Tensor([5.0, 7.0])\nf[0..1] %= 2.0", messages.H6703},
+		{"TR_var f = TR_Tensor([5.0, 7.0])\nf &= 1.0", messages.H6703},
+		{"TR_var m = TR_Tensor([TR_true])\nm <<= 1", messages.H6968},
+	})
+}

@@ -11,9 +11,12 @@ import (
 // deponun sürümü artar (15.3: geri yayılım için saklanmış tensörün değişmesi TR_backward'da
 // yakalanır). Yayın yalnız sağ taraftadır. Türevin yazma kuralları checkWrite'tadır.
 
-// inPlaceOps yerinde yapılan bileşik atamaların işleçleri; öbürleri (//, %, bit işleçleri)
-// yorumlayıcının genel yoluna düşer (tensörde hatadır).
-var inPlaceOps = map[string]bool{"+": true, "-": true, "*": true, "/": true, "**": true}
+// inPlaceOps 15.6d'nin bileşik atamalarının işleçleridir; hepsi yerinde yapılır. Hedefin cinsinin
+// tanımlamadığı işleç (float32'de //, mantıkta +) işlecin kendi hatasını verir.
+var inPlaceOps = map[string]bool{
+	"+": true, "-": true, "*": true, "/": true, "**": true, "//": true, "%": true,
+	"&": true, "|": true, "^": true, "<<": true, ">>": true,
+}
 
 // InPlaceOp t op= u bileşik atamasıdır (interp.InPlaceOperator).
 func (d *TensorValue) InPlaceOp(op string, rhs interp.Value) (bool, error) {
