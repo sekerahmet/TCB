@@ -2,7 +2,6 @@ package ml
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -33,7 +32,7 @@ func (d *TensorValue) watchShape() string {
 
 // watchDType float32 dışındaki türün adıdır; float32'de boş.
 func (d *TensorValue) watchDType() string {
-	if dt := d.t.DType(); dt != tensor.Float32 {
+	if dt := d.t.DType(); !dt.IsDefault() {
 		return dt.Name()
 	}
 	return ""
@@ -91,17 +90,10 @@ func (d *TensorValue) WatchSummary() string {
 		return ""
 	}
 	sh := t.Shape()
-	data := t.Data()
-	scientific := isScientific(data)
-	number := func(x float32) string {
-		if d.hasInts {
-			return strconv.FormatInt(int64(x), 10)
-		}
-		return numberText(x, scientific, codes.Display()) // İzleme Masası görüntüdür (TR_LANG)
-	}
+	texts := d.cellTexts(sh, false, codes.Display()) // İzleme Masası görüntüdür (TR_LANG)
 	var sb strings.Builder
 	if len(sh) == 0 {
-		sb.WriteString(number(data[0]))
+		sb.WriteString(texts[0])
 	} else {
 		order := 0
 		var write func(axis int)
@@ -112,7 +104,7 @@ func (d *TensorValue) WatchSummary() string {
 					sb.WriteString(", ")
 				}
 				if axis == len(sh)-1 {
-					sb.WriteString(number(data[order]))
+					sb.WriteString(texts[order])
 					order++
 				} else {
 					write(axis + 1)

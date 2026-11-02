@@ -45,7 +45,6 @@ var LongFuncs = map[string]int{
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":     181,
-	"internal/stdlib/ml/print.go:TensorValue.Text":    120,
 	"internal/stdlib/ml/model_tools.go:sampleBuiltin": 118,
 	"internal/stdlib/ml/builtin_reduce.go:reduction":  85,
 

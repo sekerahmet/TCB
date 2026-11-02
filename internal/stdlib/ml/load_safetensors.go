@@ -33,7 +33,9 @@ import (
 const maxSafetensorsHeader = 100_000_000
 
 // safetensorsDTypes desteklenen veri türleri ve eleman boyları.
-var safetensorsDTypes = map[string]tensor.DType{"F32": tensor.Float32, "BF16": tensor.BFloat16, "F16": tensor.Float16}
+var safetensorsDTypes = map[string]tensor.DType{"F32": tensor.Float32, "BF16": tensor.BFloat16, "F16": tensor.Float16,
+	"F64": tensor.Float64, "I64": tensor.Int64, "I32": tensor.Int32, "I16": tensor.Int16, "I8": tensor.Int8,
+	"U32": tensor.UInt32, "U16": tensor.UInt16, "U8": tensor.UInt8, "BOOL": tensor.Bool}
 
 // decodeTensorFile dosyanın biçimini uzantıdan değil içerikten tanır: TRTENSOR ile başlıyorsa
 // TR biçimi, 9. baytı { ise (başlık boyundan sonra JSON başlık; belirtim: "MUST begin with a {")
@@ -94,11 +96,17 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 			shape[i] = int(d)
 			count *= int(d)
 		}
-		data, err := readValues(r, dt, count)
+		g := fileEntry{ad: e.name, shape: shape, dtype: dt}
+		var err error
+		if dt.IsTyped() {
+			g.raw, err = readRaw(r, dt, count)
+		} else {
+			g.data, err = readValues(r, dt, count)
+		}
 		if err != nil {
 			return nil, messages.New(messages.H6653, e.name, err)
 		}
-		out = append(out, fileEntry{ad: e.name, shape: shape, dtype: dt, data: data})
+		out = append(out, g)
 	}
 	return out, nil
 }
@@ -320,6 +328,23 @@ func compareU64(a, b uint64) int {
 }
 
 // readValues n elemanı dt türünde okur ve float32'ye kayıpsız açar.
+// readRaw cinsli türün n öğesini ham bayt olarak okur; mantıkta sıfırdan farklı bayt doğrudur
+// (1'e çevrilir: depolama 0/1'dir, 15.1).
+func readRaw(r io.Reader, dt tensor.DType, n int) ([]byte, error) {
+	raw := make([]byte, n*dt.Bits()/8)
+	if _, err := io.ReadFull(r, raw); err != nil {
+		return nil, err
+	}
+	if dt == tensor.Bool {
+		for i, b := range raw {
+			if b > 1 {
+				raw[i] = 1
+			}
+		}
+	}
+	return raw, nil
+}
+
 func readValues(r io.Reader, dt tensor.DType, n int) ([]float32, error) {
 	var readErr error
 	data, ok := decodeValues(n, dt, func(chunk []byte) bool {

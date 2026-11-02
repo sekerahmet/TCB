@@ -11,9 +11,9 @@ import (
 func TestVMHooks(t *testing.T) {
 	out := mustRun(t, `
 		TR_var t = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
-		TR_print(TR_Tensor([1.00001]) == TR_Tensor([1.0]))
-		TR_print(TR_Tensor([1.0, 2.0]) == TR_Tensor([1.0, 2.0]))
-		TR_print(TR_Tensor([1.0, 2.0]) != TR_Tensor([[1.0, 2.0]]))
+		TR_print(TR_equal(TR_Tensor([1.00001]), TR_Tensor([1.0])))
+		TR_print(TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0])))
+		TR_print(TR_not TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([[1.0, 2.0]])))
 		TR_print((10 - t).TR_tolist)
 		TR_print((12 / t).TR_tolist)
 		TR_print((-t).TR_tolist)
@@ -31,8 +31,8 @@ func TestVMHooks(t *testing.T) {
 		"[[12.0, 6.0], [4.0, 3.0]]",
 		"[[-1.0, -2.0], [-3.0, -4.0]]",
 		"[[1.0, 4.0], [9.0, 16.0]]",
-		"[[0.0, 0.0], [1.0, 1.0]]",
-		"[[1.0, 1.0], [0.0, 0.0]]",
+		"[[false, false], [true, true]]",
+		"[[true, true], [false, false]]",
 		"[3.0, 4.0]",
 		"3.0",
 		"[1, 2]",
@@ -74,12 +74,12 @@ func TestVMHookErrorsAndGrad(t *testing.T) {
 // Tam), N boyutluda veriyi paylaşan, türev izlenen (N-1) boyutlu görünümler.
 func TestLoopOverTensor(t *testing.T) {
 	out := mustRun(t, `
-		TR_var t = TR_Tensor([[1, 2], [3, 4], [5, 6]])
+		TR_var t = TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
 		TR_for i, s TR_in t { TR_print(i, s.TR_shape, s.TR_tolist) }
 		TR_print([x * 2 TR_for x TR_in TR_Tensor([1.5, 2.5])])
 		TR_print([x TR_for x TR_in TR_Tensor([0.1])][0] == 0.1)
-		TR_print([TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1, 5], [7, 0]]), TR_dim: -1)])
-		TR_var k = TR_argmax(TR_Tensor([[[0, 9], [5, 0]]]), TR_dim: -1)
+		TR_print([TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1.0, 5.0], [7.0, 0.0]]), TR_dim: -1)])
+		TR_var k = TR_argmax(TR_Tensor([[[0.0, 9.0], [5.0, 0.0]]]), TR_dim: -1)
 		TR_for s TR_in k { TR_for x TR_in s { TR_print(TR_Type(x), x) } }
 		TR_var z = TR_zeros([2, 2])
 		TR_for satır TR_in z { satır[0] = 9 }
@@ -138,7 +138,7 @@ cikti[1][2] = 3`)
 // (..=) bundan sonra eklenir, sınır dışı uçlar kırpılır.
 func TestRangeIndexMatchesLists(t *testing.T) {
 	out := mustRun(t, `TR_var l = [1, 2, 3]
-TR_var t = TR_Tensor([1, 2, 3])
+TR_var t = TR_Tensor([1.0, 2.0, 3.0])
 TR_for a TR_in [l[0..=-1], l[-5..2], l[2..1], l[1..=10], l[-2..=-2], l[-1..3]] { TR_print(a) }
 TR_for b TR_in [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]] { TR_print(b.TR_tolist) }`)
 	want := "[1, 2, 3]\n[1, 2]\n[]\n[2, 3]\n[2]\n[3]\n" +
@@ -153,7 +153,7 @@ TR_for b TR_in [t[0..=-1], t[-5..2], t[2..1], t[1..=10], t[-2..=-2], t[-1..3]] {
 // Neden: tensörün eski kopyası 'son++' ile taşıp dilimi boş yapıyordu, liste ise tam veriyordu.
 func TestRangeIndexMaxInclusiveEndMatchesLists(t *testing.T) {
 	out := mustRun(t, `TR_var l = [1, 2, 3]
-TR_var t = TR_Tensor([1, 2, 3])
+TR_var t = TR_Tensor([1.0, 2.0, 3.0])
 TR_print(l[0..=9223372036854775807])
 TR_print(t[0..=9223372036854775807].TR_tolist)`)
 	want := "[1, 2, 3]\n[1.0, 2.0, 3.0]\n"

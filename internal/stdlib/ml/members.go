@@ -28,10 +28,11 @@ const (
 	memberSlice     = codes.MemSlice
 	memberToDevice  = codes.MemToDevice
 	memberToDType   = codes.MemToDtype
+	memberItem      = codes.MemItem
 )
 
 // tensorMemberCodes öneri listesinin sırasıdır.
-var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit}
+var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit, memberItem}
 
 func isTensorMember(k codes.Code) bool { return slices.Contains(tensorMemberCodes, k) }
 
@@ -74,6 +75,8 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return d.method(memberToDevice, d.toDevice), nil
 	case memberSplit:
 		return d.namedMethod(memberSplit, d.split), nil
+	case memberItem:
+		return d.method(memberItem, d.item), nil
 	}
 	if k, _, ok := codes.FindForeign(codes.NamespaceMember, prop, isTensorMember); ok {
 		o := codes.Spelling(k)
@@ -140,15 +143,13 @@ func (d *TensorValue) valueList() (interp.Value, error) {
 	return d.nestedList(), nil
 }
 
-// nestedList tensörü iç içe listeye çevirir (sınır denetimsiz; bkz. valueList).
+// nestedList tensörü iç içe listeye çevirir (sınır denetimsiz; bkz. valueList). Öğe tipi
+// tensörün cinsidir (15.3): TR_Int → Tam, TR_Bool → Mantık, TR_Float → Ondalık.
 func (d *TensorValue) nestedList() interp.Value {
-	data := d.t.Data()
+	leaf := d.leaves()
 	sh := d.t.Shape()
 	if len(sh) == 0 {
-		if d.hasInts {
-			return interp.NewInt(int64(data[0]))
-		}
-		return &interp.FloatVal{Val: shortFloat64(data[0])}
+		return leaf(0)
 	}
 	nd := len(sh)
 	countList, countValues, p := 0, 0, 1
@@ -159,13 +160,6 @@ func (d *TensorValue) nestedList() interp.Value {
 	}
 	lists := make([]interp.ListVal, countList)
 	values := make([]interp.Value, countValues)
-	var numbers []interp.FloatVal
-	if !d.hasInts {
-		numbers = make([]interp.FloatVal, len(data))
-		for i, x := range data {
-			numbers[i].Val = shortFloat64(x)
-		}
-	}
 	li, di := 0, 0 // bu seviyenin ilk listesi ve ilk eleman yeri
 	p = 1          // bu seviyedeki liste sayısı
 	for k := 0; k < nd; k++ {
@@ -176,10 +170,8 @@ func (d *TensorValue) nestedList() interp.Value {
 			el := values[head : head+n : head+n]
 			for i := range el {
 				m := j*n + i // bu seviyedeki elemanın sırası
-				if k == nd-1 && d.hasInts {
-					el[i] = interp.NewInt(int64(data[m]))
-				} else if k == nd-1 {
-					el[i] = &numbers[m]
+				if k == nd-1 {
+					el[i] = leaf(m)
 				} else {
 					el[i] = &lists[nextList+m]
 				}
@@ -192,6 +184,42 @@ func (d *TensorValue) nestedList() interp.Value {
 	}
 	return &lists[0]
 }
+
+// leaves tensörün m. öğesinin (satır öncelikli) TR değerini veren işlev; veri bir kez okunur.
+// Ondalık sayılar tek dilimden dağıtılır (her sayı için ayrı ayırma yok).
+func (d *TensorValue) leaves() func(m int) interp.Value {
+	switch d.t.Elem() {
+	case tensor.ElemInt:
+		vals := d.t.Int64s()
+		return func(m int) interp.Value { return interp.NewInt(vals[m]) }
+	case tensor.ElemBool:
+		vals := d.t.Int64s()
+		return func(m int) interp.Value {
+			if vals[m] != 0 {
+				return interp.True
+			}
+			return interp.False
+		}
+	}
+	var numbers []interp.FloatVal
+	if d.t.DType() == tensor.Float64 {
+		vals := d.t.Float64s()
+		numbers = make([]interp.FloatVal, len(vals))
+		for i, x := range vals {
+			numbers[i].Val = x
+		}
+	} else {
+		data := d.t.Data()
+		numbers = make([]interp.FloatVal, len(data))
+		for i, x := range data {
+			numbers[i].Val = shortFloat64(x)
+		}
+	}
+	return func(m int) interp.Value { return &numbers[m] }
+}
+
+// scalarValue tek öğeli tensörün TR değeri (cinsine göre Tam, Mantık ya da Ondalık).
+func (d *TensorValue) scalarValue() interp.Value { return d.leaves()(0) }
 
 // unpackListOrVarargs tek liste argümanının öğelerini, yoksa argümanların kendisini verir
 // (t.yeniden_şekillendir([2, 3]) ve t.yeniden_şekillendir(2, 3) aynıdır).

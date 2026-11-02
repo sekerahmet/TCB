@@ -1000,8 +1000,8 @@ const (
 	H6029 Code = 6029 // {fn}() en az 1 parametre bekler
 	H6030 Code = 6030 // {fn}() bir tensör bekler, {given} verildi
 	H6031 Code = 6031 // {randnFn}: {seedArg} tam sayı olmalıdır, {given} verildi
-	H6032 Code = 6032 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor)
-	H6033 Code = 6033 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor); metodu çağırmak için parantez ekleyin: {method}()
+	H6032 Code = 6032 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor)
+	H6033 Code = 6033 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor); metodu çağırmak için parantez ekleyin: {method}()
 	H6100 Code = 6100 // {left} ile {right} şekilleri {fn} için yayınlanamaz; sondan {axis}. eksende {leftLen} ≠ {rightLen} (eksenler sağdan hizalanır, eşit ya da 1 olmalı)
 	H6101 Code = 6101 // {fn}(x) 1 parametre bekler, {given} verildi
 	H6102 Code = 6102 // {operation}: tensörler farklı cihazlarda ({leftDevice} ve {rightDevice}); önce .{toDeviceMethod}(...) ile aynı cihaza taşıyın
@@ -1043,7 +1043,7 @@ const (
 	H6204 Code = 6204 // {fn}: a ve b sayı ya da tensör olmalıdır, {given} verildi
 	H6205 Code = 6205 // {fn}(x, {value}): eksen için {fn}(x, {axisArg}: {value}) yazın; eleman bazlı sınır için {clampFn}(x, {limit}: {value}) kullanın
 	H6206 Code = 6206 // {fn}(x, {axisArg}: ...) en fazla 2 parametre alır, {given} verildi
-	H6207 Code = 6207 // {fn}: koşul {boolType}, sayı ya da tensör olmalıdır, {given} verildi
+	H6207 Code = 6207 // {fn}: koşul mantık tensörüdür, {given} verildi (15.15); {case, select, number {sayı tensöründen maske karşılaştırmayla kurulur: `t != 0`} other {tek değere bağlı seçim `{#if}` ile yazılır}}
 	H6208 Code = 6208 // {fn}: k bir {intType} olmalıdır, {given} verildi
 	H6209 Code = 6209 // {fn}: {shape} şeklinde {axis}. eksen boş
 	H6210 Code = 6210 // {fn}: k = {k}, ama {shape} şeklinde {axis}. eksenin uzunluğu {length}; k 0 ile {length} arasında olmalı
@@ -1203,7 +1203,7 @@ const (
 	H6613 Code = 6613 // dosya bozuk: {entry} adının uzunluğu {length} geçersiz
 	H6614 Code = 6614 // dosya bozuk: {entry} adı geçerli UTF-8 değil
 	H6615 Code = 6615 // dosya bozuk: {name|q} adı iki kez geçiyor
-	H6616 Code = 6616 // {entry}: desteklenmeyen veri türü kodu {code} (bu TR sürümü float32 = {float32Code}, bf16 = {bf16Code}, fp16 = {fp16Code} okuyabilir)
+	H6616 Code = 6616 // {entry}: desteklenmeyen veri türü kodu {code} (bu TR sürümü float32 = {float32Code}, bf16 = {bf16Code}, fp16 = {fp16Code} ve cinsli türlerin 4–12 kodlarını okuyabilir, 15.46)
 	H6617 Code = 6617 // dosya bozuk: {entry} {dims} eksenli bildiriliyor (en fazla {maxDims})
 	H6618 Code = 6618 // tensör dosyasına bildirilenden fazla girdi yazılıyor ({name|q})
 	H6619 Code = 6619 // {name|q} adı çok uzun ({bytes} bayt; en fazla {maxNameLen})
@@ -1228,7 +1228,7 @@ const (
 	H6640 Code = 6640 // safetensors başlığı geçerli UTF-8 değil
 	H6641 Code = 6641 // safetensors başlığı geçersiz: {error}
 	H6642 Code = 6642 // safetensors başlığında {name|q} iki kez geçiyor
-	H6643 Code = 6643 // {name|q}: desteklenmeyen veri türü {dtype|q} (bu TR sürümü F32, BF16 ve F16 okuyabilir)
+	H6643 Code = 6643 // {name|q}: desteklenmeyen veri türü {dtype|q} (bu TR sürümü F32, F64, BF16, F16, I64, I32, I16, I8, U32, U16, U8 ve BOOL okuyabilir)
 	H6644 Code = 6644 // {name|q}: veri aralığı [{begin}, {end}) önceki tensörün bittiği {expected}. baytta başlamalı (aralıklar ardışık, boşluksuz ve örtüşmesiz olmalı)
 	H6645 Code = 6645 // {name|q}: {shape} şekli {want} bayt veri ister, veri aralığı {got} bayt
 	H6646 Code = 6646 // safetensors veri alanı {buffer} bayt, tensörler {used} bayt kullanıyor (dosyada eksik ya da fazla veri var)
@@ -1315,12 +1315,31 @@ const (
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
 	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok: nokta bu TR'den eski bir sürümle yazılmış ve bu sürümle yüklenmez. Eğitimi yeni bir koşu klasörüyle baştan başlatın ya da noktayı yazan TR sürümüyle sürdürün
 	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
-	H6954 Code = 6954 // {fn}: {index, select, empty {} other {{index} konumundaki }}tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
 	H6955 Code = 6955 // türev izleyen bir ara sonuca (türev izleyen bir işlemin sonucuna ya da onun görünümüne) yerinde yazılamaz, türevsiz kipte de: geri yayılım onun değerine dayanır. {kind, select, whole {Adı yeni bir tensöre bağlayın: `h = h + d`} other {Yerinde olmayan bir yazımla yeni bir tensör kurun: `h = {#where}(m, d, h)`}}
 	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa yazmayı türevsiz kipte yapın: `{#no_grad} {{ t[i] = d }}`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
 	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın
 	H6958 Code = 6958 // bileşik atamada ({op}=) sonucun şekli {result}, hedefinki {target}: yayın yalnız sağ taraftadır, hedef genişlemez. Hedefi genişletmek için adı yeni bir tensöre bağlayın: `t = t {op} u`
-	H6959 Code = 6959 // TR tensör dosyası {name|q} tensörünün türünü ({dtype}) saklayamıyor: bu sürümde yalnız float32, bf16 ve fp16 yazılır
+	H6959 Code = 6959 // TR tensör dosyası {name|q} tensörünün türünü ({dtype}) saklayamıyor: bu sürümde nicemlenmiş saklama hassasiyetleri yazılmaz
+	H6960 Code = 6960 // bu işlem {dtype} tensörde {device} cihazında yapılamaz (15.48): {kind, select, int {tam sayı tensöründe ondalık hesap yok} bool {mantık tensöründe sayı hesabı yok} other {bu hesap float32, bf16 ya da fp16 ister}}; ondalığa çevirin: tam sayıdan `{#Tensor}[{#Float}](t)`, mantıktan `{#where}(t, 1.0, 0.0)`, öbür hassasiyetten `t.{#to_dtype}("float32")`
+	H6961 Code = 6961 // {fn}: {index, select, empty {} other {{index} konumunda }}{expr} {dtype} hassasiyetine sığmıyor (taşma, 15.3); {wide, select, yes {değerleri küçültün: int64 en geniş tam sayıdır} other {daha geniş hassasiyette hesaplayın: `t.{#to_dtype}("int64")`}}
+	H6962 Code = 6962 // {fn}: {index, select, empty {} other {{index} konumunda }}sıfıra bölme: {expr} (4.2a); böleni sıfırsız yapın: `{#where}(b == 0, 1, b)`
+	H6963 Code = 6963 // {fn}: {index, select, empty {} other {{index} konumunda }}{expr}: tam sayı tensöründe üs eksi olamaz (4.3, 15.6e); eksi üs ondalık tensörde hesaplanır
+	H6964 Code = 6964 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} {dtype} hassasiyetine çevrilemez: {kind, select, notnumber {NaN tam sayı değildir} infinite {sonsuz tam sayı değildir} other {değer hassasiyete sığmıyor}} (15.3); önce değerleri sınırlayın ya da daha geniş bir hassasiyet seçin
+	H6965 Code = 6965 // {fn}: {index, select, empty {} other {{index} konumundaki }}kaydırma miktarı {amount}; {dtype} için 0 ile {max} arasında olmalı (4.12, 15.6)
+	H6966 Code = 6966 // {case, select, compound {{op}: sonuç {right}, hedef {left}: bileşik atama hedefin cinsini değiştirmez (15.6d); tam sayı bölmesi `//=`'dir} other {{op}: iki yan aynı cinsten olmalı, {left} ile {right} verildi (15.6, 15.49); cins kendiliğinden değişmez: tam sayıdan ondalık bir tip çağrısıdır (15.3), mantıktan sayı `{#where}(m, {case, select, int {1, 0} other {1.0, 0.0}})` ile kurulur}}
+	H6967 Code = 6967 // `{op}` {dtype} tensörde tanımsız (15.6): {case, select, bool_order {mantık tensöründe sıralama karşılaştırması yok; yalnız `==` ve `!=`} matmul {matris çarpımı ondalık tensörde yapılır; tam sayı tensörünü önce ondalığa çevirin} float_bit {bit ve mantık işleçleri tam sayı ve mantık tensöründedir; maske karşılaştırmayla kurulur: `t > 0.0`} none {bu işleç bu cinste yok} other {mantık tensöründe aritmetik yok; sayı için `{#where}(m, 1.0, 0.0)`, birleştirmek için `&`, `|`, `~`}}
+	H6968 Code = 6968 // {op}: {dtype} tensörle {value} birleşmez (15.6a): {kind, select, list {liste işlenen değildir; tensör kurun: `{#Tensor}([...])`} bool {mantık tensöründe yalnız mantık değeri, yalnız `&`, `|`, `^`, `==`, `!=` ile} number {sayı mantık tensörüyle işlenmez} other {tam sayı tensöründe yalnız tam sayı geçer; ondalık hesap için tensörü çevirin: `{#Tensor}[{#Float}](t)`}}
+	H6969 Code = 6969 // bu işlem {dtype} tensörde {device} cihazında yapılamaz (15.48): bu sürümde GPU'da tam sayı ve mantık tensörü yalnız kıyasta, maskede, seçimde (`{#where}(m, a, b)`) ve taşımada kullanılır; işlemi CPU'da yapın: `t.{#to_device}("cpu")`
+	H6970 Code = 6970 // `{fn}[...]` tip argümanı olarak tek bir öğe cinsi alır, {given} verildi (15.2): `{fn}[{#Int}]`
+	H6971 Code = 6971 // {fn}: {given} öğe cinsi değildir; tensörün öğe cinsi `{#Float}`, `{#Int}` ya da `{#Bool}` olur (15.1, 15.2), ör. `{call}[{#Int}](...)`
+	H6972 Code = 6972 // `{fn}[{given}]`: `{fn}` yalnız ondalık tensör kurar (15.2); tip argümanını yazmayın ya da `{fn}[{#Float}]` yazın
+	H6973 Code = 6973 // {fn}: `{grad}: {true}` yalnız ondalık tensörde geçerlidir; {dtype} tensör türev izlemez (15.2)
+	H6974 Code = 6974 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} bir {kind} değeri değil (15.2): verinin öğeleri tip argümanındaki cinsten olmalı
+	H6975 Code = 6975 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} ilk öğe {first} ile aynı tensörde olamaz: mantık değeri sayıyla karışmaz (15.2)
+	H6976 Code = 6976 // {fn}: "{dtype}" {kind} hassasiyetidir, kurulan tensörün cinsi {given} (15.1, 15.2); {case, select, type_arg {cinsi tip argümanıyla seçin: `{call}[{kind_code}](...)`} data {`{call}[{kind_code}](...)`'ın verisi {kind} değerleridir: veriyi bu cinsten yazın} other {`{call}` yalnız ondalık tensör kurar, `{call}[{kind_code}]` yoktur: ondalık bir hassasiyet verin, ör. `{#dtype}: "float32"`}}
+	H6977 Code = 6977 // {fn}: "{dtype}" {kind} hassasiyetidir, tensör {given} (15.3); hassasiyet cinsin içinde değişir, cinsler arası dönüşüm tip çağrısıdır: `{#Tensor}[{kind_code}](t, {#dtype}: "{dtype}")`
+	H6978 Code = 6978 // {fn}: {given} ile {kind} arasında dönüşüm yok (3.12, 15.3); maskeden sayı `{#where}(m, 1.0, 0.0)` ile, sayıdan maske karşılaştırmayla kurulur: `t != 0`
+	H6979 Code = 6979 // {fn}: {case, select, tensor {iki tensör alır, {given} verildi (15.18a)} other {mantık tensörü alır, {given} verildi (15.18a); sayı tensöründe önce karşılaştırın: `{#all}(t != 0)`}}
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

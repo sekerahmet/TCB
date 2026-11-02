@@ -54,7 +54,7 @@ func poolFor(k poolKey, create bool) *sync.Pool {
 }
 
 func cpuCheckDType(dt DType) {
-	if dt != Float32 && dt != BFloat16 && dt != Float16 {
+	if !dt.IsFloat() && !dt.IsTyped() {
 		panic(messages.New(messages.H3025, dt))
 	}
 }
@@ -70,6 +70,9 @@ func (b cpuBackend) allocUninit(n int, dt DType) Storage { return b.allocate(n, 
 func (cpuBackend) allocate(n int, dt DType, reset bool) Storage {
 	cpuCheckDType(dt)
 	checkElem(n, dt)
+	if dt.IsTyped() {
+		return newTypedStorage(n, dt)
+	}
 	if n >= poolMin {
 		if h := poolFor(poolKey{dt, n}, false); h != nil {
 			if s, ok := h.Get().(*cpuStorage); ok {
@@ -99,7 +102,7 @@ func (cpuBackend) allocate(n int, dt DType, reset bool) Storage {
 // hiçbir görünümün bakmadığını güvence eder.
 func (cpuBackend) Release(s Storage) {
 	c, ok := s.(*cpuStorage)
-	if !ok || c.Len() < poolMin {
+	if !ok || c.Len() < poolMin || c.dtyp.IsTyped() {
 		return
 	}
 	if c.release {
@@ -111,6 +114,7 @@ func (cpuBackend) Release(s Storage) {
 
 func (cpuBackend) FromHost(data []float32, dt DType) Storage {
 	cpuCheckDType(dt)
+	checkComputeFloat(dt)
 	checkElem(len(data), dt)
 	if dt == Float32 {
 		d := make([]float32, len(data))
@@ -123,6 +127,7 @@ func (cpuBackend) FromHost(data []float32, dt DType) Storage {
 }
 
 func (cpuBackend) ToHost(src View) []float32 {
+	checkComputeFloat(src.DType())
 	out := make([]float32, checkElem(src.Numel(), Float32))
 	if src.DType() == Float32 {
 		copyTo(out, src)
@@ -135,6 +140,10 @@ func (cpuBackend) ToHost(src View) []float32 {
 func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 	n := src.Numel()
 	c := cpuStore(dst)
+	if c.dtyp.IsTyped() || src.DType().IsTyped() {
+		copyTyped(View{S: dst, Offset: dstOff, Shape: src.Shape, Strides: ContiguousStrides(src.Shape)}, src)
+		return
+	}
 	defer NoteImplicit(false, ImplicitKindOf(c.dtyp, src, true), n).Finish()
 	if c.dtyp == Float32 {
 		if src.DType() == Float32 {
@@ -156,6 +165,10 @@ func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 }
 
 func (cpuBackend) CopyStrided(dst, src View) {
+	if dst.DType().IsTyped() || src.DType().IsTyped() {
+		copyTyped(dst, src)
+		return
+	}
 	defer NoteImplicit(false, ImplicitKindOf(dst.DType(), src, dst.IsContiguous()), dst.Numel()).Finish()
 	var gt temp
 	defer gt.finish()
@@ -196,6 +209,7 @@ func copyTo(out []float32, src View) {
 
 func (cpuBackend) Fill(dst Storage, v float32) {
 	c := cpuStore(dst)
+	checkComputeFloat(c.dtyp)
 	if c.dtyp != Float32 {
 		hv := narrowOne(v, c.dtyp)
 		d := c.h

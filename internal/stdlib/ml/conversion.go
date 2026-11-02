@@ -21,9 +21,6 @@ func toTensor(fn any, v interp.Value) (*tensor.Tensor, error) {
 	case *TensorValue:
 		return x.t, nil
 	case *interp.IntVal:
-		if !exactInFloat32(x.Val) {
-			return nil, inexactIntError(fn, "", x.Val)
-		}
 		return tensor.Scalar(float32(x.Val)), nil
 	case *interp.FloatVal:
 		return tensor.Scalar(float32(x.Val)), nil
@@ -62,20 +59,12 @@ func toTensorOn(fn any, v interp.Value, otherVal *tensor.Tensor) (*tensor.Tensor
 	})
 }
 
-// listData iç içe listeyi düz veri ve şekle çevirir; düzensiz listeleri reddeder. Bütün
-// öğeleri tam sayı olan bir listede (tek tam sayıda da, toTensor) float32'de tam yazılamayan
-// değer (|n| > 2²⁴) çalışma hatasıdır (15.1'in ara kuralı: tam sayı tensörü bu sürümde yok, yuvarlama sessiz olurdu);
-// karışık liste ([1, 2.5]) ondalıktır ve yuvarlar (15.2).
+// listData iç içe sayı listesini float32 düz veri ve şekle çevirir (ondalık tensörün işleneni,
+// 15.6a); düzensiz listeleri reddeder, sayılar en yakına yuvarlanır. TR_Tensor'ün verisi
+// tensor_data.go'dadır (cins veriden).
 func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 	var data []float32
-	ints, inexact := true, -1
-	var inexactVal int64
 	sh, err := walkList(fn, l, func(n int) { data = make([]float32, 0, n) }, func(v interp.Value) error {
-		if n, integer := v.(*interp.IntVal); !integer {
-			ints = false
-		} else if inexact < 0 && !exactInFloat32(n.Val) {
-			inexact, inexactVal = len(data), n.Val
-		}
 		f, ok := interp.ToFloat(v)
 		if !ok {
 			return messages.New(messages.H6007, fn, interp.Shown(v), typeName(v))
@@ -86,30 +75,7 @@ func listData(fn any, l *interp.ListVal) ([]float32, []int, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if ints && inexact >= 0 {
-		return nil, nil, inexactIntError(fn, positionText(inexact, sh), inexactVal)
-	}
 	return data, sh, nil
-}
-
-// inexactIntError float32'de tam yazılamayan tam sayıdan tensör kurmanın hatasıdır (H6954);
-// position listedeki konumdur, tek sayıda boş. rounded float32'nin tam değeridir (en kısa
-// float32 yazımı, en kısa float64 yazımı da değil: 2⁵³ + 1 için 9007199254740992, −2⁶³ için
-// -9223372036854775808).
-func inexactIntError(fn any, position string, n int64) error {
-	rounded := strconv.FormatFloat(float64(float32(n)), 'f', 0, 64) // 2²⁴'ün üstünde float32 tam sayıdır
-	return messages.New(messages.H6954, fn, position, n, rounded)
-}
-
-// exactInFloat32 n float32'de tam yazılabilir mi? 2²⁴'e kadar her tam sayı yazılır; üstünde
-// yalnız yuvarlanınca aynı kalanlar.
-func exactInFloat32(n int64) bool {
-	if n >= -1<<24 && n <= 1<<24 {
-		return true
-	}
-	f := float64(float32(n))
-	// 2⁶³'e yuvarlanan değer int64'e sığmaz; n ondan küçük olduğu için tam değildir.
-	return f < 1<<63 && f >= -(1<<63) && int64(f) == n
 }
 
 // positionText düz konumu iç içe listedeki indeks yazımına çevirir: [1][0].

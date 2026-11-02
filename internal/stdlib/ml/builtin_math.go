@@ -3,6 +3,7 @@ package ml
 import (
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -54,6 +55,10 @@ func registerWideMath(v *interp.VM) {
 // "≥ 0" karşılaştırması NaN'da 0 verir. Sonuç karşılaştırmalar gibi float32 0/1'dir ve türevsizdir
 // (torch.isfinite de x == x ile |x| ≠ ∞'u birleştirir). Ara fark başlığı hemen bırakılır.
 func isFinite(t *tensor.Tensor) *tensor.Tensor {
+	if t.Elem() != tensor.ElemFloat {
+		// Tam sayı ve mantık öğesi her zaman sonludur (mantık tensörü 15.16a'da, 2b).
+		return tensor.FullOn(t.Device(), 1, t.Shape()...)
+	}
 	var r *tensor.Tensor
 	tensor.NoGrad(func() {
 		d := t.Sub(t)
@@ -64,20 +69,21 @@ func isFinite(t *tensor.Tensor) *tensor.Tensor {
 }
 
 // registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç karşılaştırmalar gibi her zaman
-// Ondalık 0/1'dir (15.36), tam sayılı işaretli girdide de (kaynaştır'daki sonuçla aynı).
+// Ondalık 0/1'dir (15.36), TR_Int girdide de (kaynaştır'daki sonuçla aynı; TR_Bool sonucu 2b).
 func registerIsFinite(v *interp.VM) {
 	registerTensorWrap(v, codes.FnIsFinite, false, isFinite)
 }
 
 // registerRounding taban, tavan, işaret ve mutlak'ı sarar: tensörde eleman bazlı (türevi tensör
-// işleminindir: taban, tavan ve işarette 0, mutlak'ta işaret(x); tam sayılı işaretli tensörün
-// sonucu da tam sayılıdır), sayıda çekirdek yerleşiği (Tam → Tam), listede yol gösteren hata.
+// işleminindir: taban, tavan ve işarette 0, mutlak'ta işaret(x); TR_Int tensörün sonucu da
+// TR_Int'tir, typedRounding), sayıda çekirdek yerleşiği (Tam → Tam), listede yol gösteren hata.
 func registerRounding(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor) {
 	registerTensorWrap(v, kd, true, fn)
 }
 
 // registerTensorWrap tek tensör argümanlı yerleşiği sarar: adlı argüman yok, listede yol gösteren
-// hata, tensör dışı girdide eski yerleşik; keepInts sonuca girdinin tam sayılı işaretini taşır.
+// hata, tensör dışı girdide eski yerleşik; keepInts doğruysa (taban, tavan, işaret, mutlak) cinsli
+// tensör (TR_Int, float64) cinsini korur (typedRounding).
 func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*tensor.Tensor) *tensor.Tensor) {
 	ad := codes.NameRef(kd)
 	wrap(v, kd, func(old interp.BuiltinFunc) interp.BuiltinFunc {
@@ -94,17 +100,79 @@ func registerTensorWrap(v *interp.VM, kd codes.Code, keepInts bool, fn func(*ten
 			if !ok {
 				return oldCall(ad, old, m, args, named)
 			}
+			if keepInts && d.t.DType().IsTyped() {
+				return typedRounding(kd, d)
+			}
 			r, err := safe(func() *tensor.Tensor { return fn(d.t) })
 			if err != nil {
 				return nil, err
 			}
-			s := New(r)
-			if keepInts {
-				s.hasInts = d.hasInts
-			}
-			return s, nil
+			return New(r), nil
 		}
 	})
+}
+
+// typedRounding taban, tavan, işaret ve mutlak'ın cinsli tensör yolu (15.12, 15.16): TR_Int'te
+// taban ve tavan girdinin kendisidir, işaret ve mutlak aynı cinsi verir (en küçük değerin mutlak
+// değeri taşmadır); float64'te işaret ve mutlak, taban ve tavan bu sürümde hassasiyet hatası.
+func typedRounding(kd codes.Code, d *TensorValue) (interp.Value, error) {
+	ad := codes.NameRef(kd)
+	switch kd {
+	case codes.FnSign:
+		r, err := safe(func() *tensor.Tensor { return tensor.SignTyped(d.t) })
+		if err != nil {
+			return nil, err
+		}
+		return New(r), nil
+	case codes.FnAbs:
+		var f *tensor.ElemFault
+		r, err := safe(func() (r *tensor.Tensor) { r, f = tensor.AbsTyped(d.t); return })
+		if err != nil {
+			return nil, err
+		}
+		return typedResult(ad, "", r, f)
+	}
+	if d.t.Elem() == tensor.ElemInt {
+		return d, nil
+	}
+	return nil, tensor.PrecisionError(d.t.DType(), d.t.Device())
+}
+
+// typedClamp TR_clamp'ın cinsli tensör yolu (15.13): TR_Int tensörde sınırlar TR_Int olmalıdır,
+// cins korunur; float64'te sınırlar float64'tür. Sınır yalnız verilen yanda uygulanır.
+func typedClamp(ad any, x *TensorValue, lo, hi float64, ilo, ihi int64, intLimit bool) (interp.Value, error) {
+	t := x.t
+	if t.Elem() == tensor.ElemBool || t.Elem() == tensor.ElemInt && !intLimit {
+		return nil, messages.New(messages.H6968, ad, t.DType().Name(), clampLimitText(lo, hi), map[bool]string{true: "number", false: "float"}[t.Elem() == tensor.ElemBool])
+	}
+	return safe(func() interp.Value {
+		r := t
+		bound := func(v float64, iv int64, op tensor.CmpOp) {
+			var b *tensor.Tensor
+			if t.Elem() == tensor.ElemInt {
+				iv = max(min(iv, hiOf(t.DType())), loOf(t.DType()))
+				b = tensor.Int64sOn(t.Device(), t.DType(), []int64{iv})
+			} else {
+				b = tensor.Float64sOn(t.Device(), []float64{v})
+			}
+			r = tensor.WhereTyped(tensor.CompareTyped(r, b, op), b, r)
+		}
+		if !math.IsInf(lo, -1) {
+			bound(lo, ilo, tensor.CmpLt)
+		}
+		if !math.IsInf(hi, 1) {
+			bound(hi, ihi, tensor.CmpGt)
+		}
+		return New(r)
+	})
+}
+
+func loOf(dt tensor.DType) int64 { lo, _ := dt.IntRange(); return lo }
+func hiOf(dt tensor.DType) int64 { _, hi := dt.IntRange(); return hi }
+
+// clampLimitText TR_clamp'ın sınırlarını iletide yazar.
+func clampLimitText(lo, hi float64) string {
+	return strconv.FormatFloat(lo, 'g', -1, 64) + ".." + strconv.FormatFloat(hi, 'g', -1, 64)
 }
 
 // singleTensor argümanlar tek bir tensörse onu verir.
@@ -171,13 +239,14 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	}
 	switch x := args[0].(type) {
 	case *TensorValue:
+		if x.t.DType().IsTyped() {
+			return typedClamp(ad, x, lo, hi, ilo, ihi, intLimit)
+		}
 		r, err := safe(func() *tensor.Tensor { return x.t.Clamp(float32(lo), float32(hi)) })
 		if err != nil {
 			return nil, err
 		}
-		s := New(r)
-		s.hasInts = x.hasInts && intValued(lo) && intValued(hi)
-		return s, nil
+		return New(r), nil
 	case *interp.IntVal:
 		if intLimit {
 			return interp.NewInt(min(max(x.Val, ilo), ihi)), nil
@@ -190,20 +259,6 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(args[0]))
-}
-
-// intValued f sonsuz ya da tam sayı değerli mi (sınırla sonucunun tam sayılı kalması için).
-func intValued(f float64) bool { return math.IsInf(f, 0) || f == math.Trunc(f) }
-
-// clamp64 x'i [lo, hi]'ye sınırlar; NaN korunur.
-func clamp64(x, lo, hi float64) float64 {
-	if x < lo {
-		return lo
-	}
-	if x > hi {
-		return hi
-	}
-	return x
 }
 
 // atan2Builtin atan2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
@@ -272,4 +327,15 @@ func toTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
 		out[i] = t
 	}
 	return out, nil
+}
+
+// clamp64 x'i [lo, hi]'ye sınırlar; NaN korunur.
+func clamp64(x, lo, hi float64) float64 {
+	if x < lo {
+		return lo
+	}
+	if x > hi {
+		return hi
+	}
+	return x
 }

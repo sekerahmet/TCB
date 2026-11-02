@@ -276,7 +276,7 @@ func TestLoadErrors(t *testing.T) {
 		{`TR_load_tokenizer("` + bpePath + `").TR_encode("a", TR_special_tokens: 1)`, messages.H7905},
 		{`TR_load_tokenizer("` + bpePath + `").TR_encode(["a"], TR_pair: ["b", "c"])`, messages.H5628},
 		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, "a"])`, messages.H5639},
-		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_Tensor([[[1]]]))`, messages.H5636},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_Tensor([[[1.0]]]))`, messages.H5636},
 		{`TR_load_tokenizer("` + bpePath + `").çözz([1])`, messages.H7903},
 	}
 	for _, dd := range cases {

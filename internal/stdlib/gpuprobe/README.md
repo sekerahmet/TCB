@@ -19,6 +19,7 @@ Denetim: `TestGPUTrainingLanguageLevel`, `TestGPULibraryGPT`, `TestGPUCheckpoint
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_gpu_checkpoint_test.go`: GPU'da kontrol noktası kaydı ve devamı
+- `behavior_gpu_generate_test.go`: kitaplığın üretiminin (kimlik ve konum `TR_Int`, KV önbelleğinin `TR_Bool` maskesi, `TR_replay` çizgesi) GPU'da CPU ile aynı parçaları vermesi
 - `behavior_gpu_inplace_test.go`: yerinde bileşik atamanın, türevin yazma kurallarının, −0.0 sırasının (`TR_min`, eksensiz `TR_argmax` dahil) ve bf16 tensörün `.safetensors`'a yazılmasının GPU'da CPU ile aynı olması
 - `behavior_gpu_library_test.go`: kitaplıktaki GPT ve iyileştiricilerin GPU'da CPU ile aynı kaybı vermesi
 - `behavior_gpu_training_test.go`: dil düzeyinde GPU eğitiminin CPU ile aynı sonucu vermesi

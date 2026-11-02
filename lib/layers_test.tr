@@ -43,8 +43,8 @@ TR_test "Doğrusal: başlatma ölçeği std'dir, aynı tohum aynı ağırlığı
     TR_var d = TR_Linear(64, 64, TR_init_std: 0.02, TR_seed: 9)
     TR_var s = TR_sqrt(TR_mean(d.TR_weight * d.TR_weight)).TR_tolist
     TR_assert(s > 0.018 TR_and s < 0.022, "std 0.02 olmalı, \(s)")
-    TR_assert(TR_Linear(64, 64, TR_seed: 9).TR_weight == d.TR_weight, "aynı tohum aynı ağırlık")
-    TR_assert(TR_Linear(64, 64, TR_seed: 10).TR_weight != d.TR_weight, "farklı tohum farklı ağırlık")
+    TR_assert(TR_equal(TR_Linear(64, 64, TR_seed: 9).TR_weight, d.TR_weight), "aynı tohum aynı ağırlık")
+    TR_assert(TR_not TR_equal(TR_Linear(64, 64, TR_seed: 10).TR_weight, d.TR_weight), "farklı tohum farklı ağırlık")
 }
 
 TR_test "GömmeKatmanı: şekil ve türev" {
@@ -136,8 +136,8 @@ TR_test "NedenselDikkat: bir konum sonraki konumlardan etkilenmez" {
     TR_no_grad { x2[0][4] = TR_randn([8], TR_seed: 99) }
     TR_var y1 = d.TR_forward(x, tablolar[0], tablolar[1])
     TR_var y2 = d.TR_forward(x2, tablolar[0], tablolar[1])
-    TR_assert(y1[0][0..4] == y2[0][0..4], "ilk dört konum değişmemeli")
-    TR_assert(y1[0][4] != y2[0][4], "son konum değişmeli")
+    TR_assert(TR_equal(y1[0][0..4], y2[0][0..4]), "ilk dört konum değişmemeli")
+    TR_assert(TR_not TR_equal(y1[0][4], y2[0][4]), "son konum değişmeli")
 }
 
 TR_test "NedenselDikkat: boyut bakış sayısına bölünmeli" {
@@ -193,7 +193,7 @@ TR_test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civar
     TR_var a = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 5)
     TR_var b = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 5)
     TR_var x = [[1, 2, 3, 4]]
-    TR_assert(a.TR_forward(x) == b.TR_forward(x))
+    TR_assert(TR_equal(a.TR_forward(x), b.TR_forward(x)))
     TR_var k = a.TR_loss(x, [[2, 3, 4, 5]]).TR_tolist
     TR_assert(k > 2.6 TR_and k < 2.95, "başlangıç kaybı ln(16) ≈ 2.77 civarında olmalı: \(k)")
 }
@@ -285,16 +285,18 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
         TR_for i, id TR_in [5, 7, 2, 9] {
             TR_var x = m.TR_hidden_states([[id]], TR_cache: ö1)
             TR_var beklenen = m.TR_logits(x)[0][0]
-            TR_var l = m.TR_single_step(TR_Tensor([[id * 1.0]]), TR_Tensor([ö2.TR_position * 1.0]), ö2)
+            TR_var l = m.TR_single_step(TR_Tensor([[id]]), TR_Tensor([ö2.TR_position]), ö2)
             ö2.TR_advance(1)
             TR_assert(en_büyük_mutlak_fark(l, beklenen) < 0.00001, "adım \(i): tek_adım farklı")
         }
+        # Önbelleğin konumları TR_Int'tir (15.2).
+        TR_assert_equal("int64", ö2.TR_positions.TR_dtype)
         TR_var boş = m.TR_build_cache(TR_capacity: 8)
         TR_assert_equal("H6913", TR_error_code { m.TR_single_step(TR_Tensor([[5.0]]), TR_Tensor([0.0]), boş) })
         TR_assert(boş.TR_step_position == TR_none, "H6913'ten sonra önbellek cihaz adımında kaldı")
         # İletinin önerisi aynı önbellekte çalışır: önce gizli_durum, sonra tek_adım.
         m.TR_hidden_states([[1, 2, 3]], TR_cache: boş)
-        TR_var l = m.TR_single_step(TR_Tensor([[5.0]]), TR_Tensor([boş.TR_position * 1.0]), boş)
+        TR_var l = m.TR_single_step(TR_Tensor([[5]]), TR_Tensor([boş.TR_position]), boş)
         TR_assert_equal([16], l.TR_shape)
     }
     TR_assert_equal(m.TR_generate([1, 2, 3], 9, TR_temperature: 0, TR_cuda_graph: TR_false), m.TR_generate([1, 2, 3], 9, TR_temperature: 0))
@@ -361,7 +363,7 @@ TR_test "NedenselDikkat: pencere yalnızca son w konuma bakar" {
     TR_var y1 = yerel.TR_forward(x, tablolar[0], tablolar[1])
     TR_var y2 = yerel.TR_forward(x2, tablolar[0], tablolar[1])
     # pencere 2: t. konum yalnızca t ve t-1'e bakar; 0. konumun değişimi 0 ve 1'i etkiler, 2.'den sonrasını etkilemez.
-    TR_assert(y1[0][0] != y2[0][0] TR_and y1[0][1] != y2[0][1], "0. ve 1. konum değişmeli")
+    TR_assert(TR_not TR_equal(y1[0][0], y2[0][0]) TR_and TR_not TR_equal(y1[0][1], y2[0][1]), "0. ve 1. konum değişmeli")
     TR_assert(en_büyük_mutlak_fark(y1[0][2..6], y2[0][2..6]) < 0.0000001, "2. konumdan sonrası değişmemeli")
     # aynı ağırlıkla pencerenin dışındaki konum tam dikkatte değişir
     TR_var t1 = genel.TR_forward(x, tablolar[0], tablolar[1])
@@ -515,7 +517,7 @@ TR_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/
     TR_var x = [[1, 2, 3, 4, 5]]
     TR_var a = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 3)
     TR_var b = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 3, TR_windows: [0, 0])
-    TR_assert(a.TR_forward(x) == b.TR_forward(x), "pencereler: 0 varsayılanla aynı")
+    TR_assert(TR_equal(a.TR_forward(x), b.TR_forward(x)), "pencereler: 0 varsayılanla aynı")
     TR_assert_equal(TR_none, a.TR_ple_context)
     TR_var m = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 4, TR_num_heads: 2, TR_num_kv_heads: 1, TR_intermediate_dim: 12, TR_tied: TR_true, TR_seed: 3,
         TR_windows: TR_layer_windows("YGYG", [2, 3]), TR_qk_norm: TR_true, TR_merged_kv: TR_true, TR_merged_gate: TR_true,
@@ -568,10 +570,10 @@ TR_test "GPT: bakış_boyutu bloklara ve döner konum tablosuna iletilir; varsay
     TR_var m = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_num_kv_heads: 1, TR_head_dim: 16, TR_seed: 3)
     TR_assert_equal([8, 32], m.TR_blocks[0].TR_attention.TR_q_proj.TR_weight.TR_shape)
     TR_assert_equal([6, 8], m.TR_cos_table.TR_shape)
-    TR_assert_equal([2, 6, 12], m.TR_forward(TR_Tensor([[1, 2, 3, 4, 5, 6], [6, 5, 4, 3, 2, 1]])).TR_shape)
+    TR_assert_equal([2, 6, 12], m.TR_forward(TR_Tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], [6.0, 5.0, 4.0, 3.0, 2.0, 1.0]])).TR_shape)
     TR_var a = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 3)
     TR_var b = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_head_dim: 4, TR_seed: 3)
-    TR_assert_equal(a.TR_forward(TR_Tensor([[1, 2, 3]])).TR_tolist, b.TR_forward(TR_Tensor([[1, 2, 3]])).TR_tolist)
+    TR_assert_equal(a.TR_forward(TR_Tensor([[1.0, 2.0, 3.0]])).TR_tolist, b.TR_forward(TR_Tensor([[1.0, 2.0, 3.0]])).TR_tolist)
 }
 
 TR_test "GPT: rope_tabanı döner konum tablolarının tabanıdır; varsayılan 10000 (Hugging Face rope_theta)" {

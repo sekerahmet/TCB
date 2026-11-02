@@ -28,18 +28,18 @@ TR_assert(TR_abs(z.TR_grad.TR_tolist[0] + TR_sin(0.5)) < 0.000001)
 
 func TestConcatAndSplit(t *testing.T) {
 	mustRun(t, `
-TR_var a = TR_Tensor([[1, 2], [3, 4]], TR_requires_grad: TR_true)
-TR_var b = TR_Tensor([[5], [6]], TR_requires_grad: TR_true)
+TR_var a = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+TR_var b = TR_Tensor([[5.0], [6.0]], TR_requires_grad: TR_true)
 TR_var c = TR_concat([a, b])
 TR_assert_equal([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.TR_tolist)
 TR_assert_equal([4, 2], TR_concat([a, a], TR_dim: 0).TR_shape)
-TR_backward(TR_sum(c * TR_Tensor([1, 2, 3])))
+TR_backward(TR_sum(c * TR_Tensor([1.0, 2.0, 3.0])))
 TR_assert_equal([[1.0, 2.0], [1.0, 2.0]], a.TR_grad.TR_tolist)
 TR_assert_equal([[3.0], [3.0]], b.TR_grad.TR_tolist)
-TR_var p = TR_Tensor([[1, 2, 3, 4, 5, 6]], TR_requires_grad: TR_true).TR_split(3)
+TR_var p = TR_Tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]], TR_requires_grad: TR_true).TR_split(3)
 TR_assert_equal(3, p.TR_length)
 TR_assert_equal([[3.0, 4.0]], p[1].TR_tolist)
-TR_var s = TR_Tensor([[1, 2], [3, 4], [5, 6], [7, 8]]).TR_split(2, TR_dim: 0)
+TR_var s = TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]).TR_split(2, TR_dim: 0)
 TR_assert_equal([[5.0, 6.0], [7.0, 8.0]], s[1].TR_tolist)
 # Metin'in .böl'ü değişmedi.
 TR_assert_equal(["a", "b"], "a,b".TR_split(","))
@@ -49,13 +49,13 @@ TR_assert_equal(["a", "b"], "a,b".TR_split(","))
 		want messages.Code
 	}{
 		{"TR_concat([])", messages.H6307},
-		{"TR_concat(TR_Tensor([1]))", messages.H6306},
-		{"TR_concat([TR_Tensor([[1, 2]]), TR_Tensor([[1, 2, 3]])], TR_dim: 0)", messages.H6311},
-		{"TR_concat([TR_Tensor([[1, 2]]), TR_Tensor([1, 2])])", messages.H6309},
-		{"TR_concat([TR_Tensor([1]), TR_Tensor([2])], TR_dim: 3)", messages.H6016},
-		{"TR_concat([TR_Tensor([1])], axis: 0)", messages.H7900},
-		{"TR_Tensor([1, 2, 3]).TR_split(2)", messages.H6318},
-		{"TR_Tensor([1, 2]).TR_split(0)", messages.H6317},
+		{"TR_concat(TR_Tensor([1.0]))", messages.H6306},
+		{"TR_concat([TR_Tensor([[1.0, 2.0]]), TR_Tensor([[1.0, 2.0, 3.0]])], TR_dim: 0)", messages.H6311},
+		{"TR_concat([TR_Tensor([[1.0, 2.0]]), TR_Tensor([1.0, 2.0])])", messages.H6309},
+		{"TR_concat([TR_Tensor([1.0]), TR_Tensor([2.0])], TR_dim: 3)", messages.H6016},
+		{"TR_concat([TR_Tensor([1.0])], axis: 0)", messages.H7900},
+		{"TR_Tensor([1.0, 2.0, 3.0]).TR_split(2)", messages.H6318},
+		{"TR_Tensor([1.0, 2.0]).TR_split(0)", messages.H6317},
 	}
 	for _, h := range errs {
 		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
@@ -66,7 +66,7 @@ TR_assert_equal(["a", "b"], "a,b".TR_split(","))
 
 func TestKeepDim(t *testing.T) {
 	mustRun(t, `
-TR_var x = TR_Tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+TR_var x = TR_Tensor([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
 TR_assert_equal([2, 2, 1], TR_sum(x, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
 TR_assert_equal([2, 1, 2], TR_mean(x, TR_dim: 1, TR_keepdim: TR_true).TR_shape)
 TR_assert_equal([[[4.0, 6.0]], [[12.0, 14.0]]], TR_sum(x, TR_dim: 1, TR_keepdim: TR_true).TR_tolist)
@@ -79,7 +79,7 @@ TR_assert_equal([1, 1, 1], TR_max(x, TR_keepdim: TR_true).TR_shape)
 TR_var w = TR_Tensor([[1.0, 3.0]], TR_requires_grad: TR_true)
 TR_var n = w / TR_sum(w, TR_dim: -1, TR_keepdim: TR_true)
 TR_assert_equal([[0.25, 0.75]], n.TR_tolist)
-TR_backward(TR_sum(n * TR_Tensor([1, 0])))
+TR_backward(TR_sum(n * TR_Tensor([1.0, 0.0])))
 TR_assert(TR_abs(w.TR_grad.TR_tolist[0][0] - 0.1875) < 0.000001)
 `)
 	for _, h := range []struct {
@@ -87,7 +87,7 @@ TR_assert(TR_abs(w.TR_grad.TR_tolist[0][0] - 0.1875) < 0.000001)
 		want messages.Code
 	}{
 		{"TR_sum([1, 2], TR_keepdim: TR_true)", messages.H6218},
-		{"TR_sum(TR_Tensor([1, 2]), TR_keepdim: 1)", messages.H7905},
+		{"TR_sum(TR_Tensor([1.0, 2.0]), TR_keepdim: 1)", messages.H7905},
 	} {
 		if _, err := run(t, h.code); err == nil || !messages.Has(err, h.want) {
 			t.Errorf("%s:\n  hata    : %v\n  içermeli: %s", h.code, err, h.want)
@@ -260,22 +260,22 @@ TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor, ölçek: TR_Float }
 TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
 TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor, ad: TR_String, ek: TR_Tensor? = TR_none }
 TR_struct Halka { w: TR_Tensor, öbür: TR_List[Halka] }
-TR_var ortak = p(9)
-TR_var m = Model(p(1), [Blok(Dikkat(p(2), p(3), 0.5), [p(4), ortak], {}), Blok(Dikkat(p(5), ortak, 1), [], {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
-m.ek = p(7)
+TR_var ortak = p(9.0)
+TR_var m = Model(p(1.0), [Blok(Dikkat(p(2.0), p(3.0), 0.5), [p(4.0), ortak], {}), Blok(Dikkat(p(5.0), ortak, 1), [], {"W1": p(6.0), "sabit": TR_Tensor([0.0])})], ortak, "küçük")
+m.ek = p(7.0)
 TR_var liste = TR_parameters(m)
 TR_print(liste.TR_length, [x.TR_tolist[0] TR_for x TR_in liste])
 TR_var adlar = TR_parameters(m, TR_named: TR_true)
 TR_print(adlar.TR_keys())
 # Aynı tensör nesnesidir: iyileştirici ile güncellenir.
-TR_assert(liste[0] == m.TR_embedding)
+TR_assert(TR_equal(liste[0], m.TR_embedding))
 TR_save_tensors("`+fpath+`", adlar)
 TR_var y = TR_load_tensors("`+fpath+`")
 TR_print(y.TR_keys() == adlar.TR_keys(), y["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
 # Ara sonuçlar ve türev izlemeyenler parametre değildir.
-TR_print(TR_parameters([p(1) * 2, TR_Tensor([1.0])]).TR_length, TR_parameters(p(1)).TR_length, TR_parameters(p(1), TR_named: TR_true).TR_keys())
+TR_print(TR_parameters([p(1.0) * 2, TR_Tensor([1.0])]).TR_length, TR_parameters(p(1.0)).TR_length, TR_parameters(p(1.0), TR_named: TR_true).TR_keys())
 # Döngülü yapılar sonsuz döngüye girmez: kendine bağlanan nesne (7.6; liste tek tipli olduğu için kendini içermez, 3.6).
-TR_var h = Halka(p(1), [])
+TR_var h = Halka(p(1.0), [])
 h.öbür.TR_append(h)
 TR_print(TR_parameters(h).TR_length)
 `)

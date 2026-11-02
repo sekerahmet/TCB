@@ -24,11 +24,13 @@ import (
 //	her girdi:
 //	  ad_uzun  uint32   adın bayt uzunluğu (en fazla 65535)
 //	  ad       UTF-8
-//	  tür      uint8    veri türü kodu: 1 = float32, 2 = bf16, 3 = fp16
+//	  tür      uint8    veri türü kodu: 1 = float32, 2 = bf16, 3 = fp16, 4 = float64,
+//	                    5 = int64, 6 = int32, 7 = int16, 8 = int8, 9 = uint32, 10 = uint16,
+//	                    11 = uint8, 12 = mantık (15.46)
 //	  boyut    uint8    eksen sayısı (en fazla 32)
 //	  şekil    uint64 × boyut
-//	  veri     eleman sayısı × tür boyu bayt (satır öncelikli; float32 4 bayt,
-//	           bf16/fp16 2 baytlık bit deseni)
+//	  veri     eleman sayısı × tür boyu bayt (satır öncelikli, küçük uçlu; float32 4 bayt,
+//	           bf16/fp16 2 baytlık bit deseni, mantık 1 bayt 0/1)
 //	sağlama    uint32   önceki tüm baytların CRC-32 (IEEE) değeri
 //
 // Sürüm 1 aynı düzendedir ama yalnızca tür kodu 1'i (float32) içerir; artık okunmaz.
@@ -49,35 +51,63 @@ const (
 // yanlıştır: o tür float32 koduyla yazılsaydı dosya sessizce yanlış olurdu (15.55: her nicemli
 // hassasiyetin kendi tür kodu vardır).
 func dtypeCode(dt tensor.DType) (byte, bool) {
-	switch dt {
-	case tensor.Float32:
-		return dtypeFloat32, true
-	case tensor.BFloat16:
-		return dtypeBF16, true
-	case tensor.Float16:
-		return dtypeFP16, true
+	for code := 1; code < len(fileDTypes); code++ {
+		if fileDTypes[code] == dt {
+			return byte(code), true
+		}
 	}
 	return 0, false
 }
 
+// fileDTypes tür kodlarının türleri (dizin = kod; 0 kod değildir, yeri boştur). 1–3 sürüm 2'nin ilk
+// kodlarıdır, öbürleri cinsli türlerin (15.46); düzen bütün türlerde aynıdır.
+var fileDTypes = []tensor.DType{0, tensor.Float32, tensor.BFloat16, tensor.Float16, tensor.Float64,
+	tensor.Int64, tensor.Int32, tensor.Int16, tensor.Int8, tensor.UInt32, tensor.UInt16, tensor.UInt8, tensor.Bool}
+
 // dtypeFromCode dosyadaki tür kodunu çekirdek türüne çevirir.
 func dtypeFromCode(code byte) (tensor.DType, bool) {
-	switch code {
-	case dtypeFloat32:
-		return tensor.Float32, true
-	case dtypeBF16:
-		return tensor.BFloat16, true
-	case dtypeFP16:
-		return tensor.Float16, true
+	if code == 0 || int(code) >= len(fileDTypes) {
+		return 0, false
 	}
-	return 0, false
+	return fileDTypes[code], true
 }
 
 type fileEntry struct {
 	ad    string
 	shape []int
 	dtype tensor.DType
-	data  []float32 // 16 bitlik türlerde de tensörün (kayıpsız açılmış) değerleri
+	data  []float32 // hesap ondalıklarında tensörün (16 bitlikte kayıpsız açılmış) değerleri
+	raw   []byte    // cinsli türlerde (float64, TR_Int, TR_Bool) küçük uçlu ham baytlar
+}
+
+// newFileEntry tensörün verisini konağa alır: hesap ondalığı değer, öbürü ham bayt olarak.
+func newFileEntry(ad string, t *tensor.Tensor) fileEntry {
+	g := fileEntry{ad: ad, shape: t.Shape(), dtype: t.DType()}
+	if g.dtype.IsTyped() {
+		g.raw = t.Raw()
+	} else {
+		g.data = t.Data()
+	}
+	return g
+}
+
+// tensor dosyadan okunan girdinin tensörüdür (varsayılan cihazda).
+func (g fileEntry) tensor() *tensor.Tensor {
+	switch {
+	case g.dtype.IsTyped():
+		return tensor.FromRawOn(tensor.DefaultDevice(), g.dtype, g.raw, g.shape...)
+	case g.dtype == tensor.Float32:
+		return tensor.New(g.data, g.shape...)
+	}
+	return tensor.NewOf(g.dtype, g.data, g.shape...)
+}
+
+// count girdinin öğe sayısı.
+func (g fileEntry) count() int {
+	if g.dtype.IsTyped() {
+		return len(g.raw) / (g.dtype.Bits() / 8)
+	}
+	return len(g.data)
 }
 
 func yolArg(fn any, v interp.Value) (string, error) {
@@ -129,7 +159,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		if len(sh) > maxDims {
 			return nil, messages.New(messages.H6609, fn, k, maxDims, tensor.ShapeText(sh))
 		}
-		inputs = append(inputs, fileEntry{ad: k, shape: sh, dtype: d.t.DType(), data: d.t.Data()})
+		inputs = append(inputs, newFileEntry(k, d.t))
 	}
 	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. interp.(*VM).ResolvePath).
 	write := writeToFile
@@ -157,7 +187,13 @@ func writeToFile(fpath string, inputs []fileEntry) error {
 func writeEntries(f io.Writer, inputs []fileEntry) error {
 	y := NewTensorWriter(f, len(inputs))
 	for _, g := range inputs {
-		if err := y.Write(g.ad, g.shape, g.dtype, g.data); err != nil {
+		var err error
+		if g.dtype.IsTyped() {
+			err = y.WriteRaw(g.ad, g.shape, g.dtype, g.raw)
+		} else {
+			err = y.Write(g.ad, g.shape, g.dtype, g.data)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -196,9 +232,28 @@ func (y *TensorWriter) u16(x uint16) { binary.LittleEndian.PutUint16(y.b[:2], x)
 func (y *TensorWriter) u32(x uint32) { binary.LittleEndian.PutUint32(y.b[:4], x); y.write(y.b[:4]) }
 func (y *TensorWriter) u64(x uint64) { binary.LittleEndian.PutUint64(y.b[:8], x); y.write(y.b[:8]) }
 
-// Write bir girdiyi yazar: veri satır öncelikli değerlerdir (16 bitlik türlerde o türden
-// açılmış değerler; geri çevirme kayıpsızdır).
+// Write bir hesap ondalığı girdisini yazar: veri satır öncelikli değerlerdir (16 bitlik
+// türlerde o türden açılmış değerler; geri çevirme kayıpsızdır).
 func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []float32) error {
+	if err := y.entryHeader(ad, shape, dtype); err != nil {
+		return err
+	}
+	y.failure = writeValues(y.w, dtype, data, y.buffer)
+	return y.failure
+}
+
+// WriteRaw cinsli bir girdiyi (float64, TR_Int, TR_Bool) satır öncelikli küçük uçlu ham
+// baytlarıyla yazar.
+func (y *TensorWriter) WriteRaw(ad string, shape []int, dtype tensor.DType, raw []byte) error {
+	if err := y.entryHeader(ad, shape, dtype); err != nil {
+		return err
+	}
+	y.write(raw)
+	return y.failure
+}
+
+// entryHeader girdinin adını, tür kodunu ve şeklini yazar.
+func (y *TensorWriter) entryHeader(ad string, shape []int, dtype tensor.DType) error {
 	switch {
 	case y.failure != nil:
 		return y.failure
@@ -219,9 +274,6 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 	y.write([]byte{code, byte(len(shape))})
 	for _, d := range shape {
 		y.u64(uint64(d))
-	}
-	if y.failure == nil {
-		y.failure = writeValues(y.w, dtype, data, y.buffer)
 	}
 	return y.failure
 }
@@ -273,13 +325,12 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	}
 	result := interp.NewDictVal()
 	for _, g := range inputs {
-		var t *tensor.Tensor
-		if g.dtype == tensor.Float32 {
-			t = tensor.New(g.data, g.shape...)
-		} else {
-			t = tensor.NewOf(g.dtype, g.data, g.shape...)
+		t, err := safe(g.tensor)
+		if err != nil {
+			return nil, err
 		}
-		t.SetRequiresGrad(watch)
+		// Türev yalnız hesap ondalıklarında açılır; TR_Int ve TR_Bool türevsiz kalır (15.46).
+		t.SetRequiresGrad(watch && g.dtype.IsFloat())
 		result.Set(g.ad, New(t))
 	}
 	return result, nil

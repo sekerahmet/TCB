@@ -25,7 +25,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - Üstünde yalnız **okuma** işleri yapılır: `.TR_shape`, `.TR_dtype`, `.TR_device`, yazdırma, `TR_save_tensors`. Yazma, görünüm, `TR_concat`, `TR_where`, `==` ve hesap tiplenemez: önce daraltılır.
 - **Daraltma** `t.TR_narrow[E]()` iledir: kopyasız ve çevirmeyen bir görünüm verir (`d["w"].TR_narrow[TR_Float]()`, `d["step"].TR_narrow[TR_Int]()`); cins uymazsa çalışma hatasıdır, ileti dosyadaki cinsi söyler. Tip çağrısı (`TR_Tensor(t)`) daraltma değildir: o kopya ve cins dönüşümüdür (15.3, 15.27a).
 - Her `TR_Tensor[E]` değeri bir `TR_AnyTensor` yerine verilebilir (değerin kendisi; sözlük kurulurken). **Kaplar tip parametresinde değişmezdir:** `TR_Dict[TR_String, TR_Tensor]` bir `TR_Dict[TR_String, TR_AnyTensor]` değildir, çünkü ona tam sayı tensörü yazılabilirdi. Her cinsten sözlük alan yerleşikler bunu 13.10'un kabul kümesiyle yazar (`TR_save_tensors`).
-- *Test:* TR testi (tam sayı tensörü gelene kadarki ara kural da: `TestIntListInexactInFloat32`); öğe cinsli tip, tam sayı tensörü ve float64 uygulanınca TR testi.
+- *Test:* TR testi; Go: `TestTypedStorageRoundTrip`, `TestTypedInFloatKernelIsPrecisionError`, GPU'da `TestTypedStorageOnGPU`; öğe cinsli tip uygulanınca TR testi.
 
 **15.2** Kurmak:
 - **Veriden:** `TR_Tensor[E](veri)` tensör verisinden (13.10) yeni bir tensör kurar: `TR_Float`'ta ve `TR_Int`'te sayı ya da aralık, `TR_Bool`'da mantık değeri, ya da öğeleri bunlar olan iç içe liste. Aralık `TR_Int` verir: `TR_Tensor(0..n)` `TR_Tensor[TR_Int]`'tir. Tek sayı 0 boyutlu tensör verir: `TR_Tensor(3.0)`'ün şekli `[]`'dir. Düzensiz liste hatadır.
@@ -46,7 +46,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
   - `TR_eye(n)` n×n birim matrisi kurar (`TR_Float`, `TR_eye[TR_Int](n)` de yazılabilir).
 - **Dosyadan:** dosyadan okunan tensör `TR_AnyTensor`'dür (15.1, 15.46): cinsi dosyadan gelir, tipte yazılı değildir; hesap için `.TR_narrow[E]()` ile daraltılır. Hassasiyet dosyadakidir ("bf16" "bf16" kalır). Dosyadaki tür TR'de yoksa çalışma hatasıdır; ileti anahtarı ve dosyadaki türü söyler.
 - **Türev:** `TR_requires_grad: TR_true` yalnız `TR_Float` tensörde geçerlidir (varsayılan `TR_false`).
-- *Test:* TR testi.
+- *Test:* TR testi ("15.2 cins veriden çıkar", "15.2 tip argümanı öğe cinsini seçer"); Go: `TestTensorKindFromData`.
 
 **15.3** Özellikler ve dönüşümler:
 - **Özellikler:** `.TR_shape` (`TR_List[TR_Int]`), `.TR_dtype` (`TR_String`), `.TR_device` (15.37), `.TR_grad` (`TR_Float` yaprakta `TR_Tensor?`; yaprak olmayan türevli tensörde okumak hatadır, 15.6d), `.TR_requires_grad` (`TR_Bool`; yaprakta atanabilir, 15.34: dondurma).
@@ -69,7 +69,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
   - `.TR_slice(eksen, baş, son)` yarı açık `[baş, son)` aralığıdır; negatif uç sondan sayar; `son` verilmezse eksenin sonudur: `x[:, 1:]` → `x.TR_slice(1, 1)`, `x[:, :-1]` → `x.TR_slice(1, 0, -1)`. Sınır dışı uç hatadır.
   - `.TR_reshape(şekil)` (bir eksen −1 olabilir) adımlar izin veriyorsa görünümdür, vermiyorsa kopyadır (`t.TR_transpose().TR_reshape([-1])`). Yalnız boyu 1 eksen ekleyen ya da silen `.TR_reshape` her zaman görünümdür. **Kopya olan sonucun deposu yerinde yazmaya kapalıdır:** ona ya da görünümüne (`r[0][1] = d`, `r.TR_slice(...)`, dolaşmanın öğesi) atama, bileşik atama, `.TR_fill` ve `TR_write_slice` çalışma hatasıdır; yasak depodaki bir bayraktır; ileti şekli ve adımları söyler, `TR_Tensor(...)` ile açık kopyayı ya da asıl tensöre yazmayı önerir. Okumak serbesttir.
 - **Koşul:** tensör koşul olamaz (3.10). İleti koşula göre önerir: `a == b` ise önce `TR_equal(a, b)`'yi; başka öğe öğe koşulda `TR_all(...)`'ı ya da `TR_any(...)`'ı (15.18a); 0 boyutlu mantık tensöründe `.TR_item()`'ı.
-- *Test:* TR testi; cins dönüşümü, taşma ve öğe tipli liste uygulanınca TR testi.
+- *Test:* TR testi ("15.3 hassasiyet cinsin içinde değişir", "15.1 TR_Int ve TR_Bool tensörü"); Go: `TestTypedConvert`, `TestTypedIntArith`.
 
 **15.4** Karışık hassasiyet: `TR_mixed_precision(h) { ... }` sondaki blokla (6.7) yazılır. Blokta `@` ve `TR_attention` girdileri `h` hassasiyetine çevrilir ve float32 biriktirmeyle `h`'de sonuç verir; sonucun gradyanı da `h`'dedir. `TR_softmax`, `TR_log_softmax`, `TR_logsumexp`, `TR_sum`, `TR_mean`, `TR_std` ve `TR_cumsum` 16 bitlik girdiyi float32'ye açar. `TR_layer_norm` ve `TR_rms_norm` ortalamayı ve varyansı float32'de hesaplar, sonucu girdinin türünde verir. Ağırlıklar ve sapmalar float32 kalır. Blokta `@`'nin iki gradyan çarpımı 16 bitlik girdiyle yapılır; float32 ağırlığın gradyanı float32 yazılır. Normlar 16 bitlik girdiyi açmadan okur. Normun çıktısı `TR_dtype:` ile doğrudan blok türünde yazılabilir: `TR_rms_norm(x, w, TR_dtype: TR_compute_dtype())` (`TR_layer_norm` da); hesap yine float32'dedir, değer float32 çıktının o türe bir kez yuvarlanmışıdır; daraltılmış çıktının gradyanı float32 tutulur, ileri ve geri yön çarpımın kendi dönüşümüyle bit bit aynıdır. Çapraz entropi, normlar, evrişim ve dikkat blokta kendi maddelerindeki gibidir (15.23a–15.25). Türev izleyen bir ara sonucun aynı türe dönüşümü, ara sonuç değişmediği sürece bir kez yapılır ve paylaşılır. Karışık hassasiyet cinsin içindedir; tipi değiştirmez. Bloğun içinde `TR_compute_dtype()` bloğun hesap türünü (`"bf16"`, `"fp16"`), dışında `"float32"` verir. Bloğun değeri son ifadesidir. `"float32"` bloğu karışık hassasiyeti kapatır; iç içe bloklarda en içteki geçerlidir ve blok bitince (hatayla da) önceki tür geri gelir. Hesap türü göreve bağlıdır; yeni bir `TR_async` görevi açıldığı yerin hesap türünü ve türevsiz kipini alır (15.27).
 - *Test:* TR testi.
@@ -87,7 +87,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
   - **İstisna:** her isteğe bağlı değerin (`T?`) `TR_none` değişmeziyle `==` ve `!=`'si geçerlidir ve `TR_Bool` verir (3.5), `T` eşitlenebilir olmasa da: `TR_Tensor?`, `TR_AnyTensor?` (`d.TR_get(ad)`), tensör içeren yapı ve demet. `TR_if g != TR_none { ... }`.
   - Karşılaştırma zinciri (4.4) tensörde denetim hatasıdır, çünkü `TR_and` yalnız `TR_Bool` alır (4.6). Maskeler `&`, `|`, `^` ve `~` ile birleşir (15.6): `(0.0 <= t) & (t < 1.0)`; ileti bu yazımı önerir.
   - Tensör ve tensör içeren her değer eşitlenebilir değildir (13.10): liste, sözlük, demet (3.6a), yapı (7.6) ve durumlu tip (7.7). Bunların `==`'si, `==` isteyen değer deseni (5.6) ve `.TR_contains`/`.TR_unique`/`.TR_index_of` (13.3) denetim hatasıdır; ileti `TR_equal`'ı önerir. Durum açan desen (7.7, `Cevap.Tamam(t) =>`) geçerlidir: alanı bağlar, karşılaştırmaz. İki isteğe bağlı tensör birbiriyle karşılaştırılamaz; yalnız `TR_none` değişmeziyle.
-- *Test:* TR testi; metin, öğe öğe karşılaştırma ve `TR_Bool` maskesi uygulanınca TR testi.
+- *Test:* TR testi (öğe öğe karşılaştırma, `TR_Bool` maske, koşulda hata, `TR_none` karşılaştırması); metin uygulanınca TR testi.
 
 ## İşleçler, indeks ve atama
 
@@ -151,7 +151,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
   - **yaprak olmayan** türevli tensöre (türev izleyen bir işlemin sonucu ya da görünümü) yerinde yazmak türevsiz kipte de hatadır (15.3); ileti bütün hedefte `h = h + ...`'yı, indeksli hedefte `TR_where` ile yerinde olmayan yazımı önerir;
   - türev izlemeyen bir hedefe, türevsiz kipin dışında, **türev izleyen bir değer** yazmak hatadır: gradyan bağını sessizce koparırdı (`havuz[idx] += d`). EMA'nın gölge ağırlığı ve KV önbelleği bu yüzden türevsiz kipte güncellenir.
   - Türev izlemeyen ama geri yayılım için saklanmış bir tensöre yazmak serbesttir; `TR_backward` onu sürümden yakalar (15.3).
-- *Test:* TR testi; Go: `TestMatrixIndexAndAssign`, `TestIndexAssignSingleCopy`, `TestWriteRulesForGradients`, `TestCompoundAssignInPlace`, `TestCompoundAssignDTypeShapeOverlap`, `TestCompoundAssignGradRules`, GPU'da `TestGPUInPlaceCompoundAssign`; tensörle indeks, maske ve `.TR_select` uygulanınca TR testi.
+- *Test:* TR testi; Go: `TestMatrixIndexAndAssign`, `TestIndexAssignSingleCopy`, `TestWriteRulesForGradients`, `TestCompoundAssignInPlace`, `TestCompoundAssignDTypeShapeOverlap`, `TestCompoundAssignGradRules`, `TestTypedAssign` (cinsli hedef), `TestTypedCompoundAssignAliases` (bütün bileşik atamalar yerinde), GPU'da `TestGPUInPlaceCompoundAssign` ve `TestTypedPathsOnGPU`; tensörle indeks, maske ve `.TR_select` uygulanınca TR testi.
 
 **15.6e** Üs: `t ** u`'da `u` sayı ya da tensördür; `2 ** t` de geçerlidir. `TR_Float`'ta IEEE 754'ün `pow`'u uygulanır: eksi tabanın tam olmayan üssü NaN, sıfırın eksi üssü sonsuzdur (15.50; sayıdaki 4.3 bunları hata sayar, tensörde öğe başına hata yoktur, 15.50'deki `TR_sqrt` gibi). `TR_Int`'te üs eksi olamaz; bir öğe bile eksiyse çalışma hatası. Türev `TR_Float`'ta iki işlenene de akar.
 - *Test:* Go: `TestGeluAndZeroPowerGrad`, `TestSpecialValuesTable`; tensör üs ve tam sayı tensörü uygulanınca TR testi.
@@ -201,7 +201,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - *Test:* TR testi.
 
 **15.15** `TR_where(koşul, a, b)` öğe öğe seçimdir: `koşul` `TR_Tensor[TR_Bool]`'dur; doğru olduğu yerde `a`'yı, öbür yerlerde `b`'yi verir. Üçü yayınlanır. `a` ve `b` aynı cinsten tensör ya da 15.6a'ya uyan sayıdır; hassasiyet 15.6c'ye göre birleşir. `a` ve `b`'nin ikisi de sayıysa cins ve hassasiyet onlardan çıkar: iki `TR_Int` → `TR_Int` "int64"; `TR_Int` ile `TR_Float` → `TR_Float` "float32"; iki `TR_Bool` → `TR_Bool`. Gradyan `a`'ya koşulun doğru, `b`'ye yanlış olduğu yerlerden akar; seçilmeyen dala yukarıdan gelen gradyan tam 0'dır, yukarıdan gelen NaN seçilmeyen dala geçmez. **Ama** dalın kendi türevi o yerde sonsuz ya da NaN ise 0 · sonsuz = NaN girdiye ulaşır: `TR_where(x > 0.0, TR_log(x), 0.0)`'ın `x = 0`'daki gradyanı NaN'dır. Doğru yazım girdiyi içeride maskelemektir: `TR_where(x > 0.0, TR_log(TR_where(x > 0.0, x, 1.0)), 0.0)`. Koşul türev almaz. Hiçbiri tensör değilse denetim hatası, ileti `TR_if`'i önerir. Ondalık ya da tam sayı koşul denetim hatasıdır; ileti `TR_where(t != 0, ...)`'ı önerir.
-- *Test:* TR testi; mantık koşulu uygulanınca TR testi.
+- *Test:* TR testi (mantık koşulu, sayı imzasının ve sayı koşulunun hatası, sayı dalların cinsi).
 
 **15.16** `TR_abs(x)` (13.1) tensörde de çalışır: `TR_Float` ve `TR_Int`'te aynı cins. İşaret biti silinir (`TR_abs(-0.0)` +0), NaN korunur, CPU ve GPU aynı bitleri verir. `TR_Int`'te en küçük değerin mutlak değeri taşmadır (15.3). Türev `TR_sign(x)`'tir; 0'da 0.
 - *Test:* TR testi.
@@ -272,7 +272,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
     | "bf16" | 1.6e-2 | 1e-5 |
 
 - Bu dördünün `TR_Bool` veren eksensiz biçimleri GPU'da sonucu konağa okur; bir beklemedir. Eksenli `TR_all`/`TR_any` tensör verir, beklemez.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi (eksensiz `TR_all` ve `TR_equal`); `TR_any`, `TR_all_close` ve eksenli biçim uygulanınca TR testi.
 
 **15.19** `TR_argmax(t, TR_dim: k)` ve `TR_argmin(t, TR_dim: k)` en büyük ve en küçük öğenin indeksini `TR_Tensor[TR_Int]` "int64" olarak verir, türev izlemez.
 - **Eksen verilmezse** bütün öğeler üstünde çalışır ve düzleştirilmiş tensördeki indeksi 0 boyutlu tensörde verir (15.18'in "eksensiz bütün öğeler" kuralı). Eksen verilirse o eksen düşer; `TR_keepdim: TR_true` onu 1 uzunlukta korur (`[B, 1]`). Tek eksen alır; eksen yalnız adla (`TR_dim:`) verilir. `TR_keepdim:` yalnız eksenli imzadadır; eksensiz biçimde denetim hatasıdır.
@@ -569,7 +569,7 @@ op.TR_zero_grad()
 - **Her cins ve hassasiyet saklanır:** float32, bf16, fp16, float64; int64, int32, int16, int8, uint8 ve öbürleri; mantık. Nicemlenmiş saklama hassasiyetleri de (15.55). Yüklenen tensör kaydedildiği cins ve hassasiyettedir.
 - **Tip:** bir dosya birden çok cins taşır (model ve adım sayacı, 20.12; Hugging Face'in I64 tamponları). `TR_load_tensors` `TR_Dict[TR_String, TR_AnyTensor]` verir: `TR_AnyTensor` cinsi çalışırken bilinen tensördür (15.1). Üstünde yalnız okuma işleri yapılır (15.1: `.TR_shape`, `.TR_dtype`, `.TR_device`, yazdırma, `TR_save_tensors`); görünüm, yazma ve hesap için `.TR_narrow[E]()` ile daraltılır (15.1; kopyasız): `d["w"].TR_narrow[TR_Float]()`, `d["step"].TR_narrow[TR_Int]()`. Cins uymazsa çalışma hatasıdır, ileti dosyadaki cinsi söyler. `TR_save_tensors` her cinsten tensör sözlüğünü alır (13.10'un kabul kümesi; kaplar değişmezdir).
 - Dosya güvenilmeyen girdidir: bildirilen veri dosyada olmalı (eksik veri ayırmadan önce hata), bir tensör en çok 32 eksen bildirebilir; öğe sayısı taşma denetimli hesaplanır (sıfır eksenler 1 sayılarak da, 15.42), verisi dosyada olmalıdır ve ayırma 15.42'nin bellek denetiminden geçer. Eski sürüm, bilinmeyen tür, eksik, bozuk ya da başka türden dosya açık bir hatayla reddedilir.
-- *Test:* TR testi; Go: `TestSaveTensorsChoosesFormatByExtension`; her cins ve büyük harfli uzantı uygulanınca TR testi.
+- *Test:* TR testi (her cins ve hassasiyet, büyük harfli uzantı); Go: `TestSaveTensorsChoosesFormatByExtension`, `TestTensorFileRejectsTypeWithoutCode`, `TestTensorFileTypeCodes` (1–12 tür kodu sabit baytlarla, iki yönde).
 
 **15.47** `TR_load_tensors(yol)` safetensors dosyasını da okur (Hugging Face ve PyTorch ağırlıklarının biçimi). Okumada biçim uzantıdan değil içerikten anlaşılır: `TRTENSOR` ile başlayan dosya TR biçimidir, 9. baytı `{` olan safetensors'tur; ikisi de değilse ileti iki biçimi de anar.
 - Desteklenen türler 15.1'in bütün cinsleri ve hassasiyetleridir (F32, F64, BF16, F16, I64, I32, I16, I8, U8, BOOL ...); `F8_E4M3` ölçeği 1 olan "fp8" olarak okunur (15.55); karşılığı olmayan tür (`F8_E5M2`, U64) açık hatadır.

@@ -25,6 +25,9 @@ func TestMain(m *testing.M) {
 	kernelBuilt = recordPTX
 	code := m.Run()
 	if code == 0 {
+		code = checkKernelNames()
+	}
+	if code == 0 {
 		code = checkPTXDigest()
 	}
 	os.Exit(code)

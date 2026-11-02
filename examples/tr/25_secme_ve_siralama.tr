@@ -26,8 +26,8 @@ TR_print("değerler:", en_iyiler[0].TR_tolist, "indeksler:", en_iyiler[1].TR_tol
 TR_print(TR_argsort(TR_Tensor([3.0, 1.0, 2.0])).TR_tolist)
 
 # birikimli_toplam her konuma kadar olan elemanların toplamını verir; şekil korunur.
-TR_print(TR_cumsum(TR_Tensor([1, 2, 3, 4])).TR_tolist)
-TR_print(TR_cumsum(TR_Tensor([[1, 2], [3, 4]]), TR_dim: 0).TR_tolist)
+TR_print(TR_cumsum(TR_Tensor([1.0, 2.0, 3.0, 4.0])).TR_tolist)
+TR_print(TR_cumsum(TR_Tensor([[1.0, 2.0], [3.0, 4.0]]), TR_dim: 0).TR_tolist)
 
 # --- Kendin dene ---
 # 1. Bir tensörün yalnızca pozitif elemanlarının toplamını koşullu ile bul.

@@ -17,9 +17,9 @@ func TestTensorIsNotACondition(t *testing.T) {
 	out := mustRun(t, `TR_var a = TR_no_grad { TR_Tensor([0.0]) }
 TR_var b = TR_no_grad { TR_zeros([0]) }
 TR_print(TR_error_code { TR_if a { } })
-TR_print(TR_error_code { TR_if TR_sum(TR_Tensor([1, -1])) { } })
+TR_print(TR_error_code { TR_if TR_sum(TR_Tensor([1.0, -1.0])) { } })
 TR_print(TR_error_code { TR_if b { } })
-TR_if TR_sum(TR_Tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
+TR_if TR_sum(TR_Tensor([1.0, -1.0])).TR_tolist == 0 { TR_print("açık sınama") }`)
 	want := "H2600\nH2600\nH2600\naçık sınama\n"
 	if out != want {
 		t.Fatalf("tensör koşulu:\n%q", out)
@@ -29,7 +29,7 @@ TR_if TR_sum(TR_Tensor([1, -1])).TR_tolist == 0 { TR_print("açık sınama") }`)
 func TestValueShortForm(t *testing.T) {
 	out := mustRun(t, `TR_var a = TR_Tensor([0.1, 0.2, 1.5, 3])
 TR_print(a.TR_tolist, a.TR_tolist[0] == 0.1, TR_sum(TR_Tensor([0.1])).TR_tolist)
-TR_var m = TR_Tensor([[1, 2], [3, 4]]).TR_tolist
+TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]]).TR_tolist
 m[0].TR_append(9)
 TR_print(m)`)
 	want := "[0.1, 0.2, 1.5, 3.0] true 0.1\n[[1.0, 2.0, 9], [3.0, 4.0]]\n"

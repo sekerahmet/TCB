@@ -33,9 +33,10 @@ func (d *TensorValue) Text(lang *codes.Language) string {
 	t := d.t
 	sh := t.Shape()
 	var ek []string
-	// Tür yalnızca float32 dışındaki türlerde gösterilir: "Tensör[2×3] bf16".
+	// Tür yalnız cinsinin varsayılanı dışındaki hassasiyette gösterilir (15.5): "Tensör[2×3] bf16",
+	// "Tensör[3] uint8"; int64 ve bool yazılmaz (cins öğelerden okunur).
 	dtypeSuffix := ""
-	if t.DType() != tensor.Float32 {
+	if !t.DType().IsDefault() {
 		dtypeSuffix = " " + t.DType().Name()
 	}
 	if t.Device() != tensor.CPU {
@@ -45,11 +46,7 @@ func (d *TensorValue) Text(lang *codes.Language) string {
 		ek = append(ek, messages.TextIn(lang.Code, messages.H6814))
 	}
 	if len(sh) == 0 {
-		x := t.Item()
-		s := numberText(x, isScientific([]float32{x}), lang)
-		if d.hasInts {
-			s = strconv.FormatInt(int64(x), 10)
-		}
+		s := d.cellTexts(nil, false, lang)[0]
 		if len(ek) > 0 {
 			s += ", " + strings.Join(ek, ", ")
 		}
@@ -60,49 +57,10 @@ func (d *TensorValue) Text(lang *codes.Language) string {
 		header += " (" + strings.Join(ek, ", ") + ")"
 	}
 	shorten := t.Numel() > printLimit
-	// Gösterilecek hücreler: kısaltılmamış tensörde hepsi (tek kopya), kısaltılmışta
-	// yalnızca eksen başı/sonu hücreleri tek tek okunur; tüm veri kopyalanıp
-	// biçimlenmez. Hücreler gezinme sırasıyla toplanır, sonra aynı sırayla yazılır.
-	var data []float32
-	if !shorten {
-		data = t.Data()
-	}
-	steps := make([]int, len(sh))
-	s := 1
-	for i := len(sh) - 1; i >= 0; i-- {
-		steps[i] = s
-		s *= sh[i]
-	}
-	idx := make([]int, len(sh))
-	var cells []float32
-	var sum func(axis, offset int)
-	sum = func(axis, offset int) {
-		for _, i := range toShow(sh[axis], shorten) {
-			if i < 0 {
-				continue
-			}
-			idx[axis] = i
-			if axis < len(sh)-1 {
-				sum(axis+1, offset+i*steps[axis])
-			} else if shorten {
-				cells = append(cells, t.At(idx...))
-			} else {
-				cells = append(cells, data[offset+i])
-			}
-		}
-	}
-	sum(0, 0)
-	// Tüm hücreler aynı biçimde ve genişlikte yazılır.
-	scientific := isScientific(cells)
-	texts := make([]string, len(cells))
+	texts := d.cellTexts(sh, shorten, lang)
 	width := 0
-	for i, x := range cells {
-		if d.hasInts {
-			texts[i] = strconv.FormatInt(int64(x), 10)
-		} else {
-			texts[i] = numberText(x, scientific, lang)
-		}
-		width = max(width, len([]rune(texts[i])))
+	for _, m := range texts {
+		width = max(width, len([]rune(m)))
 	}
 	order := 0
 	var sb strings.Builder
@@ -150,12 +108,69 @@ func (d *TensorValue) Text(lang *codes.Language) string {
 	return sb.String()
 }
 
-// isScientific sabit noktalı (%.4f) gösterimin bilgi kaybettireceği durumda bilimsel
-// gösterime geçilip geçilmeyeceğini söyler: sıfır olmayan bir değer 0.0001'den küçükse
-// (0.0000 görünürdü) ya da bir değer 1e8 ve üzerindeyse.
-func isScientific(x []float32) bool {
-	for _, v := range x {
-		a := math.Abs(float64(v))
+// cellTexts gösterilecek hücrelerin metinleri, gezinme sırasıyla: kısaltılmamış tensörde hepsi,
+// kısaltılmışta yalnız eksen başı ve sonu (toShow). Ondalık hücreler aynı biçimde (sabit ya da
+// bilimsel) yazılır; tam sayılar ondalıksız, mantık değerleri lang'ın adıyla.
+func (d *TensorValue) cellTexts(sh []int, shorten bool, lang *codes.Language) []string {
+	t := d.t
+	var flat []int // gösterilecek hücrelerin düz konumları
+	steps := tensor.ContiguousStrides(sh)
+	var walk func(axis, offset int)
+	walk = func(axis, offset int) {
+		if axis == len(sh) {
+			flat = append(flat, offset)
+			return
+		}
+		for _, i := range toShow(sh[axis], shorten) {
+			if i >= 0 {
+				walk(axis+1, offset+i*steps[axis])
+			}
+		}
+	}
+	walk(0, 0)
+	texts := make([]string, len(flat))
+	switch t.Elem() {
+	case tensor.ElemInt:
+		vals := t.Int64s()
+		for i, o := range flat {
+			texts[i] = strconv.FormatInt(vals[o], 10)
+		}
+	case tensor.ElemBool:
+		vals := t.Int64s()
+		for i, o := range flat {
+			texts[i] = (&interp.BoolVal{Val: vals[o] != 0}).Text(lang)
+		}
+	default:
+		cells := make([]float64, len(flat))
+		if shorten && t.DType().IsFloat() {
+			// Büyük tensörün bütün verisi kopyalanmaz: yalnız gösterilecek hücreler okunur.
+			idx := make([]int, len(sh))
+			for i, o := range flat {
+				for a := range sh {
+					idx[a] = o / steps[a] % sh[a]
+				}
+				cells[i] = float64(t.At(idx...))
+			}
+		} else {
+			vals := t.Float64s()
+			for i, o := range flat {
+				cells[i] = vals[o]
+			}
+		}
+		scientific := isScientific64(cells)
+		for i, x := range cells {
+			texts[i] = numberText64(x, scientific, lang)
+		}
+	}
+	return texts
+}
+
+// isScientific64 sabit noktalı (%.4f) gösterimin bilgi kaybettireceği durumda bilimsel gösterime
+// geçilir: sıfır olmayan bir değer 0.0001'den küçükse (0.0000 görünürdü) ya da bir değer 1e8 ve
+// üzerindeyse.
+func isScientific64(x []float64) bool {
+	for _, a := range x {
+		a = math.Abs(a)
 		if math.IsNaN(a) || math.IsInf(a, 0) {
 			continue
 		}
@@ -186,10 +201,9 @@ func toShow(n int, shorten bool) []int {
 	return out
 }
 
-// numberText bir hücreyi yazar. Sonsuz ve tanımsız değerler Ondalık'la aynı adlarla, lang
+// numberText64 bir hücreyi yazar. Sonsuz ve tanımsız değerler Ondalık'la aynı adlarla, lang
 // dilinde yazılır (interp.NonFiniteText: sonsuz, -sonsuz, NaN).
-func numberText(x float32, scientific bool, lang *codes.Language) string {
-	f := float64(x)
+func numberText64(f float64, scientific bool, lang *codes.Language) string {
 	if s, ok := interp.NonFiniteText(f, lang); ok {
 		return s
 	}

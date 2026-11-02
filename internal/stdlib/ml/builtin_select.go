@@ -8,11 +8,10 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 )
 
-// koşullu(koşul, a, b): eleman bazlı seçim (bkz. tensor.Where).
+// koşullu(koşul, a, b): öğe öğe seçim (15.15; bkz. typed_where.go ve tensor.Where).
 
-// whereBuiltin koşullu(koşul, a, b). Hiçbiri tensör değilse koşul Mantık ya da sayı
-// olmalıdır ve a ya da b olduğu gibi döner. Değilse sayılar ve Mantık tensöre çevrilir
-// (a ile b'deki sayılar ilk tensör işlenenin türünü alır), üç şekil yayınlanır.
+// whereBuiltin TR_where(koşul, a, b). Koşul TR_Tensor[TR_Bool]'dur; tek değere bağlı seçim
+// TR_if'tir (sayı imzası yok). Dallar typedWhere'de kurulur.
 func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.NameRef(codes.FnWhere)
 	if err := bind.CheckNamed(ad.Called(), named); err != nil {
@@ -26,100 +25,7 @@ func whereBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 			return nil, err
 		}
 	}
-	if !isTensor(args) {
-		d, err := condValue(ad, args[0])
-		if err != nil {
-			return nil, err
-		}
-		for _, a := range args[1:] {
-			if _, ok := interp.ToFloat(a); !ok {
-				return nil, messages.New(messages.H6204, ad, typeName(a))
-			}
-		}
-		if d {
-			return args[1], nil
-		}
-		return args[2], nil
-	}
-	ts, err := condTensors(ad, args)
-	if err != nil {
-		return nil, err
-	}
-	if err := checkBroadcast3(m, ad, ts); err != nil {
-		return nil, err
-	}
-	r, err := safe(func() *tensor.Tensor { return tensor.Where(ts[0], ts[1], ts[2]) })
-	if err != nil {
-		return nil, err
-	}
-	s := New(r)
-	s.hasInts = isIntValued(args[1]) && isIntValued(args[2])
-	return s, nil
-}
-
-// condValue tensör olmayan koşulun doğruluğu: Mantık ya da sayı (0 dışı doğru).
-func condValue(ad any, v interp.Value) (bool, error) {
-	if b, ok := v.(*interp.BoolVal); ok {
-		return b.Val, nil
-	}
-	if f, ok := interp.ToFloat(v); ok {
-		return f != 0, nil
-	}
-	return false, messages.New(messages.H6207, ad, codes.NameRef(codes.TypeBool), typeName(v))
-}
-
-// isIntValued değer tam sayılı bir tensör ya da Tam mı (sonucun tam sayılı kalması için).
-func isIntValued(v interp.Value) bool {
-	switch x := v.(type) {
-	case *TensorValue:
-		return x.hasInts
-	case *interp.IntVal:
-		return true
-	}
-	return false
-}
-
-// condTensors koşul, a ve b'yi aynı cihazda tensöre çevirir. Mantık koşul 1 ya da 0
-// olur; a ve b'deki sayılar ilk tensör işlenenin (yoksa float32) türünü alır.
-func condTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
-	cond := args[0]
-	if b, ok := cond.(*interp.BoolVal); ok {
-		cond = interp.NewInt(0)
-		if b.Val {
-			cond = interp.NewInt(1)
-		}
-	} else if _, ok := cond.(*TensorValue); !ok {
-		if _, number := interp.ToFloat(cond); !number {
-			return nil, messages.New(messages.H6207, ad, codes.NameRef(codes.TypeBool), typeName(cond))
-		}
-	}
-	for _, a := range args[1:] {
-		if _, ok := a.(*TensorValue); ok {
-			continue
-		}
-		if _, ok := interp.ToFloat(a); !ok {
-			return nil, messages.New(messages.H6204, ad, typeName(a))
-		}
-	}
-	values := []interp.Value{args[1], args[2], cond}
-	if !isTensor(values[:2]) {
-		// a ve b sayı: koşul tensördür; a ve b onun cihazında float32 tensörler olur.
-		c := cond.(*TensorValue).t
-		ts := []*tensor.Tensor{c, nil, nil}
-		for i, a := range args[1:] {
-			t, err := toTensorOn(ad, a, c)
-			if err != nil {
-				return nil, err
-			}
-			ts[i+1] = t
-		}
-		return ts, nil
-	}
-	ts, err := toTensors(ad, values)
-	if err != nil {
-		return nil, err
-	}
-	return []*tensor.Tensor{ts[2], ts[0], ts[1]}, nil
+	return typedWhere(m, ad, args)
 }
 
 // checkBroadcast3 koşul, a ve b şekillerinin birlikte yayınlanabilirliğini denetler.

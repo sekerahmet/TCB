@@ -69,7 +69,7 @@ codegraph tests-for lib/README.md | contains: TestDocTRCodeBlocks | src: madde 7
 
 # Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, TR_fn_where) (2026-10-23)
 codegraph query koşullu | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => optimizers.TR_type_RowRMS.TR_mem_step | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
-codegraph callees ml.whereBuiltin | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
+codegraph callees ml.typedWhere | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
 codegraph callees tensor.Where | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | contains: dispatches to: gpu.backend.WhereGrad, tensor.cpuBackend.WhereGrad | src: deneme 6, 2026-10-23
 codegraph who-uses gpu.selectKernel | contains: gpu.backend.Where | src: deneme 6, 2026-10-23
 codegraph callees gpu.backend.Where --all | contains: gpu.selectKernel | src: deneme 6, 2026-10-23

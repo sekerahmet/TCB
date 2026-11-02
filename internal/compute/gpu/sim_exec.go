@@ -286,6 +286,8 @@ func (b *simBlock) run(t *simJob) error {
 // dtypeBytes bir türün bellekteki baytı.
 func dtypeBytes(t simType) int {
 	switch t {
+	case simU8:
+		return 1
 	case simU16, simF16:
 		return 2
 	case simU64, simS64, simF64:
@@ -342,6 +344,8 @@ func (b *simBlock) load(t *simJob, k *simInst) error {
 	}
 	var v uint64
 	switch n {
+	case 1:
+		v = uint64(d[0])
 	case 2:
 		v = uint64(binary.LittleEndian.Uint16(d))
 	case 4:
@@ -370,6 +374,8 @@ func (b *simBlock) store(t *simJob, k *simInst) error {
 	}
 	v := b.read(t, &k.o[0])
 	switch n {
+	case 1:
+		d[0] = byte(v)
 	case 2:
 		binary.LittleEndian.PutUint16(d, uint16(v))
 	case 4:
@@ -388,6 +394,8 @@ func f64b(f float64) uint64 { return math.Float64bits(f) }
 // width sonucu türün genişliğine kırpar.
 func width(t simType, v uint64) uint64 {
 	switch t {
+	case simU8:
+		return v & 0xFF
 	case simU16, simF16:
 		return v & 0xFFFF
 	case simU32, simS32, simF32:

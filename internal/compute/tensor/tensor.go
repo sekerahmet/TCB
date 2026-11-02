@@ -354,8 +354,11 @@ func (t *Tensor) Data() []float32 {
 	return d
 }
 
-// Float64s elemanları float64 olarak verir.
+// Float64s ondalık tensörün elemanlarını float64 olarak verir (kayıpsız).
 func (t *Tensor) Float64s() []float64 {
+	if t.dtyp == Float64 {
+		return t.float64s()
+	}
 	d := t.Data()
 	out := make([]float64, len(d))
 	for i, v := range d {
@@ -479,6 +482,10 @@ func (t *Tensor) To(dev Device) *Tensor {
 		return t
 	}
 	target := BackendFor(dev)
+	if t.dtyp.IsTyped() {
+		// Ham bayt türü: kayıpsız ham taşıma; türev izlemez.
+		return fromStorage(target, rawBackend(target, t.dtyp).FromRaw(t.Raw(), t.dtyp), t.shape)
+	}
 	sy := counterStart(target, OpKindToDevice).start()
 	out := fromStorage(target, target.FromHost(t.be.ToHost(t.view()), t.dtyp), t.shape)
 	src := t.be

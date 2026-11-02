@@ -4,11 +4,11 @@
 TR_import "yardimci_test_araclari"
 
 TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_assert_equal(TR_Tensor, TR_Type(a))
     TR_assert_equal([2, 3], a.TR_shape)
     TR_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], a.TR_tolist)
-    TR_assert_equal([2, 3], TR_Tensor(TR_Tensor([[1, 2, 3], [4, 5, 6]])).TR_shape)
+    TR_assert_equal([2, 3], TR_Tensor(TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])).TR_shape)
     TR_assert_equal([[0.0, 0.0]], TR_zeros([1, 2]).TR_tolist)
     TR_assert_equal([1.0, 1.0, 1.0], TR_ones([3]).TR_tolist)
     TR_assert_equal([4, 5], TR_randn([4, 5]).TR_shape)
@@ -21,8 +21,8 @@ TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_var s = TR_Tensor(3.0)
     TR_assert_equal([], s.TR_shape)
     TR_assert_equal(TR_none, s.TR_grad)
-    TR_assert_equal([TR_Tensor, TR_Tensor], [TR_Type(TR_Tensor([[1]])), TR_Type(TR_eye(2))])
-    TR_var m = TR_Tensor([[1, 2], [3, 4]])
+    TR_assert_equal([TR_Tensor, TR_Tensor], [TR_Type(TR_Tensor([[1.0]])), TR_Type(TR_eye(2))])
+    TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
     TR_assert_equal([2, 2, 2], [m.TR_shape[0], m.TR_shape[1], m.TR_shape.TR_length])
     TR_assert_equal([10.0, 2.5], [TR_sum(m).TR_tolist, TR_mean(m).TR_tolist])
     # Hesaplar float32 ile yapılır.
@@ -31,24 +31,131 @@ TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_assert_equal(16777216.0, TR_Tensor([16777217.0]).TR_tolist[0])
 }
 
-TR_test "15.1 ara kural: float32'de tam yazılamayan tam sayıdan tensör kurulmaz" {
-    # Tam sayı tensörü gelene kadar (15.2) tam sayı listesi float32 tensör kurar; sessiz yuvarlama hatadır.
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor([16777217]) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor([-16777217]) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor([[1, 2], [3, 33554433]]) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor(16777217) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor(-16777217) })
-    TR_assert_equal([16777216.0, -16777216.0], [TR_Tensor(16777216).TR_tolist, TR_Tensor(-16777216).TR_tolist])
-    # 2²⁴ ve float32'de tam yazılan büyük sayılar kurulur.
-    TR_assert_equal([16777216.0, -16777216.0], TR_Tensor([16777216, -16777216]).TR_tolist)
-    TR_assert_equal([16777218.0, 33554432.0], TR_Tensor([16777218, 33554432]).TR_tolist)
-    # Ondalık yazım ve karışık liste ondalıktır, yuvarlar (15.2); iletinin önerisi budur.
+TR_test "15.2 cins veriden çıkar: tam sayı ve aralık TR_Int, mantık TR_Bool, ondalık TR_Float" {
+    # 2²⁴'ün üstündeki kimlik bozulmaz (float32'den geçmez).
+    TR_assert_equal([16777217, -16777217], TR_Tensor([16777217, -16777217]).TR_tolist)
+    TR_assert_equal([[1, 2], [3, 33554433]], TR_Tensor([[1, 2], [3, 33554433]]).TR_tolist)
+    TR_assert_equal(16777217, TR_Tensor(16777217).TR_tolist)
+    TR_assert_equal(["int64", "int64", "bool", "float32"], [TR_Tensor([1, 2]).TR_dtype, TR_Tensor(0..3).TR_dtype, TR_Tensor([TR_true]).TR_dtype, TR_Tensor([]).TR_dtype])
+    TR_assert_equal([0, 1, 2], TR_Tensor(0..3).TR_tolist)
+    # Ondalık yazım ve karışık liste ondalıktır, yuvarlar.
     TR_assert_equal([16777216.0], TR_Tensor([16777217.0]).TR_tolist)
     TR_assert_equal([2.5, 16777216.0], TR_Tensor([2.5, 16777217]).TR_tolist)
+    # TR_dtype: cinsin içinde seçer; sığmayan değer, başka cinsin hassasiyeti, sayıyla mantık
+    # değeri ve tam sayıda türev hatadır.
+    TR_assert_equal("uint8", TR_Tensor([1, 2], TR_dtype: "uint8").TR_dtype)
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor([300], TR_dtype: "uint8") })
+    TR_assert_equal("H6976", TR_error_code { TR_Tensor([1.5], TR_dtype: "int64") })
+    TR_assert_equal("H6976", TR_error_code { TR_zeros([3], TR_dtype: "int64") })
+    TR_assert_equal("H6975", TR_error_code { TR_Tensor([1, TR_true]) })
+    TR_assert_equal("H6973", TR_error_code { TR_Tensor([1, 2], TR_requires_grad: TR_true) })
+}
+
+TR_test "15.3 hassasiyet cinsin içinde değişir, cinsler arası dönüşüm tip çağrısıdır" {
+    TR_assert_equal(["int8", "bf16"], [TR_Tensor([1, 2]).TR_to_dtype("int8").TR_dtype, TR_Tensor([1.5]).TR_to_dtype("bf16").TR_dtype])
+    TR_assert_equal([1.5], TR_Tensor([1.5]).TR_to_dtype("float64").TR_tolist)
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor([300]).TR_to_dtype("uint8") })
+    TR_assert_equal("H6977", TR_error_code { TR_Tensor([1.5]).TR_to_dtype("int64") })
+    TR_assert_equal("H6977", TR_error_code { TR_Tensor([1]).TR_to_dtype("float32") })
+    # Tip çağrısı: ondalık sıfıra doğru kesilir; NaN ve sonsuz hatadır; hedef hassasiyet alınır.
+    TR_assert_equal([2, -2], TR_Tensor[TR_Int](TR_Tensor([2.7, -2.7])).TR_tolist)
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor[TR_Int](TR_Tensor([1.0, TR_Float("nan")])) })
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor[TR_Int](TR_Tensor([TR_Float("inf")])) })
+    TR_assert_equal([16777217.0], TR_Tensor[TR_Float](TR_Tensor([16777217]), TR_dtype: "float64").TR_tolist)
+    TR_assert_equal([16777216.0], TR_Tensor[TR_Float](TR_Tensor([16777217])).TR_tolist)
+    # Mantık ile sayı arasında dönüşüm yoktur.
+    TR_assert_equal("H6978", TR_error_code { TR_Tensor[TR_Float](TR_Tensor([TR_true])) })
+    TR_assert_equal("H6978", TR_error_code { TR_Tensor[TR_Bool](TR_Tensor([1])) })
+    TR_assert_equal("H6978", TR_error_code { TR_Tensor([1]).TR_to_dtype("bool") })
+    # Hesap ondalıkları arasında türevlenebilir.
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(w.TR_to_dtype("bf16") * 2.0))
+    TR_assert_equal([2.0, 2.0], w.TR_grad.TR_tolist)
+}
+
+TR_test "15.18a TR_all ve TR_equal bütün tensörü sorar, 13.8a .TR_item() tek öğeyi verir" {
+    TR_var m = TR_Tensor[TR_Bool]([TR_true, TR_false])
+    TR_assert_equal([TR_false, TR_true, TR_true], [TR_all(m), TR_all(TR_Tensor[TR_Bool]([TR_true, TR_true])), TR_all(TR_Tensor[TR_Bool]([]))])
+    TR_assert_equal("H6979", TR_error_code { TR_all(TR_Tensor([1.0])) })
+    TR_assert_equal("H6979", TR_error_code { TR_all([TR_true]) })
+    # Şekil dahil, yayın yok; NaN hiçbir şeye eşit değil, −0.0 0.0'a eşit; hassasiyet farkı engel değil.
+    TR_assert(TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0])))
+    TR_assert(TR_not TR_equal(TR_Tensor([2.0, 2.0]), TR_Tensor([[2.0, 2.0]])))
+    TR_assert(TR_not TR_equal(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 3.0])))
+    TR_assert(TR_not TR_equal(TR_Tensor([TR_Float("nan")]), TR_Tensor([TR_Float("nan")])))
+    TR_assert(TR_equal(TR_Tensor([-0.0]), TR_Tensor([0.0])))
+    TR_assert(TR_equal(TR_Tensor([1.5]), TR_Tensor([1.5], TR_dtype: "bf16")))
+    TR_assert(TR_equal(TR_Tensor([16777217]), TR_Tensor([16777217], TR_dtype: "int32")))
+    TR_assert(TR_not TR_equal(TR_Tensor([16777217]), TR_Tensor([16777216])))
+    TR_assert(TR_equal(m, TR_Tensor[TR_Bool]([TR_true, TR_false])))
+    TR_assert_equal("H6966", TR_error_code { TR_equal(TR_Tensor([1.0]), TR_Tensor([1])) })
+    TR_assert_equal("H6979", TR_error_code { TR_equal(TR_Tensor([1.0]), 1.0) })
+    # Öğe tipi tensörün cinsidir; ondalık en kısa ondalıkla gelir; başka tensörde hata.
+    TR_assert_equal([3.5, 7, TR_true, 0.1], [TR_sum(TR_Tensor([1.5, 2.0])).TR_item(), TR_Tensor([7]).TR_item(), TR_Tensor[TR_Bool]([TR_true]).TR_item(), TR_Tensor([[0.1]]).TR_item()])
+    TR_assert_equal(TR_Int, TR_Type(TR_Tensor([7]).TR_item()))
+    TR_assert_equal("H3068", TR_error_code { TR_Tensor([1.0, 2.0]).TR_item() })
+}
+
+TR_test "15.1 TR_Int ve TR_Bool tensörü: argmax'in sonucu TR_Int, cins işlemlerde korunur" {
+    TR_var i = TR_argmax(TR_Tensor([[0.0, 9.0, 1.0], [5.0, 0.0, 7.0]]), TR_dim: -1)
+    TR_assert_equal("int64", i.TR_dtype)
+    TR_assert_equal([1, 2], i.TR_tolist)
+    TR_assert_equal(TR_Int, TR_Type(i.TR_tolist[0]))
+    TR_assert_equal([2, 3], (i + 1).TR_tolist)
+    TR_assert_equal([0, 1], (i // 2).TR_tolist)
+    # `/` tam sayıdan ondalığa geçiştir: "float32" (15.3, 15.6).
+    TR_assert_equal([0.5, 1.0], (i / 2).TR_tolist)
+    TR_assert_equal("float32", (i / 2).TR_dtype)
+    TR_assert_equal(3, TR_sum(i).TR_tolist)
+    TR_assert_equal(1.5, TR_mean(i).TR_tolist)
+    # Karşılaştırma TR_Bool verir; maskeler & | ~ ile birleşir.
+    TR_var m = i < 2
+    TR_assert_equal("bool", m.TR_dtype)
+    TR_assert_equal([TR_true, TR_false], m.TR_tolist)
+    TR_assert_equal([TR_false, TR_true], (~m).TR_tolist)
+    TR_assert_equal([TR_false, TR_false], (m & (i > 1)).TR_tolist)
+    TR_assert_equal(1, TR_sum(m).TR_tolist)
+    TR_assert_equal([1, 9], TR_where(m, i, 9).TR_tolist)
+    # Taşma, sıfıra bölme, cins uyuşmazlığı ve ondalık çekirdek açık hatadır (15.3, 15.48, 15.49).
+    TR_assert_equal("H6961", TR_error_code { i * 9223372036854775807 })
+    TR_assert_equal("H6962", TR_error_code { i // 0 })
+    TR_assert_equal("H6966", TR_error_code { i + TR_Tensor([1.0, 2.0]) })
+    TR_assert_equal("H6968", TR_error_code { i + 2.5 })
+    TR_assert_equal("H6967", TR_error_code { m + m })
+    TR_assert_equal("H6960", TR_error_code { TR_softmax(i, TR_dim: 0) })
+}
+
+TR_test "15.2 tip argümanı öğe cinsini seçer: TR_Tensor[E], TR_zeros[E], TR_ones[E], TR_eye[E]" {
+    TR_var i = TR_Tensor[TR_Int]([[1, 2], [3, 9007199254740993]])
+    TR_assert_equal("int64", i.TR_dtype)
+    TR_assert_equal([[1, 2], [3, 9007199254740993]], i.TR_tolist)
+    TR_assert_equal([TR_true, TR_false], TR_Tensor[TR_Bool]([TR_true, TR_false]).TR_tolist)
+    TR_assert_equal("float32", TR_Tensor[TR_Float]([1, 2]).TR_dtype)
+    # Tensörden cins dönüşümü ondalığı sıfıra doğru keser (15.3).
+    TR_assert_equal([1, -2], TR_Tensor[TR_Int](TR_Tensor([1.5, -2.5])).TR_tolist)
+    TR_assert_equal([0, 0, 0], TR_zeros[TR_Int]([3]).TR_tolist)
+    TR_assert_equal([TR_true, TR_true], TR_ones[TR_Bool]([2]).TR_tolist)
+    TR_assert_equal([[1, 0], [0, 1]], TR_eye[TR_Int](2).TR_tolist)
+    TR_assert_equal([[TR_true, TR_false], [TR_false, TR_true]], TR_eye[TR_Bool](2).TR_tolist)
+    TR_assert_equal([2], TR_randn[TR_Float]([2], TR_seed: 1).TR_shape)
+    # Dönen değer yalnız çağrılır: değişkende de çağrılabilir.
+    TR_var sifir = TR_zeros[TR_Bool]
+    TR_assert_equal([TR_false], sifir([1]).TR_tolist)
+    # Tip olmayan ya da tensör cinsi olmayan argüman, TR_randn'ın tam sayısı, başka cinsten veri ve
+    # tam sayıda türev hatadır.
+    TR_assert_equal("H6970", TR_error_code { TR_zeros[3] })
+    TR_assert_equal("H6971", TR_error_code { TR_zeros[TR_String] })
+    TR_assert_equal("H6972", TR_error_code { TR_randn[TR_Int] })
+    TR_assert_equal("H6974", TR_error_code { TR_Tensor[TR_Int]([1, 2.5]) })
+    TR_assert_equal("H6974", TR_error_code { TR_Tensor[TR_Bool]([1]) })
+    TR_assert_equal("H6973", TR_error_code { TR_zeros[TR_Int]([2], TR_requires_grad: TR_true) })
+    # Karşılaştırma sessizce yanlış vermez (4.5); kayıtlı olmayan kodun indekslenmesi bugünkü gibidir.
+    TR_assert_equal("H2613", TR_error_code { TR_Type(i) == TR_Tensor[TR_Int] })
+    TR_assert_equal("H2465", TR_error_code { TR_sum[TR_Int] })
 }
 
 TR_test "15.2 özellikler ve görünüm metotları" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_assert_equal([3, 2], a.TR_reshape([3, 2]).TR_shape)
     TR_assert_equal([6], a.TR_reshape([-1]).TR_shape)
     # .gradyan: türev izlemeyen işlemin sonucu yapraktır (yok); türev izleyenin sonucunda hata.
@@ -65,7 +172,7 @@ TR_test "15.2 özellikler ve görünüm metotları" {
     TR_assert_equal([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], a.TR_transpose().TR_tolist)
     TR_assert_equal([[2.0, 3.0], [5.0, 6.0]], a.TR_slice(1, 1, 3).TR_tolist)
     TR_assert_equal([[4.0, 5.0, 6.0]], a.TR_slice(0, -1, 2).TR_tolist)
-    TR_var üç = TR_Tensor([[[1, 2], [3, 4]]])
+    TR_var üç = TR_Tensor([[[1.0, 2.0], [3.0, 4.0]]])
     TR_assert_equal([[[1.0, 3.0], [2.0, 4.0]]], üç.TR_permute([0, 2, 1]).TR_tolist)
     TR_assert(TR_Tensor([0.1]).TR_tolist[0] == 0.1)
     TR_assert_equal("cpu", a.TR_device)
@@ -74,14 +181,14 @@ TR_test "15.2 özellikler ve görünüm metotları" {
 }
 
 TR_test "15.6 işleçler ve yayınlama" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
-    TR_var b = TR_Tensor([[1, 0], [0, 1], [1, 1]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    TR_var b = TR_Tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
     TR_assert_equal([[4.0, 5.0], [10.0, 11.0]], (a @ b).TR_tolist)
     TR_assert_equal([[11.0, 22.0, 33.0], [14.0, 25.0, 36.0]], (a + [10, 20, 30]).TR_tolist)
-    TR_assert_equal([[2.0, 4.0, 6.0], [12.0, 15.0, 18.0]], (a * TR_Tensor([[2], [3]])).TR_tolist)
+    TR_assert_equal([[2.0, 4.0, 6.0], [12.0, 15.0, 18.0]], (a * TR_Tensor([[2.0], [3.0]])).TR_tolist)
     TR_assert_equal([[1.0, 3.0, 5.0], [7.0, 9.0, 11.0]], (2 * a - 1).TR_tolist)
     TR_assert_equal([[0.5, 1.0, 1.5], [2.0, 2.5, 3.0]], (a / 2).TR_tolist)
-    TR_assert_equal(6.0, (TR_Tensor([1, 2, 3]) @ TR_Tensor([1, 1, 1])).TR_tolist)
+    TR_assert_equal(6.0, (TR_Tensor([1.0, 2.0, 3.0]) @ TR_Tensor([1.0, 1.0, 1.0])).TR_tolist)
     # İndeksle atama veriyi yerinde değiştirir.
     TR_var t = TR_zeros([2, 3])
     t[0] = 1
@@ -233,11 +340,11 @@ TR_test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) il
 }
 
 TR_test "15.9 matematik fonksiyonları ve indirgemeler" {
-    TR_var a = TR_Tensor([[1, 2, 3], [4, 5, 6]])
+    TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     TR_assert_equal([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0]], TR_relu(a - 3).TR_tolist)
-    TR_assert_equal([2.0, 3.0], TR_sqrt(TR_Tensor([4, 9])).TR_tolist)
-    TR_assert_equal([1.0], TR_exp(TR_Tensor([0])).TR_tolist)
-    TR_assert_equal([0.0], TR_log(TR_Tensor([1])).TR_tolist)
+    TR_assert_equal([2.0, 3.0], TR_sqrt(TR_Tensor([4.0, 9.0])).TR_tolist)
+    TR_assert_equal([1.0], TR_exp(TR_Tensor([0.0])).TR_tolist)
+    TR_assert_equal([0.0], TR_log(TR_Tensor([1.0])).TR_tolist)
     TR_assert_equal(0.5, TR_sigmoid(TR_zeros([1])).TR_tolist[0])
     TR_assert_equal(0.0, TR_tanh(TR_zeros([1])).TR_tolist[0])
     TR_assert_equal(0.0, TR_gelu(TR_zeros([1])).TR_tolist[0])
@@ -259,7 +366,7 @@ TR_test "15.9 matematik fonksiyonları ve indirgemeler" {
     # Eski liste davranışı korunur; listedeki tensörler katlanır, iç içe liste hatadır.
     TR_assert_equal(6, TR_sum([1, 2, 3]))
     TR_assert_equal(2.0, TR_mean([1, 2, 3]))
-    TR_assert_equal([4.0, 6.0], TR_sum([TR_Tensor([1, 2]), TR_Tensor([3, 4])]).TR_tolist)
+    TR_assert_equal([4.0, 6.0], TR_sum([TR_Tensor([1.0, 2.0]), TR_Tensor([3.0, 4.0])]).TR_tolist)
     TR_assert_equal("H6220", TR_error_code { TR_sum([[1, 2], [3, 4]]) })
     TR_assert_equal("H6205", TR_error_code { TR_max(a, 0) })
     TR_assert_equal("H6020", TR_error_code { TR_zeros(2, 3, TR_requires_grad: TR_true) })
@@ -311,19 +418,19 @@ TR_test "15.23a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz
 }
 
 TR_test "15.23 sinir ağı fonksiyonları" {
-    TR_var tablo = TR_Tensor([[1, 1], [2, 2], [3, 3]])
+    TR_var tablo = TR_Tensor([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
     TR_assert_equal([[3.0, 3.0], [1.0, 1.0]], TR_embedding_lookup(tablo, [2, 0]).TR_tolist)
     TR_assert_equal([2, 2, 2], TR_embedding_lookup(tablo, [[0, 1], [2, 2]]).TR_shape)
     TR_assert_equal(0.417, TR_round(TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), [0]).TR_tolist, 3))
-    TR_var n = TR_layer_norm(TR_Tensor([[1, 2, 3]]), TR_ones([3]), TR_zeros([3]))
+    TR_var n = TR_layer_norm(TR_Tensor([[1.0, 2.0, 3.0]]), TR_ones([3]), TR_zeros([3]))
     TR_assert_equal([-1.2247, 0.0, 1.2247], n.TR_tolist[0].TR_map((x) => TR_round(x, 4)))
-    TR_var r = TR_rms_norm(TR_Tensor([[3, 4]]), TR_ones([2]))
+    TR_var r = TR_rms_norm(TR_Tensor([[3.0, 4.0]]), TR_ones([2]))
     TR_assert_equal([0.8485, 1.1314], r.TR_tolist[0].TR_map((x) => TR_round(x, 4)))
 }
 
 TR_test "15.27 geri yayılım, gradyan ve türevsiz" {
     TR_var w = TR_Tensor([[0.5], [-0.5]], TR_requires_grad: TR_true)
-    TR_var x = TR_Tensor([[1, 2], [3, 4]])
+    TR_var x = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
     TR_var y = x @ w
     TR_backward(TR_mean(y * y))
     TR_assert_equal([[-2.0], [-3.0]], w.TR_grad.TR_tolist)
@@ -443,7 +550,7 @@ TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamay
 
 TR_test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     # y = 2·x1 - 3·x2 + 0.5
-    TR_var X = TR_Tensor([[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]])
+    TR_var X = TR_Tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [2.0, 1.0], [1.0, 2.0]])
     TR_var Y = TR_Tensor([[0.5], [2.5], [-2.5], [-0.5], [1.5], [-3.5]])
     TR_var w = TR_Tensor([[0.0], [0.0]], TR_requires_grad: TR_true)
     TR_var b = TR_Tensor([0.0], TR_requires_grad: TR_true)
@@ -528,10 +635,10 @@ TR_test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda 
 }
 
 TR_test "15.19 argmax" {
-    TR_var x = TR_Tensor([[1, 9, 3], [7, 2, 7]])
+    TR_var x = TR_Tensor([[1.0, 9.0, 3.0], [7.0, 2.0, 7.0]])
     TR_assert_equal([1, 0], TR_argmax(x, TR_dim: -1).TR_tolist)
     TR_assert_equal([1, 0, 1], TR_argmax(x, TR_dim: 0).TR_tolist)
-    TR_assert_equal(1, TR_argmax(TR_Tensor([4, 8, 1])).TR_tolist)
+    TR_assert_equal(1, TR_argmax(TR_Tensor([4.0, 8.0, 1.0])).TR_tolist)
     # .değer Tam verir; liste indeksi olarak doğrudan kullanılabilir.
     TR_var harfler = ["a", "b", "c"]
     TR_assert_equal("b", harfler[TR_argmax(x, TR_dim: -1).TR_tolist[0]])
@@ -598,8 +705,8 @@ TR_test "15.46 tensör dosyası sürüm 2 türü korur; eski sürüm 1 dosyalar�
     TR_var y = TR_load_tensors("data/tensor_version2.trt")
     TR_assert_equal(["a", "b", "c"], y.TR_keys())
     TR_assert_equal(["bf16", "fp16", "float32"], [y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype])
-    TR_assert(y["a"] == TR_Tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16"))
-    TR_assert(y["b"] == TR_Tensor([0.1, 65504.0], TR_dtype: "fp16"))
+    TR_assert(TR_equal(y["a"], TR_Tensor([[1.5, -2.25], [3.0, 0.1]], TR_dtype: "bf16")))
+    TR_assert(TR_equal(y["b"], TR_Tensor([0.1, 65504.0], TR_dtype: "fp16")))
     TR_assert_equal([0.1], y["c"].TR_tolist)
     # tensor_version1.trt: eski TR'nin yazdığı sürüm 1 dosyası artık okunmaz.
     TR_assert_equal("H6611", TR_error_code { TR_load_tensors("data/tensor_version1.trt") })
@@ -622,6 +729,24 @@ TR_test "15.47a .safetensors yolu safetensors yazar (15.46: biçim uzantıya gö
     TR_assert_equal("H6951", TR_error_code { TR_save_tensors(TR_Path(k, "x.safetensors"), {"__metadata__": TR_Tensor([1.0])}) })
 }
 
+TR_test "15.46 ve 15.47a dosyada her cins ve hassasiyet saklanır; uzantının harf büyüklüğü fark etmez" {
+    TR_var k = TR_temp_dir()
+    TR_var d = {"m": TR_Tensor([TR_true, TR_false]), "u8": TR_Tensor([255], TR_dtype: "uint8"), "i": TR_Tensor([1, -2, 16777217]), "i32": TR_Tensor([-7], TR_dtype: "int32"), "i16": TR_Tensor([300], TR_dtype: "int16"), "i8": TR_Tensor([-128], TR_dtype: "int8"), "u32": TR_Tensor([4294967295], TR_dtype: "uint32"), "u16": TR_Tensor([65535], TR_dtype: "uint16"), "f64": TR_Tensor([0.1], TR_dtype: "float64"), "f": TR_Tensor([1.5])}
+    TR_var türler = ["bool", "uint8", "int64", "int32", "int16", "int8", "uint32", "uint16", "float64", "float32"]
+    TR_for ad TR_in ["m.trt", "m.TRT", "m.safetensors", "m.SafeTensors"] {
+        TR_save_tensors(TR_Path(k, ad), d)
+        TR_var y = TR_load_tensors(TR_Path(k, ad), TR_requires_grad: TR_true)
+        TR_assert_equal(türler, [y[a].TR_dtype TR_for a TR_in d.TR_keys()], ad)
+        TR_assert_equal([[TR_true, TR_false], [255], [1, -2, 16777217], [-7], [300], [-128], [4294967295], [65535], [0.1], [1.5]], [y[a].TR_tolist TR_for a TR_in d.TR_keys()], ad)
+        # TR_requires_grad yalnız hesap ondalığında türevi açar; TR_Int ve TR_Bool türevsiz yüklenir.
+        TR_backward(TR_sum(y["f"] * 2.0))
+        TR_assert_equal([2.0], y["f"].TR_grad.TR_tolist, ad)
+    }
+    # Büyük harfli uzantı da safetensors yazar: geniş türler öne geçer (TR biçimi verilen sırayı tutar).
+    TR_assert_equal(["i", "f64", "i32", "u32", "f", "i16", "u16", "m", "u8", "i8"], TR_load_tensors(TR_Path(k, "m.SafeTensors")).TR_keys())
+    TR_assert_equal(d.TR_keys(), TR_load_tensors(TR_Path(k, "m.TRT")).TR_keys())
+}
+
 TR_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {
     # tensor_zero_axis.trt (74 bayt): [2, 0] ve [1048576, 0, 8192] şekilli, verisiz iki
     # tensör. Sıfır eksen 1 sayılınca ikincisi 8,6 milyar eleman eder; kabul edilseydi
@@ -632,7 +757,7 @@ TR_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle
 }
 
 TR_test "15.5 tensör üzerinde döngü ve liste üreteci" {
-    TR_var t = TR_Tensor([[1, 2], [3, 4], [5, 6]])
+    TR_var t = TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
     TR_var satırlar = []
     TR_for s TR_in t {
         satırlar.TR_append(s.TR_tolist)
@@ -649,7 +774,7 @@ TR_test "15.5 tensör üzerinde döngü ve liste üreteci" {
     TR_assert_equal([3.0, 5.0], [x * 2 TR_for x TR_in TR_Tensor([1.5, 2.5])])
     TR_assert_equal([3.0, 7.0, 11.0], [TR_sum(s).TR_tolist TR_for s TR_in t])
     TR_assert_equal([2.5], [x TR_for x TR_in TR_Tensor([0.5, 2.5]) TR_if x > 1])
-    TR_assert_equal([TR_Int, TR_Int], [TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1, 5], [7, 0]]), TR_dim: -1)])
+    TR_assert_equal([TR_Int, TR_Int], [TR_Type(x) TR_for x TR_in TR_argmax(TR_Tensor([[1.0, 5.0], [7.0, 0.0]]), TR_dim: -1)])
     # Görünümler veriyi paylaşır: satıra atama tensörü değiştirir.
     TR_var z = TR_zeros([2, 2])
     TR_for satır TR_in z {
@@ -664,7 +789,7 @@ TR_test "15.48 hatalar şekli gösterir ve yakalanabilir" {
     TR_assert_equal("H6100", TR_error_code { TR_zeros([2, 3]) + TR_zeros([4]) })
     TR_assert_equal("H6016", TR_error_code { TR_sum(TR_zeros([2, 3]), TR_dim: 2) })
     TR_assert_equal("H6710", TR_error_code { TR_zeros([2, 3]).TR_reshape([4, 2]) })
-    TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1, 2], [3]]) })
+    TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1.0, 2.0], [3.0]]) })
     TR_assert_equal("H6305", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [5]) })
     TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), [[0, 1, 0], [1, 0, 0]]) })
     TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_Tensor(3.0)]) })
@@ -696,7 +821,7 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
     TR_backward(TR_sum(y * 3))
     TR_assert_equal([[3.0, 3.0]], w.TR_grad.TR_tolist)
     TR_assert_equal("float32", w.TR_grad.TR_dtype)
-    TR_assert(w.TR_to_dtype("float32") == w)
+    TR_assert(TR_equal(w.TR_to_dtype("float32"), w))
     # Yazdırma türü yalnızca float32 dışındaki türlerde gösterir.
     TR_assert(TR_String(a).TR_contains("[2×2] bf16"), TR_String(a))
     TR_assert(TR_not TR_String(TR_Tensor([1.0])).TR_contains("float32"))
@@ -705,9 +830,9 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
 TR_test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
     TR_assert_equal("H6811", TR_error_code { TR_Tensor([1], TR_dtype: "bfloat16") })
     TR_assert_equal("H6811", TR_error_code { TR_zeros([2], TR_dtype: "float16") })
-    TR_assert_equal("H6811", TR_error_code { TR_Tensor([1.0]).TR_to_dtype("float64") })
+    TR_assert_equal("H6811", TR_error_code { TR_Tensor([1.0]).TR_to_dtype("float") })
     TR_assert_equal("H6803", TR_error_code { TR_Tensor([1], TR_dtype: 16) })
-    TR_assert_equal("H7901", TR_error_code { TR_Tensor([1], dtype: "bf16") })
+    TR_assert_equal("H7901", TR_error_code { TR_Tensor([1.0], dtype: "bf16") })
     TR_assert_equal("H6807", TR_error_code { TR_mixed_precision("bf16") })
     TR_assert_equal("H6810", TR_error_code { TR_mixed_precision("int8") { 1 } })
 }
@@ -888,24 +1013,24 @@ TR_test "15.10 sin ve cos: sayıda ve tensörde, listede değil; türevli" {
 }
 
 TR_test "15.7 bitiştir ve .böl" {
-    TR_var a = TR_Tensor([[1, 2], [3, 4]], TR_requires_grad: TR_true)
-    TR_var b = TR_Tensor([[5], [6]], TR_requires_grad: TR_true)
+    TR_var a = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([[5.0], [6.0]], TR_requires_grad: TR_true)
     TR_var c = TR_concat([a, b], TR_dim: -1)
     TR_assert_equal([[1.0, 2.0, 5.0], [3.0, 4.0, 6.0]], c.TR_tolist)
     TR_assert_equal([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], TR_concat([a, a], TR_dim: 0).TR_tolist)
-    TR_backward(TR_sum(c * TR_Tensor([1, 2, 3])))
+    TR_backward(TR_sum(c * TR_Tensor([1.0, 2.0, 3.0])))
     TR_assert_equal([[3.0], [3.0]], b.TR_grad.TR_tolist)
-    TR_assert_equal("H6311", TR_error_code { TR_concat([a, TR_Tensor([[1, 2, 3]])], TR_dim: 0) })
+    TR_assert_equal("H6311", TR_error_code { TR_concat([a, TR_Tensor([[1.0, 2.0, 3.0]])], TR_dim: 0) })
     TR_assert_equal("H6307", TR_error_code { TR_concat([]) })
     # .böl eşit parçalar verir; parçalar türev izleyen görünümlerdir.
-    TR_var t = TR_Tensor([[1, 2, 3, 4, 5, 6]], TR_requires_grad: TR_true)
+    TR_var t = TR_Tensor([[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]], TR_requires_grad: TR_true)
     TR_var parçalar = t.TR_split(3)
     TR_assert_equal(3, parçalar.TR_length)
     TR_assert_equal([[5.0, 6.0]], parçalar[2].TR_tolist)
-    TR_assert_equal([[3.0, 4.0]], TR_Tensor([[1, 2], [3, 4]]).TR_split(2, TR_dim: 0)[1].TR_tolist)
+    TR_assert_equal([[3.0, 4.0]], TR_Tensor([[1.0, 2.0], [3.0, 4.0]]).TR_split(2, TR_dim: 0)[1].TR_tolist)
     TR_backward(TR_sum(parçalar[1]))
     TR_assert_equal([[0.0, 0.0, 1.0, 1.0, 0.0, 0.0]], t.TR_grad.TR_tolist)
-    TR_assert_equal("H6318", TR_error_code { TR_Tensor([1, 2, 3]).TR_split(2) })
+    TR_assert_equal("H6318", TR_error_code { TR_Tensor([1.0, 2.0, 3.0]).TR_split(2) })
     # Metin'in .böl'ü aynı addır ve değişmez.
     TR_assert_equal(["a", "b"], "a b".TR_split(" "))
     # Boş yaprak girdinin gradyanı da boş tensördür (yok değil), tek başına toplamdaki gibi.
@@ -918,7 +1043,7 @@ TR_test "15.7 bitiştir ve .böl" {
 }
 
 TR_test "15.18 indirgemelerde boyutu_koru" {
-    TR_var x = TR_Tensor([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    TR_var x = TR_Tensor([[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]])
     TR_assert_equal([2, 2, 1], TR_sum(x, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
     TR_assert_equal([[[2.0], [4.0]], [[6.0], [8.0]]], TR_max(x, TR_dim: -1, TR_keepdim: TR_true).TR_tolist)
     TR_assert_equal([2, 1, 2], TR_mean(x, TR_dim: 1, TR_keepdim: TR_true).TR_shape)
@@ -1064,16 +1189,16 @@ TR_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor }
     TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
     TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor }
-    TR_var ortak = p(9)
-    TR_var m = Model(p(1), [Blok(Dikkat(p(2), ortak), [p(3)], {}), Blok(Dikkat(p(4), p(5)), [], {"W1": p(6), "sabit": TR_Tensor([0.0])})], ortak)
+    TR_var ortak = p(9.0)
+    TR_var m = Model(p(1.0), [Blok(Dikkat(p(2.0), ortak), [p(3.0)], {}), Blok(Dikkat(p(4.0), p(5.0)), [], {"W1": p(6.0), "sabit": TR_Tensor([0.0])})], ortak)
     TR_var l = TR_parameters(m)
     TR_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_tolist[0] TR_for x TR_in l])
-    TR_assert(l[0] == m.TR_embedding)
+    TR_assert(TR_equal(l[0], m.TR_embedding))
     TR_var adlar = TR_parameters(m, TR_named: TR_true)
     TR_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.yan.W1"], adlar.TR_keys())
     TR_assert_equal([4.0], adlar["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
     # Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
-    TR_assert_equal(0, TR_parameters([p(1) * 2, TR_Tensor([1.0])]).TR_length)
+    TR_assert_equal(0, TR_parameters([p(1.0) * 2, TR_Tensor([1.0])]).TR_length)
     # Sonuç doğrudan iyileştiriciye verilebilir.
     TR_var op = TR_SGD(TR_parameters(m), TR_lr: 1.0)
     TR_backward(TR_sum(m.TR_embedding * 2))
@@ -1186,7 +1311,7 @@ TR_test "15.6b yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_assert(ileti.TR_ends_with(", 1, 5, 2)"), ileti)
 }
 
-TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
+TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, karşılaştırma TR_Bool" {
     TR_var a = TR_Tensor([1.0, 2.0]).TR_to_dtype("bf16")
     TR_var b = TR_Tensor([1.0, 2.0]).TR_to_dtype("fp16")
     TR_assert_equal("bf16", (a + a).TR_dtype)
@@ -1194,8 +1319,8 @@ TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, say
     TR_assert_equal("float32", (a + TR_Tensor([1.0, 2.0])).TR_dtype)
     TR_assert_equal("bf16", (a * 2.5).TR_dtype)
     TR_assert_equal("bf16", (2 - a).TR_dtype)
-    TR_assert_equal("float32", (a > 1).TR_dtype)
-    TR_assert_equal([0.0, 1.0], (TR_Tensor([1.0, 2.0]) > 1).TR_tolist)
+    TR_assert_equal("bool", (a > 1).TR_dtype)
+    TR_assert_equal([TR_false, TR_true], (TR_Tensor([1.0, 2.0]) > 1).TR_tolist)
 }
 
 TR_test "15.6d türevin üç yazma kuralı kipe bağlıdır" {
@@ -1210,7 +1335,7 @@ TR_test "15.6d türevin üç yazma kuralı kipe bağlıdır" {
     TR_assert_equal([5.0, 2.0], w.TR_tolist)
     # Yaprak olmayan türevli tensöre türevsiz kipte de yazılmaz; yerinde olmayan yazım çalışır.
     TR_assert_equal("H6955", TR_error_code { TR_no_grad { h[1] = 0.0 } })
-    TR_var m = TR_Tensor([0.0, 1.0])
+    TR_var m = TR_Tensor([TR_false, TR_true])
     h = TR_where(m, 0.0, h)
     TR_assert_equal([2.0, 0.0], h.TR_tolist)
     # Türev izlemeyen hedefe kipin dışında türev izleyen değer yazılmaz: bağ sessizce koparırdı.

@@ -164,8 +164,8 @@ func TestTypedTensors(t *testing.T) {
 			t.Fatalf("%s: Set", dt)
 		}
 	}
-	expectPanic(t, "int8 CPU'da desteklenmez", func() { ZerosOf(Int8, 4) })
-	if Int4.StorageBytes(5) != 3 || Int8.Bits() != 8 || BFloat16.String() != "bfloat16" {
+	expectPanic(t, "q8 CPU'da desteklenmez", func() { ZerosOf(Q8, 4) })
+	if Q4.StorageBytes(5) != 3 || Q8.Bits() != 8 || Int8.Bits() != 8 || Bool.Bits() != 8 || BFloat16.String() != "bfloat16" {
 		t.Fatal("tür yardımcıları")
 	}
 }

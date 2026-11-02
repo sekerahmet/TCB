@@ -101,7 +101,7 @@ func TestBroadcastWarningOnEveryPath(t *testing.T) {
 		{"liste - tensör", `TR_var _ = [1.0, 2.0] - TR_zeros([2, 1])`},
 		{"karşılaştırma <", `TR_var _ = TR_zeros([3, 1]) < TR_zeros([3])`},
 		{"atan2", `TR_var _ = TR_atan2(TR_zeros([4, 1]), TR_ones([4]))`},
-		{"koşullu", `TR_var _ = TR_where(TR_ones([5, 1]), TR_zeros([5]), TR_ones([5]))`},
+		{"koşullu", `TR_var _ = TR_where(TR_ones([5, 1]) > 0.0, TR_zeros([5]), TR_ones([5]))`},
 		{"TR_sum([t1, t2])", `TR_var _ = TR_sum([TR_zeros([6, 1]), TR_zeros([6])])`},
 	} {
 		if n := strings.Count(trrun.MustExecChecked(t, tc.code).ErrOut, "Uyarı"); n != 1 {

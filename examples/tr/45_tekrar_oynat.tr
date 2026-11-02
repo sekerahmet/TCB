@@ -25,7 +25,7 @@ TR_func adım(kimlik: TR_Tensor[TR_Int], konum: TR_Tensor[TR_Int]) -> TR_Tensor 
 TR_var oynat = TR_replay(adım)
 TR_no_grad {
     TR_for konum, kimlik TR_in [3, 1, 4, 1, 5] {
-        TR_var s = oynat(TR_Tensor([kimlik * 1.0]), TR_Tensor(konum * 1.0))
+        TR_var s = oynat(TR_Tensor([kimlik]), TR_Tensor(konum))
         TR_print("konum \(konum), parça \(kimlik): toplam \(TR_round(TR_sum(s).TR_tolist, 4))")
     }
 }

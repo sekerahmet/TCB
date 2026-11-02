@@ -11,9 +11,13 @@ import (
 // updateSliceKernel hedef [dış, Td, iç] içine kaynağı [dış, Ts, iç] eksende s'den başlayarak
 // yazar; s = kırp(başlangıç[0], 0, Td−Ts) (cihazdaki float32 tam sayı). Eleman başına iş
 // parçacığı; kaynak bitişik, türler farklıysa yazarken çevrilir.
-func updateSliceKernel(st, dt tensor.DType) func() *emitter {
+func updateSliceKernel(st, dt, it tensor.DType) func() *emitter {
 	return func() *emitter {
-		k := newEmitter("dilim_yaz_" + st.String() + "_" + dt.String())
+		name := "dilim_yaz_" + st.String() + "_" + dt.String()
+		if it != tensor.Float32 {
+			name += "_" + it.Name()
+		}
+		k := newEmitter(name)
 		dst := k.written("hedef")
 		src := k.pointer("kaynak")
 		start := k.pointer("baslangic")
@@ -24,10 +28,9 @@ func updateSliceKernel(st, dt tensor.DType) func() *emitter {
 		k.e("setp.ge.u32", p, e, n)
 		k.jumpIf(p, end)
 		s, room := k.r(), k.r()
-		k.e("cvt.rzi.s32.f32", s, k.load(tensor.Float32, start))
 		k.e("sub.s32", room, Td, Ts)
 		k.e("add.s32", room, room, 1)
-		k.clampIndex(s, room)
+		k.indexAt(s, it, start, room)
 		tsI, o, rest, a, i := k.r(), k.r(), k.r(), k.r(), k.r()
 		k.e("mul.lo.s32", tsI, Ts, I)
 		k.e("div.u32", o, e, tsI)

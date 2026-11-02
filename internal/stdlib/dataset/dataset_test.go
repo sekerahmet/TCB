@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/compute/dataload"
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/devtools/debugger"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
@@ -80,7 +81,15 @@ func tensorData(t *testing.T, v interp.Value) ([]float32, []int) {
 	if !ok {
 		t.Fatalf("tensör bekleniyordu, %T", v)
 	}
-	return d.Tensor().Data(), d.Tensor().Shape()
+	if d.Tensor().Elem() != tensor.ElemInt {
+		return d.Tensor().Data(), d.Tensor().Shape()
+	}
+	ids := d.Tensor().Int64s()
+	out := make([]float32, len(ids))
+	for i, x := range ids {
+		out[i] = float32(x)
+	}
+	return out, d.Tensor().Shape()
 }
 
 // Örnekleyici, aynı tohumla Go kütüphanesinin örnekleyicisiyle aynı toplu işleri verir;

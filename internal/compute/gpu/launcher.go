@@ -248,7 +248,7 @@ func (g *backend) launch(c *kernel, grid, block [3]uint32, p *paramWriter) {
 		}
 	}
 	for _, d := range p.writer {
-		d.host = nil
+		d.dropShadow()
 	}
 	g.lastKernel = c.ad
 	ev := g.measureStart()

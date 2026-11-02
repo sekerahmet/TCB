@@ -53,6 +53,10 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		return symConcat(ts, axis, outShape, dt)
 	}
 	ost := ContiguousStrides(outShape)
+	if first.dtyp.IsTyped() {
+		sy.finish()
+		return concatTyped(be, ts, axis, outShape, ost)
+	}
 
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır. Tampon -0
 	// ile başlar: -0 + x her x için (-0 dahil) x'tir, girdilerin işaretli sıfırları korunur.
@@ -124,6 +128,22 @@ func (t *Tensor) Split(n, axis int) []*Tensor {
 	out := make([]*Tensor, n)
 	for i := range out {
 		out[i] = t.Slice(axis, i*m, (i+1)*m)
+	}
+	return out
+}
+
+// concatTyped cinsli tensörleri (aynı tür) uç uca kopyalar; türev izlemez.
+func concatTyped(be Backend, ts []*Tensor, axis int, outShape, ost []int) *Tensor {
+	out := zerosOf(isConcat, be, outShape, ts[0].dtyp)
+	offset := 0
+	for _, t := range ts {
+		if t.dtyp != out.dtyp {
+			panic(PrecisionError(t.dtyp, be.Device()))
+		}
+		if t.Numel() > 0 {
+			be.CopyStrided(View{S: out.storage, Offset: offset * ost[axis], Shape: t.shape, Strides: ost}, t.view())
+		}
+		offset += t.shape[axis]
 	}
 	return out
 }

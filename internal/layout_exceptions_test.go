@@ -48,7 +48,6 @@ var longFuncReasons = map[string]string{
 
 	// Motorlar
 	"internal/stdlib/ml/custom_grad.go:checkGrad":     reasonBuiltin + " (sayısal türev denetimi)",
-	"internal/stdlib/ml/print.go:TensorValue.Text":    "tensör yazdırma: boyut, kısaltma ve biçim tek özyinelemede",
 	"internal/stdlib/ml/model_tools.go:sampleBuiltin": reasonBuiltin,
 	"internal/stdlib/ml/builtin_reduce.go:reduction":  reasonBuiltin,
 

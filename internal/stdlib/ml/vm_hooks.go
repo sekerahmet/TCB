@@ -23,6 +23,9 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 	o, ok := otherVal.(*TensorValue)
 	if !ok {
 		if f, number := interp.ToFloat(otherVal); number && d.t.Dim() == 0 {
+			if d.t.DType().IsTyped() {
+				return interp.ValuesEqual(d.scalarValue(), otherVal)
+			}
 			return shortFloat64(d.t.Item()) == f
 		}
 		return false
@@ -38,6 +41,9 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 		if a[i] != b[i] {
 			return false
 		}
+	}
+	if d.t.DType().IsTyped() || o.t.DType().IsTyped() {
+		return d.t.Elem() == o.t.Elem() && interp.ValuesEqual(d.nestedList(), o.nestedList())
 	}
 	ad, bd := d.t.Data(), o.t.Data()
 	for i := range ad {
@@ -59,6 +65,14 @@ func (d *TensorValue) Negate() (interp.Value, error) {
 }
 
 func (d *TensorValue) negate() (interp.Value, error) {
+	if d.t.DType().IsTyped() {
+		var f *tensor.ElemFault
+		r, err := safe(func() (r *tensor.Tensor) { r, f = tensor.Neg(d.t); return })
+		if err != nil {
+			return nil, err
+		}
+		return typedResult(codes.NameRef(codes.TypeTensor), "-", r, f)
+	}
 	r, err := safe(func() *tensor.Tensor { return d.t.Neg() })
 	if err != nil {
 		return nil, err
@@ -71,7 +85,7 @@ const supportedOps = "+ - * / @ ** < > <= >= == !="
 
 // TaskOperator tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı,
 // yayınlamalı; diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde;
-// '**' sol işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi). İşleci yapan
+// '**' sol işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (TR_Bool maske, 15.5). İşleci yapan
 // görevle çağrılır: '@' görevin karışık hassasiyet türüne göre hesaplanır (bkz.
 // karışık_hassasiyet), yayın uyarısı programın durumuna ve hata akışına yazılır. Tensörün
 // görevsiz işleç kancası (interp.OperatorHook) yoktur: yorumlayıcı önce bu kancayı dener.
@@ -110,6 +124,10 @@ func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DT
 
 // operator ikili işleci uygular; m işlemi yapan görevdir (nil: program yok, uyarı yazılmaz).
 func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
+	if d.t.DType().IsTyped() || isTypedOperand(otherVal) {
+		v, err := d.typedOperator(m, op, otherVal, onRight)
+		return v, true, err
+	}
 	switch op {
 	case "+", "*":
 		// Değişmeli: yön sonucu değiştirmez.
@@ -170,30 +188,37 @@ func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, o
 		}
 		return New(r), true, nil
 
-	case "<", ">", "<=", ">=":
+	case "<", ">", "<=", ">=", "==", "!=":
 		v, err := d.compare(m, op, otherVal, onRight)
 		return v, true, err
 	}
 	return nil, true, messages.New(messages.H6703, interp.ValTensor, op, supportedOps)
 }
 
-// comparisonOp karşılaştırma işleçlerinin çekirdek işlemi.
+// comparisonOp kaynaştır kaydındaki karşılaştırmanın çekirdek işlemi.
 var comparisonOp = map[string]tensor.BinOp{"<": tensor.OpLt, ">": tensor.OpGt, "<=": tensor.OpLe, ">=": tensor.OpGe}
 
-// compare eleman bazlı karşılaştırmanın 0/1 maskesini (türev izlemeyen float32 tensör)
-// tensörün cihazında verir. Diğer işlenen sayı, liste ya da tensör olabilir; şekiller
-// yayınlanır (+ - * / gibi). NaN içeren karşılaştırma 0'dır.
+// compare hesap ondalığı tensörün öğe öğe karşılaştırmasıdır (15.5): sonuç TR_Tensor[TR_Bool],
+// türev izlemez. Diğer işlenen sayı, liste ya da tensör olabilir; şekiller yayınlanır. Sayı
+// float32'ye çevrilir, 16 bitlik tensör float32'de karşılaştırılır (15.6a). NaN'lı
+// karşılaştırma yanlış, != doğrudur (IEEE 754). Kaynaştır kaydında karşılaştırma bugün 0/1
+// ondalık maskedir (kaynaşmış çekirdekte mantık cinsi 2b'de).
 func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, error) {
-	bop := comparisonOp[op]
-	if s, ok := interp.ToFloat(otherVal); ok {
-		r, err := safe(func() *tensor.Tensor { return d.t.CompareScalar(float32(s), bop, onRight) })
-		if err != nil {
-			return nil, err
-		}
-		return New(r), nil
-	}
 	ad := messages.New(messages.H6129, op)
-	o, err := toTensorOn(ad, otherVal, d.t)
+	var o *tensor.Tensor
+	var err error
+	if s, ok := interp.ToFloat(otherVal); ok && d.t.IsSymbolic() {
+		// Kaynaştır kaydında sayı sabit olarak kaydedilir (dışarıdan tensör değildir).
+		bop, cmp := comparisonOp[op]
+		if !cmp {
+			return nil, messages.New(messages.H3107)
+		}
+		return safe(func() interp.Value { return New(d.t.CompareScalar(float32(s), bop, onRight)) })
+	} else if ok {
+		o, err = safe(func() *tensor.Tensor { return tensor.FullOn(d.t.Device(), float32(s)) }) // cihazda doldurulur: TR_replay kaydında da
+	} else {
+		o, err = toTensorOn(ad, otherVal, d.t)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -207,11 +232,39 @@ func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, on
 	if err := checkDevice(ad, a, b); err != nil {
 		return nil, err
 	}
-	r, err := safe(func() *tensor.Tensor { return tensor.Compare(a, b, bop) })
+	r, err := safe(func() *tensor.Tensor {
+		if a.IsSymbolic() || b.IsSymbolic() {
+			bop, ok := comparisonOp[op]
+			if !ok {
+				panic(messages.New(messages.H3107)) // kaynaştır kaydında == ve != yok (2b)
+			}
+			return tensor.Compare(a, b, bop)
+		}
+		return tensor.CompareTyped(a, b, cmpOps[op])
+	})
 	if err != nil {
 		return nil, err
 	}
 	return New(r), nil
+}
+
+var _ interp.ValueEqualer = (*TensorValue)(nil)
+
+// ValueEqual tensörün == ve != işleçleridir: öğe öğe, TR_Tensor[TR_Bool] verir (15.5). İki
+// tensörün bütün eşitliği TR_equal'dır. TR_none ile karşılaştırma (3.5) ve öbür değerler
+// yorumlayıcının olağan yolundan gider (ok false). Yayın uyarısı yazılmaz: kancanın görevi yok.
+func (d *TensorValue) ValueEqual(op string, other interp.Value) (interp.Value, bool, error) {
+	switch other.(type) {
+	case *TensorValue, *interp.IntVal, *interp.FloatVal, *interp.BoolVal, *interp.ListVal:
+	default:
+		return nil, false, nil
+	}
+	start := tensor.Created()
+	res, _, err := d.operator(nil, op, other, false)
+	if err == nil {
+		markFresh(res, start)
+	}
+	return res, true, err
 }
 
 // Index t[i] (ilk eksende i. eleman; bir eksen eksilir) ve t[baş..son] (ilk eksende
@@ -264,14 +317,8 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 	return d.view(r), nil
 }
 
-// view t'nin bir görünümünü (indeks, dilim, döngü öğesi) sarar. Görünüm aynı veriyi
-// taşıdığından tam sayılı tensörün görünümü de tam sayılıdır (ör. token kimliği
-// tensörünün satırları).
-func (d *TensorValue) view(r *tensor.Tensor) *TensorValue {
-	g := New(r)
-	g.hasInts = d.hasInts
-	return g
-}
+// view t'nin bir görünümünü (indeks, dilim, döngü öğesi) sarar; görünüm cinsi korur.
+func (d *TensorValue) view(r *tensor.Tensor) *TensorValue { return New(r) }
 
 // IterLen 'döngü x içinde t' ve liste üretecinde gezilecek öğe sayısıdır (ilk
 // eksenin uzunluğu). 0 boyutlu tensör üzerinde döngü kurulamaz.
@@ -290,12 +337,16 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 	if d.t.Dim() != 1 {
 		return d.Index(interp.NewInt(int64(i)))
 	}
+	if d.t.DType().IsTyped() {
+		v, err := d.Index(interp.NewInt(int64(i)))
+		if err != nil {
+			return nil, err
+		}
+		return v.(*TensorValue).scalarValue(), nil
+	}
 	x, err := safe(func() float32 { return d.t.At(i) })
 	if err != nil {
 		return nil, err
-	}
-	if d.hasInts {
-		return interp.NewInt(int64(x)), nil
 	}
 	return &interp.FloatVal{Val: shortFloat64(x)}, nil
 }
@@ -329,7 +380,14 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	}
 	sh := target.Shape()
 	var src *tensor.Tensor
-	if f, ok := interp.ToFloat(value); ok {
+	_, isTensor := value.(*TensorValue)
+	_, isList := value.(*interp.ListVal)
+	if target.DType().IsTyped() && !isTensor && !isList {
+		// Cinsli hedefe sayı ya da mantık değeri: hedefin cinsinden, hassasiyetine sığarak (15.6a).
+		if src, err = view.typedOperandFor("=", "=", value, true); err != nil {
+			return err
+		}
+	} else if f, ok := interp.ToFloat(value); ok {
 		// Hedefin tüm elemanlarına yayınlanır; sayı cihazda doldurulur (konaktan yüklenmez:
 		// tekrar_oynat kaydında da çalışır).
 		if src, err = safe(func() *tensor.Tensor { return tensor.FullOn(target.Device(), float32(f)) }); err != nil {
@@ -348,12 +406,27 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 			return messages.New(messages.H6719, tensor.ShapeText(sh), tensor.ShapeText(ks))
 		}
 	}
+	if src, err = assignSource(target, src); err != nil {
+		return err
+	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.
 	_, err = safe(func() bool {
 		target.CopyFrom(src)
 		return true
 	})
 	return err
+}
+
+// assignSource atanan tensörü hedefin hassasiyetine getirir (15.6d): cinsli hedefte ya da
+// kaynakta iki yan aynı cinsten olmalıdır; tam sayıda değer hedefin hassasiyetine sığmalıdır.
+func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
+	if src.DType() == target.DType() || !src.DType().IsTyped() && !target.DType().IsTyped() {
+		return src, nil
+	}
+	if src.Elem() != target.Elem() {
+		return nil, kindMismatch("=", target.DType(), src.DType())
+	}
+	return convertKind("=", src, target.DType())
 }
 
 // checkWrite yerinde yazmanın türev kurallarını (15.6d "Türev") uygular. dst yazılan tensördür

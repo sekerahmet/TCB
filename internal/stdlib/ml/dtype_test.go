@@ -49,14 +49,14 @@ TR_print(w.TR_grad.TR_tolist, w.TR_grad.TR_dtype)`)
 		code string
 		want messages.Code
 	}{
-		{`TR_Tensor([1], TR_dtype: "bfloat16")`, messages.H6811},
-		{`TR_Tensor([1], TR_dtype: "bf61")`, messages.H6811},
+		{`TR_Tensor([1.0], TR_dtype: "bfloat16")`, messages.H6811},
+		{`TR_Tensor([1.0], TR_dtype: "bf61")`, messages.H6811},
 		{`TR_ones([1], TR_dtype: "half")`, messages.H6811},
-		{`TR_zeros([1], TR_dtype: "float64")`, messages.H6811},
+		{`TR_zeros([1], TR_dtype: "float")`, messages.H6811},
 		{`TR_Tensor([1.0]).TR_to_dtype("fp32")`, messages.H6811},
 		{`TR_Tensor([1.0]).TR_to_dtype()`, messages.H6806},
-		{`TR_Tensor([1], TR_dtype: TR_none)`, messages.H6803},
-		{`TR_Tensor([1], dtype: "bf16")`, messages.H7901},
+		{`TR_Tensor([1.0], TR_dtype: TR_none)`, messages.H6803},
+		{`TR_Tensor([1.0], dtype: "bf16")`, messages.H7901},
 		{`TR_Tensor([1.0]).tür_`, messages.H7903},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
@@ -160,7 +160,7 @@ func TestTensorSaveVersion2(t *testing.T) {
 TR_save_tensors("`+fpath+`", p)
 TR_var y = TR_load_tensors("`+fpath+`", TR_requires_grad: TR_true)
 TR_print(y["a"].TR_dtype, y["b"].TR_dtype, y["c"].TR_dtype)
-TR_print(y["a"] == p["a"], y["b"] == p["b"], y["c"] == p["c"], y["a"].TR_tolist)
+TR_print(TR_equal(y["a"], p["a"]), TR_equal(y["b"], p["b"]), TR_equal(y["c"], p["c"]), y["a"].TR_tolist)
 TR_print(y["b"].TR_grad, y["b"])`)
 	want := "bf16 fp16 float32\n" +
 		"true true true [[1.5, -2.25], [3.0, 0.100097656]]\n" +

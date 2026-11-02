@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"sync/atomic"
 )
 
@@ -75,7 +76,7 @@ func (d Device) String() string {
 	return fmt.Sprintf("cihaz(%d:%d)", d.Kind, d.Index)
 }
 
-// DType depolamadaki eleman türü.
+// DType depolamadaki eleman türü (dilin hassasiyeti, 15.1). Öğe cinsi Elem'dir.
 type DType uint8
 
 const (
@@ -86,13 +87,45 @@ const (
 	BFloat16
 	// Float16 IEEE 754 yarım hassasiyet: 5 bit üs, 10 bit anlamlı kısım.
 	Float16
-	// Int8 nicemlenmiş çıkarım için ayrılmıştır (ölçek ayrı tutulur); henüz
-	// hiçbir arka uç hesap desteği sunmaz.
+	// Q8 nicemlenmiş saklama için ayrılmıştır (ölçek ayrı tutulur, 15.51); henüz hiçbir
+	// arka uç hesap desteği sunmaz.
+	Q8
+	// Q4 4 bitlik paketli nicemlenmiş saklama (bir baytta iki eleman, 15.51); henüz hiçbir
+	// arka uç hesap desteği sunmaz.
+	Q4
+	// Float64 64 bitlik kayan nokta ("float64", TR_Float).
+	Float64
+	// Int64 ... UInt8 TR_Int'in hassasiyetleri; Int64 cinsin varsayılanıdır.
+	Int64
+	Int32
+	Int16
 	Int8
-	// Int4 4 bitlik paketli tamsayı (bir baytta iki eleman), nicemlenmiş
-	// çıkarım için ayrılmıştır; henüz hiçbir arka uç hesap desteği sunmaz.
-	Int4
+	UInt32
+	UInt16
+	UInt8
+	// Bool TR_Bool: öğe başına bir bayt (0 ya da 1).
+	Bool
 )
+
+// ElemKind tensörün öğe cinsi (15.1): TR_Float, TR_Int ya da TR_Bool.
+type ElemKind uint8
+
+const (
+	ElemFloat ElemKind = iota
+	ElemInt
+	ElemBool
+)
+
+// Elem türün öğe cinsi. Nicemlenmiş saklama türleri TR_Float'undur (15.51).
+func (d DType) Elem() ElemKind {
+	switch d {
+	case Int64, Int32, Int16, Int8, UInt32, UInt16, UInt8:
+		return ElemInt
+	case Bool:
+		return ElemBool
+	}
+	return ElemFloat
+}
 
 func (d DType) String() string {
 	switch d {
@@ -102,16 +135,24 @@ func (d DType) String() string {
 		return "bfloat16"
 	case Float16:
 		return "float16"
-	case Int8:
-		return "int8"
-	case Int4:
-		return "int4"
+	case Q8:
+		return "q8"
+	case Q4:
+		return "q4"
+	}
+	if n, ok := typedNames[d]; ok {
+		return n
 	}
 	return fmt.Sprintf("dtype(%d)", uint8(d))
 }
 
-// Name türün dildeki adıdır (`.tür`, `türe(...)`: "float32", "bf16", "fp16"); dilde adı
-// olmayan türlerde String.
+// typedNames hesap ondalıkları dışındaki türlerin adları (dildeki adla aynı).
+var typedNames = map[DType]string{
+	Float64: "float64", Int64: "int64", Int32: "int32", Int16: "int16", Int8: "int8",
+	UInt32: "uint32", UInt16: "uint16", UInt8: "uint8", Bool: "bool",
+}
+
+// Name türün dildeki adıdır (`.TR_dtype`: "float32", "bf16", "fp16", "int64", "bool" ...).
 func (d DType) Name() string {
 	switch d {
 	case BFloat16:
@@ -125,20 +166,61 @@ func (d DType) Name() string {
 // Bits bir elemanın bit sayısı.
 func (d DType) Bits() int {
 	switch d {
-	case Float32:
+	case Float32, Int32, UInt32:
 		return 32
-	case BFloat16, Float16:
+	case BFloat16, Float16, Int16, UInt16:
 		return 16
-	case Int8:
+	case Q8, Int8, UInt8, Bool:
 		return 8
-	case Int4:
+	case Q4:
 		return 4
+	case Float64, Int64:
+		return 64
 	}
 	return 0
 }
 
-// IsFloat kayan noktalı (türevlenebilir) bir tür mü.
+// IsFloat hesap ondalığı mı (float32, bf16, fp16): ondalık hesap çekirdeklerinin ve türevin
+// türleri. Float64 ondalıktır (Elem) ama bu çekirdeklere girmez (typed.go).
 func (d DType) IsFloat() bool { return d == Float32 || d == BFloat16 || d == Float16 }
+
+// IsTyped türün depolaması ham bayt mı (hesap ondalıkları ve nicemleme dışındakiler:
+// float64, TR_Int ve TR_Bool; cpu_typed.go).
+func (d DType) IsTyped() bool { return d >= Float64 && d <= Bool }
+
+// IsDefault türün cinsinin varsayılan hassasiyeti mi (float32, int64, bool; 15.1): yazdırma
+// yalnız varsayılan olmayan hassasiyeti yazar (15.5).
+func (d DType) IsDefault() bool { return d == Float32 || d == Int64 || d == Bool }
+
+// IsUnsigned işaretsiz tam sayı hassasiyeti mi.
+func (d DType) IsUnsigned() bool { return d == UInt32 || d == UInt16 || d == UInt8 }
+
+// IntRange tam sayı hassasiyetinin en küçük ve en büyük değeri (TR_Int'te; öbürlerinde 0, 0).
+func (d DType) IntRange() (lo, hi int64) {
+	switch d {
+	case Int64:
+		return math.MinInt64, math.MaxInt64
+	case Int32:
+		return math.MinInt32, math.MaxInt32
+	case Int16:
+		return math.MinInt16, math.MaxInt16
+	case Int8:
+		return math.MinInt8, math.MaxInt8
+	case UInt32:
+		return 0, math.MaxUint32
+	case UInt16:
+		return 0, math.MaxUint16
+	case UInt8:
+		return 0, math.MaxUint8
+	}
+	return 0, 0
+}
+
+// Fits v bu tam sayı hassasiyetine sığıyor mu (15.2'nin "Sığmak"ı).
+func (d DType) Fits(v int64) bool {
+	lo, hi := d.IntRange()
+	return v >= lo && v <= hi
+}
 
 // StorageBytes n elemanın bu türde kapladığı bayt (paketli türler yukarı yuvarlanır).
 func (d DType) StorageBytes(n int) int { return (n*d.Bits() + 7) / 8 }

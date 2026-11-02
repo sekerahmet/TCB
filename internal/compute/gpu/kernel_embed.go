@@ -20,14 +20,18 @@ const embedBlock = 128
 // embedKernel out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
 // tablo float32'ye açılmadan) okunur. at doğruysa indeks cihazdaki bir tensördendir
 // (float32 tam sayı değerli; kayıt içindeki gömme, tensor.EmbeddingAt): [0, V−1]'e kırpılır.
-func embedKernel(dt tensor.DType, at bool) func() *emitter {
-	return func() *emitter { return genEmbed(dt, at) }
+func embedKernel(dt tensor.DType, at bool, it tensor.DType) func() *emitter {
+	return func() *emitter { return genEmbed(dt, at, it) }
 }
 
-func genEmbed(dt tensor.DType, at bool) *emitter {
+// genEmbed it indeks tensörünün türüdür (at'de: float32 ya da "int64").
+func genEmbed(dt tensor.DType, at bool, it tensor.DType) *emitter {
 	name := "gomme_" + dt.String()
 	if at {
 		name = "gomme_cihaz_" + dt.String()
+		if it != tensor.Float32 {
+			name += "_" + it.Name()
+		}
 	}
 	k := newEmitter(name)
 	w := k.pointer("w")
@@ -39,8 +43,7 @@ func genEmbed(dt tensor.DType, at bool) *emitter {
 	row := k.r()
 	if at {
 		V := k.u32p("v")
-		k.e("cvt.rzi.s32.f32", row, k.load(tensor.Float32, k.address(idx, r, 4)))
-		k.clampIndex(row, V)
+		k.indexAt(row, it, k.address(idx, r, dtypeSize(it)), V)
 	} else {
 		k.e("ld.global.u32", row, mem(k.address(idx, r, 4), 0))
 	}
@@ -54,6 +57,23 @@ func genEmbed(dt tensor.DType, at bool) *emitter {
 		k.store(tensor.Float32, k.address(out, hs, 4), k.load(dt, k.address(w, ks, dtypeSize(dt))))
 	})
 	return k
+}
+
+// indexAt i'ye adresteki indeksi [0, n−1]'e kırpılmış yazar: float32 indeks sıfıra doğru
+// kesilir; "int64" indeks 64 bitte kırpılır, sonra daraltılır (2³²'nin üstü sarmaz).
+func (k *emitter) indexAt(i reg, it tensor.DType, addr, n reg) {
+	if it != tensor.Int64 {
+		k.e("cvt.rzi.s32.f32", i, k.load(tensor.Float32, addr))
+		k.clampIndex(i, n)
+		return
+	}
+	v, last := k.rd(), k.rd()
+	k.e("ld.global.s64", v, mem(addr, 0))
+	k.e("cvt.u64.u32", last, n)
+	k.e("add.s64", last, last, -1)
+	k.e("max.s64", v, v, 0)
+	k.e("min.s64", v, v, last)
+	k.e("cvt.u32.u64", i, v)
 }
 
 // clampIndex i'yi [0, n−1]'e kırpar (işaretli).

@@ -21,53 +21,33 @@ func TestTensorFromCyclicList(t *testing.T) {
 	}
 }
 
-// Kural (15.1'in ara kuralı): bütün öğeleri tam sayı olan listede float32'de tam yazılamayan değer
-// (|n| > 2²⁴) tensör kurmayı çalışma hatası yapar (H6954); ileti ilk öğenin konumunu ve değerini
-// söyler. 2²⁴, 2²⁴ + 2 ve tam yazılan büyük sayılar kurulur; karışık liste ondalıktır, yuvarlar.
-func TestIntListInexactInFloat32(t *testing.T) {
-	expectCodes(t, []codeCase{
-		{"TR_Tensor([16777217])", messages.H6954},
-		{"TR_Tensor([1, -16777217])", messages.H6954},
-		{"TR_Tensor([[1, 2], [3, 33554433]])", messages.H6954},
-		{"TR_Tensor([9223372036854775807])", messages.H6954},
-		{"TR_Tensor(16777217)", messages.H6954},
-		{"TR_Tensor(-16777217)", messages.H6954},
-		{"TR_Tensor(9223372036854775807)", messages.H6954},
-	})
-	_, err0 := run(t, "TR_Tensor(16777219)")
-	if e, ok := messages.As(err0); !ok || len(e.Args) != 4 || fmt.Sprint(e.Args[1:]) != "[ 16777219 16777220]" {
-		t.Fatalf("tek tam sayının iletisi: %v", err0)
-	}
-	// Yuvarlanmış değer float32'nin tam değeridir; büyük sayıda en kısa yazımı tam sayı değildir.
-	for _, c := range []struct{ code, want string }{
-		{"TR_Tensor(9007199254740993)", "[ 9007199254740993 9007199254740992]"},
-		{"TR_Tensor([1, 9007199254740993])", "[[1] 9007199254740993 9007199254740992]"},
-		{"TR_Tensor(-9223372036854775807)", "[ -9223372036854775807 -9223372036854775808]"},
-	} {
-		_, err := run(t, c.code)
-		if e, ok := messages.As(err); !ok || fmt.Sprint(e.Args[1:]) != c.want {
-			t.Errorf("%s: %v, beklenen değerler %s", c.code, err, c.want)
-		}
-	}
-	if got := mustRun(t, `TR_print(TR_Tensor(16777216).TR_tolist, TR_Tensor(-16777216).TR_tolist, TR_Tensor(16777218).TR_tolist, TR_Tensor(16777217.0).TR_tolist)`); got != "16777216.0 -16777216.0 16777218.0 16777216.0\n" {
-		t.Fatalf("tek tam sayının sınırları %q", got)
-	}
-	_, err := run(t, "TR_Tensor([[1, 2], [16777219, 33554433]])")
-	if e, ok := messages.As(err); !ok || len(e.Args) != 4 || fmt.Sprint(e.Args[1:]) != "[[1][0] 16777219 16777220]" {
-		t.Fatalf("ilk yanlış öğe ve konumu: %v", err)
-	}
-	out := mustRun(t, `TR_print(TR_Tensor([16777216, 16777218, -16777216, 4611686018427387904]).TR_tolist)
-TR_print(TR_Tensor([16777217.0]).TR_tolist, TR_Tensor([2.5, 16777217]).TR_tolist, TR_Tensor([]).TR_shape)`)
-	if want := "[16777216.0, 16777218.0, -16777216.0, 4.611686018427388e+18]\n[16777216.0] [2.5, 16777216.0] [0]\n"; out != want {
+// Kural (15.2): öğe cinsi veriden çıkar. Tam sayı verisi (aralık da) float32'den geçmeden
+// "int64" tensör kurar (2²⁴'ün ve 2⁵³'ün üstü bozulmaz); en az bir ondalık sayılı liste ondalıktır,
+// yuvarlar; mantık değeri "bool"dur ve sayıyla karışmaz; boş liste ondalıktır. TR_dtype: cinsin
+// içinde seçer, başka cinsin hassasiyeti hatadır; tam sayı hassasiyetine yazılan değer sığmalıdır.
+func TestTensorKindFromData(t *testing.T) {
+	out := mustRun(t, `TR_print(TR_Tensor([16777217, -9223372036854775807, 9007199254740993]).TR_tolist, TR_Tensor(16777217).TR_dtype)
+TR_print(TR_Tensor([16777217.0]).TR_tolist, TR_Tensor([2.5, 16777217]).TR_tolist, TR_Tensor([]).TR_dtype)
+TR_print(TR_Tensor(0..3).TR_tolist, TR_Tensor(1..=2).TR_dtype, TR_Tensor([TR_true, TR_false]).TR_dtype)
+TR_print(TR_Tensor([1, 2], TR_dtype: "uint8").TR_dtype, TR_Tensor([1.5], TR_dtype: "bf16").TR_dtype)`)
+	want := "[16777217, -9223372036854775807, 9007199254740993] int64\n" +
+		"[16777216.0] [2.5, 16777216.0] float32\n" +
+		"[0, 1, 2] int64 bool\n" +
+		"uint8 bf16\n"
+	if out != want {
 		t.Fatalf("kurulan tensörler %q, beklenen %q", out, want)
 	}
-	for _, c := range []struct {
-		n    int64
-		want bool
-	}{{0, true}, {1 << 24, true}, {1<<24 + 1, false}, {1<<24 + 2, true}, {-(1<<24 + 1), false}, {1 << 62, true},
-		{1<<63 - 1, false}, {-1 << 63, true}, {-1<<63 + 1, false}} {
-		if got := exactInFloat32(c.n); got != c.want {
-			t.Errorf("exactInFloat32(%d) = %v", c.n, got)
-		}
+	expectCodes(t, []codeCase{
+		{"TR_Tensor([1, TR_true])", messages.H6975},
+		{"TR_Tensor([1.5], TR_dtype: \"int64\")", messages.H6976},
+		{"TR_zeros([3], TR_dtype: \"int64\")", messages.H6976},
+		{"TR_Tensor([TR_true], TR_dtype: \"float32\")", messages.H6976},
+		{"TR_Tensor([300], TR_dtype: \"uint8\")", messages.H6964},
+		{"TR_Tensor([1, 2], TR_requires_grad: TR_true)", messages.H6973},
+		{"TR_Tensor(\"a\")", messages.H6032},
+	})
+	_, err := run(t, "TR_Tensor([[1, 2], [3, TR_false]])")
+	if e, ok := messages.As(err); !ok || fmt.Sprint(e.Args[1]) != "[1][1]" {
+		t.Fatalf("ilk karışan öğenin konumu: %v", err)
 	}
 }

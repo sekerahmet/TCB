@@ -36,7 +36,7 @@ func (g *backend) gemm(batch, M, N, K int, a tensor.View, transA bool, b tensor.
 		return
 	}
 	if g.ltMul(batch, M, N, K, g.addressOf(a), transA, g.addressOf(b), transB, c.addr+uint64(4*cOf), over, ltR32F, ltR32F) {
-		c.host = nil
+		c.dropShadow()
 		return
 	}
 	ay := g.pickGemm(batch, M, N)
@@ -194,7 +194,7 @@ func (g *backend) gemm16(batch, M, N, K int, a tensor.View, ta bool, b tensor.Vi
 	if !g.ltMul(batch, M, N, K, g.addressOf(a), ta, g.addressOf(b), tb, c.addr, over, ab, ct) {
 		return false
 	}
-	c.host = nil
+	c.dropShadow()
 	return true
 }
 

@@ -24,6 +24,8 @@ type cpuStorage struct {
 	dtyp    DType
 	d       []float32 // Float32
 	h       []uint16  // BFloat16, Float16
+	raw     []byte    // ham bayt türleri (DType.IsTyped; cpu_typed.go)
+	n       int       // ham bayt türlerinde öğe sayısı
 	release bool      // havuza iade edildi (yeniden ayrılana kadar kullanılmamalı)
 }
 
@@ -32,6 +34,9 @@ func (s *cpuStorage) DType() DType   { return s.dtyp }
 func (s *cpuStorage) Len() int {
 	if s.dtyp == Float32 {
 		return len(s.d)
+	}
+	if s.dtyp.IsTyped() {
+		return s.n
 	}
 	return len(s.h)
 }
@@ -242,6 +247,7 @@ func (g *temp) read(v View) View {
 	if v.S == nil || v.S.DType() == Float32 {
 		return v
 	}
+	checkComputeFloat(v.S.DType())
 	tmp := g.buffer(v.Numel(), false)
 	widenInto(tmp.d, v)
 	return View{S: tmp, Shape: v.Shape, Strides: ContiguousStrides(v.Shape)}
@@ -260,6 +266,7 @@ func (g *temp) readD(s Storage) Storage {
 	if s == nil || s.DType() == Float32 {
 		return s
 	}
+	checkComputeFloat(s.DType())
 	c := cpuStore(s)
 	tmp := g.buffer(len(c.h), false)
 	widen16(tmp.d, c.h, c.dtyp)
@@ -267,6 +274,15 @@ func (g *temp) readD(s Storage) Storage {
 }
 
 var finish0 = func() {}
+
+// checkComputeFloat ondalık hesap çekirdeğine hesap ondalığı olmayan bir depolama gelince
+// hassasiyet hatası verir (15.48): ham bayt türleri (float64, TR_Int, TR_Bool) bu
+// çekirdeklerde hesaplanmaz, sessizce float32 sayılmaz.
+func checkComputeFloat(dt DType) {
+	if !dt.IsFloat() {
+		panic(typedComputeError(dt))
+	}
+}
 
 // write hedef depolamanın float32 karşılığını ve geri yazma işlevini verir.
 // 16 bitlik hedefte float32 geçici tampon kullanılır (eski doğruysa mevcut
@@ -276,6 +292,7 @@ func (g *temp) write(s Storage, old bool) (Storage, func()) {
 	if s == nil || s.DType() == Float32 {
 		return s, finish0
 	}
+	checkComputeFloat(s.DType())
 	c := cpuStore(s)
 	tmp := g.buffer(len(c.h), !old)
 	if old {

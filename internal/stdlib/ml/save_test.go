@@ -3,6 +3,8 @@ package ml
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
+	"hash/crc32"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,7 +56,7 @@ TR_print(z["sapma"].TR_grad.TR_tolist)`)
 	version[8] = 9
 	dtype := append([]byte{}, data...)
 	// İlk girdinin tür baytı: başlık (14) + ad uzunluğu (4) + "gömme" (6 bayt).
-	dtype[14+4+len("gömme")] = 7
+	dtype[14+4+len("gömme")] = 200 // 1–12 tür kodudur (15.46)
 	cases := []struct {
 		fpath string
 		want  messages.Code
@@ -80,8 +82,8 @@ TR_print(z["sapma"].TR_grad.TR_tolist)`)
 		want messages.Code
 	}{
 		{`TR_save_tensors("` + fpath + `", {"a": 1})`, messages.H6608},
-		{`TR_save_tensors("` + fpath + `", {1: TR_Tensor([1])})`, messages.H6606},
-		{`TR_save_tensors("` + fpath + `", [TR_Tensor([1])])`, messages.H6605},
+		{`TR_save_tensors("` + fpath + `", {1: TR_Tensor([1.0])})`, messages.H6606},
+		{`TR_save_tensors("` + fpath + `", [TR_Tensor([1.0])])`, messages.H6605},
 		{`TR_save_tensors("", {})`, messages.H6603},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
@@ -166,6 +168,64 @@ func TestSavedShapesOutputLimited(t *testing.T) {
 	for _, p := range []string{"the result tensor of shape [46000000, 46000000]", "PB of memory", "this machine"} {
 		if !strings.Contains(shown, p) {
 			t.Fatalf("gösterilen hatada %q yok: %s", p, shown)
+		}
+	}
+}
+
+// Kural (15.46): TR biçiminin tür kodları sabittir; yazılan dosyanın kodu ve verisi elle
+// yazılmış baytlarla aynıdır, elle yazılmış dosya aynı türle ve değerle okunur. Gidiş-dönüş
+// testi aynı tabloyla yazıp okuduğundan kodların yer değiştirmesini görmez; bu test görür.
+func TestTensorFileTypeCodes(t *testing.T) {
+	dir := t.TempDir()
+	for _, c := range []struct {
+		code  byte
+		expr  string // tensör
+		data  string // iki öğenin küçük uçlu baytları
+		dtype string
+		list  string
+	}{
+		{1, `TR_Tensor([1.5, -2.0])`, "0000c03f000000c0", "float32", "[1.5, -2.0]"},
+		{2, `TR_Tensor([1.5, -2.0], TR_dtype: "bf16")`, "c03f00c0", "bf16", "[1.5, -2.0]"},
+		{3, `TR_Tensor([1.5, -2.0], TR_dtype: "fp16")`, "003e00c0", "fp16", "[1.5, -2.0]"},
+		{4, `TR_Tensor([1.5, -2.0], TR_dtype: "float64")`, "000000000000f83f00000000000000c0", "float64", "[1.5, -2.0]"},
+		{5, `TR_Tensor([1, -2])`, "0100000000000000feffffffffffffff", "int64", "[1, -2]"},
+		{6, `TR_Tensor([1, -2], TR_dtype: "int32")`, "01000000feffffff", "int32", "[1, -2]"},
+		{7, `TR_Tensor([1, -2], TR_dtype: "int16")`, "0100feff", "int16", "[1, -2]"},
+		{8, `TR_Tensor([1, -2], TR_dtype: "int8")`, "01fe", "int8", "[1, -2]"},
+		{9, `TR_Tensor([1, 4000000000], TR_dtype: "uint32")`, "0100000000286bee", "uint32", "[1, 4000000000]"},
+		{10, `TR_Tensor([1, 60000], TR_dtype: "uint16")`, "010060ea", "uint16", "[1, 60000]"},
+		{11, `TR_Tensor([1, 200], TR_dtype: "uint8")`, "01c8", "uint8", "[1, 200]"},
+		{12, `TR_Tensor([TR_true, TR_false])`, "0100", "bool", "[true, false]"},
+	} {
+		data, err := hex.DecodeString(c.data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Tek girdili dosya: "t" adlı, [2] şekilli tensör.
+		var b bytes.Buffer
+		b.WriteString("TRTENSOR")
+		b.Write([]byte{2, 0, 1, 0, 0, 0, 1, 0, 0, 0, 't', c.code, 1, 2, 0, 0, 0, 0, 0, 0, 0})
+		b.Write(data)
+		b.Write(binary.LittleEndian.AppendUint32(nil, crc32.ChecksumIEEE(b.Bytes())))
+		want := b.Bytes()
+
+		saved := filepath.ToSlash(filepath.Join(dir, c.dtype+"_yazilan.trt"))
+		mustRun(t, `TR_save_tensors("`+saved+`", {"t": `+c.expr+`})`)
+		got, err := os.ReadFile(filepath.FromSlash(saved))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Errorf("%s: yazılan dosya\n% x\nbeklenen (kod %d)\n% x", c.dtype, got, c.code, want)
+		}
+		known := filepath.Join(dir, c.dtype+"_bilinen.trt")
+		if err := os.WriteFile(known, want, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		out := mustRun(t, `TR_var t = TR_load_tensors("`+filepath.ToSlash(known)+`")["t"]
+TR_print(t.TR_dtype, t.TR_tolist)`)
+		if wantOut := c.dtype + " " + c.list + "\n"; out != wantOut {
+			t.Errorf("kod %d okundu: %q, beklenen %q", c.code, out, wantOut)
 		}
 	}
 }

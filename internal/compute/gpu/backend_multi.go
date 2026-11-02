@@ -41,7 +41,7 @@ func (g *backend) multiLaunch(gt *temp, mode2 int, items []multiItem, write []in
 		}
 		for _, j := range write {
 			if o.d[j] != nil {
-				o.d[j].host = nil
+				o.d[j].dropShadow()
 			}
 		}
 	}

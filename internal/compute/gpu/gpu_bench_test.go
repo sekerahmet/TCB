@@ -369,3 +369,42 @@ func microNorm(g *backend, band float64, divide int) {
 		}
 	}
 }
+
+// BenchmarkIDBatchToHost hedef modelin (tools/gpu/rgn512.tr) mikro toplu işindeki kimlik yolunu
+// kıyaslar: veri kümesinin 32 × 1024 kimliği GPU'ya yüklenir, gömme ve kayıp hedefleri için
+// konağa iki kez okunur; önce kuyrukta bir çekirdek bekler (gerçek döngüde önceki toplu işin geri
+// yayılımı). float32 taban (27979f33) yoludur, int64 TR_Int kimlikleridir (15.1). İkisi de
+// eşzamanlamasız olmalıdır (gölge); "eşzamanlama/op" 0'dan büyükse okuma GPU kuyruğunu bekler,
+// gerçek kartta adım başına süreye yansır (2026-11-02: +%6).
+func BenchmarkIDBatchToHost(b *testing.B) {
+	g := gpuBackend()
+	const n = 32 * 1024
+	f := make([]float32, n)
+	ids := make([]int64, n)
+	for i := range ids {
+		ids[i] = int64(i % 40000)
+		f[i] = float32(ids[i])
+	}
+	busy := tensor.NewOn(gpuDevice, f, n)
+	for _, c := range []struct {
+		ad   string
+		read func() func()
+	}{
+		{"float32", func() func() { x := tensor.NewOn(gpuDevice, f, 32, 1024); return func() { x.Data() } }},
+		{"int64", func() func() {
+			x := tensor.Int64sOn(gpuDevice, tensor.Int64, ids, 32, 1024)
+			return func() { x.Int64s() }
+		}},
+	} {
+		b.Run(c.ad, func(b *testing.B) {
+			before := syncCount(g)
+			for i := 0; i < b.N; i++ {
+				busy.Exp()
+				read := c.read()
+				read()
+				read()
+			}
+			b.ReportMetric(float64(syncCount(g)-before)/float64(b.N), "eşzamanlama/op")
+		})
+	}
+}

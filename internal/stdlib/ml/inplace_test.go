@@ -52,10 +52,10 @@ TR_print(b.TR_dtype, b.TR_tolist, h.TR_dtype, h.TR_tolist, m.TR_tolist, o.TR_tol
 		{"TR_var t = TR_zeros([2, 1])\nt *= TR_ones([2, 3])", messages.H6958},
 		{"TR_var t = TR_zeros([2])\nt[0] += TR_ones([2])", messages.H6958},
 	})
-	if err := checkInPlaceDType(tensor.Int8); !messages.Has(err, messages.H6957) {
+	if err := checkInPlaceDType(tensor.Q8); !messages.Has(err, messages.H6957) {
 		t.Fatalf("nicemlenmiş hedef: %v", err)
 	}
-	if err := checkInPlaceDType(tensor.Int4); !messages.Has(err, messages.H6957) {
+	if err := checkInPlaceDType(tensor.Q4); !messages.Has(err, messages.H6957) {
 		t.Fatalf("4 bitlik hedef: %v", err)
 	}
 }
@@ -85,4 +85,92 @@ TR_print(w.TR_tolist, havuz.TR_tolist)`)
 	if want := "[0.5, 3.0] [1.0, 6.0]\n"; out != want {
 		t.Fatalf("türevsiz kipte bileşik atama %q, beklenen %q", out, want)
 	}
+}
+
+// Kural (15.6d, 15.6a, 15.2): cinsli hedefe (TR_Int, TR_Bool, float64) atama ve bileşik atama
+// hedefin cinsinde ve hassasiyetinde yapılır: sayı hedefin cinsinden olmalı ve hassasiyetine
+// sığmalı; aynı cinsin başka hassasiyetinden tensör sığma denetimiyle çevrilir; başka cinsten
+// değer H6966. Bileşik atama hedefin cinsini değiştirmez (TR_Int'te `/=` H6966); H6957 yalnız
+// nicemlenmiş hedeftedir. 27979f33'te çalışan `t[1] = 5` (t tam sayı değişmezli) çalışır.
+func TestTypedAssign(t *testing.T) {
+	out := mustRun(t, `TR_var t = TR_Tensor([0, 0, 0])
+t[1] = 5
+t += 1
+TR_var u8 = TR_Tensor([1, 2, 3], TR_dtype: "uint8")
+u8[0..2] = TR_Tensor([7, 8])
+u8[2] = TR_Tensor([9])[0]
+u8 *= 2
+TR_var i32 = TR_Tensor([1, 2], TR_dtype: "int32")
+i32 += TR_Tensor([10, 20])
+i32[1] -= 2
+TR_var d = TR_Tensor([1.0, 2.0], TR_dtype: "float64")
+d[0] = 5
+d[1] = TR_Tensor(0.25)
+d -= 0.5
+d /= 2
+TR_var m = TR_Tensor([TR_true, TR_false])
+m[1] = TR_true
+TR_var f = TR_Tensor([1.0, 2.0])
+f[0] = TR_Tensor(3.0, TR_dtype: "float64")
+TR_print(t.TR_tolist, t.TR_dtype, u8.TR_tolist, u8.TR_dtype, i32.TR_tolist, i32.TR_dtype)
+TR_print(d.TR_tolist, d.TR_dtype, m.TR_tolist, f.TR_tolist, f.TR_dtype)`)
+	want := "[1, 6, 1] int64 [14, 16, 18] uint8 [11, 20] int32\n[2.25, -0.125] float64 [true, true] [3.0, 2.0] float32\n"
+	if out != want {
+		t.Fatalf("cinsli atama %q, beklenen %q", out, want)
+	}
+	setup := "TR_var t = TR_Tensor([1, 2])\nTR_var u8 = TR_Tensor([1, 2], TR_dtype: \"uint8\")\nTR_var m = TR_Tensor([TR_true, TR_false])\n"
+	expectCodes(t, []codeCase{
+		{setup + "u8[0] = 300", messages.H6964},
+		{setup + "u8[0..2] = TR_Tensor([7, 300])", messages.H6964},
+		{setup + "u8 += 300", messages.H6964},
+		{setup + "u8 *= TR_Tensor([1, 200], TR_dtype: \"uint8\")", messages.H6961},
+		{setup + "t[0] = 2.5", messages.H6968},
+		{setup + "t[0] = TR_true", messages.H6968},
+		{setup + "m[0] = 1", messages.H6968},
+		{setup + "t[0..2] = m", messages.H6966},
+		{setup + "TR_var f = TR_Tensor([1.0, 2.0])\nf[0] = t[0]", messages.H6966},
+		{setup + "t /= 2", messages.H6966},
+		{setup + "m += m", messages.H6967},
+	})
+}
+
+// Kural (15.6d): bileşik atamaların hepsi (//=, %= ve bit işleçleri dahil) tensörü yerinde
+// değiştirir; tensörü paylaşan ad (p = t) değişikliği her cinste görür. İndeksli hedefte de.
+func TestTypedCompoundAssignAliases(t *testing.T) {
+	cases := []struct{ setup, op, rhs, want string }{
+		{"TR_Tensor([5, 7])", "+", "1", "[6, 8]"},
+		{"TR_Tensor([5, 7])", "-", "1", "[4, 6]"},
+		{"TR_Tensor([5, 7])", "*", "2", "[10, 14]"},
+		{"TR_Tensor([5, 7])", "**", "2", "[25, 49]"},
+		{"TR_Tensor([5, 7])", "//", "2", "[2, 3]"},
+		{"TR_Tensor([5, 7])", "%", "3", "[2, 1]"},
+		{"TR_Tensor([5, 7])", "&", "6", "[4, 6]"},
+		{"TR_Tensor([5, 7])", "|", "8", "[13, 15]"},
+		{"TR_Tensor([5, 7])", "^", "1", "[4, 6]"},
+		{"TR_Tensor([5, 7])", "<<", "1", "[10, 14]"},
+		{"TR_Tensor([5, 7])", ">>", "1", "[2, 3]"},
+		{"TR_Tensor([5, 7], TR_dtype: \"int8\")", "//", "2", "[2, 3]"},
+		{"TR_Tensor([5, 7], TR_dtype: \"int8\")", "<<", "1", "[10, 14]"},
+		{"TR_Tensor([TR_true, TR_false])", "&", "TR_Tensor([TR_true, TR_true])", "[true, false]"},
+		{"TR_Tensor([TR_true, TR_false])", "|", "TR_Tensor([TR_false, TR_true])", "[true, true]"},
+		{"TR_Tensor([TR_true, TR_false])", "^", "TR_Tensor([TR_true, TR_true])", "[false, true]"},
+		{"TR_Tensor([5.5, 7.0], TR_dtype: \"float64\")", "+", "1", "[6.5, 8.0]"},
+		{"TR_Tensor([5.5, 7.0], TR_dtype: \"float64\")", "/", "2", "[2.75, 3.5]"},
+		{"TR_Tensor([5.5, 7.0], TR_dtype: \"float64\")", "%", "2", "[1.5, 1.0]"},
+	}
+	for _, c := range cases {
+		program := "TR_var t = " + c.setup + "\nTR_var p = t\nt " + c.op + "= " + c.rhs +
+			"\nTR_var u = " + c.setup + "\nTR_var q = u\nu[0..2] " + c.op + "= " + c.rhs +
+			"\nTR_print(p.TR_tolist, q.TR_tolist, p.TR_dtype == " + c.setup + ".TR_dtype)"
+		if out := mustRun(t, program); out != c.want+" "+c.want+" true\n" {
+			t.Errorf("%s %s= %s: %q, beklenen p ve q %s", c.setup, c.op, c.rhs, out, c.want)
+		}
+	}
+	// Cinsin tanımlamadığı işleç yerinde yolda da işlecin hatasını verir.
+	expectCodes(t, []codeCase{
+		{"TR_var f = TR_Tensor([5.0, 7.0])\nf //= 2.0", messages.H6703},
+		{"TR_var f = TR_Tensor([5.0, 7.0])\nf[0..1] %= 2.0", messages.H6703},
+		{"TR_var f = TR_Tensor([5.0, 7.0])\nf &= 1.0", messages.H6703},
+		{"TR_var m = TR_Tensor([TR_true])\nm <<= 1", messages.H6968},
+	})
 }

@@ -82,15 +82,6 @@ func parseDTypeValue(fn any, v interp.Value) (tensor.DType, error) {
 	return parseDTypeName(fn, s.Val)
 }
 
-// namedDType tür: adlı argümanını okur; verilmemişse varsayilan döner.
-func namedDType(fn any, named map[string]interp.Value, defaultVal tensor.DType) (tensor.DType, error) {
-	v, ok := bind.GetNamed(named, nameDType)
-	if !ok {
-		return defaultVal, nil
-	}
-	return parseDTypeValue(fn, v)
-}
-
 // castTo t'yi dt türüne çevirir (aynıysa kendisi). Türev izlenen t'de dönüşüm çizgeye
 // kaydedilir.
 func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
@@ -100,8 +91,10 @@ func castTo(t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
 	return safe(func() *tensor.Tensor { return t.Cast(dt) })
 }
 
-// toDType .türe("bf16") metodudur: tensörün verilen türe dönüştürülmüş kopyası. Türevlenebilir:
-// gradyan kaynak tensöre (kendi türünde) geri akar. Tür zaten aynıysa tensörün kendisi döner.
+// toDType .TR_to_dtype("bf16") metodudur (15.3): cinsin içinde hassasiyeti değiştirilmiş kopya.
+// Hesap ondalıkları arasında türevlenebilir: gradyan kaynak tensöre (kendi türünde) geri akar.
+// Tam sayıda dar hassasiyete geçişte değer sığmalıdır. Hassasiyet zaten aynıysa tensörün kendisi
+// döner. Başka cinsin hassasiyeti hatadır: cins dönüşümü tip çağrısıdır.
 func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {
 		return nil, messages.New(messages.H6806, codes.NameRef(memberToDType), len(args))
@@ -109,14 +102,18 @@ func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[strin
 	if err := bind.CheckNamed(codes.NameRef(memberToDType).Called(), named); err != nil {
 		return nil, err
 	}
-	dt, err := parseDTypeValue(codes.NameRef(memberToDType), args[0])
+	fn := codes.NameRef(memberToDType)
+	dt, name, err := anyDType(fn, args[0])
 	if err != nil {
+		return nil, err
+	}
+	if err := kindChangeError(fn, d.t.DType(), dt, name); err != nil {
 		return nil, err
 	}
 	if dt == d.t.DType() {
 		return d, nil
 	}
-	r, err := castTo(d.t, dt)
+	r, err := convertKind(fn, d.t, dt)
 	if err != nil {
 		return nil, err
 	}
@@ -203,4 +200,143 @@ func highPrecision(m *interp.VM, t *tensor.Tensor) (*tensor.Tensor, error) {
 		return t, nil
 	}
 	return safe(func() *tensor.Tensor { return t.CastShared(tensor.Float32) })
+}
+
+// kindDTypeNames hesap ondalıkları dışındaki hassasiyetlerin adları (15.1); kurucuların TR_dtype:'ı
+// içindir. "int8" yalnız TR_Int'indir.
+var kindDTypeNames = map[string]tensor.DType{
+	"float64": tensor.Float64,
+	"int64":   tensor.Int64, "int32": tensor.Int32, "int16": tensor.Int16, "int8": tensor.Int8,
+	"uint32": tensor.UInt32, "uint16": tensor.UInt16, "uint8": tensor.UInt8,
+	"bool": tensor.Bool,
+}
+
+// kindOf hassasiyetin öğe cinsi (TR_Float, TR_Int ya da TR_Bool'un kodu).
+func kindOf(dt tensor.DType) codes.Code {
+	switch dt.Elem() {
+	case tensor.ElemInt:
+		return codes.TypeInt
+	case tensor.ElemBool:
+		return codes.TypeBool
+	}
+	return codes.TypeFloat
+}
+
+// constructorDType kurucunun TR_dtype: adlı argümanını okur (15.2): her cinsin hassasiyet adı
+// geçer; cinsi kind olmayan hassasiyet hatadır, ileti tip argümanını önerir. Verilmemişse
+// kind'ın varsayılan hassasiyeti döner.
+func constructorDType(fn codes.Ref, named map[string]interp.Value, kind codes.Code) (tensor.DType, error) {
+	v, given := bind.GetNamed(named, nameDType)
+	if !given {
+		return kindDTypes[kind], nil
+	}
+	dt, name, err := anyDType(fn, v)
+	if err != nil {
+		return 0, err
+	}
+	if k := kindOf(dt); k != kind {
+		return 0, messages.New(messages.H6976, fn, name, codes.NameRef(k), codes.NameRef(kind),
+			kindHint(fn.Code, kind, k), codes.Spelling(fn.Code), codes.Spelling(k))
+	}
+	return dt, nil
+}
+
+// kindHint H6976'nın önerisini seçer: rastgele_normal yalnız ondalık kurar ("float_only",
+// şablonun other dalı); TR_Tensor'ün verisi tip argümanıyla yalnız tam sayıdan ondalığa geçer,
+// öbür cins değişimi verinin kendisini ister ("data"); öbür kurucularda tip argümanı yeter.
+func kindHint(fn, from, to codes.Code) string {
+	switch {
+	case fn == codes.FnRandn:
+		return "float_only"
+	case fn == codes.TypeTensor && !(from == codes.TypeInt && to == codes.TypeFloat):
+		return "data"
+	}
+	return "type_arg"
+}
+
+// anyDType her cinsin hassasiyet adını (metin) çözer; bilinmeyen adda en yakın adı önerir.
+func anyDType(fn any, v interp.Value) (tensor.DType, string, error) {
+	s, isString := v.(*interp.StringVal)
+	if !isString {
+		return 0, "", messages.New(messages.H6803, fn, typeName(v))
+	}
+	if dt, ok := kindDTypeNames[s.Val]; ok {
+		return dt, s.Val, nil
+	}
+	dt, err := parseDTypeName(fn, s.Val)
+	return dt, s.Val, err
+}
+
+// kindChangeError cins dönüşümünün hatası (15.3): mantık ile sayı arasında dönüşüm yoktur (H6978);
+// öbür cinsler arası dönüşüm tip çağrısıdır (H6977, .TR_to_dtype'ta). Aynı cinste nil.
+func kindChangeError(fn any, from, to tensor.DType, name string) error {
+	fk, tk := kindOf(from), kindOf(to)
+	switch {
+	case fk == tk:
+		return nil
+	case fk == codes.TypeBool || tk == codes.TypeBool:
+		return messages.New(messages.H6978, fn, codes.NameRef(fk), codes.NameRef(tk))
+	}
+	return messages.New(messages.H6977, fn, name, codes.NameRef(tk), codes.NameRef(fk), codes.Spelling(tk))
+}
+
+// convertKind t'yi dt'ye çevirir (aynıysa kendisi): ondalıklar arasında yuvarlar (türevlenebilir),
+// cinsler arasında kesin çevirir; sığmayan ya da NaN öğe hatadır (15.2, 15.3).
+func convertKind(fn any, t *tensor.Tensor, dt tensor.DType) (*tensor.Tensor, error) {
+	if t.DType() == dt {
+		return t, nil
+	}
+	if t.DType().IsFloat() && dt.IsFloat() {
+		return castTo(t, dt)
+	}
+	dev := t.Device()
+	onHost := dev != tensor.CPU && dt.Elem() == tensor.ElemInt
+	var r *tensor.Tensor
+	var f *tensor.ElemFault
+	if _, err := safe(func() *tensor.Tensor {
+		src := t
+		if onHost {
+			// Tam sayıya dönüşüm GPU'da sonucu bekleyen işlemdir (15.6: sığma ve NaN denetimi);
+			// bu dilimde denetim ve dönüşüm konakta yapılır, sonuç cihaza döner.
+			src = t.To(tensor.CPU)
+		}
+		r, f = tensor.Convert(src, dt)
+		if onHost {
+			if f == nil {
+				host := r
+				r = host.To(dev)
+				host.Drop()
+			}
+			src.Drop()
+		}
+		return r
+	}); err != nil {
+		return nil, err
+	}
+	if f != nil {
+		return nil, faultError(fn, "", f)
+	}
+	return r, nil
+}
+
+// gradKindError türev izlenen tensörün ondalık olmamasının hatasıdır (15.2: türev yalnız TR_Float'ta).
+func gradKindError(fn any, named map[string]interp.Value, dt tensor.DType) error {
+	if dt.Elem() == tensor.ElemFloat {
+		return nil
+	}
+	if grad, given := bind.GetNamed(named, nameRequiresGrad); given && grad.IsTruthy() {
+		return messages.New(messages.H6973, fn, codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue), dt.Name())
+	}
+	return nil
+}
+
+// withoutNamed named'ın a'sız kopyası.
+func withoutNamed(named map[string]interp.Value, a bind.Named) map[string]interp.Value {
+	out := make(map[string]interp.Value, len(named))
+	for k, v := range named {
+		if _, is := bind.GetNamed(map[string]interp.Value{k: v}, a); !is {
+			out[k] = v
+		}
+	}
+	return out
 }

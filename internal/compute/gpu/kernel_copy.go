@@ -80,6 +80,10 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 	}
 	checkSize(n)
 	hd, kd := g.storageOf(target.S), g.storageOf(source.S)
+	if !add && (hd.dtype.IsTyped() || kd.dtype.IsTyped()) {
+		g.copyTyped(target, source, hd, kd)
+		return
+	}
 	kind := tensor.ImplicitAccumulate
 	if !add {
 		kind = tensor.ImplicitKindOf(hd.dtype, source, target.IsContiguous())
