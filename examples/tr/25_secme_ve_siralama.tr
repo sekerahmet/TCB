@@ -9,7 +9,7 @@ TR_var x = TR_Tensor([-1.0, 2.0, -3.0, 4.0])
 
 # koşullu(koşul, a, b): koşulun doğru olduğu yerde a'yı, diğerlerinde b'yi seçer (karşılaştırma 0/1 maskesi verir).
 TR_print(TR_where(x > 0, x, 0).TR_tolist) # negatifleri sıfırlar (relu gibi)
-TR_print(TR_where(x > 0, 1.0, -1.0).TR_tolist) # işaret
+TR_print(TR_where(x > 0, 1, -1).TR_tolist) # işaret
 
 # sınırla tensörde de eleman bazlıdır.
 TR_print(TR_clamp(x, TR_min: -2, TR_max: 3).TR_tolist)
