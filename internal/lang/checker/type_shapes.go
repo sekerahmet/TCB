@@ -57,10 +57,11 @@ func splitTypes(text string) []string {
 	return append(out, strings.TrimSpace(text[start:]))
 }
 
-// containerType yazılan ya da çıkarılan bir kabın tipidir: TR_List'in bir, TR_Dict'in iki tip
-// argümanı varsa onlarla (TR_List[TR_Int]), yoksa asıl adıyla. Öbür adların argümanı tipe girmez.
+// containerType yazılan ya da çıkarılan bir kabın tipidir: TR_List'in ve TR_Task'ın (10.1) bir,
+// TR_Dict'in iki tip argümanı varsa onlarla (TR_List[TR_Int]), yoksa asıl adıyla. Öbür adların
+// argümanı tipe girmez.
 func containerType(name string, args []string) string {
-	if name == typeList && len(args) == 1 || name == typeDict && len(args) == 2 {
+	if (name == typeList || name == typeTask) && len(args) == 1 || name == typeDict && len(args) == 2 {
 		return name + "[" + strings.Join(args, ", ") + "]"
 	}
 	return name
@@ -131,6 +132,9 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 	if bad, _ := c.unopened(expected, actual, value); bad != nil {
 		return false // açılmamış isteğe bağlı değer (3.5, optional_values.go)
 	}
+	if jsonLiteral(expected, value) {
+		return true
+	}
 	return compat{isStruct: c.knownStruct, literal: literalValue(value)}.types(expected, actual)
 }
 
@@ -139,6 +143,19 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 func literalValue(value ast.Expression) bool {
 	switch value.(type) {
 	case *ast.ListLiteral, *ast.DictLiteral, *ast.TupleExpression:
+		return true
+	}
+	return false
+}
+
+// jsonLiteral beklenen tipi TR_JSON (ya da TR_JSON?) olan yere verilen değer bir liste ya da sözlük
+// değişmezi mi: değişmez JSON değeri olarak kurulur (3.7a "Kurmak"), öğeleri de.
+func jsonLiteral(expected string, value ast.Expression) bool {
+	if s := shapeOf(expected); s.elems != nil || normalizeTypeName(s.base) != typeJSON {
+		return false
+	}
+	switch value.(type) {
+	case *ast.ListLiteral, *ast.DictLiteral:
 		return true
 	}
 	return false

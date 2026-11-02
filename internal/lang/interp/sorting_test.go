@@ -15,8 +15,9 @@ func TestSortOrderIsTheSameWithAndWithoutAKey(t *testing.T) {
 		{"TR_print([0.0, TR_nan, -0.0, 1, -1.5].TR_sort((x) => x))", "[-1.5, -0.0, 0.0, 1, nan]"},
 		{"TR_print([(0.0, 2.0), (-0.0, 3.0)].TR_sort())", "[(-0.0, 3.0), (0.0, 2.0)]"},
 		{"TR_print([(0.0, 2.0), (-0.0, 3.0)].TR_sort((d) => d))", "[(-0.0, 3.0), (0.0, 2.0)]"},
-		{"TR_print([2.0, 1, 2, 0.5].TR_sort())", "[0.5, 1, 2.0, 2]"},
-		{"TR_print([2.0, 1, 2, 0.5].TR_sort((x) => x))", "[0.5, 1, 2.0, 2]"},
+		// Öğelerden biri değişken: değişmez yalnız sayı yazımı olsaydı tam sayılar ondalık olurdu (3.6).
+		{"TR_var iki = 2\nTR_print([2.0, 1, iki, 0.5].TR_sort())", "[0.5, 1, 2.0, 2]"},
+		{"TR_var iki = 2\nTR_print([2.0, 1, iki, 0.5].TR_sort((x) => x))", "[0.5, 1, 2.0, 2]"},
 	} {
 		out, _, err := runTROut(t, c.source+"\n")
 		if err != nil || strings.TrimSpace(out) != c.want {

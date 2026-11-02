@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 569 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 45 tip, 127 fonksiyon, 11 sabit, 61 metot, 101 özellik, 137 adlı argüman.
+Toplam 574 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 64 metot, 101 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -1081,6 +1081,23 @@ tr: yapı Nokta { x: Tam, y: Tam }; yazdır(Tip(Nokta) == YapıTanımı)
 #### `TR_SwiGLU` (`TR_type_SwiGLU`, `SwiGLU`)
 
 
+
+#### `TR_Task` (`TR_type_Task`, `Görev`)
+
+Eşzamanlı başlatılan bir görevin değeridir: eşzamanlı f(x) onu verir. bekle() görevin sonucunu verir ya da hatasını fırlatır; bitti_mi() görevin bitip bitmediğini söyler.
+
+```tr
+TR_var g: TR_Task[TR_Int] = TR_async TR_sum([1, 2]); TR_print(g.TR_wait())
+```
+
+Görünümü:
+
+```text
+en: var g: Task[Int] = async sum([1, 2]); print(g.wait())
+tr: değişken g: Görev[Tam] = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
+```
+
+Üyeleri: `.TR_cancel(...)`, `.TR_done(...)`, `.TR_wait(...)` · İlişkili: `TR_async`, `.TR_wait(...)`, `.TR_done(...)`
 
 #### `TR_Tensor` (`TR_type_Tensor`, `Tensör`)
 
@@ -3078,19 +3095,19 @@ tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].
 
 #### `TR_wait_all(...)` (`TR_fn_wait_all`, `bekle_hepsi`)
 
-    bekle_hepsi() → Mantık
+    bekle_hepsi([Liste]) → Liste | Mantık
 
-Başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır.
+Argümansız başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır. Bir görev listesiyle o görevleri bekler ve sonuçlarını verilen sırayla liste olarak verir; hatalı görev varsa verilen sıradaki ilk görevin hatasını fırlatır, öbürlerinin hataları onun bastırılanlarına eklenir.
 
 ```tr
-TR_var s = 0; TR_for i TR_in 1..=3 { TR_async { s += i } }; TR_wait_all(); TR_print(s)
+TR_var s = 0; TR_for i TR_in 1..=3 { TR_async { s += i } }; TR_wait_all(); TR_print(s, TR_wait_all([TR_async TR_sum([1, 2]), TR_async TR_sum([3])]))
 ```
 
 Görünümü:
 
 ```text
-en: var s = 0; for i in 1..=3 { async { s += i } }; wait_all(); print(s)
-tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s)
+en: var s = 0; for i in 1..=3 { async { s += i } }; wait_all(); print(s, wait_all([async sum([1, 2]), async sum([3])]))
+tr: değişken s = 0; döngü i içinde 1..=3 { eşzamanlı { s += i } }; bekle_hepsi(); yazdır(s, bekle_hepsi([eşzamanlı toplam([1, 2]), eşzamanlı toplam([3])]))
 ```
 
 İlişkili: `TR_async`, `TR_sleep(...)`
@@ -4243,6 +4260,23 @@ Kullananlar: `TR_sample(...)` · İlişkili: `TR_top_k:`
 
 
 
+#### `TR_timeout:` (`TR_arg_timeout`, `süre_sınırı`)
+
+bekle(süre_sınırı: saniye): görev o sürede bitmezse iptal edilir, durması beklenir ve zaman aşımı hatası fırlar.
+
+```tr
+TR_var g = TR_async { TR_sleep(10) }; TR_print(TR_error_code { g.TR_wait(TR_timeout: 0.01) }, g.TR_done())
+```
+
+Görünümü:
+
+```text
+en: var g = async { sleep(10) }; print(error_code { g.wait(timeout: 0.01) }, g.done())
+tr: değişken g = eşzamanlı { uyu(10) }; yazdır(hata_kodu { g.bekle(süre_sınırı: 0.01) }, g.bitti_mi())
+```
+
+Kullananlar: `.TR_wait(...)` · İlişkili: `.TR_wait(...)`, `.TR_cancel(...)`
+
 #### `TR_token_id:` (`TR_arg_token_id`, `kimlik`)
 
 
@@ -4469,6 +4503,25 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_cancel(...)` (`TR_mem_cancel`, `iptal_et`)
+
+    Görev.iptal_et() → YokTipi
+
+Görevi iptal eder: görev bir sonraki güvenli noktada durur, başlattığı görevler de iptal edilir, ertelenen işleri çalışır. Görevi bekleyen iptal hatası alır. Bitmiş görevde etkisi yoktur.
+
+```tr
+TR_var g = TR_async { TR_sleep(10) }; g.TR_cancel(); TR_print(TR_error_code { g.TR_wait() }, g.TR_done())
+```
+
+Görünümü:
+
+```text
+en: var g = async { sleep(10) }; g.cancel(); print(error_code { g.wait() }, g.done())
+tr: değişken g = eşzamanlı { uyu(10) }; g.iptal_et(); yazdır(hata_kodu { g.bekle() }, g.bitti_mi())
+```
+
+İlişkili: `.TR_wait(...)`, `.TR_done(...)`
+
 #### `.TR_capacity` (`TR_mem_capacity`, `kapasite`)
 
 
@@ -4608,6 +4661,25 @@ tr: yazdır(Tensör([1, 2]).cihaz)
 #### `.TR_device_step(...)` (`TR_mem_device_step`, `cihaz_adımı`)
 
 
+
+#### `.TR_done(...)` (`TR_mem_done`, `bitti_mi`)
+
+    Görev.bitti_mi() → Mantık
+
+Görev bittiyse (sonuçla, hatayla ya da iptalle) doğru verir; beklemez.
+
+```tr
+TR_var g = TR_async TR_sum([1, 2]); g.TR_wait(); TR_print(g.TR_done())
+```
+
+Görünümü:
+
+```text
+en: var g = async sum([1, 2]); g.wait(); print(g.done())
+tr: değişken g = eşzamanlı toplam([1, 2]); g.bekle(); yazdır(g.bitti_mi())
+```
+
+İlişkili: `.TR_wait(...)`
 
 #### `.TR_down_proj` (`TR_mem_down_proj`, `aşağı`)
 
@@ -5977,6 +6049,25 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu
 ```
 
 İlişkili: `.TR_token_id(...)`
+
+#### `.TR_wait(...)` (`TR_mem_wait`, `bekle`)
+
+    Görev.bekle(süre_sınırı: Tam | Ondalık = yok) → Herhangi
+
+Görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı fırlatır. Beklerken yorumlayıcı kilidini bırakır.
+
+```tr
+TR_var g = TR_async TR_sum([1, 2]); TR_print(g.TR_wait())
+```
+
+Görünümü:
+
+```text
+en: var g = async sum([1, 2]); print(g.wait())
+tr: değişken g = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
+```
+
+İlişkili: `.TR_done(...)`, `TR_wait_all(...)`
 
 #### `.TR_weight` (`TR_mem_weight`, `ağırlık`)
 

@@ -1,4 +1,3 @@
 # Dil tanımının henüz uygulanmamış kurallarını gösteren kod blokları (TestDocTRCodeBlocks): belge:satır.
 # Kuralı uygulayan katman kendi satırlarını siler; liste yalnızca küçülür (-update).
-docs/spec/03_tipler.md:71
 docs/spec/15_tensorler.md:481

@@ -1,8 +1,6 @@
 package interp
 
 import (
-	"fmt"
-
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -81,7 +79,7 @@ func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode
 
 // varStatement 'değişken'/'sabit' tanımını derler.
 func (c *compiler) varStatement(k *compilerScope, s *ast.VarStatement) statementCode {
-	value := c.expression(k, s.Value)
+	value := placeOf(s.Type).code(c.expression(k, s.Value), s.Line())
 	definition := identifier(k, s.Name.Value)
 	constant := s.IsConst
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
@@ -113,6 +111,9 @@ func (c *compiler) multiVarStatement(k *compilerScope, s *ast.MultiVarStatement)
 // assignStatement atamayı (bileşik atama dahil) derler.
 func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) statementCode {
 	value := c.expression(k, s.Value)
+	if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == "=" {
+		value = k.placeOfName(id.Value).code(value, s.Line()) // tipi yazılı ada atama (3.13)
+	}
 	dest := c.assignTarget(k, s.Target, opCode(string(s.Operator)), s.Line())
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
@@ -386,7 +387,7 @@ func (c *compiler) structDef(k *compilerScope, s *ast.StructStatement) statement
 	}
 	methodList := make([]methodCode, 0, len(s.Methods))
 	for name, fnLit := range s.Methods {
-		methodList = append(methodList, methodCode{name: name, lit: fnLit, codeVal: c.function(k, fnLit.Parameters, fnLit.Body, true)})
+		methodList = append(methodList, methodCode{name: name, lit: fnLit, codeVal: c.methodFunction(k, fnLit)})
 	}
 	// Alan varsayılanları yapının tanımlandığı kapsamda derlenir ve o ortamda
 	// değerlendirilir (modüldeki bir yapı modülün adlarını görür).
@@ -427,48 +428,11 @@ func (c *compiler) fieldDefaults(k *compilerScope, fields []ast.StructField) []e
 	return codeList
 }
 
-// concurrent 'eşzamanlı' bloğunu derler: gövde, kendi kök ortamında ayrı bir görevde çalışır.
+// concurrent 'eşzamanlı' deyimini derler: görev başlar, değeri atılır (10.1).
 func (c *compiler) concurrent(k *compilerScope, s *ast.AsyncStatement) statementCode {
-	sub := subScope(k)
-	var bodyBlock *blockCode
-	var call exprCode
-	if s.Body != nil {
-		sub.predefine(s.Body.Statements)
-		bodyBlock = c.statements(sub, s.Body.Statements)
-	} else if s.Call != nil {
-		ast.ExprDefinedNames(s.Call, sub.define)
-		call = c.expression(sub, s.Call)
-	}
-	info := sub.info
-	line := s.Line()
+	start := c.taskStart(k, s, false)
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
-		v.wg.Add(1)
-		asyncEnv := newEnv(env, info)
-		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
-		task := v.NewTaskVM()
-		go func(e *Environment) {
-			defer v.wg.Done()
-			task.acquireGIL()
-			defer task.releaseGIL()
-			defer func() {
-				if r := recover(); r != nil && !IsInterrupt(r) {
-					task.reportAsyncError(line, messages.Internal(fmt.Sprint(r)))
-				}
-			}()
-			var err error
-			defer func() {
-				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
-				// Durdurma ya da TR_exit yüzünden bitmek bir görev hatası değildir.
-				if err = taskError(addDeferError(err, task.runDefers(e))); err != nil {
-					task.reportAsyncError(line, err)
-				}
-			}()
-			if bodyBlock != nil {
-				_, _, err = bodyBlock.run(task, e)
-			} else if call != nil {
-				_, err = call(task, e)
-			}
-		}(asyncEnv)
+		start(v, env)
 		return True, signalNone, nil
 	}
 }

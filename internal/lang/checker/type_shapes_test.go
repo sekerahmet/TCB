@@ -1,6 +1,10 @@
 package checker
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
 
 // Kural (3.13, yanlış alarm vermez): iki kullanıcı tipi ancak ikisi de bilinen yapıysa ve ayrıysa
 // uyumsuzdur; arayüz ya da bilinmeyen bir tip başka bir kullanıcı tipini karşılayabilir. Çekirdek
@@ -79,4 +83,22 @@ func TestContainerCompatibility(t *testing.T) {
 			t.Errorf("types(%q, %q) = %v, beklenen %v", tt.expected, tt.actual, got, tt.want)
 		}
 	}
+}
+
+// Kural (3.7a "Kurmak"): beklenen tipi TR_JSON olan yere verilen liste ve sözlük değişmezi, iç içe
+// değişmezleriyle, JSON değeri olarak kurulur: bildirimde, varsayılanda, parametrede, dönüşte, alanda
+// ve yeniden atamada. Değişmez olmayan kap ve tek değer (TR_JSON(x) ile çevrilir) atanamaz.
+func TestJSONLiteralFitsAJSONPlace(t *testing.T) {
+	for _, source := range []string{
+		`TR_var g: TR_JSON = {"a": 1, "l": [1, "x", TR_none], "o": {"k": TR_true}}`,
+		`TR_var g: TR_JSON? = []`,
+		"TR_func f(j: TR_JSON = [1, \"a\"]) {\n}\nf({\"a\": 1})",
+		"TR_func f() -> TR_JSON {\n    TR_return [1, 2.5]\n}",
+		"TR_struct P {\n    j: TR_JSON\n}\nTR_var p = P(j: {\"a\": 1})\np.j = [\"b\"]",
+		"TR_var g: TR_JSON = {\"a\": 1}\ng = {\"b\": [2]}",
+	} {
+		noErrors(t, source)
+	}
+	singleError(t, "TR_var l = [1]\nTR_var g: TR_JSON = l", messages.H1001, 2)
+	singleError(t, "TR_var g: TR_JSON = 1", messages.H1001, 1)
 }

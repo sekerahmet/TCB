@@ -76,6 +76,9 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 	if t := c.jsonCallType(e, k); t != "" {
 		return t // TR_JSON'u veren yerleşik (json_values.go)
 	}
+	if t := c.waitAllType(e, k); t != "" {
+		return t // görev listesini bekleyen TR_wait_all (task_types.go)
+	}
 	_, ignored := ReturnsIgnored[k]
 	if _, unverified := ReturnsNotVerified[k]; unverified || ignored || k == codes.None {
 		return ""

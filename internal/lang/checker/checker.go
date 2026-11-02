@@ -430,6 +430,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		return c.inferIf(e, expr != c.statementExpr)
 	case *ast.MatchExpression:
 		return c.inferMatch(e, expr != c.statementExpr)
+	case *ast.AsyncExpression:
+		return c.taskType(e.Statement) // 10.1 (task_types.go)
 	}
 	return typeAny
 }

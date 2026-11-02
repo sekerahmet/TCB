@@ -33,6 +33,16 @@ type funcCode struct {
 	// source fonksiyonun tanımlandığı dosyadır (nil: ana program); çağıranınkinden farklıysa
 	// çağrı o dosyanın bağlamında yapılır (kaynaktaCagir).
 	source *Source
+	// typed tipi TR_Float ya da TR_JSON yazılmış parametrelerdir: değerleri bağlandıktan sonra
+	// yazılı tipe göre kurulur; ret dönüşün yeridir (typed_places.go).
+	typed []typedParam
+	ret   place
+}
+
+// typedParam tipi yazılmış bir parametrenin yuvası ve yeridir.
+type typedParam struct {
+	slot  int
+	place place
 }
 
 // poolLimit bir fonksiyon için saklanan boş ortam sayısının üst sınırıdır.
@@ -90,6 +100,10 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 			fk.simple = false
 		}
 		seenSet[fk.param[i]] = true
+		if pl := placeOf(p.Type); pl != placeAny {
+			sub.recordPlace(p.Name, pl)
+			fk.typed = append(fk.typed, typedParam{fk.param[i], pl})
+		}
 	}
 	// Varsayılanlar fonksiyonun kendi kapsamında derlenir ve çağrının ortamında, soldan
 	// sağa hesaplanır: önceki parametreleri görür; parametrenin kendisi ve sonrakiler henüz
@@ -127,6 +141,13 @@ func (c *compiler) function(k *compilerScope, params []ast.Param, body *ast.Bloc
 		}
 	}
 	fk.info.local = fk.pooled // kapanışsız gövdenin ortamı yereldir (ownership.go)
+	return fk
+}
+
+// methodFunction bir metodu derler.
+func (c *compiler) methodFunction(k *compilerScope, fnLit *ast.FunctionLiteral) *funcCode {
+	fk := c.function(k, fnLit.Parameters, fnLit.Body, true)
+	fk.ret = placeOf(fnLit.ReturnType)
 	return fk
 }
 

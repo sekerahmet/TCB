@@ -77,6 +77,11 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 
 	case *ast.ListLiteral:
 		elements := c.expressions(k, e.Elements)
+		if decimalList(e.Elements) {
+			for i := range elements {
+				elements[i] = placeFloat.code(elements[i], 0) // [1, 2.5] (3.6)
+			}
+		}
 		return func(v *VM, env *Environment) (Value, error) {
 			elems := make([]Value, 0, len(elements))
 			for _, el := range elements {
@@ -131,11 +136,16 @@ func (c *compiler) expression(k *compilerScope, expr ast.Expression) exprCode {
 	case *ast.MatchExpression:
 		return nestedStatements(noSignal(c.matchExpr(k, e)))
 
+	case *ast.AsyncExpression:
+		start := c.taskStart(k, e.Statement, true)
+		return func(v *VM, env *Environment) (Value, error) { return start(v, env), nil }
+
 	case *ast.TryExpression:
 		return nestedStatements(noSignal(c.tryCatchStatement(k, e.Statement)))
 
 	case *ast.FunctionLiteral:
 		fk := c.function(k, e.Parameters, e.Body, false)
+		fk.ret = placeOf(e.ReturnType)
 		fk.blockValue = e.Token.Type == lexer.TokLBrace
 		var definition func(*Environment, Value, bool)
 		if e.Name != "" {

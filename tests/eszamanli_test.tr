@@ -11,6 +11,22 @@ TR_test "10.1 eşzamanlı blok ve çağrı biçimi görev başlatır" {
     TR_assert(sonuçlar.TR_contains("blok") TR_and sonuçlar.TR_contains("çağrı"))
 }
 
+TR_test "10.1 eşzamanlı bir ifadedir ve görev değeri verir; bekle sonucu verir ya da hatayı fırlatır" {
+    TR_func kare(x: TR_Int) -> TR_Int {
+        TR_sleep(0.01)
+        TR_return x * x
+    }
+    TR_var g: TR_Task[TR_Int] = TR_async kare(3)
+    TR_assert_equal(9, g.TR_wait())
+    TR_assert(g.TR_done())
+    TR_var b = TR_async { kare(2) }
+    TR_assert_equal(TR_none, b.TR_wait())
+    TR_assert_equal("Task", TR_String(g))
+    TR_func böl(x: TR_Int) -> TR_Int { TR_return 10 // x }
+    TR_var h = TR_async böl(5)
+    TR_assert_equal(2, h.TR_wait())
+}
+
 TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
     TR_var bitenler = []
     TR_func iş(x: TR_Int) {
@@ -22,8 +38,125 @@ TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
     TR_assert_equal(3, bitenler.TR_length)
 }
 
-TR_test "10.5 bekle_hepsi() argüman almaz; görev listesi biçimi görev değeriyle (10.1) gelir" {
-    TR_assert_equal("H2014", TR_error_code { TR_wait_all([1, 2]) })
+TR_test "10.5 bekle_hepsi(görevler) sonuçları verilen sırayla verir; bitme sırası değiştirmez" {
+    TR_func iş(x: TR_Int, süre: TR_Float) -> TR_Int {
+        TR_sleep(süre)
+        TR_return x * 10
+    }
+    TR_var görevler = [TR_async iş(1, 0.03), TR_async iş(2, 0.0), TR_async iş(3, 0.01)]
+    TR_assert_equal([10, 20, 30], TR_wait_all(görevler))
+    TR_assert_equal([], TR_wait_all([]))
+    TR_assert_equal("H2919", TR_error_code { TR_wait_all([1, 2]) })
+}
+
+TR_test "10.5 bekle_hepsi(görevler) verilen sıradaki ilk hatayı fırlatır, öbürleri bastırılanlarına eklenir; iki kez verilen görevin hatası bir kez sayılır" {
+    TR_func hata(m: TR_String, süre: TR_Float) -> TR_Int {
+        TR_sleep(süre)
+        TR_throw m
+    }
+    TR_var görevler = [TR_async hata("ikinci", 0.03), TR_async hata("üçüncü", 0.0)]
+    TR_try {
+        TR_wait_all(görevler)
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("ikinci", TR_String(e))
+        TR_assert_equal(["üçüncü"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
+    TR_var a = görevler[0]
+    TR_try {
+        TR_wait_all([a, a])
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("ikinci", TR_String(e))
+        TR_assert_equal(0, e.TR_suppressed.TR_length)
+    }
+}
+
+TR_test "10.6 tutulan görevin hatası bekleyende fırlar; beklenip yakalanan testi düşürmez" {
+    TR_func böl(x: TR_Int) -> TR_Int { TR_return 10 // x }
+    TR_var g = TR_async böl(0)
+    TR_sleep(0.01)
+    TR_assert_equal("H2470", TR_error_code { g.TR_wait() })
+    TR_var e = TR_async böl(0)
+    TR_defer { TR_assert_equal("H2470", TR_error_code { e.TR_wait() }) }
+}
+
+TR_test "10.7 bekle(süre_sınırı) süresinde biteni verir; süre dolunca görevi iptal eder ve zaman aşımı hatası fırlatır" {
+    TR_func kare(x: TR_Int) -> TR_Int {
+        TR_sleep(0.01)
+        TR_return x * x
+    }
+    TR_assert_equal(9, (TR_async kare(3)).TR_wait(TR_timeout: 1))
+    TR_var iz = []
+    TR_var u = TR_async {
+        TR_defer { iz.TR_append("ertele") }
+        TR_sleep(10)
+    }
+    TR_assert_equal("H2921", TR_error_code { u.TR_wait(TR_timeout: 0.02) })
+    TR_assert(u.TR_done())
+    TR_assert_equal(["ertele"], iz)
+    TR_assert_equal("H2920", TR_error_code { u.TR_wait() })
+}
+
+TR_test "10.7 süre dolunca görevin kendi hatası ve ertelenen işin hatası zaman aşımı hatasının bastırılanlarına girer" {
+    TR_var k = TR_async {
+        TR_defer { TR_sleep(0.3) }
+        TR_throw "kendi hatası"
+    }
+    TR_try {
+        k.TR_wait(TR_timeout: 0.05)
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("H2921", e.TR_code)
+        TR_assert_equal(["kendi hatası"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
+    TR_var d = TR_async {
+        TR_defer { TR_throw "ertele hatası" }
+        TR_sleep(10)
+    }
+    TR_try {
+        d.TR_wait(TR_timeout: 0.02)
+        TR_assert(TR_false)
+    } TR_catch e {
+        TR_assert_equal("H2921", e.TR_code)
+        TR_assert_equal(["ertele hatası"], e.TR_suppressed.TR_map((s) => TR_String(s)))
+    }
+}
+
+TR_test "10.9 iptal görevi güvenli noktada durdurur, içeride yakalanmaz, alt görevlere geçer" {
+    TR_var iz = []
+    TR_var g = TR_async {
+        TR_defer { iz.TR_append("ertele") }
+        TR_try { TR_sleep(10) } TR_catch e { iz.TR_append("yakalandı") }
+        iz.TR_append("sürdü")
+    }
+    TR_sleep(0.01)
+    g.TR_cancel()
+    TR_assert_equal("H2920", TR_error_code { g.TR_wait() })
+    TR_assert(g.TR_done())
+    TR_assert_equal(["ertele"], iz)
+    TR_var döngü = TR_async {
+        TR_var i = 0
+        TR_for TR_true { i += 1 }
+    }
+    TR_sleep(0.01)
+    döngü.TR_cancel()
+    TR_assert_equal("H2920", TR_error_code { döngü.TR_wait() })
+    TR_var alt: TR_List[TR_Task[TR_NoneType]] = []
+    TR_var ana = TR_async {
+        alt.TR_append(TR_async { TR_sleep(10) })
+        TR_defer { iz.TR_append("ana: alt bitti mi \(alt[0].TR_done())") }
+        TR_sleep(10)
+    }
+    TR_sleep(0.01)
+    ana.TR_cancel()
+    TR_assert_equal("H2920", TR_error_code { ana.TR_wait() })
+    TR_assert_equal("H2920", TR_error_code { alt[0].TR_wait() })
+    TR_assert_equal(["ertele", "ana: alt bitti mi true"], iz)
+    TR_var biten = TR_async { TR_sleep(0) }
+    biten.TR_wait()
+    biten.TR_cancel()
+    TR_assert_equal(TR_none, biten.TR_wait())
 }
 
 TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {

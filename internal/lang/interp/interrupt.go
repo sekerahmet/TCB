@@ -183,11 +183,11 @@ func (v *VM) InterruptNow() {
 	v.checkInterrupt()
 }
 
-// checkInterrupt kilit devrinden sonra çağrılır: durdurma uygulandıysa ve bu görev henüz
-// çözülmeye başlamadıysa yığını çözen paniği atar. Çözülme sırasında ve temizlik işlerinin
-// (ertele blokları) içinde yeniden kesilmez.
+// checkInterrupt kilit devrinden sonra çağrılır: durdurma uygulandıysa ya da bu görev iptal
+// edildiyse (10.9) ve görev henüz çözülmeye başlamadıysa yığını çözen paniği atar. Çözülme
+// sırasında ve temizlik işlerinin (ertele blokları) içinde yeniden kesilmez.
 func (v *VM) checkInterrupt() {
-	if v.interrupted.Load() && !v.interruptThrown && v.cleanupDepth == 0 {
+	if (v.interrupted.Load() || v.task != nil && v.task.cancelled.Load()) && !v.interruptThrown && v.cleanupDepth == 0 {
 		v.interruptThrown = true
 		panic(interruptPanic{})
 	}
@@ -209,6 +209,23 @@ func (v *VM) runDefers(e *Environment) error {
 	return e.RunDefers()
 }
 
+// keepUnwindError yığın panikle çözülürken çalışan ertelenen işin hatasını saklar (9.4).
+func (v *VM) keepUnwindError(err error) {
+	if err != nil {
+		v.unwindErrors = append(v.unwindErrors, err)
+	}
+}
+
+// takeUnwindErrors çözülürken saklanan hataları err'e ertelenen işlerin hataları olarak ekler
+// (çalışma sırasıyla) ve listeyi boşaltır: durdurma ya da iptal sürer, hata yazılır (9.4).
+func (v *VM) takeUnwindErrors(err error) error {
+	for _, u := range v.unwindErrors {
+		err = addDeferError(err, u)
+	}
+	v.unwindErrors = nil
+	return err
+}
+
 // stopWaitError, üstlenilmiş bir programda istek geldikten sonra yeni bir şey bekleyen
 // yerleşiğin hatasıdır (1.6). Temizlik işlerinde (ertele blokları, bu hatayı yakalayan yakala
 // gövdesi) ve istek gelmediyse nil.
@@ -225,16 +242,20 @@ func IsStopRequestedError(err error) bool { return messages.Has(err, messages.H2
 
 // wakeChannels bu görevin beklemesini bitirecek olayların kanallarıdır: applied uygulanan bir
 // durdurma, requested üstlenilmiş programa gelen istek (yalnız yeni bir şey bekleyen yerleşik
-// için). Temizlik işinde ve yığın çözülürken ikisi de nil'dir: bekleme kesilmez.
-func (v *VM) wakeChannels(forNew bool) (applied, requested <-chan struct{}) {
+// için), cancelled görevin iptali (10.9; TR_handle_stop onu etkilemez). Temizlik işinde ve yığın
+// çözülürken hepsi nil'dir: bekleme kesilmez.
+func (v *VM) wakeChannels(forNew bool) (applied, requested, cancelled <-chan struct{}) {
 	if v.cleanupDepth > 0 || v.interruptThrown {
-		return nil, nil
+		return nil, nil, nil
 	}
 	applied = v.interruptChan
 	if forNew && v.stopHandled.Load() {
 		requested = v.stopChan
 	}
-	return applied, requested
+	if v.task != nil {
+		cancelled = v.task.cancelCh
+	}
+	return applied, requested, cancelled
 }
 
 // awaitReady, ready kapanana kadar yorumlayıcı kilidi bırakılarak bekler. Uygulanan bir
@@ -247,12 +268,13 @@ func (v *VM) awaitReady(fn any, ready <-chan struct{}, forNew bool) error {
 			return err
 		}
 	}
-	applied, requested := v.wakeChannels(forNew)
+	applied, requested, cancelled := v.wakeChannels(forNew)
 	v.Blocking(func() {
 		select {
 		case <-ready:
 		case <-applied:
 		case <-requested:
+		case <-cancelled:
 		}
 	})
 	select {

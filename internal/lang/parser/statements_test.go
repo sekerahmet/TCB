@@ -244,6 +244,26 @@ func TestDeferIsWrittenOnlyWithABlock(t *testing.T) {
 	}
 }
 
+// Kural (10.1): TR_async f(x) ve TR_async { ... } bir ifadedir ve görev değeri verir; deyim olarak
+// yazılınca değer atılır (AsyncStatement), ifade yerinde AsyncExpression aynı başlatmayı sarar.
+func TestAsyncIsAnExpression(t *testing.T) {
+	prog := New(codedLexer("TR_var g = TR_async f(3)\nTR_var b = TR_async { f(1) }\nTR_async f(2)")).ParseProgram()
+	if len(prog.Statements) != 3 {
+		t.Fatalf("üç deyim bekleniyordu: %d", len(prog.Statements))
+	}
+	call, ok := prog.Statements[0].(*ast.VarStatement).Value.(*ast.AsyncExpression)
+	if !ok || call.Statement.Call == nil || call.Statement.Body != nil {
+		t.Errorf("çağrı biçimi bir AsyncExpression olmalı: %#v", prog.Statements[0].(*ast.VarStatement).Value)
+	}
+	block, ok := prog.Statements[1].(*ast.VarStatement).Value.(*ast.AsyncExpression)
+	if !ok || block.Statement.Body == nil || block.Statement.Call != nil {
+		t.Errorf("blok biçimi bir AsyncExpression olmalı: %#v", prog.Statements[1].(*ast.VarStatement).Value)
+	}
+	if _, ok := prog.Statements[2].(*ast.AsyncStatement); !ok {
+		t.Errorf("deyim biçimi AsyncStatement kalmalı: %#v", prog.Statements[2])
+	}
+}
+
 // Kural (6.3): birden çok değerin dönüş tipi parantez içinde yazılır, TR_return virgülle hepsini döndürür.
 func TestMultipleResultsParse(t *testing.T) {
 	prog := New(codedLexer("TR_func f() -> (TR_Int, TR_String) { TR_return 1, \"a\" }")).ParseProgram()

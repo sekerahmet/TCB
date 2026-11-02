@@ -65,6 +65,9 @@ func (k *compilerScope) predefine(stmts []ast.Statement) {
 	for _, st := range stmts {
 		ast.StatementDefinedNames(st, k.define)
 		k.statementShadows(st)
+		if vs, ok := st.(*ast.VarStatement); ok {
+			k.recordPlace(vs.Name.Value, placeOf(vs.Type))
+		}
 		if es, ok := st.(*ast.ExpressionStatement); ok && k.info != nil {
 			if fl, ok := es.Expression.(*ast.FunctionLiteral); ok && fl.Name != "" {
 				if k.info.funcs == nil {
@@ -208,7 +211,15 @@ func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
 // çalışır, hataları yutulmaz (9.1, 9.2, 9.4).
 func (b *blockCode) runScoped(v *VM, env *Environment) (Value, flowSignal, error) {
 	env.IsFuncRoot = true
+	returned := false
+	defer func() {
+		// Yığın panikle çözülürken de (durdurma 1.5, iptal 10.9) bloğun ertelenenleri çalışır.
+		if !returned {
+			v.keepUnwindError(v.runDefers(env))
+		}
+	}()
 	val, sig, err := b.runList(v, env)
+	returned = true
 	if derr := v.runDefers(env); derr != nil {
 		return nil, signalNone, addDeferError(err, derr)
 	}

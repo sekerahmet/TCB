@@ -339,6 +339,26 @@ TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_assert_equal("H2654", TR_error_code { TR_JSON(aralıklı) })
 }
 
+TR_test "3.7a beklenen tipi TR_JSON olan değişmez JSON değeri olarak kurulur: değişken, parametre, dönüş, alan ve atama" {
+    TR_var g: TR_JSON = {"a": 1, "l": [1, "x", TR_none], "o": {"k": TR_true}}
+    TR_assert(g == TR_JSON({"a": 1, "l": [1, "x", TR_none], "o": {"k": TR_true}}))
+    TR_func anahtar_a(j: TR_JSON) -> TR_JSON { TR_return j["a"] }
+    TR_assert(anahtar_a({"a": 2}) == TR_JSON(2))
+    TR_func liste() -> TR_JSON { TR_return [1, 2.5] }
+    TR_assert(liste() == TR_JSON([1, 2.5]))
+    TR_struct Kayıt { veri: TR_JSON }
+    TR_var k = Kayıt(veri: {"a": 1})
+    TR_assert(k.veri == TR_JSON({"a": 1}))
+    k.veri = ["b"]
+    TR_assert(k.veri == TR_JSON(["b"]))
+    g = {"b": 2}
+    TR_assert(g == TR_JSON({"b": 2}))
+    # JSON'a giremeyen öğe (TR_inf) kurarken çalışma hatasıdır.
+    TR_assert_equal("H2653", TR_error_code { liste_inf() })
+}
+
+TR_func liste_inf() -> TR_JSON { TR_return [1, TR_inf] }
+
 TR_test "3.7a TR_JSON(x) listeyi ve sözlüğü kopyalayarak çevirir: sonra asıl kabı değiştirmek JSON değerini etkilemez" {
     TR_var l = [1, 2]
     TR_var d = {"a": l}
@@ -580,6 +600,31 @@ TR_test "3.13 açıklamasız değişkenin tipi ilk değerinden çıkar ve kalıc
     # '/' Tam / Tam'da tam bölünmezse Ondalık verir; denetleyici de böyle bilir
     TR_var oran: TR_Float = 7 / 2
     TR_assert_equal(3.5, oran)
+}
+
+TR_test "3.13 tam sayı yazımı TR_Float beklenen yerde ondalıktır: değişken, parametre, dönüş, alan ve atama" {
+    TR_var r: TR_Float = 1
+    TR_assert_equal(TR_Float, TR_Type(r))
+    TR_assert_equal("1.0", "\(r)")
+    TR_func yarım(x: TR_Float) -> TR_Float { TR_return x / 2 }
+    TR_assert_equal(TR_Float, TR_Type(yarım(2)))
+    TR_func dört() -> TR_Float { TR_return 4 }
+    TR_assert_equal("4.0", "\(dört())")
+    TR_struct Nokta { x: TR_Float }
+    TR_var n = Nokta(x: 5)
+    TR_assert_equal(TR_Float, TR_Type(n.x))
+    n.x = 6
+    r = 7
+    TR_assert_equal("6.0 7.0", "\(n.x) \(r)")
+    # Tipi yazılmamış değişken ilk değerinin tipindedir.
+    TR_var i = 1
+    TR_assert_equal(TR_Int, TR_Type(i))
+}
+
+TR_test "3.6 değişmezde bir ondalık varsa tam sayı yazımları ondalıktır" {
+    TR_assert_equal("[1.0, -2.0, 2.5]", "\([1, -2, 2.5])")
+    TR_assert_equal(TR_Float, TR_Type([1, 2.5][0]))
+    TR_assert_equal(TR_Int, TR_Type([1, 2][0]))
 }
 
 TR_test "3.14 tip adının tek yazımı vardır" {

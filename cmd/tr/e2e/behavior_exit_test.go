@@ -36,6 +36,9 @@ func TestExitCodes(t *testing.T) {
 		{"aralık dışı kod hatadır", trProgram("TR_exit(126)"), 1, nil, nil, []string{"0 ile 125", "(4)"}},
 		{"ertelenen işin hatası 1", trProgram(`TR_defer { TR_throw "ertele patladı" }`, "TR_exit(3)"), 1, nil, nil, []string{"ertele patladı"}},
 		{"görevin hatası 1", trProgram(`TR_async { TR_throw "görev patladı" }`, "TR_wait_all()"), 1, nil, nil, []string{"görev patladı"}},
+		// 10.6: değeri tutulan, beklenmeyen görevin hatası program biterken başladığı satırla yazılır.
+		{"beklenmeyen görevin hatası 1", trProgram(`TR_var g = TR_async { TR_throw "tutulan patladı" }`, `TR_print("sürdü")`), 1, []string{"sürdü"}, nil, []string{"satır 2'de başlatılan", "tutulan patladı"}},
+		{"yakalanan görev hatası 0", trProgram(`TR_var g = TR_async { TR_throw "yakalandı" }`, `TR_try { g.TR_wait() } TR_catch e { TR_print(e) }`), 0, []string{"yakalandı"}, nil, nil},
 		{"yakalanmayan hata 1", trProgram(`TR_throw "patladı"`), 1, nil, nil, []string{"patladı"}},
 		{"en dışta return sözdizimi hatası", trProgram("TR_return 1"), 1, nil, nil, []string{"(0)"}},
 	} {

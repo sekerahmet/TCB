@@ -169,12 +169,16 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(n), nil
 }
 
-// waitAllBuiltin bekle_hepsi() yerleşiğidir. Argüman almaz: görev listesi biçimi (10.5) görev değeriyle
-// (10.1) gelir; o gelene dek verilen argüman sessizce yok sayılmaz, hatadır.
+// waitAllBuiltin bekle_hepsi() yerleşiğidir: argümansız başlatılmış bütün görevleri bekler; bir görev
+// listesiyle o görevleri bekler ve sonuçlarını verilen sırayla verir (10.5, waitTasks).
 // Eşzamanlılık, Zaman ve Dosya İşlemleri
 func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	if len(args) > 0 {
-		return nil, messages.New(messages.H2014, CallName(codes.FnWaitAll), len(args))
+	switch len(args) {
+	case 0:
+	case 1:
+		return waitTasks(y, args[0]) // verilen görevler (10.5)
+	default:
+		return nil, ArgCountError(codes.FnWaitAll, Counts(0, 1), len(args))
 	}
 	// Görev kendini de beklediği için sonsuza dek kilitlenirdi (deadlock)
 	if y.asyncTask {
@@ -251,24 +255,33 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 1 {
 		return nil, ArgCountError(codes.FnSleep, 1, len(args), messages.Text(messages.H2309))
 	}
-	pick, ok := ToFloat(args[0])
-	if !ok {
+	if _, ok := ToFloat(args[0]); !ok {
 		return nil, ArgTypeError(codes.FnSleep, 1, args[0], numberTypes...)
 	}
-	// A negative, NaN or huge duration used to return at once without an error (the
-	// conversion to time.Duration overflows).
-	if math.IsNaN(pick) || pick < 0 {
-		return nil, messages.New(messages.H2433, CallPrefix(codes.FnSleep), Shown(args[0]))
-	}
-	if pick > maxSleepSeconds {
-		return nil, messages.New(messages.H2434, CallPrefix(codes.FnSleep), Shown(args[0]), strconv.FormatFloat(maxSleepSeconds, 'f', 0, 64))
+	d, err := seconds(codes.FnSleep, args[0])
+	if err != nil {
+		return nil, err
 	}
 	// Uygulanan bir durdurma beklemeyi bırakır; üstlenilmiş programda istek gelince bekleme
 	// "durdurma istendi" hatasıyla döner (1.5, 1.6).
-	if err := y.sleep(CallPrefix(codes.FnSleep), time.Duration(pick*float64(time.Second))); err != nil {
+	if err := y.sleep(CallPrefix(codes.FnSleep), d); err != nil {
 		return nil, err
 	}
 	return True, nil
+}
+
+// seconds is a duration given in seconds (uyu, bekle'nin süre_sınırı): a value that is not a number,
+// a negative or NaN one is H2433, one beyond maxSleepSeconds H2434. A negative, NaN or huge
+// duration used to return at once without an error (the conversion to time.Duration overflows).
+func seconds(fn codes.Code, v Value) (time.Duration, error) {
+	pick, ok := ToFloat(v)
+	if !ok || math.IsNaN(pick) || pick < 0 {
+		return 0, messages.New(messages.H2433, CallPrefix(fn), Shown(v))
+	}
+	if pick > maxSleepSeconds {
+		return 0, messages.New(messages.H2434, CallPrefix(fn), Shown(v), strconv.FormatFloat(maxSleepSeconds, 'f', 0, 64))
+	}
+	return time.Duration(pick * float64(time.Second)), nil
 }
 
 // sayiTipleri sayı bekleyen yerleşiklerin kabul ettiği tiplerdir; sayiTipi hata

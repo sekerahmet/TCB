@@ -90,6 +90,9 @@ type vmShared struct {
 	// test bitince testin hatası olurlar (10.1). nil iken görev hataları Err'e yazılır.
 	taskErrorsMu sync.Mutex
 	taskErrors   *[]error
+	// heldTasks are the tasks whose value was kept and that ended with an error; at the end of the
+	// program or the test the ones nobody waited for are written (10.6, reportUnwaitedTasks).
+	heldTasks []heldTaskError
 	// loaded yüklenmekte olan modüllerdir (mutlak yol → yükleme); başka bir görev aynı
 	// modülü isterse yüklemenin bitmesini bekler.
 	loaded map[string]*moduleLoading
@@ -208,6 +211,8 @@ type VM struct {
 
 	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
+	// task bu görünümün çalıştırdığı görevin değeridir (ana programda nil; task_value.go).
+	task *TaskVal
 	// exclusive boş değilse görev kilidi başka göreve devretmez (bkz. Exclusive); değeri kipi
 	// isteyen yerleşiğin kullanıcıya görünen adıdır.
 	exclusive any
@@ -239,6 +244,10 @@ type VM struct {
 	// orada beklemeler bırakılmaz ve durdurma hatası vermez (1.5, 1.6).
 	interruptThrown bool
 	cleanupDepth    int
+	// unwindErrors yığın panikle çözülürken (durdurma 1.5, iptal 10.9) çalışan ertelenen işlerin
+	// hatalarıdır: çerçevenin dönüş değeri atıldığından burada birikir, programın, testin ya da
+	// görevin hatasına eklenir (9.4; takeUnwindErrors).
+	unwindErrors []error
 
 	// owners çağrı derinliğine göre sahiplik çerçeveleri (0: üst düzey); yalnızca görevin
 	// kendi goroutine'i kullanır (ownership.go).
@@ -377,6 +386,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 		defer v.releaseGIL()
 	}
 	val, err := v.runMain(prog)
+	err = v.takeUnwindErrors(err) // durdurmada ertelenen işlerin hataları (9.4)
 	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli
 	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz.
 	if _, main := splitProgramErrors(err); main != nil && !v.interactive {
@@ -393,6 +403,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 	if derr := v.runDefers(v.GlobalEnv); derr != nil {
 		val, err = nil, addDeferError(err, derr)
 	}
+	v.reportUnwaitedTasks() // ertelenen iş görevi bekleyebilir: ondan sonra (10.6)
 	return val, err
 }
 

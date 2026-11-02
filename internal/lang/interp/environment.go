@@ -26,6 +26,8 @@ type scopeInfo struct {
 	// funcs bir TR_func tanımının bağladığı adlardır: bu yuvaya çözülen ad tanımın adıdır, çağrısı
 	// doğrudandır (6.9).
 	funcs map[string]bool
+	// places tipi açıkça yazılmış adların yeridir (typed_places.go); sonraki atama da ona göre kurulur.
+	places map[string]place
 }
 
 // slot adın indeksini döndürür; ad tabloda yoksa ekler.

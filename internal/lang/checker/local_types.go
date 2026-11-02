@@ -10,9 +10,11 @@ import (
 // (çekirdek tip, programın yapısı) değişkene verir; tanımadığı tip (tip parametresi T, arayüz, başka modülün tipi)
 // ve bilinemeyen değer TR_Any kalır: yarım çıkarım yanlış alarm vermez.
 
-// coreTypes denetleyicinin anlamını bildiği tip adlarıdır (3.11'in çekirdek tipleri, TR_NoneType hariç).
+// coreTypes denetleyicinin anlamını bildiği tip adlarıdır (3.11'in çekirdek tipleri, TR_NoneType hariç)
+// ve görev tipi (10.1). TR_Task tip açıklamasının yazımlarında (annotationTypes) yoktur: denetleyici
+// görevin tipini TR_async'ten bilir; açıklamada ve tip değerinde yeni bir kabul açılmaz (task_types.go).
 var coreTypes = func() map[string]bool {
-	m := map[string]bool{}
+	m := map[string]bool{typeTask: true}
 	for _, k := range annotationTypes {
 		if k != codes.TypeNoneType {
 			m[codes.Name(k)] = true
@@ -22,13 +24,17 @@ var coreTypes = func() map[string]bool {
 }()
 
 // knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi? Çekirdek tipler,
-// programın yapıları, öğe tipleri tanınan kaplar ve demetler.
+// programın yapıları, öğe tipleri tanınan kaplar ve demetler; blok görevi TR_Task[TR_NoneType] de
+// (10.1).
 func (c *Checker) knownType(t string) bool {
 	s := shapeOf(t)
 	if s.elems == nil && !coreTypes[s.base] && !c.knownStruct(s.base) {
 		return false
 	}
 	for _, a := range append(s.args, s.elems...) {
+		if a == typeNull && s.base == typeTask {
+			continue
+		}
 		if !c.knownType(a) {
 			return false
 		}

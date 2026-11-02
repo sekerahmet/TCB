@@ -233,15 +233,21 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	}
 	fnEnv.IsFuncRoot = true
 	v.callBoundary() // fonksiyon girişi bir deyim sınırıdır (10.2): özyinelemeli hesapta ve tek deyimli gövdede de
+	returned := false
 	if fk.hasDefer {
-		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır; hataları yutulmaz (9.4)
+		// 'ertele' blokları bir çöküşte de (Go panic) çalışmalıdır; hataları yutulmaz (9.4): panikte
+		// dönüş değeri atıldığından hata görünümde birikir (keepUnwindError).
 		defer func() {
 			if derr := v.runDefers(fnEnv); derr != nil {
+				if !returned {
+					v.keepUnwindError(derr)
+				}
 				val, err = nil, addDeferError(err, derr)
 			}
 		}()
 	}
 	if len(v.CallStack) >= maxCallDepth {
+		returned = true
 		return nil, messages.At(line, 0, messages.New(messages.H2422, maxCallDepth))
 	}
 	fnName := fn.Name
@@ -256,6 +262,7 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	depth := len(v.CallStack)
 	v.beginCall(depth)
 	val, err = v.functionBody(fn, fk, fnEnv, self, args, nargs, named)
+	returned = true
 	fnEnv.closeEnv()
 	if len(v.CallStack) > 0 {
 		v.CallStack = v.CallStack[:len(v.CallStack)-1]
@@ -302,6 +309,13 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 			fnEnv.store(slot, Null)
 		}
 	}
+	for _, p := range fk.typed {
+		val, err := p.place.bind(fnEnv.vals[p.slot])
+		if err != nil {
+			return nil, err
+		}
+		fnEnv.store(p.slot, val)
+	}
 	val, sig, err := fk.bodyBlock.run(v, fnEnv)
 	if err != nil {
 		return nil, err
@@ -309,5 +323,5 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	if sig != signalReturn && !fk.blockValue {
 		return Null, nil // örtük dönüş yoktur (6.2): TR_return'süz biten fonksiyon değer döndürmez
 	}
-	return val, nil
+	return fk.ret.bind(val)
 }

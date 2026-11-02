@@ -187,6 +187,25 @@ func TestTaskErrorShownInReport(t *testing.T) {
 	}
 }
 
+// 10.6: testte değeri tutulan ama beklenmeyen görevin hatası test biterken testin hatası olur;
+// beklenip yakalanan görevin hatası testi düşürmez.
+func TestUnwaitedTaskErrorShownInReport(t *testing.T) {
+	fpath := writeTR(t, t.TempDir(), "g_test.tr", `TR_test "beklenmeyen" {
+    TR_var g = TR_async { TR_var x = 1 / 0 }
+}
+
+TR_test "beklenen" {
+    TR_var g = TR_async { TR_var x = 1 / 0 }
+    TR_print(TR_error_code { g.TR_wait() })
+}
+`)
+	var out bytes.Buffer
+	s := RunFile(fpath, &out)
+	if s.Passed != 1 || s.Failed != 1 || !strings.Contains(out.String(), "✗ beklenmeyen") || !strings.Contains(out.String(), "Sıfıra bölme") {
+		t.Fatalf("beklenmeyen görevin hatası testin hatası olmalı, beklenen düşürmemeli: %+v\n%s", s, out.String())
+	}
+}
+
 // Testin 'ertele' blokları, programın üst düzeyinde olduğu gibi, testin başlattığı görevler
 // bittikten sonra çalışır.
 func TestDeferRunsAfterTasks(t *testing.T) {
