@@ -34,13 +34,7 @@ Karşılaştırma:
 - *Emsal:* Qwen3'ün şablonu modele çağrıyı `<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>` biçiminde yazdırır [rapordan: Qwen3 `tokenizer_config.json`]. llama.cpp `common/chat.cpp`'de aileye göre ayrıştırıcılar taşır [rapordan].
 - *Gerekçe:* araç kullanan ajan amacın işlerindendir (CLAUDE.md, "Uzaktaki modeli kullanmak") ve Jarvis bir araç ajanıdır. Cevap geçmişe geri konacağı için düşünce, çağrılar ve metin aynı fonksiyonda ayrılır: düşünceyi `TR_content`'te bırakmak 24.2'nin silme kuralını boşa çıkarırdı.
 - **Kimliklerden ayırmak** 16.2'nin girdide kapattığı kanalı çıktıda da kapatır: güvenilmeyen bir sayfadaki `<tool_call>` modele baytlarıyla girer; model onu yinelerse yine bayt üretir ve çözülmüş metinde gerçek etiketten ayırt edilemez (DENETİM istek 44, Ş1a; modelin yinelemesi ölçülmedi, ayırt edilemezlik 16.3'ten).
-- **Sınır boşlukları:** şablon düşünceyi `reasoning_content.strip('
-') + '
-</think>
-
-' + content.lstrip('
-')` diye, araç çağrısını içerik varsa önüne `'
-'` koyarak yazar [DENETİM açtı: Qwen3-8B `chat_template`]. Kırpma bu kadardır; gidiş-dönüş sözü bunun sınanmasıdır (Ş1b; şablondan çıkarım, test ölçer).
+- **Sınır boşlukları:** şablon düşünceyi `reasoning_content.strip('\n') + '\n</think>\n\n' + content.lstrip('\n')` diye, araç çağrısını içerik varsa önüne `'\n'` koyarak yazar [DENETİM açtı: Qwen3-8B `chat_template`]. Kırpma bu kadardır; gidiş-dönüş sözü bunun sınanmasıdır (Ş1b; şablondan çıkarım, test ölçer).
 - **Bozuk blok hata değil, demetin ikinci öğesidir:** hata fırlatılsaydı cevap geçmişe girmez, model kendi bozuk çağrısını görmeden "blok bozuk" iletisini alırdı (Ş1c). Bozuk metin içerikte kaldığı için geçmiş modelin yazdığıdır; demet açılmadan ileti olarak kullanılamadığı için hata da sessizce atlanamaz. JSON 13.8 ile okunur.
 
 ### 24.4

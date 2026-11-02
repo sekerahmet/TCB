@@ -24,7 +24,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 **16.3** `p.TR_decode(kimlikler)` tek bir diziyi metne çevirir: `TR_List[TR_Int]` ya da 1 boyutlu `TR_Tensor[TR_Int]`. Birden çok dizi `p.TR_batch_decode(diziler)` ile `TR_List[TR_String]` verir (13.8a).
 - Özel parçalar varsayılan olarak yazılmaz; `TR_special_tokens: TR_true` onları da yazar.
 - **Dağarcıkta olmayan kimlik çalışma hatasıdır;** ileti kimliği ve dağarcık boyunu söyler. Modelin çıktı boyu dağarcıktan büyükse (dolgu) ajan örneklemeyi dağarcığa sınırlar.
-- Bayt düzeyindeki bir parçalayıcıda dizi bir karakterin ortasında biterse yarım kalan bayt dizisi U+FFFD (`"�"`) olur, hata değildir: kesilen bir üretimin metni okunabilir kalır. Her yarım dizi bir U+FFFD'dir.
+- Bayt düzeyindeki bir parçalayıcıda dizi bir karakterin ortasında biterse yarım kalan bayt dizisi U+FFFD (yerine koyma karakteri) olur, hata değildir: kesilen bir üretimin metni okunabilir kalır. Her yarım dizi bir U+FFFD'dir.
 - *Test:* TR testi; dağarcık dışı kimliğin hatası uygulanınca TR testi.
 
 **16.3a** Akışlı çözme: `p.TR_decode_stream(TR_special_tokens: b)` bir `TR_DecodeStream` verir; `akış.TR_step(kimlik)` o kimlikle tamamlanan yeni metni verir.

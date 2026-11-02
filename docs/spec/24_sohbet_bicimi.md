@@ -44,14 +44,14 @@ TR_var iletiler = [TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba
 TR_var kimlikler = TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: transformers'ın `apply_chat_template(..., tokenize=True)` kimlikleriyle birebir altın testler; tek tur, çok tur ve düşüncenin silinmesi, `enable_thinking=False`, araç tanımı (ondalık sayılı bir şemayla), araç çağrısı ve ardışık araç sonuçları, boşlukla başlayıp biten içerik. Bilinen farklar ayrı testtir: içerikte etiket yazımı; içeriği `<tool_response>` ile sarılmış bir `TR_User` iletisi.
+- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: transformers'ın `apply_chat_template(..., tokenize=True)` kimlikleriyle birebir altın testler; tek tur, çok tur ve düşüncenin silinmesi, `enable_thinking=False`, araç tanımı (ondalık sayılı, denetim karakterli ve tırnaklı açıklamalı bir şemayla), araç çağrısı ve ardışık araç sonuçları, boşlukla başlayıp biten içerik. Bilinen farklar ayrı testtir: içerikte etiket yazımı; içeriği `<tool_response>` ile sarılmış bir `TR_User` iletisi.
 
 **24.3** `TR_qwen3_reply(p, kimlikler)` modelin ürettiği kimlikleri bir asistan iletisine çevirir ve `(ileti, hatalar)` demetini verir: `TR_ChatMessage(TR_role: TR_Role.TR_Assistant, ...)` ve `TR_List[TR_String]`.
 - **Kimliklerden ayrılır.** Bloklar etiket kimliklerinde (`<think>`, `</think>`, `<tool_call>`, `</tool_call>`; `p.TR_token_id`) bölünür, aradaki parçalar `p.TR_decode` ile çözülür (16.3). Baytlarıyla yazılmış bir etiket (güvenilmeyen bir metinden yinelenen `<tool_call>`) `TR_content`'te metin olarak kalır, çağrı olmaz.
 - Düşünce bloğu `TR_reasoning`, `<tool_call>` blokları sırayla `TR_tool_calls`, geri kalanı `TR_content` olur. Sınır boşlukları özgün şablonun koyduğu kadar kırpılır: düşüncenin iki ucundaki satır sonları, içeriğin başındaki satır sonları, araç çağrısından önceki tek satır sonu.
 - Her `<tool_call>` bloğunun içi `{"name": ..., "arguments": {...}}` biçiminde bir JSON nesnesidir; `TR_arguments` `arguments` nesnesinin modelin yazdığı JSON metnidir.
-- **Bozuk blok** (bozuk JSON, eksik alan, kapanmamış blok) çağrı olmaz: modelin yazdığı metin `TR_content`'te olduğu gibi kalır ve `hatalar`'a bloğun sırasını ve nedenini söyleyen bir ileti girer. Ajan önce `ileti`'yi geçmişe ekler, sonra her hatayı `TR_Tool` rolünde bir iletiyle modele verir: model kendi bozuk çağrısını ve hatasını birlikte görür. Demet açılmadan ileti olarak kullanılamaz (3.6a): hata gözden kaçmaz.
-- **Gidiş-dönüş sözü:** bozuk bloğu olmayan bir cevapta `TR_qwen3_format(p, geçmiş + [ileti], TR_add_generation_prompt: TR_false)`'ın sonu, modelin ürettiği kimlikleri ve ardından gelen `<|im_end|>`'i aynen içerir.
+- **Bozuk blok** (bozuk JSON, eksik alan, kapanmamış araç ya da düşünce bloğu; en uzun sınıra takılan bir üretim düşüncenin ortasında kesilebilir) çağrı ya da düşünce olmaz: modelin yazdığı metin `TR_content`'te olduğu gibi kalır ve `hatalar`'a bloğun sırasını ve nedenini söyleyen bir ileti girer. Ajan önce `ileti`'yi geçmişe ekler, sonra her hatayı `TR_Tool` rolünde bir iletiyle modele verir: model kendi bozuk çağrısını ve hatasını birlikte görür. Demet açılmadan ileti olarak kullanılamaz (3.6a); hataları modele vermek ajanın işidir, örnekteki gibi.
+- **Gidiş-dönüş sözü:** bozuk bloğu olmayan ve kanonik olan bir cevapta `TR_qwen3_format(p, geçmiş + [ileti], TR_add_generation_prompt: TR_false)`'ın sonu, modelin ürettiği kimlikleri ve ardından gelen `<|im_end|>`'i aynen içerir. Kanonik cevap, kimlikleri aradaki metnin `p.TR_encode`'uyla ve şablonun boşluklarıyla aynı olan cevaptır. Model aynı metni başka bir bölmeyle (gpt2'de `"\n\n"` için `[198, 198]`, kanonik `[628]`) ya da başka boşlukla üretirse geçmiş modelin metnini korur, kimliklerini değil.
 - Sesli bir döngüde düşünce ve araç blokları sese verilmez; akışta (16.3a) bunlar etiket kimliği gelince bilinir.
 
 ```tr
@@ -67,10 +67,12 @@ TR_for h TR_in hatalar {
 }
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: gidiş-dönüş sözü (içerikli, düşünceli, araç çağrılı cevap); baytla yazılmış `<tool_call>`; bozuk blok.
+- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: gidiş-dönüş sözü (içerikli, düşünceli, araç çağrılı cevap); kanonik olmayan bir cevap (söz dışında, metin korunur); baytla yazılmış `<tool_call>`; bozuk araç bloğu; kapanmamış düşünce.
 
 **24.4** Sohbet derlemi (ince ayar verisi) iletilere ayrıştırılıp biçim fonksiyonuyla kodlanır.
-- `TR_read_chat(metin)` yaygın JSON ileti listesini (`[{"role": "user", "content": ...}, ...]`; asistanda `reasoning_content` ve `tool_calls`) `TR_List[TR_ChatMessage]` olarak okur. Rol metni (`"system"`, `"user"`, `"assistant"`, `"tool"`) `TR_Role`'e çevrilir; başka rol hatadır, ileti geçerli rolleri söyler. Nesne olan `arguments` 24.2'nin JSON yazımıyla metne çevrilir.
+- `TR_read_chat(metin)` yaygın JSON biçimindeki bir konuşmayı `TR_List[TR_ChatMessage]` olarak okur. `metin` bir ileti listesidir (`[{"role": "user", "content": ...}, ...]`) ya da onu `"messages"` alanında taşıyan bir nesnedir. Asistanda `reasoning_content` ve `tool_calls` okunur.
+  - Rol metni (`"system"`, `"user"`, `"assistant"`, `"tool"`) `TR_Role`'e çevrilir; başka rol hatadır, ileti geçerli rolleri söyler.
+  - Araç çağrısı düz (`{"name", "arguments"}`) ya da OpenAI biçiminde iç içe (`{"type": "function", "function": {...}}`) olabilir. Metin olan `arguments` olduğu gibi kalır, nesne olan 24.2'nin JSON yazımıyla metne çevrilir.
 - Biçimi önceden uygulanmış, güvenilir bir düz metin derlemi kodlanacaksa `TR_special_tokens: TR_true` açıkça yazılır. `TR_false` etiket yazımlarını baytlara böler; model etiketin kimliği yerine baytlarını öğrenir (16.2).
 - Güvenilmeyen metin (kullanıcı girdisi, araç sonucu, web sayfası) yalnız ileti içeriği olarak girer.
 
