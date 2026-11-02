@@ -908,10 +908,14 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 ### 16.2
 
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** `TR_special_tokens: TR_false` metin içi özel parçayı da kapatır.
+- **Mevcut durum:** uygulanmadı. `TR_false` yalnız başa ve sona eklenenleri kapatıyor; metindeki `<|im_end|>` yine özel parçanın kimliği oluyor. `p.TR_encode`'un Go kodu `DontAddSpecial`'ı kuruyor, `DontParseSpecial`'ı kurmuyor [ölçüldü: 2026-11-02, main `705b721b`, gpt2 `tokenizer.json`'a eklenen `<|im_end|>` ile; kanıtlı: `internal/stdlib/tokenizer/tokenizer.go`, kodlama metodu]. Güvenlik açığı: sunulan bir modelde kullanıcı metni rol parçası üretebilir.
+- **Yapılacaklar (öncelikli; Jarvis'in sohbet biçiminin ön koşulu):**
+  - 16.2'nin kuralı ve TR testi: metindeki özel parça yazımı `TR_false` ile baytlarına kodlanır.
+  - Jarvis B kararı (dil tanımına sohbet biçimi bölümüyle girecek): `TR_false` özel olmayan eklenmiş parçaları da (`<think>`, `<tool_call>`) kapatır. Bugün TR de Hugging Face de onları her yolda eşliyor; HF'nin `split_special_tokens=True`'su yalnız özel olanları bölüyor [ölçüldü: 2026-11-02, tokenizers 0.23.2, transformers 5.17.0].
 
 ### 16.3
 
-- **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`].
+- **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`]. Yarım kalan UTF-8 dizisi hata vermeden U+FFFD oluyor; beş dizide Hugging Face ile bayt bayt aynı [ölçüldü: 2026-11-02, main `705b721b`]. 16.3 bunu yazmıyor; Jarvis B bölümleriyle girecek (akışlı çözme tamponlu).
 - **Yapılacaklar:** `.TR_decode` yalnız tek dizi, birden çok dizi `TR_batch_decode` (13.8a); dağarcık dışı kimliğin hatası ve TR testi.
 
 ### 16.3 (sürüyor)
@@ -1116,7 +1120,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ## 21. Dış programlar
 
-Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin denetimi bekliyor.
+Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin DENETİM istek 37'den, düzeltmeleri istek 38 ve 39'dan geçti; main'e girdi (2026-11-02).
 
 ### 21.1–21.8
 
@@ -1125,7 +1129,7 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıld
 
 ## 22. Bayt ve sayı
 
-Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin denetimi bekliyor.
+Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin DENETİM istek 37'den, düzeltmeleri istek 38 ve 39'dan geçti; main'e girdi (2026-11-02).
 
 ### 22.1–22.4
 
