@@ -30,7 +30,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
 - **Uygulama fazlar hâlinde ilerliyor.** Her fazın işleri dosya sahipliğine göre ayrılır, paralel kollar aynı dosyaya dokunmaz.
   - **Faz 0, bitti:** toplu ve sıralı işler (kancalar, ad göçleri, ortak sorgular).
   - **Faz 1, sürüyor** (kolların günlük durumu bu belgede tutulmaz; ana oturum depo dışında takip eder):
-    - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi. Üçüncü dilim birleşti (2026-11-02): açılmamış isteğe bağlı değer (3.5), demetin tipi (3.6a, 5.3) ve `TR_JSON` (3.7a) denetim hatası; `TR_JSON` tipli değişmez çalışma anını bekliyor (D1);
+    - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi. Üçüncü dilim birleşti (2026-11-02): açılmamış isteğe bağlı değer (3.5), demetin tipi (3.6a, 5.3) ve `TR_JSON` (3.7a) denetim hatası; `TR_JSON` tipli değişmezin denetimi D1'in çalışma anı diliminden sonra gelir;
     - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. İlk dilim birleşti; ikinci dilim hata değeri (`TR_Error`) ve 10.2'nin kilidi, üçüncü dilim görevler ve iptal;
     - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç;
     - **T1, tensör çekirdeği:** ilk dilim yeni cins istemeyen sessiz yanlışlar (safetensors yazımı, paylaşılan üretecin kaydı, −0.0 sırası, türevin yazma kuralları, yerinde bileşik atama); ikinci dilim cinsli tensör (`TR_Int`, `TR_Bool`, float64). İlk dilim birleşti (2026-11-02);
