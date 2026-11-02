@@ -87,7 +87,7 @@ func concatBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		}
 		if t.Elem() != ts[0].Elem() || t.DType().IsTyped() && t.DType() != ts[0].DType() {
 			// Aynı cins (15.7); cinsli tensörlerde hassasiyet birleşmesi bu dilimde yok.
-			return nil, messages.New(messages.H6966, fn, ts[0].DType().Name(), t.DType().Name())
+			return nil, messages.New(messages.H6966, fn, ts[0].DType().Name(), t.DType().Name(), "other")
 		}
 	}
 	r, err := safe(func() *tensor.Tensor { return tensor.Concat(ts, e) })

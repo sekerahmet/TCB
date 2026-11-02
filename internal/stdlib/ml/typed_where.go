@@ -116,7 +116,7 @@ func scalarBranch(ad any, dev tensor.Device, v, av, bv interp.Value) (*tensor.Te
 // birleşir (15.6c), ondalıkta float64 baskındır, hesap ondalıkları Where'de birleşir.
 func sameKindBranches(ad any, a, b *tensor.Tensor) (*tensor.Tensor, *tensor.Tensor, error) {
 	if a.Elem() != b.Elem() {
-		return nil, nil, messages.New(messages.H6966, ad, a.DType().Name(), b.DType().Name())
+		return nil, nil, messages.New(messages.H6966, ad, a.DType().Name(), b.DType().Name(), "other")
 	}
 	if a.DType() == b.DType() || a.DType().IsFloat() && b.DType().IsFloat() {
 		return a, b, nil

@@ -86,3 +86,50 @@ TR_print(w.TR_tolist, havuz.TR_tolist)`)
 		t.Fatalf("türevsiz kipte bileşik atama %q, beklenen %q", out, want)
 	}
 }
+
+// Kural (15.6d, 15.6a, 15.2): cinsli hedefe (TR_Int, TR_Bool, float64) atama ve bileşik atama
+// hedefin cinsinde ve hassasiyetinde yapılır: sayı hedefin cinsinden olmalı ve hassasiyetine
+// sığmalı; aynı cinsin başka hassasiyetinden tensör sığma denetimiyle çevrilir; başka cinsten
+// değer H6966. Bileşik atama hedefin cinsini değiştirmez (TR_Int'te `/=` H6966); H6957 yalnız
+// nicemlenmiş hedeftedir. 27979f33'te çalışan `t[1] = 5` (t tam sayı değişmezli) çalışır.
+func TestTypedAssign(t *testing.T) {
+	out := mustRun(t, `TR_var t = TR_Tensor([0, 0, 0])
+t[1] = 5
+t += 1
+TR_var u8 = TR_Tensor([1, 2, 3], TR_dtype: "uint8")
+u8[0..2] = TR_Tensor([7, 8])
+u8[2] = TR_Tensor([9])[0]
+u8 *= 2
+TR_var i32 = TR_Tensor([1, 2], TR_dtype: "int32")
+i32 += TR_Tensor([10, 20])
+i32[1] -= 2
+TR_var d = TR_Tensor([1.0, 2.0], TR_dtype: "float64")
+d[0] = 5
+d[1] = TR_Tensor(0.25)
+d -= 0.5
+d /= 2
+TR_var m = TR_Tensor([TR_true, TR_false])
+m[1] = TR_true
+TR_var f = TR_Tensor([1.0, 2.0])
+f[0] = TR_Tensor(3.0, TR_dtype: "float64")
+TR_print(t.TR_tolist, t.TR_dtype, u8.TR_tolist, u8.TR_dtype, i32.TR_tolist, i32.TR_dtype)
+TR_print(d.TR_tolist, d.TR_dtype, m.TR_tolist, f.TR_tolist, f.TR_dtype)`)
+	want := "[1, 6, 1] int64 [14, 16, 18] uint8 [11, 20] int32\n[2.25, -0.125] float64 [true, true] [3.0, 2.0] float32\n"
+	if out != want {
+		t.Fatalf("cinsli atama %q, beklenen %q", out, want)
+	}
+	setup := "TR_var t = TR_Tensor([1, 2])\nTR_var u8 = TR_Tensor([1, 2], TR_dtype: \"uint8\")\nTR_var m = TR_Tensor([TR_true, TR_false])\n"
+	expectCodes(t, []codeCase{
+		{setup + "u8[0] = 300", messages.H6964},
+		{setup + "u8[0..2] = TR_Tensor([7, 300])", messages.H6964},
+		{setup + "u8 += 300", messages.H6964},
+		{setup + "u8 *= TR_Tensor([1, 200], TR_dtype: \"uint8\")", messages.H6961},
+		{setup + "t[0] = 2.5", messages.H6968},
+		{setup + "t[0] = TR_true", messages.H6968},
+		{setup + "m[0] = 1", messages.H6968},
+		{setup + "t[0..2] = m", messages.H6966},
+		{setup + "TR_var f = TR_Tensor([1.0, 2.0])\nf[0] = t[0]", messages.H6966},
+		{setup + "t /= 2", messages.H6966},
+		{setup + "m += m", messages.H6967},
+	})
+}

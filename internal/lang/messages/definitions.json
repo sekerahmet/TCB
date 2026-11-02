@@ -1321,7 +1321,7 @@
 "H6963": { "param": ["fn", "index", "expr"] },
 "H6964": { "param": ["fn", "index", "value", "dtype", "kind"] },
 "H6965": { "param": ["fn", "index", "amount", "dtype", "max"] },
-"H6966": { "param": ["op", "left", "right"], "slots": {"where": "TR_fn_where"} },
+"H6966": { "param": ["op", "left", "right", "case"], "slots": {"where": "TR_fn_where"} },
 "H6967": { "param": ["op", "dtype", "case"], "slots": {"where": "TR_fn_where"} },
 "H6968": { "param": ["op", "dtype", "value", "kind"], "slots": {"Tensor": "TR_type_Tensor"} },
 "H6969": { "param": ["dtype", "device"], "slots": {"where": "TR_fn_where", "to_device": "TR_mem_to_device"} },

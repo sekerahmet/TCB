@@ -65,7 +65,7 @@ func equalBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	case !bOK:
 		return nil, messages.New(messages.H6979, fn, "tensor", typeName(args[1]))
 	case a.t.Elem() != b.t.Elem():
-		return nil, messages.New(messages.H6966, fn, a.t.DType().Name(), b.t.DType().Name())
+		return nil, messages.New(messages.H6966, fn, a.t.DType().Name(), b.t.DType().Name(), "other")
 	}
 	if !slices.Equal(a.t.Shape(), b.t.Shape()) {
 		return interp.False, nil

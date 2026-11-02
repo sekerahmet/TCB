@@ -71,6 +71,24 @@ func applyInPlace(dst *tensor.Tensor, op string, rhs interp.Value) error {
 		return messages.New(messages.H6958, op, tensor.ShapeText(rs), tensor.ShapeText(ds))
 	}
 	temps := []*tensor.Tensor{r}
+	// Ara sonuçlar bu atamanındır (döngüde bellek birikmesin); hedef ve sağ taraf bırakılmaz.
+	defer func() {
+		for _, t := range temps {
+			if t != dst && t != valueTensor(rhs) {
+				t.Drop()
+			}
+		}
+	}()
+	if r.DType() != dst.DType() && (r.DType().IsTyped() || dst.DType().IsTyped()) {
+		// Cinsli hedef: sonuç hedefin cinsinde kalmalı, hassasiyetine sığmalı (15.6d).
+		if r.Elem() != dst.Elem() {
+			return messages.New(messages.H6966, op+"=", dst.DType().Name(), r.DType().Name(), "compound")
+		}
+		if r, err = convertKind(op+"=", r, dst.DType()); err != nil {
+			return err
+		}
+		temps = append(temps, r)
+	}
 	_, err = safe(func() bool {
 		if r.DType() != dst.DType() {
 			tensor.NoGrad(func() { r = r.Cast(dst.DType()) })
@@ -79,20 +97,17 @@ func applyInPlace(dst *tensor.Tensor, op string, rhs interp.Value) error {
 		dst.CopyFrom(r)
 		return true
 	})
-	// Ara sonuçlar bu atamanındır (döngüde bellek birikmesin); hedef ve sağ taraf bırakılmaz.
-	for _, t := range temps {
-		if t != dst && t != valueTensor(rhs) {
-			t.Drop()
-		}
-	}
 	return err
 }
 
-// checkInPlaceDType bileşik atamanın hedefi float32, bf16 ya da fp16 olmalıdır; nicemlenmiş
-// tensöre (15.54) yerinde hesap yazılmaz.
+// checkInPlaceDType bileşik atamanın hedefi hesap ondalığı ya da cinsli (TR_Int, TR_Bool,
+// float64) bir tensördür; nicemlenmiş tensöre (15.54) yerinde hesap yazılmaz.
 func checkInPlaceDType(dt tensor.DType) error {
 	switch dt {
 	case tensor.Float32, tensor.BFloat16, tensor.Float16:
+		return nil
+	}
+	if dt.IsTyped() {
 		return nil
 	}
 	return messages.New(messages.H6957, dt.String())

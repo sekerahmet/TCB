@@ -380,7 +380,14 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	}
 	sh := target.Shape()
 	var src *tensor.Tensor
-	if f, ok := interp.ToFloat(value); ok {
+	_, isTensor := value.(*TensorValue)
+	_, isList := value.(*interp.ListVal)
+	if target.DType().IsTyped() && !isTensor && !isList {
+		// Cinsli hedefe sayı ya da mantık değeri: hedefin cinsinden, hassasiyetine sığarak (15.6a).
+		if src, err = view.typedOperandFor("=", "=", value, true); err != nil {
+			return err
+		}
+	} else if f, ok := interp.ToFloat(value); ok {
 		// Hedefin tüm elemanlarına yayınlanır; sayı cihazda doldurulur (konaktan yüklenmez:
 		// tekrar_oynat kaydında da çalışır).
 		if src, err = safe(func() *tensor.Tensor { return tensor.FullOn(target.Device(), float32(f)) }); err != nil {
@@ -399,12 +406,27 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 			return messages.New(messages.H6719, tensor.ShapeText(sh), tensor.ShapeText(ks))
 		}
 	}
+	if src, err = assignSource(target, src); err != nil {
+		return err
+	}
 	// Tek arka uç kopyası, tek sürüm artışı; hedef bitişik olmayan bir görünüm olabilir.
 	_, err = safe(func() bool {
 		target.CopyFrom(src)
 		return true
 	})
 	return err
+}
+
+// assignSource atanan tensörü hedefin hassasiyetine getirir (15.6d): cinsli hedefte ya da
+// kaynakta iki yan aynı cinsten olmalıdır; tam sayıda değer hedefin hassasiyetine sığmalıdır.
+func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
+	if src.DType() == target.DType() || !src.DType().IsTyped() && !target.DType().IsTyped() {
+		return src, nil
+	}
+	if src.Elem() != target.Elem() {
+		return nil, messages.New(messages.H6966, "=", target.DType().Name(), src.DType().Name(), "other")
+	}
+	return convertKind("=", src, target.DType())
 }
 
 // checkWrite yerinde yazmanın türev kurallarını (15.6d "Türev") uygular. dst yazılan tensördür
