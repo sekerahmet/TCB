@@ -285,7 +285,10 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     5. belgeler ve hafıza;
     6. yerli ses giriş ve çıkışı ile CPU nicemleme.
   - **Taban ölçümü (2026-11-01, Colab CPU 8 vCPU; yalnız iç oranlar, dizüstüne aktarılmaz):** hazır parçalarla (llama.cpp, whisper.cpp, Piper) Qwen3-4B Q4 üretim en çok ~11 dizgecik/s, ilk dizgecik ortanca 0,9 s; konuşmayı yazıya çevirmede base ve small kısa bağlamla 4 sn sese 0,4 ve 1,1 s, large-v3-turbo 13–29 s (CPU'da kullanılamaz); Piper ilk ses parçası 92 ms; tepe bellek dil modeli ~4,3 GB, whisper small ~0,75 GB [ölçüldü: Drive `olcumler/jarvis-taban`, `jarvis-ek`, `jarvis-whisper`]. Sıradaki: dizüstünde aynı ölçüm, sonra bitiş ölçütünün önerisi.
-  - Bitiş ölçütü ve sıra Ahmet'in kararı.
+  - **Yol (2026-11-02):**
+    - Dizgecik başına yükün ≈ %7'si yorumlayıcıda, ≈ %56'sı tensör yerleşiklerinin çağrısında [ölçüldü: DENETİM, 28 katmanlı küçük bir GPT, `tr profile --go-profile`]. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
+    - Dil tanımında bölümü olmayan işler Jarvis'in en uzun yolu: alt süreç, bayttan sayı (WAV, PCM), STFT ve Mel, sohbet biçimi; sonra ses üretiminin işleri (ters evrişim, ONNX okuma, fonemleştirme) ve gömme. Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar (Ahmet, 2026-11-02); uygulaması fazların sırasıyla gelir.
+  - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
 - **Uyarlamak:** hazır bir modeli ince ayarla kendi işine uyarlamak, uçtan uca. LoRA'yı dil yazabiliyor; ama PEFT düzeninde kayıt, ince ayar örneği ve bitiş ölçütü yok (arşiv).
 - **Herkes için:** biraz teknik bilgisi olan birinin kendi modelini kurup eğitmesi. Model Sihirbazı, süre ve maliyet tahmini, küçük model tarifleri (arşiv).
 - **Masaüstünde çalışan bir TR modeli** (Ahmet, 2026-11-01: "önce TR'yi bitirelim, tüm fazları; ondan sonra"): açık ağırlıklı, Türkçe ve İngilizce bilen bir model, bu dizüstünde en hızlı çalışacak biçimde; doğrulanmış TR programlarıyla ince ayar. Fazlardan sonra.
