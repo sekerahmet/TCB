@@ -81,6 +81,7 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 **Veriyi hazırlamak:**
 - **Görüntü, ses ve video çözme:** PNG, JPEG, WAV ve benzerlerinin baytlarından tensöre ve geri; büyük dosyayı akışla okumak; dosyanın değiştirilme zamanı. Görüntü ve ses modelleri bunu ister.
 - **Canlı ses giriş ve çıkışı:** mikrofon ve hoparlör. Jarvis ve robot ister; yukarıdaki madde yalnız dosyayı kapsar.
+- **Fonemleştirme:** metni sese çevirmeden önce seslerine (fonemlere) ayırmak. Metinden sese modelleri (Piper) ister.
 - **Veriyi toplamak ve temizlemek:** yinelenen veriyi ayıklamak, süzmek, metni dosyadan ve ağdan toplamak. Bunun için gerekenler:
   - **hash:** sha256 ve xxhash gibi hızlı hash'ler; yineleneni ayıklamak, veri kümesini doğrulamak, önbellek anahtarı;
   - **düzenli ifade:** metin temizleme ve parçalayıcının ön ayırması;
@@ -122,6 +123,7 @@ Her biri gelince 15'in yöntemiyle yazılır.
 
 - **"Paylaşmak"ın öbür biçimleri:**
   - ONNX ve GGUF'a dışa verme; GGUF okuma ve K-nicemleme ailesi (15.47a, 15.55);
+  - ONNX okuma (Piper ve Silero ağırlıkları);
   - PEFT bağdaştırıcı dosyasını okuma ve yazma (LoRA'nın hazır araçlarla paylaşılması).
 - **Başka hızlandırıcılar:** AMD (ROCm), Apple, gömülü NPU; cihaz adları 15.37'nin kuralıyla.
 - **Türev:**
@@ -134,7 +136,7 @@ Her biri gelince 15'in yöntemiyle yazılır.
   - doğrusal cebir ve FFT.
 - **Sinir ağı işlemleri:**
   - havuzlama ve büyütme, ters evrişim (15.23c);
-  - CTC ve STFT (ses modelleri);
+  - CTC, STFT ve Mel (ses modelleri);
   - BatchNorm;
   - uzman karışımı (MoE): yönlendirici ve koşullu uzman çarpımı. Qwen3-30B-A3B ve gpt-oss bunu ister.
 - **Kayıp ve başlatma:** BCE, karşıtsal kayıp, z-loss; Xavier ve Kaiming başlatma.
@@ -286,8 +288,11 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     6. yerli ses giriş ve çıkışı ile CPU nicemleme.
   - **Taban ölçümü (2026-11-01, Colab CPU 8 vCPU; yalnız iç oranlar, dizüstüne aktarılmaz):** hazır parçalarla (llama.cpp, whisper.cpp, Piper) Qwen3-4B Q4 üretim en çok ~11 dizgecik/s, ilk dizgecik ortanca 0,9 s; konuşmayı yazıya çevirmede base ve small kısa bağlamla 4 sn sese 0,4 ve 1,1 s, large-v3-turbo 13–29 s (CPU'da kullanılamaz); Piper ilk ses parçası 92 ms; tepe bellek dil modeli ~4,3 GB, whisper small ~0,75 GB [ölçüldü: Drive `olcumler/jarvis-taban`, `jarvis-ek`, `jarvis-whisper`]. Sıradaki: dizüstünde aynı ölçüm, sonra bitiş ölçütünün önerisi.
   - **Yol (2026-11-02):**
-    - Dizgecik başına yükün ≈ %7'si yorumlayıcıda, ≈ %56'sı tensör yerleşiklerinin çağrısında [ölçüldü: DENETİM, 28 katmanlı küçük bir GPT, `tr profile --go-profile`]. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
-    - Dil tanımında bölümü olmayan işler Jarvis'in en uzun yolu: alt süreç, bayttan sayı (WAV, PCM), STFT ve Mel, sohbet biçimi; sonra ses üretiminin işleri (ters evrişim, ONNX okuma, fonemleştirme) ve gömme. Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar (Ahmet, 2026-11-02); uygulaması fazların sırasıyla gelir.
+    - Küçük bir modelde dizgecik başına yükün ≈ %7'si yorumlayıcıda, ≈ %56'sı tensör yerleşiklerinde (çağrı, küçük tensör ayırma ve işlemin kendisi birlikte) [ölçüldü: DENETİM, tensör işi ≈ 0 olan 28 katmanlı küçük bir GPT (gömme 16), `tr profile --go-profile`; gerçek modelin profili yok]. Gerçek modelde işlemin payı büyür, yorumlayıcınınki küçülür [hipotez]. Derleyici bu yüzden Jarvis'in yolunda değil; asıl kazanç CPU'da nicemli üretim, çekirdeklerin kaynaştırılması ve ses için sinir ağı işlemleri.
+    - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
+      - bölümü olmayanlar: alt süreç, bayttan sayı (WAV, PCM), sohbet biçimi, canlı ses (ilk sürüm alt süreçle), gömme; ses üretimi için fonemleştirme;
+      - 15'in sonraya bıraktıkları: STFT ve Mel; ses üretimi için ters evrişim ve ONNX okuma.
+    - Ses üretiminin üç işi dışındakilerin araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar (Ahmet, 2026-11-02); uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
 - **Uyarlamak:** hazır bir modeli ince ayarla kendi işine uyarlamak, uçtan uca. LoRA'yı dil yazabiliyor; ama PEFT düzeninde kayıt, ince ayar örneği ve bitiş ölçütü yok (arşiv).
 - **Herkes için:** biraz teknik bilgisi olan birinin kendi modelini kurup eğitmesi. Model Sihirbazı, süre ve maliyet tahmini, küçük model tarifleri (arşiv).
