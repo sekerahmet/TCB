@@ -1320,7 +1320,7 @@ const (
 	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın
 	H6958 Code = 6958 // bileşik atamada ({op}=) sonucun şekli {result}, hedefinki {target}: yayın yalnız sağ taraftadır, hedef genişlemez. Hedefi genişletmek için adı yeni bir tensöre bağlayın: `t = t {op} u`
 	H6959 Code = 6959 // TR tensör dosyası {name|q} tensörünün türünü ({dtype}) saklayamıyor: bu sürümde nicemlenmiş saklama hassasiyetleri yazılmaz
-	H6960 Code = 6960 // bu işlem {dtype} tensörde {device} cihazında yapılamaz (15.48): {kind, select, int {ondalık hesap için tam sayı tensörünü ondalığa çevirin} bool {mantık tensörünü sayı olarak işlemek için ondalığa çevirin} other {bu hesap float32, bf16 ya da fp16 ister}}: `t.{#to_dtype}("float32")`
+	H6960 Code = 6960 // bu işlem {dtype} tensörde {device} cihazında yapılamaz (15.48): {kind, select, int {tam sayı tensöründe ondalık hesap yok} bool {mantık tensöründe sayı hesabı yok} other {bu hesap float32, bf16 ya da fp16 ister}}; ondalığa çevirin: tam sayıdan `{#Tensor}[{#Float}](t)`, mantıktan `{#where}(t, 1.0, 0.0)`, öbür hassasiyetten `t.{#to_dtype}("float32")`
 	H6961 Code = 6961 // {fn}: {index, select, empty {} other {{index} konumunda }}{expr} {dtype} hassasiyetine sığmıyor (taşma, 15.3); {wide, select, yes {değerleri küçültün: int64 en geniş tam sayıdır} other {daha geniş hassasiyette hesaplayın: `t.{#to_dtype}("int64")`}}
 	H6962 Code = 6962 // {fn}: {index, select, empty {} other {{index} konumunda }}sıfıra bölme: {expr} (4.2a); böleni sıfırsız yapın: `{#where}(b == 0, 1, b)`
 	H6963 Code = 6963 // {fn}: {index, select, empty {} other {{index} konumunda }}{expr}: tam sayı tensöründe üs eksi olamaz (4.3, 15.6e); eksi üs ondalık tensörde hesaplanır
@@ -1336,8 +1336,8 @@ const (
 	H6973 Code = 6973 // {fn}: `{grad}: {true}` yalnız ondalık tensörde geçerlidir; {dtype} tensör türev izlemez (15.2)
 	H6974 Code = 6974 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} bir {kind} değeri değil (15.2): verinin öğeleri tip argümanındaki cinsten olmalı
 	H6975 Code = 6975 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} ilk öğe {first} ile aynı tensörde olamaz: mantık değeri sayıyla karışmaz (15.2)
-	H6976 Code = 6976 // {fn}: "{dtype}" {kind} hassasiyetidir, kurulan tensörün cinsi {given} (15.1, 15.2); cinsi tip argümanıyla seçin: `{fn}[{kind}](...)`
-	H6977 Code = 6977 // {fn}: "{dtype}" {kind} hassasiyetidir, tensör {given} (15.3); hassasiyet cinsin içinde değişir, cinsler arası dönüşüm tip çağrısıdır: `{#Tensor}[{kind}](t)`
+	H6976 Code = 6976 // {fn}: "{dtype}" {kind} hassasiyetidir, kurulan tensörün cinsi {given} (15.1, 15.2); {case, select, type_arg {cinsi tip argümanıyla seçin: `{call}[{kind_code}](...)`} data {`{call}[{kind_code}](...)`'ın verisi {kind} değerleridir: veriyi bu cinsten yazın} other {`{call}` yalnız ondalık tensör kurar, `{call}[{kind_code}]` yoktur: ondalık bir hassasiyet verin, ör. `{#dtype}: "float32"`}}
+	H6977 Code = 6977 // {fn}: "{dtype}" {kind} hassasiyetidir, tensör {given} (15.3); hassasiyet cinsin içinde değişir, cinsler arası dönüşüm tip çağrısıdır: `{#Tensor}[{kind_code}](t, {#dtype}: "{dtype}")`
 	H6978 Code = 6978 // {fn}: {given} ile {kind} arasında dönüşüm yok (3.12, 15.3); maskeden sayı `{#where}(m, 1.0, 0.0)` ile, sayıdan maske karşılaştırmayla kurulur: `t != 0`
 	H6979 Code = 6979 // {fn}: {case, select, tensor {iki tensör alır, {given} verildi (15.18a)} other {mantık tensörü alır, {given} verildi (15.18a); sayı tensöründe önce karşılaştırın: `{#all}(t != 0)`}}
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi

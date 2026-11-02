@@ -235,9 +235,23 @@ func constructorDType(fn codes.Ref, named map[string]interp.Value, kind codes.Co
 		return 0, err
 	}
 	if k := kindOf(dt); k != kind {
-		return 0, messages.New(messages.H6976, fn, name, codes.NameRef(k), codes.NameRef(kind))
+		return 0, messages.New(messages.H6976, fn, name, codes.NameRef(k), codes.NameRef(kind),
+			kindHint(fn.Code, kind, k), codes.Spelling(fn.Code), codes.Spelling(k))
 	}
 	return dt, nil
+}
+
+// kindHint H6976'nın önerisini seçer: rastgele_normal yalnız ondalık kurar ("float_only",
+// şablonun other dalı); TR_Tensor'ün verisi tip argümanıyla yalnız tam sayıdan ondalığa geçer,
+// öbür cins değişimi verinin kendisini ister ("data"); öbür kurucularda tip argümanı yeter.
+func kindHint(fn, from, to codes.Code) string {
+	switch {
+	case fn == codes.FnRandn:
+		return "float_only"
+	case fn == codes.TypeTensor && !(from == codes.TypeInt && to == codes.TypeFloat):
+		return "data"
+	}
+	return "type_arg"
 }
 
 // anyDType her cinsin hassasiyet adını (metin) çözer; bilinmeyen adda en yakın adı önerir.
@@ -263,7 +277,7 @@ func kindChangeError(fn any, from, to tensor.DType, name string) error {
 	case fk == codes.TypeBool || tk == codes.TypeBool:
 		return messages.New(messages.H6978, fn, codes.NameRef(fk), codes.NameRef(tk))
 	}
-	return messages.New(messages.H6977, fn, name, codes.NameRef(tk), codes.NameRef(fk))
+	return messages.New(messages.H6977, fn, name, codes.NameRef(tk), codes.NameRef(fk), codes.Spelling(tk))
 }
 
 // convertKind t'yi dt'ye çevirir (aynıysa kendisi): ondalıklar arasında yuvarlar (türevlenebilir),

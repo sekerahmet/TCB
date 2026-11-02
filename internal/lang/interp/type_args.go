@@ -67,7 +67,8 @@ func (v *VM) typeArgsIndex(x, idx Value) (Value, bool, error) {
 	}
 	t, isType := idx.(*TypeVal)
 	if !isType {
-		return nil, true, messages.New(messages.H6970, codes.NameRef(k), Shown(idx))
+		// fn iletide yalnız kod örneğindedir: kimlik yazımıyla.
+		return nil, true, messages.New(messages.H6970, codes.Spelling(k), Shown(idx))
 	}
 	b, err := fn(v, []*TypeVal{t})
 	if err != nil {

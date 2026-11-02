@@ -38,7 +38,8 @@ func kindConstructor(k codes.Code, base interp.BuiltinFunc) interp.TypeArgsFunc 
 			return nil, messages.New(messages.H6971, fn, interp.Shown(args[0]))
 		}
 		if k == codes.FnRandn && kind != codes.TypeFloat {
-			return nil, messages.New(messages.H6972, fn, interp.Shown(args[0]))
+			// İletinin bütün adları kod örneğindedir: kimlik yazımıyla.
+			return nil, messages.New(messages.H6972, codes.Spelling(k), codes.Spelling(kind))
 		}
 		call := func(m *interp.VM, a []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 			if kind == codes.TypeFloat && k != codes.TypeTensor {

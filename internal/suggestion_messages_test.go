@@ -105,6 +105,61 @@ var suggestionCases = []suggestionCase{
 	{messages.H1135, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm[0] = l.TR_first\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
 }
 
+// suggestionResultCase önerinin sonucunu da okur: hatalı program iletiyi verir, ileti suggestion'ı
+// içerir, suggestion'ı içeren düzeltilmiş program (fixed) hatasız koşar ve out'u basar. Öneri
+// programın adını değil iletinin genel adını (t, m) kullandığında düzeltme yer değiştirmeyle
+// kurulamaz; fixed açıkça yazılır.
+type suggestionResultCase struct {
+	code                     messages.Code
+	wrong, suggestion, fixed string
+	out                      string
+}
+
+// Cinsli tensörlerin iletileri (T1 dilim 2, H6960–H6979). H6969'un GPU önerisi
+// TestTypedPathsOnGPU'dadır (internal/stdlib/ml): bu tablo GPU'suz koşar.
+var suggestionResultCases = []suggestionResultCase{
+	{messages.H6960, "TR_var t = TR_Tensor([0, 1])\nTR_print(TR_exp(t).TR_tolist)", "TR_Tensor[TR_Float](t)",
+		"TR_var t = TR_Tensor([0, 1])\nTR_print(TR_exp(TR_Tensor[TR_Float](t)).TR_tolist)", "[1.0, 2.7182817]\n"},
+	{messages.H6960, "TR_var t = TR_Tensor([TR_true, TR_false])\nTR_print(TR_exp(t).TR_tolist)", "TR_where(t, 1.0, 0.0)",
+		"TR_var t = TR_Tensor([TR_true, TR_false])\nTR_print(TR_exp(TR_where(t, 1.0, 0.0)).TR_tolist)", "[2.7182817, 1.0]\n"},
+	{messages.H6960, "TR_var t = TR_Tensor([0.0, 1.0], TR_dtype: \"float64\")\nTR_print(TR_exp(t).TR_tolist)", "t.TR_to_dtype(\"float32\")",
+		"TR_var t = TR_Tensor([0.0, 1.0], TR_dtype: \"float64\")\nTR_print(TR_exp(t.TR_to_dtype(\"float32\")).TR_tolist)", "[1.0, 2.7182817]\n"},
+	{messages.H6961, "TR_var t = TR_Tensor([2000000000], TR_dtype: \"int32\")\nTR_print((t + t).TR_tolist)", "t.TR_to_dtype(\"int64\")",
+		"TR_var t = TR_Tensor([2000000000], TR_dtype: \"int32\")\nTR_var u = t.TR_to_dtype(\"int64\")\nTR_print((u + u).TR_tolist, (u + u).TR_dtype)", "[4000000000] int64\n"},
+	{messages.H6962, "TR_var a = TR_Tensor([4, 6])\nTR_var b = TR_Tensor([2, 0])\nTR_print((a // b).TR_tolist)", "TR_where(b == 0, 1, b)",
+		"TR_var a = TR_Tensor([4, 6])\nTR_var b = TR_Tensor([2, 0])\nTR_print((a // TR_where(b == 0, 1, b)).TR_tolist)", "[2, 6]\n"},
+	{messages.H6966, "TR_var x = TR_Tensor([1.0, 2.0])\nTR_var m = x > 1.5\nTR_print((m + x).TR_tolist)", "TR_where(m, 1.0, 0.0)",
+		"TR_var x = TR_Tensor([1.0, 2.0])\nTR_var m = x > 1.5\nTR_print((TR_where(m, 1.0, 0.0) + x).TR_tolist)", "[1.0, 3.0]\n"},
+	{messages.H6967, "TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print((m + m).TR_tolist)", "TR_where(m, 1.0, 0.0)",
+		"TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print((TR_where(m, 1.0, 0.0) + TR_where(m, 1.0, 0.0)).TR_tolist)", "[2.0, 0.0]\n"},
+	{messages.H6967, "TR_var t = TR_Tensor([1.0, -1.0])\nTR_print((~t).TR_tolist)", "t > 0.0",
+		"TR_var t = TR_Tensor([1.0, -1.0])\nTR_print((~(t > 0.0)).TR_tolist)", "[false, true]\n"},
+	{messages.H6968, "TR_var t = TR_Tensor([1, 2])\nTR_print((t + [1, 2]).TR_tolist)", "TR_Tensor([",
+		"TR_var t = TR_Tensor([1, 2])\nTR_print((t + TR_Tensor([1, 2])).TR_tolist)", "[2, 4]\n"},
+	{messages.H6970, "TR_print(TR_zeros[\"int\"]([2]).TR_tolist)", "TR_zeros[TR_Int]",
+		"TR_print(TR_zeros[TR_Int]([2]).TR_tolist)", "[0, 0]\n"},
+	{messages.H6971, "TR_print(TR_Tensor[TR_String]([1]).TR_tolist)", "TR_Int",
+		"TR_print(TR_Tensor[TR_Int]([1]).TR_tolist)", "[1]\n"},
+	{messages.H6972, "TR_print(TR_randn[TR_Int]([2]).TR_dtype)", "TR_randn[TR_Float]",
+		"TR_print(TR_randn[TR_Float]([2]).TR_dtype)", "float32\n"},
+	{messages.H6976, "TR_var t = TR_Tensor([1, 2], TR_dtype: \"float64\")\nTR_print(t.TR_tolist, t.TR_dtype)", "TR_Tensor[TR_Float](",
+		"TR_var t = TR_Tensor[TR_Float]([1, 2], TR_dtype: \"float64\")\nTR_print(t.TR_tolist, t.TR_dtype)", "[1.0, 2.0] float64\n"},
+	{messages.H6976, "TR_print(TR_zeros([2], TR_dtype: \"bool\").TR_tolist)", "TR_zeros[TR_Bool](",
+		"TR_print(TR_zeros[TR_Bool]([2], TR_dtype: \"bool\").TR_tolist)", "[false, false]\n"},
+	{messages.H6976, "TR_print(TR_randn([2], TR_dtype: \"int64\").TR_dtype)", "TR_dtype: \"float32\"",
+		"TR_print(TR_randn([2], TR_dtype: \"float32\").TR_dtype)", "float32\n"},
+	{messages.H6977, "TR_var t = TR_Tensor([1.5, -2.5])\nTR_print(t.TR_to_dtype(\"int32\").TR_tolist)", "TR_Tensor[TR_Int](t, TR_dtype: \"int32\")",
+		"TR_var t = TR_Tensor([1.5, -2.5])\nTR_var u = TR_Tensor[TR_Int](t, TR_dtype: \"int32\")\nTR_print(u.TR_tolist, u.TR_dtype)", "[1, -2] int32\n"},
+	{messages.H6977, "TR_var t = TR_Tensor([1, 2])\nTR_print(t.TR_to_dtype(\"float64\").TR_tolist)", "TR_Tensor[TR_Float](t, TR_dtype: \"float64\")",
+		"TR_var t = TR_Tensor([1, 2])\nTR_var u = TR_Tensor[TR_Float](t, TR_dtype: \"float64\")\nTR_print(u.TR_tolist, u.TR_dtype)", "[1.0, 2.0] float64\n"},
+	{messages.H6978, "TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print(TR_Tensor[TR_Float](m).TR_tolist)", "TR_where(m, 1.0, 0.0)",
+		"TR_var m = TR_Tensor([TR_true, TR_false])\nTR_print(TR_where(m, 1.0, 0.0).TR_tolist)", "[1.0, 0.0]\n"},
+	{messages.H6978, "TR_var t = TR_Tensor([1.5, 0.0])\nTR_print(TR_Tensor[TR_Bool](t).TR_tolist)", "t != 0",
+		"TR_var t = TR_Tensor([1.5, 0.0])\nTR_print((t != 0).TR_tolist)", "[true, false]\n"},
+	{messages.H6979, "TR_var t = TR_Tensor([2, 3])\nTR_print(TR_all(t))", "TR_all(t != 0)",
+		"TR_var t = TR_Tensor([2, 3])\nTR_print(TR_all(t != 0), TR_all(TR_Tensor([2, 0]) != 0))", "true false\n"},
+}
+
 // maxUntestedSuggestionCodes izin listesindeki kayıt sayısının üst sınırıdır; liste yalnız küçülür.
 const maxUntestedSuggestionCodes = 16
 
@@ -136,6 +191,10 @@ func TestMessageSuggestionsRunCleanly(t *testing.T) {
 		tested[tc.code] = true
 		verifySuggestionCase(t, tc)
 	}
+	for _, tc := range suggestionResultCases {
+		tested[tc.code] = true
+		verifySuggestionResult(t, tc)
+	}
 	checkSuggestionCoverage(t, tested)
 }
 
@@ -166,12 +225,49 @@ func verifySuggestionCase(t *testing.T, tc suggestionCase) {
 	}
 }
 
+func verifySuggestionResult(t *testing.T, tc suggestionResultCase) {
+	t.Helper()
+	matched := firstWithCode(collectProgramDiagnostics(tc.wrong), tc.code)
+	if matched == nil {
+		t.Fatalf("%s (%q): beklenen kod üretilmedi", tc.code, tc.wrong)
+	}
+	for _, lang := range []string{"tr", "en"} {
+		if text := messages.ErrorIn(matched, lang); !strings.Contains(text, tc.suggestion) {
+			t.Errorf("%s (%s): ileti %q önerisini içermiyor: %q", tc.code, lang, tc.suggestion, text)
+		}
+	}
+	if !strings.Contains(tc.fixed, tc.suggestion) {
+		t.Fatalf("%s: düzeltilmiş program önerinin yazımını (%q) içermiyor", tc.code, tc.suggestion)
+	}
+	diags, out := runProgram(tc.fixed)
+	if len(diags) > 0 {
+		t.Errorf("%s: önerilen yazım (%q) hata/uyarı verdi: %v", tc.code, tc.fixed, diags)
+	} else if out != tc.out {
+		t.Errorf("%s: önerilen yazımın (%q) çıktısı %q, beklenen %q", tc.code, tc.fixed, out, tc.out)
+	}
+}
+
+func firstWithCode(diags []error, code messages.Code) error {
+	for _, d := range diags {
+		if messages.Has(d, code) {
+			return d
+		}
+	}
+	return nil
+}
+
 func collectProgramDiagnostics(code string) []error {
+	diags, _ := runProgram(code)
+	return diags
+}
+
+// runProgram programı denetler ve çalıştırır; hataları, uyarıları ve çıktıyı verir.
+func runProgram(code string) ([]error, string) {
 	r := source.Prepare(code, source.Options{Body: true})
 	var out []error
 	out = append(out, r.Errors...)
 	if r.Stage == source.StageSyntax || r.Program == nil {
-		return out
+		return out, ""
 	}
 	chk := checker.New()
 	chk.SetFile(checker.ProgramFile, code) // tr check gibi: öneri dosyanın satırını verir
@@ -185,7 +281,7 @@ func collectProgramDiagnostics(code string) []error {
 		out = append(out, err)
 	}
 	vm.WaitAsync()
-	return out
+	return out, buf.String()
 }
 
 func checkSuggestionCoverage(t *testing.T, tested map[messages.Code]bool) {

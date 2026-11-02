@@ -47,4 +47,9 @@ TR_for s TR_in g { TR_print(s) }`
 			t.Errorf("%s: %v, beklenen %s", expr, err, code)
 		}
 	}
+	// H6969'un önerdiği yazım (`t.TR_to_device("cpu")`) koşar ve işlemin sonucunu verir.
+	if out := mustRun(t, `TR_var t = TR_Tensor([1, 2]).TR_to_device("gpu")
+TR_print((t.TR_to_device("cpu") + 1).TR_tolist)`); out != "[2, 3]\n" {
+		t.Errorf("H6969'un önerisi: %q, beklenen [2, 3]", out)
+	}
 }
