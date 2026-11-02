@@ -46,7 +46,12 @@ func (v *VM) inPlaceHook(codeVal uint8, cur Value, rhs Value, line int) (bool, e
 
 // assignInPlace bileşik atamayı yerinde yapmayı dener: önce değerin kendi kancası
 // (InPlaceOperator), sonra listede += ve *=. done, atamanın yapıldığı (ya da hata verdiği)dır.
+// Sade değer (sayı, mantık, metin) ne kancayı uygular ne listedir: arayüz dönüşümüne gitmeden
+// döner (TestNoPlainValueIsAnInPlaceOperator).
 func (v *VM) assignInPlace(codeVal uint8, cur Value, rhs Value, line int) (bool, error) {
+	if plain(cur) {
+		return false, nil
+	}
 	if done, err := v.inPlaceHook(codeVal, cur, rhs, line); done {
 		return true, err
 	}
