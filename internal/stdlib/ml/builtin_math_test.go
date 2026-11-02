@@ -45,7 +45,7 @@ TR_print((TR_Tensor([1.0, 2.0, 3.0]) >= TR_Tensor([[2.0], [1.0]])).TR_tolist, (2
 		"[[3.0, 3.0], [2.0, 1.0]] [[0, 2], [1, 2]] Int\n" +
 		"[3, 1, 0, 2] [1, 1]\n" +
 		"[[1.0, 2.0], [-1.0, -1.0]] [7.0]\n" +
-		"[[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]] [0.0, 0.0, 1.0]\n"
+		"[[false, true, true], [true, true, true]] [false, false, true]\n"
 	if out != want {
 		t.Fatalf("tensör yolları:\n%q\nbeklenen:\n%q", out, want)
 	}

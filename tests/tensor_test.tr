@@ -1293,7 +1293,7 @@ TR_test "15.6b yayınlama: sağdan hizalanır, uymayan eksen hatadır" {
     TR_assert(ileti.TR_ends_with(", 1, 5, 2)"), ileti)
 }
 
-TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, maske float32" {
+TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, sayı türü korur, karşılaştırma TR_Bool" {
     TR_var a = TR_Tensor([1.0, 2.0]).TR_to_dtype("bf16")
     TR_var b = TR_Tensor([1.0, 2.0]).TR_to_dtype("fp16")
     TR_assert_equal("bf16", (a + a).TR_dtype)
@@ -1301,8 +1301,8 @@ TR_test "15.6c tür yükseltme: aynı tür korunur, farklı türler float32, say
     TR_assert_equal("float32", (a + TR_Tensor([1.0, 2.0])).TR_dtype)
     TR_assert_equal("bf16", (a * 2.5).TR_dtype)
     TR_assert_equal("bf16", (2 - a).TR_dtype)
-    TR_assert_equal("float32", (a > 1).TR_dtype)
-    TR_assert_equal([0.0, 1.0], (TR_Tensor([1.0, 2.0]) > 1).TR_tolist)
+    TR_assert_equal("bool", (a > 1).TR_dtype)
+    TR_assert_equal([TR_false, TR_true], (TR_Tensor([1.0, 2.0]) > 1).TR_tolist)
 }
 
 TR_test "15.6d türevin üç yazma kuralı kipe bağlıdır" {

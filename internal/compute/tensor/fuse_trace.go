@@ -93,6 +93,9 @@ func symConcat(ts []*Tensor, axis int, shape []int, dt DType) *Tensor {
 	return symTensor(ts[0].be, n)
 }
 
+// IsSymbolic tensör kaynaştır kaydının iz tensörü mü (verisi yok, işlem kaydedilir).
+func (t *Tensor) IsSymbolic() bool { return t.sym != nil }
+
 // anySym ts'den biri iz tensörü mü.
 func anySym(ts ...*Tensor) bool {
 	for _, t := range ts {

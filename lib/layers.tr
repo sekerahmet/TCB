@@ -410,13 +410,13 @@ TR_struct TR_KVCache {
         TR_self.TR_step_position = TR_position
         TR_self.TR_masks = {}
     }
-    # maske: cihaz adımında bakılacak konumlar ([en_çok], 0/1); pencere başına adımda bir kez
+    # maske: cihaz adımında bakılacak konumlar ([en_çok], TR_Bool); pencere başına adımda bir kez
     # kurulur, aynı pencereli katmanlar paylaşır.
     TR_func TR_mask(TR_window: TR_Int = 0) -> TR_Tensor[TR_Bool] {
         TR_var anahtar = "\(TR_window)"
         TR_if TR_not TR_self.TR_masks.TR_contains(anahtar) {
             TR_var m = TR_self.TR_positions <= TR_self.TR_step_position
-            TR_if TR_window > 0 { m = m * (TR_self.TR_positions > TR_self.TR_step_position - TR_window) }
+            TR_if TR_window > 0 { m = m & (TR_self.TR_positions > TR_self.TR_step_position - TR_window) }
             TR_self.TR_masks[anahtar] = m
         }
         TR_return TR_self.TR_masks[anahtar]

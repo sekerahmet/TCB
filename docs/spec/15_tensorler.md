@@ -87,7 +87,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
   - **İstisna:** her isteğe bağlı değerin (`T?`) `TR_none` değişmeziyle `==` ve `!=`'si geçerlidir ve `TR_Bool` verir (3.5), `T` eşitlenebilir olmasa da: `TR_Tensor?`, `TR_AnyTensor?` (`d.TR_get(ad)`), tensör içeren yapı ve demet. `TR_if g != TR_none { ... }`.
   - Karşılaştırma zinciri (4.4) tensörde denetim hatasıdır, çünkü `TR_and` yalnız `TR_Bool` alır (4.6). Maskeler `&`, `|`, `^` ve `~` ile birleşir (15.6): `(0.0 <= t) & (t < 1.0)`; ileti bu yazımı önerir.
   - Tensör ve tensör içeren her değer eşitlenebilir değildir (13.10): liste, sözlük, demet (3.6a), yapı (7.6) ve durumlu tip (7.7). Bunların `==`'si, `==` isteyen değer deseni (5.6) ve `.TR_contains`/`.TR_unique`/`.TR_index_of` (13.3) denetim hatasıdır; ileti `TR_equal`'ı önerir. Durum açan desen (7.7, `Cevap.Tamam(t) =>`) geçerlidir: alanı bağlar, karşılaştırmaz. İki isteğe bağlı tensör birbiriyle karşılaştırılamaz; yalnız `TR_none` değişmeziyle.
-- *Test:* TR testi; metin, öğe öğe karşılaştırma ve `TR_Bool` maskesi uygulanınca TR testi.
+- *Test:* TR testi (öğe öğe karşılaştırma, `TR_Bool` maske, koşulda hata, `TR_none` karşılaştırması); metin uygulanınca TR testi.
 
 ## İşleçler, indeks ve atama
 

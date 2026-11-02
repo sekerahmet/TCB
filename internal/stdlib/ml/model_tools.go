@@ -185,6 +185,13 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 		if err := checkMask(fn, mt, q, k); err != nil {
 			return nil, err
 		}
+		if mt.Elem() == tensor.ElemBool {
+			// TR_Bool maske (15.24) çekirdeğe 0/1 float32 olarak girer. Ondalık maske de bugün
+			// geçer; maskenin hangi cinsleri alacağı açık bir tasarım sorusudur (DEVİR).
+			if mt, err = safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r }); err != nil {
+				return nil, err
+			}
+		}
 		opt.Mask = mt
 	}
 	for _, t := range []*tensor.Tensor{k, v} {

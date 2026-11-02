@@ -616,13 +616,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.5
 
-- **Mevcut durum:** `a == b` tek bir mantık değeri veriyor; karşılaştırma float32 0/1 maske veriyor. Metin dört basamaklı ve bütün öğeler yazılıyor [ölçüldü].
-- **Yapılacaklar:** öğe öğe karşılaştırma ve `TR_Bool` maske, eşitlenemeyen değerlerin denetim hatası, metin; TR testi. Göç [ölçüldü: DENETİM]: değişen 0 boyutlu tensörün sayıyla karşılaştırması (tests/operatorler_test.tr'de 6 çalışma); bütün tensör karşılaştırmasının 85 yeri ve `TR_assert_equal`'ın 141 kullanımı değişmez. Dolaşmada öğenin hep tensör olması yalnız 15.5'in kendi testini değiştirir: tests/tensor_test.tr:575, :577 [ölçüldü: DENETİM A2].
+- **Mevcut durum (T1 dilim 2):** `==`, `!=`, `<`, `>`, `<=`, `>=` tensörde öğe öğedir, yayınlar ve `TR_Tensor[TR_Bool]` verir, CPU'da ve GPU'da (GPU'da float32, "int64" ve mantıkta `==`/`!=`); `TR_none` ile karşılaştırma `TR_Bool` kalır; mantık tensörü koşulda H2600/H2612 verir, sessizce sayılmaz; TR testi `tests/matematik_test.tr` [ölçüldü]. `TR_fuse` kaydında karşılaştırma bugün 0/1 ondalık maskedir, `==`/`!=` orada H3107 (kaynaşmış çekirdekte mantık cinsi yok). Denetleyici tensör karşılaştırmasının tipini `TR_Bool` sayıyor: sonucunda `.TR_item()` denetim hatası. Metin dört basamaklı ve bütün öğeler yazılıyor [ölçüldü].
+- **Yapılacaklar:** kaynaştır kaydında `TR_Bool` maske; denetleyicinin karşılaştırma tipi; eşitlenemeyen değerlerin denetim hatası, metin. Göç yapıldı (T1 dilim 2, 29 satır: .tr testlerinde 18 `0781f2fa`; Go testlerinde 9, kitaplıkta 1, örnekte 1 `80c0bfe0`). Göç [ölçüldü: DENETİM]: değişen 0 boyutlu tensörün sayıyla karşılaştırması (tests/operatorler_test.tr'de 6 çalışma); bütün tensör karşılaştırmasının 85 yeri ve `TR_assert_equal`'ın 141 kullanımı değişmez. Dolaşmada öğenin hep tensör olması yalnız 15.5'in kendi testini değiştirir: tests/tensor_test.tr:575, :577 [ölçüldü: DENETİM A2].
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** isteğe bağlı tensör içeren her tipin `TR_none`'la karşılaştırması; gösterimde cinsin varsayılanı dışındaki hassasiyet.
 
 ### 15.6
 
 - **Mevcut durum:** argmax'in tam sayılı işareti `+ 1`'de düşüyor (sonuç `2.0`, `TR_Float`); `/ 2` ve `* 2.5` tam sayılı tensörü ondalık yapıyor. `t // 2`, `t % 2` ve bit işleçleri H6703 veriyor; `@` yalnız ondalık [ölçüldü].
+- **T1 dilim 2:** maskeler `&`, `|`, `^`, `~` ile birleşir (CPU ve GPU); kitaplığın üç maske yeri göçtü: `lib/optimizers.tr:338` sayaç için `TR_where(..., 1.0, 0.0)` (339 ve 342 böylece değişmedi), `lib/layers.tr:419` `m & (...)`; `TR_attention` `TR_Bool` maskeyi alır (içeride float32), ondalık maske de bugün geçer.
 - **Yapılacaklar:** cinsli işleç tablosu, bekleyen işlemler ve `TR_replay`'deki cihaz içi bayrak; TR testi. Göç: kesirli aritmetiğe giren argmax sonucu (`tools/gpu/ss_exam.tr:58`) [kanıtlı: `tools/gpu/ss_exam.tr:58`]; kitaplıkta maske aritmetiği 3 yer [kanıtlı: `lib/optimizers.tr:339, 342`, `lib/layers.tr:419`]: `lib/optimizers.tr:339` (`n + geçti` → `TR_where` ya da `TR_sum`), `:342` (oranın `geçti * g` ile çarpımı → `TR_where(geçti, ..., 0.0)`), `lib/layers.tr:419` (`m * (...)` → `m & (...)`).
 - **`@`'nin toplu eksenleri:** bugün öndeki eksenler eşit olmalı; kural onları yayınlar (gerekçe 15.6).
 

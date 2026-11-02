@@ -85,7 +85,7 @@ const supportedOps = "+ - * / @ ** < > <= >= == !="
 
 // TaskOperator tensörün ikili işleçlerini uygular: '+', '-', '*', '/' (eleman bazlı,
 // yayınlamalı; diğer işlenen sayı, liste ya da tensör) ve '@' (matris çarpımı) her iki yönde;
-// '**' sol işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (0/1 maskesi). İşleci yapan
+// '**' sol işlenenken (sayı üs); '<', '>', '<=', '>=' her iki yönde (TR_Bool maske, 15.5). İşleci yapan
 // görevle çağrılır: '@' görevin karışık hassasiyet türüne göre hesaplanır (bkz.
 // karışık_hassasiyet), yayın uyarısı programın durumuna ve hata akışına yazılır. Tensörün
 // görevsiz işleç kancası (interp.OperatorHook) yoktur: yorumlayıcı önce bu kancayı dener.
@@ -188,30 +188,37 @@ func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, o
 		}
 		return New(r), true, nil
 
-	case "<", ">", "<=", ">=":
+	case "<", ">", "<=", ">=", "==", "!=":
 		v, err := d.compare(m, op, otherVal, onRight)
 		return v, true, err
 	}
 	return nil, true, messages.New(messages.H6703, interp.ValTensor, op, supportedOps)
 }
 
-// comparisonOp karşılaştırma işleçlerinin çekirdek işlemi.
+// comparisonOp kaynaştır kaydındaki karşılaştırmanın çekirdek işlemi.
 var comparisonOp = map[string]tensor.BinOp{"<": tensor.OpLt, ">": tensor.OpGt, "<=": tensor.OpLe, ">=": tensor.OpGe}
 
-// compare eleman bazlı karşılaştırmanın 0/1 maskesini (türev izlemeyen float32 tensör)
-// tensörün cihazında verir. Diğer işlenen sayı, liste ya da tensör olabilir; şekiller
-// yayınlanır (+ - * / gibi). NaN içeren karşılaştırma 0'dır.
+// compare hesap ondalığı tensörün öğe öğe karşılaştırmasıdır (15.5): sonuç TR_Tensor[TR_Bool],
+// türev izlemez. Diğer işlenen sayı, liste ya da tensör olabilir; şekiller yayınlanır. Sayı
+// float32'ye çevrilir, 16 bitlik tensör float32'de karşılaştırılır (15.6a). NaN'lı
+// karşılaştırma yanlış, != doğrudur (IEEE 754). Kaynaştır kaydında karşılaştırma bugün 0/1
+// ondalık maskedir (kaynaşmış çekirdekte mantık cinsi 2b'de).
 func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, error) {
-	bop := comparisonOp[op]
-	if s, ok := interp.ToFloat(otherVal); ok {
-		r, err := safe(func() *tensor.Tensor { return d.t.CompareScalar(float32(s), bop, onRight) })
-		if err != nil {
-			return nil, err
-		}
-		return New(r), nil
-	}
 	ad := messages.New(messages.H6129, op)
-	o, err := toTensorOn(ad, otherVal, d.t)
+	var o *tensor.Tensor
+	var err error
+	if s, ok := interp.ToFloat(otherVal); ok && d.t.IsSymbolic() {
+		// Kaynaştır kaydında sayı sabit olarak kaydedilir (dışarıdan tensör değildir).
+		bop, cmp := comparisonOp[op]
+		if !cmp {
+			return nil, messages.New(messages.H3107)
+		}
+		return safe(func() interp.Value { return New(d.t.CompareScalar(float32(s), bop, onRight)) })
+	} else if ok {
+		o, err = safe(func() *tensor.Tensor { return tensor.FullOn(d.t.Device(), float32(s)) }) // cihazda doldurulur: TR_replay kaydında da
+	} else {
+		o, err = toTensorOn(ad, otherVal, d.t)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -225,11 +232,39 @@ func (d *TensorValue) compare(m *interp.VM, op string, otherVal interp.Value, on
 	if err := checkDevice(ad, a, b); err != nil {
 		return nil, err
 	}
-	r, err := safe(func() *tensor.Tensor { return tensor.Compare(a, b, bop) })
+	r, err := safe(func() *tensor.Tensor {
+		if a.IsSymbolic() || b.IsSymbolic() {
+			bop, ok := comparisonOp[op]
+			if !ok {
+				panic(messages.New(messages.H3107)) // kaynaştır kaydında == ve != yok (2b)
+			}
+			return tensor.Compare(a, b, bop)
+		}
+		return tensor.CompareTyped(a, b, cmpOps[op])
+	})
 	if err != nil {
 		return nil, err
 	}
 	return New(r), nil
+}
+
+var _ interp.ValueEqualer = (*TensorValue)(nil)
+
+// ValueEqual tensörün == ve != işleçleridir: öğe öğe, TR_Tensor[TR_Bool] verir (15.5). İki
+// tensörün bütün eşitliği TR_equal'dır. TR_none ile karşılaştırma (3.5) ve öbür değerler
+// yorumlayıcının olağan yolundan gider (ok false). Yayın uyarısı yazılmaz: kancanın görevi yok.
+func (d *TensorValue) ValueEqual(op string, other interp.Value) (interp.Value, bool, error) {
+	switch other.(type) {
+	case *TensorValue, *interp.IntVal, *interp.FloatVal, *interp.BoolVal, *interp.ListVal:
+	default:
+		return nil, false, nil
+	}
+	start := tensor.Created()
+	res, _, err := d.operator(nil, op, other, false)
+	if err == nil {
+		markFresh(res, start)
+	}
+	return res, true, err
 }
 
 // Index t[i] (ilk eksende i. eleman; bir eksen eksilir) ve t[baş..son] (ilk eksende

@@ -40,6 +40,10 @@ func typedWhere(m *interp.VM, ad any, args []interp.Value) (interp.Value, error)
 	}
 	return safe(func() interp.Value {
 		if a.DType().IsFloat() {
+			if c.Device() != tensor.CPU {
+				// GPU'nun türevli seçim çekirdeği koşulu float32 okur (TR_Bool koşul 2b'de).
+				c, _ = tensor.Convert(c, tensor.Float32)
+			}
 			return New(tensor.Where(c, a, b))
 		}
 		return New(tensor.WhereTyped(c, a, b))

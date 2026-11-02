@@ -30,18 +30,45 @@ TR_test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabitt
     TR_assert_equal("H2423", TR_error_code { TR_floor("a") })
 }
 
-TR_test "15.6 tensör karşılaştırmaları yayınlamalıdır; NaN 0 verir; == tamamını karşılaştırır" {
+TR_test "15.5 tensör karşılaştırmaları öğe öğedir, yayınlar ve TR_Tensor[TR_Bool] verir; NaN'lı karşılaştırma yanlış, != doğru" {
     TR_var a = TR_Tensor([1.0, 2.0, 3.0])
-    TR_assert_equal([0.0, 1.0, 1.0], (a > 1).TR_tolist)
-    TR_assert_equal([1.0, 0.0, 0.0], (2 > a).TR_tolist)
-    TR_assert_equal([[0.0, 1.0, 1.0], [1.0, 1.0, 1.0]], (a >= TR_Tensor([[2.0], [1.0]])).TR_tolist)
-    TR_assert_equal([1.0, 1.0, 0.0], (a <= [3, 2, 1]).TR_tolist)
-    TR_assert_equal([0.0], (TR_Tensor([0.0]) / 0 < 1).TR_tolist)
+    TR_assert_equal([TR_false, TR_true, TR_true], (a > 1).TR_tolist)
+    TR_assert_equal([TR_true, TR_false, TR_false], (2 > a).TR_tolist)
+    TR_assert_equal([[TR_false, TR_true, TR_true], [TR_true, TR_true, TR_true]], (a >= TR_Tensor([[2.0], [1.0]])).TR_tolist)
+    TR_assert_equal([TR_true, TR_true, TR_false], (a <= [3, 2, 1]).TR_tolist)
+    TR_assert_equal([TR_false], (TR_Tensor([0.0]) / 0 < 1).TR_tolist)
+    TR_var nan = TR_Tensor([0.0]) / 0
+    TR_assert_equal([[TR_false], [TR_true]], [(nan == nan).TR_tolist, (nan != nan).TR_tolist])
+    TR_assert_equal("bool", (a == a).TR_dtype)
+    TR_assert_equal([TR_true, TR_false, TR_false], (a == 1).TR_tolist)
+    TR_assert_equal([TR_false, TR_false, TR_true], (a != TR_Tensor([1.0, 2.0, 4.0])).TR_tolist)
+    # 0 boyutlu tensörün sayıyla karşılaştırması da 0 boyutlu mantık tensörüdür; bütün eşitlik TR_equal'dır.
+    TR_assert(TR_all(TR_Tensor(7.0) == 7) TR_and (TR_Tensor(7.0) == 7).TR_shape == [])
     TR_assert(TR_equal(a, TR_Tensor([1.0, 2.0, 3.0])))
     TR_assert(TR_not TR_equal(a, TR_Tensor([1.0, 2.0, 4.0])))
+    # Maskeler & | ~ ile birleşir.
+    TR_assert_equal([TR_false, TR_true, TR_false], ((1.0 < a) & (a < 3.0)).TR_tolist)
+    TR_assert_equal([TR_true, TR_false, TR_true], (~((1.0 < a) & (a < 3.0))).TR_tolist)
     TR_var x = TR_Tensor([-1.0, 2.0], TR_requires_grad: TR_true)
     TR_assert_equal("H6402", TR_error_code { TR_backward(TR_sum(x > 0)) })
     TR_assert_equal("H6100", TR_error_code { a < TR_Tensor([1.0, 2.0]) })
+}
+
+TR_test "15.5 mantık tensörü koşul olamaz: TR_if, TR_for ve TR_assert hata verir, sessizce doğru ya da yanlış sayılmaz" {
+    TR_var a = TR_Tensor([1.0, 2.0])
+    TR_var b = TR_Tensor([1.0, 2.0])
+    TR_assert_equal("H2600", TR_error_code { TR_if a == b { TR_print("koşul tensör") } })
+    TR_assert_equal("H2600", TR_error_code { TR_for a == b { TR_break } })
+    TR_assert_equal("H2612", TR_error_code { TR_assert(a == b) })
+    TR_assert_equal("H2600", TR_error_code { TR_if TR_Tensor(1.0) == 1.0 { TR_print("koşul tensör") } })
+}
+
+TR_test "3.5 tensörün TR_none ile == ve != karşılaştırması TR_Bool kalır" {
+    TR_var a = TR_Tensor([1.0, 2.0])
+    TR_assert(a != TR_none TR_and TR_not (a == TR_none))
+    TR_assert_equal(TR_Bool, TR_Type(a != TR_none))
+    TR_var g: TR_Tensor? = TR_none
+    TR_assert(g == TR_none TR_and TR_not (g != TR_none))
 }
 
 TR_test "15.11 genişletilmiş eleman bazlı fonksiyonlar: sayıda Ondalık, tensörde türevli; listede değil" {
