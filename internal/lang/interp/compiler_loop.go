@@ -15,6 +15,28 @@ type loopScope struct {
 	again    bool
 }
 
+// intChunk aralıklı döngünün sayaçlarını tek tek değil, intChunkSize'lık parçalarla ayırır. Her
+// sayaç parçada kendi yerini alır ve yazıldıktan sonra hiç değişmez: IntVal değişmez kalır, sayaç
+// listeye, kapanışa, göreve kaçsa da öbür turların değerinden ayrıdır. Bedeli: kaçan tek bir sayaç
+// bütün parçayı bellekte tutar. Küçük sayılar NewInt'in önbelleğinden gelir.
+type intChunk []IntVal
+
+const intChunkSize = 64
+
+// next n'nin değerini verir.
+func (c *intChunk) next(n int64) *IntVal {
+	if n >= smallIntMin && n <= smallIntMax {
+		return smallInts[n-smallIntMin]
+	}
+	if len(*c) == 0 {
+		*c = make([]IntVal, intChunkSize)
+	}
+	p := &(*c)[0]
+	p.Val = n
+	*c = (*c)[1:]
+	return p
+}
+
 func (d *loopScope) fresh() *Environment {
 	if d.env != nil && d.again {
 		d.env.clear()
@@ -83,15 +105,16 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				break
 			}
 			idx := int64(0)
+			var ints intChunk
 			// Son değer dahil gezilir ve döngü onda biter: int64 sınırında taşma olmaz.
 			for i := first; ; i += step {
 				v.loopTurn()
 				loopEnv := kind.turn(v)
 				// Tam sayılar sahiplenilemez: yuvaya doğrudan yazılır (ownership.go).
 				if keySlot >= 0 {
-					loopEnv.vals[keySlot] = NewInt(idx)
+					loopEnv.vals[keySlot] = ints.next(idx)
 				}
-				loopEnv.vals[valueSlot] = NewInt(i)
+				loopEnv.vals[valueSlot] = ints.next(i)
 				val, sig, err := bodyBlock.run(v, loopEnv)
 				if err != nil {
 					return nil, signalNone, err
