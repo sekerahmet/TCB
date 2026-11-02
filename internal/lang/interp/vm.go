@@ -208,6 +208,8 @@ type VM struct {
 
 	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
+	// task bu görünümün çalıştırdığı görevin değeridir (ana programda nil; task_value.go).
+	task *TaskVal
 	// exclusive boş değilse görev kilidi başka göreve devretmez (bkz. Exclusive); değeri kipi
 	// isteyen yerleşiğin kullanıcıya görünen adıdır.
 	exclusive any

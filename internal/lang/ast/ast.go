@@ -246,6 +246,18 @@ func (as *AsyncStatement) statementNode()       {}
 func (as *AsyncStatement) TokenLiteral() string { return as.Token.Literal }
 func (as *AsyncStatement) Line() int            { return as.Token.Line }
 
+// AsyncExpression is TR_async used as an expression (10.1): it starts the task and its value is the
+// task value (TR_var g = TR_async f(3)). Written as a statement the same start is an AsyncStatement
+// and the value is dropped.
+type AsyncExpression struct {
+	Token     lexer.Token // eşzamanlı
+	Statement *AsyncStatement
+}
+
+func (ae *AsyncExpression) expressionNode()      {}
+func (ae *AsyncExpression) TokenLiteral() string { return ae.Token.Literal }
+func (ae *AsyncExpression) Line() int            { return ae.Token.Line }
+
 // --- EXPRESSIONS ---
 
 type Identifier struct {

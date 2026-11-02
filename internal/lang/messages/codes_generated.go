@@ -497,6 +497,7 @@ const (
 	H2915 Code = 2915 // Python'un 'except'i TR'de `{#catch}`'tir: `{#catch} e`
 	H2916 Code = 2916 // Python'un 'finally'si TR'de yoktur: kapsamdan nasıl çıkılırsa çıkılsın çalışacak iş `{#defer}` bloğuyla yazılır
 	H2917 Code = 2917 // yakalanan hatanın adı parantezsiz yazılır: `{#catch} {name}`
+	H2918 Code = 2918 // {fn} görevin kendi içinde çağrılamaz: görev kendi durmasını bekleyemez, sonsuza dek beklerdi (satır {line|loc} başlatılan görev)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

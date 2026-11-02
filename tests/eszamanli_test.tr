@@ -11,6 +11,22 @@ TR_test "10.1 eşzamanlı blok ve çağrı biçimi görev başlatır" {
     TR_assert(sonuçlar.TR_contains("blok") TR_and sonuçlar.TR_contains("çağrı"))
 }
 
+TR_test "10.1 eşzamanlı bir ifadedir ve görev değeri verir; bekle sonucu verir ya da hatayı fırlatır" {
+    TR_func kare(x: TR_Int) -> TR_Int {
+        TR_sleep(0.01)
+        TR_return x * x
+    }
+    TR_var g: TR_Task[TR_Int] = TR_async kare(3)
+    TR_assert_equal(9, g.TR_wait())
+    TR_assert(g.TR_done())
+    TR_var b = TR_async { kare(2) }
+    TR_assert_equal(TR_none, b.TR_wait())
+    TR_assert_equal("Task", TR_String(g))
+    TR_func böl(x: TR_Int) -> TR_Int { TR_return 10 // x }
+    TR_var h = TR_async böl(5)
+    TR_assert_equal(2, h.TR_wait())
+}
+
 TR_test "10.5 bekle_hepsi() başlatılmış bütün görevleri bekler" {
     TR_var bitenler = []
     TR_func iş(x: TR_Int) {

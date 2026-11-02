@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 569 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 45 tip, 127 fonksiyon, 11 sabit, 61 metot, 101 özellik, 137 adlı argüman.
+Toplam 572 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 63 metot, 101 özellik, 137 adlı argüman.
 
 ## İçindekiler
 
@@ -1081,6 +1081,23 @@ tr: yapı Nokta { x: Tam, y: Tam }; yazdır(Tip(Nokta) == YapıTanımı)
 #### `TR_SwiGLU` (`TR_type_SwiGLU`, `SwiGLU`)
 
 
+
+#### `TR_Task` (`TR_type_Task`, `Görev`)
+
+Eşzamanlı başlatılan bir görevin değeridir: eşzamanlı f(x) onu verir. bekle() görevin sonucunu verir ya da hatasını fırlatır; bitti_mi() görevin bitip bitmediğini söyler.
+
+```tr
+TR_var g: TR_Task[TR_Int] = TR_async TR_sum([1, 2]); TR_print(g.TR_wait())
+```
+
+Görünümü:
+
+```text
+en: var g: Task[Int] = async sum([1, 2]); print(g.wait())
+tr: değişken g: Görev[Tam] = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
+```
+
+Üyeleri: `.TR_done(...)`, `.TR_wait(...)` · İlişkili: `TR_async`, `.TR_wait(...)`, `.TR_done(...)`
 
 #### `TR_Tensor` (`TR_type_Tensor`, `Tensör`)
 
@@ -4609,6 +4626,25 @@ tr: yazdır(Tensör([1, 2]).cihaz)
 
 
 
+#### `.TR_done(...)` (`TR_mem_done`, `bitti_mi`)
+
+    Görev.bitti_mi() → Mantık
+
+Görev bittiyse (sonuçla, hatayla ya da iptalle) doğru verir; beklemez.
+
+```tr
+TR_var g = TR_async TR_sum([1, 2]); g.TR_wait(); TR_print(g.TR_done())
+```
+
+Görünümü:
+
+```text
+en: var g = async sum([1, 2]); g.wait(); print(g.done())
+tr: değişken g = eşzamanlı toplam([1, 2]); g.bekle(); yazdır(g.bitti_mi())
+```
+
+İlişkili: `.TR_wait(...)`
+
 #### `.TR_down_proj` (`TR_mem_down_proj`, `aşağı`)
 
 
@@ -5977,6 +6013,25 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu
 ```
 
 İlişkili: `.TR_token_id(...)`
+
+#### `.TR_wait(...)` (`TR_mem_wait`, `bekle`)
+
+    Görev.bekle() → Herhangi
+
+Görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı fırlatır. Beklerken yorumlayıcı kilidini bırakır.
+
+```tr
+TR_var g = TR_async TR_sum([1, 2]); TR_print(g.TR_wait())
+```
+
+Görünümü:
+
+```text
+en: var g = async sum([1, 2]); print(g.wait())
+tr: değişken g = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
+```
+
+İlişkili: `.TR_done(...)`, `TR_wait_all(...)`
 
 #### `.TR_weight` (`TR_mem_weight`, `ağırlık`)
 

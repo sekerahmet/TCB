@@ -111,7 +111,7 @@ func (fc blockFlagCache) exprCaptures(e ast.Expression) bool {
 	switch x := e.(type) {
 	case nil:
 		return false
-	case *ast.FunctionLiteral:
+	case *ast.FunctionLiteral, *ast.AsyncExpression:
 		return true
 	case *ast.TryExpression:
 		return fc.doesBlockCapture(x.Statement.TryBody) || fc.doesBlockCapture(x.Statement.CatchBody)

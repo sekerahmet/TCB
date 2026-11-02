@@ -377,8 +377,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.1
 
-- **Mevcut durum:** `TR_async` bir ifade değil: `TR_var g = TR_async f(3)` sözdizimi hatası; görevin sonucu alınamıyor [ölçüldü: main `6a525af7`].
-- **Yapılacaklar:** görev değeri `TR_Task[T]` ve `.TR_wait()`; TR testi.
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_async f(x)` ve `TR_async { ... }` bir ifade, görev değeri (`TR_Task`) veriyor; deyim olarak yazılınca değer atılıyor (ayrıştırıcıda `AsyncExpression` deyimi sarar, `TR_try`'ın ifadesi gibi). `g.TR_wait()` sonucu veriyor (blokta `TR_none`) ya da görevin hatasını fırlatıyor; `g.TR_done()` beklemeden durup durmadığını söylüyor; görevin metni "Task" (3.14, tipinin adı). Görevin kendi değerini beklemesi H2918 [test: `TestATaskValueGivesItsResult`, `TestWaitThrowsTheTasksError`, `TestATaskCannotWaitForItself`, `TestAsyncIsAnExpression`, `tests/eszamanli_test.tr`'nin "10.1 eşzamanlı bir ifadedir" testi].
 
 ### 10.2
 

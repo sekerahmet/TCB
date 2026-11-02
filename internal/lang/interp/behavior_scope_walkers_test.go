@@ -152,7 +152,7 @@ func (fc blockFlagCache) legacyExprCaptures(e ast.Expression) bool {
 	switch x := e.(type) {
 	case nil:
 		return false
-	case *ast.FunctionLiteral:
+	case *ast.FunctionLiteral, *ast.AsyncExpression: // görev değeri (10.1) eski gezginlerden sonra geldi
 		return true
 	case *ast.InterpolatedString:
 		for _, p := range x.Parts {

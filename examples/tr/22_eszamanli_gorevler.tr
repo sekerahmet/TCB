@@ -1,6 +1,7 @@
 # TR 4
 # 22 — Eşzamanlı görevler: işleri aynı anda yürütmek.
-# Ne öğretir: eşzamanlı ile arka planda iş başlatmak, bekle_hepsi() ile hepsinin bitmesini beklemek.
+# Ne öğretir: eşzamanlı ile arka planda iş başlatmak, bekle_hepsi() ile hepsinin bitmesini beklemek,
+# görevin sonucunu bekle() ile almak.
 # Sonuç sıradan bağımsız olarak aynıdır.
 # Önceki örnekten: döngüler (07), fonksiyonlar (08).
 # Çalıştırma (proje kökünden): tr examples/tr/22_eszamanli_gorevler.tr
@@ -22,6 +23,14 @@ TR_for i TR_in 0..4 {
 }
 TR_wait_all()
 TR_print("biten görev sayısı: \(biten)")
+
+# eşzamanlı bir değer de verir: görevin kendisi. bekle() sonucu verir, bitti_mi() beklemeden sorar.
+TR_func kare(x: TR_Int) -> TR_Int {
+    TR_sleep(0.01)
+    TR_return x * x
+}
+TR_var görev: TR_Task[TR_Int] = TR_async kare(12)
+TR_print("sonuç: \(görev.TR_wait()), bitti mi: \(görev.TR_done())")
 
 # --- Kendin dene ---
 # 1. uyu(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?

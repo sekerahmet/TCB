@@ -64,6 +64,10 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 			return nil
 		}
 		leftExp = &ast.TryExpression{Token: st.Token, Statement: st}
+	case lexer.TokConcurrent:
+		// TR_async ifade olarak görev değeri verir (10.1).
+		st := p.parseAsyncStatement()
+		leftExp = &ast.AsyncExpression{Token: st.Token, Statement: st}
 	case lexer.TokFunction:
 		leftExp = p.parseFunctionLiteral()
 	case lexer.TokLBracket:
