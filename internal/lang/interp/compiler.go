@@ -147,8 +147,8 @@ type compiler struct {
 	root *compilerScope
 	// source derlenen kodun dosyasıdır (nil: ana program); fonksiyonlar onu taşır.
 	source *Source
-	// textLang derlenen kodun dosyasının yazım dilidir (nil: kanonik); metin yerleştirmesi
-	// değerleri bu dilde metne çevirir (3; VM.textLanguage).
+	// textLang değerin metninin ad listesidir (3.14, VM.textLanguage: her zaman codes.ValueNames());
+	// metin yerleştirmesi değerleri onunla metne çevirir. Dosyanın dili yoktur (2.1).
 	textLang *codes.Language
 	// blocks blokların kapsam bayraklarının önbelleğidir (scope_analysis.go).
 	blocks blockFlagCache

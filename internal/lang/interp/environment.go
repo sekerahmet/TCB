@@ -178,7 +178,7 @@ func (h *deferError) Error() string {
 }
 
 // MessageText hatanın lang dilindeki metnidir (messages.Localized): ilk hata da ertelenen işlerin
-// hataları da yakalayan dosyanın dilinde yazılır.
+// hataları da okuyanın dilinde (lang) yazılır.
 func (h *deferError) MessageText(lang string) string {
 	pieces := make([]string, len(h.extras))
 	for i, e := range h.extras {

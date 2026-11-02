@@ -34,8 +34,8 @@ var (
 	_ LanguageText = (*StructDefVal)(nil)
 )
 
-// textOf val'ın şu an çalışan koddaki metnidir: program bir değeri işlemin yazıldığı dosyanın
-// dilinde metne çevirir (3, 17.1). Programın değerden metin yaptığı her yer bunu kullanır
+// textOf val'ın metnidir: program bir değeri dilden bağımsız metne çevirir (3.14; dosyanın dili
+// yoktur, 2.1). Programın değerden metin yaptığı her yer bunu kullanır
 // (metin(), yazdır, yerleştirme, Metin ile '+', birleştir, dosya_yaz, girdi'nin istemi, metin
 // metotlarının argümanları). Veri biçimleri (JSON, günlük, kontrol noktası) ve iletiler
 // kullanmaz: onlar Inspect'tedir.
