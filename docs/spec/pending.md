@@ -21,6 +21,7 @@ Uygulama sırasında verilip aynı gün dil tanımına yazılan kararlar. DENET�
 Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamıştı: onaltılık hash sabiti sözdizimi hatasıydı ve iletisi ".0 ekle" diyordu; hash çarpımının taşma iletisi ondalık öneriyordu; yapı dolaşılamıyordu; sözlük üreteci "expected a value" veriyordu [ölçüldü: 2026-10-28]. Bugünkü durumları status'ta.
 
 - **13.8, geçici (2026-10-28, dokuz iş tartısı, `bolum1-9-dokuz-is`):** yapının JSON'u iki yönlü. **Tur 1 (2026-11-01, Gemini `TUR1_RAPORU.md`, DENETİM `kol-denetim-tur1-rapor-sonuc.md`): değiştir; yazılacak.**
+- **16.2, geçici (2026-11-02, Jarvis B; güvenlik):** `TR_special_tokens: TR_false` özel olmayan eklenmiş parçaları (`<think>`, `<tool_response>`) da kapatır; varsayılan HF gibi eşler. Emsal ayrık: tiktoken kapatır, HF, llama.cpp ve vLLM eşler [ölçüldü ve kaynaklı: DENETİM istek 43]. Biçimli sohbet derleminin yolu 24.4'te. Gemini'nin karar araştırmasından geçmedi; turda denetlenir.
 
 ## Ara
 
