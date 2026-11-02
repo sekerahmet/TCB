@@ -15,7 +15,7 @@ Karşılaştırma:
 | Toplu ve akışlı | `run` ve `Popen` | `Output` ve `Start` | `output` ve `spawn` | Deno `output()` ve `spawn()` | `TR_run_process` ve `TR_spawn_process` |
 | Durdurma | `timeout=`: öldürür ve bekler | `CommandContext` öldürür; `WaitDelay` | `Child` düşünce süreç yaşar | Deno `AbortSignal` | nazik istek, 2 sn, öldürme; süreç grubu (21.5) |
 | Ortam | devralır; `env=` hepsini değiştirir | devralır; `Env` hepsini değiştirir | devralır; `.env` ekler | Deno devralır, `env` ekler | gizliler hariç devralır, `TR_env:` ekler (21.6) |
-| `PATH` ve `.bat` | sisteme bağlı | 1.19'dan beri göreli `PATH` sonucu yok | 1.77.2: kaçırılamayan `.bat` argümanında `InvalidInput` | Node: `.bat` ve `.cmd` `EINVAL` | göreli `PATH` yok, `.bat` ve `.cmd` yok (21.3) |
+| `PATH` ve `.bat` | sisteme bağlı | Go 1.19'dan beri göreli `PATH` sonucu yok | 1.77.2: kaçırılamayan `.bat` argümanında `InvalidInput` | Node: `.bat` ve `.cmd` `EINVAL` | göreli `PATH` yok, `.bat` ve `.cmd` yok (21.3) |
 
 ### 21.1
 
