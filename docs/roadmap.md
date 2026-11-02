@@ -31,7 +31,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
   - **Faz 0, bitti:** toplu ve sıralı işler (kancalar, ad göçleri, ortak sorgular).
   - **Faz 1, sürüyor** (kolların günlük durumu bu belgede tutulmaz; ana oturum depo dışında takip eder):
     - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi. Üçüncü dilim birleşti (2026-11-02): açılmamış isteğe bağlı değer (3.5), demetin tipi (3.6a, 5.3) ve `TR_JSON` (3.7a) denetim hatası; `TR_JSON` tipli değişmezin denetimi D1'in çalışma anı diliminden sonra gelir;
-    - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. İlk iki dilim birleşti (ikincisi 2026-11-02: hata değeri `TR_Error` ve 10.2'nin süreyle devreden kilidi); üçüncü dilim görevler ve iptal;
+    - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. Üç dilim birleşti (ikincisi ve üçüncüsü 2026-11-02: hata değeri `TR_Error`, 10.2'nin süreyle devreden kilidi; görev değeri, görev listesini beklemek, iptal ve süre sınırı); sıralama ve JSON kaldı;
     - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç;
     - **T1, tensör çekirdeği:** ilk dilim yeni cins istemeyen sessiz yanlışlar (safetensors yazımı, paylaşılan üretecin kaydı, −0.0 sırası, türevin yazma kuralları, yerinde bileşik atama); ikinci dilim cinsli tensör (`TR_Int`, `TR_Bool`, float64). İlk dilim birleşti (2026-11-02);
     - **iletiler:** önerinin ve kod örneğinin kimlikle yazılması.
