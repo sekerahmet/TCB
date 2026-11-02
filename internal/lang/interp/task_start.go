@@ -32,6 +32,9 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement, held bool)
 		task := v.NewTaskVM()
 		t := newTask(line, held)
 		task.task = t
+		if v.task != nil {
+			v.task.addChild(v, t) // görevin alt görevi (10.9)
+		}
 		go func(e *Environment) {
 			defer v.wg.Done()
 			task.acquireGIL()
@@ -56,14 +59,22 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement, held bool)
 						err = ErrInterrupted
 					}
 				}
-				t.finish(result, err)
+				t.finish(task, result, err)
 			}()
 			defer func() {
-				// Görevin ertelenen işleri görev bitince çalışır; hataları görev hatasına eklenir.
-				// Durdurma ya da TR_exit yüzünden bitmek bir görev hatası değildir.
+				if r := recover(); r != nil {
+					err = panicError(r)
+				}
+				err = task.takeUnwindErrors(err) // çözülürken ertelenen işlerin hataları (9.4)
+				// Görev program gibi biter (10.9): önce başlattığı görevler beklenir (hatayla ya da
+				// iptalle bittiyse önce iptal edilirler), sonra ertelenen işleri çalışır; hataları
+				// görev hatasına eklenir. Durdurma, iptal ya da TR_exit yüzünden bitmek bir görev
+				// hatası değildir.
+				t.endChildren(task, err != nil)
 				err = addDeferError(err, task.runDefers(e))
 				report(taskError(err))
 			}()
+			task.checkInterrupt() // başlamadan iptal edilen görev hiç çalışmaz
 			if bodyBlock != nil {
 				_, _, err = bodyBlock.run(task, e) // bloğun değeri yoktur (10.1: TR_NoneType)
 			} else if call != nil {

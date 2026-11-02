@@ -370,6 +370,7 @@ Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): an
 
 - **Mevcut durum:** kapsamın hatası, kapsam hatasız bittiyse ilk ertelenen işin hatası korunuyor; ertelenen işlerin öbür hataları çalışma sırasıyla `e.TR_suppressed`'de; eskiden yakalanan metinde birleşiyordu ("govde hatasi; error in defer as well: ...") [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 9.4 testi (gövde hatası ve iki ertele hatası; hatasız kapsamda iki ertele hatası), `TestCaughtErrorTypesAreErrorValues`].
 - **Yapılacaklar:** yakalanmayan hatada bastırılanların kodu ve iletisiyle gösterilmesi (8.6); gösterilen metin bugün birleşik.
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** yığın durdurma (1.5) ya da iptalle (10.9) çözülürken de blokların ertelenen işleri çalışıyor (önceden yalnız fonksiyonun, görevin ve programın ertelenenleri çalışıyordu, bloğunki atlanıyordu); çözülürken ertelenen işin hatası `TR_catch` ile yakalanmıyor ama kaybolmuyor: durdurmada programın hatalarına eklenip yazılıyor (çıkış kodu 1), iptalde bekleyenin aldığı iptal hatasının `TR_suppressed`'inde (önceden ikisi de sessizce atılıyordu) [test: `TestDefersKeepTheirErrorsWhileUnwinding`].
 
 ## 10. Eşzamanlılık
 
@@ -421,6 +422,8 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 - **Mevcut durum:** iptal 1.5'in noktalarını kullandığı için döngüde 256 tur sürebilir; ağır turlu döngüde bu saniyeler olabilir [hipotez: DENETİM 10-3]. 1.5'in noktası süreyle de sınırlanabilir; 1. bölümün işi.
 - **Yapılacaklar:** iptal (`TR_cancel`) 1.5'in noktalarıyla ve yerleşik ayrımıyla, alt görevlere geçmesi, ertelenen işlerin çalışması, iptalin yakalanmaması, iptal ve zaman aşımı ileti kodları (8.5); TR testi.
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** `g.TR_cancel()` görevi 1.5'in güvenli noktalarında durduruyor (fonksiyon girişi, döngü turu, süren beklemeler; durum değiştiren yerleşik biter). İptal görevin içinde `TR_catch` ile yakalanmıyor, ertelenen işleri çalışıyor. İptal başlattığı bitmemiş görevlere geçiyor; görev gövdesi bitince (hatasız da) önce alt görevlerini bekliyor, hatayla ya da iptalle bittiyse önce onları iptal ediyor, sonra ertelenenleri çalışıyor. Bekleyen görev durunca iptal hatasını (H2920) alıyor, `g.TR_done()` ancak o zaman `TR_true`. Bitmiş görevi iptal etmek ve ikinci iptal etkisiz; iptal görev hatası olarak yazılmıyor (10.6) [test: `TestACancelledTaskStopsAtItsSafePoint`, `TestCancelReachesTheTasksChildren`, `TestDefersKeepTheirErrorsWhileUnwinding`].
+- **Gemini Koşu 4'ün yedi maddesi (D1 dilim 3):** iptalin durmasını bekleme, alt görevler ve ertelenenler (10.9), `TR_wait_all`'da `TR_suppressed` (10.5), 10.6'nın yazma anı ve 9.4'ün durdurmada ertelenen hatası uygulandı. Kalan iki: 9.1'in son deyim olan `TR_defer` denetim hatası (denetleyicinin işi, bu dilimin yetkisi dışında) ve 5.4'ün bileşik atamadaki değerlendirme sırası (görevlerden bağımsız yorumlayıcı işi).
 - **Gemini Koşu 4 (2026-10-29):** iptal edilen görevin durmasını bekleme, görevin alt görevlerini bekleyip sonra ertelenenleri çalıştırması, `TR_wait_all`'da `TR_suppressed`, 10.6'nın yazma anı, 9.1'in son deyim `TR_defer` hatası, 9.4'ün durdurmada ertelenen hatası, 5.4'ün değerlendirme sırası uygulanacak.
 
 ## 11. Modüller

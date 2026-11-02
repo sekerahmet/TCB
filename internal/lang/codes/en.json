@@ -315,6 +315,7 @@
   "TR_mem_bias": { "name": "bias" },
   "TR_mem_blocks": { "name": "blocks" },
   "TR_mem_build_cache": { "name": "build_cache" },
+  "TR_mem_cancel": { "name": "cancel" },
   "TR_mem_capacity": { "name": "capacity" },
   "TR_mem_cause": { "name": "cause" },
   "TR_mem_checkpoint": { "name": "checkpoint" },

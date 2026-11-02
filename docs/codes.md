@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 572 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 63 metot, 101 özellik, 137 adlı argüman.
+Toplam 573 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 64 metot, 101 özellik, 137 adlı argüman.
 
 ## İçindekiler
 
@@ -1097,7 +1097,7 @@ en: var g: Task[Int] = async sum([1, 2]); print(g.wait())
 tr: değişken g: Görev[Tam] = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
 ```
 
-Üyeleri: `.TR_done(...)`, `.TR_wait(...)` · İlişkili: `TR_async`, `.TR_wait(...)`, `.TR_done(...)`
+Üyeleri: `.TR_cancel(...)`, `.TR_done(...)`, `.TR_wait(...)` · İlişkili: `TR_async`, `.TR_wait(...)`, `.TR_done(...)`
 
 #### `TR_Tensor` (`TR_type_Tensor`, `Tensör`)
 
@@ -4485,6 +4485,25 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 #### `.TR_build_cache(...)` (`TR_mem_build_cache`, `önbellek_kur`)
 
 
+
+#### `.TR_cancel(...)` (`TR_mem_cancel`, `iptal_et`)
+
+    Görev.iptal_et() → YokTipi
+
+Görevi iptal eder: görev bir sonraki güvenli noktada durur, başlattığı görevler de iptal edilir, ertelenen işleri çalışır. Görevi bekleyen iptal hatası alır. Bitmiş görevde etkisi yoktur.
+
+```tr
+TR_var g = TR_async { TR_sleep(10) }; g.TR_cancel(); TR_print(TR_error_code { g.TR_wait() }, g.TR_done())
+```
+
+Görünümü:
+
+```text
+en: var g = async { sleep(10) }; g.cancel(); print(error_code { g.wait() }, g.done())
+tr: değişken g = eşzamanlı { uyu(10) }; g.iptal_et(); yazdır(hata_kodu { g.bekle() }, g.bitti_mi())
+```
+
+İlişkili: `.TR_wait(...)`, `.TR_done(...)`
 
 #### `.TR_capacity` (`TR_mem_capacity`, `kapasite`)
 

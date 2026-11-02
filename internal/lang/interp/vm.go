@@ -244,6 +244,10 @@ type VM struct {
 	// orada beklemeler bırakılmaz ve durdurma hatası vermez (1.5, 1.6).
 	interruptThrown bool
 	cleanupDepth    int
+	// unwindErrors yığın panikle çözülürken (durdurma 1.5, iptal 10.9) çalışan ertelenen işlerin
+	// hatalarıdır: çerçevenin dönüş değeri atıldığından burada birikir, programın, testin ya da
+	// görevin hatasına eklenir (9.4; takeUnwindErrors).
+	unwindErrors []error
 
 	// owners çağrı derinliğine göre sahiplik çerçeveleri (0: üst düzey); yalnızca görevin
 	// kendi goroutine'i kullanır (ownership.go).
@@ -382,6 +386,7 @@ func (v *VM) Run(prog *ast.Program) (Value, error) {
 		defer v.releaseGIL()
 	}
 	val, err := v.runMain(prog)
+	err = v.takeUnwindErrors(err) // durdurmada ertelenen işlerin hataları (9.4)
 	// Yakalanmayan bir hatayla biten programda öbür görevler 1.5'teki gibi durur (1.9); etkileşimli
 	// kabukta VM sonraki satırlarla sürdüğünden durdurulmaz.
 	if _, main := splitProgramErrors(err); main != nil && !v.interactive {

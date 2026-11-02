@@ -211,7 +211,15 @@ func (b *blockCode) run(v *VM, env *Environment) (Value, flowSignal, error) {
 // çalışır, hataları yutulmaz (9.1, 9.2, 9.4).
 func (b *blockCode) runScoped(v *VM, env *Environment) (Value, flowSignal, error) {
 	env.IsFuncRoot = true
+	returned := false
+	defer func() {
+		// Yığın panikle çözülürken de (durdurma 1.5, iptal 10.9) bloğun ertelenenleri çalışır.
+		if !returned {
+			v.keepUnwindError(v.runDefers(env))
+		}
+	}()
 	val, sig, err := b.runList(v, env)
+	returned = true
 	if derr := v.runDefers(env); derr != nil {
 		return nil, signalNone, addDeferError(err, derr)
 	}

@@ -367,6 +367,7 @@
   "TR_mem_bias": { "kind": "property", "module": "tr/layers" },
   "TR_mem_blocks": { "kind": "property", "module": "tr/layers" },
   "TR_mem_build_cache": { "kind": "method", "module": "tr/layers" },
+  "TR_mem_cancel": { "kind": "method", "types": ["TR_Task"], "returns": "TR_NoneType", "related": ["TR_mem_wait", "TR_mem_done"], "familiar": ["cancel", "abort"], "example": "TR_var g = TR_async { TR_sleep(10) }; g.TR_cancel(); TR_print(TR_error_code { g.TR_wait() }, g.TR_done())" },
   "TR_mem_capacity": { "kind": "property", "module": "tr/layers" },
   "TR_mem_cause": { "kind": "property", "types": ["TR_Error"], "returns": "TR_Error?", "related": ["TR_arg_cause"], "familiar": ["__cause__"], "example": "TR_try { TR_throw \"okunamadı\" } TR_catch e { TR_try { TR_throw TR_Error(\"yüklenemedi\", TR_cause: e) } TR_catch f { TR_print(f.TR_cause) } }" },
   "TR_mem_checkpoint": { "kind": "property", "module": "tr/training" },

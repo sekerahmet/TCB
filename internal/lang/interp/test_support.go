@@ -96,7 +96,7 @@ func (v *VM) RunTest(t *ast.TestStatement) (err error) {
 			// Çöküşte yarıda kalan çağrıların çerçevelerini at (sonraki testler için)
 			v.trimStack(stackSize)
 			if IsInterrupt(r) {
-				err = ErrInterrupted
+				err = v.takeUnwindErrors(ErrInterrupted) // 9.4
 				return
 			}
 			err = messages.At(t.Line(), 0, messages.Internal(fmt.Sprint(r)))

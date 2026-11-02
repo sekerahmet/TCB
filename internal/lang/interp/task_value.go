@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -29,10 +30,17 @@ type TaskVal struct {
 	// waited says a .TR_wait() or TR_wait_all(görevler) got the task's end: its error was thrown
 	// there, so it is not written again (10.6).
 	waited atomic.Bool
+	// cancelled is set by .TR_cancel() (10.9); the task stops at its next safe point, its waits end
+	// when cancelCh closes (task_cancel.go). mu guards children and the end of the task.
+	cancelled atomic.Bool
+	cancelCh  chan struct{}
+	mu        sync.Mutex
+	children  []*TaskVal // the tasks it started, to wait for (and cancel) before its defers
+	ended     bool
 }
 
 func newTask(line int, held bool) *TaskVal {
-	return &TaskVal{line: line, done: make(chan struct{}), held: held}
+	return &TaskVal{line: line, done: make(chan struct{}), held: held, cancelCh: make(chan struct{})}
 }
 
 func (t *TaskVal) Type() ValueType { return ValTask }
@@ -51,16 +59,24 @@ func (t *TaskVal) stopped() bool {
 	}
 }
 
-// finish records the task's end and wakes its waiters.
-func (t *TaskVal) finish(result Value, err error) {
+// finish records the task's end and wakes its waiters; y is the task's own view. A task stopped by
+// its cancel ends with the cancel error (10.9), which the waiters get.
+func (t *TaskVal) finish(y *VM, result Value, err error) {
 	if result == nil {
 		result = Null
 	}
+	t.mu.Lock()
+	t.ended = true
+	if t.cancelled.Load() {
+		y.pending.Add(-1) // iptalin açtığı güvenli nokta yolu kapanır (cancel)
+		err = t.cancelError(y, err)
+	}
+	t.mu.Unlock()
 	t.result, t.err = result, err
 	close(t.done)
 }
 
-// GetProperty gives .TR_wait() and .TR_done().
+// GetProperty gives .TR_wait(), .TR_done() and .TR_cancel().
 func (t *TaskVal) GetProperty(kd codes.Code, name string) (Value, error) {
 	switch kd {
 	case codes.MemWait:
@@ -76,6 +92,15 @@ func (t *TaskVal) GetProperty(kd codes.Code, name string) (Value, error) {
 				return nil, ArgCountError(kd, 0, len(args))
 			}
 			return BoolToVal(t.stopped()), nil
+		}}, nil
+	case codes.MemCancel:
+		return &BuiltinVal{Name: codes.Name(kd), NoNamedArgs: true, Fn: func(y *VM, args []Value, _ map[string]Value) (Value, error) {
+			if len(args) != 0 {
+				return nil, ArgCountError(kd, 0, len(args))
+			}
+			t.cancel(y)
+			y.checkInterrupt() // görev kendini iptal ettiyse burada durur
+			return Null, nil
 		}}, nil
 	}
 	return nil, messages.New(messages.H2474, ValTask, name, "") // denetimdeki hatanın kendisi (13.11)
