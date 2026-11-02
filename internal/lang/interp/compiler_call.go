@@ -298,6 +298,23 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 			v.afterBuiltin(fn, res, []Value{av}, nil)
 			return res, nil
 		}
+	case *TypeVal:
+		// Hızlı yol: tek argümanlı tip çağrısı (TR_String(i), 3.12), callType'ın Single dalının
+		// aynısı (escape, newOp ve adopt yok; argüman dilimi ayrılmaz). Yapı tipi ve başka durumlar
+		// eski yoldan.
+		if nargs == 1 && fn.Struct == nil {
+			if b := v.typeCalls[fn.Code]; b != nil && b.Single != nil {
+				av, err := argCode[0](v, env)
+				if err != nil {
+					return nil, err
+				}
+				res, err := b.Single(v, av)
+				if err != nil {
+					return nil, lineSuffix(line, err)
+				}
+				return res, nil
+			}
+		}
 	}
 	args, err := arguments(v, env, argCode)
 	if err != nil {

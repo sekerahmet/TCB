@@ -2,8 +2,11 @@ package interp
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Faz 2 — dilin imzası: 'o' zamiri ve Türkçe hata mesajları
@@ -134,5 +137,27 @@ func TestAnEarlierInputsCallSeesALaterAssignment(t *testing.T) {
 	run("TR_print(TR_error_code { h() })\n")
 	if got, want := out.String(), "2\n51\nH2710\n"; got != want {
 		t.Fatalf("%q beklenirdi, gelen %q", want, got)
+	}
+}
+
+// Kural (3.12): tek argümanlı tip çağrısı (callAt'in hızlı yolu) eski yolla aynı sonucu ve aynı hatayı
+// verir: hatası çağrının satırındadır, argümanın hatası olduğu gibi geçer. Yapı tipi, argümansız ve
+// iki argümanlı tip çağrısı eski yoldan gider.
+func TestAOneArgumentTypeCallIsTheTypesCall(t *testing.T) {
+	const source = `TR_struct N {
+    x: TR_Int
+}
+TR_var l = [1, 2]
+TR_var k = TR_List(l)
+k.TR_append(3)
+TR_print(TR_String(5), TR_Int("12"), TR_Float(2), l, k, TR_Type(N(x: 1)), N(x: 2).x)
+TR_print(TR_error_code { TR_Int("a") }, TR_error_code { TR_Int(1 // 0) }, TR_error_code { TR_Dict() }, TR_error_code { TR_Range(3) })
+TR_var y = TR_Int("b")
+`
+	out, _, err := runTROut(t, source)
+	const want = "5 12 2.0 [1, 2] [1, 2, 3] N 2\nH2640 H2470 H2645 H2657\n"
+	var lineErr *LineError
+	if out != want || !messages.Has(err, messages.H2640) || !errors.As(err, &lineErr) || lineErr.Line != 9 {
+		t.Fatalf("%q ve 9. satırda H2640 beklenirdi, gelen %q (%v)", want, out, err)
 	}
 }
