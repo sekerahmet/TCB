@@ -29,7 +29,7 @@ func (v *VM) registerTestBuiltins() {
 			return nil, m.Error() // katalog iletisi olduğu gibi, kendi koduyla
 		}
 		if len(args) == 2 {
-			return nil, messages.New(messages.H2456, y.textOf(args[1])) // kullanıcının değeri dosyanın dilinde (3)
+			return nil, messages.New(messages.H2456, y.textOf(args[1])) // kullanıcının değeri, metni dilden bağımsız (3.14)
 		}
 		return nil, messages.New(messages.H2457, testShow(args[0]))
 	})

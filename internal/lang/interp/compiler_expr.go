@@ -253,25 +253,12 @@ func (c *compiler) dictLiteral(k *compilerScope, e *ast.DictLiteral) exprCode {
 	}
 }
 
-// interpolation metin yerleştirmesinin kodudur: parçaların değerleri derlenen dosyanın dilinde
-// metne çevrilip birleştirilir (3; c.textLang).
+// interpolation metin yerleştirmesinin kodudur: parçaların değerleri değerin metnine (3.14,
+// c.textLang: dilden bağımsız ad listesi) çevrilip birleştirilir.
 func (c *compiler) interpolation(pieces []exprCode) exprCode {
-	if lang := c.textLang; lang != nil {
-		return func(v *VM, env *Environment) (Value, error) {
-			var sb strings.Builder
-			for _, p := range pieces {
-				val, err := p(v, env)
-				if err != nil {
-					return nil, err
-				}
-				sb.WriteString(valueText(val, lang))
-			}
-			return &StringVal{Val: sb.String()}, nil
-		}
-	}
-	// Türkçe dosya: çekirdek değerlerin metni Inspect'tir (Inspect bugün Türkçedir, codes.Source); Inspect'i görüntü
-	// olan öbür değerler (fonksiyon, yerleşik, yapı, motor değerleri) valueText'e gider. Sıcak
-	// yol: tip anahtarı somut.
+	lang := c.textLang
+	// Sıcak yol: tip anahtarı somut. Çekirdek değerlerin Inspect'i değerin metnidir
+	// (Text(codes.ValueNames())); öbür değerler (kap, fonksiyon, yapı, motor değerleri) valueText'e gider.
 	return func(v *VM, env *Environment) (Value, error) {
 		var sb strings.Builder
 		for _, p := range pieces {
@@ -285,7 +272,7 @@ func (c *compiler) interpolation(pieces []exprCode) exprCode {
 			case *IntVal, *FloatVal, *BoolVal, *NullVal:
 				sb.WriteString(val.Inspect())
 			default:
-				sb.WriteString(valueText(val, nil))
+				sb.WriteString(valueText(val, lang))
 			}
 		}
 		return &StringVal{Val: sb.String()}, nil

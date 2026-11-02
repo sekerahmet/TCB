@@ -269,8 +269,12 @@ func (v *VM) callPrepared(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	}
 	v.endCall(depth, val)
 	if !fk.hasDefer {
-		if derr := v.runDefers(fnEnv); derr != nil {
-			val, err = nil, addDeferError(err, derr)
+		// Gövdede 'ertele' yoksa da ortama iş eklenebilir (hata ayıklayıcının ExecStatements'ı).
+		// Denetim burada: runDefers satır içine alınmıyor, her çağrıda boşuna çağrılmasın.
+		if fnEnv.hasDefers() {
+			if derr := v.runDefers(fnEnv); derr != nil {
+				val, err = nil, addDeferError(err, derr)
+			}
 		}
 		// Hata ayıklayıcı bağlıyken ortam onun elinde kalabilir; havuza konmaz.
 		if fk.pooled && v.Debugger == nil {
@@ -309,12 +313,10 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 			fnEnv.store(slot, Null)
 		}
 	}
-	for _, p := range fk.typed {
-		val, err := p.place.bind(fnEnv.vals[p.slot])
-		if err != nil {
+	if fk.typed != nil {
+		if err := fk.bindTyped(fnEnv); err != nil {
 			return nil, err
 		}
-		fnEnv.store(p.slot, val)
 	}
 	val, sig, err := fk.bodyBlock.run(v, fnEnv)
 	if err != nil {
@@ -323,5 +325,21 @@ func (v *VM) functionBody(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 	if sig != signalReturn && !fk.blockValue {
 		return Null, nil // örtük dönüş yoktur (6.2): TR_return'süz biten fonksiyon değer döndürmez
 	}
+	if fk.ret == placeAny {
+		return val, nil // sıcak yol: çevirisiz dönüşte bind çağrılmaz (satır içine alınmıyor)
+	}
 	return fk.ret.bind(val)
+}
+
+// bindTyped tipli parametrelerin değerini yazılı tiplerine göre kurar (typed_places.go). Ayrı
+// fonksiyondur: tipli parametresi olmayan çağrının sıcak yolu (functionBody) bu döngüyü taşımaz.
+func (fk *funcCode) bindTyped(fnEnv *Environment) error {
+	for _, p := range fk.typed {
+		val, err := p.place.bind(fnEnv.vals[p.slot])
+		if err != nil {
+			return err
+		}
+		fnEnv.store(p.slot, val)
+	}
+	return nil
 }

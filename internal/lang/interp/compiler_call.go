@@ -71,17 +71,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 				return v.callAt(fnVal, argCode, env, line)
 			}
 		}
-		called := calledName(k, e.Function)
-		return func(v *VM, env *Environment) (Value, error) {
-			fnVal, err := fun(v, env)
-			if err != nil {
-				return nil, err
-			}
-			if err := valueCall(fnVal, called, nargs, false, line); err != nil {
-				return nil, err
-			}
-			return v.callAt(fnVal, argCode, env, line)
-		}
+		return positionalCall(k, e, fun, argCode, line)
 	}
 
 	fun = c.namedCallee(k, e, fun)
@@ -107,6 +97,28 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 			return nil, err
 		}
 		return v.applyCompiled(fnVal, args, named, line)
+	}
+}
+
+// positionalCall adlı argümansız çağrının kodudur: çağrılan değer okunur, değer üzerinden çağrının
+// kuralı denetlenir (valueCall, 6.9) ve çağrı yapılır (callAt).
+func positionalCall(k *compilerScope, e *ast.CallExpression, fun exprCode, argCode []exprCode, line int) exprCode {
+	nargs := len(argCode)
+	called := calledName(k, e.Function)
+	def := k.definitionBody(called)
+	return func(v *VM, env *Environment) (Value, error) {
+		fnVal, err := fun(v, env)
+		if err != nil {
+			return nil, err
+		}
+		// Tanımın kendisi çağrılıyorsa (gövdesi def) adı called'dır, valueCall'un denetimi geçer;
+		// yuvada başka bir değer varsa (f = g, kabuğun sonraki girdisi) denetim çalışır.
+		if fn, ok := fnVal.(*FuncVal); !ok || def == nil || fn.Body != def {
+			if err := valueCall(fnVal, called, nargs, false, line); err != nil {
+				return nil, err
+			}
+		}
+		return v.callAt(fnVal, argCode, env, line)
 	}
 }
 
@@ -285,6 +297,23 @@ func (v *VM) callAt(fnVal Value, argCode []exprCode, env *Environment, line int)
 			}
 			v.afterBuiltin(fn, res, []Value{av}, nil)
 			return res, nil
+		}
+	case *TypeVal:
+		// Hızlı yol: tek argümanlı tip çağrısı (TR_String(i), 3.12), callType'ın Single dalının
+		// aynısı (escape, newOp ve adopt yok; argüman dilimi ayrılmaz). Yapı tipi ve başka durumlar
+		// eski yoldan.
+		if nargs == 1 && fn.Struct == nil {
+			if b := v.typeCalls[fn.Code]; b != nil && b.Single != nil {
+				av, err := argCode[0](v, env)
+				if err != nil {
+					return nil, err
+				}
+				res, err := b.Single(v, av)
+				if err != nil {
+					return nil, lineSuffix(line, err)
+				}
+				return res, nil
+			}
 		}
 	}
 	args, err := arguments(v, env, argCode)

@@ -275,3 +275,20 @@ func TestNamesInAMessageValueAreSpellings(t *testing.T) {
 		t.Errorf("yakalanan hatanın metni:\n%s\nbeklenen:\n%s", out, want)
 	}
 }
+
+// Kural (3.14): metin yerleştirmesi değerin metnini verir, TR_String ile aynı: sonsuz, tanımsız, eksi
+// sıfır, mantık değerleri, TR_none, tam sayı, metin ve kap (yerleştirmenin tek dalı, compiler_expr.go).
+func TestInterpolationGivesTheValueText(t *testing.T) {
+	const source = `TR_var d = [TR_inf, -TR_inf, TR_nan, -0.0, 2.5, TR_true, TR_false, TR_none, 7, -1200, "a", [1, TR_none]]
+TR_var aynı = TR_true
+TR_for x TR_in d {
+    aynı = aynı TR_and "\(x)" == TR_String(x)
+}
+TR_print(aynı, "\(TR_inf)|\(-TR_inf)|\(TR_nan)|\(-0.0)|\(TR_true)|\(TR_none)|\(3)|\(-1200)")
+`
+	out, _, err := runTROut(t, source)
+	const want = "true inf|-inf|nan|-0.0|true|none|3|-1200\n"
+	if err != nil || out != want {
+		t.Fatalf("%q beklenirdi, gelen %q (%v)", want, out, err)
+	}
+}

@@ -56,6 +56,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_param_kinds_test.go`: çekirdek metotların tanımdaki tek tipli parametrelerinin motorun denetlediği argüman tipiyle (`signature.typesOf`) aynı olması (denetleyici H2423'ü onlardan verir; 4a2 ön şartı (a), 13.11)
 - `behavior_semantics_test.go`: uçtan uca dil anlamı: TR programları bütün yorumlayıcıdan geçerek çalışır
+- `behavior_bench_programs_test.go`: hız kıyas setinin (`tools/bench/tr`) programları küçültülmüş boyla, `tr run`'ın yolunda (hata ayıklayıcısız `VM.Run`); profil ve ayırma sayısı buradan alınır (`go test -bench Programs`)
 - `behavior_typed_signatures_test.go`: tipsiz parametre, alan ve dönüşün iletisindeki düzeltilmiş satır (6.1, 7.1) kopyalanınca modül denetimden geçer ve program istenen sonucu verir
 - `behavior_robustness_test.go`: bütün yorumlayıcının çökme, kilitlenme ve eşzamanlılık güvenliği
 - `behavior_hooks_test.go`: kanca arayüzlerini uygulayan her tipin derleme anı denetimi (`var _ interp.X = (*T)(nil)`) taşıdığı (depo genelinde)

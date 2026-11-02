@@ -98,3 +98,30 @@ func TestAJSONPlaceRejectsInfinity(t *testing.T) {
 		t.Fatalf("2. satırda H2653 beklenirdi, gelen %v", err)
 	}
 }
+
+// Kural (3.13, 3.7a): çeviri yalnız TR_Float ve TR_JSON yerindedir; başka tipte dönen ve parametresi
+// tipsiz olan çağrı değeri olduğu gibi verir (bu yol bind'ı hiç çağırmaz, calls.go). Aynı programda
+// tipli parametre ve dönüş yine çevrilir; JSON'a giremeyen parametre çağrıda hatadır.
+func TestAPlaceWithoutConversionKeepsTheValue(t *testing.T) {
+	const source = `TR_func n(x: TR_Int) -> TR_Int {
+    TR_return x
+}
+TR_func l(x: TR_List[TR_Int]) -> TR_List[TR_Int] {
+    TR_return x
+}
+TR_func f(x: TR_Int, y: TR_Float) -> TR_Float {
+    TR_return x + y
+}
+TR_func j(x: TR_JSON) -> TR_Int {
+    TR_return 1
+}
+TR_var a = [1, 2]
+TR_print(TR_Type(n(3)), n(3), l(a) == a, TR_Type(f(1, 2)), f(1, 2), TR_Type(l([1])[0]))
+TR_print(TR_error_code { j([TR_inf]) })
+`
+	out, _, err := runTROut(t, source)
+	const want = "Int 3 true Float 3.0 Int\nH2653\n"
+	if err != nil || out != want {
+		t.Fatalf("%q beklenirdi, gelen %q (%v)", want, out, err)
+	}
+}
