@@ -78,7 +78,7 @@ func reduceInt64(vals []int64, kind ReduceKind, outer, n, inner int, outShape []
 				}
 				r, ok := w.int64()
 				if !ok {
-					return nil, &ElemFault{Kind: FaultOverflow, Index: o*inner + i, A: w.sat(), DType: Int64}
+					return nil, &ElemFault{Kind: FaultOverflow, Index: o*inner + i, A: w.sat(), Sum: w.text(), DType: Int64}
 				}
 				out[o*inner+i] = r
 				continue
@@ -198,6 +198,16 @@ func (w wide) int64() (int64, bool) {
 	return r, w.hi == r>>63
 }
 
+// text değerin onluk yazımı (sığmayan toplamın iletisi için).
+func (w wide) text() string {
+	return w.big().String()
+}
+
+func (w wide) big() *mbig.Int {
+	sum := new(mbig.Int).Lsh(mbig.NewInt(w.hi), 64)
+	return sum.Add(sum, new(mbig.Int).SetUint64(w.lo))
+}
+
 // sat sığmayan değerin iletideki yaklaşığı (int64'ün ucu).
 func (w wide) sat() int64 {
 	if w.hi < 0 {
@@ -224,9 +234,7 @@ func MeanIntTyped(t *Tensor, axis int) *Tensor {
 			for k := 0; k < n; k++ {
 				w.add(vals[(o*n+k)*inner+i])
 			}
-			sum := new(mbig.Int).Lsh(mbig.NewInt(w.hi), 64)
-			sum.Add(sum, new(mbig.Int).SetUint64(w.lo))
-			f, _ := new(mbig.Rat).SetFrac(sum, mbig.NewInt(int64(n))).Float32()
+			f, _ := new(mbig.Rat).SetFrac(w.big(), mbig.NewInt(int64(n))).Float32()
 			out[o*inner+i] = f
 		}
 	}

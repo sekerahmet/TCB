@@ -124,8 +124,9 @@ type ElemFault struct {
 	Shape []int // sonucun şekli
 	Int   int64 // hatalı değer ya da miktar (tam sayıda)
 	Float float64
-	A, B  int64 // aritmetikte işlenenler (taşma, sıfıra bölme, eksi üs)
-	DType DType // hedef hassasiyet
+	A, B  int64  // aritmetikte işlenenler (taşma, sıfıra bölme, eksi üs)
+	Sum   string // sığmayan toplamın kesin değeri (onluk; yalnız toplamda)
+	DType DType  // hedef hassasiyet
 }
 
 // Elem tensörün öğe cinsi.

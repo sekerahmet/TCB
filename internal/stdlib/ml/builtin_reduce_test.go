@@ -2,6 +2,7 @@ package ml
 
 import (
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -101,5 +102,24 @@ func BenchmarkMinAll(b *testing.B) {
 	t := tensor.Randn(rand.New(rand.NewSource(1)), 1000, 1000)
 	for i := 0; i < b.N; i++ {
 		_ = minAll(t)
+	}
+}
+
+// Kural (15.18): sığmayan tam sayı toplamının iletisi kesin toplamı yazar; toplamın işlenenleri
+// olmadığından uydurma bir "a + b" yazılmaz.
+func TestIntSumOverflowMessage(t *testing.T) {
+	for code, want := range map[string]string{
+		"TR_sum(TR_Tensor([9223372036854775807, 1]))":       ": 9223372036854775808 ",
+		"TR_sum(TR_Tensor([-9223372036854775807 - 1, -1]))": ": -9223372036854775809 ",
+	} {
+		_, err := run(t, code)
+		if !messages.Has(err, messages.H6961) {
+			t.Fatalf("%s: %v, beklenen H6961", code, err)
+		}
+		for _, lang := range []string{"tr", "en"} {
+			if text := messages.ErrorIn(err, lang); !strings.Contains(text, want) || strings.Contains(text, " + ") {
+				t.Errorf("%s (%s): %q, içermeli %q", code, lang, text, want)
+			}
+		}
 	}
 }

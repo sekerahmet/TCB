@@ -20,7 +20,10 @@ func faultError(fn any, op string, f *tensor.ElemFault) error {
 	expr := strconv.FormatInt(f.A, 10) + " " + op + " " + strconv.FormatInt(f.B, 10)
 	switch f.Kind {
 	case tensor.FaultOverflow:
-		if op == "-" && f.B == 0 && f.A != 0 || op == "" {
+		switch {
+		case f.Sum != "":
+			expr = f.Sum // toplamın işlenenleri yok: kesin değeri yazılır
+		case op == "-" && f.B == 0 && f.A != 0 || op == "":
 			expr = op + strconv.FormatInt(f.A, 10)
 		}
 		wide := "no"
