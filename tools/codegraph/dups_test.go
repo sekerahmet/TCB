@@ -498,9 +498,10 @@ func orphanGitFixture(t *testing.T) string {
 }
 
 // Kural: yerel dal ile karşılaştırılan dal arasında ortak ata bulunamadığında (sığ klon ya da eski yerel main)
-// `dups --changed` ve `changed` yalnız "exit status 1" demez; ortak atası bulunamayan revizyonu hangi bayrağın
-// (`--changed` ya da `--base`) verdiğini ve o bayrağın düzeltilmiş hâlini (`--changed origin/main` ya da
-// `--base origin/main`) açıklar, önerilen komut koşulunca hata kalkar.
+// `dups --changed` ve `changed` yalnız "exit status 1" demez; ortak atası bulunamayan revizyon bir bayraktan
+// (`--changed` ya da `--base`) geldiyse o bayrağı ve düzeltilmiş hâlini (`--changed origin/main` ya da
+// `--base origin/main`), `changed`'de konumsal aralıktan (`main...HEAD`) geldiyse aralığın düzeltilmiş hâlini
+// (`changed origin/main...HEAD`) açıklar, önerilen komut koşulunca hata kalkar.
 func TestDupsChangedAndChangedExplainMissingMergeBase(t *testing.T) {
 	root := branchWithCopy(t)
 	gitMust(t, root, "checkout", "-q", "--orphan", "claude/orphan")
@@ -557,6 +558,17 @@ func TestDupsChangedAndChangedExplainMissingMergeBase(t *testing.T) {
 		}
 		if code, _, errOut := commandIn("changed", root, graph, "--no-rebuild", "--base", "origin/main", arg); code != exitOK {
 			t.Errorf("changed --base origin/main %s (suggested fix): exit %d, stderr=%q", arg, code, errOut)
+		}
+	}
+	for _, arg := range []string{"main...HEAD", "main...claude/side"} {
+		code, _, msg := commandIn("changed", root, graph, "--no-rebuild", arg)
+		fixed := strings.Replace(arg, "main", "origin/main", 1)
+		if code != exitFail || !strings.Contains(msg, "no common ancestor") || !strings.Contains(msg, "changed "+fixed) ||
+			strings.Contains(msg, "from --base") || strings.Contains(msg, "--base origin/main") || strings.Contains(msg, "--changed") {
+			t.Errorf("changed %s without merge base: exit %d, stderr=%q", arg, code, msg)
+		}
+		if code, _, errOut := commandIn("changed", root, graph, "--no-rebuild", fixed); code != exitOK {
+			t.Errorf("changed %s (suggested fix): exit %d, stderr=%q", fixed, code, errOut)
 		}
 	}
 }
