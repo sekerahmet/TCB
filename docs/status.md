@@ -911,11 +911,11 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 - **Mevcut durum:** uygulanmadı. `TR_false` yalnız başa ve sona eklenenleri kapatıyor; metindeki `<|im_end|>` yine özel parçanın kimliği oluyor. `p.TR_encode`'un Go kodu `DontAddSpecial`'ı kuruyor, `DontParseSpecial`'ı kurmuyor [ölçüldü: 2026-11-02, main `705b721b`, gpt2 `tokenizer.json`'a eklenen `<|im_end|>` ile; kanıtlı: `internal/stdlib/tokenizer/tokenizer.go`, kodlama metodu]. Güvenlik açığı: sunulan bir modelde kullanıcı metni rol parçası üretebilir.
 - **Yapılacaklar (öncelikli; Jarvis'in sohbet biçiminin ön koşulu):**
   - 16.2'nin kuralı ve TR testi: metindeki özel parça yazımı `TR_false` ile baytlarına kodlanır.
-  - Jarvis B kararı (dil tanımına sohbet biçimi bölümüyle girecek): `TR_false` özel olmayan eklenmiş parçaları da (`<think>`, `<tool_call>`) kapatır. 2026-11-02'de TR de Hugging Face de onları her yolda eşliyor; HF'nin `split_special_tokens=True`'su yalnız özel olanları bölüyor [ölçüldü: 2026-11-02, tokenizers 0.23.2, transformers 5.17.0].
+  - 16.2'nin genişlemesi (2026-11-02, Jarvis B; dil tanımında, uygulanmadı): `TR_false` özel olmayan eklenmiş parçaları da (`<think>`, `<tool_call>`) kapatır. 2026-11-02'de TR de Hugging Face de onları her yolda eşliyor; HF'nin `split_special_tokens=True`'su yalnız özel olanları bölüyor [ölçüldü: 2026-11-02, tokenizers 0.23.2, transformers 5.17.0].
 
 ### 16.3
 
-- **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`]. Yarım kalan UTF-8 dizisi hata vermeden U+FFFD oluyor; beş dizide Hugging Face ile bayt bayt aynı [ölçüldü: 2026-11-02, main `705b721b`]. 16.3 bunu yazmıyor; Jarvis B bölümleriyle girecek (akışlı çözme tamponlu).
+- **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`]. Yarım kalan UTF-8 dizisi hata vermeden U+FFFD oluyor; beş dizide Hugging Face ile bayt bayt aynı [ölçüldü: 2026-11-02, main `705b721b`]. 16.3 bunu 2026-11-02'den beri yazıyor; akışlı çözme 16.3a'da, uygulanmadı.
 - **Yapılacaklar:** `.TR_decode` yalnız tek dizi, birden çok dizi `TR_batch_decode` (13.8a); dağarcık dışı kimliğin hatası ve TR testi.
 
 ### 16.3 (sürüyor)

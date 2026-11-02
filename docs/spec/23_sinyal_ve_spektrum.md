@@ -12,7 +12,7 @@ Konuşmayı yazıya çeviren modeller sesi önce frekans gösterimine çevirir. 
 - `x` bir `TR_Tensor[TR_Float]`'dur; baştaki eksenler toplu eksendir. `TR_Int` tensör hatadır; ileti `TR_Tensor[TR_Float](x)`'i önerir (15.49).
 - `TR_n:` dönüşümün boyudur; verilmezse son eksenin uzunluğudur. Daha kısa sinyalin sonu sıfırla doldurulur. Daha uzun sinyal hatadır, sessizce kesilmez (15.49); ileti dilimi önerir: `x.TR_slice(-1, 0, n)`.
 - Sonucun son ekseni `n // 2 + 1`'dir: gerçek sinyalde negatif frekanslar pozitiflerin eşleniğidir, yazılmaz.
-- Ölçek yoktur: sonuç `Σ x[k] · e^(−2πi·j·k/n)` toplamının kendisidir.
+- Ölçek yoktur: sonuç `Σ x[k] · e^(−2πi·j·k/n)` toplamının kendisidir. Çeyrek periyottaki katsayılar (`1`, `−1`, `i`, `−i`) tamdır; yuvarlama payı yalnız öbür açılardadır.
 - Hesap ve sonuç float32'dedir; float64 girdi float64'te hesaplanır, 16 bitlik girdi float32'ye açılır.
 - Sonuç türev izler.
 
@@ -23,7 +23,7 @@ TR_var gerçek, sanal = TR_rfft(x)
 TR_print(gerçek.TR_tolist(), sanal.TR_tolist()) # [0.0, 2.0, 0.0] [0.0, 0.0, 0.0]
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi (örnekteki tam sıfırlar dahil).
 
 ## Pencere ve STFT
 
@@ -77,9 +77,9 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 ## Whisper'ın girdisi
 
 **23.6** `TR_whisper_log_mel(ses, TR_n_mels: m)` `tr/audio` kitaplığındadır (22.4, 11.6). OpenAI Whisper'ın `transcribe`'ının kullandığı log-Mel'i bir kaydın tamamı için verir: `[m, örnek // 160 + 3000]` şekilli bir `TR_Tensor[TR_Float]`. Kaydın kendi çerçeveleri ilk `örnek // 160`'tır; gerisi 30 saniyelik dolgununkilerdir.
-- `ses` bir `TR_Sound`'dur (22.4).
+- `ses` bir `TR_Sound`'dur (22.4). Denetim sırası: örnekler iki boyutlu değilse hata (alanlar kurulduktan sonra atanmış olabilir, 7.5); sonra hız; sonra kanal.
   - `.TR_sample_rate` 16000 değilse hatadır; ileti yeniden örneklemeyi önerir: `TR_run_process("ffmpeg", ["-nostdin", "-i", girdi, "-ar", "16000", "-c:a", "pcm_s16le", çıktı])` (21.1).
-  - Birden çok kanal hatadır; sessizce tek kanala indirilmez. İleti iki açık yazımı önerir: ilk kanal `TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: 16000)`, ortalama `TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: 16000)`.
+  - Birden çok kanal hatadır; sessizce tek kanala indirilmez. İleti iki açık yazımı önerir: ilk kanal `TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: ses.TR_sample_rate)`, ortalama `TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: ses.TR_sample_rate)`.
 - `TR_n_mels:` zorunludur: modelin `config.json`'undaki `num_mel_bins` (large-v3'te 128, öncekilerde 80).
 - **Sıra** özgün uygulamanınkidir:
   1. sinyalin sonuna 480 000 sıfır örnek (30 saniye) eklenir;
