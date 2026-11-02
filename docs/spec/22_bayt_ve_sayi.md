@@ -45,6 +45,7 @@ TR_print(başlık.TR_read_int(24, TR_dtype: "uint32", TR_byte_order: "little")) 
 **22.4** Ses dosyası `tr/audio` kitaplığındadır (11.6). `TR_read_wav(yol)` bir WAV dosyasını okuyup `TR_Sound` verir:
 - `.TR_samples`: `TR_Tensor[TR_Float]`, şekli `[kanal, örnek]`, değerleri [-1, 1) aralığında;
 - `.TR_sample_rate`: `TR_Int`, saniyedeki örnek sayısı.
+- `TR_Sound` bir yapıdır (7.1); `TR_Sound(TR_samples: t, TR_sample_rate: r)` ile de kurulur (7.2). `t` iki boyutlu değilse ya da `r` pozitif değilse hatadır.
 - Dosyanın parçaları sırayla okunur (`fmt `, `data`; `LIST` ve öbürleri atlanır). Başlığın 44 bayt olduğu varsayılmaz.
 - Okunan biçimler: 16 bit tam sayı PCM, 32 bit ondalık ve bunların `WAVE_FORMAT_EXTENSIBLE` biçimi. Öbürleri (8, 24 ve 32 bit tam sayı PCM, sıkıştırılmış ses) hatadır. İleti `ffmpeg` ile 16 bite çevirmenin yazımını verir: `TR_run_process("ffmpeg", ["-nostdin", "-i", girdi, "-c:a", "pcm_s16le", çıktı])`.
 - 16 bit tam sayı 32768'e bölünür: tam sayı ses ondalığa `TR_Tensor[TR_Float](ham) / 32768.0` ile çevrilir.
