@@ -17,6 +17,7 @@ TR_var izler = []
 TR_defer { izler.TR_append("program") }
 TR_async {
     TR_defer { izler.TR_append("görev") }
+    görev_hazır()
     TR_for { }
 }
 TR_func iş() {
@@ -35,13 +36,20 @@ izler.TR_append("sürdü")
 	vmx := New()
 	var failure bytes.Buffer
 	vmx.Err = &failure
-	ready := make(chan struct{})
+	// Kesme iki yer de ertelenen işini kaydettikten sonra gelir: görev TR_defer'e varmadan
+	// kesilirse ertelenecek işi yoktur, testin sorusu bu değil (CI'da ve yerelde %1–5 düşüyordu).
+	ready, taskReady := make(chan struct{}), make(chan struct{})
 	vmx.RegisterBuiltin("hazır", func(*VM, []Value, map[string]Value) (Value, error) {
 		close(ready)
 		return Null, nil
 	})
+	vmx.RegisterBuiltin("görev_hazır", func(*VM, []Value, map[string]Value) (Value, error) {
+		close(taskReady)
+		return Null, nil
+	})
 	go func() {
 		<-ready
+		<-taskReady
 		time.Sleep(5 * time.Millisecond)
 		vmx.Interrupt()
 	}()
