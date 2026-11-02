@@ -497,7 +497,7 @@ const (
 	H2915 Code = 2915 // Python'un 'except'i TR'de `{#catch}`'tir: `{#catch} e`
 	H2916 Code = 2916 // Python'un 'finally'si TR'de yoktur: kapsamdan nasıl çıkılırsa çıkılsın çalışacak iş `{#defer}` bloğuyla yazılır
 	H2917 Code = 2917 // yakalanan hatanın adı parantezsiz yazılır: `{#catch} {name}`
-	H2918 Code = 2918 // {fn} görevin kendi içinde çağrılamaz: görev kendi durmasını bekleyemez, sonsuza dek beklerdi (satır {line|loc} başlatılan görev)
+	H2918 Code = 2918 // {fn} görevin kendi içinde çağrılamaz: görev kendi durmasını bekleyemez, sonsuza dek beklerdi (satır {line|loc} başlatılan görev). Görevin sonucunu görevin dışında bekleyin: `{#var} g = {#async} f(x)`, sonra `g.{#wait}()`
 	H2919 Code = 2919 // {fn} bir görev listesi alır; listenin [{index}] öğesi görev değil, {given} verildi: görev `{#async} f(x)` ile başlatılır
 	H2920 Code = 2920 // görev iptal edildi (satır {line|loc} başlatılan)
 	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): görev iptal edildi ve durdu (satır {line|loc} başlatılan)

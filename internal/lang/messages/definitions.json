@@ -492,7 +492,7 @@
 "H2915": { "param": [], "slots": {"catch": "TR_kw_catch"} },
 "H2916": { "param": [], "slots": {"defer": "TR_kw_defer"} },
 "H2917": { "param": ["name"], "slots": {"catch": "TR_kw_catch"} },
-"H2918": { "param": ["fn", "line"] },
+"H2918": { "param": ["fn", "line"], "slots": {"var": "TR_kw_var", "async": "TR_kw_async", "wait": "TR_mem_wait"} },
 "H2919": { "param": ["fn", "index", "given"], "slots": {"async": "TR_kw_async"} },
 "H2920": { "param": ["line"] },
 "H2921": { "param": ["fn", "value", "line"] },

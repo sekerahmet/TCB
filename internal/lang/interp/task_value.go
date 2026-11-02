@@ -117,7 +117,17 @@ func (t *TaskVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			return Null, nil
 		}}, nil
 	}
-	return nil, messages.New(messages.H2474, ValTask, name, "") // denetimdeki hatanın kendisi (13.11)
+	return nil, messages.New(messages.H2474, ValTask, name, memberTypesHint(kd, name)) // denetimdeki hata (13.11)
+}
+
+// memberTypesHint is the hint of a missing member's error, the checker's (H1117): the types the
+// member belongs to, its spelling as it is written in code. A name that is no member gets the
+// suggestion of a removed member, if any (methods.go).
+func memberTypesHint(kd codes.Code, name string) *messages.Error {
+	if def, ok := codes.DefinitionOf(kd); ok && kd != codes.None && len(def.Members) > 0 {
+		return messages.New(messages.H1117, codes.Spelling(kd), TypeNames(def.Types()...), "")
+	}
+	return removedMemberHint(name)
 }
 
 // wait waits until the task stops and gives its result or its error.

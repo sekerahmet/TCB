@@ -492,7 +492,7 @@
 "H2915": "Python's 'except' is `{#catch}` in TR: `{#catch} e`",
 "H2916": "Python's 'finally' does not exist in TR: work that must run however the scope is left is written in a `{#defer}` block",
 "H2917": "the caught error's name is written without parentheses: `{#catch} {name}`",
-"H2918": "{fn} cannot be called inside the task itself: a task cannot wait for its own stop, it would wait forever (the task started at line {line|loc})",
+"H2918": "{fn} cannot be called inside the task itself: a task cannot wait for its own stop, it would wait forever (the task started at line {line|loc}). Wait for the task's result outside the task: `{#var} g = {#async} f(x)`, then `g.{#wait}()`",
 "H2919": "{fn} takes a list of tasks; the list's element [{index}] is not a task, {given} given: a task is started with `{#async} f(x)`",
 "H2920": "the task was cancelled (started at line {line|loc})",
 "H2921": "{fn} timed out ({value} seconds): the task was cancelled and has stopped (started at line {line|loc})",

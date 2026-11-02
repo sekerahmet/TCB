@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -43,14 +44,16 @@ TR_print(TR_error_code { g.TR_wait() })
 }
 
 // Kural (10.1): görev kendi durmasını bekleyemez: kendi değerinin .TR_wait()'i sonsuza dek beklerdi,
-// hatadır (H2918); hata satırıyla görevin hatası olur.
+// hatadır (H2918); hata satırıyla görevin hatası olur. İleti doğru yazımı kimlikle verir: sonuç
+// görevin dışında beklenir.
 func TestATaskCannotWaitForItself(t *testing.T) {
 	const source = `TR_var h = TR_async { TR_print(h.TR_wait()) }
 TR_print(TR_error_code { h.TR_wait() })
+h.TR_wait()
 `
 	out, _, err := runTROut(t, source)
-	if err != nil || out != "H2918\n" {
-		t.Fatalf("\"H2918\" beklenirdi, gelen %q (%v)", out, err)
+	if out != "H2918\n" || !messages.Has(err, messages.H2918) || !strings.Contains(err.Error(), "`TR_var g = TR_async f(x)`") || !strings.Contains(err.Error(), "`g.TR_wait()`") {
+		t.Fatalf("doğru yazımlı H2918 beklenirdi, gelen %q (%v)", out, err)
 	}
 	_, _, err = runTROut(t, "TR_var h = TR_async { TR_print(1) }\nh.TR_wait()\nh.TR_done(1)\n")
 	if err == nil {
@@ -58,11 +61,12 @@ TR_print(TR_error_code { h.TR_wait() })
 	}
 }
 
-// Kural (13.11): görevde olmayan üye, denetimdeki hatanın kendisidir (H2474).
+// Kural (13.11): görevde olmayan üye, denetimdeki hatanın kendisidir (H2474): ipucu üyenin hangi
+// tiplerin metodu olduğunu kodda yazıldığı gibi söyler (H1117).
 func TestATaskHasOnlyItsMembers(t *testing.T) {
 	_, err := runTR(t, "TR_var g = TR_async TR_sum([1])\ng.TR_wait()\ng.TR_append(1)\n")
-	if !messages.Has(err, messages.H2474) {
-		t.Fatalf("H2474 beklenirdi, gelen %v", err)
+	if !messages.Has(err, messages.H2474) || !messages.Has(err, messages.H1117) || !strings.Contains(err.Error(), "`.TR_append`") {
+		t.Fatalf("ipuçlu H2474 beklenirdi, gelen %v", err)
 	}
 }
 
