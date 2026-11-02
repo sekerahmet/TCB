@@ -292,7 +292,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
       - bölümü olmayanlar: alt süreç, bayttan sayı (WAV, PCM), sohbet biçimi, canlı ses (ilk sürüm alt süreçle), gömme; ses üretimi için fonemleştirme;
       - 15'in sonraya bıraktıkları: STFT ve Mel; ses üretimi için ters evrişim ve ONNX okuma.
-    - Ses üretiminin üç işi dışındakilerin araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar (Ahmet, 2026-11-02); uygulaması fazların sırasıyla gelir.
+    - Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar; ses üretiminin üç işi de bu karara girer (Ahmet, 2026-11-02). Uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
 - **Uyarlamak:** hazır bir modeli ince ayarla kendi işine uyarlamak, uçtan uca. LoRA'yı dil yazabiliyor; ama PEFT düzeninde kayıt, ince ayar örneği ve bitiş ölçütü yok (arşiv).
 - **Herkes için:** biraz teknik bilgisi olan birinin kendi modelini kurup eğitmesi. Model Sihirbazı, süre ve maliyet tahmini, küçük model tarifleri (arşiv).
