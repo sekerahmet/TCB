@@ -11,8 +11,8 @@ import (
 // Öğe cinsli kurucular (15.2): TR_Tensor[E](veri), TR_zeros[E](şekil), TR_ones[E](şekil),
 // TR_eye[E](n). E TR_Float, TR_Int ya da TR_Bool'dur; TR_randn yalnız TR_Float kurar. x[E]
 // çağrılabilir bir yerleşik verir (interp.RegisterTypeArgs); yerleşik cinssiz kurucuyu çağırıp
-// sonucu E'nin varsayılan hassasiyetine çevirir. Çeviri kesindir: sığmayan ya da NaN öğe
-// hatadır (15.3), türev yalnız ondalık tensörde izlenir.
+// sonucu E'nin hassasiyetine (TR_dtype: ya da varsayılan) çevirir. Çeviri kesindir: sığmayan ya
+// da NaN öğe hatadır (15.3); TR_Float'a çeviri en yakına yuvarlar. Türev yalnız TR_Float'tadır.
 
 // kindDTypes öğe cinsinin varsayılan hassasiyeti (15.1).
 var kindDTypes = map[codes.Code]tensor.DType{
@@ -33,88 +33,84 @@ func registerTypeArgs(v *interp.VM, tensorFn interp.BuiltinFunc) {
 func kindConstructor(k codes.Code, base interp.BuiltinFunc) interp.TypeArgsFunc {
 	fn := codes.NameRef(k)
 	return func(_ *interp.VM, args []*interp.TypeVal) (*interp.BuiltinVal, error) {
-		dt, ok := kindDTypes[args[0].Code]
-		if !ok || args[0].Struct != nil || args[0].Elems != nil {
+		kind := args[0].Code
+		if _, ok := kindDTypes[kind]; !ok || args[0].Struct != nil || args[0].Elems != nil {
 			return nil, messages.New(messages.H6971, fn, interp.Shown(args[0]))
 		}
-		if k == codes.FnRandn && dt != tensor.Float32 {
+		if k == codes.FnRandn && kind != codes.TypeFloat {
 			return nil, messages.New(messages.H6972, fn, interp.Shown(args[0]))
 		}
 		call := func(m *interp.VM, a []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-			if dt == tensor.Float32 {
-				return base(m, a, named)
+			if kind == codes.TypeFloat && k != codes.TypeTensor {
+				return base(m, a, named) // cinssiz kurucu zaten TR_Float'tır
 			}
-			if grad, given := bind.GetNamed(named, nameRequiresGrad); given && grad.IsTruthy() {
-				return nil, messages.New(messages.H6973, fn, codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue), dt.Name())
-			}
-			if k == codes.TypeTensor && len(a) == 1 && !hasNamed(named, nameDType) {
-				if _, isTensor := a[0].(*TensorValue); !isTensor {
-					return kindData(fn, args[0].Code, dt, a[0])
-				}
-			}
-			r, err := base(m, a, named)
-			if err != nil {
-				return nil, err
-			}
-			t, f := tensor.Convert(r.(*TensorValue).t, dt)
-			return typedResult(fn, "", t, f)
+			return kindCall(m, fn, k, kind, base, a, named)
 		}
 		return &interp.BuiltinVal{Name: codes.Name(k), Fn: guarded(call), Pure: true}, nil
 	}
 }
 
-// kindData TR_Tensor[E](veri)'yi kurar (E TR_Int ya da TR_Bool): veri tek değer ya da iç içe
-// listedir; öğeler doğrudan okunur (float32'den geçmez, 2²⁴'ün üstü yuvarlanmaz). Başka cinsten
-// öğe hatadır; ileti ilk öğenin konumunu söyler.
-func kindData(fn codes.Ref, kind codes.Code, dt tensor.DType, v interp.Value) (interp.Value, error) {
-	var data []int64
-	var bad interp.Value
-	badAt := 0
-	leaf := func(x interp.Value) error {
-		switch e := x.(type) {
-		case *interp.IntVal:
-			if dt == tensor.Int64 {
-				data = append(data, e.Val)
-				return nil
-			}
-		case *interp.BoolVal:
-			if dt == tensor.Bool {
-				data = append(data, b2i(e.Val))
-				return nil
-			}
-		}
-		if bad == nil {
-			bad, badAt = x, len(data)
-		}
-		data = append(data, 0) // konum sayılır; tensör kurulmaz
-		return nil
+// kindCall k[kind](a...)'yı yapar: cinssiz kurucuyla (ya da TR_Tensor'ün verisinde doğrudan)
+// kurar, kind'ın hassasiyetine çevirir, türevi en sonda açar.
+func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.BuiltinFunc, a []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+	dt, err := constructorDType(fn, named, kind)
+	if err != nil {
+		return nil, err
 	}
-	var sh []int
-	var err error
-	if l, isList := v.(*interp.ListVal); isList {
-		sh, err = walkList(fn, l, func(n int) { data = make([]int64, 0, n) }, leaf)
+	if err := gradKindError(fn, named, dt); err != nil {
+		return nil, err
+	}
+	var positional interp.Value
+	if k == codes.TypeTensor && len(a) == 2 {
+		positional, a = a[1], a[:1] // TR_Tensor(veri, türev) yazımı
+	}
+	watch, err := requiresGrad(fn, named, positional, false)
+	if err != nil {
+		return nil, err
+	}
+	rest := withoutNamed(named, nameRequiresGrad)
+	var t *tensor.Tensor
+	if _, isTensor := a[0].(*TensorValue); k == codes.TypeTensor && len(a) == 1 && !isTensor {
+		if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {
+			return nil, err
+		}
+		t, err = kindData(fn, kind, a[0])
 	} else {
-		err = leaf(v)
-	}
-	if bad != nil {
-		index := ""
-		if len(sh) > 0 {
-			index = positionText(badAt, sh)
+		if k != codes.TypeTensor {
+			rest = withoutNamed(rest, nameDType) // tensörden kurarken TR_dtype: hatadır (H6008)
 		}
-		return nil, messages.New(messages.H6974, fn, index, interp.Shown(bad), codes.NameRef(kind))
+		var r interp.Value
+		if r, err = base(m, a, rest); err == nil {
+			t = r.(*TensorValue).t
+		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	t, err := safe(func() *tensor.Tensor { return tensor.Int64sOn(tensor.CPU, dt, data, sh...) })
-	if err != nil {
+	if t, err = convertKind(fn, t, dt); err != nil {
 		return nil, err
+	}
+	if watch {
+		t.SetRequiresGrad(true)
 	}
 	return New(t), nil
 }
 
-// hasNamed adlı argüman verilmiş mi?
-func hasNamed(named map[string]interp.Value, a bind.Named) bool {
-	_, given := bind.GetNamed(named, a)
-	return given
+// kindData TR_Tensor[E](veri)'nin verisini kurar: TR_Int ve TR_Bool'da öğeler o cinsten olmalı
+// (doğrudan okunur, float32'den geçmez); TR_Float'ta sayılar en yakına yuvarlanır (tam sayı
+// listesinden ondalık tensör, açık cins dönüşümü), mantık değeri hatadır.
+func kindData(fn codes.Ref, kind codes.Code, v interp.Value) (*tensor.Tensor, error) {
+	d, err := readData(fn, v)
+	if err != nil {
+		return nil, err
+	}
+	if kind != codes.TypeFloat {
+		return d.exact(fn, kind)
+	}
+	for i, x := range d.leaves {
+		if _, number := interp.ToFloat(x); !number {
+			return nil, messages.New(messages.H6974, fn, d.position(i), interp.Shown(x), codes.NameRef(kind))
+		}
+	}
+	return d.float()
 }

@@ -31,20 +31,24 @@ TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_assert_equal(16777216.0, TR_Tensor([16777217.0]).TR_tolist[0])
 }
 
-TR_test "15.1 ara kural: float32'de tam yazılamayan tam sayıdan tensör kurulmaz" {
-    # Tam sayı tensörü gelene kadar (15.2) tam sayı listesi float32 tensör kurar; sessiz yuvarlama hatadır.
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor([16777217]) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor([-16777217]) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor([[1, 2], [3, 33554433]]) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor(16777217) })
-    TR_assert_equal("H6954", TR_error_code { TR_Tensor(-16777217) })
-    TR_assert_equal([16777216.0, -16777216.0], [TR_Tensor(16777216).TR_tolist, TR_Tensor(-16777216).TR_tolist])
-    # 2²⁴ ve float32'de tam yazılan büyük sayılar kurulur.
-    TR_assert_equal([16777216.0, -16777216.0], TR_Tensor([16777216, -16777216]).TR_tolist)
-    TR_assert_equal([16777218.0, 33554432.0], TR_Tensor([16777218, 33554432]).TR_tolist)
-    # Ondalık yazım ve karışık liste ondalıktır, yuvarlar (15.2); iletinin önerisi budur.
+TR_test "15.2 cins veriden çıkar: tam sayı ve aralık TR_Int, mantık TR_Bool, ondalık TR_Float" {
+    # 2²⁴'ün üstündeki kimlik bozulmaz (float32'den geçmez).
+    TR_assert_equal([16777217, -16777217], TR_Tensor([16777217, -16777217]).TR_tolist)
+    TR_assert_equal([[1, 2], [3, 33554433]], TR_Tensor([[1, 2], [3, 33554433]]).TR_tolist)
+    TR_assert_equal(16777217, TR_Tensor(16777217).TR_tolist)
+    TR_assert_equal(["int64", "int64", "bool", "float32"], [TR_Tensor([1, 2]).TR_dtype, TR_Tensor(0..3).TR_dtype, TR_Tensor([TR_true]).TR_dtype, TR_Tensor([]).TR_dtype])
+    TR_assert_equal([0, 1, 2], TR_Tensor(0..3).TR_tolist)
+    # Ondalık yazım ve karışık liste ondalıktır, yuvarlar.
     TR_assert_equal([16777216.0], TR_Tensor([16777217.0]).TR_tolist)
     TR_assert_equal([2.5, 16777216.0], TR_Tensor([2.5, 16777217]).TR_tolist)
+    # TR_dtype: cinsin içinde seçer; sığmayan değer, başka cinsin hassasiyeti, sayıyla mantık
+    # değeri ve tam sayıda türev hatadır.
+    TR_assert_equal("uint8", TR_Tensor([1, 2], TR_dtype: "uint8").TR_dtype)
+    TR_assert_equal("H6964", TR_error_code { TR_Tensor([300], TR_dtype: "uint8") })
+    TR_assert_equal("H6976", TR_error_code { TR_Tensor([1.5], TR_dtype: "int64") })
+    TR_assert_equal("H6976", TR_error_code { TR_zeros([3], TR_dtype: "int64") })
+    TR_assert_equal("H6975", TR_error_code { TR_Tensor([1, TR_true]) })
+    TR_assert_equal("H6973", TR_error_code { TR_Tensor([1, 2], TR_requires_grad: TR_true) })
 }
 
 TR_test "15.1 TR_Int ve TR_Bool tensörü: argmax'in sonucu TR_Int, cins işlemlerde korunur" {

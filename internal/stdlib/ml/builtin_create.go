@@ -26,9 +26,10 @@ func requiresGrad(fn any, named map[string]interp.Value, positional interp.Value
 	return bind.OptionalBool(fn, named, nameRequiresGrad, defaultVal)
 }
 
-// tensorBuiltin tensör(veri, türev_izle: yanlış, tür: "float32") yerleşiğidir. Veri tek
-// sayı (0 boyutlu tensör), iç içe sayı listesi ya da tensör olabilir. tür verilmezse
-// listeden float32, tensörden kaynağın türünde tensör oluşur.
+// tensorBuiltin TR_Tensor(veri, TR_requires_grad: TR_false, TR_dtype: ...) yerleşiğidir. Veri tek
+// sayı ya da mantık değeri (0 boyutlu tensör), aralık, iç içe liste ya da tensör olabilir. Cins
+// veriden çıkar (15.2, tensor_data.go); TR_dtype: cinsin içinde hassasiyeti seçer. Tensörden
+// kaynağın türünde kopya oluşur.
 func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.TypeTensor)
 	if len(args) < 1 {
@@ -71,17 +72,20 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 			return nil, err
 		}
 	} else {
-		dt, err := namedDType(fn, named, tensor.Float32)
+		var kind codes.Code
+		if t, kind, err = dataTensor(fn, args[0]); err != nil {
+			return nil, err
+		}
+		dt, err := constructorDType(fn, named, kind)
 		if err != nil {
 			return nil, err
 		}
-		t, err = toTensor(fn, args[0])
-		if err != nil {
+		if t, err = convertKind(fn, t, dt); err != nil {
 			return nil, err
 		}
-		if t, err = castTo(t, dt); err != nil {
-			return nil, err
-		}
+	}
+	if watch && t.Elem() != tensor.ElemFloat {
+		return nil, messages.New(messages.H6973, fn, codes.NameRef(codes.ArgRequiresGrad), codes.NameRef(codes.KwTrue), t.DType().Name())
 	}
 	t.SetRequiresGrad(watch)
 	return New(t), nil
@@ -116,7 +120,7 @@ func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named 
 		if err != nil {
 			return nil, err
 		}
-		dt, err := namedDType(ad, named, tensor.Float32)
+		dt, err := constructorDType(ad, named, codes.TypeFloat)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +129,7 @@ func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named 
 			return nil, err
 		}
 		// Yeni tensör türev izlemediği için dönüşüm çizgeye kaydedilmez; sonuç yapraktır.
-		if t, err = castTo(t, dt); err != nil {
+		if t, err = convertKind(ad, t, dt); err != nil {
 			return nil, err
 		}
 		watch, err := requiresGrad(ad, named, nil, false)

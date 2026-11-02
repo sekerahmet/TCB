@@ -584,17 +584,16 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.1
 
 - **Mevcut durum:** `TR_Int` ("int64" … "uint8"), `TR_Bool` ve float64 depolaması var; argmax, sıralama indeksleri, örnekleme ve veri kümesi kimlikleri `TR_Int` ("int64") veriyor; cinsli işleçler (15.6'nın tablosu), `TR_sum`/`TR_mean`/`TR_max`/`TR_min`/`TR_cumsum`, `TR_where`, `TR_clamp` CPU'da [test: TestTypedStorageRoundTrip, TestTypedIntArith, TestTypedConvert; TR testi "15.1 TR_Int ve TR_Bool tensörü"]. GPU'da yalnız taşıma; öbür cinsli işlemler ve ondalık çekirdeğe giren cinsli tensör 15.48'in hassasiyet hatası (H6960) [test: TestTypedStorageOnGPU, TestTypedInGPUFloatKernelIsPrecisionError]. `TR_AnyTensor` ve `.TR_narrow[E]()` yok.
-- **Mevcut durum (ara kural):** bütün öğeleri tam sayı olan listede float32'de tam yazılamayan değer tensör kurmayı çalışma hatası yapıyor (H6954; ileti ondalık yazımı öneriyor) [test: TestIntListInexactInFloat32]. Tek tam sayıdan kurmak da (`TR_Tensor(16777217)`) aynı hata [test: TestIntListInexactInFloat32]; aralıktan tensör kurmak bugün yok (H6032). `TR_Int` tensörü gelince bu hata kalkar.
 - **Yapılacaklar:** öğe cinsli tip (`TR_Tensor[E]`, tip denetimi 4c), `TR_AnyTensor` ve daraltma; GPU'da cinsli tensörün genel çekirdekleri (2b).
 - **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Tensor[E]` ayrıştırılıyor, `TR_Tensor`'a indirgeniyor; `TR_AnyTensor` henüz kod değil [ölçüldü: bulut 0.6a].
 
 ### 15.2
 
-- **Mevcut durum:** `TR_Tensor([1], TR_dtype: "int64")` H6810 veriyor; cins veriden çıkmıyor, tam sayı listesi ondalık tensör kuruyor [ölçüldü].
-- **Yapılacaklar:** cinsin veriden çıkması ve tip parametresi; sığma denetimi. Göç [ölçüldü: DENETİM A2; kanıtlı: `tests/tensor_test.tr:822-843`]: bütün öğeleri tam sayı değişmezi olan ve `TR_dtype:`'sız `TR_Tensor([...])` 91 yerde (tests/ 77, examples/ 11, lib/ 3); çalışmada 20 dosyada 158 kurulum. 4'ü `TR_requires_grad: TR_true`'lu (`tests/tensor_test.tr:822-843`: `:822, 823, 832` tam sayı değişmezli, `:843` boş liste) ve denetim hatası olur. Hepsi denetimde görünür; ileti `[[0.0], ...]`'i ya da `TR_Tensor[TR_Float](...)`'ı önerir.
+- **Mevcut durum:** cins çalışırken veriden çıkıyor: tam sayı ve aralık `TR_Int` ("int64", float32'den geçmez), mantık değeri `TR_Bool`, ondalıklı sayı verisi `TR_Float`; boş liste `TR_Float`. `TR_Tensor[E](veri)`, `TR_zeros[E]`, `TR_ones[E]`, `TR_eye[E]` cinsi seçiyor; `TR_randn` yalnız `TR_Float`. `TR_dtype:` cinsin bütün hassasiyetlerini alıyor; başka cinsin hassasiyeti H6976 (ileti tip argümanını öneriyor), sığmayan değer H6964, sayıyla mantık değeri H6975, tam sayı ve mantıkta türev H6973. H6954'ün ara kuralı kalktı [test: TestTensorKindFromData; TR testi "15.2 cins veriden çıkar", "15.2 tip argümanı öğe cinsini seçer"].
+- **Mevcut durum (sınır):** cins çalışırken değerden çıkıyor, tip denetiminden değil: 3.13'ün "tam sayı yazımı `TR_Float` beklenen yerde ondalıktır" kuralı yorumlayıcıda yok (`TR_var y: TR_Float = 2`'de `TR_Type(y)` `TR_Int`), bu yüzden `TR_Float` parametresine verilen tam sayı yazımından kurulan tensör `TR_Int` olur [ölçüldü]. Beklenen tipin ondalık yapması ve tip denetiminin önerisi (`TR_Tensor[TR_Float](kimlikler)`) 4c'de.
+- **Göç (yapıldı, T1 dilim 2):** `.tr` dosyalarında 88 değişmez ve `lib/layers.tr:85` (`858007c8`), Go testlerinin TR metinlerinde 110 değişmez (`ac9f855b`), `TR_Float` parametresine tam sayı yazımı veren iki test (`tests/tensor_test.tr`, `TestParameters`) ondalık yazıma geçti; çıktılar önce ve sonra aynı [ölçüldü]. DENETİM'in saydığı 4 `TR_requires_grad: TR_true`'lu yerden (`a1d5b545`'te `tests/tensor_test.tr:891, 892, 901, 912`) üçü ondalığa geçti, `:912` boş liste (zaten `TR_Float`).
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_zeros`, `TR_ones` ve `TR_eye`'ın mantık cinsi.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** `TR_zeros(..., TR_dtype: "q4")` gibi nicemlenmiş sıfır kurucu (T3).
-- **Yapılacaklar (tur 3, 2026-11-02):** aralıktan tensör (`TR_Tensor(0..n)`, `TR_Int`; dil tanımı zaten söylüyor): `definitions.json`'da `TR_Tensor`'un `params`'ına `TR_Range`, H6032 ve H6033 aralığı da saysın; cinsli tensörle (T1).
 
 ### 15.3
 

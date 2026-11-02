@@ -1000,8 +1000,8 @@ const (
 	H6029 Code = 6029 // {fn}() en az 1 parametre bekler
 	H6030 Code = 6030 // {fn}() bir tensör bekler, {given} verildi
 	H6031 Code = 6031 // {randnFn}: {seedArg} tam sayı olmalıdır, {given} verildi
-	H6032 Code = 6032 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor)
-	H6033 Code = 6033 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, iç içe liste ya da tensör bekleniyor); metodu çağırmak için parantez ekleyin: {method}()
+	H6032 Code = 6032 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor)
+	H6033 Code = 6033 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor); metodu çağırmak için parantez ekleyin: {method}()
 	H6100 Code = 6100 // {left} ile {right} şekilleri {fn} için yayınlanamaz; sondan {axis}. eksende {leftLen} ≠ {rightLen} (eksenler sağdan hizalanır, eşit ya da 1 olmalı)
 	H6101 Code = 6101 // {fn}(x) 1 parametre bekler, {given} verildi
 	H6102 Code = 6102 // {operation}: tensörler farklı cihazlarda ({leftDevice} ve {rightDevice}); önce .{toDeviceMethod}(...) ile aynı cihaza taşıyın
@@ -1315,7 +1315,6 @@ const (
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
 	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok: nokta bu TR'den eski bir sürümle yazılmış ve bu sürümle yüklenmez. Eğitimi yeni bir koşu klasörüyle baştan başlatın ya da noktayı yazan TR sürümüyle sürdürün
 	H6953 Code = 6953 // {file}: "rng" alanı {given|q} çözülemedi: "pcg:" ve 32 küçük onaltılık rakam bekleniyordu
-	H6954 Code = 6954 // {fn}: {index, select, empty {} other {{index} konumundaki }}tam sayı {value} float32'de tam yazılamaz ({rounded} olurdu); tam sayı tensörü bu sürümde yok. Yuvarlama kabulse değeri ondalık yazın: `{value}.0`
 	H6955 Code = 6955 // türev izleyen bir ara sonuca (türev izleyen bir işlemin sonucuna ya da onun görünümüne) yerinde yazılamaz, türevsiz kipte de: geri yayılım onun değerine dayanır. {kind, select, whole {Adı yeni bir tensöre bağlayın: `h = h + d`} other {Yerinde olmayan bir yazımla yeni bir tensör kurun: `h = {#where}(m, d, h)`}}
 	H6956 Code = 6956 // türev izlemeyen bir tensöre türevsiz kipin dışında türev izleyen bir değer yazılamaz: gradyan bağı sessizce koparırdı. Gradyan gerekmiyorsa yazmayı türevsiz kipte yapın: `{#no_grad} {{ t[i] = d }}`; gerekiyorsa yerinde olmayan bir yazımla yeni bir tensör kurun: `t = {#where}(m, d, t)`
 	H6957 Code = 6957 // nicemlenmiş tensöre ({dtype}) bileşik atamayla yerinde hesap yazılamaz: nicemlenmiş tensör yalnız sayılı işlemlerdedir; hesabı float32, bf16 ya da fp16 bir tensörde yapın
@@ -1336,6 +1335,8 @@ const (
 	H6972 Code = 6972 // `{fn}[{given}]`: `{fn}` yalnız ondalık tensör kurar (15.2); tip argümanını yazmayın ya da `{fn}[{#Float}]` yazın
 	H6973 Code = 6973 // {fn}: `{grad}: {true}` yalnız ondalık tensörde geçerlidir; {dtype} tensör türev izlemez (15.2)
 	H6974 Code = 6974 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} bir {kind} değeri değil (15.2): verinin öğeleri tip argümanındaki cinsten olmalı
+	H6975 Code = 6975 // {fn}: {index, select, empty {} other {{index} konumundaki }}{value} ilk öğe {first} ile aynı tensörde olamaz: mantık değeri sayıyla karışmaz (15.2)
+	H6976 Code = 6976 // {fn}: "{dtype}" {kind} hassasiyetidir, kurulan tensörün cinsi {given} (15.1, 15.2); cinsi tip argümanıyla seçin: `{fn}[{kind}](...)`
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

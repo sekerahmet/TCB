@@ -25,7 +25,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
 - Üstünde yalnız **okuma** işleri yapılır: `.TR_shape`, `.TR_dtype`, `.TR_device`, yazdırma, `TR_save_tensors`. Yazma, görünüm, `TR_concat`, `TR_where`, `==` ve hesap tiplenemez: önce daraltılır.
 - **Daraltma** `t.TR_narrow[E]()` iledir: kopyasız ve çevirmeyen bir görünüm verir (`d["w"].TR_narrow[TR_Float]()`, `d["step"].TR_narrow[TR_Int]()`); cins uymazsa çalışma hatasıdır, ileti dosyadaki cinsi söyler. Tip çağrısı (`TR_Tensor(t)`) daraltma değildir: o kopya ve cins dönüşümüdür (15.3, 15.27a).
 - Her `TR_Tensor[E]` değeri bir `TR_AnyTensor` yerine verilebilir (değerin kendisi; sözlük kurulurken). **Kaplar tip parametresinde değişmezdir:** `TR_Dict[TR_String, TR_Tensor]` bir `TR_Dict[TR_String, TR_AnyTensor]` değildir, çünkü ona tam sayı tensörü yazılabilirdi. Her cinsten sözlük alan yerleşikler bunu 13.10'un kabul kümesiyle yazar (`TR_save_tensors`).
-- *Test:* TR testi (tam sayı tensörü gelene kadarki ara kural da: `TestIntListInexactInFloat32`); Go: `TestTypedStorageRoundTrip`, `TestTypedInFloatKernelIsPrecisionError`, GPU'da `TestTypedStorageOnGPU`; öğe cinsli tip uygulanınca TR testi.
+- *Test:* TR testi; Go: `TestTypedStorageRoundTrip`, `TestTypedInFloatKernelIsPrecisionError`, GPU'da `TestTypedStorageOnGPU`; öğe cinsli tip uygulanınca TR testi.
 
 **15.2** Kurmak:
 - **Veriden:** `TR_Tensor[E](veri)` tensör verisinden (13.10) yeni bir tensör kurar: `TR_Float`'ta ve `TR_Int`'te sayı ya da aralık, `TR_Bool`'da mantık değeri, ya da öğeleri bunlar olan iç içe liste. Aralık `TR_Int` verir: `TR_Tensor(0..n)` `TR_Tensor[TR_Int]`'tir. Tek sayı 0 boyutlu tensör verir: `TR_Tensor(3.0)`'ün şekli `[]`'dir. Düzensiz liste hatadır.
@@ -46,7 +46,7 @@ Tensör, n boyutlu bir dizidir: öğeleri tek bir cinstendir (ondalık, tam say�
   - `TR_eye(n)` n×n birim matrisi kurar (`TR_Float`, `TR_eye[TR_Int](n)` de yazılabilir).
 - **Dosyadan:** dosyadan okunan tensör `TR_AnyTensor`'dür (15.1, 15.46): cinsi dosyadan gelir, tipte yazılı değildir; hesap için `.TR_narrow[E]()` ile daraltılır. Hassasiyet dosyadakidir ("bf16" "bf16" kalır). Dosyadaki tür TR'de yoksa çalışma hatasıdır; ileti anahtarı ve dosyadaki türü söyler.
 - **Türev:** `TR_requires_grad: TR_true` yalnız `TR_Float` tensörde geçerlidir (varsayılan `TR_false`).
-- *Test:* TR testi.
+- *Test:* TR testi ("15.2 cins veriden çıkar", "15.2 tip argümanı öğe cinsini seçer"); Go: `TestTensorKindFromData`.
 
 **15.3** Özellikler ve dönüşümler:
 - **Özellikler:** `.TR_shape` (`TR_List[TR_Int]`), `.TR_dtype` (`TR_String`), `.TR_device` (15.37), `.TR_grad` (`TR_Float` yaprakta `TR_Tensor?`; yaprak olmayan türevli tensörde okumak hatadır, 15.6d), `.TR_requires_grad` (`TR_Bool`; yaprakta atanabilir, 15.34: dondurma).

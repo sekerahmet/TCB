@@ -66,6 +66,13 @@ func (cpuBackend) ToRaw(src View) []byte {
 // copyTyped dst görünümüne src'nin öğelerini aynı türde yazar (src yayınlanmış olabilir).
 func copyTyped(dst, src View) {
 	if dst.DType() != src.DType() {
+		// Cinsli tensör ondalık bir hesaba giriyor (ör. dikkatin maskesi): 15.48'in hatası.
+		switch {
+		case dst.DType().IsFloat():
+			panic(typedComputeError(src.DType()))
+		case src.DType().IsFloat():
+			panic(typedComputeError(dst.DType()))
+		}
 		panic(messages.Internal("typed copy between " + dst.DType().String() + " and " + src.DType().String()))
 	}
 	d, k := cpuStore(dst.S), cpuStore(src.S)
