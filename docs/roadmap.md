@@ -102,14 +102,14 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 **Dil ve çalışma ortamı:**
 - **Standart hataya yazmak:** programın kendi kullanım hatasını ve hizmetin hata çıktısını standart hataya yazacak bir yol yok. 19.10 bunu ister; yeni ad ya da adlı argüman gerekir. `TR_command_line[Ayar]()` ile zorunlu seçenek de 4c'den sonra gelir.
 - **Tarih ve saat** (arşiv).
-- **Bellek ve gerçek zaman:** çöp toplayıcı kalır, sahiplik yazdırılmaz. Duraklama en çok 0,23 ms; büyük veri tensördeyken 100 Hz'lik döngüde kaçan tur 0 [ölçüldü: hizdeney2, Colab CPU, `69c943eb`]. İki iş açık:
-  - Tensör, geri yayılım, iyileştirici ve GPU yerleşikleri yorumlayıcı kilidini tutuyor: 60 matris çarpımı sürerken 5 ms'de bir uyanan görevin beklemesi 301 ms [kanıtlı: status 10.2]. 10.2'nin "5 ms'den uzun süren yerleşik kilidi bırakır" sözü bu yerleşiklerde tutturulur (tensör çekirdeğinin işi, yerel Jarvis'ten önce).
+- **Bellek ve gerçek zaman:** çöp toplayıcı kalır, sahiplik yazdırılmaz. Duraklama en çok 0,23 ms; büyük veri tensördeyken 100 Hz'lik döngüde kaçan tur 0 [ölçüldü: hizdeney2, Colab CPU, `69c943eb`, kayıt `20261102094913.log`]. İki iş açık:
+  - Tensör yerleşiklerinin kilidi bırakması, "5 ms'den uzun sürebilen her yerleşik çalışırken kilidi bırakır" sözüne göre (durumu status 10.2'de); tensör çekirdeğinin işi, yerel Jarvis'ten önce.
   - Küçük işaretçili yığınla dönen döngüde çöp toplama turunu tik arasına almak ölçülecek.
 - **Hız** (hız tasarımı, 2026-11-02; hedefleri Ahmet onayladı):
-  - **Durum:** saf hesapta TR, Rust'ın 100–270 katı; beş testin geometrik ortalamasında ≈ 44 katı. Elle yazılmış kutusuz Go Rust'ın ≈ 1,17 katı [ölçüldü: hizdeney2]. Ağır işte TR PyTorch'un 0,82–1,07 katı [ölçüldü: [`tools/bench/README.md`](../tools/bench/README.md)].
+  - **Durum:** saf hesapta TR, Rust'ın 100–270 katı. Beş testin (saf hesap ve kitaplık) geometrik ortalamasında TR Rust'ın ≈ 44 katı, elle yazılmış kutusuz Go ≈ 1,17 katı [ölçüldü: hizdeney2, kayıt `20261102094913.log`]. Ağır işte TR PyTorch'un 0,82–1,07 katı [ölçüldü: [`tools/bench/README.md`](../tools/bench/README.md)].
   - **Yol:** TR, denetleyicinin tipleriyle Go kaynağına derlenir. Yorumlayıcı kalır: kabuk, hata ayıklayıcı ve derleyici bütün dili kapsayana kadar varsayılan koşu yolu. Yorumlanan ve derlenen program aynı sonucu verir: `tests/`, `lib/` ve `examples/` iki yolda koşar, ARM64'te de.
   - **Sıra:** yorumlayıcıda ucuz yerel kazançlar; denetleyicinin tip haritası ve tip uyuşması kipi (her ifadenin değeri denetleyicinin tipinde mi); derleyicinin ilk dilimi; bütün dil. Derleyiciden önce Go araç zincirinin kullanıcıya nasıl gideceği Ahmet'e sorulur.
-  - **Hedefler:** saf hesapta (`dongu`, `fib`, `matris`) taşma denetimli ve aynı veri düzenli Go'nun ≤ 1,5 katı; ağır işte PyTorch'un ≤ 1,0 katı; tensör işi yapan bir görev varken de 100 Hz'lik döngüde kaçan tur 0. Yorumlayıcının hedefi yerel kazançlar ölçülünce konur; eski "TR/CPython ≤ 1,0" hedefi kalktı, o hız derleyiciden gelir.
+  - **Hedefler:** saf hesapta (`dongu`, `fib`, `matris`) taşma denetimli ve aynı veri düzenli (matriste iç içe liste) Go'nun ≤ 1,5 katı; ağır işte PyTorch'un ≤ 1,0 katı; tensör işi yapan bir görev varken de 100 Hz'lik döngüde kaçan tur 0. Yorumlayıcının hedefi yerel kazançlar ölçülünce konur; eski "TR/CPython ≤ 1,0" hedefi kalktı, o hız derleyiciden gelir.
 - **Paket, bağımlılık ve sürüm sabitleme:** başkasının modülünü sürümüyle almak, kilit dosyası. `tr/` kitaplığı ikiliyle gelir, ona gerekmez (11.6).
 - **Sürüm politikası:** 0.y.z numarası; kararlı, beta ve prototip etiketleri; dil ve dosya biçimini dondurma kuralları; yayın ikilileri (arşiv).
 - **Hazır modelin sohbet biçimi:** sohbet şablonu (`tokenizer_config.json`'un şablonu) ve özel parçalar; "sohbet etmek" ister.
