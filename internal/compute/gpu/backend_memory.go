@@ -198,14 +198,32 @@ func (g *backend) ToHost(src tensor.View) []float32 {
 
 // sumFromShadow görünümün elemanlarını konak gölgesinden mantıksal sırayla toplar.
 func sumFromShadow(out, source []float32, v tensor.View) {
+	if v.IsContiguous() {
+		copy(out, source[v.Offset:])
+		return
+	}
+	shadowOffsets(v, len(out), func(i, o int) { out[i] = source[o] })
+}
+
+// rawFromShadow sumFromShadow'un ham bayt gölgesi için olanıdır (öğe size bayt).
+func rawFromShadow(out, source []byte, v tensor.View, size int) {
+	if v.IsContiguous() {
+		copy(out, source[v.Offset*size:])
+		return
+	}
+	shadowOffsets(v, len(out)/size, func(i, o int) { copy(out[i*size:(i+1)*size], source[o*size:]) })
+}
+
+// shadowOffsets görünümün n öğesini mantıksal sırayla gezer: i sıra, o gölgedeki öğe konumu.
+func shadowOffsets(v tensor.View, n int, f func(i, o int)) {
 	nd := len(v.Shape)
 	idx := make([]int, nd)
-	for i := range out {
+	for i := 0; i < n; i++ {
 		o := v.Offset
 		for d := 0; d < nd; d++ {
 			o += idx[d] * v.Strides[d]
 		}
-		out[i] = source[o]
+		f(i, o)
 		for d := nd - 1; d >= 0; d-- {
 			idx[d]++
 			if idx[d] < v.Shape[d] {

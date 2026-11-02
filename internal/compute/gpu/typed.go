@@ -17,14 +17,19 @@ import (
 // dilimde GPU'da yalnız adım 8'in yolları vardır (typed_ops.go); öbür işlemler 15.48'in
 // hassasiyet hatasıdır.
 
-// FromRaw ham baytlardan dt türünde depolama kurar.
+// FromRaw ham baytlardan dt türünde depolama kurar. Küçük depolamalar float32'ninki gibi konak
+// gölgesini tutar (FromHost): veri kümesinin TR_Int kimlik toplu işleri konağa eşzamanlamasız okunur.
 func (g *backend) FromRaw(raw []byte, dt tensor.DType) tensor.Storage {
 	g.enter()
 	defer g.exit()
 	g.noCapture(messages.H4066)
-	d := g.allocate(len(raw)/dtypeSize(dt), dt, false)
+	n := len(raw) / dtypeSize(dt)
+	d := g.allocate(n, dt, false)
 	if len(raw) > 0 {
 		g.loadHost(d, unsafe.Pointer(&raw[0]), len(raw))
+		if n <= shadowLimit {
+			d.raw = append([]byte(nil), raw...)
+		}
 	}
 	return d
 }
@@ -38,6 +43,10 @@ func (g *backend) ToRaw(src tensor.View) []byte {
 	n, size := src.Numel(), dtypeSize(d.dtype)
 	out := make([]byte, n*size)
 	if n == 0 {
+		return out
+	}
+	if d.raw != nil {
+		rawFromShadow(out, d.raw, src, size)
 		return out
 	}
 	gt := g.temp()

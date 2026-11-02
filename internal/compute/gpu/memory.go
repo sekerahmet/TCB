@@ -34,8 +34,8 @@ import (
 // önce toplama ve havuzun sürücüye boşaltılması denenir, yine olmazsa Türkçe ve
 // yakalanabilir bir hata verilir.
 //
-// Konak gölgesi: konaktan yüklenen küçük float32 depolamalar (≤ 1M eleman; ör. veri
-// kümesinden gelen indeks toplu işleri) konaktaki kopyalarını da tutar. Depolama cihazda
+// Konak gölgesi: konaktan yüklenen küçük float32 ve ham bayt depolamaları (≤ 1M eleman; ör. veri
+// kümesinden gelen TR_Int kimlik toplu işleri) konaktaki kopyalarını da tutar (host, raw). Depolama cihazda
 // değiştirilmediği sürece konağa okuma (indeksler, .değer) eşzamanlama gerektirmez.
 // Gölgenin silinmesi merkezîdir: cihaz belleğine yazan yollar yalnızca üçtür — çekirdek
 // başlatma (baslatici.go: göstericiler depolamayla ve okuma/yazma bildirimiyle verilir,
@@ -54,6 +54,7 @@ type storage struct {
 	dtype    tensor.DType
 	class    uint64
 	host     []float32
+	raw      []byte // ham bayt türlerinin (typed.go) konak gölgesi; host gibi
 	release2 bool
 	clean    runtime.Cleanup
 	// priv bloğun ait olduğu kaydın havuzu (kayıt sırasında ayrıldıysa; yoksa nil), want o
@@ -66,6 +67,9 @@ type storage struct {
 	pins   int
 	parked bool
 }
+
+// dropShadow depolamanın konak gölgesini (ondalık ya da ham bayt) siler: cihazdaki içerik değişti.
+func (d *storage) dropShadow() { d.host, d.raw = nil, nil }
 
 func (d *storage) Device() tensor.Device { return d.g.dev }
 func (d *storage) Len() int              { return d.n }
@@ -312,7 +316,7 @@ func (g *backend) reset(d *storage) {
 	if d.n == 0 {
 		return
 	}
-	d.host = nil
+	d.dropShadow()
 	ev := g.measureStart()
 	switch {
 	case d.dtype == tensor.Float32:
@@ -330,7 +334,7 @@ func (g *backend) fill32(d *storage, bitsList uint32) {
 	if d.n == 0 {
 		return
 	}
-	d.host = nil
+	d.dropShadow()
 	ev := g.measureStart()
 	g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, bitsList, uint64(d.n)))
 	g.measureEnd("surucu_doldur", ev)
@@ -342,7 +346,7 @@ func (g *backend) dCopy(target *storage, hOfs int, source *storage, kOfs, n int)
 	if n == 0 {
 		return
 	}
-	target.host = nil
+	target.dropShadow()
 	b := dtypeSize(target.dtype)
 	ev := g.measureStart()
 	g.try_("cuMemcpyDtoDAsync", g.sr.copyFn(target.addr+uint64(hOfs*b), source.addr+uint64(kOfs*b), uint64(n*b)))
@@ -471,7 +475,7 @@ func (g *backend) release(d *storage) {
 	}
 	d.release2 = true
 	d.clean.Stop()
-	d.host = nil
+	d.dropShadow()
 	g.volume -= min(g.volume, d.class)
 	if d.pins > 0 {
 		d.parked = true // canlı bir kayıt onu okur ya da yazar: kayıt bırakılınca iade edilir
@@ -507,7 +511,7 @@ func (g *backend) loadHost(d *storage, data unsafe.Pointer, byteN int) {
 		return
 	}
 	g.noCapture(messages.H4066)
-	d.host = nil
+	d.dropShadow()
 	target := d.addr
 	h := &g.setup
 	if !h.tried {

@@ -73,6 +73,7 @@ type profile struct {
 	lastResolved time.Time
 	entryTime    time.Time
 	equalStart   time.Time
+	syncs        int64 // eşzamanlama sayısı (indirme, eşzamanlı yükleme, equalize); gölge testi ve kıyası
 
 	mu        sync.Mutex
 	stats     map[string]*pullStats
@@ -254,6 +255,7 @@ func (g *backend) hostEnd() {
 
 // esitSuresi bir eşzamanlamada beklenen süreyi kaydeder ve bekleyen ölçümleri çözer.
 func (g *backend) equalBegin() {
+	g.profiler.syncs++
 	if profileOn.Load() {
 		g.profiler.equalStart = time.Now()
 	}
