@@ -257,4 +257,6 @@ codegraph dups --root tools/codegraph/testdata/mod --changed HEAD | exit: 1 | co
 codegraph tests-for --root broken internal/lang/checker/unpack.go | contains: functions at >=90% of their limit: Checker.tupleLen | contains: (over the limit: the test fails) | not: (closest Checker.tupleLen | src: codegraph-2 madde 3, 2026-11-02 (derleme kırıkken fonksiyon boyu bayat graftan değil dosyadan go/parser ile ölçülür)
 codegraph who-uses H1026 | group: uses_message => tests/negative/demet_acma.tr | src: codegraph-2 madde 4, 2026-11-02 (negatif fikstürün etiketi ileti koduna uses_message bağı kurar)
 codegraph tests-for internal/lang/checker/unpack.go | contains: ./internal/devtools/testrunner/ | contains: TestNegativeFixtures | group: tests about it => tests/negative/demet_acma.tr | contains: [expects H1026] | src: codegraph-2 madde 4, 2026-11-02 (iletiyi üreten Go dosyasının tests-for'u negatif fikstürü ve onu koşan TestNegativeFixtures'ı gösterir)
+codegraph who-uses 11.8 --all | not: gemm_lib.go | src: codegraph-2 madde 5, 2026-11-02 (sayıya bitişik ürün sürümü CUDA 11.8 dil tanımı 11.8'e atıf sayılmaz)
+codegraph who-uses 1.5 --all | not: tools/codegraph/README.md | src: codegraph-2 madde 5, 2026-11-02 (birimli ondalık sayı 1.5 s dil tanımı 1.5'e atıf sayılmaz)
 

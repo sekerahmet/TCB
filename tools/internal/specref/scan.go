@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 )
@@ -307,13 +309,17 @@ func listTokens(line string, start, end int) (toks []Token, rng bool) {
 }
 
 // weak açık biçimi olmayan, ama var olan bir bölümün maddesine benzeyen anmaları ekler (örn. "(karışık hassasiyet,
-// 15.3)", Go yorumunda "(docs/spec/N_x.md, N.M)"); bölümün numaralı maddesi yoksa (1 ve 14) sayılmaz. Spec dışında yalnızca var olan
-// bir maddenin numarası anma sayılır: "15.5 ms" gibi ondalıklar olmayan maddeyi ya da madde olmayanı anmaz.
+// 15.3)", Go yorumunda "(docs/spec/N_x.md, N.M)"); bölümün numaralı maddesi yoksa (14. bölüm) sayılmaz. Sayıya bitişik
+// ürün sürümü ("Go 1.12", "Python 3.12") ve ardından birim gelen ondalık sayı ("1.5 s", "1.5 saniye") madde var olsa da
+// sayılmaz; spec dışında yalnızca var olan bir maddenin numarası anma sayılır.
 func (s *lineScan) weak(ix *Index) {
 	for _, m := range reWeak.FindAllStringSubmatchIndex(s.line, -1) {
 		a, b := m[2], m[3]
 		id := s.line[a:b]
 		if overlaps(s.covered, a, b) || !standsAlone(s.line, a, b) || !ix.Chapters[chapterOf(id)] || looksNumeric(id) {
+			continue
+		}
+		if adjacentVersion.MatchString(s.line[:a]) || followedByUnit(s.line[b:]) {
 			continue
 		}
 		if _, exists := ix.Items[id]; !exists && (!IsSpecFile(s.path) || versionContext(s.line[:a])) {
@@ -325,12 +331,36 @@ func (s *lineScan) weak(ix *Index) {
 
 // versionWords ardından gelen numarayı ürün sürümü yapan adlardır: karşılaştırılan diller, çerçeveler ve belgeler ile
 // "sürüm" sözcüğü. Yalnız bağlantısız anmalar içindir: kaynak bağlantısının yazısındaki sürüm adı ne olursa olsun
-// sayılmaz (reExtLink).
-var versionWords = regexp.MustCompile(`\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\b[^.!?]*$`)
+// sayılmaz (reExtLink). adjacentVersion aynı adların sayıya bitişik (arada yalnız boşluk ya da v) halidir: madde var
+// olsa bile ("Go 1.12", "Python 3.12") ürün sürümüdür.
+var (
+	versionWords    = regexp.MustCompile(`\b(PyTorch|NumPy|JAX|Go|go|CUDA|cuDNN|cuBLAS|cuBLASLt|Python|Rust|Swift|Kotlin|LSP|CommonMark|Unicode|IEEE|Triton|TensorFlow|Hugging Face|sürüm|sürümü|version)\b[^.!?]*$`)
+	adjacentVersion = regexp.MustCompile(strings.TrimSuffix(versionWords.String(), "[^.!?]*$") + `\s*v?\s*$`)
+)
+
+// unitWords ondalık sayıdan hemen sonra tam sözcük olarak geldiğinde sayıyı ölçü birimi yapan birimlerdir ("1.5 s",
+// "1.5 saniye", "5.4 ms"). Sözcük sınırı Unicode harf sınıfıyla denetlenir ("3.7 sözlük" ve "2.7 süslü" birim değildir).
+var unitWords = map[string]bool{
+	"s": true, "sn": true, "saniye": true, "ms": true, "ns": true, "us": true, "dk": true, "dakika": true, "saat": true,
+	"B": true, "KB": true, "MB": true, "GB": true, "TB": true, "KiB": true, "MiB": true, "GiB": true, "bayt": true,
+	"Hz": true, "kHz": true, "MHz": true, "GHz": true, "W": true, "TFLOPS": true, "GFLOPS": true, "kat": true, "kez": true,
+}
+
+func followedByUnit(after string) bool {
+	after = strings.TrimLeft(after, " \t")
+	end := 0
+	for i, r := range after {
+		if !unicode.IsLetter(r) {
+			break
+		}
+		end = i + utf8.RuneLen(r)
+	}
+	return end > 0 && unitWords[after[:end]]
+}
 
 // versionContext numaranın önündeki aynı cümle parçası bir ürün adı ya da "sürüm" içeriyor mu: "PyTorch 2.14",
 // "PyTorch (`CUDA_LAUNCH_BLOCKING`, `PYTORCH_*`; 2.14 ...)" ürün sürümüdür, var olmayan madde atfı değil (TCB sağlık
-// taraması P2). Yalnızca var olmayan madde numarasına uygulanır: var olan maddenin anılması bu bağlamda da anmadır.
+// taraması P2). Uzak bağlam yalnızca var olmayan madde numarasına uygulanır ("sürümünü artırır (N.M)" atıftır).
 func versionContext(before string) bool {
 	if len(before) > 120 {
 		before = before[len(before)-120:]

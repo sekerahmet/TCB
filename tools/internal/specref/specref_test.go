@@ -318,11 +318,12 @@ func TestFenceFollowsCommonMark(t *testing.T) {
 }
 
 // Kural: dil tanımında ürün adını (PyTorch, NumPy, Go ...) ya da "sürüm"ü aynı cümlede izleyen, var olmayan madde
-// numarası bir ürün sürümüdür, atıf değildir; üç parçalı numara (2.14.0) hiç sayılmaz; var olan madde aynı bağlamda da
-// anmadır (TCB sağlık taraması P2: "PyTorch 2.14" beş "no item 2.14" notu veriyordu).
+// numarası bir ürün sürümüdür, atıf değildir; sayıya bitişik ürün sürümü madde var olsa da atıf değildir; üç parçalı
+// numara (2.14.0) hiç sayılmaz; aynı cümlede uzak kalan var olan madde anmadır (TCB sağlık taraması P2: "PyTorch 2.14"
+// beş "no item 2.14" notu veriyordu).
 func TestProductVersionsAreNotItemReferences(t *testing.T) {
 	spec := specFile(15, 1, 2, 3)
-	spec.Text += "PyTorch 15.14 ve NumPy 15.1.1 ile; PyTorch (`CUDA_LAUNCH_BLOCKING`; 15.14 belgesi) ve PyTorch 15.3 gibi; sürüm 15.19\n" +
+	spec.Text += "PyTorch 15.14 ve NumPy 15.1.1 ile; PyTorch (`CUDA_LAUNCH_BLOCKING`; 15.14 belgesi) ve PyTorch 15.3 gibi; sürümünü artırır (15.3); sürüm 15.19\n" +
 		"ayrıca (15.9) bkz.\n"
 	_, ms := build(spec)
 	var weak []string
@@ -332,7 +333,7 @@ func TestProductVersionsAreNotItemReferences(t *testing.T) {
 		}
 	}
 	if strings.Join(weak, ",") != "15.3,15.9" {
-		t.Errorf("weak mentions = %v, want the existing 15.3 and the plain missing 15.9", weak)
+		t.Errorf("weak mentions = %v, want the non-adjacent existing 15.3 and the plain missing 15.9", weak)
 	}
 }
 
@@ -351,5 +352,60 @@ func TestExternalLinkTextIsNotAnItemReference(t *testing.T) {
 	}
 	if strings.Join(weak, ",") != "15.9,15.3" {
 		t.Errorf("weak mentions = %v, want only the plain 15.9 and 15.3 outside the external links", weak)
+	}
+}
+
+// Kural: 1. bölüm numaralandıktan sonra da spec dışındaki ya da içindeki birimli ondalık sayılar ve sayıya bitişik ürün
+// sürümleri madde var olsa bile zayıf atıf sayılmaz ve yeniden numaralamada (Plan + Apply) bozulmaz; buna karşılık sayıya
+// bitişik olmayan ürün/sürüm sözcükleri ve birim olmayan Türkçe sözcükler gerçek atıf olarak korunur.
+func TestChapter1NumberingSideEffectsAndUnits(t *testing.T) {
+	spec1 := specFile(1, 5, 12)
+	spec2 := specFile(2, 7)
+	spec3 := specFile(3, 7, 12)
+	spec15 := specFile(15, 3)
+	spec17 := specFile(17, 5)
+	spec1.Text += "Bkz. [Go 1.12] ve sürümünü artırır (15.3); Unicode kuralı (2.7).\n"
+	guide := File{
+		Path: "docs/guide/ornek.md",
+		Text: "Süre 1.5 saniye (1.5 s, 5.4 ms), Python 3.12 ile; bkz. 1.5, 2.7 süslü ve 17.5 sütun.\n",
+	}
+	trTest := File{
+		Path: "tests/sozluk_test.tr",
+		Text: "# TR 4\n# TEST 3.7 sözlük anahtarı\n",
+	}
+	files := []File{spec1, spec2, spec3, spec15, spec17, guide, trTest}
+	ix, ms := build(files...)
+
+	var got []string
+	for _, m := range ms {
+		if m.Kind != "definition" {
+			got = append(got, m.File+":"+m.Tokens[0].ID)
+		}
+	}
+	want := "docs/spec/1_x.md:15.3,docs/spec/1_x.md:2.7,docs/guide/ornek.md:1.5,docs/guide/ornek.md:2.7,docs/guide/ornek.md:17.5,tests/sozluk_test.tr:3.7"
+	if strings.Join(got, ",") != want {
+		t.Errorf("mentions = %v, want %s", got, want)
+	}
+
+	edits, _ := Plan(ms, files, ix, map[string]string{"1.12": "1.13"}, false)
+	root := t.TempDir()
+	for _, f := range files {
+		dst := filepath.Join(root, filepath.FromSlash(f.Path))
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(dst, []byte(f.Text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Apply(root, edits); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(spec1.Path)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(after), "[Go 1.12]") {
+		t.Errorf("[Go 1.12] product version was corrupted by Apply:\n%s", string(after))
 	}
 }
