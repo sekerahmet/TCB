@@ -130,6 +130,50 @@ func TestAnOldHoldersTimerDoesNotHandOffTheNewHolder(t *testing.T) {
 	machine.releaseGIL()
 }
 
+// Kuşak, zamanlayıcı açıkken (10.2): kuşak 1'de bekleyen gelince kurulan zamanlayıcı, kilit el
+// değiştirdikten (kuşak 2) sonra ateşlenirse yeni tutan 5 ms dolmadan devretmez. Zamanlayıcının
+// fonksiyonu arm'dan alınıp el değiştirdikten sonra elle çağrılır (geç ateşlenen, durdurulamamış
+// eski zamanlayıcı). Zamanlayıcı kuşağı kurulurken değil ateşlenirken okusaydı yeni tutanın
+// kuşağını yazardı.
+func TestALateTimerOfTheOldHolderDoesNotHandOffTheNewHolder(t *testing.T) {
+	machine := New()
+	machine.gil.clockOff = true
+	armed := make(chan func(), 1)
+	machine.gil.afterFunc = func(_ time.Duration, f func()) *time.Timer {
+		armed <- f
+		return time.NewTimer(time.Hour) // durdurulur; ateşlenmesini test yapar
+	}
+	machine.acquireGIL()
+	waiter := machine.NewTaskVM()
+	fired := make(chan struct{})
+	result := make(chan string, 1)
+	go func() {
+		waiter.acquireGIL() // kuşak 1'de kuyruğun başı olur: zamanlayıcı kurulur
+		<-fired
+		current, since := waiter.gilGen, monotonic()-waiter.gilSince
+		waiter.pending.Add(1) // bekleyen var: deyim sınırı süreye bakar
+		waiter.yieldPoint()
+		switch {
+		case waiter.gilGen != current:
+			result <- fmt.Sprintf("eski tutanın zamanlayıcısı yeni tutanı (%d. kuşak) %v sonra devretti", current, since)
+		case since >= lockHold:
+			result <- fmt.Sprintf("sınama 5 ms içinde kalmadı (%v)", since)
+		default:
+			result <- ""
+		}
+		waiter.pending.Add(-1)
+		waiter.releaseGIL()
+	}()
+	timer := <-armed
+	old := machine.gilGen
+	machine.releaseGIL() // kilit bekleyene geçer: kuşak 2
+	timer()              // eski kuşağın zamanlayıcısı geç ateşlenir
+	close(fired)
+	if msg := <-result; msg != "" {
+		t.Fatalf("%s (eski kuşak %d)", msg, old)
+	}
+}
+
 // slowTurn yavaş() yerleşiğinin süresidir: kilidi tutarak yaklaşık bu kadar çalışır, içinde deyim
 // sınırı yoktur. Süre saate bakılarak değil sabit bir hesapla tutulur (spinFor): Windows'ta
 // tekdüze saat 0,5–2 ms adımla ilerler, saate bakan bir bekleme bir adımdan kısa sürmez.

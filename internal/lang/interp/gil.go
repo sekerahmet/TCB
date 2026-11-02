@@ -57,6 +57,9 @@ type gilQueue struct {
 	expired atomic.Uint64
 	// timerOff ve clockOff yalnız testler içindir: zamanlayıcıyı ya da yedek saati kapatır.
 	timerOff, clockOff bool
+	// afterFunc yalnız testler içindir: boş değilse zamanlayıcıyı time.AfterFunc yerine o kurar
+	// (test kurulan fonksiyonu tutup istediği anda çağırır).
+	afterFunc func(time.Duration, func()) *time.Timer
 }
 
 // gilWaiter kuyruktaki bir görevdir: bırakan görev wake'e yazarak kilidi ona verir.
@@ -143,7 +146,11 @@ func (g *gilQueue) arm() {
 		return
 	}
 	gen := g.gen
-	g.timer = time.AfterFunc(lockHold-(monotonic()-g.since), func() { g.expire(gen) })
+	after := time.AfterFunc
+	if g.afterFunc != nil {
+		after = g.afterFunc
+	}
+	g.timer = after(lockHold-(monotonic()-g.since), func() { g.expire(gen) })
 }
 
 func (g *gilQueue) stopTimer() {
