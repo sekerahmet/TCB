@@ -37,8 +37,8 @@ TR_print(x.TR_grad.TR_tolist)
 TR_var s = TR_topk(TR_Tensor([[3.0, 1.0, 3.0], [0.0, 2.0, 1.0]]), 2)
 TR_print(s[0].TR_tolist, s[1].TR_tolist, TR_Type(s[1].TR_tolist[0][0]))
 TR_print(TR_argsort(TR_Tensor([2.0, 1.0, 2.0, 0.0]), TR_dim: 0).TR_tolist, TR_cumsum(i).TR_tolist)
-TR_var m = TR_Tensor([[1.0], [0.0]])
-TR_print(TR_where(m, TR_Tensor([1.0, 2.0]), -1).TR_tolist, TR_where(TR_false, TR_Tensor([1.0]), 7).TR_tolist)
+TR_var m = TR_Tensor([[TR_true], [TR_false]])
+TR_print(TR_where(m, TR_Tensor([1.0, 2.0]), -1).TR_tolist, TR_where(TR_Tensor([TR_false]), TR_Tensor([1.0]), 7).TR_tolist)
 TR_print((TR_Tensor([1.0, 2.0, 3.0]) >= TR_Tensor([[2.0], [1.0]])).TR_tolist, (2 < TR_Tensor([1.0, 2.0, 3.0])).TR_tolist)`)
 	want := "[1, 0] [0, -1] [0, 0] [0, 0]\n" + // TR_Int tensörde işlemler TR_Int verir (15.6, 15.12, 15.13)
 		"[0.0, 1.0, 0.0]\n" +
@@ -76,7 +76,7 @@ func TestWideMathErrors(t *testing.T) {
 		{"TR_clamp([1], TR_min: 0)", messages.H6104},
 		{"TR_where(1, 2)", messages.H6201},
 		{"TR_where(\"a\", 1, 2)", messages.H6207},
-		{"TR_where(TR_Tensor([1.0, 0.0]), TR_Tensor([1.0, 2.0, 3.0]), 0)", messages.H6214},
+		{"TR_where(TR_Tensor([TR_true, TR_false]), TR_Tensor([1.0, 2.0, 3.0]), 0)", messages.H6214},
 		{"TR_where([1], 1, 2)", messages.H6104},
 		{"TR_cumsum([1, 2])", messages.H6104},
 		{"TR_cumsum(TR_Tensor([1.0, 2.0]), 0)", messages.H6200},

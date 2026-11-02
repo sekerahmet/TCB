@@ -1317,7 +1317,7 @@ TR_test "15.6d türevin üç yazma kuralı kipe bağlıdır" {
     TR_assert_equal([5.0, 2.0], w.TR_tolist)
     # Yaprak olmayan türevli tensöre türevsiz kipte de yazılmaz; yerinde olmayan yazım çalışır.
     TR_assert_equal("H6955", TR_error_code { TR_no_grad { h[1] = 0.0 } })
-    TR_var m = TR_Tensor([0.0, 1.0])
+    TR_var m = TR_Tensor([TR_false, TR_true])
     h = TR_where(m, 0.0, h)
     TR_assert_equal([2.0, 0.0], h.TR_tolist)
     # Türev izlemeyen hedefe kipin dışında türev izleyen değer yazılmaz: bağ sessizce koparırdı.

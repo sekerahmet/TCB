@@ -192,8 +192,8 @@ TR_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türe
 TR_test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN sızmaz" {
     TR_var x = TR_Tensor([-1.0, 2.0, -3.0], TR_requires_grad: TR_true)
     TR_assert_equal([0.0, 2.0, 0.0], TR_where(x > 0, x, 0).TR_tolist)
-    TR_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_where(TR_Tensor([[1.0], [0.0]]), TR_Tensor([1.0, 2.0]), -1).TR_tolist)
-    TR_assert_equal([7.0], TR_where(TR_false, TR_Tensor([1.0]), 7).TR_tolist)
+    TR_assert_equal([[1.0, 2.0], [-1.0, -1.0]], TR_where(TR_Tensor([[TR_true], [TR_false]]), TR_Tensor([1.0, 2.0]), -1).TR_tolist)
+    TR_assert_equal([7.0], TR_where(TR_Tensor([TR_false]), TR_Tensor([1.0]), 7).TR_tolist)
     TR_assert_equal(2, TR_where(TR_true, 2, 3))
     TR_assert_equal(3, TR_where(0, 2, 3))
     # Seçilmeyen dalın NaN'ı gradyana sızmaz: log(x) negatifte NaN'dır ama seçilmez.
@@ -203,11 +203,11 @@ TR_test "15.15 koşullu: yayınlamalı seçim; gradyan seçilen dala akar, NaN s
     TR_assert(yakın_mı(p.TR_grad.TR_tolist[1], 0.25))
     TR_var a = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
     TR_var b = TR_Tensor([3.0, 4.0], TR_requires_grad: TR_true)
-    TR_backward(TR_sum(TR_where(TR_Tensor([1.0, 0.0]), a, b) * TR_Tensor([10.0, 20.0])))
+    TR_backward(TR_sum(TR_where(TR_Tensor([TR_true, TR_false]), a, b) * TR_Tensor([10.0, 20.0])))
     TR_assert_equal([10.0, 0.0], a.TR_grad.TR_tolist)
     TR_assert_equal([0.0, 20.0], b.TR_grad.TR_tolist)
-    TR_assert_equal(TR_Int, TR_Type(TR_where(TR_Tensor([1.0, 0.0]), TR_argmax(TR_Tensor([[1.0, 2.0], [3.0, 1.0]]), TR_dim: -1), 0).TR_tolist[0]))
-    TR_assert_equal("H6214", TR_error_code { TR_where(TR_Tensor([1.0, 0.0]), TR_Tensor([1.0, 2.0, 3.0]), 0) })
+    TR_assert_equal(TR_Int, TR_Type(TR_where(TR_Tensor([TR_true, TR_false]), TR_argmax(TR_Tensor([[1.0, 2.0], [3.0, 1.0]]), TR_dim: -1), 0).TR_tolist[0]))
+    TR_assert_equal("H6214", TR_error_code { TR_where(TR_Tensor([TR_true, TR_false]), TR_Tensor([1.0, 2.0, 3.0]), 0) })
     TR_assert_equal("H6207", TR_error_code { TR_where("a", 1, 2) })
     TR_assert_equal("H6104", TR_error_code { TR_where([1], 1, 2) })
 }
