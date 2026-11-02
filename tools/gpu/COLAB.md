@@ -98,7 +98,8 @@ bu standarda kullanıldıkça geçirilir; kendi durum hücreleri yerine hücre 3
 ```bash
 %%bash
 # İ1 · TAM DENETİM (KAYITLI) · CPU High-RAM · ~15 dk, arka planda
-cd /content/TCB && bash /content/is_baslat.sh tam-denetim "tam denetim: bash tools/full_check.sh (dagitim + go-esleri)" -- bash tools/full_check.sh
+# --ilk-kalanda-dur: ilk kalan satırda denetim biter, kalan dakikalar beklenmez (ayrıntı full_check.sh'nin başında).
+cd /content/TCB && bash /content/is_baslat.sh tam-denetim "tam denetim: bash tools/full_check.sh --ilk-kalanda-dur (dagitim + go-esleri)" -- bash tools/full_check.sh --ilk-kalanda-dur
 ```
 
 ```bash
