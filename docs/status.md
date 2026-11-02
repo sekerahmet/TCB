@@ -411,8 +411,8 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 ### 10.7
 
 - **Mevcut durum:** sabit hızlı döngünün süre ölçmesi için 13.1'in `TR_monotonic_ns`'i kod kaydında yok [ölçüldü: DENETİM 10-1].
-- **Yapılacaklar:** zaman aşımı, `TR_done`; TR testi.
-- **Açık:** zaman aşımı ve iptal hatalarının ileti kodları tanımsız (Gemini Koşu 4); 1.6'nın "durdurma istendi" hatasında da aynı boşluk. Adlı ayırma (yeni ad) Sonraya.
+- **Mevcut durum (D1 dilim 3, 2026-11-02):** `g.TR_wait(TR_timeout: saniye)` en çok o kadar bekliyor; süresinde biten görev sonucunu veriyor ya da hatasını fırlatıyor; süre dolarsa görev iptal ediliyor (10.9), durması bekleniyor ve zaman aşımı hatası (H2921) fırlıyor; aynı görevi sonra bekleyen iptal hatasını (H2920) alıyor. Süre `TR_sleep`'inki gibi denetleniyor (H2433, H2434), saat tekdüze. Ağır turlu döngüdeki görev de bir sonraki turda duruyor. İki kod 10.7'nin cümlesine yazıldı. `TR_done` 10.1'de uygulandı [test: `TestAWaitWithATimeout`, `TestATimeoutStopsABusyLoopSoon`].
+- **Açık:** 1.6'nın "durdurma istendi" hatasının kendi kodu (zaman aşımı ve iptalinki gibi). Adlı ayırma (yeni ad) Sonraya.
 
 ### 10.8
 

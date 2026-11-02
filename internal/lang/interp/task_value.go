@@ -80,11 +80,21 @@ func (t *TaskVal) finish(y *VM, result Value, err error) {
 func (t *TaskVal) GetProperty(kd codes.Code, name string) (Value, error) {
 	switch kd {
 	case codes.MemWait:
-		return &BuiltinVal{Name: codes.Name(kd), NoNamedArgs: true, Fn: func(y *VM, args []Value, _ map[string]Value) (Value, error) {
+		return &BuiltinVal{Name: codes.Name(kd), Fn: func(y *VM, args []Value, named map[string]Value) (Value, error) {
 			if len(args) != 0 {
 				return nil, ArgCountError(kd, 0, len(args))
 			}
-			return t.wait(y)
+			var limit Value = Null
+			for name, val := range named {
+				if !isSpelling(codes.ArgTimeout, name) {
+					return nil, messages.New(messages.H7901, CallPrefix(kd), name, codes.NameRef(codes.ArgTimeout))
+				}
+				limit = val
+			}
+			if limit == Null {
+				return t.wait(y)
+			}
+			return t.waitFor(y, limit) // 10.7 (task_cancel.go)
 		}}, nil
 	case codes.MemDone:
 		return &BuiltinVal{Name: codes.Name(kd), NoNamedArgs: true, Fn: func(_ *VM, args []Value, _ map[string]Value) (Value, error) {
@@ -119,18 +129,27 @@ func (t *TaskVal) wait(y *VM) (Value, error) {
 // task counts as waited: its error reaches the waiter (10.6).
 func (t *TaskVal) await(y *VM, fn codes.Code) error {
 	if !t.stopped() {
-		if y.task == t {
-			// Görev kendi durmasını bekleyemez: sonsuza dek kilitlenirdi.
-			return messages.New(messages.H2918, CallPrefix(fn), t.line)
-		}
-		if y.exclusive != nil {
-			return messages.New(messages.H2522, CallPrefix(fn), y.exclusive)
+		if err := t.waitable(y, fn); err != nil {
+			return err
 		}
 		if err := y.awaitReady(nil, t.done, false); err != nil {
 			return err
 		}
 	}
 	t.waited.Store(true)
+	return nil
+}
+
+// waitable says whether y may wait for the task: a task cannot wait for its own stop, and nothing
+// waits inside Exclusive (the task could never run).
+func (t *TaskVal) waitable(y *VM, fn codes.Code) error {
+	if y.task == t {
+		// Görev kendi durmasını bekleyemez: sonsuza dek kilitlenirdi.
+		return messages.New(messages.H2918, CallPrefix(fn), t.line)
+	}
+	if y.exclusive != nil {
+		return messages.New(messages.H2522, CallPrefix(fn), y.exclusive)
+	}
 	return nil
 }
 

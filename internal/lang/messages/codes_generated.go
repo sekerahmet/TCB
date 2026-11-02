@@ -500,6 +500,7 @@ const (
 	H2918 Code = 2918 // {fn} görevin kendi içinde çağrılamaz: görev kendi durmasını bekleyemez, sonsuza dek beklerdi (satır {line|loc} başlatılan görev)
 	H2919 Code = 2919 // {fn} bir görev listesi alır; listenin [{index}] öğesi görev değil, {given} verildi: görev `{#async} f(x)` ile başlatılır
 	H2920 Code = 2920 // görev iptal edildi (satır {line|loc} başlatılan)
+	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): görev iptal edildi ve durdu (satır {line|loc} başlatılan)
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

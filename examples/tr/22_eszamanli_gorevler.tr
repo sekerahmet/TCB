@@ -37,6 +37,10 @@ TR_var uzun = TR_async { TR_sleep(10) }
 uzun.TR_cancel()
 TR_print("iptal: \(TR_error_code { uzun.TR_wait() }), bitti mi: \(uzun.TR_done())")
 
+# bekle(süre_sınırı: saniye) en çok o kadar bekler; süre dolarsa görev iptal edilir, zaman aşımı hatası fırlar.
+TR_var yavaş = TR_async { TR_sleep(10) }
+TR_print("zaman aşımı: \(TR_error_code { yavaş.TR_wait(TR_timeout: 0.01) })")
+
 # --- Kendin dene ---
 # 1. uyu(0.05) süresini 0.2 yap: toplam süre görev sayısıyla mı, tek bir görevin süresiyle mi artar?
 # 2. 1..=1000 sayılarının toplamını 10 eşzamanlı görevde parçalara bölerek hesapla.

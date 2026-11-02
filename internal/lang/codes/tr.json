@@ -335,6 +335,7 @@
   "TR_arg_temperature": { "name": "sıcaklık", "family": "adlı argüman: örnekle", "description": "örnekle'de logitlerin bölündüğü sıcaklıktır: küçük değer en olasıya yaklaştırır, 0 her zaman en olasıyı seçer. Negatif olmamalıdır; varsayılan 1.0'dır." },
   "TR_arg_threshold": { "name": "eşik", "family": "kitaplık: tr/training", "description": "" },
   "TR_arg_tied": { "name": "paylaşımlı", "family": "kitaplık: tr/layers", "description": "" },
+  "TR_arg_timeout": { "name": "süre_sınırı", "family": "adlı argüman: görev", "description": "bekle(süre_sınırı: saniye): görev o sürede bitmezse iptal edilir, durması beklenir ve zaman aşımı hatası fırlar." },
   "TR_arg_token_id": { "name": "kimlik", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_token_ids": { "name": "kimlikler", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_tol": { "name": "tolerans", "family": "adlı argüman: türev_denetle", "description": "türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir." },

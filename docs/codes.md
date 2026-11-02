@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 573 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 64 metot, 101 özellik, 137 adlı argüman.
+Toplam 574 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 127 fonksiyon, 11 sabit, 64 metot, 101 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -4260,6 +4260,23 @@ Kullananlar: `TR_sample(...)` · İlişkili: `TR_top_k:`
 
 
 
+#### `TR_timeout:` (`TR_arg_timeout`, `süre_sınırı`)
+
+bekle(süre_sınırı: saniye): görev o sürede bitmezse iptal edilir, durması beklenir ve zaman aşımı hatası fırlar.
+
+```tr
+TR_var g = TR_async { TR_sleep(10) }; TR_print(TR_error_code { g.TR_wait(TR_timeout: 0.01) }, g.TR_done())
+```
+
+Görünümü:
+
+```text
+en: var g = async { sleep(10) }; print(error_code { g.wait(timeout: 0.01) }, g.done())
+tr: değişken g = eşzamanlı { uyu(10) }; yazdır(hata_kodu { g.bekle(süre_sınırı: 0.01) }, g.bitti_mi())
+```
+
+Kullananlar: `.TR_wait(...)` · İlişkili: `.TR_wait(...)`, `.TR_cancel(...)`
+
 #### `TR_token_id:` (`TR_arg_token_id`, `kimlik`)
 
 
@@ -6035,7 +6052,7 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu
 
 #### `.TR_wait(...)` (`TR_mem_wait`, `bekle`)
 
-    Görev.bekle() → Herhangi
+    Görev.bekle(süre_sınırı: Tam | Ondalık = yok) → Herhangi
 
 Görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı fırlatır. Beklerken yorumlayıcı kilidini bırakır.
 

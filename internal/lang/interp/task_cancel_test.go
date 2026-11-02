@@ -3,6 +3,7 @@ package interp
 import (
 	"bytes"
 	"fmt"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -138,4 +139,63 @@ iş()
 	if end.Code != 1 || !strings.Contains(fmt.Sprint(end.Errors), "ertele patladı") || traces.Inspect() != `["blok"]` {
 		t.Fatalf("durdurmada ertelenen işin hatası yazılmalı ve kod 1 olmalı: %+v, iz %s", end, traces.Inspect())
 	}
+}
+
+// Kural (10.7): g.TR_wait(TR_timeout: s) en çok s saniye bekler. Süresinde biten görev sonucunu
+// verir; süre dolarsa görev iptal edilir, durması beklenir (ertelenen işi çalışır) ve zaman aşımı
+// hatası (H2921) fırlar; aynı görevi sonra bekleyen iptal hatasını alır. Süre uyu()'nunki gibi
+// denetlenir (H2433).
+func TestAWaitWithATimeout(t *testing.T) {
+	const source = `TR_func kare(x: TR_Int) -> TR_Int {
+    TR_sleep(0.01)
+    TR_return x * x
+}
+TR_var g = TR_async kare(3)
+TR_print(g.TR_wait(TR_timeout: 1))
+TR_var iz = []
+TR_var u = TR_async {
+    TR_defer { iz.TR_append("ertele") }
+    TR_sleep(10)
+}
+TR_print(TR_error_code { u.TR_wait(TR_timeout: 0.02) }, u.TR_done(), iz)
+TR_print(TR_error_code { u.TR_wait(TR_timeout: 1) })
+TR_print(TR_error_code { g.TR_wait(TR_timeout: -1) }, TR_error_code { g.TR_wait(TR_timeout: "bir") })
+`
+	out, _, err := runTROut(t, source)
+	const want = "9\nH2921 true [\"ertele\"]\nH2920\nH2433 H2433\n"
+	if err != nil || out != want {
+		t.Fatalf("%q beklenirdi, gelen %q (%v)", want, out, err)
+	}
+}
+
+// Kural (10.7, 10.9): ağır turlu döngüdeki görev de süre dolunca iptal edilir; iptal döngünün bir
+// sonraki turunda fark edilir, bekleme süreyi az aşar. Süre tekdüze saatle (time.Since) ölçülür;
+// Windows'ta üç koşudan biri sınıra sığmalıdır (gil_test.go'nun kuralı), Linux'ta tek koşu.
+func TestATimeoutStopsABusyLoopSoon(t *testing.T) {
+	const source = `TR_var d = TR_async {
+    TR_var i = 0
+    TR_for TR_true { i += 1 }
+}
+TR_print(TR_error_code { d.TR_wait(TR_timeout: 0.05) })
+`
+	runs := 3
+	if runtime.GOOS == "linux" {
+		runs = 1
+	}
+	const limit = 50*time.Millisecond + 250*time.Millisecond
+	var took []time.Duration
+	for run := 1; run <= runs; run++ {
+		start := time.Now()
+		out, _, err := runTROut(t, source)
+		elapsed := time.Since(start)
+		if err != nil || out != "H2921\n" {
+			t.Fatalf("H2921 beklenirdi, gelen %q (%v)", out, err)
+		}
+		t.Logf("%d. koşu: %v", run, elapsed)
+		if elapsed >= 50*time.Millisecond && elapsed <= limit {
+			return
+		}
+		took = append(took, elapsed)
+	}
+	t.Fatalf("%d koşunun hiçbiri 50 ms ile %v arasında bitmedi: %v", runs, limit, took)
 }

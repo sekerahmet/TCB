@@ -43,7 +43,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 
 **10.7** `g.TR_wait(TR_timeout: saniye)` en çok verilen süre kadar bekler. Görev o sürede biterse sonucunu verir ya da hatasını fırlatır; süre dolarsa **görev iptal edilir** (10.9), durması beklenir ve zaman aşımı hatası görev durunca fırlar; toplam bekleme bu yüzden süreyi aşabilir. Sabit hızlı bir döngü ve uzak bir modele sorulan soru böyle sınırlanır; program uzak cevabı beklemeye bağlı kalmaz.
 - İptal görevi onu bekleyen herkes için durdurur: aynı görevi başka bir yer de bekliyorsa o da iptal hatası alır.
-- Zaman aşımı hatasının ve iptal hatasının kendi ileti kodları vardır (8.5); `TR_error_code { g.TR_wait(TR_timeout: 1) }` ile sınanır. Kodlar uygulanınca bu maddeye yazılır (status).
+- Zaman aşımı hatasının (H2921) ve iptal hatasının (H2920) kendi ileti kodları vardır (8.5); `TR_error_code { g.TR_wait(TR_timeout: 1) }` ile sınanır.
 - Görevi iptal etmeden sonucunu sormak için `g.TR_done()` kullanılır: görev bittiyse (sonuçla, hatayla ya da iptalle) `TR_true` verir, beklemez. Sabit hızlı bir döngü her turda böyle sorar, bitmemişse önceki sonucu kullanır.
 - *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
 

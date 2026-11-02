@@ -1,6 +1,9 @@
 package interp
 
 import (
+	"time"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -80,4 +83,44 @@ func (t *TaskVal) cancelError(y *VM, err error) error {
 		out = addDeferError(out, d)
 	}
 	return out
+}
+
+// waitFor is g.TR_wait(TR_timeout: limit) (10.7): it waits at most limit seconds. A task that stops
+// in time gives its result or throws its error; otherwise the task is cancelled, its stop is
+// waited for (so the whole wait may exceed the limit), and the timeout error (H2921) is thrown.
+func (t *TaskVal) waitFor(y *VM, limit Value) (Value, error) {
+	d, err := seconds(codes.MemWait, limit)
+	if err != nil {
+		return nil, err
+	}
+	if !t.stopped() {
+		if err := t.waitable(y, codes.MemWait); err != nil {
+			return nil, err
+		}
+		ready, stop := make(chan struct{}), make(chan struct{})
+		timer := time.NewTimer(d)
+		go func() {
+			defer close(ready)
+			select {
+			case <-t.done:
+			case <-timer.C:
+			case <-stop:
+			}
+		}()
+		err := y.awaitReady(nil, ready, false)
+		close(stop)
+		timer.Stop()
+		if err != nil {
+			return nil, err
+		}
+		if !t.stopped() {
+			t.cancel(y)
+			if err := t.await(y, codes.MemWait); err != nil {
+				return nil, err
+			}
+			return nil, messages.New(messages.H2921, CallPrefix(codes.MemWait), Shown(limit), t.line)
+		}
+	}
+	t.waited.Store(true)
+	return t.result, t.err
 }
