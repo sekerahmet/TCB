@@ -35,6 +35,8 @@ func TestATaskHasItsCallsType(t *testing.T) {
 	singleError(t, squareFn+"TR_var l: TR_List[TR_String] = TR_wait_all([TR_async kare(1)])", messages.H1001, 4)
 	singleError(t, squareFn+"TR_var g = TR_async kare(2)\nTR_var b = g.TR_done(1)", messages.H2011, 5)
 	singleError(t, squareFn+"TR_var g = TR_async kare(2)\nTR_var b = g.TR_append(1)", messages.H2474, 5)
+	singleError(t, "TR_var g = TR_async { TR_print(1) }\ng.TR_append(1)", messages.H2474, 2)
+	singleError(t, "TR_func f() {\n    TR_var g = TR_async { TR_print(1) }\n    g.TR_append(1)\n}", messages.H2474, 3)
 }
 
 // Kural (10.1): görevin içi denetlenir; değer olarak yazılan TR_async'in çağrısındaki ya da

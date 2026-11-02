@@ -24,13 +24,17 @@ var coreTypes = func() map[string]bool {
 }()
 
 // knownType denetleyici t tipini tanıyor mu: değişkene verilebilir bir tip mi? Çekirdek tipler,
-// programın yapıları, öğe tipleri tanınan kaplar ve demetler.
+// programın yapıları, öğe tipleri tanınan kaplar ve demetler; blok görevi TR_Task[TR_NoneType] de
+// (10.1).
 func (c *Checker) knownType(t string) bool {
 	s := shapeOf(t)
 	if s.elems == nil && !coreTypes[s.base] && !c.knownStruct(s.base) {
 		return false
 	}
 	for _, a := range append(s.args, s.elems...) {
+		if a == typeNull && s.base == typeTask {
+			continue
+		}
 		if !c.knownType(a) {
 			return false
 		}
