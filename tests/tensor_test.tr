@@ -1489,6 +1489,83 @@ TR_test "15.44 kaynaştır: izlenemeyen kapanış değeri hatadır; mantık değ
     TR_assert_equal([3.0], kv(t, l.TR_length).TR_tolist)
 }
 
+TR_test "15.44 kaynaştır: kapanıştan okunan fonksiyon değeri kimliğiyle kaydedilir, gövdesi nerede okunursa okunsun gezilir; blok ve döngü değişkeni yalnız kendi bloğunda yereldir" {
+    TR_var t = TR_Tensor([1.0])
+    TR_func h(x: TR_Tensor) -> TR_Tensor { TR_return x * 2.0 }
+    TR_func h2(x: TR_Tensor) -> TR_Tensor { TR_return x * 3.0 }
+    # Kapanıştaki ad başka fonksiyona bağlanınca hatadır.
+    TR_var op = h
+    TR_var ko = TR_fuse((a) => op(a))
+    TR_assert_equal([2.0], ko(t).TR_tolist)
+    TR_assert_equal([2.0], ko(t).TR_tolist)
+    op = h2
+    TR_assert_equal("H6986", TR_error_code { ko(t) })
+    # Yapının fonksiyon alanı da yoldur.
+    TR_struct N { f: (TR_Tensor) -> TR_Tensor }
+    TR_var n = N(h)
+    TR_var kn = TR_fuse((a) => n.f(a))
+    TR_assert_equal([2.0], kn(t).TR_tolist)
+    n.f = h2
+    TR_assert_equal("H6986", TR_error_code { kn(t) })
+    # Gövdedeki yerel takma ad: fonksiyon değeri okunduğu yerde kaydedilir, gövdesi gezilir.
+    TR_var ölçek = 2.0
+    TR_func hö(x: TR_Tensor) -> TR_Tensor { TR_return x * ölçek }
+    TR_var g0 = hö
+    TR_var kg = TR_fuse((a) => {
+        TR_var g = g0
+        TR_return g(a)
+    })
+    TR_assert_equal([2.0], kg(t).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal("H6986", TR_error_code { kg(t) })
+    ölçek = 2.0
+    g0 = h2
+    TR_assert_equal("H6986", TR_error_code { kg(t) })
+    # Argüman olarak verilen fonksiyon da okunduğu yerde kaydedilir.
+    TR_func uygula(f: (TR_Tensor) -> TR_Tensor, x: TR_Tensor) -> TR_Tensor { TR_return f(x) }
+    TR_var ver = h
+    TR_var ku = TR_fuse((a) => uygula(ver, a))
+    TR_assert_equal([2.0], ku(t).TR_tolist)
+    ver = h2
+    TR_assert_equal("H6986", TR_error_code { ku(t) })
+    # Yerleşiğe bağlanmış ad da kimliğiyle (adıyla) kaydedilir.
+    TR_var yo = TR_relu
+    TR_var ky = TR_fuse((a) => yo(a))
+    TR_assert_equal([1.0], ky(t).TR_tolist)
+    yo = TR_exp
+    TR_assert_equal("H6986", TR_error_code { ky(t) })
+    # Bağlı metodun kimliği gövde ve TR_self ikilisidir: her okumada yeni değer, aynı kimlik.
+    TR_struct Ç {
+        k: TR_Float
+        TR_func uygula(x: TR_Tensor) -> TR_Tensor { TR_return x * TR_self.k }
+    }
+    TR_var ç = Ç(2.0)
+    TR_var ç2 = Ç(2.0)
+    TR_var km = TR_fuse((a) => ç.uygula(a))
+    TR_assert_equal([2.0], km(t).TR_tolist)
+    TR_assert_equal([2.0], km(t).TR_tolist)
+    ç = ç2
+    TR_assert_equal("H6986", TR_error_code { km(t) })
+    # Blokta tanımlanan ad dıştaki aynı adı yalnız o blokta yerel yapar; döngü değişkeni de.
+    TR_var k = 2.0
+    TR_var kb = TR_fuse((a) => {
+        TR_if TR_true { TR_var k = 5.0 }
+        TR_return a * k
+    })
+    TR_assert_equal([2.0], kb(t).TR_tolist)
+    k = 3.0
+    TR_assert_equal("H6986", TR_error_code { kb(t) })
+    TR_var c = 2.0
+    TR_var kd = TR_fuse((a) => {
+        TR_var s = a
+        TR_for c TR_in [1.0] { s = s + c }
+        TR_return s * c
+    })
+    TR_assert_equal([4.0], kd(t).TR_tolist)
+    c = 3.0
+    TR_assert_equal("H6986", TR_error_code { kd(t) })
+}
+
 TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
     # 1000'den çok elemanlı tensörü yazdırmak ve üzerinde dönmek veri okumak demektir (.değer gibi).
     TR_var yaz = TR_fuse((x) => {
