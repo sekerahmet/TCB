@@ -23,7 +23,6 @@ type index struct {
 	in         map[string][]*Edge
 	note       func(*Node) string         // verilirse edgeLine her düğümün altına bir not satırı ekler (test_notes.go)
 	trNames    []trName                   // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
-	trAliases  map[string]bool            // dizindeki `TR_import … TR_as <ad>` takma adları (trNameTable; tembel)
 	folded     []foldedNode               // düğümlerin katlanmış adları (nodeFolds; tembel)
 	linked     map[string]map[string]bool // paket -> ikilisine giren paketler (inTestBinary; tembel)
 }
@@ -64,6 +63,9 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 			return tr // modül ya da ad kodu: takma ad basamağıdır, Go adlarından önce gelir
 		}
 	}
+	if trMember && len(tr) == 0 {
+		return ix.specMember(q, kinds) // TR'de kodu olmayan üye yazımı yalnız dil tanımı (spec:) düğümüne inebilir
+	}
 	nf := ix.nodeFolds()
 	tiers, nameTiers, foldTiers := ix.lookupTiers(q)
 	for ti, match := range tiers {
@@ -73,9 +75,6 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 		var found []*Node
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
-			if trMember && ti >= nameTiers && n.Kind != kindSpec {
-				continue // noktalı üye yazımı TR'de bulunmazsa metin aramasında yalnız dil tanımı (spec:) aday kalır
-			}
 			if trQuery && ti < nameTiers && isTRName(n) && !(n.Kind == kindFile && n.File == q) || identity && strings.HasPrefix(n.ID, "tr:") {
 				continue // TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
 			}
@@ -202,136 +201,6 @@ func (ix *index) otherCase(q string, chosen *Node, kinds []string) []string {
 	}
 	sort.Strings(out)
 	return out
-}
-
-// isTRName düğümün çıplak adı trByName ile mi çözülür: .tr dosyası, TR bildirimi ya da testi, ad kodu.
-func isTRName(n *Node) bool {
-	return strings.HasPrefix(n.ID, "tr:") || strings.HasPrefix(n.ID, "name:")
-}
-
-// trName çıplak ya da nitelenmiş adla çözülen bir TR düğümüdür: sınıfı, çıplak adları ve nitelenmiş adları.
-type trName struct {
-	node      *Node
-	class     codeindex.NameClass
-	names     []string
-	folded    []string
-	qualified [][2]string
-}
-
-// trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar tr index'inkilerdir: modülün adı ve takma adları, bildirimin
-// kısa adı (kodlu bildirimde dillerdeki adları da) ve nitelenmiş adları, testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
-func (ix *index) trNameTable() []trName {
-	if ix.trNames != nil {
-		return ix.trNames
-	}
-	ix.trNames = []trName{}
-	ix.trAliases = map[string]bool{}
-	for i := range ix.g.Nodes {
-		n := &ix.g.Nodes[i]
-		c := trName{node: n}
-		switch {
-		case strings.HasPrefix(n.ID, "tr:file:"):
-			c.class, c.names = codeindex.ClassModule, append([]string{n.Name}, n.Aliases...)
-			for _, a := range n.Aliases {
-				c.qualified = append(c.qualified, [2]string{a, codeindex.Fold(a)})
-			}
-		case strings.HasPrefix(n.ID, "name:"):
-			c.class, c.names = codeindex.ClassBuiltin, nameNodeNames(n)
-		case n.Kind == kindTRTest:
-			c.class, c.names = codeindex.ClassTest, []string{n.Name[strings.Index(n.Name, ": ")+2:]} // "modül: açıklama"
-			c.qualified = [][2]string{{n.Name, codeindex.Fold(n.Name)}}
-		case strings.HasPrefix(n.ID, "tr:"):
-			c.class, c.names = codeindex.ClassDeclaration, declNames(n)
-			c.qualified = [][2]string{{n.Name, codeindex.Fold(n.Name)}}
-			mod, _, _ := strings.Cut(n.Name, ".")
-			for _, a := range n.Aliases {
-				if prefix, _, ok := strings.Cut(a, "."); ok && !codeindex.IdentityQuery(a) {
-					if prefix != mod {
-						ix.trAliases[prefix] = true
-						continue
-					}
-					c.qualified = append(c.qualified, [2]string{a, codeindex.Fold(a)})
-				}
-			}
-		default:
-			continue
-		}
-		for _, name := range c.names {
-			c.folded = append(c.folded, codeindex.Fold(name))
-		}
-		ix.trNames = append(ix.trNames, c)
-	}
-	return ix.trNames
-}
-
-// trByName bir sorgunun TR adaylarıdır; tr index'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
-// codeindex.PickByName çıplak ad sırası, codeindex.QualifiedMatch nitelenmiş ad kuralı ve codeindex.MemberQuery üye
-// yazımı geri düşüşü), böylece `query`, `tr index definition` ve `tr index rename` aynı aday kümesini görür. folded
-// adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse true'dur. Grafikte tr index'in bilmediği ad kodları da
-// vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da yerleşik sınıfındadır.
-func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool) {
-	table := ix.trNameTable()
-	for ki, k := range codeindex.NameKeys(q) {
-		picked := codeindex.PickByName(len(table), func(i int) codeindex.NameClass {
-			c := &table[i]
-			if len(kinds) > 0 && !contains(kinds, c.node.Kind) {
-				return codeindex.ClassNone
-			}
-			for j, name := range c.names {
-				if k.Match(name, c.folded[j]) {
-					return c.class
-				}
-			}
-			return codeindex.ClassNone
-		})
-		if len(picked) == 0 && !codeindex.IdentityQuery(q) {
-			picked = codeindex.QualifiedMatch(len(table), k, func(i int) [][2]string {
-				c := &table[i]
-				if len(kinds) > 0 && !contains(kinds, c.node.Kind) {
-					return nil
-				}
-				return c.qualified
-			})
-		}
-		for _, i := range picked {
-			found = append(found, table[i].node)
-		}
-		if len(found) > 0 {
-			return found, ki > 0
-		}
-	}
-	return ix.trMember(q, kinds, table)
-}
-
-func (ix *index) trMember(q string, kinds []string, table []trName) (found []*Node, folded bool) {
-	mq, types := codeindex.MemberQuery(q, len(table), func(i int) codeindex.Kind {
-		switch {
-		case table[i].node.Kind == kindTRStruct:
-			return codeindex.KindStruct
-		case table[i].class == codeindex.ClassModule:
-			return codeindex.KindModule
-		}
-		return ""
-	}, func(i int) [][2]string { return table[i].qualified }, ix.trAliases)
-	if mq == "" {
-		return nil, false
-	}
-	vals, f := ix.trByName(mq, kinds)
-	if len(types) == 0 || len(vals) == 0 {
-		return vals, f
-	}
-	recv, member, _ := strings.Cut(q, ".")
-	for _, i := range types {
-		cp := *table[i].node
-		cp.NoteCode, cp.Note = codeindex.MemberTypeNoteIn("en", recv)
-		found = append(found, &cp)
-	}
-	for _, v := range vals {
-		cp := *v
-		cp.NoteCode, cp.Note = codeindex.MemberValueNoteIn("en", recv, member)
-		found = append(found, &cp)
-	}
-	return found, false
 }
 
 // idTailEquals kimliğin ':' sonrası kuyruklarından biri q mu (doc:docs/a.md#b için docs/a.md#b).

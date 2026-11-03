@@ -54,3 +54,59 @@ func TestSpecItemsAreNodesWithReferenceEdges(t *testing.T) {
 	}
 	t.Error("a TR test block named after the item tests it")
 }
+
+// Kural (DENETİM istek 66): <takma ad>.TR_<ad> yalnız takma adın modülündeki bildirime çözülür; kodu olmayan
+// üye yazımı ise maddenin gövdesinde (kod bloğu dahil) geçse bile alıcısından bağımsız olarak en öncelikli spec:
+// maddesine çözülür.
+func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
+	detachX := "x." + "TR_detach"
+	detachY := "y." + "TR_detach"
+	readP := "p." + "TR_read"
+	readS := "akış." + "TR_read"
+	katmanLin := "katman." + "TR_Linear"
+	optNSA := "opt." + "TR_NS_A"
+	optLin := "opt." + "TR_Linear"
+	geoLin := "geo." + "TR_Linear"
+
+	g, err := buildGraph(auditModule(t, map[string]string{
+		"app/app.go":              "package app\n",
+		"docs/spec/02_sozcuk.md":  "**2.9** Göç notu: eski metinde `" + detachX + "()` geçer.\n",
+		"docs/spec/15_tensor.md":  "**15.27a** `" + detachX + "()` tensörü çizgeden ayırır.\n",
+		"docs/spec/21_surec.md":   "**21.2** Akış okuma:\n\n```" + "tr\n# TR 4\n" + readP + "()\n```\n",
+		"lib/layers.tr":           "# TR 4\nTR_struct TR_Linear {\n    TR_weight: TR_Int = 1\n}\n",
+		"lib/optimizers.tr":       "# TR 4\nTR_const TR_NS_A = 3.4445\n",
+		"examples/helpers/geo.tr": "# TR 4\nTR_struct Kare {\n    kenar: TR_Int = 1\n}\n",
+		"examples/app.tr":         "# TR 4\nTR_import \"tr/layers\" TR_as katman\nTR_import \"tr/optimizers\" TR_as opt\nTR_import \"helpers/geo\" TR_as geo\nTR_var d = " + katmanLin + "()\nTR_print(" + optNSA + ", geo.Kare())\n",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix := newIndex(g)
+	ids := func(ns []*Node) []string {
+		var out []string
+		for _, n := range ns {
+			out = append(out, n.ID)
+		}
+		return out
+	}
+	for q, want := range map[string]string{
+		katmanLin:    "tr:struct:lib/layers.tr:TR_type_Linear",
+		optNSA:       "tr:const:lib/optimizers.tr:TR_const_NS_A",
+		detachX:      "spec:15.27a",
+		detachY:      "spec:15.27a",
+		".TR_detach": "spec:15.27a",
+		readP:        "spec:21.2",
+		readS:        "spec:21.2",
+		".TR_read":   "spec:21.2",
+	} {
+		got := ids(ix.lookup(q))
+		if len(got) != 1 || got[0] != want {
+			t.Errorf("lookup(%q) = %v, want [%s]", q, got, want)
+		}
+	}
+	for _, q := range []string{optLin, geoLin} {
+		if got := ids(ix.lookup(q)); len(got) != 0 {
+			t.Errorf("lookup(%q) = %v, want empty", q, got)
+		}
+	}
+}
