@@ -182,6 +182,44 @@ TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
     TR_assert_equal("H2770", TR_error_code { TR_var s = TensörKutusu("a", TR_zeros([2])) == TensörKutusu("a", TR_zeros([2])) })
 }
 
+TR_test "7.6 aynı nesne de alanlarıyla karşılaştırılır; durumlu tipte de (7.7)" {
+    TR_struct Kutu {
+        ad: TR_String
+        f: ((TR_Int) -> TR_Int)? = TR_none
+    }
+    TR_struct TensörKutusu {
+        ad: TR_String
+        t: TR_Tensor
+    }
+    TR_struct Ölçü {
+        değer: TR_Float
+    }
+    TR_var k = Kutu("a", (x) => x)
+    TR_assert_equal("H2770", TR_error_code { TR_var s = k == k })
+    TR_assert_equal("H2770", TR_error_code { TR_var s = [k].TR_contains(k) })
+    TR_var tk = TensörKutusu("a", TR_zeros([2]))
+    TR_assert_equal("H2770", TR_error_code { TR_var s = tk == tk })
+    TR_assert_equal("H2770", TR_error_code {
+        TR_var s = TR_match tk {
+            (tk) => 1
+            _ => 2
+        }
+    })
+    TR_var n = Ölçü(1.5)
+    TR_assert(n == n)
+    TR_var p = Ölçü(TR_nan)
+    TR_var q = p
+    TR_assert_equal([TR_false, TR_true, TR_false], [p == p, p != p, q == p])
+    TR_var m = TR_match p {
+        (p) => "eşleşti"
+        _ => "eşleşmedi"
+    }
+    TR_assert_equal("eşleşmedi", m)
+    TR_var b = Durum.Bitti(TR_nan)
+    TR_assert_equal(TR_false, b == b)
+    TR_assert(Durum.Bekliyor == Durum.Bekliyor)
+}
+
 TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa hatadır" {
     TR_struct Düğüm {
         ad: TR_String
@@ -193,7 +231,8 @@ TR_test "7.6 '==' karşılaştırmakta olduğu nesne çiftine yeniden varırsa h
     TR_var b = Düğüm("kök")
     b.çocuklar = [Düğüm("yaprak", b)]
     TR_assert_equal("H2771", TR_error_code { TR_var s = a == b })
-    TR_assert(a == a)
+    # aynı nesnede de: kısa devre yok, alanlar gezilir
+    TR_assert_equal("H2771", TR_error_code { TR_var s = a == a })
 }
 
 TR_enum Durum {

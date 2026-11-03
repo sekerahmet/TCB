@@ -390,7 +390,7 @@ func ValuesEqual(a, b Value) bool {
 }
 
 // equalityDepth iç içe kap karşılaştırmasının en fazla derinliğidir; kendini içeren
-// kaplarda (l == l dışında) sonsuz özyinelemeyi önler, aşılırsa eşit sayılmaz.
+// kaplarda sonsuz özyinelemeyi önler, aşılırsa eşit sayılmaz ('==' döngüyü önce H2771 ile durdurur).
 const equalityDepth = 10000
 
 func valuesEqual(a, b Value, nestDepth int) bool {
@@ -429,12 +429,10 @@ func valuesEqual(a, b Value, nestDepth int) bool {
 		return false
 	}
 	// Kaplar eleman eleman karşılaştırılır: görünen metinleri aynı olan farklı değerler
-	// (ör. yazdırırken yuvarlanan elemanlar) eşit sayılmaz. Aynı kap kendisine eşittir.
+	// (ör. yazdırırken yuvarlanan elemanlar) eşit sayılmaz. Aynı kap da öğeleriyle karşılaştırılır
+	// (4.5, 7.6): TR_nan tutan liste kendisine eşit değildir.
 	switch a.(type) {
 	case *ListVal, *DictVal, *StructInstanceVal:
-		if a == b {
-			return true
-		}
 		if nestDepth >= equalityDepth {
 			return false
 		}
