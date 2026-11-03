@@ -67,12 +67,15 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	nf := ix.nodeFolds()
 	tiers, nameTiers, foldTiers := ix.lookupTiers(q)
 	for ti, match := range tiers {
-		if (len(tr) > 0 || trMember) && ti >= nameTiers {
-			break // TR adayı ya da noktalı üye yazımı varken metin aramasına inilmez
+		if len(tr) > 0 && ti >= nameTiers {
+			break // TR adayı varken metin aramasına inilmez
 		}
 		var found []*Node
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
+			if trMember && ti >= nameTiers && n.Kind != kindSpec {
+				continue // noktalı üye yazımı TR'de bulunmazsa metin aramasında yalnız dil tanımı (spec:) aday kalır
+			}
 			if trQuery && ti < nameTiers && isTRName(n) && !(n.Kind == kindFile && n.File == q) || identity && strings.HasPrefix(n.ID, "tr:") {
 				continue // TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
 			}

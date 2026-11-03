@@ -458,7 +458,7 @@ foo.TR_GPT	not_found	4	-
 foo.TR_Linear	not_found	4	-
 fs.TR_append	ok	0	name:TR_mem_append
 g.TR_append	ok	0	name:TR_mem_append
-g.TR_cancel	not_found	4	-
+g.TR_cancel	ok	0	spec:10.9	tr_index:not_found:4
 g.TR_close	ok	0	name:TR_mem_close
 g.TR_code	ok	0	name:TR_mem_code
 g.TR_done	not_found	4	-
@@ -469,7 +469,7 @@ g.TR_reshape	ok	0	name:TR_mem_reshape
 g.TR_shape	ok	0	name:TR_mem_shape
 g.TR_table	ambiguous	3	tr:field:lib/layers.tr:TR_type_Embedding.TR_mem_table,tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_table
 g.TR_tolist	ok	0	name:TR_mem_tolist
-g.TR_wait	not_found	4	-
+g.TR_wait	ok	0	spec:10.7	tr_index:not_found:4
 genel.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 geniş.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 geri.TR_append	ok	0	name:TR_mem_append
@@ -979,7 +979,7 @@ w2.TR_tolist	ok	0	name:TR_mem_tolist
 x.TR_GPT	not_found	4	-
 x.TR_Linear	not_found	4	-
 x.TR_append	ok	0	name:TR_mem_append
-x.TR_detach	not_found	4	-
+x.TR_detach	ok	0	spec:15.27a	tr_index:not_found:4
 x.TR_filter	ok	0	name:TR_mem_filter
 x.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 x.TR_get	ok	0	name:TR_mem_get

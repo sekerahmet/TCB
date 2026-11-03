@@ -468,3 +468,27 @@ func TestDescribeShowsCandidateNoteEvenOnAClosure(t *testing.T) {
 		t.Errorf("describe printed closure captures as a note: %q", got)
 	}
 }
+
+// Kural (DENETİM istek 58 K2, Ş2): TR'de karşılığı olmayan noktalı üye yazımı yalnız dil tanımı (spec:) düğümüne
+// inebilir; Go, belge ya da başlık düğümlerine inmez.
+func TestUnresolvedMemberSpellingKeepsOnlySpecCandidates(t *testing.T) {
+	toBytes := "t." + "TR_to_bytes"
+	ix := newIndex(&Graph{
+		Module: "example.com/m",
+		Nodes: []Node{
+			{ID: "spec:15.27a", Kind: kindSpec, Name: "15.27a", Detail: "`x.TR_detach()` tensörü çizgeden ayırır"},
+			{ID: "spec:22.2", Kind: kindSpec, Name: "22.2", Detail: "`" + toBytes + "()` ham baytları döner"},
+			{ID: "go:func:example.com/m.TestBytes", Kind: kindFunc, Name: "m.TestBytes", Doc: "checks " + toBytes + "() and TR_mem_embedding.TR_mem_table"},
+			{ID: "heading:docs/a.md#h", Kind: kindHeading, Name: toBytes + " ve TR_mem_embedding.TR_mem_table", Detail: "docs/a.md h2"},
+		},
+	})
+	for q, want := range map[string]string{"x.TR_detach": "spec:15.27a", toBytes: "spec:22.2"} {
+		got := ix.lookup(q)
+		if len(got) != 1 || got[0].ID != want {
+			t.Errorf("lookup(%q) = %v, want [%s]", q, got, want)
+		}
+	}
+	if got := ix.lookup("TR_mem_embedding.TR_mem_table"); len(got) != 0 {
+		t.Errorf("lookup(TR_mem_embedding.TR_mem_table) = %v, want empty (no Go or heading fallback)", got)
+	}
+}
