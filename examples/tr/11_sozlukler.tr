@@ -3,7 +3,7 @@
 # Ne öğretir: sözlük kurmak, anahtarla okumak/yazmak, olmayan anahtar (varsa_al), anahtarlar() ve
 # değerler(), içerir, sözlük listesi.
 # Önceki örnekten: listeler (09), ok fonksiyonları (10), yok ve ?? (03).
-# Çalıştırma (proje kökünden): tr examples/tr/11_sozlukler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/11_sozlukler.tr
 
 # Sözlük süslü parantezle yazılır: "anahtar": değer çiftleri.
 TR_var fiyatlar = {"elma": 12, "muz": 30}

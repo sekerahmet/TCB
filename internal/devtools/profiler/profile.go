@@ -1,4 +1,4 @@
-// Package profiler TR'nin canlı profilidir: 'tr watch' ve 'tr profile' komutlarının ortak
+// Package profiler TR'nin canlı profilidir: 'trlang watch' ve 'trlang profile' komutlarının ortak
 // çekirdeği. Üç kaynaktan okur:
 //
 //   - Tensör sayaçları (internal/compute/tensor, counter.go): her zaman açık, işlem türüne,
@@ -39,8 +39,8 @@ type Options struct {
 	Source  string // ana programın kaynağı (satır metinleri)
 	// SampleLines satır/fonksiyon örneklemesini açar (yorumlayıcının hata ayıklayıcı yuvası).
 	SampleLines bool
-	// GPUMeasure GPU çekirdeklerinin cihazdaki süresinin ölçümünü açar (gpu.go; tr watch ve
-	// tr profile açar, arka plan işinin profili açmaz).
+	// GPUMeasure GPU çekirdeklerinin cihazdaki süresinin ölçümünü açar (gpu.go; trlang watch ve
+	// trlang profile açar, arka plan işinin profili açmaz).
 	GPUMeasure bool
 	// StatusFile boş değilse canlı görüntü saniyede en çok bir kez bu dosyaya yazılır.
 	StatusFile string

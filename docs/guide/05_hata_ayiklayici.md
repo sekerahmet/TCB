@@ -1,6 +1,6 @@
 # 5. TR Hata Ayıklayıcı
 
-TR'nin **terminalde** (`tr debug dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`TR_cmd_dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `editors/vscode/README.md`). Denemek için: `tr examples/tr/42_hata_ayiklama.tr` (koşullu kesme noktasında durur; `set vergi_orani = 0.20`, ardından `continue`).
+TR'nin **terminalde** (`trlang debug dosya.tr`, kabukta `/h`) çalışan bir hata ayıklayıcısı vardır. VS Code'da hata ayıklarken (`TR_cmd_dap`) değişkenler yandaki **İzleme Masası** panelinde tek tabloda görünür; listeler tip sütununda `Tablo [3×3]` gibi etiketlenir ve adına tıklanınca tablo olarak açılır (ayrıntılar: `editors/vscode/README.md`). Denemek için: `trlang examples/tr/42_hata_ayiklama.tr` (koşullu kesme noktasında durur; `set vergi_orani = 0.20`, ardından `continue`).
 
 1. **Kod İçi Kesme Noktası (`TR_breakpoint`):**
    - Koşulsuz: `TR_breakpoint`

@@ -7,7 +7,7 @@
 # eğitimin kararlılığı (44): aynı kitaplık modülü.
 # Ayrıntılar: lib/README.md (tr/training), docs/spec/20_kontrol_noktasi.md §20.
 #
-# Çalıştırma (proje kökünden): tr examples/tr/48_egitim_kosusu.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/48_egitim_kosusu.tr
 
 TR_import "tr/training"
 

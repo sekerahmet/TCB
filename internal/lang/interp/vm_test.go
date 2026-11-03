@@ -213,7 +213,7 @@ func (v *VM) RegisterBuiltin(name string, fn BuiltinFunc) {
 	v.GlobalEnv.Define(name, &BuiltinVal{Name: name, Fn: fn}, true)
 }
 
-// Eşzamanlı görev hataları sabit os.Stderr'e yazılıyor, düzenleyici oturumunda ve tr test
+// Eşzamanlı görev hataları sabit os.Stderr'e yazılıyor, düzenleyici oturumunda ve trlang test
 // çıktısında görünmüyordu. VM'in hata yazıcısına (Err) gider.
 func TestTaskErrorGoesToErrWriter(t *testing.T) {
 	var out, failure bytes.Buffer

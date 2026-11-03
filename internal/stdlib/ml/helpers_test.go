@@ -22,7 +22,7 @@ func run(t *testing.T, code string) (string, error) {
 	return o.Out, o.Err
 }
 
-// mustRun kodu hatasız çalıştırır. Önce, tr komutunun yaptığı gibi tip denetiminden
+// mustRun kodu hatasız çalıştırır. Önce, trlang komutunun yaptığı gibi tip denetiminden
 // geçirir: tanımsız bir ad yalnızca zamanlamaya bağlı
 // olarak çalışan bir satırda olsa da test her makinede kalır.
 func mustRun(t *testing.T, code string) string {

@@ -332,7 +332,7 @@ func runProgram(code string) ([]error, string) {
 		return out, ""
 	}
 	chk := checker.New()
-	chk.SetFile(checker.ProgramFile, code) // tr check gibi: öneri dosyanın satırını verir
+	chk.SetFile(checker.ProgramFile, code) // trlang check gibi: öneri dosyanın satırını verir
 	chk.CheckProgram(r.Program)
 	out = append(out, chk.Errs()...)
 	out = append(out, chk.Warnings()...)

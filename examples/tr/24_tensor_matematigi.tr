@@ -3,7 +3,7 @@
 # Ne öğretir: exp, log, sin gibi matematik fonksiyonlarının tensörde eleman bazlı çalışması,
 # silu ve log_softmax, toplam/ortalama ile eksen boyunca indirgeme ve boyutu_koru.
 # Önceki örnekten: tensörler (23), matematik (13).
-# Çalıştırma (proje kökünden): tr examples/tr/24_tensor_matematigi.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/24_tensor_matematigi.tr
 # Ayrıntılar: docs/spec/15_tensorler.md §15.
 
 # 13'te sayılara uyguladığımız fonksiyonlar tensörde her elemana ayrı ayrı uygulanır.

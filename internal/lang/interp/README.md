@@ -45,7 +45,7 @@ makinede ve her `TR_LANG`'de aynı çıktıyı verir. Yakalanan hata bir `TR_Err
 metni fırlatılan değerin metnidir, iletinin metni onu kuran çağrıdır (`Message("H6903", -1)`). `Inspect` aynı metni verir (3.14). Sözlük anahtarı bir
 ifadedir ve metin anahtarı çevrilmez (`{"step": 1}`; 3.7): `TR_keys()`, `d["step"]` ve veri biçimleri (JSON,
 günlük, kontrol noktası; `KeyText`) aynı anahtarı görür. Anahtar yalnız köşeli parantezle okunur ve yazılır;
-`d.ad` hatadır (H2648), olmayan anahtar da (H2647; `.TR_get(k)` yok verir). Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtRunTimeErrorTextIsItsMessage`, `TestCaughtErrorTypesAreErrorValues`, `TestOneValueTextForEveryValue`, `TestDictKeysAreTextNotMembers`, `TestDataFormatsAreLanguageIndependent` ve `TestDictTextKeysOnDisk` (cmd/tr/e2e).
+`d.ad` hatadır (H2648), olmayan anahtar da (H2647; `.TR_get(k)` yok verir). Denetim: `TestValueTextIsLanguageIndependent`, `TestValueTextIsTheSameInEveryModule`, `TestEveryTextConversionIsLanguageIndependent`, `TestCaughtRunTimeErrorTextIsItsMessage`, `TestCaughtErrorTypesAreErrorValues`, `TestOneValueTextForEveryValue`, `TestDictKeysAreTextNotMembers`, `TestDataFormatsAreLanguageIndependent` ve `TestDictTextKeysOnDisk` (cmd/trlang/e2e).
 
 **Sıcak yol ölçülerek değişir.** Yorumlayıcı döngüsündeki ve hızlı yollardaki değişiklikler
 önce/sonra hız ölçümüyle yapılır.
@@ -56,7 +56,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 
 - `behavior_param_kinds_test.go`: çekirdek metotların tanımdaki tek tipli parametrelerinin motorun denetlediği argüman tipiyle (`signature.typesOf`) aynı olması (denetleyici H2423'ü onlardan verir; 4a2 ön şartı (a), 13.11)
 - `behavior_semantics_test.go`: uçtan uca dil anlamı: TR programları bütün yorumlayıcıdan geçerek çalışır
-- `behavior_bench_programs_test.go`: hız kıyas setinin (`tools/bench/tr`) programları küçültülmüş boyla, `tr run`'ın yolunda (hata ayıklayıcısız `VM.Run`); profil ve ayırma sayısı buradan alınır (`go test -bench Programs`)
+- `behavior_bench_programs_test.go`: hız kıyas setinin (`tools/bench/tr`) programları küçültülmüş boyla, `trlang run`'ın yolunda (hata ayıklayıcısız `VM.Run`); profil ve ayırma sayısı buradan alınır (`go test -bench Programs`)
 - `behavior_typed_signatures_test.go`: tipsiz parametre, alan ve dönüşün iletisindeki düzeltilmiş satır (6.1, 7.1) kopyalanınca modül denetimden geçer ve program istenen sonucu verir
 - `behavior_robustness_test.go`: bütün yorumlayıcının çökme, kilitlenme ve eşzamanlılık güvenliği
 - `behavior_hooks_test.go`: kanca arayüzlerini uygulayan her tipin derleme anı denetimi (`var _ interp.X = (*T)(nil)`) taşıdığı (depo genelinde)

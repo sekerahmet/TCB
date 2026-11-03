@@ -3,9 +3,9 @@
 # Ne öğretir: komut_satırı({...}) ile varsayılan değerli ayarlar tanımlamak, açıklama ve açıklamalar ile
 # yardım yazısı, --ayar_adı değer ile ayarı değiştirmek, --help.
 # Önceki örnekten: sözlükler (11), yok (03), metin (04).
-# Çalıştırma (proje kökünden): tr examples/tr/37_komut_satirinda_ayar.tr
-#   Ayarları değiştirmek için: tr examples/tr/37_komut_satirinda_ayar.tr --step 500 --lr 0.1 --koşu deneme2
-#   Yardım için:                tr examples/tr/37_komut_satirinda_ayar.tr --help
+# Çalıştırma (proje kökünden): trlang examples/tr/37_komut_satirinda_ayar.tr
+#   Ayarları değiştirmek için: trlang examples/tr/37_komut_satirinda_ayar.tr --step 500 --lr 0.1 --koşu deneme2
+#   Yardım için:                trlang examples/tr/37_komut_satirinda_ayar.tr --help
 
 # komut_satırı bir sözlük alır: anahtarlar ayar adları, değerler varsayılanlarıdır. Komut satırında
 # --ad değer verilmemişse varsayılan kullanılır; verilmişse değer varsayılanın tipine çevrilir.

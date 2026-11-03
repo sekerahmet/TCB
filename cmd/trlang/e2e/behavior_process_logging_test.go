@@ -30,12 +30,12 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 		}
 	}
 	s := tr(t, dir, "egit.tr", "--help")
-	testkit.Wait(t, s, 0, []string{"Kullanım: tr egit.tr [seçenekler]", "Deneme eğitimi", "--adım <Tam>", "(varsayılan: 10)", "ertelenen"}, nil)
+	testkit.Wait(t, s, 0, []string{"Kullanım: trlang egit.tr [seçenekler]", "Deneme eğitimi", "--adım <Tam>", "(varsayılan: 10)", "ertelenen"}, nil)
 	if s.Stderr != "" || strings.Contains(s.Stdout, "adım=") {
 		t.Errorf("yardım programı bitirmeli, standart hata boş kalmalı: %+v", s)
 	}
 	s = tr(t, dir, "egit.tr", "--adim", "5")
-	testkit.Wait(t, s, 2, []string{"ertelenen"}, []string{"Hata: bilinmeyen seçenek '--adim'. Bunu mu demek istediniz: '--adım'? Seçenekler için: tr egit.tr --help"})
+	testkit.Wait(t, s, 2, []string{"ertelenen"}, []string{"Hata: bilinmeyen seçenek '--adim'. Bunu mu demek istediniz: '--adım'? Seçenekler için: trlang egit.tr --help"})
 	if strings.Contains(s.Stderr, "Çalışma Zamanı") || strings.Contains(s.Stdout, "Hata:") {
 		t.Errorf("kullanım hatası çalışma hatası gibi yazılmamalı: %+v", s)
 	}

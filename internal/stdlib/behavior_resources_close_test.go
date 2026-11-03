@@ -57,7 +57,7 @@ func TestCloseCallsEveryPackageCloser(t *testing.T) {
 	}
 }
 
-// Close birden çok kez çağrılabilir (cmd/tr hem defer ile hem hata yolunda çağırır).
+// Close birden çok kez çağrılabilir (cmd/trlang hem defer ile hem hata yolunda çağırır).
 func TestCloseCallableRepeatedly(t *testing.T) {
 	for range 3 {
 		Close()

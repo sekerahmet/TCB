@@ -31,7 +31,7 @@ func tempIsEmpty(t *testing.T, temp, ne string) {
 }
 
 // Geçici klasör kullanan dil tanımı testleri (18, 19) koşudan sonra geçici klasörde ve
-// depoda bir şey bırakmaz (18.14: tr test de program bitince geçici klasörleri siler).
+// depoda bir şey bırakmaz (18.14: trlang test de program bitince geçici klasörleri siler).
 func TestTestCommandLeavesNoTempDir(t *testing.T) {
 	for _, file := range []string{"tests/surec_ve_kayit_test.tr", "tests/dosya_ve_yol_test.tr"} {
 		temp, env := tempEnv(t)

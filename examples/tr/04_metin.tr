@@ -3,7 +3,7 @@
 # Ne öğretir: {...} ile metne ifade yerleştirmek, \" kaçışı, uzunluk, büyük_harf/küçük_harf,
 # kırp, içerir, başlar, biter, değiştir, böl; metnin baytları (Baytlar).
 # Önceki örnekten: değişkenler ve tipler (02, 03).
-# Çalıştırma (proje kökünden): tr examples/tr/04_metin.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/04_metin.tr
 
 TR_var ad = "Ayşe"
 TR_var yaş = 30

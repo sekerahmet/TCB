@@ -116,7 +116,7 @@ func TestErrorsAreInFileOrder(t *testing.T) {
 
 func joinErrors(errs []error) string { return strings.Join(messages.Texts(errs), "\n") }
 
-// speedFiles hız tabanının metinleridir: büyük, orta ve küçük bir dosya (cmd/tr/e2e'deki
+// speedFiles hız tabanının metinleridir: büyük, orta ve küçük bir dosya (cmd/trlang/e2e'deki
 // uçtan uca ölçüm de aynılarını kullanır).
 var speedFiles = []string{"lib/layers.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
 

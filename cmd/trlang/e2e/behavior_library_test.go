@@ -24,11 +24,11 @@ func TestImportDoesNotLoadWorkingDirFile(t *testing.T) {
 	if strings.Contains(s.Stdout, "SAHTE") {
 		t.Error("çalışma klasöründeki dosya programın modülünün yerine geçti")
 	}
-	// tr check ve tr build aynı kuralla çözer.
+	// trlang check ve trlang build aynı kuralla çözer.
 	testkit.Wait(t, tr(t, runDir, "check", filepath.Join(project, "ana.tr")), 0, nil, nil)
 }
 
-// Kural 11.6: tr/ önekli modül gömülü kitaplıktandır; tr check olmayanı bildirir, tr build
+// Kural 11.6: tr/ önekli modül gömülü kitaplıktandır; trlang check olmayanı bildirir, trlang build
 // kitaplığı pakete gömmez (uygulama yorumlayıcının kopyasıdır) ve uygulama başka klasörde,
 // diskte tr/layers.tr varken de kitaplıktakini yükler.
 func TestLibraryModuleCheckAndBuild(t *testing.T) {

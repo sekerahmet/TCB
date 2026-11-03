@@ -244,7 +244,7 @@ func (ix *index) testsToRun(ts *touchSet) (best map[string]int, subprocess map[s
 // printGoTests koşulacak Go testlerini satır başına "klasör TestAdı" olarak yazar (sıralı, tekrarsız): değişen
 // testler, değişen kodu sınayanlar, alt süreç testleri ve değişen her dosyayı okuyan testler (grafiğin ayrıştırmadığı
 // bir veri dosyası, planning_questions.txt gibi, hiçbir düğüme eşlenmez; onu okuyan test yine de seçilir). TR testleri
-// (tr test) ve ölçümler (Benchmark) girmez. Ön denetim (tools/full_check.sh --kip=on) bu listeyi koşar.
+// (trlang test) ve ölçümler (Benchmark) girmez. Ön denetim (tools/full_check.sh --kip=on) bu listeyi koşar.
 func (ix *index) printGoTests(w io.Writer, ts *touchSet) {
 	for _, t := range ix.goTestSelection(ts) {
 		fmt.Fprintln(w, t.dir+" "+t.name)

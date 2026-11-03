@@ -6,7 +6,7 @@
 # Düzeltilmiş hâli:
 #     değişken toplam_tutar = 40
 #     yazdır(toplam_tutar)
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/04_tanimsiz_ad.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/04_tanimsiz_ad.tr   (çıkış kodu 1)
 
 TR_var toplam_tutar = 40
 TR_print(toplam_tutr)

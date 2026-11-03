@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-// formatCommand 'tr format [--check] <dosya.tr | klasör>...' komutudur. Dosyaları standart
+// formatCommand 'trlang format [--check] <dosya.tr | klasör>...' komutudur. Dosyaları standart
 // biçime getirip yerine yazar; --check ile yalnızca biçimlenmesi gereken dosyaları listeler
 // ve böyle bir dosya varsa 1 koduyla çıkar. Klasör verilirse içindeki (alt klasörler dahil)
 // tüm .tr dosyaları işlenir.

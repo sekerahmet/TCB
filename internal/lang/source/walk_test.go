@@ -10,7 +10,7 @@ import (
 
 // Kural: WalkFiles dosya hedefini olduğu gibi verir; klasörde yalnızca sonek uyanları, sıralı,
 // gizli klasörler ve node_modules dışında toplar; hedef yoksa çağıranın hatasını döndürür.
-// Neden: testrunner.TestFiles ve cmd/tr.trFiles aynı yürüyüşü ayrı ayrı yazıyordu.
+// Neden: testrunner.TestFiles ve cmd/trlang.trFiles aynı yürüyüşü ayrı ayrı yazıyordu.
 func TestWalkFilesCollectsSuffixedFilesInOrder(t *testing.T) {
 	dir := t.TempDir()
 	for _, name := range []string{"b_test.tr", "a_test.tr", "x.tr", filepath.Join("alt", "c_test.tr"), filepath.Join(".git", "g_test.tr"), filepath.Join("node_modules", "n_test.tr")} {

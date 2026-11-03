@@ -5,6 +5,6 @@
 # Neden: Modül yolu, aktaran dosyanın klasörüne göre çözülür; dosya orada yok.
 # Düzeltilmiş hâli:
 #     aktar "helpers/geometri" // modül dosyası bu yolda gerçekten var
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/20_modul_bulunamadi.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/20_modul_bulunamadi.tr   (çıkış kodu 1)
 
 TR_import "olmayan_modul"

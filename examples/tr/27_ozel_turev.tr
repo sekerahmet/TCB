@@ -3,7 +3,7 @@
 # Ne öğretir: özel_türev(ileri:, geri:) ile yeni işlem kurmak, türev_denetle (tolerans:) ile gradyanı
 # sayısal türevle karşılaştırmak, kaynaştır ile eleman bazlı işlemleri tek geçişte hesaplamak.
 # Önceki örnekten: otomatik türev (26), fonksiyonlar (08).
-# Çalıştırma (proje kökünden): tr examples/tr/27_ozel_turev.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/27_ozel_turev.tr
 # Ayrıntılar: docs/spec/15_tensorler.md §15.
 
 # özel_türev, ileri hesabı ve geri (türev) hesabı sizin yazdığınız bir işlem kurar.

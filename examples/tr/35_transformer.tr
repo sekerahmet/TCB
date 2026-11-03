@@ -4,7 +4,7 @@
 # birleşik dikkat(...)), katman normu, gelu ile ileri besleme, çapraz_entropi kaybı.
 # Önceki örnekten: tensörler ve türev (23–28), çok katmanlı ağ (30), katmanlar (31): katman_normu, gelu, çapraz_entropi.
 # Görev: 0..V-1 arasında döngüsel ilerleyen dizilerde bir sonraki parçayı tahmin etmek.
-# Çalıştırma (proje kökünden): tr examples/tr/35_transformer.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/35_transformer.tr
 
 TR_var V = 8 # sözlük boyutu
 TR_var T = 8 # bağlam uzunluğu

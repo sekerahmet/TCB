@@ -5,7 +5,7 @@
 # Neden: [1, 2] @ [1, 2]: soldakinin son ekseni (2) sağdakinin sondan ikinci ekseniyle (1) eşit olmalı.
 # Düzeltilmiş hâli:
 #     yazdır(a @ a.devrik()) // [1, 2] @ [2, 1] geçerlidir
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/21_tensor_sekil.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/21_tensor_sekil.tr   (çıkış kodu 1)
 
 TR_var a = TR_Tensor([[1.0, 2.0]])
 TR_print(a @ a)

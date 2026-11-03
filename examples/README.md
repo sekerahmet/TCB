@@ -1,17 +1,17 @@
 # Örnekler
 
-Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Örnekler [`tr/`](tr/) klasöründedir ve kodlu saklanır: aynı dosya her gösterim dilinde okunur (`tr show tr/01_merhaba.tr --lang en` İngilizce gösterir). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/tr/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri aşağıdadır; örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
+Numaralı örnekler basitten zora bir öğrenme yoludur: her biri az sayıda yeni ad getirir ve öncekilerde öğretilmemiş hiçbir şeyi kullanmaz. Örnekler [`tr/`](tr/) klasöründedir ve kodlu saklanır: aynı dosya her gösterim dilinde okunur (`trlang show tr/01_merhaba.tr --lang en` İngilizce gösterir). Yol, dilin bütün adlarını kapsar; kapsamı `go test ./cmd/trlang/e2e -run TestExamplesCover` denetler. Tam liste ve ne öğrettikleri aşağıdadır; örneklerin hangi adları getirdiğini sırayla görmek için başlıklara bakın.
 
 Her örnek tek başına çalışır:
 
 ```sh
-tr examples/tr/01_merhaba.tr        # ya da: tr run examples/tr/01_merhaba.tr
-TR_LANG=en tr examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
+trlang examples/tr/01_merhaba.tr        # ya da: trlang run examples/tr/01_merhaba.tr
+TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngilizce
 ```
 
 ## Sıralı liste
 
-Örnekler basitten zora numaralı bir öğrenme yoludur: her örnek tek bir yeni kavram getirir, öncekilerde öğretilmemiş hiçbir şeyi kullanmaz; başında ne öğrettiğini ve önceki örnekten ne aldığını söyler, sonunda "Kendin dene" alıştırmaları vardır. **Örnekler kodlu saklanır** ([`examples/tr/`](tr/)): aynı dosya her gösterim dilinde okunur, `tr show examples/tr/01_merhaba.tr --lang en` İngilizce gösterir (bkz. [dil tanımı 17](../docs/spec/17_kodlar.md)). Proje kökünden çalıştırın: `./bin/tr.exe examples/tr/01_merhaba.tr`.
+Örnekler basitten zora numaralı bir öğrenme yoludur: her örnek tek bir yeni kavram getirir, öncekilerde öğretilmemiş hiçbir şeyi kullanmaz; başında ne öğrettiğini ve önceki örnekten ne aldığını söyler, sonunda "Kendin dene" alıştırmaları vardır. **Örnekler kodlu saklanır** ([`examples/tr/`](tr/)): aynı dosya her gösterim dilinde okunur, `trlang show examples/tr/01_merhaba.tr --lang en` İngilizce gösterir (bkz. [dil tanımı 17](../docs/spec/17_kodlar.md)). Proje kökünden çalıştırın: `./bin/trlang.exe examples/tr/01_merhaba.tr`.
 
 | No | Örnek | Ne öğretir |
 | :-- | :-- | :-- |
@@ -102,60 +102,60 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 
 | Komut | Ne yapar | Örnek |
 | :-- | :-- | :-- |
-| `help` | Komutların ve seçeneklerin kısa yardımı | `tr help` |
-| `version` | TR'nin sürümü | `tr version` |
-| `run` | Programı çalıştırır (komut adı yazılmadan verilen dosya da çalışır) | `tr run examples/tr/07_donguler.tr` |
-| `check` | Çalıştırmadan sözdizimi ve tip denetimi | `tr check examples/tr/13_matematik.tr` |
-| `build` | Programı yorumlayıcıyla birlikte tek çalıştırılabilir dosyaya paketler | `tr build examples/tr/18_moduller.tr` |
-| `test` | Dosyadaki ya da klasördeki `*_test.tr` testlerini koşar | `tr test examples/tr/17_testler_test.tr` |
-| `format` | Dosyaları standart biçime getirir | `tr format examples/tr/09_listeler.tr` |
-| `show` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `tr show examples/tr/01_merhaba.tr --lang en` |
-| `debug` | Programı terminal hata ayıklayıcısında başlatır | `tr debug examples/tr/42_hata_ayiklama.tr` |
-| `watch` | Çalışan bir eğitimin canlı profil tablosunu gösterir | `tr watch examples/tr/40_kontrol_noktasi.tr` |
-| `profile` | Biten ya da süren bir eğitimin profil raporunu yazar | `tr profile examples/tr/28_egitim_dongusu.tr` |
+| `help` | Komutların ve seçeneklerin kısa yardımı | `trlang help` |
+| `version` | TR'nin sürümü | `trlang version` |
+| `run` | Programı çalıştırır (komut adı yazılmadan verilen dosya da çalışır) | `trlang run examples/tr/07_donguler.tr` |
+| `check` | Çalıştırmadan sözdizimi ve tip denetimi | `trlang check examples/tr/13_matematik.tr` |
+| `build` | Programı yorumlayıcıyla birlikte tek çalıştırılabilir dosyaya paketler | `trlang build examples/tr/18_moduller.tr` |
+| `test` | Dosyadaki ya da klasördeki `*_test.tr` testlerini koşar | `trlang test examples/tr/17_testler_test.tr` |
+| `format` | Dosyaları standart biçime getirir | `trlang format examples/tr/09_listeler.tr` |
+| `show` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `trlang show examples/tr/01_merhaba.tr --lang en` |
+| `debug` | Programı terminal hata ayıklayıcısında başlatır | `trlang debug examples/tr/42_hata_ayiklama.tr` |
+| `watch` | Çalışan bir eğitimin canlı profil tablosunu gösterir | `trlang watch examples/tr/40_kontrol_noktasi.tr` |
+| `profile` | Biten ya da süren bir eğitimin profil raporunu yazar | `trlang profile examples/tr/28_egitim_dongusu.tr` |
 | `dap` | Düzenleyicinin hata ayıklama protokolü sunucusu (düzenleyiciler kullanır) | VS Code F5 |
-| `index` | TR kodunun dizinini kurar ve özetler; altındaki alt komutlarla ona sorulur | `tr index` |
+| `index` | TR kodunun dizinini kurar ve özetler; altındaki alt komutlarla ona sorulur | `trlang index` |
 
 `index` komutunun alt komutları yalnızca onun altında geçerlidir (`tr definition` bir komut değildir):
 
 | Alt komut | Ne yapar | Örnek |
 | :-- | :-- | :-- |
-| `definition` | Bir adın tanımı: nerede, imzası, belge yorumu, üyeleri | `tr index definition Doğrusal` |
-| `references` | Bir ada başvuranlar: çağrı, okuma, yazma, aktarma, test | `tr index references Doğrusal` |
-| `tested_by` | Bir adı sınayan test blokları (doğrudan, sonra çağrı zinciriyle dolaylı) | `tr index tested_by Doğrusal` |
-| `impact` | Bir ad ya da dosya değişirse etkilenenler | `tr index impact lib/layers.tr` |
-| `rename` | Bir ad değişirse değişecek yerler: kesin ve olası (hiçbir dosyayı değiştirmez) | `tr index rename baş bakış_sayısı` |
+| `definition` | Bir adın tanımı: nerede, imzası, belge yorumu, üyeleri | `trlang index definition Doğrusal` |
+| `references` | Bir ada başvuranlar: çağrı, okuma, yazma, aktarma, test | `trlang index references Doğrusal` |
+| `tested_by` | Bir adı sınayan test blokları (doğrudan, sonra çağrı zinciriyle dolaylı) | `trlang index tested_by Doğrusal` |
+| `impact` | Bir ad ya da dosya değişirse etkilenenler | `trlang index impact lib/layers.tr` |
+| `rename` | Bir ad değişirse değişecek yerler: kesin ve olası (hiçbir dosyayı değiştirmez) | `trlang index rename baş bakış_sayısı` |
 
 Seçenekler (komutlardan sonra, iki tireyle; adın sözcükleri tireyle ayrılır):
 
 | Seçenek | Ne yapar | Örnek |
 | :-- | :-- | :-- |
-| `--lang` | Yazım dilini seçer (`tr`, `en`) | `tr show examples/tr/05_kosullar.tr --lang en` |
-| `--check` | `format` ile dosyayı değiştirmeden standart biçimde olup olmadığını denetler | `tr format --check examples` |
-| `--json` | `profile` raporunu JSON olarak yazar | `tr profile --json rapor.json examples/tr/28_egitim_dongusu.tr` |
-| `--go-profile` | `profile` ile yorumlayıcının kendi Go profilini de yazar | `tr profile --go-profile examples/tr/28_egitim_dongusu.tr` |
-| `--output` | `watch` tablosunun yazılacağı dosyayı seçer | `tr watch --output canli.txt examples/tr/40_kontrol_noktasi.tr` |
-| `--limit` | `index` sorgularında bir listedeki en çok satır (varsayılan 12) | `tr index references Doğrusal --limit 5` |
-| `--all` | `index` sorgularında satır sınırını kaldırır | `tr index references Doğrusal --all` |
-| `--root` | `index` için proje kökü (verilmezse `.git` bulunan üst klasör) | `tr index definition Doğrusal --root .` |
-| `--kind` | `index` sorgu adını yalnızca bu türdeki düğümlere çözer | `tr index definition ileri --kind method` |
-| `--no-index` | `index` sorgusunda önbellekteki dizini olduğu gibi kullanır (tazelemez) | `tr index definition Doğrusal --no-index` |
-| `--status` | `index` komutunda dizin önbelleğinin durumunu gösterir | `tr index --status` |
-| `--clear` | `index` komutunda dizin önbelleğini siler | `tr index --clear` |
-| `--no-text` | `rename` sorgusunda belge, yorum ve ileti metni taramasını kapatır | `tr index rename baş bakış --no-text` |
-| `--term` | `rename` sorgusunda sembol aramaz, sözcüğü yalnızca metinde arar | `tr index rename çekirdek kernel --term` |
-| `--help` | Programın `TR_fn_command_line` ile tanımlanan seçeneklerinin yardımı | `tr examples/tr/39_veri_ile_egitim.tr --help` |
+| `--lang` | Yazım dilini seçer (`tr`, `en`) | `trlang show examples/tr/05_kosullar.tr --lang en` |
+| `--check` | `format` ile dosyayı değiştirmeden standart biçimde olup olmadığını denetler | `trlang format --check examples` |
+| `--json` | `profile` raporunu JSON olarak yazar | `trlang profile --json rapor.json examples/tr/28_egitim_dongusu.tr` |
+| `--go-profile` | `profile` ile yorumlayıcının kendi Go profilini de yazar | `trlang profile --go-profile examples/tr/28_egitim_dongusu.tr` |
+| `--output` | `watch` tablosunun yazılacağı dosyayı seçer | `trlang watch --output canli.txt examples/tr/40_kontrol_noktasi.tr` |
+| `--limit` | `index` sorgularında bir listedeki en çok satır (varsayılan 12) | `trlang index references Doğrusal --limit 5` |
+| `--all` | `index` sorgularında satır sınırını kaldırır | `trlang index references Doğrusal --all` |
+| `--root` | `index` için proje kökü (verilmezse `.git` bulunan üst klasör) | `trlang index definition Doğrusal --root .` |
+| `--kind` | `index` sorgu adını yalnızca bu türdeki düğümlere çözer | `trlang index definition ileri --kind method` |
+| `--no-index` | `index` sorgusunda önbellekteki dizini olduğu gibi kullanır (tazelemez) | `trlang index definition Doğrusal --no-index` |
+| `--status` | `index` komutunda dizin önbelleğinin durumunu gösterir | `trlang index --status` |
+| `--clear` | `index` komutunda dizin önbelleğini siler | `trlang index --clear` |
+| `--no-text` | `rename` sorgusunda belge, yorum ve ileti metni taramasını kapatır | `trlang index rename baş bakış --no-text` |
+| `--term` | `rename` sorgusunda sembol aramaz, sözcüğü yalnızca metinde arar | `trlang index rename çekirdek kernel --term` |
+| `--help` | Programın `TR_fn_command_line` ile tanımlanan seçeneklerinin yardımı | `trlang examples/tr/39_veri_ile_egitim.tr --help` |
 
 Ortam değişkenleri (kimlik adıyla yazılır ve okunur, 17.9):
 
 | Değişken | Ne yapar | Örnek |
 | :-- | :-- | :-- |
-| `TR_LANG` | Yazım dilini seçer (`tr`, `en`): iletiler, yardım, kodlu dosyanın görünümü | `TR_LANG=en tr help` |
-| `TR_JOB_DIR` | Arka plan işinin klasörü: ilerleme çubuğu oraya `progress.json` yazar | `TR_JOB_DIR=isler/egitim tr examples/tr/28_egitim_dongusu.tr` |
-| `TR_GPU_SYNC` | `1` ise her GPU kernelinden sonra beklenir; kernel hatası tam yerinde bildirilir (yavaş) | `TR_GPU_SYNC=1 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
-| `TR_GPU_PROFILE` | `1` ise GPU kernel süreleri ölçülür (`watch` ve `profile` kendileri açar) | `TR_GPU_PROFILE=1 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
-| `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 tr examples/tr/23_tensor.tr` |
-| `TR_GPU_CUBLASLT` | Bulunamazsa cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 tr examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_LANG` | Yazım dilini seçer (`tr`, `en`): iletiler, yardım, kodlu dosyanın görünümü | `TR_LANG=en trlang help` |
+| `TR_JOB_DIR` | Arka plan işinin klasörü: ilerleme çubuğu oraya `progress.json` yazar | `TR_JOB_DIR=isler/egitim trlang examples/tr/28_egitim_dongusu.tr` |
+| `TR_GPU_SYNC` | `1` ise her GPU kernelinden sonra beklenir; kernel hatası tam yerinde bildirilir (yavaş) | `TR_GPU_SYNC=1 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_GPU_PROFILE` | `1` ise GPU kernel süreleri ölçülür (`watch` ve `profile` kendileri açar) | `TR_GPU_PROFILE=1 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
+| `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 trlang examples/tr/23_tensor.tr` |
+| `TR_GPU_CUBLASLT` | Bulunamazsa cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 
 Etkileşimli kabuk `tr` ile açılır (dosya verilmeden); kabuktan `exit` ile çıkılır.
 

@@ -5,7 +5,7 @@
 # Ne öğretir: koşullu kesme noktası, değişkenleri ve tensörleri incelemek, değeri
 # çalışırken değiştirmek. Hata ayıklayıcı komutları: docs/guide/05_hata_ayiklayici.md §5.
 # Önceki örnekten: fonksiyonlar (08), sözlük listeleri (11), tensörler (23).
-# Çalıştırma (proje kökünden): tr examples/tr/42_hata_ayiklama.tr   (VS Code'da F5)
+# Çalıştırma (proje kökünden): trlang examples/tr/42_hata_ayiklama.tr   (VS Code'da F5)
 # Program durduğunda deneyin:
 #   table siparisler            → sipariş listesini tablo olarak gösterir
 #   set vergi_orani = 0.20      → hatalı oranı çalışırken düzeltir

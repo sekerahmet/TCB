@@ -1,6 +1,6 @@
 # TR standart kitaplığı
 
-TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `TR_kw_import "tr/..."` ile alınır (dil tanımı [11.6](../docs/spec/11_moduller.md)): `tr/` öneki dilin kendi kitaplığına ayrılmıştır, diskteki dosyalar onu gölgeleyemez; kitaplık `TR_cmd_build` ile üretilen uygulamaya da girer. Go tarafı tek bir gömme dosyasıdır (`embedded.go`); kitaplığın kodu bu klasördeki `.tr` dosyalarıdır, okunur ve kopyalanıp değiştirilebilir.
+TR ile yazılmış, `trlang` ikilisine gömülü kitaplık. Modüller `TR_kw_import "tr/..."` ile alınır (dil tanımı [11.6](../docs/spec/11_moduller.md)): `tr/` öneki dilin kendi kitaplığına ayrılmıştır, diskteki dosyalar onu gölgeleyemez; kitaplık `TR_cmd_build` ile üretilen uygulamaya da girer. Go tarafı tek bir gömme dosyasıdır (`embedded.go`); kitaplığın kodu bu klasördeki `.tr` dosyalarıdır, okunur ve kopyalanıp değiştirilebilir.
 
 | Modül | Dosya | İçerik |
 | :-- | :-- | :-- |
@@ -9,7 +9,7 @@ TR ile yazılmış, `tr` ikilisine gömülü kitaplık. Modüller `TR_kw_import 
 | `tr/training` | [`training.tr`](training.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 
-Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`) ve `tr test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
+Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 # TR 4
@@ -172,7 +172,7 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Mimariler:** `llama` (Llama, SmolLM2, TinyLlama ...) ve `qwen3`. İkisi de `GPT`'nin iskeletidir (transformers `modeling_llama.py`, `modeling_qwen3.py`): ön-norm blok, RMSNorm, GQA ve yarı döndürmeli RoPE, `aşağı(silu(kapı(x)) · yukarı(x))`; qwen3'te QK-norm.
 - **Ayarlar:** `hidden_size` → `TR_arg_embed_dim`, `num_attention_heads` → `TR_arg_num_heads`, `num_key_value_heads` → `TR_arg_num_kv_heads`, `head_dim` → `TR_arg_head_dim` (yoksa `boyut / bakış_sayısı`), `intermediate_size` → `TR_arg_intermediate_dim`, `rms_norm_eps` → `TR_arg_eps`, `tie_word_embeddings` → `TR_arg_tied`, `rope_theta` (ya da transformers 5.x'te `rope_parameters.rope_theta`) → `TR_fn_rope_theta`. Sapmalı katmanlar, RoPE ölçekleme, kayan pencere ve `silu` dışı etkinleştirme açık hatadır; sessizce yanlış model kurulmaz.
 - **Ağırlıklar:** `TR_fn_map_hugging_face` adları TR parametre adlarına çevirir; Hugging Face `nn.Linear` ağırlığı `[çıkış, giriş]`, TR `TR_type_Linear` `[giriş, çıkış]` tuttuğu için doğrusal katmanlar devrilir. Tanınmayan ad hatadır.
-- **Doğruluk:** küçük rastgele Llama ve Qwen3 modellerinde transformers'la en büyük logit farkı ~3·10⁻⁷ (`cmd/tr/e2e` `TestReadyModelMatchesTransformers`, `tools/hf/`).
+- **Doğruluk:** küçük rastgele Llama ve Qwen3 modellerinde transformers'la en büyük logit farkı ~3·10⁻⁷ (`cmd/trlang/e2e` `TestReadyModelMatchesTransformers`, `tools/hf/`).
 
 `TR_fn_build_pretrained_model(ayar)` yalnızca kurar (ağırlıksız); `TR_fn_map_hugging_face(ağırlıklar, ayar)` yalnızca eşler.
 

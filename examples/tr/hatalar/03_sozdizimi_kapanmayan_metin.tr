@@ -5,6 +5,6 @@
 # Neden: Metin sabiti açan " işaretinin bir kapanış " işareti olmalıdır.
 # Düzeltilmiş hâli:
 #     yazdır("merhaba")
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/03_sozdizimi_kapanmayan_metin.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/03_sozdizimi_kapanmayan_metin.tr   (çıkış kodu 1)
 
 TR_print("merhaba)

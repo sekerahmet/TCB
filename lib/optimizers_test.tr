@@ -1,7 +1,7 @@
 # TR 4
 # tr/optimizers testleri: Newton–Schulz dikleştirmesi, Muon ve NorMuon'un güncellemesi,
 # parametre grupları, öğrenme oranı planı, kontrol noktası ve küçük bir görevde AdamW ile
-# karşılaştırma. Koşturma: tr test lib
+# karşılaştırma. Koşturma: trlang test lib
 TR_import "tr/layers"
 TR_import "tr/optimizers"
 

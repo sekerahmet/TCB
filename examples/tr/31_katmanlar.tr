@@ -3,7 +3,7 @@
 # Ne öğretir: katman_normu ve rms_normu (ağırlık, sapma, epsilon), gelu'nun iki biçimi (yaklaşık:),
 # doğrusal_çapraz_entropi ile büyük sözlüklü çıkış kaybı.
 # Önceki örnekten: XOR ağı (30), tensör matematiği (24).
-# Çalıştırma (proje kökünden): tr examples/tr/31_katmanlar.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/31_katmanlar.tr
 # Ayrıntılar: docs/spec/15_tensorler.md §15.
 
 # Normalleştirme katmanları, değerlerin ölçeğini sabit tutarak derin ağların eğitimini kolaylaştırır.

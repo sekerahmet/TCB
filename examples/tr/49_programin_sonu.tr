@@ -3,7 +3,7 @@
 # Ne öğretir: TR_exit ile programı kendi koduyla bitirmek, TR_handle_stop ile Ctrl+C'yi programın
 # kendisinin karşılaması, TR_stop_requested ile isteği sormak.
 # Önceki örnekten: 48'de durdurmayı ve kaydı kitaplık yönetiyordu; burada program kendisi yönetir.
-# Çalıştırma (proje kökünden): tr examples/tr/49_programin_sonu.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/49_programin_sonu.tr
 # Çalışırken Ctrl+C'ye basın: program turu bitirir, temizler ve kendi sınırında biter.
 
 TR_const TUR_SAYISI = 5

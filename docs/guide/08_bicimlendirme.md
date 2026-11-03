@@ -1,4 +1,4 @@
-# 8. Kod Biçimlendirme (`tr format`)
+# 8. Kod Biçimlendirme (`trlang format`)
 
 `TR_cmd_format` kodu tek bir standart biçime getirir:
 
@@ -9,10 +9,10 @@
 **Yorumlar korunur**, metin sabitlerine bayt bayt dokunulmaz ve satır yapısı (hangi kodun hangi satırda olduğu) değişmez. Biçimlendirici sonucu yeniden ayrıştırıp özgün kodla karşılaştırır: anlam değişecek olursa dosyaya **dokunmaz** ve bunu bildirir. Sözdizimi hatası olan dosyalar biçimlenmez. Aynı dosyayı iki kez biçimlemek bir kez biçimlemekle aynıdır. Dosya (ilk satırı `# TR 4`) kimlikleriyle biçimlenir: kimlikler olduğu gibi kalır, anlam denetimi kodları kodlarıyla, kullanıcının adlarını metinleriyle karşılaştırır.
 
 ```text
-> tr format --check .
+> trlang format --check .
 biçimlenmeli: hesap.tr
-3 dosyadan 1 tanesi biçimlenmeli. Düzeltmek için: tr format <dosya|klasör>
-> tr format .
+3 dosyadan 1 tanesi biçimlenmeli. Düzeltmek için: trlang format <dosya|klasör>
+> trlang format .
 biçimlendi: hesap.tr
 3 dosya incelendi, 1 dosya biçimlendi.
 ```

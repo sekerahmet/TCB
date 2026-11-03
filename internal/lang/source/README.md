@@ -19,7 +19,7 @@ dilde yazılmış sayılmaz. Denetim: `TestHeaderRules`.
 dilinin sözcüğü (`yazdır`) kullanıcının adıdır. Görünüm (`# TR 4 view=tr`, `TR_cmd_show`'un çıktısı)
 çalışmaz ve koda geri çevrilmez; ileti kodlu dosyayı çalıştırmayı söyler (`ViewError`). Başlıksız gövde
 de kimlik yazımıyla okunur (`Parts.Lexer`). Denetim: `TestViewHeader`, `TestTypedLineIsReadWithIdentities`,
-`TestLexerReadsIdentitiesAtDiskPositions`, `TestShowCommand` ve `TestHeaderlessFileDoesNotRun` (cmd/tr/e2e),
+`TestLexerReadsIdentitiesAtDiskPositions`, `TestShowCommand` ve `TestHeaderlessFileDoesNotRun` (cmd/trlang/e2e),
 `TestCLIExpressionIsWrittenWithIdentities` (debugger).
 
 **Görünüm yalnız dilin sözcüklerini çevirir.** Boşluklar, satır sonları, yorumlar, kullanıcının adları,
@@ -35,7 +35,7 @@ tanımı 2.1); program her zaman kimliklerle okunur ve çalışır, başlıksız
 ileti başlığı ve kimlik yazımını söyler). Hiçbir yazım dilinin ayrıcalığı yoktur; değerin metni dilden
 bağımsızdır (`codes.ValueNames`). Kişinin yazım dili (`TR_LANG`, `codes.Display`) yalnızca görüntüdür.
 Denetim: `TestHeaderRules`, `TestHeaderlessFileDoesNotRun`, `TestUserNamesNeverBecomeLanguageWords`,
-`TestDictMemberKeysDoNotDependOnTheLanguage` (cmd/tr/e2e).
+`TestDictMemberKeysDoNotDependOnTheLanguage` (cmd/trlang/e2e).
 
 **Satırlar dosyanın satırlarıdır.** Başlık ve `#!` satırı dahil, 1. satır dosyanın ilk satırıdır; görünüm
 başlığı ve satırları tutar. Denetim: `TestCodedFilePrepares`, `TestShowTranslatesOnlyTheLanguageWords`.

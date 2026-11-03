@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// Kural: 'tr build' paketinin JSON anahtarları dilden bağımsız İngilizce tanımlayıcılardır (dil
+// Kural: 'trlang build' paketinin JSON anahtarları dilden bağımsız İngilizce tanımlayıcılardır (dil
 // tanımı 17.3).
 func TestPackageKeys(t *testing.T) {
 	testkit.FormatJSONKeys(t, pkg{})

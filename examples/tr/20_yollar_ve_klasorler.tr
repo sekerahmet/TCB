@@ -4,7 +4,7 @@
 # var_mı, dosya_mı, klasör_mü, bayt), klasör_oluştur, klasörü_listele, kopyala, taşı, sil,
 # üzerine_yaz ve içindekilerle, dosya_satırları ile satır okuyucu ve kapat.
 # Önceki örnekten: dosya ve JSON (19), metin (04), listeler (09).
-# Çalıştırma (proje kökünden): tr examples/tr/20_yollar_ve_klasorler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/20_yollar_ve_klasorler.tr
 # Her şey geçici klasörde yapılır (program bitince silinir, depoda iz kalmaz).
 
 TR_var kök = TR_temp_dir()

@@ -3,7 +3,7 @@
 # Ne öğretir: min/max/mutlak/işaret, yuvarlama (taban, tavan, sınırla), istatistik (ortanca,
 # standart_sapma), pi ve trigonometri, üstel ve logaritma fonksiyonları.
 # Önceki örnekten: listeler (09), fonksiyon çağrıları (08), adlı argüman (08).
-# Çalıştırma (proje kökünden): tr examples/tr/13_matematik.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/13_matematik.tr
 
 # En küçük, en büyük, mutlak değer ve işaret. min/max bir liste ya da birden çok sayı alır.
 TR_print(TR_min([3, 1, 2]), TR_max([3, 1, 2]), TR_min(4, 2.5), TR_max(4, 2.5))

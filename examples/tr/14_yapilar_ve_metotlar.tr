@@ -4,7 +4,7 @@
 # (konumlu ve adlı), alan güncellemek, kurucu, YapıTanımı ve Nesne, nesnenin metni, durumlu tip
 # ve arayüz.
 # Önceki örnekten: fonksiyonlar (08), listeler (09), sözlükler (11).
-# Çalıştırma (proje kökünden): tr examples/tr/14_yapilar_ve_metotlar.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/14_yapilar_ve_metotlar.tr
 
 # yapı, kendi alanları olan yeni bir tip tanımlar. Sözlükten farkı: alanları ve tipleri baştan bellidir.
 TR_struct Geliştirici {

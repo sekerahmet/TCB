@@ -8,7 +8,7 @@
 #         sonuç 5
 #     }
 #     yazdır(x())
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/16_fonksiyon_degil.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/16_fonksiyon_degil.tr   (çıkış kodu 1)
 
 TR_var x = 5
 x()

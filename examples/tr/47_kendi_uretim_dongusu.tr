@@ -4,7 +4,7 @@
 # logitinden bir parça seçmek, önbellek.kırp(n) ile ilk n parçaya geri sarmak; elle yazılan döngünün model.üret ile aynı
 # sonucu verdiğini göstermek; sabit önbellekte gizli_durum + tek_adım + tekrar_oynat.
 # Önceki örnekten: hazır model ve üretim (46), kaydedip oynatmak (45), seçme ve sıralama (25).
-# Çalıştırma (proje kökünden): tr examples/tr/47_kendi_uretim_dongusu.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/47_kendi_uretim_dongusu.tr
 # Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 # Model: 46'daki rastgele ağırlıklı küçük model (tests/data/hf_tiny); yazdırılan şey parça kimlikleridir.
 

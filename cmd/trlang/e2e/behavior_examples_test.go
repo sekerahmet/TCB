@@ -15,7 +15,7 @@ import (
 )
 
 // Öğrenme yolu: examples/tr/NN_ad.tr. Örnekler kodlu saklanır ve her gösterim dilinde aynı programdır
-// (17.7; `tr show --lang en` onu İngilizce gösterir): ayrı bir İngilizce yazım klasörü yoktur.
+// (17.7; `trlang show --lang en` onu İngilizce gösterir): ayrı bir İngilizce yazım klasörü yoktur.
 
 // errorsDir hata örneklerinin klasör adıdır (behavior_example_errors_test.go).
 var errorsDir = map[string]string{"tr": "hatalar"}

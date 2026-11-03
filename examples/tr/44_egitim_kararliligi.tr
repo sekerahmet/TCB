@@ -7,7 +7,7 @@
 # Önceki örnekten: kontrol noktası (40), hazır kitaplık (41).
 # Ayrıntılar: docs/spec/15_tensorler.md §15.36, docs/spec/20_kontrol_noktasi.md §20.14–20.15.
 #
-# Çalıştırma (proje kökünden): tr examples/tr/44_egitim_kararliligi.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/44_egitim_kararliligi.tr
 
 TR_import "tr/training"
 

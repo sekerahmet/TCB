@@ -8,7 +8,7 @@ import (
 
 // Ortam değişkenleri (env sınıfı) komutlar gibi ad kodudur ve yalnız kimliğin adıyla (TR_LANG,
 // TR_GPU_SYNC, TR_GPU_PROFILE, TR_JOB_DIR) okunur (dil tanımı 17.9). Bir gösterim dilinin adı
-// (TR_DIL, TR_GPU_ESZAMANLI) kabul edilmez: tr komutu başlamadan durur ve kimliğin adını önerir
+// (TR_DIL, TR_GPU_ESZAMANLI) kabul edilmez: trlang komutu başlamadan durur ve kimliğin adını önerir
 // (H8875). İletiler ve belgeler yazılacak kimlik adını gösterir.
 // Yazım dilini seçen TR_env_LANG'ı dil listeleri kurulmadan önce messages okur (messages.LanguageEnvVars).
 

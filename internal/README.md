@@ -17,7 +17,7 @@ TR'nin bütün Go kodu buradadır. Bu belge, buraya kod yazan herkesin (insan ya
 | Düzen kuralları | `layoutrules/` | Dosya ve fonksiyon boyu sınırlarının ve istisnalarının tek kaynağı (düzen testleri ve `tools/codegraph` okur) | hiçbir iç paket |
 | Test yardımcısı | `testkit/`, `testkit/trrun/` | Paketler arası ortak test yardımcıları (dosya yazma, ikili çalıştırma, TR programı çalıştırma) | `testkit`: yalnızca `reporoot`; `trrun`: `lang/` |
 
-`cmd/tr` hepsini, `tools/` bütün `internal/`'ı ve araçların ortak yardımcılarını (`tools/internal/`: `repodir`) kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
+`cmd/trlang` hepsini, `tools/` bütün `internal/`'ı ve araçların ortak yardımcılarını (`tools/internal/`: `repodir`) kullanabilir. Dil çekirdeği ve hesap çekirdeği birbirini bilmez: dil, tensörü kancalarla tanır (`stdlib/ml`). Tek istisna ileti kataloğudur: `lang/messages` yalnızca Go standart kitaplığını içe aktaran en alt pakettir, hesap çekirdeği de iletilerini onun kodlarıyla verir.
 
 Dil çekirdeğinin içinde de bir sıra vardır; bir paket yalnızca listede kendinden öncekileri içe aktarır:
 
@@ -191,7 +191,7 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 - **Depo kökü** `reporoot.Root()` ile bulunur; testler `../../` gibi göreli yol yazmaz.
 - **Dış ağ yoktur;** sunucular yalnızca `127.0.0.1`'e bağlanır; açılan her süreç ve geçici dosya kapatılır, silinir.
 - **Uzun testler** `testing.Short()` ile atlanır (tam denetim `-short` koşar, `uzun` kipi hepsini koşar); bir testi hızlandırmak için sınırlar test içinde küçültülebilir.
-- **Testler kararlıdır:** sonucu tekrar sayısına, çalışma sırasına, süreç geneli duruma ya da çöp toplayıcının zamanlamasına bağlı değildir. Bir programa ya da göreve ait durum paket değişkeninde değil yorumlayıcıda tutulur (`VM.ProgramValue`, `VM.TaskValue`): aynı süreçte birden çok program çalışır (`tr test`'in dosyaları, düzenleyici oturumu, testler). Denetim: `tools/full_check.sh --kip=zorlama` (iki tekrar ve karışık sıra, sonra `GOGC=1`; otomatik sınamada haftalık, `.github/workflows/zorlama.yml`).
+- **Testler kararlıdır:** sonucu tekrar sayısına, çalışma sırasına, süreç geneli duruma ya da çöp toplayıcının zamanlamasına bağlı değildir. Bir programa ya da göreve ait durum paket değişkeninde değil yorumlayıcıda tutulur (`VM.ProgramValue`, `VM.TaskValue`): aynı süreçte birden çok program çalışır (`trlang test`'in dosyaları, düzenleyici oturumu, testler). Denetim: `tools/full_check.sh --kip=zorlama` (iki tekrar ve karışık sıra, sonra `GOGC=1`; otomatik sınamada haftalık, `.github/workflows/zorlama.yml`).
 - **Süre ölçen test mutlak süreye değil büyümeye bakar:** duvar saati tavanı yüklü makinede aşılır (bütün takım paralel koşarken tek bir sürenin 90 katına uzadığı ölçüldü). Doğrusallık `testkit.ScalesLinearly` ile sınanır (n ve 4n aynı yükte, oran en çok 8); iş işlediği birimi ve hatasını verir, süreler ancak iki boy da hatasız ve 3,5–4,5 kat birimle bittiyse karşılaştırılır (yarıda kalan iş "doğrusal" görünmesin). Bir beklemenin erken bittiğini gösteren tavan, ayırt ettiği sürenin yarısı kadar geniş seçilir.
 - Dilin kendi davranışı Go testinde değil, `tests/*_test.tr` programlarında sınanır (her test bir dil kuralı numarasıyla başlar).
 
@@ -226,4 +226,4 @@ Denetim: `TestTestFileMatchesSource` (birim testinin kaynağı var, her davranı
 | Çağrılan yollarda bilinen güvenlik açığı yok | `.github/workflows/vuln.yml` (govulncheck) |
 | Testler tekrar sayısından, sıradan, süreç geneli durumdan ve çöp toplayıcıdan bağımsız | `.github/workflows/zorlama.yml` (`tools/full_check.sh --kip=zorlama`) |
 | Kod listesindeki her örnek çalışır | `internal/lang/codes`, `internal/stdlib` (`definition_test.go`, `behavior_definitions_test.go`) |
-| Dil kuralları | `tests/*_test.tr` (`tr test tests`) |
+| Dil kuralları | `tests/*_test.tr` (`trlang test tests`) |

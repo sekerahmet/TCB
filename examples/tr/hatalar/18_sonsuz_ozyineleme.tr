@@ -8,7 +8,7 @@
 #         eğer n >= 10 { sonuç n }
 #         sonuç say(n + 1)
 #     }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/18_sonsuz_ozyineleme.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/18_sonsuz_ozyineleme.tr   (çıkış kodu 1)
 
 TR_func say(n: TR_Int) -> TR_Int {
     TR_return say(n + 1)

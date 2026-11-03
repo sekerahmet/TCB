@@ -81,9 +81,9 @@ type vmShared struct {
 	liveTasks  atomic.Int32 // başlamış, bitmemiş eşzamanlı görev sayısı (wg'nin sayısı; okunabilir)
 	SourceFile string
 	SourceCode string
-	// CommandName programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
+	// CommandName programı başlatan komuttur (ör. "trlang egit.tr", derlenmiş uygulamada
 	// "uygulama.exe"); komut satırı seçeneklerinin yardımında ve hatalarında gösterilir.
-	// Boşsa "tr <SourceFile>" kullanılır.
+	// Boşsa "trlang <SourceFile>" kullanılır.
 	CommandName string
 	isImported  sync.Mutex
 	Imported    map[string]*DictVal
@@ -101,7 +101,7 @@ type vmShared struct {
 	// moduleLoading.owner it detects import cycles across tasks.
 	waiting map[*VM]string
 	// Err programı durdurmayan hataların (eşzamanlı görev hataları) yazıldığı yerdir;
-	// varsayılanı standart hatadır. Düzenleyici oturumu ve tr test kendi çıktılarına bağlar.
+	// varsayılanı standart hatadır. Düzenleyici oturumu ve trlang test kendi çıktılarına bağlar.
 	Err         io.Writer
 	isInput     sync.Mutex
 	inputReader *bufio.Reader
@@ -113,7 +113,7 @@ type vmShared struct {
 	typeCalls map[codes.Code]*BuiltinVal
 	// programValues motorların programa bağlı durumudur (bütün görevler paylaşır; ör. tensör
 	// motorunun bir kez gösterilen uyarıları). Süreç geneli değişkende tutulsaydı aynı süreçte
-	// çalışan programlar (tr test'in dosyaları, düzenleyici oturumu) birbirini etkilerdi.
+	// çalışan programlar (trlang test'in dosyaları, düzenleyici oturumu) birbirini etkilerdi.
 	isProgramValue sync.Mutex
 	programValues  map[any]any
 

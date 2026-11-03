@@ -46,7 +46,7 @@ const minTextQuery = 3
 
 // lookup bir sorgu metnini düğümlere çözer (kinds doluysa yalnızca o türlerde arar); ilk eşleşme veren basamaktaki bütün
 // düğümleri döner (birden çoksa belirsizdir). TR adları (çıplak ad, nitelenmiş ad `Model.TR_forward` ve üye yazımı
-// `x.TR_map`, `l.TR_map`, `.TR_map`) tr index'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar
+// `x.TR_map`, `l.TR_map`, `.TR_map`) trlang index'in kuralıyla çözülür (trByName); Go ve belge düğümlerinde basamaklar
 // lookupTiers'tedir.
 func (ix *index) lookup(q string, kinds ...string) []*Node {
 	if n := ix.byID[q]; n != nil && (len(kinds) == 0 || contains(kinds, n.Kind)) {
@@ -218,7 +218,7 @@ type trName struct {
 	qualified [][2]string
 }
 
-// trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar tr index'inkilerdir: modülün adı ve takma adları, bildirimin
+// trNameTable grafiğin TR ad düğümlerini bir kez toplar, adlar trlang index'inkilerdir: modülün adı ve takma adları, bildirimin
 // kısa adı (kodlu bildirimde dillerdeki adları da) ve nitelenmiş adları, testin açıklaması, ad kodunun kendisi ve dillerdeki adları.
 func (ix *index) trNameTable() []trName {
 	if ix.trNames != nil {
@@ -264,10 +264,10 @@ func (ix *index) trNameTable() []trName {
 	return ix.trNames
 }
 
-// trByName bir sorgunun TR adaylarıdır; tr index'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
+// trByName bir sorgunun TR adaylarıdır; trlang index'in Resolve'uyla aynı kural (codeindex.NameKeys harf kuralı,
 // codeindex.PickByName çıplak ad sırası, codeindex.QualifiedMatch nitelenmiş ad kuralı ve codeindex.MemberQuery üye
-// yazımı geri düşüşü), böylece `query`, `tr index definition` ve `tr index rename` aynı aday kümesini görür. folded
-// adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse true'dur. Grafikte tr index'in bilmediği ad kodları da
+// yazımı geri düşüşü), böylece `query`, `trlang index definition` ve `trlang index rename` aynı aday kümesini görür. folded
+// adaylar büyük harfli sorgunun harfsiz geçişinden geldiyse true'dur. Grafikte trlang index'in bilmediği ad kodları da
 // vardır (anahtar sözcükler, kullanılmayan yerleşikler); onlar da yerleşik sınıfındadır.
 func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool) {
 	table := ix.trNameTable()

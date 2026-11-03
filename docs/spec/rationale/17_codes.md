@@ -47,7 +47,7 @@ Kurallar: [`17_kodlar.md`](../17_kodlar.md). Bu dosya her kuralın emsalini (ba�
 ### 17.9
 
 - *Emsal:* Go, git ve cargo komut adlarını tek (İngilizce) yazımda tutar; yardımı ve iletileri yerelleştiren araçlar da komutun adını değiştirmez. *Almadık:* PowerShell gibi yerelleştirilmiş komut adlarını kabul etmek.
-- *Gerekçe:* komut satırının adları da koddur ve "hiçbir insan dilinde kod yazılmaz"; program metniyle aynı kural, tek yazım. Ajan her yerde aynı komutu yazar, betik her makinede çalışır. İnsan için gereken okumaktır: yardım ve iletiler kişinin dilindedir ve yazılacak adı gösterir. Baş geliştiricinin kararı (2026-10-29): "17.9 için ikilik olmasın bence tr run iyidir". 1. ve 2. turda girdide her dilin adı kabul ediliyordu; bu, bugünkü motorun davranışıydı.
+- *Gerekçe:* komut satırının adları da koddur ve "hiçbir insan dilinde kod yazılmaz"; program metniyle aynı kural, tek yazım. Ajan her yerde aynı komutu yazar, betik her makinede çalışır. İnsan için gereken okumaktır: yardım ve iletiler kişinin dilindedir ve yazılacak adı gösterir. Baş geliştiricinin kararı (2026-10-29): "17.9 için ikilik olmasın bence trlang run iyidir". 1. ve 2. turda girdide her dilin adı kabul ediliyordu; bu, bugünkü motorun davranışıydı.
 
 ### 17.10
 

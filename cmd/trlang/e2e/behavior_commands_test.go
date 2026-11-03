@@ -13,14 +13,14 @@ import (
 )
 
 // Komut satırının temel komutları: yardım ve sürüm, komut adları, dosya çalıştırma, kontrol,
-// test, biçimle, dap, etkileşimli kabuk ve derle. Hepsi derlenmiş 'tr' ikilisiyle sınanır.
+// test, biçimle, dap, etkileşimli kabuk ve derle. Hepsi derlenmiş 'trlang' ikilisiyle sınanır.
 
 func TestHelpAndVersion(t *testing.T) {
 	for _, a := range []string{"help", "-h"} {
 		s := tr(t, "", a)
 		// Yardım her komutu yazılacak kimlik adıyla listeler (17.9; hakem mimari 22: dap eksikti)
-		testkit.Wait(t, s, 0, []string{"Kullanım:", "tr build <dosya.tr>", "tr test", "tr run", "tr debug",
-			"tr check", "tr format", "tr dap", "tr help", "tr version"}, nil)
+		testkit.Wait(t, s, 0, []string{"Kullanım:", "trlang build <dosya.tr>", "trlang test", "trlang run", "trlang debug",
+			"trlang check", "trlang format", "trlang dap", "trlang help", "trlang version"}, nil)
 	}
 	for _, a := range []string{"version", "-v"} {
 		s := tr(t, "", a)
@@ -47,9 +47,9 @@ func TestCommandsHaveOneName(t *testing.T) {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
 	}
-	// Alt komut (sub): 'tr dizin tanım' üst komutta, 'tr index tanım' alt komutta reddedilir ve kimlik önerilir.
-	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "x"), 2, nil, []string{"'dizin' TR'de bir komut değil; 'tr index' yazmak mı istediniz?"})
-	testkit.Wait(t, tr(t, dir, "index", "tanım", "x"), 2, nil, []string{"'tanım' 'tr index' için bir alt komut değil; 'tr index definition' yazmak mı istediniz?"})
+	// Alt komut (sub): 'tr dizin tanım' üst komutta, 'trlang index tanım' alt komutta reddedilir ve kimlik önerilir.
+	testkit.Wait(t, tr(t, dir, "dizin", "tanım", "x"), 2, nil, []string{"'dizin' TR'de bir komut değil; 'trlang index' yazmak mı istediniz?"})
+	testkit.Wait(t, tr(t, dir, "index", "tanım", "x"), 2, nil, []string{"'tanım' 'trlang index' için bir alt komut değil; 'trlang index definition' yazmak mı istediniz?"})
 	// Seçenek (opt): yalnız kimlik adıyla (--lang, --check, --go-profile) kabul edilir; --dil, --kontrol reddedilir.
 	testkit.Wait(t, tr(t, dir, "format", "--check", "a.tr"), 0, nil, nil)
 	testkit.Wait(t, tr(t, dir, "show", "a.tr", "--dil", "tr"), 2, nil, []string{"bilinmeyen seçenek \"--dil\"", "--lang"})
@@ -59,7 +59,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_DIL=en"}, "run", "a.tr")
 	testkit.Wait(t, s, 2, nil, []string{"'TR_DIL' TR'de bir ortam değişkeni değil; 'TR_LANG' kullanın"})
 	s = testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, "çalıştır", "a.tr")
-	testkit.Wait(t, s, 2, nil, []string{"'çalıştır' is not a command in TR; did you mean to write 'tr run'?"})
+	testkit.Wait(t, s, 2, nil, []string{"'çalıştır' is not a command in TR; did you mean to write 'trlang run'?"})
 	// Hata ayıklayıcı komutu (dbg): 'adım' reddedilir ve 'step' önerir.
 	s = testkit.RunBinary(t, trBinary, dir, "adım\ncontinue\n", nil, "debug", "a.tr")
 	testkit.Wait(t, s, 0, []string{"'adım' hata ayıklayıcıda bir komut değil; 'step' yazın", "çalıştı"}, nil)
@@ -357,7 +357,7 @@ func TestBuildModuleErrors(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "build", "sonuclu.tr", exit), 1, nil, []string{"(sonuc_modul.tr modülünde)", "'TR_return' modülün üst düzeyinde kullanılamaz"})
 }
 
-// tr build kaynağın ya da başka bir .tr dosyasının üzerine yazmaz (veri kaybı).
+// trlang build kaynağın ya da başka bir .tr dosyasının üzerine yazmaz (veri kaybı).
 func TestBuildDoesNotOverwriteSource(t *testing.T) {
 	dir := t.TempDir()
 	program := "TR_print(\"uygulama\")\n"
@@ -377,7 +377,7 @@ func TestBuildDoesNotOverwriteSource(t *testing.T) {
 	}
 }
 
-// tr check aktarılan modülleri de denetler; modül hatası modülün adı ve satırıyla yazılır.
+// trlang check aktarılan modülleri de denetler; modül hatası modülün adı ve satırıyla yazılır.
 func TestCheckModules(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "ana.tr", "TR_import \"lib/m\"\nTR_print(\"ana\")\n")

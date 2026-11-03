@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Test TR metnini bir dosyaya yazıp `tr` ikilisiyle de koşar (TestReadyModelMatchesTransformers: `hazır_model(...)`
+// Test TR metnini bir dosyaya yazıp `trlang` ikilisiyle de koşar (TestReadyModelMatchesTransformers: `hazır_model(...)`
 // karsilastir.tr'ye yazılır, alt süreç onu çalıştırır). Dilin dosya uzantısı .tr'dir: yolu .tr ile biten dosyaya yazılan
 // metin TR programıdır. Dosya yazan giriş noktası os.WriteFile'dır (fileSinks); içeriğini ve yolunu kendi
 // parametrelerinden ileten işlev de dosya yazar (testkit.WritePath, testkit.WriteFile, testin yardımcısı: sabit

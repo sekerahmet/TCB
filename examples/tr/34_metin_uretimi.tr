@@ -3,7 +3,7 @@
 # Ne öğretir: örnekle ile logit dağılımından bir indeks seçmek, sıcaklık: ve en_iyi_k: ile rastgeleliği ayarlamak,
 # tohum: ile sonucu tekrar üretilebilir yapmak.
 # Önceki örnekten: softmax (23), seçme ve sıralama (25), döngüler (07).
-# Çalıştırma (proje kökünden): tr examples/tr/34_metin_uretimi.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/34_metin_uretimi.tr
 
 # Bir dil modeli her adımda bütün sözcükler için puan (logit) üretir. En olasıyı almak (argmax) hep aynı
 # metni verir; örnekle, puanlardan olasılıkla bir indeks seçer.

@@ -3,7 +3,7 @@
 # Ne öğretir: döngü ... içinde ile aralık gezmek (1..=5 sonu dahil, 1..5 sonu hariç), çık, devam,
 # iken, döngü koşul { }, döngü { }, iç içe döngü.
 # Önceki örnekten: koşullar (05), metne değer yerleştirme (04), += (02).
-# Çalıştırma (proje kökünden): tr examples/tr/07_donguler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/07_donguler.tr
 
 # döngü i içinde aralık: i sırayla aralığın her değerini alır.
 TR_for i TR_in 1..=5 {

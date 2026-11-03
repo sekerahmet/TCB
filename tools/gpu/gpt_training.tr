@@ -17,10 +17,10 @@
 # adım koşturup bütün dosyaların yazıldığını denetler (uzun koşudan önce).
 #
 # Kullanım:
-#   ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1
-#   ./tr gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --prova   (önce)
-#   ./tr gpt_training.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
-#   ./tr gpt_training.tr --help
+#   ./trlang gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1
+#   ./trlang gpt_training.tr --veri /content/ss4096 --koşu /content/runs/gpt1 --prova   (önce)
+#   ./trlang gpt_training.tr --veri /content/ss4096 --toplu 64 --birikim 2      (bellek yetmezse)
+#   ./trlang gpt_training.tr --help
 # Model ayarları varsayılan olarak d512, 8 katman, 8 bakış, bağlam 512, toplu 128'dir.
 
 TR_import "tr/layers"

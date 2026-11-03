@@ -18,7 +18,7 @@ import (
 // is imported with "./tr/...".
 const LibraryPrefix = "tr/"
 
-// libraryFiles dilin gömülü kitaplığıdır; komut satırı (cmd/tr) KitaplikBagla ile bağlar.
+// libraryFiles dilin gömülü kitaplığıdır; komut satırı (cmd/trlang) KitaplikBagla ile bağlar.
 // Yorumlayıcı kitaplık paketini içe aktarmaz (katman kuralı, docs/architecture.md).
 var libraryFiles fs.FS
 
@@ -86,7 +86,7 @@ func LibraryModules() []string {
 // a program with no file) it is relative to the working directory. For a program with a file
 // the working directory is not one of the places searched: a module run from another directory
 // must not load a same-named file from the working directory instead of the one next to it.
-// Absolute paths are tried as is. The interpreter, 'tr build' and 'tr check' use this
+// Absolute paths are tried as is. The interpreter, 'trlang build' and 'trlang check' use this
 // function. bakilanlar are the places tried, for the error message.
 func ResolveModulePath(filePath string, dirs []string) (resolved string, searched []string, ok bool) {
 	if filepath.IsAbs(filePath) {

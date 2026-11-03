@@ -26,7 +26,7 @@ const Header = "# TR 4"
 // okuyamadığı bir biçimdir (sessizce başlıksız sayılmaz).
 const headerPrefix = "# TR "
 
-// viewMarker görünüm başlığının işaretidir: 'tr show' başlığa görünümün dilini yazar
+// viewMarker görünüm başlığının işaretidir: 'trlang show' başlığa görünümün dilini yazar
 // ('# TR 4 view=tr'); satır sayısı değişmez. Dosyanın türü dosyanın kendisindedir: görünüm
 // çalışmaz (ViewError).
 const viewMarker = " view="
@@ -42,7 +42,7 @@ type Parts struct {
 	BOM bool
 	// Coded reports whether the file has the header: it is a TR file, written with identities.
 	Coded bool
-	// View is the writing language of a view (its header '# TR 4 view=tr', tr show's output);
+	// View is the writing language of a view (its header '# TR 4 view=tr', trlang show's output);
 	// "" otherwise. A view is not coded and does not run (ViewError).
 	View string
 	// Body is the text after the BOM, the '#!' and header lines included: they are comments, and
@@ -78,7 +78,7 @@ func NoHeaderError() error {
 }
 
 // ViewError is returned for a view file: its header carries the view's writing language
-// ('# TR 4 view=tr', tr show's output). A view is only read: it does not run and is not
+// ('# TR 4 view=tr', trlang show's output). A view is only read: it does not run and is not
 // converted back; the message says to run the coded file it was shown from (17.7).
 type ViewError struct {
 	Lang string
@@ -176,7 +176,7 @@ func (b Parts) Join() string {
 }
 
 // Lexer is the body's lexer as the interpreter reads it, for the tools that read a file's tokens
-// (the formatter, tr build, the code index): names that are language elements come as identities
+// (the formatter, trlang build, the code index): names that are language elements come as identities
 // (TR_fn_print), user names as written; positions follow the text on disk. A body without the
 // header is read the same way: there is no text written in a writing language to read (17.7).
 func (b Parts) Lexer() *lexer.Lexer { return lexer.NewBody(b.Body, true) }

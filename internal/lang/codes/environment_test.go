@@ -50,7 +50,7 @@ func TestEnvValueReadsEveryLanguagesName(t *testing.T) {
 	}
 }
 
-// Kural (17.9): tr komutu başlarken her ortam değişkenine kimlik adı verilir (ad kodlarını göremeyen hesap
+// Kural (17.9): trlang komutu başlarken her ortam değişkenine kimlik adı verilir (ad kodlarını göremeyen hesap
 // çekirdeği onu okur: TR_env_GPU_SYNC); verilmeyen değişkenin kalıtılmış kimlik adı silinir.
 func TestExportEnvironmentGivesTheIdentityName(t *testing.T) {
 	for _, name := range []string{"TR_GPU_SYNC", "TR_GPU_ESZAMANLI", "TR_env_GPU_SYNC", "TR_CPU_AVX2", "TR_env_CPU_AVX2"} {

@@ -1,4 +1,4 @@
-// Package testrunner 'tr test' komutunun çekirdeğidir: .tr dosyalarındaki
+// Package testrunner 'trlang test' komutunun çekirdeğidir: .tr dosyalarındaki
 // test "ad" { ... } bloklarını bulur, her birini yalıtılmış bir kapsamda çalıştırır
 // ve sonuçları Türkçe olarak raporlar.
 //

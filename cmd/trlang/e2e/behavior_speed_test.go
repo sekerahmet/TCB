@@ -13,9 +13,9 @@ import (
 // (internal/lang/source'taki BenchmarkPrepare de aynılarını kullanır).
 var speedFiles = []string{"lib/layers.tr", "examples/tr/35_transformer.tr", "examples/tr/08_fonksiyonlar.tr"}
 
-// BenchmarkCheckAndRun kodlu dosyada 'tr check' ile çalıştırmanın süreç başından sonuna süresini
+// BenchmarkCheckAndRun kodlu dosyada 'trlang check' ile çalıştırmanın süreç başından sonuna süresini
 // ölçer (derleme ve süreç açılışı dahil). Madde 15'in tabanıdır:
-// go test -run XXX -bench CheckAndRun -count 5 ./cmd/tr/e2e/
+// go test -run XXX -bench CheckAndRun -count 5 ./cmd/trlang/e2e/
 func BenchmarkCheckAndRun(b *testing.B) {
 	dir := b.TempDir()
 	for _, file := range speedFiles {

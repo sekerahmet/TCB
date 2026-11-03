@@ -3,7 +3,7 @@
 # Ne öğretir: gizli katman ve doğrusal olmayan etkinleştirme (tanh, sigmoid), ağırlıkları
 # türev izleyen tensörler olarak kurmak, çok katmanlı ağda eğitim döngüsü.
 # Önceki örnekten: eğitim döngüsü (28); XOR tek doğrusal katmanla çözülemez, gizli katman bunu mümkün kılar.
-# Çalıştırma (proje kökünden): tr examples/tr/30_xor_agi.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/30_xor_agi.tr
 
 # Gizli katman tanh, çıkış sigmoid; ağırlıklar tensördür, AdamW ile eğitilir.
 TR_var X_veri = TR_Tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])

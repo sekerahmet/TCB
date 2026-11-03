@@ -404,7 +404,7 @@ const (
 	H2531 Code = 2531 // {fn}: çıkış kodu 0 ile 125 arasında bir {@Int} olmalı ({value} verildi). Örneğin '{exit}(4)' yazın (0 başarı, 1 hata, 2 kullanım hatası; kendi kodlarınız 4'ten başlar)
 	H2532 Code = 2532 // {fn}({code}) bir testin içinden çağrıldı: test başarısız sayıldı, program bitirilmez. Testte bir koşulu denetlemek için '{assert}(koşul)' yazın
 	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
-	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'tr {show}' ile yazılır)
+	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'trlang {show}' ile yazılır)
 	H2600 Code = 2600 // koşul bir mantık değeri ({@Bool}) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
 	H2601 Code = 2601 // `{#and}`, `{#or}` ve `{#not}` yalnız mantık değeri ({@Bool}) alır; {type} verildi. Açık bir sınama yazın: `x.{#length} > 0`, `x != {#none}`, `x != 0`
 	H2602 Code = 2602 // karşılaştırma zincirindeki '{op}' bir mantık değeri vermedi ({type}): zincir ('a < b < c') yalnız sayıları ve metinleri karşılaştırır; karşılaştırmaları ayrı yazın
@@ -1697,7 +1697,7 @@ const (
 	H8201 Code = 8201 // (aktarılan modülde)
 	H8202 Code = 8202 // (üst düzey)
 	H8203 Code = 8203 // GPU kullanılmadı
-	H8204 Code = 8204 // kernel süreleri ölçülmüyor (tr {watch} ve tr {profile} ölçer; ya da {env}=1)
+	H8204 Code = 8204 // kernel süreleri ölçülmüyor (trlang {watch} ve trlang {profile} ölçer; ya da {env}=1)
 	H8205 Code = 8205 // henüz kernel ölçümü yok
 	H8206 Code = 8206 // {type} işlemleri
 	H8207 Code = 8207 // toplama (+)
@@ -1782,7 +1782,7 @@ const (
 	H8292 Code = 8292 // GPU süresi satıra göre (geri yöndeki çekirdekler düğümü üreten ileri satırda):
 	H8293 Code = 8293 // %{n|decimal}
 	H8300 Code = 8300 // {name|q} ilk burada yazılmış
-	H8301 Code = 8301 // {option} dosya adından önce yazılır: dosya adından sonrası programın argümanıdır. Örn: tr {command} {option} {file}
+	H8301 Code = 8301 // {option} dosya adından önce yazılır: dosya adından sonrası programın argümanıdır. Örn: trlang {command} {option} {file}
 	H8400 Code = 8400 // biçimlendirme programın anlamını değiştirecekti, dosyaya dokunulmadı ({detail})
 	H8401 Code = 8401 // sözdizimi hatası olan kod biçimlenmez: {error}
 	H8402 Code = 8402 // dosyanın biçimi (kodlu ya da Türkçe yazım) değişti
@@ -1798,30 +1798,30 @@ const (
 	H8506 Code = 8506 // (bu dosyada test bloğu yok)
 	H8507 Code = 8507 // dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:
 	H8601 Code = 8601 // Gömülü uygulama okunamadı: {error}
-	H8602 Code = 8602 // '{given}' TR'de bir komut değil; 'tr {command}' yazmak mı istediniz?
+	H8602 Code = 8602 // '{given}' TR'de bir komut değil; 'trlang {command}' yazmak mı istediniz?
 	H8603 Code = 8603 // TR Programlama ve Yapay Zeka Dili v{version}
-	H8604 Code = 8604 // '{given}' bilinmeyen bir seçenek; adı '-' ile başlayan bir dosya için: tr -- {given}. Komutları 'tr {help}' listeler
-	H8605 Code = 8605 // Lütfen bir .tr dosyası belirtin. Örn: tr {command} {file}
-	H8606 Code = 8606 // Lütfen derlenecek .tr dosyasını belirtin. Örn: tr {command} uygulama.tr
+	H8604 Code = 8604 // '{given}' bilinmeyen bir seçenek; adı '-' ile başlayan bir dosya için: trlang -- {given}. Komutları 'trlang {help}' listeler
+	H8605 Code = 8605 // Lütfen bir .tr dosyası belirtin. Örn: trlang {command} {file}
+	H8606 Code = 8606 // Lütfen derlenecek .tr dosyasını belirtin. Örn: trlang {command} uygulama.tr
 	H8607 Code = 8607 // Hata ayıklama sunucusu: {error}
-	H8608 Code = 8608 // Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: tr {command} ornek.tr
+	H8608 Code = 8608 // Lütfen hata ayıklanacak .tr dosyasını belirtin. Örn: trlang {command} ornek.tr
 	H8610 Code = 8610 // TR (.tr) Programlama ve Yapay Zeka Dili v{version}
 	H8611 Code = 8611 // Kullanım:
-	H8612 Code = 8612 // tr	Etkileşimli TR kabuğunu (REPL) başlatır
-	H8613 Code = 8613 // tr <dosya.tr> [argümanlar]	.tr kaynak dosyasını derler ve çalıştırır (argümanlar programa iletilir)
-	H8614 Code = 8614 // tr {command} <dosya.tr>	Aynısı (komut adıyla)
-	H8615 Code = 8615 // tr {command} <dosya.tr>	Etkileşimli TR Hata Ayıklayıcısını başlatır
-	H8616 Code = 8616 // tr {command} [{json}] <dosya.tr>	Sözdizimi ve akıllı tip kontrolü yapar ({json}: standart çıktıya satır başına bir JSON kaydı)
-	H8617 Code = 8617 // tr {command} <dosya.tr>	.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür
-	H8618 Code = 8618 // tr {command} [dosya.tr|klasör]	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
-	H8619 Code = 8619 // tr {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
-	H8622 Code = 8622 // tr {command} <dosya.tr> [{lang} tr]	Dosyayı bir yazım dilinde gösterir (kodlu dosya da)
-	H8623 Code = 8623 // tr {command} - [{lang} tr]	Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)
-	H8625 Code = 8625 // tr {command} <dosya.tr> [argümanlar]	Programı çalıştırır, hızını canlı gösterir (ms/adım, tensör işlemleri, sıcak satırlar, bellek)
-	H8626 Code = 8626 // tr {command} [{json} yol] <dosya.tr>	Programı çalıştırır, bitince hız raporu verir ({json}: rapor dosyası ya da koşu klasörü)
-	H8627 Code = 8627 // tr {command}	Düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)
-	H8628 Code = 8628 // tr {command} | -h	Bu yardımı gösterir
-	H8629 Code = 8629 // tr {command} | -v	Sürümü gösterir
+	H8612 Code = 8612 // trlang	Etkileşimli TR kabuğunu (REPL) başlatır
+	H8613 Code = 8613 // trlang <dosya.tr> [argümanlar]	.tr kaynak dosyasını derler ve çalıştırır (argümanlar programa iletilir)
+	H8614 Code = 8614 // trlang {command} <dosya.tr>	Aynısı (komut adıyla)
+	H8615 Code = 8615 // trlang {command} <dosya.tr>	Etkileşimli TR Hata Ayıklayıcısını başlatır
+	H8616 Code = 8616 // trlang {command} [{json}] <dosya.tr>	Sözdizimi ve akıllı tip kontrolü yapar ({json}: standart çıktıya satır başına bir JSON kaydı)
+	H8617 Code = 8617 // trlang {command} <dosya.tr>	.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür
+	H8618 Code = 8618 // trlang {command} [dosya.tr|klasör]	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
+	H8619 Code = 8619 // trlang {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
+	H8622 Code = 8622 // trlang {command} <dosya.tr> [{lang} tr]	Dosyayı bir yazım dilinde gösterir (kodlu dosya da)
+	H8623 Code = 8623 // trlang {command} - [{lang} tr]	Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)
+	H8625 Code = 8625 // trlang {command} <dosya.tr> [argümanlar]	Programı çalıştırır, hızını canlı gösterir (ms/adım, tensör işlemleri, sıcak satırlar, bellek)
+	H8626 Code = 8626 // trlang {command} [{json} yol] <dosya.tr>	Programı çalıştırır, bitince hız raporu verir ({json}: rapor dosyası ya da koşu klasörü)
+	H8627 Code = 8627 // trlang {command}	Düzenleyicinin hata ayıklama sunucusu (eklenti kendisi başlatır)
+	H8628 Code = 8628 // trlang {command} | -h	Bu yardımı gösterir
+	H8629 Code = 8629 // trlang {command} | -v	Sürümü gösterir
 	H8631 Code = 8631 // {path} başarıyla denetlendi: Sözdizimi ve tip güvenliği hatasız!
 	H8632 Code = 8632 // Modül hatası:
 	H8633 Code = 8633 // TR Programlama ve Yapay Zeka Dili (v{version}) — Etkileşimli Kabuk
@@ -1846,31 +1846,31 @@ const (
 	H8665 Code = 8665 // {program} komut satırı seçeneği almıyor
 	H8666 Code = 8666 // Durdurma isteği alındı: program kendi sınırında bitecek (hemen çıkmak için Ctrl+C'ye yeniden basın)
 	H8667 Code = 8667 // programa {count} konumlu argüman verildi ama TR programı konumlu argüman almaz: argümanlar seçenek olarak yazılır ve {fn}() ile okunur. Örneğin programın başına {var} ayar = {fn}({{"veri": ""}}) yazın ve çalıştırırken --veri dosya.txt verin
-	H8670 Code = 8670 // {path|q} bir .tr dosyası değil. Çalışan bir arka plan işini izlemek (tr {command} <iş_adı>) henüz yok; programı izleyerek çalıştırın: tr {command} <dosya.tr>
+	H8670 Code = 8670 // {path|q} bir .tr dosyası değil. Çalışan bir arka plan işini izlemek (trlang {command} <iş_adı>) henüz yok; programı izleyerek çalıştırın: trlang {command} <dosya.tr>
 	H8671 Code = 8671 // programın çıktı dosyası açılamadı: {error}
 	H8672 Code = 8672 // Programın son çıktısı (tamamı: {path}):
 	H8673 Code = 8673 // Çıktı dosyasına yazma yarıda kaldı, dosya eksik: {error}
-	H8674 Code = 8674 // 'tr {command}' için bilinmeyen seçenek {option|q}{options, select, empty { (bu komutun seçeneği yok)} other { (seçenekler: {options})}}{hint}
-	H8675 Code = 8675 // {option} bir değer ister. Örn: tr {command} {option} yol program.tr
+	H8674 Code = 8674 // 'trlang {command}' için bilinmeyen seçenek {option|q}{options, select, empty { (bu komutun seçeneği yok)} other { (seçenekler: {options})}}{hint}
+	H8675 Code = 8675 // {option} bir değer ister. Örn: trlang {command} {option} yol program.tr
 	H8676 Code = 8676 // {path} klasörü açılamadı: {error}
 	H8677 Code = 8677 // JSON raporu yazılamadı: {error}
 	H8678 Code = 8678 // Profil raporu (JSON): {path}
 	H8679 Code = 8679 // Go profili dosyası açılamadı: {error}
 	H8680 Code = 8680 // Go profili başlatılamadı: {error}
-	H8691 Code = 8691 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: tr {command} ornek.tr veya tr {command} {check} .
+	H8691 Code = 8691 // Lütfen bir .tr dosyası ya da klasör belirtin. Örn: trlang {command} ornek.tr veya trlang {command} {check} .
 	H8692 Code = 8692 // {path}: {error} — lütfen bu dosyayı bir hata kaydıyla bildirin
 	H8693 Code = 8693 // biçimlenmeli: {path}
 	H8694 Code = 8694 // biçimlendi: {path}
-	H8695 Code = 8695 // {total} dosyadan {count} tanesi biçimlenmeli. Düzeltmek için: tr {command} <dosya|klasör>
+	H8695 Code = 8695 // {total} dosyadan {count} tanesi biçimlenmeli. Düzeltmek için: trlang {command} <dosya|klasör>
 	H8696 Code = 8696 // {total} dosyadan {count} tanesi biçimlenemedi (yukarıdaki hatalara bakın).
 	H8697 Code = 8697 // {total} dosyanın hepsi standart biçimde.
 	H8698 Code = 8698 // {total} dosya incelendi, {count} dosya biçimlendi.
-	H8700 Code = 8700 // '{option}' bir yazım dili bekler. Örn: tr {command} - {option} tr
-	H8701 Code = 8701 // 'tr {command} -' metni standart girişten okur; fazladan argüman: {arg}
+	H8700 Code = 8700 // '{option}' bir yazım dili bekler. Örn: trlang {command} - {option} tr
+	H8701 Code = 8701 // 'trlang {command} -' metni standart girişten okur; fazladan argüman: {arg}
 	H8702 Code = 8702 // standart giriş okunamadı: {error}
-	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: tr {command} ornek.tr {option} tr
-	H8709 Code = 8709 // 'tr {command}' tek bir dosya alır; fazladan argüman: {arg}
-	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: tr {command} ornek.tr {option} tr
+	H8708 Code = 8708 // '{option}' bir yazım dili bekler. Örn: trlang {command} ornek.tr {option} tr
+	H8709 Code = 8709 // 'trlang {command}' tek bir dosya alır; fazladan argüman: {arg}
+	H8710 Code = 8710 // Lütfen gösterilecek .tr dosyasını belirtin. Örn: trlang {command} ornek.tr {option} tr
 	H8750 Code = 8750 // gömülü paketin uzunluk alanı bozuk
 	H8751 Code = 8751 // gömülü paket sürümü {version} desteklenmiyor (bu yorumlayıcı yalnız {max} sürümünü okur; uygulamayı bu 'tr' ile yeniden derleyin)
 	H8752 Code = 8752 // gömülü paket çözülemedi: {error}
@@ -1921,8 +1921,8 @@ const (
 	H8812 Code = 8812 // okuma
 	H8813 Code = 8813 // yazma
 	H8814 Code = 8814 // aktarma
-	H8820 Code = 8820 // tr {command} {subcommand} için bir ad verin. Örn: tr {command} {subcommand} {example}
-	H8821 Code = 8821 // 'tr {command}' için bilinmeyen alt komut {name|q} (alt komutlar: {names})
+	H8820 Code = 8820 // trlang {command} {subcommand} için bir ad verin. Örn: trlang {command} {subcommand} {example}
+	H8821 Code = 8821 // 'trlang {command}' için bilinmeyen alt komut {name|q} (alt komutlar: {names})
 	H8822 Code = 8822 // {option} bir sayı ister, {value|q} sayı değil
 	H8823 Code = 8823 // dizin: {files} dosya, {nodes} düğüm, {edges} bağ, {occurrences} başvuru, {unresolved} çözülemeyen ad, {skipped} atlanan dosya
 	H8824 Code = 8824 // proje kökü: {root|q}
@@ -1931,7 +1931,7 @@ const (
 	H8827 Code = 8827 // önbellek yok: dizin her komutta yeniden kurulur
 	H8828 Code = 8828 // önbellek silindi
 	H8829 Code = 8829 // silinecek önbellek yok
-	H8830 Code = 8830 // tr {command} [{definition}|{references}|{testedBy}|{impact} ad]	TR kodunun dizinini kurar ve ona sorar (tanım, kullananlar, sınayanlar, etki)
+	H8830 Code = 8830 // trlang {command} [{definition}|{references}|{testedBy}|{impact} ad]	TR kodunun dizinini kurar ve ona sorar (tanım, kullananlar, sınayanlar, etki)
 	H8831 Code = 8831 // çözülemeyen ad: {name} ({pos})
 	H8832 Code = 8832 // önbellek: {files} dosya, {changed} değişmiş, {added} yeni, {removed} silinmiş
 	H8833 Code = 8833 // {parsed}/{files} dosya yeniden ayrıştırıldı
@@ -1964,8 +1964,8 @@ const (
 	H8860 Code = 8860 // parametre
 	H8861 Code = 8861 // seçenek
 	H8862 Code = 8862 // çıkarımla
-	H8863 Code = 8863 // tr {command} {rename} ad yeni	Bir ad değişirse değişecek yerleri listeler (kesin ve olası; hiçbir dosyayı değiştirmez)
-	H8864 Code = 8864 // tr {command} {subcommand} için eski ve yeni adı verin. Örn: tr {command} {subcommand} {example}
+	H8863 Code = 8863 // trlang {command} {rename} ad yeni	Bir ad değişirse değişecek yerleri listeler (kesin ve olası; hiçbir dosyayı değiştirmez)
+	H8864 Code = 8864 // trlang {command} {subcommand} için eski ve yeni adı verin. Örn: trlang {command} {subcommand} {example}
 	H8865 Code = 8865 // türemiş biçim
 	H8866 Code = 8866 // terim kipi: sembol aranmadı, yalnızca metin eşleşmeleri listelenir (aynı sözcüğün başka anlamları da gelebilir; satırın metnine bakın)
 	H8867 Code = 8867 // bağlı bildirimler ({count}; aynı adla iletilen ya da aynı adlı alana atanan; birlikte değiştirilmesi önerilir):
@@ -1975,7 +1975,7 @@ const (
 	H8873 Code = 8873 // ileti kodu
 	H8874 Code = 8874 // yeniden adlandırılamaz: ileti kodu (kod değişmez, metni ileti kataloğundadır)
 	H8875 Code = 8875 // '{given}' TR'de bir ortam değişkeni değil; '{name}' kullanın
-	H8876 Code = 8876 // '{given}' 'tr {command}' için bir alt komut değil; 'tr {command} {subcommand}' yazmak mı istediniz?
+	H8876 Code = 8876 // '{given}' 'trlang {command}' için bir alt komut değil; 'trlang {command} {subcommand}' yazmak mı istediniz?
 	H8877 Code = 8877 // [`{recv}` bir tipse: bu üyesi yok]
 	H8878 Code = 8878 // [`{recv}` bir değerse: `x.{member}`]
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}

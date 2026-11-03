@@ -13,7 +13,7 @@
 //
 // "kind" taşımayan satırlar ölçü kayıtlarıdır. Biçimin anahtarları ve kayıt türleri dilden
 // bağımsız İngilizce tanımlayıcılardır ve çevrilmez (dil tanımı 17.3; TRTENSOR imzası gibi);
-// okuyan araçlar (tr watch, tr profile, testkit) bunlara bakar. Ölçülerin ve ayarların adları
+// okuyan araçlar (trlang watch, trlang profile, testkit) bunlara bakar. Ölçülerin ve ayarların adları
 // programındır, olduğu gibi yazılır.
 // Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "Infinity", "-Infinity" metni olarak
 // yazılır. Bir "resume" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden

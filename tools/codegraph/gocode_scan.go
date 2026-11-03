@@ -228,7 +228,7 @@ func (x *goExtractor) objectID(obj types.Object) string {
 // noteNameReads codes paketinin bir işlevine (ya da Language metoduna) argüman olarak verilen ad kodu sabitlerini
 // işaretler: `codes.Spellings(codes.FnPrint)` kodun adını okur, yerleşiği uygulamaz (use: reads_name). Uygulayan
 // işlev kodu kayıt tablosunda ya da bir switch'te anar; adın testi onun testidir, adını okuyanın değil (parti K2, C:
-// kabuğun startsWithPrint'i yazdır'ın yazımlarını okuduğu için yazdır kullanan TR testleri cmd/tr/main.go'nun testi
+// kabuğun startsWithPrint'i yazdır'ın yazımlarını okuduğu için yazdır kullanan TR testleri cmd/trlang/main.go'nun testi
 // görünüyordu).
 func (x *goExtractor) noteNameReads(fc *fileCtx, c *ast.CallExpr) {
 	fn, ok := fc.u.Info.Uses[nameIdent(c.Fun)].(*types.Func)

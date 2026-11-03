@@ -3,7 +3,7 @@
 # Ne öğretir: cihazlar(), varsayılan_cihaz(), .cihaz ve .cihaza(), tür: / .tür / .türe(), karışık_hassasiyet, hesap_türü(),
 # 16 bitlik parametrede ana_kopya.
 # Önceki örnekten: tensörler (23), iyileştiriciler (29), ağırlıkları kaydetmek (32).
-# Çalıştırma (proje kökünden): tr examples/tr/33_cihaz_ve_hassasiyet.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/33_cihaz_ve_hassasiyet.tr
 # Bu örnek her makinede CPU'da çalışır; GPU varsa "gpu" cihazı da seçilebilir.
 
 # cihazlar() bu makinedeki cihaz adlarını verir; ilk eleman her zaman "cpu"dur.

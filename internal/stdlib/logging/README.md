@@ -11,7 +11,7 @@ türleri (`start`, `end`, `resume`), `progress.json`'un adı ve anahtarları dil
 tanımlayıcılardır, çevrilmez (dil tanımı 17.3). Programın ölçü adları programındır: sözlüğün metin
 anahtarı olduğu gibi yazılır (`{"loss": k}` → `"loss"`; 3.7), çubukta da her dilde aynı. Biçim değişirse sürüm artar;
 eski sürüm okunmaz.
-Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLogRecords`, `TestJobStatus`, `cmd/tr/e2e` `TestFileFormatsIndependentOfWritingLanguage`, `TestDictTextKeysOnDisk`.
+Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLogRecords`, `TestJobStatus`, `cmd/trlang/e2e` `TestFileFormatsIndependentOfWritingLanguage`, `TestDictTextKeysOnDisk`.
 
 **Kayıt kaybolmaz.** Kayıtlar dosyanın sonuna eklenir; önceki koşu yarım satır bıraktıysa yeni kayıt yeni satırda başlar,
 kontrol noktasından sürdürmede "devam" kaydı düşülür. Program bitince açık günlükler kapanır,

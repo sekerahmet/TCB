@@ -246,7 +246,7 @@ TR_test "16.9 hatalar kodlu ve yakalanabilir" {
 }
 
 TR_test "16.10 göreli yollar programın klasörüne göre de çözülür" {
-    # Bu dosya proje kökünden (tr test tests) ya da başka bir klasörden çalıştırılsa da
+    # Bu dosya proje kökünden (trlang test tests) ya da başka bir klasörden çalıştırılsa da
     # "veri/..." yolları tests/data'yi bulur.
     TR_assert_equal(1005, TR_load_tokenizer("data/tokenizer.json").TR_vocab_size)
 }

@@ -5,7 +5,7 @@
 # Neden: yaş: Tam diye bildirildi ama bir Metin atandı.
 # Düzeltilmiş hâli:
 #     değişken yaş: Tam = 30
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/05_tip_uyusmazligi.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/05_tip_uyusmazligi.tr   (çıkış kodu 1)
 
 TR_var yaş: TR_Int = "otuz"
 TR_print(yaş)

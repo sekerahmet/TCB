@@ -3,7 +3,7 @@
 # Ne öğretir: kesme noktası koymak, değişkenleri tablo olarak açmak, fonksiyonun içine girmek ve bir
 # değeri çalışırken değiştirmek (koddaki kesme_noktası deyimi için bkz. 42).
 # Önceki örnekten: hata ayıklama (42), fonksiyonlar (08), sözlük listeleri (11).
-# Çalıştırma (proje kökünden): tr examples/tr/43_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
+# Çalıştırma (proje kökünden): trlang examples/tr/43_hata_ayiklama_alistirmasi.tr   (VS Code'da F5)
 #
 # 1. 26. satırın soluna tıklayıp kesme noktası koyun, sonra F5'e basın.
 # 2. Variables panelinde 'siparisler' değişkenini açın; sağ tık → "TR: Tablo Görünümü".

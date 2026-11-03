@@ -1,7 +1,7 @@
 # TR 4
 # Kodlu biçimde saklanmış bir modül (docs/spec/17_kodlar.md, 17.1, 17.7): dilin sözcükleri
 # kodlarla yazılır, kullanıcının adları, metinler, sayılar ve yorumlar olduğu gibi kalır.
-# Türkçe gösterimi: tr show tests/coded/ornek_kodlu.tr --lang tr
+# Türkçe gösterimi: trlang show tests/coded/ornek_kodlu.tr --lang tr
 TR_func kareler(liste: TR_List[TR_Int]) -> TR_List[TR_Int] {
     TR_return liste.TR_map((x) => x * x)
 }

@@ -8,7 +8,7 @@
 #         eğer i == 2 { devam }
 #         yazdır(i)
 #     }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/23_devam_disinda.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/23_devam_disinda.tr   (çıkış kodu 1)
 
 TR_print("önce")
 TR_continue

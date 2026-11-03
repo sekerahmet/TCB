@@ -16,7 +16,7 @@ import (
 // positionQuery "dosya.tr:satır[:sütun]" biçimli sorgudur: imlecin altındaki ad.
 var positionQuery = regexp.MustCompile(`^(.+\.tr):(\d+)(?::(\d+))?$`)
 
-// Fold Türkçe büyük-küçük harf kuralıyla küçültür (İ→i, I→ı): düz ToLower "I"yı "i" yapardı. İki aracın (tr index ve
+// Fold Türkçe büyük-küçük harf kuralıyla küçültür (İ→i, I→ı): düz ToLower "I"yı "i" yapardı. İki aracın (trlang index ve
 // codegraph) tek harf katlamasıdır.
 func Fold(s string) string { return strings.ToLowerSpecial(unicode.TurkishCase, s) }
 
@@ -38,7 +38,7 @@ type NameKey struct {
 	Alt    string // harfsiz geçişte ikinci anahtar: sorgunun ASCII küçültmesi (`IKINCI` → `ikinci`), Türkçe katlamadan farklıysa
 }
 
-// NameKeys sorgunun harf kuralıdır; iki aracın (tr index ve codegraph) tek kuralı (bağımsız denetim grup 6, R1: biri
+// NameKeys sorgunun harf kuralıdır; iki aracın (trlang index ve codegraph) tek kuralı (bağımsız denetim grup 6, R1: biri
 // her zaman katlıyor, öbürü büyük harfli sorguda tam eşleşme istiyordu). Sorguda büyük harf yoksa büyük-küçük harf
 // Türkçe kuralıyla yok sayılır (`ışık` = `Işık`, `isik` ≠ `Işık`); varsa önce tam eşleşme aranır (ripgrep 14
 // `--smart-case` kuralı; `go doc` da büyük harfi tam eşleştirir), hiçbir aday tam tutmazsa harf yok sayılarak bir kez
@@ -248,7 +248,7 @@ func (r *Reader) resolveMember(q, kind string) []*Node {
 	return out
 }
 
-// QualifiedMatch nitelenmiş adın adaylarını seçer; iki aracın (tr index ve codegraph) tek nitelenmiş ad kuralı:
+// QualifiedMatch nitelenmiş adın adaylarını seçer; iki aracın (trlang index ve codegraph) tek nitelenmiş ad kuralı:
 // önce tam nitelenmiş ad (`layers.Doğrusal.ileri`, `layers.TR_Linear.TR_forward`), tutmazsa `.` sınırında biten sonu
 // (`Doğrusal.ileri`, `TR_Linear.TR_forward`, `Model.TR_forward`).
 func QualifiedMatch(n int, k NameKey, names func(i int) [][2]string) []int {

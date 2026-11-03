@@ -2,7 +2,7 @@
 # 32 — Ağırlıkları kaydetmek: eğitilmiş modeli diske yazıp geri yüklemek.
 # Ne öğretir: tensör_kaydet(yol, sözlük), tensör_yükle(yol), parametreleri_yükle, argmax ile en olası sınıfı seçmek.
 # Önceki örnekten: eğitim döngüsü (28), XOR ağı (30), sözlükler (11), dosya ve JSON (19), yollar (20).
-# Çalıştırma (proje kökünden): tr examples/tr/32_agirliklari_kaydet.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/32_agirliklari_kaydet.tr
 # Ağırlık dosyası geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
 # Küçük bir sınıflandırıcı: iki özellikten (boy, kilo gibi) üç sınıftan birini seçer.

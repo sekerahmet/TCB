@@ -14,7 +14,7 @@ import (
 // (bağımsız denetim Y5).
 
 // buildCall test dosyasındaki `go build` çağrısının derlediği modül paketine `builds` kenarı çeker. Paket bir modül
-// yolu ("github.com/.../cmd/tr") ya da test dosyasının klasörüne göre "." / "./x" olabilir.
+// yolu ("github.com/.../cmd/trlang") ya da test dosyasının klasörüne göre "." / "./x" olabilir.
 func (x *goExtractor) buildCall(fc *fileCtx, owner string, call *ast.CallExpr) {
 	id := nameIdent(call.Fun)
 	if !fc.isTest || id == nil || (id.Name != "Command" && id.Name != "CommandContext") {

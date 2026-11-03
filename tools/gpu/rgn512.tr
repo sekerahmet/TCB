@@ -9,7 +9,7 @@
 # tutmaz (model.kayıp → doğrusal_çapraz_entropi, 8192'lik dilimler; hedef de dilimler ama geri
 # geçişte yeniden hesaplar).
 #
-# Kullanım: ./tr rgn512.tr --veri KLASÖR [--step 120] [--çıktı sonuç.json]
+# Kullanım: ./trlang rgn512.tr --veri KLASÖR [--step 120] [--çıktı sonuç.json]
 #   veri: uint16 .npy parça dosyalarının klasörü (belge sonu 0), hedefle aynı biçim.
 # Doğruluk karşılaştırması (tools/gpu/rgn_reference.py ile): --weight init.trt PyTorch'un başlangıç
 # ağırlıklarını yükler, --sequential doğru toplu işleri sırayla okur (PyTorch tarafı aynı pencereleri

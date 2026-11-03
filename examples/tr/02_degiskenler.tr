@@ -2,7 +2,7 @@
 # 02 — Değişkenler: bir değeri adlandırıp saklamak.
 # Ne öğretir: değişken ile tanımlamak, yeniden atamak, +=, -=, *=, sabit.
 # Önceki örnekten: yazdır ve yorum (01).
-# Çalıştırma (proje kökünden): tr examples/tr/02_degiskenler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/02_degiskenler.tr
 
 # değişken ad = değer: değer bir adla saklanır, sonra adıyla kullanılır.
 TR_var yaş = 30

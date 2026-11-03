@@ -14,7 +14,7 @@
 # özeti (sınav, eğitim adımı ve parça sayısı, parametre sayısı, speed.json'daki hız, eğitim ayarları).
 #
 # Kullanım (Colab, GPU):
-#   ./tr ss_exam.tr --koşu /content/drive/MyDrive/TR_dili/kosular/ss_d512_tf_tr --veri /content/ss_gpt2
+#   ./trlang ss_exam.tr --koşu /content/drive/MyDrive/TR_dili/kosular/ss_d512_tf_tr --veri /content/ss_gpt2
 # bayt_parça varsayılanı PyTorch koşusunun (ss_d512_transformer) kendi kayıp ve bpb'sinden çıkan orandır
 # (1,5196237 / ln 2 / 0,5073415); aynı doğrulama verisi için iki taraf aynı paydayla ölçülür.
 

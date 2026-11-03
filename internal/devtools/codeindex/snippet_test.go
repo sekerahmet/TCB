@@ -119,7 +119,7 @@ func TestSnippetListsTheLibraryModulesItImports(t *testing.T) {
 
 // Kural: kitaplık verilince Snippet metnin sınadığı kitaplık adlarını kodlarıyla verir (yerleşikle aynı kural: işlev ve
 // metot çağrılınca, yapı okununca); yalnız anılan işlev sayılmaz, kitaplığın çekirdekle ortak kodlu parametresi
-// (adım: TR_arg_step) de sayılmaz. Go testi bir TR betiğini dosyaya yazıp tr ikilisiyle koşunca codegraph testi bu
+// (adım: TR_arg_step) de sayılmaz. Go testi bir TR betiğini dosyaya yazıp trlang ikilisiyle koşunca codegraph testi bu
 // kodlara bağlar (TestReadyModelMatchesTransformers → TR_fn_pretrained_model).
 func TestSnippetListsTheLibraryCodesItExercises(t *testing.T) {
 	library := fstest.MapFS{"hazirx.tr": {Data: trText("hazirx.tr", "TR_struct TR_GPT {\n    TR_func TR_forward(TR_x: TR_Tensor) -> TR_Tensor {\n        TR_return TR_x\n    }\n}\n\n"+

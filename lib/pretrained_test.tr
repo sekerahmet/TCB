@@ -1,7 +1,7 @@
 # TR 4
 # tr/pretrained testleri: config.json'dan GPT kuruluşu (bağımsız bakış boyutu, RoPE tabanının iki
 # yazımı, paylaşımlı gömme), desteklenmeyen ayarların açık hatası ve ağırlık adı eşlemesi.
-# Gerçek bir Hugging Face modeliyle logit eşitliği cmd/tr/e2e'de (transformers kuruluysa).
+# Gerçek bir Hugging Face modeliyle logit eşitliği cmd/trlang/e2e'de (transformers kuruluysa).
 TR_import "tr/pretrained"
 
 TR_func qwen3_ayarı() {

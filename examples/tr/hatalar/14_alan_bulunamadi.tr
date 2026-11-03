@@ -9,7 +9,7 @@
 #         y
 #         z = 0   # alan gerekiyorsa yapıya ekleyin (ileti en yakın alanı ya da alanı eklemeyi önerir)
 #     }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/14_alan_bulunamadi.tr   (çıkış kodu 1)
 
 TR_struct Nokta {
     x: TR_Int

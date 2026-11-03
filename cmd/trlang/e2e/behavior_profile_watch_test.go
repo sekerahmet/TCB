@@ -12,7 +12,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// watchTraining 60 adımlık kısa bir eğitimdir (tr watch / tr profile alt süreç testleri).
+// watchTraining 60 adımlık kısa bir eğitimdir (trlang watch / trlang profile alt süreç testleri).
 const watchTraining = `TR_var w = TR_Tensor(TR_randn([128, 128], TR_seed: 1), TR_requires_grad: TR_true)
 TR_var x = TR_randn([64, 128], TR_seed: 2)
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
@@ -77,7 +77,7 @@ func processCall(d map[string]any, code, direction string) float64 {
 	return -1
 }
 
-// tr profile: metin rapor standart çıktıya, JSON rapor koşu klasörüne (speed.json).
+// trlang profile: metin rapor standart çıktıya, JSON rapor koşu klasörüne (speed.json).
 func TestProfileCommand(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "egit.tr", watchTraining)
@@ -100,11 +100,11 @@ func TestProfileCommand(t *testing.T) {
 		}
 	}
 	if d["sampling"] == nil {
-		t.Error("tr profile satır örneklemesiyle çalışmalı")
+		t.Error("trlang profile satır örneklemesiyle çalışmalı")
 	}
 }
 
-// tr profile program hata verse de raporu yazar; çıkış kodu programınkidir.
+// trlang profile program hata verse de raporu yazar; çıkış kodu programınkidir.
 func TestProfileCommandReportsOnError(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "hata.tr", "TR_var a = TR_ones([2, 3])\nTR_print(a @ a)\n")
@@ -115,7 +115,7 @@ func TestProfileCommandReportsOnError(t *testing.T) {
 	}
 }
 
-// tr watch terminal değilken: program çıktısı olduğu gibi akar, son rapor standart hataya.
+// trlang watch terminal değilken: program çıktısı olduğu gibi akar, son rapor standart hataya.
 func TestWatchCommandNotTerminal(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "egit.tr", watchTraining)
@@ -136,10 +136,10 @@ func TestWatchNoStepInfo(t *testing.T) {
 	testkit.Wait(t, s, 0, []string{"499500"}, []string{"adım bilgisi yok: eğitim döngüsünde İlerleme(...) ve .güncelle(...) kullanın"})
 }
 
-// tr watch .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
+// trlang watch .tr olmayan bir adla (arka plan işini izleme henüz yok) açık hata verir.
 func TestWatchJobNameNotYet(t *testing.T) {
 	s := tr(t, t.TempDir(), "watch", "deneme1")
-	testkit.Wait(t, s, 2, nil, []string{"bir .tr dosyası değil", "tr watch <dosya.tr>"})
+	testkit.Wait(t, s, 2, nil, []string{"bir .tr dosyası değil", "trlang watch <dosya.tr>"})
 	s = tr(t, t.TempDir(), "profile", "--bilinmeyen", "x.tr")
 	testkit.Wait(t, s, 2, nil, []string{"bilinmeyen seçenek"})
 }
@@ -179,7 +179,7 @@ TR_for i TR_in 0..8 {
 TR_print("gpu eğitimi bitti")
 `
 
-// tr profile ve tr watch GPU'da: çekirdek süreleri ve GPU belleği rapora girer; GPU arka
+// trlang profile ve trlang watch GPU'da: çekirdek süreleri ve GPU belleği rapora girer; GPU arka
 // ucunun kendi raporu bir kez yazılır (ölçümü profil açtıysa raporun içinde, TR_GPU_PROFILE
 // ile açıksa arka ucun kendisince).
 func TestProfileAndWatchGPU(t *testing.T) {

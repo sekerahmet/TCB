@@ -3,7 +3,7 @@
 # Ne öğretir: liste kurmak, indeksle okumak ve yazmak (negatif indeks sondan sayar), ekle, uzunluk,
 # döngüyle gezmek (sıra numarasıyla da), sırala, ters_çevir, toplam/ortalama, liste üreteci, birleştir, varsa_al, çoklu atama ve takas.
 # Önceki örnekten: döngüler (07), fonksiyonlar (08), metin (04).
-# Çalıştırma (proje kökünden): tr examples/tr/09_listeler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/09_listeler.tr
 
 # Liste köşeli parantezle yazılır; elemanlar farklı tipte olabilir.
 TR_var meyveler = ["elma", "armut", "kiraz"]

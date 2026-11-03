@@ -16,7 +16,7 @@ import (
 // satırında satır devamı yerine düz "\n" yazılmıştı). Bu test tools/gpu/COLAB.md'deki
 // her ```bash bloğunu `bash -n` ile, içindeki Python gömmelerini (heredoc ve `python -c`)
 // `py_compile` ile denetler; tools/gpu/*.py betikleri de derlenir ve `--help` verir;
-// phase3_tr.tr `tr check`dan uyarısız geçer.
+// phase3_tr.tr `trlang check`dan uyarısız geçer.
 
 var (
 	colabBashRe    = regexp.MustCompile("(?ms)^```bash[ \t]*\r?\n(.*?)^```")

@@ -99,7 +99,7 @@ func TestProfileGPUMeasureOff(t *testing.T) {
 }
 
 // runWithClose calistir gibidir; ek olarak program bitince (motorlar kapanmadan önce)
-// BeforeClose'yi çağırır (tr watch ve tr profile'in yaptığı gibi).
+// BeforeClose'yi çağırır (trlang watch ve trlang profile'in yaptığı gibi).
 func runWithClose(t *testing.T, code string, s Options) (*Snapshot, *Profile) {
 	t.Helper()
 	var pr *Profile

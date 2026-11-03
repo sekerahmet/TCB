@@ -1,7 +1,7 @@
 package stdlib
 
 // Motor testleri dilin tamamıyla, koddaki kesme_noktası deyiminin açtığı hata ayıklayıcı
-// dahil çalışır (cmd/tr ve tr test gibi). Hata ayıklayıcı araç katmanındadır; yalnızca
+// dahil çalışır (cmd/trlang ve trlang test gibi). Hata ayıklayıcı araç katmanındadır; yalnızca
 // testlerde içe aktarılır.
 import (
 	"go/ast"

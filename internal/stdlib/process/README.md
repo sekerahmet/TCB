@@ -7,7 +7,7 @@ satırı seçenekleri (`TR_fn_command_line`).
 
 **Gizli değer gizli kalır.** Adı gizli bir şey söyleyen ortam değişkenlerinin ve seçeneklerin
 (anahtar, belirteç, parola ...) değerleri, insanın göreceği her çıktıda `***` olarak görünür.
-Denetim: `TestIsSecretName`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`, `TestEnvVar`; ayrı süreçte `cmd/tr/e2e` `TestSecretValuesMaskedInOutput`.
+Denetim: `TestIsSecretName`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`, `TestEnvVar`; ayrı süreçte `cmd/trlang/e2e` `TestSecretValuesMaskedInOutput`.
 
 **Tek yazım.** Komut satırı seçeneği tek biçimde yazılır (`--ad değer` ya da `--ad=değer`);
 konumlu argüman ya da başka yazımlar kabul edilmez, en yakın doğru ad önerilir.
@@ -19,4 +19,4 @@ Denetim: `TestNumberParsing`, `TestIsNumberOrBool`.
 
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
-Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/tr/e2e` `TestCommandLineOptions`.
+Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.

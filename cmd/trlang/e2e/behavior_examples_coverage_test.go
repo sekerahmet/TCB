@@ -18,7 +18,7 @@ import (
 // Kapsam: dilin her adı examples/tr altındaki bir örnekte
 // geçer. Ad kontrolü metin aramasıyla değil kodlarladır: kodlu örnek kimlik okuyucusuyla okunur ve
 // iskeletindeki kodlar (TR_kw_if, TR_fn_print, .TR_mem_append, TR_arg_lr: ...) sayılır. Komut satırı adları (cmd, opt, repl, dbg, env:
-// `tr test`, `tr format`, --lang ...) .tr dosyasında geçmez; örneklerin yorum satırlarında ve
+// `trlang test`, `trlang format`, --lang ...) .tr dosyasında geçmez; örneklerin yorum satırlarında ve
 // examples/README.md'de aranır.
 
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste

@@ -2,7 +2,7 @@
 # 25 — Seçme ve sıralama: tensörde koşula göre seçmek, en büyükleri bulmak.
 # Ne öğretir: koşullu ile eleman seçmek, argmax, en_büyük_k, sıralama_indeksi, birikimli_toplam, sınırla.
 # Önceki örnekten: tensör matematiği (24), tensörler (23), matematik (13).
-# Çalıştırma (proje kökünden): tr examples/tr/25_secme_ve_siralama.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/25_secme_ve_siralama.tr
 # Ayrıntılar: docs/spec/15_tensorler.md §15.
 
 TR_var x = TR_Tensor([-1.0, 2.0, -3.0, 4.0])

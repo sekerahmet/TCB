@@ -8,8 +8,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Betiğe komut satırında verilen argümanlar ('tr betik.tr --adım 5 veri' → ["--adım", "5",
-// "veri"]). 'tr betik.tr', 'tr run', 'tr debug', 'tr build' ile üretilen uygulama
+// Betiğe komut satırında verilen argümanlar ('trlang betik.tr --adım 5 veri' → ["--adım", "5",
+// "veri"]). 'trlang betik.tr', 'trlang run', 'trlang debug', 'trlang build' ile üretilen uygulama
 // ve düzenleyicinin başlatma ayarındaki "args" aynı yoldan buraya gelir (1.4). Program
 // argümanları okuyan yerleşik (komut_satırı, internal/stdlib/process) Args ile alır. Argüman
 // verilip programın en dışından ulaşılan bir komut_satırı çağrısı yoksa program çalışmaz
@@ -53,7 +53,7 @@ const (
 )
 
 // CheckArguments argüman verilip programın en dışından ulaşılan bir komut_satırı çağrısı olup
-// olmadığına bakar (1.4). cmd/tr'nin bütün çalıştırma yolları ve hata ayıklayıcının başlatma yolu
+// olmadığına bakar (1.4). cmd/trlang'nin bütün çalıştırma yolları ve hata ayıklayıcının başlatma yolu
 // (düzenleyicinin "args" ayarı) aynı kararı bununla verir; metin ArgumentsMessage'dadır.
 func (v *VM) CheckArguments(prog *ast.Program) ArgumentVerdict {
 	if len(v.arguments) == 0 || v.ReadsCommandLine(prog) {

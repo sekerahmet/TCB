@@ -1,6 +1,6 @@
 // Package debugger TR'nin hata ayıklayıcısıdır: terminalde çalışan etkileşimli hata
-// ayıklayıcı ('tr debug', koddaki kesme_noktası) ve düzenleyicilerin bağlandığı
-// hata ayıklama sunucusu ('tr dap', dap*.go). Yükleme anında kendini yorumlayıcıya
+// ayıklayıcı ('trlang debug', koddaki kesme_noktası) ve düzenleyicilerin bağlandığı
+// hata ayıklama sunucusu ('trlang dap', dap*.go). Yükleme anında kendini yorumlayıcıya
 // interp.NewDebugger ile kaydeder.
 //
 // Layer: developer tools (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
@@ -66,7 +66,7 @@ type Debugger struct {
 	// pauseKind duraklamanın türüdür (düzenleyiciye bildirilir): "entry", "step",
 	// "breakpoint", "data breakpoint", "pause", "goto".
 	pauseKind string
-	// dap, düzenleyicinin hata ayıklama oturumu (tr dap) etkinse bağlı sunucudur.
+	// dap, düzenleyicinin hata ayıklama oturumu (trlang dap) etkinse bağlı sunucudur.
 	dap *dapServer
 	// otherLines başka dosyaların ('aktar' ile yüklenen modüller) satırlarıdır (fileOf).
 	otherLines map[string][]string

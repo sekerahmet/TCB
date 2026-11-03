@@ -3,7 +3,7 @@
 # Ne öğretir: Tam, Ondalık, Metin, Mantık, yok; tip(); tam()/ondalık()/metin() dönüşümleri;
 # işleçler ve karşılaştırma; yok olabilen değer için ??.
 # Önceki örnekten: değişken, sabit ve atama (02).
-# Çalıştırma (proje kökünden): tr examples/tr/03_tipler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/03_tipler.tr
 
 TR_var yaş = 30 # Tam: ondalık noktası olmayan sayı
 TR_var boy = 1.75 # Ondalık: noktalı sayı

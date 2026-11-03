@@ -56,7 +56,7 @@ func main() {
 		os.Exit(2)
 	}
 	setGCTarget()
-	// Bu .exe 'tr build' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
+	// Bu .exe 'trlang build' ile üretilmiş bağımsız bir uygulama ise gömülü paketi çalıştır.
 	if pk, found, err := findEmbeddedPackage(); found {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "❌ "+messages.Text(messages.H8601, err))
@@ -84,7 +84,7 @@ func main() {
 		unknownTopLevelOption(args[0])
 	}
 	if args[0] == "--" {
-		args = args[1:] // adı '-' ile başlayan dosya: tr -- -x.tr
+		args = args[1:] // adı '-' ile başlayan dosya: trlang -- -x.tr
 		if len(args) == 0 {
 			startREPL()
 			return
@@ -93,8 +93,8 @@ func main() {
 	runFile(args[0], args[1:])
 }
 
-// commandCode komut satırının ilk argümanını bir tr komutunun koduna çevirir: kısa bayraklar
-// (-h, -v) simgedir; adlar her yazım dilinde aranır (tr run da tr run da her makinede
+// commandCode komut satırının ilk argümanını bir trlang komutunun koduna çevirir: kısa bayraklar
+// (-h, -v) simgedir; adlar her yazım dilinde aranır (trlang run da trlang run da her makinede
 // çalışır, betikler TR_LANG'den bağımsızdır). Komut değilse codes.None (dosya adıdır).
 func commandCode(arg string) codes.Code {
 	switch arg {
@@ -128,19 +128,19 @@ var commands = map[codes.Code]func([]string){
 	codes.CmdIndex: indexCommand,
 }
 
-// helpCommand 'tr help' komutudur.
+// helpCommand 'trlang help' komutudur.
 func helpCommand(args []string) {
 	noOptions(codes.CmdHelp, args)
 	printHelp()
 }
 
-// versionCommand 'tr version' komutudur.
+// versionCommand 'trlang version' komutudur.
 func versionCommand(args []string) {
 	noOptions(codes.CmdVersion, args)
 	fmt.Println(messages.Text(messages.H8603, Version))
 }
 
-// checkCommand 'tr check [--json] dosya.tr' komutudur. --json dosya adından önce yazılır: dosya
+// checkCommand 'trlang check [--json] dosya.tr' komutudur. --json dosya adından önce yazılır: dosya
 // adından sonrası programın argümanıdır (1.4), orada yazılan --json sessizce yok sayılmaz, hatadır.
 func checkCommand(args []string) {
 	command := codes.NameRef(codes.CmdCheck)
@@ -160,7 +160,7 @@ func checkCommand(args []string) {
 	checkFile(file)
 }
 
-// buildCommand 'tr build dosya.tr [çıktı]' komutudur.
+// buildCommand 'trlang build dosya.tr [çıktı]' komutudur.
 func buildCommand(args []string) {
 	files := fileArguments(codes.NameRef(codes.CmdBuild), args, nil, nil)
 	if len(files) < 1 {
@@ -185,7 +185,7 @@ func dapCommand(args []string) {
 	}
 }
 
-// runCommand 'tr run dosya.tr [argümanlar]' komutudur.
+// runCommand 'trlang run dosya.tr [argümanlar]' komutudur.
 func runCommand(args []string) {
 	file, rest, ok := programFile(codes.NameRef(codes.CmdRun), args)
 	if !ok {
@@ -207,7 +207,7 @@ func exitWithError(message any) {
 // standart hataya yazar ve 2 koduyla çıkar (1.9).
 func exitUsage(message any) {
 	if m, ok := message.(*messages.Error); ok && jsonUsage {
-		writeJSONRecord(usageRecord(m)) // 'tr check --json': kullanım hatası da kayıttır (2.13)
+		writeJSONRecord(usageRecord(m)) // 'trlang check --json': kullanım hatası da kayıttır (2.13)
 		os.Exit(usageExitCode)
 	}
 	fmt.Fprintln(os.Stderr, turkish.Printable(messages.Text(messages.H8060, message)))
@@ -253,7 +253,7 @@ func printHelp() {
 }
 
 // runFile programı çalıştırır; argumanlar dosya adından sonra yazılanlardır ve programa
-// iletilir (tr betik.tr --adım 5).
+// iletilir (trlang betik.tr --adım 5).
 func runFile(path string, arguments []string) {
 	machine, program, text := prepareProgram(path, arguments, runPreparation)
 	startJobProfile(machine, path, text, program)
@@ -261,7 +261,7 @@ func runFile(path string, arguments []string) {
 	cleanup()
 }
 
-// debugCommand 'tr debug dosya.tr [argümanlar]' komutudur; dosyadan sonraki argümanlar
+// debugCommand 'trlang debug dosya.tr [argümanlar]' komutudur; dosyadan sonraki argümanlar
 // programındır.
 func debugCommand(args []string) {
 	file, rest, ok := programFile(codes.NameRef(codes.CmdDebug), args)
@@ -271,7 +271,7 @@ func debugCommand(args []string) {
 	debugFile(file, rest)
 }
 
-// debugFile programı hata ayıklayıcıyla çalıştırır; çalışmadan önce 'tr check'ün denetiminden
+// debugFile programı hata ayıklayıcıyla çalıştırır; çalışmadan önce 'trlang check'ün denetiminden
 // geçer (1.3).
 func debugFile(path string, arguments []string) {
 	machine, program, text := prepareProgram(path, arguments, runPreparation)

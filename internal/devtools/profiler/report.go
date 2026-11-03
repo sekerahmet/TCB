@@ -7,7 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// ReportText son raporun metin tablosudur (tr profile, tr watch'nin sonu).
+// ReportText son raporun metin tablosudur (trlang profile, trlang watch'nin sonu).
 func ReportText(g *Snapshot) string {
 	var b strings.Builder
 	write := func(s string) { b.WriteString(s + "\n") }

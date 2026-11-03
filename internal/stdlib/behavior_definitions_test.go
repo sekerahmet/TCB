@@ -91,7 +91,7 @@ func runExample(t *testing.T, prog *ast.Program) error {
 	}
 }
 
-// Her örnek `tr check`'den (ayrıştırma ve tip denetimi) geçer ve hatasız çalışır
+// Her örnek `trlang check`'den (ayrıştırma ve tip denetimi) geçer ve hatasız çalışır
 // (ağ gerektirenler yalnızca denetlenir). Örnekler geçici bir çalışma klasöründe çalışır;
 // yazdıkları dosyalar orada kalır.
 func TestExamplesRun(t *testing.T) {

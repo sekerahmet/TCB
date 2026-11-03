@@ -11,8 +11,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Hız kıyas setinin (tools/bench/tr) programları, tr run'ın yolunda: program source.Prepare ile
-// denetlenip hazırlanır, hata ayıklayıcısız VM.Run ile koşar. tr profile bu yolu ölçmez: örnekleyici
+// Hız kıyas setinin (tools/bench/tr) programları, trlang run'ın yolunda: program source.Prepare ile
+// denetlenip hazırlanır, hata ayıklayıcısız VM.Run ile koşar. trlang profile bu yolu ölçmez: örnekleyici
 // hata ayıklayıcı yuvasına takılır, her deyimde kanca çalışır ve ortam havuzu kapanır.
 //
 //	go test -run XXX -bench Programs/fib -benchtime 300x -count 5 -cpuprofile fib.prof -benchmem ./internal/lang/interp/

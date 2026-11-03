@@ -90,9 +90,9 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 
 // inTestBinary bir Go testi fn'yi çalıştırabilir mi: fn'nin paketi testin ikilisine girer, yani testin paketi odur ya
 // da (test dosyalarının içe aktarmaları dahil) onu dolaylı içe aktarır. Ad kodu bağı yalnızca bu koşulla geçer:
-// checker'ın `yazdır` geçen testleri `package main`'deki tr.startsWithPrint'i hiç çalıştıramaz, ama ad kodu üzerinden
+// checker'ın `yazdır` geçen testleri `package main`'deki trlang.startsWithPrint'i hiç çalıştıramaz, ama ad kodu üzerinden
 // onun testi sayılıyordu (TCB 2026-10-25, 3. madde: tests-for cmd/tr/main.go 175 test, başta checker testleri). TR testi
-// (tr: düğümü) tr ikilisinde koşar, her paket ona girer.
+// (tr: düğümü) trlang ikilisinde koşar, her paket ona girer.
 func (ix *index) inTestBinary(t, fn *Node) bool {
 	if t == nil || fn == nil || !strings.HasPrefix(t.ID, "go:") || !strings.HasPrefix(fn.ID, "go:") {
 		return true

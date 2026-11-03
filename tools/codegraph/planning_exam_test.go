@@ -20,7 +20,7 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// Planlama sınavı: codegraph ve tr index ile gerçek bir işi planlarken sorulmuş sorular, beklenen cevaplarıyla
+// Planlama sınavı: codegraph ve trlang index ile gerçek bir işi planlarken sorulmuş sorular, beklenen cevaplarıyla
 // (testdata/planning_questions.txt). Her satır bir komut, yapısal beklentiler ve kaynaktır; beklentiler çıktının birebir
 // metni değil, "şunu içerir / şu grubun ilk öğesi şudur / şu, şundan önce gelir" biçimindedir, böylece çıktı biçimi
 // iyileşince sınav kırılmaz ama kapatılmış bir kör nokta geri gelirse düşer. Depo üzerinde koşar (fikstür değil):
@@ -438,7 +438,7 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 // sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
 func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
 	ix := newIndex(g)
-	known := map[string]bool{} // tr index'in düğümlerinin grafik kimlikleri
+	known := map[string]bool{} // trlang index'in düğümlerinin grafik kimlikleri
 	names := map[string]bool{}
 	for _, n := range idx.Nodes {
 		id := graphID(n)
@@ -495,7 +495,7 @@ func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 				}
 			}
 			if !maps.Equal(want, got) {
-				bad = append(bad, fmt.Sprintf("%q: tr index %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
+				bad = append(bad, fmt.Sprintf("%q: trlang index %d %v, codegraph %d %v", q, len(want), slices.Sorted(maps.Keys(want)), len(got), slices.Sorted(maps.Keys(got))))
 			}
 		}
 	}

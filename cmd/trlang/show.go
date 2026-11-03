@@ -15,8 +15,8 @@ import (
 
 // Görünüm komutu (docs/spec/17_kodlar.md, 17.7):
 //
-//	tr show <dosya.tr> [--lang tr]  dosyayı bir yazım dilinde standart çıktıya basar
-//	tr show - [--lang tr]           metni standart girişten okur, görünümünü çıkışa yazar
+//	trlang show <dosya.tr> [--lang tr]  dosyayı bir yazım dilinde standart çıktıya basar
+//	trlang show - [--lang tr]           metni standart girişten okur, görünümünü çıkışa yazar
 //
 // Yazım dili verilmezse kişinin yazım dilidir (codes.Display, TR_LANG). Görünüm yalnız okunur:
 // çalışmaz ve koda geri çevrilmez; kod yalnız kimliklerle yazılır.
@@ -128,7 +128,7 @@ func writeInPlace(filePath, text string) error {
 	return nil
 }
 
-// showCommand 'tr show <dosya.tr> [--lang tr]' komutudur: dosya verilen yazım dilinde
+// showCommand 'trlang show <dosya.tr> [--lang tr]' komutudur: dosya verilen yazım dilinde
 // (varsayılan kişinin yazım dili) standart çıktıya yazılır; gösterim başlığı ve satırları tutar,
 // başlıksız metin olduğu gibi kalır (source.Show). Dosya yerine '-' verilirse metin standart girişten
 // okunur (düzenleyiciler için; çıkış kodları yukarıda).

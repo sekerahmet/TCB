@@ -108,7 +108,7 @@ func TestHelpAndLauncherArgumentsOfAProgramThatReadsNone(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "okur.tr", "--ros-args", "-r", "a:=b", "--", "--adim", "7", "--local-rank=1"), 0, []string{"adım: 7"}, nil)
 }
 
-// 'tr build' ile üretilen uygulamanın bütün argümanları programındır (1.4); kural onda da
+// 'trlang build' ile üretilen uygulamanın bütün argümanları programındır (1.4); kural onda da
 // geçerlidir.
 func TestBuiltAppArguments(t *testing.T) {
 	dir := t.TempDir()

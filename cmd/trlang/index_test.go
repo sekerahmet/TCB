@@ -12,8 +12,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// Kural (17.9): alt komut sınıfının (sub) her kodu 'tr index'in alt komutudur; başka komutun alt
-// komutu yoktur. H0037'nin önerisi (lexer.classedSpelling) bu yüzden 'tr index <alt komut>' yazar.
+// Kural (17.9): alt komut sınıfının (sub) her kodu 'trlang index'in alt komutudur; başka komutun alt
+// komutu yoktur. H0037'nin önerisi (lexer.classedSpelling) bu yüzden 'trlang index <alt komut>' yazar.
 // runIndexQuery'nin her alt komutu karşılaması bunun kanıtıdır: başka bir komuta alt komut eklenirse
 // ya da bir alt komut karşılanmazsa test düşer.
 func TestEverySubcommandIsAnIndexSubcommand(t *testing.T) {
@@ -24,7 +24,7 @@ func TestEverySubcommandIsAnIndexSubcommand(t *testing.T) {
 		}
 		name := goConstName(k.String())
 		if !handled[name] {
-			t.Errorf("%s (%s) tr index'in alt komutu olarak runIndexQuery'de karşılanmıyor", k, name)
+			t.Errorf("%s (%s) trlang index'in alt komutu olarak runIndexQuery'de karşılanmıyor", k, name)
 		}
 		delete(handled, name)
 	}

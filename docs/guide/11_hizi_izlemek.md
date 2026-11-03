@@ -1,11 +1,11 @@
-# 11. Hızı izlemek: `tr watch` ve `tr profile`
+# 11. Hızı izlemek: `trlang watch` ve `trlang profile`
 
 Eğitim yavaşsa önce zamanın nereye gittiğini görün: hangi tensör işlemi, hangi satırınız, GPU ne kadar meşgul, bellek ne durumda. TR bunu programınıza tek satır eklemeden yapar:
 
 ```bash
-tr watch egit.tr --adım 2000      # çalışırken saniyede bir yenilenen tablo
-tr profile egit.tr --adım 2000    # program bitince hız raporu
-tr profile --json runs/deneme1/ egit.tr   # rapor ayrıca koşu klasörüne: runs/deneme1/speed.json
+trlang watch egit.tr --adım 2000      # çalışırken saniyede bir yenilenen tablo
+trlang profile egit.tr --adım 2000    # program bitince hız raporu
+trlang profile --json runs/deneme1/ egit.tr   # rapor ayrıca koşu klasörüne: runs/deneme1/speed.json
 ```
 
 Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`TR_command_line`). İki komutun seçenekleri dosyadan **önce** yazılır.
@@ -26,7 +26,7 @@ Program dosyasından sonraki argümanlar her zamanki gibi programa gider (`TR_co
 
 **Bellek.** Go yığını (CPU tensörleri dahil), CPU tensör işlemlerinin adım başına ayırdığı bellek, GPU'da tensörlerin kullandığı, sürücüden ayrılmış ve en yüksek (tepe) bellek; çöp toplayıcının kaç kez çalıştığı ve programı ne kadar durdurduğu. `TR_cmd_profile` raporu ayrıca GPU belleğinin tepesinde canlı olan tensörleri onları ayıran satıra göre sıralar (PyTorch'un bellek anlık görüntüsünün karşılığı): hangi satırın tepe belleğin ne kadarını tuttuğu görünür. Geri yayılımda ayrılan gradyanlar `TR_backward(...)` satırında sayılır; aktarılan modüldeki satır `dosya:satır` diye yazılır.
 
-## `tr watch`
+## `trlang watch`
 
 ```text
 ⏱ izleniyor: examples/tr/41_gpt.tr · 12 sn · durdurmak için Ctrl+C
@@ -53,7 +53,7 @@ Tablonun hız satırları **son 5 saniyenin** ölçüleridir; program bitince b�
 
 Ctrl+C her zamanki gibi programı nazikçe durdurur (kontrol noktası varsa kaydedilir); rapor yine yazılır.
 
-## `tr profile`
+## `trlang profile`
 
 `TR_cmd_profile` programı aynı ölçümlerle çalıştırır ve bitince (hata ya da Ctrl+C ile bitse de) metin raporunu standart çıktıya yazar: süre ve çıkış kodu, adım hızı, tensör işlemleri tablosu (süre, pay, çağrı, ms/adım, ayrılan bellek, cihaz), en çok zaman alan satırlar ve fonksiyonlar, GPU kernelleri, bellek ve çöp toplama. Programın kendi çıktısı olduğu gibi kalır.
 

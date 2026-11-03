@@ -9,7 +9,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// checkFileErrs kaynağı tr check gibi dosyasıyla (SetFile) denetler: öneri dosyanın satırını verir.
+// checkFileErrs kaynağı trlang check gibi dosyasıyla (SetFile) denetler: öneri dosyanın satırını verir.
 func checkFileErrs(t *testing.T, source string) []error {
 	t.Helper()
 	p := parser.New(lexer.NewBody(source, true))

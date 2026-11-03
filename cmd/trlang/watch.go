@@ -13,7 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 )
 
-// watchCommand 'tr watch [--output dosya] program.tr [argümanlar]': programı çalıştırır ve hızını
+// watchCommand 'trlang watch [--output dosya] program.tr [argümanlar]': programı çalıştırır ve hızını
 // canlı gösterir.
 //
 // Standart hata bir terminalse tablo ekranın üstünde saniyede bir yeniden çizilir;

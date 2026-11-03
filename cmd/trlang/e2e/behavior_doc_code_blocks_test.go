@@ -21,7 +21,7 @@ import (
 )
 
 // Belgelerdeki ve eklenti şablonlarındaki TR kodu bozulmasın: her ```tr kod bloğu
-// `tr check`dan geçmelidir (hakem mimari 6: kılavuzdaki veritabanı örneği derlenmiyordu).
+// `trlang check`dan geçmelidir (hakem mimari 6: kılavuzdaki veritabanı örneği derlenmiyordu).
 // Bilerek hatalı yazılmış örnekler ```tr hata ile işaretlenir; onların kontrolden
 // GEÇMEMESİ beklenir (belge hatayı gösteriyorsa hata gerçekten oluşmalı).
 
@@ -58,7 +58,7 @@ func belgeListesi(t *testing.T) []string {
 
 var trBlockRe = regexp.MustCompile("(?ms)^```tr( hata)?[ \t]*\r?\n(.*?)^```")
 
-// trCheck kodu geçici bir dosyaya yazıp `tr check` ile denetler.
+// trCheck kodu geçici bir dosyaya yazıp `trlang check` ile denetler.
 func trCheck(t *testing.T, ad, code string) (bool, string) {
 	t.Helper()
 	file := filepath.Join(t.TempDir(), ad+".tr")
@@ -91,10 +91,10 @@ func TestDocTRCodeBlocks(t *testing.T) {
 			switch {
 			case !errorExpected && !passed:
 				failing = append(failing, fmt.Sprintf("%s:%d", b, line))
-				t.Logf("%s:%d: kod bloğu `tr check`dan geçmiyor:\n%s", b, line, stdout)
+				t.Logf("%s:%d: kod bloğu `trlang check`dan geçmiyor:\n%s", b, line, stdout)
 			case errorExpected && passed:
 				failing = append(failing, fmt.Sprintf("%s:%d hata", b, line))
-				t.Logf("%s:%d: ```tr hata bloğu hata vermeli ama `tr check`dan geçiyor", b, line)
+				t.Logf("%s:%d: ```tr hata bloğu hata vermeli ama `trlang check`dan geçiyor", b, line)
 			}
 		}
 	}

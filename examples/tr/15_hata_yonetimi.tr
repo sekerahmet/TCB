@@ -3,7 +3,7 @@
 # Ne öğretir: dene/yakala ile hatayı yakalamak, fırlat ile kendi hatanı üretmek, katalog iletisiyle (ileti) hata fırlatmak,
 # hatanın nerede ele alınacağına karar vermek, yakalanan hatanın kodu ve fırlatılan değeri (Hata).
 # Önceki örnekten: fonksiyonlar (08), koşullar (05); 06'da tam("abc") hata verirdi, burada yönetilir.
-# Çalıştırma (proje kökünden): tr examples/tr/15_hata_yonetimi.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/15_hata_yonetimi.tr
 
 # Hata oluşunca program durur. dene bloğundaki hata yakala bloğuna gider, program sürer.
 TR_try {

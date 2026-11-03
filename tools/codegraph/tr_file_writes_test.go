@@ -197,7 +197,7 @@ func literal(e ast.Expr) (string, bool) {
 	return s, err == nil
 }
 
-// Kural: e2e'de .tr dosyasına yazılıp tr ikilisine verilen her betiğin kullandığı ad kodları (kitaplıktan aktarılan
+// Kural: e2e'de .tr dosyasına yazılıp trlang ikilisine verilen her betiğin kullandığı ad kodları (kitaplıktan aktarılan
 // adlar dahil) onu yazan testten bir tests kenarı alır: alt süreçte koşan TR metni de onu yazan testin sınadığı adlardır.
 // Betikler codegraph'tan bağımsız bulunur (e2eWrittenScripts); taramanın boş kalmaması için en az birkaç betik vardır.
 func TestEveryScriptAnE2ETestWritesLinksToItsNameCodes(t *testing.T) {

@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-// FuzzEmbeddedPackage: 'tr build' ile üretilmiş bir uygulama başlarken kendi ikilisinin
+// FuzzEmbeddedPackage: 'trlang build' ile üretilmiş bir uygulama başlarken kendi ikilisinin
 // sonundaki paketi çözer, modülleri geçici klasöre yazar ve 'aktar' yollarını yönlendirir.
 // Paketi değiştirebilen biri ikiliyi de değiştirebileceği için bu bir güven sınırı değildir;
 // yine de bozuk (yarım indirilmiş, kırpılmış) bir uygulama çökmemeli, açık bir hata vermeli
 // ve modül dosyaları geçici klasörün dışına yazılmamalıdır. Derin arama:
 //
-//	go test ./cmd/tr -run '^$' -fuzz FuzzEmbeddedPackage -fuzztime 5m
+//	go test ./cmd/trlang -run '^$' -fuzz FuzzEmbeddedPackage -fuzztime 5m
 func FuzzEmbeddedPackage(f *testing.F) {
 	for _, pk := range []*pkg{
 		{Main: packageFile{Name: "ana.tr", Code: "TR_print(1)\n"}},

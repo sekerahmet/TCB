@@ -1,6 +1,6 @@
 # TR 4
 # tr/layers testleri: her katmanın şekli ve türevi (türev_denetle), döner konumun özellikleri,
-# nedensellik, GPT'nin kuruluşu ve küçük bir görevde öğrenmesi. Koşturma: tr test lib
+# nedensellik, GPT'nin kuruluşu ve küçük bir görevde öğrenmesi. Koşturma: trlang test lib
 TR_import "tr/layers"
 TR_import "tr/optimizers" # gradyanları_sıfırla
 

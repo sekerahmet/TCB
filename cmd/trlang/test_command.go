@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// testCommand 'tr test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki
+// testCommand 'trlang test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki
 // (alt klasörler dahil) tüm *_test.tr dosyaları çalışır. Bir test bile kalırsa çıkış kodu 1'dir.
 // Çıkmadan önce motorların açık kaynakları kapatılır ve geçici klasörler silinir (motor.Kapat).
 func testCommand(args []string) {

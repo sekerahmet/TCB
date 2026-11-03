@@ -1,7 +1,7 @@
 # TR 4
 # Kodlu saklama (docs/spec/17_kodlar.md): dosya kimliklerle yazılır (2.1, 2.3a), kullanıcının adları
 # olduğu gibi. Kodlu modüller: tests/coded/ornek_kodlu.tr, tests/coded/sozluk_anahtari.tr (bir dildeki
-# gösterimi: tr show tests/coded/ornek_kodlu.tr --lang tr).
+# gösterimi: trlang show tests/coded/ornek_kodlu.tr --lang tr).
 TR_import "coded/ornek_kodlu" TR_as m
 TR_import "coded/sozluk_anahtari" TR_as anahtarlı
 

@@ -5,7 +5,7 @@
 # Neden: alan() parametresini Ondalık bekler, bir Metin verildi.
 # Düzeltilmiş hâli:
 #     yazdır(alan(3.0))
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/07_yanlis_tip_arguman.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/07_yanlis_tip_arguman.tr   (çıkış kodu 1)
 
 TR_func alan(kenar: TR_Float) -> TR_Float {
     TR_return kenar * kenar

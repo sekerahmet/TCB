@@ -435,10 +435,10 @@ func TestEveryRuleHasATest(t *testing.T) {
 
 // Dil tanımının bütün testleri (tests/) yorumlayıcının içinden koşar. Tam denetim
 // (tools/full_check.sh) Go testlerini -short ile koşar ve aynı takımı bir kez
-// `tr test tests` ile koşar; takım iki derleme ayarında üç kez koşmasın diye burada atlanır.
+// `trlang test tests` ile koşar; takım iki derleme ayarında üç kez koşmasın diye burada atlanır.
 func TestLanguageSpecTestsPass(t *testing.T) {
 	if testing.Short() {
-		t.Skip("-short: dil tanımı testleri tam denetimde `tr test tests` ile koşar")
+		t.Skip("-short: dil tanımı testleri tam denetimde `trlang test tests` ile koşar")
 	}
 	// Komut satırındaki gibi dilin kitaplığı bağlanır (11.6: aktar "tr/...").
 	interp.SetLibrary(lib.Files)

@@ -168,7 +168,7 @@ type Definition struct {
 	Familiar []string
 	// Example is the code's one-line working example written with identities ("example":
 	// TR_print(1 < 2)); every language shows it in its view (17.4, 17.7). A command-line code's
-	// example is a command line with the identities' names (tr check eğit.tr).
+	// example is a command line with the identities' names (trlang check eğit.tr).
 	Example string
 	// Pure ("pure") marks a builtin whose call only gives a new value (13.10): it uses no input or
 	// output, file, clock or randomness, changes neither its receiver nor its arguments and does

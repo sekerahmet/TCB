@@ -15,7 +15,7 @@ Toplam 580 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip,
 - Dilin çekirdeği: Anahtar kelimeler · Bağlamsal sözcükler · Değer adları · Tip adları
 - Yerleşikler: Yerleşik fonksiyonlar · Yerleşik sabitler · Adlı argümanlar
 - Metot ve özellikler (x.ad): Metot ve özellikler
-- Komutlar (tr, kabuk, hata ayıklayıcı): tr komutları · tr index alt komutları · Komut satırı seçenekleri · Kabuk komutları · Hata ayıklayıcı komutları
+- Komutlar (trlang, kabuk, hata ayıklayıcı): trlang komutları · trlang index alt komutları · Komut satırı seçenekleri · Kabuk komutları · Hata ayıklayıcı komutları
 
 ## Dilin çekirdeği
 
@@ -529,7 +529,7 @@ tr: yapı Hesap { bakiye: Tam; fonksiyon kurucu(b: Tam) { kendi.bakiye = b * 2 }
 
 #### `TR_test` (`TR_ctx_test`, `test`)
 
-test "ad" { ... } bir test tanımlar; testler yalnızca tr test ile çalışır, normal çalıştırmada atlanır. Deyim başı dışında sıradan bir addır.
+test "ad" { ... } bir test tanımlar; testler yalnızca trlang test ile çalışır, normal çalıştırmada atlanır. Deyim başı dışında sıradan bir addır.
 
 ```tr
 TR_test "toplama" { TR_assert_equal(4, 2 + 2) }
@@ -6214,16 +6214,16 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); geri_yayılım(toplam(w 
 
 İlişkili: `.TR_step(...)`
 
-## Komutlar (tr, kabuk, hata ayıklayıcı)
+## Komutlar (trlang, kabuk, hata ayıklayıcı)
 
-### tr komutları
+### trlang komutları
 
 #### TR_cmd_build `derle`
 
 Programı yorumlayıcıyla birlikte tek bir çalıştırılabilir dosyaya paketler.
 
 ```tr
-tr build eğit.tr
+trlang build eğit.tr
 ```
 
 #### TR_cmd_check `kontrol`
@@ -6231,7 +6231,7 @@ tr build eğit.tr
 Programı çalıştırmadan ayrıştırır ve tip denetiminden geçirir.
 
 ```tr
-tr check eğit.tr
+trlang check eğit.tr
 ```
 
 #### TR_cmd_dap `dap`
@@ -6239,7 +6239,7 @@ tr check eğit.tr
 Düzenleyicinin hata ayıklama protokolü (DAP) sunucusunu başlatır; düzenleyiciler kullanır.
 
 ```tr
-tr dap
+trlang dap
 ```
 
 #### TR_cmd_debug `hata_ayıkla`
@@ -6247,7 +6247,7 @@ tr dap
 Programı terminal hata ayıklayıcısında başlatır.
 
 ```tr
-tr debug eğit.tr
+trlang debug eğit.tr
 ```
 
 #### TR_cmd_format `biçimle`
@@ -6255,7 +6255,7 @@ tr debug eğit.tr
 TR dosyalarını standart biçime getirir.
 
 ```tr
-tr format eğit.tr
+trlang format eğit.tr
 ```
 
 #### TR_cmd_help `yardım`
@@ -6263,7 +6263,7 @@ tr format eğit.tr
 Komutların ve seçeneklerin kısa yardımını yazar.
 
 ```tr
-tr help
+trlang help
 ```
 
 #### TR_cmd_index `dizin`
@@ -6271,7 +6271,7 @@ tr help
 TR kodunun dizinini kurar ve ona sorar. Tek başına dizini kurar ve özetler; altında tanım, kullananlar, sınayanlar ve etki alt komutları vardır.
 
 ```tr
-tr index
+trlang index
 ```
 
 #### TR_cmd_profile `profil`
@@ -6279,7 +6279,7 @@ tr index
 Biten ya da süren bir eğitimin profil raporunu yazar.
 
 ```tr
-tr profile
+trlang profile
 ```
 
 #### TR_cmd_run `çalıştır`
@@ -6287,7 +6287,7 @@ tr profile
 Bir TR programını çalıştırır; komut adı yazılmadan verilen dosya da çalıştırılır.
 
 ```tr
-tr run eğit.tr
+trlang run eğit.tr
 ```
 
 #### TR_cmd_show `göster`
@@ -6295,7 +6295,7 @@ tr run eğit.tr
 Kodlu dosyayı değiştirmeden etkin yazım dilinde yazar.
 
 ```tr
-tr show eğit.tr
+trlang show eğit.tr
 ```
 
 #### TR_cmd_test `test`
@@ -6303,7 +6303,7 @@ tr show eğit.tr
 Bir dosyadaki ya da klasördeki *_test.tr testlerini koşar.
 
 ```tr
-tr test tests
+trlang test tests
 ```
 
 #### TR_cmd_version `sürüm`
@@ -6311,7 +6311,7 @@ tr test tests
 TR'nin sürümünü yazar.
 
 ```tr
-tr version
+trlang version
 ```
 
 #### TR_cmd_watch `izle`
@@ -6319,49 +6319,49 @@ tr version
 Çalışan bir eğitimin canlı profil tablosunu gösterir.
 
 ```tr
-tr watch
+trlang watch
 ```
 
-### tr index alt komutları
+### trlang index alt komutları
 
 #### TR_sub_definition `tanım`
 
-Bir adın tanımını gösterir: nerede, imzası, belge yorumu, üyeleri (tr index altında).
+Bir adın tanımını gösterir: nerede, imzası, belge yorumu, üyeleri (trlang index altında).
 
 ```tr
-tr index definition Muon
+trlang index definition Muon
 ```
 
 #### TR_sub_impact `etki`
 
-Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar, onu aktaran modüller, sınayan testler (tr index altında).
+Bir ad ya da dosya değişirse etkilenenleri gösterir: dışarıdan kullananlar, onu aktaran modüller, sınayan testler (trlang index altında).
 
 ```tr
-tr index impact lib/layers.tr
+trlang index impact lib/layers.tr
 ```
 
 #### TR_sub_references `kullananlar`
 
-Bir ada başvuranları gösterir: çağrı, okuma, yazma, aktarma, test; dosya:satır:sütun ve içeren bildirimle (tr index altında).
+Bir ada başvuranları gösterir: çağrı, okuma, yazma, aktarma, test; dosya:satır:sütun ve içeren bildirimle (trlang index altında).
 
 ```tr
-tr index references Doğrusal
+trlang index references Doğrusal
 ```
 
 #### TR_sub_rename `yeniden_adlandır`
 
-Bir ad değişirse değişecek yerleri listeler, hiçbir dosyayı değiştirmez: kesin (tanım, parametre, adlı argüman, kendi.x ve yapıcıdan bilinen yerelin üye erişimi, komut_satırı anahtarı) ve olası (alıcısı bilinmeyen üye erişimi, belge, yorum, ileti metni) olarak ikiye ayrılır (tr index altında).
+Bir ad değişirse değişecek yerleri listeler, hiçbir dosyayı değiştirmez: kesin (tanım, parametre, adlı argüman, kendi.x ve yapıcıdan bilinen yerelin üye erişimi, komut_satırı anahtarı) ve olası (alıcısı bilinmeyen üye erişimi, belge, yorum, ileti metni) olarak ikiye ayrılır (trlang index altında).
 
 ```tr
-tr index rename baş bakış_sayısı
+trlang index rename baş bakış_sayısı
 ```
 
 #### TR_sub_tested_by `sınayanlar`
 
-Bir adı sınayan test bloklarını gösterir: önce doğrudan, sonra çağrı zinciriyle dolaylı olanlar (tr index altında).
+Bir adı sınayan test bloklarını gösterir: önce doğrudan, sonra çağrı zinciriyle dolaylı olanlar (trlang index altında).
 
 ```tr
-tr index tested_by çevre_hesapla
+trlang index tested_by çevre_hesapla
 ```
 
 ### Komut satırı seçenekleri
@@ -6371,15 +6371,15 @@ tr index tested_by çevre_hesapla
 Dizin sorgularında satır sınırını kaldırır.
 
 ```tr
-tr index references Muon --all
+trlang index references Muon --all
 ```
 
 #### TR_opt_check `kontrol`
 
-Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (tr format).
+Dosyayı değiştirmeden biçiminin standart olup olmadığını denetler (trlang format).
 
 ```tr
-tr format --check eğit.tr
+trlang format --check eğit.tr
 ```
 
 #### TR_opt_clear `temizle`
@@ -6387,15 +6387,15 @@ tr format --check eğit.tr
 Dizin komutunda dizin önbelleğini siler.
 
 ```tr
-tr index --clear
+trlang index --clear
 ```
 
 #### TR_opt_go_profile `go_profili`
 
-Yorumlayıcının kendi Go profilini de yazar (tr profile).
+Yorumlayıcının kendi Go profilini de yazar (trlang profile).
 
 ```tr
-tr profile --go-profile go.prof eğit.tr
+trlang profile --go-profile go.prof eğit.tr
 ```
 
 #### TR_opt_help `yardım`
@@ -6403,15 +6403,15 @@ tr profile --go-profile go.prof eğit.tr
 Programın komut satırı seçeneklerinin yardımını yazar (komut_satırı ile tanımlanan seçenekler).
 
 ```tr
-tr eğit.tr --help
+trlang eğit.tr --help
 ```
 
 #### TR_opt_json `json`
 
-Profil raporunu JSON olarak yazar (tr profile).
+Profil raporunu JSON olarak yazar (trlang profile).
 
 ```tr
-tr profile --json
+trlang profile --json
 ```
 
 #### TR_opt_kind `tür`
@@ -6419,7 +6419,7 @@ tr profile --json
 Sorgu adını yalnızca bu türdeki düğümlere çözer (function, struct, method, field, constant, variable, test, module, builtin).
 
 ```tr
-tr index definition ileri --kind method
+trlang index definition ileri --kind method
 ```
 
 #### TR_opt_lang `dil`
@@ -6427,7 +6427,7 @@ tr index definition ileri --kind method
 Yazım dilini seçer (tr, en); --lang biçiminde yazılır.
 
 ```tr
-tr show --lang en eğit.tr
+trlang show --lang en eğit.tr
 ```
 
 #### TR_opt_limit `sınır`
@@ -6435,7 +6435,7 @@ tr show --lang en eğit.tr
 Dizin sorgularında bir listedeki en çok satır sayısını verir (varsayılan 12).
 
 ```tr
-tr index references Muon --limit 5
+trlang index references Muon --limit 5
 ```
 
 #### TR_opt_no_index `dizin_yok`
@@ -6443,7 +6443,7 @@ tr index references Muon --limit 5
 Dizini kurma ya da tazeleme, önbellekteki dizini olduğu gibi kullan (dizin sorgularında).
 
 ```tr
-tr index definition Muon --no-index
+trlang index definition Muon --no-index
 ```
 
 #### TR_opt_no_text `metin_yok`
@@ -6451,15 +6451,15 @@ tr index definition Muon --no-index
 Yeniden adlandırma etkisinde belge, yorum ve ileti metni taramasını kapatır; yalnızca kodun anlamsal yerleri listelenir.
 
 ```tr
-tr index rename baş bakış_sayısı --no-text
+trlang index rename baş bakış_sayısı --no-text
 ```
 
 #### TR_opt_output `çıktı`
 
-Canlı tablonun yazılacağı dosyayı seçer (tr watch).
+Canlı tablonun yazılacağı dosyayı seçer (trlang watch).
 
 ```tr
-tr watch --output tablo.txt
+trlang watch --output tablo.txt
 ```
 
 #### TR_opt_root `kök`
@@ -6467,7 +6467,7 @@ tr watch --output tablo.txt
 Proje kökünü verir; verilmezse .git bulunan üst klasör, o da yoksa çalışılan klasör alınır.
 
 ```tr
-tr index definition Muon --root .
+trlang index definition Muon --root .
 ```
 
 #### TR_opt_status `durum`
@@ -6475,7 +6475,7 @@ tr index definition Muon --root .
 Dizin komutunda dizini kurmadan durumunu gösterir.
 
 ```tr
-tr index --status
+trlang index --status
 ```
 
 #### TR_opt_term `terim`
@@ -6483,7 +6483,7 @@ tr index --status
 Yeniden adlandırma etkisinde sembol aramaz, verilen sözcüğü (ve Türkçe ekli biçimlerini) yalnızca metinde arar: bir terimin çevirisi değişince belge, yorum ve ileti metinlerini listelemek için. Sözcüğün birden çok anlamı varsa araç ayıramaz, her satırın bağlamı gösterilir.
 
 ```tr
-tr index rename çekirdek kernel --term
+trlang index rename çekirdek kernel --term
 ```
 
 ### Kabuk komutları

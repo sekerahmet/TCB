@@ -2,7 +2,7 @@ package logging
 
 import "os"
 
-// Araçların (tr watch, tr profile) çubukla aynı kuralla yazması için dışa açılan yardımcılar.
+// Araçların (trlang watch, trlang profile) çubukla aynı kuralla yazması için dışa açılan yardımcılar.
 
 // FormatNumber bir ölçüyü 3 anlamlı basamakla Türkçe yazar (2,31 · 0,000312 → 3,12e-4).
 func FormatNumber(f float64) string { return formatNumber(f) }

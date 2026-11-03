@@ -7,10 +7,10 @@ Bu belge **nasıl çalıştığını ve neden böyle kurulduğunu** anlatır. Ko
 ## Katmanlar
 
 ```
-araçlar (internal/devtools, cmd/tr) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
+araçlar (internal/devtools, cmd/trlang) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
                                         │
                                         └──────▶ hesap çekirdekleri (internal/compute)
-TR ile yazılı kitaplık (lib/*.tr) ── ikiliye gömülü; cmd/tr yorumlayıcıya bağlar (TR_import "tr/...")
+TR ile yazılı kitaplık (lib/*.tr) ── ikiliye gömülü; cmd/trlang yorumlayıcıya bağlar (TR_import "tr/...")
 ```
 
 Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (`go test ./internal`); yalnızca paketlerin kendi (test dışı) içe aktarmalarına uygulanır, testler sınamak için üst katmanları da kullanabilir.
@@ -21,7 +21,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 | `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | `internal/compute/**`, ileti kataloğu `internal/lang/messages` ve `internal/sysmem` |
 | `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib` |
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
-| `cmd/tr` | `tr` komutu | hepsi (`internal/reporoot` dışında) |
+| `cmd/trlang` | `trlang` komutu | hepsi (`internal/reporoot` dışında) |
 | `internal/sysmem` | Makinenin fiziksel belleği sorgusu | hiçbiri |
 | `internal/layoutrules` | Dosya ve fonksiyon boyu sınırlarının tek kaynağı (düzen testleri ve araçlar okur) | hiçbiri |
 | `internal/reporoot`, `lib` | Testlerin depo kökü yardımcısı; kitaplığın gömme dosyası | hiçbiri |
@@ -56,7 +56,7 @@ Sıra bir bağımlılık zinciri olduğu kadar bir döngü korumasıdır: sözc�
 
 ## Bir programın kaynaktan çalışmaya yolu
 
-`tr egit.tr` yazıldığında olan şudur:
+`trlang egit.tr` yazıldığında olan şudur:
 
 1. **Dosya okunur ve bölünür.** `source.Split` BOM'u ve kodlu biçimin başlığını ayırır. Komut satırı, kabuk, test koşucusu, hata ayıklama sunucusu ve modül yükleyici bir `.tr` dosyasını yalnızca `internal/lang/source` üzerinden okur; başlık kuralları tek yerdedir.
 2. **Sözcüklere ayrılır.** Sözcük çözümleyici kaynağı sözcük birimlerine çevirir. Program içeride kimliklerle çalışır: kodlu dosyanın her dil sözcüğü (`TR_if`, `TR_print`) kimliğiyle okunur; ayrıştırıcı, denetleyici ve yorumlayıcı hiçbir yazım dilinin adını görmez (`codes.Active` kimlik listesidir; koruyan test `TestProgramRunsOnIdentities`). Türkçe, İngilizce ve sonra eklenecek diller yalnızca gösterimdir, hiçbirinin ayrıcalığı yoktur: kod, kabuk satırı ve hata ayıklayıcının ifadesi de, yalnız kimliklerle yazılır; kodlu dosyanın bir dildeki görünümü (`TR_cmd_show`) yalnız okunur, çalışmaz ve koda geri çevrilmez (17.7). Başlıksız metin çalışmaz (2.1).
@@ -103,11 +103,11 @@ Yorumlayıcı (`internal/lang/interp`) motorları ve araçları içe aktarmaz; o
 3. `tokenizer`, `dataset`: tensör değerleri üretir
 4. `process`, `logging`, `checkpoint`: tek kayıtta, çünkü günlüğün başlangıç kaydı ve kontrol noktası programın komut satırı ayarlarını (`process.State`) kullanır
 
-Tam dili çalıştıran her program (`cmd/tr`, `internal/devtools/testrunner`) bu paketi `import _` ile içe aktarır. Program bitince `stdlib.Close` motorların kaynaklarını kapatır.
+Tam dili çalıştıran her program (`cmd/trlang`, `internal/devtools/testrunner`) bu paketi `import _` ile içe aktarır. Program bitince `stdlib.Close` motorların kaynaklarını kapatır.
 
 **Hata ayıklayıcı.** Koddaki `TR_breakpoint` deyimi `interp.NewDebugger` değişkeniyle bir `interp.Debugger` açar; bu değişkeni `internal/devtools/debugger` paketi yüklenirken (`wire.go`) kurar. Değişken boşsa deyim yok sayılır. Profilci de aynı yuvaya (`VM.Debugger`) bağlanır.
 
-**Kitaplık.** `lib` paketi `*.tr` dosyalarını `go:embed` ile ikiliye gömer; `cmd/tr` bunları `interp.SetLibrary` ile bağlar. `TR_import "tr/layers"` yorumlayıcının kitaplık okuyucusundan (`interp.ReadLibrary`) gelir; `tr/` öneki dilin kendisine ayrılmıştır. `TR_cmd_build` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md).
+**Kitaplık.** `lib` paketi `*.tr` dosyalarını `go:embed` ile ikiliye gömer; `cmd/trlang` bunları `interp.SetLibrary` ile bağlar. `TR_import "tr/layers"` yorumlayıcının kitaplık okuyucusundan (`interp.ReadLibrary`) gelir; `tr/` öneki dilin kendisine ayrılmıştır. `TR_cmd_build` çıktısı yorumlayıcının kopyası olduğundan kitaplık ona da girer. Ayrıntı: [`lib/README.md`](../lib/README.md).
 
 ### Yorumlayıcının arayüzleri
 
@@ -195,7 +195,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 `tensor.Backend`'in NVIDIA uygulamasıdır; otomatik türev ve üst katmanlar cihazdan bağımsızdır.
 
 - **Kayıt:** paket yüklenirken tembel bir arka uç kaydeder; sürücü ancak bir cihaz sorulunca (`TR_devices()`, `.TR_to_device`, `TR_default_device`) yüklenir (`gpu.go`). Sürücü yoksa program çökmez, GPU görünmez olur ve nedeni sorulabilir (`gpu.Status`).
-- **Sürücü:** cgo ve CUDA araç takımı gerekmez. Linux'ta `libcuda.so.1` dış bağımlılık olan dinamik yükleyiciyle (`cuda_linux.go`; yalnızca burası `purego` içe aktarır, `internal/layers_test.go` denetler), Windows'ta `nvcuda.dll` yalnızca sistem klasöründen yüklenir (`cuda_windows.go`). **Bedel:** bu yükleyici Linux ikilisini glibc'ye dinamik bağlar, GPU kullanmayan Linux kullanıcıları için de; musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. **Karar:** varsayılan ikili GPU desteklidir; statik ikili isteyen `GOOS=linux CGO_ENABLED=0 go build -tags gpusuz ./cmd/tr` ile derler (`cuda_other.go`). Tam denetim `gpusuz` derlemenin statik kaldığını `tools/checkstatic` ile doğrular.
+- **Sürücü:** cgo ve CUDA araç takımı gerekmez. Linux'ta `libcuda.so.1` dış bağımlılık olan dinamik yükleyiciyle (`cuda_linux.go`; yalnızca burası `purego` içe aktarır, `internal/layers_test.go` denetler), Windows'ta `nvcuda.dll` yalnızca sistem klasöründen yüklenir (`cuda_windows.go`). **Bedel:** bu yükleyici Linux ikilisini glibc'ye dinamik bağlar, GPU kullanmayan Linux kullanıcıları için de; musl tabanlı dağıtımlarda (Alpine) ikili açılmaz. **Karar:** varsayılan ikili GPU desteklidir; statik ikili isteyen `GOOS=linux CGO_ENABLED=0 go build -tags gpusuz ./cmd/trlang` ile derler (`cuda_other.go`). Tam denetim `gpusuz` derlemenin statik kaldığını `tools/checkstatic` ile doğrular.
 - **Bağlam ve iş parçacığı:** CUDA bağlamı işletim sistemi iş parçacığına bağlıdır. Her dışa açık yöntem girişte arka ucun kilidini alır, gorutini iş parçacığına kilitler ve cihazın birincil bağlamını bağlar; bütün işler tek akışta sırayla yürür. Ayrı bir GPU gorutinine kanalla iş göndermek yerine bu yol seçildi: kanal gidiş-dönüşü ve gorutin geçişi yok, panikler (TR hataları) çağıranın gorutininde kalır (`TR_try`/`TR_catch`).
 - **Çekirdekler:** Go içinden PTX olarak üretilir (`ptx*.go` yazıcı ve komut yardımcıları, `kernel_*.go` kernel aileleri, `backend_*.go` arka uç yöntemleri; taban hedef `sm_52`, `cp.async` kullananlar `sm_80`); sürücü ilk kullanımda karta derler, modüller süreç boyunca önbellekte. Çekirdek imzası her gösterici parametresinin yazılıp yazılmadığını bilir; başlatma yeri okuma/yazma bildirir ve uyuşmazlık iç hatadır. Birleşik kerneller: çapraz entropi (`kernel_ce.go`), dikkat (`kernel_flash*.go`: puan matrisi belleğe yazılmaz, döşemeli çevrimiçi softmax), çok tensörlü iyileştirici/ölçekleme/kareler toplamı (`kernel_multi.go`: bütün parametreler tek başlatmada), sıralama ve birikimli toplam (`kernel_sort.go`). Az çıktılı uzun indirgemeler iki aşamalı ve belirlenimcidir; çıktısını tümüyle yazan işlemler taze gradyanı sıfırlamadan üzerine yazar (`tensor.GemmSetter` vb.). Dikkat yolu `TR_GPU_ATTENTION=birlesik|carpim` ile zorlanabilir (ölçüm için).
 - **Matris çarpımı:** makinede NVIDIA cuBLASLt kuruluysa float32 çarpım onunla yapılır (TF32 kapalı; sürücü gibi çalışma anında yüklenir, TR dağıtmaz). Arama sırası ve güvenlik kuralları `gemm_lib_path.go`'dadır (`TR_GPU_CUBLASLT` tam yol; çalışma klasörü hiçbir zaman aranmaz; bkz. [`SECURITY.md`](../SECURITY.md)). Kitaplık bir şekli yapamazsa ya da çağrı hata dönerse panik yerine kendi çekirdeğimize düşülür (`kernel_gemm.go`; `TR_GPU_OWN_GEMM=1` onu zorlar). Tek satırlık çarpımlar (M = 1: çıkarımda bir parça) kitaplığa değil `kernel_gemv.go`'ya gider: ağırlık birleşik erişimle, çok blokla, belirlenimci sırayla okunur (`TR_GPU_GEMV=0` kapatır). Hangi yolun kullanıldığı `gpu.Status()`'ta ve profilde görünür.
@@ -210,13 +210,13 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 
 | Paket | Görevi |
 | :-- | :-- |
-| `cmd/tr` | `tr` komutu: alt komutları ayrıştırır (`TR_cmd_run`, kabuk, `TR_cmd_check`, `TR_cmd_build`, `TR_cmd_test`, `TR_cmd_format`, `TR_cmd_show`, `TR_cmd_watch`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`, `TR_cmd_index`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
-| `cmd/tr/e2e` | Uçtan uca testler (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisi |
+| `cmd/trlang` | `trlang` komutu: alt komutları ayrıştırır (`TR_cmd_run`, kabuk, `TR_cmd_check`, `TR_cmd_build`, `TR_cmd_test`, `TR_cmd_format`, `TR_cmd_show`, `TR_cmd_watch`, `TR_cmd_profile`, `TR_cmd_debug`, `TR_cmd_dap`, `TR_cmd_index`), işi `internal/`'a bırakır; kitaplığı ve Ctrl+C işleyicisini bağlar |
+| `cmd/trlang/e2e` | Uçtan uca testler (yalnızca testler): ikiliyi bir kez derler, alt süreç olarak çalıştırır; komutlar, çıkış kodları, kesme, kontrol noktasından devam, belgelerdeki kod blokları ve bağlantılar, VS Code eklentisi |
 | `devtools/debugger` | Terminal hata ayıklayıcısı ve düzenleyicinin hata ayıklama sunucusu (`TR_cmd_dap`, Debug Adapter Protocol). Yüklenirken `interp.NewDebugger`'ı kurar; gizli değerleri düzenleyiciye göndermez |
 | `devtools/formatter` | `TR_cmd_format`: anlamı değiştirmeyen tek standart biçim (ağaç dökümü aynı kalmazsa sonuç reddedilir) |
-| `devtools/testrunner` | `tr test`: `TR_test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, etkin dilde (`TR_LANG`) raporlar |
+| `devtools/testrunner` | `trlang test`: `TR_test "ad" { ... }` bloklarını yalıtılmış kapsamda koşar, etkin dilde (`TR_LANG`) raporlar |
 | `devtools/profiler` | Canlı profil: `TR_cmd_watch` ve `TR_cmd_profile`'in çekirdeği, arka plan işinin `profile.json`'u (aşağıda) |
-| `devtools/codeindex` | TR kodunun dizini: tanım, kullananlar, sınayanlar, etki (`tr index ...` ve ileride dil sunucusu); `internal/lang` dışında bağımlılığı yok |
+| `devtools/codeindex` | TR kodunun dizini: tanım, kullananlar, sınayanlar, etki (`trlang index ...` ve ileride dil sunucusu); `internal/lang` dışında bağımlılığı yok |
 | `editors/vscode` | VS Code eklentisi; renklendirme listeleri kod listesinden üretilir, hata ayıklama ve izleme komutları yukarıdaki sunucu ve profil dosyalarına bağlanır |
 
 ### Canlı profil (`internal/devtools/profiler`)
@@ -235,7 +235,7 @@ Profil saniyede bir anlık görüntü alır (`snapshot.go`), son 5 saniyenin far
 
 **Canlı tablo** (`screen.go`): standart hata bir terminalse tablo ekranın başından denetim dizileriyle yeniden çizilir (Windows'ta konsolun sanal terminal kipi açılır; `live_windows.go`). Programın standart çıkışı ve hatası bir boruya alınır (`capture.go`): tamamı bir dosyaya yazılır, son satırları tablonun altında görünür, program bitince yeniden yazılır; boru terminal olmadığından ilerleme çubuğu düz satır kipine geçer. Terminal değilse çıktı olduğu gibi akar, 10 saniyede bir tek satırlık özet eklenir.
 
-**Dosya biçimi** (`snapshot.go`): `profile.json` (canlı, iş klasöründe) ve `speed.json` / `tr profile --json` (son rapor) aynı yapıdadır. Anahtarlar ve sabit değerler (`live`, `forward` ...) dosya biçiminin parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır, çevrilmez (dil tanımı 17.3); işlemlerin `code` alanı değişmez anahtardır, `name` insana gösterilen addır. Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 6 (sürüm 1'e göre `tensor` altında `implicit` (2), satırların `backward_share` (3), adımın `source` ve evreleri (4), `gpu` altında `ops` ve `lines` (5) eklendi; 6'da anahtarlar Türkçeden İngilizce tanımlayıcılara geçti):
+**Dosya biçimi** (`snapshot.go`): `profile.json` (canlı, iş klasöründe) ve `speed.json` / `trlang profile --json` (son rapor) aynı yapıdadır. Anahtarlar ve sabit değerler (`live`, `forward` ...) dosya biçiminin parçasıdır: dilden bağımsız İngilizce tanımlayıcılardır, çevrilmez (dil tanımı 17.3); işlemlerin `code` alanı değişmez anahtardır, `name` insana gösterilen addır. Süreler saniye, baytlar bayt, paylar 0..1'dir. Yazma atomiktir (aynı klasörde geçici dosya + yeniden adlandırma); yazma başarısızsa sonraki saniyede yeniden denenir, program hiçbir durumda durmaz. Sürüm 6 (sürüm 1'e göre `tensor` altında `implicit` (2), satırların `backward_share` (3), adımın `source` ve evreleri (4), `gpu` altında `ops` ve `lines` (5) eklendi; 6'da anahtarlar Türkçeden İngilizce tanımlayıcılara geçti):
 
 ```jsonc
 {
@@ -285,9 +285,9 @@ Test türleri ve adlandırma kuralı [`internal/README.md`](../internal/README.m
 | Paketin kendi davranışı | paketin birim testleri; birden çok dosyayı kesen davranışlar `behavior_*_test.go` ve paketin README'sinin `## Testler` bölümünde anılır |
 | Katmanlar, dil içi sıra, dış bağımlılık; dosya düzeni | `internal/layers_test.go`, `internal/layout_test.go` |
 | Çıplak ad, ileti kodu kullanımı, üretilmiş dosyaların güncelliği | `tools/gen/*` testleri ve `-check` bayrağı |
-| Dilin kuralları | `tests/*_test.tr` (`tr test tests`); her test bir dil kuralı numarasıyla başlar, kapı testi `internal/devtools/testrunner` içindedir |
-| TR ile yazılı kitaplık | `lib/*_test.tr` (`tr test lib`) |
-| `tr` komutunun uçtan uca davranışı, belgelerdeki bağlantılar ve kod blokları, VS Code eklentisi | `cmd/tr/e2e` |
+| Dilin kuralları | `tests/*_test.tr` (`trlang test tests`); her test bir dil kuralı numarasıyla başlar, kapı testi `internal/devtools/testrunner` içindedir |
+| TR ile yazılı kitaplık | `lib/*_test.tr` (`trlang test lib`) |
+| `trlang` komutunun uçtan uca davranışı, belgelerdeki bağlantılar ve kod blokları, VS Code eklentisi | `cmd/trlang/e2e` |
 | GPU'da dil düzeyinde eğitim | `internal/stdlib/gpuprobe` (kartsızsa PTX benzetimi) |
 | Güvenilmeyen girdiler (bulanıklaştırma) | `Fuzz...` testleri; uzun koşu `tools/fuzz.sh` |
 | Hız | `tools/bench` kıyas seti ([`README`](../tools/bench/README.md)); sıcak yola dokunan değişiklik önce/sonra ölçülür |
@@ -298,13 +298,13 @@ Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/wo
 
 | Klasör | İçerik |
 | :-- | :-- |
-| `cmd/tr/` | Tek ikili |
+| `cmd/trlang/` | Tek ikili |
 | `internal/` | Bütün Go kodu (yukarıdaki katmanlar); `reporoot` testlerin depo kökünü bulur |
-| `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`TR_import "tr/layers"`, `TR_import "tr/optimizers"`; testleri `tr test lib`) |
+| `lib/` | TR ile yazılı standart kitaplık, ikiliye gömülü (`TR_import "tr/layers"`, `TR_import "tr/optimizers"`; testleri `trlang test lib`) |
 | `editors/vscode/` | Düzenleyici eklentisi (kullanıcıya gider) |
 | `docs/` | Belgeler: [`guide/`](guide/README.md) (kullanıcı kılavuzu), [`spec/`](spec/README.md) (dil tanımı), [`codes.md`](codes.md) (üretilir), [`roadmap.md`](roadmap.md), [`development.md`](development.md), [`recipes.md`](recipes.md), bu dosya |
 | `examples/` | Öğrenme sırasıyla numaralı örnek programlar (`tr/*.tr`, kimlik yazımıyla; `TR_cmd_show` ile her dilde okunur) |
-| `tests/` | Dil tanımının kural testleri (`tr test tests`); `negative/`, `coded/`, `data/` |
+| `tests/` | Dil tanımının kural testleri (`trlang test tests`); `negative/`, `coded/`, `data/` |
 | `tools/` | Depo bakım araçları, kullanıcıya gitmez: `full_check.sh` ("bitti" tanımı), `fuzz.sh`, `gen/` (üreteçler), `impact/` (bir adın etkisini koddan hesaplar), `checkstatic/` (statik ikili denetimi), `bench/` (hız kıyas seti), `gpu/` (GPU sınama ve kıyas betikleri, `COLAB.md`) |
 | `bin/`, `scratch/` | Derleme çıktısı ve kişisel deneme klasörü; depoya girmez |
 
@@ -312,7 +312,7 @@ Bir iş `bash tools/full_check.sh` geçince biter; otomatik sınama (`.github/wo
 
 | Rol | Alan |
 | :-- | :-- |
-| Dil çekirdeği | `internal/lang/**`, `internal/stdlib/files`, `internal/devtools/{formatter,testrunner,debugger}`, `internal/reporoot`, `cmd/tr`, `docs/spec/`, bu dosya |
+| Dil çekirdeği | `internal/lang/**`, `internal/stdlib/files`, `internal/devtools/{formatter,testrunner,debugger}`, `internal/reporoot`, `cmd/trlang`, `docs/spec/`, bu dosya |
 | Tensör ve GPU | `internal/compute/tensor`, `internal/compute/gpu`, `internal/stdlib/ml` |
 | Veri ve parçalayıcı | `internal/compute/{tokenize,dataload}`, `internal/stdlib/{tokenizer,dataset,formats}` |
 | Araçlar | `editors/`, `.vscode/`, `docs/guide/`, `README.md` |

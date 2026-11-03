@@ -575,7 +575,7 @@ func (bp *BreakpointStatement) TokenLiteral() string { return bp.Token.Literal }
 func (bp *BreakpointStatement) Line() int            { return bp.Token.Line }
 
 // TestStatement is a test block: test "toplama doğru" { doğrula(topla(2, 2) == 4) }
-// It is skipped when the file runs normally; only 'tr test' runs it.
+// It is skipped when the file runs normally; only 'trlang test' runs it.
 type TestStatement struct {
 	Token lexer.Token // test
 	Name  string

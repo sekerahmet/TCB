@@ -64,7 +64,7 @@ func MustExec(t testing.TB, code string) Outcome {
 	return o
 }
 
-// MustExecChecked MustExec gibidir ama önce tr komutunun yaptığı gibi tip denetiminden geçirir:
+// MustExecChecked MustExec gibidir ama önce trlang komutunun yaptığı gibi tip denetiminden geçirir:
 // tanımsız bir ad yalnızca zamanlamaya bağlı olarak çalışan bir satırda olsa da test her makinede
 // kalır.
 func MustExecChecked(t testing.TB, code string) Outcome {

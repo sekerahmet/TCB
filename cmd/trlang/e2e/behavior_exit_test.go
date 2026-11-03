@@ -71,7 +71,7 @@ func TestToolUsageErrorsExitTwo(t *testing.T) {
 }
 
 // Çalışmadan önce program ve aktardığı modüller tek yoldan denetlenir (1.3): hata varsa hiçbir
-// satır çalışmaz, çıkış 1. 'tr check', 'tr run' ve 'tr debug' aynı sonucu verir.
+// satır çalışmaz, çıkış 1. 'trlang check', 'trlang run' ve 'trlang debug' aynı sonucu verir.
 func TestModulesAreCheckedBeforeAnyLineRuns(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "bozuk.tr", trProgram("TR_func f() -> TR_Int {", `    TR_return "a"`, "}"))

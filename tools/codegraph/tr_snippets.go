@@ -21,7 +21,7 @@ import (
 // parametreye test dosyasında verilen her dize (sabit, Sprintf kalıbı, sabit adı, başka işlevin döndürdüğü metin,
 // yerel değişken) bir TR programı sayılır, codeindex.Snippet onun kullandığı ad kodlarını verir ve çağrıyı içeren
 // işlevi çağıran testlerden o ad koduna `tests` kenarı çekilir (dosya yolu sabitiyle aynı zincir kuralı).
-// Dosyaya yazılıp `tr` ikilisine verilen TR metni de aynı yoldan bağlanır (tr_file_writes.go).
+// Dosyaya yazılıp `trlang` ikilisine verilen TR metni de aynı yoldan bağlanır (tr_file_writes.go).
 
 // trSinks TR metnini okuyan dil giriş noktalarıdır (paket yolu modül köküne göre → işlev adları); dize tipli
 // parametreleri TR metni sayılır.

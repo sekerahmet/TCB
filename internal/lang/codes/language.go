@@ -396,8 +396,8 @@ func buildLanguage(langs map[string][]byte, langCode string) (*Language, error) 
 // SuggestCommandLine.
 func FindCommand(name string) (Code, bool) { return findCommandLine(NamespaceCommand, name) }
 
-// FindSubcommand finds a subcommand of 'tr index' (sub) by its command-line identity name (17.9),
-// as FindCommand does. The names are valid only after 'tr index'.
+// FindSubcommand finds a subcommand of 'trlang index' (sub) by its command-line identity name (17.9),
+// as FindCommand does. The names are valid only after 'trlang index'.
 func FindSubcommand(name string) (Code, bool) { return findCommandLine(NamespaceSubcommand, name) }
 
 // FindOption finds a command-line option (opt) by its identity name without the leading "--"

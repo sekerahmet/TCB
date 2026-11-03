@@ -1,8 +1,8 @@
-// Package e2e, 'tr' komutunun uçtan uca (kara kutu) testleridir: TestMain yorumlayıcıyı
+// Package e2e, 'trlang' komutunun uçtan uca (kara kutu) testleridir: TestMain yorumlayıcıyı
 // bir kez derler, testler onu os/exec ile alt süreç olarak çalıştırır; çıkış kodları, standart
 // çıktı/hata ayrımı, kesme sinyalleri, kontrol noktasından devam, belgelerdeki kod blokları ve
 // VS Code eklentisinin dosyaları burada sınanır. 'main' paketinin iç işlevlerini çağıran beyaz
-// kutu testleri cmd/tr'de kalır. Koşmak için: go test ./cmd/tr/e2e -run <TestAdı>
+// kutu testleri cmd/trlang'de kalır. Koşmak için: go test ./cmd/trlang/e2e -run <TestAdı>
 //
 // Layer: command (cmd); yalnızca testlerden oluşur.
 package e2e

@@ -39,8 +39,8 @@ const (
 	ClassConstant    Class = "const" // builtin constants (pi)
 	ClassNamedArg    Class = "arg"   // named arguments
 	ClassMember      Class = "mem"   // methods and properties
-	ClassCommand     Class = "cmd"   // commands of tr
-	ClassSubcommand  Class = "sub"   // subcommands of 'tr index'
+	ClassCommand     Class = "cmd"   // commands of trlang
+	ClassSubcommand  Class = "sub"   // subcommands of 'trlang index'
 	ClassOption      Class = "opt"   // command-line options
 	ClassShell       Class = "repl"  // shell commands
 	ClassDebugger    Class = "dbg"   // terminal debugger commands
@@ -151,10 +151,10 @@ const (
 	NamespaceType                         // type names
 	NamespaceMember                       // methods and properties
 	NamespaceParam                        // named arguments
-	NamespaceCommand                      // commands of tr and the shell
-	NamespaceOption                       // command-line options, written --name: 'check' there is not 'tr check'
-	NamespaceDebugger                     // terminal debugger commands: its 'watch' is not 'tr watch'
-	NamespaceSubcommand                   // subcommands of 'tr index': 'tr definition' is not a command
+	NamespaceCommand                      // commands of trlang and the shell
+	NamespaceOption                       // command-line options, written --name: 'check' there is not 'trlang check'
+	NamespaceDebugger                     // terminal debugger commands: its 'watch' is not 'trlang watch'
+	NamespaceSubcommand                   // subcommands of 'trlang index': 'trlang definition' is not a command
 	NamespaceEnvironment                  // environment variables: TR_LANG, TR_GPU_SYNC ...
 	namespaceCount
 )
@@ -191,9 +191,9 @@ func (k Code) Namespace() Namespace {
 	return tables.namespace[k]
 }
 
-// IsIndexSubcommand reports whether the code is a subcommand of 'tr index' (TR_cmd_index). They
+// IsIndexSubcommand reports whether the code is a subcommand of 'trlang index' (TR_cmd_index). They
 // live in their own namespace, so a program or shell script cannot call them as top-level
-// commands ('tr tanım' is an error, 'tr index definition' works).
+// commands ('trlang tanım' is an error, 'trlang index definition' works).
 func (k Code) IsIndexSubcommand() bool { return k.Class() == ClassSubcommand }
 
 // IsKeyword reports whether the code is a keyword reserved in the lexer.

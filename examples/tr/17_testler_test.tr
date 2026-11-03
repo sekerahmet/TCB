@@ -3,11 +3,11 @@
 # Ne öğretir: `test "ad" { ... }` blokları, doğrula(koşul, [mesaj]) ve eşit_olmalı(beklenen, gerçek)
 # ile denetim, hatanın fırlatıldığını sınamak.
 # Önceki örnekten: fonksiyonlar, yapılar, listeler, hata yönetimi (08–15).
-# Dosya adı *_test.tr ile biter: `tr test` bir klasörde yalnızca bu adlı dosyaları bulur.
+# Dosya adı *_test.tr ile biter: `trlang test` bir klasörde yalnızca bu adlı dosyaları bulur.
 # Çalıştırma (proje kökünden):
-#   tr test examples/tr/17_testler_test.tr   → testleri çalıştırır, özet yazar
-#   tr examples/tr/17_testler_test.tr        → dosyayı normal çalıştırır; test blokları atlanır
-# Bir test kalırsa `tr test` 1 ile çıkar; CI'da kapı olarak kullanılabilir.
+#   trlang test examples/tr/17_testler_test.tr   → testleri çalıştırır, özet yazar
+#   trlang examples/tr/17_testler_test.tr        → dosyayı normal çalıştırır; test blokları atlanır
+# Bir test kalırsa `trlang test` 1 ile çıkar; CI'da kapı olarak kullanılabilir.
 
 # --- Sınanacak kod ---
 TR_func topla(a: TR_Int, b: TR_Int) -> TR_Int {
@@ -66,4 +66,4 @@ TR_test "sepet tutarı" {
 
 # --- Kendin dene ---
 # 1. topla için negatif sayıları sınayan bir test daha ekle.
-# 2. Bir testi bilerek yanlış yaz (eşit_olmalı(5, topla(2, 2))) ve `tr test` çıktısında nasıl kaldığını gör.
+# 2. Bir testi bilerek yanlış yaz (eşit_olmalı(5, topla(2, 2))) ve `trlang test` çıktısında nasıl kaldığını gör.

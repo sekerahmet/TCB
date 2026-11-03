@@ -10,7 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
-// 'tr check --json' (dil tanımı 2.13): çalışmadan önceki hatalar ve uyarılar, kullanım hataları dahil,
+// 'trlang check --json' (dil tanımı 2.13): çalışmadan önceki hatalar ve uyarılar, kullanım hataları dahil,
 // standart çıktıya JSON Lines olarak yazılır. Programlar dilin sonraki değişikliklerinden bağımsız,
 // eski ve yeni yazımda aynı anlama gelen yazımdadır (değişken bildirimi, çağrı, kimlik yazımı).
 
@@ -109,7 +109,7 @@ func applyFix(t *testing.T, source string, f jsonFixRecord) string {
 	return source[:offset(f.Start)] + f.Replacement + source[offset(f.End):]
 }
 
-// checkJSON 'tr check --json dosya' komutunu verilen dilde çalıştırır.
+// checkJSON 'trlang check --json dosya' komutunu verilen dilde çalıştırır.
 func checkJSON(t *testing.T, dir, lang, file string) result {
 	t.Helper()
 	return testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=" + lang}, "check", "--json", file)

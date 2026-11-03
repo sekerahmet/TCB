@@ -7,7 +7,7 @@
 #     eğer 1 < 2 {
 #         yazdır("kapandı")
 #     }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/01_sozdizimi_kapanmayan_blok.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/01_sozdizimi_kapanmayan_blok.tr   (çıkış kodu 1)
 
 TR_if 1 < 2 {
     TR_print("açık kaldı")

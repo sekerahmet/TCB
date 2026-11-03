@@ -11,7 +11,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
-// BuildWithFile derlenmiş bir ikili verir: pkg (ör. "./cmd/tr") depodaki repoFile dosyası
+// BuildWithFile derlenmiş bir ikili verir: pkg (ör. "./cmd/trlang") depodaki repoFile dosyası
 // (depo köküne göre, ör. "internal/lang/codes/tr.json") content ile değiştirilmiş olarak derlenir.
 // Değiştirme go build -overlay ile yapılır: depo dosyası değişmez, gömülü (go:embed) dosyalar da
 // değişir. Bozuk bir veri dosyasının ikiliyi nasıl etkilediğini sınayan testler içindir.

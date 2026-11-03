@@ -11,13 +11,13 @@ import (
 )
 
 // Dosya kimliklerle yazılır (dil tanımı 2.1): ilk satırı '# TR 4' başlığıdır, dili yoktur. Bir yazım
-// dilindeki görünüm 'tr show' ile alınır ve başlığında dilini taşır ('# TR 4 view=tr'). Görünüm yalnız
+// dilindeki görünüm 'trlang show' ile alınır ve başlığında dilini taşır ('# TR 4 view=tr'). Görünüm yalnız
 // okunur: çalışmaz, koda geri çevrilmez (17.7). Görünüm satırları tutar; konumlar dosyanın satırlarıdır.
 
 // progressLine ilerleme çubuğunun bir satırıdır ("adım 3/10 ▕██░▏ ...").
 var progressLine = regexp.MustCompile(`(?m)^.*▕.*▏.*\n?`)
 
-// tr show: görünüm satırları tutar, başlığa görünümün dilini yazar ('view=tr'), dosyayı değiştirmez.
+// trlang show: görünüm satırları tutar, başlığa görünümün dilini yazar ('view=tr'), dosyayı değiştirmez.
 // Görünüm çalışmaz ve denetlenmez: ileti kodlu dosyayı çalıştırmayı söyler (17.7). Görünümden kodlama
 // komutu yoktur; yardım yazılabilen komutları gösterir.
 func TestShowCommand(t *testing.T) {
@@ -27,23 +27,23 @@ func TestShowCommand(t *testing.T) {
 	testkit.Wait(t, tr(t, k, "a.tr"), 0, []string{"x: 1"}, nil)
 	shown := tr(t, k, "show", "a.tr", "--lang", "tr")
 	if want := source.Header + " view=tr\r\ndeğişken x = 1\r\nyazdır(\"x: \\(x)\") # yorum\r\n"; shown.Code != 0 || shown.Stdout != want {
-		t.Errorf("tr show: %q (çıkış %d, hata %q), beklenen %q", shown.Stdout, shown.Code, shown.Stderr, want)
+		t.Errorf("trlang show: %q (çıkış %d, hata %q), beklenen %q", shown.Stdout, shown.Code, shown.Stderr, want)
 	}
 	if s := tr(t, k, "show", "a.tr", "--lang", "en"); s.Code != 0 || s.Stdout != source.Header+" view=en\r\nvar x = 1\r\nprint(\"x: \\(x)\") # yorum\r\n" {
-		t.Errorf("tr show --lang en: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
+		t.Errorf("trlang show --lang en: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
 	if readFile(t, filePath) != coded {
-		t.Errorf("tr show dosyayı değiştirdi: %q", readFile(t, filePath))
+		t.Errorf("trlang show dosyayı değiştirdi: %q", readFile(t, filePath))
 	}
 	// Görünüm çalışmaz ve denetlenmez; ileti başlığın satırındadır ve kodlu dosyayı çalıştırmayı söyler.
 	testkit.WriteFile(t, k, "g.tr", shown.Stdout)
 	for _, args := range [][]string{{"g.tr"}, {"check", "g.tr"}} {
-		testkit.Wait(t, tr(t, k, args...), 1, nil, []string{"Satır 1", "bu dosya bir 'tr' görünümü", "kodlu dosyayı çalıştırın", "tr show"})
+		testkit.Wait(t, tr(t, k, args...), 1, nil, []string{"Satır 1", "bu dosya bir 'tr' görünümü", "kodlu dosyayı çalıştırın", "trlang show"})
 	}
 	testkit.Wait(t, testkit.RunBinary(t, trBinary, k, "", []string{"TR_LANG=en"}, "g.tr"), 1, nil, []string{"this file is a 'tr' view", "run the coded file"})
 	testkit.Wait(t, tr(t, k, "show", "a.tr", "--lang", "xx"), 2, nil, []string{"'xx' yazım dili yok; var olanlar: en, tr"})
 	testkit.Wait(t, tr(t, k, "show", "a.tr", "--lang"), 2, nil, []string{"'--lang' bir yazım dili bekler"})
-	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 2, nil, []string{"'tr show' yazmak mı istediniz?"})
+	testkit.Wait(t, tr(t, k, "goster", "a.tr"), 2, nil, []string{"'trlang show' yazmak mı istediniz?"})
 	// Görünümden kodlama yoktur: 'kodla' bir komut değil, okunamayan bir dosya adıdır; yardımda da geçmez.
 	for _, name := range []string{"kodla", "çöz"} {
 		testkit.Wait(t, tr(t, k, name, "a.tr"), 1, nil, []string{"\"" + name + "\" okunamadı"})
@@ -52,7 +52,7 @@ func TestShowCommand(t *testing.T) {
 		t.Errorf("dosya değişti: %q", readFile(t, filePath))
 	}
 	help := tr(t, k, "help")
-	testkit.Wait(t, help, 0, []string{"tr show <dosya.tr> [--lang tr]", "tr show - [--lang tr]"}, nil)
+	testkit.Wait(t, help, 0, []string{"trlang show <dosya.tr> [--lang tr]", "trlang show - [--lang tr]"}, nil)
 	for _, gone := range []string{"kodla", "çöz"} {
 		if strings.Contains(help.Stdout, gone) {
 			t.Errorf("yardımda %q geçiyor:\n%s", gone, help.Stdout)
@@ -60,14 +60,14 @@ func TestShowCommand(t *testing.T) {
 	}
 }
 
-// Standart giriş kipi (düzenleyiciler için): 'tr show -' metni girişten okur, çıkışa yalnızca
+// Standart giriş kipi (düzenleyiciler için): 'trlang show -' metni girişten okur, çıkışa yalnızca
 // görünümü yazar; BOM ve CRLF korunur, başlıksız metin değişmez. Ayrıştırılamayan metnin görünümü
 // yazılmaz ve 2 koduyla (sözdizimi hatası) çıkar; başka hatalar 1 koduyla.
 func TestShowStandardInput(t *testing.T) {
 	coded := "\xef\xbb\xbf" + source.Header + "\r\nTR_var eğer_değil = 1\r\nTR_print(eğer_değil) # yorum\r\n"
 	shown := "\xef\xbb\xbf" + source.Header + " view=tr\r\ndeğişken eğer_değil = 1\r\nyazdır(eğer_değil) # yorum\r\n"
 	if s := testkit.RunBinary(t, trBinary, "", coded, nil, "show", "-"); s.Code != 0 || s.Stdout != shown || s.Stderr != "" {
-		t.Errorf("tr show -: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
+		t.Errorf("trlang show -: %q (çıkış %d, hata %q)", s.Stdout, s.Code, s.Stderr)
 	}
 	plain := "değişken x = 1\n"
 	if s := testkit.RunBinary(t, trBinary, "", plain, nil, "show", "-"); s.Code != 0 || s.Stdout != plain {
@@ -104,10 +104,10 @@ func TestEnglishView(t *testing.T) {
 		"print(name)\n"
 	english := testkit.RunBinary(t, trBinary, "", coded, nil, "show", "-", "--lang", "en")
 	if english.Code != 0 || english.Stdout != englishText {
-		t.Fatalf("tr show - --lang en:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", english.Stdout, english.Code, english.Stderr, englishText)
+		t.Fatalf("trlang show - --lang en:\n%s(çıkış %d, hata %q)\nbeklenen:\n%s", english.Stdout, english.Code, english.Stderr, englishText)
 	}
 	// İletideki komut adı kişinin dilindedir.
-	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", []string{"TR_LANG=en"}, "show", "-", "a.tr"), 2, nil, []string{"'tr show -' reads"})
+	testkit.Wait(t, testkit.RunBinary(t, trBinary, "", "x\n", []string{"TR_LANG=en"}, "show", "-", "a.tr"), 2, nil, []string{"'trlang show -' reads"})
 	unreadable := source.Header + "\nTR_var l = [1]\nTR_yok(l)\n"
 	if s := testkit.RunBinary(t, trBinary, "", unreadable, nil, "show", "-", "--lang", "en"); s.Code == 0 {
 		t.Errorf("okunamayan dosyanın gösterimi verildi: %q", s.Stdout)

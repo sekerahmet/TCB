@@ -7,7 +7,7 @@
 # Önceki örnekten: hazır katmanlarla GPT (41); GPT.üret aynı yolu GPU'da kendiliğinden kullanır.
 # Ayrıntılar: docs/spec/15_tensorler.md §15.45, §15.8, lib/README.md (Üretim).
 #
-# Çalıştırma (proje kökünden): tr examples/tr/45_tekrar_oynat.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/45_tekrar_oynat.tr
 # GPU'da: aşağıdaki satırın yorumunu kaldırın; CPU'da tekrar_oynat f'i doğrudan çağırır, sonuç aynıdır.
 # varsayılan_cihaz("gpu")
 

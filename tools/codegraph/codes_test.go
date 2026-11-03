@@ -103,7 +103,7 @@ func TestEveryNameCodeNodeHasTheNameOfTheCodesPackage(t *testing.T) {
 
 // Kural (parti K2, C): bir ad kodu codes paketinin bir işlevine argüman olarak verilmişse (`codes.Spellings(codes.FnPrint)`)
 // o satır kodun adını okur, yerleşiği uygulamaz: kenar `reads_name`dir, "uygulayıcının testi" kuralına girmez. Önceden
-// kabuğun startsWithPrint'i yazdır'ın yazımlarını okuduğu için yazdır kullanan altı TR testi cmd/tr/main.go'nun testi
+// kabuğun startsWithPrint'i yazdır'ın yazımlarını okuduğu için yazdır kullanan altı TR testi cmd/trlang/main.go'nun testi
 // görünüyordu. Okumalar codegraph'tan bağımsız, modülün tipleriyle bulunur; aynı satırda kodun başka bir kullanımı
 // yoksa o satırda uses_name kenarı olmamalı, reads_name olmalı.
 func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
@@ -175,7 +175,7 @@ func TestANameCodeGivenToTheCodesPackageIsReadNotImplemented(t *testing.T) {
 
 // Kural: program metninde yazılan her kod yazımı (codeindex.SpelledNames: çıplak TR_print ve üye yazımı x.TR_map,
 // x.TR_forward; ayrıca TR_self.TR_x, tek harf alıcı, uzun alıcı ve alıcısız .TR_x) ve nitelenmiş yazımlar
-// (tip adıyla, kullanıcı tipiyle, harfsiz tiple ve modülle) iki araçta da (codegraph ve tr index) aynı düğüm kümesine
+// (tip adıyla, kullanıcı tipiyle, harfsiz tiple ve modülle) iki araçta da (codegraph ve trlang index) aynı düğüm kümesine
 // çözülür; var olan bir tipin ya da modülün olmayan üyesi yerleşiğe düşmez, "bulunamadı" kalır; noktalı üye yazımı metin
 // aramasına düşüp belge ya da yorum adaylarıyla belirsiz dönmez.
 func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
@@ -234,7 +234,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		slices.Sort(gotCG)
 		slices.Sort(gotTR)
 		if len(gotCG) == 0 || !slices.Equal(gotCG, gotTR) {
-			t.Errorf("query %q: codegraph %v, tr index %v", q, gotCG, gotTR)
+			t.Errorf("query %q: codegraph %v, trlang index %v", q, gotCG, gotTR)
 		}
 	}
 	assertAmbiguousMemberCandidates(t, ix, reader, []string{
@@ -249,7 +249,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 			t.Errorf("codegraph lookup %q: got %v, want not found", q, got)
 		}
 		if got := reader.Resolve(q, ""); len(got) != 0 {
-			t.Errorf("tr index Resolve %q: got %v, want not found", q, got)
+			t.Errorf("trlang index Resolve %q: got %v, want not found", q, got)
 		}
 	}
 }
@@ -268,7 +268,7 @@ func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.
 		hasTypeTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == typeCode && n.Note != "" })
 		hasValTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == valCode && n.Note != "" })
 		if !hasTypeTR || !hasValTR {
-			t.Errorf("tr index Resolve %q: got %d candidates (hasType=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotTR), hasTypeTR, hasValTR, typeCode, valCode)
+			t.Errorf("trlang index Resolve %q: got %d candidates (hasType=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotTR), hasTypeTR, hasValTR, typeCode, valCode)
 		}
 	}
 }
@@ -280,7 +280,7 @@ var memberSpellingExceptions = map[string]string{
 }
 
 // Kural (DENETİM istek 48, 55): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) zincir başı ve rakamla
-// başlamayan her `<alıcı>.TR_<üye>` yazımı (büyük harfli alıcılar dahil) iki araçta da (codegraph ve tr index) bulunur
+// başlamayan her `<alıcı>.TR_<üye>` yazımı (büyük harfli alıcılar dahil) iki araçta da (codegraph ve trlang index) bulunur
 // ya da aynı aday kümesini verir; gerçekten tanımı olmayan negatif fikstür yazımları gerekçeli istisna listesindedir.
 func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 	root, _, g := repoGraph(t)
@@ -330,12 +330,12 @@ func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 		slices.Sort(gotTR)
 		if memberSpellingExceptions[q] != "" {
 			if len(gotCG) != 0 || len(gotTR) != 0 {
-				t.Errorf("exception %q resolved (codegraph=%v, tr index=%v); remove from memberSpellingExceptions", q, gotCG, gotTR)
+				t.Errorf("exception %q resolved (codegraph=%v, trlang index=%v); remove from memberSpellingExceptions", q, gotCG, gotTR)
 			}
 			continue
 		}
 		if len(gotCG) == 0 || !slices.Equal(gotCG, gotTR) {
-			t.Errorf("%q: codegraph=%v, tr index=%v", q, gotCG, gotTR)
+			t.Errorf("%q: codegraph=%v, trlang index=%v", q, gotCG, gotTR)
 		}
 	}
 	for q := range memberSpellingExceptions {
@@ -512,7 +512,7 @@ func TestDottedMemberSpellingsGolden(t *testing.T) {
 	}
 	t.Logf("%d spellings checked in %s (%d in golden file)", len(spellings), time.Since(start).Round(time.Millisecond), len(gotLines))
 	if len(toolDiffs) > 0 {
-		t.Fatalf("%d spellings differ between codegraph and tr index:\n  %s", len(toolDiffs), strings.Join(toolDiffs[:min(len(toolDiffs), 30)], "\n  "))
+		t.Fatalf("%d spellings differ between codegraph and trlang index:\n  %s", len(toolDiffs), strings.Join(toolDiffs[:min(len(toolDiffs), 30)], "\n  "))
 	}
 	path := filepath.Join("testdata", "member_spellings.txt")
 	content := memberSpellingsHeader + strings.Join(gotLines, "\n") + "\n"

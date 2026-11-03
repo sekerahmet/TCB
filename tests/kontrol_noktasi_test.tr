@@ -4,7 +4,7 @@
 # depoya hiçbir şey yazılmaz, böylece depoyu gezen testlerle (internal düzen testleri) yarışmaz. Ctrl+C ile
 # durdurma, süreç öldürülerek kesme, ayrı süreçlerle bit düzeyinde kabul testi, ağ sürücüsü
 # (yeniden adlandırma hatası) benzetimi ve GPU yolu Go testleriyle sınanır (internal/stdlib/checkpoint,
-# cmd/tr/e2e, internal/stdlib/gpuprobe).
+# cmd/trlang/e2e, internal/stdlib/gpuprobe).
 
 TR_import "yardimci_test_araclari"
 

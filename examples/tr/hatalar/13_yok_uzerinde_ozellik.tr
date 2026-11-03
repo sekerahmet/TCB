@@ -5,7 +5,7 @@
 # Neden: varsa_al sözlükte olmayan anahtarda yok verir; yok'un metodu yoktur.
 # Düzeltilmiş hâli:
 #     yazdır((kişi.varsa_al("soyad") ?? "bilinmiyor").büyük_harf()) # ya da güvenli erişim: kişi.varsa_al("soyad")?.büyük_harf()
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/13_yok_uzerinde_ozellik.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/13_yok_uzerinde_ozellik.tr   (çıkış kodu 1)
 
 TR_var kişi = {"ad": "Ali"}
 TR_print(kişi.TR_get("soyad").TR_upper())

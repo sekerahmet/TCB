@@ -79,7 +79,7 @@ import (
 	"testing"
 )
 
-// writeProgram TR kodunu bir .tr dosyasına yazar; dosyayı tr ikilisi koşar (debugger'ın yardımcısı gibi).
+// writeProgram TR kodunu bir .tr dosyasına yazar; dosyayı trlang ikilisi koşar (debugger'ın yardımcısı gibi).
 func writeProgram(t *testing.T, code string) string {
 	path := filepath.Join(t.TempDir(), "program.tr")
 	os.WriteFile(path, []byte(code), 0o644)
@@ -135,7 +135,7 @@ func TestGoTestsLinkToTheNameCodesOfTheTRTheyRun(t *testing.T) {
 	} {
 		mustEdge(t, g, app+c.test, "name:"+c.name, edgeTests, inferred)
 	}
-	// Dosyaya yazılıp tr ikilisine verilen TR metni de: yolu .tr ile biten dosyaya os.WriteFile'la (ya da içeriğini ve
+	// Dosyaya yazılıp trlang ikilisine verilen TR metni de: yolu .tr ile biten dosyaya os.WriteFile'la (ya da içeriğini ve
 	// yolunu ona ileten bir yardımcıyla) yazılan içerik; yol filepath.Join'le, ad sözlük tablosundan, içerik satırlardan
 	// kurulabilir. Kitaplıktan aktarılan adın kodu da gelir. .tr olmayan dosyaya yazılan metin TR değildir.
 	for _, c := range []struct{ test, name string }{

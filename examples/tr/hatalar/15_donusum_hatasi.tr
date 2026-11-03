@@ -9,6 +9,6 @@
 #     } yakala h {
 #         yazdır("sayı değil: \(h)")
 #     }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/15_donusum_hatasi.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/15_donusum_hatasi.tr   (çıkış kodu 1)
 
 TR_print(TR_Int("abc"))

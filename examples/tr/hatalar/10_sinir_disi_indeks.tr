@@ -5,7 +5,7 @@
 # Neden: Listede 3 öğe var (indeksler 0, 1, 2); 5. indeks yok.
 # Düzeltilmiş hâli:
 #     yazdır(l.varsa_al(5) ?? 0) // öğe olmayabilirse; ya da uzunluğa bakın: eğer 5 < l.uzunluk { ... }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/10_sinir_disi_indeks.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/10_sinir_disi_indeks.tr   (çıkış kodu 1)
 
 TR_var l = [10, 20, 30]
 TR_print(l[5])

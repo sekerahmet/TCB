@@ -3,7 +3,7 @@
 # Ne öğretir: (x) => ifade ok fonksiyonu, fonksiyonu parametre olarak geçirmek, sondaki blok ve o,
 # filtrele/haritala/indirge.
 # Önceki örnekten: fonksiyonlar (08) ve listeler (09).
-# Çalıştırma (proje kökünden): tr examples/tr/10_ok_fonksiyonlari.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/10_ok_fonksiyonlari.tr
 
 # Ok fonksiyonu adsız, tek ifadelik bir fonksiyondur; bir değişkende saklanabilir.
 TR_var iki_katı = (x: TR_Int) => x * 2

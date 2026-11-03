@@ -14,10 +14,10 @@
 # varsa veri dosyalarının parça sayıları oradan okunur. Veri yavaş bir sürücüdeyse (ağ ya da bulut)
 # yerel önbellek kullanın: veri_kümesi(VERİ_YOLU, önbellek: "onbellek/veri", kota_gb: 20)
 # Göreli yollar önce çalışma klasörüne, sonra bu dosyanın klasörüne göre çözülür.
-# Çalıştırma (proje kökünden): tr examples/tr/39_veri_ile_egitim.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/39_veri_ile_egitim.tr
 # Ayarlar komut satırından değişir (docs/guide/04_yapay_zeka_ve_veri.md §4.F; ayarlar 37, ilerleme ve günlük 38'de):
-#     tr examples/tr/39_veri_ile_egitim.tr --step 500 --günlük_dosyası kayit/egitim.jsonl
-#     tr examples/tr/39_veri_ile_egitim.tr --help
+#     trlang examples/tr/39_veri_ile_egitim.tr --step 500 --günlük_dosyası kayit/egitim.jsonl
+#     trlang examples/tr/39_veri_ile_egitim.tr --help
 
 TR_const PARÇALAYICI_YOLU = "../../tests/data/tokenizer.json"
 TR_const VERİ_YOLU = "../../tests/data/text"

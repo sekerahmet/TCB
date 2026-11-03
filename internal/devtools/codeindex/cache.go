@@ -95,7 +95,7 @@ func loadCache(root string, opts Options) *cached {
 }
 
 // saveCache dizini (idx nil değilse) ve manifesti yazar. Önbellek dosyası sıkıştırılmış JSON'dur
-// (insan okumaz; okunan biçim `tr index --json` ya da EncodeIndex'tir).
+// (insan okumaz; okunan biçim `trlang index --json` ya da EncodeIndex'tir).
 func saveCache(root string, man manifest, idx *Index) error {
 	dir := filepath.Join(root, CacheDir)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -228,7 +228,7 @@ func BuildCached(root string, opts Options) (*Index, Stats, error) {
 	return idx, Stats{Files: len(idx.Files), Parsed: len(idx.Files), Full: true}, nil
 }
 
-// CacheStatus önbelleğin durumudur (`tr index --status`).
+// CacheStatus önbelleğin durumudur (`trlang index --status`).
 type CacheStatus struct {
 	Exists  bool     // kullanılabilir bir önbellek var
 	Files   int      // önbellekteki dosya sayısı

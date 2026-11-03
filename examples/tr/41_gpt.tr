@@ -6,8 +6,8 @@
 # Kitaplığın kodu: lib/layers.tr ve lib/optimizers.tr (kopyalayıp değiştirebilirsiniz).
 # Ayrıntılar: docs/guide/10_hazir_katmanlarla_gpt.md, lib/README.md.
 #
-# Çalıştırma (proje kökünden): tr examples/tr/41_gpt.tr
-#   Ayarlar komut satırından: tr examples/tr/41_gpt.tr --step 300 --embed_dim 64 --koşu runs/gpt2
+# Çalıştırma (proje kökünden): trlang examples/tr/41_gpt.tr
+#   Ayarlar komut satırından: trlang examples/tr/41_gpt.tr --step 300 --embed_dim 64 --koşu runs/gpt2
 #   Yarıda kesilirse (Ctrl+C) aynı komut kaldığı yerden sürer; baştan başlamak için koşu
 #   klasörünü silin ya da başka bir --koşu verin.
 # GPU'da: model kurulmadan önce varsayılan cihazı seçin (aşağıdaki satırın yorumunu kaldırın)

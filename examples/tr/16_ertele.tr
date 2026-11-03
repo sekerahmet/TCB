@@ -2,7 +2,7 @@
 # 16 — Ertele: temizliği her durumda yapmak.
 # Ne öğretir: ertele ile bir işi bloktan çıkarken (hata olsa da olmasa da) ters sırayla çalıştırmak.
 # Önceki örnekten: fonksiyonlar (08), hata yönetimi (15).
-# Çalıştırma (proje kökünden): tr examples/tr/16_ertele.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/16_ertele.tr
 
 # ertele hemen çalışmaz; içinde yazıldığı blok (burada fonksiyonun gövdesi) bitince çalışır.
 # Birden çoksa sonuncu önce çalışır.

@@ -1,9 +1,9 @@
 package debugger
 
 // ============================================================================
-// VS CODE HATA AYIKLAMA SUNUCUSU (Debug Adapter Protocol) — tr dap
+// VS CODE HATA AYIKLAMA SUNUCUSU (Debug Adapter Protocol) — trlang dap
 //
-// Düzenleyici, TR programlarında hata ayıklamak için `tr dap` sürecini başlatır ve
+// Düzenleyici, TR programlarında hata ayıklamak için `trlang dap` sürecini başlatır ve
 // standart giriş/çıkış üzerinden DAP iletileri gönderir. Böylece TR hata ayıklayıcısının
 // yetenekleri düzenleyicinin kendi arayüzünde kullanılır: kesme noktaları (koşullu ve iz
 // noktası), F5/F10/F11 adımlama, değişken ağacı, değer değiştirme, izleme noktası
@@ -93,7 +93,7 @@ type dapServer struct {
 	exit     func(int)
 }
 
-// ServeDAP düzenleyicinin bir hata ayıklama oturumunu in/out üzerinden yürütür (tr dap).
+// ServeDAP düzenleyicinin bir hata ayıklama oturumunu in/out üzerinden yürütür (trlang dap).
 func ServeDAP(in io.Reader, out io.Writer) error {
 	return newDAPServer(in, out).serve()
 }

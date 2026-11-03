@@ -20,7 +20,7 @@ type Options struct {
 	Dirs []string
 	// SkipDirs gezilmeyen klasör adlarıdır (nil ise DefaultSkipDirs).
 	SkipDirs map[string]bool
-	// Tracked doğruysa yalnızca git'in izlediği .tr dosyaları dizine girer (depo aracı: codegraph); yanlışsa (tr index)
+	// Tracked doğruysa yalnızca git'in izlediği .tr dosyaları dizine girer (depo aracı: codegraph); yanlışsa (trlang index)
 	// kökün altındaki her .tr, .gitignore'a bakılmadan (ListFiles kipleri).
 	Tracked bool
 	// Library gömülü TR kitaplığıdır (kökünde layers.tr gibi dosyalar): projede lib/ad.tr yoksa
@@ -282,7 +282,7 @@ func (x *indexer) finish() *Index {
 
 // languageReady gömülü Türkçe liste kurulamadıysa (bozuk ya da yarım değişmiş tr.json) nedenini
 // verir: dizin kimliklere düşmüş adlarla kurulup yanlış cevap vermesin, çağıran Go tarafıyla
-// sürer (codegraph) ya da durur (tr index).
+// sürer (codegraph) ya da durur (trlang index).
 func languageReady() error {
 	_, err := codes.LoadLanguage(codes.SourceLanguage)
 	return err

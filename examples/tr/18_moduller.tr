@@ -3,7 +3,7 @@
 # Ne öğretir: aktar ile başka bir .tr dosyasındaki adları kullanmak, olarak ile takma ad vermek
 # (ad çakışmasını önler). Aktarılan dosya: helpers/geometri.tr.
 # Önceki örnekten: fonksiyonlar (08) ve testler (17); modül, fonksiyon ve sabitlerin bulunduğu bir dosyadır.
-# Çalıştırma (proje kökünden): tr examples/tr/18_moduller.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/18_moduller.tr
 
 TR_import "helpers/geometri" # .tr uzantısı isteğe bağlı; adlar doğrudan kullanılır
 TR_import "helpers/geometri" TR_as geo # takma adla: geo.ad

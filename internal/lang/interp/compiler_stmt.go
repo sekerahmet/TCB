@@ -65,7 +65,7 @@ func (c *compiler) statement(k *compilerScope, stmt ast.Statement) statementCode
 		return c.importStatement(k, s)
 
 	case *ast.TestStatement:
-		// Test blokları normal çalıştırmada atlanır; 'tr test' bunları RunTest ile çalıştırır.
+		// Test blokları normal çalıştırmada atlanır; 'trlang test' bunları RunTest ile çalıştırır.
 		return emptyStatement
 
 	case *ast.BreakpointStatement:

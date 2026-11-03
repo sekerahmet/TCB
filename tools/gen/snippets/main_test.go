@@ -73,7 +73,7 @@ func open(body string) string {
 }
 
 // Her dilin şablonu, varsayılanlarıyla açıldığında kimlik yazımıyla geçerli koddur: kodlu gövde olarak
-// ayrıştırılır (varsayılanlar tanımlı adlar aramaz; derleme sınaması Türkçe şablonlar için cmd/tr/e2e'dedir).
+// ayrıştırılır (varsayılanlar tanımlı adlar aramaz; derleme sınaması Türkçe şablonlar için cmd/trlang/e2e'dedir).
 func TestSnippetsParseInEveryLanguage(t *testing.T) {
 	for lang, entries := range generated(t) {
 		for _, e := range entries {

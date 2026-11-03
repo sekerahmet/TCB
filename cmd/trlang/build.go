@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-// 'tr build' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
+// 'trlang build' ile üretilen uygulama, yorumlayıcı ikilisinin sonuna eklenmiş bir paketten
 // oluşur:
 //
 //	[JSON paket][paket uzunluğu u64][sürüm u32][packageSignature]
@@ -310,10 +310,10 @@ func processorNoteText(arch, level string) string {
 	return ""
 }
 
-// compileToExe 'tr build' komutudur: kaynağı ve aktardığı modülleri denetleyip çalışan
+// compileToExe 'trlang build' komutudur: kaynağı ve aktardığı modülleri denetleyip çalışan
 // yorumlayıcının bir kopyasının sonuna paket olarak ekler.
 func compileToExe(srcPath string, outPath string) {
-	// Denetim 'tr check'ün yoludur (checkProgram); paket kurulurken modüller yeniden okunur.
+	// Denetim 'trlang check'ün yoludur (checkProgram); paket kurulurken modüller yeniden okunur.
 	code, _ := checkProgram(srcPath, buildPreparation, "❌ "+messages.Text(messages.H8761))
 	pk := checkModules(srcPath, code, buildPreparation, "❌ "+messages.Text(messages.H8761))
 
@@ -377,7 +377,7 @@ func compileToExe(srcPath string, outPath string) {
 	}
 }
 
-// checkOutputPath 'tr build'nin çıktı yolunun bir kaynak dosyayı ezmeyeceğini denetler:
+// checkOutputPath 'trlang build'nin çıktı yolunun bir kaynak dosyayı ezmeyeceğini denetler:
 // çıktı kaynağın kendisi (aynı dosya) ya da .tr uzantılı bir dosya olamaz.
 func checkOutputPath(srcPath, outPath string) error {
 	if strings.EqualFold(filepath.Ext(outPath), ".tr") {
@@ -466,7 +466,7 @@ func writeEmbeddedModules(pk *pkg, dir string) ([]string, error) {
 	return paths, nil
 }
 
-// runEmbeddedApp 'tr build' ile üretilmiş uygulamanın paketini çalıştırır.
+// runEmbeddedApp 'trlang build' ile üretilmiş uygulamanın paketini çalıştırır.
 // Modüller özel bir geçici klasöre açılır ve program bitince (hata ile bitse de) silinir.
 func runEmbeddedApp(pk *pkg) {
 	code := pk.Main.Code
@@ -515,7 +515,7 @@ func cleanup() {
 	exitCleanup = nil
 }
 
-// exitCode cik'e verilen koddur; temizlik işleri (ör. tr profile'in son raporu) okur.
+// exitCode cik'e verilen koddur; temizlik işleri (ör. trlang profile'in son raporu) okur.
 var exitCode int
 
 // exit temizlik işlerini yapıp verilen kodla çıkar.

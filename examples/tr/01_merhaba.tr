@@ -2,7 +2,7 @@
 # 01 — Merhaba: ilk TR programı.
 # Ne öğretir: yazdır ile ekrana yazmak, metin sabiti, birden çok değer, satır sonu ve yorum.
 # Önceki örnekten: — (ilk örnek).
-# Çalıştırma (proje kökünden): tr examples/tr/01_merhaba.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/01_merhaba.tr
 # Kendi denemeleriniz için bu dosyayı scratch/ klasörüne kopyalayıp değiştirebilirsiniz
 # (scratch/ depoya girmez).
 

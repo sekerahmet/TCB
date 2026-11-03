@@ -3,7 +3,7 @@
 # Ne öğretir: geçici_klasör, yol, dosya_yaz/dosya_oku, dosya_satırları, .var_mı, json_metin ile
 # değeri metne, json_çöz ile metni değere çevirmek; dosya_baytları ile ikili veri.
 # Önceki örnekten: metin (04), sözlükler (11), hata yönetimi (15).
-# Çalıştırma (proje kökünden): tr examples/tr/19_dosya_ve_json.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/19_dosya_ve_json.tr
 # Dosyalar geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
 
 TR_var klasör = TR_temp_dir()

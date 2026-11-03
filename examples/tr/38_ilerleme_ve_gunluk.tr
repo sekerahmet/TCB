@@ -3,7 +3,7 @@
 # Ne öğretir: ilerleme(toplam) ile çubuk açmak, güncelle ile ilerletmek, durdur; günlük(yol) ile her adımın
 # kaydını bir JSON satırı olarak yazmak ve ilerleme(günlük:) ile bağlamak; İlerleme ve Günlük tipleri.
 # Önceki örnekten: döngüler (07), sözlükler (11), dosya ve JSON (19), yollar (20), komut satırı (37).
-# Çalıştırma (proje kökünden): tr examples/tr/38_ilerleme_ve_gunluk.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/38_ilerleme_ve_gunluk.tr
 # Günlük dosyası geçici klasöre yazılır (program bitince silinir).
 
 # günlük(yol) bir günlük dosyası açar; ekle(sözlük) her çağrıda dosyaya bir JSON satırı ekler.

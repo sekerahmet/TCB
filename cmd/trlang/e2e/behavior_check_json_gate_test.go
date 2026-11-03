@@ -7,7 +7,7 @@ import (
 )
 
 // Kural (6.1, 7.1, 2.13): tipsiz parametrenin ve alanın tipi varsayılandan, dönüş tipi TR_return'lerin
-// ortak tipinden çıkınca 'tr check --json' uygulanabilir düzeltme verir; hepsi uygulanınca dosya
+// ortak tipinden çıkınca 'trlang check --json' uygulanabilir düzeltme verir; hepsi uygulanınca dosya
 // hatasız geçer. Çağrılardan tahmin edilen tip (H1110) uygulanabilir değildir.
 func TestCheckJSONTypedSignatureFixesMakeTheFileClean(t *testing.T) {
 	const program = "# TR 4\nTR_struct S {\n    n = 0 # ERROR H1109\n}\nTR_func f(a: TR_Int, b = 2) { # ERROR H1109 H1112\n    TR_print(b)\n    TR_return a * 2\n}\nTR_print(f(1), S().n)\n"
@@ -47,7 +47,7 @@ func TestCheckJSONTypedSignatureFixesMakeTheFileClean(t *testing.T) {
 }
 
 // Kural (6.1, 7.1; kitaplık istisnası): gömülü kitaplığın 4c'yi bekleyen tipsiz yerleri tanı vermez;
-// istisnalı modülleri aktaran kullanıcı programı 'tr check'te hatasız ve uyarısız geçer.
+// istisnalı modülleri aktaran kullanıcı programı 'trlang check'te hatasız ve uyarısız geçer.
 func TestCheckLibraryImportsGiveNoGateDiagnostics(t *testing.T) {
 	const program = "# TR 4\nTR_import \"tr/layers\"\nTR_import \"tr/optimizers\"\nTR_import \"tr/pretrained\"\nTR_import \"tr/training\"\nTR_print(1)\n"
 	dir := t.TempDir()

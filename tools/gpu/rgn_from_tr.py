@@ -5,7 +5,7 @@ modeline yükleyip kaybı rgn512.py'nin evaluate'iyle (aynı pencereler, bf16 au
 İki sayı yuvarlama düzeyinde aynı olmalıdır. Sonra aynı istemlerle TR modelinden ve (verilirse)
 PyTorch'ta eğitilen modelden metin üretir: açgözlü ve örneklemeli (sıcaklık, en iyi k, tohum sabit).
 
-    ./tr rgn512.tr ... --save tr_son.trt
+    ./trlang rgn512.tr ... --save tr_son.trt
     python rgn_from_tr.py --trt tr_son.trt --valid valid.npy --tokenizer tr_bpe_40k_v2.json --pt k_pt_1/model.pt
 
 Ağırlık adları rgn_reference.py'deki tr_name_map'tedir (TR'nin Doğrusal ağırlığı [giriş, çıkış],

@@ -5,7 +5,7 @@
 # Neden: selam() 'ad' adında bir parametre alır; 'isim' yazıldı.
 # Düzeltilmiş hâli:
 #     yazdır(selam(ad: "Ali"))
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/09_bilinmeyen_adli_arguman.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/09_bilinmeyen_adli_arguman.tr   (çıkış kodu 1)
 
 TR_func selam(ad: TR_String) -> TR_String {
     TR_return "Selam \(ad)"

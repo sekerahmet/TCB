@@ -7,7 +7,7 @@
 #     döngü x içinde 0..5 {
 #         yazdır(x)
 #     }
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/17_dongu_tipi.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/17_dongu_tipi.tr   (çıkış kodu 1)
 
 TR_for x TR_in 5 {
     TR_print(x)

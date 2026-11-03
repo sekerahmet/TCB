@@ -1,6 +1,6 @@
-# 7. Test Yazma ve Çalıştırma (`tr test`)
+# 7. Test Yazma ve Çalıştırma (`trlang test`)
 
-Testler kodun yanına `TR_test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`tr dosya.tr`) test blokları atlanır; yalnızca `tr test` çalıştırır. Örnek: `tr test examples/tr/17_testler_test.tr`.
+Testler kodun yanına `TR_test "ad" { ... }` bloklarıyla yazılır. Dosya normal çalıştırıldığında (`trlang dosya.tr`) test blokları atlanır; yalnızca `trlang test` çalıştırır. Örnek: `trlang test examples/tr/17_testler_test.tr`.
 
 ```tr
 # TR 4
@@ -22,7 +22,7 @@ TR_test "eşitlik" {
 - Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
 
 ```text
-> tr test .
+> trlang test .
 📄 hesap_test.tr
   ✓ toplama doğru
   ✗ eşitlik — Satır 10: eşitlik başarısız: beklenen 5 (Tam), gerçek 4 (Tam)
@@ -31,4 +31,4 @@ TR_test "eşitlik" {
 ❌ 2 test, 1 geçti, 1 kaldı
 ```
 
-`tr test dosya.tr` yalnızca o dosyayı, `tr test klasör` klasördeki (alt klasörler dahil, gizli klasörler hariç) tüm `*_test.tr` dosyalarını çalıştırır. Sözdizimi ya da tip hatası olan dosya "yüklenemedi" olarak sayılır. Bir test kalırsa ya da bir dosya yüklenemezse çıkış kodu 1'dir; böylece CI'da kapı olarak kullanılabilir.
+`trlang test dosya.tr` yalnızca o dosyayı, `trlang test klasör` klasördeki (alt klasörler dahil, gizli klasörler hariç) tüm `*_test.tr` dosyalarını çalıştırır. Sözdizimi ya da tip hatası olan dosya "yüklenemedi" olarak sayılır. Bir test kalırsa ya da bir dosya yüklenemezse çıkış kodu 1'dir; böylece CI'da kapı olarak kullanılabilir.

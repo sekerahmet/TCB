@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// FuzzDAPMessage: 'tr dap' standart girişinden gelen baytlar (çerçeve başlıkları ve JSON
+// FuzzDAPMessage: 'trlang dap' standart girişinden gelen baytlar (çerçeve başlıkları ve JSON
 // gövdeler) çözücüyü ve program başlamadan önceki istekleri çökertmemelidir. Programı
 // başlatan, süreci bitiren ve diskteki dosyayı okuyan istekler (launch, configurationDone,
 // disconnect, terminate) atlanır. Derin arama:

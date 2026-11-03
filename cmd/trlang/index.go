@@ -14,7 +14,7 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// 'tr index' komutu ve alt komutları (tanım, kullananlar, sınayanlar, etki): TR kodunun dizinini
+// 'trlang index' komutu ve alt komutları (tanım, kullananlar, sınayanlar, etki): TR kodunun dizinini
 // (internal/devtools/codeindex) kurar ve ona sorar. Burada yalnızca argümanlar, çıktı biçimi ve
 // çıkış kodu vardır.
 
@@ -40,7 +40,7 @@ type indexOptions struct {
 // indexValueOptions değer isteyen seçeneklerdir.
 var indexValueOptions = []codes.Code{codes.OptLimit, codes.OptRoot, codes.OptKind}
 
-// indexCommand 'tr index [alt komut] [ad] [seçenekler]' komutudur.
+// indexCommand 'trlang index [alt komut] [ad] [seçenekler]' komutudur.
 func indexCommand(args []string) {
 	sub := codes.None
 	if len(args) > 0 && !strings.HasPrefix(args[0], "--") {
@@ -167,7 +167,7 @@ func applyIndexOption(o *indexOptions, k codes.Code, value string) {
 	}
 }
 
-// indexOverview alt komutsuz 'tr index': dizini kurar ve özetler; --status önbelleğin durumunu, --clear
+// indexOverview alt komutsuz 'trlang index': dizini kurar ve özetler; --status önbelleğin durumunu, --clear
 // önbelleği siler.
 func indexOverview(root string, o indexOptions) {
 	fmt.Println(messages.Text(messages.H8824, root))

@@ -3,7 +3,7 @@
 # Ne öğretir: tip() ve tip adlarının (Mantık, Yok, Liste, Sözlük, Aralık, Fonksiyon,
 # YerleşikFonksiyon, Tip) ifadede değer olması, ad: Tip ile tip bildirmek.
 # Önceki örnekten: tipler (03), listeler (09), ok fonksiyonları (10), sözlükler (11).
-# Çalıştırma (proje kökünden): tr examples/tr/12_tip_adlari.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/12_tip_adlari.tr
 
 # tip(değer) tipi verir; tip adları da ifadede değerdir, == ile karşılaştırılır.
 TR_var liste = [1, "iki", 3.0]

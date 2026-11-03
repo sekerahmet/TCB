@@ -4,7 +4,7 @@
 # sayımı, argmax ile açgözlü metin üretimi. Aynı modelin başka dildeki hız kıyası: tools/bench/README.md.
 # Önceki örnekten: transformer (35), sözlükler (11), dosya okuma (19).
 # Veri: TR'nin kendi Türkçe belgeleri. Model bir sonraki karakteri tahmin etmeyi öğrenir.
-# Çalıştırma (proje kökünden): tr examples/tr/36_karakter_modeli.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/36_karakter_modeli.tr
 
 TR_const ADIM = 300
 # Eğitim metni: kullanım kılavuzunun ve dil tanımının bölümleri, sırasıyla.

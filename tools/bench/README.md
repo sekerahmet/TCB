@@ -92,7 +92,7 @@ taşınabilir kernelden çok daha hızlıdır: 512×512 iki çarpım 20 turun or
 çekirdeğinden (80–88) ~%7 yavaş; bu yalnızca AVX2'siz işlemcileri etkiler. Elle derlemek için:
 
 ```
-go build -o bin/tr.exe ./cmd/tr
+go build -o bin/trlang.exe ./cmd/trlang
 ```
 
 Süreler makineye ve o anki yüke göre değişir; karşılaştırmaları aynı makinede, bilgisayar
@@ -126,7 +126,7 @@ süresidir. Böylece açılış (yorumlayıcı, `import torch`), veri okuma ve m
 TR'de iş parçacığı `GOMAXPROCS`, PyTorch'ta `torch.set_num_threads` ile verilir. Tek tek çalıştırmak:
 
 ```
-GOMAXPROCS=2 tr examples/tr/36_karakter_modeli.tr
+GOMAXPROCS=2 trlang examples/tr/36_karakter_modeli.tr
 python tools/bench/py/char_model.py 300 2
 ```
 

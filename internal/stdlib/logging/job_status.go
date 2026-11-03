@@ -13,7 +13,7 @@ import (
 // Arka plan işi: program bir iş olarak çalışırken (tr başlat) TR_JOB_DIR ortam değişkeni iş
 // klasörünü gösterir. Çubuk o zaman terminal kipine geçmez (çıktı dosyaya gider, düz satırlar
 // yazılır) ve iş klasörüne saniyede en çok bir kez progress.json anlık görüntüsünü yazar;
-// tr watch ve düzenleyici çubuğun aynı satırını bu dosyadan çizer:
+// trlang watch ve düzenleyici çubuğun aynı satırını bu dosyadan çizer:
 //
 //	{"step":1200,"total":5000,"metrics":{"kayıp":2.31},"rate":85.2,"remaining_seconds":840,"time":"...","done":false}
 //

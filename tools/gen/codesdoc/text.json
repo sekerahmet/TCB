@@ -64,15 +64,15 @@
    ]
   },
   {
-   "title": "Komutlar (tr, kabuk, hata ayıklayıcı)",
+   "title": "Komutlar (trlang, kabuk, hata ayıklayıcı)",
    "sections": [
     {
      "class": "cmd",
-     "title": "tr komutları"
+     "title": "trlang komutları"
     },
     {
      "class": "sub",
-     "title": "tr index alt komutları"
+     "title": "trlang index alt komutları"
     },
     {
      "class": "opt",

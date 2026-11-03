@@ -18,7 +18,7 @@ func indexProject(t *testing.T) string {
 	return dir
 }
 
-// 'tr index' dizini kurar; alt komutlar tanımı, kullananları, testleri ve etkiyi verir (17.8).
+// 'trlang index' dizini kurar; alt komutlar tanımı, kullananları, testleri ve etkiyi verir (17.8).
 func TestIndexCommandAndSubcommands(t *testing.T) {
 	dir := indexProject(t)
 	testkit.Wait(t, tr(t, dir, "index"), 0, []string{"2 dosya"}, nil)
@@ -93,7 +93,7 @@ func TestIndexCache(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "index", "--clear"), 0, []string{"silinecek önbellek yok"}, nil)
 }
 
-// 'tr index rename' değişecek yerleri kesin ve olası diye listeler, hiçbir dosyayı değiştirmez.
+// 'trlang index rename' değişecek yerleri kesin ve olası diye listeler, hiçbir dosyayı değiştirmez.
 func TestIndexRename(t *testing.T) {
 	dir := t.TempDir()
 	testkit.WriteFile(t, dir, ".git/HEAD", "ref: refs/heads/main\n")
@@ -104,7 +104,7 @@ func TestIndexRename(t *testing.T) {
 	if strings.Contains(r.Stdout, "doc.md") {
 		t.Error("--no-text: no text scan")
 	}
-	testkit.Wait(t, tr(t, dir, "rename", "baş", "bakış_sayısı"), 1, nil, nil) // alt komut yalnızca 'tr index' altında
+	testkit.Wait(t, tr(t, dir, "rename", "baş", "bakış_sayısı"), 1, nil, nil) // alt komut yalnızca 'trlang index' altında
 	testkit.Wait(t, tr(t, dir, "index", "rename", "Dikkat.baş", "bakış_sayısı", "--json"), 0, []string{`"command": "rename"`, `"doc.md"`, `"suffixed"`}, nil)
 	testkit.Wait(t, tr(t, dir, "index", "rename", "Dikkat.baş", "yazdır"), 2, nil, nil)
 	testkit.Wait(t, tr(t, dir, "index", "rename", "yazdır", "yaz"), 2, nil, nil)

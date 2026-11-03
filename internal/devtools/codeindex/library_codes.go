@@ -39,7 +39,7 @@ func IdentityQuery(q string) bool {
 // karşılığını verir; değilse boş döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip adıysa boş döner
 // ("bulunamadı"). Alıcı kodsuz bir ad olup bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`, `Linear.TR_map`,
 // `GPT.TR_map`), `x.TR_<ad>` hedefiyle birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>` bir şey bulursa
-// cevap tip ve değer adaylarıyla belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). İki aracın (tr index ve
+// cevap tip ve değer adaylarıyla belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). İki aracın (trlang index ve
 // codegraph) tek kuralı.
 func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][2]string, importAliases map[string]bool) (string, []int) {
 	recv, member, ok := strings.Cut(q, ".")
@@ -113,7 +113,7 @@ func MemberValueNoteIn(lang, recv, member string) (string, string) {
 // BuiltinNames bir yerleşik kodun (ya da ad kodunun) sorguda aranan adlarıdır: kimliği, okuyanın dilindeki adı, her
 // yazım dilindeki adı (LanguageNames) ve program metnindeki yazımı (SpelledNames: TR_print, x.TR_map). Kitaplık kodunun
 // dillerdeki adlarını ve yazımını kitaplıktaki bildirimi taşır (DeclNames), kod yalnız kimliğiyle aranır; iki aracın
-// (tr index ve codegraph) tek kuralı.
+// (trlang index ve codegraph) tek kuralı.
 func BuiltinNames(k codes.Code) []string {
 	if k.IsLibrary() {
 		return []string{k.String()}
@@ -129,7 +129,7 @@ func BuiltinNames(k codes.Code) []string {
 
 // DeclNames bir bildirimin çıplak sorguda aranan adlarıdır: kodsuz bildirimde kısa adı; kodlu bildirimde her yazım
 // dilindeki adı ve kitaplığın kendi bildiriminde (IsLibraryDecl) program metnindeki yazımı (SpelledNames). Kullanıcının
-// aynı kodlu üyesi dillerdeki adıyla aranır; iki aracın (tr index ve codegraph) tek kuralı.
+// aynı kodlu üyesi dillerdeki adıyla aranır; iki aracın (trlang index ve codegraph) tek kuralı.
 func DeclNames(n *Node) []string {
 	k, err := codes.Parse(n.Code)
 	if err != nil {

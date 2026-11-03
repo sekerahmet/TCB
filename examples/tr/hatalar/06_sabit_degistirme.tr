@@ -6,7 +6,7 @@
 # Düzeltilmiş hâli:
 #     değişken kdv = 18
 #     kdv = 20 // değişecekse sabit değil değişken kullanın
-# Çalıştırma (proje kökünden): tr examples/tr/hatalar/06_sabit_degistirme.tr   (çıkış kodu 1)
+# Çalıştırma (proje kökünden): trlang examples/tr/hatalar/06_sabit_degistirme.tr   (çıkış kodu 1)
 
 TR_const KDV = 18
 KDV = 20

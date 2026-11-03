@@ -461,7 +461,7 @@ func TestCommandLineNamesInEveryLanguage(t *testing.T) {
 	}
 }
 
-// 'tr index' alt komutları (sub sınıfı) yalnızca dizin komutunun altında geçerlidir: üst düzey
+// 'trlang index' alt komutları (sub sınıfı) yalnızca dizin komutunun altında geçerlidir: üst düzey
 // komut adı değildir ve yalnız kimlik adıyla kabul edilir (17.9).
 func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 	for _, name := range []string{"definition", "references", "tested_by", "impact", "rename"} {
@@ -501,7 +501,7 @@ func TestIndexSubcommandsAreNotCommands(t *testing.T) {
 
 // Kural (17.9): OptionFlag seçenek kodunu kimlik yazımındaki komut satırı bayrağına çevirir:
 // "--" ve alt çizgi yerine tire (--lang, --go-profile).
-// Neden: cmd/tr ve codeindex aynı çevirmeyi ayrı ayrı yazıyordu.
+// Neden: cmd/trlang ve codeindex aynı çevirmeyi ayrı ayrı yazıyordu.
 func TestOptionFlagHyphenatesDisplayName(t *testing.T) {
 	for _, c := range []struct {
 		k    Code

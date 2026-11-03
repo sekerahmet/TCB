@@ -237,7 +237,7 @@ TR_for adım TR_in 0..ayar["step"] {
 }
 ```
 
-**Ayarlar (`TR_command_line`).** Sözlüğün anahtarları seçenek adları, değerleri varsayılanlardır; tip varsayılandan çıkar. `tr egit.tr --adım 5000 --öğrenme_oranı=3e-4` seçenekleri değiştirir, `tr egit.tr --help` hepsini açıklamalarıyla listeler. Yanlış yazılan seçenek (`--ogrenme_orani`, `--adim`) ya da tipine uymayan değer (`--öğrenme_oranı 0,001`) eğitim başlamadan, doğru adı öneren bir mesajla durdurur. Argüman vermeden çalıştırınca varsayılanlar kullanılır.
+**Ayarlar (`TR_command_line`).** Sözlüğün anahtarları seçenek adları, değerleri varsayılanlardır; tip varsayılandan çıkar. `trlang egit.tr --adım 5000 --öğrenme_oranı=3e-4` seçenekleri değiştirir, `trlang egit.tr --help` hepsini açıklamalarıyla listeler. Yanlış yazılan seçenek (`--ogrenme_orani`, `--adim`) ya da tipine uymayan değer (`--öğrenme_oranı 0,001`) eğitim başlamadan, doğru adı öneren bir mesajla durdurur. Argüman vermeden çalıştırınca varsayılanlar kullanılır.
 
 **İlerleme çubuğu.** Her `ç.TR_update(...)` bir adım ilerletir; çubuk terminalde tek satırda yenilenir, geçen adım sayısını, ölçüleri, adım hızını ve kalan süreyi gösterir. Çıktı bir dosyaya ya da not defteri hücresine gidiyorsa 10 saniyede bir düz satır yazılır. `TR_print` çubuğu bozmaz. Kaldığı yerden sürdürülen bir eğitimde `ç.TR_update(..., TR_step: n)` sayacı n'ye getirir.
 

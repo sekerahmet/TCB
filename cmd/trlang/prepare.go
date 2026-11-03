@@ -154,8 +154,8 @@ func finishProgram(machine *interp.VM, end interp.End, code string) {
 	}
 }
 
-// beforeClose program bittiğinde, motorlar kapanmadan önce çalışacak işlerdir (ör. tr watch
-// ve tr profile GPU'nun son ölçümlerini arka uç kapanmadan alır).
+// beforeClose program bittiğinde, motorlar kapanmadan önce çalışacak işlerdir (ör. trlang watch
+// ve trlang profile GPU'nun son ölçümlerini arka uç kapanmadan alır).
 var beforeClose []func()
 
 // closeEngine beforeClose işlerini (bir kez) çalıştırır ve motorları kapatır.
@@ -187,8 +187,8 @@ func moduleHeader(header, filePath string) string {
 }
 
 // checkProgram dosyayı ve aktardığı bütün modülleri çalıştırmadan denetler (1.3): hata varsa
-// hepsini yazıp 1 koduyla çıkar, hiçbir satır çalışmaz. 'tr check', 'tr build', 'tr run',
-// 'tr debug', 'tr watch' ve 'tr profile' bu tek yolu kullanır; hata ayıklayıcının başlatma
+// hepsini yazıp 1 koduyla çıkar, hiçbir satır çalışmaz. 'trlang check', 'trlang build', 'trlang run',
+// 'trlang debug', 'trlang watch' ve 'trlang profile' bu tek yolu kullanır; hata ayıklayıcının başlatma
 // yolu da aynı işlevi (interp.CheckImportedModules) çağırır. globalHeader bulunamayan ya da
 // okunamayan modül hatalarının başlığıdır. Dosyanın metnini ve hazırlığının sonucunu verir.
 func checkProgram(path string, h preparation, globalHeader string) (string, *source.Result) {
@@ -211,7 +211,7 @@ func checkProgram(path string, h preparation, globalHeader string) (string, *sou
 }
 
 // checkModules programın 'aktar' ile aldığı bütün modülleri (özyinelemeli) bulur ve
-// çalıştırmadan denetler; 'tr check' ve 'tr build' kullanır. Hata varsa yazıp 1 koduyla
+// çalıştırmadan denetler; 'trlang check' ve 'trlang build' kullanır. Hata varsa yazıp 1 koduyla
 // çıkar. globalHeader bulunamayan/okunamayan modül hatalarının başlığıdır.
 func checkModules(path, code string, h preparation, globalHeader string) *pkg {
 	pk, err := preparePackage(path, code)

@@ -90,7 +90,7 @@ func bothWiden(a, b *tensor.Tensor) bool {
 }
 
 // broadcastWarnings bir programın gösterdiği yayın uyarılarıdır; programa bağlıdır
-// (interp.VM.ProgramValue): aynı süreçte çalışan başka bir program (tr test'in öbür dosyaları)
+// (interp.VM.ProgramValue): aynı süreçte çalışan başka bir program (trlang test'in öbür dosyaları)
 // kendi uyarılarını baştan gösterir.
 type broadcastWarnings struct {
 	mu       sync.Mutex

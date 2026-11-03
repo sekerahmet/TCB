@@ -56,7 +56,7 @@ func TestTextHeadersCountTheWholeList(t *testing.T) {
 }
 
 // Kural: --limit ile kesilen her grup, altında kaç satırın gizlendiğini yazar (eksikler listesi, ince ayar, DENETİM
-// 2026-10-26: `tr index impact TR_type_GPT` "bunu aktaran modüller (13)" altında 12 satır verip susuyordu, kullananlar
+// 2026-10-26: `trlang index impact TR_type_GPT` "bunu aktaran modüller (13)" altında 12 satır verip susuyordu, kullananlar
 // grubu sayısız "daha fazlası var" diyordu). Başlığın sayısından grubun gösterilen satırları çıkınca kalan, grubun notunda
 // geçmelidir.
 func TestEveryCutGroupSaysHowManyLinesAreHidden(t *testing.T) {

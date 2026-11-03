@@ -4,7 +4,7 @@
 # görevin sonucunu bekle() ile almak.
 # Sonuç sıradan bağımsız olarak aynıdır.
 # Önceki örnekten: döngüler (07), fonksiyonlar (08).
-# Çalıştırma (proje kökünden): tr examples/tr/22_eszamanli_gorevler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/22_eszamanli_gorevler.tr
 
 TR_var kareler_toplamı = 0
 TR_for i TR_in 1..=100 {

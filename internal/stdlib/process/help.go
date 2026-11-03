@@ -12,7 +12,7 @@ import (
 // helpText --help çıktısıdır: kullanım satırı, programın açıklaması ve her seçeneğin
 // tipi, açıklaması ve varsayılanı.
 //
-//	Kullanım: tr egit.tr [seçenekler]
+//	Kullanım: trlang egit.tr [seçenekler]
 //
 //	Küçük dil modelini eğitir
 //

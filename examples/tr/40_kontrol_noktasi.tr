@@ -6,10 +6,10 @@
 # Önceki örnekten: veri ile eğitim (39): komut_satırı, ilerleme, veri kümesi.
 # Ayrıntılar: docs/guide/09_uzun_egitim.md, docs/spec/20_kontrol_noktasi.md §20.
 #
-# Çalıştırma (proje kökünden): tr examples/tr/40_kontrol_noktasi.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/40_kontrol_noktasi.tr
 #   Eğitim sürerken Ctrl+C'ye basın: o adım biter, nokta kaydedilir, program durur.
 #   Aynı komutu yeniden çalıştırın: "Kaldığı yerden devam: adım ..." yazar ve oradan sürer.
-#   Eğitimi uzatmak için: tr examples/tr/40_kontrol_noktasi.tr --step 1000
+#   Eğitimi uzatmak için: trlang examples/tr/40_kontrol_noktasi.tr --step 1000
 #   Baştan başlamak için koşu klasörünü silin ya da başka bir klasör verin: --koşu runs/deneme2
 # Bulut not defterinde koşu klasörünü yerel diskte tutup ara ara Drive'a kopyalayın (kılavuz §9).
 

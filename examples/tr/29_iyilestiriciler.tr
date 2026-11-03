@@ -3,7 +3,7 @@
 # Ne öğretir: AdamW ve SGD, beta1/beta2 ve momentum ayarları, gradyan_kırp ile patlayan gradyanı sınırlamak,
 # iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek, ince ayarda bir parametreyi dondurmak.
 # Önceki örnekten: eğitim döngüsü (28), otomatik türev (26).
-# Çalıştırma (proje kökünden): tr examples/tr/29_iyilestiriciler.tr
+# Çalıştırma (proje kökünden): trlang examples/tr/29_iyilestiriciler.tr
 
 # SGD (olasılıksal gradyan inişi) en yalın iyileştiricidir: w = w - öğrenme_oranı · gradyan.
 # momentum önceki adımların yönünü sürdürür.
