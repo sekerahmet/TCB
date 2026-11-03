@@ -57,6 +57,13 @@ func TestUnopenedOptionalHint(t *testing.T) {
 		"TR_var l: TR_List[TR_Bool?] = []\nTR_var x: TR_Bool = l[0]":                                            "`l[0]` is optional",
 		"TR_var l: TR_List[TR_List[TR_Int]] = []\nTR_var x: TR_List[TR_Int] = l.TR_first":                       "`l.TR_first ?? []`",
 		"TR_var l: TR_List[TR_Dict[TR_String, TR_Int]] = []\nTR_var x: TR_Dict[TR_String, TR_Int] = l.TR_first": "`TR_none`",
+		// 4a4: argüman (H1004), alan (H1124), kurucu (H1125), .TR_append (H1123), yerleşiğin argümanı (H2423)
+		"TR_var l: TR_List[TR_Int] = []\nTR_func f(x: TR_Int) { }\nf(l.TR_first)":                      "`l.TR_first ?? 0`",
+		"TR_struct P { x: TR_Int }\nTR_var l: TR_List[TR_Int] = []\nTR_var p = P(1)\np.x = l.TR_first": "`l.TR_first ?? 0`",
+		"TR_struct P { x: TR_Float }\nTR_var l: TR_List[TR_Float] = []\nTR_var p = P(l.TR_last)":       "`l.TR_last ?? 0.0`",
+		"TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm.TR_append(l.TR_first)":                      "`l.TR_first ?? 0`",
+		"TR_var l: TR_List[TR_String] = []\nTR_var s = \"a,b\".TR_split(l.TR_first)":                   "`l.TR_first ?? \"\"`",
+		"TR_var l: TR_List[TR_Float] = []\nTR_print(TR_abs(l.TR_first))":                               "`l.TR_first ?? 0.0`",
 	}
 	for src, want := range cases {
 		lines := strings.Split(src, "\n")

@@ -469,8 +469,8 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		argTypes[i] = argType
 		c.noteCall(e, objType, i, "", arg, argType)
 		if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
-			c.addErrorAt(arg, messages.New(messages.H1004,
-				ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
+			c.addErrorAt(arg, messages.New(messages.H1004, ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType),
+				c.typeHint(info.ParamTypes[i], argType, arg, dividesAtTop(arg))))
 		}
 	}
 	namedTypes := make([]string, len(e.NamedArgs))

@@ -1,6 +1,8 @@
 package checker
 
 import (
+	"strings"
+
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -40,11 +42,13 @@ func (c *Checker) checkFieldAssign(s *ast.AssignStatement, valType string) {
 		return
 	}
 	declared := c.localType(normalizedType(f.Type))
-	if op := string(s.Operator); len(op) > 1 {
-		valType = arithmeticType(op[:len(op)-1], declared, valType)
+	op := strings.TrimSuffix(string(s.Operator), "=")
+	if op != "" {
+		valType = arithmeticType(op, declared, valType)
 	}
 	if declared != typeAny && valType != typeAny && !c.assignable(declared, valType, s.Value) {
-		c.addErrorAt(s, messages.New(messages.H1124, m.Property, c.typeArg(owner), c.typeArg(declared), c.typeArg(valType)))
+		c.addErrorAt(s, messages.New(messages.H1124, m.Property, c.typeArg(owner), c.typeArg(declared), c.typeArg(valType),
+			c.typeHint(declared, valType, s.Value, op == "/" || op == "" && dividesAtTop(s.Value))))
 	}
 }
 
@@ -71,6 +75,7 @@ func (c *Checker) checkConstruction(e *ast.CallExpression, name string, argTypes
 func (c *Checker) checkFieldValue(structName string, f ast.StructField, value ast.Expression, given string) {
 	declared := c.localType(normalizedType(f.Type))
 	if declared != typeAny && given != typeAny && !c.assignable(declared, given, value) {
-		c.addErrorAt(value, messages.New(messages.H1125, f.Name, c.typeArg(structName), c.typeArg(declared), c.typeArg(given)))
+		c.addErrorAt(value, messages.New(messages.H1125, f.Name, c.typeArg(structName), c.typeArg(declared), c.typeArg(given),
+			c.typeHint(declared, given, value, dividesAtTop(value))))
 	}
 }

@@ -111,7 +111,7 @@ func (c *Checker) checkMemberArgTypes(e *ast.CallExpression, k codes.Code, sig c
 			continue
 		}
 		if !c.assignable(codes.Name(want), given, arg) {
-			c.addErrorAt(arg, hint.MemberArgType(k, i+1, c.typeArg(codes.Name(want)), c.typeArg(given)))
+			c.addErrorAt(arg, hint.MemberArgType(k, i+1, c.typeArg(codes.Name(want)), c.typeArg(given), c.openHint(codes.Name(want), given, arg)))
 		}
 	}
 }
@@ -126,7 +126,8 @@ func (c *Checker) checkElementArg(e *ast.CallExpression, i int, given string) {
 		return
 	}
 	if !c.assignable(s.args[0], given, e.Arguments[i]) {
-		c.addErrorAt(e.Arguments[i], messages.New(messages.H1123, i+1, c.typeArg(s.args[0]), c.typeArg(recvType), c.typeArg(given)))
+		c.addErrorAt(e.Arguments[i], messages.New(messages.H1123, i+1, c.typeArg(s.args[0]), c.typeArg(recvType), c.typeArg(given),
+			c.openHint(s.args[0], given, e.Arguments[i])))
 	}
 }
 

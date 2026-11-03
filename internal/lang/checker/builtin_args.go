@@ -120,7 +120,7 @@ func (c *Checker) checkBuiltinArgs(e *ast.CallExpression, argTypes []string) {
 		}
 		if typ, bad := c.outsideOptions(opts, argTypes[i], arg); bad {
 			if code, decided := ArgTypeCode(k, typ); decided {
-				c.addErrorAt(arg, c.argTypeError(code, k, i+1, opts, argTypes[i]))
+				c.addErrorAt(arg, c.argTypeError(code, k, i+1, opts, argTypes[i], arg))
 			}
 		}
 	}
@@ -154,7 +154,7 @@ func (c *Checker) outsideOptions(opts []codes.Code, given string, arg ast.Expres
 
 // argTypeError k'nın order. argümanının seçenek dışı tipte olduğu hatadır, çalışma anının koduyla:
 // H2423 seçenekleri sayar, öbür kodlar ({fn}, {given}) fonksiyonun adını ve verilen tipi söyler.
-func (c *Checker) argTypeError(code messages.Code, k codes.Code, order int, opts []codes.Code, given string) error {
+func (c *Checker) argTypeError(code messages.Code, k codes.Code, order int, opts []codes.Code, given string, arg ast.Expression) error {
 	if code != messages.H2423 {
 		return messages.New(code, codes.NameRef(k), c.typeArg(given))
 	}
@@ -164,5 +164,5 @@ func (c *Checker) argTypeError(code messages.Code, k codes.Code, order int, opts
 			names = append(names, c.typeArg(codes.Name(o)))
 		}
 	}
-	return messages.New(messages.H2423, codes.CallNameRef(k), order, names, c.typeArg(given), "")
+	return messages.New(messages.H2423, codes.CallNameRef(k), order, names, c.typeArg(given), c.openHint(requiredType(given), given, arg))
 }

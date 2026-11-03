@@ -51,9 +51,10 @@ func MemberArgCount(typ, k codes.Code, minN, maxN, given int) error {
 
 // MemberArgType is the error for a core member's argument of the wrong type (13.11, H2423): the member
 // is written as the program writes it (.TR_split), expected and given are the types in the message's
-// language. The checker gives it before the program runs.
-func MemberArgType(k codes.Code, order int, expected, given any) error {
-	return messages.New(messages.H2423, memberCode(k), order, expected, given, "")
+// language, hint the checker's hint for the value (H1130: an unopened optional value) or "". The checker
+// gives it before the program runs.
+func MemberArgType(k codes.Code, order int, expected, given, hint any) error {
+	return messages.New(messages.H2423, memberCode(k), order, expected, given, hint)
 }
 
 // memberCode is a member as the program writes it, without its receiver: .TR_sort.
