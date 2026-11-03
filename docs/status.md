@@ -824,8 +824,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.24
 
-- **Mevcut durum (T1 dilim 2):** `TR_attention` `TR_Bool` maskeyi alıyor (içeride float32), kitaplığın maskeleri `TR_Bool`; ondalık 0/1 maske de geçiyor: sıfırdan farklı her değer "bak" sayılıyor, PyTorch alışkanlığıyla toplanan −∞ maske (`[[0.0, -TR_inf], [-TR_inf, -TR_inf]]`) hatasız ters anlaşılıyor, −∞ yazılan yere bakılıyor [ölçüldü: DENETİM istek 61, `30b44b01`]. Tam sayı verisinden kurulan maske (`TR_Tensor([[1, 1, 0]])`, cins veriden `TR_Int`) H6960 veriyor (T1 bulgu 1) [ölçüldü: T1].
-- **Yapılacaklar (A, Ö0, Kol B S-kilitten sonra; ölçüldü 30b44b01):** maske yalnız `TR_Tensor[TR_Bool]`; ondalık ve tam sayı maskenin denetim hatası, ileti `m != 0`'ı önerir. T1'in sorusu (maske hangi cinsleri alır) dil tanımında cevaplı: 15.24 yalnız `TR_Bool` diyor, uygulama ona uyar (TCB, 2026-11-02).
+- **Mevcut durum:** `TR_mask:` yalnız `TR_Tensor[TR_Bool]`; ondalık, tam sayı, −∞ ve liste maske H6985, ileti 0/1 maskede `m != 0`'ı, −∞ maskede `m == 0`'ı önerir [test: TR testi "15.24 dikkatin maskesi yalnız TR_Bool: …"]. Hata çalışma anında: denetleyici tensörün cinsini bilmiyor (`TR_Tensor[TR_Float]` tipli değişken de `TR_Tensor`) [ölçüldü: T1 `claude/kolB-o0-3`, 9 yazım].
+- **Yapılacaklar:** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
 - **Gemini 15/2 (2026-10-29), uygulanacak:** tamamen −∞ sapmalı satır 0 verir; CPU ve GPU (T2). CPU'da tamamen maskeli `TR_Bool` satırı zaten `[0.0, 0.0, 0.0, 0.0]` [ölçüldü: DENETİM istek 61, `30b44b01`]; GPU ölçülmedi.
 
 ### 15.27

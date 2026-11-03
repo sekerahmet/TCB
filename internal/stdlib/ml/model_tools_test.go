@@ -171,6 +171,7 @@ TR_print(TR_attention(q, k, v, TR_mask: TR_none).TR_shape)
 		{"TR_attention(TR_zeros([2, 4, 2]), TR_zeros([2, 4, 2]), TR_zeros([3, 4, 2]))", messages.H6331},
 		{"TR_attention(TR_zeros([1, 2, 4, 2]), TR_zeros([2, 2, 4, 2]), TR_zeros([2, 2, 4, 2]))", messages.H6329},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_mask: TR_ones([3, 4]) != 0)", messages.H6335},
+		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_mask: TR_ones([4, 4]))", messages.H6985},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_window: -1)", messages.H6326},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_scale: 2)", messages.H7901},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]))", messages.H6321},

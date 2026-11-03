@@ -185,12 +185,19 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 		if err := checkMask(fn, mt, q, k); err != nil {
 			return nil, err
 		}
-		if mt.Elem() == tensor.ElemBool {
-			// TR_Bool maske (15.24) çekirdeğe 0/1 float32 olarak girer. Ondalık maske de bugün
-			// geçer; maskenin hangi cinsleri alacağı açık bir tasarım sorusudur (DEVİR).
-			if mt, err = safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r }); err != nil {
-				return nil, err
+		// Maske yalnız TR_Bool'dur (15.24): sayı maskesinin anlamı (1 mi bakılır, −∞ mu toplanır)
+		// alışkanlığa göre tersine döner. Denetleyici tensörün cinsini bilmediği için (değişkenin tipi
+		// TR_Tensor[TR_Float] yazılsa da TR_Tensor) hata çalışma anındadır; TR_Bool maske çekirdeğe
+		// 0/1 float32 olarak girer.
+		if mt.Elem() != tensor.ElemBool {
+			kind := "float"
+			if mt.Elem() == tensor.ElemInt {
+				kind = "int"
 			}
+			return nil, messages.New(messages.H6985, fn, kind)
+		}
+		if mt, err = safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r }); err != nil {
+			return nil, err
 		}
 		opt.Mask = mt
 	}

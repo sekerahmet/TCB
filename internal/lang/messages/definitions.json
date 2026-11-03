@@ -1362,6 +1362,7 @@
 "H6982": { "param": ["fn", "shape", "given"], "slots": {"Tensor": "TR_type_Tensor", "Int": "TR_type_Int"} },
 "H6983": { "param": ["fn", "dtype"], "slots": {"Tensor": "TR_type_Tensor", "Int": "TR_type_Int", "cross_entropy": "TR_fn_cross_entropy"} },
 "H6984": { "param": ["fn"], "slots": {"Tensor": "TR_type_Tensor", "Int": "TR_type_Int", "Float": "TR_type_Float"} },
+"H6985": { "param": ["fn", "kind"], "slots": {"mask": "TR_arg_mask", "Tensor": "TR_type_Tensor", "Bool": "TR_type_Bool", "true": "TR_kw_true"} },
 "H7000": { "param": ["fn", "text", "given"] },
 "H7001": { "param": ["error"] },
 "H7003": { "param": ["fn", "path"] },

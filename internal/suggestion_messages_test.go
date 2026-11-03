@@ -170,6 +170,11 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var z = TR_zeros([2, 3])\nTR_var h = TR_Tensor([[0, 1, 0], [1, 0, 0]])\nTR_print(TR_cross_entropy(z, TR_argmax(h, TR_dim: -1)).TR_tolist)", "1.0986123\n"},
 	{messages.H6312, "TR_var z = TR_zeros([2, 3])\nTR_var h = TR_Tensor([[0, 1, 0], [1, 0, 0]])\nTR_print(TR_cross_entropy(z, h).TR_tolist)", "TR_Tensor[TR_Float](h)",
 		"TR_var z = TR_zeros([2, 3])\nTR_var h = TR_Tensor([[0, 1, 0], [1, 0, 0]])\nTR_print(TR_cross_entropy(z, TR_Tensor[TR_Float](h)).TR_tolist)", "1.0986123\n"},
+	// 15.24: dikkatin maskesi TR_Bool (H6985'in iki önerisi).
+	{messages.H6985, "TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m).TR_shape)", "m != 0",
+		"TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m != 0).TR_shape)", "[2, 2]\n"},
+	{messages.H6985, "TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[0.0, -TR_inf], [0.0, 0.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m).TR_shape)", "m == 0",
+		"TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[0.0, -TR_inf], [0.0, 0.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m == 0).TR_shape)", "[2, 2]\n"},
 	{messages.H6970, "TR_print(TR_zeros[\"int\"]([2]).TR_tolist)", "TR_zeros[TR_Int]",
 		"TR_print(TR_zeros[TR_Int]([2]).TR_tolist)", "[0, 0]\n"},
 	{messages.H6971, "TR_print(TR_Tensor[TR_String]([1]).TR_tolist)", "TR_Tensor[TR_Int](...)",

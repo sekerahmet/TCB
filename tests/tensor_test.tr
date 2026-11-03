@@ -1106,6 +1106,30 @@ TR_test "15.18 indirgemelerde boyutu_koru" {
     TR_assert_equal("H6218", TR_error_code { TR_sum([1, 2], TR_keepdim: TR_true) })
 }
 
+TR_test "15.24 dikkatin maskesi yalnız TR_Bool: ondalık, tam sayı ve −∞ maske hatadır" {
+    TR_var q = TR_randn([3, 2], TR_seed: 1)
+    TR_var k = TR_randn([3, 2], TR_seed: 2)
+    TR_var v = TR_randn([3, 2], TR_seed: 3)
+    TR_var nedensel = TR_attention(q, k, v, TR_causal: TR_true)
+    TR_var b = TR_Tensor([[TR_true, TR_false, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: b) - nedensel)).TR_tolist < 0.000001, "TR_Bool maske nedensellikle aynı")
+    # Sayı maskesinin anlamı alışkanlığa göre tersine döner: üçü de hatadır (cins çalışmada belli).
+    TR_var ondalık = TR_Tensor([[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])
+    TR_var tam = TR_Tensor([[1, 0, 0], [1, 1, 0], [1, 1, 1]])
+    TR_var eksi = TR_Tensor([[0.0, -TR_inf, -TR_inf], [0.0, 0.0, -TR_inf], [0.0, 0.0, 0.0]])
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: ondalık) })
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: tam) })
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: eksi) })
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]]) })
+    # İletinin iki önerisi: 0/1 maskede m != 0, −∞ maskede m == 0; ikisi de aynı sonucu verir.
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: ondalık != 0) - nedensel)).TR_tolist < 0.000001)
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: tam != 0) - nedensel)).TR_tolist < 0.000001)
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: eksi == 0) - nedensel)).TR_tolist < 0.000001)
+    # Hiçbir anahtara bakamayan satır 0 verir.
+    TR_var hiç = TR_Tensor([[TR_false, TR_false, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])
+    TR_assert_equal([0.0, 0.0], TR_attention(q, k, v, TR_causal: TR_false, TR_mask: hiç)[0].TR_tolist)
+}
+
 TR_test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
     TR_var nan = TR_Float("nan")
     TR_var k_satırı = (k: TR_Tensor) => TR_is_finite(k.TR_grad).TR_tolist

@@ -359,7 +359,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Hiçbir anahtara bakamayan satırın çıktısı 0'dır. Puanları NaN olan satırın çıktısı ve gradyanı NaN'dır; maskeli satırın 0'ıyla karışmaz. Maskelenen anahtardaki NaN satıra sızmaz.
 - Hesap tek bir türev düğümüdür; `Tq × Tk` matris tutulmaz (bellek uzunlukla doğrusaldır), pencere ve nedensellik dışındaki bloklar hesaplanmaz, geri yayılım puanları yeniden hesaplar. Bir cihaz bu düzeni doğrudan hesaplayamıyorsa girdiler içeride görünümle çevrilir; sonuç aynıdır. `TR_mixed_precision` bloğunda `@` gibidir (15.4).
 - Bilinmeyen adlı argüman (`TR_scale:`) hatadır; şekil hatalarının iletisi şekilleri söyler.
-- *Test:* TR testi.
+- *Test:* TR testi ("15.24 dikkatin maskesi yalnız TR_Bool: ondalık, tam sayı ve −∞ maske hatadır").
 
 **15.25** `TR_linear_cross_entropy(x, w, hedef)` `TR_cross_entropy(x @ w, hedef)` ile aynı kaybı ve gradyanları verir (float32 yuvarlama farkıyla), ama logit matrisini bütün olarak hiç tutmaz: büyük sözlüklü dil modelinin çıkış katmanı içindir.
 - `x` `[..., D]`, `w` `[D, sınıf]` (`x @ W` düzeni); paylaşımlı gömmede `tablo.TR_transpose()` (görünüm) verilir. Şekiller uymazsa ileti iki şekli söyler.
