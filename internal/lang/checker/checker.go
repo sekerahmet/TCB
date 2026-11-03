@@ -437,6 +437,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 func (c *Checker) comparisonType(e *ast.InfixExpression, left, right string) string {
 	c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
 	c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
+	c.checkEqualityTypes(e, left, right)   // 4.5 (equality_types.go)
 	if left != typeNull && right != typeNull && (baseType(left) == typeTensor || baseType(right) == typeTensor) {
 		return typeTensor
 	}

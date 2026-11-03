@@ -186,6 +186,7 @@
 "H1138": "'+' joins two lists of the same type (4.10); {left} and {right} cannot be joined",
 "H1139": "the elements of {list} are shared by reference (3.6): repeated with `*`, every row is the same element and changing one changes all (4.10); {suggestion, select, empty {build each row separately, for example with a comprehension} other {build each row separately: `{suggestion}`}}",
 "H1140": "the keys of {container} have type {key}: a key of type {given} is neither read nor written (3.7)",
+"H1141": "'{op}' compares two values of the same type (4.5): {left} and {right} are different types, so the result would always be the same",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",
