@@ -183,6 +183,21 @@ TR_test "13.1 TR_std örneklem sapmasıdır: n−1'e böler, iki geçişlidir, i
     TR_assert_equal("H2505", TR_error_code { TR_std([]) })
 }
 
+TR_test "13.1 ondalık toplam soldan sağa telafilidir (Neumaier); TR_mean ve TR_std aynı toplamı kullanır" {
+    TR_assert_equal(1.0, TR_sum([1e16, 1.0, -1e16]))
+    TR_assert_equal(1.0, TR_sum([1.0, 1e16, -1e16]))
+    TR_assert_equal(2.0, TR_sum([1, 1e16, 1.0, -1e16]))
+    TR_assert_equal(1.0 / 3.0, TR_mean([1e16, 1.0, -1e16]))
+    TR_assert_equal(1e16, TR_std([1e16, 1.0, -1e16]))
+    # Sonlu olmayan öğede IEEE 754 gibi.
+    TR_assert_equal(TR_inf, TR_sum([1.0, TR_inf]))
+    TR_assert(TR_not TR_is_finite(TR_sum([TR_inf, -TR_inf])) TR_and TR_sum([TR_inf, -TR_inf]) != TR_sum([TR_inf, -TR_inf]))
+    TR_assert(TR_mean([1.0, TR_nan]) != TR_mean([1.0, TR_nan]))
+    # Tam sayı listesinin toplamı tamdır, değişmez.
+    TR_assert_equal(6, TR_sum([1, 2, 3]))
+    TR_assert_equal(0, TR_sum([]))
+}
+
 TR_test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {
     TR_assert_equal("H2427", TR_error_code { TR_print("a", ayraç: "-") })
     TR_assert_equal("H2427", TR_error_code { "a b".TR_split(TR_dim: 1) })

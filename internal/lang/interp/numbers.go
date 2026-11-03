@@ -103,17 +103,18 @@ func isNumber(v Value) bool {
 }
 
 // sumNumbers bir listenin elemanlarını işleçlerle aynı kuralla toplar: hepsi Tam ise sonuç
-// Tam'dır ve taşma hata verir; bir Ondalık varsa sonuç Ondalık'tır. Sayı olmayan eleman
-// hatadır. ad hata mesajındaki yerleşiğin adıdır.
+// Tam'dır ve taşma hata verir; bir Ondalık varsa sonuç Ondalık'tır, ilk Ondalık'tan önceki
+// Tam'ların toplamından başlayıp soldan sağa telafili toplanır (compensated, 13.1). Sayı olmayan
+// eleman hatadır. ad hata mesajındaki yerleşiğin adıdır.
 func sumNumbers(name any, elems []Value) (Value, error) {
 	var intNum int64
-	var float float64
+	var float compensated
 	hasFloat := false
 	for i, el := range elems {
 		switch x := el.(type) {
 		case *IntVal:
 			if hasFloat {
-				float += float64(x.Val)
+				float.add(float64(x.Val))
 				continue
 			}
 			s := intNum + x.Val
@@ -124,17 +125,41 @@ func sumNumbers(name any, elems []Value) (Value, error) {
 		case *FloatVal:
 			if !hasFloat {
 				hasFloat = true
-				float = float64(intNum)
+				float.add(float64(intNum))
 			}
-			float += x.Val
+			float.add(x.Val)
 		default:
 			return nil, ListElementError(name, i, numberType, el)
 		}
 	}
 	if hasFloat {
-		return &FloatVal{Val: float}, nil
+		return &FloatVal{Val: float.value()}, nil
 	}
 	return NewInt(intNum), nil
+}
+
+// compensated ondalık toplamın birikimidir (13.1): soldan sağa, Neumaier'in telafisiyle; her
+// toplamanın yuvarlama hatası ayrıca biriktirilip sonda eklenir, sonuç öğelerin sırasından az
+// etkilenir ([1e16, 1.0, -1e16] → 1.0). Çarpma yoktur: FMA'ya birleşecek işlem yok. Ara toplam
+// sonlu değilse (TR_inf, TR_nan, taşma) sonuç düz toplamdır, IEEE 754 gibi ([1.0, inf] → inf,
+// [inf, -inf] → nan).
+type compensated struct{ sum, err float64 }
+
+func (s *compensated) add(x float64) {
+	t := s.sum + x
+	if math.Abs(s.sum) >= math.Abs(x) {
+		s.err += (s.sum - t) + x
+	} else {
+		s.err += (x - t) + s.sum
+	}
+	s.sum = t
+}
+
+func (s *compensated) value() float64 {
+	if math.IsInf(s.sum, 0) || math.IsNaN(s.sum) {
+		return s.sum
+	}
+	return s.sum + s.err
 }
 
 // ListElementError reports that element i (0-based) of a list has the wrong type.
