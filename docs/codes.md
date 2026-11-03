@@ -3870,14 +3870,14 @@ Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_weight_decay:`, `
 [..., H, Tq, Tk] şekline yayınlanabilen 0/1 tensörüdür; sıfırdan farklı yerlere bakılır. Türev izlemez; varsayılan yok'tur.
 
 ```tr
-TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).TR_shape)
+TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[TR_true, TR_true, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])).TR_shape)
 ```
 
 Görünümü:
 
 ```text
-en: var q = randn([3, 4], seed: 1); print(attention(q, q, q, causal: false, mask: Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).shape)
-tr: değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).şekil)
+en: var q = randn([3, 4], seed: 1); print(attention(q, q, q, causal: false, mask: Tensor([[true, true, false], [true, true, false], [true, true, true]])).shape)
+tr: değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[doğru, doğru, yanlış], [doğru, doğru, yanlış], [doğru, doğru, doğru]])).şekil)
 ```
 
 Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`

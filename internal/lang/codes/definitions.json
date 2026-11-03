@@ -277,7 +277,7 @@
   "TR_arg_log": { "kind": "named_argument", "related": ["TR_type_Logger"], "example": "TR_var g = TR_Logger(\"kayit/ilerleme.jsonl\"); TR_var ç = TR_Progress(2, TR_log: g); ç.TR_update({\"kayıp\": 0.9}); ç.TR_update({\"kayıp\": 0.7})" },
   "TR_arg_loss": { "kind": "named_argument", "module": "tr/training" },
   "TR_arg_lr": { "kind": "named_argument", "related": ["TR_arg_weight_decay", "TR_mem_lr"], "familiar": ["lr", "learning_rate"], "example": "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var opt = TR_SGD([w], TR_lr: 0.5); TR_backward(TR_sum(w * w)); opt.TR_step(); TR_print(w.TR_tolist)" },
-  "TR_arg_mask": { "kind": "named_argument", "related": ["TR_arg_causal"], "example": "TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).TR_shape)" },
+  "TR_arg_mask": { "kind": "named_argument", "related": ["TR_arg_causal"], "example": "TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[TR_true, TR_true, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])).TR_shape)" },
   "TR_arg_master_weights": { "kind": "named_argument", "example": "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true, TR_dtype: \"bf16\"); TR_var opt = TR_AdamW([w], TR_master_weights: TR_true); TR_backward(TR_sum(w * w)); opt.TR_step(); TR_print(w.TR_tolist)" },
   "TR_arg_max": { "kind": "named_argument", "related": ["TR_arg_min"], "familiar": ["max"], "example": "TR_var w = TR_Tensor([3.0, 4.0], TR_requires_grad: TR_true); TR_backward(TR_sum(w * w)); TR_print(TR_clip_grad([w], TR_max: 0.5))" },
   "TR_arg_max_new_tokens": { "kind": "named_argument", "module": "tr/layers" },
