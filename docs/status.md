@@ -23,7 +23,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 
 **Ö0, sırayla:**
 1. 16.2 ve 16.3 (parçalayıcı; Jarvis'in ön koşulu): ilk boşalan kolun sonraki dilimi.
-2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. FMA'sız yol (C) bu dilime girmez.
+2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. FMA'sız yol (C) bu dilime girmez. Hemen ardından aynı kolda `TR_max` ve `TR_round`'un dört sessiz yanlışı (status 13.1, DENETİM istek 71).
 3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce.
 
 **Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5. 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1'in dilimi: 8.5'in işletim sistemi hatası. Kol B: 20.11, 15.27a, 15.33, 15.45.
