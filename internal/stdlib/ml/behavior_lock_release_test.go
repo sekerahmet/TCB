@@ -195,30 +195,42 @@ func longCallSize(t *testing.T, device string) int {
 	return 0
 }
 
-// reportLockWaits yükü gözcüyle ve 100 Hz döngüyle birer kez çalıştırır, ölçümü yazar.
+// reportLockWaits yükü gözcüyle ve 100 Hz döngüyle birer kez çalıştırır, ölçümü yazar. Uzun
+// yükte tek çağrı yük sırasında (yük / kez) da longCall'dan uzun sürmelidir: başka görev canlıyken
+// işçi yarıya iner ve çağrı kalibrasyondakinden kısalabilir (DENETİM istek 69 Ş1). Kısa kalırsa
+// boyut 256 büyür ve iki ölçüm yinelenir; yalnız koşulu sağlayan ölçüm yazılır.
 func reportLockWaits(t *testing.T, w lockWork) {
 	t.Helper()
-	p, load := runLockLoad(t, w, sleeper)
-	waits, overs := p.inLoad()
-	if len(waits) == 0 {
-		t.Fatalf("%s: yük %s sürdü, gözcü yük sırasında hiç uyanmadı", w, ms(load))
-	}
-	med, p99, worst := waitStats(waits)
-	_, _, overWorst := waitStats(overs)
-	t.Logf("%s, gözcü: yük %s, %d uyanış; kilidi geri alma ortanca %s, %%99 %s, en büyük %s; uyku aşımının en büyüğü %s; çakışma beklemesi %d",
-		w, ms(load), len(waits), ms(med), ms(p99), ms(worst), ms(overWorst), p.gateWaits)
-
-	p, load = runLockLoad(t, w, looper())
-	turns, _ := p.inLoad()
-	missed := 0
-	for _, late := range turns {
-		if late > 10*time.Millisecond {
-			missed++
+	for ; w.size <= 16384; w.size += 256 {
+		p, load := runLockLoad(t, w, sleeper)
+		q, loopLoad := runLockLoad(t, w, looper())
+		call, loopCall := load/time.Duration(w.count), loopLoad/time.Duration(w.count)
+		if w.count != 60 && min(call, loopCall) < longCall {
+			t.Logf("%s: yük sırasında tek çağrı %s ve %s (< %s), boyut büyüyor", w, ms(call), ms(loopCall), ms(longCall))
+			continue
 		}
+		waits, overs := p.inLoad()
+		if len(waits) == 0 {
+			t.Fatalf("%s: yük %s sürdü, gözcü yük sırasında hiç uyanmadı", w, ms(load))
+		}
+		med, p99, worst := waitStats(waits)
+		_, _, overWorst := waitStats(overs)
+		t.Logf("%s, gözcü: yük %s, %d uyanış; kilidi geri alma ortanca %s, %%99 %s, en büyük %s; uyku aşımının en büyüğü %s; çakışma beklemesi %d; tek çağrı %s",
+			w, ms(load), len(waits), ms(med), ms(p99), ms(worst), ms(overWorst), p.gateWaits, ms(call))
+
+		turns, _ := q.inLoad()
+		missed := 0
+		for _, late := range turns {
+			if late > 10*time.Millisecond {
+				missed++
+			}
+		}
+		_, _, worst = waitStats(append(turns, 0))
+		t.Logf("%s, 100 Hz: yük %s, %d tur, kaçan %d; en geç başlangıç pencere başından %s sonra; çakışma beklemesi %d; tek çağrı %s",
+			w, ms(loopLoad), len(turns), missed, ms(worst), q.gateWaits, ms(loopCall))
+		return
 	}
-	_, _, worst = waitStats(append(turns, 0))
-	t.Logf("%s, 100 Hz: yük %s, %d tur, kaçan %d; en geç başlangıç pencere başından %s sonra; çakışma beklemesi %d",
-		w, ms(load), len(turns), missed, ms(worst), p.gateWaits)
+	t.Fatalf("%s: 16384×16384'te bile yük sırasında tek çağrı %s'den kısa", w.device, ms(longCall))
 }
 
 // Kural (10.2, S-kilit, izin): kilitsiz bir `@` sürerken başka görev girdisine yerinde yazarsa
