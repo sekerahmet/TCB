@@ -17,8 +17,8 @@ import (
 // Kontrol noktası dosya biçimi (sürüm 4; sürüm 3 de okunur). Dosya ve klasör adları, JSON anahtarları ve kayıt
 // türleri dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3); değeri bir dil öğesi
 // olan alan (iyileştiricinin adı) kodunu taşır. Sürüm 4 modelin donmuş parametrelerini (15.34,
-// 20.4) yazar; sürüm 3 dosyasında bu alan yoktur ve hiçbir parametre donmuş değil okunur (sürüm 3
-// yazılırken dondurma yoktu). Daha eski sürümler okunmaz. Dosyalar güvenilmeyen
+// 20.4) yazar; sürüm 3 dosyasında bu alan yoktur: nokta donma durumunu kaydetmemiştir, yükleme ve
+// geri dönüş programın kurduğu donma durumunu değiştirmez. Daha eski sürümler okunmaz. Dosyalar güvenilmeyen
 // girdidir (başkasından gelen ya da yarım kopyalanmış bir koşu klasörü): her dosyanın boyu
 // sınırlıdır, JSON katı çözülür (bilinmeyen alan, fazladan veri hata), sürüm, adım ve dosya
 // adları birbiriyle karşılaştırılır, her dosyanın SHA-256 özeti tutmalıdır. Biçimde yalnızca
@@ -27,6 +27,7 @@ import (
 const (
 	formatVersion = 4 // yazılan sürüm
 	oldestVersion = 3 // okunan en eski sürüm (donma durumu yok)
+	frozenVersion = 4 // donma durumunu kaydeden ilk sürüm
 
 	dirName    = "checkpoints" // <koşu>/checkpoints/
 	latestFile = "latest.json" // en son kaydedilen noktayı gösterir (araçlar için)
