@@ -97,7 +97,7 @@ func (x *goExtractor) pathCall(fc *fileCtx, owner string, call *ast.CallExpr) {
 		parts = append(parts, s)
 		x.consumed[lit] = true
 	}
-	if len(parts) == 1 && !strings.Contains(parts[0], "/") && x.rootPathCall(fc, call) {
+	if start == 0 && len(parts) == 1 && !strings.Contains(parts[0], "/") && x.rootPathCall(fc, call) {
 		x.addRootRef(fc, owner, call.Pos(), parts[0], nil)
 		return
 	}
