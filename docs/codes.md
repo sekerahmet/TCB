@@ -4698,7 +4698,7 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 
 #### `.TR_decode(...)` (`TR_mem_decode`, `çöz`)
 
-    Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin | Liste
+    Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin
 
 Tek bir parça kimliği dizisini (kimlik listesi ya da 1 boyutlu tensör) metne geri çevirir; birden çok dizi için toplu_çöz. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar. Dağarcıkta olmayan kimlik hatadır.
 
@@ -4713,7 +4713,7 @@ en: var p = load_tokenizer("tests/data/tokenizer.json"); print(p.decode(p.encode
 tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p.çöz(p.kodla("Merhaba dünya!")))
 ```
 
-İlişkili: `.TR_encode(...)`
+İlişkili: `.TR_encode(...)`, `.TR_batch_decode(...)`
 
 #### `.TR_device` (`TR_mem_device`, `cihaz`)
 

@@ -68,6 +68,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 - **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi. Denetim: onay (satırlar bir kaymış: `other_os.go:43`). **Bekliyor: çekirdek değişikliği** (işleç alanlarının `lexer.TokenType` olması); CODEGRAPH'a gitmedi.
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu. Beklenen: yalnız işleci kastedenler; tip süzgeci, AST'nin işleç alanları `TokenType` olduktan sonra.
 - **`tests-for` izlenmeyen dosyayı söylemiyor (2026-11-03, D1'in 4a4'ü).** `TestNegativeFixtures` yalnız git'in izlediği fikstürleri görüyor (`reporoot.Glob`); `codegraph tests-for tests/negative/<yeni>.tr` bunu söylemiyor ve yeni fikstürün bozma denetimi `git add`'den önce yanlışlıkla geçti [ölçüldü: D1, 2(a)].
+  - Aynı sınıf (2026-11-03, T1'in 16.3'ü): `TestMessageUsage` izlenmeyen yeni dosyadaki ileti kullanımını görmüyor; `git add`'den önce H5632–H5646 "kullanılmayan" çıktı [ölçüldü: T1].
   - Beklenen: izlenmeyen dosyada "bu dosya izlenmiyor, depo testleri onu görmez" uyarısı.
   - Sınıf: ince ayar (yanlış test sonucuna güvenmeye götürüyor; ön denetim `git add`'den sonra yakalıyor).
 - **Düzenleme kancasında `tests-for`'un "derlenmiyor" uyarısı test listesinin altında kalıyor (2026-11-03, D1'in 4a4'ü).** Araç derlenmeyen ağaçta eski grafiği verip uyarıyor (doğru davranış), ama kancanın çıktısı derleme hatası satırlarıyla aynı blokta uzun bir test listesi döküyor; asıl bilgi gözden kaçabiliyor.
@@ -83,6 +84,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
   - Beklenen: fonksiyon kapsamındaki tip ve metotları da düğüm alır (ya da kapsam testi onları ayrı sayar).
   - Sınıf: ince ayar.
 - **`changed --go-tests` kod listesini tarayan testleri seçmiyor (2026-11-03, D1'in 13.1'i).** `internal/lang/codes/definitions.json`, `tr.json` ve `en.json`'un değiştiği commit'te (`--taban=86c71f08`) ön denetimin "değişen dosyaları koruyan testler" adımı `internal/devtools/testrunner.TestIdentityExceptionsAreNotStale`'i seçmedi; ön denetim ✅ verdi, test geniş koşuda düştü [ölçüldü: D1].
+  - Aynı sınıf (2026-11-03, T1'in 16.3'ü): yeni noktalı üye yazımı ekleyen `.tr` değişikliğinde `tools/codegraph.TestDottedMemberSpellingsGolden` seçilmiyor. Komut: `go run ./tools/edithook codegraph changed --go-tests --base c43a8a5e 227b5471` → 738 satır, altın testlerden yalnız `codeindex.TestCommandOutputGolden` ve `TestRenameImpactGolden` [ölçüldü: TCB]; test adım 4'ün ön denetiminde düştü [ölçüldü: T1]. 2026-11-03'te bu altın iki L4 tam denetimini düşürdü [ölçüldü: Colab defteri, 10:38 ve 11:34 koşuları].
   - Beklenen: kod tanımları değişince kod listesini tarayan testler (istisna listeleri, `TestExamplesCoverNames`, `TestEveryCodeHasDescription`) seçilir; `tests-for internal/lang/codes/definitions.json` onları listeler.
   - Sınıf: ince ayar (ön denetimi zayıflatıyor; tam denetim yakalıyor).
 

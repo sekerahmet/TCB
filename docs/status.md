@@ -981,7 +981,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 ### 16.3a
 
 - **Mevcut durum:** uygulanmadı; akışlı çözme yok, `p.TR_decode` yarım karakterde U+FFFD veriyor [ölçüldü: 2026-11-02, main `705b721b`].
-- **Yapılacaklar:** `TR_DecodeStream`, `.TR_step`, `.TR_finish`; birleşimin toplu çözümle aynı olduğunu sınayan TR testi (bayt düzeyi ve baştaki boşluklu çözücüde).
+- **Yapılacaklar:** `TR_DecodeStream`, `.TR_step`, `.TR_finish`; birleşimin toplu çözümle aynı olduğunu sınayan TR testi (bayt düzeyi ve baştaki boşluklu çözücüde). Dağarcıkta olmayan kimlik akışta da 16.3'teki gibi hata: `.TR_decode`'un denetimi akışa da girer [kanıtlı: T1 16.3 devri].
 
 ### 16.4
 
