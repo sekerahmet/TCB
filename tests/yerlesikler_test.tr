@@ -66,6 +66,17 @@ TR_test "13.1 TR_round(x) TR_Int verir, TR_round(x, basamak) girdinin tipini ver
     TR_assert_equal("H2627", TR_error_code { TR_round(1.7e308, -308) })
 }
 
+TR_test "13.1 yarım çifte gider; basamaklı yuvarlama yazılan ondalık metne göredir" {
+    TR_assert_equal("2 -2 0 4", "\(TR_round(2.5)) \(TR_round(-2.5)) \(TR_round(0.5)) \(TR_round(3.5))")
+    TR_assert_equal("2.0 4.0 -2.0", "\(TR_round(2.5, 0)) \(TR_round(3.5, 0)) \(TR_round(-2.5, 0))")
+    # Yazılan metinde 0.125 ve 2.675 tam yarımdır: 2 çift (0.12), 7 tek (2.68); Python ikili değere göre 2.67 verir.
+    TR_assert_equal("0.12 2.68 0.38 1.0", "\(TR_round(0.125, 2)) \(TR_round(2.675, 2)) \(TR_round(0.375, 2)) \(TR_round(1.005, 2))")
+    TR_assert_equal("1200 1400 -1200 1300", "\(TR_round(1250, -2)) \(TR_round(1350, -2)) \(TR_round(-1250, -2)) \(TR_round(1251, -2))")
+    TR_assert_equal("1200.0 1400.0 -0.0", "\(TR_round(1250.0, -2)) \(TR_round(1350.0, -2)) \(TR_round(-0.4, 0))")
+    TR_assert_equal(0, TR_round(5000000000000000000, -19))
+    TR_assert_equal("1000.0 10.0 0.0 5e-324", "\(TR_round(999.96, 1)) \(TR_round(9.5, 0)) \(TR_round(5e-324, 323)) \(TR_round(5e-324, 324))")
+}
+
 TR_test "13.10 yalnız değer veren yerleşik yeni değer döndürür, alıcısını değiştirmez" {
     TR_var l = [3, 1, 2]
     TR_var s = l.TR_sort()

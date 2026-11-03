@@ -176,7 +176,7 @@
   "TR_fn_rms_norm": { "name": "rms_normu", "family": "sinir ağı katmanı", "description": "Girdiyi son eksende karelerinin ortalamasının köküne bölerek normalleştirir (ortalama çıkarılmaz). İsteğe bağlı ağırlık [D] şeklinde olmalıdır; epsilon varsayılanı 0.00001'dir." },
   "TR_fn_rope_theta": { "name": "rope_tabanı", "family": "kitaplık: tr/pretrained", "description": "" },
   "TR_fn_rotary_table": { "name": "döner_konum_tablosu", "family": "kitaplık: tr/layers", "description": "" },
-  "TR_fn_round": { "name": "yuvarla", "family": "matematik", "description": "Sayıyı en yakına yuvarlar (yarımlar sıfırdan uzağa); basamaksız Tam, basamakla girdinin tipini verir." },
+  "TR_fn_round": { "name": "yuvarla", "family": "matematik", "description": "Sayıyı en yakına yuvarlar, yarım çifte gider; basamaksız Tam, basamakla girdinin tipini verir." },
   "TR_fn_sample": { "name": "örnekle", "family": "dil modeli", "description": "Son eksendeki softmax(logit / sıcaklık) dağılımından bir indeks örnekler; sonuç tam sayılı ve türev izlemeyen bir tensördür. sıcaklık 0 en olasıyı verir, en_iyi_k > 0 seçimi en olası k sınıfla sınırlar, aynı tohum aynı sonucu verir." },
   "TR_fn_save_tensors": { "name": "tensör_kaydet", "family": "kaydetme ve yükleme", "description": "Anahtarları metin, değerleri tensör olan bir sözlüğü sürüm başlıklı ikili TR tensör dosyasına yazar. Yazma atomiktir; dosya varsa üzerine yazılır ve tensörler kendi türlerinde saklanır." },
   "TR_fn_shape_groups": { "name": "şekil_grupları", "family": "kitaplık: tr/optimizers", "description": "" },

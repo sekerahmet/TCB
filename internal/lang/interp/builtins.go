@@ -149,7 +149,7 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 		if isInt {
 			return iv, nil
 		}
-		n, err := floatToInt(CallPrefix(codes.FnRound), math.Round(fv))
+		n, err := floatToInt(CallPrefix(codes.FnRound), math.RoundToEven(fv))
 		if err != nil {
 			return nil, err
 		}
