@@ -48,6 +48,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 			values[i] = c.itemType(p.Value)
 			keyExprs[i], valueExprs[i] = p.Key, p.Value
 		}
+		c.checkLiteralKeys(keyExprs, keys) // 3.7 (dict_keys.go)
 		return c.dictLiteralType(keys, values, keyExprs, valueExprs), true
 	case *ast.RangeExpression:
 		c.inferExpression(e.Start)
@@ -55,7 +56,9 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		return typeRange, true
 	case *ast.IndexExpression:
 		c.checkModuleIndex(e) // modül değeri köşeli ayraçla okunmaz ve atanmaz (11.2)
-		return indexType(c.itemType(e.Left), c.itemType(e.Index)), true
+		left, index := c.itemType(e.Left), c.itemType(e.Index)
+		c.checkDictKey(e.Index, left, index) // 3.7 (dict_keys.go)
+		return indexType(left, index), true
 	case *ast.MemberExpression:
 		obj := c.inferExpression(e.Object)
 		if t := c.memberValueType(e, obj, false); t != "" {

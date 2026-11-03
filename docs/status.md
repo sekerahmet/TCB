@@ -98,7 +98,8 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 ### 3.7
 
 - **Mevcut durum:** anahtar ifade, erişim köşeli parantezle, olmayan anahtar hata (H2647), ondalık anahtar hata (H2646) [ölçüldü]. `TR_Dict[K, V]` ayrıştırılıyor ve denetleyici anahtar ve değer tipini taşıyor: `TR_var d: TR_Dict[TR_String, TR_Int] = {"a": "b"}` denetim hatası (H1001), `{"a": 1}`'in tipi `TR_Dict[TR_String, TR_Int]`; karışık değerli sözlük öğe tipsiz [ölçüldü: main `85a19c36`, `TestCollectionElementTypes`, `TestCollectionLiteralTypes`, CLI].
-- **Yapılacaklar:** anahtar tipinin denetimi: `d[1]` (`TR_Dict[TR_String, ...]`), `d[2] = 3`, `.TR_get(5)`, ondalık anahtarlı değişmez ve `TR_Dict[TR_Float, V]` yazımı bugün çalışma hatası ya da hatasız (4a2).
+- **Mevcut durum (4a4, 2026-11-03):** anahtar tipi bilinen sözlüğü başka tipte anahtarla okumak ve ona yazmak denetim hatası (H1140: `d[1]`, `d[2] = 3`, `.TR_get(5)`, `.TR_contains(5)`; çalışma anında okuma H2647, `.TR_get` sessizce `TR_none`, `.TR_contains` `TR_false`); değerine başka tipte değer yazmak H1136 (3.6); ondalık anahtar (`{1.5: 1}`, `e[1.5]`, `TR_Dict[TR_Float, V]` yazımı) denetimde de H2646. Tipi bilinmeyen anahtar ve öğe tipsiz sözlük çalışma anında kalıyor [test: `TestDictKeyType`, `TestElementAssignType`, `tests/negative/sozluk_anahtar_tipi.tr`, `tests/negative/oge_tipi_atama.tr`].
+- **Yapılacaklar:** değerleri karışık sözlük değişmezi (3.6'nın karışık liste kuralıyla, 4a5); anahtarı anahtar olamayan tipte (liste, demette liste) yazılan `TR_Dict[K, V]`.
 
 ### 3.7a
 

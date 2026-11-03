@@ -190,6 +190,7 @@ const (
 	H1136 Code = 1136 // {container} kabının {kind, select, dict {değerleri} other {öğeleri}} {elem} tipindedir: ona {given} tipinde değer yazılmaz ({kind, select, dict {3.7} other {3.6}})
 	H1138 Code = 1138 // '+' aynı tipten iki listeyi uç uca ekler (4.10); {left} ile {right} eklenmez
 	H1139 Code = 1139 // {list} listesinin öğeleri başvuruyla paylaşılır (3.6): `*` ile yinelenince her satır aynı öğe olur, birini değiştirmek hepsini değiştirir (4.10); {suggestion, select, empty {her satırı ayrı kurun, örneğin bir üreteçle} other {her satırı ayrı kurun: `{suggestion}`}}
+	H1140 Code = 1140 // {container} sözlüğünün anahtarları {key} tipindedir: {given} tipinde anahtarla okunmaz ve yazılmaz (3.7)
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

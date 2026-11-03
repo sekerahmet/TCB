@@ -185,6 +185,7 @@
 "H1136": { "param": ["given", "container", "elem", "kind"] },
 "H1138": { "param": ["left", "right"] },
 "H1139": { "param": ["list", "suggestion"] },
+"H1140": { "param": ["given", "container", "key"] },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

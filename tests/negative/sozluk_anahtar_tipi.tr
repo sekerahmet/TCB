@@ -1,0 +1,12 @@
+# TR 4
+# TEST 3.7 anahtar tipi bilinen sözlük başka tipte anahtarla okunmaz ve yazılmaz; ondalık anahtar olmaz
+TR_var d = {"a": 1}
+TR_print(d[1]) # ERROR H1140
+d[2] = 3 # ERROR H1140
+TR_print(d.TR_get(5), d.TR_contains(5)) # ERROR H1140 H1140
+TR_var e = {(1, 2): "a"}
+e[([1], 2)] = "c" # ERROR H1140
+TR_print({1: "bir"}["1"]) # ERROR H1140
+TR_var f = {0.5: "yarım"} # ERROR H2646
+TR_var g: TR_Dict[TR_Float, TR_Int] = {} # ERROR H2646
+TR_print(e, f, g)
