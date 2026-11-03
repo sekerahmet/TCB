@@ -125,7 +125,9 @@ TR_test "4.4 sıralama zinciri Python'daki gibi okunur, ortadaki ifade bir kez h
 
 TR_test "4.5 eşitlik: sayılar tipten bağımsız, diğerleri tip + içerik" {
     TR_assert(1 == 1.0)
-    TR_assert("1" != 1)
+    # Tipi bilinmeyen değer: tipleri bilinen ayrı iki değer ("1" != 1) denetim hatasıdır (tests/negative/ayri_tip_esitligi.tr).
+    TR_var bir = ["1", 1][0]
+    TR_assert(bir != 1)
     TR_assert([1, "a"] == [1, "a"])
     TR_assert({"a": 1} == {"a": 1})
     TR_assert(TR_none == TR_none)
