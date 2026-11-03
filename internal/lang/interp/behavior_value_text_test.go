@@ -201,13 +201,14 @@ func TestDictKeysAreTextNotMembers(t *testing.T) {
 }
 
 // Programın değerden metin yaptığı her yer aynı kuralı izler: yerleştirme (metne başka tip '+'
-// ile eklenmez, 4.10), birleştir, dosya_yaz'ın içeriği, girdi'nin istemi; kitaplığın içinde de.
+// ile eklenmez, 4.10), birleştir, TR_String (dosyaya yazılan metin; TR_write_file değerin metnini
+// yazmaz, 13.1), girdi'nin istemi; kitaplığın içinde de.
 func TestEveryTextConversionIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
 		"TR_func ekle(x: TR_Bool) -> TR_String { TR_return \"a\\(x),\" + [x, TR_none].TR_join(\"/\") }\n")}})
 	out := runCoded(t, `TR_import "tr/kitap" TR_as k
 TR_print("x\(TR_true)", "\(TR_none)!", [TR_true, TR_none, TR_Int].TR_join(","), k.ekle(TR_false))
-TR_write_file("out.txt", [TR_false])
+TR_write_file("out.txt", TR_String([TR_false]))
 TR_print(TR_read_file("out.txt"))
 TR_input(TR_true)
 `, nil)

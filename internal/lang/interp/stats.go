@@ -21,24 +21,29 @@ func (v *VM) registerStats() {
 		return NumberMean(CallPrefix(codes.FnMean), elems)
 	})
 
-	// standart_sapma: sayıların popülasyon standart sapması (n'ye bölerek).
+	// standart_sapma: örneklem standart sapması (13.1), n−1'e böler; iki öğeden azda hatadır. İki
+	// geçişlidir: önce ortalama (TR_mean'inki), sonra farkların karelerinin telafili toplamı. Karenin
+	// açık dönüşümü çarpmayı toplamaya birleştirmez (FMA'sız; Go dil tanımı: açık dönüşüm hedef tipin
+	// hassasiyetine yuvarlar).
 	v.RegisterNoNamed(codes.FnStd, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		nums, err := statsNumbers(codes.FnStd, messages.H2505, args)
 		if err != nil {
 			return nil, err
 		}
-		mean := 0.0
-		for _, x := range nums {
-			mean += x
+		if len(nums) < 2 {
+			return nil, messages.New(messages.H2620, CallPrefix(codes.FnStd))
 		}
-		mean /= float64(len(nums))
-		variance := 0.0
+		elems, _, _ := statsInput(codes.FnStd, args)
+		mean, err := numberMean(CallPrefix(codes.FnStd), elems)
+		if err != nil {
+			return nil, err
+		}
+		var squares compensated
 		for _, x := range nums {
 			d := x - mean
-			variance += d * d
+			squares.add(float64(d * d))
 		}
-		variance /= float64(len(nums))
-		return &FloatVal{Val: math.Sqrt(variance)}, nil
+		return &FloatVal{Val: math.Sqrt(squares.value() / float64(len(nums)-1))}, nil
 	})
 
 	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması.

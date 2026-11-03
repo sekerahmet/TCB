@@ -80,6 +80,67 @@ TR_test "13.1a yolda sekme ya da satır sonu varsa yol alan yerleşikler ham met
     TR_assert_equal("H2489", TR_error_code { TR_Dataset("veri\tsayilar") })
 }
 
+TR_test "13.1 TR_write_file TR_String'i UTF-8, TR_Bytes'ı bayt bayt yazar; değerin metnini yazmaz" {
+    TR_var k = TR_temp_dir()
+    TR_write_file(TR_Path(k, "b.bin"), TR_Bytes([0, 255, 128]))
+    TR_assert_equal(3, TR_Path(k, "b.bin").TR_size)
+    TR_write_file(TR_Path(k, "s.txt"), TR_Bytes("şe"))
+    TR_assert_equal("şe", TR_read_file(TR_Path(k, "s.txt")))
+    TR_write_file(TR_Path(k, "bos.bin"), TR_Bytes([]))
+    TR_assert_equal(0, TR_Path(k, "bos.bin").TR_size)
+    # Tipi denetimde bilinmeyen değer: çalışma anının hatası (denetimdeki karşılığı tests/negative'de).
+    TR_assert_equal("H2423", TR_error_code { TR_write_file(TR_Path(k, "x.txt"), [5, "a"][0]) })
+    TR_assert_equal("H2423", TR_error_code { TR_write_file(TR_Path(k, "x.txt"), [[1, 2], "a"][0]) })
+    TR_assert_equal("H2423", TR_error_code { TR_write_file(TR_Path(k, "x.txt"), [TR_none, 1, "a"][0]) })
+    TR_assert_equal(TR_false, TR_Path(k, "x.txt").TR_exists)
+    # JSON değeri önce açılır (H2665 TR_String(j)'yi önerir).
+    TR_var j = TR_json_parse("\"a\"")
+    TR_assert_equal("H2665", TR_error_code { TR_write_file(TR_Path(k, "j.txt"), j) })
+    TR_write_file(TR_Path(k, "j.txt"), TR_String(j))
+    TR_assert_equal("a", TR_read_file(TR_Path(k, "j.txt")))
+    TR_write_file(TR_Path(k, "x.txt"), TR_String([1, 2]))
+    TR_assert_equal("[1, 2]", TR_read_file(TR_Path(k, "x.txt")))
+}
+
+TR_test "13.1 TR_read_bytes dosyayı TR_Bytes olarak olduğu gibi okur; .gz açılmaz" {
+    TR_var k = TR_temp_dir()
+    # Uçtan uca: TR_write_file'ın yazdığı bayt dizisi aynen döner (bütün bayt değerleri).
+    TR_var hepsi = TR_Bytes([i TR_for i TR_in 0..256])
+    TR_write_file(TR_Path(k, "hepsi.bin"), hepsi)
+    TR_assert_equal(hepsi, TR_read_bytes(TR_Path(k, "hepsi.bin")))
+    TR_assert_equal(256, TR_read_bytes(TR_String(TR_Path(k, "hepsi.bin"))).TR_length)
+    TR_write_file(TR_Path(k, "bos.bin"), TR_Bytes([]))
+    TR_assert_equal(TR_Bytes([]), TR_read_bytes(TR_Path(k, "bos.bin")))
+    # .gz açılmaz: sıkıştırılmış baytlar gelir (gzip imzası 31, 139); TR_read_file açar (18.12).
+    TR_write_file(TR_Path(k, "a.txt.gz"), "merhaba")
+    TR_assert_equal(TR_Bytes([31, 139]), TR_read_bytes(TR_Path(k, "a.txt.gz"))[0..2])
+    TR_assert_equal("merhaba", TR_read_file(TR_Path(k, "a.txt.gz")))
+    # Yol 13.1a'nın okuma sırasıyla çözülür: programın klasöründeki dosya da bulunur.
+    TR_assert_equal(TR_Bytes(TR_read_file("data/tokenizer.json")), TR_read_bytes("data/tokenizer.json"))
+    TR_assert_equal("H2132", TR_error_code { TR_read_bytes("data/olmayan_dosya.bin") })
+    TR_assert_equal("H2130", TR_error_code { TR_read_bytes("data") })
+    TR_assert_equal("H2423", TR_error_code { TR_read_bytes([5, "a"][0]) })
+}
+
+TR_test "13.1 TR_read_file geçerli UTF-8 olmayan dosyada hatadır; ileti TR_read_bytes'ı önerir" {
+    TR_var k = TR_temp_dir()
+    TR_write_file(TR_Path(k, "ikili.bin"), TR_Bytes([0, 255, 128]))
+    TR_assert_equal("H2621", TR_error_code { TR_read_file(TR_Path(k, "ikili.bin")) })
+    # Önerinin yazımı aynı dosyayı okur (iletideki yol testi: TestReadFileInvalidUTF8SuggestsReadBytesWithItsPath).
+    TR_assert_equal(TR_Bytes([0, 255, 128]), TR_read_bytes(TR_Path(k, "ikili.bin")))
+    # Yarım kalan çok baytlı karakter de geçersizdir.
+    TR_write_file(TR_Path(k, "yarim.txt"), TR_Bytes([97, 195]))
+    TR_assert_equal("H2621", TR_error_code { TR_read_file(TR_Path(k, "yarim.txt")) })
+    # .gz açılır (18.12); açılmış içerik geçersizse TR_read_bytes'ı önermeyen H2622.
+    TR_write_file(TR_Path(k, "b.gz"), TR_Bytes([255]))
+    TR_assert_equal("H2622", TR_error_code { TR_read_file(TR_Path(k, "b.gz")) })
+    # Geçerli UTF-8 (boş dosya, BOM, çok baytlı karakter) aynen okunur.
+    TR_write_file(TR_Path(k, "bos.txt"), "")
+    TR_assert_equal("", TR_read_file(TR_Path(k, "bos.txt")))
+    TR_write_file(TR_Path(k, "bom.txt"), TR_Bytes([239, 187, 191, 197, 159]))
+    TR_assert_equal("\u{feff}ş", TR_read_file(TR_Path(k, "bom.txt")))
+}
+
 TR_test "13.2 metin metotları" {
     TR_assert_equal("ISTANBUL", "istanbul".TR_upper())
     TR_assert_equal("ilik", "ILIK".TR_lower())
@@ -161,8 +222,6 @@ TR_test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
 }
 
 TR_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı olmayanda hata" {
-    TR_assert_equal(2.0, TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
-    TR_assert_equal(0.5, TR_std(1, 2))
     TR_assert_equal(2.5, TR_median([3, 1, 2, 4]))
     TR_assert_equal(2.0, TR_median(3, 1, 2))
     TR_assert_equal("H2505", TR_error_code { TR_std([]) })
@@ -170,6 +229,34 @@ TR_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı
     TR_assert_equal("H2486", TR_error_code { TR_std([1, "x"]) })
     TR_assert_equal("H2486", TR_error_code { TR_median([1, TR_none, 3]) })
     TR_assert_equal("H2011", TR_error_code { TR_median() })
+}
+
+TR_test "13.1 TR_std örneklem sapmasıdır: n−1'e böler, iki geçişlidir, iki öğeden azda hatadır" {
+    # Beklenenler dil tanımından: ortalama, farkların karelerinin toplamı, n−1'e bölüm, karekök.
+    TR_assert_equal(TR_sqrt(32.0 / 7.0), TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
+    TR_assert_equal(2.138089935299395, TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
+    TR_assert_equal(TR_sqrt(0.5), TR_std(1, 2))
+    TR_assert_equal(TR_sqrt(2.0), TR_std([1.0, 3.0]))
+    TR_assert_equal(0.0, TR_std([7, 7]))
+    TR_assert_equal(TR_Float, TR_Type(TR_std([1, 2])))
+    TR_assert_equal("H2620", TR_error_code { TR_std([1.5]) })
+    TR_assert_equal("H2620", TR_error_code { TR_std(5) })
+    TR_assert_equal("H2505", TR_error_code { TR_std([]) })
+}
+
+TR_test "13.1 ondalık toplam soldan sağa telafilidir (Neumaier); TR_mean ve TR_std aynı toplamı kullanır" {
+    TR_assert_equal(1.0, TR_sum([1e16, 1.0, -1e16]))
+    TR_assert_equal(1.0, TR_sum([1.0, 1e16, -1e16]))
+    TR_assert_equal(2.0, TR_sum([1, 1e16, 1.0, -1e16]))
+    TR_assert_equal(1.0 / 3.0, TR_mean([1e16, 1.0, -1e16]))
+    TR_assert_equal(1e16, TR_std([1e16, 1.0, -1e16]))
+    # Sonlu olmayan öğede IEEE 754 gibi.
+    TR_assert_equal(TR_inf, TR_sum([1.0, TR_inf]))
+    TR_assert(TR_not TR_is_finite(TR_sum([TR_inf, -TR_inf])) TR_and TR_sum([TR_inf, -TR_inf]) != TR_sum([TR_inf, -TR_inf]))
+    TR_assert(TR_mean([1.0, TR_nan]) != TR_mean([1.0, TR_nan]))
+    # Tam sayı listesinin toplamı tamdır, değişmez.
+    TR_assert_equal(6, TR_sum([1, 2, 3]))
+    TR_assert_equal(0, TR_sum([]))
 }
 
 TR_test "13.5 yerleşikler ve metotlar bilinmeyen adlı argümanı reddeder" {

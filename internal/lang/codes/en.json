@@ -142,6 +142,7 @@
   "TR_fn_pretrained_model": { "name": "pretrained_model" },
   "TR_fn_print": { "name": "print" },
   "TR_fn_randn": { "name": "randn" },
+  "TR_fn_read_bytes": { "name": "read_bytes" },
   "TR_fn_read_csv": { "name": "read_csv" },
   "TR_fn_read_file": { "name": "read_file" },
   "TR_fn_read_lines": { "name": "read_lines" },

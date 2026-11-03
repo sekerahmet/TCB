@@ -536,18 +536,37 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 // NumberMean returns the arithmetic mean of numbers as Ondalık; empty input and non-number
 // elements are errors (used by the ortalama(liste) builtin).
 func NumberMean(name any, elems []Value) (Value, error) {
-	if len(elems) == 0 {
-		return nil, messages.New(messages.H2477, name)
+	m, err := numberMean(name, elems)
+	if err != nil {
+		return nil, err
 	}
-	s := 0.0
+	return &FloatVal{Val: m}, nil
+}
+
+// numberMean ortalamanın kendisidir (13.1; TR_std'nin ilk geçişi de): bir Ondalık öğe varsa
+// toplam TR_sum'ınki gibi telafilidir (compensated). Yalnız Tam'lı listede toplam ondalığa
+// çevrilerek düz yapılır: tam sayı toplamının kuralı dil tanımı sorusudur (pending.md, 13.1).
+func numberMean(name any, elems []Value) (float64, error) {
+	if len(elems) == 0 {
+		return 0, messages.New(messages.H2477, name)
+	}
+	plain, hasFloat := 0.0, false
+	var s compensated
 	for i, el := range elems {
 		f, ok := ToFloat(el)
 		if !ok {
-			return nil, ListElementError(name, i, numberType, el)
+			return 0, ListElementError(name, i, numberType, el)
 		}
-		s += f
+		if _, isFloat := el.(*FloatVal); isFloat {
+			hasFloat = true
+		}
+		plain += f
+		s.add(f)
 	}
-	return &FloatVal{Val: s / float64(len(elems))}, nil
+	if hasFloat {
+		return s.value() / float64(len(elems)), nil
+	}
+	return plain / float64(len(elems)), nil
 }
 
 // resolveIndex indeksi çözer: negatif indeks sondan sayar; aralık dışıysa ok=false.

@@ -1,0 +1,10 @@
+# TR 4
+# TEST 13.1 TR_write_file yalnız TR_String ve TR_Bytes yazar; tipi bilinen başka değer denetim hatasıdır, çalışma anının koduyla
+TR_write_file("a.txt", 5) # ERROR H2423
+TR_write_file("a.txt", [1, 2]) # ERROR H2423
+TR_write_file("a.txt", 1.5) # ERROR H2423
+TR_var l: TR_List[TR_String] = []
+TR_write_file("a.txt", l.TR_first) # ERROR H2423
+TR_write_file("a.txt", "metin")
+TR_write_file("a.txt", TR_Bytes([1, 2]))
+TR_write_file("a.txt", TR_String(5))

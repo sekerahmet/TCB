@@ -13,7 +13,7 @@ TR_print(TR_abs(-5), TR_abs(-2.5), TR_sign(-4), TR_sign(0.0), TR_sign(9))
 TR_print(TR_floor(3.7), TR_ceil(3.2), TR_floor(-2.5), TR_ceil(-2.5))
 TR_print(TR_clamp(15, TR_max: 10), TR_clamp(-3.5, TR_min: 0.0), TR_clamp(5, TR_min: 0, TR_max: 3))
 
-# İstatistik: ortalama, ortanca ve (popülasyon) standart sapma.
+# İstatistik: ortalama, ortanca ve (örneklem) standart sapma: n−1'e böler.
 TR_var notlar = [2, 4, 4, 4, 5, 5, 7, 9]
 TR_print(TR_mean(notlar), TR_median(notlar), TR_std(notlar))
 TR_print(TR_median([3, 1, 4, 2]), TR_sqrt(16))

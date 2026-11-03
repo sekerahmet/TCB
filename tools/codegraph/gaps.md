@@ -82,6 +82,9 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 - **Fonksiyon içinde tanımlı tipin metoduna düğüm yok (2026-11-03, S-kilit birleşmesi).** `TestStepKernelMatchesStep`'in içindeki `type stepper interface { Optimizer; StepKernel() *Kernel }`'in `StepKernel`'ine yapılan iki kullanım (`optimizer_step_test.go:37-38`) grafikte "no node" [ölçüldü: L4 tam denetimi, `TestUseCoverageOnTheRepository`]. Geçici çözüm: arayüz dosya düzeyine taşındı.
   - Beklenen: fonksiyon kapsamındaki tip ve metotları da düğüm alır (ya da kapsam testi onları ayrı sayar).
   - Sınıf: ince ayar.
+- **`changed --go-tests` kod listesini tarayan testleri seçmiyor (2026-11-03, D1'in 13.1'i).** `internal/lang/codes/definitions.json`, `tr.json` ve `en.json`'un değiştiği commit'te (`--taban=86c71f08`) ön denetimin "değişen dosyaları koruyan testler" adımı `internal/devtools/testrunner.TestIdentityExceptionsAreNotStale`'i seçmedi; ön denetim ✅ verdi, test geniş koşuda düştü [ölçüldü: D1].
+  - Beklenen: kod tanımları değişince kod listesini tarayan testler (istisna listeleri, `TestExamplesCoverNames`, `TestEveryCodeHasDescription`) seçilir; `tests-for internal/lang/codes/definitions.json` onları listeler.
+  - Sınıf: ince ayar (ön denetimi zayıflatıyor; tam denetim yakalıyor).
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
