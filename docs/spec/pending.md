@@ -33,6 +33,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 - **15.23a, hedefin şekli (2026-11-03, T1 Kol B teslim 1):** "logitin son ekseni düşmüş şekilde"; uygulama şekli değil sayıyı denetliyor (`[2, 2, 3]` logite düz dört öğeli hedef geçiyor, sonuç doğru). Daraltmak düz hedef veren örnekleri (35, 36) göçürür; tartılır.
+- **15.44, kapanıştaki mantık değeri (2026-11-03, DENETİM istek 82 Ş-k1, TCB kararı):** madde "kapanıştan okunan sayı" diyor; mantık değeri de dalı belirlediği için kaydedilir ve denetlenir. Cümle "sayı ya da mantık değeri" olur.
 - **15.44, kapanıştaki metot çağrısı (2026-11-03, TCB kararı, geçici):** "kapanıştaki bir çağrının sonucu" yolsuz sayılıyor; metodun gövdesine inilip `TR_self`'in alanları kapanıştaki yola bağlanarak izlenir, izlenemeyen H6987 (status 15.44). Cümlenin bunu söylemesi tartılır.
 - **7.6, nesne kimliğinin sınanması (2026-11-03, D1 Kol A devri, TCB'nin isteği):** özdeşlik kısa devresi kalktı; `==` iki adın aynı nesneyi gösterdiğini artık hiç görmüyor, paylaşım ancak bir değişikliğin iki adda görünmesiyle sınanıyor. Yol haritasının açık sorusu "nesne kimliğinin sınanması".
 - **4.5, paylaşılan alt yapının bedeli (2026-11-03, D1 Kol A devri):** `==` aynı alt nesneyi her yoldan ayrı gezer, derin değerde üstel (status 4.5). Dil tanımı ya bedeli yazar ya da gezintinin bitmiş çiftleri hatırladığını (sonuç aynı).
