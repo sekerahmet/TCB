@@ -92,7 +92,7 @@ func sumBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 }
 
 // minBuiltin min() yerleşiğidir.
-// min/max: tek bir liste ya da birden çok sayı alır; kazanan değerin kendisi döner
+// min/max: tek bir liste ya da birden çok sayı alır; Tam ile Ondalık karışırsa sonuç Ondalık'tır (extreme)
 func minBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return extremeArgs(codes.FnMin, args, false)
 }

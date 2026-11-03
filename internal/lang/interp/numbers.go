@@ -168,8 +168,9 @@ func ListElementError(name any, i int, expected any, given Value) error {
 }
 
 // extreme min/max'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
-// büyüğünü, değerin kendisini (tipi korunarak) döndürür. Tam'lar tam karşılaştırılır; sayı
-// olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner. liste, değerlerin
+// büyüğünü döndürür. Karşılaştırma kesindir (4.5, Tam yuvarlanmaz); sonucun tipi işlecin tipidir
+// (13.1, 4.2): Tam ile Ondalık karışırsa kazanan sonra Ondalık'a çevrilir (TR_max(2, 1.5) → 2.0).
+// Sayı olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner. liste, değerlerin
 // tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).
 func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, error) {
 	if len(elems) == 0 {
@@ -179,6 +180,7 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 		return extremeTuple(kd, elems, upper)
 	}
 	var picked Value
+	anyFloat := false
 	for i, el := range elems {
 		if !isNumber(el) {
 			if listVal {
@@ -186,8 +188,11 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 			}
 			return nil, ArgTypeError(kd, i+1, el, numberTypes...)
 		}
-		if f, ok := el.(*FloatVal); ok && math.IsNaN(f.Val) {
-			return f, nil
+		if f, ok := el.(*FloatVal); ok {
+			if math.IsNaN(f.Val) {
+				return f, nil
+			}
+			anyFloat = true
 		}
 		if picked == nil {
 			picked = el
@@ -200,6 +205,9 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 		if (upper && c > 0) || (!upper && c < 0) {
 			picked = el
 		}
+	}
+	if iv, ok := picked.(*IntVal); ok && anyFloat {
+		return &FloatVal{Val: float64(iv.Val)}, nil
 	}
 	return picked, nil
 }

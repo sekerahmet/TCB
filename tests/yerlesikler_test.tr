@@ -11,7 +11,7 @@ TR_test "13.1 genel yerleşikler" {
     TR_assert_equal([0, 1, 2], TR_List(0..3))
 }
 
-TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
+TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     TR_assert_equal(2.0, TR_max([2.0, 1.5]))
     TR_assert_equal(TR_Float, TR_Type(TR_max([2.0, 1.5])))
     # [1, 2.5] bir TR_List[TR_Float]'tır (3.6): öğeleri ondalık.
@@ -19,7 +19,14 @@ TR_test "13.1 min ve max türü korur, Tam'ları tam karşılaştırır, sayı o
     TR_assert_equal(9007199254740993, TR_max([9007199254740993, 1]))
     TR_assert(TR_max([9007199254740993, 9007199254740992]) != 9007199254740992)
     TR_assert_equal(TR_Int, TR_Type(TR_max(9223372036854775807, 1)))
-    TR_assert_equal(-7, TR_min(3, -7, 0.5))
+    # TR_Int ile TR_Float karışırsa sonuç TR_Float (4.2); kazanan kesin karşılaştırmayla seçilir, sonra çevrilir.
+    TR_assert_equal("2.0 -7.0", "\(TR_max(2, 1.5)) \(TR_min(3, -7, 0.5))")
+    TR_assert_equal(TR_Float, TR_Type(TR_max(2, 1.5)))
+    TR_assert_equal(TR_Float, TR_Type(TR_min(3, -7, 0.5)))
+    TR_assert_equal("9007199254740992.0", "\(TR_max(9007199254740993, 1.0))")
+    TR_var iki = 2
+    TR_assert_equal("2.0 1.5", "\(TR_max([iki, 1.5])) \(TR_min([iki, 1.5]))")
+    TR_assert_equal("0.0 -0.0", "\(TR_max(0, -0.0)) \(TR_min(0, -0.0))")
     # -0.0 0.0'dan küçük sayılır (13.10'un sıralama sırası), listede de değerlerde de, sıra fark etmez.
     TR_assert_equal("0.0 0.0 0.0", "\(TR_max([-0.0, 0.0])) \(TR_max([0.0, -0.0])) \(TR_max(-0.0, 0.0))")
     TR_assert_equal("-0.0 -0.0 -0.0", "\(TR_min([0.0, -0.0])) \(TR_min([-0.0, 0.0])) \(TR_min(0.0, -0.0))")
