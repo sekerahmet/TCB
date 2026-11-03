@@ -328,7 +328,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - **Sınıf hedefi** `TR_Tensor[TR_Int]` (logitin son ekseni düşmüş şekilde): her satır için bir sınıf indeksi. **`-100` olan hedef yok sayılır.** Başka eksi hedef ve sınıf sayısına eşit ya da büyük hedef çalışma hatasıdır. Kayıp geçerli hedefler üstünde ortalamadır; hepsi yok sayılırsa ortalama tanımsızdır ve hatadır. Bu iki denetim öğeye bağlıdır: 15.6'nın bekleyen işlemlerindendir (`TR_replay`'de bayrak).
 - **Olasılık hedefi** `TR_Tensor[TR_Float]` (logitle aynı şekil): her satır bir dağılımdır, kayıp `−Σ hedef · TR_log_softmax(z)`'in satır ortalamasıdır. Damıtma böyle yazılır: `TR_cross_entropy(öğrenci / T, TR_softmax(öğretmen / T, TR_dim: -1))`. Satırın toplamı ve öğelerin işareti denetlenmez: ondalık işlem beklemez (15.6); olasılık hedefi çoğunlukla `TR_softmax`'tan gelir.
 - Hesap en az float32'dedir; `TR_mixed_precision` bloğunda da kayıp float32'dir (15.4).
-- *Test:* TR testi; Go: `TestCrossEntropyForward`, `TestCrossEntropy16Bit`; `-100` kuralı, öbür negatiflerin hatası ve olasılık hedefi uygulanınca TR testi.
+- *Test:* TR testi ("15.23a çapraz entropinin hedefi: yalnız -100 yok sayılır; sınıf hedefi tam sayı, olasılık hedefi ondalık tensör"); Go: `TestCrossEntropyForward`, `TestCrossEntropy16Bit`; `TR_replay`'deki cihaz içi bayrak 15.6'nın bayrağıyla.
 
 **15.23b** Normlar son eksende (grup normu kanal ekseninde) normalleştirir; ortalama ve varyans float32'de hesaplanır, sonuç girdinin türündedir (15.4).
 - `TR_layer_norm(x, ağırlık, sapma)` ve `TR_rms_norm(x, ağırlık)`: `ağırlık` ve `sapma` `[D]` ya da `TR_none`.

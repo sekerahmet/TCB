@@ -128,13 +128,15 @@ func extreme64(x []float64, better func(a, b float64) bool) float64 {
 	return m
 }
 
-// indexTensor tam sayı indekslerden tensör kurar (yerleşikler indeksi tensör olarak da okur).
+// indexTensor tam sayı indekslerden TR_Tensor[TR_Int] kurar (çapraz entropinin sınıf hedefi tam sayı
+// tensörüdür, 15.23a; gömme indeksi tensör olarak da okur).
 func indexTensor(idx []int, shape ...int) *tensor.Tensor {
 	d := make([]float32, len(idx))
 	for i, v := range idx {
 		d[i] = float32(v)
 	}
-	return tensor.New(d, shape...)
+	t, _ := tensor.Convert(tensor.New(d, shape...), tensor.Int64)
+	return t
 }
 
 // listSum sumTensorList'i iki tensör ve bir sayı (0.5) içeren listeyle çağırır.
@@ -149,7 +151,7 @@ func listSum(ad string, mean bool, xs []*tensor.Tensor) (*tensor.Tensor, error) 
 // compositeSpecs bileşik yerleşiklerin gradyan kayıtlarıdır. bf16Tol değerleri
 // TestMeasureCompositeBF16 ölçümünden (32 tohum) gelir.
 func compositeSpecs() []compositeSpec {
-	ceTargets := []int{2, -1, 0, 3, -1, 1}
+	ceTargets := []int{2, -100, 0, 3, -100, 1}
 	axis1 := &interp.IntVal{Val: 1}
 	listRef := func(div float64) func(in [][]float64) []float64 {
 		return func(in [][]float64) []float64 {
@@ -202,6 +204,19 @@ func compositeSpecs() []compositeSpec {
 					valid++
 				}
 				return []float64{loss / float64(valid)}
+			}},
+		{name: "cross_entropy_probabilities", funcs: []string{"probabilityCrossEntropy"}, shapes: [][]int{{2, 3, 4}, {2, 3, 4}}, bf16Tol: 0.004,
+			run: call(codes.FnCrossEntropy),
+			ref: func(in [][]float64) []float64 {
+				var loss float64
+				for r := 0; r < 6; r++ {
+					lp := make([]float64, 4)
+					logSoftmax64(in[0][r*4:r*4+4], lp)
+					for c := range lp {
+						loss -= in[1][r*4+c] * lp[c]
+					}
+				}
+				return []float64{loss / 6}
 			}},
 		{name: "embedding", funcs: []string{"embedding"}, shapes: [][]int{{4, 3}}, bf16Tol: 0.004,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {

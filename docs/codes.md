@@ -1627,7 +1627,7 @@ tr: yazdır(cosh(0.0), cosh(Tensör([0.0, 1.0])).değer)
 
 #### `TR_cross_entropy(...)` (`TR_fn_cross_entropy`, `çapraz_entropi`)
 
-    çapraz_entropi(Tensör | Liste, Tam | Liste | Tensör) → Tensör
+    çapraz_entropi(Tensör | Liste, Tensör) → Tensör
 
 Son ekseni sınıf olan çıktıyla satır başına bir sınıf indeksi arasındaki ortalama çapraz entropi kaybını skaler tensör olarak verir. Negatif hedefler yok sayılır; hepsi yok sayılırsa hata verir.
 
@@ -2082,7 +2082,7 @@ tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sa
 
 #### `TR_linear_cross_entropy(...)` (`TR_fn_linear_cross_entropy`, `doğrusal_çapraz_entropi`)
 
-    doğrusal_çapraz_entropi(Tensör, Tensör, Tam | Liste | Tensör) → Tensör
+    doğrusal_çapraz_entropi(Tensör, Tensör, Tensör) → Tensör
 
 çapraz_entropi(girdi @ ağırlık, hedef) ile aynı kaybı ve gradyanları verir, ama bütün logitleri bellekte tutmaz: satırları dilim dilim işler (büyük sözlüklü dil modellerinin çıkış katmanı için). Ağırlık [girdinin son ekseni, sınıf sayısı] şeklindedir; paylaşımlı gömmede tablo.devrik() verilir.
 

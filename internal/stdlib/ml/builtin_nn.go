@@ -7,6 +7,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"math"
+	"slices"
 )
 
 // ----------------------------------------------------------------------------
@@ -106,9 +107,19 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	if len(sh) == 0 {
 		return nil, messages.New(messages.H6310, fn)
 	}
-	target, err := lossTargets(fn, sh, args[1])
+	target, probs, err := lossTargets(fn, sh, args[1], true)
 	if err != nil {
 		return nil, err
+	}
+	if probs != nil {
+		if err := checkDevice(fn, output, probs); err != nil {
+			return nil, err
+		}
+		r, err := safe(func() *tensor.Tensor { return probabilityCrossEntropy(output, probs) })
+		if err != nil {
+			return nil, err
+		}
+		return New(r), nil
 	}
 	r, err := safe(func() *tensor.Tensor { return tensor.CrossEntropy(output, target) })
 	if err != nil {
@@ -117,14 +128,36 @@ func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Val
 	return New(r), nil
 }
 
-// lossTargets çapraz entropinin hedeflerini okur ve sh şekilli logitlere göre denetler: satır
-// başına bir sınıf indeksi (one-hot değil), sınıf sayısının altında, en az biri geçerli
-// (negatifler yok sayılır).
-func lossTargets(fn any, sh []int, v interp.Value) ([]int, error) {
-	target, _, err := intIndices(fn, v)
-	if err != nil {
-		return nil, err
+// ignoredTarget yok sayılan sınıf hedefidir (dolgu; PyTorch'un ignore_index'i, 15.23a).
+const ignoredTarget = -100
+
+// lossTargets çapraz entropinin hedefini okur ve sh şekilli logitlere göre denetler (15.23a).
+// Sınıf hedefi TR_Tensor[TR_Int]'tir: satır başına bir sınıf indeksi (one-hot değil), sınıf
+// sayısının altında; -100 yok sayılır, öbür eksiler hatadır, en az biri geçerli olmalıdır.
+// probability doğruysa TR_Tensor[TR_Float] hedef olasılık hedefidir: logitle aynı şekilde
+// olmalıdır ve tensör olarak döner. Liste ve mantık tensörü hedef değildir.
+func lossTargets(fn any, sh []int, v interp.Value, probability bool) ([]int, *tensor.Tensor, error) {
+	tv, ok := v.(*TensorValue)
+	if !ok {
+		return nil, nil, messages.New(messages.H6980, fn, typeName(v))
 	}
+	switch tv.t.Elem() {
+	case tensor.ElemInt:
+	case tensor.ElemBool:
+		return nil, nil, messages.New(messages.H6984, fn)
+	default:
+		if !probability {
+			return nil, nil, messages.New(messages.H6983, fn, tv.t.DType().String())
+		}
+		if !slices.Equal(tv.t.Shape(), sh) {
+			return nil, nil, messages.New(messages.H6982, fn, tensor.ShapeText(sh), tensor.ShapeText(tv.t.Shape()))
+		}
+		if tv.t.Numel() == 0 {
+			return nil, nil, messages.New(messages.H6316, fn, 0)
+		}
+		return nil, tv.t, nil
+	}
+	target, _, _ := tv.IntElements()
 	C := sh[len(sh)-1]
 	n := 1
 	for _, d := range sh {
@@ -135,24 +168,42 @@ func lossTargets(fn any, sh []int, v interp.Value) ([]int, error) {
 		line = n / C
 	}
 	if len(target) != line && C > 1 && len(target) == n && isZeroOne(target) {
-		return nil, messages.New(messages.H6312, fn, tensor.ShapeText(sh))
+		return nil, nil, messages.New(messages.H6312, fn, tensor.ShapeText(sh))
 	}
 	if len(target) != line {
-		return nil, messages.New(messages.H6313, fn, tensor.ShapeText(sh), line, len(target))
+		return nil, nil, messages.New(messages.H6313, fn, tensor.ShapeText(sh), line, len(target))
 	}
 	valid := 0
 	for _, h := range target {
-		if h >= C {
-			return nil, messages.New(messages.H6314, fn, h, C, C-1)
-		}
-		if h >= 0 {
+		switch {
+		case h == ignoredTarget:
+		case h < 0:
+			return nil, nil, messages.New(messages.H6981, fn, h)
+		case h >= C:
+			return nil, nil, messages.New(messages.H6314, fn, h, C, C-1)
+		default:
 			valid++
 		}
 	}
 	if valid == 0 {
-		return nil, messages.New(messages.H6316, fn, len(target))
+		return nil, nil, messages.New(messages.H6316, fn, len(target))
 	}
-	return target, nil
+	return target, nil, nil
+}
+
+// probabilityCrossEntropy olasılık hedefli çapraz entropidir: −Σ p · log_softmax(z)'nin satır
+// ortalaması (15.23a). Hesap en az float32'dedir: 16 bitlik logit açılır, hedef logitin türüne
+// çevrilir; kayıp tek düğüm değil, türevlenebilir işlemlerin bileşimidir (CPU ve GPU'da aynı).
+// Satırın toplamı ve öğelerin işareti denetlenmez (ondalık işlem beklemez, 15.6).
+func probabilityCrossEntropy(z, p *tensor.Tensor) *tensor.Tensor {
+	if z.DType() != tensor.Float64 {
+		z = z.CastShared(tensor.Float32)
+	}
+	if p.DType() != z.DType() {
+		p = p.CastShared(z.DType())
+	}
+	last := len(z.Shape()) - 1
+	return z.LogSoftmax(last).Mul(p).Sum(last, false).MeanAll().Neg()
 }
 
 // linearCrossEntropy doğrusal_çapraz_entropi(x, ağırlık, hedef): çapraz_entropi(x @ ağırlık,
@@ -182,7 +233,7 @@ func linearCrossEntropy(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, messages.New(messages.H6346, fn, tensor.ShapeText(xs), tensor.ShapeText(ws))
 	}
 	logits := append(append([]int(nil), xs[:len(xs)-1]...), ws[1])
-	target, err := lossTargets(fn, logits, args[2])
+	target, _, err := lossTargets(fn, logits, args[2], false)
 	if err != nil {
 		return nil, err
 	}

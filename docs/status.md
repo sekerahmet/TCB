@@ -804,8 +804,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.23a
 
-- **Mevcut durum:** her negatif hedef yok sayılıyor (`-5` de); sınıf sayısından büyük hedef H6314 [ölçüldü: main `85a19c36`]. Olasılık hedefi yok.
-- **Yapılacaklar (A, Ö0, Kol B S-kilitten sonra; ölçüldü 30b44b01):** yalnız `-100` yok sayılır, öbür negatifler hata; olasılık hedefi; iki denetim bekleyen işlem (15.6). Göç 33 satır (liste ya da ondalık hedef → `TR_Tensor[TR_Int]`); `-1`'li 3 satır: `tests/tensor_test.tr:215, 289, 290` [ölçüldü: DENETİM, `git grep` main `85a19c36`]. TR testi (15.23a başlığı).
+- **Mevcut durum:** hedef tensör: sınıf hedefi `TR_Tensor[TR_Int]`, yalnız `-100` yok sayılır, öbür eksiler H6981, sınıf sayısı ve üstü H6314, hepsi yok sayılan H6316; olasılık hedefi `TR_Tensor[TR_Float]` (logitle aynı şekil, değilse H6982); liste H6980, mantık tensörü H6984; `TR_linear_cross_entropy`'de ondalık hedef H6983 [test: TR testi "15.23a çapraz entropinin hedefi: …"]. Göç: 2374 çağrının 1784'ü liste hedefti, 1162'si `-1` dolgulu (`lib/layers_test.tr`, `lib/optimizers_test.tr`, `tests/tensor_test.tr`, örnek 31, 35, 36) [ölçüldü: T1 `claude/kolB-o0-3`, geçici sayım].
+- **Yapılacaklar:** iki denetim hedefi konağa okuyarak yapılıyor (GPU'da bekler); `TR_replay` kaydındaki cihaz içi bayrak 15.6'nın bayrağıyla gelir (bugün kayıtta cihazdan okuma H4065 [hipotez: `internal/compute/gpu/backend_memory.go:181`; GPU'suz ölçülmedi]).
 
 ### 15.23b
 
