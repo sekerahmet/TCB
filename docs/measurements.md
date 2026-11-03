@@ -27,6 +27,20 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 
 Birim parça/sn. Bu makinede TR, llama.cpp f32'nin ~%40–50'si ve transformers'tan yavaş. 16 bitlik ağırlık CPU'da float32'nin 0,4 katı hızda: ağırlık her çarpımda geçici float32 tampona açılıyor (yol haritası, 2. kilometre taşı "CPU" eksikleri). 2026-10-22'nin oranlarıyla (TR/llama.cpp 0,25, TR/transformers 1,05; 48 iş parçacığı) karşılaştırmayın: makine ve iş parçacığı sayısı farklı. 48 iş parçacıklı karşılığı aşağıda, G4 koşusunda.
 
+**Dil kıyası, CPU** (2026-11-03 17:16, main `51b75f0a`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı; Python 3.13.18, Go 1.26.10, rustc 1.99.1 `-C opt-level=3`; `tools/bench/run.py`, 5 tekrarın en iyisi; dört dilin sonuç değerleri aynı) [ölçüldü: Colab, betik `dil_kiyasi_2026_11_03.sh`]:
+
+| Test | TR | Python | Go | Rust | TR/Python | TR/Rust |
+| :-- | --: | --: | --: | --: | --: | --: |
+| `dongu` | 239 ms | 187 | 1,09 | 1,94 | 1,28 | 123 |
+| `fib` | 51 | 29 | 1,18 | 0,63 | 1,76 | 81 |
+| `sirala` | 104 | 133 | 32,1 | 8,4 | 0,78 | 12 |
+| `metin` | 64 | 27 | 8,1 | 8,1 | 2,37 | 8 |
+| `sozluk` | 217 | 102 | 79,3 | 78,4 | 2,13 | 3 |
+| `matris_dongu` | 207 | 148 | 2,6 | 1,7 | 1,40 | 124 |
+| `matris_yerlesik` | 6 | 6 (NumPy) | 176 | 62 | 1,00 | 0,1 |
+
+Yorumlayıcı işinde (ilk altı test) TR, Python'dan ortalama 1,52 kat yavaş [hesap: geometrik ortalama]; en büyük fark metin (2,4) ve sözlük (2,1). Saf hesapta (döngü, çağrı, indeksleme) derlenmiş dillerden iki basamak yavaş (Rust'a göre 81–124 kat); iş bir yerleşiğe düşünce fark 3–12 kata iniyor. Matris çarpımı yerleşikte NumPy'la eşit. Aynı makine türünde 2026-11-01'de oran 1,75'ti; makine örneği başka olduğu için bu farkı hızlanma diye okumayın (Python'un süreleri de kısaldı).
+
 **Karakter modeli eğitimi, CPU** (2026-11-03 17:0x, main `51b75f0a`, Colab CPU High-RAM: Intel Xeon 2.20 GHz, 8 iş parçacığı; torch 2.11.0+cpu, Python 3.13.18; `tools/bench/cpu_baseline.sh`, 5 tekrar) [ölçüldü: Colab, betik `cpu_temel_2026_11_03.sh`]:
 
 | İş parçacığı | TR ms/adım | PyTorch ms/adım | TR/PyTorch |
@@ -62,13 +76,11 @@ S-kilit satırı Kol A eşitliğinden (`9f758225`) önce ölçüldü; eşitlik k
 | Ölçüm | Tarih, commit | Neden eski | Yeniden ölçüm |
 | :-- | :-- | :-- | :-- |
 | **L4 kart sınamasında hedef model adımı:** beş birleşmede 938, 923,5, 962, 880,5, 888 ms/adım (en büyük fark %9,3 [hesap: 962 / 880,5]; ayrı koşular, PyTorch'suz) | 2026-11-02 `4d83182f` – 2026-11-03 `6cab4f89`, Colab L4 | Kol A eşitliği (`9f758225`) sonra girdi | Bir sonraki birleşmenin kart sınamasıyla; eğitim hızının güncel ölçümü G4'te (yukarıda) |
-| **Dil kıyası ve CPU karakter modeli** (`tools/bench/README.md` "Güncel taban") | 2026-11-01, `6d21ed09`, Colab CPU High-RAM | Yorumlayıcı (Kol A eşitlik, 13.1) ve tensör çekirdeği değişti | CPU High-RAM'de `tools/bench/cpu_baseline.sh` |
 
-2026-10-22'nin üretim hızları ve 2026-11-01/02'nin eğitim hızı 2026-11-03'te yeniden ölçüldü (yukarıda); eski sayılar arşivde (`docs/archive/roadmap-2026-10-27.md` Evre 5) ve Colab defterinde kalır.
+2026-10-22'nin üretim hızları, 2026-11-01/02'nin eğitim hızı ve 2026-11-01'in dil kıyası ile karakter modeli 2026-11-03'te yeniden ölçüldü (yukarıda); eski sayılar arşivde (`docs/archive/roadmap-2026-10-27.md` Evre 5) ve Colab defterinde kalır.
 
 Motora bağlı olmayan ölçümler (ör. Jarvis tabanı: llama.cpp ve Whisper'ın kendi süreleri, 2026-11-01) eskimez; TR'yi ölçmedikleri için bu belgede yer almazlar.
 
 ## Sıradaki ölçümler
 
-1. Dil kıyası (TR, Python, Go, Rust) ve karakter modeli, CPU: CPU High-RAM'de koşuyor (2026-11-03 17:00).
-2. GPU üretimindeki %7–10'luk gerilemenin yeri: 2026-10-22'nin commit'i ile main aynı G4 koşusunda (onay gerekir).
+1. GPU üretimindeki %7–10'luk gerilemenin yeri: 2026-10-22'nin commit'i ile main aynı G4 koşusunda (onay gerekir).
