@@ -25,8 +25,9 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 1. 16.2 ve 16.3 (parçalayıcı; Jarvis'in ön koşulu): ilk boşalan kolun sonraki dilimi.
 2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. **Birleşti** (2026-11-03, `479457b1`; telafili toplam ve `TR_read_bytes` da). FMA'sız yol (C) bu dilime girmez. Hemen ardından aynı kolda `TR_max` ve `TR_round`'un dört sessiz yanlışı (status 13.1, DENETİM istek 71).
 3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce.
+4. 7.6 ve 7.7'nin özdeşlik kısa devresi (yorumlayıcının eşitliği; DENETİM istek 75): Kol A, 13.1c'den sonraki dilim, 8.5 ile.
 
-**Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5. 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1'in dilimi: 8.5'in işletim sistemi hatası. Kol B: 20.11, 15.27a, 15.33, 15.45.
+**Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1c'den sonraki dilim (Ö0 4. madde ile): 8.5'in işletim sistemi hatası (13.1 onsuz birleşti, DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45.
 
 **Gemini'nin bağımsız taraması** (DENETİM istek 63–67; taban `30b44b01`): teslim 1 (bölüm 1–5) DENETİM'den geçti, üç yeni A (1.2, 3.13, 5.5) [ölçüldü: DENETİM istek 67]; teslim 2–6 sürüyor.
 
@@ -268,7 +269,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: met
 ### 6.3
 
 - **Mevcut durum (Faz 0.6b, 2026-10-29):** `TR_return a, b` bir demet döndürüyor: sonuç açılıyor, tutuluyor, argüman oluyor, listeye konuyor, `t.0` ile okunuyor (`t.0`'ın tipi biliniyor); H2708 kalktı. Açmada sayı tutmazsa dönüşü `-> (A, B)` diye yazılmış fonksiyonun doğrudan çağrısında denetim hatası (H1026), fonksiyon değerinde çalışma hatası (H2709); iki ileti de örneğini deyimin adlarından ve sağ yanından kuruyor. Dönüş tipi yazılmayan fonksiyon denetim hatası (6.1). Açılan adlar tipsiz kalıyor: `TR_var a, b = f()` sonrası `b`'nin tipi denetlenmiyor [ölçüldü: main `85a19c36`, `tests/tipler_test.tr`'nin 3.6a testi, `tests/fonksiyonlar_test.tr`'nin 6.3 testleri, `checker/unpack_test.go`, `interp/compiler_test.go`; küçük programlar].
-- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** dönüş tipinin öğe tipleriyle açılan adların tipi (4a2).
+- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** dönüş tipinin öğe tipleriyle açılan adların tipi.
 
 ### 6.4
 
@@ -284,7 +285,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: met
 ### 6.6
 
 - **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken (tipi açıklanmamış değişkenin ilk değeri, doğrudan ya da liste, sözlük, demet değişmezinde) tipsiz parametre denetim hatası (H1111); denetleyici yerleşik imzalarını bilmediği için her çağrı argümanı, tipli değişken ve dönüş beklenen tipi olan yer sayılıyor, parametrenin tipi oradan çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`, dal `claude/charming-pasteur-q1vsvo`]. Blok gövdesinin eksik dönüşü 6.2'de.
-- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9; 4a2); denetleyicinin testi.
+- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9); denetleyicinin testi.
 
 ### 6.8
 
@@ -342,11 +343,13 @@ JSON'dan tipli yapıya doğrudan okuma (alan adı eşlemesiyle; Rust'ın serde's
 
 - **Mevcut durum:** paylaşım, alanlardan eşitlik, kurma yazımıyla metin ("Nokta(x: 9.0, y: 4.0)"), kendine bağlanan nesnede "...", döngüde `==`'nin çalışma hatası (H2771) ve `TR_Type(p) == Nokta` kurala uyuyor; yapının tipi StructType; fonksiyon ya da tensör alanlı yapının `==`'si denetim değil çalışma hatası (H2770), aynı nesne kendisiyle karşılaştırılınca hata yok, doğru veriyor [ölçüldü: paylaşılan nesne, kendine bağlı nesne, fonksiyon alanlı nesnenin kendisiyle karşılaştırması; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** fonksiyon ya da tensör alanlı yapının `==`'si denetim hatası (aynı nesnede de); yapının tipi `TR_Type` (3.11); denetleyicinin testi.
+- **Yapılacaklar (A, Ö0, Kol A 13.1c'den sonra; ölçüldü 16c7d0ef):** aynı nesnenin `==`'si de alanlarıyla karşılaştırılır, özdeşlik kısa devresi kalkar: bugün `TR_nan` alanlı nesne kendisiyle `==`'de `TR_true` veriyor (dil tanımı 4: `TR_nan` hiçbir sayıya eşit değil), tensör alanlı nesne de hatasız `TR_true` [ölçüldü: DENETİM istek 75, Gemini'nin `t2_7.6`'sı].
 
 ### 7.7
 
 - **Mevcut durum:** `TR_enum`, durumların kurulması, çağrısız alanlı ve çağrılı alansız durumun hatası, kurucunun yokluğu, değişmezlik, eşlemede konumlu desen ve alan bağlama, adlı alan ve koşullu kol hatası, eşitlik ve metin uygulandı (bugünkü 7.7 testleri ve fikstürleri). Kalanlar: tip parametresi yok (`TR_enum Cevap[T]` sözdizimi hatası); kapsama denetimi yok (`_`'siz, eksik durumlu eşleme çalışırken H2702); dıştaki adla aynı bağlanan ad hata vermiyor, dıştakini gizliyor (5.12); alanın tipi denetlenmiyor (`TR_Int` alana metin); tensör alanlı durumun `==`'si denetim değil çalışma hatası (H2770) [ölçüldü: dört durumlu tip programı; denetim ve çalıştırma].
 - **Yapılacaklar (A, Ö1, 4a5 ya da 4c; ölçüldü 30b44b01):** tip parametresi (6.10 ile); kapsama denetimi (5.6); bağlanan adın 5.12 hatası; alan tipinin denetimi; tensör içeren durumlu tipin `==`'si ve `==` isteyen deseni denetim hatası (15.5); TR testi.
+- **Yapılacaklar (A, Ö0, Kol A 13.1c'den sonra, 7.6 ile; ölçüldü 16c7d0ef):** özdeşlik kısa devresi kalkar: bugün `SayiDurum.Deger(TR_nan)` kendisiyle `==`'de `TR_true`, tensör alanlı durum kendisiyle `==`'de ve eşleme deseninde hatasız `TR_true` ve eşleşme [ölçüldü: DENETİM istek 75, Gemini'nin `t2_7.7`'si].
 
 ### 7.8
 
@@ -385,7 +388,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md). Taslak (2
 - **Mevcut durum:** `TR_Message` ve `TR_error_code` çalışıyor (`H6903`); kodsuz hatada (düz metin, sayı, sözlük, durumlu tip değeri) `TR_error_code` koda dönmüyor, hatayı olduğu gibi yeniden fırlatıyor; eskiden hepsi H2441 veriyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestErrorCodeRethrowsACodelessError`, `tests/hatalar_ertele_test.tr`'nin 8.5 testi]. Yakalanmayan düz metin hata içte H2441 taşımayı sürdürüyor (`examples/tr/hatalar/12_yakalanmamis_firlat.tr` onu sınıyor).
 - **Mevcut durum (zincir):** `TR_error_code` hatanın kodunu, o yoksa nedenler zincirinde (`TR_cause`) dıştan içe ilk kodu veriyor; zincirde kod yoksa hata, nedeniyle birlikte yeniden fırlıyor; durdurma ve `TR_exit` geçiyor [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `TestErrorCodeFollowsTheCauseChain`, `tests/hatalar_ertele_test.tr`'nin 8.5 zincir testi: üç halka, kodlu dış, kodsuz zincir].
 - **Yapılacaklar:** programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Gemini Koşu 4, 6, 7).
-- **Yapılacaklar (B, Ö1, Kol A, 13.1'in dilimiyle; ölçüldü 30b44b01; dil tanımı turu 2, 2026-11-01):** işletim sisteminin hatası kendi koduna ve değerlerine (yol) çevrilir, sistemin metni değere girmez (8.5). Bugün dosya hatasının değerine Go'nun hata metni giriyor (internal/stdlib/ml/save.go:135, H2101) [kanıtlı: DENETİM]; Windows'ta bu metin İngilizce dil paketi yoksa sistemin dilindedir [kaynak: Go go1.24.0 syscall_windows.go; DENETİM kol-denetim-tur2-rapor-sonuc.md].
+- **Yapılacaklar (A ve C, Ö1, Kol A, 13.1c'den sonraki dilim; ölçüldü 30b44b01 ve 16c7d0ef; dil tanımı turu 2, 2026-11-01):** işletim sisteminin hatası kendi koduna ve değerlerine (yol) çevrilir, sistemin metni değere girmez (8.5). Bugün dosya hatasının değerine Go'nun hata metni giriyor (internal/stdlib/ml/save.go:135, H2101) [kanıtlı: DENETİM]; Windows'ta bu metin İngilizce dil paketi yoksa sistemin dilindedir [kaynak: Go go1.24.0 syscall_windows.go; DENETİM kol-denetim-tur2-rapor-sonuc.md].
 
 ### 8.6
 
