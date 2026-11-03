@@ -190,6 +190,12 @@ TR_test "3.6a == öğe öğedir; öğeleri sıralanabilen demet sözlük sıras�
     TR_assert_equal("H2772", TR_error_code { listeli < (1, [2]) })
     TR_assert_equal("H2493", TR_error_code { [(1, 2), 3].TR_sort() })
     TR_assert_equal("H2777", TR_error_code { tensörlü == (TR_Tensor([1.0]), 1) })
+    # Tensör öğenin listesinde ya da sözlüğünde olsa da
+    TR_var listede = [([TR_Tensor([1.0])], 1), 1][0]
+    TR_var sözlükte = [({"k": TR_Tensor([1.0])}, 1), 1][0]
+    TR_assert_equal("H2777", TR_error_code { listede == listede })
+    TR_assert_equal("H2777", TR_error_code { sözlükte != sözlükte })
+    TR_assert_equal("H2777", TR_error_code { (1, [[TR_Tensor([1.0])]]) == [(1, []), 1][0] })
 }
 
 TR_test "3.6a öğeleri anahtar olabilen demet sözlük anahtarıdır" {
@@ -321,6 +327,20 @@ TR_test "3.7a JSON: çözme, okuma, tür ve açma" {
     # Sayının yazımı korunur; Int'e sığmayan tam yazım Float'tır.
     TR_assert_equal(TR_Float, TR_Type(TR_json_parse("99999999999999999999")))
     TR_assert_equal("2.0", TR_json_string(cevap["f"]))
+}
+
+TR_test "3.7a TR_Dict(j) nesneyi TR_JSON değerlerinin sözlüğü olarak açar; kopya değişir, asıl değer değişmez" {
+    TR_var j = TR_json_parse(`{"a": 1, "b": [2]}`)
+    TR_var d = TR_Dict(j)
+    d["c"] = TR_JSON(3)
+    TR_assert_equal(["a", "b", "c"], d.TR_keys())
+    TR_assert_equal([TR_Int, TR_List], [TR_Type(d["a"]), TR_Type(d["b"])])
+    TR_assert_equal(`{"a":1,"b":[2]}`, TR_json_string(j))
+    TR_assert_equal(`{"a":1,"b":[2],"c":3}`, TR_json_string(TR_JSON(d)))
+    TR_assert_equal(0, TR_Dict(TR_json_parse("{}")).TR_length)
+    # Tür tutmazsa çalışma hatası; TR_Dict yalnız JSON nesnesini açar
+    TR_assert_equal("H2652", TR_error_code { TR_Dict(TR_json_parse("[1]")) })
+    TR_assert_equal("H2423", TR_error_code { TR_Dict([{"a": 1}, 1][0]) })
 }
 
 TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
@@ -548,7 +568,9 @@ TR_test "3.12 tip çağrılınca kurar ve çevirir" {
     TR_assert_equal(TR_Float, TR_Type(1.5))
     TR_assert_equal(TR_Type, TR_Type(TR_Int))
     TR_assert_equal(TR_Tensor, TR_Type(TR_Tensor([1, 2])))
-    TR_assert_equal("H2645", TR_error_code { TR_Dict() })
+    TR_assert_equal("H2645", TR_error_code { TR_Function() })
+    # TR_Dict JSON nesnesini açar (3.7a): tek argüman alır
+    TR_assert_equal("H2011", TR_error_code { TR_Dict() })
     # Aralık çağrılmaz: a..b yazılır, listesi TR_List(a..b) (3.8)
     TR_assert_equal("H2657", TR_error_code { TR_Range(3) })
 }

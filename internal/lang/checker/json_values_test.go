@@ -7,7 +7,7 @@ import (
 )
 
 // Kural (3.7a "Kurmak", "Okumak", "Açmak"): TR_json_parse(m), TR_JSON(x), j["k"] ve j[i] TR_JSON;
-// TR_List(j) TR_List[TR_JSON]; .TR_get(k) TR_JSON?, .TR_keys() TR_List[TR_String], .TR_length TR_Int;
+// TR_List(j) TR_List[TR_JSON], TR_Dict(j) TR_Dict[TR_String, TR_JSON]; .TR_get(k) TR_JSON?, .TR_keys() TR_List[TR_String], .TR_length TR_Int;
 // tip çağrısı (TR_Int(j)) açar. TR_JSON başka tipin yerine verilmez, başka tip TR_JSON'un yerine de.
 func TestJSONTypes(t *testing.T) {
 	const j = "TR_var j = TR_json_parse(\"{}\")\n"
@@ -17,6 +17,7 @@ func TestJSONTypes(t *testing.T) {
 		j + "TR_var v = j[\"k\"]":         typeJSON,
 		j + "TR_var v = j[\"k\"][0]":      typeJSON,
 		j + "TR_var v = TR_List(j)":       listType(typeJSON),
+		j + "TR_var v = TR_Dict(j)":       containerType(typeDict, []string{typeString, typeJSON}),
 		j + "TR_var v = j.TR_get(\"k\")":  optionalType(typeJSON),
 		j + "TR_var v = j.TR_keys()":      listType(typeString),
 		j + "TR_var v = j.TR_length":      typeInt,

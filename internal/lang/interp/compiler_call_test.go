@@ -151,7 +151,7 @@ TR_var l = [1, 2]
 TR_var k = TR_List(l)
 k.TR_append(3)
 TR_print(TR_String(5), TR_Int("12"), TR_Float(2), l, k, TR_Type(N(x: 1)), N(x: 2).x)
-TR_print(TR_error_code { TR_Int("a") }, TR_error_code { TR_Int(1 // 0) }, TR_error_code { TR_Dict() }, TR_error_code { TR_Range(3) })
+TR_print(TR_error_code { TR_Int("a") }, TR_error_code { TR_Int(1 // 0) }, TR_error_code { TR_Function() }, TR_error_code { TR_Range(3) })
 TR_var y = TR_Int("b")
 `
 	out, _, err := runTROut(t, source)

@@ -423,7 +423,7 @@
 "H2642": { "param": ["value"], "slots": {"Float": "TR_type_Float"} },
 "H2643": { "param": ["value"], "slots": {"Bool": "TR_type_Bool"} },
 "H2644": { "param": ["given"], "slots": {"Bool": "TR_type_Bool", "length": "TR_mem_length"} },
-"H2645": { "param": ["type"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float", "String": "TR_type_String", "Bool": "TR_type_Bool", "List": "TR_type_List", "Type": "TR_type_Type", "JSON": "TR_type_JSON", "Bytes": "TR_type_Bytes"} },
+"H2645": { "param": ["type"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float", "String": "TR_type_String", "Bool": "TR_type_Bool", "List": "TR_type_List", "Dict": "TR_type_Dict", "Type": "TR_type_Type", "JSON": "TR_type_JSON", "Bytes": "TR_type_Bytes"} },
 "H2646": { "param": ["type"], "slots": {"Int": "TR_type_Int", "String": "TR_type_String", "Bool": "TR_type_Bool", "Bytes": "TR_type_Bytes"} },
 "H2647": { "param": ["key"], "slots": {"get": "TR_mem_get"} },
 "H2648": { "param": ["name"], "slots": {"keys": "TR_mem_keys"} },

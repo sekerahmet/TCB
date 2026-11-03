@@ -423,7 +423,7 @@
 "H2642": "{@Float}(): {value|q} cannot be read as a number; write it as in a program, with a dot, an optional sign and exponent (\"3.14\", \"-1.5\", \"2e-3\"), or \"inf\", \"-inf\", \"nan\"; there is no locale (\"1,5\" is not read) and a number beyond {@Float}'s range is not read",
 "H2643": "{@Bool}(): {value|q} is not a truth value; only \"true\" and \"false\" are read",
 "H2644": "{@Bool}() reads only the text \"true\" or \"false\", {given} given; ask with a comparison instead (`x != 0`, `l.{#length} > 0`)",
-"H2645": "type {type} cannot be called; the types that make or convert a value are {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Type}, {@JSON}, {@Bytes} and the library's types",
+"H2645": "type {type} cannot be called; the types that make or convert a value are {@Int}, {@Float}, {@String}, {@Bool}, {@List}, {@Dict} (opens a {@JSON} object), {@Type}, {@JSON}, {@Bytes} and the library's types",
 "H2646": "{type} cannot be a dict key: keys are {@Int}, {@String}, {@Bool} or {@Bytes} (a decimal key could be missed by rounding); convert the key with `{#Int}(x)` or `{#String}(x)`",
 "H2647": "key {key} is not in the dict; for a key that may be missing write `.{#get}({key}) ?? default`",
 "H2648": "a dict key is read and written with brackets, not with a dot: write `[\"{name}\"]` (a dot gives only the dict's members, such as `.{#keys}()`)",

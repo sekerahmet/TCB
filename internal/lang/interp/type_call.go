@@ -39,6 +39,7 @@ func (v *VM) registerTypeCalls() {
 		{codes.TypeString, stringCall},
 		{codes.TypeBool, boolCall},
 		{codes.TypeList, listCall},
+		{codes.TypeDict, dictCall},
 		{codes.TypeType, typeCall},
 		{codes.TypeJSON, jsonCall},
 		{codes.TypeBytes, bytesCall},
@@ -192,6 +193,24 @@ func listCall(_ *VM, a Value) (Value, error) {
 		return &ListVal{Elements: append([]Value{}, x.Elements...)}, nil
 	}
 	return nil, ArgTypeError(codes.TypeList, 1, a, codes.TypeRange, codes.TypeList)
+}
+
+// dictCall is TR_Dict(j) (3.7a "Açmak"): a JSON object opens as a TR_Dict[TR_String, TR_JSON], a copy
+// whose values are JSON values; another JSON kind is the kind error. 3.7a gives TR_Dict no other call.
+func dictCall(_ *VM, a Value) (Value, error) {
+	x, ok := a.(*JSONVal)
+	if !ok {
+		return nil, ArgTypeError(codes.TypeDict, 1, a, codes.TypeJSON)
+	}
+	obj, ok := x.v.(*DictVal)
+	if !ok {
+		return nil, jsonKindError(codes.TypeDict, x)
+	}
+	d := NewDictVal()
+	for _, k := range obj.Order {
+		d.SetFrom(obj, k, &JSONVal{v: obj.Pairs[k]})
+	}
+	return d, nil
 }
 
 // typeCall is TR_Type(x): the value's type (3.11); for a JSON value its JSON kind (3.7a).
