@@ -4,7 +4,6 @@ docs/development.md	--only tr --repeat	tools/bench/run.py --only dil seçimi ('t
 docs/roadmap.md	tr profile --go-profile	tarihli geçmiş profil ölçümü kaydı
 docs/status.md	claude/d1-dilim2	tarihli geçmiş ölçüm kaydı
 docs/status.md	Faz 0.4, 2026-10-30	Faz 0.4 tarihli geçmiş durum kaydı
-docs/status.md	GNU coreutils 8.32	GNU tr çakışmasını ve trlang göçünün nedenini anlatan madde
 docs/status.md	main `85a19c36`	tarihli geçmiş ölçüm kaydı
 internal/devtools/codeindex/README.md	<scheme> <package>	SCIP simge dizgesi şeması ('tr <modül-yolu>/...'), komut değil
 tools/codegraph/README.md	TCB 2026-10-25, item 3	tarihli geçmiş ölçüm kaydı

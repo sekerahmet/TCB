@@ -28,7 +28,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. **Birleşti** (2026-11-03, `479457b1`; telafili toplam ve `TR_read_bytes` da). FMA'sız yol (C) bu dilime girmez. Hemen ardından aynı kolda `TR_max` ve `TR_round`'un dört sessiz yanlışı (status 13.1, DENETİM istek 71): **birleşti** (2026-11-03, `c428f35f`, 13.1c).
 3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce. **Birleşti** (2026-11-03, dört teslim: `7ab73591`, `83fa8859`, `f4fd30a3`, `57f83333`; DENETİM istek 82–85). Kalanları Ö3 (15.34, 15.44'ün F ve F1 satırları).
 4. 7.6 ve 7.7'nin özdeşlik kısa devresi (yorumlayıcının eşitliği; DENETİM istek 75): Kol A, 13.1c'den sonraki dilim, 8.5 ile. **Birleşti** (2026-11-03, `9f758225`).
-5. Komut adının göçü `tr` → `trlang` ("Bölümü olmayan işler"): Gemini (Kodlama2), Claude kollarının dilimini beklemez; birleştirmesi T1 16.2+16.3 ve D1 13.1c'den sonra, sonraki dilimler onun üstünden açılır.
+5. Komut adının göçü `tr` → `trlang` ("Bölümü olmayan işler"): Gemini (Kodlama2). **Birleşti** (2026-11-03, `7659aa0c`, `fa877f38`, `b71bef0e`; DENETİM istek 86, 87). Yeni dilimler `b71bef0e`'den sonraki main'den açılır.
 6. 13'ün yerleşiklerinin sessiz yanlışları (DENETİM istek 81, önem taraması teslim 3): Kol A'nın sıradaki dilimi. Önce modülün içinden yazılan göreli yolun modül klasörüne düşmesi (13.1a, diskte veri eziyor); sonra `TR_median`'ın NaN'ı, JSON'da yinelenen anahtar, metnin bölme ve değiştirmesi (13.2), boş listede `TR_reduce` ve `.TR_append`'in dönüşü (13.6), boş tensör listesinin toplamı, `TR_clamp`'in kesin karşılaştırması (13.10), değer döndürmeyen yerleşikler (10.5 ile), CSV hücresi ve metin olmayan JSON anahtarı, tensörün JSON'u (13.8), tensörde `TR_is_finite` (13.7). Büyük gelirse ikiye: önce yazma yolu, JSON ve CSV; sonra metin ve liste.
 7. Test koşucusu (araç için A): 12.1'in modüldeki testleri ve 12.5'in en dıştaki tanımları.
 8. 11.1'in modül yükleyicisi (A ve B).
@@ -1168,8 +1168,9 @@ Dil tanımında bölümü olmayan A, B ve C işleri (DENETİM istek 76).
 
 ### Komut adı: `trlang`
 
-- **Mevcut durum:** komut satırı aracının adı `tr`; karar `trlang` (Ahmet, 2026-10-30; [yol haritası](roadmap.md)). Örneklerin başlığı ("Çalıştırma: tr examples/tr/01_merhaba.tr") ve iletiler (H8602 "'tr {command}'") ajana `tr` yazdırıyor; POSIX makinesinde sistemin `tr`'si çağrılınca "tr run x.tr < /dev/null" çağrısı çıkış 0 ve boş çıktı veriyor, standart girdi açıkken asılı kalıyor; sonuç PATH'e göre değişiyor [ölçüldü: DENETİM istek 76, GNU coreutils 8.32]. Göçün kapsamı 704 satır, 249 dosya (13 komut, alt komutsuz `tr <yol>.tr`, ileti şablonları, `tr.exe`, yolla çağrılan ikili; arşiv hariç) [ölçüldü: aynı istek, `f6c22ae8`].
-- **Yapılacaklar (A ayrıca C ve F1, Ö0, Gemini Kodlama2; ölçüldü f6c22ae8):** göç (yönerge `TRLANG_GOCU_YONERGESI.md`, DENETİM istek 76'nın Ş3–Ş6'sıyla): komut listesi koddan, eski adı yasaklayan test, eklentinin `/bin` atlaması kalkar; göç bitince DENETİM doğrular. Ajan deneyinin zor-3'ü bundan sonra.
+- **Mevcut durum:** komut satırı aracının adı `trlang` (`cmd/trlang`, `codes.ProgramName`); göç birleşti (2026-11-03, `7659aa0c`, `fa877f38`, `b71bef0e`; Gemini Kodlama2'nin işi, araç main'de yeniden koşuldu; DENETİM istek 86, 87). `TestNoOldCommandName` eski adı alt komut, dosya, şablon, `.exe`, yol, paket yolu ve ters tırnaklı ekli yalın biçimde yasaklıyor.
+- **Yapılacaklar (F1, Ö3; DENETİM istek 87 Ş1):** yalın `trlang` yerine eski ad yedi yerde daha kalıyor (dil tanımı 15, mimari belgesi, kılavuz 11, kodların README'si, codegraph README'sinin üç İngilizce yeri). Testin altıncı biçimi sözcük listesiyle dar; kural ters dönmeli: ters tırnaklı her yalın eski ad hatadır, istisna dil kodu kalıbı ve izin listesidir.
+- **Ajan deneyinin zor-3'ü** bu göçten sonra (yol haritası).
 
 ### Denetim katmanlarının gözden geçirmesi
 
