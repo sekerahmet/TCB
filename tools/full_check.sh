@@ -82,6 +82,15 @@ for arg in "$@"; do
 		;;
 	esac
 done
+# --taban tam kimliğe çözülür: birden çok commit'e uyan kısa kimlik (da0457c5, 2026-11-03) ya da
+# olmayan commit sessizce "ortak ata yok" diye okunup değişen dosyaların testleri ve dups atlanıyordu.
+if [ -n "$base_override" ]; then
+	resolved=$(git rev-parse --verify -q "$base_override^{commit}" 2>/dev/null) || {
+		echo "--taban=$base_override tek bir commit'e çözülmüyor (belirsiz kısa kimlik ya da olmayan commit): daha uzun kimlik verin" >&2
+		exit 2
+	}
+	base_override=$resolved
+fi
 
 # repo_scans düzen kurallarının paketleri dışında depoyu tarayan kural testleridir (ön denetim hepsini koşar).
 repo_scans=(
