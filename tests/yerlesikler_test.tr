@@ -102,6 +102,26 @@ TR_test "13.1 TR_write_file TR_String'i UTF-8, TR_Bytes'ı bayt bayt yazar; değ
     TR_assert_equal("[1, 2]", TR_read_file(TR_Path(k, "x.txt")))
 }
 
+TR_test "13.1 TR_read_bytes dosyayı TR_Bytes olarak olduğu gibi okur; .gz açılmaz" {
+    TR_var k = TR_temp_dir()
+    # Uçtan uca: TR_write_file'ın yazdığı bayt dizisi aynen döner (bütün bayt değerleri).
+    TR_var hepsi = TR_Bytes([i TR_for i TR_in 0..256])
+    TR_write_file(TR_Path(k, "hepsi.bin"), hepsi)
+    TR_assert_equal(hepsi, TR_read_bytes(TR_Path(k, "hepsi.bin")))
+    TR_assert_equal(256, TR_read_bytes(TR_String(TR_Path(k, "hepsi.bin"))).TR_length)
+    TR_write_file(TR_Path(k, "bos.bin"), TR_Bytes([]))
+    TR_assert_equal(TR_Bytes([]), TR_read_bytes(TR_Path(k, "bos.bin")))
+    # .gz açılmaz: sıkıştırılmış baytlar gelir (gzip imzası 31, 139); TR_read_file açar (18.12).
+    TR_write_file(TR_Path(k, "a.txt.gz"), "merhaba")
+    TR_assert_equal(TR_Bytes([31, 139]), TR_read_bytes(TR_Path(k, "a.txt.gz"))[0..2])
+    TR_assert_equal("merhaba", TR_read_file(TR_Path(k, "a.txt.gz")))
+    # Yol 13.1a'nın okuma sırasıyla çözülür: programın klasöründeki dosya da bulunur.
+    TR_assert_equal(TR_Bytes(TR_read_file("data/tokenizer.json")), TR_read_bytes("data/tokenizer.json"))
+    TR_assert_equal("H2132", TR_error_code { TR_read_bytes("data/olmayan_dosya.bin") })
+    TR_assert_equal("H2130", TR_error_code { TR_read_bytes("data") })
+    TR_assert_equal("H2423", TR_error_code { TR_read_bytes([5, "a"][0]) })
+}
+
 TR_test "13.2 metin metotları" {
     TR_assert_equal("ISTANBUL", "istanbul".TR_upper())
     TR_assert_equal("ilik", "ILIK".TR_lower())

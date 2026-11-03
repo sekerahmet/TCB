@@ -3,6 +3,7 @@ package interp
 import (
 	"io"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ var coreBuiltins = [...]struct {
 	{codes.FnWaitAll, waitAllBuiltin},
 	{codes.FnTimeMs, timeMsBuiltin},
 	{codes.FnReadFile, readFileBuiltin},
+	{codes.FnReadBytes, readBytesBuiltin},
 	{codes.FnWriteFile, writeFileBuiltin},
 	{codes.FnSleep, sleepBuiltin},
 	{codes.FnExit, exitBuiltin},
@@ -197,33 +199,50 @@ func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(time.Now().UnixMilli()), nil
 }
 
-// readFileBuiltin dosya_oku() yerleşiğidir.
+// readFileBuiltin dosya_oku() yerleşiğidir: dosyayı metin olarak okur, .gz'i açar (18.12).
 func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return readWhole(y, codes.FnReadFile, args, ReadFileContent, func(data []byte, _ string) (Value, error) {
+		return &StringVal{Val: string(data)}, nil
+	})
+}
+
+// readBytesBuiltin dosya_baytları() yerleşiğidir (13.1): dosyanın baytlarını olduğu gibi okur,
+// .gz'i açmaz.
+func readBytesBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	return readWhole(y, codes.FnReadBytes, args, os.ReadFile, func(data []byte, _ string) (Value, error) {
+		return NewBytes(data), nil
+	})
+}
+
+// readWhole dosyayı bütün okuyan yerleşiklerin ortak yoludur (13.1a): yolu okuma sırasıyla çözer,
+// dosyayı read ile okur, değeri build ile kurar (build'in yolu kullanıcının yazdığıdır). Okuma da
+// değerin kurulması da (büyük dosyada kopya) kilit bırakılarak yapılır (10.2).
+func readWhole(y *VM, kd codes.Code, args []Value, read func(string) ([]byte, error), build func(data []byte, filePath string) (Value, error)) (Value, error) {
 	if len(args) != 1 {
-		return nil, ArgCountError(codes.FnReadFile, 1, len(args), messages.Text(messages.H2307))
+		return nil, ArgCountError(kd, 1, len(args), messages.Text(messages.H2307))
 	}
-	filePath, ok, err := PathArg(CallPrefix(codes.FnReadFile), args[0])
+	filePath, ok, err := PathArg(CallPrefix(kd), args[0])
 	if !ok {
-		return nil, ArgTypeError(codes.FnReadFile, 1, args[0], codes.TypeString, codes.TypePath)
+		return nil, ArgTypeError(kd, 1, args[0], codes.TypeString, codes.TypePath)
 	}
 	if err != nil {
 		return nil, err
 	}
 	resolved, searched := y.ResolvePath(filePath)
-	// Okuma da metne dönüşüm de (büyük dosyada kopya) kilit bırakılarak yapılır (10.2).
-	var text string
+	var v Value
+	var buildErr error
 	if waitErr := y.Abandonable(func() {
 		var data []byte
-		if data, err = ReadFileContent(resolved); err == nil {
-			text = string(data)
+		if data, err = read(resolved); err == nil {
+			v, buildErr = build(data, filePath)
 		}
 	}); waitErr != nil {
 		return nil, waitErr
 	}
 	if err != nil {
-		return nil, ReadError(CallPrefix(codes.FnReadFile), filePath, messages.H2100, err, searched)
+		return nil, ReadError(CallPrefix(kd), filePath, messages.H2100, err, searched)
 	}
-	return &StringVal{Val: text}, nil
+	return v, buildErr
 }
 
 // writeFileBuiltin dosya_yaz() yerleşiğidir (13.1): TR_String'i UTF-8 olarak, TR_Bytes'ı bayt bayt

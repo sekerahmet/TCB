@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 577 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 129 fonksiyon, 11 sabit, 65 metot, 101 özellik, 138 adlı argüman.
+Toplam 578 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 65 metot, 101 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -2583,6 +2583,25 @@ tr: yazdır(rastgele_normal([2, 3], tohum: 42).şekil)
 
 İlişkili: `TR_zeros(...)`
 
+#### `TR_read_bytes(...)` (`TR_fn_read_bytes`, `dosya_baytları`)
+
+    dosya_baytları(Metin | Yol) → Baytlar
+
+Dosyanın tüm içeriğini Baytlar olarak okur (görüntü, ses, ikili veri); yol Metin ya da Yol olabilir. Göreli yol önce çalışma klasörüne, sonra modülün ve programın klasörüne göre çözülür, dosya yoksa hata bakılan yerleri listeler. Baytlar olduğu gibi okunur, .gz açılmaz.
+
+```tr
+TR_write_file("veri.bin", TR_Bytes([0, 255, 128])); TR_print(TR_read_bytes("veri.bin"))
+```
+
+Görünümü:
+
+```text
+en: write_file("veri.bin", Bytes([0, 255, 128])); print(read_bytes("veri.bin"))
+tr: dosya_yaz("veri.bin", Baytlar([0, 255, 128])); yazdır(dosya_baytları("veri.bin"))
+```
+
+İlişkili: `TR_read_file(...)`, `TR_write_file(...)`
+
 #### `TR_read_csv(...)` (`TR_fn_read_csv`, `csv_oku`)
 
     csv_oku(Metin | Yol) → Liste
@@ -2619,7 +2638,7 @@ en: write_file("notlar.txt", "merhaba"); print(read_file("notlar.txt"))
 tr: dosya_yaz("notlar.txt", "merhaba"); yazdır(dosya_oku("notlar.txt"))
 ```
 
-İlişkili: `TR_write_file(...)`, `TR_read_lines(...)`, `TR_read_csv(...)`
+İlişkili: `TR_write_file(...)`, `TR_read_bytes(...)`, `TR_read_lines(...)`, `TR_read_csv(...)`
 
 #### `TR_read_lines(...)` (`TR_fn_read_lines`, `dosya_satırları`)
 
@@ -3186,7 +3205,7 @@ en: write_file("not.txt", "merhaba"); print(read_file("not.txt"))
 tr: dosya_yaz("not.txt", "merhaba"); yazdır(dosya_oku("not.txt"))
 ```
 
-İlişkili: `TR_read_file(...)`
+İlişkili: `TR_read_file(...)`, `TR_read_bytes(...)`
 
 #### `TR_write_slice(...)` (`TR_fn_write_slice`, `yerine_yaz`)
 

@@ -1,7 +1,7 @@
 # TR 4
 # 19 — Dosya ve JSON: veriyi diske yazıp geri okumak.
 # Ne öğretir: geçici_klasör, yol, dosya_yaz/dosya_oku, dosya_satırları, .var_mı, json_metin ile
-# değeri metne, json_çöz ile metni değere çevirmek.
+# değeri metne, json_çöz ile metni değere çevirmek; dosya_baytları ile ikili veri.
 # Önceki örnekten: metin (04), sözlükler (11), hata yönetimi (15).
 # Çalıştırma (proje kökünden): tr examples/tr/19_dosya_ve_json.tr
 # Dosyalar geçici klasöre yazılır (program bitince silinir, depoda iz kalmaz).
@@ -26,6 +26,12 @@ TR_write_file(ayar_yolu, TR_json_string(ayar))
 TR_var okunan = TR_json_parse(TR_read_file(ayar_yolu))
 TR_print("adım: \(TR_Int(okunan["adım"]) + 1), oranlar: \(okunan["oranlar"]), açık: \(TR_Bool(okunan["açık"]))")
 TR_print("aynı mı: \(okunan == TR_JSON(ayar))")
+
+# İkili veri: Baytlar bayt bayt yazılır, dosya_baytları dosyayı olduğu gibi okur (görüntü, ses)
+TR_var veri_yolu = TR_Path(klasör, "veri.bin")
+TR_write_file(veri_yolu, TR_Bytes([0, 255, 128]))
+TR_var baytlar = TR_read_bytes(veri_yolu)
+TR_print("baytlar: \(baytlar), uzunluk: \(baytlar.TR_length)")
 
 # --- Kendin dene ---
 # 1. Kendi ayar sözlüğünü kaydet, bir değerini değiştirip yeniden yaz ve oku.
