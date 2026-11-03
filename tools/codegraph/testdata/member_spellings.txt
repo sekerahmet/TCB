@@ -1079,6 +1079,7 @@ x1.TR_grad	ok	0	name:TR_mem_grad
 x2.TR_grad	ok	0	name:TR_mem_grad
 xb.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 xc.TR_grad	ok	0	name:TR_mem_grad
+y.TR_detach	not_found	4	-
 y.TR_dtype	ok	0	name:TR_mem_dtype
 y.TR_extension	ok	0	name:TR_mem_extension
 y.TR_grad	ok	0	name:TR_mem_grad
