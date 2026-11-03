@@ -67,6 +67,12 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 - **`compares_value` noktalama gürültüsü.** 2026-10-26, CODEGRAPH bildirdi. Denetim: onay (satırlar bir kaymış: `other_os.go:43`). **Bekliyor: çekirdek değişikliği** (işleç alanlarının `lexer.TokenType` olması); CODEGRAPH'a gitmedi.
   - Komut: `go run ./tools/codegraph who-uses lexer.TokDot` → `compares_value (17)`, çoğu dosya yolu ve bayrak kodu. Beklenen: yalnız işleci kastedenler; tip süzgeci, AST'nin işleç alanları `TokenType` olduktan sonra.
+- **`tests-for` izlenmeyen dosyayı söylemiyor (2026-11-03, D1'in 4a4'ü).** `TestNegativeFixtures` yalnız git'in izlediği fikstürleri görüyor (`reporoot.Glob`); `codegraph tests-for tests/negative/<yeni>.tr` bunu söylemiyor ve yeni fikstürün bozma denetimi `git add`'den önce yanlışlıkla geçti [ölçüldü: D1, 2(a)].
+  - Beklenen: izlenmeyen dosyada "bu dosya izlenmiyor, depo testleri onu görmez" uyarısı.
+  - Sınıf: ince ayar (yanlış test sonucuna güvenmeye götürüyor; ön denetim `git add`'den sonra yakalıyor).
+- **Düzenleme kancasında `tests-for`'un "derlenmiyor" uyarısı test listesinin altında kalıyor (2026-11-03, D1'in 4a4'ü).** Araç derlenmeyen ağaçta eski grafiği verip uyarıyor (doğru davranış), ama kancanın çıktısı derleme hatası satırlarıyla aynı blokta uzun bir test listesi döküyor; asıl bilgi gözden kaçabiliyor.
+  - Beklenen: uyarı çıktının başında, test listesinden ayrı.
+  - Sınıf: ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
