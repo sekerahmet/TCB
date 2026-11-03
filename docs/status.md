@@ -877,6 +877,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar (D, Ö3; DENETİM istek 83 Ş4):** `w.TR_requires_grad = 1` denetimde değil çalışmada hata (H6992); denetleyici tensör üyesinin tipini bilince yakalar.
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** kitaplığın `TR_Muon` ve `TR_NorMuon`'u 16 bitlik parametrede ana kopya tutmuyor; güncelleme yutuluyor ve artık uyarı veriyor (`lib/optimizers.tr:96-97`) [kanıtlı: T1 devri]. İş: iki iyileştiriciye ana kopya.
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** H6994'ün önerisi `.TR_fill` yokken `p[0..p.TR_shape[0]] = ana`; `.TR_fill` gelince `p.TR_fill(ana)` olur (15.6d).
+- **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş4):** H6994'ün önerisi (`p[0..p.TR_shape[0]] = ana`) 0 boyutlu parametrede "Liste indeksi sınır dışı" veriyor; öneri boyuttan bağımsız yazılmalı. Kitaplığın `TR_Muon`'unda uyarı `tr/optimizers.tr` satır 97'yi gösterip kullanıcıya ana kopya tutmasını söylüyor; kullanıcı orayı değiştiremez, ileti "parametreyi float32 kurun" demeli.
 - **Açık (Sonraya):** aynı yapıya eklenen LoRA alanları için `TR_load_parameters`'ın kesin kuralı; bugün yol alt yapıya yüklemek (`TR_load_parameters(model.gövde, ...)`).
 
 ### 15.36
@@ -915,6 +916,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar:** GPU'da aynı hata (denetim cihazdan önce, stdlib'de): L4'te koşulacak.
 - **Yapılacaklar (F, Ö3; DENETİM istek 83 Ş3):** modül adı ve metot yolu `VM.EvalExpression` ile okunuyor; `debug_support.go`'nun yorumu bu yöntemleri yalnız hata ayıklayıcı için tanımlıyor. Yorum ikinci kullanıcıyı söyler ya da dar bir üye okuma fonksiyonu açılır.
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** liste kavrayışının değişkeni `TR_fuse`'un toplayıcısında yerel sayılmıyor; dışta aynı adlı değişken varsa doğru program gereksiz H6986 ile duruyor (sessiz değil) [kanıtlı: T1 devri, okuma].
+- **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş3):** H6986 fonksiyon değerinde yanlış yönlendiriyor: öneri "değişen sayıyı argüman verin" diyor, oysa fonksiyon `TR_fuse`'a argüman olamaz; doğrusu `TR_fuse(...)`'i yeniden kurmak (öneri okunan değerin türüne göre ayrılır). Fabrika kapanışında eski ve yeni fonksiyon aynı görünüyor (`<ok fonksiyonu>`). Takma adla okunan bağlı metodun yolu iletide sınıflı iç kimlikle (self anahtar sözcüğünün iç kodu) yazılıyor; nesnenin yolu olmalı.
+- **Yapılacaklar (C, Ö3; DENETİM istek 84 N1) [hipotez]:** fonksiyon kimliği `%p` ile metin olarak tutuluyor; eski kapanış toplanıp yenisinin ortamı aynı adrese düşerse değişim görünmez. Yeniden üretilemedi (400 denemede 400 H6986). Koruma: kaydedilen gövde ve ortam işaretçilerini `fuseCapture`'da tutmak.
 - **Uygulama sınırı:** `TR_clamp`, `TR_atan2` ve `TR_where` bugün kaynaştırılmıyor; `f`'de kullanılınca hata veriyor. Kural onları da kapsar.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** kapanış yolunda liste indeksi ve sözlük anahtarı (2. kilometre taşının ön koşulu); `TR_fuse`'da float64 ve tam sayı kendi türünde (T3).
 
