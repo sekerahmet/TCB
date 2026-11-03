@@ -1142,6 +1142,15 @@ Dil tanımında bölümü olmayan A, B ve C işleri (DENETİM istek 76).
 - **Mevcut durum:** komut satırı aracının adı `tr`; karar `trlang` (Ahmet, 2026-10-30; [yol haritası](roadmap.md)). Örneklerin başlığı ("Çalıştırma: tr examples/tr/01_merhaba.tr") ve iletiler (H8602 "'tr {command}'") ajana `tr` yazdırıyor; POSIX makinesinde sistemin `tr`'si çağrılınca "tr run x.tr < /dev/null" çağrısı çıkış 0 ve boş çıktı veriyor, standart girdi açıkken asılı kalıyor; sonuç PATH'e göre değişiyor [ölçüldü: DENETİM istek 76, GNU coreutils 8.32]. Göçün kapsamı 704 satır, 249 dosya (13 komut, alt komutsuz `tr <yol>.tr`, ileti şablonları, `tr.exe`, yolla çağrılan ikili; arşiv hariç) [ölçüldü: aynı istek, `f6c22ae8`].
 - **Yapılacaklar (A ayrıca C ve F1, Ö0, Gemini Kodlama2; ölçüldü f6c22ae8):** göç (yönerge `TRLANG_GOCU_YONERGESI.md`, DENETİM istek 76'nın Ş3–Ş6'sıyla): komut listesi koddan, eski adı yasaklayan test, eklentinin `/bin` atlaması kalkar; göç bitince DENETİM doğrular. Ajan deneyinin zor-3'ü bundan sonra.
 
+### Güvenilirlik (C): yol haritasından
+
+Yol haritasının açık işlerinden DENETİM'in C saydıkları (istek 76, 2. bakış; taban `f6c22ae8`).
+
+- **Yapılacaklar (C, Ö2, Kol B; ölçülmedi):** küçük işaretçili yığınla dönen döngüde çöp toplama turunun tik arasına alınması ölçülecek (roadmap "Bölümü olmayan işler"); 100 Hz döngü Jarvis'in ön koşulu [tahmin: DENETİM].
+- **Yapılacaklar (C, Ö2; ölçüldü: D1 13.1c ön denetimi ve roadmap "Araç işleri"):** kararsız testler. Bilinen: `TestTheLockIsHandedOffInTimeAfterStatementsSlowDown` (10.2'de); öbürleri sayılıp her biri kendi maddesine yazılacak.
+- **Yapılacaklar (C adayı, ölçülmedi):** hata ayıklayıcıda F5 ile `TR_input()` çalışmıyor (roadmap "Araç işleri"): asılı kalıyorsa C, açık hata veriyorsa E [hipotez: DENETİM]. Önce ölçülecek.
+- **Yapılacaklar (C adayı, ölçülmedi):** eğitimde artan adım süresi, sızıntı olabilir (roadmap 2. kilometre taşı); sızıntıysa uzun eğitim kesilir [hipotez: DENETİM]. Önce ölçülecek; Ahmet'in kararını bekleyen eğitim hızı adaylarıyla birlikte.
+
 ## 20. Kontrol noktası
 
 Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. Metin DENETİM 20-1'den geçti, bulguları işlendi (`6a525af7`); kararlar Gemini Koşu 1 (`4afda971`), Koşu 4 (`23e7be25`) ve Koşu 2 (20.11, `70a1e6fe`) ile geçti. Kapanış turu yapılmadı.

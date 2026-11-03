@@ -186,7 +186,7 @@ Dilin kuralı değil; kodlama modellerinin ve insanların dili rahat kullanması
   - **dil sunucusu:** eklentide bugün yalnız tamamlama var; tanıma gitme, kullanımlar, yeniden adlandırma ve öbürleri;
   - **hata ayıklayıcı:**
     - DAP bitiş ölçütü: hata ayıklayıcının uçtan uca sürüşü;
-    - kesme noktası bir sonraki deyimde duruyor;
+    - kesme noktası bir sonraki deyimde duruyor: komut satırının hata ayıklayıcısında doğru duruyor [ölçüldü: DENETİM istek 76, düz programda ve fonksiyon gövdesinde]; DAP'ta (eklenti) ölçülmedi;
     - F5'te `TR_input()` çalışmıyor;
     - isabet sayılı kesme noktası ve iz noktası, hata fırlatılınca durma;
     - tensör özeti, "kayıp NaN olunca dur";
