@@ -51,6 +51,14 @@
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
  },
+ "H2135": {
+  "commit": "claude/kolA-esitlik",
+  "reason": "deleted: turkish: the operating system's text does not enter the value (8.5); H2628 carries the number only"
+ },
+ "H2136": {
+  "commit": "claude/kolA-esitlik",
+  "reason": "deleted: turkish: Go's error text does not enter the value (8.5); H2629 carries no text"
+ },
  "H2302": {
   "commit": "claude/katman2-deger-12bdf3",
   "reason": "deleted: TR_range is gone; a range is a..b, its list TR_List(a..b) (3.8, 3.12)"

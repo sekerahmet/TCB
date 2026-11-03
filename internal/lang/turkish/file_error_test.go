@@ -2,6 +2,8 @@ package turkish
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -77,12 +79,33 @@ func TestFileErrorTurkishAndHelpful(t *testing.T) {
 func TestFileErrorUnknownStatusCode(t *testing.T) {
 	err := &fs.PathError{Op: "open", Path: "x", Err: syscall.Errno(7777)}
 	m := FileError("", "x", messages.H2100, err).Error()
-	if !strings.HasPrefix(m, `"x" okunamadı: işletim sistemi beklenmeyen bir hata bildirdi (hata kodu 7777`) {
+	if m != `"x" okunamadı: işletim sistemi beklenmeyen bir hata bildirdi (hata kodu 7777)` {
 		t.Errorf("beklenmeyen mesaj: %s", m)
 	}
 	m = FileError("", "x", messages.H2100, errors.New("tuhaf")).Error()
-	if m != `"x" okunamadı: beklenmeyen bir hata oluştu (özgün hata: tuhaf)` {
+	if m != `"x" okunamadı: beklenmeyen bir hata oluştu` {
 		t.Errorf("beklenmeyen mesaj: %s", m)
+	}
+}
+
+// Sistemin metni değere girmez (8.5): bilinmeyen sistem hatasında yalnız numarası kalır (1168 Windows'ta
+// "Element not found.", 71 Linux'ta EPROTO; ikisi de iki sistemde tanınmıyor). Go'nun metni de girmez
+// ("unexpected EOF"); özgün hata Unwrap ile korunur.
+func TestFileErrorReasonCarriesNoSystemText(t *testing.T) {
+	for _, n := range []syscall.Errno{1168, 71} {
+		r := fileErrorReason("", &fs.PathError{Op: "open", Path: "x", Err: n})
+		want := fmt.Sprintf("işletim sistemi beklenmeyen bir hata bildirdi (hata kodu %d)", n)
+		if !messages.Has(r, messages.H2628) || r.Error() != want || strings.Contains(r.Error(), n.Error()) {
+			t.Errorf("%d: sistemin metni ya da beklenmeyen neden: %v", n, r)
+		}
+	}
+	for _, err := range []error{io.ErrUnexpectedEOF, &fs.PathError{Op: "read", Path: "x", Err: io.ErrUnexpectedEOF}} {
+		if r := fileErrorReason("", err); !messages.Has(r, messages.H2629) || r.Error() != "beklenmeyen bir hata oluştu" {
+			t.Errorf("Go'nun metni değere girdi: %v", r)
+		}
+		if f := FileError("", "x", messages.H2100, err); !errors.Is(f, io.ErrUnexpectedEOF) {
+			t.Errorf("özgün hata Unwrap ile korunmalı: %v", f)
+		}
 	}
 }
 
