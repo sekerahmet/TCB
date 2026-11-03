@@ -251,6 +251,7 @@ func (n *Object) encode(m *interp.VM, args []interp.Value, named map[string]inte
 		return nil, err
 	}
 	pick.DontAddSpecial = !special
+	pick.DontParseAdded = !special // 16.2: metindeki eklenmiş parça yazımı da kimlik olmaz, özel olsun olmasın
 	secondV, hasSecond := bind.GetNamed(named, nameSecond)
 
 	switch x := args[0].(type) {

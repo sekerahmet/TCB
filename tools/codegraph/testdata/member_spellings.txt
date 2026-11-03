@@ -435,7 +435,9 @@ d2.TR_keys	ok	0	name:TR_mem_keys
 d2.TR_length	ok	0	name:TR_mem_length
 devamlar.TR_length	ok	0	name:TR_mem_length
 değerler.TR_sort	ok	0	name:TR_mem_sort
+dizi.TR_contains	ok	0	name:TR_mem_contains
 dizi.TR_length	ok	0	name:TR_mem_length
+diziler.TR_append	ok	0	name:TR_mem_append
 diğer.TR_append	ok	0	name:TR_mem_append
 dolu.TR_grad	ok	0	name:TR_mem_grad
 doğru_konum.TR_append	ok	0	name:TR_mem_append

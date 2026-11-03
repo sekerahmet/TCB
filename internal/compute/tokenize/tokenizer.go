@@ -51,6 +51,9 @@ type Tokenizer struct {
 	model         Model
 	postProcessor PostProcessor
 	decoder       Decoder
+	// plain her ek token düzeyinde (addedSkip) modeldir: tanınmayan ek tokenların kimliklerini
+	// bölütlemede kullanmayan kopya (bkz. plain.go); skipNone'da ve kopya gerekmezse model.
+	plain [skipAll + 1]Model
 
 	extras  []AddedToken // geçerli kimlikleriyle, dosyadaki sırayla
 	addedID map[string]int32
@@ -219,6 +222,19 @@ func Parse(data []byte) (*Tokenizer, error) {
 			}
 		}
 	}
+	special, all := make(map[int32]bool), make(map[int32]bool)
+	for _, e := range p.extras {
+		if e.Special {
+			special[int32(e.ID)] = true
+		}
+		all[int32(e.ID)] = true
+	}
+	p.plain[skipNone] = p.model
+	p.plain[skipSpecial] = plainModel(p.model, special)
+	p.plain[skipAll] = p.plain[skipSpecial] // özel olmayan ek token yoksa aynı kopya
+	if len(all) > len(special) {
+		p.plain[skipAll] = plainModel(p.model, all)
+	}
 
 	// Son işleyici, özel token kimliklerine erişebilsin diye en son kurulur.
 	if p.postProcessor, err = NewPostProcessor(d.PostProcessor, func(s string) (int32, bool) {
@@ -356,10 +372,12 @@ func (p *Tokenizer) AddedTokens() []AddedToken {
 // SetCacheCapacity modelin sözcük önbelleğini verilen kapasiteyle
 // yeniden kurar (0: önbellek kapalı). Kodlama sürerken çağrılmamalıdır.
 func (p *Tokenizer) SetCacheCapacity(capacity int) {
-	switch m := p.model.(type) {
-	case *bpeModel:
-		m.cache = newCache(capacity)
-	case *unigram:
-		m.cache = newCache(capacity)
+	for _, m := range p.plain {
+		switch m := m.(type) {
+		case *bpeModel:
+			m.cache = newCache(capacity)
+		case *unigram:
+			m.cache = newCache(capacity)
+		}
 	}
 }

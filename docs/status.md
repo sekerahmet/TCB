@@ -22,7 +22,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
 **Ö0, sırayla:**
-1. 16.2 ve 16.3 (parçalayıcı; Jarvis'in ön koşulu): ilk boşalan kolun sonraki dilimi.
+1. 16.2 ve 16.3 (parçalayıcı; Jarvis'in ön koşulu): ilk boşalan kolun sonraki dilimi. 16.2 (B) **birleşti** (2026-11-03, T1 teslim 1); 16.3 aynı dalda sürüyor.
 2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. **Birleşti** (2026-11-03, `479457b1`; telafili toplam ve `TR_read_bytes` da). FMA'sız yol (C) bu dilime girmez. Hemen ardından aynı kolda `TR_max` ve `TR_round`'un dört sessiz yanlışı (status 13.1, DENETİM istek 71).
 3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce.
 4. 7.6 ve 7.7'nin özdeşlik kısa devresi (yorumlayıcının eşitliği; DENETİM istek 75): Kol A, 13.1c'den sonraki dilim, 8.5 ile.
@@ -961,11 +961,9 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.2
 
-- **Gemini Koşu 7 (2026-10-29), uygulanacak:** `TR_special_tokens: TR_false` metin içi özel parçayı da kapatır.
-- **Mevcut durum:** uygulanmadı. `TR_false` yalnız başa ve sona eklenenleri kapatıyor; metindeki `<|im_end|>` yine özel parçanın kimliği oluyor. `p.TR_encode`'un Go kodu `DontAddSpecial`'ı kuruyor, `DontParseSpecial`'ı kurmuyor [ölçüldü: 2026-11-02, main `705b721b`, gpt2 `tokenizer.json`'a eklenen `<|im_end|>` ile; kanıtlı: `internal/stdlib/tokenizer/tokenizer.go`, kodlama metodu]. Güvenlik açığı: sunulan bir modelde kullanıcı metni rol parçası üretebilir.
-- **Yapılacaklar (B, Ö0, ilk boşalan kol; ölçüm status'un; öncelikli; Jarvis'in sohbet biçiminin ön koşulu):**
-  - 16.2'nin kuralı ve TR testi: metindeki özel parça yazımı `TR_false` ile baytlarına kodlanır.
-  - 16.2'nin genişlemesi (2026-11-02, Jarvis B; dil tanımında, uygulanmadı): `TR_false` özel olmayan eklenmiş parçaları da (`<think>`, `<tool_call>`) kapatır. 2026-11-02'de TR de Hugging Face de onları her yolda eşliyor; HF'nin `split_special_tokens=True`'su yalnız özel olanları bölüyor [ölçüldü: 2026-11-02, tokenizers 0.23.2, transformers 5.17.0].
+- **Mevcut durum:** `TR_false` ile metindeki eklenmiş parça yazımı, özel olsun olmasın (`<|im_end|>`, `<think>`), kimlik üretmez: ne eşleşme ne modelin kendi bölütlemesi (unigram'ın `<s>`/`</s>` parçaları); bilinmeyen kimliği ayrıdır [test: `TestPlainEncodingProducesNoAddedID`, `TestPlainEncodingProducesNoSpecialID`, 12 fikstür, dört kodlama yolu; TR testi "16.2 TR_special_tokens: TR_false ile metin eklenmiş parçanın kimliğini üretmez"]. Hugging Face'in `split_special_tokens`'ı yalnız özelleri böler; TR bilerek ayrılıyor (16.2 "özel olsun olmasın"). 147 metinden 139'u Hugging Face'in kodlamasıyla aynı; ayrılan 8'i unigram'da `<s>`/`</s>`: HF'nin bölütlemesi onları özel kimliğe bölüyor, 16.2 bölmüyor [test: `TestPlainEncodingMatchesHuggingFace`, tokenizers 0.23.2].
+
+- **Bulgu (T1, 2026-11-03, D, Ö3):** `splitFn` aynı konumda atlanan uzun bir eklenmiş parçanın içindeki kısa eklenmiş parçaya bakmıyor; yalnız `DontParseSpecial`'ın (HF anlamı) çağıranını etkiler, TR'nin `TR_false`'u (`DontParseAdded`) hepsini atladığı için etkilemez; bugünkü fikstürlerde sonuç aynı [ölçüldü: T1, altın testi].
 
 ### 16.3
 
@@ -1211,5 +1209,5 @@ Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı
 ### 24.1–24.4
 
 - **Mevcut durum:** uygulanmadı; `tr/chat` kitaplığı yok [ölçüldü: main `705b721b`, `lib/`].
-- **Yapılacaklar:** önce 16.2'nin `TR_false` kapatması (ön koşul); sonra `tr/chat` ve Qwen3 biçimi, transformers'la altın testlerle.
+- **Yapılacaklar:** 16.2'nin `TR_false` kapatması (ön koşul) 2026-11-03'te birleşti (T1, teslim 1); sıradaki `tr/chat` ve Qwen3 biçimi, transformers'la altın testlerle.
 - **Yapılacaklar (Jarvis B kararı, `lib/layers.tr`):** `TR_generate`'in `TR_eos`'u `TR_List[TR_Int] = []` olur, çünkü modeller birden çok durdurma parçası taşır: Qwen3-0.6B `[151645, 151643]`, Llama-3.1-8B-Instruct `[128001, 128008, 128009]` [kaynak: DENETİM istek 42, `generation_config.json`]. Çağıranların göçüyle: `lib/layers_test.tr`, `examples/tr/46_hazir_model_ve_uretim.tr`, `tools/gpu/ss_exam.tr`, `docs/guide/10_hazir_katmanlarla_gpt.md` [ölçüldü: DENETİM istek 43]. T1'in alanı.
