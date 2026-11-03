@@ -111,7 +111,7 @@ Kesintisiz eğitim ile kesilip sürdürülen eğitim aynı son adımda bit düze
 
 **20.18** Kontrol noktası dosyaları güvenilmeyen girdidir (başkasından gelen ya da yarım kopyalanmış koşu klasörü).
 - `digest.json` en çok 64 KB, `state.json` en çok 64 MB okunur; JSON katı çözülür (bilinmeyen alan ve fazladan veri hata).
-- Biçim sürümü 3'tür ve yalnız o okunur (dil taslaktır, 17.10); daha yenisi hata verir.
+- Biçim sürümü 4'tür; sürüm 3 de okunur (donma durumu yoktur, hiçbir parametre donmuş sayılmaz); daha yenisi hata verir (dil taslaktır, 17.10).
 - Adım, klasör adında, `digest.json`'da ve `state.json`'da aynı olmalıdır; tensör dosyası `TR_load_tensors`'ın bütün sınırlarıyla okunur.
 - Biçimde yalnız veri vardır: kod çalıştıran, nesne kuran ya da yol çözen alan yoktur.
 - Büyük modeller bellekte ikinci bir kopya toplanmadan yazılır ve okunur. Kayıt sürerken eşzamanlı görevler bekler.

@@ -34,6 +34,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **15.44, fonksiyon değeri ve blok kapsamı (2026-11-03, T1 Kol B teslim 2b):** uygulama kapanıştan okunan fonksiyon değerini kimliğiyle kaydediyor (bağlı metotta gövde ve `TR_self`), gövdesini nerede okunursa okunsun geziyor; adların kapsamı bloğa göre (döngü değişkeni dahil). Madde ikisini de açıkça söylemiyor; cümle tartılır.
+- **20, biçim sürümü (2026-11-03, T1 Kol B teslim 2b; TCB kararıyla çelişiyordu, düzeltildi):** "sürüm 3'tür ve yalnız o okunur" cümlesi "sürüm 4'tür; sürüm 3 de okunur (donma durumu yoktur)" oldu. Turda denetlenir.
 - **15.34, gradyansız adım hatasının bedeli (2026-11-03, T1 Kol B teslim 2a):** bir grubu hiç gradyan almayan çok iyileştiricili eğitim (ör. bir adımda kullanılmayan alt modül) H6988 ile durur; PyTorch orada sessiz geçer. Dil tanımı sessiz yanlış yerine hatayı istiyor; maddeye bunu söyleyen bir bilgi cümlesi tartılır.
 - **15.34, "yazılabilir" koşulu (2026-11-03, T1 Kol B teslim 2a):** madde "`TR_true` yalnız … yazılabilir … yaprakta" diyor; yazmaya kapalı depo (15.6d) uygulanmadığı için denetlenmiyor. 15.6d ile gelir. (DENETİM istek 83 Ş7: kopya `.TR_reshape`'in sonucu açılınca H6991 veriyor [ölçüldü: DENETİM `o3`]; "bugün açılabiliyor" cümlesi örneksiz olduğu için kalktı.)
 - **15.34, `.TR_fill` (2026-11-03, T1 Kol B teslim 2a):** maddedeki `g.TR_fill(0.0)` örneği ve 16 bit iletisindeki `p.TR_fill(ana)` çalışmaz, `.TR_fill` yok (status 15.6d); kitaplık sıfırlamayı indeksle yapıyor.
