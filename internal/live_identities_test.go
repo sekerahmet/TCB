@@ -28,7 +28,7 @@ var deadIdentityAllowed = map[string]map[string]string{
 	"lib/optimizers_test.tr":                                      {"TR_mem_ple_table": "parametre yolu deseninin testi", "TR_mem_embedding_x": "parametre yolu deseninin testi"},
 }
 
-// Kural (17.6): bir kimlik silinince satırı kod listesinden silinir; onu anan belge, yorum ve ileti de güncellenir.
+// Kural (17.4, 17.10): bir kimlik silinince satırı kod listesinden silinir; onu anan belge, yorum ve ileti de güncellenir.
 // İzlenen metin dosyalarında (arşiv hariç) yazılan her sınıflı kimlik canlı bir koda gider. Neden: silinen kimliği
 // anan metin okuyanı (ajanı) artık olmayan bir ada götürür ve kimse fark etmez (katman 2'de 33 dosyada 150 kez kaldı).
 func TestClassedIdentitiesAreLive(t *testing.T) {

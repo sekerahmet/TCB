@@ -497,7 +497,7 @@ func TestDottedMemberSpellingsGolden(t *testing.T) {
 			toolDiffs = append(toolDiffs, q+": codegraph="+cgAns.format()+" vs tr_index="+trAns.format())
 		}
 		if hasDeadClassedIdentity(q) {
-			// Kural 17.6 (TestClassedIdentitiesAreLive): bilerek uydurma sınıflı kimlikler (lib/optimizers.tr'deki
+			// Kural 17.4, 17.10 (TestClassedIdentitiesAreLive): bilerek uydurma sınıflı kimlikler (lib/optimizers.tr'deki
 			// negatif desen örneği gibi) başka izlenen dosyaya kopyalanmaz; iki aracın da "bulunamadı" döndüğü denetlenir.
 			if cgAns.exit != exitNotFound || trAns.exit != exitNotFound {
 				toolDiffs = append(toolDiffs, q+": dead classed identity resolved: "+cgAns.format())

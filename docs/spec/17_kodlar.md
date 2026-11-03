@@ -99,4 +99,4 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - Kodlu dosyayı kıran değişiklik (kimliklerin yazımı, başlığın anlamı) yalnız başlığın biçim sürümünü artırarak yapılır (`# TR 4`).
 - Yeni kod, ad değişikliği ve yeni gösterim dili kırıcı değildir.
 - Yayımdan sonra uyumluluk kuralı eklenecektir: kimlik yeniden kullanılmaz, kaldırılan ada ipucu.
-- *Test:* gerekmez, henüz uygulanmadı; yayımda uyumluluk kuralı yazılınca Go testi.
+- *Test:* Go: `TestClassedIdentitiesAreLive` (silinen kodun depoda kullanımı kalmaz); yayımda uyumluluk kuralı yazılınca Go testi.
