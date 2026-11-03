@@ -75,7 +75,7 @@ TR_for adım TR_in kn.TR_resume_step..ayar["step"] {
     TR_if ayar["kayıt_her"] > 0 TR_and (adım + 1) % ayar["kayıt_her"] == 0 { kn.TR_save() }
     TR_if adım + 1 == ayar["dur"] {
         # Testin kesme ya da öldürme noktası: süreç bu adımın sınırında bekler.
-        TR_write_file(TR_Path(ayar["koşu"], "bekliyor.txt"), adım + 1)
+        TR_write_file(TR_Path(ayar["koşu"], "bekliyor.txt"), TR_String(adım + 1))
         TR_for TR_true { kn.TR_update(adım + 1) }
     }
 }
