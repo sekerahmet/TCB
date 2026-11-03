@@ -19,7 +19,7 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 | :-- | :-- | :-- | :-- | :-- | :-- |
 | 2026-11-03 | `3a5114d2` (S-kilit, birleşen sürüm) | Colab L4, CPU | Uzun tensör işi sürerken başka görevin beklemesi; 100 Hz döngü | CPU: gözcü ≤ 3,5 ms 10/10, kaçan tur 0 10/10; GPU: uzun işte tur kaçıyor (status 10.2, C, Ö2) | Colab defteri 11:08 koşusu |
 | 2026-11-03 | `6cab4f89` | Colab L4 | `gpt_training.tr` ve `ss_exam.tr` gerçek kartta, dolgulu dağarcık | 5,5 ms/adım (çok küçük model; yalnız çalıştığının sınaması) | Colab defteri 16:09:50 koşusu |
-| 2026-11-03 | `27a7b1c5`, `4e924cf9` (Kol A ve Kol B teslim 1 dahil) | Colab L4 | Kart sınamasında hedef model adımı (PyTorch'suz) | 916,5 ve 899 ms/adım (iki ayrı koşu) | Colab defteri 17:44:12 ve 17:57:56 koşuları |
+| 2026-11-03 | `27a7b1c5`, `4e924cf9` (Kol A ve Kol B teslim 1 dahil) | Colab L4 | Kart sınamasında hedef model adımı (PyTorch'suz) | 916,5 ve 899 ms/adım (iki ayrı koşu); Kol B teslim 2a'dan sonra 926, 864 ve 924,5 ms/adım. Koşular arası fark %7'ye çıkıyor [hesap: 926 / 864]: tek koşu hız sinyali değil, kart sınamasıdır (DENETİM istek 83 N1) | Colab defteri 17:44:12, 17:57:56, 19:14:50, 19:23:51 ve 19:31:22 koşuları |
 
 **Üretim hızı, CPU** (2026-11-03 16:43–16:55, main `51b75f0a`, Colab CPU High-RAM: Intel Xeon 2.20 GHz, 8 iş parçacığı; torch 2.11.0+cpu, transformers 5.22.0, llama.cpp `28b812d`; 100 parçalık açgözlü üretim, `tools/gpu/generation_race.sh`'in CPU kolu; tek koşu) [ölçüldü: Colab, betik `cpu_uretim_yarisi.sh`]:
 
@@ -68,9 +68,9 @@ Kayıp ikisinde aynı yerde (TR 2,40, PyTorch 2,38). TR, PyTorch'la başa baş y
 
 Birim parça/sn. Aynı koşudaki oranlar [hesap]:
 - **GPU:** TR (bf16) transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58 (SmolLM2) ve 0,75 (Qwen3) katı, f16'nın 0,5 katı.
-- **CPU, 48 iş parçacığı:** TR (float32) transformers'ın 2,2–2,3 katı; llama.cpp f32'nin 0,39 (SmolLM2) ve 0,49 (Qwen3) katı. 16 bitlik ağırlık burada da float32'nin 0,4 katı hızda.
+- **CPU, 48 iş parçacığı:** TR (float32) transformers'ın 2,2–2,3 katı; llama.cpp f32'nin 0,39 (SmolLM2) ve 0,50 (Qwen3) katı. 16 bitlik ağırlık burada da float32'nin 0,4 katı hızda.
 - **GPU'da gerileme:** 2026-10-22'ye göre TR'nin GPU üretimi %7–10 yavaş (Qwen3 bf16 366 → 330, float32 290 → 266; SmolLM2 bf16 608 → 556, float32 548 → 508), llama.cpp aynı (%1 içinde: 442 → 440, 965 → 957). Kart türü aynı, örnek başka; llama.cpp'nin aynı kalması gerilemenin TR'de olduğunu gösteriyor [hipotez: ölçüm, iki commit aynı koşuda karşılaştırılarak doğrulanacak].
-- **CPU'da ilerleme:** her koşunun kendi oranıyla, 48 iş parçacıklı aynı tür makinede, TR/llama.cpp f32 2026-10-22'de Qwen3 0,25, SmolLM2 0,17; 2026-11-03'te 0,49 ve 0,39. TR/transformers 1,05 ve 0,97'den 2,18 ve 2,29'a [hesap: 12,1 / 47,5, 36 / 213, 12,1 / 11,5, 36 / 37; 2026-10-22'nin sayıları `docs/archive/roadmap-2026-10-27.md` Evre 5].
+- **CPU'da ilerleme:** her koşunun kendi oranıyla, 48 iş parçacıklı aynı tür makinede, TR/llama.cpp f32 2026-10-22'de Qwen3 0,25, SmolLM2 0,17; 2026-11-03'te 0,50 ve 0,39. TR/transformers 1,05 ve 0,97'den 2,18 ve 2,29'a [hesap: 12,1 / 47,5, 36 / 213, 12,1 / 11,5, 36 / 37; 2026-10-22'nin sayıları `docs/archive/roadmap-2026-10-27.md` Evre 5].
 
 **GPU üretim gerilemesinin yeri** (2026-11-03 17:22–17:26, aynı G4, RTX PRO 6000 Blackwell; her commit kendi ikilisi ve kendi `generation_race.tr`'siyle; iki tur, turlar arası fark ≤ %1) [ölçüldü: Colab, betik `g4_gerileme_2026_11_03.sh`]:
 
