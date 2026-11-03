@@ -578,6 +578,27 @@ TR_test "15.34 AdamW ve SGD'nin tipi İyileştirici'dir" {
     TR_assert(TR_String(TR_SGD([w])).TR_starts_with("SGD("))
 }
 
+TR_test "15.34 parametre olmayan yaprak: iyileştirici ve kırpma kurulumda hata verir, donmuş parametre kabul edilir" {
+    TR_var w1 = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    # Hiç türev izlemek için kurulmamış yaprak sessizce atlanmaz: unutulmuş parametredir.
+    TR_var w2 = TR_Tensor([2.0])
+    TR_assert_equal("H6995", TR_error_code { TR_SGD([w1, w2]) })
+    TR_assert_equal("H6995", TR_error_code { TR_AdamW([w1, w2]) })
+    TR_assert_equal("H6995", TR_error_code { TR_clip_grad([w1, w2]) })
+    TR_assert_equal("H6995", TR_error_code { TR_SGD([w1, TR_Tensor([1, 2])]) })
+    # Donmuş parametre parametredir: kabul edilir, adımda atlanır.
+    TR_var w3 = TR_Tensor([3.0], TR_requires_grad: TR_true)
+    w3.TR_requires_grad = TR_false
+    TR_var op = TR_SGD([w1, w3], TR_lr: 0.5)
+    TR_backward(TR_sum(w1 * w1))
+    TR_assert_equal(2.0, TR_clip_grad([w1, w3], TR_max: 10.0).TR_tolist)
+    op.TR_step()
+    TR_assert_equal([[0.0], [3.0]], [w1.TR_tolist, w3.TR_tolist])
+    # İletinin önerisi: yaprağı türev izler yapmak.
+    w2.TR_requires_grad = TR_true
+    TR_assert_equal(TR_Optimizer, TR_Type(TR_SGD([w1, w2])))
+}
+
 TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta bileşik atamayla yerinde güncellenir" {
     # TR'de yazılan bir iyileştiricinin (ör. tr/optimizers'deki Muon) tek yapı taşı:
     # gradyanla hesaplanan yeni değer parametrenin kendisine, kopyasız yazılır.
@@ -653,10 +674,10 @@ TR_test "15.34 dondurma: türev_izle okunur ve atanır, donmuş parametre adımd
     TR_backward(kayıp())
     op.TR_step()
     TR_assert_equal([0.0, 0.0], m.gövde.TR_tolist)
-    # Bütün parametreleri donmuşsa adım bir şey yapmaz; türev izlemeyen yaprak kurulumda kabul edilir.
+    # Bütün parametreleri donmuşsa adım bir şey yapmaz (donmuş parametre kurulumda kabul edilir).
     TR_var donuk = TR_Tensor([5.0], TR_requires_grad: TR_true)
     donuk.TR_requires_grad = TR_false
-    TR_var od = TR_AdamW([donuk, TR_Tensor([1, 2])])
+    TR_var od = TR_AdamW([donuk])
     od.TR_step()
     TR_assert_equal([5.0], donuk.TR_tolist)
     # Gradyansız adım hatadır: geri yayılım yok, bilgi adımda tüketildi, gradyan sıfırlandı.

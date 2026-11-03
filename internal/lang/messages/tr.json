@@ -1370,6 +1370,7 @@
 "H6992": "`.{#requires_grad}` `{#true}` ya da `{#false}` alır, {given} verildi (15.34)",
 "H6993": "{fn}: {name|q} modelinin kaydı bozuk: donmuş diye kaydedilen {param|q} modelin bir parametresi değil (20.4)",
 "H6994": "Uyarı ({file, select, main {satır {line}} other {{file}, satır {line}}}): türevsiz kipte 16 bitlik ({dtype}) bir parametreye bileşik atama ({op}=) yapılıyor (15.34): parametrenin hassasiyetinden küçük güncellemeler sessizce yutulur. float32 bir ana kopya tutun, güncellemeyi onda yapın ve parametreye yazın: `p[0..p.{#shape}[0]] = ana`. Bu uyarı her yer için bir kez gösterilir.",
+"H6995": "{fn}: {order}. tensör ({shape}) bir parametre değil: türev izlemek için hiç kurulmadı (15.33, 15.34), bu yüzden sessizce eğitilmeden kalırdı. Onu {example} ile kurun ya da önce `.{#requires_grad} = {#true}` atayın",
 "H7000": "{fn}: JSON metni ({text}) bekler, {given} verildi",
 "H7001": "JSON çözümleme hatası: {error}",
 "H7003": "{fn}: {path|q} bir klasör; CSV dosyasının yolunu verin",
