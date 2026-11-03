@@ -1162,6 +1162,7 @@ Dil tanımında bölümü olmayan A, B ve C işleri (DENETİM istek 76).
 
 - **Mevcut durum:** beş katman var: commit öncesi metin testleri, L4 öncesi yerel kapı, ön denetim (`tools/full_check.sh --kip=on`), tam denetim ve L4 kartı. Hangisinin neyi yakaladığı yazılı değil. 2026-11-03'te L4'teki en az beş kalış, yerelde koşabilen bir testteydi (altın üye yazımı iki kez, belge testi, kod listesi örneği, codegraph) [ölçüldü: Colab defteri]. Ön denetimin `repo_scans` listesindeki iki ad hiçbir testi seçmiyor ([codegraph eksikleri](../tools/codegraph/gaps.md), Gemini Kodlama3).
 - **Yapılacaklar (C, Ö2; ölçüldü 2026-11-03 18:20–18:30):** paralel oturumlar çalışırken codegraph paketinin kısa testleri main'de 562 sn sürdü; ön denetimin "değişen paketlerin testleri" adımındaki varsayılan 600 sn sınırına 38 sn kalıyor. Aynı paket L4'te, kısa kipsiz 252 sn. `trlang` dalının ön denetimi kodda hata olmadan bu sınırda kaldı.
+- **Elle tutulan liste (T1 Kol B teslim 2a, 2026-11-03):** `internal/testdata/typed_code_known.txt` satır numarasıyla tutuluyor; satır ekleyen her düzenleme listeyi düşürüyor, güncelleme bayrağı taşınan satırı eklemiyor, yalnız siliyor. Öneri: anahtar dosya ve ad olsun, ya da güncelleme taşınan satırı da yazsın.
 - **Sıra (Ahmet, 2026-11-03 18:32):** elimizdeki işler bitince ilk iş. Envanter: her katmanda ne koşuyor, ne kadar sürüyor, neyi yakaladı; L4'e kadar gelen her hatayı hangi yerel adımın yakalaması gerektiği; elle tutulan listeler; yük altında süre sınırları. Bulguları DENETİM okur.
 
 ### Güvenilirlik (C): yol haritasından

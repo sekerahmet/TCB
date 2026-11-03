@@ -32,6 +32,9 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **15.34, gradyansız adım hatasının bedeli (2026-11-03, T1 Kol B teslim 2a):** bir grubu hiç gradyan almayan çok iyileştiricili eğitim (ör. bir adımda kullanılmayan alt modül) H6988 ile durur; PyTorch orada sessiz geçer. Dil tanımı sessiz yanlış yerine hatayı istiyor; maddeye bunu söyleyen bir bilgi cümlesi tartılır.
+- **15.34, "yazılabilir" koşulu (2026-11-03, T1 Kol B teslim 2a):** madde "`TR_true` yalnız … yazılabilir … yaprakta" diyor; yazmaya kapalı depo (15.6d) uygulanmadığı için denetlenmiyor. Türev izlemeyen girdiden gelen kopya `.TR_reshape`'in sonucu bugün açılabiliyor. 15.6d ile gelir.
+- **15.34, `.TR_fill` (2026-11-03, T1 Kol B teslim 2a):** maddedeki `g.TR_fill(0.0)` örneği ve 16 bit iletisindeki `p.TR_fill(ana)` çalışmaz, `.TR_fill` yok (status 15.6d); kitaplık sıfırlamayı indeksle yapıyor.
 - **15.23a, hedefin şekli (2026-11-03, T1 Kol B teslim 1):** "logitin son ekseni düşmüş şekilde"; uygulama şekli değil sayıyı denetliyor (`[2, 2, 3]` logite düz dört öğeli hedef geçiyor, sonuç doğru). Daraltmak düz hedef veren örnekleri (35, 36) göçürür; tartılır.
 - **15.44, kapanıştaki mantık değeri (2026-11-03, DENETİM istek 82 Ş-k1, TCB kararı):** madde "kapanıştan okunan sayı" diyor; mantık değeri de dalı belirlediği için kaydedilir ve denetlenir. Cümle "sayı ya da mantık değeri" olur.
 - **15.44, kapanıştaki metot çağrısı (2026-11-03, TCB kararı, geçici):** "kapanıştaki bir çağrının sonucu" yolsuz sayılıyor; metodun gövdesine inilip `TR_self`'in alanları kapanıştaki yola bağlanarak izlenir, izlenemeyen H6987 (status 15.44). Cümlenin bunu söylemesi tartılır.
