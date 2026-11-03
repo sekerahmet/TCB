@@ -91,3 +91,22 @@ func singleErrorIn(t *testing.T, lang, source string, code messages.Code, line i
 		}
 	}
 }
+
+// fileErrorWith kaynağı dosyasının yazımıyla denetler (SetFile: öneriler ifadelerin dosyadaki
+// yazımıyla kurulur); tek hata, code kodu ve line satırı bekler, İngilizce iletide want'ı arar.
+func fileErrorWith(t *testing.T, source string, code messages.Code, line int, want string) {
+	t.Helper()
+	p := parser.New(lexer.NewBody(source, true))
+	prog := p.ParseProgram()
+	c := New()
+	c.SetFile(ProgramFile, source)
+	c.CheckProgram(prog)
+	errs := c.Errs()
+	if len(errs) != 1 {
+		t.Fatalf("tek hata bekleniyordu, alınan %v", errs)
+	}
+	expectCode(t, errs[0], code, line)
+	if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, want) {
+		t.Errorf("iletide %s yok: %s", want, text)
+	}
+}

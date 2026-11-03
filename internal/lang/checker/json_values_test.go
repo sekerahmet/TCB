@@ -1,12 +1,9 @@
 package checker
 
 import (
-	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // Kural (3.7a "Kurmak", "Okumak", "Açmak"): TR_json_parse(m), TR_JSON(x), j["k"] ve j[i] TR_JSON;
@@ -79,21 +76,7 @@ func TestJSONLiteralItems(t *testing.T) {
 		{"tensör", "TR_var t = TR_Tensor([1.0])\nTR_var j: TR_JSON = {\"a\": t}", messages.H2654, 2, "TR_Tensor"},
 	}
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			p := parser.New(lexer.NewBody(tc.src, true))
-			prog := p.ParseProgram()
-			c := New()
-			c.SetFile(ProgramFile, tc.src) // öneri ifadenin dosyadaki yazımıyla kurulur
-			c.CheckProgram(prog)
-			errs := c.Errs()
-			if len(errs) != 1 {
-				t.Fatalf("tek hata bekleniyordu, alınan %v", errs)
-			}
-			expectCode(t, errs[0], tc.code, tc.line)
-			if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, tc.want) {
-				t.Errorf("iletide %s yok: %s", tc.want, text)
-			}
-		})
+		t.Run(tc.name, func(t *testing.T) { fileErrorWith(t, tc.src, tc.code, tc.line, tc.want) })
 	}
 	noErrors(t, l+"TR_var d = {\"b\": 2}\nTR_var a: TR_JSON = {\"a\": TR_JSON(l), \"b\": [1, {\"c\": TR_none}], \"d\": TR_JSON(d)}")
 	noErrors(t, l+"TR_var j: TR_JSON = TR_json_parse(\"1\")\nTR_var k: TR_JSON = [j, \"a\", 2.5]\nTR_var m = TR_JSON({\"a\": l})")

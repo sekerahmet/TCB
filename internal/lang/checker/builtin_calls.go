@@ -103,6 +103,10 @@ func (c *Checker) checkMemberArgTypes(e *ast.CallExpression, k codes.Code, sig c
 			c.checkElementArg(e, i, given)
 			continue
 		}
+		if k == codes.MemContains && shapeOf(c.receivers[e]).base == typeList {
+			c.checkContainsArg(e, given) // 3.6, 13.10 (element_types.go)
+			continue
+		}
 		if !ok || !single || given == typeAny || given == codes.Name(codes.TypeJSON) || want == codes.TypeFunction && given == typeType {
 			continue
 		}

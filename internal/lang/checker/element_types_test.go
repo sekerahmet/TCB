@@ -82,3 +82,24 @@ func TestTensorComparisonIsATensor(t *testing.T) {
 	noErrors(t, "TR_var t = TR_Tensor([1.0, 2.0])\nTR_var d: TR_Dict[TR_String, TR_Tensor] = {}\nd[\"m\"] = t <= 1.0")
 	singleError(t, "TR_var t = TR_Tensor([1.0, 2.0])\nTR_var b: TR_Bool = t > 1.0", messages.H1001, 2)
 }
+
+// Kural (3.6, 13.10: TR_List[T].TR_contains(x: T)): öğe tipi bilinen listenin .TR_contains'ine öğe
+// tipinden ayrı tipte, tipi bilinen değer denetim hatasıdır, H1142 (motor hatasız TR_false verir).
+// Metin sayıya, sayı metne çevrilebiliyorsa ileti tip çağrısını önerir. Sayılar ayrı değildir
+// ([1, 2].TR_contains(1.0) doğru); TR_none, tipi bilinmeyen değer, metin ve sözlük alıcı geçer.
+func TestListContainsElementType(t *testing.T) {
+	cases := []struct {
+		name, src, want string
+		line            int
+	}{
+		{"metin", "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"a\"))", "type TR_String", 2},
+		{"çevrilebilen metin", "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"2\"))", "`TR_Int(\"2\")`", 2},
+		{"sayı metin listesinde", "TR_var l = [\"a\"]\nTR_var n = 1\nTR_print(l.TR_contains(n))", "`TR_String(n)`", 3},
+		{"liste", "TR_var l = [[1]]\nTR_print(l.TR_contains(\"a\"))", "TR_List[TR_List[TR_Int]]", 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) { fileErrorWith(t, tc.src, messages.H1142, tc.line, tc.want) })
+	}
+	noErrors(t, "TR_print([1, 2].TR_contains(1.0), [1.5].TR_contains(1), [\"a\"].TR_contains(\"b\"), \"abc\".TR_contains(\"a\"))")
+	noErrors(t, "TR_var l: TR_List[TR_Int?] = []\nTR_var k: TR_List[TR_Int] = []\nTR_print(l.TR_contains(TR_none), k.TR_contains(TR_none), k.TR_contains("+unknownValue+"), [1].TR_contains([\"a\", 1][0]))")
+}

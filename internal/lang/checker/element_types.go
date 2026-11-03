@@ -140,3 +140,47 @@ func (c *Checker) repeatSuggestion(list, count ast.Expression) string {
 	}
 	return "[" + elem + " " + codes.Spelling(codes.KwFor) + " _ " + codes.Spelling(codes.KwIn) + " 0.." + n + "]"
 }
+
+// checkContainsArg öğe tipi bilinen listenin .TR_contains'ine verilen değeri denetler (3.6, 13.10:
+// TR_List[T].TR_contains(x: T)): öğe tipinden ayrı tipte (distinctTypes) değer listede hiç bulunmaz
+// ve motor hatasız TR_false verir; denetim hatasıdır, H1142. Sayılar ayrı değildir (4.5:
+// [1, 2].TR_contains(1.0) doğru). Değer metinse ve öğe sayıysa ya da tersiyse ileti tip çağrısıyla
+// çevirmeyi önerir (TR_Int("2")). JSON (H1131), TR_none (4.5'in sınırı) ve tipi bilinmeyen değer
+// burada değildir.
+func (c *Checker) checkContainsArg(e *ast.CallExpression, given string) {
+	recvType, arg := c.receivers[e], e.Arguments[0]
+	s := shapeOf(recvType)
+	if s.base != typeList || len(s.args) != 1 || s.optional || given == typeNull || requiredType(s.args[0]) == typeJSON ||
+		requiredType(given) == typeJSON || !c.distinctTypes(requiredType(s.args[0]), requiredType(given)) {
+		return
+	}
+	c.addErrorAt(arg, messages.New(messages.H1142, c.typeArg(recvType), c.typeArg(s.args[0]), c.typeArg(given), c.conversion(s.args[0], given, arg)))
+}
+
+// conversion değeri öğe tipine çeviren tip çağrısıdır: sayıdan metne (TR_String(n)) ve sayı yazılı
+// metin değişmezinden sayıya (TR_Int("2")); öbür metin çalışırken çevrilemez. Değerin dosyadaki
+// yazımı bilinmiyorsa "".
+func (c *Checker) conversion(elem, given string, arg ast.Expression) string {
+	number := func(t string) bool { return t == typeInt || t == typeFloat }
+	ok := elem == typeString && number(given)
+	if s, lit := arg.(*ast.StringLiteral); lit && given == typeString {
+		ok = elem == typeInt && numberText(s.Value, false) || elem == typeFloat && numberText(s.Value, true)
+	}
+	text, known := c.exprText(arg)
+	k, found := codes.Find(codes.NamespaceType, elem)
+	if !ok || !known || !found {
+		return ""
+	}
+	return codes.Spelling(k) + "(" + text + ")"
+}
+
+// numberText s'nin ondalık basamaklarla yazılmış bir sayı olduğudur ("-12"; decimal ise "2.5" de):
+// tip çağrısının çevirebildiği en dar yazım.
+func numberText(s string, decimal bool) bool {
+	s = strings.TrimPrefix(s, "-")
+	whole, frac, dot := strings.Cut(s, ".")
+	digits := func(p string) bool {
+		return p != "" && strings.Trim(p, "0123456789") == ""
+	}
+	return digits(whole) && (!dot || decimal && digits(frac))
+}
