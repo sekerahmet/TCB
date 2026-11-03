@@ -233,10 +233,10 @@ func (g *temp) buffer(n int, reset bool) *cpuStorage {
 // finish geçici tamponları havuza iade eder.
 func (g *temp) finish() {
 	for _, t := range g.s[:g.n] {
-		cpuBackend{}.Release(t)
+		gateRelease(cpuBackend{}, t)
 	}
 	for _, t := range g.f {
-		cpuBackend{}.Release(t)
+		gateRelease(cpuBackend{}, t)
 	}
 	g.n, g.f = 0, nil
 }

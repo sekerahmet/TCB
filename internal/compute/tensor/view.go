@@ -18,7 +18,7 @@ func viewOf(t *Tensor, offset int, shape, strides []int) *Tensor {
 func scatterBackward(gOff int, gStrides []int) func(o *node) {
 	return func(o *node) {
 		parent := o.parents[0]
-		parent.be.ScatterAdd(parent.accGrad(), gOff, gStrides, o.grad, o.shape)
+		gateScatterAdd(parent.be, parent.accGrad(), gOff, gStrides, o.grad, o.shape)
 	}
 }
 
@@ -39,7 +39,7 @@ func permuteBackward(ax, gst []int) func(o *node) {
 			st[d] = oc[i]
 		}
 		c, _ := parent.freshGrad(true)
-		parent.be.Copy(c, 0, View{S: o.grad, Shape: parent.shape, Strides: st})
+		gateCopy(parent.be, c, 0, View{S: o.grad, Shape: parent.shape, Strides: st})
 	}
 }
 
@@ -58,7 +58,7 @@ func handOffGrad(t, out *node) {
 		out.grad = nil
 		return
 	}
-	t.be.AddTo(t.accGrad(), g, 1)
+	gateAddTo(t.be, t.accGrad(), g, 1)
 }
 
 // Reshape tensörü yeni şekle sokar; bir eksen -1 olabilir (çıkarsanır).
@@ -350,7 +350,7 @@ func (t *Tensor) Clone() *Tensor { return t.copyAs("clone") }
 func (t *Tensor) copyAs(op string) *Tensor {
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
-	t.be.Copy(out.storage, 0, t.view())
+	gateCopy(t.be, out.storage, 0, t.view())
 	r := trackPass(out, op, t, handOff)
 	sy.finish()
 	return r

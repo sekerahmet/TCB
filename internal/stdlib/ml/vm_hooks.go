@@ -102,11 +102,11 @@ func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Valu
 	if op != "@" {
 		return d.operator(m, op, otherVal, onRight) // TaskOperator zaten markFresh çağırır
 	}
-	return d.matmulOp(otherVal, onRight, mixedDType(m))
+	return d.matmulOp(m, otherVal, onRight, mixedDType(m))
 }
 
 // matmulOp '@' işlecidir: işlenen tensöre çevrilir, matris çarpımı dt türünde yapılır.
-func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DType) (interp.Value, bool, error) {
+func (d *TensorValue) matmulOp(m *interp.VM, otherVal interp.Value, onRight bool, dt tensor.DType) (interp.Value, bool, error) {
 	o, err := toTensorOn(messages.New(messages.H6124), otherVal, d.t)
 	if err != nil {
 		return nil, true, err
@@ -115,7 +115,7 @@ func (d *TensorValue) matmulOp(otherVal interp.Value, onRight bool, dt tensor.DT
 	if onRight {
 		a, b = o, d.t
 	}
-	r, err := matmulDType(a, b, dt)
+	r, err := matmulDType(m, a, b, dt)
 	if err != nil {
 		return nil, true, err
 	}
@@ -174,7 +174,7 @@ func (d *TensorValue) operator(m *interp.VM, op string, otherVal interp.Value, o
 		return New(r), true, nil
 
 	case "@":
-		return d.matmulOp(otherVal, onRight, tensor.Float32)
+		return d.matmulOp(m, otherVal, onRight, tensor.Float32)
 
 	case "**":
 		s, ok := interp.ToFloat(otherVal)

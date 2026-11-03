@@ -326,3 +326,17 @@ func TestSampleUndefinedDistribution(t *testing.T) {
 	}
 	mustRun(t, "TR_sample(TR_Tensor([-1e40, 0.0]), TR_seed: 1)") // bir -∞ aday sorun değil
 }
+
+// Kural (10.2, S-kilit): büyük örnekleme (2^20 logit) kilit bırakılarak, aynı sonuçla çalışır;
+// dağılım kurulamayan satır yine o satırın sırasıyla hata verir.
+func TestLargeSampleReleasesTheLockWithTheSameResult(t *testing.T) {
+	const setup = "TR_var l = TR_zeros([4, 262144])\nTR_for r TR_in 0..4 { l[r][r * 1000] = 5.0 }\n"
+	out := mustRun(t, setup+"TR_print(TR_sample(l, TR_temperature: 0.0).TR_tolist, TR_sample(l, TR_top_k: 1, TR_seed: 3).TR_tolist)")
+	if out != "[0, 1000, 2000, 3000] [0, 1000, 2000, 3000]\n" {
+		t.Fatalf("büyük örnekleme yanlış indeks verdi: %s", out)
+	}
+	_, err := run(t, setup+"TR_var nan = TR_log(TR_Tensor([-1.0])).TR_tolist[0]\nl[2][7] = nan\nTR_sample(l, TR_seed: 1)")
+	if err == nil || !messages.Has(err, messages.H6343) || !strings.Contains(err.Error(), "3") {
+		t.Fatalf("3. satırın tanımsız dağılımı hata vermeliydi: %v", err)
+	}
+}

@@ -60,7 +60,7 @@ func EmbeddingAt(w, idx *Tensor) *Tensor {
 	D := w.shape[1]
 	out := emptyOf(isEmbedding, w.be, append(copyInts(idx.shape), D), w.dtyp)
 	if idx.Numel() > 0 && D > 0 {
-		indexReader("EmbeddingAt", w).EmbeddingAt(out.storage, w.view(), idx.view(), D)
+		gateEmbeddingAt(indexReader("EmbeddingAt", w), out.storage, w.view(), idx.view(), D)
 	}
 	return out
 }
@@ -96,7 +96,7 @@ func UpdateSliceAt(dst, src, start *Tensor, axis int) {
 			defer c.Drop()
 			src = c
 		}
-		indexReader("UpdateSliceAt", dst).UpdateSliceAt(dst.view(), src.view(), start.view(), outer, dst.shape[axis], src.shape[axis], inner)
+		gateUpdateSliceAt(indexReader("UpdateSliceAt", dst), dst.view(), src.view(), start.view(), outer, dst.shape[axis], src.shape[axis], inner)
 	}
 	dst.storage.BumpVersion()
 }

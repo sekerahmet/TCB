@@ -167,7 +167,7 @@ func mixedPrecision(m *interp.VM, args []interp.Value, named map[string]interp.V
 	prev := m.TaskValue(mixedKey{})
 	m.SetTaskValue(mixedKey{}, dt)
 	defer m.SetTaskValue(mixedKey{}, prev)
-	result, err := m.ApplyFunction(args[1], nil, nil, 0)
+	result, err := applyFunction(m, args[1], nil, nil)
 	if err != nil {
 		return nil, err
 	}

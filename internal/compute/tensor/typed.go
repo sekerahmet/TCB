@@ -198,7 +198,7 @@ func (t *Tensor) Raw() []byte {
 	if !t.dtyp.IsTyped() {
 		panic(messages.Internal("Raw on " + t.dtyp.String()))
 	}
-	return rawBackend(t.be, t.dtyp).ToRaw(t.view())
+	return gateToRaw(rawBackend(t.be, t.dtyp), t.view())
 }
 
 // Int64s tam sayı ya da mantık tensörünün öğeleri (mantık 0/1).
@@ -235,7 +235,7 @@ func typed(op TypedOp, dt DType, outShape []int, ins ...*Tensor) (*Tensor, *Elem
 	for i, x := range ins {
 		views[i] = x.view()
 	}
-	fault, ok := typedBackend(be, dt).Typed(op, out.storage, outShape, views)
+	fault, ok := gateTyped(typedBackend(be, dt), op, out.storage, outShape, views)
 	if !ok {
 		out.Drop()
 		bad := dt

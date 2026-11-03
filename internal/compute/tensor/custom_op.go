@@ -159,7 +159,7 @@ func (d *outerNode) back(ctx any) {
 		if g.be.Device() != in.be.Device() {
 			panic(messages.New(messages.H3072, d.op, in.be.Device(), g.Device()))
 		}
-		in.be.AddTo(in.accGrad(), g.denseStorage(), 1)
+		gateAddTo(in.be, in.accGrad(), g.denseStorage(), 1)
 	}
 	// Geri hesabın gradyanları ve bu çağrıda ürettiği tensörler burada biter. Bir yorumlayıcı
 	// değerinin sardığı başlık (wraps > 0) sahibi tarafından bırakılır; önceden var olan bir

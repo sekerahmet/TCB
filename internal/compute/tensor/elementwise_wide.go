@@ -67,11 +67,11 @@ func (t *Tensor) Clamp(lo, hi float32) *Tensor {
 	}
 	sy := counterStart(t.be, OpKindClamp).start()
 	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
-	t.be.Clamp(out.storage, t.view(), lo, hi)
+	gateClamp(t.be, out.storage, t.view(), lo, hi)
 	tv := t.view()
 	r := track(out, "clamp", []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
-		in.be.ClampGrad(in.accGrad(), o.grad, tv, lo, hi)
+		gateClampGrad(in.be, in.accGrad(), o.grad, tv, lo, hi)
 	}, t)
 	sy.finish()
 	return r
@@ -91,7 +91,7 @@ func Atan2(y, x *Tensor) *Tensor {
 	sy := counterStart(be, OpKindAtan2).start()
 	outShape := broadcastShapes(y.shape, x.shape)
 	out := emptyOf(isBroadcastElem, be, outShape, resultDType(y.dtyp, x.dtyp))
-	be.Binary(OpAtan2, out.storage, outShape, y.view(), x.view())
+	gateBinary(be, OpAtan2, out.storage, outShape, y.view(), x.view())
 	yv, xv := y.view(), x.view()
 	r := track(out, "atan2", []*Tensor{y, x}, func(o *node) {
 		yn, xn := o.parents[0], o.parents[1]
@@ -102,7 +102,7 @@ func Atan2(y, x *Tensor) *Tensor {
 		if xn.wants() {
 			gx = xn.accGrad()
 		}
-		be.Atan2Grad(gy, gx, yv.Shape, xv.Shape, o.shape, o.grad, yv, xv)
+		gateAtan2Grad(be, gy, gx, yv.Shape, xv.Shape, o.shape, o.grad, yv, xv)
 	}, y, x)
 	sy.finish()
 	return r
@@ -121,7 +121,7 @@ func Compare(a, b *Tensor, op BinOp) *Tensor {
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	outShape := broadcastShapes(a.shape, b.shape)
 	out := emptyOf(isCompare, be, outShape, Float32)
-	be.Binary(op, out.storage, outShape, a.view(), b.view())
+	gateBinary(be, op, out.storage, outShape, a.view(), b.view())
 	sy.finish()
 	return out
 }
@@ -152,15 +152,15 @@ func Where(c, a, b *Tensor) *Tensor {
 	sy := counterStart(be, OpKindWhere).start()
 	outShape := broadcastShapes(broadcastShapes(c.shape, a.shape), b.shape)
 	out := emptyOf(isSelect, be, outShape, resultDType(a.dtyp, b.dtyp))
-	be.Where(out.storage, outShape, c.view(), a.view(), b.view())
+	gateWhere(be, out.storage, outShape, c.view(), a.view(), b.view())
 	cv := c.view()
 	r := track(out, "where", []*Tensor{a, b}, func(o *node) {
 		an, bn := o.parents[0], o.parents[1]
 		if an.wants() {
-			be.WhereGrad(an.accGrad(), an.shape, o.shape, o.grad, cv, true)
+			gateWhereGrad(be, an.accGrad(), an.shape, o.shape, o.grad, cv, true)
 		}
 		if bn.wants() {
-			be.WhereGrad(bn.accGrad(), bn.shape, o.shape, o.grad, cv, false)
+			gateWhereGrad(be, bn.accGrad(), bn.shape, o.shape, o.grad, cv, false)
 		}
 	}, c)
 	sy.finish()

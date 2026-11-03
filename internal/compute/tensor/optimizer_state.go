@@ -39,7 +39,7 @@ func loadState(st map[string]*Tensor, ad string, p *Tensor) Storage {
 	}
 	sameDevice("LoadState", p, t)
 	c := p.be.Alloc(p.Numel(), Float32)
-	p.be.Copy(c, 0, t.view())
+	gateCopy(p.be, c, 0, t.view())
 	return c
 }
 

@@ -27,6 +27,7 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement, held bool)
 	line := s.Line()
 	return func(v *VM, env *Environment) *TaskVal {
 		v.wg.Add(1)
+		v.liveTasks.Add(1)
 		asyncEnv := newEnv(env, info)
 		asyncEnv.IsFuncRoot = true // görev içindeki 'ertele' blokları görev bitince çalışır
 		task := v.NewTaskVM()
@@ -37,6 +38,7 @@ func (c *compiler) taskStart(k *compilerScope, s *ast.AsyncStatement, held bool)
 		}
 		go func(e *Environment) {
 			defer v.wg.Done()
+			defer v.liveTasks.Add(-1)
 			task.acquireGIL()
 			defer task.releaseGIL()
 			var result Value

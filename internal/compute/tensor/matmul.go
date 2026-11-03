@@ -14,12 +14,24 @@ import (
 // çıkarılmaz, arka uca devrik bayrağıyla verilir (dil modelinin çıkış katmanında her parçada
 // 113 MB'lık kopya kalkar). Geri yayılım devrikleri kopyalamaz; arka ucun transA/transB
 // bayraklarını kullanır.
-func MatMul(a, b *Tensor) *Tensor { return MatMulOut(a, b, resultDType(a.dtyp, b.dtyp)) }
+func MatMul(a, b *Tensor) *Tensor { return MatMulOut(a, b, MatMulType(a, b)) }
+
+// MatMulType MatMul'ün çıktı türüdür: türler aynıysa o tür, değilse float32.
+func MatMulType(a, b *Tensor) DType { return resultDType(a.dtyp, b.dtyp) }
 
 // MatMulOut çıktı türü açıkça verilen matris çarpımı (karışık hassasiyet: ör.
 // bfloat16 girdiler, float32 çıktı). Arka uç iç toplamayı en az float32'de
 // yapar ve sonucu çıktı türüne bir kez yuvarlar.
 func MatMulOut(a, b *Tensor, outType DType) *Tensor {
+	r, k := MatMulKernel(a, b, outType)
+	k.RunLocked()
+	return r
+}
+
+// MatMulKernel MatMulOut'un hazırlığıdır (kilit altında: şekil denetimi, bitişik kopyalar, çıktı
+// ve hesap çizgesine kayıt); çarpımın kendisi dönen çekirdektir. Çekirdek çalışmadan çıktı
+// okunmamalıdır: k.Run (izinler alınmışsa, kilitsiz) ya da k.RunLocked.
+func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	be := sameDevice("matmul", a, b)
 	if len(a.shape) < 2 || len(b.shape) < 2 {
 		panic(messages.New(messages.H3050, a.shape, b.shape))
@@ -45,32 +57,52 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 		M = a.shape[len(a.shape)-2]
 	}
 
+	// Sayaç hazırlıkta başlar (düğüm işlemin adını kayıtta ondan alır), çarpım bitince durur.
 	sy := counterStart(be, OpKindMatMul).start()
 	av := a.contigView()
 	bv, tb := b.contigView2DTransposed()
 	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
 	ra, rb := copyRelease(a, av), copyRelease(b, bv)
 	release := func() { ra(); rb() }
-	ad, bd := a.dtyp, b.dtyp
 	gs, writer := be.(GemmSetter)
 	var out *Tensor
 	if writer {
 		out = emptyOf(isMatMul, be, outShape, outType)
-		gs.GemmSet(batch, M, N, K, av, false, bv, tb, out.storage)
 	} else {
 		out = zerosOf(isMatMul, be, outShape, outType)
-		be.Gemm(batch, M, N, K, av, false, bv, tb, out.storage)
 	}
+	leaf := false    // çizgeye kaydedilmediyse bitişik kopyalar çarpımdan hemen sonra iade edilir
+	c := out.storage // gövde yalnız hazırlıkta kopyalanan görünüm ve depolarla çalışır
+	k := newKernel(be, []Storage{c}, []Storage{av.S, bv.S}, []*Tensor{a, b, out}, func() {
+		if writer {
+			gs.GemmSet(batch, M, N, K, av, false, bv, tb, c)
+		} else {
+			be.Gemm(batch, M, N, K, av, false, bv, tb, c)
+		}
+		sy.finish()
+		if leaf {
+			release()
+		}
+	})
 
+	r := track(out, "matmul", []*Tensor{a, b}, matMulGrad(be, batch, M, N, K, av, bv, tb, a.dtyp, b.dtyp, release), a, b)
+	leaf = r.IsLeaf()
+	return r, k
+}
+
+// matMulGrad çarpımın geri hesabıdır: dA (M×K) += dC·Bᵀ, dB (K×N) += Aᵀ·dC. release bitişik
+// kopyaları geri hesap bitince iade eder.
+func matMulGrad(be Backend, batch, M, N, K int, av, bv View, tb bool, ad, bd DType, release func()) func(o *node) {
+	gs, writer := be.(GemmSetter)
 	// carp gradyanın ilkiyse (taze) üzerine yazar, değilse ekler.
 	mulFn := func(t *node, M, N, K int, a View, ta bool, b View, tb bool) {
 		if c, fresh := t.freshGrad(writer); fresh {
-			gs.GemmSet(batch, M, N, K, a, ta, b, tb, c)
+			gateGemmSet(gs, batch, M, N, K, a, ta, b, tb, c)
 		} else {
-			be.Gemm(batch, M, N, K, a, ta, b, tb, c)
+			gateGemm(be, batch, M, N, K, a, ta, b, tb, c)
 		}
 	}
-	r := track(out, "matmul", []*Tensor{a, b}, func(o *node) {
+	return func(o *node) {
 		defer release()
 		an, bn := o.parents[0], o.parents[1]
 		g := o.gradView()
@@ -79,7 +111,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 		// (GPU'da tensör çekirdekleri) yapılır. Biriktirme yine en az float32'dedir.
 		if ad == bd && ad != Float32 && g.DType() != ad {
 			s := allocUninit(be, NumelOf(g.Shape), ad)
-			be.Copy(s, 0, g)
+			gateCopy(be, s, 0, g)
 			defer giveBack(be, s)
 			g = View{S: s, Shape: g.Shape, Strides: g.Strides}
 		}
@@ -91,12 +123,7 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 			// dB (K×N) += Aᵀ · dC
 			mulFn(bn, K, N, M, av, true, g, false)
 		}
-	}, a, b)
-	if r.IsLeaf() {
-		release()
 	}
-	sy.finish()
-	return r
 }
 
 // MatMul yöntem biçimi.

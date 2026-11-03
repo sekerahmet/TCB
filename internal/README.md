@@ -132,6 +132,17 @@ return nil, messages.Internal("vector width must be 2 or 4") // iç hata: ayrın
 
   İstisna: işin kendisi TR değerlerinin tutarlı bir anlık görüntüsünü gerektiriyorsa kilit tutulur ve bu, işin kodunda gerekçesiyle yazılır. Bugünkü tek örnek kontrol noktasının yazılmasıdır (`stdlib/checkpoint/write.go`): tensörler tek tek konağa indirilip yazılır (modelin ikinci bir kopyası bellekte toplanmaz) ve kayıt sürerken başka bir görev modeli değiştiremez.
 
+- **Tensör depolarına kilitsiz bölgede yalnız izinle dokunulur** (S-kilit; `compute/tensor/access.go`). Uzun tensör işi kilit altında hazırlanır (şekil denetimi, çıktı, hesap çizgesine kayıt, görevin türev bağlamıyla) ve sayısal çekirdeği (`tensor.Kernel`) kilit bırakılmışken çalışır (`stdlib/ml/unlocked.go`):
+  - izin depoya verilir: bir depoya aynı anda ya bir yazan ya çok okuyan; izinler ya hep ya hiç alınır;
+  - izinler ve kilitsiz işlem sayacı yalnız kilit tutulurken alınır; alınamazsa kilit bırakılarak beklenir ve hazırlık kilit geri alınınca yeniden yapılır;
+  - izin tutulurken kilit beklenmez: çekirdek izinlerini kilitsiz bırakır, sonra kilidi geri alır;
+  - kilit altındaki her arka uç çağrısı da tabloya sorar (`gate_calls.go`; kilitsiz işlem yoksa tek atomik okuma). Çakışırsa kilidi tutarak bekler: bileşik bir yerleşik (geri yayılım, iyileştirici adımı) ortasında kilidi bırakmaz, öbür görevler yarım güncellenmiş tensör görmez; bekleme kilitlenmez, çünkü çekirdek bitmek için kilide ihtiyaç duymaz (`Exclusive` içinde de);
+  - çekirdeğin gövdesi tensör nesnesine, çizgeye, türev bağlamına, rastgele üretece ve önbelleklere dokunmaz; yalnız hazırlıkta kopyalanan görünüm ve depolarla çalışır. Girdi ve çıktı tensörlerinin depoları çalışırken tutulur (`Hold`);
+  - kilit iki çekirdek arasında bırakılmaz: tek çekirdekli yerleşikler `tensor.Released` kapsamında çağrılır ve kapsamda yalnız ilk çekirdek bırakılabilir (başka görev girdiyi arada değiştirirse sonuç iki girdinin karışığı olurdu). Bileşik iş ancak bütünüyle tek çekirdekse bırakılır: iyileştiricinin adımı bütün izinleri birlikte alır (`tensor/optimizer_step.go`); hazırlık yinelenebilir, sayaçlar ve sürümler `Kernel` başında kilit altında değişir;
+  - TR koduna geri çağrı (`ApplyFunction`) yalnız kilit tutulurken yapılır: kilitsiz bölgeden `VM.Locked` ile (`stdlib/ml`'de bütün geri çağrılar `applyFunction`'dan geçer).
+
+  Testleri: `TestBackendDataCallsGoThroughTheGate` (arka uca doğrudan veri çağrısı yok), `TestKernelPermitsAreAllOrNothing`, `TestGateWaitsForTheUnlockedKernelWhileHoldingTheLock`, `TestKernelHoldsItsStorages`, `TestInPlaceWriteWaitsForTheUnlockedMatMul`, `TestCompositeBuiltinShowsNoHalfUpdatedParameters`, `TestReleasedOpsAreOneKernel`, `TestInPlaceWriteWaitsForTheUnlockedElementwiseOp`, `TestUnlockedStepShowsNoHalfUpdatedParameters`, `TestCallbacksGoThroughApplyFunction`, `TestCallbackFromAReleasedRegionHoldsTheLock`.
+
 - Paylaşılan Go durumu kilitle (`sync.Mutex`) ya da atomik alanla korunur. Yarış dedektörü tam denetimin `yaris` kipinde koşar.
 
 ## Sınırlar ve güvenilmeyen girdi

@@ -40,7 +40,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
     - **4c, genel tipler;**
     - **T2:** sinir ağı ve eğitim;
     - **T3:** hız, dosya ve nicemleme;
-    - **K:** uzun yerleşiklerin kilidi. Başladı (2026-11-03, T1): tensörün deposuna okuma ve yazma izni ve kilidi bırakan `@`; bitiş ölçütü uzun tensör işi sürerken başka görevin en çok 10 ms beklemesi ve 100 Hz döngünün tur kaçırmaması. 100 Hz yarısı Windows'ta tutmadı, Linux'ta ölçülecek.
+    - **K:** uzun yerleşiklerin kilidi. Birinci dilim birleşti (2026-11-03, T1): tensörün deposuna okuma ve yazma izni; CPU'da uzun `@`, büyük öğe öğe işlemler, indirgemeler, iyileştirici adımı ve örnekleme kilidi bırakıyor. Bitiş ölçütü CPU'da Linux'ta geçti: uzun tensör işi sürerken başka görev en çok ~4 ms bekliyor, 100 Hz döngü tur kaçırmıyor. GPU yolu ve geri yayılım kilidi tutuyor: sıradaki dilim GPU, ana daldan.
 - **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30). Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç Faz 1'de, iletiler 3'ten sonra ve ajan deneyinin zor-3'ünden önce yapılır; eski adı yasaklayan bir testle.
 
 ## Açık dil tasarım soruları

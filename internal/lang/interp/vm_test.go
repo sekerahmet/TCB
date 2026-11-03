@@ -2,6 +2,8 @@ package interp
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -227,5 +229,39 @@ func TestTaskErrorGoesToErrWriter(t *testing.T) {
 	}
 	if New().Err == nil {
 		t.Fatal("varsayılan hata yazıcısı standart hata olmalı")
+	}
+}
+
+// Kural (S-kilit): canlı görev sayısı görev başlayınca artar, bitince geri döner;
+// OtherTasksLive ana programda yalnız canlı görev varken, görevin içinde her zaman doğrudur.
+func TestLiveTaskCountReturnsWhenTasksEnd(t *testing.T) {
+	m := New()
+	m.Out = io.Discard
+	var seen []string
+	m.RegisterBuiltin("yokla", func(y *VM, args []Value, _ map[string]Value) (Value, error) {
+		seen = append(seen, fmt.Sprintf("%s:%d:%t", args[0].Inspect(), y.liveTasks.Load(), y.OtherTasksLive()))
+		return Null, nil
+	})
+	prog := parser.New(bodyLexer(`yokla("önce")
+TR_var dur = TR_false
+TR_async { yokla("görev")
+    TR_for TR_not dur { TR_sleep(0.001) } }
+TR_async { TR_sleep(0.0) }
+yokla("sürerken")
+dur = TR_true
+TR_wait_all()
+yokla("sonra")
+`)).ParseProgram()
+	if _, err := m.Run(prog); err != nil {
+		t.Fatal(err)
+	}
+	m.WaitAsync()
+	got := strings.Join(seen, " ")
+	if !strings.HasPrefix(got, "önce:0:false") || !strings.HasSuffix(got, "sonra:0:false") ||
+		!strings.Contains(got, ":true") || m.liveTasks.Load() != 0 {
+		t.Fatalf("canlı görev sayısı: %s (kalan %d)", got, m.liveTasks.Load())
+	}
+	if !strings.Contains(got, "görev:") || strings.Contains(got, "görev:0") || !strings.Contains(got, "sürerken:") {
+		t.Fatalf("görevin içinde ve sürerken sayı 0 olmamalıydı: %s", got)
 	}
 }

@@ -78,6 +78,7 @@ type vmShared struct {
 	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
 	Stdin      io.Reader
 	wg         sync.WaitGroup
+	liveTasks  atomic.Int32 // başlamış, bitmemiş eşzamanlı görev sayısı (wg'nin sayısı; okunabilir)
 	SourceFile string
 	SourceCode string
 	// CommandName programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
@@ -209,7 +210,10 @@ type VM struct {
 	*vmShared
 	CallStack []StackFrame
 
-	holdsGIL  bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
+	holdsGIL bool // bu görünüm şu an yorumlayıcı kilidini tutuyor mu (yalnızca kendi goroutine'i okur/yazar)
+	// blocking bu görünümün Blocking içinde kilidi bırakmış olduğudur (Locked kilidi yalnız o
+	// zaman geri alır; yalnızca kendi goroutine'i okur/yazar).
+	blocking  bool
 	asyncTask bool // 'eşzamanlı' bloğu içinde mi çalışıyor
 	// task bu görünümün çalıştırdığı görevin değeridir (ana programda nil; task_value.go).
 	task *TaskVal
@@ -337,12 +341,48 @@ func (v *VM) Blocking(fn func()) {
 		return
 	}
 	v.releaseGIL()
+	v.blocking = true
 	defer func() {
+		v.blocking = false
 		v.acquireGIL()
 		// Bekleme sırasında kesme istendiyse (bekle, veri okuma ...) program burada durur.
 		v.checkInterrupt()
 	}()
 	fn()
+}
+
+// HoldsLock reports whether this task holds the interpreter lock (false inside Blocking).
+func (v *VM) HoldsLock() bool { return v.holdsGIL }
+
+// Locked runs fn holding the interpreter lock: inside this view's Blocking it takes the lock
+// back for fn and releases it again afterwards; otherwise fn runs as is. Calls back into TR
+// code (ApplyFunction) are made only holding the lock (S-kilit, step 4): Go code running with
+// the lock released calls them through here.
+//
+// Only this view's own Blocking counts, not holdsGIL: a callback may run on a view that does
+// not hold the lock while the goroutine holds it through another view (a custom gradient's
+// backward started from Go without a context runs on the forward task's view). Taking the
+// lock there would wait for the goroutine itself.
+func (v *VM) Locked(fn func()) {
+	if !v.blocking {
+		fn()
+		return
+	}
+	v.acquireGIL()
+	v.blocking = false
+	defer func() {
+		v.blocking = true
+		v.releaseGIL()
+	}()
+	fn()
+}
+
+// OtherTasksLive reports whether a task other than v may run: in the main program, an
+// 'eşzamanlı' task that is started and not finished; in a task, always (the main program is
+// counted as live even while it waits). Long tensor kernels that release the lock leave
+// processors free only then (S-kilit).
+func (v *VM) OtherTasksLive() bool {
+	return v.asyncTask || v.liveTasks.Load() > 0
 }
 
 // Exclusive runs fn without handing the interpreter lock to another task, not even during

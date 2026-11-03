@@ -175,6 +175,16 @@ func RegisterSimulator() bool {
 	return true
 }
 
+// Simulated "gpu" cihazının PTX benzetimi olup olmadığıdır (sınamalar için: benzetimde süre
+// eşzamanlayan işleme yazılır, gecikme ölçümü yalnız gerçek kartta anlamlıdır).
+func Simulated() bool {
+	if !tensor.HasDevice(tensor.GPU(0)) {
+		return false
+	}
+	_, ok := tensor.BackendFor(tensor.GPU(0)).(*backend).sr.(*simDriver)
+	return ok
+}
+
 func (g *backend) Device() tensor.Device { return g.dev }
 
 // MemoryLimit (tensor.MemoryLimiter) tek ayırmanın sınırı: cihazın toplam belleği.

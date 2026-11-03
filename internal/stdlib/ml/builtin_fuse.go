@@ -99,7 +99,7 @@ func (f *fusedFn) trace(m *interp.VM, be tensor.Backend, info []tensor.FuseInput
 				vals[i] = a // sayı: programa sabit olarak girer
 			}
 		}
-		res, err := m.ApplyFunction(f.f, vals, nil, 0)
+		res, err := applyFunction(m, f.f, vals, nil)
 		if err != nil {
 			callErr = err
 			return nil

@@ -161,7 +161,7 @@ func emptyOf(is opKind, be Backend, shape []int, dt DType) *Tensor {
 // yüklemez): GPU kaydında da kurulabilir, değer kayda sabit olarak girer.
 func scalarStorage(be Backend, v float32) Storage {
 	s := allocUninit(be, 1, Float32)
-	be.Fill(s, v)
+	gateFill(be, s, v)
 	return s
 }
 
@@ -218,7 +218,7 @@ func Ones(shape ...int) *Tensor { return Full(1, shape...) }
 // Full tüm elemanları v olan tensör.
 func Full(v float32, shape ...int) *Tensor {
 	t := Zeros(shape...)
-	t.be.Fill(t.storage, v)
+	gateFill(t.be, t.storage, v)
 	return t
 }
 
@@ -226,7 +226,7 @@ func Full(v float32, shape ...int) *Tensor {
 // doldurulur): GPU kaydında da kurulabilir.
 func FullOn(dev Device, v float32, shape ...int) *Tensor {
 	t := ZerosOn(dev, shape...)
-	t.be.Fill(t.storage, v)
+	gateFill(t.be, t.storage, v)
 	return t
 }
 
@@ -349,7 +349,7 @@ func (t *Tensor) Data() []float32 {
 		panic(messages.New(messages.H3107))
 	}
 	sy := counterStart(t.be, OpKindToHost).start()
-	d := t.be.ToHost(t.view())
+	d := gateToHost(t.be, t.view())
 	sy.finish()
 	return d
 }
@@ -381,7 +381,7 @@ func (t *Tensor) At(idx ...int) float32 {
 	if t.sym != nil {
 		panic(messages.New(messages.H3107)) // kaynaştırma sırasında veri yok (Data gibi)
 	}
-	return t.be.ToHost(View{S: t.storage, Offset: t.index(idx)})[0]
+	return gateToHost(t.be, View{S: t.storage, Offset: t.index(idx)})[0]
 }
 
 // Set verilen indeksteki değeri yazar (çizgeye kaydedilmez; yaprak verisi
@@ -390,7 +390,7 @@ func (t *Tensor) At(idx ...int) float32 {
 // geri yayılım hata verir.
 func (t *Tensor) Set(v float32, idx ...int) {
 	sy := counterStart(t.be, OpKindAssign).start()
-	t.be.Copy(t.storage, t.index(idx), View{S: scalarStorage(t.be, v)})
+	gateCopy(t.be, t.storage, t.index(idx), View{S: scalarStorage(t.be, v)})
 	t.storage.BumpVersion()
 	sy.finish()
 }
@@ -417,12 +417,12 @@ func (t *Tensor) CopyFrom(src *Tensor) {
 	sv := src.view()
 	if src.storage == t.storage {
 		s := allocUninit(src.be, src.Numel(), src.dtyp)
-		src.be.Copy(s, 0, sv)
+		gateCopy(src.be, s, 0, sv)
 		sv = View{S: s, Shape: src.shape, Strides: ContiguousStrides(src.shape)}
 	}
 	sv.Strides = BroadcastStrides(sv.Strides, sv.Shape, t.shape)
 	sv.Shape = t.shape
-	t.be.CopyStrided(t.view(), sv)
+	gateCopyStrided(t.be, t.view(), sv)
 	t.storage.BumpVersion()
 }
 
@@ -468,7 +468,7 @@ func (t *Tensor) gradStorage() Storage {
 func (t *Tensor) ZeroGrad() {
 	if t.n != nil && t.n.grad != nil {
 		sy := counterStart(t.be, OpKindZeroGrad).start()
-		t.be.Fill(t.n.grad, 0)
+		gateFill(t.be, t.n.grad, 0)
 		sy.finish()
 		t.n.grad.BumpVersion()
 	}
@@ -487,12 +487,12 @@ func (t *Tensor) To(dev Device) *Tensor {
 		return fromStorage(target, rawBackend(target, t.dtyp).FromRaw(t.Raw(), t.dtyp), t.shape)
 	}
 	sy := counterStart(target, OpKindToDevice).start()
-	out := fromStorage(target, target.FromHost(t.be.ToHost(t.view()), t.dtyp), t.shape)
+	out := fromStorage(target, target.FromHost(gateToHost(t.be, t.view()), t.dtyp), t.shape)
 	src := t.be
 	r := trackPass(out, "to", t, func(o *node) {
 		in := o.parents[0]
-		g := src.FromHost(target.ToHost(o.gradView()), in.gradDType())
-		src.AddTo(in.accGrad(), g, 1)
+		g := src.FromHost(gateToHost(target, o.gradView()), in.gradDType())
+		gateAddTo(src, in.accGrad(), g, 1)
 	})
 	sy.finish()
 	return r
@@ -544,7 +544,7 @@ func (t *Tensor) contigView() View {
 		return t.view()
 	}
 	s := allocUninit(t.be, t.Numel(), t.dtyp)
-	t.be.Copy(s, 0, t.view())
+	gateCopy(t.be, s, 0, t.view())
 	return View{S: s, Shape: t.shape, Strides: ContiguousStrides(t.shape)}
 }
 
@@ -565,6 +565,6 @@ func (t *Tensor) denseStorage() Storage {
 		return t.storage
 	}
 	s := allocUninit(t.be, t.Numel(), t.dtyp)
-	t.be.Copy(s, 0, t.view())
+	gateCopy(t.be, s, 0, t.view())
 	return s
 }

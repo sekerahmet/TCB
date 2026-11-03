@@ -73,6 +73,12 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 - **Düzenleme kancasında `tests-for`'un "derlenmiyor" uyarısı test listesinin altında kalıyor (2026-11-03, D1'in 4a4'ü).** Araç derlenmeyen ağaçta eski grafiği verip uyarıyor (doğru davranış), ama kancanın çıktısı derleme hatası satırlarıyla aynı blokta uzun bir test listesi döküyor; asıl bilgi gözden kaçabiliyor.
   - Beklenen: uyarı çıktının başında, test listesinden ayrı.
   - Sınıf: ince ayar.
+- **`dups`'ın bölge ataması yanlış (2026-11-03, T1'in S-kilit'i).** `go run ./tools/codegraph dups --changed 7e81e7d2 --base 7e81e7d2` tek satırlık `Tensor.Log2`'ye (`elementwise_wide.go:40`) 40–78 bölgesini veriyor: bölge Clamp'in sonuna dek uzanıyor ve ilk bildirimin adını taşıyor [ölçüldü: T1].
+  - Beklenen: aday bölgesi yalnız o yöntemin satırları.
+  - Sınıf: ince ayar.
+- **`dups --changed` değişmemiş dosyayı "[changed]" sayıyor (2026-11-03, T1'in S-kilit'i).** Aynı aday ("elementwise_wide.go:40-78 Tensor.Log2 [changed]") dalın 12 ön denetiminin hepsinde çıktı; `82cabad6`'nın ön denetiminde `tensor` paketinin hiçbir dosyası değişmemişti [ölçüldü: T1, `git diff --quiet adef3978 -- internal/compute/tensor/`].
+  - Beklenen: değişmemiş dosyadaki aday "[changed]" işaretlenmez, ön denetimi düşürmez.
+  - Sınıf: ince ayar (her ön denetimde bilinen yanlış aday; yanlış değişikliğe götürmüyor, gürültü).
 
 ## Kalan işler (eksik değil, yeni yetenek)
 

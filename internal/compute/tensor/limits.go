@@ -29,10 +29,10 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	}
 	ix := append([]int(nil), idx...)
 	out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), w.dtyp)
-	w.be.Embedding(out.storage, w.view(), ix, D)
+	gateEmbedding(w.be, out.storage, w.view(), ix, D)
 	r := track(out, "embedding", []*Tensor{w}, func(o *node) {
 		wn := o.parents[0]
-		wn.be.EmbeddingGrad(wn.accGrad(), o.grad, ix, D)
+		gateEmbeddingGrad(wn.be, wn.accGrad(), o.grad, ix, D)
 	})
 	sy.finish()
 	return r
@@ -52,17 +52,17 @@ func CrossEntropy(logits *Tensor, targets []int) *Tensor {
 	validTargets(targets, R, C) // ortalama boş küme üzerinden alınamaz: geçerli hedef yoksa panikler
 	tg := append([]int(nil), targets...)
 	be := logits.be
-	loss, lse := be.CrossEntropy(logits.view(), tg, C)
+	loss, lse := gateCrossEntropy(be, logits.view(), tg, C)
 	out := fromStorage(be, loss, nil)
 	lv := logits.view()
 	r := track(out, "cross_entropy", []*Tensor{logits}, func(o *node) {
 		ln := o.parents[0]
 		cs, writer := be.(CrossEntropyGradSetter)
 		if gx, fresh := ln.freshGrad(writer); fresh {
-			cs.CrossEntropyGradSet(gx, o.grad, lv, lse, tg, C)
+			gateCrossEntropyGradSet(cs, gx, o.grad, lv, lse, tg, C)
 			return
 		}
-		be.CrossEntropyGrad(ln.accGrad(), o.grad, lv, lse, tg, C)
+		gateCrossEntropyGrad(be, ln.accGrad(), o.grad, lv, lse, tg, C)
 	}, logits)
 	sy.finish()
 	return r
@@ -103,16 +103,16 @@ func LayerNormAs(x, gamma, beta *Tensor, eps float32, dt DType) *Tensor {
 	sy := counterStart(be, OpKindLayerNorm).start()
 	out := emptyOf(isNormalize, be, x.shape, dt)
 	gv := optView(gamma)
-	mean, rstd := be.LayerNorm(out.storage, x.view(), gv, optView(beta), D, eps)
+	mean, rstd := gateLayerNorm(be, out.storage, x.view(), gv, optView(beta), D, eps)
 	// Girdiler hep aynı konumdadır (x, gamma, beta; olmayan nil): geri hesap düğümlerini
 	// konumla bulur.
 	xv := x.view()
 	r := track(out, "layer_norm", []*Tensor{x, gamma, beta}, func(o *node) {
 		if gx, ns := freshNormGrad(be, o.parents[0]); ns != nil {
-			ns.LayerNormGradSet(gx, optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
+			gateLayerNormGradSet(ns, gx, optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
 			return
 		}
-		be.LayerNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
+		gateLayerNormGrad(be, optGrad(o.parents[0]), optGrad(o.parents[1]), optGrad(o.parents[2]), o.grad, xv, gv, mean, rstd, D)
 	}, x, gamma)
 	if x.dtyp == Float32 {
 		widenGrad(r)
@@ -136,14 +136,14 @@ func RMSNormAs(x, gamma *Tensor, eps float32, dt DType) *Tensor {
 	sy := counterStart(be, OpKindRMSNorm).start()
 	out := emptyOf(isNormalize, be, x.shape, dt)
 	gv := optView(gamma)
-	rinv := be.RMSNorm(out.storage, x.view(), gv, D, eps)
+	rinv := gateRMSNorm(be, out.storage, x.view(), gv, D, eps)
 	xv := x.view()
 	r := track(out, "rms_norm", []*Tensor{x, gamma}, func(o *node) {
 		if gx, ns := freshNormGrad(be, o.parents[0]); ns != nil {
-			ns.RMSNormGradSet(gx, optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
+			gateRMSNormGradSet(ns, gx, optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
 			return
 		}
-		be.RMSNormGrad(optGrad(o.parents[0]), optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
+		gateRMSNormGrad(be, optGrad(o.parents[0]), optGrad(o.parents[1]), o.grad, xv, gv, rinv, D)
 	}, x, gamma)
 	if x.dtyp == Float32 {
 		widenGrad(r)

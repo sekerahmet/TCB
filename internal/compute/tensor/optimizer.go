@@ -3,7 +3,6 @@ package tensor
 import (
 	"fmt"
 	"math"
-	"unsafe"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -44,28 +43,23 @@ func newMasterWeights(n int) masterWeights {
 	return masterWeights{master: make([]Storage, n), version: make([]uint64, n)}
 }
 
-// target k. parametrenin güncelleneceği depolama.
-func (a *masterWeights) target(k int, p *Tensor) Storage {
+// hold k. parametrenin güncelleneceği depolamadır: ana kopya gerekiyorsa ayrılır (yeni
+// ayrılan, stale'de bayat görünür); verisi adımın gövdesinde tazelenir (optimizer_step.go).
+func (a *masterWeights) hold(k int, p *Tensor) Storage {
 	if a.closed || p.dtyp == Float32 {
 		return p.storage
 	}
-	if a.master[k] == nil || p.storage.Version() != a.version[k] {
-		if a.master[k] == nil {
-			a.master[k] = p.be.Alloc(p.Numel(), Float32)
-		}
-		p.be.Copy(a.master[k], 0, p.view())
+	if a.master[k] == nil {
+		a.master[k] = p.be.Alloc(p.Numel(), Float32)
+		a.version[k] = ^uint64(0)
 	}
 	return a.master[k]
 }
 
-// write güncellenmiş hedefi (ana kopyaysa yuvarlayarak) parametreye yazar ve
-// parametrenin sürümünü artırır (yerinde değişiklik).
-func (a *masterWeights) write(k int, p *Tensor, h Storage) {
-	if h != p.storage {
-		p.be.Copy(p.storage, 0, View{S: h, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
-	}
-	p.storage.BumpVersion()
-	a.version[k] = p.storage.Version()
+// stale h ana kopyaysa ve son yazımdan sonra parametre değiştiyse doğrudur: gövde ana kopyayı
+// parametreden yeniden alır.
+func (a *masterWeights) stale(k int, p *Tensor, h Storage) bool {
+	return h != p.storage && p.storage.Version() != a.version[k]
 }
 
 // configure ana kopya kullanımını açar/kapatır.
@@ -99,40 +93,6 @@ func NewSGD(params []*Tensor, lr, momentum float32) *SGD {
 // bitlik parametre üzerinde (float32'de hesaplanıp yuvarlanarak) yapılır.
 func (o *SGD) SetMasterWeights(on bool) { o.master.configure(on) }
 
-// Step bir güncelleme adımı uygular. Gradyanı olmayan parametreler atlanır.
-// Parametreler yerinde değiştiği için sürümleri artar.
-func (o *SGD) Step() {
-	defer optimizerStepped(unsafe.Pointer(o))
-	sy := stepCounter(o.Params, OpKindSGD).start()
-	defer sy.finish()
-	sorted := repeated(o.Params)
-	var steps []goodStep
-	for k, p := range o.Params {
-		if p.gradStorage() == nil {
-			continue
-		}
-		if o.Momentum != 0 && o.speed[k] == nil {
-			o.speed[k] = p.be.Alloc(p.Numel(), Float32)
-		}
-		if sorted {
-			h := o.master.target(k, p)
-			p.be.SGDStep(h, p.gradStorage(), o.speed[k], o.LR, o.Momentum, o.WeightDecay)
-			o.master.write(k, p, h)
-			continue
-		}
-		steps = append(steps, goodStep{k: k, p: p, h: o.master.target(k, p), m: o.speed[k]})
-	}
-	multiApply(steps, func(be MultiTensorOps, a []goodStep) {
-		h, g, v := a[0].cols(a)
-		be.SGDStepAll(h, g, v, o.LR, o.Momentum, o.WeightDecay)
-	}, func(a goodStep) {
-		a.p.be.SGDStep(a.h, a.p.gradStorage(), a.m, o.LR, o.Momentum, o.WeightDecay)
-	})
-	for _, a := range steps {
-		o.master.write(a.k, a.p, a.h)
-	}
-}
-
 // stepCounter iyileştirici adımının profil sayacını başlatır: bir adım (bütün parametreler,
 // çok tensörlü yolda tek arka uç çağrısı) bir çağrı sayılır. Cihaz ilk parametreninkidir.
 func stepCounter(params []*Tensor, is OpKind) counterMeasure {
@@ -143,11 +103,13 @@ func stepCounter(params []*Tensor, is OpKind) counterMeasure {
 	return counterStart(be, is)
 }
 
-// goodStep bir parametrenin bu adımdaki güncellemesi: güncellenecek depolama (h; ana kopya
-// olabilir), durum depolamaları (m, v) ve sapma düzeltmeleri.
+// goodStep bir parametrenin bu adımdaki güncellemesi: arka uç, gradyan (g), güncellenecek
+// depolama (h; ana kopya olabilir), durum depolamaları (m, v) ve sapma düzeltmeleri. Depolar
+// hazırlıkta alınır: kilitsiz gövde tensör nesnesine dokunmaz.
 type goodStep struct {
 	k        int
-	p        *Tensor
+	be       Backend
+	g        Storage
 	h, m, v  Storage
 	bc1, bc2 float32
 }
@@ -155,7 +117,7 @@ type goodStep struct {
 // cols adımların h, gradyan ve m depolamaları.
 func (goodStep) cols(a []goodStep) (h, g, m []Storage) {
 	for _, x := range a {
-		h, g, m = append(h, x.h), append(g, x.p.gradStorage()), append(m, x.m)
+		h, g, m = append(h, x.h), append(g, x.g), append(m, x.m)
 	}
 	return h, g, m
 }
@@ -168,16 +130,16 @@ func (goodStep) cols(a []goodStep) (h, g, m []Storage) {
 // yapılır.
 func multiApply(steps []goodStep, multi func(MultiTensorOps, []goodStep), unaryArg func(goodStep)) {
 	for i := 0; i < len(steps); {
-		mt, ok := steps[i].p.be.(MultiTensorOps)
+		mt, ok := steps[i].be.(MultiTensorOps)
 		if !ok {
 			unaryArg(steps[i])
 			i++
 			continue
 		}
-		wasSeen := map[Storage]bool{steps[i].p.gradStorage(): true}
+		wasSeen := map[Storage]bool{steps[i].g: true}
 		j := i + 1
-		for j < len(steps) && steps[j].p.be == steps[i].p.be && !wasSeen[steps[j].p.gradStorage()] {
-			wasSeen[steps[j].p.gradStorage()] = true
+		for j < len(steps) && steps[j].be == steps[i].be && !wasSeen[steps[j].g] {
+			wasSeen[steps[j].g] = true
 			j++
 		}
 		multi(mt, steps[i:j])
@@ -237,52 +199,6 @@ func (o *AdamW) SetMasterWeights(on bool) { o.master.configure(on) }
 // StepCount şimdiye kadar yapılan adım sayısı.
 func (o *AdamW) StepCount() int { return o.step }
 
-// Step bir güncelleme adımı uygular. Gradyanı olmayan parametreler atlanır. Sapma
-// düzeltmesi parametrenin kendi güncelleme sayısıyla yapılır: bazı adımlarda gradyan
-// almayan bir parametre (ör. o adımda kullanılmayan gömme satırları değil, hiç gradyan
-// akmayan bir parametre) ilk güncellemesinde yeni bir iyileştiricideki gibi davranır.
-func (o *AdamW) Step() {
-	defer optimizerStepped(unsafe.Pointer(o))
-	sy := stepCounter(o.Params, OpKindAdamW).start()
-	defer sy.finish()
-	o.step++
-	sorted := repeated(o.Params)
-	var steps []goodStep
-	for k, p := range o.Params {
-		if p.gradStorage() == nil {
-			continue
-		}
-		o.steps[k]++
-		t := float64(o.steps[k])
-		if o.m[k] == nil {
-			o.m[k] = p.be.Alloc(p.Numel(), Float32)
-			o.v[k] = p.be.Alloc(p.Numel(), Float32)
-		}
-		a := goodStep{k: k, p: p, m: o.m[k], v: o.v[k],
-			bc1: float32(1 - math.Pow(float64(o.Beta1), t)), bc2: float32(1 - math.Pow(float64(o.Beta2), t))}
-		a.h = o.master.target(k, p)
-		if sorted {
-			p.be.AdamWStep(a.h, p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
-			o.master.write(k, p, a.h)
-			continue
-		}
-		steps = append(steps, a)
-	}
-	multiApply(steps, func(be MultiTensorOps, a []goodStep) {
-		h, g, m := a[0].cols(a)
-		v, bc1, bc2 := make([]Storage, len(a)), make([]float32, len(a)), make([]float32, len(a))
-		for i, x := range a {
-			v[i], bc1[i], bc2[i] = x.v, x.bc1, x.bc2
-		}
-		be.AdamWStepAll(h, g, m, v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, bc1, bc2)
-	}, func(a goodStep) {
-		a.p.be.AdamWStep(a.h, a.p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
-	})
-	for _, a := range steps {
-		o.master.write(a.k, a.p, a.h)
-	}
-}
-
 // ZeroGrad tüm parametre gradyanlarını sıfırlar.
 func (o *AdamW) ZeroGrad() { ZeroGrads(o.Params) }
 
@@ -301,15 +217,15 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 	var steps []goodStep
 	for _, p := range params {
 		if p.gradStorage() != nil {
-			steps = append(steps, goodStep{p: p})
+			steps = append(steps, goodStep{be: p.be, g: p.gradStorage()})
 		}
 	}
 	if norm > maxNorm && norm > 0 {
 		k := float32(maxNorm / norm)
 		multiApply(steps, func(be MultiTensorOps, a []goodStep) {
 			_, g, _ := a[0].cols(a)
-			be.ScaleAll(g, k)
-		}, func(a goodStep) { a.p.be.Scale(a.p.gradStorage(), k) })
+			gateScaleAll(be, g, k)
+		}, func(a goodStep) { gateScale(a.be, a.g, k) })
 	}
 	// Kırpma gradyanları yerinde yazar sayılır (PyTorch clip_grad_norm_ ölçek 1 olsa da
 	// gradyanı yerinde çarpar ve sürümü artırır); GPU yolu ölçeği cihazda seçtiği için aynı
@@ -317,7 +233,7 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 	// gradyanlara dokunmaz.
 	if !math.IsInf(maxNorm, 1) {
 		for _, a := range steps {
-			a.p.gradStorage().BumpVersion()
+			a.g.BumpVersion()
 		}
 	}
 	return norm
@@ -353,7 +269,7 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 	}
 	if gc, ok := be.(GradClipper); ok && single {
 		sy := counterStart(be, OpKindClipGrad).start()
-		norm, ok := gc.ClipGradAll(grads, float32(maxNorm))
+		norm, ok := gateClipGradAll(gc, grads, float32(maxNorm))
 		sy.finish()
 		if ok {
 			if !math.IsInf(maxNorm, 1) { // sınırsız yoklama gradyanlara dokunmaz (ClipGradNorm)
@@ -397,7 +313,7 @@ func gradSquareSum(params []*Tensor) float64 {
 		}
 		ss, ok := p.be.(SquareSummer)
 		if !ok {
-			s += p.be.SumSquares(p.gradStorage())
+			s += gateSumSquares(p.be, p.gradStorage())
 			i++
 			continue
 		}
@@ -407,7 +323,7 @@ func gradSquareSum(params []*Tensor) float64 {
 				group = append(group, params[i].gradStorage())
 			}
 		}
-		s += ss.SumSquaresAll(group)
+		s += gateSumSquaresAll(ss, group)
 	}
 	return s
 }
@@ -441,7 +357,7 @@ func stateTensor(p *Tensor, s Storage, dup bool) *Tensor {
 // stateCopy depolamanın bitişik float32 kopyasını tensör olarak verir.
 func stateCopy(p *Tensor, s Storage) *Tensor {
 	c := p.be.Alloc(s.Len(), s.DType())
-	p.be.Copy(c, 0, View{S: s, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
+	gateCopy(p.be, c, 0, View{S: s, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
 	return fromStorage(p.be, c, p.shape)
 }
 
