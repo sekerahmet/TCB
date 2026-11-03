@@ -69,6 +69,19 @@ Birim parça/sn. Aynı koşudaki oranlar [hesap]:
 - **GPU'da gerileme:** 2026-10-22'ye göre TR'nin GPU üretimi %7–10 yavaş (Qwen3 bf16 366 → 330, float32 290 → 266; SmolLM2 bf16 608 → 556, float32 548 → 508), llama.cpp aynı (%1 içinde: 442 → 440, 965 → 957). Kart türü aynı, örnek başka; llama.cpp'nin aynı kalması gerilemenin TR'de olduğunu gösteriyor [hipotez: ölçüm, iki commit aynı koşuda karşılaştırılarak doğrulanacak].
 - **CPU'da ilerleme:** aynı tür 48 iş parçacıklı makinede 2026-10-22'ye göre TR'nin CPU üretimi 2,1–2,3 kat hızlı (Qwen3 12,1 → 25,1, SmolLM2 36 → 84,2), llama.cpp benzer (47,5 → 50,7) [ölçüldü; makine örneği başka].
 
+**GPU üretim gerilemesinin yeri** (2026-11-03 17:22–17:26, aynı G4, RTX PRO 6000 Blackwell; her commit kendi ikilisi ve kendi `generation_race.tr`'siyle; iki tur, turlar arası fark ≤ %1) [ölçüldü: Colab, betik `g4_gerileme_2026_11_03.sh`]:
+
+| Commit | Ne | Qwen3 bf16 | Qwen3 float32 | SmolLM2 bf16 | SmolLM2 float32 |
+| :-- | :-- | --: | --: | --: | --: |
+| `1d6a2b4e` | 2026-10-22, eski ölçüm | 374,5 | 294,1–295,0 | 613,5 | 549,5 |
+| `e9c64a45` | 2026-11-01, Faz 0'ın sonu | 343,6–344,8 | 274,0–275,5 | 595,2–598,8 | 537,6 |
+| `d24b95ea` | 2026-11-02, T1 cinsli tensör | 336,7–339,0 | 271,0 | 561,8 | 512,8 |
+| `af24785b` | 2026-11-03, S-kilit | 331,1 | 265,3–266,7 | 555,6 | 505,1–507,6 |
+| `51b75f0a` | 2026-11-03, main | 331,1 | 266,0–266,7 | 555,6 | 505,1–507,6 |
+
+Birim parça/sn. Qwen3 bf16'da toplam −%11,6; en büyük adım 2026-10-22 ile Faz 0'ın sonu arası (−%8), sonra T1'in cinsli tensörü (−%2) ve S-kilit (−%2). SmolLM2'de en büyük adım cinsli tensör (−%5,9). Main ile S-kilit aynı: 16.3 ve Kol A üretimi değiştirmedi [hesap]. 2026-10-22'nin 366 ve 608'i bu makinede 374,5 ve 613,5: kart türü aynı, ölçüm tekrarlanabilir.
+
+
 S-kilit satırı Kol A eşitliğinden (`9f758225`) önce ölçüldü; eşitlik kilidin yolunda değil [hipotez: Kol A yalnız `==`'nin gezintisini değiştirdi]. Eğitim adımının güncel ölçümü yukarıdaki G4 koşusu (main `51b75f0a`, Kol A dahil).
 
 ## Eski (yeniden ölçülecek)
@@ -83,4 +96,4 @@ Motora bağlı olmayan ölçümler (ör. Jarvis tabanı: llama.cpp ve Whisper'ı
 
 ## Sıradaki ölçümler
 
-1. GPU üretimindeki %7–10'luk gerilemenin yeri: 2026-10-22'nin commit'i ile main aynı G4 koşusunda (onay gerekir).
+1. GPU üretim gerilemesinin içi: `1d6a2b4e..e9c64a45` (Faz 0) ve `e9c64a45..d24b95ea` (cinsli tensör) aralıklarında ikiye bölerek ölçüm; düzeltme bir hız dilimine (G4 onayla).
