@@ -878,6 +878,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** kitaplığın `TR_Muon` ve `TR_NorMuon`'u 16 bitlik parametrede ana kopya tutmuyor; güncelleme yutuluyor ve artık uyarı veriyor (`lib/optimizers.tr:96-97`) [kanıtlı: T1 devri]. İş: iki iyileştiriciye ana kopya.
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** H6994'ün önerisi `.TR_fill` yokken `p[0..p.TR_shape[0]] = ana`; `.TR_fill` gelince `p.TR_fill(ana)` olur (15.6d).
 - **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş4):** H6994'ün önerisi (`p[0..p.TR_shape[0]] = ana`) 0 boyutlu parametrede "Liste indeksi sınır dışı" veriyor; öneri boyuttan bağımsız yazılmalı. Kitaplığın `TR_Muon`'unda uyarı `tr/optimizers.tr` satır 97'yi gösterip kullanıcıya ana kopya tutmasını söylüyor; kullanıcı orayı değiştiremez, ileti "parametreyi float32 kurun" demeli.
+- **Yapılacaklar (F, Ö3; T1 Kol B teslim 2c):** iyileştiricinin iki iletisi parametrenin sırasını farklı sayıyor: H6920 0'dan, H6995 1'den. İkisi de 1'den saymalı.
 - **Açık (Sonraya):** aynı yapıya eklenen LoRA alanları için `TR_load_parameters`'ın kesin kuralı; bugün yol alt yapıya yüklemek (`TR_load_parameters(model.gövde, ...)`).
 
 ### 15.36
