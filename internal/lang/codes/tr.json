@@ -188,7 +188,7 @@
   "TR_fn_softmax": { "family": "etkinleştirme", "description": "Verilen eksende (varsayılan son eksen) değerleri toplamı 1 olan olasılıklara çevirir. Yalnızca tensörde çalışır, listede çalışmaz (Tensör(...) ile çevrilir); tamamen -sonsuz bir satırın sonucu 0'dır." },
   "TR_fn_sqrt": { "name": "karekök", "family": "matematik", "description": "Sayının karekökünü Ondalık olarak verir (negatif sayıda NaN); tensörde eleman bazlı ve türev izleyerek çalışır, liste kabul etmez." },
   "TR_fn_state_tensor": { "name": "durum_tensörü", "family": "kitaplık: tr/optimizers", "description": "" },
-  "TR_fn_std": { "name": "standart_sapma", "family": "istatistik", "description": "Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak verir; ortalama gibi tek bir liste ya da birden çok sayı alır, boş girdi ve sayı olmayan eleman hatadır." },
+  "TR_fn_std": { "name": "standart_sapma", "family": "istatistik", "description": "Sayıların örneklem standart sapmasını (n−1'e bölerek) Ondalık olarak verir; ortalama gibi tek bir liste ya da birden çok sayı alır, boş girdi, tek öğe ve sayı olmayan eleman hatadır." },
   "TR_fn_stop_requested": { "name": "durdurma_istendi", "family": "süreç ve ortam", "description": "Bir durdurma isteği geldiyse doğru döner ve hiçbir şeyi değiştirmez; isteği durdurmayı_üstlen() ya da kontrol noktası ertelemişse sorgulanır." },
   "TR_fn_sum": { "name": "toplam", "family": "matematik", "description": "Sayı listesini toplar (hepsi Tam ise Tam, bir Ondalık varsa Ondalık); sayı olmayan eleman ve iç içe liste hatadır. Tensörde bütün elemanları ya da eksen: ile verilen ekseni indirger." },
   "TR_fn_swiglu_gate": { "name": "swiglu_kapısı", "family": "kitaplık: tr/layers", "description": "" },

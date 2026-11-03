@@ -2953,7 +2953,7 @@ tr: yazdır(karekök(16), karekök(2.25))
 
     standart_sapma(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
 
-Sayıların popülasyon standart sapmasını (n'ye bölerek) Ondalık olarak verir; ortalama gibi tek bir liste ya da birden çok sayı alır, boş girdi ve sayı olmayan eleman hatadır.
+Sayıların örneklem standart sapmasını (n−1'e bölerek) Ondalık olarak verir; ortalama gibi tek bir liste ya da birden çok sayı alır, boş girdi, tek öğe ve sayı olmayan eleman hatadır.
 
 ```tr
 TR_print(TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
