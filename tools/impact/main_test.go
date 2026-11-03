@@ -43,7 +43,7 @@ func TestNameUses(t *testing.T) {
 // The hooks the interpreter finds by type assertion: the implementers must be listed, because
 // a renamed method drops a hook without a compile error.
 func TestInterfaceImplementers(t *testing.T) {
-	testkit.MustContain(t, query(t, "interp.MemberAssignable"), "1 implementers", "ml.Optimizer")
+	testkit.MustContain(t, query(t, "interp.MemberAssignable"), "implementers", "ml.Optimizer", "ml.TensorValue")
 	testkit.MustContain(t, query(t, "interp.Iterable"), "ml.TensorValue")
 	testkit.MustContain(t, query(t, "interp.MemberAssignable.SetMember"), "ml.Optimizer")
 }
