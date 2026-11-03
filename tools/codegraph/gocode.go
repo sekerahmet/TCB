@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"go/types"
 	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -72,15 +73,49 @@ func memberID(p, recv, name string) string {
 	return "go:func:" + p + "." + name
 }
 
+func typeRecvKey(fset *token.FileSet, tn *types.TypeName) string {
+	if tn == nil || tn.Pkg() == nil || tn.Name() == "_" {
+		return ""
+	}
+	if _, isTP := tn.Type().(*types.TypeParam); isTP {
+		return ""
+	}
+	if tn.Parent() == tn.Pkg().Scope() {
+		return tn.Name()
+	}
+	if fset == nil {
+		return ""
+	}
+	pos := fset.Position(tn.Pos())
+	return tn.Name() + "#" + filepath.Base(pos.Filename) + ":" + strconv.Itoa(pos.Line) + ":" + strconv.Itoa(pos.Column)
+}
+
+func typeNameID(fset *token.FileSet, tn *types.TypeName) string {
+	if k := typeRecvKey(fset, tn); k != "" {
+		return typeID(tn.Pkg().Path(), k)
+	}
+	return ""
+}
+
 // funcRef bir işlevin kimliğini verir; adsız arayüzlerin metotları için "".
-func funcRef(f *types.Func) string {
+func funcRef(f *types.Func) string { return funcRefIn(nil, f) }
+
+func funcRefIn(fset *token.FileSet, f *types.Func) string {
 	sig, ok := f.Type().(*types.Signature)
 	if !ok || f.Pkg() == nil {
 		return ""
 	}
 	recv := ""
 	if sig.Recv() != nil {
-		if recv = goload.RecvName(sig.Recv().Type()); recv == "" {
+		rt := sig.Recv().Type()
+		if p, isPtr := rt.(*types.Pointer); isPtr {
+			rt = p.Elem()
+		}
+		named, isNamed := rt.(*types.Named)
+		if !isNamed {
+			return ""
+		}
+		if recv = typeRecvKey(fset, named.Obj()); recv == "" {
 			return ""
 		}
 	}
@@ -246,13 +281,39 @@ func (x *goExtractor) genDecl(fc *fileCtx, d *ast.GenDecl) {
 		if obj == nil {
 			continue
 		}
-		x.typeSpec(fc, d, ts, obj)
+		x.typeSpec(fc, fileID(fc.rel), path.Base(obj.Pkg().Path()), d, ts, obj, true)
 	}
 }
 
-func (x *goExtractor) typeSpec(fc *fileCtx, gen *ast.GenDecl, ts *ast.TypeSpec, obj *types.TypeName) {
+func (x *goExtractor) localTypeDecl(fc *fileCtx, owner, closure string, d *ast.GenDecl) {
+	parent := owner
+	if closure != "" {
+		parent = closure
+	}
+	prefix := path.Base(fc.base)
+	if n := x.b.nodes[owner]; n != nil && n.Kind != kindFile {
+		prefix = n.Name
+	}
+	for _, spec := range d.Specs {
+		ts, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		if obj, _ := fc.u.Info.Defs[ts.Name].(*types.TypeName); obj != nil {
+			x.typeSpec(fc, parent, prefix, d, ts, obj, false)
+		}
+	}
+}
+
+func (x *goExtractor) typeSpec(fc *fileCtx, parentID, namePrefix string, gen *ast.GenDecl, ts *ast.TypeSpec, obj *types.TypeName, scanBody bool) {
+	recvKey := typeRecvKey(x.m.Fset, obj)
+	if recvKey == "" {
+		return
+	}
 	pkg := obj.Pkg().Path()
-	id := typeID(pkg, obj.Name())
+	local := obj.Parent() != obj.Pkg().Scope()
+	id := typeID(pkg, recvKey)
+	typeName := namePrefix + "." + obj.Name()
 	detail := "alias"
 	if !obj.IsAlias() {
 		switch obj.Type().Underlying().(type) {
@@ -265,13 +326,15 @@ func (x *goExtractor) typeSpec(fc *fileCtx, gen *ast.GenDecl, ts *ast.TypeSpec, 
 		}
 	}
 	line := x.line(ts.Pos())
-	x.b.addNode(Node{ID: id, Kind: kindType, Name: path.Base(pkg) + "." + obj.Name(), File: fc.rel, Line: line, End: x.line(ts.End()), Detail: detail, Doc: docText(singleSpecDoc(gen, ts.Doc), ts.Comment)})
-	x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, line)
-	if !fc.isTest {
+	x.b.addNode(Node{ID: id, Kind: kindType, Name: typeName, File: fc.rel, Line: line, End: x.line(ts.End()), Detail: detail, Doc: docText(singleSpecDoc(gen, ts.Doc), ts.Comment)})
+	x.b.addEdge(parentID, id, edgeContains, extracted, fc.rel, line)
+	if !fc.isTest && !local {
 		x.addSym(fc.base, obj.Name(), id)
 	}
-	x.fieldNodes(fc, ts, id, pkg)
-	x.scan(fc, id, ts) // alan tipleri, gömülü tipler, arayüz yöntem imzaları, tür kısıtları
+	x.fieldNodes(fc, ts, id, pkg, recvKey, typeName)
+	if scanBody {
+		x.scan(fc, id, ts) // alan tipleri, gömülü tipler, arayüz yöntem imzaları, tür kısıtları
+	}
 	it, ok := obj.Type().Underlying().(*types.Interface)
 	if !ok || obj.IsAlias() {
 		return
@@ -279,12 +342,12 @@ func (x *goExtractor) typeSpec(fc *fileCtx, gen *ast.GenDecl, ts *ast.TypeSpec, 
 	docs := interfaceMethodDocs(ts)
 	for i := 0; i < it.NumExplicitMethods(); i++ {
 		mth := it.ExplicitMethod(i)
-		mid := memberID(pkg, obj.Name(), mth.Name())
+		mid := memberID(pkg, recvKey, mth.Name())
 		ml := x.line(mth.Pos())
-		x.b.addNode(Node{ID: mid, Kind: kindMethod, Name: path.Base(pkg) + "." + obj.Name() + "." + mth.Name(),
+		x.b.addNode(Node{ID: mid, Kind: kindMethod, Name: typeName + "." + mth.Name(),
 			File: fc.rel, Line: ml, End: ml, Doc: docs[mth.Name()], Detail: types.ObjectString(mth, func(p *types.Package) string { return p.Name() })})
 		x.b.addEdge(id, mid, edgeContains, extracted, fc.rel, ml)
-		if !fc.isTest {
+		if !fc.isTest && !local {
 			x.addSym(fc.base, obj.Name()+"."+mth.Name(), mid)
 		}
 	}
