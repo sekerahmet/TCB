@@ -19,6 +19,8 @@ type jsonPair struct {
 	json, other ast.Expression
 	otherType   string
 	none        bool
+	// optional JSON yanın TR_JSON? olduğudur (j.TR_get(k)): açma önerisi verilmez.
+	optional bool
 }
 
 // typedItem tipi bilinen bir değer ya da kabın öğesidir; expr değişmezin öğesiyse ifadesidir.
@@ -30,6 +32,15 @@ type typedItem struct {
 // jsonPairs lt/le ile rt/re'nin karşılaştırmasında JSON olmayanla karşılaşan JSON değerlerini
 // toplar; kabın içine öğe öğe iner.
 func (c *Checker) jsonPairs(l, r typedItem, out *[]jsonPair) {
+	if optionalJSON := optionalType(typeJSON); l.typ == optionalJSON || r.typ == optionalJSON {
+		if r.typ == optionalJSON {
+			l, r = r, l
+		}
+		if r.typ != typeNull && requiredType(r.typ) != typeJSON && c.knownType(r.typ) {
+			*out = append(*out, jsonPair{json: l.expr, other: r.expr, otherType: r.typ, optional: true})
+		}
+		return
+	}
 	if l.typ != typeJSON && r.typ == typeJSON {
 		l, r = r, l
 	}
@@ -133,7 +144,7 @@ func (c *Checker) checkJSONComparison(e *ast.InfixExpression, left, right string
 	if len(pairs) == 0 {
 		return
 	}
-	inner := left != typeJSON && right != typeJSON
+	inner := requiredType(left) != typeJSON && requiredType(right) != typeJSON
 	c.reportJSONPairs(e, e, pairs, inner)
 }
 
@@ -158,7 +169,7 @@ func (c *Checker) reportJSONPairs(at ast.Node, whole ast.Expression, pairs []jso
 	}
 	wrap := c.splice(whole, wraps)
 	open := ""
-	if t, ok := scalarCode(p.otherType); ok && p.json != nil {
+	if t, ok := scalarCode(p.otherType); ok && p.json != nil && !p.optional {
 		open = c.splice(whole, []spliced{{p.json, codes.Spelling(t) + "(", ")", ""}})
 	}
 	c.addErrorAt(at, messages.New(messages.H1131, c.typeArg(p.otherType), kind, open, wrap))

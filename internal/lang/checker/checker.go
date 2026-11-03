@@ -90,6 +90,8 @@ type Checker struct {
 	valueTypes map[ast.Expression]string
 	// itemTypes liste, sözlük ve demet değişmezlerinin öğelerinin çıkarılan tipleridir (optional_values.go).
 	itemTypes map[ast.Expression]string
+	// jsonLiterals öğeleri denetlenmiş, TR_JSON beklenen değişmezlerdir (json_values.go).
+	jsonLiterals map[ast.Expression]bool
 	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
 	// için (local_types.go).
 	structs map[string]*ast.StructStatement
@@ -165,7 +167,7 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
 	c.valueTypes = nil
-	c.itemTypes = map[ast.Expression]string{}
+	c.itemTypes, c.jsonLiterals = map[ast.Expression]string{}, nil
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
 	for _, stmt := range prog.Statements {
@@ -395,9 +397,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.requireBool(e.Right, right, messages.H2601)
 			return typeBool
 		case "==", "!=", "<", ">", "<=", ">=":
-			c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
-			c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
-			return typeBool
+			return c.comparisonType(e, left, right)
 		case "??":
 			if left != typeNull && left != typeAny {
 				return requiredType(left)
@@ -406,9 +406,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		case "@":
 			return typeTensor
 		case "+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>":
-			if e.Operator == "+" {
-				c.checkPlus(e, left, right) // 4.10
-			}
+			c.checkSequenceOperator(e, string(e.Operator), e.Left, e.Right, left, right) // 4.10 (element_types.go)
 			return arithmeticType(string(e.Operator), left, right)
 		}
 		return typeAny
@@ -436,6 +434,18 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 	return typeAny
 }
 
+// comparisonType karşılaştırmayı denetler ve tipini verir: TR_Bool; bir yanı tensörse (TR_none'la
+// karşılaştırma dışında) öğe öğe karşılaştırmadır ve bir tensör verir (15.5).
+func (c *Checker) comparisonType(e *ast.InfixExpression, left, right string) string {
+	c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
+	c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
+	c.checkEqualityTypes(e, left, right)   // 4.5 (equality_types.go)
+	if left != typeNull && right != typeNull && (baseType(left) == typeTensor || baseType(right) == typeTensor) {
+		return typeTensor
+	}
+	return typeBool
+}
+
 // inferCall çağrının argümanlarını denetler ve tipini verir; argümanlar kapının tahmini için
 // kaydedilir (signatures.go).
 func (c *Checker) inferCall(e *ast.CallExpression) string {
@@ -459,8 +469,8 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		argTypes[i] = argType
 		c.noteCall(e, objType, i, "", arg, argType)
 		if found && i < len(info.ParamTypes) && !c.assignable(info.ParamTypes[i], argType, arg) {
-			c.addErrorAt(arg, messages.New(messages.H1004,
-				ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType)))
+			c.addErrorAt(arg, messages.New(messages.H1004, ident.Value, i+1, c.typeArg(info.ParamTypes[i]), c.typeArg(argType),
+				c.typeHint(info.ParamTypes[i], argType, arg, dividesAtTop(arg))))
 		}
 	}
 	namedTypes := make([]string, len(e.NamedArgs))
@@ -474,7 +484,11 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	if isMember {
 		c.checkMemberCall(e, objType, argTypes)
 		c.checkJSONContains(e, objType, argTypes) // 3.7a (json_comparison.go)
-	} else if k, _ := c.calledBuiltin(e); k == codes.FnAssert && len(argTypes) > 0 {
+		c.checkDictKeyArg(e, objType, argTypes)   // 3.7 (dict_keys.go)
+	} else {
+		c.checkBuiltinArgs(e, argTypes) // 13.9, 13.11 (builtin_args.go)
+	}
+	if k, _ := c.calledBuiltin(e); !isMember && k == codes.FnAssert && len(argTypes) > 0 {
 		c.requireBool(e.Arguments[0], argTypes[0], messages.H2612) // 3.10, 12.3
 	}
 	if len(argTypes) == 1 && c.builtinCallCode(e, objType) == codes.TypeJSON {
@@ -501,9 +515,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		if info, found := c.scope.Resolve(ident.Value); found {
 			// Bileşik atamada (x += y) atanan değer 'x + y' ifadesinin sonucudur
 			op := strings.TrimSuffix(string(s.Operator), "=")
-			if op == "+" {
-				c.checkPlus(s, info.TypeName, valType) // x += y, x = x + y'dir (5.4, 4.10)
-			}
+			c.checkSequenceOperator(s, op, nil, s.Value, info.TypeName, valType) // x += y, x = x + y'dir (5.4, 4.10)
 			if op != "" {
 				valType = arithmeticType(op, info.TypeName, valType)
 			}
@@ -523,7 +535,8 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		c.checkModuleAssign(s.Target)
 		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
 		c.inferExpression(s.Target)
-		c.checkIndexAssign(s, valType) // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
-		c.checkJSONIndexAssign(s)      // TR_JSON değiştirilemez (3.7a, json_values.go)
+		c.checkIndexAssign(s, valType)   // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
+		c.checkElementAssign(s, valType) // öğe tipi bilinen kaba başka tipte değer (3.6, 3.7)
+		c.checkJSONIndexAssign(s)        // TR_JSON değiştirilemez (3.7a, json_values.go)
 	}
 }

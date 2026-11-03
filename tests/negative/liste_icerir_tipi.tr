@@ -1,0 +1,7 @@
+# TR 4
+# TEST 3.6 öğe tipi bilinen listenin içerir'ine ayrı tipte değer denetim hatasıdır
+TR_var l = [1, 2]
+TR_var adlar = ["a", "b"]
+TR_print(l.TR_contains("a")) # ERROR H1142
+TR_print(adlar.TR_contains(3)) # ERROR H1142
+TR_print(l.TR_contains(1.0), adlar.TR_contains("a"))

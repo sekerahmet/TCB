@@ -133,6 +133,7 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 		return false // açılmamış isteğe bağlı değer (3.5, optional_values.go)
 	}
 	if jsonLiteral(expected, value) {
+		c.checkJSONLiteral(value) // 3.7a: öğeleri JSON değeri olarak kurulur (json_values.go)
 		return true
 	}
 	return compat{isStruct: c.knownStruct, literal: literalValue(value)}.types(expected, actual)
@@ -176,6 +177,9 @@ func (k compat) fits(expected, actual string, inner bool) bool {
 	}
 	if e.elems != nil || a.elems != nil {
 		return k.tuplesFit(e, a)
+	}
+	if inner && a.optional && !e.optional {
+		return false // TR_List[TR_Int?] bir TR_List[TR_Int] değildir (3.6)
 	}
 	e.base, a.base = normalizeTypeName(e.base), normalizeTypeName(a.base)
 	if e.base == typeAny || a.base == typeAny {

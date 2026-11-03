@@ -94,4 +94,4 @@ Her kuralın emsali ve gerekçesi: [`rationale/13_builtins.md`](rationale/13_bui
 - *Test:* TR testi, denetleyicinin testi ve olumsuz fikstür (değeri kullanılmayan çağrı); imzaların birleşim dönüş tipi taşımaması ve örtüşmemesi uygulanınca Go testi; öbür kuralların denetleyici testi 4. katmanda.
 
 **13.11** Yerleşiğe yanlış sayıda ya da yanlış tipte argüman vermek hatadır. İleti yerleşiği, argümanın sırasını, beklenen ve verilen tipi söyler ve kullanımı gösterir: "sqrt() expects Int or Float as argument 1, String ("a") given". Hata bugün çalışma anındadır; 4. katmandan sonra denetleyici aynı kodla çalışmadan önce verir.
-- *Test:* TR testi.
+- *Test:* TR testi; fonksiyonun argüman tipi: `TestBuiltinArgOptions`, `TestFunctionParamOptionsMatchEngine`, olumsuz fikstür `tests/negative/yerlesik_arguman_tipi.tr`.

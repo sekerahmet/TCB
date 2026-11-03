@@ -1,0 +1,7 @@
+# TR 4
+# TEST 4.5 == ve != aynı tipten iki değeri karşılaştırır: tipleri bilinen ayrı iki değer denetim hatasıdır
+TR_print("1" == 1) # ERROR H1141
+TR_print([1] != [1.0]) # ERROR H1141
+TR_var j = TR_json_parse("{}")
+TR_print(j.TR_get("q") == 3) # ERROR H1131
+TR_print(1 == 1.0, [1] == [], j.TR_get("q") == TR_none)

@@ -40,7 +40,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 - *Test:* TR testi.
 
 **4.5** `==` ve `!=` aynı tipten iki değeri karşılaştırır; ayrı tipler (`"1" == 1`) denetim hatasıdır. Sayılar tipten bağımsız, kesin karşılaştırılır, `TR_Int` yuvarlanmaz (`1 == 1.0`, `9007199254740993 != 9007199254740992.0`); `TR_nan` hiçbir sayıya eşit değildir; `-0.0 == 0.0` doğrudur. Tipten bağımsızlık yalnız iki sayı arasındadır: öğe tipleri ayrı listeler (`TR_List[TR_Int]` ile `TR_List[TR_Float]`) ayrı tiptir. İsteğe bağlı değer asıl tipten bir değerle ya da `TR_none`'la karşılaştırılabilir. Liste ve sözlük öğe öğe (sözlükte sıra önemsiz), bayt dizisi bayt bayt, demet öğe öğe, `TR_JSON` JSON değeri olarak (sayılar 4.5'in sayı kuralıyla), aralık uçlarıyla karşılaştırılır (uçları ayrı iki boş aralık eşit değildir). Fonksiyonlar karşılaştırılamaz; fonksiyon içeren liste ve sözlük de. Eşitlenemeyen tipin isteğe bağlısı (fonksiyon, tensör ve onları içeren değer) yalnız `TR_none`'la karşılaştırılabilir (3.5, 15.5). Yapının eşitliği 7.6'dadır; tensörün `==`'si öğe öğedir, tensör içeren değerinki denetim hatasıdır (15.5).
-- *Test:* TR testi; fonksiyon içeren kabın hatası uygulanınca TR testi; tip kuralı uygulanınca denetleyicinin testi.
+- *Test:* TR testi; fonksiyon içeren kabın hatası uygulanınca TR testi; tip kuralı: `TestDistinctTypesAreNotCompared`, `TestOptionalJSONComparison`, olumsuz fikstür `tests/negative/ayri_tip_esitligi.tr`.
 
 **4.6** `TR_and`, `TR_or` ve `TR_not`'un işlenenleri `TR_Bool`dur (3.10); `TR_and` ve `TR_or` kısa devre yapar.
 - *Test:* TR testi; işlenen kuralı uygulanınca denetleyicinin testi.
@@ -55,7 +55,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 - *Test:* TR testi.
 
 **4.10** `+` aynı tipten iki metni, iki bayt dizisini ya da iki listeyi uç uca ekler. `*` bir metni, bayt dizisini ya da listeyi bir `TR_Int` kadar yineler (`"-" * 40`, `[0] * n`, `3 * "ab"`); sayı sıfır ya da eksiyse sonuç boştur. Sonucun belleği ayırmadan önce denetlenir (3.6): makinenin belleğini aşan sonuç çalışma hatasıdır; daha büyük sayısal veri tensörde (15) ya da akışta (5.7, 18) tutulur. Öğeleri başvuruyla paylaşılan (3.6: liste ve sözlük; yapı 7.6, tensör 15.3) liste yinelenemez: `[[0] * 3] * 3` denetim hatasıdır, çünkü üç satır aynı listeyi paylaşırdı; ileti her satırı ayrı kuran yazımı önerir. Metin, bayt dizisi, sayı ve mantık değeri değiştirilemediği için öğe olarak yinelenebilir. Başka bir tiple `+` ya da `*` denetim hatasıdır (`"a" + 1`); ileti metinde yerleştirmeyi (`"a\(1)"`), listede `l + [x]` ya da `l.TR_append(x)` yazımını önerir.
-- *Test:* TR testi; tip kuralı: `TestPlusOperands`, olumsuz fikstür `tests/negative/arti_islenen.tr`; yineleme uygulanınca denetleyicinin testi.
+- *Test:* TR testi; tip kuralı: `TestPlusOperands`, `TestListPlusElementTypes`, olumsuz fikstürler `tests/negative/arti_islenen.tr`, `tests/negative/oge_tipi_atama.tr`; paylaşılan satırlar: `TestSharedRowsAreNotRepeated`, `tests/negative/paylasilan_satirlar.tr`; başka tiple `*` uygulanınca denetleyicinin testi.
 
 **4.11** `@` iki tensörün matris çarpımıdır. Tensörlerde öbür işleçlerin öğe öğe anlamı 15.6'da, yayın 15.6b'dedir.
 - *Test:* TR testi.

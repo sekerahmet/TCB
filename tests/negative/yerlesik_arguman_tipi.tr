@@ -1,0 +1,8 @@
+# TR 4
+# TEST 13.11 yerleşik fonksiyona seçenekleri dışında tipte argüman denetim hatasıdır, çalışma anının koduyla
+TR_print(TR_abs("s")) # ERROR H2423
+TR_print(TR_sin("s")) # ERROR H6103
+TR_var z = TR_zeros("a") # ERROR H6021
+TR_var l: TR_List[TR_Int] = []
+TR_print(TR_abs(l.TR_first)) # ERROR H2423
+TR_print(TR_abs(1), TR_abs(1.5), TR_sin(1), z)

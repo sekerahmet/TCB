@@ -33,16 +33,16 @@ func tuplesEqual(x *TupleVal, b Value, nestDepth int) bool {
 	return true
 }
 
-// tupleComparisonError iki demetin '=='sinin hatasıdır: tensör tutan öğe (15.5; tipi bilinen yerde
-// denetimi 4a2'de) ve walk'ın bulduğu öğe hatası (JSON, fonksiyon; nesnede alanlar). Demet olmayan
-// karşı yan (TR_none) hatasızdır.
+// tupleComparisonError iki demetin '=='sinin hatasıdır: tensör tutan öğe, tensör öğenin listesinde
+// ya da sözlüğünde olsa da (15.5; tipi bilinen yerde denetimi 4a2'de), ve walk'ın bulduğu öğe hatası
+// (JSON, fonksiyon; nesnede alanlar). Demet olmayan karşı yan (TR_none) hatasızdır.
 func tupleComparisonError(x *TupleVal, b Value, nestDepth int, walk func(a, b Value, nestDepth int) error) error {
 	y, ok := b.(*TupleVal)
 	if !ok {
 		return nil
 	}
 	for i := 0; i < min(len(x.Elements), len(y.Elements)); i++ {
-		if x.Elements[i].Type() == ValTensor || y.Elements[i].Type() == ValTensor {
+		if holdsTensor(x.Elements[i], nestDepth) || holdsTensor(y.Elements[i], nestDepth) {
 			return messages.New(messages.H2777, i)
 		}
 		if x != y {
@@ -52,6 +52,29 @@ func tupleComparisonError(x *TupleVal, b Value, nestDepth int, walk func(a, b Va
 		}
 	}
 	return nil
+}
+
+// holdsTensor v'nin bir tensör ya da tensör tutan bir liste veya sözlük olduğudur (iç içe de);
+// demetin içindeki demeti walk ayrıca dolaşır. Derinlik eşitliğinkiyle (equalityDepth) sınırlıdır.
+func holdsTensor(v Value, nestDepth int) bool {
+	if nestDepth >= equalityDepth {
+		return false
+	}
+	switch x := v.(type) {
+	case *ListVal:
+		for _, e := range x.Elements {
+			if holdsTensor(e, nestDepth+1) {
+				return true
+			}
+		}
+	case *DictVal:
+		for _, k := range x.Order {
+			if holdsTensor(x.Pairs[k], nestDepth+1) {
+				return true
+			}
+		}
+	}
+	return v.Type() == ValTensor
 }
 
 // tupleOrderOp demetlerin '<', '>', '<=', '>='sidir (4.4): öğeler sırayla karşılaştırılır, ilk eşit

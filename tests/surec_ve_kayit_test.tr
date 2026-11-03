@@ -27,7 +27,7 @@ TR_test "19.1 ortam_değişkeni değeri Metin olarak, tanımsızsa yok verir" {
     TR_assert_equal(TR_none, TR_env("TR_BOYLE_BIR_DEGISKEN_YOK_19"))
     TR_assert_equal("varsayılan", TR_env("TR_BOYLE_BIR_DEGISKEN_YOK_19") ?? "varsayılan")
     TR_assert_equal(TR_String, TR_Type(TR_env("PATH")))
-    TR_assert_equal("H2423", TR_error_code { TR_env(5) })
+    TR_assert_equal("H2423", TR_error_code { TR_env([5, "a"][0]) })
     TR_assert_equal("H7231", TR_error_code { TR_env("") })
 }
 

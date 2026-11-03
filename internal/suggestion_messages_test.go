@@ -94,6 +94,12 @@ var suggestionCases = []suggestionCase{
 	{messages.H1130, "TR_func f(l: TR_List[TR_Float]) -> TR_Float {\n    TR_return l.TR_get(2)\n}\nTR_print(f([]))", "l.TR_get(2)", "l.TR_get(2) ?? 0.0"},
 	{messages.H1130, "TR_var l = [\"a\"]\nTR_var s = \"\"\ns = l.TR_last\nTR_print(s)", "l.TR_last", "l.TR_last ?? \"\""},
 	{messages.H1130, "TR_var l: TR_List[TR_List[TR_Int]] = []\nTR_var k: TR_List[TR_Int] = l.TR_first\nTR_print(k)", "l.TR_first", "l.TR_first ?? []"},
+	{messages.H1130, "TR_var l: TR_List[TR_Int] = []\nTR_func f(x: TR_Int) -> TR_Int {\n    TR_return x\n}\nTR_print(f(l.TR_first))", "l.TR_first", "l.TR_first ?? 0"},
+	{messages.H1130, "TR_struct P { x: TR_Int }\nTR_var l: TR_List[TR_Int] = []\nTR_var p = P(1)\np.x = l.TR_first\nTR_print(p.x)", "l.TR_first", "l.TR_first ?? 0"},
+	{messages.H1130, "TR_struct P { x: TR_Float }\nTR_var l: TR_List[TR_Float] = []\nTR_var p = P(l.TR_last)\nTR_print(p.x)", "l.TR_last", "l.TR_last ?? 0.0"},
+	{messages.H1130, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm.TR_append(l.TR_first)\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
+	{messages.H1130, "TR_var l: TR_List[TR_String] = []\nTR_print(\"a,b\".TR_split(l.TR_first))", "l.TR_first", "l.TR_first ?? \"\""},
+	{messages.H1130, "TR_var l: TR_List[TR_Float] = []\nTR_print(TR_abs(l.TR_first))", "l.TR_first", "l.TR_first ?? 0.0"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"k\": 3}`)\nTR_print(j[\"k\"] == 3)", "j[\"k\"] == 3", "TR_Int(j[\"k\"]) == 3"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"k\": 3}`)\nTR_print(j[\"k\"] == 3)", "j[\"k\"] == 3", "j[\"k\"] == TR_JSON(3)"},
 	{messages.H1131, "TR_var j = TR_json_parse(`[1, 2]`)\nTR_print(TR_List(j) == [1, 2])", "TR_List(j) == [1, 2]", "TR_List(j) == [TR_JSON(1), TR_JSON(2)]"},
@@ -102,8 +108,13 @@ var suggestionCases = []suggestionCase{
 	{messages.H1132, "TR_var j = TR_json_parse(`{\"n\": null}`)\nTR_print(j[\"n\"] == TR_none)", "j[\"n\"] == TR_none", "TR_Type(j[\"n\"]) == TR_NoneType"},
 	{messages.H1132, "TR_var j = TR_json_parse(`{\"n\": null}`)\nTR_print(j[\"n\"] == TR_none)", "j[\"n\"] == TR_none", "j.TR_get(\"n\") == TR_none"},
 	{messages.H1132, "TR_var j = TR_json_parse(`[1, null]`)\nTR_print(TR_List(j).TR_contains(TR_none))", "TR_List(j).TR_contains(TR_none)", "TR_List(j).TR_contains(TR_JSON(TR_none))"},
+	{messages.H1133, "TR_var j: TR_JSON = {\"a\": \"x y\".TR_split(\" \")}\nTR_print(j)", "\"x y\".TR_split(\" \")", "TR_JSON(\"x y\".TR_split(\" \"))"},
 	{messages.H1134, "TR_var j = TR_json_parse(`{}`)\nTR_print(TR_Type(j) == TR_JSON)", "TR_Type(j) == TR_JSON", "TR_Type(j) == TR_Dict"},
 	{messages.H1135, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm[0] = l.TR_first\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
+	{messages.H1131, "TR_var j = TR_json_parse(`{\"q\": 3}`)\nTR_print(j.TR_get(\"q\") == 3)", "j.TR_get(\"q\") == 3", "j.TR_get(\"q\") == TR_JSON(3)"},
+	{messages.H1142, "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"2\"))", "\"2\"", "TR_Int(\"2\")"},
+	{messages.H1142, "TR_var adlar = [\"1\", \"2\"]\nTR_var sayılar = [1, 2]\nTR_print(adlar.TR_contains(sayılar.TR_length))", "sayılar.TR_length", "TR_String(sayılar.TR_length)"},
+	{messages.H1139, "TR_var m = [[0] * 3] * 3\nm[0][0] = 1\nTR_print(m)", "[[0] * 3] * 3", "[[0] * 3 TR_for _ TR_in 0..3]"},
 }
 
 // suggestionResultCase önerinin sonucunu da okur: hatalı program iletiyi verir, ileti suggestion'ı

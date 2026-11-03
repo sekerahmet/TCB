@@ -30,6 +30,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_builtin_codes_test.go`: yerleşiklerin ve üyelerin kod sözlüğüyle birebir eşleşmesi
 - `behavior_definitions_test.go`: kod listesindeki örneklerin, adlı argümanların ve üye tiplerinin gerçek davranışla aynı olması
 - `behavior_member_returns_test.go`: çekirdek alıcıda (metin, liste, sözlük, aralık) yerleşik üyenin tanım örneklerinde döndürdüğü değerin ve öğelerinin tipinin, denetleyicinin alıcının öğe tipinden kurduğu tipe uyması (4a2 ön şartı (b); 1.2, 13.9)
+- `behavior_param_options_test.go`: denetleyicinin argümanını denetlediği yerleşik fonksiyonlarda (checker.FunctionArgCodes) motorun tanımın her seçeneğini kabul etmesi, seçenek dışı tipe denetimin verdiği kodu vermesi (13.9, 13.11)
 - `behavior_returns_test.go`: tek tipli dönüşü olan yerleşiklerin tanım örneklerinde çalışırken o tipte değer döndürmesi (denetleyici dönüşü çağrının tipi sayar; 1.2, 13.9)
 - `behavior_json_returns_test.go`: denetleyicinin TR_JSON saydığı yerleşiklerin (checker.JSONReturns) tanım örneklerinde çalışırken bir JSON değeri döndürmesi (motorun tip sorgusu JSON'un türünü verir; 3.7a)
 - `behavior_paths_test.go`: yorumlayıcı alan her işlevin dosya sistemine dokunmadan önce yolu `VM.ResolvePath` ile çözmesi (kaynak taraması)

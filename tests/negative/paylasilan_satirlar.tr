@@ -1,0 +1,9 @@
+# TR 4
+# TEST 4.10 öğeleri başvuruyla paylaşılan liste yinelenemez: her satır aynı öğe olurdu
+TR_var m = [[0] * 3] * 3 # ERROR H1139
+TR_var d = 2 * [{"a": 1}] # ERROR H1139
+TR_var l = [[1]]
+l *= 2 # ERROR H1139
+TR_var s = ["-"] * 3
+TR_var t = [(1, "a")] * 2
+TR_print(m, d, l, s, t)

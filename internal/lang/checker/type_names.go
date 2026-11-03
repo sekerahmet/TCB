@@ -247,7 +247,11 @@ func (c *Checker) writtenType(t *ast.TypeRef, line int) string {
 	if t.Name == "" {
 		return typeAny
 	}
-	return containerType(c.checkedTypeName(t.Name, siteOf(t.Token, line)), args)
+	name := c.checkedTypeName(t.Name, siteOf(t.Token, line))
+	if name == typeDict && len(args) == 2 && args[0] == typeFloat {
+		c.addErrorAtToken(siteOf(t.Args[0].Token, line), messages.New(messages.H2646, c.typeArg(typeFloat))) // 3.7 (dict_keys.go)
+	}
+	return containerType(name, args)
 }
 
 // normalizedType writtenType'ın indirgemesini hata eklemeden yapar.
