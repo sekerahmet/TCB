@@ -15,6 +15,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // commonNameFiles bir kodun adı yalnız definitions.json'daki ortak addır (madde 15 adım 2): dil dosyalarında satırı var
@@ -234,11 +235,9 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 			t.Errorf("query %q: codegraph %v, tr index %v", q, gotCG, gotTR)
 		}
 	}
-	for _, q := range []string{"A.TR_shape", "A.TR_tolist", "Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map"} {
-		if got := ix.lookup(q); len(got) != 2 {
-			t.Errorf("codegraph lookup %q: got %d candidates (%v), want 2", q, len(got), got)
-		}
-	}
+	assertAmbiguousMemberCandidates(t, ix, reader, []string{
+		"A.TR_shape", "A.TR_tolist", "Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
+	})
 	for _, q := range []string{
 		"TR_Linear.TR_map", "A.TR_GPT",
 		"foo.TR_GPT", "model.TR_GPT", "TR_self.TR_GPT", ".TR_GPT", "x.TR_GPT",
@@ -249,6 +248,25 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		}
 		if got := reader.Resolve(q, ""); len(got) != 0 {
 			t.Errorf("tr index Resolve %q: got %v, want not found", q, got)
+		}
+	}
+}
+
+func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.Reader, queries []string) {
+	t.Helper()
+	typeCode, valCode := messages.H8877.String(), messages.H8878.String()
+	for _, q := range queries {
+		gotCG := ix.lookup(q)
+		hasTypeCG := slices.ContainsFunc(gotCG, func(n *Node) bool { return n.NoteCode == typeCode && n.Note != "" })
+		hasValCG := slices.ContainsFunc(gotCG, func(n *Node) bool { return n.NoteCode == valCode && n.Note != "" })
+		if !hasTypeCG || !hasValCG {
+			t.Errorf("codegraph lookup %q: got %d candidates (hasType=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotCG), hasTypeCG, hasValCG, typeCode, valCode)
+		}
+		gotTR := reader.Resolve(q, "")
+		hasTypeTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == typeCode && n.Note != "" })
+		hasValTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == valCode && n.Note != "" })
+		if !hasTypeTR || !hasValTR {
+			t.Errorf("tr index Resolve %q: got %d candidates (hasType=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotTR), hasTypeTR, hasValTR, typeCode, valCode)
 		}
 	}
 }
