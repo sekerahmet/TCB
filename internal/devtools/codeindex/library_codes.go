@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Dilin öğesi olan adlar koddur (dil tanımı 17.3): dizin dosyayı kimlikleriyle okur (read.go), bu yüzden adı bir kod
@@ -91,13 +92,22 @@ func ImportAliases(idx *Index) map[string]bool {
 }
 
 // MemberTypeNote ve MemberValueNote tiple aynı adı taşıyan kodsuz alıcıda (`A.TR_shape`, `Model.TR_append`) belirsiz
-// cevabın iki aday kümesinin etiketleridir; iki aracın (tr index ve codegraph) tek biçimi.
-func MemberTypeNote(recv, member string) string {
-	return "type " + recv + ": no member " + member
+// cevabın iki aday kümesinin ileti kodu (H8877, H8878) ve etkin dildeki etiket metnidir; MemberTypeNoteIn ve
+// MemberValueNoteIn aynı kodların verilen dildeki ("en": codegraph) metnini döner.
+func MemberTypeNote(recv string) (string, string) {
+	return messages.H8877.String(), messages.Text(messages.H8877, recv)
 }
 
-func MemberValueNote(recv, member string) string {
-	return "if " + recv + " is a value: x." + member
+func MemberValueNote(recv, member string) (string, string) {
+	return messages.H8878.String(), messages.Text(messages.H8878, recv, member)
+}
+
+func MemberTypeNoteIn(lang, recv string) (string, string) {
+	return messages.H8877.String(), messages.TextIn(lang, messages.H8877, recv)
+}
+
+func MemberValueNoteIn(lang, recv, member string) (string, string) {
+	return messages.H8878.String(), messages.TextIn(lang, messages.H8878, recv, member)
 }
 
 // BuiltinNames bir yerleşik kodun (ya da ad kodunun) sorguda aranan adlarıdır: kimliği, okuyanın dilindeki adı, her

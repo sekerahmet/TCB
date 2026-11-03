@@ -1940,5 +1940,7 @@ const (
 	H8874 Code = 8874 // yeniden adlandırılamaz: ileti kodu (kod değişmez, metni ileti kataloğundadır)
 	H8875 Code = 8875 // '{given}' TR'de bir ortam değişkeni değil; '{name}' kullanın
 	H8876 Code = 8876 // '{given}' 'tr {command}' için bir alt komut değil; 'tr {command} {subcommand}' yazmak mı istediniz?
+	H8877 Code = 8877 // [`{recv}` bir tipse: bu üyesi yok]
+	H8878 Code = 8878 // [`{recv}` bir değerse: `x.{member}`]
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

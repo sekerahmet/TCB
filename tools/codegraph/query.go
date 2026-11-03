@@ -67,12 +67,15 @@ func (ix *index) lookup(q string, kinds ...string) []*Node {
 	nf := ix.nodeFolds()
 	tiers, nameTiers, foldTiers := ix.lookupTiers(q)
 	for ti, match := range tiers {
-		if (len(tr) > 0 || trMember) && ti >= nameTiers {
-			break // TR adayı ya da noktalı üye yazımı varken metin aramasına inilmez
+		if len(tr) > 0 && ti >= nameTiers {
+			break // TR adayı varken metin aramasına inilmez
 		}
 		var found []*Node
 		for i := range ix.g.Nodes {
 			n := &ix.g.Nodes[i]
+			if trMember && ti >= nameTiers && n.Kind != kindSpec {
+				continue // noktalı üye yazımı TR'de bulunmazsa metin aramasında yalnız dil tanımı (spec:) aday kalır
+			}
 			if trQuery && ti < nameTiers && isTRName(n) && !(n.Kind == kindFile && n.File == q) || identity && strings.HasPrefix(n.ID, "tr:") {
 				continue // TR adı trByName'in işidir; kimlik bir TR bildiriminin adının parçası değildir
 			}
@@ -320,12 +323,12 @@ func (ix *index) trMember(q string, kinds []string, table []trName) (found []*No
 	recv, member, _ := strings.Cut(q, ".")
 	for _, i := range types {
 		cp := *table[i].node
-		cp.Captured = []string{codeindex.MemberTypeNote(recv, member)}
+		cp.NoteCode, cp.Note = codeindex.MemberTypeNoteIn("en", recv)
 		found = append(found, &cp)
 	}
 	for _, v := range vals {
 		cp := *v
-		cp.Captured = []string{codeindex.MemberValueNote(recv, member)}
+		cp.NoteCode, cp.Note = codeindex.MemberValueNoteIn("en", recv, member)
 		found = append(found, &cp)
 	}
 	return found, false
@@ -357,8 +360,8 @@ func describe(n *Node) string {
 	if w := where(n.File, n.Line); w != "" {
 		s += " " + w
 	}
-	if n.Kind != kindClosure && len(n.Captured) > 0 {
-		s += "  [" + n.Captured[0] + "]"
+	if n.Note != "" {
+		s += "  " + n.Note
 	}
 	if n.Skip != "" {
 		s += "  [skips when: " + n.Skip + "]" // yalnızca koşul yanlışken koşar (test_skips.go)

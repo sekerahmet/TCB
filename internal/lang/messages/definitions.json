@@ -1935,5 +1935,7 @@
 "H8874": { "param": [] },
 "H8875": { "param": ["given", "name"] },
 "H8876": { "param": ["given", "command", "subcommand"] },
+"H8877": { "param": ["recv"] },
+"H8878": { "param": ["recv", "member"] },
 "H9000": { "param": ["detail"] }
 }

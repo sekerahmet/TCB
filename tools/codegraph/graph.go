@@ -104,6 +104,9 @@ type Node struct {
 	Captured []string `json:"captured,omitempty"`
 	// Skip bir testin başındaki atlama koşuludur (kaynak metni; test_skips.go): yalnızca bu koşul yanlışken koşar.
 	Skip string `json:"skip,omitempty"`
+	// NoteCode ve Note belirsiz üye sorgusunun adayındaki yorum etiketinin ileti kodu ("H8877", "H8878") ve metnidir (yalnız sorgu cevabında).
+	NoteCode string `json:"-"`
+	Note     string `json:"-"`
 }
 
 // Edge yönlü bir bağdır; File ve Line bağın ilk görüldüğü yerdir, Count aynı bağın kaç kez

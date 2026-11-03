@@ -127,8 +127,10 @@ type Node struct {
 	// InferredType çıkarılan yapı türüdür (yapı düğümünün kimliği; infer.go): işlev ve metotta dönüş türü, üst düzey
 	// değişken ve sabitte değerin türü. Bilinmezse boş.
 	InferredType string `json:"inferred_type,omitempty"`
-	// Note belirsiz üye sorgusunun adayındaki yorum etiketidir ("type A: no member TR_shape", "if A is a value: x.TR_shape"; yalnız sonuçta).
-	Note string `json:"note,omitempty"`
+	// NoteCode ve Note belirsiz üye sorgusunun adayındaki yorum etiketinin ileti kodu ("H8877", "H8878") ve
+	// okuyanın dilindeki metnidir (yalnız sonuçta).
+	NoteCode string `json:"note_code,omitempty"`
+	Note     string `json:"note,omitempty"`
 }
 
 // Import bir `aktar` ifadesidir: Path yazıldığı gibi, Target çözülen modülün dosyası (çözülemezse
