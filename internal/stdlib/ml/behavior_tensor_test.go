@@ -66,7 +66,7 @@ TR_var b = TR_Tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
 	near(t, "log_softmax", data, make([]float32, 6), 1e-5)
 
 	// çapraz entropi = -log(softmax[hedef])
-	v = value(t, "TR_var cikti = TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), [0])")
+	v = value(t, "TR_var cikti = TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), TR_Tensor([0]))")
 	data, _ = tensorData(t, v)
 	near(t, "çapraz_entropi", data, []float32{0.4170}, 1e-3)
 
@@ -194,8 +194,10 @@ func TestErrors(t *testing.T) {
 		{"TR_backward(TR_zeros([2], TR_requires_grad: TR_true) * 2)", messages.H6401},
 		{"TR_backward(TR_sum(TR_zeros([2])))", messages.H6402},
 		{"TR_print(TR_embedding_lookup(TR_zeros([3, 2]), [5]))", messages.H6305},
-		{"TR_print(TR_cross_entropy(TR_zeros([2, 4]), [1]))", messages.H6313},
-		{"TR_print(TR_cross_entropy(TR_zeros([1, 4]), [4]))", messages.H6314},
+		{"TR_print(TR_cross_entropy(TR_zeros([2, 4]), TR_Tensor([1])))", messages.H6313},
+		{"TR_print(TR_cross_entropy(TR_zeros([1, 4]), TR_Tensor([4])))", messages.H6314},
+		{"TR_print(TR_cross_entropy(TR_zeros([1, 4]), [3]))", messages.H6980},
+		{"TR_print(TR_cross_entropy(TR_zeros([1, 4]), TR_Tensor([-1])))", messages.H6981},
 		{"TR_print(TR_layer_norm(TR_zeros([2, 3]), TR_ones([4])))", messages.H6319},
 		{"TR_AdamW([TR_zeros([2])])", messages.H6513},
 		{"TR_AdamW([TR_zeros([2], TR_requires_grad: TR_true) * 2])", messages.H6514},

@@ -413,7 +413,7 @@ func TestReplayAttentionMaskViewsAndPLEGeneration(t *testing.T) {
 TR_var q = TR_ones([1, 1, 1, 4])
 TR_var k = TR_ones([1, 4, 1, 4])
 TR_var v = TR_Tensor([[[[1.0, 2.0, 3.0, 4.0]], [[5.0, 6.0, 7.0, 8.0]], [[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0, 2.0]]]])
-TR_var tampon = TR_Tensor([[1.0, 0.0, 0.0, 0.0], [1.0, 1.0, 0.0, 0.0]])
+TR_var tampon = TR_Tensor([[TR_true, TR_false, TR_false, TR_false], [TR_true, TR_true, TR_false, TR_false]])
 TR_var f = TR_replay((m) => TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m))
 TR_no_grad {
     TR_var s = [f(tampon[1]).TR_tolist TR_for i TR_in 0..3]

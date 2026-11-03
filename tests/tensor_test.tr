@@ -297,13 +297,13 @@ TR_test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamı
     # Sabit önbellek anahtarının parçasıdır; liste döndüren fonksiyon liste verir.
     TR_assert_equal([3.0], TR_fuse((a, s) => a * s)(TR_Tensor([1.0]), 3.0).TR_tolist)
     TR_assert_equal(2, TR_fuse((a) => [a + 1.0, a * 2.0])(TR_Tensor([1.0])).TR_length)
-    # Dışarıdan okunan sayı kayıtta sabitlenir; argüman olarak verilen değişir.
+    # Kapanıştan okunan sayı değişince hatadır; argüman olarak verilen değişir (15.44'ün testi).
     TR_var ölçek2 = 2.0
     TR_var gömülü = TR_fuse((a) => a * ölçek2)
     TR_var verilen = TR_fuse((a, s) => a * s)
     TR_assert_equal([2.0], gömülü(TR_Tensor([1.0])).TR_tolist)
     ölçek2 = 3.0
-    TR_assert_equal([2.0], gömülü(TR_Tensor([1.0])).TR_tolist)
+    TR_assert_equal("H6986", TR_error_code { gömülü(TR_Tensor([1.0])) })
     TR_assert_equal([3.0], verilen(TR_Tensor([1.0]), ölçek2).TR_tolist)
     # Kaynaştırılamayan işlem ve dış tensör hata verir.
     TR_var dış = TR_Tensor([1.0])
@@ -315,7 +315,7 @@ TR_test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamı
 TR_test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) ile aynı kayıp ve gradyanlar" {
     TR_var x = TR_Tensor(TR_randn([6, 4], TR_seed: 1), TR_requires_grad: TR_true)
     TR_var w = TR_Tensor(TR_randn([4, 5], TR_seed: 2), TR_requires_grad: TR_true)
-    TR_var hedef = [0, 4, -1, 2, 2, 1]
+    TR_var hedef = TR_Tensor([0, 4, -100, 2, 2, 1])
     TR_var k1 = TR_linear_cross_entropy(x, w, hedef)
     TR_backward(k1 / 2)
     TR_var x2 = TR_Tensor(x, TR_requires_grad: TR_true)
@@ -335,8 +335,8 @@ TR_test "15.25 doğrusal_çapraz_entropi: çapraz_entropi(girdi @ ağırlık) il
     TR_assert(TR_abs(kb.TR_tolist - k2.TR_tolist) < 0.05, "bf16 kayıp \(kb.TR_tolist)")
     # Hatalar çapraz_entropi'ninkilerdir; ağırlığın şekli uyumsuzsa şekiller söylenir.
     TR_assert_equal("H6346", TR_error_code { TR_linear_cross_entropy(x, TR_Tensor(TR_ones([3, 5])), hedef) })
-    TR_assert_equal("H6316", TR_error_code { TR_linear_cross_entropy(x, w, [-1, -1, -1, -1, -1, -1]) })
-    TR_assert_equal("H6314", TR_error_code { TR_linear_cross_entropy(x, w, [0, 9, 0, 0, 0, 0]) })
+    TR_assert_equal("H6316", TR_error_code { TR_linear_cross_entropy(x, w, TR_Tensor([-100, -100, -100, -100, -100, -100])) })
+    TR_assert_equal("H6314", TR_error_code { TR_linear_cross_entropy(x, w, TR_Tensor([0, 9, 0, 0, 0, 0])) })
 }
 
 TR_test "15.9 matematik fonksiyonları ve indirgemeler" {
@@ -409,19 +409,70 @@ TR_test "15.23a tanımsız sonuçlar hata verir: boş ortalama, hedefsiz çapraz
     TR_assert_equal("H6213", TR_error_code { TR_mean(TR_zeros([2, 0]), TR_dim: 1) })
     TR_assert_equal(0.0, TR_sum(TR_Tensor([])).TR_tolist)
     TR_var z = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
-    TR_assert_equal("H6316", TR_error_code { TR_cross_entropy(z, [-1, -1]) })
-    TR_assert_equal(0.3133, TR_round(TR_cross_entropy(z, [-1, 1]).TR_tolist, 4))
+    TR_assert_equal("H6316", TR_error_code { TR_cross_entropy(z, TR_Tensor([-100, -100])) })
+    TR_assert_equal(0.3133, TR_round(TR_cross_entropy(z, TR_Tensor([-100, 1])).TR_tolist, 4))
     # Liste indeksleri tam sayı olarak okunur (float32'den geçmez: 2^24 üstü yuvarlanmaz).
     TR_assert_equal("H6305", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [16777217]) })
-    TR_assert_equal("H6314", TR_error_code { TR_cross_entropy(z, [0, 16777217]) })
+    TR_assert_equal("H6314", TR_error_code { TR_cross_entropy(z, TR_Tensor([0, 16777217])) })
     TR_assert_equal("H6012", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [1.5]) })
+}
+
+TR_test "15.23a çapraz entropinin hedefi: yalnız -100 yok sayılır; sınıf hedefi tam sayı, olasılık hedefi ondalık tensör" {
+    TR_var z = TR_Tensor([[1.0, 2.0, 0.5], [0.3, 0.1, 2.2], [1.5, -1.0, 0.0]])
+    # -100 yok sayılır: kayıp geçerli satırların ortalamasıdır.
+    TR_var k = TR_cross_entropy(z, TR_Tensor([1, -100, 0]))
+    TR_var k2 = TR_cross_entropy(TR_Tensor([[1.0, 2.0, 0.5], [1.5, -1.0, 0.0]]), TR_Tensor([1, 0]))
+    TR_assert(TR_abs(k.TR_tolist - k2.TR_tolist) < 0.000001, "-100 yok sayılmalı: \(k.TR_tolist) / \(k2.TR_tolist)")
+    # Öbür eksiler, sınıf sayısı ve üstü, hepsi yok sayılan hata.
+    TR_assert_equal("H6981", TR_error_code { TR_cross_entropy(z, TR_Tensor([1, -1, 0])) })
+    TR_assert_equal("H6981", TR_error_code { TR_cross_entropy(z, TR_Tensor([1, -5, 0])) })
+    TR_assert_equal("H6981", TR_error_code { TR_cross_entropy(z, TR_Tensor([1, -101, 0])) })
+    TR_assert_equal("H6314", TR_error_code { TR_cross_entropy(z, TR_Tensor([1, 3, 0])) })
+    TR_assert_equal(TR_true, TR_cross_entropy(z, TR_Tensor([2, 2, 2])).TR_tolist > 0.0)
+    TR_assert_equal("H6316", TR_error_code { TR_cross_entropy(z, TR_Tensor([-100, -100, -100])) })
+    TR_assert_equal("H6316", TR_error_code { TR_cross_entropy(TR_zeros([0, 3]), TR_Tensor[TR_Int](TR_zeros([0]))) })
+    # Hedef tensördür: liste, mantık ve sınıf şekilli ondalık hedef hata.
+    TR_assert_equal("H6980", TR_error_code { TR_cross_entropy(z, [1, 0, 0]) })
+    TR_assert_equal("H6984", TR_error_code { TR_cross_entropy(z, TR_Tensor([TR_true, TR_false, TR_true])) })
+    TR_assert_equal("H6982", TR_error_code { TR_cross_entropy(z, TR_Tensor([1.0, 0.0, 0.0])) })
+    TR_assert_equal("H6982", TR_error_code { TR_cross_entropy(z, TR_zeros([3, 4])) })
+    # Olasılık hedefi: one-hot olasılık sınıf hedefiyle aynı kaybı ve gradyanı verir.
+    TR_var a = TR_Tensor(z, TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor(z, TR_requires_grad: TR_true)
+    TR_var ka = TR_cross_entropy(a, TR_Tensor([1, 2, 0]))
+    TR_var kb = TR_cross_entropy(b, TR_Tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]))
+    TR_backward(ka)
+    TR_backward(kb)
+    TR_assert(TR_abs(ka.TR_tolist - kb.TR_tolist) < 0.000001, "one-hot: \(ka.TR_tolist) / \(kb.TR_tolist)")
+    TR_assert(TR_max(TR_abs(a.TR_grad - b.TR_grad)).TR_tolist < 0.000001, "one-hot gradyanı farklı")
+    TR_assert_equal([], kb.TR_shape)
+    # Damıtma: −Σ hedef · log_softmax(z)'in satır ortalaması; toplam ve işaret denetlenmez.
+    TR_var öğrenci = TR_Tensor([[0.2, 1.0, -0.5], [1.2, 0.0, 0.4]])
+    TR_var öğretmen = TR_Tensor([[0.1, 2.0, 0.3], [0.9, -0.2, 1.1]])
+    TR_var T = 2.0
+    TR_var p = TR_softmax(öğretmen / T, TR_dim: -1)
+    TR_var d = TR_cross_entropy(öğrenci / T, p)
+    TR_var elle = -TR_sum(p * TR_log_softmax(öğrenci / T, TR_dim: -1)) / 2
+    TR_assert(TR_abs(d.TR_tolist - elle.TR_tolist) < 0.000001, "damıtma: \(d.TR_tolist) / \(elle.TR_tolist)")
+    TR_var serbest = TR_cross_entropy(z, TR_Tensor([[2.0, -1.0, 0.0], [0.0, 0.0, 0.0], [0.5, 0.5, 0.5]]))
+    TR_assert(TR_is_finite(serbest.TR_tolist), "toplam ve işaret denetlenmez")
+    # Hesap en az float32: 16 bitlik logit ve hedef float32 kayıp verir.
+    TR_var y16 = TR_Tensor([[1.0, 2.0, 0.5]], TR_dtype: "bf16")
+    TR_assert_equal("float32", TR_cross_entropy(y16, TR_Tensor([[0.2, 0.5, 0.3]], TR_dtype: "bf16")).TR_dtype)
+    TR_assert_equal("float32", TR_cross_entropy(y16, TR_Tensor([1])).TR_dtype)
+    # doğrusal_çapraz_entropi'nin hedefi yalnız sınıftır (15.25).
+    TR_var x = TR_randn([2, 4], TR_seed: 1)
+    TR_var w = TR_randn([4, 3], TR_seed: 2)
+    TR_assert_equal("H6983", TR_error_code { TR_linear_cross_entropy(x, w, TR_zeros([2, 3])) })
+    TR_assert_equal("H6981", TR_error_code { TR_linear_cross_entropy(x, w, TR_Tensor([-1, 0])) })
+    TR_assert_equal("H6980", TR_error_code { TR_linear_cross_entropy(x, w, [1, 0]) })
 }
 
 TR_test "15.23 sinir ağı fonksiyonları" {
     TR_var tablo = TR_Tensor([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
     TR_assert_equal([[3.0, 3.0], [1.0, 1.0]], TR_embedding_lookup(tablo, [2, 0]).TR_tolist)
     TR_assert_equal([2, 2, 2], TR_embedding_lookup(tablo, [[0, 1], [2, 2]]).TR_shape)
-    TR_assert_equal(0.417, TR_round(TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), [0]).TR_tolist, 3))
+    TR_assert_equal(0.417, TR_round(TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), TR_Tensor([0])).TR_tolist, 3))
     TR_var n = TR_layer_norm(TR_Tensor([[1.0, 2.0, 3.0]]), TR_ones([3]), TR_zeros([3]))
     TR_assert_equal([-1.2247, 0.0, 1.2247], n.TR_tolist[0].TR_map((x) => TR_round(x, 4)))
     TR_var r = TR_rms_norm(TR_Tensor([[3.0, 4.0]]), TR_ones([2]))
@@ -791,7 +842,7 @@ TR_test "15.48 hatalar şekli gösterir ve yakalanabilir" {
     TR_assert_equal("H6710", TR_error_code { TR_zeros([2, 3]).TR_reshape([4, 2]) })
     TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1.0, 2.0], [3.0]]) })
     TR_assert_equal("H6305", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [5]) })
-    TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), [[0, 1, 0], [1, 0, 0]]) })
+    TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([[0, 1, 0], [1, 0, 0]])) })
     TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_Tensor(3.0)]) })
 }
 
@@ -902,7 +953,7 @@ TR_test "15.4 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     # türde okur; değer float32 normun yuvarlanmışıdır).
     TR_mixed_precision("bf16") {
         TR_var b = TR_Tensor([[1.0, 2.0, 3.0]], TR_dtype: "bf16")
-        TR_assert_equal(["float32", "float32", "float32"], [TR_softmax(b).TR_dtype, TR_sum(b).TR_dtype, TR_cross_entropy(b, [2]).TR_dtype])
+        TR_assert_equal(["float32", "float32", "float32"], [TR_softmax(b).TR_dtype, TR_sum(b).TR_dtype, TR_cross_entropy(b, TR_Tensor([2])).TR_dtype])
         TR_assert_equal(["bf16", "bf16"], [TR_layer_norm(b).TR_dtype, TR_rms_norm(b).TR_dtype])
         TR_var n32 = TR_rms_norm(b.TR_to_dtype("float32"))
         TR_assert_equal(n32.TR_to_dtype("bf16").TR_tolist, TR_rms_norm(b).TR_tolist)
@@ -1055,6 +1106,30 @@ TR_test "15.18 indirgemelerde boyutu_koru" {
     TR_assert_equal("H6218", TR_error_code { TR_sum([1, 2], TR_keepdim: TR_true) })
 }
 
+TR_test "15.24 dikkatin maskesi yalnız TR_Bool: ondalık, tam sayı ve −∞ maske hatadır" {
+    TR_var q = TR_randn([3, 2], TR_seed: 1)
+    TR_var k = TR_randn([3, 2], TR_seed: 2)
+    TR_var v = TR_randn([3, 2], TR_seed: 3)
+    TR_var nedensel = TR_attention(q, k, v, TR_causal: TR_true)
+    TR_var b = TR_Tensor([[TR_true, TR_false, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: b) - nedensel)).TR_tolist < 0.000001, "TR_Bool maske nedensellikle aynı")
+    # Sayı maskesinin anlamı alışkanlığa göre tersine döner: üçü de hatadır (cins çalışmada belli).
+    TR_var ondalık = TR_Tensor([[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])
+    TR_var tam = TR_Tensor([[1, 0, 0], [1, 1, 0], [1, 1, 1]])
+    TR_var eksi = TR_Tensor([[0.0, -TR_inf, -TR_inf], [0.0, 0.0, -TR_inf], [0.0, 0.0, 0.0]])
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: ondalık) })
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: tam) })
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: eksi) })
+    TR_assert_equal("H6985", TR_error_code { TR_attention(q, k, v, TR_causal: TR_false, TR_mask: [[1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]]) })
+    # İletinin iki önerisi: 0/1 maskede m != 0, −∞ maskede m == 0; ikisi de aynı sonucu verir.
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: ondalık != 0) - nedensel)).TR_tolist < 0.000001)
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: tam != 0) - nedensel)).TR_tolist < 0.000001)
+    TR_assert(TR_max(TR_abs(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: eksi == 0) - nedensel)).TR_tolist < 0.000001)
+    # Hiçbir anahtara bakamayan satır 0 verir.
+    TR_var hiç = TR_Tensor([[TR_false, TR_false, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])
+    TR_assert_equal([0.0, 0.0], TR_attention(q, k, v, TR_causal: TR_false, TR_mask: hiç)[0].TR_tolist)
+}
+
 TR_test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pencere, nedensellik, maske)" {
     TR_var nan = TR_Float("nan")
     TR_var k_satırı = (k: TR_Tensor) => TR_is_finite(k.TR_grad).TR_tolist
@@ -1076,7 +1151,7 @@ TR_test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pe
     TR_var q3 = TR_Tensor([[nan, 0.0], [1.0, 0.0]], TR_requires_grad: TR_true)
     TR_var k3 = TR_Tensor([[1.0, 0.0], [0.0, 1.0]], TR_requires_grad: TR_true)
     TR_var v3 = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
-    TR_var maske = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])
+    TR_var maske = TR_Tensor([[TR_true, TR_false], [TR_true, TR_true]])
     TR_backward(TR_sum(TR_attention(q3, k3, v3, TR_causal: TR_false, TR_mask: maske)))
     TR_assert_equal([0.0, 0.0], k_satırı(k3)[0])
 }
@@ -1122,7 +1197,7 @@ TR_test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekl
     TR_var m = TR_ones([6, 6])
     m[3] = 0
     m[3][1] = 1
-    TR_assert(en_büyük_kare_fark(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m)[1][3][2], v[1][1][1]) < 0.0000000001)
+    TR_assert(en_büyük_kare_fark(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m != 0)[1][3][2], v[1][1][1]) < 0.0000000001)
     TR_assert_equal("H6333", TR_error_code { TR_attention(q, TR_randn([2, 6, 3, 8]), TR_randn([2, 6, 3, 8])) })
     TR_assert_equal("H7901", TR_error_code { TR_attention(q, k, v, ölçek: 1) })
     # Karışık hassasiyet: girdiler bf16'ya çevrilir, biriktirme float32, sonuç bf16 ('@' gibi).
@@ -1168,6 +1243,55 @@ TR_test "15.18 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensi
         TR_assert_equal(tür, TR_min(x).TR_dtype)
         TR_assert_equal(1.0, TR_min(x).TR_tolist)
     }
+}
+
+TR_test "15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir, değişince hatadır" {
+    TR_struct Ayar { oran: TR_Float = 0.5 }
+    TR_var t = TR_Tensor([1.0])
+    # Değişken: sabit kaldıkça aynı sonuç, değişince hata, geri dönünce yine aynı.
+    TR_var ölçek = 2.0
+    TR_var k = TR_fuse((a) => a * ölçek)
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal("H6986", TR_error_code { k(t) })
+    ölçek = 2.0
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    # Alan ve sözlük ile liste yolu.
+    TR_var ayar = Ayar()
+    TR_var ka = TR_fuse((a) => a * ayar.oran)
+    TR_assert_equal([0.5], ka(t).TR_tolist)
+    ayar.oran = 0.25
+    TR_assert_equal("H6986", TR_error_code { ka(t) })
+    TR_var d = {"w": [1.0, 4.0]}
+    TR_var kd = TR_fuse((a) => a * d["w"][1])
+    TR_assert_equal([4.0], kd(t).TR_tolist)
+    d["w"][1] = 5.0
+    TR_assert_equal("H6986", TR_error_code { kd(t) })
+    # Değişken indeks: indeksin değeri de yolun parçasıdır.
+    TR_var l = [1.0, 2.0]
+    TR_var i = 0
+    TR_var ki = TR_fuse((a) => a * l[i])
+    TR_assert_equal([1.0], ki(t).TR_tolist)
+    i = 1
+    TR_assert_equal("H6986", TR_error_code { ki(t) })
+    i = 0
+    l[0] = 7.0
+    TR_assert_equal("H6986", TR_error_code { ki(t) })
+    # Yolu olmayan kapanış sayısı (kapanıştan, argümansız bir çağrının sonucu) kayıtta hatadır.
+    TR_func oran_al() -> TR_Float { TR_return ölçek }
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * oran_al())(t) })
+    # Argümandan türeyen sayı denetlenmez; argüman olarak verilen sayı değişir.
+    TR_var ks = TR_fuse((a) => a * a.TR_shape[0])
+    TR_assert_equal([1.0], ks(t).TR_tolist)
+    TR_assert_equal([2.0, 2.0], ks(TR_Tensor([1.0, 1.0])).TR_tolist)
+    TR_var kv = TR_fuse((a, s) => a * s)
+    TR_assert_equal([2.0], kv(t, ölçek).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal([3.0], kv(t, ölçek).TR_tolist)
+    # Kapanıştan tensör okumak hatadır.
+    TR_var dış = TR_Tensor([1.0])
+    TR_assert_equal("H3108", TR_error_code { TR_fuse((a) => a + dış)(t) })
 }
 
 TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
@@ -1283,7 +1407,7 @@ TR_test "15.41 GPU'da hesap: CPU ile aynı sonuç, belirlenimci, GPU belleği s�
         TR_var w = TR_randn([6, 5], TR_seed: 4)
         TR_func hesap(c: TR_String) -> (TR_Float, TR_List[TR_List[TR_Float]]) {
             TR_var xc = TR_Tensor(x.TR_to_device(c), TR_requires_grad: TR_true)
-            TR_var k = TR_cross_entropy(TR_rms_norm(xc, TR_none) @ w.TR_to_device(c), [0, 1, 2, 3])
+            TR_var k = TR_cross_entropy(TR_rms_norm(xc, TR_none) @ w.TR_to_device(c), TR_Tensor([0, 1, 2, 3]).TR_to_device(c))
             TR_backward(k)
             TR_return k.TR_tolist, xc.TR_grad.TR_tolist
         }

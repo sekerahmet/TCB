@@ -105,7 +105,7 @@ TR_func rastgele_tam(n: TR_Int) -> TR_Int {
     tohum = (tohum * 1103515245 + 12345) % 2147483648
     TR_return tohum % n
 }
-TR_func toplu_iş() -> (TR_List[TR_List[TR_Int]], TR_List[TR_Int]) {
+TR_func toplu_iş() -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {
@@ -117,7 +117,7 @@ TR_func toplu_iş() -> (TR_List[TR_List[TR_Int]], TR_List[TR_Int]) {
         }
         girdiler.TR_append(satır)
     }
-    TR_return girdiler, hedefler
+    TR_return girdiler, TR_Tensor(hedefler)
 }
 
 # --- Eğitim ---

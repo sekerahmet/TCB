@@ -38,7 +38,7 @@ func TestMessageConsistency(t *testing.T) {
 		{"TR_embedding_lookup(3.0, [0])", messages.H6302},
 		{"TR_backward(3.0)", messages.H6030},
 		{"TR_backward(TR_Tensor(3.0) * 2)", messages.H6402},
-		{"TR_cross_entropy(TR_zeros([3, 4]), [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]])", messages.H6312},
+		{"TR_cross_entropy(TR_zeros([3, 4]), TR_Tensor([[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1]]))", messages.H6312},
 		{"TR_log_softmax([1, 2], TR_dim: 0)", messages.H6104},
 		{"TR_relu([[1, 2]])", messages.H6104},
 	}

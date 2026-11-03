@@ -89,7 +89,7 @@ TR_test "oran_planı: ısınma, sabit, azalma" {
 TR_test "MuonVeAdamW: oran çarpanı iki grubun öğrenme oranını ölçekler (½: yarım adım)" {
     TR_func kur() -> TR_GPT {
         TR_var m = TR_GPT(6, TR_context: 3, TR_embed_dim: 4, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 3)
-        TR_backward(m.TR_loss([[1, 2, 3]], [[2, 3, 4]]))
+        TR_backward(m.TR_loss([[1, 2, 3]], TR_Tensor([[2, 3, 4]])))
         TR_return m
     }
     TR_var a = kur()
@@ -130,7 +130,7 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
         TR_var kn = TR_Checkpoint(koşu, {"model": m, "adamw": op.TR_adamw, "muon": op.TR_muon.TR_state}, TR_every_minutes: 0)
         TR_for adım TR_in kn.TR_resume_step..son {
             op.TR_zero_grad()
-            TR_backward(m.TR_loss([[1, 2, adım % 6]], [[2, adım % 6, 4]]))
+            TR_backward(m.TR_loss([[1, 2, adım % 6]], TR_Tensor([[2, adım % 6, 4]])))
             op.TR_step()
             kn.TR_update(adım + 1)
         }
@@ -148,7 +148,7 @@ TR_test "MuonVeAdamW: kontrol noktası Muon momentumunu da saklar ve geri yükle
 
 # Ters çevirme görevi: [a b c d | d c b a]. İkinci yarı ilk yarıdan tahmin edilir.
 TR_var ters_tohumu = 1
-TR_func ters_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> TR_List[TR_List[TR_List[TR_Int]]] {
+TR_func ters_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {
@@ -159,9 +159,9 @@ TR_func ters_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> TR_List[TR_List[TR_L
         }
         TR_var dizi = d + d.TR_reverse()
         girdiler.TR_append(dizi[0..2 * yarım - 1])
-        hedefler.TR_append([-1 TR_for i TR_in 0..yarım - 1] + dizi[yarım..2 * yarım])
+        hedefler.TR_append([-100 TR_for i TR_in 0..yarım - 1] + dizi[yarım..2 * yarım])
     }
-    TR_return [girdiler, hedefler]
+    TR_return girdiler, TR_Tensor(hedefler)
 }
 
 TR_func ters_eğit(kur, adım_sayısı: TR_Int) -> TR_List[TR_Float] {
@@ -328,7 +328,7 @@ TR_test "MuonVeAdamW: seyrek desen PLE tablolarını SatırRMS'e verir; geçmeye
     # kayıp yalnızca 1, 2, 3 kimliklerini görür: tabloda yalnızca bu satırların gradyanı sıfırdan farklıdır
     op.TR_set_multiplier(0.5)
     op.TR_zero_grad()
-    TR_backward(m.TR_loss([[1, 2, 3]], [[2, 3, 4]]))
+    TR_backward(m.TR_loss([[1, 2, 3]], TR_Tensor([[2, 3, 4]])))
     op.TR_step()
     TR_assert_equal(0.005, op.TR_row_rms.TR_lr)
     TR_var sonra = m.TR_blocks[0].TR_ple.TR_table.TR_tolist

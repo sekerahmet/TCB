@@ -328,7 +328,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - **Sınıf hedefi** `TR_Tensor[TR_Int]` (logitin son ekseni düşmüş şekilde): her satır için bir sınıf indeksi. **`-100` olan hedef yok sayılır.** Başka eksi hedef ve sınıf sayısına eşit ya da büyük hedef çalışma hatasıdır. Kayıp geçerli hedefler üstünde ortalamadır; hepsi yok sayılırsa ortalama tanımsızdır ve hatadır. Bu iki denetim öğeye bağlıdır: 15.6'nın bekleyen işlemlerindendir (`TR_replay`'de bayrak).
 - **Olasılık hedefi** `TR_Tensor[TR_Float]` (logitle aynı şekil): her satır bir dağılımdır, kayıp `−Σ hedef · TR_log_softmax(z)`'in satır ortalamasıdır. Damıtma böyle yazılır: `TR_cross_entropy(öğrenci / T, TR_softmax(öğretmen / T, TR_dim: -1))`. Satırın toplamı ve öğelerin işareti denetlenmez: ondalık işlem beklemez (15.6); olasılık hedefi çoğunlukla `TR_softmax`'tan gelir.
 - Hesap en az float32'dedir; `TR_mixed_precision` bloğunda da kayıp float32'dir (15.4).
-- *Test:* TR testi; Go: `TestCrossEntropyForward`, `TestCrossEntropy16Bit`; `-100` kuralı, öbür negatiflerin hatası ve olasılık hedefi uygulanınca TR testi.
+- *Test:* TR testi ("15.23a çapraz entropinin hedefi: yalnız -100 yok sayılır; sınıf hedefi tam sayı, olasılık hedefi ondalık tensör"); Go: `TestCrossEntropyForward`, `TestCrossEntropy16Bit`; `TR_replay`'deki cihaz içi bayrak 15.6'nın bayrağıyla.
 
 **15.23b** Normlar son eksende (grup normu kanal ekseninde) normalleştirir; ortalama ve varyans float32'de hesaplanır, sonuç girdinin türündedir (15.4).
 - `TR_layer_norm(x, ağırlık, sapma)` ve `TR_rms_norm(x, ağırlık)`: `ağırlık` ve `sapma` `[D]` ya da `TR_none`.
@@ -359,7 +359,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Hiçbir anahtara bakamayan satırın çıktısı 0'dır. Puanları NaN olan satırın çıktısı ve gradyanı NaN'dır; maskeli satırın 0'ıyla karışmaz. Maskelenen anahtardaki NaN satıra sızmaz.
 - Hesap tek bir türev düğümüdür; `Tq × Tk` matris tutulmaz (bellek uzunlukla doğrusaldır), pencere ve nedensellik dışındaki bloklar hesaplanmaz, geri yayılım puanları yeniden hesaplar. Bir cihaz bu düzeni doğrudan hesaplayamıyorsa girdiler içeride görünümle çevrilir; sonuç aynıdır. `TR_mixed_precision` bloğunda `@` gibidir (15.4).
 - Bilinmeyen adlı argüman (`TR_scale:`) hatadır; şekil hatalarının iletisi şekilleri söyler.
-- *Test:* TR testi.
+- *Test:* TR testi ("15.24 dikkatin maskesi yalnız TR_Bool: ondalık, tam sayı ve −∞ maske hatadır").
 
 **15.25** `TR_linear_cross_entropy(x, w, hedef)` `TR_cross_entropy(x @ w, hedef)` ile aynı kaybı ve gradyanları verir (float32 yuvarlama farkıyla), ama logit matrisini bütün olarak hiç tutmaz: büyük sözlüklü dil modelinin çıkış katmanı içindir.
 - `x` `[..., D]`, `w` `[D, sınıf]` (`x @ W` düzeni); paylaşımlı gömmede `tablo.TR_transpose()` (görünüm) verilir. Şekiller uymazsa ileti iki şekli söyler.
@@ -547,7 +547,7 @@ op.TR_zero_grad()
 - Sonuç `f`'nin döndürdüğü gibi bir tensör ya da tensör demetidir. Tensör ve sayı dışındaki argüman hatadır. Türev isteyen bir girdiye türevlenebilir yoldan bağlı olmayan çıktı türev izlemez.
 - Karşılaştırmalar ve `TR_is_finite` türev izlemez.
 - Sonuç kaynaşmamış hesapla bit bit aynıdır: 16 bitlik ve float32 işlemler float32'de, float64 işlemler float64'te, tam sayı ve mantık işlemleri kendi türünde hesaplanır ve kendi türüne yuvarlanır; tam sayı taşması 15.6'nın bekleyen işlemi gibi cihaz bayrağına yazar. Geri yön float32'dedir (float64 girdide float64) ve gradyana bir kez yuvarlanır. Türev izleyen bir değer (girdi ya da ara sonuç) yayınlanıyorsa ya da aynı türevli girdinin örtüşen görünümleri birleşiyorsa (gradyanı indirgeme ister) hatadır.
-- *Test:* TR testi; Go: `TestFusedComparisonsMatchUnfusedBits`, `TestFusedMatchesUnfusedBits`, `TestFusedMatchesCPU`, `TestFuseCacheKeyIncludesComputeDType`; kapanıştaki sayının denetimi uygulanınca TR testi.
+- *Test:* TR testi ("15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir, değişince hatadır"); Go: `TestFusedComparisonsMatchUnfusedBits`, `TestFusedMatchesUnfusedBits`, `TestFusedMatchesCPU`, `TestFuseCacheKeyIncludesComputeDType`, `TestFuseCapturedNumberChangeIsAnError`.
 
 **15.45** `TR_replay(f)` GPU'da `f`'nin cihaz işini bir kez kaydeder ve sonraki çağrılarda tek seferde oynatır: yorumlayıcı `f`'yi yeniden çalıştırmaz, çekirdek başlatmalarının konak yükü kalkar (üretimin tek dizgecik adımı gibi küçük, sık işler).
 - **Girdi bileşimi başına** (tensörlerin şekli, cinsi, hassasiyeti, cihazı, aynı tensörün kaçıncı argümanda tekrarlandığı; sayı argümanlarının değeri; `TR_compute_dtype()`) ilk çağrı `f`'yi doğrudan çalıştırır (ısınma), ikincisi kaydeder, sonrakiler oynatır; bileşim değişince yeniden kaydedilir.

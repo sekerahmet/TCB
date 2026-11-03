@@ -814,8 +814,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.23a
 
-- **Mevcut durum:** her negatif hedef yok sayılıyor (`-5` de); sınıf sayısından büyük hedef H6314 [ölçüldü: main `85a19c36`]. Olasılık hedefi yok.
-- **Yapılacaklar (A, Ö0, Kol B S-kilitten sonra; ölçüldü 30b44b01):** yalnız `-100` yok sayılır, öbür negatifler hata; olasılık hedefi; iki denetim bekleyen işlem (15.6). Göç 33 satır (liste ya da ondalık hedef → `TR_Tensor[TR_Int]`); `-1`'li 3 satır: `tests/tensor_test.tr:215, 289, 290` [ölçüldü: DENETİM, `git grep` main `85a19c36`]. TR testi (15.23a başlığı).
+- **Mevcut durum:** hedef tensör: sınıf hedefi `TR_Tensor[TR_Int]`, yalnız `-100` yok sayılır, öbür eksiler H6981, sınıf sayısı ve üstü H6314, hepsi yok sayılan H6316; olasılık hedefi `TR_Tensor[TR_Float]` (logitle aynı şekil, değilse H6982); liste H6980, mantık tensörü H6984; `TR_linear_cross_entropy`'de ondalık hedef H6983 [test: TR testi "15.23a çapraz entropinin hedefi: …"]. Göç: 2374 çağrının 1784'ü liste hedefti, 1162'si `-1` dolgulu (`lib/layers_test.tr`, `lib/optimizers_test.tr`, `tests/tensor_test.tr`, örnek 31, 35, 36) [ölçüldü: T1 `claude/kolB-o0-3`, geçici sayım].
+- **Yapılacaklar:** iki denetim hedefi konağa okuyarak yapılıyor (GPU'da bekler); `TR_replay` kaydındaki cihaz içi bayrak 15.6'nın bayrağıyla gelir (bugün kayıtta cihazdan okuma H4065 [hipotez: `internal/compute/gpu/backend_memory.go:181`; GPU'suz ölçülmedi]).
 
 ### 15.23b
 
@@ -834,8 +834,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.24
 
-- **Mevcut durum (T1 dilim 2):** `TR_attention` `TR_Bool` maskeyi alıyor (içeride float32), kitaplığın maskeleri `TR_Bool`; ondalık 0/1 maske de geçiyor: sıfırdan farklı her değer "bak" sayılıyor, PyTorch alışkanlığıyla toplanan −∞ maske (`[[0.0, -TR_inf], [-TR_inf, -TR_inf]]`) hatasız ters anlaşılıyor, −∞ yazılan yere bakılıyor [ölçüldü: DENETİM istek 61, `30b44b01`]. Tam sayı verisinden kurulan maske (`TR_Tensor([[1, 1, 0]])`, cins veriden `TR_Int`) H6960 veriyor (T1 bulgu 1) [ölçüldü: T1].
-- **Yapılacaklar (A, Ö0, Kol B S-kilitten sonra; ölçüldü 30b44b01):** maske yalnız `TR_Tensor[TR_Bool]`; ondalık ve tam sayı maskenin denetim hatası, ileti `m != 0`'ı önerir. T1'in sorusu (maske hangi cinsleri alır) dil tanımında cevaplı: 15.24 yalnız `TR_Bool` diyor, uygulama ona uyar (TCB, 2026-11-02).
+- **Mevcut durum:** `TR_mask:` yalnız `TR_Tensor[TR_Bool]`; ondalık, tam sayı, −∞ ve liste maske H6985, ileti 0/1 maskede `m != 0`'ı, −∞ maskede `m == 0`'ı önerir [test: TR testi "15.24 dikkatin maskesi yalnız TR_Bool: …"]. Hata çalışma anında: denetleyici tensörün cinsini bilmiyor (`TR_Tensor[TR_Float]` tipli değişken de `TR_Tensor`) [ölçüldü: T1 `claude/kolB-o0-3`, 9 yazım].
+- **Yapılacaklar:** dil tanımının "denetim hatasıdır" sözü denetleyici tensör cinsini bilince (15.6'nın cinsli tipi).
 - **Gemini 15/2 (2026-10-29), uygulanacak:** tamamen −∞ sapmalı satır 0 verir; CPU ve GPU (T2). CPU'da tamamen maskeli `TR_Bool` satırı zaten `[0.0, 0.0, 0.0, 0.0]` [ölçüldü: DENETİM istek 61, `30b44b01`]; GPU ölçülmedi.
 
 ### 15.27
@@ -906,8 +906,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.44
 
-- **Mevcut durum:** `TR_fuse`'un kapanışından okunan sayı değişince sonuç sessizce eski kalıyor (sabit 2'den 5'e çıktı, sonuç `[2, 4]` kaldı) [ölçüldü]; CPU'da `TR_fuse` eski değeri, `TR_replay` yeni değeri veriyor, GPU'da `TR_replay` de sabitliyor: aynı program cihaza göre ayrı sonuç veriyor [ölçüldü: DENETİM]. Go testi `TestFuseCapturedNumberIsBakedIn` bu sessiz eskimeyi doğru davranış diye sabitliyor (`internal/stdlib/ml/builtin_fuse_test.go:8`). `TR_clamp`, `TR_atan2` ve `TR_where` kaynaştırılmıyor.
-- **Yapılacaklar (A, Ö0, Kol B S-kilitten sonra; ölçüldü 30b44b01):** kapanıştaki sayının kaydı ve her çağrıda, her cihazda denetimi; yolu olmayan sayıda kayıt hatası. Kural uygulanınca `TestFuseCapturedNumberIsBakedIn` tersine döner: değişen kapanış sayısı hata vermeli; TR testi.
+- **Mevcut durum:** `TR_fuse`'un kapanıştan okuduğu sayı ilk çağrıda kaydediliyor, her çağrıda cihazdan önce denetleniyor: değişmişse H6986; yol değişken, alan, tam sayı liste indeksi ve metin sözlük anahtarı zinciri, değişken indeksin değeri de yolda; kapanıştan argümansız çağrılan kullanıcı fonksiyonunun sonucu H6987; kapanıştan tensör H3108 [test: TR testi "15.44 kaynaştır: kapanıştan okunan sayı …", `TestFuseCapturedNumberChangeIsAnError`]. Yollar fonksiyonun gövdesinden (ve kapanıştan çağırdığı kullanıcı fonksiyonlarınınkinden) okunuyor; kapanıştaki bir nesnenin metodu gezilmiyor [kanıtlı: `internal/stdlib/ml/fuse_captures.go`]. `TR_clamp`, `TR_atan2` ve `TR_where` kaynaştırılmıyor.
+- **Yapılacaklar:** GPU'da aynı hata (denetim cihazdan önce, stdlib'de): L4'te koşulacak.
 - **Uygulama sınırı:** `TR_clamp`, `TR_atan2` ve `TR_where` bugün kaynaştırılmıyor; `f`'de kullanılınca hata veriyor. Kural onları da kapsar.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** kapanış yolunda liste indeksi ve sözlük anahtarı (2. kilometre taşının ön koşulu); `TR_fuse`'da float64 ve tam sayı kendi türünde (T3).
 

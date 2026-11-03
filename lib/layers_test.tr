@@ -194,7 +194,7 @@ TR_test "GPT: aynı tohum aynı modeli verir, kayıp başta ln(dağarcık) civar
     TR_var b = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 5)
     TR_var x = [[1, 2, 3, 4]]
     TR_assert(TR_equal(a.TR_forward(x), b.TR_forward(x)))
-    TR_var k = a.TR_loss(x, [[2, 3, 4, 5]]).TR_tolist
+    TR_var k = a.TR_loss(x, TR_Tensor([[2, 3, 4, 5]])).TR_tolist
     TR_assert(k > 2.6 TR_and k < 2.95, "başlangıç kaybı ln(16) ≈ 2.77 civarında olmalı: \(k)")
 }
 
@@ -202,7 +202,7 @@ TR_test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; 
     TR_for paylaşımlı TR_in [TR_true, TR_false] {
         TR_var m = TR_GPT(12, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_tied: paylaşımlı, TR_seed: 3)
         TR_var x = [[1, 2, 3, 4], [5, 6, 7, 8]]
-        TR_var hedef = [[2, 3, -1, 5], [6, 7, 8, 9]]
+        TR_var hedef = TR_Tensor([[2, 3, -100, 5], [6, 7, 8, 9]])
         TR_var k1 = m.TR_loss(x, hedef)
         TR_backward(k1)
         TR_var g1 = [TR_Tensor(p.TR_grad) TR_for p TR_in TR_parameters(m)]
@@ -324,7 +324,7 @@ TR_test "GPT.tek_adım: cihazdaki konumla adım önbellekli gizli_durum ile ayn�
 
 # Kopyalama görevi: [a b c d | a b c d]; ikinci yarı ilk yarıdan tahmin edilebilir.
 TR_var kopya_tohumu = 11
-TR_func kopya_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> TR_List[TR_List[TR_List[TR_Int]]] {
+TR_func kopya_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {
@@ -335,9 +335,9 @@ TR_func kopya_toplu(B: TR_Int, V: TR_Int, yarım: TR_Int) -> TR_List[TR_List[TR_
         }
         TR_var dizi = d + d
         girdiler.TR_append(dizi[0..2 * yarım - 1])
-        hedefler.TR_append([-1 TR_for i TR_in 0..yarım - 1] + dizi[yarım..2 * yarım])
+        hedefler.TR_append([-100 TR_for i TR_in 0..yarım - 1] + dizi[yarım..2 * yarım])
     }
-    TR_return [girdiler, hedefler]
+    TR_return girdiler, TR_Tensor(hedefler)
 }
 
 TR_test "GPT: küçük model kopyalama görevini öğrenir (kayıp belirgin düşer)" {
@@ -555,7 +555,7 @@ TR_test "GPT: yeni seçenekler varsayılanda modeli değiştirmez; PLE'li yerel/
     TR_assert(en_büyük_mutlak_fark(l1[0][0..4], l2[0][0..4]) < 0.000001, "PLE ve pencere nedenselliği bozmamalı")
     TR_assert(en_büyük_mutlak_fark(l1[0][4], l2[0][4]) > 0.000001, "son konum değişmeli")
     TR_assert_equal("H6911", TR_error_code { TR_GPT(12, TR_num_layers: 2, TR_windows: [1, 2, 3]) })
-    TR_assert(m.TR_loss([[1, 2, 3]], [[2, 3, 4]]).TR_tolist > 0)
+    TR_assert(m.TR_loss([[1, 2, 3]], TR_Tensor([[2, 3, 4]])).TR_tolist > 0)
 }
 
 TR_test "GPT.üret: eos örneklenince durur (eos dizide kalır), eos'suz adet kadar üretir" {

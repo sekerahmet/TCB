@@ -10,7 +10,7 @@ TR_import "tr/layers"
 
 TR_var model = TR_GPT(4096, TR_context: 256, TR_embed_dim: 256, TR_num_layers: 4, TR_num_heads: 4, TR_tied: TR_true, TR_seed: 1)
 TR_var logit = model.TR_forward([[1, 2, 3]])            # [1, 3, 4096]
-TR_var kayıp = model.TR_loss([[1, 2, 3]], [[2, 3, 4]]) # ortalama çapraz entropi
+TR_var kayıp = model.TR_loss([[1, 2, 3]], TR_Tensor([[2, 3, 4]])) # ortalama çapraz entropi
 TR_print(TR_parameters(model, TR_named: TR_true).TR_keys()[0..3])
 ```
 
@@ -49,7 +49,7 @@ TR_var toplam_adım = 1000
 TR_for adım TR_in 0..3 {
     op.TR_set_multiplier(TR_lr_schedule(adım, toplam_adım, TR_warmup: 100, TR_decay_fraction: 0.2))
     op.TR_zero_grad()
-    TR_backward(model.TR_loss([[1, 2, 3]], [[2, 3, 4]]))
+    TR_backward(model.TR_loss([[1, 2, 3]], TR_Tensor([[2, 3, 4]])))
     op.TR_step()
 }
 ```

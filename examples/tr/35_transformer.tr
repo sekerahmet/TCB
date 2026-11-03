@@ -64,7 +64,7 @@ TR_func rastgele_tam(n: TR_Int) -> TR_Int {
     TR_return tohum % n
 }
 
-TR_func toplu_iş_üret() -> (TR_List[TR_List[TR_Int]], TR_List[TR_Int]) {
+TR_func toplu_iş_üret() -> (TR_List[TR_List[TR_Int]], TR_Tensor[TR_Int]) {
     TR_var girdiler = []
     TR_var hedefler = []
     TR_for b TR_in 0..B {
@@ -76,7 +76,7 @@ TR_func toplu_iş_üret() -> (TR_List[TR_List[TR_Int]], TR_List[TR_Int]) {
         }
         girdiler.TR_append(g)
     }
-    TR_return girdiler, hedefler
+    TR_return girdiler, TR_Tensor(hedefler)
 }
 
 TR_var ağırlıklar = [E, P, Wq, Wk, Wv, Wo, W1, W2, g1, s1, g2, s2, Wu]
@@ -106,7 +106,7 @@ TR_print("tahmin : \(tahminler)")
 TR_var sorgu = TR_randn([6, 4], TR_seed: 2)
 TR_print("pencere:", TR_attention(sorgu, sorgu, sorgu, TR_window: 2).TR_shape)
 TR_var sorgu2 = TR_randn([3, 4], TR_seed: 1)
-TR_var bakılacaklar = TR_Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])
+TR_var bakılacaklar = TR_Tensor([[TR_true, TR_true, TR_false], [TR_true, TR_true, TR_false], [TR_true, TR_true, TR_true]])
 TR_print("maske:", TR_attention(sorgu2, sorgu2, sorgu2, TR_causal: TR_false, TR_mask: bakılacaklar).TR_shape)
 
 # --- Kendin dene ---

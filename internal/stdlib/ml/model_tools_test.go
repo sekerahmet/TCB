@@ -154,7 +154,7 @@ TR_print(fark(p[0][4][1], v[0][6][0]) < 0.0000000001)
 TR_var m = TR_ones([5, 7])
 m[0] = 0
 m[0][2] = 1
-TR_print(fark(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m)[0][0][0], v[0][2][0]) < 0.0000000001)
+TR_print(fark(TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m != 0)[0][0][0], v[0][2][0]) < 0.0000000001)
 TR_print(TR_attention(q, k, v, TR_mask: TR_none).TR_shape)
 `)
 	want := "[1, 5, 2, 3]\n[1, 5, 2, 3]\ntrue false\ntrue\ntrue\n[1, 5, 2, 3]\n"
@@ -170,7 +170,8 @@ TR_print(TR_attention(q, k, v, TR_mask: TR_none).TR_shape)
 		{"TR_attention(TR_zeros([2, 4, 2]), TR_zeros([2, 4, 3]), TR_zeros([2, 4, 3]))", messages.H6330},
 		{"TR_attention(TR_zeros([2, 4, 2]), TR_zeros([2, 4, 2]), TR_zeros([3, 4, 2]))", messages.H6331},
 		{"TR_attention(TR_zeros([1, 2, 4, 2]), TR_zeros([2, 2, 4, 2]), TR_zeros([2, 2, 4, 2]))", messages.H6329},
-		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_mask: TR_ones([3, 4]))", messages.H6335},
+		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_mask: TR_ones([3, 4]) != 0)", messages.H6335},
+		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_mask: TR_ones([4, 4]))", messages.H6985},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_window: -1)", messages.H6326},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]), TR_zeros([4, 2]), TR_scale: 2)", messages.H7901},
 		{"TR_attention(TR_zeros([4, 2]), TR_zeros([4, 2]))", messages.H6321},
