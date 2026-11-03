@@ -483,7 +483,10 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		c.checkMemberCall(e, objType, argTypes)
 		c.checkJSONContains(e, objType, argTypes) // 3.7a (json_comparison.go)
 		c.checkDictKeyArg(e, objType, argTypes)   // 3.7 (dict_keys.go)
-	} else if k, _ := c.calledBuiltin(e); k == codes.FnAssert && len(argTypes) > 0 {
+	} else {
+		c.checkBuiltinArgs(e, argTypes) // 13.9, 13.11 (builtin_args.go)
+	}
+	if k, _ := c.calledBuiltin(e); !isMember && k == codes.FnAssert && len(argTypes) > 0 {
 		c.requireBool(e.Arguments[0], argTypes[0], messages.H2612) // 3.10, 12.3
 	}
 	if len(argTypes) == 1 && c.builtinCallCode(e, objType) == codes.TypeJSON {
