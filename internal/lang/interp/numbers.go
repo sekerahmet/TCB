@@ -2,6 +2,7 @@ package interp
 
 import (
 	"math"
+	"math/big"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -279,4 +280,71 @@ func zeroSignOrder(a, b Value) int {
 		return 1
 	}
 	return 0
+}
+
+// roundIntDigits bir Tam'ı basamağa kesin yuvarlar, sonuç Tam'dır (13.1, 3.1: Ondalık'a çevrilmez):
+// basamak 0 ya da artıysa sayının kendisi, eksiyse 10^-basamak'ın en yakın katı, yarım sıfırdan
+// uzağa (TR_round(1234, -2) → 1200). Sonuç int64'e sığmazsa hata.
+func roundIntDigits(iv *IntVal, digits int64) (Value, error) {
+	if digits >= 0 {
+		return iv, nil
+	}
+	v := iv.Val
+	if digits < -18 { // 10^19 int64'e sığmaz: |v| < 10^19 iken en yakın kat 0 ya da ±10^19'dur
+		if digits == -19 && (v >= 5e18 || v <= -5e18) {
+			exact := new(big.Int).Exp(big.NewInt(10), big.NewInt(19), nil)
+			if v < 0 {
+				exact.Neg(exact)
+			}
+			return nil, roundIntOverflow(exact)
+		}
+		return NewInt(0), nil
+	}
+	p := int64(1)
+	for range -digits {
+		p *= 10
+	}
+	q, r := v/p, v%p
+	if 2*max(r, -r) >= p {
+		if v < 0 {
+			q--
+		} else {
+			q++
+		}
+	}
+	if q > math.MaxInt64/p || q < math.MinInt64/p {
+		return nil, roundIntOverflow(new(big.Int).Mul(big.NewInt(q), big.NewInt(p)))
+	}
+	return NewInt(q * p), nil
+}
+
+// roundIntOverflow yuvarlanan Tam'ın (exact, kesin değeri) int64'ü aştığı hatadır.
+func roundIntOverflow(exact *big.Int) error {
+	return messages.New(messages.H2484, CallPrefix(codes.FnRound), exact.String(), codes.NameRef(codes.TypeInt))
+}
+
+// roundFloatDigits bir Ondalık'ı basamağa yuvarlar, sonuç Ondalık'tır (13.1; TR_round(3.7, 0) → 4.0,
+// TR_round(1234.0, -2) → 1200.0). NaN ve sonsuz hatadır; Ondalık'ın taşıyabileceğinden çok basamak
+// sayıyı değiştirmez (TR_round(2.5, 400) → 2.5), sayıdan büyük basamak sıfır verir.
+func roundFloatDigits(fv float64, digits int64) (Value, error) {
+	if math.IsNaN(fv) || math.IsInf(fv, 0) {
+		return nil, messages.New(messages.H2626, CallPrefix(codes.FnRound), (&FloatVal{Val: fv}).Text(codes.Display()))
+	}
+	if digits > 0 {
+		pow := math.Pow(10, float64(digits))
+		x := fv * pow
+		if math.IsInf(pow, 0) || math.IsInf(x, 0) {
+			return &FloatVal{Val: fv}, nil
+		}
+		return &FloatVal{Val: math.Round(x) / pow}, nil
+	}
+	pow := math.Pow(10, float64(-digits))
+	if math.IsInf(pow, 0) {
+		return &FloatVal{Val: math.Copysign(0, fv)}, nil
+	}
+	rounded := math.Round(fv/pow) * pow
+	if math.IsInf(rounded, 0) {
+		return nil, messages.New(messages.H2627, CallPrefix(codes.FnRound), (&FloatVal{Val: fv}).Text(codes.Display()), digits)
+	}
+	return &FloatVal{Val: rounded}, nil
 }

@@ -2751,7 +2751,7 @@ tr: yazdır(rms_normu(Tensör([[3.0, 4.0]]), ağırlık: birler([2])).değer)
 
     yuvarla(Tam | Ondalık, [Tam]) → Tam | Ondalık
 
-Sayıyı en yakına yuvarlar (yarımlar sıfırdan uzağa); basamak pozitifse Ondalık, 0 ya da negatifse Tam verir.
+Sayıyı en yakına yuvarlar (yarımlar sıfırdan uzağa); basamaksız Tam, basamakla girdinin tipini verir.
 
 ```tr
 TR_print(TR_round(3.14159, 2), TR_round(2.5), TR_round(1234, -2))

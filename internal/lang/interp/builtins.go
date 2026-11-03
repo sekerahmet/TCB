@@ -134,7 +134,8 @@ func sqrtBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return nil, ArgTypeError(codes.FnSqrt, 1, args[0], numberTypes...)
 }
 
-// roundBuiltin yuvarla() yerleşiğidir.
+// roundBuiltin yuvarla() yerleşiğidir (13.1): TR_round(x) en yakın Tam'ı verir; TR_round(x, basamak)
+// girdinin tipini verir (TR_round(5, 2) → 5, TR_round(3.7, 0) → 4.0, TR_round(1234, -2) → 1200).
 func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, ArgCountError(codes.FnRound, Counts(1, 2), len(args), messages.Text(messages.H2305), messages.Text(messages.H2306))
@@ -143,32 +144,25 @@ func roundBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if !ok {
 		return nil, ArgTypeError(codes.FnRound, 1, args[0], numberTypes...)
 	}
-	digits := 0
-	if len(args) == 2 {
-		iv, ok := args[1].(*IntVal)
-		if !ok {
-			return nil, ArgTypeError(codes.FnRound, 2, args[1], codes.TypeInt)
+	iv, isInt := args[0].(*IntVal)
+	if len(args) == 1 {
+		if isInt {
+			return iv, nil
 		}
-		digits = int(iv.Val)
+		n, err := floatToInt(CallPrefix(codes.FnRound), math.Round(fv))
+		if err != nil {
+			return nil, err
+		}
+		return NewInt(n), nil
 	}
-	if digits > 0 {
-		pow := math.Pow(10, float64(digits))
-		return &FloatVal{Val: math.Round(fv*pow) / pow}, nil
+	digits, ok := args[1].(*IntVal)
+	if !ok {
+		return nil, ArgTypeError(codes.FnRound, 2, args[1], codes.TypeInt)
 	}
-	// Basamak 0 ya da negatifse sonuç Tam'dır: yuvarla(1234, -2) → 1200
-	if iv, ok := args[0].(*IntVal); ok && digits == 0 {
-		return iv, nil
+	if isInt {
+		return roundIntDigits(iv, digits.Val)
 	}
-	rounded := math.Round(fv)
-	if digits < 0 {
-		pow := math.Pow(10, float64(-digits))
-		rounded = math.Round(fv/pow) * pow
-	}
-	n, err := floatToInt(CallPrefix(codes.FnRound), rounded)
-	if err != nil {
-		return nil, err
-	}
-	return NewInt(n), nil
+	return roundFloatDigits(fv, digits.Val)
 }
 
 // waitAllBuiltin bekle_hepsi() yerleşiğidir: argümansız başlatılmış bütün görevleri bekler; bir görev

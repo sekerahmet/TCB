@@ -33,6 +33,13 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = TR_max(\"a\", \"b\")":                typeAny,
 		"TR_var v = TR_max([1, 2], (x) => -x)":           typeAny,
 		"TR_var v = TR_max(" + unknownValue + ", 1)":     typeAny,
+		// 13.1: TR_round(x) TR_Int, TR_round(x, basamak) girdinin tipi
+		"TR_var v = TR_round(3.7)":                     typeInt,
+		"TR_var v = TR_round(5, 2)":                    typeInt,
+		"TR_var v = TR_round(3.7, 0)":                  typeFloat,
+		"TR_var v = TR_round(1234.0, -2)":              typeFloat,
+		"TR_var v = TR_round(TR_Tensor([1.5]))":        typeAny,
+		"TR_var v = TR_round(" + unknownValue + ", 1)": typeAny,
 	})
 	_, errs := checkErrs(t, "TR_var m = TR_max(2, 3)\nm = 1.5")
 	if len(errs) != 1 || !messages.Has(errs[0], messages.H1005) {

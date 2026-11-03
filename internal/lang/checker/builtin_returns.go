@@ -82,6 +82,9 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 	if t := c.extremeType(e, k); t != "" {
 		return t
 	}
+	if t := c.roundType(e, k); t != "" {
+		return t
+	}
 	_, ignored := ReturnsIgnored[k]
 	if _, unverified := ReturnsNotVerified[k]; unverified || ignored || k == codes.None {
 		return ""
@@ -126,4 +129,21 @@ func (c *Checker) extremeType(e *ast.CallExpression, k codes.Code) string {
 		}
 	}
 	return result
+}
+
+// roundType TR_round'un sayı çağrısının tipidir (13.1): tek argümanla TR_Int, basamakla girdinin tipi
+// (TR_round(5, 2) → TR_Int, TR_round(3.7, 0) → TR_Float). Girdi sayı değilse (tensör) ya da tipi
+// bilinmiyorsa ""; çağrı TR_round değilse de "".
+func (c *Checker) roundType(e *ast.CallExpression, k codes.Code) string {
+	if k != codes.FnRound || len(e.NamedArgs) != 0 || len(e.Arguments) == 0 || len(e.Arguments) > 2 {
+		return ""
+	}
+	t := c.itemTypes[e.Arguments[0]]
+	switch {
+	case !numericType(t):
+		return ""
+	case len(e.Arguments) == 1:
+		return typeInt
+	}
+	return t
 }

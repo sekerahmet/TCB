@@ -424,6 +424,8 @@
 "H2623": { "param": ["fn", "given"], "slots": {"String": "TR_type_String", "Bytes": "TR_type_Bytes", "json_string": "TR_fn_json_string"} },
 "H2624": { "param": ["fn"] },
 "H2625": { "param": ["fn"] },
+"H2626": { "param": ["fn", "value"], "slots": {"is_finite": "TR_fn_is_finite"} },
+"H2627": { "param": ["fn", "value", "digits"], "slots": {"Float": "TR_type_Float"} },
 "H2640": { "param": ["value"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H2641": { "param": ["value"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H2642": { "param": ["value"], "slots": {"Float": "TR_type_Float"} },

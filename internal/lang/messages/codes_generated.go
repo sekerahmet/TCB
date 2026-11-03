@@ -429,6 +429,8 @@ const (
 	H2623 Code = 2623 // {fn}: içerik {@String} ya da {@Bytes} olmalı, {given} verildi; JSON değerini JSON metni olarak yazmak için `{#json_string}(...)` kullanın
 	H2624 Code = 2624 // {fn}: boş listenin en büyüğü yoktur
 	H2625 Code = 2625 // {fn}: boş listenin en küçüğü yoktur
+	H2626 Code = 2626 // {fn}: {value} sonlu bir sayı değildir, yuvarlanamaz; önce `{#is_finite}(x)` ile sorun
+	H2627 Code = 2627 // {fn}: {value} {digits} basamağa yuvarlanınca {@Float}'ın sınırını aşar
 	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
 	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); `{#Float}(...)` ile okuyun
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz

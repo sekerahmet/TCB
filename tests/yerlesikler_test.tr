@@ -38,10 +38,32 @@ TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştı
     TR_assert_equal("H2486", TR_error_code { TR_max([1, "a", 5]) })
     TR_assert_equal("H2423", TR_error_code { TR_min("abc") })
     TR_assert_equal("H2486", TR_error_code { TR_sum([1, "a", 2]) })
-    # Negatif basamak onlar, yüzler basamağına yuvarlar
-    TR_assert_equal(1200, TR_round(1234, -2))
-    TR_assert_equal(1240, TR_round(1235.0, -1))
+}
+
+TR_test "13.1 TR_round(x) TR_Int verir, TR_round(x, basamak) girdinin tipini verir" {
     TR_assert_equal(4, TR_round(3.6))
+    TR_assert_equal(TR_Int, TR_Type(TR_round(3.6)))
+    TR_assert_equal("5 4.0 2.57", "\(TR_round(5, 2)) \(TR_round(3.7, 0)) \(TR_round(2.567, 2))")
+    TR_assert_equal(TR_Int, TR_Type(TR_round(5, 2)))
+    TR_assert_equal(TR_Float, TR_Type(TR_round(3.7, 0)))
+    # Eksi basamak onlar, yüzler basamağına yuvarlar; tip yine girdinin tipi.
+    TR_assert_equal("1200 1200.0 1240.0", "\(TR_round(1234, -2)) \(TR_round(1234.0, -2)) \(TR_round(1235.0, -1))")
+    TR_assert_equal(TR_Int, TR_Type(TR_round(1234, -2)))
+    TR_assert_equal(TR_Float, TR_Type(TR_round(1234.0, -2)))
+    # TR_Int kesin yuvarlanır (3.1), TR_Float'a çevrilmez; sınırdaki basamaklar.
+    TR_assert_equal(1234567890123456800, TR_round(1234567890123456789, -2))
+    TR_assert_equal(123456789012345670, TR_round(123456789012345674, -1))
+    TR_assert_equal("0 0.0 2.5", "\(TR_round(1234, -400)) \(TR_round(1234.0, -400)) \(TR_round(2.5, 400))")
+    TR_assert_equal(0, TR_round(4999999999999999999, -19))
+    TR_assert_equal(1e300, TR_round(1e300, 20))
+    TR_assert_equal(1e300, TR_round(1e300, 0))
+    TR_assert_equal("H2484", TR_error_code { TR_round(9223372036854775807, -1) })
+    TR_assert_equal("H2484", TR_error_code { TR_round(-9223372036854775807 - 1, -19) })
+    # Sayıda NaN ve sonsuz hatadır; ileti TR_is_finite'ı önerir.
+    TR_assert_equal("H2626", TR_error_code { TR_round(TR_nan, 2) })
+    TR_assert_equal("H2626", TR_error_code { TR_round(-TR_inf, 0) })
+    TR_assert_equal(TR_false, TR_is_finite(TR_nan))
+    TR_assert_equal("H2627", TR_error_code { TR_round(1.7e308, -308) })
 }
 
 TR_test "13.10 yalnız değer veren yerleşik yeni değer döndürür, alıcısını değiştirmez" {
