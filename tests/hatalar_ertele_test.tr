@@ -266,7 +266,7 @@ TR_test "8.5 hata_kodu hatanın kodunu, yoksa nedenler zincirinde dıştan içe 
 
 TR_test "8.5 hata_kodu neden yuvasından iner: sarmalayıcının değil asıl nedenin, modülün denetim hatasında ilk tanının kodu" {
     # İletinin parçaları ("tensörde ve sayıda", "Tam (5)") neden değildir: kod iletinin kendisinindir.
-    TR_assert_equal("H2423", TR_error_code { TR_floor("a") })
+    TR_assert_equal("H2423", TR_error_code { TR_floor(["a", 1][0]) })
     TR_assert_equal("H6104", TR_error_code { TR_floor([1.5]) })
     # Nedeni taşıyan yuva ({error}) inilir: dosya hatasının kendi kodu gelir.
     TR_assert_equal("H2132", TR_error_code { TR_load_tensors("bu_dosya_yok_12345.trt") })

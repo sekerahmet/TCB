@@ -46,12 +46,12 @@ TR_test "13.10 yalnız değer veren yerleşik yeni değer döndürür, alıcıs�
 }
 
 TR_test "13.11 yerleşiklerin argüman hataları tek biçimdedir" {
-    TR_assert_equal("H2423", TR_error_code { TR_sqrt("a") })
+    TR_assert_equal("H2423", TR_error_code { TR_sqrt(["a", 1][0]) })
     # tipi denetimde bilinmeyen değer çalışma anına ulaşır; denetim yanı tests/negative/metot_arguman_tipi.tr
     TR_var üç = TR_json_parse("3")
     TR_assert_equal("H2423", TR_error_code { [1].TR_filter(üç) })
     TR_assert_equal("H2011", TR_error_code { TR_sum() })
-    TR_assert_equal("H2423", TR_error_code { TR_round(1.25, "x") })
+    TR_assert_equal("H2423", TR_error_code { TR_round(1.25, ["x", 1][0]) })
 }
 
 TR_test "13.1 dosya_oku ve dosya_yaz hataları Türkçedir; göreli yol önce çalışma klasöründe, sonra programın klasöründe aranır" {
@@ -228,5 +228,5 @@ TR_test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
     TR_assert_equal([["ad", "yaş"], ["Ali", 30]], TR_parse_csv("ad,yaş\nAli,30"))
     TR_assert_equal([["007", 7]], TR_parse_csv("007,7"))
     TR_assert_equal("H7006", TR_error_code { TR_read_csv("ad,yaş\nAli,30") })
-    TR_assert_equal("H2423", TR_error_code { TR_parse_csv(5) })
+    TR_assert_equal("H2423", TR_error_code { TR_parse_csv([5, "a"][0]) })
 }

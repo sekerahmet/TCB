@@ -27,7 +27,7 @@ TR_test "13.7 taban, tavan, işaret: Tam'da Tam, Ondalık'ta Ondalık; pi sabitt
     TR_assert(yakın_mı(TR_sin(TR_pi / 2), 1.0))
     TR_assert_equal("H2421", TR_error_code { TR_pi() })
     TR_assert_equal("H6104", TR_error_code { TR_floor([1.5]) })
-    TR_assert_equal("H2423", TR_error_code { TR_floor("a") })
+    TR_assert_equal("H2423", TR_error_code { TR_floor(["a", 1][0]) })
 }
 
 TR_test "15.5 tensör karşılaştırmaları öğe öğedir, yayınlar ve TR_Tensor[TR_Bool] verir; NaN'lı karşılaştırma yanlış, != doğru" {
