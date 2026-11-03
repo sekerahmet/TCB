@@ -58,21 +58,27 @@ func cacheLike(o *cache) *cache {
 }
 
 // barTable ids'ten birini kuran kural olmadan tabloyu verir (hiçbiri yoksa tablonun kendisini).
+// Önce silinecek kural aranır: çoğu parçalayıcıda (Qwen, Llama) özel parçalar birleşmeyle kurulmaz
+// ve yeni tablo hiç gerekmez (DENETİM 77 N1).
 func barTable(t *mergeTable, ids map[int32]bool) *mergeTable {
-	kept := make(map[uint64]mergeRule)
-	removed := false
+	rules, removed := 0, 0
 	for _, s := range t.slots {
 		if s.key == emptyKey {
 			continue
 		}
+		rules++
 		if ids[s.value.fresh] {
-			removed = true
-			continue
+			removed++
 		}
-		kept[s.key] = s.value
 	}
-	if !removed {
+	if removed == 0 {
 		return t
+	}
+	kept := make(map[uint64]mergeRule, rules-removed)
+	for _, s := range t.slots {
+		if s.key != emptyKey && !ids[s.value.fresh] {
+			kept[s.key] = s.value
+		}
 	}
 	return newMergeTable(kept)
 }
