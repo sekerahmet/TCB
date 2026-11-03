@@ -130,6 +130,9 @@ type suggestionResultCase struct {
 // Cinsli tensörlerin iletileri (T1 dilim 2, H6960–H6979). H6969'un GPU önerisi
 // TestTypedPathsOnGPU'dadır (internal/stdlib/ml): bu tablo GPU'suz koşar.
 var suggestionResultCases = []suggestionResultCase{
+	// 13.1: TR_write_file'a verilen JSON değeri JSON metni olarak yazılır (TR_String(j) yalnız JSON metnini açar).
+	{messages.H2623, "TR_var y = TR_Path(TR_temp_dir(), \"j.json\")\nTR_var j = TR_json_parse(\"{\\\"a\\\": 1}\")\nTR_write_file(y, j)", "TR_json_string(...)",
+		"TR_var y = TR_Path(TR_temp_dir(), \"j.json\")\nTR_var j = TR_json_parse(\"{\\\"a\\\": 1}\")\nTR_write_file(y, TR_json_string(j))\nTR_print(TR_read_file(y), TR_json_parse(TR_read_file(y)) == j)", "{\"a\":1} true\n"},
 	{messages.H6960, "TR_var t = TR_Tensor([0, 1])\nTR_print(TR_exp(t).TR_tolist)", "TR_Tensor[TR_Float](t)",
 		"TR_var t = TR_Tensor([0, 1])\nTR_print(TR_exp(TR_Tensor[TR_Float](t)).TR_tolist)", "[1.0, 2.7182817]\n"},
 	{messages.H6960, "TR_var t = TR_Tensor([TR_true, TR_false])\nTR_print(TR_exp(t).TR_tolist)", "TR_where(t, 1.0, 0.0)",

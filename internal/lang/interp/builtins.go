@@ -255,7 +255,8 @@ func readWhole(y *VM, kd codes.Code, args []Value, read func(string) ([]byte, er
 }
 
 // writeFileBuiltin dosya_yaz() yerleşiğidir (13.1): TR_String'i UTF-8 olarak, TR_Bytes'ı bayt bayt
-// yazar; başka değerin metnini yazmaz, H2423 verir. Yazma atomiktir (bkz. AtomikYaz).
+// yazar; başka değerin metnini yazmaz, H2423 verir (JSON değeri H2623: TR_json_string'i önerir). Yazma
+// atomiktir (bkz. AtomikYaz).
 func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, ArgCountError(codes.FnWriteFile, 2, len(args), messages.Text(messages.H2308))
@@ -273,6 +274,9 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 		content = []byte(c.Val)
 	case *BytesVal:
 		content = c.Data()
+	case *JSONVal:
+		// JSON değeri metin olarak açılmaz (TR_String(j) yalnız JSON metnini açar): JSON metni olarak yazılır.
+		return nil, messages.New(messages.H2623, CallPrefix(codes.FnWriteFile), TypeAndSummary(c))
 	default:
 		return nil, ArgTypeError(codes.FnWriteFile, 2, args[1], codes.TypeString, codes.TypeBytes)
 	}

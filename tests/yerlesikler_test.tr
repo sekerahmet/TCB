@@ -93,11 +93,17 @@ TR_test "13.1 TR_write_file TR_String'i UTF-8, TR_Bytes'ı bayt bayt yazar; değ
     TR_assert_equal("H2423", TR_error_code { TR_write_file(TR_Path(k, "x.txt"), [[1, 2], "a"][0]) })
     TR_assert_equal("H2423", TR_error_code { TR_write_file(TR_Path(k, "x.txt"), [TR_none, 1, "a"][0]) })
     TR_assert_equal(TR_false, TR_Path(k, "x.txt").TR_exists)
-    # JSON değeri önce açılır (H2665 TR_String(j)'yi önerir).
-    TR_var j = TR_json_parse("\"a\"")
-    TR_assert_equal("H2665", TR_error_code { TR_write_file(TR_Path(k, "j.txt"), j) })
-    TR_write_file(TR_Path(k, "j.txt"), TR_String(j))
-    TR_assert_equal("a", TR_read_file(TR_Path(k, "j.txt")))
+    # JSON değeri JSON metni olarak yazılır: H2623 TR_json_string(...)'i önerir; öneriyle yazılan
+    # dosya okununca aynı metin ve aynı JSON değeri döner (nesnede de, metinde de).
+    TR_var j = TR_json_parse("{\"a\": 1, \"b\": [true, null]}")
+    TR_assert_equal("H2623", TR_error_code { TR_write_file(TR_Path(k, "j.json"), j) })
+    TR_write_file(TR_Path(k, "j.json"), TR_json_string(j))
+    TR_assert_equal(TR_json_string(j), TR_read_file(TR_Path(k, "j.json")))
+    TR_assert_equal(j, TR_json_parse(TR_read_file(TR_Path(k, "j.json"))))
+    TR_var m = TR_json_parse("\"a\"")
+    TR_assert_equal("H2623", TR_error_code { TR_write_file(TR_Path(k, "m.json"), m) })
+    TR_write_file(TR_Path(k, "m.json"), TR_json_string(m))
+    TR_assert_equal(m, TR_json_parse(TR_read_file(TR_Path(k, "m.json"))))
     TR_write_file(TR_Path(k, "x.txt"), TR_String([1, 2]))
     TR_assert_equal("[1, 2]", TR_read_file(TR_Path(k, "x.txt")))
 }
