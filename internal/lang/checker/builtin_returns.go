@@ -79,6 +79,12 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 	if t := c.waitAllType(e, k); t != "" {
 		return t // görev listesini bekleyen TR_wait_all (task_types.go)
 	}
+	if t := c.extremeType(e, k); t != "" {
+		return t
+	}
+	if t := c.roundType(e, k); t != "" {
+		return t
+	}
 	_, ignored := ReturnsIgnored[k]
 	if _, unverified := ReturnsNotVerified[k]; unverified || ignored || k == codes.None {
 		return ""
@@ -91,4 +97,53 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 		return codes.Name(ret)
 	}
 	return ""
+}
+
+// extremeType TR_max ve TR_min'in sayı çağrısının tipidir (13.1, işlecin tipi, 4.2): değerler (ya da
+// tek liste argümanının öğeleri) hep TR_Int ise TR_Int, aralarında TR_Float varsa TR_Float
+// (TR_max(2, 1.5) → 2.0). Adlı argüman (tensör), tek sayı, anahtar fonksiyonu, sayı olmayan ya da
+// tipi bilinmeyen değer ""; çağrı TR_max ya da TR_min değilse de "".
+func (c *Checker) extremeType(e *ast.CallExpression, k codes.Code) string {
+	if k != codes.FnMax && k != codes.FnMin || len(e.NamedArgs) != 0 || len(e.Arguments) == 0 {
+		return ""
+	}
+	types := make([]string, len(e.Arguments))
+	for i, a := range e.Arguments {
+		types[i] = c.itemTypes[a]
+	}
+	if len(types) == 1 {
+		list := shapeOf(types[0])
+		if list.base != typeList || list.optional || len(list.args) != 1 {
+			return ""
+		}
+		types = list.args
+	}
+	result := typeInt
+	for _, t := range types {
+		switch t {
+		case typeInt:
+		case typeFloat:
+			result = typeFloat
+		default:
+			return ""
+		}
+	}
+	return result
+}
+
+// roundType TR_round'un sayı çağrısının tipidir (13.1): tek argümanla TR_Int, basamakla girdinin tipi
+// (TR_round(5, 2) → TR_Int, TR_round(3.7, 0) → TR_Float). Girdi sayı değilse (tensör) ya da tipi
+// bilinmiyorsa ""; çağrı TR_round değilse de "".
+func (c *Checker) roundType(e *ast.CallExpression, k codes.Code) string {
+	if k != codes.FnRound || len(e.NamedArgs) != 0 || len(e.Arguments) == 0 || len(e.Arguments) > 2 {
+		return ""
+	}
+	t := c.itemTypes[e.Arguments[0]]
+	switch {
+	case !numericType(t):
+		return ""
+	case len(e.Arguments) == 1:
+		return typeInt
+	}
+	return t
 }

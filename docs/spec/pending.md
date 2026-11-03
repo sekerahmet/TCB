@@ -24,10 +24,12 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **16.2, geçici (2026-11-02, Jarvis B; güvenlik):** `TR_special_tokens: TR_false` özel olmayan eklenmiş parçaları (`<think>`, `<tool_response>`) da kapatır; varsayılan HF gibi eşler. Emsal ayrık: tiktoken kapatır, HF, llama.cpp ve vLLM eşler [ölçüldü ve kaynaklı: DENETİM istek 43]. Biçimli sohbet derleminin yolu 24.4'te. Gemini'nin karar araştırmasından geçmedi; turda denetlenir.
 
 ## Ara
+- **13.1, `TR_Int`'in eksi basamağı (2026-11-03, D1 13.1c):** "girdinin tipini verir" yazıyor, kesinliği yazmıyor; uygulama kesin yuvarlıyor (`TR_round(1234567890123456789, -2)` → `1234567890123456800`; `float64` üzerinden `…768` verirdi). Öneri: "`TR_Int` kesin yuvarlanır (3.1)".
 
 
 
 ## Olağan
+- **13.1, `TR_round`'da NaN, sonsuz ve sınır (2026-11-03, D1 13.1c):** "Sayıda NaN ve sonsuz hatadır" cümlesinin basamaklı biçimi (`TR_round(TR_nan, 2)`) kapsadığı açık değil; uygulama kapsıyor (H2626). Sonucun `TR_Float`'ı aştığı basamaklı yuvarlama (`TR_round(1.7e308, -308)`) yazılı değil; uygulama H2627 veriyor, Python gibi. Öneri: "her biçimde hatadır" ve sınırın yan cümlesi.
 - **16.2, `TR_special_tokens`'ın varsayılanı ve model bölütlemesi (2026-11-03, DENETİM istek 74 N1/N2; T1 teslim 1):** varsayılan `TR_true`: güvenilmeyen girdiyi `TR_false`'suz kodlayan bir sunucu açık kalır; bir uyarı ya da sunma yolunda zorunlu argüman tartılır. 16.2'nin "metindeki yazım sıradan baytlarıyla kodlanır" sözü modelin kendi bölütlemesini de kapsıyor (uygulama böyle: unigram'da `</s>` `TR_false` ile 2 olmaz; HF `split_special_tokens` ile 2 verir, 8 metinde bilerek ayrı); cümleye açıkça yazılması tartılır.
 - **6.1, `TR_func` tanımının adına atama (2026-11-02, TCB'nin hız S1 yönergesi):** `f = g` (ikisi de `TR_func` tanımı) denetimden geçiyor ve sonra `f()` `g`'yi çağırıyor; dil tanımı buna izin verdiğini de vermediğini de yazmıyor. Ajan için tanımın adının sessizce başka fonksiyona dönmesi bir hata kaynağı; Rust'ta fonksiyon atanamaz, Python'da atanır. Ad turunda tartılır; karar çıkana kadar hız S1 bu davranışı korur.
 - **13.8a ve 15.3, `TR_tolist`'in Türkçe adı (2026-11-02, T1 dilim 2'nin ad sorusu):** adı "değer" ama iş liste vermek; `TR_item`'a "değer" verilemedi, "tek_değer" oldu. Ad turunda tartılır.

@@ -156,7 +156,7 @@ TR_for adım < arg["step"] {
     kayıt.TR_append({"loss": toplam_kayıp, "grad_norm": norm.TR_tolist})
     TR_if (adım + 1) % arg["logger"] == 0 TR_or adım + 1 == arg["step"] {
         TR_var ort = TR_mean(pencere)
-        TR_print("adım \(adım + 1) / \(arg["step"])  kayıp \(TR_round(toplam_kayıp, 4))  grad \(TR_round(norm.TR_tolist, 3)) | \(TR_round(ort, 0)) ms/adım  \(TR_round(adım_başına / ort * 1000, 0)) parça/sn")
+        TR_print("adım \(adım + 1) / \(arg["step"])  kayıp \(TR_round(toplam_kayıp, 4))  grad \(TR_round(norm.TR_tolist, 3)) | \(TR_round(ort)) ms/adım  \(TR_round(adım_başına / ort * 1000)) parça/sn")
         pencere = []
     }
     TR_if doğrulama_kümesi != TR_none TR_and ((adım + 1) % arg["değerlendirme"] == 0 TR_or adım + 1 == arg["step"]) {

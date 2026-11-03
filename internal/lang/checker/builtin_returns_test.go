@@ -24,8 +24,28 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = [\"a\"].TR_join(\",\")":  typeString,
 		"TR_var v = (0..3).TR_reverse()":     listType(typeInt), // alıcıdaki imza: aralıkta TR_List[TR_Int]
 		"TR_var v = [1].TR_contains(1)":      typeBool,
+		// 13.1: TR_max ve TR_min'in tipi işlecin tipidir; karışıkta TR_Float
+		"TR_var v = TR_max(3, 7)":                        typeInt,
+		"TR_var v = TR_max(2, 1.5)":                      typeFloat,
+		"TR_var v = TR_min([3, 1])":                      typeInt,
+		"TR_var v = TR_min([2.0, 1.5])":                  typeFloat,
+		"TR_var v = TR_max(TR_Tensor([1.0]), TR_dim: 0)": typeAny,
+		"TR_var v = TR_max(\"a\", \"b\")":                typeAny,
+		"TR_var v = TR_max([1, 2], (x) => -x)":           typeAny,
+		"TR_var v = TR_max(" + unknownValue + ", 1)":     typeAny,
+		// 13.1: TR_round(x) TR_Int, TR_round(x, basamak) girdinin tipi
+		"TR_var v = TR_round(3.7)":                     typeInt,
+		"TR_var v = TR_round(5, 2)":                    typeInt,
+		"TR_var v = TR_round(3.7, 0)":                  typeFloat,
+		"TR_var v = TR_round(1234.0, -2)":              typeFloat,
+		"TR_var v = TR_round(TR_Tensor([1.5]))":        typeAny,
+		"TR_var v = TR_round(" + unknownValue + ", 1)": typeAny,
 	})
-	_, errs := checkErrs(t, "TR_var s = \"a\".TR_upper()\ns = 1")
+	_, errs := checkErrs(t, "TR_var m = TR_max(2, 3)\nm = 1.5")
+	if len(errs) != 1 || !messages.Has(errs[0], messages.H1005) {
+		t.Errorf("TR_max(2, 3) TR_Int'tir, ondalık atanamaz (H1005) olmalı: %v", errs)
+	}
+	_, errs = checkErrs(t, "TR_var s = \"a\".TR_upper()\ns = 1")
 	if len(errs) != 1 || !messages.Has(errs[0], messages.H1005) {
 		t.Errorf("metin değişkenine tam sayı H1005 olmalı: %v", errs)
 	}
