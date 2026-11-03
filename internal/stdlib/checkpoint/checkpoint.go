@@ -4,10 +4,10 @@
 // sürecek biçimde devam ettirir. Kayıt adım sınırında yapılır: kn.güncelle(adım) (TR_mem_update)
 // her_dakika süresi dolunca ya da durdurma istenince (Ctrl+C), kn.kaydet() (TR_mem_save) hemen.
 //
-// Klasör düzeni (biçim sürümü 3; bkz. format.go):
+// Klasör düzeni (biçim sürümü 4; bkz. format.go):
 //
 //	<koşu>/checkpoints/
-//	  latest.json           {"version":3,"step":1500,"dir":"step_0000001500"} (araçlar için)
+//	  latest.json           {"version":4,"step":1500,"dir":"step_0000001500"} (araçlar için)
 //	  step_0000001500/
 //	    tensors.trt         modellerin tensörleri (türev izlemeyenler dahil), iyileştirici durumları
 //	    state.json          adım, program, ayarlar, okuyucu durumları, düz değerler, günlük boyları

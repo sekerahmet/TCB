@@ -1368,6 +1368,7 @@
 "H6990": { "param": ["shape"], "slots": {"requires_grad": "TR_mem_requires_grad", "Tensor": "TR_type_Tensor"} },
 "H6991": { "param": ["reason", "dtype"], "slots": {"requires_grad": "TR_mem_requires_grad", "true": "TR_kw_true", "Tensor": "TR_type_Tensor", "Float": "TR_type_Float"} },
 "H6992": { "param": ["given"], "slots": {"requires_grad": "TR_mem_requires_grad", "true": "TR_kw_true", "false": "TR_kw_false"} },
+"H6993": { "param": ["fn", "name", "param"] },
 "H7000": { "param": ["fn", "text", "given"] },
 "H7001": { "param": ["error"] },
 "H7003": { "param": ["fn", "path"] },

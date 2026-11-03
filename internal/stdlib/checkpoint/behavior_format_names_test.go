@@ -61,9 +61,11 @@ func TestCheckpointFormatIsLanguageIndependent(t *testing.T) {
 	runDir := trPath(t.TempDir())
 	if output, err := run(t, fmt.Sprintf(`
 TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var donuk = TR_Tensor([1.0], TR_requires_grad: TR_true)
+donuk.TR_requires_grad = TR_false
 TR_var op = TR_AdamW([w], TR_lr: 0.01)
 TR_var g = TR_Logger(TR_Path(%[1]q, "metrics.jsonl"))
-TR_var kn = TR_Checkpoint(%[1]q, {"model": {"w": w}, "op": op, "logger": g, "sayaç": {"en_iyi": 1.5}})
+TR_var kn = TR_Checkpoint(%[1]q, {"model": {"w": w, "donuk": donuk}, "op": op, "logger": g, "sayaç": {"en_iyi": 1.5}})
 TR_backward(TR_sum(w * w))
 op.TR_step()
 g.TR_append({"x": 1})
@@ -88,7 +90,7 @@ kn.TR_save()
 		{filepath.Join(dir, "latest.json"), nil, []string{"dir", "step", "version"}},
 		{filepath.Join(ckpt, "digest.json"), []string{"files"}, []string{"files", "step", "version"}},
 		{filepath.Join(ckpt, "state.json"), []string{"settings", "objects.value"},
-			[]string{"objects", "objects.kind", "objects.length", "objects.name", "objects.optimizer", "objects.param_count", "objects.value",
+			[]string{"objects", "objects.frozen", "objects.kind", "objects.length", "objects.name", "objects.optimizer", "objects.param_count", "objects.value",
 				"program", "rng", "step", "time", "tr", "version", "workers"}},
 	}
 	for _, c := range cases {

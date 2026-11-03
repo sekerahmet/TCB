@@ -153,6 +153,8 @@ func (n *object) record(m *interp.VM) (objectRecord, error) {
 		}
 	case kindPlain:
 		k.Value, err = writePlain(n.value)
+	case kindModel:
+		k.Frozen = n.frozenNames()
 	}
 	if err != nil {
 		return k, messages.New(messages.H7439, n.name, err)
@@ -176,7 +178,10 @@ func (n *object) checkMatch(fn any, y *pending) error {
 	}
 	switch n.kind {
 	case kindModel:
-		return n.modelMatch(messages.New(messages.H7441, fn, n.name), y)
+		if err := n.modelMatch(messages.New(messages.H7441, fn, n.name), y); err != nil {
+			return err
+		}
+		return n.frozenMatch(fn, y)
 	case kindOptimizer:
 		if y.record.Optimizer != n.op.Name() || y.record.ParamCount != n.op.ParamCount() {
 			return messages.New(messages.H7442,

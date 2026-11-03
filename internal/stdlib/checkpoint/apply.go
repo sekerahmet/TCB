@@ -67,6 +67,11 @@ func (kn *Checkpoint) apply(m *interp.VM, fn any, o *loadedCkpt) error {
 		c()
 	}
 	for _, n := range kn.objects {
+		if n.kind == kindModel {
+			n.applyFrozen(o.objects[n.name].record.Frozen) // donma durumu (20.4), iyileştiriciden önce
+		}
+	}
+	for _, n := range kn.objects {
 		switch n.kind {
 		case kindOptimizer:
 			if err := n.op.LoadState(messages.New(messages.H7441, fn, n.name), states[n.name]); err != nil {

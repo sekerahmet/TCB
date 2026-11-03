@@ -56,9 +56,9 @@ func TestTamperedCheckpointRejected(t *testing.T) {
 	}{
 		{"tensör baytı", "tensors.trt", func(b []byte) []byte { b[len(b)/2] ^= 1; return b }, messages.H2000, "tensors.trt: dosya bozuk: sağlama toplamı tutmuyor"},
 		{"yarım tensör", "tensors.trt", func(b []byte) []byte { return b[:len(b)-7] }, messages.H7474, ""},
-		{"yeni sürüm", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 3`, `"version": 4`, 1)) }, messages.H7421, ""},
-		{"sürüm 0", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 3`, `"version": 0`, 1)) }, messages.H7422, ""},
-		{"eski sürüm okunmaz", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 3`, `"version": 2`, 1)) }, messages.H7422, ""},
+		{"yeni sürüm", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 4`, `"version": 5`, 1)) }, messages.H7421, ""},
+		{"sürüm 0", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 4`, `"version": 0`, 1)) }, messages.H7422, ""},
+		{"eski sürüm okunmaz", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"version": 4`, `"version": 2`, 1)) }, messages.H7422, ""},
 		{"bilinmeyen alan", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `{`, `{"yol": "../../x", `, 1)) }, messages.H7423, "unknown field"},
 		{"başka adım", "digest.json", func(b []byte) []byte { return []byte(strings.Replace(string(b), `"step": 2`, `"step": 3`, 1)) }, messages.H7424, ""},
 		{"büyük özet", "digest.json", func(b []byte) []byte { return append(b, make([]byte, 70<<10)...) }, messages.H6600, "digest.json çok büyük"},
