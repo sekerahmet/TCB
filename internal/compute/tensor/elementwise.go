@@ -91,7 +91,7 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	outShape := broadcastShapes(a.shape, b.shape)
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	out := emptyOf(binopOp[op], be, outShape, dt)
-	be.Binary(op, out.storage, outShape, a.view(), b.view())
+	gateBinary(be, op, out.storage, outShape, a.view(), b.view())
 	// Geri yayılımın okuduğu girdiler (verileri çizgede yalnızca bunlar için tutulur):
 	// toplama/çıkarma hiçbirini, çarpma ikisini, bölme paydayı (ve paydanın gradyanı
 	// için çıktıyı) okur.
@@ -129,17 +129,17 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 			}
 		case OpMul:
 			if an.wants() && !writeBinaryGrad(an, o, OpMul, bv) {
-				be.BinaryGrad(GradMul, an.accGrad(), an.shape, sh, g, bv, nil)
+				gateBinaryGrad(be, GradMul, an.accGrad(), an.shape, sh, g, bv, nil)
 			}
 			if bn.wants() && !writeBinaryGrad(bn, o, OpMul, av) {
-				be.BinaryGrad(GradMul, bn.accGrad(), bn.shape, sh, g, av, nil)
+				gateBinaryGrad(be, GradMul, bn.accGrad(), bn.shape, sh, g, av, nil)
 			}
 		case OpDiv:
 			if an.wants() && !writeBinaryGrad(an, o, OpDiv, bv) {
-				be.BinaryGrad(GradDiv, an.accGrad(), an.shape, sh, g, bv, nil)
+				gateBinaryGrad(be, GradDiv, an.accGrad(), an.shape, sh, g, bv, nil)
 			}
 			if bn.wants() {
-				be.BinaryGrad(GradDivB, bn.accGrad(), bn.shape, sh, g, bv, os)
+				gateBinaryGrad(be, GradDivB, bn.accGrad(), bn.shape, sh, g, bv, os)
 			}
 		}
 	}, save...)
@@ -155,17 +155,17 @@ func passBinaryGrad(t, out *node, m GradMode, take bool) {
 	be, g := t.be, out.grad
 	switch {
 	case !sameShape(t.shape, out.shape):
-		be.BinaryGrad(m, t.accGrad(), t.shape, out.shape, g, View{}, nil)
+		gateBinaryGrad(be, m, t.accGrad(), t.shape, out.shape, g, View{}, nil)
 	case t.grad != nil:
-		be.AddTo(t.grad, g, gradSign(m))
+		gateAddTo(be, t.grad, g, gradSign(m))
 	case take && m == GradPlus && g.DType() == t.gradDType():
 		t.grad = g
 		out.grad = nil
 	case m == GradPlus:
 		c, _ := t.freshGrad(true)
-		be.Copy(c, 0, out.gradView())
+		gateCopy(be, c, 0, out.gradView())
 	default:
-		be.AddTo(t.accGrad(), g, gradSign(m))
+		gateAddTo(be, t.accGrad(), g, gradSign(m))
 	}
 }
 
@@ -178,7 +178,7 @@ func writeBinaryGrad(t, out *node, op BinOp, o View) bool {
 		return false
 	}
 	c, _ := t.freshGrad(true)
-	t.be.Binary(op, c, out.shape, out.gradView(), o)
+	gateBinary(t.be, op, c, out.shape, out.gradView(), o)
 	return true
 }
 
@@ -236,7 +236,7 @@ func unary(t *Tensor, op UnOp, p float32) *Tensor {
 	}
 	sy := counterStart(t.be, OpKindExp+OpKind(op)).start()
 	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
-	t.be.Unary(op, p, out.storage, t.view())
+	gateUnary(t.be, op, p, out.storage, t.view())
 	var save []*Tensor
 	tv, os := t.shapeView(), Storage(nil)
 	switch {
@@ -254,10 +254,10 @@ func unary(t *Tensor, op UnOp, p float32) *Tensor {
 		}
 		us, writer := in.be.(UnaryGradSetter)
 		if gx, fresh := in.freshGrad(writer); fresh {
-			us.UnaryGradSet(op, p, gx, o.grad, tv, os)
+			gateUnaryGradSet(us, op, p, gx, o.grad, tv, os)
 			return
 		}
-		in.be.UnaryGrad(op, p, in.accGrad(), o.grad, tv, os)
+		gateUnaryGrad(in.be, op, p, in.accGrad(), o.grad, tv, os)
 	}, save...)
 	sy.finish()
 	return r

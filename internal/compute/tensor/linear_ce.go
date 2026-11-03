@@ -78,15 +78,15 @@ func LinearCrossEntropyChunked(x, w *Tensor, targets []int, chunk int) *Tensor {
 		xc := View{S: xv.S, Offset: xv.Offset + r0*D, Shape: []int{n, D}, Strides: []int{D, 1}}
 		logits := allocUninit(be, n*C, dt)
 		if writer {
-			gs.GemmSet(1, n, C, D, xc, false, wv, false, logits)
+			gateGemmSet(gs, 1, n, C, D, xc, false, wv, false, logits)
 		} else {
-			be.Fill(logits, 0)
-			be.Gemm(1, n, C, D, xc, false, wv, false, logits)
+			gateFill(be, logits, 0)
+			gateGemm(be, 1, n, C, D, xc, false, wv, false, logits)
 		}
 		lv := DenseView(logits, []int{n, C})
-		lc, lse := be.CrossEntropy(lv, tg, C)
+		lc, lse := gateCrossEntropy(be, lv, tg, C)
 		share := float32(vc) / float32(valid)
-		be.AddTo(loss, lc, share) // dilimin ortalaması × geçerli payı
+		gateAddTo(be, loss, lc, share) // dilimin ortalaması × geçerli payı
 		giveBack(be, lc)
 		if wantX || wantW {
 			linearCEChunkGrad(be, lv, lse, tg, share, xc, wv, gx, gw, r0, D, C, writer)
@@ -139,10 +139,10 @@ func linearCEChunkGrad(be Backend, lv View, lse Storage, tg []int, share float32
 	seed := scalarStorage(be, share)
 	dl := allocUninit(be, n*C, lv.DType())
 	if cs, ok := be.(CrossEntropyGradSetter); ok {
-		cs.CrossEntropyGradSet(dl, seed, lv, lse, tg, C)
+		gateCrossEntropyGradSet(cs, dl, seed, lv, lse, tg, C)
 	} else {
-		be.Fill(dl, 0)
-		be.CrossEntropyGrad(dl, seed, lv, lse, tg, C)
+		gateFill(be, dl, 0)
+		gateCrossEntropyGrad(be, dl, seed, lv, lse, tg, C)
 	}
 	giveBack(be, seed)
 	dv := DenseView(dl, []int{n, C})
@@ -150,17 +150,17 @@ func linearCEChunkGrad(be Backend, lv View, lse Storage, tg []int, share float32
 		// dX (n×D) = dL (n×C) · Wᵀ
 		part := allocUninit(be, n*D, gx.DType())
 		if gs, ok := be.(GemmSetter); ok && writer {
-			gs.GemmSet(1, n, D, C, dv, false, wv, true, part)
+			gateGemmSet(gs, 1, n, D, C, dv, false, wv, true, part)
 		} else {
-			be.Fill(part, 0)
-			be.Gemm(1, n, D, C, dv, false, wv, true, part)
+			gateFill(be, part, 0)
+			gateGemm(be, 1, n, D, C, dv, false, wv, true, part)
 		}
-		be.Copy(gx, r0*D, DenseView(part, []int{n, D}))
+		gateCopy(be, gx, r0*D, DenseView(part, []int{n, D}))
 		giveBack(be, part)
 	}
 	if gw != nil {
 		// dW (D×C) += Xᵀ (D×n) · dL (n×C)
-		be.Gemm(1, D, C, n, xc, true, dv, false, gw)
+		gateGemm(be, 1, D, C, n, xc, true, dv, false, gw)
 	}
 	giveBack(be, dl)
 }
@@ -179,12 +179,12 @@ func scaledAdd(be Backend, n *node, s, g Storage) {
 	shape := n.shape
 	gv := View{S: g, Shape: []int{}, Strides: []int{}}
 	if c, fresh := n.freshGrad(true); fresh {
-		be.Binary(OpMul, c, shape, DenseView(s, shape), gv)
+		gateBinary(be, OpMul, c, shape, DenseView(s, shape), gv)
 		return
 	}
 	tmp := allocUninit(be, NumelOf(shape), n.gradDType())
-	be.Binary(OpMul, tmp, shape, DenseView(s, shape), gv)
-	be.AddTo(n.accGrad(), tmp, 1)
+	gateBinary(be, OpMul, tmp, shape, DenseView(s, shape), gv)
+	gateAddTo(be, n.accGrad(), tmp, 1)
 	giveBack(be, tmp)
 }
 
@@ -195,6 +195,6 @@ func zeroRows(be Backend, gx Storage, r0, n, D int) {
 		return
 	}
 	z := be.Alloc(n*D, gx.DType())
-	be.Copy(gx, r0*D, DenseView(z, []int{n, D}))
+	gateCopy(be, gx, r0*D, DenseView(z, []int{n, D}))
 	giveBack(be, z)
 }

@@ -135,7 +135,7 @@ func runFused(be Backend, n *FuseNode, out Storage, ins []View, add bool) {
 	if !ok {
 		panic(messages.Internal("backend cannot run fused programs"))
 	}
-	f.RunFused(n, out, ins, add)
+	gateRunFused(f, n, out, ins, add)
 }
 
 // Run programı gerçek girdilerle yürütür: her çıktı tek geçişte hesaplanır. Türevli kipte ve

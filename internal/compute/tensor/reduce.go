@@ -47,11 +47,11 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 		}
 	}
 	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
-	t.be.Sum(out.storage, t.view(), axis, scale)
+	gateSum(t.be, out.storage, t.view(), axis, scale)
 	kd := reducedShape(t.shape, axis, true)
 	r := track(out, op, []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
-		in.be.ExpandAdd(in.accGrad(), in.shape, o.grad, kd, scale)
+		gateExpandAdd(in.be, in.accGrad(), in.shape, o.grad, kd, scale)
 	})
 	sy.finish()
 	return r
@@ -76,10 +76,10 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 		scale = 1 / float32(n)
 	}
 	out := zerosOf(isReduce, t.be, nil, t.dtyp)
-	t.be.SumAll(out.storage, t.view(), scale)
+	gateSumAll(t.be, out.storage, t.view(), scale)
 	r := track(out, op, []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
-		in.be.ExpandAdd(in.accGrad(), in.shape, o.grad, nil, scale)
+		gateExpandAdd(in.be, in.accGrad(), in.shape, o.grad, nil, scale)
 	})
 	sy.finish()
 	return r
@@ -94,11 +94,11 @@ func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
 		panic(messages.New(messages.H3065))
 	}
 	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
-	t.be.Max(out.storage, t.view(), axis)
+	gateMax(t.be, out.storage, t.view(), axis)
 	tv := t.view()
 	r := track(out, "max", []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
-		in.be.MaxGrad(in.accGrad(), o.grad, tv, axis)
+		gateMaxGrad(in.be, in.accGrad(), o.grad, tv, axis)
 	}, t)
 	sy.finish()
 	return r
@@ -108,7 +108,7 @@ func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
 // Sonuç, eksen çıkarılmış şeklin bitişik düzenindedir.
 func (t *Tensor) ArgMax(axis int) []int {
 	sy := counterStart(t.be, OpKindArgMax).start()
-	idx := t.be.ArgMax(t.view(), normAxis(axis, len(t.shape)))
+	idx := gateArgMax(t.be, t.view(), normAxis(axis, len(t.shape)))
 	sy.finish()
 	return idx
 }
@@ -128,7 +128,7 @@ func (t *Tensor) softmaxImpl(axis int, logMode bool) *Tensor {
 	sy := counterStart(t.be, is).start()
 	axis = normAxis(axis, len(t.shape))
 	out := emptyOf(isSoftmaxOp, t.be, t.shape, t.dtyp)
-	t.be.Softmax(out.storage, t.view(), axis, logMode)
+	gateSoftmax(t.be, out.storage, t.view(), axis, logMode)
 	op := "softmax"
 	if logMode {
 		op = "log_softmax"
@@ -136,7 +136,7 @@ func (t *Tensor) softmaxImpl(axis int, logMode bool) *Tensor {
 	os := out.storage
 	r := track(out, op, []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
-		in.be.SoftmaxGrad(in.accGrad(), o.grad, os, in.shape, axis, logMode)
+		gateSoftmaxGrad(in.be, in.accGrad(), o.grad, os, in.shape, axis, logMode)
 	}, out)
 	sy.finish()
 	return r

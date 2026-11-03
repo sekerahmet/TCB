@@ -61,11 +61,11 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 	// Girdiler float32 bir tampona eklenir; 16 bitlik çıktıda tek kez yuvarlanır. Tampon -0
 	// ile başlar: -0 + x her x için (-0 dahil) x'tir, girdilerin işaretli sıfırları korunur.
 	buffer := allocUninit(be, allocSizeOn(be, isConcat, outShape, Float32), Float32)
-	be.Fill(buffer, float32(math.Copysign(0, -1)))
+	gateFill(be, buffer, float32(math.Copysign(0, -1)))
 	offset := 0
 	for _, t := range ts {
 		if t.Numel() > 0 {
-			be.ScatterAdd(buffer, offset*ost[axis], ost, t.denseStorage(), t.shape)
+			gateScatterAdd(be, buffer, offset*ost[axis], ost, t.denseStorage(), t.shape)
 		}
 		offset += t.shape[axis]
 	}
@@ -74,7 +74,7 @@ func Concat(ts []*Tensor, axis int) *Tensor {
 		out = fromStorage(be, buffer, outShape)
 	} else {
 		out = emptyOf(isConcat, be, outShape, dt)
-		be.Copy(out.storage, 0, View{S: buffer, Shape: outShape, Strides: ost})
+		gateCopy(be, out.storage, 0, View{S: buffer, Shape: outShape, Strides: ost})
 		giveBack(be, buffer)
 	}
 	lens := make([]int, len(ts)) // girdilerin eksendeki uzunlukları (girdiler tutulmaz)
@@ -104,13 +104,13 @@ func concatBackward(be Backend, lens, ost []int, axis int) func(o *node) {
 			g := View{S: o.grad, Offset: begin, Shape: t.shape, Strides: ost}
 			if t.grad == nil {
 				s := allocUninit(be, t.Numel(), t.gradDType())
-				be.Copy(s, 0, g)
+				gateCopy(be, s, 0, g)
 				t.grad = s
 				continue
 			}
 			s := allocUninit(be, t.Numel(), o.grad.DType())
-			be.Copy(s, 0, g)
-			be.AddTo(t.grad, s, 1)
+			gateCopy(be, s, 0, g)
+			gateAddTo(be, t.grad, s, 1)
 			giveBack(be, s)
 		}
 	}
@@ -141,7 +141,7 @@ func concatTyped(be Backend, ts []*Tensor, axis int, outShape, ost []int) *Tenso
 			panic(PrecisionError(t.dtyp, be.Device()))
 		}
 		if t.Numel() > 0 {
-			be.CopyStrided(View{S: out.storage, Offset: offset * ost[axis], Shape: t.shape, Strides: ost}, t.view())
+			gateCopyStrided(be, View{S: out.storage, Offset: offset * ost[axis], Shape: t.shape, Strides: ost}, t.view())
 		}
 		offset += t.shape[axis]
 	}

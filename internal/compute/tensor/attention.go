@@ -161,7 +161,7 @@ func seqMajorNative(be Backend, q, k, v *Tensor, mask bool, p AttentionParams) b
 		return View{S: t.storage, Shape: t.shape, Strides: ContiguousStrides(t.shape)}
 	}
 	p.SeqMajor = true
-	return a.AttentionSeqMajor(view(q), view(k), view(v), mask, p)
+	return gateAttentionSeqMajor(a, view(q), view(k), view(v), mask, p)
 }
 
 // swapHeadAxis T ile bakış eksenlerini (sondan üçüncü ve ikinci) değiştiren eksen sırası
@@ -198,7 +198,7 @@ func attend(be Backend, q, k, v *Tensor, opt AttentionOptions, outType DType, p 
 	rq, rk, rv := copyRelease(q, qv), copyRelease(k, kv), copyRelease(v, vv)
 	release := func() { rq(); rk(); rv(); rm() }
 	out := emptyOf(isAttention, be, outShape, outType)
-	lse := be.Attention(out.storage, qv, kv, vv, maskVal, p)
+	lse := gateAttention(be, out.storage, qv, kv, vv, maskVal, p)
 	os := out.storage
 	r := track(out, "attention", []*Tensor{q, k, v}, func(o *node) {
 		defer release()
@@ -211,10 +211,10 @@ func attend(be Backend, q, k, v *Tensor, opt AttentionOptions, outType DType, p 
 			}
 		}
 		if writer {
-			as.AttentionGradSet(g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p, fresh)
+			gateAttentionGradSet(as, g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p, fresh)
 			return
 		}
-		be.AttentionGrad(g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p)
+		gateAttentionGrad(be, g[0], g[1], g[2], o.grad, qv, kv, vv, maskVal, os, lse, p)
 		// Geri yön ileri çıktıyı da okur (D = Σ dO·O): çıktı yerinde değişirse sürüm
 		// denetimi yakalar.
 	}, q, k, v, out, savedMask(opt.Mask, maskVal))
@@ -295,7 +295,7 @@ func prepareMask(be Backend, m *Tensor, whole []int, p *AttentionParams) Storage
 	s, base := m.storage, m.offset
 	if m.dtyp != Float32 || !m.IsContiguous() {
 		s, base = allocUninit(be, m.Numel(), Float32), 0
-		be.Copy(s, 0, m.view())
+		gateCopy(be, s, 0, m.view())
 	}
 	st := BroadcastStrides(ContiguousStrides(m.shape), m.shape, whole)
 	n := len(whole)

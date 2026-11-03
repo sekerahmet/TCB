@@ -81,7 +81,7 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	}
 	sy := counterStart(t.be, OpKindCast).start()
 	out := emptyOf(isCast, t.be, t.shape, dt)
-	t.be.Copy(out.storage, 0, t.view())
+	gateCopy(t.be, out.storage, 0, t.view())
 	r := trackPass(out, "cast", t, func(o *node) { handOffGrad(o.parents[0], o) })
 	sy.finish()
 	return r

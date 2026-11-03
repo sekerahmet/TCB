@@ -53,7 +53,7 @@ func (a *masterWeights) target(k int, p *Tensor) Storage {
 		if a.master[k] == nil {
 			a.master[k] = p.be.Alloc(p.Numel(), Float32)
 		}
-		p.be.Copy(a.master[k], 0, p.view())
+		gateCopy(p.be, a.master[k], 0, p.view())
 	}
 	return a.master[k]
 }
@@ -62,7 +62,7 @@ func (a *masterWeights) target(k int, p *Tensor) Storage {
 // parametrenin sürümünü artırır (yerinde değişiklik).
 func (a *masterWeights) write(k int, p *Tensor, h Storage) {
 	if h != p.storage {
-		p.be.Copy(p.storage, 0, View{S: h, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
+		gateCopy(p.be, p.storage, 0, View{S: h, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
 	}
 	p.storage.BumpVersion()
 	a.version[k] = p.storage.Version()
@@ -116,7 +116,7 @@ func (o *SGD) Step() {
 		}
 		if sorted {
 			h := o.master.target(k, p)
-			p.be.SGDStep(h, p.gradStorage(), o.speed[k], o.LR, o.Momentum, o.WeightDecay)
+			gateSGDStep(p.be, h, p.gradStorage(), o.speed[k], o.LR, o.Momentum, o.WeightDecay)
 			o.master.write(k, p, h)
 			continue
 		}
@@ -124,9 +124,9 @@ func (o *SGD) Step() {
 	}
 	multiApply(steps, func(be MultiTensorOps, a []goodStep) {
 		h, g, v := a[0].cols(a)
-		be.SGDStepAll(h, g, v, o.LR, o.Momentum, o.WeightDecay)
+		gateSGDStepAll(be, h, g, v, o.LR, o.Momentum, o.WeightDecay)
 	}, func(a goodStep) {
-		a.p.be.SGDStep(a.h, a.p.gradStorage(), a.m, o.LR, o.Momentum, o.WeightDecay)
+		gateSGDStep(a.p.be, a.h, a.p.gradStorage(), a.m, o.LR, o.Momentum, o.WeightDecay)
 	})
 	for _, a := range steps {
 		o.master.write(a.k, a.p, a.h)
@@ -262,7 +262,7 @@ func (o *AdamW) Step() {
 			bc1: float32(1 - math.Pow(float64(o.Beta1), t)), bc2: float32(1 - math.Pow(float64(o.Beta2), t))}
 		a.h = o.master.target(k, p)
 		if sorted {
-			p.be.AdamWStep(a.h, p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
+			gateAdamWStep(p.be, a.h, p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
 			o.master.write(k, p, a.h)
 			continue
 		}
@@ -274,9 +274,9 @@ func (o *AdamW) Step() {
 		for i, x := range a {
 			v[i], bc1[i], bc2[i] = x.v, x.bc1, x.bc2
 		}
-		be.AdamWStepAll(h, g, m, v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, bc1, bc2)
+		gateAdamWStepAll(be, h, g, m, v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, bc1, bc2)
 	}, func(a goodStep) {
-		a.p.be.AdamWStep(a.h, a.p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
+		gateAdamWStep(a.p.be, a.h, a.p.gradStorage(), a.m, a.v, o.LR, o.Beta1, o.Beta2, o.Eps, o.WeightDecay, a.bc1, a.bc2)
 	})
 	for _, a := range steps {
 		o.master.write(a.k, a.p, a.h)
@@ -308,8 +308,8 @@ func ClipGradNorm(params []*Tensor, maxNorm float64) float64 {
 		k := float32(maxNorm / norm)
 		multiApply(steps, func(be MultiTensorOps, a []goodStep) {
 			_, g, _ := a[0].cols(a)
-			be.ScaleAll(g, k)
-		}, func(a goodStep) { a.p.be.Scale(a.p.gradStorage(), k) })
+			gateScaleAll(be, g, k)
+		}, func(a goodStep) { gateScale(a.p.be, a.p.gradStorage(), k) })
 	}
 	// Kırpma gradyanları yerinde yazar sayılır (PyTorch clip_grad_norm_ ölçek 1 olsa da
 	// gradyanı yerinde çarpar ve sürümü artırır); GPU yolu ölçeği cihazda seçtiği için aynı
@@ -353,7 +353,7 @@ func ClipGradNormTensor(params []*Tensor, maxNorm float64) *Tensor {
 	}
 	if gc, ok := be.(GradClipper); ok && single {
 		sy := counterStart(be, OpKindClipGrad).start()
-		norm, ok := gc.ClipGradAll(grads, float32(maxNorm))
+		norm, ok := gateClipGradAll(gc, grads, float32(maxNorm))
 		sy.finish()
 		if ok {
 			if !math.IsInf(maxNorm, 1) { // sınırsız yoklama gradyanlara dokunmaz (ClipGradNorm)
@@ -397,7 +397,7 @@ func gradSquareSum(params []*Tensor) float64 {
 		}
 		ss, ok := p.be.(SquareSummer)
 		if !ok {
-			s += p.be.SumSquares(p.gradStorage())
+			s += gateSumSquares(p.be, p.gradStorage())
 			i++
 			continue
 		}
@@ -407,7 +407,7 @@ func gradSquareSum(params []*Tensor) float64 {
 				group = append(group, params[i].gradStorage())
 			}
 		}
-		s += ss.SumSquaresAll(group)
+		s += gateSumSquaresAll(ss, group)
 	}
 	return s
 }
@@ -441,7 +441,7 @@ func stateTensor(p *Tensor, s Storage, dup bool) *Tensor {
 // stateCopy depolamanın bitişik float32 kopyasını tensör olarak verir.
 func stateCopy(p *Tensor, s Storage) *Tensor {
 	c := p.be.Alloc(s.Len(), s.DType())
-	p.be.Copy(c, 0, View{S: s, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
+	gateCopy(p.be, c, 0, View{S: s, Shape: p.shape, Strides: ContiguousStrides(p.shape)})
 	return fromStorage(p.be, c, p.shape)
 }
 

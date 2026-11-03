@@ -350,15 +350,15 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 	g := root.accGrad()
 	if seed == nil {
 		one := t.be.Alloc(t.Numel(), g.DType())
-		t.be.Fill(one, 1)
-		t.be.AddTo(g, one, 1)
+		gateFill(t.be, one, 1)
+		gateAddTo(t.be, g, one, 1)
 		giveBack(t.be, one)
 	} else {
 		if !sameShape(seed.shape, t.shape) {
 			panic(messages.New(messages.H3016, seed.shape, t.shape))
 		}
 		sameDevice("BackwardWith", t, seed)
-		t.be.AddTo(g, seed.denseStorage(), 1)
+		gateAddTo(t.be, g, seed.denseStorage(), 1)
 	}
 
 	// order sonradan-sıralıdır (kök en sonda); tersten gezmek her düğümü,
@@ -394,7 +394,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 // giveBack arka uç destekliyorsa depolamayı iade eder.
 func giveBack(be Backend, s Storage) {
 	if r, ok := be.(Releaser); ok {
-		r.Release(s)
+		gateRelease(r, s)
 	}
 }
 
