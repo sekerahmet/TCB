@@ -879,6 +879,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar (E, Ö3; T1 Kol B teslim 2b):** H6994'ün önerisi `.TR_fill` yokken `p[0..p.TR_shape[0]] = ana`; `.TR_fill` gelince `p.TR_fill(ana)` olur (15.6d).
 - **Yapılacaklar (F1, Ö3; DENETİM istek 84 Ş4):** H6994'ün önerisi (`p[0..p.TR_shape[0]] = ana`) 0 boyutlu parametrede "Liste indeksi sınır dışı" veriyor; öneri boyuttan bağımsız yazılmalı. Kitaplığın `TR_Muon`'unda uyarı `tr/optimizers.tr` satır 97'yi gösterip kullanıcıya ana kopya tutmasını söylüyor; kullanıcı orayı değiştiremez, ileti "parametreyi float32 kurun" demeli.
 - **Yapılacaklar (F, Ö3; T1 Kol B teslim 2c):** iyileştiricinin iki iletisi parametrenin sırasını farklı sayıyor: H6920 0'dan, H6995 1'den. İkisi de 1'den saymalı.
+- **Yapılacaklar (F, Ö3; DENETİM istek 85 N1):** kitaplığın iyileştiricisinde (`TR_Muon` vb.) H6995 kullanıcının satırını değil `tr/optimizers.tr`'nin 118. satırını gösteriyor.
+- **Yapılacaklar (F1, Ö3; DENETİM istek 85 N2):** ara sonuç (yaprak olmayan tensör) kitaplığın `TR_Muon`'unda H6995, Go'daki `TR_SGD`'de H6514 veriyor; iki yol aynı durumu farklı kodla anlatıyor.
+- **Yapılacaklar (F, Ö3; DENETİM istek 85 N3):** teslim 2c'de `typed_code_known.txt` kaymasın diye ilgisiz bir yorum tek satıra birleştirildi; liste anahtarı düzelince ("Denetim katmanlarının gözden geçirmesi") geri açılır.
 - **Açık (Sonraya):** aynı yapıya eklenen LoRA alanları için `TR_load_parameters`'ın kesin kuralı; bugün yol alt yapıya yüklemek (`TR_load_parameters(model.gövde, ...)`).
 
 ### 15.36
