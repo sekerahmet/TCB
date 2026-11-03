@@ -10,7 +10,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 - **A, sessiz yanlış:** program hata vermeden yanlış sonuç, yanlış veri ya da yanlış gradyan veriyor; diskteki veriyi sessizce kaybediyor ya da bozuyor; ya da bir test bu yanlışı doğru diye sabitliyor.
 - **B, güvenlik:** dış girdi (kullanıcı metni, dosya, yol) programın davranışını değiştirebiliyor.
 - **C, güvenilirlik:** aynı program aynı veriyle farklı sonuç veriyor (makineye, iş parçacığı sayısına, test sırasına göre); kesilen iş aynı sürmüyor; program asılı kalıyor.
-- **D, geç hata:** yanlış program denetimden geçiyor, çalışırken açık hata veriyor.
+- **D, geç hata:** yanlış program denetimden geçiyor; çalışırken açık hata veriyor ya da hatasız çalışıp doğru sonuç veriyor (A için çıktı dil tanımına göre yanlış olmalı).
 - **F1, yanlış öğreten ileti:** iletinin önerisi kopyalanınca yanlış çalışıyor ya da yanlış kuralı öğretiyor (ör. `d[1]`'de `.TR_get(1) ?? varsayılan`). D'nin yanında.
 - **E, eksik özellik:** kural var, motorda yok, açık hatayla.
 - **F, okunurluk:** ileti doğru ama eksik ya da belirsiz.
@@ -26,7 +26,9 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. FMA'sız yol (C) bu dilime girmez.
 3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce.
 
-**Ö1, dilimlerin kesin listeleri:** 4a4: 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1'in dilimi: 8.5'in işletim sistemi hatası. Kol B: 20.11, 15.27a, 15.33, 15.45.
+**Ö1, dilimlerin kesin listeleri:** 4a4: 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5. 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1'in dilimi: 8.5'in işletim sistemi hatası. Kol B: 20.11, 15.27a, 15.33, 15.45.
+
+**Gemini'nin bağımsız taraması** (DENETİM istek 63–67; taban `30b44b01`): teslim 1 (bölüm 1–5) DENETİM'den geçti, üç yeni A (1.2, 3.13, 5.5) [ölçüldü: DENETİM istek 67]; teslim 2–6 sürüyor.
 
 **Sınır:** tarama "Yapılacaklar"ın hepsini, "Mevcut durum"dan risk sözcüğü geçen cümleleri okudu; sözcüksüz anlatılan bir sessiz yanlış kaçmış olabilir. 16.6 ve 18.9'un (kesilen yazma) sessiz olup olmadığı ölçülmedi.
 
@@ -47,7 +49,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 ### 1.2
 
 - **Mevcut durum:** denetleyici yerel değişkenin tipini ilk değerinden çıkarıyor ve tipi kalıcı (3.13): değişmezler, aritmetik ve önek işleç, karşılaştırma, adıyla çağrılan tipli fonksiyonun ve tipi bilinen yapının metodunun dönüşü, yapı kurucusu, liste ve sözlüğün öğe tipi, demet, isteğe bağlı tip (`T?`, `??`'nin asıl tipi), tipi bilinen yapının alanı ve metotta `TR_self`, değer veren `TR_if`/`TR_match` (dalların ortak tipi), liste/metin/sözlük/tensör indeksi ve dilimi, döngü değişkeni (5.7), yerleşik çağrısının tek tipli dönüşü (4a2: tanım dosyasının `returns`'ü; birleşim ve motorla doğrulanmamış dönüş `TR_Any`), tipi bilinen çekirdek alıcıda (metin, liste, sözlük, aralık) özelliğin değeri ve metodun alıcıdaki dönüşü öğe tipiyle (4a2 ikinci dilim: `[1, 2].TR_length` `TR_Int`, `.TR_first` `T?`, `{"a": 1}.TR_keys()` `TR_List[TR_String]`; 28 üye-alıcı dönüşü motorla doğrulandı [test: `TestMemberValueTypes`, `TestMemberReturnsMatchEngine`]); bilinmeyen `TR_Any` kalıyor. Depodaki programların 1893 ilk değerinden 622'sinin tipi bilinmiyor (4a1'den sonra 1115, ilk dilimden önce 1212) [ölçüldü: `TestRepoFirstValueTypes`, `TestBuiltinReturnTypes`, `TestSingleReturnsMatchEngine`]; tipsiz parametre, alan ve `->`'sız değerli dönüş denetim hatası (6.1, 7.1; kitaplığın 4c'yi bekleyen yerleri istisna), parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor [ölçüldü: `TestRepoFirstValueTypes`, `TestOptionalTypes`, `TestFieldTypes`, `TestIfAndMatchValueTypes`, `TestIndexTypes`, `TestLoopVariableTypes`, dal `claude/charming-pasteur-q1vsvo`].
-- **Yapılacaklar:** turlarla:
+- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** turlarla:
   - çıkarımın kalanı (4a2'nin ikinci dilimi): kitaplık çağrılarının ve birleşim dönüşlü yerleşiklerin dönüşü (bilinmeyen çağrı 461), imzaların öğe tipleri, tipi bilinmeyen işlenenli işleç, kapanış, çoklu tanımın (`TR_var a, b = f()`) öğe tipleri, liste üretecinin sonucu, metot ve kurucu argümanlarının denetimi, kitaplık tiplerinin tanınması;
   - `TR_none` daraltması ve isteğe bağlı değerin açılmamış kullanımı (3.5, 4b);
   - tensörün tür ve şekil bilgisinin tipe ne kadar gireceği;
@@ -149,7 +151,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 ### 3.13
 
 - **Mevcut durum:** açıklamasız yerel değişkenin tipi ilk değerinden çıkıyor ve kalıcı: başka tipte atama (`TR_var birikim = 0` sonra `birikim += 0.5`) denetim hatası (H1005); dil tanımının 3.13 hata bloğu ve TR testi bunu sınıyor. Tipi çıkarılamayan ilk değerin değişkeni `TR_Any` kalıyor (1.2) [ölçüldü: `TestAssignmentTypeCheck`, `TestCompoundAssignment`, dal `claude/hopeful-brahmagupta-miw41q`].
-- **Yapılacaklar:** çıkarımın kalanı (1.2; bu dilimde isteğe bağlı tip, alan, `TR_if`/`TR_match`, indeks ve döngü değişkeni eklendi); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu. Tam sayının ondalık beklenen yerde ondalık olmasının kalanı tip haritasını ister: kabın öğesi (`l.TR_append(1)`, `l: TR_List[TR_Float]`, `[1]` ve `TR_Int` kalıyor; `d["a"] = 1` de) [ölçüldü: DENETİM istek 27 D-5], tam sayı değişkenli değişmez (`[a, 2.5]`) ve tipi ilk değerinden çıkan değişkene atama (`TR_var t = 0.0` sonra `t = 1`). `TR_Int` tipli değişkenin `TR_Float` yerine verilmesi (`f(i)`) denetim hatası olacak, bugün geçiyor ve motor değeri ondalığa çeviriyor; denetleyicinin işi.
+- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** çıkarımın kalanı (1.2; bu dilimde isteğe bağlı tip, alan, `TR_if`/`TR_match`, indeks ve döngü değişkeni eklendi); ilk değeri `TR_none` ya da boş değişmez olan değişkende tip açıklamasının zorunluluğu. Tam sayının ondalık beklenen yerde ondalık olmasının kalanı tip haritasını ister: kabın öğesi (`l.TR_append(1)`, `l: TR_List[TR_Float]`, `[1]` ve `TR_Int` kalıyor; `d["a"] = 1` de) [ölçüldü: DENETİM istek 27 D-5], tam sayı değişkenli değişmez (`[a, 2.5]`) ve tipi ilk değerinden çıkan değişkene atama (`TR_var t = 0.0` sonra `t = 1`). `TR_Int` tipli değişkenin `TR_Float` yerine verilmesi (`f(i)`) denetim hatası olacak, bugün geçiyor ve motor değeri ondalığa çeviriyor; denetleyicinin işi.
 - **Mevcut durum (D1 dilim 3, 2026-11-02):** tipi açıkça `TR_Float` (ya da `TR_Float?`) yazılmış yerde tam sayı ondalık kuruluyor: bildirim (`TR_var r: TR_Float = 1` → `TR_Type(r)` `TR_Float`, metni "1.0"), parametre (argüman ve varsayılan, çağrılanın girişinde; `TR_Int` değişkenin değeri de), dönüş, yapı alanı ve bunlara sonradan atama (`r = 2`). Açıklamasız `TR_var i = 1` `TR_Int` kalıyor [test: `TestAFloatPlaceMakesAnIntegerDecimal`, `tests/tipler_test.tr`'nin "3.13 tam sayı yazımı TR_Float beklenen yerde ondalıktır" testi].
 - **Geri alınabilir göç (T1 dilim 2, bulgu 2):** T1, 3.13 yokken `TR_Float` parametresine tam sayı veren yerleri ondalık yazıma çevirdi (`p(n)` → `p(n.0)`): `tests/tensor_test.tr` "15.33 parametreler" testi ve `internal/stdlib/ml/model_tools_test.go`'nun `TestParameters`'ı. 3.13 main'de olduğuna göre bu yerler tam sayı yazımına dönebilir.
 
@@ -212,7 +214,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 ### 5.5
 
 - **Mevcut durum:** değer veren `TR_if`'in `TR_else`'i zorunlu (sözdizimi hatası); Python'un koşullu ifadesinin iletisi `TR_if c { a } TR_else { b }`'yi öneriyor; `TR_elif` iletisi `TR_else TR_if`'i öneriyor ama ardından ikinci, yanıltıcı bir sözdizimi hatası ("':' bekleniyordu") geliyor; dalların tipi denetlenmiyor: `TR_if n < 0 { "a" } TR_else { 5 }` denetimden geçiyor [ölçüldü: main `85a19c36`, dört küçük program; denetim ve çalıştırma]. Koşulun `TR_Bool` olması tipi bilinen koşulda denetim hatası (H2600, 3.10): `TR_if n { }` (n `TR_Int`) denetimden geçmiyor [ölçüldü: main `85a19c36`; `TestConditionMustBeBool`].
-- **Yapılacaklar:** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
+- **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** ifade olarak kullanılınca dalların tipi aynı değilse denetim hatası; `TR_elif`'e tek ileti (ayrıştırıcının toparlanması); denetleyicinin testi.
 
 ### 5.6
 
