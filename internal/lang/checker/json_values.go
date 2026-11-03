@@ -85,6 +85,42 @@ func (c *Checker) notJSON(value ast.Expression, t string) (ast.Expression, strin
 	return nil, ""
 }
 
+// checkJSONLiteral beklenen tipi TR_JSON olan liste ya da sözlük değişmezinin öğelerini denetler
+// (3.7a "Kurmak"), iç içe değişmezlerinkini de, her değişmezi bir kez. Değişmez olmayan liste ya da
+// sözlük (l, n.alan, f()) JSON değeri olarak kurulmaz: H1133 kopyasını çevirmeyi önerir
+// ({"a": TR_JSON(l)}). JSON'a giremeyen, tipi bilinen öğe (tensör, demet, yapı; öğesi giremeyen
+// liste) çalışma anındaki hatanın kendisidir (H2654); TR_JSON(t) de onu verdiği için önerisi yoktur.
+func (c *Checker) checkJSONLiteral(value ast.Expression) {
+	if c.jsonLiterals == nil {
+		c.jsonLiterals = map[ast.Expression]bool{}
+	}
+	if c.jsonLiterals[value] {
+		return
+	}
+	c.jsonLiterals[value] = true
+	var items []ast.Expression
+	switch v := value.(type) {
+	case *ast.ListLiteral:
+		items = v.Elements
+	case *ast.DictLiteral:
+		for _, p := range v.Pairs {
+			items = append(items, p.Value)
+		}
+	}
+	for _, el := range items {
+		t := c.itemTypes[el]
+		switch base := normalizeTypeName(baseType(requiredType(t))); {
+		case literalValue(el) && shapeOf(t).elems == nil:
+			c.checkJSONLiteral(el)
+		case !c.jsonKind(t):
+			c.addErrorAt(el, messages.New(messages.H2654, c.typeArg(t)))
+		case base == typeList || base == typeDict:
+			text, _ := c.exprText(el)
+			c.addErrorAt(el, messages.New(messages.H1133, text, c.typeArg(t)))
+		}
+	}
+}
+
 // jsonKind t tipinde bir değer JSON'a girebilir mi: JSON'un türleri, onların isteğe bağlısı ve
 // kabı; tipi bilinmeyen (TR_Any, öğe tipsiz kap, bilinmeyen ad) de girebilir sayılır.
 func (c *Checker) jsonKind(t string) bool {

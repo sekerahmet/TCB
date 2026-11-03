@@ -133,6 +133,7 @@ func (c *Checker) assignable(expected, actual string, value ast.Expression) bool
 		return false // açılmamış isteğe bağlı değer (3.5, optional_values.go)
 	}
 	if jsonLiteral(expected, value) {
+		c.checkJSONLiteral(value) // 3.7a: öğeleri JSON değeri olarak kurulur (json_values.go)
 		return true
 	}
 	return compat{isStruct: c.knownStruct, literal: literalValue(value)}.types(expected, actual)

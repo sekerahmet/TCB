@@ -90,6 +90,8 @@ type Checker struct {
 	valueTypes map[ast.Expression]string
 	// itemTypes liste, sözlük ve demet değişmezlerinin öğelerinin çıkarılan tipleridir (optional_values.go).
 	itemTypes map[ast.Expression]string
+	// jsonLiterals öğeleri denetlenmiş, TR_JSON beklenen değişmezlerdir (json_values.go).
+	jsonLiterals map[ast.Expression]bool
 	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
 	// için (local_types.go).
 	structs map[string]*ast.StructStatement
@@ -165,7 +167,7 @@ func (c *Checker) CheckProgram(prog *ast.Program) []string {
 func (c *Checker) check(prog *ast.Program) {
 	start := len(c.errors)
 	c.valueTypes = nil
-	c.itemTypes = map[ast.Expression]string{}
+	c.itemTypes, c.jsonLiterals = map[ast.Expression]string{}, nil
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
 	for _, stmt := range prog.Statements {

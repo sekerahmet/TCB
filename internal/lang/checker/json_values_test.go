@@ -1,9 +1,12 @@
 package checker
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // Kural (3.7a "Kurmak", "Okumak", "Açmak"): TR_json_parse(m), TR_JSON(x), j["k"] ve j[i] TR_JSON;
@@ -53,4 +56,46 @@ func TestJSONConversionKinds(t *testing.T) {
 	noErrors(t, "TR_var l = [1, 2]\nTR_var a = TR_JSON(l)\nTR_var b = TR_JSON({\"x\": [1, TR_none], \"y\": TR_true, \"z\": 2.5})")
 	noErrors(t, "TR_var j = TR_JSON(TR_json_parse(\"1\"))\nTR_var k = TR_JSON([j, \"a\"])\nTR_var o: TR_Int? = TR_none\nTR_var m = TR_JSON(o)")
 	noErrors(t, "TR_var u = TR_JSON("+unknownValue+")\nTR_var v = TR_JSON([1, "+unknownValue+"])\nTR_var karışık = [1, {1: 2}]\nTR_var w = TR_JSON(karışık)")
+}
+
+// Kural (3.7a "Kurmak"): beklenen tipi TR_JSON olan değişmezin içinde değişmez olmayan liste ya da
+// sözlük (değişken, çağrının sonucu; iç içe değişmezde de) denetim hatasıdır, H1133: ileti kopyasını
+// çevirmeyi önerir (`TR_JSON(l)`). JSON'a giremeyen, tipi bilinen öğe (tensör) çalışma anındaki
+// hatanın kendisidir (H2654). Her JSON yerinde: tanım, dönüş, kullanıcı fonksiyonunun argümanı.
+func TestJSONLiteralItems(t *testing.T) {
+	const l = "TR_var l = [1]\n"
+	cases := []struct {
+		name, src string
+		code      messages.Code
+		line      int
+		want      string
+	}{
+		{"liste değişkeni", l + "TR_var j: TR_JSON = {\"a\": l}", messages.H1133, 2, "`TR_JSON(l)`"},
+		{"sözlük değişkeni", "TR_var d = {\"b\": 2}\nTR_var j: TR_JSON = [1, d]", messages.H1133, 2, "`TR_JSON(d)`"},
+		{"iç içe", l + "TR_var j: TR_JSON = {\"a\": [1, {\"b\": l}]}", messages.H1133, 2, "`TR_JSON(l)`"},
+		{"çağrının sonucu", "TR_var j: TR_JSON = {\"a\": \"x y\".TR_split(\" \")}", messages.H1133, 1, "`TR_JSON(\"x y\".TR_split(\" \"))`"},
+		{"dönüş", l + "TR_func f() -> TR_JSON {\n    TR_return [l]\n}", messages.H1133, 3, "`TR_JSON(l)`"},
+		{"argüman", l + "TR_func f(j: TR_JSON) { }\nf({\"a\": l})", messages.H1133, 3, "`TR_JSON(l)`"},
+		{"tensör", "TR_var t = TR_Tensor([1.0])\nTR_var j: TR_JSON = {\"a\": t}", messages.H2654, 2, "TR_Tensor"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := parser.New(lexer.NewBody(tc.src, true))
+			prog := p.ParseProgram()
+			c := New()
+			c.SetFile(ProgramFile, tc.src) // öneri ifadenin dosyadaki yazımıyla kurulur
+			c.CheckProgram(prog)
+			errs := c.Errs()
+			if len(errs) != 1 {
+				t.Fatalf("tek hata bekleniyordu, alınan %v", errs)
+			}
+			expectCode(t, errs[0], tc.code, tc.line)
+			if text := messages.ErrorIn(errs[0], "en"); !strings.Contains(text, tc.want) {
+				t.Errorf("iletide %s yok: %s", tc.want, text)
+			}
+		})
+	}
+	noErrors(t, l+"TR_var d = {\"b\": 2}\nTR_var a: TR_JSON = {\"a\": TR_JSON(l), \"b\": [1, {\"c\": TR_none}], \"d\": TR_JSON(d)}")
+	noErrors(t, l+"TR_var j: TR_JSON = TR_json_parse(\"1\")\nTR_var k: TR_JSON = [j, \"a\", 2.5]\nTR_var m = TR_JSON({\"a\": l})")
+	noErrors(t, "TR_var u = ["+unknownValue+", 1][0]\nTR_var j: TR_JSON = {\"a\": u}\nTR_var x = {\"a\": [1]}")
 }

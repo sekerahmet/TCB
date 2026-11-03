@@ -180,6 +180,7 @@
 "H1130": { "param": ["value", "given", "kind"], "slots": {"none": "TR_kw_none"} },
 "H1131": { "param": ["other", "kind", "open", "wrap"], "slots": {"JSON": "TR_type_JSON"} },
 "H1132": { "param": ["kind", "absent", "missing"], "slots": {"JSON": "TR_type_JSON", "none": "TR_kw_none"} },
+"H1133": { "param": ["value", "given"], "slots": {"JSON": "TR_type_JSON"} },
 "H1134": { "param": ["suggestion"], "slots": {"JSON": "TR_type_JSON", "Type": "TR_type_Type"} },
 "H1135": { "param": ["given", "container", "elem", "hint"] },
 "H1136": { "param": ["given", "container", "elem", "kind"] },

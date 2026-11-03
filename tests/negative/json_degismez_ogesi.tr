@@ -1,0 +1,10 @@
+# TR 4
+# TEST 3.7a TR_JSON beklenen değişmezin içinde değişmez olmayan liste ya da sözlük ve tensör denetim hatasıdır
+TR_var l = [1]
+TR_var d = {"b": 2}
+TR_var t = TR_Tensor([1.0])
+TR_var j: TR_JSON = {"a": l} # ERROR H1133
+TR_var k: TR_JSON = [1, {"c": d}] # ERROR H1133
+TR_var m: TR_JSON = {"a": t} # ERROR H2654
+TR_var n: TR_JSON = {"a": TR_JSON(l), "b": TR_JSON(d)}
+TR_print(j, k, m, n)
