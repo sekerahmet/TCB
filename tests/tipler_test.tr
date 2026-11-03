@@ -198,7 +198,9 @@ TR_test "3.6a öğeleri anahtar olabilen demet sözlük anahtarıdır" {
     TR_assert_equal("a", d[(1, 2)])
     TR_assert_equal([(1, 2), (3, 4)], d.TR_keys())
     TR_assert(d.TR_contains((3, 4)))
-    TR_assert_equal("H2773", TR_error_code { d[([1], 2)] = "c" })
+    # Tipi bilinmeyen anahtar (karışık listenin öğesi): anahtar tipi bilinen yerde H1140 denetimde (tests/negative/sozluk_anahtar_tipi.tr).
+    TR_var listeli_anahtar = [([1], 2), 1][0]
+    TR_assert_equal("H2773", TR_error_code { d[listeli_anahtar] = "c" })
 }
 
 TR_test "3.6a değerin metni (1, \"a\"), tipinin metni (Int, String)" {
@@ -258,20 +260,23 @@ TR_test "3.7 anahtar yalnız köşeli parantezle okunur ve yazılır; olmayan an
     TR_assert_equal(TR_none, d.TR_get("yok"))
     TR_assert_equal(1, d.TR_get("a"))
     TR_assert_equal(0, d.TR_get("yok") ?? 0)
-    TR_assert_equal("H2647", TR_error_code { {1: "bir"}["1"] })
+    TR_var metin_anahtar = ["1", 1][0] # tipi bilinmeyen anahtar; tipi bilinen yerde H1140 denetimde
+    TR_assert_equal("H2647", TR_error_code { {1: "bir"}[metin_anahtar] })
 }
 
 TR_test "3.7 anahtar tipi Int, String, Bool ya da Bytes'tır; ondalık ve öbür değerler anahtar olamaz" {
     TR_var d = {}
     TR_assert_equal("H2646", TR_error_code { d[1.0] = "bir" })
-    TR_assert_equal("H2646", TR_error_code { TR_var e = {0.5: "yarım"} })
+    TR_var yarım = [0.5, "a"][0] # tipi bilinmeyen anahtar; ondalık anahtar yazımı H2646 denetimde
+    TR_assert_equal("H2646", TR_error_code { TR_var e = {yarım: "yarım"} })
     TR_assert_equal("H2669", TR_error_code { d[TR_none] = 1 })
     TR_assert_equal("H2669", TR_error_code { d[(x) => x] = 1 })
     TR_assert_equal("H2670", TR_error_code { d[TR_json_parse("1")] = 1 })
     TR_assert_equal("H2646", TR_error_code { d.TR_contains(1.5) })
     # NUL ile başlayan bir metin anahtar (JSON'dan gelebilir) 1 sayısının anahtarıyla çakışmaz
     TR_var j = TR_json_parse(`{"\u0000Tam:1": "metin"}`)
-    TR_var d2 = {j.TR_keys()[0]: TR_String(j[j.TR_keys()[0]])}
+    TR_var d2 = {} # öğe tipsiz sözlük: anahtar tipi bilinen sözlükte Tam anahtar H1140 olurdu
+    d2[j.TR_keys()[0]] = TR_String(j[j.TR_keys()[0]])
     d2[1] = "sayı"
     TR_assert_equal(2, d2.TR_length)
     TR_assert_equal("sayı", d2[1])
