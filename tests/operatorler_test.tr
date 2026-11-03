@@ -189,6 +189,23 @@ TR_test "4.5 fonksiyon içeren kap da karşılaştırılamaz: kabın içinde, .T
     TR_assert([f(1)] == [1])
 }
 
+TR_test "4.5 aynı kap da öğe öğe karşılaştırılır: TR_nan tutan kap kendisine eşit değildir" {
+    TR_var f = (x: TR_Int) => x
+    TR_var l = [f]
+    TR_assert_equal("H2706", TR_error_code { TR_var z = l == l })
+    TR_var d = {"f": f}
+    TR_assert_equal("H2706", TR_error_code { TR_var z = d == d })
+    TR_var n = [1.0, TR_nan]
+    TR_assert_equal([TR_false, TR_true], [n == n, n != n])
+    TR_assert_equal(TR_false, [n].TR_contains(n))
+    TR_var s = {"a": TR_nan}
+    TR_assert_equal(TR_false, s == s)
+    TR_var dm = (1, TR_nan)
+    TR_assert_equal(TR_false, dm == dm)
+    # Kendini içeren liste ve sözlüğün H2771'i Go testindedir (TestSelfContainingContainers): böyle kap
+    # yalnız genel öğe tipiyle kurulur, depodaki TR kodunda genel tip yazılmaz.
+}
+
 TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {
     TR_var cagrildi = TR_false
     TR_func yan_etki() -> TR_Bool {

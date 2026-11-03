@@ -396,7 +396,9 @@ TR_test "20.2 düz değerler iç içe yerinde yenilenir; iç kaplara tutulan ba�
     TR_assert_equal([1, 2], kayıt)
     TR_assert_equal(1, iç["n"])
     TR_assert_equal("a", izlenen["ad"])
-    TR_assert(izlenen["kayıt"] == kayıt)
+    # bağ kopmadı: aynı liste, değişiklik iki yandan da görünür ('==' içeriği karşılaştırır, 7.6)
+    kayıt.TR_append(9)
+    TR_assert_equal([1, 2, 9], izlenen["kayıt"])
 }
 
 TR_test "20.17 paylaşılan üretecin durumu noktaya yazılır; yüklenen nokta onu geri koyar" {

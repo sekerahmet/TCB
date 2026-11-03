@@ -64,9 +64,10 @@ func (n Reason) Unwrap() error                  { return n.Message }
 // suffixes (message parts, nil skipped) are appended after the reason with "; " (e.g. "bakılan
 // yerler: ..."); like the message they are written in the language of the message. Known cases:
 // file or folder missing, permission denied, path is a folder, disk full, file in use,
-// invalid name, path too long, write-protected disk. Unknown cases get a Turkish lead
-// sentence followed by the operating system's error code and original text (so it can be
-// searched).
+// invalid name, path too long, write-protected disk. An unknown operating system error
+// gives its number only (H2628), any other unknown error none (H2629): the text of the
+// operating system or of Go never enters the value (8.5), it differs from machine to machine;
+// the original error stays reachable with Unwrap.
 //
 // Returns nil when err is nil. Standard library packages (tensör_kaydet/yükle,
 // parçalayıcı_yükle, veri_kümesi) must report file errors through it as well.
@@ -143,13 +144,9 @@ func fileErrorReason(path string, err error) *messages.Error {
 		if reason := systemErrorReason(code); reason != 0 {
 			return messages.New(reason)
 		}
-		return messages.New(messages.H2135, uintptr(code), code.Error())
+		return messages.New(messages.H2628, uintptr(code)) // sistemin metni değere girmez (8.5)
 	}
-	orig := err.Error()
-	if pe != nil {
-		orig = pe.Err.Error()
-	}
-	return messages.New(messages.H2136, orig)
+	return messages.New(messages.H2629) // Go'nun metni de (ör. "unexpected EOF")
 }
 
 // hasSystemError zincirde bir dosya sistemi ya da işletim sistemi hatası olup olmadığını söyler.

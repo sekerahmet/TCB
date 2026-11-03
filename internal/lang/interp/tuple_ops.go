@@ -19,9 +19,6 @@ func tuplesEqual(x *TupleVal, b Value, nestDepth int) bool {
 	if !ok || len(x.Elements) != len(y.Elements) {
 		return false
 	}
-	if x == y {
-		return true
-	}
 	if nestDepth >= equalityDepth {
 		return false
 	}
@@ -45,10 +42,8 @@ func tupleComparisonError(x *TupleVal, b Value, nestDepth int, walk func(a, b Va
 		if holdsTensor(x.Elements[i], nestDepth) || holdsTensor(y.Elements[i], nestDepth) {
 			return messages.New(messages.H2777, i)
 		}
-		if x != y {
-			if err := walk(x.Elements[i], y.Elements[i], nestDepth+1); err != nil {
-				return err
-			}
+		if err := walk(x.Elements[i], y.Elements[i], nestDepth+1); err != nil {
+			return err
 		}
 	}
 	return nil

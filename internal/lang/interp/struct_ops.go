@@ -252,69 +252,17 @@ func structsEqual(x *StructInstanceVal, b Value, nestDepth int) bool {
 	return Value(x) == b
 }
 
-// structComparisonError '=='nin bir nesneyle başlayan karşılaştırmasını structsEqual'dan önce gezer
-// (7.6): fonksiyon ya da tensör tutan alan ve karşılaştırılmakta olan bir nesne çiftine yeniden varmak
-// (kendine bağlanan nesneler) çalışma hatasıdır. Gezinti comparisonError'ınki gibidir: aynı yapıdan
-// (durumlu tipte aynı durumdan) nesnelerin her alan çifti, boyu aynı kapların her öğe çifti; başka
-// değerler comparisonError'a gider. Çiftlerin kümesi gezintinin yolundadır: bir çift bitince çıkar.
-func structComparisonError(x *StructInstanceVal, b Value, nestDepth int) error {
-	return structComparison{}.walk(x, b, nestDepth)
-}
-
-type structComparison map[[2]*StructInstanceVal]bool
-
-func (w structComparison) walk(a, b Value, nestDepth int) error {
-	if nestDepth >= equalityDepth {
-		return nil
-	}
-	switch x := a.(type) {
-	case *StructInstanceVal:
-		y, ok := b.(*StructInstanceVal)
-		if !ok {
-			// a'nın yerine b ile: comparisonError nesneye dönüp buraya gelmez
-			return comparisonError(b, a, nestDepth)
-		}
-		if x != y && x.Def == y.Def && x.Variant == y.Variant {
-			return w.fields(x, y, nestDepth)
-		}
-		return nil
-	case *ListVal:
-		if y, ok := b.(*ListVal); ok && x != y && len(x.Elements) == len(y.Elements) {
-			for i := range x.Elements {
-				if err := w.walk(x.Elements[i], y.Elements[i], nestDepth+1); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	case *DictVal:
-		if y, ok := b.(*DictVal); ok && x != y && len(x.Pairs) == len(y.Pairs) {
-			for k, va := range x.Pairs {
-				if vb, ok := y.Pairs[k]; ok {
-					if err := w.walk(va, vb, nestDepth+1); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
-		}
-	case *TupleVal:
-		return tupleComparisonError(x, b, nestDepth, w.walk) // tuple_ops.go
-	}
-	return comparisonError(a, b, nestDepth)
-}
-
-func (w structComparison) fields(x, y *StructInstanceVal, nestDepth int) error {
-	pair := [2]*StructInstanceVal{x, y}
+// fields aynı yapıdan (durumlu tipte aynı durumdan) iki nesnenin '=='sini structsEqual'dan önce gezer
+// (7.6): fonksiyon ya da tensör tutan alan çalışma hatasıdır (H2770), öbür alan çiftleri gezintiye gider.
+func (w comparison) fields(x, y *StructInstanceVal, nestDepth int) error {
 	label, fields := x.Def.Name, x.Def.Fields
 	if x.Variant != nil {
 		label, fields = variantLabel(x.Def, x.Variant), x.Variant.Fields
 	}
-	if w[pair] {
+	if !w.enter(x, y, nestDepth) {
 		return messages.New(messages.H2771, label, plainField(x, y, ""))
 	}
-	w[pair] = true
-	defer delete(w, pair)
+	defer w.leave(x, y, nestDepth)
 	for _, f := range fields {
 		va, okA := x.Fields[f.Name]
 		vb, okB := y.Fields[f.Name]

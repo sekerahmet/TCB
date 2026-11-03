@@ -237,8 +237,6 @@ const (
 	H2132 Code = 2132 // böyle bir dosya ya da klasör yok (yolun yazımını denetleyin)
 	H2133 Code = 2133 // erişim izni yok (dosya salt okunur, korumalı bir klasörde ya da başka bir kullanıcıya ait olabilir)
 	H2134 Code = 2134 // bu adda bir dosya zaten var
-	H2135 Code = 2135 // işletim sistemi beklenmeyen bir hata bildirdi (hata kodu {code}: {text})
-	H2136 Code = 2136 // beklenmeyen bir hata oluştu (özgün hata: {error})
 	H2140 Code = 2140 // aynı anda çok fazla dosya açık (açık dosyaları kapatıp yeniden deneyin)
 	H2141 Code = 2141 // disk okunurken ya da yazılırken donanım hatası oluştu
 	H2142 Code = 2142 // dosya başka bir program tarafından kullanılıyor (o programı kapatıp yeniden deneyin)
@@ -431,6 +429,8 @@ const (
 	H2625 Code = 2625 // {fn}: boş listenin en küçüğü yoktur
 	H2626 Code = 2626 // {fn}: {value} sonlu bir sayı değildir, yuvarlanamaz; önce `{#is_finite}(x)` ile sorun
 	H2627 Code = 2627 // {fn}: {value} {digits} basamağa yuvarlanınca {@Float}'ın sınırını aşar
+	H2628 Code = 2628 // işletim sistemi beklenmeyen bir hata bildirdi (hata kodu {code})
+	H2629 Code = 2629 // beklenmeyen bir hata oluştu
 	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
 	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); `{#Float}(...)` ile okuyun
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
