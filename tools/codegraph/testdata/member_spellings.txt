@@ -435,7 +435,9 @@ d2.TR_keys	ok	0	name:TR_mem_keys
 d2.TR_length	ok	0	name:TR_mem_length
 devamlar.TR_length	ok	0	name:TR_mem_length
 değerler.TR_sort	ok	0	name:TR_mem_sort
+dizi.TR_contains	ok	0	name:TR_mem_contains
 dizi.TR_length	ok	0	name:TR_mem_length
+diziler.TR_append	ok	0	name:TR_mem_append
 diğer.TR_append	ok	0	name:TR_mem_append
 dolu.TR_grad	ok	0	name:TR_mem_grad
 doğru_konum.TR_append	ok	0	name:TR_mem_append
@@ -586,7 +588,7 @@ json_mismatches.TR_append	ok	0	name:TR_mem_append
 k.TR_Linear	ok	0	tr:struct:lib/layers.tr:TR_type_Linear
 k.TR_absolute	ok	0	name:TR_mem_absolute
 k.TR_append	ok	0	name:TR_mem_append
-k.TR_batch_decode	not_found	4	-
+k.TR_batch_decode	ok	0	name:TR_mem_batch_decode
 k.TR_contains	ok	0	name:TR_mem_contains
 k.TR_decode	ok	0	name:TR_mem_decode
 k.TR_dtype	ok	0	name:TR_mem_dtype
@@ -844,7 +846,7 @@ opt.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 ozelli.TR_last	ok	0	name:TR_mem_last
 ozelli.TR_length	ok	0	name:TR_mem_length
 ozelsiz.TR_length	ok	0	name:TR_mem_length
-p.TR_batch_decode	not_found	4	-
+p.TR_batch_decode	ok	0	name:TR_mem_batch_decode
 p.TR_cancel	ok	0	name:TR_mem_cancel
 p.TR_close_stdin	not_found	4	-
 p.TR_decode	ok	0	name:TR_mem_decode
@@ -963,6 +965,7 @@ sira.TR_append	ok	0	name:TR_mem_append
 son.TR_append	ok	0	name:TR_mem_append
 son.TR_code	ok	0	name:TR_mem_code
 son.TR_fill	not_found	4	-
+son.TR_slice	ok	0	name:TR_mem_slice
 son_k.TR_device	ok	0	name:TR_mem_device
 son_x.TR_device	ok	0	name:TR_mem_device
 sondalar.TR_append	ok	0	name:TR_mem_append

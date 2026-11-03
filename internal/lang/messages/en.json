@@ -983,6 +983,8 @@
 "H5644": "{fn}(seqs) takes 1 parameter (a list of lists of ids or a 2-dimensional tensor), {given} given",
 "H5645": "{fn}: expects a list of lists of ids or a 2-dimensional tensor, {given} given",
 "H5646": "{fn}: the tensor must be 2-dimensional (one sequence per row), {dims} dimensions given",
+"H5647": "{fn}: id {id} is not in the vocabulary (vocabulary size {size}). If the ids come from a model whose output is larger than the vocabulary, limit sampling to the vocabulary: `model.{#generate}(prompt, count, {#vocab_size}: p.{#tok_vocab_size})`",
+"H5648": "{@generate}: {@vocab_size} must be between 1 and the model's output size ({out}), {given} given",
 "H6001": "{example} expects at least 1 parameter",
 "H6002": "{example} takes at most 2 parameters, {given} given",
 "H6006": "tensor operation failed: {reason}",

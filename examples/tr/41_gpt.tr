@@ -67,7 +67,7 @@ TR_no_grad {
     }
 }
 TR_print("doğrulama kaybı (\(sayı) toplu iş): \(TR_round(toplam_kayıp / sayı, 3))")
-TR_var üretilen = model.TR_generate(p.TR_encode("Bugün"), 12, TR_temperature: 0.8, TR_top_k: 20, TR_seed: 1)
+TR_var üretilen = model.TR_generate(p.TR_encode("Bugün"), 12, TR_temperature: 0.8, TR_top_k: 20, TR_seed: 1, TR_vocab_size: p.TR_vocab_size)
 TR_print("model şunu yazdı: \(p.TR_decode(üretilen))")
 
 # --- Kendin dene ---

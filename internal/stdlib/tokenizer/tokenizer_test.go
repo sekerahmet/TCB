@@ -198,6 +198,23 @@ TR_var boş_tensör = p.TR_batch_decode(TR_zeros([0, 3]))
 	}
 }
 
+// Kural (16.3): dağarcıkta olmayan kimlik çalışma hatasıdır; ileti kimliği ve dağarcık boyunu,
+// toplu_çöz'de dizinin sırasını da söyler (H5647, H5633).
+func TestDecodeOutOfVocabularyIDIsAnError(t *testing.T) {
+	for _, c := range []struct{ code, text string }{
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, 1005])`, "1005 kimliği dağarcıkta yok (dağarcık boyutu 1005)"},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode([[1], [2, 5000]])`, "(2. dizi): 5000 kimliği dağarcıkta yok (dağarcık boyutu 1005)"},
+	} {
+		_, err := run(t, c.code)
+		if !messages.Has(err, messages.H5647) || !strings.Contains(err.Error(), c.text) {
+			t.Errorf("%s: %v, %q içermeli", c.code, err, c.text)
+		}
+		if !strings.Contains(err.Error(), "TR_vocab_size: p.TR_vocab_size") {
+			t.Errorf("%s: %v, üretimin sınırlamasını önermeli", c.code, err)
+		}
+	}
+}
+
 // riskyTokenizer bayt düzeyi BPE dosyasının ön bölme desenini, kabul edilen ama bazı
 // girdilerde aşırı geri izleyen bir desenle değiştirip geçici bir dosyaya yazar.
 func riskyTokenizer(t *testing.T) string {

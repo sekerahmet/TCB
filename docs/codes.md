@@ -4544,7 +4544,7 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
     Parçalayıcı.toplu_çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Liste
 
-Birden çok parça kimliği dizisini (kimlik listelerinin listesi ya da 2 boyutlu tensör) metin listesine geri çevirir; her dizi çöz ile aynı metni verir. Boş liste boş liste verir. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
+Birden çok parça kimliği dizisini (kimlik listelerinin listesi ya da 2 boyutlu tensör) metin listesine geri çevirir; her dizi çöz ile aynı metni verir, boş liste boş liste. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar. Dağarcıkta olmayan kimlik hatadır; ileti dizinin sırasını da söyler.
 
 ```tr
 TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p.TR_batch_decode(p.TR_encode(["Merhaba", "dünya"])))
@@ -4700,7 +4700,7 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 
     Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin | Liste
 
-Tek bir parça kimliği dizisini (kimlik listesi ya da 1 boyutlu tensör) metne geri çevirir; birden çok dizi için toplu_çöz. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
+Tek bir parça kimliği dizisini (kimlik listesi ya da 1 boyutlu tensör) metne geri çevirir; birden çok dizi için toplu_çöz. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar. Dağarcıkta olmayan kimlik hatadır.
 
 ```tr
 TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p.TR_decode(p.TR_encode("Merhaba dünya!")))

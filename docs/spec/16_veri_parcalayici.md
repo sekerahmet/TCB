@@ -25,7 +25,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 - Özel parçalar varsayılan olarak yazılmaz; `TR_special_tokens: TR_true` onları da yazar.
 - **Dağarcıkta olmayan kimlik çalışma hatasıdır;** ileti kimliği ve dağarcık boyunu söyler. Modelin çıktı boyu dağarcıktan büyükse (dolgu) ajan örneklemeyi dağarcığa sınırlar.
 - Bayt düzeyindeki bir parçalayıcıda dizi bir karakterin ortasında biterse yarım kalan bayt dizisi U+FFFD (yerine koyma karakteri) olur, hata değildir: kesilen bir üretimin metni okunabilir kalır. Her yarım dizi bir U+FFFD'dir.
-- *Test:* TR testi; dağarcık dışı kimliğin hatası uygulanınca TR testi.
+- *Test:* TR testi ("16.3 çöz: tek dizi; varsayılan özel parçaları atlar", "16.3 toplu_çöz: her dizi çöz ile aynı metin", "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır").
 
 **16.3a** Akışlı çözme: `p.TR_decode_stream(TR_special_tokens: b)` bir `TR_DecodeStream` verir; `akış.TR_step(kimlik)` o kimlikle tamamlanan yeni metni verir.
 - Yarım kalan karakter beklenir: son kimlik bir karakterin ortasında bitiyorsa `.TR_step` `""` verir, karakter sonraki kimlikle tamamlanınca birlikte verilir. Kimlikleri tek tek `p.TR_decode([k])` ile çözmek her yarımda U+FFFD yazar (16.3).

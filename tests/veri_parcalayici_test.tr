@@ -219,6 +219,16 @@ TR_test "16.8 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     TR_assert_equal("H5535", TR_error_code { TR_for iş TR_in küme.TR_sampler(TR_batch_size: 2, TR_context: 4) {} })
 }
 
+TR_test "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır" {
+    TR_var p = TR_load_tokenizer("data/tokenizer.json")
+    TR_var V = p.TR_vocab_size
+    TR_assert_equal("H5647", TR_error_code { p.TR_decode([1, V]) })
+    TR_assert_equal("H5647", TR_error_code { p.TR_decode([-1]) })
+    TR_assert_equal("H5647", TR_error_code { p.TR_decode(TR_Tensor([V + 63])) })
+    TR_assert_equal("H5647", TR_error_code { p.TR_batch_decode([[1], [2, V]]) })
+    TR_assert_equal(p.TR_decode([V - 1]), p.TR_batch_decode([[V - 1]])[0])
+}
+
 TR_test "16.9 hatalar kodlu ve yakalanabilir" {
     TR_assert_equal("H2132", TR_error_code { TR_load_tokenizer("data/yok.json") })
     TR_assert_equal("H5617", TR_error_code { TR_load_tokenizer("data/corrupt.npy") })

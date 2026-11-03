@@ -92,7 +92,7 @@ TR_var istemler = ["Once upon a time", "The little dog", "One day, a girl named"
 TR_func açgözlü(istem: TR_String, adet: TR_Int) -> (TR_List[TR_Int], TR_String) {
     TR_var başlangıç = p.TR_encode(istem)
     TR_var kimlikler = TR_none
-    TR_mixed_precision(ayar["hassasiyet"]) { kimlikler = model.TR_generate(başlangıç, adet, TR_temperature: 0, TR_eos: ayar["eos"]) }
+    TR_mixed_precision(ayar["hassasiyet"]) { kimlikler = model.TR_generate(başlangıç, adet, TR_temperature: 0, TR_eos: ayar["eos"], TR_vocab_size: p.TR_vocab_size) }
     TR_var yeni = kimlikler[başlangıç.TR_length..kimlikler.TR_length]
     TR_if yeni.TR_length > 0 TR_and yeni.TR_last == ayar["eos"] { yeni = yeni[0..yeni.TR_length - 1] }
     TR_return yeni, istem + p.TR_decode(yeni)

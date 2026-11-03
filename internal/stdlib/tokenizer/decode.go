@@ -65,7 +65,20 @@ func decodeArgs(fn codes.Ref, args []interp.Value, named map[string]interp.Value
 }
 
 // decodeSeqs dizileri çözer; single doğruysa tek dizidir (hata iletisi dizinin sırasını anmaz).
+// Kural (16.3): dağarcıkta olmayan kimlik çalışma hatasıdır (H5647), sessizce atlanmaz; çekirdeğin
+// Decode'u (başvuru kütüphanesi gibi) atlar, denetim burada, çözmeden önce.
 func (n *Object) decodeSeqs(m *interp.VM, fn codes.Ref, seqs [][]int, special, single bool) ([]string, error) {
+	for i, d := range seqs {
+		for _, id := range d {
+			if _, ok := n.p.IDToToken(id); ok {
+				continue
+			}
+			if single {
+				return nil, messages.New(messages.H5647, fn, id, n.p.VocabSize())
+			}
+			return nil, messages.New(messages.H5647, messages.New(messages.H5633, fn, i+1), id, n.p.VocabSize())
+		}
+	}
 	var result []string
 	var errs []error
 	job := func() { result, errs = n.p.SafeDecodeBatch(seqs, !special, 0) }
