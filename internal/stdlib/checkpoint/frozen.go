@@ -8,8 +8,8 @@ import (
 
 // Donma durumu (dil tanımı 15.34, 20.4): nokta her modelin donmuş parametrelerinin adlarını
 // kaydeder (frozen, sürüm 4); sürdürme ve geri dönüş aynı kümeyi kurar: adı listede olan
-// parametre donar, öbür parametreler türev izler. Sürüm 3 dosyasında liste yoktur: hiçbir
-// parametre donmuş değil. Parametre, türev izlemek için kurulmuş ya da açılmış yapraktır (15.33);
+// parametre donar, öbür parametreler türev izler. Sürüm 3 dosyasında liste yoktur: donma durumu
+// kaydedilmemiştir, programın kurduğu durum değişmez (apply). Parametre, türev izlemek için kurulmuş ya da açılmış yapraktır (15.33);
 // hiç türev izlememiş durum tensörü (tablo, tampon) listeye girmez ve dokunulmaz.
 
 // frozenNames modelin donmuş parametrelerinin adlarıdır (kayıt sırasıyla; yoksa nil).

@@ -54,26 +54,46 @@ func TestFrozenStateIsSavedAndResumed(t *testing.T) {
 	}
 }
 
-// TestVersionThreeReadsWithNothingFrozen: donma durumu olmayan sürüm 3 noktası okunur; hiçbir
-// parametre donmuş değildir (sürüm 3 yazılırken dondurma yoktu). Sürüm 5 H7421'dir.
-func TestVersionThreeReadsWithNothingFrozen(t *testing.T) {
+// TestVersionThreeLeavesFrozenStateAlone: sürüm 3 noktası donma durumunu kaydetmemiştir; sürdürme
+// ve geri dönüş programın kurduğu donma durumunu değiştirmez (programın dondurduğu gövde donmuş,
+// sonradan dondurulan baş da öyle kalır). Sürüm 5 H7421'dir.
+func TestVersionThreeLeavesFrozenStateAlone(t *testing.T) {
 	runDir := t.TempDir()
 	if out, err := run(t, frozenProgram(runDir, true)); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	stepDir := filepath.Join(runDir, "checkpoints", "step_0000000001")
 	rewriteVersion(t, stepDir, 3, true)
-	out, err := run(t, frozenProgram(runDir, false))
+	out, err := run(t, versionThreeProgram(runDir))
 	if err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
-	if !strings.Contains(out, "sürüm 1 true true") {
-		t.Fatalf("sürüm 3 noktasında hiçbir parametre donmuş olmamalı: %q", out)
+	if !strings.Contains(out, "\nsürdürme 1 false true [1.0, 2.0]\n") || !strings.Contains(out, "\ngeri dönüş 1 false false\n") {
+		t.Fatalf("sürüm 3 noktası programın donma durumunu değiştirmemeli: %q", out)
 	}
 	rewriteVersion(t, stepDir, 5, false)
 	if out, err := run(t, frozenProgram(runDir, false)); err == nil || !messages.Has(err, messages.H7421) {
 		t.Fatalf("sürüm 5 H7421 vermeli: %v\n%s", err, out)
 	}
+}
+
+// versionThreeProgram gövdeyi kendisi dondurup noktadan sürer, bir adım atar; sonra başı da
+// dondurup geri döner ve iki durumu yazdırır.
+func versionThreeProgram(runDir string) string {
+	return fmt.Sprintf(`
+TR_var gövde = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+TR_var baş = TR_Tensor([3.0], TR_requires_grad: TR_true)
+TR_var tablo = TR_Tensor([5.0])
+gövde.TR_requires_grad = TR_false
+TR_var model = {"gövde": gövde, "baş": baş, "tablo": tablo}
+TR_var op = TR_AdamW(TR_parameters(model))
+TR_var kn = TR_Checkpoint(%q, {"model": model, "op": op})
+TR_backward(TR_sum(baş * baş))
+op.TR_step()
+TR_print("sürdürme", kn.TR_resume_step, gövde.TR_requires_grad, baş.TR_requires_grad, gövde.TR_tolist)
+baş.TR_requires_grad = TR_false
+TR_print("geri dönüş", kn.TR_rollback(), gövde.TR_requires_grad, baş.TR_requires_grad)
+`, trPath(runDir))
 }
 
 // TestFrozenNameMustBeAParameter: donmuş diye kaydedilen ad modelin parametresi değilse (durum

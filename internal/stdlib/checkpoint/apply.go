@@ -66,9 +66,11 @@ func (kn *Checkpoint) apply(m *interp.VM, fn any, o *loadedCkpt) error {
 	for _, c := range commits {
 		c()
 	}
+	// Donma durumu (20.4), iyileştiriciden önce. Sürüm 3 noktasında donma durumu yoktur:
+	// programın kurduğu donma durumu değişmez.
 	for _, n := range kn.objects {
-		if n.kind == kindModel {
-			n.applyFrozen(o.objects[n.name].record.Frozen) // donma durumu (20.4), iyileştiriciden önce
+		if n.kind == kindModel && o.state.Version >= frozenVersion {
+			n.applyFrozen(o.objects[n.name].record.Frozen)
 		}
 	}
 	for _, n := range kn.objects {
