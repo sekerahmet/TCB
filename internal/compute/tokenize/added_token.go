@@ -46,9 +46,22 @@ type addedPiece struct {
 	id          int32
 }
 
-// splitFn metni ek tokenlara göre böler. ozelleriAtla doğruysa özel tokenlar
-// tanınmaz (düz metin sayılır); sıradan ek tokenlar yine tanınır.
-func (e *addedMatcher) splitFn(s string, skipSpecial bool, f func(addedPiece)) {
+// addedSkip metinde hangi ek tokenların tanınmayacağıdır (düz metin sayılırlar).
+type addedSkip uint8
+
+const (
+	skipNone    addedSkip = iota // hepsi tanınır
+	skipSpecial                  // özel tokenlar tanınmaz, sıradan ek tokenlar tanınır
+	skipAll                      // hiçbir ek token tanınmaz
+)
+
+// skips t'nin bu düzeyde tanınmadığını söyler.
+func (k addedSkip) skips(t *AddedToken) bool {
+	return k == skipAll || (k == skipSpecial && t.Special)
+}
+
+// splitFn metni ek tokenlara göre böler; skip'in tanımadığı tokenlar düz metin sayılır.
+func (e *addedMatcher) splitFn(s string, skip addedSkip, f func(addedPiece)) {
 	if e.empty || s == "" {
 		f(addedPiece{0, len(s), -1})
 		return
@@ -74,7 +87,7 @@ func (e *addedMatcher) splitFn(s string, skipSpecial bool, f func(addedPiece)) {
 		}
 		begin, last := i, i+len(found.Content)
 		i = last
-		if skipSpecial && found.Special {
+		if skip.skips(found) {
 			continue
 		}
 		if found.SingleWord {

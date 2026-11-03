@@ -19,7 +19,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 - `TR_special_tokens: TR_false` parçalayıcının kendi eklediği özel parçaları (başa ve sona) da, metnin içinde geçen eklenmiş parça yazımlarını da kapatır, özel olsun olmasın: metindeki `<|endoftext|>` ve `<think>` sıradan baytlar olarak kodlanır; parçayı isteyen kimliğini açıkça ekler (`p.TR_token_id(...)`). Varsayılan `TR_true`.
 - Güvenilmeyen girdi (sunmak) ve ham metin derlemi (ön eğitim verisi) `TR_false` ile kodlanır. Sohbet derlemi 24.4'tedir.
 - `TR_pair:` ikinci metni (ya da metin listesini) çift olarak kodlar; listeyle verilirse uzunlukları aynı olmalıdır.
-- *Test:* TR testi; metin içi parçaların `TR_false` ile kapanması uygulanınca TR testi.
+- *Test:* TR testi; metin içi eklenmiş parçaların `TR_false` ile kapanması da TR testi ("16.2 TR_special_tokens: TR_false ile metin eklenmiş parçanın kimliğini üretmez").
 
 **16.3** `p.TR_decode(kimlikler)` tek bir diziyi metne çevirir: `TR_List[TR_Int]` ya da 1 boyutlu `TR_Tensor[TR_Int]`. Birden çok dizi `p.TR_batch_decode(diziler)` ile `TR_List[TR_String]` verir (13.8a).
 - Özel parçalar varsayılan olarak yazılmaz; `TR_special_tokens: TR_true` onları da yazar.

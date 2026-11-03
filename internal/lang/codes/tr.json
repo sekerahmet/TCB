@@ -331,7 +331,7 @@
   "TR_arg_sin_table": { "name": "sin_tablosu", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_sparse": { "name": "seyrek", "family": "kitaplık: tr/optimizers", "description": "" },
   "TR_arg_sparse_lr": { "name": "seyrek_öğrenme_oranı", "family": "kitaplık: tr/optimizers", "description": "" },
-  "TR_arg_special_tokens": { "name": "özel_parçalar", "family": "adlı argüman: parçalayıcı kodla/çöz", "description": "Özel parçaların kodlamaya eklenip eklenmeyeceğini (kodla, varsayılan doğru) ya da çözülen metne yazılıp yazılmayacağını (çöz, varsayılan yanlış) belirler. Yalnızca doğru ya da yanlış olabilir." },
+  "TR_arg_special_tokens": { "name": "özel_parçalar", "family": "adlı argüman: parçalayıcı kodla/çöz", "description": "Kodlamada (kodla, varsayılan doğru) özel parçaların başa ve sona eklenip eklenmeyeceğini ve metnin içinde yazılan eklenmiş parçaların (sohbet etiketleri gibi) kimlik olup olmayacağını; çözmede (çöz, varsayılan yanlış) özel parçaların metne yazılıp yazılmayacağını belirler. Güvenilmeyen metin yanlış ile kodlanır. Yalnızca doğru ya da yanlış olabilir." },
   "TR_arg_start": { "name": "başlangıç", "family": "adlı argüman: yerine_yaz", "description": "yerine_yaz'ın hedef eksende yazmaya başladığı konumdur: tam sayı ya da 0 boyutlu tam sayı tensörü. Kaynak hedefe sığmalıdır; tensörle verilen konum tekrar_oynat kaydında her oynatmada cihazdan okunur." },
   "TR_arg_step": { "name": "adım", "family": "adlı argüman: İlerleme.güncelle", "description": "İlerleme.güncelle'de tamamlanan eğitim adımı sayısıdır (kaldığı yerden sürdürmek için; 0 ya da pozitif Tam)." },
   "TR_arg_targets": { "name": "hedef", "family": "kitaplık: tr/layers", "description": "" },

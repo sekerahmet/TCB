@@ -957,9 +957,8 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.2
 
-- **Mevcut durum:** `TR_false` ile metindeki özel parça yazımı özel parçanın kimliğini üretmez: ne eşleşme ne modelin kendi bölütlemesi (unigram'ın `<s>`/`</s>` parçaları); bilinmeyen kimliği ayrıdır [test: `TestPlainEncodingProducesNoSpecialID`, 12 fikstür, dört kodlama yolu; TR testi "16.2 TR_special_tokens: TR_false ile metin özel parçanın kimliğini üretmez"]. Özel olmayan eklenmiş parçalar yine eşleşiyor.
-- **Yapılacaklar (B, Ö0; Jarvis'in sohbet biçiminin ön koşulu):**
-  - 16.2'nin genişlemesi (2026-11-02, Jarvis B; dil tanımında, uygulanmadı): `TR_false` özel olmayan eklenmiş parçaları da (`<think>`, `<tool_call>`) kapatır. 2026-11-02'de TR de Hugging Face de onları her yolda eşliyor; HF'nin `split_special_tokens=True`'su yalnız özel olanları bölüyor [ölçüldü: 2026-11-02, tokenizers 0.23.2, transformers 5.17.0].
+- **Mevcut durum:** `TR_false` ile metindeki eklenmiş parça yazımı, özel olsun olmasın (`<|im_end|>`, `<think>`), kimlik üretmez: ne eşleşme ne modelin kendi bölütlemesi (unigram'ın `<s>`/`</s>` parçaları); bilinmeyen kimliği ayrıdır [test: `TestPlainEncodingProducesNoAddedID`, `TestPlainEncodingProducesNoSpecialID`, 12 fikstür, dört kodlama yolu; TR testi "16.2 TR_special_tokens: TR_false ile metin eklenmiş parçanın kimliğini üretmez"]. Hugging Face'in `split_special_tokens`'ı yalnız özelleri böler; TR bilerek ayrılıyor (16.2 "özel olsun olmasın").
+- **Yapılacaklar (B):** adım 1'in Hugging Face altınıyla karşılaştırması (tokenizers 0.23.2, 12 fikstür; altın bekleniyor).
 
 ### 16.3
 

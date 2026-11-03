@@ -21,8 +21,25 @@ type Options struct {
 	// (bilinmeyen token dışında; bkz. plain.go). Kullanıcıdan gelen metni
 	// güvenle kodlamak için uygundur.
 	DontParseSpecial bool
+	// DontParseAdded doğruysa hiçbir ek token tanınmaz, özel olsun olmasın
+	// ("<think>" de); modelin bölütlemesi de onların kimliğini üretmez
+	// (bilinmeyen token dışında). DontParseSpecial'ı kapsar. Başvuru
+	// uygulamasında karşılığı yoktur: onun split_special_tokens'ı yalnız
+	// özelleri böler. TR'nin TR_special_tokens: TR_false'u budur (16.2).
+	DontParseAdded bool
 	// DontAddSpecial doğruysa son işleyici özel token eklemez.
 	DontAddSpecial bool
+}
+
+// skip seçeneklerin ek token düzeyidir.
+func (s Options) skip() addedSkip {
+	switch {
+	case s.DontParseAdded:
+		return skipAll
+	case s.DontParseSpecial:
+		return skipSpecial
+	}
+	return skipNone
 }
 
 // Encode metni token kimliklerine çevirir (varsayılan seçeneklerle).
@@ -58,19 +75,19 @@ func ToInt(dst []int, ids []int32) []int {
 // için bellek dostu biçim).
 func (p *Tokenizer) Encode32(dst []int32, text string, s Options) []int32 {
 	if p.postProcessor == nil {
-		return p.arr(dst, text, s.DontParseSpecial)
+		return p.arr(dst, text, s.skip())
 	}
-	k := p.postProcessor.Process(&Encoding{IDs: p.arr(nil, text, s.DontParseSpecial)}, nil, !s.DontAddSpecial)
+	k := p.postProcessor.Process(&Encoding{IDs: p.arr(nil, text, s.skip())}, nil, !s.DontAddSpecial)
 	return append(dst, k.IDs...)
 }
 
 // EncodePair bir metin çiftini (ör. soru ve bağlam) kodlar; ikinci nil ise
 // tek metin kodlanır.
 func (p *Tokenizer) EncodePair(firstArg string, second *string, s Options) *Encoding {
-	a := &Encoding{IDs: p.arr(nil, firstArg, s.DontParseSpecial)}
+	a := &Encoding{IDs: p.arr(nil, firstArg, s.skip())}
 	var b *Encoding
 	if second != nil {
-		b = &Encoding{IDs: p.arr(nil, *second, s.DontParseSpecial)}
+		b = &Encoding{IDs: p.arr(nil, *second, s.skip())}
 	}
 	if p.postProcessor == nil {
 		k := defaultProcess(a, b)
@@ -84,18 +101,15 @@ func (p *Tokenizer) EncodePair(firstArg string, second *string, s Options) *Enco
 }
 
 // arr tek bir metnin (son işleme öncesi) kimliklerini dst'ye ekler.
-func (p *Tokenizer) arr(dst []int32, text string, skipSpecial bool) []int32 {
+func (p *Tokenizer) arr(dst []int32, text string, skip addedSkip) []int32 {
 	text = validText(text)
-	model := p.model
-	if skipSpecial {
-		model = p.plain // modelin bölütlemesi de özel parçaların kimliğini üretmez
-	}
+	model := p.plain[skip] // modelin bölütlemesi de tanınmayan ek tokenların kimliğini üretmez
 	modelEncode := func(x Piece) { dst = model.Encode(dst, x) }
 	// Bütün düzenli ifade aramaları tek bir bütçeyi paylaşır: her biri kendi
 	// sınırında kalan çok sayıda arama da toplamda metin uzunluğuyla orantılı
 	// işte durdurulur.
 	budget := p.encodeBudget(len(text))
-	p.rawMatch.splitFn(text, skipSpecial, func(a addedPiece) {
+	p.rawMatch.splitFn(text, skip, func(a addedPiece) {
 		if a.id >= 0 {
 			dst = append(dst, a.id)
 			return
@@ -108,7 +122,7 @@ func (p *Tokenizer) arr(dst []int32, text string, skipSpecial bool) []int32 {
 				budget.add(p.encodeRegex * len(section))
 			}
 		}
-		p.nrmMatch.splitFn(section, skipSpecial, func(b addedPiece) {
+		p.nrmMatch.splitFn(section, skip, func(b addedPiece) {
 			if b.id >= 0 {
 				dst = append(dst, b.id)
 				return

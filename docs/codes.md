@@ -4239,7 +4239,7 @@ Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
 
 #### `TR_special_tokens:` (`TR_arg_special_tokens`, `özel_parçalar`)
 
-Özel parçaların kodlamaya eklenip eklenmeyeceğini (kodla, varsayılan doğru) ya da çözülen metne yazılıp yazılmayacağını (çöz, varsayılan yanlış) belirler. Yalnızca doğru ya da yanlış olabilir.
+Kodlamada (kodla, varsayılan doğru) özel parçaların başa ve sona eklenip eklenmeyeceğini ve metnin içinde yazılan eklenmiş parçaların (sohbet etiketleri gibi) kimlik olup olmayacağını; çözmede (çöz, varsayılan yanlış) özel parçaların metne yazılıp yazılmayacağını belirler. Güvenilmeyen metin yanlış ile kodlanır. Yalnızca doğru ya da yanlış olabilir.
 
 ```tr
 TR_print(TR_load_tokenizer("tests/data/tokenizer.json").TR_encode("merhaba dünya", TR_special_tokens: TR_false))
