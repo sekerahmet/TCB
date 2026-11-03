@@ -297,13 +297,13 @@ TR_test "15.44 kaynaştır: zincir tek geçişte, sonuç ve gradyan kaynaşmamı
     # Sabit önbellek anahtarının parçasıdır; liste döndüren fonksiyon liste verir.
     TR_assert_equal([3.0], TR_fuse((a, s) => a * s)(TR_Tensor([1.0]), 3.0).TR_tolist)
     TR_assert_equal(2, TR_fuse((a) => [a + 1.0, a * 2.0])(TR_Tensor([1.0])).TR_length)
-    # Dışarıdan okunan sayı kayıtta sabitlenir; argüman olarak verilen değişir.
+    # Kapanıştan okunan sayı değişince hatadır; argüman olarak verilen değişir (15.44'ün testi).
     TR_var ölçek2 = 2.0
     TR_var gömülü = TR_fuse((a) => a * ölçek2)
     TR_var verilen = TR_fuse((a, s) => a * s)
     TR_assert_equal([2.0], gömülü(TR_Tensor([1.0])).TR_tolist)
     ölçek2 = 3.0
-    TR_assert_equal([2.0], gömülü(TR_Tensor([1.0])).TR_tolist)
+    TR_assert_equal("H6986", TR_error_code { gömülü(TR_Tensor([1.0])) })
     TR_assert_equal([3.0], verilen(TR_Tensor([1.0]), ölçek2).TR_tolist)
     # Kaynaştırılamayan işlem ve dış tensör hata verir.
     TR_var dış = TR_Tensor([1.0])
@@ -1243,6 +1243,55 @@ TR_test "15.18 max ve min 16 bitlik tensörde girdinin türünde kalır (eksensi
         TR_assert_equal(tür, TR_min(x).TR_dtype)
         TR_assert_equal(1.0, TR_min(x).TR_tolist)
     }
+}
+
+TR_test "15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir, değişince hatadır" {
+    TR_struct Ayar { oran: TR_Float = 0.5 }
+    TR_var t = TR_Tensor([1.0])
+    # Değişken: sabit kaldıkça aynı sonuç, değişince hata, geri dönünce yine aynı.
+    TR_var ölçek = 2.0
+    TR_var k = TR_fuse((a) => a * ölçek)
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal("H6986", TR_error_code { k(t) })
+    ölçek = 2.0
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    # Alan ve sözlük ile liste yolu.
+    TR_var ayar = Ayar()
+    TR_var ka = TR_fuse((a) => a * ayar.oran)
+    TR_assert_equal([0.5], ka(t).TR_tolist)
+    ayar.oran = 0.25
+    TR_assert_equal("H6986", TR_error_code { ka(t) })
+    TR_var d = {"w": [1.0, 4.0]}
+    TR_var kd = TR_fuse((a) => a * d["w"][1])
+    TR_assert_equal([4.0], kd(t).TR_tolist)
+    d["w"][1] = 5.0
+    TR_assert_equal("H6986", TR_error_code { kd(t) })
+    # Değişken indeks: indeksin değeri de yolun parçasıdır.
+    TR_var l = [1.0, 2.0]
+    TR_var i = 0
+    TR_var ki = TR_fuse((a) => a * l[i])
+    TR_assert_equal([1.0], ki(t).TR_tolist)
+    i = 1
+    TR_assert_equal("H6986", TR_error_code { ki(t) })
+    i = 0
+    l[0] = 7.0
+    TR_assert_equal("H6986", TR_error_code { ki(t) })
+    # Yolu olmayan kapanış sayısı (kapanıştan, argümansız bir çağrının sonucu) kayıtta hatadır.
+    TR_func oran_al() -> TR_Float { TR_return ölçek }
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * oran_al())(t) })
+    # Argümandan türeyen sayı denetlenmez; argüman olarak verilen sayı değişir.
+    TR_var ks = TR_fuse((a) => a * a.TR_shape[0])
+    TR_assert_equal([1.0], ks(t).TR_tolist)
+    TR_assert_equal([2.0, 2.0], ks(TR_Tensor([1.0, 1.0])).TR_tolist)
+    TR_var kv = TR_fuse((a, s) => a * s)
+    TR_assert_equal([2.0], kv(t, ölçek).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal([3.0], kv(t, ölçek).TR_tolist)
+    # Kapanıştan tensör okumak hatadır.
+    TR_var dış = TR_Tensor([1.0])
+    TR_assert_equal("H3108", TR_error_code { TR_fuse((a) => a + dış)(t) })
 }
 
 TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {

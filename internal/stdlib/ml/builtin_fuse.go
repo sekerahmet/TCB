@@ -21,11 +21,13 @@ func registerFuse(v *interp.VM) {
 	wrap(v, codes.FnFuse, newBuiltin(fuseBuiltin))
 }
 
-// fusedFn kaynaştır'ın döndürdüğü fonksiyonun durumu: kaynaştırılan fonksiyon ve girdi
-// bileşimine göre programları.
+// fusedFn kaynaştır'ın döndürdüğü fonksiyonun durumu: kaynaştırılan fonksiyon, girdi
+// bileşimine göre programları ve ilk çağrıda kaydedilen kapanış sayıları (fuse_captures.go).
 type fusedFn struct {
-	f     interp.Value
-	cache map[string]*tensor.FuseProgram
+	f        interp.Value
+	cache    map[string]*tensor.FuseProgram
+	recorded bool
+	caps     []fuseCapture
 }
 
 // fuseBuiltin kaynaştır(f) yerleşiğidir.
@@ -70,6 +72,17 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 			return nil, interp.ArgCountError(codes.FnFuse, interp.AtLeast(1), 0)
 		}
 		return nil, messages.New(messages.H6434, fn, 1, typeName(args[0]))
+	}
+	// Kapanıştan okunan sayılar ilk çağrıda kaydedilir, her çağrıda cihazdan önce denetlenir
+	// (15.44): değişen sayı kaynaşmış sonucu sessizce eski bırakırdı.
+	if !f.recorded {
+		caps, err := recordCaptures(f.f)
+		if err != nil {
+			return nil, err
+		}
+		f.caps, f.recorded = caps, true
+	} else if err := checkCaptures(fn, f.caps); err != nil {
+		return nil, err
 	}
 	p := f.cache[key.String()]
 	if p == nil {

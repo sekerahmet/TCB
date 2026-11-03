@@ -1,12 +1,18 @@
 package ml
 
-import "testing"
+import (
+	"testing"
 
-// Kaynaştırılan fonksiyonun dışarıdan okuduğu sayı kayıtta (ilk çağrıda) programa sabit
-// olarak girer (dil tanımı 15.44; JAX jit de kapanıştaki sayıları iz anında sabitler).
-// Sonradan değişen sayı kaynaşmış sonucu değiştirmez; argüman olarak verilen değiştirir.
-func TestFuseCapturedNumberIsBakedIn(t *testing.T) {
-	out := mustRun(t, `TR_var ölçek = 2.0
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
+
+// Kaynaştırılan fonksiyonun kapanıştan okuduğu sayı kayıtta (ilk çağrıda) programa sabit olarak
+// girer; değişirse kaynaşmış sonuç eski kalırdı, CPU'da TR_replay ile ayrışırdı (dil tanımı 15.44).
+// Bu yüzden değişen kapanış sayısı her çağrıda, cihazdan önce yakalanan çalışma hatasıdır; argüman
+// olarak verilen sayı önbellek anahtarına girer ve değişir. (Eski hâli bu testin tersiydi: sayının
+// sessizce sabitlendiğini doğru diye sabitliyordu.)
+func TestFuseCapturedNumberChangeIsAnError(t *testing.T) {
+	out, err := run(t, `TR_var ölçek = 2.0
 TR_func f(x: TR_Tensor) -> TR_Tensor { TR_return x * ölçek }
 TR_func g(x: TR_Tensor, s: TR_Float) -> TR_Tensor { TR_return x * s }
 TR_var kf = TR_fuse(f)
@@ -14,10 +20,10 @@ TR_var kg = TR_fuse(g)
 TR_var t = TR_Tensor([1.0])
 TR_print(kf(t).TR_tolist, kg(t, ölçek).TR_tolist)
 ölçek = 3.0
-TR_print(kf(t).TR_tolist, kg(t, ölçek).TR_tolist)`)
-	want := "[2.0] [2.0]\n[2.0] [3.0]\n"
-	if out != want {
-		t.Fatalf("dış sayı kayıtta sabitlenmedi ya da argüman değişmedi:\n%q\nbeklenen:\n%q", out, want)
+TR_print(kg(t, ölçek).TR_tolist)
+TR_print(kf(t).TR_tolist)`)
+	if out != "[2.0] [2.0]\n[3.0]\n" || !messages.Has(err, messages.H6986) {
+		t.Fatalf("değişen kapanış sayısı H6986 vermedi ya da argüman değişmedi: %q, %v", out, err)
 	}
 }
 

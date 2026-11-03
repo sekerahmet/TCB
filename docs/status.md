@@ -896,8 +896,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.44
 
-- **Mevcut durum:** `TR_fuse`'un kapanışından okunan sayı değişince sonuç sessizce eski kalıyor (sabit 2'den 5'e çıktı, sonuç `[2, 4]` kaldı) [ölçüldü]; CPU'da `TR_fuse` eski değeri, `TR_replay` yeni değeri veriyor, GPU'da `TR_replay` de sabitliyor: aynı program cihaza göre ayrı sonuç veriyor [ölçüldü: DENETİM]. Go testi `TestFuseCapturedNumberIsBakedIn` bu sessiz eskimeyi doğru davranış diye sabitliyor (`internal/stdlib/ml/builtin_fuse_test.go:8`). `TR_clamp`, `TR_atan2` ve `TR_where` kaynaştırılmıyor.
-- **Yapılacaklar (A, Ö0, Kol B S-kilitten sonra; ölçüldü 30b44b01):** kapanıştaki sayının kaydı ve her çağrıda, her cihazda denetimi; yolu olmayan sayıda kayıt hatası. Kural uygulanınca `TestFuseCapturedNumberIsBakedIn` tersine döner: değişen kapanış sayısı hata vermeli; TR testi.
+- **Mevcut durum:** `TR_fuse`'un kapanıştan okuduğu sayı ilk çağrıda kaydediliyor, her çağrıda cihazdan önce denetleniyor: değişmişse H6986; yol değişken, alan, tam sayı liste indeksi ve metin sözlük anahtarı zinciri, değişken indeksin değeri de yolda; kapanıştan argümansız çağrılan kullanıcı fonksiyonunun sonucu H6987; kapanıştan tensör H3108 [test: TR testi "15.44 kaynaştır: kapanıştan okunan sayı …", `TestFuseCapturedNumberChangeIsAnError`]. Yollar fonksiyonun gövdesinden (ve kapanıştan çağırdığı kullanıcı fonksiyonlarınınkinden) okunuyor; kapanıştaki bir nesnenin metodu gezilmiyor [kanıtlı: `internal/stdlib/ml/fuse_captures.go`]. `TR_clamp`, `TR_atan2` ve `TR_where` kaynaştırılmıyor.
+- **Yapılacaklar:** GPU'da aynı hata (denetim cihazdan önce, stdlib'de): L4'te koşulacak.
 - **Uygulama sınırı:** `TR_clamp`, `TR_atan2` ve `TR_where` bugün kaynaştırılmıyor; `f`'de kullanılınca hata veriyor. Kural onları da kapsar.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** kapanış yolunda liste indeksi ve sözlük anahtarı (2. kilometre taşının ön koşulu); `TR_fuse`'da float64 ve tam sayı kendi türünde (T3).
 

@@ -1368,6 +1368,8 @@ const (
 	H6983 Code = 6983 // {fn}: hedef sınıf indeksleri olmalıdır (`{#Tensor}[{#Int}]`), {dtype} tensör verildi (15.25). Olasılık hedefi için `{#cross_entropy}(x @ w, h)` yazın
 	H6984 Code = 6984 // {fn}: hedef mantık tensörü olamaz: sınıf indeksleri `{#Tensor}[{#Int}]`, olasılıklar `{#Tensor}[{#Float}]` (15.23a)
 	H6985 Code = 6985 // {fn}: `{#mask}:` mantık tensörü olmalı (`{#Tensor}[{#Bool}]`; `{#true}` olan yere bakılır), {kind, select, int {tam sayı} other {ondalık}} tensör verildi (15.24). Sayı maskesini karşılaştırmayla çevirin: 1'i bakılan yer olan 0/1 maskede `m != 0`, bakılmayan yere −∞ toplanan maskede (PyTorch) `m == 0`
+	H6986 Code = 6986 // {fn}: kaynaştırılan fonksiyonun kapanıştan okuduğu {path} ilk çağrıda {old} idi, şimdi {new} (15.44): kaynaşmış program sayıyı ilk değeriyle kaydetti. Değişen sayıyı fonksiyona argüman olarak verin; sayı argümanı önbellek anahtarına girer
+	H6987 Code = 6987 // {fn}: kaynaştırılan fonksiyon kapanıştaki {call} fonksiyonunu argümanlarından beslemeden çağırıyor (15.44): sonucu programa sabit olarak girer ama yolu olmadığı için değişimi denetlenemez. Değeri fonksiyona argüman olarak verin
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
