@@ -6,8 +6,10 @@ Dil tanımının yeniden yazılan bölümlerine göre bugünkü TR'nin durumu ve
 
 Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61, 2026-11-03; 6–9. bölümler istek 68). Etiket her maddenin "Yapılacaklar"ında: sınıf, öncelik, kol ya da dilim ve ölçüm tabanı, ör. **Yapılacaklar (A, Ö1, 4a4; ölçüldü 30b44b01)**. Etiketsiz madde D, E ya da F sınıfındadır ve Ö3'tür. Etiket ölçüm tabanını taşır: taban eskidikçe iddia yeniden ölçülür.
 
+**Sınıf karar anında yazılır** (DENETİM istek 76): her karar ve bulgu yazılırken (yol haritası, status ya da `pending.md`) sınıfı da yazılır. A, B ya da C ise aynı gün buraya etiketli bir "Yapılacaklar" satırı açılır; dil tanımında bölümü olmayan iş "Bölümü olmayan işler"e girer. D, E ve F yol haritasında kalabilir. Önem taramaları status'un yanında `pending.md`'yi ve TCB'nin takip tablosunu da okur; yol haritasını TCB ya da DENETİM okur.
+
 **Sınıflar** (sıra tasarım ölçütlerinin sırası: doğruluk, güvenlik, ajan için hatasız):
-- **A, sessiz yanlış:** program hata vermeden yanlış sonuç, yanlış veri ya da yanlış gradyan veriyor; diskteki veriyi sessizce kaybediyor ya da bozuyor; ya da bir test bu yanlışı doğru diye sabitliyor.
+- **A, sessiz yanlış:** program hata vermeden yanlış sonuç, yanlış veri ya da yanlış gradyan veriyor; diskteki veriyi sessizce kaybediyor ya da bozuyor; ya da bir test bu yanlışı doğru diye sabitliyor; ya da dilin kendi aracı (ikiliyle gelen komut, eklenti) ya da belgesinin veya iletisinin verdiği komut hata vermeden yanlış sonuç gösteriyor: program çalışmadan geçmiş görünüyor (DENETİM istek 76).
 - **B, güvenlik:** dış girdi (kullanıcı metni, dosya, yol) programın davranışını değiştirebiliyor.
 - **C, güvenilirlik:** aynı program aynı veriyle farklı sonuç veriyor (makineye, iş parçacığı sayısına, test sırasına göre); kesilen iş aynı sürmüyor; program asılı kalıyor.
 - **D, geç hata:** yanlış program denetimden geçiyor; çalışırken açık hata veriyor ya da hatasız çalışıp doğru sonuç veriyor (A için çıktı dil tanımına göre yanlış olmalı).
@@ -26,6 +28,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. **Birleşti** (2026-11-03, `479457b1`; telafili toplam ve `TR_read_bytes` da). FMA'sız yol (C) bu dilime girmez. Hemen ardından aynı kolda `TR_max` ve `TR_round`'un dört sessiz yanlışı (status 13.1, DENETİM istek 71).
 3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce.
 4. 7.6 ve 7.7'nin özdeşlik kısa devresi (yorumlayıcının eşitliği; DENETİM istek 75): Kol A, 13.1c'den sonraki dilim, 8.5 ile.
+5. Komut adının göçü `tr` → `trlang` ("Bölümü olmayan işler"): Gemini (Kodlama2), Claude kollarının dilimini beklemez; birleştirmesi T1 16.2+16.3 ve D1 13.1c'den sonra, sonraki dilimler onun üstünden açılır.
 
 **Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1c'den sonraki dilim (Ö0 4. madde ile): 8.5'in işletim sistemi hatası (13.1 onsuz birleşti, DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45.
 
@@ -1129,6 +1132,15 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ### 19.11
 
 - **Mevcut durum (Faz 0.4, 2026-10-30):** iş klasörünün ortam değişkeni "TR_JOB_DIR" (`TR_env_JOB_DIR`); çubuğun dili "TR_LANG"'dan (`TR_env_LANG`) okunuyor [ölçüldü: kod].
+
+## Bölümü olmayan işler
+
+Dil tanımında bölümü olmayan A, B ve C işleri (DENETİM istek 76).
+
+### Komut adı: `trlang`
+
+- **Mevcut durum:** komut satırı aracının adı `tr`; karar `trlang` (Ahmet, 2026-10-30; [yol haritası](roadmap.md)). Örneklerin başlığı ("Çalıştırma: tr examples/tr/01_merhaba.tr") ve iletiler (H8602 "'tr {command}'") ajana `tr` yazdırıyor; POSIX makinesinde sistemin `tr`'si çağrılınca "tr run x.tr < /dev/null" çağrısı çıkış 0 ve boş çıktı veriyor, standart girdi açıkken asılı kalıyor; sonuç PATH'e göre değişiyor [ölçüldü: DENETİM istek 76, GNU coreutils 8.32]. Göçün kapsamı 704 satır, 249 dosya (13 komut, alt komutsuz `tr <yol>.tr`, ileti şablonları, `tr.exe`, yolla çağrılan ikili; arşiv hariç) [ölçüldü: aynı istek, `f6c22ae8`].
+- **Yapılacaklar (A ayrıca C ve F1, Ö0, Gemini Kodlama2; ölçüldü f6c22ae8):** göç (yönerge `TRLANG_GOCU_YONERGESI.md`, DENETİM istek 76'nın Ş3–Ş6'sıyla): komut listesi koddan, eski adı yasaklayan test, eklentinin `/bin` atlaması kalkar; göç bitince DENETİM doğrular. Ajan deneyinin zor-3'ü bundan sonra.
 
 ## 20. Kontrol noktası
 

@@ -12,7 +12,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
   2. **metin:** DENETİM okur.
 - Her kuralın bugünkü durumu ve yapılacakları [`status.md`](status.md)'dedir; iş testiyle kapanır ve oradan silinir.
 - Bu belge işlerin sırasını, bölümü olmayan işleri ve kilometre taşlarını tutar.
-- **Güncel tutma:** bir karar ya da iş değişince bu belge aynı gün, ölçülerek güncellenir. Eksik ya da yanlış bir satır yanlış yöne götürür; fark geç anlaşılınca boşa iş yapılmış olur.
+- **Güncel tutma:** bir karar ya da iş değişince bu belge aynı gün, ölçülerek güncellenir. Her karar ve bulgunun sınıfı yazılırken sorulur; A, B ya da C ise status'a aynı gün etiketli satır açılır (DENETİM istek 76). Eksik ya da yanlış bir satır yanlış yöne götürür; fark geç anlaşılınca boşa iş yapılmış olur.
 - **Bekçi testler** (`internal/roadmap_test.go`):
   - eski yol haritasının numaralarına gönderme yok;
   - "Son ölçüm"ün commit'i HEAD'in atası;
@@ -41,7 +41,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
     - **T2:** sinir ağı ve eğitim;
     - **T3:** hız, dosya ve nicemleme;
     - **K:** uzun yerleşiklerin kilidi. Birinci dilim birleşti (2026-11-03, T1): tensörün deposuna okuma ve yazma izni; CPU'da uzun `@`, büyük öğe öğe işlemler, indirgemeler, iyileştirici adımı ve örnekleme kilidi bırakıyor. Bitiş ölçütü CPU'da Linux'ta geçti: uzun tensör işi sürerken başka görev en çok ~4 ms bekliyor, 100 Hz döngü tur kaçırmıyor. GPU yolu ve geri yayılım kilidi tutuyor: sıradaki dilim GPU, ana daldan.
-- **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30). Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç Faz 1'de, iletiler 3'ten sonra ve ajan deneyinin zor-3'ünden önce yapılır; eski adı yasaklayan bir testle.
+- **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30). Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç ajan deneyinin zor-3'ünden önce yapılır, eski adı yasaklayan bir testle; sınıfı A (ayrıca C, F1), Ö0, kolu Gemini (DENETİM istek 76; status "Bölümü olmayan işler"). İletiler 3'e bağlı değil.
 
 ## Açık dil tasarım soruları
 
