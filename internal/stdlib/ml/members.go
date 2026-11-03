@@ -29,10 +29,11 @@ const (
 	memberToDevice  = codes.MemToDevice
 	memberToDType   = codes.MemToDtype
 	memberItem      = codes.MemItem
+	memberTracking  = codes.MemRequiresGrad
 )
 
 // tensorMemberCodes öneri listesinin sırasıdır.
-var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit, memberItem}
+var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit, memberItem, memberTracking}
 
 func isTensorMember(k codes.Code) bool { return slices.Contains(tensorMemberCodes, k) }
 
@@ -56,6 +57,8 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 			return interp.Null, nil
 		}
 		return New(g), nil
+	case memberTracking:
+		return &interp.BoolVal{Val: t.RequiresGrad()}, nil
 	case memberValue:
 		return d.valueList()
 	case memberReshape:

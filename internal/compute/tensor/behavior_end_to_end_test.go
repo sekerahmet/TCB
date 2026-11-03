@@ -80,6 +80,7 @@ func TestAdamWWeightDecay(t *testing.T) {
 	// p ← p·(1 - lr·wd).
 	p := New([]float32{2, -4}, 2).SetRequiresGrad(true)
 	p.n.accGrad()
+	p.n.added = true // geri yayılımsız sıfır gradyan: "eklenmiş" sayılır (15.34)
 	opt := NewAdamW([]*Tensor{p}, 0.1, 0.5)
 	opt.Step()
 	near(t, "çürüme", p.Data(), []float32{2 * 0.95, -4 * 0.95}, 1e-6)
@@ -93,7 +94,10 @@ func TestClipGradNorm(t *testing.T) {
 		t.Fatalf("norm %v", n)
 	}
 	near(t, "kırpılmış", a.Grad().Data(), []float32{0.6, 0.8}, 1e-6)
-	expectPanic(t, "gradyansız parametre", func() { NewAdamW([]*Tensor{Ones(2)}, 0.1, 0) })
+	// Türev izlemeyen yaprak kabul edilir ve adımda atlanır (15.34).
+	frozen := Ones(2)
+	NewAdamW([]*Tensor{frozen}, 0.1, 0.5).Step()
+	near(t, "donmuş parametre", frozen.Data(), []float32{1, 1}, 0)
 	expectPanic(t, "görünüm parametre", func() {
 		NewSGD([]*Tensor{Ones(2, 2).SetRequiresGrad(true).Detach().SetRequiresGrad(true).Slice(0, 1, 2)}, 0.1, 0)
 	})

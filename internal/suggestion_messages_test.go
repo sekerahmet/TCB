@@ -63,7 +63,6 @@ var suggestionCases = []suggestionCase{
 	{messages.H6405, "TR_var f = TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad((x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
 	{messages.H6430, "TR_var f = TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
 	{messages.H6431, "TR_var f = TR_custom_grad()", "TR_custom_grad()", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
-	{messages.H6513, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_false)\nTR_var opt = TR_AdamW([w])", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
 	{messages.H6514, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var opt = TR_AdamW([w])", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
 	{messages.H6520, "TR_var m = {\"w\": TR_Tensor([1.0], TR_requires_grad: TR_false)}\nTR_load_parameters(m, {\"w\": TR_Tensor([2.0])})", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
 	{messages.H6700, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var g = w.TR_grad", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
@@ -170,6 +169,15 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var z = TR_zeros([2, 3])\nTR_var h = TR_Tensor([[0, 1, 0], [1, 0, 0]])\nTR_print(TR_cross_entropy(z, TR_argmax(h, TR_dim: -1)).TR_tolist)", "1.0986123\n"},
 	{messages.H6312, "TR_var z = TR_zeros([2, 3])\nTR_var h = TR_Tensor([[0, 1, 0], [1, 0, 0]])\nTR_print(TR_cross_entropy(z, h).TR_tolist)", "TR_Tensor[TR_Float](h)",
 		"TR_var z = TR_zeros([2, 3])\nTR_var h = TR_Tensor([[0, 1, 0], [1, 0, 0]])\nTR_print(TR_cross_entropy(z, TR_Tensor[TR_Float](h)).TR_tolist)", "1.0986123\n"},
+	// 15.34: gradyansız adım (H6988), ara sonuca (H6990), görünüme ya da tam sayı tensöre (H6991) türev_izle.
+	{messages.H6988, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true)\nTR_var op = TR_SGD([w], TR_lr: 0.5)\nop.TR_step()\nTR_print(w.TR_tolist)", "TR_backward(...)",
+		"TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true)\nTR_var op = TR_SGD([w], TR_lr: 0.5)\nTR_backward(TR_sum(w * w))\nop.TR_step()\nTR_print(w.TR_tolist)", "[0.0]\n"},
+	{messages.H6990, "TR_var x = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_var y = x * 2\ny.TR_requires_grad = TR_true\nTR_print(y.TR_tolist)", "TR_Tensor(y)",
+		"TR_var x = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_var y = x * 2\ny = TR_Tensor(y)\ny.TR_requires_grad = TR_true\nTR_print(y.TR_tolist)", "[2.0]\n"},
+	{messages.H6991, "TR_var t = TR_zeros([2, 2])\nTR_var v = t.TR_reshape([4])\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "TR_Tensor(v)",
+		"TR_var t = TR_zeros([2, 2])\nTR_var v = t.TR_reshape([4])\nv = TR_Tensor(v)\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "[4]\n"},
+	{messages.H6991, "TR_var v = TR_Tensor([1, 2])\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "TR_Tensor[TR_Float](v)",
+		"TR_var v = TR_Tensor([1, 2])\nv = TR_Tensor[TR_Float](v)\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "[2]\n"},
 	// 15.24: dikkatin maskesi TR_Bool (H6985'in iki önerisi).
 	{messages.H6985, "TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m).TR_shape)", "m != 0",
 		"TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m != 0).TR_shape)", "[2, 2]\n"},

@@ -2,6 +2,7 @@
 # docs/spec/15_tensorler.md §15 — Tensörler ve otomatik türev
 
 TR_import "yardimci_test_araclari"
+TR_import "yardimci_modul" TR_as ym
 
 TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -577,7 +578,7 @@ TR_test "15.34 AdamW ve SGD'nin tipi İyileştirici'dir" {
     TR_assert(TR_String(TR_SGD([w])).TR_starts_with("SGD("))
 }
 
-TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
+TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta bileşik atamayla yerinde güncellenir" {
     # TR'de yazılan bir iyileştiricinin (ör. tr/optimizers'deki Muon) tek yapı taşı:
     # gradyanla hesaplanan yeni değer parametrenin kendisine, kopyasız yazılır.
     TR_var w = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
@@ -585,8 +586,8 @@ TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamay
     TR_var aynı_w = w
     TR_backward(TR_sum(w * w) + TR_sum(b))
     TR_no_grad {
-        w[0..w.TR_shape[0]] -= 0.25 * w.TR_grad
-        b[0..b.TR_shape[0]] = b - 0.5 * b.TR_grad
+        w -= 0.25 * w.TR_grad
+        b -= 0.5 * b.TR_grad
         TR_var g = w.TR_grad
         g[0..g.TR_shape[0]] = 0.0 # gradyanı yerinde sıfırlama
     }
@@ -623,12 +624,108 @@ TR_test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     TR_assert_equal([0.0, 0.0], p.TR_tolist)
     sgd.TR_zero_grad()
     TR_assert_equal([0.0, 0.0], p.TR_grad.TR_tolist)
-    TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_zeros([2])]) })
     # Sayı olmayan ya da sonsuz oranlar reddedilir (tek adımda bütün parametreler NaN olurdu).
     TR_assert_equal("H6519", TR_error_code { TR_AdamW([p], TR_lr: TR_log(-1.0)) })
     TR_assert_equal("H6519", TR_error_code { TR_SGD([p], TR_lr: TR_exp(1000.0)) })
     TR_assert_equal("H6519", TR_error_code { TR_SGD([p], TR_momentum: TR_log(-1.0)) })
     TR_assert_equal("H6519", TR_error_code { TR_AdamW([p], TR_lr: 1e300) })
+}
+
+TR_test "15.34 dondurma: türev_izle okunur ve atanır, donmuş parametre adımda atlanır; gradyansız adım ve iki iyileştirici hatadır" {
+    TR_struct Model { gövde: TR_Tensor; baş: TR_Tensor }
+    TR_var gövde = TR_Tensor([1.0, 2.0])
+    gövde.TR_requires_grad = TR_true
+    TR_var m = Model(gövde: gövde, baş: TR_Tensor([3.0], TR_requires_grad: TR_true))
+    TR_var op = TR_SGD(TR_parameters(m), TR_lr: 0.5)
+    TR_func kayıp() -> TR_Tensor { TR_return TR_sum(m.gövde * m.gövde) + TR_sum(m.baş * m.baş) }
+    # Dondurmak gradyanı siler; iyileştirici donmuş parametreyi atlar (TR_parameters onu da verir).
+    TR_backward(kayıp())
+    TR_for p TR_in [m.gövde] { p.TR_requires_grad = TR_false }
+    TR_assert_equal(TR_false, m.gövde.TR_requires_grad)
+    TR_assert_equal(TR_none, m.gövde.TR_grad)
+    TR_assert_equal(2, TR_parameters(m).TR_length)
+    op.TR_step()
+    TR_assert_equal([1.0, 2.0], m.gövde.TR_tolist)
+    TR_assert_equal([0.0], m.baş.TR_tolist)
+    # Aşamalı çözme: aynı iyileştirici çözülen gövdeyi sonraki adımda günceller.
+    m.gövde.TR_requires_grad = TR_true
+    op.TR_zero_grad()
+    TR_backward(kayıp())
+    op.TR_step()
+    TR_assert_equal([0.0, 0.0], m.gövde.TR_tolist)
+    # Bütün parametreleri donmuşsa adım bir şey yapmaz; türev izlemeyen yaprak kurulumda kabul edilir.
+    TR_var donuk = TR_Tensor([5.0], TR_requires_grad: TR_true)
+    donuk.TR_requires_grad = TR_false
+    TR_var od = TR_AdamW([donuk, TR_Tensor([1, 2])])
+    od.TR_step()
+    TR_assert_equal([5.0], donuk.TR_tolist)
+    # Gradyansız adım hatadır: geri yayılım yok, bilgi adımda tüketildi, gradyan sıfırlandı.
+    TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var ow = TR_AdamW([w])
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    TR_backward(TR_sum(w * w))
+    ow.TR_step()
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    TR_backward(TR_sum(w * w))
+    ow.TR_zero_grad()
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    # Yüklenen durum (geri dönüş, 20.14) bilgiyi siler.
+    TR_backward(TR_sum(w * w))
+    ow.TR_load_state(ow.TR_state)
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    # Sıfırlanan gradyan "eklenmiş" sayılmaz: o adımda gradyan almayan parametre (v) çürümez, momentiyle de kaymaz.
+    TR_var u = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var v = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var ouv = TR_AdamW([u, v], TR_lr: 0.1, TR_weight_decay: 0.5)
+    TR_backward(TR_sum(u) + TR_sum(v))
+    ouv.TR_step()
+    TR_var v1 = v.TR_tolist
+    ouv.TR_zero_grad()
+    TR_backward(TR_sum(u))
+    ouv.TR_step()
+    TR_assert_equal(v1, v.TR_tolist)
+    # Gradyan almayan parametrenin ağırlığı, momentleri, sayacı ve çürümesi değişmez; sapma
+    # düzeltmesi parametrenin kendi güncelleme sayısıyla: dört adım sonra b'nin ilk güncellemesi
+    # yeni bir iyileştiricininkiyle aynıdır.
+    TR_var a = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var oab = TR_AdamW([a, b], TR_lr: 0.1, TR_weight_decay: 0.5)
+    TR_for i TR_in 0..4 {
+        oab.TR_zero_grad()
+        TR_backward(TR_sum(a))
+        oab.TR_step()
+    }
+    TR_assert_equal([1.0], b.TR_tolist)
+    TR_backward(TR_sum(b))
+    oab.TR_step()
+    TR_var c = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var oc = TR_AdamW([c], TR_lr: 0.1, TR_weight_decay: 0.5)
+    TR_backward(TR_sum(c))
+    oc.TR_step()
+    TR_assert_equal(c.TR_tolist, b.TR_tolist)
+    # Bir parametre iki iyileştiricideyse ikincisi aynı geri yayılımın gradyanını adımlayamaz.
+    TR_var p = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var o1 = TR_SGD([p], TR_lr: 0.1)
+    TR_var o2 = TR_SGD([p], TR_lr: 0.1)
+    TR_backward(TR_sum(p * p))
+    o1.TR_step()
+    TR_assert_equal("H6989", TR_error_code { o2.TR_step() })
+    TR_assert_equal([0.8], p.TR_tolist)
+    # Atama yalnız yaprakta; açmak yalnız kendi deposu olan ondalık yaprakta; değer TR_Bool.
+    TR_var y = p * 2
+    TR_assert_equal("H6990", TR_error_code { y.TR_requires_grad = TR_false })
+    TR_var tam = TR_Tensor([1, 2])
+    TR_assert_equal("H6991", TR_error_code { tam.TR_requires_grad = TR_true })
+    TR_var taban = TR_zeros([2, 2])
+    TR_var görünüm = taban.TR_reshape([4])
+    TR_assert_equal("H6991", TR_error_code { görünüm.TR_requires_grad = TR_true })
+    TR_backward(TR_sum(p * p))
+    TR_var g = p.TR_grad
+    TR_if g != TR_none { TR_assert_equal("H6991", TR_error_code { g.TR_requires_grad = TR_true }) }
+    TR_assert_equal("H6992", TR_error_code { taban.TR_requires_grad = 1 })
+    TR_var kopya = TR_Tensor(görünüm)
+    kopya.TR_requires_grad = TR_true
+    TR_assert_equal(TR_true, kopya.TR_requires_grad)
 }
 
 TR_test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
@@ -843,7 +940,7 @@ TR_test "15.48 hatalar şekli gösterir ve yakalanabilir" {
     TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1.0, 2.0], [3.0]]) })
     TR_assert_equal("H6305", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [5]) })
     TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([[0, 1, 0], [1, 0, 0]])) })
-    TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_Tensor(3.0)]) })
+    TR_assert_equal("H6988", TR_error_code { TR_AdamW([TR_Tensor(3.0, TR_requires_grad: TR_true)]).TR_step() })
 }
 
 TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
@@ -1292,6 +1389,83 @@ TR_test "15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir,
     # Kapanıştan tensör okumak hatadır.
     TR_var dış = TR_Tensor([1.0])
     TR_assert_equal("H3108", TR_error_code { TR_fuse((a) => a + dış)(t) })
+}
+
+TR_test "15.44 kaynaştır: kapanıştaki nesnenin metodunda TR_self nesnenin yoludur, modülün adı da yoldur" {
+    TR_struct Ölçekli {
+        oran: TR_Float = 2.0
+        TR_func uygula(x: TR_Tensor) -> TR_Tensor { TR_return x * TR_self.oran }
+        TR_func iki_kez(x: TR_Tensor) -> TR_Tensor { TR_return TR_self.uygula(x) + TR_self.oran }
+        TR_func oranı() -> TR_Float { TR_return TR_self.oran }
+    }
+    TR_var t = TR_Tensor([1.0])
+    # Metodun gövdesine inilir: TR_self.oran, m.oran olarak kaydedilir.
+    TR_var m = Ölçekli()
+    TR_var k = TR_fuse((a) => m.uygula(a))
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    m.oran = 5.0
+    TR_assert_equal("H6986", TR_error_code { k(t) })
+    m.oran = 2.0
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    # Metottan çağrılan metot da; aynı metot başka nesnede kendi yoluyla.
+    TR_var n = Ölçekli(oran: 3.0)
+    TR_var kn = TR_fuse((a) => n.iki_kez(a) + m.uygula(a))
+    TR_assert_equal([8.0], kn(t).TR_tolist)
+    n.oran = 4.0
+    TR_assert_equal("H6986", TR_error_code { kn(t) })
+    n.oran = 3.0
+    m.oran = 1.0
+    TR_assert_equal("H6986", TR_error_code { kn(t) })
+    # Nesnenin yerine başka nesne konunca da yol yeniden okunur.
+    m = Ölçekli(oran: 7.0)
+    TR_assert_equal("H6986", TR_error_code { k(t) })
+    # Argümandan beslenmeyen metodun sonucu yolu olmayan değerdir.
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * m.oranı())(t) })
+    # Modülün adı modülün kendi fonksiyonuyla değişir; kaynaşmış fonksiyon yeni değeri görür.
+    TR_var km = TR_fuse((a) => a * ym.modül_sayacı)
+    TR_var önce = km(t).TR_tolist
+    ym.modülde_say()
+    TR_assert_equal("H6986", TR_error_code { km(t) })
+    TR_assert_equal([önce[0] + 1.0], TR_fuse((a) => a * ym.modül_sayacı)(t).TR_tolist)
+}
+
+TR_test "15.44 kaynaştır: izlenemeyen kapanış değeri hatadır; mantık değeri, tam sayı anahtarı ve iç fonksiyonun gölgelediği ad izlenir" {
+    TR_var t = TR_Tensor([1.0])
+    # Mantık değeri de sayı gibi kaydedilir: dal kayda sabit girer, değişince hatadır.
+    TR_var bayrak = TR_true
+    TR_var kb = TR_fuse((a) => TR_if bayrak { a * 2.0 } TR_else { a })
+    TR_assert_equal([2.0], kb(t).TR_tolist)
+    bayrak = TR_false
+    TR_assert_equal("H6986", TR_error_code { kb(t) })
+    # İç fonksiyonun parametresi yalnız kendi gövdesinde bağlıdır; dıştaki ölçek kapanıştandır.
+    TR_var ölçek = 2.0
+    TR_var kç = TR_fuse((a) => {
+        TR_var iç = (ölçek: TR_Float) => ölçek
+        TR_return a * ölçek
+    })
+    TR_assert_equal([2.0], kç(t).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal("H6986", TR_error_code { kç(t) })
+    # Sözlüğün tam sayı anahtarı da metin anahtarı gibi yolun parçasıdır.
+    TR_var d = {1: 2.0}
+    TR_var kd = TR_fuse((a) => a * d[1])
+    TR_assert_equal([2.0], kd(t).TR_tolist)
+    d[1] = 5.0
+    TR_assert_equal("H6986", TR_error_code { kd(t) })
+    # Kapanıştaki liste ya da sözlüğün yerleşik özelliği ve metodu (argümanlı, argümansız)
+    # izlenemez: kayıtta hatadır. Listenin kendisini bütün olarak okumak da.
+    TR_var l = [1.0, 2.0]
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * l.TR_length)(t) })
+    TR_var m = [2.0]
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * m.TR_get(0))(t) })
+    TR_var s = {"a": 1.0}
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * s.TR_keys().TR_length)(t) })
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * TR_sum(TR_Tensor(m)))(t) })
+    # Değeri argüman olarak vermek (iletinin önerisi) değişimi izler.
+    TR_var kv = TR_fuse((a, n) => a * n)
+    TR_assert_equal([2.0], kv(t, l.TR_length).TR_tolist)
+    l.TR_append(3.0)
+    TR_assert_equal([3.0], kv(t, l.TR_length).TR_tolist)
 }
 
 TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {

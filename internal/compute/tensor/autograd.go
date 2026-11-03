@@ -83,6 +83,9 @@ type node struct {
 
 	grad         Storage // bitişik gradyan (şekil = shape), gerekince ayrılır
 	requiresGrad bool
+	// added ve stepper yaprağın "gradyan eklendi" bilgisidir (15.34; grad_flag.go).
+	added   bool
+	stepper Optimizer
 	// passGrad, gradyanı girdisine olduğu gibi aktaran işlemin (dönüşüm, görünüm, kopya,
 	// cihaz değiştirme) düğümünü işaretler: gradyanının türü girdininkidir (bkz. gradDType).
 	passGrad bool
@@ -386,6 +389,7 @@ func (t *Tensor) BackwardCtx(seed *Tensor, ctx any) {
 		n.free = true
 		n.behind.Store(false)
 	}
+	markAdded(leaves)
 	if f, ok := t.be.(BackwardFinisher); ok {
 		f.BackwardDone()
 	}

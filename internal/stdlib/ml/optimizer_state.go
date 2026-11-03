@@ -132,6 +132,8 @@ func (o *Optimizer) LoadState(fn any, st map[string]*tensor.Tensor) error {
 		} else {
 			o.sgd.LoadState(moved)
 		}
+		// Yüklenen durum (geri dönüş, 20.14) "gradyan eklendi" bilgisini siler (15.34).
+		tensor.ForgetGrads(o.params)
 	})
 }
 

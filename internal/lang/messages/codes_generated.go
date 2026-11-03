@@ -569,7 +569,6 @@ const (
 	H3051 Code = 3051 // MatMul iç boyutlar uyuşmuyor: {a} @ {b}
 	H3052 Code = 3052 // toplu MatMul öndeki eksenlerin eşit olmasını ister: {a} @ {b}
 	H3053 Code = 3053 // negatif boyut {shape}
-	H3054 Code = 3054 // iyileştirici parametreleri gradyan istemeli (SetRequiresGrad(true))
 	H3055 Code = 3055 // iyileştirici parametresi kendi depolamasına sahip bitişik bir tensör olmalı (şekil {shape})
 	H3056 Code = 3056 // iyileştirici durumu uyumsuz: {name|q} adım sayacı [2] şeklinde olmalı
 	H3057 Code = 3057 // iyileştirici durumu bozuk: {name|q} adım sayacı geçersiz ({value}); kayıt bozuk ya da başka bir iyileştiriciye ait
@@ -1188,7 +1187,6 @@ const (
 	H6510 Code = 6510 // {fn}: parametre listesi boş
 	H6511 Code = 6511 // {fn}: {name|q} parametresinin şekli modelde {modelShape}, {source} {sourceShape}
 	H6512 Code = 6512 // {fn}: {order}. parametre bir tensör olmalıdır, {given} verildi
-	H6513 Code = 6513 // {fn}: {order}. parametre ({shape}) türev izlemiyor; {example} ile oluşturun
 	H6514 Code = 6514 // {fn}: {order}. parametre ({shape}) bir işlemin sonucu (yaprak değil); parametreleri doğrudan {example} ile oluşturun
 	H6515 Code = 6515 // {fn}: {order}. parametre listede birden çok kez var
 	H6516 Code = 6516 // {fn}: {key|q} bu iyileştiricinin ({optimizer}, {params} parametre) durum anahtarı değil; durum aynı tipte ve aynı parametre listesiyle kurulmuş bir iyileştiricinin {stateMethod}'u olmalı
@@ -1369,7 +1367,12 @@ const (
 	H6984 Code = 6984 // {fn}: hedef mantık tensörü olamaz: sınıf indeksleri `{#Tensor}[{#Int}]`, olasılıklar `{#Tensor}[{#Float}]` (15.23a)
 	H6985 Code = 6985 // {fn}: `{#mask}:` mantık tensörü olmalı (`{#Tensor}[{#Bool}]`; `{#true}` olan yere bakılır), {kind, select, int {tam sayı} other {ondalık}} tensör verildi (15.24). Sayı maskesini karşılaştırmayla çevirin: 1'i bakılan yer olan 0/1 maskede `m != 0`, bakılmayan yere −∞ toplanan maskede (PyTorch) `m == 0`
 	H6986 Code = 6986 // {fn}: kaynaştırılan fonksiyonun kapanıştan okuduğu {path} ilk çağrıda {old} idi, şimdi {new} (15.44): kaynaşmış program sayıyı ilk değeriyle kaydetti. Değişen sayıyı fonksiyona argüman olarak verin; sayı argümanı önbellek anahtarına girer
-	H6987 Code = 6987 // {fn}: kaynaştırılan fonksiyon kapanıştaki {call} fonksiyonunu argümanlarından beslemeden çağırıyor (15.44): sonucu programa sabit olarak girer ama yolu olmadığı için değişimi denetlenemez. Değeri fonksiyona argüman olarak verin
+	H6987 Code = 6987 // {fn}: kaynaştırılan fonksiyon kapanıştaki {call}{kind, select, call { fonksiyonunu argümanlarından beslemeden çağırıyor} member { yerleşik üyesini okuyor (kapanıştaki liste, sözlük ve metnin yerleşik özelliği ve metodu izlenmez)} other { değerini izleyemeden okuyor (yalnız sayı, mantık değeri, metin ve yokluk izlenir; liste, sözlük ve nesnenin kendisi değil)}} (15.44): değer programa sabit olarak girer ama değişimi denetlenemez. Değeri fonksiyona argüman olarak verin
+	H6988 Code = 6988 // {fn}: son adımdan bu yana geri yayılım hiçbir parametresine gradyan eklemedi (15.34): adım hiçbir şeyi güncellemezdi. Adımdan önce kaybın geri yayılımını yapın: `{#backward}(...)`. İyileştirici kurulduktan sonra taşınan ya da yerine konan yaprakları tutuyorsa onu yeni parametrelerle kurun
+	H6989 Code = 6989 // {fn}: {order}. parametrenin ({shape}) bu geri yayılımdaki gradyanını başka bir iyileştirici adımladı (15.34): parametre iki iyileştiricide olunca gradyanı iki kez uygulanırdı. Her parametreyi tek iyileştiriciye verin (parametre grupları ayrı listelerdir)
+	H6990 Code = 6990 // `.{#requires_grad}` yalnız yaprağa atanır; bu tensör ({shape}) türev izleyen bir işlemin sonucu (15.34). Ondan bağımsız, türevi izlenmeyen bir kopya kurun: `{#Tensor}(y)`
+	H6991 Code = 6991 // `.{#requires_grad} = {#true}` yalnız kendi deposu olan, görünüm olmayan, nicemlenmemiş ondalık bir yaprağa atanır; bu tensör {dtype}{reason, select, view { ve başka bir tensörün deposunu paylaşıyor (görünüm ya da gradyan) (15.34). Bağımsız kopyasını kurun: `{#Tensor}(v)`} other { (15.34). Ondalık kopyasını kurun: `{#Tensor}[{#Float}](v)`}}
+	H6992 Code = 6992 // `.{#requires_grad}` `{#true}` ya da `{#false}` alır, {given} verildi (15.34)
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin

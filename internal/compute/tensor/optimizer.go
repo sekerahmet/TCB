@@ -17,11 +17,10 @@ type Optimizer interface {
 	ZeroGrad()
 }
 
+// checkParams parametrelerin bitişik ve kendi depolarının bütünü olduğunu denetler. Türev
+// izlemeyen yaprak (donmuş, tam sayı) kabul edilir, adımda atlanır (15.34).
 func checkParams(params []*Tensor) {
 	for _, p := range params {
-		if !p.RequiresGrad() {
-			panic(messages.New(messages.H3054))
-		}
 		if !p.IsContiguous() || p.offset != 0 || p.storage.Len() != p.Numel() {
 			panic(messages.New(messages.H3055, p.shape))
 		}

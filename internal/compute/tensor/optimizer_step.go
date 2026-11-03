@@ -49,8 +49,8 @@ func planStep(params []*Tensor, master *masterWeights, state func(k int, p *Tens
 	}
 	for k, p := range params {
 		g := p.gradStorage()
-		if g == nil {
-			continue
+		if g == nil || !p.GradAdded() {
+			continue // gradyanı eklenmemiş parametre atlanır: ağırlık, moment, sayaç değişmez (15.34)
 		}
 		m, v := state(k, p)
 		e := stepEntry{goodStep: goodStep{k: k, be: p.be, g: g, h: master.hold(k, p), m: m, v: v}, p: p,
@@ -64,12 +64,13 @@ func planStep(params []*Tensor, master *masterWeights, state func(k int, p *Tens
 	return pl
 }
 
-// mark adımın başında (begin) her girdinin ana kopyasının tazelenip tazelenmeyeceğini belirler ve
-// parametrenin sürümünü artırır (yerinde değişiklik); sıra korunur: aynı parametrenin ikinci
-// geçişi birincinin sonucunu görür.
-func (pl *stepPlan) mark(master *masterWeights) {
+// mark adımın başında (begin) her girdinin ana kopyasının tazelenip tazelenmeyeceğini belirler,
+// parametrenin sürümünü artırır (yerinde değişiklik) ve "gradyan eklendi" bilgisini by adına
+// tüketir (15.34); sıra korunur: aynı parametrenin ikinci geçişi birincinin sonucunu görür.
+func (pl *stepPlan) mark(master *masterWeights, by Optimizer) {
 	for i := range pl.entries {
 		e := &pl.entries[i]
+		e.p.n.added, e.p.n.stepper = false, by
 		e.fresh = master.stale(e.k, e.p, e.h)
 		e.p.storage.BumpVersion()
 		master.version[e.k] = e.p.storage.Version()
@@ -148,7 +149,7 @@ func (pl *stepPlan) kernel(o unsafe.Pointer, params []*Tensor, is OpKind, begin 
 func StepWork(params []*Tensor) int {
 	n := 0
 	for _, p := range params {
-		if p.gradStorage() != nil {
+		if p.gradStorage() != nil && p.GradAdded() {
 			n += p.Numel()
 		}
 	}
@@ -169,7 +170,7 @@ func (o *SGD) StepKernel() *Kernel {
 	})
 	return pl.kernel(unsafe.Pointer(o), o.Params, OpKindSGD, func() {
 		pl.hp = stepHyper{sgd: true, lr: o.LR, momentum: o.Momentum, wd: o.WeightDecay}
-		pl.mark(&o.master)
+		pl.mark(&o.master, o)
 	})
 }
 
@@ -197,6 +198,6 @@ func (o *AdamW) StepKernel() *Kernel {
 			t := float64(o.steps[e.k])
 			e.bc1, e.bc2 = float32(1-math.Pow(float64(o.Beta1), t)), float32(1-math.Pow(float64(o.Beta2), t))
 		}
-		pl.mark(&o.master)
+		pl.mark(&o.master, o)
 	})
 }

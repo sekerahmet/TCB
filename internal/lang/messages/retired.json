@@ -143,6 +143,10 @@
   "commit": "gemini-kucuk-isler-3",
   "reason": "ayrıştırıcıya taşındı: H0298"
  },
+ "H3054": {
+  "commit": "claude/kolB-o0-3",
+  "reason": "deleted: tensor: an optimizer accepts a leaf that does not track gradients (frozen, integer) and skips it in the step (15.34)"
+ },
  "H3105": {
   "commit": "0d6949c",
   "reason": "deleted: messages: whole-sentence templates instead of message fragments"
@@ -202,6 +206,10 @@
  "H6407": {
   "commit": "2fa8417",
   "reason": "deleted: messages: English pilot catalog, every language uses every parameter"
+ },
+ "H6513": {
+  "commit": "claude/kolB-o0-3",
+  "reason": "deleted: ml: an optimizer and TR_clip_grad accept a leaf that does not track gradients and skip it (15.34); a step with no gradient added is H6988"
  },
  "H6523": {
   "commit": "2fa8417",

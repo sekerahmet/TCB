@@ -24,7 +24,6 @@ TR_print(TR_clip_grad([w, b]))`)
 	}{
 		{"TR_clip_grad([TR_Tensor([1.0], TR_requires_grad: TR_true)], TR_max: 0)", messages.H6429},
 		{"TR_clip_grad([TR_Tensor([1.0], TR_requires_grad: TR_true)], max_norm: 1)", messages.H7901},
-		{"TR_clip_grad([TR_zeros([1])])", messages.H6513},
 	} {
 		if _, err := run(t, d.code); err == nil || !messages.Has(err, d.want) {
 			t.Errorf("%s: %v (içermeli: %s)", d.code, err, d.want)

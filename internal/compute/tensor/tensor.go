@@ -46,6 +46,9 @@ type Tensor struct {
 	// sonucun verisi böylece geri yayılımı beklemeden serbest kalır (PyTorch'un grad_fn
 	// ile saved tensors ayrımı).
 	n *node
+	// shared, başlığın depoyu başka bir tensörle paylaştığıdır (görünüm, Detach, Grad): türev
+	// izlemeyi açmak yalnız kendi deposu olan yaprakta geçerlidir (15.34; OwnsStorage).
+	shared bool
 	// viewOf, depoyu paylaşan bir görünümde türev izleyen tabanın düğümüdür (görünüm türevsiz
 	// kipte kurulup kendi düğümü olmasa da); yerinde yazmanın kuralı ona bakar (GradTarget).
 	viewOf *node
@@ -328,7 +331,7 @@ func (t *Tensor) GradTarget() (tracked, leaf bool) {
 
 // Detach aynı veriyi paylaşan, çizgeden kopuk ve gradyansız bir görünüm verir.
 func (t *Tensor) Detach() *Tensor {
-	return newHeader(&Tensor{storage: t.storage, be: t.be, offset: t.offset, shape: copyInts(t.shape), strides: copyInts(t.strides), dtyp: t.dtyp})
+	return newHeader(&Tensor{storage: t.storage, be: t.be, offset: t.offset, shape: copyInts(t.shape), strides: copyInts(t.strides), dtyp: t.dtyp, shared: true})
 }
 
 // DType tensörün eleman türü.
@@ -452,7 +455,9 @@ func (t *Tensor) Grad() *Tensor {
 	if t.n == nil || t.n.grad == nil {
 		return nil
 	}
-	return fromStorage(t.be, t.n.grad, t.shape)
+	g := fromStorage(t.be, t.n.grad, t.shape)
+	g.shared = true
+	return g
 }
 
 // gradStorage gradyan depolamasıdır (gradyan yoksa ya da tensör gradyan izlemiyorsa nil).
@@ -471,6 +476,9 @@ func (t *Tensor) ZeroGrad() {
 		gateFill(t.be, t.n.grad, 0)
 		sy.finish()
 		t.n.grad.BumpVersion()
+	}
+	if t.n != nil {
+		t.n.added = false // sıfırlanan gradyan "eklenmiş" sayılmaz (15.34)
 	}
 }
 

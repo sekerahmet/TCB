@@ -272,7 +272,7 @@ TR_test "MuonVeAdamW: adamw_çürümesi yalnızca sönümlü gruba uygulanır; n
     TR_assert(en_büyük_mutlak_fark(a.TR_blocks[0].TR_feed_forward.TR_down_proj.TR_bias, b.TR_blocks[0].TR_feed_forward.TR_down_proj.TR_bias) < 0.0000001, "sapma çürümemeli")
     # çarpan üç AdamW/SatırRMS grubuna da ulaşır
     ob.TR_set_multiplier(0.5)
-    ob.TR_step()
+    sabit_gradyanla_adım(b, ob)
     TR_assert_equal(0.05, ob.TR_adamw.TR_lr)
     TR_assert_equal(0.05, ob.TR_adamw_no_decay.TR_lr)
 }
