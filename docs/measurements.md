@@ -26,7 +26,24 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 | SmolLM2-135M | 24,2 | 10,0 | 27,4 | 62,1 | 104,0 | 0,39 | 0,88 |
 | Qwen3-0.6B | 7,8 | 3,1 | 11,4 | 15,4 | 24,5 | 0,51 | 0,68 |
 
-Birim parça/sn. Bu makinede TR, llama.cpp f32'nin ~%40–50'si ve transformers'tan yavaş. 16 bitlik ağırlık CPU'da float32'nin 0,4 katı hızda: ağırlık her çarpımda geçici float32 tampona açılıyor (yol haritası, 2. kilometre taşı "CPU" eksikleri). 2026-10-22'nin oranlarıyla (TR/llama.cpp 0,25, TR/transformers 1,05; 48 iş parçacığı) karşılaştırmayın: makine ve iş parçacığı sayısı farklı.
+Birim parça/sn. Bu makinede TR, llama.cpp f32'nin ~%40–50'si ve transformers'tan yavaş. 16 bitlik ağırlık CPU'da float32'nin 0,4 katı hızda: ağırlık her çarpımda geçici float32 tampona açılıyor (yol haritası, 2. kilometre taşı "CPU" eksikleri). 2026-10-22'nin oranlarıyla (TR/llama.cpp 0,25, TR/transformers 1,05; 48 iş parçacığı) karşılaştırmayın: makine ve iş parçacığı sayısı farklı. 48 iş parçacıklı karşılığı aşağıda, G4 koşusunda.
+
+**Eğitim hızı, GPU** (2026-11-03 16:54, main `51b75f0a`, Colab G4: RTX PRO 6000 Blackwell, AMD EPYC 9B45 48 iş parçacığı; torch 2.11.0+cu130; hedef model rgn512, sentetik veri, 120 adım; aynı makinede TR ve derlenmiş PyTorch sırayla 3'er kez) [ölçüldü: Colab, betik `g4_olcum_2026_11_03.sh`]: TR 147, 147, 147; PyTorch 137, 136, 137 ms/adım. **TR 1,08 kat yavaş** [hesap: 147 / 136,7]. 2026-11-01'deki 145 / 136'yla (1,07) aynı oran: S-kilit eğitim hızını değiştirmedi.
+
+**Üretim hızı, GPU ve 48 iş parçacıklı CPU** (aynı G4 koşusu, 16:57–17:03; transformers 5.22.0, llama.cpp `28b812d`; `tools/gpu/generation_race.sh` aynen; 100 parçalık açgözlü üretim; tek koşu) [ölçüldü: aynı betik]:
+
+| Model, cihaz | TR float32 | TR bf16 ağırlık | transformers eager | transformers static + compile | llama.cpp f32 | llama.cpp f16 |
+| :-- | --: | --: | --: | --: | --: | --: |
+| SmolLM2-135M, GPU | 507,6 | 555,6 | 107,4 | 470,3 | 956,6 | 1079,4 |
+| Qwen3-0.6B, GPU | 266,0 | 330,0 | 94,2 | 279,0 | 439,6 | 663,2 |
+| SmolLM2-135M, CPU | 84,2 | 34,3 | 36,8 | — | 214,4 | 380,3 |
+| Qwen3-0.6B, CPU | 25,1 | 10,3 | 11,5 | — | 50,7 | 92,0 |
+
+Birim parça/sn. Aynı koşudaki oranlar [hesap]:
+- **GPU:** TR (bf16) transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58 (SmolLM2) ve 0,75 (Qwen3) katı, f16'nın 0,5 katı.
+- **CPU, 48 iş parçacığı:** TR (float32) transformers'ın 2,2–2,3 katı; llama.cpp f32'nin 0,39 (SmolLM2) ve 0,49 (Qwen3) katı. 16 bitlik ağırlık burada da float32'nin 0,4 katı hızda.
+- **GPU'da gerileme:** 2026-10-22'ye göre TR'nin GPU üretimi %7–10 yavaş (Qwen3 bf16 366 → 330, float32 290 → 266; SmolLM2 bf16 608 → 556, float32 548 → 508), llama.cpp aynı (%1 içinde: 442 → 440, 965 → 957). Kart türü aynı, örnek başka; llama.cpp'nin aynı kalması gerilemenin TR'de olduğunu gösteriyor [hipotez: ölçüm, iki commit aynı koşuda karşılaştırılarak doğrulanacak].
+- **CPU'da ilerleme:** aynı tür 48 iş parçacıklı makinede 2026-10-22'ye göre TR'nin CPU üretimi 2,1–2,3 kat hızlı (Qwen3 12,1 → 25,1, SmolLM2 36 → 84,2), llama.cpp benzer (47,5 → 50,7) [ölçüldü; makine örneği başka].
 
 L4 adım süresinin dört birleşmedeki değerleri: 938, 923,5, 962, 880,5, 888 ms [ölçüldü: Colab defteri]. En büyük fark %9,3 [hesap: 962 / 880,5]; aynı koşuda karşılaştırılmadığı için bunu hızlanma ya da yavaşlama diye okumayın. Bu satırlarda PyTorch ile karşılaştırma yok.
 
@@ -34,14 +51,13 @@ L4 adım süresinin dört birleşmedeki değerleri: 938, 923,5, 962, 880,5, 888 
 
 | Ölçüm | Tarih, commit | Neden eski | Yeniden ölçüm |
 | :-- | :-- | :-- | :-- |
-| **Üretim hızı, CPU:** Qwen3-0.6B'de TR 12,1, llama.cpp f32 47,5, transformers 11,5 parça/sn (llama.cpp'nin ~1/5'i) | 2026-10-22, Colab, 48 iş parçacığı | Cinsli tensör, kilit, KV önbelleği ve çözme o günden sonra değişti | Yeniden ölçüldü: yukarıda, 2026-11-03 (8 iş parçacığı). 48 iş parçacıklı makinede ayrıca ölçülmedi |
-| **Üretim hızı, GPU:** TR llama.cpp f32'nin %63–83'ü, transformers'ın en hızlı yolundan hızlı | 2026-10-22, Colab | Aynı | GPU makinesinde aynı betik (onay gerekir) |
-| **Eğitim hızı:** hedef modelde TR 145, derlenmiş PyTorch 136 ms/adım (1,07 kat). TR'nin son ölçümü 2026-11-02, G4: T1'in cinsli tensör dilimi gerçek kartta iki hatayla (PTX adı, kimlik okumasının +%6'sı) düzeldikten sonra taban `27979f33` 145 ↔ `a385f657` 146 ms/adım (rgn512, 120 adım, ABAB) [ölçüldü: G4, Colab defteri 20:22 koşusu]; aynı gün G4 kart sınamasında hedef model 154 ms/adım (`ee5550bc`) | 2026-11-01 (PyTorch), 2026-11-02 (TR), Colab G4 | S-kilit (2026-11-03, `af24785b`) her arka uç veri çağrısına kapı ekledi ve G4'te ölçülmedi; L4 kartında S-kilit'ten sonra yavaşlama görünmedi (880,5 ↔ 923,5–962 ms, ayrı koşular). PyTorch'un 136'sı motorumuza bağlı değil ama başka bir G4 örneğinde ölçüldü | G4'te aynı koşuda TR ve PyTorch (onay gerekir) |
 | **Dil kıyası ve CPU karakter modeli** (`tools/bench/README.md` "Güncel taban") | 2026-11-01, `6d21ed09`, Colab CPU High-RAM | Yorumlayıcı (Kol A eşitlik, 13.1) ve tensör çekirdeği değişti | CPU High-RAM'de `tools/bench/cpu_baseline.sh` |
+
+2026-10-22'nin üretim hızları ve 2026-11-01/02'nin eğitim hızı 2026-11-03'te yeniden ölçüldü (yukarıda); eski sayılar arşivde (`docs/archive/roadmap-2026-10-27.md` Evre 5) ve Colab defterinde kalır.
 
 Motora bağlı olmayan ölçümler (ör. Jarvis tabanı: llama.cpp ve Whisper'ın kendi süreleri, 2026-11-01) eskimez; TR'yi ölçmedikleri için bu belgede yer almazlar.
 
 ## Sıradaki ölçümler
 
-1. Eğitim hızı ve GPU üretim yarışı: G4'te koşuyor (Ahmet onayı 2026-11-03 16:53).
-2. Dil kıyası ve karakter modeli, CPU: CPU High-RAM.
+1. Dil kıyası (TR, Python, Go, Rust) ve karakter modeli, CPU: CPU High-RAM'de koşuyor (2026-11-03 17:00).
+2. GPU üretimindeki %7–10'luk gerilemenin yeri: 2026-10-22'nin commit'i ile main aynı G4 koşusunda (onay gerekir).
