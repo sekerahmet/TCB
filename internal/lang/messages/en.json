@@ -182,6 +182,8 @@
 "H1132": "a {@JSON} value is compared with `{#none}`{kind, select, inner { (inside a list, a membership test or a match pattern)} other {}}: {@JSON} is not optional, so the result would always be the same (3.7a, 3.5); {absent, select, empty {open it before comparing} other {for JSON's null write `{absent}`}}{missing, select, empty {} other {, for a missing field `{missing}`}}",
 "H1134": "`{#Type}` gives a {@JSON} value's kind (none, truth value, number, text, list or dict), never {@JSON}, so the result would always be the same (3.7a); {suggestion, select, empty {test one of the kinds} other {test one of the kinds: `{suggestion}`}}",
 "H1135": "the elements of {container} have type {elem}: a value of the optional type {given} is not written into it (3.5){hint}",
+"H1136": "the {kind, select, dict {values} other {elements}} of {container} have type {elem}: a value of type {given} is not written into it ({kind, select, dict {3.7} other {3.6}})",
+"H1138": "'+' joins two lists of the same type (4.10); {left} and {right} cannot be joined",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

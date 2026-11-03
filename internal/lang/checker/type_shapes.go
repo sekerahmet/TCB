@@ -177,6 +177,9 @@ func (k compat) fits(expected, actual string, inner bool) bool {
 	if e.elems != nil || a.elems != nil {
 		return k.tuplesFit(e, a)
 	}
+	if inner && a.optional && !e.optional {
+		return false // TR_List[TR_Int?] bir TR_List[TR_Int] değildir (3.6)
+	}
 	e.base, a.base = normalizeTypeName(e.base), normalizeTypeName(a.base)
 	if e.base == typeAny || a.base == typeAny {
 		return true

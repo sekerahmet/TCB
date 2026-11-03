@@ -182,6 +182,8 @@
 "H1132": { "param": ["kind", "absent", "missing"], "slots": {"JSON": "TR_type_JSON", "none": "TR_kw_none"} },
 "H1134": { "param": ["suggestion"], "slots": {"JSON": "TR_type_JSON", "Type": "TR_type_Type"} },
 "H1135": { "param": ["given", "container", "elem", "hint"] },
+"H1136": { "param": ["given", "container", "elem", "kind"] },
+"H1138": { "param": ["left", "right"] },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

@@ -1,0 +1,11 @@
+# TR 4
+# TEST 3.6 kabın öğe tipi (3.7, 4.10 de): öğe tipi bilinen kabın indeksine başka tipte değer yazmak ve öğe tipleri ayrı iki listeyi eklemek denetim hatasıdır
+TR_var m = [1, 2]
+m[0] = "s" # ERROR H1136
+m[1] += 1.5 # ERROR H1136
+TR_var d = {"a": 1}
+d["b"] = "s" # ERROR H1136
+TR_var k: TR_List[TR_Int] = [1, TR_none] # ERROR H1001
+TR_var e = [1] + ["a"] # ERROR H1138
+m += ["a"] # ERROR H1138
+TR_print(m, d, k, e)

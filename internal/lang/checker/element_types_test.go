@@ -1,0 +1,53 @@
+package checker
+
+import (
+	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
+)
+
+// Kural (3.6, 3.7; H1136): öğe tipi bilinen kabın indeksine başka tipte değer yazmak denetim hatasıdır;
+// bileşik atamada atanan değer işlemin sonucudur. Listede öğe, sözlükte değer. Tam sayı ondalık
+// öğeye yazılır (3.13); tipi bilinmeyen değer, öğe tipsiz kap, dilim ve isteğe bağlı öğeli kap geçer.
+func TestElementAssignType(t *testing.T) {
+	cases := []struct {
+		name, src string
+		line      int
+	}{
+		{"liste", "TR_var m = [1, 2]\nm[0] = \"s\"", 2},
+		{"bileşik", "TR_var m = [1, 2]\nm[0] += 1.5", 2},
+		{"iç içe", "TR_var m = [[1], [2]]\nm[0][0] = \"s\"", 2},
+		{"sözlük değeri", "TR_var d = {\"a\": 1}\nd[\"b\"] = \"s\"", 2},
+		{"tipli liste", "TR_var m: TR_List[TR_String] = []\nm[0] = 1", 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) { singleError(t, tc.src, messages.H1136, tc.line) })
+	}
+	noErrors(t, "TR_var m = [1.0, 2.0]\nm[0] = 3\nm[1] += 1\nTR_var n = [[1], []]\nn[1] = [2]")
+	noErrors(t, "TR_var m = [1, 2]\nm[0..1] = [3]\nTR_var k: TR_List[TR_Int?] = [1]\nk[0] = TR_none")
+	noErrors(t, "TR_var u = [[1], \"a\"][0]\nu[0] = \"s\"\nTR_var d = {\"a\": [1]}\nd[\"b\"] = [2]") // u: tipi bilinmeyen değer
+}
+
+// Kural (3.6): kabın tip argümanında isteğe bağlı öğe isteğe bağlı olmayan yere verilmez:
+// [1, TR_none] bir TR_List[TR_Int?]'dir, TR_List[TR_Int] beklenen yerde H1001.
+func TestOptionalElementListIsNotARequiredList(t *testing.T) {
+	singleError(t, "TR_var k: TR_List[TR_Int] = [1, TR_none]", messages.H1001, 1)
+	singleError(t, "TR_var k: TR_Dict[TR_String, TR_Int] = {\"a\": 1, \"b\": TR_none}", messages.H1001, 1)
+	noErrors(t, "TR_var k: TR_List[TR_Int?] = [1, TR_none]\nTR_var m: TR_List[TR_Int?] = [1, 2]")
+}
+
+// Kural (4.10, 3.6; H1138): '+' aynı tipten iki listeyi uç uca ekler; öğe tipleri ayrı iki liste
+// (TR_List[TR_Int] ile TR_List[TR_Float] de) denetim hatasıdır, '+='da da. Öğe tipsiz ya da tipi
+// bilinmeyen liste geçer.
+func TestListPlusElementTypes(t *testing.T) {
+	singleError(t, "TR_var e = [1] + [\"a\"]", messages.H1138, 1)
+	singleError(t, "TR_var e = [1] + [2.5]", messages.H1138, 1)
+	singleError(t, "TR_var m = [1, 2]\nm += [\"a\"]", messages.H1138, 2)
+	noErrors(t, "TR_var a = [1] + [2]\nTR_var b = [1] + []\nTR_var m = [1.0]\nm += [2.0]\nTR_var u = [[1], \"a\"][0]\nTR_var v = u + [1]")
+}
+
+// Kural (15.5): tensörün karşılaştırması öğe öğedir ve bir tensör verir; mantık değeri değildir.
+func TestTensorComparisonIsATensor(t *testing.T) {
+	noErrors(t, "TR_var t = TR_Tensor([1.0, 2.0])\nTR_var d: TR_Dict[TR_String, TR_Tensor] = {}\nd[\"m\"] = t <= 1.0")
+	singleError(t, "TR_var t = TR_Tensor([1.0, 2.0])\nTR_var b: TR_Bool = t > 1.0", messages.H1001, 2)
+}

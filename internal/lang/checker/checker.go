@@ -395,9 +395,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			c.requireBool(e.Right, right, messages.H2601)
 			return typeBool
 		case "==", "!=", "<", ">", "<=", ">=":
-			c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
-			c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
-			return typeBool
+			return c.comparisonType(e, left, right)
 		case "??":
 			if left != typeNull && left != typeAny {
 				return requiredType(left)
@@ -407,7 +405,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 			return typeTensor
 		case "+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>":
 			if e.Operator == "+" {
-				c.checkPlus(e, left, right) // 4.10
+				c.checkPlus(e, left, right)     // 4.10
+				c.checkListPlus(e, left, right) // 4.10, 3.6 (element_types.go)
 			}
 			return arithmeticType(string(e.Operator), left, right)
 		}
@@ -434,6 +433,17 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		return c.taskType(e.Statement) // 10.1 (task_types.go)
 	}
 	return typeAny
+}
+
+// comparisonType karşılaştırmayı denetler ve tipini verir: TR_Bool; bir yanı tensörse (TR_none'la
+// karşılaştırma dışında) öğe öğe karşılaştırmadır ve bir tensör verir (15.5).
+func (c *Checker) comparisonType(e *ast.InfixExpression, left, right string) string {
+	c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
+	c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
+	if left != typeNull && right != typeNull && (baseType(left) == typeTensor || baseType(right) == typeTensor) {
+		return typeTensor
+	}
+	return typeBool
 }
 
 // inferCall çağrının argümanlarını denetler ve tipini verir; argümanlar kapının tahmini için
@@ -503,6 +513,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			op := strings.TrimSuffix(string(s.Operator), "=")
 			if op == "+" {
 				c.checkPlus(s, info.TypeName, valType) // x += y, x = x + y'dir (5.4, 4.10)
+				c.checkListPlus(s, info.TypeName, valType)
 			}
 			if op != "" {
 				valType = arithmeticType(op, info.TypeName, valType)
@@ -523,7 +534,8 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 		c.checkModuleAssign(s.Target)
 		c.checkFieldAssign(s, valType) // alanın tipi (7.5)
 		c.inferExpression(s.Target)
-		c.checkIndexAssign(s, valType) // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
-		c.checkJSONIndexAssign(s)      // TR_JSON değiştirilemez (3.7a, json_values.go)
+		c.checkIndexAssign(s, valType)   // öğesi isteğe bağlı olmayan kaba açılmamış değer (3.5)
+		c.checkElementAssign(s, valType) // öğe tipi bilinen kaba başka tipte değer (3.6, 3.7)
+		c.checkJSONIndexAssign(s)        // TR_JSON değiştirilemez (3.7a, json_values.go)
 	}
 }

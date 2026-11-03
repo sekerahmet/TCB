@@ -187,6 +187,8 @@ const (
 	H1132 Code = 1132 // {@JSON} değeri `{#none}` ile karşılaştırılıyor{kind, select, inner { (listede, içerme sınamasında ya da eşleme deseninde)} other {}}: {@JSON} isteğe bağlı değildir, sonuç hep aynı olurdu (3.7a, 3.5); {absent, select, empty {karşılaştırmadan önce açın} other {JSON yokluğu için `{absent}` yazın}}{missing, select, empty {} other {, eksik alan için `{missing}`}}
 	H1134 Code = 1134 // `{#Type}` {@JSON} değerinin türünü verir (yokluk, mantık değeri, sayı, metin, liste ya da sözlük), {@JSON|acc} hiç vermez; sonuç hep aynı olurdu (3.7a); {suggestion, select, empty {türlerden birini sınayın} other {türlerden birini sınayın: `{suggestion}`}}
 	H1135 Code = 1135 // {container} kabının öğeleri {elem} tipindedir: ona isteğe bağlı {given} tipinde değer yazılmaz (3.5){hint}
+	H1136 Code = 1136 // {container} kabının {kind, select, dict {değerleri} other {öğeleri}} {elem} tipindedir: ona {given} tipinde değer yazılmaz ({kind, select, dict {3.7} other {3.6}})
+	H1138 Code = 1138 // '+' aynı tipten iki listeyi uç uca ekler (4.10); {left} ile {right} eklenmez
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
