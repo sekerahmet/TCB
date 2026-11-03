@@ -181,6 +181,7 @@ Kurallar: [`docs/spec/04_operatorler.md`](spec/04_operatorler.md). Taslak: metin
 - **Mevcut durum:** ayrı tipler sessizce eşit değil sayılıyor (`1 == "a"` denetimden geçer, `TR_false`); fonksiyonlar üst düzeyde (H2613: `f == f`) ve fonksiyon içeren liste, sözlük ve `.TR_contains`'te (H2706: `[f] == [f]`, `{"a": f} == {"a": f}`) çalışma hatası veriyor [ölçüldü: main `85a19c36`, CLI; `tests/operatorler_test.tr:175-178`].
 - **Mevcut durum (4a4, 2026-11-03):** tipleri bilinen ayrı iki değerin `==`/`!=`'si denetim hatası (H1141: `"1" == 1`, `[1] == [1.0]`, ayrı iki yapı, uzunluğu ayrı demetler); sayılar (`1 == 1.0`), isteğe bağlı ile asıl tipi ve `TR_none`, JSON (H1131, H1132), fonksiyon, tip değeri, tensör, tipi bilinmeyen değer ve öğe tipsiz kap bu kurala girmiyor. Tipi bilinmeyen yerde çalışma anı ayrı tipleri hâlâ sessizce eşit değil sayıyor [test: `TestDistinctTypesAreNotCompared`, `tests/negative/ayri_tip_esitligi.tr`].
 - **Yapılacaklar (D, Ö3; ölçüldü 30b44b01):** fonksiyon içeren değer denetim hatası (4. katman).
+- **Yapılacaklar (A önerisi, sınıfı DENETİM'de; ölçülmedi):** döngüsüz ama 10000'den derin iki yapının `==`'si derinlik sınırında sessizce `TR_false` veriyor (`operators.go:392-394`, "aşılırsa eşit sayılmaz") [kanıtlı: DENETİM istek 78, kod okuması]. Sınırda hata mı, sınırsız mı: önce ölçülecek.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** eşitlenemeyen tipin isteğe bağlısı (tensör, tensör içeren değer) `TR_none` değişmeziyle karşılaştırılabilir (15.5).
 
 ### 4.7
