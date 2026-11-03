@@ -971,12 +971,12 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.3
 
-- **Mevcut durum:** iki boyutlu tensör ya da liste listesi de metin listesine çözülüyor; dağarcıkta olmayan kimlik sessizce atlanıyor [ölçüldü: main `f1ebe718`]. Yarım kalan UTF-8 dizisi hata vermeden U+FFFD oluyor; beş dizide Hugging Face ile bayt bayt aynı [ölçüldü: 2026-11-02, main `705b721b`]. 16.3 bunu 2026-11-02'den beri yazıyor; akışlı çözme 16.3a'da, uygulanmadı.
-- **Yapılacaklar (A, Ö0, ilk boşalan kol (16.2 ile); ölçüldü 30b44b01):** `.TR_decode` yalnız tek dizi, birden çok dizi `TR_batch_decode` (13.8a); dağarcık dışı kimliğin hatası ve TR testi.
+- **Mevcut durum:** `.TR_decode` yalnız tek dizi (kimlik listesi ya da 1 boyutlu tensör); listelerin listesi ve 2 boyutlu tensör hata, ileti `p.TR_batch_decode(diziler)`'i önerir (H5642). `TR_batch_decode` her diziyi `.TR_decode` ile aynı metne çevirir; boş liste ve 0 satırlı tensör `[]`; tek dizi verilirse ileti `.TR_decode`'u önerir (H5643) [test: TR testleri "16.3 çöz: tek dizi …", "16.3 toplu_çöz: her dizi çöz ile aynı metin"; `TestBatchDecodeIsDecodePerSequence`]. Dağarcıkta olmayan kimlik çalışma hatası: ileti kimliği ve dağarcık boyunu, `TR_batch_decode`'da dizinin sırasını da söyler ve üretimi sınırlayan yazımı önerir (H5647) [test: TR testi "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır", `TestDecodeOutOfVocabularyIDIsAnError`]. `TR_generate(..., TR_vocab_size: p.TR_vocab_size)` örneklemeyi dağarcığa sınırlar; dolgulu modelde (`TR_GPT(p.TR_vocab_size + 64, …)`, ilk ağırlıklar, 200 üretim × 16 parça, tohum 1000+i, sıcaklık 1) sınırsız 3200 parçanın 266'sı dağarcık dışında, sınırla 0 [ölçüldü: T1 `claude/16-2`; test: `lib/layers_test.tr` "GPT: üret dağarcık_boyutu ile dağarcık dışı kimlik üretmez"]. Yarım kalan UTF-8 dizisi hata vermeden U+FFFD oluyor; beş dizide Hugging Face ile bayt bayt aynı [ölçüldü: 2026-11-02, main `705b721b`]. 16.3 bunu 2026-11-02'den beri yazıyor; akışlı çözme 16.3a'da, uygulanmadı.
+- **Yapılacaklar:** `tools/gpu/gpt_training.tr` ve `ss_exam.tr`'nin `TR_vocab_size:` göçü L4'te koşulacak.
 
 ### 16.3 (sürüyor)
 
-- **Test:** `tests/veri_parcalayici_test.tr`'nin 16.3 testi bugünkü toplu çözümü (liste listesi, 2 boyutlu tensör) sınıyor; `TR_batch_decode` gelince değişir.
+- **Test:** `tests/veri_parcalayici_test.tr`'nin iki 16.3 testi: tek dizi `.TR_decode`, birden çok dizi `TR_batch_decode`; ikisinin karşı biçimi hata.
 
 ### 16.3a
 

@@ -16,7 +16,7 @@ TR_var başlangıç = p.TR_encode("Bugün hava")
 TR_const ADET = 6
 
 # Hazır yol: model.üret.
-TR_var hazır = model.TR_generate(başlangıç, ADET, TR_temperature: 0)
+TR_var hazır = model.TR_generate(başlangıç, ADET, TR_temperature: 0, TR_vocab_size: p.TR_vocab_size)
 TR_print("üret:  ", hazır)
 
 # Elle yazılan döngü. önbellek_kur() boş bir KV önbelleği verir: katman başına anahtar ve değerler orada

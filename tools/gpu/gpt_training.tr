@@ -101,7 +101,7 @@ TR_func örnek_yaz(adım: TR_Int) {
         TR_for j, istem TR_in ayar["istemler"].TR_split("|") {
             TR_var başlangıç = p.TR_encode(istem.TR_strip())
             TR_for i TR_in 0..ayar["örnek_sayısı"] {
-                TR_var kimlikler = model.TR_generate(başlangıç, ayar["örnek_uzunluğu"], TR_temperature: 0.8, TR_top_k: 50, TR_seed: 1000 * adım + 100 * j + i)
+                TR_var kimlikler = model.TR_generate(başlangıç, ayar["örnek_uzunluğu"], TR_temperature: 0.8, TR_top_k: 50, TR_seed: 1000 * adım + 100 * j + i, TR_vocab_size: p.TR_vocab_size)
                 metinler.TR_append(p.TR_decode(kimlikler))
             }
         }

@@ -978,15 +978,22 @@ const (
 	H5629 Code = 5629 // {fn} (listenin {n}. metni)
 	H5630 Code = 5630 // {fn}: bir metin ya da metin listesi bekler, {given} verildi
 	H5631 Code = 5631 // {fn}: {what} yalnızca metin içermeli; {n}. eleman {given}
-	H5632 Code = 5632 // {fn}(kimlikler) 1 parametre bekler (kimlik listesi, listelerin listesi ya da tensör), {given} verildi
+	H5632 Code = 5632 // {fn}(kimlikler) 1 parametre bekler (kimlik listesi ya da 1 boyutlu tensör), {given} verildi
 	H5633 Code = 5633 // {fn} ({n}. dizi)
 	H5634 Code = 5634 // {fn}: listelerin listesinde {n}. eleman liste değil ({given})
-	H5636 Code = 5636 // {fn}: tensör 1 boyutlu (tek dizi) ya da 2 boyutlu (dizi listesi) olmalıdır, {dims} boyutlu verildi
+	H5636 Code = 5636 // {fn}: tensör 1 boyutlu olmalıdır (tek dizi), {dims} boyutlu verildi
 	H5637 Code = 5637 // {fn}: tensördeki kimlikler tam sayı olmalıdır, {value} bulundu
-	H5638 Code = 5638 // {fn}: kimlik listesi, listelerin listesi ya da tensör bekler, {given} verildi
+	H5638 Code = 5638 // {fn}: kimlik listesi ya da 1 boyutlu tensör bekler, {given} verildi
 	H5639 Code = 5639 // {fn}: kimlikler tam sayı olmalıdır; {row, plural, =0 {listenin} other {#. listenin}} {n}. elemanı {given}
 	H5640 Code = 5640 // {fn}(parça) 1 parametre bekler, {given} verildi
 	H5641 Code = 5641 // {fn}: parça bir metin olmalıdır (ör. "<|endoftext|>"), {given} verildi
+	H5642 Code = 5642 // {fn} tek bir diziyi çözer; {kind, select, list {listelerin listesi} other {2 boyutlu tensör}} verildi. Birden çok dizi için `p.{#batch_decode}(diziler)` yazın
+	H5643 Code = 5643 // {fn} birden çok diziyi çözer; {kind, select, list {tek bir kimlik listesi} other {1 boyutlu tensör}} verildi. Tek dizi için `p.{#decode}(kimlikler)` yazın
+	H5644 Code = 5644 // {fn}(diziler) 1 parametre bekler (kimlik listelerinin listesi ya da 2 boyutlu tensör), {given} verildi
+	H5645 Code = 5645 // {fn}: kimlik listelerinin listesi ya da 2 boyutlu tensör bekler, {given} verildi
+	H5646 Code = 5646 // {fn}: tensör 2 boyutlu olmalıdır (her satır bir dizi), {dims} boyutlu verildi
+	H5647 Code = 5647 // {fn}: {id} kimliği dağarcıkta yok (dağarcık boyutu {size}). Kimlikler çıktısı dağarcıktan büyük bir modelin üretimiyse örneklemeyi dağarcığa sınırlayın: `model.{#generate}(başlangıç, adet, {#vocab_size}: p.{#tok_vocab_size})`
+	H5648 Code = 5648 // {@generate}: {@vocab_size} 1 ile modelin çıktı boyu ({out}) arasında olmalıdır, {given} verildi
 	H6001 Code = 6001 // {example} en az 1 parametre bekler
 	H6002 Code = 6002 // {example} en fazla 2 parametre alır, {given} verildi
 	H6006 Code = 6006 // tensör işlemi başarısız: {reason}

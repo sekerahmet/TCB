@@ -24,7 +24,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
-	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
 // TypeName parçalayıcı nesnesinin TR'deki tip adıdır (kod listesinde TR_type_Tokenizer).
@@ -81,13 +80,14 @@ func (n *Object) TableData() ([]string, [][]string, error) {
 
 // Parçalayıcı üyeleri (adları kod listesinde, internal/lang/codes mem).
 const (
-	memberEncode    = codes.MemEncode
-	memberDecode    = codes.MemDecode
-	memberVocabSize = codes.MemVocabSize
-	memberTokenID   = codes.MemTokenId
+	memberEncode      = codes.MemEncode
+	memberDecode      = codes.MemDecode
+	memberBatchDecode = codes.MemBatchDecode
+	memberVocabSize   = codes.MemVocabSize
+	memberTokenID     = codes.MemTokenId
 )
 
-var members = []codes.Code{memberEncode, memberDecode, memberVocabSize, memberTokenID}
+var members = []codes.Code{memberEncode, memberDecode, memberBatchDecode, memberVocabSize, memberTokenID}
 
 func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
@@ -95,6 +95,8 @@ func (n *Object) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 		return bind.CodeMethod(memberEncode, false, n.encode), nil
 	case memberDecode:
 		return bind.CodeMethod(memberDecode, false, n.decode), nil
+	case memberBatchDecode:
+		return bind.CodeMethod(memberBatchDecode, false, n.batchDecode), nil
 	case memberVocabSize:
 		return interp.NewInt(int64(n.p.VocabSize())), nil
 	case memberTokenID:
@@ -334,118 +336,6 @@ func stringList(fn any, what any, l *interp.ListVal) ([]string, error) {
 			return nil, messages.New(messages.H5631, fn, what, i+1, e.Type())
 		}
 		out[i] = s.Val
-	}
-	return out, nil
-}
-
-// ----------------------------------------------------------------------------
-// Çözme
-// ----------------------------------------------------------------------------
-
-func (n *Object) decode(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
-	fn := codes.NameRef(memberDecode)
-	if err := bind.CheckNamed(fn.Called(), named, nameSpecial); err != nil {
-		return nil, err
-	}
-	if len(args) != 1 {
-		return nil, messages.New(messages.H5632, fn, len(args))
-	}
-	// Varsayılan, başvuru kütüphanesininki gibi özel parçaları ATLAMAKTIR;
-	// özel_parçalar: doğru onları da çıktıya yazar.
-	special, err := bind.OptionalBool(fn, named, nameSpecial, false)
-	if err != nil {
-		return nil, err
-	}
-	skip := !special
-	seqs, single, err := idSeqs(args[0])
-	if err != nil {
-		return nil, err
-	}
-	var result []string
-	var errs []error
-	job := func() { result, errs = n.p.SafeDecodeBatch(seqs, skip, 0) }
-	total := 0
-	for _, d := range seqs {
-		total += len(d)
-	}
-	n.maybeRelease(m, total*4, job)
-	for i, h := range errs {
-		if h != nil {
-			if single {
-				return nil, stepError(fn, h)
-			}
-			return nil, stepError(messages.New(messages.H5633, fn, i+1), h)
-		}
-	}
-	if single {
-		return &interp.StringVal{Val: result[0]}, nil
-	}
-	elems := make([]interp.Value, len(result))
-	for i, s := range result {
-		elems[i] = &interp.StringVal{Val: s}
-	}
-	return &interp.ListVal{Elements: elems}, nil
-}
-
-// idSeqs çöz'ün argümanını kimlik dizilerine çevirir. tek doğruysa argüman tek
-// bir dizidir (sonuç metin), değilse dizilerin listesidir (sonuç metin listesi).
-func idSeqs(v interp.Value) (seqs [][]int, single bool, err error) {
-	fn := codes.NameRef(memberDecode)
-	switch x := v.(type) {
-	case *interp.ListVal:
-		if len(x.Elements) == 0 {
-			return [][]int{nil}, true, nil
-		}
-		if _, inner := x.Elements[0].(*interp.ListVal); inner {
-			seqs = make([][]int, len(x.Elements))
-			for i, e := range x.Elements {
-				l, ok := e.(*interp.ListVal)
-				if !ok {
-					return nil, false, messages.New(messages.H5634, fn, i+1, e.Type())
-				}
-				if seqs[i], err = intList(i+1, l.Elements); err != nil {
-					return nil, false, err
-				}
-			}
-			return seqs, false, nil
-		}
-		d, err := intList(0, x.Elements)
-		if err != nil {
-			return nil, false, err
-		}
-		return [][]int{d}, true, nil
-	case *ml.TensorValue:
-		t := x.Tensor()
-		sh := t.Shape()
-		if len(sh) > 2 {
-			return nil, false, messages.New(messages.H5636, fn, len(sh))
-		}
-		ids, bad, ok := x.IntElements()
-		if !ok {
-			return nil, false, messages.New(messages.H5637, fn, bad)
-		}
-		if len(sh) < 2 {
-			return [][]int{ids}, true, nil
-		}
-		seqs = make([][]int, sh[0])
-		for i := range seqs {
-			seqs[i] = ids[i*sh[1] : (i+1)*sh[1]]
-		}
-		return seqs, false, nil
-	}
-	return nil, false, messages.New(messages.H5638, fn, v.Type())
-}
-
-// intList kimlik listesini tam sayılara çevirir; row iç içe listenin 1'den başlayan satırıdır, düz
-// listede 0 (iletide "listenin" ya da "3. listenin" diye yazılır, H5639).
-func intList(row int, elems []interp.Value) ([]int, error) {
-	out := make([]int, len(elems))
-	for i, e := range elems {
-		n, ok := bind.Int(e)
-		if !ok {
-			return nil, messages.New(messages.H5639, codes.NameRef(memberDecode), row, i+1, interp.Shown(e))
-		}
-		out[i] = int(n)
 	}
 	return out, nil
 }

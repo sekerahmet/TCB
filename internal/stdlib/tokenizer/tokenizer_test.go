@@ -77,7 +77,7 @@ func TestEncodeDecodeSameAsGo(t *testing.T) {
 TR_var p = TR_load_tokenizer("`+bpePath+`")
 TR_var tek = p.TR_encode("Merhaba dünya!")
 TR_var toplu = p.TR_encode(["Merhaba dünya!", "İstanbul'da hava güzel <|endoftext|>", ""])
-TR_var çözülen = p.TR_decode(toplu)
+TR_var çözülen = p.TR_batch_decode(toplu)
 TR_var özelli = p.TR_decode(toplu[1], TR_special_tokens: TR_true)
 TR_var özelsiz = p.TR_decode(toplu[1])
 TR_var boyut = p.TR_vocab_size
@@ -160,13 +160,58 @@ func TestDecodeTensor(t *testing.T) {
 TR_var p = TR_load_tokenizer("`+bpePath+`")
 TR_var k = p.TR_encode("bir iki")
 TR_var tek = p.TR_decode(TR_Tensor(k))
-TR_var iki = p.TR_decode(TR_Tensor([k, k]))
+TR_var iki = p.TR_batch_decode(TR_Tensor([k, k]))
 `)
 	if got := al(t, m, "tek").Inspect(); got != "bir iki" {
 		t.Fatalf("tek: %q", got)
 	}
 	if got := al(t, m, "iki").Inspect(); got != `["bir iki", "bir iki"]` {
 		t.Fatalf("iki: %s", got)
+	}
+}
+
+// Kural (16.3, 13.8a): toplu_çöz her diziyi çöz ile aynı metne çevirir, özel_parçalar: ile de;
+// boş liste ve 0 satırlı tensör boş liste, boş dizi boş metin verir.
+func TestBatchDecodeIsDecodePerSequence(t *testing.T) {
+	m := mustRun(t, `
+TR_var p = TR_load_tokenizer("`+bpePath+`")
+TR_var d = p.TR_encode(["Merhaba dünya!", "hava güzel <|endoftext|>", ""])
+TR_var tek = [p.TR_decode(x) TR_for x TR_in d]
+TR_var tek_özel = [p.TR_decode(x, TR_special_tokens: TR_true) TR_for x TR_in d]
+TR_var toplu = p.TR_batch_decode(d)
+TR_var toplu_özel = p.TR_batch_decode(d, TR_special_tokens: TR_true)
+TR_var boş = p.TR_batch_decode([])
+TR_var boş_tensör = p.TR_batch_decode(TR_zeros([0, 3]))
+`)
+	for _, c := range [][2]string{{"tek", "toplu"}, {"tek_özel", "toplu_özel"}} {
+		if a, b := al(t, m, c[0]).Inspect(), al(t, m, c[1]).Inspect(); a != b {
+			t.Errorf("%s %s, %s %s", c[0], a, c[1], b)
+		}
+	}
+	if got := al(t, m, "toplu_özel").Inspect(); !strings.Contains(got, "<|endoftext|>") || strings.Contains(al(t, m, "toplu").Inspect(), "<|endoftext|>") {
+		t.Errorf("özel_parçalar: %s", got)
+	}
+	for _, v := range []string{"boş", "boş_tensör"} {
+		if got := al(t, m, v).Inspect(); got != "[]" {
+			t.Errorf("%s: %s", v, got)
+		}
+	}
+}
+
+// Kural (16.3): dağarcıkta olmayan kimlik çalışma hatasıdır; ileti kimliği ve dağarcık boyunu,
+// toplu_çöz'de dizinin sırasını da söyler (H5647, H5633).
+func TestDecodeOutOfVocabularyIDIsAnError(t *testing.T) {
+	for _, c := range []struct{ code, text string }{
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, 1005])`, "1005 kimliği dağarcıkta yok (dağarcık boyutu 1005)"},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode([[1], [2, 5000]])`, "(2. dizi): 5000 kimliği dağarcıkta yok (dağarcık boyutu 1005)"},
+	} {
+		_, err := run(t, c.code)
+		if !messages.Has(err, messages.H5647) || !strings.Contains(err.Error(), c.text) {
+			t.Errorf("%s: %v, %q içermeli", c.code, err, c.text)
+		}
+		if !strings.Contains(err.Error(), "TR_vocab_size: p.TR_vocab_size") {
+			t.Errorf("%s: %v, üretimin sınırlamasını önermeli", c.code, err)
+		}
 	}
 }
 
@@ -277,6 +322,19 @@ func TestLoadErrors(t *testing.T) {
 		{`TR_load_tokenizer("` + bpePath + `").TR_encode(["a"], TR_pair: ["b", "c"])`, messages.H5628},
 		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, "a"])`, messages.H5639},
 		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_Tensor([[[1.0]]]))`, messages.H5636},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_Tensor(1))`, messages.H5636},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode([[1], [2]])`, messages.H5642},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode(TR_Tensor([[1], [2]]))`, messages.H5642},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode()`, messages.H5632},
+		{`TR_load_tokenizer("` + bpePath + `").TR_decode("a")`, messages.H5638},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode([1, 2])`, messages.H5643},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode(TR_Tensor([1, 2]))`, messages.H5643},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode([[1], 2])`, messages.H5634},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode(["a"])`, messages.H5634},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode([[1]], [[2]])`, messages.H5644},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode("a")`, messages.H5645},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode(TR_Tensor([[[1]]]))`, messages.H5646},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode(TR_Tensor([[1.5]]))`, messages.H5637},
 		{`TR_load_tokenizer("` + bpePath + `").çözz([1])`, messages.H7903},
 	}
 	for _, dd := range cases {
@@ -296,7 +354,7 @@ func TestDecodeNonIntegerIDNamesTheRow(t *testing.T) {
 		text string
 	}{
 		{`TR_load_tokenizer("` + bpePath + `").TR_decode([1, "a"])`, 0, "listenin 2. elemanı"},
-		{`TR_load_tokenizer("` + bpePath + `").TR_decode([[1], [2, "a"]])`, 2, "2. listenin 2. elemanı"},
+		{`TR_load_tokenizer("` + bpePath + `").TR_batch_decode([[1], [2, "a"]])`, 2, "2. listenin 2. elemanı"},
 	} {
 		_, err := run(t, c.code)
 		e, ok := messages.As(err)
@@ -330,7 +388,19 @@ func TestWatchPanel(t *testing.T) {
 // maybeRelease ile) çalışır; böylece başka görevler bu sırada ilerler. Çağrılar, bu
 // ikisine verilen işlev gövdelerinin (doğrudan ya da bir değişkenle verilen) içinde olmalıdır.
 func TestHeavyWorkReleasesLock(t *testing.T) {
-	file, err := goparser.ParseFile(token.NewFileSet(), reporoot.Path("internal", "stdlib", "tokenizer", "tokenizer.go"), nil, goparser.SkipObjectResolution)
+	found := 0
+	for _, name := range []string{"tokenizer.go", "decode.go"} {
+		found += heavyCallsReleased(t, name)
+	}
+	if found < 6 {
+		t.Errorf("ağır çağrılar taranamadı (%d bulundu)", found)
+	}
+}
+
+// heavyCallsReleased paketin bir dosyasındaki ağır çağrıları sayar; bırakan bir gövdenin
+// dışında olanı hatadır.
+func heavyCallsReleased(t *testing.T, name string) int {
+	file, err := goparser.ParseFile(token.NewFileSet(), reporoot.Path("internal", "stdlib", "tokenizer", name), nil, goparser.SkipObjectResolution)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -401,10 +471,8 @@ func TestHeavyWorkReleasesLock(t *testing.T) {
 				return true
 			}
 		}
-		t.Errorf("tokenizer.go: %s çağrısı Blocking/maybeRelease dışında: yorumlayıcı kilidi tutulurken uzun iş yapılır", heavy(c))
+		t.Errorf("%s: %s çağrısı Blocking/maybeRelease dışında: yorumlayıcı kilidi tutulurken uzun iş yapılır", name, heavy(c))
 		return true
 	})
-	if found < 6 {
-		t.Errorf("ağır çağrılar taranamadı (%d bulundu)", found)
-	}
+	return found
 }

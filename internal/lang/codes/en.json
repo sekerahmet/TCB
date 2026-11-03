@@ -314,6 +314,7 @@
   "TR_mem_append_buffer": { "name": "append_buffer" },
   "TR_mem_attention": { "name": "attention" },
   "TR_mem_bar": { "name": "bar" },
+  "TR_mem_batch_decode": { "name": "batch_decode" },
   "TR_mem_beta1": { "name": "beta1" },
   "TR_mem_beta2": { "name": "beta2" },
   "TR_mem_bias": { "name": "bias" },
