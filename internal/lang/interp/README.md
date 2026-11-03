@@ -39,7 +39,7 @@ yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `Test
 
 **Değerin metni dilden bağımsızdır.** Dosyanın dili yoktur (dil tanımı 2.1): programın bir değerden
 metin yaptığı her yer (`TR_String()`, `TR_print`, metin yerleştirmesi, Metin ile `+`, `TR_join`,
-`TR_write_file`, `TR_input`'un istemi, metin metotlarının argümanları) değeri kimliğin adıyla yazar
+`TR_input`'un istemi, metin metotlarının argümanları) değeri kimliğin adıyla yazar
 (`true`, `none`, `Int`; tek yol: `VM.textOf`/`valueText`, dil `codes.ValueNames()`): aynı program her
 makinede ve her `TR_LANG`'de aynı çıktıyı verir. Yakalanan hata bir `TR_Error` değeridir (`ErrorVal`, 8.3);
 metni fırlatılan değerin metnidir, iletinin metni onu kuran çağrıdır (`Message("H6903", -1)`). `Inspect` aynı metni verir (3.14). Sözlük anahtarı bir

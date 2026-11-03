@@ -3171,9 +3171,9 @@ tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).de�
 
 #### `TR_write_file(...)` (`TR_fn_write_file`, `dosya_yaz`)
 
-    dosya_yaz(Metin | Yol, Herhangi) → Mantık
+    dosya_yaz(Metin | Yol, Metin | Baytlar) → Mantık
 
-Değeri metne çevirip dosyaya yazar ve doğru döndürür; var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
+Metni UTF-8 olarak, Baytlar'ı bayt bayt dosyaya yazar ve doğru döndürür; başka değer hatadır (metni için önce Metin(x)), var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
 
 ```tr
 TR_write_file("not.txt", "merhaba"); TR_print(TR_read_file("not.txt"))

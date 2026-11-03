@@ -226,7 +226,8 @@ func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error)
 	return &StringVal{Val: text}, nil
 }
 
-// writeFileBuiltin dosya_yaz() yerleşiğidir. Yazma atomiktir (bkz. AtomikYaz).
+// writeFileBuiltin dosya_yaz() yerleşiğidir (13.1): TR_String'i UTF-8 olarak, TR_Bytes'ı bayt bayt
+// yazar; başka değerin metnini yazmaz, H2423 verir. Yazma atomiktir (bkz. AtomikYaz).
 func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, ArgCountError(codes.FnWriteFile, 2, len(args), messages.Text(messages.H2308))
@@ -238,8 +239,16 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	if err != nil {
 		return nil, err
 	}
+	var content []byte
+	switch c := args[1].(type) {
+	case *StringVal:
+		content = []byte(c.Val)
+	case *BytesVal:
+		content = c.Data()
+	default:
+		return nil, ArgTypeError(codes.FnWriteFile, 2, args[1], codes.TypeString, codes.TypeBytes)
+	}
 	resolved, _ := y.ResolvePath(filePath)
-	content := []byte(y.textOf(args[1]))
 	y.Blocking(func() { err = WriteFileContent(resolved, content) })
 	if err != nil {
 		return nil, turkish.FileError(CallPrefix(codes.FnWriteFile), filePath, messages.H2101, err)

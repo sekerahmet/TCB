@@ -68,6 +68,7 @@ var FunctionArgCodes = map[codes.Code]argCodes{
 	codes.FnTan:         {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnTanh:        {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnTopk:        {messages.H6203, []codes.Code{codes.TypeBool, codes.TypeDict, codes.TypeFloat, codes.TypeList, codes.TypeNoneType, codes.TypeString, codes.TypeTensor}},
+	codes.FnWriteFile:   {messages.H2423, []codes.Code{}},
 	codes.FnZeros:       {messages.H6021, []codes.Code{codes.TypeInt}},
 }
 
@@ -86,13 +87,14 @@ func ArgTypeCode(k, typ codes.Code) (messages.Code, bool) {
 
 // ParamOptions is the list of types a positional parameter of a builtin's signature accepts when the
 // checker checks it: every alternative a core type written as itself (no TR_Any, type parameter or
-// element type).
+// element type), or TR_Bytes (TR_write_file's content, 13.1), which no probed type is.
 func ParamOptions(p codes.TypeExpr) ([]codes.Code, bool) {
 	if len(p.Types) == 0 {
 		return nil, false
 	}
 	for i, k := range p.Types {
-		if k == codes.TypeAny || p.Text[i] != codes.Spelling(k) || k != codes.TypeNoneType && !coreTypes[codes.Name(k)] {
+		core := k == codes.TypeNoneType || k == codes.TypeBytes || coreTypes[codes.Name(k)]
+		if k == codes.TypeAny || p.Text[i] != codes.Spelling(k) || !core {
 			return nil, false
 		}
 	}

@@ -29,8 +29,8 @@ var optionSamples = map[codes.Code]string{
 // argümanlar ilk seçeneğin örneğidir. Program denetleyicisiz koşulur.
 func TestFunctionParamOptionsMatchEngine(t *testing.T) {
 	chdirTemp(t)
-	if len(checker.FunctionArgCodes) < 39 {
-		t.Errorf("denetlenen fonksiyon %d (39 bekleniyordu)", len(checker.FunctionArgCodes))
+	if len(checker.FunctionArgCodes) < 40 {
+		t.Errorf("denetlenen fonksiyon %d (40 bekleniyordu)", len(checker.FunctionArgCodes))
 	}
 	for k := range checker.FunctionArgCodes {
 		def, ok := codes.DefinitionOf(k)
@@ -48,9 +48,17 @@ func TestFunctionParamOptionsMatchEngine(t *testing.T) {
 // uyuşmayan (tip, argüman, motorun kodu) üçlüleri.
 func probeOptions(t *testing.T, k codes.Code, sig codes.Signature) string {
 	base := make([]string, len(sig.Params))
+	last := -1
 	for i, p := range sig.Params {
 		if opts, ok := checker.ParamOptions(p); ok {
-			base[i] = optionSamples[opts[0]]
+			base[i], last = optionSamples[opts[0]], i
+		}
+	}
+	// Denetlenen parametreden önceki denetlenmeyen parametre (TR_write_file'ın TR_String|TR_Path
+	// yolu) ilk seçeneğinin örneğini alır: çağrı konumlu argümanlarla kurulur.
+	for i := 0; i < last; i++ {
+		if base[i] == "" && len(sig.Params[i].Types) > 0 {
+			base[i] = optionSamples[sig.Params[i].Types[0]]
 		}
 	}
 	if code := probeCall(t, k, base, -1, ""); code != "none" {
