@@ -43,7 +43,8 @@ tr index tested_by varsayılan_cihaz | contains: tests/tensor_test.tr | src: den
 
 # Deneme 4: CPU softmax'ı hızlandırmak (2026-10-23)
 codegraph query TR_fn_softmax | group: registered or used in Go => ml.registerSoftmax | src: deneme 4, 2026-10-23
-codegraph callees tensor.Tensor.softmaxImpl | contains: tensor.Backend.Softmax | contains: dispatches to: | src: deneme 4, 2026-10-23
+codegraph callees tensor.Tensor.softmaxImpl | contains: tensor.gateSoftmax | src: deneme 4, 2026-10-23; S-kilit (2026-11-03) arka uç çağrısını kapıya aldı
+codegraph callees tensor.gateSoftmax | contains: tensor.Backend.Softmax | contains: dispatches to: | src: S-kilit, 2026-11-03 (deneme 4'ün zinciri)
 codegraph query tensor.Backend.Softmax | group: dispatches_to => tensor.cpuBackend.Softmax | group: dispatches_to => gpu.backend.Softmax | src: deneme 4, 2026-10-23
 codegraph tests-for tensor.cpuBackend.Softmax | not: no tests found | src: deneme 4, 2026-10-23
 codegraph who-uses tensor.Tensor.Softmax --by-package | contains: internal/stdlib/ml | src: deneme 4, 2026-10-23
@@ -70,7 +71,9 @@ codegraph tests-for lib/README.md | contains: TestDocTRCodeBlocks | src: madde 7
 # Deneme 6: bir yerleşiği kaldırmayı planlamak (koşullu, TR_fn_where) (2026-10-23)
 codegraph query koşullu | contains: TR_fn_where [name] | group: <- tests ( => 15.15 koşullu | group: uses_name => optimizers.TR_type_RowRMS.TR_mem_step | group: registered or used in Go => ml.registerWideMath at | group: registered or used in Go => -> ml.whereBuiltin | contains: docs/codes.md | src: deneme 6, 2026-10-23
 codegraph callees ml.typedWhere | contains: tensor.Where [func] | src: deneme 6, 2026-10-23
-codegraph callees tensor.Where | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | contains: dispatches to: gpu.backend.WhereGrad, tensor.cpuBackend.WhereGrad | src: deneme 6, 2026-10-23
+codegraph callees tensor.Where | contains: tensor.gateWhere | contains: tensor.gateWhereGrad | src: deneme 6, 2026-10-23; S-kilit (2026-11-03) arka uç çağrılarını kapıya aldı
+codegraph callees tensor.gateWhere | contains: dispatches to: gpu.backend.Where, tensor.cpuBackend.Where | src: S-kilit, 2026-11-03 (deneme 6'nın zinciri)
+codegraph callees tensor.gateWhereGrad | contains: dispatches to: gpu.backend.WhereGrad, tensor.cpuBackend.WhereGrad | src: S-kilit, 2026-11-03 (deneme 6'nın zinciri)
 codegraph who-uses gpu.selectKernel | contains: gpu.backend.Where | src: deneme 6, 2026-10-23
 codegraph callees gpu.backend.Where --all | contains: gpu.selectKernel | src: deneme 6, 2026-10-23
 codegraph deleted | group: names: => K102  removed 020a98a7 | src: deneme 6, 2026-10-23
@@ -124,7 +127,7 @@ codegraph tests-for interp.VM.callPrepared --all | group: measurements, not test
 codegraph who-uses interp.valueText | contains: <- implemented_by | group: calls => interp.compiler.interpolation | group: calls => interp.VM.textOf | src: değer dili 3. tur (metin yerleştirmesi → valueText, VM.textOf ile aynı yol; değer dili adım 1-2), 2026-10-24
 codegraph query layers.Doğrusal.ileri --all | group: implemented_by => interp.compiler.call | group: implemented_by => interp.VM.memberValue | src: deneme 9 H1 (yapı → uygulama), 2026-10-24
 codegraph query layers.Doğrusal.ileri --all | group: implemented_by => ml.TensorValue.matmulOp | group: implemented_by => tensor.Add | src: deneme 9 H1 (işleç → uygulama), 2026-10-24
-codegraph path layers.Doğrusal.ileri tensor.MatMul | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24
+codegraph path layers.Doğrusal.ileri tensor.MatMulOut | contains: (directed | contains: -implemented_by-> | src: deneme 9 H1, 2026-10-24; S-kilit (2026-11-03): `@` artık MatMulOut ya da kilitsiz MatMulKernel'e iner
 tr index references field:lib/layers.tr#TR_type_GPT.TR_mem_config --all | contains: @{tools/gpu/gpt_training.tr#model.TR_embedding.TR_table.TR_device} | contains: @{lib/pretrained_test.tr#m.TR_config["rope_tabanı"]} | contains: @{lib/pretrained_test.tr#ll.TR_config["rope_tabanı"]} | src: deneme 7 R4 (tür çıkarımı), 2026-10-24
 
 # Değer dili 3. tur: Inspect ve tip-metin karşılaştırması, ortam değişkenini koyan testler (2026-10-25)

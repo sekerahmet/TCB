@@ -79,6 +79,9 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 - **`dups --changed` değişmemiş dosyayı "[changed]" sayıyor (2026-11-03, T1'in S-kilit'i).** Aynı aday ("elementwise_wide.go:40-78 Tensor.Log2 [changed]") dalın 12 ön denetiminin hepsinde çıktı; `82cabad6`'nın ön denetiminde `tensor` paketinin hiçbir dosyası değişmemişti [ölçüldü: T1, `git diff --quiet adef3978 -- internal/compute/tensor/`].
   - Beklenen: değişmemiş dosyadaki aday "[changed]" işaretlenmez, ön denetimi düşürmez.
   - Sınıf: ince ayar (her ön denetimde bilinen yanlış aday; yanlış değişikliğe götürmüyor, gürültü).
+- **Fonksiyon içinde tanımlı tipin metoduna düğüm yok (2026-11-03, S-kilit birleşmesi).** `TestStepKernelMatchesStep`'in içindeki `type stepper interface { Optimizer; StepKernel() *Kernel }`'in `StepKernel`'ine yapılan iki kullanım (`optimizer_step_test.go:37-38`) grafikte "no node" [ölçüldü: L4 tam denetimi, `TestUseCoverageOnTheRepository`]. Geçici çözüm: arayüz dosya düzeyine taşındı.
+  - Beklenen: fonksiyon kapsamındaki tip ve metotları da düğüm alır (ya da kapsam testi onları ayrı sayar).
+  - Sınıf: ince ayar.
 
 ## Kalan işler (eksik değil, yeni yetenek)
 

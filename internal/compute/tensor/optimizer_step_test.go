@@ -5,15 +5,18 @@ import (
 	"testing"
 )
 
+// stepper adımını çekirdek olarak da verebilen iyileştiricidir (AdamW, SGD). Dosya düzeyinde: codegraph
+// fonksiyon içindeki tipin metoduna düğüm kurmuyor (TestUseCoverageOnTheRepository).
+type stepper interface {
+	Optimizer
+	StepKernel() *Kernel
+}
+
 // Kural (10.2, S-kilit): adımın çekirdeği izinle (kilitsiz yol: TryAcquire, Run, End) çalışınca
 // sonuç Step'le bit bit aynıdır: AdamW ve momentumlu SGD, 16 bitlik parametrenin ana kopyası ve
 // listede iki kez geçen parametre (sıralı yol) dahil. Hazırlık bir kez boşa yinelense de
 // (çakışmada olduğu gibi) sayaçlar ve sonuç değişmez.
 func TestStepKernelMatchesStep(t *testing.T) {
-	type stepper interface {
-		Optimizer
-		StepKernel() *Kernel
-	}
 	rng := rand.New(rand.NewSource(7))
 	w0, b0, x := Randn(rng, 4, 3), Randn(rng, 3).Cast(BFloat16), Randn(rng, 5, 4)
 	for _, name := range []string{"AdamW", "SGD", "AdamW-repeated"} {
