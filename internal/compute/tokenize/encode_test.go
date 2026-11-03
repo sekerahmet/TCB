@@ -198,3 +198,64 @@ func TestPlainEncodingBarsAnAddedTokenThatIsAVocabularyPiece(t *testing.T) {
 		}
 	}
 }
+
+// plainGolden Hugging Face'in kodlamalarıdır (testdata/golden_plain_added.json): tokenizers 0.23.2,
+// add_special_tokens=False; TCB Colab'da üretti (dal claude/16-2, 122a9268; betik ve girdi not
+// klasöründe, altin-16-2-uret.py ve altin-16-2-girdi.json). esler eşleşen kodlama (TR_true),
+// boler encode_special_tokens=True (DontParseSpecial), eksiz özel olmayan eklenmiş parçalar
+// çıkarılmış parçalayıcıda boler (DontParseAdded'ın beklenen kimlikleri).
+type plainGolden struct {
+	Tokenizers string
+	Fikstur    map[string]map[string]struct{ Esler, Boler, Eksiz []int }
+}
+
+// plainDivergence HF'nin 16.2'den ayrıldığı yerlerdir: unigram'da modelin bölütlemesi metindeki
+// <s>/</s>'yi özel kimliğe böler (HF boler'de de 1 ve 2 verir); 16.2'de bölmez. Beklenen bizim
+// kuralımızın kodlamasıdır: özel parça kimliği yok, metin geri kalan parçalarla ve bilinmeyen
+// kimliğiyle (0) kodlanır. İki unigram fikstüründe aynıdır (dağarcıkları aynı).
+var plainDivergence = map[string][]int{
+	"<s>":      {3, 0, 22, 0},                // ▁ < s >: "<" ve ">" dağarcıkta yok
+	"x <s> y":  {3, 92, 3, 0, 22, 0, 69},     // HF: 3 92 3 1 69
+	"</s>":     {3, 0, 59, 22, 0},            // HF: 3 2
+	"x </s> y": {3, 92, 3, 0, 59, 22, 0, 69}, // HF: 3 92 3 2 69
+}
+
+// Kural (16.2): DontParseSpecial ve DontParseAdded'ın kimlikleri HF'ninkiyle aynıdır, HF'nin
+// bilerek ayrıldığı yerler (plainDivergence) dışında; TR_true HF'nin eşleşen kodlamasıdır.
+func TestPlainEncodingMatchesHuggingFace(t *testing.T) {
+	data, err := os.ReadFile("testdata/golden_plain_added.json")
+	must(t, err)
+	var g plainGolden
+	must(t, json.Unmarshal(data, &g))
+	if g.Tokenizers != "0.23.2" || len(g.Fikstur) != 12 {
+		t.Fatalf("altın: tokenizers %s, %d fikstür; 0.23.2 ve 12 olmalı", g.Tokenizers, len(g.Fikstur))
+	}
+	compared, diverged := 0, 0
+	for file, texts := range g.Fikstur {
+		p, err := Load(filepath.Join(reporoot.Root(), file))
+		must(t, err)
+		unigram := filepath.Base(file) == "tokenizer_unigram.json" || filepath.Base(file) == "tokenizer_unigram_normalized.json"
+		for text, want := range texts {
+			got := []int(p.EncodeWithOptions(text, Options{DontAddSpecial: true}))
+			special := p.EncodeWithOptions(text, Options{DontParseSpecial: true, DontAddSpecial: true})
+			added := p.EncodeWithOptions(text, Options{DontParseAdded: true, DontAddSpecial: true})
+			if _, ok := plainDivergence[text]; ok && unigram {
+				diverged++
+				if exp := plainDivergence[text]; !slices.Equal(special, exp) || !slices.Equal(added, exp) {
+					t.Errorf("%s, %q: DontParseSpecial %v, DontParseAdded %v; 16.2'nin beklediği %v (HF %v)", file, text, special, added, exp, want.Boler)
+				}
+				continue
+			}
+			compared++
+			for _, c := range []struct {
+				name      string
+				got, want []int
+			}{{"esler", got, want.Esler}, {"boler", special, want.Boler}, {"eksiz", added, want.Eksiz}} {
+				if !slices.Equal(c.got, c.want) {
+					t.Errorf("%s, %q, %s: %v, HF %v", file, text, c.name, c.got, c.want)
+				}
+			}
+		}
+	}
+	t.Logf("%d metin HF ile karşılaştırıldı, %d metinde HF bilerek ayrılıyor", compared, diverged)
+}

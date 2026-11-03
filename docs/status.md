@@ -957,8 +957,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 
 ### 16.2
 
-- **Mevcut durum:** `TR_false` ile metindeki eklenmiş parça yazımı, özel olsun olmasın (`<|im_end|>`, `<think>`), kimlik üretmez: ne eşleşme ne modelin kendi bölütlemesi (unigram'ın `<s>`/`</s>` parçaları); bilinmeyen kimliği ayrıdır [test: `TestPlainEncodingProducesNoAddedID`, `TestPlainEncodingProducesNoSpecialID`, 12 fikstür, dört kodlama yolu; TR testi "16.2 TR_special_tokens: TR_false ile metin eklenmiş parçanın kimliğini üretmez"]. Hugging Face'in `split_special_tokens`'ı yalnız özelleri böler; TR bilerek ayrılıyor (16.2 "özel olsun olmasın").
-- **Yapılacaklar (B):** adım 1'in Hugging Face altınıyla karşılaştırması (tokenizers 0.23.2, 12 fikstür; altın bekleniyor).
+- **Mevcut durum:** `TR_false` ile metindeki eklenmiş parça yazımı, özel olsun olmasın (`<|im_end|>`, `<think>`), kimlik üretmez: ne eşleşme ne modelin kendi bölütlemesi (unigram'ın `<s>`/`</s>` parçaları); bilinmeyen kimliği ayrıdır [test: `TestPlainEncodingProducesNoAddedID`, `TestPlainEncodingProducesNoSpecialID`, 12 fikstür, dört kodlama yolu; TR testi "16.2 TR_special_tokens: TR_false ile metin eklenmiş parçanın kimliğini üretmez"]. Hugging Face'in `split_special_tokens`'ı yalnız özelleri böler; TR bilerek ayrılıyor (16.2 "özel olsun olmasın"). 147 metinden 139'u Hugging Face'in kodlamasıyla aynı; ayrılan 8'i unigram'da `<s>`/`</s>`: HF'nin bölütlemesi onları özel kimliğe bölüyor, 16.2 bölmüyor [test: `TestPlainEncodingMatchesHuggingFace`, tokenizers 0.23.2].
 
 ### 16.3
 
