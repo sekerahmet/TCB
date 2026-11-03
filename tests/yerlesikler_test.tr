@@ -149,8 +149,8 @@ TR_test "13.2 metotlar argümanın tipini denetler" {
     TR_assert_equal("H2423", TR_error_code { "a1".TR_contains(bir) })
     TR_assert_equal("H2423", TR_error_code { "a,b".TR_split(bir) })
     TR_assert_equal("H2423", TR_error_code { [1, 2].TR_filter(bir) })
-    # Liste ve sözlük içerir her tipte değer arar
-    TR_assert(TR_not [1, 2].TR_contains("1"))
+    # Liste ve sözlük içerir çalışma anında her tipte değer arar (tipi bilinmeyen değerle)
+    TR_assert(TR_not [1, 2].TR_contains(["1", 1][0]))
     TR_assert([1, 2].TR_contains(1.0))
 }
 
