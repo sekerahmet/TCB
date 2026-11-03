@@ -17,7 +17,9 @@ import (
 type Options struct {
 	// DontParseSpecial doğruysa metindeki "<|end|>" gibi özel tokenlar
 	// tanınmaz, sıradan metin gibi parçalanır (özel olmayan ek tokenlar yine
-	// tanınır). Kullanıcıdan gelen metni güvenle kodlamak için uygundur.
+	// tanınır); modelin bölütlemesi de özel tokenların kimliğini üretmez
+	// (bilinmeyen token dışında; bkz. plain.go). Kullanıcıdan gelen metni
+	// güvenle kodlamak için uygundur.
 	DontParseSpecial bool
 	// DontAddSpecial doğruysa son işleyici özel token eklemez.
 	DontAddSpecial bool
@@ -84,7 +86,11 @@ func (p *Tokenizer) EncodePair(firstArg string, second *string, s Options) *Enco
 // arr tek bir metnin (son işleme öncesi) kimliklerini dst'ye ekler.
 func (p *Tokenizer) arr(dst []int32, text string, skipSpecial bool) []int32 {
 	text = validText(text)
-	modelEncode := func(x Piece) { dst = p.model.Encode(dst, x) }
+	model := p.model
+	if skipSpecial {
+		model = p.plain // modelin bölütlemesi de özel parçaların kimliğini üretmez
+	}
+	modelEncode := func(x Piece) { dst = model.Encode(dst, x) }
 	// Bütün düzenli ifade aramaları tek bir bütçeyi paylaşır: her biri kendi
 	// sınırında kalan çok sayıda arama da toplamda metin uzunluğuyla orantılı
 	// işte durdurulur.
@@ -112,7 +118,7 @@ func (p *Tokenizer) arr(dst []int32, text string, skipSpecial bool) []int32 {
 			}
 			piece := Piece{Text: section[b.begin:b.last], Start: first && b.begin == 0, budget: budget}
 			if p.preTokenizer == nil {
-				dst = p.model.Encode(dst, piece)
+				dst = model.Encode(dst, piece)
 				return
 			}
 			preTokenizeStream(p.preTokenizer, piece, modelEncode)

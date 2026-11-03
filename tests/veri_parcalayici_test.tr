@@ -44,6 +44,23 @@ TR_test "16.2 kodla: metin, metin listesi, özel_parçalar ve ikinci" {
     TR_assert_equal(b.TR_encode("merhaba", TR_pair: "dünya", TR_special_tokens: TR_false), b.TR_encode("merhaba dünya", TR_special_tokens: TR_false))
 }
 
+TR_test "16.2 TR_special_tokens: TR_false ile metin özel parçanın kimliğini üretmez" {
+    # Unigram dağarcığı <s> ve </s>'yi parça olarak taşır; <|im_end|> normalleşmiş eşleşir (＜ → <).
+    TR_var p = TR_load_tokenizer("data/tokenizer_unigram_normalized.json")
+    TR_var bitiş = p.TR_token_id("<|im_end|>")
+    TR_assert(p.TR_encode("merhaba <|im_end|>").TR_contains(bitiş))
+    TR_assert(TR_not p.TR_encode("merhaba <|im_end|>", TR_special_tokens: TR_false).TR_contains(bitiş))
+    TR_var özeller = [p.TR_token_id("<s>"), p.TR_token_id("</s>"), bitiş]
+    TR_var metin = "merhaba <|im_end|> </s> <s> ＜|im_end|＞"
+    TR_var diziler = [p.TR_encode(metin, TR_special_tokens: TR_false), p.TR_encode(metin, TR_pair: "a", TR_special_tokens: TR_false), p.TR_encode("a", TR_pair: metin, TR_special_tokens: TR_false)]
+    diziler.TR_append(p.TR_encode(["a", metin], TR_special_tokens: TR_false)[1])
+    diziler.TR_append(p.TR_encode(["a", metin], TR_pair: ["b", metin], TR_special_tokens: TR_false)[1])
+    diziler.TR_append(p.TR_encode([metin, "a"], TR_pair: ["b", metin], TR_special_tokens: TR_false)[0])
+    TR_for dizi TR_in diziler {
+        TR_for k TR_in özeller { TR_assert(TR_not dizi.TR_contains(k)) }
+    }
+}
+
 TR_test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
     TR_var cümle = "İstanbul'da hava güzel."

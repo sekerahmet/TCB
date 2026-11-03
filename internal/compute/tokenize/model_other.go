@@ -29,6 +29,8 @@ type wordPiece struct {
 	maxN    int
 	// maxToken sözlükteki en uzun token'ın baytıdır: daha uzun aday sözlükte olamaz, aranmaz.
 	maxToken int
+	// bar düz kopyada sözlük eşleşmesinin vermediği kimliklerdir (bkz. plain.go); özgünde nil.
+	bar map[int32]bool
 }
 
 func newWordPiece(raw json.RawMessage) (Model, error) {
@@ -99,7 +101,7 @@ func (w *wordPiece) Encode(dst []int32, p Piece) []int32 {
 			if begin > 0 {
 				sub = w.prefix + sub
 			}
-			if id, ok := w.vocab[sub]; ok {
+			if id, ok := w.vocab[sub]; ok && !w.bar[id] {
 				wasFound = id
 				break
 			}
@@ -123,6 +125,7 @@ type wordLevel struct {
 	vocab   map[string]int32
 	unknown int32
 	unkName string
+	bar     map[int32]bool // bkz. wordPiece.bar
 }
 
 func newWordLevel(raw json.RawMessage) (Model, error) {
@@ -150,7 +153,7 @@ func newWordLevel(raw json.RawMessage) (Model, error) {
 func (w *wordLevel) Vocab() map[string]int32 { return w.vocab }
 
 func (w *wordLevel) Encode(dst []int32, p Piece) []int32 {
-	if id, ok := w.vocab[p.Content()]; ok {
+	if id, ok := w.vocab[p.Content()]; ok && !w.bar[id] {
 		return append(dst, id)
 	}
 	if w.unknown >= 0 {
@@ -177,6 +180,8 @@ type unigram struct {
 	root         *unigramNode
 	fallbackID   [256]int32
 	cache        *cache
+	// bar düz kopyada bölütlemede kullanılmayan kimliklerdir (bkz. plain.go); özgünde nil.
+	bar []bool
 }
 
 // unigramNode bayt tabanlı önek ağacının düğümü.
@@ -279,7 +284,7 @@ func (u *unigram) encode(dst []int32, m string, budget *reBudget) []int32 {
 			if d == nil {
 				break
 			}
-			if d.id >= 0 {
+			if u.usable(d.id) {
 				last := k + 1
 				candidate := basic + u.score[d.id]
 				h := &best[last]
@@ -329,7 +334,7 @@ func (u *unigram) encode(dst []int32, m string, budget *reBudget) []int32 {
 			continue
 		}
 		piece := m[b.begin:b.last]
-		if id, ok := u.vocab[piece]; ok {
+		if id, ok := u.vocab[piece]; ok && u.usable(id) {
 			dst = append(dst, id)
 			continue
 		}

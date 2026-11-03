@@ -40,6 +40,8 @@ type bpeModel struct {
 	fallbackID [256]int32     // "<0xXX>" tokenları (-1: yok)
 	byteVocab  map[string]int32
 	cache      *cache
+	// bar düz kopyada bölütlemede kullanılmayan kimliklerdir (bkz. plain.go); özgünde nil.
+	bar map[int32]bool
 }
 
 func newBPE(raw json.RawMessage) (Model, error) {
@@ -183,7 +185,7 @@ func (b *bpeModel) encode(dst []int32, p Piece) []int32 {
 		} else {
 			id, ok = b.vocab[p.Text]
 		}
-		if ok {
+		if ok && !b.bar[id] {
 			return append(dst, id)
 		}
 	}
@@ -249,7 +251,7 @@ func (b *bpeModel) symbols(sem []int32, p Piece) []int32 {
 			if i == len(chars)-1 {
 				s += b.suffix
 			}
-			if v, ok := b.vocab[s]; ok {
+			if v, ok := b.vocab[s]; ok && !b.bar[v] {
 				id = v
 			}
 		}
