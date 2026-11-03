@@ -33,16 +33,19 @@ type dupFunc struct {
 // dupCorpus bütün dosyaların düğüm dizisidir. Dosyalar arasında benzersiz ayraç değerleri durur,
 // bu yüzden hiçbir eşleşme dosya sınırını geçmez.
 type dupCorpus struct {
-	seq    []uint32
-	atom   []string // düğümün adı ya da değeri (Ident, BasicLit); öbürlerinde boş
-	line   []int32
-	last   []int32 // düğümün bittiği satır
-	file   []int32
-	files  []string
-	isTest []bool // dosya başına
-	funcs  []dupFunc
-	kinds  map[string]uint32
-	nodes  int // ayraçlar hariç düğüm sayısı
+	seq       []uint32
+	atom      []string // düğümün adı ya da değeri (Ident, BasicLit); öbürlerinde boş
+	line      []int32
+	last      []int32 // düğümün bittiği satır
+	subEnd    []int32 // düğümün alt ağacının bittiği dizi konumu
+	topDecl   []bool  // üst düzey FuncDecl ya da GenDecl kökü
+	file      []int32
+	files     []string
+	isTest    []bool // dosya başına
+	funcs     []dupFunc
+	kinds     map[string]uint32
+	nodes     int // ayraçlar hariç düğüm sayısı
+	sentinels uint32
 }
 
 const sentinelBase = 1 << 31
@@ -82,12 +85,16 @@ type flatNode struct {
 	line     int32
 	last     int32
 	children int
+	subEnd   int
+	topDecl  bool
+	sep      bool
 }
 
 // openFrame ağaç gezisinde açık bir düğümdür; fn işlev bildirimidir.
 type openFrame struct {
-	idx int
-	fn  bool
+	idx     int
+	fn      bool
+	oneLine bool
 }
 
 // localFunc bir dosyadaki işlevin yerel düğüm aralığıdır.
@@ -100,7 +107,9 @@ type localFunc struct {
 
 // flatten dosyanın ağacını önek sırasıyla düğümlere ve işlev aralıklarına çevirir. Tablolar (test
 // dosyalarındaki bileşik sabitler, üretimde tableElements ve üstü öğeli olanlar) tek yaprak sayılır:
-// tablo satırlarının birbirine benzemesi tekrar değildir. İçe aktarma bildirimleri alınmaz.
+// tablo satırlarının birbirine benzemesi tekrar değildir. Tek satırlık işlev/metot bildirimleri
+// komşu bildirimlerden ayraçla ayrılır ki yan yana tek satırlık sarmalayıcılar tek bölgeye birleşmesin.
+// İçe aktarma bildirimleri alınmaz.
 func flatten(fset *token.FileSet, f *ast.File, isTest bool) ([]flatNode, []localFunc) {
 	var nodes []flatNode
 	var funcs []localFunc
@@ -110,9 +119,13 @@ func flatten(fset *token.FileSet, f *ast.File, isTest bool) ([]flatNode, []local
 		if n == nil {
 			top := open[len(open)-1]
 			open = open[:len(open)-1]
+			nodes[top.idx].subEnd = len(nodes)
 			if top.fn {
 				funcs = append(funcs, localFunc{name: nodes[top.idx].atom, from: top.idx, to: len(nodes),
 					line: nodes[top.idx].line, last: nodes[top.idx].last})
+			}
+			if top.oneLine {
+				nodes = append(nodes, flatNode{sep: true})
 			}
 			return true
 		}
@@ -121,19 +134,28 @@ func flatten(fset *token.FileSet, f *ast.File, isTest bool) ([]flatNode, []local
 		}
 		if r, ok := runs[n]; ok { // kardeş dizisi: ilk üye tek yaprak, öbürleri atlanır (dups_siblings.go)
 			if r.head {
-				nodes = append(nodes, flatNode{kind: "SiblingRun", line: int32(fset.Position(n.Pos()).Line), last: r.endLine})
+				idx := len(nodes)
+				nodes = append(nodes, flatNode{kind: "SiblingRun", line: int32(fset.Position(n.Pos()).Line), last: r.endLine, subEnd: idx + 1})
 				if len(open) > 0 {
 					nodes[open[len(open)-1].idx].children++
 				}
 			}
 			return false
 		}
-		idx := len(nodes)
 		nd := flatNode{kind: nodeKind(n), atom: nodeAtom(n),
 			line: int32(fset.Position(n.Pos()).Line), last: int32(fset.Position(n.End()).Line)}
 		if n == ast.Node(f) || n == ast.Node(f.Name) {
 			nd.line, nd.last = 0, 0 // dosya ve paket adı: eşleşmenin satır aralığını uzatmasın
 		}
+		_, isFn := n.(*ast.FuncDecl)
+		_, isGen := n.(*ast.GenDecl)
+		oneLine := isFn && nd.line > 0 && nd.line == nd.last
+		if oneLine && len(nodes) > 0 && !nodes[len(nodes)-1].sep {
+			nodes = append(nodes, flatNode{sep: true})
+		}
+		idx := len(nodes)
+		nd.topDecl = len(open) == 1 && (isFn || isGen)
+		nd.subEnd = idx + 1
 		nodes = append(nodes, nd)
 		if len(open) > 0 {
 			nodes[open[len(open)-1].idx].children++
@@ -141,8 +163,7 @@ func flatten(fset *token.FileSet, f *ast.File, isTest bool) ([]flatNode, []local
 		if cl, ok := n.(*ast.CompositeLit); ok && (isTest || len(cl.Elts) >= tableElements) {
 			return false // tablo: yaprak
 		}
-		_, isFn := n.(*ast.FuncDecl)
-		open = append(open, openFrame{idx: idx, fn: isFn})
+		open = append(open, openFrame{idx: idx, fn: isFn, oneLine: oneLine})
 		return true
 	})
 	return nodes, funcs
@@ -157,6 +178,10 @@ func (co *dupCorpus) addFile(fset *token.FileSet, rel string, f *ast.File) {
 	nodes, funcs := flatten(fset, f, isTest)
 	base := len(co.seq)
 	for _, nd := range nodes {
+		if nd.sep {
+			co.addSentinel(fi)
+			continue
+		}
 		key := nd.kind + "/" + strconv.Itoa(nd.children)
 		id, ok := co.kinds[key]
 		if !ok {
@@ -167,17 +192,26 @@ func (co *dupCorpus) addFile(fset *token.FileSet, rel string, f *ast.File) {
 		co.atom = append(co.atom, nd.atom)
 		co.line = append(co.line, nd.line)
 		co.last = append(co.last, nd.last)
+		co.subEnd = append(co.subEnd, int32(base+nd.subEnd))
+		co.topDecl = append(co.topDecl, nd.topDecl)
 		co.file = append(co.file, fi)
+		co.nodes++
 	}
-	co.nodes += len(nodes)
 	for _, lf := range funcs {
 		co.funcs = append(co.funcs, dupFunc{name: lf.name, file: int(fi), from: base + lf.from, to: base + lf.to,
 			line: int(lf.line), last: int(lf.last)})
 	}
-	co.seq = append(co.seq, sentinelBase+uint32(fi))
+	co.addSentinel(fi)
+}
+
+func (co *dupCorpus) addSentinel(fi int32) {
+	co.seq = append(co.seq, sentinelBase+co.sentinels)
+	co.sentinels++
 	co.atom = append(co.atom, "")
 	co.line = append(co.line, 0)
 	co.last = append(co.last, 0)
+	co.subEnd = append(co.subEnd, 0)
+	co.topDecl = append(co.topDecl, false)
 	co.file = append(co.file, fi)
 }
 

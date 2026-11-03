@@ -167,6 +167,7 @@ outer:
 				if co.file[a] == co.file[b] && b < a+l {
 					l = b - a // aynı dosyada çakışma: ilk kopyanın uzunluğuyla sınırla
 				}
+				a, b, l = co.trimDeclSpill(a, b, l)
 				if l >= w {
 					pairs = append(pairs, pairMatch{a, b, l})
 				}
@@ -263,14 +264,45 @@ next:
 	return kept
 }
 
-// lineSpan [start, start+length) düğümlerinin kapsadığı satır aralığıdır.
-func (co *dupCorpus) lineSpan(start, length int) (from, to int) {
-	for i := start; i < start+length; i++ {
-		if l := int(co.line[i]); l > 0 && (from == 0 || l < from) {
-			from = l
+// trimDeclSpill üst düzey bildirim sınırını aşan eşleşmelerde baştaki ve sondaki yarım bildirim taşmalarını
+// (önceki bildirimin son yapraklarını ya da sonraki bildirimin başlığını) keser.
+func (co *dupCorpus) trimDeclSpill(a, b, l int) (int, int, int) {
+	if !co.topDecl[a] || !co.topDecl[b] {
+		for k := 1; k < l; k++ {
+			if co.topDecl[a+k] || co.topDecl[b+k] {
+				a += k
+				b += k
+				l -= k
+				break
+			}
 		}
-		if l := int(co.last[i]); l > to {
-			to = l
+	}
+	for k := 1; k < l; k++ {
+		if co.topDecl[a+k] && int(co.subEnd[a+k]) > a+l || co.topDecl[b+k] && int(co.subEnd[b+k]) > b+l {
+			l = k
+			break
+		}
+	}
+	return a, b, l
+}
+
+// lineSpan [start, start+length) düğümlerinin kapsadığı satır aralığıdır. Bir düğümün kapanış satırı (last)
+// yalnızca alt ağacının tamamı eşleşmenin içindeyse katılır; yarım kalan dış kapsayıcı son satırı uzatmaz.
+func (co *dupCorpus) lineSpan(start, length int) (from, to int) {
+	end := start + length
+	for i := start; i < end; i++ {
+		if l := int(co.line[i]); l > 0 {
+			if from == 0 || l < from {
+				from = l
+			}
+			if l > to {
+				to = l
+			}
+		}
+		if int(co.subEnd[i]) <= end {
+			if l := int(co.last[i]); l > to {
+				to = l
+			}
 		}
 	}
 	return from, to
