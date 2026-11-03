@@ -4,12 +4,15 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Kabın öğe tipi (3.6, 3.7, 4.10): liste tek tiplidir, sözlüğün değerleri tek tiptedir. Öğe tipi
 // bilinen kabın indeksine başka tipte değer yazmak H1136, öğe tipleri ayrı iki listenin '+'sı (ve
-// '+='sı) H1138'dir. Çalışma anı öğe tipini taşımadığı için ikisi de bugün çalışınca sessizce geçer;
+// '+='sı) H1138'dir. Öğeleri başvuruyla paylaşılan (liste, sözlük, tensör, yapı; onları tutan demet)
+// listenin '*' ile yinelenmesi H1139'dur: satırlar aynı öğe olurdu ([[0] * 3] * 3). Çalışma anı öğe
+// tipini taşımadığı için üçü de bugün çalışınca sessizce geçer;
 // denetim tipi bilinen yerde yakalar. Tipi bilinmeyen öğe ya da kap, öğe tipsiz kap (TR_List) ve
 // fonksiyon karar vermez.
 
@@ -72,4 +75,68 @@ func (c *Checker) checkListPlus(n ast.Node, left, right string) {
 	if c.distinctTypes(left, right) {
 		c.addErrorAt(n, messages.New(messages.H1138, c.typeArg(left), c.typeArg(right)))
 	}
+}
+
+// checkSequenceOperator metnin ve listenin '+' ve '*' işlecini denetler (4.10); n işlecin yeri,
+// bileşik atamada (x *= y) sol yanın ifadesi nil'dir.
+func (c *Checker) checkSequenceOperator(n ast.Node, op string, lExpr, rExpr ast.Expression, left, right string) {
+	switch op {
+	case "+":
+		c.checkPlus(n, left, right)
+		c.checkListPlus(n, left, right)
+	case "*":
+		c.checkSharedRepeat(n, lExpr, rExpr, left, right)
+	}
+}
+
+// checkSharedRepeat öğeleri başvuruyla paylaşılan listenin '*' ile yinelenmesini denetler (4.10;
+// H1139): [[0] * 3] * 3, 3 * [p]. Öneri tek öğeli liste değişmezinde her satırı üreteçle ayrı kurar.
+func (c *Checker) checkSharedRepeat(n ast.Node, lExpr, rExpr ast.Expression, left, right string) {
+	list, count, listType := lExpr, rExpr, left
+	if normalizeTypeName(baseType(left)) != typeList {
+		list, count, listType = rExpr, lExpr, right
+	}
+	s := shapeOf(listType)
+	if s.optional || normalizeTypeName(s.base) != typeList || len(s.args) != 1 || !c.sharedElement(s.args[0]) {
+		return
+	}
+	c.addErrorAt(n, messages.New(messages.H1139, c.typeArg(listType), c.repeatSuggestion(list, count)))
+}
+
+// sharedElement t tipindeki değer başvuruyla mı paylaşılır (3.6): liste, sözlük, tensör, programın
+// yapısı ya da bunlardan birini tutan demet. Metin, sayı, mantık değeri, JSON ve tipi bilinmeyen değer
+// paylaşılmaz sayılır.
+func (c *Checker) sharedElement(t string) bool {
+	s := shapeOf(t)
+	for _, e := range s.elems {
+		if c.sharedElement(e) {
+			return true
+		}
+	}
+	switch base := normalizeTypeName(s.base); base {
+	case typeList, typeDict, typeTensor:
+		return true
+	default:
+		return base != "" && c.knownStruct(base)
+	}
+}
+
+// repeatSuggestion [E] * n'nin her satırı ayrı kuran yazımıdır: [E TR_for _ TR_in 0..n]. Liste tek
+// öğeli bir değişmez değilse ya da yazımlar dosyada bilinmiyorsa boştur.
+func (c *Checker) repeatSuggestion(list, count ast.Expression) string {
+	lit, ok := list.(*ast.ListLiteral)
+	if !ok || len(lit.Elements) != 1 || count == nil {
+		return ""
+	}
+	elem, ok1 := c.exprText(lit.Elements[0])
+	n, ok2 := c.exprText(count)
+	if !ok1 || !ok2 {
+		return ""
+	}
+	switch count.(type) {
+	case *ast.IntegerLiteral, *ast.Identifier:
+	default:
+		n = "(" + n + ")"
+	}
+	return "[" + elem + " " + codes.Spelling(codes.KwFor) + " _ " + codes.Spelling(codes.KwIn) + " 0.." + n + "]"
 }

@@ -1,9 +1,12 @@
 package checker
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
 // Kural (3.6, 3.7; H1136): öğe tipi bilinen kabın indeksine başka tipte değer yazmak denetim hatasıdır;
@@ -44,6 +47,34 @@ func TestListPlusElementTypes(t *testing.T) {
 	singleError(t, "TR_var e = [1] + [2.5]", messages.H1138, 1)
 	singleError(t, "TR_var m = [1, 2]\nm += [\"a\"]", messages.H1138, 2)
 	noErrors(t, "TR_var a = [1] + [2]\nTR_var b = [1] + []\nTR_var m = [1.0]\nm += [2.0]\nTR_var u = [[1], \"a\"][0]\nTR_var v = u + [1]")
+}
+
+// Kural (4.10, H1139): öğeleri başvuruyla paylaşılan (liste, sözlük, tensör, yapı ya da onları tutan
+// demet) liste '*' ile yinelenemez, '*='de de; ileti tek öğeli değişmezde her satırı ayrı kuran
+// üreteci önerir. Metin, sayı ve demet öğeli liste ve tipi bilinmeyen öğe geçer.
+func TestSharedRowsAreNotRepeated(t *testing.T) {
+	cases := []struct {
+		name, src string
+		line      int
+	}{
+		{"liste", "TR_var m = [[0] * 3] * 3", 1},
+		{"solda sayı", "TR_var m = 3 * [{\"a\": 1}]", 1},
+		{"tensör", "TR_var m = [TR_Tensor([1.0])] * 2", 1},
+		{"yapı", "TR_struct P { a: TR_Int }\nTR_var m = [P(1)] * 2", 2},
+		{"demette liste", "TR_var m = [(1, [2])] * 2", 1},
+		{"bileşik", "TR_var l = [[1]]\nl *= 2", 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) { singleError(t, tc.src, messages.H1139, tc.line) })
+	}
+	src := "TR_var n = 2\nTR_var m = [[0] * 3] * (n + 1)"
+	c := New()
+	c.SetFile(ProgramFile, src) // öneri ifadelerin dosyadaki yazımıyla kurulur
+	c.CheckProgram(parser.New(lexer.NewBody(src, true)).ParseProgram())
+	if errs := c.Errs(); len(errs) != 1 || !strings.Contains(messages.ErrorIn(errs[0], "en"), "`[[0] * 3 TR_for _ TR_in 0..(n + 1)]`") {
+		t.Errorf("üreteç önerisi bekleniyordu: %v", errs)
+	}
+	noErrors(t, "TR_var a = [0] * 3\nTR_var s = [\"x\"] * 2\nTR_var t = [(1, \"a\")] * 2\nTR_var u = [[1], \"a\"][0]\nTR_var v = [u] * 2")
 }
 
 // Kural (15.5): tensörün karşılaştırması öğe öğedir ve bir tensör verir; mantık değeri değildir.

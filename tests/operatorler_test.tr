@@ -255,6 +255,13 @@ TR_test "4.10 '*' metni ve listeyi bir Tam kadar yineler; sıfır ya da eksi bo�
     TR_assert_equal("", "" * 9223372036854775807)
 }
 
+TR_test "4.10 paylaşılan satırların yerine her satırı ayrı kuran üreteç: bir satırı değiştirmek öbürlerini değiştirmez" {
+    # [[0] * 3] * 3 denetim hatasıdır (H1139, tests/negative/oge_tipi_atama.tr); ileti bu yazımı önerir.
+    TR_var m = [[0] * 3 TR_for _ TR_in 0..3]
+    m[0][0] = 1
+    TR_assert_equal([[1, 0, 0], [0, 0, 0], [0, 0, 0]], m)
+}
+
 TR_test "4.11 @ matris çarpımıdır" {
     TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]]) @ TR_Tensor([[1.0], [1.0]])
     TR_assert_equal([2, 1], m.TR_shape)
