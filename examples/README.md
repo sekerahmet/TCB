@@ -157,7 +157,7 @@ Ortam değişkenleri (kimlik adıyla yazılır ve okunur, 17.9):
 | `TR_CPU_AVX2` | `0` ise CPU'nun AVX2/FMA kernelleri kapanır, taşınabilir Go kernelleri çalışır | `TR_CPU_AVX2=0 trlang examples/tr/23_tensor.tr` |
 | `TR_GPU_CUBLASLT` | Bulunamazsa cuBLASLt kitaplığının tam yolu | `TR_GPU_CUBLASLT=/usr/local/cuda/lib64/libcublasLt.so.12 trlang examples/tr/33_cihaz_ve_hassasiyet.tr` |
 
-Etkileşimli kabuk `tr` ile açılır (dosya verilmeden); kabuktan `exit` ile çıkılır.
+Etkileşimli kabuk `trlang` ile açılır (dosya verilmeden); kabuktan `exit` ile çıkılır.
 
 Hata ayıklayıcı komutları ([42](tr/42_hata_ayiklama.tr) ve [43](tr/43_hata_ayiklama_alistirmasi.tr)'te kullanılır; VS Code'da aynı işler F5, F10, F11 tuşlarıdır):
 

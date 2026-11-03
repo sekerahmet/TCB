@@ -1,6 +1,6 @@
 # Mimari: katmanlar ve paketler
 
-TR tek bir ikilidir (`tr`). Bütün Go kodu `internal/` altındadır; başka bir Go modülü bu paketleri içe aktaramaz. Kullanıcı Go paketi değil `.tr` dosyası yazar.
+TR tek bir ikilidir (`trlang`). Bütün Go kodu `internal/` altındadır; başka bir Go modülü bu paketleri içe aktaramaz. Kullanıcı Go paketi değil `.tr` dosyası yazar.
 
 Bu belge **nasıl çalıştığını ve neden böyle kurulduğunu** anlatır. Kod yazarken uyulacak kurallar [`internal/README.md`](../internal/README.md)'de, ekleme adımları [`recipes.md`](recipes.md)'de, süreç (yeni ad isteği, tam denetim, ölçüm) [`development.md`](development.md)'dedir; burada tekrarlanmaz. Bir paketin kendi standartları o paketin `README.md`'sindedir.
 

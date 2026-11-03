@@ -32,13 +32,13 @@ Bir program başka `.tr` dosyalarının (modüllerin) tanımlarını ve TR'nin k
 - Dosya bilgisi çağrınındır: bir görevde çalışan bir modül fonksiyonu göreli yolu kendi modülünün klasörüyle okur (18.16).
 - *Test:* TR testi.
 
-**11.6** `tr/` öneki TR'nin kendi kitaplığına ayrılmıştır: `TR_import "tr/<modül>"` diskten değil `tr` ikilisine gömülü kitaplıktan yüklenir.
+**11.6** `tr/` öneki TR'nin kendi kitaplığına ayrılmıştır: `TR_import "tr/<modül>"` diskten değil `trlang` ikilisine gömülü kitaplıktan yüklenir.
 - Kitaplığın adları koddur (17.1). Modül adları İngilizcedir, kimliklerin adları gibi (17.2, 17.9).
 - Diskteki bir `tr` klasörü bu öneki gölgeleyemez; kullanıcının `tr` adlı klasörü `./tr/...` ile aktarılır.
 - Kitaplık modülünün içindeki göreli aktarma kitaplıkta çözülür.
 - Olmayan modül, `..` ile kitaplık dışına çıkan yol ve kitaplığın test dosyaları hatadır; ileti kitaplığın modüllerini ve en yakın adı söyler.
 - `TR_cmd_check` ve `TR_cmd_build` kitaplık modülünün varlığını denetler; kitaplık `TR_cmd_build`'in çıktısına, yorumlayıcının parçası olarak girer.
-- Kitaplığın sürümü `tr` ikilisinin sürümüdür; aynı ikili aynı kitaplığı verir (20.17).
+- Kitaplığın sürümü `trlang` ikilisinin sürümüdür; aynı ikili aynı kitaplığı verir (20.17).
 - *Test:* TR testi, olumsuz fikstür.
 
 **11.7** Başı `_` olan üst düzey adlar (tek başına `_` değil) modüle özeldir: modülün içinde kullanılır, dışa aktarılmaz. `TR_import "yol"` onları getirmez; modül değerinde (`m._iç`) yoktur, yazılırsa ileti adın modüle özel olduğunu söyler. Yalnız üst düzey adlara uygulanır.

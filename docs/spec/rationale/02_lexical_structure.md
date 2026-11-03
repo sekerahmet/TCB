@@ -75,7 +75,7 @@ Kurallar: [`02_sozcuk_yapisi.md`](../02_sozcuk_yapisi.md). Bu dosya her kuralın
 ### 2.10
 
 - *Emsal:* Python'un sözcük çözümleyicisi en çok 200 iç içe parantez kabul eder. ([CPython 3.15 lexer](https://github.com/python/cpython/blob/3.15/Parser/lexer/state.h))
-- *Gerekçe:* sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi; güvenilmeyen bir kaynak dosya da `tr`'yi düşürememeli.
+- *Gerekçe:* sınırsız iç içelik yorumlayıcıyı yakalanamaz biçimde çökertirdi; güvenilmeyen bir kaynak dosya da `trlang`'ı düşürememeli.
 
 ### 2.13
 

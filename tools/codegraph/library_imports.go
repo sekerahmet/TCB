@@ -12,7 +12,7 @@ import (
 
 // libraryImports test dizesindeki TR programının kitaplıktan aktardığı modülleri (`aktar "tr/pretrained"`, kodlu yazımda
 // `TR_kw_import "tr/pretrained"`) kitaplık dosyasına başvuru olarak kaydeder: metni koşan test, metin ister yorumlayıcıya
-// ister dosyaya yazılıp `tr`'ye verilsin (TestReadyModelMatchesTransformers), aktardığı modülü koşar. Aktarmalar
+// ister dosyaya yazılıp `trlang`'a verilsin (TestReadyModelMatchesTransformers), aktardığı modülü koşar. Aktarmalar
 // codeindex.Snippet'le dosyadaki kuralla çözülür; kitaplık depodaki lib/ klasörüdür (gömülü lib.Files'ın kaynağı:
 // lib.Files'ı içe aktarmak, codegraph'ı dolaylı çağıran her testi gömme yoluyla her kitaplık dosyasına bağlıyordu).
 // Geçişli aktarmaları loaderTests izler. Yalnızca "tr/ geçen dize ayrıştırılır.

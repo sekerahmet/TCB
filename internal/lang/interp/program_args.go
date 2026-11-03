@@ -53,7 +53,7 @@ const (
 )
 
 // CheckArguments argüman verilip programın en dışından ulaşılan bir komut_satırı çağrısı olup
-// olmadığına bakar (1.4). cmd/trlang'nin bütün çalıştırma yolları ve hata ayıklayıcının başlatma yolu
+// olmadığına bakar (1.4). cmd/trlang'ın bütün çalıştırma yolları ve hata ayıklayıcının başlatma yolu
 // (düzenleyicinin "args" ayarı) aynı kararı bununla verir; metin ArgumentsMessage'dadır.
 func (v *VM) CheckArguments(prog *ast.Program) ArgumentVerdict {
 	if len(v.arguments) == 0 || v.ReadsCommandLine(prog) {

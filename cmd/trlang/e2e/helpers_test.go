@@ -2,7 +2,7 @@
 // bir kez derler, testler onu os/exec ile alt süreç olarak çalıştırır; çıkış kodları, standart
 // çıktı/hata ayrımı, kesme sinyalleri, kontrol noktasından devam, belgelerdeki kod blokları ve
 // VS Code eklentisinin dosyaları burada sınanır. 'main' paketinin iç işlevlerini çağıran beyaz
-// kutu testleri cmd/trlang'de kalır. Koşmak için: go test ./cmd/trlang/e2e -run <TestAdı>
+// kutu testleri cmd/trlang'da kalır. Koşmak için: go test ./cmd/trlang/e2e -run <TestAdı>
 //
 // Layer: command (cmd); yalnızca testlerden oluşur.
 package e2e

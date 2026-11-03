@@ -7,7 +7,7 @@
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`); bu klasörde üretim kodu olmadığından hepsi davranış testidir. Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_arguments_test.go`: betiğe ve derlenmiş uygulamaya komut satırı argümanlarının iletilmesi; argüman verilip okunmayan programın kullanım hatası (çıkış 2), yalnız `-h`, başlatıcı argümanlarının (`--ros-args`, `--local-rank`) ayrılması
-- `behavior_exit_test.go`: `TR_exit` ve çıkış kodları (ertele, yakala, görev, aralık, ertelenen işin ve görevin hatası), `tr`nin kullanım hatasının 2 olması, çalışmadan önce modüllerin tek yoldan denetlenmesi
+- `behavior_exit_test.go`: `TR_exit` ve çıkış kodları (ertele, yakala, görev, aralık, ertelenen işin ve görevin hatası), `trlang`'ın kullanım hatasının 2 olması, çalışmadan önce modüllerin tek yoldan denetlenmesi
 - `behavior_stop_test.go`: durdurma isteğinin süreçteki yolu: üstlenen programın kendi sınırında bitmesi ve çıkış kodu, biterken gelen ilk isteğin ertelenen işleri kesmemesi, ertelenen işlerdeki beklemelerin bırakılmaması
 - `behavior_checkpoint_resume_test.go`: kontrol noktasından devam eden eğitimin kesintisizle bit düzeyinde aynı sonucu vermesi
 - `behavior_coded_files_test.go`: kodlu dosyalar ve görünüm (17.7): `TR_cmd_show` komutu (dosya ve standart giriş), görünüm dosyasının çalışmaması, İngilizce görünüm, başlıksız dosyanın ve kişinin dilinde yazılan kabuk satırının çalışmaması, kullanıcı adlarının kişinin diline bağlı olmaması

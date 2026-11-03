@@ -16,3 +16,5 @@ tools/codegraph/gaps.md	2026-10-27, ana oturum	ana oturumun tuttuğu geçmiş bi
 tools/codegraph/gaps.md	2026-10-29, DENETİM	ana oturumun tuttuğu geçmiş birikim kaydı
 tools/codegraph/gaps.md	2026-10-25'te denendi	ana oturumun tuttuğu geçmiş birikim kaydı
 tools/codegraph/gaps.md	2026-10-26, DENETİM	ana oturumun tuttuğu geçmiş birikim kaydı
+docs/roadmap.md	Unix'in `tr`'si aynı adla	GNU tr gerekçesi: Unix'in komutu, bizimki değil
+docs/roadmap.md	Aracı çalıştırıp `tr` ile deneyen	Evre B'nin tarihli geçmiş kaydı (göçten önce)

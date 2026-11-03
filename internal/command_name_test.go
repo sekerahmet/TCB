@@ -154,6 +154,13 @@ func buildOldCmdChecks() []oldCmdCheck {
 			fix:   replaceSuffix,
 		},
 		{
+			// Düz yazıda ters tırnaklı yalın ad: ardından ek ya da "ikili", "ile", "komut" (DENETİM istek 86 Ş1).
+			// Dil kodu kullanımı (`tr`, `en`) bu biçime girmez.
+			re:    regexp.MustCompile("`" + oldCmdName + "`(?:'|’|nin\\b|\\s+(?:ikili|ile|komut))"),
+			valid: func(string, int, int) bool { return true },
+			fix:   func(m string) string { return "`" + codes.ProgramName + "`" + m[len(oldCmdName)+2:] },
+		},
+		{
 			re: regexp.MustCompile(`cmd/` + oldCmdName),
 			valid: func(s string, st, en int) bool {
 				r, _ := utf8.DecodeLastRuneInString(s[:st])
