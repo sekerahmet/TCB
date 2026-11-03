@@ -28,7 +28,7 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 **Dizin belirlidir.** Aynı proje aynı baytları verir: düğümler, kenarlar ve başvurular sıralıdır. Denetim: `TestBuildDeterministic`.
 
-**Ayrıştırılamayan dosya dizini bozmaz.** Dosyanın modül düğümü kalır, bildirimleri yoktur, `Skipped` listesinde nedeniyle yazılıdır. Denetim: `TestSkippedFileKeepsItsModuleNode`.
+**Ayrıştırılamayan dosya dizini bozmaz.** Dosyanın modül düğümü kalır, bildirimleri yoktur, `Skipped` listesinde ileti kodu ve parametreleriyle tutulur; neden metni (`Reason`) okuyanın dilinde kurulur. Denetim: `TestSkippedFileKeepsItsModuleNode`, `TestCachedSkippedReasonFollowsReadersLanguage`.
 
 **Bildirimler konumlarıyla bulunur.** Her üst düzey işlev, yapı, metot, alan, sabit, değişken ve test bir düğümdür (dosya:satır:sütun ve bitiş satırı). Denetim: `TestBuildDeclarations`.
 
@@ -62,7 +62,7 @@ Düğüm türleri: `module`, `function`, `struct`, `method`, `field`, `constant`
 
 ## Testler
 
-Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`, `bind_test.go` → `bind.go`, `rename_test.go` → `rename.go`, `text_test.go` → `text.go`, `suffix_test.go` → `suffix.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
+Birim testleri sınadıkları dosyanın adını taşır (`model_test.go` → `model.go`, `result_test.go` → `result.go`, `build_test.go` → `build.go`, `skipped_test.go` → `skipped.go`, `reader_test.go` → `reader.go`, `query_test.go` → `query.go`, `cache_test.go` → `cache.go`, `bind_test.go` → `bind.go`, `rename_test.go` → `rename.go`, `text_test.go` → `text.go`, `suffix_test.go` → `suffix.go`; `helpers_test.go` ortak yardımcıdır). `testdata/proj` küçük bir TR projesidir (modül, test, takma adlı aktarma, kodlu ve bozuk dosya).
 
 - `behavior_message_codes_test.go`: kaynakta yazılan ileti kodu (sözcük çözümleyicinin belirteci, çözümde, artımlı kurulumda, aramada ve yeniden adlandırmada) bir `message` düğümünün başvurusudur; depodaki her `.tr` dosyasında
 

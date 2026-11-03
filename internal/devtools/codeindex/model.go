@@ -23,7 +23,7 @@ const Schema = "tr-codeindex/2"
 
 // IndexVersion dizinin kaynaktan türettiği içerik değişince artar (yeni düğüm türü, farklı
 // çözümleme). Başka sürümün önbelleği hiçbir zaman kullanılmaz.
-const IndexVersion = 24
+const IndexVersion = 25
 
 // Kind bir düğümün türüdür; değerler JSON'a yazılan değişmez tanımlayıcılardır.
 type Kind string
@@ -220,9 +220,11 @@ type MemberGuess struct {
 }
 
 // Skipped okunamayan ya da ayrıştırılamayan bir dosyadır: modül düğümü vardır, bildirimleri yoktur.
+// Önbellek metni değil ileti kodunu ve parametrelerini (Message) tutar; Reason okuyanın dilinde (TR_LANG) kurulur.
 type Skipped struct {
-	File   string `json:"file"`
-	Reason string `json:"reason"`
+	File    string      `json:"file"`
+	Message *SkippedMsg `json:"message,omitempty"`
+	Reason  string      `json:"-"`
 }
 
 // Unresolved hiçbir kapsamda ve dilin hiçbir adında bulunamayan bir addır (yazım hatası, dinamik

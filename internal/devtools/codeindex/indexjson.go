@@ -17,11 +17,12 @@ func marshalIndentLine(v any, indent string) ([]byte, error) {
 	return append(data, '\n'), nil
 }
 
-// DecodeIndex EncodeIndex'in yazdığı dizini okur.
+// DecodeIndex EncodeIndex'in yazdığı dizini okur ve atlanan dosya nedenlerini etkin dilde kurar.
 func DecodeIndex(data []byte) (*Index, error) {
 	idx := new(Index)
 	if err := json.Unmarshal(data, idx); err != nil {
 		return nil, err
 	}
+	idx.fillSkippedReasons()
 	return idx, nil
 }

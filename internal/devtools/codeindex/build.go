@@ -143,7 +143,7 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 	mod := &Node{ID: NodeID(KindModule, rel, ""), Kind: KindModule, Name: rel, Pos: &Pos{File: rel, Line: 1}, Aliases: aliases}
 	x.nodes[mod.ID] = mod
 	if readErr != nil {
-		x.skipped = append(x.skipped, Skipped{File: rel, Reason: readErr.Error()})
+		x.skipped = append(x.skipped, newSkippedRead(x.root, rel, readErr))
 		return
 	}
 	if !x.snippet {
@@ -152,7 +152,7 @@ func (x *indexer) addFile(rel string, data []byte, readErr error) {
 	res := readFile(string(data), x.snippet)
 	mod.Coded = res.coded
 	if len(res.errs) > 0 {
-		x.skipped = append(x.skipped, Skipped{File: rel, Reason: firstLine(res.errs[0])})
+		x.skipped = append(x.skipped, newSkipped(rel, res.errs[0]))
 		return
 	}
 	x.files[rel] = &file{rel: rel, base: base, res: res, lines: res.lines,
@@ -265,6 +265,7 @@ func (x *indexer) finish() *Index {
 		return a.Name < b.Name
 	})
 	sort.SliceStable(idx.Skipped, func(i, j int) bool { return idx.Skipped[i].File < idx.Skipped[j].File })
+	idx.fillSkippedReasons()
 	for _, c := range x.constructs {
 		if x.nodes[c.In] != nil {
 			idx.Constructs = append(idx.Constructs, c)
