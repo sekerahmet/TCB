@@ -83,18 +83,18 @@ TR_func _grup_momentumu(ağırlıklar: TR_List[TR_Tensor], momentumlar: TR_List[
         TR_var g = ağırlıklar[i].TR_grad
         TR_if g == TR_none { TR_continue }
         TR_var m = momentumlar[i]
-        m[0..m.TR_shape[0]] = b * m + (1 - b) * g
+        m *= b
+        m += (1 - b) * g
         güncellemeler.TR_append(TR_if nesterov { b * m + (1 - b) * g } TR_else { m })
         sıra.TR_append(i)
     }
     TR_return sıra, güncellemeler
 }
 
-# _ağırlık_güncelle p'yi yerinde günceller: önce ağırlık çürümesi (p ← p·(1 − oran·çürüme), çürüme > 0
-# ise), sonra p ← p − adım. Yalnızca türevsiz blokta çağrılır.
+# _ağırlık_güncelle p'yi yerinde günceller: önce ağırlık çürümesi (p ← p·(1 − oran·çürüme), çürüme > 0 ise), sonra p ← p − adım. Yalnızca türevsiz blokta çağrılır.
 TR_func _ağırlık_güncelle(p: TR_Tensor, oran: TR_Float, çürüme: TR_Float, adım: TR_Tensor) {
-    TR_if çürüme > 0 { p[0..p.TR_shape[0]] = p * (1 - oran * çürüme) }
-    p[0..p.TR_shape[0]] -= adım
+    TR_if çürüme > 0 { p *= 1 - oran * çürüme }
+    p -= adım
 }
 
 # durum_tensörü p ile aynı şekilde ve cihazda, sıfırla başlayan bir durum tensörü kurar

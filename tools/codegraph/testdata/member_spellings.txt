@@ -350,7 +350,6 @@ b.TR_read_float	not_found	4	-
 b.TR_read_int	not_found	4	-
 b.TR_reshape	ok	0	name:TR_mem_reshape
 b.TR_sampler	ok	0	name:TR_mem_sampler
-b.TR_shape	ok	0	name:TR_mem_shape
 b.TR_skip	ok	0	name:TR_mem_skip
 b.TR_slice	ok	0	name:TR_mem_slice
 b.TR_spike_count	ok	0	tr:field:lib/training.tr:TR_type_SpikeGuard.TR_mem_spike_count

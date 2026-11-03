@@ -578,7 +578,7 @@ TR_test "15.34 AdamW ve SGD'nin tipi İyileştirici'dir" {
     TR_assert(TR_String(TR_SGD([w])).TR_starts_with("SGD("))
 }
 
-TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamayla yerinde güncellenir" {
+TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta bileşik atamayla yerinde güncellenir" {
     # TR'de yazılan bir iyileştiricinin (ör. tr/optimizers'deki Muon) tek yapı taşı:
     # gradyanla hesaplanan yeni değer parametrenin kendisine, kopyasız yazılır.
     TR_var w = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
@@ -586,8 +586,8 @@ TR_test "15.34 kendi iyileştiricisi: parametre türevsiz blokta indeksle atamay
     TR_var aynı_w = w
     TR_backward(TR_sum(w * w) + TR_sum(b))
     TR_no_grad {
-        w[0..w.TR_shape[0]] -= 0.25 * w.TR_grad
-        b[0..b.TR_shape[0]] = b - 0.5 * b.TR_grad
+        w -= 0.25 * w.TR_grad
+        b -= 0.5 * b.TR_grad
         TR_var g = w.TR_grad
         g[0..g.TR_shape[0]] = 0.0 # gradyanı yerinde sıfırlama
     }
