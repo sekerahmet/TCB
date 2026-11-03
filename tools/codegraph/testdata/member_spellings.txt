@@ -587,6 +587,7 @@ k.TR_Linear	ok	0	tr:struct:lib/layers.tr:TR_type_Linear
 k.TR_absolute	ok	0	name:TR_mem_absolute
 k.TR_append	ok	0	name:TR_mem_append
 k.TR_batch_decode	not_found	4	-
+k.TR_contains	ok	0	name:TR_mem_contains
 k.TR_decode	ok	0	name:TR_mem_decode
 k.TR_dtype	ok	0	name:TR_mem_dtype
 k.TR_exists	ok	0	name:TR_mem_exists
@@ -778,6 +779,7 @@ nkoşu.TR_evaluated	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_evaluated
 nl.TR_append	ok	0	name:TR_mem_append
 nl.TR_map	ok	0	name:TR_mem_map
 nl.TR_sort	ok	0	name:TR_mem_sort
+nm.TR_append	ok	0	name:TR_mem_append
 nm.TR_strip	ok	0	name:TR_mem_strip
 no.TR_next	ok	0	name:TR_mem_next
 noktalar.TR_map	ok	0	name:TR_mem_map
