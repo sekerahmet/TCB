@@ -343,6 +343,35 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 			})
 		}
 	}
+	// Satırlar konağa kopyalanmış veriyle ve önceden çekilmiş sayılarla örneklenir: tensöre ve
+	// üretece dokunmaz. İş büyükse kilit bırakılarak (dil tanımı 10.2, S-kilit).
+	bad := 0
+	work := func() { bad = sampleRows(data, result, u, C, k, temperature) }
+	if line*C >= unlockedSampleWork {
+		m.Blocking(work)
+	} else {
+		work()
+	}
+	if bad > 0 {
+		return nil, messages.New(messages.H6343, fn, bad)
+	}
+	output := sh[:len(sh)-1]
+	r, err := safe(func() *tensor.Tensor { return tensor.NewOn(d.t.Device(), result, output...) })
+	if err != nil {
+		return nil, err
+	}
+	return NewInt(r), nil
+}
+
+// unlockedSampleWork, örneklemenin kilidi bıraktığı en küçük logit sayısıdır (satır × sınıf;
+// öğe öğe işlemin eşiğiyle aynı, ~1 ms [tahmin]).
+const unlockedSampleWork = 1 << 20
+
+// sampleRows her satırdan (C logit) bir indeks örnekler ve result'a yazar; u satır başına
+// önceden çekilmiş tekdüze sayılardır. Dağılım kurulamayan ilk satırın sırasını (1'den) verir,
+// hepsi kurulabildiyse 0. Yalnız kendi dilimleriyle çalışır; kilit bırakılmışken çağrılabilir.
+func sampleRows(data, result []float32, u []float64, C, k int, temperature float64) int {
+	line := len(result)
 	idx := make([]int, C)
 	weight := make([]float64, C)
 	for r := 0; r < line; r++ {
@@ -350,7 +379,7 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		// Dağılım kurulamayan satır (NaN, +∞ ya da hepsi -∞) hangi yolla örneklenirse örneklensin
 		// hatadır: sıcaklık: 0 ve en_iyi_k sessizce bir indeks seçmez (15.26).
 		if !validSamplingRow(x) {
-			return nil, messages.New(messages.H6343, fn, r+1)
+			return r + 1
 		}
 		if temperature == 0 {
 			en := 0
@@ -384,7 +413,7 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		}
 		if !(top > 0) || math.IsInf(top, 0) {
 			// NaN logit, hepsi -∞ ya da +∞: dağılım tanımsız; sessizce son aday seçilmesin.
-			return nil, messages.New(messages.H6343, fn, r+1)
+			return r + 1
 		}
 		target := u[r] * top
 		picked := candidates[len(candidates)-1]
@@ -398,12 +427,7 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		}
 		result[r] = float32(picked)
 	}
-	output := sh[:len(sh)-1]
-	r, err := safe(func() *tensor.Tensor { return tensor.NewOn(d.t.Device(), result, output...) })
-	if err != nil {
-		return nil, err
-	}
-	return NewInt(r), nil
+	return 0
 }
 
 // validSamplingRow logitlerden dağılım kurulabilen satırı söyler: NaN ve +∞ yok, en az bir değer -∞ değil.

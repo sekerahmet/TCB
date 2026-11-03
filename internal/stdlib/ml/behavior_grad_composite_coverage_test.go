@@ -29,11 +29,11 @@ var differentiableCalls = map[string]bool{
 
 // compositeExempt bileşik sayılıp kapıya girmeyenler ve gerekçeleri.
 var compositeExempt = map[string]string{
-	"checkGrad":     "sayısal denetleyici: kullanıcı işlevinin gradyanını sonlu farkla sınar, türev üretmez",
-	"registerMath":  "her kapanış tek bir tensör işlemi sarar (tek işlem tensör paketinin kapısındadır); min/max kapanışları minAll ve reduction kayıtlarında",
-	"binary":        "dört işleçten birini seçer, tek bir tensör işlemi çağırır; işlemler tensör kapısındadır",
-	"operator":      "sol işlenen sayıyken ters işleç: -, / ve skaler çıkarma/bölme arasından tek bir tensör işlemi seçer",
-	"sampleBuiltin": "örnekleme: türevsiz",
+	"checkGrad":    "sayısal denetleyici: kullanıcı işlevinin gradyanını sonlu farkla sınar, türev üretmez",
+	"registerMath": "her kapanış tek bir tensör işlemi sarar (tek işlem tensör paketinin kapısındadır); min/max kapanışları minAll ve reduction kayıtlarında",
+	"binary":       "dört işleçten birini seçer, tek bir tensör işlemi çağırır; işlemler tensör kapısındadır",
+	"operator":     "sol işlenen sayıyken ters işleç: -, / ve skaler çıkarma/bölme arasından tek bir tensör işlemi seçer",
+	"sampleRows":   "örnekleme: türevsiz",
 }
 
 // compositeFuncs ml paketinin test dışı kaynağında, differentiableCalls'tan en az ikisini
