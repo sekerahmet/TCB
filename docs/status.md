@@ -1158,6 +1158,12 @@ Dil tanımında bölümü olmayan A, B ve C işleri (DENETİM istek 76).
 - **Mevcut durum:** komut satırı aracının adı `tr`; karar `trlang` (Ahmet, 2026-10-30; [yol haritası](roadmap.md)). Örneklerin başlığı ("Çalıştırma: tr examples/tr/01_merhaba.tr") ve iletiler (H8602 "'tr {command}'") ajana `tr` yazdırıyor; POSIX makinesinde sistemin `tr`'si çağrılınca "tr run x.tr < /dev/null" çağrısı çıkış 0 ve boş çıktı veriyor, standart girdi açıkken asılı kalıyor; sonuç PATH'e göre değişiyor [ölçüldü: DENETİM istek 76, GNU coreutils 8.32]. Göçün kapsamı 704 satır, 249 dosya (13 komut, alt komutsuz `tr <yol>.tr`, ileti şablonları, `tr.exe`, yolla çağrılan ikili; arşiv hariç) [ölçüldü: aynı istek, `f6c22ae8`].
 - **Yapılacaklar (A ayrıca C ve F1, Ö0, Gemini Kodlama2; ölçüldü f6c22ae8):** göç (yönerge `TRLANG_GOCU_YONERGESI.md`, DENETİM istek 76'nın Ş3–Ş6'sıyla): komut listesi koddan, eski adı yasaklayan test, eklentinin `/bin` atlaması kalkar; göç bitince DENETİM doğrular. Ajan deneyinin zor-3'ü bundan sonra.
 
+### Denetim katmanlarının gözden geçirmesi
+
+- **Mevcut durum:** beş katman var: commit öncesi metin testleri, L4 öncesi yerel kapı, ön denetim (`tools/full_check.sh --kip=on`), tam denetim ve L4 kartı. Hangisinin neyi yakaladığı yazılı değil. 2026-11-03'te L4'teki en az beş kalış, yerelde koşabilen bir testteydi (altın üye yazımı iki kez, belge testi, kod listesi örneği, codegraph) [ölçüldü: Colab defteri]. Ön denetimin `repo_scans` listesindeki iki ad hiçbir testi seçmiyor ([codegraph eksikleri](../tools/codegraph/gaps.md), Gemini Kodlama3).
+- **Yapılacaklar (C, Ö2; ölçüldü 2026-11-03 18:20–18:30):** paralel oturumlar çalışırken codegraph paketinin kısa testleri main'de 562 sn sürdü; ön denetimin "değişen paketlerin testleri" adımındaki varsayılan 600 sn sınırına 38 sn kalıyor. Aynı paket L4'te, kısa kipsiz 252 sn. `trlang` dalının ön denetimi kodda hata olmadan bu sınırda kaldı.
+- **Sıra (Ahmet, 2026-11-03 18:32):** elimizdeki işler bitince ilk iş. Envanter: her katmanda ne koşuyor, ne kadar sürüyor, neyi yakaladı; L4'e kadar gelen her hatayı hangi yerel adımın yakalaması gerektiği; elle tutulan listeler; yük altında süre sınırları. Bulguları DENETİM okur.
+
 ### Güvenilirlik (C): yol haritasından
 
 Yol haritasının açık işlerinden DENETİM'in C saydıkları (istek 76, 2. bakış; taban `f6c22ae8`).
