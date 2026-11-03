@@ -12,7 +12,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
   2. **metin:** DENETİM okur.
 - Her kuralın bugünkü durumu ve yapılacakları [`status.md`](status.md)'dedir; iş testiyle kapanır ve oradan silinir.
 - Bu belge işlerin sırasını, bölümü olmayan işleri ve kilometre taşlarını tutar.
-- **Güncel tutma:** bir karar ya da iş değişince bu belge aynı gün, ölçülerek güncellenir. Her karar ve bulgunun sınıfı yazılırken sorulur; A, B ya da C ise status'a aynı gün etiketli satır açılır (DENETİM istek 76). Eksik ya da yanlış bir satır yanlış yöne götürür; fark geç anlaşılınca boşa iş yapılmış olur.
+- **Güncel tutma:** bir karar ya da iş değişince bu belge aynı gün, ölçülerek güncellenir. Sınıfın karar anında yazılması kuralı [status'un "Önem ve öncelik" girişindedir](status.md#önem-ve-öncelik). Eksik ya da yanlış bir satır yanlış yöne götürür; fark geç anlaşılınca boşa iş yapılmış olur.
 - **Bekçi testler** (`internal/roadmap_test.go`):
   - eski yol haritasının numaralarına gönderme yok;
   - "Son ölçüm"ün commit'i HEAD'in atası;
