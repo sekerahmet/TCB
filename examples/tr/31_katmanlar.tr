@@ -27,8 +27,8 @@ TR_print(TR_gelu(a, TR_approximate: TR_false).TR_tolist)
 # ama bütün logitleri bellekte tutmaz; büyük sözlüklü dil modellerinin çıkış katmanı için kullanılır.
 TR_var örnek_girdi = TR_Tensor([[1.0, 2.0]])
 TR_var ağırlık_matrisi = TR_Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]])
-TR_print(TR_linear_cross_entropy(örnek_girdi, ağırlık_matrisi, [2]).TR_tolist)
-TR_print(TR_cross_entropy(örnek_girdi @ ağırlık_matrisi, [2]).TR_tolist)
+TR_print(TR_linear_cross_entropy(örnek_girdi, ağırlık_matrisi, TR_Tensor([2])).TR_tolist)
+TR_print(TR_cross_entropy(örnek_girdi @ ağırlık_matrisi, TR_Tensor([2])).TR_tolist)
 
 # --- Kendin dene ---
 # 1. katman_normu çıktısının ortalamasının 0 olduğunu ortalama(...) ile göster.

@@ -122,7 +122,7 @@ TR_var x = TR_randn([8, 16], TR_seed: 2)              # varsayılan cihazda
 TR_var iyileştirici = TR_AdamW([W], TR_lr: 0.01)
 TR_for adım TR_in 0..10 {                                    # döngü CPU'dakiyle aynı
     iyileştirici.TR_zero_grad()
-    TR_var kayıp = TR_cross_entropy(x @ W, [0, 1, 2, 3, 0, 1, 2, 3])
+    TR_var kayıp = TR_cross_entropy(x @ W, TR_Tensor([0, 1, 2, 3, 0, 1, 2, 3]))
     TR_backward(kayıp)
     iyileştirici.TR_step()
 }

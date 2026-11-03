@@ -1632,14 +1632,14 @@ tr: yazdır(cosh(0.0), cosh(Tensör([0.0, 1.0])).değer)
 Son ekseni sınıf olan çıktıyla satır başına bir sınıf indeksi arasındaki ortalama çapraz entropi kaybını skaler tensör olarak verir. Negatif hedefler yok sayılır; hepsi yok sayılırsa hata verir.
 
 ```tr
-TR_print(TR_cross_entropy(TR_Tensor([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).TR_tolist)
+TR_print(TR_cross_entropy(TR_Tensor([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), TR_Tensor([0, 1])).TR_tolist)
 ```
 
 Görünümü:
 
 ```text
-en: print(cross_entropy(Tensor([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).tolist)
-tr: yazdır(çapraz_entropi(Tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), [0, 1]).değer)
+en: print(cross_entropy(Tensor([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), Tensor([0, 1])).tolist)
+tr: yazdır(çapraz_entropi(Tensör([[2.0, 0.5, 0.1], [0.2, 1.5, 0.3]]), Tensör([0, 1])).değer)
 ```
 
 İlişkili: `TR_log_softmax(...)`
@@ -2087,14 +2087,14 @@ tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sa
 çapraz_entropi(girdi @ ağırlık, hedef) ile aynı kaybı ve gradyanları verir, ama bütün logitleri bellekte tutmaz: satırları dilim dilim işler (büyük sözlüklü dil modellerinin çıkış katmanı için). Ağırlık [girdinin son ekseni, sınıf sayısı] şeklindedir; paylaşımlı gömmede tablo.devrik() verilir.
 
 ```tr
-TR_print(TR_linear_cross_entropy(TR_Tensor([[1.0, 2.0]]), TR_Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), [2]).TR_tolist)
+TR_print(TR_linear_cross_entropy(TR_Tensor([[1.0, 2.0]]), TR_Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), TR_Tensor([2])).TR_tolist)
 ```
 
 Görünümü:
 
 ```text
-en: print(linear_cross_entropy(Tensor([[1.0, 2.0]]), Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), [2]).tolist)
-tr: yazdır(doğrusal_çapraz_entropi(Tensör([[1.0, 2.0]]), Tensör([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), [2]).değer)
+en: print(linear_cross_entropy(Tensor([[1.0, 2.0]]), Tensor([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), Tensor([2])).tolist)
+tr: yazdır(doğrusal_çapraz_entropi(Tensör([[1.0, 2.0]]), Tensör([[0.5, -1.0, 0.2], [0.1, 0.3, -0.4]]), Tensör([2])).değer)
 ```
 
 İlişkili: `TR_cross_entropy(...)`

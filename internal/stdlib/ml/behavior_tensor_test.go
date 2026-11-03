@@ -66,7 +66,7 @@ TR_var b = TR_Tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
 	near(t, "log_softmax", data, make([]float32, 6), 1e-5)
 
 	// çapraz entropi = -log(softmax[hedef])
-	v = value(t, "TR_var cikti = TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), [0])")
+	v = value(t, "TR_var cikti = TR_cross_entropy(TR_Tensor([[2.0, 1.0, 0.1]]), TR_Tensor([0]))")
 	data, _ = tensorData(t, v)
 	near(t, "çapraz_entropi", data, []float32{0.4170}, 1e-3)
 
