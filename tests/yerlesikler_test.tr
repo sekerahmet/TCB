@@ -74,6 +74,9 @@ TR_test "13.1 yarım çifte gider; basamaklı yuvarlama yazılan ondalık metne 
     TR_assert_equal("1200 1400 -1200 1300", "\(TR_round(1250, -2)) \(TR_round(1350, -2)) \(TR_round(-1250, -2)) \(TR_round(1251, -2))")
     TR_assert_equal("1200.0 1400.0 -0.0", "\(TR_round(1250.0, -2)) \(TR_round(1350.0, -2)) \(TR_round(-0.4, 0))")
     TR_assert_equal(0, TR_round(5000000000000000000, -19))
+    TR_assert_equal(0, TR_round(-5000000000000000000, -19))
+    # Eksi basamakta da yazılan metin: 1e308 / 10^300 * 10^300'ün artığı yok.
+    TR_assert_equal("1e+308 -1e+308", "\(TR_round(1e308, -300)) \(TR_round(-1e308, -300))")
     TR_assert_equal("1000.0 10.0 0.0 5e-324", "\(TR_round(999.96, 1)) \(TR_round(9.5, 0)) \(TR_round(5e-324, 323)) \(TR_round(5e-324, 324))")
 }
 
