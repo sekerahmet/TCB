@@ -31,12 +31,15 @@ type runPlan struct {
 }
 
 // runPlanFor koşu satırlarını ön denetimin seçiminden (goTestSelection, `changed --go-tests`) kurar: dosyanın paketi
-// bütün olarak; dosyayı tarayan bütün depo kuralları (scansCovering); dosyanın bir bildirimini konu edinen Go testleri
-// (about). Seçimin geri kalanı rest'tir.
-func (ix *index) runPlanFor(file *Node, ts *touchSet, about []aboutTest) runPlan {
+// bütün olarak; dosyayı tarayan bütün depo kuralları (scansCovering); dosyanın bir bildirimini konu edinen (about) ve
+// tip denetleyicisi dosyalarında denetleyiciden program geçiren (checkerRunnerTests) Go testleri. Seçimin geri kalanı rest'tir.
+func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 	p := runPlan{pkg: path.Dir(file.File)}
 	extra := map[goTest]bool{}
 	add := func(n *Node) {
+		if n == nil {
+			return
+		}
 		if t, ok := goTestOf(n); ok && t.dir != p.pkg {
 			extra[t] = true
 		}
@@ -51,8 +54,11 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, about []aboutTest) runPlan
 			add(t)
 		}
 	}
-	for _, a := range about {
+	for _, a := range s.about {
 		add(a.test)
+	}
+	for _, t := range ix.checkerRunnerTests(file, s.all) {
+		add(t)
 	}
 	pkgs, names := map[string]bool{}, map[string]bool{}
 	for t := range extra {
@@ -76,6 +82,24 @@ func sortedKeys(m map[string]bool) []string {
 		out = append(out, k)
 	}
 	sort.Strings(out)
+	return out
+}
+
+// checkerRunnerTests denetleyici paketindeki bir dosyanın seçiminde (all) yer alan ve TR programlarını
+// Checker.CheckProgram üzerinden geçiren Go testlerini verir.
+func (ix *index) checkerRunnerTests(file *Node, all map[string]int) []*Node {
+	if path.Dir(file.File) != checkerRelPkg {
+		return nil
+	}
+	checkID := memberID(ix.g.Module+"/"+checkerRelPkg, "Checker", "CheckProgram")
+	var out []*Node
+	for _, e := range ix.in[checkID] {
+		if e.Kind == edgeTests && e.Confidence == inferred {
+			if _, ok := all[e.From]; ok {
+				out = append(out, ix.byID[e.From])
+			}
+		}
+	}
 	return out
 }
 

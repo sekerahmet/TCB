@@ -26,6 +26,7 @@ type goIndex struct {
 	walks      *walkState          // liste gezintisi ve sözlük araması kayıtları (walks.go)
 	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
 	scans      *scanState          // depo genelini tarayan test çağrıları (scans.go)
+	checker    *checkerState       // tip denetleyicisinden geçen TR programlarını koşan testler (checker_tests.go)
 	caseCalls  []caseCall          // dize kollarında çağrılan işlevler (case_tests.go)
 	testTexts  []testText          // test dosyalarındaki dize değişmezleri (case_tests.go)
 }
@@ -139,7 +140,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		walks: newWalkState(), byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
-		scans: newScanState(),
+		scans: newScanState(), checker: newCheckerState(),
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
 	x.codeAliases = x.codeAliasKeys()
@@ -259,6 +260,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 		}
 		x.addSym(fc.base, key, id)
 		x.noteWalkFunc(id, obj)
+		x.noteCheckerFunc(fc, id, obj, d.Body)
 	}
 	x.enterFunc(obj, id, strings.TrimPrefix(strings.TrimPrefix(pkg, x.m.Path), "/"), recv != "")
 	x.scan(fc, id, d) // imza (alıcı, parametre, sonuç tipleri) ve gövde: tür kullanımı imzada da vardır

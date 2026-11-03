@@ -93,7 +93,7 @@ chains of at most 4 steps, and the longer chains under "weak evidence"; at equal
 on line 140, behind other packages' tests in alphabetical order). Right under the file line (preceded by `untracked: <file> is not tracked by git; repository-wide checks do not see it (run 'git add <file>')` when the file is not tracked by git, which `changed --go-tests` also prints for any untracked source file in the working tree) come the `run:` lines, the
 short command for the edit loop: `go test -short ./<the file's package>/` whole (it also runs the same-package tests the
 graph cannot see), then one `go test -short` with `-run '^(...)$'` over the packages of every repository-wide check that
-scans the file and of the Go tests about it, including the Go runner (`testrunner.TestNegativeFixtures`) of any negative `.tr` fixture about it (two commands: `-run` applies to every package of one `go test`). The lines
+scans the file and of the Go tests about it (plus, for files in the type checker, the Go tests that run programs through it), including the Go runner (`testrunner.TestNegativeFixtures`) of any negative `.tr` fixture about it (two commands: `-run` applies to every package of one `go test`). The lines
 are written from the pre-check's own selection (`goTestSelection`, the function of `changed --go-tests`), and the line
 below them counts what they leave out (they are among the groups below): "not run by these commands: N more Go tests in M packages; before committing,
 `bash tools/full_check.sh --kip=on` (in the background) runs them all". A `-run` list longer than 20000 characters (the

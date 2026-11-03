@@ -37,7 +37,7 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 	for _, file := range files {
 		ts := ix.fileDecls(file)
 		s := ix.fileTests(file, ts)
-		p := ix.runPlanFor(file, ts, s.about)
+		p := ix.runPlanFor(file, ts, s)
 		cmds := p.commands()
 		if cmds[0] != "go test -short ./"+path.Dir(file.File)+"/" {
 			t.Errorf("%s: first command %q, want the package whole", file.File, cmds[0])
@@ -50,6 +50,10 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 		for _, a := range s.about {
 			want = append(want, a.test)
 			want = append(want, ix.fixtureRunners(a.test)...)
+		}
+		for _, t := range ix.checkerRunnerTests(file, s.all) {
+			want = append(want, t)
+			want = append(want, ix.fixtureRunners(t)...)
 		}
 		for _, n := range want {
 			if gt, ok := goTestOf(n); ok && !inRun(gt) {
