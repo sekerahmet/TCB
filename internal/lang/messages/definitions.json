@@ -1362,7 +1362,7 @@
 "H6984": { "param": ["fn"], "slots": {"Tensor": "TR_type_Tensor", "Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H6985": { "param": ["fn", "kind"], "slots": {"mask": "TR_arg_mask", "Tensor": "TR_type_Tensor", "Bool": "TR_type_Bool", "true": "TR_kw_true"} },
 "H6986": { "param": ["fn", "path", "old", "new"] },
-"H6987": { "param": ["fn", "call"] },
+"H6987": { "param": ["fn", "call", "kind"] },
 "H6988": { "param": ["fn"], "slots": {"backward": "TR_fn_backward"} },
 "H6989": { "param": ["fn", "order", "shape"] },
 "H6990": { "param": ["shape"], "slots": {"requires_grad": "TR_mem_requires_grad", "Tensor": "TR_type_Tensor"} },

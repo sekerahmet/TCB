@@ -1429,6 +1429,45 @@ TR_test "15.44 kaynaştır: kapanıştaki nesnenin metodunda TR_self nesnenin yo
     TR_assert_equal([önce[0] + 1.0], TR_fuse((a) => a * ym.modül_sayacı)(t).TR_tolist)
 }
 
+TR_test "15.44 kaynaştır: izlenemeyen kapanış değeri hatadır; mantık değeri, tam sayı anahtarı ve iç fonksiyonun gölgelediği ad izlenir" {
+    TR_var t = TR_Tensor([1.0])
+    # Mantık değeri de sayı gibi kaydedilir: dal kayda sabit girer, değişince hatadır.
+    TR_var bayrak = TR_true
+    TR_var kb = TR_fuse((a) => TR_if bayrak { a * 2.0 } TR_else { a })
+    TR_assert_equal([2.0], kb(t).TR_tolist)
+    bayrak = TR_false
+    TR_assert_equal("H6986", TR_error_code { kb(t) })
+    # İç fonksiyonun parametresi yalnız kendi gövdesinde bağlıdır; dıştaki ölçek kapanıştandır.
+    TR_var ölçek = 2.0
+    TR_var kç = TR_fuse((a) => {
+        TR_var iç = (ölçek: TR_Float) => ölçek
+        TR_return a * ölçek
+    })
+    TR_assert_equal([2.0], kç(t).TR_tolist)
+    ölçek = 3.0
+    TR_assert_equal("H6986", TR_error_code { kç(t) })
+    # Sözlüğün tam sayı anahtarı da metin anahtarı gibi yolun parçasıdır.
+    TR_var d = {1: 2.0}
+    TR_var kd = TR_fuse((a) => a * d[1])
+    TR_assert_equal([2.0], kd(t).TR_tolist)
+    d[1] = 5.0
+    TR_assert_equal("H6986", TR_error_code { kd(t) })
+    # Kapanıştaki liste ya da sözlüğün yerleşik özelliği ve metodu (argümanlı, argümansız)
+    # izlenemez: kayıtta hatadır. Listenin kendisini bütün olarak okumak da.
+    TR_var l = [1.0, 2.0]
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * l.TR_length)(t) })
+    TR_var m = [2.0]
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * m.TR_get(0))(t) })
+    TR_var s = {"a": 1.0}
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * s.TR_keys().TR_length)(t) })
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * TR_sum(TR_Tensor(m)))(t) })
+    # Değeri argüman olarak vermek (iletinin önerisi) değişimi izler.
+    TR_var kv = TR_fuse((a, n) => a * n)
+    TR_assert_equal([2.0], kv(t, l.TR_length).TR_tolist)
+    l.TR_append(3.0)
+    TR_assert_equal([3.0], kv(t, l.TR_length).TR_tolist)
+}
+
 TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
     # 1000'den çok elemanlı tensörü yazdırmak ve üzerinde dönmek veri okumak demektir (.değer gibi).
     TR_var yaz = TR_fuse((x) => {
