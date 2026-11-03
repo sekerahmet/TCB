@@ -59,3 +59,24 @@ func TestStopAtFirstFailureCountsTheSeenFailureLine(t *testing.T) {
 		}
 	}
 }
+
+// Kural (tools/full_check.sh, --taban): taban tek bir commit'e çözülmezse betik çıkış 2 ile durur.
+// Birden çok commit'e uyan kısa kimlik (da0457c5: da0457c50 ve da0457c5a) "ortak ata yok" diye okunup
+// değişen dosyaların testleri ve dups sessizce atlanıyordu (D1'in 13.1'i, 2026-11-03). Sığ klonda
+// kimlik hiç yoktur; o da aynı yoldan durur.
+func TestBaseThatIsNotOneCommitStops(t *testing.T) {
+	bash, err := exec.LookPath("bash")
+	if err != nil {
+		t.Skip("bash yok")
+	}
+	root := reporoot.Path(".")
+	for _, base := range []string{"da0457c5", "0000000000000000"} {
+		cmd := exec.Command(bash, filepath.Join("tools", "full_check.sh"), "--kip=on", "--taban="+base)
+		cmd.Dir = root
+		out, err := cmd.CombinedOutput()
+		exit, ok := err.(*exec.ExitError)
+		if !ok || exit.ExitCode() != 2 || !strings.Contains(string(out), "tek bir commit'e çözülmüyor") {
+			t.Errorf("--taban=%s: çıkış 2 ve çözülmüyor iletisi beklenirdi, gelen %v: %s", base, err, out)
+		}
+	}
+}
