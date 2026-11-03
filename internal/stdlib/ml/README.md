@@ -47,4 +47,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_fused_comparison_grad_test.go`: `TR_fuse` içindeki karşılaştırma ve `TR_fn_is_finite`'in türev izlememesi
 - `behavior_safetensors_order_test.go`: aynı ofsette boş ve dolu tensörlü geçerli safetensors dosyasının okunması
 - `behavior_lock_release_test.go`: uzun tensör işi (`@`) sürerken 5 ms'de bir uyanan görevin kilidi geri alma süresi ve 100 Hz döngünün kaçan turu, tekdüze saatle (10.2; ölçmek için `go test ./internal/stdlib/ml -run TestOtherTasksRunDuringLongTensorWork -v -count=20`)
+- `behavior_lock_threshold_test.go`: kilidi bırakma eşiğinin (2^20 öğe) dayanağı; her işlem ve boyda doğrudan ve kilit bırakılarak süre, tek görevde ve başka görev canlıyken (10.2; ölçmek için `go test ./internal/stdlib/ml -run TestUnlockThresholdCost -v`)
 - `behavior_safetensors_header_test.go`: safetensors başlığının katı okunması (alan adları, yinelenen anahtar, null, vekil kaçışı)
