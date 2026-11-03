@@ -76,12 +76,12 @@ func (f *fusedFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.Va
 	// Kapanıştan okunan sayılar ilk çağrıda kaydedilir, her çağrıda cihazdan önce denetlenir
 	// (15.44): değişen sayı kaynaşmış sonucu sessizce eski bırakırdı.
 	if !f.recorded {
-		caps, err := recordCaptures(f.f)
+		caps, err := recordCaptures(m, f.f)
 		if err != nil {
 			return nil, err
 		}
 		f.caps, f.recorded = caps, true
-	} else if err := checkCaptures(fn, f.caps); err != nil {
+	} else if err := checkCaptures(fn, m, f.caps); err != nil {
 		return nil, err
 	}
 	p := f.cache[key.String()]

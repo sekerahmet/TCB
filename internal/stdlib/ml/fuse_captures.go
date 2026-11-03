@@ -13,18 +13,21 @@ import (
 // Kaynaştırılan fonksiyonun kapanıştan okuduğu sayılar (dil tanımı 15.44). Kayıt sayıyı
 // programa sabit olarak yazar; sayı sonradan değişirse kaynaşmış sonuç eski kalırdı. Bu yüzden
 // ilk çağrıda fonksiyonun gövdesi (ve kapanıştan çağırdığı kullanıcı fonksiyonlarının gövdeleri)
-// gezilir: kapanıştan okunan her yol (değişken, alan, tam sayı liste indeksi, metin sözlük
-// anahtarı zinciri; değişken indeks ya da anahtarın değeri yolun parçası) değeriyle kaydedilir ve
+// gezilir (kapanıştaki nesnenin metodunda TR_self nesnenin yoluna bağlanır): kapanıştan okunan her yol (değişken, alan, tam sayı liste indeksi, metin sözlük
+// anahtarı zinciri, modül sözlüğünün alanı; değişken indeks ya da anahtarın değeri yolun parçası) değeriyle kaydedilir ve
 // her çağrıda, cihazdan önce yeniden değerlendirilip karşılaştırılır. Argümandan ya da fonksiyonun
 // kendi adlarından türeyen değer denetlenmez (argüman bileşimi önbellek anahtarındadır). Kapanıştan
-// çağrılan ve argümandan beslenmeyen bir kullanıcı fonksiyonunun sonucu yolu olmayan değerdir:
+// çağrılan ve argümandan beslenmeyen bir kullanıcı fonksiyonunun ya da metodun sonucu yolu olmayan değerdir:
 // kayıtta hatadır. Kapanıştan tensör okumak izde hatadır (H3108).
+
+// reader bir yolu kapanış ortamında değerlendirir (VM yalnız modülün adı için gerekir).
+type reader func(*interp.VM) (interp.Value, bool)
 
 // fuseCapture kapanıştan okunan bir yolun kaydıdır: yolun metni, kaydedildiği değer ve onu
 // değerlendirmek için gereken ortam.
 type fuseCapture struct {
 	text  string
-	read  func() (interp.Value, bool)
+	read  reader
 	want  string
 	shown any // kaydedilen değerin gösterimi (iletide)
 }
@@ -43,20 +46,20 @@ func captureKey(v interp.Value) (string, bool) {
 }
 
 // recordCaptures f'in kapanıştan okuduğu sayıları kaydeder. Yolu olmayan kapanış değeri hatadır.
-func recordCaptures(f interp.Value) ([]fuseCapture, error) {
+func recordCaptures(m *interp.VM, f interp.Value) ([]fuseCapture, error) {
 	fv, ok := f.(*interp.FuncVal)
 	if !ok {
 		return nil, nil // yerleşik fonksiyonun kapanışı yoktur
 	}
-	w := &captureWalk{seen: map[*ast.BlockStatement]bool{}}
-	w.function(fv)
+	w := &captureWalk{vm: m, seen: map[walked]bool{}}
+	w.function(fv, nil, "")
 	return w.caps, w.err
 }
 
 // checkCaptures kaydedilen yolları yeniden değerlendirir; değeri değişen yol hatadır.
-func checkCaptures(fn any, caps []fuseCapture) error {
+func checkCaptures(fn any, m *interp.VM, caps []fuseCapture) error {
 	for _, c := range caps {
-		v, ok := c.read()
+		v, ok := c.read(m)
 		now, _ := captureKey(v)
 		if !ok || now != c.want {
 			var shown any = codes.NameRef(codes.KwNone) // yol artık okunamıyor (anahtar silindi)
@@ -70,24 +73,35 @@ func checkCaptures(fn any, caps []fuseCapture) error {
 }
 
 type captureWalk struct {
-	seen map[*ast.BlockStatement]bool
+	vm   *interp.VM
+	seen map[walked]bool
 	caps []fuseCapture
 	err  error
 }
 
 // scope bir fonksiyonun gövdesindeki adlardır: parametreler ve gövdede tanımlanan her ad
 // (iç fonksiyonların parametreleri dahil). Bunlardan biriyle başlayan yol kapanıştan değildir.
+// self, kapanıştaki bir nesnenin metodunda TR_self'in okuyucusudur (yolu selfText).
 type scope struct {
-	fv    *interp.FuncVal
-	local map[string]bool
+	fv       *interp.FuncVal
+	local    map[string]bool
+	self     reader
+	selfText string
 }
 
-func (w *captureWalk) function(fv *interp.FuncVal) {
-	if fv.Body == nil || w.seen[fv.Body] {
+// walked gezilen bir gövdedir; aynı metot ayrı nesnelerle ayrı gezilir (yolları ayrıdır).
+type walked struct {
+	body *ast.BlockStatement
+	self string
+}
+
+func (w *captureWalk) function(fv *interp.FuncVal, self reader, selfText string) {
+	key := walked{fv.Body, selfText}
+	if fv.Body == nil || w.seen[key] {
 		return
 	}
-	w.seen[fv.Body] = true
-	s := scope{fv: fv, local: map[string]bool{}}
+	w.seen[key] = true
+	s := scope{fv: fv, local: map[string]bool{}, self: self, selfText: selfText}
 	for _, p := range fv.Parameters {
 		s.local[p.Name] = true
 	}
@@ -150,16 +164,57 @@ func (w *captureWalk) call(s scope, c *ast.CallExpression) {
 		if !ok || !user {
 			return // yerleşik ya da bilinmeyen: sonucu argümanlarından gelir
 		}
-		if !s.usesLocal(c) {
-			w.err = messages.New(messages.H6987, codes.NameRef(codes.FnFuse), f.Value)
-			return
-		}
-		w.function(fv)
+		w.enter(s, c, fv, nil, "", f.Value)
 	case *ast.MemberExpression:
-		ast.Walk(f.Object, func(n any) bool { return w.visit(s, n) }) // metodun nesnesi
+		w.method(s, c, f)
 	default:
 		ast.Walk(f, func(n any) bool { return w.visit(s, n) })
 	}
+}
+
+// enter kapanıştan çağrılan kullanıcı fonksiyonunun ya da metodun gövdesine iner; argümanlar
+// fonksiyonun kendi adlarından beslenmiyorsa sonucu yolu olmayan değerdir (H6987).
+func (w *captureWalk) enter(s scope, c *ast.CallExpression, fv *interp.FuncVal, self reader, selfText, text string) {
+	if !s.usesLocal(c) {
+		w.err = messages.New(messages.H6987, codes.NameRef(codes.FnFuse), text)
+		return
+	}
+	w.function(fv, self, selfText)
+}
+
+// method 'nesne.ad(...)' çağrısını işler. Nesne kapanıştan bir yolsa ve ad onun kullanıcı
+// metodu (TR_self nesnenin yoluna bağlanır), fonksiyon değerli alanı ya da modül sözlüğünün
+// fonksiyonuysa gövdesine inilir. Öbür nesnelerin (fonksiyonun kendi değerleri, çekirdek
+// değerler) metodu yerleşiktir: yalnız nesnenin yolu gezilir.
+func (w *captureWalk) method(s scope, c *ast.CallExpression, f *ast.MemberExpression) {
+	obj, text, ivs, ok := s.pathReader(f.Object)
+	if ok && !f.Safe {
+		o, _ := obj(w.vm)
+		var fv *interp.FuncVal
+		var self reader
+		switch x := o.(type) {
+		case *interp.StructInstanceVal:
+			if v, field := x.Fields[f.Property]; field {
+				fv, _ = v.(*interp.FuncVal)
+			} else if x.Def != nil {
+				fv, self = x.Def.Methods[f.Property], obj
+			}
+		case *interp.DictVal:
+			fv, _ = x.Pairs[f.Property].(*interp.FuncVal)
+		}
+		if fv != nil {
+			for _, iv := range ivs {
+				w.add(iv.text, iv.read)
+			}
+			selfText := ""
+			if self != nil {
+				selfText = text
+			}
+			w.enter(s, c, fv, self, selfText, text+"."+f.Property)
+			return
+		}
+	}
+	ast.Walk(f.Object, func(n any) bool { return w.visit(s, n) }) // metodun nesnesi
 }
 
 // usesLocal çağrının bir argümanının fonksiyonun kendi adlarından birini okuyup okumadığını söyler.
@@ -194,8 +249,8 @@ func (w *captureWalk) path(s scope, e ast.Expression) bool {
 	return true
 }
 
-func (w *captureWalk) add(text string, read func() (interp.Value, bool)) {
-	v, ok := read()
+func (w *captureWalk) add(text string, read reader) {
+	v, ok := read(w.vm)
 	if !ok {
 		return
 	}
@@ -206,19 +261,22 @@ func (w *captureWalk) add(text string, read func() (interp.Value, bool)) {
 
 type indexVar struct {
 	text string
-	read func() (interp.Value, bool)
+	read reader
 }
 
 // pathReader e'yi kapanış ortamında değerlendiren bir okuyucu kurar: kök kapanıştan bir ad,
 // sonra alan, tam sayı ya da metin değişmez indeks, ya da kapanıştan bir değişken indeks.
-func (s scope) pathReader(e ast.Expression) (func() (interp.Value, bool), string, []indexVar, bool) {
+func (s scope) pathReader(e ast.Expression) (reader, string, []indexVar, bool) {
 	switch x := e.(type) {
 	case *ast.Identifier:
 		if s.local[x.Value] {
 			return nil, "", nil, false
 		}
 		name, fv := x.Value, s.fv
-		read := func() (interp.Value, bool) {
+		if name == codes.Name(codes.KwSelf) && s.self != nil {
+			return s.self, s.selfText, nil, true // kapanıştaki nesnenin metodu: nesnenin yolu
+		}
+		read := func(m *interp.VM) (interp.Value, bool) {
 			if name == codes.Name(codes.KwSelf) && fv.BoundSelf != nil {
 				return fv.BoundSelf, true
 			}
@@ -231,13 +289,20 @@ func (s scope) pathReader(e ast.Expression) (func() (interp.Value, bool), string
 			return nil, "", nil, false
 		}
 		field := x.Property
-		read := func() (interp.Value, bool) {
-			o, ok := obj()
-			si, inst := o.(*interp.StructInstanceVal)
-			if !ok || !inst {
+		read := func(m *interp.VM) (interp.Value, bool) {
+			o, ok := obj(m)
+			if !ok {
 				return nil, false
 			}
-			v, ok := si.Fields[field]
+			var v interp.Value
+			switch c := o.(type) {
+			case *interp.StructInstanceVal:
+				v, ok = c.Fields[field]
+			case *interp.DictVal: // modül sözlüğünün alanı
+				v, ok = moduleMember(m, c, field)
+			default:
+				ok = false
+			}
 			return v, ok
 		}
 		return read, text + "." + field, ivs, true
@@ -246,15 +311,15 @@ func (s scope) pathReader(e ast.Expression) (func() (interp.Value, bool), string
 		if !ok {
 			return nil, "", nil, false
 		}
-		var key func() (interp.Value, bool)
+		var key reader
 		var keyText string
 		switch k := x.Index.(type) {
 		case *ast.IntegerLiteral:
 			v := &interp.IntVal{Val: k.Value}
-			key, keyText = func() (interp.Value, bool) { return v, true }, strconv.FormatInt(k.Value, 10)
+			key, keyText = func(m *interp.VM) (interp.Value, bool) { return v, true }, strconv.FormatInt(k.Value, 10)
 		case *ast.StringLiteral:
 			v := &interp.StringVal{Val: k.Value}
-			key, keyText = func() (interp.Value, bool) { return v, true }, strconv.Quote(k.Value)
+			key, keyText = func(m *interp.VM) (interp.Value, bool) { return v, true }, strconv.Quote(k.Value)
 		default:
 			kr, kt, kivs, ok := s.pathReader(x.Index)
 			if !ok {
@@ -263,9 +328,9 @@ func (s scope) pathReader(e ast.Expression) (func() (interp.Value, bool), string
 			ivs = append(append(ivs, kivs...), indexVar{kt, kr})
 			key, keyText = kr, kt
 		}
-		read := func() (interp.Value, bool) {
-			o, ok1 := obj()
-			k, ok2 := key()
+		read := func(m *interp.VM) (interp.Value, bool) {
+			o, ok1 := obj(m)
+			k, ok2 := key(m)
 			if !ok1 || !ok2 {
 				return nil, false
 			}
@@ -274,6 +339,16 @@ func (s scope) pathReader(e ast.Expression) (func() (interp.Value, bool), string
 		return read, fmt.Sprintf("%s[%s]", text, keyText), ivs, true
 	}
 	return nil, "", nil, false
+}
+
+// moduleMember modülün adının bugünkü değeridir: modülün kendi fonksiyonu en dış değişkenini
+// değiştirmiş olabilir (11.3), sözlüğün yükleme kopyası eski kalır. Ad, programdaki 'modül.ad'
+// okumasıyla aynı yoldan okunur. Sıradan sözlüğün noktalı okuması hatadır: yol değildir.
+func moduleMember(m *interp.VM, d *interp.DictVal, name string) (interp.Value, bool) {
+	env := interp.NewEnvironment(nil)
+	env.Define("o", d, true)
+	v, err := m.EvalExpression(&ast.MemberExpression{Object: &ast.Identifier{Value: "o"}, Property: name}, env)
+	return v, err == nil
 }
 
 // indexValue listenin tam sayı indeksini ya da sözlüğün metin anahtarını okur; başka bileşim

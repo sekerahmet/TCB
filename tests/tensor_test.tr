@@ -2,6 +2,7 @@
 # docs/spec/15_tensorler.md §15 — Tensörler ve otomatik türev
 
 TR_import "yardimci_test_araclari"
+TR_import "yardimci_modul" TR_as ym
 
 TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -1292,6 +1293,44 @@ TR_test "15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir,
     # Kapanıştan tensör okumak hatadır.
     TR_var dış = TR_Tensor([1.0])
     TR_assert_equal("H3108", TR_error_code { TR_fuse((a) => a + dış)(t) })
+}
+
+TR_test "15.44 kaynaştır: kapanıştaki nesnenin metodunda TR_self nesnenin yoludur, modülün adı da yoldur" {
+    TR_struct Ölçekli {
+        oran: TR_Float = 2.0
+        TR_func uygula(x: TR_Tensor) -> TR_Tensor { TR_return x * TR_self.oran }
+        TR_func iki_kez(x: TR_Tensor) -> TR_Tensor { TR_return TR_self.uygula(x) + TR_self.oran }
+        TR_func oranı() -> TR_Float { TR_return TR_self.oran }
+    }
+    TR_var t = TR_Tensor([1.0])
+    # Metodun gövdesine inilir: TR_self.oran, m.oran olarak kaydedilir.
+    TR_var m = Ölçekli()
+    TR_var k = TR_fuse((a) => m.uygula(a))
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    m.oran = 5.0
+    TR_assert_equal("H6986", TR_error_code { k(t) })
+    m.oran = 2.0
+    TR_assert_equal([2.0], k(t).TR_tolist)
+    # Metottan çağrılan metot da; aynı metot başka nesnede kendi yoluyla.
+    TR_var n = Ölçekli(oran: 3.0)
+    TR_var kn = TR_fuse((a) => n.iki_kez(a) + m.uygula(a))
+    TR_assert_equal([8.0], kn(t).TR_tolist)
+    n.oran = 4.0
+    TR_assert_equal("H6986", TR_error_code { kn(t) })
+    n.oran = 3.0
+    m.oran = 1.0
+    TR_assert_equal("H6986", TR_error_code { kn(t) })
+    # Nesnenin yerine başka nesne konunca da yol yeniden okunur.
+    m = Ölçekli(oran: 7.0)
+    TR_assert_equal("H6986", TR_error_code { k(t) })
+    # Argümandan beslenmeyen metodun sonucu yolu olmayan değerdir.
+    TR_assert_equal("H6987", TR_error_code { TR_fuse((a) => a * m.oranı())(t) })
+    # Modülün adı modülün kendi fonksiyonuyla değişir; kaynaşmış fonksiyon yeni değeri görür.
+    TR_var km = TR_fuse((a) => a * ym.modül_sayacı)
+    TR_var önce = km(t).TR_tolist
+    ym.modülde_say()
+    TR_assert_equal("H6986", TR_error_code { km(t) })
+    TR_assert_equal([önce[0] + 1.0], TR_fuse((a) => a * ym.modül_sayacı)(t).TR_tolist)
 }
 
 TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç hata değil açık hata verir" {
