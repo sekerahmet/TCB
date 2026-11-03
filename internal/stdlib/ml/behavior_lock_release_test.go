@@ -5,6 +5,7 @@ import (
 	"io"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -49,23 +50,25 @@ type lockProbe struct {
 	from, to time.Time
 	at       []time.Time     // ölçümün ait olduğu an: uyanış ya da pencerenin başı
 	waits    []time.Duration // gözcü: kilidi geri alma süresi; tur: başlangıcın pencere başından gecikmesi
+	overs    []time.Duration // gözcü: uykunun aşımı (uyanan gorutinin boş işlemci beklemesi dahil)
+	// gateWaits kilitli yolun çakışan kilitsiz işlemi bekleyişleridir (kilit tutularak bekler).
+	gateWaits int64
 }
 
-func (p *lockProbe) add(at time.Time, d time.Duration) {
+func (p *lockProbe) add(at time.Time, d, over time.Duration) {
 	p.mu.Lock()
-	p.at, p.waits = append(p.at, at), append(p.waits, d)
+	p.at, p.waits, p.overs = append(p.at, at), append(p.waits, d), append(p.overs, over)
 	p.mu.Unlock()
 }
 
-// inLoad yük penceresindeki ölçümlerdir.
-func (p *lockProbe) inLoad() []time.Duration {
-	var out []time.Duration
+// inLoad yük penceresindeki ölçümlerdir: bekleme ve uyku aşımı.
+func (p *lockProbe) inLoad() (waits, overs []time.Duration) {
 	for i, at := range p.at {
 		if !at.Before(p.from) && !at.After(p.to) {
-			out = append(out, p.waits[i])
+			waits, overs = append(waits, p.waits[i]), append(overs, p.overs[i])
 		}
 	}
-	return out
+	return waits, overs
 }
 
 // lockWork bir yüktür: count kez size×size `@`, device'ta.
@@ -82,6 +85,10 @@ func (w lockWork) String() string {
 func runLockLoad(t *testing.T, w lockWork, wait func(m *interp.VM, p *lockProbe)) (*lockProbe, time.Duration) {
 	t.Helper()
 	p := &lockProbe{}
+	var gateWaits atomic.Int64
+	tensor.GateWaited = func() { gateWaits.Add(1) }
+	defer func() { tensor.GateWaited = nil }()
+	defer func() { p.gateWaits = gateWaits.Load() }()
 	m := interp.New()
 	m.Out = io.Discard
 	mark := func(at *time.Time) *interp.BuiltinVal {
@@ -109,12 +116,13 @@ func runLockLoad(t *testing.T, w lockWork, wait func(m *interp.VM, p *lockProbe)
 
 // sleeper 5 ms uyur; uyanıştan kilidin geri alınmasına dek geçen süreyi yazar.
 func sleeper(m *interp.VM, p *lockProbe) {
-	var woke time.Time
+	var start, woke time.Time
 	m.Blocking(func() {
+		start = time.Now()
 		time.Sleep(5 * time.Millisecond)
 		woke = time.Now()
 	})
-	p.add(woke, time.Since(woke))
+	p.add(woke, time.Since(woke), woke.Sub(start)-5*time.Millisecond)
 }
 
 // looper 100 Hz'lik döngüdür: sıradaki pencerenin başına dek uyur, başlangıcın pencere başından
@@ -130,7 +138,7 @@ func looper() func(m *interp.VM, p *lockProbe) {
 		due := start.Add(time.Duration(k) * period)
 		k++
 		m.Blocking(func() { time.Sleep(time.Until(due)) })
-		p.add(due, time.Since(due))
+		p.add(due, time.Since(due), 0)
 	}
 }
 
@@ -144,36 +152,64 @@ func waitStats(ws []time.Duration) (median, p99, worst time.Duration) {
 
 func ms(d time.Duration) string { return fmt.Sprintf("%.1f ms", float64(d)/float64(time.Millisecond)) }
 
-// Ölçüm (10.2, S-kilit adım 1): uzun tensör işi sürerken 5 ms'de bir uyanan görevin kilidi geri
-// alma süresi ve 100 Hz döngünün kaçan turu. İki yük: bitiş ölçütünün yükü (60 kez 1024×1024 `@`;
-// her çarpım bir deyimdir, kilit bugün çarpımlar arasında devredilir) ve tek çağrısı uzun süren
-// yük (8 kez 2048×2048 `@`; çağrı sürerken devir yok). Bugün yalnız sayıları yazar.
+// Ölçüm (10.2, S-kilit): uzun tensör işi sürerken 5 ms'de bir uyanan görevin kilidi geri alma
+// süresi ve 100 Hz döngünün kaçan turu. İki yük (bitiş ölçütü, DENETİM istek 64 Ş6): 60 ardışık
+// 1024×1024 `@` ve tek çağrısı en az 30 ms süren `@` (8 çağrı; boyut makinede ölçülerek seçilir).
 func TestOtherTasksRunDuringLongTensorWork(t *testing.T) {
 	devices := []string{"cpu"}
 	if tensor.HasDevice(tensor.GPU(0)) && !gpu.Simulated() {
 		devices = append(devices, "gpu") // gecikme yalnız gerçek kartta anlamlıdır (benzetimde süre eşzamanlamaya yazılır)
 	}
 	for _, device := range devices {
-		for _, w := range []lockWork{{device, 1024, 60}, {device, 2048, 8}} {
+		for _, w := range []lockWork{{device, 1024, 60}, {device, longCallSize(t, device), 8}} {
 			reportLockWaits(t, w)
 		}
 	}
+}
+
+// longCall tek çağrısı uzun sayılan `@`'ın en kısa süresidir (bitiş ölçütü: "en az 30 ms").
+const longCall = 30 * time.Millisecond
+
+// longCallSize tek `@` çağrısı longCall'dan uzun sürene dek kare matrisin boyutunu 256'şar
+// büyütür (iki çağrının kısası; GPU'da sonuç konağa indirilerek).
+func longCallSize(t *testing.T, device string) int {
+	t.Helper()
+	dev := tensor.CPU
+	if device == "gpu" {
+		dev = tensor.GPU(0)
+	}
+	for n := 1024; n <= 16384; n += 256 {
+		a, b := tensor.ZerosOn(dev, n, n), tensor.ZerosOn(dev, n, n)
+		best := time.Hour
+		for range 2 {
+			start := time.Now()
+			_ = tensor.MatMul(a, b).SumAll().Data()
+			best = min(best, time.Since(start))
+		}
+		if best >= longCall {
+			t.Logf("%s: tek `@` %d×%d'de %s sürdü (≥ %s)", device, n, n, ms(best), ms(longCall))
+			return n
+		}
+	}
+	t.Fatalf("%s: 16384×16384 `@` bile %s'den kısa", device, ms(longCall))
+	return 0
 }
 
 // reportLockWaits yükü gözcüyle ve 100 Hz döngüyle birer kez çalıştırır, ölçümü yazar.
 func reportLockWaits(t *testing.T, w lockWork) {
 	t.Helper()
 	p, load := runLockLoad(t, w, sleeper)
-	waits := p.inLoad()
+	waits, overs := p.inLoad()
 	if len(waits) == 0 {
 		t.Fatalf("%s: yük %s sürdü, gözcü yük sırasında hiç uyanmadı", w, ms(load))
 	}
 	med, p99, worst := waitStats(waits)
-	t.Logf("%s, gözcü: yük %s, %d uyanış; kilidi geri alma ortanca %s, %%99 %s, en büyük %s",
-		w, ms(load), len(waits), ms(med), ms(p99), ms(worst))
+	_, _, overWorst := waitStats(overs)
+	t.Logf("%s, gözcü: yük %s, %d uyanış; kilidi geri alma ortanca %s, %%99 %s, en büyük %s; uyku aşımının en büyüğü %s; çakışma beklemesi %d",
+		w, ms(load), len(waits), ms(med), ms(p99), ms(worst), ms(overWorst), p.gateWaits)
 
 	p, load = runLockLoad(t, w, looper())
-	turns := p.inLoad()
+	turns, _ := p.inLoad()
 	missed := 0
 	for _, late := range turns {
 		if late > 10*time.Millisecond {
@@ -181,6 +217,75 @@ func reportLockWaits(t *testing.T, w lockWork) {
 		}
 	}
 	_, _, worst = waitStats(append(turns, 0))
-	t.Logf("%s, 100 Hz: yük %s, %d tur, kaçan %d; en geç başlangıç pencere başından %s sonra",
-		w, ms(load), len(turns), missed, ms(worst))
+	t.Logf("%s, 100 Hz: yük %s, %d tur, kaçan %d; en geç başlangıç pencere başından %s sonra; çakışma beklemesi %d",
+		w, ms(load), len(turns), missed, ms(worst), p.gateWaits)
+}
+
+// Kural (10.2, S-kilit, izin): kilitsiz bir `@` sürerken başka görev girdisine yerinde yazarsa
+// yazma çarpımın bitmesini bekler; çarpım yarım güncellenmiş girdi okumaz. Her turda gözcü görev
+// çarpım başlarken uyanır ve girdiyi sıfırlar: sonuç ya eski girdinin çarpımıdır (yazma bekledi)
+// ya da sıfırdır (yazma çarpımdan önce geldi), karışığı hiç değildir.
+func TestInPlaceWriteWaitsForTheUnlockedMatMul(t *testing.T) {
+	out := mustRun(t, `TR_var b = TR_randn([768, 768], TR_seed: 2)
+TR_var karışık = 0
+TR_var sıfır = 0
+TR_for tur TR_in 0..20 {
+    TR_var a = TR_randn([768, 768], TR_seed: 1)
+    TR_var eski = a @ b
+    TR_var başla = TR_false
+    TR_async {
+        TR_for TR_not başla { TR_sleep(0.0001) }
+        a *= 0.0
+    }
+    başla = TR_true
+    TR_var c = a @ b
+    TR_wait_all()
+    TR_var fark = TR_sum(TR_abs(c - eski)).TR_tolist
+    TR_var büyüklük = TR_sum(TR_abs(c)).TR_tolist
+    TR_if büyüklük == 0.0 { sıfır += 1 } TR_else TR_if fark != 0.0 { karışık += 1 }
+}
+TR_print(karışık)`)
+	if out != "0\n" {
+		t.Fatalf("kilitsiz çarpım yarım güncellenmiş girdi okudu (karışık sonuçlu tur sayısı): %s", out)
+	}
+}
+
+// Kural (S-kilit, DENETİM istek 64 (4a) sapması): bileşik bir yerleşik (iyileştiricinin adımı,
+// parametreleri tek tek günceller) kilitsiz bir işlemin okuduğu parametreye gelince kilidi tutarak
+// bekler; öbür görevler yarım güncellenmiş parametre görmez ve bekleme kilitlenmeden biter. Bir
+// görev w2'yi okuyan kilitsiz `@`'ı döngüde yapar, öbürü w1 ile w2'nin aynı adımda olduğunu
+// (eşit değer) yoklar; ana görev w1, w2 sırasıyla güncelleyen adımı 30 kez atar.
+func TestCompositeBuiltinShowsNoHalfUpdatedParameters(t *testing.T) {
+	var waits atomic.Int64
+	tensor.GateWaited = func() { waits.Add(1) }
+	defer func() { tensor.GateWaited = nil }()
+	out := mustRun(t, `TR_var w1 = TR_zeros([4], TR_requires_grad: TR_true)
+TR_var w2 = TR_zeros([768, 768], TR_requires_grad: TR_true)
+TR_var x = TR_randn([768, 768], TR_seed: 1)
+TR_var op = TR_SGD([w1, w2], TR_lr: 1.0)
+TR_var dur = TR_false
+TR_var tutarsız = 0
+TR_var yoklama = 0
+TR_async { TR_for TR_not dur { TR_var c = x @ w2 } }
+TR_async {
+    TR_for TR_not dur {
+        TR_if w1[0].TR_tolist != w2[0][0].TR_tolist { tutarsız += 1 }
+        yoklama += 1
+        TR_sleep(0.0002)
+    }
+}
+TR_for i TR_in 0..30 {
+    TR_backward(TR_sum(w1) + TR_sum(w2))
+    op.TR_step()
+}
+dur = TR_true
+TR_wait_all()
+TR_print(tutarsız, yoklama > 0, w1[0].TR_tolist == w2[0][0].TR_tolist)`)
+	if out != "0 true true\n" {
+		t.Fatalf("bileşik yerleşik sürerken yarım güncellenmiş parametre görüldü (tutarsız, yoklandı, sonda eşit): %s", out)
+	}
+	if waits.Load() == 0 {
+		t.Fatal("adım kilitsiz çarpımın okuduğu parametreyi hiç beklemedi: sınama çakışmayı kurmadı")
+	}
+	t.Logf("çakışma beklemesi %d", waits.Load())
 }

@@ -75,9 +75,14 @@ const returningWorker = 3
 // yavaşlattı (12,5 ms).
 const poolWait = 50 * time.Microsecond
 
-// workers kullanılabilecek en çok işçi sayısı (GOMAXPROCS; çağıran dahil).
+// workers kullanılabilecek en çok işçi sayısı (GOMAXPROCS; çağıran dahil). Başka görevlerle
+// işlemci paylaşan kilitsiz bir çekirdek çalışırken yarısı (S-kilit; DENETİM istek 64, Ş4):
+// uyanan görevin gorutini boş işlemci bulsun. GOMAXPROCS − 1 yetmedi (ölçüm: s-kilit-devir.md).
 func workers() int {
 	w := runtime.GOMAXPROCS(0)
+	if sharingOps.Load() > 0 {
+		w /= 2
+	}
 	if w < 1 {
 		w = 1
 	}

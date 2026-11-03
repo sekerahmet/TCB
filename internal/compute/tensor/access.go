@@ -42,6 +42,8 @@ var (
 	}{held: map[Storage]*permit{}}
 	// unlockedOps izin tutan kilitsiz işlem sayısıdır; yalnız kilit altında artar.
 	unlockedOps atomic.Int32
+	// sharingOps işlemcileri paylaşan (ShareProcessors) kilitsiz işlem sayısıdır (parallel.go).
+	sharingOps atomic.Int32
 )
 
 func init() { perms.cond = sync.NewCond(&perms.mu) }
@@ -58,6 +60,8 @@ type Kernel struct {
 	holds []Storage
 	run   func()
 	held  bool
+	// share: programda başka görev varken çalışan çekirdek işlemcilerin yarısını bırakır.
+	share bool
 }
 
 // newKernel çekirdeği kurar; holds çalışırken tutulacak tensörlerdir. Yazılan depo okunanlardan
@@ -104,9 +108,22 @@ func (k *Kernel) TryAcquire() bool {
 		s.Hold()
 	}
 	unlockedOps.Add(1)
+	if k.share {
+		sharingOps.Add(1)
+	}
 	k.held = true
 	return true
 }
+
+// ShareProcessors çekirdeği, çalışırken işlemcilerin yarısını başka görevlere bırakacak biçimde
+// işaretler (TryAcquire'dan önce). Programda başka görev yokken çağrılmaz: tek görevde çekirdek
+// bütün işlemcileri kullanır.
+func (k *Kernel) ShareProcessors() { k.share = true }
+
+// WaitFree çekirdeğin izinleriyle çakışan kilitsiz işlemler bitene dek bekler. Yorumlayıcı
+// kilidi bırakılmışken çağrılır; dönünce kilit geri alınır ve çekirdek yeniden hazırlanır
+// (girdiler bu arada değişmiş olabilir).
+func (k *Kernel) WaitFree() { waitFree(k.writes, k.reads) }
 
 // Run izinleri alınmış çekirdeği çalıştırır ve izinleri bırakır; kilitsiz çağrılabilir.
 func (k *Kernel) Run() {
@@ -138,6 +155,9 @@ func (k *Kernel) release() {
 		dropPermit(s, p)
 	}
 	unlockedOps.Add(-1)
+	if k.share {
+		sharingOps.Add(-1)
+	}
 	perms.cond.Broadcast()
 	perms.mu.Unlock()
 	for _, s := range k.holds {

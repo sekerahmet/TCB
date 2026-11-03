@@ -218,7 +218,7 @@ func compositeSpecs() []compositeSpec {
 			run: call(codes.FnAttention), ref: attention64},
 		{name: "matmul", funcs: []string{"matmulDType"}, shapes: [][]int{{3, 4}, {4, 2}}, bf16Tol: 0.008,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) {
-				return matmulDType(xs[0], xs[1], mixedDType(m))
+				return matmulDType(m, xs[0], xs[1], mixedDType(m))
 			}, ref: matmul64},
 		{name: "list_sum", funcs: []string{"sumTensorList"}, shapes: [][]int{{2, 3}, {3}}, bf16Tol: 0.009,
 			run: func(m *interp.VM, xs []*tensor.Tensor) (*tensor.Tensor, error) { return listSum("sum", false, xs) },

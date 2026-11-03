@@ -198,7 +198,7 @@ func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (inter
 // kopya; ağırlıklar değişmez) ve çarpım float32 biriktirmeyle o türde sonuç verir (bir kez
 // yuvarlanır; PyTorch autocast'iyle aynı kural). Aksi halde sonuç girdilerin türündedir
 // (türler farklıysa float32).
-func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error) {
+func matmulDType(m *interp.VM, a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error) {
 	as, bs := a.Shape(), b.Shape()
 	if len(as) == 0 || len(bs) == 0 {
 		return nil, messages.New(messages.H6114, tensor.ShapeText(as), tensor.ShapeText(bs))
@@ -238,9 +238,9 @@ func matmulDType(a, b *tensor.Tensor, mixed tensor.DType) (*tensor.Tensor, error
 		}
 		var r *tensor.Tensor
 		if mixed != tensor.Float32 {
-			r = tensor.MatMulOut(x.CastShared(mixed), y.CastShared(mixed), mixed)
+			r = matMulOn(m, x.CastShared(mixed), y.CastShared(mixed), mixed)
 		} else {
-			r = tensor.MatMul(x, y)
+			r = matMulOn(m, x, y, tensor.MatMulType(x, y))
 		}
 		if len(bs) == 1 {
 			r = r.Squeeze(-1)

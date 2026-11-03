@@ -78,6 +78,7 @@ type vmShared struct {
 	// tamponlu okuyucusuyla yapılır (bkz. GirdiOkuyucu).
 	Stdin      io.Reader
 	wg         sync.WaitGroup
+	liveTasks  atomic.Int32 // başlamış, bitmemiş eşzamanlı görev sayısı (wg'nin sayısı; okunabilir)
 	SourceFile string
 	SourceCode string
 	// CommandName programı başlatan komuttur (ör. "tr egit.tr", derlenmiş uygulamada
@@ -343,6 +344,14 @@ func (v *VM) Blocking(fn func()) {
 		v.checkInterrupt()
 	}()
 	fn()
+}
+
+// OtherTasksLive reports whether a task other than v may run: in the main program, an
+// 'eşzamanlı' task that is started and not finished; in a task, always (the main program is
+// counted as live even while it waits). Long tensor kernels that release the lock leave
+// processors free only then (S-kilit).
+func (v *VM) OtherTasksLive() bool {
+	return v.asyncTask || v.liveTasks.Load() > 0
 }
 
 // Exclusive runs fn without handing the interpreter lock to another task, not even during
