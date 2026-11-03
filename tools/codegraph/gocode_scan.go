@@ -84,7 +84,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		case *ast.Ident:
 			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures))
 		case *ast.RangeStmt:
-			x.rangeUse(fc, owner, n)
+			x.rangeUse(fc, owner, root, n)
 			x.noteRangeStrings(fc, n)
 		case *ast.BasicLit:
 			x.pathLit(fc, owner, n)

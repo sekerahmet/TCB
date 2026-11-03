@@ -22,7 +22,7 @@ type goIndex struct {
 	dirFiles   map[string]bool     // dosya düğümü olan göreli yollar
 	pathRefs   []pathRef           // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
 	snip       *snippetState       // Go test dizelerindeki TR metinleri (tr_snippets.go)
-	ranges     []rangeRef          // koleksiyon döndüren işlev/değişken üzerinde dönen range deyimleri (walks.go)
+	walks      *walkState          // liste gezintisi ve sözlük araması kayıtları (walks.go)
 	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
 	scans      *scanState          // depo genelini tarayan test çağrıları (scans.go)
 	caseCalls  []caseCall          // dize kollarında çağrılan işlevler (case_tests.go)
@@ -103,7 +103,7 @@ func (x *goExtractor) pkgName(p string) string {
 func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
-		byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
+		walks: newWalkState(), byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
 		scans: newScanState(),
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
@@ -158,6 +158,7 @@ func (x *goExtractor) file(u *unit, base string, f *ast.File) {
 			x.genDecl(fc, d)
 		}
 	}
+	x.collectScanDefs(fc, f)
 	if isTest {
 		x.citeRefs(fc, f)
 		x.collectScans(fc, f)
@@ -221,6 +222,7 @@ func (x *goExtractor) funcDecl(fc *fileCtx, d *ast.FuncDecl) {
 			key = recv + "." + name
 		}
 		x.addSym(fc.base, key, id)
+		x.noteWalkFunc(id, obj)
 	}
 	x.enterFunc(obj, id, strings.TrimPrefix(strings.TrimPrefix(pkg, x.m.Path), "/"), recv != "")
 	x.scan(fc, id, d) // imza (alıcı, parametre, sonuç tipleri) ve gövde: tür kullanımı imzada da vardır
@@ -318,6 +320,9 @@ func (x *goExtractor) valueDecl(fc *fileCtx, d *ast.GenDecl) {
 			x.b.addNode(Node{ID: id, Kind: kind, Name: path.Base(pkg) + "." + name.Name, File: fc.rel,
 				Line: line, End: x.line(vs.End()), Detail: detail, Doc: docText(singleSpecDoc(d, vs.Doc), vs.Comment)})
 			x.b.addEdge(fileID(fc.rel), id, edgeContains, extracted, fc.rel, line)
+			if !fc.isTest && strings.HasSuffix(fc.rel, "_generated.go") && yieldsCollection(obj) {
+				x.idx.walks.genVars[id] = true
+			}
 			x.denotes(fc, id, pkg, name.Name, line)
 		}
 	}

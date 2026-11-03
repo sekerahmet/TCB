@@ -290,12 +290,15 @@ func (ix *index) goTestSelection(ts *touchSet) []goTest {
 		nodes = append(nodes, ix.byID[id])
 	}
 	for f := range ts.files {
-		for _, id := range []string{"file:" + f, trFileID(f)} { // .tr dosyasının testleri: onu koşan ve aktaranlar
+		for _, id := range []string{"file:" + f, trFileID(f), fileID(f), docID(f)} { // dosyanın testleri: okuyan, koşan, aktaran ve bütün listeyi gezenler
 			if file := ix.byID[id]; file != nil {
 				for id := range ix.testDistances(file) {
 					nodes = append(nodes, ix.byID[id])
 				}
 			}
+		}
+		for _, h := range ix.scansCovering(f) {
+			nodes = append(nodes, h.tests...)
 		}
 	}
 	for _, list := range subprocess {

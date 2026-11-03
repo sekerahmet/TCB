@@ -4,9 +4,12 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"maps"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -230,7 +233,7 @@ func rootedListings(t *testing.T, file string) []int {
 			}
 			if m := leadingName.FindStringSubmatch(strings.TrimPrefix(s, "filepath.Join(")); m != nil {
 				id := m[1]
-				if regexp.MustCompile(`\b` + id + `\s*:?=\s*(filepath\.Join\()?reporoot\.(Root\(\)|Path\()`).MatchString(body) {
+				if regexp.MustCompile(`\b` + id + `(?:,\s*[\w_]+)*\s*:?=\s*((filepath\.Join\()?reporoot\.(Root\(\)|Path\()|repoGraph\()`).MatchString(body) {
 					return true
 				}
 			}
@@ -242,8 +245,15 @@ func rootedListings(t *testing.T, file string) []int {
 				return true
 			}
 			line := fset.Position(call.Pos()).Line
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "WalkDir" && text(sel.X) == "reporoot" && len(call.Args) == 2 {
-				if rooted(call.Args[0]) && !foldersOnly.MatchString(text(call.Args[1])) {
+			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+				switch {
+				case sel.Sel.Name == "WalkDir" && text(sel.X) == "reporoot" && len(call.Args) == 2:
+					if rooted(call.Args[0]) && !foldersOnly.MatchString(text(call.Args[1])) {
+						lines = append(lines, line)
+					}
+				case sel.Sel.Name == "ListFiles" && text(sel.X) == "codeindex" && len(call.Args) == 5 && rooted(call.Args[0]):
+					lines = append(lines, line)
+				case sel.Sel.Name == "GitTracked" && text(sel.X) == "codeindex" && len(call.Args) == 1 && rooted(call.Args[0]):
 					lines = append(lines, line)
 				}
 			}
@@ -256,4 +266,95 @@ func rootedListings(t *testing.T, file string) []int {
 		})
 	}
 	return lines
+}
+
+// Kural (DENETİM istek 80 Ş-c2, istek 82): tools/full_check.sh'in repo_scans test dizisi ve repo_scan_pkgs paket dizisi,
+// graftaki kind == "scan" düğümlerinin Test* testlerine ve onların paketlerine birebir eşittir (düzen kuralları adımında
+// bütün koşulan paketler ve Fuzz* hedefleri dışarıda). Yeni bir tarama testi ya da paketi diziye yazılmazsa ya da dizide
+// eskimiş ad kalırsa test düşer.
+func TestFullCheckRepoScansMatchesScanNodes(t *testing.T) {
+	root, _, g := repoGraph(t)
+	data, err := os.ReadFile(filepath.Join(root, "tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := strings.ReplaceAll(string(data), "\r\n", "\n")
+	gotTests := parseBashArray(t, script, "repo_scans")
+	gotPkgs := parseBashArray(t, script, "repo_scan_pkgs")
+	layoutMatch := regexp.MustCompile(`(?m)^\s*go test [^\n]*-short ((?:\./\S+\s*)+)[^\n]*\n\s*\[ "\$\{PIPESTATUS\[0\]\}" -eq 0 \] \|\| fail "düzen kuralları"`).FindStringSubmatch(script)
+	if layoutMatch == nil {
+		t.Fatal("tools/full_check.sh: could not locate layout-rules go test line")
+	}
+	wholePkgs := strings.Fields(layoutMatch[1])
+	isWholeLayoutPkg := func(dir string) bool {
+		for _, p := range wholePkgs {
+			clean := strings.TrimPrefix(p, "./")
+			if strings.HasSuffix(clean, "/...") {
+				prefix := strings.TrimSuffix(clean, "...")
+				if strings.HasPrefix(dir+"/", prefix) {
+					return true
+				}
+				continue
+			}
+			if strings.TrimSuffix(clean, "/") == dir {
+				return true
+			}
+		}
+		return false
+	}
+	if !regexp.MustCompile(`(?s)repo_scans\[@\].*"\$\{repo_scan_pkgs\[@\]\}"[^\n]*\n\s*\[ "\$\{PIPESTATUS\[0\]\}" -eq 0 \] \|\| fail "depo taramaları"`).MatchString(script) {
+		t.Fatal("tools/full_check.sh: depo taramaları step must run ${repo_scans[@]} across \"${repo_scan_pkgs[@]}\"")
+	}
+
+	byID := map[string]*Node{}
+	for i := range g.Nodes {
+		byID[g.Nodes[i].ID] = &g.Nodes[i]
+	}
+	wantTestsSet := map[string]bool{}
+	wantPkgsSet := map[string]bool{}
+	for _, e := range g.Edges {
+		if e.Kind != edgeScans {
+			continue
+		}
+		sc, tn := byID[e.To], byID[e.From]
+		if sc == nil || sc.Kind != kindScan || tn == nil {
+			continue
+		}
+		name := tn.Name[strings.LastIndex(tn.Name, ".")+1:]
+		if !strings.HasPrefix(name, "Test") {
+			continue
+		}
+		dir := path.Dir(tn.File)
+		if isWholeLayoutPkg(dir) {
+			continue
+		}
+		wantTestsSet[name] = true
+		wantPkgsSet["./"+dir] = true
+	}
+	wantTests := slices.Sorted(maps.Keys(wantTestsSet))
+	wantPkgs := slices.Sorted(maps.Keys(wantPkgsSet))
+	slices.Sort(gotTests)
+	slices.Sort(gotPkgs)
+	if !slices.Equal(gotTests, wantTests) {
+		t.Errorf("tools/full_check.sh repo_scans mismatch:\n  got (%d):  %v\n  want (%d): %v", len(gotTests), gotTests, len(wantTests), wantTests)
+	}
+	if !slices.Equal(gotPkgs, wantPkgs) {
+		t.Errorf("tools/full_check.sh repo_scan_pkgs mismatch:\n  got (%d):  %v\n  want (%d): %v", len(gotPkgs), gotPkgs, len(wantPkgs), wantPkgs)
+	}
+}
+
+func parseBashArray(t *testing.T, script, name string) []string {
+	t.Helper()
+	m := regexp.MustCompile(`(?ms)^` + regexp.QuoteMeta(name) + `=\(\s*(.*?)\s*\)`).FindStringSubmatch(script)
+	if m == nil {
+		t.Fatalf("tools/full_check.sh: array %s not found", name)
+	}
+	var out []string
+	for _, line := range strings.Split(m[1], "\n") {
+		if i := strings.IndexByte(line, '#'); i >= 0 {
+			line = line[:i]
+		}
+		out = append(out, strings.Fields(line)...)
+	}
+	return out
 }

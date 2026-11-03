@@ -31,10 +31,19 @@ type scanSite struct {
 	fc       *fileCtx
 	fn       *ast.FuncDecl
 	base     ast.Expr // nil: `git ls-files` -C'siz, testin klasörü
-	filters  ast.Node // WalkDir'in geri çağırması; nil ise işlevin gövdesi ve (liste dönen yardımcıda) çağıranlarınki
+	dirs     ast.Expr // ListFiles'ın alt klasör listesi (nil ya da []string)
+	filters  ast.Node // WalkDir/ListFiles geri çağırması; nil ise işlevin gövdesi ve (liste dönen yardımcıda) çağıranlarınki
 	line     int
 	fromPkg  bool // taban testin klasörüdür
-	listOnly bool // çağrı listeyi döndürür (git ls-files): süzgeç çağıranda da olabilir
+	listOnly bool // çağrı listeyi döndürür (git ls-files, GitTracked): süzgeç çağıranda da olabilir
+}
+
+// assignRef bir değişkene ya da yapı alanına yapılan atamadır (kök çözümü için).
+type assignRef struct {
+	fc  *fileCtx
+	fn  *ast.FuncDecl
+	rhs ast.Expr
+	idx int // çoklu dönüşte sol taraf indisi (a, b := f() -> 0, 1); tekli atamada -1
 }
 
 // scanScope bir taramanın kapsamıdır.
@@ -52,11 +61,14 @@ type scanFunc struct {
 
 // scanState tarama çözümünün durumudur: kayıtlar dosyalar gezilirken toplanır, çözüm bütün modül okununca yapılır.
 type scanState struct {
-	sites  []scanSite
-	funcs  map[types.Object]scanFunc
-	lists  map[types.Object][]string  // paket düzeyi dize listeleri (`var layoutRoots = []string{...}`)
-	ranges map[types.Object]rangeOver // döngü değişkeni -> üzerinde döndüğü ifade
-	done   []resolvedScan             // çözülen taramalar (linkScans düğüme çevirir)
+	sites    []scanSite
+	funcs    map[types.Object]scanFunc    // test dosyalarındaki işlevler
+	allFuncs map[types.Object]scanFunc    // modüldeki bütün işlevler (yardımcı kök çözümü için)
+	callers  map[string][]scanFunc        // işlev kimliği -> onu doğrudan çağıran test işlevleri
+	assigns  map[types.Object][]assignRef // paket değişkeni / yapı alanı atamaları
+	lists    map[types.Object][]string    // paket düzeyi dize listeleri (`var layoutRoots = []string{...}`)
+	ranges   map[types.Object]rangeOver   // döngü değişkeni -> üzerinde döndüğü ifade
+	done     []resolvedScan               // çözülen taramalar (linkScans düğüme çevirir)
 }
 
 // rangeOver bir döngünün üzerinde döndüğü ifade ve dosyası.
@@ -74,7 +86,56 @@ type resolvedScan struct {
 }
 
 func newScanState() *scanState {
-	return &scanState{funcs: map[types.Object]scanFunc{}, lists: map[types.Object][]string{}, ranges: map[types.Object]rangeOver{}}
+	return &scanState{
+		funcs:    map[types.Object]scanFunc{},
+		allFuncs: map[types.Object]scanFunc{},
+		assigns:  map[types.Object][]assignRef{},
+		lists:    map[types.Object][]string{},
+		ranges:   map[types.Object]rangeOver{},
+	}
+}
+
+// collectScanDefs modüldeki bütün işlevleri ve paket/yapı alanı atamalarını kaydeder (`repoState.root = resolveRoot("")` gibi).
+func (x *goExtractor) collectScanDefs(fc *fileCtx, f *ast.File) {
+	st := x.idx.scans
+	for _, decl := range f.Decls {
+		d, ok := decl.(*ast.FuncDecl)
+		if !ok || d.Body == nil {
+			continue
+		}
+		obj := fc.u.Info.Defs[d.Name]
+		if obj == nil {
+			continue
+		}
+		st.allFuncs[obj] = scanFunc{fc, d, x.objectID(obj)}
+		ast.Inspect(d.Body, func(n ast.Node) bool {
+			as, ok := n.(*ast.AssignStmt)
+			if !ok {
+				return true
+			}
+			for i, l := range as.Lhs {
+				var target types.Object
+				switch lhs := l.(type) {
+				case *ast.SelectorExpr:
+					target = fc.u.Info.Uses[lhs.Sel]
+				case *ast.Ident:
+					if u := fc.u.Info.Uses[lhs]; u != nil && u.Parent() == fc.u.Pkg.Scope() {
+						target = u
+					}
+				}
+				if target == nil {
+					continue
+				}
+				switch {
+				case len(as.Lhs) == len(as.Rhs):
+					st.assigns[target] = append(st.assigns[target], assignRef{fc, d, as.Rhs[i], -1})
+				case len(as.Rhs) == 1 && len(as.Lhs) > 1:
+					st.assigns[target] = append(st.assigns[target], assignRef{fc, d, as.Rhs[0], i})
+				}
+			}
+			return true
+		})
+	}
 }
 
 // collectScans bir test dosyasının işlevlerini, paket düzeyi dize listelerini, döngü değişkenlerini ve listeleme
@@ -115,16 +176,30 @@ func (x *goExtractor) collectScans(fc *fileCtx, f *ast.File) {
 	}
 }
 
-// scanCall depo dosyalarını listeleyen çağrıyı tanır: reporoot.WalkDir ve `git ... ls-files`.
+// scanCall depo dosyalarını listeleyen çağrıyı tanır: reporoot.WalkDir, codeindex.ListFiles, codeindex.GitTracked ve `git ... ls-files`.
 func (x *goExtractor) scanCall(fc *fileCtx, fn *ast.FuncDecl, owner string, call *ast.CallExpr) (scanSite, bool) {
 	site := scanSite{owner: owner, fc: fc, fn: fn, line: x.line(call.Pos())}
-	if f, ok := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func); ok && f.Name() == "WalkDir" && f.Pkg() != nil &&
-		strings.HasSuffix(f.Pkg().Path(), "internal/reporoot") && len(call.Args) == 2 {
-		site.base = call.Args[0]
-		if lit, ok := call.Args[1].(*ast.FuncLit); ok {
-			site.filters = lit.Body
+	if f, ok := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func); ok && f.Pkg() != nil {
+		pkg := f.Pkg().Path()
+		switch {
+		case strings.HasSuffix(pkg, "internal/reporoot") && f.Name() == "WalkDir" && len(call.Args) == 2:
+			site.base = call.Args[0]
+			if lit, ok := call.Args[1].(*ast.FuncLit); ok {
+				site.filters = lit.Body
+			}
+			return site, true
+		case strings.HasSuffix(pkg, "internal/devtools/codeindex") && f.Name() == "ListFiles" && len(call.Args) == 5:
+			site.base, site.dirs = call.Args[0], call.Args[1]
+			if lit, ok := call.Args[4].(*ast.FuncLit); ok {
+				site.filters = lit.Body
+			} else if id, ok := call.Args[4].(*ast.Ident); ok && id.Name == "nil" {
+				site.listOnly = true
+			}
+			return site, true
+		case strings.HasSuffix(pkg, "internal/devtools/codeindex") && f.Name() == "GitTracked" && len(call.Args) == 1:
+			site.base, site.listOnly = call.Args[0], true
+			return site, true
 		}
-		return site, true
 	}
 	var words []string
 	for _, a := range call.Args {
@@ -175,19 +250,41 @@ func stringList(e ast.Expr) ([]string, bool) {
 	return vals, true
 }
 
+// evalSubdirs ListFiles'ın ikinci bağımsız değişkenini (nil ya da alt klasör listesi) çözer.
+func (x *goExtractor) evalSubdirs(fc *fileCtx, e ast.Expr) ([]string, bool) {
+	if id, ok := e.(*ast.Ident); ok {
+		if id.Name == "nil" {
+			return nil, true
+		}
+		vals, ok := x.idx.scans.lists[fc.u.Info.Uses[id]]
+		return vals, ok
+	}
+	return stringList(e)
+}
+
 // resolveScans kaydedilen taramaların tabanını ve süzgecini çözer (bütün modül okunduktan sonra).
 func (x *goExtractor) resolveScans() {
 	st := x.idx.scans
+	x.buildScanCallers()
 	for _, s := range st.sites {
 		var bases []string
 		if s.fromPkg {
 			bases = []string{path.Dir(s.fc.rel)}
 		} else {
-			vals, rooted := x.evalPath(s.fc, s.fn, s.base, 2)
+			vals, rooted := x.evalPath(s.fc, s.fn, s.base, 6)
 			if !rooted || len(vals) == 0 {
 				continue // taban depo kökünden çözülmüyor: geçici kopya ya da veriden okunan klasör
 			}
 			bases = vals
+		}
+		if s.dirs != nil {
+			sub, ok := x.evalSubdirs(s.fc, s.dirs)
+			if !ok {
+				continue
+			}
+			if len(sub) > 0 {
+				bases = joinAll(bases, [][]string{sub})
+			}
 		}
 		filters := s.filters
 		if filters == nil {
@@ -276,23 +373,31 @@ func compactStrings(list []string) []string {
 	return out
 }
 
-// directCallers bir test dosyası işlevini doğrudan çağıran test dosyası işlevleridir.
-func (x *goExtractor) directCallers(id string) []scanFunc {
-	var out []scanFunc
-	for _, f := range x.idx.scans.funcs {
-		called := false
+// buildScanCallers test dosyası işlevlerinin doğrudan çağıranlarını bir kez indeksler.
+func (x *goExtractor) buildScanCallers() {
+	st := x.idx.scans
+	st.callers = map[string][]scanFunc{}
+	for _, f := range st.funcs {
+		seen := map[string]bool{}
 		ast.Inspect(f.fn.Body, func(n ast.Node) bool {
-			if call, ok := n.(*ast.CallExpr); ok && !called {
-				if obj := f.fc.u.Info.Uses[nameIdent(call.Fun)]; obj != nil && x.objectID(obj) == id {
-					called = true
+			if call, ok := n.(*ast.CallExpr); ok {
+				if obj := f.fc.u.Info.Uses[nameIdent(call.Fun)]; obj != nil {
+					if id := x.objectID(obj); id != "" && !seen[id] {
+						seen[id] = true
+						st.callers[id] = append(st.callers[id], f)
+					}
 				}
 			}
-			return !called
+			return true
 		})
-		if called {
-			out = append(out, f)
-		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].id < out[j].id })
-	return out
+	for id, list := range st.callers {
+		sort.Slice(list, func(i, j int) bool { return list[i].id < list[j].id })
+		st.callers[id] = list
+	}
+}
+
+// directCallers bir test dosyası işlevini doğrudan çağıran test dosyası işlevleridir.
+func (x *goExtractor) directCallers(id string) []scanFunc {
+	return x.idx.scans.callers[id]
 }

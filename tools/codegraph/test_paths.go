@@ -328,7 +328,7 @@ func (x *goExtractor) declOwners(fc *fileCtx, d *ast.GenDecl) []string {
 // Yalnızca TestX/BenchmarkX/FuzzX/ExampleX işlevlerinin sabitleri sayılır. Çözüm, düğümlerin eklendiği
 // sıradan bağımsız olsun diye bütün çıkarıcılardan sonra çalışır.
 func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
-	isTest, callers, pkgOf := reach.isTest, reach.callers, reach.pkgOf
+	isTest := reach.isTest
 	byFile := map[string][]*Node{}
 	var targets []*Node // glob kalıpları bunlara karşı denenir
 	for _, n := range b.nodes {
@@ -338,6 +338,7 @@ func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
 		}
 	}
 	sort.Slice(targets, func(i, j int) bool { return targets[i].ID < targets[j].ID })
+	idx.walks.markMultiEmbed(idx.pathRefs, reach, b)
 	for _, r := range idx.pathRefs {
 		if r.root && len(r.with) > 0 && !slices.ContainsFunc(r.with, func(p string) bool { return len(byFile[path.Clean(p)]) > 0 }) {
 			continue // listenin yolları depoda yok: fikstür
@@ -372,7 +373,7 @@ func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
 					b.addEdge(t, n.ID, edgeTests, inferred, r.file, r.line)
 				}
 				if r.prod && !isTest[r.owner] {
-					for _, rg := range walkersOf(r.owner, idx.ranges, callers, pkgOf, b) {
+					for _, rg := range walkersOf(r.owner, idx.walks, reach, b) {
 						for _, t := range reach.testsReaching(rg.owner) {
 							b.addEdge(t, n.ID, edgeWalks, inferred, rg.file, rg.line)
 						}
