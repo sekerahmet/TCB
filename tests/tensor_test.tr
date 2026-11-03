@@ -624,12 +624,108 @@ TR_test "15.34 iyileştiriciler: küçük doğrusal regresyon" {
     TR_assert_equal([0.0, 0.0], p.TR_tolist)
     sgd.TR_zero_grad()
     TR_assert_equal([0.0, 0.0], p.TR_grad.TR_tolist)
-    TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_zeros([2])]) })
     # Sayı olmayan ya da sonsuz oranlar reddedilir (tek adımda bütün parametreler NaN olurdu).
     TR_assert_equal("H6519", TR_error_code { TR_AdamW([p], TR_lr: TR_log(-1.0)) })
     TR_assert_equal("H6519", TR_error_code { TR_SGD([p], TR_lr: TR_exp(1000.0)) })
     TR_assert_equal("H6519", TR_error_code { TR_SGD([p], TR_momentum: TR_log(-1.0)) })
     TR_assert_equal("H6519", TR_error_code { TR_AdamW([p], TR_lr: 1e300) })
+}
+
+TR_test "15.34 dondurma: türev_izle okunur ve atanır, donmuş parametre adımda atlanır; gradyansız adım ve iki iyileştirici hatadır" {
+    TR_struct Model { gövde: TR_Tensor; baş: TR_Tensor }
+    TR_var gövde = TR_Tensor([1.0, 2.0])
+    gövde.TR_requires_grad = TR_true
+    TR_var m = Model(gövde: gövde, baş: TR_Tensor([3.0], TR_requires_grad: TR_true))
+    TR_var op = TR_SGD(TR_parameters(m), TR_lr: 0.5)
+    TR_func kayıp() -> TR_Tensor { TR_return TR_sum(m.gövde * m.gövde) + TR_sum(m.baş * m.baş) }
+    # Dondurmak gradyanı siler; iyileştirici donmuş parametreyi atlar (TR_parameters onu da verir).
+    TR_backward(kayıp())
+    TR_for p TR_in [m.gövde] { p.TR_requires_grad = TR_false }
+    TR_assert_equal(TR_false, m.gövde.TR_requires_grad)
+    TR_assert_equal(TR_none, m.gövde.TR_grad)
+    TR_assert_equal(2, TR_parameters(m).TR_length)
+    op.TR_step()
+    TR_assert_equal([1.0, 2.0], m.gövde.TR_tolist)
+    TR_assert_equal([0.0], m.baş.TR_tolist)
+    # Aşamalı çözme: aynı iyileştirici çözülen gövdeyi sonraki adımda günceller.
+    m.gövde.TR_requires_grad = TR_true
+    op.TR_zero_grad()
+    TR_backward(kayıp())
+    op.TR_step()
+    TR_assert_equal([0.0, 0.0], m.gövde.TR_tolist)
+    # Bütün parametreleri donmuşsa adım bir şey yapmaz; türev izlemeyen yaprak kurulumda kabul edilir.
+    TR_var donuk = TR_Tensor([5.0], TR_requires_grad: TR_true)
+    donuk.TR_requires_grad = TR_false
+    TR_var od = TR_AdamW([donuk, TR_Tensor([1, 2])])
+    od.TR_step()
+    TR_assert_equal([5.0], donuk.TR_tolist)
+    # Gradyansız adım hatadır: geri yayılım yok, bilgi adımda tüketildi, gradyan sıfırlandı.
+    TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var ow = TR_AdamW([w])
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    TR_backward(TR_sum(w * w))
+    ow.TR_step()
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    TR_backward(TR_sum(w * w))
+    ow.TR_zero_grad()
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    # Yüklenen durum (geri dönüş, 20.14) bilgiyi siler.
+    TR_backward(TR_sum(w * w))
+    ow.TR_load_state(ow.TR_state)
+    TR_assert_equal("H6988", TR_error_code { ow.TR_step() })
+    # Sıfırlanan gradyan "eklenmiş" sayılmaz: o adımda gradyan almayan parametre (v) çürümez, momentiyle de kaymaz.
+    TR_var u = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var v = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var ouv = TR_AdamW([u, v], TR_lr: 0.1, TR_weight_decay: 0.5)
+    TR_backward(TR_sum(u) + TR_sum(v))
+    ouv.TR_step()
+    TR_var v1 = v.TR_tolist
+    ouv.TR_zero_grad()
+    TR_backward(TR_sum(u))
+    ouv.TR_step()
+    TR_assert_equal(v1, v.TR_tolist)
+    # Gradyan almayan parametrenin ağırlığı, momentleri, sayacı ve çürümesi değişmez; sapma
+    # düzeltmesi parametrenin kendi güncelleme sayısıyla: dört adım sonra b'nin ilk güncellemesi
+    # yeni bir iyileştiricininkiyle aynıdır.
+    TR_var a = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var oab = TR_AdamW([a, b], TR_lr: 0.1, TR_weight_decay: 0.5)
+    TR_for i TR_in 0..4 {
+        oab.TR_zero_grad()
+        TR_backward(TR_sum(a))
+        oab.TR_step()
+    }
+    TR_assert_equal([1.0], b.TR_tolist)
+    TR_backward(TR_sum(b))
+    oab.TR_step()
+    TR_var c = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var oc = TR_AdamW([c], TR_lr: 0.1, TR_weight_decay: 0.5)
+    TR_backward(TR_sum(c))
+    oc.TR_step()
+    TR_assert_equal(c.TR_tolist, b.TR_tolist)
+    # Bir parametre iki iyileştiricideyse ikincisi aynı geri yayılımın gradyanını adımlayamaz.
+    TR_var p = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var o1 = TR_SGD([p], TR_lr: 0.1)
+    TR_var o2 = TR_SGD([p], TR_lr: 0.1)
+    TR_backward(TR_sum(p * p))
+    o1.TR_step()
+    TR_assert_equal("H6989", TR_error_code { o2.TR_step() })
+    TR_assert_equal([0.8], p.TR_tolist)
+    # Atama yalnız yaprakta; açmak yalnız kendi deposu olan ondalık yaprakta; değer TR_Bool.
+    TR_var y = p * 2
+    TR_assert_equal("H6990", TR_error_code { y.TR_requires_grad = TR_false })
+    TR_var tam = TR_Tensor([1, 2])
+    TR_assert_equal("H6991", TR_error_code { tam.TR_requires_grad = TR_true })
+    TR_var taban = TR_zeros([2, 2])
+    TR_var görünüm = taban.TR_reshape([4])
+    TR_assert_equal("H6991", TR_error_code { görünüm.TR_requires_grad = TR_true })
+    TR_backward(TR_sum(p * p))
+    TR_var g = p.TR_grad
+    TR_if g != TR_none { TR_assert_equal("H6991", TR_error_code { g.TR_requires_grad = TR_true }) }
+    TR_assert_equal("H6992", TR_error_code { taban.TR_requires_grad = 1 })
+    TR_var kopya = TR_Tensor(görünüm)
+    kopya.TR_requires_grad = TR_true
+    TR_assert_equal(TR_true, kopya.TR_requires_grad)
 }
 
 TR_test "15.35 öğrenme_oranı okunur ve atanabilir; yeni oran sonraki adımda kullanılır" {
@@ -844,7 +940,7 @@ TR_test "15.48 hatalar şekli gösterir ve yakalanabilir" {
     TR_assert_equal("H6027", TR_error_code { TR_Tensor([[1.0, 2.0], [3.0]]) })
     TR_assert_equal("H6305", TR_error_code { TR_embedding_lookup(TR_zeros([3, 2]), [5]) })
     TR_assert_equal("H6312", TR_error_code { TR_cross_entropy(TR_zeros([2, 3]), TR_Tensor([[0, 1, 0], [1, 0, 0]])) })
-    TR_assert_equal("H6513", TR_error_code { TR_AdamW([TR_Tensor(3.0)]) })
+    TR_assert_equal("H6988", TR_error_code { TR_AdamW([TR_Tensor(3.0, TR_requires_grad: TR_true)]).TR_step() })
 }
 
 TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {

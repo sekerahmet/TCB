@@ -199,7 +199,7 @@ func TestErrors(t *testing.T) {
 		{"TR_print(TR_cross_entropy(TR_zeros([1, 4]), [3]))", messages.H6980},
 		{"TR_print(TR_cross_entropy(TR_zeros([1, 4]), TR_Tensor([-1])))", messages.H6981},
 		{"TR_print(TR_layer_norm(TR_zeros([2, 3]), TR_ones([4])))", messages.H6319},
-		{"TR_AdamW([TR_zeros([2])])", messages.H6513},
+		{"TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_AdamW([w]).TR_step()", messages.H6988},
 		{"TR_AdamW([TR_zeros([2], TR_requires_grad: TR_true) * 2])", messages.H6514},
 		{"TR_SGD([TR_Tensor([1.0], TR_requires_grad: TR_true)], öğrenme_oran: 0.1)", messages.H7900},
 		{"TR_zeros([2, -1])", messages.H6024},

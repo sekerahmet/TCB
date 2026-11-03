@@ -417,6 +417,7 @@
   "TR_mem_q_proj": { "name": "q_proj" },
   "TR_mem_reduce": { "name": "reduce" },
   "TR_mem_replace": { "name": "replace" },
+  "TR_mem_requires_grad": { "name": "requires_grad" },
   "TR_mem_reshape": { "name": "reshape" },
   "TR_mem_resume_step": { "name": "resume_step" },
   "TR_mem_reverse": { "name": "reverse" },

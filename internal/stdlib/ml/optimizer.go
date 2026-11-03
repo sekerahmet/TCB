@@ -104,6 +104,9 @@ func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error
 			if len(args) != 0 {
 				return nil, messages.New(messages.H6506, codes.NameRef(memberStep))
 			}
+			if frozen, err := o.stepRule(); err != nil || frozen {
+				return interp.Null, err
+			}
 			if _, err := safe(func() bool { stepOn(m, o); return true }); err != nil {
 				return nil, err
 			}
@@ -152,9 +155,7 @@ func parameters(fn any, v interp.Value) ([]*tensor.Tensor, error) {
 			return nil, messages.New(messages.H6512, fn, i+1, typeName(el))
 		}
 		t := d.t
-		if !t.RequiresGrad() {
-			return nil, messages.New(messages.H6513, fn, i+1, tensor.ShapeText(t.Shape()), gradExample)
-		}
+		// Türev izlemeyen yaprak (donmuş, tam sayı) kabul edilir, adımda ve kırpmada atlanır (15.34).
 		if d.intermediate || !t.IsLeaf() {
 			return nil, messages.New(messages.H6514, fn, i+1, tensor.ShapeText(t.Shape()), gradExample)
 		}
@@ -165,6 +166,32 @@ func parameters(fn any, v interp.Value) ([]*tensor.Tensor, error) {
 		out = append(out, t)
 	}
 	return out, nil
+}
+
+// stepRule .adım()'ın 15.34'teki kuralıdır: türev izleyen parametresi yoksa (hepsi donmuş)
+// adım bir şey yapmaz (frozen); bu geri yayılımın gradyanını başka bir iyileştirici adımlamış
+// parametre hatadır; türev izleyen parametresi varken hiçbirine gradyan eklenmemişse hatadır
+// (iyileştirici kurulduktan sonra taşınan ya da yerine konan yaprağı tutuyor olabilir, 15.39).
+func (o *Optimizer) stepRule() (frozen bool, err error) {
+	tracked, added := false, false
+	for i, p := range o.params {
+		if !p.RequiresGrad() {
+			continue
+		}
+		tracked = true
+		if p.GradAdded() {
+			added = true
+		} else if s := p.GradStepper(); s != nil && s != o.opt {
+			return false, messages.New(messages.H6989, o.ad, i+1, tensor.ShapeText(p.Shape()))
+		}
+	}
+	if !tracked {
+		return true, nil
+	}
+	if !added {
+		return false, messages.New(messages.H6988, o.ad)
+	}
+	return false, nil
 }
 
 // namedRate adlı sayısal bir argümanı okur.

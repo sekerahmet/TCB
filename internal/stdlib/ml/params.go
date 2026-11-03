@@ -68,7 +68,8 @@ func CollectTensors(fn any, model interp.Value) (names []string, found []*Tensor
 	return collectLeaves(fn, model, true)
 }
 
-// collectLeaves modeli gezer; hepsi yanlışsa yalnızca türev izleyen yaprakları toplar.
+// collectLeaves modeli gezer; hepsi yanlışsa yalnızca parametreleri (türev izleyen ya da donmuş
+// yapraklar, 15.33) toplar.
 func collectLeaves(fn any, model interp.Value, all bool) (names []string, found []*TensorValue, failure error) {
 	seen := map[*tensor.Tensor]bool{}
 	walked := map[any]bool{}
@@ -86,7 +87,7 @@ func collectLeaves(fn any, model interp.Value, all bool) (names []string, found 
 		}
 		switch x := v.(type) {
 		case *TensorValue:
-			if x.intermediate || (!all && !x.t.RequiresGrad()) || seen[x.t] {
+			if x.intermediate || (!all && !x.t.IsParameter()) || seen[x.t] {
 				return
 			}
 			if o, ok := nameOwner[fpath]; ok && o != x.t {

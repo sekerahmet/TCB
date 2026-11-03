@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 579 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 66 metot, 101 özellik, 138 adlı argüman.
+Toplam 580 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 66 metot, 102 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -1114,7 +1114,7 @@ en: var t: Tensor = Tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad: true); print
 tr: değişken t: Tensör = Tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
 ```
 
-Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
+Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_requires_grad`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
 
 #### `TR_Tokenizer` (`TR_type_Tokenizer`, `Parçalayıcı`)
 
@@ -1406,7 +1406,7 @@ tr: yazdır(atan2(1.0, -1.0), atan2(Tensör([1.0, -1.0]), Tensör([0.0])).değer
 
 #### `TR_attention(...)` (`TR_fn_attention`, `dikkat`)
 
-    dikkat(Tensör, Tensör, Tensör, nedensel: Mantık = doğru, pencere: Tam = 0, maske: Tensör | Liste | YokTipi = yok) → Tensör
+    dikkat(Tensör, Tensör, Tensör, nedensel: Mantık = doğru, pencere: Tam = 0, maske: Tensör | YokTipi = yok) → Tensör
 
 Birleşik ölçekli nokta çarpımı dikkatini (softmax(q @ kᵀ / √dh + maske) @ v) bellek dostu, tek türev düğümüyle hesaplar. Varsayılan olarak nedenseldir; k/v bakış sayısı q'nunkinin böleni olabilir (gruplu sorgu dikkati; bakış, İngilizce head).
 
@@ -3870,14 +3870,14 @@ Kullananlar: `TR_AdamW(...)`, `TR_SGD(...)` · İlişkili: `TR_weight_decay:`, `
 [..., H, Tq, Tk] şekline yayınlanabilen 0/1 tensörüdür; sıfırdan farklı yerlere bakılır. Türev izlemez; varsayılan yok'tur.
 
 ```tr
-TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).TR_shape)
+TR_var q = TR_randn([3, 4], TR_seed: 1); TR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: TR_Tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]]) != 0).TR_shape)
 ```
 
 Görünümü:
 
 ```text
-en: var q = randn([3, 4], seed: 1); print(attention(q, q, q, causal: false, mask: Tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).shape)
-tr: değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0], [1.0, 1.0, 1.0]])).şekil)
+en: var q = randn([3, 4], seed: 1); print(attention(q, q, q, causal: false, mask: Tensor([[1, 1, 0], [1, 1, 0], [1, 1, 1]]) != 0).shape)
+tr: değişken q = rastgele_normal([3, 4], tohum: 1); yazdır(dikkat(q, q, q, nedensel: yanlış, maske: Tensör([[1, 1, 0], [1, 1, 0], [1, 1, 1]]) != 0).şekil)
 ```
 
 Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`
@@ -5494,6 +5494,25 @@ Görünümü:
 en: print("elma armut elma".replace("elma", "erik"))
 tr: yazdır("elma armut elma".değiştir("elma", "erik"))
 ```
+
+#### `.TR_requires_grad` (`TR_mem_requires_grad`, `türev_izle`)
+
+    Tensör.türev_izle → Mantık
+
+Yaprak tensörün türevinin izlenip izlenmediğidir (Mantık); okunur ve atanabilir: yanlış atamak yaprağı dondurur ve gradyanını siler (ince ayarda gövdeyi dondurmak), doğru atamak türev izlemeyi açar (aşamalı çözme). Atama yalnız yaprakta geçerlidir; doğru yalnız kendi deposu olan, görünüm olmayan ondalık bir yaprağa atanır. İyileştirici donmuş parametreyi adımda atlar.
+
+```tr
+TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true); TR_backward(TR_sum(w * w)); w.TR_requires_grad = TR_false; TR_print(w.TR_requires_grad, w.TR_grad)
+```
+
+Görünümü:
+
+```text
+en: var w = Tensor([1.0, 2.0], requires_grad: true); backward(sum(w * w)); w.requires_grad = false; print(w.requires_grad, w.grad)
+tr: değişken w = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(toplam(w * w)); w.türev_izle = yanlış; yazdır(w.türev_izle, w.gradyan)
+```
+
+İlişkili: `TR_requires_grad:`, `TR_parameters(...)`
 
 #### `.TR_reshape(...)` (`TR_mem_reshape`, `şekillendir`)
 

@@ -1,7 +1,7 @@
 # TR 4
 # 29 — İyileştiriciler: ağırlıkları güncellemenin yolları.
 # Ne öğretir: AdamW ve SGD, beta1/beta2 ve momentum ayarları, gradyan_kırp ile patlayan gradyanı sınırlamak,
-# iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek.
+# iyileştiricinin durumunu alıp durumu_yükle ile geri yüklemek, ince ayarda bir parametreyi dondurmak.
 # Önceki örnekten: eğitim döngüsü (28), otomatik türev (26).
 # Çalıştırma (proje kökünden): tr examples/tr/29_iyilestiriciler.tr
 
@@ -33,6 +33,16 @@ TR_print("kırpılmış gradyan:", u.TR_grad.TR_tolist)
 # kurulmuş başka bir iyileştiriciye geri yükler (kontrol noktaları böyle çalışır).
 TR_var yeni = TR_AdamW([v], TR_lr: 0.1, TR_beta1: 0.8, TR_beta2: 0.99)
 TR_print("durum yüklendi:", yeni.TR_load_state(adamw.TR_state))
+
+# İnce ayarda gövde dondurulur: türev_izle'ye yanlış atamak gradyanı siler, iyileştirici o
+# parametreyi adımda atlar. Doğru atamak onu yeniden açar (aşamalı çözme).
+TR_var gövde = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var baş = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var ince = TR_SGD([gövde, baş], TR_lr: 0.1)
+gövde.TR_requires_grad = TR_false
+TR_backward(TR_sum(gövde * baş))
+ince.TR_step()
+TR_print("donmuş gövde:", gövde.TR_tolist, "güncellenen baş:", baş.TR_tolist)
 
 # --- Kendin dene ---
 # 1. SGD'nin momentum değerini 0 yap: aynı adımda w farklı çıkar mı?

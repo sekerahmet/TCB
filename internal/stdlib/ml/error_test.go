@@ -32,7 +32,7 @@ func TestMessageConsistency(t *testing.T) {
 		code string
 		want messages.Code
 	}{
-		{"TR_AdamW([TR_Tensor(3.0)])", messages.H6513},
+		{"TR_var y = TR_Tensor([1.0], TR_requires_grad: TR_true) * 2\ny.TR_requires_grad = TR_true", messages.H6990},
 		{"TR_AdamW([3.0])", messages.H6512},
 		{"TR_embedding_lookup(TR_Tensor(3.0), [0])", messages.H6303},
 		{"TR_embedding_lookup(3.0, [0])", messages.H6302},

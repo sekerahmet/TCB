@@ -385,6 +385,7 @@ func TestVersionCheck(t *testing.T) {
 	q := Mul(p, p)
 	opt2 := NewAdamW([]*Tensor{p}, 0.1, 0)
 	p.n.accGrad()
+	p.n.added = true
 	opt2.Step()
 	expectPanic(t, "AdamW sonrası geri yayılım", func() { q.Cast(Float32).SumAll().Backward() })
 }
