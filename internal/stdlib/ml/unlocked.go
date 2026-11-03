@@ -38,6 +38,20 @@ func runUnlocked(m *interp.VM, prepare func() (*tensor.Tensor, *tensor.Kernel)) 
 	}
 }
 
+// released tek çekirdekli bir tensör yerleşiğini (öğe öğe işlem) çalıştıran işlevi verir:
+// çekirdeği büyükse ve CPU'daysa kilit bırakılarak (tensor.Released). Bileşik yerleşikler
+// (geri yayılım, iyileştirici adımı) buradan geçmez: ortalarında kilit bırakılmaz.
+func released(m *interp.VM, f func() *tensor.Tensor) func() *tensor.Tensor {
+	if m == nil {
+		return f
+	}
+	return func() *tensor.Tensor {
+		return tensor.Released(func(prepare func() (*tensor.Tensor, *tensor.Kernel)) *tensor.Tensor {
+			return runUnlocked(m, prepare)
+		}, f)
+	}
+}
+
 // matMulOn a @ b'dir; iş büyükse ve CPU'daysa kilit bırakılarak.
 func matMulOn(m *interp.VM, a, b *tensor.Tensor, outType tensor.DType) *tensor.Tensor {
 	if m == nil || a.Device() != tensor.CPU || matMulWork(a.Shape(), b.Shape()) < unlockedMatMulWork {

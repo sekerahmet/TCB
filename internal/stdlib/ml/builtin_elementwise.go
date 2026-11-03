@@ -57,7 +57,7 @@ func registerGelu(v *interp.VM) {
 			if !approximate {
 				fn = (*tensor.Tensor).GeluExact
 			}
-			r, err := safe(func() *tensor.Tensor { return fn(t) })
+			r, err := safe(released(m, func() *tensor.Tensor { return fn(t) }))
 			if err != nil {
 				return nil, err
 			}
@@ -102,7 +102,7 @@ func unit(v *interp.VM, kd codes.Code, fn func(*tensor.Tensor) *tensor.Tensor, n
 			if err != nil {
 				return nil, err
 			}
-			r, err := safe(func() *tensor.Tensor { return fn(t) })
+			r, err := safe(released(m, func() *tensor.Tensor { return fn(t) }))
 			if err != nil {
 				return nil, err
 			}

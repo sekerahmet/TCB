@@ -296,13 +296,6 @@ func gateToHost(be Backend, src View) []float32 {
 	return be.ToHost(src)
 }
 
-func gateUnary(be Backend, op UnOp, p float32, out Storage, x View) {
-	if unlockedOps.Load() != 0 {
-		gate([]Storage{out}, []Storage{x.S})
-	}
-	be.Unary(op, p, out, x)
-}
-
 func gateUnaryGrad(be Backend, op UnOp, p float32, gx Storage, g Storage, x View, y Storage) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{gx}, []Storage{g, x.S, y})

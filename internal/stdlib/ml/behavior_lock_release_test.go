@@ -262,6 +262,33 @@ TR_print(karışık)`)
 	}
 }
 
+// Kural (10.2, S-kilit, izin): kilitsiz öğe öğe işlem (2^22 öğeli `TR_sin`) için de aynısı:
+// başka görevin girdiye yerinde yazması işlemin bitmesini bekler; sonuç ya eski girdinin
+// sinüsüdür ya sıfırdır (sin 0 = 0), karışığı hiç değildir. İşlem birkaç ms sürer: yazan görevin
+// uykusu (Windows'ta ~1 ms aşar) işlemin içine düşebilsin.
+func TestInPlaceWriteWaitsForTheUnlockedElementwiseOp(t *testing.T) {
+	out := mustRun(t, `TR_var karışık = 0
+TR_for tur TR_in 0..20 {
+    TR_var a = TR_randn([4194304], TR_seed: 1)
+    TR_var eski = TR_sin(a)
+    TR_var başla = TR_false
+    TR_async {
+        TR_for TR_not başla { TR_sleep(0.0001) }
+        a *= 0.0
+    }
+    başla = TR_true
+    TR_var c = TR_sin(a)
+    TR_wait_all()
+    TR_var fark = TR_sum(TR_abs(c - eski)).TR_tolist
+    TR_var büyüklük = TR_sum(TR_abs(c)).TR_tolist
+    TR_if büyüklük != 0.0 TR_and fark != 0.0 { karışık += 1 }
+}
+TR_print(karışık)`)
+	if out != "0\n" {
+		t.Fatalf("kilitsiz öğe öğe işlem yarım güncellenmiş girdi okudu (karışık sonuçlu tur sayısı): %s", out)
+	}
+}
+
 // Kural (S-kilit, DENETİM istek 64 (4a) sapması): bileşik bir yerleşik (iyileştiricinin adımı,
 // parametreleri tek tek günceller) kilitsiz bir işlemin okuduğu parametreye gelince kilidi tutarak
 // bekler; öbür görevler yarım güncellenmiş parametre görmez ve bekleme kilitlenmeden biter. Bir

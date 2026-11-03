@@ -85,13 +85,23 @@ func binary(a, b *Tensor, op BinOp) *Tensor {
 // bir kez yuvarlanır).
 func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 	be := sameDevice(binopName[op], a, b)
+	return runElem(be, NumelOf(broadcastShapes(a.shape, b.shape)), func() (*Tensor, *Kernel) { return binaryKernel(be, a, b, op, dt) })
+}
+
+// binaryKernel binaryKind'in hazırlığıdır (kilit altında: çıktı ve hesap çizgesine kayıt);
+// işlemin kendisi dönen çekirdektir (sembolik sonuçta nil).
+func binaryKernel(be Backend, a, b *Tensor, op BinOp, dt DType) (*Tensor, *Kernel) {
 	if anySym(a, b) {
-		return symBinary(a, b, op, dt)
+		return symBinary(a, b, op, dt), nil
 	}
 	outShape := broadcastShapes(a.shape, b.shape)
 	sy := counterStart(be, OpKindAdd+OpKind(op)).start()
 	out := emptyOf(binopOp[op], be, outShape, dt)
-	gateBinary(be, op, out.storage, outShape, a.view(), b.view())
+	c, xa, xb := out.storage, a.view(), b.view()
+	k := newKernel(be, []Storage{c}, []Storage{xa.S, xb.S}, []*Tensor{a, b, out}, func() {
+		be.Binary(op, c, outShape, xa, xb)
+		sy.finish()
+	})
 	// Geri yayılımın okuduğu girdiler (verileri çizgede yalnızca bunlar için tutulur):
 	// toplama/çıkarma hiçbirini, çarpma ikisini, bölme paydayı (ve paydanın gradyanı
 	// için çıktıyı) okur.
@@ -143,8 +153,7 @@ func binaryKind(a, b *Tensor, op BinOp, dt DType) *Tensor {
 			}
 		}
 	}, save...)
-	sy.finish()
-	return r
+	return r, k
 }
 
 // passBinaryGrad toplama/çıkarma geri yönünde out'un gradyanını t'ye aktarır (m:
@@ -231,12 +240,23 @@ var unopName = map[UnOp]string{
 func unaryNoGrad(op UnOp) bool { return op == OpFloor || op == OpCeil || op == OpSign }
 
 func unary(t *Tensor, op UnOp, p float32) *Tensor {
+	return runElem(t.be, t.Numel(), func() (*Tensor, *Kernel) { return unaryKernel(t, op, p) })
+}
+
+// unaryKernel unary'nin hazırlığıdır (kilit altında: çıktı ve hesap çizgesine kayıt); işlemin
+// kendisi dönen çekirdektir (sembolik sonuçta nil).
+func unaryKernel(t *Tensor, op UnOp, p float32) (*Tensor, *Kernel) {
 	if t.sym != nil {
-		return symUnary(t, op, p)
+		return symUnary(t, op, p), nil
 	}
-	sy := counterStart(t.be, OpKindExp+OpKind(op)).start()
-	out := emptyOf(isElementwise, t.be, t.shape, t.dtyp)
-	gateUnary(t.be, op, p, out.storage, t.view())
+	be := t.be
+	sy := counterStart(be, OpKindExp+OpKind(op)).start()
+	out := emptyOf(isElementwise, be, t.shape, t.dtyp)
+	c, x := out.storage, t.view()
+	k := newKernel(be, []Storage{c}, []Storage{x.S}, []*Tensor{t, out}, func() {
+		be.Unary(op, p, c, x)
+		sy.finish()
+	})
 	var save []*Tensor
 	tv, os := t.shapeView(), Storage(nil)
 	switch {
@@ -259,8 +279,7 @@ func unary(t *Tensor, op UnOp, p float32) *Tensor {
 		}
 		gateUnaryGrad(in.be, op, p, in.accGrad(), o.grad, tv, os)
 	}, save...)
-	sy.finish()
-	return r
+	return r, k
 }
 
 // AddScalar her elemana s ekler.

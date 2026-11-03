@@ -140,7 +140,7 @@ func broadcastWarning(m *interp.VM, op any, a, b *tensor.Tensor) {
 func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (interp.Value, error) {
 	if s, ok := interp.ToFloat(other); ok {
 		f := float32(s)
-		r, err := safe(func() *tensor.Tensor {
+		r, err := safe(released(m, func() *tensor.Tensor {
 			switch op {
 			case "+":
 				return d.t.AddScalar(f)
@@ -153,7 +153,7 @@ func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (inter
 				// sonuç tensörün türündedir (* + - gibi).
 				return d.t.DivScalar(f)
 			}
-		})
+		}))
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (inter
 	if d.t.Device() != o.Device() {
 		return nil, checkDevice(tensorOperation(op), d.t, o)
 	}
-	r, err := safe(func() *tensor.Tensor {
+	r, err := safe(released(m, func() *tensor.Tensor {
 		switch op {
 		case "+":
 			return tensor.Add(d.t, o)
@@ -186,7 +186,7 @@ func (d *TensorValue) binary(m *interp.VM, op string, other interp.Value) (inter
 		default:
 			return tensor.Div(d.t, o)
 		}
-	})
+	}))
 	if err != nil {
 		return nil, err
 	}
