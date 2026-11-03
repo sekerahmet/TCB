@@ -262,14 +262,14 @@ TR_print(karışık)`)
 	}
 }
 
-// Kural (10.2, S-kilit, izin): kilitsiz öğe öğe işlem (2^22 öğeli `TR_sin`) için de aynısı:
+// Kural (10.2, S-kilit, izin): kilitsiz öğe öğe işlem (2^23 öğeli `TR_sin`; eşik 2^23) için de aynısı:
 // başka görevin girdiye yerinde yazması işlemin bitmesini bekler; sonuç ya eski girdinin
 // sinüsüdür ya sıfırdır (sin 0 = 0), karışığı hiç değildir. İşlem birkaç ms sürer: yazan görevin
 // uykusu (Windows'ta ~1 ms aşar) işlemin içine düşebilsin.
 func TestInPlaceWriteWaitsForTheUnlockedElementwiseOp(t *testing.T) {
 	out := mustRun(t, `TR_var karışık = 0
 TR_for tur TR_in 0..20 {
-    TR_var a = TR_randn([4194304], TR_seed: 1)
+    TR_var a = TR_randn([8388608], TR_seed: 1)
     TR_var eski = TR_sin(a)
     TR_var başla = TR_false
     TR_async {

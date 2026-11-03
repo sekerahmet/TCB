@@ -71,8 +71,9 @@ func stepOn(m *interp.VM, o *Optimizer) {
 	runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return nil, kernel() })
 }
 
-// unlockedStepWork, adımın kilidi bıraktığı en küçük güncellemedir (öğe sayısı; öğe öğe işlemin
-// eşiğiyle aynı, ~1 ms [tahmin]).
+// unlockedStepWork, adımın kilidi bıraktığı en küçük güncellemedir (öğe sayısı). Kural öğe öğe
+// işlemdekiyle aynı (doğrudan süre ≥ 1 ms): Linux L4'te AdamW adımı 2^20'de 1,01 ms, 2^18'de
+// 0,43 ms [ölçüldü: TestUnlockThresholdCost, 2026-11-03].
 const unlockedStepWork = 1 << 20
 
 // onCPU bütün tensörlerin CPU'da olup olmadığıdır.

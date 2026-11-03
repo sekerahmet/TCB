@@ -13,8 +13,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
-// Ölçüm (10.2, S-kilit): kilidi bırakma eşiğinin (2^20 öğe; tensor.unlockedElemWork,
-// unlockedStepWork, unlockedSampleWork) dayanağı. Her işlem ve boy için aynı yorumlayıcıda iki
+// Ölçüm (10.2, S-kilit): kilidi bırakma eşiklerinin (öğe öğe ve indirgeme 2^23:
+// tensor.unlockedElemWork; adım ve örnekleme 2^20: unlockedStepWork, unlockedSampleWork) dayanağı. Her işlem ve boy için aynı yorumlayıcıda iki
 // süre yazılır: doğrudan (kilit altında) ve bırakarak (released ya da stepOn: izinler, Blocking,
 // başka görev canlıyken yarı işçi). Bırakmanın bedeli oranlarıdır; kazancı yalnız işin kendisi
 // uzunsa vardır (kilit yerleşikler arasında zaten devredilir). Eşiğin altında bırakarak yol
@@ -28,7 +28,8 @@ func TestUnlockThresholdCost(t *testing.T) {
 		measureInVM(t, other, func(y *interp.VM) {
 			rng := rand.New(rand.NewSource(1))
 			for _, op := range thresholdOps(y) {
-				for n := 1 << 16; n <= 1<<22; n <<= 2 {
+				for _, k := range []int{16, 18, 20, 22, 23, 24} {
+					n := 1 << k
 					direct, viaRelease := op.run(tensor.Randn(rng, n), tensor.Randn(rng, n))
 					d, r := median(9, direct), median(9, viaRelease)
 					t.Logf("eşik ölçümü: %s n=2^%d, başka görev %v: doğrudan %s, bırakarak %s, oran %.3f",

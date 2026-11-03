@@ -9,10 +9,12 @@ package tensor
 // Çakışan bir kilitsiz işlem varsa prepare kilit geri alınınca yeniden çağrılabilir.
 type UnlockRunner func(prepare func() (*Tensor, *Kernel)) *Tensor
 
-// unlockedElemWork, kilidin bırakıldığı en küçük öğe öğe işlemdir (çıktının öğe sayısı).
-// 2^20 öğe bu makinede yaklaşık 1 ms'lik işlemdir [tahmin]; küçüğünde kilidi bırakıp geri
-// almanın bedeli kazançtan büyüktür (unlockedMatMulWork'le aynı ölçü).
-const unlockedElemWork = 1 << 20
+// unlockedElemWork, kilidin bırakıldığı en küçük öğe öğe işlem ya da indirgemedir (işlenen öğe
+// sayısı). Kural: doğrudan sürenin ≥ 1 ms olduğu en küçük boy (10 ms gecikme payının onda biri);
+// altında kilidi tutmak öbür görevi en çok ~1 ms bekletir, bırakmak ise başka görev varken işi
+// yarı işçiyle yavaşlatır. Linux L4'te 2^22'de `+` 0,62–0,69 ms, exp 0,73–0,81 ms, toplam
+// 0,44 ms; 2^23 ~1,2–1,6 ms [ölçüldü 2^22, hesap 2^23: TestUnlockThresholdCost, 2026-11-03].
+const unlockedElemWork = 1 << 23
 
 // releaseScope etkin Released kapsamıdır; yalnız yorumlayıcı kilidi tutulurken okunur ve
 // yazılır. Kapsam ilk çekirdekte kullanılmış olur (kernels > 0); kilit ancak ondan sonra

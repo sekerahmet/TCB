@@ -363,8 +363,9 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	return NewInt(r), nil
 }
 
-// unlockedSampleWork, örneklemenin kilidi bıraktığı en küçük logit sayısıdır (satır × sınıf;
-// öğe öğe işlemin eşiğiyle aynı, ~1 ms [tahmin]).
+// unlockedSampleWork, örneklemenin kilidi bıraktığı en küçük logit sayısıdır (satır × sınıf).
+// Logit başına iş öğe öğe işlemden ağırdır (exp, en_iyi_k'da sıralama); eşik ölçülmedi,
+// adımınkiyle aynı alındı [tahmin].
 const unlockedSampleWork = 1 << 20
 
 // sampleRows her satırdan (C logit) bir indeks örnekler ve result'a yazar; u satır başına
