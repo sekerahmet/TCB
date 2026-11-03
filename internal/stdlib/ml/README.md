@@ -46,4 +46,5 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_grad_clip_version_test.go`: `TR_fn_clip_grad`'ın gradyan sürümünü CPU ve GPU'da aynı kuralla artırması (katı kipin hatasında artırmaması)
 - `behavior_fused_comparison_grad_test.go`: `TR_fuse` içindeki karşılaştırma ve `TR_fn_is_finite`'in türev izlememesi
 - `behavior_safetensors_order_test.go`: aynı ofsette boş ve dolu tensörlü geçerli safetensors dosyasının okunması
+- `behavior_lock_release_test.go`: uzun tensör işi (`@`) sürerken 5 ms'de bir uyanan görevin kilidi geri alma süresi ve 100 Hz döngünün kaçan turu, tekdüze saatle (10.2; ölçmek için `go test ./internal/stdlib/ml -run TestOtherTasksRunDuringLongTensorWork -v -count=20`)
 - `behavior_safetensors_header_test.go`: safetensors başlığının katı okunması (alan adları, yinelenen anahtar, null, vekil kaçışı)
