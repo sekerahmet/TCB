@@ -12,8 +12,9 @@ type UnlockRunner func(prepare func() (*Tensor, *Kernel)) *Tensor
 // unlockedElemWork, kilidin bırakıldığı en küçük öğe öğe işlem ya da indirgemedir (işlenen öğe
 // sayısı). Kural: doğrudan sürenin ≥ 1 ms olduğu en küçük boy (10 ms gecikme payının onda biri);
 // altında kilidi tutmak öbür görevi en çok ~1 ms bekletir, bırakmak ise başka görev varken işi
-// yarı işçiyle yavaşlatır. Linux L4'te 2^22'de `+` 0,62–0,69 ms, exp 0,73–0,81 ms, toplam
-// 0,44 ms; 2^23 ~1,2–1,6 ms [ölçüldü 2^22, hesap 2^23: TestUnlockThresholdCost, 2026-11-03].
+// yarı işçiyle yavaşlatır. Linux L4'te 2^22'de `+` 0,62 ms, exp 0,73 ms; 2^23'te `+`
+// 1,29–1,36 ms, exp 1,41–1,54 ms; toplam 2^23'te 0,82–0,84 ms (1 ms'nin hemen altı kabul: tek
+// eşik) [ölçüldü: TestUnlockThresholdCost, 2026-11-03].
 const unlockedElemWork = 1 << 23
 
 // releaseScope etkin Released kapsamıdır; yalnız yorumlayıcı kilidi tutulurken okunur ve
