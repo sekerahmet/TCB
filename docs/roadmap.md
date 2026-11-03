@@ -30,7 +30,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
 - **Uygulama fazlar hâlinde ilerliyor.** Her fazın işleri dosya sahipliğine göre ayrılır, paralel kollar aynı dosyaya dokunmaz.
   - **Faz 0, bitti:** toplu ve sıralı işler (kancalar, ad göçleri, ortak sorgular).
   - **Faz 1, sürüyor** (kolların günlük durumu bu belgede tutulmaz; ana oturum depo dışında takip eder):
-    - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi. Üçüncü dilim birleşti (2026-11-02): açılmamış isteğe bağlı değer (3.5), demetin tipi (3.6a, 5.3) ve `TR_JSON` (3.7a) denetim hatası; `TR_JSON` tipli değişmezin denetimi D1'in çalışma anı diliminden sonra gelir;
+    - **4a, denetleyici:** çıkarım, tipsiz parametre ve alan, değeri kullanılmayan çağrı, metodun sayısı ve tipi, imzaların öğe tipi, koşulun tipi. Üçüncü dilim birleşti (2026-11-02): açılmamış isteğe bağlı değer (3.5), demetin tipi (3.6a, 5.3) ve `TR_JSON` (3.7a) denetim hatası; `TR_JSON` tipli değişmezin denetimi D1'in çalışma anı diliminden sonra gelir. Dördüncü dilim sürüyor (2026-11-03): çalışırken sessizce yanlış sonuç veren yazımlar denetim hatası oluyor (indeksle ve anahtarla atama, sözlük anahtarının tipi, ayrı tiplerin `==`'si, satırları paylaşılan liste, yerleşik fonksiyonun argümanı); tanım dosyasının biçimini isteyenler (kısıtlar, çoklu imza) ve karışık liste değişmezi beşinci dilime;
     - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. Üç dilim birleşti (ikincisi ve üçüncüsü 2026-11-02: hata değeri `TR_Error`, 10.2'nin süreyle devreden kilidi; görev değeri, görev listesini beklemek, iptal ve süre sınırı); sıralama ve JSON kaldı;
     - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç;
     - **T1, tensör çekirdeği:** ilk dilim yeni cins istemeyen sessiz yanlışlar (safetensors yazımı, paylaşılan üretecin kaydı, −0.0 sırası, türevin yazma kuralları, yerinde bileşik atama); ikinci dilim cinsli tensör (`TR_Int`, `TR_Bool`, float64). İki dilim de birleşti (2026-11-02; ikincisi `d24b95ea`, gerçek kartta iki hata yakalanıp düzeldi: PTX adı ve kimlik okumasının +%6'sı). Kalan: GPU'da cinsli genel çekirdekler (2b) ve denetleyicinin cins kuralları (4c);
@@ -40,7 +40,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
     - **4c, genel tipler;**
     - **T2:** sinir ağı ve eğitim;
     - **T3:** hız, dosya ve nicemleme;
-    - **K:** uzun yerleşiklerin kilidi.
+    - **K:** uzun yerleşiklerin kilidi. Başladı (2026-11-03, T1): tensörün deposuna okuma ve yazma izni ve kilidi bırakan `@`; bitiş ölçütü uzun tensör işi sürerken başka görevin en çok 10 ms beklemesi ve 100 Hz döngünün tur kaçırmaması. 100 Hz yarısı Windows'ta tutmadı, Linux'ta ölçülecek.
 - **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30). Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç Faz 1'de, iletiler 3'ten sonra ve ajan deneyinin zor-3'ünden önce yapılır; eski adı yasaklayan bir testle.
 
 ## Açık dil tasarım soruları
@@ -290,7 +290,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
       - bölümü olmayanlar: canlı ses (ilk sürüm dış programla), gömme; ses üretimi için fonemleştirme. Dış programlar ve bayttan sayı 21 ve 22'de, sohbet biçimi 24'te;
       - 15'in sonraya bıraktıkları: ses üretimi için ters evrişim, ONNX okuma ve ters Fourier dönüşümleri (`irfft`, `istft`; emsali 23'ün gerekçesinde). STFT ve Mel artık 23'te;
-    - 21–24 yazıldı ve DENETİM'den geçti (2026-11-02: istek 36–39 ve 42–46). Yeni bölüm yazımı, sıradaki dil işi uygulama olana dek durur (Ahmet, 2026-11-02: "mevcutlar bitsin"); önce 16.2'nin kapatması (güvenlik), sonra status'un önem taraması.
+    - 21–24 yazıldı ve DENETİM'den geçti (2026-11-02: istek 36–39 ve 42–46). Yeni bölüm yazımı, sıradaki dil işi uygulama olana dek durur (Ahmet, 2026-11-02: "mevcutlar bitsin"); önce 16.2'nin kapatması (güvenlik), sonra status'un önem taraması. Önem taraması yapıldı (2026-11-03): status'ta sınıflar (sessiz yanlış, güvenlik, güvenilirlik ...) ve öncelikler; 16.2 öncelikli işlerin ilkidir, ilk boşalan kola gider. Gemini'nin bağımsız taraması bölüm bölüm sürüyor, DENETİM her bulguyu yeniden koşuyor.
     - Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar; ses üretiminin üç işi de bu karara girer (Ahmet, 2026-11-02). Uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
 - **Uyarlamak:** hazır bir modeli ince ayarla kendi işine uyarlamak, uçtan uca. LoRA'yı dil yazabiliyor; ama PEFT düzeninde kayıt, ince ayar örneği ve bitiş ölçütü yok (arşiv).
