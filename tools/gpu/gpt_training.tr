@@ -194,7 +194,7 @@ TR_if kayıp != TR_none {
         TR_write_file(TR_Path(koşu.TR_folder, "speed.json"), TR_json_string({"ms_adım": ms,
             "parça_sn": parça_adım * 1000.0 / ms, "ölçülen_adım": ölçülen_adım, "dış_sn": dış / 1000.0,
             "device": TR_default_device(), "hassasiyet": ayar["hassasiyet"], "son_kayıp": son_kayıp}))
-        TR_print("hız: \(TR_round(ms, 1)) ms/adım · \(TR_round(parça_adım * 1000.0 / ms, 0)) parça/sn")
+        TR_print("hız: \(TR_round(ms, 1)) ms/adım · \(TR_round(parça_adım * 1000.0 / ms)) parça/sn")
     }
 }
 # Ağırlıklar örneklerden önce yazılır (Koşu.bitir): üretimde bir hata olsa da eğitimin sonucu kaybolmaz.
