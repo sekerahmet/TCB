@@ -29,6 +29,11 @@ func (t *Tensor) Mean(axis int, keepdim bool) *Tensor {
 }
 
 func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
+	return runElem(t.be, t.Numel(), func() (*Tensor, *Kernel) { return t.sumKernel(axis, keepdim, mean) })
+}
+
+// sumKernel sumScaled'in hazırlığıdır (kilit altında); toplamın kendisi dönen çekirdektir.
+func (t *Tensor) sumKernel(axis int, keepdim, mean bool) (*Tensor, *Kernel) {
 	sy := counterStart(t.be, reduceOp(mean)).start()
 	axis = normAxis(axis, len(t.shape))
 	scale := float32(1)
@@ -46,15 +51,19 @@ func (t *Tensor) sumScaled(axis int, keepdim, mean bool) *Tensor {
 			scale = 1 / float32(n)
 		}
 	}
-	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
-	gateSum(t.be, out.storage, t.view(), axis, scale)
+	be := t.be
+	out := zerosOf(isReduce, be, reducedShape(t.shape, axis, keepdim), t.dtyp)
+	c, x := out.storage, t.view()
+	k := newKernel(be, []Storage{c}, []Storage{x.S}, []*Tensor{t, out}, func() {
+		be.Sum(c, x, axis, scale)
+		sy.finish()
+	})
 	kd := reducedShape(t.shape, axis, true)
 	r := track(out, op, []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
 		gateExpandAdd(in.be, in.accGrad(), in.shape, o.grad, kd, scale)
 	})
-	sy.finish()
-	return r
+	return r, k
 }
 
 // SumAll tüm elemanları toplar ve skaler (0 boyutlu) tensör verir.
@@ -64,6 +73,11 @@ func (t *Tensor) SumAll() *Tensor { return t.allScaled(false) }
 func (t *Tensor) MeanAll() *Tensor { return t.allScaled(true) }
 
 func (t *Tensor) allScaled(mean bool) *Tensor {
+	return runElem(t.be, t.Numel(), func() (*Tensor, *Kernel) { return t.allKernel(mean) })
+}
+
+// allKernel allScaled'in hazırlığıdır (kilit altında); toplamın kendisi dönen çekirdektir.
+func (t *Tensor) allKernel(mean bool) (*Tensor, *Kernel) {
 	sy := counterStart(t.be, reduceOp(mean)).start()
 	scale := float32(1)
 	op := "sum_all"
@@ -75,33 +89,45 @@ func (t *Tensor) allScaled(mean bool) *Tensor {
 		}
 		scale = 1 / float32(n)
 	}
-	out := zerosOf(isReduce, t.be, nil, t.dtyp)
-	gateSumAll(t.be, out.storage, t.view(), scale)
+	be := t.be
+	out := zerosOf(isReduce, be, nil, t.dtyp)
+	c, x := out.storage, t.view()
+	k := newKernel(be, []Storage{c}, []Storage{x.S}, []*Tensor{t, out}, func() {
+		be.SumAll(c, x, scale)
+		sy.finish()
+	})
 	r := track(out, op, []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
 		gateExpandAdd(in.be, in.accGrad(), in.shape, o.grad, nil, scale)
 	})
-	sy.finish()
-	return r
+	return r, k
 }
 
 // Max verilen eksen boyunca en büyük değeri alır. Gradyan, eşitlik halinde
 // ilk en büyük elemana gider.
 func (t *Tensor) Max(axis int, keepdim bool) *Tensor {
-	sy := counterStart(t.be, OpKindMax).start()
+	return runElem(t.be, t.Numel(), func() (*Tensor, *Kernel) { return t.maxKernel(axis, keepdim) })
+}
+
+// maxKernel Max'ın hazırlığıdır (kilit altında); indirgemenin kendisi dönen çekirdektir.
+func (t *Tensor) maxKernel(axis int, keepdim bool) (*Tensor, *Kernel) {
+	be := t.be
+	sy := counterStart(be, OpKindMax).start()
 	axis = normAxis(axis, len(t.shape))
 	if t.shape[axis] == 0 {
 		panic(messages.New(messages.H3065))
 	}
-	out := zerosOf(isReduce, t.be, reducedShape(t.shape, axis, keepdim), t.dtyp)
-	gateMax(t.be, out.storage, t.view(), axis)
-	tv := t.view()
+	out := zerosOf(isReduce, be, reducedShape(t.shape, axis, keepdim), t.dtyp)
+	c, tv := out.storage, t.view()
+	k := newKernel(be, []Storage{c}, []Storage{tv.S}, []*Tensor{t, out}, func() {
+		be.Max(c, tv, axis)
+		sy.finish()
+	})
 	r := track(out, "max", []*Tensor{t}, func(o *node) {
 		in := o.parents[0]
 		gateMaxGrad(in.be, in.accGrad(), o.grad, tv, axis)
 	}, t)
-	sy.finish()
-	return r
+	return r, k
 }
 
 // ArgMax verilen eksen boyunca en büyük elemanın indeksini verir (türevsiz).

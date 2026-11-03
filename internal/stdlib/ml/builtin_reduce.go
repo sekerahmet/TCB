@@ -88,7 +88,9 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 					}
 				}
 			}
-			r, err := safe(func() *tensor.Tensor {
+			// Kilit bırakılarak (released): toplam, ortalama ve max tek çekirdektir; min'de
+			// girdiyi yalnız ilk çekirdek (-x) okur, sonrakiler ara sonucu okur.
+			r, err := safe(released(m, func() *tensor.Tensor {
 				r := fn(t, e, !given, keep)
 				if keep && !given {
 					ones := make([]int, len(sh))
@@ -98,7 +100,7 @@ func reduction(v *interp.VM, kd codes.Code, fn func(t *tensor.Tensor, axis int, 
 					r = r.Reshape(ones...)
 				}
 				return r
-			})
+			}))
 			if err != nil {
 				return nil, err
 			}

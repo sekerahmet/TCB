@@ -198,13 +198,6 @@ func gateLayerNormGrad(be Backend, gx Storage, ggamma Storage, gbeta Storage, g 
 	be.LayerNormGrad(gx, ggamma, gbeta, g, x, gamma, mean, rstd, D)
 }
 
-func gateMax(be Backend, out Storage, x View, axis int) {
-	if unlockedOps.Load() != 0 {
-		gate([]Storage{out}, []Storage{x.S})
-	}
-	be.Max(out, x, axis)
-}
-
 func gateMaxGrad(be Backend, gx Storage, g Storage, x View, axis int) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{gx}, []Storage{g, x.S})
@@ -266,20 +259,6 @@ func gateSort(be Backend, vals Storage, idx Storage, x View, axis int, k int, de
 		gate([]Storage{vals, idx}, []Storage{x.S})
 	}
 	be.Sort(vals, idx, x, axis, k, desc)
-}
-
-func gateSum(be Backend, out Storage, x View, axis int, scale float32) {
-	if unlockedOps.Load() != 0 {
-		gate([]Storage{out}, []Storage{x.S})
-	}
-	be.Sum(out, x, axis, scale)
-}
-
-func gateSumAll(be Backend, out Storage, x View, scale float32) {
-	if unlockedOps.Load() != 0 {
-		gate([]Storage{out}, []Storage{x.S})
-	}
-	be.SumAll(out, x, scale)
 }
 
 func gateSumSquares(be Backend, s Storage) float64 {

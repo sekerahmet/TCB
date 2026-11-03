@@ -6,7 +6,7 @@ import (
 )
 
 // releasedOps dil katmanının Released içinde çağırdığı tek çekirdekli işlemlerdir (ml: unit,
-// gelu, + - * / işleçleri). Yeni bir sarmalama buraya da yazılır.
+// gelu, + - * / işleçleri, toplam, ortalama, max). Yeni bir sarmalama buraya da yazılır.
 var releasedOps = map[string]func(a, b *Tensor) *Tensor{
 	"Exp": func(a, _ *Tensor) *Tensor { return a.Exp() }, "Log": func(a, _ *Tensor) *Tensor { return a.Log() },
 	"Sqrt": func(a, _ *Tensor) *Tensor { return a.Sqrt() }, "Tanh": func(a, _ *Tensor) *Tensor { return a.Tanh() },
@@ -22,6 +22,9 @@ var releasedOps = map[string]func(a, b *Tensor) *Tensor{
 	"AddScalar": func(a, _ *Tensor) *Tensor { return a.AddScalar(2) }, "SubScalar": func(a, _ *Tensor) *Tensor { return a.SubScalar(2) },
 	"MulScalar": func(a, _ *Tensor) *Tensor { return a.MulScalar(2) }, "DivScalar": func(a, _ *Tensor) *Tensor { return a.DivScalar(2) },
 	"Add": Add, "Sub": Sub, "Mul": Mul, "Div": Div,
+	"Sum": func(a, _ *Tensor) *Tensor { return a.Sum(0, false) }, "Mean": func(a, _ *Tensor) *Tensor { return a.Mean(0, true) },
+	"SumAll": func(a, _ *Tensor) *Tensor { return a.SumAll() }, "MeanAll": func(a, _ *Tensor) *Tensor { return a.MeanAll() },
+	"Max": func(a, _ *Tensor) *Tensor { return a.Max(0, false) },
 }
 
 // countingRunner çekirdeği kilitsiz yol gibi çalıştırır (izinle) ve çağrıları sayar.
