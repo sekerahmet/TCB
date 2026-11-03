@@ -460,7 +460,7 @@ TR_print(x.TR_grad)
   - **Aşamalı çözme** kendiliğinden çalışır: `TR_AdamW(TR_parameters(m))` donmuş gövdeyi de tutar; `TR_for p TR_in TR_parameters(m.gövde) { p.TR_requires_grad = TR_true }` onu çözer ve sonraki adımda güncellenir.
   - `TR_load_tensors`'ın varsayılanıyla okunan tensör türev izlemez, parametre değildir: modeli doğrudan bu sözlükten kuran `TR_requires_grad: TR_true` ile okur (olağan yol `TR_load_parameters`'tır, 20.11; o var olan parametrelere yazar).
   - Donma durumu kontrol noktasına girer (20.4): sürdürülen eğitim aynı parametreler donmuş olarak başlar.
-- *Test:* TR testi.
+- *Test:* TR testi; Go: `TestHalfParamWarningOncePerPlace`, `TestHalfParamWarningOnlyHalfParameters`, `TestHalfParamWarningSuggestionRuns`.
 
 **15.35** `op.TR_lr` iyileştiricinin şimdiki öğrenme oranıdır (`TR_Float`) ve atanabilir: `op.TR_lr = 0.0005`, `op.TR_lr *= 0.5`.
 - Yeni oran **sonraki** `.TR_step()`'ten başlayarak kullanılır; momentler ve adım sayaçları değişmez. Isınma, sabit bölüm ve düşürme planları her adımda oranı atayarak yazılır.

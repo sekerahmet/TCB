@@ -360,7 +360,7 @@ var (
 func (p *inPlaceValue) Type() ValueType { return "Yerinde" }
 func (p *inPlaceValue) Inspect() string { return NewInt(p.n).Inspect() }
 func (p *inPlaceValue) IsTruthy() bool  { return p.n != 0 }
-func (p *inPlaceValue) InPlaceOp(op string, rhs Value) (bool, error) {
+func (p *inPlaceValue) InPlaceOp(_ *VM, _ int, op string, rhs Value) (bool, error) {
 	v := rhs.(*IntVal).Val
 	switch op {
 	case "+":
@@ -451,7 +451,7 @@ func (a *accumContainer) SetIndex(idx, val Value) error {
 	a.cells[idx.(*IntVal).Val] = val.(*inPlaceValue)
 	return nil
 }
-func (a *accumContainer) AccumulateIndex(op string, idx, rhs Value) (bool, error) {
+func (a *accumContainer) AccumulateIndex(_ *VM, _ int, op string, idx, rhs Value) (bool, error) {
 	if op == "/" {
 		return true, errors.New("biriktirme hatası")
 	}

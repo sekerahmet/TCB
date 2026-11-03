@@ -425,6 +425,7 @@ d.TR_length	ok	0	name:TR_mem_length
 d.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
 d.TR_q_norm	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_norm
 d.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
+d.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 d.TR_reverse	ok	0	name:TR_mem_reverse
 d.TR_step	ok	0	name:TR_mem_step
 d.TR_stop	ok	0	name:TR_mem_stop
@@ -905,6 +906,7 @@ p.TR_save	ok	0	name:TR_mem_save
 p.TR_shape	ok	0	name:TR_mem_shape
 p.TR_size	ok	0	name:TR_mem_size
 p.TR_table	ambiguous	3	tr:field:lib/layers.tr:TR_type_Embedding.TR_mem_table,tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_table
+p.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 p.TR_token_id	ok	0	name:TR_mem_token_id
 p.TR_tolist	ok	0	name:TR_mem_tolist
 p.TR_vocab_size	ok	0	name:TR_mem_vocab_size
