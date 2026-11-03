@@ -155,9 +155,13 @@ func parameters(fn any, v interp.Value) ([]*tensor.Tensor, error) {
 			return nil, messages.New(messages.H6512, fn, i+1, typeName(el))
 		}
 		t := d.t
-		// Türev izlemeyen yaprak (donmuş, tam sayı) kabul edilir, adımda ve kırpmada atlanır (15.34).
 		if d.intermediate || !t.IsLeaf() {
 			return nil, messages.New(messages.H6514, fn, i+1, tensor.ShapeText(t.Shape()), gradExample)
+		}
+		// Donmuş parametre kabul edilir, adımda ve kırpmada atlanır; hiç türev izlemek için
+		// kurulmamış yaprak (tam sayı, nicemlenmiş da) parametre değildir (15.33, 15.34, 15.36).
+		if !t.IsParameter() {
+			return nil, messages.New(messages.H6995, fn, i+1, tensor.ShapeText(t.Shape()), gradExample)
 		}
 		if seen[t] {
 			return nil, messages.New(messages.H6515, fn, i+1)

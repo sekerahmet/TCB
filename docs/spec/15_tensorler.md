@@ -460,7 +460,7 @@ TR_print(x.TR_grad)
   - **Aşamalı çözme** kendiliğinden çalışır: `TR_AdamW(TR_parameters(m))` donmuş gövdeyi de tutar; `TR_for p TR_in TR_parameters(m.gövde) { p.TR_requires_grad = TR_true }` onu çözer ve sonraki adımda güncellenir.
   - `TR_load_tensors`'ın varsayılanıyla okunan tensör türev izlemez, parametre değildir: modeli doğrudan bu sözlükten kuran `TR_requires_grad: TR_true` ile okur (olağan yol `TR_load_parameters`'tır, 20.11; o var olan parametrelere yazar).
   - Donma durumu kontrol noktasına girer (20.4): sürdürülen eğitim aynı parametreler donmuş olarak başlar.
-- *Test:* TR testi.
+- *Test:* TR testi; TR testi ("15.34 parametre olmayan yaprak: iyileştirici ve kırpma kurulumda hata verir, donmuş parametre kabul edilir"); Go: `TestHalfParamWarningOncePerPlace`, `TestHalfParamWarningOnlyHalfParameters`, `TestHalfParamWarningSuggestionRuns`.
 
 **15.35** `op.TR_lr` iyileştiricinin şimdiki öğrenme oranıdır (`TR_Float`) ve atanabilir: `op.TR_lr = 0.0005`, `op.TR_lr *= 0.5`.
 - Yeni oran **sonraki** `.TR_step()`'ten başlayarak kullanılır; momentler ve adım sayaçları değişmez. Isınma, sabit bölüm ve düşürme planları her adımda oranı atayarak yazılır.
@@ -489,7 +489,7 @@ TR_if (TR_is_finite(L) & TR_is_finite(norm)).TR_item() { op.TR_step() }
 op.TR_zero_grad()
 ```
 
-- *Test:* TR testi; `TR_Bool` dönüşü uygulanınca TR testi.
+- *Test:* TR testi; parametre olmayan yaprakta `TR_clip_grad`: TR testi ("15.34 parametre olmayan yaprak: iyileştirici ve kırpma kurulumda hata verir, donmuş parametre kabul edilir"); `TR_Bool` dönüşü uygulanınca TR testi.
 
 ## Cihaz, bellek ve hız
 
@@ -547,7 +547,7 @@ op.TR_zero_grad()
 - Sonuç `f`'nin döndürdüğü gibi bir tensör ya da tensör demetidir. Tensör ve sayı dışındaki argüman hatadır. Türev isteyen bir girdiye türevlenebilir yoldan bağlı olmayan çıktı türev izlemez.
 - Karşılaştırmalar ve `TR_is_finite` türev izlemez.
 - Sonuç kaynaşmamış hesapla bit bit aynıdır: 16 bitlik ve float32 işlemler float32'de, float64 işlemler float64'te, tam sayı ve mantık işlemleri kendi türünde hesaplanır ve kendi türüne yuvarlanır; tam sayı taşması 15.6'nın bekleyen işlemi gibi cihaz bayrağına yazar. Geri yön float32'dedir (float64 girdide float64) ve gradyana bir kez yuvarlanır. Türev izleyen bir değer (girdi ya da ara sonuç) yayınlanıyorsa ya da aynı türevli girdinin örtüşen görünümleri birleşiyorsa (gradyanı indirgeme ister) hatadır.
-- *Test:* TR testi ("15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir, değişince hatadır", "15.44 kaynaştır: kapanıştaki nesnenin metodunda TR_self nesnenin yoludur, modülün adı da yoldur", "15.44 kaynaştır: izlenemeyen kapanış değeri hatadır; mantık değeri, tam sayı anahtarı ve iç fonksiyonun gölgelediği ad izlenir"); Go: `TestFusedComparisonsMatchUnfusedBits`, `TestFusedMatchesUnfusedBits`, `TestFusedMatchesCPU`, `TestFuseCacheKeyIncludesComputeDType`, `TestFuseCapturedNumberChangeIsAnError`.
+- *Test:* TR testi ("15.44 kaynaştır: kapanıştan okunan sayı ilk çağrıda kaydedilir, değişince hatadır", "15.44 kaynaştır: kapanıştaki nesnenin metodunda TR_self nesnenin yoludur, modülün adı da yoldur", "15.44 kaynaştır: izlenemeyen kapanış değeri hatadır; mantık değeri, tam sayı anahtarı ve iç fonksiyonun gölgelediği ad izlenir", "15.44 kaynaştır: kapanıştan okunan fonksiyon değeri kimliğiyle kaydedilir, gövdesi nerede okunursa okunsun gezilir; blok ve döngü değişkeni yalnız kendi bloğunda yereldir"); Go: `TestFusedComparisonsMatchUnfusedBits`, `TestFusedMatchesUnfusedBits`, `TestFusedMatchesCPU`, `TestFuseCacheKeyIncludesComputeDType`, `TestFuseCapturedNumberChangeIsAnError`.
 
 **15.45** `TR_replay(f)` GPU'da `f`'nin cihaz işini bir kez kaydeder ve sonraki çağrılarda tek seferde oynatır: yorumlayıcı `f`'yi yeniden çalıştırmaz, çekirdek başlatmalarının konak yükü kalkar (üretimin tek dizgecik adımı gibi küçük, sık işler).
 - **Girdi bileşimi başına** (tensörlerin şekli, cinsi, hassasiyeti, cihazı, aynı tensörün kaçıncı argümanda tekrarlandığı; sayı argümanlarının değeri; `TR_compute_dtype()`) ilk çağrı `f`'yi doğrudan çalıştırır (ısınma), ikincisi kaydeder, sonrakiler oynatır; bileşim değişince yeniden kaydedilir.

@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -19,8 +20,10 @@ import (
 // kendi adlarından türeyen değer denetlenmez (argüman bileşimi önbellek anahtarındadır).
 //
 // Genel kural: kapanıştan okunan bir değer izlenemiyorsa sessiz geçmez, kayıtta hatadır (H6987).
-// İzlenen değer sayı, mantık değeri, metin ya da yokluktur; tensör izde hatadır (H3108),
-// fonksiyon değeri kaydedilmez (çağrısı gövdesine inilerek izlenir). Öbür değerler (liste,
+// İzlenen değer sayı, mantık değeri, metin ya da yokluktur; tensör izde hatadır (H3108).
+// Fonksiyon değeri kimliğiyle kaydedilir (kullanıcı fonksiyonunda gövde ve ortam, bağlı metotta
+// gövde ve TR_self, yerleşikte adı) ve gövdesi nerede okunursa okunsun (çağrı, takma ad,
+// argüman) gezilir; gövdesi olmayan kullanıcı fonksiyonu izlenemez. Öbür değerler (liste,
 // sözlük, nesne) bütün olarak okunuyorsa, okunamayan bir yol, kapanıştaki çekirdek değerin
 // (liste, sözlük, metin) yerleşik özelliği ya da metodu ve argümandan beslenmeyen bir kapanış
 // çağrısı izlenemez.
@@ -41,8 +44,8 @@ type fuseCapture struct {
 type captureClass int
 
 const (
-	captureRecorded captureClass = iota // sayı, mantık değeri, metin, yokluk: kaydedilir
-	captureSkipped                      // tensör (izde H3108) ve fonksiyon: kaydedilmez
+	captureRecorded captureClass = iota // sayı, mantık değeri, metin, yokluk, fonksiyon: kaydedilir
+	captureSkipped                      // tensör: kaydedilmez (izde H3108)
 	captureUntraced                     // liste, sözlük, nesne...: bütün olarak izlenemez (H6987)
 )
 
@@ -59,10 +62,23 @@ func captureKey(v interp.Value) (string, captureClass) {
 		return "b" + strconv.FormatBool(x.Val), captureRecorded
 	case *interp.NullVal:
 		return "n", captureRecorded
-	case *TensorValue, *interp.FuncVal, *interp.BuiltinVal:
+	case *interp.FuncVal:
+		return funcKey(x), captureRecorded
+	case *interp.BuiltinVal:
+		return "B" + x.Name, captureRecorded
+	case *TensorValue:
 		return "", captureSkipped
 	}
 	return "", captureUntraced
+}
+
+// funcKey kullanıcı fonksiyonunun kimliğidir. Bağlı metot her okumada yeni bir değerdir: kimliği
+// gövdesi ve TR_self'idir. Öbür fonksiyonda gövde ve ortam (aynı gövdeli iki kapanış ayrıdır).
+func funcKey(f *interp.FuncVal) string {
+	if f.BoundSelf != nil {
+		return fmt.Sprintf("M%p|%p", f.Body, f.BoundSelf)
+	}
+	return fmt.Sprintf("F%p|%p", f.Body, f.Env)
 }
 
 // recordCaptures f'in kapanıştan okuduğu değerleri kaydeder. İzlenemeyen kapanış değeri hatadır.
@@ -99,9 +115,10 @@ type captureWalk struct {
 	err  error
 }
 
-// scope bir fonksiyonun adlarıdır: parametreler ve gövdede tanımlanan adlar; iç fonksiyonun
-// adları yalnız onun kapsamındadır (iç fonksiyonun parametresi dıştaki okumayı yerel yapmaz).
-// Bunlardan biriyle başlayan yol kapanıştan değildir. self, kapanıştaki bir nesnenin metodunda
+// scope bir noktada görünen yerel adlardır: parametreler ve o noktaya kadar tanımlanan adlar.
+// Kapsam bloğa göredir: blokta tanımlanan ad (döngü değişkeni dahil) yalnız o blokta yereldir,
+// iç fonksiyonun parametresi yalnız onun gövdesinde. Bunlardan biriyle başlayan yol kapanıştan
+// değildir. self, kapanıştaki bir nesnenin metodunda
 // TR_self'in okuyucusudur (yolu selfText).
 type scope struct {
 	fv       *interp.FuncVal
@@ -126,46 +143,44 @@ func (w *captureWalk) function(fv *interp.FuncVal, self reader, selfText string)
 	for _, p := range fv.Parameters {
 		s.local[p.Name] = true
 	}
-	declare(s.local, fv.Body)
-	ast.Walk(fv.Body, func(n any) bool { return w.visit(s, n) })
+	w.block(s, fv.Body)
 }
 
-// declare gövdede tanımlanan adları local'e ekler; iç fonksiyonun yalnız adı dışarıdadır,
-// parametreleri ve gövdesi kendi kapsamıdır (visit).
-func declare(local map[string]bool, body *ast.BlockStatement) {
-	ast.Walk(body, func(n any) bool {
-		switch x := n.(type) {
-		case *ast.VarStatement:
-			local[x.Name.Value] = true
-		case *ast.MultiVarStatement:
-			for _, id := range x.Names {
-				local[id.Value] = true
-			}
-		case *ast.ForInStatement:
-			local[x.KeyVar], local[x.ValueVar] = true, true
-		case *ast.FunctionLiteral:
-			if x.Name != "" {
-				local[x.Name] = true
-			}
-			return false
-		}
-		return true
-	})
-}
-
-// inner iç fonksiyonun kapsamıdır: dışın adları, parametreleri ve gövdesinde tanımlananlar.
-func (s scope) inner(f *ast.FunctionLiteral) scope {
-	local := make(map[string]bool, len(s.local)+len(f.Parameters))
+// child s'nin içindeki bir bloğun kapsamıdır: dışın adlarını görür, kendi tanımladıkları dışarı
+// çıkmaz.
+func (s scope) child() scope {
+	local := make(map[string]bool, len(s.local))
 	for k := range s.local {
 		local[k] = true
 	}
-	for _, p := range f.Parameters {
-		local[p.Name] = true
-	}
-	if f.Body != nil {
-		declare(local, f.Body)
-	}
 	return scope{fv: s.fv, local: local, self: s.self, selfText: s.selfText}
+}
+
+// block bir bloğu kendi kapsamında, sırayla gezer: adlandırılmış iç fonksiyonun adı bloğun
+// başından yereldir, değişken tanımından sonra.
+func (w *captureWalk) block(s scope, b *ast.BlockStatement) {
+	in := s.child()
+	for _, st := range b.Statements {
+		ast.Walk(st, func(n any) bool {
+			switch x := n.(type) {
+			case *ast.FunctionLiteral:
+				if x.Name != "" {
+					in.local[x.Name] = true
+				}
+				return false
+			case *ast.BlockStatement:
+				return false
+			}
+			return true
+		})
+	}
+	for _, st := range b.Statements {
+		w.walk(in, st)
+	}
+}
+
+func (w *captureWalk) walk(s scope, n any) {
+	ast.Walk(n, func(n any) bool { return w.visit(s, n) })
 }
 
 // visit bir düğümü işler; false onun çocuklarına inilmeyeceğini söyler.
@@ -174,10 +189,34 @@ func (w *captureWalk) visit(s scope, n any) bool {
 		return false
 	}
 	switch x := n.(type) {
+	case *ast.BlockStatement:
+		w.block(s, x)
+		return false
+	case *ast.VarStatement:
+		w.walk(s, x.Value)
+		s.local[x.Name.Value] = true
+		return false
+	case *ast.MultiVarStatement:
+		for _, v := range x.Values {
+			w.walk(s, v)
+		}
+		for _, id := range x.Names {
+			s.local[id.Value] = true
+		}
+		return false
+	case *ast.ForInStatement:
+		w.walk(s, x.Iterable)
+		in := s.child()
+		in.local[x.KeyVar], in.local[x.ValueVar] = true, true
+		w.block(in, x.Body)
+		return false
 	case *ast.FunctionLiteral:
 		if x.Body != nil {
-			in := s.inner(x)
-			ast.Walk(x.Body, func(n any) bool { return w.visit(in, n) })
+			in := s.child()
+			for _, p := range x.Parameters {
+				in.local[p.Name] = true
+			}
+			w.block(in, x.Body)
 		}
 		return false
 	case *ast.CallExpression:
@@ -206,10 +245,14 @@ func (w *captureWalk) call(s scope, c *ast.CallExpression) {
 			return
 		}
 		callee, ok := s.fv.Env.Get(f.Value)
+		if b, builtin := callee.(*interp.BuiltinVal); builtin && b.Name != f.Value {
+			w.identity(s, f) // yerleşiğe bağlanmış ad (op = TR_relu)
+		}
 		fv, user := callee.(*interp.FuncVal)
 		if !ok || !user {
 			return // yerleşik ya da bilinmeyen: sonucu argümanlarından gelir
 		}
+		w.identity(s, f)
 		w.enter(s, c, fv, nil, "", f.Value)
 	case *ast.MemberExpression:
 		w.method(s, c, f)
@@ -281,7 +324,15 @@ func (w *captureWalk) method(s scope, c *ast.CallExpression, f *ast.MemberExpres
 	if self != nil {
 		selfText = text
 	}
+	w.identity(s, f)
 	w.enter(s, c, fv, self, selfText, text+"."+f.Property)
+}
+
+// identity çağrılan fonksiyon değerinin yolunu kimliğiyle kaydeder; gövdesini çağrı gezer.
+func (w *captureWalk) identity(s scope, e ast.Expression) {
+	if read, text, _, ok := s.pathReader(e); ok {
+		w.record(text, read)
+	}
 }
 
 // usesLocal çağrının bir argümanının fonksiyonun kendi adlarından birini okuyup okumadığını söyler.
@@ -331,17 +382,31 @@ func (w *captureWalk) coreMember(s scope, me *ast.MemberExpression) bool {
 }
 
 // add yolun değerini sınıfına göre kaydeder; okunamayan ya da bütün olarak okunan kap değeri
-// izlenemez (H6987).
+// izlenemez (H6987). Okunan kullanıcı fonksiyonunun gövdesi de gezilir (takma ad, argüman).
 func (w *captureWalk) add(text string, read reader) {
+	if v := w.record(text, read); v != nil {
+		if fv, ok := v.(*interp.FuncVal); ok {
+			w.function(fv, nil, "")
+		}
+	}
+}
+
+// record yolu değeriyle kaydeder ve kaydedilen değeri verir (kaydedilmediyse nil).
+func (w *captureWalk) record(text string, read reader) interp.Value {
 	if w.err != nil {
-		return
+		return nil
 	}
 	v, ok := read(w.vm)
 	k, class := captureKey(v)
+	if fv, fn := v.(*interp.FuncVal); fn && fv.Body == nil {
+		class = captureUntraced // gövdesi gezilemeyen fonksiyon
+	}
 	switch {
 	case !ok || class == captureUntraced:
 		w.err = messages.New(messages.H6987, codes.NameRef(codes.FnFuse), text, "value")
 	case class == captureRecorded:
 		w.caps = append(w.caps, fuseCapture{text: text, read: read, want: k, shown: interp.Shown(v)})
+		return v
 	}
+	return nil
 }

@@ -71,16 +71,18 @@ type IndexAssignable interface {
 // binary operator's text ("+", "-", "*", "/", "//", "%", "**", "&", "|", "^", "<<", ">>"). When ok
 // is true and err is nil, assignOp returns the existing value so callers write the same object
 // back and the binding does not change; when ok is false the VM falls back to the regular path.
+// m is the running VM and line the assignment's line (a warning given once per place, 15.34).
 type InPlaceOperator interface {
-	InPlaceOp(op string, rhs Value) (ok bool, err error)
+	InPlaceOp(m *VM, line int, op string, rhs Value) (ok bool, err error)
 }
 
 // IndexAccumulator provides compound assignment to an index ('x[i] op= y') when the container
 // performs the read-apply-write (or duplicate-index accumulation, e.g. 't[idx] += d') itself. It is
 // tried before InPlaceOperator on the IndexAssignable path; when ok is false the VM falls back to
-// reading with Index, applying the operation with assignOp, and writing with SetIndex.
+// reading with Index, applying the operation with assignOp, and writing with SetIndex. m and line
+// are as in InPlaceOperator.
 type IndexAccumulator interface {
-	AccumulateIndex(op string, idx Value, rhs Value) (ok bool, err error)
+	AccumulateIndex(m *VM, line int, op string, idx Value, rhs Value) (ok bool, err error)
 }
 
 // MemberAssignable provides the assignment 'object.member = value' (e.g. an optimizer's

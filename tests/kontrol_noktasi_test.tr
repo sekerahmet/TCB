@@ -121,7 +121,7 @@ TR_test "20.5 nokta klasörü tensör dosyası, durum ve özet içerir; latest.j
     TR_var son = TR_json_parse(TR_read_file(TR_Path(k, "checkpoints", "latest.json")))
     TR_assert_equal(7, TR_Int(son["step"]))
     TR_assert_equal("step_0000000007", TR_String(son["dir"]))
-    TR_assert_equal(3, TR_Int(son["version"]))
+    TR_assert_equal(4, TR_Int(son["version"]))
     TR_var durum = TR_json_parse(TR_read_file(TR_Path(n, "state.json")))
     TR_assert_equal(7, TR_Int(durum["step"]))
     TR_assert_equal(["w", "op"], [TR_String(durum["objects"][i]["name"]) TR_for i TR_in 0..durum["objects"].TR_length])
@@ -366,6 +366,44 @@ TR_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; n
     TR_assert_equal(1, izlenen["sayaç"])
     TR_assert_equal(0, kn.TR_resume_step)
     TR_assert_equal("H2012", TR_error_code { kn.TR_rollback(1) })
+}
+
+TR_test "15.34 kontrol noktasından donmuş sürdürme: nokta donma durumunu kaydeder, sürdürme ve geri dönüş onu kurar" {
+    TR_var k = koşu("donmuş")
+    # İlk koşu: gövde donmuş, baş eğitiliyor; nokta donma durumunu da kaydeder (20.4).
+    TR_var gövde = param([2], 3)
+    TR_var baş = param([2], 4)
+    TR_var model = {"gövde": gövde, "baş": baş}
+    TR_var op = TR_AdamW(TR_parameters(model), TR_lr: 0.1)
+    TR_var kn = TR_Checkpoint(k, {"model": model, "op": op})
+    gövde.TR_requires_grad = TR_false
+    TR_backward(TR_sum(baş * baş))
+    op.TR_step()
+    kn.TR_update(1)
+    kn.TR_save()
+    # Sürdürme: yeni kurulan model baştan türev izliyor; nokta gövdeyi yeniden dondurur.
+    TR_var gövde2 = param([2], 3)
+    TR_var baş2 = param([2], 4)
+    TR_var model2 = {"gövde": gövde2, "baş": baş2}
+    TR_var op2 = TR_AdamW(TR_parameters(model2), TR_lr: 0.1)
+    TR_var kn2 = TR_Checkpoint(k, {"model": model2, "op": op2})
+    TR_assert_equal(1, kn2.TR_resume_step)
+    TR_assert_equal(TR_false, gövde2.TR_requires_grad)
+    TR_assert_equal(TR_true, baş2.TR_requires_grad)
+    TR_assert_equal(gövde.TR_tolist, gövde2.TR_tolist)
+    TR_assert_equal(baş.TR_tolist, baş2.TR_tolist)
+    # Sürdürülen eğitim donmuş gövdeyi güncellemez.
+    TR_var önce = gövde2.TR_tolist
+    TR_backward(TR_sum(baş2 * baş2))
+    op2.TR_step()
+    TR_assert_equal(önce, gövde2.TR_tolist)
+    # Geri dönüş de noktanın donma durumunu kurar: sonradan çözülen gövde yeniden donar, sonradan
+    # dondurulan baş yeniden türev izler.
+    gövde2.TR_requires_grad = TR_true
+    baş2.TR_requires_grad = TR_false
+    TR_assert_equal(1, kn2.TR_rollback())
+    TR_assert_equal(TR_false, gövde2.TR_requires_grad)
+    TR_assert_equal(TR_true, baş2.TR_requires_grad)
 }
 
 TR_test "20.15 atla sıradaki toplu işleri tensör kurmadan atlar" {

@@ -1,6 +1,9 @@
 package ml
 
 import (
+	"fmt"
+	"sync"
+
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -19,26 +22,28 @@ var inPlaceOps = map[string]bool{
 }
 
 // InPlaceOp t op= u bileşik atamasıdır (interp.InPlaceOperator).
-func (d *TensorValue) InPlaceOp(op string, rhs interp.Value) (bool, error) {
+func (d *TensorValue) InPlaceOp(m *interp.VM, line int, op string, rhs interp.Value) (bool, error) {
 	if !inPlaceOps[op] {
 		return false, nil
 	}
 	if err := checkWrite(d.t, valueTensor(rhs), true); err != nil {
 		return true, err
 	}
+	halfParamWarning(m, line, op, d.t)
 	return true, applyInPlace(d.t, op, rhs)
 }
 
 // AccumulateIndex t[i] op= u ve t[a..b] op= u bileşik atamasıdır (interp.IndexAccumulator):
 // görünüm üstünde yerinde değişir. Türev kuralı indekslenen tensöre bakar (yaprağın görünümü
 // yapraktır).
-func (d *TensorValue) AccumulateIndex(op string, idx interp.Value, rhs interp.Value) (bool, error) {
+func (d *TensorValue) AccumulateIndex(m *interp.VM, line int, op string, idx interp.Value, rhs interp.Value) (bool, error) {
 	if !inPlaceOps[op] {
 		return false, nil
 	}
 	if err := checkWrite(d.t, valueTensor(rhs), false); err != nil {
 		return true, err
 	}
+	halfParamWarning(m, line, op, d.t)
 	var view *TensorValue
 	var err error
 	tensor.NoGrad(func() {
@@ -52,6 +57,38 @@ func (d *TensorValue) AccumulateIndex(op string, idx interp.Value, rhs interp.Va
 	}
 	defer view.Release() // görünüm başlığı bu işlemin ara değeridir
 	return true, applyInPlace(view.t, op, rhs)
+}
+
+// halfWarnings bir programın 16 bit uyarısını gösterdiği yerlerdir (dosya ve satır); programa
+// bağlıdır (yayın uyarısı gibi, interp.VM.ProgramValue).
+type halfWarnings struct {
+	mu    sync.Mutex
+	given map[string]bool
+}
+
+type halfWarningsKey struct{}
+
+// halfParamWarning türevsiz kipte 16 bitlik bir parametreye (15.33, donmuş da) bileşik atamayı
+// programın hata akışına aynı yerde bir kez yazar (15.34): ana kopyasız güncelleme bf16'nın bir
+// ulp'inin altında kalınca yutulur. Türevli kipte parametreye yazım zaten hatadır (checkWrite).
+func halfParamWarning(m *interp.VM, line int, op string, t *tensor.Tensor) {
+	dt := t.DType()
+	if m == nil || tensor.GradEnabled() || dt != tensor.BFloat16 && dt != tensor.Float16 || !t.IsParameter() {
+		return
+	}
+	file := "main"
+	if src := m.CurrentSource(); src != nil {
+		file = src.Name
+	}
+	w := m.ProgramValue(halfWarningsKey{}, func() any { return &halfWarnings{given: map[string]bool{}} }).(*halfWarnings)
+	key := fmt.Sprintf("%s:%d", file, line)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.given[key] {
+		return
+	}
+	w.given[key] = true
+	fmt.Fprintln(m.Err, messages.Text(messages.H6994, file, line, dt.Name(), op))
 }
 
 // applyInPlace dst op rhs'yi türevsiz hesaplar ve dst'nin hassasiyetinde dst'ye yazar.

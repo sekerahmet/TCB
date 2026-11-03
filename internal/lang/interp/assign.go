@@ -33,7 +33,7 @@ func (v *VM) inPlaceHook(codeVal uint8, cur Value, rhs Value, line int) (bool, e
 	if !ok {
 		return false, nil
 	}
-	done, err := h.InPlaceOp(assignOpText(codeVal), rhs)
+	done, err := h.InPlaceOp(v, line, assignOpText(codeVal), rhs)
 	if !done {
 		return false, nil
 	}
@@ -137,7 +137,7 @@ func (v *VM) setIndex(left Value, idx Value, codeVal uint8, rightVal Value, line
 		finalVal := rightVal
 		if codeVal != opAssign {
 			if acc, ok := left.(IndexAccumulator); ok {
-				if done, err := acc.AccumulateIndex(assignOpText(codeVal), idx, rightVal); done {
+				if done, err := acc.AccumulateIndex(v, line, assignOpText(codeVal), idx, rightVal); done {
 					return lineSuffix(line, err)
 				}
 			}

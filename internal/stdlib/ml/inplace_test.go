@@ -1,10 +1,12 @@
 package ml
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 // Kural (15.6d): bileşik atama tensörü yerinde değiştirir; tensörü paylaşan her ad değişikliği
@@ -173,4 +175,83 @@ func TestTypedCompoundAssignAliases(t *testing.T) {
 		{"TR_var f = TR_Tensor([5.0, 7.0])\nf &= 1.0", messages.H6703},
 		{"TR_var m = TR_Tensor([TR_true])\nm <<= 1", messages.H6968},
 	})
+}
+
+// Kural (dil tanımı 15.34): türevsiz kipte 16 bitlik bir parametreye bileşik atama programın hata
+// akışına aynı yerde bir kez uyarı yazar: yerel ad, alan, liste öğesi ve indeksli yazım. Döngüde
+// iki kez çalışan satır tek uyarı verir; güncelleme yutulur (parametre değişmez).
+func TestHalfParamWarningOncePerPlace(t *testing.T) {
+	o := trrun.MustExecChecked(t, `TR_var p = TR_Tensor([1.0, 2.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+TR_struct K { w: TR_Tensor }
+TR_var k = K(p)
+TR_var l = [p]
+TR_no_grad {
+    TR_for i TR_in 0..2 {
+        p -= 0.001
+        k.w -= 0.001
+        l[0] -= 0.001
+        p[0..2] -= 0.001
+    }
+}
+TR_print(p.TR_tolist)`)
+	if o.Out != "[1.0, 2.0]\n" {
+		t.Fatalf("çıktı: %q", o.Out)
+	}
+	for _, line := range []string{"satır 7)", "satır 8)", "satır 9)", "satır 10)"} {
+		if n := strings.Count(o.ErrOut, "Uyarı ("+line); n != 1 {
+			t.Errorf("%s: %d uyarı, 1 bekleniyordu:\n%s", line, n, o.ErrOut)
+		}
+	}
+	if n := strings.Count(o.ErrOut, "Uyarı"); n != 4 {
+		t.Fatalf("%d uyarı, 4 bekleniyordu:\n%s", n, o.ErrOut)
+	}
+}
+
+// Kural: uyarı yalnız 16 bitlik (bf16, fp16) parametrededir, donmuş parametre dahil (15.33);
+// parametre olmayan 16 bitlik tensörde, float32 parametrede ve türevli kipte (donmuş parametreye
+// yazım orada da serbesttir) yoktur. Uyarılar programa bağlıdır.
+func TestHalfParamWarningOnlyHalfParameters(t *testing.T) {
+	const code = `TR_var q = TR_Tensor([1.0], TR_dtype: "bf16")
+TR_var r = TR_Tensor([1.0], TR_requires_grad: TR_true)
+TR_var f = TR_Tensor([1.0], TR_dtype: "fp16", TR_requires_grad: TR_true)
+TR_var d = TR_Tensor([1.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+d.TR_requires_grad = TR_false
+TR_no_grad {
+    q -= 0.5
+    r -= 0.5
+    f -= 0.5
+    d -= 0.5
+}
+d += 0.25
+TR_print(q.TR_tolist, r.TR_tolist, f.TR_tolist, d.TR_tolist)`
+	for i := 0; i < 2; i++ {
+		o := trrun.MustExecChecked(t, code)
+		if o.Out != "[0.5] [0.5] [0.5] [0.75]\n" {
+			t.Fatalf("çıktı: %q", o.Out)
+		}
+		if strings.Count(o.ErrOut, "Uyarı") != 2 || !strings.Contains(o.ErrOut, "Uyarı (satır 9)") ||
+			!strings.Contains(o.ErrOut, "(fp16)") || !strings.Contains(o.ErrOut, "Uyarı (satır 10)") {
+			t.Fatalf("%d. program: fp16 ve donmuş bf16 parametre uyarmalı, öbürleri değil:\n%s", i+1, o.ErrOut)
+		}
+	}
+}
+
+// Kural: iletinin önerdiği yazım (float32 ana kopya, güncelleme onda, parametreye indeksle yazım)
+// uyarısız çalışır ve küçük güncellemeleri biriktirir.
+func TestHalfParamWarningSuggestionRuns(t *testing.T) {
+	for lang, want := range map[string]string{"tr": "`p[0..p.TR_shape[0]] = ana`", "en": "`p[0..p.TR_shape[0]] = master`"} {
+		if text := messages.TextIn(lang, messages.H6994, "main", 3, "bf16", "-"); !strings.Contains(text, want) {
+			t.Errorf("%s: ileti %s önerisini içermiyor: %q", lang, want, text)
+		}
+	}
+	o := trrun.MustExecChecked(t, `TR_var p = TR_Tensor([1.0, 2.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+TR_no_grad {
+    TR_var ana = p.TR_to_dtype("float32")
+    TR_for i TR_in 0..10 { ana -= 0.001 }
+    p[0..p.TR_shape[0]] = ana
+}
+TR_print(p.TR_tolist, p.TR_dtype)`)
+	if o.ErrOut != "" || o.Out != "[0.98828125, 1.9921875] bf16\n" {
+		t.Fatalf("önerilen yazım: çıktı %q, hata akışı %q", o.Out, o.ErrOut)
+	}
 }

@@ -64,6 +64,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H6430, "TR_var f = TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]])", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
 	{messages.H6431, "TR_var f = TR_custom_grad()", "TR_custom_grad()", "TR_custom_grad(TR_forward: (x) => [x * x, [x]], TR_backward: (s, g) => [g * 2 * s[0]])"},
 	{messages.H6514, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var opt = TR_AdamW([w])", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
+	{messages.H6995, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_false)\nTR_var opt = TR_AdamW([w])", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
 	{messages.H6520, "TR_var m = {\"w\": TR_Tensor([1.0], TR_requires_grad: TR_false)}\nTR_load_parameters(m, {\"w\": TR_Tensor([2.0])})", "TR_requires_grad: TR_false", "TR_requires_grad: TR_true"},
 	{messages.H6700, "TR_var w = TR_Tensor([3.0], TR_requires_grad: TR_true) * 1.0\nTR_var g = w.TR_grad", "TR_requires_grad: TR_true) * 1.0", "TR_requires_grad: TR_true)"},
 	{messages.H6811, `TR_var t: TR_Tensor = TR_zeros([1], TR_dtype: "float")`, "float", "float32"},
@@ -178,6 +179,9 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var t = TR_zeros([2, 2])\nTR_var v = t.TR_reshape([4])\nv = TR_Tensor(v)\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "[4]\n"},
 	{messages.H6991, "TR_var v = TR_Tensor([1, 2])\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "TR_Tensor[TR_Float](v)",
 		"TR_var v = TR_Tensor([1, 2])\nv = TR_Tensor[TR_Float](v)\nv.TR_requires_grad = TR_true\nTR_print(v.TR_shape)", "[2]\n"},
+	// 15.34: parametre olmayan yaprak iyileştiricide hatadır; önerisi onu türev izler yapmak (H6995).
+	{messages.H6995, "TR_var w1 = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_var w2 = TR_Tensor([2.0])\nTR_var op = TR_SGD([w1, w2], TR_lr: 0.5)\nTR_backward(TR_sum(w1 * w1 + w2 * w2))\nop.TR_step()\nTR_print(w1.TR_tolist, w2.TR_tolist)", ".TR_requires_grad = TR_true",
+		"TR_var w1 = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_var w2 = TR_Tensor([2.0])\nw2.TR_requires_grad = TR_true\nTR_var op = TR_SGD([w1, w2], TR_lr: 0.5)\nTR_backward(TR_sum(w1 * w1 + w2 * w2))\nop.TR_step()\nTR_print(w1.TR_tolist, w2.TR_tolist)", "[0.0] [0.0]\n"},
 	// 15.24: dikkatin maskesi TR_Bool (H6985'in iki önerisi).
 	{messages.H6985, "TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m).TR_shape)", "m != 0",
 		"TR_var q = TR_zeros([2, 2])\nTR_var m = TR_Tensor([[1.0, 0.0], [1.0, 1.0]])\nTR_print(TR_attention(q, q, q, TR_causal: TR_false, TR_mask: m != 0).TR_shape)", "[2, 2]\n"},

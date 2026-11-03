@@ -14,16 +14,19 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 )
 
-// Kontrol noktası dosya biçimi (sürüm 3). Dosya ve klasör adları, JSON anahtarları ve kayıt
+// Kontrol noktası dosya biçimi (sürüm 4; sürüm 3 de okunur). Dosya ve klasör adları, JSON anahtarları ve kayıt
 // türleri dilden bağımsız İngilizce tanımlayıcılardır (dil tanımı 17.3); değeri bir dil öğesi
-// olan alan (iyileştiricinin adı) kodunu taşır. Eski sürümler okunmaz. Dosyalar güvenilmeyen
+// olan alan (iyileştiricinin adı) kodunu taşır. Sürüm 4 modelin donmuş parametrelerini (15.34,
+// 20.4) yazar; sürüm 3 dosyasında bu alan yoktur ve hiçbir parametre donmuş değil okunur (sürüm 3
+// yazılırken dondurma yoktu). Daha eski sürümler okunmaz. Dosyalar güvenilmeyen
 // girdidir (başkasından gelen ya da yarım kopyalanmış bir koşu klasörü): her dosyanın boyu
 // sınırlıdır, JSON katı çözülür (bilinmeyen alan, fazladan veri hata), sürüm, adım ve dosya
 // adları birbiriyle karşılaştırılır, her dosyanın SHA-256 özeti tutmalıdır. Biçimde yalnızca
 // veri (tensörler, sayılar, metinler) vardır; kod çalıştıran ya da yol çözen hiçbir alan yoktur.
 
 const (
-	formatVersion = 3 // yazılan ve okunan tek sürüm
+	formatVersion = 4 // yazılan sürüm
+	oldestVersion = 3 // okunan en eski sürüm (donma durumu yok)
 
 	dirName    = "checkpoints" // <koşu>/checkpoints/
 	latestFile = "latest.json" // en son kaydedilen noktayı gösterir (araçlar için)
@@ -103,6 +106,7 @@ type objectRecord struct {
 	ParamCount int             `json:"param_count,omitempty"` // iyileştiricinin
 	Length     int64           `json:"length,omitempty"`      // günlüğün bayt uzunluğu
 	Value      json.RawMessage `json:"value,omitempty"`       // düz değer ya da okuyucu durumu (plain.go)
+	Frozen     []string        `json:"frozen,omitempty"`      // modelin donmuş parametrelerinin adları (sürüm 4; frozen.go)
 }
 
 // Nesne türlerinin dosyadaki adları (biçimin parçası; çevrilmez).
@@ -145,10 +149,10 @@ func decodeJSON(b []byte, target any) error {
 // checkVersion dosyanın biçim sürümünü denetler.
 func checkVersion(file string, version int) error {
 	switch {
-	case version == formatVersion:
+	case version >= oldestVersion && version <= formatVersion:
 		return nil
 	case version > formatVersion:
-		return messages.New(messages.H7421, file, version, formatVersion, formatVersion)
+		return messages.New(messages.H7421, file, version, oldestVersion, formatVersion)
 	}
 	return messages.New(messages.H7422, file, version)
 }

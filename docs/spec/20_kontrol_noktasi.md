@@ -31,7 +31,7 @@ Düz bir sayı, metin ya da mantık değeri doğrudan verilemez (kullanıcının
 - *Test:* TR testi.
 
 **20.4** `kn.TR_save()` noktayı hemen, son `TR_update` adımıyla (hiç çağrılmadıysa `TR_resume_step` ile) kaydeder ve noktanın klasörünü `TR_Path` olarak verir: `<koşu>/checkpoints/step_0000001500` (adım 10 basamağa sıfırla doldurulur). Aynı adımın noktası varsa yerine konur. `TR_save`'deki yazma hatası açık hatadır (20.10'dan farklı olarak eğitim sürmez). Her nokta her parametrenin donma durumunu (`.TR_requires_grad`, 15.34) da kaydeder; sürdürme (20.6) onu geri yükler.
-- *Test:* TR testi; donma durumunun kaydı uygulanınca TR testi.
+- *Test:* TR testi ("15.34 kontrol noktasından donmuş sürdürme: nokta donma durumunu kaydeder, sürdürme ve geri dönüş onu kurar"); Go: `TestFrozenStateIsSavedAndResumed`, `TestVersionThreeReadsWithNothingFrozen`, `TestFrozenNameMustBeAParameter`.
 
 **20.5** Bir nokta klasörü üç dosyadır:
 - `tensors.trt`: modellerin tensörleri ve iyileştirici durumları, `TR_save_tensors` biçiminde (her cins ve hassasiyet kendi tür koduyla; `TR_load_tensors` gibi `TR_AnyTensor` okunur, 15.46), adları `<nesne>/<tensör adı>`;

@@ -237,11 +237,20 @@ func runHooked(t *testing.T, code string, broken *atomicBool) (string, error) {
 	return w.String(), err
 }
 
-// resignCheckpoint noktanın digest.json'unu (sürüm 3) state.json ve tensors.trt dosyalarının şimdiki
+// resignCheckpoint noktanın digest.json'unu (yazılan sürümle) state.json ve tensors.trt dosyalarının şimdiki
 // boyları ve SHA-256 özetleriyle yeniden yazar: testler dosyayı bozduktan sonra özet doğru kalır ve
 // yükleme özet denetiminden geçip içerik kurallarına ulaşır. Özet elle yazılır (üretimdeki yazıcı
 // çağrılmaz: yoksa test kendi kendini doğrulardı).
 func resignCheckpoint(t *testing.T, stepDir string, step int) {
+	t.Helper()
+	resignCheckpointVersion(t, stepDir, step, writtenVersion)
+}
+
+// writtenVersion bugünkü yazıcının biçim sürümüdür (format.go'nun formatVersion'ı).
+const writtenVersion = 4
+
+// resignCheckpointVersion resignCheckpoint'tur, özeti verilen sürümle yazar.
+func resignCheckpointVersion(t *testing.T, stepDir string, step, version int) {
 	t.Helper()
 	trtBytes, err := os.ReadFile(filepath.Join(stepDir, "tensors.trt"))
 	if err != nil {
@@ -254,14 +263,14 @@ func resignCheckpoint(t *testing.T, stepDir string, step int) {
 	trtSum := sha256.Sum256(trtBytes)
 	durumSum := sha256.Sum256(durumBytes)
 	ozet := fmt.Sprintf(`{
-  "version": 3,
+  "version": %d,
   "step": %d,
   "files": {
     "state.json": {"bytes": %d, "sha256": %q},
     "tensors.trt": {"bytes": %d, "sha256": %q}
   }
 }
-`, step, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
+`, version, step, len(durumBytes), hex.EncodeToString(durumSum[:]), len(trtBytes), hex.EncodeToString(trtSum[:]))
 	if err := os.WriteFile(filepath.Join(stepDir, "digest.json"), []byte(ozet), 0o644); err != nil {
 		t.Fatal(err)
 	}
