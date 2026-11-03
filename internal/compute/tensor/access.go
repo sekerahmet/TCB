@@ -62,6 +62,10 @@ type Kernel struct {
 	held  bool
 	// share: programda başka görev varken çalışan çekirdek işlemcilerin yarısını bırakır.
 	share bool
+	// begin ve end kilit altında, çekirdeğin bir kez çalışmasının başında (izinler alınınca) ve
+	// sonunda (kilit geri alınınca) çağrılır: bileşik yerleşiğin sayaçları ve sürümleri. Hazırlık
+	// çakışmada yinelenebildiğinden böyle durum hazırlıkta değişmez. nil olabilirler.
+	begin, end func()
 }
 
 // newKernel çekirdeği kurar; holds çalışırken tutulacak tensörlerdir. Yazılan depo okunanlardan
@@ -93,6 +97,16 @@ func containsStorage(ss []Storage, s Storage) bool {
 // TryAcquire izinlerin hepsini birden alır; biri bile çakışıyorsa hiçbirini almaz ve yanlış
 // döner. Yalnız yorumlayıcı kilidi tutulurken çağrılır.
 func (k *Kernel) TryAcquire() bool {
+	if !k.acquire() {
+		return false
+	}
+	if k.begin != nil {
+		k.begin()
+	}
+	return true
+}
+
+func (k *Kernel) acquire() bool {
 	perms.mu.Lock()
 	defer perms.mu.Unlock()
 	if conflicts(k.writes, k.reads) {
@@ -133,8 +147,19 @@ func (k *Kernel) Run() {
 
 // RunLocked çekirdeği kilit altında, kapıdan geçerek çalıştırır (izin almadan).
 func (k *Kernel) RunLocked() {
+	if k.begin != nil {
+		k.begin()
+	}
 	gate(k.writes, k.reads)
 	k.run()
+	k.End()
+}
+
+// End çekirdeğin bitişini kilit altında tamamlar (kilitsiz Run'dan sonra, kilit geri alınınca).
+func (k *Kernel) End() {
+	if k.end != nil {
+		k.end()
+	}
 }
 
 // release izinleri bırakır, bekleyenleri uyandırır ve depoların tutuşunu düşer.

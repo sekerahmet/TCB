@@ -30,13 +30,6 @@ func gateAttentionGradSet(be AttentionGradSetter, gq Storage, gk Storage, gv Sto
 	be.AttentionGradSet(gq, gk, gv, g, q, k, v, mask, o, lse, p, fresh)
 }
 
-func gateAdamWStep(be Backend, p Storage, g Storage, m Storage, v Storage, lr float32, b1 float32, b2 float32, eps float32, wd float32, bc1 float32, bc2 float32) {
-	if unlockedOps.Load() != 0 {
-		gate([]Storage{p, m, v}, []Storage{g})
-	}
-	be.AdamWStep(p, g, m, v, lr, b1, b2, eps, wd, bc1, bc2)
-}
-
 func gateAddTo(be Backend, dst Storage, src Storage, scale float32) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{dst}, []Storage{src})
@@ -219,13 +212,6 @@ func gateRMSNormGrad(be Backend, gx Storage, ggamma Storage, g Storage, x View, 
 	be.RMSNormGrad(gx, ggamma, g, x, gamma, rinv, D)
 }
 
-func gateSGDStep(be Backend, p Storage, g Storage, vel Storage, lr float32, momentum float32, wd float32) {
-	if unlockedOps.Load() != 0 {
-		gate([]Storage{p, vel}, []Storage{g})
-	}
-	be.SGDStep(p, g, vel, lr, momentum, wd)
-}
-
 func gateScale(be Backend, s Storage, k float32) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{s}, nil)
@@ -336,20 +322,6 @@ func gateUpdateSliceAt(be IndexReader, dst View, src View, start View, outer int
 		gate([]Storage{dst.S}, []Storage{src.S, start.S})
 	}
 	be.UpdateSliceAt(dst, src, start, outer, Td, Ts, inner)
-}
-
-func gateAdamWStepAll(be MultiTensorOps, p []Storage, g []Storage, m []Storage, v []Storage, lr float32, b1 float32, b2 float32, eps float32, wd float32, bc1 []float32, bc2 []float32) {
-	if unlockedOps.Load() != 0 {
-		gate(append(append(append([]Storage{}, p...), m...), v...), append([]Storage{}, g...))
-	}
-	be.AdamWStepAll(p, g, m, v, lr, b1, b2, eps, wd, bc1, bc2)
-}
-
-func gateSGDStepAll(be MultiTensorOps, p []Storage, g []Storage, vel []Storage, lr float32, momentum float32, wd float32) {
-	if unlockedOps.Load() != 0 {
-		gate(append(append([]Storage{}, p...), vel...), append([]Storage{}, g...))
-	}
-	be.SGDStepAll(p, g, vel, lr, momentum, wd)
 }
 
 func gateScaleAll(be MultiTensorOps, s []Storage, k float32) {

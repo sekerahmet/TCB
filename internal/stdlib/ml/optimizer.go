@@ -100,11 +100,11 @@ var optimizerType = interp.ValueType(interp.TypeName(codes.TypeOptimizer))
 func (o *Optimizer) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
 	switch kd {
 	case memberStep:
-		return &interp.BuiltinVal{Name: codes.Name(memberStep), NoNamedArgs: true, Fn: func(_ *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+		return &interp.BuiltinVal{Name: codes.Name(memberStep), NoNamedArgs: true, Fn: func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			if len(args) != 0 {
 				return nil, messages.New(messages.H6506, codes.NameRef(memberStep))
 			}
-			if _, err := safe(func() bool { o.opt.Step(); return true }); err != nil {
+			if _, err := safe(func() bool { stepOn(m, o); return true }); err != nil {
 				return nil, err
 			}
 			return interp.Null, nil

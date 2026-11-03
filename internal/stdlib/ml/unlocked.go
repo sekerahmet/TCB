@@ -32,6 +32,7 @@ func runUnlocked(m *interp.VM, prepare func() (*tensor.Tensor, *tensor.Kernel)) 
 		}
 		if k.TryAcquire() {
 			m.Blocking(k.Run)
+			k.End()
 			return r
 		}
 		m.Blocking(k.WaitFree)
@@ -50,6 +51,38 @@ func released(m *interp.VM, f func() *tensor.Tensor) func() *tensor.Tensor {
 			return runUnlocked(m, prepare)
 		}, f)
 	}
+}
+
+// stepOn iyileştiricinin adımıdır: parametreler CPU'daysa ve güncellenecek öğe sayısı en az
+// unlockedStepWork ise kilit bırakılarak, tek çekirdek olarak (bütün izinler birlikte; öbür
+// görevler yarım güncellenmiş parametre görmez, tensor/optimizer_step.go).
+func stepOn(m *interp.VM, o *Optimizer) {
+	var kernel func() *tensor.Kernel
+	switch {
+	case o.adamw != nil:
+		kernel = o.adamw.StepKernel
+	case o.sgd != nil:
+		kernel = o.sgd.StepKernel
+	}
+	if m == nil || kernel == nil || !onCPU(o.params) || tensor.StepWork(o.params) < unlockedStepWork {
+		o.opt.Step()
+		return
+	}
+	runUnlocked(m, func() (*tensor.Tensor, *tensor.Kernel) { return nil, kernel() })
+}
+
+// unlockedStepWork, adımın kilidi bıraktığı en küçük güncellemedir (öğe sayısı; öğe öğe işlemin
+// eşiğiyle aynı, ~1 ms [tahmin]).
+const unlockedStepWork = 1 << 20
+
+// onCPU bütün tensörlerin CPU'da olup olmadığıdır.
+func onCPU(ts []*tensor.Tensor) bool {
+	for _, t := range ts {
+		if t.Device() != tensor.CPU {
+			return false
+		}
+	}
+	return true
 }
 
 // matMulOn a @ b'dir; iş büyükse ve CPU'daysa kilit bırakılarak.

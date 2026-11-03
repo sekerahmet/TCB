@@ -328,3 +328,40 @@ TR_print(tutarsız, yoklama > 0, w1[0].TR_tolist == w2[0][0].TR_tolist)`)
 	}
 	t.Logf("çakışma beklemesi %d", waits.Load())
 }
+
+// Kural (10.2, S-kilit): büyük adım (2^20'den çok öğe) kilit bırakılarak, tek çekirdek olarak
+// çalışır; izinler birlikte alındığından öbür görev w1 ile w2'yi yine hep aynı adımda görür.
+// Yoklayan görevin okuması adımın yazma iznini bekler (çakışma beklemesi > 0). Gradyan
+// sıfırlanmadığından birikir: 60 adımda w = −(1 + … + 60) = −1830.
+func TestUnlockedStepShowsNoHalfUpdatedParameters(t *testing.T) {
+	var waits atomic.Int64
+	tensor.GateWaited = func() { waits.Add(1) }
+	defer func() { tensor.GateWaited = nil }()
+	out := mustRun(t, `TR_var w1 = TR_zeros([4], TR_requires_grad: TR_true)
+TR_var w2 = TR_zeros([1024, 1024], TR_requires_grad: TR_true)
+TR_var op = TR_SGD([w1, w2], TR_lr: 1.0)
+TR_var dur = TR_false
+TR_var tutarsız = 0
+TR_var yoklama = 0
+TR_async {
+    TR_for TR_not dur {
+        TR_if w1[0].TR_tolist != w2[1023][1023].TR_tolist { tutarsız += 1 }
+        yoklama += 1
+        TR_sleep(0.0002)
+    }
+}
+TR_for i TR_in 0..60 {
+    TR_backward(TR_sum(w1) + TR_sum(w2))
+    op.TR_step()
+}
+dur = TR_true
+TR_wait_all()
+TR_print(tutarsız, yoklama > 0, w1[0].TR_tolist == w2[1023][1023].TR_tolist, w1[0].TR_tolist)`)
+	if out != "0 true true -1830.0\n" {
+		t.Fatalf("kilitsiz adım sürerken yarım güncellenmiş parametre görüldü (tutarsız, yoklandı, sonda eşit, w1[0]): %s", out)
+	}
+	if waits.Load() == 0 {
+		t.Fatal("yoklama kilitsiz adımı hiç beklemedi: adım kilit altında çalışmış olabilir")
+	}
+	t.Logf("çakışma beklemesi %d", waits.Load())
+}
