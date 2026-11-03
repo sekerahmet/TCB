@@ -170,11 +170,14 @@ func ListElementError(name any, i int, expected any, given Value) error {
 // extreme min/max'ın (kd) ortak gövdesidir: değerlerin en küçüğünü (buyuk yanlışsa) ya da en
 // büyüğünü döndürür. Karşılaştırma kesindir (4.5, Tam yuvarlanmaz); sonucun tipi işlecin tipidir
 // (13.1, 4.2): Tam ile Ondalık karışırsa kazanan sonra Ondalık'a çevrilir (TR_max(2, 1.5) → 2.0).
-// Sayı olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş girdide yok döner. liste, değerlerin
-// tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).
+// Sayı olmayan değer hatadır; NaN varsa sonuç NaN'dır. Boş liste hatadır (13.1: toplama yapan
+// yerleşik). liste, değerlerin tek bir liste argümanının elemanları olduğunu söyler (hata mesajı için).
 func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, error) {
 	if len(elems) == 0 {
-		return Null, nil
+		if upper {
+			return nil, messages.New(messages.H2624, CallPrefix(kd))
+		}
+		return nil, messages.New(messages.H2625, CallPrefix(kd))
 	}
 	if _, ok := elems[0].(*TupleVal); ok {
 		return extremeTuple(kd, elems, upper)

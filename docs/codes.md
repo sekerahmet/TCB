@@ -2303,9 +2303,9 @@ tr: değişken k = klasör_oluştur("çıktı/kontrol_noktaları"); yazdır(k, k
 
 #### `TR_max(...)` (`TR_fn_max`, `max`)
 
-    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | YokTipi | Tensör
+    max(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
-Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede yok döner. Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok sayının en büyüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
 TR_print(TR_max([2.0, 1.5]), TR_max(3, 7, 5), TR_max(TR_Tensor([[1, 5], [3, 2]]), TR_dim: 0).TR_tolist)
@@ -2360,19 +2360,19 @@ tr: yazdır(ortanca([3, 1, 4, 2]))
 
 #### `TR_min(...)` (`TR_fn_min`, `min`)
 
-    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | YokTipi | Tensör
+    min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
 
-Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede yok döner. Tensörde eksen yalnızca eksen: ile adlı verilir.
+Tek bir listenin ya da birden çok sayının en küçüğünü verir; Tam ile Ondalık karışırsa Ondalık, boş listede hatadır. Tensörde eksen yalnızca eksen: ile adlı verilir.
 
 ```tr
-TR_print(TR_min([3, 1, 2]), TR_min(4, 2.5), TR_min([]))
+TR_print(TR_min([3, 1, 2]), TR_min(4, 2.5), TR_min(1, 1.5))
 ```
 
 Görünümü:
 
 ```text
-en: print(min([3, 1, 2]), min(4, 2.5), min([]))
-tr: yazdır(min([3, 1, 2]), min(4, 2.5), min([]))
+en: print(min([3, 1, 2]), min(4, 2.5), min(1, 1.5))
+tr: yazdır(min([3, 1, 2]), min(4, 2.5), min(1, 1.5))
 ```
 
 İlişkili: `TR_max(...)`
