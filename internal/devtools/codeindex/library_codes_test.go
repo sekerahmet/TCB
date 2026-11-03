@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -43,6 +44,10 @@ TR_struct Model {
     a: TR_Int = 1
 }
 
+TR_struct A {
+    n: TR_Int = 1
+}
+
 TR_func ileri(x: TR_Int) -> TR_Int {
     TR_return x
 }
@@ -50,6 +55,7 @@ TR_func ileri(x: TR_Int) -> TR_Int {
 TR_var d = TR_Linear()
 TR_var l = [1, 2].TR_map((x) => x)
 l.TR_append(3)
+TR_var sh = TR_Tensor([1.0]).TR_shape
 TR_print(d.TR_forward(ileri(3)), TR_lr_schedule(1, 4))
 TR_var f = TR_custom_grad(TR_forward: (x) => { TR_return [x, []] }, TR_backward: (s, g) => { TR_return [g] })
 `,
@@ -124,10 +130,14 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
 		}
 	}
-	for _, q := range []string{"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map"} {
+	for _, q := range []string{"A.TR_shape", "Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map"} {
+		recv, member, _ := strings.Cut(q, ".")
 		res := r.Definition(q, QueryOptions{})
 		out := Text(res)
-		if res.Status != StatusAmbiguous || len(res.Candidates) != 2 || !strings.Contains(out, "no member") || !strings.Contains(out, "is a value: x.") {
+		wantType, wantVal := messages.Text(messages.H8877, recv), messages.Text(messages.H8878, recv, member)
+		hasType := slices.ContainsFunc(res.Candidates, func(n Node) bool { return n.NoteCode == messages.H8877.String() })
+		hasVal := slices.ContainsFunc(res.Candidates, func(n Node) bool { return n.NoteCode == messages.H8878.String() })
+		if res.Status != StatusAmbiguous || !hasType || !hasVal || !strings.Contains(out, wantType) || !strings.Contains(out, wantVal) {
 			t.Errorf("Definition(%q) = %s (%d candidates):\n%s", q, res.Status, len(res.Candidates), out)
 		}
 	}
@@ -141,7 +151,7 @@ func TestHelperLibraryText(t *testing.T) {
 	}
 	r := libraryProject(t)
 	var b strings.Builder
-	for _, q := range []string{"TR_Linear", "TR_lr_schedule", "TR_num_steps"} {
+	for _, q := range []string{"TR_Linear", "TR_lr_schedule", "TR_num_steps", "A.TR_shape"} {
 		b.WriteString(Text(r.Definition(q, QueryOptions{})))
 	}
 	if err := os.WriteFile(filepath.Clean(out), []byte(b.String()), 0o644); err != nil {
@@ -150,25 +160,33 @@ func TestHelperLibraryText(t *testing.T) {
 }
 
 // Kural: çıktı okuyanın dilindedir (TR_LANG). Dizin kimlikleri tutar; kitaplık adı, nitelenmiş adın kodlu
-// parçaları ve imzadaki anahtar sözcük ile parametre adları gösterim dilinde yazılır, kullanıcının yazdığı belge
-// yorumu ve modül adı aynen kalır.
+// parçaları, imzadaki anahtar sözcük ile parametre adları ve belirsiz üye sorgusunun aday etiketleri (H8877, H8878)
+// gösterim dilinde yazılır, kullanıcının yazdığı belge yorumu ve modül adı aynen kalır.
 func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {
 	t.Setenv("TR_LANG", "en")
 	en := string(testkit.RunWithLanguageFile(t, "TestHelperLibraryText", "CODEINDEX_LIBRARY_OUT", "en"))
 	for _, part := range []string{"layers.Linear ", "layers.Linear.forward", "layers.Linear.weight", "func lr_schedule(step, num_steps, warmup = …)",
-		"layers.lr_schedule.num_steps"} {
+		"layers.lr_schedule.num_steps", "[if `A` is a type: it has no such member]", "[if `A` is a value: `x.TR_shape`]"} {
 		if !strings.Contains(en, part) {
 			t.Errorf("English output lacks %q:\n%s", part, en)
 		}
 	}
-	for _, part := range []string{"Doğrusal", "ileri", "öğrenme_oranı_planı", "adım"} {
+	for _, part := range []string{"Doğrusal", "ileri", "öğrenme_oranı_planı", "adım", "bir tipse", "bir değerse"} {
 		if strings.Contains(en, part) {
-			t.Errorf("English output shows the Turkish name %q:\n%s", part, en)
+			t.Errorf("English output shows the Turkish text %q:\n%s", part, en)
 		}
 	}
 	t.Setenv("TR_LANG", "tr")
 	tr := string(testkit.RunWithLanguageFile(t, "TestHelperLibraryText", "CODEINDEX_LIBRARY_OUT", "tr"))
-	if !strings.Contains(tr, "layers.Doğrusal.ileri") || !strings.Contains(tr, "fonksiyon öğrenme_oranı_planı(adım, adım_sayısı, ısınma = …)") {
-		t.Errorf("Turkish output:\n%s", tr)
+	for _, part := range []string{"layers.Doğrusal.ileri", "fonksiyon öğrenme_oranı_planı(adım, adım_sayısı, ısınma = …)",
+		"[`A` bir tipse: bu üyesi yok]", "[`A` bir değerse: `x.TR_shape`]"} {
+		if !strings.Contains(tr, part) {
+			t.Errorf("Turkish output lacks %q:\n%s", part, tr)
+		}
+	}
+	for _, part := range []string{"is a type", "is a value"} {
+		if strings.Contains(tr, part) {
+			t.Errorf("Turkish output shows the English text %q:\n%s", part, tr)
+		}
 	}
 }

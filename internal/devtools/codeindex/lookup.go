@@ -237,12 +237,12 @@ func (r *Reader) resolveMember(q, kind string) []*Node {
 	var out []*Node
 	for _, i := range types {
 		cp := nodes[i]
-		cp.Note = MemberTypeNote(recv, member)
+		cp.NoteCode, cp.Note = MemberTypeNote(recv)
 		out = append(out, &cp)
 	}
 	for _, v := range vals {
 		cp := *v
-		cp.Note = MemberValueNote(recv, member)
+		cp.NoteCode, cp.Note = MemberValueNote(recv, member)
 		out = append(out, &cp)
 	}
 	return out

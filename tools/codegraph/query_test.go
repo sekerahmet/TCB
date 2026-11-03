@@ -451,3 +451,20 @@ func TestWhoUsesSummarizesTheConstructBridge(t *testing.T) {
 	ix.printWhoUses(&out, ix.byID["go:func:github.com/sekerahmet/TCB/internal/lang/interp.resolveMember"], 12)
 	testkit.MustContain(t, out.String(), "<- calls", "interp.compiler.member", "via MemberExpression")
 }
+
+// Kural (DENETİM istek 58 Ş1): aday etiketi Node.Captured alanında değil ayrı Note alanındadır; kapanış (closure)
+// düğümünde de etiket kaybolmaz.
+func TestDescribeShowsCandidateNoteEvenOnAClosure(t *testing.T) {
+	got := describe(&Node{
+		Name:     "pkg.fn$1",
+		Kind:     kindClosure,
+		File:     "pkg/a.go",
+		Line:     10,
+		Captured: []string{"x int"},
+		Note:     "[if `f` is a value: `x.TR_map`]",
+	})
+	testkit.MustContain(t, got, "[if `f` is a value: `x.TR_map`]")
+	if strings.Contains(got, "x int") {
+		t.Errorf("describe printed closure captures as a note: %q", got)
+	}
+}

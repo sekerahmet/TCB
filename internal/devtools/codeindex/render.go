@@ -55,7 +55,7 @@ func Short(n Node) string {
 		s += "  " + n.Pos.String()
 	}
 	if n.Note != "" {
-		s += "  [" + n.Note + "]"
+		s += "  " + n.Note
 	}
 	if n.Ignored {
 		s += "  " + messages.Text(messages.H8870)
