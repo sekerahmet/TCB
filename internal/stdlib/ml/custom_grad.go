@@ -140,7 +140,7 @@ func (o *customOp) call(m *interp.VM, args []interp.Value, named map[string]inte
 	}
 	var result interp.Value
 	var err error
-	tensor.NoGrad(func() { result, err = m.ApplyFunction(o.forward, args, named, 0) })
+	tensor.NoGrad(func() { result, err = applyFunction(m, o.forward, args, named) })
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (o *customOp) backwardFn(forwardVM *interp.VM, args []interp.Value, savedVa
 		} else {
 			g = New(grads[0])
 		}
-		result, err := m.ApplyFunction(o.backward, []interp.Value{savedVals, g}, nil, 0)
+		result, err := applyFunction(m, o.backward, []interp.Value{savedVals, g}, nil)
 		if err != nil {
 			panic(backwardError{err})
 		}
@@ -339,7 +339,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	}
 
 	// Analitik gradyan: L = Σ_k <v_k, y_k> üzerinden geri yayılım.
-	result, err := m.ApplyFunction(f, inputs, nil, 0)
+	result, err := applyFunction(m, f, inputs, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +398,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	numericLoss := func() (float64, error) {
 		var s interp.Value
 		var err error
-		tensor.NoGrad(func() { s, err = m.ApplyFunction(f, inputs, nil, 0) })
+		tensor.NoGrad(func() { s, err = applyFunction(m, f, inputs, nil) })
 		if err != nil {
 			return 0, err
 		}

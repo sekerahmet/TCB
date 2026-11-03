@@ -39,6 +39,15 @@ func runUnlocked(m *interp.VM, prepare func() (*tensor.Tensor, *tensor.Kernel)) 
 	}
 }
 
+// applyFunction TR fonksiyonunu çağırır. Kural (10.2, S-kilit, adım 4): TR koduna geri çağrı
+// (ApplyFunction) yalnız yorumlayıcı kilidi tutulurken yapılır. Kilit bırakılmış bir bölgeden
+// çağrılırsa kilit çağrı süresince geri alınır (VM.Locked). Paketin bütün geri çağrıları
+// buradan geçer (TestCallbacksGoThroughApplyFunction).
+func applyFunction(m *interp.VM, f interp.Value, args []interp.Value, named map[string]interp.Value) (res interp.Value, err error) {
+	m.Locked(func() { res, err = m.ApplyFunction(f, args, named, 0) })
+	return res, err
+}
+
 // released tek çekirdekli bir tensör yerleşiğini (öğe öğe işlem) çalıştıran işlevi verir:
 // çekirdeği büyükse ve CPU'daysa kilit bırakılarak (tensor.Released). Bileşik yerleşikler
 // (geri yayılım, iyileştirici adımı) buradan geçmez: ortalarında kilit bırakılmaz.

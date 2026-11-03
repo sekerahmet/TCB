@@ -169,7 +169,7 @@ func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.V
 	}
 	rec := recorderOf(inputs)
 	if rec == nil || shared {
-		return m.ApplyFunction(r.f, args, nil, 0)
+		return applyFunction(m, r.f, args, nil)
 	}
 	drainReleases()
 	e := r.cache[key.String()]
@@ -180,7 +180,7 @@ func (r *replayFn) call(m *interp.VM, args []interp.Value, _ map[string]interp.V
 	if !e.warm {
 		// Isınma bitmeden işaretlenmez: başka bir görev aynı bileşimi bu arada çağırırsa o da
 		// ısınır (tembel kurulum yarım kalmış bir kayda girmez).
-		res, err := m.ApplyFunction(r.f, args, nil, 0)
+		res, err := applyFunction(m, r.f, args, nil)
 		if err == nil {
 			e.warm = true
 		}
@@ -264,7 +264,7 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 	}()
 	start := tensor.Created()
 	rec.BeginCapture()
-	res, err := m.ApplyFunction(f, vals, nil, 0)
+	res, err := applyFunction(m, f, vals, nil)
 	var outs []*tensor.Tensor
 	single := false
 	if err == nil {

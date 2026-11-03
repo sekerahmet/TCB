@@ -57,7 +57,7 @@ func noGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value) (i
 		var result interp.Value
 		var err error
 		tensor.NoGrad(func() {
-			result, err = m.ApplyFunction(x, nil, nil, 0)
+			result, err = applyFunction(m, x, nil, nil)
 		})
 		if err != nil {
 			return nil, err
