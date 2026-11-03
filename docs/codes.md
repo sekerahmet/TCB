@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 578 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 65 metot, 101 özellik, 138 adlı argüman.
+Toplam 579 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 66 metot, 101 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -1131,7 +1131,7 @@ en: var p = load_tokenizer("tests/data/tokenizer.json"); print(Type(p) == Tokeni
 tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(Tip(p) == Parçalayıcı)
 ```
 
-Üyeleri: `.TR_decode(...)`, `.TR_encode(...)`, `.TR_token_id(...)`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
+Üyeleri: `.TR_batch_decode(...)`, `.TR_decode(...)`, `.TR_encode(...)`, `.TR_token_id(...)`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
 
 #### `TR_TransformerBlock` (`TR_type_TransformerBlock`, `TransformerBloğu`)
 
@@ -4252,7 +4252,7 @@ en: print(load_tokenizer("tests/data/tokenizer.json").encode("merhaba dünya", s
 tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("merhaba dünya", özel_parçalar: yanlış))
 ```
 
-Kullananlar: `.TR_decode(...)`, `.TR_encode(...)`
+Kullananlar: `.TR_batch_decode(...)`, `.TR_decode(...)`, `.TR_encode(...)`
 
 #### `TR_start:` (`TR_arg_start`, `başlangıç`)
 
@@ -4540,6 +4540,25 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 
 
 
+#### `.TR_batch_decode(...)` (`TR_mem_batch_decode`, `toplu_çöz`)
+
+    Parçalayıcı.toplu_çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Liste
+
+Birden çok parça kimliği dizisini (kimlik listelerinin listesi ya da 2 boyutlu tensör) metin listesine geri çevirir; her dizi çöz ile aynı metni verir. Boş liste boş liste verir. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
+
+```tr
+TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p.TR_batch_decode(p.TR_encode(["Merhaba", "dünya"])))
+```
+
+Görünümü:
+
+```text
+en: var p = load_tokenizer("tests/data/tokenizer.json"); print(p.batch_decode(p.encode(["Merhaba", "dünya"])))
+tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p.toplu_çöz(p.kodla(["Merhaba", "dünya"])))
+```
+
+İlişkili: `.TR_decode(...)`
+
 #### `.TR_beta1` (`TR_mem_beta1`, `beta1`)
 
 
@@ -4681,7 +4700,7 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 
     Parçalayıcı.çöz(Liste | Tensör, özel_parçalar: Mantık = yanlış) → Metin | Liste
 
-Parça kimliklerini (liste, listelerin listesi ya da tensör) metne geri çevirir. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
+Tek bir parça kimliği dizisini (kimlik listesi ya da 1 boyutlu tensör) metne geri çevirir; birden çok dizi için toplu_çöz. Varsayılan olarak özel parçaları atlar; özel_parçalar: doğru onları da yazar.
 
 ```tr
 TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p.TR_decode(p.TR_encode("Merhaba dünya!")))

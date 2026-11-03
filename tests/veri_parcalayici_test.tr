@@ -65,19 +65,33 @@ TR_test "16.2 TR_special_tokens: TR_false ile metin eklenmiş parçanın kimliğ
     }
 }
 
-TR_test "16.3 çöz: varsayılan özel parçaları atlar; listeler ve tensörler" {
+TR_test "16.3 çöz: tek dizi; varsayılan özel parçaları atlar" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
     TR_var cümle = "İstanbul'da hava güzel."
     TR_assert_equal(cümle, p.TR_decode(p.TR_encode(cümle)))
     TR_var eot = p.TR_encode(cümle + "<|endoftext|>")
     TR_assert_equal(cümle, p.TR_decode(eot))
     TR_assert_equal(cümle + "<|endoftext|>", p.TR_decode(eot, TR_special_tokens: TR_true))
-    TR_assert_equal(["bir", "iki üç"], p.TR_decode(p.TR_encode(["bir", "iki üç"])))
     TR_assert_equal("", p.TR_decode([]))
-    # Tensör: 1 boyutlu → metin, 2 boyutlu → metin listesi.
     TR_var k = p.TR_encode("bir iki")
     TR_assert_equal("bir iki", p.TR_decode(TR_Tensor(k)))
-    TR_assert_equal(["bir iki", "bir iki"], p.TR_decode(TR_Tensor([k, k])))
+    # Birden çok dizi çöz'e verilmez: ileti toplu_çöz'ü önerir (13.8a).
+    TR_assert_equal("H5642", TR_error_code { p.TR_decode([k, k]) })
+    TR_assert_equal("H5642", TR_error_code { p.TR_decode(TR_Tensor([k, k])) })
+}
+
+TR_test "16.3 toplu_çöz: her dizi çöz ile aynı metin" {
+    TR_var p = TR_load_tokenizer("data/tokenizer.json")
+    TR_var diziler = p.TR_encode(["bir", "iki üç <|endoftext|>"])
+    TR_assert_equal(["bir", "iki üç "], p.TR_batch_decode(diziler))
+    TR_assert_equal([p.TR_decode(d, TR_special_tokens: TR_true) TR_for d TR_in diziler], p.TR_batch_decode(diziler, TR_special_tokens: TR_true))
+    TR_var k = p.TR_encode("bir iki")
+    TR_assert_equal(["bir iki", "bir iki"], p.TR_batch_decode(TR_Tensor([k, k])))
+    TR_assert_equal([], p.TR_batch_decode([]))
+    TR_assert_equal([""], p.TR_batch_decode([[]]))
+    # Tek dizi toplu_çöz'e verilmez: ileti çöz'ü önerir.
+    TR_assert_equal("H5643", TR_error_code { p.TR_batch_decode(k) })
+    TR_assert_equal("H5643", TR_error_code { p.TR_batch_decode(TR_Tensor(k)) })
 }
 
 TR_test "16.5 veri_kümesi: klasör ya da tek .npy dosyası" {
@@ -182,7 +196,7 @@ TR_test "16.8 sıralı: pencereler sırayla, bitince yok" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
     TR_var m = TR_Dataset("data/text").TR_sequential(TR_batch_size: 1, TR_context: 16)
     TR_var mg, mh = m.TR_next()
-    TR_assert(p.TR_decode(mg)[0].TR_starts_with("Bugün hava"))
+    TR_assert(p.TR_batch_decode(mg)[0].TR_starts_with("Bugün hava"))
 }
 
 TR_test "16.8 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {

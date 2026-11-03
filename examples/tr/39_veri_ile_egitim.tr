@@ -40,6 +40,8 @@ TR_var cümle = "Bugün hava çok güzel."
 TR_var kimlikler = p.TR_encode(cümle)
 TR_print("\"\(cümle)\" → \(kimlikler.TR_length) parça: \(kimlikler)")
 TR_print("geri çözülen: \(p.TR_decode(kimlikler))")
+# çöz tek diziyi metne çevirir; birden çok dizi (liste listesi ya da 2 boyutlu tensör) toplu_çöz ile metin listesi olur.
+TR_print("toplu çözülen: \(p.TR_batch_decode(p.TR_encode(["Bugün", "hava güzel"])))")
 # parça_kimliği bir parçanın dağarcıktaki kimliğini verir (yoksa yok). özel_parçalar: yanlış özel parçaları
 # kodlamaya katmaz; ikinci: ile iki metin birlikte kodlanır (soru ve cevap gibi).
 TR_print(TR_Type(p) == TR_Tokenizer, p.TR_token_id("<|endoftext|>"))

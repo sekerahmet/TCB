@@ -366,6 +366,7 @@
   "TR_mem_append_buffer": { "kind": "method", "module": "tr/layers" },
   "TR_mem_attention": { "kind": "property", "module": "tr/layers" },
   "TR_mem_bar": { "kind": "property", "module": "tr/training" },
+  "TR_mem_batch_decode": { "kind": "method", "types": ["TR_Tokenizer"], "params": ["TR_List|TR_Tensor"], "named": [["TR_arg_special_tokens", "TR_Bool", false]], "returns": "TR_List", "related": ["TR_mem_decode"], "example": "TR_var p = TR_load_tokenizer(\"tests/data/tokenizer.json\"); TR_print(p.TR_batch_decode(p.TR_encode([\"Merhaba\", \"dünya\"])))" },
   "TR_mem_beta1": { "kind": "property", "module": "tr/optimizers" },
   "TR_mem_beta2": { "kind": "property", "module": "tr/optimizers" },
   "TR_mem_bias": { "kind": "property", "module": "tr/layers" },
