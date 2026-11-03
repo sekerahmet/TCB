@@ -255,7 +255,7 @@ func TestReviewedSectionsWriteIdentities(t *testing.T) {
 	}
 	// Kimliği olmayan bir ad kimlikle yazılamaz; kimliği gelince buradan silinir.
 	noIdentity := map[string]string{
-		"tr test": "tr test komutunun kimliği yok (birikme listesi D1-12)",
+		"trlang test": "trlang test komutunun kimliği yok (birikme listesi D1-12)",
 		// 2.3a'nın TR_'siz ya da başka bir dilin adıyla yazılan tanıdık ad örnekleri (öneri alır).
 		"print(x)": "2.3a: TR_'siz tanıdık ad örneği", "None": "2.3a: başka bir dilin adı örneği",
 		"def": "2.3a: başka bir dilin anahtar kelimesi örneği", "TR_def": "2.3a: geçerli olmayan kimlik örneği",

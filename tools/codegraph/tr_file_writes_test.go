@@ -21,14 +21,14 @@ type writtenTRScript struct {
 	text string
 }
 
-// e2eWrittenScripts cmd/tr/e2e'nin test dosyalarında .tr dosyasına yazılan betikleri codegraph'tan bağımsız, düz
+// e2eWrittenScripts cmd/trlang/e2e'nin test dosyalarında .tr dosyasına yazılan betikleri codegraph'tan bağımsız, düz
 // sözdizimi ağacından bulur: testkit.WriteFile(t, dir, "ad.tr", metin), testkit.WritePath(t, yol, metin) ve
 // os.WriteFile(yol, []byte(metin), ...); yol ya da ad yazılı bir dize ya da son parçası yazılı olan filepath.Join, metin
 // yazılı bir dize ya da paketin bir dize sabitidir, çağrı bir Test işlevinin içindedir. Değişkenden, tablodan ya da
 // yardımcıdan gelenler sayılmaz.
 func e2eWrittenScripts(t *testing.T, root string) []writtenTRScript {
 	t.Helper()
-	dir := filepath.Join(root, "cmd", "tr", "e2e")
+	dir := filepath.Join(root, "cmd", "trlang", "e2e")
 	fset := token.NewFileSet()
 	entries, err := reporoot.ReadDir(dir)
 	if err != nil {
@@ -209,7 +209,7 @@ func TestEveryScriptAnE2ETestWritesLinksToItsNameCodes(t *testing.T) {
 		uses, _ := codeindex.Snippet(s.text, library)
 		for _, u := range uses {
 			checked++
-			if edge(g, memberID(m.Path+"/cmd/tr/e2e", "", s.test), "name:"+u.Code, edgeTests) == nil {
+			if edge(g, memberID(m.Path+"/cmd/trlang/e2e", "", s.test), "name:"+u.Code, edgeTests) == nil {
 				t.Errorf("%s (%s) writes a TR script that uses %s, but no tests edge comes from the test", s.at, s.test, u.Code)
 			}
 		}

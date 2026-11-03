@@ -1,8 +1,8 @@
-# Derlenmiş program dosyaları (go build / tr build çıktıları); yorumlayıcı bin/ altına derlenir
+# Derlenmiş program dosyaları (go build / trlang build çıktıları); yorumlayıcı bin/ altına derlenir
 bin/
 *.exe
-# Linux ve macOS'ta kökte `go build ./cmd/tr` uzantısız `tr` yazar (2026-10-29: bir dal 16 MB'lık ikiliyi commit'ledi)
-/tr
+# Linux ve macOS'ta kökte `go build ./cmd/trlang` uzantısız `trlang` yazar (2026-10-29: bir dal 16 MB'lık ikiliyi commit'ledi)
+/trlang
 *.exe~
 *.test
 *.out

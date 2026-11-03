@@ -28,7 +28,7 @@ var messageCodeText = regexp.MustCompile(`^H\d{4}$`)
 // kullanılmaz (her ileti bir koddur). Geçiş ilerledikçe liste büyür; bkz.
 // internal/lang/messages/README.md.
 var migrated = []string{
-	"cmd/tr",
+	"cmd/trlang",
 	"internal/compute/dataload",
 	"internal/compute/gpu",
 	"internal/compute/tensor",

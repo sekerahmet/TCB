@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
@@ -19,7 +20,7 @@ import (
 
 // Bu paketteki testler 'main' paketinin iç işlevlerini (gömülü paket biçimi, aktar
 // yönlendirmesi, işlemci notu) doğrudan çağıran beyaz kutu testleridir. Yalnızca derlenmiş
-// 'tr' ikilisini çalıştıran uçtan uca testler cmd/tr/e2e'dadır.
+// 'trlang' ikilisini çalıştıran uçtan uca testler cmd/trlang/e2e'dadır.
 
 // Gömülü paket biçiminin iki testi, paketi gerçek bir yorumlayıcı ikilisinin sonuna ekleyip
 // çalıştırır. İkili yalnızca gerektiğinde, bir kez derlenir (exeDir TestMain'de silinir).
@@ -46,7 +47,7 @@ func trBuild(t *testing.T) string {
 		if exeError != nil {
 			return
 		}
-		name := "tr"
+		name := codes.ProgramName
 		if runtime.GOOS == "windows" {
 			name += ".exe"
 		}
@@ -59,7 +60,7 @@ func trBuild(t *testing.T) string {
 		}
 	})
 	if exeError != nil {
-		t.Fatalf("tr derlenemedi: %v", exeError)
+		t.Fatalf("trlang derlenemedi: %v", exeError)
 	}
 	return trBinary
 }

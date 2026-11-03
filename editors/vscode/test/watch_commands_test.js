@@ -1,6 +1,6 @@
 // İzleme Masası düğme → ileti → VS Code komutu eşlemesinin testi. Bağımlılıksız; depo kökünden:
 //   node editors/vscode/test/watch_commands_test.js
-// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile çalıştırır.)
+// (go test ./cmd/trlang/e2e bunu TestExtensionJSTests ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');

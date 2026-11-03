@@ -1,6 +1,6 @@
 // Kod şablonlarının yazım diline göre seçilmesinin testi. Bağımlılıksız; depo kökünden:
 //   node editors/vscode/test/snippets_test.js
-// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile çalıştırır.) Şablonların kendisi
+// (go test ./cmd/trlang/e2e bunu TestExtensionJSTests ile çalıştırır.) Şablonların kendisi
 // `go run ./tools/gen/snippets` ile üretilir ve tools/gen/snippets testlerinde sınanır.
 'use strict';
 

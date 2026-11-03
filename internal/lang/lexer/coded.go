@@ -175,9 +175,9 @@ func classedSpelling(k codes.Code) string {
 	}
 	switch k.Class() {
 	case codes.ClassCommand:
-		return "tr " + codes.CommandLineName(k)
+		return codes.ProgramName + " " + codes.CommandLineName(k)
 	case codes.ClassSubcommand:
-		return "tr " + codes.CommandLineName(codes.CmdIndex) + " " + codes.CommandLineName(k)
+		return codes.ProgramName + " " + codes.CommandLineName(codes.CmdIndex) + " " + codes.CommandLineName(k)
 	case codes.ClassOption:
 		return codes.OptionFlag(k)
 	}

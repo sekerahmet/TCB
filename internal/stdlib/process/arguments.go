@@ -48,7 +48,7 @@ func isHelpName(name string) bool {
 // isteği (interp.ExitRequest) döndürür.
 func applyArguments(m *interp.VM, options []*option, description string) (*interp.DictVal, error) {
 	var argv []string
-	command := "tr"
+	command := codes.ProgramName
 	if m != nil {
 		argv = m.Args()
 		command = m.ProgramCommand()

@@ -20,10 +20,10 @@ MODEL_STEPS = 300
 
 
 def build(tmp):
-    tr = os.path.join(tmp, "tr" + EXE)
+    tr = os.path.join(tmp, "trlang" + EXE)
     go = os.path.join(tmp, "compare" + EXE)
     env = dict(os.environ)
-    subprocess.run(["go", "build", "-o", tr, "./cmd/tr"], cwd=ROOT, check=True, env=env)
+    subprocess.run(["go", "build", "-o", tr, "./cmd/trlang"], cwd=ROOT, check=True, env=env)
     subprocess.run(["go", "build", "-o", go, "./tools/bench/go"], cwd=ROOT, check=True, env=env)
     return tr, go
 

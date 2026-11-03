@@ -2,7 +2,7 @@
 // F5 / Ctrl+F5 yapılandırmasından yorumlayıcıya giden süreç ve argümanlar. Bağımlılıksız; depo
 // kökünden:
 //   node editors/vscode/test/execution_test.js
-// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile çalıştırır.)
+// (go test ./cmd/trlang/e2e bunu TestExtensionJSTests ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');
@@ -77,7 +77,7 @@ test('F5: yapılandırma olduğu gibi kalır, yorumlayıcı "dap" ile başlar', 
     // Görünüm adresi eklenmez: hata ayıklanan program diskteki dosyadır (görünüm salt okunurdur, view.js).
     assert.strictEqual(await provider.resolveDebugConfigurationWithSubstitutedVariables(undefined, resolved), y);
     assert.strictEqual(y.viewURI, undefined);
-    // "args" başlatma isteğiyle (launch) 'tr dap'a gider; süreç argümanı yalnızca 'dap'.
+    // "args" başlatma isteğiyle (launch) 'trlang dap'a gider; süreç argümanı yalnızca 'dap'.
     const d = adapterFactory.createDebugAdapterDescriptor({ configuration: resolved });
     assert.strictEqual(d.command, INTERPRETER);
     assert.deepStrictEqual(d.args, ['dap']);

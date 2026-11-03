@@ -3,7 +3,7 @@
 # kip seçimi vardır (betiğin --kip argümanı; kiplerin ne yaptığı betiğin başında yazar).
 #
 # Matris iki yapılandırmayı kapsar: dagitim (kullanıcıya giden düz `go build`, GOAMD64=v1,
-# AVX2 çekirdekleri çalışma anında seçilir; durağan denetimler, ARM derlemesi, Go testleri, tr
+# AVX2 çekirdekleri çalışma anında seçilir; durağan denetimler, ARM derlemesi, Go testleri, trlang
 # testleri ve örnekler) ve go-esleri (AVX2 kapalı: assembly'siz Go eşleri).
 #
 # Ayrıca Linux'ta yarış dedektörü (--kip=yaris) ve -short olmadan uzun Go testleri (--kip=uzun)
@@ -32,7 +32,7 @@ jobs:
     env:
       # Örnek duman testinde atlanacak dosyalar (boşlukla ayrılmış adlar). Dış ağ
       # gerektiren örnekler buraya eklenir. 29_hata_ayiklama etkileşimlidir, kesme noktası boş
-      # standart girişte (EOF) devam eder. 15_testler_test ayrıca `tr test` ile koşar.
+      # standart girişte (EOF) devam eder. 15_testler_test ayrıca `trlang test` ile koşar.
       ATLANACAK_ORNEKLER: ""
       # Tek bir örneğin en uzun süresi (saniye); aşılırsa örnek başarısız sayılır.
       ORNEK_ZAMAN_ASIMI: "300"

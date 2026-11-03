@@ -21,7 +21,7 @@ import (
 // tr.json'da değişince ya da başka bir dil dosyası yüklenince mesajlar da değişir.
 //
 // Test, dilin adlarını üreten katmanların (internal/lang, internal/stdlib, internal/devtools,
-// cmd/tr) test dışı Go dosyalarındaki metin sabitlerini tarar. Dilin adları çoğu zaman
+// cmd/trlang) test dışı Go dosyalarındaki metin sabitlerini tarar. Dilin adları çoğu zaman
 // sıradan Türkçe sözcüklerdir ("devam", "doğru", "yok"); bu yüzden bir ad ancak kod gibi
 // yazıldığı yerde yakalanır:
 //   - tip adları (Tam, Liste ...) ve "_" içeren adlar (eşit_olmalı, öğrenme_oranı) her yerde;
@@ -46,7 +46,7 @@ var bareNameAllowances = map[string]map[string]string{
 }
 
 // scanRoots adları koddan üretmesi gereken katmanlardır.
-var scanRoots = []string{"internal/lang", "internal/stdlib", "internal/devtools", "cmd/tr"}
+var scanRoots = []string{"internal/lang", "internal/stdlib", "internal/devtools", "cmd/trlang"}
 
 // skippedFiles kodların kendisini tanımlayan (adları dil dosyasından okuyan) dosyalardır.
 var skippedFiles = map[string]bool{

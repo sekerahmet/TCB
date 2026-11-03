@@ -385,7 +385,7 @@ func TestCheckJSONUsageErrors(t *testing.T) {
 		t.Fatalf("dosyadan sonraki --json: çıkış %d, çıktı %q, hata %q", late.Code, late.Stdout, late.Stderr)
 	}
 	// İletinin önerdiği komut kopyalanınca çalışır.
-	_, suggestion, _ := strings.Cut(strings.TrimSpace(late.Stderr), "E.g. tr ")
+	_, suggestion, _ := strings.Cut(strings.TrimSpace(late.Stderr), "E.g. trlang ")
 	fixed := testkit.RunBinary(t, trBinary, dir, "", []string{"TR_LANG=en"}, strings.Fields(suggestion)...)
 	if fixed.Code != 0 || fixed.Stdout != "" {
 		t.Errorf("önerilen komut %q çalışmadı: çıkış %d, çıktı %q, hata %q", suggestion, fixed.Code, fixed.Stdout, fixed.Stderr)

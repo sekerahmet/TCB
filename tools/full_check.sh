@@ -6,10 +6,10 @@
 #   (bayraksız)       dagitim ve go-esleri kipleri art arda (yerelde birleştirmeden önce)
 #   --kip=dagitim     kullanıcıya giden yapılandırma: düz `go build` (GOAMD64=v1), AVX2
 #                     çekirdekleri çalışma anında seçilir. Durağan denetimler, ARM derlemesi,
-#                     Go testleri, tr testleri (tests/, lib/, examples/) ve örneklerin hepsi.
+#                     Go testleri, trlang testleri (tests/, lib/, examples/) ve örneklerin hepsi.
 #   --kip=go-esleri   AVX2 çekirdekleri kapalı (TR_CPU_AVX2=0): assembly'siz Go eşleri. Derleme,
 #                     assembly'nin bulunduğu paketin ve onun çekirdeklerini en yoğun kullanan
-#                     paketin Go testleri (esleri_paketleri) ve dil tanımı testleri (tr test tests).
+#                     paketin Go testleri (esleri_paketleri) ve dil tanımı testleri (trlang test tests).
 #                     Assembly yalnızca internal/compute/tensor'dadır; öbür paketlerin Go kodu iki
 #                     kipte aynıdır, bütün modülü ikinci kez koşmak denetimi ~3 dk uzatıyordu.
 #   --kip=v3          isteğe bağlı: GOAMD64=v3 derleme ile dagitim'in testleri (kullanıcıya
@@ -34,7 +34,7 @@
 #   --kip=on          ön denetim (~1 dk): üretilmiş dosyalar, gofmt, vet, go.mod, staticcheck,
 #                     ölü kod, düzen kuralları (dosya adı, satır sınırı, Türkçe metin, çıplak ad,
 #                     ileti kullanımı), öbür paketlerdeki depo taramaları, .tr dosyalarının biçimi, dil
-#                     tanımı testleri (tr test tests), değişen
+#                     tanımı testleri (trlang test tests), değişen
 #                     paketlerin kısa testleri, değişen dosyaları koruyan testler (codegraph changed
 #                     --go-tests; veri dosyası değişse de) ve yeni tekrar adayları (codegraph dups --changed;
 #                     yeni aday denetimi düşürür, tam denetimde de).
@@ -46,7 +46,7 @@
 # (deadcode), ARM (arm64) derlemesi ve
 # vet'i, GPU'suz (-tags gpusuz) Linux program dosyasının statik olması, VS Code eklentisinin
 # JavaScript dosyaları ve package.json. Go testleri -short ile koşar (uzun kipi hariç): dil
-# tanımı testleri (tests/) Go testinin içinde yinelenmez, burada `tr test tests` ile koşar.
+# tanımı testleri (tests/) Go testinin içinde yinelenmez, burada `trlang test tests` ile koşar.
 # Örnekler depoda iz bırakmaz: izlenen örnekler ve test verisi geçici bir klasöre kopyalanıp
 # orada çalışır (koşu klasörleri, .trt dosyaları oraya yazılır; her koşu baştan başlar); sonda
 # depodaki değişikliklerin (git status) denetimin başındakiyle aynı olduğu denetlenir.
@@ -246,7 +246,7 @@ watch_failures() {
 watched_ok() {
 	[ "$1" -eq 0 ] && [ ! -s "$seen_fail" ]
 }
-TR="$PWD/bin/tr${ext}"
+TR="$PWD/bin/trlang${ext}"
 p_flag=()
 if [ -n "${TAM_DENETIM_P:-}" ]; then p_flag=(-p "$TAM_DENETIM_P"); fi
 
@@ -378,8 +378,8 @@ static_checks() {
 	# "gpusuz" etiketli derleme statik kalmalıdır (bkz. docs/architecture.md, GPU arka ucu).
 	step "GPU'suz Linux program dosyası statik mi (-tags gpusuz)"
 	static_dir=$(mktemp -d)
-	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$static_dir/tr" ./cmd/tr; then
-		go run ./tools/checkstatic "$static_dir/tr" || fail "gpusuz Linux program dosyası statik değil"
+	if GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags gpusuz -o "$static_dir/trlang" ./cmd/trlang; then
+		go run ./tools/checkstatic "$static_dir/trlang" || fail "gpusuz Linux program dosyası statik değil"
 	else
 		fail "gpusuz Linux derlemesi"
 	fi
@@ -517,7 +517,7 @@ gpu_race() {
 }
 
 build_tr() {
-	mkdir -p bin && go build -o "$TR" ./cmd/tr
+	mkdir -p bin && go build -o "$TR" ./cmd/trlang
 }
 
 # format_checks .tr dosyalarının standart biçimde olduğunu denetler; tam denetim ve ön denetim aynı
@@ -525,9 +525,9 @@ build_tr() {
 format_checks() {
 	# Örnekler öğrenme yoludur: standart biçimde olmalı (kodlu dosya kodlu biçimlenir).
 	# Hata örnekleri (hatalar/) bilerek bozuktur ve biçimlenmez; yalnızca numaralı örnekler ve yardımcılar.
-	summarize "tr format --check examples" "$TR" format --check examples/tr/[0-9]*.tr examples/tr/helpers
+	summarize "trlang format --check examples" "$TR" format --check examples/tr/[0-9]*.tr examples/tr/helpers
 	# Kitaplık, testler ve araç betikleri de standart biçimde olmalı; tests/negative bilerek bozuktur.
-	summarize "tr format --check lib tests tools" "$TR" format --check lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
+	summarize "trlang format --check lib tests tools" "$TR" format --check lib tests/*.tr tests/sub tests/tr tests/coded tools/gpu tools/bench/tr
 }
 
 # extension_tests VS Code eklentisinin davranış testlerini (editors/vscode/test/*_test.js) derlenen
@@ -565,7 +565,7 @@ run_examples() {
 			echo "$output" | tail -1
 		else
 			echo "$output"
-			echo "!! KALDI: tr test examples"
+			echo "!! KALDI: trlang test examples"
 		fi
 		# Her örnek koşar (kodlu saklanır; gösterim dilinden bağımsızlığını e2e TestExamplesSameOutputInEveryDisplayLanguage sınar).
 		for f in examples/tr/*.tr; do
@@ -648,13 +648,13 @@ for mode in $modes; do
 		[ "$mode" = v3 ] || gpu_race
 		step "TR testleri ve örnekler ($mode)"
 		if build_tr; then
-			summarize "tr test tests" "$TR" test tests
-			summarize "tr test lib" "$TR" test lib
+			summarize "trlang test tests" "$TR" test tests
+			summarize "trlang test lib" "$TR" test lib
 			format_checks
 			run_examples
 			[ "$mode" = v3 ] || extension_tests
 		else
-			fail "tr derlemesi"
+			fail "trlang derlemesi"
 		fi
 		;;
 	go-esleri)
@@ -667,7 +667,7 @@ for mode in $modes; do
 		go_tests go-esleri -short -count=1
 		test_paketleri=(./...)
 		step "Dil tanımı testleri (go-esleri)"
-		if build_tr; then summarize "tr test tests (go-esleri)" "$TR" test tests; else fail "tr derlemesi"; fi
+		if build_tr; then summarize "trlang test tests (go-esleri)" "$TR" test tests; else fail "trlang derlemesi"; fi
 		;;
 	yaris)
 		# Eşzamanlı kod: yorumlayıcı (görevler), motorlar, veri hattı (önden yükleme), tensör
@@ -701,14 +701,14 @@ for mode in $modes; do
 		# 9ca4b3df). Düzen kurallarının paketleri yukarıda bütün olarak koşar. Liste elle; codegraph'ın
 		# tarama düğümlerinden üretilmesi tools/codegraph/gaps.md'de.
 		go test "${p_flag[@]}" -short -run "^($(printf '%s|' "${repo_scans[@]}" | sed 's/|$//'))\$" \
-			./internal/lang/messages ./internal/lang/source ./internal/lang/hint ./tools/codegraph ./internal/lang/interp ./cmd/tr 2>&1 | grep -v '^ok\|no test files'
+			./internal/lang/messages ./internal/lang/source ./internal/lang/hint ./tools/codegraph ./internal/lang/interp ./cmd/trlang 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "depo taramaları"
-		step "TR dosyalarının biçimi (tr format --check) ve dil tanımı testleri (tr test tests, ~2 sn)"
+		step "TR dosyalarının biçimi (trlang format --check) ve dil tanımı testleri (trlang test tests, ~2 sn)"
 		# Go'nun kısa kipi dil tanımı testlerini atlıyor; ön denetim onları burada koşar.
 		if build_tr; then
 			format_checks
-			summarize "tr test tests" "$TR" test tests
-		else fail "tr derlenemedi"; fi
+			summarize "trlang test tests" "$TR" test tests
+		else fail "trlang derlenemedi"; fi
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
