@@ -24,15 +24,20 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 - **Ö3:** D, F1, E, F; planın sırasıyla.
 
 **Ö0, sırayla:**
-1. 16.2 ve 16.3 (parçalayıcı; Jarvis'in ön koşulu): ilk boşalan kolun sonraki dilimi. 16.2 (B) **birleşti** (2026-11-03, T1 teslim 1); 16.3 aynı dalda sürüyor.
+1. 16.2 ve 16.3 (parçalayıcı; Jarvis'in ön koşulu): ilk boşalan kolun sonraki dilimi. 16.2 (B) ve 16.3 **birleşti** (2026-11-03, T1 teslim 1 ve 2; `68b7d403`, `2f2c3aef`).
 2. 13.1: `TR_std` n−1, `TR_write_file`'ın baytı, `TR_read_file`'ın geçersiz UTF-8 hatası: Kol A, 4a4'ten sonra ayrı küçük dilim, 4a5'ten önce. **Birleşti** (2026-11-03, `479457b1`; telafili toplam ve `TR_read_bytes` da). FMA'sız yol (C) bu dilime girmez. Hemen ardından aynı kolda `TR_max` ve `TR_round`'un dört sessiz yanlışı (status 13.1, DENETİM istek 71): **birleşti** (2026-11-03, `c428f35f`, 13.1c).
-3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce.
-4. 7.6 ve 7.7'nin özdeşlik kısa devresi (yorumlayıcının eşitliği; DENETİM istek 75): Kol A, 13.1c'den sonraki dilim, 8.5 ile.
+3. 15.34, 15.23a, 15.24, 15.44: Kol B, S-kilitten sonra, 2b'den önce. T1'de sürüyor (2026-11-03 16:41'de başladı; üç teslim).
+4. 7.6 ve 7.7'nin özdeşlik kısa devresi (yorumlayıcının eşitliği; DENETİM istek 75): Kol A, 13.1c'den sonraki dilim, 8.5 ile. **Birleşti** (2026-11-03, `9f758225`).
 5. Komut adının göçü `tr` → `trlang` ("Bölümü olmayan işler"): Gemini (Kodlama2), Claude kollarının dilimini beklemez; birleştirmesi T1 16.2+16.3 ve D1 13.1c'den sonra, sonraki dilimler onun üstünden açılır.
+6. 13'ün yerleşiklerinin sessiz yanlışları (DENETİM istek 81, önem taraması teslim 3): Kol A'nın sıradaki dilimi. Önce modülün içinden yazılan göreli yolun modül klasörüne düşmesi (13.1a, diskte veri eziyor); sonra `TR_median`'ın NaN'ı, JSON'da yinelenen anahtar, metnin bölme ve değiştirmesi (13.2), boş listede `TR_reduce` ve `.TR_append`'in dönüşü (13.6), boş tensör listesinin toplamı, `TR_clamp`'in kesin karşılaştırması (13.10), değer döndürmeyen yerleşikler (10.5 ile), CSV hücresi ve metin olmayan JSON anahtarı, tensörün JSON'u (13.8), tensörde `TR_is_finite` (13.7). Büyük gelirse ikiye: önce yazma yolu, JSON ve CSV; sonra metin ve liste.
+7. Test koşucusu (araç için A): 12.1'in modüldeki testleri ve 12.5'in en dıştaki tanımları.
+8. 11.1'in modül yükleyicisi (A ve B).
+9. 10.4: görevin türevsiz kipi ve hesap türü (küçük; Kol A ya da Kol B).
+Sonra Ö2: `==`'nin derinlik sınırı (4.5) ve 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1c'den sonraki dilim (Ö0 4. madde ile): 8.5'in işletim sistemi hatası (13.1 onsuz birleşti, DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45.
 
-**Gemini'nin bağımsız taraması** (DENETİM istek 63–67; taban `30b44b01`): teslim 1 (bölüm 1–5) DENETİM'den geçti, üç yeni A (1.2, 3.13, 5.5) [ölçüldü: DENETİM istek 67]; teslim 2–6 sürüyor.
+**Gemini'nin bağımsız taraması** (DENETİM istek 63–67; taban `30b44b01`): teslim 1 (bölüm 1–5) DENETİM'den geçti, üç yeni A (1.2, 3.13, 5.5) [ölçüldü: DENETİM istek 67]; teslim 2 (6–9) geçti (istek 68, 75); teslim 3 (10–13) geçti: 26 program tabanda birebir, iki satır main'de kapanmış (13.1'in −0.0'ı ve `TR_std`, `TR_max`, `TR_round` parçaları), A'lar 10–13'e etiketle girdi [ölçüldü: DENETİM istek 81]; teslim 4–6 sırada.
 
 **Sınır:** tarama "Yapılacaklar"ın hepsini, "Mevcut durum"dan risk sözcüğü geçen cümleleri okudu; sözcüksüz anlatılan bir sessiz yanlış kaçmış olabilir. 16.6 ve 18.9'un (kesilen yazma) sessiz olup olmadığı ölçülmedi.
 
@@ -429,6 +434,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 ### 10.1
 
 - **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_async f(x)` ve `TR_async { ... }` bir ifade, görev değeri (`TR_Task`) veriyor; deyim olarak yazılınca değer atılıyor (ayrıştırıcıda `AsyncExpression` deyimi sarar, `TR_try`'ın ifadesi gibi). `g.TR_wait()` sonucu veriyor (blokta `TR_none`) ya da görevin hatasını fırlatıyor; `g.TR_done()` beklemeden durup durmadığını söylüyor; görevin metni "Task" (3.14, tipinin adı). Görevin kendi değerini beklemesi H2918 (doğru yazımı kimlikle verir: sonucu görevin dışında bekleyin); görevde olmayan üye H2474, çalışırken de denetimdeki ipucuyla (üyenin hangi tiplerin metodu olduğu). Denetleyici görevin tipini biliyor: `TR_async f(x)` `TR_Task[T]` (T çağrının tipi), blok `TR_Task[TR_NoneType]` (blok görevini tutan değişken de bu tipi alır, olmayan üyesi denetimde H2474); `g.TR_wait()` T, `g.TR_done()` `TR_Bool`; `TR_Task[TR_String]` yere `TR_Task[TR_Int]` görev H1001. Dönüşü bilinmeyen çağrının görevi parametresiz `TR_Task` (denetleyicinin iç tipi): `.TR_wait()`'in tipi bilinmiyor, tipli yere verilebiliyor. Tip açıklamasında ve tip değerinde yeni kabul yok. Görev ifadesinin içi de denetleniyor (çağrıdaki ya da bloktaki tanımsız ad H1010) [test: `TestATaskValueGivesItsResult`, `TestWaitThrowsTheTasksError`, `TestATaskCannotWaitForItself`, `TestATaskHasOnlyItsMembers`, `TestAsyncIsAnExpression`, `TestATaskHasItsCallsType`, `TestATaskValuesInsideIsChecked`, `tests/eszamanli_test.tr`'nin "10.1 eşzamanlı bir ifadedir" testi].
+- **Yapılacaklar (A, Ö1, 4a2 ve 6.6; pending 3.11; DENETİM istek 81):** dönüş tipi çıkarılmamış fonksiyon ifadesiyle başlatılan görevin tipi parametresiz kalıyor; `TR_Task[TR_Int]`'e atanıp metin taşıyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 
 ### 10.2
 
@@ -448,13 +454,13 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 ### 10.4
 
 - **Mevcut durum:** `TR_no_grad` bloğunda açılan görev türev izliyor: `TR_no_grad { TR_async { ... w * 2.0 ... } }`'in sonucu türevli [ölçüldü: main `8b115692`]; hesap türünün mirası 15.4'ün status'unda (15'in yan değişikliği, uygulanmadı).
-- **Yapılacaklar:** görev açıldığı yerin türevsiz kipini ve hesap türünü alır; TR testi.
+- **Yapılacaklar (A, Ö0; DENETİM istek 81):** görev açıldığı yerin türevsiz kipini ve hesap türünü alır; TR testi. `TR_no_grad` ve `TR_mixed_precision("bf16")` içinde açılan görevin gradyanı 1.0 yerine 3.0, hesap türü bf16 yerine float32 [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 
 ### 10.5
 
 - **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor ve `TR_true` veriyor; 10.5 "sonuç vermez" diyor [ölçüldü: `9abf8ed5`].
 - **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_wait_all(görevler)` görevlerin hepsini bekliyor, sonuçları verilen sırayla liste olarak veriyor (bitme sırası değiştirmiyor). Hatalarda verilen sıradaki ilk hatalı görevin hatası fırlıyor, öbürleri onun `TR_suppressed`'ine sırayla ekleniyor; iki kez verilen görevin hatası bir kez sayılıyor. Görevler ancak bütün liste beklenince beklenmiş sayılıyor (10.6). Görev olmayan öğe H2919, birden çok argüman H2012. Denetleyicide `TR_List[TR_Task[T]]` için sonuç `TR_List[T]` [test: `TestWaitAllGivesResultsAndTheFirstErrorInTheGivenOrder`, `TestWaitAllTakesNoneOrATaskList`, `TestATaskHasItsCallsType`, `tests/eszamanli_test.tr`'nin 10.5 testleri].
-- **Yapılacaklar:** argümansız `TR_wait_all()` sonuç vermez (bugün `TR_true`).
+- **Yapılacaklar (A, Ö0; DENETİM istek 81):** argümansız `TR_wait_all()` sonuç vermez (2026-11-03'te `TR_true`; tam sayı tipli değişkene mantık değeri giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]). 13.10'daki `TR_sleep` ve 13'ün değer döndürmeyen yerleşikleriyle tek iş (DENETİM istek 81 N1).
 
 ### 10.6
 
@@ -486,13 +492,13 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 - **Mevcut durum:** modülün en dışındaki deyim denetim hatası (H1107, 1.1); olumsuz fikstür `tests/negative/modul_en_dis.tr` [ölçüldü: `TestModuleTopLevelHoldsOnlyDefinitions`, 4a1 ilk dilim].
 - **Yapılacaklar:** yok (1.1'e bağlı kalanlar 1.1'in maddesinde).
-- **Gemini Koşu 5 (2026-10-29), uygulanacak (B, Ö1; ölçüm status'un):** göreli modül yolunun programın klasörüne yedek yolu kalkar; harf büyüklüğü diskteki adla aynı olmalı.
+- **Gemini Koşu 5 (2026-10-29), uygulanacak (A ve B, Ö0; DENETİM istek 81 Ş1):** göreli modül yolunun programın klasörüne yedek yolu kalkar; harf büyüklüğü diskteki adla aynı olmalı. A: Windows'ta harf büyüklüğü ayrı iki yazım aynı dosyayı iki modül örneği olarak yüklüyor, paylaşılan durum bozuluyor; B: aktaranın klasöründe olmayan modül programın klasöründen yükleniyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 
 ### 11.2
 
 - **Mevcut durum:** köşeli ayraçla okuma ve atama (`m["PI"]`, `m["PI"] = 9`) takma adda denetimde, çalışma anının koduyla (H2904), ileti `m.PI`'yi öneriyor; indeks ad gibi yazılmış bir metin değilse (`m[k]`) ve tipi bilinmeyen kopyada çalışma anında [ölçüldü: `TestModuleValueRules`, `tests/negative/modul_koseli_ayrac.tr`, `tests/moduller_test.tr`'nin 11.2 testi].
 - **Mevcut durum:** `TR_as` bir `TR_Dict` bağlıyor; modülde olmayan bir ad (m.yok) denetimden geçiyor ve çalışırken `TR_none` veriyor [ölçüldü: main `a9a1ba14`].
-- **Yapılacaklar:** modül değeri; adların tipi denetimde; köşeli ayraçla erişim (çalışma anının kodu H2904), olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
+- **Yapılacaklar (A; denetim kısmı Ö1, 4a5; çalışma anında olmayan adın `TR_none`'u Ö0; DENETİM istek 81 Ş2):** modül değeri; adların tipi denetimde; köşeli ayraçla erişim (çalışma anının kodu H2904), olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
 
 ### 11.3
 
@@ -525,7 +531,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.1
 
-- **Yapılacaklar:** test dosyasının tanımı (1.1'in en dış kuralı ona dayanıyor): rehber adı `_test.tr` ile biten dosya diyor, ama `tests/yardimci_testli.tr` de test bloğu içeriyor [kanıtlı: DENETİM 12-1]. Testin hangi cihazda koştuğu ve cihazlar arası tolerans 15'in E parçasında.
+- **Yapılacaklar (A, araç için de A, Ö0; DENETİM istek 81; test komutu adı `_test.tr` ile bitmeyen testli modülü ve aktarılan modülün testlerini koşmadan "1 test, 1 geçti" ve çıkış 0 veriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** test dosyasının tanımı (1.1'in en dış kuralı ona dayanıyor): rehber adı `_test.tr` ile biten dosya diyor, ama `tests/yardimci_testli.tr` de test bloğu içeriyor [kanıtlı: DENETİM 12-1]. Testin hangi cihazda koştuğu ve cihazlar arası tolerans 15'in E parçasında.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** test dosyası tanımı (göç işi bitti: en dışta deyim içeren dosya kalmadı, 4a1 ilk dilim) [ölçüldü: main `85a19c36`, iki dosyanın denetimi].
 
 ### 12.2
@@ -535,8 +541,8 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.3
 
-- **Mevcut durum:** tensör eşitliği doğrulamada tek mantık değeriyle geçiyor [ölçüldü].
-- **Yapılacaklar:** 15'in öğe öğe eşitliğiyle birlikte denetim hatası ve ileti.
+- **Mevcut durum (2026-11-03, main `51b75f0a`):** tensörün `==`'si doğrulamada denetim hatası [ölçüldü: DENETİM istek 81]; ileti tensöre hâlâ `TR_assert(x == beklenen)` öneriyor.
+- **Yapılacaklar (F1, Ö3; DENETİM istek 81):** iletinin tensöre doğru yazımı önermesi (15'in öğe öğe eşitliğiyle).
 
 ### 12.4a
 
@@ -553,53 +559,57 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 - **Mevcut durum:** en dıştaki tanımlar testler arasında paylaşılıyor: bir testin en dıştaki değişkene atadığı değer sonraki testte görünüyor [ölçüldü: main `85a19c36`, en dıştaki sayaç ve onu artıran fonksiyonla]; aktarılan modülün durumu da sızıyor [ölçüldü: DENETİM]. Tohumsuz rastgelelik T1'den (20.17) beri koşudan koşuya aynı, ama paylaşılan üreteç testler arasında paylaşılıyor: ikinci test birincinin kaldığı yerden çekiyor, tek başına koşulan bir test başka sayı alıyor; 12'nin "her test programın başlangıç durumunda başlar" kuralına aykırı [ölçüldü: DENETİM, T1'in birleşik dalı, iki testin `TR_randn([2])`'si `[-1.0469432, -1.7477671]` ve `[0.32232177, 0.13958974]`].
 - **4a1 ilk dilim (2026-10-30):** test dosyasının en dışındaki deyim ve sabit olmayan ilk değer denetim hatası (H1107, H1108); depodaki yerler (1 deyim, geçici klasör ve komut satırı ayarı) kurulum fonksiyonuna alındı [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`].
-- **Yapılacaklar (C, Ö2; ölçüm status'un):** en dıştaki tanımların her test için yeniden kurulması; her testin üreteci aynı durumda başlatması (20.17'nin sabit başlangıç durumundan sonra); TR testleri.
+- **Yapılacaklar (A, araç için de A, Ö0; DENETİM istek 81 Ş3):** en dıştaki tanımların her test için yeniden kurulması: bir testin değiştirdiği en dıştaki sayaç sonraki teste geçiyor, kalması gereken test geçiyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]; TR testi.
+- **Yapılacaklar (C, Ö2; DENETİM istek 81 Ş3):** her testin üreteci aynı durumda başlatması (20.17'nin sabit başlangıç durumundan sonra; 13'ün girişindeki satırla aynı iş): sonuç test sırasına bağlı; TR testi.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** hatalı test bitmemiş görevlerini önce iptal eder (10.9); bugün sonsuz işçiyle asılı kalıyor.
 
 ## 13. Yerleşikler
 
 Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tur (2026-10-28): ana oturum yazdı; dört turu DENETİM, 1. turu ana oturum, 5. turu (dokuz iş) ikisi, 6. turu Gemini'nin araştırması (DENETİM doğruladı: 7 onay, 5 koşullu) inceledi; bulgular işlendi. Sonra Gemini Koşu 6 (`c784c47a`) ve Koşu 3'ün 13.1 ile 13.10 bulguları (`0edb6f20`) işlendi (2026-10-29). Uygulama 6. ve 7. turun kararlarını henüz almadı: ayırıcısız `TR_split`, `TR_split("")`'in hatası, JSON'un yinelenen anahtarı, `TR_median([1.0, 2.0, TR_nan])` (bugün 1.0), yazma yolunun programın klasörüne düşmesi, `TR_clamp(5)`'in iletisindeki eski kimlik, fonksiyon yerine verilen tipin iletisi eski davranışta [ölçüldü: DENETİM]. O listeden `TR_std`'nin n−1'i, telafili toplama ve sıfırın işareti 13.1'de, yarımı çifte yuvarlama 13.1c'de uygulandı (aşağıdaki Mevcut durum). `tests/yerlesikler_test.tr` eski kuralları da sınıyor (kazanan değerin tipi, sayı hücreli CSV, `TR_mean`'in tek tek değerleri); kural uygulanırken yeniden yazılır.
-- **Yapılacaklar (T1 birleşmesi, 2026-11-02):** test koşucusu her testten önce paylaşılan üreteci başlangıç durumuna (`"pcg:00000000000054520000000000002017"`) koysun; test koşucusunun (12) işi [kanıtlı: DENETİM, `kol-denetim-istek20-sonuc.md` C].
+- **Yapılacaklar (C, Ö2, T1 birleşmesi, 2026-11-02; DENETİM istek 81 Ş3):** test koşucusu her testten önce paylaşılan üreteci başlangıç durumuna (`"pcg:00000000000054520000000000002017"`) koysun; test koşucusunun (12) işi [kanıtlı: DENETİM, `kol-denetim-istek20-sonuc.md` C].
+- **Yapılacaklar (A, Ö0; DENETİM istek 81):** alt maddelerde satırı olmayan üç kural [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]: modülün içinden yazılan göreli yol modülün klasöründeki dosyayı eziyor (13.1a; diskte veri kaybı, en önce); `TR_median([1.0, 2.0, TR_nan])` NaN yerine 1.0 veriyor; `TR_json_parse` yinelenen anahtarda hata yerine sonuncuyu alıyor.
 ### 13.1
 
 - **Mevcut durum:** `TR_max`'ta metin argüman hata; `TR_max(1)` 1 veriyor; `TR_mean(1, 2)` 1.5 (depoda 2 yer); `TR_round(TR_nan)` hata; `TR_print` yazdığı metni, `TR_sleep(0)` ve `TR_wait_all()` `TR_true` döndürüyor; boş listede `TR_mean`, `TR_std`, `TR_median` hata [ölçüldü: DENETİM].
 - **Mevcut durum:** 13.1'in −0.0 kuralı uygulandı (`TR_max([-0.0, 0.0])` → `0.0`, `TR_min([0.0, -0.0])` → `-0.0`) [ölçüldü: DENETİM istek 71]. Tam sayı listesinde `TR_mean`'ın toplamı değişmedi (ondalığa çevrilerek; `TR_mean([9007199254740993, 1])` yuvarlıyor, dil tanımı sorusu `pending.md`'de). Ondalık toplam soldan sağa telafili (Neumaier; `TR_sum([1e16, 1.0, -1e16])` → `1.0`), `TR_mean` ve `TR_std` aynı toplayıcıyı kullanıyor [test: yerlesikler_test "13.1 ondalık toplam soldan sağa telafilidir"]. `TR_std` örneklem sapması: n−1'e bölüyor, iki geçişli, tek öğede H2620 [test: yerlesikler_test "13.1 TR_std örneklem sapmasıdır"]. `TR_write_file` yalnız `TR_String` (UTF-8) ve `TR_Bytes` (bayt bayt) yazıyor, öbür değer çalışma anında ve denetimde H2423, JSON değeri H2623 (öneri `TR_json_string(...)`, DENETİM 73 Ş1) [test: yerlesikler_test "13.1 TR_write_file"; fikstür `tests/negative/dosya_yaz_icerigi.tr`]. `TR_read_bytes` dosyayı `TR_Bytes` olarak olduğu gibi okuyor (`.gz` açılmaz; dil tanımı sorusu `pending.md`'de), yazılan bayt dizisi aynen dönüyor [test: yerlesikler_test "13.1 TR_read_bytes"]. `TR_read_file` geçerli UTF-8 olmayan dosyada H2621 veriyor, ileti çağrının yoluyla `TR_read_bytes`'ı öneriyor; `.gz`'de açılmış içerik geçersizse H2622 (öneri yok) [test: `TestReadFileInvalidUTF8SuggestsReadBytesWithItsPath`, yerlesikler_test "13.1 TR_read_file"]. `TR_max` ve `TR_min`'de `TR_Int` ile `TR_Float` karışınca sonuç `TR_Float`, kazanan kesin karşılaştırmadan sonra çevriliyor (`TR_max(2, 1.5)` → `2.0`, `TR_max(9007199254740993, 1.0)` → `9007199254740992.0`); denetleyici de bu tipi veriyor [test: yerlesikler_test "13.1 min ve max'ın tipi işlecin tipidir", `TestBuiltinReturnTypes`]. Boş listede `TR_max` H2624, `TR_min` H2625 veriyor [test: yerlesikler_test aynı test]. `TR_round(x, basamak)` girdinin tipini veriyor (`TR_round(5, 2)` → `5`, `TR_round(3.7, 0)` → `4.0`, `TR_round(1234.0, -2)` → `1200.0`), `TR_Int`'i kesin yuvarlıyor, sayıda NaN ve sonsuz H2626; denetleyici de bu tipi veriyor [test: yerlesikler_test "13.1 TR_round(x) TR_Int verir", `TestBuiltinReturnTypes`]. Yarım çifte gidiyor (`TR_round(2.5)` → `2`, `TR_round(1250, -2)` → `1200`); basamaklı yuvarlama yazılan ondalık metne göre (`TR_round(0.125, 2)` → `0.12`, `TR_round(2.675, 2)` → `2.68`) [test: yerlesikler_test "13.1 yarım çifte gider"]. Tensörde `TR_round`'un `TR_Float` dönüşü 15.16a'nın status'unda (15'in yan değişikliği, uygulanmadı).
 - **Yapılacaklar (D ve F, Ö3; DENETİM istek 73 kapanışı):** `TR_write_file`'a `TR_JSON` değeri yalnız çalışma anında H2623; denetleyici `TR_JSON`'u bildiği için denetimde reddedilebilir, o zaman öneri programın kendi ifadesiyle `TR_json_string(j)` olur (bugün yer tutuculu `TR_json_string(...)`).
 - **Yapılacaklar (A, Ö0, Kol A 4a4'ten sonra; ölçüldü 30b44b01):** `math.Exp` amd64'te işlemciye göre yol seçiyor [kanıtlı: DENETİM]; `TR_time_ms` `time.Now().UnixMilli()`, `TR_monotonic_ns` yok [kanıtlı]; `TR_print` boşlukla birleştiriyor [ölçüldü]; metnin sıralanabilir sayılması, tek argümanın hatası, `TR_mean`/`TR_std`/`TR_median`'ın yalnız liste alması, değer döndürmeyen üç yerleşik. (Karışık sayıların `TR_Float`'ı, boş listede `TR_min`/`TR_max`'ın hatası ve `TR_round`'un imzaları 13.1c'de birleşti, `c428f35f`.)
+- **Yapılacaklar (A, Ö0; DENETİM istek 81):** boş tensör listesinin `TR_sum`'ı hata yerine 0 veriyor, tensör tipli değişkene tam sayı giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_min` ve `TR_max`'ın anahtar fonksiyonlu biçimi sıralama sırasını kullanır; `TR_sum` tensör listesinde boşta hata (15.18).
 
 ### 13.2
 
 - **Mevcut durum:** ayırıcısız `TR_split()` tek ASCII boşluğa bölüyor, boş öğe veriyor, sekmede ve satır sonunda bölmüyor [ölçüldü: DENETİM]; harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
-- **Yapılacaklar:** ayırıcısız `TR_split()`'in Unicode boşluk dizilerine bölmesi.
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** boş alt metin (motor bugün `"ab".TR_replace("", "x")`'te "xaxbx" veriyor [ölçüldü: DENETİM]; kurala göre hata) ve negatif indeks; `.TR_index_of` metinde henüz yok.
+- **Yapılacaklar (A, Ö0; DENETİM istek 81):** ayırıcısız `TR_split()`'in Unicode boşluk dizilerine bölmesi.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak (A, Ö0; DENETİM istek 81: `"ab".TR_split("")` de hatasız):** boş alt metin (motor 2026-10-29'da `"ab".TR_replace("", "x")`'te "xaxbx" veriyor [ölçüldü: DENETİM]; kurala göre hata) ve negatif indeks; `.TR_index_of` metinde henüz yok.
 
 ### 13.3
 
 - **Mevcut durum:** 13.10'un sıralama sırası uygulandı (−0.0 0.0'dan önce, NaN'lar sonda ve birbirine eşit, demette öğe öğe); anahtarlı sıralama `.TR_sort(f)` motorda: anahtar her öğe için bir kez çağrılır, sıra kararlı, iki parametreli karşılaştırıcı H2900, sıralanamayan anahtar H2902 ve H2903, asıl listeyi değiştiren anahtar H2703 [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/yerlesikler_test.tr`'nin 13.3 testleri, `interp/sorting_test.go`].
-- **Yapılacaklar:** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
+- **Yapılacaklar (A, Ö1, 4a2; DENETİM istek 81: anahtarın tipi denetlenmediği için metin parametreli anahtar tam sayı alıyor):** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
 
 ### 13.6
 
 - **Mevcut durum:** `TR_reduce(0, (a, x) => a + x)` çalışıyor; başa yazılan ve tek parametreli fonksiyon hata, iletiler (H2475, H2476) ok yazımını öneriyor [ölçüldü: main `85a19c36`, `l.TR_reduce((a, x) => a + x, 0)` ve `l.TR_reduce(0, (a) => a)` iletileri; `tests/fonksiyonlar_test.tr:143`, `tests/yerlesikler_test.tr:204` kodları sınıyor].
-- **Yapılacaklar:** iletilerin metnini sınayan test (kodlar sınanıyor, metinler `internal/suggestion_messages_test.go` tablosunda yok); başlangıçsız `TR_reduce`'un boş listede hatası; `.TR_append`'in değer döndürmemesi (bugün listenin kendisi).
+- **Yapılacaklar (A, Ö0; DENETİM istek 81: başlangıçsız `TR_reduce` boş listede hata vermiyor, `.TR_append`'in dönüşü başka öğe tipli listeye giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** iletilerin metnini sınayan test (kodlar sınanıyor, metinler `internal/suggestion_messages_test.go` tablosunda yok); başlangıçsız `TR_reduce`'un boş listede hatası; `.TR_append`'in değer döndürmemesi (bugün listenin kendisi).
 
 ### 13.7
 
-- **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik); tensörde `TR_is_finite` float32 0/1 veriyor (15.36); `TR_where`'in sayı imzası var: `TR_where(TR_true, 2, 3)` 2 veriyor [ölçüldü: main `8b115692`] (15'in yan değişikliği, uygulanmadı).
-- **Yapılacaklar:** `TR_is_nan`'ın sayı ve tensör imzası; tensörde `TR_Tensor[TR_Bool]` dönüşü; `TR_where`'in sayı imzasının kalkması, göçü 15.15'in status'unda (`tests/matematik_test.tr:170-171`; `:169` skaler `TR_Bool` koşul + tensör dalı) [kanıtlı: `tests/matematik_test.tr:169-171`]; TR testi.
+- **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik); tensörde `TR_is_finite` float32 0/1 veriyor (15.36); `TR_where(TR_true, 2, 3)` denetimden geçip çalışırken hata veriyor [ölçüldü: DENETİM istek 81, `30b44b01` ve main `51b75f0a`] (15'in yan değişikliği, uygulanmadı).
+- **Yapılacaklar (A, Ö0; DENETİM istek 81: tensörde `TR_is_finite` mantık tensörü yerine float32 0/1):** `TR_is_nan`'ın sayı ve tensör imzası; tensörde `TR_Tensor[TR_Bool]` dönüşü; `TR_where`'in sayı imzasının kalkması, göçü 15.15'in status'unda (`tests/matematik_test.tr:170-171`; `:169` skaler `TR_Bool` koşul + tensör dalı) [kanıtlı: `tests/matematik_test.tr:169-171`]; TR testi.
 
 ### 13.8
 
 - **Mevcut durum:** JSON'a NaN yazmak hata (H7008) [ölçüldü]; `TR_json_parse` `TR_Dict` veriyor; `TR_json_string({1: 2})` anahtarı sessizce metne çeviriyor (`{"1":2}`); CSV hücresi sayıya benziyorsa sayı (`[["007", 7]]`) [ölçüldü].
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** `TR_json_parse` `TR_JSON` verir (3.7a); metin olmayan anahtarın hatası; CSV hücresi hep metin (göç: `.tr`'de 10 kullanım).
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** `TR_json_string`'de yol ve tensörün yazımı; `TR_json_parse[T]`'de `null`, iç içe yapı ve tensör alanının hatası.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak (tensörün yazımı A, Ö0: tam sayı değerli ondalık öğe `.0`'sız yazılıp geri okununca tam sayı oluyor; yol ve `TR_json_parse[T]` A, Ö1, 18.4 ve 6.10; DENETİM istek 81 Ş4):** `TR_json_string`'de yol ve tensörün yazımı; `TR_json_parse[T]`'de `null`, iç içe yapı ve tensör alanının hatası.
+- **DENETİM istek 81 N2:** CSV hücresinin metin kalması ve metin olmayan JSON anahtarının hatası denetleyiciye bağlı değil; 4a5'i beklemeden yerleşik diliminde yapılabilir.
 
 ### 13.8a
 
 - **Mevcut durum:** `t.TR_tolist` tensörün boyutuna göre liste ya da sayı, `k.TR_decode` toplu girişte liste, `TR_parameters(x, TR_named: TR_true)` sözlük veriyor [ölçüldü: DENETİM].
 - **Mevcut durum (T1 dilim 2):** `t.TR_item()` var: tek öğeli tensörün öğesi, öğe tipi tensörün cinsi; başka tensörde H3068 [ölçüldü: `tests/tensor_test.tr`].
-- **Yapılacaklar:** `TR_batch_decode`, `TR_named_parameters` (yeni kimlikler, 4a); `TR_item`'ın iletisi (H3068'in metni "Item" diyor, `.TR_item()`'ı adıyla anmıyor); `TR_tolist`'in yalnız 1 boyutta, öğe tipi tensörün cinsi olan liste vermesi, 0 boyutta hatası (15'in yan değişikliği, uygulanmadı); `TR_named_parameters`'ın `TR_Dict[TR_String, TR_AnyTensor]` dönüşü (aynı) (argmax'in sonucunu indeks olarak kullanan kod `TR_Int(t.TR_item)` yazar, göçte sayılır). Dil tanımı her yerde çağrıyla yazıyor (`t.TR_tolist()`, on yer), motorda bir özellik: `t.TR_tolist()` "Liste tipi bir fonksiyon olarak çağrılamaz" veriyor, `lib/` ve `tests/`'te 456 çağrısız yazım var [ölçüldü: DENETİM, `kol-denetim-istek21-sonuc.md` 3]; motor dil tanımına uyar, yazımlar göçle değişir.
+- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81: 0 boyutlu tensörün `TR_tolist`'i liste tipli değişkene ondalık koyuyor):** `TR_batch_decode`, `TR_named_parameters` (yeni kimlikler, 4a); `TR_item`'ın iletisi (H3068'in metni "Item" diyor, `.TR_item()`'ı adıyla anmıyor); `TR_tolist`'in yalnız 1 boyutta, öğe tipi tensörün cinsi olan liste vermesi, 0 boyutta hatası (15'in yan değişikliği, uygulanmadı); `TR_named_parameters`'ın `TR_Dict[TR_String, TR_AnyTensor]` dönüşü (aynı) (argmax'in sonucunu indeks olarak kullanan kod `TR_Int(t.TR_item)` yazar, göçte sayılır). Dil tanımı her yerde çağrıyla yazıyor (`t.TR_tolist()`, on yer), motorda bir özellik: `t.TR_tolist()` "Liste tipi bir fonksiyon olarak çağrılamaz" veriyor, `lib/` ve `tests/`'te 456 çağrısız yazım var [ölçüldü: DENETİM, `kol-denetim-istek21-sonuc.md` 3]; motor dil tanımına uyar, yazımlar göçle değişir.
 
 ### 13.9
 
@@ -607,15 +617,15 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **4a2 (ilk dilim):** denetleyici imzaları okuyor: tek tipli dönüş çağrının tipi (`TR_BuiltinFunction` fonksiyon tipi sayılıyor), tipi bilinen alıcıda metodun varlığı (`types`) ve çekirdek metotların argüman sayısı (`params`). Tanımın motorla uyuştuğu sınanıyor: dönüş `TestSingleReturnsMatchEngine` (97 kod doğrulandı; `TR_json_parse` uyuşmuyor: tanım `TR_JSON`, motor `TR_Dict`, 13.8), üye tipleri `TestMemberTypesMatchDefinitions` (`.TR_get`, `.TR_keys`, `.TR_length` `TR_JSON`/`TR_Bytes`'ı eksik yazıyor), sayı `TestMethodCountsMatchDefinitions`.
 - **4a2 (ikinci dilim):** tipler kimlik yazımıyla (`TR_Int`, `TR_List[T]`, `T?`; sınıflı yazım hata) ve dilin tip ayrıştırıcısıyla okunuyor (`parser.ParseTypeText`) [test: `TestDefinitionTypesParse`]. Öğe tipli dönüş yazan üyeler: `.TR_first`, `.TR_last`, `.TR_get` (liste `T?`, sözlük `V?`), `.TR_filter`, `.TR_sort`, `.TR_unique`, `.TR_reverse` (liste `TR_List[T]`, aralık `TR_List[TR_Int]`), `.TR_keys`, `.TR_values`, `.TR_split` (metin); depodaki ilk değerlerden tipi bilinmeyen 626 → 623 [ölçüldü: `TestRepoFirstValueTypes`, `70b8e085` ve bu dilim]. Parametreler ve fonksiyon tipleri henüz öğesiz.
 - **Mevcut durum (4a4, 2026-11-03):** denetleyici fonksiyon parametresinin `A|B|C` tipini imza seçenekleri olarak okuyor (`TR_NoneType` seçeneği isteğe bağlılık); 40 fonksiyonun (13.1 diliminden sonra `TR_write_file`'ın içeriği `TR_String|TR_Bytes`) seçenekleri ve seçenek dışı tipe kodu motorla aynı [test: `TestFunctionParamOptionsMatchEngine`]. Seçenekleri motorla uyuşmayan ya da kodunun parametreleri denetimde doldurulamayan fonksiyonlar denetlenmiyor (`TR_clamp`, `TR_concat`, `TR_argmax` gibi; listesi 4a4'ün DEVİR'inde).
-- **Yapılacaklar:** imzalar öğe ve fonksiyon tipleriyle; `TR_BuiltinFunction` ve `TR_Any` kalkar; metot parametresinin birleşim seçenekleri; dönüşün seçilen imzadan gelmesi (`TR_abs(1)` `TR_Int`, 4a5).
+- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81: öğesiz imza ve tek fonksiyon tipi yüzünden tam sayı tipli değişkene metin ve ondalık giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** imzalar öğe ve fonksiyon tipleriyle; `TR_BuiltinFunction` ve `TR_Any` kalkar; metot parametresinin birleşim seçenekleri; dönüşün seçilen imzadan gelmesi (`TR_abs(1)` `TR_Int`, 4a5).
 - **Gemini Koşu 6 (2026-10-29), uygulanacak:** yerleşiğin fonksiyon değeri olarak eşleşmesi (isteğe bağlı parametreler boş, adlı argümanlar varsayılanda; varsayılansız adlı argümanda hata). Denetleyicinin işi (4a2).
 
 ### 13.10
 
 - **Mevcut durum:** 40 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi; 36 fonksiyon ve `.TR_decode`, `.TR_grad`, `.TR_token_id`, `.TR_tolist`); dönüşü argümanın değerine bağlı üç yer: `TR_tolist` (tensörün boyutu), `TR_decode` (toplu giriş), `TR_parameters` (`TR_named:`); 8 yerleşik değişken sayıda argüman alıyor; yalnız 7 metodun alıcıya göre ayrı imzası var [ölçüldü: main `85a19c36`, `definitions.json`'dan sayıldı].
-- **Yapılacaklar:** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 18 ve 54 satır, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması, tek bir 4a işi: `TR_write_file`, `TR_assert` (`internal/lang/interp/test_support.go`), `.TR_load_state`, `TR_sleep`, `TR_wait_all` (argümanlı biçimi liste verir, 10.5), 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi; `tr.json`'un açıklamalarındaki "doğru döndürür" aynı commit'te değişir [ölçüldü: DENETİM 10-2, 10-3]; `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
+- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81: `TR_abs(-1.5)` tam sayı tipli değişkene ondalık koyuyor; `TR_custom_grad`'ın verdiği fonksiyonun dönüşü izlenmiyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 18 ve 54 satır, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması, tek bir 4a işi: `TR_write_file`, `TR_assert` (`internal/lang/interp/test_support.go`), `.TR_load_state`, `TR_sleep`, `TR_wait_all` (argümanlı biçimi liste verir, 10.5), 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi; `tr.json`'un açıklamalarındaki "doğru döndürür" aynı commit'te değişir [ölçüldü: DENETİM 10-2, 10-3]; `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
 - **Mevcut durum (15'in yan değişiklikleri, uygulanmadı):** tensör verisi kısıtının cinse bağlanması, eşitlenebilirin tensörü dışlaması, varsayılansız adlı argüman, `TR_save_tensors`'un kabul kümesi, `TR_load_tensors` ve `.TR_narrow[E]()`'nin imzaları, `TR_quantized`'ın imzası, `TR_custom_grad`'ın dönüşü ve `TR_grad_check`'in değer döndürmemesi (15.32'nin status'unda) imzalarda yok.
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** karşılaştıran yerleşiklerin kesin karşılaştırması (2⁵³ üstü).
+- **Gemini Koşu 6 (2026-10-29), uygulanacak (A, Ö0; DENETİM istek 81):** karşılaştıran yerleşiklerin kesin karşılaştırması (2⁵³ üstü). `TR_min` ve `TR_max` 13.1c ile düzeldi; `TR_clamp`'in ters sınırı (9007199254740993 ile 9007199254740992.0) hata yerine sessizce sonuç veriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 - **Değeri kullanılmayan çağrı (4a2, ilk dilim):** uygulandı. Tanım dosyasında `pure` (39 yerleşik: 13.2–13.4'ün yeni değer veren metotları, 13.7'nin hesapları); çağrısı tek başına deyimse H1115, ileti atamayı önerir, alıcı atanabilir adsa uygulanabilir düzeltme [ölçüldü: `TestPureCallValueUnused`, `TestPureMarksOnlyValueBuiltins`, öneri tablosu]. Tensör işlemlerinin işareti ve 13.1'in hesapları ikinci dilimde.
 
 ### 13.11
