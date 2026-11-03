@@ -42,7 +42,7 @@ func TestCommandsHaveOneName(t *testing.T) {
 		"yardim": "help", "--help": "help", "surum": "version", "--version": "version",
 	} {
 		s := tr(t, dir, ad, "a.tr")
-		testkit.Wait(t, s, 2, nil, []string{"'" + ad + "' TR'de bir komut değil; 'tr " + actual + "' yazmak mı istediniz?"})
+		testkit.Wait(t, s, 2, nil, []string{"'" + ad + "' TR'de bir komut değil; 'trlang " + actual + "' yazmak mı istediniz?"})
 		if strings.Contains(s.Stdout, "çalıştı") {
 			t.Errorf("%s: program çalışmamalıydı", ad)
 		}
@@ -411,9 +411,9 @@ func TestModuleRunErrorFrame(t *testing.T) {
 // başlarken okunur bir iç hatayla çıkar (codes.LanguageError). İkili bozuk listeyle derlenir.
 func TestABrokenLanguageFileIsAnInternalError(t *testing.T) {
 	if testing.Short() {
-		t.Skip("tr'yi yeniden derler")
+		t.Skip("trlang'ı yeniden derler")
 	}
-	exe := testkit.BuildWithFile(t, "./cmd/tr", "internal/lang/codes/tr.json", `{ "TR_kw_if": `)
+	exe := testkit.BuildWithFile(t, "./cmd/trlang", "internal/lang/codes/tr.json", `{ "TR_kw_if": `)
 	dir := t.TempDir()
 	writeTR(t, dir, "boş.tr", "")
 	s := testkit.RunBinary(t, exe, dir, "", nil, "boş.tr")

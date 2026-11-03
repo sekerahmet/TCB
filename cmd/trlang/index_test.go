@@ -37,7 +37,7 @@ func TestEverySubcommandIsAnIndexSubcommand(t *testing.T) {
 func indexQueryCases(t *testing.T) map[string]bool {
 	t.Helper()
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filepath.Join(reporoot.Root(), "cmd", "tr", "index.go"), nil, 0)
+	f, err := parser.ParseFile(fset, filepath.Join(reporoot.Root(), "cmd", "trlang", "index.go"), nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -36,7 +36,7 @@ func TestIndexSubcommandsInEveryLanguage(t *testing.T) {
 	for _, name := range []string{"definition", "definition", "references", "impact"} {
 		s := tr(t, dir, name, "Kare")
 		if s.Code == 0 {
-			t.Errorf("tr %s must not be a command: %+v", name, s)
+			t.Errorf("trlang %s must not be a command: %+v", name, s)
 		}
 	}
 }

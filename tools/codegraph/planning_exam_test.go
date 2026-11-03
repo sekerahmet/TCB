@@ -29,7 +29,7 @@ import (
 // examRecord dosyanın bir satırıdır.
 type examRecord struct {
 	line   int
-	tool   string   // "codegraph" ya da "tr index"
+	tool   string   // "codegraph" ya da "trlang index"
 	args   []string // komut ve argümanlar
 	checks []string // "anahtar: değer" beklentileri
 	source string
@@ -56,10 +56,10 @@ func parseExam(t *testing.T, path string) []examRecord {
 		switch {
 		case len(words) >= 2 && words[0] == "codegraph":
 			r.tool, r.args = "codegraph", words[1:]
-		case len(words) >= 3 && words[0] == "tr" && words[1] == "index":
-			r.tool, r.args = "tr index", words[2:]
+		case len(words) >= 3 && words[0] == codes.ProgramName && words[1] == "index":
+			r.tool, r.args = codes.ProgramName+" index", words[2:]
 		default:
-			t.Fatalf("%s:%d: a record starts with `codegraph` or `tr index`: %q", path, i+1, fields[0])
+			t.Fatalf("%s:%d: a record starts with `codegraph` or `trlang index`: %q", path, i+1, fields[0])
 		}
 		for _, f := range fields[1:] {
 			if src, ok := strings.CutPrefix(f, "src: "); ok {
@@ -164,7 +164,7 @@ type examRunner struct {
 
 // answer bir sorunun birleşik çıktısını (stdout ve stderr) ve çıkış kodunu verir.
 func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
-	if r.tool == "tr index" {
+	if r.tool == codes.ProgramName+" index" {
 		return x.trIndex(t, r)
 	}
 	var out, errb strings.Builder
@@ -196,12 +196,12 @@ func (x *examRunner) answer(t *testing.T, r examRecord) (string, int) {
 	return out.String() + errb.String(), code
 }
 
-// trIndex `tr index <alt komut> <ad> [--all]` sorusunu, komutun kendi kodu gibi codeindex'e sorar: alt komut adı
+// trIndex `trlang index <alt komut> <ad> [--all]` sorusunu, komutun kendi kodu gibi codeindex'e sorar: alt komut adı
 // kodundan çözülür (TR_sub_definition tanım, TR_sub_references kullananlar, TR_sub_tested_by sınayanlar, TR_sub_impact etki), metin codeindex.Text'tir.
 func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	sub, ok := codes.FindSubcommand(r.args[0])
 	if !ok || len(r.args) < 2 {
-		t.Fatalf("planning_questions.txt:%d: unknown tr index subcommand %q", r.line, r.args[0])
+		t.Fatalf("planning_questions.txt:%d: unknown trlang index subcommand %q", r.line, r.args[0])
 	}
 	o := codeindex.QueryOptions{Limit: 12}
 	if len(r.args) > 2 && strings.HasPrefix(r.args[2], "--") {
@@ -218,7 +218,7 @@ func (x *examRunner) trIndex(t *testing.T, r examRecord) (string, int) {
 	case codes.SubImpact:
 		res = x.reader.Impact(r.args[1], o)
 	default:
-		t.Fatalf("planning_questions.txt:%d: tr index %s is not a query", r.line, r.args[0])
+		t.Fatalf("planning_questions.txt:%d: trlang index %s is not a query", r.line, r.args[0])
 	}
 	return codeindex.Text(res), codeindex.ExitCode(res.Status)
 }
@@ -362,10 +362,10 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 	}
 	x := &examRunner{root: root, graph: g, reader: codeindex.NewReader(idx)}
 	if bad, checked := trTestSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 100 {
-		t.Errorf("tr index tested_by and tests-for disagree on %d of %d TR functions:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+		t.Errorf("trlang index tested_by and tests-for disagree on %d of %d TR functions:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
 	if bad, checked := trNameSetMismatches(g, idx, x.reader); len(bad) > 0 || checked < 20 {
-		t.Errorf("tr index and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
+		t.Errorf("trlang index and codegraph resolve %d of %d bare TR names differently:"+"\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
 	}
 	if bad, checked := testsListedTwice(g); len(bad) > 0 || checked < 100 {
 		t.Errorf("tests-for lists a test in two groups for %d of %d targets:\n  %s", len(bad), checked, strings.Join(bad[:min(len(bad), 20)], "\n  "))
@@ -389,13 +389,13 @@ func TestPlanningQuestionsAreAnswered(t *testing.T) {
 
 // repoIndex depo testlerinin TR dizinidir: kod grafiğiyle aynı dosya kümesi, git'in izlediği dosyalar (Tracked).
 // Depo testleri geliştiricinin izlenmeyen dosyalarına bağlı olmaz: ana kopyada scratch/ altındaki .gitignore'lu .tr
-// dosyaları tr index'e girer (AllFiles, T1 kararı) ama grafiğe girmez; iki aracı karşılaştıran sınav bu yüzden yalnız
+// dosyaları trlang index'e girer (AllFiles, T1 kararı) ama grafiğe girmez; iki aracı karşılaştıran sınav bu yüzden yalnız
 // orada düşüyordu (TCB, 2026-10-24). TestToolComparisonsIgnoreUntrackedFiles korur.
 func repoIndex(root string) (*codeindex.Index, error) {
 	return codeindex.Build(root, codeindex.Options{Library: lib.Files, Tracked: true})
 }
 
-// trTestSetMismatches iki aracın her TR işlev ve metodu için verdiği TR test kümelerini karşılaştırır: `tr index
+// trTestSetMismatches iki aracın her TR işlev ve metodu için verdiği TR test kümelerini karşılaştırır: `trlang index
 // sınayanlar` (codeindex.TestedBy) ile `tests-for`'un TR testleri (testDistances) aynı olmalı. Zincir kuralı tek
 // (codeindex.WalkCallers); giren çağıran kümesi de aynı olmalı (DENETİM doğrulaması T3).
 func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
@@ -422,19 +422,19 @@ func trTestSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reade
 			}
 		}
 		if !maps.Equal(want, got) {
-			bad = append(bad, fmt.Sprintf("%s: tr index %d, tests-for %d", gn.Name, len(want), len(got)))
+			bad = append(bad, fmt.Sprintf("%s: trlang index %d, tests-for %d", gn.Name, len(want), len(got)))
 		}
 	}
 	sort.Strings(bad)
 	return bad, checked
 }
 
-// trNameSetMismatches her TR adını iki araca sorar: `tr index` (codeindex.Resolve) ile codegraph (trByName, kaynakta
+// trNameSetMismatches her TR adını iki araca sorar: `trlang index` (codeindex.Resolve) ile codegraph (trByName, kaynakta
 // yazıldığı gibi sorulunca lookup'ın kendisi) çıplak ad için aynı TR aday kümesini vermeli (deneme 7 R1: tanım 3,
 // yeniden_adlandır 7, query 4 aday veriyordu; bağımsız denetim grup 6 R1: büyük harfli sorgu, modül + yerleşik ve
 // yerleşik + test çakışması farklıydı). Adlar: her bildirimin kısa adı, modülün adı ve takma adları, testin açıklaması,
 // dizindeki her yerleşiğin bütün adları; her ad yazıldığı gibi, küçük harfle, Türkçe ve ASCII büyük harfle (`GİZLİ_DURUM`, `GIZLI_DURUM`) sorulur.
-// Karşılaştırma tr index'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
+// Karşılaştırma trlang index'in bildiği düğümlerdedir: grafiğin ad kodlarından yalnızca dizinde yerleşik düğümü olanlar
 // sayılır (anahtar sözcükler ve kullanılmayan yerleşikler yalnızca grafiktedir).
 func trNameSetMismatches(g *Graph, idx *codeindex.Index, reader *codeindex.Reader) (bad []string, checked int) {
 	ix := newIndex(g)

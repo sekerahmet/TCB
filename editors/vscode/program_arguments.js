@@ -1,6 +1,6 @@
 // Hata ayıklama yapılandırmasındaki (launch.json) "args" alanı: programa iletilen komut satırı
-// argümanları. F5'te 'tr dap' bunları başlatma isteğinden okur; Ctrl+F5'te (hata ayıklamadan
-// çalıştırma) yorumlayıcıya dosyanın ardından verilir ('tr dosya.tr --adım 5'). vscode
+// argümanları. F5'te 'trlang dap' bunları başlatma isteğinden okur; Ctrl+F5'te (hata ayıklamadan
+// çalıştırma) yorumlayıcıya dosyanın ardından verilir ('trlang dosya.tr --adım 5'). vscode
 // modülüne bağlı değildir; böylece Node ile ayrıca sınanır (test/program_arguments_test.js).
 'use strict';
 

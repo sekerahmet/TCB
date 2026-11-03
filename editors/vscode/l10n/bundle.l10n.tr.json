@@ -12,7 +12,7 @@
   "Check": "Denetle",
   "Debug": "Hata Ayıkla",
   "Open Settings": "Ayarı Aç",
-  "{0} Build the TR interpreter at the project root with 'go build -o {1}/{2} ./cmd/tr' or set 'tr.interpreterPath' to the interpreter's full path.": "{0} TR yorumlayıcısını proje kökünde 'go build -o {1}/{2} ./cmd/tr' ile derleyin veya 'tr.interpreterPath' ayarına yorumlayıcının tam yolunu yazın.",
+  "{0} Build the TR interpreter at the project root with 'go build -o {1}/{2} ./cmd/trlang' or set 'tr.interpreterPath' to the interpreter's full path.": "{0} TR yorumlayıcısını proje kökünde 'go build -o {1}/{2} ./cmd/trlang' ile derleyin veya 'tr.interpreterPath' ayarına yorumlayıcının tam yolunu yazın.",
   "Running TR files requires trusting this workspace (Workspace Trust).": "TR dosyalarını çalıştırmak için bu çalışma alanına güvenmeniz gerekir (Çalışma Alanı Güveni).",
   "No .tr file is open to run.": "Çalıştırılacak bir .tr dosyası açık değil.",
   "This command works only on .tr files: {0}": "Bu komut yalnızca .tr dosyalarında çalışır: {0}",

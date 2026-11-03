@@ -27,15 +27,15 @@ func (v *VM) Args() []string {
 }
 
 // ProgramCommand is how the command that started the program is written (KomutAdi; when empty
-// "tr <SourceFile>").
+// "trlang <SourceFile>").
 func (v *VM) ProgramCommand() string {
 	if v.CommandName != "" {
 		return v.CommandName
 	}
 	if v.SourceFile == "" {
-		return "tr"
+		return codes.ProgramName
 	}
-	return "tr " + v.SourceFile
+	return codes.ProgramName + " " + v.SourceFile
 }
 
 // ArgumentVerdict argüman verilmiş bir programın komut satırını okuyup okumadığına verilen

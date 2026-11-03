@@ -1,6 +1,6 @@
 // Kodlu dosyanın görünümü (docs/spec/17_kodlar.md, 17.7): .tr dosyası diskte de düzenleyicide de
 // kimliklerle (TR_print) yazılır; kişinin yazım dilindeki görünümü yalnız okunur. "Görünümü Göster"
-// komutu açık dosyanın görünümünü yanda salt okunur bir belge olarak açar ('tr show - --lang <dil>';
+// komutu açık dosyanın görünümünü yanda salt okunur bir belge olarak açar ('trlang show - --lang <dil>';
 // eklentide ikinci bir çevirici yoktur). Görünüm dosyanın satırlarını tutar: satır numaraları hata
 // iletileri ve hata ayıklayıcıyla aynıdır. Dosya düzenlendikçe (kaydedilmemiş metin dahil) ve yazım
 // dili değişince görünüm yenilenir. Görünüm düzenlenmez ve koda geri çevrilmez.
@@ -17,8 +17,8 @@ const { t } = require('./l10n');
 
 const VIEW_SCHEME = 'tr-view';
 
-// EXIT_SYNTAX 'tr show -' komutunun "metin ayrıştırılamadı, görünüm yazılmadı" çıkış kodudur
-// (cmd/tr/show.go, exitSyntax).
+// EXIT_SYNTAX 'trlang show -' komutunun "metin ayrıştırılamadı, görünüm yazılmadı" çıkış kodudur
+// (cmd/trlang/show.go, exitSyntax).
 const EXIT_SYNTAX = 2;
 
 // TIMEOUT bir görünümün en uzun süresidir (milisaniye); aşılırsa süreç durdurulur.
@@ -27,7 +27,7 @@ const TIMEOUT = 30000;
 // REFRESH_DELAY düzenlemeden sonra görünümün yenilenmesinden önceki bekleme süresidir (milisaniye).
 const REFRESH_DELAY = 300;
 
-// show metni 'tr show - --lang <lang>' ile görünüme çevirir. Kabuk kullanılmaz. Hiçbir zaman reddetmez:
+// show metni 'trlang show - --lang <lang>' ile görünüme çevirir. Kabuk kullanılmaz. Hiçbir zaman reddetmez:
 //   { code: 0, output }              gösterildi (output: Buffer)
 //   { code: EXIT_SYNTAX, error }     metin ayrıştırılamadı (error: tr'nin iletisi)
 //   { code: 1 | -1, error }          başka bir hata (-1: süreç başlatılamadı ya da durduruldu)

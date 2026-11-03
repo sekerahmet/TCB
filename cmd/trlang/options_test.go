@@ -32,17 +32,17 @@ func TestUnknownOptionIsNotAFile(t *testing.T) {
 		want := messages.Text(messages.H8674, codes.NameRef(k), "--x", "", nil)
 		want = want[:strings.Index(want, "--x")+len("--x")]
 		if out, ok := trOutput(t, name, "--x"); ok || !strings.Contains(out, want) {
-			t.Errorf("tr %s --x: bilinmeyen seçenek iletisi (%q) bekleniyordu, gelen (başarılı: %v):\n%s", name, want, ok, out)
+			t.Errorf("trlang %s --x: bilinmeyen seçenek iletisi (%q) bekleniyordu, gelen (başarılı: %v):\n%s", name, want, ok, out)
 		}
 	}
 	if out, ok := trOutput(t, "--x"); ok || !strings.Contains(out, messages.Text(messages.H8604, "--x", codes.NameRef(codes.CmdHelp))) {
-		t.Errorf("tr --x: H8604 bekleniyordu, gelen:\n%s", out)
+		t.Errorf("trlang --x: H8604 bekleniyordu, gelen:\n%s", out)
 	}
 	help := codes.DisplayName(codes.CmdHelp)
 	if out, ok := trOutput(t, "--"+help); ok || !strings.Contains(out, messages.Text(messages.H8602, "--"+help, help)) {
-		t.Errorf("tr --%s: 'tr %s' önerisi bekleniyordu, gelen:\n%s", help, help, out)
+		t.Errorf("trlang --%s: 'trlang %s' önerisi bekleniyordu, gelen:\n%s", help, help, out)
 	}
 	if out, _ := trOutput(t, codes.DisplayName(codes.CmdCheck), "--", "-TR_none.tr"); !strings.Contains(out, "-TR_none.tr") || strings.Contains(out, "--x") {
-		t.Errorf("tr check -- -yok.tr: '-yok.tr' dosya olarak okunmalıydı, gelen:\n%s", out)
+		t.Errorf("trlang check -- -yok.tr: '-yok.tr' dosya olarak okunmalıydı, gelen:\n%s", out)
 	}
 }

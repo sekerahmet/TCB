@@ -1,7 +1,7 @@
 // İki web görünümünün (media/table.js ve media/watch_panel.js) ortak tablo mantığının testi
 // (media/table_common.js: isNumber, tableRows). Bağımlılıksız; depo kökünden:
 //   node editors/vscode/test/table_common_test.js
-// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile çalıştırır.)
+// (go test ./cmd/trlang/e2e bunu TestExtensionJSTests ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');

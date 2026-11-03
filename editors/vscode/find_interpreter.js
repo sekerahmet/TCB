@@ -1,4 +1,4 @@
-// Yorumlayıcıyı (tr.exe) bulma kuralı. vscode modülüne bağlı değildir; böylece kural Node ile
+// Yorumlayıcıyı (trlang.exe) bulma kuralı. vscode modülüne bağlı değildir; böylece kural Node ile
 // ayrıca sınanır (test/find_interpreter_test.js).
 //
 // Sıra:
@@ -6,9 +6,9 @@
 //      çalışma alanının .vscode/settings.json dosyası yorumlayıcıyı başka bir programa çeviremez).
 //      Göreli yol yalnızca güvenilen bir çalışma alanı klasörüne göre çözülür.
 //   2. Yalnızca GÜVENİLEN çalışma alanında, dosyanın çalışma alanı klasörünün KÖKÜNDE
-//      bin/tr.exe, sonra tr.exe. Üst klasörler taranmaz: indirilmiş bir klasördeki ya da
-//      geçici klasördeki yabancı bir tr.exe kendiliğinden çalıştırılmaz.
-//   3. PATH (Unix'te /bin ve /usr/bin atlanır: oradaki 'tr' karakter çevirme aracıdır).
+//      bin/trlang.exe, sonra trlang.exe. Üst klasörler taranmaz: indirilmiş bir klasördeki ya da
+//      geçici klasördeki yabancı bir trlang.exe kendiliğinden çalıştırılmaz.
+//   3. PATH.
 // Klasörsüz pencerede (tek dosya) yalnızca 1 ve 3 kullanılır.
 'use strict';
 
@@ -18,7 +18,7 @@ const { t } = require('./l10n');
 const BIN_FOLDER = 'bin';
 
 function interpreterName(platform) {
-    return platform === 'win32' ? 'tr.exe' : 'tr';
+    return platform === 'win32' ? 'trlang.exe' : 'trlang';
 }
 
 // findInterpreter yorumlayıcının yolunu bulur.
@@ -60,10 +60,7 @@ function findInterpreter(g) {
     const separator = platform === 'win32' ? ';' : ':';
     for (const dir of (g.pathValue || '').split(separator).filter(Boolean)) {
         if (!pathMod.isAbsolute(dir)) {
-            continue; // '.', 'bin' gibi göreli girdi çalışma klasörüne göre çözülür: yabancı tr
-        }
-        if (platform !== 'win32' && (dir === '/bin' || dir === '/usr/bin')) {
-            continue;
+            continue; // '.', 'bin' gibi göreli girdi çalışma klasörüne göre çözülür: yabancı trlang
         }
         const candidate = pathMod.join(dir, name);
         if (g.fileExists(candidate)) {

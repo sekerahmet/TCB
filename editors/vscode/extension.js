@@ -19,7 +19,7 @@ const INTERPRETER_SETTING = 'interpreterPath';
 const INTERPRETER_NAME = interpreterName(process.platform);
 
 // komut kimliği -> yorumlayıcıya verilecek argümanlar ve görev adı. Çalıştırmada dosyadan
-// sonraki argümanlar (ek) programa iletilir: 'tr dosya.tr --adım 5'.
+// sonraki argümanlar (ek) programa iletilir: 'trlang dosya.tr --adım 5'.
 const COMMANDS = {
     run: { id: 'tr.run', title: t('Run'), args: (file, extra) => [file, ...(extra || [])] },
     check: { id: 'tr.check', title: t('Check'), args: (file) => ['check', file] },
@@ -52,7 +52,7 @@ function findInterpreter(fileUri) {
 async function interpreterNotFound(message) {
     const openSetting = t('Open Settings');
     const choice = await vscode.window.showErrorMessage(
-        t("{0} Build the TR interpreter at the project root with 'go build -o {1}/{2} ./cmd/tr' or set 'tr.interpreterPath' to the interpreter's full path.", message, BIN_FOLDER, INTERPRETER_NAME),
+        t("{0} Build the TR interpreter at the project root with 'go build -o {1}/{2} ./cmd/trlang' or set 'tr.interpreterPath' to the interpreter's full path.", message, BIN_FOLDER, INTERPRETER_NAME),
         openSetting
     );
     if (choice === openSetting) {
@@ -215,7 +215,7 @@ const taskProvider = {
 };
 
 // ---------------------------------------------------------------------------
-// VS Code hata ayıklayıcısı (F5): 'tr dap' sürecine bağlanır. Kesme noktaları, adımlama,
+// VS Code hata ayıklayıcısı (F5): 'trlang dap' sürecine bağlanır. Kesme noktaları, adımlama,
 // değişkenler, değer değiştirme, izleme noktası, satıra zıplama ve Debug Console çalışır.
 // Ctrl+F5 ("Run Without Debugging") dosyayı terminalde çalıştırır (girdi() kullanılabilir).
 // ---------------------------------------------------------------------------

@@ -1,9 +1,9 @@
-// Kodlu dosyanın görünümü (view.js, docs/spec/17_kodlar.md 17.7), sahte vscode modülüyle ve GERÇEK 'tr'
+// Kodlu dosyanın görünümü (view.js, docs/spec/17_kodlar.md 17.7), sahte vscode modülüyle ve GERÇEK 'trlang'
 // yorumlayıcısıyla: dosya kimliklerle açılır ve düzenlenir (sekme yönlendirilmez); "Görünümü Göster"
 // görünümü yanda salt okunur açar, satırları dosyanınkidir; düzenleme ve yazım dili görünümü yeniler;
 // görünüm kaydedilmez, koda geri çevrilmez; kısıtlı kipte açılmaz. Depo kökünden:
-//   TR_YORUMLAYICI=bin/tr.exe node editors/vscode/test/view_test.js
-// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile, derlediği yorumlayıcıyla çalıştırır.
+//   TR_YORUMLAYICI=bin/trlang.exe node editors/vscode/test/view_test.js
+// (go test ./cmd/trlang/e2e bunu TestExtensionJSTests ile, derlediği yorumlayıcıyla çalıştırır.
 // Yorumlayıcı yoksa yorumlayıcı gerektiren testler atlanır.)
 'use strict';
 
@@ -16,7 +16,7 @@ const { setup, waitUntil, Uri, createSuite } = require('./fake_vscode');
 const view = require('../view');
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const TR = [process.env.TR_YORUMLAYICI, path.join(repoRoot, 'bin', process.platform === 'win32' ? 'tr.exe' : 'tr')]
+const TR = [process.env.TR_YORUMLAYICI, path.join(repoRoot, 'bin', process.platform === 'win32' ? 'trlang.exe' : 'trlang')]
     .find((y) => y && fs.existsSync(y));
 
 // Üçüncü argüman false ise test yorumlayıcı gerektirmez; yorumlayıcı yoksa gerekenler atlanır.
@@ -58,7 +58,7 @@ async function openView(o) {
     return doc;
 }
 
-test('show: tr show - --lang ile görünümü verir; ayrıştırılamayan metin EXIT_SYNTAX', async () => {
+test('show: trlang show - --lang ile görünümü verir; ayrıştırılamayan metin EXIT_SYNTAX', async () => {
     const s = await view.show(TR, 'tr', CODED);
     assert.strictEqual(s.code, 0, s.error);
     assert.strictEqual(s.output.toString('utf8'), TURKISH_VIEW);

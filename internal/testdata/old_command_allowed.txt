@@ -1,0 +1,18 @@
+# Eski komut biçimine benzeyen ama dil kodu, SCIP şeması, GNU tr gerekçesi ya da tarihli geçmiş kayıt olan satırlar (Ş4):
+# dosya <TAB> satır alt dizgesi <TAB> gerekçe. Go dizesi olarak değil dosya olarak durur (codegraph sahte kapsama saymasın).
+docs/development.md	--only tr --repeat	tools/bench/run.py --only dil seçimi ('tr' dil adı), komut değil
+docs/roadmap.md	tr profile --go-profile	tarihli geçmiş profil ölçümü kaydı
+docs/status.md	claude/d1-dilim2	tarihli geçmiş ölçüm kaydı
+docs/status.md	Faz 0.4, 2026-10-30	Faz 0.4 tarihli geçmiş durum kaydı
+docs/status.md	GNU coreutils 8.32	GNU tr çakışmasını ve trlang göçünün nedenini anlatan madde
+docs/status.md	main `85a19c36`	tarihli geçmiş ölçüm kaydı
+internal/devtools/codeindex/README.md	<scheme> <package>	SCIP simge dizgesi şeması ('tr <modül-yolu>/...'), komut değil
+tools/codegraph/README.md	TCB 2026-10-25, item 3	tarihli geçmiş ölçüm kaydı
+tools/codegraph/test_names.go	TCB 2026-10-25	tarihli geçmiş ölçüm kaydı
+tools/codegraph/gaps.md	yetmeyen ya da yanlış	ana oturumun tuttuğu geçmiş birikim kaydı
+tools/codegraph/gaps.md	TestDocTRCodeBlocks	ana oturumun tuttuğu geçmiş birikim kaydı
+tools/codegraph/gaps.md	DENETİM 66	ana oturumun tuttuğu geçmiş birikim kaydı
+tools/codegraph/gaps.md	2026-10-27, ana oturum	ana oturumun tuttuğu geçmiş birikim kaydı
+tools/codegraph/gaps.md	2026-10-29, DENETİM	ana oturumun tuttuğu geçmiş birikim kaydı
+tools/codegraph/gaps.md	2026-10-25'te denendi	ana oturumun tuttuğu geçmiş birikim kaydı
+tools/codegraph/gaps.md	2026-10-26, DENETİM	ana oturumun tuttuğu geçmiş birikim kaydı

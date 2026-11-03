@@ -41,15 +41,15 @@ func TestMain(m *testing.M) {
 		fmt.Fprintln(os.Stderr, "geçici klasör açılamadı:", err)
 		os.Exit(1)
 	}
-	ad := "tr"
+	ad := "trlang"
 	if runtime.GOOS == "windows" {
 		ad += ".exe"
 	}
 	trBinary = filepath.Join(dir, ad)
-	build := exec.Command("go", "build", "-o", trBinary, "github.com/sekerahmet/TCB/cmd/tr")
+	build := exec.Command("go", "build", "-o", trBinary, "github.com/sekerahmet/TCB/cmd/trlang")
 	build.Stdout, build.Stderr = os.Stderr, os.Stderr
 	if err := build.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, "tr derlenemedi:", err)
+		fmt.Fprintln(os.Stderr, "trlang derlenemedi:", err)
 		os.RemoveAll(dir)
 		os.Exit(1)
 	}
@@ -92,12 +92,12 @@ func hasPythonModules(python string, modules ...string) bool {
 	return exec.Command(python, append([]string{"-c", code}, modules...)...).Run() == nil
 }
 
-// trVersion yorumlayıcının sürümünü kaynaktan (cmd/tr/main.go'daki Version sabiti) okur:
-// 'tr version' çıktısı kaynaktaki sürümle karşılaştırılır.
+// trVersion yorumlayıcının sürümünü kaynaktan (cmd/trlang/main.go'daki Version sabiti) okur:
+// 'trlang version' çıktısı kaynaktaki sürümle karşılaştırılır.
 func trVersion(t *testing.T) string {
 	t.Helper()
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, reporoot.Path("cmd/tr/main.go"), nil, 0)
+	f, err := parser.ParseFile(fset, reporoot.Path("cmd/trlang/main.go"), nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func trVersion(t *testing.T) string {
 			}
 		}
 	}
-	t.Fatal("cmd/tr/main.go'da Version sabiti bulunamadı")
+	t.Fatal("cmd/trlang/main.go'da Version sabiti bulunamadı")
 	return ""
 }
 

@@ -1,7 +1,7 @@
 // Eklentinin yerelleştirmesinin testi: kaynaktaki her ileti Türkçe pakette vardır, pakette artık
 // (kaynakta olmayan) ileti kalmaz. package.json'ın %anahtar%ları için bkz. behavior_extension_test.go. Bağımlılıksız;
 // depo kökünden: node editors/vscode/test/l10n_test.js
-// (go test ./cmd/tr/e2e bunu TestExtensionJSTests ile çalıştırır.)
+// (go test ./cmd/trlang/e2e bunu TestExtensionJSTests ile çalıştırır.)
 'use strict';
 
 const assert = require('assert');

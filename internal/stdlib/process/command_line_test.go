@@ -77,7 +77,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 		arg  []string
 		want string
 	}{
-		{[]string{"--ogrenme_orani", "0.01"}, "Hata: bilinmeyen seçenek '--ogrenme_orani'. Bunu mu demek istediniz: '--öğrenme_oranı'? Seçenekler için: tr egit.tr --help"},
+		{[]string{"--ogrenme_orani", "0.01"}, "Hata: bilinmeyen seçenek '--ogrenme_orani'. Bunu mu demek istediniz: '--öğrenme_oranı'? Seçenekler için: trlang egit.tr --help"},
 		{[]string{"--öğrenme-oranı", "0.01"}, "Bunu mu demek istediniz: '--öğrenme_oranı'?"},
 		{[]string{"--yardim"}, "Bunu mu demek istediniz: '--help'?"},
 		{[]string{"-adım", "5"}, "bilinmeyen seçenek '-adım'. Bunu mu demek istediniz: '--adım'?; seçenekler iki tireyle yazılır"},
@@ -103,7 +103,7 @@ func TestCommandLineUsageErrors(t *testing.T) {
 // --help ve -h seçenekleri listeleyip programı 0 koduyla bitirir; hatalı argümanlar olsa da.
 func TestCommandLineHelp(t *testing.T) {
 	code := `TR_command_line(` + options + `, TR_description: "Küçük dil modelini eğitir", TR_descriptions: {"öğrenme_oranı": "öğrenme oranı", "adım": "eğitim adımı sayısı"})`
-	want := `Kullanım: tr egit.tr [seçenekler]
+	want := `Kullanım: trlang egit.tr [seçenekler]
 
 Küçük dil modelini eğitir
 

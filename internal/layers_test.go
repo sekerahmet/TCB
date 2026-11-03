@@ -14,7 +14,7 @@ import (
 
 // Katman kuralı: kim kimi içe aktarabilir. Okun yönü "içe aktarabilir" demektir:
 //
-//	araçlar (internal/devtools, cmd/tr) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
+//	araçlar (internal/devtools, cmd/trlang) ─▶ motorlar (internal/stdlib) ─▶ dil çekirdeği (internal/lang)
 //	                                        └──────▶ hesap çekirdekleri (internal/compute)
 //
 // Hesap çekirdekleri dili bilmez (tek başına sınanır ve ölçülür), dil çekirdeği motorları ve
@@ -87,7 +87,7 @@ func TestPrefixMatch(t *testing.T) {
 		{"internal/compute", "internal/compute/", true},
 		{"internal/compute/tensor", "internal/compute/", true},
 		{"internal/computex", "internal/compute/", false},
-		{"cmd/tr", "cmd/", true},
+		{"cmd/trlang", "cmd/", true},
 	} {
 		if g := prefixMatches(d.path, d.prefix); g != d.matches {
 			t.Errorf("prefixMatches(%q, %q) = %v; %v olmalı", d.path, d.prefix, g, d.matches)

@@ -162,7 +162,7 @@ func TestLongCommandsRunInTheBackground(t *testing.T) {
 		"x=$(bash tools/full_check.sh --kip=on)",
 	}
 	text := []string{
-		"go test ./cmd/tr/e2e -run TestDocLinks -count=1",
+		"go test ./cmd/trlang/e2e -run TestDocLinks -count=1",
 		"go test ./internal/lang/... -count=1",
 		"grep -n dups_check tools/full_check.sh",
 		`git commit -m "tools/full_check.sh; bash tools/full_check.sh runs"`,
