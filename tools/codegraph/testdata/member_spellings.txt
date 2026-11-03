@@ -466,6 +466,7 @@ e.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 e.TR_tolist	ok	0	name:TR_mem_tolist
 e.TR_value	ok	0	name:TR_mem_value
 e.TR_wait	ok	0	name:TR_mem_wait
+elle.TR_tolist	ok	0	name:TR_mem_tolist
 es.TR_append	ok	0	name:TR_mem_append
 es.TR_contains	ok	0	name:TR_mem_contains
 es.TR_sort	ok	0	name:TR_mem_sort
@@ -616,6 +617,7 @@ k2.TR_grad	ok	0	name:TR_mem_grad
 k2.TR_sequential	ok	0	name:TR_mem_sequential
 k2.TR_tolist	ok	0	name:TR_mem_tolist
 k_ham.TR_reshape	ok	0	name:TR_mem_reshape
+ka.TR_tolist	ok	0	name:TR_mem_tolist
 kalıcı.TR_next	ok	0	name:TR_mem_next
 kalıntı.TR_tolist	ok	0	name:TR_mem_tolist
 katman.TR_GPT	ok	0	tr:struct:lib/layers.tr:TR_type_GPT
@@ -631,6 +633,7 @@ kayıt.TR_contains	ok	0	name:TR_mem_contains
 kayıt_defteri.TR_append	ok	0	name:TR_mem_append
 kayıtlar.TR_filter	ok	0	name:TR_mem_filter
 kb.TR_dtype	ok	0	name:TR_mem_dtype
+kb.TR_shape	ok	0	name:TR_mem_shape
 kb.TR_tolist	ok	0	name:TR_mem_tolist
 kesintisiz.TR_state	ok	0	name:TR_mem_state
 kimlikler.TR_append	ok	0	name:TR_mem_append
@@ -951,6 +954,7 @@ sayım.TR_contains	ok	0	name:TR_mem_contains
 sayım.TR_length	ok	0	name:TR_mem_length
 sb.TR_append	ok	0	name:TR_mem_append
 sentetik.TR_append	ok	0	name:TR_mem_append
+serbest.TR_tolist	ok	0	name:TR_mem_tolist
 ses.TR_sample_rate	not_found	4	-
 ses.TR_samples	not_found	4	-
 seyrek_p.TR_append	ok	0	name:TR_mem_append
