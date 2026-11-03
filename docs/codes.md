@@ -2625,7 +2625,7 @@ tr: dosya_yaz("tablo.csv", "ad,yaş\nAli,30"); değişken tablo = csv_oku("tablo
 
     dosya_oku(Metin | Yol) → Metin
 
-Dosyanın tüm içeriğini Metin olarak okur; yol Metin ya da Yol olabilir. Göreli yol önce çalışma klasörüne, sonra modülün ve programın klasörüne göre çözülür, dosya yoksa hata bakılan yerleri listeler. .gz uzantılı dosya açılarak okunur (açılmış içerik en çok 1 GB; daha büyüğü için dosya_satırları).
+Dosyanın tüm içeriğini Metin olarak okur (geçerli UTF-8 değilse hata; ikili dosya için dosya_baytları); yol Metin ya da Yol olabilir. Göreli yol önce çalışma klasörüne, sonra modülün ve programın klasörüne göre çözülür, dosya yoksa hata bakılan yerleri listeler. .gz uzantılı dosya açılarak okunur (açılmış içerik en çok 1 GB; daha büyüğü için dosya_satırları).
 
 ```tr
 TR_write_file("notlar.txt", "merhaba"); TR_print(TR_read_file("notlar.txt"))

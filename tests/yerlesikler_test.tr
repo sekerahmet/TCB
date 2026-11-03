@@ -122,6 +122,25 @@ TR_test "13.1 TR_read_bytes dosyayı TR_Bytes olarak olduğu gibi okur; .gz aç�
     TR_assert_equal("H2423", TR_error_code { TR_read_bytes([5, "a"][0]) })
 }
 
+TR_test "13.1 TR_read_file geçerli UTF-8 olmayan dosyada hatadır; ileti TR_read_bytes'ı önerir" {
+    TR_var k = TR_temp_dir()
+    TR_write_file(TR_Path(k, "ikili.bin"), TR_Bytes([0, 255, 128]))
+    TR_assert_equal("H2621", TR_error_code { TR_read_file(TR_Path(k, "ikili.bin")) })
+    # Önerinin yazımı aynı dosyayı okur (iletideki yol testi: TestReadFileInvalidUTF8SuggestsReadBytesWithItsPath).
+    TR_assert_equal(TR_Bytes([0, 255, 128]), TR_read_bytes(TR_Path(k, "ikili.bin")))
+    # Yarım kalan çok baytlı karakter de geçersizdir.
+    TR_write_file(TR_Path(k, "yarim.txt"), TR_Bytes([97, 195]))
+    TR_assert_equal("H2621", TR_error_code { TR_read_file(TR_Path(k, "yarim.txt")) })
+    # .gz açılır (18.12); açılmış içerik geçersizse TR_read_bytes'ı önermeyen H2622.
+    TR_write_file(TR_Path(k, "b.gz"), TR_Bytes([255]))
+    TR_assert_equal("H2622", TR_error_code { TR_read_file(TR_Path(k, "b.gz")) })
+    # Geçerli UTF-8 (boş dosya, BOM, çok baytlı karakter) aynen okunur.
+    TR_write_file(TR_Path(k, "bos.txt"), "")
+    TR_assert_equal("", TR_read_file(TR_Path(k, "bos.txt")))
+    TR_write_file(TR_Path(k, "bom.txt"), TR_Bytes([239, 187, 191, 197, 159]))
+    TR_assert_equal("\u{feff}ş", TR_read_file(TR_Path(k, "bom.txt")))
+}
+
 TR_test "13.2 metin metotları" {
     TR_assert_equal("ISTANBUL", "istanbul".TR_upper())
     TR_assert_equal("ilik", "ILIK".TR_lower())

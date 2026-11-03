@@ -419,6 +419,8 @@
 "H2614": "'+' joins two lists; {left} and {right} cannot be joined. To add an item to a list write `l + [x]` or `l.{#append}(x)`",
 "H2615": "the repetition is too large: repeating {n} times would give more than {limit} list items",
 "H2620": "{fn}: a single element has no sample standard deviation; it divides by n-1 and needs at least two elements",
+"H2621": "{fn}: {path|q} is not valid UTF-8 text (the first invalid byte is at index {offset}); read a binary file as {@Bytes}: `{#read_bytes}({path|q})`",
+"H2622": "{fn}: {path|q} is not valid UTF-8 text once decompressed (the first invalid byte is at index {offset}); {@read_bytes} does not decompress a .gz file, it gives the compressed bytes",
 "H2640": "{@Int}(): {value|q} is not an integer in program spelling; write decimal digits with an optional sign, '_' only between digits and no spaces (\"42\", \"-1_000\"); for a decimal text write `{#Int}({#Float}(x))`",
 "H2641": "{@Int}(): {value|q} does not fit in {@Int} (-9223372036854775808 to 9223372036854775807); read it with `{#Float}(...)`",
 "H2642": "{@Float}(): {value|q} cannot be read as a number; write it as in a program, with a dot, an optional sign and exponent (\"3.14\", \"-1.5\", \"2e-3\"), or \"inf\", \"-inf\", \"nan\"; there is no locale (\"1,5\" is not read) and a number beyond {@Float}'s range is not read",

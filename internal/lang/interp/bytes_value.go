@@ -164,18 +164,26 @@ func bytesCall(_ *VM, a Value) (Value, error) {
 
 // bytesText is TR_String(b): the bytes read as UTF-8; invalid UTF-8 is an error (3.3a).
 func bytesText(b *BytesVal) (Value, error) {
-	if !utf8.Valid(b.b) {
-		pos := 0
-		for pos < len(b.b) {
-			r, n := utf8.DecodeRune(b.b[pos:])
-			if r == utf8.RuneError && n <= 1 {
-				break
-			}
-			pos += n
-		}
+	if pos := invalidUTF8(b.b); pos >= 0 {
 		return nil, messages.New(messages.H2656, pos)
 	}
 	return &StringVal{Val: string(b.b)}, nil
+}
+
+// invalidUTF8 b'deki ilk geçersiz UTF-8 baytının indeksidir; b geçerli UTF-8 ise -1 (3.3a, 13.1).
+func invalidUTF8(b []byte) int {
+	if utf8.Valid(b) {
+		return -1
+	}
+	pos := 0
+	for pos < len(b) {
+		r, n := utf8.DecodeRune(b[pos:])
+		if r == utf8.RuneError && n <= 1 {
+			break
+		}
+		pos += n
+	}
+	return pos
 }
 
 // Compile-time check: the interpreter finds these by type assertion.

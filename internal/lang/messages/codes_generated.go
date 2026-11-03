@@ -424,6 +424,8 @@ const (
 	H2614 Code = 2614 // '+' iki listeyi uç uca ekler; {left} ile {right} eklenmez. Listeye öğe eklemek için `l + [x]` ya da `l.{#append}(x)` yazın
 	H2615 Code = 2615 // yineleme çok büyük: {n} kez yinelemek {limit} öğelik listeyi aşar
 	H2620 Code = 2620 // {fn}: tek öğenin örneklem standart sapması yoktur; n-1'e böler, en az iki öğe ister
+	H2621 Code = 2621 // {fn}: {path|q} geçerli UTF-8 metin değil (ilk geçersiz bayt {offset} indeksinde); ikili dosyayı {@Bytes} olarak okuyun: `{#read_bytes}({path|q})`
+	H2622 Code = 2622 // {fn}: {path|q} açılınca geçerli UTF-8 metin değil (ilk geçersiz bayt {offset} indeksinde); {@read_bytes} .gz dosyasını açmaz, sıkıştırılmış baytları verir
 	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
 	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); `{#Float}(...)` ile okuyun
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz

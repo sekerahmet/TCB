@@ -199,9 +199,18 @@ func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return NewInt(time.Now().UnixMilli()), nil
 }
 
-// readFileBuiltin dosya_oku() yerleşiğidir: dosyayı metin olarak okur, .gz'i açar (18.12).
+// readFileBuiltin dosya_oku() yerleşiğidir: dosyayı metin olarak okur, .gz'i açar (18.12). İçerik
+// geçerli UTF-8 değilse hatadır (13.1): ileti aynı yolla dosya_baytları'nı önerir (H2621); .gz'de
+// dosya_baytları açılmış içeriği vermediği için önermez (H2622).
 func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
-	return readWhole(y, codes.FnReadFile, args, ReadFileContent, func(data []byte, _ string) (Value, error) {
+	return readWhole(y, codes.FnReadFile, args, ReadFileContent, func(data []byte, filePath string) (Value, error) {
+		if pos := invalidUTF8(data); pos >= 0 {
+			code := messages.H2621
+			if IsGzip(filePath) {
+				code = messages.H2622
+			}
+			return nil, messages.New(code, CallPrefix(codes.FnReadFile), filePath, pos)
+		}
 		return &StringVal{Val: string(data)}, nil
 	})
 }
