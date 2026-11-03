@@ -9,6 +9,7 @@
 | [`recipes.md`](recipes.md) | Geliştirici | Ekleme tarifleri: yeni fonksiyon, yerleşik, metot, ileti, paket, dil kuralı; dokunulacak dosyalar ve testler |
 | [`status.md`](status.md) | Geliştiriciler | Dil tanımının yeniden yazılan bölümlerine göre bugünkü durum ve yapılacaklar |
 | [`roadmap.md`](roadmap.md) | Herkes | Yol haritası: dil tanımının yeniden yazılan bölümlerinden gelen işler ve kilometre taşları; eskisi [`archive/`](archive/roadmap-2026-10-27.md) |
+| [`measurements.md`](measurements.md) | Geliştiriciler | Motorun en son hâliyle yapılmış hız ölçümleri, commit ve tarihiyle; motor değişince eskiyenler ayrı listede |
 | [`architecture.md`](architecture.md) | Depoda çalışanlar | Katmanlar, kim kimi içe aktarabilir, her paketin görevi, klasör haritası, sahiplik |
 | [`development.md`](development.md) | Depoda çalışanlar | Kod düzeni: dosya başına tek konu, dosya ve fonksiyon sınırları, İngilizce kod tabanı ve diller, paket belgesi, testlerin yeri, yeni kod isteği, tam denetim, ölçüm disiplini |
 
