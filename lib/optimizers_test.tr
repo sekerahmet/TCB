@@ -405,3 +405,18 @@ TR_test "Muon ve NorMuon: aynı şekilli ağırlıklar tek yığında dikleştir
     TR_assert_equal(TR_ones([4, 8]), TR_no_grad(A))
     TR_assert(TR_not TR_equal(TR_no_grad(B), TR_ones([4, 8])), "gradyanı olan ağırlık güncellenmeli")
 }
+
+TR_test "15.34 Muon, NorMuon ve RowRMS parametre olmayan yaprakta kurulumda hata verir, donmuş parametreyi kabul eder" {
+    TR_var w1 = TR_Tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
+    # Hiç türev izlemek için kurulmamış yaprak sessizce atlanmaz (Go'daki iyileştiricilerle aynı H6995).
+    TR_var w2 = TR_Tensor(TR_ones([2, 2]))
+    TR_assert_equal("H6995", TR_error_code { TR_Muon([w1, w2]) })
+    TR_assert_equal("H6995", TR_error_code { TR_NorMuon([w1, w2]) })
+    TR_assert_equal("H6995", TR_error_code { TR_RowRMS([w1, w2]) })
+    # Donmuş parametre parametredir: üçü de kabul eder.
+    TR_var w3 = TR_Tensor(TR_ones([2, 2]), TR_requires_grad: TR_true)
+    w3.TR_requires_grad = TR_false
+    TR_assert_equal(TR_Muon, TR_Type(TR_Muon([w1, w3])))
+    TR_assert_equal(TR_NorMuon, TR_Type(TR_NorMuon([w1, w3])))
+    TR_assert_equal(TR_RowRMS, TR_Type(TR_RowRMS([w1, w3])))
+}
