@@ -267,6 +267,8 @@ codegraph query TR_self.TR_GPT | exit: 4 | contains: not found | src: codegraph-
 tr index definition TR_self.TR_GPT | exit: 4 | contains: bulunamadı | src: codegraph-2 düzeltme 3 K1 (CODEGRAPH_2_DUZELTME_3.md), 2026-11-02 (iki araçta TR_self.TR_GPT bulunamadı)
 codegraph query katman.TR_GPT | exit: 0 | contains: layers.TR_type_GPT [tr_struct] | not: not found | src: codegraph-2 düzeltme 3 K1 (CODEGRAPH_2_DUZELTME_3.md), 2026-11-02 (TR_as takma adıyla sorulan kitaplık bildirimi bulunur)
 tr index definition katman.TR_GPT | exit: 0 | contains: layers.GPT | not: bulunamadı | src: codegraph-2 düzeltme 3 K1 (CODEGRAPH_2_DUZELTME_3.md), 2026-11-02 (iki araçta TR_as takma adıyla kitaplık bildirimi bulunur)
+codegraph query TR_mem_embedding.TR_mem_table | exit: 4 | contains: not found | not: go: | src: codegraph-2 düzeltme 4 Ş2 (CODEGRAPH_2_DUZELTME_4.md), 2026-11-03 (kimlik biçimli alıcılı üye yazımı Go metin aramasına inmez)
+tr index definition TR_mem_embedding.TR_mem_table | exit: 4 | contains: bulunamadı | not: go: | src: codegraph-2 düzeltme 4 Ş2 (CODEGRAPH_2_DUZELTME_4.md), 2026-11-03 (iki araçta kimlik biçimli alıcılı üye yazımı bulunamadı)
 codegraph query model.TR_generate | contains: layers.TR_type_GPT.TR_mem_generate [tr_method] | not: not found | src: codegraph-2 düzeltme 2, 2026-11-02 (küçük harfli değişken alıcısı aynı adlı Model yapısına takılmaz)
 tr index definition model.TR_generate | contains: layers.GPT.üret | not: bulunamadı | src: codegraph-2 düzeltme 2, 2026-11-02 (iki araçta küçük harfli değişken alıcısı GPT.üret'e çözülür)
 codegraph query a.TR_shape | contains: TR_mem_shape [name] | not: not found | src: codegraph-2 düzeltme 2, 2026-11-02 (küçük harfli a değişkeni negatif fikstürdeki A yapısına takılmaz)

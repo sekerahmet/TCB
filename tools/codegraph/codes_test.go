@@ -305,6 +305,9 @@ func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 			}
 			m := s[loc[0]:loc[1]]
 			recv, _, _ := strings.Cut(m, ".")
+			// `TR_mem_` önekli alıcılar (`TR_mem_embedding.TR_mem_table` gibi 16 yazım) .tr dosyalarında kod olarak değil,
+			// yalnız metin sabitlerinde (ağırlık sözlüğü anahtarları) ve yorumlarda geçer; bulunamadı ve Go'ya inmeme davranışı
+			// testdata/planning_questions.txt içinde korunur.
 			if r, _ := utf8.DecodeRuneInString(recv); !unicode.IsDigit(r) && !strings.HasPrefix(recv, "TR_mem_") {
 				seen[m] = true
 			}
