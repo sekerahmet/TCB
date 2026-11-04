@@ -227,13 +227,13 @@ TR_test "16.1 dağarcık boyutu kimliklerin sınırıdır: seyrek sözlükte en 
     TR_assert_equal("H5647", TR_error_code { p.TR_decode([3]) })
     TR_assert_equal("H5647", TR_error_code { p.TR_decode([6]) })
     # Sınır üretimde en büyük kimliği dışarıda bırakmaz: dolgulu bir modelin çıktısı 5'i de içerir.
-    TR_var üretilen = []
+    TR_var sonuçlar = []
     TR_for tohum TR_in 1..30 {
         TR_var model = TR_GPT(8, TR_context: 12, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: tohum)
-        üretilen = üretilen + model.TR_generate([1], 8, TR_temperature: 0, TR_vocab_size: p.TR_vocab_size)
+        sonuçlar = sonuçlar + model.TR_generate([1], 8, TR_temperature: 0, TR_vocab_size: p.TR_vocab_size)
     }
-    TR_assert(üretilen.TR_contains(5))
-    TR_assert(TR_not üretilen.TR_contains(6))
+    TR_assert(sonuçlar.TR_contains(5))
+    TR_assert(TR_not sonuçlar.TR_contains(6))
 }
 
 TR_test "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır" {
