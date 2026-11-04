@@ -82,6 +82,7 @@ func TestBaseThatIsNotOneCommitStops(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		cmd := exec.CommandContext(ctx, bash, filepath.Join("tools", "full_check.sh"), "--kip=on", "--taban="+base)
+		cmd.WaitDelay = time.Second
 		cmd.Dir = root
 		out, err := cmd.CombinedOutput()
 		exit, ok := err.(*exec.ExitError)
