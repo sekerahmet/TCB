@@ -242,7 +242,7 @@ TR_test "16.1 eklenmiş parça dosyadaki kimliğini alır, dolu kimlik hatadır"
     TR_assert_equal(9, p.TR_token_id("<s>"))
     TR_assert_equal("<s>", p.TR_decode([9], TR_special_tokens: TR_true))
     TR_assert_equal("H5647", TR_error_code { p.TR_decode([7]) })
-    TR_assert_equal("H5620", TR_error_code { TR_load_tokenizer("data/tokenizer_added_taken.json") })
+    TR_assert_equal("H5620", TR_error_code { TR_load_tokenizer("data/broken_tokenizer_added_taken.json") })
 }
 
 TR_test "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır" {
