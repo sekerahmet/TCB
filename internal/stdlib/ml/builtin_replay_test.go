@@ -430,3 +430,49 @@ TR_print(m.TR_generate([1, 2], 4, TR_temperature: 0, TR_cuda_graph: TR_true) == 
 		t.Fatalf("PLE'li üretim kayıtla farklı: %q", out)
 	}
 }
+
+// Kural: kayıtta aynı TR_Bool maske çekirdek için bir kez çevrilir; maske kayıt içinde yerinde
+// değişince yeniden çevrilir ve sonuç doğrudan çağrıyla aynı kalır. Her oynatmada maske girdiden
+// yeniden hesaplanır.
+func TestReplayConvertsAnAttentionMaskOncePerVersion(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+	const prog = `TR_default_device("gpu")
+TR_var q = TR_ones([1, 1, 1, 4])
+TR_var k = TR_ones([1, 4, 1, 4])
+TR_var v = TR_Tensor([[[[1.0, 2.0, 3.0, 4.0]], [[5.0, 6.0, 7.0, 8.0]], [[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0, 2.0]]]])
+TR_var konumlar = TR_Tensor([0, 1, 2, 3])
+TR_var ilk = TR_Tensor([TR_true, TR_false, TR_false, TR_false])
+TR_func adım(sınır: TR_Tensor[TR_Int]) -> TR_Tensor {
+    TR_var m = konumlar <= sınır
+    TR_var a = TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m)
+    TR_var b = TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m)
+    __DEĞİŞİM__
+    TR_return a + b + TR_attention(q, k, v, TR_causal: TR_false, TR_mask: m)
+}
+TR_var f = TR_replay((s) => adım(s))
+TR_no_grad {
+    TR_var s0 = TR_Tensor([0]).TR_to_device("gpu")
+    TR_var s2 = TR_Tensor([2]).TR_to_device("gpu")
+    f(s0)
+    f(s0)
+    TR_print(f(s2).TR_tolist == adım(s2).TR_tolist, f(s0).TR_tolist == adım(s0).TR_tolist)
+}`
+	for _, c := range []struct {
+		name, change  string
+		wantInCapture int64
+	}{
+		{"değişmeyen", "", 1},
+		{"yerinde değişen", "m &= ilk", 2},
+	} {
+		// Isınma üç, kayıt wantInCapture, doğrudan çağrılar üçer çevirme yapar.
+		before := maskConversions.Load()
+		out := mustRun(t, strings.ReplaceAll(prog, "__DEĞİŞİM__", c.change))
+		if out != "true true\n" {
+			t.Fatalf("%s: kayıt doğrudan çağrıdan farklı: %q", c.name, out)
+		}
+		if got, want := maskConversions.Load()-before, 3+c.wantInCapture+2*3; got != want {
+			t.Fatalf("%s: %d çevirme, beklenen %d", c.name, got, want)
+		}
+	}
+}
