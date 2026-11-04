@@ -18,7 +18,7 @@
 # verilirse ağırlık o türde tutulur (ör. "bf16": hazır modellerin saklandığı tür).
 # Sapma 0 ise sonuç sıfırlardır, rastgele sayı çekilmez: dosyadan yüklenecek modelin kurulması (tr/pretrained).
 TR_func TR_init_weight(TR_shape: TR_List[TR_Int], TR_init_std: TR_Float, TR_seed: TR_Int, TR_dtype: TR_String = "float32") -> TR_Tensor {
-    TR_if TR_init_std == 0.0 { TR_return TR_Tensor(TR_zeros(TR_shape, TR_dtype: TR_dtype), TR_requires_grad: TR_true) }
+    TR_if TR_init_std == 0.0 { TR_return TR_zeros(TR_shape, TR_dtype: TR_dtype, TR_requires_grad: TR_true) }
     TR_return TR_Tensor(TR_no_grad((TR_randn(TR_shape, TR_seed: TR_seed) * TR_init_std).TR_to_dtype(TR_dtype)), TR_requires_grad: TR_true)
 }
 

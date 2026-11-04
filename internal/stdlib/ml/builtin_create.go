@@ -130,13 +130,20 @@ func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named 
 		if err != nil {
 			return nil, err
 		}
-		t, err := create(m, sh, named)
-		if err != nil {
-			return nil, err
-		}
-		// Yeni tensör türev izlemediği için dönüşüm çizgeye kaydedilmez; sonuç yapraktır.
-		if t, err = convertKind(ad, t, dt); err != nil {
-			return nil, err
+		var t *tensor.Tensor
+		if kd == codes.FnZeros && dt.IsFloat() {
+			// Doğrudan kendi türünde: dönüşüm yok, bellek ilk yazılana dek dokunulmamış kalır.
+			if t, err = safe(func() *tensor.Tensor { return tensor.ZerosOf(dt, sh...) }); err != nil {
+				return nil, err
+			}
+		} else {
+			if t, err = create(m, sh, named); err != nil {
+				return nil, err
+			}
+			// Yeni tensör türev izlemediği için dönüşüm çizgeye kaydedilmez; sonuç yapraktır.
+			if t, err = convertKind(ad, t, dt); err != nil {
+				return nil, err
+			}
 		}
 		watch, err := requiresGrad(ad, named, nil, false)
 		if err != nil {
