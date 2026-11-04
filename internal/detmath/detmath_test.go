@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/reporoot"
 )
 
 const (
@@ -71,7 +73,7 @@ func TestCallersUseThisPackage(t *testing.T) {
 		banned[f.name] = true
 	}
 	for _, dir := range []string{"../stdlib/ml", "../lang/interp"} {
-		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+		files, err := reporoot.Glob(filepath.Join(dir, "*.go"))
 		if err != nil || len(files) == 0 {
 			t.Fatalf("%s: Go dosyası yok: %v", dir, err)
 		}
