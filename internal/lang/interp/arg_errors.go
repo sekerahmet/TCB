@@ -109,6 +109,28 @@ func ArgCountError(kd codes.Code, expected any, given int, usage ...any) error {
 	return argCountErrorByName(name, expected, given)
 }
 
+// ArgCountErrorWriting is ArgCountError with the valid calls written as a program writes them, in
+// backticks and with the identity (`TR_mean([a, b])`), so that they run when copied; forms are the
+// argument lists.
+func ArgCountErrorWriting(kd codes.Code, expected any, given int, forms ...string) error {
+	return messages.New(messages.H2011, CallName(kd), expected, given, codeUsage{kd, forms}, (*messages.Error)(nil))
+}
+
+// codeUsage geçerli çağrıların program yazımıdır, ileti parametresi olarak: yalnız bağlaç iletinin
+// dilindedir, kod kimlikle yazılır.
+type codeUsage struct {
+	kd    codes.Code
+	forms []string
+}
+
+func (u codeUsage) MessageText(lang string) string {
+	pieces := make([]string, len(u.forms))
+	for i, form := range u.forms {
+		pieces[i] = "`" + codes.Spelling(u.kd) + "(" + form + ")`"
+	}
+	return messages.OrListIn(lang, pieces...)
+}
+
 func argCountErrorByName(name any, expected any, given int) error {
 	return messages.New(messages.H2012, name, expected, given)
 }

@@ -138,6 +138,10 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var m = \"ab\"\nTR_print([c TR_for c TR_in m])", "[\"a\", \"b\"]\n"},
 	{messages.H2636, "TR_print(\"ab\".TR_replace(\"\", \"-\"))", "[c TR_for c TR_in m].TR_join(y)",
 		"TR_var m = \"ab\"\nTR_var y = \"-\"\nTR_print([c TR_for c TR_in m].TR_join(y))", "a-b\n"},
+	// 13.1: TR_mean, TR_std ve TR_median yalnız liste alır; TR_max tek değerde listeyi ya da ikinci değeri gösterir.
+	{messages.H2011, "TR_var a = 1\nTR_var b = 2\nTR_print(TR_mean(a, b))", "TR_mean([a, b])", "TR_var a = 1\nTR_var b = 2\nTR_print(TR_mean([a, b]))", "1.5\n"},
+	{messages.H2011, "TR_var a = 1\nTR_print(TR_max(a))", "TR_max([a, b])", "TR_var a = 1\nTR_var b = 2\nTR_print(TR_max([a, b]))", "2\n"},
+	{messages.H2011, "TR_var a = 1\nTR_print(TR_max(a))", "TR_max(a, b)", "TR_var a = 1\nTR_var b = 2\nTR_print(TR_max(a, b))", "2\n"},
 	// 13.6: başlangıçsız indirgeme boş listede hatadır; ileti başlangıçlı yazımı önerir.
 	{messages.H2637, "TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_reduce((a, x) => a + x))", "l.TR_reduce(0, (a, x) => a + x)",
 		"TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_reduce(0, (a, x) => a + x))", "0\n"},

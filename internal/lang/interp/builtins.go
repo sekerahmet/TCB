@@ -340,15 +340,19 @@ func callable(v Value) bool {
 // guards against running out of memory).
 const MaxCollectionSize = 50_000_000
 
-// extremeArgs min/max'ın argümanlarını açar: tek bir liste verilirse elemanları,
-// değilse argümanların kendisi karşılaştırılır.
+// extremeArgs min/max'ın argümanlarını açar: tek bir liste verilirse elemanları, değilse
+// argümanların kendisi karşılaştırılır. Tek sayı ya da demet hatadır (13.1): bir liste ya da iki ve
+// daha çok değer alır; ileti ikisini de gösterir.
 func extremeArgs(kd codes.Code, args []Value, upper bool) (Value, error) {
 	if len(args) == 0 {
 		return nil, ArgCountError(kd, AtLeast(1), 0, messages.Text(messages.H2304), messages.Text(messages.H2310))
 	}
 	if len(args) == 1 {
-		if list, ok := args[0].(*ListVal); ok {
-			return extreme(kd, list.Elements, upper, true)
+		switch x := args[0].(type) {
+		case *ListVal:
+			return extreme(kd, x.Elements, upper, true)
+		case *IntVal, *FloatVal, *TupleVal:
+			return nil, ArgCountErrorWriting(kd, AtLeast(2), 1, "[a, b]", "a, b")
 		}
 	}
 	return extreme(kd, args, upper, false)

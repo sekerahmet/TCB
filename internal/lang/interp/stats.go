@@ -12,11 +12,11 @@ import (
 
 // registerStats ortalama, standart_sapma ve ortanca yerleşiklerini kaydeder. Tensör
 // yolu (ortalama(t, eksen: ...)) internal/stdlib/ml'dadır; o, bu yerleşiği sarar. Üçü
-// de aynı kuralla girdi alır (13.1): tek bir liste ya da birden çok sayı; boş girdi ve sayı
+// de aynı kuralla girdi alır (13.1): yalnız liste, değerleri tek tek almaz; boş girdi ve sayı
 // olmayan eleman hatadır (toplam gibi).
 func (v *VM) registerStats() {
 	v.RegisterNoNamed(codes.FnMean, func(y *VM, args []Value, named map[string]Value) (Value, error) {
-		elems, _, err := statsInput(codes.FnMean, args)
+		elems, err := statsInput(codes.FnMean, args)
 		if err != nil {
 			return nil, err
 		}
@@ -35,7 +35,7 @@ func (v *VM) registerStats() {
 		if len(nums) < 2 {
 			return nil, messages.New(messages.H2620, CallPrefix(codes.FnStd))
 		}
-		elems, _, _ := statsInput(codes.FnStd, args)
+		elems, _ := statsInput(codes.FnStd, args)
 		if ints, ok := integers(elems); ok {
 			return &FloatVal{Val: exactStd(ints)}, nil
 		}
@@ -58,7 +58,7 @@ func (v *VM) registerStats() {
 		if err != nil {
 			return nil, err
 		}
-		elems, _, _ := statsInput(codes.FnMedian, args)
+		elems, _ := statsInput(codes.FnMedian, args)
 		if ints, ok := integers(elems); ok {
 			return &FloatVal{Val: exactMedian(ints)}, nil
 		}
@@ -204,22 +204,23 @@ func sqrtToOdd(n, m *big.Int) *big.Int {
 	return root
 }
 
-// statsInput istatistik yerleşiğinin elemanlarını verir: tek bir liste argümanının
-// elemanları (fromList) ya da argümanların kendileri. Argümansız çağrı hatadır.
-func statsInput(kd codes.Code, args []Value) (elems []Value, fromList bool, err error) {
-	if len(args) == 0 {
-		return nil, false, ArgCountError(kd, AtLeast(1), 0, messages.Text(messages.H2304), messages.Text(messages.H2310))
+// statsInput istatistik yerleşiğinin listesinin elemanlarını verir (13.1): yalnız tek bir liste
+// alır; ileti değerleri listeye koyan yazımı gösterir.
+func statsInput(kd codes.Code, args []Value) ([]Value, error) {
+	if len(args) != 1 {
+		return nil, ArgCountErrorWriting(kd, 1, len(args), "[a, b]")
 	}
-	if l, ok := args[0].(*ListVal); ok && len(args) == 1 {
-		return l.Elements, true, nil
+	l, ok := args[0].(*ListVal)
+	if !ok {
+		return nil, ArgTypeError(kd, 1, args[0], codes.TypeList)
 	}
-	return args, false, nil
+	return l.Elements, nil
 }
 
 // statsNumbers elemanları sayıya çevirir (yeni bir dilime): boş girdi ve sayı olmayan
 // eleman ortalama() ile aynı biçimde hatadır. emptyMessage boş girdide verilen, sonucun adını da anlatan tam cümlelik iletidir.
 func statsNumbers(kd codes.Code, emptyMessage messages.Code, args []Value) ([]float64, error) {
-	elems, fromList, err := statsInput(kd, args)
+	elems, err := statsInput(kd, args)
 	if err != nil {
 		return nil, err
 	}
@@ -229,25 +230,10 @@ func statsNumbers(kd codes.Code, emptyMessage messages.Code, args []Value) ([]fl
 	nums := make([]float64, len(elems))
 	for i, el := range elems {
 		f, ok := ToFloat(el)
-		switch {
-		case !ok && fromList:
+		if !ok {
 			return nil, ListElementError(CallPrefix(kd), i, numberType, el)
-		case !ok && i == 0:
-			// 1. argüman liste de olabilirdi: beklenen tipler imzanın 1. parametresidir.
-			return nil, argTypeErrorByName(CallName(kd), 1, firstParamTypes(kd), el)
-		case !ok:
-			return nil, argTypeErrorByName(CallName(kd), i+1, numberType, el) // liste değil: argümanın kendisi
 		}
 		nums[i] = f
 	}
 	return nums, nil
-}
-
-// firstParamTypes yerleşik kd'nin imzasındaki 1. parametrenin tipleridir (definitions.json); imza
-// okunamazsa sayı tipleri.
-func firstParamTypes(kd codes.Code) messages.Localized {
-	if d, ok := codes.DefinitionOf(kd); ok && len(d.Signature.Params) > 0 {
-		return TypeNames(d.Signature.Params[0].Types...)
-	}
-	return numberType
 }

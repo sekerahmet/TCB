@@ -3,22 +3,22 @@ package interp
 import (
 	"math"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Kural (B13): standart_sapma ve ortanca sayı olmayan değeri girdinin biçimiyle anlatır: tek liste
-// argümanında "listenin N. elemanı" (H2486), argümanların kendisinde "N. argüman" (H2423).
-// Önceden liste olmayan argüman da (metin, tensör) "listenin 1. elemanı" diyordu.
+// Kural (B13): standart_sapma ve ortanca sayı olmayan değeri girdinin biçimiyle anlatır: listede
+// "listenin N. elemanı" (H2486), liste olmayan argümanda "1. argüman" (H2423). Önceden liste olmayan
+// argüman da (metin, tensör) "listenin 1. elemanı" diyordu.
 func TestStatsNameTheBadValueByItsPlace(t *testing.T) {
 	for _, c := range []struct {
 		code string
 		want messages.Code
 	}{
 		{`TR_std("abc")`, messages.H2423},
-		{`TR_median(1, "a")`, messages.H2423},
 		{`TR_std([1, "a"])`, messages.H2486},
 		{`TR_median(["a"])`, messages.H2486},
 	} {
@@ -29,21 +29,26 @@ func TestStatsNameTheBadValueByItsPlace(t *testing.T) {
 	}
 }
 
-// Kural: 1. argüman yanlışsa beklenen tipler imzanın 1. parametresidir (definitions.json:
-// Liste, Tam ya da Ondalık); sonraki argümanlar sayıdır.
-func TestStatsFirstArgumentExpectsTheSignature(t *testing.T) {
-	for _, c := range []struct {
-		code     string
-		wantList bool
-	}{{`TR_median("abc")`, true}, {`TR_std(TR_true)`, true}, {`TR_median(1, "a")`, false}} {
-		_, err := New().Run(mustParseProgram(t, c.code+"\n"))
+// Kural (13.1): TR_mean, TR_std ve TR_median yalnız liste alır: liste olmayan argüman Liste bekler, çok
+// argüman değerleri listeye koyan yazımı gösterir.
+func TestStatsTakeOnlyAList(t *testing.T) {
+	for _, code := range []string{`TR_median("abc")`, `TR_std(TR_true)`, `TR_mean(1)`, `TR_median(1.5)`} {
+		_, err := New().Run(mustParseProgram(t, code+"\n"))
 		m, ok := messages.As(err)
 		if !ok || m.Code != messages.H2423 {
-			t.Fatalf("%s: %v (beklenen H2423)", c.code, err)
+			t.Fatalf("%s: %v (beklenen H2423)", code, err)
 		}
-		types, _ := m.Args[2].(typeNames)
-		if got := slices.Contains(types, codes.TypeList); got != c.wantList {
-			t.Errorf("%s: beklenen tipler %v; Liste içermesi %v bekleniyordu", c.code, []codes.Code(types), c.wantList)
+		if types, _ := m.Args[2].(typeNames); !slices.Equal(types, typeNames{codes.TypeList}) {
+			t.Errorf("%s: beklenen tipler %v; yalnız Liste bekleniyordu", code, []codes.Code(types))
+		}
+	}
+	for _, code := range []string{`TR_mean(1, 2)`, `TR_std(1, 2, 3)`, `TR_median(1, "a")`, `TR_median([1], 2)`, `TR_mean()`} {
+		_, err := New().Run(mustParseProgram(t, code+"\n"))
+		if !messages.Has(err, messages.H2011) {
+			t.Fatalf("%s: %v (beklenen H2011)", code, err)
+		}
+		if text := messages.ErrorIn(err, "en"); !strings.Contains(text, "([a, b])`") {
+			t.Errorf("%s: ileti liste yazımını göstermeli: %q", code, text)
 		}
 	}
 }
