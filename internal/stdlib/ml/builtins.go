@@ -5,6 +5,7 @@ import (
 
 	_ "github.com/sekerahmet/TCB/internal/compute/gpu" // GPU arka ucunu kaydeder (sürücü ilk kullanımda yüklenir)
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 
@@ -86,13 +87,13 @@ func registerMath(v *interp.VM) {
 	// --- Eleman bazlı matematik ---
 	unit(v, codes.FnRelu, (*tensor.Tensor).Relu, relu64)
 	unit(v, codes.FnSigmoid, (*tensor.Tensor).Sigmoid, sigmoid64)
-	unit(v, codes.FnTanh, (*tensor.Tensor).Tanh, math.Tanh)
+	unit(v, codes.FnTanh, (*tensor.Tensor).Tanh, detmath.Tanh)
 	registerGelu(v)
 	unit(v, codes.FnSqrt, (*tensor.Tensor).Sqrt, nil) // karekök
-	unit(v, codes.FnExp, (*tensor.Tensor).Exp, math.Exp)
-	unit(v, codes.FnLog, (*tensor.Tensor).Log, math.Log)
-	unit(v, codes.FnSin, (*tensor.Tensor).Sin, math.Sin)
-	unit(v, codes.FnCos, (*tensor.Tensor).Cos, math.Cos)
+	unit(v, codes.FnExp, (*tensor.Tensor).Exp, detmath.Exp)
+	unit(v, codes.FnLog, (*tensor.Tensor).Log, detmath.Log)
+	unit(v, codes.FnSin, (*tensor.Tensor).Sin, detmath.Sin)
+	unit(v, codes.FnCos, (*tensor.Tensor).Cos, detmath.Cos)
 
 	// --- Softmax ---
 	registerSoftmax(v, codes.FnSoftmax, false)

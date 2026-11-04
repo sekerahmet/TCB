@@ -308,6 +308,10 @@ TR_test "15.41 genişletilmiş matematik GPU'da CPU ile aynı sonucu verir" {
     }
 }
 
+TR_test "13.1 TR_log alt normal sayıda da doğrudur" {
+    TR_assert_equal(-744.4400719213812, TR_log(5e-324))
+}
+
 TR_test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
     TR_assert(TR_is_finite(7))
     TR_assert(TR_is_finite(-2.5))

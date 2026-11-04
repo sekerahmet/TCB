@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -410,7 +411,7 @@ func sampleRows(data []float32, result []int64, u []float64, C, k int, temperatu
 		}
 		var top float64
 		for i, j := range candidates {
-			w := math.Exp((float64(x[j]) - largestVal) / temperature)
+			w := detmath.Exp((float64(x[j]) - largestVal) / temperature)
 			weight[i] = w
 			top += w
 		}

@@ -415,7 +415,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 				return 0, messages.New(messages.H6425, fn)
 			}
 			for j, x := range y.Data() {
-				top += float64(x) * dirs[k][j]
+				top += float64(float64(x) * dirs[k][j])
 			}
 		}
 		return top, nil

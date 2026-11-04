@@ -2,6 +2,7 @@ package ml
 
 import (
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -14,12 +15,12 @@ import (
 // ----------------------------------------------------------------------------
 
 func gelu64(x float64) float64 {
-	return 0.5 * x * (1 + math.Tanh(math.Sqrt(2/math.Pi)*(x+0.044715*x*x*x)))
+	return 0.5 * x * (1 + detmath.Tanh(math.Sqrt(2/math.Pi)*(x+float64(0.044715*x*x*x))))
 }
 
 // geluExact64 tam (erf tabanlı) GELU: x·½·erfc(−x/√2); −∞'da 0 (tensör yoluyla aynı).
 func geluExact64(x float64) float64 {
-	phi := 0.5 * math.Erfc(-x/math.Sqrt2)
+	phi := 0.5 * detmath.Erfc(-x/math.Sqrt2)
 	if phi == 0 {
 		return 0
 	}
@@ -73,7 +74,7 @@ func relu64(x float64) float64 {
 	return 0
 }
 
-func sigmoid64(x float64) float64 { return 1.0 / (1.0 + math.Exp(-x)) }
+func sigmoid64(x float64) float64 { return 1.0 / (1.0 + detmath.Exp(-x)) }
 
 // unit tek argümanlı eleman bazlı bir fonksiyonu kaydeder. Tensör (matris dahil)
 // girdisinde tensör yolu çalışır. Tensör olmayan girdide eski yerleşiği varsa (karekök)

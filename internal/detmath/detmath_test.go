@@ -4,35 +4,47 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 )
 
-const pkgPath = "github.com/sekerahmet/TCB/internal/detmath"
+const (
+	pkgPath    = "github.com/sekerahmet/TCB/internal/detmath"
+	interpPath = "github.com/sekerahmet/TCB/internal/lang/interp"
+	mlPath     = "github.com/sekerahmet/TCB/internal/stdlib/ml"
+)
 
 // fused birleşik komuttur: amd64'te VFMADD231SD ve benzerleri, arm64'te FMADDD ve benzerleri.
 var fused = regexp.MustCompile(`\s(VFN?M(ADD|SUB)\d+[A-Z]*S[DS]|FN?M(ADD|SUB)[DS])\s`)
 
-// Kural (13.1): paketin hiçbir fonksiyonunda birleşik komut yoktur. Örneklemsizdir: çapraz
-// derlemenin komutları sayılır, makine istemez. Bir çarpımın float64() dönüşümü unutulursa düşer.
+// Kural (13.1): bu paketin ve sayı yerleşiklerini yazan iki paketin hiçbir fonksiyonunda birleşik
+// komut yoktur. Örneklemsizdir: çapraz derlemenin komutları sayılır, makine istemez. Bir çarpımın
+// float64() dönüşümü unutulursa düşer.
 func TestNoFusedInstructions(t *testing.T) {
 	for _, target := range [][]string{
 		{"GOOS=linux", "GOARCH=amd64", "GOAMD64=v3"},
 		{"GOOS=linux", "GOARCH=arm64"},
 	} {
-		cmd := exec.Command("go", "build", "-gcflags="+pkgPath+"=-S", "-o", os.DevNull, ".")
+		cmd := exec.Command("go", "build", "-gcflags="+pkgPath+"=-S", "-gcflags="+interpPath+"=-S",
+			"-gcflags="+mlPath+"=-S", "-o", os.DevNull, mlPath)
 		cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 		cmd.Env = append(cmd.Env, target...)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%v: %v\n%s", target, err, out)
 		}
-		if !strings.Contains(string(out), "detmath.Exp STEXT") {
-			t.Fatalf("%v: derleme çıktısında komut yok", target)
+		for _, symbol := range []string{"detmath.Exp STEXT", "interp.NewInt STEXT", "ml.gelu64 STEXT"} {
+			if !strings.Contains(string(out), symbol) {
+				t.Fatalf("%v: derleme çıktısında %q yok", target, symbol)
+			}
 		}
 		count := 0
 		function := ""
@@ -49,6 +61,65 @@ func TestNoFusedInstructions(t *testing.T) {
 			t.Errorf("%v: %d birleşik komut var", target, count)
 		}
 	}
+}
+
+// Kural (13.1, 4.3): sayı yerleşikleri bu paketin fonksiyonlarını çağırır; Go'nun math paketindeki
+// karşılıkları ml ve interp'te kullanılmaz. Fonksiyon değeri olarak verilmesi de sayılır.
+func TestCallersUseThisPackage(t *testing.T) {
+	banned := map[string]bool{}
+	for _, f := range functions {
+		banned[f.name] = true
+	}
+	for _, dir := range []string{"../stdlib/ml", "../lang/interp"} {
+		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+		if err != nil || len(files) == 0 {
+			t.Fatalf("%s: Go dosyası yok: %v", dir, err)
+		}
+		for _, file := range files {
+			if strings.HasSuffix(file, "_test.go") {
+				continue
+			}
+			for _, use := range mathUses(t, file) {
+				if banned[use.name] {
+					t.Errorf("%s: math.%s yerine detmath.%s", use.at, use.name, use.name)
+				}
+			}
+		}
+	}
+}
+
+type mathUse struct {
+	at   token.Position
+	name string
+}
+
+// mathUses dosyanın math paketinden kullandığı adları verir; içe aktarma başka adla da olabilir.
+func mathUses(t *testing.T, file string) []mathUse {
+	t.Helper()
+	fset := token.NewFileSet()
+	tree, err := parser.ParseFile(fset, file, nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	local := ""
+	for _, spec := range tree.Imports {
+		if spec.Path.Value == `"math"` {
+			local = "math"
+			if spec.Name != nil {
+				local = spec.Name.Name
+			}
+		}
+	}
+	var uses []mathUse
+	ast.Inspect(tree, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok {
+			if id, ok := sel.X.(*ast.Ident); ok && id.Name == local {
+				uses = append(uses, mathUse{fset.Position(sel.Pos()), sel.Sel.Name})
+			}
+		}
+		return true
+	})
+	return uses
 }
 
 // functions paketin bütün fonksiyonlarıdır; ikili olanlar iki girdi alır.

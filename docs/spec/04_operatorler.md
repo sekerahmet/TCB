@@ -34,7 +34,7 @@ Her kuralın emsali ve gerekçesi: [`rationale/04_operators.md`](rationale/04_op
 - *Test:* TR testi.
 
 **4.3** `**` üs alır. İki `TR_Int`te sonuç `TR_Int`tir (taşma 3.1) ve üs eksi olamaz (çalışma hatası; ileti `2.0 ** -1`'i, eksi tabanda `(-2.0) ** -1`'i önerir); bir taraf ondalıksa sonuç `TR_Float`tır. Sıfırın eksi üssü ve eksi sayının tam olmayan üssü çalışma hatasıdır (`0.0 ** -1`, `(-8.0) ** (1.0 / 3)`); tensörde hata değildir (15.6e). Ondalık üs, kesirli üs dahil, 13.1'deki gibi her makinede bit bit aynı sonucu verir.
-- *Test:* TR testi.
+- *Test:* TR testi; bit: `TestGoldenBits`, `TestCallersUseThisPackage`.
 
 **4.4** `<`, `>`, `<=`, `>=` sayılar, metinler ve öğeleri sıralanabilen demetler (3.6a, sözlük sırasıyla) arasında tanımlıdır: sayılar 4.5'teki gibi kesin ve IEEE 754'e göre (`-0.0 < 0.0` yanlış, NaN'lı karşılaştırma yanlış), metinler kod noktası sırasıyla karşılaştırılır; `.TR_sort`'un sıralama sırası bundan ayrıdır (13.10). Yalnız bu dört işleçten oluşan zincir Python'daki gibi okunur: `0 <= i < n` ≡ `0 <= i TR_and i < n`, ortadaki ifade bir kez hesaplanır. İçinde `==` ya da `!=` olan zincir (`a < b == c`, `a == b == c`) sözdizimi hatasıdır, ileti parantez ya da `TR_and` önerir.
 - *Test:* TR testi.
