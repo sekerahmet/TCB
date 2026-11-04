@@ -1,0 +1,10 @@
+# TR 4
+# TEST 6.6 dönüş tipi beklenmeyen blok gövdesinde bir yol değer döndürüyorsa her yol değerle biter
+TR_var h = (x: TR_Bool) => { # ERROR H1145
+    TR_if x { TR_return }
+    TR_return 1
+}
+TR_var g = (x: TR_Bool) => { # ERROR H1145
+    TR_if x { TR_return 1 }
+}
+TR_print(h(TR_false), g(TR_true))

@@ -115,6 +115,9 @@ var suggestionCases = []suggestionCase{
 	{messages.H1142, "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"2\"))", "\"2\"", "TR_Int(\"2\")"},
 	{messages.H1142, "TR_var adlar = [\"1\", \"2\"]\nTR_var sayılar = [1, 2]\nTR_print(adlar.TR_contains(sayılar.TR_length))", "sayılar.TR_length", "TR_String(sayılar.TR_length)"},
 	{messages.H1144, "TR_func f(x: TR_Int) { TR_print(x) }\nTR_var l = [1]\nTR_print(l.TR_map(f))", "TR_print(l.TR_map(f))", "TR_for x TR_in l { f(x) }"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_if x { TR_return }\n    TR_return 1\n}\nTR_print(h(TR_true))", "TR_return", "TR_return 0"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_if x { TR_return 1 }\n    TR_print(2)\n}\nTR_print(h(TR_true))", "TR_print(2)", "TR_return 0"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_if x { TR_return }\n    TR_return 1\n}\nh(TR_true)", "TR_return 1", "TR_return"},
 	{messages.H1143, "TR_func f() { TR_print(1) }\nTR_var y = f()\nTR_print(2)", "TR_var y = f()", "f()"},
 	{messages.H1139, "TR_var m = [[0] * 3] * 3\nm[0][0] = 1\nTR_print(m)", "[[0] * 3] * 3", "[[0] * 3 TR_for _ TR_in 0..3]"},
 }

@@ -26,10 +26,10 @@ type TypeInfo struct {
 	TupleLen int
 	// Module takma adlı aktarımın bağladığı modül değeridir (11.2; module_values.go).
 	Module bool
-	// Fn adın bağlı olduğu fonksiyondur, NoValue tipi `(T) -> TR_NoneType` yazılmış değerdir, Made
-	// ilk değerin kurduğu yerleşik tiptir (3.5; no_value.go).
+	// Fn adın bağlı olduğu fonksiyondur, Written yazılan tipidir, Made ilk değerin kurduğu yerleşik
+	// tiptir (3.5; no_value.go).
 	Fn      *ast.FunctionLiteral
-	NoValue bool
+	Written *ast.TypeRef
 	Made    string
 }
 
@@ -115,6 +115,8 @@ type Checker struct {
 	// noValue değer vermeyen çağrılardır, reassigned yeniden atanan adlardır (3.5; no_value.go).
 	noValue    map[ast.Expression]bool
 	reassigned map[string]bool
+	// expectedReturns dönüş tipi beklenen tipten bilinen fonksiyon ifadeleridir (arrow_returns.go).
+	expectedReturns map[*ast.FunctionLiteral]bool
 }
 
 // New returns a checker with an empty global scope.
@@ -180,7 +182,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.itemTypes, c.jsonLiterals = map[ast.Expression]string{}, nil
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
-	c.noValue = map[ast.Expression]bool{}
+	c.noValue, c.expectedReturns = map[ast.Expression]bool{}, map[*ast.FunctionLiteral]bool{}
 	c.noteAssigned(prog)
 	c.checkStatements(prog.Statements)
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir.
@@ -203,6 +205,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkShadowing(s.Name.Value, s.Name.Token)
 		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Name.Token)
 		declared := c.writtenType(s.Type, s.Line())
+		c.expect(s.Type, s.Value)
 		inferred := c.inferExpression(s.Value)
 		c.recordValueType(s.Value, inferred)
 		if s.Type != nil && !c.assignable(declared, inferred, s.Value) {
@@ -223,7 +226,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			TypeName: finalType,
 			IsConst:  s.IsConst,
 			Fn:       boundFunction(s.Value),
-			NoValue:  noValueType(s.Type),
+			Written:  s.Type,
 			Made:     c.madeType(s.Value),
 		})
 
@@ -506,6 +509,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	if len(argTypes) == 1 && c.builtinCallCode(e, objType) == codes.TypeJSON {
 		c.checkJSONConversion(e.Arguments[0], argTypes[0]) // 3.7a "Kurmak" (json_values.go)
 	}
+	c.expectArguments(e, info, objType)
 	if c.callNoValue(e, objType) {
 		c.noValue[e] = true
 	}
@@ -514,6 +518,9 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 
 // checkReturn dönüş değerini fonksiyonun yazılan dönüş tipine göre denetler ve kapı için kaydeder.
 func (c *Checker) checkReturn(s *ast.ReturnStatement) {
+	if c.facts.current != nil {
+		c.expect(c.facts.current.ReturnType, s.ReturnValue)
+	}
 	valType := c.inferExpression(s.ReturnValue)
 	c.noteReturn(s, valType)
 	if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
@@ -540,6 +547,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			if info.IsConst && !inPlace {
 				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
+			c.expect(info.Written, s.Value)
 			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType, s.Value) {
 				c.addErrorAt(s, messages.New(messages.H1005,
 					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.typeHint(info.TypeName, valType, s.Value, op == "/" || op == "" && dividesAtTop(s.Value))))

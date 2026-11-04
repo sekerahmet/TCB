@@ -213,7 +213,7 @@ func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 
 // bindingNoValue adın çağrısı değer vermiyor mu: tipi yazılmış değer ya da bilinen fonksiyon.
 func (c *Checker) bindingNoValue(name string, info TypeInfo) bool {
-	if info.NoValue {
+	if noValueType(info.Written) {
 		return true
 	}
 	return info.Fn != nil && !c.reassigned[name] && c.funcNoValue(info.Fn)

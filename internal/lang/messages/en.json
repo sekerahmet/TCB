@@ -191,6 +191,7 @@
 "H1142": "the elements of {container} have type {elem}: a value of type {given} is never in it, so the result would always be `{#false}` (3.6, 13.10){conversion, select, empty {} other {; convert it to the element type: `{conversion}`}}",
 "H1143": "`{call}` gives no value and cannot stand where a value is needed (3.5): write the call as a statement on its own line: `{call}`",
 "H1144": "`.{#map}` collects results, but the function given to it returns no value (3.5): if you need no results, write a loop, for a list `l` and a function `f`: `{#for} x {#in} l {{ f(x) }}`",
+"H1145": "one path of this function expression returns a value and another does not (6.2, 6.6): either every path ends with a value (`{#return} 0`) or no path returns one (`{#return}`)",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",
