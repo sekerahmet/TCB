@@ -8,10 +8,13 @@ import (
 
 // Kural (6.2, 6.6): dönüş tipi beklenen tipten gelmeyen blok gövdesinde bir yol değer döndürüyorsa
 // her yol değerle ya da 6.2'nin öbür bitişleriyle biter; değersiz TR_return ve bitmeyen yol hatadır.
+// TR_return TR_none tek başına da hatadır (DENETİM 110).
 func TestArrowBlockWithAValueEndsEveryPath(t *testing.T) {
 	for _, body := range []string{
 		"TR_if x { TR_return }\n  TR_return 1",
 		"TR_if x { TR_return TR_none }\n  TR_return 1",
+		"TR_return TR_none",
+		"TR_if x { TR_return TR_none }",
 		"TR_if x { TR_return 1 }",
 		"TR_if x { TR_return 1 } TR_else { TR_print(2) }",
 		"TR_match x {\n    TR_true => { TR_return 1 }\n    TR_false => { TR_print(2) }\n  }",
@@ -50,6 +53,7 @@ func TestArrowBlockWithAKnownReturnMayMix(t *testing.T) {
 	for _, source := range []string{
 		"TR_var h: " + fn + " = " + mixed,
 		"TR_var h: " + fn + " = (x: TR_Bool) => {\n  TR_if x { TR_return TR_none }\n  TR_return 1\n}",
+		"TR_var h: " + fn + " = (x: TR_Bool) => {\n  TR_return TR_none\n}",
 		"TR_var h: " + fn + " = (x: TR_Bool) => 1\nh = " + mixed,
 		"TR_var l: TR_List[" + fn + "] = [" + mixed + "]",
 		"TR_func w(g: " + fn + ") { }\nw(" + mixed + ")",

@@ -7,12 +7,13 @@ import (
 )
 
 // Fonksiyon ifadesinin blok gövdesi (6.2, 6.6): beklenen dönüş tipi bilinmiyorsa ve bir yol değer
-// döndürüyorsa her yol değerle ya da 6.2'nin öbür bitişleriyle biter; değersiz TR_return, TR_return
-// TR_none ve bitmeyen yol denetim hatasıdır (H1145): değer yerinde sessiz yokluk bırakırdı. Dönüş tipi ancak fonksiyon
-// tipi yazılmış yerde bilinir (T? karışımı orada geçerlidir): tipli değişken ve atama, parametre ve
-// alan varsayılanı, dönüşü fonksiyon tipi olan TR_return, kullanıcı fonksiyonunun, metodunun ve
-// kurucusunun argümanı. Yerleşiğin imzası `TR_Function` der, dönüş tipi söylemez; modülün fonksiyonu
-// bilinmez. T? dönen fonksiyon beklenen tipten yazılır.
+// döndürüyorsa her yol değerle ya da 6.2'nin öbür bitişleriyle biter; değersiz TR_return ve bitmeyen
+// yol denetim hatasıdır (H1145): değer yerinde sessiz yokluk bırakırdı. TR_return TR_none orada tek
+// başına da hatadır. Dönüş tipi ancak fonksiyon tipi yazılmış yerde bilinir (T? karışımı orada
+// geçerlidir): tipli değişken ve atama, parametre ve alan varsayılanı, dönüşü fonksiyon tipi olan
+// TR_return, kullanıcı fonksiyonunun, metodunun ve kurucusunun argümanı. Yerleşiğin imzası
+// `TR_Function` der, dönüş tipi söylemez; modülün fonksiyonu bilinmez. T? dönen fonksiyon beklenen
+// tipten yazılır.
 
 // expect t bir fonksiyon tipiyse value'daki fonksiyon ifadesinin dönüş tipi bilinir; liste ve demet
 // değişmezinin öğeleri öğe tipiyle.
@@ -93,13 +94,13 @@ func (c *Checker) checkArrowReturns(f *ast.FunctionLiteral) {
 	if f.Body == nil || arrowBody(f) != nil || c.expectedReturns[f] {
 		return
 	}
-	bare, value := false, false
+	bare, none, value := false, false, false
 	for _, r := range c.facts.returns[f] {
-		none := r.expr == nil || r.typ == typeNull
-		bare = bare || none
-		value = value || !none
+		bare = bare || r.expr == nil
+		none = none || r.expr != nil && r.typ == typeNull
+		value = value || r.expr != nil && r.typ != typeNull
 	}
-	if value && (bare || !blockEnds(f.Body)) {
+	if none || value && (bare || !blockEnds(f.Body)) {
 		c.addErrorAt(f, messages.New(messages.H1145))
 	}
 }

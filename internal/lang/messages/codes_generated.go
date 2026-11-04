@@ -196,7 +196,7 @@ const (
 	H1142 Code = 1142 // {container} listesinin öğeleri {elem} tipindedir: {given} tipinde bir değer onda bulunmaz, sonuç hep `{#false}` olurdu (3.6, 13.10){conversion, select, empty {} other {; öğe tipine çevirin: `{conversion}`}}
 	H1143 Code = 1143 // `{call}` değer vermez, değer yerinde kullanılamaz (3.5): çağrıyı kendi satırında deyim olarak yazın: `{call}`
 	H1144 Code = 1144 // `.{#map}` sonuçları toplar, ona verilen fonksiyon değer döndürmüyor (3.5): sonuç gerekmiyorsa, liste `l`, fonksiyon `f` ise döngü yazın: `{#for} x {#in} l {{ f(x) }}`
-	H1145 Code = 1145 // fonksiyon ifadesinin bir yolu değer döndürüyor, bir yolu döndürmüyor (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)
+	H1145 Code = 1145 // dönüş tipi bilinmeyen fonksiyon ifadesinde yollar karışık ya da `{#return} {#none}` yazılmış (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
