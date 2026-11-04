@@ -250,7 +250,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 - Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir.
 
 **Son ölçüm** (2026-11-03, main `51b75f0a`, Colab G4 ve CPU High-RAM; ayrıntı ve kaynak [`measurements.md`](measurements.md)):
-- **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüşün 2026-10-23'teki kapandı (Qwen3 bf16 +%7,2, 2026-11-04, `measurements.md`), 2026-11-02'deki hız kolunda.
+- **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüş de kapandı (2026-11-04, `measurements.md`): 2026-10-23'teki Qwen3 bf16 +%7,2; 2026-11-02'deki bf16 Qwen3 +%3,7, SmolLM2 +%7,2. Oranlar yeniden ölçülmedi.
 - **CPU'da üretim:** 48 iş parçacığında transformers'ın 2,2 katı, llama.cpp f32'nin 0,39–0,49 katı (Qwen3-0.6B: TR 25,1, llama.cpp 50,7 parça/sn; 2026-10-22'de 12,1). 8 iş parçacıklı Xeon'da transformers'tan yavaş (0,68–0,88). 16 bitlik ağırlık float32'nin 0,4 katı hızda.
   - Geliştirme dizüstünde (i7-13700H, iki 16 GB DDR5-4800 modülü; çift kanalsa teorik 76,8 GB/sn, kanal sayısı ölçülmedi [ölçüldü: `Win32_PhysicalMemory`, 2026-11-01]) henüz ölçülmedi.
   - Farkın nedeni profille bulunmadı.

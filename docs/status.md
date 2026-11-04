@@ -33,7 +33,7 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 7. Test koşucusu (araç için A): 12.1'in modüldeki testleri ve 12.5'in en dıştaki tanımları.
 8. 11.1'in modül yükleyicisi (A ve B).
 9. 10.4: görevin türevsiz kipi ve hesap türü (küçük; Kol A ya da Kol B).
-10. 15.26: `TR_sample`'ın `float32` kimliği (DENETİM istek 96 Ş4): T1, gerileme 2'nin dalında. Ardından seyrek sözlükte parça sayısı (DENETİM istek 79 Ş2, aynı kol).
+10. Seyrek sözlükte parça sayısı (DENETİM istek 79 Ş2): T1.
 Sonra Ö2: `==`'nin derinlik sınırı (4.5) ve 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1c'den sonraki dilim (Ö0 4. madde ile): 8.5'in işletim sistemi hatası (13.1 onsuz birleşti, DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45.
@@ -851,7 +851,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.26
 
-- **Yapılacaklar (A, Ö0; DENETİM istek 95 Ş4, istek 96 Ş4):** `TR_sample` seçilen kimliği `float32`'de taşıyor (`model_tools.go:337`, sıcaklıklı yol da `:356`): 2^24'ü aşan kimlik sessizce yuvarlanıyor; `TR_zeros([16777219])`, `z[16777217] = 1.0`, `TR_sample(z, TR_temperature: 0.0)` hatasız `16777216` veriyor [ölçüldü: DENETİM, `cb162b61`]. Yol sözlüğe bağlı değil, 64 MB'lık tensör yetiyor. Düzeltme: `result` tam sayı olur, bir test. Sahip: T1, gerileme 2'nin dalında (aynı kod yolu).
+- **Mevcut durum:** `TR_sample`'ın kimliği `int64`, 2^24'ün üstünde de aynen geliyor [test: `TestSampleIdentityAboveFloat32Precision`].
 
 ### 15.27
 
