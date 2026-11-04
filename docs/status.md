@@ -296,7 +296,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: met
 
 ### 6.6
 
-- **Yapılacaklar (A, Ö1; sahip D1, teslim 2b; DENETİM istek 105 P2):** `(x: TR_Bool) => { TR_if x { TR_return } TR_return 1 }` değer yerinde sessiz yokluk bırakıyor; aynı gövde `TR_func`'ta denetim hatası [ölçüldü: DENETİM]. `(x: TR_Bool) => { TR_if x { TR_return 1 } }` de öyle. 6.6'nın yeni kuralı: bir yol değer döndürüyorsa her yol değerle ya da 6.2'nin öbür bitişleriyle biter (DENETİM istek 108 R1).
+- **Yapılacaklar (A, Ö1; sahip D1, teslim 2b; DENETİM istek 105 P2):** `(x: TR_Bool) => { TR_if x { TR_return } TR_return 1 }` değer yerinde sessiz yokluk bırakıyor; aynı gövde `TR_func`'ta denetim hatası [ölçüldü: DENETİM]. `(x: TR_Bool) => { TR_if x { TR_return 1 } }` de öyle. 6.6'nın yeni kuralı: bir yol değer döndürüyorsa her yol değerle ya da 6.2'nin öbür bitişleriyle biter (DENETİM istek 108 R1); `l.TR_map(...)` argümanı da girer, `TR_return TR_none` da hata (109 V1, V2).
 - **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken (tipi açıklanmamış değişkenin ilk değeri, doğrudan ya da liste, sözlük, demet değişmezinde) tipsiz parametre denetim hatası (H1111); denetleyici yerleşik imzalarını bilmediği için her çağrı argümanı, tipli değişken ve dönüş beklenen tipi olan yer sayılıyor, parametrenin tipi oradan çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`, dal `claude/charming-pasteur-q1vsvo`]. Blok gövdesinin eksik dönüşü 6.2'de.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9); denetleyicinin testi. Somut sessiz yanlış (2026-11-04, D1): `TR_var n: TR_Int = TR_parse_csv("1,2")[0][0]` denetimden geçiyor, `n` metin kalıyor, ilk `n + 1` hata veriyor; denetleyici dönüşün öğe tipini kullanmıyor [ölçüldü: D1, `e4509691`]. Sahip: D1, Kol A teslim 2'den sonra ilk iş.
 
@@ -1192,7 +1192,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
-- **Yapılacaklar (C, Ö2; sahip TCB; D1 Kol A 2a devri):** `TestBaseThatIsNotOneCommitStops` `da0457c5`'in belirsiz olmasına dayanıyor; belirsizliği sağlayan nesne yalnız yerel depoda, hiçbir ref'ten ulaşılmıyor. Taze tam klonda kimlik tek commit'e çözülüyor, test gerçek ön denetimi başlatıyor ve takılıyor [ölçüldü: D1, Colab, tek değişken]; sığ klonda kimlik çözülmediği için geçiyor [ölçüldü: DENETİM istek 104, üç klon]. Test geçici depoda kendi ortak önekini üretsin, iç betiğe süre sınırı konsun.
+- **Mevcut durum (2026-11-04; C, Ö2):** `TestBaseThatIsNotOneCommitStops` ortak öneki depodan arıyor, süre sınırı var: sabit `da0457c5` yalnız yerel depoda belirsizdi, taze tam klonda gerçek ön denetimi başlatıp takılıyordu [ölçüldü: D1; DENETİM istek 104, üç klon]. `TestPreCheckGoStepsSkipTheCache` ön denetimin Go adımlarını koruyor (DENETİM istek 110 W2).
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 
 Dil tanımında bölümü olmayan işler: A, B ve C (DENETİM istek 76) ve küçük bir D maddesi.
