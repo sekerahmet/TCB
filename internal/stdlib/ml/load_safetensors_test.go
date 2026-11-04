@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -121,14 +120,10 @@ func FuzzSafetensorsDecode(f *testing.F) {
 				n *= d
 				limit *= max(d, 1)
 			}
-			if limit > interp.MaxCollectionSize || n != len(g.data) {
-				t.Fatalf("%q: şekil %v, %d eleman", g.ad, g.shape, len(g.data))
+			if limit > interp.MaxCollectionSize || n != g.count() {
+				t.Fatalf("%q: şekil %v, %d eleman", g.ad, g.shape, g.count())
 			}
-			if g.dtype == tensor.Float32 {
-				tensor.New(g.data, g.shape...)
-			} else {
-				tensor.NewOf(g.dtype, g.data, g.shape...)
-			}
+			g.tensor()
 		}
 	})
 }
