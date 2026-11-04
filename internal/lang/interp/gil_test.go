@@ -269,6 +269,10 @@ func TestAnUnadvancedClockReadDoublesTheInterval(t *testing.T) {
 	}
 }
 
+// raiseTestPriority süreci testin sonuna dek yüksek önceliğe alır; yalnız Windows'ta kurulur
+// (behavior_lock_priority_windows_test.go).
+var raiseTestPriority = func(*testing.T) {}
+
 // fallbackTurns yedek saatin sözüdür: saat en çok 64 deyim sınırında bir okunur, yani bir tutuş
 // süresi dolduktan sonra en çok 64 yavaş tur sürer. Testte ayrı yazılır: gil.go'daki tavan
 // (clockEveryMax) büyüyünce sınır da büyümesin, test düşsün.
@@ -322,7 +326,10 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // birkaç tur içinde gelir. Kaba saat geçişten sonra k ≥ 2 yavaş tur boyunca hiç ilerlemezse ilk
 // okuma olmaz ve tur sayısı k + 64 olur: 66'yı geçebilir; 120 koşuda görülmedi (bkz. tek koşu).
 // Süre için Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek
-// koşuda sınanır.
+// koşuda sınanır. Windows'ta süre yüksek öncelikte sınanır: yüklü makinede işletim sistemi tutanı
+// 40–66 ms çalıştırmıyor, kilit o sırada devredemez. Normal öncelikte yükte 25/75 koşu kaldı,
+// yüksek öncelikte 0/75 (aynı yük, sıralı koşular, 2026-11-04); kuralı bozan değişikliği öncelik
+// gizlemez, sınır aynıdır.
 func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 	runs := 3
 	if runtime.GOOS == "linux" {
@@ -337,18 +344,22 @@ func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 		{"yalnız yedek saatle", func(m *VM) { m.gil.timerOff = true }, true},
 	}
 	for _, mode := range modes {
-		modeRuns := runs
-		if mode.fallback {
-			modeRuns = 1 // tur sayısı: Windows'ta boşta 50/50 ve yükte 50/50 koşu sığdı (2026-11-04)
-		}
-		within := false
-		var last []string
-		for run := 1; run <= modeRuns && !within; run++ {
-			last = slowPhaseOverLimit(t, mode.name, mode.setup, mode.fallback, run)
-			within = len(last) == 0
-		}
-		if !within {
-			t.Errorf("%s: %d koşunun hiçbiri sınıra sığmadı; sonuncusu:\n%s", mode.name, modeRuns, strings.Join(last, "\n"))
-		}
+		t.Run(mode.name, func(t *testing.T) {
+			modeRuns := runs
+			if mode.fallback {
+				modeRuns = 1 // tur sayısı: Windows'ta boşta 50/50 ve yükte 50/50 koşu sığdı (2026-11-04)
+			} else {
+				raiseTestPriority(t)
+			}
+			within := false
+			var last []string
+			for run := 1; run <= modeRuns && !within; run++ {
+				last = slowPhaseOverLimit(t, mode.name, mode.setup, mode.fallback, run)
+				within = len(last) == 0
+			}
+			if !within {
+				t.Errorf("%d koşunun hiçbiri sınıra sığmadı; sonuncusu:\n%s", modeRuns, strings.Join(last, "\n"))
+			}
+		})
 	}
 }
