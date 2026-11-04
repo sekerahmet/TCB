@@ -386,16 +386,11 @@ func sampleRows(data, result []float32, u []float64, C, k int, temperature float
 		x := data[r*C : (r+1)*C]
 		// Dağılım kurulamayan satır (NaN, +∞ ya da hepsi -∞) hangi yolla örneklenirse örneklensin
 		// hatadır: sıcaklık: 0 ve en_iyi_k sessizce bir indeks seçmez (15.26).
-		if !validSamplingRow(x) {
+		en := argmaxRow(x)
+		if en < 0 {
 			return r + 1
 		}
 		if temperature == 0 {
-			en := 0
-			for j, v := range x {
-				if v > x[en] || (v != v && x[en] == x[en]) {
-					en = j
-				}
-			}
 			result[r] = float32(en)
 			continue
 		}
@@ -438,16 +433,18 @@ func sampleRows(data, result []float32, u []float64, C, k int, temperature float
 	return 0
 }
 
-// validSamplingRow logitlerden dağılım kurulabilen satırı söyler: NaN ve +∞ yok, en az bir değer -∞ değil.
-func validSamplingRow(x []float32) bool {
-	finiteOrLow := false
-	for _, v := range x {
-		if v != v || math.IsInf(float64(v), 1) {
-			return false
+// argmaxRow en büyük logitin ilk indeksini verir; dağılım kurulamayan satırda (NaN, +∞ ya da
+// hepsi -∞) -1. Üretim her parçada bütün dağarcığı tarar: denetim ve seçim bu yüzden tek geçiştir.
+func argmaxRow(x []float32) int {
+	inf := float32(math.Inf(1))
+	en, top := -1, -inf
+	for j, v := range x {
+		if !(v < inf) { // NaN ya da +∞
+			return -1
 		}
-		if !math.IsInf(float64(v), -1) {
-			finiteOrLow = true
+		if v > top {
+			en, top = j, v
 		}
 	}
-	return finiteOrLow
+	return en
 }

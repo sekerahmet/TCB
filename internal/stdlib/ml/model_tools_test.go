@@ -341,3 +341,38 @@ func TestLargeSampleReleasesTheLockWithTheSameResult(t *testing.T) {
 		t.Fatalf("3. satırın tanımsız dağılımı hata vermeliydi: %v", err)
 	}
 }
+
+// Kural (15.26): açgözlü seçim en büyük logitin ilk indeksidir; NaN, +∞ ya da hepsi -∞ olan satırda
+// dağılım kurulamaz. Denetim ve seçim tek geçiştir; sonuç iki ayrı geçişin sonucuyla aynı kalır.
+func TestArgmaxRowMatchesSeparateCheckAndSelection(t *testing.T) {
+	nan, inf := float32(math.NaN()), float32(math.Inf(1))
+	negZero := float32(math.Copysign(0, -1))
+	separate := func(x []float32) int {
+		some := false
+		for _, v := range x {
+			if v != v || v == inf {
+				return -1
+			}
+			some = some || v != -inf
+		}
+		if !some {
+			return -1
+		}
+		en := 0
+		for j, v := range x {
+			if v > x[en] {
+				en = j
+			}
+		}
+		return en
+	}
+	for _, x := range [][]float32{
+		{1}, {-inf}, {nan}, {inf}, {-inf, -inf}, {-inf, -3}, {-3, -inf}, {2, 5, 5, 1}, {-1, -1},
+		{negZero, 0}, {0, negZero}, {nan, 1, 2}, {1, 2, nan}, {1, inf, 2}, {-inf, inf}, {-inf, nan},
+		{-3.4e38, -inf}, {3.4e38, 3.4e38},
+	} {
+		if got, want := argmaxRow(x), separate(x); got != want {
+			t.Errorf("%v: %d, beklenen %d", x, got, want)
+		}
+	}
+}
