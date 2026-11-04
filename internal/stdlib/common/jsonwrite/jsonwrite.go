@@ -186,7 +186,9 @@ func (y *writer) dict(v *interp.DictVal, depth int) error {
 		if !ok {
 			continue
 		}
-		if key, ok := v.KeyVals[k]; ok {
+		// NUL ile başlayan metin anahtar da KeyVals'ta durur (interp.DictKey)
+		key, encoded := v.KeyVals[k]
+		if _, text := key.(*interp.StringVal); encoded && !text {
 			return messages.New(messages.H7012, key.Inspect(), key.Type())
 		}
 		if !first {
@@ -194,7 +196,7 @@ func (y *writer) dict(v *interp.DictVal, depth int) error {
 		}
 		first = false
 		y.newline(depth + 1)
-		y.text(k)
+		y.text(v.KeyText(k))
 		y.b = append(y.b, ':')
 		if y.indent != "" {
 			y.b = append(y.b, ' ')

@@ -260,10 +260,7 @@ func DictKey(v Value) string {
 	}
 	switch x := v.(type) {
 	case *StringVal:
-		if strings.HasPrefix(x.Val, nonStringKeyPrefix) {
-			return nonStringKeyPrefix + string(ValString) + ":" + x.Val
-		}
-		return x.Val
+		return stringKey(x.Val)
 	case *FuncVal:
 		if x.codeVal == nil {
 			return identityKey(x)
@@ -288,6 +285,14 @@ func DictKey(v Value) string {
 		return string(intKey(b[:0], n))
 	}
 	return nonStringKeyPrefix + string(v.Type()) + ":" + v.Inspect()
+}
+
+// stringKey is DictKey of a string: the key it has in Pairs and Order.
+func stringKey(s string) string {
+	if strings.HasPrefix(s, nonStringKeyPrefix) {
+		return nonStringKeyPrefix + string(ValString) + ":" + s
+	}
+	return s
 }
 
 // identityKey keys a value by identity: the same value is the same key, two values that only

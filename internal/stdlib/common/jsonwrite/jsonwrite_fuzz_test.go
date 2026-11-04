@@ -11,13 +11,14 @@ import (
 
 // FuzzJSONRoundTrip: json_çöz'e verilen metin güvenilmeyen girdidir (indirilen veri,
 // yapılandırma). Çözücü (interp.JSONToTR) hiçbir girdide çökmemeli; bir nesnesinde aynı anahtar
-// iki kez yazılmış metni reddetmeli (3.7a); çözdüğü değer yazılabiliyorsa yazılan metin geçerli JSON
+// iki kez yazılmış metni reddetmeli (3.7a); çözdüğü değer yazılabilmeli, yazılan metin geçerli JSON
 // olmalı ve yeniden çözülüp yazıldığında aynı kalmalıdır. Derin arama:
 //
 //	go test ./internal/stdlib/common/jsonwrite -run '^$' -fuzz FuzzJSONRoundTrip -fuzztime 5m
 func FuzzJSONRoundTrip(f *testing.F) {
 	for _, s := range []string{`{"b": 1, "a": [1, 2.5, -3e-7, "ç", null, true]}`, `[]`, `{}`, `"😀"`,
 		`1e400`, `-0`, `12345678901234567890`, `{"a":{"a":{"a":[[[[]]]]}}}`, `{"x":1,"x":2}`, `[{"a":{"b":1,"b":[2]}}]`, `{"a":1,"b":{"a":2}}`, `-0.0`,
+		`{"\u0000a":1,"\u0000a":2}`, `{"\u0000a":1,"\u0000b":{"\u0000a":2}}`,
 		strings.Repeat("[", 1001) + strings.Repeat("]", 1001)} {
 		f.Add([]byte(s))
 	}
@@ -31,7 +32,7 @@ func FuzzJSONRoundTrip(f *testing.F) {
 		}
 		written, err := Write(value)
 		if err != nil {
-			return // ör. sonsuz sayı: JSON'a yazılamaz, açık hata verir
+			t.Fatalf("çözülen değer yazılamadı: %v (%q)", err, data)
 		}
 		if !json.Valid(written) {
 			t.Fatalf("geçersiz JSON yazıldı: %q", written)

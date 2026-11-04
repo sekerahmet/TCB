@@ -113,8 +113,9 @@ func (p *jsonParser) object(depth int) (Value, error) {
 		if !ok {
 			return nil, messages.New(messages.H2501)
 		}
-		if _, twice := d.Pairs[key]; twice {
-			line, column := p.position(starts[slices.Index(d.Order, key)])
+		stored := stringKey(key) // NUL ile başlayan anahtar sözlükte kodlanmış durur
+		if _, twice := d.Pairs[stored]; twice {
+			line, column := p.position(starts[slices.Index(d.Order, stored)])
 			line2, column2 := p.position(start)
 			return nil, messages.New(messages.H7011, key, line, column, line2, column2)
 		}

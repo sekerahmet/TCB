@@ -125,6 +125,21 @@ func TestNonTextKeyIsAnError(t *testing.T) {
 			t.Errorf("ileti anahtarı ve çeviren yazımı söylemeli: %v", err)
 		}
 	}
+	// NUL ile başlayan anahtar metindir, sözlükte kodlanmış dursa da (interp.DictKey): özgün
+	// metniyle yazılır, geri okununca aynı anahtardır.
+	d := interp.NewDictVal()
+	d.Set("\x00a", interp.NewInt(1))
+	got, err := Write(d)
+	if want := `{"\u0000a":1}`; err != nil || string(got) != want {
+		t.Fatalf("Write = %s, %v; %s bekleniyordu", got, err, want)
+	}
+	back, err := interp.JSONToTR(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := back.(*interp.DictVal).GetValue(&interp.StringVal{Val: "\x00a"}); !ok {
+		t.Errorf("anahtar geri okunamadı: %s", back.Inspect())
+	}
 }
 
 // goValue bir TR değerini encoding/json'un yazabileceği Go değerine çevirir (yalnızca bu

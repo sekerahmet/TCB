@@ -203,6 +203,20 @@ func TestDictKeysAreTextNotMembers(t *testing.T) {
 // Programın değerden metin yaptığı her yer aynı kuralı izler: yerleştirme (metne başka tip '+'
 // ile eklenmez, 4.10), birleştir, TR_String (dosyaya yazılan metin; TR_write_file değerin metnini
 // yazmaz, 13.1), girdi'nin istemi; kitaplığın içinde de.
+// NUL ile başlayan metin anahtar sözlükte kodlanmış dursa da (DictKey) metindir: sözlük onu öteki
+// metinler gibi tırnaklı ve kaçışlı gösterir, uçbirime ham NUL gitmez; sayı anahtar tırnaksız kalır.
+func TestDictShowsTextKeyStartingWithNUL(t *testing.T) {
+	out := runCoded(t, `TR_var d = {}
+d["\u{0}a"] = 1
+d[2] = 3
+TR_print(d)
+TR_print(d.TR_keys())
+`, nil)
+	if want := `{"\u{0}a": 1, 2: 3}` + "\n" + `["\u{0}a", 2]` + "\n"; out != want {
+		t.Errorf("çıktı %q, %q bekleniyordu", out, want)
+	}
+}
+
 func TestEveryTextConversionIsLanguageIndependent(t *testing.T) {
 	withLibrary(t, fstest.MapFS{"kitap.tr": {Data: []byte(source.Header + "\n" +
 		"TR_func ekle(x: TR_Bool) -> TR_String { TR_return \"a\\(x),\" + [x, TR_none].TR_join(\"/\") }\n")}})

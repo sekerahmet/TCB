@@ -145,7 +145,7 @@ func TestLogStepIsWholeNumber(t *testing.T) {
 	if want := `"step":3,"loss":2.0}`; !strings.Contains(string(b), want) {
 		t.Errorf("%q içermeli: %s", want, b)
 	}
-	for _, value := range []string{"3.5", "TR_nan", "TR_inf", "1e19", `"3"`, "TR_true"} {
+	for _, value := range []string{"3.5", "TR_nan", "TR_inf", "-TR_inf", "1e19", "-1e19", `"3"`, "TR_true"} {
 		m, _ := newVM(t, k)
 		if _, err := run(t, m, logger+`.TR_append({"step": `+value+`})`); !messages.Has(err, messages.H7013) {
 			t.Errorf("%s: H7013 bekleniyordu: %v", value, err)
