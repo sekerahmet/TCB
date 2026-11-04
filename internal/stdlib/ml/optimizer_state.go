@@ -65,7 +65,7 @@ func (o *Optimizer) loadStateTR(_ *interp.VM, args []interp.Value, _ map[string]
 	if err := o.LoadState(fn, st); err != nil {
 		return nil, err
 	}
-	return interp.True, nil
+	return interp.Null, nil
 }
 
 // IsOptimizer değer bir iyileştirici (AdamW, SGD) mi?

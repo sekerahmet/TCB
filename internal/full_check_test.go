@@ -1,12 +1,15 @@
 package internal
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/reporoot"
 )
@@ -61,22 +64,83 @@ func TestStopAtFirstFailureCountsTheSeenFailureLine(t *testing.T) {
 }
 
 // Kural (tools/full_check.sh, --taban): taban tek bir commit'e çözülmezse betik çıkış 2 ile durur.
-// Birden çok commit'e uyan kısa kimlik (da0457c5: da0457c50 ve da0457c5a) "ortak ata yok" diye okunup
-// değişen dosyaların testleri ve dups sessizce atlanıyordu (D1'in 13.1'i, 2026-11-03). Sığ klonda
-// kimlik hiç yoktur; o da aynı yoldan durur.
+// Birden çok commit'e uyan kısa kimlik "ortak ata yok" diye okunup değişen dosyaların testleri ve dups
+// sessizce atlanıyordu (D1'in 13.1'i, 2026-11-03). Ortak önek depodan aranır: sabit bir önek yalnız yerel
+// depoda belirsizdi, taze tam klonda çözülüp gerçek ön denetimi başlatıyordu (DENETİM istek 104). Sığ
+// klonda önek çıkmaz, olmayan kimlik yine sınanır.
 func TestBaseThatIsNotOneCommitStops(t *testing.T) {
 	bash, err := exec.LookPath("bash")
 	if err != nil {
 		t.Skip("bash yok")
 	}
 	root := reporoot.Path(".")
-	for _, base := range []string{"da0457c5", "0000000000000000"} {
-		cmd := exec.Command(bash, filepath.Join("tools", "full_check.sh"), "--kip=on", "--taban="+base)
+	bases := []string{"0000000000000000"}
+	if p := sharedCommitPrefix(t, root); p != "" {
+		bases = append(bases, p)
+	} else {
+		t.Log("ortak önek yok (sığ klon): yalnız olmayan kimlik sınanıyor")
+	}
+	for _, base := range bases {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, bash, filepath.Join("tools", "full_check.sh"), "--kip=on", "--taban="+base)
+		cmd.WaitDelay = time.Second
 		cmd.Dir = root
 		out, err := cmd.CombinedOutput()
 		exit, ok := err.(*exec.ExitError)
 		if !ok || exit.ExitCode() != 2 || !strings.Contains(string(out), "tek bir commit'e çözülmüyor") {
 			t.Errorf("--taban=%s: çıkış 2 ve çözülmüyor iletisi beklenirdi, gelen %v: %s", base, err, out)
+		}
+	}
+}
+
+// sharedCommitPrefix iki commit'in ortak dört harfli önekini verir; yoksa boş döner.
+func sharedCommitPrefix(t *testing.T, root string) string {
+	t.Helper()
+	cmd := exec.Command("git", "rev-list", "--all")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := strings.Fields(string(out))
+	slices.Sort(ids)
+	for i := 1; i < len(ids); i++ {
+		if ids[i][:4] == ids[i-1][:4] {
+			return ids[i][:4]
+		}
+	}
+	return ""
+}
+
+// Kural (tools/full_check.sh, --kip=on): ön denetimin bütün Go adımları önbelleksiz koşar. Depo testleri
+// dosyaları `git ls-files` ile bulur; çalışma ağacında Go'nun önbelleği yeni izlenen dosyayı görmez ve eski
+// sonucu verir (DENETİM istek 106, 110).
+func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
+	data, err := os.ReadFile(reporoot.Path("tools/full_check.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script := strings.ReplaceAll(string(data), "\r\n", "\n")
+	goTest := regexp.MustCompile(`^\s*(?:\w+=\S*\s+)*go test `)
+	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"}} {
+		_, rest, found := strings.Cut(script, part[0])
+		if !found {
+			t.Fatalf("tools/full_check.sh: %q bulunamadı", part[0])
+		}
+		body, _, _ := strings.Cut(rest, part[1])
+		count := 0
+		for line := range strings.SplitSeq(body, "\n") {
+			if !goTest.MatchString(line) {
+				continue
+			}
+			count++
+			if !strings.Contains(line, "-count=1") {
+				t.Errorf("-count=1 yok: %s", strings.TrimSpace(line))
+			}
+		}
+		if count == 0 {
+			t.Errorf("%q içinde go test satırı bulunamadı", part[0])
 		}
 	}
 }

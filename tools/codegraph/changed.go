@@ -300,6 +300,9 @@ func (ix *index) goTestSelection(ts *touchSet) []goTest {
 		for _, h := range ix.scansCovering(f) {
 			nodes = append(nodes, h.tests...)
 		}
+		for _, h := range ix.typeQueriesCovering(f) {
+			nodes = append(nodes, h.tests...)
+		}
 	}
 	for _, list := range subprocess {
 		nodes = append(nodes, list...)
@@ -342,18 +345,30 @@ func (ix *index) printTestsToRun(w io.Writer, ts *touchSet, limit int, what, own
 		}
 		return
 	}
+	targets := make([]*Node, 0, len(ts.nodes))
+	for _, n := range ts.nodes {
+		targets = append(targets, n)
+	}
+	extracted := ix.extractedDirectTests(targets)
 	sort.Slice(ids, func(i, j int) bool {
-		if best[ids[i]] != best[ids[j]] {
-			return best[ids[i]] < best[ids[j]]
+		a, b := ids[i], ids[j]
+		if best[a] != best[b] {
+			return best[a] < best[b]
 		}
-		return ix.byID[ids[i]].Name < ix.byID[ids[j]].Name
+		if best[a] == 0 && extracted[a] != extracted[b] {
+			return extracted[a]
+		}
+		return ix.byID[a].Name < ix.byID[b].Name
 	})
 	fmt.Fprintf(w, "  tests that exercise "+what+" (%d, direct first):\n", len(ids))
 	lines := make([]string, len(ids))
 	for i, id := range ids {
-		how := "direct"
-		if best[id] > 0 {
+		how := "[INFERRED]"
+		switch {
+		case best[id] > 0:
 			how = fmt.Sprintf("%d steps [INFERRED]", best[id])
+		case extracted[id]:
+			how = "direct"
 		}
 		lines[i] = fmt.Sprintf("%s  %s", describe(ix.byID[id]), how)
 	}

@@ -8,6 +8,9 @@ const gemvMinWork = 1 << 12
 // gemvStripN gemv'nin bir parçasındaki sütun sayısıdır (gemvStrip, 64 sütunluk şerit).
 const gemvStripN = 64
 
+// useGemv M×K·K×N çarpımı gemv yoluna gider mi.
+func useGemv(M, N, K int) bool { return M == 1 && N*K >= gemvMinWork }
+
 // gemv tek satırlık çarpımdır (M = 1; çıkarımda bir parça): c[b, n] += Σ_k a[b, k]·op(B)[b, k, n]
 // (gemm gibi ekler: geri yayılım gradyanı biriktirir).
 // B paketlenmez, ağırlık bir kez okunur; iş çıktı sütunları üzerinden çekirdeklere bölünür.

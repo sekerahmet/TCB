@@ -92,6 +92,11 @@ func (c *Checker) typeHint(expected, given string, value ast.Expression, divides
 // openHint H1130'dur: açılmamış değeri ve onu açan yazımı programın kendi yazımıyla söyler
 // (l.TR_first ?? 0). Değerin dosyadaki yazımı bilinmiyorsa ipucu yoktur.
 func (c *Checker) openHint(expected, actual string, value ast.Expression) any {
+	return c.openHintAs("", expected, actual, value)
+}
+
+// openHintAs openHint'tir; kind boşsa iletinin select anahtarı beklenen tipten gelir.
+func (c *Checker) openHintAs(kind, expected, actual string, value ast.Expression) any {
 	bad, want := c.unopened(expected, actual, value)
 	if bad == nil {
 		return ""
@@ -104,7 +109,10 @@ func (c *Checker) openHint(expected, actual string, value ast.Expression) any {
 	if bad != value {
 		given = c.itemTypes[bad]
 	}
-	return messages.New(messages.H1130, text, c.typeArg(given), defaultKind(want))
+	if kind == "" {
+		kind = defaultKind(want)
+	}
+	return messages.New(messages.H1130, text, c.typeArg(given), kind)
 }
 
 // defaultKind '??'nin varsayılanı yazılabilen tipin anahtarıdır (iletinin select'i); öbür tiplerde

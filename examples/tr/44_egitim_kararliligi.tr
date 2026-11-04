@@ -13,7 +13,7 @@ TR_import "tr/training"
 
 # --- sonlu_mu: NaN ve sonsuz "sonlu değil"dir ---
 TR_print(TR_is_finite(2.5), TR_is_finite(TR_Float("nan")), TR_is_finite(TR_Float("inf")))
-TR_print(TR_is_finite(TR_Tensor([1.0, TR_Float("nan"), -TR_Float("inf")])).TR_tolist) # eleman bazlı: [1.0, 0.0, 0.0]
+TR_print(TR_is_finite(TR_Tensor([1.0, TR_Float("nan"), -TR_Float("inf")])).TR_tolist) # eleman bazlı: [true, false, false]
 
 # --- Küçük model ve veri (40. örnekteki model) ---
 TR_var p = TR_load_tokenizer("../../tests/data/tokenizer.json")

@@ -383,7 +383,7 @@ func setupListMethods() {
 	addMethod(typeList, codes.MemAppend, signature{1, -1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		l := inst.(*ListVal)
 		l.Elements = append(l.Elements, args...)
-		return l, nil
+		return Null, nil
 	})
 	addMethod(typeList, codes.MemReduce, signature{1, 2, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return listReduce(y, inst.(*ListVal).Elements, args, line)

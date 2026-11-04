@@ -146,6 +146,12 @@ func buildGraph(root string) (*Graph, error) {
 // buildGraphFrom yüklenmiş modülden grafiği kurar (damgasız): depo testleri modülü bir kez yükleyip grafiği ve
 // go/types karşılaştırmalarını aynı modülden yapar.
 func buildGraphFrom(root string, m *module) *Graph {
+	return buildGraphFromWithRules(root, m, repoTypeQueryRules)
+}
+
+// buildGraphFromWithRules yüklenmiş modülden verilen tip sorgusu kapsam listesiyle grafiği kurar; fikstür testleri
+// kendi kapsam kurallarını parametreyle geçirir.
+func buildGraphFromWithRules(root string, m *module, typeRules []typeQueryRule) *Graph {
 	b := newBuilder(m.Path)
 	idx := extractGo(m, b)
 	extractOtherConfigs(m, b)
@@ -163,7 +169,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	linkScans(b, idx, reach)
 	linkSnippets(b, idx, reach, os.DirFS(filepath.Join(root, "lib")))
 	linkCheckerTests(b, idx, reach)
-	linkTypeQueries(b, idx, m, reach)
+	linkTypeQueries(b, typeRules)
 	return b.graph()
 }
 

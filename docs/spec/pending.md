@@ -28,6 +28,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **10.2, gecikme sözünün koşulu (2026-11-04, B1):** söz, işletim sisteminin görevleri ve saati zamanında çalıştırdığı süreyle koşullandı; maddenin bütün sürelerine uygulanır (DENETİM istek 96 Ş1).
 - **3.5, 6.6, 6.7, 10.1, 10.5, değer döndürmeyen çağrının değer yerleri (2026-11-04, A, DENETİM istek 97 Ş3):** değer yerleri ve muafları yazıldı; `=>` gövdesi ile sondaki blok değer vermeyebilir, `TR_Task[TR_NoneType]`'ın beklemesi değer vermez. Uygulama Kol A teslim 2b; `TR_wait_all(görevler)`'in listesi 4a5. Biten dalın sözü DENETİM istek 104 P1 ile düzeldi: değersiz `TR_return` değer vermez, `TR_else`'siz `TR_if` ifade gövdesinde sözdizimi hatasıdır (N5).
 - **16.1, `.TR_vocab_size` kimliklerin sınırı (2026-11-04, A, DENETİM istek 79 Ş2):** parça sayısı seyrek sözlükte geçerli kimliği dışarıda bırakıyordu. Uygulama T1.
+- **16.1, eklenmiş parçanın kimliği (2026-11-04, A, DENETİM istek 105):** kimlik dosyadakidir, tutmayan dosya reddedilir; `tokenizers`'tan bilerek ayrılıyoruz. Turda: aynı içerik ve kimlikle başka bayrak, normalleşince aynı olan iki parça dosya sırasına bağlı kalıyor (D, Ö3); reddedilsin mi?
+- **6.6, karışık dönüş (2026-11-04, A, DENETİM istek 105 P2, 108 R1, 109 V1, V2):** dönüş tipi beklenmeyen blok gövdesinde değer veren bir yol varsa her yol biter; `TR_return TR_none` da hata. Turda emsal karşılaştırması.
 - **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır, yarım çifte gider. Uygulandı.
 - **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda: motor sıradaki satırla sürüyor, yakalanan hatadan sonra "dosya bitti" demez. Uygulandı.
 
@@ -40,6 +42,9 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **6.6, değişkenden gelen yokluk (2026-11-04, D1 Kol A 13 teslim 2b):** madde `TR_return TR_none` yazımını söylüyor; `TR_var n = TR_none` sonrası `TR_return n` geçiyor, `none` veriyor [ölçüldü: D1]. 4b'nin daraltmasıyla birlikte bakılır.
+- **6.2 ve 6.6, iç `TR_match` (2026-11-04, D1 Kol A 13 teslim 2b):** motor metinden geniş: bütün kolları fırlatan iç `TR_match` de değer vermeyen dal sayılmaz; kod kaldı, metin turda.
+- **15.41 ve 15.18a, model logitinde tolerans (2026-11-04, H1; DENETİM istek 121 N1):** AVX2 ile genel yolun logitleri 24 adımlık üretimde varsayılan toleransı 24 adımda aşıyor (en büyük fark 6,1e-05), tabanda da aynı, metin aynı. Cümle tek işlem ölçeğinde kalsın; çok katmanlı modelin testi açık tolerans versin ya da metin eşitliğine baksın. `TR_all_close` motorda yok.
 - **13.8, CSV hücresinin kırpılması (2026-11-04, D1 Kol A 13 teslim 1):** motor hücrenin boşluklarını kırpıyor, `TestCSVCellsAreTextAndBOM` sabitliyor; dil tanımında yazmıyor. Hücre hep metin olunca kırpmak veriyi değiştirir: kalacaksa yazılmalı, kalkacaksa motor değişmeli.
 - **19.5, `g.TR_close()` ve `TR_append`'in değeri (2026-11-04, D1 Kol A 13 teslim 1):** madde `g.TR_close()` yazıyor, motorda yok [ölçüldü: D1]; aynı madde `TR_append` değer döndürmez diyor, motor `TR_true` döndürüyor [kanıtlı: `record.go`].
 - **15.44, fonksiyon değeri ve blok kapsamı (2026-11-03, T1 Kol B teslim 2b):** uygulama kapanıştan okunan fonksiyon değerini kimliğiyle kaydediyor (bağlı metotta gövde ve `TR_self`), gövdesini nerede okunursa okunsun geziyor; adların kapsamı bloğa göre (döngü değişkeni dahil). Madde ikisini de açıkça söylemiyor; cümle tartılır.

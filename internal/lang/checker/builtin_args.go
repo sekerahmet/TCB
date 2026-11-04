@@ -52,6 +52,8 @@ var FunctionArgCodes = map[codes.Code]argCodes{
 	codes.FnLog10:       {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnLog1p:       {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnLog2:        {messages.H6103, []codes.Code{codes.TypeList}},
+	codes.FnMean:        {messages.H2423, []codes.Code{}},
+	codes.FnMedian:      {messages.H2423, []codes.Code{}},
 	codes.FnNoGrad:      {messages.H6404, []codes.Code{}},
 	codes.FnOnes:        {messages.H6021, []codes.Code{codes.TypeInt}},
 	codes.FnParseCsv:    {messages.H2423, []codes.Code{}},
@@ -114,6 +116,11 @@ func (c *Checker) checkBuiltinArgs(e *ast.CallExpression, argTypes []string) {
 		return
 	}
 	def, _ := codes.DefinitionOf(k)
+	if n := len(e.Arguments); n > 0 {
+		if _, fits := paramAt(def.Signature, n-1); !fits {
+			return // çok argümanın hatası önce gelir: H2011 doğru yazımı gösterir (TR_mean(1, 2))
+		}
+	}
 	for i, arg := range e.Arguments {
 		p, ok := paramAt(def.Signature, i)
 		opts, checked := ParamOptions(p)
@@ -166,5 +173,22 @@ func (c *Checker) argTypeError(code messages.Code, k codes.Code, order int, opts
 			names = append(names, c.typeArg(codes.Name(o)))
 		}
 	}
-	return messages.New(messages.H2423, codes.CallNameRef(k), order, names, c.typeArg(given), c.openHint(requiredType(given), given, arg))
+	hint := c.openHint(requiredType(given), given, arg)
+	if hint == "" {
+		hint = c.listHint(k, given, arg)
+	}
+	return messages.New(messages.H2423, codes.CallNameRef(k), order, names, c.typeArg(given), hint)
+}
+
+// listHint TR_mean ve TR_median'a verilen tek sayıyı listeye alan yazımdır (13.1, H1146). TR_std'de
+// yoktur: tek öğenin örneklem standart sapması da hatadır (H2620).
+func (c *Checker) listHint(k codes.Code, given string, arg ast.Expression) any {
+	if k != codes.FnMean && k != codes.FnMedian || given != typeInt && given != typeFloat {
+		return ""
+	}
+	text, ok := c.exprText(arg)
+	if !ok {
+		return ""
+	}
+	return messages.New(messages.H1146, codes.Spelling(k)+"(["+text+"])")
 }

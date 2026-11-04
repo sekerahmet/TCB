@@ -11,7 +11,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 - `g.TR_wait()` görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı burada fırlatır (8). `T` `TR_NoneType`'sa `g.TR_wait()` değer vermez (3.5), deyim olarak yazılır.
 - Görev değeri kullanılmayabilir: `TR_async` ifadesi tek başına bir deyim olarak yazılabilir, 2.8'in değeri kullanılmayan ifade kuralı ona uygulanmaz. O zaman görev yine çalışır ve 10.6'nın kuralı geçerlidir.
 - Program bitmeden önce bütün görevleri bekler.
-- *Test:* TR testi; görev değeri ve `.TR_wait()` uygulanınca TR testi.
+- *Test:* TR testi; görev değeri ve `.TR_wait()` uygulanınca TR testi; değeri olmayan görev `TestWaitingForATaskWithoutAValue`.
 
 **10.2** Yorumlayıcı kilidi: aynı anda yalnız bir görev TR kodu çalıştırır. Paylaşılan liste ve sözlük bozulmaz. Kilidi bırakan bir çağrı, döngü ya da üreteç (5.11) içermeyen deyim (`s += 1`) bölünmez; kullanıcı fonksiyonu çağrısı, 10.3'ün engelleyici işleri ve uzun yerleşikler deyimin içinde kilidi devredebilir. Bileşik atamada hedefin değeri sağ taraftan sonra, kilit devredilmeden okunur (5.4): `t += yavaş()` eşzamanlı görevlerde de güncelleme kaybetmez.
 - **Devir süreyledir:** kilidi bekleyen bir görev varsa kilidi tutan görev, kilidi aldığından bu yana 5 ms geçtikten sonraki ilk devir noktasında onu devreder. Devir noktaları deyim sınırı, döngünün her turu (5.7–5.9) ve üretecin her turudur (5.11): gövdesi boş bir döngü ya da büyük bir üreteç de bölünür. Tur sayısı ya da çağrı sayısı devri belirlemez; 1.5'in durdurma noktası ayrı bir kuraldır.

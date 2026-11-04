@@ -19,9 +19,10 @@ TR_backward(TR_sum(kare(x)))
 TR_print("d(kare)/dx =", x.TR_grad.TR_tolist, "(beklenen 6.0)")
 
 # türev_denetle, geri yayılımla bulunan gradyanı merkezi farkla bulunan sayısal gradyanla karşılaştırır;
-# uyuşursa doğru verir. fark_adımı: farkın büyüklüğü, tolerans: izin verilen göreli farktır.
-TR_print(TR_grad_check((a) => { TR_return a * a }, [TR_Tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01))
-TR_print(TR_grad_check((a) => { TR_return TR_exp(a) }, [TR_Tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001))
+# uyuşmazsa hata fırlatır. fark_adımı: farkın büyüklüğü, tolerans: izin verilen göreli farktır.
+TR_grad_check((a) => { TR_return a * a }, [TR_Tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01)
+TR_grad_check((a) => { TR_return TR_exp(a) }, [TR_Tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001)
+TR_print("türevler doğru")
 
 # kaynaştır, eleman bazlı işlemlerden oluşan bir fonksiyonu tek geçişte hesaplayan eşdeğerine çevirir;
 # sonuç kaynaşmamış hesapla aynıdır (GPU'da ara sonuçlar belleğe yazılmaz).

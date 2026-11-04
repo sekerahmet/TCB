@@ -16,7 +16,9 @@
 
 # ağırlık_başlat şekli verilen, N(0, std) ile başlayan, türev izleyen bir ağırlık kurar; tür
 # verilirse ağırlık o türde tutulur (ör. "bf16": hazır modellerin saklandığı tür).
+# Sapma 0 ise sonuç sıfırlardır, rastgele sayı çekilmez: dosyadan yüklenecek modelin kurulması (tr/pretrained).
 TR_func TR_init_weight(TR_shape: TR_List[TR_Int], TR_init_std: TR_Float, TR_seed: TR_Int, TR_dtype: TR_String = "float32") -> TR_Tensor {
+    TR_if TR_init_std == 0.0 { TR_return TR_zeros(TR_shape, TR_dtype: TR_dtype, TR_requires_grad: TR_true) }
     TR_return TR_Tensor(TR_no_grad((TR_randn(TR_shape, TR_seed: TR_seed) * TR_init_std).TR_to_dtype(TR_dtype)), TR_requires_grad: TR_true)
 }
 
@@ -498,7 +500,7 @@ TR_struct TR_GPT {
     TR_ple_context: TR_PLEContext?
     TR_cos_table: TR_Tensor
     TR_sin_table: TR_Tensor
-    TR_func TR_init(TR_vocab_size: TR_Int, TR_context: TR_Int = 256, TR_embed_dim: TR_Int = 256, TR_num_layers: TR_Int = 4, TR_num_heads: TR_Int = 4, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_tied: TR_Bool = TR_false, TR_seed: TR_Int = 1, TR_windows: TR_List[TR_Int]? = TR_none, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_eps: TR_Float = 0.00001, TR_ple_dim: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_rope_theta: TR_Float = 10000.0, TR_weight_dtype: TR_String = "float32") {
+    TR_func TR_init(TR_vocab_size: TR_Int, TR_context: TR_Int = 256, TR_embed_dim: TR_Int = 256, TR_num_layers: TR_Int = 4, TR_num_heads: TR_Int = 4, TR_num_kv_heads: TR_Int? = TR_none, TR_intermediate_dim: TR_Int? = TR_none, TR_tied: TR_Bool = TR_false, TR_seed: TR_Int = 1, TR_windows: TR_List[TR_Int]? = TR_none, TR_qk_norm: TR_Bool = TR_false, TR_merged_kv: TR_Bool = TR_false, TR_merged_gate: TR_Bool = TR_false, TR_ff_use_bias: TR_Bool = TR_false, TR_eps: TR_Float = 0.00001, TR_ple_dim: TR_Int? = TR_none, TR_head_dim: TR_Int? = TR_none, TR_rope_theta: TR_Float = 10000.0, TR_weight_dtype: TR_String = "float32", TR_init_std: TR_Float = 0.02) {
         TR_self.TR_config = {"dağarcık": TR_vocab_size, "bağlam": TR_context, "embed_dim": TR_embed_dim, "katman": TR_num_layers, "num_heads": TR_num_heads, "head_dim": TR_head_dim,
             "num_kv_heads": TR_num_kv_heads, "ara_boyut": TR_intermediate_dim, "paylaşımlı": TR_tied, "tohum": TR_seed,
             "pencereler": TR_windows, "qk_normu": TR_qk_norm, "birleşik_kv": TR_merged_kv, "birleşik_kapı": TR_merged_gate,
@@ -506,7 +508,7 @@ TR_struct TR_GPT {
         TR_if TR_windows != TR_none {
             TR_assert(TR_windows.TR_length == TR_num_layers, TR_Message("H6911", TR_windows.TR_length, TR_num_layers))
         }
-        TR_var std = 0.02
+        TR_var std = TR_init_std
         TR_var çıkış_std = std / TR_sqrt(2 * TR_num_layers)
         TR_self.TR_embedding = TR_Embedding(TR_vocab_size, TR_embed_dim, TR_init_std: std, TR_seed: TR_seed, TR_dtype: TR_weight_dtype)
         TR_self.TR_blocks = []

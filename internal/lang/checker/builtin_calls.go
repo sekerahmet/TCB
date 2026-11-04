@@ -111,9 +111,17 @@ func (c *Checker) checkMemberArgTypes(e *ast.CallExpression, k codes.Code, sig c
 			continue
 		}
 		if !c.assignable(codes.Name(want), given, arg) {
-			c.addErrorAt(arg, hint.MemberArgType(k, i+1, c.typeArg(codes.Name(want)), c.typeArg(given), c.openHint(codes.Name(want), given, arg)))
+			c.addErrorAt(arg, hint.MemberArgType(k, i+1, c.typeArg(codes.Name(want)), c.typeArg(given), c.memberArgHint(k, codes.Name(want), given, arg)))
 		}
 	}
+}
+
+// memberArgHint openHint'tir; .TR_split'in ayırıcısının varsayılanı boş metin olamaz (H2635).
+func (c *Checker) memberArgHint(k codes.Code, expected, actual string, value ast.Expression) any {
+	if k == codes.MemSplit {
+		return c.openHintAs("separator", expected, actual, value)
+	}
+	return c.openHint(expected, actual, value)
 }
 
 // checkElementArg listeye eklenen değerin tipini listenin öğe tipine göre denetler (3.6: liste tek

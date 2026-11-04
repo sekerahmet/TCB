@@ -47,5 +47,5 @@ func TestCheckerDescendsIntoSubexpressions(t *testing.T) {
 	// Metodun adı yapının dışındaki kapsama tanımlanmaz: dıştaki 'm'nin imzası kalır.
 	singleError(t, "TR_func m(x: TR_Int) { }\nTR_struct A {\n  TR_func m() { }\n}\nm(\"a\")", messages.H1004, 0, want)
 	// Üreteç değişkeni kendi kapsamındadır: dıştaki aynı adlı açıklamalı değişkeni gizler.
-	noErrors(t, "TR_func f(x: TR_Int) { }\nTR_var x: TR_String = \"a\"\nTR_var l = [f(x) TR_for x TR_in 1..3]")
+	noErrors(t, "TR_func f(x: TR_Int) -> TR_Int { TR_return x }\nTR_var x: TR_String = \"a\"\nTR_var l = [f(x) TR_for x TR_in 1..3]")
 }

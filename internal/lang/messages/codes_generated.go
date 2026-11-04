@@ -182,7 +182,7 @@ const (
 	H1123 Code = 1123 // `.{#append}`'in {order}. argümanı listenin öğe tipinde ({elem}) olmalı: {list} listesine {given} eklenmez (liste tek tiplidir, 3.6){hint}
 	H1124 Code = 1124 // {struct} yapısının `{field}` alanı {declared} tipindedir: ona {given} tipinde değer atanmaz (7.5){hint}
 	H1125 Code = 1125 // {struct} kurulurken `{field}` alanına {given} verildi; alan {declared} tipindedir (7.2){hint}
-	H1130 Code = 1130 // ; `{value}` isteğe bağlıdır ({given}): önce açın, {kind, select, int {bir varsayılanla: `{value} ?? 0`} float {bir varsayılanla: `{value} ?? 0.0`} string {bir varsayılanla: `{value} ?? ""`} list {bir varsayılanla: `{value} ?? []`} other {`??` ve bir varsayılanla ya da bir değişkene alıp onu önce `{#none}` ile karşılaştırarak} } (3.5)
+	H1130 Code = 1130 // ; `{value}` isteğe bağlıdır ({given}): önce açın, {kind, select, int {bir varsayılanla: `{value} ?? 0`} float {bir varsayılanla: `{value} ?? 0.0`} string {bir varsayılanla: `{value} ?? ""`} separator {bir varsayılanla: `{value} ?? " "`} list {bir varsayılanla: `{value} ?? []`} other {`??` ve bir varsayılanla ya da bir değişkene alıp onu önce `{#none}` ile karşılaştırarak} } (3.5)
 	H1131 Code = 1131 // {@JSON} değeri {other} tipinde bir değerle karşılaştırılıyor{kind, select, inner { (listede, sözlükte, içerme sınamasında ya da eşleme deseninde)} other {}}: JSON değeri yalnız JSON değerine eşit olur, sonuç hep aynı olurdu (3.7a, 4.5); {open, select, empty {} other {JSON'u tipiyle açın, `{open}`, ya da }}{wrap, select, empty {öbür yanı JSON değerine çevirin} other {öbür yanı JSON'a çevirin, `{wrap}`}}
 	H1132 Code = 1132 // {@JSON} değeri `{#none}` ile karşılaştırılıyor{kind, select, inner { (listede, içerme sınamasında ya da eşleme deseninde)} other {}}: {@JSON} isteğe bağlı değildir, sonuç hep aynı olurdu (3.7a, 3.5); {absent, select, empty {karşılaştırmadan önce açın} other {JSON yokluğu için `{absent}` yazın}}{missing, select, empty {} other {, eksik alan için `{missing}`}}
 	H1133 Code = 1133 // {value, select, empty {değişmez olmayan bir {given} değeri} other {`{value}` değişmez değil, bir {given} değeri}}: {@JSON} beklenen değişmezin içinde JSON değeri olarak kurulmaz (3.7a); {value, select, empty {onu `{#JSON}(...)` ile çevirin} other {kopyasını çevirin: `{#JSON}({value})`}}
@@ -194,6 +194,10 @@ const (
 	H1140 Code = 1140 // {container} sözlüğünün anahtarları {key} tipindedir: {given} tipinde anahtarla okunmaz ve yazılmaz (3.7)
 	H1141 Code = 1141 // '{op}' aynı tipten iki değeri karşılaştırır (4.5): {left} ile {right} ayrı tiplerdir, sonuç hep aynı olurdu
 	H1142 Code = 1142 // {container} listesinin öğeleri {elem} tipindedir: {given} tipinde bir değer onda bulunmaz, sonuç hep `{#false}` olurdu (3.6, 13.10){conversion, select, empty {} other {; öğe tipine çevirin: `{conversion}`}}
+	H1143 Code = 1143 // `{call}` değer vermez, değer yerinde kullanılamaz (3.5): çağrıyı kendi satırında deyim olarak yazın: `{call}`
+	H1144 Code = 1144 // `.{#map}` sonuçları toplar, ona verilen fonksiyon değer döndürmüyor (3.5): sonuç gerekmiyorsa, liste `l`, fonksiyon `f` ise döngü yazın: `{#for} x {#in} l {{ f(x) }}`
+	H1145 Code = 1145 // dönüş tipi bilinmeyen fonksiyon ifadesinde yollar karışık ya da `{#return} {#none}` yazılmış (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)
+	H1146 Code = 1146 // ; tek sayıyı listeye alın: `{writing}`
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
@@ -434,7 +438,7 @@ const (
 	H2630 Code = 2630 // {fn}: {path|q} çalışma klasöründe yok ({place}); aynı adlı dosya başka bir klasörde var ({other}), ama dosyayı değiştiren işler göreli yolu yalnız çalışma klasörüne göre çözer, başka klasördeki dosyayı silmez ve taşımaz; o dosyayı istiyorsanız yolunu açıkça yazın: `{explicit|q}`
 	H2635 Code = 2635 // {fn}: ayırıcı boş olamaz; metni karakterlerine ayırmak için, metin `m` ise, `[c {#for} c {#in} m]` yazın
 	H2636 Code = 2636 // {fn}: boş alt metin değiştirilemez, her karakterin arasında bulunurdu; karakterlerin arasına bir metin koymak için, metin `m` ise, `[c {#for} c {#in} m].{#join}(y)` yazın
-	H2637 Code = 2637 // {fn}: boş listenin başlangıçsız indirgemesi yoktur; başlangıç ilk argümandır, liste `l` ise `l.{#reduce}(0, (a, x) => a + x)` yazın
+	H2637 Code = 2637 // {fn}: boş listenin başlangıçsız indirgemesi yoktur; başlangıç ilk argümandır ve öğe tipindedir, sayı listesi `l` ise `l.{#reduce}(0, (a, x) => a + x)` yazın
 	H2638 Code = 2638 // {fn}: {path|q} dosyasının {line}. satırı geçerli UTF-8 metin değil; ikili dosyayı {@Bytes} olarak okuyun: `{#read_bytes}({path|q})`
 	H2639 Code = 2639 // {fn}: {path|q} açılınca {line}. satırı geçerli UTF-8 metin değil; {@read_bytes} .gz dosyasını açmaz, sıkıştırılmış baytları verir
 	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
@@ -838,7 +842,7 @@ const (
 	H5218 Code = 5218 // {index}. birleştirme: {error}
 	H5219 Code = 5219 // {index}. birleştirme ({left|q}, {right|q}) dağarcıkta olmayan bir parça içeriyor
 	H5220 Code = 5220 // {index}. birleştirmenin sonucu {result|q} dağarcıkta yok
-	H5221 Code = 5221 // dağarcıkta geçersiz kimlik: {token|q} -> {id}
+	H5221 Code = 5221 // dağarcıkta geçersiz kimlik: {token|q} -> {id}; kimlik 0 ile {max} arasında olmalı
 	H5222 Code = 5222 // birleştirme {text|q} iki parçaya ayrılamadı
 	H5223 Code = 5223 // birleştirme girdisi çözümlenemedi: {text}
 	H5224 Code = 5224 // {index}. dağarcık girdisi [parça, puan] biçiminde değil
@@ -893,7 +897,7 @@ const (
 	H5274 Code = 5274 // parçalayıcı JSON'u çözümlenemedi: {error}
 	H5275 Code = 5275 // desteklenmeyen yapılandırma: truncation (kırpma) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
 	H5276 Code = 5276 // desteklenmeyen yapılandırma: padding (dolgu) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
-	H5277 Code = 5277 // ek parça {content|q} dosyada {file_id} kimliğiyle tanımlı, ancak sözlükteki kimliği {known}; tutarsız dosya
+	H5277 Code = 5277 // ek parça {content|q} dosyada {file_id} kimliğiyle tanımlı, ancak aynı metnin kimliği {known}; tutarsız dosya
 	H5278 Code = 5278 // son işleyicinin eklediği özel token kimliği {id} sözlükte yok
 	H5279 Code = 5279 // ek parça {content|q} normalleştirilemedi: {error}
 	H5280 Code = 5280 // normalleştirici

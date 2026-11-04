@@ -106,8 +106,11 @@ func (c *Checker) checkSignatures(prog *ast.Program) {
 					owner = n.Name
 				}
 				c.checkFunctionSignature(n, owner, owner)
-			} else if open[n] {
-				c.checkParams(n, "", "", placeArrow)
+			} else {
+				if open[n] {
+					c.checkParams(n, "", "", placeArrow)
+				}
+				c.checkArrowReturns(n) // arrow_returns.go
 			}
 		}
 		return true

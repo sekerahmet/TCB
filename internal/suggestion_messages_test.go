@@ -100,6 +100,9 @@ var suggestionCases = []suggestionCase{
 	{messages.H1130, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm.TR_append(l.TR_first)\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
 	{messages.H1130, "TR_var l: TR_List[TR_String] = []\nTR_print(\"a,b\".TR_contains(l.TR_first))", "l.TR_first", "l.TR_first ?? \"\""},
 	{messages.H1130, "TR_var l: TR_List[TR_Float] = []\nTR_print(TR_abs(l.TR_first))", "l.TR_first", "l.TR_first ?? 0.0"},
+	{messages.H1130, "TR_var l: TR_List[TR_String] = []\nTR_print(\"a,b\".TR_split(l.TR_first))", "l.TR_first", "l.TR_first ?? \" \""},
+	{messages.H1146, "TR_print(TR_mean(1))", "TR_mean(1)", "TR_mean([1])"},
+	{messages.H1146, "TR_var x = 1.5\nTR_print(TR_median(x))", "TR_median(x)", "TR_median([x])"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"k\": 3}`)\nTR_print(j[\"k\"] == 3)", "j[\"k\"] == 3", "TR_Int(j[\"k\"]) == 3"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"k\": 3}`)\nTR_print(j[\"k\"] == 3)", "j[\"k\"] == 3", "j[\"k\"] == TR_JSON(3)"},
 	{messages.H1131, "TR_var j = TR_json_parse(`[1, 2]`)\nTR_print(TR_List(j) == [1, 2])", "TR_List(j) == [1, 2]", "TR_List(j) == [TR_JSON(1), TR_JSON(2)]"},
@@ -114,6 +117,13 @@ var suggestionCases = []suggestionCase{
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"q\": 3}`)\nTR_print(j.TR_get(\"q\") == 3)", "j.TR_get(\"q\") == 3", "j.TR_get(\"q\") == TR_JSON(3)"},
 	{messages.H1142, "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"2\"))", "\"2\"", "TR_Int(\"2\")"},
 	{messages.H1142, "TR_var adlar = [\"1\", \"2\"]\nTR_var sayılar = [1, 2]\nTR_print(adlar.TR_contains(sayılar.TR_length))", "sayılar.TR_length", "TR_String(sayılar.TR_length)"},
+	{messages.H1144, "TR_func f(x: TR_Int) { TR_print(x) }\nTR_var l = [1]\nTR_print(l.TR_map(f))", "TR_print(l.TR_map(f))", "TR_for x TR_in l { f(x) }"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_if x { TR_return }\n    TR_return 1\n}\nTR_print(h(TR_true))", "TR_return", "TR_return 0"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_if x { TR_return 1 }\n    TR_print(2)\n}\nTR_print(h(TR_true))", "TR_print(2)", "TR_return 0"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_if x { TR_return }\n    TR_return 1\n}\nh(TR_true)", "TR_return 1", "TR_return"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_return TR_none\n}\nTR_print(h(TR_true))", "TR_return TR_none", "TR_return 0"},
+	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_return TR_none\n}\nh(TR_true)", "TR_return TR_none", "TR_return"},
+	{messages.H1143, "TR_func f() { TR_print(1) }\nTR_var y = f()\nTR_print(2)", "TR_var y = f()", "f()"},
 	{messages.H1139, "TR_var m = [[0] * 3] * 3\nm[0][0] = 1\nTR_print(m)", "[[0] * 3] * 3", "[[0] * 3 TR_for _ TR_in 0..3]"},
 }
 
@@ -133,6 +143,9 @@ var suggestionResultCases = []suggestionResultCase{
 	// 19.6: kayıttaki adım tam değerli olmalıdır; ileti yuvarlamayı önerir, kırpmaz.
 	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": 3.5})", "TR_round(...)",
 		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_round(3.5)})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":4\"))", "true\n"},
+	// 18.11: geçerli UTF-8 olmayan satır hatadır; ileti dosyayı bayt olarak okumayı önerir.
+	{messages.H2638, "TR_write_file(\"b.txt\", TR_Bytes([98, 255, 10]))\nTR_print(TR_read_lines(\"b.txt\").TR_next())", "TR_read_bytes(\"b.txt\")",
+		"TR_print(TR_read_bytes(\"b.txt\").TR_length)", "3\n"},
 	// 13.2: boş ayırıcı ve değiştirilecek boş alt metin hatadır; iletiler karakterleri alan yazımı önerir.
 	{messages.H2635, "TR_print(\"ab\".TR_split(\"\"))", "[c TR_for c TR_in m]",
 		"TR_var m = \"ab\"\nTR_print([c TR_for c TR_in m])", "[\"a\", \"b\"]\n"},
@@ -263,10 +276,13 @@ func TestMessageSuggestionsRunCleanly(t *testing.T) {
 		tested[tc.code] = true
 		verifySuggestionCase(t, tc)
 	}
-	for _, tc := range suggestionResultCases {
-		tested[tc.code] = true
-		verifySuggestionResult(t, tc)
-	}
+	t.Run("sonuçlar", func(t *testing.T) {
+		t.Chdir(t.TempDir()) // göreli dosya yazan satırlar için
+		for _, tc := range suggestionResultCases {
+			tested[tc.code] = true
+			verifySuggestionResult(t, tc)
+		}
+	})
 	checkSuggestionCoverage(t, tested)
 }
 

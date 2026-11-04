@@ -30,12 +30,12 @@ TR_test "6.2 TR_return değer döndürür; gövdenin son ifadesi dönüş değer
     TR_assert_equal("pozitif", erken(1))
     TR_assert_equal("değil", erken(-1))
     TR_func örtük() { 5 }
-    TR_assert_equal(TR_none, örtük())
+    örtük()
     # Sondaki blok ise bir fonksiyon gövdesi değildir: değeri son ifadesidir (6.7)
     TR_func çalıştır(iş: () -> TR_Int) -> TR_Int { TR_return iş() }
     TR_assert_equal(5, çalıştır { 5 })
     TR_func boş_dönüş() { TR_return }
-    TR_assert_equal(TR_none, boş_dönüş())
+    boş_dönüş()
 }
 
 TR_test "6.3 birden çok değer döndürülür ve açılır; TR_return f() ile iletilir" {

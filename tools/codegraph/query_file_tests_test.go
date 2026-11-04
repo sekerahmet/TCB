@@ -49,3 +49,48 @@ func TestAFileOrdersItsTestsLikeItsDeclarations(t *testing.T) {
 		t.Errorf("file: indirect tests %v, want %v (the declaration's order)", got, want)
 	}
 }
+
+// Kural (DENETİM 104 N6): 0 adımlı da olsa [INFERRED] bir `tests` kenarı dosya düzeyindeki tests-for ve changed
+// çıktısında `direct` diye yazılmaz (`[INFERRED]` olarak ve EXTRACTED `direct` testlerden sonra yazılır).
+func TestInferredZeroStepEdgeIsNotWrittenAsDirect(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"p/dispatch.go": "package p\n\nfunc Run(cmd string) {\n\tswitch cmd {\n\tcase \"check\":\n\t\thandleCheck()\n\t}\n}\n",
+		"p/cmd.go":      "package p\n\nfunc handleCheck() {}\n\nfunc DirectEntry() {}\n",
+		"p/other_test.go": "package p\n\nimport \"testing\"\n\n" +
+			"func TestZDirect(t *testing.T) { DirectEntry() }\n\n" +
+			"func TestACase(t *testing.T) { Run(\"check\") }\n",
+	})
+	var buildOut, buildErr strings.Builder
+	if code := run([]string{"build", "--root", root}, &buildOut, &buildErr); code != exitOK {
+		t.Fatalf("build: %d %s", code, buildErr.String())
+	}
+	var out, errb strings.Builder
+	if code := run([]string{"tests-for", "p/cmd.go", "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+		t.Fatalf("tests-for p/cmd.go: %d %s", code, errb.String())
+	}
+	got := out.String()
+	if strings.Contains(got, "p.TestACase [func] p/other_test.go:7  direct") {
+		t.Errorf("INFERRED case test must not be labeled direct:\n%s", got)
+	}
+	wantDirect := "p.TestZDirect [func] p/other_test.go:5  direct"
+	wantInferred := "p.TestACase [func] p/other_test.go:7  [INFERRED]"
+	di, ii := strings.Index(got, wantDirect), strings.Index(got, wantInferred)
+	if di < 0 || ii < 0 || di > ii {
+		t.Errorf("expected EXTRACTED direct before INFERRED in tests-for p/cmd.go:\n%s", got)
+	}
+	ts := newTouchSet()
+	g, err := readGraph(root + "/.codegraph/graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix := newIndex(g)
+	for id, d := range ix.fileDecls(ix.byID[fileID("p/cmd.go")]).nodes {
+		ts.nodes[id] = d
+	}
+	var chOut strings.Builder
+	ix.printTestsToRun(&chOut, ts, 0, "the changed code", "changed tests")
+	ch := chOut.String()
+	if strings.Contains(ch, "p.TestACase [func] p/other_test.go:7  direct") || !strings.Contains(ch, wantInferred) {
+		t.Errorf("changed output must label INFERRED zero-step edge [INFERRED], not direct:\n%s", ch)
+	}
+}

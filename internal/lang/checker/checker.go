@@ -26,12 +26,19 @@ type TypeInfo struct {
 	TupleLen int
 	// Module takma adlı aktarımın bağladığı modül değeridir (11.2; module_values.go).
 	Module bool
+	// Fn adın bağlı olduğu fonksiyondur, Written yazılan tipidir, Made ilk değerin kurduğu yerleşik
+	// tiptir (3.5; no_value.go).
+	Fn      *ast.FunctionLiteral
+	Written *ast.TypeRef
+	Made    string
 }
 
 // Scope is one level of the checker's type scope.
 type Scope struct {
 	parent  *Scope
 	symbols map[string]TypeInfo
+	// hoisted bloğun henüz denetlenmemiş fonksiyonlarıdır (6.1; no_value.go).
+	hoisted map[string]*ast.FunctionLiteral
 }
 
 // NewScope returns a scope nested in parent (nil for the outermost scope).
@@ -105,6 +112,11 @@ type Checker struct {
 	selfType string
 	// receivers metot çağrılarının nesnesinin çıkarılan tipidir (pure_calls.go).
 	receivers map[*ast.CallExpression]string
+	// noValue değer vermeyen çağrılardır, reassigned yeniden atanan adlardır (3.5; no_value.go).
+	noValue    map[ast.Expression]bool
+	reassigned map[string]bool
+	// expectedReturns dönüş tipi beklenen tipten bilinen fonksiyon ifadeleridir (arrow_returns.go).
+	expectedReturns map[*ast.FunctionLiteral]bool
 }
 
 // New returns a checker with an empty global scope.
@@ -170,9 +182,9 @@ func (c *Checker) check(prog *ast.Program) {
 	c.itemTypes, c.jsonLiterals = map[ast.Expression]string{}, nil
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
-	for _, stmt := range prog.Statements {
-		c.checkStatement(stmt)
-	}
+	c.noValue, c.expectedReturns = map[ast.Expression]bool{}, map[*ast.FunctionLiteral]bool{}
+	c.noteAssigned(prog)
+	c.checkStatements(prog.Statements)
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir.
 	c.nameErrors = c.nameErrors[:0]
 	c.checkNames(prog)
@@ -180,6 +192,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkSkeletons(prog)
 	c.checkTopLevel(prog)
 	c.checkSignatures(prog)
+	c.checkValuePlaces(prog)
 	sortByLine(c.errors[start:])
 }
 
@@ -192,6 +205,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.checkShadowing(s.Name.Value, s.Name.Token)
 		c.checkNameStyle(s.Name.Value, c.varKind(s.IsConst), s.Name.Token)
 		declared := c.writtenType(s.Type, s.Line())
+		c.expect(s.Type, s.Value)
 		inferred := c.inferExpression(s.Value)
 		c.recordValueType(s.Value, inferred)
 		if s.Type != nil && !c.assignable(declared, inferred, s.Value) {
@@ -211,6 +225,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope.Define(s.Name.Value, TypeInfo{
 			TypeName: finalType,
 			IsConst:  s.IsConst,
+			Fn:       boundFunction(s.Value),
+			Written:  s.Type,
+			Made:     c.madeType(s.Value),
 		})
 
 	case *ast.ImportStatement:
@@ -221,9 +238,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.BlockStatement:
 		prev := c.scope
 		c.scope = NewScope(prev)
-		for _, bs := range s.Statements {
-			c.checkStatement(bs)
-		}
+		c.checkStatements(s.Statements)
 		c.scope = prev
 
 	case *ast.ForInStatement:
@@ -234,9 +249,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.defineName(s.KeyVar, kindVariable, siteOf(s.KeyToken, s.Line()), TypeInfo{TypeName: key})
 		}
 		c.defineName(s.ValueVar, kindVariable, siteOf(s.ValueToken, s.Line()), TypeInfo{TypeName: value})
-		for _, bs := range s.Body.Statements {
-			c.checkStatement(bs)
-		}
+		c.checkStatements(s.Body.Statements)
 		c.scope = prev
 
 	case *ast.WhileStatement:
@@ -253,9 +266,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
 		c.defineName(s.ErrorVar, kindVariable, siteOf(s.ErrorToken, catchLine), TypeInfo{TypeName: typeAny})
-		for _, bs := range s.CatchBody.Statements {
-			c.checkStatement(bs)
-		}
+		c.checkStatements(s.CatchBody.Statements)
 		c.scope = prev
 
 	case *ast.StructStatement:
@@ -418,6 +429,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				ParamTypes: paramTypes,
 				ReturnType: retType,
 				TupleLen:   returnTupleLen(e),
+				Fn:         e,
 			})
 		}
 		c.functionBody(e, retType)
@@ -430,6 +442,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		return c.inferMatch(e, expr != c.statementExpr)
 	case *ast.AsyncExpression:
 		return c.taskType(e.Statement) // 10.1 (task_types.go)
+	case *ast.TryExpression:
+		c.inferTry(e) // 8.1 (block_values.go)
 	}
 	return typeAny
 }
@@ -482,6 +496,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		c.checkConstruction(e, ident.Value, argTypes, namedTypes) // alanların tipi (7.2)
 	}
 	if isMember {
+		c.checkCollectedFunction(e, objType) // 3.5 (value_places.go)
 		c.checkMemberCall(e, objType, argTypes)
 		c.checkJSONContains(e, objType, argTypes) // 3.7a (json_comparison.go)
 		c.checkDictKeyArg(e, objType, argTypes)   // 3.7 (dict_keys.go)
@@ -494,11 +509,18 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	if len(argTypes) == 1 && c.builtinCallCode(e, objType) == codes.TypeJSON {
 		c.checkJSONConversion(e.Arguments[0], argTypes[0]) // 3.7a "Kurmak" (json_values.go)
 	}
+	c.expectArguments(e, info, objType)
+	if c.callNoValue(e, objType) {
+		c.noValue[e] = true
+	}
 	return c.callType(e, info, found, objType)
 }
 
 // checkReturn dönüş değerini fonksiyonun yazılan dönüş tipine göre denetler ve kapı için kaydeder.
 func (c *Checker) checkReturn(s *ast.ReturnStatement) {
+	if c.facts.current != nil {
+		c.expect(c.facts.current.ReturnType, s.ReturnValue)
+	}
 	valType := c.inferExpression(s.ReturnValue)
 	c.noteReturn(s, valType)
 	if c.returnType != "" && !c.assignable(c.returnType, valType, s.ReturnValue) {
@@ -525,6 +547,7 @@ func (c *Checker) checkAssign(s *ast.AssignStatement) {
 			if info.IsConst && !inPlace {
 				c.addErrorAt(ident, messages.New(messages.H1002, ident.Value, c.word(codes.KwConst)))
 			}
+			c.expect(info.Written, s.Value)
 			if info.TypeName != typeAny && info.TypeName != typeNull && !c.assignable(info.TypeName, valType, s.Value) {
 				c.addErrorAt(s, messages.New(messages.H1005,
 					ident.Value, c.typeArg(info.TypeName), c.typeArg(valType), c.typeHint(info.TypeName, valType, s.Value, op == "/" || op == "" && dividesAtTop(s.Value))))

@@ -210,7 +210,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - `TR_maximum(a, b)` ve `TR_minimum(a, b)` iki tensörün (ya da tensörle sayının, 15.6a) öğe öğe en büyüğünü ve en küçüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır (15.50). ±0'da sıralama sırası (15.22b) kullanılır: `TR_maximum(-0.0, 0.0)` argüman sırası ne olursa olsun `0.0`'dır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya; ±0 eşit sayılmadığı için seçilen tarafa. Bir konumda işlenenlerden biri NaN ise o konumda iki işlenene de NaN türev gider.
 - `TR_round(t)` 13'ün yarımı çifte kuralıyla öğe öğe yuvarlar. Tensörde sonuç `TR_Float`'tır, `TR_floor` gibi (sayıdaki `TR_round` ise 13.1'e göre `TR_Int` verir). NaN ve sonsuz korunur, öğe başına hata ve bekleme olmaz. `TR_Int` tensörde girdiyi verir. Basamaklı `TR_round(x, basamak)` yalnız sayıdadır. Nicemleme `TR_Tensor[TR_Int](TR_round(t))` yazar. Türevi 0'dır.
 - `TR_is_nan(t)` ve `TR_is_finite(t)` (13.7) `TR_Float` tensörde öğe öğe `TR_Tensor[TR_Bool]` verir. `t != t` de NaN'ı bulur ama okunmaz; ileti yok, ikisi de geçerli.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi: `TR_is_finite`, fuse içi `TestIsFiniteIsABoolMaskOutsideFuse`; `TR_is_nan` uygulanınca TR testi.
 
 **15.17** `TR_gelu(x, TR_approximate: a)`: `TR_approximate: TR_true` tanh yaklaşımlı GELU, `TR_approximate: TR_false` tam (erf tabanlı) GELU'dur.
 - **`TR_approximate:` zorunludur, varsayılanı yoktur ve yalnız adla verilir**: `TR_gelu(x, TR_true)` denetim hatasıdır. Eksikse denetim hatası; ileti iki biçimi de gösterir ve PyTorch'un `F.gelu(x)`'inin tam biçim olduğunu söyler.

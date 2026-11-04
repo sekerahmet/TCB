@@ -23,7 +23,7 @@ func (v *VM) registerTestBuiltins() {
 			return nil, messages.New(messages.H2612, args[0].Type())
 		}
 		if b.Val {
-			return True, nil
+			return Null, nil
 		}
 		if m, ok := args[len(args)-1].(*MessageVal); ok && len(args) == 2 {
 			return nil, m.Error() // katalog iletisi olduğu gibi, kendi koduyla
@@ -47,7 +47,7 @@ func (v *VM) registerTestBuiltins() {
 			return nil, err
 		}
 		if eq {
-			return True, nil
+			return Null, nil
 		}
 		if len(args) == 3 {
 			return nil, messages.New(messages.H2517, y.textOf(args[2]), testShow(args[0]), testShow(args[1]))

@@ -477,7 +477,7 @@ func checkGrad(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		return nil, messages.New(messages.H6432, fn, bad.input+1, tensor.ShapeText(bad.index), fmt.Sprintf("%.6g", bad.an),
 			fmt.Sprintf("%.6g", bad.count), fmt.Sprintf("%.3g", bad.diff), fmt.Sprintf("%g", tol))
 	}
-	return interp.True, nil
+	return interp.Null, nil
 }
 
 // checkOutputs f'nin dönüşünü tensör listesine çevirir (tek tensör ya da tensör listesi).

@@ -55,7 +55,7 @@ func printBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	}
 	out := strings.Join(parts, " ")
 	y.WriteOutput(y.Out, out+"\n")
-	return &StringVal{Val: out}, nil
+	return Null, nil
 }
 
 // inputBuiltin girdi() yerleşiğidir.
@@ -185,7 +185,7 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 		return nil, messages.New(messages.H2522, CallPrefix(codes.FnWaitAll), y.exclusive)
 	}
 	y.WaitAsync()
-	return True, nil
+	return Null, nil
 }
 
 // timeMsBuiltin zaman_ms() yerleşiğidir.
@@ -279,7 +279,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	if err != nil {
 		return nil, turkish.FileError(CallPrefix(codes.FnWriteFile), filePath, messages.H2101, err)
 	}
-	return True, nil
+	return Null, nil
 }
 
 // sleepBuiltin uyu() yerleşiğidir.
@@ -302,7 +302,7 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if err := y.sleep(CallPrefix(codes.FnSleep), d); err != nil {
 		return nil, err
 	}
-	return True, nil
+	return Null, nil
 }
 
 // seconds is a duration given in seconds (uyu, bekle'nin süre_sınırı): a value that is not a number,

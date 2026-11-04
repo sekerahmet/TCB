@@ -209,7 +209,7 @@ func (c *Progress) update(m *interp.VM, args []interp.Value, named map[string]in
 	if done {
 		c.finish(now)
 	}
-	return interp.True, nil
+	return interp.Null, nil
 }
 
 // advance sayacı ilerletir, hızı ölçer, günlüğe yazar ve çubuğu (sıklık sınırıyla) çizer.

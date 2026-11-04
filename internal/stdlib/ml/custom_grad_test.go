@@ -27,8 +27,8 @@ func TestCustomGradSquare(t *testing.T) {
 TR_var x = TR_Tensor([3.0, -1.0], TR_requires_grad: TR_true)
 TR_backward(TR_sum(kare(x)))
 TR_print(x.TR_grad.TR_tolist)
-TR_print(TR_grad_check(kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)]))`)
-	if want := "[6.0, -2.0]\ntrue\n"; out != want {
+TR_grad_check(kare, [TR_Tensor([[0.3, -1.2]], TR_requires_grad: TR_true)])`)
+	if want := "[6.0, -2.0]\n"; out != want {
 		t.Fatalf("çıktı %q, beklenen %q", out, want)
 	}
 }
@@ -269,8 +269,8 @@ func TestCheckGradBuildsCopiesOnTheInputDevice(t *testing.T) {
 	tensor.RegisterBackend(&auditSecondDevice{Backend: tensor.BackendFor(tensor.CPU)})
 	out, err := run(t, `TR_var w = TR_Tensor([2.0, 3.0]).TR_to_device("gpu:99")
 TR_var x = TR_Tensor([1.0, 4.0], TR_requires_grad: TR_true).TR_to_device("gpu:99")
-TR_print(TR_grad_check((a) => a * w, [x]))`)
-	if err != nil || out != "true\n" {
+TR_grad_check((a) => a * w, [x])`)
+	if err != nil || out != "" {
 		t.Fatalf("varsayılan dışı cihazda türev_denetle başarısız: err=%v out=%q", err, out)
 	}
 }

@@ -78,6 +78,7 @@ type fileEntry struct {
 	dtype tensor.DType
 	data  []float32 // hesap ondalıklarında tensörün (16 bitlikte kayıpsız açılmış) değerleri
 	raw   []byte    // cinsli türlerde (float64, TR_Int, TR_Bool) küçük uçlu ham baytlar
+	bits  []uint16  // safetensors'un 16 bitlik ondalıkları: dosyadaki bitler, açılmadan
 }
 
 // newFileEntry tensörün verisini konağa alır: hesap ondalığı değer, öbürü ham bayt olarak.
@@ -96,6 +97,8 @@ func (g fileEntry) tensor() *tensor.Tensor {
 	switch {
 	case g.dtype.IsTyped():
 		return tensor.FromRawOn(tensor.DefaultDevice(), g.dtype, g.raw, g.shape...)
+	case g.bits != nil:
+		return tensor.FromBits16On(tensor.DefaultDevice(), g.dtype, g.bits, g.shape...)
 	case g.dtype == tensor.Float32:
 		return tensor.New(g.data, g.shape...)
 	}
@@ -106,6 +109,9 @@ func (g fileEntry) tensor() *tensor.Tensor {
 func (g fileEntry) count() int {
 	if g.dtype.IsTyped() {
 		return len(g.raw) / (g.dtype.Bits() / 8)
+	}
+	if g.bits != nil {
+		return len(g.bits)
 	}
 	return len(g.data)
 }

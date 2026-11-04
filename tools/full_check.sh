@@ -526,7 +526,7 @@ selected_tests() {
 	# Windows'ta komut satırı ~32 000 karakterdir: çok büyük seçimde (bir tr.json değişikliği 428 test, 12 500
 	# karakter, 67 sn ölçüldü) seçilen paketler bütün olarak koşar.
 	if [ ${#run} -gt 20000 ]; then run=.; fi
-	go test "${p_flag[@]}" -short -run "$run" "${dirs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+	go test "${p_flag[@]}" -short -count=1 -run "$run" "${dirs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 	watched_ok "${PIPESTATUS[0]}" || fail "değişen dosyaları koruyan testler"
 }
 
@@ -728,14 +728,14 @@ for mode in $modes; do
 	on)
 		quick_static_checks
 		step "Düzen kuralları (dosya adı, boy sınırı, Türkçe metin, çıplak ad, ileti kullanımı)"
-		go test "${p_flag[@]}" -short ./internal/ ./internal/reporoot ./tools/gen/... 2>&1 | grep -v '^ok\|no test files'
+		go test "${p_flag[@]}" -short -count=1 ./internal/ ./internal/reporoot ./tools/gen/... 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "düzen kuralları"
 		step "Öbür paketlerdeki depo taramaları (ileti, okuma, öneri, kod grafiği, yorumlayıcı, komut)"
 		# Depoyu tarayan kural testleri: hangi dosya değişirse değişsin koşar (değişen paketlere bağlı
 		# kalınca source.TestHeaderRulesLiveOnlyInSourceAndLexer'ın kırığı ancak bütün ağaçta çıkmıştı,
 		# 9ca4b3df). Düzen kurallarının paketleri yukarıda bütün olarak koşar. Liste elle; codegraph'ın
 		# tarama düğümlerinden üretilmesi tools/codegraph/gaps.md'de.
-		go test "${p_flag[@]}" -short -run "^($(printf '%s|' "${repo_scans[@]}" | sed 's/|$//'))\$" \
+		go test "${p_flag[@]}" -short -count=1 -run "^($(printf '%s|' "${repo_scans[@]}" | sed 's/|$//'))\$" \
 			"${repo_scan_pkgs[@]}" 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "depo taramaları"
 		step "TR dosyalarının biçimi (trlang format --check) ve dil tanımı testleri (trlang test tests, ~2 sn)"
@@ -747,7 +747,10 @@ for mode in $modes; do
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
-			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+			# -count=1: depo testleri dosyaları `git ls-files` ile bulur, Go'nun önbelleği onu girdi saymaz; çalışma
+			# ağacında `.git` dosyadır, commit'le değişmez, commit'ten önce koşulan testin eski sonucu yeni izlenen
+			# dosyayı gizliyordu (T1, DENETİM istek 106, 2026-11-04). Ön denetimin dört Go adımı da böyle koşar.
+			go test "${p_flag[@]}" -short -count=1 "${changed[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 			watched_ok "${PIPESTATUS[0]}" || fail "değişen paketlerin testleri"
 		fi
 		selected_tests "${changed[@]}"

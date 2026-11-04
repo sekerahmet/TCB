@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -72,6 +73,12 @@ func entryBits(g fileEntry) string {
 		return hex.EncodeToString(g.raw)
 	}
 	var b bytes.Buffer
+	if g.bits != nil {
+		for _, v := range g.bits {
+			b.Write(binary.LittleEndian.AppendUint16(nil, v))
+		}
+		return hex.EncodeToString(b.Bytes())
+	}
 	if err := writeValues(&b, g.dtype, g.data, make([]byte, 0, 64)); err != nil {
 		panic(err)
 	}
@@ -264,6 +271,28 @@ func TestTensorFileRejectsTypeWithoutCode(t *testing.T) {
 			t.Fatalf("%v kodu yok", dt)
 		} else if back, ok := dtypeFromCode(code); !ok || back != dt {
 			t.Fatalf("%v kodu %d geri %v", dt, code, back)
+		}
+	}
+}
+
+// Kural (15.47): 16 bitlik ondalıklar dosyadaki bitleriyle tensöre geçer, float32'ye açılıp yeniden
+// yuvarlanmaz: tensörün değerleri açılan değerlerle aynıdır, sinyal NaN'ı da korunur.
+func TestSafetensorsKeepSixteenBitValues(t *testing.T) {
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		bits := []uint16{0x0000, 0x8000, 0x0001, 0x3F80, 0x7F7F, 0x7C00, 0x7F81, 0xFFFF}
+		x := tensor.FromBits16On(tensor.CPU, dt, slices.Clone(bits), 2, 4)
+		want := make([]float32, len(bits))
+		for i, v := range bits {
+			want[i] = tensor.FromBits16(dt, v)
+		}
+		got := x.Data()
+		for i := range want {
+			if math.Float32bits(got[i]) != math.Float32bits(want[i]) {
+				t.Errorf("%v %d. öğe: %x, beklenen %x", dt, i, math.Float32bits(got[i]), math.Float32bits(want[i]))
+			}
+		}
+		if x.DType() != dt {
+			t.Errorf("tür %v, beklenen %v", x.DType(), dt)
 		}
 	}
 }

@@ -110,7 +110,7 @@ TR_test "3.4 Mantık: doğru ve yanlış" {
 TR_test "3.5 yok: boş değer" {
     TR_assert_equal(TR_NoneType, TR_Type(TR_none))
     TR_func hicbir_sey() {}
-    TR_assert_equal(TR_none, hicbir_sey())
+    hicbir_sey()
 }
 
 TR_test "3.6 Liste: sıralı, karışık tipli; sınır dışı okuma hatadır, varsa_al yok verir" {

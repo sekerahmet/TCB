@@ -124,8 +124,8 @@ TR_var s = TR_is_finite(x)
 TR_print(s.TR_tolist, s.TR_dtype)
 TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_Tensor([[1.0, 2.0]])).TR_tolist)`)
 	want := "true true false false false Bool\n" +
-		"[1.0, 0.0, 0.0, 0.0, 1.0] float32\n" +
-		"[1.0, 0.0, 0.0, 0.0, 1.0] [[1.0, 1.0]]\n"
+		"[true, false, false, false, true] bool\n" +
+		"[true, false, false, false, true] [[true, true]]\n"
 	if out != want {
 		t.Fatalf("sonlu_mu:\n%q\nbeklenen:\n%q", out, want)
 	}
@@ -148,12 +148,13 @@ TR_print(TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist, TR_is_finite(TR_Tensor([
 // Kural (15.36): sonlu_mu'nun sonucu karşılaştırmalar gibi her zaman Ondalık 0/1'dir; TR_Int
 // girdide (argmax, sıralama_indeksi) de. Kaynaştırılan fonksiyonun ondalık girdisinde de aynı.
 // Neden: eskiden tam sayı işareti korunup [1, 1] veriyordu (Gemini kararlılık denetimi, bulgu 5).
-// TR_Bool sonuç 15.16a ile gelir (2b).
-func TestIsFiniteIsAFloatMaskOnIntTensors(t *testing.T) {
+// Sonuç TR_Tensor[TR_Bool]'dur (15.16a), TR_Int tensörde de; TR_fuse'un içinde float32 0/1 kalır:
+// izde mantık tensörü yoktur (status: kaynaştır kaydında TR_Bool).
+func TestIsFiniteIsABoolMaskOutsideFuse(t *testing.T) {
 	out := mustRun(t, `TR_var idx = TR_argsort(TR_Tensor([20.0, 10.0]))
 TR_var f = TR_fuse((x) => { TR_return TR_is_finite(x) })
 TR_print(TR_is_finite(idx).TR_tolist, f(TR_Tensor([1.0, TR_nan])).TR_tolist)`)
-	if out != "[1.0, 1.0] [1.0, 0.0]\n" {
+	if out != "[true, true] [1.0, 0.0]\n" {
 		t.Fatalf("çıktı: %q", out)
 	}
 }

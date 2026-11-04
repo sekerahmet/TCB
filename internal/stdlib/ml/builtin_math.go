@@ -51,25 +51,34 @@ func registerWideMath(v *interp.VM) {
 	wrap(v, codes.FnArgsort, newBuiltin(argsortBuiltin))
 }
 
-// isFinite sonlu_mu'nun tensör yoludur (15.36): x − x sonlu elemanda 0, NaN ve ±∞'da NaN'dır;
-// "≥ 0" karşılaştırması NaN'da 0 verir. Sonuç karşılaştırmalar gibi float32 0/1'dir ve türevsizdir
-// (torch.isfinite de x == x ile |x| ≠ ∞'u birleştirir). Ara fark başlığı hemen bırakılır.
+// isFinite sonlu_mu'nun tensör yoludur (15.16a, 15.36): x − x sonlu öğede 0, NaN ve ±∞'da NaN'dır;
+// NaN kendine eşit değildir. Sonuç TR_Tensor[TR_Bool]'dur ve türevsizdir (torch.isfinite de x == x
+// ile |x| ≠ ∞'u birleştirir). TR_fuse'un izinde karşılaştırmalar gibi float32 0/1 kalır: izde mantık
+// tensörü yoktur; "≥ 0" karşılaştırması NaN'da 0 verir. Ara fark başlığı hemen bırakılır.
 func isFinite(t *tensor.Tensor) *tensor.Tensor {
-	if t.Elem() != tensor.ElemFloat {
-		// Tam sayı ve mantık öğesi her zaman sonludur (mantık tensörü 15.16a'da, 2b).
-		return tensor.FullOn(t.Device(), 1, t.Shape()...)
-	}
 	var r *tensor.Tensor
 	tensor.NoGrad(func() {
-		d := t.Sub(t)
-		r = d.CompareScalar(0, tensor.OpGe, false)
+		d := finiteGap(t)
+		if t.IsSymbolic() {
+			r = d.CompareScalar(0, tensor.OpGe, false)
+		} else {
+			r = tensor.CompareTyped(d, d, tensor.CmpEq)
+		}
 		d.Drop()
 	})
 	return r
 }
 
-// registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç karşılaştırmalar gibi her zaman
-// Ondalık 0/1'dir (15.36), TR_Int girdide de (kaynaştır'daki sonuçla aynı; TR_Bool sonucu 2b).
+// finiteGap sonlu öğede 0, öbürlerinde NaN olan tensördür; tam sayı ve mantık öğesi her zaman sonludur.
+func finiteGap(t *tensor.Tensor) *tensor.Tensor {
+	if t.Elem() != tensor.ElemFloat {
+		return tensor.FullOn(t.Device(), 0, t.Shape()...)
+	}
+	return t.Sub(t)
+}
+
+// registerIsFinite sonlu_mu'nun tensör yolunu bağlar: sonuç TR_Tensor[TR_Bool]'dur (15.16a), TR_Int
+// girdide de; kaynaştır izinde Ondalık 0/1 kalır (isFinite).
 func registerIsFinite(v *interp.VM) {
 	registerTensorWrap(v, codes.FnIsFinite, false, isFinite)
 }
