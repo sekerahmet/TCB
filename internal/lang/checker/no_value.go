@@ -213,7 +213,8 @@ func (c *Checker) bindingNoValue(name string, info TypeInfo) bool {
 	return info.Fn != nil && !c.reassigned[name] && c.funcNoValue(info.Fn)
 }
 
-// memberNoValue metot çağrısı değer vermiyor mu: yapının metodu ya da fonksiyon tipli alanı, yerleşik metot.
+// memberNoValue metot çağrısı değer vermiyor mu: yapının metodu ya da fonksiyon tipli alanı, değeri
+// olmayan görevin TR_wait'i (10.1), yerleşik metot.
 func (c *Checker) memberNoValue(e *ast.CallExpression, m *ast.MemberExpression, objType string) bool {
 	if s := c.structs[objType]; s != nil && !m.Safe {
 		if f := s.Methods[m.Property]; f != nil {
@@ -225,6 +226,9 @@ func (c *Checker) memberNoValue(e *ast.CallExpression, m *ast.MemberExpression, 
 			}
 		}
 		return false
+	}
+	if t := shapeOf(objType); c.builtinCallCode(e, objType) == codes.MemWait && t.base == typeTask && len(t.args) == 1 {
+		return t.args[0] == typeNull
 	}
 	if id, ok := m.Object.(*ast.Identifier); ok && objType == typeAny {
 		if info, found := c.scope.Resolve(id.Value); found && info.Made != "" {
