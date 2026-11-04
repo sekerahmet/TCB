@@ -90,4 +90,17 @@ func TestJSONDuplicateKeyIsAnError(t *testing.T) {
 	if _, err := JSONToTR([]byte(`{"a": {"a": 1}, "b": {"a": 2}, "c": [{"a": 3}, {"a": 4}]}`)); err != nil {
 		t.Errorf("başka nesnedeki aynı anahtar serbest: %v", err)
 	}
+	// NUL ile başlayan anahtar sözlükte kodlanmış durur (DictKey); kural onda da geçerlidir ve
+	// sonraki anahtarların yerleri kaymaz.
+	_, err = JSONToTR([]byte(`{"\u0000a": 1, "b": 2, "\u0000a": 3}`))
+	if !messages.Has(err, messages.H7011) || !strings.Contains(err.Error(), "sütun 2 ve satır 1, sütun 24") {
+		t.Errorf("NUL ile başlayan yinelenen anahtar: %v", err)
+	}
+	_, err = JSONToTR([]byte(`{"\u0000a": 1, "b": 2, "b": 3}`))
+	if !messages.Has(err, messages.H7011) || !strings.Contains(err.Error(), "sütun 16 ve satır 1, sütun 24") {
+		t.Errorf("NUL ile başlayan anahtardan sonraki yinelenen anahtar: %v", err)
+	}
+	if _, err := JSONToTR([]byte(`{"\u0000a": 1, "\u0000b": 2, "a": 3, "\u0000String:\u0000a": 4}`)); err != nil {
+		t.Errorf("ayrı anahtarlar serbest: %v", err)
+	}
 }
