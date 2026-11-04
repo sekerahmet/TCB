@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// lockWaitSlack, (n + 1) × lockHold sınırının üstüne bir deyim, saatin adımı (Windows'ta ~0,5 ms)
+// lockWaitSlack, (n + 1) × lockHold sınırının üstüne bir deyim, saatin adımı (Windows'ta 0,3–10 ms)
 // ve işletim sisteminin uyandırma gecikmesi için bırakılan paydır: 20 koşunun (iki ve üç meşgul
 // görev, 40 ölçüm) en büyük aşımı 15,7 ms'ydi, iki katı alındı (yüklü makinede bir kez 21 ms
 // görüldü; 2026-11-01, D1 ikinci dilim).
@@ -49,7 +49,7 @@ func lockWaits(t *testing.T, busy int) (aheads []int, tickets []uint64, waits []
 // arasında, acquireGIL'in içinde tekdüze saatle ölçülür (TR_time_ms duvar saatidir, 10-11 ms
 // sıçrar); iki ve üç meşgul görevle. Eskiden devir 256 turda bir ve sıra yoktu (sync.Mutex).
 // Sıra her koşuda kesin sınanır. Süre işletim sisteminin zamanlamasına da bağlıdır: Windows'ta (saat
-// adımı ~0,5 ms, yüklü makinede paralel testler) üç koşu yapılır ve biri sınıra sığmalıdır, kuralı
+// adımı 0,3–10 ms, yüklü makinede paralel testler) üç koşu yapılır ve biri sınıra sığmalıdır, kuralı
 // bozan bir değişiklik (sayıyla ya da hiç devretmek) üçünü de aşar; Linux'ta tek koşu ve kesin
 // sınır. Her koşunun ölçümü testin çıktısına yazılır (go test -v).
 func TestLockIsTakenInArrivalOrderWithinTheDelay(t *testing.T) {
@@ -176,7 +176,7 @@ func TestALateTimerOfTheOldHolderDoesNotHandOffTheNewHolder(t *testing.T) {
 
 // slowTurn yavaş() yerleşiğinin süresidir: kilidi tutarak yaklaşık bu kadar çalışır, içinde deyim
 // sınırı yoktur. Süre saate bakılarak değil sabit bir hesapla tutulur (spinFor): Windows'ta
-// tekdüze saat 0,5–2 ms adımla ilerler, saate bakan bir bekleme bir adımdan kısa sürmez.
+// tekdüze saat 0,3–10 ms adımla ilerler, saate bakan bir bekleme bir adımdan kısa sürmez.
 const slowTurn = time.Millisecond
 
 var spinSink uint64
@@ -259,9 +259,9 @@ const fallbackTurns = 64
 // çıktısına yazar. Zamanlayıcıyla sınır (n + 1) × 5 ms + paydır. Yalnız yedek saatle sınır turla
 // sayılır: bir bekleme sürerken yavaş görev en çok bir kez tutar (kuyrukta bir kez bulunur); o
 // tutuşta kilidi aldığı sınırdan sonra bir çağrı yapar, sonra saat en çok 64 sınırda bir okunur;
-// bekleme içindeki yavaş() çağrıları 64 + 1'i geçmez (65 yarış altında ölçüldü, sınırın kendisi).
-// Turla saymak makineden, saatin adımından ve yarış dedektöründen bağımsızdır; süreyle (64 × tur)
-// sınamak, tutuştaki turlar ortalamadan uzun sürdüğü için sınırda kalıyordu.
+// ölçüde bekleme içindeki yavaş() çağrıları 64 + 1'i geçmedi (65 yarış altında ölçüldü, sınırın
+// kendisi). Süreyle (64 × tur) sınamak, tutuştaki turlar ortalamadan uzun sürdüğü için sınırda
+// kalıyordu.
 func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback bool, run int) []string {
 	t.Helper()
 	m := slowPhaseWaits(t, setup)
@@ -296,12 +296,14 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // sözü o tutar) tavan sınanır: bir beklemede en çok 64 + 1 yavaş tur. Tavansız k hızlı döngüde
 // yüzlere çıkar ve altı geçişten birinde sınırı aşar (makine yavaşken sayı 64'ü geçmeyebilir; o
 // koşuda tavan zaten bağlamaz). Yedek saat de zamana bağlıdır (devir süreyle olur, okuma aralığı
-// ölçülen hızdan ayarlanır); zamandan bağımsız olan, süre dolduktan sonra en çok 64 sınırdır.
+// ölçülen hızdan ayarlanır); zamandan bağımsız olan, iki okuma arası en çok 64 sınırdır.
 // Sayım bekleme penceresinin tamamıdır, süre dolmadan geçen yavaş turlar da girer: onu sınıra
 // sığdıran, geçişten sonra saatin ilerlediği ilk okumanın sonraki okumayı öne almasıdır
-// (clockExpired). Kaba saat geçişten sonra iki yavaş tur boyunca hiç ilerlemezse bu okuma olmaz
-// ve tur sayısı 66'ya çıkabilir; Windows'ta ölçülmedi (bkz. tek koşu). Süre için Windows'ta üç
-// koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek koşuda sınanır.
+// (clockExpired). Öne alınan okuma da ilerleme görmelidir. Kaba saat geçişten sonra k ≥ 2 yavaş
+// tur boyunca hiç ilerlemezse ilk okuma olmaz, tur sayısı k + 64 olur; ilk okumadan j tur sonraki
+// okuma ilerleme görmezse atlama yeniden 63'e kurulur, tur sayısı k + j + 64 olur. İkisinde de
+// 66'yı geçebilir; 120 koşuda görülmedi (bkz. tek koşu). Süre için Windows'ta üç koşudan biri,
+// Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek koşuda sınanır.
 func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 	runs := 3
 	if runtime.GOOS == "linux" {
