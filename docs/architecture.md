@@ -17,12 +17,13 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 
 | Katman | Görevi | İçe aktarabileceği iç paketler |
 | :-- | :-- | :-- |
-| `internal/lang/**` | Kaynak metinden çalışan programa; kod listesi, iletiler | yalnızca `internal/lang/**` (iç sırasına göre, aşağıda) ve `internal/sysmem` |
+| `internal/lang/**` | Kaynak metinden çalışan programa; kod listesi, iletiler | yalnızca `internal/lang/**` (iç sırasına göre, aşağıda), `internal/sysmem` ve `internal/detmath` |
 | `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | `internal/compute/**`, ileti kataloğu `internal/lang/messages` ve `internal/sysmem` |
-| `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib` |
+| `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/detmath` |
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
 | `cmd/trlang` | `trlang` komutu | hepsi (`internal/reporoot` dışında) |
 | `internal/sysmem` | Makinenin fiziksel belleği sorgusu | hiçbiri |
+| `internal/detmath` | Her makinede aynı biti veren matematik fonksiyonları | hiçbiri |
 | `internal/layoutrules` | Dosya ve fonksiyon boyu sınırlarının tek kaynağı (düzen testleri ve araçlar okur) | hiçbiri |
 | `internal/reporoot`, `lib` | Testlerin depo kökü yardımcısı; kitaplığın gömme dosyası | hiçbiri |
 | `tools/**` | Depo bakım araçları | `internal/**`, `lib` |
