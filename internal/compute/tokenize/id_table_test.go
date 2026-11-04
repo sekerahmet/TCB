@@ -164,6 +164,7 @@ func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 		{"sözlükteki metin başka kimlikle", added(9, "b"), wordLevel, messages.H5277, "5"},
 		{"aynı metin başka kimlikle", both(added(9, "<s>"), added(11, "<s>")), wordLevel, messages.H5277, "9"},
 		{"sınırı aşan", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741825"},
+		{"sınırı söyler", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741824"},
 		{"eksi", added(-1, "<s>"), wordLevel, messages.H5221, "-1"},
 	} {
 		_, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + c.model))

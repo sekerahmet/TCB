@@ -833,7 +833,7 @@
 "H5218": "merge {index}: {error}",
 "H5219": "merge {index} ({left|q}, {right|q}) contains a token that is not in the vocabulary",
 "H5220": "the result {result|q} of merge {index} is not in the vocabulary",
-"H5221": "invalid id in the vocabulary: {token|q} -> {id}",
+"H5221": "invalid id in the vocabulary: {token|q} -> {id}; an id must be between 0 and {max}",
 "H5222": "the merge {text|q} could not be split into two tokens",
 "H5223": "the merge entry could not be parsed: {text}",
 "H5224": "vocabulary entry {index} is not in the [token, score] format",

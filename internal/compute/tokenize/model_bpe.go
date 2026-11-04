@@ -133,8 +133,8 @@ func newBPE(raw json.RawMessage) (Model, error) {
 func convertVocab(v map[string]int64) (map[string]int32, error) {
 	s := make(map[string]int32, len(v))
 	for tok, id := range v {
-		if id < 0 || id > 1<<30 {
-			return nil, messages.New(messages.H5221, tok, id)
+		if id < 0 || id > maxTokenID {
+			return nil, messages.New(messages.H5221, tok, id, maxTokenID)
 		}
 		s[tok] = int32(id)
 	}

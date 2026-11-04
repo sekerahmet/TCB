@@ -833,7 +833,7 @@
 "H5218": "{index}. birleştirme: {error}",
 "H5219": "{index}. birleştirme ({left|q}, {right|q}) dağarcıkta olmayan bir parça içeriyor",
 "H5220": "{index}. birleştirmenin sonucu {result|q} dağarcıkta yok",
-"H5221": "dağarcıkta geçersiz kimlik: {token|q} -> {id}",
+"H5221": "dağarcıkta geçersiz kimlik: {token|q} -> {id}; kimlik 0 ile {max} arasında olmalı",
 "H5222": "birleştirme {text|q} iki parçaya ayrılamadı",
 "H5223": "birleştirme girdisi çözümlenemedi: {text}",
 "H5224": "{index}. dağarcık girdisi [parça, puan] biçiminde değil",
