@@ -96,7 +96,7 @@ TR_var a = TR_Tensor([[1.0, -2.0]], TR_requires_grad: TR_true)
 TR_var b = TR_Tensor([[0.5, 0.0]], TR_requires_grad: TR_true)
 TR_backward(TR_sum(kapılı(a, b)))
 TR_print(a.TR_grad, b.TR_grad)
-TR_print(TR_grad_check(kapılı, [a, b]))               # true (yanlış bir geri hesabında açık hata)
+TR_grad_check(kapılı, [a, b])                         # yanlış bir geri hesabında açık hata
 ```
 
 Şekil hataları şekli gösterir ve `TR_try`/`TR_catch` ile yakalanabilir: `[32, 1024] ile [512, 10] matris çarpımı yapılamaz; 1024 ≠ 512`. Fonksiyon, metot, işleç (`@`, `+`, `<`...) ve özellik hatalarının başında `Satır N:` bulunur: `Satır 3: [2, 2] ile [1, 3] matris çarpımı yapılamaz; 2 ≠ 1 (...)`.

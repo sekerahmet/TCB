@@ -1,0 +1,5 @@
+# TR 4
+# TEST 13.1 TR_mean ve TR_median'a liste olmayan argüman denetim hatasıdır, ileti listeyi önerir
+TR_print(TR_mean(1)) # ERROR H2423
+TR_print(TR_median(1.5)) # ERROR H2423
+TR_print(TR_median(TR_Tensor([1.0]))) # ERROR H2423

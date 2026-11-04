@@ -45,3 +45,30 @@ func TestATaskValuesInsideIsChecked(t *testing.T) {
 	singleErrorAt(t, "TR_var g = TR_async TR_print(yok)", 1, 30)
 	singleErrorAt(t, "TR_var g = TR_async { TR_print(yok) }", 1, 32)
 }
+
+// Kural (10.1): değeri olmayan görevin tipi TR_Task[TR_NoneType]'tır: g.TR_wait() değer yerinde
+// H1143'tür, deyim olarak geçer. Değer veren görevin ve tipi bilinmeyen görevin TR_wait'i değer verir.
+func TestWaitingForATaskWithoutAValue(t *testing.T) {
+	expectTypes(t, map[string]string{
+		noValueFn + "TR_var g = TR_async f()":     containerType(typeTask, []string{typeNull}),
+		noValueFn + "TR_var g = TR_async { f() }": containerType(typeTask, []string{typeNull}),
+	})
+	for _, source := range []string{
+		"TR_var g = TR_async { f() }; TR_var y = g.TR_wait()",
+		"TR_var g = TR_async f(); TR_print(g.TR_wait())",
+		"TR_func h(g: TR_Task[TR_NoneType]) { TR_var y = g.TR_wait() }",
+	} {
+		_, errs := checkErrs(t, noValueFn+source)
+		if !hasCode(errs, messages.H1143) {
+			t.Errorf("H1143 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+		}
+	}
+	for _, source := range []string{
+		noValueFn + "TR_var g = TR_async { f() }; g.TR_wait()",
+		squareFn + "TR_var g = TR_async kare(2); TR_var y = g.TR_wait()",
+		"TR_var g = TR_async " + unknownValue + "; TR_var y = g.TR_wait()",
+	} {
+		noErrors(t, source)
+	}
+	singleError(t, noValueFn+"TR_var g: TR_Task[TR_Int] = TR_async f()", messages.H1001, 2)
+}

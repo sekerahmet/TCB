@@ -222,7 +222,11 @@ TR_test "5.7 dolaşılan liste ya da sözlüğe ekleme ve çıkarma çalışma h
         TR_for a TR_in d { d["b"] = 2 }
     })
     TR_var m = [1, 2]
-    TR_assert_equal("H2703", TR_error_code { TR_var y = [m.TR_append(x) TR_for x TR_in m] })
+    TR_func ekle(x: TR_Int) -> TR_Int {
+        m.TR_append(x)
+        TR_return x
+    }
+    TR_assert_equal("H2703", TR_error_code { TR_var y = [ekle(x) TR_for x TR_in m] })
     # Var olan öğeye ve anahtara atama serbesttir; dolaşma o anki değeri görür
     TR_var s = [1, 2, 3]
     TR_for i, x TR_in s { s[i] = x * 10 }

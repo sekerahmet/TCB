@@ -6,7 +6,7 @@ import (
 )
 
 // Görevin tipi (10.1, 10.5): TR_async f(x) TR_Task[T] verir, T çağrının tipidir; blok
-// (TR_async { ... }) TR_Task[TR_NoneType] verir. Çağrının tipi bilinmiyorsa (tipsiz fonksiyon,
+// (TR_async { ... }) ve değer vermeyen çağrı TR_Task[TR_NoneType] verir, onun g.TR_wait()'i değer vermez. Çağrının tipi bilinmiyorsa (tipsiz fonksiyon,
 // kitaplığın fonksiyonu) görev parametresiz TR_Task'tır: denetleyicinin iç tipidir, g.TR_wait()'in
 // tipi bilinmez ("") ve TR_Any yazılmaz. TR_wait_all(görevler) TR_List[TR_Task[T]] için TR_List[T]
 // verir; öğe tipi bilinmeyen listede TR_List.
@@ -17,7 +17,11 @@ func (c *Checker) taskType(s *ast.AsyncStatement) string {
 		c.checkStatement(s.Body)
 		return containerType(typeTask, []string{typeNull})
 	}
-	if t := c.inferExpression(s.Call); t != "" && t != typeAny && c.knownType(t) {
+	t := c.inferExpression(s.Call)
+	if c.noValue[s.Call] {
+		return containerType(typeTask, []string{typeNull})
+	}
+	if t != "" && t != typeAny && c.knownType(t) {
 		return containerType(typeTask, []string{t})
 	}
 	return typeTask

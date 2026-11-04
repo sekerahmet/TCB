@@ -102,17 +102,17 @@ TR_test "15.11 genişletilmiş fonksiyonların türevleri sayısal türevle uyu�
     TR_var x = TR_Tensor([[-1.3, -0.4, 0.2], [0.7, 1.1, 1.9]], TR_requires_grad: TR_true)
     TR_var p = TR_Tensor([[0.3, 0.9, 1.7], [2.5, 4.0, 6.5]], TR_requires_grad: TR_true)
     TR_var a = TR_Tensor([[-0.8, -0.3, 0.1], [0.4, 0.6, 0.85]], TR_requires_grad: TR_true)
-    TR_assert(TR_grad_check(TR_silu, [x]))
-    TR_assert(TR_grad_check(TR_tan, [a]))
-    TR_assert(TR_grad_check(TR_asin, [a]))
-    TR_assert(TR_grad_check(TR_acos, [a]))
-    TR_assert(TR_grad_check(TR_atan, [x]))
-    TR_assert(TR_grad_check(TR_sinh, [x]))
-    TR_assert(TR_grad_check(TR_cosh, [x]))
-    TR_assert(TR_grad_check(TR_log1p, [p]))
-    TR_assert(TR_grad_check(TR_log2, [p]))
-    TR_assert(TR_grad_check(TR_log10, [p]))
-    TR_assert(TR_grad_check(TR_expm1, [x]))
+    TR_grad_check(TR_silu, [x])
+    TR_grad_check(TR_tan, [a])
+    TR_grad_check(TR_asin, [a])
+    TR_grad_check(TR_acos, [a])
+    TR_grad_check(TR_atan, [x])
+    TR_grad_check(TR_sinh, [x])
+    TR_grad_check(TR_cosh, [x])
+    TR_grad_check(TR_log1p, [p])
+    TR_grad_check(TR_log2, [p])
+    TR_grad_check(TR_log10, [p])
+    TR_grad_check(TR_expm1, [x])
 }
 
 TR_test "15.12 taban, tavan, işaret tensörde: tam sayılı tensör tam sayılı kalır, türev 0" {
@@ -139,7 +139,7 @@ TR_test "15.16 mutlak tensörde: eleman bazlı, türevi işaret(x) (0'da 0), 16 
     TR_var x = TR_Tensor([-1.5, 0.0, 2.5], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_abs(x) * TR_Tensor([1.0, 2.0, 3.0])))
     TR_assert_equal([-1.0, 0.0, 3.0], x.TR_grad.TR_tolist)
-    TR_assert_equal(TR_true, TR_grad_check((t) => TR_abs(t), [TR_Tensor([-0.7, 0.4, 1.3], TR_requires_grad: TR_true)]))
+    TR_grad_check((t) => TR_abs(t), [TR_Tensor([-0.7, 0.4, 1.3], TR_requires_grad: TR_true)])
     # 16 bitlik tensör kendi türünde döner; tam sayılı işaretli tensör tam sayılı kalır.
     TR_var h = TR_abs(TR_Tensor([-1.5, 2.0], TR_dtype: "bf16"))
     TR_assert_equal("bf16", h.TR_dtype)
@@ -189,7 +189,7 @@ TR_test "15.14 atan2: dört bölge, (0, 0), işaretli sıfır, yayınlama, türe
     TR_var a = TR_atan2(y, x)
     TR_assert_equal([2, 3], a.TR_shape)
     TR_assert(yakın_mı(a.TR_tolist[1][1], -3 * TR_pi / 4, 0.000001))
-    TR_assert(TR_grad_check(TR_atan2, [y, x]))
+    TR_grad_check(TR_atan2, [y, x])
     TR_var z = TR_Tensor([0.0], TR_requires_grad: TR_true)
     TR_var w = TR_Tensor([0.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_atan2(z, w)))
@@ -236,7 +236,7 @@ TR_test "15.20 birikimli_toplam: eksen, şekil, türev; eksen adlı" {
     TR_var v = TR_Tensor([1.0, 2.0, 3.0, 4.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_cumsum(v)))
     TR_assert_equal([4.0, 3.0, 2.0, 1.0], v.TR_grad.TR_tolist)
-    TR_assert(TR_grad_check((t) => { TR_return TR_cumsum(t, TR_dim: 0) }, [TR_Tensor([[0.5, -1.0], [2.0, 0.3]], TR_requires_grad: TR_true)]))
+    TR_grad_check((t) => { TR_return TR_cumsum(t, TR_dim: 0) }, [TR_Tensor([[0.5, -1.0], [2.0, 0.3]], TR_requires_grad: TR_true)])
     TR_assert_equal(TR_Int, TR_Type(TR_cumsum(TR_argmax(TR_Tensor([[1.0, 2.0], [3.0, 1.0]]), TR_dim: -1)).TR_tolist[0]))
     TR_assert_equal("H6200", TR_error_code { TR_cumsum(TR_Tensor([1.0, 2.0]), 0) })
     TR_assert_equal("H6104", TR_error_code { TR_cumsum([1, 2]) })
@@ -316,10 +316,18 @@ TR_test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
     TR_assert(TR_not TR_is_finite(-TR_Float("inf")))
 }
 
+TR_test "15.16a TR_is_finite tensörde öğe öğe TR_Tensor[TR_Bool] verir" {
+    TR_var x = TR_Tensor([1.0, TR_nan, TR_inf, 0.0])
+    TR_assert_equal("bool", TR_is_finite(x).TR_dtype)
+    TR_assert_equal(2, TR_sum(TR_is_finite(x)).TR_item())
+    TR_assert_equal(TR_false, (TR_is_finite(TR_Tensor(1.5)) & TR_is_finite(TR_Tensor(TR_nan))).TR_item())
+    TR_assert_equal([TR_true, TR_true], TR_is_finite(TR_Tensor([1, 2])).TR_tolist)
+}
+
 TR_test "15.36 sonlu_mu tensörde eleman bazlıdır; gradyan_kırp sonlu olmayan normda isteğe bağlı hata verir" {
     TR_var x = TR_Tensor([1.0, TR_Float("nan"), TR_Float("inf"), 0.0])
-    TR_assert_equal([1.0, 0.0, 0.0, 1.0], TR_is_finite(x).TR_tolist)
-    TR_assert_equal([1.0, 0.0, 0.0, 1.0], TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist)
+    TR_assert_equal([TR_true, TR_false, TR_false, TR_true], TR_is_finite(x).TR_tolist)
+    TR_assert_equal([TR_true, TR_false, TR_false, TR_true], TR_is_finite(x.TR_to_dtype("bf16")).TR_tolist)
     TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(w * TR_Float("nan")))
     TR_var norm = TR_clip_grad([w])

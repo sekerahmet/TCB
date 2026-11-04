@@ -79,8 +79,9 @@ TR_var r = TR_mixed_precision("bf16") {
 TR_print(r.TR_tolist, (x @ y).TR_tolist)
 TR_try { TR_mixed_precision("bf16") { TR_throw "dur" } } TR_catch h { TR_print(h) }
 TR_print((x @ y).TR_tolist)
-TR_print(TR_mixed_precision("bf16") { 5 }, TR_mixed_precision("bf16") {})`)
-	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5 none\n" // yakalanan fırlat öneksiz (8.2)
+TR_print(TR_mixed_precision("bf16") { 5 })
+TR_mixed_precision("bf16") {}`)
+	want := "[[1.0]] bf16\n[[1.0009766]]\n[[1.001]]\n[1.0]\n[[3.0]] [[1.001]]\ndur\n[[1.001]]\n5\n" // yakalanan fırlat öneksiz (8.2)
 	if out != want {
 		t.Fatalf("karışık_hassasiyet:\n%q\nbeklenen:\n%q", out, want)
 	}

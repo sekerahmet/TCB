@@ -184,7 +184,7 @@ func (g *Log) add(args []interp.Value) (interp.Value, error) {
 	if err := g.write(record); err != nil {
 		return nil, err
 	}
-	return interp.True, nil
+	return interp.Null, nil
 }
 
 // wholeStep kaydın adım alanını tam sayı yapar (19.5): okuyucular adımları karşılaştırır (19.6),

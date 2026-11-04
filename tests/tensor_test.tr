@@ -1262,22 +1262,22 @@ TR_test "15.24 dikkat: NaN satırı bakmadığı anahtarlara NaN sızdırmaz (pe
     TR_var k = TR_Tensor([[1.0, 0.0], [0.0, 1.0]], TR_requires_grad: TR_true)
     TR_var v = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_attention(q, k, v, TR_causal: TR_true, TR_window: 1)))
-    TR_assert_equal([1.0, 1.0], k_satırı(k)[0])
-    TR_assert_equal([0.0, 0.0], k_satırı(k)[1])
+    TR_assert_equal([TR_true, TR_true], k_satırı(k)[0])
+    TR_assert_equal([TR_false, TR_false], k_satırı(k)[1])
     # Yalnızca nedensellik: NaN 0. sorgu yalnızca 0. anahtara bakar; 1. anahtarın gradyanı 1. sorgudan gelir (sonlu).
     TR_var q2 = TR_Tensor([[nan, 0.0], [1.0, 0.0]], TR_requires_grad: TR_true)
     TR_var k2 = TR_Tensor([[1.0, 0.0], [0.0, 1.0]], TR_requires_grad: TR_true)
     TR_var v2 = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_attention(q2, k2, v2, TR_causal: TR_true)))
-    TR_assert_equal([0.0, 0.0], k_satırı(k2)[0])
-    TR_assert_equal([1.0, 1.0], k_satırı(k2)[1])
+    TR_assert_equal([TR_false, TR_false], k_satırı(k2)[0])
+    TR_assert_equal([TR_true, TR_true], k_satırı(k2)[1])
     # Maske: NaN sorgunun maskelediği anahtara NaN gitmez.
     TR_var q3 = TR_Tensor([[nan, 0.0], [1.0, 0.0]], TR_requires_grad: TR_true)
     TR_var k3 = TR_Tensor([[1.0, 0.0], [0.0, 1.0]], TR_requires_grad: TR_true)
     TR_var v3 = TR_Tensor([[1.0, 2.0], [3.0, 4.0]], TR_requires_grad: TR_true)
     TR_var maske = TR_Tensor([[TR_true, TR_false], [TR_true, TR_true]])
     TR_backward(TR_sum(TR_attention(q3, k3, v3, TR_causal: TR_false, TR_mask: maske)))
-    TR_assert_equal([0.0, 0.0], k_satırı(k3)[0])
+    TR_assert_equal([TR_false, TR_false], k_satırı(k3)[0])
 }
 
 TR_test "15.24 dikkat: bileşik sürümle aynı; GQA, pencere, maske, önbellekli üretim" {

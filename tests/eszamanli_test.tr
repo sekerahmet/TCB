@@ -20,7 +20,7 @@ TR_test "10.1 eşzamanlı bir ifadedir ve görev değeri verir; bekle sonucu ver
     TR_assert_equal(9, g.TR_wait())
     TR_assert(g.TR_done())
     TR_var b = TR_async { kare(2) }
-    TR_assert_equal(TR_none, b.TR_wait())
+    b.TR_wait()
     TR_assert_equal("Task", TR_String(g))
     TR_func böl(x: TR_Int) -> TR_Int { TR_return 10 // x }
     TR_var h = TR_async böl(5)
@@ -156,7 +156,7 @@ TR_test "10.9 iptal görevi güvenli noktada durdurur, içeride yakalanmaz, alt 
     TR_var biten = TR_async { TR_sleep(0) }
     biten.TR_wait()
     biten.TR_cancel()
-    TR_assert_equal(TR_none, biten.TR_wait())
+    biten.TR_wait()
 }
 
 TR_test "10.2 yorumlayıcı kilidi: paylaşılan sayaç bozulmaz" {

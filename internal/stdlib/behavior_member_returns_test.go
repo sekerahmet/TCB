@@ -64,9 +64,6 @@ func TestMemberReturnsMatchEngine(t *testing.T) {
 		if _, skip := checker.ReturnsNotVerified[k]; skip {
 			continue
 		}
-		if _, skip := checker.ReturnsIgnored[k]; skip {
-			continue
-		}
 		results := probeMemberReturns(t, k, def)
 		for _, recv := range coreReceivers {
 			sig, ok := memberSig(def, recv)

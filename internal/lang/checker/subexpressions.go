@@ -77,6 +77,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 func (c *Checker) checkStruct(s *ast.StructStatement) {
 	c.defineStruct(s)
 	for _, f := range s.Fields {
+		c.expect(f.Type, f.DefaultValue)
 		c.noteDefault(f.DefaultValue, c.inferExpression(f.DefaultValue))
 	}
 	// durumlu tipin durumu BüyükDeve bir addır (2.3b, 7.7; uymayan ad uyarıdır), alanları değerdir
@@ -121,19 +122,18 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		c.returnType = retType
 	}
 	for _, p := range e.Parameters {
-		c.defineName(p.Name, kindValue, siteOf(p.NameToken, e.Line()), TypeInfo{TypeName: normalizedType(p.Type)})
+		c.defineName(p.Name, kindValue, siteOf(p.NameToken, e.Line()), TypeInfo{TypeName: normalizedType(p.Type), Written: p.Type})
 	}
 	for _, p := range e.Parameters {
 		if p.DefaultValue != nil {
+			c.expect(p.Type, p.DefaultValue)
 			c.noteDefault(p.DefaultValue, c.inferExpression(p.DefaultValue))
 		}
 	}
 	if e.Body != nil {
 		// Gövdenin son ifadesi fonksiyonun değeridir (sondaki blok: liste.filtrele { o > 2 }).
 		c.markBlockValue(e.Body, true)
-		for _, stmt := range e.Body.Statements {
-			c.checkStatement(stmt)
-		}
+		c.checkStatements(e.Body.Statements)
 	}
 	c.scope, c.returnType, c.facts.current = prev, prevRet, prevFunc
 }

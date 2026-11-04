@@ -303,7 +303,7 @@ TR_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş i
     # atar (yüklenmeseydi ilk adımın sapma düzeltmesiyle başka bir sonuç verirdi).
     TR_var w2 = TR_Tensor(w, TR_requires_grad: TR_true)
     TR_var yeni = TR_AdamW([w2], TR_lr: 0.1)
-    TR_assert_equal(TR_true, yeni.TR_load_state(op.TR_state))
+    yeni.TR_load_state(op.TR_state)
     op.TR_zero_grad()
     TR_backward(TR_sum(w * w))
     op.TR_step()
@@ -326,7 +326,7 @@ TR_test "20.13 okuyucunun durumu alınıp aynı ayarla kurulmuş okuyucuya yükl
     TR_assert_equal(2, d["counter"])
     TR_var beklenen = ö.TR_next()[0].TR_tolist
     TR_var yeni = küme.TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: 7)
-    TR_assert_equal(TR_true, yeni.TR_load_state(d))
+    yeni.TR_load_state(d)
     TR_assert_equal(beklenen, yeni.TR_next()[0].TR_tolist)
     TR_assert_equal("H5544", TR_error_code { küme.TR_sampler(TR_batch_size: 2, TR_context: 4, TR_seed: 8).TR_load_state(d) })
     TR_assert_equal("H5538", TR_error_code { küme.TR_sequential(TR_batch_size: 2, TR_context: 4).TR_load_state(d) })

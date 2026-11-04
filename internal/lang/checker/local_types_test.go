@@ -106,7 +106,6 @@ func TestStructCallTypes(t *testing.T) {
 	expectTypes(t, map[string]string{
 		shapes + "TR_var v = Kare(2.0)":                      "Kare",
 		shapes + "TR_var k = Kare(2.0)\nTR_var v = k.alan()": typeFloat,
-		shapes + "TR_var k = Kare(2.0)\nTR_var v = k.adı()":  typeAny,
 		shapes + "TR_var k = Kare(2.0)\nTR_var v = k.yok()":  typeAny,
 		shapes + "TR_var v = Kare":                           typeType,
 	})

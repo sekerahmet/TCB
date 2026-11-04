@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +62,40 @@ func TestSingleReturnsMatchEngine(t *testing.T) {
 	}
 }
 
+// Kural (13.10): tanımda dönüşü TR_NoneType olan yerleşik çalışırken TR_none verir, "başarılı" anlamında
+// TR_true ya da alıcıyı döndürmez. Örnek denetlenmeden koşar: değer yerindeki çağrıyı denetleyici keser.
+func TestNoValueBuiltinsGiveNone(t *testing.T) {
+	chdirTemp(t)
+	verified := 0
+	for _, k := range codes.Codes() {
+		def, _ := codes.DefinitionOf(k)
+		if def.Example == "" || k.IsLibrary() || !givesNoValue(def) {
+			continue
+		}
+		switch got := probeReturns(t, k, codes.TypeNoneType); got {
+		case "":
+			verified++
+		case "no call in the example", "example did not finish":
+		default:
+			t.Errorf("%s: tanımın dönüşü TR_NoneType, örnekte %s", k, got)
+		}
+	}
+	if verified < 12 {
+		t.Errorf("yalnız %d kodun dönüşü doğrulandı", verified)
+	}
+}
+
+// givesNoValue tanımın dönüşü TR_NoneType mı; metot her alıcıda ya da örneğinin alıcısında.
+func givesNoValue(def codes.Definition) bool {
+	none := func(r codes.TypeExpr) bool {
+		return len(r.Types) == 1 && r.Types[0] == codes.TypeNoneType && !r.Optional
+	}
+	if def.Kind != codes.KindMethod {
+		return none(def.Signature.Return)
+	}
+	return slices.ContainsFunc(def.Members, func(u codes.TypeSignature) bool { return none(u.Signature.Return) })
+}
+
 // probeReturns k'nın örneğini, k'nın her çağrısı return_record ile sarılmış olarak koşar; boş
 // sonuç dönüşlerin hepsinin ret tipinde olduğudur, değilse uyuşmazlığın ya da sınanamamanın tarifi.
 func probeReturns(t *testing.T, k, ret codes.Code) string {
@@ -86,7 +121,11 @@ func probeReturns(t *testing.T, k, ret codes.Code) string {
 		wrap.Arguments[0] = &orig
 		*c = *wrap
 	}
-	probe := parseCoded(t, fmt.Sprintf(returnProbe, codes.Spelling(ret)))
+	param := codes.Spelling(ret)
+	if ret == codes.TypeNoneType {
+		param = codes.Spelling(codes.TypeAny) // TR_NoneType parametre tipi yazılmaz (3.5)
+	}
+	probe := parseCoded(t, fmt.Sprintf(returnProbe, param))
 	tail := parseCoded(t, `TR_print("`+returnMarker+`", return_mismatches)`)
 	prog.Statements = append(append(probe.Statements, prog.Statements...), tail.Statements...)
 	out := runExampleOutput(t, prog)

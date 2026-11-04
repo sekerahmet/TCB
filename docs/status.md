@@ -121,7 +121,9 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 - **Mevcut durum:** denetleyici isteğe bağlı tipi `T?` olarak taşıyor: `TR_none` yalnız isteğe bağlı (ya da tipi bilinmeyen adlı) değişkene, parametreye, alana ve dönüşe veriliyor, öbürü denetim hatası (`TR_var a: TR_Int = TR_none`, `-> TR_Int` fonksiyonda değersiz `TR_return`); `x ?? d`'nin tipi asıl tip, `[1.0, TR_none]` `TR_List[TR_Float?]`. İsteğe bağlı değerin asıl tipin yerinde kullanılması denetlenmiyor (daraltma yok, aritmetikte tipi `TR_Any`) [ölçüldü: `TestOptionalTypes`, `TestTypeCompatibility`, dal `claude/charming-pasteur-q1vsvo`].
 - **Mevcut durum (4a3, 2026-11-01):** ad olmayan bir `T?` ifadesi (`l.TR_first`, `l.TR_get(5)`, `TR_List[T?]`'nin indeksi) `T` beklenen yere verilince denetim hatası, konumun koduyla: tanım H1001, atama H1005, dönüş H1003, argüman H1004, kurucu H1125, alan H1124, yerleşik metodun argümanı H2423, `.TR_append` H1123; liste, sözlük ve demet değişmezinin öğesinde de; öğesi isteğe bağlı olmayan kabın indeksine atama H1135. H1001, H1003, H1005 ve H1135'in ipucu H1130 (`l.TR_first ?? 0`). Ad tabandaki gibi geçer (4b); yerleşik fonksiyonun argümanı (`TR_abs(l.TR_first)`) 4a4'te fonksiyonun çalışma anı koduyla (H2423; 13.11) [test: `TestUnopenedOptional`, `TestUnopenedOptionalHint`, `tests/negative/istege_bagli_acilmadan.tr`, `TestMessageSuggestionsRunCleanly`].
 - **Mevcut durum (4a4, 2026-11-03):** H1004, H1124, H1125, H1123 ve H2423 (metot ve yerleşik fonksiyon) da açılmamış değerin ipucunu (H1130) veriyor: `{hint}` yuvası, yazım dosyadan (`l.TR_first ?? 0`) [test: `TestUnopenedOptionalHint`, `TestMessageSuggestionsRunCleanly`].
-- **Yapılacaklar (A, Ö0, Kol A teslim 2b; DENETİM istek 97 Ş3):** değer döndürmeyen çağrı değer yerinde denetim hatası; bugün atama, argüman, liste öğesi, yerleştirme ve ifade `TR_if`'inin dalı `TR_none` geçiriyor [ölçüldü: DENETİM, `cb162b61`]. `TR_wait_all(görevler)`'in `TR_NoneType` listesi 4a5.
+- **Mevcut durum (Kol A teslim 2b, 2026-11-04):** değer vermeyen çağrı muaflar dışında her ifade yerinde denetim hatası (H1143); `.TR_map`'e değer vermeyen fonksiyon H1144; `TR_no_grad` ve `TR_mixed_precision` bloğun değerini geçiriyor [test: `TestNoValueCallInAValuePlace`, `TestPlacesWithoutAValue`, `TestBlocksThatPassTheirValueOn`, `TestMapNeedsAFunctionThatGivesAValue`, `tests/negative/deger_vermeyen_cagri.tr`].
+- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 97, 103 Z3):** tipi bilinmeyen çağrı denetimden geçiyor, çalışma anı `TR_none` veriyor; altı yol kaldı [ölçüldü: 2b, altı küçük program, hepsi `TR_none` yazıyor]: ada bağlanan yerleşik (`TR_var f = TR_print`, `TR_var y = f("a")`, tip `TR_BuiltinFunction`), sözlükte ve listede tutulan fonksiyon değeri, `TR_Function` parametresi, modül ve kitaplık fonksiyonu (4b) ve fonksiyon tipi denetlenmediği için (6.9) değersiz gövdenin `() -> TR_Int` bekleyen parametreden geçmesi (`TR_func w(g: () -> TR_Int) -> TR_Int { TR_return g() }`, `w { f() }`).
+- **Yapılacaklar (A, Ö1, 4a5):** `TR_wait_all(görevler)`'in `TR_NoneType` listesi.
 - **Yapılacaklar (A, Ö1, 4b; ölçüldü 30b44b01):** adın açılmamış kullanımı denetim hatası; daraltma (4b) yalnız değişmeyen yerel değişkende: sınamanın dalında, `TR_else` dalında, `TR_and`/`TR_or`'un sağ yanında, her yolda biten erken çıkıştan sonra ve asıl tipten atamayla; alana atama daraltmayı bozmaz; ilk değeri `TR_none` olan açıklamasız değişkenin hatası (3.13).
 ### 3.6
 
@@ -296,7 +298,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: met
 
 ### 6.6
 
-- **Yapılacaklar (A, Ö1; sahip D1, teslim 2b; DENETİM istek 105 P2):** `(x: TR_Bool) => { TR_if x { TR_return } TR_return 1 }` değer yerinde sessiz yokluk bırakıyor; aynı gövde `TR_func`'ta denetim hatası [ölçüldü: DENETİM]. `(x: TR_Bool) => { TR_if x { TR_return 1 } }` de öyle. 6.6'nın yeni kuralı: bir yol değer döndürüyorsa her yol değerle ya da 6.2'nin öbür bitişleriyle biter (DENETİM istek 108 R1); `l.TR_map(...)` argümanı da girer, `TR_return TR_none` da hata (109 V1, V2).
+- **Mevcut durum (Kol A teslim 2b, 2026-11-04):** beklenen dönüş tipi bilinmeyen blok gövdesinde karışık dönüş, bitmeyen yol ve `TR_return TR_none` denetim hatası (H1145); yerleşiğin argümanı da girer, `T?` dönen fonksiyon tipi yazılmış yerde karışım geçerli [test: `TestArrowBlockWithAValueEndsEveryPath`, `TestArrowBlockWithAKnownReturnMayMix`, `TestArrowBlockGivenToABuiltinEndsEveryPath`, `tests/negative/ok_blok_donus.tr`]. Adı üzerinden gelen yokluk görülmüyor: `TR_var n = TR_none`, `(x: TR_Bool) => { TR_return n }` geçiyor [ölçüldü: 2b].
 - **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken (tipi açıklanmamış değişkenin ilk değeri, doğrudan ya da liste, sözlük, demet değişmezinde) tipsiz parametre denetim hatası (H1111); denetleyici yerleşik imzalarını bilmediği için her çağrı argümanı, tipli değişken ve dönüş beklenen tipi olan yer sayılıyor, parametrenin tipi oradan çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`, dal `claude/charming-pasteur-q1vsvo`]. Blok gövdesinin eksik dönüşü 6.2'de.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9); denetleyicinin testi. Somut sessiz yanlış (2026-11-04, D1): `TR_var n: TR_Int = TR_parse_csv("1,2")[0][0]` denetimden geçiyor, `n` metin kalıyor, ilk `n + 1` hata veriyor; denetleyici dönüşün öğe tipini kullanmıyor [ölçüldü: D1, `e4509691`]. Sahip: D1, Kol A teslim 2'den sonra ilk iş.
 
@@ -437,6 +439,7 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 ### 10.1
 
 - **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_async f(x)` ve `TR_async { ... }` bir ifade, görev değeri (`TR_Task`) veriyor; deyim olarak yazılınca değer atılıyor (ayrıştırıcıda `AsyncExpression` deyimi sarar, `TR_try`'ın ifadesi gibi). `g.TR_wait()` sonucu veriyor (blokta `TR_none`) ya da görevin hatasını fırlatıyor; `g.TR_done()` beklemeden durup durmadığını söylüyor; görevin metni "Task" (3.14, tipinin adı). Görevin kendi değerini beklemesi H2918 (doğru yazımı kimlikle verir: sonucu görevin dışında bekleyin); görevde olmayan üye H2474, çalışırken de denetimdeki ipucuyla (üyenin hangi tiplerin metodu olduğu). Denetleyici görevin tipini biliyor: `TR_async f(x)` `TR_Task[T]` (T çağrının tipi), blok `TR_Task[TR_NoneType]` (blok görevini tutan değişken de bu tipi alır, olmayan üyesi denetimde H2474); `g.TR_wait()` T, `g.TR_done()` `TR_Bool`; `TR_Task[TR_String]` yere `TR_Task[TR_Int]` görev H1001. Dönüşü bilinmeyen çağrının görevi parametresiz `TR_Task` (denetleyicinin iç tipi): `.TR_wait()`'in tipi bilinmiyor, tipli yere verilebiliyor. Tip açıklamasında ve tip değerinde yeni kabul yok. Görev ifadesinin içi de denetleniyor (çağrıdaki ya da bloktaki tanımsız ad H1010) [test: `TestATaskValueGivesItsResult`, `TestWaitThrowsTheTasksError`, `TestATaskCannotWaitForItself`, `TestATaskHasOnlyItsMembers`, `TestAsyncIsAnExpression`, `TestATaskHasItsCallsType`, `TestATaskValuesInsideIsChecked`, `tests/eszamanli_test.tr`'nin "10.1 eşzamanlı bir ifadedir" testi].
+- **Mevcut durum (Kol A teslim 2b, 2026-11-04):** `TR_Task[TR_NoneType]`'in `.TR_wait()`'i değer yerinde H1143, deyim olarak geçiyor; değer vermeyen `TR_async f()` de bu tipte [test: `TestWaitingForATaskWithoutAValue`].
 - **Yapılacaklar (A, Ö1, 4a2 ve 6.6; pending 3.11; DENETİM istek 81):** dönüş tipi çıkarılmamış fonksiyon ifadesiyle başlatılan görevin tipi parametresiz kalıyor; `TR_Task[TR_Int]`'e atanıp metin taşıyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 
 ### 10.2
@@ -461,9 +464,8 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md). **Kapandı*
 
 ### 10.5
 
-- **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor ve `TR_true` veriyor; 10.5 "sonuç vermez" diyor [ölçüldü: `9abf8ed5`].
+- **Mevcut durum:** `TR_wait_all()` başlatılmış bütün görevleri bekliyor, değer vermiyor (`TR_var y = TR_wait_all()` H1143) [test: `TestNoValueBuiltinsGiveNone`, `TestBuiltinsWithoutAValueInAValuePlace`].
 - **Mevcut durum (D1 dilim 3, 2026-11-02):** `TR_wait_all(görevler)` görevlerin hepsini bekliyor, sonuçları verilen sırayla liste olarak veriyor (bitme sırası değiştirmiyor). Hatalarda verilen sıradaki ilk hatalı görevin hatası fırlıyor, öbürleri onun `TR_suppressed`'ine sırayla ekleniyor; iki kez verilen görevin hatası bir kez sayılıyor. Görevler ancak bütün liste beklenince beklenmiş sayılıyor (10.6). Görev olmayan öğe H2919, birden çok argüman H2012. Denetleyicide `TR_List[TR_Task[T]]` için sonuç `TR_List[T]` [test: `TestWaitAllGivesResultsAndTheFirstErrorInTheGivenOrder`, `TestWaitAllTakesNoneOrATaskList`, `TestATaskHasItsCallsType`, `tests/eszamanli_test.tr`'nin 10.5 testleri].
-- **Yapılacaklar (A, Ö0; DENETİM istek 81):** argümansız `TR_wait_all()` sonuç vermez (2026-11-03'te `TR_true`; tam sayı tipli değişkene mantık değeri giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]). 13.10'daki `TR_sleep` ve 13'ün değer döndürmeyen yerleşikleriyle tek iş (DENETİM istek 81 N1).
 
 ### 10.6
 
@@ -646,8 +648,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.10
 
 - **Mevcut durum:** 40 yerleşiğin dönüş tipi birleşim (`TR_abs`, `TR_floor`, `TR_exp` gibi; 36 fonksiyon ve `.TR_decode`, `.TR_grad`, `.TR_token_id`, `.TR_tolist`); dönüşü argümanın değerine bağlı üç yer: `TR_tolist` (tensörün boyutu), `TR_decode` (toplu giriş), `TR_parameters` (`TR_named:`); 8 yerleşik değişken sayıda argüman alıyor; yalnız 7 metodun alıcıya göre ayrı imzası var [ölçüldü: main `85a19c36`, `definitions.json`'dan sayıldı].
-- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81: `TR_abs(-1.5)` tam sayı tipli değişkene ondalık koyuyor; `TR_custom_grad`'ın verdiği fonksiyonun dönüşü izlenmiyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 18 ve 54 satır, `.TR_state` 39); anlamsız `TR_Bool` dönüşlerinin kalkması, tek bir 4a işi: `TR_write_file`, `TR_assert` (`internal/lang/interp/test_support.go`), `.TR_load_state`, `TR_sleep`, `TR_wait_all` (argümanlı biçimi liste verir, 10.5), 19'daki `TR_Logger.TR_append` ve `TR_Progress.TR_update` gibi; `tr.json`'un açıklamalarındaki "doğru döndürür" aynı commit'te değişir [ölçüldü: DENETİM 10-2, 10-3]; `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
-- **Mevcut durum (15'in yan değişiklikleri, uygulanmadı):** tensör verisi kısıtının cinse bağlanması, eşitlenebilirin tensörü dışlaması, varsayılansız adlı argüman, `TR_save_tensors`'un kabul kümesi, `TR_load_tensors` ve `.TR_narrow[E]()`'nin imzaları, `TR_quantized`'ın imzası, `TR_custom_grad`'ın dönüşü ve `TR_grad_check`'in değer döndürmemesi (15.32'nin status'unda) imzalarda yok.
+- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81: `TR_abs(-1.5)` tam sayı tipli değişkene ondalık koyuyor; `TR_custom_grad`'ın verdiği fonksiyonun dönüşü izlenmiyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** sekiz kısıt ("number", "ordered", "equatable", "key", "json", "struct", "function", "tensor_data"); `TR_command_line` ve `TR_Checkpoint`'in yapıyla yazımı (göç: 18 ve 54 satır, `.TR_state` 39); `TR_topk`'nın iki değeri (6.3, 15'te), `TR_assert`'in iletisinin `TR_String` ya da `TR_Message` olması (12'de); kısıtlı tip parametreleri, ayrık imzalar, değere bağlı dönüşlerin sabit dönüşlü yerleşiklere ayrılması (15 ve 16. bölümlerle), değişken sayıda argümanın yazımı (4a).
+- **Mevcut durum (15'in yan değişiklikleri, uygulanmadı):** tensör verisi kısıtının cinse bağlanması, eşitlenebilirin tensörü dışlaması, varsayılansız adlı argüman, `TR_save_tensors`'un kabul kümesi, `TR_load_tensors` ve `.TR_narrow[E]()`'nin imzaları, `TR_quantized`'ın imzası ve `TR_custom_grad`'ın dönüşü imzalarda yok.
 - **Gemini Koşu 6 (2026-10-29), uygulanacak (A, Ö0; DENETİM istek 81):** karşılaştıran yerleşiklerin kesin karşılaştırması (2⁵³ üstü). `TR_min` ve `TR_max` 13.1c ile düzeldi; `TR_clamp`'in ters sınırı (9007199254740993 ile 9007199254740992.0) hata yerine sessizce sonuç veriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 - **Değeri kullanılmayan çağrı (4a2, ilk dilim):** uygulandı. Tanım dosyasında `pure` (39 yerleşik: 13.2–13.4'ün yeni değer veren metotları, 13.7'nin hesapları); çağrısı tek başına deyimse H1115, ileti atamayı önerir, alıcı atanabilir adsa uygulanabilir düzeltme [ölçüldü: `TestPureCallValueUnused`, `TestPureMarksOnlyValueBuiltins`, öneri tablosu]. Tensör işlemlerinin işareti ve 13.1'in hesapları ikinci dilimde.
 
@@ -770,8 +772,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.16a
 
-- **Mevcut durum:** `TR_maximum`, `TR_minimum`, tensörde `TR_round` (H2423) ve `TR_is_nan` yok; tensörde `TR_is_finite` var ama `TR_Tensor[TR_Bool]` değil float32 0/1 maskesi veriyor [ölçüldü: main `85a19c36`, `TR_maximum`, `TR_minimum`, `TR_is_nan` bilinmeyen kimlik; `TR_round(t)` H2423; `TR_is_finite(t)` 1.0'lı tensör].
-- **Yapılacaklar:** üçü ve `TR_is_finite`'in `TR_Bool` tensörü vermesi; TR testi.
+- **Mevcut durum:** `TR_maximum`, `TR_minimum`, tensörde `TR_round` (H2423) ve `TR_is_nan` yok [ölçüldü: main `85a19c36`, `TR_maximum`, `TR_minimum`, `TR_is_nan` bilinmeyen kimlik; `TR_round(t)` H2423]. Tensörde `TR_is_finite` `TR_Tensor[TR_Bool]` veriyor, `TR_fuse` içinde float32 0/1 kalıyor [test: `tests/matematik_test.tr`'nin 15.16a testi, `TestIsFiniteIsABoolMaskOutsideFuse`].
+- **Yapılacaklar:** üçü; TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_maximum` ve `TR_minimum`'un NaN konumundaki türevi iki işlenene de NaN.
 
 ### 15.17
@@ -888,7 +890,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.32
 
-- **Mevcut durum:** `TR_grad_check` `TR_true` döndürüyor [ölçüldü].
+- **Mevcut durum:** `TR_grad_check` değer vermiyor (13.10) [test: `TestNoValueBuiltinsGiveNone`].
 - **Yapılacaklar:** değer döndürmez; `girdiler` demet; göç `.tr` dosyalarında 40 satır, 34'ü dönüşünü kullanıyor (`31` `TR_assert(TR_grad_check(...))`, `1` `TR_assert_equal(TR_true, ...)` `tests/matematik_test.tr:114`, `2` `TR_print(...)` `examples/tr/27_ozel_turev.tr:23-24`; kalan `6`'sı `tests/ozel_turev_test.tr:170, 172, 183, 186, 188, 189`'da `TR_error_code`/`TR_try` bloğunda deyim; ayrıca Go testinde 2 `TR_print` satırı `internal/stdlib/ml/custom_grad_test.go:30, 272`) [ölçüldü: `git grep -n 'TR_grad_check(' -- '*.tr' '*.go'`, main `c39e0b56`].
 
 ### 15.33
@@ -1179,7 +1181,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ### 19.5, 19.7
 
-- **Mevcut durum:** `TR_append` ve `TR_update` `TR_true` döndürüyor [ölçüldü]; kalkması 13.10'un tek 4a işinde.
+- **Mevcut durum:** `TR_Logger.TR_append` ve `TR_Progress.TR_update` değer vermiyor [test: `TestNoValueBuiltinsGiveNone`].
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok; `g.TR_close()`.
 
 ### 19.6
