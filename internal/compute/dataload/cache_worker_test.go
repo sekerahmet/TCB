@@ -90,3 +90,47 @@ func TestCacheCopyFailureReachesTheForegroundAndLeavesNoRecord(t *testing.T) {
 		t.Fatalf("yerel kopya bekleniyordu: %s", y)
 	}
 }
+
+// Kapanmakta olan yönetici kilidi bırakana kadar aynı dizinin açılışı bekler, "başka program kullanıyor"
+// demez (16.5): sonlandırıcının kapattığı küme ile yeni açılan küme böyle karşılaşır (CI, b03262ac).
+func TestCacheOpenWaitsForClosing(t *testing.T) {
+	local := t.TempDir()
+	a, err := OpenCache(CacheOptions{Dir: local, Quota: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := a.c
+	o.wg.Add(1) // Close kilidi bırakmadan burada bekler
+	closed := make(chan error, 1)
+	go func() { closed <- a.Close() }()
+	for !o.isClosing() {
+		time.Sleep(time.Millisecond)
+	}
+	type result struct {
+		c   *Cache
+		err error
+	}
+	opened := make(chan result, 1)
+	go func() {
+		c, err := OpenCache(CacheOptions{Dir: local, Quota: 1 << 20})
+		opened <- result{c, err}
+	}()
+	select {
+	case r := <-opened:
+		o.wg.Done()
+		t.Fatalf("açılış kilit bırakılmadan döndü: %v", r.err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	o.wg.Done()
+	if err := <-closed; err != nil {
+		t.Fatal(err)
+	}
+	r := <-opened
+	if r.err != nil {
+		t.Fatal(r.err)
+	}
+	defer r.c.Close()
+	if r.c.c == o {
+		t.Fatal("kapanan yönetici paylaşıldı")
+	}
+}

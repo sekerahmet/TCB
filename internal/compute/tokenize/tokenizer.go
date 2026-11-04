@@ -218,9 +218,12 @@ func Parse(data []byte) (*Tokenizer, error) {
 	return p, nil
 }
 
+// maxTokenID dosyanın verebileceği en büyük parça kimliğidir.
+const maxTokenID = 1 << 30
+
 // addTokens ek tokenları kurar. Kural (16.1): ek tokenın kimliği dosyadaki kimliktir, hiç
 // değiştirilmez: ya geçerlidir ya dosya reddedilir. İçerik sözlükte ya da daha önce eklenmişse
-// kimlik onunla aynıdır (H5277); değilse 0 ile 1<<30 arasında (H5221) ve boştur (H5291). Sonuç
+// kimlik onunla aynıdır (H5277); değilse 0 ile maxTokenID arasında (H5221) ve boştur (H5291). Sonuç
 // dosya sırasına bağlı değildir.
 func (p *Tokenizer) addTokens(added []AddedToken, vocab map[string]int32, ids idListModel) error {
 	fresh := make(map[int32]string) // sözlükte olmayan ek tokenlar: kimlik -> içerik
@@ -237,8 +240,8 @@ func (p *Tokenizer) addTokens(added []AddedToken, vocab map[string]int32, ids id
 		case inVocab && int(known) != e.ID:
 			return messages.New(messages.H5277, e.Content, e.ID, known)
 		case inVocab:
-		case e.ID < 0 || e.ID > 1<<30:
-			return messages.New(messages.H5221, e.Content, e.ID)
+		case e.ID < 0 || e.ID > maxTokenID:
+			return messages.New(messages.H5221, e.Content, e.ID, maxTokenID)
 		default:
 			if owner, taken := fresh[int32(e.ID)]; taken {
 				return messages.New(messages.H5291, e.Content, e.ID, owner)
