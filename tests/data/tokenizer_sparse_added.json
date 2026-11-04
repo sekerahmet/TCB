@@ -1,0 +1,2 @@
+{"version":"1.0","truncation":null,"padding":null,"added_tokens":[{"id":9,"content":"<s>","single_word":false,"lstrip":false,"rstrip":false,"normalized":false,"special":true}],"normalizer":null,"pre_tokenizer":null,"post_processor":null,"decoder":null,
+"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1,"b":5},"unk_token":"[UNK]"}}

@@ -23,8 +23,9 @@ import (
 
 // Test parçalayıcıları; yollar TR kaynağına da yazıldığı için bölü çizgisiyle.
 var (
-	bpePath  = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json"))
-	bertPath = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_wordpiece.json"))
+	bpePath    = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_byte_bpe.json"))
+	sparsePath = filepath.ToSlash(reporoot.Path("tests/data/tokenizer_sparse.json"))
+	bertPath   = filepath.ToSlash(reporoot.Path("internal/compute/tokenize/testdata/tokenizer_wordpiece.json"))
 )
 
 func run(t *testing.T, code string) (*interp.VM, error) {
@@ -212,6 +213,27 @@ func TestDecodeOutOfVocabularyIDIsAnError(t *testing.T) {
 		if !strings.Contains(err.Error(), "TR_vocab_size: p.TR_vocab_size") {
 			t.Errorf("%s: %v, üretimin sınırlamasını önermeli", c.code, err)
 		}
+	}
+}
+
+// Kural (16.3): sınırın içindeki boş kimlikte ileti kimliğin boş olduğunu söyler; üretimi
+// sınırlamak bu kimliği engellemez, o yüzden öneri yoktur (H5647).
+func TestDecodeGapIDSaysItIsEmpty(t *testing.T) {
+	for _, code := range []string{
+		`TR_load_tokenizer("` + sparsePath + `").TR_decode([1, 3])`,
+		`TR_load_tokenizer("` + sparsePath + `").TR_batch_decode([[1], [3]])`,
+	} {
+		_, err := run(t, code)
+		if !messages.Has(err, messages.H5647) || !strings.Contains(err.Error(), "3 kimliği sözlükte boş") {
+			t.Errorf("%s: %v, kimliğin boş olduğunu söylemeli", code, err)
+		}
+		if err != nil && strings.Contains(err.Error(), "TR_vocab_size") {
+			t.Errorf("%s: %v, üretimin sınırlamasını önermemeli", code, err)
+		}
+	}
+	_, err := run(t, `TR_load_tokenizer("`+sparsePath+`").TR_decode([6])`)
+	if !messages.Has(err, messages.H5647) || !strings.Contains(err.Error(), "TR_vocab_size: p.TR_vocab_size") {
+		t.Errorf("sınırın dışı üretimin sınırlamasını önermeli: %v", err)
 	}
 }
 
@@ -475,4 +497,13 @@ func heavyCallsReleased(t *testing.T, name string) int {
 		return true
 	})
 	return found
+}
+
+// Kural (16.1): dolu kimlik yazan dosya yüklenmez; yükleme hatası iki parçanın adını söyler (H5291).
+func TestLoadRejectsAnAddedTokenOnATakenID(t *testing.T) {
+	path := filepath.ToSlash(reporoot.Path("tests/data/tokenizer_added_taken.json"))
+	_, err := run(t, `TR_load_tokenizer("`+path+`")`)
+	if !messages.Has(err, messages.H5291) || !strings.Contains(err.Error(), `"<s>"`) || !strings.Contains(err.Error(), `"b"`) {
+		t.Fatalf("H5291 ve iki parçanın adı bekleniyordu: %v", err)
+	}
 }

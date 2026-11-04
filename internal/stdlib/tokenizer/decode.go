@@ -73,10 +73,15 @@ func (n *Object) decodeSeqs(m *interp.VM, fn codes.Ref, seqs [][]int, special, s
 			if _, ok := n.p.IDToToken(id); ok {
 				continue
 			}
-			if single {
-				return nil, messages.New(messages.H5647, fn, id, n.p.VocabSize())
+			// Sınırın içindeki boş kimlikte üretimi sınırlamak işe yaramaz: öneri yalnız sınırın dışında.
+			place := "out"
+			if id >= 0 && id < n.p.VocabSize() {
+				place = "gap"
 			}
-			return nil, messages.New(messages.H5647, messages.New(messages.H5633, fn, i+1), id, n.p.VocabSize())
+			if single {
+				return nil, messages.New(messages.H5647, fn, id, n.p.VocabSize(), place)
+			}
+			return nil, messages.New(messages.H5647, messages.New(messages.H5633, fn, i+1), id, n.p.VocabSize(), place)
 		}
 	}
 	var result []string

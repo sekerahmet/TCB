@@ -166,49 +166,9 @@ func Parse(data []byte) (*Tokenizer, error) {
 	p.parseRegex = exprCount(p.decoder)
 	vocab := p.model.Vocab()
 
-	// Ek tokenlar: kimlik, içerik sözlükteyse sözlükteki kimlik; değilse
-	// sözlük boyutundan başlayarak sırayla verilen kimliktir. Dosyadaki
-	// kimlik bununla tutarsızsa dosya reddedilir.
-	dim := int64(len(vocab))
-	largestAdded := int64(-1)
-	seen := make(map[AddedToken]bool)
-	for _, e := range d.AddedTokens {
-		if e.Content == "" {
-			continue
-		}
-		key := e
-		key.ID = 0
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		var id int64
-		if v, ok := p.addedID[e.Content]; ok {
-			id = int64(v)
-		} else if v, ok := vocab[e.Content]; ok {
-			id = int64(v)
-		} else if largestAdded < 0 || largestAdded < dim {
-			id = dim
-		} else {
-			id = largestAdded + 1
-		}
-		if id != int64(e.ID) {
-			return nil, messages.New(messages.H5277, e.Content, e.ID, id)
-		}
-		if id > largestAdded {
-			largestAdded = id
-		}
-		e.ID = int(id)
-		if prevVal, ok := p.addedID[e.Content]; ok {
-			for k := range p.extras {
-				if p.extras[k].Content == e.Content && int32(p.extras[k].ID) == prevVal {
-					p.extras[k] = e
-				}
-			}
-		} else {
-			p.extras = append(p.extras, e)
-		}
-		p.addedID[e.Content] = int32(id)
+	ids, _ := p.model.(idListModel)
+	if err := p.addTokens(d.AddedTokens, vocab, ids); err != nil {
+		return nil, err
 	}
 	nrmContent, specialContent, err := p.setupAddedMatchers()
 	if err != nil {
@@ -247,7 +207,6 @@ func Parse(data []byte) (*Tokenizer, error) {
 		p.postProcessor = nil
 	}
 
-	ids, _ := p.model.(idListModel)
 	p.buildIDTable(vocab, ids, nrmContent, specialContent)
 	if l, ok := p.postProcessor.(specialIDLister); ok {
 		for _, id := range l.specialIDs() {
@@ -257,6 +216,68 @@ func Parse(data []byte) (*Tokenizer, error) {
 		}
 	}
 	return p, nil
+}
+
+// addTokens ek tokenları kurar. Kural (16.1): ek tokenın kimliği dosyadaki kimliktir, hiç
+// değiştirilmez: ya geçerlidir ya dosya reddedilir. İçerik sözlükte ya da daha önce eklenmişse
+// kimlik onunla aynıdır (H5277); değilse 0 ile 1<<30 arasında (H5221) ve boştur (H5291). Sonuç
+// dosya sırasına bağlı değildir.
+func (p *Tokenizer) addTokens(added []AddedToken, vocab map[string]int32, ids idListModel) error {
+	fresh := make(map[int32]string) // sözlükte olmayan ek tokenlar: kimlik -> içerik
+	for _, e := range added {
+		if e.Content == "" {
+			continue
+		}
+		prev, wasAdded := p.addedID[e.Content]
+		known, inVocab := prev, wasAdded
+		if !wasAdded {
+			known, inVocab = vocab[e.Content]
+		}
+		switch {
+		case inVocab && int(known) != e.ID:
+			return messages.New(messages.H5277, e.Content, e.ID, known)
+		case inVocab:
+		case e.ID < 0 || e.ID > 1<<30:
+			return messages.New(messages.H5221, e.Content, e.ID)
+		default:
+			if owner, taken := fresh[int32(e.ID)]; taken {
+				return messages.New(messages.H5291, e.Content, e.ID, owner)
+			}
+			fresh[int32(e.ID)] = e.Content
+		}
+		if wasAdded {
+			for k := range p.extras {
+				if p.extras[k].Content == e.Content {
+					p.extras[k] = e
+				}
+			}
+		} else {
+			p.extras = append(p.extras, e)
+		}
+		p.addedID[e.Content] = int32(e.ID)
+	}
+	owners := make(map[int32]string, len(fresh))
+	if ids != nil {
+		for id, tok := range ids.idTokens() {
+			if _, ok := fresh[int32(id)]; ok {
+				owners[int32(id)] = tok
+			}
+		}
+	}
+	for tok, id := range vocab {
+		if _, ok := fresh[id]; !ok {
+			continue
+		}
+		if owner, ok := owners[id]; !ok || tok < owner { // harita sırası değişir, ileti değişmesin
+			owners[id] = tok
+		}
+	}
+	for _, e := range p.extras {
+		if owner, taken := owners[int32(e.ID)]; taken && fresh[int32(e.ID)] == e.Content {
+			return messages.New(messages.H5291, e.Content, e.ID, owner)
+		}
+	}
+	return nil
 }
 
 // setupAddedMatchers ek tokenların eşleştiricilerini kurar; normalleştirilmiş içerikleri
