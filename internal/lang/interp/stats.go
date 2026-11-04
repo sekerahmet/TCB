@@ -46,13 +46,17 @@ func (v *VM) registerStats() {
 		return &FloatVal{Val: math.Sqrt(squares.value() / float64(len(nums)-1))}, nil
 	})
 
-	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması.
+	// ortanca: çift sayıda elemanda ortadaki ikisinin ortalaması. Listede NaN varsa NaN'dır (13.1),
+	// nerede olursa olsun: sıralama NaN'ı başa alır.
 	v.RegisterNoNamed(codes.FnMedian, func(y *VM, args []Value, named map[string]Value) (Value, error) {
 		sorted, err := statsNumbers(codes.FnMedian, messages.H2506, args)
 		if err != nil {
 			return nil, err
 		}
 		sort.Float64s(sorted)
+		if math.IsNaN(sorted[0]) {
+			return &FloatVal{Val: math.NaN()}, nil
+		}
 		mid := len(sorted) / 2
 		if len(sorted)%2 == 1 {
 			return &FloatVal{Val: sorted[mid]}, nil

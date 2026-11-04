@@ -284,6 +284,15 @@ TR_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı
     TR_assert_equal("H2011", TR_error_code { TR_median() })
 }
 
+TR_test "13.1 TR_median listede NaN varsa NaN verir, nerede olursa olsun" {
+    TR_assert_equal("nan", TR_String(TR_median([1.0, 2.0, TR_nan])))
+    TR_assert_equal("nan", TR_String(TR_median([1.0, TR_nan, 2.0])))
+    TR_assert_equal("nan", TR_String(TR_median([TR_nan, 1.0, 2.0, 3.0])))
+    TR_assert_equal("nan", TR_String(TR_median([TR_nan])))
+    TR_assert_equal("nan", TR_String(TR_median([1, TR_nan])))
+    TR_assert_equal("inf", TR_String(TR_median([1.0, TR_inf, TR_inf])))
+}
+
 TR_test "13.1 TR_std örneklem sapmasıdır: n−1'e böler, iki geçişlidir, iki öğeden azda hatadır" {
     # Beklenenler dil tanımından: ortalama, farkların karelerinin toplamı, n−1'e bölüm, karekök.
     TR_assert_equal(TR_sqrt(32.0 / 7.0), TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
