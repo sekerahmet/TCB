@@ -8,7 +8,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 
 **10.1** `TR_async f(x)` ve `TR_async { ... }` işi ayrı bir görev olarak başlatır ve hemen devam eder. İkisi de bir ifadedir ve görev değeri verir: `TR_var g = TR_async f(x)`.
 - Görevin tipi `TR_Task[T]`'dir (3.11); `T` fonksiyonun dönüş tipidir, blokta `TR_NoneType`'tır.
-- `g.TR_wait()` görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı burada fırlatır (8).
+- `g.TR_wait()` görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı burada fırlatır (8). `T` `TR_NoneType`'sa `g.TR_wait()` değer vermez (3.5), deyim olarak yazılır.
 - Görev değeri kullanılmayabilir: `TR_async` ifadesi tek başına bir deyim olarak yazılabilir, 2.8'in değeri kullanılmayan ifade kuralı ona uygulanmaz. O zaman görev yine çalışır ve 10.6'nın kuralı geçerlidir.
 - Program bitmeden önce bütün görevleri bekler.
 - *Test:* TR testi; görev değeri ve `.TR_wait()` uygulanınca TR testi.
@@ -31,7 +31,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 **10.4** Görev başlatıldığı kapsamı yakalar; döngünün içinde başlatılan her görev o turun değişkenlerini görür (5.12). Görevin içinde tanımlanan ad görevin kapsamındadır. Görev açıldığı yerin türevsiz kipini ve `TR_mixed_precision` türünü de alır (15.4, 15.27); açıldıktan sonra açanın kipinin değişmesi ona geçmez.
 - *Test:* TR testi; kipin ve hesap türünün mirası uygulanınca TR testi.
 
-**10.5** `TR_wait_all()` başlatılmış bütün görevlerin bitmesini bekler. `TR_wait_all(görevler)` verilen görevleri bekler ve sonuçlarını **verildikleri sırayla** bir liste olarak verir (`TR_List[T]`).
+**10.5** `TR_wait_all()` başlatılmış bütün görevlerin bitmesini bekler. `TR_wait_all(görevler)` verilen görevleri bekler ve sonuçlarını **verildikleri sırayla** bir liste olarak verir (`TR_List[T]`). `T` `TR_NoneType`'sa değer vermez (3.5).
 - Görevlerden biri hatayla bittiyse öbürleri de beklenir ve **verilen sırada ilk hatalı görevin** hatası fırlar; bitme zamanı hangi hatanın fırladığını değiştirmez. Öbür hatalı görevlerin hataları, verilen sırayla, fırlayan hatanın `e.TR_suppressed` listesine eklenir (9.4 gibi); hiçbir hata kaybolmaz. Aynı görev listede birden çok kez verilirse hatası bir kez sayılır.
 - Argümansız `TR_wait_all()` sonuç vermez; iptal edilmiş bir görev onu hataya düşürmez (iptal hata değildir, 10.6), hatayla biten görevlerin hatası 10.6'ya göre yazılır.
 - *Test:* TR testi: `tests/eszamanli_test.tr` (liste biçiminde sonuçların verilen sırası, ilk hatalı görevin hatası ve öbürlerinin bastırılanları, aynı görevin hatasının bir kez sayılması); argümansız biçimin sonuç vermemesi uygulanınca TR testi.

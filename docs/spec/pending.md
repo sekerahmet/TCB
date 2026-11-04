@@ -26,6 +26,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **15.34 ve 15.36, parametre olmayan yaprak (2026-11-03, DENETİM istek 83 Ş2, TCB kararı, geçici; sessiz yanlış):** H6513'ün kalkmasıyla `TR_requires_grad`'sız kurulmuş bir yaprak iyileştiricide sessizce atlanıyordu [ölçüldü: DENETİM `o1`]. Madde iki okumaya açıktı ("parametreler 15.33'ün parametreleridir" ile "türev izlemeyen yaprağı kabul eder"); dar okuma seçildi: donmuş parametre kabul, hiç türev izlememiş yaprak kurulumda hata (iyileştirici ve `TR_clip_grad`). Turda denetlenecek.
 
 - **10.2, gecikme sözünün koşulu (2026-11-04, B1):** söz, işletim sisteminin görevleri ve saati zamanında çalıştırdığı süreyle koşullandı; maddenin bütün sürelerine uygulanır (DENETİM istek 96 Ş1).
+- **3.5, 6.6, 6.7, 10.1, 10.5, değer döndürmeyen çağrının değer yerleri (2026-11-04, A, DENETİM istek 97 Ş3):** değer yerleri ve muafları yazıldı; `=>` gövdesi ile sondaki blok değer vermeyebilir, `TR_Task[TR_NoneType]`'ın beklemesi değer vermez. Uygulama Kol A teslim 2b; `TR_wait_all(görevler)`'in listesi 4a5.
 - **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır. Uygulama Kol A teslim 2a.
 - **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda. Uygulama Kol A teslim 2a.
 

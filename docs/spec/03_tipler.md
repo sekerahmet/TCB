@@ -35,6 +35,9 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 - Yalnız değişkenin kendisine atama daraltmayı bozar; alanına atama (`x.alan = ...`) bozmaz. Alan ve indeks daraltılmaz; `??` ya da yerel bir kopyayla açılır.
 - İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak denetim hatasıdır (sonuç hep aynıdır).
 - Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (6.9) ve tip değeri olarak yazılır.
+  - Değer yerleri: atama ve ilk değer, argüman, liste, sözlük ve demet öğesi, metin yerleştirme, işlenen, koşul, `TR_return`'ün ifadesi, değer olarak kullanılan `TR_if` ve `TR_match`'in dallarının son ifadesi.
+  - Değer yeri olmayanlar: deyim olarak yazılan çağrı; `TR_async f()` (görevin tipi `TR_Task[TR_NoneType]`, 10.1); `=>`'nin ifade gövdesi (6.6) ve sondaki bloğun son ifadesi (6.7). Son ikisinde değer vermeyen çağrı fonksiyonu da değer döndürmeyen yapar; o fonksiyonun çağrısı değer yerinde yine hatadır.
+  - Sonuçları toplayan çağrıya değer döndürmeyen fonksiyon verilmez: `l.TR_map((x) => TR_print(x))` denetim hatasıdır, ileti `TR_for`'u önerir.
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
 
 ```tr
