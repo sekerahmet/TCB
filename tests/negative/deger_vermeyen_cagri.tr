@@ -1,0 +1,12 @@
+# TR 4
+# TEST 3.5 değer döndürmeyen fonksiyonun çağrısı değer yerinde denetim hatasıdır
+TR_func f() { TR_print(1) }
+f()
+TR_var y = f() # ERROR H1143
+TR_print(f()) # ERROR H1143
+TR_var l = [f()] # ERROR H1143
+TR_var m = "\(f())" # ERROR H1143
+TR_var n = TR_if y == 1 { f() } TR_else { 2 } # ERROR H1143
+TR_match f() { # ERROR H1143
+    _ => 1
+}

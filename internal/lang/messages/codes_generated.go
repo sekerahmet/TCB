@@ -194,6 +194,7 @@ const (
 	H1140 Code = 1140 // {container} sözlüğünün anahtarları {key} tipindedir: {given} tipinde anahtarla okunmaz ve yazılmaz (3.7)
 	H1141 Code = 1141 // '{op}' aynı tipten iki değeri karşılaştırır (4.5): {left} ile {right} ayrı tiplerdir, sonuç hep aynı olurdu
 	H1142 Code = 1142 // {container} listesinin öğeleri {elem} tipindedir: {given} tipinde bir değer onda bulunmaz, sonuç hep `{#false}` olurdu (3.6, 13.10){conversion, select, empty {} other {; öğe tipine çevirin: `{conversion}`}}
+	H1143 Code = 1143 // `{call}` değer vermez, değer yerinde kullanılamaz (3.5): çağrıyı kendi satırında deyim olarak yazın: `{call}`
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi

@@ -190,6 +190,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkSkeletons(prog)
 	c.checkTopLevel(prog)
 	c.checkSignatures(prog)
+	c.checkValuePlaces(prog)
 	sortByLine(c.errors[start:])
 }
 
@@ -438,6 +439,8 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 		return c.inferMatch(e, expr != c.statementExpr)
 	case *ast.AsyncExpression:
 		return c.taskType(e.Statement) // 10.1 (task_types.go)
+	case *ast.TryExpression:
+		c.inferTry(e) // 8.1 (block_values.go)
 	}
 	return typeAny
 }

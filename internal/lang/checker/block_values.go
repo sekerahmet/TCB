@@ -141,6 +141,13 @@ func (c *Checker) noteBlockValue(s *ast.ExpressionStatement, t string) {
 	c.blockTypes[s] = t
 }
 
+// inferTry değer olarak kullanılan TR_try'ın bloklarını denetler (8.1): son ifadeleri değerdir.
+func (c *Checker) inferTry(e *ast.TryExpression) {
+	c.markBlockValue(e.Statement.TryBody, true)
+	c.markBlockValue(e.Statement.CatchBody, true)
+	c.checkStatement(e.Statement)
+}
+
 // inferMatch eşle ifadesinin konusunu, desenlerini ve kollarını denetler; used inferIf'teki gibidir.
 func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
 	var b branchTypes
