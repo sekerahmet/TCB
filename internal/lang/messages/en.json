@@ -190,6 +190,7 @@
 "H1141": "'{op}' compares two values of the same type (4.5): {left} and {right} are different types, so the result would always be the same",
 "H1142": "the elements of {container} have type {elem}: a value of type {given} is never in it, so the result would always be `{#false}` (3.6, 13.10){conversion, select, empty {} other {; convert it to the element type: `{conversion}`}}",
 "H1143": "`{call}` gives no value and cannot stand where a value is needed (3.5): write the call as a statement on its own line: `{call}`",
+"H1144": "`.{#map}` collects results, but the function given to it returns no value (3.5): if you need no results, write a loop, for a list `l` and a function `f`: `{#for} x {#in} l {{ f(x) }}`",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

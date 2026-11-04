@@ -493,6 +493,7 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 		c.checkConstruction(e, ident.Value, argTypes, namedTypes) // alanların tipi (7.2)
 	}
 	if isMember {
+		c.checkCollectedFunction(e, objType) // 3.5 (value_places.go)
 		c.checkMemberCall(e, objType, argTypes)
 		c.checkJSONContains(e, objType, argTypes) // 3.7a (json_comparison.go)
 		c.checkDictKeyArg(e, objType, argTypes)   // 3.7 (dict_keys.go)

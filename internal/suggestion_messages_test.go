@@ -114,6 +114,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"q\": 3}`)\nTR_print(j.TR_get(\"q\") == 3)", "j.TR_get(\"q\") == 3", "j.TR_get(\"q\") == TR_JSON(3)"},
 	{messages.H1142, "TR_var l = [1, 2]\nTR_print(l.TR_contains(\"2\"))", "\"2\"", "TR_Int(\"2\")"},
 	{messages.H1142, "TR_var adlar = [\"1\", \"2\"]\nTR_var sayılar = [1, 2]\nTR_print(adlar.TR_contains(sayılar.TR_length))", "sayılar.TR_length", "TR_String(sayılar.TR_length)"},
+	{messages.H1144, "TR_func f(x: TR_Int) { TR_print(x) }\nTR_var l = [1]\nTR_print(l.TR_map(f))", "TR_print(l.TR_map(f))", "TR_for x TR_in l { f(x) }"},
 	{messages.H1143, "TR_func f() { TR_print(1) }\nTR_var y = f()\nTR_print(2)", "TR_var y = f()", "f()"},
 	{messages.H1139, "TR_var m = [[0] * 3] * 3\nm[0][0] = 1\nTR_print(m)", "[[0] * 3] * 3", "[[0] * 3 TR_for _ TR_in 0..3]"},
 }

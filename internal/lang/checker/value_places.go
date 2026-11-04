@@ -2,6 +2,7 @@ package checker
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -27,6 +28,13 @@ func (c *Checker) checkValuePlaces(prog *ast.Program) {
 		}
 		return true
 	})
+}
+
+// checkCollectedFunction sonuçları toplayan çağrıya verilen fonksiyonun değer döndürmesini ister (H1144).
+func (c *Checker) checkCollectedFunction(e *ast.CallExpression, objType string) {
+	if c.builtinCallCode(e, objType) == codes.MemMap && len(e.Arguments) > 0 && c.functionArgNoValue(e.Arguments[len(e.Arguments)-1]) {
+		c.addErrorAt(e, messages.New(messages.H1144))
+	}
 }
 
 // exemptPlaces değeri kullanılmayan ifadelerdir.

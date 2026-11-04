@@ -40,7 +40,7 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
   - Değeri kullanılmayan `TR_if`, `TR_match` ve `TR_try`'ın dallarının son ifadesi de muaftır: deyim olarak ya da yukarıdaki iki gövdede yazılanlar (`TR_no_grad { TR_if c { f() } TR_else { g() } }`). Gövdedeki dallardan biri değer vermiyorsa ya da `TR_if`'in `TR_else`'i yoksa gövde değer vermez; `TR_throw` ya da `TR_return` ile biten dal sayılmaz.
   - Gövde değer vermiyorsa fonksiyon da değer döndürmez: onun çağrısı ve bloğun değerini geçiren yerleşik değer yerinde yine hatadır (`TR_var y = TR_no_grad { f() }`).
   - Sonuçları toplayan çağrıya değer döndürmeyen fonksiyon verilmez: `l.TR_map((x) => TR_print(x))` denetim hatasıdır, ileti `TR_for`'u önerir.
-- *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi; değer döndürmeyen çağrı `TestNoValueCallInAValuePlace`, `TestPlacesWithoutAValue`, olumsuz fikstür `tests/negative/deger_vermeyen_cagri.tr`.
+- *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi; değer döndürmeyen çağrı `TestNoValueCallInAValuePlace`, `TestPlacesWithoutAValue`, `TestBlocksThatPassTheirValueOn`, `TestMapNeedsAFunctionThatGivesAValue`, olumsuz fikstür `tests/negative/deger_vermeyen_cagri.tr`.
 
 ```tr
 # TR 4

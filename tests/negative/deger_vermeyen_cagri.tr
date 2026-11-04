@@ -10,3 +10,5 @@ TR_var n = TR_if y == 1 { f() } TR_else { 2 } # ERROR H1143
 TR_match f() { # ERROR H1143
     _ => 1
 }
+TR_var k = [1].TR_map((x) => TR_print(x)) # ERROR H1144
+TR_var z = TR_no_grad { f() } # ERROR H1143

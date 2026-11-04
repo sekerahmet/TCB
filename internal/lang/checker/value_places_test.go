@@ -126,3 +126,54 @@ func TestBuiltinsWithoutAValueInAValuePlace(t *testing.T) {
 		noErrors(t, source)
 	}
 }
+
+// Kural (3.5, 6.7): bloğun değerini geçiren yerleşik (TR_no_grad, TR_mixed_precision), blok değer
+// vermiyorsa değer yerinde H1143'tür. Tablo elle tutulur: başka yerleşik değer geçirmez.
+func TestBlocksThatPassTheirValueOn(t *testing.T) {
+	for _, source := range []string{
+		"TR_var y = TR_no_grad { f() }",
+		"TR_var y = TR_mixed_precision(\"bf16\") { f() }",
+		"TR_var y = TR_mixed_precision(\"bf16\") { }",
+		"TR_var c = TR_true; TR_var y = TR_no_grad { TR_if c { 1 } }",
+		"TR_var c = TR_true; TR_var y = TR_no_grad { TR_if c { f() } TR_else { 1 } }",
+		"TR_print(TR_no_grad { TR_var z = 1 })",
+	} {
+		_, errs := checkErrs(t, noValueFn+source)
+		if !hasCode(errs, messages.H1143) {
+			t.Errorf("H1143 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+		}
+	}
+	for _, source := range []string{
+		"TR_no_grad { f() }",
+		"TR_var y = TR_no_grad { 1 }",
+		"TR_var y = TR_mixed_precision(\"bf16\") { 1 }",
+		"TR_var k = TR_error_code { f() }",
+	} {
+		noErrors(t, noValueFn+source)
+	}
+}
+
+// Kural (3.5): .TR_map sonuçları toplar: değer döndürmeyen fonksiyon H1144'tür, ileti TR_for'u önerir.
+// Tipi bilinmeyen fonksiyon geçer.
+func TestMapNeedsAFunctionThatGivesAValue(t *testing.T) {
+	for _, source := range []string{
+		"[1].TR_map((x) => TR_print(x))",
+		"[1].TR_map((x) => f())",
+		"[1].TR_map(g)",
+		"[1].TR_map(TR_print)",
+		"TR_var y = [1].TR_map((x) => { TR_print(x) })",
+		"TR_var y = [1].TR_map { f() }",
+	} {
+		_, errs := checkErrs(t, noValueFn+"TR_func g(x: TR_Int) { }\n"+source)
+		if !hasCode(errs, messages.H1144) {
+			t.Errorf("H1144 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+		}
+	}
+	for _, source := range []string{
+		"TR_var y = [1].TR_map((x) => x * 2)",
+		"TR_var y = [1].TR_map(TR_abs)",
+		"TR_var h = TR_abs; TR_var y = [1].TR_map(h)",
+	} {
+		noErrors(t, source)
+	}
+}

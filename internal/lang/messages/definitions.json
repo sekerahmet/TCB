@@ -190,6 +190,7 @@
 "H1141": { "param": ["op", "left", "right"] },
 "H1142": { "param": ["container", "elem", "given", "conversion"], "slots": {"false": "TR_kw_false"} },
 "H1143": { "param": ["call"] },
+"H1144": { "slots": {"map": "TR_mem_map", "for": "TR_kw_for", "in": "TR_kw_in"} },
 "H2000": { "param": ["fn", "error"] },
 "H2001": { "param": ["line", "error"] },
 "H2002": { "param": ["importer", "line", "module", "kind"] },

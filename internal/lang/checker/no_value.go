@@ -186,6 +186,9 @@ func (c *Checker) exprNoValue(expr ast.Expression) bool {
 	return false
 }
 
+// valueThrough bloğun değerini geçiren yerleşiklerdir: blok değer vermiyorsa çağrı da vermez (3.5).
+var valueThrough = map[codes.Code]bool{codes.FnNoGrad: true, codes.FnMixedPrecision: true}
+
 // callNoValue çağrının değer vermediğini söyler; objType metodun nesnesinin tipidir.
 func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 	switch f := e.Function.(type) {
@@ -194,6 +197,9 @@ func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 	case *ast.Identifier:
 		if info, user := c.scope.binding(f.Value); user {
 			return c.bindingNoValue(f.Value, info)
+		}
+		if valueThrough[f.Token.Code] && len(e.Arguments) > 0 {
+			return c.functionArgNoValue(e.Arguments[len(e.Arguments)-1])
 		}
 		if f.Token.Code == codes.FnWaitAll {
 			return len(e.Arguments) == 0 // TR_wait_all(görevler) sonuçları verir (10.5)
@@ -259,4 +265,19 @@ func builtinNoValue(k codes.Code, objType string) bool {
 
 func noneType(t codes.TypeExpr) bool {
 	return len(t.Types) == 1 && t.Types[0] == codes.TypeNoneType && !t.Optional
+}
+
+// functionArgNoValue argüman olarak verilen fonksiyon değer döndürmüyor mu: fonksiyon ifadesi ya da
+// sondaki blok, adıyla verilen fonksiyon, yerleşik.
+func (c *Checker) functionArgNoValue(arg ast.Expression) bool {
+	switch a := arg.(type) {
+	case *ast.FunctionLiteral:
+		return c.funcNoValue(a)
+	case *ast.Identifier:
+		if info, user := c.scope.binding(a.Value); user {
+			return c.bindingNoValue(a.Value, info)
+		}
+		return builtinNoValue(a.Token.Code, typeAny)
+	}
+	return false
 }
