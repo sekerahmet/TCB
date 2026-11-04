@@ -2,6 +2,7 @@
 # docs/spec/16_veri_parcalayici.md §16 — Veri ve parçalayıcı
 # Sentetik test verisi tests/data altındadır (üreteci: internal/stdlib/dataset/ornek_veri_test.go).
 # Göreli yollar çalışma klasöründe yoksa bu dosyanın klasörüne göre çözülür (16.10).
+TR_import "tr/layers"
 
 TR_test "16.1 parçalayıcı_yükle, dağarcık_boyutu, parça_kimliği" {
     TR_var p = TR_load_tokenizer("data/tokenizer.json")
@@ -217,6 +218,22 @@ TR_test "16.8 sıralı okuyucu döngüyle gezilir; örnekleyici gezilmez" {
     TR_for iş TR_in s2 { TR_break }
     TR_assert_equal(30, [1 TR_for iş TR_in s2].TR_length)
     TR_assert_equal("H5535", TR_error_code { TR_for iş TR_in küme.TR_sampler(TR_batch_size: 2, TR_context: 4) {} })
+}
+
+TR_test "16.1 dağarcık boyutu kimliklerin sınırıdır: seyrek sözlükte en büyük kimlik + 1" {
+    TR_var p = TR_load_tokenizer("data/tokenizer_sparse.json")
+    TR_assert_equal(6, p.TR_vocab_size)
+    TR_assert_equal("b", p.TR_decode([5]))
+    TR_assert_equal("H5647", TR_error_code { p.TR_decode([3]) })
+    TR_assert_equal("H5647", TR_error_code { p.TR_decode([6]) })
+    # Sınır üretimde en büyük kimliği dışarıda bırakmaz: dolgulu bir modelin çıktısı 5'i de içerir.
+    TR_var üretilen = []
+    TR_for tohum TR_in 1..30 {
+        TR_var model = TR_GPT(8, TR_context: 12, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: tohum)
+        üretilen = üretilen + model.TR_generate([1], 8, TR_temperature: 0, TR_vocab_size: p.TR_vocab_size)
+    }
+    TR_assert(üretilen.TR_contains(5))
+    TR_assert(TR_not üretilen.TR_contains(6))
 }
 
 TR_test "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır" {

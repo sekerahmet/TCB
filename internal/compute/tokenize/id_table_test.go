@@ -79,3 +79,37 @@ func TestIDTableSharedIDDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// Kural (16.1): sözlük boyu kimliklerin sınırıdır: eklenmiş parçalar dahil en büyük kimlik + 1.
+// Kimlikler aralıksızsa parça sayısıdır; aradaki boş kimlik IDToToken'da yoktur.
+func TestVocabSizeIsTheIDBound(t *testing.T) {
+	const head = `{"version":"1.0","truncation":null,"padding":null,"normalizer":null,"pre_tokenizer":null,"post_processor":null,"decoder":null,`
+	const wordLevel = `"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1,"b":5},"unk_token":"[UNK]"}}`
+	const added = `{"id":3,"content":"<s>","single_word":false,"lstrip":false,"rstrip":false,"normalized":false,"special":true}`
+	const dense = `"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1,"b":2},"unk_token":"[UNK]"}}`
+	for _, c := range []struct {
+		name, js string
+		want     int
+	}{
+		{"seyrek", head + `"added_tokens":[],` + wordLevel, 6},
+		{"eklenmiş parça boşluğa girer", head + `"added_tokens":[` + added + `],` + wordLevel, 6},
+		{"eklenmiş parça sınırı büyütür", head + `"added_tokens":[` + added + `],` + dense, 4},
+		{"aralıksız", head + `"added_tokens":[],` + dense, 3},
+		{"kimlik listeli model", head + `"added_tokens":[],"model":{"type":"Unigram","unk_id":0,"vocab":[["<unk>",0.0],["a",-1.0]]}}`, 2},
+	} {
+		p, err := Parse([]byte(c.js))
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if n := p.VocabSize(); n != c.want {
+			t.Errorf("%s: sınır %d, beklenen %d", c.name, n, c.want)
+		}
+	}
+	p, err := Parse([]byte(head + `"added_tokens":[],` + wordLevel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := p.IDToToken(3); ok {
+		t.Fatal("aradaki boş kimliğin metni var")
+	}
+}
