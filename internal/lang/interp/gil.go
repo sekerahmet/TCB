@@ -230,12 +230,12 @@ func (v *VM) clockExpired() bool {
 		}
 		c.every = min(max(next, 1), clockEveryMax)
 		c.skip = c.every - 1
-		gap := c.since // görevin ilk okuması: önceki okuma yok
-		if c.gap > 0 {
-			gap = min(gap, c.gap)
-		}
-		if recent := (now - c.last) / time.Duration(gap); recent > 0 {
-			c.skip = min(c.every, max(int(clockGrain/recent), 1)) - 1
+		// gap ≥ since'te son aralık ortalamayla aynıdır, every zaten ona göre ayarlandı: saatin her
+		// okumada ilerlediği yerde (Linux) bu iki bölme yapılmaz.
+		if 0 < c.gap && c.gap < c.since {
+			if recent := (now - c.last) / time.Duration(c.gap); recent > 0 {
+				c.skip = min(c.every, max(int(clockGrain/recent), 1)) - 1
+			}
 		}
 		c.last, c.since = now, 0
 	}
