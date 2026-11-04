@@ -94,6 +94,11 @@ type fileTestSet struct {
 // seçilir (aboutTests, adaylar o bildirimin testleri); her test bir kez, ilk grubunda.
 func (ix *index) fileTests(file *Node, ts *touchSet) fileTestSet {
 	all, subprocess := ix.testsToRun(ts)
+	for id, d := range ix.testDistances(file) {
+		if old, ok := all[id]; !ok || d < old {
+			all[id] = d
+		}
+	}
 	s := fileTestSet{own: ownTests(ts), all: all, subprocess: subprocess}
 	decls := make([]*Node, 0, len(ts.nodes))
 	for _, d := range ts.nodes {
