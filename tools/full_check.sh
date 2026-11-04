@@ -526,7 +526,7 @@ selected_tests() {
 	# Windows'ta komut satırı ~32 000 karakterdir: çok büyük seçimde (bir tr.json değişikliği 428 test, 12 500
 	# karakter, 67 sn ölçüldü) seçilen paketler bütün olarak koşar.
 	if [ ${#run} -gt 20000 ]; then run=.; fi
-	go test "${p_flag[@]}" -short -run "$run" "${dirs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+	go test "${p_flag[@]}" -short -count=1 -run "$run" "${dirs[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 	watched_ok "${PIPESTATUS[0]}" || fail "değişen dosyaları koruyan testler"
 }
 
@@ -747,7 +747,9 @@ for mode in $modes; do
 		mapfile -t changed < <(changed_packages)
 		if [ ${#changed[@]} -gt 0 ]; then
 			step "Değişen paketlerin kısa testleri (${#changed[@]} paket)"
-			go test "${p_flag[@]}" -short "${changed[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
+			# -count=1: depo testleri dosyaları `git ls-files` ile bulur, Go'nun önbelleği onu girdi saymaz; commit'ten
+			# önce koşulan testin eski sonucu yeni izlenen dosyayı gizliyordu (T1, 2026-11-04).
+			go test "${p_flag[@]}" -short -count=1 "${changed[@]}" 2>&1 | grep --line-buffered -v '^ok\|no test files' | watch_failures
 			watched_ok "${PIPESTATUS[0]}" || fail "değişen paketlerin testleri"
 		fi
 		selected_tests "${changed[@]}"

@@ -209,6 +209,18 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 	if err1 != nil || err2 != nil || !ok1 || !ok2 {
 		return
 	}
+	diffs := settingsDiffs(old, fresh)
+	if len(diffs) == 0 {
+		return
+	}
+	slices.Sort(diffs)
+	m.WriteOutput(m.Err, messages.Text(messages.H7405,
+		codes.NameRef(codes.TypeCheckpoint), strings.Join(diffs, ", "))+"\n")
+}
+
+// settingsDiffs iki ayar sözlüğünün fark satırlarıdır; ayarın adı dilden bağımsız metniyle yazılır,
+// sözlüğün iç anahtarıyla değil.
+func settingsDiffs(old, fresh *interp.DictVal) []string {
 	var diffs []string
 	for _, k := range fresh.Order {
 		e, var_ := old.Pairs[k]
@@ -217,18 +229,13 @@ func (kn *Checkpoint) compareSettings(m *interp.VM, d *stateRecord) {
 			if var_ {
 				oldText = interp.DisplayText(e)
 			}
-			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", k, oldText, interp.DisplayText(fresh.Pairs[k])))
+			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", fresh.KeyText(k), oldText, interp.DisplayText(fresh.Pairs[k])))
 		}
 	}
 	for _, k := range old.Order {
 		if _, ok := fresh.Pairs[k]; !ok {
-			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", k, interp.DisplayText(old.Pairs[k]), interp.DisplayText(interp.Null)))
+			diffs = append(diffs, fmt.Sprintf("%s: %s → %s", old.KeyText(k), interp.DisplayText(old.Pairs[k]), interp.DisplayText(interp.Null)))
 		}
 	}
-	if len(diffs) == 0 {
-		return
-	}
-	slices.Sort(diffs)
-	m.WriteOutput(m.Err, messages.Text(messages.H7405,
-		codes.NameRef(codes.TypeCheckpoint), strings.Join(diffs, ", "))+"\n")
+	return diffs
 }

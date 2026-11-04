@@ -194,6 +194,34 @@ TR_test "13.1 TR_read_file geçerli UTF-8 olmayan dosyada hatadır; ileti TR_rea
     TR_assert_equal("\u{feff}ş", TR_read_file(TR_Path(k, "bom.txt")))
 }
 
+TR_test "13.2 ayırıcısız TR_split Unicode boşluk dizilerine böler, boş öğe vermez" {
+    TR_assert_equal(["a", "b"], " a \t b\n".TR_split())
+    TR_assert_equal(0, "   ".TR_split().TR_length)
+    TR_assert_equal(0, "".TR_split().TR_length)
+    TR_assert_equal(["a"], "a".TR_split())
+    # TR_strip ile aynı boşluk: U+3000, U+0085, U+00A0
+    TR_assert_equal(["a", "b"], "a\u{3000}b".TR_split())
+    TR_assert_equal(["a", "b"], "a\u{85}b".TR_split())
+    TR_assert_equal(["a", "b"], "a\u{a0}b".TR_split())
+    TR_assert_equal("a", "\u{3000}\u{85}a\u{a0}".TR_strip())
+    # ayırıcıyla boş öğeler kalır
+    TR_assert_equal(["a", "", "b"], "a,,b".TR_split(","))
+    TR_assert_equal(["", "a", ""], " a ".TR_split(" "))
+}
+
+TR_test "13.2 boş ayırıcı ve değiştirilecek boş alt metin hatadır, öbür boş alt metinler değil" {
+    TR_var boş = ""
+    TR_assert_equal("H2635", TR_error_code { "ab".TR_split("") })
+    TR_assert_equal("H2635", TR_error_code { "ab".TR_split(boş) })
+    TR_assert_equal("H2635", TR_error_code { "".TR_split("") })
+    TR_assert_equal("H2636", TR_error_code { "ab".TR_replace("", "x") })
+    TR_assert_equal("H2636", TR_error_code { "ab".TR_replace(boş, "x") })
+    TR_assert_equal("H2636", TR_error_code { "".TR_replace("", "") })
+    TR_assert_equal(["a", "b"], [c TR_for c TR_in "ab"])
+    TR_assert("ab".TR_contains("") TR_and "ab".TR_starts_with("") TR_and "ab".TR_ends_with(""))
+    TR_assert_equal("a", "ab".TR_replace("b", ""))
+}
+
 TR_test "13.2 metin metotları" {
     TR_assert_equal("ISTANBUL", "istanbul".TR_upper())
     TR_assert_equal("ilik", "ILIK".TR_lower())
@@ -276,7 +304,7 @@ TR_test "13.3 boş ya da sayı olmayan listenin ortalaması hatadır" {
 
 TR_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı olmayanda hata" {
     TR_assert_equal(2.5, TR_median([3, 1, 2, 4]))
-    TR_assert_equal(2.0, TR_median(3, 1, 2))
+    TR_assert_equal(2.0, TR_median([3, 1, 2]))
     TR_assert_equal("H2505", TR_error_code { TR_std([]) })
     TR_assert_equal("H2506", TR_error_code { TR_median([]) })
     TR_assert_equal("H2486", TR_error_code { TR_std([1, "x"]) })
@@ -284,16 +312,68 @@ TR_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı
     TR_assert_equal("H2011", TR_error_code { TR_median() })
 }
 
+TR_test "13.1 tam sayı listesinde TR_mean, TR_std ve TR_median kesin değerin en yakın ondalığıdır" {
+    TR_assert_equal(4503599627370497.0, TR_mean([9007199254740993, 1]))
+    TR_assert_equal(TR_sqrt(2.0), TR_std([9007199254740993, 9007199254740995]))
+    TR_assert_equal(4503599627370497.0, TR_median([9007199254740993, 1]))
+    TR_assert_equal(9007199254740994.0, TR_median([9007199254740993, 9007199254740995]))
+    # kesin değer iki ondalığın tam ortasındaysa çift olana gider
+    TR_assert_equal(9007199254740992.0, TR_mean([9007199254740993, 9007199254740993]))
+    TR_assert_equal(9007199254740996.0, TR_mean([9007199254740995, 9007199254740995]))
+    # bir kez yuvarlanır: varyansı ondalığa çevirip kök almak son bitte ayrılır
+    TR_assert_equal(103305.9772730181, TR_std([453326, 303265, 255301]))
+    # ara değer taşmaz
+    TR_var en_büyük = 9223372036854775807
+    TR_var en_küçük = -9223372036854775807 - 1
+    TR_assert_equal(9223372036854775808.0, TR_mean([en_büyük, en_büyük]))
+    TR_assert_equal(-9223372036854775808.0, TR_mean([en_küçük, en_küçük]))
+    TR_assert_equal(-0.5, TR_mean([en_büyük, en_küçük]))
+    TR_assert_equal(9223372036854775808.0, TR_median([en_büyük, en_büyük]))
+    TR_assert_equal(-0.5, TR_median([en_küçük, en_büyük]))
+    TR_assert_equal(1.3043817825332783e19, TR_std([en_büyük, en_küçük]))
+    TR_assert_equal(0.0, TR_std([en_büyük, en_büyük]))
+    # sıralama kesindir: ortadaki öğeler ondalıkta eşit görünse de yerleri değişmez
+    TR_assert_equal(9007199254740992.0, TR_median([9007199254740993, 9007199254740992, 1]))
+    # karışık liste ayrı yoldadır
+    TR_assert_equal(1.5, TR_mean([1, 2.0]))
+    TR_assert_equal(TR_sqrt(0.5), TR_std([1, 2.0]))
+    TR_assert_equal(1.5, TR_median([1, 2.0]))
+}
+
+TR_test "13.1 TR_mean, TR_std ve TR_median yalnız liste alır; TR_max ve TR_min bir liste ya da iki değer" {
+    TR_assert_equal("H2011", TR_error_code { TR_mean(1, 2) })
+    TR_assert_equal("H2011", TR_error_code { TR_std(1, 2) })
+    TR_assert_equal("H2011", TR_error_code { TR_median(1, 2) })
+    TR_assert_equal("H2423", TR_error_code { TR_mean(1) })
+    TR_assert_equal("H2423", TR_error_code { TR_std(1) })
+    TR_assert_equal("H2423", TR_error_code { TR_median(1) })
+    TR_assert_equal("H2011", TR_error_code { TR_max(1) })
+    TR_assert_equal("H2011", TR_error_code { TR_min(1.5) })
+    TR_assert_equal("H2011", TR_error_code { TR_max((1, 2)) })
+    TR_assert_equal(2, TR_max(1, 2))
+    TR_assert_equal(1, TR_max([1]))
+    TR_assert_equal((1, 2), TR_max([(1, 2)]))
+}
+
+TR_test "13.1 TR_median listede NaN varsa NaN verir, nerede olursa olsun" {
+    TR_assert_equal("nan", TR_String(TR_median([1.0, 2.0, TR_nan])))
+    TR_assert_equal("nan", TR_String(TR_median([1.0, TR_nan, 2.0])))
+    TR_assert_equal("nan", TR_String(TR_median([TR_nan, 1.0, 2.0, 3.0])))
+    TR_assert_equal("nan", TR_String(TR_median([TR_nan])))
+    TR_assert_equal("nan", TR_String(TR_median([1, TR_nan])))
+    TR_assert_equal("inf", TR_String(TR_median([1.0, TR_inf, TR_inf])))
+}
+
 TR_test "13.1 TR_std örneklem sapmasıdır: n−1'e böler, iki geçişlidir, iki öğeden azda hatadır" {
     # Beklenenler dil tanımından: ortalama, farkların karelerinin toplamı, n−1'e bölüm, karekök.
     TR_assert_equal(TR_sqrt(32.0 / 7.0), TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
     TR_assert_equal(2.138089935299395, TR_std([2, 4, 4, 4, 5, 5, 7, 9]))
-    TR_assert_equal(TR_sqrt(0.5), TR_std(1, 2))
+    TR_assert_equal(TR_sqrt(0.5), TR_std([1, 2]))
     TR_assert_equal(TR_sqrt(2.0), TR_std([1.0, 3.0]))
     TR_assert_equal(0.0, TR_std([7, 7]))
     TR_assert_equal(TR_Float, TR_Type(TR_std([1, 2])))
     TR_assert_equal("H2620", TR_error_code { TR_std([1.5]) })
-    TR_assert_equal("H2620", TR_error_code { TR_std(5) })
+    TR_assert_equal("H2620", TR_error_code { TR_std([5]) })
     TR_assert_equal("H2505", TR_error_code { TR_std([]) })
 }
 
@@ -341,7 +421,8 @@ TR_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör
     TR_assert_equal(6, l.TR_reduce(0, (a, x) => a + x))
     TR_assert_equal(6, l.TR_reduce((a, x) => a * x))
     TR_assert_equal(4, l.TR_reduce(10, (acc, x) => acc - x))
-    TR_assert_equal(TR_none, [].TR_reduce((a, x) => a + x))
+    TR_assert_equal("H2637", TR_error_code { [].TR_reduce((a, x) => a + x) })
+    TR_assert_equal(5, [5].TR_reduce((a, x) => a + x))
     TR_assert_equal(7, [].TR_reduce(7, (a, x) => a + x))
     TR_assert_equal([[1, 2]], TR_Tensor([[1.0], [2.0]]).TR_transpose().TR_tolist)
     # Öbür biçim yoktur: liste.toplam() ve tensör.toplam bir üye değildir.

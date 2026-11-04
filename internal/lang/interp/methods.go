@@ -207,13 +207,17 @@ func setupStringMethods() {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
 	})
 	addMethod(typeString, codes.MemSplit, signature{0, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		sep := " "
+		split := strings.Fields // Unicode boşluk dizileri, boş öğe yok (13.2): TR_strip'in boşluğu (unicode.IsSpace)
 		if len(args) > 0 {
-			sep = y.textOf(args[0])
+			sep := y.textOf(args[0])
+			if sep == "" {
+				return nil, messages.New(messages.H2635, CallName(codes.MemSplit))
+			}
+			split = func(s string) []string { return strings.Split(s, sep) }
 		}
 		var elems []Value
 		textWork(y, inst, func(s string) {
-			parts := strings.Split(s, sep)
+			parts := split(s)
 			elems = make([]Value, len(parts))
 			for i, p := range parts {
 				elems[i] = &StringVal{Val: p}
@@ -223,6 +227,9 @@ func setupStringMethods() {
 	})
 	addMethod(typeString, codes.MemReplace, signature{2, 2, []*argKind{textArg, textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		old, repl := y.textOf(args[0]), y.textOf(args[1])
+		if old == "" {
+			return nil, messages.New(messages.H2636, CallName(codes.MemReplace))
+		}
 		return longText(y, inst, func(s string) string { return strings.ReplaceAll(s, old, repl) }), nil
 	})
 	addMethod(typeString, codes.MemContains, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
@@ -499,8 +506,8 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 // listReduce liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
 // argümandır ve (birikim, eleman) ile çağrılır: l.TR_reduce(0, (acc, x) => acc + x); kullanıcı
 // fonksiyonu iki parametreli olmalıdır (sondaki blok parametresizdir, 6.7).
-// Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)
-// döner.
+// Başlangıç verilmezse ilk eleman başlangıçtır ve boş liste hatadır (13.6); boş listede başlangıç
+// verilmişse o döner.
 func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	name, fun := CallName(codes.MemReduce), codes.ReceiverRef(codes.TypeFunction)
 	f := args[len(args)-1]
@@ -519,7 +526,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	case len(args) == 2:
 		acc = args[0]
 	case len(elems) == 0:
-		return Null, nil
+		return nil, messages.New(messages.H2637, name)
 	default:
 		acc, begin = elems[0], 1
 	}
@@ -531,42 +538,6 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 		}
 	}
 	return acc, nil
-}
-
-// NumberMean returns the arithmetic mean of numbers as Ondalık; empty input and non-number
-// elements are errors (used by the ortalama(liste) builtin).
-func NumberMean(name any, elems []Value) (Value, error) {
-	m, err := numberMean(name, elems)
-	if err != nil {
-		return nil, err
-	}
-	return &FloatVal{Val: m}, nil
-}
-
-// numberMean ortalamanın kendisidir (13.1; TR_std'nin ilk geçişi de): bir Ondalık öğe varsa
-// toplam TR_sum'ınki gibi telafilidir (compensated). Yalnız Tam'lı listede toplam ondalığa
-// çevrilerek düz yapılır: tam sayı toplamının kuralı dil tanımı sorusudur (pending.md, 13.1).
-func numberMean(name any, elems []Value) (float64, error) {
-	if len(elems) == 0 {
-		return 0, messages.New(messages.H2477, name)
-	}
-	plain, hasFloat := 0.0, false
-	var s compensated
-	for i, el := range elems {
-		f, ok := ToFloat(el)
-		if !ok {
-			return 0, ListElementError(name, i, numberType, el)
-		}
-		if _, isFloat := el.(*FloatVal); isFloat {
-			hasFloat = true
-		}
-		plain += f
-		s.add(f)
-	}
-	if hasFloat {
-		return s.value() / float64(len(elems)), nil
-	}
-	return plain / float64(len(elems)), nil
 }
 
 // resolveIndex indeksi çözer: negatif indeks sondan sayar; aralık dışıysa ok=false.

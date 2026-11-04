@@ -180,6 +180,19 @@ TR_test "18.11 dosya_satırları dosyayı akışla satır satır okur" {
     TR_assert_equal("H2132", TR_error_code { TR_read_lines(TR_Path(k, "olmayan.txt")) })
 }
 
+TR_test "18.11 geçerli UTF-8 olmayan satır sıra ona gelince hatadır, TR_read_csv'de çağrı" {
+    TR_var k = TR_temp_dir()
+    TR_write_file(TR_Path(k, "x.txt"), TR_Bytes([97, 10, 98, 255, 10, 99, 10]))
+    TR_var o = TR_read_lines(TR_Path(k, "x.txt"))
+    TR_assert_equal("a", o.TR_next())
+    TR_assert_equal("H2638", TR_error_code { o.TR_next() })
+    TR_assert_equal("c", o.TR_next())
+    TR_assert_equal(TR_none, o.TR_next())
+    TR_assert_equal("H2638", TR_error_code { TR_read_csv(TR_Path(k, "x.txt")) })
+    TR_write_file(TR_Path(k, "x.txt.gz"), TR_Bytes([255]))
+    TR_assert_equal("H2639", TR_error_code { TR_read_csv(TR_Path(k, "x.txt.gz")) })
+}
+
 TR_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
     TR_var k = TR_temp_dir()
     TR_write_file(TR_Path(k, "t.csv.gz"), "a,b\n1,2")

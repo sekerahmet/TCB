@@ -19,21 +19,13 @@ func TestRepositoryTypeLoadedTestsAreSelected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	code, out, errOut := commandIn("changed", root, graphPath, "--no-rebuild", "--go-tests", "--base", "0b9fda0b", "83fa8859")
-	if code != exitOK {
-		t.Fatalf("changed --go-tests 0b9fda0b..83fa8859: exit %d: %s", code, errOut)
-	}
-	lines := "\n" + out
-	for _, want := range []string{
-		"tools/impact TestInterfaceImplementers",
-		"tools/impact TestNameUses",
-		"internal/compute/tensor TestBackendDataCallsGoThroughTheGate",
-	} {
-		if !strings.Contains(lines, "\n"+want+"\n") {
-			t.Errorf("changed --go-tests --base 0b9fda0b 83fa8859 did not select %q", want)
-		}
-	}
-	if strings.Contains(lines, "\ntools/impact TestUnknownNames\n") {
+	// Bağlar grafikten okunur, commit aralığından değil: CI ve tam denetim sığ klonda koşar.
+	impactTest := "go:func:github.com/sekerahmet/TCB/tools/impact."
+	mustEdge(t, g, impactTest+"TestInterfaceImplementers", "go:file:internal/stdlib/ml/members_freeze.go", edgeTests, inferred)
+	mustEdge(t, g, impactTest+"TestNameUses", "go:file:internal/lang/codes/language.go", edgeTests, inferred)
+	mustEdge(t, g, "go:func:github.com/sekerahmet/TCB/internal/compute/tensor.TestBackendDataCallsGoThroughTheGate",
+		"go:file:internal/compute/tensor/tensor.go", edgeTests, inferred)
+	if edge(g, impactTest+"TestUnknownNames", "go:file:internal/stdlib/ml/members_freeze.go", edgeTests) != nil {
 		t.Errorf("TestUnknownNames queries nonexistent symbols and must not be selected")
 	}
 

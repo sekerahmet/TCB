@@ -410,7 +410,7 @@ func valuesEqual(a, b Value, nestDepth int) bool {
 	}
 	// A Tam and an Ondalık are compared exactly; converting the Tam to Ondalık would make
 	// 9007199254740993 == 9007199254740992.0 true. NaN equals nothing.
-	if c, ok := compareNumbers(a, b); ok {
+	if c, ok := CompareNumbers(a, b); ok {
 		return c == 0
 	}
 	if _, ok1 := ToFloat(a); ok1 {
@@ -535,7 +535,7 @@ func mixedCompare(codeVal uint8, left, right Value) (Value, bool) {
 	default:
 		return nil, false
 	}
-	c, ok := compareNumbers(left, right)
+	c, ok := CompareNumbers(left, right)
 	if !ok {
 		return BoolToVal(codeVal == opNe), true
 	}

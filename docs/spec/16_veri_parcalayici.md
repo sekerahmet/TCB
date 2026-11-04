@@ -9,10 +9,11 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 ## Parçalayıcı
 
 **16.1** `TR_load_tokenizer(yol)` yaygın `tokenizer.json` biçimindeki bir parçalayıcıyı yükler ve `TR_Tokenizer` verir.
-- `.TR_vocab_size` kimliklerin sınırıdır: en büyük kimlik + 1 (`TR_Int`). Kimlikler aralıksızsa parça sayısıdır; aradaki boş kimlik `.TR_decode`'da hatadır.
+- `.TR_vocab_size` kimliklerin sınırıdır: en büyük kimlik + 1 (`TR_Int`). Kimlikler 0'dan aralıksız ve her kimlikte tek parça varsa parça sayısıdır; aradaki boş kimlik `.TR_decode`'da hatadır.
 - `.TR_token_id(parça)` parçanın kimliğini verir, dağarcıkta yoksa `TR_none` (`TR_Int?`).
+- Eklenmiş parçanın kimliği dosyadaki kimliktir, değiştirilmez: içerik sözlükte ya da daha önce eklenmişse kimlik onunla aynıdır; değilse 0 ile `1<<30` arasında ve boştur. Tutmayan dosya yükleme hatası verir. Sonuç dosyadaki sıraya bağlı değildir.
 - `tokenizer.json` dışarıdan gelen bir girdidir: ön ayırıcının düzenli ifadesi bir adım sınırıyla çalışır, sınırı aşan metin çalışma hatası verir.
-- *Test:* TR testi; seyrek sözlükte sınır da TR testi ("16.1 dağarcık boyutu kimliklerin sınırıdır: seyrek sözlükte en büyük kimlik + 1").
+- *Test:* TR testi; seyrek sözlükte sınır da TR testi ("16.1 dağarcık boyutu kimliklerin sınırıdır: seyrek sözlükte en büyük kimlik + 1"); eklenmiş parçanın kimliği de TR testi ("16.1 eklenmiş parça dosyadaki kimliğini alır, dolu kimlik hatadır").
 
 **16.2** `p.TR_encode(metin)` metni kimliklere çevirir ve `TR_List[TR_Int]` verir. `p.TR_encode(metinler)` (`TR_List[TR_String]`) her metni ayrı çevirir, sırayı korur ve `TR_List[TR_List[TR_Int]]` verir (13.10: iki imza).
 - Metnin içinde yazılan eklenmiş parça (`tokenizer.json`'un `added_tokens`'ı: `<|endoftext|>` gibi özel ya da `<think>` gibi özel olmayan) tek bir kimlik olur.

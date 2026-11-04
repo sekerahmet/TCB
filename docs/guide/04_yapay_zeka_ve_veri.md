@@ -158,7 +158,7 @@ Büyük metin derlemleriyle model eğitmek için iki yerleşik nesne vardır: `t
 
 **Parçalayıcı**
 - `TR_var p = TR_load_tokenizer("tokenizer.json")` yaygın `tokenizer.json` biçimini okur (BPE, WordPiece, WordLevel, Unigram modelleri; bayt düzeyi, Metaspace, BERT tarzı bileşenler). Desteklenmeyen bir bileşen türü, hangi bileşenin hangi türü olduğunu söyleyen bir hatayla bildirilir. Tip adı `TR_Tokenizer`.
-- `p.TR_vocab_size` dağarcıktaki parça sayısıdır; `p.TR_token_id("<|endoftext|>")` parçanın kimliğini verir, dağarcıkta yoksa `TR_none`.
+- `p.TR_vocab_size` kimliklerin sınırıdır (en büyük kimlik + 1); `p.TR_token_id("<|endoftext|>")` parçanın kimliğini verir, dağarcıkta yoksa `TR_none`.
 - `p.TR_encode(metin)` bir `TR_Int` listesi, `p.TR_encode([metin1, metin2])` listelerin listesini verir (liste tüm işlemci çekirdeklerinde paralel kodlanır, sıra korunur). Metnin içinde yazılı özel parçalar (`"<|endoftext|>"`) tek bir kimlik olarak tanınır.
   - `TR_special_tokens: TR_false` son işleyicinin eklediği özel parçaları (`[CLS] … [SEP]`, `<s>` gibi) ve metnin içinde yazılan eklenmiş parçaları, özel olsun olmasın, kapatır: metindeki `<|im_end|>` ve `<think>` parçanın kimliği olmaz, modelin geri kalan parçalarıyla kodlanır. Güvenilmeyen girdi (kullanıcının metni) bununla kodlanır. Varsayılan `TR_true`dur.
   - `TR_pair: TR_String` metin çiftini (soru + bağlam gibi) tek dizi olarak kodlar; liste verilirse `TR_pair:` de aynı uzunlukta bir liste olmalıdır.

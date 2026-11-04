@@ -129,7 +129,7 @@ func tupleOrder(codeVal uint8, x, y *TupleVal) bool {
 		case *StringVal:
 			return orderResult(codeVal, strings.Compare(a.Val, b.(*StringVal).Val))
 		}
-		c, ok := compareNumbers(a, b)
+		c, ok := CompareNumbers(a, b)
 		return ok && orderResult(codeVal, c) // NaN'lı karşılaştırma yanlış
 	}
 	return orderResult(codeVal, len(x.Elements)-len(y.Elements))
@@ -152,7 +152,7 @@ func orderedEqual(a, b Value) bool {
 		}
 		return true
 	}
-	c, ok := compareNumbers(a, b)
+	c, ok := CompareNumbers(a, b)
 	return ok && c == 0
 }
 
@@ -185,7 +185,7 @@ func sortOrder(a, b Value) int {
 		}
 		return len(x.Elements) - len(y.Elements)
 	}
-	if c, ok := compareNumbers(a, b); ok {
+	if c, ok := CompareNumbers(a, b); ok {
 		if c == 0 {
 			return zeroSign(a) - zeroSign(b) // -0.0 < 0.0
 		}

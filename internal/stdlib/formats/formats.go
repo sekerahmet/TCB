@@ -9,6 +9,7 @@
 package formats
 
 import (
+	"bytes"
 	"encoding/csv"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"io"
@@ -165,6 +166,9 @@ func csvInput(p csvPath) (string, error) {
 	data, err := interp.ReadFileContent(p.path)
 	if err != nil {
 		return "", turkish.FileError(fn, p.arg, messages.H2100, err)
+	}
+	if pos := interp.InvalidUTF8(data); pos >= 0 { // akış değildir: çağrı hata verir (13.8)
+		return "", interp.InvalidLineError(interp.CallPrefix(codes.FnReadCsv), p.arg, bytes.Count(data[:pos], []byte("\n"))+1)
 	}
 	return string(data), nil
 }

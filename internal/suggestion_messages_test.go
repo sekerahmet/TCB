@@ -98,7 +98,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H1130, "TR_struct P { x: TR_Int }\nTR_var l: TR_List[TR_Int] = []\nTR_var p = P(1)\np.x = l.TR_first\nTR_print(p.x)", "l.TR_first", "l.TR_first ?? 0"},
 	{messages.H1130, "TR_struct P { x: TR_Float }\nTR_var l: TR_List[TR_Float] = []\nTR_var p = P(l.TR_last)\nTR_print(p.x)", "l.TR_last", "l.TR_last ?? 0.0"},
 	{messages.H1130, "TR_var l: TR_List[TR_Int] = []\nTR_var m = [1]\nm.TR_append(l.TR_first)\nTR_print(m)", "l.TR_first", "l.TR_first ?? 0"},
-	{messages.H1130, "TR_var l: TR_List[TR_String] = []\nTR_print(\"a,b\".TR_split(l.TR_first))", "l.TR_first", "l.TR_first ?? \"\""},
+	{messages.H1130, "TR_var l: TR_List[TR_String] = []\nTR_print(\"a,b\".TR_contains(l.TR_first))", "l.TR_first", "l.TR_first ?? \"\""},
 	{messages.H1130, "TR_var l: TR_List[TR_Float] = []\nTR_print(TR_abs(l.TR_first))", "l.TR_first", "l.TR_first ?? 0.0"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"k\": 3}`)\nTR_print(j[\"k\"] == 3)", "j[\"k\"] == 3", "TR_Int(j[\"k\"]) == 3"},
 	{messages.H1131, "TR_var j = TR_json_parse(`{\"k\": 3}`)\nTR_print(j[\"k\"] == 3)", "j[\"k\"] == 3", "j[\"k\"] == TR_JSON(3)"},
@@ -133,6 +133,21 @@ var suggestionResultCases = []suggestionResultCase{
 	// 19.6: kayıttaki adım tam değerli olmalıdır; ileti yuvarlamayı önerir, kırpmaz.
 	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": 3.5})", "TR_round(...)",
 		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_round(3.5)})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":4\"))", "true\n"},
+	// 13.2: boş ayırıcı ve değiştirilecek boş alt metin hatadır; iletiler karakterleri alan yazımı önerir.
+	{messages.H2635, "TR_print(\"ab\".TR_split(\"\"))", "[c TR_for c TR_in m]",
+		"TR_var m = \"ab\"\nTR_print([c TR_for c TR_in m])", "[\"a\", \"b\"]\n"},
+	{messages.H2636, "TR_print(\"ab\".TR_replace(\"\", \"-\"))", "[c TR_for c TR_in m].TR_join(y)",
+		"TR_var m = \"ab\"\nTR_var y = \"-\"\nTR_print([c TR_for c TR_in m].TR_join(y))", "a-b\n"},
+	// 13.1: TR_mean, TR_std ve TR_median yalnız liste alır; TR_max tek değerde listeyi ya da ikinci değeri gösterir.
+	{messages.H2011, "TR_var a = 1\nTR_var b = 2\nTR_print(TR_mean(a, b))", "TR_mean([a, b])", "TR_var a = 1\nTR_var b = 2\nTR_print(TR_mean([a, b]))", "1.5\n"},
+	{messages.H2011, "TR_var a = 1\nTR_print(TR_max(a))", "TR_max([a, b])", "TR_var a = 1\nTR_var b = 2\nTR_print(TR_max([a, b]))", "2\n"},
+	{messages.H2011, "TR_var a = 1\nTR_print(TR_max(a))", "TR_max(a, b)", "TR_var a = 1\nTR_var b = 2\nTR_print(TR_max(a, b))", "2\n"},
+	// 13.6: başlangıçsız indirgeme boş listede hatadır; ileti başlangıçlı yazımı önerir.
+	{messages.H2637, "TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_reduce((a, x) => a + x))", "l.TR_reduce(0, (a, x) => a + x)",
+		"TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_reduce(0, (a, x) => a + x))", "0\n"},
+	// 19.6: metin adım tam sayıya tipin çağrısıyla çevrilir (TR_round metin almaz).
+	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": \"3\"})", "TR_Int(...)",
+		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_Int(\"3\")})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":3\"))", "true\n"},
 	// 13.8: anahtarı metin olmayan sözlük JSON'a yazılmaz; ileti anahtarları TR_String ile yeni sözlüğe çeviren döngüyü önerir.
 	{messages.H7012, "TR_var d = {1: 2, 3: 4}\nTR_print(TR_json_string(d))", "TR_for k, v TR_in d { m[TR_String(k)] = v }",
 		"TR_var d = {1: 2, 3: 4}\nTR_var m = {}\nTR_for k, v TR_in d { m[TR_String(k)] = v }\nTR_print(TR_json_string(m))", "{\"1\":2,\"3\":4}\n"},
