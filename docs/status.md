@@ -819,6 +819,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** CPU float64'te telafisiz, GPU float32 girdiyi float32'de telafili (Neumaier) biriktiriyor (float64 girdi float64'te). CPU'da `GOMAXPROCS` 1–16'da sonuç bit bit aynı [ölçüldü: DENETİM].
 - **Yapılacaklar (C, Ö2; ölçülmedi):** `TestReductionsIndependentOfThreadCount` Go testi bölümün commit'inde yazılır (bugün yok); 15.22a başlıklı TR testi.
+- **Bulgu (T1, 2026-11-04, D, Ö3; TCB kararı):** sayı yerleşikleri `internal/detmath`'e geçince tensör yolu `math.*`'ta kalıyor: FMA'lı makinede `TR_exp` sayıda ve tensörde son bitte ayrılabilir [hipotez]. 13.1 makineler arasını söylüyor, iki yol arasını değil; bu işe kadar kabul.
 
 ### 15.22b
 
