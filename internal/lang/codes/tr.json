@@ -519,7 +519,7 @@
   "TR_mem_v_proj": { "name": "değer_katmanı", "family": "kitaplık: tr/layers", "description": "" },
   "TR_mem_value": { "name": "fırlatılan", "family": "Hata", "description": "Fırlatılan değerdir: metin, ileti ya da durumlu tip değeri; çalışma hatasında iletisi. Hatanın türüne göre ayırma bununla ya da kodla yapılır, metinle değil. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_values": { "name": "değerler", "family": "Sözlük", "description": "Sözlüğün değerlerini anahtarların ekleniş sırasıyla bir liste olarak verir." },
-  "TR_mem_vocab_size": { "name": "dağarcık_boyutu", "family": "Parçalayıcı", "description": "Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parçalar dahil) Tam olarak verir. Parantezsiz yazılan bir özelliktir." },
+  "TR_mem_vocab_size": { "name": "dağarcık_boyutu", "family": "Parçalayıcı", "description": "Parçalayıcının kimlik sınırını (eklenmiş özel parçalar dahil en büyük kimlik + 1) Tam olarak verir. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_wait": { "name": "bekle", "family": "Görev", "description": "Görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı fırlatır. Beklerken yorumlayıcı kilidini bırakır." },
   "TR_mem_weight": { "name": "ağırlık", "family": "kitaplık: tr/layers", "description": "" },
   "TR_mem_weight_decay": { "name": "ağırlık_çürümesi", "family": "kitaplık: tr/optimizers", "description": "" },

@@ -6149,7 +6149,7 @@ tr: yazdır({"ad": "Ali", "puan": 30}.değerler())
 
     Parçalayıcı.dağarcık_boyutu → Tam
 
-Parçalayıcının dağarcığındaki parça sayısını (eklenmiş özel parçalar dahil) Tam olarak verir. Parantezsiz yazılan bir özelliktir.
+Parçalayıcının kimlik sınırını (eklenmiş özel parçalar dahil en büyük kimlik + 1) Tam olarak verir. Parantezsiz yazılan bir özelliktir.
 
 ```tr
 TR_print(TR_load_tokenizer("tests/data/tokenizer.json").TR_vocab_size)

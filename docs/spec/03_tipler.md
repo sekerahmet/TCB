@@ -36,8 +36,9 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
 - İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak denetim hatasıdır (sonuç hep aynıdır).
 - Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (6.9), `TR_Task`'ın parametresi (10.1) ve tip değeri olarak yazılır.
   - Aşağıdaki muaflar dışında her yer değer yeridir: atama, argüman, öğe, işlenen, koşul, `TR_return`'ün ifadesi, `TR_match`'in konusu, varsayılan değer ve öbürleri.
-  - Muaflar: deyim olarak yazılan çağrı; `TR_async f()` (görevin tipi `TR_Task[TR_NoneType]`, 10.1); `=>`'nin ifade gövdesi (6.6) ve sondaki bloğun son ifadesi (6.7). Bu yerde yazılan `TR_if` ve `TR_match`'in dallarının son ifadesi de muaftır: `TR_no_grad { TR_if c { f() } TR_else { g() } }`.
-  - Gövde değer vermiyorsa fonksiyon da değer döndürmez; onun çağrısı değer yerinde yine hatadır: `TR_var y = TR_no_grad { f() }`.
+  - Muaflar: deyim olarak yazılan çağrı; `TR_async f()` (görevin tipi `TR_Task[TR_NoneType]`, 10.1); `=>`'nin ifade gövdesi (6.6) ve sondaki bloğun son ifadesi (6.7).
+  - Değeri kullanılmayan `TR_if`, `TR_match` ve `TR_try`'ın dallarının son ifadesi de muaftır: deyim olarak ya da yukarıdaki iki gövdede yazılanlar (`TR_no_grad { TR_if c { f() } TR_else { g() } }`). Gövdedeki dallardan biri değer vermiyorsa gövde değer vermez.
+  - Gövde değer vermiyorsa fonksiyon da değer döndürmez: onun çağrısı ve bloğun değerini geçiren yerleşik değer yerinde yine hatadır (`TR_var y = TR_no_grad { f() }`).
   - Sonuçları toplayan çağrıya değer döndürmeyen fonksiyon verilmez: `l.TR_map((x) => TR_print(x))` denetim hatasıdır, ileti `TR_for`'u önerir.
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
 
