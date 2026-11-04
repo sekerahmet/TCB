@@ -24,9 +24,9 @@ lib/optimizers.tr:362 alan TR_type_MuonAndAdamW.TR_mem_muon — TR_Muon ya da TR
 lib/optimizers_test.tr:167 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
 lib/optimizers_test.tr:367 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
 lib/optimizers_test.tr:367 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
-lib/pretrained.tr:31 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
-lib/pretrained.tr:31 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
-lib/pretrained.tr:31 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
+lib/pretrained.tr:30 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
+lib/pretrained.tr:30 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
+lib/pretrained.tr:30 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
 lib/pretrained.tr:53 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
 lib/pretrained.tr:82 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
 lib/pretrained.tr:90 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
