@@ -1210,6 +1210,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
+- **Yapılacaklar (A, Ö1; sahip D1, sıradaki iş; D1 Kol A 13 teslim 4):** test komutuna iki dosya verilince yalnız ilki koşuyor, çıkış 0: öbür dosyanın testleri koşmamış olur, geçmiş görünür [ölçüldü: D1, iki dosyayla 40 test, tek tek 40 ve 23]. Ya bütün dosyalar koşsun ya hata versin. Depo taraması: tam denetim klasör veriyor, etkilenmiyor [kanıtlı: `full_check.sh`].
+
 - **Mevcut durum (2026-11-04; C, Ö2):** `TestBaseThatIsNotOneCommitStops` ortak öneki depodan arıyor, süre sınırı var: sabit `da0457c5` yalnız yerel depoda belirsizdi, taze tam klonda gerçek ön denetimi başlatıp takılıyordu [ölçüldü: D1; DENETİM istek 104, üç klon]. `TestPreCheckGoStepsSkipTheCache` ön denetimin Go adımlarını koruyor (DENETİM istek 110 W2).
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 
