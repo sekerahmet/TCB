@@ -1393,7 +1393,7 @@ const (
 	H7010 Code = 7010 // {type} değeri JSON'a yazılamaz: JSON yalnızca veri tutar ({types})
 	H7011 Code = 7011 // JSON nesnesinde {key|q} anahtarı iki kez yazılmış (satır {line}, sütun {column} ve satır {line2}, sütun {column2}); bir nesnede her anahtar bir kez geçer
 	H7012 Code = 7012 // sözlüğün {key} anahtarı metin değil ({type}); JSON'da anahtar metindir, geri okununca anahtarın tipi değişirdi: anahtarları `{#String}` ile metne çevirip yeni bir sözlüğe koyun: sözlük `d` ise `{#var} m = {{}}`, sonra `{#for} k, v {#in} d {{ m[{#String}(k)] = v }}`
-	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)` yazın, ölçüyse ona başka bir ad verin
+	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)`, metinse `{#Int}(...)` yazın, ölçüyse ona başka bir ad verin
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

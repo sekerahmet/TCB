@@ -1388,7 +1388,7 @@
 "H7010": { "param": ["type", "types"] },
 "H7011": { "param": ["key", "line", "column", "line2", "column2"] },
 "H7012": { "param": ["key", "type"], "slots": {"String": "TR_type_String", "var": "TR_kw_var", "for": "TR_kw_for", "in": "TR_kw_in"} },
-"H7013": { "param": ["fn", "given"], "slots": {"round": "TR_fn_round"} },
+"H7013": { "param": ["fn", "given"], "slots": {"round": "TR_fn_round", "Int": "TR_type_Int"} },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },
