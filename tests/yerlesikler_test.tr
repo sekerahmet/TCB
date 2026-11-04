@@ -194,6 +194,21 @@ TR_test "13.1 TR_read_file geçerli UTF-8 olmayan dosyada hatadır; ileti TR_rea
     TR_assert_equal("\u{feff}ş", TR_read_file(TR_Path(k, "bom.txt")))
 }
 
+TR_test "13.2 ayırıcısız TR_split Unicode boşluk dizilerine böler, boş öğe vermez" {
+    TR_assert_equal(["a", "b"], " a \t b\n".TR_split())
+    TR_assert_equal(0, "   ".TR_split().TR_length)
+    TR_assert_equal(0, "".TR_split().TR_length)
+    TR_assert_equal(["a"], "a".TR_split())
+    # TR_strip ile aynı boşluk: U+3000, U+0085, U+00A0
+    TR_assert_equal(["a", "b"], "a\u{3000}b".TR_split())
+    TR_assert_equal(["a", "b"], "a\u{85}b".TR_split())
+    TR_assert_equal(["a", "b"], "a\u{a0}b".TR_split())
+    TR_assert_equal("a", "\u{3000}\u{85}a\u{a0}".TR_strip())
+    # ayırıcıyla boş öğeler kalır
+    TR_assert_equal(["a", "", "b"], "a,,b".TR_split(","))
+    TR_assert_equal(["", "a", ""], " a ".TR_split(" "))
+}
+
 TR_test "13.2 metin metotları" {
     TR_assert_equal("ISTANBUL", "istanbul".TR_upper())
     TR_assert_equal("ilik", "ILIK".TR_lower())

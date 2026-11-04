@@ -584,8 +584,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 ### 13.2
 
-- **Mevcut durum:** ayırıcısız `TR_split()` tek ASCII boşluğa bölüyor, boş öğe veriyor, sekmede ve satır sonunda bölmüyor [ölçüldü: DENETİM]; harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
-- **Yapılacaklar (A, Ö0; DENETİM istek 81):** ayırıcısız `TR_split()`'in Unicode boşluk dizilerine bölmesi.
+- **Mevcut durum (Kol A teslim 2a, 3. adım, 2026-11-04):** ayırıcısız `.TR_split()` Unicode boşluk dizilerine bölüyor, boş öğe vermiyor; boşluk tanımı `.TR_strip()`'inki (`unicode.IsSpace`). Göç: `.tr`'de 0, Go testinde 1 yer, sonucu değişmiyor [test: yerlesikler_test "13.2 ayırıcısız TR_split"].
+- **Mevcut durum:** harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
 - **Gemini Koşu 6 (2026-10-29), uygulanacak (A, Ö0; DENETİM istek 81: `"ab".TR_split("")` de hatasız):** boş alt metin (motor 2026-10-29'da `"ab".TR_replace("", "x")`'te "xaxbx" veriyor [ölçüldü: DENETİM]; kurala göre hata) ve negatif indeks; `.TR_index_of` metinde henüz yok.
 
 ### 13.3

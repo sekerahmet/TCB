@@ -207,13 +207,14 @@ func setupStringMethods() {
 		return &StringVal{Val: strings.TrimSpace(inst.(*StringVal).Val)}, nil
 	})
 	addMethod(typeString, codes.MemSplit, signature{0, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		sep := " "
+		split := strings.Fields // Unicode boşluk dizileri, boş öğe yok (13.2): TR_strip'in boşluğu (unicode.IsSpace)
 		if len(args) > 0 {
-			sep = y.textOf(args[0])
+			sep := y.textOf(args[0])
+			split = func(s string) []string { return strings.Split(s, sep) }
 		}
 		var elems []Value
 		textWork(y, inst, func(s string) {
-			parts := strings.Split(s, sep)
+			parts := split(s)
 			elems = make([]Value, len(parts))
 			for i, p := range parts {
 				elems[i] = &StringVal{Val: p}
