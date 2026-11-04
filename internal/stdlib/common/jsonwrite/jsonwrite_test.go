@@ -84,18 +84,20 @@ func TestNaNAndInfError(t *testing.T) {
 	}
 }
 
-// Tam anahtar 1 ile metin anahtar "1" JSON'da aynı anahtardır: biri sessizce atılmaz.
-func TestLookalikeKeyError(t *testing.T) {
-	d := interp.NewDictVal()
-	d.SetValue(interp.NewInt(1), interp.NewInt(10))
-	d.Set("1", interp.NewInt(20))
-	if _, err := Write(d); err == nil || !strings.Contains(err.Error(), "görünüşü aynı") {
-		t.Fatalf("çakışma hatası bekleniyordu: %v", err)
-	}
-	single := interp.NewDictVal()
-	single.SetValue(interp.NewInt(1), interp.NewInt(10))
-	if b, err := Write(single); err != nil || string(b) != `{"1":10}` {
-		t.Fatalf("%s %v", b, err)
+// Anahtarı metin olmayan sözlük hatadır (13.8): JSON'da anahtar metindir, geri okununca tipi
+// değişirdi (eskiden 1 sessizce "1" yazılıyordu). İleti anahtarı, tipini ve çeviren yazımı söyler.
+func TestNonTextKeyIsAnError(t *testing.T) {
+	for _, key := range []interp.Value{interp.NewInt(1), interp.True, &interp.TupleVal{Elements: []interp.Value{interp.NewInt(1), interp.NewInt(2)}}} {
+		d := interp.NewDictVal()
+		d.Set("a", interp.NewInt(0))
+		d.SetValue(key, interp.NewInt(10))
+		_, err := Write(list(d))
+		if !messages.Has(err, messages.H7012) {
+			t.Fatalf("%s: H7012 bekleniyordu: %v", key.Inspect(), err)
+		}
+		if !strings.Contains(err.Error(), key.Inspect()) || !strings.Contains(err.Error(), "`TR_for k, v TR_in d { m[TR_String(k)] = v }`") {
+			t.Errorf("ileti anahtarı ve çeviren yazımı söylemeli: %v", err)
+		}
 	}
 }
 

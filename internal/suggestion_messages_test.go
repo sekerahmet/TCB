@@ -130,6 +130,9 @@ type suggestionResultCase struct {
 // Cinsli tensörlerin iletileri (T1 dilim 2, H6960–H6979). H6969'un GPU önerisi
 // TestTypedPathsOnGPU'dadır (internal/stdlib/ml): bu tablo GPU'suz koşar.
 var suggestionResultCases = []suggestionResultCase{
+	// 13.8: anahtarı metin olmayan sözlük JSON'a yazılmaz; ileti anahtarları TR_String ile yeni sözlüğe çeviren döngüyü önerir.
+	{messages.H7012, "TR_var d = {1: 2, 3: 4}\nTR_print(TR_json_string(d))", "TR_for k, v TR_in d { m[TR_String(k)] = v }",
+		"TR_var d = {1: 2, 3: 4}\nTR_var m = {}\nTR_for k, v TR_in d { m[TR_String(k)] = v }\nTR_print(TR_json_string(m))", "{\"1\":2,\"3\":4}\n"},
 	// 13.1: TR_write_file'a verilen JSON değeri JSON metni olarak yazılır (TR_String(j) yalnız JSON metnini açar).
 	{messages.H2623, "TR_var y = TR_Path(TR_temp_dir(), \"j.json\")\nTR_var j = TR_json_parse(\"{\\\"a\\\": 1}\")\nTR_write_file(y, j)", "TR_json_string(...)",
 		"TR_var y = TR_Path(TR_temp_dir(), \"j.json\")\nTR_var j = TR_json_parse(\"{\\\"a\\\": 1}\")\nTR_write_file(y, TR_json_string(j))\nTR_print(TR_read_file(y), TR_json_parse(TR_read_file(y)) == j)", "{\"a\":1} true\n"},

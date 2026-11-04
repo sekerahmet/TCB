@@ -9,10 +9,10 @@ dosyaları ve eğitim günlükleri bunu kullanır.
 verir.
 Denetim: `TestKeyOrderKept`, `TestSameFormatAsEncodingJSON`.
 
-**Geçersiz JSON üretilmez.** Döngülü ya da çok derin değerler, aynı görünen iki anahtar, NaN ve
-sonsuz sayılar açık hatadır; ancak çağıran açıkça isterse sayı dışı değerler TR yazımıyla metin
+**Geçersiz JSON üretilmez.** Döngülü ya da çok derin değerler, anahtarı metin olmayan sözlük (13.8;
+geri okununca anahtarın tipi değişirdi), NaN ve sonsuz sayılar açık hatadır; ancak çağıran açıkça isterse sayı dışı değerler TR yazımıyla metin
 olarak yazılır (eğitim günlüğünde kayıpta beliren NaN gizlenmesin diye).
-Denetim: `TestCycleAndDepthError`, `TestNaNAndInfError`, `TestLookalikeKeyError`, `TestNonFiniteAsTextOnlyWhenAsked`.
+Denetim: `TestCycleAndDepthError`, `TestNaNAndInfError`, `TestNonTextKeyIsAnError`, `TestNonFiniteAsTextOnlyWhenAsked`.
 
 **Okuma ile tutarlıdır.** Yazılan metin dilin JSON okuyucusuyla geri okunup yeniden yazıldığında
 aynı kalır; bu, bulanıklaştırma testiyle sınanır.

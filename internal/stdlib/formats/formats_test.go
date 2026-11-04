@@ -89,11 +89,11 @@ func TestDictKeysAreTypeAware(t *testing.T) {
 		t.Fatalf("çıktı %q bekleniyordu, %q alındı", want, out)
 	}
 
-	// Metin olmayan anahtarlar Go/JSON tarafına görünen hâlleriyle aktarılır.
+	// Metin olmayan anahtar JSON'a yazılmaz (13.8): geri okununca tipi değişirdi.
 	d := interp.NewDictVal()
 	d.SetValue(&interp.IntVal{Val: 7}, &interp.StringVal{Val: "yedi"})
-	if b, err := jsonwrite.Write(d); err != nil || string(b) != `{"7":"yedi"}` {
-		t.Fatalf("JSON anahtarı \"7\" olmalı, alınan: %s %v", b, err)
+	if _, err := jsonwrite.Write(d); !messages.Has(err, messages.H7012) {
+		t.Fatalf("H7012 bekleniyordu: %v", err)
 	}
 }
 

@@ -361,6 +361,15 @@ TR_test "13.4 sözlük metotları" {
     TR_assert(d.TR_contains("a"))
 }
 
+TR_test "13.8 anahtarı metin olmayan sözlük JSON'a yazılmaz; anahtarlar TR_String ile çevrilir" {
+    TR_var d = {1: 2.5, 2: 3.5}
+    TR_assert_equal("H7012", TR_error_code { TR_json_string(d) })
+    TR_assert_equal("H7012", TR_error_code { TR_json_string([{"a": {(1, 2): 1}}]) })
+    TR_var m = {}
+    TR_for k, v TR_in d { m[TR_String(k)] = v }
+    TR_assert_equal(`{"1":2.5,"2":3.5}`, TR_json_string(m))
+}
+
 TR_test "13.8 csv_oku dosya okur, csv_çöz metni ayrıştırır" {
     TR_var k = TR_temp_dir()
     TR_write_file(TR_Path(k, "t.csv"), "ad,yaş\nAli,30")

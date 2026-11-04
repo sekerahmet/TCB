@@ -4,8 +4,8 @@
 //     '{"b":1,"a":2}' verir).
 //   - Döngüsel ya da çok derin değerler yığın taşması yerine Türkçe hata verir.
 //   - JSON'da karşılığı olmayan Tanımsız (NaN) ve sonsuz sayılar Türkçe hata verir.
-//   - Metin olmayan anahtar görünen hâliyle yazılır (1 → "1"); bu, aynı sözlükteki "1"
-//     metin anahtarıyla çakışırsa sessizce biri atılmaz, hata verilir.
+//   - Anahtarı metin olmayan sözlük hatadır (13.8): JSON'da anahtar metindir, geri okununca
+//     anahtarın tipi değişirdi; ileti anahtarları TR_String ile çevirmeyi önerir.
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package jsonwrite
@@ -183,36 +183,29 @@ func (y *writer) array(v interp.Value, elems []interp.Value, depth int) error {
 	return nil
 }
 
-// dict sözlüğü JSON nesnesi olarak yazar: anahtarlar sözlükteki sırayla, dilden bağımsız metinleriyle.
+// dict sözlüğü JSON nesnesi olarak yazar: anahtarlar sözlükteki sırayla. Metin olmayan anahtar
+// hatadır (13.8); ileti anahtarı dilden bağımsız metniyle (17.3) ve tipiyle söyler.
 func (y *writer) dict(v *interp.DictVal, depth int) error {
 	if err := y.walker.Enter(v, depth); err != nil {
 		return err
 	}
 	defer y.walker.Leave(v)
 	y.b = append(y.b, '{')
-	var seen map[string]bool
-	if len(v.KeyVals) > 0 {
-		seen = make(map[string]bool, len(v.Order))
-	}
 	first := true
 	for _, k := range v.Order {
 		elem, ok := v.Pairs[k]
 		if !ok {
 			continue
 		}
-		name := v.KeyText(k) // dilden bağımsız (17.3)
-		if seen != nil {
-			if seen[name] {
-				return messages.New(messages.H7009, name)
-			}
-			seen[name] = true
+		if key, ok := v.KeyVals[k]; ok {
+			return messages.New(messages.H7012, key.Inspect(), key.Type())
 		}
 		if !first {
 			y.b = append(y.b, ',')
 		}
 		first = false
 		y.newline(depth + 1)
-		y.text(name)
+		y.text(k)
 		y.b = append(y.b, ':')
 		if y.indent != "" {
 			y.b = append(y.b, ' ')
