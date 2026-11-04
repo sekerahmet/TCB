@@ -264,6 +264,9 @@ func TestAnUnadvancedClockReadDoublesTheInterval(t *testing.T) {
 		}
 	}
 	want := "[2 4 8 16 32 64 64 64]"
+	if len(reads) < 8 {
+		t.Fatalf("%d okuma, en az 8 bekleniyordu", len(reads))
+	}
 	if got := fmt.Sprint(reads[:8]); got != want {
 		t.Fatalf("okuma aralıkları %s, beklenen %s", got, want)
 	}
@@ -324,7 +327,7 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // sığdıran, geçişten sonra saatin ilerlediği ilk okumanın sonraki okumayı öne almasıdır
 // (clockExpired). Öne alınan okuma ilerleme görmezse aralık ikiye katlanır, sonraki okumalar
 // birkaç tur içinde gelir. Kaba saat geçişten sonra k ≥ 2 yavaş tur boyunca hiç ilerlemezse ilk
-// okuma olmaz ve tur sayısı k + 64 olur: 66'yı geçebilir; 120 koşuda görülmedi (bkz. tek koşu).
+// okuma olmaz ve tur sayısı k + 64 olur: 66'yı geçebilir; önceki 120 koşuda görülmedi, sonraki 100 koşuda bir kez 67 tur (bkz. tek koşu).
 // Süre için Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek
 // koşuda sınanır. Windows'ta süre yüksek öncelikte sınanır: yüklü makinede işletim sistemi tutanı
 // 40–66 ms çalıştırmıyor, kilit o sırada devredemez. Normal öncelikte yükte 25/75 koşu kaldı,
@@ -347,7 +350,7 @@ func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 		t.Run(mode.name, func(t *testing.T) {
 			modeRuns := runs
 			if mode.fallback {
-				modeRuns = 1 // tur sayısı: Windows'ta boşta 50/50 ve yükte 50/50 koşu sığdı (2026-11-04)
+				modeRuns = 1 // tur sayısı: Windows'ta boşta 49/50 ve yükte 50/50 koşu sığdı (2026-11-04)
 			} else {
 				raiseTestPriority(t)
 			}
