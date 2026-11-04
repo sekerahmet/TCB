@@ -52,11 +52,7 @@ func expm1(x float64) float64 {
 	const (
 		Othreshold = 7.09782712893383973096e+02 // 0x40862E42FEFA39EF
 		Ln2X56     = 3.88162421113569373274e+01 // 0x4043687a9f1af2b1
-		Ln2HalfX3  = 1.03972077083991796413e+00 // 0x3ff0a2b23f3bab73
 		Ln2Half    = 3.46573590279972654709e-01 // 0x3fd62e42fefa39ef
-		Ln2Hi      = 6.93147180369123816490e-01 // 0x3fe62e42fee00000
-		Ln2Lo      = 1.90821492927058770002e-10 // 0x3dea39ef35793c76
-		InvLn2     = 1.44269504088896338700e+00 // 0x3ff71547652b82fe
 		Tiny       = 1.0 / (1 << 54)            // 2**-54 = 0x3c90000000000000
 		// expm1 ile ilgili ölçeklenmiş katsayılar
 		Q1 = -3.33333333333331316428e-02 // 0xBFA11111111110F4
@@ -95,29 +91,7 @@ func expm1(x float64) float64 {
 	var c float64
 	var k int
 	if absx > Ln2Half { // |x| > 0.5 * ln2 ise
-		var hi, lo float64
-		if absx < Ln2HalfX3 { // ve |x| < 1.5 * ln2
-			if !sign {
-				hi = x - Ln2Hi
-				lo = Ln2Lo
-				k = 1
-			} else {
-				hi = x + Ln2Hi
-				lo = -Ln2Lo
-				k = -1
-			}
-		} else {
-			if !sign {
-				k = int(float64(InvLn2*x) + 0.5)
-			} else {
-				k = int(float64(InvLn2*x) - 0.5)
-			}
-			t := float64(k)
-			hi = x - float64(t*Ln2Hi) // t * Ln2Hi burada tamdır
-			lo = float64(t * Ln2Lo)
-		}
-		x = hi - lo
-		c = (hi - x) - lo
+		x, c, k = expm1Reduce(x, absx, sign)
 	} else if absx < Tiny { // |x| < 2**-54 ise x döner
 		return x
 	} else {
@@ -133,6 +107,46 @@ func expm1(x float64) float64 {
 	if k == 0 {
 		return x - (float64(x*e) - hxs) // c sıfırdır
 	}
+	return expm1Scale(x, e, c, hxs, k)
+}
+
+// expm1Reduce |x| > 0.5*ln2 için x'i ana aralığa indirger: x = k*ln2 + r, r = hi - lo; r'yi,
+// yuvarlama düzeltmesi c'yi ve k'yi verir.
+func expm1Reduce(x, absx float64, sign bool) (r, c float64, k int) {
+	const (
+		Ln2HalfX3 = 1.03972077083991796413e+00 // 0x3ff0a2b23f3bab73
+		Ln2Hi     = 6.93147180369123816490e-01 // 0x3fe62e42fee00000
+		Ln2Lo     = 1.90821492927058770002e-10 // 0x3dea39ef35793c76
+		InvLn2    = 1.44269504088896338700e+00 // 0x3ff71547652b82fe
+	)
+	var hi, lo float64
+	if absx < Ln2HalfX3 { // ve |x| < 1.5 * ln2
+		if !sign {
+			hi = x - Ln2Hi
+			lo = Ln2Lo
+			k = 1
+		} else {
+			hi = x + Ln2Hi
+			lo = -Ln2Lo
+			k = -1
+		}
+	} else {
+		if !sign {
+			k = int(float64(InvLn2*x) + 0.5)
+		} else {
+			k = int(float64(InvLn2*x) - 0.5)
+		}
+		t := float64(k)
+		hi = x - float64(t*Ln2Hi) // t * Ln2Hi burada tamdır
+		lo = float64(t * Ln2Lo)
+	}
+	x = hi - lo
+	c = (hi - x) - lo
+	return x, c, k
+}
+
+// expm1Scale k != 0 için ana aralığın sonucunu 2**k ile ölçekler.
+func expm1Scale(x, e, c, hxs float64, k int) float64 {
 	e = (float64(x*(e-c)) - c)
 	e -= hxs
 	switch {
@@ -154,7 +168,7 @@ func expm1(x float64) float64 {
 		y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // k'yi y'nin üssüne ekle
 		return y
 	}
-	t = math.Float64frombits(uint64(0x3ff-k) << 52) // 2**-k
+	t := math.Float64frombits(uint64(0x3ff-k) << 52) // 2**-k
 	y := x - (e + t)
 	y++
 	y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // k'yi y'nin üssüne ekle

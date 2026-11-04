@@ -56,7 +56,6 @@ func log1p(x float64) float64 {
 		Sqrt2HalfM1 = -2.928932188134524755992e-01 // Sqrt(2)/2-1 = 0xbfd2bec333018866
 		Small       = 1.0 / (1 << 29)              // 2**-29 = 0x3e20000000000000
 		Tiny        = 1.0 / (1 << 54)              // 2**-54
-		Two53       = 1 << 53                      // 2**53
 		Ln2Hi       = 6.93147180369123816490e-01   // 3fe62e42fee00000
 		Ln2Lo       = 1.90821492927058770002e-10   // 3dea39ef35793c76
 		Lp1         = 6.666666666666735130e-01     // 3FE5555555555593
@@ -99,33 +98,7 @@ func log1p(x float64) float64 {
 	}
 	var c float64
 	if k != 0 {
-		var u float64
-		if absx < Two53 { // 1<<53
-			u = 1.0 + x
-			iu = math.Float64bits(u)
-			k = int((iu >> 52) - 1023)
-			// düzeltme terimi
-			if k > 0 {
-				c = 1.0 - (u - x)
-			} else {
-				c = x - (u - 1.0)
-			}
-			c /= u
-		} else {
-			u = x
-			iu = math.Float64bits(u)
-			k = int((iu >> 52) - 1023)
-			c = 0
-		}
-		iu &= 0x000fffffffffffff
-		if iu < 0x0006a09e667f3bcd { // Sqrt(2)'nin mantisi
-			u = math.Float64frombits(iu | 0x3ff0000000000000) // u'yu normalleştir
-		} else {
-			k++
-			u = math.Float64frombits(iu | 0x3fe0000000000000) // u/2'yi normalleştir
-			iu = (0x0010000000000000 - iu) >> 2
-		}
-		f = u - 1.0 // Sqrt(2)/2 < u < Sqrt(2)
+		f, c, iu, k = log1pReduce(x, absx)
 	}
 	hfsq := float64(float64(0.5*f) * f)
 	var s, R, z float64
@@ -150,4 +123,38 @@ func log1p(x float64) float64 {
 		return f - (hfsq - float64(s*(hfsq+R)))
 	}
 	return float64(float64(k)*Ln2Hi) - ((hfsq - (float64(s*(hfsq+R)) + (float64(float64(k)*Ln2Lo) + c))) - f)
+}
+
+// log1pReduce 1+x'i 2**k * (1+f) biçimine indirger; f'yi, yuvarlama düzeltmesi c'yi, f'nin
+// kesir bitlerini iu'yu ve k'yi verir.
+func log1pReduce(x, absx float64) (f, c float64, iu uint64, k int) {
+	const Two53 = 1 << 53 // 2**53
+	var u float64
+	if absx < Two53 { // 1<<53
+		u = 1.0 + x
+		iu = math.Float64bits(u)
+		k = int((iu >> 52) - 1023)
+		// düzeltme terimi
+		if k > 0 {
+			c = 1.0 - (u - x)
+		} else {
+			c = x - (u - 1.0)
+		}
+		c /= u
+	} else {
+		u = x
+		iu = math.Float64bits(u)
+		k = int((iu >> 52) - 1023)
+		c = 0
+	}
+	iu &= 0x000fffffffffffff
+	if iu < 0x0006a09e667f3bcd { // Sqrt(2)'nin mantisi
+		u = math.Float64frombits(iu | 0x3ff0000000000000) // u'yu normalleştir
+	} else {
+		k++
+		u = math.Float64frombits(iu | 0x3fe0000000000000) // u/2'yi normalleştir
+		iu = (0x0010000000000000 - iu) >> 2
+	}
+	f = u - 1.0 // Sqrt(2)/2 < u < Sqrt(2)
+	return f, c, iu, k
 }

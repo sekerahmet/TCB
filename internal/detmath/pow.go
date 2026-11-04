@@ -51,49 +51,8 @@ func Pow(x, y float64) float64 {
 }
 
 func pow(x, y float64) float64 {
-	switch {
-	case y == 0 || x == 1:
-		return 1
-	case y == 1:
-		return x
-	case math.IsNaN(x) || math.IsNaN(y):
-		return math.NaN()
-	case x == 0:
-		switch {
-		case y < 0:
-			if math.Signbit(x) && isOddInt(y) {
-				return math.Inf(-1)
-			}
-			return math.Inf(1)
-		case y > 0:
-			if math.Signbit(x) && isOddInt(y) {
-				return x
-			}
-			return 0
-		}
-	case math.IsInf(y, 0):
-		switch {
-		case x == -1:
-			return 1
-		case (math.Abs(x) < 1) == math.IsInf(y, 1):
-			return 0
-		default:
-			return math.Inf(1)
-		}
-	case math.IsInf(x, 0):
-		if math.IsInf(x, -1) {
-			return Pow(1/x, -y) // Pow(-0, -y)
-		}
-		switch {
-		case y < 0:
-			return 0
-		case y > 0:
-			return math.Inf(1)
-		}
-	case y == 0.5:
-		return math.Sqrt(x)
-	case y == -0.5:
-		return 1 / math.Sqrt(x)
+	if v, done := powSpecial(x, y); done {
+		return v
 	}
 
 	yi, yf := math.Modf(math.Abs(y))
@@ -160,4 +119,53 @@ func pow(x, y float64) float64 {
 		ae = -ae
 	}
 	return math.Ldexp(a1, ae)
+}
+
+// powSpecial Pow'un özel durumlarının sonucunu verir; durum özel değilse ikinci değer yanlıştır.
+func powSpecial(x, y float64) (float64, bool) {
+	switch {
+	case y == 0 || x == 1:
+		return 1, true
+	case y == 1:
+		return x, true
+	case math.IsNaN(x) || math.IsNaN(y):
+		return math.NaN(), true
+	case x == 0:
+		switch {
+		case y < 0:
+			if math.Signbit(x) && isOddInt(y) {
+				return math.Inf(-1), true
+			}
+			return math.Inf(1), true
+		case y > 0:
+			if math.Signbit(x) && isOddInt(y) {
+				return x, true
+			}
+			return 0, true
+		}
+	case math.IsInf(y, 0):
+		switch {
+		case x == -1:
+			return 1, true
+		case (math.Abs(x) < 1) == math.IsInf(y, 1):
+			return 0, true
+		default:
+			return math.Inf(1), true
+		}
+	case math.IsInf(x, 0):
+		if math.IsInf(x, -1) {
+			return Pow(1/x, -y), true // Pow(-0, -y)
+		}
+		switch {
+		case y < 0:
+			return 0, true
+		case y > 0:
+			return math.Inf(1), true
+		}
+	case y == 0.5:
+		return math.Sqrt(x), true
+	case y == -0.5:
+		return 1 / math.Sqrt(x), true
+	}
+	return 0, false
 }

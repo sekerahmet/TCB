@@ -24,11 +24,6 @@ const MaxLongFuncs = 40
 
 // LongFuncs FuncLimit'i aşan test dışı fonksiyonların ("dosya:Alici.Ad") tavanıdır (bugünkü satır sayısı).
 var LongFuncs = map[string]int{
-	// Go'nun math kaynağı
-	"internal/detmath/expm1.go:expm1": 112,
-	"internal/detmath/log1p.go:log1p": 101,
-	"internal/detmath/pow.go:pow":     112,
-
 	// Dil çekirdeği
 	"internal/lang/interp/compiler_loop.go:compiler.inLoop":     172,
 	"internal/lang/interp/compiler_expr.go:compiler.expression": 168,
