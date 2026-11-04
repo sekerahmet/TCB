@@ -838,7 +838,7 @@ const (
 	H5218 Code = 5218 // {index}. birleştirme: {error}
 	H5219 Code = 5219 // {index}. birleştirme ({left|q}, {right|q}) dağarcıkta olmayan bir parça içeriyor
 	H5220 Code = 5220 // {index}. birleştirmenin sonucu {result|q} dağarcıkta yok
-	H5221 Code = 5221 // dağarcıkta geçersiz kimlik: {token|q} -> {id}
+	H5221 Code = 5221 // dağarcıkta geçersiz kimlik: {token|q} -> {id}; kimlik 0 ile {max} arasında olmalı
 	H5222 Code = 5222 // birleştirme {text|q} iki parçaya ayrılamadı
 	H5223 Code = 5223 // birleştirme girdisi çözümlenemedi: {text}
 	H5224 Code = 5224 // {index}. dağarcık girdisi [parça, puan] biçiminde değil
@@ -893,7 +893,7 @@ const (
 	H5274 Code = 5274 // parçalayıcı JSON'u çözümlenemedi: {error}
 	H5275 Code = 5275 // desteklenmeyen yapılandırma: truncation (kırpma) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
 	H5276 Code = 5276 // desteklenmeyen yapılandırma: padding (dolgu) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
-	H5277 Code = 5277 // ek parça {content|q} dosyada {file_id} kimliğiyle tanımlı, ancak sözlükteki kimliği {known}; tutarsız dosya
+	H5277 Code = 5277 // ek parça {content|q} dosyada {file_id} kimliğiyle tanımlı, ancak aynı metnin kimliği {known}; tutarsız dosya
 	H5278 Code = 5278 // son işleyicinin eklediği özel token kimliği {id} sözlükte yok
 	H5279 Code = 5279 // ek parça {content|q} normalleştirilemedi: {error}
 	H5280 Code = 5280 // normalleştirici

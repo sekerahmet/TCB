@@ -139,6 +139,9 @@ func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 		{"azalan sıra", both(added(12, "</s>"), added(9, "<s>")), 13, 9},
 		{"sözlükteki metin kendi kimliğiyle", both(added(5, "b"), added(9, "<s>")), 10, 9},
 		{"aynı parça iki kez", both(added(9, "<s>"), added(9, "<s>")), 10, 9},
+		{"aynı parça başka bayrakla", both(added(9, "<s>"), strings.Replace(added(9, "<s>"), `"lstrip":false`, `"lstrip":true`, 1)), 10, 9},
+		{"boş içerik dolu kimlikte", both(added(5, ""), added(9, "<s>")), 10, 9},
+		{"boş içerik sınırın dışında", both(added(-1, ""), added(9, "<s>")), 10, 9},
 	} {
 		p, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + wordLevel))
 		if err != nil {
@@ -164,12 +167,21 @@ func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 		{"sözlükteki metin başka kimlikle", added(9, "b"), wordLevel, messages.H5277, "5"},
 		{"aynı metin başka kimlikle", both(added(9, "<s>"), added(11, "<s>")), wordLevel, messages.H5277, "9"},
 		{"sınırı aşan", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741825"},
+		{"sınırı söyler", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741824"},
 		{"eksi", added(-1, "<s>"), wordLevel, messages.H5221, "-1"},
 	} {
 		_, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + c.model))
 		if !messages.Has(err, c.code) || !strings.Contains(err.Error(), c.text) {
 			t.Errorf("%s: %v; %v ve %s bekleniyordu", c.name, err, c.code, c.text)
 		}
+	}
+	again := strings.Replace(added(9, "<s>"), `"special":true`, `"special":false`, 1)
+	p, err := Parse([]byte(head + `"added_tokens":[` + both(added(9, "<s>"), again) + `],` + wordLevel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.IsSpecial(9) {
+		t.Error("aynı parçanın son yazımının bayrakları geçerlidir")
 	}
 	if _, err := Parse([]byte(head + `"added_tokens":[` + added(1<<30, "<s>") + `],` + wordLevel)); err != nil {
 		t.Errorf("sınırdaki kimlik geçerli: %v", err)

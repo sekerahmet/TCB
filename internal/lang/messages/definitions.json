@@ -833,7 +833,7 @@
 "H5218": { "param": ["index", "error"] },
 "H5219": { "param": ["index", "left", "right"] },
 "H5220": { "param": ["index", "result"] },
-"H5221": { "param": ["token", "id"] },
+"H5221": { "param": ["token", "id", "max"] },
 "H5222": { "param": ["text"] },
 "H5223": { "param": ["text"] },
 "H5224": { "param": ["index"] },
