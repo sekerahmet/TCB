@@ -17,6 +17,7 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 
 | Tarih | Commit | Makine | Ne | Sonuç | Kaynak |
 | :-- | :-- | :-- | :-- | :-- | :-- |
+| 2026-11-04 | `85be9773` (kilit düzeltmesi) | Colab CPU, Xeon 2,20 GHz | Bekleyen varken kilit bedeli, `705c16f1`'e göre, sıra dönüşümlü | Sınır −%0,2; iki görevli döngü +%1,7, çeyrekler +%0,8 / +%3,5 (kopya +%0,3); ikinci koşu +%1,4. `lockClock` 32 bayta inince döngü +%1,8: boyut sebep değil, sebep ölçülmedi | T1, `t1_kilit_hiz_cpu3`, `cpu4` |
 | 2026-11-03 | `3a5114d2` (S-kilit, birleşen sürüm) | Colab L4, CPU | Uzun tensör işi sürerken başka görevin beklemesi; 100 Hz döngü | CPU: gözcü ≤ 3,5 ms 10/10, kaçan tur 0 10/10; GPU: uzun işte tur kaçıyor (status 10.2, C, Ö2) | Colab defteri 11:08 koşusu |
 | 2026-11-03 | `6cab4f89` | Colab L4 | `gpt_training.tr` ve `ss_exam.tr` gerçek kartta, dolgulu dağarcık | 5,5 ms/adım (çok küçük model; yalnız çalıştığının sınaması) | Colab defteri 16:09:50 koşusu |
 | 2026-11-03 | `27a7b1c5`, `4e924cf9` (Kol A ve Kol B teslim 1 dahil) | Colab L4 | Kart sınamasında hedef model adımı (PyTorch'suz) | 916,5 ve 899 ms/adım (iki ayrı koşu); Kol B teslim 2a'dan sonra 926, 864 ve 924,5 ms/adım. Koşular arası fark %7'ye çıkıyor [hesap: 926 / 864]: tek koşu hız sinyali değil, kart sınamasıdır (DENETİM istek 83 N1) | Colab defteri 17:44:12, 17:57:56, 19:14:50, 19:23:51 ve 19:31:22 koşuları |
