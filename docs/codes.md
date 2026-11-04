@@ -2322,7 +2322,7 @@ tr: yazdır(max([2.0, 1.5]), max(3, 7, 5), max(Tensör([[1, 5], [3, 2]]), eksen:
 
 #### `TR_mean(...)` (`TR_fn_mean`, `ortalama`)
 
-    ortalama(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
+    ortalama(Liste | Tensör, eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
 
 Sayıların aritmetik ortalamasını Ondalık olarak verir; tek bir liste ya da birden çok sayı alır, boş girdi ve sayı olmayan eleman hatadır. Tensörde eksen: alır, boş tensörün ortalaması hatadır.
 
@@ -2341,7 +2341,7 @@ tr: yazdır(ortalama([1, 2, 3, 4]), ortalama(Tensör([[1, 2], [3, 4]]), eksen: 1
 
 #### `TR_median(...)` (`TR_fn_median`, `ortanca`)
 
-    ortanca(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
+    ortanca(Liste) → Ondalık
 
 Sayıların ortancasını Ondalık olarak verir; eleman sayısı çiftse ortadaki ikisinin ortalamasıdır; ortalama gibi boş girdi ve sayı olmayan eleman hatadır.
 
@@ -2970,7 +2970,7 @@ tr: yazdır(karekök(16), karekök(2.25))
 
 #### `TR_std(...)` (`TR_fn_std`, `standart_sapma`)
 
-    standart_sapma(Liste | Tam | Ondalık, [Tam | Ondalık...]) → Ondalık
+    standart_sapma(Liste) → Ondalık
 
 Sayıların örneklem standart sapmasını (n−1'e bölerek) Ondalık olarak verir; ortalama gibi tek bir liste ya da birden çok sayı alır, boş girdi, tek öğe ve sayı olmayan eleman hatadır.
 

@@ -127,7 +127,7 @@ func exactSum(ints []int64) *big.Int {
 	return sum
 }
 
-// exactInFloat, n'nin ondalıkta kesin durduğunu söyler: |n| ≤ 2^53 (yalnızca bu sınır sınanır).
+// exactInFloat, n'nin ondalıkta kesin durduğunu söyler: |n| < 2^53 (yalnızca bu sınır sınanır).
 func exactInFloat(n *big.Int) bool { return n.BitLen() <= 53 }
 
 // nearestFloat n/m'nin en yakın ondalığıdır, eşitte çift olana: kesin değer bir kez yuvarlanır (13.1).
