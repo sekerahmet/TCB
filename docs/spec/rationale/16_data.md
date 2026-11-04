@@ -12,6 +12,7 @@ Kurallar: [`16_veri_parcalayici.md`](../16_veri_parcalayici.md). Bu dosya her ku
 - *Gerekçe (eklenmiş parçanın kimliği, 2026-11-04):* kimlik modelin satırını seçer; TR onu değiştirmez, tutmayan dosyayı reddeder. Kural tek cümledir ve dosyadaki sıraya bağlı değildir. Önceki sıra hesabı `{"[UNK]":0,"a":1,"b":5}` üstünde 3, 4, 5 kimlikli parçaları kabul edip `b`'yi eziyordu: `a b z` metni `a z z` olarak dönüyordu, hatasız.
 - *Emsal, karşı örnek:* Hugging Face `tokenizers` 0.23.2 sözlükte olmayan eklenmiş parçanın dosyadaki kimliğini okumaz, sıradakini verir: aynı sözlükte 9 yazan parça 3 olur; sıra dolu kimliğe gelirse sözlükteki parçayı ezer [ölçüldü: T1].
 - *Risk, iki yönlü [hipotez: gerçek dosyada görülmedi]:* budanmış sözlükte modelin satırları dosyadaki kimliklere göre durur; `tokenizers`'ın 3'ü orada sessiz yanlıştır. Tersi de olabilir: başka araçta `tokenizers` ile eğitilen bir modelin satırları sıradaki kimliğe göre durur, dosyadaki kimlik yanlıştır ve TR'nin 9'u yanlış satırı seçer. Qwen3 ve SmolLM2'de iki yol aynı kimliği verir [ölçüldü: T1].
+- *Gerekçe (GGUF, 2026-11-04, DENETİM istek 118):* ön ayırıcının kalıbı GGUF'ta yazmaz, yalnız `tokenizer.ggml.pre` etiketi vardır; etiket kalıptan fazlasını taşır: `llama-bpe` `ignore_merges` ve varsayılan `add_bos` getirir, Llama dosyalarında `add_bos_token` anahtarı yoktur [ölçüldü: DENETİM]. Bilinmeyen etiket hatadır: varsayılana düşmek parçaları sessizce değiştirirdi.
 
 ### 16.2
 

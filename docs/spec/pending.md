@@ -32,6 +32,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **6.6, karışık dönüş (2026-11-04, A, DENETİM istek 105 P2, 108 R1, 109 V1, V2):** dönüş tipi beklenmeyen blok gövdesinde değer veren bir yol varsa her yol biter; `TR_return TR_none` da hata. Turda emsal karşılaştırması.
 - **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır, yarım çifte gider. Uygulandı.
 - **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda: motor sıradaki satırla sürüyor, yakalanan hatadan sonra "dosya bitti" demez. Uygulandı.
+- **15.51, 15.52, 15.53, 15.55, 16.1, GGUF okuma (2026-11-04, A ve D, Ahmet'in kararı; Gemini `GGUF_RAPORU.md`, DENETİM istek 118):** salt okunur "q4_k", "q6_k"; `TR_load_tensors` ve `TR_load_tokenizer` GGUF okur; yeni ad `TR_load_metadata`; `1 / d` sonsuzsa sıfır blok gibi kodlama (D, Ö3); fp16 ölçek sonsuzsa nicemleme hatası (A, Ö1). Uygulama H1.
 
 ## Ara
 - **15.24, cinsi bilinmeyen maske (2026-11-03, T1 Kol B teslim 1; DENETİM istek 80 Ş-t1):** "0/1 sayı tensörü denetim hatasıdır"; denetleyici tensörün cinsini tutmuyor, dokuz yazımın sekizi çalışma anında, hiçbiri denetimde yakalanıyor (H6985). Cümle: "denetleyici cinsini bilmiyorsa çalışma hatasıdır, ileti aynıdır".
