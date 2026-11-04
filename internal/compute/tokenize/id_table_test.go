@@ -3,6 +3,7 @@ package tokenize
 import (
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -116,45 +117,61 @@ func TestVocabSizeIsTheIDBound(t *testing.T) {
 	}
 }
 
-// Kural (16.1): ek parçanın dosyadaki kimliği görülen bütün kimliklerin üstündeyse geçerlidir:
-// metin o kimliğe kodlanır, sınır onunla büyür. Başka bir kimlik tutarsızdır (H5277).
-func TestAddedTokenAboveAllIDsKeepsItsID(t *testing.T) {
+// Kural (16.1): ek parçanın kimliği dosyadaki kimliktir, hiç değiştirilmez: ya geçerlidir ya dosya
+// reddedilir. Sonuç dosya sırasına bağlı değildir.
+func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 	const head = `{"version":"1.0","truncation":null,"padding":null,"normalizer":null,"pre_tokenizer":{"type":"WhitespaceSplit"},"post_processor":null,"decoder":null,`
 	const wordLevel = `"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1,"b":5},"unk_token":"[UNK]"}}`
+	const unigram = `"model":{"type":"Unigram","unk_id":0,"vocab":[["<unk>",0.0],["a",-1.0],["a",-2.0]]}}`
 	added := func(id int, content string) string {
 		return fmt.Sprintf(`{"id":%d,"content":%q,"single_word":false,"lstrip":false,"rstrip":false,"normalized":false,"special":true}`, id, content)
 	}
+	both := func(a, b string) string { return a + "," + b }
 	for _, c := range []struct {
 		name, tokens string
-		bound        int
-		encoded      string
+		bound, id    int
 	}{
-		{"üstte", added(9, "<s>"), 10, "[1 9 5]"},
-		{"sınırda", added(6, "<s>"), 7, "[1 6 5]"},
-		{"boşlukta sıradaki", added(3, "<s>"), 6, "[1 3 5]"},
-		{"ikisi üstte", added(9, "<s>") + "," + added(12, "</s>"), 13, "[1 9 5]"},
-		{"üstten sonra sıradaki", added(9, "<s>") + "," + added(10, "</s>"), 11, "[1 9 5]"},
+		{"üstte", added(9, "<s>"), 10, 9},
+		{"sınırda", added(6, "<s>"), 7, 6},
+		{"boşlukta", added(3, "<s>"), 6, 3},
+		{"boşlukta sırasız", added(4, "<s>"), 6, 4},
+		{"ikisi üstte", both(added(9, "<s>"), added(12, "</s>")), 13, 9},
+		{"azalan sıra", both(added(12, "</s>"), added(9, "<s>")), 13, 9},
+		{"sözlükteki metin kendi kimliğiyle", both(added(5, "b"), added(9, "<s>")), 10, 9},
+		{"aynı parça iki kez", both(added(9, "<s>"), added(9, "<s>")), 10, 9},
 	} {
 		p, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + wordLevel))
 		if err != nil {
 			t.Fatalf("%s: %v", c.name, err)
 		}
-		if got := fmt.Sprint(p.Encode("a <s> b")); got != c.encoded {
-			t.Errorf("%s: kodlama %s, beklenen %s", c.name, got, c.encoded)
+		if got, want := fmt.Sprint(p.Encode("a <s> b")), fmt.Sprintf("[1 %d 5]", c.id); got != want {
+			t.Errorf("%s: kodlama %s, beklenen %s", c.name, got, want)
 		}
 		if n := p.VocabSize(); n != c.bound {
 			t.Errorf("%s: sınır %d, beklenen %d", c.name, n, c.bound)
 		}
 	}
-	for name, tokens := range map[string]string{
-		"dolu kimlik":      added(5, "<s>"),
-		"boşlukta sırasız": added(4, "<s>"),
-		"azalan":           added(12, "</s>") + "," + added(9, "<s>"),
-		"sözlükteki metin": added(9, "b"),
-		"sınırı aşan":      added(1<<30+1, "<s>"),
+	for _, c := range []struct {
+		name, tokens, model string
+		code                messages.Code
+		text                string
+	}{
+		{"dolu kimlik", added(5, "<s>"), wordLevel, messages.H5291, `"b"`},
+		{"sırada dolu kimliğe gelen", both(both(added(3, "x"), added(4, "y")), added(5, "z")), wordLevel, messages.H5291, `"z"`},
+		{"iki parça aynı kimlikte", both(added(9, "<s>"), added(9, "</s>")), wordLevel, messages.H5291, `"<s>"`},
+		{"kimlik listeli model", added(1, "<s>"), unigram, messages.H5291, `"a"`},
+		{"kimlik listeli modelde ikinci kimlik", added(2, "<s>"), unigram, messages.H5291, `"a"`},
+		{"sözlükteki metin başka kimlikle", added(9, "b"), wordLevel, messages.H5277, "5"},
+		{"aynı metin başka kimlikle", both(added(9, "<s>"), added(11, "<s>")), wordLevel, messages.H5277, "9"},
+		{"sınırı aşan", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741825"},
+		{"eksi", added(-1, "<s>"), wordLevel, messages.H5221, "-1"},
 	} {
-		if _, err := Parse([]byte(head + `"added_tokens":[` + tokens + `],` + wordLevel)); !messages.Has(err, messages.H5277) {
-			t.Errorf("%s: H5277 bekleniyordu: %v", name, err)
+		_, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + c.model))
+		if !messages.Has(err, c.code) || !strings.Contains(err.Error(), c.text) {
+			t.Errorf("%s: %v; %v ve %s bekleniyordu", c.name, err, c.code, c.text)
 		}
+	}
+	if _, err := Parse([]byte(head + `"added_tokens":[` + added(1<<30, "<s>") + `],` + wordLevel)); err != nil {
+		t.Errorf("sınırdaki kimlik geçerli: %v", err)
 	}
 }

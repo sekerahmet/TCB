@@ -37,8 +37,11 @@ type idListModel interface {
 	idTokens() []string
 }
 
-// largestID modelin en büyük kimliğidir (kimlik yoksa -1).
-func largestID(vocab map[string]int32, ids idListModel) int {
+// buildIDTable kimlik -> token tablosunu kurar. Model kimlik listesi veriyorsa (ids) tablo
+// ondan kurulur; değilse sözlük haritasından, aynı kimliği paylaşan tokenlardan sözlükte
+// (bayt sırasıyla) en küçüğü seçilir: harita sırası her yüklemede değiştiğinden sonuç
+// belirlenimci olur.
+func (p *Tokenizer) buildIDTable(vocab map[string]int32, ids idListModel, nrmContent map[int]string, specialContent map[string]bool) {
 	largest := -1
 	for _, id := range vocab {
 		largest = max(largest, int(id))
@@ -46,15 +49,6 @@ func largestID(vocab map[string]int32, ids idListModel) int {
 	if ids != nil {
 		largest = max(largest, len(ids.idTokens())-1)
 	}
-	return largest
-}
-
-// buildIDTable kimlik -> token tablosunu kurar. Model kimlik listesi veriyorsa (ids) tablo
-// ondan kurulur; değilse sözlük haritasından, aynı kimliği paylaşan tokenlardan sözlükte
-// (bayt sırasıyla) en küçüğü seçilir: harita sırası her yüklemede değiştiğinden sonuç
-// belirlenimci olur.
-func (p *Tokenizer) buildIDTable(vocab map[string]int32, ids idListModel, nrmContent map[int]string, specialContent map[string]bool) {
-	largest := largestID(vocab, ids)
 	for _, e := range p.extras {
 		largest = max(largest, e.ID)
 	}

@@ -893,7 +893,7 @@ const (
 	H5274 Code = 5274 // parçalayıcı JSON'u çözümlenemedi: {error}
 	H5275 Code = 5275 // desteklenmeyen yapılandırma: truncation (kırpma) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
 	H5276 Code = 5276 // desteklenmeyen yapılandırma: padding (dolgu) tanımlı; kodlama çıktısını değiştireceği için desteklenmiyor
-	H5277 Code = 5277 // ek parça {content|q} dosyada {file_id} kimliğiyle tanımlı, ancak hesaplanan kimlik {computed}; tutarsız dosya
+	H5277 Code = 5277 // ek parça {content|q} dosyada {file_id} kimliğiyle tanımlı, ancak sözlükteki kimliği {known}; tutarsız dosya
 	H5278 Code = 5278 // son işleyicinin eklediği özel token kimliği {id} sözlükte yok
 	H5279 Code = 5279 // ek parça {content|q} normalleştirilemedi: {error}
 	H5280 Code = 5280 // normalleştirici
@@ -907,6 +907,7 @@ const (
 	H5288 Code = 5288 // iç içe sınırsız niceleyici (ör. "(a+)+" ya da "(\w+\s*)*") üstel geri izlemeye yol açabilir
 	H5289 Code = 5289 // çıktı uzunluğu adım sınırını ({budget}) aştı: normalleştirici, ön bölücü ya da çözücü zinciri çıktıyı girdiyle orantısız büyütüyor; işlem durduruldu
 	H5290 Code = 5290 // model arama adımları (WordPiece, Unigram) adım sınırını ({budget}) aştı: parçalayıcı modeli girdiyle orantısız iş yapıyor; işlem durduruldu
+	H5291 Code = 5291 // ek parça {content|q} {id} kimliğiyle tanımlı, ancak bu kimlik {owner|q} parçasının; tutarsız dosya
 	H5500 Code = 5500 // {shards} veri dosyası, {tokens|decimal} parça
 	H5501 Code = 5501 // {type}({summary}, önbellek {quota|decimal})
 	H5502 Code = 5502 // Veri kümesi
