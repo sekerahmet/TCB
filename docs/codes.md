@@ -1936,14 +1936,14 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
 
 ```tr
-TR_print(TR_grad_check((x) => x * x, [TR_Tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01))
+TR_grad_check((x) => x * x, [TR_Tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01); TR_print("türev doğru")
 ```
 
 Görünümü:
 
 ```text
-en: print(grad_check((x) => x * x, [Tensor([0.5, -1.0], requires_grad: true)], fd_step: 0.001, tol: 0.01))
-tr: yazdır(türev_denetle((x) => x * x, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01))
+en: grad_check((x) => x * x, [Tensor([0.5, -1.0], requires_grad: true)], fd_step: 0.001, tol: 0.01); print("türev doğru")
+tr: türev_denetle((x) => x * x, [Tensör([0.5, -1.0], türev_izle: doğru)], fark_adımı: 0.001, tolerans: 0.01); yazdır("türev doğru")
 ```
 
 İlişkili: `TR_custom_grad(...)`
@@ -3696,14 +3696,14 @@ Kullananlar: `TR_Checkpoint` · İlişkili: `TR_keep:`
 türev_denetle'de sayısal gradyanı veren merkezi farkın adım büyüklüğüdür (h): (f(x + h) - f(x - h)) / 2h. Pozitif olmalıdır; varsayılan 0.001'dir.
 
 ```tr
-TR_print(TR_grad_check((x) => x * x, [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)], TR_fd_step: 0.01))
+TR_grad_check((x) => x * x, [TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)], TR_fd_step: 0.01); TR_print("türev doğru")
 ```
 
 Görünümü:
 
 ```text
-en: print(grad_check((x) => x * x, [Tensor([1.0, 2.0], requires_grad: true)], fd_step: 0.01))
-tr: yazdır(türev_denetle((x) => x * x, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01))
+en: grad_check((x) => x * x, [Tensor([1.0, 2.0], requires_grad: true)], fd_step: 0.01); print("türev doğru")
+tr: türev_denetle((x) => x * x, [Tensör([1.0, 2.0], türev_izle: doğru)], fark_adımı: 0.01); yazdır("türev doğru")
 ```
 
 Kullananlar: `TR_grad_check(...)` · İlişkili: `TR_tol:`
@@ -4347,14 +4347,14 @@ Kullananlar: `.TR_wait(...)` · İlişkili: `.TR_wait(...)`, `.TR_cancel(...)`
 türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir.
 
 ```tr
-TR_print(TR_grad_check((x) => TR_sigmoid(x), [TR_Tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001))
+TR_grad_check((x) => TR_sigmoid(x), [TR_Tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001); TR_print("türev doğru")
 ```
 
 Görünümü:
 
 ```text
-en: print(grad_check((x) => sigmoid(x), [Tensor([0.3], requires_grad: true)], tol: 0.001))
-tr: yazdır(türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001))
+en: grad_check((x) => sigmoid(x), [Tensor([0.3], requires_grad: true)], tol: 0.001); print("türev doğru")
+tr: türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tolerans: 0.001); yazdır("türev doğru")
 ```
 
 Kullananlar: `TR_grad_check(...)` · İlişkili: `TR_fd_step:`
@@ -5184,14 +5184,14 @@ tr: yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
 durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya da okuyucuya yükler ve doğru verir; tensörler parametrenin cihazına taşınır. Parametre sayısı ve şekiller, okuyucunun türü, toplu, bağlam, tohum ve veri kümesi aynı olmalıdır, değilse hata verir.
 
 ```tr
-TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_AdamW([w]); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_var yeni = TR_AdamW([w]); TR_print(yeni.TR_load_state(op.TR_state))
+TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_AdamW([w]); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_var yeni = TR_AdamW([w]); yeni.TR_load_state(op.TR_state); TR_print(op.TR_state.TR_keys())
 ```
 
 Görünümü:
 
 ```text
-en: var w = Tensor([1.0], requires_grad: true); var op = AdamW([w]); backward(sum(w * 2)); op.step(); var yeni = AdamW([w]); print(yeni.load_state(op.state))
-tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); geri_yayılım(toplam(w * 2)); op.adım(); değişken yeni = AdamW([w]); yazdır(yeni.durumu_yükle(op.durum))
+en: var w = Tensor([1.0], requires_grad: true); var op = AdamW([w]); backward(sum(w * 2)); op.step(); var yeni = AdamW([w]); yeni.load_state(op.state); print(op.state.keys())
+tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w]); geri_yayılım(toplam(w * 2)); op.adım(); değişken yeni = AdamW([w]); yeni.durumu_yükle(op.durum); yazdır(op.durum.anahtarlar())
 ```
 
 İlişkili: `.TR_state`

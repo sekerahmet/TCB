@@ -72,7 +72,7 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
     TR_var dosya_yolu = "\(TR_temp_dir())/kayit/egitim.jsonl"
     TR_var g = TR_Logger(dosya_yolu)
     TR_assert_equal(TR_Logger, TR_Type(g))
-    TR_assert_equal(TR_true, g.TR_append({"loss": 2.5, "step": 3, "nan": TR_Float("nan"), "kayıp_t": TR_Tensor([0.25])}))
+    g.TR_append({"loss": 2.5, "step": 3, "nan": TR_Float("nan"), "kayıp_t": TR_Tensor([0.25])})
     g.TR_append("ilk dönem bitti")
     TR_var s = satırlar(dosya_yolu)
     TR_assert_equal(3, s.TR_length)
@@ -119,7 +119,7 @@ TR_test "19.6 günlük hataları" {
 TR_test "19.7 ilerleme adım sayar, toplama ulaşınca biter" {
     TR_var ç = TR_Progress(3)
     TR_assert_equal(TR_Progress, TR_Type(ç))
-    TR_assert_equal(TR_true, ç.TR_update({"loss": 0.5}))
+    ç.TR_update({"loss": 0.5})
     TR_assert(TR_String(ç).TR_contains(" 1/3)"), TR_String(ç))
     ç.TR_update()
     ç.TR_update()

@@ -32,7 +32,8 @@ TR_print("kırpılmış gradyan:", u.TR_grad.TR_tolist)
 # durum iyileştiricinin iç durumunu (momentler) bir sözlük olarak verir; durumu_yükle aynı ayarla
 # kurulmuş başka bir iyileştiriciye geri yükler (kontrol noktaları böyle çalışır).
 TR_var yeni = TR_AdamW([v], TR_lr: 0.1, TR_beta1: 0.8, TR_beta2: 0.99)
-TR_print("durum yüklendi:", yeni.TR_load_state(adamw.TR_state))
+yeni.TR_load_state(adamw.TR_state)
+TR_print("durum yüklendi")
 
 # İnce ayarda gövde dondurulur: türev_izle'ye yanlış atamak gradyanı siler, iyileştirici o
 # parametreyi adımda atlar. Doğru atamak onu yeniden açar (aşamalı çözme).
