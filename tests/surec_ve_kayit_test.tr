@@ -93,11 +93,24 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
     TR_assert_equal("start", TR_String(s2[3]["kind"]))
 }
 
+TR_test "19.5 kayıttaki tam değerli adım tam sayı yazılır, ondalık ölçü olduğu gibi kalır" {
+    TR_var yol = "\(TR_temp_dir())/adım.jsonl"
+    TR_var g = TR_Logger(yol)
+    g.TR_append({"step": 3.0, "loss": 2.0})
+    TR_var kayıt = TR_json_parse(TR_read_file(yol).TR_strip().TR_split("
+")[1])
+    TR_assert_equal(3, TR_Int(kayıt["step"]))
+    TR_assert_equal(TR_Float, TR_Type(kayıt["loss"]))
+}
+
 TR_test "19.6 günlük hataları" {
     TR_var koşu = TR_temp_dir()
     TR_assert_equal("H7319", TR_error_code { TR_Logger("\(koşu)/a.csv") })
     TR_var g = TR_Logger("\(koşu)/h.jsonl")
     TR_assert_equal("H7321", TR_error_code { g.TR_append({"kind": "x"}) })
+    TR_assert_equal("H7013", TR_error_code { g.TR_append({"step": 3.5}) })
+    TR_assert_equal("H7013", TR_error_code { g.TR_append({"step": TR_nan}) })
+    TR_assert_equal("H7013", TR_error_code { g.TR_append({"step": 1e19}) })
     TR_assert_equal("H7300", TR_error_code { g.TR_append({"f": TR_print}) })
     TR_assert_equal("H2423", TR_error_code { g.TR_append(5) })
     TR_assert_equal("H7903", TR_error_code { g.eklee({}) })

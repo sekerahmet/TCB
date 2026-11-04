@@ -18,6 +18,21 @@ func TestValidLossMetrics(t *testing.T) {
 	}
 }
 
+// Kural: ValidLossMetrics tam sayı olmayan adımı 0 diye okumaz, test düşer (19.5); başlangıç kaydında
+// adım yoktur, o hata değildir.
+func TestValidLossMetricsRejectsAFractionalStep(t *testing.T) {
+	dir := t.TempDir()
+	log := WriteFile(t, dir, "metrics.jsonl", `{"kind":"start"}`+"\n"+`{"step":3.0,"loss":0.5}`+"\n")
+	r := &fatalRecorder{recorder: &recorder{TB: t}}
+	ValidLossMetrics(r, log, true)
+	if len(r.fatals) != 1 {
+		t.Errorf("the fractional step should have failed the test once: %v", r.fatals)
+	}
+	if got := ValidLossMetrics(t, WriteFile(t, dir, "ok.jsonl", `{"kind":"start"}`+"\n"+`{"step":3,"loss":0.5}`+"\n"), true); !slices.Equal(got, []string{"3:0.5"}) {
+		t.Errorf("got %v", got)
+	}
+}
+
 // Kural: AssertSameRunFiles aynı dosyalarda ve aynı geçerli kayıp dizisinde sessizdir.
 func TestAssertSameRunFiles(t *testing.T) {
 	a, b := t.TempDir(), t.TempDir()

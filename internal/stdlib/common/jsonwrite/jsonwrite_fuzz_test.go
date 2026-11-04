@@ -17,7 +17,7 @@ import (
 //	go test ./internal/stdlib/common/jsonwrite -run '^$' -fuzz FuzzJSONRoundTrip -fuzztime 5m
 func FuzzJSONRoundTrip(f *testing.F) {
 	for _, s := range []string{`{"b": 1, "a": [1, 2.5, -3e-7, "ç", null, true]}`, `[]`, `{}`, `"😀"`,
-		`1e400`, `-0`, `12345678901234567890`, `{"a":{"a":{"a":[[[[]]]]}}}`, `{"x":1,"x":2}`, `[{"a":{"b":1,"b":[2]}}]`, `{"a":1,"b":{"a":2}}`,
+		`1e400`, `-0`, `12345678901234567890`, `{"a":{"a":{"a":[[[[]]]]}}}`, `{"x":1,"x":2}`, `[{"a":{"b":1,"b":[2]}}]`, `{"a":1,"b":{"a":2}}`, `-0.0`,
 		strings.Repeat("[", 1001) + strings.Repeat("]", 1001)} {
 		f.Add([]byte(s))
 	}

@@ -4,6 +4,8 @@
 //     '{"b":1,"a":2}' verir).
 //   - Döngüsel ya da çok derin değerler yığın taşması yerine Türkçe hata verir.
 //   - JSON'da karşılığı olmayan Tanımsız (NaN) ve sonsuz sayılar Türkçe hata verir.
+//   - Ondalık sayı 3.2'nin en kısa yazımıyladır (13.8; TR_JSON'unkiyle aynı): 1.0, 1e-07, 1e+16;
+//     geri okununca yine ondalıktır (encoding/json 1.0'ı 1 yazar, geri okununca tam sayı olurdu).
 //   - Anahtarı metin olmayan sözlük hatadır (13.8): JSON'da anahtar metindir, geri okununca
 //     anahtarın tipi değişirdi; ileti anahtarları TR_String ile çevirmeyi önerir.
 //
@@ -113,20 +115,7 @@ func (y *writer) number(f float64) error {
 		}
 		return messages.New(messages.H7008, (&interp.FloatVal{Val: f}).Text(codes.Display()))
 	}
-	// encoding/json ile aynı biçim: küçük ve çok büyük sayılarda bilimsel yazım
-	format := byte('f')
-	if a := math.Abs(f); a != 0 && (a < 1e-6 || a >= 1e21) {
-		format = 'e'
-	}
-	y.b = strconv.AppendFloat(y.b, f, format, -1, 64)
-	if format == 'e' {
-		// 1e-07 → 1e-7
-		n := len(y.b)
-		if n >= 4 && y.b[n-4] == 'e' && y.b[n-3] == '-' && y.b[n-2] == '0' {
-			y.b[n-2] = y.b[n-1]
-			y.b = y.b[:n-1]
-		}
-	}
+	y.b = append(y.b, interp.FloatText(f)...)
 	return nil
 }
 

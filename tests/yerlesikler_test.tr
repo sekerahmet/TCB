@@ -361,6 +361,15 @@ TR_test "13.4 sözlük metotları" {
     TR_assert(d.TR_contains("a"))
 }
 
+TR_test "13.8 ondalık 3.2'nin yazımıyla yazılır, geri okununca yine ondalıktır" {
+    TR_assert_equal("[1.0,2.5,1e-07,1e+16,-0.0]", TR_json_string([1.0, 2.5, 1e-7, 1e16, -0.0]))
+    TR_assert_equal(TR_Float, TR_Type(TR_json_parse(TR_json_string([1.0]))[0]))
+    TR_assert_equal([1.0, 1e16], TR_List(TR_json_parse(TR_json_string([1.0, 1e16]))).TR_map((x) => TR_Float(x)))
+    TR_assert_equal("[1.0,2.5]", TR_json_string(TR_Tensor([1.0, 2.5])))
+    TR_assert_equal("[1,2]", TR_json_string(TR_Tensor[TR_Int]([1, 2])))
+    TR_assert_equal("[1,2.0]", TR_json_string(TR_json_parse("[1,2.0]")))
+}
+
 TR_test "13.8 anahtarı metin olmayan sözlük JSON'a yazılmaz; anahtarlar TR_String ile çevrilir" {
     TR_var d = {1: 2.5, 2: 3.5}
     TR_assert_equal("H7012", TR_error_code { TR_json_string(d) })

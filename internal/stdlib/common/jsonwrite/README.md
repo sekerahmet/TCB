@@ -9,6 +9,10 @@ dosyaları ve eğitim günlükleri bunu kullanır.
 verir.
 Denetim: `TestKeyOrderKept`, `TestSameFormatAsEncodingJSON`.
 
+**Ondalık ondalık kalır.** Ondalık sayı 3.2'nin en kısa yazımıyla yazılır (`1.0`, `1e-07`, `1e+16`),
+geri okununca yine ondalıktır.
+Denetim: `TestFloatsInTheLanguagesSpelling`.
+
 **Geçersiz JSON üretilmez.** Döngülü ya da çok derin değerler, anahtarı metin olmayan sözlük (13.8;
 geri okununca anahtarın tipi değişirdi), NaN ve sonsuz sayılar açık hatadır; ancak çağıran açıkça isterse sayı dışı değerler TR yazımıyla metin
 olarak yazılır (eğitim günlüğünde kayıpta beliren NaN gizlenmesin diye).

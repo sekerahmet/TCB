@@ -30,7 +30,8 @@ func TestKeyOrderKept(t *testing.T) {
 	}
 }
 
-// Biçim, alfabetik sıralı sözlükte encoding/json ile bayt bayt aynıdır (girintili ve girintisiz).
+// Biçim, alfabetik sıralı sözlükte encoding/json ile bayt bayt aynıdır (girintili ve girintisiz);
+// yalnız ondalık sayı 3.2'nin yazımıyladır (TestFloatsInTheLanguagesSpelling).
 func TestSameFormatAsEncodingJSON(t *testing.T) {
 	d := dict("a", list(interp.NewInt(1), &interp.FloatVal{Val: 0.5}, &interp.FloatVal{Val: 1e-7}, &interp.FloatVal{Val: 1e21}, &interp.FloatVal{Val: 2}),
 		"b", dict(), "c", list(), "d", interp.Null, "e", interp.True, "f", &interp.StringVal{Val: "<ş\"\n>"},
@@ -75,6 +76,31 @@ func TestCycleAndDepthError(t *testing.T) {
 	}
 }
 
+// Ondalık sayı 3.2'nin en kısa yazımıyla yazılır (13.8) ve geri okununca yine ondalıktır; tam
+// sayı ve tam sayı cinsli tensörün öğesi '.0'sızdır. Eskiden encoding/json'un yazımıyla 2.0 "2",
+// 1e16 "10000000000000000" yazılıyor, geri okununca tam sayı oluyordu.
+func TestFloatsInTheLanguagesSpelling(t *testing.T) {
+	floats := []float64{2, 0.5, 1e-7, 1e-5, 1e-4, 1e16, 1e21, 123456789012345680, math.Copysign(0, -1), 1.5e300}
+	var elems []interp.Value
+	for _, f := range floats {
+		elems = append(elems, &interp.FloatVal{Val: f})
+	}
+	b, err := Write(list(append(elems, interp.NewInt(2))...))
+	want := `[2.0,0.5,1e-07,1e-05,0.0001,1e+16,1e+21,1.2345678901234568e+17,-0.0,1.5e+300,2]`
+	if err != nil || string(b) != want {
+		t.Fatalf("%s %v\nbeklenen %s", b, err, want)
+	}
+	back, err := interp.JSONToTR(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, e := range back.(*interp.ListVal).Elements[:len(floats)] {
+		if f, ok := e.(*interp.FloatVal); !ok || f.Val != floats[i] {
+			t.Errorf("%d. öğe geri okununca ondalık %v olmalı: %s", i, floats[i], e.Inspect())
+		}
+	}
+}
+
 func TestNaNAndInfError(t *testing.T) {
 	for _, f := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
 		_, err := Write(dict("d", &interp.FloatVal{Val: f}))
@@ -112,7 +138,7 @@ func goValue(v interp.Value) any {
 	case *interp.IntVal:
 		return x.Val
 	case *interp.FloatVal:
-		return x.Val
+		return json.RawMessage(interp.FloatText(x.Val))
 	case *interp.StringVal:
 		return x.Val
 	case *interp.ListVal:

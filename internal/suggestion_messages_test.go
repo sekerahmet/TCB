@@ -130,6 +130,9 @@ type suggestionResultCase struct {
 // Cinsli tensörlerin iletileri (T1 dilim 2, H6960–H6979). H6969'un GPU önerisi
 // TestTypedPathsOnGPU'dadır (internal/stdlib/ml): bu tablo GPU'suz koşar.
 var suggestionResultCases = []suggestionResultCase{
+	// 19.6: kayıttaki adım tam değerli olmalıdır; ileti yuvarlamayı önerir, kırpmaz.
+	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": 3.5})", "TR_round(...)",
+		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_round(3.5)})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":4\"))", "true\n"},
 	// 13.8: anahtarı metin olmayan sözlük JSON'a yazılmaz; ileti anahtarları TR_String ile yeni sözlüğe çeviren döngüyü önerir.
 	{messages.H7012, "TR_var d = {1: 2, 3: 4}\nTR_print(TR_json_string(d))", "TR_for k, v TR_in d { m[TR_String(k)] = v }",
 		"TR_var d = {1: 2, 3: 4}\nTR_var m = {}\nTR_for k, v TR_in d { m[TR_String(k)] = v }\nTR_print(TR_json_string(m))", "{\"1\":2,\"3\":4}\n"},

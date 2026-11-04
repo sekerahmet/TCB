@@ -2,6 +2,7 @@ package logging
 
 import (
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -174,6 +175,9 @@ func (g *Log) add(args []interp.Value) (interp.Value, error) {
 		if err := addMetrics(fn, record, x, keyKind); err != nil {
 			return nil, err
 		}
+		if err := wholeStep(fn, record); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, interp.ArgTypeError(codes.MemAppend, 1, args[0], codes.TypeDict, codes.TypeString)
 	}
@@ -181,6 +185,26 @@ func (g *Log) add(args []interp.Value) (interp.Value, error) {
 		return nil, err
 	}
 	return interp.True, nil
+}
+
+// wholeStep kaydın adım alanını tam sayı yapar (19.5): okuyucular adımları karşılaştırır (19.6),
+// sözlüğün değerleri tek tip olduğu için adım ondalık gelebilir (3.0 → 3). Tam değerli olmayan
+// değer (3.5, NaN, sonsuz, int64'e sığmayan, sayı olmayan) kırpılmaz, hatadır.
+func wholeStep(fn any, record *interp.DictVal) error {
+	v, ok := record.Pairs[keyStep]
+	if !ok {
+		return nil
+	}
+	switch x := v.(type) {
+	case *interp.IntVal:
+		return nil
+	case *interp.FloatVal:
+		if x.Val == math.Trunc(x.Val) && x.Val >= -(1<<63) && x.Val < 1<<63 {
+			record.Set(keyStep, interp.NewInt(int64(x.Val)))
+			return nil
+		}
+	}
+	return messages.New(messages.H7013, fn, interp.TypeAndSummary(v))
 }
 
 // addMetrics kullanıcının sözlüğündeki ölçüleri kayda ekler: anahtarlar Metin olmalı,
