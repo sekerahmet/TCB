@@ -209,6 +209,8 @@ func (v *VM) yieldSlow(stopPoint bool) {
 // boyunca sayılan binlerce hızlı sınırı da içerir ve hızlıdan yavaşa geçişi gizler; bu yüzden
 // sonraki okuma, geçen sürenin hepsi son okumadan beri geçen sınırlarda geçmiş sayılarak da
 // clockGrain içinde tutulur (every değişmez: hızlı evrede bu, saatin adımı başına bir okumadır).
+// Öne alınan okuma saatin ilerlemediğini görürse aralık every'ye dönmez, ikiye katlanır: yavaş
+// evrede saat bir tur daha ilerlemedi diye 64 tur atlanmaz.
 func (v *VM) clockExpired() bool {
 	c := &v.clock
 	c.since++
@@ -220,7 +222,7 @@ func (v *VM) clockExpired() bool {
 		return false
 	}
 	now := monotonic()
-	c.skip = max(c.every, 1) - 1
+	c.skip = min(max(c.every, 1), 2*max(c.gap, 1)) - 1
 	if now > c.last {
 		next := 2 * max(c.every, 1)
 		if per := (now - c.last) / time.Duration(c.since); per > 0 {
@@ -228,12 +230,12 @@ func (v *VM) clockExpired() bool {
 		}
 		c.every = min(max(next, 1), clockEveryMax)
 		c.skip = c.every - 1
-		gap := c.since // görevin ilk okuması: önceki okuma yok
-		if c.gap > 0 {
-			gap = min(gap, c.gap)
-		}
-		if recent := (now - c.last) / time.Duration(gap); recent > 0 {
-			c.skip = min(c.every, max(int(clockGrain/recent), 1)) - 1
+		// gap ≥ since'te son aralık ortalamayla aynıdır, every zaten ona göre ayarlandı: saatin her
+		// okumada ilerlediği yerde (Linux) bu iki bölme yapılmaz.
+		if 0 < c.gap && c.gap < c.since {
+			if recent := (now - c.last) / time.Duration(c.gap); recent > 0 {
+				c.skip = min(c.every, max(int(clockGrain/recent), 1)) - 1
+			}
 		}
 		c.last, c.since = now, 0
 	}

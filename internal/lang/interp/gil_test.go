@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// lockWaitSlack, (n + 1) × lockHold sınırının üstüne bir deyim, saatin adımı (Windows'ta ~0,5 ms)
+// lockWaitSlack, (n + 1) × lockHold sınırının üstüne bir deyim, saatin adımı (Windows'ta 0,3–10 ms)
 // ve işletim sisteminin uyandırma gecikmesi için bırakılan paydır: 20 koşunun (iki ve üç meşgul
 // görev, 40 ölçüm) en büyük aşımı 15,7 ms'ydi, iki katı alındı (yüklü makinede bir kez 21 ms
 // görüldü; 2026-11-01, D1 ikinci dilim).
@@ -49,7 +49,7 @@ func lockWaits(t *testing.T, busy int) (aheads []int, tickets []uint64, waits []
 // arasında, acquireGIL'in içinde tekdüze saatle ölçülür (TR_time_ms duvar saatidir, 10-11 ms
 // sıçrar); iki ve üç meşgul görevle. Eskiden devir 256 turda bir ve sıra yoktu (sync.Mutex).
 // Sıra her koşuda kesin sınanır. Süre işletim sisteminin zamanlamasına da bağlıdır: Windows'ta (saat
-// adımı ~0,5 ms, yüklü makinede paralel testler) üç koşu yapılır ve biri sınıra sığmalıdır, kuralı
+// adımı 0,3–10 ms, yüklü makinede paralel testler) üç koşu yapılır ve biri sınıra sığmalıdır, kuralı
 // bozan bir değişiklik (sayıyla ya da hiç devretmek) üçünü de aşar; Linux'ta tek koşu ve kesin
 // sınır. Her koşunun ölçümü testin çıktısına yazılır (go test -v).
 func TestLockIsTakenInArrivalOrderWithinTheDelay(t *testing.T) {
@@ -176,7 +176,7 @@ func TestALateTimerOfTheOldHolderDoesNotHandOffTheNewHolder(t *testing.T) {
 
 // slowTurn yavaş() yerleşiğinin süresidir: kilidi tutarak yaklaşık bu kadar çalışır, içinde deyim
 // sınırı yoktur. Süre saate bakılarak değil sabit bir hesapla tutulur (spinFor): Windows'ta
-// tekdüze saat 0,5–2 ms adımla ilerler, saate bakan bir bekleme bir adımdan kısa sürmez.
+// tekdüze saat 0,3–10 ms adımla ilerler, saate bakan bir bekleme bir adımdan kısa sürmez.
 const slowTurn = time.Millisecond
 
 var spinSink uint64
@@ -250,6 +250,29 @@ func slowPhaseWaits(t *testing.T, setup func(*VM)) slowPhase {
 	return m
 }
 
+// Saatin ilerlemediği okuma, öne alınmış aralığı tavana döndürmez: aralık ikiye katlanarak büyür.
+func TestAnUnadvancedClockReadDoublesTheInterval(t *testing.T) {
+	v := New()
+	v.gilSince = monotonic()
+	v.clock = lockClock{every: clockEveryMax, gap: 1, last: v.gilSince + time.Hour} // saat ilerlemez
+	var reads []int
+	for range 200 {
+		before := v.clock.skip
+		v.clockExpired()
+		if before == 0 {
+			reads = append(reads, v.clock.gap)
+		}
+	}
+	want := "[2 4 8 16 32 64 64 64]"
+	if got := fmt.Sprint(reads[:8]); got != want {
+		t.Fatalf("okuma aralıkları %s, beklenen %s", got, want)
+	}
+}
+
+// raiseTestPriority süreci testin sonuna dek yüksek önceliğe alır; yalnız Windows'ta kurulur
+// (behavior_lock_priority_windows_test.go).
+var raiseTestPriority = func(*testing.T) {}
+
 // fallbackTurns yedek saatin sözüdür: saat en çok 64 deyim sınırında bir okunur, yani bir tutuş
 // süresi dolduktan sonra en çok 64 yavaş tur sürer. Testte ayrı yazılır: gil.go'daki tavan
 // (clockEveryMax) büyüyünce sınır da büyümesin, test düşsün.
@@ -259,9 +282,9 @@ const fallbackTurns = 64
 // çıktısına yazar. Zamanlayıcıyla sınır (n + 1) × 5 ms + paydır. Yalnız yedek saatle sınır turla
 // sayılır: bir bekleme sürerken yavaş görev en çok bir kez tutar (kuyrukta bir kez bulunur); o
 // tutuşta kilidi aldığı sınırdan sonra bir çağrı yapar, sonra saat en çok 64 sınırda bir okunur;
-// bekleme içindeki yavaş() çağrıları 64 + 1'i geçmez (65 yarış altında ölçüldü, sınırın kendisi).
-// Turla saymak makineden, saatin adımından ve yarış dedektöründen bağımsızdır; süreyle (64 × tur)
-// sınamak, tutuştaki turlar ortalamadan uzun sürdüğü için sınırda kalıyordu.
+// ölçüde bekleme içindeki yavaş() çağrıları 64 + 1'i geçmedi (65 yarış altında ölçüldü, sınırın
+// kendisi). Süreyle (64 × tur) sınamak, tutuştaki turlar ortalamadan uzun sürdüğü için sınırda
+// kalıyordu.
 func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback bool, run int) []string {
 	t.Helper()
 	m := slowPhaseWaits(t, setup)
@@ -296,12 +319,17 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // sözü o tutar) tavan sınanır: bir beklemede en çok 64 + 1 yavaş tur. Tavansız k hızlı döngüde
 // yüzlere çıkar ve altı geçişten birinde sınırı aşar (makine yavaşken sayı 64'ü geçmeyebilir; o
 // koşuda tavan zaten bağlamaz). Yedek saat de zamana bağlıdır (devir süreyle olur, okuma aralığı
-// ölçülen hızdan ayarlanır); zamandan bağımsız olan, süre dolduktan sonra en çok 64 sınırdır.
+// ölçülen hızdan ayarlanır); zamandan bağımsız olan, iki okuma arası en çok 64 sınırdır.
 // Sayım bekleme penceresinin tamamıdır, süre dolmadan geçen yavaş turlar da girer: onu sınıra
 // sığdıran, geçişten sonra saatin ilerlediği ilk okumanın sonraki okumayı öne almasıdır
-// (clockExpired). Kaba saat geçişten sonra iki yavaş tur boyunca hiç ilerlemezse bu okuma olmaz
-// ve tur sayısı 66'ya çıkabilir; Windows'ta ölçülmedi (bkz. tek koşu). Süre için Windows'ta üç
-// koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek koşuda sınanır.
+// (clockExpired). Öne alınan okuma ilerleme görmezse aralık ikiye katlanır, sonraki okumalar
+// birkaç tur içinde gelir. Kaba saat geçişten sonra k ≥ 2 yavaş tur boyunca hiç ilerlemezse ilk
+// okuma olmaz ve tur sayısı k + 64 olur: 66'yı geçebilir; 120 koşuda görülmedi (bkz. tek koşu).
+// Süre için Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek
+// koşuda sınanır. Windows'ta süre yüksek öncelikte sınanır: yüklü makinede işletim sistemi tutanı
+// 40–66 ms çalıştırmıyor, kilit o sırada devredemez. Normal öncelikte yükte 25/75 koşu kaldı,
+// yüksek öncelikte 0/75 (aynı yük, sıralı koşular, 2026-11-04); kuralı bozan değişikliği öncelik
+// gizlemez, sınır aynıdır.
 func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 	runs := 3
 	if runtime.GOOS == "linux" {
@@ -316,18 +344,22 @@ func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 		{"yalnız yedek saatle", func(m *VM) { m.gil.timerOff = true }, true},
 	}
 	for _, mode := range modes {
-		modeRuns := runs
-		if mode.fallback {
-			modeRuns = 1 // tur sayısı: Windows'ta boşta 50/50 ve yükte 50/50 koşu sığdı (2026-11-04)
-		}
-		within := false
-		var last []string
-		for run := 1; run <= modeRuns && !within; run++ {
-			last = slowPhaseOverLimit(t, mode.name, mode.setup, mode.fallback, run)
-			within = len(last) == 0
-		}
-		if !within {
-			t.Errorf("%s: %d koşunun hiçbiri sınıra sığmadı; sonuncusu:\n%s", mode.name, modeRuns, strings.Join(last, "\n"))
-		}
+		t.Run(mode.name, func(t *testing.T) {
+			modeRuns := runs
+			if mode.fallback {
+				modeRuns = 1 // tur sayısı: Windows'ta boşta 50/50 ve yükte 50/50 koşu sığdı (2026-11-04)
+			} else {
+				raiseTestPriority(t)
+			}
+			within := false
+			var last []string
+			for run := 1; run <= modeRuns && !within; run++ {
+				last = slowPhaseOverLimit(t, mode.name, mode.setup, mode.fallback, run)
+				within = len(last) == 0
+			}
+			if !within {
+				t.Errorf("%d koşunun hiçbiri sınıra sığmadı; sonuncusu:\n%s", modeRuns, strings.Join(last, "\n"))
+			}
+		})
 	}
 }

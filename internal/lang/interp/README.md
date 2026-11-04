@@ -57,6 +57,7 @@ günlük, kontrol noktası; `KeyText`) aynı anahtarı görür. Anahtar yalnız 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_param_kinds_test.go`: çekirdek metotların tanımdaki tek tipli parametrelerinin motorun denetlediği argüman tipiyle (`signature.typesOf`) aynı olması (denetleyici H2423'ü onlardan verir; 4a2 ön şartı (a), 13.11)
+- `behavior_lock_priority_windows_test.go`: kilit devri testinin süre sınavını Windows'ta yüksek öncelikte koşturan yardımcı (süreç önceliği testten sonra geri alınır)
 - `behavior_semantics_test.go`: uçtan uca dil anlamı: TR programları bütün yorumlayıcıdan geçerek çalışır
 - `behavior_bench_programs_test.go`: hız kıyas setinin (`tools/bench/tr`) programları küçültülmüş boyla, `trlang run`'ın yolunda (hata ayıklayıcısız `VM.Run`); profil ve ayırma sayısı buradan alınır (`go test -bench Programs`)
 - `behavior_typed_signatures_test.go`: tipsiz parametre, alan ve dönüşün iletisindeki düzeltilmiş satır (6.1, 7.1) kopyalanınca modül denetimden geçer ve program istenen sonucu verir
