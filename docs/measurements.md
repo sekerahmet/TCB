@@ -63,7 +63,7 @@ Aynı günkü iki koşu Intel Xeon 2.20 GHz'deydi (`önce` Qwen3 bf16 17,8 ve 19
 | SmolLM2-135M | 24,2 | 10,0 | 27,4 | 62,1 | 104,0 | 0,39 | 0,88 |
 | Qwen3-0.6B | 7,8 | 3,1 | 11,4 | 15,4 | 24,5 | 0,51 | 0,68 |
 
-Birim parça/sn. Bu makinede TR, llama.cpp f32'nin ~%40–50'si ve transformers'tan yavaş. 16 bitlik ağırlık CPU'da float32'nin 0,4 katı hızda: ağırlık her çarpımda geçici float32 tampona açılıyor (yol haritası, 2. kilometre taşı "CPU" eksikleri). 2026-10-22'nin oranlarıyla (TR/llama.cpp 0,25, TR/transformers 1,05; 48 iş parçacığı) karşılaştırmayın: makine ve iş parçacığı sayısı farklı. 48 iş parçacıklı karşılığı aşağıda, G4 koşusunda.
+Birim parça/sn. Bu makinede TR, llama.cpp f32'nin ~%40–50'si ve transformers'tan yavaş. 16 bitlik ağırlık o gün CPU'da float32'nin 0,4 katı hızdaydı: ağırlık her çarpımda geçici float32 tampona açılıyordu; tek satırlık çarpımda kapandı, yukarıdaki "CPU'da üretim, 16 bit" tablosu. 2026-10-22'nin oranlarıyla (TR/llama.cpp 0,25, TR/transformers 1,05; 48 iş parçacığı) karşılaştırmayın: makine ve iş parçacığı sayısı farklı. 48 iş parçacıklı karşılığı aşağıda, G4 koşusunda.
 
 **Dil kıyası, CPU** (2026-11-03 17:16, main `51b75f0a`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı; Python 3.13.18, Go 1.26.10, rustc 1.99.1 `-C opt-level=3`; `tools/bench/run.py`, 5 tekrarın en iyisi; dört dilin sonuç değerleri aynı) [ölçüldü: Colab, betik `dil_kiyasi_2026_11_03.sh`]:
 
@@ -103,7 +103,7 @@ Kayıp ikisinde aynı yerde (TR 2,40, PyTorch 2,38). TR, PyTorch'la başa baş y
 
 Birim parça/sn. Aynı koşudaki oranlar [hesap]:
 - **GPU:** TR (bf16) transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58 (SmolLM2) ve 0,75 (Qwen3) katı, f16'nın 0,5 katı.
-- **CPU, 48 iş parçacığı:** TR (float32) transformers'ın 2,2–2,3 katı; llama.cpp f32'nin 0,39 (SmolLM2) ve 0,50 (Qwen3) katı. 16 bitlik ağırlık burada da float32'nin 0,4 katı hızda.
+- **CPU, 48 iş parçacığı:** TR (float32) transformers'ın 2,2–2,3 katı; llama.cpp f32'nin 0,39 (SmolLM2) ve 0,50 (Qwen3) katı. 16 bitlik ağırlık burada da o gün float32'nin 0,4 katı hızdaydı (Eski).
 - **GPU'da gerileme:** 2026-10-22'ye göre TR'nin GPU üretimi %7–10 yavaş (Qwen3 bf16 366 → 330, float32 290 → 266; SmolLM2 bf16 608 → 556, float32 548 → 508), llama.cpp aynı (%1 içinde: 442 → 440, 965 → 957). Kart türü aynı, örnek başka; llama.cpp'nin aynı kalması gerilemenin TR'de olduğunu gösteriyor. İki suçlu commit aynı koşularda bulundu, ikisi de kapandı (2026-11-04: yukarıdaki tablo ve 2026-10-23'ün satırı) [ölçüldü: Colab G4, defter]; koşular arası mutlak sayılar karşılaştırılmaz, yalnız aynı koşunun farkı geçerlidir.
 - **CPU'da ilerleme:** her koşunun kendi oranıyla, 48 iş parçacıklı aynı tür makinede, TR/llama.cpp f32 2026-10-22'de Qwen3 0,25, SmolLM2 0,17; 2026-11-03'te 0,50 ve 0,39. TR/transformers 1,05 ve 0,97'den 2,18 ve 2,29'a [hesap: 12,1 / 47,5, 36 / 213, 12,1 / 11,5, 36 / 37; 2026-10-22'nin sayıları `docs/archive/roadmap-2026-10-27.md` Evre 5].
 
@@ -152,7 +152,7 @@ Birim parça/sn. Aynı koşuda main'e göre Qwen3 bf16 +%7,2, float32 +%6,3; Smo
 
 ## Eski (yeniden ölçülecek)
 
-Şu an eski satır yok.
+- 2026-11-03'ün CPU kıyas tablolarındaki bf16 sütunları: 2026-11-04'te tek satırlık çarpım değişti, yeni sayılar yukarıda "CPU'da üretim, 16 bit" tablosunda; llama.cpp ve transformers kıyası yeniden alınınca bu satır silinir.
 
 2026-10-22'nin üretim hızları, 2026-11-01/02'nin eğitim hızı, 2026-11-01'in dil kıyası ile karakter modeli ve L4 kart sınamasının 2026-11-02/03'teki beş adımı (938, 923,5, 962, 880,5, 888 ms; Kol A eşitliğinden önce) 2026-11-03'te yeniden ölçüldü (yukarıda); eski sayılar arşivde (`docs/archive/roadmap-2026-10-27.md` Evre 5) ve Colab defterinde kalır.
 
