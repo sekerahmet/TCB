@@ -167,9 +167,13 @@ func Parse(data []byte) (*Tokenizer, error) {
 	vocab := p.model.Vocab()
 
 	// Ek tokenlar: kimlik, içerik sözlükteyse sözlükteki kimlik; değilse
-	// sözlük boyutundan başlayarak sırayla verilen kimliktir. Dosyadaki
-	// kimlik bununla tutarsızsa dosya reddedilir.
+	// sözlük boyutundan başlayarak sırayla verilen kimliktir. Dosyadaki kimlik
+	// o ana dek görülen bütün kimliklerin üstündeyse boştur ve geçerlidir (seyrek
+	// sözlük, 16.1; başvuru kütüphanesi onu sessizce sıradakiyle değiştirir). Başka
+	// bir kimlik tutarsızdır, dosya reddedilir.
 	dim := int64(len(vocab))
+	ids, _ := p.model.(idListModel)
+	top := int64(largestID(vocab, ids))
 	largestAdded := int64(-1)
 	seen := make(map[AddedToken]bool)
 	for _, e := range d.AddedTokens {
@@ -187,6 +191,8 @@ func Parse(data []byte) (*Tokenizer, error) {
 			id = int64(v)
 		} else if v, ok := vocab[e.Content]; ok {
 			id = int64(v)
+		} else if int64(e.ID) > top && e.ID <= 1<<30 {
+			id = int64(e.ID)
 		} else if largestAdded < 0 || largestAdded < dim {
 			id = dim
 		} else {
@@ -195,9 +201,7 @@ func Parse(data []byte) (*Tokenizer, error) {
 		if id != int64(e.ID) {
 			return nil, messages.New(messages.H5277, e.Content, e.ID, id)
 		}
-		if id > largestAdded {
-			largestAdded = id
-		}
+		largestAdded, top = max(largestAdded, id), max(top, id)
 		e.ID = int(id)
 		if prevVal, ok := p.addedID[e.Content]; ok {
 			for k := range p.extras {
@@ -247,7 +251,6 @@ func Parse(data []byte) (*Tokenizer, error) {
 		p.postProcessor = nil
 	}
 
-	ids, _ := p.model.(idListModel)
 	p.buildIDTable(vocab, ids, nrmContent, specialContent)
 	if l, ok := p.postProcessor.(specialIDLister); ok {
 		for _, id := range l.specialIDs() {

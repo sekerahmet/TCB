@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Seyrek kimlikli küçük bir dosya, kimliklerin büyüklüğüyle orantılı bellek
@@ -111,5 +113,48 @@ func TestVocabSizeIsTheIDBound(t *testing.T) {
 	}
 	if _, ok := p.IDToToken(3); ok {
 		t.Fatal("aradaki boş kimliğin metni var")
+	}
+}
+
+// Kural (16.1): ek parçanın dosyadaki kimliği görülen bütün kimliklerin üstündeyse geçerlidir:
+// metin o kimliğe kodlanır, sınır onunla büyür. Başka bir kimlik tutarsızdır (H5277).
+func TestAddedTokenAboveAllIDsKeepsItsID(t *testing.T) {
+	const head = `{"version":"1.0","truncation":null,"padding":null,"normalizer":null,"pre_tokenizer":{"type":"WhitespaceSplit"},"post_processor":null,"decoder":null,`
+	const wordLevel = `"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1,"b":5},"unk_token":"[UNK]"}}`
+	added := func(id int, content string) string {
+		return fmt.Sprintf(`{"id":%d,"content":%q,"single_word":false,"lstrip":false,"rstrip":false,"normalized":false,"special":true}`, id, content)
+	}
+	for _, c := range []struct {
+		name, tokens string
+		bound        int
+		encoded      string
+	}{
+		{"üstte", added(9, "<s>"), 10, "[1 9 5]"},
+		{"sınırda", added(6, "<s>"), 7, "[1 6 5]"},
+		{"boşlukta sıradaki", added(3, "<s>"), 6, "[1 3 5]"},
+		{"ikisi üstte", added(9, "<s>") + "," + added(12, "</s>"), 13, "[1 9 5]"},
+		{"üstten sonra sıradaki", added(9, "<s>") + "," + added(10, "</s>"), 11, "[1 9 5]"},
+	} {
+		p, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + wordLevel))
+		if err != nil {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+		if got := fmt.Sprint(p.Encode("a <s> b")); got != c.encoded {
+			t.Errorf("%s: kodlama %s, beklenen %s", c.name, got, c.encoded)
+		}
+		if n := p.VocabSize(); n != c.bound {
+			t.Errorf("%s: sınır %d, beklenen %d", c.name, n, c.bound)
+		}
+	}
+	for name, tokens := range map[string]string{
+		"dolu kimlik":      added(5, "<s>"),
+		"boşlukta sırasız": added(4, "<s>"),
+		"azalan":           added(12, "</s>") + "," + added(9, "<s>"),
+		"sözlükteki metin": added(9, "b"),
+		"sınırı aşan":      added(1<<30+1, "<s>"),
+	} {
+		if _, err := Parse([]byte(head + `"added_tokens":[` + tokens + `],` + wordLevel)); !messages.Has(err, messages.H5277) {
+			t.Errorf("%s: H5277 bekleniyordu: %v", name, err)
+		}
 	}
 }
