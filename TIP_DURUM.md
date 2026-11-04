@@ -36,12 +36,15 @@
    - `tools/codegraph/type_queries_link.go`, `tools/codegraph/type_queries_params.go`, `tools/codegraph/type_queries_sites.go` silindi; `tools/codegraph/type_queries.go` `1530` satırdan `70` satıra indirildi (sınanmayan 8 sezgi ve kullanılmayan `packages.Load` yolu kaldırıldı; `repoTypeQueryRules` + `linkTypeQueries` Türkçe yorumlarla yazıldı; fikstür için `buildGraphFromWithRules` parametresi açıldı).
    - `TestRepositoryTypeLoadedTestsAreSelected` kapsam testine dönüştürüldü (`tools/codegraph` dışında `goload.Load` ve `(*types.Config).Check` erişimi + 1 kayıt silinince düşme kontrolü + `TestUnknownNames` ve `internal/compute/tensor` kapsam doğrulaması; `10.33s` geçti).
    - `TestTypeQueryScopeSelectsEveryGoChange` (`slowFixture(t)` çağrısıyla) değişiklikten **sonra** kurulan grafiklerde beş tablo satırının tamamını (`gövde değişti`, `metodun adı değişti`, `uygulayıcı dosya silindi`, `adın kullanımı silindi`, `başka pakete aynı çıplak ad eklendi`) + `claude/unrelated` + `TestTempModuleIgnored` seçilmemesini doğruladı (`1.76s` geçti).
+6. **Madde 3 — `tools/codegraph/gaps.md` güncellemesi (`ce94585`):**
+   - Kapanan "Depoyu tip bilgisiyle yükleyen testin bağı değişiklikten sonraki grafikten kuruluyor" maddesi silindi.
+7. **Madde 4 — `extractorRevision` ve `extractor_digest.txt` güncellemesi (`9b6baf4`):**
+   - `extractorRevision` `84` → `85` yapıldı ve `tools/codegraph/testdata/extractor_digest.txt` (`digest 16d8431e084b86b6`) bir kez güncellendi (`TestExtractorRevisionFollowsExtractorCode` geçti).
 
 ## Sıradaki Adımlar
 
-1. `tools/codegraph/gaps.md` içindeki kapanan maddenin (`tools/codegraph/gaps.md:53-54`) silinip ayrı commit olarak kaydedilmesi.
-2. `extractorRevision` (`84` → `85`) ve `tools/codegraph/testdata/extractor_digest.txt` güncellemesinin bir kez yapılıp commit edilmesi.
-3. Geçici kopyada 3 satırlık gerçek depo ölçüsü, `--depth 1` klon koşusu, "Sonra" ölçümleri, bitti ölçütünün 6 komutu, `TIP_RAPORU.md` ve kendi kontrolüm.
+1. Geçici kopyada 3 satırlık gerçek depo ölçüsü (`TensorValue.SetMember` ad değişimi → 4 `tools/impact` testi; `internal/compute/tensor` değişikliği → gate testi; ilgisiz paket değişikliği → gate testi kapsam dışı), `--depth 1` klon koşusu, "Sonra" ölçümleri ve bitti ölçütünün 6 komutunun süzmesiz koşulması.
+2. `TIP_RAPORU.md` yazımı, kendi kontrolüm (`grep -F` ve dosya:satır doğrulaması), son satıra `Kendi incelemem bitti.` eklenmesi ve son push.
 
 ## Emin Olmadıklarım / Açık Noktalar
 
