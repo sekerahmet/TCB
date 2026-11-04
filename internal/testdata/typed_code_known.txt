@@ -10,27 +10,27 @@ lib/optimizers.tr:371 parametre TR_ctx_init.TR_arg_model — model TR_parameters
 lib/training.tr:157 parametre TR_mem_finish.TR_arg_model — model TR_parameters'ın okuduğu her değer (testte sözlük, eğitimde GPT)
 
 ## 4c'yi bekleyen, arayüz ya da birleşim (7.8): birkaç belirli tipten biri (liste ya da tensör, TR_JSON ya da sözlük, metin ya da yol) ya da ortak arayüzü tanımlanmamış yapılar; karışık değerli sözlükler
-lib/layers.tr:52 parametre TR_mem_forward.TR_arg_token_ids — GömmeKatmanı kimlikleri hem iç içe liste hem TR_Tensor[TR_Int] olarak alır (üret liste, tek_adım tensör verir)
-lib/layers.tr:310 parametre TR_mem_forward.TR_arg_token_ids — PLEBloğu kimlikleri bloktan geldiği gibi alır: iç içe liste ya da TR_Tensor[TR_Int]
-lib/layers.tr:343 parametre TR_mem_forward.TR_arg_token_ids — TransformerBloğu kimlikleri: iç içe liste, TR_Tensor[TR_Int] ya da yok
-lib/layers.tr:493 alan TR_type_GPT.TR_mem_config — ayar sözlüğünün değerleri tam sayı, ondalık, mantık, metin, liste ve yok: değer tipi birden çok
-lib/layers.tr:528 parametre TR_mem_embed.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int] (gizli_durum ve tek_adım)
-lib/layers.tr:533 parametre TR_mem_run_blocks.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
-lib/layers.tr:543 parametre TR_mem_hidden_states.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int] (README: kimlikler [B, T] liste; örnekleyici tensör verir)
-lib/layers.tr:573 parametre TR_mem_forward.TR_arg_token_ids — GPT.ileri kimlikleri iç içe liste ya da TR_Tensor[TR_Int]
-lib/layers.tr:584 parametre TR_mem_loss.TR_arg_targets — hedefler iç içe liste ya da TR_Tensor[TR_Int]
-lib/layers.tr:584 parametre TR_mem_loss.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:54 parametre TR_mem_forward.TR_arg_token_ids — GömmeKatmanı kimlikleri hem iç içe liste hem TR_Tensor[TR_Int] olarak alır (üret liste, tek_adım tensör verir)
+lib/layers.tr:312 parametre TR_mem_forward.TR_arg_token_ids — PLEBloğu kimlikleri bloktan geldiği gibi alır: iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:345 parametre TR_mem_forward.TR_arg_token_ids — TransformerBloğu kimlikleri: iç içe liste, TR_Tensor[TR_Int] ya da yok
+lib/layers.tr:495 alan TR_type_GPT.TR_mem_config — ayar sözlüğünün değerleri tam sayı, ondalık, mantık, metin, liste ve yok: değer tipi birden çok
+lib/layers.tr:530 parametre TR_mem_embed.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int] (gizli_durum ve tek_adım)
+lib/layers.tr:535 parametre TR_mem_run_blocks.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:545 parametre TR_mem_hidden_states.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int] (README: kimlikler [B, T] liste; örnekleyici tensör verir)
+lib/layers.tr:575 parametre TR_mem_forward.TR_arg_token_ids — GPT.ileri kimlikleri iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:586 parametre TR_mem_loss.TR_arg_targets — hedefler iç içe liste ya da TR_Tensor[TR_Int]
+lib/layers.tr:586 parametre TR_mem_loss.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
 lib/optimizers.tr:362 alan TR_type_MuonAndAdamW.TR_mem_muon — TR_Muon ya da TR_NorMuon tutar (normuon: seçeneği); ortak arayüz tanımlanmadı (7.8)
 lib/optimizers_test.tr:167 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
 lib/optimizers_test.tr:367 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
 lib/optimizers_test.tr:367 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
-lib/pretrained.tr:30 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
-lib/pretrained.tr:30 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
-lib/pretrained.tr:30 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
-lib/pretrained.tr:52 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
-lib/pretrained.tr:81 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
-lib/pretrained.tr:89 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
-lib/pretrained.tr:115 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
+lib/pretrained.tr:31 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
+lib/pretrained.tr:31 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
+lib/pretrained.tr:31 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
+lib/pretrained.tr:53 parametre TR_fn_build_pretrained_model.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:82 parametre TR_fn_rope_theta.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:90 parametre TR_fn_has_rope_scaling.TR_arg_config — Hugging Face ayarı: TR_JSON ya da karışık değerli sözlük
+lib/pretrained.tr:116 parametre TR_fn_map_hugging_face.TR_arg_config — Hugging Face ayarı: TR_JSON ya da sözlük
 lib/pretrained_test.tr:7 dönüş qwen3_ayarı — Hugging Face ayarının sözlüğü: değerleri metin, sayı, mantık, sözlük ve yok
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_config — config.json'a yazılan ayar sözlüğü: değer tipi birden çok (tam sayı, ondalık, metin ...)
 lib/training.tr:115 parametre TR_ctx_init.TR_arg_folder — klasör TR_String ya da TR_Path (ikisi de çağrılıyor; TR_Path ikisini de alır)
