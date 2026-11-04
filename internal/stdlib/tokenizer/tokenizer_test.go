@@ -498,3 +498,12 @@ func heavyCallsReleased(t *testing.T, name string) int {
 	})
 	return found
 }
+
+// Kural (16.1): dolu kimlik yazan dosya yüklenmez; yükleme hatası iki parçanın adını söyler (H5291).
+func TestLoadRejectsAnAddedTokenOnATakenID(t *testing.T) {
+	path := filepath.ToSlash(reporoot.Path("tests/data/tokenizer_added_taken.json"))
+	_, err := run(t, `TR_load_tokenizer("`+path+`")`)
+	if !messages.Has(err, messages.H5291) || !strings.Contains(err.Error(), `"<s>"`) || !strings.Contains(err.Error(), `"b"`) {
+		t.Fatalf("H5291 ve iki parçanın adı bekleniyordu: %v", err)
+	}
+}
