@@ -24,6 +24,19 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 | 2026-11-03 | `6cab4f89` | Colab L4 | `gpt_training.tr` ve `ss_exam.tr` gerçek kartta, dolgulu dağarcık | 5,5 ms/adım (çok küçük model; yalnız çalıştığının sınaması) | Colab defteri 16:09:50 koşusu |
 | 2026-11-03 | `27a7b1c5`, `4e924cf9` (Kol A ve Kol B teslim 1 dahil) | Colab L4 | Kart sınamasında hedef model adımı (PyTorch'suz) | 916,5 ve 899 ms/adım (iki ayrı koşu); Kol B teslim 2a'dan sonra 926, 864 ve 924,5 ms/adım. Koşular arası fark %7'ye çıkıyor [hesap: 926 / 864]: tek koşu hız sinyali değil, kart sınamasıdır (DENETİM istek 83 N1) | Colab defteri 17:44:12, 17:57:56, 19:14:50, 19:23:51 ve 19:31:22 koşuları |
 
+**CPU'da üretim, 16 bit** (2026-11-04, `a84b2628` ↔ `23a2bf12`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı, dört tur, 30 parça, kopya kollu; parça/sn):
+
+| Model | Tür | Önce | Sonra |
+| :-- | :-- | --: | --: |
+| Qwen3 | bf16 | 3,8 | 12,0 |
+| Qwen3 | fp16 | 1,4 | 10,6 |
+| Qwen3 | float32 | 8,2 | 8,1 |
+| SmolLM2 | bf16 | 10,9 | 36,8 |
+| SmolLM2 | fp16 | 4,8 | 33,4 |
+| SmolLM2 | float32 | 24,3 | 25,4 |
+
+Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 bf16 tepe bellek 12,0 → 9,6 GB. DENETİM ayrı makinede sentetik modelle 2,74 → 13,83, tepe 17,95 → 9,89 GB [ölçüldü: istek 121, Windows]. llama.cpp ve transformers kıyası bu düzeltmeden sonra alınmadı; Xeon'da uçtan uca sıradaki ölçümde. `BenchmarkSpeedSumAxis0` AMD'de +%26: kodun yerleşimi, kaydırınca tersine dönüyor, Intel'de fark yok (D, Ö3).
+
 **Hazır model yükleme** (2026-11-04 20:05–20:11, `5b554d72` ↔ `da03aa62`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı, 50 GB; altı tur, kol sırası dönüşümlü, ilk tur atıldı, ortanca; her koşu ayrı süreç, dosyalar diskin önbelleğinde). "kur" `TR_build_pretrained_model`, "oku" `TR_load_tensors`, "eşle" `TR_map_hugging_face`, "yükle" `TR_load_parameters`; süre ms, tepe GB. "taban" model kurmadan yalnız oku ve eşle:
 
 | Model, tür | Kol | kur | oku | eşle | yükle | toplam | tepe |

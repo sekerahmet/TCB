@@ -931,6 +931,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları) ulp sınırı ölçülmedi; 15.11 GPU için "birkaç ulp" diyor.
 - **Yapılacaklar:** GPU sınırlarını ölçüp 15.10 ve 15.11'e yazmak; cihazlar arası sözün Go testi.
+- **Yapılacaklar (D, Ö3; sahip TCB, dil tanımı turu; DENETİM istek 121 N1):** AVX2 ile genel yolun model logiti varsayılan toleransı aşıyor, metin aynı, tabanda da böyle [ölçüldü: H1]. Karar `pending.md`'de.
 
 ### 15.42
 

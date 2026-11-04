@@ -42,6 +42,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **15.41 ve 15.18a, model logitinde tolerans (2026-11-04, H1; DENETİM istek 121 N1):** AVX2 ile genel yolun logitleri 24 adımlık üretimde varsayılan toleransı 24 adımda aşıyor (en büyük fark 6,1e-05), tabanda da aynı, metin aynı. Cümle tek işlem ölçeğinde kalsın; çok katmanlı modelin testi açık tolerans versin ya da metin eşitliğine baksın. `TR_all_close` motorda yok.
 - **13.8, CSV hücresinin kırpılması (2026-11-04, D1 Kol A 13 teslim 1):** motor hücrenin boşluklarını kırpıyor, `TestCSVCellsAreTextAndBOM` sabitliyor; dil tanımında yazmıyor. Hücre hep metin olunca kırpmak veriyi değiştirir: kalacaksa yazılmalı, kalkacaksa motor değişmeli.
 - **19.5, `g.TR_close()` ve `TR_append`'in değeri (2026-11-04, D1 Kol A 13 teslim 1):** madde `g.TR_close()` yazıyor, motorda yok [ölçüldü: D1]; aynı madde `TR_append` değer döndürmez diyor, motor `TR_true` döndürüyor [kanıtlı: `record.go`].
 - **15.44, fonksiyon değeri ve blok kapsamı (2026-11-03, T1 Kol B teslim 2b):** uygulama kapanıştan okunan fonksiyon değerini kimliğiyle kaydediyor (bağlı metotta gövde ve `TR_self`), gövdesini nerede okunursa okunsun geziyor; adların kapsamı bloğa göre (döngü değişkeni dahil). Madde ikisini de açıkça söylemiyor; cümle tartılır.
