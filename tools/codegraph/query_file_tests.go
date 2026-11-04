@@ -80,14 +80,41 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	ix.printRulesGuardedBy(w, tests, limit)
 }
 
-// fileTestSet bir Go dosyasını koruyan testlerin grupları: koşulan küme changed'inkidir (testsToRun), gruplar
-// bildirim düzeyinin gruplarıdır.
+// fileTestSet bir Go dosyasını koruyan testlerin grupları: koşulan küme changed'inkidir (testsToRun ve dosyanın
+// kendi testleri), gruplar bildirim düzeyinin gruplarıdır.
 type fileTestSet struct {
 	own        []*Node            // dosyanın kendi ve adaş test dosyasının testleri
-	all        map[string]int     // testsToRun'un bütün seçimi: test -> en kısa uzaklık
+	all        map[string]int     // testsToRun ve dosyanın kendi testleri (testDistances): test -> en kısa uzaklık
+	extracted  map[string]bool    // d == 0 kanıtı çıkarım olmayan testler ("direct" yazılanlar)
 	about      []aboutTest        // bir bildirimini konu edinenler (ilk grup)
 	others     []string           // kalanlar, kanıt sırasıyla (testRank)
 	subprocess map[string][]*Node // ikiliyi derleyip koşan testler
+}
+
+// extractedDirectTests verilen düğümlerden en az birini çıkarım olmayan doğrudan kanıtla (EXTRACTED `tests` kenarı,
+// negatif fikstür ya da aynı paketteki ad kodu uygulaması) sınayan testlerin kümesidir; INFERRED `tests` ve `walks`
+// kenarları buraya girmez, böylece `direct` yazılmazlar.
+func (ix *index) extractedDirectTests(nodes []*Node) map[string]bool {
+	out := map[string]bool{}
+	for _, n := range nodes {
+		if n == nil {
+			continue
+		}
+		for _, e := range ix.in[n.ID] {
+			if e.Kind == edgeTests && e.Confidence == extracted {
+				out[e.From] = true
+			}
+		}
+		for _, f := range ix.fixtureTests(n) {
+			out[f.ID] = true
+		}
+		for _, t := range ix.testsThroughNames(n) {
+			if t.steps == 0 {
+				out[t.test.ID] = true
+			}
+		}
+	}
+	return out
 }
 
 // fileTests dosyanın testlerini toplar ve sıralar. Konu edinen testler her bildirim için bildirim düzeyindeki gibi
@@ -99,13 +126,15 @@ func (ix *index) fileTests(file *Node, ts *touchSet) fileTestSet {
 			all[id] = d
 		}
 	}
-	s := fileTestSet{own: ownTests(ts), all: all, subprocess: subprocess}
+	targets := []*Node{file}
 	decls := make([]*Node, 0, len(ts.nodes))
 	for _, d := range ts.nodes {
+		targets = append(targets, d)
 		if !isTestCode(d) {
 			decls = append(decls, d)
 		}
 	}
+	s := fileTestSet{own: ownTests(ts), all: all, extracted: ix.extractedDirectTests(targets), subprocess: subprocess}
 	sort.Slice(decls, func(i, j int) bool { return decls[i].ID < decls[j].ID })
 	shown := map[string]bool{}
 	for _, d := range decls {
@@ -128,12 +157,19 @@ func (ix *index) fileTests(file *Node, ts *touchSet) fileTestSet {
 			s.others = append(s.others, id)
 		}
 	}
-	sort.Slice(s.others, func(i, j int) bool { return rank(s.others[i]).before(rank(s.others[j])) })
+	sort.Slice(s.others, func(i, j int) bool {
+		a, b := s.others[i], s.others[j]
+		if all[a] == 0 && all[b] == 0 && s.extracted[a] != s.extracted[b] {
+			return s.extracted[a]
+		}
+		return rank(a).before(rank(b))
+	})
 	return s
 }
 
-// printFileTests dosyanın testlerini bildirim düzeyinin gruplarıyla yazar: kendi testleri, konu edinenler, doğrudan
-// testler, kısa zincirler (en çok weakSteps adım) ve "weak evidence"; alt süreç testleri en sonda.
+// printFileTests dosyanın testlerini bildirim düzeyinin gruplarıyla yazar: kendi testleri, konu edinenler, 0 adımlı
+// testler (EXTRACTED "direct" önce, sonra "[INFERRED]"), kısa zincirler (en çok weakSteps adım) ve "weak evidence";
+// alt süreç testleri en sonda.
 func (ix *index) printFileTests(w io.Writer, file *Node, s fileTestSet, limit int) {
 	defer ix.printSubprocessTests(w, s.subprocess)
 	printOwnTests(w, s.own, limit)
@@ -145,8 +181,10 @@ func (ix *index) printFileTests(w io.Writer, file *Node, s fileTestSet, limit in
 	var direct, strong, weak []string
 	for _, id := range s.others {
 		switch d := s.all[id]; {
-		case d == 0:
+		case d == 0 && s.extracted[id]:
 			direct = append(direct, describe(ix.byID[id])+"  direct")
+		case d == 0:
+			direct = append(direct, describe(ix.byID[id])+"  [INFERRED]")
 		case d <= weakSteps:
 			strong = append(strong, fmt.Sprintf("%s  %d steps [INFERRED]", describe(ix.byID[id]), d))
 		default:
@@ -154,7 +192,7 @@ func (ix *index) printFileTests(w io.Writer, file *Node, s fileTestSet, limit in
 		}
 	}
 	if len(direct) > 0 {
-		fmt.Fprintf(w, "  <- tests (%d, direct: they use, read or walk a declaration of this file):\n", len(direct))
+		fmt.Fprintf(w, "  <- tests (%d, they use, read or walk this file or a declaration in it):\n", len(direct))
 		printLimited(w, direct, limit, "    ")
 	}
 	if len(strong) > 0 {
