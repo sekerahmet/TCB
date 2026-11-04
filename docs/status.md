@@ -245,7 +245,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 ### 5.7
 
-- **Mevcut durum:** liste, aralık, metin, bayt dizisi (öğeler `TR_Int`), sözlük ve `TR_JSON` dizisi ve nesnesi dolaşılıyor; iki adlı biçim ve `_` kurala uyuyor; metin, sayı ve yokluk türündeki `TR_JSON` H2664 veriyor; dolaşılan listeye ve sözlüğe ekleme H2703 ve H2704, var olan öğeye atama serbest (bugünkü 5.7 testi). Yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor (dönüş tipi `T?` artık yazılıyor) [ölçüldü: main `85a19c36`, her kaynak türü (okuyucu hariç), JSON'un metin türü, `TR_next()` metotlu yapı; denetim ve çalıştırma]. Akışlı okuyucunun iki kez dolaşılması bu turda yeniden ölçülmedi. Çıkarma kuralı ölçülemedi: listeden ve sözlükten öğe çıkaran metot (`TR_pop`, `TR_remove_at`, `TR_remove`; 13.3, 13.4) henüz yok.
+- **Mevcut durum:** liste, aralık, metin, bayt dizisi (öğeler `TR_Int`), sözlük ve `TR_JSON` dizisi ve nesnesi dolaşılıyor; iki adlı biçim ve `_` kurala uyuyor; metin, sayı ve yokluk türündeki `TR_JSON` H2664 veriyor; dolaşılan listeye ve sözlüğe ekleme H2703 ve H2704, var olan öğeye atama serbest (bugünkü 5.7 testi). Yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor (dönüş tipi `T?` artık yazılıyor) [ölçüldü: main `85a19c36`, her kaynak türü (okuyucu hariç), JSON'un metin türü, `TR_next()` metotlu yapı; denetim ve çalıştırma]. Akışlı okuyucunun iki kez dolaşılması bu turda yeniden ölçülmedi. Çıkarma da aynı hatalar: `.TR_pop`, `.TR_remove_at` ve `.TR_remove` dolaşılan kapta H2703 ve H2704 veriyor; denetim boya değil çıkarma sayısına da baktığı için aynı turda çıkarıp eklemek de yakalanıyor [test: `tests/deyimler_test.tr`'nin 5.7 testi]. Başka bir görevin sildiği anahtar turun başında görülüyor [test: `TestAnotherTaskRemovingFromADictUnderIteration`].
 - **Yapılacaklar:** `TR_next() -> T?` taşıyan yapının dolaşılması, tek seferlik dolaşıcı, `T` isteğe bağlıysa denetim hatası (ileti öğeyi sarmayı önerir); TR testi.
 
 ### 5.11
@@ -601,7 +601,13 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.3
 
 - **Mevcut durum:** 13.10'un sıralama sırası uygulandı (−0.0 0.0'dan önce, NaN'lar sonda ve birbirine eşit, demette öğe öğe); anahtarlı sıralama `.TR_sort(f)` motorda: anahtar her öğe için bir kez çağrılır, sıra kararlı, iki parametreli karşılaştırıcı H2900, sıralanamayan anahtar H2902 ve H2903, asıl listeyi değiştiren anahtar H2703 [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/yerlesikler_test.tr`'nin 13.3 testleri, `interp/sorting_test.go`].
+- **Mevcut durum (Kol A 13 yerleşikler 4, 2026-11-04):** `.TR_pop` ve `.TR_remove_at` motorda: öğeyi yerinde çıkarıp veriyor, negatif indeks sondan sayıyor, boş listede H2533, sınır dışı indekste H2534; dönüş listenin öğe tipi. `.TR_map`, `.TR_filter` ve `.TR_reduce`'un fonksiyonu dolaşılan listeyi değiştirince H2703 veriyor; bu üçünde denetim yoktu [test: `tests/yerlesikler_test.tr`'nin 13.3 testleri, `tests/negative/cikaran_metotlar.tr`].
 - **Yapılacaklar (A, Ö1, 4a2; DENETİM istek 81: anahtarın tipi denetlenmediği için metin parametreli anahtar tam sayı alıyor):** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
+
+### 13.4
+
+- **Mevcut durum (Kol A 13 yerleşikler 4, 2026-11-04):** `.TR_remove` motorda: anahtarı yerinde silip değerini veriyor, tipi `V?`, anahtar yoksa `TR_none`; anahtar `.TR_get` gibi denetleniyor. H0029'un öğrettiği yazımla aynı adlı dosyanın silinmesi kapandı (DENETİM istek 112 Y1): listede `.TR_remove` H2535 verip `.TR_remove_at`'i öneriyor, metinde H2474 veriyor, ikisi de dosya işlevine yönlendirmiyor [test: `tests/yerlesikler_test.tr`'nin 13.4 testleri, `tests/negative/cikaran_metotlar.tr`].
+- **Bilinen sınır (hız):** silme anahtarın sırasını doğrusal arıyor: 100.000 anahtarı önden silmek 2,9 sn, arkadan silmek 10,1 sn; 10.000 anahtarda 5.000 silme 42 ms [ölçüldü: Windows, `13-4/p.tr`, tek koşu].
 
 ### 13.6
 

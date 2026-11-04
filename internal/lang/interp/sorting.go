@@ -28,12 +28,13 @@ func listSort(y *VM, inst Value, args []Value, line int) (Value, error) {
 		return nil, messages.New(messages.H2900, len(fn.Parameters))
 	}
 	keys := make([]Value, n)
+	mark := markOf(list)
 	for i, item := range copied {
 		key, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
 		if err != nil {
 			return nil, err
 		}
-		if err := sizeChanged(list, n, line); err != nil {
+		if err := mark.changed(list, line); err != nil {
 			return nil, err
 		}
 		keys[i] = key

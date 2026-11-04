@@ -201,6 +201,8 @@ type ListVal struct {
 	// own listenin sahiplik durumu: liste yazımının, liste üretecinin ya da bir motor
 	// işleminin kurduğu liste elemanlarının sahibidir (ownership.go).
 	own Ownership
+	// removed listeden bugüne dek çıkarılan öğe sayısıdır (iterMark).
+	removed int
 }
 
 func (l *ListVal) Type() ValueType { return ValList }
@@ -218,6 +220,8 @@ type DictVal struct {
 	// module, 'aktar ... olarak ad' ile bağlanan modül sözlüğünün dışa aktarmadığı (başı _)
 	// adlarını tutar (11.7); sıradan sözlükte nildir.
 	module *moduleExports
+	// removed sözlükten bugüne dek silinen anahtar sayısıdır (iterMark).
+	removed int
 }
 
 // moduleExports bir modül sözlüğünün kaynağıdır: modülün gösterilen yolu ve modüle özel adları.

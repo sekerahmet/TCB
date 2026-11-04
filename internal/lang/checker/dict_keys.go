@@ -32,13 +32,13 @@ func (c *Checker) checkDictKey(at ast.Node, container, key string) {
 	}
 }
 
-// checkDictKeyArg sözlüğün .TR_get(k) ve .TR_contains(k) argümanını anahtar olarak denetler.
+// checkDictKeyArg sözlüğün .TR_get(k), .TR_contains(k) ve .TR_remove(k) argümanını anahtar olarak denetler.
 func (c *Checker) checkDictKeyArg(e *ast.CallExpression, objType string, argTypes []string) {
 	if len(argTypes) != 1 {
 		return
 	}
 	switch c.builtinCallCode(e, objType) {
-	case codes.MemGet, codes.MemContains:
+	case codes.MemGet, codes.MemContains, codes.MemRemove:
 		c.checkDictKey(e.Arguments[0], objType, argTypes[0])
 	}
 }

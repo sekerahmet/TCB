@@ -227,6 +227,46 @@ TR_test "5.7 dolaşılan liste ya da sözlüğe ekleme ve çıkarma çalışma h
         TR_return x
     }
     TR_assert_equal("H2703", TR_error_code { TR_var y = [ekle(x) TR_for x TR_in m] })
+    TR_var c = [1, 2, 3]
+    TR_assert_equal("H2703", TR_error_code {
+        TR_for x TR_in c { c.TR_pop() }
+    })
+    TR_var r = [1, 2, 3]
+    TR_assert_equal("H2703", TR_error_code {
+        TR_for x TR_in r { r.TR_remove_at(0) }
+    })
+    TR_var e = {"a": 1, "b": 2}
+    TR_assert_equal("H2704", TR_error_code {
+        TR_for a TR_in e { e.TR_remove(a) }
+    })
+    # Son turdaki çıkarma da hatadır: dolaşma biterken görülmeseydi kural yarım kalırdı
+    TR_var z = [1, 2]
+    TR_assert_equal("H2703", TR_error_code {
+        TR_for i, x TR_in z {
+            TR_if i == 1 { z.TR_pop() }
+        }
+    })
+    # Aynı turda çıkarıp eklemek boyu değiştirmez, kural yine işler
+    TR_var b = [1, 2, 3]
+    TR_assert_equal("H2703", TR_error_code {
+        TR_for x TR_in b {
+            b.TR_pop()
+            b.TR_append(9)
+        }
+    })
+    TR_var g = {"a": 1, "b": 2}
+    TR_assert_equal("H2704", TR_error_code {
+        TR_for a, v TR_in g {
+            g.TR_remove("b")
+            g["c"] = 3
+        }
+    })
+    TR_var u = [1, 2, 3]
+    TR_assert_equal("H2703", TR_error_code { TR_var y = [u.TR_pop() TR_for x TR_in u] })
+    # Anahtarların kopyası dolaşılırken sözlükten silmek serbesttir
+    TR_var o = {"a": 1, "b": 2}
+    TR_for a TR_in o.TR_keys() { o.TR_remove(a) }
+    TR_assert_equal(0, o.TR_length)
     # Var olan öğeye ve anahtara atama serbesttir; dolaşma o anki değeri görür
     TR_var s = [1, 2, 3]
     TR_for i, x TR_in s { s[i] = x * 10 }
