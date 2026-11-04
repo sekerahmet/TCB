@@ -162,8 +162,8 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			for _, key := range it.Order {
 				v.loopTurn()
 				// Turun başı güvenli noktadır: başka bir görev anahtarı burada çıkarmış olabilir.
-				if err := mark.changed(it, line); err != nil {
-					return nil, signalNone, err
+				if it.removed != mark.removed {
+					return nil, signalNone, mark.changed(it, line)
 				}
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
