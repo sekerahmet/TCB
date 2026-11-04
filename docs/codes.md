@@ -2506,17 +2506,17 @@ tr: değişken model = {"w": Tensör([1.0], türev_izle: doğru), "b": Tensör([
 
     csv_çöz(Metin) → Liste
 
-CSV metnini satır listelerine çevirir (json_çöz gibi; dosya okumaz, dosya için csv_oku). Baştaki bayt sırası işareti atılır; hücreler yalnızca katı sayı biçimindeyse sayı olur ("007" Metin kalır).
+CSV metnini satır listelerine çevirir (json_çöz gibi; dosya okumaz, dosya için csv_oku). Baştaki bayt sırası işareti atılır; hücre hep Metin'dir, sayı gerekirse Tam(hücre) ile çevrilir.
 
 ```tr
-TR_var tablo = TR_parse_csv("ad,yaş\nAli,30"); TR_print(tablo[1][0], tablo[1][1] + 1)
+TR_var tablo = TR_parse_csv("ad,yaş\nAli,30"); TR_print(tablo[1][0], TR_Int(tablo[1][1]) + 1)
 ```
 
 Görünümü:
 
 ```text
-en: var tablo = parse_csv("ad,yaş\nAli,30"); print(tablo[1][0], tablo[1][1] + 1)
-tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], tablo[1][1] + 1)
+en: var tablo = parse_csv("ad,yaş\nAli,30"); print(tablo[1][0], Int(tablo[1][1]) + 1)
+tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(tablo[1][1]) + 1)
 ```
 
 İlişkili: `TR_read_csv(...)`, `TR_json_parse(...)`
@@ -2606,17 +2606,17 @@ tr: dosya_yaz("veri.bin", Baytlar([0, 255, 128])); yazdır(dosya_baytları("veri
 
     csv_oku(Metin | Yol) → Liste
 
-Bir CSV dosyasını (Metin ya da Yol olarak verilen yol) satır listelerine çevirir; .gz uzantılı dosya açılarak okunur. CSV metninin kendisi csv_çöz ile ayrıştırılır. Hücreler yalnızca katı sayı biçimindeyse sayı olur ("007" Metin kalır).
+Bir CSV dosyasını (Metin ya da Yol olarak verilen yol) satır listelerine çevirir; .gz uzantılı dosya açılarak okunur. CSV metninin kendisi csv_çöz ile ayrıştırılır. Hücre hep Metin'dir, sayı gerekirse Tam(hücre) ile çevrilir.
 
 ```tr
-TR_write_file("tablo.csv", "ad,yaş\nAli,30"); TR_var tablo = TR_read_csv("tablo.csv"); TR_print(tablo[1][0], tablo[1][1] + 1)
+TR_write_file("tablo.csv", "ad,yaş\nAli,30"); TR_var tablo = TR_read_csv("tablo.csv"); TR_print(tablo[1][0], TR_Int(tablo[1][1]) + 1)
 ```
 
 Görünümü:
 
 ```text
-en: write_file("tablo.csv", "ad,yaş\nAli,30"); var tablo = read_csv("tablo.csv"); print(tablo[1][0], tablo[1][1] + 1)
-tr: dosya_yaz("tablo.csv", "ad,yaş\nAli,30"); değişken tablo = csv_oku("tablo.csv"); yazdır(tablo[1][0], tablo[1][1] + 1)
+en: write_file("tablo.csv", "ad,yaş\nAli,30"); var tablo = read_csv("tablo.csv"); print(tablo[1][0], Int(tablo[1][1]) + 1)
+tr: dosya_yaz("tablo.csv", "ad,yaş\nAli,30"); değişken tablo = csv_oku("tablo.csv"); yazdır(tablo[1][0], Tam(tablo[1][1]) + 1)
 ```
 
 İlişkili: `TR_read_file(...)`, `TR_parse_csv(...)`

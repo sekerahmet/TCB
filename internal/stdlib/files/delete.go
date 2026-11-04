@@ -32,10 +32,10 @@ func deleteBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	if err != nil {
 		return nil, err
 	}
-	resolved, tried := m.ResolvePath(filepath.FromSlash(raw))
+	resolved, tried := m.ResolveWritePath(filepath.FromSlash(raw))
 	info, err := os.Lstat(resolved)
 	if err != nil {
-		return nil, interp.ReadError(fn, raw, messages.H2104, err, tried)
+		return nil, m.WriteError(fn, raw, messages.H2104, err, tried)
 	}
 	real := realPath(resolved)
 	if reason := deleteProtection(m, real); reason != nil {

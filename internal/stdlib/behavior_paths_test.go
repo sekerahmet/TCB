@@ -13,19 +13,19 @@ var osPathFuncs = map[string]bool{
 	"Remove": true, "RemoveAll": true, "Rename": true, "MkdirTemp": true,
 }
 
-// resolvers kullanıcının yolunu dilin tek yol kuralıyla çözen çağrılardır.
-var resolvers = map[string]bool{"ResolvePath": true, "ResolvePathTried": true, "resolve": true}
+// resolvers kullanıcının yolunu dilin yol kuralıyla (okuyan ya da değiştiren iş, 18.16) çözen çağrılardır.
+var resolvers = map[string]bool{"ResolvePath": true, "ResolveWritePath": true, "ResolvePathTried": true, "resolve": true}
 
 // notUserPaths yorumlayıcı alıp os çağıran ama kullanıcının yazdığı bir yola dokunmayan işlevlerdir
 // (gerekçeleriyle). Liste yalnızca küçülür: yeni kayıt eklenmez.
 var notUserPaths = map[string]string{
-	"internal/stdlib/checkpoint/read.go:loadNewest": "koşu klasörü TR_Checkpoint() kurulurken bind.ResolvePath ile çözülmüştür",
+	"internal/stdlib/checkpoint/read.go:loadNewest": "koşu klasörü TR_Checkpoint() kurulurken m.ResolveWritePath ile çözülmüştür",
 	"internal/stdlib/files/copy.go:checkConflict":   "job.src ve job.last findSource/findTarget'ta çözülmüş yollardır",
 	"internal/stdlib/files/temp.go:tempDirBuiltin":  "yol işletim sisteminin geçici klasöründen üretilir, kullanıcı yolu almaz",
 }
 
 // Yol alan bir yerleşik ya da üye (yorumlayıcıyı parametre olarak alan işlev), dosya sistemine
-// dokunmadan önce yolu dilin tek kuralıyla (VM.ResolvePath) çözmelidir: kendi başına
+// dokunmadan önce yolu dilin kuralıyla (VM.ResolvePath ya da VM.ResolveWritePath) çözmelidir: kendi başına
 // çalışma klasörüne ya da programın klasörüne bakan bir yerleşik, aynı göreli yolu başka
 // yerleşikten farklı bulurdu. Yorumlayıcısız işlevler (m almayanlar) çözülmüş yolu alır.
 func TestUserPathsResolvedByLanguageRule(t *testing.T) {
@@ -66,7 +66,7 @@ func TestUserPathsResolvedByLanguageRule(t *testing.T) {
 	}
 	sort.Strings(violations)
 	for _, v := range violations {
-		t.Errorf("%s: dosya sistemine dokunuyor ama yolu VM.ResolvePath ile çözmüyor", v)
+		t.Errorf("%s: dosya sistemine dokunuyor ama yolu VM.ResolvePath ya da VM.ResolveWritePath ile çözmüyor", v)
 	}
 	for key := range notUserPaths {
 		if !seen[key] {

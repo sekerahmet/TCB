@@ -8,9 +8,9 @@ Metin veri biçimlerinin TR yerleşikleri: `TR_fn_json_parse`, `TR_fn_json_strin
 sırayla çıkar.
 Denetim: `TestJSONDecodePreservesKeyOrder`, `TestJSONTextOrderNaNAndCycle`.
 
-**Sayılar katı okunur.** CSV hücresi yalnızca bütünüyle bir sayıysa sayı olur; baştaki BOM
-atılır, gerisi metin olarak kalır.
-Denetim: `TestCSVStrictNumbersAndBOM`, `FuzzCSVDecode`.
+**CSV hücresi hep metindir (13.8).** Hücre boşlukları kırpılarak metin kalır, sayı program tip
+çağrısıyla çevirir; baştaki BOM atılır.
+Denetim: `TestCSVCellsAreTextAndBOM`, `FuzzCSVDecode`.
 
 **Yol ile metin karışmaz.** Dosya okuyan ve metin çözen yerleşik ayrıdır: `TR_fn_read_csv` her zaman
 dosya okur, `TR_fn_parse_csv` (`TR_fn_json_parse` gibi) her zaman metni ayrıştırır; hiçbiri argümanın ne olduğunu

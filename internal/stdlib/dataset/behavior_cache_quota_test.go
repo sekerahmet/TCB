@@ -27,14 +27,16 @@ func TestQuotaTooLarge(t *testing.T) {
 	}
 }
 
-// önbellek: yolu da tek yol kuralıyla çözülür (16.8): çalışma klasöründe
-// yoksa programın klasörüne göre.
-func TestCachePathFromProgramDir(t *testing.T) {
+// önbellek: klasörü değiştiren işlerdendir (18.16; kullanılırken de kilit dosyası açılır, bozuk
+// kopya silinir): göreli yolu yalnız çalışma klasörüne göre çözülür, programın yanındaki aynı
+// adlı klasöre dokunulmaz.
+func TestCachePathOnlyInTheWorkingDirectory(t *testing.T) {
 	d := buildDataset(t)
-	program := t.TempDir()
+	program, work := t.TempDir(), t.TempDir()
 	if err := os.Mkdir(filepath.Join(program, "onb_16_8"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	t.Chdir(work)
 	p := parser.New(lexer.NewBody(`TR_Dataset("`+trPath(d)+`", TR_cache: "onb_16_8/kume", TR_quota_gb: 0.001).TR_sampler(TR_batch_size: 2, TR_context: 8).TR_next()`, true))
 	prog := p.ParseProgram()
 	m := interp.New()
@@ -45,13 +47,12 @@ func TestCachePathFromProgramDir(t *testing.T) {
 	}
 	m.WaitAsync()
 	dataset.CloseAll(time.Second)
-	if _, err := os.Stat("onb_16_8"); err == nil {
-		_ = os.RemoveAll("onb_16_8")
-		t.Fatal("önbellek çalışma klasörüne açıldı")
+	if inputs, _ := reporoot.ReadDir(filepath.Join(program, "onb_16_8")); len(inputs) != 0 {
+		t.Fatalf("programın klasöründeki onb_16_8'e yazıldı: %d girdi", len(inputs))
 	}
-	inputs, err := reporoot.ReadDir(filepath.Join(program, "onb_16_8", "kume"))
+	inputs, err := reporoot.ReadDir(filepath.Join(work, "onb_16_8", "kume"))
 	if err != nil || len(inputs) == 0 {
-		t.Fatalf("önbellek programın klasöründe açılmadı: %v %d", err, len(inputs))
+		t.Fatalf("önbellek çalışma klasöründe açılmadı: %v %d", err, len(inputs))
 	}
 }
 

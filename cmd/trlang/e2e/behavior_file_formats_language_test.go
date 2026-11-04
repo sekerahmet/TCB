@@ -75,7 +75,7 @@ func TestDataFormatsAreLanguageIndependent(t *testing.T) {
 	if want := ":true,\"boş\":null}\n"; logs[0] != want {
 		t.Errorf("günlük kaydı %q, beklenen %q", logs[0], want)
 	}
-	if want := "{\"a\":true,\"b\":null,\"c\":[1.5,false],\"d\":\"x\"}\n[[\"a\",\"b\"],[\"doğru\",1]]"; data[0] != want {
+	if want := "{\"a\":true,\"b\":null,\"c\":[1.5,false],\"d\":\"x\"}\n[[\"a\",\"b\"],[\"doğru\",\"1\"]]"; data[0] != want {
 		t.Errorf("JSON ve CSV: %q, beklenen %q", data[0], want)
 	}
 	if data[0] != data[1] || logs[0] != logs[1] {

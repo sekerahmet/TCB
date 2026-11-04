@@ -12,8 +12,10 @@
 // kökün dışına çıkmaz. Ağır işler (kopyalama, silme, listeleme, satır okuma) yorumlayıcı
 // kilidi bırakılarak yapılır.
 //
-// Göreli yollar her yerde 13.1'in tek kuralıyla, kullanıldıkları anda çözülür (önce çalışma
-// klasörü, sonra kodun modülünün ve programın klasörü; bkz. interp.(*VM).ResolvePath).
+// Göreli yollar 13.1a'nın kuralıyla, kullanıldıkları anda çözülür (18.16): okuyan ve soran işler
+// önce çalışma klasörüne, sonra kodun modülünün ve programın klasörüne bakar
+// (interp.(*VM).ResolvePath); değiştiren işler (TR_make_dir, TR_remove, TR_move'un kaynağı ve hedefi,
+// TR_copy'nin hedefi) yalnız çalışma klasörüne (interp.(*VM).ResolveWritePath).
 //
 // Layer: standard library (internal/stdlib); dil ve hesap çekirdeklerini içe aktarır, araçları bilmez.
 package files

@@ -60,7 +60,7 @@ TR_test "18.4 yol alan yerleşikler Metin ya da Yol alır" {
     TR_var k = TR_temp_dir()
     TR_write_file(TR_Path(k, "t.csv"), "a,b\n1,2")
     TR_assert_equal("a,b\n1,2", TR_read_file(TR_Path(k, "t.csv")))
-    TR_assert_equal([["a", "b"], [1, 2]], TR_read_csv(TR_Path(k, "t.csv")))
+    TR_assert_equal([["a", "b"], ["1", "2"]], TR_read_csv(TR_Path(k, "t.csv")))
     TR_assert_equal("H2423", TR_error_code { TR_read_file(5) })
     TR_assert_equal("H2132", TR_error_code { TR_read_csv(TR_Path(k, "olmayan.csv")) })
 }
@@ -184,7 +184,7 @@ TR_test "18.12 .gz uzantılı dosyalar saydam sıkıştırılır ve açılır" {
     TR_var k = TR_temp_dir()
     TR_write_file(TR_Path(k, "t.csv.gz"), "a,b\n1,2")
     TR_assert_equal("a,b\n1,2", TR_read_file(TR_Path(k, "t.csv.gz")))
-    TR_assert_equal([["a", "b"], [1, 2]], TR_read_csv(TR_Path(k, "t.csv.gz")))
+    TR_assert_equal([["a", "b"], ["1", "2"]], TR_read_csv(TR_Path(k, "t.csv.gz")))
     TR_assert_equal(["a,b", "1,2"], [s TR_for s TR_in TR_read_lines(TR_Path(k, "t.csv.gz"))])
     # Sıkıştırılmış dosya, aynı içeriğin düz yazımından farklıdır.
     TR_assert(TR_Path(k, "t.csv.gz").TR_size != 7)
@@ -231,4 +231,27 @@ TR_test "18.15 SatırOkuyucu.kapat dosyayı bırakır; kapatılmış okuyucu sat
     TR_var t = TR_read_lines(TR_Path(k, "t.txt"))
     TR_assert_equal(["a"], [s TR_for s TR_in t])
     TR_assert_equal(TR_false, t.TR_close())
+}
+
+TR_test "18.16 değiştiren işler göreli yolu yalnız çalışma klasörüne göre çözer; başka klasördeki dosyaya dokunmaz" {
+    # Programın klasörü (tests/): okuma sırası data/tokenizer.json'u orada bulur (18.3). Test, çalışma
+    # klasörü programın klasörü değilse (depo kökünden çalışırken) sınar. Programın klasörüne yalnız
+    # kendi yazdığı dosyaları koyar ve siler: eski kurallı bir ikiliyle koşsa da depodaki veriye dokunmaz.
+    TR_var program = TR_Path("data/tokenizer.json").TR_absolute.TR_parent.TR_parent
+    TR_if program != TR_Path(".").TR_absolute {
+        TR_var yanda = TR_Path(program, "kolA_18_16_yanda.txt")
+        TR_var yazılmaz = [TR_Path(program, "data", "kolA_18_16.txt"), TR_Path(program, "data", "kolA_18_16.trt")]
+        TR_defer {
+            TR_for k TR_in yazılmaz + [yanda] { TR_if k.TR_exists { TR_remove(k) } }
+        }
+        TR_write_file(yanda, "eski")
+        TR_assert_equal("H2630", TR_error_code { TR_remove("kolA_18_16_yanda.txt") })
+        TR_assert_equal("H2630", TR_error_code { TR_move("kolA_18_16_yanda.txt", TR_Path(TR_temp_dir(), "t.txt")) })
+        TR_assert_equal("eski", TR_read_file(yanda))
+        # Yazma çalışma klasörüne gider; orada data/ yoksa yazılamaz, programın data/ klasörüne bir şey düşmez.
+        TR_assert_equal("H2131", TR_error_code { TR_write_file("data/kolA_18_16.txt", "x") })
+        TR_assert_equal("H2131", TR_error_code { TR_save_tensors("data/kolA_18_16.trt", {"w": TR_Tensor([1.0])}) })
+        TR_for k TR_in yazılmaz { TR_assert(TR_not k.TR_exists) }
+    }
+    # İletinin verdiği açık yolun çalıştığı: Go TestWritersDoNotTouchTheProgramsFile (çalışma klasörünü kurar).
 }

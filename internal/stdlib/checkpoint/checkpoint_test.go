@@ -275,3 +275,45 @@ func resignCheckpointVersion(t *testing.T, stepDir string, step, version int) {
 		t.Fatal(err)
 	}
 }
+
+// Koşu klasörü değiştiren işlerdendir (18.16): göreli yol yalnız çalışma klasörüne göre çözülür.
+// Program başka bir klasörden çalışınca programın yanındaki koşudan sürmez, ona yazmaz.
+func TestRunFolderOnlyInTheWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	work, program := filepath.Join(root, "cwd"), filepath.Join(root, "program")
+	for _, d := range []string{work, program} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code := "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)\nTR_var kn = TR_Checkpoint(\"kosu\", {\"w\": w})\nTR_print(kn.TR_resume_step)\nkn.TR_update(3)\nkn.TR_save()\n"
+	runIn := func(dir string) string {
+		t.Helper()
+		t.Chdir(dir)
+		m := interp.New()
+		w := &testkit.TeeWriter{}
+		m.Out, m.Err = w, w
+		m.SourceFile = filepath.Join(program, "egit.tr")
+		if _, err := m.Run(trrun.Parse(t, code)); err != nil {
+			t.Fatal(err)
+		}
+		stdlib.Close()
+		return w.String()
+	}
+	if out := runIn(program); out != "0\n" {
+		t.Fatalf("ilk koşu: %q", out)
+	}
+	before, err := reporoot.ReadDir(filepath.Join(program, "kosu", "checkpoints"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out := runIn(work); out != "0\n" {
+		t.Errorf("başka klasörden çalışan program programın koşusundan sürmemeli: %q", out)
+	}
+	if _, err := os.Stat(filepath.Join(work, "kosu", "checkpoints")); err != nil {
+		t.Errorf("koşu çalışma klasöründe olmalı: %v", err)
+	}
+	if after, _ := reporoot.ReadDir(filepath.Join(program, "kosu", "checkpoints")); len(after) != len(before) {
+		t.Errorf("programın koşu klasörü değişmemeli: %d → %d girdi", len(before), len(after))
+	}
+}

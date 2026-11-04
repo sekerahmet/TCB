@@ -6,11 +6,11 @@
 # Çalıştırma (proje kökünden): trlang examples/tr/21_csv_ve_ortam.tr
 # CSV dosyası geçici klasöre yazılır (program bitince silinir).
 
-# csv_çöz CSV metnini satır listelerine çevirir (dosya okumaz). Katı sayı biçimindeki hücre sayı olur;
-# "007" gibi baştaki sıfırlı hücre Metin kalır.
+# csv_çöz CSV metnini satır listelerine çevirir (dosya okumaz). Hücre hep Metin'dir ("007" gibi baştaki
+# sıfırlı numara bozulmaz); sayı gerekirse Tam(hücre) ile çevrilir.
 TR_var tablo = TR_parse_csv("ad,yaş,numara\nAli,30,007\nAyşe,25,008")
 TR_print(tablo[0], tablo[1])
-TR_print(tablo[1][1] + 1, TR_Type(tablo[1][1]), TR_Type(tablo[1][2]))
+TR_print(TR_Int(tablo[1][1]) + 1, TR_Type(tablo[1][1]), TR_Type(tablo[1][2]))
 
 # csv_oku aynı işi dosya için yapar.
 TR_var dosya = TR_Path(TR_temp_dir(), "tablo.csv")
@@ -20,8 +20,8 @@ TR_print("satır sayısı:", satırlar.TR_length)
 TR_for satır TR_in satırlar {
     TR_print(satır)
 }
-# Başlık satırında adet bir Metin, veri satırlarında bir Tam: yalnızca sayıları toplarız.
-TR_print("toplam adet:", TR_sum([satır[1] TR_for satır TR_in satırlar TR_if TR_Type(satır[1]) == TR_Int]))
+# İlk satır başlıktır; veri satırlarının adedini Tam'a çevirip toplarız.
+TR_print("toplam adet:", TR_sum([TR_Int(satır[1]) TR_for satır TR_in satırlar[1..satırlar.TR_length]]))
 
 # ortam_değişkeni tanımsızsa yok verir; varsayılan için ?? yazılır.
 TR_print(TR_env("TR_ORNEK_OLMAYAN_DEGISKEN") ?? "varsayılan değer")

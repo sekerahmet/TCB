@@ -30,9 +30,9 @@ func fromProgram(t *testing.T, dir, code string) (string, error) {
 	return out.String(), err
 }
 
-// tensör_kaydet ve tensör_yükle göreli yolları TR'nin tek yol
-// kuralıyla (interp.YolCoz) çözer: klasörü çalışma klasöründe olmayan bir yol programın
-// klasörüne göre yazılır ve okunur.
+// TR_load_tensors göreli yolu okuma sırasıyla çözer (interp.ResolvePath): klasörü çalışma
+// klasöründe olmayan bir yol programın klasöründe bulunur. TR_save_tensors yalnız çalışma
+// klasörüne göre çözer (ResolveWritePath, 13.1a): programın klasörüne yazmaz.
 func TestFileOpsRelativePath(t *testing.T) {
 	dir := t.TempDir()
 	const sub = "tr_yol_testi_alt_klasoru"
@@ -42,8 +42,9 @@ func TestFileOpsRelativePath(t *testing.T) {
 	if _, err := os.Stat(sub); err == nil {
 		t.Fatalf("%s çalışma klasöründe olmamalı", sub)
 	}
+	full := filepath.ToSlash(filepath.Join(dir, sub, "t.trt"))
 	out, err := fromProgram(t, dir, `
-TR_save_tensors("`+sub+`/t.trt", {"w": TR_Tensor([1.5, 2.5])})
+TR_save_tensors("`+full+`", {"w": TR_Tensor([1.5, 2.5])})
 TR_print(TR_load_tensors("`+sub+`/t.trt")["w"].TR_tolist)
 `)
 	if err != nil {
@@ -52,10 +53,12 @@ TR_print(TR_load_tensors("`+sub+`/t.trt")["w"].TR_tolist)
 	if strings.TrimSpace(out) != "[1.5, 2.5]" {
 		t.Fatalf("beklenmeyen çıktı: %q", out)
 	}
-	for _, ad := range []string{"t.trt"} {
-		if _, err := os.Stat(filepath.Join(dir, sub, ad)); err != nil {
-			t.Errorf("%s programın klasörüne yazılmalıydı: %v", ad, err)
-		}
+	_, err = fromProgram(t, dir, `TR_save_tensors("`+sub+`/u.trt", {"w": TR_Tensor([1.0])})`)
+	if !messages.Has(err, messages.H2131) {
+		t.Errorf("çalışma klasöründe %s yokken H2131 bekleniyordu: %v", sub, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, sub, "u.trt")); err == nil {
+		t.Error("u.trt programın klasörüne yazılmamalıydı")
 	}
 }
 

@@ -18,6 +18,7 @@ Denetim: `TestCheckNamedSuggestionOrder`.
 bir hataya çevrilir; kullanıcının kesmesi (Ctrl+C) yutulmaz.
 Denetim: `TestPanicBecomesError`, `TestRecoverKeepsInterrupt`.
 
-**Göreli yollar dilin tek yol kuralıyla çözülür.** Motorlar dosya yollarını kendileri çözmez;
-dilin kuralı kullanılır, bulunamayan yolun hatası bakılan yerleri söyler.
-Denetim: `TestResolvePath`; kuralın motorlarda uygulanması için `TestUserPathsResolvedByLanguageRule` (`internal/stdlib`).
+**Göreli yollar dilin yol kuralıyla çözülür.** Motorlar dosya yollarını kendileri çözmez;
+dilin kuralı kullanılır: okuyan iş `ResolvePathTried` ile (okuma sırası), değiştiren iş
+`m.ResolveWritePath` ile (yalnız çalışma klasörü, 18.16); bulunamayan yolun hatası bakılan yerleri söyler.
+Denetim: `TestResolvePathTried`; kuralın motorlarda uygulanması için `TestUserPathsResolvedByLanguageRule` (`internal/stdlib`).

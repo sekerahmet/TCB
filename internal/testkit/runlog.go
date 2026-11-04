@@ -36,7 +36,11 @@ func ValidLossMetrics(t testing.TB, path string, skipBroken bool) []string {
 		}
 		var step int64
 		var kind string
-		_ = json.Unmarshal(rec["step"], &step)
+		if s := rec["step"]; s != nil { // başlangıç kaydında adım yoktur
+			if err := json.Unmarshal(s, &step); err != nil {
+				t.Fatalf("step is not a whole number in %q: %v", line, err)
+			}
+		}
 		_ = json.Unmarshal(rec["kind"], &kind)
 		switch {
 		case kind == "resume":

@@ -364,6 +364,10 @@ TR_test "3.7a JSON: hatalar, metin, eşitlik ve TR_JSON ile kurma" {
     TR_var aralıklı = [1, 0..3]
     TR_assert_equal("H2654", TR_error_code { TR_JSON(anahtarı_sayı) })
     TR_assert_equal("H2654", TR_error_code { TR_JSON(aralıklı) })
+    # Nesnede yinelenen anahtar çözmede hatadır; aynı anahtar başka nesnelerde serbesttir (13.8).
+    TR_assert_equal("H7011", TR_error_code { TR_json_parse(`{"a": 1, "a": 2}`) })
+    TR_assert_equal("H7011", TR_error_code { TR_json_parse(`[{"b": {"x": 1}, "c": {"x": 2, "x": 3}}]`) })
+    TR_assert_equal(2, TR_Int(TR_json_parse(`{"a": {"a": 1}, "b": {"a": 2}}`)["b"]["a"]))
 }
 
 TR_test "3.7a beklenen tipi TR_JSON olan değişmez JSON değeri olarak kurulur: değişken, parametre, dönüş, alan ve atama" {

@@ -102,10 +102,15 @@ func dirWanted(d interp.Value) bool {
 }
 
 func (job *moveJob) findSource(m *interp.VM) error {
-	resolved, tried := m.ResolvePath(filepath.FromSlash(job.srcRaw))
+	// TR_copy'nin kaynağı okunur (okuma sırası), TR_move'unki değişir (yalnız çalışma klasörü, 18.16).
+	resolve, explain := m.ResolvePath, interp.ReadError
+	if job.move {
+		resolve, explain = m.ResolveWritePath, m.WriteError
+	}
+	resolved, tried := resolve(filepath.FromSlash(job.srcRaw))
 	b, err := os.Lstat(resolved)
 	if err != nil {
-		return interp.ReadError(job.fn, job.srcRaw, messages.H2113, err, tried)
+		return explain(job.fn, job.srcRaw, messages.H2113, err, tried)
 	}
 	switch {
 	case isLink(b.Mode()) && !job.move:
@@ -127,7 +132,7 @@ func (job *moveJob) findSource(m *interp.VM) error {
 
 // findTarget son hedefi bulur: hedef var olan bir klasörse kaynak onun içine aynı adla gider.
 func (job *moveJob) findTarget(m *interp.VM, targetRaw string, wantDir bool) error {
-	target, _ := m.ResolvePath(filepath.FromSlash(targetRaw))
+	target, _ := m.ResolveWritePath(filepath.FromSlash(targetRaw))
 	b, err := os.Lstat(target)
 	switch {
 	case err == nil && b.IsDir():

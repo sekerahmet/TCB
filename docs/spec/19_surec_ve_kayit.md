@@ -50,16 +50,16 @@ TR_print(ayar.adım)
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.
 - Her açılışın ilk satırı bir başlangıç kaydıdır: `{"kind":"start","time":...,"version":2,"program":"egit.tr","settings":{...}}`. Bağlı bir çubuğun toplamı çubuğun ilk kaydındadır (19.9); `settings` programda `TR_command_line` çağrıldıysa onun sonucudur.
-- `g.TR_append(kayıt)` bir ölçü kaydı yazar, değer döndürmez (13.10). `time` anahtarı verilmediyse eklenir, verildiyse onun yerine geçer; tek öğeli tensör sayı, daha büyüğü iç içe liste olur. `g.TR_append(metin)` `{"time":...,"message":...}` yazar.
+- `g.TR_append(kayıt)` bir ölçü kaydı yazar, değer döndürmez (13.10). `time` anahtarı verilmediyse eklenir, verildiyse onun yerine geçer; tek öğeli tensör sayı, daha büyüğü iç içe liste olur. `g.TR_append(metin)` `{"time":...,"message":...}` yazar. Kayıttaki "step" anahtarının değeri tam değerliyse tam sayı yazılır (`3.0` → `3`): okuyucular adımları karşılaştırır (19.6).
 - NaN ve sonsuz değerler gizlenmez; `"NaN"`, `"Infinity"`, `"-Infinity"` metni olarak yazılır.
 - Her kayıt tek bir yazma çağrısıyla eklenir: süreç çökse de en çok son satır yarım kalır, sonraki açılış yeni kaydı yeni satırda başlatır.
 - Sistemin yazdığı anahtarlar ve kayıt türleri (`kind`: `start`, `end`, `resume`; `time`, `version`, `program`, `total`, `settings`, `step`, `rate`, `seconds`, `message`) dosya biçiminin parçasıdır ve çevrilmez (17.3). Kaydın kendi anahtarları programındır ve yazıldığı gibi yazılır.
 - Günlük program bitince (hatayla ya da durdurmayla da) kapanır. `g.TR_close()` onu daha önce kapatır (18.15 gibi); kapatılmış günlüğe yazmak hatadır.
 - *Test:* TR testi; Go: `TestLogRecords`, `TestLogAppendAndResume`, `TestLogFormatNamesAreLanguageIndependent`.
 
-**19.6** Günlük hataları: `.jsonl` olmayan uzantı; `TR_append`'de "kind" anahtarı (kayıt türlerine ayrılmıştır); 13.8'in JSON'a yazılabilen değerlerinden olmayan değer (`TR_none` `null`, `TR_JSON`, `TR_Path` metin, alanları yazılabilen yapı nesne olarak yazılır); sözlük ya da metin olmayan argüman. Dosya hataları dosyanın adıyla ve nedeniyle bildirilir.
+**19.6** Günlük hataları: `.jsonl` olmayan uzantı; `TR_append`'de "kind" anahtarı (kayıt türlerine ayrılmıştır); `TR_append`'de "step" anahtarının tam değerli olmayan değeri (3.5, NaN, sonsuz, `TR_Int`'e sığmayan: kırpılmaz, ileti `TR_round`'u önerir); 13.8'in JSON'a yazılabilen değerlerinden olmayan değer (`TR_none` `null`, `TR_JSON`, `TR_Path` metin, alanları yazılabilen yapı nesne olarak yazılır); sözlük ya da metin olmayan argüman. Dosya hataları dosyanın adıyla ve nedeniyle bildirilir.
 - **Okuyucular için:** `kind` taşımayan satırlar ölçü kayıtlarıdır. Kontrol noktasından sürdürülen eğitim `{"kind":"resume","step":1500,"offset":123456}` yazar; `offset` noktadaki günlüğün bayt uzunluğudur (20.2). `offset` ile `resume` satırı arasındaki her kayıt, adımı olsun olmasın, geçersizdir. Bir `resume` kaydından **önce** gelen ve adımı ondan **büyük** olan ölçü kayıtları geçersizdir: kesilmeden önce yazılmışlardır ve adımları yeniden hesaplanmıştır. Adımı devamın adımına eşit olan kayıt geçerlidir (20).
-- *Test:* TR testi; Go: `TestLogErrors`.
+- *Test:* TR testi; Go: `TestLogErrors`, `TestLogStepIsWholeNumber`, `TestValidLossMetricsRejectsAFractionalStep`.
 
 **19.7** `TR_Progress(n)` n adımlı bir ilerleme çubuğu açar; `n` pozitif bir `TR_Int`'tir, verilmezse ya da `TR_none` ise çubuk toplamsız bir sayaçtır.
 - `ç.TR_update(ölçüler)` bir adım ilerler, verilen ölçüleri (sözlük) gösterir ve değer döndürmez (13.10); ölçüsüz çağrı önceki ölçüleri korur.

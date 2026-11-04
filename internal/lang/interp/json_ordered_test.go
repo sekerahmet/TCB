@@ -72,3 +72,22 @@ func TestJSONIntegerOutsideIntRangeIsAFloat(t *testing.T) {
 		}
 	}
 }
+
+// Kural (3.7a, 13.8): nesnede yinelenen anahtar çözmede hatadır; ileti anahtarı ve iki yerini (satır,
+// sütun; sütun karakter sayar) söyler. Aynı anahtar başka nesnelerde serbesttir.
+func TestJSONDuplicateKeyIsAnError(t *testing.T) {
+	_, err := JSONToTR([]byte("{\"ç\": 1,\n  \"ç\": 2}"))
+	if !messages.Has(err, messages.H7011) {
+		t.Fatalf("H7011 bekleniyordu: %v", err)
+	}
+	if want := `"ç" anahtarı iki kez yazılmış (satır 1, sütun 2 ve satır 2, sütun 3)`; !strings.Contains(err.Error(), want) {
+		t.Errorf("ileti %q içermeli: %v", want, err)
+	}
+	_, err = JSONToTR([]byte(`[{"a": {"x": 1}, "b": {"x": 2, "y": 3, "x": 4}}]`))
+	if !messages.Has(err, messages.H7011) || !strings.Contains(err.Error(), "sütun 24 ve satır 1, sütun 40") {
+		t.Errorf("iç nesnedeki yinelenen anahtar: %v", err)
+	}
+	if _, err := JSONToTR([]byte(`{"a": {"a": 1}, "b": {"a": 2}, "c": [{"a": 3}, {"a": 4}]}`)); err != nil {
+		t.Errorf("başka nesnedeki aynı anahtar serbest: %v", err)
+	}
+}

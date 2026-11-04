@@ -116,7 +116,7 @@ func TestPathTakingBuiltins(t *testing.T) {
 		TR_var t2 = TR_read_csv(TR_Path("a.txt"))
 		TR_save_tensors(TR_Path("m.trt"), {"w": TR_Tensor([1.0, 2.0])})
 		[t1, t2, TR_load_tensors(TR_Path("m.trt"))["w"].TR_tolist]`)
-	if got != `["1,2\n3,4", [[1, 2], [3, 4]], [1.0, 2.0]]` {
+	if got != `["1,2\n3,4", [["1", "2"], ["3", "4"]], [1.0, 2.0]]` {
 		t.Fatalf("%s", got)
 	}
 	// Yol verilen csv_oku içeriği metin sanmaz: dosya yoksa hata verir, csv_çöz önermez.
@@ -135,7 +135,7 @@ func TestPathTakingBuiltins(t *testing.T) {
 func TestGzipTransparent(t *testing.T) {
 	k := tmpWork(t)
 	got := mustRunTR(t, `TR_write_file("t.csv.gz", "a,b\n1,2"); [TR_read_file("t.csv.gz"), TR_read_csv("t.csv.gz")]`)
-	if got != `["a,b\n1,2", [["a", "b"], [1, 2]]]` {
+	if got != `["a,b\n1,2", [["a", "b"], ["1", "2"]]]` {
 		t.Fatalf("%s", got)
 	}
 	b, _ := os.ReadFile(filepath.Join(k, "t.csv.gz"))

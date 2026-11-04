@@ -21,7 +21,7 @@ func makeDirBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.V
 	if err != nil {
 		return nil, err
 	}
-	resolved, _ := m.ResolvePath(filepath.FromSlash(raw))
+	resolved, _ := m.ResolveWritePath(filepath.FromSlash(raw))
 	if b, err := os.Stat(resolved); err == nil && !b.IsDir() {
 		return nil, messages.New(messages.H7123, fn, raw)
 	}

@@ -12,26 +12,24 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 )
 
-// ResolvePath applies the SINGLE rule for relative file paths in TR programs; every builtin
-// that reads or writes files (dosya_oku, dosya_yaz and the engines' load/save functions) must
-// resolve paths with it. 'aktar' resolves module paths with its own rule (ResolveModulePath:
-// the working directory is not part of the module search, 11.1).
+// ResolvePath applies the reading rule for relative file paths in TR programs (13.1a, 18.16):
+// every builtin that reads a file or asks about it (TR_read_file, TR_read_lines, TR_list_dir,
+// the properties of 18.3, the source of TR_copy, the engines' load functions) resolves paths
+// with it. Builtins that change the disk resolve with ResolveWritePath. TR_import resolves
+// module paths with its own rule (ResolveModulePath: the working directory is not part of the
+// module search, 11.1).
 //
-// The rule (the same for reading and writing): a relative path is tried first against the
-// working directory, then (when the program runs from a file) against the program's
-// directory, and the first place where the file exists is used. If the file exists nowhere,
-// the first place whose directory exists is used (for a plain "a.txt" that is always the
-// working directory); failing that the path is returned as is (relative to the working
-// directory). Reading a missing file gives a "dosya yok" error; writing creates the file in
-// the chosen place.
+// The rule: a relative path is tried first against the working directory, then (when the code
+// runs from a file) against the directory of the code's module and the program's directory,
+// and the first place where the file exists is used. If the file exists nowhere, the first
+// place whose directory exists is used, so that the "dosya yok" error names the missing file
+// in that directory (not a missing directory); failing that the path is returned as is
+// (relative to the working directory).
 //
-// Rationale: the same path names the same file for reading and writing (a sayaç.txt next to
-// the program is read, updated and written back to the same file; separate read/write rules
-// would read one and write the other), a program finds the data next to it whichever
-// directory it runs from, and new files appear in the working directory as shell habits
-// expect. Absolute paths are used as is.
+// Rationale: a program finds the data next to it (or next to its module) whichever directory
+// it runs from. Absolute paths are used as is.
 //
-// bakilanlar are the absolute paths of the places tried, shown as "bakılan yerler" in error
+// searched are the absolute paths of the places tried, shown as "bakılan yerler" in error
 // messages (nil for an absolute or empty path).
 func (v *VM) ResolvePath(filePath string) (resolved string, searched []string) {
 	if filePath == "" || filepath.IsAbs(filePath) {
@@ -48,15 +46,55 @@ func (v *VM) ResolvePath(filePath string) (resolved string, searched []string) {
 			return candidate, searched
 		}
 	}
-	// 2. Yoksa, bulunacağı klasörün var olduğu ilk yer: yeni bir "çıktı/rapor.txt"
-	// programın yanındaki çıktı/ klasörüne yazılır; okumada "dosya yok" hatası o
-	// klasördeki eksik dosyayı söyler (yanıltıcı biçimde "klasör yok" demez).
+	// 2. Yoksa, bulunacağı klasörün var olduğu ilk yer: "dosya yok" hatası o klasördeki
+	// eksik dosyayı söyler (yanıltıcı biçimde "klasör yok" demez).
 	for _, candidate := range candidates {
 		if info, err := os.Stat(filepath.Dir(candidate)); err == nil && info.IsDir() {
 			return candidate, searched
 		}
 	}
 	return filePath, searched
+}
+
+// ResolveWritePath resolves the path of a builtin that changes the disk (18.16: TR_write_file,
+// TR_save_tensors, the run folder of TR_Checkpoint, the file of TR_Logger, TR_make_dir,
+// TR_remove, the source and target of TR_move, the target of TR_copy, the cache folder of
+// TR_Dataset): a relative path is relative to the working directory only, so a file of the
+// same name next to the module or the program is never overwritten, deleted or moved (13.1a).
+// A program that writes next to itself builds that path explicitly (18). searched is the one
+// place looked at, nil for an absolute or empty path, which is returned as is. v may be nil.
+func (v *VM) ResolveWritePath(filePath string) (resolved string, searched []string) {
+	if filePath == "" || filepath.IsAbs(filePath) {
+		return filePath, nil
+	}
+	return filePath, []string{absPath(filePath)}
+}
+
+// WriteError explains why a builtin that changes the disk could not find filePath in the
+// working directory (the place ResolveWritePath gave). When the reading rule finds a file of
+// that name elsewhere (next to the module or the program), the error names it and the path
+// that reaches it from the working directory (H2630): the builtin does not touch it, a program
+// that means that file writes its path out (18). Otherwise it is ReadError.
+func (v *VM) WriteError(fn any, filePath string, operation messages.Code, err error, searched []string) error {
+	if errors.Is(err, fs.ErrNotExist) && len(searched) == 1 {
+		if other, _ := v.ResolvePath(filePath); other != filePath {
+			if _, statErr := os.Lstat(other); statErr == nil {
+				return messages.New(messages.H2630, fn, filePath, searched[0], absPath(other), explicitPath(other))
+			}
+		}
+	}
+	return ReadError(fn, filePath, operation, err, searched)
+}
+
+// explicitPath is the path of found as written from the working directory ("../modul/a.txt"),
+// absolute when there is no such path (another drive).
+func explicitPath(found string) string {
+	if wd, err := os.Getwd(); err == nil {
+		if rel, err := filepath.Rel(wd, absPath(found)); err == nil {
+			return filepath.ToSlash(rel)
+		}
+	}
+	return filepath.ToSlash(absPath(found))
 }
 
 // SearchedPlaces turns the places returned by ResolvePath into the error message suffix.

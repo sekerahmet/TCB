@@ -66,7 +66,7 @@ TR_if x != TR_none { TR_print(x + 1) }   # bu dalda x bir TR_Int
 - **Yazmak:** `TR_json_string(j)` her zaman JSON metnini verir (metin tırnaklı: `"\"merhaba\""`). Değerin metni (`TR_print(j)`, yerleştirme, 3.14) JSON metin türünde metnin kendisidir (`"\(j["k"])"` → merhaba), öbür türlerde JSON metnidir.
 - Her değeri tutan genel bir tip yoktur.
 - Güvenilmeyen JSON'un iç içeliği en çok 1000'dir; daha derini çözülmeden hatadır (kaynak dosyanın sınırı gibi, 2.10).
-- *Test:* TR testi; değişmezin içindeki değişken kap: `TestJSONLiteralItems`, olumsuz fikstür `tests/negative/json_degismez_ogesi.tr`.
+- *Test:* TR testi; değişmezin içindeki değişken kap: `TestJSONLiteralItems`, olumsuz fikstür `tests/negative/json_degismez_ogesi.tr`; nesnede yinelenen anahtar: `TestJSONDuplicateKeyIsAnError`, `FuzzJSONRoundTrip`.
 
 ```tr
 # TR 4

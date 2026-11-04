@@ -128,6 +128,31 @@ func TestLogErrors(t *testing.T) {
 	}
 }
 
+// Kayıttaki adım tam sayı yazılır (19.5), tam değerli olmayan değer kırpılmaz, hatadır (19.6): okuyucular
+// adımları karşılaştırır; ondalık ölçü olduğu gibi kalır.
+func TestLogStepIsWholeNumber(t *testing.T) {
+	k := t.TempDir()
+	m, _ := newVM(t, k)
+	path := filepath.Join(k, "adim.jsonl")
+	logger := `TR_Logger("` + pathText(path) + `")`
+	if _, err := run(t, m, logger+`.TR_append({"step": 3.0, "loss": 2.0})`); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `"step":3,"loss":2.0}`; !strings.Contains(string(b), want) {
+		t.Errorf("%q içermeli: %s", want, b)
+	}
+	for _, value := range []string{"3.5", "TR_nan", "TR_inf", "1e19", `"3"`, "TR_true"} {
+		m, _ := newVM(t, k)
+		if _, err := run(t, m, logger+`.TR_append({"step": `+value+`})`); !messages.Has(err, messages.H7013) {
+			t.Errorf("%s: H7013 bekleniyordu: %v", value, err)
+		}
+	}
+}
+
 // Var olan dosyaya eklenir; önceki koşu yarım satır bıraktıysa yeni kayıt yeni satırda başlar.
 // Kontrol noktası arayüzü: Uzunluk satır sınırıdır, WriteResume devam kaydını yazar.
 func TestLogAppendAndResume(t *testing.T) {
@@ -206,4 +231,27 @@ func setClock(t *testing.T) *fakeClock {
 	s := &fakeClock{t: time.Date(2026, 10, 18, 14, 0, 0, 0, time.Local)}
 	t.Cleanup(logging.FakeClock(s.now))
 	return s
+}
+
+// Günlük dosyası değiştiren işlerdendir (18.16): göreli yol yalnız çalışma klasörüne göre çözülür,
+// programın yanındaki aynı adlı günlüğe eklenmez.
+func TestLogFileOnlyInTheWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	work, program := filepath.Join(root, "cwd"), filepath.Join(root, "program")
+	testkit.WritePath(t, filepath.Join(program, "g.jsonl"), "eski\n")
+	if err := os.MkdirAll(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(work)
+	m, _ := newVM(t, program)
+	if _, err := run(t, m, "TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_append({\"loss\": 1.5})"); err != nil {
+		t.Fatal(err)
+	}
+	logging.CloseAll()
+	if b, _ := os.ReadFile(filepath.Join(program, "g.jsonl")); string(b) != "eski\n" {
+		t.Errorf("programın günlüğü değişmemeli: %q", b)
+	}
+	if k := lines(t, filepath.Join(work, "g.jsonl")); len(k) != 2 || k[1]["loss"] != 1.5 {
+		t.Errorf("günlük çalışma klasöründe olmalı: %v", k)
+	}
 }
