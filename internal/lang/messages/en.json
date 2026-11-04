@@ -427,6 +427,8 @@
 "H2628": "the operating system reported an unexpected error (error code {code})",
 "H2629": "an unexpected error occurred",
 "H2630": "{fn}: {path|q} is not in the working directory ({place}); a file of that name is in another directory ({other}), but builtins that change files resolve a relative path against the working directory only and do not delete or move a file in another directory; if you mean that file, write its path out: `{explicit|q}`",
+"H2635": "{fn}: the separator cannot be empty; to split a text into characters, for a text `m`, write `[c {#for} c {#in} m]`",
+"H2636": "{fn}: an empty substring cannot be replaced, it would be found between every two characters; to put a text between the characters, for a text `m`, write `[c {#for} c {#in} m].{#join}(y)`",
 "H2640": "{@Int}(): {value|q} is not an integer in program spelling; write decimal digits with an optional sign, '_' only between digits and no spaces (\"42\", \"-1_000\"); for a decimal text write `{#Int}({#Float}(x))`",
 "H2641": "{@Int}(): {value|q} does not fit in {@Int} (-9223372036854775808 to 9223372036854775807); read it with `{#Float}(...)`",
 "H2642": "{@Float}(): {value|q} cannot be read as a number; write it as in a program, with a dot, an optional sign and exponent (\"3.14\", \"-1.5\", \"2e-3\"), or \"inf\", \"-inf\", \"nan\"; there is no locale (\"1,5\" is not read) and a number beyond {@Float}'s range is not read",

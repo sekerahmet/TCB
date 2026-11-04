@@ -209,6 +209,19 @@ TR_test "13.2 ayırıcısız TR_split Unicode boşluk dizilerine böler, boş ö
     TR_assert_equal(["", "a", ""], " a ".TR_split(" "))
 }
 
+TR_test "13.2 boş ayırıcı ve değiştirilecek boş alt metin hatadır, öbür boş alt metinler değil" {
+    TR_var boş = ""
+    TR_assert_equal("H2635", TR_error_code { "ab".TR_split("") })
+    TR_assert_equal("H2635", TR_error_code { "ab".TR_split(boş) })
+    TR_assert_equal("H2635", TR_error_code { "".TR_split("") })
+    TR_assert_equal("H2636", TR_error_code { "ab".TR_replace("", "x") })
+    TR_assert_equal("H2636", TR_error_code { "ab".TR_replace(boş, "x") })
+    TR_assert_equal("H2636", TR_error_code { "".TR_replace("", "") })
+    TR_assert_equal(["a", "b"], [c TR_for c TR_in "ab"])
+    TR_assert("ab".TR_contains("") TR_and "ab".TR_starts_with("") TR_and "ab".TR_ends_with(""))
+    TR_assert_equal("a", "ab".TR_replace("b", ""))
+}
+
 TR_test "13.2 metin metotları" {
     TR_assert_equal("ISTANBUL", "istanbul".TR_upper())
     TR_assert_equal("ilik", "ILIK".TR_lower())

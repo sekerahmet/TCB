@@ -210,6 +210,9 @@ func setupStringMethods() {
 		split := strings.Fields // Unicode boşluk dizileri, boş öğe yok (13.2): TR_strip'in boşluğu (unicode.IsSpace)
 		if len(args) > 0 {
 			sep := y.textOf(args[0])
+			if sep == "" {
+				return nil, messages.New(messages.H2635, CallName(codes.MemSplit))
+			}
 			split = func(s string) []string { return strings.Split(s, sep) }
 		}
 		var elems []Value
@@ -224,6 +227,9 @@ func setupStringMethods() {
 	})
 	addMethod(typeString, codes.MemReplace, signature{2, 2, []*argKind{textArg, textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		old, repl := y.textOf(args[0]), y.textOf(args[1])
+		if old == "" {
+			return nil, messages.New(messages.H2636, CallName(codes.MemReplace))
+		}
 		return longText(y, inst, func(s string) string { return strings.ReplaceAll(s, old, repl) }), nil
 	})
 	addMethod(typeString, codes.MemContains, signature{1, 1, []*argKind{textArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
