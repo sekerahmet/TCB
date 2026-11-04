@@ -209,8 +209,10 @@ func (v *VM) yieldSlow(stopPoint bool) {
 // boyunca sayılan binlerce hızlı sınırı da içerir ve hızlıdan yavaşa geçişi gizler; bu yüzden
 // sonraki okuma, geçen sürenin hepsi son okumadan beri geçen sınırlarda geçmiş sayılarak da
 // clockGrain içinde tutulur (every değişmez: hızlı evrede bu, saatin adımı başına bir okumadır).
-// Öne alınan okuma saatin ilerlemediğini görürse aralık every'ye dönmez, ikiye katlanır: yavaş
-// evrede saat bir tur daha ilerlemedi diye 64 tur atlanmaz.
+// Saatin ilerlemediği okuma ölçü vermez: aralık ikiye katlanır ve every'nin yarısını geçmez.
+// Hızlıdan yavaşa geçişten hemen sonraki okuma da ilerleme görmeyebilir; sonraki okuma o zaman 64
+// değil en çok 32 sınır sonradır. Bedeli kaba saatte hızlı evrenin okumalarının iki kat sık
+// olmasıdır; saatin her okumada ilerlediği yerde (Linux) bu satırın sonucu hemen ezilir.
 func (v *VM) clockExpired() bool {
 	c := &v.clock
 	c.since++
@@ -222,7 +224,7 @@ func (v *VM) clockExpired() bool {
 		return false
 	}
 	now := monotonic()
-	c.skip = min(max(c.every, 1), 2*max(c.gap, 1)) - 1
+	c.skip = min(max(c.every/2, 1), 2*max(c.gap, 1)) - 1
 	if now > c.last {
 		next := 2 * max(c.every, 1)
 		if per := (now - c.last) / time.Duration(c.since); per > 0 {
