@@ -18,6 +18,19 @@ func (cpuBackend) f32Embedding(out Storage, w View, idx []int, D int) {
 	})
 }
 
+// embedding16 16 bitlik tablonun yalnız seçilen satırlarını out'a açar. Açma kayıpsızdır: sonuç
+// bütün tablonun açıldığı yolla bit düzeyinde aynıdır; tek parçalık üretimde bir satır için
+// bütün tablo açılıyordu.
+func embedding16(out Storage, w View, idx []int, D int) {
+	c, od := cpuStore(w.S), cd(out)
+	parallelFor(len(idx), D, func(lo, hi int) {
+		for r := lo; r < hi; r++ {
+			row := w.Offset + idx[r]*D
+			widenSpan(od[r*D:(r+1)*D], c.h[row:row+D], c.dtyp)
+		}
+	})
+}
+
 // EmbeddingChunk, gömme gradyanında ağır bir satırın (bir toplu işte bundan çok geçen) geçişlerinin
 // toplandığı parçanın boyudur: parça önce kendi içinde, sonra parçalar sırayla satıra eklenir.
 // GPU ağır satırların parçalarını paralel toplar (gerçek metinde sık parçalar binlerce kez
