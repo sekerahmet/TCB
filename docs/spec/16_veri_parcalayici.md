@@ -9,7 +9,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 ## Parçalayıcı
 
 **16.1** `TR_load_tokenizer(yol)` yaygın `tokenizer.json` biçimindeki bir parçalayıcıyı yükler ve `TR_Tokenizer` verir.
-- `.TR_vocab_size` dağarcıktaki parça sayısıdır (`TR_Int`).
+- `.TR_vocab_size` kimliklerin sınırıdır: en büyük kimlik + 1 (`TR_Int`). Kimlikler aralıksızsa parça sayısıdır; aradaki boş kimlik `.TR_decode`'da hatadır.
 - `.TR_token_id(parça)` parçanın kimliğini verir, dağarcıkta yoksa `TR_none` (`TR_Int?`).
 - `tokenizer.json` dışarıdan gelen bir girdidir: ön ayırıcının düzenli ifadesi bir adım sınırıyla çalışır, sınırı aşan metin çalışma hatası verir.
 - *Test:* TR testi.

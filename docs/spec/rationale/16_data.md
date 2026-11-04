@@ -7,6 +7,9 @@ Kurallar: [`16_veri_parcalayici.md`](../16_veri_parcalayici.md). Bu dosya her ku
 - *Emsal:* Hugging Face `tokenizers`: "To save the tokenizer in one file that contains all its configuration and vocabulary, just use the Tokenizer.save method ... you can reload your tokenizer from that file with the Tokenizer.from_file classmethod". ([tokenizers, Quicktour](https://huggingface.co/docs/tokenizers/quicktour))
 - *Gerekçe:* amaç hazır modelleri çalıştırmayı ve başka araçlarda eğitilmiş modelleri almayı ister; yayımlanmış modellerin parçalayıcısı bu tek dosyadadır. Dosya dışarıdan gelir; içindeki düzenli ifade kötü niyetle yavaşlatılabilir, adım sınırı Güvenilir'in gereğidir.
 
+- *Gerekçe (`.TR_vocab_size`, 2026-11-04, DENETİM istek 79 Ş2):* adın her kullanımı bir kimlik sınırıdır: gömme tablosu, örnekleme sınırı. Parça sayısı seyrek sözlükte geçerli kimliği sınırın dışında bırakır ve sessizdir; en büyük kimlik + 1 ise boş kimliği içeri alır ama `.TR_decode` onu hatayla söyler. Yeni ad gerekmez: aralıksız sözlükte iki sayı aynıdır.
+- *Emsal, karşı örnek:* Hugging Face `tokenizers` 0.23.2'nin `get_vocab_size()`'ı `{"[UNK]":0,"a":1,"b":5}` sözlüğünde 3, `id_to_token(3)` `None` verir [ölçüldü: TCB]; o kütüphanede sınır çağıranın işidir.
+
 ### 16.2
 
 - *Emsal:* `tokenizers`'ın `encode` ve `encode_batch`'i; PyTorch tarafında `add_special_tokens` bayrağı [kanıtsız: bu tur açılmadı].
