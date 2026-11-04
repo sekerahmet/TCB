@@ -2,7 +2,10 @@
 
 // 16 bitlik ağırlığın gemv çekirdekleri: sgemv64 ve sdot32'nin (cpu_gemv_amd64.s) eşleri. Ağırlık
 // yazmaçta açılır; açma kayıpsızdır, toplama sırası ve kaynaştırılmış çarpma-toplamanın işlenenleri
-// aynıdır: sonuç "aç + float32 çekirdek" ile bit düzeyinde aynıdır.
+// aynıdır: sonuç "aç + float32 çekirdek" ile bit düzeyinde aynıdır. Şerit çekirdekleri 8 satır
+// sonrasını öncü yüklemeyle ister: her satırdan yalnız 128 bayt okunur, donanımın öncü yüklemesi
+// bu adımı izlemez (bf16 şerit Xeon'da 12,5 → 23,5 GB/sn; float32 şeridi aynı öncü yüklemeyle
+// hızlanmadı, sgemv64'te yoktur). Derinlik 8 ile 16 arası ölçüde aynıdır.
 
 #define ZERO8 \
 	VXORPS Y0, Y0, Y0; \
@@ -60,12 +63,16 @@ TEXT ·sgemv64bf(SB), NOSPLIT, $0-40
 	MOVQ ldw+24(FP), R8
 	MOVQ y+32(FP), DX
 	SHLQ $1, R8
+	MOVQ R8, R9
+	SHLQ $3, R9
 	ZERO8
 	TESTQ CX, CX
 	JZ    yazbf
 
 dongubf:
 	VBROADCASTSS (SI), Y8
+	PREFETCHT0   (DI)(R9*1)
+	PREFETCHT0   64(DI)(R9*1)
 	BF8(0, Y9)
 	BF8(16, Y10)
 	BF8(32, Y11)
@@ -102,12 +109,16 @@ TEXT ·sgemv64h(SB), NOSPLIT, $0-40
 	MOVQ ldw+24(FP), R8
 	MOVQ y+32(FP), DX
 	SHLQ $1, R8
+	MOVQ R8, R9
+	SHLQ $3, R9
 	ZERO8
 	TESTQ CX, CX
 	JZ    yazh
 
 dongugh:
 	VBROADCASTSS (SI), Y8
+	PREFETCHT0   (DI)(R9*1)
+	PREFETCHT0   64(DI)(R9*1)
 	VCVTPH2PS    (DI), Y9
 	VCVTPH2PS    16(DI), Y10
 	VCVTPH2PS    32(DI), Y11
