@@ -34,9 +34,10 @@ TR_print("şeker".TR_length, "şeker"[-1], "şeker"[1..3])   # çıktı: 5 r ek
   - asıl tipten bir değer atanınca, sonraki atamaya kadar: `TR_if x == TR_none { x = 0 }`'dan sonra.
 - Yalnız değişkenin kendisine atama daraltmayı bozar; alanına atama (`x.alan = ...`) bozmaz. Alan ve indeks daraltılmaz; `??` ya da yerel bir kopyayla açılır.
 - İsteğe bağlı olmayan bir değeri `TR_none`'la karşılaştırmak denetim hatasıdır (sonuç hep aynıdır).
-- Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (6.9) ve tip değeri olarak yazılır.
-  - Değer yerleri: atama ve ilk değer, argüman, liste, sözlük ve demet öğesi, metin yerleştirme, işlenen, koşul, `TR_return`'ün ifadesi, değer olarak kullanılan `TR_if` ve `TR_match`'in dallarının son ifadesi.
-  - Değer yeri olmayanlar: deyim olarak yazılan çağrı; `TR_async f()` (görevin tipi `TR_Task[TR_NoneType]`, 10.1); `=>`'nin ifade gövdesi (6.6) ve sondaki bloğun son ifadesi (6.7). Son ikisinde değer vermeyen çağrı fonksiyonu da değer döndürmeyen yapar; o fonksiyonun çağrısı değer yerinde yine hatadır.
+- Değer döndürmeyen fonksiyonun çağrısı değer olarak kullanılamaz (denetim hatası); `TR_NoneType` yalnız fonksiyon tipinin dönüşü (6.9), `TR_Task`'ın parametresi (10.1) ve tip değeri olarak yazılır.
+  - Aşağıdaki muaflar dışında her yer değer yeridir: atama, argüman, öğe, işlenen, koşul, `TR_return`'ün ifadesi, `TR_match`'in konusu, varsayılan değer ve öbürleri.
+  - Muaflar: deyim olarak yazılan çağrı; `TR_async f()` (görevin tipi `TR_Task[TR_NoneType]`, 10.1); `=>`'nin ifade gövdesi (6.6) ve sondaki bloğun son ifadesi (6.7). Bu yerde yazılan `TR_if` ve `TR_match`'in dallarının son ifadesi de muaftır: `TR_no_grad { TR_if c { f() } TR_else { g() } }`.
+  - Gövde değer vermiyorsa fonksiyon da değer döndürmez; onun çağrısı değer yerinde yine hatadır: `TR_var y = TR_no_grad { f() }`.
   - Sonuçları toplayan çağrıya değer döndürmeyen fonksiyon verilmez: `l.TR_map((x) => TR_print(x))` denetim hatasıdır, ileti `TR_for`'u önerir.
 - *Test:* TR testi; isteğe bağlı tip uygulanınca denetleyicinin testi.
 
