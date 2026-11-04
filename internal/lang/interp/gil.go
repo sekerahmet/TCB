@@ -71,11 +71,11 @@ type gilWaiter struct {
 }
 
 // lockClock yedek saatin görevdeki durumudur (yalnız görevin kendisi okur ve yazar): saat her
-// every sınırda bir okunur; skip sonraki okumaya kalan sınır, last saatin son ilerlediği an,
-// since o andan bu yana geçilen sınırlar.
+// every sınırda bir okunur; skip sonraki okumaya kalan sınır, gap son iki okuma arasındaki
+// sınırlar, last saatin son ilerlediği an, since o andan bu yana geçilen sınırlar.
 type lockClock struct {
-	every, skip, since int
-	last               time.Duration
+	every, skip, gap, since int
+	last                    time.Duration
 }
 
 // acquireGIL kilidi alır: serbestse hemen, değilse kuyruğun sonunda bekleyerek.
@@ -204,8 +204,11 @@ func (v *VM) yieldSlow(stopPoint bool) {
 // clockExpired yedek saattir: her clock.every sınırda bir saati okur ve kilit lockHold'dan uzun
 // tutulduysa doğru döner. every, iki okuma arası yaklaşık clockGrain olacak biçimde ayarlanır:
 // sınır başına süre kısaysa büyür (okumada en çok iki katına, en çok clockEveryMax), uzunsa 1'e
-// iner. Süre saatin son ilerlediği andan ölçülür: adımı kaba saatte (Windows'ta ~0,5 ms)
-// ilerlemeyen okuma ölçü vermez.
+// iner. Süre saatin son ilerlediği andan ölçülür: adımı kaba saatte (Windows'ta 0,3–10 ms,
+// ortancası 0,5–2 ms ölçüldü) ilerlemeyen okuma ölçü vermez. Saat ilerleyince ortalama, adım
+// boyunca sayılan binlerce hızlı sınırı da içerir ve hızlıdan yavaşa geçişi gizler; bu yüzden
+// sonraki okuma, geçen sürenin hepsi son okumadan beri geçen sınırlarda geçmiş sayılarak da
+// clockGrain içinde tutulur (every değişmez: hızlı evrede bu, saatin adımı başına bir okumadır).
 func (v *VM) clockExpired() bool {
 	c := &v.clock
 	c.since++
@@ -217,15 +220,24 @@ func (v *VM) clockExpired() bool {
 		return false
 	}
 	now := monotonic()
+	c.skip = max(c.every, 1) - 1
 	if now > c.last {
 		next := 2 * max(c.every, 1)
 		if per := (now - c.last) / time.Duration(c.since); per > 0 {
 			next = min(next, int(clockGrain/per))
 		}
 		c.every = min(max(next, 1), clockEveryMax)
+		c.skip = c.every - 1
+		gap := c.since // görevin ilk okuması: önceki okuma yok
+		if c.gap > 0 {
+			gap = min(gap, c.gap)
+		}
+		if recent := (now - c.last) / time.Duration(gap); recent > 0 {
+			c.skip = min(c.every, max(int(clockGrain/recent), 1)) - 1
+		}
 		c.last, c.since = now, 0
 	}
-	c.skip = max(c.every, 1) - 1
+	c.gap = c.skip + 1
 	return now-v.gilSince >= lockHold
 }
 

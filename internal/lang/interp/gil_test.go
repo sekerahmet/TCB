@@ -295,8 +295,13 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // Zamanlayıcıyla süre sınanır: (n + 1) × 5 ms + pay. Yalnız yedek saatle (zamanlayıcı geç kalırsa
 // sözü o tutar) tavan sınanır: bir beklemede en çok 64 + 1 yavaş tur. Tavansız k hızlı döngüde
 // yüzlere çıkar ve altı geçişten birinde sınırı aşar (makine yavaşken sayı 64'ü geçmeyebilir; o
-// koşuda tavan zaten bağlamaz). Süre için Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra
-// sığmalıdır; tur sayısı her yerde tek koşuda kesin sınanır.
+// koşuda tavan zaten bağlamaz). Yedek saat de zamana bağlıdır (devir süreyle olur, okuma aralığı
+// ölçülen hızdan ayarlanır); zamandan bağımsız olan, süre dolduktan sonra en çok 64 sınırdır.
+// Sayım bekleme penceresinin tamamıdır, süre dolmadan geçen yavaş turlar da girer: onu sınıra
+// sığdıran, geçişten sonra saatin ilerlediği ilk okumanın sonraki okumayı öne almasıdır
+// (clockExpired). Kaba saat geçişten sonra iki yavaş tur boyunca hiç ilerlemezse bu okuma olmaz
+// ve tur sayısı 66'ya çıkabilir; Windows'ta ölçülmedi (bkz. tek koşu). Süre için Windows'ta üç
+// koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek koşuda sınanır.
 func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 	runs := 3
 	if runtime.GOOS == "linux" {
@@ -313,7 +318,7 @@ func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 	for _, mode := range modes {
 		modeRuns := runs
 		if mode.fallback {
-			modeRuns = 1 // tur sayısı zamanlamaya bağlı değil: her koşuda kesin
+			modeRuns = 1 // tur sayısı: Windows'ta boşta 50/50 ve yükte 50/50 koşu sığdı (2026-11-04)
 		}
 		within := false
 		var last []string
