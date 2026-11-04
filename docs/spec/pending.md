@@ -42,6 +42,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **6.6, değişkenden gelen yokluk (2026-11-04, D1 Kol A 13 teslim 2b):** madde `TR_return TR_none` yazımını söylüyor; `TR_var n = TR_none` sonrası `TR_return n` geçiyor, `none` veriyor [ölçüldü: D1]. 4b'nin daraltmasıyla birlikte bakılır.
+- **6.2 ve 6.6, iç `TR_match` (2026-11-04, D1 Kol A 13 teslim 2b):** motor metinden geniş: bütün kolları fırlatan iç `TR_match` de değer vermeyen dal sayılmaz; kod kaldı, metin turda.
 - **15.41 ve 15.18a, model logitinde tolerans (2026-11-04, H1; DENETİM istek 121 N1):** AVX2 ile genel yolun logitleri 24 adımlık üretimde varsayılan toleransı 24 adımda aşıyor (en büyük fark 6,1e-05), tabanda da aynı, metin aynı. Cümle tek işlem ölçeğinde kalsın; çok katmanlı modelin testi açık tolerans versin ya da metin eşitliğine baksın. `TR_all_close` motorda yok.
 - **13.8, CSV hücresinin kırpılması (2026-11-04, D1 Kol A 13 teslim 1):** motor hücrenin boşluklarını kırpıyor, `TestCSVCellsAreTextAndBOM` sabitliyor; dil tanımında yazmıyor. Hücre hep metin olunca kırpmak veriyi değiştirir: kalacaksa yazılmalı, kalkacaksa motor değişmeli.
 - **19.5, `g.TR_close()` ve `TR_append`'in değeri (2026-11-04, D1 Kol A 13 teslim 1):** madde `g.TR_close()` yazıyor, motorda yok [ölçüldü: D1]; aynı madde `TR_append` değer döndürmez diyor, motor `TR_true` döndürüyor [kanıtlı: `record.go`].
