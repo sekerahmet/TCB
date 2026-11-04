@@ -139,6 +139,9 @@ func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 		{"azalan sıra", both(added(12, "</s>"), added(9, "<s>")), 13, 9},
 		{"sözlükteki metin kendi kimliğiyle", both(added(5, "b"), added(9, "<s>")), 10, 9},
 		{"aynı parça iki kez", both(added(9, "<s>"), added(9, "<s>")), 10, 9},
+		{"aynı parça başka bayrakla", both(added(9, "<s>"), strings.Replace(added(9, "<s>"), `"lstrip":false`, `"lstrip":true`, 1)), 10, 9},
+		{"boş içerik dolu kimlikte", both(added(5, ""), added(9, "<s>")), 10, 9},
+		{"boş içerik sınırın dışında", both(added(-1, ""), added(9, "<s>")), 10, 9},
 	} {
 		p, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + wordLevel))
 		if err != nil {
@@ -171,6 +174,14 @@ func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 		if !messages.Has(err, c.code) || !strings.Contains(err.Error(), c.text) {
 			t.Errorf("%s: %v; %v ve %s bekleniyordu", c.name, err, c.code, c.text)
 		}
+	}
+	again := strings.Replace(added(9, "<s>"), `"special":true`, `"special":false`, 1)
+	p, err := Parse([]byte(head + `"added_tokens":[` + both(added(9, "<s>"), again) + `],` + wordLevel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.IsSpecial(9) {
+		t.Error("aynı parçanın son yazımının bayrakları geçerlidir")
 	}
 	if _, err := Parse([]byte(head + `"added_tokens":[` + added(1<<30, "<s>") + `],` + wordLevel)); err != nil {
 		t.Errorf("sınırdaki kimlik geçerli: %v", err)
