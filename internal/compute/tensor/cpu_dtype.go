@@ -165,45 +165,6 @@ func narrow(dst []uint16, src []float32, dt DType) {
 	})
 }
 
-// widen16 dst = float32(src) (paralel).
-func widen16(dst []float32, src []uint16, dt DType) {
-	src = src[:len(dst)]
-	parallelFor(len(dst), 2, func(lo, hi int) {
-		d, s := dst[lo:hi], src[lo:hi]
-		if dt == BFloat16 {
-			for i, v := range s {
-				d[i] = bf16ToF32(v)
-			}
-			return
-		}
-		for i, v := range s {
-			d[i] = f16ToF32(v)
-		}
-	})
-}
-
-// widenInto 16 bitlik görünümün elemanlarını mantıksal sırayla float32
-// olarak out'a yazar.
-func widenInto(out []float32, v View) {
-	c := cpuStore(v.S)
-	if v.IsContiguous() {
-		widen16(out, c.h[v.Offset:v.Offset+len(out)], c.dtyp)
-		return
-	}
-	bf := c.dtyp == BFloat16
-	iterRowsPar(v.Shape, []int{v.Offset, 0}, [][]int{v.Strides, ContiguousStrides(v.Shape)}, 1, func(off []int, m int, in []int) {
-		src, dst, s := off[0], off[1], in[0]
-		o := out[dst : dst+m]
-		for i := range o {
-			if bf {
-				o[i] = bf16ToF32(c.h[src+i*s])
-			} else {
-				o[i] = f16ToF32(c.h[src+i*s])
-			}
-		}
-	})
-}
-
 // ----------------------------------------------------------------------------
 // Tür uyarlayıcıları: hesap çekirdekleri float32 görür
 // ----------------------------------------------------------------------------
@@ -482,7 +443,11 @@ func (b cpuBackend) Embedding(out Storage, w View, idx []int, D int) {
 	var gt temp
 	defer gt.finish()
 	o, last := gt.write(out, false)
-	b.f32Embedding(o, gt.read(w), idx, D)
+	if (w.S.DType() == BFloat16 || w.S.DType() == Float16) && w.IsContiguous() {
+		embedding16(o, w, idx, D)
+	} else {
+		b.f32Embedding(o, gt.read(w), idx, D)
+	}
 	last()
 }
 
