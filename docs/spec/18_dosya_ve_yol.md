@@ -74,7 +74,7 @@ Karşılaştırma yolun üst klasörlerinde bağlantıları çözülmüş mutlak
 **18.11** `TR_read_lines(yol)` dosyayı açar (olmayan dosya hemen hata verir) ve bir `TR_LineReader` döndürür. Okuyucu dosyayı **akışla** okur: bellek dosyanın boyutundan bağımsızdır.
 - `TR_for satır TR_in okuyucu { ... }` ile dolaşılır ya da `.TR_next()` ile sıradaki satır alınır (dosya bitince `TR_none`); ikisi aynı akışı tüketir.
 - Satır sonu (`\n`, `\r\n`) atılır, ilk satırın başındaki BOM atılır; dosya satır sonuyla bitiyorsa sonda boş bir satır üretilmez. Tek bir satır en çok 64 MB'tır, daha uzunu hatadır.
-- Geçerli UTF-8 olmayan satır, sıra ona gelince hatadır (13.1'in `TR_read_file` kuralı): ileti satırın numarasını söyler ve `TR_read_bytes`'ı önerir; bozuk bayt `TR_String`'e girmez. `TR_read_csv` de aynı kuralı izler.
+- Geçerli UTF-8 olmayan satır, sıra ona gelince hatadır (13.1'in `TR_read_file` kuralı): ileti satırın numarasını söyler ve `TR_read_bytes`'ı önerir (`.gz` dosyasında öneri yok); bozuk bayt `TR_String`'e girmez.
 - Aynı okuyucuyu dolaşan görevler her satırı bir kez alır.
 - Dosya sonuna gelince, `.TR_close()` ile (18.15) ya da program bitince kapanır.
 - *Test:* TR testi.

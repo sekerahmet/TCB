@@ -58,7 +58,7 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 - *Emsal:* Python'un dosya nesnesi satır satır dolaşılır ve satır sonunu tutar [kanıtsız: bu tur açılmadı]. *Satır sonunu atıyoruz.*
 - *Gerekçe:* veriyi hazırlamak bellekten büyük metinle çalışır; akışla okumak bunun önkoşuludur. Satır sonunun atılması ajanın en sık `strip` unutmasını kaldırır.
 
-- *Gerekçe (geçersiz UTF-8, 2026-11-04, DENETİM istek 97):* `ab\xff` içeren dosyada `TR_read_file` hata verirken `TR_read_lines` bozuk baytı `TR_String`'e sokuyordu; `TR_Bytes(s)` `[97, 98, 255]` verdi [ölçüldü: DENETİM, `cb162b61`]. Bu okuyucular veri hattının girişidir: bozuk metin parçalayıcıya sessizce gider. Akış dosyanın sonuna kadar okunmadan doğrulanamaz, bu yüzden hata satır açılırken ve numarasıyla verilir.
+- *Gerekçe (geçersiz UTF-8, 2026-11-04, DENETİM istek 97):* `ab\xff` içeren dosyada `TR_read_file` hata verirken `TR_read_lines` bozuk baytı `TR_String`'e sokuyordu; `TR_Bytes(s)` `[97, 98, 255]` verdi [ölçüldü: DENETİM, `cb162b61`]. Bu okuyucular veri hattının girişidir: bozuk metin parçalayıcıya sessizce gider. Akış dosyanın sonuna kadar okunmadan doğrulanamaz, bu yüzden hata satır açılırken ve numarasıyla verilir. `TR_read_csv` bütün listeyi verdiği için kuralı 13.8'dedir.
 
 ### 18.12
 

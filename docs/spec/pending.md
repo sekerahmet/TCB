@@ -26,8 +26,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **15.34 ve 15.36, parametre olmayan yaprak (2026-11-03, DENETİM istek 83 Ş2, TCB kararı, geçici; sessiz yanlış):** H6513'ün kalkmasıyla `TR_requires_grad`'sız kurulmuş bir yaprak iyileştiricide sessizce atlanıyordu [ölçüldü: DENETİM `o1`]. Madde iki okumaya açıktı ("parametreler 15.33'ün parametreleridir" ile "türev izlemeyen yaprağı kabul eder"); dar okuma seçildi: donmuş parametre kabul, hiç türev izlememiş yaprak kurulumda hata (iyileştirici ve `TR_clip_grad`). Turda denetlenecek.
 
 - **10.2, gecikme sözünün koşulu (2026-11-04, B1):** söz, işletim sisteminin görevleri ve saati zamanında çalıştırdığı süreyle koşullandı; maddenin bütün sürelerine uygulanır (DENETİM istek 96 Ş1).
-- **13.1, tam sayı listesinde `TR_mean` ve `TR_std` (2026-11-04, A, DENETİM istek 97 Ş5):** kesin hesap, ara değer yuvarlanmaz ve taşmaz. Uygulama Kol A teslim 2a.
-- **18.11, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5):** satır numarasıyla hata. Uygulama Kol A teslim 2a.
+- **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır. Uygulama Kol A teslim 2a.
+- **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda. Uygulama Kol A teslim 2a.
 
 ## Ara
 - **15.24, cinsi bilinmeyen maske (2026-11-03, T1 Kol B teslim 1; DENETİM istek 80 Ş-t1):** "0/1 sayı tensörü denetim hatasıdır"; denetleyici tensörün cinsini tutmuyor, dokuz yazımın sekizi çalışma anında, hiçbiri denetimde yakalanıyor (H6985). Cümle: "denetleyici cinsini bilmiyorsa çalışma hatasıdır, ileti aynıdır".
