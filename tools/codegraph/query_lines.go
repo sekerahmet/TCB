@@ -119,7 +119,7 @@ func (ix *index) containing(file string, line int) *Node {
 // sayılır) ve tarama değil.
 func locatable(kind string) bool {
 	switch kind {
-	case kindFile, kindPackage, kindClosure, kindScan, kindDoc:
+	case kindFile, kindPackage, kindClosure, kindScan, kindTypeQuery, kindDoc:
 		return false
 	}
 	return true
