@@ -23,24 +23,27 @@ Başlangıç saati: `2026-11-04 14:33:05 UTC+3` (`2026-11-04 11:33:05 UTC`) [öl
   - Geçici modül / bellek içi kaynak yükleyen testler (depo dosyalarına bağlanmamalı): `internal/devtools/goload/goload_test.go` (5 test), `tools/codegraph/audit_*_test.go` (3 test), `dispatch_test.go`, `implementations_test.go`, `uses_coverage_test.go`, `var_access_test.go`, `fixture(t)` testleri.
 - **Adım 5 (`edithook` ve `codegraph` test seçim mimarisinin incelenmesi):**
   - `0b9fda0b..83fa8859` aralığında `SetMember` yeni eklenen `A internal/stdlib/ml/members_freeze.go` dosyasında tanımlı olduğu ve eski commit aralığında (`live == false`) yeni dosyanın bildirim düğümü başlangıç tarafında bulunmadığı için `goTestSelection` (`changed.go:292-298`) seçimi `go:file:<rel>` düğümünün `testDistances` kenarları üzerinden yapıyor.
-  - `tools/codegraph/scans_test.go:275` (`TestFullCheckRepoScansMatchesScanNodes`) `kind == "scan"` düğümlerini `tools/full_check.sh` ile eşlediği için çözüm `scan` düğümü değil, hedef dosyalara (`go:file:<rel>`) `INFERRED` `tests` kenarı üretir ve `query_file_tests.go:96` (`fileTests`) içinde `ix.testDistances(file)` ile birleştirir.
-- **Adım 6a (Genel çözümün kodlanması ve ilk bedel ölçümü — çalışma ağacında, henüz koruyan testler yazılmadı):**
-  - `tools/codegraph/type_queries.go`, `tools/codegraph/type_queries_sites.go`, `tools/codegraph/type_queries_link.go` yazıldı (`goload.Load`, `packages.Load`, `(*types.Config).Check` kök izleme + `Scope.Lookup` / `LookupFieldOrMethod` / `MethodSet.Lookup` / `Object.Name()` / `o.Pkg().Path()` parametre akışı + `Implements` / `Info.Uses` / `Info.Selections` yetenekleri).
-  - İlk bedel ölçümü (`changed --go-tests`, önce → sonra):
+- **Adım 6 (Genel çözüm, koruyan testler ve bedel ölçümü — commit `f47a033`):**
+  - `findQueryCaps` içinde `goload.Load` gibi yükleyicilerin `info.Selections = ...` atama sol tarafları süzüldü; böylece `impact.TestInterfaceImplementers` kenarları tam olarak `go run ./tools/impact`'in raporladığı 11 dosyaya indi (`18c6beba..74a72663` aralığındaki yanlış `+1` de `0` oldu).
+  - Koruyan testler (`tools/codegraph/type_queries_test.go`):
+    - `TestRepositoryTypeLoadedTestsAreSelected`: `0b9fda0b..83fa8859` aralığında `tools/impact TestInterfaceImplementers`, `tools/impact TestNameUses` ve `internal/compute/tensor TestBackendDataCallsGoThroughTheGate` seçimini, `TestUnknownNames` dışlanmasını ve `tests-for internal/stdlib/ml/members_freeze.go` çıktısını doğrular.
+    - `TestPackagesLoadTypeQueriesSelectMatchingChangesOnly`: sentetik git deposunda `packages.Load` ile arayüz uygulayıcısı (yeni dosya ekleme dahil), ad kullanımı ve paket kullanıcısı testlerinin seçildiğini, ilgisiz dosya ve `t.TempDir()` yüklemelerinin seçilmediğini doğrular.
+  - Bedel ölçümü (`changed --go-tests`, önce → sonra):
     - `0b9fda0b..83fa8859`: `1250` → `1253` (`+3`: `internal/compute/tensor TestBackendDataCallsGoThroughTheGate`, `tools/impact TestInterfaceImplementers`, `tools/impact TestNameUses`).
-    - `18c6beba..74a72663`: `43` → `44` (`+1`: `tools/impact TestInterfaceImplementers` — nedeni doğrulanıyor).
-    - `ba62f5f8..0f3e01af`: `877` → `880` (`+3`: `TestInterfaceImplementers`, `TestMembersAndPackages`, `TestNameUses`).
-    - `705c16f1..6b767cf5`: `652` → `653` (`+1`: `TestMembersAndPackages`).
+    - `18c6beba..74a72663`: `43` → `43` (`+0`).
+    - `ba62f5f8..0f3e01af`: `877` → `879` (`+2`: `tools/impact TestMembersAndPackages`, `tools/impact TestNameUses`).
+    - `705c16f1..6b767cf5`: `652` → `653` (`+1`: `tools/impact TestMembersAndPackages`).
     - `8ee2111e..52ce4b9f`: `298` → `298` (`+0`).
+  - `go run ./tools/codegraph dups --changed main`: `0 duplicate candidate(s)`.
+  - Düzen testleri (`./internal/` boyut, ad, eşleşme): geçti (`ok`).
 
 ## Bağlam Sıkıştırması Notu
 - **1. sıkıştırma (`2026-11-04 14:49 UTC+3`):** Adım 5 tamamlandıktan hemen sonra, hiçbir kaynak dosyaya dokunulmadan önce gerçekleşti.
 - **2. sıkıştırma (`2026-11-04 15:08 UTC+3`):** Adım 6 ön bedel ölçümleri tamamlandıktan hemen sonra, hiçbir kaynak dosyaya dokunulmadan önce gerçekleşti. Tüm kaynak dosyalar yeniden açıldı ve doğrulandı.
 
 ## Kalanlar
-- **Adım 6b:** `18c6beba..74a72663` aralığındaki `+1` kenarın kaynağını doğrulamak, `tools/codegraph/testdata/extractor_digest.txt` güncellemek ve koruyan testleri (`tools/codegraph/type_queries_test.go`: hem sentetik `packages.Load`/`goload.Load` birim testleri hem `0b9fda0b..83fa8859` depo testi) yazıp koşmak; bu adımı commit edip durum dosyasını güncelleyerek push etmek.
-- **Adım 7:** `tools/codegraph/gaps.md` içinden kapanan maddeyi silmek ve varsa yeni bulguyu eklemek; commit + durum güncellemesi + push.
-- **Adım 8:** Bitti ölçütündeki 5 komutu koşmak, `IMPACT_RAPORU.md` yazmak, kendi kontrolünü tamamlayıp yalnız `gemini/impact-secimi` dalına push etmek.
+- **Adım 7:** `tools/codegraph/gaps.md` içinden kapanan maddeyi silmek ve yeni bulguyu eklemek; commit + durum güncellemesi + push.
+- **Adım 8:** Bitti ölçütündeki 5 komutu koşmak, `IMPACT_RAPORU.md` yazmak, kendi kontrolünü tamamlayıp son durum güncellemesiyle yalnız `gemini/impact-secimi` dalına push etmek.
 
 ## Emin Olmadıklarım
-- `internal/stdlib/ml/model_tools.go` dosyasının hangi satır/tip üzerinden `impact.TestInterfaceImplementers` kenarı aldığı (şimdi inceleniyor).
+- Yok.
