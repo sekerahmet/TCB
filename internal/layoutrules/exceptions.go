@@ -44,9 +44,8 @@ var LongFuncs = map[string]int{
 	"tools/bench/go/compare.go:main":                            92,
 
 	// Motorlar
-	"internal/stdlib/ml/custom_grad.go:checkGrad":     181,
-	"internal/stdlib/ml/model_tools.go:sampleBuiltin": 118,
-	"internal/stdlib/ml/builtin_reduce.go:reduction":  85,
+	"internal/stdlib/ml/custom_grad.go:checkGrad":    181,
+	"internal/stdlib/ml/builtin_reduce.go:reduction": 85,
 
 	// Hesap çekirdekleri
 	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": 146,

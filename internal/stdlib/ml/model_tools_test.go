@@ -379,12 +379,24 @@ func TestArgmaxRowMatchesSeparateCheckAndSelection(t *testing.T) {
 
 // Üretim her parçada açgözlü örnekler: sözlük boyunda ayırma parça başına iş demektir.
 func TestGreedySampleDoesNotAllocate(t *testing.T) {
-	data, result, u := make([]float32, 1024), make([]float32, 2), make([]float64, 2)
+	data, result, u := make([]float32, 1024), make([]int64, 2), make([]float64, 2)
 	data[700] = 1
 	if n := testing.AllocsPerRun(10, func() { sampleRows(data, result, u, 512, 512, 0) }); n != 0 {
 		t.Fatalf("açgözlü örnekleme %v kez ayırdı", n)
 	}
 	if result[0] != 0 || result[1] != 188 {
 		t.Fatalf("seçilen indeksler: %v", result)
+	}
+}
+
+// Kural: örnekle'nin kimliği tam sayıdır: 2²⁴'ün üstündeki sözlükte de seçilen indeks aynen
+// gelir, float32'nin komşusuna yuvarlanmaz.
+func TestSampleIdentityAboveFloat32Precision(t *testing.T) {
+	out := mustRun(t, `TR_var z = TR_zeros([16777219])
+z[16777217] = 1.0
+TR_print(TR_sample(z, TR_temperature: 0.0).TR_tolist)
+TR_print(TR_sample(z, TR_temperature: 0.000001, TR_seed: 1).TR_tolist)`)
+	if want := "16777217\n16777217\n"; out != want {
+		t.Fatalf("kimlik: %q, beklenen %q", out, want)
 	}
 }

@@ -55,6 +55,7 @@ type replayEntry struct {
 	mutated []int
 	outs    []*tensor.Tensor
 	single  bool
+	masks   map[*tensor.Tensor]maskCopy // yalnız kayıt sürerken (maskForKernel)
 }
 
 // releaseQueue çöp toplayıcının ulaşılamaz bulduğu tekrar_oynat fonksiyonlarının kayıtları.
@@ -264,6 +265,9 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 	}()
 	start := tensor.Created()
 	rec.BeginCapture()
+	pc := programCaptureOf(m)
+	pc.entry, e.masks = e, map[*tensor.Tensor]maskCopy{}
+	defer func() { pc.entry, e.masks = nil, nil }()
 	res, err := applyFunction(m, f, vals, nil)
 	var outs []*tensor.Tensor
 	single := false
@@ -283,6 +287,54 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 	}
 	e.rec = rec.EndCapture()
 	return nil
+}
+
+// maskCopy kayıtta TR_Bool maskenin float32 kopyası ve kopyanın alındığı depolama sürümü.
+type maskCopy struct {
+	f32     *tensor.Tensor
+	version uint64
+}
+
+// programCapture programın süren kaydı (programın değeri; yoksa entry nil).
+type programCapture struct{ entry *replayEntry }
+
+type programCaptureKey struct{}
+
+func programCaptureOf(m *interp.VM) *programCapture {
+	return m.ProgramValue(programCaptureKey{}, func() any { return &programCapture{} }).(*programCapture)
+}
+
+// maskConversions çekirdek için yapılan maske çevirmelerinin sayısı (sınama).
+var maskConversions atomic.Int64
+
+// maskForKernel TR_Bool maskeyi çekirdeğin okuduğu 0/1 float32'ye çevirir. Üretimde bütün
+// katmanlar aynı maskeyi okur; her katmanda çevirmek çizgeye katman başına bir düğüm katardı
+// (adımda ~0,11 ms, G4). Bu yüzden süren kayıtta aynı maskenin kopyası, maske o arada yerinde
+// değişmediyse (depolama sürümü aynı) yeniden kullanılır.
+//
+// Sürüm yalnız kayıt anında okunur; oynatmada denetim yoktur ve gerekmez: çevirme kaydın bir
+// düğümüdür, katmanlar o düğümün çıktısını okur. Maskeyi kuran düğümler her oynatmada yeniden
+// çalışır, çevirme düğümü de onların ardından: kopya her adımda o adımın maskesidir. Bu yüzden
+// kopyalar replayEntry'dedir, kayıt bitince silinir, başka kayda ve kayıt dışına taşınmaz (orada
+// onları dolduran düğüm yoktur). Anahtar depolama değil başlıktır: başlıklar yeniden kullanılmaz
+// ve harita onları kayıt boyunca tutar, havuza dönüp başka tensöre verilen depolama eski kopyayı
+// bulamaz. Kilit gerekmez: kayıt VM.Exclusive altındadır, programın başka görevi bu sırada
+// koşmaz; başka programın kaydı ayrıdır (ProgramValue).
+func maskForKernel(m *interp.VM, mt *tensor.Tensor) (*tensor.Tensor, error) {
+	var copies map[*tensor.Tensor]maskCopy
+	if e := programCaptureOf(m).entry; e != nil && e.dev == mt.Device() {
+		copies = e.masks
+	}
+	version := mt.Version()
+	if c, ok := copies[mt]; ok && c.version == version {
+		return c.f32, nil
+	}
+	maskConversions.Add(1)
+	r, err := safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r })
+	if err == nil && copies != nil {
+		copies[mt] = maskCopy{r, version}
+	}
+	return r, err
 }
 
 // takeOutputs f'in sonucunu çıktılara ayırır ve her konum için bir sarıcıyı kayda alır: f'in
