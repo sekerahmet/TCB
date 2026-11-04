@@ -1005,6 +1005,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.55
 
+- **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı artık korunuyor [test: `TestSixteenBitStridedCopyKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
 - **Mevcut durum:** uygulanmadı; safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni].
 - **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası (H6950 bugün yalnız TR biçimini öneriyor; `.TR_to_dtype("float32")` önerisi 15.52 uygulanınca, öneri tablosunda koşulabilsin diye); kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
 
