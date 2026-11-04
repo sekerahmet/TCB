@@ -47,8 +47,8 @@ var longFuncReasons = map[string]string{
 	"tools/bench/go/compare.go:main":                            reasonGenerator + " (kıyas programları sırayla)",
 
 	// Motorlar
-	"internal/stdlib/ml/custom_grad.go:checkGrad":     reasonBuiltin + " (sayısal türev denetimi)",
-	"internal/stdlib/ml/builtin_reduce.go:reduction":  reasonBuiltin,
+	"internal/stdlib/ml/custom_grad.go:checkGrad":    reasonBuiltin + " (sayısal türev denetimi)",
+	"internal/stdlib/ml/builtin_reduce.go:reduction": reasonBuiltin,
 
 	// Hesap çekirdekleri
 	"internal/compute/tensor/cpu_attention.go:cpuBackend.f32Attention": reasonKernel,
