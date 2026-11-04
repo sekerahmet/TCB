@@ -113,7 +113,7 @@ TR_print(TR_list_dir(k).TR_length) # program bitince k silinir
 - **Değiştiren işler** (`TR_write_file`, `TR_write_lines`, `TR_save_tensors`, `TR_Checkpoint`'in koşu klasörü (20), `TR_Logger`'ın dosyası (19), `TR_make_dir`, `TR_remove`, `TR_move`'un kaynağı ve hedefi, `TR_copy`'nin hedefi) göreli yolu yalnız çalışma klasörüne göre çözer: başka bir klasördeki aynı adlı dosyayı silmez, ezmez, taşımaz.
 - **Bağlantılar:** silen, kopyalayan, taşıyan ve klasör gezen işler bağlantıları izlemez; okuyan, soran ve yazan işler bağlantının gösterdiği dosyayı kullanır.
 - Ağır işler (listeleme, kopyalama, silme, diskten okuma ve yazma) yorumlayıcı kilidini bırakır (10.3). Hatalar `TR_try`/`TR_catch` ile yakalanır; dosya bulunamazsa ileti bakılan yerleri sayar.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi (okuma sırası bugün 18.3'ün testinde sınanıyor).
+- *Test:* TR testi (okuma sırası 18.3'ün testinde, değiştiren işler 18.16'nın testinde); modülden ve programdan yazma, başka klasördeki dosyaya dokunmama ve iletinin açık yolu: çalışma klasörünü kuran Go `TestWritersResolveOnlyInTheWorkingDirectory`, `TestFileBuiltinsReadAndWriteRules`, `TestWritersDoNotTouchTheProgramsFile`, `TestRunFolderOnlyInTheWorkingDirectory`, `TestLogFileOnlyInTheWorkingDirectory`, `TestCachePathOnlyInTheWorkingDirectory`.
 
 **18.17** `TR_write_lines(yol)` bir `TR_LineWriter` açar ve büyük çıktıyı **akışla** yazar: bellek çıktının boyutundan bağımsızdır.
 - `.TR_write(satır)` bir `TR_String` satırını ve ardından `\n` yazar. Satır sonu (`\n` ya da `\r`) içeren satır hatadır: her `.TR_write` tam bir satırdır, JSONL gibi satır biçimleri bozulmaz.

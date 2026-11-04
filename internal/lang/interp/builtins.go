@@ -274,7 +274,7 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	default:
 		return nil, ArgTypeError(codes.FnWriteFile, 2, args[1], codes.TypeString, codes.TypeBytes)
 	}
-	resolved, _ := y.ResolvePath(filePath)
+	resolved, _ := y.ResolveWritePath(filePath)
 	y.Blocking(func() { err = WriteFileContent(resolved, content) })
 	if err != nil {
 		return nil, turkish.FileError(CallPrefix(codes.FnWriteFile), filePath, messages.H2101, err)

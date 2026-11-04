@@ -18,7 +18,8 @@ var PathType = interp.TypeName(codes.TypePath)
 // Path temizlenmiş bir dosya ya da klasör yoludur. Değiştirilemez; ayırıcıyı her platformda
 // / ile saklar ve gösterir (Windows'ta \ de kabul edilir, işletim sistemine giderken
 // çevrilir). Göreli bir yol çözülmeden saklanır: kullanıldığı anda, kullanan kodun klasörüne
-// göre 13.1'in tek kuralıyla çözülür (interp.PathValuer).
+// göre 13.1a'nın kuralıyla çözülür: okuyan iş okuma sırasıyla, değiştiren iş yalnız çalışma
+// klasörüne göre (18.16, interp.PathValuer).
 type Path struct{ fpath string }
 
 // NewPath bir yol metnini temizleyip Yol yapar.

@@ -161,7 +161,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		}
 		inputs = append(inputs, newFileEntry(k, d.t))
 	}
-	// Göreli yol TR'nin tek yol kuralıyla çözülür (bkz. interp.(*VM).ResolvePath).
+	// Göreli yol yalnız çalışma klasörüne göre çözülür (18.16, interp.(*VM).ResolveWritePath).
 	write := writeToFile
 	if isSafetensorsPath(fpath) {
 		if err := checkSafetensorsEntries(fn, inputs); err != nil {
@@ -169,7 +169,7 @@ func tensorSave(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		}
 		write = writeSafetensorsFile
 	}
-	decoded := bind.ResolvePath(m, fpath)
+	decoded, _ := m.ResolveWritePath(fpath)
 	var writeErr error
 	m.Blocking(func() { writeErr = write(decoded, inputs) })
 	if writeErr != nil {

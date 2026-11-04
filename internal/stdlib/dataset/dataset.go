@@ -148,9 +148,10 @@ func resolveCacheDir(m *interp.VM, fn any, named map[string]interp.Value) (strin
 	if err != nil {
 		return "", err
 	}
-	// Göreli yol, diğer yollar gibi tek kuralla çözülür (16.8): önce çalışma
-	// klasörü, orada yoksa programın klasörü.
-	return bind.ResolvePath(m, d), nil
+	// Önbellek klasörü değiştiren işlerdendir (18.16): kullanılırken bile kilit dosyası açılır,
+	// bozuk kopya silinir. Göreli yol yalnız çalışma klasörüne göre çözülür.
+	resolved, _ := m.ResolveWritePath(d)
+	return resolved, nil
 }
 
 func openDataset(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {

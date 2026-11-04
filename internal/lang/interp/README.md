@@ -31,8 +31,10 @@ durur. İkisi de `TR_kw_defer` bloklarında ve "durdurma istendi" hatasını yak
 bir hata yeniden sarılmaz. Kullanıcı hataları `TR_kw_try`/`TR_kw_catch` ile yakalanır; kesme isteği (Ctrl+C)
 yakalanmaz. Bir yerleşiğin içindeki beklenmedik panik süreci çökertmez, iç hata olarak bildirilir. Denetim: `TestInternalErrorLineOnce`, `TestInterrupt`, `TestRunRecoversFromBuiltinPanic`, `TestPanicInsideAsyncDoesNotCrashProcess`.
 
-**Tek kural.** Göreli dosya yolları için tek kural, modül yolları için tek kural vardır; her
-yerleşik yolu aynı yerden çözer. Denetim: `TestResolvePathSingleRule`, `TestFileBuiltinsUseSingleRule`, `TestImportIgnoresWorkingDir`.
+**Yol kuralı.** Göreli dosya yolunu okuyan ve soran iş önce çalışma klasörüne, sonra kodun modülünün
+ve programın klasörüne göre çözer (`ResolvePath`); değiştiren iş yalnız çalışma klasörüne göre
+(`ResolveWritePath`, 18.16): başka klasördeki aynı adlı dosyayı ezmez, silmez, taşımaz. Modül
+yolları için tek kural vardır. Denetim: `TestResolvePathSingleRule`, `TestFileBuiltinsReadAndWriteRules`, `TestResolveWritePath`, `TestWritersResolveOnlyInTheWorkingDirectory`, `TestImportIgnoresWorkingDir`.
 
 **Sıra belirlenimlidir.** Sözlükler ekleme sırasını korur, yapı alanları sabit bir sırayla gezilir;
 çıktı harita gezinme sırasına bağlı olmaz. Denetim: `TestOutputOrderIsDeterministic`.

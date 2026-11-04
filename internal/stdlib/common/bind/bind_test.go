@@ -176,9 +176,9 @@ func TestRecoverKeepsInterrupt(t *testing.T) {
 	}
 }
 
-// ResolvePath göreli yolu önce çalışma klasörüne, sonra programın klasörüne göre çözer; hiçbir
+// ResolvePathTried göreli yolu önce çalışma klasörüne, sonra programın klasörüne göre çözer; hiçbir
 // yerde yoksa çalışma klasörüne göre yol döner (hata mesajı kullanıcının yazdığını göstersin).
-func TestResolvePath(t *testing.T) {
+func TestResolvePathTried(t *testing.T) {
 	work, program := t.TempDir(), t.TempDir()
 	t.Chdir(work)
 	text := func(dir, name string) {
@@ -190,19 +190,23 @@ func TestResolvePath(t *testing.T) {
 	text(program, "ikisinde.txt")
 	text(program, "yalnız_programda.txt")
 	m := interp.New()
+	resolve := func(m *interp.VM, path string) string {
+		resolved, _ := ResolvePathTried(m, path)
+		return resolved
+	}
 	m.SourceFile = filepath.Join(program, "betik.tr")
 
-	if g := ResolvePath(m, "ikisinde.txt"); g != "ikisinde.txt" {
+	if g := resolve(m, "ikisinde.txt"); g != "ikisinde.txt" {
 		t.Errorf("çalışma klasörü önce gelmeli: %q", g)
 	}
-	if g := ResolvePath(m, "yalnız_programda.txt"); g != filepath.Join(program, "yalnız_programda.txt") {
+	if g := resolve(m, "yalnız_programda.txt"); g != filepath.Join(program, "yalnız_programda.txt") {
 		t.Errorf("programın klasörüne bakılmalı: %q", g)
 	}
 	g, tried := ResolvePathTried(m, "TR_none.txt")
 	if g != "TR_none.txt" || len(tried) != 2 {
 		t.Errorf("olmayan dosya çalışma klasörüne göre dönmeli ve iki yere bakılmalı: %q %v", g, tried)
 	}
-	if g := ResolvePath(nil, "yalnız_programda.txt"); g != "yalnız_programda.txt" {
+	if g := resolve(nil, "yalnız_programda.txt"); g != "yalnız_programda.txt" {
 		t.Errorf("VM yoksa yalnızca çalışma klasörüne bakılır: %q", g)
 	}
 	abs := filepath.Join(program, "yalnız_programda.txt")
@@ -210,7 +214,7 @@ func TestResolvePath(t *testing.T) {
 		t.Errorf("mutlak yol olduğu gibi kalmalı: %q %v", g, b)
 	}
 
-	_, err := os.Open(ResolvePath(m, "TR_none.txt"))
+	_, err := os.Open(resolve(m, "TR_none.txt"))
 	if !IsNotExist(err) || !IsNotExist(fmt.Errorf("sarılı: %w", err)) || IsNotExist(fs.ErrPermission) {
 		t.Errorf("YokMu yalnızca 'dosya yok' hatasını tanımalı: %v", err)
 	}

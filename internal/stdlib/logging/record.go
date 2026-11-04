@@ -88,7 +88,8 @@ func (d *state) openLog(m *interp.VM, args []interp.Value) (interp.Value, error)
 		return nil, messages.New(messages.H7319,
 			fn, path, logExt, strings.TrimSuffix(path, filepath.Ext(path))+logExt)
 	}
-	g := &Log{m: m, d: d, path: path, fullPath: bind.ResolvePath(m, path), program: filepath.Base(m.SourceFile), opening: clock()}
+	fullPath, _ := m.ResolveWritePath(path) // günlük dosyası değiştiren işlerdendir (18.16)
+	g := &Log{m: m, d: d, path: path, fullPath: fullPath, program: filepath.Base(m.SourceFile), opening: clock()}
 	if err := os.MkdirAll(filepath.Dir(g.fullPath), 0o755); err != nil {
 		return nil, turkish.FileError(fn, path, messages.H2105, err)
 	}

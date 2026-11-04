@@ -128,7 +128,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | :-- | :-- |
 | `AddEngine`, `VM.AddTaskHook`, `VM.TaskValue`, `VM.SetTaskValue` | Motor kaydı; görev kilidi alırken çalışan kanca ve göreve özel durum (örn. tensörün türev kipi görevden göreve sızmaz) |
 | `VM.Blocking` | Kilidi bırakarak uzun iş |
-| `ResolvePath`, `OpenFileReader`, `ReadFileContent`, `WriteFileContent`, `WriteAtomic` | Tek yol kuralı, `.gz` saydamlığı, atomik yazma: dosya okuyan ve yazan bütün yerleşikler bunlardan geçer |
+| `ResolvePath`, `ResolveWritePath`, `OpenFileReader`, `ReadFileContent`, `WriteFileContent`, `WriteAtomic` | Yol kuralı (okuyan iş okuma sırasıyla, değiştiren iş yalnız çalışma klasörüne göre, 18.16), `.gz` saydamlığı, atomik yazma: dosya okuyan ve yazan bütün yerleşikler bunlardan geçer |
 | `WriteOutput`, `SetLiveLine`, `UpdateLiveLine`, `AddSecret`, `Mask` | İnsanın göreceği çıktı noktaları; etkin canlı satır silinip yeniden çizilir, gizli değerler `***` olur |
 | `SetArgs`, `Args`, `ProgramCommand`, `UnusedArgsWarning` | Betiğin komut satırı argümanları ve programı başlatan komut |
 | `RequestStop`, `DeferStops`, `HandleStop`, `StopRequested`, `Interrupt`, `InterruptNow`, `IsInterrupt`, `AwaitNew`, `Abandonable` | Durdurma isteği (1.5–1.7): istek bayrak koyar; bir kontrol noktası kurulduysa erteleme penceresinde (`DeferStops`) adım sınırında kaydedip `InterruptNow` ile durdurur; `TR_handle_stop` çağrılınca program durdurmayı üstlenir (`HandleStop`). Yeni bir şey bekleyen yerleşik `AwaitNew`, bırakılabilen bekleme `Abandonable` ile sarılır. Motorların panik kurtarıcıları `IsInterrupt` ile kesmeyi yeniden atar |

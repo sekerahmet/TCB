@@ -172,7 +172,7 @@ func setup(m *interp.VM, s *process.State, args []interp.Value, named map[string
 	if err != nil {
 		return nil, err
 	}
-	runDir := bind.ResolvePath(m, fpath)
+	runDir, _ := m.ResolveWritePath(fpath)
 	if b, err := os.Stat(runDir); err == nil && !b.IsDir() {
 		return nil, messages.New(messages.H7407, fn, fpath, dirName)
 	}

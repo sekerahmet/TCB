@@ -238,15 +238,11 @@ func CodeMethod(kd codes.Code, noNamedArgs bool, fn interp.BuiltinFunc) *interp.
 	}}
 }
 
-// ResolvePath göreli bir yolu TR'nin tek yol kuralıyla çözer (bkz. interp.(*VM).ResolvePath: önce
-// çalışma klasörü, sonra programın klasörü). Hiçbir yerde yoksa hata mesajı kullanıcının
-// yazdığı yolu gösterebilsin diye çalışma klasörüne göre yol döner.
-func ResolvePath(m *interp.VM, path string) string {
-	resolved, _ := ResolvePathTried(m, path)
-	return resolved
-}
-
-// ResolvePathTried ResolvePath gibidir; ayrıca hata mesajları için bakılan yerleri döndürür.
+// ResolvePathTried okuyan bir yerleşiğin göreli yolunu okuma kuralıyla çözer (bkz.
+// interp.(*VM).ResolvePath: önce çalışma klasörü, sonra kodun modülünün ve programın klasörü) ve
+// hata mesajları için bakılan yerleri döndürür. Hiçbir yerde yoksa hata mesajı kullanıcının
+// yazdığı yolu gösterebilsin diye çalışma klasörüne göre yol döner. Değiştiren yerleşikler
+// m.ResolveWritePath ile çözer (18.16).
 func ResolvePathTried(m *interp.VM, path string) (string, []string) {
 	return m.ResolvePath(path) // m nil olabilir: o zaman yalnızca çalışma klasörüne bakılır
 }

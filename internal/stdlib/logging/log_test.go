@@ -207,3 +207,26 @@ func setClock(t *testing.T) *fakeClock {
 	t.Cleanup(logging.FakeClock(s.now))
 	return s
 }
+
+// Günlük dosyası değiştiren işlerdendir (18.16): göreli yol yalnız çalışma klasörüne göre çözülür,
+// programın yanındaki aynı adlı günlüğe eklenmez.
+func TestLogFileOnlyInTheWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	work, program := filepath.Join(root, "cwd"), filepath.Join(root, "program")
+	testkit.WritePath(t, filepath.Join(program, "g.jsonl"), "eski\n")
+	if err := os.MkdirAll(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(work)
+	m, _ := newVM(t, program)
+	if _, err := run(t, m, "TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_append({\"loss\": 1.5})"); err != nil {
+		t.Fatal(err)
+	}
+	logging.CloseAll()
+	if b, _ := os.ReadFile(filepath.Join(program, "g.jsonl")); string(b) != "eski\n" {
+		t.Errorf("programın günlüğü değişmemeli: %q", b)
+	}
+	if k := lines(t, filepath.Join(work, "g.jsonl")); len(k) != 2 || k[1]["loss"] != 1.5 {
+		t.Errorf("günlük çalışma klasöründe olmalı: %v", k)
+	}
+}
