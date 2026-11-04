@@ -27,16 +27,19 @@
      - `8ee2111e..52ce4b9f`: `300` satır (`1229 ms`, `impact=0`, `gate=0`) [ölçüldü: `go run ./tools/edithook codegraph changed --go-tests --base 8ee2111e 52ce4b9f`, `lines=300 elapsed_ms=1229 impact=0 gate=0`]
    - Seçilen testlerin bu sanal makinedeki süresi:
      - `go test -count=1 ./tools/impact` → `2.603s` [ölçüldü: `go test -count=1 ./tools/impact`, `ok  	github.com/sekerahmet/TCB/tools/impact	2.603s`]
-     - `go test -count=1 ./internal/compute/tensor -run '^TestBackendDataCallsGoThroughTheGate$'` → `0.672s` [ölçüldü: `go test -count=1 ./internal/compute/tensor -run '^TestBackendDataCallsGoThroughTheGate$'`, `ok  	github.com/sekerahmet/TCB/internal/compute/tensor	0.672s`]
+      - `go test -count=1 ./internal/compute/tensor -run '^TestBackendDataCallsGoThroughTheGate$'` → `0.672s` [ölçüldü: `go test -count=1 ./internal/compute/tensor -run '^TestBackendDataCallsGoThroughTheGate$'`, `ok  	github.com/sekerahmet/TCB/internal/compute/tensor	0.672s`]
+4. **Madde 1 — N6 (`46aef6a`):**
+   - `tools/codegraph/query_file_tests.go` ve `tools/codegraph/changed.go` içinde 0 adımlı `INFERRED` `tests` kenarlarının `direct` diye yazılması önlendi; `EXTRACTED` doğrudan kanıtlar (`extractedDirectTests`) önce, `INFERRED` olanlar `[INFERRED]` etiketiyle sonra sıralandı; `fileTestSet.all` yorumu güncellendi.
+   - `tools/codegraph/testdata/planning_questions.txt:199` beklentisi güncellendi ve `tools/codegraph/query_file_tests_test.go` içine `TestInferredZeroStepEdgeIsNotWrittenAsDirect` koruyan testi eklendi (`ok  	github.com/sekerahmet/TCB/tools/codegraph	0.222s`, `dups --changed main` → `0 duplicate candidate(s)`).
+   - Not (Ortam): `2026-11-04 16:40 UTC` sırasında uzak uVM kısa süreli `STOPPED` durumuna geçip otomatik yeniden başlatıldı; `/home/antigravity` ve çalışma ağacı korundu ("Ortam" bölümüne yazılacak).
 
 ## Sıradaki Adımlar
 
-1. N6 (`[INFERRED]` kenarın `direct` yazılmaması ve `tools/codegraph/query_file_tests.go:87` yorumunun güncellenmesi) ve `scans` benzeri kapsam temsilinin ilgili dosyaları (`query_tests.go`, `test_names_test.go`, `scans_test.go`, `graph.go`, `build.go`, `helpers_test.go`) kaynağından okuyup kesinleştirilmesi; dokunulacak dosyalar için `tests-for` ve `run:` satırlarının koşulması.
-2. N6 düzeltmesinin uygulanması ve ayrı commit olarak kaydedilmesi.
-3. `type_queries*.go` sadeleştirmesinin (`{test, kapsam}` gerekçeli listesi, fikstür parametresi, `packages.Load` yolunun ve sınanmayan sezgilerin silinmesi, kısa Türkçe yorumlar), kapsam testinin ve beş satırlık fikstür testinin (`slowFixture` + sığ klon uyumu) uygulanıp commit edilmesi.
-4. `tools/codegraph/gaps.md` içindeki kapanan maddenin (`tools/codegraph/gaps.md:53-54`) silinmesi ve `extractorRevision` / `extractor_digest.txt` güncellemesi.
-5. Geçici kopyada 3 satırlık gerçek depo ölçüsü, `--depth 1` klon koşusu, "Sonra" ölçümleri, bitti ölçütü komutları, `TIP_RAPORU.md` ve kendi kontrolüm.
+1. `type_queries*.go` sadeleştirmesinin (`{test, kapsam}` gerekçeli listesi, fikstür parametresi, `packages.Load` yolunun ve sınanmayan 8 sezginin silinmesi, kalan fonksiyonlara kısa Türkçe yorumlar), kapsam testinin (`goload.Load` ve `(*types.Config).Check` + 1 satır silinince düşme kontrolü) ve beş satırlık fikstür testinin (`slowFixture` + değişiklikten sonra grafik kurarak sığ klon uyumu) uygulanıp ayrı commit olarak kaydedilmesi.
+2. `tools/codegraph/gaps.md` içindeki kapanan maddenin (`tools/codegraph/gaps.md:53-54`) silinmesi ve `extractorRevision` / `extractor_digest.txt` güncellemesi.
+3. Geçici kopyada 3 satırlık gerçek depo ölçüsü, `--depth 1` klon koşusu, "Sonra" ölçümleri, bitti ölçütü komutları, `TIP_RAPORU.md` ve kendi kontrolüm.
 
 ## Emin Olmadıklarım / Açık Noktalar
 
-- N6 için `query_file_tests.go`, `changed.go`, `query_tests.go`, `test_names_test.go` ve `testdata/planning_questions.txt` birlikte incelenerek tüm `[INFERRED]` `edgeTests` kenarlarının tutarlı gösterimi netleştirilecek.
+- Açık belirsizlik yok; `kindScan` / `edgeScans` `tools/full_check.sh` ile birebir eşlendiğinden (`scans_test.go:275`), tip sorgusu kapsamları `kindTypeQuery` / `edgeTypeQueries` düğüm ve kenarıyla temsil edilip `query_scans.go` kapsama mantığını paylaşacak.
+
