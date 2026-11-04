@@ -42,7 +42,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
     - **4c, genel tipler;**
     - **T2:** sinir ağı ve eğitim;
     - **T3:** hız, dosya ve nicemleme;
-    - **K:** uzun yerleşiklerin kilidi. Birinci dilim birleşti (2026-11-03, T1): tensörün deposuna okuma ve yazma izni; CPU'da uzun `@`, büyük öğe öğe işlemler, indirgemeler, iyileştirici adımı ve örnekleme kilidi bırakıyor. Bitiş ölçütü CPU'da Linux'ta geçti: uzun tensör işi sürerken başka görev en çok ~4 ms bekliyor, 100 Hz döngü tur kaçırmıyor. GPU yolu ve geri yayılım kilidi tutuyor: sıradaki dilim GPU, ana daldan. Yedek saatle kilit devrinin tavanı 64 turdan 32'ye indi (2026-11-04).
+    - **K:** uzun yerleşiklerin kilidi. Birinci dilim birleşti (2026-11-03, T1): tensörün deposuna okuma ve yazma izni; CPU'da uzun `@`, büyük öğe öğe işlemler, indirgemeler, iyileştirici adımı ve örnekleme kilidi bırakıyor. Bitiş ölçütü CPU'da Linux'ta geçti: uzun tensör işi sürerken başka görev en çok ~4 ms bekliyor, 100 Hz döngü tur kaçırmıyor. GPU yolu ve geri yayılım kilidi tutuyor: sıradaki dilim GPU, ana daldan. Yedek saatte ilerlemeyen okumadan sonraki okuma 64 yerine en çok 32 tur sonra geliyor (2026-11-04).
 - **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30). Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç ajan deneyinin zor-3'ünden önce yapılır, eski adı yasaklayan bir testle; sınıfı A (ayrıca C, F1), Ö0, kolu Gemini (DENETİM istek 76; status "Bölümü olmayan işler"). İletiler 3'e bağlı değil. **Göç birleşti** (2026-11-03, `b71bef0e`; Gemini Kodlama2, araç main'de yeniden koşuldu; DENETİM istek 86, 87): ikili `trlang`, eski ad `TestNoOldCommandName` ile yasak.
 
 ## Açık dil tasarım soruları
@@ -64,7 +64,6 @@ Karara bağlananlar (2026-10-27'deki listeden):
 
 Kapsam ve kaynak kararları.
 
-- **Hazır nicemli modeller:** GGUF okumak mı (15.55 "Sonraya" diyor), yoksa yalnız kendi `q4`/`q8` biçimi mi (15.51–15.53)? 2. kilometre taşının nicemli ağırlık ölçütü buna bağlı.
 - **`.pt` dosyası:** yazmak ve kısıtlı okumak (arşiv). Bırakıldığı yazılı değil; güvenlik tartısı ister.
 - **Python köprüsü:** eski yol haritası "bilinçli olarak yok" diyordu (arşiv, İlkeler). Bu karar bugün hiçbir belgede yazılı değil.
 - **1. kilometre taşının kalanları:** RGN-512 hedef olmaktan çıktı; eğitim hızı adaylarının yapılıp yapılmayacağı (aşağıda).
@@ -250,6 +249,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 - Hız aynı model, aynı hassasiyet ve aynı makinede ölçülür: GPU'da PyTorch ve llama.cpp'ye, CPU'da PyTorch CPU ve llama.cpp'ye karşı. Hedef oran ilk ölçümden sonra buraya yazılır.
 - CPU'da hem x86 hem ARM64 işlemcide çalışır.
 - Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir.
+- Nicemli ağırlık hazır dosyadan gelir: yayımlanmış GGUF okunur; Jarvis için ön koşul budur, kendimiz nicemlemek sonraki fazlarda (Ahmet, 2026-11-04). Hangi türler araştırmayla belirlenir; 15.55 buna göre değişir.
 
 **Son ölçüm** (2026-11-03, main `51b75f0a`, Colab G4 ve CPU High-RAM; ayrıntı ve kaynak [`measurements.md`](measurements.md)):
 - **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüş de kapandı (2026-11-04, `measurements.md`): 2026-10-23'teki Qwen3 bf16 +%7,2; 2026-11-02'deki bf16 Qwen3 +%3,7, SmolLM2 +%7,2. Oranlar yeniden ölçülmedi.
