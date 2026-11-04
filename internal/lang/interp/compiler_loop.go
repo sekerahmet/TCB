@@ -419,6 +419,10 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 				if err != nil {
 					return nil, err
 				}
+				// Koşul yanlış çıkınca output'a varılmaz; değişiklik burada da görülmeli (5.7).
+				if err := mark.changed(iterVal, line); err != nil {
+					return nil, err
+				}
 				if ok, err := truth(condVal, condLine); err != nil {
 					return nil, err
 				} else if !ok {

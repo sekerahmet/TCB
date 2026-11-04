@@ -247,6 +247,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 - **Mevcut durum:** liste, aralık, metin, bayt dizisi (öğeler `TR_Int`), sözlük ve `TR_JSON` dizisi ve nesnesi dolaşılıyor; iki adlı biçim ve `_` kurala uyuyor; metin, sayı ve yokluk türündeki `TR_JSON` H2664 veriyor; dolaşılan listeye ve sözlüğe ekleme H2703 ve H2704, var olan öğeye atama serbest (bugünkü 5.7 testi). Yapı dolaşılamıyor: `TR_next() -> TR_Int?` metodu olan yapıda `TR_for` "döngü kurulamaz" çalışma hatası veriyor (dönüş tipi `T?` artık yazılıyor) [ölçüldü: main `85a19c36`, her kaynak türü (okuyucu hariç), JSON'un metin türü, `TR_next()` metotlu yapı; denetim ve çalıştırma]. Akışlı okuyucunun iki kez dolaşılması bu turda yeniden ölçülmedi. Çıkarma da aynı hatalar: `.TR_pop`, `.TR_remove_at` ve `.TR_remove` dolaşılan kapta H2703 ve H2704 veriyor; denetim boya değil çıkarma sayısına da baktığı için aynı turda çıkarıp eklemek de yakalanıyor [test: `tests/deyimler_test.tr`'nin 5.7 testi]. Başka bir görevin sildiği anahtar turun başında görülüyor [test: `TestAnotherTaskRemovingFromADictUnderIteration`].
 - **Yapılacaklar:** `TR_next() -> T?` taşıyan yapının dolaşılması, tek seferlik dolaşıcı, `T` isteğe bağlıysa denetim hatası (ileti öğeyi sarmayı önerir); TR testi.
+- **Mevcut durum (2026-11-04; A, Ö0 kapandı; DENETİM istek 125 Ş1):** üretecin koşulu dolaşılan listeyi ya da sözlüğü değiştirip yanlış çıkınca 5.7'nin hatası gelmiyordu: öğe atlanıyor, `TR_Int` parametresine `TR_none` düşüyordu. Denetim artık koşuldan hemen sonra [test: TR testi "5.7 üretecin yanlış çıkan koşulu"].
 
 ### 5.11
 
@@ -1210,7 +1211,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
-- **Yapılacaklar (A, Ö1; sahip D1, sıradaki iş; D1 Kol A 13 teslim 4):** test komutuna iki dosya verilince yalnız ilki koşuyor, çıkış 0: öbür dosyanın testleri koşmamış olur, geçmiş görünür [ölçüldü: D1, iki dosyayla 40 test, tek tek 40 ve 23]. Ya bütün dosyalar koşsun ya hata versin. Depo taraması: tam denetim klasör veriyor, etkilenmiyor [kanıtlı: `full_check.sh`].
+- **Yapılacaklar (A, Ö0; sahip D1, sıradaki iş; D1 Kol A 13 teslim 4, DENETİM istek 125 N1):** test komutuna iki dosya verilince yalnız ilki koşuyor, çıkış 0: ikinci dosyanın kalan testi bile geçmiş görünür [ölçüldü: D1, iki dosyayla 40 test, tek tek 40 ve 23]. Ya bütün dosyalar koşsun ya hata versin. Depo taraması: tam denetim klasör veriyor, etkilenmiyor [kanıtlı: `full_check.sh`].
 
 - **Mevcut durum (2026-11-04; C, Ö2):** `TestBaseThatIsNotOneCommitStops` ortak öneki depodan arıyor, süre sınırı var: sabit `da0457c5` yalnız yerel depoda belirsizdi, taze tam klonda gerçek ön denetimi başlatıp takılıyordu [ölçüldü: D1; DENETİM istek 104, üç klon]. `TestPreCheckGoStepsSkipTheCache` ön denetimin Go adımlarını koruyor (DENETİM istek 110 W2).
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].

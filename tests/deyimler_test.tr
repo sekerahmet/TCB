@@ -208,6 +208,27 @@ TR_test "5.7 döngü ... içinde: liste, aralık, sözlük, metin" {
     TR_assert_equal([3, 2, 1], geri)
 }
 
+TR_test "5.7 üretecin yanlış çıkan koşulu dolaşılanı değiştirirse de çalışma hatasıdır" {
+    TR_var u = [1, 2, 3, 4]
+    TR_func çıkaran(x: TR_Int) -> TR_Bool {
+        u.TR_remove_at(0)
+        TR_return TR_false
+    }
+    TR_assert_equal("H2703", TR_error_code { TR_var y = [x TR_for x TR_in u TR_if çıkaran(x)] })
+    TR_var e = [1, 2]
+    TR_func ekleyen(x: TR_Int) -> TR_Bool {
+        e.TR_append(9)
+        TR_return TR_false
+    }
+    TR_assert_equal("H2703", TR_error_code { TR_var y = [x TR_for x TR_in e TR_if ekleyen(x)] })
+    TR_var d = {"a": 1, "b": 2, "c": 3}
+    TR_func silen(k: TR_String) -> TR_Bool {
+        d.TR_remove("b")
+        TR_return TR_false
+    }
+    TR_assert_equal("H2704", TR_error_code { TR_var y = [k TR_for k TR_in d TR_if silen(k)] })
+}
+
 TR_test "5.7 dolaşılan liste ya da sözlüğe ekleme ve çıkarma çalışma hatasıdır" {
     TR_var l = [1, 2]
     TR_assert_equal("H2703", TR_error_code {
