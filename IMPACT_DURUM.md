@@ -37,13 +37,18 @@ Başlangıç saati: `2026-11-04 14:33:05 UTC+3` (`2026-11-04 11:33:05 UTC`) [öl
   - `go run ./tools/codegraph dups --changed main`: `0 duplicate candidate(s)`.
   - Düzen testleri (`./internal/` boyut, ad, eşleşme): geçti (`ok`).
 
+- **Adım 7 (`tools/codegraph/gaps.md` güncellemesi — commit `2c4d914`):**
+  - Kapanan `"Depoyu go/packages ile yükleyen test seçilmiyor"` maddesi silindi; `otherConfigMentions` (`tools/codegraph/query_other_configs.go:31`) üzerindeki dışa kapalı / aktarılmamış ad eşlemesi (`go run ./tools/codegraph who-uses impact.load` → `internal/sysmem/memory_windows.go:11`) `İnce ayar` başlığına eklendi.
+  - `TestDocCodeBlocksShow` ve `TestDottedMemberSpellingsGolden` geçti (`ok`).
+  - Uzak ortam gözlemi: `IMPACT_DURUM.md` kökte `git add` ile izlenirken `TestEveryTrackedDataFileHasATestOrAReason` (`tools/codegraph/data_coverage_test.go:115`) bu dosyayı bağsız veri dosyası sayıyor (`tools/full_check.sh:41`'in `"Yan oturumlar devir notundan ... önce koşar"` notuyla aynı neden). `data_coverage_test.go` kuralına dokunulmadı; Adım 8'deki test koşusu `git rm --cached IMPACT_DURUM.md` ile birleştirme sonrası durum doğrulanıp ardından dosya yeniden indekse eklenerek yapılacak ve rapora yazılacak.
+
 ## Bağlam Sıkıştırması Notu
 - **1. sıkıştırma (`2026-11-04 14:49 UTC+3`):** Adım 5 tamamlandıktan hemen sonra, hiçbir kaynak dosyaya dokunulmadan önce gerçekleşti.
 - **2. sıkıştırma (`2026-11-04 15:08 UTC+3`):** Adım 6 ön bedel ölçümleri tamamlandıktan hemen sonra, hiçbir kaynak dosyaya dokunulmadan önce gerçekleşti. Tüm kaynak dosyalar yeniden açıldı ve doğrulandı.
+- **3. sıkıştırma (`2026-11-04 15:38 UTC+3`):** Adım 7'de `tools/codegraph/gaps.md` düzenlendikten hemen sonra, commit öncesi gerçekleşti. `CLAUDE.md`, `IMPACT_DURUM.md`, `tools/codegraph/gaps.md` ve ortam ölçümleri kaynağından yeniden doğrulandı.
 
 ## Kalanlar
-- **Adım 7:** `tools/codegraph/gaps.md` içinden kapanan maddeyi silmek ve yeni bulguyu eklemek; commit + durum güncellemesi + push.
-- **Adım 8:** Bitti ölçütündeki 5 komutu koşmak, `IMPACT_RAPORU.md` yazmak, kendi kontrolünü tamamlayıp son durum güncellemesiyle yalnız `gemini/impact-secimi` dalına push etmek.
+- **Adım 8:** Bitti ölçütündeki 5 komutu koşmak, tüm alıntı ve sayıları kaynağından doğrulayarak `IMPACT_RAPORU.md` yazmak, kendi kontrolünü tamamlayıp son durum güncellemesiyle yalnız `gemini/impact-secimi` dalına push etmek.
 
 ## Emin Olmadıklarım
 - Yok.
