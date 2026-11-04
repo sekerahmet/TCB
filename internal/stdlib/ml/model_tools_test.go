@@ -376,3 +376,15 @@ func TestArgmaxRowMatchesSeparateCheckAndSelection(t *testing.T) {
 		}
 	}
 }
+
+// Üretim her parçada açgözlü örnekler: sözlük boyunda ayırma parça başına iş demektir.
+func TestGreedySampleDoesNotAllocate(t *testing.T) {
+	data, result, u := make([]float32, 1024), make([]float32, 2), make([]float64, 2)
+	data[700] = 1
+	if n := testing.AllocsPerRun(10, func() { sampleRows(data, result, u, 512, 512, 0) }); n != 0 {
+		t.Fatalf("açgözlü örnekleme %v kez ayırdı", n)
+	}
+	if result[0] != 0 || result[1] != 188 {
+		t.Fatalf("seçilen indeksler: %v", result)
+	}
+}

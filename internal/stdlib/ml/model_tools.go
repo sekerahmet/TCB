@@ -380,8 +380,12 @@ const unlockedSampleWork = 1 << 20
 // hepsi kurulabildiyse 0. Yalnız kendi dilimleriyle çalışır; kilit bırakılmışken çağrılabilir.
 func sampleRows(data, result []float32, u []float64, C, k int, temperature float64) int {
 	line := len(result)
-	idx := make([]int, C)
-	weight := make([]float64, C)
+	var idx []int
+	var weight []float64
+	if temperature > 0 { // açgözlü seçim aday tablosu kullanmaz: üretimde parça başına ayırma olmasın
+		idx = make([]int, C)
+		weight = make([]float64, C)
+	}
 	for r := 0; r < line; r++ {
 		x := data[r*C : (r+1)*C]
 		// Dağılım kurulamayan satır (NaN, +∞ ya da hepsi -∞) hangi yolla örneklenirse örneklensin
