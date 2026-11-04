@@ -3,7 +3,9 @@
 - **Başlangıç saati:** `2026-11-04 15:39 UTC` (`2026-11-04 18:39 UTC+3`)
 - **Dal:** `gemini/tip-secimi`
 - **Taban (`main`):** `a259ed99e2c3b340e3c5223094158512dc4e8507`
-- **Bağlam sıkıştırması:** 1 kez — `2026-11-04 16:03 UTC` (`2026-11-04 19:03 UTC+3`), Go `1.26.10` kurulumu ve ilk kod okumalarından hemen sonra, herhangi bir üretim/test dosyası düzenlenmeden önce gerçekleşti. Sıkıştırma sonrasında `CLAUDE.md`, `origin/yonerge:UZAK_YONERGE_2.md`, `TIP_DURUM.md`, ilgili Go kaynakları ve bütün ön ölçümler kaynağından yeniden açılıp doğrulandı.
+- **Bağlam sıkıştırması:** 2 kez:
+  1. `2026-11-04 16:03 UTC` (`2026-11-04 19:03 UTC+3`): Go `1.26.10` kurulumu ve ilk kod okumalarından hemen sonra, herhangi bir üretim/test dosyası düzenlenmeden önce gerçekleşti; sonrasında bütün ön ölçümler kaynağından yeniden doğrulandı.
+  2. `2026-11-04 16:36 UTC` (`2026-11-04 19:36 UTC+3`): N6 düzeltmesinin 4 dosyadaki (`tools/codegraph/query_file_tests.go`, `tools/codegraph/changed.go`, `tools/codegraph/query_file_tests_test.go`, `tools/codegraph/testdata/planning_questions.txt`) düzenlemeleri çalışma ağacına yazıldıktan hemen sonra, test ve commit öncesinde gerçekleşti; sonrasında `CLAUDE.md`, `origin/yonerge:UZAK_YONERGE_2.md`, `TIP_DURUM.md`, `query_tests.go` ve düzenlenen 4 dosya yeniden açılıp okundu.
 
 ## Biten Adımlar
 
