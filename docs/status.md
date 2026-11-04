@@ -1049,6 +1049,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 ### 16.5
 
 - **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** okuyucu `int64`'e geçer; `int32`'ye sığmayan `<u4` ve `<i8` değerini reddetmek (H5086) dil tanımına aykırı: 16.5 yalnız tür kümesini söyler, 16.6 2³²'ye kadar işaretsiz kimliğe izin verir, 16.7 `"int64"` tensör üretir [kanıtlı: Gemini `TUR1_RAPORU.md` satır 27, DENETİM `kol-denetim-tur1-rapor-sonuc.md`]. Bugün `internal/compute/dataload/shard.go:282` (`decodeI32`, 256) reddediyor; `TestShardU32Overflow`'un `<i8` satırları ve `tests/veri_parcalayici_test.tr`'nin sınırı ters döner. S1'in işi.
+- **Mevcut durum (2026-11-04; C, Ö2; TCB):** kapanmakta olan önbellek kilidi bırakana kadar aynı klasörün açılışı bekliyor. Önce kayıt kilitten önce siliniyordu: sonlandırıcının kapattığı kümeyle aynı klasörü açan program "başka bir program kullanıyor" hatası alıyordu; `TestExamplesRun` `b03262ac`'nin main CI'ında böyle düştü, aynı commit kontrol dalında geçmişti [ölçüldü: iki koşu]. Hata açıktı, sessiz yanlış yok [test: `TestCacheOpenWaitsForClosing`].
 
 ### 16.6
 
