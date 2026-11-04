@@ -7,25 +7,25 @@ package detmath
 import "math"
 
 /*
-	Floating-point arcsine and arccosine.
+	Kayan noktalı arksinüs ve arkkosinüs.
 
-	They are implemented by computing the arctangent
-	after appropriate range reduction.
+	İkisi de uygun aralık indirgemesinden sonra
+	arktanjant hesaplanarak gerçeklenir.
 */
 
-// Asin returns the arcsine, in radians, of x.
+// Asin, x'in arksinüsünü radyan olarak verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Asin(±0) = ±0
-//	Asin(x) = NaN if x < -1 or x > 1
+//	Asin(x) = NaN, x < -1 veya x > 1 için
 func Asin(x float64) float64 {
 	return asin(x)
 }
 
 func asin(x float64) float64 {
 	if x == 0 {
-		return x // special case
+		return x // özel durum
 	}
 	sign := false
 	if x < 0 {
@@ -33,7 +33,7 @@ func asin(x float64) float64 {
 		sign = true
 	}
 	if x > 1 {
-		return math.NaN() // special case
+		return math.NaN() // özel durum
 	}
 
 	temp := math.Sqrt(1 - float64(x*x))
@@ -49,11 +49,11 @@ func asin(x float64) float64 {
 	return temp
 }
 
-// Acos returns the arccosine, in radians, of x.
+// Acos, x'in arkkosinüsünü radyan olarak verir.
 //
-// Special case is:
+// Özel durum:
 //
-//	Acos(x) = NaN if x < -1 or x > 1
+//	Acos(x) = NaN, x < -1 veya x > 1 için
 func Acos(x float64) float64 {
 	return acos(x)
 }

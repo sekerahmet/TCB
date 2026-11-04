@@ -7,7 +7,7 @@ package detmath
 import "math"
 
 /*
-	Floating-point tangent.
+	Kayan noktalı tanjant.
 */
 
 // The original C code, the long comment, and the constants
@@ -15,33 +15,8 @@ import "math"
 // available from http://www.netlib.org/cephes/cmath.tgz.
 // The go code is a simplified version of the original C.
 //
-//      tan.c
-//
-//      Circular tangent
-//
-// SYNOPSIS:
-//
-// double x, y, tan();
-// y = tan( x );
-//
-// DESCRIPTION:
-//
-// Returns the circular tangent of the radian argument x.
-//
-// Range reduction is modulo pi/4.  A rational function
-//       x + x**3 P(x**2)/Q(x**2)
-// is employed in the basic interval [0, pi/4].
-//
-// ACCURACY:
-//                      Relative error:
-// arithmetic   domain     # trials      peak         rms
-//    DEC      +-1.07e9      44000      4.1e-17     1.0e-17
-//    IEEE     +-1.07e9      30000      2.9e-16     8.1e-17
-//
-// Partial loss of accuracy begins to occur at x = 2**30 = 1.074e9.  The loss
-// is not gradual, but jumps suddenly to about 1 part in 10e7.  Results may
-// be meaningless for x > 2**49 = 5.6e14.
-// [Accuracy loss statement from sin.go comments.]
+// Yöntem: bağımsız değişken pi/4 modülünde indirgenir; [0, pi/4] aralığında
+// x + x**3 P(x**2)/Q(x**2) biçiminde bir rasyonel fonksiyon kullanılır.
 //
 // Cephes Math Library Release 2.8:  June, 2000
 // Copyright 1984, 1987, 1989, 1992, 2000 by Stephen L. Moshier
@@ -61,7 +36,7 @@ import "math"
 //   Stephen L. Moshier
 //   moshier@na-net.ornl.gov
 
-// tan coefficients
+// tan katsayıları
 var _tanP = [...]float64{
 	-1.30936939181383777646e4, // 0xc0c992d8d24f3f38
 	1.15351664838587416140e6,  // 0x413199eca5fc9ddd
@@ -75,9 +50,9 @@ var _tanQ = [...]float64{
 	-5.38695755929454629881e7, // 0xc189afe03cbe5a31
 }
 
-// Tan returns the tangent of the radian argument x.
+// Tan, radyan cinsinden x'in tanjantını verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Tan(±0) = ±0
 //	Tan(±Inf) = NaN
@@ -88,19 +63,19 @@ func Tan(x float64) float64 {
 
 func tan(x float64) float64 {
 	const (
-		PI4A = 7.85398125648498535156e-1  // 0x3fe921fb40000000, Pi/4 split into three parts
+		PI4A = 7.85398125648498535156e-1  // 0x3fe921fb40000000, Pi/4 üç parçaya bölünmüş
 		PI4B = 3.77489470793079817668e-8  // 0x3e64442d00000000,
 		PI4C = 2.69515142907905952645e-15 // 0x3ce8469898cc5170,
 	)
-	// special cases
+	// özel durumlar
 	switch {
 	case x == 0 || math.IsNaN(x):
-		return x // return ±0 || NaN()
+		return x // ±0 ya da NaN döner
 	case math.IsInf(x, 0):
 		return math.NaN()
 	}
 
-	// make argument positive but save the sign
+	// bağımsız değişkeni pozitif yap ama işareti sakla
 	sign := false
 	if x < 0 {
 		x = -x
@@ -111,10 +86,10 @@ func tan(x float64) float64 {
 	if x >= reduceThreshold {
 		j, z = trigReduce(x)
 	} else {
-		j = uint64(float64(x * (4 / math.Pi))) // integer part of x/(Pi/4), as integer for tests on the phase angle
-		y = float64(j)                         // integer part of x/(Pi/4), as float
+		j = uint64(float64(x * (4 / math.Pi))) // x/(Pi/4)'ün tamsayı kısmı, evre açısı sınamaları için tamsayı olarak
+		y = float64(j)                         // x/(Pi/4)'ün tamsayı kısmı, kayan noktalı olarak
 
-		/* map zeros and singularities to origin */
+		/* sıfırları ve tekillikleri başlangıca eşle */
 		if j&1 == 1 {
 			j++
 			y++

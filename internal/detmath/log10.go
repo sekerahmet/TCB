@@ -6,8 +6,8 @@ package detmath
 
 import "math"
 
-// Log10 returns the decimal logarithm of x.
-// The special cases are the same as for [Log].
+// Log10, x'in onluk logaritmasını verir.
+// Özel durumlar [Log] ile aynıdır.
 func Log10(x float64) float64 {
 	return log10(x)
 }
@@ -16,16 +16,16 @@ func log10(x float64) float64 {
 	return float64(Log(x) * (1 / math.Ln10))
 }
 
-// Log2 returns the binary logarithm of x.
-// The special cases are the same as for [Log].
+// Log2, x'in ikilik logaritmasını verir.
+// Özel durumlar [Log] ile aynıdır.
 func Log2(x float64) float64 {
 	return log2(x)
 }
 
 func log2(x float64) float64 {
 	frac, exp := math.Frexp(x)
-	// Make sure exact powers of two give an exact answer.
-	// Don't depend on Log(0.5)*(1/Ln2)+exp being exactly exp-1.
+	// İkinin tam kuvvetleri tam sonuç versin.
+	// Log(0.5)*(1/Ln2)+exp'in tam olarak exp-1 çıkmasına güvenme.
 	if frac == 0.5 {
 		return float64(exp - 1)
 	}

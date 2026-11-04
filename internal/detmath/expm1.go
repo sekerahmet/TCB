@@ -20,111 +20,30 @@ import "math"
 // is preserved.
 // ====================================================
 //
-// expm1(x)
-// Returns exp(x)-1, the exponential of x minus 1.
+// Yöntem: x = k*ln2 + r, |r| <= 0.5*ln2 olacak biçimde k tamsayısı ve r
+// bulunur; r yuvarlanırken oluşan hata bir düzeltme terimi c ile giderilir.
+// expm1(r), [0, 0.34658] aralığında özel bir rasyonel fonksiyonla (r*r'nin
+// beşinci derece çokterimlisi) yaklaşık hesaplanır; sonuç k'ye göre
+// 2**k ile ölçeklenir, k'nin değerine göre ayrı dallar kullanılır.
+// Özel durumlar: expm1(+Inf) = +Inf, expm1(-Inf) = -1, expm1(NaN) = NaN;
+// sonlu bağımsız değişkenlerde yalnız expm1(0) = 0 tamdır.
+// Hata analizine göre hata her zaman 1 ulp'den küçüktür.
 //
-// Method
-//   1. Argument reduction:
-//      Given x, find r and integer k such that
-//
-//               x = k*ln2 + r,  |r| <= 0.5*ln2 ~ 0.34658
-//
-//      Here a correction term c will be computed to compensate
-//      the error in r when rounded to a floating-point number.
-//
-//   2. Approximating expm1(r) by a special rational function on
-//      the interval [0,0.34658]:
-//      Since
-//          r*(exp(r)+1)/(exp(r)-1) = 2+ r**2/6 - r**4/360 + ...
-//      we define R1(r*r) by
-//          r*(exp(r)+1)/(exp(r)-1) = 2+ r**2/6 * R1(r*r)
-//      That is,
-//          R1(r**2) = 6/r *((exp(r)+1)/(exp(r)-1) - 2/r)
-//                   = 6/r * ( 1 + 2.0*(1/(exp(r)-1) - 1/r))
-//                   = 1 - r**2/60 + r**4/2520 - r**6/100800 + ...
-//      We use a special Reme algorithm on [0,0.347] to generate
-//      a polynomial of degree 5 in r*r to approximate R1. The
-//      maximum error of this polynomial approximation is bounded
-//      by 2**-61. In other words,
-//          R1(z) ~ 1.0 + Q1*z + Q2*z**2 + Q3*z**3 + Q4*z**4 + Q5*z**5
-//      where   Q1  =  -1.6666666666666567384E-2,
-//              Q2  =   3.9682539681370365873E-4,
-//              Q3  =  -9.9206344733435987357E-6,
-//              Q4  =   2.5051361420808517002E-7,
-//              Q5  =  -6.2843505682382617102E-9;
-//      (where z=r*r, and the values of Q1 to Q5 are listed below)
-//      with error bounded by
-//          |                  5           |     -61
-//          | 1.0+Q1*z+...+Q5*z   -  R1(z) | <= 2
-//          |                              |
-//
-//      expm1(r) = exp(r)-1 is then computed by the following
-//      specific way which minimize the accumulation rounding error:
-//                             2     3
-//                            r     r    [ 3 - (R1 + R1*r/2)  ]
-//            expm1(r) = r + --- + --- * [--------------------]
-//                            2     2    [ 6 - r*(3 - R1*r/2) ]
-//
-//      To compensate the error in the argument reduction, we use
-//              expm1(r+c) = expm1(r) + c + expm1(r)*c
-//                         ~ expm1(r) + c + r*c
-//      Thus c+r*c will be added in as the correction terms for
-//      expm1(r+c). Now rearrange the term to avoid optimization
-//      screw up:
-//                      (      2                                    2 )
-//                      ({  ( r    [ R1 -  (3 - R1*r/2) ]  )  }    r  )
-//       expm1(r+c)~r - ({r*(--- * [--------------------]-c)-c} - --- )
-//                      ({  ( 2    [ 6 - r*(3 - R1*r/2) ]  )  }    2  )
-//                      (                                             )
-//
-//                 = r - E
-//   3. Scale back to obtain expm1(x):
-//      From step 1, we have
-//         expm1(x) = either 2**k*[expm1(r)+1] - 1
-//                  = or     2**k*[expm1(r) + (1-2**-k)]
-//   4. Implementation notes:
-//      (A). To save one multiplication, we scale the coefficient Qi
-//           to Qi*2**i, and replace z by (x**2)/2.
-//      (B). To achieve maximum accuracy, we compute expm1(x) by
-//        (i)   if x < -56*ln2, return -1.0, (raise inexact if x!=inf)
-//        (ii)  if k=0, return r-E
-//        (iii) if k=-1, return 0.5*(r-E)-0.5
-//        (iv)  if k=1 if r < -0.25, return 2*((r+0.5)- E)
-//                     else          return  1.0+2.0*(r-E);
-//        (v)   if (k<-2||k>56) return 2**k(1-(E-r)) - 1 (or exp(x)-1)
-//        (vi)  if k <= 20, return 2**k((1-2**-k)-(E-r)), else
-//        (vii) return 2**k(1-((E+2**-k)-r))
-//
-// Special cases:
-//      expm1(INF) is INF, expm1(NaN) is NaN;
-//      expm1(-INF) is -1, and
-//      for finite argument, only expm1(0)=0 is exact.
-//
-// Accuracy:
-//      according to an error analysis, the error is always less than
-//      1 ulp (unit in the last place).
-//
-// Misc. info.
-//      For IEEE double
-//          if x >  7.09782712893383973096e+02 then expm1(x) overflow
-//
-// Constants:
-// The hexadecimal values are the intended ones for the following
-// constants. The decimal values may be used, provided that the
-// compiler will convert from decimal to binary accurately enough
-// to produce the hexadecimal values shown.
+// Sabitlerin onaltılık değerleri esastır. Ondalık değerler, derleyici
+// ondalıktan ikiliğe onaltılık değerleri verecek kadar doğru çeviriyorsa
+// kullanılabilir.
 //
 
-// Expm1 returns e**x - 1, the base-e exponential of x minus 1.
-// It is more accurate than [Exp](x) - 1 when x is near zero.
+// Expm1, e**x - 1 değerini, yani x'in e tabanlı üstelinin bir eksiğini verir.
+// x sıfıra yakınken [Exp](x) - 1'den daha doğrudur.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Expm1(+Inf) = +Inf
 //	Expm1(-Inf) = -1
 //	Expm1(NaN) = NaN
 //
-// Very large values overflow to -1 or +Inf.
+// Çok büyük değerlerde sonuç -1'e ya da +Inf'e taşar.
 func Expm1(x float64) float64 {
 	return expm1(x)
 }
@@ -139,7 +58,7 @@ func expm1(x float64) float64 {
 		Ln2Lo      = 1.90821492927058770002e-10 // 0x3dea39ef35793c76
 		InvLn2     = 1.44269504088896338700e+00 // 0x3ff71547652b82fe
 		Tiny       = 1.0 / (1 << 54)            // 2**-54 = 0x3c90000000000000
-		// scaled coefficients related to expm1
+		// expm1 ile ilgili ölçeklenmiş katsayılar
 		Q1 = -3.33333333333331316428e-02 // 0xBFA11111111110F4
 		Q2 = 1.58730158725481460165e-03  // 0x3F5A01A019FE5585
 		Q3 = -7.93650757867487942473e-05 // 0xBF14CE199EAADBB7
@@ -147,7 +66,7 @@ func expm1(x float64) float64 {
 		Q5 = -2.01099218183624371326e-07 // 0xBE8AFDB76E09C32D
 	)
 
-	// special cases
+	// özel durumlar
 	switch {
 	case math.IsInf(x, 1) || math.IsNaN(x):
 		return x
@@ -162,22 +81,22 @@ func expm1(x float64) float64 {
 		sign = true
 	}
 
-	// filter out huge argument
-	if absx >= Ln2X56 { // if |x| >= 56 * ln2
+	// çok büyük bağımsız değişkeni ayıkla
+	if absx >= Ln2X56 { // |x| >= 56 * ln2 ise
 		if sign {
-			return -1 // x < -56*ln2, return -1
+			return -1 // x < -56*ln2 ise -1 döner
 		}
-		if absx >= Othreshold { // if |x| >= 709.78...
+		if absx >= Othreshold { // |x| >= 709.78... ise
 			return math.Inf(1)
 		}
 	}
 
-	// argument reduction
+	// bağımsız değişkeni indirge
 	var c float64
 	var k int
-	if absx > Ln2Half { // if  |x| > 0.5 * ln2
+	if absx > Ln2Half { // |x| > 0.5 * ln2 ise
 		var hi, lo float64
-		if absx < Ln2HalfX3 { // and |x| < 1.5 * ln2
+		if absx < Ln2HalfX3 { // ve |x| < 1.5 * ln2
 			if !sign {
 				hi = x - Ln2Hi
 				lo = Ln2Lo
@@ -194,25 +113,25 @@ func expm1(x float64) float64 {
 				k = int(float64(InvLn2*x) - 0.5)
 			}
 			t := float64(k)
-			hi = x - float64(t*Ln2Hi) // t * Ln2Hi is exact here
+			hi = x - float64(t*Ln2Hi) // t * Ln2Hi burada tamdır
 			lo = float64(t * Ln2Lo)
 		}
 		x = hi - lo
 		c = (hi - x) - lo
-	} else if absx < Tiny { // when |x| < 2**-54, return x
+	} else if absx < Tiny { // |x| < 2**-54 ise x döner
 		return x
 	} else {
 		k = 0
 	}
 
-	// x is now in primary range
+	// x artık ana aralıkta
 	hfx := float64(0.5 * x)
 	hxs := float64(x * hfx)
 	r1 := 1 + float64(hxs*(Q1+float64(hxs*(Q2+float64(hxs*(Q3+float64(hxs*(Q4+float64(hxs*Q5)))))))))
 	t := 3 - float64(r1*hfx)
 	e := float64(hxs * ((r1 - t) / (6.0 - float64(x*t))))
 	if k == 0 {
-		return x - (float64(x*e) - hxs) // c is 0
+		return x - (float64(x*e) - hxs) // c sıfırdır
 	}
 	e = (float64(x*(e-c)) - c)
 	e -= hxs
@@ -224,20 +143,20 @@ func expm1(x float64) float64 {
 			return float64(-2 * (e - (x + 0.5)))
 		}
 		return 1 + float64(2*(x-e))
-	case k <= -2 || k > 56: // suffice to return exp(x)-1
+	case k <= -2 || k > 56: // exp(x)-1 döndürmek yeter
 		y := 1 - (e - x)
-		y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // add k to y's exponent
+		y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // k'yi y'nin üssüne ekle
 		return y - 1
 	}
 	if k < 20 {
 		t := math.Float64frombits(0x3ff0000000000000 - (0x20000000000000 >> uint(k))) // t=1-2**-k
 		y := t - (e - x)
-		y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // add k to y's exponent
+		y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // k'yi y'nin üssüne ekle
 		return y
 	}
 	t = math.Float64frombits(uint64(0x3ff-k) << 52) // 2**-k
 	y := x - (e + t)
 	y++
-	y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // add k to y's exponent
+	y = math.Float64frombits(math.Float64bits(y) + uint64(k)<<52) // k'yi y'nin üssüne ekle
 	return y
 }

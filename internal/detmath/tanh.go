@@ -10,32 +10,10 @@ import "math"
 // below were from http://netlib.sandia.gov/cephes/cmath/sin.c,
 // available from http://www.netlib.org/cephes/cmath.tgz.
 // The go code is a simplified version of the original C.
-//      tanh.c
 //
-//      Hyperbolic tangent
-//
-// SYNOPSIS:
-//
-// double x, y, tanh();
-//
-// y = tanh( x );
-//
-// DESCRIPTION:
-//
-// Returns hyperbolic tangent of argument in the range MINLOG to maxLog.
-//      maxLog = 8.8029691931113054295988e+01 = log(2**127)
-//      MINLOG = -8.872283911167299960540e+01 = log(2**-128)
-//
-// A rational function is used for |x| < 0.625.  The form
-// x + x**3 P(x)/Q(x) of Cody & Waite is employed.
-// Otherwise,
-//      tanh(x) = sinh(x)/cosh(x) = 1  -  2/(exp(2x) + 1).
-//
-// ACCURACY:
-//
-//                      Relative error:
-// arithmetic   domain     # trials      peak         rms
-//    IEEE      -2,2        30000       2.5e-16     5.8e-17
+// Yöntem: |x| < 0.625 için Cody ve Waite'in x + x**3 P(x)/Q(x) biçimli
+// rasyonel fonksiyonu kullanılır. Diğer durumlarda
+// tanh(x) = sinh(x)/cosh(x) = 1 - 2/(exp(2x) + 1).
 //
 // Cephes Math Library Release 2.8:  June, 2000
 // Copyright 1984, 1987, 1989, 1992, 2000 by Stephen L. Moshier
@@ -67,9 +45,9 @@ var tanhQ = [...]float64{
 	4.84406305325125486048e3,
 }
 
-// Tanh returns the hyperbolic tangent of x.
+// Tanh, x'in hiperbolik tanjantını verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Tanh(±0) = ±0
 //	Tanh(±Inf) = ±1

@@ -8,11 +8,11 @@ import "math"
 
 func isOddInt(x float64) bool {
 	if math.Abs(x) >= (1 << 53) {
-		// 1 << 53 is the largest exact integer in the float64 format.
-		// Any number outside this range will be truncated before the decimal point and therefore will always be
-		// an even integer.
-		// Without this check and if x overflows int64 the int64(xi) conversion below may produce incorrect results
-		// on some architectures (and does so on arm64). See issue #57465.
+		// 1 << 53, float64 biçiminde tam gösterilebilen en büyük tamsayıdır.
+		// Bu aralığın dışındaki her sayı ondalık noktadan önce kesilir,
+		// dolayısıyla her zaman çift tamsayıdır.
+		// Bu denetim olmazsa ve x int64'ü aşarsa, aşağıdaki int64(xi) dönüşümü
+		// bazı mimarilerde yanlış sonuç verebilir (arm64'te verir).
 		return false
 	}
 
@@ -20,33 +20,32 @@ func isOddInt(x float64) bool {
 	return xf == 0 && int64(xi)&1 == 1
 }
 
-// Special cases taken from FreeBSD's /usr/src/lib/msun/src/e_pow.c
-// updated by IEEE Std. 754-2008 "Section 9.2.1 Special values".
+// Özel durumlar IEEE Std. 754-2008'in 9.2.1 bölümüne göredir.
 
-// Pow returns x**y, the base-x exponential of y.
+// Pow, x**y değerini, yani y'nin x tabanlı üstelini verir.
 //
-// Special cases are (in order):
+// Özel durumlar (bu sırayla):
 //
-//	Pow(x, ±0) = 1 for any x
-//	Pow(1, y) = 1 for any y
-//	Pow(x, 1) = x for any x
+//	Pow(x, ±0) = 1, her x için
+//	Pow(1, y) = 1, her y için
+//	Pow(x, 1) = x, her x için
 //	Pow(NaN, y) = NaN
 //	Pow(x, NaN) = NaN
-//	Pow(±0, y) = ±Inf for y an odd integer < 0
+//	Pow(±0, y) = ±Inf, y tek tamsayı ve < 0 için
 //	Pow(±0, -Inf) = +Inf
 //	Pow(±0, +Inf) = +0
-//	Pow(±0, y) = +Inf for finite y < 0 and not an odd integer
-//	Pow(±0, y) = ±0 for y an odd integer > 0
-//	Pow(±0, y) = +0 for finite y > 0 and not an odd integer
+//	Pow(±0, y) = +Inf, sonlu y < 0 ve tek tamsayı değilse
+//	Pow(±0, y) = ±0, y tek tamsayı ve > 0 için
+//	Pow(±0, y) = +0, sonlu y > 0 ve tek tamsayı değilse
 //	Pow(-1, ±Inf) = 1
-//	Pow(x, +Inf) = +Inf for |x| > 1
-//	Pow(x, -Inf) = +0 for |x| > 1
-//	Pow(x, +Inf) = +0 for |x| < 1
-//	Pow(x, -Inf) = +Inf for |x| < 1
-//	Pow(+Inf, y) = +Inf for y > 0
-//	Pow(+Inf, y) = +0 for y < 0
+//	Pow(x, +Inf) = +Inf, |x| > 1 için
+//	Pow(x, -Inf) = +0, |x| > 1 için
+//	Pow(x, +Inf) = +0, |x| < 1 için
+//	Pow(x, -Inf) = +Inf, |x| < 1 için
+//	Pow(+Inf, y) = +Inf, y > 0 için
+//	Pow(+Inf, y) = +0, y < 0 için
 //	Pow(-Inf, y) = Pow(-0, -y)
-//	Pow(x, y) = NaN for finite x < 0 and finite non-integer y
+//	Pow(x, y) = NaN, sonlu x < 0 ve sonlu tamsayı olmayan y için
 func Pow(x, y float64) float64 {
 	return pow(x, y)
 }
@@ -102,8 +101,8 @@ func pow(x, y float64) float64 {
 		return math.NaN()
 	}
 	if yi >= 1<<63 {
-		// yi is a large even int that will lead to overflow (or underflow to 0)
-		// for all x except -1 (x == 1 was handled earlier)
+		// yi, -1 dışındaki her x için taşmaya (ya da 0'a alttaşmaya) yol açan
+		// büyük bir çift tamsayıdır (x == 1 daha önce ele alındı)
 		switch {
 		case x == -1:
 			return 1
@@ -114,11 +113,11 @@ func pow(x, y float64) float64 {
 		}
 	}
 
-	// ans = a1 * 2**ae (= 1 for now).
+	// sonuç = a1 * 2**ae (şimdilik 1).
 	a1 := 1.0
 	ae := 0
 
-	// ans *= x**yf
+	// sonuç *= x**yf
 	if yf != 0 {
 		if yf > 0.5 {
 			yf--
@@ -127,18 +126,17 @@ func pow(x, y float64) float64 {
 		a1 = Exp(float64(yf * Log(x)))
 	}
 
-	// ans *= x**yi
-	// by multiplying in successive squarings
-	// of x according to bits of yi.
-	// accumulate powers of two into exp.
+	// sonuç *= x**yi
+	// x'in ardışık karelerini yi'nin bitlerine göre çarparak.
+	// ikinin kuvvetleri üs olarak birikir.
 	x1, xe := math.Frexp(x)
 	for i := int64(yi); i != 0; i >>= 1 {
 		if xe < -1<<12 || 1<<12 < xe {
-			// catch xe before it overflows the left shift below
-			// Since i !=0 it has at least one bit still set, so ae will accumulate xe
-			// on at least one more iteration, ae += xe is a lower bound on ae
-			// the lower bound on ae exceeds the size of a float64 exp
-			// so the final call to Ldexp will produce under/overflow (0/Inf)
+			// xe, aşağıdaki sola kaydırmayı taşırmadan önce yakalanır.
+			// i != 0 olduğundan en az bir biti hâlâ 1'dir; ae en az bir yinelemede
+			// daha xe biriktirecektir, yani ae += xe, ae için bir alt sınırdır.
+			// Bu alt sınır float64 üssünün boyutunu aşar,
+			// dolayısıyla son Ldexp çağrısı alttaşma ya da taşma (0/Inf) verir.
 			ae += xe
 			break
 		}
@@ -154,9 +152,9 @@ func pow(x, y float64) float64 {
 		}
 	}
 
-	// ans = a1*2**ae
-	// if y < 0 { ans = 1 / ans }
-	// but in the opposite order
+	// sonuç = a1*2**ae
+	// y < 0 ise sonuç = 1 / sonuç
+	// ama ters sırayla
 	if y < 0 {
 		a1 = 1 / a1
 		ae = -ae

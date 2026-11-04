@@ -7,7 +7,7 @@ package detmath
 import "math"
 
 /*
-	Floating-point arctangent.
+	Kayan noktalı arktanjant.
 */
 
 // The original C code, the long comment, and the constants below were
@@ -15,25 +15,9 @@ import "math"
 // http://www.netlib.org/cephes/cmath.tgz.
 // The go code is a version of the original C.
 //
-// atan.c
-// Inverse circular tangent (arctangent)
-//
-// SYNOPSIS:
-// double x, y, atan();
-// y = atan( x );
-//
-// DESCRIPTION:
-// Returns radian angle between -pi/2 and +pi/2 whose tangent is x.
-//
-// Range reduction is from three intervals into the interval from zero to 0.66.
-// The approximant uses a rational function of degree 4/5 of the form
-// x + x**3 P(x)/Q(x).
-//
-// ACCURACY:
-//                      Relative error:
-// arithmetic   domain    # trials  peak     rms
-//    DEC       -10, 10   50000     2.4e-17  8.3e-18
-//    IEEE      -10, 10   10^6      1.8e-16  5.0e-17
+// Yöntem: bağımsız değişken üç aralıktan [0, 0.66] aralığına indirgenir.
+// Bu aralıkta x + x**3 P(x)/Q(x) biçiminde, payı 4, paydası 5 dereceli
+// bir rasyonel fonksiyon kullanılır.
 //
 // Cephes Math Library Release 2.8:  June, 2000
 // Copyright 1984, 1987, 1989, 1992, 2000 by Stephen L. Moshier
@@ -53,7 +37,7 @@ import "math"
 //   Stephen L. Moshier
 //   moshier@na-net.ornl.gov
 
-// xatan evaluates a series valid in the range [0, 0.66].
+// xatan, [0, 0.66] aralığında geçerli bir serinin değerini hesaplar.
 func xatan(x float64) float64 {
 	const (
 		P0 = -8.750608600031904122785e-01
@@ -73,8 +57,8 @@ func xatan(x float64) float64 {
 	return z
 }
 
-// satan reduces its argument (known to be positive)
-// to the range [0, 0.66] and calls xatan.
+// satan, (pozitif olduğu bilinen) bağımsız değişkenini
+// [0, 0.66] aralığına indirger ve xatan'ı çağırır.
 func satan(x float64) float64 {
 	const (
 		Morebits = 6.123233995736765886130e-17 // pi/2 = PIO2 + Morebits
@@ -89,9 +73,9 @@ func satan(x float64) float64 {
 	return math.Pi/4 + xatan((x-1)/(x+1)) + 0.5*Morebits
 }
 
-// Atan returns the arctangent, in radians, of x.
+// Atan, x'in arktanjantını radyan olarak verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Atan(±0) = ±0
 //	Atan(±Inf) = ±Pi/2

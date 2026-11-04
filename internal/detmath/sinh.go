@@ -7,20 +7,19 @@ package detmath
 import "math"
 
 /*
-	Floating-point hyperbolic sine and cosine.
+	Kayan noktalı hiperbolik sinüs ve kosinüs.
 
-	The exponential func is called for arguments
-	greater in magnitude than 0.5.
+	Büyüklüğü 0.5'ten fazla olan bağımsız değişkenlerde
+	üstel fonksiyon çağrılır.
 
-	A series is used for arguments smaller in magnitude than 0.5.
+	Büyüklüğü 0.5'ten küçük olanlarda bir seri kullanılır.
 
-	Cosh(x) is computed from the exponential func for
-	all arguments.
+	Cosh(x) her bağımsız değişken için üstel fonksiyondan hesaplanır.
 */
 
-// Sinh returns the hyperbolic sine of x.
+// Sinh, x'in hiperbolik sinüsünü verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Sinh(±0) = ±0
 //	Sinh(±Inf) = ±Inf
@@ -30,7 +29,7 @@ func Sinh(x float64) float64 {
 }
 
 func sinh(x float64) float64 {
-	// The coefficients are #2029 from Hart & Cheney. (20.36D)
+	// Katsayılar Hart ve Cheney'nin 2029 numaralı tablosundandır (20.36D).
 	const (
 		P0 = -0.6307673640497716991184787251e+6
 		P1 = -0.8991272022039509355398013511e+5
@@ -68,9 +67,9 @@ func sinh(x float64) float64 {
 	return temp
 }
 
-// Cosh returns the hyperbolic cosine of x.
+// Cosh, x'in hiperbolik kosinüsünü verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Cosh(±0) = 1
 //	Cosh(±Inf) = +Inf

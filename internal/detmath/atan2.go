@@ -6,11 +6,10 @@ package detmath
 
 import "math"
 
-// Atan2 returns the arc tangent of y/x, using
-// the signs of the two to determine the quadrant
-// of the return value.
+// Atan2, y/x'in arktanjantını verir; sonucun hangi bölgede
+// olacağını ikisinin işaretlerine bakarak belirler.
 //
-// Special cases are (in order):
+// Özel durumlar (bu sırayla):
 //
 //	Atan2(y, NaN) = NaN
 //	Atan2(NaN, x) = NaN
@@ -34,7 +33,7 @@ func Atan2(y, x float64) float64 {
 }
 
 func atan2(y, x float64) float64 {
-	// special cases
+	// özel durumlar
 	switch {
 	case math.IsNaN(y) || math.IsNaN(x):
 		return math.NaN()
@@ -64,7 +63,7 @@ func atan2(y, x float64) float64 {
 		return math.Copysign(math.Pi/2, y)
 	}
 
-	// Call atan and determine the quadrant.
+	// atan'ı çağır ve bölgeyi belirle.
 	q := Atan(y / x)
 	if x < 0 {
 		if q <= 0 {

@@ -7,7 +7,7 @@ package detmath
 import "math"
 
 /*
-	Floating-point sine and cosine.
+	Kayan noktalı sinüs ve kosinüs.
 */
 
 // The original C code, the long comment, and the constants
@@ -15,63 +15,11 @@ import "math"
 // available from http://www.netlib.org/cephes/cmath.tgz.
 // The go code is a simplified version of the original C.
 //
-//      sin.c
-//
-//      Circular sine
-//
-// SYNOPSIS:
-//
-// double x, y, sin();
-// y = sin( x );
-//
-// DESCRIPTION:
-//
-// Range reduction is into intervals of pi/4.  The reduction error is nearly
-// eliminated by contriving an extended precision modular arithmetic.
-//
-// Two polynomial approximating functions are employed.
-// Between 0 and pi/4 the sine is approximated by
-//      x  +  x**3 P(x**2).
-// Between pi/4 and pi/2 the cosine is represented as
-//      1  -  x**2 Q(x**2).
-//
-// ACCURACY:
-//
-//                      Relative error:
-// arithmetic   domain      # trials      peak         rms
-//    DEC       0, 10       150000       3.0e-17     7.8e-18
-//    IEEE -1.07e9,+1.07e9  130000       2.1e-16     5.4e-17
-//
-// Partial loss of accuracy begins to occur at x = 2**30 = 1.074e9.  The loss
-// is not gradual, but jumps suddenly to about 1 part in 10e7.  Results may
-// be meaningless for x > 2**49 = 5.6e14.
-//
-//      cos.c
-//
-//      Circular cosine
-//
-// SYNOPSIS:
-//
-// double x, y, cos();
-// y = cos( x );
-//
-// DESCRIPTION:
-//
-// Range reduction is into intervals of pi/4.  The reduction error is nearly
-// eliminated by contriving an extended precision modular arithmetic.
-//
-// Two polynomial approximating functions are employed.
-// Between 0 and pi/4 the cosine is approximated by
-//      1  -  x**2 Q(x**2).
-// Between pi/4 and pi/2 the sine is represented as
-//      x  +  x**3 P(x**2).
-//
-// ACCURACY:
-//
-//                      Relative error:
-// arithmetic   domain      # trials      peak         rms
-//    IEEE -1.07e9,+1.07e9  130000       2.1e-16     5.4e-17
-//    DEC        0,+1.07e9   17000       3.0e-17     7.2e-18
+// Yöntem: bağımsız değişken pi/4'lük aralıklara indirgenir; indirgeme hatası
+// genişletilmiş duyarlıklı modüler aritmetikle hemen hemen yok edilir.
+// İki çokterimli yaklaşım kullanılır. sin için 0 ile pi/4 arasında
+// x + x**3 P(x**2), pi/4 ile pi/2 arasında kosinüs 1 - x**2 Q(x**2) olarak
+// temsil edilir; cos için roller tersine döner.
 //
 // Cephes Math Library Release 2.8:  June, 2000
 // Copyright 1984, 1987, 1989, 1992, 2000 by Stephen L. Moshier
@@ -91,7 +39,7 @@ import "math"
 //   Stephen L. Moshier
 //   moshier@na-net.ornl.gov
 
-// sin coefficients
+// sin katsayıları
 var _sin = [...]float64{
 	1.58962301576546568060e-10, // 0x3de5d8fd1fd19ccd
 	-2.50507477628578072866e-8, // 0xbe5ae5e5a9291f5d
@@ -101,7 +49,7 @@ var _sin = [...]float64{
 	-1.66666666666666307295e-1, // 0xbfc5555555555548
 }
 
-// cos coefficients
+// cos katsayıları
 var _cos = [...]float64{
 	-1.13585365213876817300e-11, // 0xbda8fa49a0861a9b
 	2.08757008419747316778e-9,   // 0x3e21ee9d7b4e3f05
@@ -111,9 +59,9 @@ var _cos = [...]float64{
 	4.16666666666665929218e-2,   // 0x3fa555555555554b
 }
 
-// Cos returns the cosine of the radian argument x.
+// Cos, radyan cinsinden x'in kosinüsünü verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Cos(±Inf) = NaN
 //	Cos(NaN) = NaN
@@ -123,17 +71,17 @@ func Cos(x float64) float64 {
 
 func cos(x float64) float64 {
 	const (
-		PI4A = 7.85398125648498535156e-1  // 0x3fe921fb40000000, Pi/4 split into three parts
+		PI4A = 7.85398125648498535156e-1  // 0x3fe921fb40000000, Pi/4 üç parçaya bölünmüş
 		PI4B = 3.77489470793079817668e-8  // 0x3e64442d00000000,
 		PI4C = 2.69515142907905952645e-15 // 0x3ce8469898cc5170,
 	)
-	// special cases
+	// özel durumlar
 	switch {
 	case math.IsNaN(x) || math.IsInf(x, 0):
 		return math.NaN()
 	}
 
-	// make argument positive
+	// bağımsız değişkeni pozitif yap
 	sign := false
 	x = math.Abs(x)
 
@@ -142,16 +90,16 @@ func cos(x float64) float64 {
 	if x >= reduceThreshold {
 		j, z = trigReduce(x)
 	} else {
-		j = uint64(float64(x * (4 / math.Pi))) // integer part of x/(Pi/4), as integer for tests on the phase angle
-		y = float64(j)                         // integer part of x/(Pi/4), as float
+		j = uint64(float64(x * (4 / math.Pi))) // x/(Pi/4)'ün tamsayı kısmı, evre açısı sınamaları için tamsayı olarak
+		y = float64(j)                         // x/(Pi/4)'ün tamsayı kısmı, kayan noktalı olarak
 
-		// map zeros to origin
+		// sıfırları başlangıca eşle
 		if j&1 == 1 {
 			j++
 			y++
 		}
-		j &= 7                                                          // octant modulo 2Pi radians (360 degrees)
-		z = ((x - float64(y*PI4A)) - float64(y*PI4B)) - float64(y*PI4C) // Extended precision modular arithmetic
+		j &= 7                                                          // 2Pi radyan (360 derece) modülünde sekizde bir dilim
+		z = ((x - float64(y*PI4A)) - float64(y*PI4B)) - float64(y*PI4C) // genişletilmiş duyarlıklı modüler aritmetik
 	}
 
 	if j > 3 {
@@ -174,9 +122,9 @@ func cos(x float64) float64 {
 	return y
 }
 
-// Sin returns the sine of the radian argument x.
+// Sin, radyan cinsinden x'in sinüsünü verir.
 //
-// Special cases are:
+// Özel durumlar:
 //
 //	Sin(±0) = ±0
 //	Sin(±Inf) = NaN
@@ -187,19 +135,19 @@ func Sin(x float64) float64 {
 
 func sin(x float64) float64 {
 	const (
-		PI4A = 7.85398125648498535156e-1  // 0x3fe921fb40000000, Pi/4 split into three parts
+		PI4A = 7.85398125648498535156e-1  // 0x3fe921fb40000000, Pi/4 üç parçaya bölünmüş
 		PI4B = 3.77489470793079817668e-8  // 0x3e64442d00000000,
 		PI4C = 2.69515142907905952645e-15 // 0x3ce8469898cc5170,
 	)
-	// special cases
+	// özel durumlar
 	switch {
 	case x == 0 || math.IsNaN(x):
-		return x // return ±0 || NaN()
+		return x // ±0 ya da NaN döner
 	case math.IsInf(x, 0):
 		return math.NaN()
 	}
 
-	// make argument positive but save the sign
+	// bağımsız değişkeni pozitif yap ama işareti sakla
 	sign := false
 	if x < 0 {
 		x = -x
@@ -211,18 +159,18 @@ func sin(x float64) float64 {
 	if x >= reduceThreshold {
 		j, z = trigReduce(x)
 	} else {
-		j = uint64(float64(x * (4 / math.Pi))) // integer part of x/(Pi/4), as integer for tests on the phase angle
-		y = float64(j)                         // integer part of x/(Pi/4), as float
+		j = uint64(float64(x * (4 / math.Pi))) // x/(Pi/4)'ün tamsayı kısmı, evre açısı sınamaları için tamsayı olarak
+		y = float64(j)                         // x/(Pi/4)'ün tamsayı kısmı, kayan noktalı olarak
 
-		// map zeros to origin
+		// sıfırları başlangıca eşle
 		if j&1 == 1 {
 			j++
 			y++
 		}
-		j &= 7                                                          // octant modulo 2Pi radians (360 degrees)
-		z = ((x - float64(y*PI4A)) - float64(y*PI4B)) - float64(y*PI4C) // Extended precision modular arithmetic
+		j &= 7                                                          // 2Pi radyan (360 derece) modülünde sekizde bir dilim
+		z = ((x - float64(y*PI4A)) - float64(y*PI4B)) - float64(y*PI4C) // genişletilmiş duyarlıklı modüler aritmetik
 	}
-	// reflect in x axis
+	// x eksenine göre yansıt
 	if j > 3 {
 		sign = !sign
 		j -= 4
