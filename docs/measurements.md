@@ -85,7 +85,7 @@ Birim parça/sn. Aynı koşudaki oranlar [hesap]:
 Birim parça/sn. Qwen3 bf16'da toplam −%11,6; en büyük adım 2026-10-22 ile Faz 0'ın sonu arası (−%8), sonra T1'in cinsli tensörü (−%2) ve S-kilit (−%2). SmolLM2'de en büyük adım cinsli tensör (−%5,9). Main ile S-kilit aynı: 16.3 ve Kol A üretimi değiştirmedi [hesap]. 2026-10-22'nin 366 ve 608'i bu makinede 374,5 ve 613,5: kart türü aynı, ölçüm tekrarlanabilir.
 
 
-**Gerilemenin içi** (2026-11-04, aynı kart türü, üç koşu, bf16, her koşuda iki tur; koşular arası fark %3,2'ye kadar, yalnız aynı koşu kıyaslanır) [ölçüldü: Colab, betikler `g4_gerileme_bol1..3.sh`]: iki düşüş var. `2fac1f49..3d5ba9b5` (2026-10-23): Qwen3 −%4,1 ile −%5,4, SmolLM2 −%2,5 ile −%2,7. `4080e1d4..2061d924` (cinsli tensör dalı, 2026-11-02): SmolLM2 −%6,4 ile −%6,7, Qwen3 −%2,9 ile −%3,1. Aynı koşuda `1d6a2b4e` → `705c16f1` Qwen3 −%9,6. Suçlu commit'ler henüz ölçülmedi.
+**Gerilemenin içi** (2026-11-04, aynı kart türü, üç koşu, bf16, her koşuda iki tur; koşular arası fark %3,2'ye kadar, yalnız aynı koşu kıyaslanır) [ölçüldü: Colab, betikler `g4_gerileme_bol1..3.sh`]: iki düşüş var. Üçüncü koşunun tam aralıkları: `2fac1f49..3d5ba9b5` (2026-10-23) Qwen3 −%4,7, SmolLM2 −%2,7; `4080e1d4..2061d924` (cinsli tensör dalı, 2026-11-02) SmolLM2 −%6,7, Qwen3 −%3,0. İlk iki koşu aynı düşüşleri daha geniş aralıklarda gösterdi. Aynı koşuda `1d6a2b4e` → `705c16f1` Qwen3 −%9,6; yukarıdaki tablonun −%11,6'sı 2026-11-03'ün ayrı koşusu ve ucudur. Suçlu commit'ler henüz ölçülmedi.
 
 S-kilit satırı Kol A eşitliğinden (`9f758225`) önce ölçüldü; eşitlik kilidin yolunda değil [hipotez: Kol A yalnız `==`'nin gezintisini değiştirdi]. Eğitim adımının güncel ölçümü yukarıdaki G4 koşusu (main `51b75f0a`, Kol A dahil).
 
