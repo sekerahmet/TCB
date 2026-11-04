@@ -839,6 +839,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Yapılacaklar (D, Ö3; en son bakılacaklar, H1 hız kuyruğu):** CPU'da eksen 0 toplamının 28 baytlık iç döngüsü 64 baytlık sınırı geçince `BenchmarkSpeedSumAxis0` ~%26 yavaşlıyor; buyruklar aynı, yalnız döngünün yeri değişiyor, kaydırınca fark tersine dönüyor [ölçüldü: AMD EPYC 7B12, `e27cdff0` +%26,0, kaydırılmış uç −%1,8, kopya farkı %2,9]. `karakter_modeli` etkilenmedi.
 - **Yapılacaklar (C, Ö2; ölçülmedi):** `TestReductionsIndependentOfThreadCount` Go testi bölümün commit'inde yazılır (bugün yok); 15.22a başlıklı TR testi.
 - **Bulgu (T1, 2026-11-04, D, Ö3; TCB kararı):** sayı yerleşikleri `internal/detmath`'e geçince tensör yolu `math.*`'ta kalıyor: FMA'lı makinede `TR_exp` sayıda ve tensörde son bitte ayrılabilir [hipotez]. Bu 15.22a'nın kuralıdır, geçici değil: 13.1 tensör işlemlerini 15'e bırakıyor.
+- **Mevcut durum (2026-11-04; A, Ö0 kapandı; DENETİM istek 126):** skaler matematik `internal/detmath`'te: 18 fonksiyon, 400 000 girdide Windows, Linux ve arm64 benzetiminde aynı bit [ölçüldü: DENETİM]. `TR_log(5e-324)` doğru; `TR_exp(709.78)` artık sonsuz vermiyor.
+- **Yapılacaklar (C, Ö2; sahip T1, sıradaki iş; DENETİM istek 126 Ş1):** `TestCallersUseThisPackage` delikli: `math.Exp2` ve `math.Hypot` geçti; yasak listesi yerine izin listesi olmalı. Ş2 (F, Ö3): gerekçedeki "15.22a'nın kuralı" metinde yok, fark float32'nindir; `TR_exp(709.78)` testi.
+- **Yapılacaklar (D, Ö3; sahip H1, hız kuyruğu; DENETİM istek 126):** `TR_sample`'ın `TR_top_k: 50`'si çağrı başına 60 ms: bütün sözlüğü sıralıyor. Örneklemenin bedeli (+%24,5) bundan küçük; üretimde CPU +%1,8 [ölçüldü: DENETİM].
 
 ### 15.22b
 
