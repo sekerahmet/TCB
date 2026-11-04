@@ -41,6 +41,7 @@ var layerDoc = []struct{ prefix, line string }{
 	{"internal/testkit", "Layer: test helper (internal/testkit)"},
 	{"internal/reporoot", "Layer: test helper (internal/reporoot)"},
 	{"internal/sysmem", "Layer: system memory (internal/sysmem)"},
+	{"internal/detmath", "Layer: deterministic math (internal/detmath)"},
 	{"internal/layoutrules", "Layer: layout rules (internal/layoutrules)"},
 	{"cmd/", "Layer: command (cmd)"},
 	{"lib", "Layer: TR library (lib)"},

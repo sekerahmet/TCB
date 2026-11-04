@@ -36,6 +36,7 @@ var layers = []struct {
 	{"internal/testkit", []string{"internal/reporoot"}},    // ortak test yardımcıları (yalnızca reporoot); yalnızca testler kullanır
 	{"internal/reporoot", nil},    // testlerin depo kökü yardımcısı; yalnızca testlerden ve tools/'dan içe aktarılır
 	{"internal/sysmem", nil},      // makinenin fiziksel belleği sorgusu; yalnızca standart kitaplığı içe aktarır
+	{"internal/detmath", nil},     // her makinede aynı biti veren matematik; yalnızca standart kitaplığı içe aktarır
 	{"internal/layoutrules", nil}, // düzen kurallarının boyut sınırları; düzen testleri ve tools/ içe aktarır
 	{"lib", nil},                  // TR ile yazılı kitaplık: Go tarafında yalnızca gömme dosyası
 	{"cmd/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/", "lib"}},

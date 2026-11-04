@@ -12,6 +12,7 @@ const (
 	reasonRead      = "dosya biçimi okuma/doğrulama: adımlar sıralı ve birbirine bağlı tek geçiş"
 	reasonBuiltin   = "yerleşik gövdesi: argüman denetimi ile iş bir arada; yardımcılara bölünebilir"
 	reasonTable     = "tablo kurulumu: her kayıt birkaç satırlık bir kapanış; tip ya da konu başına bölünebilir"
+	reasonGoMath    = "Go'nun math kaynağının kopyası: kaynağa satır satır benzer kalır, bölünmez"
 	reasonKernel    = "hesap çekirdeği (tensör ve GPU sahibinin alanı): hız ölçümüyle birlikte bölünmeli"
 	reasonTokenizer = "parçalayıcı/düzenli ifade çekirdeği (veri ve parçalayıcı sahibinin alanı): başvuru uygulamasıyla birebir; hız ölçümüyle bölünmeli"
 )
@@ -27,6 +28,11 @@ var bigFileReasons = map[string]string{
 
 // longFuncReasons layoutrules.LongFuncs'ın gerekçeleridir.
 var longFuncReasons = map[string]string{
+	// Go'nun math kaynağı
+	"internal/detmath/expm1.go:expm1": reasonGoMath,
+	"internal/detmath/log1p.go:log1p": reasonGoMath,
+	"internal/detmath/pow.go:pow":     reasonGoMath,
+
 	// Dil çekirdeği
 	"internal/lang/interp/compiler_loop.go:compiler.inLoop":     reasonHotPath + " (liste/aralık/sözlük/metin döngülerinin hızlı yolları)",
 	"internal/lang/interp/compiler_expr.go:compiler.expression": reasonDispatch,
