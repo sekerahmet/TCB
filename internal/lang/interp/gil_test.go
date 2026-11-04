@@ -191,12 +191,18 @@ func spin(n int) {
 	spinSink = x
 }
 
-// spinFor spin'in d süren adım sayısını ölçer: uzun bir ölçümle (saatin adımı ölçüyü bozmasın).
+// spinFor spin'in d süren adım sayısını ölçer: uzun bir ölçümle (saatin adımı ölçüyü bozmasın),
+// üç ölçünün en kısasıyla: yüklü makinede ölçü sırasında durdurulan süreç turu kısa kurar, tur
+// sınırı da sürenin değil saatin adımının ölçüsü olur.
 func spinFor(d time.Duration) int {
 	const probe = 1 << 25
-	start := monotonic()
-	spin(probe)
-	return max(1, int(float64(probe)*float64(d)/float64(monotonic()-start)))
+	best := time.Duration(1<<63 - 1)
+	for range 3 {
+		start := monotonic()
+		spin(probe)
+		best = min(best, monotonic()-start)
+	}
+	return max(1, int(float64(probe)*float64(d)/float64(best)))
 }
 
 // slowPhase, slowPhaseWaits'in ölçümüdür: yavaş evre başladıktan sonra beklenerek alınan her
@@ -251,7 +257,8 @@ func slowPhaseWaits(t *testing.T, setup func(*VM)) slowPhase {
 	return m
 }
 
-// Saatin ilerlemediği okuma, öne alınmış aralığı tavana döndürmez: aralık ikiye katlanarak büyür.
+// Saatin ilerlemediği okuma, öne alınmış aralığı tavana döndürmez: aralık ikiye katlanarak büyür,
+// tavanın yarısında durur.
 func TestAnUnadvancedClockReadDoublesTheInterval(t *testing.T) {
 	v := New()
 	v.gilSince = monotonic()
@@ -264,12 +271,25 @@ func TestAnUnadvancedClockReadDoublesTheInterval(t *testing.T) {
 			reads = append(reads, v.clock.gap)
 		}
 	}
-	want := "[2 4 8 16 32 64 64 64]"
+	want := "[2 4 8 16 32 32 32 32]"
 	if len(reads) < 8 {
 		t.Fatalf("%d okuma, en az 8 bekleniyordu", len(reads))
 	}
 	if got := fmt.Sprint(reads[:8]); got != want {
 		t.Fatalf("okuma aralıkları %s, beklenen %s", got, want)
+	}
+}
+
+// Hızlıdan yavaşa geçişten hemen sonraki okuma saatin ilerlediğini görmezse sonraki okuma 64 sınır
+// sonraya kalmaz: Windows'ta geçişten 2–4 tur sonraki okuma ilerleme görmeyince tutuş k + 64 tur
+// sürüyordu (DENETİM istek 94'ün V1'i).
+func TestAnUnadvancedClockReadAfterAFastPhaseIsNotFollowedByTheCeiling(t *testing.T) {
+	v := New()
+	v.gilSince = monotonic()
+	v.clock = lockClock{every: clockEveryMax, gap: clockEveryMax, last: v.gilSince + time.Hour} // saat ilerlemez
+	v.clockExpired()
+	if got, want := v.clock.gap, clockEveryMax/2; got != want {
+		t.Fatalf("sonraki okuma %d sınır sonra, beklenen %d", got, want)
 	}
 }
 
@@ -327,8 +347,9 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // Sayım bekleme penceresinin tamamıdır, süre dolmadan geçen yavaş turlar da girer: onu sınıra
 // sığdıran, geçişten sonra saatin ilerlediği ilk okumanın sonraki okumayı öne almasıdır
 // (clockExpired). Öne alınan okuma ilerleme görmezse aralık ikiye katlanır, sonraki okumalar
-// birkaç tur içinde gelir. Kaba saat geçişten sonra k ≥ 2 yavaş tur boyunca hiç ilerlemezse ilk
-// okuma olmaz ve tur sayısı k + 64 olur: 66'yı geçebilir; önceki 120 koşuda görülmedi, sonraki 100 koşuda bir kez 67 tur (bkz. tek koşu).
+// birkaç tur içinde gelir. Kaba saat geçişten sonra k yavaş tur boyunca hiç ilerlemezse o okuma
+// ölçü vermez, sonraki okuma en çok 32 sınır sonradır: tur sayısı k + 32 olur, k saatin adımıyla
+// sınırlıdır.
 // Süre için Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek
 // koşuda sınanır. Windows'ta süre yüksek öncelikte sınanır: yüklü makinede işletim sistemi tutanı
 // 40–66 ms çalıştırmıyor, kilit o sırada devredemez. Normal öncelikte yükte 25/75 koşu kaldı,
@@ -351,7 +372,7 @@ func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 		t.Run(mode.name, func(t *testing.T) {
 			modeRuns := runs
 			if mode.fallback {
-				modeRuns = 1 // tur sayısı: Windows'ta boşta 49/50 ve yükte 50/50 koşu sığdı (2026-11-04)
+				modeRuns = 1 // tur sayısı: Windows'ta boşta ve yükte 1200'er koşunun hepsi sığdı, en çok 42 tur (2026-11-04)
 			} else {
 				raiseTestPriority(t)
 			}

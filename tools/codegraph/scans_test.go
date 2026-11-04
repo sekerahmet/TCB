@@ -281,7 +281,7 @@ func TestFullCheckRepoScansMatchesScanNodes(t *testing.T) {
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
 	gotTests := parseBashArray(t, script, "repo_scans")
 	gotPkgs := parseBashArray(t, script, "repo_scan_pkgs")
-	layoutMatch := regexp.MustCompile(`(?m)^\s*go test [^\n]*-short ((?:\./\S+\s*)+)[^\n]*\n\s*\[ "\$\{PIPESTATUS\[0\]\}" -eq 0 \] \|\| fail "düzen kuralları"`).FindStringSubmatch(script)
+	layoutMatch := regexp.MustCompile(`(?m)^\s*go test [^\n]*-short(?: -count=1)? ((?:\./\S+\s*)+)[^\n]*\n\s*\[ "\$\{PIPESTATUS\[0\]\}" -eq 0 \] \|\| fail "düzen kuralları"`).FindStringSubmatch(script)
 	if layoutMatch == nil {
 		t.Fatal("tools/full_check.sh: could not locate layout-rules go test line")
 	}

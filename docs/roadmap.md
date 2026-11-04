@@ -34,13 +34,15 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
     - **D1, çalışma anı:** hata değerleri, ertele, görev ve iptal, sıralama, JSON. Üç dilim birleşti (ikincisi ve üçüncüsü 2026-11-02: hata değeri `TR_Error`, 10.2'nin süreyle devreden kilidi; görev değeri, görev listesini beklemek, iptal ve süre sınırı); sıralama ve JSON kaldı. Genel yerleşiklerin sessiz yanlışları (13.1) birleşti (2026-11-03): örneklem sapması, telafili ondalık toplam, `TR_read_bytes`, `TR_write_file`'ın metin ve baytı, geçersiz UTF-8 hatası; `TR_max`/`TR_round`'un kalanı da birleşti (2026-11-03, 13.1c: karışık sayıda `TR_Float`, boş listede hata, `TR_round` girdinin tipi ve yarımı çifte); eşitlikte özdeşlik kısa devresi ve dosya hatasında sistemin metni de birleşti (2026-11-03: aynı kap da öğeleriyle karşılaştırılır, kendine varan değer H2771; dosya hatası yalnız sistemin numarasını taşır);
     - **S1, sistem:** modüller, testler, veri, kodlar, dosya, süreç;
     - **T1, tensör çekirdeği:** ilk dilim yeni cins istemeyen sessiz yanlışlar (safetensors yazımı, paylaşılan üretecin kaydı, −0.0 sırası, türevin yazma kuralları, yerinde bileşik atama); ikinci dilim cinsli tensör (`TR_Int`, `TR_Bool`, float64). İki dilim de birleşti (2026-11-02; ikincisi `d24b95ea`, gerçek kartta iki hata yakalanıp düzeldi: PTX adı ve kimlik okumasının +%6'sı). Kol B'nin ilk teslimi de birleşti (2026-11-03, `7ab73591`; 15.23a, 15.24, 15.44): çapraz entropide sınıf hedefi `TR_Tensor[TR_Int]`, yalnız −100 yok sayılır, olasılık hedefi de alınır; dikkat maskesi yalnız `TR_Tensor[TR_Bool]`; `TR_fuse` kapanıştan okuduğu sayıyı kaydeder ve her çağrıda denetler. İkinci teslim de birleşti (2026-11-03, `83fa8859`; 15.44, 15.34): `TR_fuse` kapanıştan okuduğu sayıyı, mantık değerini, metni ve yokluğu kaydeder, izleyemediği okumada hata verir (metot ve modül adı izlenir); donmuş parametre adımda atlanır, gradyansız adım ve bir parametreyi iki iyileştiricinin adımlaması hatadır. Üçüncü teslim de birleşti (2026-11-03, `f4fd30a3`): kontrol noktası donmuş parametreleri kaydeder (biçim sürümü 4); 16 bitlik parametreye türevsiz bileşik atama aynı yerde bir kez uyarır; parametre olmayan yaprak iyileştiricide ve kırpmada hatadır; `TR_fuse` fonksiyon değerini kimliğiyle kaydeder ve adların kapsamını bloğa göre tutar. Dördüncü teslimle (`57f83333`) sürüm 3 noktası donma durumuna dokunmaz, kitaplığın iyileştiricileri de parametre olmayan yaprakta hata verir; Kol B'nin Ö0 işi bitti. Kalan: GPU'da cinsli genel çekirdekler (2b) ve denetleyicinin cins kuralları (4c);
+    - **13'ün yerleşikleri:** tam sayı listelerinde kesin istatistik, `TR_median`'ın NaN'ı, metin bölme, boş liste, geçersiz UTF-8 birleşti (2026-11-04); değer döndürmeyen yerleşikler ve sayı fonksiyonlarında tek algoritma sıradaki iş.
+    - **Parçalayıcı:** `.TR_vocab_size` kimliklerin sınırı oldu, seyrek sözlük doğru çalışıyor (2026-11-04).
     - **iletiler:** önerinin ve kod örneğinin kimlikle yazılması.
   - **Faz 2:**
     - **4b, akış:** daraltma, kapsama, eksik dönüş;
     - **4c, genel tipler;**
     - **T2:** sinir ağı ve eğitim;
     - **T3:** hız, dosya ve nicemleme;
-    - **K:** uzun yerleşiklerin kilidi. Birinci dilim birleşti (2026-11-03, T1): tensörün deposuna okuma ve yazma izni; CPU'da uzun `@`, büyük öğe öğe işlemler, indirgemeler, iyileştirici adımı ve örnekleme kilidi bırakıyor. Bitiş ölçütü CPU'da Linux'ta geçti: uzun tensör işi sürerken başka görev en çok ~4 ms bekliyor, 100 Hz döngü tur kaçırmıyor. GPU yolu ve geri yayılım kilidi tutuyor: sıradaki dilim GPU, ana daldan.
+    - **K:** uzun yerleşiklerin kilidi. Birinci dilim birleşti (2026-11-03, T1): tensörün deposuna okuma ve yazma izni; CPU'da uzun `@`, büyük öğe öğe işlemler, indirgemeler, iyileştirici adımı ve örnekleme kilidi bırakıyor. Bitiş ölçütü CPU'da Linux'ta geçti: uzun tensör işi sürerken başka görev en çok ~4 ms bekliyor, 100 Hz döngü tur kaçırmıyor. GPU yolu ve geri yayılım kilidi tutuyor: sıradaki dilim GPU, ana daldan. Yedek saatte ilerlemeyen okumadan sonraki okuma 64 yerine en çok 32 tur sonra geliyor (2026-11-04).
 - **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30). Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç ajan deneyinin zor-3'ünden önce yapılır, eski adı yasaklayan bir testle; sınıfı A (ayrıca C, F1), Ö0, kolu Gemini (DENETİM istek 76; status "Bölümü olmayan işler"). İletiler 3'e bağlı değil. **Göç birleşti** (2026-11-03, `b71bef0e`; Gemini Kodlama2, araç main'de yeniden koşuldu; DENETİM istek 86, 87): ikili `trlang`, eski ad `TestNoOldCommandName` ile yasak.
 
 ## Açık dil tasarım soruları
@@ -62,7 +64,6 @@ Karara bağlananlar (2026-10-27'deki listeden):
 
 Kapsam ve kaynak kararları.
 
-- **Hazır nicemli modeller:** GGUF okumak mı (15.55 "Sonraya" diyor), yoksa yalnız kendi `q4`/`q8` biçimi mi (15.51–15.53)? 2. kilometre taşının nicemli ağırlık ölçütü buna bağlı.
 - **`.pt` dosyası:** yazmak ve kısıtlı okumak (arşiv). Bırakıldığı yazılı değil; güvenlik tartısı ister.
 - **Python köprüsü:** eski yol haritası "bilinçli olarak yok" diyordu (arşiv, İlkeler). Bu karar bugün hiçbir belgede yazılı değil.
 - **1. kilometre taşının kalanları:** RGN-512 hedef olmaktan çıktı; eğitim hızı adaylarının yapılıp yapılmayacağı (aşağıda).
@@ -120,7 +121,7 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 Her biri gelince 15'in yöntemiyle yazılır.
 
 - **"Paylaşmak"ın öbür biçimleri:**
-  - ONNX ve GGUF'a dışa verme; GGUF okuma ve K-nicemleme ailesi (15.47a, 15.55);
+  - ONNX ve GGUF'a dışa verme (15.47a); GGUF okuma 2. kilometre taşına geçti, K-nicemleme ailesi araştırmayla belirlenir;
   - ONNX okuma (Piper ve Silero ağırlıkları);
   - PEFT bağdaştırıcı dosyasını okuma ve yazma (LoRA'nın hazır araçlarla paylaşılması).
 - **Başka hızlandırıcılar:** AMD (ROCm), Apple, gömülü NPU; cihaz adları 15.37'nin kuralıyla.
@@ -248,6 +249,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 - Hız aynı model, aynı hassasiyet ve aynı makinede ölçülür: GPU'da PyTorch ve llama.cpp'ye, CPU'da PyTorch CPU ve llama.cpp'ye karşı. Hedef oran ilk ölçümden sonra buraya yazılır.
 - CPU'da hem x86 hem ARM64 işlemcide çalışır.
 - Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir.
+- Nicemli ağırlık hazır dosyadan gelir: yayımlanmış GGUF okunur; Jarvis için ön koşul budur, kendimiz nicemlemek sonraki fazlarda (Ahmet, 2026-11-04). Hangi türler araştırmayla belirlenir; 15.51–15.55 buna göre değişir.
 
 **Son ölçüm** (2026-11-03, main `51b75f0a`, Colab G4 ve CPU High-RAM; ayrıntı ve kaynak [`measurements.md`](measurements.md)):
 - **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüş de kapandı (2026-11-04, `measurements.md`): 2026-10-23'teki Qwen3 bf16 +%7,2; 2026-11-02'deki bf16 Qwen3 +%3,7, SmolLM2 +%7,2. Oranlar yeniden ölçülmedi.
