@@ -972,6 +972,12 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
     TR_assert_equal([[1.0, 2.0], [3.0, 4.0]], a.TR_tolist)
     TR_assert_equal(["bf16", "fp16", "bf16"], [TR_zeros([2], TR_dtype: "bf16").TR_dtype, TR_ones([2], TR_dtype: "fp16").TR_dtype, TR_randn([2], TR_dtype: "bf16", TR_seed: 1).TR_dtype])
     TR_assert_equal([1.0, 1.0], TR_ones([2], TR_dtype: "fp16").TR_tolist)
+    # Sıfırlar kendi türünde kurulur: değer, tür ve türev izleme float32'den dönüşenle aynıdır.
+    TR_var boş = TR_zeros([2], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_assert_equal([0.0, 0.0], boş.TR_tolist)
+    TR_assert(boş.TR_requires_grad, "sıfırlar türev izler")
+    TR_assert_equal(["fp16", "float64"], [TR_zeros([2], TR_dtype: "fp16").TR_dtype, TR_zeros([2], TR_dtype: "float64").TR_dtype])
+    TR_assert_equal([0.0, 0.0], TR_zeros([2], TR_dtype: "float64").TR_tolist)
     # Tensörden oluşturmada kaynağın türü korunur; türü değiştirmenin tek yazımı .türe'dir.
     TR_assert_equal("bf16", TR_Tensor(a).TR_dtype)
     TR_assert_equal("float32", a.TR_to_dtype("float32").TR_dtype)

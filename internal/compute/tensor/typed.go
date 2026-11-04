@@ -173,6 +173,22 @@ func FromRawOn(dev Device, dt DType, raw []byte, shape ...int) *Tensor {
 	return fromStorage(be, rawBackend(be, dt).FromRaw(raw, dt), shape)
 }
 
+// FromBits16On 16 bitlik ondalık (bfloat16, float16) tensörü bitlerinden kurar; CPU'da bits'in
+// kendisi depolamadır (çağıran bırakır), float32'ye açılıp yeniden yuvarlanmaz.
+func FromBits16On(dev Device, dt DType, bits []uint16, shape ...int) *Tensor {
+	be := BackendFor(dev)
+	n := allocSizeOn(be, isCreate, shape, dt)
+	if len(bits) != n {
+		panic(messages.New(messages.H3035, len(bits), shape))
+	}
+	if _, cpu := be.(cpuBackend); cpu {
+		return fromStorage(be, &cpuStorage{dtyp: dt, h: bits}, shape)
+	}
+	wide := make([]float32, n)
+	widen16(wide, bits, dt)
+	return fromStorage(be, be.FromHost(wide, dt), shape)
+}
+
 // Int64sOn tam sayı (dt: TR_Int hassasiyeti) ya da mantık (dt: Bool, değerler 0/1) tensörü
 // kurar. Değerlerin hassasiyete sığdığını çağıran denetler.
 func Int64sOn(dev Device, dt DType, vals []int64, shape ...int) *Tensor {

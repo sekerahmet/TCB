@@ -118,7 +118,7 @@ func TestVocabSizeIsTheIDBound(t *testing.T) {
 }
 
 // Kural (16.1): ek parçanın kimliği dosyadaki kimliktir, hiç değiştirilmez: ya geçerlidir ya dosya
-// reddedilir. Sonuç dosya sırasına bağlı değildir.
+// reddedilir. Kimlikler dosya sırasına bağlı değildir.
 func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 	const head = `{"version":"1.0","truncation":null,"padding":null,"normalizer":null,"pre_tokenizer":{"type":"WhitespaceSplit"},"post_processor":null,"decoder":null,`
 	const wordLevel = `"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1,"b":5},"unk_token":"[UNK]"}}`
@@ -169,6 +169,9 @@ func TestAddedTokenKeepsTheFilesID(t *testing.T) {
 		{"sınırı aşan", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741825"},
 		{"sınırı söyler", added(1<<30+1, "<s>"), wordLevel, messages.H5221, "1073741824"},
 		{"eksi", added(-1, "<s>"), wordLevel, messages.H5221, "-1"},
+		{"sözlükte sınırı aşan", added(9, "<s>"), `"model":{"type":"WordLevel","vocab":{"[UNK]":0,"a":1073741825},"unk_token":"[UNK]"}}`, messages.H5221, "0 ile 1073741824 arasında"},
+		{"önceki ek parçayı söyler", both(added(9, "<s>"), added(11, "<s>")), wordLevel, messages.H5277, "aynı metnin kimliği 9"},
+		{"sözlükteki parçayı söyler", added(9, "b"), wordLevel, messages.H5277, "aynı metnin kimliği 5"},
 	} {
 		_, err := Parse([]byte(head + `"added_tokens":[` + c.tokens + `],` + c.model))
 		if !messages.Has(err, c.code) || !strings.Contains(err.Error(), c.text) {

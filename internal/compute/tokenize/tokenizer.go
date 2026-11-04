@@ -223,8 +223,8 @@ const maxTokenID = 1 << 30
 
 // addTokens ek tokenları kurar. Kural (16.1): ek tokenın kimliği dosyadaki kimliktir, hiç
 // değiştirilmez: ya geçerlidir ya dosya reddedilir. İçerik sözlükte ya da daha önce eklenmişse
-// kimlik onunla aynıdır (H5277); değilse 0 ile maxTokenID arasında (H5221) ve boştur (H5291). Sonuç
-// dosya sırasına bağlı değildir.
+// kimlik onunla aynıdır (H5277); değilse 0 ile maxTokenID arasında (H5221) ve boştur (H5291).
+// Kimlikler dosya sırasına bağlı değildir.
 func (p *Tokenizer) addTokens(added []AddedToken, vocab map[string]int32, ids idListModel) error {
 	fresh := make(map[int32]string) // sözlükte olmayan ek tokenlar: kimlik -> içerik
 	for _, e := range added {

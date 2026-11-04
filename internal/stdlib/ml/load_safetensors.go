@@ -98,9 +98,12 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 		}
 		g := fileEntry{ad: e.name, shape: shape, dtype: dt}
 		var err error
-		if dt.IsTyped() {
+		switch {
+		case dt.IsTyped():
 			g.raw, err = readRaw(r, dt, count)
-		} else {
+		case dt.Bits() == 16:
+			g.bits, err = readBits16(r, count)
+		default:
 			g.data, err = readValues(r, dt, count)
 		}
 		if err != nil {
@@ -343,6 +346,25 @@ func readRaw(r io.Reader, dt tensor.DType, n int) ([]byte, error) {
 		}
 	}
 	return raw, nil
+}
+
+// readBits16 n adet 16 bitlik ondalığı dosyadaki bitleriyle okur: float32'ye açılsaydı dosyanın
+// iki katı bellek tutardı ve öğe öğe açmak okumanın çoğunu alırdı.
+func readBits16(r io.Reader, n int) ([]uint16, error) {
+	bits := make([]uint16, n)
+	buffer := make([]byte, 1<<20)
+	for i := 0; i < n; {
+		part := min(len(buffer)/2, n-i)
+		chunk := buffer[:part*2]
+		if _, err := io.ReadFull(r, chunk); err != nil {
+			return nil, err
+		}
+		for j := range part {
+			bits[i+j] = binary.LittleEndian.Uint16(chunk[j*2:])
+		}
+		i += part
+	}
+	return bits, nil
 }
 
 func readValues(r io.Reader, dt tensor.DType, n int) ([]float32, error) {
