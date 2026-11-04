@@ -63,7 +63,7 @@ func (c *Checker) builtinCallCode(e *ast.CallExpression, objType string) codes.C
 var ReturnsNotVerified = map[codes.Code]string{}
 
 // builtinReturnType yerleşik çağrısının tipidir (1.2, 13.9): tek tipli dönüş (SingleReturn) denetleyicinin
-// tanıdığı çekirdek tipse o tip (TR_BuiltinFunction TR_Function'dır, 13.9); kapsa öğe tipsiz (TR_List: imzalarda öğe tipi henüz yok). Dönüşü
+// tanıdığı çekirdek tipse o tip (TR_BuiltinFunction TR_Function'dır, 13.9); fonksiyonun dönüşünde yazılı öğe tipi tipe girer. Dönüşü
 // motorla doğrulanmamış yerleşik (ReturnsNotVerified), birleşim ve tanınmayan tip "" (TR_Any).
 func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) string {
 	k := c.builtinCallCode(e, objType)
@@ -85,6 +85,11 @@ func (c *Checker) builtinReturnType(e *ast.CallExpression, objType string) strin
 	ret, ok := SingleReturn(k)
 	if ok && ret == codes.TypeBuiltinFunction {
 		return typeFunction // yerleşik fonksiyon bir fonksiyon değeridir (13.9)
+	}
+	if def, _ := codes.DefinitionOf(k); ok && def.Kind == codes.KindFunction {
+		if t := MemberReturn(def.Signature.Return.Text[0], ""); t != "" {
+			return t // öğe tipi yazılı dönüş: TR_List[TR_List[TR_String]]
+		}
 	}
 	if ok && coreTypes[codes.Name(ret)] {
 		return codes.Name(ret)

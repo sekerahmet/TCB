@@ -1,0 +1,7 @@
+# TR 4
+# TEST 13.8 CSV hücresi metindir: dönüşün öğe tipi denetimde görülür, sayı yerine geçmez
+TR_var n: TR_Int = TR_parse_csv("1,2")[0][0] # ERROR H1001
+TR_var satır: TR_List[TR_Int] = TR_parse_csv("1,2")[0] # ERROR H1001
+TR_var tablo: TR_List[TR_List[TR_Int]] = TR_parse_csv("1,2") # ERROR H1001
+TR_var h = TR_parse_csv("1,2")[0][0]
+TR_print(h + 1) # ERROR H2609

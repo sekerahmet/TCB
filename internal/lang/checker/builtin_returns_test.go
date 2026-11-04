@@ -18,12 +18,17 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = {\"a\": 1}.TR_keys()":    listType(typeString),
 		"TR_var v = TR_Tensor([1.0])":        typeTensor,
 		"TR_var v = TR_time_ms()":            typeInt,
-		"TR_var v = TR_floor(1.5)":           typeAny,  // birleşim: TR_Int|TR_Float|TR_Tensor
-		"TR_var v = TR_json_parse(\"1\")":    typeJSON, // 3.7a; motorla doğrulaması TestJSONReturnsAreJSONValues (stdlib)
-		"TR_var v = TR_Path(\"a\")":          typeAny,  // tanınmayan tip
-		"TR_var v = [\"a\"].TR_join(\",\")":  typeString,
-		"TR_var v = (0..3).TR_reverse()":     listType(typeInt), // alıcıdaki imza: aralıkta TR_List[TR_Int]
-		"TR_var v = [1].TR_contains(1)":      typeBool,
+		// 13.8: dönüşte yazılı öğe tipi tipe girer
+		"TR_var v = TR_parse_csv(\"1,2\")":       listType(listType(typeString)),
+		"TR_var v = TR_read_csv(\"a.csv\")":      listType(listType(typeString)),
+		"TR_var v = TR_parse_csv(\"1,2\")[0]":    listType(typeString),
+		"TR_var v = TR_parse_csv(\"1,2\")[0][0]": typeString,
+		"TR_var v = TR_floor(1.5)":               typeAny,  // birleşim: TR_Int|TR_Float|TR_Tensor
+		"TR_var v = TR_json_parse(\"1\")":        typeJSON, // 3.7a; motorla doğrulaması TestJSONReturnsAreJSONValues (stdlib)
+		"TR_var v = TR_Path(\"a\")":              typeAny,  // tanınmayan tip
+		"TR_var v = [\"a\"].TR_join(\",\")":      typeString,
+		"TR_var v = (0..3).TR_reverse()":         listType(typeInt), // alıcıdaki imza: aralıkta TR_List[TR_Int]
+		"TR_var v = [1].TR_contains(1)":          typeBool,
 		// 13.1: TR_max ve TR_min'in tipi işlecin tipidir; karışıkta TR_Float
 		"TR_var v = TR_max(3, 7)":                        typeInt,
 		"TR_var v = TR_max(2, 1.5)":                      typeFloat,
