@@ -581,6 +581,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Bedel (TCB kararı, 2026-11-04):** `utf8.ValidString` satır okumayı yavaşlatıyor: 1 GB'da ASCII +%9,5, Türkçe metin +%147,5 [ölçüldü: D1, Colab, altı tur]; doğruluk hızdan önce gelir, kabul. SIMD doğrulayıcı hız kolunda (D, Ö3).
 - **Yapılacaklar (F, Ö3; sahip D1, 2b):** `definitions.json`'da `TR_mean`, `TR_std`, `TR_median`'ın `params`'ı eski; `TR_mean(1)`'in H2423'ü kopyalanacak yazım vermiyor; H1130'un `?? ""` önerisi değer ayırıcıysa H2635'e düşer [ölçüldü: D1].
 - **Bulgu (D1, 2026-11-04, Ö3):** kesin istatistiğin bedeli on öğeli listede `TR_mean` +0,44 µs, `TR_std` +2,4 µs (5,8 kat), `TR_median` +0,26 µs [ölçüldü: Colab]. Sığan toplamda büyük sayısız yol düşürür [hipotez].
+- **Mevcut durum (T1, 2026-11-04):** sayı ve tensör yolunun son bitte ayrılması 15.22a'nın kuralıdır, geçici değil; 13.1 tensör işlemlerini 15'e bırakıyor (bkz. 15.22a).
 - **Yapılacaklar (A, Ö0; sahip T1, kapanışı çağrı yerleri; dal `claude/t1-tek-algoritma`):** `math.Log` amd64 assembly'si alt normal sayıyı normalleştirmiyor: `math.Log(5e-324)` −709,1, doğrusu −744,44; sessiz yanlış. 4 milyon girdide 244 fark, hepsi alt normal [ölçüldü: T1]. `TR_log`, `TR_log10` ve onları kullananlar bunu bugün veriyor; `internal/detmath` doğrusunu veriyor, yerleşikler ona geçince kapanır.
 - **Yapılacaklar (A, Ö0; sahip T1, dal `claude/t1-tek-algoritma`; DENETİM istek 104 U1–U3):** Go'nun `math` paketi 13.1 ve 4.3'ün "bit bit aynı" sözünü vermiyor: `math.Exp` amd64'te işlemciye göre yol seçiyor (aynı ikilide iki yol, 2 milyon girdide %9,1 ayrı bit), derleyici saf Go kodunu da arm64'te ve `GOAMD64=v3`'te birleştiriyor (`Tan` 200.000 girdide 6740 farklı) [ölçüldü: DENETİM]. Tam yuvarlanmayan 17 fonksiyon için tek algoritma; birleşik komut sayısı 0 testiyle.
 - **Yapılacaklar (E, Ö3):** `TR_monotonic_ns` motorda yok, yeni görünen ad [ölçüldü: TCB, `cb162b61`]. Değer döndürmeyen yerleşikler 13.10'da, Kol A teslim 2b.
@@ -820,7 +821,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** CPU float64'te telafisiz, GPU float32 girdiyi float32'de telafili (Neumaier) biriktiriyor (float64 girdi float64'te). CPU'da `GOMAXPROCS` 1–16'da sonuç bit bit aynı [ölçüldü: DENETİM].
 - **Yapılacaklar (C, Ö2; ölçülmedi):** `TestReductionsIndependentOfThreadCount` Go testi bölümün commit'inde yazılır (bugün yok); 15.22a başlıklı TR testi.
-- **Bulgu (T1, 2026-11-04, D, Ö3; TCB kararı):** sayı yerleşikleri `internal/detmath`'e geçince tensör yolu `math.*`'ta kalıyor: FMA'lı makinede `TR_exp` sayıda ve tensörde son bitte ayrılabilir [hipotez]. 13.1 makineler arasını söylüyor, iki yol arasını değil; bu işe kadar kabul.
+- **Bulgu (T1, 2026-11-04, D, Ö3; TCB kararı):** sayı yerleşikleri `internal/detmath`'e geçince tensör yolu `math.*`'ta kalıyor: FMA'lı makinede `TR_exp` sayıda ve tensörde son bitte ayrılabilir [hipotez]. Bu 15.22a'nın kuralıdır, geçici değil: 13.1 tensör işlemlerini 15'e bırakıyor.
 
 ### 15.22b
 
