@@ -76,20 +76,35 @@ type fileEntry struct {
 	ad    string
 	shape []int
 	dtype tensor.DType
-	data  []float32 // hesap ondalıklarında tensörün (16 bitlikte kayıpsız açılmış) değerleri
+	data  []float32 // float32 tensörün değerleri
 	raw   []byte    // cinsli türlerde (float64, TR_Int, TR_Bool) küçük uçlu ham baytlar
-	bits  []uint16  // safetensors'un 16 bitlik ondalıkları: dosyadaki bitler, açılmadan
+	bits  []uint16  // 16 bitlik ondalıklar: tensörün ve dosyanın bitleri, açılmadan
 }
 
 // newFileEntry tensörün verisini konağa alır: hesap ondalığı değer, öbürü ham bayt olarak.
 func newFileEntry(ad string, t *tensor.Tensor) fileEntry {
 	g := fileEntry{ad: ad, shape: t.Shape(), dtype: t.DType()}
-	if g.dtype.IsTyped() {
+	switch {
+	case g.dtype.IsTyped():
 		g.raw = t.Raw()
-	} else {
+	case g.dtype.Bits() == 16:
+		g.bits = t.Bits16s()
+	default:
 		g.data = t.Data()
 	}
 	return g
+}
+
+// values girdinin hesap ondalığı değerleridir: 16 bitlikte kayıpsız açılır.
+func (g fileEntry) values() []float32 {
+	if g.bits == nil {
+		return g.data
+	}
+	out := make([]float32, len(g.bits))
+	for i, h := range g.bits {
+		out[i] = tensor.FromBits16(g.dtype, h)
+	}
+	return out
 }
 
 // tensor dosyadan okunan girdinin tensörüdür (varsayılan cihazda).
@@ -194,9 +209,12 @@ func writeEntries(f io.Writer, inputs []fileEntry) error {
 	y := NewTensorWriter(f, len(inputs))
 	for _, g := range inputs {
 		var err error
-		if g.dtype.IsTyped() {
+		switch {
+		case g.dtype.IsTyped():
 			err = y.WriteRaw(g.ad, g.shape, g.dtype, g.raw)
-		} else {
+		case g.bits != nil:
+			err = y.writeBits(g.ad, g.shape, g.dtype, g.bits)
+		default:
 			err = y.Write(g.ad, g.shape, g.dtype, g.data)
 		}
 		if err != nil {
@@ -245,6 +263,15 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 		return err
 	}
 	y.failure = writeValues(y.w, dtype, data, y.buffer)
+	return y.failure
+}
+
+// writeBits 16 bitlik bir girdiyi bitleriyle yazar.
+func (y *TensorWriter) writeBits(ad string, shape []int, dtype tensor.DType, bits []uint16) error {
+	if err := y.entryHeader(ad, shape, dtype); err != nil {
+		return err
+	}
+	y.failure = writeBits16(y.w, bits, y.buffer)
 	return y.failure
 }
 

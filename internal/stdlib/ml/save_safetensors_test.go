@@ -275,6 +275,56 @@ func TestTensorFileRejectsTypeWithoutCode(t *testing.T) {
 	}
 }
 
+// Kural (15.47a): gidiş dönüşte veri bit bit aynıdır; 16 bitlik NaN'ın yükü ve sinyal biti de
+// kalır. Görünüm mantıksal sırayla yazılır, iki biçimde de.
+func TestSaveTensorsKeepSixteenBitNaNs(t *testing.T) {
+	for _, dt := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+		bits := []uint16{0x7F81, 0xFF81, 0x7C01, 0xFC01, 0x7FC1, 0x3C00}
+		x := tensor.FromBits16On(tensor.CPU, dt, slices.Clone(bits), 2, 3)
+		want := []uint16{bits[0], bits[3], bits[1], bits[4], bits[2], bits[5]}
+		g := newFileEntry("x", x.Transpose(0, 1))
+		if !slices.Equal(g.bits, want) {
+			t.Fatalf("%v görünümün bitleri %x, beklenen %x", dt, g.bits, want)
+		}
+		var st bytes.Buffer
+		if err := writeSafetensors(&st, []fileEntry{g}); err != nil {
+			t.Fatal(err)
+		}
+		tail := st.Bytes()[st.Len()-2*len(want):]
+		for i, w := range want {
+			if h := binary.LittleEndian.Uint16(tail[i*2:]); h != w {
+				t.Errorf("%v safetensors %d. öğe %x, beklenen %x", dt, i, h, w)
+			}
+		}
+		read, err := decodeSafetensors(bytes.NewReader(st.Bytes()), int64(st.Len()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if h := read[0].tensor().Bits16s(); !slices.Equal(h, want) {
+			t.Errorf("%v safetensors gidiş dönüş %x, beklenen %x", dt, h, want)
+		}
+		var tr bytes.Buffer
+		if err := writeEntries(&tr, []fileEntry{g}); err != nil {
+			t.Fatal(err)
+		}
+		err = walkFile(bytes.NewReader(tr.Bytes()), int64(tr.Len()), func(e fileEntry) error {
+			if h := e.tensor().Bits16s(); !slices.Equal(h, want) {
+				t.Errorf("%v TR biçimi gidiş dönüş %x, beklenen %x", dt, h, want)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if h := tensor.FromBits16On(tensor.CPU, dt, []uint16{0x7F81}).Bits16s(); !slices.Equal(h, []uint16{0x7F81}) {
+			t.Errorf("%v skalerin bitleri %x", dt, h)
+		}
+		if h := tensor.FromBits16On(tensor.CPU, dt, []uint16{}, 0, 2).Bits16s(); h == nil || len(h) != 0 {
+			t.Errorf("%v boş tensörün bitleri %v", dt, h)
+		}
+	}
+}
+
 // Kural (15.47): 16 bitlik ondalıklar dosyadaki bitleriyle tensöre geçer, float32'ye açılıp yeniden
 // yuvarlanmaz: tensörün değerleri açılan değerlerle aynıdır, sinyal NaN'ı da korunur.
 func TestSafetensorsKeepSixteenBitValues(t *testing.T) {

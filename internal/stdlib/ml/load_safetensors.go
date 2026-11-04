@@ -104,7 +104,7 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 		case dt.Bits() == 16:
 			g.bits, err = readBits16(r, count)
 		default:
-			g.data, err = readValues(r, dt, count)
+			g.data, err = readValues(r, count)
 		}
 		if err != nil {
 			return nil, messages.New(messages.H6653, e.name, err)
@@ -348,28 +348,22 @@ func readRaw(r io.Reader, dt tensor.DType, n int) ([]byte, error) {
 	return raw, nil
 }
 
-// readBits16 n adet 16 bitlik ondalığı dosyadaki bitleriyle okur: float32'ye açılsaydı dosyanın
-// iki katı bellek tutardı ve öğe öğe açmak okumanın çoğunu alırdı.
+// readBits16 n adet 16 bitlik ondalığı dosyadaki bitleriyle okur.
 func readBits16(r io.Reader, n int) ([]uint16, error) {
-	bits := make([]uint16, n)
-	buffer := make([]byte, 1<<20)
-	for i := 0; i < n; {
-		part := min(len(buffer)/2, n-i)
-		chunk := buffer[:part*2]
-		if _, err := io.ReadFull(r, chunk); err != nil {
-			return nil, err
-		}
-		for j := range part {
-			bits[i+j] = binary.LittleEndian.Uint16(chunk[j*2:])
-		}
-		i += part
+	var readErr error
+	bits, ok := decodeBits16(n, func(chunk []byte) bool {
+		_, readErr = io.ReadFull(r, chunk)
+		return readErr == nil
+	})
+	if !ok {
+		return nil, readErr
 	}
 	return bits, nil
 }
 
-func readValues(r io.Reader, dt tensor.DType, n int) ([]float32, error) {
+func readValues(r io.Reader, n int) ([]float32, error) {
 	var readErr error
-	data, ok := decodeValues(n, dt, func(chunk []byte) bool {
+	data, ok := decodeValues(n, func(chunk []byte) bool {
 		_, readErr = io.ReadFull(r, chunk)
 		return readErr == nil
 	})
