@@ -77,6 +77,8 @@ func TestBaseThatIsNotOneCommitStops(t *testing.T) {
 	bases := []string{"0000000000000000"}
 	if p := sharedCommitPrefix(t, root); p != "" {
 		bases = append(bases, p)
+	} else {
+		t.Log("ortak önek yok (sığ klon): yalnız olmayan kimlik sınanıyor")
 	}
 	for _, base := range bases {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -120,7 +122,7 @@ func TestPreCheckGoStepsSkipTheCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	script := strings.ReplaceAll(string(data), "\r\n", "\n")
-	goTest := regexp.MustCompile(`^\s*go test `)
+	goTest := regexp.MustCompile(`^\s*(?:\w+=\S*\s+)*go test `)
 	for _, part := range [][2]string{{"selected_tests() {\n", "\n}\n"}, {"\ton)\n\t\tquick_static_checks\n", "\n\t\t;;\n"}} {
 		_, rest, found := strings.Cut(script, part[0])
 		if !found {

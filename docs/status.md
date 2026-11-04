@@ -600,6 +600,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** 13.10'un sıralama sırası uygulandı (−0.0 0.0'dan önce, NaN'lar sonda ve birbirine eşit, demette öğe öğe); anahtarlı sıralama `.TR_sort(f)` motorda: anahtar her öğe için bir kez çağrılır, sıra kararlı, iki parametreli karşılaştırıcı H2900, sıralanamayan anahtar H2902 ve H2903, asıl listeyi değiştiren anahtar H2703 [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/yerlesikler_test.tr`'nin 13.3 testleri, `interp/sorting_test.go`].
 - **Yapılacaklar (A, Ö1, 4a2; DENETİM istek 81: anahtarın tipi denetlenmediği için metin parametreli anahtar tam sayı alıyor):** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
+- **Yapılacaklar (E, Ö3; sahip D1, 2b'den sonra; DENETİM istek 97 N3):** `.TR_pop` 13.3'te yazılı, motorda kimlik değil: yazan açık bir hata alıyor, sessiz yanlış yok. `.TR_remove_at` ile birlikte yazılır.
 
 ### 13.6
 
