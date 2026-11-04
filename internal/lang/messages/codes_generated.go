@@ -997,7 +997,7 @@ const (
 	H5644 Code = 5644 // {fn}(diziler) 1 parametre bekler (kimlik listelerinin listesi ya da 2 boyutlu tensör), {given} verildi
 	H5645 Code = 5645 // {fn}: kimlik listelerinin listesi ya da 2 boyutlu tensör bekler, {given} verildi
 	H5646 Code = 5646 // {fn}: tensör 2 boyutlu olmalıdır (her satır bir dizi), {dims} boyutlu verildi
-	H5647 Code = 5647 // {fn}: {id} kimliği dağarcıkta yok (dağarcık boyutu {size}). Kimlikler çıktısı dağarcıktan büyük bir modelin üretimiyse örneklemeyi dağarcığa sınırlayın: `model.{#generate}(başlangıç, adet, {#vocab_size}: p.{#tok_vocab_size})`
+	H5647 Code = 5647 // {fn}: {id} kimliği {place, select, gap {sözlükte boş: sınırın içinde ama parçası yok} other {dağarcıkta yok}} (dağarcık boyutu {size}){place, select, gap {} other {. Kimlikler çıktısı dağarcıktan büyük bir modelin üretimiyse örneklemeyi dağarcığa sınırlayın: `model.{#generate}(başlangıç, adet, {#vocab_size}: p.{#tok_vocab_size})`}}
 	H5648 Code = 5648 // {@generate}: {@vocab_size} 1 ile modelin çıktı boyu ({out}) arasında olmalıdır, {given} verildi
 	H6001 Code = 6001 // {example} en az 1 parametre bekler
 	H6002 Code = 6002 // {example} en fazla 2 parametre alır, {given} verildi
