@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -22,22 +23,22 @@ func silu64(x float64) float64 {
 	if math.IsInf(x, -1) {
 		return 0 // x·σ(x) → 0 (tensör yoluyla aynı)
 	}
-	return x / (1 + math.Exp(-x))
+	return x / (1 + detmath.Exp(-x))
 }
 
 // registerWideMath genişletilmiş matematik yerleşiklerini kaydeder.
 func registerWideMath(v *interp.VM) {
 	unit(v, codes.FnSilu, (*tensor.Tensor).Silu, silu64)
-	unit(v, codes.FnTan, (*tensor.Tensor).Tan, math.Tan)
-	unit(v, codes.FnAsin, (*tensor.Tensor).Asin, math.Asin)
-	unit(v, codes.FnAcos, (*tensor.Tensor).Acos, math.Acos)
-	unit(v, codes.FnAtan, (*tensor.Tensor).Atan, math.Atan)
-	unit(v, codes.FnSinh, (*tensor.Tensor).Sinh, math.Sinh)
-	unit(v, codes.FnCosh, (*tensor.Tensor).Cosh, math.Cosh)
-	unit(v, codes.FnLog1p, (*tensor.Tensor).Log1p, math.Log1p)
-	unit(v, codes.FnLog2, (*tensor.Tensor).Log2, math.Log2)
-	unit(v, codes.FnLog10, (*tensor.Tensor).Log10, math.Log10)
-	unit(v, codes.FnExpm1, (*tensor.Tensor).Expm1, math.Expm1)
+	unit(v, codes.FnTan, (*tensor.Tensor).Tan, detmath.Tan)
+	unit(v, codes.FnAsin, (*tensor.Tensor).Asin, detmath.Asin)
+	unit(v, codes.FnAcos, (*tensor.Tensor).Acos, detmath.Acos)
+	unit(v, codes.FnAtan, (*tensor.Tensor).Atan, detmath.Atan)
+	unit(v, codes.FnSinh, (*tensor.Tensor).Sinh, detmath.Sinh)
+	unit(v, codes.FnCosh, (*tensor.Tensor).Cosh, detmath.Cosh)
+	unit(v, codes.FnLog1p, (*tensor.Tensor).Log1p, detmath.Log1p)
+	unit(v, codes.FnLog2, (*tensor.Tensor).Log2, detmath.Log2)
+	unit(v, codes.FnLog10, (*tensor.Tensor).Log10, detmath.Log10)
+	unit(v, codes.FnExpm1, (*tensor.Tensor).Expm1, detmath.Expm1)
 	registerRounding(v, codes.FnFloor, (*tensor.Tensor).Floor)
 	registerRounding(v, codes.FnCeil, (*tensor.Tensor).Ceil)
 	registerRounding(v, codes.FnSign, (*tensor.Tensor).Sign)
@@ -307,7 +308,7 @@ func atan2Builtin(m *interp.VM, args []interp.Value, named map[string]interp.Val
 		if !ok1 || !ok2 {
 			return nil, messages.New(messages.H6118, ad, typeName(args[0]), typeName(args[1]))
 		}
-		return &interp.FloatVal{Val: math.Atan2(y, x)}, nil
+		return &interp.FloatVal{Val: detmath.Atan2(y, x)}, nil
 	}
 	ts, err := toTensors(ad, args)
 	if err != nil {

@@ -139,6 +139,17 @@ S-kilit satırı Kol A eşitliğinden (`9f758225`) önce ölçüldü; eşitlik k
 
 Birim parça/sn. Aynı koşuda main'e göre Qwen3 bf16 +%7,2, float32 +%6,3; SmolLM2 bf16 +%1,9, float32 +%3,1 [hesap]. Taramanın süresi aynı işlemcide Go ile ölçüldü: 151936 logitte seçim 92 µs, denetim ve seçim 218 µs, tek geçiş 92 µs; 49152 logitte 30, 71 ve 30 µs. Düzeltme metni ve logitleri değiştirmedi (iki model, bf16 ve float32, GPU ve CPU). CPU'da yavaşlama yok: Colab CPU High-RAM, Intel Xeon 2.20 GHz, dört tur, Qwen3 float32 5,8 → 5,9, SmolLM2 bf16 10,8 → 10,8 [ölçüldü: betik `h1_cpu_abab2.sh`].
 
+**Tek algoritmanın bedeli** (2026-11-04 22:02–22:12, Colab CPU: Intel Xeon 2,20 GHz, 2 iş parçacığı; 15 tur, iki ikili sırayla, ortanca) [ölçüldü: `e78e38af` ve `8e58eb05`, Colab `t1_bedel_220216`]:
+
+| Ne | Önce | Sonra | Fark |
+| :-- | --: | --: | --: |
+| `TR_exp`, 5 milyon çağrılık döngü | 2230 ms | 2285 ms | +%2,5 |
+| `TR_tanh`, 5 milyon çağrılık döngü | 2151 ms | 2139 ms | −%0,6 |
+| `x ** 1.5`, 5 milyon işlemlik döngü | 1829 ms | 1950 ms | +%6,6 |
+| `TR_sample`, top-k'sız 151669 aday, 300 çağrı | 1865 ms | 2363 ms | +%26,7 |
+
+Çağrı başına `TR_exp` +11 ns, `**` +24 ns, `TR_sample` +1,66 ms [hesap]; `TR_sample`'ın süresinde `.TR_tolist` de var. Yorumlayıcının kendi yükü farkı küçültüyor. `detmath`'in tek çağrısı (Colab AMD EPYC, yedi tur, `6a305ee5`): `Exp` 11,93 → 19,38 ns (+%62), `Sinh` +%47, `Cosh` +%57, `Tanh` +%40, `Log` +%16, `Pow` −%3 [ölçüldü: T1].
+
 ## Eski (yeniden ölçülecek)
 
 Şu an eski satır yok.

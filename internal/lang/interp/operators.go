@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -266,7 +267,7 @@ func floatOp(codeVal uint8, lf, rf float64, line int) (Value, bool, error) {
 		if lf < 0 && !math.IsInf(rf, 0) && !math.IsNaN(rf) && rf != math.Trunc(rf) {
 			return nil, true, messages.At(line, 0, messages.New(messages.H2605, numberText(lf), numberText(rf)))
 		}
-		return &FloatVal{Val: math.Pow(lf, rf)}, true, nil
+		return &FloatVal{Val: detmath.Pow(lf, rf)}, true, nil
 	case opLt:
 		return BoolToVal(lf < rf), true, nil
 	case opGt:
