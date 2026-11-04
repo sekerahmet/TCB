@@ -32,14 +32,17 @@
    - `tools/codegraph/query_file_tests.go` ve `tools/codegraph/changed.go` içinde 0 adımlı `INFERRED` `tests` kenarlarının `direct` diye yazılması önlendi; `EXTRACTED` doğrudan kanıtlar (`extractedDirectTests`) önce, `INFERRED` olanlar `[INFERRED]` etiketiyle sonra sıralandı; `fileTestSet.all` yorumu güncellendi.
    - `tools/codegraph/testdata/planning_questions.txt:199` beklentisi güncellendi ve `tools/codegraph/query_file_tests_test.go` içine `TestInferredZeroStepEdgeIsNotWrittenAsDirect` koruyan testi eklendi (`ok  	github.com/sekerahmet/TCB/tools/codegraph	0.222s`, `dups --changed main` → `0 duplicate candidate(s)`).
    - Not (Ortam): `2026-11-04 16:40 UTC` sırasında uzak uVM kısa süreli `STOPPED` durumuna geçip otomatik yeniden başlatıldı; `/home/antigravity` ve çalışma ağacı korundu ("Ortam" bölümüne yazılacak).
+5. **Madde 2 — `type_queries` kapsam seçimi, kapsam testi ve 5 satırlık fikstür testi (`e121209`):**
+   - `tools/codegraph/type_queries_link.go`, `tools/codegraph/type_queries_params.go`, `tools/codegraph/type_queries_sites.go` silindi; `tools/codegraph/type_queries.go` `1530` satırdan `70` satıra indirildi (sınanmayan 8 sezgi ve kullanılmayan `packages.Load` yolu kaldırıldı; `repoTypeQueryRules` + `linkTypeQueries` Türkçe yorumlarla yazıldı; fikstür için `buildGraphFromWithRules` parametresi açıldı).
+   - `TestRepositoryTypeLoadedTestsAreSelected` kapsam testine dönüştürüldü (`tools/codegraph` dışında `goload.Load` ve `(*types.Config).Check` erişimi + 1 kayıt silinince düşme kontrolü + `TestUnknownNames` ve `internal/compute/tensor` kapsam doğrulaması; `10.33s` geçti).
+   - `TestTypeQueryScopeSelectsEveryGoChange` (`slowFixture(t)` çağrısıyla) değişiklikten **sonra** kurulan grafiklerde beş tablo satırının tamamını (`gövde değişti`, `metodun adı değişti`, `uygulayıcı dosya silindi`, `adın kullanımı silindi`, `başka pakete aynı çıplak ad eklendi`) + `claude/unrelated` + `TestTempModuleIgnored` seçilmemesini doğruladı (`1.76s` geçti).
 
 ## Sıradaki Adımlar
 
-1. `type_queries*.go` sadeleştirmesinin (`{test, kapsam}` gerekçeli listesi, fikstür parametresi, `packages.Load` yolunun ve sınanmayan 8 sezginin silinmesi, kalan fonksiyonlara kısa Türkçe yorumlar), kapsam testinin (`goload.Load` ve `(*types.Config).Check` + 1 satır silinince düşme kontrolü) ve beş satırlık fikstür testinin (`slowFixture` + değişiklikten sonra grafik kurarak sığ klon uyumu) uygulanıp ayrı commit olarak kaydedilmesi.
-2. `tools/codegraph/gaps.md` içindeki kapanan maddenin (`tools/codegraph/gaps.md:53-54`) silinmesi ve `extractorRevision` / `extractor_digest.txt` güncellemesi.
-3. Geçici kopyada 3 satırlık gerçek depo ölçüsü, `--depth 1` klon koşusu, "Sonra" ölçümleri, bitti ölçütü komutları, `TIP_RAPORU.md` ve kendi kontrolüm.
+1. `tools/codegraph/gaps.md` içindeki kapanan maddenin (`tools/codegraph/gaps.md:53-54`) silinip ayrı commit olarak kaydedilmesi.
+2. `extractorRevision` (`84` → `85`) ve `tools/codegraph/testdata/extractor_digest.txt` güncellemesinin bir kez yapılıp commit edilmesi.
+3. Geçici kopyada 3 satırlık gerçek depo ölçüsü, `--depth 1` klon koşusu, "Sonra" ölçümleri, bitti ölçütünün 6 komutu, `TIP_RAPORU.md` ve kendi kontrolüm.
 
 ## Emin Olmadıklarım / Açık Noktalar
 
-- Açık belirsizlik yok; `kindScan` / `edgeScans` `tools/full_check.sh` ile birebir eşlendiğinden (`scans_test.go:275`), tip sorgusu kapsamları `kindTypeQuery` / `edgeTypeQueries` düğüm ve kenarıyla temsil edilip `query_scans.go` kapsama mantığını paylaşacak.
-
+- Açık belirsizlik yok.
