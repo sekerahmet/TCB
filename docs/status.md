@@ -1280,6 +1280,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 - **Yapılacaklar (C, Ö2, 15.45 ile; ölçüm status'un):** `TR_dropout` (15.23d) geldiğinde aynı üreteçten çekmesi.
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte; bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde]. "rng"'nin "pcg:" öneki ve bilinmeyen önekin yükleme hatası (H6953) T1'de geldi [test: checkpoint behavior_security_test.go].
 - **Yapılacaklar (T1 birleşmesi, 2026-11-01):** 20.17'nin Test satırındaki TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir; bugün yalnız Go testlerinde [ölçüldü: `git grep 54520000000000002017`].
+- **Yapılacaklar (C, Ö2; sahip T1, çağrı yerlerinden sonra; DENETİM istek 122 N2):** kontrol noktası 16 bitlik tensörü float32'den geçiriyor: sinyal NaN'ı orada susuyor [kanıtlı: T1, kod; ölçülmedi]. `TR_save_tensors` bitleriyle yazıyor; GPU'daki tensör değerden daraltıldığı için orada da susuyor [kanıtlı: T1; kartta koşulmadı].
 
 ### 20.14
 
