@@ -240,7 +240,7 @@
   "reason": "deleted: formats: csv_çöz parses CSV text, csv_oku reads only files"
  },
  "H7009": {
-  "commit": "claude/kolA-13-yerlesikler",
+  "commit": "6bd381ba",
   "reason": "deleted: jsonwrite: a dictionary key that is not text is H7012 (13.8), so two keys can no longer write the same text"
  },
  "H7126": {

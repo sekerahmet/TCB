@@ -34,6 +34,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **13.8, CSV hücresinin kırpılması (2026-11-04, D1 Kol A 13 teslim 1):** motor hücrenin boşluklarını kırpıyor, `TestCSVCellsAreTextAndBOM` sabitliyor; dil tanımında yazmıyor. Hücre hep metin olunca kırpmak veriyi değiştirir: kalacaksa yazılmalı, kalkacaksa motor değişmeli.
+- **19.5, `g.TR_close()` ve `TR_append`'in değeri (2026-11-04, D1 Kol A 13 teslim 1):** madde `g.TR_close()` yazıyor, motorda yok [ölçüldü: D1]; aynı madde `TR_append` değer döndürmez diyor, motor `TR_true` döndürüyor [kanıtlı: `record.go`].
 - **15.44, fonksiyon değeri ve blok kapsamı (2026-11-03, T1 Kol B teslim 2b):** uygulama kapanıştan okunan fonksiyon değerini kimliğiyle kaydediyor (bağlı metotta gövde ve `TR_self`), gövdesini nerede okunursa okunsun geziyor; adların kapsamı bloğa göre (döngü değişkeni dahil). Madde ikisini de açıkça söylemiyor; cümle tartılır.
 - **20, biçim sürümü (2026-11-03, T1 Kol B teslim 2b; TCB kararıyla çelişiyordu, düzeltildi):** "sürüm 3'tür ve yalnız o okunur" cümlesi "sürüm 4'tür; sürüm 3 de okunur" oldu. DENETİM istek 84 Ş1, Ş5: sürüm 3 noktası donma durumuna dokunmaz (sürdürme ve geri dönüş programın kurduğunu değiştirmez); ilk yazılan "hiçbir parametre donmuş sayılmaz" donmuş parametreyi sessizce çözüyordu (TCB kararı). Turda denetlenir.
 - **15.34, gradyansız adım hatasının bedeli (2026-11-03, T1 Kol B teslim 2a):** bir grubu hiç gradyan almayan çok iyileştiricili eğitim (ör. bir adımda kullanılmayan alt modül) H6988 ile durur; PyTorch orada sessiz geçer. Dil tanımı sessiz yanlış yerine hatayı istiyor; maddeye bunu söyleyen bir bilgi cümlesi tartılır.
