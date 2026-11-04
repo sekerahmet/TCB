@@ -116,7 +116,7 @@ type TensorEntry struct {
 // noktası dosyayı önce yalnızca denetler, sonra yükler). Hata dosya biçimi hatasıdır.
 func WalkTensorFile(r io.Reader, dim int64, each func(TensorEntry) error) error {
 	return walkFile(r, dim, func(g fileEntry) error {
-		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.data, Ham: g.raw})
+		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.values(), Ham: g.raw})
 	})
 }
 
@@ -212,18 +212,21 @@ func (k *fileReader) shape(order any, dim int) ([]int, int64, error) {
 	return shape, n, nil
 }
 
-// data n elemanlık veriyi okur: hesap ondalığında float32'ye açar, cinsli türde ham bayt tutar.
+// data n elemanlık veriyi okur: 16 bitlik ondalıkta bitleri, cinsli türde ham baytı tutar.
 func (k *fileReader) data(g fileEntry, order any, n int64) (fileEntry, error) {
 	size := int64(g.dtype.Bits() / 8) // eleman başına bayt
 	if n*size > k.remaining-4 {
 		return fileEntry{}, messages.New(messages.H6623, order, tensor.ShapeText(g.shape), n*size, max(k.remaining-4, 0))
 	}
 	ok := true
-	if g.dtype.IsTyped() {
+	switch {
+	case g.dtype.IsTyped():
 		g.raw = make([]byte, n*size)
 		ok = k.integer(g.raw)
-	} else {
-		g.data, ok = decodeValues(int(n), g.dtype, k.integer)
+	case size == 2:
+		g.bits, ok = decodeBits16(int(n), k.integer)
+	default:
+		g.data, ok = decodeValues(int(n), k.integer)
 	}
 	if !ok {
 		return fileEntry{}, k.missing(messages.New(messages.H6635, order))
@@ -231,23 +234,38 @@ func (k *fileReader) data(g fileEntry, order any, n int64) (fileEntry, error) {
 	return g, nil
 }
 
-// decodeValues n elemanlık küçük uçlu veriyi 64 KiB'lık parçalarla readChunk ile okur ve
-// float32'ye açar; okuma başarısızsa ok=false döner. Boy denetimi çağıranındır (ayırmadan önce).
-func decodeValues(n int, dt tensor.DType, readChunk func([]byte) bool) (data []float32, ok bool) {
+// decodeBits16 n adet küçük uçlu 16 bitlik öğeyi readChunk ile okur; float32'ye açılsaydı
+// dosyanın iki katı bellek tutardı ve öğe öğe açmak okumanın çoğunu alırdı. Okuma başarısızsa
+// ok=false döner. Boy denetimi çağıranındır (ayırmadan önce).
+func decodeBits16(n int, readChunk func([]byte) bool) (bits []uint16, ok bool) {
+	bits = make([]uint16, n)
+	buffer := make([]byte, min(1<<20, n*2))
+	for i := 0; i < n; {
+		part := min(len(buffer)/2, n-i)
+		chunk := buffer[:part*2]
+		if !readChunk(chunk) {
+			return nil, false
+		}
+		for j := range part {
+			bits[i+j] = binary.LittleEndian.Uint16(chunk[j*2:])
+		}
+		i += part
+	}
+	return bits, true
+}
+
+// decodeValues n elemanlık küçük uçlu float32 veriyi 64 KiB'lık parçalarla readChunk ile okur;
+// okuma başarısızsa ok=false döner. Boy denetimi çağıranındır (ayırmadan önce).
+func decodeValues(n int, readChunk func([]byte) bool) (data []float32, ok bool) {
 	data = make([]float32, n)
 	buffer := make([]byte, 1<<16)
-	eb := dt.Bits() / 8
 	for i := 0; i < n; {
-		part := min(len(buffer)/eb, n-i)
-		if !readChunk(buffer[:part*eb]) {
+		part := min(len(buffer)/4, n-i)
+		if !readChunk(buffer[:part*4]) {
 			return nil, false
 		}
 		for j := 0; j < part; j++ {
-			if eb == 2 {
-				data[i+j] = tensor.FromBits16(dt, binary.LittleEndian.Uint16(buffer[j*2:]))
-			} else {
-				data[i+j] = math.Float32frombits(binary.LittleEndian.Uint32(buffer[j*4:]))
-			}
+			data[i+j] = math.Float32frombits(binary.LittleEndian.Uint32(buffer[j*4:]))
 		}
 		i += part
 	}

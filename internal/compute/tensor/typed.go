@@ -189,6 +189,29 @@ func FromBits16On(dev Device, dt DType, bits []uint16, shape ...int) *Tensor {
 	return fromStorage(be, be.FromHost(wide, dt), shape)
 }
 
+// Bits16s 16 bitlik ondalık tensörün öğelerini mantıksal sırayla bit deseni olarak verir: CPU'da
+// depodaki bitlerdir, float32'den geçseydi sinyal NaN'ı susardı. Öbür cihazlar değerden daraltır.
+func (t *Tensor) Bits16s() []uint16 {
+	if t.dtyp != BFloat16 && t.dtyp != Float16 {
+		panic(messages.Internal("Bits16s on " + t.dtyp.String()))
+	}
+	if _, cpu := t.be.(cpuBackend); !cpu {
+		d := t.Data()
+		out := make([]uint16, len(d))
+		for i, v := range d {
+			out[i] = narrowOne(v, t.dtyp)
+		}
+		return out
+	}
+	src := t.view()
+	if unlockedOps.Load() != 0 {
+		gate(nil, []Storage{src.S})
+	}
+	out := make([]uint16, src.Numel())
+	copyRows(out, cpuStore(src.S).h, View{Shape: src.Shape, Strides: ContiguousStrides(src.Shape)}, src)
+	return out
+}
+
 // Int64sOn tam sayı (dt: TR_Int hassasiyeti) ya da mantık (dt: Bool, değerler 0/1) tensörü
 // kurar. Değerlerin hassasiyete sığdığını çağıran denetler.
 func Int64sOn(dev Device, dt DType, vals []int64, shape ...int) *Tensor {
