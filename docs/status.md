@@ -600,6 +600,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** 13.10'un sıralama sırası uygulandı (−0.0 0.0'dan önce, NaN'lar sonda ve birbirine eşit, demette öğe öğe); anahtarlı sıralama `.TR_sort(f)` motorda: anahtar her öğe için bir kez çağrılır, sıra kararlı, iki parametreli karşılaştırıcı H2900, sıralanamayan anahtar H2902 ve H2903, asıl listeyi değiştiren anahtar H2703 [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/yerlesikler_test.tr`'nin 13.3 testleri, `interp/sorting_test.go`].
 - **Yapılacaklar (A, Ö1, 4a2; DENETİM istek 81: anahtarın tipi denetlenmediği için metin parametreli anahtar tam sayı alıyor):** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
+- **Yapılacaklar (A, Ö1; sahip D1, 2b'den sonraki ilk iş; DENETİM istek 112 Y1):** `.TR_remove(k)` 13.4'te yazılı, motorda yok. `d.TR_remove("a")` H0029 ile `TR_remove(...)` yazımını öğretiyor; yazılınca anahtarla aynı adda dosya varsa dosya siliniyor, sözlük değişmiyor, hata yok; dosya yoksa çalışma anında hata [ölçüldü: DENETİM]. Sınıf 13.1a emsaliyle A (DENETİM'in önerisi F1, Ö3 idi). `l.TR_remove(0)` aynı yola çıkıyor, dosya silmiyor. H0029'un öbür adları taranacak.
 - **Yapılacaklar (E, Ö3; sahip D1, 2b'den sonra; DENETİM istek 97 N3):** `.TR_pop` 13.3'te yazılı, motorda kimlik değil: yazan açık bir hata alıyor, sessiz yanlış yok. `.TR_remove_at` ile birlikte yazılır.
 
 ### 13.6
