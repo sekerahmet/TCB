@@ -95,6 +95,8 @@ type cacheCore struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	wg      sync.WaitGroup
+	// released kilit bırakılıp kayıt silinince kapanır; kapanmakta olan yöneticiyi bulan açılış bunu bekler.
+	released chan struct{}
 }
 
 type cacheEntry struct {
@@ -175,6 +177,13 @@ func OpenCache(s CacheOptions) (*Cache, error) {
 	cacheRecord.mu.Lock()
 	defer cacheRecord.mu.Unlock()
 	c := cacheRecord.m[key]
+	// Kapanmakta olan yönetici kilidi hâlâ tutuyor; aynı süreçteki açılış başka bir program değildir.
+	for c != nil && c.isClosing() {
+		cacheRecord.mu.Unlock()
+		<-c.released
+		cacheRecord.mu.Lock()
+		c = cacheRecord.m[key]
+	}
 	if c != nil {
 		// Paylaşılan tek kota vardır; en son verilen geçerlidir (küçüldüyse
 		// fazlası hemen silinir).
@@ -195,6 +204,13 @@ func OpenCache(s CacheOptions) (*Cache, error) {
 	c.clients = append(c.clients, h)
 	c.mu.Unlock()
 	return h, nil
+}
+
+// isClosing son Onbellek kapandıysa doğrudur.
+func (o *cacheCore) isClosing() bool {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.closed
 }
 
 // openCore dizinin yöneticisini kurar: süreçler arası kilidi alır,
@@ -218,6 +234,7 @@ func openCore(s CacheOptions) (*cacheCore, error) {
 		dir: s.Dir, quota: s.Quota, lock: lock, lists: map[*Cache][]string{}, reserved: map[*Cache]int64{},
 		record: map[string]*cacheEntry{}, requestedName: map[string]bool{},
 		warning: make(chan struct{}, s.Workers), ctx: ctx, cancel: cancel, worker: s.Workers,
+		released: make(chan struct{}),
 	}
 	for _, g := range inputs {
 		ad := g.Name()
@@ -666,9 +683,6 @@ func (h *Cache) Close() error {
 	last := len(o.clients) == 0
 	if last {
 		o.closed = true
-		if cacheRecord.m[o.key] == o {
-			delete(cacheRecord.m, o.key)
-		}
 	} else {
 		o.interleaveLists()
 	}
@@ -679,7 +693,14 @@ func (h *Cache) Close() error {
 	}
 	o.cancel()
 	o.wg.Wait()
-	return o.lock.Close() // kilit, tutamak kapanınca bırakılır
+	err := o.lock.Close() // kilit, tutamak kapanınca bırakılır
+	cacheRecord.mu.Lock()
+	if cacheRecord.m[o.key] == o {
+		delete(cacheRecord.m, o.key)
+	}
+	cacheRecord.mu.Unlock()
+	close(o.released)
+	return err
 }
 
 // Fetch, kaynağın yerel kopyasının yolunu döner; kopya yoksa kopyalar (ya

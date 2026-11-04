@@ -173,6 +173,45 @@ func FromRawOn(dev Device, dt DType, raw []byte, shape ...int) *Tensor {
 	return fromStorage(be, rawBackend(be, dt).FromRaw(raw, dt), shape)
 }
 
+// FromBits16On 16 bitlik ondalık (bfloat16, float16) tensörü bitlerinden kurar; CPU'da bits'in
+// kendisi depolamadır (çağıran bırakır), float32'ye açılıp yeniden yuvarlanmaz.
+func FromBits16On(dev Device, dt DType, bits []uint16, shape ...int) *Tensor {
+	be := BackendFor(dev)
+	n := allocSizeOn(be, isCreate, shape, dt)
+	if len(bits) != n {
+		panic(messages.New(messages.H3035, len(bits), shape))
+	}
+	if _, cpu := be.(cpuBackend); cpu {
+		return fromStorage(be, &cpuStorage{dtyp: dt, h: bits}, shape)
+	}
+	wide := make([]float32, n)
+	widen16(wide, bits, dt)
+	return fromStorage(be, be.FromHost(wide, dt), shape)
+}
+
+// Bits16s 16 bitlik ondalık tensörün öğelerini mantıksal sırayla bit deseni olarak verir: CPU'da
+// depodaki bitlerdir, float32'den geçseydi sinyal NaN'ı susardı. Öbür cihazlar değerden daraltır.
+func (t *Tensor) Bits16s() []uint16 {
+	if t.dtyp != BFloat16 && t.dtyp != Float16 {
+		panic(messages.Internal("Bits16s on " + t.dtyp.String()))
+	}
+	if _, cpu := t.be.(cpuBackend); !cpu {
+		d := t.Data()
+		out := make([]uint16, len(d))
+		for i, v := range d {
+			out[i] = narrowOne(v, t.dtyp)
+		}
+		return out
+	}
+	src := t.view()
+	if unlockedOps.Load() != 0 {
+		gate(nil, []Storage{src.S})
+	}
+	out := make([]uint16, src.Numel())
+	copyRows(out, cpuStore(src.S).h, View{Shape: src.Shape, Strides: ContiguousStrides(src.Shape)}, src)
+	return out
+}
+
 // Int64sOn tam sayı (dt: TR_Int hassasiyeti) ya da mantık (dt: Bool, değerler 0/1) tensörü
 // kurar. Değerlerin hassasiyete sığdığını çağıran denetler.
 func Int64sOn(dev Device, dt DType, vals []int64, shape ...int) *Tensor {

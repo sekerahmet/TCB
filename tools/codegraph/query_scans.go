@@ -101,17 +101,18 @@ type scanHit struct {
 	tests []*Node
 }
 
-// scansCovering dosyayı kapsayan taramalardır, en çok test taşıyan önce.
-func (ix *index) scansCovering(file string) []scanHit {
+// coveringHits dosyayı kapsayan `kind` düğümlerini ve onlara `edgeKind` kenarıyla bağlanan testleri verir; en çok test
+// taşıyan önce gelir.
+func (ix *index) coveringHits(kind, edgeKind, file string) []scanHit {
 	var out []scanHit
 	for i := range ix.g.Nodes {
 		n := &ix.g.Nodes[i]
-		if n.Kind != kindScan || !decodeScope(n.Detail).covers(file) {
+		if n.Kind != kind || !decodeScope(n.Detail).covers(file) {
 			continue
 		}
 		hit := scanHit{scan: n}
 		for _, e := range ix.in[n.ID] {
-			if t := ix.byID[e.From]; e.Kind == edgeScans && t != nil {
+			if t := ix.byID[e.From]; e.Kind == edgeKind && t != nil {
 				hit.tests = append(hit.tests, t)
 			}
 		}
@@ -127,13 +128,21 @@ func (ix *index) scansCovering(file string) []scanHit {
 	return out
 }
 
+// scansCovering dosyayı kapsayan taramalardır, en çok test taşıyan önce.
+func (ix *index) scansCovering(file string) []scanHit {
+	return ix.coveringHits(kindScan, edgeScans, file)
+}
+
+// typeQueriesCovering dosyayı kapsayan tip sorgusu kapsamlarıdır, en çok test taşıyan önce.
+func (ix *index) typeQueriesCovering(file string) []scanHit {
+	return ix.coveringHits(kindTypeQuery, edgeTypeQueries, file)
+}
+
 // namesPerScan bir tarama satırında yazılan en çok test adıdır (--all hepsini yazar).
 const namesPerScan = 8
 
-// printScans dosyayı kapsayan depo geneli taramaları kalıp başına bir satırla yazar: her dosyada aynı uzun test listesi
-// olmasın diye satırda en çok namesPerScan test adı yazılır.
-func (ix *index) printScans(w io.Writer, file string, limit int) int {
-	hits := ix.scansCovering(file)
+// printCoveringHits verilen kapsam eşleşmelerini verilen başlık biçimiyle kalıp başına bir satır yazar.
+func printCoveringHits(w io.Writer, hits []scanHit, limit int, headingFmt string) int {
 	if len(hits) == 0 {
 		return 0
 	}
@@ -143,7 +152,7 @@ func (ix *index) printScans(w io.Writer, file string, limit int) int {
 			tests[t.ID] = true
 		}
 	}
-	fmt.Fprintf(w, "  <- repository-wide checks that scan it (%d tests in %d scans; each walks every file of its pattern, its rule may still skip this one):\n", len(tests), len(hits))
+	fmt.Fprintf(w, headingFmt, len(tests), len(hits))
 	forEachLimited(w, hits, limit, "    ", moreHint, func(h scanHit) string {
 		names := make([]string, 0, len(h.tests))
 		for _, t := range h.tests {
@@ -155,4 +164,17 @@ func (ix *index) printScans(w io.Writer, file string, limit int) int {
 		return fmt.Sprintf("%s (%s:%d): %s  [INFERRED]", h.scan.Name, h.scan.File, h.scan.Line, strings.Join(names, ", "))
 	})
 	return len(tests)
+}
+
+// printScans dosyayı kapsayan depo geneli taramaları kalıp başına bir satırla yazar: her dosyada aynı uzun test listesi
+// olmasın diye satırda en çok namesPerScan test adı yazılır.
+func (ix *index) printScans(w io.Writer, file string, limit int) int {
+	return printCoveringHits(w, ix.scansCovering(file), limit,
+		"  <- repository-wide checks that scan it (%d tests in %d scans; each walks every file of its pattern, its rule may still skip this one):\n")
+}
+
+// printTypeQueries dosyayı kapsayan tip sorgusu testlerini kapsam başına bir satırla yazar.
+func (ix *index) printTypeQueries(w io.Writer, file string, limit int) int {
+	return printCoveringHits(w, ix.typeQueriesCovering(file), limit,
+		"  <- type-loaded checks that cover it (%d tests in %d scopes; each type-loads every Go file of its scope):\n")
 }

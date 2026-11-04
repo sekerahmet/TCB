@@ -223,6 +223,7 @@ TR_shape.TR_length	ok	0	name:TR_mem_length
 TR_sin_table.TR_shape	ok	0	name:TR_mem_shape
 TR_table.TR_device	ok	0	name:TR_mem_device
 TR_table.TR_dtype	ok	0	name:TR_mem_dtype
+TR_table.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 TR_table.TR_shape	ok	0	name:TR_mem_shape
 TR_table.TR_transpose	ok	0	name:TR_mem_transpose
 TR_tolist.TR_map	ok	0	name:TR_mem_map
@@ -390,7 +391,9 @@ blok.TR_forward	ok	0	tr:method:tools/gpu/measurement_model.tr:Blok.TR_mem_forwar
 blok_değeri.TR_tolist	ok	0	name:TR_mem_tolist
 boş.TR_grad	ok	0	name:TR_mem_grad
 boş.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
+boş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 boş.TR_step_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_step_position
+boş.TR_tolist	ok	0	name:TR_mem_tolist
 büyük.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 c.TR_append	ok	0	name:TR_mem_append
 c.TR_contains	ok	0	name:TR_mem_contains
@@ -965,6 +968,7 @@ s.TR_cancel	ok	0	name:TR_mem_cancel
 s.TR_contains	ok	0	name:TR_mem_contains
 s.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 s.TR_dtype	ok	0	name:TR_mem_dtype
+s.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
 s.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 s.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 s.TR_gate_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_up_proj

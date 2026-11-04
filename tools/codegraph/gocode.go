@@ -16,20 +16,19 @@ import (
 // goIndex Go çıkarımının, sonradan çalışan çıkarıcıların (test ve kural bağları) kullandığı
 // ara tablolarıdır.
 type goIndex struct {
-	pkgSyms     map[string]map[string]string // paket yolu -> "Ad" ya da "Tür.Metot" -> kimlik (test dosyası dışı)
-	inTestFile  map[string]bool              // test dosyasında tanımlı işlevlerin kimlikleri
-	tests       []*testFunc                  // TestX/BenchmarkX/FuzzX/ExampleX işlevleri
-	byName      map[string][]*testFunc
-	dirFiles    map[string]bool     // dosya düğümü olan göreli yollar
-	pathRefs    []pathRef           // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
-	snip        *snippetState       // Go test dizelerindeki TR metinleri (tr_snippets.go)
-	walks       *walkState          // liste gezintisi ve sözlük araması kayıtları (walks.go)
-	envSets     map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
-	scans       *scanState          // depo genelini tarayan test çağrıları (scans.go)
-	checker     *checkerState       // tip denetleyicisinden geçen TR programlarını koşan testler (checker_tests.go)
-	typeQueries *typeQueryState     // depoyu tip bilgisiyle yükleyip ad/arayüz arayan testler (type_queries.go)
-	caseCalls   []caseCall          // dize kollarında çağrılan işlevler (case_tests.go)
-	testTexts   []testText          // test dosyalarındaki dize değişmezleri (case_tests.go)
+	pkgSyms    map[string]map[string]string // paket yolu -> "Ad" ya da "Tür.Metot" -> kimlik (test dosyası dışı)
+	inTestFile map[string]bool              // test dosyasında tanımlı işlevlerin kimlikleri
+	tests      []*testFunc                  // TestX/BenchmarkX/FuzzX/ExampleX işlevleri
+	byName     map[string][]*testFunc
+	dirFiles   map[string]bool     // dosya düğümü olan göreli yollar
+	pathRefs   []pathRef           // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
+	snip       *snippetState       // Go test dizelerindeki TR metinleri (tr_snippets.go)
+	walks      *walkState          // liste gezintisi ve sözlük araması kayıtları (walks.go)
+	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
+	scans      *scanState          // depo genelini tarayan test çağrıları (scans.go)
+	checker    *checkerState       // tip denetleyicisinden geçen TR programlarını koşan testler (checker_tests.go)
+	caseCalls  []caseCall          // dize kollarında çağrılan işlevler (case_tests.go)
+	testTexts  []testText          // test dosyalarındaki dize değişmezleri (case_tests.go)
 }
 
 // testFunc bir test işlevidir.
@@ -141,7 +140,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		walks: newWalkState(), byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
-		scans: newScanState(), checker: newCheckerState(), typeQueries: newTypeQueryState(),
+		scans: newScanState(), checker: newCheckerState(),
 	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
 	x.codeAliases = x.codeAliasKeys()
@@ -152,7 +151,6 @@ func extractGo(m *module, b *builder) *goIndex {
 	x.resolveTextCompares()
 	x.resolveStdlibUses()
 	x.resolveScans()
-	x.resolveTypeQueries()
 	x.resolveParamPaths()
 	x.resolvePerDirPaths()
 	x.implements()

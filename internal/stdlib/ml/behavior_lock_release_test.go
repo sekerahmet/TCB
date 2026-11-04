@@ -114,15 +114,18 @@ func runLockLoad(t *testing.T, w lockWork, wait func(m *interp.VM, p *lockProbe)
 	return p, p.to.Sub(p.from)
 }
 
-// sleeper 5 ms uyur; uyanıştan kilidin geri alınmasına dek geçen süreyi yazar.
+// sleeperNap gözcünün uykusudur.
+const sleeperNap = 5 * time.Millisecond
+
+// sleeper sleeperNap uyur; uyanıştan kilidin geri alınmasına dek geçen süreyi yazar.
 func sleeper(m *interp.VM, p *lockProbe) {
 	var start, woke time.Time
 	m.Blocking(func() {
 		start = time.Now()
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(sleeperNap)
 		woke = time.Now()
 	})
-	p.add(woke, time.Since(woke), woke.Sub(start)-5*time.Millisecond)
+	p.add(woke, time.Since(woke), woke.Sub(start)-sleeperNap)
 }
 
 // looper 100 Hz'lik döngüdür: sıradaki pencerenin başına dek uyur, başlangıcın pencere başından
@@ -211,6 +214,11 @@ func reportLockWaits(t *testing.T, w lockWork) {
 		}
 		waits, overs := p.inLoad()
 		if len(waits) == 0 {
+			// Hızlı kartta 60 çağrı gözcünün bir uykusundan kısa sürebilir: bekleme yoktur, ölçülecek de yoktur.
+			if load < 2*sleeperNap {
+				t.Logf("%s: yük %s sürdü, gözcünün uykusundan kısa; ölçüm yok", w, ms(load))
+				return
+			}
 			t.Fatalf("%s: yük %s sürdü, gözcü yük sırasında hiç uyanmadı", w, ms(load))
 		}
 		med, p99, worst := waitStats(waits)

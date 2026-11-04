@@ -98,10 +98,13 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 		}
 		g := fileEntry{ad: e.name, shape: shape, dtype: dt}
 		var err error
-		if dt.IsTyped() {
+		switch {
+		case dt.IsTyped():
 			g.raw, err = readRaw(r, dt, count)
-		} else {
-			g.data, err = readValues(r, dt, count)
+		case dt.Bits() == 16:
+			g.bits, err = readBits16(r, count)
+		default:
+			g.data, err = readValues(r, count)
 		}
 		if err != nil {
 			return nil, messages.New(messages.H6653, e.name, err)
@@ -345,9 +348,22 @@ func readRaw(r io.Reader, dt tensor.DType, n int) ([]byte, error) {
 	return raw, nil
 }
 
-func readValues(r io.Reader, dt tensor.DType, n int) ([]float32, error) {
+// readBits16 n adet 16 bitlik ondalığı dosyadaki bitleriyle okur.
+func readBits16(r io.Reader, n int) ([]uint16, error) {
 	var readErr error
-	data, ok := decodeValues(n, dt, func(chunk []byte) bool {
+	bits, ok := decodeBits16(n, func(chunk []byte) bool {
+		_, readErr = io.ReadFull(r, chunk)
+		return readErr == nil
+	})
+	if !ok {
+		return nil, readErr
+	}
+	return bits, nil
+}
+
+func readValues(r io.Reader, n int) ([]float32, error) {
+	var readErr error
+	data, ok := decodeValues(n, func(chunk []byte) bool {
 		_, readErr = io.ReadFull(r, chunk)
 		return readErr == nil
 	})

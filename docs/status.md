@@ -605,6 +605,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Mevcut durum:** 13.10'un sıralama sırası uygulandı (−0.0 0.0'dan önce, NaN'lar sonda ve birbirine eşit, demette öğe öğe); anahtarlı sıralama `.TR_sort(f)` motorda: anahtar her öğe için bir kez çağrılır, sıra kararlı, iki parametreli karşılaştırıcı H2900, sıralanamayan anahtar H2902 ve H2903, asıl listeyi değiştiren anahtar H2703 [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `tests/yerlesikler_test.tr`'nin 13.3 testleri, `interp/sorting_test.go`].
 - **Mevcut durum (Kol A 13 yerleşikler 4, 2026-11-04):** `.TR_pop` ve `.TR_remove_at` motorda: öğeyi yerinde çıkarıp veriyor, negatif indeks sondan sayıyor, boş listede H2533, sınır dışı indekste H2534; dönüş listenin öğe tipi. `.TR_map`, `.TR_filter` ve `.TR_reduce`'un fonksiyonu dolaşılan listeyi değiştirince H2703 veriyor; bu üçünde denetim yoktu [test: `tests/yerlesikler_test.tr`'nin 13.3 testleri, `tests/negative/cikaran_metotlar.tr`].
 - **Yapılacaklar (A, Ö1, 4a2; DENETİM istek 81: anahtarın tipi denetlenmediği için metin parametreli anahtar tam sayı alıyor):** denetimin anahtar fonksiyonunun parametre sayısını (H2900) ve anahtarın tipini denetlemesi (4a2, denetleyici).
+- **Yapılacaklar (A, Ö1; sahip D1, 2b'den sonraki ilk iş; DENETİM istek 112 Y1):** `.TR_remove(k)` 13.4'te yazılı, motorda yok. Sözlükte bu çağrı H0029 ile `TR_remove(...)` yazımını öğretiyor; yazılınca anahtarla aynı adda dosya varsa dosya siliniyor, sözlük değişmiyor, hata yok; dosya yoksa çalışma anında hata [ölçüldü: DENETİM]. Sınıf 13.1a emsaliyle A (DENETİM'in önerisi F1, Ö3 idi). Listede tam sayı indeksle aynı yola çıkıyor, dosya silmiyor. H0029'un öbür adları taranacak.
+- **Yapılacaklar (E, Ö3; sahip D1, 2b'den sonra; DENETİM istek 97 N3):** `.TR_pop` 13.3'te yazılı, motorda kimlik değil: yazan açık bir hata alıyor, sessiz yanlış yok. `.TR_remove_at` ile birlikte yazılır.
 
 ### 13.4
 
@@ -830,7 +832,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.22a
 
-- **Mevcut durum:** CPU float64'te telafisiz, GPU float32 girdiyi float32'de telafili (Neumaier) biriktiriyor (float64 girdi float64'te). CPU'da `GOMAXPROCS` 1–16'da sonuç bit bit aynı [ölçüldü: DENETİM].
+- **Mevcut durum:** CPU float64'te telafisiz, GPU float32 girdiyi float32'de telafili (Neumaier) biriktiriyor (float64 girdi float64'te). CPU'da `GOMAXPROCS` 1–16'da sonuç bit bit aynı [ölçüldü: DENETİM]. 16 bitlik ağırlıkla tek satırlık `@` ağırlığı açmadan okuyor, sonuç açan yolla ve her iş parçacığı sayısında aynı bit [test: TestGemv16SameBitsAcrossThreads].
+- **Yapılacaklar (D, Ö3; en son bakılacaklar, H1 hız kuyruğu):** CPU'da eksen 0 toplamının 28 baytlık iç döngüsü 64 baytlık sınırı geçince `BenchmarkSpeedSumAxis0` ~%26 yavaşlıyor; buyruklar aynı, yalnız döngünün yeri değişiyor, kaydırınca fark tersine dönüyor [ölçüldü: AMD EPYC 7B12, `e27cdff0` +%26,0, kaydırılmış uç −%1,8, kopya farkı %2,9]. `karakter_modeli` etkilenmedi.
 - **Yapılacaklar (C, Ö2; ölçülmedi):** `TestReductionsIndependentOfThreadCount` Go testi bölümün commit'inde yazılır (bugün yok); 15.22a başlıklı TR testi.
 
 ### 15.22b
@@ -937,6 +940,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** GPU'daki matematik işlevlerinin (`ex2.approx`, `lg2.approx` yolları) ulp sınırı ölçülmedi; 15.11 GPU için "birkaç ulp" diyor.
 - **Yapılacaklar:** GPU sınırlarını ölçüp 15.10 ve 15.11'e yazmak; cihazlar arası sözün Go testi.
+- **Yapılacaklar (D, Ö3; sahip TCB, dil tanımı turu; DENETİM istek 121 N1):** AVX2 ile genel yolun model logiti varsayılan toleransı aşıyor, metin aynı, tabanda da böyle [ölçüldü: H1]. Karar `pending.md`'de.
 
 ### 15.42
 
@@ -981,6 +985,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum (T1 dilim 2):** `.safetensors` yolu her cinsi (F32, BF16, F16, F64, I64, I32, I16, I8, U32, U16, U8, BOOL) hizaya göre yazıyor; Python `safetensors` (torch) ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip, bu makinede torch 2.14 ile koştu].
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
+- **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM]. GPU'daki tensör değerden daraltılıyor, kart yerelde sınanmadı. Kontrol noktası float32'den geçiyor: susturuyor.
 
 ### 15.49
 
@@ -996,13 +1001,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.51
 
 - **Mevcut durum:** nicemleme yok. Motorda `Int8` ("ölçek ayrı tutulur") ve `Int4` ("bir baytta iki eleman") türleri ayrılmış, "henüz hiçbir arka uç hesap desteği sunmaz" [kanıtlı: internal/compute/tensor/device.go:89-94]. Yol haritasının 2. kilometre taşı: "Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir"; bugün "nicemleme ... yok" [kanıtlı: `docs/roadmap.md`].
-- **Yapılacaklar:** dört hassasiyet ("q8", "q4", "q4z128", "fp8"); TR testi. Başka grup boyları, K-nicemleme ailesi, NF4 ve 2–3 bit Sonraya.
+- **Yapılacaklar:** önce GGUF'un türleri ("q8", "q4_k", "q6_k"; sahip H1, 2. kilometre taşı); sonra "q4", "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
 
 ### 15.52
 
 - **Mevcut durum:** uygulanmadı. Hugging Face'in `weight_scale_inv`'inin çarpılan ölçek olduğu bir hipotezdir [hipotez: DENETİM F2].
 - **Yapılacaklar:** `.TR_to_dtype` ile nicemleme ve açma (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar); yeni kimlikler `TR_quantized` (gösterim adı "nicemlenmiş") ve `TR_zero_point` ("sıfır_noktası"), onaylı; NaN ve aralık denetimleri 15.6'nın bekleyen işlemlerinde; `weight_scale_inv`'in anlamını gerçek bir FP8 modeliyle doğrulamak; TR testi. Sıra değiştiren gruplar (GPTQ `desc_act`, `g_idx`) Sonraya.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** q4'ün sıfır bloğu −0.0 ölçek ve 8 kodla llama.cpp ile bit bit (baytlarla test); q4z128'in RTN formülü; fp8'in kısmi son bloğu (T3). **Açık karar:** GPTQ/AWQ ölçeği bf16 kalsın mı (dosya biçimi).
+- **Yapılacaklar (A, Ö1; sahip H1, nicemleme uygulanırken; DENETİM istek 118 B1):** fp16 ölçeği sonsuza giden blok nicemleme hatası: yazılmazsa öğeler sonlu olsa da açılan değer NaN olur ("q8" `amax` 8 321 040'tan, "q4" 524 160'tan başlar) [ölçüldü: DENETİM, llama.cpp'nin kodu]. Bugün kimse etkilenmiyor, 15.52 uygulanmadı. `1 / d` sonsuzsa sıfır blok gibi kodlama da aynı dilimde (D, Ö3).
 
 ### 15.53
 
@@ -1017,8 +1023,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.55
 
+- **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı depoda ve dosyada korunuyor (15.47a) [test: `TestSixteenBitStridedCopyKeepsBits`]. `TR_Tensor(16 bitlik tensör)` de bitleriyle kopyalıyor (C, Ö2): float32'ye açılmıyor, sinyal NaN'ı depoda bozulmuyor [test: `TestTensorFromSixteenBitTensorKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
 - **Mevcut durum:** uygulanmadı; safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni].
 - **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası (H6950 bugün yalnız TR biçimini öneriyor; `.TR_to_dtype("float32")` önerisi 15.52 uygulanınca, öneri tablosunda koşulabilsin diye); kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
+- **Yapılacaklar (A, Ö1; sahip H1, GGUF dilimi; DENETİM istek 119 Ş-A, Ş-B):** GGUF okuyucu; `tr/pretrained`'in GGUF yolu birleşik katmansız, tensör başına türle; `llama`'da `attn_q`, `attn_k` satır sırası geri alınır, yoksa sessizce yanlış metin [hipotez: uygulama yok]. Test: küçük bir Llama modelinde F16 GGUF ile safetensors aynı logit. Yeni kimlik `TR_load_metadata` (gösterim adı `üstveri_yükle`). `TR_merged_kv`'nin kazancı bu yolda yok. Llama 3.1 ve 3.2 GGUF'unda RoPE ölçeği ayrı bir tensörde (15.55) [ölçüldü: DENETİM istek 123 Ş1, başlık]: uygulanana kadar H6943; Qwen3 ve SmolLM2 ilk adımda.
 
 ## 16. Veri ve parçalayıcı
 
@@ -1035,7 +1043,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 - **Mevcut durum:** `.TR_decode` yalnız tek dizi (kimlik listesi ya da 1 boyutlu tensör); listelerin listesi ve 2 boyutlu tensör hata, ileti `p.TR_batch_decode(diziler)`'i önerir (H5642). `TR_batch_decode` her diziyi `.TR_decode` ile aynı metne çevirir; boş liste ve 0 satırlı tensör `[]`; tek dizi verilirse ileti `.TR_decode`'u önerir (H5643) [test: TR testleri "16.3 çöz: tek dizi …", "16.3 toplu_çöz: her dizi çöz ile aynı metin"; `TestBatchDecodeIsDecodePerSequence`]. Dağarcıkta olmayan kimlik çalışma hatası: ileti kimliği ve dağarcık boyunu, `TR_batch_decode`'da dizinin sırasını da söyler ve üretimi sınırlayan yazımı önerir (H5647) [test: TR testi "16.3 dağarcıkta olmayan kimlik çalışma hatasıdır", `TestDecodeOutOfVocabularyIDIsAnError`]. `TR_generate(..., TR_vocab_size: p.TR_vocab_size)` örneklemeyi dağarcığa sınırlar; dolgulu modelde (`TR_GPT(p.TR_vocab_size + 64, …)`, ilk ağırlıklar, 200 üretim × 16 parça, tohum 1000+i, sıcaklık 1) sınırsız 3200 parçanın 266'sı dağarcık dışında, sınırla 0 [ölçüldü: T1 `claude/16-2`; test: `lib/layers_test.tr` "GPT: üret dağarcık_boyutu ile dağarcık dışı kimlik üretmez"]. Yarım kalan UTF-8 dizisi hata vermeden U+FFFD oluyor; beş dizide Hugging Face ile bayt bayt aynı [ölçüldü: 2026-11-02, main `705b721b`]. 16.3 bunu 2026-11-02'den beri yazıyor; akışlı çözme 16.3a'da, uygulanmadı.
 - **Mevcut durum (GPU):** `tools/gpu/gpt_training.tr` ve `ss_exam.tr` `TR_vocab_size:` ile gerçek kartta dolgulu dağarcıkta (model 1024, dağarcık 1005) hatasız koşuyor [ölçüldü: L4, 2026-11-03 16:10, `6cab4f89`].
 - **Mevcut durum:** `.TR_vocab_size` kimliklerin sınırıdır: en büyük kimlik + 1, eklenmiş parçalar dahil. Seyrek sözlükte (`{"[UNK]":0,"a":1,"b":5}`) 6; `TR_generate(..., TR_vocab_size: p.TR_vocab_size)` 5'i üretebilir, aradaki boş kimlik `.TR_decode`'da H5647 verir. Qwen3, SmolLM2 ve deponun fikstürlerinde sayı değişmedi [ölçüldü: T1].
-- **Mevcut durum (T1, 2026-11-04):** H5647 sınırın içindeki boş kimlikte "sözlükte boş" diyor, üretimi sınırlama önerisini yalnız sınırın dışında veriyor [test: `TestDecodeGapIDSaysItIsEmpty`]. Eklenmiş parçanın kimliği dosyadaki kimliktir, TR değiştirmez: içerik sözlükte ya da daha önce eklenmişse onunla aynı olmalı (H5277), değilse 0 ile `1<<30` arasında (H5221) ve boş olmalı (H5291, iki parçanın adını söyler); sıra hesabı kalktı, sonuç dosyadaki sıraya bağlı değil [test: `TestAddedTokenKeepsTheFilesID`; TR testi "16.1 eklenmiş parça dosyadaki kimliğini alır, dolu kimlik hatadır"]. `tokenizers` 0.23.2 dosyadaki kimliği sessizce yok sayıp sıradakini veriyor; TR bilerek ayrılıyor. Qwen3 ve SmolLM2'de sayı ve kodlamalar önceki ikiliyle aynı [ölçüldü: T1].
+- **Mevcut durum (T1, 2026-11-04):** H5647 sınırın içindeki boş kimlikte "sözlükte boş" diyor, üretimi sınırlama önerisini yalnız sınırın dışında veriyor [test: `TestDecodeGapIDSaysItIsEmpty`]. H5221 kimliğin sınırını söylüyor; H5277 öbür kimlik daha önce eklenmiş bir parçanın olabildiği için "sözlükteki" demiyor; boş içerik atlanır, aynı parçanın son yazımının bayrakları geçerlidir [test: `TestAddedTokenKeepsTheFilesID`]. Eklenmiş parçanın kimliği dosyadaki kimliktir, TR değiştirmez: içerik sözlükte ya da daha önce eklenmişse onunla aynı olmalı (H5277), değilse 0 ile `1<<30` arasında (H5221) ve boş olmalı (H5291, iki parçanın adını söyler); sıra hesabı kalktı, kimlikler dosyadaki sıraya bağlı değil [test: `TestAddedTokenKeepsTheFilesID`; TR testi "16.1 eklenmiş parça dosyadaki kimliğini alır, dolu kimlik hatadır"]. `tokenizers` 0.23.2 dosyadaki kimliği sessizce yok sayıp sıradakini veriyor; TR bilerek ayrılıyor. Qwen3 ve SmolLM2'de sayı ve kodlamalar önceki ikiliyle aynı [ölçüldü: T1].
 - **Mevcut durum (A, Ö1, kapandı; T1, 2026-11-04):** sıradaki eklenmiş parça dolu kimliğe denk gelince sözlükteki parçayı eziyordu (`a b z` → `[1, 5, 5]` → `a z z`, hatasız); `tokenizers` 0.23.2 de öyle [ölçüldü: T1]. Şimdi H5291. Sessiz yanlıştı; gerçek bir dosyada görülmedi.
 - **Bulgu (T1, 2026-11-04; sahip TCB, C, Ö2, dil tanımı turu: 15.42'nin toplam sınırı; sınıf DENETİM istek 105):** kimliği 1.000.000.000 olan iki parçalı dosyada `p.TR_vocab_size` 1000000001. `TR_GPT(p.TR_vocab_size, ...)` gömme boyu 8 ve 64'te şekil sınırı hatası veriyor (0,1 sn). Gömme boyu 4'te sınırın altında kalıyor: 50 GB'lik makinede 49,5 sn'de 49,16 GB, süreç işletim sistemince öldürüldü, TR hatası yok [ölçüldü: Colab CPU High-RAM]. Tensör başına 16 GB, 15.42'nin sınırının altında; aynı anda yaşayan tensörlerin toplamı denetlenmez, yani çelişki değil.
 
@@ -1057,6 +1065,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md). Tas
 ### 16.5
 
 - **Yapılacaklar (dil tanımı turu 1, 2026-11-01):** okuyucu `int64`'e geçer; `int32`'ye sığmayan `<u4` ve `<i8` değerini reddetmek (H5086) dil tanımına aykırı: 16.5 yalnız tür kümesini söyler, 16.6 2³²'ye kadar işaretsiz kimliğe izin verir, 16.7 `"int64"` tensör üretir [kanıtlı: Gemini `TUR1_RAPORU.md` satır 27, DENETİM `kol-denetim-tur1-rapor-sonuc.md`]. Bugün `internal/compute/dataload/shard.go:282` (`decodeI32`, 256) reddediyor; `TestShardU32Overflow`'un `<i8` satırları ve `tests/veri_parcalayici_test.tr`'nin sınırı ters döner. S1'in işi.
+- **Mevcut durum (2026-11-04; C, Ö2; TCB):** kapanmakta olan önbellek kilidi bırakana kadar aynı klasörün açılışı bekliyor. Önce kayıt kilitten önce siliniyordu: sonlandırıcının kapattığı kümeyle aynı klasörü açan program "başka bir program kullanıyor" hatası alıyordu; `TestExamplesRun` `b03262ac`'nin main CI'ında böyle düştü, aynı commit kontrol dalında geçmişti [ölçüldü: iki koşu]. Hata açıktı, sessiz yanlış yok [test: `TestCacheOpenWaitsForClosing`]. İşçinin okuması takılırsa açılış da süresiz bekliyor, ileti vermiyor, ilk Ctrl+C kesmiyor [ölçüldü: DENETİM istek 113 Z1; C, Ö2]: yavaş sürücü, kapanış ve aynı klasörün yeniden açılışı birlikte gerekiyor. Süreli bekleme somut ihtiyaç çıkınca.
 
 ### 16.6
 
@@ -1278,6 +1287,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 - **Yapılacaklar (C, Ö2, 15.45 ile; ölçüm status'un):** `TR_dropout` (15.23d) geldiğinde aynı üreteçten çekmesi.
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte; bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde]. "rng"'nin "pcg:" öneki ve bilinmeyen önekin yükleme hatası (H6953) T1'de geldi [test: checkpoint behavior_security_test.go].
 - **Yapılacaklar (T1 birleşmesi, 2026-11-01):** 20.17'nin Test satırındaki TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir; bugün yalnız Go testlerinde [ölçüldü: `git grep 54520000000000002017`].
+- **Yapılacaklar (C, Ö2; sahip T1, çağrı yerlerinden sonra; DENETİM istek 122 N2):** kontrol noktası 16 bitlik tensörü float32'den geçiriyor: sinyal NaN'ı orada susuyor [kanıtlı: T1, kod; ölçülmedi]. `TR_save_tensors` bitleriyle yazıyor; GPU'daki tensör değerden daraltıldığı için orada da susuyor [kanıtlı: T1; kartta koşulmadı].
 
 ### 20.14
 

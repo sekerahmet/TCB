@@ -22,25 +22,26 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_LANG=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 84
+const extractorRevision = 85
 
 // Düğüm türleri.
 const (
-	kindPackage = "package"
-	kindFile    = "file"
-	kindFunc    = "func"
-	kindMethod  = "method"
-	kindType    = "type"
-	kindConst   = "const"
-	kindField   = "field"
-	kindClosure = "closure"
-	kindVar     = "var"
-	kindMessage = "message"
-	kindName    = "name"
-	kindRule    = "rule"
-	kindDoc     = "doc"
-	kindHeading = "heading"
-	kindScan    = "scan" // depo genelini tarayan bir test çağrısı ve kalıbı (scans.go)
+	kindPackage   = "package"
+	kindFile      = "file"
+	kindFunc      = "func"
+	kindMethod    = "method"
+	kindType      = "type"
+	kindConst     = "const"
+	kindField     = "field"
+	kindClosure   = "closure"
+	kindVar       = "var"
+	kindMessage   = "message"
+	kindName      = "name"
+	kindRule      = "rule"
+	kindDoc       = "doc"
+	kindHeading   = "heading"
+	kindScan      = "scan"       // depo genelini tarayan bir test çağrısı ve kalıbı (scans.go)
+	kindTypeQuery = "type_query" // tip bilgisiyle yükleme yapıp sorgulayan bir test grubu ve kapsamı (type_queries.go)
 )
 
 // Kenar türleri.
@@ -73,6 +74,7 @@ const (
 	edgeCites         = "cites"          // test -> yorumunda ya da iletisinde andığı depo dosyası (test_paths.go: citeRefs)
 	edgeLoads         = "loads"          // JavaScript dosyası -> yüklediği depo dosyası (js_loads.go)
 	edgeScans         = "scans"          // test -> taradığı kalıbın scan düğümü (scans.go)
+	edgeTypeQueries   = "type_queries"   // test -> tip bilgisiyle yüklediği kapsamın type_query düğümü (type_queries.go)
 	edgeComparesValue = "compares_value" // bildirim -> değerini metinle karşılaştırdığı dize sabiti (value_compares.go)
 	// Standart kitaplığın arayüz ve yansımayla çağırdıkları (stdlib_dispatch.go): bildirim -> metot ya da alan.
 	edgeFormats     = "formats"      // fmt/log/testing/ileti biçimleyicisi String, Error ... çağırır

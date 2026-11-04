@@ -216,6 +216,14 @@ TR_test "GPT.kayıp: sapmasız çıkışta doğrusal_çapraz_entropi kullanır; 
     }
 }
 
+TR_test "GPT: ağırlıklar tohumdan gelir; başlangıç sapması 0 rastgele sayı çekmez" {
+    TR_var m = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 5)
+    TR_assert(TR_equal(m.TR_embedding.TR_table, TR_randn([16, 8], TR_seed: 5) * 0.02), "tablo tohumun N(0, 0.02)'sidir")
+    TR_var s = TR_GPT(16, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 5, TR_init_std: 0.0)
+    TR_assert(TR_equal(s.TR_embedding.TR_table, TR_zeros([16, 8])), "sapma 0 sıfır verir")
+    TR_assert(s.TR_embedding.TR_table.TR_requires_grad, "sıfır ağırlık da türev izler")
+}
+
 TR_test "GPT: üret istenen kadar parça ekler; tohumla tekrarlanır, bağlamdan uzun dizide çalışır" {
     TR_var m = TR_GPT(12, TR_context: 4, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2)
     TR_var a = m.TR_generate([1, 2], 6, TR_seed: 3)

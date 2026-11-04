@@ -14,6 +14,15 @@ func xgetbv0() (eax uint32)
 // geçici olarak değiştirebilir (useAVX2For).
 var hasAVX2 = detectAVX2() && os.Getenv("TR_CPU_AVX2") != "0"
 
+// hasF16C float16'yı yazmaçta açan komut var mı (float16 ağırlığın gemv çekirdeği). Testler
+// F16C'siz işlemciyi sınamak için değiştirebilir.
+var hasF16C = detectF16C()
+
+func detectF16C() bool {
+	_, _, ecx1, _ := cpuid(1, 0)
+	return ecx1&(1<<29) != 0
+}
+
 // detectAVX2 işlemcinin AVX2, FMA ve AVX'i desteklediğini ve işletim sisteminin ymm
 // yazmaçlarını kaydettiğini (OSXSAVE, XCR0 bit 1 ve 2) denetler.
 func detectAVX2() bool {
