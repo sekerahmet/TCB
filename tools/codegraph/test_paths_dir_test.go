@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 )
 
 var perDirDocFiles = map[string]string{
@@ -160,7 +162,9 @@ func TestRepoPackageReadmeListsTestFileMatchesSource(t *testing.T) {
 		ix.printTestsFor(&out, n, 0)
 		return out.String()
 	}
-	e2eOut := answer("cmd/trlang/e2e/README.md")
+	// Yol parçadan kurulur: düz yazılsa codegraph bu testi README'nin okuyucusu sayar ve aşağıdaki "no tests read it"
+	// koşulu kendi kendine geçer (DENETİM istek 88 Ş1).
+	e2eOut := answer(strings.Join([]string{"cmd", codes.ProgramName, "e2e", "README.md"}, "/"))
 	if !strings.Contains(e2eOut, "internal_test.TestTestFileMatchesSource") || strings.Contains(e2eOut, "no tests read it") {
 		t.Errorf("tests-for package README must list internal_test.TestTestFileMatchesSource:\n%s", e2eOut)
 	}
