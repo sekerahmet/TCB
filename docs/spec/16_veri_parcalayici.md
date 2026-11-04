@@ -12,7 +12,7 @@ Metin modelinin verisi iki adımdan geçer: metin bir parçalayıcıyla (tokeniz
 - `.TR_vocab_size` dağarcıktaki parça sayısıdır (`TR_Int`).
 - `.TR_token_id(parça)` parçanın kimliğini verir, dağarcıkta yoksa `TR_none` (`TR_Int?`).
 - `tokenizer.json` dışarıdan gelen bir girdidir: ön ayırıcının düzenli ifadesi bir adım sınırıyla çalışır, sınırı aşan metin çalışma hatası verir.
-- *Test:* TR testi.
+- *Test:* TR testi; seyrek sözlükte sınır da TR testi ("16.1 dağarcık boyutu kimliklerin sınırıdır: seyrek sözlükte en büyük kimlik + 1").
 
 **16.2** `p.TR_encode(metin)` metni kimliklere çevirir ve `TR_List[TR_Int]` verir. `p.TR_encode(metinler)` (`TR_List[TR_String]`) her metni ayrı çevirir, sırayı korur ve `TR_List[TR_List[TR_Int]]` verir (13.10: iki imza).
 - Metnin içinde yazılan eklenmiş parça (`tokenizer.json`'un `added_tokens`'ı: `<|endoftext|>` gibi özel ya da `<think>` gibi özel olmayan) tek bir kimlik olur.
