@@ -254,7 +254,7 @@ func TestReplayReleaseDropsHeaders(t *testing.T) {
 
 // Kural: kayıt sırasında yorumlayıcı kilidi başka göreve geçmez: başka bir eşzamanlı görevin
 // işi kayda girmez; kayıtta görevleri beklemek (bekle_hepsi) H2522'dir. Isınma bitmeden bileşim
-// ısınmış sayılmaz (bulgu 4).
+// ısınmış sayılmaz (bulgu 4). Kaydın içi iki yolu da sınar: bekleme ve 5 ms'yi aşan bir döngü.
 func TestReplayCaptureHoldsTheLock(t *testing.T) {
 	gpu.RegisterSimulator()
 	defer tensor.SetDefaultDevice(tensor.CPU)
@@ -265,7 +265,9 @@ TR_var f = TR_replay((x) => {
     d["çağrı"] += 1
     TR_if d["çağrı"] == 2 {
         TR_async { TR_no_grad { TR_write_slice(yan, TR_ones([4]), TR_dim: 0) } }
-        TR_for i TR_in 0..300 { d["boş"] = i } # kilit devredilseydi görev burada koşardı
+        TR_sleep(0.001) # bekleme kilidi bırakmaz (Blocking); görev bu sırada kuyruğa girer
+        TR_var başla = TR_time_ms()
+        TR_for TR_time_ms() - başla < 30 { d["boş"] = 1 } # süre dolsa da devredilmez (yieldSlow)
     }
     TR_return x * 2
 })
