@@ -981,7 +981,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum (T1 dilim 2):** `.safetensors` yolu her cinsi (F32, BF16, F16, F64, I64, I32, I16, I8, U32, U16, U8, BOOL) hizaya göre yazıyor; Python `safetensors` (torch) ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip, bu makinede torch 2.14 ile koştu].
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
-- **Yapılacaklar (A, Ö0; sahip T1; DENETİM istek 117 Ş1):** 16 bitlik tensör float32'den geçerek yazılıyor, sinyal NaN'ı susuyor: bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` [ölçüldü: DENETİM; kanıtlı: `fileEntry.data`]. 15.47a'nın "bit bit aynıdır" sözü bu desende tutmuyor. Yazma bitleri depodan alsın; test.
+- **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM]. GPU'daki tensör değerden daraltılıyor, kart yerelde sınanmadı. Kontrol noktası float32'den geçiyor: susturuyor.
 
 ### 15.49
 
@@ -997,13 +997,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.51
 
 - **Mevcut durum:** nicemleme yok. Motorda `Int8` ("ölçek ayrı tutulur") ve `Int4` ("bir baytta iki eleman") türleri ayrılmış, "henüz hiçbir arka uç hesap desteği sunmaz" [kanıtlı: internal/compute/tensor/device.go:89-94]. Yol haritasının 2. kilometre taşı: "Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir"; bugün "nicemleme ... yok" [kanıtlı: `docs/roadmap.md`].
-- **Yapılacaklar:** dört hassasiyet ("q8", "q4", "q4z128", "fp8"); TR testi. Başka grup boyları, K-nicemleme ailesi, NF4 ve 2–3 bit Sonraya.
+- **Yapılacaklar:** önce GGUF'un türleri ("q8", "q4_k", "q6_k"; sahip H1, 2. kilometre taşı); sonra "q4", "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
 
 ### 15.52
 
 - **Mevcut durum:** uygulanmadı. Hugging Face'in `weight_scale_inv`'inin çarpılan ölçek olduğu bir hipotezdir [hipotez: DENETİM F2].
 - **Yapılacaklar:** `.TR_to_dtype` ile nicemleme ve açma (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar); yeni kimlikler `TR_quantized` (gösterim adı "nicemlenmiş") ve `TR_zero_point` ("sıfır_noktası"), onaylı; NaN ve aralık denetimleri 15.6'nın bekleyen işlemlerinde; `weight_scale_inv`'in anlamını gerçek bir FP8 modeliyle doğrulamak; TR testi. Sıra değiştiren gruplar (GPTQ `desc_act`, `g_idx`) Sonraya.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** q4'ün sıfır bloğu −0.0 ölçek ve 8 kodla llama.cpp ile bit bit (baytlarla test); q4z128'in RTN formülü; fp8'in kısmi son bloğu (T3). **Açık karar:** GPTQ/AWQ ölçeği bf16 kalsın mı (dosya biçimi).
+- **Yapılacaklar (A, Ö1; sahip H1, nicemleme uygulanırken; DENETİM istek 118 B1):** fp16 ölçeği sonsuza giden blok nicemleme hatası: yazılmazsa öğeler sonlu olsa da açılan değer NaN olur ("q8" `amax` 8 321 040'tan, "q4" 524 160'tan başlar) [ölçüldü: DENETİM, llama.cpp'nin kodu]. Bugün kimse etkilenmiyor, 15.52 uygulanmadı. `1 / d` sonsuzsa sıfır blok gibi kodlama da aynı dilimde (D, Ö3).
 
 ### 15.53
 
@@ -1018,9 +1019,10 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.55
 
-- **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı depoda korunuyor; `TR_save_tensors` susturuyor (15.47a) [test: `TestSixteenBitStridedCopyKeepsBits`]. `TR_Tensor(16 bitlik tensör)` de bitleriyle kopyalıyor (C, Ö2): float32'ye açılmıyor, sinyal NaN'ı depoda bozulmuyor [test: `TestTensorFromSixteenBitTensorKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
+- **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı depoda ve dosyada korunuyor (15.47a) [test: `TestSixteenBitStridedCopyKeepsBits`]. `TR_Tensor(16 bitlik tensör)` de bitleriyle kopyalıyor (C, Ö2): float32'ye açılmıyor, sinyal NaN'ı depoda bozulmuyor [test: `TestTensorFromSixteenBitTensorKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
 - **Mevcut durum:** uygulanmadı; safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni].
 - **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası (H6950 bugün yalnız TR biçimini öneriyor; `.TR_to_dtype("float32")` önerisi 15.52 uygulanınca, öneri tablosunda koşulabilsin diye); kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
+- **Yapılacaklar (A, Ö1; sahip H1, GGUF dilimi; DENETİM istek 119 Ş-A, Ş-B):** GGUF okuyucu; `tr/pretrained`'in GGUF yolu birleşik katmansız, tensör başına türle; `llama`'da `attn_q`, `attn_k` satır sırası geri alınır, yoksa sessizce yanlış metin [hipotez: uygulama yok]. Test: küçük bir Llama modelinde F16 GGUF ile safetensors aynı logit. Yeni kimlik `TR_load_metadata` (gösterim adı `üstveri_yükle`). `TR_merged_kv`'nin kazancı bu yolda yok. Llama 3.1 ve 3.2 GGUF'unda RoPE ölçeği ayrı bir tensörde (15.55) [ölçüldü: DENETİM istek 123 Ş1, başlık]: uygulanana kadar H6943; Qwen3 ve SmolLM2 ilk adımda.
 
 ## 16. Veri ve parçalayıcı
 
@@ -1281,6 +1283,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 - **Yapılacaklar (C, Ö2, 15.45 ile; ölçüm status'un):** `TR_dropout` (15.23d) geldiğinde aynı üreteçten çekmesi.
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte; bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde]. "rng"'nin "pcg:" öneki ve bilinmeyen önekin yükleme hatası (H6953) T1'de geldi [test: checkpoint behavior_security_test.go].
 - **Yapılacaklar (T1 birleşmesi, 2026-11-01):** 20.17'nin Test satırındaki TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir; bugün yalnız Go testlerinde [ölçüldü: `git grep 54520000000000002017`].
+- **Yapılacaklar (C, Ö2; sahip T1, çağrı yerlerinden sonra; DENETİM istek 122 N2):** kontrol noktası 16 bitlik tensörü float32'den geçiriyor: sinyal NaN'ı orada susuyor [kanıtlı: T1, kod; ölçülmedi]. `TR_save_tensors` bitleriyle yazıyor; GPU'daki tensör değerden daraltıldığı için orada da susuyor [kanıtlı: T1; kartta koşulmadı].
 
 ### 20.14
 

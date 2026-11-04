@@ -11,7 +11,7 @@ docs/spec/23_sinyal_ve_spektrum.md:19
 docs/spec/23_sinyal_ve_spektrum.md:47
 docs/spec/23_sinyal_ve_spektrum.md:94
 # 24 ve 16.3a (2026-11-02): yazıldı, kimlikleri henüz yok.
-docs/spec/16_veri_parcalayici.md:37
+docs/spec/16_veri_parcalayici.md:38
 docs/spec/24_sohbet_bicimi.md:18
 docs/spec/24_sohbet_bicimi.md:39
 docs/spec/24_sohbet_bicimi.md:57

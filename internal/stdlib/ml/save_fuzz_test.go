@@ -46,19 +46,13 @@ func FuzzTensorFileDecode(f *testing.F) {
 			if limit > interp.MaxCollectionSize {
 				t.Fatalf("%q: şekil %v eleman sınırını aşıyor (sıfır eksenler 1 sayılır)", g.ad, g.shape)
 			}
-			if n != len(g.data) {
-				t.Fatalf("%q: şekil %v ile %d eleman tutmuyor", g.ad, g.shape, len(g.data))
+			if n != g.count() {
+				t.Fatalf("%q: şekil %v ile %d eleman tutmuyor", g.ad, g.shape, g.count())
 			}
-			total += len(g.data)
+			total += g.count()
 			// tensör_yükle'nin yaptığı gibi tensör kurulur.
-			var tt *tensor.Tensor
-			if g.dtype == tensor.Float32 {
-				tt = tensor.New(g.data, g.shape...)
-			} else {
-				tt = tensor.NewOf(g.dtype, g.data, g.shape...)
-			}
-			if tt.Numel() != len(g.data) {
-				t.Fatalf("%q: tensör %d eleman, veri %d", g.ad, tt.Numel(), len(g.data))
+			if tt := g.tensor(); tt.Numel() != g.count() {
+				t.Fatalf("%q: tensör %d eleman, veri %d", g.ad, tt.Numel(), g.count())
 			}
 		}
 		if total*2 > len(data) {

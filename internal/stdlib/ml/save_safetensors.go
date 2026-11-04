@@ -84,9 +84,16 @@ func writeSafetensors(f io.Writer, inputs []fileEntry) error {
 	bw.Write(header)
 	buffer := make([]byte, 0, 1<<16)
 	for _, g := range ordered {
-		if g.dtype.IsTyped() {
-			bw.Write(g.raw)
-		} else if err := writeValues(bw, g.dtype, g.data, buffer); err != nil {
+		var err error
+		switch {
+		case g.dtype.IsTyped():
+			_, err = bw.Write(g.raw)
+		case g.bits != nil:
+			err = writeBits16(bw, g.bits, buffer)
+		default:
+			err = writeValues(bw, g.dtype, g.data, buffer)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -136,6 +143,19 @@ func jsonText(s string) ([]byte, error) {
 
 // writeValues değerleri dtype türünde küçük sonlu yazar (16 bitlik türlerde bit deseni);
 // buffer yazma tamponudur.
+func writeBits16(w io.Writer, bits []uint16, buffer []byte) error {
+	for i := 0; i < len(bits); {
+		t := buffer[:0]
+		for ; i < len(bits) && len(t) < cap(t); i++ {
+			t = binary.LittleEndian.AppendUint16(t, bits[i])
+		}
+		if _, err := w.Write(t); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func writeValues(w io.Writer, dtype tensor.DType, data []float32, buffer []byte) error {
 	on6 := dtype == tensor.BFloat16 || dtype == tensor.Float16
 	for i := 0; i < len(data); {
