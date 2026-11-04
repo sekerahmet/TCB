@@ -113,10 +113,12 @@ func writeContainer(v Value, lang *codes.Language, filePath []Value) string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			if kv, ok := x.KeyVals[k]; ok {
+			// NUL ile başlayan metin anahtar da KeyVals'ta durur (DictKey)
+			kv, encoded := x.KeyVals[k]
+			if _, text := kv.(*StringVal); encoded && !text {
 				sb.WriteString(writeItem(kv, lang, filePath))
 			} else {
-				sb.WriteString(QuoteText(k))
+				sb.WriteString(QuoteText(x.KeyText(k)))
 			}
 			sb.WriteString(": ")
 			sb.WriteString(writeElement(x.Pairs[k], lang, filePath))
