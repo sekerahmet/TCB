@@ -26,12 +26,19 @@ type TypeInfo struct {
 	TupleLen int
 	// Module takma adlı aktarımın bağladığı modül değeridir (11.2; module_values.go).
 	Module bool
+	// Fn adın bağlı olduğu fonksiyondur, NoValue tipi `(T) -> TR_NoneType` yazılmış değerdir, Made
+	// ilk değerin kurduğu yerleşik tiptir (3.5; no_value.go).
+	Fn      *ast.FunctionLiteral
+	NoValue bool
+	Made    string
 }
 
 // Scope is one level of the checker's type scope.
 type Scope struct {
 	parent  *Scope
 	symbols map[string]TypeInfo
+	// hoisted bloğun henüz denetlenmemiş fonksiyonlarıdır (6.1; no_value.go).
+	hoisted map[string]*ast.FunctionLiteral
 }
 
 // NewScope returns a scope nested in parent (nil for the outermost scope).
@@ -105,6 +112,9 @@ type Checker struct {
 	selfType string
 	// receivers metot çağrılarının nesnesinin çıkarılan tipidir (pure_calls.go).
 	receivers map[*ast.CallExpression]string
+	// noValue değer vermeyen çağrılardır, reassigned yeniden atanan adlardır (3.5; no_value.go).
+	noValue    map[ast.Expression]bool
+	reassigned map[string]bool
 }
 
 // New returns a checker with an empty global scope.
@@ -170,9 +180,9 @@ func (c *Checker) check(prog *ast.Program) {
 	c.itemTypes, c.jsonLiterals = map[ast.Expression]string{}, nil
 	c.receivers = map[*ast.CallExpression]string{}
 	c.facts = signatureFacts{}
-	for _, stmt := range prog.Statements {
-		c.checkStatement(stmt)
-	}
+	c.noValue = map[ast.Expression]bool{}
+	c.noteAssigned(prog)
+	c.checkStatements(prog.Statements)
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir.
 	c.nameErrors = c.nameErrors[:0]
 	c.checkNames(prog)
@@ -211,6 +221,9 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		c.scope.Define(s.Name.Value, TypeInfo{
 			TypeName: finalType,
 			IsConst:  s.IsConst,
+			Fn:       boundFunction(s.Value),
+			NoValue:  noValueType(s.Type),
+			Made:     c.madeType(s.Value),
 		})
 
 	case *ast.ImportStatement:
@@ -221,9 +234,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 	case *ast.BlockStatement:
 		prev := c.scope
 		c.scope = NewScope(prev)
-		for _, bs := range s.Statements {
-			c.checkStatement(bs)
-		}
+		c.checkStatements(s.Statements)
 		c.scope = prev
 
 	case *ast.ForInStatement:
@@ -234,9 +245,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 			c.defineName(s.KeyVar, kindVariable, siteOf(s.KeyToken, s.Line()), TypeInfo{TypeName: key})
 		}
 		c.defineName(s.ValueVar, kindVariable, siteOf(s.ValueToken, s.Line()), TypeInfo{TypeName: value})
-		for _, bs := range s.Body.Statements {
-			c.checkStatement(bs)
-		}
+		c.checkStatements(s.Body.Statements)
 		c.scope = prev
 
 	case *ast.WhileStatement:
@@ -253,9 +262,7 @@ func (c *Checker) checkStatement(stmt ast.Statement) {
 		}
 		// Yakalanan hata Metin'dir, ama değişken açıklamasızdır: sonra başka tipte değer alabilir.
 		c.defineName(s.ErrorVar, kindVariable, siteOf(s.ErrorToken, catchLine), TypeInfo{TypeName: typeAny})
-		for _, bs := range s.CatchBody.Statements {
-			c.checkStatement(bs)
-		}
+		c.checkStatements(s.CatchBody.Statements)
 		c.scope = prev
 
 	case *ast.StructStatement:
@@ -418,6 +425,7 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 				ParamTypes: paramTypes,
 				ReturnType: retType,
 				TupleLen:   returnTupleLen(e),
+				Fn:         e,
 			})
 		}
 		c.functionBody(e, retType)
@@ -493,6 +501,9 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	}
 	if len(argTypes) == 1 && c.builtinCallCode(e, objType) == codes.TypeJSON {
 		c.checkJSONConversion(e.Arguments[0], argTypes[0]) // 3.7a "Kurmak" (json_values.go)
+	}
+	if c.callNoValue(e, objType) {
+		c.noValue[e] = true
 	}
 	return c.callType(e, info, found, objType)
 }

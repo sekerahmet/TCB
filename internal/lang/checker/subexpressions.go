@@ -121,7 +121,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 		c.returnType = retType
 	}
 	for _, p := range e.Parameters {
-		c.defineName(p.Name, kindValue, siteOf(p.NameToken, e.Line()), TypeInfo{TypeName: normalizedType(p.Type)})
+		c.defineName(p.Name, kindValue, siteOf(p.NameToken, e.Line()), TypeInfo{TypeName: normalizedType(p.Type), NoValue: noValueType(p.Type)})
 	}
 	for _, p := range e.Parameters {
 		if p.DefaultValue != nil {
@@ -131,9 +131,7 @@ func (c *Checker) functionBody(e *ast.FunctionLiteral, retType string) {
 	if e.Body != nil {
 		// Gövdenin son ifadesi fonksiyonun değeridir (sondaki blok: liste.filtrele { o > 2 }).
 		c.markBlockValue(e.Body, true)
-		for _, stmt := range e.Body.Statements {
-			c.checkStatement(stmt)
-		}
+		c.checkStatements(e.Body.Statements)
 	}
 	c.scope, c.returnType, c.facts.current = prev, prevRet, prevFunc
 }
