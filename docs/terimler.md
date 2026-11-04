@@ -36,6 +36,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
 | kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--check` seçeneği aynı denetimi yapar |
 | mutlak | TR_fn_abs, TR_mem_absolute | aynı anlam: göreli olmayan (mutlak değer, mutlak yol; Python `abs` ve `Path.absolute`) |
+| sil | TR_fn_remove, TR_mem_remove | aynı anlam: silmek (dosyayı diskten, anahtarı sözlükten); çağrı yazımı ayırır: `TR_remove(yol)`, `.TR_remove(anahtar)` |
 | test | TR_cmd_test, TR_ctx_test | aynı anlam: `TR_ctx_test` bloğu ve onu koşan `trlang test` |
 | tür | TR_arg_dtype, TR_mem_dtype, TR_opt_kind | ayrı alan: TR_opt_kind `TR_cmd_index`'de düğüm türü; TR_arg_dtype ile TR_mem_dtype aynı anlamda tensörün veri türüdür |
 | yardım | TR_cmd_help, TR_dbg_help, TR_opt_help | aynı anlam: yardım metni (komut, seçenek, hata ayıklayıcı) |

@@ -111,7 +111,9 @@ var memberForms = map[memberKey]any{
 	{codes.TypeList, codes.MemJoin}:         textPart{messages.H2331, nil},
 	{codes.TypeList, codes.MemContains}:     textPart{messages.H2301, nil},
 	{codes.TypeList, codes.MemAppend}:       "eleman, ...",
+	{codes.TypeList, codes.MemRemoveAt}:     "indeks",
 	{codes.TypeList, codes.MemReduce}:       textPart{messages.H2333, []any{codes.ReceiverRef(codes.TypeFunction)}},
 	{codes.TypeDict, codes.MemContains}:     "anahtar",
 	{codes.TypeDict, codes.MemGet}:          "anahtar",
+	{codes.TypeDict, codes.MemRemove}:       "anahtar",
 }

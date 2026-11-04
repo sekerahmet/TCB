@@ -140,6 +140,14 @@ type suggestionResultCase struct {
 // Cinsli tensörlerin iletileri (T1 dilim 2, H6960–H6979). H6969'un GPU önerisi
 // TestTypedPathsOnGPU'dadır (internal/stdlib/ml): bu tablo GPU'suz koşar.
 var suggestionResultCases = []suggestionResultCase{
+	// 13.3: boş listede ve olmayan indekste öğe çıkmaz; ileti önce boyuna bakmayı önerir.
+	{messages.H2533, "TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_pop())", "l.TR_length",
+		"TR_var l: TR_List[TR_Int] = []\nTR_if l.TR_length > 0 {\n    TR_print(l.TR_pop())\n}\nTR_print(l.TR_length)", "0\n"},
+	{messages.H2534, "TR_var l = [1, 2]\nTR_print(l.TR_remove_at(5))", "l.TR_length",
+		"TR_var l = [1, 2]\nTR_if 5 < l.TR_length {\n    TR_print(l.TR_remove_at(5))\n}\nTR_print(l.TR_length)", "2\n"},
+	// 13.4: .TR_remove sözlüğün metodudur; listede öğe konumuyla çıkar, dosya silen işlev önerilmez.
+	{messages.H2535, "TR_var l = [1, 2]\nTR_var i = 0\nTR_print(l.TR_remove(i))", "l.TR_remove_at(i)",
+		"TR_var l = [1, 2]\nTR_var i = 0\nTR_print(l.TR_remove_at(i), l)", "1 [2]\n"},
 	// 19.6: kayıttaki adım tam değerli olmalıdır; ileti yuvarlamayı önerir, kırpmaz.
 	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": 3.5})", "TR_round(...)",
 		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_round(3.5)})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":4\"))", "true\n"},

@@ -167,6 +167,10 @@ func (c *Checker) checkPropertyCall(e *ast.CallExpression, sig codes.Signature) 
 // kural, yer değiştirme: metot tek argümanın tipinde varsa ve o tipte tek argüman alıyorsa ipucu
 // alıcıyla argümanın yerini değiştirir: " ".TR_join(l) → l.TR_join(" ").
 func (c *Checker) reportMissingMember(e *ast.CallExpression, m *ast.MemberExpression, k codes.Code, def codes.Definition, objType string, argTypes []string) {
+	if k == codes.MemRemove && shapeOf(objType).base == typeList {
+		c.addErrorAt(e, messages.New(messages.H2535, c.typeArg(objType), m.Property)) // listede öğe konumuyla çıkar (13.3)
+		return
+	}
 	swap := ""
 	if len(e.Arguments) == 1 && len(e.NamedArgs) == 0 {
 		if t, ok := codes.Find(codes.NamespaceType, baseType(argTypes[0])); ok && coreTypes[baseType(argTypes[0])] && !shapeOf(argTypes[0]).optional {

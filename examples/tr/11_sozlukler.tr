@@ -39,6 +39,10 @@ TR_var siparişler = [
 TR_print(siparişler.TR_filter((x) => x["tutar"] > 100).TR_map((x) => x["müşteri"]))
 TR_print("toplam tutar: \(TR_sum(siparişler.TR_map((x) => x["tutar"])))")
 
+# sil anahtarı sözlükten çıkarıp değerini verir; anahtar yoksa yok verir, ?? ile varsayılana düşülür.
+TR_var oturumlar = {"ayşe": 3, "mehmet": 5}
+TR_print(oturumlar.TR_remove("ayşe") ?? 0, oturumlar.TR_remove("elif") ?? 0, oturumlar)
+
 # --- Kendin dene ---
 # 1. Bir metindeki her harfin kaç kez geçtiğini sözlükte say.
 # 2. siparişler listesine yeni bir sipariş ekle ve en büyük tutarı bul.

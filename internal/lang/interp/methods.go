@@ -192,6 +192,7 @@ func init() {
 	setupStringMethods()
 	setupListMethods()
 	setupDictMethods()
+	setupRemovalMethods()
 	setupRangeMethods()
 }
 
@@ -288,9 +289,13 @@ func longText(y *VM, inst Value, f func(string) string) Value {
 // (3.10); doğruluk sınaması yoktur (H2611).
 func listFilter(y *VM, inst Value, args []Value, line int) (Value, error) {
 	var result []Value
+	mark := markOf(inst)
 	for _, item := range inst.(*ListVal).Elements {
 		keep, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
 		if err != nil {
+			return nil, err
+		}
+		if err := mark.changed(inst, line); err != nil {
 			return nil, err
 		}
 		b, ok := keep.(*BoolVal)
@@ -310,9 +315,13 @@ func setupListMethods() {
 	addMethod(typeList, codes.MemMap, signature{1, 1, []*argKind{funcArg}}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		elems := inst.(*ListVal).Elements
 		result := make([]Value, 0, len(elems))
+		mark := markOf(inst)
 		for _, item := range elems {
 			mapped, err := y.ApplyFunction(args[0], []Value{item}, nil, line)
 			if err != nil {
+				return nil, err
+			}
+			if err := mark.changed(inst, line); err != nil {
 				return nil, err
 			}
 			result = append(result, mapped)
@@ -386,7 +395,7 @@ func setupListMethods() {
 		return Null, nil
 	})
 	addMethod(typeList, codes.MemReduce, signature{1, 2, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
-		return listReduce(y, inst.(*ListVal).Elements, args, line)
+		return listReduce(y, inst.(*ListVal), args, line)
 	})
 }
 
@@ -500,6 +509,10 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 		// Liste ve Metin'de dilim köşeli parantezle alınır (dilim Tensör'ün metodudur).
 		return nil, messages.At(line, 0, messages.New(messages.H2526, obj.Type(), prop))
 	}
+	if _, list := obj.(*ListVal); list && prop == codes.Name(codes.MemRemove) {
+		// .TR_remove sözlüğün metodudur; denetimdeki hata (13.11).
+		return nil, messages.At(line, 0, messages.New(messages.H2535, obj.Type(), prop))
+	}
 	return nil, messages.At(line, 0, messages.New(messages.H2474, obj.Type(), prop, removedMemberHint(prop)))
 }
 
@@ -508,8 +521,8 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 // fonksiyonu iki parametreli olmalıdır (sondaki blok parametresizdir, 6.7).
 // Başlangıç verilmezse ilk eleman başlangıçtır ve boş liste hatadır (13.6); boş listede başlangıç
 // verilmişse o döner.
-func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
-	name, fun := CallName(codes.MemReduce), codes.ReceiverRef(codes.TypeFunction)
+func listReduce(y *VM, list *ListVal, args []Value, line int) (Value, error) {
+	name, fun, elems := CallName(codes.MemReduce), codes.ReceiverRef(codes.TypeFunction), list.Elements
 	f := args[len(args)-1]
 	if !callable(f) {
 		if len(args) == 2 && callable(args[0]) {
@@ -530,10 +543,14 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	default:
 		acc, begin = elems[0], 1
 	}
+	mark := markOf(list)
 	for _, el := range elems[begin:] {
 		var err error
 		acc, err = y.ApplyFunction(f, []Value{acc, el}, nil, line)
 		if err != nil {
+			return nil, err
+		}
+		if err := mark.changed(list, line); err != nil {
 			return nil, err
 		}
 	}

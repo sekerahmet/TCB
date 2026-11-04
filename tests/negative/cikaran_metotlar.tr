@@ -1,0 +1,17 @@
+# TR 4
+# TEST 13.4 .TR_remove sözlüğün metodudur: listede .TR_remove_at'i önerir, dosya silen işleve yönlendirmez
+TR_var l = [1, 2]
+l.TR_remove(0) # ERROR H2535
+"a".TR_remove("a") # ERROR H2474
+TR_var d = {"a": 1}
+d.TR_pop() # ERROR H2474
+d.TR_remove_at(0) # ERROR H2474
+# TEST 13.4 çıkan değer isteğe bağlıdır, açılmadan kullanılmaz
+TR_var n: TR_Int = d.TR_remove("a") # ERROR H1001
+# TEST 13.4 anahtarın tipi .TR_get'teki gibi denetlenir
+d.TR_remove(1) # ERROR H1140
+# TEST 13.3 .TR_pop ve .TR_remove_at listenin öğe tipini verir
+TR_var s: TR_String = l.TR_pop() # ERROR H1001
+TR_var t: TR_String = l.TR_remove_at(0) # ERROR H1001
+l.TR_remove_at("a") # ERROR H2423
+l.TR_pop(1) # ERROR H2011

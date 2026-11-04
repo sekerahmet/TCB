@@ -11,6 +11,18 @@ TR_test "13.1 genel yerleşikler" {
     TR_assert_equal([0, 1, 2], TR_List(0..3))
 }
 
+TR_test "13.1 TR_time_ms Unix zamanıdır, milisaniye sayar" {
+    TR_var başla = TR_time_ms()
+    # 2020 ile 2100 arası: saniye ya da nanosaniye veren saat bu aralığa düşmez
+    TR_assert(başla > 1_577_836_800_000)
+    TR_assert(başla < 4_102_444_800_000)
+    TR_sleep(0.02)
+    # Saat 10-11 ms sıçrayabilir (status 10.2); 20 ms milisaniyede en az 5, saniyede 0 ya da 1 eder
+    TR_var fark = TR_time_ms() - başla
+    TR_assert(fark >= 5)
+    TR_assert(fark < 10_000)
+}
+
 TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     TR_assert_equal(2.0, TR_max([2.0, 1.5]))
     TR_assert_equal(TR_Float, TR_Type(TR_max([2.0, 1.5])))
@@ -438,6 +450,104 @@ TR_test "13.4 sözlük metotları" {
     TR_assert_equal(["a", "b"], d.TR_keys())
     TR_assert_equal([1, 2], d.TR_values())
     TR_assert(d.TR_contains("a"))
+}
+
+TR_test "13.4 .TR_remove anahtarı yerinde siler ve değerini verir, anahtar yoksa TR_none" {
+    TR_var d = {"a": 1, "b": 2, "c": 3}
+    TR_var kopya = d
+    TR_assert_equal(2, d.TR_remove("b") ?? 0)
+    TR_assert_equal(["a", "c"], d.TR_keys())
+    TR_assert_equal([1, 3], d.TR_values())
+    TR_assert_equal(2, kopya.TR_length)
+    TR_assert_equal(TR_false, d.TR_contains("b"))
+    TR_assert_equal(TR_none, d.TR_get("b"))
+    TR_assert_equal(TR_none, d.TR_remove("b"))
+    TR_assert_equal(2, d.TR_length)
+    # Silinen anahtar yeniden eklenince sona gelir
+    d["b"] = 4
+    TR_assert_equal(["a", "c", "b"], d.TR_keys())
+    # Metin olmayan anahtar: 1 ile "1" ayrıdır
+    TR_var n = {1: "tam", "1": "metin", TR_true: "doğru"}
+    TR_assert_equal("tam", n.TR_remove(1) ?? "")
+    TR_assert_equal(["1", TR_true], n.TR_keys())
+    TR_assert_equal("doğru", n.TR_remove(TR_true) ?? "")
+    TR_assert_equal("metin", n.TR_remove("1") ?? "")
+    TR_assert_equal(0, n.TR_length)
+    TR_assert_equal(TR_none, n.TR_remove("1"))
+    # Bulunmayan anahtar da .TR_get gibi denetlenir: ondalık ve liste anahtar olamaz
+    TR_assert_equal("H2646", TR_error_code { n.TR_remove(1.5) })
+    TR_assert_equal("H2495", TR_error_code { n.TR_remove([1]) })
+}
+
+TR_test "13.4 .TR_remove sözlükten siler, aynı adlı dosyaya dokunmaz" {
+    TR_var yol = TR_Path(TR_temp_dir(), "anahtar.txt")
+    TR_write_file(yol, "değerli")
+    TR_var d = {TR_String(yol): 1}
+    TR_assert_equal(1, d.TR_remove(TR_String(yol)) ?? 0)
+    TR_assert_equal(0, d.TR_length)
+    TR_assert_equal("değerli", TR_read_file(yol))
+}
+
+TR_test "13.3 .TR_pop son öğeyi çıkarıp verir, boş listede hatadır" {
+    TR_var l = [1, 2, 3]
+    TR_var kopya = l
+    TR_assert_equal(3, l.TR_pop())
+    TR_assert_equal([1, 2], l)
+    TR_assert_equal(2, kopya.TR_length)
+    TR_assert_equal(2, l.TR_pop())
+    TR_assert_equal(1, l.TR_pop())
+    TR_assert_equal(0, l.TR_length)
+    TR_assert_equal("H2533", TR_error_code { l.TR_pop() })
+    # Boşalan liste yeniden dolar; dilim çıkarmadan etkilenmez
+    l.TR_append(7, 8)
+    TR_var dilim = l[0..2]
+    l.TR_pop()
+    TR_assert_equal([7], l)
+    TR_assert_equal([7, 8], dilim)
+    # Çıkan tensör listeyle birlikte gitmez
+    TR_var t = [TR_Tensor([1.0]), TR_Tensor([2.0])]
+    TR_var son = t.TR_pop()
+    t = []
+    TR_assert_equal([2.0], son.TR_tolist)
+}
+
+TR_test "13.3 .TR_remove_at öğeyi çıkarıp verir, negatif indeks sondan sayar" {
+    TR_var l = [10, 20, 30, 40]
+    TR_assert_equal(20, l.TR_remove_at(1))
+    TR_assert_equal([10, 30, 40], l)
+    TR_assert_equal(40, l.TR_remove_at(-1))
+    TR_assert_equal(10, l.TR_remove_at(0))
+    TR_assert_equal(30, l.TR_remove_at(-1))
+    TR_assert_equal(0, l.TR_length)
+    TR_var k = [1, 2]
+    TR_assert_equal("H2534", TR_error_code { k.TR_remove_at(2) })
+    TR_assert_equal("H2534", TR_error_code { k.TR_remove_at(-3) })
+    TR_assert_equal("H2534", TR_error_code { [].TR_remove_at(0) })
+    TR_assert_equal([1, 2], k)
+}
+
+TR_test "13.3 fonksiyonu dolaşılan listeyi değiştiren metotlar hata verir" {
+    TR_var a = [1, 2, 3]
+    TR_assert_equal("H2703", TR_error_code { a.TR_map((x) => a.TR_pop()) })
+    TR_var b = [1, 2, 3]
+    TR_func ekle(x: TR_Int) -> TR_Bool {
+        b.TR_append(x)
+        TR_return TR_true
+    }
+    TR_assert_equal("H2703", TR_error_code { b.TR_filter(ekle) })
+    TR_var c = [1, 2, 3]
+    TR_func cikar(t: TR_Int, x: TR_Int) -> TR_Int {
+        c.TR_pop()
+        TR_return t + x
+    }
+    TR_assert_equal("H2703", TR_error_code { c.TR_reduce(0, cikar) })
+    TR_var e = [1, 2, 3]
+    TR_func anahtar(x: TR_Int) -> TR_Int {
+        e.TR_pop()
+        e.TR_append(9)
+        TR_return x
+    }
+    TR_assert_equal("H2703", TR_error_code { e.TR_sort(anahtar) })
 }
 
 TR_test "13.8 ondalık 3.2'nin yazımıyla yazılır, geri okununca yine ondalıktır" {

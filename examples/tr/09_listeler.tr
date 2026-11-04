@@ -53,6 +53,10 @@ TR_for sıra, öğe TR_in meyveler {
     TR_print("\(sıra). \(öğe)")
 }
 
+# sondan_çıkar son öğeyi, konumdan_çıkar verilen konumdaki öğeyi listeden çıkarıp verir.
+TR_var kuyruk = ["a", "b", "c", "d"]
+TR_print(kuyruk.TR_pop(), kuyruk.TR_remove_at(0), kuyruk)
+
 # --- Kendin dene ---
 # 1. Bir not listesi kur; en yüksek, en düşük ve ortalamayı yazdır.
 # 2. 1..=30 arasında 3'e bölünen sayıların listesini üreteçle çıkar.

@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 580 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 66 metot, 102 özellik, 138 adlı argüman.
+Toplam 583 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -701,7 +701,7 @@ en: var s: Dict[String, String] = {"ad": "Ali"}; print(Type(s), s["ad"])
 tr: değişken s: Sözlük[Metin, Metin] = {"ad": "Ali"}; yazdır(Tip(s), s["ad"])
 ```
 
-Üyeleri: `.TR_contains(...)`, `.TR_get(...)`, `.TR_keys(...)`, `.TR_length`, `.TR_values(...)`
+Üyeleri: `.TR_contains(...)`, `.TR_get(...)`, `.TR_keys(...)`, `.TR_length`, `.TR_remove(...)`, `.TR_values(...)`
 
 #### `TR_Embedding` (`TR_type_Embedding`, `GömmeKatmanı`)
 
@@ -836,7 +836,7 @@ en: var l: List[Int] = [1, 2, 3]; print(Type(l), l[-1])
 tr: değişken l: Liste[Tam] = [1, 2, 3]; yazdır(Tip(l), l[-1])
 ```
 
-Üyeleri: `.TR_append(...)`, `.TR_contains(...)`, `.TR_filter(...)`, `.TR_first`, `.TR_get(...)`, `.TR_join(...)`, `.TR_last`, `.TR_length`, `.TR_map(...)`, `.TR_reduce(...)`, `.TR_reverse(...)`, `.TR_sort(...)`, `.TR_unique(...)`
+Üyeleri: `.TR_append(...)`, `.TR_contains(...)`, `.TR_filter(...)`, `.TR_first`, `.TR_get(...)`, `.TR_join(...)`, `.TR_last`, `.TR_length`, `.TR_map(...)`, `.TR_pop(...)`, `.TR_reduce(...)`, `.TR_remove_at(...)`, `.TR_reverse(...)`, `.TR_sort(...)`, `.TR_unique(...)`
 
 #### `TR_Logger` (`TR_type_Logger`, `Günlük`)
 
@@ -5435,6 +5435,25 @@ tr: yazdır(sıfırlar([2, 3, 4]).eksenleri_sırala([2, 0, 1]).şekil)
 
 
 
+#### `.TR_pop(...)` (`TR_mem_pop`, `sondan_çıkar`)
+
+    Liste.sondan_çıkar() → Herhangi
+
+Listenin son öğesini çıkarıp verir; listeyi yerinde değiştirir. Boş listede hatadır.
+
+```tr
+TR_var l = [1, 2, 3]; TR_print(l.TR_pop(), l)
+```
+
+Görünümü:
+
+```text
+en: var l = [1, 2, 3]; print(l.pop(), l)
+tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
+```
+
+İlişkili: `.TR_append(...)`, `.TR_remove_at(...)`
+
 #### `.TR_position` (`TR_mem_position`, `konum`)
 
 
@@ -5477,6 +5496,44 @@ tr: yazdır([1, 2, 3, 4].indirge(0, (a, x) => a + x), [1, 2, 3, 4].indirge(1, (a
 ```
 
 İlişkili: `.TR_filter(...)`, `.TR_map(...)`
+
+#### `.TR_remove(...)` (`TR_mem_remove`, `sil`)
+
+    Sözlük.sil(Herhangi) → Herhangi
+
+Anahtarı sözlükten yerinde siler ve değerini verir; anahtar yoksa yok verir.
+
+```tr
+TR_var d = {"a": 1, "b": 2}; TR_print(d.TR_remove("a"), d.TR_remove("c") ?? 0, d)
+```
+
+Görünümü:
+
+```text
+en: var d = {"a": 1, "b": 2}; print(d.remove("a"), d.remove("c") ?? 0, d)
+tr: değişken d = {"a": 1, "b": 2}; yazdır(d.sil("a"), d.sil("c") ?? 0, d)
+```
+
+İlişkili: `.TR_get(...)`, `.TR_contains(...)`, `TR_remove(...)`
+
+#### `.TR_remove_at(...)` (`TR_mem_remove_at`, `konumdan_çıkar`)
+
+    Liste.konumdan_çıkar(Tam) → Herhangi
+
+i. öğeyi listeden çıkarıp verir; listeyi yerinde değiştirir. Negatif indeks sondan sayar, sınır dışı indeks hatadır.
+
+```tr
+TR_var l = [1, 2, 3]; TR_print(l.TR_remove_at(0), l.TR_remove_at(-1), l)
+```
+
+Görünümü:
+
+```text
+en: var l = [1, 2, 3]; print(l.remove_at(0), l.remove_at(-1), l)
+tr: değişken l = [1, 2, 3]; yazdır(l.konumdan_çıkar(0), l.konumdan_çıkar(-1), l)
+```
+
+İlişkili: `.TR_pop(...)`, `.TR_append(...)`
 
 #### `.TR_replace(...)` (`TR_mem_replace`, `değiştir`)
 

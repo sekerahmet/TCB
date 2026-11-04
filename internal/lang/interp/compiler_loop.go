@@ -133,7 +133,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			}
 
 		case *ListVal:
-			size := len(it.Elements)
+			mark := markOf(it)
 			for idx, item := range it.Elements {
 				v.loopTurn()
 				loopEnv := kind.turn(v)
@@ -145,7 +145,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if err != nil {
 					return nil, signalNone, err
 				}
-				if err := sizeChanged(it, size, line); err != nil {
+				if err := mark.changed(it, line); err != nil {
 					return nil, signalNone, err
 				}
 				if sig == signalReturn {
@@ -158,9 +158,13 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 			}
 
 		case *DictVal:
-			size := len(it.Order)
+			mark := markOf(it)
 			for _, key := range it.Order {
 				v.loopTurn()
+				// Turun başı güvenli noktadır: başka bir görev anahtarı burada çıkarmış olabilir.
+				if it.removed != mark.removed {
+					return nil, signalNone, mark.changed(it, line)
+				}
 				loopEnv := kind.turn(v)
 				if keySlot >= 0 {
 					loopEnv.store(keySlot, it.KeyValue(key))
@@ -172,7 +176,7 @@ func (c *compiler) inLoop(k *compilerScope, s *ast.ForInStatement) statementCode
 				if err != nil {
 					return nil, signalNone, err
 				}
-				if err := sizeChanged(it, size, line); err != nil {
+				if err := mark.changed(it, line); err != nil {
 					return nil, signalNone, err
 				}
 				if sig == signalReturn {
@@ -275,23 +279,6 @@ func streamLoop(v *VM, it Stream, kind *loopScope, keySlot, valueSlot int, bodyB
 		}
 		lastVal = val
 	}
-}
-
-// sizeChanged dolaşılan liste ya da sözlüğün boyu dolaşma başladığından bu yana değiştiyse çalışma
-// hatasıdır (5.7): dolaşırken öğe ya da anahtar eklemek ve çıkarmak sonucu belirsiz kılar (öğe atlanır
-// ya da yinelenir). Var olan öğeye ve anahtara atama boyu değiştirmez, serbesttir.
-func sizeChanged(source Value, size, line int) error {
-	switch x := source.(type) {
-	case *ListVal:
-		if len(x.Elements) != size {
-			return messages.At(line, 0, messages.New(messages.H2703, size, len(x.Elements)))
-		}
-	case *DictVal:
-		if len(x.Order) != size {
-			return messages.At(line, 0, messages.New(messages.H2704, size, len(x.Order)))
-		}
-	}
-	return nil
 }
 
 // whileStmt 'iken koşul { ... }' deyimini derler. Gövde ad tanımlamıyorsa tur ortamı açılmaz.
@@ -417,7 +404,7 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 			return nil, err
 		}
 		var results []Value
-		size := len(items)
+		mark := markOf(iterVal)
 		kind := loopScope{outerEnv: env, info: info, again: again}
 		// Üretecin turları deyim sınırı değildir (bir ifadenin içindedir); sonuçlar liste
 		// kurulunca ona bağlanır.
@@ -442,7 +429,7 @@ func (c *compiler) listComprehension(k *compilerScope, lc *ast.ListComprehension
 			if err != nil {
 				return nil, err
 			}
-			if err := sizeChanged(iterVal, size, line); err != nil {
+			if err := mark.changed(iterVal, line); err != nil {
 				return nil, err
 			}
 			pin(outVal) // liste kurulana kadar

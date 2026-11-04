@@ -407,6 +407,9 @@ const (
 	H2530 Code = 2530 // {fn}: durdurma istendi, yeni bekleme başlatılmadı. Program durdurmayı üstlendi: {requested}() doğruysa döngüden çıkıp temizliğe geçin; temizlikte beklemek gerekiyorsa onu '{defer}' bloğunda ya da bu hatayı yakalayan '{catch}' gövdesinde yapın
 	H2531 Code = 2531 // {fn}: çıkış kodu 0 ile 125 arasında bir {@Int} olmalı ({value} verildi). Örneğin '{exit}(4)' yazın (0 başarı, 1 hata, 2 kullanım hatası; kendi kodlarınız 4'ten başlar)
 	H2532 Code = 2532 // {fn}({code}) bir testin içinden çağrıldı: test başarısız sayıldı, program bitirilmez. Testte bir koşulu denetlemek için '{assert}(koşul)' yazın
+	H2533 Code = 2533 // {fn}: boş listeden öğe çıkarılamaz; öğe olmayabilirse önce `l.{#length}` ile bakın
+	H2534 Code = 2534 // {fn}: çıkarılacak öğe yok: indeks {index}, uzunluk {size}; öğe olmayabilirse önce `l.{#length}` ile bakın
+	H2535 Code = 2535 // {type} tipinde {prop|q} metodu yok; listeden öğe konumuyla çıkarılır: `l.{#remove_at}(i)`
 	H2540 Code = 2540 // dosyanın ilk satırı '{header}' başlığı değil: TR dosyası bu başlıkla başlar (ilk satır '#!' ile başlıyorsa ikinci satırda) ve dilin sözcüklerini kimlikleriyle yazar ({identity})
 	H2541 Code = 2541 // bu dosya bir '{lang}' görünümü (başlığında view={lang} var): görünüm yalnız okunur, çalışmaz ve koda geri çevrilmez; görünümün yazıldığı kodlu dosyayı çalıştırın (görünüm ondan 'trlang {show}' ile yazılır)
 	H2600 Code = 2600 // koşul bir mantık değeri ({@Bool}) olmalı; {type} verildi. Açık bir sınama yazın: boşluk için `x.{#length} == 0`, yokluk için `x != {#none}`, sayı için `x != 0`
