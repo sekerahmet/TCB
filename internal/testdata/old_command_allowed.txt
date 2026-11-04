@@ -9,9 +9,6 @@ internal/devtools/codeindex/README.md	<scheme> <package>	SCIP simge dizgesi şem
 tools/codegraph/README.md	TCB 2026-10-25, item 3	tarihli geçmiş ölçüm kaydı
 tools/codegraph/test_names.go	TCB 2026-10-25	tarihli geçmiş ölçüm kaydı
 tools/codegraph/gaps.md	yetmeyen ya da yanlış	ana oturumun tuttuğu geçmiş birikim kaydı
-tools/codegraph/gaps.md	TestDocTRCodeBlocks	ana oturumun tuttuğu geçmiş birikim kaydı
-tools/codegraph/gaps.md	DENETİM 66	ana oturumun tuttuğu geçmiş birikim kaydı
-tools/codegraph/gaps.md	2026-10-27, ana oturum	ana oturumun tuttuğu geçmiş birikim kaydı
 tools/codegraph/gaps.md	2026-10-29, DENETİM	ana oturumun tuttuğu geçmiş birikim kaydı
 tools/codegraph/gaps.md	2026-10-25'te denendi	ana oturumun tuttuğu geçmiş birikim kaydı
 tools/codegraph/gaps.md	2026-10-26, DENETİM	ana oturumun tuttuğu geçmiş birikim kaydı

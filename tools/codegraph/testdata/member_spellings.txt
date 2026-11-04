@@ -581,7 +581,6 @@ indeksler.TR_append	ok	0	name:TR_mem_append
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
 ix2.TR_tolist	ok	0	name:TR_mem_tolist
-iyileştirici.TR_GPT	not_found	4	-
 iyileştirici.TR_MuonAndAdamW	ok	0	tr:struct:lib/optimizers.tr:TR_type_MuonAndAdamW
 iyileştirici.TR_lr	ok	0	name:TR_mem_lr
 iyileştirici.TR_lr_schedule	ok	0	tr:func:lib/optimizers.tr:TR_fn_lr_schedule
