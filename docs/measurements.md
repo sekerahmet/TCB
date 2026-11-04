@@ -87,6 +87,21 @@ Birim parça/sn. Qwen3 bf16'da toplam −%11,6; en büyük adım 2026-10-22 ile 
 
 S-kilit satırı Kol A eşitliğinden (`9f758225`) önce ölçüldü; eşitlik kilidin yolunda değil [hipotez: Kol A yalnız `==`'nin gezintisini değiştirdi]. Eğitim adımının güncel ölçümü yukarıdaki G4 koşusu (main `51b75f0a`, Kol A dahil).
 
+**10-23 gerilemesinin suçlusu ve düzeltmesi** (2026-11-04 12:49–12:59, Colab G4: RTX PRO 6000 Blackwell, AMD EPYC 9B45; dört tur, sırayla, her commit kendi ikilisi) [ölçüldü: betik `h1_bol_abab.sh`]: suçlu `5a348837`. `örnekle` her parçadan önce bütün logit satırını konakta denetlemeye başladı (bölüm 15'in B3 düzeltmesi); kayıp sözlük boyuyla orantılıdır.
+
+| Commit | Ne | Qwen3 bf16 | Qwen3 float32 | SmolLM2 bf16 | SmolLM2 float32 |
+| :-- | :-- | --: | --: | --: | --: |
+| `2fac1f49` | 10-23 09:58 | 373,9 | | 629,9 | |
+| `3532fda4` | suçlunun ebeveyni | 373,5 | | 628,0 | |
+| `5a348837` | konak denetimi | 358,1 | | 614,5 | |
+| `92aaaae2` | | 354,9 | | 610,7 | |
+| `3d5ba9b5` | | 355,2 | | 610,7 | |
+| `705c16f1` | main, düzeltmeden önce | 343,6 | 273,4 | 571,4 | 517,5 |
+| `eab6965c` | denetim ve seçim tek geçişte | 357,8 | 283,9 | 586,5 | 528,4 |
+| `a80b1f69` | açgözlü seçimde sözlük boyunda ayırma yok | 368,3 | 290,5 | 582,2 | 533,3 |
+
+Birim parça/sn. Aynı koşuda main'e göre Qwen3 bf16 +%7,2, float32 +%6,3; SmolLM2 bf16 +%1,9, float32 +%3,1 [hesap]. Taramanın süresi aynı işlemcide Go ile ölçüldü: 151936 logitte seçim 92 µs, denetim ve seçim 218 µs, tek geçiş 92 µs; 49152 logitte 30, 71 ve 30 µs. Düzeltme metni ve logitleri değiştirmedi (iki model, bf16 ve float32, GPU ve CPU). CPU'da yavaşlama yok: Colab CPU High-RAM, Intel Xeon 2.20 GHz, dört tur, Qwen3 float32 5,8 → 5,9, SmolLM2 bf16 10,8 → 10,8 [ölçüldü: betik `h1_cpu_abab2.sh`].
+
 ## Eski (yeniden ölçülecek)
 
 Şu an eski satır yok.
