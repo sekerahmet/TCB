@@ -1332,7 +1332,7 @@ tr: yazdır(asin(1.0), asin(Tensör([0.0, 0.5])).değer)
 
     doğrula(Herhangi, [Herhangi]) → YokTipi
 
-Koşul yanlışsa "doğrulama başarısız" hatası fırlatır, doğruysa doğru döndürür; isteğe bağlı mesaj hataya eklenir. Test dışında da çalışır.
+Koşul yanlışsa "doğrulama başarısız" hatası fırlatır, doğruysa değer vermez; isteğe bağlı mesaj hataya eklenir. Test dışında da çalışır.
 
 ```tr
 TR_assert(2 > 1, "iki birden büyük olmalı"); TR_print("doğrulandı")
@@ -1351,7 +1351,7 @@ tr: doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 
     eşit_olmalı(Herhangi, Herhangi, [Herhangi]) → YokTipi
 
-İki değer == anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır, eşitse doğru döndürür. Test dışında da çalışır.
+İki değer == anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır, eşitse değer vermez. Test dışında da çalışır.
 
 ```tr
 TR_assert_equal(4, 2 + 2); TR_print("eşit")
@@ -1933,7 +1933,7 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 
     türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, fark_adımı: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → YokTipi
 
-Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
+Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa değer vermez, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
 
 ```tr
 TR_grad_check((x) => x * x, [TR_Tensor([0.5, -1.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01); TR_print("türev doğru")
@@ -2549,7 +2549,7 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 
     yazdır([Herhangi...]) → YokTipi
 
-Değerleri aralarına boşluk koyarak tek satırda yazar ve yazdığı metni döndürür; argümansız çağrı boş satır yazar.
+Değerleri aralarına boşluk koyarak tek satırda yazar, değer vermez; argümansız çağrı boş satır yazar.
 
 ```tr
 TR_print("Toplam:", 2 + 3)
@@ -2909,7 +2909,7 @@ tr: yazdır(sinh(1.0), sinh(Tensör([0.0, 1.0])).değer)
 
     uyu(Tam | Ondalık) → YokTipi
 
-Verilen saniye kadar bekler ve doğru döndürür; beklerken yorumlayıcı kilidini bırakır, öbür görevler ilerler.
+Verilen saniye kadar bekler, değer vermez; beklerken yorumlayıcı kilidini bırakır, öbür görevler ilerler.
 
 ```tr
 TR_sleep(0.1); TR_print("0.1 saniye geçti")
@@ -3154,7 +3154,7 @@ tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].
 
     bekle_hepsi([Liste]) → Liste | YokTipi
 
-Argümansız başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır. Bir görev listesiyle o görevleri bekler ve sonuçlarını verilen sırayla liste olarak verir; hatalı görev varsa verilen sıradaki ilk görevin hatasını fırlatır, öbürlerinin hataları onun bastırılanlarına eklenir.
+Argümansız başlatılmış bütün eşzamanlı görevlerin bitmesini bekler, değer vermez; eşzamanlı bloğunun içinden çağrılması hatadır. Bir görev listesiyle o görevleri bekler ve sonuçlarını verilen sırayla liste olarak verir; hatalı görev varsa verilen sıradaki ilk görevin hatasını fırlatır, öbürlerinin hataları onun bastırılanlarına eklenir.
 
 ```tr
 TR_var s = 0; TR_for i TR_in 1..=3 { TR_async { s += i } }; TR_wait_all(); TR_print(s, TR_wait_all([TR_async TR_sum([1, 2]), TR_async TR_sum([3])]))
@@ -3192,7 +3192,7 @@ tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).de�
 
     dosya_yaz(Metin | Yol, Metin | Baytlar) → YokTipi
 
-Metni UTF-8 olarak, Baytlar'ı bayt bayt dosyaya yazar ve doğru döndürür; başka değer hatadır (metni için önce Metin(x)), var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
+Metni UTF-8 olarak, Baytlar'ı bayt bayt dosyaya yazar, değer vermez; başka değer hatadır (metni için önce Metin(x)), var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
 
 ```tr
 TR_write_file("not.txt", "merhaba"); TR_print(TR_read_file("not.txt"))
@@ -4513,7 +4513,7 @@ tr: yazdır(Yol("a.txt").mutlak.dosya_adı)
     Liste.ekle(Herhangi...) → YokTipi
     Günlük.ekle(Sözlük | Metin) → YokTipi
 
-Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve listenin kendisini verir. Günlük'te bir kayıt (Sözlük ya da Metin) yazar ve doğru verir.
+Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir, değer vermez. Günlük'te bir kayıt (Sözlük ya da Metin) yazar, değer vermez.
 
 ```tr
 TR_var l = [1]; l.TR_append(2, 3); TR_print(l)
@@ -5181,7 +5181,7 @@ tr: yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
     Örnekleyici.durumu_yükle(Sözlük) → YokTipi
     SıralıOkuyucu.durumu_yükle(Sözlük) → YokTipi
 
-durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya da okuyucuya yükler ve doğru verir; tensörler parametrenin cihazına taşınır. Parametre sayısı ve şekiller, okuyucunun türü, toplu, bağlam, tohum ve veri kümesi aynı olmalıdır, değilse hata verir.
+durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya da okuyucuya yükler, değer vermez; tensörler parametrenin cihazına taşınır. Parametre sayısı ve şekiller, okuyucunun türü, toplu, bağlam, tohum ve veri kümesi aynı olmalıdır, değilse hata verir.
 
 ```tr
 TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_AdamW([w]); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_var yeni = TR_AdamW([w]); yeni.TR_load_state(op.TR_state); TR_print(op.TR_state.TR_keys())
