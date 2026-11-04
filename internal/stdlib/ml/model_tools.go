@@ -334,7 +334,7 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 	}
 	data := d.t.Data()
 	line := len(data) / C
-	result := make([]float32, line)
+	result := make([]int64, line) // kimlik tam sayıdır: float32 2²⁴'ten sonra komşuya yuvarlardı
 	// Rastgele sayılar önce çekilir (paylaşılan üreteç kilit altında, kısa süre).
 	u := make([]float64, line)
 	if temperature > 0 {
@@ -363,11 +363,7 @@ func sampleBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Va
 		return nil, messages.New(messages.H6343, fn, bad)
 	}
 	output := sh[:len(sh)-1]
-	r, err := safe(func() *tensor.Tensor { return tensor.NewOn(d.t.Device(), result, output...) })
-	if err != nil {
-		return nil, err
-	}
-	return NewInt(r), nil
+	return safe(func() interp.Value { return New(tensor.Int64sOn(d.t.Device(), tensor.Int64, result, output...)) })
 }
 
 // unlockedSampleWork, örneklemenin kilidi bıraktığı en küçük logit sayısıdır (satır × sınıf).
@@ -378,7 +374,7 @@ const unlockedSampleWork = 1 << 20
 // sampleRows her satırdan (C logit) bir indeks örnekler ve result'a yazar; u satır başına
 // önceden çekilmiş tekdüze sayılardır. Dağılım kurulamayan ilk satırın sırasını (1'den) verir,
 // hepsi kurulabildiyse 0. Yalnız kendi dilimleriyle çalışır; kilit bırakılmışken çağrılabilir.
-func sampleRows(data, result []float32, u []float64, C, k int, temperature float64) int {
+func sampleRows(data []float32, result []int64, u []float64, C, k int, temperature float64) int {
 	line := len(result)
 	var idx []int
 	var weight []float64
@@ -395,7 +391,7 @@ func sampleRows(data, result []float32, u []float64, C, k int, temperature float
 			return r + 1
 		}
 		if temperature == 0 {
-			result[r] = float32(en)
+			result[r] = int64(en)
 			continue
 		}
 		candidates := idx[:C]
@@ -432,7 +428,7 @@ func sampleRows(data, result []float32, u []float64, C, k int, temperature float
 				break
 			}
 		}
-		result[r] = float32(picked)
+		result[r] = int64(picked)
 	}
 	return 0
 }
