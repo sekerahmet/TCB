@@ -195,6 +195,9 @@ func (c *Checker) callNoValue(e *ast.CallExpression, objType string) bool {
 		if info, user := c.scope.binding(f.Value); user {
 			return c.bindingNoValue(f.Value, info)
 		}
+		if f.Token.Code == codes.FnWaitAll {
+			return len(e.Arguments) == 0 // TR_wait_all(görevler) sonuçları verir (10.5)
+		}
 		return builtinNoValue(f.Token.Code, typeAny)
 	case *ast.MemberExpression:
 		return c.memberNoValue(e, f, objType)

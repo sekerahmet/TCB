@@ -28,13 +28,12 @@ func (c *Checker) memberValueType(m *ast.MemberExpression, objType string, calle
 	if !ok || !countedReceivers[recv] || called != (def.Kind == codes.KindMethod) {
 		return ""
 	}
-	_, ignored := ReturnsIgnored[k]
 	_, unverified := ReturnsNotVerified[k]
 	for _, r := range MemberReturnsNotVerified[k] {
 		unverified = unverified || r == recv
 	}
 	sig, found := memberSignature(def, recv)
-	if ignored || unverified || !found || len(sig.Return.Text) != 1 {
+	if unverified || !found || len(sig.Return.Text) != 1 {
 		return ""
 	}
 	return MemberReturn(sig.Return.Text[0], objType)

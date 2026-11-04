@@ -37,7 +37,7 @@ func backpropagation(m *interp.VM, args []interp.Value, named map[string]interp.
 	if err := backprop(m, t, nil); err != nil {
 		return nil, err
 	}
-	return interp.True, nil
+	return interp.Null, nil
 }
 
 // noGrad iki biçimde çalışır: türevsiz { ... } bloğu türev izlemeden çalıştırır ve

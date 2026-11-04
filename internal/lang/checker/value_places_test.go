@@ -91,3 +91,38 @@ func TestAFunctionWithoutAValueBodyInAValuePlace(t *testing.T) {
 	}
 	noErrors(t, "TR_var g = (c: TR_Bool) => TR_if c {\n  TR_if c { TR_throw \"a\" } TR_else { TR_throw \"b\" }\n} TR_else { 2 }\nTR_var y = g(TR_true)")
 }
+
+// Kural (13.10, 19, 20.3): işini yapıp değer vermeyen yerleşik değer yerinde H1143'tür: alıcıya göre
+// ayrışan TR_update İlerleme'de değer vermez, TR_Checkpoint'te verir; TR_wait_all() değer vermez,
+// TR_wait_all(görevler) sonuçları verir (10.5).
+func TestBuiltinsWithoutAValueInAValuePlace(t *testing.T) {
+	const opt = "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_AdamW([w]); "
+	for _, source := range []string{
+		"TR_var y = TR_print(1)",
+		"TR_var y = TR_write_file(\"a\", \"b\")",
+		"TR_var y = TR_assert(TR_true)",
+		"TR_var y = TR_assert_equal(1, 1)",
+		"TR_var y = TR_grad_check((a: TR_Tensor) => a, [TR_Tensor([1.0])])",
+		"TR_var y = TR_sleep(0)",
+		"TR_var y = TR_wait_all()",
+		"TR_var y = TR_backward(TR_Tensor([1.0]))",
+		"TR_var l = [1]; TR_var y = l.TR_append(2)",
+		"TR_var g = TR_Logger(\"a\"); TR_var y = g.TR_append(\"b\")",
+		"TR_var ç = TR_Progress(3); TR_var y = ç.TR_update()",
+		opt + "TR_var y = op.TR_load_state(op.TR_state)",
+		"TR_print(TR_print(1))",
+	} {
+		_, errs := checkErrs(t, source)
+		if !hasCode(errs, messages.H1143) {
+			t.Errorf("H1143 beklenirdi, gelen %v\nkaynak:\n%s", errs, source)
+		}
+	}
+	for _, source := range []string{
+		"TR_var y = TR_wait_all([TR_async TR_sum([1])])",
+		"TR_var w = TR_Tensor([1.0]); TR_var kn = TR_Checkpoint(\"a\", {\"w\": w}); TR_var y = kn.TR_update(1)",
+		"TR_var ç = TR_Progress(3); TR_var y = ç.TR_stop()",
+		"TR_var f = TR_print; TR_var y = f(\"a\")", // tipi TR_BuiltinFunction: 4a'ya kadar bilinmez
+	} {
+		noErrors(t, source)
+	}
+}

@@ -1330,7 +1330,7 @@ tr: yazdır(asin(1.0), asin(Tensör([0.0, 0.5])).değer)
 
 #### `TR_assert(...)` (`TR_fn_assert`, `doğrula`)
 
-    doğrula(Herhangi, [Herhangi]) → Mantık
+    doğrula(Herhangi, [Herhangi]) → YokTipi
 
 Koşul yanlışsa "doğrulama başarısız" hatası fırlatır, doğruysa doğru döndürür; isteğe bağlı mesaj hataya eklenir. Test dışında da çalışır.
 
@@ -1349,7 +1349,7 @@ tr: doğrula(2 > 1, "iki birden büyük olmalı"); yazdır("doğrulandı")
 
 #### `TR_assert_equal(...)` (`TR_fn_assert_equal`, `eşit_olmalı`)
 
-    eşit_olmalı(Herhangi, Herhangi, [Herhangi]) → Mantık
+    eşit_olmalı(Herhangi, Herhangi, [Herhangi]) → YokTipi
 
 İki değer == anlamında eşit değilse ikisini de tipiyle gösteren hata fırlatır, eşitse doğru döndürür. Test dışında da çalışır.
 
@@ -1425,7 +1425,7 @@ tr: değişken q = rastgele_normal([2, 4, 8], tohum: 1); yazdır(dikkat(q, q, q,
 
 #### `TR_backward(...)` (`TR_fn_backward`, `geri_yayılım`)
 
-    geri_yayılım(Tensör) → Mantık
+    geri_yayılım(Tensör) → YokTipi
 
 Tek elemanlı (skaler) bir kayıptan geri yayılım yaparak yaprak tensörlerin .gradyan değerlerini hesaplar. Gradyanlar birikir; adımlar arasında iyileştiricinin .sıfırla() metoduyla sıfırlanmalıdır.
 
@@ -1931,7 +1931,7 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0])).değer, gelu(1.0, yaklaşık: yanlı
 
 #### `TR_grad_check(...)` (`TR_fn_grad_check`, `türev_denetle`)
 
-    türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, fark_adımı: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → Mantık
+    türev_denetle(Fonksiyon | YerleşikFonksiyon, Liste, fark_adımı: Tam | Ondalık = 0.001, tolerans: Tam | Ondalık = 0.01) → YokTipi
 
 Bir fonksiyonun geri yayılımla bulunan gradyanını merkezi farkla bulunan sayısal gradyanla karşılaştırır; uyuşursa doğru döndürür, uyuşmazsa en büyük farkı gösteren bir hata verir. Yalnızca türev izleyen tensör girdileri, kopyaları üzerinde denetlenir.
 
@@ -2547,7 +2547,7 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 
 #### `TR_print(...)` (`TR_fn_print`, `yazdır`)
 
-    yazdır([Herhangi...]) → Metin
+    yazdır([Herhangi...]) → YokTipi
 
 Değerleri aralarına boşluk koyarak tek satırda yazar ve yazdığı metni döndürür; argümansız çağrı boş satır yazar.
 
@@ -2907,7 +2907,7 @@ tr: yazdır(sinh(1.0), sinh(Tensör([0.0, 1.0])).değer)
 
 #### `TR_sleep(...)` (`TR_fn_sleep`, `uyu`)
 
-    uyu(Tam | Ondalık) → Mantık
+    uyu(Tam | Ondalık) → YokTipi
 
 Verilen saniye kadar bekler ve doğru döndürür; beklerken yorumlayıcı kilidini bırakır, öbür görevler ilerler.
 
@@ -3152,7 +3152,7 @@ tr: değişken s = en_büyük_k(Tensör([3.0, 1.0, 4.0, 1.5]), 2); yazdır(s[0].
 
 #### `TR_wait_all(...)` (`TR_fn_wait_all`, `bekle_hepsi`)
 
-    bekle_hepsi([Liste]) → Liste | Mantık
+    bekle_hepsi([Liste]) → Liste | YokTipi
 
 Argümansız başlatılmış bütün eşzamanlı görevlerin bitmesini bekler ve doğru döndürür; eşzamanlı bloğunun içinden çağrılması hatadır. Bir görev listesiyle o görevleri bekler ve sonuçlarını verilen sırayla liste olarak verir; hatalı görev varsa verilen sıradaki ilk görevin hatasını fırlatır, öbürlerinin hataları onun bastırılanlarına eklenir.
 
@@ -3190,7 +3190,7 @@ tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).de�
 
 #### `TR_write_file(...)` (`TR_fn_write_file`, `dosya_yaz`)
 
-    dosya_yaz(Metin | Yol, Metin | Baytlar) → Mantık
+    dosya_yaz(Metin | Yol, Metin | Baytlar) → YokTipi
 
 Metni UTF-8 olarak, Baytlar'ı bayt bayt dosyaya yazar ve doğru döndürür; başka değer hatadır (metni için önce Metin(x)), var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
 
@@ -4510,8 +4510,8 @@ tr: yazdır(Yol("a.txt").mutlak.dosya_adı)
 
 #### `.TR_append(...)` (`TR_mem_append`, `ekle`)
 
-    Liste.ekle(Herhangi...) → Liste
-    Günlük.ekle(Sözlük | Metin) → Mantık
+    Liste.ekle(Herhangi...) → YokTipi
+    Günlük.ekle(Sözlük | Metin) → YokTipi
 
 Listenin sonuna verilen elemanları ekler; listeyi yerinde değiştirir ve listenin kendisini verir. Günlük'te bir kayıt (Sözlük ya da Metin) yazar ve doğru verir.
 
@@ -5177,9 +5177,9 @@ tr: yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
 
 #### `.TR_load_state(...)` (`TR_mem_load_state`, `durumu_yükle`)
 
-    İyileştirici.durumu_yükle(Sözlük) → Mantık
-    Örnekleyici.durumu_yükle(Sözlük) → Mantık
-    SıralıOkuyucu.durumu_yükle(Sözlük) → Mantık
+    İyileştirici.durumu_yükle(Sözlük) → YokTipi
+    Örnekleyici.durumu_yükle(Sözlük) → YokTipi
+    SıralıOkuyucu.durumu_yükle(Sözlük) → YokTipi
 
 durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya da okuyucuya yükler ve doğru verir; tensörler parametrenin cihazına taşınır. Parametre sayısı ve şekiller, okuyucunun türü, toplu, bağlam, tohum ve veri kümesi aynı olmalıdır, değilse hata verir.
 
@@ -6063,7 +6063,7 @@ tr: yazdır([1, 2, 2, 3, 1].benzersiz())
 #### `.TR_update(...)` (`TR_mem_update`, `güncelle`)
 
     KontrolNoktası.güncelle(Tam) → Mantık
-    İlerleme.güncelle([Sözlük], adım: Tam = yok) → Mantık
+    İlerleme.güncelle([Sözlük], adım: Tam = yok) → YokTipi
 
 Her çağrı eğitimin bir adım sınırıdır. İlerleme'de çubuğu bir adım ilerletir, verilen ölçüleri (kayıp, öğrenme oranı ...) gösterir, adım: ile tamamlanan adım sayısını o değere getirir ve toplama ulaşınca çubuğu bitirir. KontrolNoktası'nda güncelle(adım) tamamlanan adım sayısını bildirir; her_dakika süresi dolduysa ya da durdurma istendiyse (Ctrl+C) burada kaydeder, kaydettiyse doğru verir.
 

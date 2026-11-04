@@ -27,7 +27,7 @@ func noValueLines(t *testing.T, source string) []int {
 	return lines
 }
 
-const noValueFn = "TR_func f() { TR_print(1) }\n"
+const noValueFn = "TR_func f() { }\n"
 
 // Kural (3.5, 6.1): TR_func'ın çağrısı gövdesinde değerli TR_return yoksa değer vermez; `->`
 // ölçüt değildir, iç içe fonksiyonun TR_return'ü sayılmaz, ad bloğunun her yerinden görünür.

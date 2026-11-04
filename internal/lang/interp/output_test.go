@@ -65,12 +65,12 @@ func TestSecretFilter(t *testing.T) {
 		t.Fatal("gizli değer kaydedilemedi")
 	}
 	vmx.GlobalEnv.Define("anahtar", &StringVal{Val: "hf_gizli123"}, false)
-	execCode(t, vmx, "TR_var d = TR_print(\"anahtar: \\(anahtar), uzun: hf_gizli123_uzun, abc\")\n")
+	execCode(t, vmx, "TR_var d = \"anahtar: \\(anahtar), uzun: hf_gizli123_uzun, abc\"\nTR_print(d)\n")
 	if got := output.String(); got != "anahtar: ***, uzun: ***, abc\n" {
 		t.Errorf("yazdır çıktısı maskelenmeli: %q", got)
 	}
 	if d, _ := vmx.GlobalEnv.Get("d"); d.Inspect() != "anahtar: hf_gizli123, uzun: hf_gizli123_uzun, abc" {
-		t.Errorf("yazdır'ın döndürdüğü değer (veri) değişmemeli: %s", d.Inspect())
+		t.Errorf("yazdırılan değer (veri) değişmemeli: %s", d.Inspect())
 	}
 	output.Reset()
 	vmx.reportAsyncError(1, errors.New("istek reddedildi: hf_gizli123"))
