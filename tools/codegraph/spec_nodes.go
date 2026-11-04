@@ -2,9 +2,12 @@ package main
 
 import (
 	"path"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/devtools/codeindex"
 	"github.com/sekerahmet/TCB/tools/internal/specref"
 )
 
@@ -31,9 +34,10 @@ func extractSpecRefs(root string, b *builder) {
 		return
 	}
 	ix := specref.BuildIndex(files)
+	memberAliases := specMemberAliases(files, ix)
 	for _, id := range ix.Order {
 		it := ix.Items[id]
-		b.addNode(Node{ID: specID(id), Kind: kindSpec, Name: id, File: it.File, Line: it.Line, Detail: it.Title})
+		b.addNode(Node{ID: specID(id), Kind: kindSpec, Name: id, File: it.File, Line: it.Line, Detail: it.Title, Aliases: memberAliases[id]})
 	}
 	byFile := map[string][]*Node{}
 	for _, n := range b.nodes {
@@ -132,4 +136,96 @@ func trTestsByNumber(b *builder, ix *specref.Index) {
 			b.addEdge(id, specID(item), edgeTests, inferred, n.File, n.Line)
 		}
 	}
+}
+
+var specDotMember = regexp.MustCompile(`\.TR_[\p{L}\p{N}_]+`)
+
+type specMemberHit struct {
+	id   string
+	tok  string
+	tier int
+}
+
+// specMemberAliases numaralı dil tanımı maddelerinde geçen `.TR_<ad>` üye yazımlarını toplar ve her yazımı en öncelikli
+// katmandaki (0: maddenin Title özeti, 1: maddenin açılış satırı, 2: maddenin gövdesi) madde düğümlerine verir; böylece
+// başka bir maddenin açılışında ya da gövdesinde örnek olarak anılan üye, kendi başlığında tanımlandığı maddeyi gölgelemez.
+func specMemberAliases(files []specref.File, ix *specref.Index) map[string][]string {
+	byFile := map[string]map[int]string{}
+	for _, id := range ix.Order {
+		it := ix.Items[id]
+		if byFile[it.File] == nil {
+			byFile[it.File] = map[int]string{}
+		}
+		byFile[it.File][it.Line] = id
+	}
+	var hits []specMemberHit
+	for _, f := range files {
+		if starts := byFile[f.Path]; len(starts) > 0 {
+			hits = appendSpecFileMembers(hits, f.Text, starts, ix.Items)
+		}
+	}
+	minTier := map[string]int{}
+	for _, h := range hits {
+		k := codeindex.Fold(h.tok)
+		if cur, ok := minTier[k]; !ok || h.tier < cur {
+			minTier[k] = h.tier
+		}
+	}
+	out := map[string][]string{}
+	for _, h := range hits {
+		if h.tier == minTier[codeindex.Fold(h.tok)] && !slices.Contains(out[h.id], h.tok) {
+			out[h.id] = append(out[h.id], h.tok)
+		}
+	}
+	for _, list := range out {
+		sort.Strings(list)
+	}
+	return out
+}
+
+func appendSpecFileMembers(hits []specMemberHit, text string, starts map[int]string, items map[string]specref.Item) []specMemberHit {
+	var fence specref.Fence
+	curID := ""
+	for i, raw := range strings.Split(text, "\n") {
+		line := strings.TrimRight(raw, "\r")
+		if fence.Line(line) {
+			continue
+		}
+		if !fence.In() {
+			if id, ok := starts[i+1]; ok {
+				curID = id
+			} else if t := strings.TrimSpace(line); strings.HasPrefix(t, "#") || isNumberedBoldLine(t) {
+				curID = ""
+			}
+		}
+		if curID == "" {
+			continue
+		}
+		it := items[curID]
+		for _, tok := range dotMemberTokens(line) {
+			tier := 2
+			if i+1 == it.Line {
+				tier = 1
+				if slices.Contains(dotMemberTokens(it.Title), tok) {
+					tier = 0
+				}
+			}
+			hits = append(hits, specMemberHit{id: curID, tok: tok, tier: tier})
+		}
+	}
+	return hits
+}
+
+func dotMemberTokens(s string) []string {
+	var out []string
+	for _, loc := range specDotMember.FindAllStringIndex(s, -1) {
+		if loc[0] == 0 || s[loc[0]-1] != '.' {
+			out = append(out, s[loc[0]:loc[1]])
+		}
+	}
+	return out
+}
+
+func isNumberedBoldLine(trimmed string) bool {
+	return len(trimmed) > 2 && trimmed[0] == '*' && trimmed[1] == '*' && trimmed[2] >= '0' && trimmed[2] <= '9'
 }

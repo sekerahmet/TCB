@@ -94,10 +94,45 @@ fi
 
 # repo_scans düzen kurallarının paketleri dışında depoyu tarayan kural testleridir (ön denetim hepsini koşar).
 repo_scans=(
-	TestEveryErrorTypeIsLocalized TestGoCodeDoesNotEditMessageText TestMessageArgsAreNotMessageFragments
-	TestHeaderRulesLiveOnlyInSourceAndLexer TestRepoTRFilesEncodeLossless TestDocCodeBlocksEncodeLossless
-	TestHintMessagesBuiltOnlyHere TestEveryMultiNameValueSpecInTheRepositoryHasItsUses
-	TestExprWalkersMatchReferenceOnRepositoryPrograms TestLibraryModulesDoNotReadTheCommandLine TestRepoTRFilesPassCheck
+	TestBuildTagsNeverSelectCPUFeatures
+	TestCloseCallsEveryPackageCloser
+	TestCodeListAndTRFileWalkersAreInTestsForAndChangedGoTests
+	TestDocCodeBlocksShow
+	TestDottedMemberSpellingsGolden
+	TestEveryCodedEnvironmentVariableInAScriptIsAnEdge
+	TestEveryErrorTypeIsLocalized
+	TestEveryMemberSpellingInRepoTRFilesResolves
+	TestEveryMultiNameValueSpecInTheRepositoryHasItsUses
+	TestEveryRepositoryScanIsRecognized
+	TestEveryTrackedDataFileHasATestOrAReason
+	TestEveryTrackedFileIsANode
+	TestExamplesCoverLibraryNames
+	TestExamplesCoverNames
+	TestExprWalkersMatchReferenceOnRepositoryPrograms
+	TestFileSelectionIsConsistentInEveryConfiguration
+	TestGoCodeDoesNotEditMessageText
+	TestHeaderRulesLiveOnlyInSourceAndLexer
+	TestHintMessagesBuiltOnlyHere
+	TestJSONFieldsHaveExplicitNames
+	TestLibraryModulesDoNotReadTheCommandLine
+	TestMessageArgsAreNotMessageFragments
+	TestRepoTRFilesPassCheck
+	TestRepoTRFilesShow
+	TestSizesMatchTheLayoutTest
+	TestStatefulImplementersAreAsserted
+	TestUserPathsResolvedByLanguageRule
+)
+repo_scan_pkgs=(
+	./cmd/trlang
+	./cmd/trlang/e2e
+	./internal/compute
+	./internal/lang/hint
+	./internal/lang/interp
+	./internal/lang/messages
+	./internal/lang/source
+	./internal/stdlib
+	./internal/stdlib/checkpoint
+	./tools/codegraph
 )
 
 failed=0
@@ -701,7 +736,7 @@ for mode in $modes; do
 		# 9ca4b3df). Düzen kurallarının paketleri yukarıda bütün olarak koşar. Liste elle; codegraph'ın
 		# tarama düğümlerinden üretilmesi tools/codegraph/gaps.md'de.
 		go test "${p_flag[@]}" -short -run "^($(printf '%s|' "${repo_scans[@]}" | sed 's/|$//'))\$" \
-			./internal/lang/messages ./internal/lang/source ./internal/lang/hint ./tools/codegraph ./internal/lang/interp ./cmd/trlang 2>&1 | grep -v '^ok\|no test files'
+			"${repo_scan_pkgs[@]}" 2>&1 | grep -v '^ok\|no test files'
 		[ "${PIPESTATUS[0]}" -eq 0 ] || fail "depo taramaları"
 		step "TR dosyalarının biçimi (trlang format --check) ve dil tanımı testleri (trlang test tests, ~2 sn)"
 		# Go'nun kısa kipi dil tanımı testlerini atlıyor; ön denetim onları burada koşar.

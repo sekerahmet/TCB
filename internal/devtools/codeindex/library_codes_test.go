@@ -190,3 +190,46 @@ func TestALibraryNameIsShownInTheReadersLanguage(t *testing.T) {
 		}
 	}
 }
+
+// Kural (DENETİM istek 66 K2): <takma ad>.TR_<ad> yalnız o takma adın aktardığı modülde bildirilmişse bulunur;
+// başka kitaplık modülünün ya da kullanıcı modülünün takma adı öbür modüllerin bildirimlerine inmez.
+func TestImportAliasResolvesOnlyDeclarationsInItsTargetModule(t *testing.T) {
+	dir := t.TempDir()
+	for name, text := range map[string]string{
+		"lib/layers.tr": `TR_struct TR_Linear {
+    TR_weight: TR_Int = 1
+}
+`,
+		"lib/optimizers.tr": `TR_const TR_NS_A = 3.4445
+`,
+		"examples/helpers/geometri.tr": `TR_struct Kare {
+    kenar: TR_Int = 1
+}
+`,
+		"examples/a.tr": "TR_import \"tr/layers\" TR_as katman\n" +
+			"TR_import \"tr/optimizers\" TR_as opt\n" +
+			"TR_import \"helpers/geometri\" TR_as geo\n\n" +
+			"TR_var d = " + "katman." + "TR_Linear()\n" +
+			"TR_print(" + "opt." + "TR_NS_A, geo.Kare())\n",
+	} {
+		testkit.WriteFile(t, dir, name, string(trText(name, text)))
+	}
+	idx, err := Build(dir, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := NewReader(idx)
+	for q, want := range map[string]string{
+		"katman." + "TR_Linear": "struct:lib/layers.tr#TR_type_Linear",
+		"opt." + "TR_NS_A":      "constant:lib/optimizers.tr#TR_const_NS_A",
+	} {
+		if res := r.Definition(q, QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != want {
+			t.Errorf("Definition(%q) = %s (%+v), want %s", q, res.Status, res.Target, want)
+		}
+	}
+	for _, q := range []string{"opt." + "TR_Linear", "katman." + "TR_NS_A", "geo." + "TR_Linear", "geo." + "TR_NS_A"} {
+		if res := r.Definition(q, QueryOptions{}); res.Status != StatusNotFound {
+			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
+		}
+	}
+}

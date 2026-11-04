@@ -11,28 +11,52 @@ import (
 )
 
 // evalPath bir tarama tabanını depo köküne göre yollara çözer. rooted: yol depo kökünden kuruldu (reporoot.Root(),
-// reporoot.Path(...), kökten Join); değilse değerler yalnızca birer parçadır. depth parametreden çağırana kaç adım
-// gidileceğidir.
+// reporoot.Path(...), repodir.Resolve(""), kökten Join); değilse değerler yalnızca birer parçadır. depth parametreden
+// ya da yardımcı çağrısından kaç adım gidileceğidir.
 func (x *goExtractor) evalPath(fc *fileCtx, fn *ast.FuncDecl, e ast.Expr, depth int) ([]string, bool) {
+	return x.evalPathWith(fc, fn, e, nil, depth)
+}
+
+func (x *goExtractor) evalPathWith(fc *fileCtx, fn *ast.FuncDecl, e ast.Expr, bind map[types.Object][]string, depth int) ([]string, bool) {
+	if depth < 0 {
+		return nil, false
+	}
 	switch e := e.(type) {
 	case *ast.ParenExpr:
-		return x.evalPath(fc, fn, e.X, depth)
+		return x.evalPathWith(fc, fn, e.X, bind, depth)
 	case *ast.BasicLit:
 		if s, err := strconv.Unquote(e.Value); err == nil && e.Kind == token.STRING {
 			return []string{s}, false
 		}
 	case *ast.CallExpr:
-		return x.evalPathCall(fc, fn, e, depth)
+		if vals, rooted := x.evalPathCall(fc, fn, e, bind, depth); rooted || len(vals) > 0 {
+			return vals, rooted
+		}
+		if depth > 0 {
+			return x.evalCallReturn(fc, fn, e, 0, bind, depth-1)
+		}
+	case *ast.SelectorExpr:
+		if obj := fc.u.Info.Uses[e.Sel]; obj != nil && depth > 0 {
+			if refs := x.idx.scans.assigns[obj]; len(refs) == 1 {
+				return x.evalAssignWith(refs[0], nil, depth-1)
+			}
+		}
 	case *ast.Ident:
 		obj := fc.u.Info.Uses[e]
 		if obj == nil {
 			return nil, false
 		}
+		if vals, ok := bind[obj]; ok {
+			return vals, false
+		}
 		if vals, ok := x.valuesOf(obj); ok {
 			return vals, false
 		}
-		if rhs := localValue(fc, fn, obj); rhs != nil {
-			return x.evalPath(fc, fn, rhs, depth)
+		if ref, ok := localAssign(fc, fn, obj); ok && depth > 0 {
+			return x.evalAssignWith(ref, bind, depth-1)
+		}
+		if refs := x.idx.scans.assigns[obj]; len(refs) == 1 && depth > 0 {
+			return x.evalAssignWith(refs[0], nil, depth-1)
 		}
 		if i := paramIndex(fc, fn, obj); i >= 0 && depth > 0 {
 			return x.evalParam(fn, fc, i, depth-1)
@@ -41,35 +65,104 @@ func (x *goExtractor) evalPath(fc *fileCtx, fn *ast.FuncDecl, e ast.Expr, depth 
 	return nil, false
 }
 
-// evalPathCall reporoot.Root, reporoot.Path ve filepath/path.Join çağrılarını çözer.
-func (x *goExtractor) evalPathCall(fc *fileCtx, fn *ast.FuncDecl, call *ast.CallExpr, depth int) ([]string, bool) {
+func (x *goExtractor) evalAssignWith(ref assignRef, bind map[types.Object][]string, depth int) ([]string, bool) {
+	if ref.idx < 0 {
+		return x.evalPathWith(ref.fc, ref.fn, ref.rhs, bind, depth)
+	}
+	call, ok := ref.rhs.(*ast.CallExpr)
+	if !ok || depth <= 0 {
+		return nil, false
+	}
+	if ref.idx == 0 {
+		if vals, rooted := x.evalPathCall(ref.fc, ref.fn, call, bind, depth); rooted {
+			return vals, true
+		}
+	}
+	return x.evalCallReturn(ref.fc, ref.fn, call, ref.idx, bind, depth-1)
+}
+
+// evalPathCall reporoot.Root, reporoot.Path, repodir.Resolve("") ve filepath/path.Join çağrılarını çözer.
+func (x *goExtractor) evalPathCall(fc *fileCtx, fn *ast.FuncDecl, call *ast.CallExpr, bind map[types.Object][]string, depth int) ([]string, bool) {
 	f, _ := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func)
 	if f == nil || f.Pkg() == nil {
 		return nil, false
 	}
-	root := strings.HasSuffix(f.Pkg().Path(), "internal/reporoot")
+	pkg := f.Pkg().Path()
+	root := strings.HasSuffix(pkg, "internal/reporoot")
 	switch {
 	case root && f.Name() == "Root" && len(call.Args) == 0:
 		return []string{"."}, true
 	case root && f.Name() == "Path":
-		parts, ok := x.segments(fc, fn, call.Args, depth)
+		parts, ok := x.segments(fc, fn, call.Args, bind, depth)
 		return joinAll([]string{"."}, parts), ok
-	case (f.Pkg().Path() == "path/filepath" || f.Pkg().Path() == "path") && f.Name() == "Join" && len(call.Args) > 0:
-		first, rooted := x.evalPath(fc, fn, call.Args[0], depth)
+	case strings.HasSuffix(pkg, "tools/internal/repodir") && f.Name() == "Resolve" && len(call.Args) == 1:
+		vals, rooted := x.evalPathWith(fc, fn, call.Args[0], bind, depth)
+		if !rooted && len(vals) == 1 && vals[0] == "" {
+			return []string{"."}, true
+		}
+	case (pkg == "path/filepath" || pkg == "path") && f.Name() == "Join" && len(call.Args) > 0:
+		first, rooted := x.evalPathWith(fc, fn, call.Args[0], bind, depth)
 		if !rooted {
 			return nil, false
 		}
-		parts, ok := x.segments(fc, fn, call.Args[1:], depth)
+		parts, ok := x.segments(fc, fn, call.Args[1:], bind, depth)
 		return joinAll(first, parts), ok
 	}
 	return nil, false
 }
 
+// evalCallReturn modül içindeki bir yardımcı işlevin idx'inci dönüş değerini çözer (`root, _, g := repoGraph(t)`).
+func (x *goExtractor) evalCallReturn(fc *fileCtx, fn *ast.FuncDecl, call *ast.CallExpr, idx int, bind map[types.Object][]string, depth int) ([]string, bool) {
+	fnObj, _ := fc.u.Info.Uses[nameIdent(call.Fun)].(*types.Func)
+	if fnObj == nil {
+		return nil, false
+	}
+	if sig, ok := fnObj.Type().(*types.Signature); !ok || idx >= sig.Results().Len() || sig.Results().At(idx).Type().String() != "string" {
+		return nil, false
+	}
+	callee, ok := x.idx.scans.allFuncs[fnObj]
+	if !ok || callee.fn.Body == nil {
+		return nil, false
+	}
+	calleeBind := map[types.Object][]string{}
+	for i, a := range call.Args {
+		if p := paramAt(callee.fc, callee.fn, i); p != nil {
+			if vals, rooted := x.evalPathWith(fc, fn, a, bind, depth); !rooted && len(vals) > 0 {
+				calleeBind[p] = vals
+			}
+		}
+	}
+	var out []string
+	ast.Inspect(callee.fn.Body, func(n ast.Node) bool {
+		if _, isLit := n.(*ast.FuncLit); isLit {
+			return false
+		}
+		ret, ok := n.(*ast.ReturnStmt)
+		if !ok {
+			return true
+		}
+		switch {
+		case idx < len(ret.Results):
+			if vals, rooted := x.evalPathWith(callee.fc, callee.fn, ret.Results[idx], calleeBind, depth); rooted {
+				out = append(out, vals...)
+			}
+		case len(ret.Results) == 1:
+			if inner, ok := ret.Results[0].(*ast.CallExpr); ok {
+				if vals, rooted := x.evalAssignWith(assignRef{callee.fc, callee.fn, inner, idx}, calleeBind, depth); rooted {
+					out = append(out, vals...)
+				}
+			}
+		}
+		return true
+	})
+	return out, len(out) > 0
+}
+
 // segments yol parçalarının her birinin alabildiği değerlerdir; çözülmeyen parça bütün yolu çözülmez yapar.
-func (x *goExtractor) segments(fc *fileCtx, fn *ast.FuncDecl, args []ast.Expr, depth int) ([][]string, bool) {
+func (x *goExtractor) segments(fc *fileCtx, fn *ast.FuncDecl, args []ast.Expr, bind map[types.Object][]string, depth int) ([][]string, bool) {
 	var out [][]string
 	for _, a := range args {
-		vals, rooted := x.evalPath(fc, fn, a, depth)
+		vals, rooted := x.evalPathWith(fc, fn, a, bind, depth)
 		if rooted || len(vals) == 0 {
 			return nil, false
 		}
@@ -110,12 +203,21 @@ func (x *goExtractor) valuesOf(obj types.Object) ([]string, bool) {
 	return nil, false
 }
 
-// localValue işlevde bir kez atanan yerel değişkenin değeridir (`root := reporoot.Root()`); birden çok atama ya da
-// çoklu dönüş (`root, _, g := repoGraph(t)`) çözülmez.
-func localValue(fc *fileCtx, fn *ast.FuncDecl, obj types.Object) ast.Expr {
-	var value ast.Expr
+// localAssign işlevde bir kez atanan yerel değişkenin sağ tarafını verir (çoklu dönüş dahil: `root, _, g := repoGraph(t)`).
+func localAssign(fc *fileCtx, fn *ast.FuncDecl, obj types.Object) (assignRef, bool) {
+	rhs, idx := singleLocalAssign(fc, fn.Body, obj)
+	if rhs == nil {
+		return assignRef{}, false
+	}
+	return assignRef{fc, fn, rhs, idx}, true
+}
+
+// singleLocalAssign root içinde bir kez atanan yerel değişkenin sağ taraf ifadesini ve çoklu dönüş indisini (-1: tekli) verir.
+func singleLocalAssign(fc *fileCtx, root ast.Node, obj types.Object) (ast.Expr, int) {
+	var rhs ast.Expr
+	idx := -1
 	count := 0
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
+	ast.Inspect(root, func(n ast.Node) bool {
 		as, ok := n.(*ast.AssignStmt)
 		if !ok {
 			return true
@@ -123,17 +225,42 @@ func localValue(fc *fileCtx, fn *ast.FuncDecl, obj types.Object) ast.Expr {
 		for i, l := range as.Lhs {
 			if id, ok := l.(*ast.Ident); ok && (fc.u.Info.Defs[id] == obj || fc.u.Info.Uses[id] == obj) {
 				count++
-				if len(as.Lhs) == len(as.Rhs) {
-					value = as.Rhs[i]
+				if as.Tok != token.DEFINE && as.Tok != token.ASSIGN {
+					continue
+				}
+				switch {
+				case len(as.Lhs) == len(as.Rhs):
+					rhs, idx = as.Rhs[i], -1
+				case len(as.Rhs) == 1 && len(as.Lhs) > 1:
+					rhs, idx = as.Rhs[0], i
 				}
 			}
 		}
 		return true
 	})
-	if count != 1 {
-		return nil
+	if count != 1 || rhs == nil || usesObj(fc, rhs, obj) {
+		return nil, -1
 	}
-	return value
+	return rhs, idx
+}
+
+func usesObj(fc *fileCtx, n ast.Node, obj types.Object) bool {
+	found := false
+	ast.Inspect(n, func(cur ast.Node) bool {
+		if id, ok := cur.(*ast.Ident); ok && fc.u.Info.Uses[id] == obj {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+// localValue işlevde bir kez tekli atanan yerel değişkenin değeridir (`ext := ".tr"`).
+func localValue(fc *fileCtx, fn *ast.FuncDecl, obj types.Object) ast.Expr {
+	if ref, ok := localAssign(fc, fn, obj); ok && ref.idx < 0 {
+		return ref.rhs
+	}
+	return nil
 }
 
 // paramIndex obj fn'nin kaçıncı parametresi (değilse -1).
@@ -151,6 +278,26 @@ func paramIndex(fc *fileCtx, fn *ast.FuncDecl, obj types.Object) int {
 		}
 	}
 	return -1
+}
+
+// paramAt fn'nin idx'inci parametresinin nesnesidir (adsız ya da taşarsa nil).
+func paramAt(fc *fileCtx, fn *ast.FuncDecl, idx int) types.Object {
+	i := 0
+	for _, field := range fn.Type.Params.List {
+		for _, name := range field.Names {
+			if i == idx {
+				return fc.u.Info.Defs[name]
+			}
+			i++
+		}
+		if len(field.Names) == 0 {
+			if i == idx {
+				return nil
+			}
+			i++
+		}
+	}
+	return nil
 }
 
 // evalParam bir parametrenin değerini doğrudan çağıranların verdiği bağımsız değişkenlerden çözer; kökten çözülmeyen
@@ -179,8 +326,11 @@ func (x *goExtractor) evalParam(fn *ast.FuncDecl, fc *fileCtx, i, depth int) ([]
 // suffixEval bir süzgeç ifadesinin dize değerleridir: sabit, adlı sabit, bir kez atanan yerel ya da çağırana bağlanmış
 // parametre (bind).
 func (x *goExtractor) suffixEval(fc *fileCtx, fn *ast.FuncDecl, bind map[types.Object][]string) func(ast.Expr) []string {
-	var ev func(ast.Expr) []string
-	ev = func(e ast.Expr) []string {
+	var ev func(ast.Expr, int) []string
+	ev = func(e ast.Expr, depth int) []string {
+		if depth > 4 {
+			return nil
+		}
 		switch e := e.(type) {
 		case *ast.BasicLit:
 			if s, err := strconv.Unquote(e.Value); err == nil && e.Kind == token.STRING {
@@ -195,20 +345,26 @@ func (x *goExtractor) suffixEval(fc *fileCtx, fn *ast.FuncDecl, bind map[types.O
 				return []string{constant.StringVal(c.Val())}
 			}
 			if rhs := localValue(fc, fn, obj); rhs != nil {
-				return ev(rhs)
+				return ev(rhs, depth+1)
 			}
 		}
 		return nil
 	}
-	return ev
+	return func(e ast.Expr) []string { return ev(e, 0) }
 }
 
 // scanFilters bir gövdedeki dosya adı süzgecidir: atlama koşulundaki (`return`/`continue` tek deyimli `if`) olumsuz ek
-// dahil, olumlu ek hariç; başka koşullardaki olumlu ek, `switch filepath.Ext(...)` durumları ve etiketsiz switch'in dolu
-// durumları dahil, boş durumu hariç. Ek `strings.HasSuffix(x, ek)`, `filepath.Ext(x) ==/!= ek`, tam ad `d.Name() ==/!=
-// ad` ya da `filepath.Base(x) ==/!= ad` sınamasıdır. dirs: atlama koşulu dosyaları atlıyor (`!d.IsDir()`), tarama
-// yalnızca klasörleri gezer.
+// dahil, olumlu ek hariç; boolean dönüş (`return strings.HasSuffix(rel, ".tr")`), başka koşullardaki olumlu ek,
+// `switch filepath.Ext(...)` durumları ve etiketsiz switch'in dolu durumları dahil, boş durumu hariç.
 func scanFilters(body ast.Node, ev func(ast.Expr) []string) (inc, exc []string, dirs bool) {
+	extVars := collectExtVars(body)
+	isExt := func(e ast.Expr) bool {
+		if isExtCall(e) {
+			return true
+		}
+		id, ok := e.(*ast.Ident)
+		return ok && extVars[id.Name]
+	}
 	add := func(suffix string, positive bool) {
 		if !strings.Contains(suffix, ".") || len(suffix) < 2 || strings.ContainsAny(suffix, "/ ") {
 			return
@@ -223,19 +379,23 @@ func scanFilters(body ast.Node, ev func(ast.Expr) []string) (inc, exc []string, 
 		switch s := n.(type) {
 		case *ast.IfStmt:
 			skip := isSkip(s.Body)
-			suffixAtoms(s.Cond, skip, ev, add)
+			suffixAtoms(s.Cond, skip, isExt, ev, add)
 			dirs = dirs || skip && skipsFiles(s.Cond)
+		case *ast.ReturnStmt:
+			if len(s.Results) == 1 {
+				suffixAtoms(s.Results[0], false, isExt, ev, add)
+			}
 		case *ast.SwitchStmt:
 			for _, c := range s.Body.List {
 				cc := c.(*ast.CaseClause)
 				for _, e := range cc.List {
 					switch {
-					case isExtCall(s.Tag):
+					case isExt(s.Tag):
 						for _, v := range ev(e) {
 							add(v, true)
 						}
 					case s.Tag == nil:
-						suffixAtoms(e, len(cc.Body) == 0, ev, add)
+						suffixAtoms(e, len(cc.Body) == 0, isExt, ev, add)
 					}
 				}
 			}
@@ -243,6 +403,35 @@ func scanFilters(body ast.Node, ev func(ast.Expr) []string) (inc, exc []string, 
 		return true
 	})
 	return inc, exc, dirs
+}
+
+// collectExtVars gövdede bir kez `filepath.Ext(...)` ya da `path.Ext(...)` ile atanan yerel adlardır.
+func collectExtVars(body ast.Node) map[string]bool {
+	counts := map[string]int{}
+	ext := map[string]bool{}
+	ast.Inspect(body, func(n ast.Node) bool {
+		as, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for i, l := range as.Lhs {
+			id, ok := l.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			counts[id.Name]++
+			if len(as.Lhs) == len(as.Rhs) && isExtCall(as.Rhs[i]) {
+				ext[id.Name] = true
+			}
+		}
+		return true
+	})
+	for k, n := range counts {
+		if n != 1 {
+			delete(ext, k)
+		}
+	}
+	return ext
 }
 
 // skipsFiles atlama koşulunun bir terimi `!x.IsDir()` mi (dosyalar atlanır).
@@ -263,13 +452,20 @@ func skipsFiles(e ast.Expr) bool {
 	return false
 }
 
-// isSkip bloğun tek deyimi bir dönüş ya da döngü atlaması mı (atlama koşulu).
+// isSkip bloğun tek deyimi bir atlama dönüşü ya da döngü atlaması mı (`return true` atlama değildir).
 func isSkip(b *ast.BlockStmt) bool {
 	if len(b.List) != 1 {
 		return false
 	}
-	switch b.List[0].(type) {
-	case *ast.ReturnStmt, *ast.BranchStmt:
+	switch s := b.List[0].(type) {
+	case *ast.ReturnStmt:
+		if len(s.Results) == 1 {
+			if id, ok := s.Results[0].(*ast.Ident); ok && id.Name == "true" {
+				return false
+			}
+		}
+		return true
+	case *ast.BranchStmt:
 		return true
 	}
 	return false
@@ -277,25 +473,25 @@ func isSkip(b *ast.BlockStmt) bool {
 
 // suffixAtoms koşuldaki ek sınamalarını (strings.HasSuffix(x, "ek"), filepath.Ext(x) ==/!= "ek") olumluluklarıyla verir;
 // neg koşulun tersinin istendiğidir (atlama koşulu).
-func suffixAtoms(e ast.Expr, neg bool, ev func(ast.Expr) []string, add func(string, bool)) {
+func suffixAtoms(e ast.Expr, neg bool, isExt func(ast.Expr) bool, ev func(ast.Expr) []string, add func(string, bool)) {
 	switch e := e.(type) {
 	case *ast.ParenExpr:
-		suffixAtoms(e.X, neg, ev, add)
+		suffixAtoms(e.X, neg, isExt, ev, add)
 	case *ast.UnaryExpr:
 		if e.Op == token.NOT {
-			suffixAtoms(e.X, !neg, ev, add)
+			suffixAtoms(e.X, !neg, isExt, ev, add)
 		}
 	case *ast.BinaryExpr:
 		switch e.Op {
 		case token.LAND, token.LOR:
-			suffixAtoms(e.X, neg, ev, add)
-			suffixAtoms(e.Y, neg, ev, add)
+			suffixAtoms(e.X, neg, isExt, ev, add)
+			suffixAtoms(e.Y, neg, isExt, ev, add)
 		case token.EQL, token.NEQ:
-			if !isExtCall(e.X) && !isNameCall(e.X) {
+			if !isExt(e.X) && !isNameCall(e.X) {
 				return
 			}
 			for _, v := range ev(e.Y) {
-				if isExtCall(e.X) || strings.Contains(strings.TrimPrefix(v, "."), ".") { // ".git", "testdata": klasör adı
+				if isExt(e.X) || strings.Contains(strings.TrimPrefix(v, "."), ".") { // ".git", "testdata": klasör adı
 					add(v, (e.Op == token.EQL) != neg)
 				}
 			}

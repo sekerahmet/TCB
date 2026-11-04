@@ -25,15 +25,34 @@ func (ix *index) indirectTests(target *Node) []indirectTest {
 			direct[e.From] = true
 		}
 	}
+	seen := map[string]int{}
 	var out []indirectTest
+	note := func(t, via *Node, steps int) {
+		if direct[t.ID] || steps > testMaxSteps {
+			return
+		}
+		if idx, ok := seen[t.ID]; ok {
+			if steps < out[idx].steps {
+				out[idx] = indirectTest{t, steps, via}
+			}
+			return
+		}
+		seen[t.ID] = len(out)
+		out = append(out, indirectTest{t, steps, via})
+	}
 	walkCallers(target.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
 		n := ix.byID[r.ID]
 		if !isTestNode(n) && !isTRMeasurement(n) {
+			if ix.pkgOf(r.ID) == ix.pkgOf(target.ID) && r.Steps < testMaxSteps {
+				for _, e := range ix.in[r.ID] {
+					if tn := ix.byID[e.From]; e.Kind == edgeTests && e.Confidence == inferred && isTestNode(tn) && ix.pkgOf(tn.ID) != ix.pkgOf(r.ID) {
+						note(tn, n, r.Steps+1)
+					}
+				}
+			}
 			return true
 		}
-		if !direct[n.ID] {
-			out = append(out, indirectTest{n, r.Steps, ix.byID[r.Via]})
-		}
+		note(n, ix.byID[r.Via], r.Steps)
 		return false
 	})
 	out = append(out, ix.loaderTests(target, direct)...)

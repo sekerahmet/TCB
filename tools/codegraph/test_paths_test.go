@@ -472,3 +472,53 @@ func TestEveryVariableAnInitFillsFromAnEmbeddedFileLinksItsReaders(t *testing.T)
 		t.Fatal("no test reads a variable an init() fills from an embedded file: the scan no longer sees them")
 	}
 }
+
+// Kural: gövdesinde `reporoot.Path(sabit + parametre)` kuran tek düzey Go yardımcısı, sabit dize argümanıyla çağrıldığında
+// kurulan veri dosyasını çağıran teste bağlar; değişken ya da çok düzeyli parametre zinciri bağlanmaz.
+func TestHelperParamConcatenationLinksConstantArgToDataFile(t *testing.T) {
+	files := map[string]string{
+		"ext/sample.nls.json":       `{"k": "v"}`,
+		"ext/other.json":            `{"k": "v"}`,
+		"internal/reporoot/root.go": "package reporoot\n\nfunc Path(parts ...string) string { return \"\" }\n",
+		"app/ext_test.go": `package app
+
+import (
+	"testing"
+
+	"example.com/audit/internal/reporoot"
+)
+
+func readExt(t *testing.T, name string) string {
+	return reporoot.Path("ext/" + name)
+}
+
+func wrapExt(t *testing.T, name string) string {
+	return readExt(t, name)
+}
+
+func loadPkg(t *testing.T) string {
+	return readExt(t, "sample.nls.json")
+}
+
+func TestDirect(t *testing.T) { _ = readExt(t, "sample.nls.json") }
+
+func TestViaHelper(t *testing.T) { _ = loadPkg(t) }
+
+func TestTwoLevelOrVar(t *testing.T) {
+	v := "other.json"
+	_ = readExt(t, v)
+	_ = wrapExt(t, "other.json")
+}
+`,
+	}
+	g, err := buildGraph(auditModule(t, files))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app = "go:func:example.com/audit/app."
+	mustEdge(t, g, app+"TestDirect", "file:ext/sample.nls.json", edgeTests, inferred)
+	mustEdge(t, g, app+"TestViaHelper", "file:ext/sample.nls.json", edgeTests, inferred)
+	if e := edge(g, app+"TestTwoLevelOrVar", "file:ext/other.json", edgeTests); e != nil {
+		t.Errorf("unexpected edge from variable or two-level helper: %+v", e)
+	}
+}

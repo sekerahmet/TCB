@@ -1,7 +1,6 @@
 package codeindex
 
 import (
-	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -34,14 +33,14 @@ func IdentityQuery(q string) bool {
 	return !strings.Contains(s, ".") && codes.IsReservedName(s)
 }
 
-// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa üye kodunda `x.TR_<ad>`, dizindeki bir
-// `TR_import … TR_as <ad>` takma adıyla sorulan kitaplık bildiriminde (`katman.TR_GPT`, `k.TR_Linear`) `TR_<ad>`
-// karşılığını verir; değilse boş döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip adıysa boş döner
-// ("bulunamadı"). Alıcı kodsuz bir ad olup bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`, `Linear.TR_map`,
-// `GPT.TR_map`), `x.TR_<ad>` hedefiyle birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>` bir şey bulursa
-// cevap tip ve değer adaylarıyla belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). İki aracın (trlang index ve
-// codegraph) tek kuralı.
-func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][2]string, importAliases map[string]bool) (string, []int) {
+// MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa `x.TR_<ad>` karşılığını verir; değilse boş
+// döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip adıysa boş döner ("bulunamadı"). Alıcı kodsuz bir ad olup
+// bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`, `Linear.TR_map`, `GPT.TR_map`), `x.TR_<ad>` hedefiyle
+// birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>` bir şey bulursa cevap tip ve değer adaylarıyla
+// belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). Takma adla sorulan kitaplık bildirimleri
+// (`katman.TR_GPT`, `k.TR_Linear`) nitelenmiş ad basamağında yalnızca takma adın gösterdiği modül için çözülür
+// (qualifiedSpellings). İki aracın (codeindex ve codegraph) tek kuralı.
+func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][2]string) (string, []int) {
 	recv, member, ok := strings.Cut(q, ".")
 	if !ok || strings.EqualFold(recv, "x") || strings.ContainsAny(recv, "/:") || !IdentityQuery("x."+member) {
 		return "", nil
@@ -67,28 +66,24 @@ func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][
 			return "x." + member, types
 		}
 	}
-	if _, ok := codes.FromSpelling(codes.PlaceMember, member); !ok {
-		if importAliases[recv] {
-			if k, ok := codes.FromSpelling(codes.PlaceOther, member); ok && k.IsLibrary() {
-				return member, nil
-			}
-		}
-	}
 	return "x." + member, nil
 }
 
-// ImportAliases dizindeki `TR_import … TR_as <ad>` takma adlarını toplar; MemberQuery'nin kitaplık yedeği yalnız bu
-// alıcılarda çalışır.
-func ImportAliases(idx *Index) map[string]bool {
-	aliases := map[string]bool{}
+// moduleImportAliases her modül dosyasını (`lib/layers.tr`) dizinde onu `TR_import … TR_as <ad>` ile aktaran sıralı
+// takma adlara eşler; `<takma ad>.TR_<ad>` yalnız takma adın modülünde bildirilmişse bulunur.
+func moduleImportAliases(idx *Index) map[string][]string {
+	byMod := map[string][]string{}
 	for _, n := range idx.Nodes {
 		for _, imp := range n.Imports {
-			if imp.Alias != "" {
-				aliases[imp.Alias] = true
+			if imp.Alias != "" && imp.Target != "" && !slices.Contains(byMod[imp.Target], imp.Alias) {
+				byMod[imp.Target] = append(byMod[imp.Target], imp.Alias)
 			}
 		}
 	}
-	return aliases
+	for _, list := range byMod {
+		slices.Sort(list)
+	}
+	return byMod
 }
 
 // MemberTypeNote ve MemberValueNote tiple aynı adı taşıyan kodsuz alıcıda (`A.TR_shape`, `Model.TR_append`) belirsiz
@@ -242,8 +237,9 @@ func signatureIn(n *Node, lang *codes.Language) string {
 
 // qualifiedSpellings düğümün nitelenmiş adının dilin öğesi olan parçaları her yazım dilinde yazılmış biçimleridir
 // (kimlikle yazılmış Qualified'dan farklı olanlar): `layers.Linear.forward`, `layers.Doğrusal.ileri`, ayrıca görünen
-// adlı tipin kod yazımlı üyesi (`layers.Linear.TR_forward`, `layers.Doğrusal.TR_forward`, `layers.GPT.TR_generate`).
-// Yolunda kodlu düğüm olmayan düğümde boştur.
+// adlı tipin kod yazımlı üyesi (`layers.Linear.TR_forward`, `layers.Doğrusal.TR_forward`, `layers.GPT.TR_generate`) ve
+// üst düzey kitaplık bildiriminde yalnızca o modülü aktaran `TR_as` takma adlarıyla yazılmış biçimleri (`katman.TR_GPT`,
+// `k.TR_Linear`). Yolunda kodlu düğüm olmayan düğümde boştur.
 func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 	coded := false
 	for c := n; c != nil && c.Kind != KindModule; c = r.byID[r.parent[c.ID]] {
@@ -274,26 +270,24 @@ func (r *Reader) qualifiedSpellings(n *Node) [][2]string {
 			}
 		}
 	}
+	if IsLibraryDecl(n) && !strings.Contains(n.Name, ".") && n.Pos != nil {
+		if k, err := codes.Parse(n.Code); err == nil {
+			leaf := "." + codes.Spelling(k)
+			for _, a := range r.moduleAliases[n.Pos.File] {
+				add(a + leaf)
+			}
+		}
+	}
 	return out
 }
 
-// QualifiedNames düğümün nitelenmiş adının her yazım dilindeki biçimleridir (qualifiedSpellings): codegraph onları
-// düğümün takma adları yapar; üst düzey kitaplık bildiriminde dizindeki `TR_as` takma adlarıyla yazılmış biçimleri de
-// (`katman.TR_GPT`, `k.TR_Linear`) eklenir.
+// QualifiedNames düğümün nitelenmiş adının her yazım dilindeki ve kendi modülünün `TR_as` takma adlarıyla yazılmış
+// biçimleridir (qualifiedSpellings): codegraph onları düğümün takma adları yapar.
 func (r *Reader) QualifiedNames(n *Node) []string {
-	var out []string
-	for _, q := range r.qualifiedSpellings(n) {
-		out = append(out, q[0])
-	}
-	if IsLibraryDecl(n) && !strings.Contains(n.Name, ".") {
-		if k, err := codes.Parse(n.Code); err == nil {
-			leaf := "." + codes.Spelling(k)
-			for _, a := range slices.Sorted(maps.Keys(r.importAliases)) {
-				if !slices.Contains(out, a+leaf) {
-					out = append(out, a+leaf)
-				}
-			}
-		}
+	qs := r.qualifiedSpellings(n)
+	out := make([]string, len(qs))
+	for i, q := range qs {
+		out[i] = q[0]
 	}
 	return out
 }

@@ -60,7 +60,7 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	if isUntracked(ix.root, file.File) {
 		printUntrackedWarning(w, file.File)
 	}
-	printRunPlan(w, ix.runPlanFor(file, ts, s.about))
+	printRunPlan(w, ix.runPlanFor(file, ts, s))
 	ix.printSizes(w, file)
 	fmt.Fprintf(w, "  declarations in this file: %d\n", decls)
 	ix.printFileTests(w, file, s, limit)

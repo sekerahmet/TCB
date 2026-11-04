@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"path"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -28,9 +29,11 @@ type expectedUse struct {
 	line   int
 }
 
-// typesID nesnenin grafik kimliğini go/types'tan kurar; grafikte düğümü olmaması gereken nesnede (yerel, alan,
-// modül dışı, adsız arayüz metodu) "".
-func typesID(mod string, obj types.Object) string {
+func typesID(mod string, obj types.Object) string { return typesIDIn(nil, mod, obj) }
+
+// typesIDIn nesnenin grafik kimliğini go/types'tan kurar; grafikte düğümü olmaması gereken nesnede (yerel değişken,
+// tür parametresi, alan, modül dışı, adsız arayüz metodu) "".
+func typesIDIn(fset *token.FileSet, mod string, obj types.Object) string {
 	if obj == nil || obj.Pkg() == nil || obj.Pkg().Path() != mod && !strings.HasPrefix(obj.Pkg().Path(), mod+"/") {
 		return ""
 	}
@@ -46,11 +49,25 @@ func typesID(mod string, obj types.Object) string {
 			rt = p.Elem()
 		}
 		if named, ok := rt.(*types.Named); ok {
-			return "go:func:" + pkg + "." + named.Obj().Name() + "." + o.Name()
+			tn := named.Obj()
+			if tn.Parent() == tn.Pkg().Scope() {
+				return "go:func:" + pkg + "." + tn.Name() + "." + o.Name()
+			}
+			if fset != nil && tn.Name() != "_" {
+				pos := fset.Position(tn.Pos())
+				return fmt.Sprintf("go:func:%s.%s#%s:%d:%d.%s", pkg, tn.Name(), filepath.Base(pos.Filename), pos.Line, pos.Column, o.Name())
+			}
 		}
 	case *types.TypeName:
+		if _, isTP := o.Type().(*types.TypeParam); isTP || o.Name() == "_" {
+			return ""
+		}
 		if top {
 			return "go:type:" + pkg + "." + o.Name()
+		}
+		if fset != nil {
+			pos := fset.Position(o.Pos())
+			return fmt.Sprintf("go:type:%s.%s#%s:%d:%d", pkg, o.Name(), filepath.Base(pos.Filename), pos.Line, pos.Column)
 		}
 	case *types.Const:
 		if top {
@@ -99,7 +116,7 @@ func expectedUses(m *module, include func(pkg string) bool, fields map[string]st
 					}
 					checked++
 					obj := u.Info.Uses[id]
-					target := typesID(m.Path, obj)
+					target := typesIDIn(m.Fset, m.Path, obj)
 					if v, ok := obj.(*types.Var); ok && v.IsField() && named[v.Origin()] {
 						d := m.Fset.Position(obj.Pos())
 						where := fmt.Sprintf("%s:%d:%s", m.Rel(d.Filename), d.Line, obj.Name())
@@ -120,20 +137,25 @@ func expectedUses(m *module, include func(pkg string) bool, fields map[string]st
 	return uses, checked
 }
 
-// namedStructFields paket düzeyindeki adlı yapıların alanlarıdır (grafiğin alan düğümü kurduğu küme); yerel ve adsız
-// yapıların alanları düğüm değildir.
+// namedStructFields paket ve işlev kapsamındaki adlı yapıların alanlarıdır (grafiğin alan düğümü kurduğu küme);
+// adsız yapıların alanları düğüm değildir.
 func namedStructFields(m *module) map[types.Object]bool {
 	out := map[types.Object]bool{}
 	for _, u := range m.Units {
-		scope := u.Pkg.Scope()
-		for _, name := range scope.Names() {
-			tn, ok := scope.Lookup(name).(*types.TypeName)
-			if !ok {
+		for _, obj := range u.Info.Defs {
+			tn, ok := obj.(*types.TypeName)
+			if !ok || tn.IsAlias() || tn.Name() == "_" {
+				continue
+			}
+			if _, isTP := tn.Type().(*types.TypeParam); isTP {
 				continue
 			}
 			if st, ok := tn.Type().Underlying().(*types.Struct); ok {
 				for i := 0; i < st.NumFields(); i++ {
-					out[st.Field(i)] = true
+					fld := st.Field(i).Origin()
+					if fld.Pkg() != nil && (fld.Pkg().Path() == m.Path || strings.HasPrefix(fld.Pkg().Path(), m.Path+"/")) {
+						out[fld] = true
+					}
 				}
 			}
 		}
@@ -146,7 +168,7 @@ func namedStructFields(m *module) map[types.Object]bool {
 func declOwners(m *module, u *unit, file string, decl ast.Decl) []string {
 	switch d := decl.(type) {
 	case *ast.FuncDecl:
-		id := typesID(m.Path, u.Info.Defs[d.Name])
+		id := typesIDIn(m.Fset, m.Path, u.Info.Defs[d.Name])
 		if d.Name.Name == "init" || d.Name.Name == "_" {
 			id += fmt.Sprintf("#%s:%d", path.Base(file), m.Fset.Position(d.Pos()).Line)
 		}
@@ -159,10 +181,10 @@ func declOwners(m *module, u *unit, file string, decl ast.Decl) []string {
 		for _, spec := range d.Specs {
 			switch s := spec.(type) {
 			case *ast.TypeSpec:
-				owners = append(owners, typesID(m.Path, u.Info.Defs[s.Name]))
+				owners = append(owners, typesIDIn(m.Fset, m.Path, u.Info.Defs[s.Name]))
 			case *ast.ValueSpec:
 				for _, n := range s.Names {
-					owners = append(owners, typesID(m.Path, u.Info.Defs[n]))
+					owners = append(owners, typesIDIn(m.Fset, m.Path, u.Info.Defs[n]))
 				}
 			}
 		}
@@ -322,6 +344,19 @@ func use() {
 	_ = T{F: V}
 	f := (*T).Method
 	_ = f
+	type localIface interface {
+		LocalM(T) Result
+	}
+	type localStruct struct {
+		k    int
+		next *localStruct
+	}
+	var li localIface
+	if li != nil {
+		_ = li.LocalM(T{})
+	}
+	ls := localStruct{k: C}
+	_ = ls.k
 }
 `,
 	"b/b.go": `package b
@@ -413,5 +448,59 @@ func TestUseCoverageCatchesABrokenGraph(t *testing.T) {
 		if !slices.ContainsFunc(misses, func(s string) bool { return strings.HasPrefix(s, mu.want) }) {
 			t.Errorf("%s: no miss starting with %q:\n  %s", mu.name, mu.want, strings.Join(misses, "\n  "))
 		}
+	}
+}
+
+// Kural: işlev içinde tanımlanan tip ve arayüz metotları ayrı düğüm alır; aynı adlı yerel tipler birbirini ezmez,
+// `query` ve `who-uses` hem tipi hem metot çağrısını gösterir.
+func TestFunctionScopedTypeAndMethodsHaveNodesAndUses(t *testing.T) {
+	files := map[string]string{
+		"p/p_test.go": `package p
+
+import "testing"
+
+func TestFirst(t *testing.T) {
+	type x interface {
+		M() int
+	}
+	var v x
+	if v != nil {
+		_ = v.M()
+	}
+}
+
+func TestSecond(t *testing.T) {
+	type x interface {
+		M() string
+	}
+	var w x
+	if w != nil {
+		_ = w.M()
+	}
+}
+`,
+	}
+	root := auditModule(t, files)
+	misses, checked := useCoverageMisses(t, root, func(string) bool { return true })
+	if checked < 4 || len(misses) != 0 {
+		t.Fatalf("checked=%d, misses=%v", checked, misses)
+	}
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix := newIndex(g)
+	found := ix.lookup("x.M")
+	if len(found) != 2 {
+		t.Fatalf("lookup(x.M) = %d nodes, want 2: %v", len(found), found)
+	}
+	first := ix.lookup("TestFirst.x.M")
+	if len(first) != 1 || first[0].ID != "go:func:example.com/audit/p.x#p_test.go:6:7.M" {
+		t.Fatalf("lookup(TestFirst.x.M) = %v, want go:func:example.com/audit/p.x#p_test.go:6:7.M", first)
+	}
+	var out strings.Builder
+	ix.printWhoUses(&out, first[0], 0)
+	if !strings.Contains(out.String(), "p.TestFirst") {
+		t.Errorf("who-uses TestFirst.x.M missing caller p.TestFirst:\n%s", out.String())
 	}
 }

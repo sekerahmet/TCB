@@ -81,16 +81,21 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.pathCall(fc, owner, n)
 			x.buildCall(fc, owner, n)
 			x.stdlibCall(fc, owner, n)
+			x.noteOptCall(fc, owner, n)
 		case *ast.Ident:
-			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures))
+			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures), stack)
 		case *ast.RangeStmt:
-			x.rangeUse(fc, owner, n)
+			x.rangeUse(fc, owner, root, n)
 			x.noteRangeStrings(fc, n)
 		case *ast.BasicLit:
 			x.pathLit(fc, owner, n)
 			x.noteTestText(fc, owner, n)
 		case *ast.FuncLit:
 			closures[n] = x.closureNode(fc, owner, n, stack, closures)
+		case *ast.DeclStmt:
+			if gd, ok := n.Decl.(*ast.GenDecl); ok && gd.Tok == token.TYPE {
+				x.localTypeDecl(fc, owner, enclosingClosure(stack, closures), gd)
+			}
 		case *ast.SelectorExpr:
 			x.fieldAccess(fc, owner, n, modes[n], enclosingClosure(stack, closures))
 		case *ast.CompositeLit:
@@ -208,11 +213,9 @@ func (x *goExtractor) objectID(obj types.Object) string {
 	pkg := obj.Pkg()
 	switch o := obj.(type) {
 	case *types.Func:
-		return funcRef(o.Origin())
+		return funcRefIn(x.m.Fset, o.Origin())
 	case *types.TypeName:
-		if o.Parent() == pkg.Scope() {
-			return typeID(pkg.Path(), o.Name())
-		}
+		return typeNameID(x.m.Fset, o)
 	case *types.Const:
 		if o.Parent() == pkg.Scope() {
 			return valueID(kindConst, pkg.Path(), o.Name())
@@ -285,7 +288,7 @@ func (x *goExtractor) codeAliasKeys() map[string]string {
 	return out
 }
 
-func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool, writes map[*ast.Ident]writeTarget, closure string) {
+func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool, writes map[*ast.Ident]writeTarget, closure string, stack []ast.Node) {
 	obj := fc.u.Info.Uses[id]
 	ref := x.objectID(obj)
 	if ref == "" {
@@ -319,9 +322,18 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 			x.nameUse(owner, x.codeKeys[c.Name()], id, fc.rel, line)
 		}
 	}
-	if ref != owner { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir
+	if ref != owner && !selfTypeRef(fc, stack, obj) { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir
 		x.b.addEdge(owner, ref, edgeUses, extracted, fc.rel, line)
 	}
+}
+
+func selfTypeRef(fc *fileCtx, stack []ast.Node, obj types.Object) bool {
+	for i := len(stack) - 1; i >= 0; i-- {
+		if ts, ok := stack[i].(*ast.TypeSpec); ok && fc.u.Info.Defs[ts.Name] == obj {
+			return true
+		}
+	}
+	return false
 }
 
 // implements modüldeki her somut tipten, onun uyduğu modül arayüzlerine `implements` kenarı

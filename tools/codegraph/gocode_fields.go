@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
-	"path"
 	"strconv"
 	"strings"
 )
@@ -26,7 +25,7 @@ func (x *goExtractor) posKey(p token.Pos) string {
 // fieldNodes bir struct tipinin alanlarını düğüm yapar (type → field `contains`) ve alanın bildirim
 // konumunu düğüme eşler. Erişimler konumla bulunur: gömülü (promoted) alanlar, tip parametreli
 // örnekler ve anahtarlı bileşik değerler aynı alana çözülür.
-func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg string) {
+func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg, recvKey, typeName string) {
 	st, ok := ts.Type.(*ast.StructType)
 	if !ok || st.Fields == nil {
 		return
@@ -43,13 +42,13 @@ func (x *goExtractor) fieldNodes(fc *fileCtx, ts *ast.TypeSpec, typeNode, pkg st
 			if id.Name == "_" {
 				continue
 			}
-			fid := "go:field:" + pkg + "." + ts.Name.Name + "." + id.Name
+			fid := "go:field:" + pkg + "." + recvKey + "." + id.Name
 			line := x.line(id.Pos())
 			detail := ""
 			if obj := fc.u.Info.Defs[id]; obj != nil {
 				detail = types.TypeString(obj.Type(), qual)
 			}
-			x.b.addNode(Node{ID: fid, Kind: kindField, Name: path.Base(pkg) + "." + ts.Name.Name + "." + id.Name,
+			x.b.addNode(Node{ID: fid, Kind: kindField, Name: typeName + "." + id.Name,
 				File: fc.rel, Line: line, End: x.line(f.End()), Detail: detail, Doc: docText(f.Doc, f.Comment)})
 			x.b.addEdge(typeNode, fid, edgeContains, extracted, fc.rel, line)
 			x.fieldAt[x.posKey(id.Pos())] = fid

@@ -162,6 +162,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	linkCaseTests(b, idx, reach)
 	linkScans(b, idx, reach)
 	linkSnippets(b, idx, reach, os.DirFS(filepath.Join(root, "lib")))
+	linkCheckerTests(b, idx, reach)
 	return b.graph()
 }
 
