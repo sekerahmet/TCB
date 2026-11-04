@@ -378,7 +378,8 @@ TR_test "13.6 değeri dönüştüren ya da soran iş metot, matematik ve tensör
     TR_assert_equal(6, l.TR_reduce(0, (a, x) => a + x))
     TR_assert_equal(6, l.TR_reduce((a, x) => a * x))
     TR_assert_equal(4, l.TR_reduce(10, (acc, x) => acc - x))
-    TR_assert_equal(TR_none, [].TR_reduce((a, x) => a + x))
+    TR_assert_equal("H2637", TR_error_code { [].TR_reduce((a, x) => a + x) })
+    TR_assert_equal(5, [5].TR_reduce((a, x) => a + x))
     TR_assert_equal(7, [].TR_reduce(7, (a, x) => a + x))
     TR_assert_equal([[1, 2]], TR_Tensor([[1.0], [2.0]]).TR_transpose().TR_tolist)
     # Öbür biçim yoktur: liste.toplam() ve tensör.toplam bir üye değildir.

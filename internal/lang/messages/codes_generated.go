@@ -434,6 +434,7 @@ const (
 	H2630 Code = 2630 // {fn}: {path|q} çalışma klasöründe yok ({place}); aynı adlı dosya başka bir klasörde var ({other}), ama dosyayı değiştiren işler göreli yolu yalnız çalışma klasörüne göre çözer, başka klasördeki dosyayı silmez ve taşımaz; o dosyayı istiyorsanız yolunu açıkça yazın: `{explicit|q}`
 	H2635 Code = 2635 // {fn}: ayırıcı boş olamaz; metni karakterlerine ayırmak için, metin `m` ise, `[c {#for} c {#in} m]` yazın
 	H2636 Code = 2636 // {fn}: boş alt metin değiştirilemez, her karakterin arasında bulunurdu; karakterlerin arasına bir metin koymak için, metin `m` ise, `[c {#for} c {#in} m].{#join}(y)` yazın
+	H2637 Code = 2637 // {fn}: boş listenin başlangıçsız indirgemesi yoktur; başlangıç ilk argümandır, liste `l` ise `l.{#reduce}(0, (a, x) => a + x)` yazın
 	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
 	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); `{#Float}(...)` ile okuyun
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz

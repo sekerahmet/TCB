@@ -138,6 +138,9 @@ var suggestionResultCases = []suggestionResultCase{
 		"TR_var m = \"ab\"\nTR_print([c TR_for c TR_in m])", "[\"a\", \"b\"]\n"},
 	{messages.H2636, "TR_print(\"ab\".TR_replace(\"\", \"-\"))", "[c TR_for c TR_in m].TR_join(y)",
 		"TR_var m = \"ab\"\nTR_var y = \"-\"\nTR_print([c TR_for c TR_in m].TR_join(y))", "a-b\n"},
+	// 13.6: başlangıçsız indirgeme boş listede hatadır; ileti başlangıçlı yazımı önerir.
+	{messages.H2637, "TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_reduce((a, x) => a + x))", "l.TR_reduce(0, (a, x) => a + x)",
+		"TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_reduce(0, (a, x) => a + x))", "0\n"},
 	// 13.8: anahtarı metin olmayan sözlük JSON'a yazılmaz; ileti anahtarları TR_String ile yeni sözlüğe çeviren döngüyü önerir.
 	{messages.H7012, "TR_var d = {1: 2, 3: 4}\nTR_print(TR_json_string(d))", "TR_for k, v TR_in d { m[TR_String(k)] = v }",
 		"TR_var d = {1: 2, 3: 4}\nTR_var m = {}\nTR_for k, v TR_in d { m[TR_String(k)] = v }\nTR_print(TR_json_string(m))", "{\"1\":2,\"3\":4}\n"},

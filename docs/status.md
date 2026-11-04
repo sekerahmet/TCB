@@ -597,7 +597,8 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.6
 
 - **Mevcut durum:** `TR_reduce(0, (a, x) => a + x)` çalışıyor; başa yazılan ve tek parametreli fonksiyon hata, iletiler (H2475, H2476) ok yazımını öneriyor [ölçüldü: main `85a19c36`, `l.TR_reduce((a, x) => a + x, 0)` ve `l.TR_reduce(0, (a) => a)` iletileri; `tests/fonksiyonlar_test.tr:143`, `tests/yerlesikler_test.tr:204` kodları sınıyor].
-- **Yapılacaklar (A, Ö0; DENETİM istek 81: başlangıçsız `TR_reduce` boş listede hata vermiyor, `.TR_append`'in dönüşü başka öğe tipli listeye giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** iletilerin metnini sınayan test (kodlar sınanıyor, metinler `internal/suggestion_messages_test.go` tablosunda yok); başlangıçsız `TR_reduce`'un boş listede hatası; `.TR_append`'in değer döndürmemesi (bugün listenin kendisi).
+- **Mevcut durum (Kol A teslim 2a, 5. adım, 2026-11-04):** başlangıçsız `TR_reduce` boş listede H2637 veriyor, ileti başlangıçlı yazımı öneriyor, öneri çalışıyor [test: yerlesikler_test "13.6", `TestMessageSuggestionsRunCleanly`]. Göç: başlangıçsız çağrı `.tr`'de 2 test satırı, biri boş listede `TR_none`'ı sabitliyordu, H2637'ye çevrildi [ölçüldü: `git grep`].
+- **Yapılacaklar (A, Ö0; DENETİM istek 81: `.TR_append`'in dönüşü başka öğe tipli listeye giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** iletilerin metnini sınayan test (kodlar sınanıyor, metinler `internal/suggestion_messages_test.go` tablosunda yok); `.TR_append`'in değer döndürmemesi (bugün listenin kendisi).
 
 ### 13.7
 

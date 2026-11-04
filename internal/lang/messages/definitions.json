@@ -429,6 +429,7 @@
 "H2630": { "param": ["fn", "path", "place", "other", "explicit"] },
 "H2635": { "param": ["fn"], "slots": {"for": "TR_kw_for", "in": "TR_kw_in"} },
 "H2636": { "param": ["fn"], "slots": {"for": "TR_kw_for", "in": "TR_kw_in", "join": "TR_mem_join"} },
+"H2637": { "param": ["fn"], "slots": {"reduce": "TR_mem_reduce"} },
 "H2640": { "param": ["value"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H2641": { "param": ["value"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H2642": { "param": ["value"], "slots": {"Float": "TR_type_Float"} },

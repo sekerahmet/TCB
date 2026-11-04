@@ -506,8 +506,8 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 // listReduce liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son
 // argümandır ve (birikim, eleman) ile çağrılır: l.TR_reduce(0, (acc, x) => acc + x); kullanıcı
 // fonksiyonu iki parametreli olmalıdır (sondaki blok parametresizdir, 6.7).
-// Başlangıç verilmezse ilk eleman başlangıçtır; boş listede başlangıç (verilmemişse yok)
-// döner.
+// Başlangıç verilmezse ilk eleman başlangıçtır ve boş liste hatadır (13.6); boş listede başlangıç
+// verilmişse o döner.
 func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	name, fun := CallName(codes.MemReduce), codes.ReceiverRef(codes.TypeFunction)
 	f := args[len(args)-1]
@@ -526,7 +526,7 @@ func listReduce(y *VM, elems []Value, args []Value, line int) (Value, error) {
 	case len(args) == 2:
 		acc = args[0]
 	case len(elems) == 0:
-		return Null, nil
+		return nil, messages.New(messages.H2637, name)
 	default:
 		acc, begin = elems[0], 1
 	}
