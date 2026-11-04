@@ -250,6 +250,25 @@ func slowPhaseWaits(t *testing.T, setup func(*VM)) slowPhase {
 	return m
 }
 
+// Saatin ilerlemediği okuma, öne alınmış aralığı tavana döndürmez: aralık ikiye katlanarak büyür.
+func TestAnUnadvancedClockReadDoublesTheInterval(t *testing.T) {
+	v := New()
+	v.gilSince = monotonic()
+	v.clock = lockClock{every: clockEveryMax, gap: 1, last: v.gilSince + time.Hour} // saat ilerlemez
+	var reads []int
+	for range 200 {
+		before := v.clock.skip
+		v.clockExpired()
+		if before == 0 {
+			reads = append(reads, v.clock.gap)
+		}
+	}
+	want := "[2 4 8 16 32 64 64 64]"
+	if got := fmt.Sprint(reads[:8]); got != want {
+		t.Fatalf("okuma aralıkları %s, beklenen %s", got, want)
+	}
+}
+
 // fallbackTurns yedek saatin sözüdür: saat en çok 64 deyim sınırında bir okunur, yani bir tutuş
 // süresi dolduktan sonra en çok 64 yavaş tur sürer. Testte ayrı yazılır: gil.go'daki tavan
 // (clockEveryMax) büyüyünce sınır da büyümesin, test düşsün.
@@ -299,11 +318,11 @@ func slowPhaseOverLimit(t *testing.T, name string, setup func(*VM), fallback boo
 // ölçülen hızdan ayarlanır); zamandan bağımsız olan, iki okuma arası en çok 64 sınırdır.
 // Sayım bekleme penceresinin tamamıdır, süre dolmadan geçen yavaş turlar da girer: onu sınıra
 // sığdıran, geçişten sonra saatin ilerlediği ilk okumanın sonraki okumayı öne almasıdır
-// (clockExpired). Öne alınan okuma da ilerleme görmelidir. Kaba saat geçişten sonra k ≥ 2 yavaş
-// tur boyunca hiç ilerlemezse ilk okuma olmaz, tur sayısı k + 64 olur; ilk okumadan j tur sonraki
-// okuma ilerleme görmezse atlama yeniden 63'e kurulur, tur sayısı k + j + 64 olur. İkisinde de
-// 66'yı geçebilir; 120 koşuda görülmedi (bkz. tek koşu). Süre için Windows'ta üç koşudan biri,
-// Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek koşuda sınanır.
+// (clockExpired). Öne alınan okuma ilerleme görmezse aralık ikiye katlanır, sonraki okumalar
+// birkaç tur içinde gelir. Kaba saat geçişten sonra k ≥ 2 yavaş tur boyunca hiç ilerlemezse ilk
+// okuma olmaz ve tur sayısı k + 64 olur: 66'yı geçebilir; 120 koşuda görülmedi (bkz. tek koşu).
+// Süre için Windows'ta üç koşudan biri, Linux'ta tek koşu sınıra sığmalıdır; tur sayısı tek
+// koşuda sınanır.
 func TestTheLockIsHandedOffInTimeAfterStatementsSlowDown(t *testing.T) {
 	runs := 3
 	if runtime.GOOS == "linux" {
