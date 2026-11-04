@@ -66,7 +66,9 @@ func tensorBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 			if dt == tensor.Float32 {
 				return tensor.NewOn(d.t.Device(), d.t.Data(), d.t.Shape()...)
 			}
-			return tensor.NewOf(dt, d.t.Data(), d.t.Shape()...).To(d.t.Device())
+			// 16 bitlik tür bitleriyle kopyalanır: float32'den geçseydi geçici bellek üç kat olur,
+			// sinyal NaN'ı bozulurdu.
+			return d.t.Detach().Clone()
 		})
 		if err != nil {
 			return nil, err
