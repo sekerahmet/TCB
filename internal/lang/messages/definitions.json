@@ -430,6 +430,8 @@
 "H2635": { "param": ["fn"], "slots": {"for": "TR_kw_for", "in": "TR_kw_in"} },
 "H2636": { "param": ["fn"], "slots": {"for": "TR_kw_for", "in": "TR_kw_in", "join": "TR_mem_join"} },
 "H2637": { "param": ["fn"], "slots": {"reduce": "TR_mem_reduce"} },
+"H2638": { "param": ["fn", "path", "line"], "slots": {"Bytes": "TR_type_Bytes", "read_bytes": "TR_fn_read_bytes"} },
+"H2639": { "param": ["fn", "path", "line"], "slots": {"read_bytes": "TR_fn_read_bytes"} },
 "H2640": { "param": ["value"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H2641": { "param": ["value"], "slots": {"Int": "TR_type_Int", "Float": "TR_type_Float"} },
 "H2642": { "param": ["value"], "slots": {"Float": "TR_type_Float"} },

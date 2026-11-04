@@ -14,6 +14,67 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
+// Geçerli UTF-8 olmayan satır sıra ona gelince hatadır (18.11): ileti satırı söyler, TR_read_bytes'ı
+// önerir, öneri çalışır; önceki satırlar verilmiş kalır, okuyucu sıradaki satırla sürer. TR_read_csv
+// akış değildir, çağrı hata verir ve ilk bozuk satırı söyler (13.8). .gz'de öneri yoktur.
+func TestInvalidUTF8LineIsAnError(t *testing.T) {
+	k := tmpWork(t)
+	for name, c := range map[string]struct {
+		content string
+		line    string
+	}{
+		"ilk.txt":  {"\xff\nb\n", "1"},
+		"orta.txt": {"a\nb\xffc\nd\n", "2"},
+		"son.txt":  {"a\nb\n\xc3", "3"},
+		"uzun.txt": {strings.Repeat("a", 200_000) + "\n" + strings.Repeat("b", 200_000) + "\xff\n", "2"},
+	} {
+		write(t, filepath.Join(k, name), c.content)
+		call := `TR_read_bytes("` + name + `")`
+		for _, code := range []string{`[s TR_for s TR_in TR_read_lines("` + name + `")]`, `TR_read_csv("` + name + `")`} {
+			err := runTR(t, k, code).failure
+			if !messages.Has(err, messages.H2638) {
+				t.Fatalf("%s: H2638 bekleniyordu: %v", code, err)
+			}
+			if tr := messages.ErrorIn(err, "tr"); !strings.Contains(tr, c.line+". satırı") || !strings.Contains(tr, "`"+call+"`") {
+				t.Errorf("%s: ileti satırı ve öneriyi söylemeli: %q", code, tr)
+			}
+			if en := messages.ErrorIn(err, "en"); !strings.Contains(en, "line "+c.line+" of") || !strings.Contains(en, "`"+call+"`") {
+				t.Errorf("%s: ileti satırı ve öneriyi söylemeli: %q", code, en)
+			}
+		}
+		if got := mustRunTR(t, call+`.TR_length`); got != fmt.Sprint(len(c.content)) {
+			t.Errorf("%s: önerinin sonucu %s", name, got)
+		}
+	}
+	got := mustRunTR(t, `TR_var o = TR_read_lines("orta.txt")
+		[o.TR_next(), TR_error_code { o.TR_next() }, o.TR_next(), o.TR_next()]`)
+	if got != `["a", "H2638", "d", none]` {
+		t.Errorf("önceki satır verilmiş kalmalı, okuyucu sürmeli: %s", got)
+	}
+	write(t, filepath.Join(k, "gecerli.txt"), "\xef\xbb\xbfçay\n😀\n")
+	if got := mustRunTR(t, `[s TR_for s TR_in TR_read_lines("gecerli.txt")]`); got != `["çay", "😀"]` {
+		t.Errorf("geçerli satırlar: %s", got)
+	}
+	var gz bytes.Buffer
+	w := gzip.NewWriter(&gz)
+	if _, err := w.Write([]byte("a\n\xff\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(k, "b.txt.gz"), gz.String())
+	for _, code := range []string{`[s TR_for s TR_in TR_read_lines("b.txt.gz")]`, `TR_read_csv("b.txt.gz")`} {
+		err := runTR(t, k, code).failure
+		if !messages.Has(err, messages.H2639) {
+			t.Fatalf("%s: H2639 bekleniyordu: %v", code, err)
+		}
+		if text := messages.ErrorIn(err, "en"); strings.Contains(text, "TR_read_bytes(") || !strings.Contains(text, "line 2 of") {
+			t.Errorf("%s: .gz'de öneri olmamalı, satır olmalı: %q", code, text)
+		}
+	}
+}
+
 func TestFileLines(t *testing.T) {
 	k := tmpWork(t)
 	cases := map[string]string{

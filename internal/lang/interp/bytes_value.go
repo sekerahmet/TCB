@@ -164,14 +164,14 @@ func bytesCall(_ *VM, a Value) (Value, error) {
 
 // bytesText is TR_String(b): the bytes read as UTF-8; invalid UTF-8 is an error (3.3a).
 func bytesText(b *BytesVal) (Value, error) {
-	if pos := invalidUTF8(b.b); pos >= 0 {
+	if pos := InvalidUTF8(b.b); pos >= 0 {
 		return nil, messages.New(messages.H2656, pos)
 	}
 	return &StringVal{Val: string(b.b)}, nil
 }
 
-// invalidUTF8 b'deki ilk geçersiz UTF-8 baytının indeksidir; b geçerli UTF-8 ise -1 (3.3a, 13.1).
-func invalidUTF8(b []byte) int {
+// InvalidUTF8 b'deki ilk geçersiz UTF-8 baytının indeksidir; b geçerli UTF-8 ise -1 (3.3a, 13.1).
+func InvalidUTF8(b []byte) int {
 	if utf8.Valid(b) {
 		return -1
 	}

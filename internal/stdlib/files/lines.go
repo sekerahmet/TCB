@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -225,19 +226,22 @@ func (o *LineReader) Next(m *interp.VM) (interp.Value, bool, error) {
 			return nil, false, nil
 		}
 		line, ok := o.fromBuffer()
+		number := o.counter
 		o.mu.Unlock()
 		if ok {
-			return &interp.StringVal{Val: line}, true, nil
+			return o.lineValue(line, number)
 		}
 	}
 	var line string
 	var last, closed bool
+	var number int
 	var err error
 	m.Blocking(func() {
 		o.mu.Lock()
 		defer o.mu.Unlock()
 		if closed = o.closed; !closed {
 			line, last, err = o.read()
+			number = o.counter
 		}
 	})
 	if closed {
@@ -248,6 +252,15 @@ func (o *LineReader) Next(m *interp.VM) (interp.Value, bool, error) {
 	}
 	if last {
 		return nil, false, nil
+	}
+	return o.lineValue(line, number)
+}
+
+// lineValue number. satırın değeridir; geçerli UTF-8 değilse hatadır (18.11), bozuk bayt metne girmez.
+// Okuyucu kapanmaz: hatayı yakalayan program sıradaki satırı alır, dosya bitti sanmaz.
+func (o *LineReader) lineValue(line string, number int) (interp.Value, bool, error) {
+	if !utf8.ValidString(line) {
+		return nil, false, interp.InvalidLineError(interp.CallPrefix(codes.FnReadLines), o.fpath, number)
 	}
 	return &interp.StringVal{Val: line}, true, nil
 }

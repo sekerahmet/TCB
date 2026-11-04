@@ -28,6 +28,16 @@ var gzipContentLimit = 1 << 30
 // IsGzip reports whether the path has a .gz extension (the transparent compression rule).
 func IsGzip(filePath string) bool { return strings.EqualFold(filepath.Ext(filePath), ".gz") }
 
+// InvalidLineError geçerli UTF-8 olmayan satırın hatasıdır (13.8, 18.11): ileti satırı söyler ve
+// aynı yolla dosya_baytları'nı önerir (H2638); .gz'de dosya_baytları açılmış içeriği vermediği için
+// önermez (H2639).
+func InvalidLineError(fn any, filePath string, line int) error {
+	if IsGzip(filePath) {
+		return messages.New(messages.H2639, fn, filePath, line)
+	}
+	return messages.New(messages.H2638, fn, filePath, line)
+}
+
 // OpenFileReader opens a file for reading; for a .gz path it returns a reader of the
 // decompressed content. Errors are suitable for turkish.FileError (an OS error for the path,
 // turkish.Reason for gzip problems).

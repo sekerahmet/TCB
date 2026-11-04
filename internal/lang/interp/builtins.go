@@ -198,7 +198,7 @@ func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 // dosya_baytları açılmış içeriği vermediği için önermez (H2622).
 func readFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return readWhole(y, codes.FnReadFile, args, ReadFileContent, func(data []byte, filePath string) (Value, error) {
-		if pos := invalidUTF8(data); pos >= 0 {
+		if pos := InvalidUTF8(data); pos >= 0 {
 			code := messages.H2621
 			if IsGzip(filePath) {
 				code = messages.H2622
