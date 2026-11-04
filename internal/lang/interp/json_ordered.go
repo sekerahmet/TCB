@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"math"
+	"slices"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -26,23 +28,30 @@ func jsonDepthError(depth int) error {
 // JSONToTR converts JSON text to a TR value made of core values (JSONVal holds it). Unlike Go's
 // map-based decoding it keeps the key order of objects: json_çöz("{\"b\": 1, \"a\": 2}") gives b, a.
 // A number keeps its spelling (3.7a): an integer written without '.' or exponent that fits Int is an
-// Int, every other number a Float (2.0 stays a Float, a larger integer is a Float).
+// Int, every other number a Float (2.0 stays a Float, a larger integer is a Float). A key written
+// twice in one object is an error that names the key and both places (3.7a, 13.8).
 func JSONToTR(data []byte) (Value, error) {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.UseNumber()
-	val, err := jsonValue(dec, 0)
+	p := jsonParser{dec: json.NewDecoder(bytes.NewReader(data)), data: data}
+	p.dec.UseNumber()
+	val, err := p.value(0)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := dec.Token(); err != io.EOF {
+	if _, err := p.dec.Token(); err != io.EOF {
 		return nil, messages.New(messages.H2499)
 	}
 	return val, nil
 }
 
-// jsonValue sıradaki değeri okur; depth onu saran kapların sayısıdır.
-func jsonValue(dec *json.Decoder, depth int) (Value, error) {
-	tok, err := dec.Token()
+// jsonParser JSON metnini belirteç belirteç okur; data yinelenen anahtarın yerini söylemek içindir.
+type jsonParser struct {
+	dec  *json.Decoder
+	data []byte
+}
+
+// value sıradaki değeri okur; depth onu saran kapların sayısıdır.
+func (p *jsonParser) value(depth int) (Value, error) {
+	tok, err := p.dec.Token()
 	if err != nil {
 		return nil, err
 	}
@@ -53,36 +62,17 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 		}
 		switch t {
 		case '{':
-			d := NewDictVal()
-			for dec.More() {
-				kt, err := dec.Token()
-				if err != nil {
-					return nil, err
-				}
-				key, ok := kt.(string)
-				if !ok {
-					return nil, messages.New(messages.H2501)
-				}
-				val, err := jsonValue(dec, depth+1)
-				if err != nil {
-					return nil, err
-				}
-				d.Set(key, val)
-			}
-			if _, err := dec.Token(); err != nil { // '}'
-				return nil, err
-			}
-			return d, nil
+			return p.object(depth)
 		case '[':
 			l := &ListVal{Elements: []Value{}}
-			for dec.More() {
-				val, err := jsonValue(dec, depth+1)
+			for p.dec.More() {
+				val, err := p.value(depth + 1)
 				if err != nil {
 					return nil, err
 				}
 				l.Elements = append(l.Elements, val)
 			}
-			if _, err := dec.Token(); err != nil { // ']'
+			if _, err := p.dec.Token(); err != nil { // ']'
 				return nil, err
 			}
 			return l, nil
@@ -105,4 +95,50 @@ func jsonValue(dec *json.Decoder, depth int) (Value, error) {
 		return Null, nil
 	}
 	return nil, messages.New(messages.H2504, tok)
+}
+
+// object bir nesnenin anahtarlarını ve değerlerini okur ('{' okunmuştur). Aynı nesnede ikinci kez
+// gelen anahtar hatadır (3.7a): ileti anahtarı ve iki yerini söyler. Anahtarların başladığı yer
+// (bayt) sözlüğün sırasıyla tutulur; satır ve sütun ancak hatada hesaplanır.
+func (p *jsonParser) object(depth int) (Value, error) {
+	d := NewDictVal()
+	var starts []int64
+	for p.dec.More() {
+		start := p.dec.InputOffset()
+		kt, err := p.dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := kt.(string)
+		if !ok {
+			return nil, messages.New(messages.H2501)
+		}
+		if _, twice := d.Pairs[key]; twice {
+			line, column := p.position(starts[slices.Index(d.Order, key)])
+			line2, column2 := p.position(start)
+			return nil, messages.New(messages.H7011, key, line, column, line2, column2)
+		}
+		starts = append(starts, start)
+		val, err := p.value(depth + 1)
+		if err != nil {
+			return nil, err
+		}
+		d.Set(key, val)
+	}
+	if _, err := p.dec.Token(); err != nil { // '}'
+		return nil, err
+	}
+	return d, nil
+}
+
+// position, offset'ten sonra boşluk ve ',' atlanınca gelen ilk karakterin (anahtarın tırnağının)
+// 1'den başlayan satırı ve sütunudur; sütun karakter sayar.
+func (p *jsonParser) position(offset int64) (line, column int) {
+	i := int(offset)
+	for i < len(p.data) && bytes.IndexByte([]byte(" \t\r\n,"), p.data[i]) >= 0 {
+		i++
+	}
+	before := p.data[:i]
+	line = bytes.Count(before, []byte("\n")) + 1
+	return line, utf8.RuneCount(before[bytes.LastIndexByte(before, '\n')+1:]) + 1
 }
