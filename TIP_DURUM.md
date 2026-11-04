@@ -1,6 +1,7 @@
 # Uzak İş 2 Durum Dosyası (`TIP_DURUM.md`)
 
 - **Başlangıç saati:** `2026-11-04 15:39 UTC` (`2026-11-04 18:39 UTC+3`)
+- **Bitiş saati:** `2026-11-04 17:22 UTC` (`2026-11-04 20:22 UTC+3`)
 - **Dal:** `gemini/tip-secimi`
 - **Taban (`main`):** `a259ed99e2c3b340e3c5223094158512dc4e8507`
 - **Bağlam sıkıştırması:** 3 kez:
@@ -47,9 +48,12 @@
    - Ana depo koruyan testler (`-short` olmadan): `11.483s` `ok`; `--depth 1` sığ klon: `12.268s` `ok`; `/tmp/tcb-real-check` 3 satırlık gerçek depo doğrulaması geçti ve geçici kopyalar temizlendi.
    - `go build ./... && go vet ./...` (`exit 0`), `go test -short -timeout 1200s ./tools/codegraph/... ./tools/edithook/...` (`216.936s` ve `0.091s` `ok`), `spec-refs` (`301 item(s), 5510 mention(s), 0 error(s), 0 note(s)`), `gofmt -l cmd internal tools lib` (boş), `ls tools/codegraph/type_queries*.go | grep -v _test | xargs wc -l` (`70 tools/codegraph/type_queries.go`).
 
+9. **`TIP_RAPORU.md` ve kendi kontrolüm tamamlandı:**
+   - `17/17` `[kanıtlı: ...]` alıntısı, `23` `dosya:satır` göndermesi ve `3` `[test: ...]` dosyası `grep -F` ve tam satır karşılaştırmasıyla doğrulandıktan sonra `TIP_RAPORU.md`'nin son satırına tek başına `Kendi incelemem bitti.` eklendi.
+
 ## Sıradaki Adımlar
 
-1. `TIP_RAPORU.md` kendi kontrolünü (`grep -F` ve `dosya:satır` doğrulaması) tamamlayıp en son satıra `Kendi incelemem bitti.` eklemek ve son push'u yapmak.
+- Yok (tüm adımlar tamamlandı).
 
 ## Emin Olmadıklarım / Açık Noktalar
 
