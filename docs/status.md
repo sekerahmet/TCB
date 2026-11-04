@@ -974,6 +974,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum (T1 dilim 2):** `.safetensors` yolu her cinsi (F32, BF16, F16, F64, I64, I32, I16, I8, U32, U16, U8, BOOL) hizaya göre yazıyor; Python `safetensors` (torch) ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip, bu makinede torch 2.14 ile koştu].
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
+- **Yapılacaklar (A, Ö0; sahip T1; DENETİM istek 117 Ş1):** 16 bitlik tensör float32'den geçerek yazılıyor, sinyal NaN'ı susuyor: bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` [ölçüldü: DENETİM; kanıtlı: `fileEntry.data`]. 15.47a'nın "bit bit aynıdır" sözü bu desende tutmuyor. Yazma bitleri depodan alsın; test.
 
 ### 15.49
 
@@ -1010,7 +1011,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.55
 
-- **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı artık korunuyor [test: `TestSixteenBitStridedCopyKeepsBits`]. `TR_Tensor(16 bitlik tensör)` de bitleriyle kopyalıyor: float32'ye açılmıyor, sinyal NaN'ı bozulmuyor [test: `TestTensorFromSixteenBitTensorKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
+- **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı depoda korunuyor; `TR_save_tensors` susturuyor (15.47a) [test: `TestSixteenBitStridedCopyKeepsBits`]. `TR_Tensor(16 bitlik tensör)` de bitleriyle kopyalıyor (C, Ö2): float32'ye açılmıyor, sinyal NaN'ı depoda bozulmuyor [test: `TestTensorFromSixteenBitTensorKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
 - **Mevcut durum:** uygulanmadı; safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni].
 - **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası (H6950 bugün yalnız TR biçimini öneriyor; `.TR_to_dtype("float32")` önerisi 15.52 uygulanınca, öneri tablosunda koşulabilsin diye); kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
 
