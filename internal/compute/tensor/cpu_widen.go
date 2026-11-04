@@ -1,5 +1,8 @@
 package tensor
 
+// is16 görünümün depolaması 16 bitlik ondalık mı.
+func is16(v View) bool { return v.S.DType() == BFloat16 || v.S.DType() == Float16 }
+
 // widen16 dst = float32(src) (paralel).
 func widen16(dst []float32, src []uint16, dt DType) {
 	src = src[:len(dst)]

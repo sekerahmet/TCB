@@ -16,7 +16,9 @@ import (
 // çalışır; Backend yöntemleri 16 bitlik girdileri float32'ye açar, çıktıyı
 // float32 geçici tamponda hesaplayıp hedef türe bir kez (en yakına-çifte)
 // yuvarlayarak yazar. Böylece depolama 16 bit, hesap ve iç birikim en az
-// float32 olur. float32 yolunda ek maliyet yoktur.
+// float32 olur. float32 yolunda ek maliyet yoktur. İki istisna ağırlığı bütün olarak açmaz:
+// tek satırlık çarpım (gemv16) ve gömme seçimi (embedding16); sonuçları açan yolla bit
+// düzeyinde aynıdır.
 
 // cpuStorage ana bellekte düz bir dilim.
 type cpuStorage struct {
@@ -433,9 +435,16 @@ func (b cpuBackend) Gemm(batch, M, N, K int, a View, transA bool, bv View, trans
 	var gt temp
 	defer gt.finish()
 	o, last := gt.write(c, true)
-	// 16 bitlik girdiler havuzdan gelen float32 tamponlara açılır (paketleme sırasında açmak
-	// ölçümde daha yavaştı: doğrudan A okuması ve vektörel kopya kaybediliyordu).
-	b.f32Gemm(batch, M, N, K, gt.read(a), transA, gt.read(bv), transB, o)
+	av := gt.read(a)
+	if useGemv(M, N, K) && is16(bv) && direct16(bv.S.DType()) && av.IsContiguous() && bv.IsContiguous() {
+		// Tek satırlık çarpımda ağırlık hiç açılmaz: bütün matrisi açmak çarpımdan pahalıydı.
+		h := cpuStore(bv.S).h[bv.Offset : bv.Offset+batch*K*N]
+		gemv16(batch, N, K, cd(av.S)[av.Offset:av.Offset+batch*K], h, bv.S.DType(), transB, cd(o)[:batch*N])
+	} else {
+		// 16 bitlik girdiler havuzdan gelen float32 tamponlara açılır (paketleme sırasında açmak
+		// ölçümde daha yavaştı: doğrudan A okuması ve vektörel kopya kaybediliyordu).
+		b.f32Gemm(batch, M, N, K, av, transA, gt.read(bv), transB, o)
+	}
 	last()
 }
 
@@ -443,7 +452,7 @@ func (b cpuBackend) Embedding(out Storage, w View, idx []int, D int) {
 	var gt temp
 	defer gt.finish()
 	o, last := gt.write(out, false)
-	if (w.S.DType() == BFloat16 || w.S.DType() == Float16) && w.IsContiguous() {
+	if is16(w) && w.IsContiguous() {
 		embedding16(o, w, idx, D)
 	} else {
 		b.f32Embedding(o, gt.read(w), idx, D)
