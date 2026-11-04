@@ -11,6 +11,18 @@ TR_test "13.1 genel yerleşikler" {
     TR_assert_equal([0, 1, 2], TR_List(0..3))
 }
 
+TR_test "13.1 TR_time_ms Unix zamanıdır, milisaniye sayar" {
+    TR_var başla = TR_time_ms()
+    # 2020 ile 2100 arası: saniye ya da nanosaniye veren saat bu aralığa düşmez
+    TR_assert(başla > 1_577_836_800_000)
+    TR_assert(başla < 4_102_444_800_000)
+    TR_sleep(0.02)
+    # Saat 10-11 ms sıçrayabilir (status 10.2); 20 ms milisaniyede en az 5, saniyede 0 ya da 1 eder
+    TR_var fark = TR_time_ms() - başla
+    TR_assert(fark >= 5)
+    TR_assert(fark < 10_000)
+}
+
 TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     TR_assert_equal(2.0, TR_max([2.0, 1.5]))
     TR_assert_equal(TR_Float, TR_Type(TR_max([2.0, 1.5])))
