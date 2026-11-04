@@ -312,6 +312,31 @@ TR_test "13.1 standart_sapma ve ortanca ortalama kadar sıkıdır: boş ve sayı
     TR_assert_equal("H2011", TR_error_code { TR_median() })
 }
 
+TR_test "13.1 tam sayı listesinde TR_mean, TR_std ve TR_median kesin değerin en yakın ondalığıdır" {
+    TR_assert_equal(4503599627370497.0, TR_mean([9007199254740993, 1]))
+    TR_assert_equal(TR_sqrt(2.0), TR_std([9007199254740993, 9007199254740995]))
+    TR_assert_equal(4503599627370497.0, TR_median([9007199254740993, 1]))
+    TR_assert_equal(9007199254740994.0, TR_median([9007199254740993, 9007199254740995]))
+    # bir kez yuvarlanır: varyansı ondalığa çevirip kök almak son bitte ayrılır
+    TR_assert_equal(103305.9772730181, TR_std([453326, 303265, 255301]))
+    # ara değer taşmaz
+    TR_var en_büyük = 9223372036854775807
+    TR_var en_küçük = -9223372036854775807 - 1
+    TR_assert_equal(9223372036854775808.0, TR_mean([en_büyük, en_büyük]))
+    TR_assert_equal(-9223372036854775808.0, TR_mean([en_küçük, en_küçük]))
+    TR_assert_equal(-0.5, TR_mean([en_büyük, en_küçük]))
+    TR_assert_equal(9223372036854775808.0, TR_median([en_büyük, en_büyük]))
+    TR_assert_equal(-0.5, TR_median([en_küçük, en_büyük]))
+    TR_assert_equal(1.3043817825332783e19, TR_std([en_büyük, en_küçük]))
+    TR_assert_equal(0.0, TR_std([en_büyük, en_büyük]))
+    # sıralama kesindir: ortadaki öğeler ondalıkta eşit görünse de yerleri değişmez
+    TR_assert_equal(9007199254740992.0, TR_median([9007199254740993, 9007199254740992, 1]))
+    # karışık liste ayrı yoldadır
+    TR_assert_equal(1.5, TR_mean([1, 2.0]))
+    TR_assert_equal(TR_sqrt(0.5), TR_std([1, 2.0]))
+    TR_assert_equal(1.5, TR_median([1, 2.0]))
+}
+
 TR_test "13.1 TR_median listede NaN varsa NaN verir, nerede olursa olsun" {
     TR_assert_equal("nan", TR_String(TR_median([1.0, 2.0, TR_nan])))
     TR_assert_equal("nan", TR_String(TR_median([1.0, TR_nan, 2.0])))
