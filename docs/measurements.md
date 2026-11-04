@@ -24,7 +24,7 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 | 2026-11-03 | `6cab4f89` | Colab L4 | `gpt_training.tr` ve `ss_exam.tr` gerçek kartta, dolgulu dağarcık | 5,5 ms/adım (çok küçük model; yalnız çalıştığının sınaması) | Colab defteri 16:09:50 koşusu |
 | 2026-11-03 | `27a7b1c5`, `4e924cf9` (Kol A ve Kol B teslim 1 dahil) | Colab L4 | Kart sınamasında hedef model adımı (PyTorch'suz) | 916,5 ve 899 ms/adım (iki ayrı koşu); Kol B teslim 2a'dan sonra 926, 864 ve 924,5 ms/adım. Koşular arası fark %7'ye çıkıyor [hesap: 926 / 864]: tek koşu hız sinyali değil, kart sınamasıdır (DENETİM istek 83 N1) | Colab defteri 17:44:12, 17:57:56, 19:14:50, 19:23:51 ve 19:31:22 koşuları |
 
-**Hazır model yükleme** (2026-11-04 20:05–20:11, `5b554d72` ↔ `da03aa62`, Colab CPU High-RAM, 8 iş parçacığı, 50 GB; altı tur, kol sırası dönüşümlü, ilk tur atıldı, ortanca; her koşu ayrı süreç, dosyalar diskin önbelleğinde). "kur" `TR_build_pretrained_model`, "oku" `TR_load_tensors`, "eşle" `TR_map_hugging_face`, "yükle" `TR_load_parameters`; süre ms, tepe GB. "taban" model kurmadan yalnız oku ve eşle:
+**Hazır model yükleme** (2026-11-04 20:05–20:11, `5b554d72` ↔ `da03aa62`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı, 50 GB; altı tur, kol sırası dönüşümlü, ilk tur atıldı, ortanca; her koşu ayrı süreç, dosyalar diskin önbelleğinde). "kur" `TR_build_pretrained_model`, "oku" `TR_load_tensors`, "eşle" `TR_map_hugging_face`, "yükle" `TR_load_parameters`; süre ms, tepe GB. "taban" model kurmadan yalnız oku ve eşle:
 
 | Model, tür | Kol | kur | oku | eşle | yükle | toplam | tepe |
 | :-- | :-- | --: | --: | --: | --: | --: | --: |
@@ -41,7 +41,7 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 | | sonra | 14 | 283 | 227 | 127 | 654 | 1,43 |
 | | taban | | 279 | 202 | | 479 | 0,63 |
 
-Bu koşunun makinesi aynı günkü iki koşudan hızlıydı (`önce` Qwen3 bf16 17,8 ve 19,8 sn ölçülmüştü): kıyas yalnız aynı koşunun içinde geçerlidir. Modelin kendisi taban üstüne tam bir kopya ekliyor (Qwen3 bf16 1,54 GB, dosya 1,50 GB) [hesap]. Yükleme sonrası üretim (Qwen3 ve SmolLM2, float32 ve bf16, açgözlü ve örneklemeli, tohumsuz `TR_randn`) önce ve sonra bayt bayt aynı [ölçüldü: Windows, `cmp`]. Kaynak: `t1_yukleme3_20261104_2020.txt`.
+Aynı günkü iki koşu Intel Xeon 2.20 GHz'deydi (`önce` Qwen3 bf16 17,8 ve 19,8 sn): kıyas yalnız aynı koşunun içinde geçerlidir. Modelin kendisi taban üstüne tam bir kopya ekliyor (Qwen3 bf16 1,54 GB, dosya 1,50 GB) [hesap]. Yükleme sonrası üretim (Qwen3 ve SmolLM2, float32 ve bf16, açgözlü ve örneklemeli, tohumsuz `TR_randn`) önce ve sonra bayt bayt aynı [ölçüldü: Windows, `cmp`]. Kaynak: `t1_yukleme3_20261104_2020.txt`.
 
 **Üretim hızı, CPU** (2026-11-03 16:43–16:55, main `51b75f0a`, Colab CPU High-RAM: Intel Xeon 2.20 GHz, 8 iş parçacığı; torch 2.11.0+cpu, transformers 5.22.0, llama.cpp `28b812d`; 100 parçalık açgözlü üretim, `tools/gpu/generation_race.sh`'in CPU kolu; tek koşu) [ölçüldü: Colab, betik `cpu_uretim_yarisi.sh`]:
 
