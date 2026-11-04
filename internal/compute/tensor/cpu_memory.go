@@ -154,14 +154,34 @@ func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
 		return
 	}
 	target := c.h[dstOff : dstOff+n]
-	if s := cpuStore(src.S); s.dtyp == c.dtyp && src.IsContiguous() {
+	if s := cpuStore(src.S); s.dtyp == c.dtyp {
 		// Aynı tür: bit düzeyinde kopya (yuvarlama yok).
-		k := s.h[src.Offset : src.Offset+n]
-		parallelFor(n, 1, func(lo, hi int) { copy(target[lo:hi], k[lo:hi]) })
+		if src.IsContiguous() {
+			k := s.h[src.Offset : src.Offset+n]
+			parallelFor(n, 1, func(lo, hi int) { copy(target[lo:hi], k[lo:hi]) })
+			return
+		}
+		copy16(View{S: dst, Offset: dstOff, Shape: src.Shape, Strides: ContiguousStrides(src.Shape)}, src)
 		return
 	}
-	// Farklı tür ya da adımlı: float32 üzerinden (16 bit → float32 → 16 bit kayıpsızdır).
+	// Farklı tür: float32 üzerinden (16 bit → float32 → 16 bit kayıpsızdır).
 	narrow(target, b.ToHost(src), c.dtyp)
+}
+
+// copy16 aynı 16 bitlik türdeki görünümü bitleriyle kopyalar: float32'den geçseydi her öğe açılıp
+// yeniden daraltılırdı. Görünümler örtüşmemelidir.
+func copy16(dst, src View) {
+	d, k := cpuStore(dst.S).h, cpuStore(src.S).h
+	iterRowsPar(dst.Shape, []int{dst.Offset, src.Offset}, [][]int{dst.Strides, src.Strides}, 0, func(off []int, m int, in []int) {
+		h, q, hs, qs := off[0], off[1], in[0], in[1]
+		if hs == 1 && qs == 1 {
+			copy(d[h:h+m], k[q:q+m])
+			return
+		}
+		for i := 0; i < m; i++ {
+			d[h+i*hs] = k[q+i*qs]
+		}
+	})
 }
 
 func (cpuBackend) CopyStrided(dst, src View) {
@@ -170,6 +190,10 @@ func (cpuBackend) CopyStrided(dst, src View) {
 		return
 	}
 	defer NoteImplicit(false, ImplicitKindOf(dst.DType(), src, dst.IsContiguous()), dst.Numel()).Finish()
+	if dst.DType() != Float32 && dst.DType() == src.DType() && dst.S != src.S {
+		copy16(dst, src)
+		return
+	}
 	var gt temp
 	defer gt.finish()
 	c := cpuStore(dst.S)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -161,6 +162,43 @@ func TestSliceStepBounds(t *testing.T) {
 
 // Permute'un geri yönü: gradyanı olmayan ebeveyne tek kopyayla yazılır, gradyanı olana
 // eklenir; ikisi de sayısal gradyanla aynıdır (her eleman farklı bir katsayı alır).
+// Aynı 16 bitlik türde adımlı kopya bitleri korur: çıktı float32'den geçmiş değerle aynıdır, sinyal
+// NaN'ı da değişmez; kaynakla hedef aynı depolamadaysa önce kaynak alınır.
+func TestSixteenBitStridedCopyKeepsBits(t *testing.T) {
+	for _, dt := range []DType{BFloat16, Float16} {
+		bits := []uint16{0x0000, 0x8000, 0x0001, 0x3C00, 0x7BFF, 0x7C01}
+		bits = append(bits, 0x3F80, 0x7F81, 0xFFFF)
+		x := FromBits16On(CPU, dt, slices.Clone(bits), 3, 3)
+		var want []uint32
+		for c := range 3 {
+			for r := range 3 {
+				want = append(want, math.Float32bits(FromBits16(dt, bits[r*3+c])))
+			}
+		}
+		same := func(name string, y *Tensor) {
+			t.Helper()
+			if y.DType() != dt {
+				t.Errorf("%v %s: tür %v", dt, name, y.DType())
+			}
+			for i, v := range y.Data() {
+				if math.Float32bits(v) != want[i] {
+					t.Errorf("%v %s %d. öğe: %x, beklenen %x", dt, name, i, math.Float32bits(v), want[i])
+				}
+			}
+		}
+		same("Clone", x.T().Clone())
+		into := ZerosOf(dt, 3, 3)
+		into.CopyFrom(x.T())
+		same("CopyFrom", into)
+		viewed := ZerosOf(dt, 3, 3)
+		viewed.T().CopyFrom(x)
+		same("görünüme", viewed)
+		own := x.Clone()
+		own.CopyFrom(own.T())
+		same("aynı depolama", own)
+	}
+}
+
 func TestPermuteGradCopyAndAdd(t *testing.T) {
 	rng := rand.New(rand.NewSource(11))
 	c := Randn(rng, 4, 2, 3)
