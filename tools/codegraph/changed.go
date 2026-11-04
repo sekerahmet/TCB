@@ -300,6 +300,9 @@ func (ix *index) goTestSelection(ts *touchSet) []goTest {
 		for _, h := range ix.scansCovering(f) {
 			nodes = append(nodes, h.tests...)
 		}
+		for _, h := range ix.typeQueriesCovering(f) {
+			nodes = append(nodes, h.tests...)
+		}
 	}
 	for _, list := range subprocess {
 		nodes = append(nodes, list...)

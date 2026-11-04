@@ -65,6 +65,7 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	fmt.Fprintf(w, "  declarations in this file: %d\n", decls)
 	ix.printFileTests(w, file, s, limit)
 	ix.printScans(w, file.File, limit)
+	ix.printTypeQueries(w, file.File, limit)
 	tests := map[string]bool{}
 	for _, t := range s.own {
 		tests[t.ID] = true
@@ -72,7 +73,7 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	for id := range s.all {
 		tests[id] = true
 	}
-	for _, h := range ix.scansCovering(file.File) {
+	for _, h := range append(ix.scansCovering(file.File), ix.typeQueriesCovering(file.File)...) {
 		for _, t := range h.tests {
 			tests[t.ID] = true
 		}
