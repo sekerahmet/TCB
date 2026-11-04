@@ -249,15 +249,6 @@ func Parse(data []byte) (*Tokenizer, error) {
 
 	ids, _ := p.model.(idListModel)
 	p.buildIDTable(vocab, ids, nrmContent, specialContent)
-	p.vocabSize = len(vocab)
-	if ids != nil {
-		p.vocabSize = len(ids.idTokens())
-	}
-	for _, e := range p.extras {
-		if _, ok := vocab[e.Content]; !ok {
-			p.vocabSize++
-		}
-	}
 	if l, ok := p.postProcessor.(specialIDLister); ok {
 		for _, id := range l.specialIDs() {
 			if _, ok := p.IDToToken(int(id)); !ok {
@@ -317,7 +308,9 @@ func (p *Tokenizer) setupAddedMatchers() (map[int]string, map[string]bool, error
 	return nrmContent, specialContent, nil
 }
 
-// VocabSize ek tokenlar dahil farklı token sayısını verir.
+// VocabSize kimliklerin sınırıdır: ek tokenlar dahil en büyük kimlik + 1 (16.1). Kimlikler
+// aralıksızsa token sayısıdır; seyrek sözlükte sayıdan büyüktür, gömme tablosu ve örnekleme
+// sınırı en büyük kimliği de kapsamalıdır. Aradaki boş kimlik IDToToken'da yoktur.
 func (p *Tokenizer) VocabSize() int { return p.vocabSize }
 
 // MergeCount BPE modelindeki birleştirme kuralı sayısını verir (BPE değilse 0).

@@ -52,6 +52,7 @@ func (p *Tokenizer) buildIDTable(vocab map[string]int32, ids idListModel, nrmCon
 	for _, e := range p.extras {
 		largest = max(largest, e.ID)
 	}
+	p.vocabSize = largest + 1
 	input := len(vocab) + len(p.extras)
 	put := func(id int) *idInfo {
 		if p.sparse == nil {
