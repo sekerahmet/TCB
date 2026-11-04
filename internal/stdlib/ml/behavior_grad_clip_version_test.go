@@ -29,7 +29,7 @@ TR_func sına(cihaz_adı: TR_String) -> TR_List[TR_Bool] {
 TR_print("CPU:", sına("cpu"))
 TR_print("GPU:", sına("gpu"))
 `)
-	want := "CPU: [0.0, 0.0]\nGPU: [0.0, 0.0]\n"
+	want := "CPU: [false, false]\nGPU: [false, false]\n"
 	if out != want {
 		t.Fatalf("GPU'da sonlu_değilse_hata: doğru hatasında gradyanlara dokunulmamalıydı:\nalınan:\n%s\nbeklenen:\n%s", out, want)
 	}
