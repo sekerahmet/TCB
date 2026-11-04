@@ -210,11 +210,13 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	ilo, ihi := int64(math.MinInt64), int64(math.MaxInt64)
 	intLimit := true
 	var given bool
+	var low, high interp.Value
 	for _, s := range []struct {
 		isNamed bind.Named
 		target  *float64
 		exact   *int64
-	}{{nameMin, &lo, &ilo}, {nameMax, &hi, &ihi}} {
+		value   *interp.Value
+	}{{nameMin, &lo, &ilo, &low}, {nameMax, &hi, &ihi, &high}} {
 		v, ok := bind.GetNamed(named, s.isNamed)
 		if !ok {
 			continue
@@ -223,7 +225,7 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		if err != nil {
 			return nil, err
 		}
-		*s.target, given, intLimit = f, true, intLimit && integer
+		*s.target, given, intLimit, *s.value = f, true, intLimit && integer, v
 		if n, ok := v.(*interp.IntVal); ok {
 			*s.exact = n.Val
 		}
@@ -231,11 +233,10 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 	if !given {
 		return nil, messages.New(messages.H6112, ad, nameMin, nameMax, usage)
 	}
-	if intLimit && ilo > ihi {
-		return nil, messages.New(messages.H6113, ad, nameMin, ilo, nameMax, ihi)
-	}
-	if lo > hi {
-		return nil, messages.New(messages.H6113, ad, nameMin, lo, nameMax, hi)
+	if low != nil && high != nil {
+		if c, _ := interp.CompareNumbers(low, high); c > 0 { // kesin (4.5): TR_Int yuvarlanmaz
+			return nil, messages.New(messages.H6113, ad, nameMin, interp.Shown(low), nameMax, interp.Shown(high))
+		}
 	}
 	switch x := args[0].(type) {
 	case *TensorValue:
@@ -247,18 +248,33 @@ func clampBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 			return nil, err
 		}
 		return New(r), nil
-	case *interp.IntVal:
-		if intLimit {
-			return interp.NewInt(min(max(x.Val, ilo), ihi)), nil
-		}
-		return &interp.FloatVal{Val: clamp64(float64(x.Val), lo, hi)}, nil
-	case *interp.FloatVal:
-		return &interp.FloatVal{Val: clamp64(x.Val, lo, hi)}, nil
+	case *interp.IntVal, *interp.FloatVal:
+		return clampNumber(x, low, high), nil
 	}
 	if err := listError(ad, args[0], messages.New(messages.H6131), tensorCallExample(ad, ", %s: 0", nameMin)); err != nil {
 		return nil, err
 	}
 	return nil, messages.New(messages.H6103, ad, typeName(args[0]))
+}
+
+// clampNumber sınırla'nın sayı yoludur (13.7, 13.10): TR_max gibi kesin karşılaştırır, TR_Int yuvarlanmaz;
+// üçünden biri TR_Float'sa dönen değer sonra TR_Float'a çevrilir. NaN x olduğu gibi kalır. Verilmeyen
+// sınır nil'dir.
+func clampNumber(x, low, high interp.Value) interp.Value {
+	picked := x
+	if c, ok := interp.CompareNumbers(x, low); ok && c < 0 {
+		picked = low
+	}
+	if c, ok := interp.CompareNumbers(x, high); ok && c > 0 {
+		picked = high
+	}
+	_, xFloat := x.(*interp.FloatVal)
+	_, lowFloat := low.(*interp.FloatVal)
+	_, highFloat := high.(*interp.FloatVal)
+	if n, ok := picked.(*interp.IntVal); ok && (xFloat || lowFloat || highFloat) {
+		return &interp.FloatVal{Val: float64(n.Val)}
+	}
+	return picked
 }
 
 // atan2Builtin atan2(y, x): iki sayıda Ondalık; biri tensörse yayınlamalı,
@@ -327,15 +343,4 @@ func toTensors(ad any, args []interp.Value) ([]*tensor.Tensor, error) {
 		out[i] = t
 	}
 	return out, nil
-}
-
-// clamp64 x'i [lo, hi]'ye sınırlar; NaN korunur.
-func clamp64(x, lo, hi float64) float64 {
-	if x < lo {
-		return lo
-	}
-	if x > hi {
-		return hi
-	}
-	return x
 }

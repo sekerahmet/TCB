@@ -601,6 +601,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.7
 
 - **Mevcut durum:** `TR_is_nan` yok (bilinmeyen kimlik); tensörde `TR_is_finite` float32 0/1 veriyor (15.36); `TR_where(TR_true, 2, 3)` denetimden geçip çalışırken hata veriyor [ölçüldü: DENETİM istek 81, `30b44b01` ve main `51b75f0a`] (15'in yan değişikliği, uygulanmadı).
+- **Mevcut durum (Kol A teslim 2a, 2. adım, 2026-11-04):** `TR_clamp` sınırları ve sayıyı `TR_max` gibi kesin karşılaştırıyor (`interp.CompareNumbers`): `TR_clamp(1, TR_min: 9007199254740993, TR_max: 9007199254740992.0)` artık H6113 [test: matematik_test "TR_clamp"].
 - **Yapılacaklar (A, Ö0; DENETİM istek 81: tensörde `TR_is_finite` mantık tensörü yerine float32 0/1):** `TR_is_nan`'ın sayı ve tensör imzası; tensörde `TR_Tensor[TR_Bool]` dönüşü; `TR_where`'in sayı imzasının kalkması, göçü 15.15'in status'unda (`tests/matematik_test.tr:170-171`; `:169` skaler `TR_Bool` koşul + tensör dalı) [kanıtlı: `tests/matematik_test.tr:169-171`]; TR testi.
 
 ### 13.8
