@@ -196,7 +196,7 @@ func attentionBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 			}
 			return nil, messages.New(messages.H6985, fn, kind)
 		}
-		if mt, err = maskForKernel(mt); err != nil {
+		if mt, err = maskForKernel(m, mt); err != nil {
 			return nil, err
 		}
 		opt.Mask = mt

@@ -55,6 +55,7 @@ type replayEntry struct {
 	mutated []int
 	outs    []*tensor.Tensor
 	single  bool
+	masks   map[*tensor.Tensor]maskCopy // yalnız kayıt sürerken (maskForKernel)
 }
 
 // releaseQueue çöp toplayıcının ulaşılamaz bulduğu tekrar_oynat fonksiyonlarının kayıtları.
@@ -264,8 +265,9 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 	}()
 	start := tensor.Created()
 	rec.BeginCapture()
-	captureMasks.Store(e.dev, &captureMaskSet{copies: map[*tensor.Tensor]maskCopy{}})
-	defer captureMasks.Delete(e.dev)
+	pc := programCaptureOf(m)
+	pc.entry, e.masks = e, map[*tensor.Tensor]maskCopy{}
+	defer func() { pc.entry, e.masks = nil, nil }()
 	res, err := applyFunction(m, f, vals, nil)
 	var outs []*tensor.Tensor
 	single := false
@@ -293,48 +295,44 @@ type maskCopy struct {
 	version uint64
 }
 
-// captureMaskSet bir kaydın maske kopyaları. Anahtar depolama değil başlıktır: başlıklar yeniden
-// kullanılmaz ve küme onları kayıt boyunca tutar, havuza dönüp başka tensöre verilen depolama
-// eski kopyayı bulamaz.
-type captureMaskSet struct {
-	mu     sync.Mutex
-	copies map[*tensor.Tensor]maskCopy
-}
+// programCapture programın süren kaydı (programın değeri; yoksa entry nil).
+type programCapture struct{ entry *replayEntry }
 
-// captureMasks süren kayıtların maske kopyaları (cihaz → *captureMaskSet); kayıt bitince silinir.
-// Üretimde bütün katmanlar aynı maskeyi okur; her katmanda çevirmek çizgeye katman başına bir
-// düğüm katardı (adımda ~0,11 ms, G4).
-//
-// Sürüm yalnız kayıt anında okunur; oynatmada denetim yoktur ve gerekmez: çevirme kaydın bir
-// düğümüdür, katmanlar o düğümün çıktısını okur. Maskeyi kuran düğümler her oynatmada yeniden
-// çalışır, çevirme düğümü de onların ardından: kopya her adımda o adımın maskesidir. Bu yüzden
-// kopya başka kayda ve kayıt dışına taşınmaz (orada onu dolduran düğüm yoktur).
-var captureMasks sync.Map
+type programCaptureKey struct{}
+
+func programCaptureOf(m *interp.VM) *programCapture {
+	return m.ProgramValue(programCaptureKey{}, func() any { return &programCapture{} }).(*programCapture)
+}
 
 // maskConversions çekirdek için yapılan maske çevirmelerinin sayısı (sınama).
 var maskConversions atomic.Int64
 
-// maskForKernel TR_Bool maskeyi çekirdeğin okuduğu 0/1 float32'ye çevirir. Kayıtta aynı maskenin
-// kopyası, maske o arada yerinde değişmediyse (depolama sürümü aynı) yeniden kullanılır.
-func maskForKernel(mt *tensor.Tensor) (*tensor.Tensor, error) {
-	convert := func() (*tensor.Tensor, error) {
-		maskConversions.Add(1)
-		return safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r })
+// maskForKernel TR_Bool maskeyi çekirdeğin okuduğu 0/1 float32'ye çevirir. Üretimde bütün
+// katmanlar aynı maskeyi okur; her katmanda çevirmek çizgeye katman başına bir düğüm katardı
+// (adımda ~0,11 ms, G4). Bu yüzden süren kayıtta aynı maskenin kopyası, maske o arada yerinde
+// değişmediyse (depolama sürümü aynı) yeniden kullanılır.
+//
+// Sürüm yalnız kayıt anında okunur; oynatmada denetim yoktur ve gerekmez: çevirme kaydın bir
+// düğümüdür, katmanlar o düğümün çıktısını okur. Maskeyi kuran düğümler her oynatmada yeniden
+// çalışır, çevirme düğümü de onların ardından: kopya her adımda o adımın maskesidir. Bu yüzden
+// kopyalar replayEntry'dedir, kayıt bitince silinir, başka kayda ve kayıt dışına taşınmaz (orada
+// onları dolduran düğüm yoktur). Anahtar depolama değil başlıktır: başlıklar yeniden kullanılmaz
+// ve harita onları kayıt boyunca tutar, havuza dönüp başka tensöre verilen depolama eski kopyayı
+// bulamaz. Kilit gerekmez: kayıt VM.Exclusive altındadır, programın başka görevi bu sırada
+// koşmaz; başka programın kaydı ayrıdır (ProgramValue).
+func maskForKernel(m *interp.VM, mt *tensor.Tensor) (*tensor.Tensor, error) {
+	var copies map[*tensor.Tensor]maskCopy
+	if e := programCaptureOf(m).entry; e != nil && e.dev == mt.Device() {
+		copies = e.masks
 	}
-	v, ok := captureMasks.Load(mt.Device())
-	if !ok {
-		return convert()
-	}
-	set := v.(*captureMaskSet)
-	set.mu.Lock()
-	defer set.mu.Unlock()
 	version := mt.Version()
-	if c, ok := set.copies[mt]; ok && c.version == version {
+	if c, ok := copies[mt]; ok && c.version == version {
 		return c.f32, nil
 	}
-	r, err := convert()
-	if err == nil {
-		set.copies[mt] = maskCopy{r, version}
+	maskConversions.Add(1)
+	r, err := safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r })
+	if err == nil && copies != nil {
+		copies[mt] = maskCopy{r, version}
 	}
 	return r, err
 }
