@@ -579,7 +579,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Mevcut durum (Kol A teslim 2a, 6. adım, 2026-11-04):** tam sayı listesinde `TR_mean`, `TR_std` ve çift sayıda öğeli `TR_median` kesin değerin en yakın `TR_Float`'ını veriyor, bir kez yuvarlanıyor, ara değer taşmıyor; yol yalnız tam sayı (`math/big`, karekök dahil, yöntem CPython `statistics._float_sqrt_of_frac`) [test: `TestExactStatsMatchCPython`, yerlesikler_test "13.1 tam sayı listesinde"].
 - **Mevcut durum (Kol A teslim 2a, 7. adım, 2026-11-04):** `TR_read_lines` geçerli UTF-8 olmayan satırda sıra ona gelince, `TR_read_csv` çağrıda H2638 veriyor: ileti satırı söylüyor, `TR_read_bytes`'ı öneriyor; `.gz`'de H2639, öneri yok. Bozuk bayt `TR_String`'e girmiyor; okuyucu hatadan sonra sıradaki satırla sürüyor [test: `TestInvalidUTF8LineIsAnError`, dosya_ve_yol_test "18.11 geçerli UTF-8"].
 - **Bedel (TCB kararı, 2026-11-04):** `utf8.ValidString` satır okumayı yavaşlatıyor: 1 GB'da ASCII +%9,5, Türkçe metin +%147,5 [ölçüldü: D1, Colab, altı tur]; doğruluk hızdan önce gelir, kabul. SIMD doğrulayıcı hız kolunda (D, Ö3).
-- **Yapılacaklar (F, Ö3; sahip D1, 2b):** `definitions.json`'da `TR_fn_mean`, `TR_fn_std`, `TR_fn_median`'ın `params`'ı eski; `TR_mean(1)`'in H2423'ü kopyalanacak yazım vermiyor; H1130'un `?? ""` önerisi değer ayırıcıysa H2635'e düşer [ölçüldü: D1].
+- **Yapılacaklar (F, Ö3; sahip D1, 2b):** `definitions.json`'da `TR_mean`, `TR_std`, `TR_median`'ın `params`'ı eski; `TR_mean(1)`'in H2423'ü kopyalanacak yazım vermiyor; H1130'un `?? ""` önerisi değer ayırıcıysa H2635'e düşer [ölçüldü: D1].
 - **Bulgu (D1, 2026-11-04, Ö3):** kesin istatistiğin bedeli on öğeli listede `TR_mean` +0,44 µs, `TR_std` +2,4 µs (5,8 kat), `TR_median` +0,26 µs [ölçüldü: Colab]. Sığan toplamda `big.Int`'siz yol düşürür [hipotez].
 - **Yapılacaklar (A, Ö0; Kol A teslim 3, D1):** `math.Exp` amd64'te işlemciye göre yol seçiyor [kanıtlı: DENETİM]; 13.1'in "bit bit aynı" sözü için tek algoritma.
 - **Yapılacaklar (E, Ö3):** `TR_monotonic_ns` motorda yok, yeni görünen ad [ölçüldü: TCB, `cb162b61`]. Değer döndürmeyen yerleşikler 13.10'da, Kol A teslim 2b.
@@ -1187,6 +1187,9 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 - **Mevcut durum (Faz 0.4, 2026-10-30):** iş klasörünün ortam değişkeni "TR_JOB_DIR" (`TR_env_JOB_DIR`); çubuğun dili "TR_LANG"'dan (`TR_env_LANG`) okunuyor [ölçüldü: kod].
 
 ## Bölümü olmayan işler
+
+- **Yapılacaklar (C, Ö2; sahip TCB; D1 Kol A 2a devri):** `TestBaseThatIsNotOneCommitStops` `da0457c5`'in belirsiz olmasına dayanıyor; belirsizliği sağlayan nesne yalnız yerel depoda, hiçbir ref'ten ulaşılmıyor. Taze tam klonda kimlik tek commit'e çözülüyor, test gerçek ön denetimi başlatıyor ve takılıyor [ölçüldü: D1, Colab, tek değişken]; sığ klonda kimlik çözülmediği için geçiyor [hipotez: L4 ve CI'ın geçmesinin sebebi]. Test geçici depoda kendi ortak önekini üretsin, iç betiğe süre sınırı konsun.
+- **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`command_line.go:104`, `arguments.go:75`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 
 Dil tanımında bölümü olmayan işler: A, B ve C (DENETİM istek 76) ve küçük bir D maddesi.
 
