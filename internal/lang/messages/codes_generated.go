@@ -432,6 +432,11 @@ const (
 	H2628 Code = 2628 // işletim sistemi beklenmeyen bir hata bildirdi (hata kodu {code})
 	H2629 Code = 2629 // beklenmeyen bir hata oluştu
 	H2630 Code = 2630 // {fn}: {path|q} çalışma klasöründe yok ({place}); aynı adlı dosya başka bir klasörde var ({other}), ama dosyayı değiştiren işler göreli yolu yalnız çalışma klasörüne göre çözer, başka klasördeki dosyayı silmez ve taşımaz; o dosyayı istiyorsanız yolunu açıkça yazın: `{explicit|q}`
+	H2635 Code = 2635 // {fn}: ayırıcı boş olamaz; metni karakterlerine ayırmak için, metin `m` ise, `[c {#for} c {#in} m]` yazın
+	H2636 Code = 2636 // {fn}: boş alt metin değiştirilemez, her karakterin arasında bulunurdu; karakterlerin arasına bir metin koymak için, metin `m` ise, `[c {#for} c {#in} m].{#join}(y)` yazın
+	H2637 Code = 2637 // {fn}: boş listenin başlangıçsız indirgemesi yoktur; başlangıç ilk argümandır, liste `l` ise `l.{#reduce}(0, (a, x) => a + x)` yazın
+	H2638 Code = 2638 // {fn}: {path|q} dosyasının {line}. satırı geçerli UTF-8 metin değil; ikili dosyayı {@Bytes} olarak okuyun: `{#read_bytes}({path|q})`
+	H2639 Code = 2639 // {fn}: {path|q} açılınca {line}. satırı geçerli UTF-8 metin değil; {@read_bytes} .gz dosyasını açmaz, sıkıştırılmış baytları verir
 	H2640 Code = 2640 // {@Int}(): {value|q} program yazımında bir tam sayı değil; isteğe bağlı bir işaretle ondalık rakamlar yazın, '_' yalnız rakamlar arasında, boşluksuz ("42", "-1_000"); ondalık bir metin için `{#Int}({#Float}(x))` yazın
 	H2641 Code = 2641 // {@Int}(): {value|q} {@Int} aralığına sığmıyor (-9223372036854775808 ile 9223372036854775807 arası); `{#Float}(...)` ile okuyun
 	H2642 Code = 2642 // {@Float}(): {value|q} sayı olarak okunamadı; programdaki gibi noktayla, isteğe bağlı işaret ve üsle yazın ("3.14", "-1.5", "2e-3") ya da "inf", "-inf", "nan"; yerel ayar yoktur ("1,5" okunmaz) ve {@Float} aralığını aşan sayı okunmaz
@@ -1388,7 +1393,7 @@ const (
 	H7010 Code = 7010 // {type} değeri JSON'a yazılamaz: JSON yalnızca veri tutar ({types})
 	H7011 Code = 7011 // JSON nesnesinde {key|q} anahtarı iki kez yazılmış (satır {line}, sütun {column} ve satır {line2}, sütun {column2}); bir nesnede her anahtar bir kez geçer
 	H7012 Code = 7012 // sözlüğün {key} anahtarı metin değil ({type}); JSON'da anahtar metindir, geri okununca anahtarın tipi değişirdi: anahtarları `{#String}` ile metne çevirip yeni bir sözlüğe koyun: sözlük `d` ise `{#var} m = {{}}`, sonra `{#for} k, v {#in} d {{ m[{#String}(k)] = v }}`
-	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)` yazın, ölçüyse ona başka bir ad verin
+	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)`, metinse `{#Int}(...)` yazın, ölçüyse ona başka bir ad verin
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

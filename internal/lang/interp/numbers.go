@@ -51,9 +51,9 @@ func compareIntFloat(a int64, f float64) int {
 	return 0
 }
 
-// compareNumbers iki sayıyı (Tam ya da Ondalık) tam olarak karşılaştırır. ok yanlışsa
+// CompareNumbers iki sayıyı (Tam ya da Ondalık) tam olarak karşılaştırır. ok yanlışsa
 // değerlerden biri sayı değildir ya da NaN'dır (karşılaştırılamaz).
-func compareNumbers(a, b Value) (int, bool) {
+func CompareNumbers(a, b Value) (int, bool) {
 	switch x := a.(type) {
 	case *IntVal:
 		switch y := b.(type) {
@@ -201,7 +201,7 @@ func extreme(kd codes.Code, elems []Value, upper bool, listVal bool) (Value, err
 			picked = el
 			continue
 		}
-		c, _ := compareNumbers(el, picked)
+		c, _ := CompareNumbers(el, picked)
 		if c == 0 {
 			c = zeroSignOrder(el, picked) // -0.0 0.0'dan küçük sayılır (13.1, 13.10)
 		}

@@ -28,8 +28,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **10.2, gecikme sözünün koşulu (2026-11-04, B1):** söz, işletim sisteminin görevleri ve saati zamanında çalıştırdığı süreyle koşullandı; maddenin bütün sürelerine uygulanır (DENETİM istek 96 Ş1).
 - **3.5, 6.6, 6.7, 10.1, 10.5, değer döndürmeyen çağrının değer yerleri (2026-11-04, A, DENETİM istek 97 Ş3):** değer yerleri ve muafları yazıldı; `=>` gövdesi ile sondaki blok değer vermeyebilir, `TR_Task[TR_NoneType]`'ın beklemesi değer vermez. Uygulama Kol A teslim 2b; `TR_wait_all(görevler)`'in listesi 4a5.
 - **16.1, `.TR_vocab_size` kimliklerin sınırı (2026-11-04, A, DENETİM istek 79 Ş2):** parça sayısı seyrek sözlükte geçerli kimliği dışarıda bırakıyordu. Uygulama T1.
-- **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır. Uygulama Kol A teslim 2a.
-- **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda. Uygulama Kol A teslim 2a.
+- **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır, yarım çifte gider. Uygulandı.
+- **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda: motor sıradaki satırla sürüyor, yakalanan hatadan sonra "dosya bitti" demez. Uygulandı.
 
 ## Ara
 - **15.24, cinsi bilinmeyen maske (2026-11-03, T1 Kol B teslim 1; DENETİM istek 80 Ş-t1):** "0/1 sayı tensörü denetim hatasıdır"; denetleyici tensörün cinsini tutmuyor, dokuz yazımın sekizi çalışma anında, hiçbiri denetimde yakalanıyor (H6985). Cümle: "denetleyici cinsini bilmiyorsa çalışma hatasıdır, ileti aynıdır".
