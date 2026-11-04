@@ -163,6 +163,7 @@ func buildGraphFrom(root string, m *module) *Graph {
 	linkScans(b, idx, reach)
 	linkSnippets(b, idx, reach, os.DirFS(filepath.Join(root, "lib")))
 	linkCheckerTests(b, idx, reach)
+	linkTypeQueries(b, idx, m, reach)
 	return b.graph()
 }
 
