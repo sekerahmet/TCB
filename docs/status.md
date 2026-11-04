@@ -989,13 +989,14 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.51
 
 - **Mevcut durum:** nicemleme yok. Motorda `Int8` ("ölçek ayrı tutulur") ve `Int4` ("bir baytta iki eleman") türleri ayrılmış, "henüz hiçbir arka uç hesap desteği sunmaz" [kanıtlı: internal/compute/tensor/device.go:89-94]. Yol haritasının 2. kilometre taşı: "Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir"; bugün "nicemleme ... yok" [kanıtlı: `docs/roadmap.md`].
-- **Yapılacaklar:** dört hassasiyet ("q8", "q4", "q4z128", "fp8"); TR testi. Başka grup boyları, K-nicemleme ailesi, NF4 ve 2–3 bit Sonraya.
+- **Yapılacaklar:** önce GGUF'un türleri ("q8", "q4_k", "q6_k"; sahip H1, 2. kilometre taşı); sonra "q4", "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
 
 ### 15.52
 
 - **Mevcut durum:** uygulanmadı. Hugging Face'in `weight_scale_inv`'inin çarpılan ölçek olduğu bir hipotezdir [hipotez: DENETİM F2].
 - **Yapılacaklar:** `.TR_to_dtype` ile nicemleme ve açma (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar); yeni kimlikler `TR_quantized` (gösterim adı "nicemlenmiş") ve `TR_zero_point` ("sıfır_noktası"), onaylı; NaN ve aralık denetimleri 15.6'nın bekleyen işlemlerinde; `weight_scale_inv`'in anlamını gerçek bir FP8 modeliyle doğrulamak; TR testi. Sıra değiştiren gruplar (GPTQ `desc_act`, `g_idx`) Sonraya.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** q4'ün sıfır bloğu −0.0 ölçek ve 8 kodla llama.cpp ile bit bit (baytlarla test); q4z128'in RTN formülü; fp8'in kısmi son bloğu (T3). **Açık karar:** GPTQ/AWQ ölçeği bf16 kalsın mı (dosya biçimi).
+- **Yapılacaklar (A, Ö1; sahip H1, nicemleme uygulanırken; DENETİM istek 118 B1):** fp16 ölçeği sonsuza giden blok nicemleme hatası: yazılmazsa öğeler sonlu olsa da açılan değer NaN olur ("q8" `amax` 8 321 040'tan, "q4" 524 160'tan başlar) [ölçüldü: DENETİM, llama.cpp'nin kodu]. Bugün kimse etkilenmiyor, 15.52 uygulanmadı. `1 / d` sonsuzsa sıfır blok gibi kodlama da aynı dilimde (D, Ö3).
 
 ### 15.53
 

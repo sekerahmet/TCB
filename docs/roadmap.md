@@ -121,7 +121,7 @@ Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi i
 Her biri gelince 15'in yöntemiyle yazılır.
 
 - **"Paylaşmak"ın öbür biçimleri:**
-  - ONNX ve GGUF'a dışa verme (15.47a); GGUF okuma 2. kilometre taşına geçti, K-nicemleme ailesi araştırmayla belirlenir;
+  - ONNX ve GGUF'a dışa verme (15.47a); GGUF okuma 2. kilometre taşına geçti;
   - ONNX okuma (Piper ve Silero ağırlıkları);
   - PEFT bağdaştırıcı dosyasını okuma ve yazma (LoRA'nın hazır araçlarla paylaşılması).
 - **Başka hızlandırıcılar:** AMD (ROCm), Apple, gömülü NPU; cihaz adları 15.37'nin kuralıyla.
@@ -249,7 +249,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 - Hız aynı model, aynı hassasiyet ve aynı makinede ölçülür: GPU'da PyTorch ve llama.cpp'ye, CPU'da PyTorch CPU ve llama.cpp'ye karşı. Hedef oran ilk ölçümden sonra buraya yazılır.
 - CPU'da hem x86 hem ARM64 işlemcide çalışır.
 - Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir.
-- Nicemli ağırlık hazır dosyadan gelir: yayımlanmış GGUF okunur; Jarvis için ön koşul budur, kendimiz nicemlemek sonraki fazlarda (Ahmet, 2026-11-04). Hangi türler araştırmayla belirlenir; 15.51–15.55 buna göre değişir.
+- Nicemli ağırlık hazır dosyadan gelir: yayımlanmış GGUF okunur; Jarvis için ön koşul budur, kendimiz nicemlemek sonraki fazlarda (Ahmet, 2026-11-04). Türler (araştırma ve DENETİM istek 118): `Q8_0`, `Q4_K`, `Q6_K`; `Q4_0` sonra, `Q4_1` eklenmez. GGUF okuyucu, üstveri ve parçalayıcı aynı adımda (15.55, 16.1).
 
 **Son ölçüm** (2026-11-03, main `51b75f0a`, Colab G4 ve CPU High-RAM; ayrıntı ve kaynak [`measurements.md`](measurements.md)):
 - **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüş de kapandı (2026-11-04, `measurements.md`): 2026-10-23'teki Qwen3 bf16 +%7,2; 2026-11-02'deki bf16 Qwen3 +%3,7, SmolLM2 +%7,2. Oranlar yeniden ölçülmedi.
