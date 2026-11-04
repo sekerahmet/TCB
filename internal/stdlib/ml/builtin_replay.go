@@ -264,7 +264,7 @@ func (e *replayEntry) capture(m *interp.VM, rec tensor.Recorder, f interp.Value,
 	}()
 	start := tensor.Created()
 	rec.BeginCapture()
-	captureMasks.Store(e.dev, map[*tensor.Tensor]maskCopy{})
+	captureMasks.Store(e.dev, &captureMaskSet{copies: map[*tensor.Tensor]maskCopy{}})
 	defer captureMasks.Delete(e.dev)
 	res, err := applyFunction(m, f, vals, nil)
 	var outs []*tensor.Tensor
@@ -293,29 +293,48 @@ type maskCopy struct {
 	version uint64
 }
 
-// captureMasks süren kaydın maske kopyaları (cihaz → maske → kopya). Üretimde bütün katmanlar
-// aynı maskeyi okur; her katmanda çevirmek çizgeye katman başına bir düğüm katardı (adımda
-// ~0,11 ms, G4). Kopya yalnız kendi kaydında geçerlidir: onu dolduran iş o kaydın düğümüdür,
-// oynatmada maske yeniden hesaplanınca kopya da yenilenir. Kayıt dışında çevirme her çağrıdadır.
+// captureMaskSet bir kaydın maske kopyaları. Anahtar depolama değil başlıktır: başlıklar yeniden
+// kullanılmaz ve küme onları kayıt boyunca tutar, havuza dönüp başka tensöre verilen depolama
+// eski kopyayı bulamaz.
+type captureMaskSet struct {
+	mu     sync.Mutex
+	copies map[*tensor.Tensor]maskCopy
+}
+
+// captureMasks süren kayıtların maske kopyaları (cihaz → *captureMaskSet); kayıt bitince silinir.
+// Üretimde bütün katmanlar aynı maskeyi okur; her katmanda çevirmek çizgeye katman başına bir
+// düğüm katardı (adımda ~0,11 ms, G4).
+//
+// Sürüm yalnız kayıt anında okunur; oynatmada denetim yoktur ve gerekmez: çevirme kaydın bir
+// düğümüdür, katmanlar o düğümün çıktısını okur. Maskeyi kuran düğümler her oynatmada yeniden
+// çalışır, çevirme düğümü de onların ardından: kopya her adımda o adımın maskesidir. Bu yüzden
+// kopya başka kayda ve kayıt dışına taşınmaz (orada onu dolduran düğüm yoktur).
 var captureMasks sync.Map
 
-// maskConversions çekirdeğe giren maske çevirmelerinin sayısı (sınama).
+// maskConversions çekirdek için yapılan maske çevirmelerinin sayısı (sınama).
 var maskConversions atomic.Int64
 
 // maskForKernel TR_Bool maskeyi çekirdeğin okuduğu 0/1 float32'ye çevirir. Kayıtta aynı maskenin
 // kopyası, maske o arada yerinde değişmediyse (depolama sürümü aynı) yeniden kullanılır.
 func maskForKernel(mt *tensor.Tensor) (*tensor.Tensor, error) {
-	var copies map[*tensor.Tensor]maskCopy
-	if v, ok := captureMasks.Load(mt.Device()); ok {
-		copies = v.(map[*tensor.Tensor]maskCopy)
-		if c, ok := copies[mt]; ok && c.version == mt.Version() {
-			return c.f32, nil
-		}
+	convert := func() (*tensor.Tensor, error) {
+		maskConversions.Add(1)
+		return safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r })
 	}
-	maskConversions.Add(1)
-	r, err := safe(func() *tensor.Tensor { r, _ := tensor.Convert(mt, tensor.Float32); return r })
-	if err == nil && copies != nil {
-		copies[mt] = maskCopy{r, mt.Version()}
+	v, ok := captureMasks.Load(mt.Device())
+	if !ok {
+		return convert()
+	}
+	set := v.(*captureMaskSet)
+	set.mu.Lock()
+	defer set.mu.Unlock()
+	version := mt.Version()
+	if c, ok := set.copies[mt]; ok && c.version == version {
+		return c.f32, nil
+	}
+	r, err := convert()
+	if err == nil {
+		set.copies[mt] = maskCopy{r, version}
 	}
 	return r, err
 }
