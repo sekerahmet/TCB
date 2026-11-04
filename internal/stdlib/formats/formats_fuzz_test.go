@@ -1,14 +1,15 @@
 package formats
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 )
 
 // FuzzCSVDecode: csv_çöz'e ve csv_oku'ya verilen içerik güvenilmeyen girdidir (indirilen veri kümesi).
-// Çözücü hiçbir girdide çökmemeli; her hücre ya sayı ya metin olmalı ve metin hücreler
-// girdideki baytları değiştirmeden taşımalıdır (hiçbir hücre sessizce bozulmaz). Derin arama:
+// Çözücü hiçbir girdide çökmemeli; her hücre kırpılmış metin olmalıdır (13.8): hiçbir hücre
+// sayıya dönüşüp sessizce bozulmaz. Derin arama:
 //
 //	go test ./internal/stdlib/formats -run '^$' -fuzz FuzzCSVDecode -fuzztime 5m
 func FuzzCSVDecode(f *testing.F) {
@@ -30,14 +31,12 @@ func FuzzCSVDecode(f *testing.F) {
 				t.Fatalf("satır liste değil: %T", s)
 			}
 			for _, h := range cells.Elements {
-				switch v := h.(type) {
-				case *interp.IntVal, *interp.FloatVal:
-				case *interp.StringVal:
-					if d, ok := cellValue(v.Val).(*interp.StringVal); !ok || d.Val != v.Val {
-						t.Fatalf("metin hücre %q yeniden çözümde değişti", v.Val)
-					}
-				default:
-					t.Fatalf("beklenmeyen hücre türü %T", h)
+				v, ok := h.(*interp.StringVal)
+				if !ok {
+					t.Fatalf("hücre metin olmalı: %T", h)
+				}
+				if v.Val != strings.TrimSpace(v.Val) {
+					t.Fatalf("hücre %q kırpılmamış", v.Val)
 				}
 			}
 		}

@@ -13,7 +13,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -221,14 +220,15 @@ func parseCSV(kd codes.Code, input string) ([][]string, error) {
 	}
 }
 
-// csvValues kayıtları satır listelerine çevirir; hücreler boşlukları kırpılarak cellValue
-// kuralıyla sayıya ya da metne dönüşür.
+// csvValues kayıtları satır listelerine çevirir: hücre hep metindir (13.8), boşlukları kırpılır;
+// sayı gerekirse program tip çağrısıyla çevirir (TR_Int(hücre), 3.12). Eskiden katı sayı biçimindeki
+// hücre kendiliğinden sayı oluyordu: aynı sütun satırdan satıra tip değiştiriyordu ("007" metin, "7" sayı).
 func csvValues(records [][]string) (interp.Value, error) {
 	rows := make([]interp.Value, 0, len(records))
 	for _, rec := range records {
 		cols := make([]interp.Value, 0, len(rec))
 		for _, cell := range rec {
-			cols = append(cols, cellValue(strings.TrimSpace(cell)))
+			cols = append(cols, &interp.StringVal{Val: strings.TrimSpace(cell)})
 		}
 		rows = append(rows, &interp.ListVal{Elements: cols})
 	}
@@ -242,76 +242,4 @@ func decodeCSV(input string) (interp.Value, error) {
 		return nil, err
 	}
 	return csvValues(records)
-}
-
-// cellValue bir CSV hücresini yalnızca katı ondalık sayı biçimindeyse sayıya çevirir, yoksa
-// metni olduğu gibi bırakır; böylece hiçbir hücre sessizce bozulmaz:
-//   - Tam: isteğe bağlı '-' ve rakamlar, baştaki sıfır yok ("0", "42", "-7"), Tam aralığında.
-//   - Ondalık: Tam biçimine '.rakamlar' ve/veya 'e±rakamlar' eki ("1.0", "2.5e3", "1E-3"),
-//     sonlu sonuç.
-//   - Geri kalan her şey Metin kalır: "007" ve "00.5" (posta kodu, kimlik), Tam aralığını
-//     aşan "12345678901234567890", "NaN", "Inf", "infinity", "0x10", "1_000", "+5", ".5",
-//     "1.", "1e400".
-func cellValue(h string) interp.Value {
-	intEnd, float := numberFormat(h)
-	if intEnd < 0 {
-		return &interp.StringVal{Val: h}
-	}
-	if !float {
-		if iv, err := strconv.ParseInt(h, 10, 64); err == nil {
-			return &interp.IntVal{Val: iv}
-		}
-		return &interp.StringVal{Val: h}
-	}
-	if fv, err := strconv.ParseFloat(h, 64); err == nil {
-		return &interp.FloatVal{Val: fv}
-	}
-	return &interp.StringVal{Val: h}
-}
-
-// numberFormat h'nin katı sayı biçiminde olup olmadığını söyler: biçim dışıysa -1, değilse
-// tam kısmın bittiği konum ve sayının ondalık (nokta ya da üs içeren) olup olmadığı.
-func numberFormat(h string) (int, bool) {
-	i := 0
-	if i < len(h) && h[i] == '-' {
-		i++
-	}
-	start := i
-	for i < len(h) && h[i] >= '0' && h[i] <= '9' {
-		i++
-	}
-	if i == start || (h[start] == '0' && i-start > 1) {
-		return -1, false
-	}
-	intEnd := i
-	float := false
-	if i < len(h) && h[i] == '.' {
-		i++
-		k := i
-		for i < len(h) && h[i] >= '0' && h[i] <= '9' {
-			i++
-		}
-		if i == k {
-			return -1, false
-		}
-		float = true
-	}
-	if i < len(h) && (h[i] == 'e' || h[i] == 'E') {
-		i++
-		if i < len(h) && (h[i] == '+' || h[i] == '-') {
-			i++
-		}
-		k := i
-		for i < len(h) && h[i] >= '0' && h[i] <= '9' {
-			i++
-		}
-		if i == k {
-			return -1, false
-		}
-		float = true
-	}
-	if i != len(h) {
-		return -1, false
-	}
-	return intEnd, float
 }

@@ -109,7 +109,7 @@ func TestCSVReadFileAndParseText(t *testing.T) {
 	if err != nil {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
-	want := `[[["ad", "yaş"], ["Ali", 30], ["Ayşe", 27.5]], [["x", 1], ["y", 2]], [["tek"]], [["tarih", "1/2/2024"]], []]`
+	want := `[[["ad", "yaş"], ["Ali", "30"], ["Ayşe", "27.5"]], [["x", "1"], ["y", "2"]], [["tek"]], [["tarih", "1/2/2024"]], []]`
 	if val.Inspect() != want {
 		t.Fatalf("%s bekleniyordu, %s alındı", want, val.Inspect())
 	}
@@ -168,15 +168,15 @@ func TestCSVResolvesRelativeToProgram(t *testing.T) {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
 	val, _ := machine.GlobalEnv.Get("result")
-	if val.Inspect() != `[["a", "b"], [1, 2]]` {
+	if val.Inspect() != `[["a", "b"], ["1", "2"]]` {
 		t.Fatalf("beklenmeyen sonuç: %s", val.Inspect())
 	}
 }
 
 // Hakem bulgusu 15: CSV'de BOM soyulmuyor, "NaN"/"Inf" sayıya çevriliyor, baştaki sıfırlar
-// ve Tam aralığını aşan sayılar sessizce bozuluyordu. Artık yalnızca katı sayı biçimi sayıdır;
-// öteki hücreler olduğu gibi metin kalır.
-func TestCSVStrictNumbersAndBOM(t *testing.T) {
+// ve Tam aralığını aşan sayılar sessizce bozuluyordu. Hücre hep metindir (13.8), boşlukları
+// kırpılır; aynı sütun satırdan satıra tip değiştirmez, sayı tip çağrısıyla çevrilir.
+func TestCSVCellsAreTextAndBOM(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.ToSlash(filepath.Join(dir, "bom.csv"))
 	if err := os.WriteFile(file, []byte("\ufeffad,deger\nx,1\n"), 0644); err != nil {
@@ -194,8 +194,8 @@ func TestCSVStrictNumbersAndBOM(t *testing.T) {
 	}
 	want := `[["NaN", "Inf", "-Inf", "infinity", "007", "12345678901234567890", "0x10", "1_000", "1e400", "+5", "00.5", ".5"], ` +
 		`[String, String, String, String, String, String, String, String, String, String, String, String], ` +
-		`[0, 0, 1.0, 2500.0, -7, 9223372036854775807, 0.001, 0.0, "", 42, "1.", "1e"], ` +
-		`[Int, Int, Float, Float, Int, Int, Float, Float, String, Int, String, String]]`
+		`["-0", "0", "1.0", "2.5e3", "-7", "9223372036854775807", "1E-3", "0.0", "", "42", "1.", "1e"], ` +
+		`[String, String, String, String, String, String, String, String, String, String, String, String]]`
 	if val.Inspect() != want {
 		t.Fatalf("\n%s\nbeklenen\n%s", val.Inspect(), want)
 	}
@@ -247,7 +247,7 @@ func TestDecodersRequireText(t *testing.T) {
 		}
 	}
 	out, _, err := run(t, `TR_print(TR_json_parse("[1, 2]"), TR_parse_csv("a,b\n1,2"))`)
-	if err != nil || out != "[1,2] [[\"a\", \"b\"], [1, 2]]\n" {
+	if err != nil || out != "[1,2] [[\"a\", \"b\"], [\"1\", \"2\"]]\n" {
 		t.Fatalf("metin argümanı: %q, %v", out, err)
 	}
 }
