@@ -53,6 +53,7 @@ func lockWaits(t *testing.T, busy int) (aheads []int, tickets []uint64, waits []
 // bozan bir değişiklik (sayıyla ya da hiç devretmek) üçünü de aşar; Linux'ta tek koşu ve kesin
 // sınır. Her koşunun ölçümü testin çıktısına yazılır (go test -v).
 func TestLockIsTakenInArrivalOrderWithinTheDelay(t *testing.T) {
+	raiseTestPriority(t) // Windows: yüklü makinede işletim sistemi tutanı çalıştırmaz (bkz. raiseTestPriority)
 	runs := 3
 	if runtime.GOOS == "linux" {
 		runs = 1
