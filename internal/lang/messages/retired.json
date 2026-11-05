@@ -295,6 +295,10 @@
   "commit": "3080380",
   "reason": "deleted: messages: lexer, parser, checker and hint use message codes (H0001-H1106)"
  },
+ "H8506": {
+  "commit": "claude/kolA-test-komutu",
+  "reason": "deleted: testrunner: a file with no top-level test fails the run, H8503 (12.1)"
+ },
  "H8600": {
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"

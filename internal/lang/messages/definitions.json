@@ -1807,7 +1807,6 @@
 "H8503": { "param": ["target"], "slots": {"test": "TR_ctx_test"} },
 "H8504": { "param": [] },
 "H8505": { "param": ["stage"] },
-"H8506": { "param": [] },
 "H8507": { "param": [] },
 "H8601": { "param": ["error"] },
 "H8602": { "param": ["given", "command"] },

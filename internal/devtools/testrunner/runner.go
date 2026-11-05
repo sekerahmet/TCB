@@ -27,7 +27,7 @@ type Summary struct {
 	Total      int // çalıştırılan test sayısı
 	Passed     int
 	Failed     int
-	Unloadable int // sözdizimi/tip/üst düzey hata nedeniyle testleri çalıştırılamayan dosya sayısı
+	Unloadable int // sözdizimi/tip/üst düzey hata nedeniyle testleri çalıştırılamayan ya da en dışında testi olmayan dosya sayısı
 	File       int // incelenen dosya sayısı
 }
 
@@ -51,10 +51,14 @@ func (o Summary) String() string {
 // Dosya ya da klasör olarak açıkça verilirse koşar.
 const fixtureDir = "testdata"
 
+// testSuffix test dosyası olduğunu adıyla söyleyen dosyanın sonudur: böyle dosya sözcük birimlerinden
+// okunamasa da elenmez, sonucunu runFile verir.
+const testSuffix = "_test.tr"
+
 // TestFiles hedeflere göre çalıştırılacak dosyaları, hedeflerin verildiği sırayla bulur. Test dosyası
 // TR_test içeren dosyadır, adı ne olursa olsun (12.1). Klasörde testsiz dosya olağandır, atlanır;
 // verilen dosyada test yoksa ya da klasörün toplamında hiç test yoksa H8503, olmayan hedef H8502:
-// hedeflerden biri koşmadan sonuç "geçti" görünmesin.
+// hedeflerden biri koşmadan sonuç "geçti" görünmesin. Adı testSuffix ile biten dosya hiç elenmez.
 func TestFiles(targets []string) ([]string, error) {
 	var files []string
 	for _, target := range targets {
@@ -79,15 +83,19 @@ func inFixtureDir(target, f string) bool {
 	return err == nil && slices.Contains(strings.Split(filepath.ToSlash(filepath.Dir(rel)), "/"), fixtureDir)
 }
 
-// holdsTests dosyada test bloğu var mı. Okunamayan dosya elenmez: RunFile hatasını raporlar.
+// holdsTests dosya koşulacak mı. Okunamayan dosya ve adı test dosyası diyen dosya elenmez: bozuksa
+// "yüklenemedi", testi yoksa H8503 olur; HasTestBlock bozuk dosyanın testini her zaman göremez.
 func holdsTests(f string) bool {
+	if strings.HasSuffix(filepath.Base(f), testSuffix) {
+		return true
+	}
 	data, err := os.ReadFile(f)
 	return err != nil || source.HasTestBlock(string(data))
 }
 
 // Run hedeflerdeki tüm test dosyalarını ve onların aktardığı modüllerin testlerini (12.1) çalıştırır,
-// raporu out'a yazar ve özeti döndürür. Her dosya bir kez, kendi makinesinde koşar. Hedeflerden biri
-// geçersizse hiçbir test çalışmaz.
+// raporu out'a yazar ve özeti döndürür. Her dosya bir kez, kendi makinesinde koşar. TestFiles'ın
+// reddettiği hedef varsa hiçbir test çalışmaz.
 func Run(targets []string, out io.Writer) (Summary, error) {
 	files, err := TestFiles(targets)
 	if err != nil {
@@ -131,7 +139,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 // runFile tek bir dosyanın test bloklarını çalıştırır, aktardığı modül dosyalarını da verir. Önce dosya normal biçimde
 // yüklenir (test blokları atlanarak üst düzey tanımlar oluşur); ardından her test, bu
 // tanımların üzerinde açılan yeni bir kapsamda tek tek çalışır. Bir testin kalması ya da
-// hata vermesi diğerlerini durdurmaz.
+// hata vermesi diğerlerini durdurmaz. En dışında testi olmayan dosya koşuyu düşürür (H8503).
 func runFile(fpath string, out io.Writer) (Summary, []string) {
 	summary := Summary{File: 1}
 	fmt.Fprintf(out, "📄 %s\n", fpath)
@@ -167,7 +175,8 @@ func runFile(fpath string, out io.Writer) (Summary, []string) {
 		}
 	}
 	if len(tests) == 0 {
-		fmt.Fprintln(out, "  "+messages.Text(messages.H8506))
+		fmt.Fprintf(out, "  ✗ %s\n", messages.Text(messages.H8503, fpath))
+		summary.Unloadable++
 		return summary, nil
 	}
 

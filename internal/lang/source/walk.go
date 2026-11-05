@@ -12,8 +12,8 @@ import (
 )
 
 // HasTestBlock metinde adıyla yazılmış bir TR_test var mı: test dosyası odur (12.1). Sözcük birimleriyle
-// okunur: yorum ve metin sayılmaz, sözdizimi hatalı dosyanın testi de görünür ve dosya "yüklenemedi"
-// olur, sessizce atlanmaz.
+// okunur: yorum ve metin sayılmaz, sözcükleri bozmayan sözdizimi hatasında testler görünür. Kapanmayan
+// metin ve adsız TR_test görünmez: "yok" cevabı dosyanın testsiz olduğunu kanıtlamaz.
 func HasTestBlock(text string) bool {
 	parts, _ := Split(text)
 	l := lexer.NewBody(parts.Body, true)

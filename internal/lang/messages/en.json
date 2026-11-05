@@ -1807,7 +1807,6 @@
 "H8503": "no test found in {target}: a test file holds a `{#test}` block",
 "H8504": "warnings:",
 "H8505": "{stage, select, syntax {Syntax} other {Type-check}} errors prevented the tests from running:",
-"H8506": "(this file has no test block)",
 "H8507": "the file's top-level code raised an error, the tests could not be run:",
 "H8601": "The embedded application could not be read: {error}",
 "H8602": "'{given}' is not a command in TR; did you mean to write 'trlang {command}'?",
