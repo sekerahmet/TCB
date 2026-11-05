@@ -197,21 +197,3 @@ q6son:
 	VMOVSS X0, ret+32(FP)
 	VZEROUPPER
 	RET
-
-// func prefetchBytes(p uintptr, n int)
-//
-// Önden getirme yönergesi hata vermez: geçersiz adres sessizce atlanır.
-TEXT ·prefetchBytes(SB), NOSPLIT, $0-16
-	MOVQ p+0(FP), AX
-	MOVQ n+8(FP), CX
-	ADDQ AX, CX
-
-prefetchLoop:
-	CMPQ       AX, CX
-	JCC        prefetchDone
-	PREFETCHT1 (AX)
-	ADDQ       $64, AX
-	JMP        prefetchLoop
-
-prefetchDone:
-	RET
