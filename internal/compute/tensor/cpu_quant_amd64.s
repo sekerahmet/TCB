@@ -30,6 +30,53 @@
 	VMULPS      Y8, Y9, Y9; \
 	VFMADD231PS xoff(SI), Y9, acc
 
+// Sekiz kod (yığında, off) öğe xoff'tan acc'ye; scale: d·a'nın baytı (DX).
+#define Q6STEP(off, scale, xoff, acc) \
+	VPMOVSXBD    off(SP), Y11; \
+	VCVTDQ2PS    Y11, Y11; \
+	VBROADCASTSS scale(DX), Y15; \
+	VMULPS       Y15, Y11, Y11; \
+	VFMADD231PS  xoff(SI), Y11, acc
+
+// Sekiz öğelik dört kod. off: 8·c, s0: alt bloğun ölçeği. Bir kulvarın sırası değişmez.
+#define Q6LANE(off, s0, x0, x1, x2, x3, acc) \
+	Q6STEP(off, s0, x0, acc); \
+	Q6STEP(off+32, s0+8, x1, acc); \
+	Q6STEP(off+64, s0+16, x2, acc); \
+	Q6STEP(off+96, s0+24, x3, acc)
+
+// Yarım bloğun 128 kodu: ql iki yarısı Y8, Y9, qh Y10. Bayt işlemleriyle 32 öğe birden; kod − 32
+// işaretli bayta sığar. Y4: 0x0F, Y5: 0x30, Y6: 32.
+#define Q6CODES \
+	VMOVDQU (DI), Y8; \
+	VMOVDQU 32(DI), Y9; \
+	VMOVDQU (R8), Y10; \
+	VPAND   Y4, Y8, Y11; \
+	VPSLLW  $4, Y10, Y12; \
+	VPAND   Y5, Y12, Y12; \
+	VPOR    Y12, Y11, Y11; \
+	VPSUBB  Y6, Y11, Y11; \
+	VMOVDQU Y11, 0(SP); \
+	VPAND   Y4, Y9, Y11; \
+	VPSLLW  $2, Y10, Y12; \
+	VPAND   Y5, Y12, Y12; \
+	VPOR    Y12, Y11, Y11; \
+	VPSUBB  Y6, Y11, Y11; \
+	VMOVDQU Y11, 32(SP); \
+	VPSRLW  $4, Y8, Y11; \
+	VPAND   Y4, Y11, Y11; \
+	VPAND   Y5, Y10, Y12; \
+	VPOR    Y12, Y11, Y11; \
+	VPSUBB  Y6, Y11, Y11; \
+	VMOVDQU Y11, 64(SP); \
+	VPSRLW  $4, Y9, Y11; \
+	VPAND   Y4, Y11, Y11; \
+	VPSRLW  $2, Y10, Y12; \
+	VPAND   Y5, Y12, Y12; \
+	VPOR    Y12, Y11, Y11; \
+	VPSUBB  Y6, Y11, Y11; \
+	VMOVDQU Y11, 96(SP)
+
 // func sdotq8(n int, x *float32, w *byte) float32
 //
 // Blok 34 bayt: fp16 ölçek, 32 işaretli kod.
@@ -62,11 +109,12 @@ q8son:
 	RET
 
 // Sekiz "q4_k" baytı: alt yarılar acc'ye öğe xlo'dan, üst yarılar öğe xhi'den. Y10, Y11: alt yarının
-// d·a ve m·b'si; Y12, Y13: üst yarının. Y4: 15. Çarpım kesindir, çıkarma tek yuvarlamadır.
+// d·a ve m·b'si; Y12, Y13: üst yarının, d·a 16'ya bölünmüş. Üst yarı kaydırılmaz, kodun 16 katıdır:
+// çarpım yine kesindir, kaydırma 0 ve 1 kapılarını boşa tutmaz. Y4: 15; Y5: 0xF0. Çıkarma tek yuvarlamadır.
 #define Q4LANE(codes, xlo, xhi, acc) \
 	VPMOVZXBD   codes(DI), Y9; \
 	VPAND       Y4, Y9, Y14; \
-	VPSRLD      $4, Y9, Y15; \
+	VPAND       Y5, Y9, Y15; \
 	VCVTDQ2PS   Y14, Y14; \
 	VCVTDQ2PS   Y15, Y15; \
 	VFMSUB213PS Y11, Y10, Y14; \
@@ -86,18 +134,25 @@ TEXT ·sdotq4k(SB), NOSPLIT, $0-36
 	MOVL         $15, AX
 	VMOVD        AX, X4
 	VPBROADCASTD X4, Y4
+	MOVL         $0xF0, AX
+	VMOVD        AX, X5
+	VPBROADCASTD X5, Y5
+	MOVQ         $0x3D8000003F800000, AX
+	VMOVQ        AX, X6
+	VPBROADCASTQ X6, Y6
 	TESTQ        CX, CX
 	JZ           q4son
 
 q4blok:
 	MOVWLZX      (DI), AX
-	VMOVD        AX, X5
+	VMOVD        AX, X7
 	MOVWLZX      2(DI), AX
-	VMOVD        AX, X6
-	VCVTPH2PS    X5, X5
-	VCVTPH2PS    X6, X6
-	VBROADCASTSS X5, Y5
-	VBROADCASTSS X6, Y6
+	VMOVD        AX, X8
+	VCVTPH2PS    X7, X7
+	VCVTPH2PS    X8, X8
+	VBROADCASTSS X7, Y7
+	VBROADCASTSS X8, Y8
+	VMULPS       Y6, Y7, Y7
 	MOVL         4(DI), R8
 	MOVL         8(DI), R9
 	MOVL         12(DI), R10
@@ -111,7 +166,7 @@ q4blok:
 	ORL          R8, BX
 	SHLQ         $32, BX
 	ORQ          BX, AX
-	VMOVQ        AX, X7
+	VMOVQ        AX, X9
 	MOVL         R9, AX
 	ANDL         $0x3f3f3f3f, AX
 	SHRL         $4, R10
@@ -122,19 +177,19 @@ q4blok:
 	ORL          R9, R10
 	SHLQ         $32, R10
 	ORQ          R10, AX
-	VMOVQ        AX, X8
-	VPMOVZXBD    X7, Y7
-	VPMOVZXBD    X8, Y8
-	VCVTDQ2PS    Y7, Y7
-	VCVTDQ2PS    Y8, Y8
-	VMULPS       Y5, Y7, Y7
-	VMULPS       Y6, Y8, Y8
-	VUNPCKLPS    Y8, Y7, Y9
-	VUNPCKHPS    Y8, Y7, Y10
-	VMOVUPS      X9, (DX)
-	VMOVUPS      X10, 16(DX)
-	VEXTRACTF128 $1, Y9, 32(DX)
-	VEXTRACTF128 $1, Y10, 48(DX)
+	VMOVQ        AX, X10
+	VPMOVZXBD    X9, Y9
+	VPMOVZXBD    X10, Y10
+	VCVTDQ2PS    Y9, Y9
+	VCVTDQ2PS    Y10, Y10
+	VMULPS       Y7, Y9, Y9
+	VMULPS       Y8, Y10, Y10
+	VUNPCKLPS    Y10, Y9, Y14
+	VUNPCKHPS    Y10, Y9, Y15
+	VMOVUPS      X14, (DX)
+	VMOVUPS      X15, 16(DX)
+	VEXTRACTF128 $1, Y14, 32(DX)
+	VEXTRACTF128 $1, Y15, 48(DX)
 	ADDQ         $16, DI
 	MOVQ         $4, BX
 
@@ -161,60 +216,24 @@ q4son:
 	VZEROUPPER
 	RET
 
-// Bir kod: öğe xoff'tan acc'ye. r kodun 6 bitidir; Y6: 32, scale: d·a'nın baytı (DX).
-#define Q6STEP(r, scale, xoff, acc) \
-	VPSUBD       Y6, r, r; \
-	VCVTDQ2PS    r, r; \
-	VBROADCASTSS scale(DX), Y15; \
-	VMULPS       Y15, r, r; \
-	VFMADD231PS  xoff(SI), r, acc
-
-// Sekiz öğelik dört kod: ql alt ve üst yarıları, qh iki biti. off: 8·c, s0: alt blok (c/2) ölçeği.
-#define Q6LANE(off, s0, x0, x1, x2, x3, acc) \
-	VPMOVZXBD off(DI), Y8; \
-	VPMOVZXBD off+32(DI), Y9; \
-	VPMOVZXBD off(R8), Y10; \
-	VPAND     Y4, Y8, Y11; \
-	VPAND     Y5, Y10, Y12; \
-	VPSLLD    $4, Y12, Y12; \
-	VPOR      Y12, Y11, Y11; \
-	Q6STEP(Y11, s0, x0, acc); \
-	VPAND     Y4, Y9, Y11; \
-	VPSRLD    $2, Y10, Y12; \
-	VPAND     Y5, Y12, Y12; \
-	VPSLLD    $4, Y12, Y12; \
-	VPOR      Y12, Y11, Y11; \
-	Q6STEP(Y11, s0+8, x1, acc); \
-	VPSRLD    $4, Y8, Y11; \
-	VPSRLD    $4, Y10, Y12; \
-	VPAND     Y5, Y12, Y12; \
-	VPSLLD    $4, Y12, Y12; \
-	VPOR      Y12, Y11, Y11; \
-	Q6STEP(Y11, s0+16, x2, acc); \
-	VPSRLD    $4, Y9, Y11; \
-	VPSRLD    $6, Y10, Y12; \
-	VPSLLD    $4, Y12, Y12; \
-	VPOR      Y12, Y11, Y11; \
-	Q6STEP(Y11, s0+24, x3, acc)
-
 // func sdotq6k(blocks int, x *float32, w *byte, scales *float32) float32
 //
 // Blok 210 bayt: ql 128, qh 64, ölçek 16, d 2. Yarım blok 128 öğedir: ql 64, qh 32, ölçek 8.
-TEXT ·sdotq6k(SB), NOSPLIT, $0-36
+TEXT ·sdotq6k(SB), NOSPLIT, $128-36
 	MOVQ blocks+0(FP), CX
 	MOVQ x+8(FP), SI
 	MOVQ w+16(FP), DI
 	MOVQ scales+24(FP), DX
 	ZERO4
-	MOVL         $15, AX
+	MOVL         $0x0F, AX
 	VMOVD        AX, X4
-	VPBROADCASTD X4, Y4
-	MOVL         $3, AX
+	VPBROADCASTB X4, Y4
+	MOVL         $0x30, AX
 	VMOVD        AX, X5
-	VPBROADCASTD X5, Y5
+	VPBROADCASTB X5, Y5
 	MOVL         $32, AX
 	VMOVD        AX, X6
-	VPBROADCASTD X6, Y6
+	VPBROADCASTB X6, Y6
 	TESTQ        CX, CX
 	JZ           q6son
 
@@ -235,6 +254,7 @@ q6blok:
 	MOVQ         $2, BX
 
 q6yari:
+	Q6CODES
 	Q6LANE(0, 0, 0, 128, 256, 384, Y0)
 	Q6LANE(8, 0, 32, 160, 288, 416, Y1)
 	Q6LANE(16, 4, 64, 192, 320, 448, Y2)
