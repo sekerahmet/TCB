@@ -1449,6 +1449,8 @@ const (
 	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)`, metinse `{#Int}(...)` yazın, ölçüyse ona başka bir ad verin
 	H7014 Code = 7014 // {path|q} modülünde {name|q} adı yok; modül değeri bir sözlük değildir, yalnız modülün en dış adları okunur{hint}
 	H7015 Code = 7015 // `{#test}` yalnız dosyanın en dışında yazılır: {name|q} testi burada hiç koşmazdı; bloğu en dışa taşıyın
+	H7040 Code = 7040 // {@pretrained_gguf}: {weight|q} tensörünün türü {dtype}: frekans bölenleri float32, fp16 ya da bf16 olmalı
+	H7041 Code = 7041 // {@pretrained_gguf}: {weight|q} tensörünün {index} konumundaki böleni {value}: bölen sonlu ve sıfırdan büyük olmalı, her konumun açısı float32 sınırında kalmalı
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

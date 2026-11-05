@@ -353,7 +353,8 @@ func TestGGUFQuantizedModelMatchesOpened(t *testing.T) {
 
 // Kural (15.55, DENETİM 129): safetensors kapıları config.json'a baktığı için GGUF'ta kendiliğinden
 // geçmez. RoPE ölçeğinin dört koşulu ayrı ayrı; Qwen3-4B-128K biçimi tensörsüz gelir. Eşlenmeyen ya
-// da eksik tensör hatadır: `blk.N.attn_q.bias` atlansaydı model yanlış metin üretirdi.
+// da eksik tensör hatadır: `blk.N.attn_q.bias` atlansaydı model yanlış metin üretirdi. `rope_freqs.weight`
+// yalnız `llama` mimarisinde okunur, llama.cpp'de de: qwen3'te tanınmayan ağırlıktır.
 func TestGGUFModelGates(t *testing.T) {
 	c := tinyConfig{arch: "qwen3", vocab: 48, dim: 64, ff: 96, layers: 2, heads: 4, kv: 2, headDim: 16, context: 32, theta: 1000000}
 	w := c.randomWeights(3)
@@ -400,7 +401,7 @@ func TestGGUFModelGates(t *testing.T) {
 			return b.Bytes()
 		}()},
 		{"mimarisiz", "H6940", "", (&gguftest.Builder{}).Bytes()},
-		{"rope_freqs", "H6943", "rope_freqs.weight", full(func(b *gguftest.Builder) { b.Tensor("rope_freqs.weight", gguf.TypeF32, one, four) })},
+		{"qwen3'te rope_freqs", "H6945", "rope_freqs.weight", full(func(b *gguftest.Builder) { b.Tensor("rope_freqs.weight", gguf.TypeF32, one, four) })},
 		{"ölçek türü", "H6943", "qwen3.rope.scaling.type", full(kv("qwen3.rope.scaling.type", "linear"))},
 		{"ölçek çarpanı", "H6943", "qwen3.rope.scaling.factor", full(kv("qwen3.rope.scaling.factor", float32(4)))},
 		{"doğrusal ölçek", "H6943", "qwen3.rope.scale_linear", full(kv("qwen3.rope.scale_linear", float32(2)))},

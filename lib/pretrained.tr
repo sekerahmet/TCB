@@ -13,7 +13,7 @@
 # x + dikkat(norm1(x)), + mlp(norm2(x)); RMSNorm; dikkat GQA ve RoPE (yarı döndürme, rotate_half);
 # MLP aşağı(silu(kapı(x)) · yukarı(x)); qwen3'te q ve k bakış boyutunda RMS normundan RoPE'dan önce
 # geçer (qk_normu). Desteklenmeyen bir ayar (sapmalı katmanlar, RoPE ölçekleme, başka etkinleştirme)
-# açık hatadır; sessizce yanlış model kurulmaz.
+# açık hatadır; sessizce yanlış model kurulmaz. GGUF'ta `rope_freqs.weight` bölenleri uygulanır.
 #
 # Ağırlıklar safetensors'tan (tensör_yükle, dil tanımı 15.47) bir ad eşlemesiyle parametrelere
 # yazılır (parametreleri_yükle, 20.11). Hugging Face nn.Linear ağırlığı [çıkış, giriş], TR'nin
@@ -177,13 +177,16 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var eps = TR_Float(_gguf_gerekli(üst, "\(mimari).attention.layer_norm_rms_epsilon"))
     TR_var katman = TR_Int(_gguf_gerekli(üst, "\(mimari).block_count"))
     TR_var tensörler = TR_load_tensors(yol)
-    TR_if tensörler.TR_contains("rope_freqs.weight") { TR_throw TR_Message("H6943", "gguf", "rope_freqs.weight") }
     TR_var dağarcık = TR_Int(TR_config_value(üst, "\(mimari).vocab_size", _gguf_tensör(tensörler, "token_embd.weight").TR_shape[0]))
     TR_var alınan: TR_Dict[TR_String, TR_Bool] = {}
-    TR_var model = TR_GPT(1, TR_context: TR_Int(TR_config_value(üst, "\(mimari).context_length", 2048)), TR_embed_dim: 2, TR_num_layers: 1,
+    TR_var bağlam = TR_Int(TR_config_value(üst, "\(mimari).context_length", 2048))
+    TR_var taban = TR_Float(TR_config_value(üst, "\(mimari).rope.freq_base", 10000.0))
+    TR_var model = TR_GPT(1, TR_context: bağlam, TR_embed_dim: 2, TR_num_layers: 1,
         TR_num_heads: bakış, TR_num_kv_heads: kv, TR_intermediate_dim: 2, TR_tied: TR_true, TR_eps: eps, TR_qk_norm: mimari == "qwen3",
-        TR_head_dim: bb, TR_rope_theta: TR_Float(TR_config_value(üst, "\(mimari).rope.freq_base", 10000.0)),
-        TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_init_std: 0.0)
+        TR_head_dim: bb, TR_rope_theta: taban, TR_merged_kv: TR_false, TR_merged_gate: TR_false, TR_init_std: 0.0)
+    TR_if mimari == "llama" TR_and tensörler.TR_contains("rope_freqs.weight") {
+        _gguf_rope_bölenleri(model, _gguf_al(tensörler, alınan, "rope_freqs.weight", [bb // 2]), bağlam, bb, taban)
+    }
     model.TR_embedding.TR_table = _gguf_al(tensörler, alınan, "token_embd.weight", [dağarcık, boyut])
     model.TR_final_norm.TR_weight = _gguf_al(tensörler, alınan, "output_norm.weight", [boyut])
     TR_var paylaşımlı = TR_not tensörler.TR_contains("output.weight")
@@ -236,6 +239,27 @@ TR_func _gguf_al(tensörler: TR_Dict[TR_String, TR_Tensor], alınan: TR_Dict[TR_
     TR_if t.TR_shape != şekil { TR_throw TR_Message("H6698", ad, t.TR_shape, şekil) }
     alınan[ad] = TR_true
     TR_return t
+}
+
+# _gguf_rope_bölenleri döner konum tablolarını dosyanın frekans bölenleriyle yeniden kurar. Llama 3.1
+# ve 3.2'de RoPE ölçeği üstveride değil bu tensördedir; tensör isteğe bağlıdır, yoksa bölen 1'dir
+# (llama.cpp `src/models/llama.cpp:66`). Bölen her konumda uygulanır, eşik yoktur: `theta / ff`
+# (`ggml/src/ggml-cpu/ops.cpp`, `ggml_rope_cache_init`). Sıfır ya da NaN bölen modeli hatasız kurar,
+# açıları sessizce bozardı; bölenin açısı en büyük konumda da float32'ye sığmalıdır.
+TR_func _gguf_rope_bölenleri(model: TR_GPT, t: TR_Tensor, bağlam: TR_Int, bb: TR_Int, taban: TR_Float) {
+    TR_if TR_not ["float32", "fp16", "bf16"].TR_contains(t.TR_dtype) { TR_throw TR_Message("H7040", "rope_freqs.weight", t.TR_dtype) }
+    TR_var bölenler = t.TR_to_dtype("float32").TR_tolist
+    TR_var frekanslar = []
+    TR_for i, bölen TR_in bölenler {
+        TR_var frekans = taban ** (-2.0 * i / bb)
+        TR_if TR_not TR_is_finite(bölen) TR_or bölen <= 0.0 TR_or bağlam * frekans / bölen > 3.4e38 {
+            TR_throw TR_Message("H7041", "rope_freqs.weight", i, bölen)
+        }
+        frekanslar.TR_append(frekans / bölen)
+    }
+    TR_var açılar = TR_Tensor([[p * 1.0] TR_for p TR_in 0..bağlam]) @ TR_Tensor([frekanslar]) # [bağlam, yarım]
+    model.TR_cos_table = TR_cos(açılar)
+    model.TR_sin_table = TR_sin(açılar)
 }
 
 # _gguf_satır_sırası dönüştürücünün `attn_q` ve `attn_k`'da yaptığı sıralamayı geri alan indekstir.
