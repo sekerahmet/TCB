@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/gguf"
@@ -195,6 +196,8 @@ func TestGGUFRejects(t *testing.T) {
 		{"puan türü", base().builder().KV(ggufKeyScores, []int32{1}), messages.H6681},
 		{"kısa tür", bare().KV(ggufKeyModel, "gpt2").KV(ggufKeyPre, "qwen2").KV(ggufKeyTokens, tokens).
 			KV(ggufKeyMerges, []string{}).KV(ggufKeyTypes, []int32{1}), messages.H6682},
+		{"tür dizisi yok", bare().KV(ggufKeyModel, "gpt2").KV(ggufKeyPre, "qwen2").KV(ggufKeyTokens, tokens).
+			KV(ggufKeyMerges, []string{}), messages.H6681},
 		{"sözlük dışı özel kimlik", base().builder().KV("tokenizer.ggml.padding_token_id", uint32(256)), messages.H6683},
 		{"özel kimlik türü", base().builder().KV("tokenizer.ggml.unknown_token_id", "0"), messages.H6681},
 		{"yinelenen parça", ggufVocab{arch: "qwen3", pre: "qwen2", extra: []string{"a"}}.builder(), messages.H6684},
@@ -205,6 +208,41 @@ func TestGGUFRejects(t *testing.T) {
 				t.Errorf("hata %v; %s olmalı", err, c.code)
 			}
 		})
+	}
+}
+
+// TestGGUFQwen2SpecialNames: dönüştürücü FIM parçalarını denetim türüyle yazar, modelin
+// tokenizer.json'unda özel değildirler: çözme onları atlamaz, gerçek özel parçayı atlar. Başka etikette
+// tür geçerlidir.
+func TestGGUFQwen2SpecialNames(t *testing.T) {
+	extra := []string{"<|fim_prefix|>", "<|file_sep|>", "<|im_end|>"}
+	kinds := map[int]int32{256: ggufTokenControl, 257: ggufTokenControl, 258: ggufTokenControl}
+	for _, c := range []struct {
+		arch, pre, want string
+	}{
+		{"qwen3", "qwen2", "<|fim_prefix|><|file_sep|>"},
+		{"llama", "smollm", ""},
+	} {
+		tok, err := parseGGUF(t, ggufVocab{arch: c.arch, pre: c.pre, extra: extra, kinds: kinds}.builder())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := tok.Decode([]int{256, 257, 258}, true); got != c.want {
+			t.Errorf("%s: %q; beklenen %q", c.pre, got, c.want)
+		}
+		ids := tok.Encode("<|fim_prefix|>")
+		if !slices.Equal(ids, []int{256}) {
+			t.Errorf("%s: kimlikler %v", c.pre, ids)
+		}
+	}
+}
+
+// TestGGUFLongValuesAreClipped: dosyanın dev etiketi iletiye girmez.
+func TestGGUFLongValuesAreClipped(t *testing.T) {
+	long := strings.Repeat("x", 1<<20)
+	_, err := parseGGUF(t, (&gguftest.Builder{}).KV(ggufKeyModel, "gpt2").KV(ggufKeyPre, long))
+	if !messages.Has(err, messages.H6679) || len(err.Error()) > 512 {
+		t.Errorf("%d baytlık ileti", len(err.Error()))
 	}
 }
 

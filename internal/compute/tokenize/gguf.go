@@ -51,17 +51,21 @@ type ggufTag struct {
 	ignoreMerges bool
 	addBOS       bool // add_bos_token anahtarı yoksa geçerli
 	onlyArch     []string
+	notSpecial   []string // dosyada denetim türünde gelen, modelin özel saymadığı parçalar
 }
 
 // ggufTags 16.1'in etiketleri. Kalıplar modellerin tokenizer.json'undandır: Qwen3-0.6B, Llama 3,
 // SmolLM2. qwen2 yalnız Qwen mimarilerinde kabul edilir: aynı etiketi NFC'siz modeller de taşır.
+// Dönüştürücü bu modelin altı parçasını denetim türüyle yazar, tokenizer.json'da özel değildirler:
+// aynı model iki dosyadan aynı metni vermelidir (çözme özel parçaları atlar, 16.3).
 var ggufTags = map[string]ggufTag{
 	"qwen2": {
 		normalizer: `{"type":"NFC"}`,
 		preTokenizer: `{"type":"Sequence","pretokenizers":[{"type":"Split","pattern":{"Regex":` +
 			`"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+"` +
 			`},"behavior":"Isolated","invert":false},` + ggufByteLevelNoRegex + `]}`,
-		onlyArch: []string{"qwen2", "qwen3"},
+		onlyArch:   []string{"qwen2", "qwen3"},
+		notSpecial: []string{"<|fim_prefix|>", "<|fim_middle|>", "<|fim_suffix|>", "<|fim_pad|>", "<|repo_name|>", "<|file_sep|>"},
 	},
 	"llama-bpe": {
 		preTokenizer: `{"type":"Sequence","pretokenizers":[{"type":"Split","pattern":{"Regex":` +
@@ -139,11 +143,12 @@ func FromGGUF(f *gguf.File) (*Tokenizer, error) {
 	}
 	for id, token := range tokens {
 		if _, dup := doc.Model.Vocab[token]; dup {
-			return nil, messages.New(messages.H6684, token)
+			return nil, messages.New(messages.H6684, gguf.Clip(token))
 		}
 		doc.Model.Vocab[token] = int64(id)
-		if kinds != nil && (kinds[id] == ggufTokenControl || kinds[id] == ggufTokenUserDefined) {
-			doc.AddedTokens = append(doc.AddedTokens, AddedToken{ID: id, Content: token, Special: kinds[id] == ggufTokenControl})
+		if kinds[id] == ggufTokenControl || kinds[id] == ggufTokenUserDefined {
+			special := kinds[id] == ggufTokenControl && !slices.Contains(tag.notSpecial, token)
+			doc.AddedTokens = append(doc.AddedTokens, AddedToken{ID: id, Content: token, Special: special})
 		}
 	}
 	if doc.PostProcessor, err = ggufPostProcessor(f, tag, tokens); err != nil {
@@ -163,7 +168,7 @@ func ggufTagOf(f *gguf.File) (ggufTag, error) {
 		return ggufTag{}, messages.New(messages.H6681, ggufKeyModel)
 	}
 	if model != "gpt2" {
-		return ggufTag{}, messages.New(messages.H6678, model)
+		return ggufTag{}, messages.New(messages.H6678, gguf.Clip(model))
 	}
 	name, ok := f.Values[ggufKeyPre].Data.(string)
 	if !ok {
@@ -171,19 +176,20 @@ func ggufTagOf(f *gguf.File) (ggufTag, error) {
 	}
 	tag, known := ggufTags[name]
 	if !known {
-		return ggufTag{}, messages.New(messages.H6679, name)
+		return ggufTag{}, messages.New(messages.H6679, gguf.Clip(name))
 	}
 	if tag.onlyArch != nil {
 		arch, _ := f.Values[ggufKeyArch].Data.(string)
 		if !slices.Contains(tag.onlyArch, arch) {
-			return ggufTag{}, messages.New(messages.H6680, name, arch)
+			return ggufTag{}, messages.New(messages.H6680, name, gguf.Clip(arch))
 		}
 	}
 	return tag, nil
 }
 
-// ggufTokenKinds parça türlerini verir (yoksa nil) ve dizilerin boyunu denetler: boyu farklı dizi
-// kimlikleri kaydırırdı (16.1; CVE-2025-49847'nin yüzeyi).
+// ggufTokenKinds parça türlerini verir ve dizilerin boyunu denetler: boyu farklı dizi kimlikleri
+// kaydırırdı (16.1; CVE-2025-49847'nin yüzeyi). Tür dizisi zorunludur: yoksa özel parça tanınmaz,
+// `<|im_end|>` baytlarına bölünürdü.
 func ggufTokenKinds(f *gguf.File, count int) ([]int32, error) {
 	if v, ok := f.Values[ggufKeyScores]; ok {
 		scores, isFloat := v.Data.([]float32)
@@ -194,11 +200,7 @@ func ggufTokenKinds(f *gguf.File, count int) ([]int32, error) {
 			return nil, messages.New(messages.H6682, ggufKeyScores, len(scores), count)
 		}
 	}
-	v, ok := f.Values[ggufKeyTypes]
-	if !ok {
-		return nil, nil
-	}
-	kinds, isInt := v.Data.([]int32)
+	kinds, isInt := f.Values[ggufKeyTypes].Data.([]int32)
 	if !isInt {
 		return nil, messages.New(messages.H6681, ggufKeyTypes)
 	}

@@ -285,13 +285,14 @@ func captureStderr(t *testing.T, f func()) string {
 // TestLoadTokenizerFromGGUF: TR_load_tokenizer GGUF dosyasını içerikten tanır (16.1); etiket
 // bilinmiyorsa ileti etiketi söyler.
 func TestLoadTokenizerFromGGUF(t *testing.T) {
-	tokens := make([]string, 0, 256)
+	tokens := make([]string, 0, 94)
 	for c := '!'; c <= '~'; c++ {
 		tokens = append(tokens, string(c))
 	}
 	file := func(pre string) string {
 		b := (&gguftest.Builder{}).KV("general.architecture", "llama").KV("tokenizer.ggml.model", "gpt2").
-			KV("tokenizer.ggml.pre", pre).KV("tokenizer.ggml.tokens", tokens).KV("tokenizer.ggml.merges", []string{})
+			KV("tokenizer.ggml.pre", pre).KV("tokenizer.ggml.tokens", tokens).KV("tokenizer.ggml.merges", []string{}).
+			KV("tokenizer.ggml.token_type", make([]int32, 94))
 		path := filepath.Join(t.TempDir(), "m.gguf")
 		if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
 			t.Fatal(err)
