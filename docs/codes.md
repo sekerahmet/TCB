@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 619 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 146 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
+Toplam 624 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 147 fonksiyon, 11 sabit, 72 metot, 104 özellik, 156 adlı argüman.
 
 ## İçindekiler
 
@@ -1590,6 +1590,25 @@ tr: yazdır(bitiştir([birler([2, 1]), sıfırlar([2, 2])], eksen: -1).şekil)
     ayar_değeri()
 
 
+
+#### `TR_conv1d(...)` (`TR_fn_conv1d`, `evrişim_1b`)
+
+    evrişim_1b(Tensör, Tensör, Tensör | YokTipi, kayma: Tam = 1, dolgu: Tam = 0, genişleme: Tam = 1, grup_sayısı: Tam = 1) → Tensör
+
+Bir boyutlu evrişimdir: girdi [B, Cin, L], ağırlık [Cout, Cin / grup_sayısı, K], sapma [Cout] ya da yok. Hesap @ gibidir; türev girdiye, ağırlığa ve sapmaya gider. Şimdilik CPU'dadır.
+
+```tr
+TR_print(TR_conv1d(TR_ones([1, 2, 5]), TR_ones([3, 2, 3]), TR_none, TR_padding: 1).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(conv1d(ones([1, 2, 5]), ones([3, 2, 3]), none, padding: 1).shape)
+tr: yazdır(evrişim_1b(birler([1, 2, 5]), birler([3, 2, 3]), yok, dolgu: 1).şekil)
+```
+
+İlişkili: `TR_layer_norm(...)`
 
 #### `TR_copy(...)` (`TR_fn_copy`, `kopyala`)
 
@@ -3893,6 +3912,23 @@ Kullananlar: `TR_command_line(...)` · İlişkili: `TR_description:`
 
 
 
+#### `TR_dilation:` (`TR_arg_dilation`, `genişleme`)
+
+Çekirdeğin komşu iki öğesi arasındaki girdi adımıdır; varsayılan 1'dir.
+
+```tr
+TR_print(TR_conv1d(TR_ones([1, 1, 8]), TR_ones([1, 1, 3]), TR_none, TR_dilation: 2).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(conv1d(ones([1, 1, 8]), ones([1, 1, 3]), none, dilation: 2).shape)
+tr: yazdır(evrişim_1b(birler([1, 1, 8]), birler([1, 1, 3]), yok, genişleme: 2).şekil)
+```
+
+Kullananlar: `TR_conv1d(...)` · İlişkili: `TR_conv1d(...)`
+
 #### `TR_dim:` (`TR_arg_dim`, `eksen`)
 
 İşlemin uygulanacağı ekseni seçer; negatif değer sondan sayar (-1 son eksen). İndirgemelerde verilmezse bütün elemanlar, softmax, bitiştir ve argmax'te son eksen kullanılır.
@@ -4448,6 +4484,23 @@ Kullananlar: `TR_mel_filterbank(...)`
 
 
 
+#### `TR_num_groups:` (`TR_arg_num_groups`, `grup_sayısı`)
+
+Kanalların ayrıldığı grup sayısıdır; girdi ve çıkış kanal sayısını bölmelidir, varsayılan 1'dir.
+
+```tr
+TR_print(TR_conv1d(TR_ones([1, 4, 8]), TR_ones([2, 2, 3]), TR_none, TR_num_groups: 2).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(conv1d(ones([1, 4, 8]), ones([2, 2, 3]), none, num_groups: 2).shape)
+tr: yazdır(evrişim_1b(birler([1, 4, 8]), birler([2, 2, 3]), yok, grup_sayısı: 2).şekil)
+```
+
+Kullananlar: `TR_conv1d(...)` · İlişkili: `TR_conv1d(...)`
+
 #### `TR_num_heads:` (`TR_arg_num_heads`, `bakış_sayısı`)
 
 
@@ -4513,6 +4566,23 @@ tr: değişken g, s = kısa_fourier(birler([16]), 8, adım_boyu: 4, pencere: bir
 ```
 
 Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_center:`
+
+#### `TR_padding:` (`TR_arg_padding`, `dolgu`)
+
+Girdinin iki yanına eklenen sıfırların sayısıdır; varsayılan 0'dır.
+
+```tr
+TR_print(TR_conv1d(TR_ones([1, 1, 8]), TR_ones([1, 1, 3]), TR_none, TR_padding: 1).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(conv1d(ones([1, 1, 8]), ones([1, 1, 3]), none, padding: 1).shape)
+tr: yazdır(evrişim_1b(birler([1, 1, 8]), birler([1, 1, 3]), yok, dolgu: 1).şekil)
+```
+
+Kullananlar: `TR_conv1d(...)` · İlişkili: `TR_conv1d(...)`
 
 #### `TR_pair:` (`TR_arg_pair`, `ikinci`)
 
@@ -4761,6 +4831,23 @@ tr: değişken ç = İlerleme(100); ç.güncelle(adım: 40); ç.durdur()
 ```
 
 Kullananlar: `.TR_update(...)` · İlişkili: `.TR_update(...)`
+
+#### `TR_stride:` (`TR_arg_stride`, `kayma`)
+
+Çekirdeğin art arda iki konumu arasındaki öğe sayısıdır; varsayılan 1'dir.
+
+```tr
+TR_print(TR_conv1d(TR_ones([1, 1, 8]), TR_ones([1, 1, 2]), TR_none, TR_stride: 2).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(conv1d(ones([1, 1, 8]), ones([1, 1, 2]), none, stride: 2).shape)
+tr: yazdır(evrişim_1b(birler([1, 1, 8]), birler([1, 1, 2]), yok, kayma: 2).şekil)
+```
+
+Kullananlar: `TR_conv1d(...)` · İlişkili: `TR_conv1d(...)`
 
 #### `TR_targets:` (`TR_arg_targets`, `hedef`)
 
