@@ -1445,6 +1445,7 @@
 "H7014": { "param": ["path", "name", "hint"] },
 "H7015": { "param": ["name"], "slots": {"test": "TR_ctx_test"} },
 "H7016": { "param": ["name", "example"] },
+"H7017": { "param": ["name", "example"] },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },

@@ -551,7 +551,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 - **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 138 Ş2):** `TR_test` en dışta değilse (`TR_if`, fonksiyon, başka test) denetim hatası, H7015; eskiden test koşmadan "✅ 0 test", çıkış 0 veriyordu [test: `TestATestIsOnlyAtTheTopLevel`, `TestANestedTestFailsTheRun`, `tests/negative/testdata/test_ic_ice.tr`].
 - **Mevcut durum:** aynı dosyada aynı adlı iki test ikisi de çalışıyor [ölçüldü: main `e6392066`].
 - **Yapılacaklar:** sözdizimi hatası ve olumsuz fikstür.
-- **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 141 N3):** `TR_test` yanlış yerde bilinmeyen ad iletisini veriyor, 2.3a'nın kimlik önerisi yok.
+- **Mevcut durum (2026-11-05; F1, Ö3 kapandı; DENETİM istek 141 N3):** `TR_test`, `TR_as` ve `TR_init` bağlamının dışında sözdizimi hatası, H7017: ileti kimliği ve kopyalanınca çalışan yazımı veriyor; eskiden bilinmeyen ad iletisi görünüm adını yazıyordu [test: `TestMessageSuggestionsRunCleanly`, `tests/negative/kimlik_yeri.tr`].
 
 ### 12.3
 

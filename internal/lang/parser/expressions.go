@@ -24,6 +24,10 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 	switch p.curToken().Type {
 	case lexer.TokIdent:
+		// Bağlamsal sözcük bağlamında burada değildir; ad gibi okunsa görünüm adı iletiye sızardı (2.3a).
+		if k := p.curToken().Code; k.Class() == codes.ClassContextual {
+			p.syntaxError(p.curToken(), messages.H7017, codes.Spelling(k), lexer.ContextualWriting(k))
+		}
 		// Tek parametreli ok fonksiyonu: x => x * 2 (eşle deseninde ad, değeriyle karşılaştırılır)
 		if !pattern && p.peekTokenIs(lexer.TokArrow) {
 			leftExp = p.parseSingleParamLambda()

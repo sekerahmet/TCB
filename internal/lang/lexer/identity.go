@@ -470,6 +470,9 @@ func wrongPlace(written, place codes.Place, k codes.Code) error {
 	case codes.PlaceArg:
 		return messages.New(messages.H0028, s, "f("+s+": ...)")
 	}
+	if k.Class() == codes.ClassContextual {
+		return messages.New(messages.H7017, s, ContextualWriting(k))
+	}
 	if k.Class() != codes.ClassFunction {
 		return messages.New(messages.H0029, s, s)
 	}
@@ -481,6 +484,18 @@ func wrongPlace(written, place codes.Place, k codes.Code) error {
 		return messages.New(messages.H0029, s, call)
 	}
 	return messages.New(messages.H7016, s, call)
+}
+
+// ContextualWriting bağlamsal sözcük k'nin kopyalanınca çalışan yazımıdır (2.3a, H7017): sözcüğün
+// tek başına yeri yoktur, yazımı bağlamıyla verilir.
+func ContextualWriting(k codes.Code) string {
+	switch k {
+	case codes.CtxTest:
+		return codes.Spelling(k) + ` "ad" { }`
+	case codes.CtxAs:
+		return codes.Spelling(codes.KwImport) + ` "tr/layers" ` + codes.Spelling(k) + " ad"
+	}
+	return codes.Spelling(codes.KwStruct) + " S { " + codes.Spelling(codes.KwFunc) + " " + codes.Spelling(k) + "() { } }"
 }
 
 // calledOnReceiver noktadan sonra yazılmış fonksiyon k'nin yazımıdır: noktadan önceki değer (x) ilk
