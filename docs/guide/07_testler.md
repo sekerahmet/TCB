@@ -31,4 +31,4 @@ TR_test "eşitlik" {
 ❌ 2 test, 1 geçti, 1 kaldı
 ```
 
-`trlang test dosya.tr` yalnızca o dosyayı, `trlang test klasör` klasördeki (alt klasörler dahil, gizli klasörler hariç) tüm `*_test.tr` dosyalarını çalıştırır. Sözdizimi ya da tip hatası olan dosya "yüklenemedi" olarak sayılır. Bir test kalırsa ya da bir dosya yüklenemezse çıkış kodu 1'dir; böylece CI'da kapı olarak kullanılabilir.
+`trlang test dosya.tr` yalnızca o dosyayı, `trlang test klasör` klasördeki (alt klasörler dahil, gizli klasörler hariç) tüm `*_test.tr` dosyalarını çalıştırır. Birden çok dosya ve klasör verilebilir: `trlang test a_test.tr b_test.tr` hepsini koşar, sonuç hepsinindir. Olmayan dosya ya da test dosyası bulunmayan klasör hatadır, hiçbir test koşmaz. Sözdizimi ya da tip hatası olan dosya "yüklenemedi" olarak sayılır. Bir test kalırsa ya da bir dosya yüklenemezse çıkış kodu 1'dir; böylece CI'da kapı olarak kullanılabilir.

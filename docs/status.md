@@ -539,6 +539,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.1
 
+- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 125 N1):** test komutuna iki dosya verilince yalnız ilki koşuyordu, ikincinin kalan testi bile geçmiş görünüyordu ("1 test, 1 geçti", çıkış 0). Artık verilen bütün dosya ve klasörler koşuyor, biri düşerse çıkış 1; olmayan hedef ve test dosyası bulunmayan klasör hata, hiçbir test koşmuyor; ilk dosyadan sonraki seçenek de sessizce atlanmıyor [test: `TestEveryTargetRuns`, `TestAMissingTargetStopsTheRun`, `TestTestCommand`].
 - **Yapılacaklar (A, araç için de A, Ö0; DENETİM istek 81; test komutu adı `_test.tr` ile bitmeyen testli modülü ve aktarılan modülün testlerini koşmadan "1 test, 1 geçti" ve çıkış 0 veriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** test dosyasının tanımı (1.1'in en dış kuralı ona dayanıyor): rehber adı `_test.tr` ile biten dosya diyor, ama `tests/yardimci_testli.tr` de test bloğu içeriyor [kanıtlı: DENETİM 12-1]. Testin hangi cihazda koştuğu ve cihazlar arası tolerans 15'in E parçasında.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** test dosyası tanımı (göç işi bitti: en dışta deyim içeren dosya kalmadı, 4a1 ilk dilim) [ölçüldü: main `85a19c36`, iki dosyanın denetimi].
 
@@ -1219,8 +1220,6 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 - **Mevcut durum (Faz 0.4, 2026-10-30):** iş klasörünün ortam değişkeni "TR_JOB_DIR" (`TR_env_JOB_DIR`); çubuğun dili "TR_LANG"'dan (`TR_env_LANG`) okunuyor [ölçüldü: kod].
 
 ## Bölümü olmayan işler
-
-- **Yapılacaklar (A, Ö0; sahip D1, sıradaki iş; D1 Kol A 13 teslim 4, DENETİM istek 125 N1):** test komutuna iki dosya verilince yalnız ilki koşuyor, çıkış 0: ikinci dosyanın kalan testi bile geçmiş görünür [ölçüldü: D1, iki dosyayla 40 test, tek tek 40 ve 23]. Ya bütün dosyalar koşsun ya hata versin. Depo taraması: tam denetim klasör veriyor, etkilenmiyor [kanıtlı: `full_check.sh`].
 
 - **Mevcut durum (2026-11-04; C, Ö2):** `TestBaseThatIsNotOneCommitStops` ortak öneki depodan arıyor, süre sınırı var: sabit `da0457c5` yalnız yerel depoda belirsizdi, taze tam klonda gerçek ön denetimi başlatıp takılıyordu [ölçüldü: D1; DENETİM istek 104, üç klon]. `TestPreCheckGoStepsSkipTheCache` ön denetimin Go adımlarını koruyor (DENETİM istek 110 W2).
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].

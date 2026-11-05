@@ -7,15 +7,16 @@ import (
 	"os"
 )
 
-// testCommand 'trlang test [dosya.tr | klasör]' komutudur. Hedef verilmezse bulunulan klasördeki
-// (alt klasörler dahil) tüm *_test.tr dosyaları çalışır. Bir test bile kalırsa çıkış kodu 1'dir.
+// testCommand 'trlang test [dosya.tr | klasör]...' komutudur. Verilen bütün hedefler çalışır; hedef
+// verilmezse bulunulan klasördeki (alt klasörler dahil) tüm *_test.tr dosyaları. Bir test bile
+// kalırsa çıkış kodu 1'dir.
 // Çıkmadan önce motorların açık kaynakları kapatılır ve geçici klasörler silinir (motor.Kapat).
 func testCommand(args []string) {
-	target := "."
-	if file, _, ok := programFile(codes.NameRef(codes.CmdTest), args); ok {
-		target = file
+	targets := fileArguments(codes.NameRef(codes.CmdTest), args, nil, nil)
+	if len(targets) == 0 {
+		targets = []string{"."}
 	}
-	summary, err := testrunner.Run(target, os.Stdout)
+	summary, err := testrunner.Run(targets, os.Stdout)
 	stdlib.Close()
 	if err != nil {
 		exitWithError(err)

@@ -8,6 +8,8 @@ birini yalıtılmış bir kapsamda çalıştırır ve sonucu etkin dilde (`TR_LA
 **Testler birbirinden yalıtılmıştır.** Her test kendi kapsamında çalışır; birinin tanımladığı
 ad ya da yarıda kalan bir görev ötekini etkilemez. Denetim: `TestRunFile`, `TestDeferRunsAfterTasks`.
 
+**Verilen hedef kaybolmaz.** Verilen bütün dosya ve klasörler koşar, sonuç hepsinindir; olmayan hedef ya da test dosyası bulunmayan klasör hatadır ve hiçbir test koşmaz. Denetim: `TestEveryTargetRuns`, `TestAMissingTargetStopsTheRun`.
+
 **Yüklenemeyen dosya kaybolmaz.** Sözdizimi, tip ya da üst düzey hata yüzünden testleri
 çalıştırılamayan dosya ayrıca sayılır ve raporlanır; başarılı sayılmaz. Denetim: `TestUnloadableFile`.
 

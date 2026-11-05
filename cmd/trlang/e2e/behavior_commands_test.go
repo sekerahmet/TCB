@@ -150,6 +150,11 @@ func TestTestCommand(t *testing.T) {
 	// Hedefsiz: bulunulan klasördeki tüm *_test.tr dosyaları (biri kalıyor).
 	testkit.Wait(t, tr(t, dir, "test"), 1, []string{"toplama", "yanlış"}, nil)
 	testkit.Wait(t, tr(t, dir, "test", "olmayan"), 1, nil, []string{"Hata:"})
+	// Birden çok hedef: ikincinin kalan testi komutu düşürür, olmayan hedef hatadır (DENETİM istek 125 N1).
+	gecen, kalan := filepath.Join("gecen", "a_test.tr"), filepath.Join("kalan", "b_test.tr")
+	testkit.Wait(t, tr(t, dir, "test", gecen, kalan), 1, []string{"toplama", "yanlış", "2 test, 1 geçti, 1 kaldı"}, nil)
+	testkit.Wait(t, tr(t, dir, "test", gecen, "olmayan"), 1, nil, []string{"Hata:", "olmayan"})
+	testkit.Wait(t, tr(t, dir, "test", gecen, "--olmayan"), 2, nil, []string{"--olmayan"})
 }
 
 func TestFormat(t *testing.T) {

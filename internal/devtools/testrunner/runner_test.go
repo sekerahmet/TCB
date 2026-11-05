@@ -113,7 +113,7 @@ func TestDirScan(t *testing.T) {
 	writeTR(t, root, ".gizli/c_test.tr", `TR_test "gizli" { TR_assert(TR_false) }`)
 
 	var out bytes.Buffer
-	summary, err := Run(root, &out)
+	summary, err := Run([]string{root}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,11 +125,69 @@ func TestDirScan(t *testing.T) {
 	}
 }
 
+// Kural: verilen bütün hedefler koşar, sonuç hepsinindir.
+// Neden: iki dosya verilince yalnız ilki koşuyor, ikincinin kalan testi geçmiş görünüyordu (DENETİM istek 125 N1).
+func TestEveryTargetRuns(t *testing.T) {
+	root := t.TempDir()
+	passing := writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	failing := writeTR(t, root, "b_test.tr", `TR_test "b" { TR_assert(TR_false) }`)
+	folder := filepath.Join(root, "alt")
+	writeTR(t, root, "alt/c_test.tr", `TR_test "c" { TR_assert(TR_true) }`)
+
+	for _, targets := range [][]string{{passing, failing}, {failing, passing}} {
+		var out bytes.Buffer
+		summary, err := Run(targets, &out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if summary.File != 2 || summary.Total != 2 || summary.Failed != 1 || summary.OK() {
+			t.Fatalf("%v: ikinci dosya da koşmalı ve sonuç düşmeli: %+v\n%s", targets, summary, out.String())
+		}
+		if !strings.Contains(out.String(), "❌ 2 test, 1 geçti, 1 kaldı") {
+			t.Errorf("%v: özet satırı yok:\n%s", targets, out.String())
+		}
+	}
+
+	var out bytes.Buffer
+	summary, err := Run([]string{passing, folder}, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.File != 2 || summary.Passed != 2 || !summary.OK() {
+		t.Fatalf("dosya ve klasör birlikte koşmalı: %+v\n%s", summary, out.String())
+	}
+}
+
+// Kural: hedeflerden biri olmayan dosya ya da testsiz klasörse hatadır ve hiçbir test koşmaz.
+// Neden: öbür hedefler geçince koşmayan hedef görünmeden çıkış 0 oluyordu.
+func TestAMissingTargetStopsTheRun(t *testing.T) {
+	root := t.TempDir()
+	passing := writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	cases := []struct {
+		target string
+		code   messages.Code
+	}{
+		{filepath.Join(root, "yok.tr"), messages.H8502},
+		{t.TempDir(), messages.H8503},
+	}
+	for _, c := range cases {
+		for _, targets := range [][]string{{passing, c.target}, {c.target, passing}} {
+			var out bytes.Buffer
+			if _, err := Run(targets, &out); !messages.Has(err, c.code) {
+				t.Fatalf("%v: %v vermeli: %v", targets, c.code, err)
+			}
+			if out.Len() != 0 {
+				t.Fatalf("%v: hiçbir test koşmamalı:\n%s", targets, out.String())
+			}
+		}
+	}
+}
+
 func TestEmptyDirErrors(t *testing.T) {
-	if _, err := Run(t.TempDir(), &bytes.Buffer{}); !messages.Has(err, messages.H8503) {
+	if _, err := Run([]string{t.TempDir()}, &bytes.Buffer{}); !messages.Has(err, messages.H8503) {
 		t.Fatalf("test dosyası olmayan klasör H8503 vermeli: %v", err)
 	}
-	if _, err := Run(filepath.Join(t.TempDir(), "yok"), &bytes.Buffer{}); !messages.Has(err, messages.H8502) {
+	if _, err := Run([]string{filepath.Join(t.TempDir(), "yok")}, &bytes.Buffer{}); !messages.Has(err, messages.H8502) {
 		t.Fatalf("olmayan hedef H8502 vermeli: %v", err)
 	}
 }
@@ -140,7 +198,7 @@ func TestUnloadableFile(t *testing.T) {
 	writeTR(t, root, "ustduzey_test.tr", "TR_throw \"yükleme hatası\"\nTR_test \"b\" { TR_assert(TR_true) }\n")
 	writeTR(t, root, "iyi_test.tr", "TR_test \"c\" { TR_assert(TR_true) }\n")
 	var out bytes.Buffer
-	summary, err := Run(root, &out)
+	summary, err := Run([]string{root}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}

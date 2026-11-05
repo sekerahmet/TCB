@@ -44,22 +44,33 @@ func (o Summary) String() string {
 	return messages.Text(messages.H8500, o.Total, o.Passed, o.Failed, o.Unloadable)
 }
 
-// TestFiles hedefe göre çalıştırılacak dosyaları bulur. Hedef bir dosyaysa yalnızca
-// odur; klasörse altındaki (alt klasörler dahil) tüm *_test.tr dosyaları sıralı döner.
-func TestFiles(target string) ([]string, error) {
-	return source.WalkFiles(target, "_test.tr", func(target string, _ error) error {
-		return messages.New(messages.H8502, target)
-	}, nil)
+// TestFiles hedeflere göre çalıştırılacak dosyaları, hedeflerin verildiği sırayla bulur. Hedef bir
+// dosyaysa yalnızca odur; klasörse altındaki (alt klasörler dahil) tüm *_test.tr dosyaları sıralı
+// döner. Olmayan hedef (H8502) ve test dosyası bulunmayan klasör (H8503) hatadır: hedeflerden
+// biri koşmadan sonuç "geçti" görünmesin.
+func TestFiles(targets []string) ([]string, error) {
+	var files []string
+	for _, target := range targets {
+		found, err := source.WalkFiles(target, "_test.tr", func(target string, _ error) error {
+			return messages.New(messages.H8502, target)
+		}, nil)
+		if err != nil {
+			return nil, err
+		}
+		if len(found) == 0 {
+			return nil, messages.New(messages.H8503, target)
+		}
+		files = append(files, found...)
+	}
+	return files, nil
 }
 
-// Run hedefteki tüm test dosyalarını çalıştırır, raporu cikti'ya yazar ve özeti döndürür.
-func Run(target string, out io.Writer) (Summary, error) {
-	files, err := TestFiles(target)
+// Run hedeflerdeki tüm test dosyalarını çalıştırır, raporu out'a yazar ve özeti döndürür. Hedeflerden
+// biri bulunamazsa hiçbir test çalışmaz.
+func Run(targets []string, out io.Writer) (Summary, error) {
+	files, err := TestFiles(targets)
 	if err != nil {
 		return Summary{}, err
-	}
-	if len(files) == 0 {
-		return Summary{}, messages.New(messages.H8503, target)
 	}
 	var total Summary
 	for _, d := range files {

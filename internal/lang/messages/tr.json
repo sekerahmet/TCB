@@ -1824,7 +1824,7 @@
 "H8615": "trlang {command} <dosya.tr>\tEtkileşimli TR Hata Ayıklayıcısını başlatır",
 "H8616": "trlang {command} [{json}] <dosya.tr>\tSözdizimi ve akıllı tip kontrolü yapar ({json}: standart çıktıya satır başına bir JSON kaydı)",
 "H8617": "trlang {command} <dosya.tr>\t.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür",
-"H8618": "trlang {command} [dosya.tr|klasör]\tTest bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)",
+"H8618": "trlang {command} [dosya.tr|klasör]...\tTest bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)",
 "H8619": "trlang {command} [{check}] <dosya.tr|klasör>\tKodu standart biçime getirir ({check}: yalnızca denetler)",
 "H8622": "trlang {command} <dosya.tr> [{lang} tr]\tDosyayı bir yazım dilinde gösterir (kodlu dosya da)",
 "H8623": "trlang {command} - [{lang} tr]\tMetni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)",

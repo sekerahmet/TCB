@@ -445,7 +445,7 @@ func TestLanguageSpecTestsPass(t *testing.T) {
 	interp.SetLibrary(lib.Files)
 	defer interp.SetLibrary(nil)
 	var out bytes.Buffer
-	summary, err := Run(reporoot.Path("tests"), &out)
+	summary, err := Run([]string{reporoot.Path("tests")}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
