@@ -100,4 +100,4 @@ TR_var mel = TR_whisper_log_mel(ses, TR_n_mels: 80)
 TR_print(mel.TR_shape) # [80, örnek // 160 + 3000]
 ```
 
-- *Test:* TR testi (`tests/whisper_girdi_test.tr`): sentetik sınav sesinde özgünden en çok 1e-4 fark.
+- *Test:* TR testi (`tests/whisper_girdi_test.tr`): sentetik sınav sesinde özgünle `TR_rtol: 1e-4`, `TR_atol: 1e-4` ile aynı.

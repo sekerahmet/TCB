@@ -250,7 +250,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - **Özel değerler** 15.50'deki gibidir. Yalnız −0'lardan oluşan toplam +0'dır.
 - **Türev** `TR_Float`'ta izlenir.
 - **İki tensörün öğe öğe en büyüğü** `TR_maximum`'dur (15.16a). `TR_max(t, u)` ya da `TR_max(t, 0)` denetim hatasıdır; ileti `TR_maximum`'u ya da `TR_clamp`'i önerir.
-- *Test:* TR testi; cinsli sonuçlar, `TR_std` ve `TR_logsumexp` uygulanınca TR testi.
+- *Test:* TR testi (`TR_logsumexp` dahil); cinsli sonuçlar ve `TR_std` uygulanınca TR testi.
 
 **15.18a** Bütün tensör hakkında soru:
 - `TR_all(m)` ve `TR_any(m)` bir `TR_Tensor[TR_Bool]`'un bütün öğelerinin doğru olup olmadığını ya da birinin doğru olup olmadığını sorar ve `TR_Bool` verir; koşulda kullanılır: `TR_if TR_all(t >= 0.0) { ... }`. İki tensörün eşitliği `TR_all(a == b)` değil `TR_equal(a, b)`'dir: `==` yayınlar, şekilleri farklı iki tensör doğru çıkabilir (15.5).
