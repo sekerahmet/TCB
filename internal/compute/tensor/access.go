@@ -64,7 +64,8 @@ type Kernel struct {
 	share bool
 	// begin ve end kilit altında, çekirdeğin bir kez çalışmasının başında (izinler alınınca) ve
 	// sonunda (kilit geri alınınca) çağrılır: bileşik yerleşiğin sayaçları ve sürümleri. Hazırlık
-	// çakışmada yinelenebildiğinden böyle durum hazırlıkta değişmez. nil olabilirler.
+	// çakışmada yinelenebildiğinden böyle durum hazırlıkta değişmez. nil olabilirler. Depo iadesi
+	// end'dedir, gövdede olamaz: iade kapıdan geçer, gövde tuttuğu izni bekleyip kilitlenirdi.
 	begin, end func()
 }
 

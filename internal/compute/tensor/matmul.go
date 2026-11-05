@@ -69,7 +69,8 @@ func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	sy := counterStart(be, OpKindMatMul).start()
 	av := a.contigView()
 	bv, tb := b.rightView()
-	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
+	// Bitişik kopyalar geri yönde de okunur; geri yön bitince iade edilir. Türev izlenmiyorsa
+	// çekirdek bitince iade edilir: gövde izin tutarken iade kendi iznini bekler (Kernel.end).
 	ra, rb := copyRelease(a, av), copyRelease(b, bv)
 	release := func() { ra(); rb() }
 	gs, writer := be.(GemmSetter)
@@ -79,7 +80,6 @@ func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	} else {
 		out = zerosOf(isMatMul, be, outShape, outType)
 	}
-	leaf := false    // çizgeye kaydedilmediyse bitişik kopyalar çarpımdan hemen sonra iade edilir
 	c := out.storage // gövde yalnız hazırlıkta kopyalanan görünüm ve depolarla çalışır
 	k := newKernel(be, []Storage{c}, []Storage{av.S, bv.S}, []*Tensor{a, b, out}, func() {
 		if writer {
@@ -88,13 +88,12 @@ func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 			be.Gemm(batch, M, N, K, av, false, bv, tb, c)
 		}
 		sy.finish()
-		if leaf {
-			release()
-		}
 	})
 
 	r := track(out, "matmul", []*Tensor{a, b}, matMulGrad(be, batch, M, N, K, av, bv, tb, a.dtyp, b.dtyp, release), a, b)
-	leaf = r.IsLeaf()
+	if r.IsLeaf() {
+		k.end = release
+	}
 	return r, k
 }
 
