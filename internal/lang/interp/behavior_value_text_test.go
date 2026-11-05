@@ -192,7 +192,7 @@ TR_try { f() } TR_catch e { TR_print(e, e.TR_suppressed) }
 // kodu ve anahtarıdır (8.3).
 func TestDictKeysAreTextNotMembers(t *testing.T) {
 	// Çağrılan dil üyesi anahtar okumak değildir: köşeli parantez önerilmez, hata denetimdekidir (13.11).
-	for _, member := range []string{"TR_pop()", "TR_remove_at(0)"} {
+	for _, member := range []string{"TR_pop()", "TR_remove_at(0)", "TR_pop(k: 1)"} {
 		code := "TR_var a: TR_Any = {\"a\": 1}\nTR_print(a." + member + ")\n"
 		shown := shownError(t, code, "en")
 		if !strings.Contains(shown, "is a method of List") || strings.Contains(shown, "[\"") {
