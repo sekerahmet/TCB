@@ -1,14 +1,18 @@
 # TR 4
 # tr/whisper: yayımlanmış bir Whisper modelini Hugging Face biçimindeki klasöründen açar (dil tanımı 25).
 #
-# Kullanım:   aktar "tr/whisper"
+# Kullanım:   aktar "tr/audio"
+#             aktar "tr/whisper"
 #             değişken model = hazır_whisper("whisper-tiny")
+#             değişken yazı = model.yazıya_çevir(wav_oku("soru.wav"), dil: "tr")
 #
 # Mimari özgün `whisper/model.py`'dir: kodlayıcı iki evrişim, GELU ve öğrenilmiş konumdan sonra ön-norm
 # bloklardan geçer; çözücü aynı bloklara çapraz dikkat ekler, K ve V önbellektedir. Ağırlık adları Hugging Face'indir; K izdüşümünün sapması yoktur. Doğrusal katmanın
 # ağırlığı dosyada [çıkış, giriş], TR'nin Doğrusal'ında [giriş, çıkış]'tır: devrilir (lib/README.md).
 # Her tensörün adı ve şekli ayardan hesaplanır: dosyada kalan ya da eksik ad hatadır (25.1).
+# Çevirme özgün `transcribe`'ı izler: `temperature=0.0`, `beam_size=None`, `fp16=False` (25.2–25.8).
 
+TR_import "tr/audio"
 TR_import "tr/layers"
 TR_import "tr/pretrained"
 
@@ -16,6 +20,131 @@ TR_const _AYAR = "config.json"
 TR_const _ÜRETİM = "generation_config.json"
 TR_const _AĞIRLIK = "model.safetensors"
 TR_const _PARÇALAYICI = "tokenizer.json"
+TR_const _ÖRNEK_HIZI = 16000
+TR_const _ADIM = 160 # çerçeve başına örnek
+TR_const _DAMGA_SÜRESİ = 0.02 # damga başına saniye
+TR_const _DAMGA_ÇERÇEVESİ = 2 # damga başına çerçeve
+TR_const _İLK_DAMGA = 50 # ilk damga en çok <|1.00|>
+TR_const _DOLGU = 3000 # log-Mel'in sondaki çerçeveleri (23.6)
+TR_const _SESSİZLİK = 0.6
+TR_const _LOG_OLASILIK = -1.0
+
+# Bir kesit (25.2): başı ve sonu kaydın başına göre saniyedir.
+TR_struct TR_Segment {
+    TR_start: TR_Float
+    TR_end: TR_Float
+    TR_text: TR_String
+    _parçalar: TR_List[TR_Int]
+}
+
+# Çevirinin sonucu (25.2).
+TR_struct TR_Transcription {
+    TR_text: TR_String
+    TR_segments: TR_List[TR_Segment]
+    TR_language: TR_String
+}
+
+# Kesit ve parçaları: silinen kesitin parçaları sonraki pencerenin bağlamına girmez (25.7).
+TR_struct _Ham {
+    baş: TR_Float
+    son: TR_Float
+    parçalar: TR_List[TR_Int]
+}
+
+# Bir pencerenin kesitleri ve pencere başının ilerleyeceği çerçeve sayısı.
+TR_struct _Bölüm {
+    kesitler: TR_List[_Ham]
+    ilerleme: TR_Int
+}
+
+# Bir pencerenin çözümü: metin sonu hariç parçalar, ortalama log-olasılık, sessizlik olasılığı.
+TR_struct _Sonuç {
+    parçalar: TR_List[TR_Int]
+    ortalama: TR_Float
+    sessizlik: TR_Float
+}
+
+# _kapat l[baş..son]'u -sonsuz yapar: `t[i] = d` tensörde yoktur (H7042).
+TR_func _kapat(l: TR_Tensor, baş: TR_Int, son: TR_Int) -> TR_Tensor {
+    TR_var boy = l.TR_shape[0]
+    TR_var bitiş = TR_min(son, boy)
+    TR_if baş >= bitiş { TR_return l }
+    TR_var dolgu = TR_zeros([bitiş - baş]) + TR_Float("-inf")
+    TR_return TR_concat([l.TR_slice(0, 0, baş), dolgu, l.TR_slice(0, bitiş, boy)])
+}
+
+# _maske verilen kimlikleri -sonsuz, öbürlerini 0 yapan toplanacak tensördür.
+TR_func _maske(boy: TR_Int, kimlikler: TR_List[TR_Int]) -> TR_Tensor {
+    TR_var b = [0.0 TR_for _ TR_in 0..boy]
+    TR_for i TR_in kimlikler { b[i] = TR_Float("-inf") }
+    TR_return TR_Tensor(b)
+}
+
+# Modelin özel parçaları ve süzgeçleri (25.5). Damgalar `no_timestamps_token_id`'den sonra,
+# sessizlik parçası ondan öncedir (25.8).
+TR_struct _Süzgeç {
+    eot: TR_Int
+    sot: TR_Int
+    önceki: TR_Int
+    görev: TR_Int
+    damga: TR_Int
+    sessiz: TR_Int
+    bastırma: TR_Tensor
+    boş: TR_Tensor
+    # _süz logitlere 25.5'in süzgeçlerini sırayla uygular; örnek seçilmiş parçalardır.
+    TR_func _süz(l: TR_Tensor, örnek: TR_List[TR_Int]) -> TR_Tensor {
+        TR_var boy = l.TR_shape[0]
+        TR_var n = örnek.TR_length
+        TR_var tb = TR_self.damga
+        TR_var x = l + TR_self.bastırma
+        TR_if n == 0 { x = x + TR_self.boş }
+        TR_var son_damga = n >= 1 TR_and örnek[n - 1] >= tb
+        TR_var önceki_damga = n < 2 TR_or örnek[n - 2] >= tb
+        TR_if son_damga {
+            TR_if önceki_damga { x = _kapat(x, tb, boy) } TR_else { x = _kapat(x, 0, TR_self.eot) }
+        }
+        TR_var en_son = -1
+        TR_for t TR_in örnek {
+            TR_if t >= tb { en_son = t }
+        }
+        TR_if en_son >= 0 {
+            TR_var sınır = en_son + 1
+            TR_if son_damga TR_and TR_not önceki_damga { sınır = en_son }
+            x = _kapat(x, tb, sınır)
+        }
+        TR_if n == 0 { x = _kapat(_kapat(x, 0, tb), tb + _İLK_DAMGA + 1, boy) }
+        TR_var lp = TR_log_softmax(x)
+        TR_if TR_logsumexp(lp.TR_slice(0, tb, boy)).TR_tolist > TR_max(lp.TR_slice(0, 0, tb)).TR_tolist { x = _kapat(x, 0, tb) }
+        TR_return x
+    }
+    # _böl parçaları kesitlere böler (25.7): seek pencere başı, boy penceredeki kayıt çerçeveleridir.
+    TR_func _böl(p: TR_List[TR_Int], seek: TR_Int, boy: TR_Int) -> _Bölüm {
+        TR_var tb = TR_self.damga
+        TR_var n = p.TR_length
+        TR_var kayma = seek * _ADIM / _ÖRNEK_HIZI
+        TR_var dilimler = [i + 1 TR_for i TR_in 0..TR_max(n - 1, 0) TR_if p[i] >= tb TR_and p[i + 1] >= tb]
+        TR_var kesitler: TR_List[_Ham] = []
+        TR_if dilimler.TR_length == 0 {
+            TR_var süre = boy * _ADIM / _ÖRNEK_HIZI
+            TR_var en_son = -1
+            TR_for t TR_in p {
+                TR_if t >= tb { en_son = t }
+            }
+            TR_if en_son >= 0 TR_and en_son != tb { süre = (en_son - tb) * _DAMGA_SÜRESİ }
+            kesitler.TR_append(_Ham(baş: kayma, son: kayma + süre, parçalar: p))
+            TR_return _Bölüm(kesitler: kesitler, ilerleme: boy)
+        }
+        TR_var tek_son = n >= 2 TR_and p[n - 2] < tb TR_and p[n - 1] >= tb
+        TR_if tek_son { dilimler.TR_append(n) }
+        TR_var önceki = 0
+        TR_for d TR_in dilimler {
+            kesitler.TR_append(_Ham(baş: kayma + (p[önceki] - tb) * _DAMGA_SÜRESİ, son: kayma + (p[d - 1] - tb) * _DAMGA_SÜRESİ, parçalar: p[önceki..d]))
+            önceki = d
+        }
+        TR_if tek_son { TR_return _Bölüm(kesitler: kesitler, ilerleme: boy) }
+        TR_return _Bölüm(kesitler: kesitler, ilerleme: (p[önceki - 1] - tb) * _DAMGA_ÇERÇEVESİ)
+    }
+}
 
 # Klasörün boyutları: hepsi config.json'dan gelir.
 TR_struct _Boyutlar {
@@ -187,6 +316,110 @@ TR_struct TR_Whisper {
     TR_func _başlat(kodlanmış: TR_Tensor) -> _Bellek { TR_return TR_self._çözücü._başlat(kodlanmış) }
     # _çöz parçaları bellekten sürdürür ve logitlerini verir.
     TR_func _çöz(parçalar: TR_List[TR_Int], bellek: _Bellek) -> TR_Tensor { TR_return TR_self._çözücü._ileri(parçalar, bellek) }
+    # _özel adı verilen özel parçanın kimliğini verir.
+    TR_func _özel(ad: TR_String) -> TR_Int {
+        TR_var k = TR_self._parçalayıcı.TR_token_id(ad)
+        TR_if k == TR_none { TR_throw TR_Message("H7099", ad) }
+        TR_return k
+    }
+    # _süzgeç modelin süzgeçlerini kurar.
+    TR_func _süzgeç() -> _Süzgeç {
+        TR_var damgasız = TR_Int(TR_self._üretim["no_timestamps_token_id"])
+        TR_var eot = TR_self._özel("<|endoftext|>")
+        TR_var bastırılan = [TR_Int(k) TR_for k TR_in TR_self._üretim["suppress_tokens"]]
+        bastırılan.TR_append(damgasız)
+        TR_var boşluk = TR_self._parçalayıcı.TR_encode(" ", TR_special_tokens: TR_false)
+        boşluk.TR_append(eot)
+        TR_var boy = TR_self._boyutlar.dağarcık
+        TR_return _Süzgeç(eot: eot, sot: TR_self._özel("<|startoftranscript|>"), önceki: TR_self._özel("<|startofprev|>"), görev: TR_self._özel("<|transcribe|>"),
+            damga: damgasız + 1, sessiz: damgasız - 1, bastırma: _maske(boy, bastırılan), boş: _maske(boy, boşluk))
+    }
+    # _başlangıç dilin başlangıç dizisini verir (25.3).
+    TR_func _başlangıç(dil: TR_String, s: _Süzgeç) -> TR_List[TR_Int] {
+        TR_var diller = TR_config_value(TR_self._üretim, "lang_to_id", TR_none)
+        TR_if diller == TR_none {
+            TR_if dil != "en" { TR_throw TR_Message("H7098", dil, "mono") }
+            TR_return [s.sot]
+        }
+        TR_var k = TR_config_value(diller, "<|\(dil)|>", TR_none)
+        TR_if k == TR_none { TR_throw TR_Message("H7098", dil, "unknown") }
+        TR_return [s.sot, TR_Int(k), s.görev]
+    }
+    # _pencere bir pencereyi çözer (25.4–25.6, 25.8): önceki parçalar başa gelir.
+    TR_func _pencere(mel: TR_Tensor, başlangıç: TR_List[TR_Int], önceki: TR_List[TR_Int], s: _Süzgeç) -> _Sonuç {
+        TR_var bağlam = TR_self._boyutlar.hedef
+        TR_var ilk = başlangıç
+        TR_var sot_yeri = 0
+        TR_if önceki.TR_length > 0 {
+            TR_var en_çok = bağlam // 2 - 1
+            TR_var alınan = önceki[TR_max(önceki.TR_length - en_çok, 0)..önceki.TR_length]
+            ilk = [s.önceki] + alınan + başlangıç
+            sot_yeri = alınan.TR_length + 1
+        }
+        TR_var bellek = TR_self._başlat(TR_self._kodla(mel))
+        TR_var boy = TR_self._boyutlar.dağarcık
+        TR_var ileri = ilk
+        TR_var örnek: TR_List[TR_Int] = []
+        TR_var toplam = 0.0
+        TR_var sessizlik = 0.0
+        TR_for adım TR_in 0..bağlam // 2 {
+            TR_var l = TR_self._çöz(ileri, bellek)
+            TR_var T = ileri.TR_length
+            TR_if adım == 0 {
+                sessizlik = TR_softmax(l.TR_slice(1, sot_yeri, sot_yeri + 1).TR_reshape([boy])).TR_tolist[s.sessiz]
+            }
+            TR_var x = s._süz(l.TR_slice(1, T - 1, T).TR_reshape([boy]), örnek)
+            TR_var seçilen = TR_argmax(x).TR_tolist
+            toplam = toplam + TR_log_softmax(x).TR_tolist[seçilen]
+            TR_if seçilen == s.eot { TR_break }
+            örnek.TR_append(seçilen)
+            TR_if ilk.TR_length + örnek.TR_length > bağlam { TR_break }
+            ileri = [seçilen]
+        }
+        TR_return _Sonuç(parçalar: örnek, ortalama: toplam / (örnek.TR_length + 1), sessizlik: sessizlik)
+    }
+    # _metin parçaları çözer; damgalar metne girmez (25.2).
+    TR_func _metin(parçalar: TR_List[TR_Int], sınır: TR_Int) -> TR_String {
+        TR_return TR_self._parçalayıcı.TR_decode([p TR_for p TR_in parçalar TR_if p < sınır], TR_special_tokens: TR_true)
+    }
+    # _çevir sesi pencere pencere çözer (25.7).
+    TR_func _çevir(ses: TR_Sound, dil: TR_String) -> TR_Transcription {
+        TR_var s = TR_self._süzgeç()
+        TR_var başlangıç = TR_self._başlangıç(dil, s)
+        TR_var pencere = 2 * TR_self._boyutlar.kaynak
+        TR_var log_mel = TR_whisper_log_mel(ses, TR_n_mels: TR_self._boyutlar.mel)
+        TR_var kayıt = log_mel.TR_shape[1] - _DOLGU
+        TR_var seek = 0
+        TR_var parçalar: TR_List[TR_Int] = []
+        TR_var kesitler: TR_List[TR_Segment] = []
+        TR_for seek < kayıt {
+            TR_var boy = TR_min(pencere, kayıt - seek)
+            TR_var dilim = log_mel.TR_slice(1, seek, seek + boy)
+            TR_if boy < pencere { dilim = TR_concat([dilim, TR_zeros([log_mel.TR_shape[0], pencere - boy])], TR_dim: 1) }
+            TR_var r = TR_self._pencere(dilim, başlangıç, parçalar, s)
+            TR_if r.sessizlik > _SESSİZLİK TR_and r.ortalama <= _LOG_OLASILIK {
+                seek = seek + boy
+                TR_continue
+            }
+            TR_var b = s._böl(r.parçalar, seek, boy)
+            TR_for k TR_in b.kesitler {
+                TR_var metin = TR_self._metin(k.parçalar, s.eot)
+                TR_if k.baş == k.son TR_or metin.TR_strip() == "" {
+                    kesitler.TR_append(TR_Segment(k.baş, k.son, "", []))
+                } TR_else {
+                    kesitler.TR_append(TR_Segment(k.baş, k.son, metin, k.parçalar))
+                    parçalar = parçalar + k.parçalar
+                }
+            }
+            seek = seek + b.ilerleme
+        }
+        TR_return TR_Transcription(TR_self._metin(parçalar, s.damga), kesitler, dil)
+    }
+    # yazıya_çevir sesi yazıya çevirir (25.2). Hesap float32'dedir (25.1): karışık hassasiyet bloğu
+    # burada kapanır, özgün ölçüt `fp16=False`'tır.
+    TR_func TR_transcribe(ses: TR_Sound, TR_language: TR_String) -> TR_Transcription {
+        TR_return TR_mixed_precision("float32") { TR_self._çevir(ses, TR_language) }
+    }
 }
 
 # _gerekli JSON nesnesinin zorunlu alanını verir.
