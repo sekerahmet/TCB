@@ -181,6 +181,11 @@ func attnWorkerCount(is int) int {
 	return workerCount(is, minPerWorker, gemmBigJob)
 }
 
+// attnDecodeMin tek sorguda bir katılımcıya düşen en az çarpma-toplamadır. Üretimde çarpımlar arasında
+// işçiler uyanıktır, dağıtım birkaç µs'dir: çarpımların eşiğiyle (minPerWorker) ilk 64 konumun dikkati
+// tek çekirdekte kalıyordu. Birimler birbirinden bağımsızdır, sonuç işçi sayısına bağlı değildir.
+const attnDecodeMin = 1 << 14
+
 // attnJob ileri ya da geri geçişin yaklaşık çarpma-toplama sayısı.
 func attnJob(p *AttentionParams) int {
 	is := p.Batch * p.H * p.Tq * p.Tk * (p.Dh + p.Dv)
@@ -302,6 +307,9 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 		qRow, oRow = p.Dh, p.Dv
 	}
 	W := attnWorkerCount(attnJob(&p))
+	if p.Tq == 1 {
+		W = workerCount(attnJob(&p), attnDecodeMin, gemmBigJob)
+	}
 	buffers := make([]*attnBuf, max(W, 1))
 	scale := p.Scale
 	distribute(W, unit, func(factor, u int) {

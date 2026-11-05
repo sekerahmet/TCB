@@ -65,8 +65,18 @@ func TestAttentionIndependentOfWorkers(t *testing.T) {
 var attnDecodeCases = []struct {
 	B, H, Hkv, Tq, Tk, Dh, window int
 }{
-	{1, 16, 8, 1, 100, 128, 0}, {1, 16, 8, 1, 64, 128, 0}, {1, 16, 8, 1, 65, 128, 0}, {2, 4, 2, 1, 33, 32, 0},
+	{1, 16, 8, 1, 9, 128, 0}, {1, 16, 8, 1, 20, 128, 0}, {1, 16, 8, 1, 100, 128, 0}, {1, 16, 8, 1, 64, 128, 0}, {1, 16, 8, 1, 65, 128, 0}, {2, 4, 2, 1, 33, 32, 0},
 	{1, 8, 1, 1, 130, 64, 0}, {1, 6, 2, 1, 70, 16, 5}, {1, 4, 4, 1, 40, 16, 0}, {1, 4, 2, 5, 40, 16, 0}, {2, 4, 2, 70, 70, 16, 9},
+}
+
+// TestDecodeAttentionUsesWorkers: kısa bağlamda da tek sorgunun dikkati işçilere dağılır.
+func TestDecodeAttentionUsesWorkers(t *testing.T) {
+	prev := runtime.GOMAXPROCS(8)
+	defer runtime.GOMAXPROCS(prev)
+	p := AttentionParams{Batch: 1, H: 16, Tq: 1, Tk: 20, Dh: 128, Dv: 128}
+	if w := workerCount(attnJob(&p), attnDecodeMin, gemmBigJob); w < 2 {
+		t.Fatalf("20 konumda %d katılımcı", w)
+	}
 }
 
 // TestAttentionWithoutGradMatchesCopied: türevsiz yol K ve V'yi yerinde okur, tek sorguda bakışlar birlikte

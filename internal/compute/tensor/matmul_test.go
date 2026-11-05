@@ -177,6 +177,30 @@ func TestGemmBatchPart(t *testing.T) {
 	}
 }
 
+// TestPackPanelTransposedTail: devrik B'nin paneli op(B)'nin tanımıdır; son panelin eksik sütunları, hedefte
+// önceki veri olsa da sıfırdır.
+func TestPackPanelTransposedTail(t *testing.T) {
+	rng := rand.New(rand.NewSource(12))
+	for _, d := range []struct{ K, N, bjs int }{{5, 1, 5}, {7, 17, 7}, {128, 55, 1024}, {3, nr, 3}, {4, 2 * nr, 9}} {
+		b := randomSlice(rng, d.N*d.bjs+d.K)
+		for jp := 0; jp*nr < d.N; jp++ {
+			dst := randomSlice(rng, d.K*nr)
+			packBPanel(b, 1, d.bjs, d.K, d.N, jp, dst)
+			for k := 0; k < d.K; k++ {
+				for c := 0; c < nr; c++ {
+					var want float32
+					if jp*nr+c < d.N {
+						want = b[k+(jp*nr+c)*d.bjs]
+					}
+					if dst[k*nr+c] != want {
+						t.Fatalf("%+v panel %d k=%d c=%d: %v, beklenen %v", d, jp, k, c, dst[k*nr+c], want)
+					}
+				}
+			}
+		}
+	}
+}
+
 // TestGemmUnpackedBSameBits paketlenmeden okunan B'nin (küçük M) paketli B ile bit düzeyinde
 // aynı sonucu verdiğini denetler: kenar paneller (N 16'nın katı değil), devrik A, toplu
 // çarpım, K bloklaması (K > kcBlock) ve paralel yol dahil.
