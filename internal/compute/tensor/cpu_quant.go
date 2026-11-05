@@ -81,6 +81,7 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 // parça sınırlarından bağımsızdır (belirlenimci).
 func quantGemv(N, K int, a []float32, w []byte, dt DType, c []float32) {
 	rowBytes := quantRowBytes(dt, K)
+	self := prefetchBefore(w)
 	parallelFor(N, K, func(lo, hi int) {
 		s := newQuantScratch(dt, K)
 		for n := lo; n < hi; n++ {
@@ -88,6 +89,7 @@ func quantGemv(N, K int, a []float32, w []byte, dt DType, c []float32) {
 		}
 	})
 	holdWorkers(quantHold)
+	prefetchAfter(self)
 }
 
 // quantEmbedding idx satırlarını float32'ye açar (15.53): yalnız seçilen satırların blokları.

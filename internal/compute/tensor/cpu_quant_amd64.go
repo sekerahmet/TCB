@@ -17,6 +17,12 @@ func sdotq4k(blocks int, x *float32, w *byte, scales *float32) float32
 //go:noescape
 func sdotq6k(blocks int, x *float32, w *byte, scales *float32) float32
 
+// prefetchBytes p'den n baytı önbelleğe çağırır; adres geçersizse hiçbir şey olmaz, bellek okunmaz.
+// Assembly: cpu_quant_amd64.s.
+//
+//go:noescape
+func prefetchBytes(p uintptr, n int)
+
 // quantScalesQ4K blok başına [d·a₀, m·b₀, d·a₁, m·b₁, ...] yazar; çarpımlar float32'de kesindir.
 func quantScalesQ4K(out []float32, w []byte) {
 	for o, b := 0, 0; b < len(w); o, b = o+16, b+q4kBytes {

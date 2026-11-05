@@ -165,6 +165,7 @@ type worker struct {
 	sleeping atomic.Bool
 	wake     chan struct{} // kapasite 1: uyandırma jetonu
 	_        [48]byte      // komşu işçilerin bayrakları ayrı önbellek satırında
+	ahead    prefetchCursor
 }
 
 var pool struct {
@@ -215,7 +216,9 @@ func (i *worker) wait(no int, last uint64, shouldReturn bool) *task {
 				if k&15 == 15 && time.Since(begin) > poolWait && int64(time.Since(poolEpoch)) > poolHold.Load() {
 					break
 				}
-				cpuPause()
+				if !i.ahead.step(no) {
+					cpuPause()
+				}
 			}
 		}
 		// Uyu: önce bayrağı kaldır, sonra işi yeniden denetle (yayımlayan,
