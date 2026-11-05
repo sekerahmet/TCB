@@ -134,6 +134,7 @@
 "H0298": "{path} cannot be assigned: a tuple does not change (3.6a); bind a new tuple to {target}, writing the new value in place of {kind, select, nested {element {element}} other {element {element}}}",
 "H0299": "'{keyword}' does not leave a deferred block: deferred work does not change the scope's result and runs to the end of its block; to skip part of the block, put it under a condition: `{#defer} {{ {#if} x > 0 {{ {#print}(x) }} }}`",
 "H0300": "`{#defer}` is written only with a block; there is no call form: `{#defer} {{ {call} }}`",
+"H0301": "'{name}' is not a method but a function, and the path comes first: `{name}(y, x)` (`y` is the path, `x` the content)",
 "H1001": "Type mismatch — the variable {name|q} was declared with type {declared|q} but a value of type {given|q} was assigned{hint}",
 "H1002": "Constant error — {name|q} is a constant ('{keyword}') and its value cannot be changed",
 "H1003": "Return type mismatch — the function must return {expected|q} but returns a value of type {given|q}{hint}",
