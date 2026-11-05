@@ -614,7 +614,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ### 13.4
 
 - **Mevcut durum (Kol A 13 yerleşikler 4, 2026-11-04):** `.TR_remove` motorda: anahtarı yerinde silip değerini veriyor, tipi `V?`, anahtar yoksa `TR_none`; anahtar `.TR_get` gibi denetleniyor. H0029'un öğrettiği yazımla aynı adlı dosyanın silinmesi kapandı (DENETİM istek 112 Y1): listede `.TR_remove` H2535 verip `.TR_remove_at`'i öneriyor, metinde H2474 veriyor, ikisi de dosya işlevine yönlendirmiyor [test: `tests/yerlesikler_test.tr`'nin 13.4 testleri, `tests/negative/cikaran_metotlar.tr`].
-- **Bilinen sınır (hız):** silme anahtarın sırasını doğrusal arıyor: 100.000 anahtarı önden silmek 2,9 sn, arkadan silmek 10,1 sn; 10.000 anahtarda 5.000 silme 42 ms [ölçüldü: Windows, `13-4/p.tr`, tek koşu].
+- **Bilinen sınır (hız; sınıfsız, sonuç yanlışı yok, Ö3; DENETİM istek 125 N3):** silmenin bedeli anahtar sayısıyla doğrusal, hepsini silmek karesel: arkadan silmede sırayı arama [kanıtlı: `removal.go`], önden silmede arama hemen biter, bedel `slices.Delete`'in kaydırmasıdır. Yalnız konum tablosu yetmez, sırada delik gerekir. 100.000 anahtarı önden silmek 2,9 sn, arkadan silmek 10,1 sn; 10.000 anahtarda 5.000 silme 42 ms [ölçüldü: Windows, `13-4/p.tr`, tek koşu].
 
 ### 13.6
 
