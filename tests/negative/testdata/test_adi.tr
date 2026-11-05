@@ -1,0 +1,3 @@
+# TR 4
+# TEST 2.3a TR_test de tanımın adı olamaz. Dosya burada: TR_test geçen dosyayı test taraması koşmaya çalışır (12.1)
+TR_struct TR_test { } # ERROR H0004

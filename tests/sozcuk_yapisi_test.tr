@@ -59,22 +59,35 @@ TR_test "2.3a dilin sözcükleri TR_ ve kimliğin adıyla yazılır; sınıfı y
     # Üyenin kimliğiyle yazılan sözlük anahtarı da üyedir (iki noktadan önce, süslü parantezde).
     TR_var ayar = {"step": 3}
     TR_assert_equal(3, ayar["step"])
-    # Fonksiyonun TR_ ile yazılmış parametresi adlı argümandır (gösterimde yazımıyla kalır).
-    TR_func ölçekle(x: TR_Int, TR_lr: TR_Int) -> TR_Int { TR_return x * TR_lr }
-    TR_assert_equal(6, ölçekle(3, TR_lr: 2))
     # Yanlış yerdeki ve yanlış yazılan kimlik: tests/negative/kimlik_yeri.tr, kodlu_bilinmeyen.tr
 }
 
 TR_test "2.3a yapı gövdesinde '=' ya da işleçten sonraki satır değerin devamıdır, üye değil" {
     TR_struct Ayar {
-        TR_eps: TR_Int =
+        eps: TR_Int =
             TR_abs(-2)
         boy: TR_Int = 1 +
             TR_max(2, 3)
     }
     TR_var a = Ayar()
-    TR_assert_equal(2, a.TR_eps)
+    TR_assert_equal(2, a.eps)
     TR_assert_equal(4, a.boy)
+}
+
+TR_test "17 kullanıcının yapısında dilin çağırdığı iki üye kodla yazılır" {
+    TR_struct Sayaç {
+        kalan: TR_Int
+        TR_func TR_init(kalan: TR_Int) { TR_self.kalan = kalan }
+        TR_func TR_next() -> TR_Int? {
+            TR_if TR_self.kalan == 0 { TR_return TR_none }
+            TR_self.kalan -= 1
+            TR_return TR_self.kalan
+        }
+    }
+    TR_var s = Sayaç(2)
+    TR_assert_equal(1, s.TR_next())
+    TR_assert_equal(0, s.TR_next())
+    TR_assert_equal(TR_none, s.TR_next())
 }
 
 TR_test "2.3a TR_ ile başlamayan benzer adlar sıradandır" {

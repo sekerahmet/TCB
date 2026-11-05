@@ -83,8 +83,6 @@ func (c *analysis) viewChanges() []change {
 	var d []change
 	for _, r := range c.records {
 		switch {
-		case r.Code != codes.None && c.spelled[r.Code]:
-			// Kullanıcı fonksiyonunun TR_ parametresi yazımıyla kalır (gösterimde kimlik okunur).
 		case r.Code != codes.None:
 			d = append(d, change{r.Start, r.End, langName(c.lang, r.Code)})
 		case r.Type == lexer.TokIdent && c.needsEscape(r):
@@ -135,10 +133,7 @@ type analysis struct {
 	conflicts map[string]bool
 	// declarations kitaplık bildirimlerinin ad sözcükleridir (libraryDeclarations).
 	declarations map[[2]int]codes.Code
-	// spelled kodlu gövdede kullanıcı fonksiyonlarının TR_ ile yazılmış parametreleridir
-	// (userParameterCodes): gösterimde yazımlarıyla kalırlar.
-	spelled map[codes.Code]bool
-	prog    *ast.Program
+	prog         *ast.Program
 }
 
 // analyze kimliklerle yazılmış kodlu gövdeyi okur.
@@ -162,7 +157,6 @@ func analyze(body string, lang *codes.Language) (*analysis, error) {
 	}
 	c.conflicts = conflicts
 	c.declarations = c.libraryDeclarations()
-	c.spelled = userParameterCodes(prog)
 	return c, nil
 }
 

@@ -129,9 +129,13 @@ func BenchmarkPrepare(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+		library := ""
+		if strings.HasPrefix(file, "lib/") {
+			library = path.Base(file)
+		}
 		b.Run(path.Base(file), func(b *testing.B) {
 			for b.Loop() {
-				if r := Prepare(string(data), Options{TypeCheck: true}); r.Stage != "" {
+				if r := Prepare(string(data), Options{TypeCheck: true, Library: library}); r.Stage != "" {
 					b.Fatal(r.Errors)
 				}
 			}

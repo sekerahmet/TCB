@@ -151,7 +151,7 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 		b.WriteString("TR_import \"tr/layers\"\n")
 	}
 	fmt.Fprintf(&b, "TR_const C%d = %d\n", i, i)
-	fmt.Fprintf(&b, "TR_struct S%d {\n    x = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i)
+	fmt.Fprintf(&b, "TR_struct S%d {\n    x = 1\n    TR_func ileri() {\n        TR_return TR_self.x\n    }\n}\n", i)
 	for j := 0; j < 3; j++ {
 		fmt.Fprintf(&b, "TR_func f%d_%d(p) {\n", i, j)
 		if i > 0 {
@@ -163,7 +163,7 @@ func writeModule(t *testing.T, dir string, i, n int, extra []string) {
 		if i%5 == 2 {
 			b.WriteString("    TR_var g = Katman(1)\n")
 		}
-		b.WriteString("    TR_print(p.TR_forward())\n    TR_return p\n}\n")
+		b.WriteString("    TR_print(p.ileri())\n    TR_return p\n}\n")
 	}
 	for _, line := range extra {
 		b.WriteString(line + "\n")
@@ -273,13 +273,13 @@ func benchProject(tb testing.TB, n int) string {
 		for k := 0; k < i && k < 3; k++ {
 			fmt.Fprintf(&b, "TR_import \"m%d\"\n", i-1-k)
 		}
-		fmt.Fprintf(&b, "TR_const c_%d = %d\nTR_struct S_%d {\n    x = 1\n    TR_weight = 1\n    TR_func TR_forward() {\n        TR_return TR_self.x\n    }\n}\n", i, i, i)
+		fmt.Fprintf(&b, "TR_const c_%d = %d\nTR_struct S_%d {\n    x = 1\n    ağırlık = 1\n    TR_func ileri() {\n        TR_return TR_self.x\n    }\n}\n", i, i, i)
 		for j := 0; j < 3; j++ {
 			fmt.Fprintf(&b, "TR_func f%d_%d(p) {\n", i, j)
 			if i > 0 {
 				fmt.Fprintf(&b, "    TR_var v = f%d_%d(p)\n", i-1, j)
 			}
-			b.WriteString("    TR_print(p.TR_forward())\n    TR_print(p.TR_weight)\n    TR_return p\n}\n")
+			b.WriteString("    TR_print(p.ileri())\n    TR_print(p.ağırlık)\n    TR_return p\n}\n")
 		}
 		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), trText(filepath.Join(dir, fmt.Sprintf("m%d.tr", i)), b.String()), 0o644); err != nil {
 			tb.Fatal(err)

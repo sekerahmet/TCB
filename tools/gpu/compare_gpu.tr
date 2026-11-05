@@ -71,7 +71,7 @@ TR_for adım TR_in 0..ADIM {
     TR_var xy = toplu_iş(adım)
     iyileştirici.TR_zero_grad()
     TR_mixed_precision(hassasiyet) {
-        kayıp = TR_cross_entropy(model.TR_forward(xy[0]), xy[1])
+        kayıp = TR_cross_entropy(model.ileri(xy[0]), xy[1])
     }
     TR_backward(kayıp)
     TR_clip_grad(ağırlıklar, TR_max: 1.0)

@@ -13,7 +13,28 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
+	"github.com/sekerahmet/TCB/lib"
 )
+
+// Kural (6.1, 7.1): kitaplığın istisnaları yalnız kendi dosyasınındır. Modül denetimi dosyayı yoluyla
+// değil metniyle tanır: kitaplığın metni kendi adıyla geçer, aynı metin başka adla geçmez, aynı adlı
+// başka metin de kitaplık değildir.
+func TestCheckModuleTellsTheLibraryByItsText(t *testing.T) {
+	data, err := fs.ReadFile(lib.Files, "optimizers.tr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	if r := interp.CheckModule("tr/optimizers.tr", text, nil, true); r.Stage != "" {
+		t.Errorf("kitaplığın kendi dosyası geçmeli: %v", r.Errors)
+	}
+	if r := interp.CheckModule("kopya.tr", text, nil, true); r.Stage != source.StageType {
+		t.Errorf("başka adlı kopya kitaplık değildir, istisnası yoktur: %q", r.Stage)
+	}
+	if got := interp.LibraryFileName("proje/tr/optimizers.tr", text+" "); got != "" {
+		t.Errorf("aynı adlı başka metin kitaplık değildir: %q", got)
+	}
+}
 
 // repoWarningAllowed bilerek uyarı veren yerlerdir ("dosya:satır" → gerekçe). Liste küçük tutulur; artık
 // uyarmayan kayıt testi düşürür.
@@ -61,7 +82,7 @@ func TestRepoTRFilesPassCheck(t *testing.T) {
 	}
 	modules := map[string]*global{}
 	for filePath, code := range sources {
-		names, dynamic := checker.TopLevelNames(source.Prepare(code, source.Options{}).Program)
+		names, dynamic := checker.TopLevelNames(source.Prepare(code, source.Options{Library: interp.LibraryFileName(filePath, code)}).Program)
 		for _, y := range importSites(code) {
 			resolved, _, ok := resolveModulePath(y.filePath, filePath, filePath)
 			if !ok {
@@ -91,7 +112,7 @@ func TestRepoTRFilesPassCheck(t *testing.T) {
 			for a := range g.names {
 				names = append(names, a)
 			}
-			r = interp.CheckModule(code, names, g.dynamic)
+			r = interp.CheckModule(filePath, code, names, g.dynamic)
 		} else {
 			r = source.Prepare(code, source.Options{TypeCheck: true, Library: interp.LibraryFileName(filePath, code)})
 		}

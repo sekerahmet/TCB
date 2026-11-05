@@ -55,7 +55,7 @@ func KeywordCode(t TokenType) codes.Code {
 // koda çözülür (identity.go); kodlu gövdede öbür adlar kullanıcının adıdır, gösterimde gösterim
 // dilinin anahtar kelimesi ya da ad.
 func (l *Lexer) nameToken(lit string, line, col int) Token {
-	if isIdentitySpelling(lit) {
+	if codes.IsReservedName(lit) { // TR_ tek başına da: kimlik değildir, ad da olamaz (2.3a)
 		if k := l.identity(lit, line, col); k != codes.None {
 			return l.codeToken(k, line, col)
 		}

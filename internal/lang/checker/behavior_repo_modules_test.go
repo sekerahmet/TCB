@@ -13,6 +13,16 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
+// libraryFile is the library's file name of a repository path ("lib/layers.tr" → "layers.tr"); "" for
+// the other files. These are the repository's own files: the language tells a user's file by its text
+// (interp.LibraryFileName).
+func libraryFile(rel string) string {
+	if strings.HasPrefix(rel, "lib/") {
+		return filepath.Base(rel)
+	}
+	return ""
+}
+
 // Kural (1.1, 12.5): depodaki modüller (kitaplık ve bir dosyanın aktardığı her dosya) ve test
 // dosyaları (TR_test içeren dosya, 12.1) en dışta yalnız tanım tutar, ilk değerleri sabittir: denetleyici onları modül ve test
 // dosyası olarak okuyunca H1107 ve H1108 vermez. Olumsuz fikstürler (tests/negative/) hariçtir.
@@ -31,7 +41,7 @@ func TestRepoModulesHoldOnlyDefinitions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r := source.Prepare(string(data), source.Options{TypeCheck: true, Module: !test})
+		r := source.Prepare(string(data), source.Options{TypeCheck: true, Module: !test, Library: libraryFile(rel)})
 		for _, err := range r.Errors {
 			if messages.Has(err, messages.H1107) || messages.Has(err, messages.H1108) {
 				line, _, _ := messages.Pos(err)

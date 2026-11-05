@@ -6,6 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
@@ -16,6 +17,30 @@ func withLibrary(t *testing.T, f fstest.MapFS) {
 	prev := libraryFiles
 	SetLibrary(f)
 	t.Cleanup(func() { SetLibrary(prev) })
+}
+
+// Kural (2.3a): modül çalışma anında da okunurken kapıdan geçer; çağıran önceden denetlemese de
+// (CheckImportedModules) yerleşiği ezemez. Hiçbir satırı çalışmaz.
+func TestAModuleLoadedAtRunTimeCannotReplaceABuiltin(t *testing.T) {
+	module := source.Header + "\nTR_print(\"modül çalıştı\")\nTR_func TR_print(x: TR_Int) {\n}\n"
+	out, err := runCodedErr(t, "TR_import \"m\"\nTR_print(1)\n", map[string]string{"m.tr": module})
+	if !messages.Has(err, messages.H0004) || out != "" {
+		t.Fatalf("H0004 bekleniyordu: %v\n%s", err, out)
+	}
+}
+
+// Kural (11.6): kitaplığın dosyası kapıya takılmaz: metni kitaplıkla aynı dosya kendi kodlarını
+// tanımlar; aynı adlı başka metin kitaplık değildir.
+func TestTheLibraryLoadsItsOwnNames(t *testing.T) {
+	text := source.Header + "\nTR_const TR_pi = 3\n"
+	withLibrary(t, fstest.MapFS{"kat.tr": {Data: []byte(text)}})
+	if got := runCoded(t, "TR_import \"tr/kat\" TR_as k\nTR_print(k.TR_pi)\n", nil); got != "3\n" {
+		t.Errorf("kitaplığın adı: %q", got)
+	}
+	out, err := runCodedErr(t, "TR_import \"kat\"\n", map[string]string{"kat.tr": text + "TR_const TR_e = 2\n"})
+	if !messages.Has(err, messages.H0004) {
+		t.Errorf("kullanıcının dosyası kitaplık değildir: %v\n%s", err, out)
+	}
 }
 
 // Güvenlik bulgusu O2: göreli 'aktar' çalışma klasöründe aynı adlı bir dosya varken

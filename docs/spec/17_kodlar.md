@@ -12,8 +12,8 @@ TR kimlik kodlu bir dildir: dilin her sözcüğü sabit bir koda bağlıdır, pr
 - **Kod olanlar:** anahtar kelime, bağlamsal sözcük, tip, yerleşik fonksiyon ve sabit, metot ve özellik, adlı argüman; `tr/` ile yüklenen kitaplığın (11.6) yapı, fonksiyon, sabit, alan, metot ve parametre adları; komut satırının adları (17.9).
 - **Kod olmayanlar:** kullanıcının değişken, fonksiyon, yapı, alan, metot ve parametre adları; `tr/` dışındaki her modülün adları; `tr/` kitaplığının kendi yerel değişkenleri; sözlük anahtarları (metindir, 3.7); dosya adları; metinler ve yorumlar; yalnız geliştiricinin ve testlerin kullandığı ortam değişkenleri. Bunlar yazıldıkları gibi kalır, hiçbir dile çevrilmez: `TR_var liste = [1, 2]`'nin `liste`'si her gösterimde `liste`'dir.
 - `TR_` ile başlayan ad koda ayrılmıştır; kullanıcı adı olamaz (2.3a), yapının alanı ve metodu da.
-- **İstisna, dilin çağırdığı üyeler:** kullanıcının yapısında yalnız şu üyeler kodla yazılır: kurucu `TR_init` (2.9) ve dolaşmanın `TR_next()`'i (5.7). Başka bir kodu alan ya da metot adı yapmak denetim hatasıdır: `TR_struct K { TR_step }`.
-- *Test:* TR testi; Go: `TestUserNamesNeverBecomeLanguageWords`; yapı alanında `TR_` reddi uygulanınca TR testi.
+- **İstisna, dilin çağırdığı üyeler:** kullanıcının yapısında yalnız şu üyeler kodla yazılır: kurucu `TR_init` (2.9) ve dolaşmanın `TR_next()`'i (5.7). Başka bir kodu alan ya da metot adı yapmak denetim hatasıdır: `TR_struct K { TR_step }`. İstisna yalnız `TR_struct`'tadır; durumlu tipte ve arayüzde bu ikisi de hatadır (H0004).
+- *Test:* TR testi; Go: `TestUserNamesNeverBecomeLanguageWords`, `TestReservedNamesStopEveryDefinition`, `TestAStructHoldsTheMembersTheLanguageCalls`; olumsuz fikstür `kod_uye.tr`.
 
 **17.2** Kodun iki yazımı vardır.
 - **Program metninde** `TR_` ve kimliğin adı: `TR_if`, `TR_print(x)`, `x.TR_map(f)`, `TR_lr: 0.003`, `TR_Int` (2.3a). Sınıfı yazıldığı yer belirler; ajan sınıf yazmaz.

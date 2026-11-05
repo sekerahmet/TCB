@@ -44,8 +44,8 @@ func TestIndexSubcommandsInEveryLanguage(t *testing.T) {
 // Çıkış kodu sonucun durumudur: belirsiz ad 3, bulunamayan ad 4; --json kararlı şemadır.
 func TestIndexExitCodesAndJSON(t *testing.T) {
 	dir := indexProject(t)
-	writeTR(t, dir, "m.tr", "TR_struct A {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 2\n    }\n}\n")
-	testkit.Wait(t, tr(t, dir, "index", "definition", "ileri"), 3, []string{"A.ileri", "B.ileri"}, nil)
+	writeTR(t, dir, "m.tr", "TR_struct A {\n    TR_func koş() -> TR_Int {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func koş() -> TR_Int {\n        TR_return 2\n    }\n}\n")
+	testkit.Wait(t, tr(t, dir, "index", "definition", "koş"), 3, []string{"A.koş", "B.koş"}, nil)
 	testkit.Wait(t, tr(t, dir, "index", "definition", "yok_boyle_bir_ad"), 4, nil, nil)
 	s := tr(t, dir, "index", "references", "çevre", "--json")
 	testkit.Wait(t, s, 0, []string{`"schema": "tr-codeindex/2"`}, nil)

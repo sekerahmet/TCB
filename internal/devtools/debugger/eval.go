@@ -4,7 +4,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 )
 
@@ -20,9 +19,8 @@ const (
 // parseFirstExpression metni kimlik yazımıyla ayrıştırır (17.7) ve ilk deyiminin ifadesini verir (sonraki
 // deyimler yok sayılır). Hangi kolun hangi iletiyi yazacağı çağıranındır.
 func parseFirstExpression(text string) (ast.Expression, exprStatus) {
-	p := parser.New(source.TypedLexer(text))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 || len(prog.Statements) == 0 {
+	prog, errs := source.ParseTyped(text)
+	if len(errs) > 0 || len(prog.Statements) == 0 {
 		return nil, exprSyntaxError
 	}
 	es, ok := prog.Statements[0].(*ast.ExpressionStatement)

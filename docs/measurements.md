@@ -48,6 +48,8 @@ Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 
 | Qwen3-4B `Q4_K_M` | üretim | 2,35 (2,39) | 8,45 (8,69) | 0,278 |
 | Qwen3-4B `Q4_K_M` | prompt 512 | 14,53 (14,57) | 28,38 (28,78) | 0,512 |
 
+Birim parça/sn. llama.cpp'nin beş örneğinin biri çoğu turda iki kat yavaş; `-p 0` ile ayrı koşuda oran 0,333.
+
 **GGUF kartta** (2026-11-05, G4, NVIDIA RTX PRO 6000 Blackwell Server Edition, sm_120, 188 SM; TR `66f6d21e`, llama.cpp `8bed7cfb`, `llama-bench -ngl 99 -r 5 -p 512 -n 100 -o json`; aynı koşu, dört tur, kopya kollu; parça/sn, ortanca, parantezde üçüncü çeyrek) [ölçüldü: H1, `h1g3/ozet.txt`]:
 
 | Model | İş | TR | llama.cpp | Oran |
@@ -60,8 +62,6 @@ Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 
 | Qwen3-4B `Q4_K_M` | prompt 512 | 4 758,4 (4 762,8) | 20 402,8 (20 433,4) | 0,233 |
 
 Kartın ölçülen bandı 1457 GB/sn. Tek satır çekirdeğinde 151936'lı kafa şekilleri banda ulaşıyor (soğukta 1314–1485 GB/sn); FFN şekilleri 869–1151 GB/sn, bandın %60–79'u. `q4_k`'nın 1,8 MB'lık iki şekli soğukta dörtte birin altında (287, 339 GB/sn): 4,6 µs çağrı tabanı yüzünden, ağırlık 2,2 MB'tan küçükse eşik tutmuyor [hesap]. Tepe kart belleği dosyanın 1,08–1,19 katı, kısa prompt [ölçüldü: H1, `h1g1`].
-
-Birim parça/sn. llama.cpp'nin beş örneğinin biri çoğu turda iki kat yavaş; `-p 0` ile ayrı koşuda oran 0,333.
 
 Üretimin ayrışımı, Qwen3-0.6B `Q8_0` (TR `845dda66`, aynı işlemci türü, ayrı oturum; üç kol aynı koşuda, altı tur) [ölçüldü: kayıt `olcumler/h2k4`]: TR üretim 63,5 ms/parça, yalnız 197 matrisin çarpımı 33,9, llama.cpp bütün iş 21,2. Çarpım dışı 29,6 ms [hesap]: dikkat yaklaşık 10, kaynaştırılmış işlemler yaklaşık 9, kalan yaklaşık 9 [hesap: profil].
 
@@ -182,7 +182,6 @@ Birim parça/sn. Aynı koşudaki oranlar [hesap]:
 | `51b75f0a` | 2026-11-03, main | 331,1 | 266,0–266,7 | 555,6 | 505,1–507,6 |
 
 Birim parça/sn. Qwen3 bf16'da toplam −%11,6; en büyük adım 2026-10-22 ile Faz 0'ın sonu arası (−%8), sonra T1'in cinsli tensörü (−%2) ve S-kilit (−%2). SmolLM2'de en büyük adım cinsli tensör (−%5,9). Main ile S-kilit aynı: 16.3 ve Kol A üretimi değiştirmedi [hesap]. 2026-10-22'nin 366 ve 608'i bu makinede 374,5 ve 613,5: kart türü aynı, ölçüm tekrarlanabilir.
-
 
 **Gerilemenin içi** (2026-11-04, aynı kart türü, üç koşu, bf16, her koşuda iki tur; koşular arası fark %3,2'ye kadar, yalnız aynı koşu kıyaslanır) [ölçüldü: Colab, betikler `g4_gerileme_bol1..3.sh`]: iki düşüş var. Üçüncü koşunun tam aralıkları: `2fac1f49..3d5ba9b5` (2026-10-23) Qwen3 −%4,7, SmolLM2 −%2,7; `4080e1d4..2061d924` (cinsli tensör dalı, 2026-11-02) SmolLM2 −%6,7, Qwen3 −%3,0. İlk iki koşu aynı düşüşleri daha geniş aralıklarda gösterdi. Aynı koşuda `1d6a2b4e` → `705c16f1` Qwen3 −%9,6; yukarıdaki tablonun −%11,6'sı 2026-11-03'ün ayrı koşusu ve ucudur. Birincisinin suçlusu aşağıda; ikincisinin suçlu commit'i henüz ölçülmedi.
 

@@ -231,7 +231,7 @@ func (t *moduleCollector) collect(file *packageFile, sourcePath string) error {
 		module := packageFile{Name: filepath.ToSlash(resolved), Code: string(content)}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if s := interp.CheckModule(module.Code, t.globalNames, t.globalDynamic); s.Stage != "" {
+		if s := interp.CheckModule(resolved, module.Code, t.globalNames, t.globalDynamic); s.Stage != "" {
 			return &moduleCheckError{filePath: filepath.ToSlash(resolved), code: s.Text, kind: s.Stage, diags: s.Errors}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
@@ -268,7 +268,7 @@ func (e *moduleCheckError) MessageText(lang string) string {
 // preparePackage ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func preparePackage(srcPath, code string) (*pkg, error) {
 	t := &moduleCollector{index: map[string]int{}, mainFile: srcPath}
-	t.globalNames, t.globalDynamic = checker.TopLevelNames(source.Prepare(code, source.Options{}).Program)
+	t.globalNames, t.globalDynamic = checker.TopLevelNames(source.Prepare(code, source.Options{Library: interp.LibraryFileName(srcPath, code)}).Program)
 	pk := &pkg{Main: packageFile{Name: filepath.ToSlash(srcPath), Code: code}}
 	if err := t.collect(&pk.Main, srcPath); err != nil {
 		return nil, err
@@ -495,7 +495,7 @@ func runEmbeddedApp(pk *pkg) {
 	machine.SourceFile = embeddedSourceName
 	machine.CommandName = filepath.Base(os.Args[0])
 	// Hata çerçeveleri kullanıcının yazdığı (yönlendirilmemiş) kaynağı göstersin; satırlar aynıdır.
-	original := source.Prepare(pk.Main.Code, source.Options{})
+	original := source.Prepare(pk.Main.Code, source.Options{Library: interp.LibraryFileName(pk.Main.Name, pk.Main.Code)})
 	machine.SourceCode = original.Text
 	// Üretilen uygulamanın bütün argümanları programındır (uygulama.exe --adım 5).
 	machine.SetArgs(os.Args[1:])

@@ -1,0 +1,17 @@
+# TR 4
+# TEST 17.1 kullanıcının yapısında yalnız TR_init ve TR_next kodla yazılır: alan, metot, arayüz metodu ve durum alanı H0004 verir; iki üye yalnız yapıda ve metot olarak serbesttir
+TR_struct K {
+    TR_weight: TR_Int # ERROR H0004
+    TR_next: TR_Int = 1 # ERROR H0004
+    TR_func TR_forward() { } # ERROR H0004
+    TR_func TR_length() -> TR_Int { TR_return 1 } # ERROR H0004
+}
+TR_interface I {
+    TR_func TR_length() -> TR_Int # ERROR H0004
+    TR_func TR_next() -> TR_Int? # ERROR H0004
+}
+TR_enum E {
+    A(TR_x: TR_Int) # ERROR H0004
+    TR_func TR_forward() { } # ERROR H0004
+    TR_func TR_next() -> TR_Int? { TR_return TR_none } # ERROR H0004
+}

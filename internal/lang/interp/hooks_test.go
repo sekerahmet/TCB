@@ -93,9 +93,9 @@ func TestSelfContainingContainers(t *testing.T) {
 		d["ben"] = d
 		d["l"] = [d]
 		TR_print(d)
-		TR_struct D { TR_next: D? = TR_none }
+		TR_struct D { sonraki: D? = TR_none }
 		TR_var n = D()
-		n.TR_next = n
+		n.sonraki = n
 		TR_print(n)
 		TR_var m = [l, l]
 		TR_print(m)
@@ -104,7 +104,7 @@ func TestSelfContainingContainers(t *testing.T) {
 		TR_var result = [TR_error_code { TR_var s = l == l }, TR_error_code { TR_var s = d == d },
 			TR_error_code { TR_var s = l == l2 }, TR_String(l).TR_length]
 	`)
-	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD(next: ...)\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
+	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD(sonraki: ...)\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
 	if err != nil || out != want || val.Inspect() != `["H2771", "H2771", "H2771", 15]` {
 		t.Fatalf("beklenmeyen:\n%s\n%v %v", out, val, err)
 	}

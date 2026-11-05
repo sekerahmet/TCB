@@ -2,7 +2,7 @@
 "H0001": { "param": ["name"] },
 "H0002": { "param": [] },
 "H0003": { "param": [] },
-"H0004": { "param": ["name", "lower"] },
+"H0004": { "param": ["name", "suggestion"] },
 "H0007": { "param": [] },
 "H0008": { "param": ["escape"] },
 "H0009": { "param": [] },

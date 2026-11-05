@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"net/url"
 	"path/filepath"
@@ -154,10 +153,9 @@ func (s *dapServer) interpolate(v *interp.VM, env *interp.Environment, text stri
 
 // evalQuiet bir ifadeyi debugger'ı tetiklemeden hesaplar.
 func (s *dapServer) evalQuiet(v *interp.VM, env *interp.Environment, expr string) (interp.Value, error) {
-	p := parser.New(source.TypedLexer(expr))
-	prog := p.ParseProgram()
-	if len(p.Errors()) > 0 {
-		return nil, p.Errs()[0]
+	prog, errs := source.ParseTyped(expr)
+	if len(errs) > 0 {
+		return nil, errs[0]
 	}
 	es, ok := singleExpression(prog)
 	if !ok {

@@ -1,0 +1,26 @@
+# TR 4
+# TEST 2.3a geçerli bir kimlik de kullanıcının adı olamaz: tanımın her yeri H0004 verir, yerleşik ezilmez
+TR_import "tr/layers"
+TR_import "tr/optimizers" TR_as TR_abs # ERROR H0004
+TR_var TR_print = 1 # ERROR H0004
+TR_var TR_min, b = 1, 2 # ERROR H0004
+TR_const TR_pi = 3 # ERROR H0004
+TR_const TR_as = 1 # ERROR H0004
+TR_func TR_sum() { } # ERROR H0004
+TR_func TR_init() { } # ERROR H0004
+TR_struct TR_Linear { } # ERROR H0004
+TR_enum TR_Int { A } # ERROR H0004
+TR_interface TR_Tensor { # ERROR H0004
+    TR_func a() -> TR_Int
+}
+TR_enum R { TR_step(a: TR_Int) } # ERROR H0004
+TR_func f(TR_lr: TR_Float) { } # ERROR H0004
+TR_struct K {
+    TR_func TR_init(TR_lr: TR_Int) { } # ERROR H0004
+    TR_func g() {
+        TR_func TR_init() { } # ERROR H0004
+    }
+}
+TR_func h() {
+    TR_var TR_abs = 1 # ERROR H0004
+}

@@ -230,6 +230,8 @@ type ImportStatement struct {
 	Token lexer.Token // aktar
 	Path  string
 	Alias string
+	// AliasToken is the token of the alias (zero when none is written).
+	AliasToken lexer.Token
 }
 
 func (is *ImportStatement) statementNode()       {}

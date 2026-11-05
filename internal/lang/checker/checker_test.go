@@ -447,7 +447,7 @@ TR_try { TR_throw "x" } TR_catch ekle { TR_print(ekle) }
 TR_var a, sırala = 1, 2
 TR_struct Nokta {
     x: TR_Int
-    TR_func TR_length() -> TR_Int { TR_return 1 }
+    TR_func uzunluk() -> TR_Int { TR_return 1 }
 }
 TR_var sayaç = uzunluk + sırala
 TR_var ` + c.other + ` = 1`

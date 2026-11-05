@@ -196,29 +196,6 @@ func expectsOperand(t TokenType) bool {
 	return false
 }
 
-// defines okunan ad, değişken adı tanımlanan bir yerde mi (2.3a: kullanıcının adı TR_ ile
-// başlamaz): çoklu tanımın sonraki adları (TR_var a, b), döngü değişkenleri (TR_for i, x TR_in),
-// yakalama adı (TR_catch h) ve ok fonksiyonunun parametreleri ((a, b) =>, a =>). Fonksiyonun
-// parametresi adlı argümandır (TR_func f(TR_lr)), tanım sayılmaz; TR_var, TR_const, TR_func ve
-// TR_struct'tan sonraki ad identity'de, kimlik olarak çözülemezse denetlenir (TR_init, TR_GPT).
-func (l *Lexer) defines() bool {
-	s := &l.places
-	top := s.top()
-	switch {
-	case s.prev == TokCatch, s.varDecl && s.prev == TokComma && len(s.stack) == s.declDepth:
-		return true
-	case s.forHeader && len(s.stack) == s.declDepth && (s.prev == TokFor || s.prev == TokComma):
-		return l.aheadIs(",") || l.aheadWord(codes.Spelling(codes.KwIn))
-	case top.params:
-		return false
-	case top.open == TokLParen && (s.prev == TokLParen || s.prev == TokComma) && l.closesBeforeArrow():
-		return true
-	case s.prev == TokAssign || s.prev == TokLParen || s.prev == TokComma && top.open == TokLParen:
-		return l.aheadIs("=>")
-	}
-	return false
-}
-
 // skipBlanks i'den başlayarak boşluk ve sekmeleri atlar.
 func (l *Lexer) skipBlanks(i int) int {
 	for i < len(l.input) && (l.input[i] == ' ' || l.input[i] == '\t') {
@@ -273,7 +250,7 @@ func (l *Lexer) closesBeforeArrow() bool {
 func (l *Lexer) identity(lit string, line, col int) codes.Code {
 	if l.defines() {
 		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), geçerli bir kimlik olsa da.
-		l.addErrorFix(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)), strings.ToLower(lit))
+		l.addReserved(line, col, lit)
 		return codes.None
 	}
 	place, second, fallback := l.placeOf(line)
@@ -299,11 +276,10 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 	if l.classedIdentity(place, second, fallback, lit, line, col) {
 		return codes.None
 	}
-	switch l.places.prev {
-	case TokVar, TokConst, TokFunction, TokStruct:
-		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), ileti başka bir ad önerir. Önek
-		// ASCII'dir; küçük harfli öneri strings.ToLower ile üretilir (TR_x → tr_x).
-		l.addErrorFix(line, col, messages.New(messages.H0004, lit, strings.ToLower(lit)), strings.ToLower(lit))
+	if l.definesName(place) {
+		// Tanımlanan ad TR_ ile başlıyor ve kimlik de değil: kullanıcı adı olamaz (2.3a), ileti başka
+		// bir ad önerir. Geçerli kimlikle tanımlananı source.Prepare'in kapısı durdurur.
+		l.addReserved(line, col, lit)
 		return codes.None
 	}
 	if l.places.top().open == TokLBrace && l.colonAhead() {
@@ -571,11 +547,6 @@ func abs(n int) int {
 		return -n
 	}
 	return n
-}
-
-// isIdentitySpelling sözcüğün kimlik yazımında olduğudur: TR_ ve en az bir karakter.
-func isIdentitySpelling(lit string) bool {
-	return codes.IsReservedName(lit) && utf8.RuneCountInString(lit) > len(codes.IdentityPrefix)
 }
 
 // codeToken k kodunun sözcük birimidir: metni kodun çözümleyicinin dilindeki adı (programda

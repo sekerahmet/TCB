@@ -71,8 +71,8 @@ func TestCodedTokens(t *testing.T) {
 	// TR_ ile başlayan ad tanımlanamaz: ileti başka bir ad önerir. İkinci çözümleyici bilerek Türkçe
 	// gösterim: kural kişinin dilindeki metinde de geçerlidir.
 	for _, l := range []*Lexer{NewBody("TR_var TR_x = 1", true), NewBodyIn("değişken TR_x = 1", false, codes.Source())} {
-		if allOf(l) == nil || len(l.Errs()) != 1 || !hasCode(l.Errs(), messages.H0004) || !strings.Contains(l.Errors()[0], "tr_x") {
-			t.Errorf("TR_ ile başlayan tanım H0004 vermeli, tr_x önermeli: %v", l.Errors())
+		if allOf(l) == nil || len(l.Errs()) != 1 || !hasCode(l.Errs(), messages.H0004) || !strings.Contains(l.Errors()[0], "ör. x)") {
+			t.Errorf("TR_ ile başlayan tanım H0004 vermeli, x önermeli: %v", l.Errors())
 		}
 	}
 }

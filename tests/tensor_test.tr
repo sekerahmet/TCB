@@ -1589,23 +1589,23 @@ TR_test "15.44 kaynaştır: büyük tensör yazdırma ve tensörde döngü iç h
 TR_test "15.33 parametreler: sabit sıra, tekillik, yol adları" {
     TR_func p(x: TR_Float) -> TR_Tensor { TR_return TR_Tensor([x], TR_requires_grad: TR_true) }
     TR_struct Dikkat { Wq: TR_Tensor, Wk: TR_Tensor }
-    TR_struct Blok { TR_attention: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
-    TR_struct Model { TR_embedding: TR_Tensor, TR_blocks: TR_List[Blok], TR_last: TR_Tensor }
+    TR_struct Blok { dikkat: Dikkat, mlp: TR_List[TR_Tensor], yan: TR_Dict[TR_String, TR_Tensor] }
+    TR_struct Model { gömme: TR_Tensor, bloklar: TR_List[Blok], son: TR_Tensor }
     TR_var ortak = p(9.0)
     TR_var m = Model(p(1.0), [Blok(Dikkat(p(2.0), ortak), [p(3.0)], {}), Blok(Dikkat(p(4.0), p(5.0)), [], {"W1": p(6.0), "sabit": TR_Tensor([0.0])})], ortak)
     TR_var l = TR_parameters(m)
     TR_assert_equal([1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0], [x.TR_tolist[0] TR_for x TR_in l])
-    TR_assert(TR_equal(l[0], m.TR_embedding))
+    TR_assert(TR_equal(l[0], m.gömme))
     TR_var adlar = TR_parameters(m, TR_named: TR_true)
-    TR_assert_equal(["TR_mem_embedding", "TR_mem_blocks.0.TR_mem_attention.Wq", "TR_mem_blocks.0.TR_mem_attention.Wk", "TR_mem_blocks.0.mlp.0", "TR_mem_blocks.1.TR_mem_attention.Wq", "TR_mem_blocks.1.TR_mem_attention.Wk", "TR_mem_blocks.1.yan.W1"], adlar.TR_keys())
-    TR_assert_equal([4.0], adlar["TR_mem_blocks.1.TR_mem_attention.Wq"].TR_tolist)
+    TR_assert_equal(["gömme", "bloklar.0.dikkat.Wq", "bloklar.0.dikkat.Wk", "bloklar.0.mlp.0", "bloklar.1.dikkat.Wq", "bloklar.1.dikkat.Wk", "bloklar.1.yan.W1"], adlar.TR_keys())
+    TR_assert_equal([4.0], adlar["bloklar.1.dikkat.Wq"].TR_tolist)
     # Ara sonuçlar ve türev izlemeyen tensörler parametre değildir.
     TR_assert_equal(0, TR_parameters([p(1.0) * 2, TR_Tensor([1.0])]).TR_length)
     # Sonuç doğrudan iyileştiriciye verilebilir.
     TR_var op = TR_SGD(TR_parameters(m), TR_lr: 1.0)
-    TR_backward(TR_sum(m.TR_embedding * 2))
+    TR_backward(TR_sum(m.gömme * 2))
     op.TR_step()
-    TR_assert_equal([-1.0], m.TR_embedding.TR_tolist)
+    TR_assert_equal([-1.0], m.gömme.TR_tolist)
 }
 
 TR_test "15.42 bellek sınırı: dev sonuç tensörü ayrılmadan yakalanabilir bir hata verir" {

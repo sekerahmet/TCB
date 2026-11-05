@@ -6,7 +6,6 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
-	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"path/filepath"
 )
@@ -193,9 +192,8 @@ func (s *dapServer) evaluate(msg *dapMessage) {
 		Context    string `json:"context"`
 	}
 	_ = json.Unmarshal(msg.Arguments, &a)
-	p := parser.New(source.TypedLexer(a.Expression))
-	prog := p.ParseProgram()
-	if errs := p.Errs(); len(errs) > 0 {
+	prog, errs := source.ParseTyped(a.Expression)
+	if len(errs) > 0 {
 		s.respondErr(msg, errs[0].Error())
 		return
 	}
