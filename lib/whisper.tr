@@ -142,28 +142,28 @@ TR_struct TR_Whisper {
 }
 
 # _gerekli JSON nesnesinin zorunlu alanını verir.
-TR_func _gerekli(ayar, dosya: TR_String, alan: TR_String) {
+TR_func _gerekli(ayar: TR_JSON, dosya: TR_String, alan: TR_String) -> TR_JSON {
     TR_var v = TR_config_value(ayar, alan, TR_none)
     TR_if v == TR_none { TR_throw TR_Message("H7088", dosya, alan) }
     TR_return v
 }
 
 # _sayı config.json'un zorunlu sayısını verir: sıfır ve eksi boyut model kurmaz.
-TR_func _sayı(ayar, alan: TR_String) -> TR_Int {
+TR_func _sayı(ayar: TR_JSON, alan: TR_String) -> TR_Int {
     TR_var n = TR_Int(_gerekli(ayar, _AYAR, alan))
     TR_if n <= 0 { TR_throw TR_Message("H7096", alan, n, "positive") }
     TR_return n
 }
 
 # _bakış bakış sayısını verir: boyutu bölmeyen sayı bakışlara ayrılamaz.
-TR_func _bakış(ayar, alan: TR_String, boyut: TR_Int) -> TR_Int {
+TR_func _bakış(ayar: TR_JSON, alan: TR_String, boyut: TR_Int) -> TR_Int {
     TR_var n = _sayı(ayar, alan)
     TR_if boyut % n != 0 { TR_throw TR_Message("H7096", alan, n, "heads") }
     TR_return n
 }
 
 # _boyutlar config.json'un kapılarından geçer: desteklenmeyen ayar hatasız yüklenir, yanlış metin üretirdi.
-TR_func _boyutlar(ayar) -> _Boyutlar {
+TR_func _boyutlar(ayar: TR_JSON) -> _Boyutlar {
     TR_var etkinleşme = TR_String(TR_config_value(ayar, "activation_function", "gelu"))
     TR_if etkinleşme != "gelu" { TR_throw TR_Message("H7096", "activation_function", etkinleşme, "activation") }
     TR_if TR_Bool(TR_config_value(ayar, "scale_embedding", TR_false)) { TR_throw TR_Message("H7096", "scale_embedding", TR_true, "scale") }
