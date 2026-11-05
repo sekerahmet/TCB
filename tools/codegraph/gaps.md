@@ -50,7 +50,6 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
   - Aynı kuralın öbür yüzü (Kodlama3 raporunun yan gözlemi): `test_paths.go:280`'in `fileWord`'u yorumdaki çıplak `README.md`'yi testin klasörüne çözüp sahte `cites` kenarı kuruyor. Yorumda bağlıyor, okuma çağrısında bağlamıyor.
   - Beklenen (genel): testte bir dosya okuma çağrısına (`os.ReadFile`, `os.Open` ...) verilen çıplak ad, testin paket klasöründe öyle bir dosya varsa ona bağlanır; yorumdaki çıplak ad tek başına `cites` kurmaz. Koruyan test: iki yönü de sınayan bir örnek. Sahip: Gemini (açık tanımlı, dar).
 
-- **`tests-for` iletide tanımsız yuva görünce panik veriyor (2026-11-04, D1).** Komut: `tr.json`'a yeni `{#var}` yuvası yazılmışken tanımı eklenmeden `go run ./tools/codegraph tests-for internal/lang/messages/tr.json` → panik (`messages: tr.json: H7012: {#var}: no such name slot`). Beklenen: dosya hatasını söyleyen tek satır. Üç ileti dosyası sırayla düzenlenirken her zaman oluşur.
 - **`dups --changed`'in taban biçimi belirsiz (2026-11-04, D1).** `dups --changed main --base main` dalda "touching main" diyor; README `--changed claude/x` yazıyor; ikisi de 0 aday verdi, hangisinin doğru olduğu ölçülmedi.
 
 ## İnce ayar
