@@ -299,6 +299,31 @@ func randomQuantized(r *rand.Rand, kind gguf.TensorType, shape []int) []byte {
 // aynıdır. Türler Q4_K_M dosyaları gibi tensör başına karışıktır; llama'da satır sırası nicemlenmiş
 // tensörde tensörle indeksle geri alınır.
 func TestGGUFQuantizedModelMatchesOpened(t *testing.T) {
+	for _, c := range quantizedConfigs {
+		t.Run(c.arch, func(t *testing.T) {
+			dir := t.TempDir()
+			writeTR(t, dir, "karsilastir.tr", ggufCompare)
+			qf, ff := c.writeQuantized(t, dir)
+			diff, size, generated := runCompare(t, dir, "--other", ff, "--file", qf)
+			if size == 0 || diff > size*1e-4 {
+				t.Errorf("en büyük logit farkı %v (logit %v)", diff, size)
+			}
+			if !strings.HasPrefix(generated, "[1, 5, ") {
+				t.Errorf("üretim %q", generated)
+			}
+		})
+	}
+}
+
+// quantizedConfigs nicemli sınamaların modelleridir: her ağırlık türü geçer.
+var quantizedConfigs = []tinyConfig{
+	{arch: "llama", vocab: 48, dim: 256, ff: 256, layers: 2, heads: 8, kv: 2, headDim: 32, context: 32, tied: false, theta: 100000},
+	{arch: "qwen3", vocab: 48, dim: 256, ff: 512, layers: 1, heads: 2, kv: 1, headDim: 128, context: 32, tied: true, theta: 1000000},
+}
+
+// writeQuantized aynı ağırlıkların nicemli ve açılmış F32 GGUF dosyalarını dir'e yazar.
+func (c tinyConfig) writeQuantized(t *testing.T, dir string) (quantized, opened string) {
+	t.Helper()
 	kinds := func(name string) gguf.TensorType {
 		switch {
 		case name == "token_embd.weight", strings.HasSuffix(name, "attn_q.weight"):
@@ -308,44 +333,82 @@ func TestGGUFQuantizedModelMatchesOpened(t *testing.T) {
 		}
 		return gguf.TypeQ4_K
 	}
-	for _, c := range []tinyConfig{
-		{arch: "llama", vocab: 48, dim: 256, ff: 256, layers: 2, heads: 8, kv: 2, headDim: 32, context: 32, tied: false, theta: 100000},
-		{arch: "qwen3", vocab: 48, dim: 256, ff: 512, layers: 1, heads: 2, kv: 1, headDim: 128, context: 32, tied: true, theta: 1000000},
-	} {
+	r := rand.New(rand.NewSource(2))
+	q, f := &gguftest.Builder{}, &gguftest.Builder{}
+	c.metadata(q)
+	c.metadata(f)
+	for _, name := range sortedNames(c.names()) {
+		shape := c.shapeOf(name)
+		if len(shape) == 1 {
+			data := make([]float32, shape[0])
+			for i := range data {
+				data[i] = 1
+			}
+			q.Tensor(name, gguf.TypeF32, ggufDims(shape), floatBytes(data))
+			f.Tensor(name, gguf.TypeF32, ggufDims(shape), floatBytes(data))
+			continue
+		}
+		kind := kinds(name)
+		raw := randomQuantized(r, kind, shape)
+		q.Tensor(name, kind, ggufDims(shape), raw)
+		dt := map[gguf.TensorType]tensor.DType{gguf.TypeQ8_0: tensor.Q8, gguf.TypeQ4_K: tensor.Q4K, gguf.TypeQ6_K: tensor.Q6K}[kind]
+		values := tensor.FromQuantized(dt, raw, shape...).Open(tensor.Float32).Data()
+		f.Tensor(name, gguf.TypeF32, ggufDims(shape), floatBytes(values))
+	}
+	quantized, opened = filepath.Join(dir, "q.gguf"), filepath.Join(dir, "f.gguf")
+	writeBytes(t, quantized, q.Bytes())
+	writeBytes(t, opened, f.Bytes())
+	return quantized, opened
+}
+
+// ggufCard modeli CPU'da ve varsayılan cihaz kartken kurar; kart yoksa yalnız "kart yok" yazar.
+const ggufCard = `TR_import "tr/pretrained"
+TR_var arg = TR_command_line({"file": ""})
+TR_if TR_not TR_devices().TR_contains("gpu") {
+    TR_print("kart yok")
+} TR_else {
+    TR_var kimlikler = [1, 5, 2, 7, 3, 9]
+    TR_default_device("cpu")
+    TR_var a = TR_pretrained_gguf(arg["file"])
+    TR_var logit = a.TR_forward(TR_Tensor([kimlikler]))
+    TR_var üretilen = a.TR_generate([1, 5], 6, TR_temperature: 0.0)
+    TR_default_device("gpu")
+    TR_var b = TR_pretrained_gguf(arg["file"])
+    TR_print(b.TR_embedding.TR_table.TR_device, b.TR_embedding.TR_table.TR_dtype)
+    TR_var kart = b.TR_forward(TR_Tensor([kimlikler]).TR_to_device("gpu")).TR_to_device("cpu")
+    TR_print(TR_max(TR_abs(logit - kart)).TR_tolist, TR_max(TR_abs(logit)).TR_tolist)
+    TR_print(üretilen == b.TR_generate([1, 5], 6, TR_temperature: 0.0), üretilen == b.TR_generate([1, 5], 6, TR_temperature: 0.0, TR_cuda_graph: TR_false))
+}
+`
+
+// Kural (15.53): TR_default_device("gpu") altında TR_pretrained_gguf ağırlığı kartta nicemli kurar;
+// çok satır, tek satır ve TR_replay kaydı CPU'nun logitlerini ve parçalarını verir. Kartsız makinede
+// atlanır (GPU tam denetimi koşar).
+func TestGGUFModelOnTheCard(t *testing.T) {
+	for _, c := range quantizedConfigs {
 		t.Run(c.arch, func(t *testing.T) {
 			dir := t.TempDir()
-			writeTR(t, dir, "karsilastir.tr", ggufCompare)
-			r := rand.New(rand.NewSource(2))
-			q, f := &gguftest.Builder{}, &gguftest.Builder{}
-			c.metadata(q)
-			c.metadata(f)
-			for _, name := range sortedNames(c.names()) {
-				shape := c.shapeOf(name)
-				if len(shape) == 1 {
-					data := make([]float32, shape[0])
-					for i := range data {
-						data[i] = 1
-					}
-					q.Tensor(name, gguf.TypeF32, ggufDims(shape), floatBytes(data))
-					f.Tensor(name, gguf.TypeF32, ggufDims(shape), floatBytes(data))
-					continue
-				}
-				kind := kinds(name)
-				raw := randomQuantized(r, kind, shape)
-				q.Tensor(name, kind, ggufDims(shape), raw)
-				dt := map[gguf.TensorType]tensor.DType{gguf.TypeQ8_0: tensor.Q8, gguf.TypeQ4_K: tensor.Q4K, gguf.TypeQ6_K: tensor.Q6K}[kind]
-				opened := tensor.FromQuantized(dt, raw, shape...).Open(tensor.Float32).Data()
-				f.Tensor(name, gguf.TypeF32, ggufDims(shape), floatBytes(opened))
+			writeTR(t, dir, "kart.tr", ggufCard)
+			file, _ := c.writeQuantized(t, dir)
+			s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "kart.tr"), "--file", file)
+			if s.Code != 0 {
+				t.Fatalf("TR çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 			}
-			qf, ff := filepath.Join(dir, "q.gguf"), filepath.Join(dir, "f.gguf")
-			writeBytes(t, qf, q.Bytes())
-			writeBytes(t, ff, f.Bytes())
-			diff, size, generated := runCompare(t, dir, "--other", ff, "--file", qf)
+			lines := strings.Split(strings.TrimSpace(s.Stdout), "\n")
+			if lines[0] == "kart yok" {
+				t.Skip("kart yok")
+			}
+			if len(lines) != 3 || !strings.HasPrefix(lines[0], "gpu") || !strings.HasSuffix(lines[0], "q8") {
+				t.Fatalf("çıktı:\n%s", s.Stdout)
+			}
+			fields := strings.Fields(lines[1])
+			diff, _ := strconv.ParseFloat(fields[0], 64)
+			size, _ := strconv.ParseFloat(fields[1], 64)
 			if size == 0 || diff > size*1e-4 {
 				t.Errorf("en büyük logit farkı %v (logit %v)", diff, size)
 			}
-			if !strings.HasPrefix(generated, "[1, 5, ") {
-				t.Errorf("üretim %q", generated)
+			if lines[2] != "true true" {
+				t.Errorf("kartın parçaları CPU'nunkinden ayrıldı: %s", lines[2])
 			}
 		})
 	}
