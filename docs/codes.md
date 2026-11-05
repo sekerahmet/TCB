@@ -2905,7 +2905,7 @@ tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.
 
 #### `TR_rfft(...)` (`TR_fn_rfft`, `gerçek_fourier`)
 
-    gerçek_fourier(Tensör, n: Tam = yok) → Fonksiyon
+    gerçek_fourier(Tensör, n: Tam = yok) → Herhangi
 
 Gerçek sinyalin Fourier dönüşümünü son eksen boyunca hesaplar, (gerçek, sanal) demeti verir; son ekseni n // 2 + 1'dir. Kısa sinyal sıfırla dolar, uzun sinyal hatadır, ölçek yoktur.
 
@@ -3195,7 +3195,7 @@ tr: yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 
 #### `TR_stft(...)` (`TR_fn_stft`, `kısa_fourier`)
 
-    kısa_fourier(Tensör, Tam, adım_boyu: Tam = yok, pencere: Tensör = yok, ortala: Mantık = doğru, dolgu_kipi: Metin = yok) → Fonksiyon
+    kısa_fourier(Tensör, Tam, adım_boyu: Tam = yok, pencere: Tensör = yok, ortala: Mantık = doğru, dolgu_kipi: Metin = yok) → Herhangi
 
 Kısa süreli Fourier dönüşümüdür: sinyali n uzunluklu çerçevelere böler, her birini pencereyle çarpıp dönüştürür; sonuç (gerçek, sanal) ve şekli [..., n // 2 + 1, çerçeve]'dir.
 
