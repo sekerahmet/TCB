@@ -43,20 +43,25 @@
    - **Yorumlarda `'/'` sonrası sahte `cites` sayımı:** `4` yorum satırında `6` sahte `cites` kenarı elendi (`cmd/trlang/e2e/behavior_examples_coverage_test.go:22`, `cmd/trlang/e2e/behavior_examples_test.go:163`, `internal/stdlib/ml/behavior_grad_composite_test.go:20`, `tools/codegraph/codes_test.go:106`).
    - **Uygulama (`96` boşluksuz/yorumsuz üretim satırı, `< 100` tavan):** `test_paths.go` içinde `pathRef.local` (yalnız çağıran testin paket klasöründen çözer, kökten denemez, `prod: false`) ve `commentFileWords` (`idx[0] > 0 && text[idx[0]-1] == '/'` eler); `test_paths_param.go` içinde `resolveTestBareReads` / `bareReadArg` / `concreteExprStrings`; `gocode.go` içinde çağrı; `extractorRevision` `85 → 86` ve `testdata/extractor_digest.txt` güncellendi; `tools/codegraph/README.md` artık kapsandığı için `testdata/uncovered_data.txt`'ten çıkarıldı ve `maxUncoveredData` `9 → 8` indirildi; `gaps.md` ve `README.md` güncellendi.
    - **Koruyan test ve doğrulama:** `TestBareReadCallsAndSlashTailComments` (`[test: tools/codegraph/test_paths_param_test.go]`), `go run ./tools/codegraph tests-for tools/codegraph/README.md` → `codegraph.TestReadmeGraphSizeIsCurrent [func] at tools/codegraph/graph_test.go:265  [INFERRED]`, ilgili testler, `dups --changed main` (`0` aday), `spec-refs` (`0` not) ve `gofmt` geçti.
+5. **Madde 1 (`788cdb2`, 10:20 +03):**
+   - **Sözcük ve düğüm sayımı (`testdata/planning_questions.txt`):** `251` benzersiz sözcük `TestPlanningQuestionsAreAnswered` testinden `names_in_exam` (`INFERRED`) kenarıyla `251` düğüme bağlandı (`96` `func`, `46` `method`, `41` `file`, `21` `name`, `9` `doc`, `8` `field`, `8` `var`, `6` `type`, `5` `tr_method`, `3` `message`, `3` `tr_struct`, `2` `const`, `1` `tr_field`, `1` `tr_func`, `1` `tr_param`). En çok bağlananlar: `TR_mem_map` (`x8`), `layers.TR_type_Linear.TR_mem_forward` (`x5`), `TR_fn_print` (`x4`), `TR_mem_shape` (`x4`), `codes.Language.Name` (`x4`), `lib/layers.tr` (`x4`), `lib/layers_test.tr` (`x4`), `lib/pretrained_test.tr` (`x4`).
+   - **Uygulama (`exam_links.go` `135` boşluksuz/yorumsuz satır, tüm `.go` farkıyla toplam `149 <= 150` üretim satırı):** `examNodeKeys` (başlık, paket ve bölüm numarası elenir; en az iki parçalı nokta son ekleri dahil), `linkExam` (yalnız `TestPlanningQuestionsAreAnswered`'dan `edgeNamesInExam`), `printExamEdge` (`<- exam questions that name it` ayrı başlığı; `who-uses` ve yönsüz `path` atlar; `printLinkedBinaries` korunur), `fresh.go`'da `stamped` içine `examFile`, `diffmap.go` + `changed.go` + `deletedHunkNamesExam` ile yeniden adlandırma/silme farklarının silinen satırlarında grafikte artık bulunmayan sınav sözcüklerinin yakalanması; `extractorRevision` `86 → 87` ve `testdata/extractor_digest.txt` (`c53962552039e66a`); `gaps.md` ve `README.md` güncellendi.
+   - **Koruyan testler ve doğrulama:** `TestEveryNodeTheExamNamesIsLinkedFromTheExam` ve `TestExamSelectionOnModifyRenameDeleteAndStamp` (`[test: tools/codegraph/exam_links_test.go]`), `TestPlanningQuestionsAreAnswered` (`49.44s`, geçti), `TestStampCoversEverySourceTheGraphReads`, `TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt`, `dups --changed main` (`0` aday), `spec-refs` (`0` not) ve `gofmt` geçti.
 
 ## Bulgular ve kanıtlar
 
 - Ortam bulguları:
   1. `go` ikilisi sanal makinede öntanımlı kurulu değildi (`[ölçüldü: which go, çıkış 1]`); kullanıcı alanına `go1.26.10` kuruldu.
-  2. Başlangıç klonunda `remote.origin.fetch` yalnız `+refs/heads/main:refs/remotes/origin/main` idi ve depo sığ klondu (`200` commit, `git rev-parse --is-shallow-repository` → `true`); `yonerge` dalı için refspec genişletildi.
+  2. Başlangıç klonunda `remote.origin.fetch` yalnız `+refs/heads/main:refs/remotes/origin/main` idi ve depo sığ klondu (`200` commit, `git rev-parse --is-shallow-repository` → `true`); `yonerge` dalı için refspec genişletildi. Sığ klon nedeniyle `TestPlanningQuestionsAreAnswered` geçmiş gerektiren `7` soruyu (`79`, `85`, `180`, `193`, `194`, `241`, `290`) tasarlandığı gibi atlıyor (`skipped, the clone has no history`).
   3. `/usr/bin/time` ikilisi kurulu değil (`[ölçüldü: which time, çıkış 1]`).
   4. `TestEveryTrackedDataFileHasATestOrAReason` dal kökündeki izlenen `UZAK3_DURUM.md` dosyasını görüyor (`UZAK_YONERGE_3.md:13` uyarınca beklendiği gibi teste dokunulmadı).
-  5. `2026-11-05 09:14 +03` civarında uzak sanal makine kısa süreliğine durakladı (`uVM is in STOPPED state`) ve otomatik uyandı; `/home/antigravity` ve kurulu Go araç zinciri korundu.
+  5. Uzak sanal makine iki kez (`2026-11-05 09:14 +03` ve `2026-11-05 10:16 +03`) kısa süreliğine duraklayıp yeniden başladı; `/home/antigravity` ve kurulu Go araç zinciri korundu.
 
 ## Kalan adımlar
 
-1. **Madde 1:** Planlama sınavının andığı düğümlerin ayrı kenar/grup ile bağlanması (`TestPlanningQuestionsAreAnswered`), `fresh.go` damgası (`examFile`), `changed --go-tests` silinen satır sözcük eşleşmesi; koruyan testler; `extractorRevision` / `extractor_digest.txt`; `gaps.md` ve `README.md` güncellemesi; ayrı commit ve durum push.
-2. "Sonra" ölçümleri, bitti ölçütü komutlarının tamamı (temiz `--depth 1` klonu dahil), `UZAK3_RAPORU.md`, kendi kontrolüm ve son push.
+1. "Sonra" ölçümlerinin tamamı (`5` aralık, son `60` commit, `1805` izlenen dosya için `tests-for` fark sayımı).
+2. Bitti ölçütü komutlarının tamamı (`1`–`7`, temiz `--depth 1` klonunda koruyan testler dahil).
+3. `UZAK3_RAPORU.md` yazımı, tüm alıntı ve `dosya:satır` referanslarının `grep -F` ile kendi kontrolü, son durum güncellemesi ve son push.
 
 ## Emin olmadıklarım
 
