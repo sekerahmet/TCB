@@ -9,6 +9,10 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 **Dil tanımı turu** faz sonunda, 5 olağan bulgu birikince ya da aynı bölümde 3 bulgu olunca gerekir; etkilenen bölümleri uygulayan açık dal kalmayınca yapılır: ana oturum yazar, Gemini kararı araştırır, DENETİM doğrular. Tur bitince satırlar silinir. *Test:* satırları bu listeye girmez (uygulama günceller), ama bir kuralı gevşetemez.
 
+## Kritik, metin bekliyor
+
+- **4.5, derinlik sınırı (2026-11-05, A, DENETİM istek 184):** `==` derinlik sınırında sessizce yanlış veriyor (status 4.5). Yön: iç içelik sınırı yoktur, gezinti açık yığınla yazılır, döngülü değerde H2771. Metin dört şeyi söylemeli: iki gezinti de (`walk`, `valuesEqual`) sınırsız olur ve iki geçiş kalır, yoksa `[1, f] == [2, f]` yanlışa döner; `ValuesEqual` ve `Equaler` bool döndürür, döngü kuramayan yerde yalnız sınır kalkar; çift yolu kümesi büyük halkalarda belleği bitirir [hesap: DENETİM 184], öneri taraf başına küme, iki taraf da kendine varınca H2771, bu 7.6'yı genişletir; hız ölçüsü tek kısa Colab koşusu. Test: üç yol ve aynı alt nesneyi iki alanda tutan değerde H2771 çıkmaması.
+
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 
 **Tur 1 bitti (2026-11-01):** 2026-10-28'in 24 geçici kararı ve dört bulgu Gemini'nin araştırmasından (`TUR1_RAPORU.md`, 23 kabul, 5 değiştir) ve DENETİM'in kaynak denetiminden (14/14 alıntı birebir) geçti. Kabul edilenler ve yazılanlar (3.7a karşılaştırması, 18.2'nin örneği, 6.3'ün gerekçesi; 2026-11-01 20:1x'te 3.6a ile 5.3 ve 6.3'ün demet açması, 3.14'ün kaçış ve bayt dizisi şablonu) bu listeden silindi; 8.5 ve 16.5 uygulama işi olarak status'a geçti. Kalan 13.8 aşağıda.
