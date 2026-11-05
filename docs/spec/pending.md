@@ -11,7 +11,6 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
-- **15.53, etkinleştirme nicemleme (2026-11-06, Ahmet; kural değişiyor):** 15.53 bugünkü davranışı yazıyor ("TR nicemlemez"). Yeni kural: varsayılan kapalı, açık seçimle etkinleştirme nicemleme; belirlenimci; sonuç kapalı yoldan ayrılabilir, sınır söz verilmez. Görünür ad ve H1 dilim 7 buna bağlı. Değişecek yerler (DENETİM 209): `@` satırı, türev, belirlenimcilik, cümlenin kendisi, FP8 gerekçesi, gerekçeye Bedel alt maddesi, *Test:* satırı. Sahip TCB.
 - **4.5, derinlik sınırı (2026-11-05, A, DENETİM istek 184):** `==` derinlik sınırında sessizce yanlış veriyor (status 4.5). Yön: iç içelik sınırı yoktur, gezinti açık yığınla yazılır, döngülü değerde H2771. Metin dört şeyi söylemeli: iki gezinti de (`walk`, `valuesEqual`) sınırsız olur ve iki geçiş kalır, yoksa `[1, f] == [2, f]` yanlışa döner; `ValuesEqual` ve `Equaler` bool döndürür, döngü kuramayan yerde yalnız sınır kalkar; çift yolu kümesi büyük halkalarda belleği bitirir [hesap: DENETİM 184], öneri taraf başına küme, iki taraf da kendine varınca H2771, bu 7.6'yı genişletir; hız ölçüsü tek kısa Colab koşusu. Test: üç yol ve aynı alt nesneyi iki alanda tutan değerde H2771 çıkmaması.
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
@@ -50,6 +49,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **15.53, etkinleştirme nicemleme (2026-11-06, Ahmet ve TCB):** 15.53 bugünkü davranışıyla kalır, metni şimdi değişmez: varsayılan yol budur, sade ve doğrulaması kolay. Kapalı bir kapı değil: kullanıcının seçtiği yaklaşıklık dilin doğruluğuna dokunmaz. Seçenek ölçüye bağlı: H1 bit değiştirmeyen işleri bitirince `Q4_K`'da tek çekirdekle deneme; hız kazancı ve kalite bedeli ölçülür. Anlamlıysa 15.53'e açık seçim eklenir, değilse bu satır kapanır. Değişecek yerler DENETİM 209'da.
 - **22.1 ve 23.1, örnek (2026-11-05, ara, S1):** `gerçek.TR_tolist()` H2421 veriyor, `t.TR_tolist` liste veriyor; 13, 15, 22, 23 parantezli yazıyor. Motor mu metin mi, karar gerekir.
 - **22.4, yarım değer (2026-11-05, S1):** "en yakın tam sayıya" yarımı söylemiyor; `lib/audio.tr` çifte gidiyor.
 - **15.18a, eksi tolerans (2026-11-05, S1):** söylenmiyor; `TR_rtol: -1.0, TR_atol: 5.0` `TR_true` veriyor.
