@@ -525,6 +525,8 @@
 "H2919": { "param": ["fn", "index", "given"], "slots": {"async": "TR_kw_async"} },
 "H2920": { "param": ["line"] },
 "H2921": { "param": ["fn", "value", "line"] },
+"H2922": { "param": ["written", "struct", "field"], "slots": {"Int": "TR_type_Int"} },
+"H2923": { "param": ["written", "struct", "field"] },
 "H3001": { "param": ["dev"] },
 "H3002": { "param": ["mask", "q"] },
 "H3003": { "param": ["q", "k", "v"] },

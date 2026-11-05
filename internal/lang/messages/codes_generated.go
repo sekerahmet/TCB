@@ -530,6 +530,8 @@ const (
 	H2919 Code = 2919 // {fn} bir görev listesi alır; listenin [{index}] öğesi görev değil, {given} verildi: görev `{#async} f(x)` ile başlatılır
 	H2920 Code = 2920 // görev iptal edildi (satır {line|loc} başlatılan)
 	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): görev iptal edildi ve durdu (satır {line|loc} başlatılan)
+	H2922 Code = 2922 // ; `{written}` dilin kimliğidir, {struct} yapısının alanı olamaz: alanı `{field}: {#Int}` diye ekleyin, `.{field}` ile kullanın
+	H2923 Code = 2923 // ; `{written}` dilin kimliğidir, {struct} yapısının bu üyesi `.{field}` diye yazılır
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
 	H3002 Code = 3002 // Attention maskesi farklı cihazda ({mask}, {q})
 	H3003 Code = 3003 // Attention q, k, v aynı sayıda (en az 2) eksen ister: {q}, {k}, {v}

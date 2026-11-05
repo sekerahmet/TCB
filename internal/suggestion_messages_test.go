@@ -164,6 +164,11 @@ var suggestionResultCases = []suggestionResultCase{
 	// 2.3a: noktadan önceki değer ilk argüman olur; yol değerinde öneri dosyayı taşır.
 	{messages.H7016, "TR_var x = \"a.txt\"\nTR_var y = \"b.txt\"\nTR_write_file(x, \"v\")\nx.TR_move(y)", "TR_move(x, y)",
 		"TR_var x = \"a.txt\"\nTR_var y = \"b.txt\"\nTR_write_file(x, \"v\")\nTR_move(x, y)\nTR_print(TR_read_file(y))", "v\n"},
+	// 7.5, 2.3a: kimlik yapının alanı olamaz; öneri öneksiz addır.
+	{messages.H2922, "TR_struct K { a: TR_Int }\nTR_var k = K(1); k.TR_weight = 2", "weight: TR_Int",
+		"TR_struct K { a: TR_Int, weight: TR_Int }\nTR_var k = K(1, 0)\nk.weight = 2\nTR_print(k.weight)", "2\n"},
+	{messages.H2923, "TR_struct K { weight: TR_Int }\nTR_var k = K(1); k.TR_weight = 2", ".weight",
+		"TR_struct K { weight: TR_Int }\nTR_var k = K(1)\nk.weight = 2\nTR_print(k.weight)", "2\n"},
 	// 2.3a: metin alıcıda yol ve içerik karışmaz; öneri izlenince verilen yola içerik yazılır.
 	{messages.H0301, "TR_var x = \"v\"\nTR_var y = \"a.txt\"\nx." + "TR_write_file(y)", "TR_write_file(y, x)",
 		"TR_var x = \"v\"\nTR_var y = \"a.txt\"\nTR_write_file(y, x)\nTR_print(TR_read_file(y))", "v\n"},

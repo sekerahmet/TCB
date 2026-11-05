@@ -525,6 +525,8 @@
 "H2919": "{fn} takes a list of tasks; the list's element [{index}] is not a task, {given} given: a task is started with `{#async} f(x)`",
 "H2920": "the task was cancelled (started at line {line|loc})",
 "H2921": "{fn} timed out ({value} seconds): the task was cancelled and has stopped (started at line {line|loc})",
+"H2922": "; `{written}` is an identity of the language and cannot be a field of {struct}: add the field as `{field}: {#Int}` and use `.{field}`",
+"H2923": "; `{written}` is an identity of the language: this member of {struct} is written `.{field}`",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",
 "H3002": "Attention mask is on a different device ({mask}, {q})",
 "H3003": "Attention q, k, v need the same number of axes (at least 2): {q}, {k}, {v}",

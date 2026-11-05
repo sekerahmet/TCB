@@ -139,6 +139,10 @@ TR_test "7.5 ileti en yakın alanı önerir, yoksa alanı eklemeyi" {
     TR_assert(iletiler[0].TR_ends_with(`Message("H1104", "y"))`), iletiler[0])
     TR_assert(iletiler[1].TR_ends_with(`Message("H1104", "x"))`), iletiler[1])
     TR_assert(iletiler[2].TR_ends_with(`Message("H2754", "renk", "Nokta"))`), iletiler[2])
+    # Kimlik alan olamaz: öneri kullanıcının adıdır.
+    TR_var k = Nokta(1, 2)
+    TR_try { k.TR_weight = 3 } TR_catch e { iletiler.TR_append(TR_String(e)) }
+    TR_assert(iletiler[3].TR_ends_with(`Message("H2922", "TR_weight", "Nokta", "weight"))`), iletiler[3])
     # önerilen yazım
     p.x = 3
     TR_assert_equal([3, 2], [p.x, p.y])
