@@ -318,6 +318,8 @@ adlar.TR_keys	ok	0	name:TR_mem_keys
 adlar.TR_length	ok	0	name:TR_mem_length
 akış.TR_finish	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_finish
 akış.TR_step	ok	0	name:TR_mem_step
+alanlar.TR_append	ok	0	name:TR_mem_append
+alanlar.TR_join	ok	0	name:TR_mem_join
 alt.TR_append	ok	0	name:TR_mem_append
 alınan.TR_contains	ok	0	name:TR_mem_contains
 ana.TR_cancel	ok	0	name:TR_mem_cancel

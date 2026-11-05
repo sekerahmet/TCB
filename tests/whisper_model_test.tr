@@ -16,29 +16,38 @@ TR_func değerler(tohum: TR_Int, n: TR_Int) -> TR_List[TR_Float] {
     TR_return [(((i + 1) * 40503 + tohum * 9973) % 65536 - 32768) / 32768.0 * 0.25 TR_for i TR_in 0..n]
 }
 
-TR_func dikkat(ön: TR_String) -> TR_List {
-    TR_var b = [_BOYUT, _BOYUT]
-    TR_return [["\(ön).q_proj.weight", b], ["\(ön).q_proj.bias", [_BOYUT]], ["\(ön).k_proj.weight", b],
-        ["\(ön).v_proj.weight", b], ["\(ön).v_proj.bias", [_BOYUT]], ["\(ön).out_proj.weight", b], ["\(ön).out_proj.bias", [_BOYUT]]]
+# Bir tensörün adı ve şekli.
+TR_struct Ad {
+    ad: TR_String
+    şekil: TR_List[TR_Int]
 }
 
-TR_func norm(ön: TR_String) -> TR_List { TR_return [["\(ön).weight", [_BOYUT]], ["\(ön).bias", [_BOYUT]]] }
+TR_func dikkat(ön: TR_String) -> TR_List[Ad] {
+    TR_var b = [_BOYUT, _BOYUT]
+    TR_return [Ad(ad: "\(ön).q_proj.weight", şekil: b), Ad(ad: "\(ön).q_proj.bias", şekil: [_BOYUT]), Ad(ad: "\(ön).k_proj.weight", şekil: b),
+        Ad(ad: "\(ön).v_proj.weight", şekil: b), Ad(ad: "\(ön).v_proj.bias", şekil: [_BOYUT]),
+        Ad(ad: "\(ön).out_proj.weight", şekil: b), Ad(ad: "\(ön).out_proj.bias", şekil: [_BOYUT])]
+}
 
-TR_func blok(ön: TR_String, çözücü: TR_Bool) -> TR_List {
+TR_func norm(ön: TR_String) -> TR_List[Ad] { TR_return [Ad(ad: "\(ön).weight", şekil: [_BOYUT]), Ad(ad: "\(ön).bias", şekil: [_BOYUT])] }
+
+TR_func blok(ön: TR_String, çözücü: TR_Bool) -> TR_List[Ad] {
     TR_var r = dikkat("\(ön).self_attn") + norm("\(ön).self_attn_layer_norm")
     TR_if çözücü { r = r + dikkat("\(ön).encoder_attn") + norm("\(ön).encoder_attn_layer_norm") }
-    r = r + [["\(ön).fc1.weight", [_ARA, _BOYUT]], ["\(ön).fc1.bias", [_ARA]], ["\(ön).fc2.weight", [_BOYUT, _ARA]], ["\(ön).fc2.bias", [_BOYUT]]]
+    r = r + [Ad(ad: "\(ön).fc1.weight", şekil: [_ARA, _BOYUT]), Ad(ad: "\(ön).fc1.bias", şekil: [_ARA]),
+        Ad(ad: "\(ön).fc2.weight", şekil: [_BOYUT, _ARA]), Ad(ad: "\(ön).fc2.bias", şekil: [_BOYUT])]
     TR_return r + norm("\(ön).final_layer_norm")
 }
 
 # adlar tensörleri sırayla verir: sıra formülün tohumudur.
-TR_func adlar(mel: TR_Int) -> TR_List {
+TR_func adlar(mel: TR_Int) -> TR_List[Ad] {
     TR_var e = "model.encoder"
     TR_var d = "model.decoder"
-    TR_var r = [["\(e).conv1.weight", [_BOYUT, mel, 3]], ["\(e).conv1.bias", [_BOYUT]], ["\(e).conv2.weight", [_BOYUT, _BOYUT, 3]],
-        ["\(e).conv2.bias", [_BOYUT]], ["\(e).embed_positions.weight", [_KAYNAK, _BOYUT]]]
+    TR_var r = [Ad(ad: "\(e).conv1.weight", şekil: [_BOYUT, mel, 3]), Ad(ad: "\(e).conv1.bias", şekil: [_BOYUT]),
+        Ad(ad: "\(e).conv2.weight", şekil: [_BOYUT, _BOYUT, 3]), Ad(ad: "\(e).conv2.bias", şekil: [_BOYUT]),
+        Ad(ad: "\(e).embed_positions.weight", şekil: [_KAYNAK, _BOYUT])]
     r = r + blok("\(e).layers.0", TR_false) + blok("\(e).layers.1", TR_false) + norm("\(e).layer_norm")
-    r = r + [["\(d).embed_tokens.weight", [_DAĞARCIK, _BOYUT]], ["\(d).embed_positions.weight", [_HEDEF, _BOYUT]]]
+    r = r + [Ad(ad: "\(d).embed_tokens.weight", şekil: [_DAĞARCIK, _BOYUT]), Ad(ad: "\(d).embed_positions.weight", şekil: [_HEDEF, _BOYUT])]
     TR_return r + blok("\(d).layers.0", TR_true) + norm("\(d).layer_norm")
 }
 
@@ -46,31 +55,39 @@ TR_func ağırlıklar(mel: TR_Int = 80) -> TR_Dict[TR_String, TR_Tensor] {
     TR_var sonuç: TR_Dict[TR_String, TR_Tensor] = {}
     TR_for tohum, a TR_in adlar(mel) {
         TR_var n = 1
-        TR_for boy TR_in a[1] { n = n * boy }
-        sonuç[a[0]] = TR_Tensor(değerler(tohum, n)).TR_reshape(a[1])
+        TR_for boy TR_in a.şekil { n = n * boy }
+        sonuç[a.ad] = TR_Tensor(değerler(tohum, n)).TR_reshape(a.şekil)
     }
     TR_return sonuç
 }
 
-TR_func ayar() -> TR_Dict[TR_String, TR_Any] {
-    TR_return {"model_type": "whisper", "d_model": _BOYUT, "num_mel_bins": 80, "vocab_size": _DAĞARCIK, "max_source_positions": _KAYNAK,
-        "max_target_positions": _HEDEF, "encoder_layers": 2, "encoder_attention_heads": 2, "encoder_ffn_dim": _ARA, "decoder_layers": 1,
-        "decoder_attention_heads": 2, "decoder_ffn_dim": _ARA, "activation_function": "gelu", "scale_embedding": TR_false}
+# ayar config.json'un alanlarıdır; değerler JSON metni olarak tutulur.
+TR_func ayar() -> TR_Dict[TR_String, TR_String] {
+    TR_return {"model_type": `"whisper"`, "d_model": "\(_BOYUT)", "num_mel_bins": "80", "vocab_size": "\(_DAĞARCIK)", "max_source_positions": "\(_KAYNAK)",
+        "max_target_positions": "\(_HEDEF)", "encoder_layers": "2", "encoder_attention_heads": "2", "encoder_ffn_dim": "\(_ARA)", "decoder_layers": "1",
+        "decoder_attention_heads": "2", "decoder_ffn_dim": "\(_ARA)", "activation_function": `"gelu"`, "scale_embedding": "false"}
 }
 
-TR_func üretim() -> TR_Dict[TR_String, TR_Any] { TR_return {"suppress_tokens": [1], "no_timestamps_token_id": 9} }
+TR_func üretim() -> TR_Dict[TR_String, TR_String] { TR_return {"suppress_tokens": "[1]", "no_timestamps_token_id": "9"} }
+
+# json_metni alanları JSON nesnesine çevirir.
+TR_func json_metni(a: TR_Dict[TR_String, TR_String]) -> TR_String {
+    TR_var alanlar: TR_List[TR_String] = []
+    TR_for ad, değer TR_in a { alanlar.TR_append("\"\(ad)\": \(değer)") }
+    TR_return "{" + alanlar.TR_join(", ") + "}"
+}
 
 # klasör verilenlerden Hugging Face biçiminde geçici bir klasör kurar.
-TR_func klasör(a: TR_Dict[TR_String, TR_Any], ü: TR_Dict[TR_String, TR_Any], t: TR_Dict[TR_String, TR_Tensor]) -> TR_String {
+TR_func klasör(a: TR_Dict[TR_String, TR_String], ü: TR_Dict[TR_String, TR_String], t: TR_Dict[TR_String, TR_Tensor]) -> TR_String {
     TR_var k = TR_temp_dir()
-    TR_write_file(TR_Path(k, "config.json"), TR_json_string(a))
-    TR_write_file(TR_Path(k, "generation_config.json"), TR_json_string(ü))
+    TR_write_file(TR_Path(k, "config.json"), json_metni(a))
+    TR_write_file(TR_Path(k, "generation_config.json"), json_metni(ü))
     TR_copy("data/tokenizer.json", TR_Path(k, "tokenizer.json"))
     TR_save_tensors(TR_String(TR_Path(k, "model.safetensors")), t)
     TR_return TR_String(k)
 }
 
-TR_func aç_ayarla(a: TR_Dict[TR_String, TR_Any]) -> TR_String? { TR_return TR_error_code { TR_pretrained_whisper(klasör(a, üretim(), ağırlıklar())) } }
+TR_func aç_ayarla(a: TR_Dict[TR_String, TR_String]) -> TR_String? { TR_return TR_error_code { TR_pretrained_whisper(klasör(a, üretim(), ağırlıklar())) } }
 
 TR_func aç_tensörle(t: TR_Dict[TR_String, TR_Tensor]) -> TR_String? { TR_return TR_error_code { TR_pretrained_whisper(klasör(ayar(), üretim(), t)) } }
 
@@ -102,7 +119,7 @@ TR_test "25.1 başvuruyla kıyas farkı görür" {
 
 TR_test "25.1 128 Mel açılır" {
     TR_var a = ayar()
-    a["num_mel_bins"] = 128
+    a["num_mel_bins"] = "128"
     TR_var model = TR_pretrained_whisper(klasör(a, üretim(), ağırlıklar(mel: 128)))
     TR_assert_equal([1, _KAYNAK, _BOYUT], model._kodla(TR_zeros([128, 2 * _KAYNAK])).TR_shape)
 }
@@ -146,7 +163,7 @@ TR_test "25.1 eksik alan hatadır" {
 
 TR_test "25.1 başka mimari hatadır, ileti TR_pretrained_model'i önerir" {
     TR_var a = ayar()
-    a["model_type"] = "llama"
+    a["model_type"] = `"llama"`
     TR_assert_equal("H7089", aç_ayarla(a))
     TR_assert_equal("H7089", TR_error_code { TR_pretrained_whisper("data/hf_tiny") })
     TR_assert(TR_pretrained_model("data/hf_tiny").TR_blocks.TR_length > 0)
@@ -161,7 +178,7 @@ TR_test "25.1 TR_pretrained_model'e Whisper klasörü hatadır, ileti bu adı ö
 TR_test "25.1 num_mel_bins 80 ve 128 dışında hatadır" {
     TR_for mel TR_in [79, 81, 127, 129, 1] {
         TR_var a = ayar()
-        a["num_mel_bins"] = mel
+        a["num_mel_bins"] = "\(mel)"
         TR_assert_equal("H7091", aç_ayarla(a))
     }
 }
@@ -177,7 +194,7 @@ TR_test "25.1 bilinmeyen tensör hatadır: çıkış katmanı ve K'nın sapması
 TR_test "25.1 eksik tensör hatadır" {
     TR_for a TR_in adlar(80) {
         TR_var t = ağırlıklar()
-        t.TR_remove(a[0])
+        t.TR_remove(a.ad)
         TR_assert_equal("H7093", aç_tensörle(t))
     }
 }
@@ -202,18 +219,18 @@ TR_test "25.1 ayara uymayan şekil hatadır" {
 
 TR_test "25.1 desteklenmeyen ayar ve boyut hatadır" {
     TR_var a = ayar()
-    a["activation_function"] = "relu"
+    a["activation_function"] = `"relu"`
     TR_assert_equal("H7096", aç_ayarla(a))
     TR_var b = ayar()
-    b["scale_embedding"] = TR_true
+    b["scale_embedding"] = "true"
     TR_assert_equal("H7096", aç_ayarla(b))
     TR_var c = ayar()
-    c["encoder_attention_heads"] = 3
+    c["encoder_attention_heads"] = "3"
     TR_assert_equal("H7096", aç_ayarla(c))
     TR_for alan TR_in ["d_model", "encoder_attention_heads", "encoder_layers", "vocab_size"] {
         TR_for n TR_in [0, -1] {
             TR_var d = ayar()
-            d[alan] = n
+            d[alan] = "\(n)"
             TR_assert_equal("H7096", aç_ayarla(d))
         }
     }
