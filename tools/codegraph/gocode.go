@@ -152,6 +152,7 @@ func extractGo(m *module, b *builder) *goIndex {
 	x.resolveStdlibUses()
 	x.resolveScans()
 	x.resolveParamPaths()
+	x.resolveTestBareReads()
 	x.resolvePerDirPaths()
 	x.implements()
 	x.testSkips()
