@@ -76,7 +76,7 @@ func rfft[T floatType](t *Tensor, n int, tr Trig) (*Tensor, *Tensor) {
 			copy(im[r*bins:(r+1)*bins], w.yi[:bins])
 		}
 	})
-	return fromSignal(re, shape), fromSignal(im, shape)
+	return trackRfft(t, fromSignal(re, shape), fromSignal(im, shape), n, tr)
 }
 
 // HannWindow n uzunlukta Hann penceresidir (23.2): hesap float64'te, sonuç float32'dir.
@@ -136,10 +136,7 @@ func stft[T floatType](x, window *Tensor, o StftOptions, tr Trig) (*Tensor, *Ten
 	sig, win := signalOf[T](x), signalOf[T](window)
 	re, im := make([]T, rows*bins*frames), make([]T, rows*bins*frames)
 	plan := newPlan[T](tr, o.N)
-	half := 0
-	if o.Center {
-		half = o.N / 2
-	}
+	half := centerOffset(o)
 	parallelFor(rows*frames, o.N*fourierCost, func(lo, hi int) {
 		w := plan.newRealWork()
 		for u := lo; u < hi; u++ {
@@ -156,20 +153,35 @@ func stft[T floatType](x, window *Tensor, o StftOptions, tr Trig) (*Tensor, *Ten
 			}
 		}
 	})
-	return fromSignal(re, shape), fromSignal(im, shape)
+	return trackStft(x, window, fromSignal(re, shape), fromSignal(im, shape), o, tr)
 }
 
-// paddedAt dolgulu sinyalin i konumudur: dışarısı yansıtmada aynadan, öbüründe sıfırdır.
+// centerOffset ortalamanın sol dolgusudur.
+func centerOffset(o StftOptions) int {
+	if o.Center {
+		return o.N / 2
+	}
+	return 0
+}
+
+// paddedIndex dolgulu sinyalin i konumunun sinyaldeki yeridir: yansıtmada aynadan gelir, sıfır
+// dolgusunda inside yanlıştır.
+func paddedIndex(n, i int, reflect bool) (j int, inside bool) {
+	switch {
+	case i >= 0 && i < n:
+		return i, true
+	case !reflect:
+		return 0, false
+	case i < 0:
+		return -i, true
+	}
+	return 2*(n-1) - i, true
+}
+
+// paddedAt dolgulu sinyalin i konumundaki değeridir.
 func paddedAt[T floatType](row []T, i int, reflect bool) T {
-	n := len(row)
-	if i >= 0 && i < n {
-		return row[i]
+	if j, inside := paddedIndex(len(row), i, reflect); inside {
+		return row[j]
 	}
-	if !reflect {
-		return 0
-	}
-	if i < 0 {
-		return row[-i]
-	}
-	return row[2*(n-1)-i]
+	return 0
 }

@@ -150,12 +150,59 @@ TR_test "sinyal 23.3: yanlış ayarlar adıyla hata verir" {
     TR_assert_equal("H7078", TR_error_code { TR_stft(TR_zeros([3]), 4, TR_hop_length: 2, TR_window: w, TR_center: TR_false) })
 }
 
-TR_test "sinyal 23.1, 23.3: türev isteyen girdi açık hata verir; türevsiz blokta çalışır" {
+TR_test "sinyal 23.1: türev sayısal türevle tutar: dolgu ve toplu eksen dahil" {
+    TR_var x = TR_Tensor([0.5, -1.0, 2.0, 0.25, 1.5], TR_requires_grad: TR_true)
+    TR_func kayıp(girdi: TR_Tensor) -> TR_Tensor {
+        TR_var g, s = TR_rfft(girdi, TR_n: 8)
+        TR_return TR_sum(g ** 2 + 2.0 * s ** 2 + g * s)
+    }
+    TR_grad_check(kayıp, [x], TR_fd_step: 0.01, TR_tol: 0.02)
+    TR_var y = TR_Tensor([[0.5, -1.0, 2.0, 0.25], [1.0, 0.5, -0.25, 2.0]], TR_requires_grad: TR_true)
+    TR_grad_check(kayıp, [y], TR_fd_step: 0.01, TR_tol: 0.02)
+}
+
+TR_test "sinyal 23.1: türev tamdır: tek kutunun gradyanı kosinüstür" {
     TR_var x = TR_Tensor([1.0, 2.0, 3.0, 4.0], TR_requires_grad: TR_true)
-    TR_assert_equal("H7076", TR_error_code { TR_rfft(x) })
-    TR_assert_equal("H7076", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: TR_ones([4]), TR_center: TR_false) })
+    TR_var g, s = TR_rfft(x)
+    TR_backward(TR_sum(g))
+    # Σ_j cos(2π·j·k/4), j = 0, 1, 2: k = 0 için 3; 1 için 0; 2 için 1; 3 için 0.
+    TR_assert_equal([3.0, 0.0, 1.0, 0.0], x.TR_grad.TR_tolist)
+}
+
+TR_test "sinyal 23.3: türev sayısal türevle tutar: yansıtma, sıfır dolgusu, dolgusuz, pencere" {
+    TR_var x = TR_Tensor([0.5, -1.0, 2.0, 0.25, 1.5, -0.75, 0.5, 1.0, -2.0], TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor([0.25, 1.0, 0.75, 0.5], TR_requires_grad: TR_true)
+    TR_func ölç(k: TR_String, girdi: TR_Tensor, pencere: TR_Tensor) -> TR_Tensor {
+        TR_var g: TR_Tensor? = TR_none
+        TR_var s: TR_Tensor? = TR_none
+        TR_if k == "yok" {
+            g, s = TR_stft(girdi, 4, TR_hop_length: 2, TR_window: pencere, TR_center: TR_false)
+        } TR_else {
+            g, s = TR_stft(girdi, 4, TR_hop_length: 2, TR_window: pencere, TR_pad_mode: k)
+        }
+        TR_return TR_sum((g ?? girdi) ** 2 + 2.0 * (s ?? girdi) ** 2)
+    }
+    TR_for kip TR_in ["reflect", "constant", "yok"] {
+        TR_grad_check((a) => ölç(kip, a, w), [x], TR_fd_step: 0.01, TR_tol: 0.02)
+        TR_grad_check((b) => ölç(kip, x, b), [w], TR_fd_step: 0.01, TR_tol: 0.02)
+    }
+}
+
+TR_test "sinyal 23.3: yalnız pencere türev isterse sinyale gradyan yazılmaz" {
+    TR_var x = TR_Tensor([0.5, -1.0, 2.0, 0.25, 1.5])
+    TR_var w = TR_Tensor([1.0, 1.0, 1.0, 1.0], TR_requires_grad: TR_true)
+    TR_var g, _ = TR_stft(x, 4, TR_hop_length: 1, TR_window: w, TR_center: TR_false)
+    TR_backward(TR_sum(g))
+    TR_assert_equal(TR_none, x.TR_grad)
+    TR_assert_equal([4], w.TR_grad.TR_shape)
+}
+
+TR_test "sinyal 23.1: türevsiz blokta ve float64'te türev izlenmez" {
+    TR_var x = TR_Tensor([1.0, 2.0, 3.0, 4.0], TR_requires_grad: TR_true)
     TR_var g = TR_no_grad { TR_rfft(x) }
-    TR_assert_equal([3], g.0.TR_shape)
+    TR_assert_equal(TR_false, g.0.TR_requires_grad)
+    TR_var h, _ = TR_rfft(TR_Tensor([1.0, 2.0], TR_dtype: "float64"))
+    TR_assert_equal(TR_false, h.TR_requires_grad)
 }
 
 TR_func süzgeçler(m: TR_Int = 40) -> TR_Tensor {

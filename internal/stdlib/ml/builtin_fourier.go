@@ -93,23 +93,10 @@ func rfftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	if last > n {
 		return nil, messages.New(messages.H7078, fn, last, n, "long")
 	}
-	if err := refuseGrad(fn, x); err != nil {
-		return nil, err
-	}
 	return safe(func() interp.Value {
 		re, im := tensor.Rfft(x, n, fourierCall(fn))
 		return complexResult(re, im)
 	})
-}
-
-// refuseGrad türev isteyen girdiyi açıkça reddeder: sonuç sessizce kopmaz.
-func refuseGrad(fn any, ts ...*tensor.Tensor) error {
-	for _, t := range ts {
-		if t.RequiresGrad() && tensor.GradEnabled() {
-			return messages.New(messages.H7076, fn, codes.Spelling(codes.ArgRequiresGrad), "grad", codes.Spelling(codes.FnNoGrad)+" { ... }")
-		}
-	}
-	return nil
 }
 
 // hannBuiltin TR_hann_window(n, TR_periodic: b).
@@ -221,9 +208,6 @@ func stftBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Valu
 	}
 	if padded, _ := tensor.StftFrames(last, o); padded < n {
 		return nil, messages.New(messages.H7078, fn, padded, n, "short")
-	}
-	if err := refuseGrad(fn, x, w); err != nil {
-		return nil, err
 	}
 	return safe(func() interp.Value {
 		re, im := tensor.Stft(x, w, o, fourierCall(fn))
