@@ -341,7 +341,7 @@ Liste işlenen değildir: `t + [10, 20]` denetim hatasıdır, ileti `t + TR_Tens
 - Adlı argümanlar: `TR_stride: 1`, `TR_padding: 0`, `TR_dilation: 1`, `TR_num_groups: 1`. 2 boyutta ilk üçü bir `TR_Int` ya da iki öğeli demet (`(sh, sw)`); dolgu sıfırdır. Grup sayısının adı iyileştiricinin parametre gruplarından (`.TR_groups`) ayrıdır: aynı ad iki anlam taşımaz (17.5).
 - Hesap `@` gibidir: float32 biriktirme, `TR_mixed_precision` bloğunda blok türü (15.4); türev girdiye, ağırlığa ve sapmaya gider.
 - Şekil uymazsa (kanal sayısı, gruplar, çekirdek girdiden büyük) çalışma hatasıdır; ileti şekilleri söyler.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi (`TR_conv1d`); `TR_conv2d` uygulanınca TR testi.
 
 **15.23d** `TR_dropout(x, oran)` her öğeyi `oran` olasılıkla sıfırlar, kalanları `1 / (1 − oran)` ile ölçekler; türev aynı maskeden geçer.
 - `oran` 0 ile 1 arasındadır (1 hariç); 0'da sonuç `x`'in kendisidir (kopyasız).
