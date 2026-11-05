@@ -57,10 +57,45 @@ func (g *backend) quantGemm(M, N, K int, a, b tensor.View, c tensor.Storage, ove
 	checkSize(M * N)
 	checkSize(N * K)
 	av := gt.read(a)
-	if M != 1 {
-		panic(tensor.PrecisionError(g.storageOf(b.S).dtype, g.dev))
+	if M == 1 {
+		g.quantGemv(gt, N, K, av, b, cd, over)
+		return
 	}
-	g.quantGemv(gt, N, K, av, b, cd, over)
+	g.quantGemmRows(gt, M, N, K, av, b, cd, over)
+}
+
+// quantTileFloats çok satırlı çarpımın bir parçasında açılan ağırlık ve çıktı tamponlarının float32
+// sayısıdır: 64 MiB. Parça yalnız şekle bağlıdır, toplama sırası da öyle kalır.
+const quantTileFloats = 1 << 24
+
+// quantTileRows bir parçada açılan ağırlık satırıdır: en az 64.
+func (g *backend) quantTileRows(M, N, K int) int {
+	budget := quantTileFloats
+	if g.quantTile > 0 {
+		budget = g.quantTile
+	}
+	return min(max(budget/(K+M)/64*64, 64), N)
+}
+
+// quantGemmRows M > 1 çarpımıdır: ağırlık satır parçaları sırayla geçici tampona açılır, parça
+// float32 çarpımla c'nin sütunlarına gider. Bütün ağırlık hiç açılmaz; CPU'nun quantGemm'iyle aynı yol.
+func (g *backend) quantGemmRows(gt *temp, M, N, K int, a, b tensor.View, c *storage, over bool) {
+	bd := g.storageOf(b.S)
+	rows := g.quantTileRows(M, N, K)
+	tile := gt.buffer(rows*K, false)
+	if rows == N && over {
+		g.openQuant(tile, 0, bd, b.Offset, N*K)
+		g.gemm(1, M, N, K, a, false, plainV(tile), true, c, 0, true)
+		return
+	}
+	part := gt.buffer(M*rows, false)
+	for n0 := 0; n0 < N; n0 += rows {
+		t := min(rows, N-n0)
+		g.openQuant(tile, 0, bd, b.Offset+n0*K, t*K)
+		g.gemm(1, M, t, K, a, false, plainV(tile), true, part, 0, true)
+		band := tensor.View{S: c, Offset: n0, Shape: []int{M, t}, Strides: []int{N, 1}}
+		g.copyStrided(band, tensor.View{S: part, Shape: []int{M, t}, Strides: []int{t, 1}}, !over, 1)
+	}
 }
 
 // quantGemv M = 1 çarpımıdır; çekirdek etkinleştirmeyi 16 baytlık okur, hizasız görünüm kopyalanır.

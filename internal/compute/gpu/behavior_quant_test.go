@@ -17,7 +17,7 @@ import (
 var quantTypes = []tensor.DType{tensor.Q8, tensor.Q4K, tensor.Q6K}
 
 // quantRowCounts çarpımın sınanan satır sayılarıdır.
-var quantRowCounts = []int{1}
+var quantRowCounts = []int{1, 2, 5}
 
 // quantBlockBytes rastgele bloklar; ölçekler sonlu, küçük.
 func quantBlockBytes(rng *rand.Rand, dt tensor.DType, blocks int) []byte {
@@ -297,6 +297,35 @@ func TestQuantGemmAccumulates(t *testing.T) {
 		}
 	}
 }
+
+// Çok satır açılmış hesapla aynıdır; parçalar arası sınır sonucu değiştirmez (parça 64 satır: N = 70
+// iki parçadır), ağırlık kalıcı açılmaz.
+func TestQuantMatMulRowsMatchOpened(t *testing.T) {
+	rng := rand.New(rand.NewSource(12))
+	g := gpuBackend()
+	g.quantTile = 1
+	defer func() { g.quantTile = 0 }()
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		for _, c := range [][3]int{{2, 3, elems}, {5, 70, 2 * elems}, {17, 129, 3 * elems}} {
+			M, N, K := c[0], c[1], c[2]
+			host, card := quantWeights(t, rng, dt, N, K)
+			x := twin(random(rng, M*K, 1), false, M, K)
+			got := tensor.MatMul(x[1], card.T())
+			want := tensor.MatMul(x[0], host.Open(tensor.Float32).T()).Data()
+			checkDiff(t, dt.Name(), got.Data(), want, quantRowsTolerance(K))
+			checkDiff(t, dt.Name()+" CPU", got.Data(), tensor.MatMul(x[0], host.T()).Data(), quantRowsTolerance(K))
+			sameFloatBits(t, dt.Name()+" ikinci koşu", tensor.MatMul(x[1], card.T()).Data(), got.Data())
+			wide := tensor.MatMul(x[1].Cast(tensor.BFloat16), card.T())
+			if wide.DType() != tensor.BFloat16 {
+				t.Fatalf("%v: sonuç %v", dt, wide.DType())
+			}
+		}
+	}
+}
+
+// quantRowsTolerance çok satırın sınırıdır: float32 çarpımınkidir (TestGemvOff'un kuralı).
+func quantRowsTolerance(K int) float64 { return 1e-5 * math.Sqrt(float64(K)) }
 
 // Gömme seçilen satırları kartta açar; değer CPU'nunkiyle bit bit aynıdır (15.53).
 func TestQuantEmbeddingOnTheCard(t *testing.T) {

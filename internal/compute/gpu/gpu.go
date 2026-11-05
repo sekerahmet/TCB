@@ -42,7 +42,9 @@ type backend struct {
 	// gemvOff tek satırlık çarpım çekirdeğini kapatır (TR_GPU_GEMV=0; karşılaştırma): M = 1
 	// çarpımları da kitaplığa ya da döşemeli çekirdeğe gider. gemvConst doluysa tek satırlık
 	// çarpımın ayarı otomatik seçilmez (sınama ve ölçüm).
-	gemvOff   bool
+	gemvOff bool
+	// quantTile doluysa çok satırlı nicemli çarpımın parça sınırıdır (sınama: küçük parça).
+	quantTile int
 	gemvConst *gemvConfig
 	// capturing süren kaydın havuzu (kayıt yoksa nil; graph.go).
 	capturing *privatePool
