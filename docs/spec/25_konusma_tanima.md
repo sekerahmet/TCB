@@ -13,7 +13,7 @@ Emsal ve gerekçe: [`rationale/25_speech.md`](rationale/25_speech.md).
 - 16 bitlik ağırlık açılırken `float32`'ye genişletilir; hesap `float32`'dedir. Nicemli ağırlık yoktur.
 - `num_mel_bins` `config.json`'dan okunur; 80 ve 128 dışındaki değer hatadır.
 - Bilinmeyen ya da eksik tensör hatadır; ileti tensörün adını söyler.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi.
 
 ```tr
 # TR 4

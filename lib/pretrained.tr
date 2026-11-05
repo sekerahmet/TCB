@@ -45,6 +45,7 @@ TR_func TR_pretrained_model(TR_folder: TR_String, TR_weight_dtype: TR_String = "
     TR_if TR_folder.TR_lower().TR_ends_with(".gguf") { TR_throw TR_Message("H6996", TR_folder) }
     TR_var k = TR_Path(TR_folder)
     TR_var ayar = TR_json_parse(TR_read_file(TR_Path(k, "config.json")))
+    TR_if TR_String(TR_config_value(ayar, "model_type", "")) == "whisper" { TR_throw TR_Message("H7090", TR_folder) }
     TR_var model = TR_build_pretrained_model(ayar, TR_weight_dtype: TR_weight_dtype)
     TR_var ağırlıklar = TR_load_tensors(TR_Path(k, "model.safetensors"))
     TR_load_parameters(model, TR_map_hugging_face(ağırlıklar, ayar))

@@ -1,0 +1,250 @@
+# TR 4
+# tr/whisper: yayımlanmış bir Whisper modelini Hugging Face biçimindeki klasöründen açar (dil tanımı 25).
+#
+# Kullanım:   aktar "tr/whisper"
+#             değişken model = hazır_whisper("whisper-tiny")
+#
+# Mimari özgün `whisper/model.py`'dir: kodlayıcı iki evrişim, GELU ve öğrenilmiş konumdan sonra ön-norm
+# bloklardan geçer. Ağırlık adları Hugging Face'indir; K izdüşümünün sapması yoktur. Doğrusal katmanın
+# ağırlığı dosyada [çıkış, giriş], TR'nin Doğrusal'ında [giriş, çıkış]'tır: devrilir (lib/README.md).
+# Her tensörün adı ve şekli ayardan hesaplanır: dosyada kalan ya da eksik ad hatadır (25.1).
+
+TR_import "tr/layers"
+TR_import "tr/pretrained"
+
+TR_const _AYAR = "config.json"
+TR_const _ÜRETİM = "generation_config.json"
+TR_const _AĞIRLIK = "model.safetensors"
+TR_const _PARÇALAYICI = "tokenizer.json"
+
+# Klasörün boyutları: hepsi config.json'dan gelir.
+TR_struct _Boyutlar {
+    boyut: TR_Int
+    mel: TR_Int
+    dağarcık: TR_Int
+    kaynak: TR_Int
+    hedef: TR_Int
+    kodlayıcı_katman: TR_Int
+    kodlayıcı_bakış: TR_Int
+    kodlayıcı_ara: TR_Int
+    çözücü_katman: TR_Int
+    çözücü_bakış: TR_Int
+    çözücü_ara: TR_Int
+}
+
+# Dosyanın tensörleri: alınmayan ad sonda hatadır.
+TR_struct _Alıcı {
+    tensörler: TR_Dict[TR_String, TR_Tensor]
+    alınan: TR_Dict[TR_String, TR_Bool]
+    # _al tensörü denetler ve float32 olarak verir: hesap float32'dedir (25.1).
+    TR_func _al(ad: TR_String, şekil: TR_List[TR_Int]) -> TR_Tensor {
+        TR_if TR_not TR_self.tensörler.TR_contains(ad) { TR_throw TR_Message("H7093", ad) }
+        TR_var t = TR_self.tensörler[ad]
+        TR_if TR_not ["float32", "fp16", "bf16"].TR_contains(t.TR_dtype) { TR_throw TR_Message("H7094", ad, t.TR_dtype) }
+        TR_if t.TR_shape != şekil { TR_throw TR_Message("H7095", ad, t.TR_shape, şekil) }
+        TR_self.alınan[ad] = TR_true
+        TR_return t.TR_to_dtype("float32")
+    }
+    # _bitir dosyada alınmamış tensör bırakmaz.
+    TR_func _bitir() {
+        TR_for ad, t TR_in TR_self.tensörler {
+            TR_if TR_not TR_self.alınan.TR_contains(ad) { TR_throw TR_Message("H7092", ad) }
+        }
+    }
+}
+
+# Katman normu: PyTorch'un `nn.LayerNorm`'u gibi eps 1e-5'tir.
+TR_struct _Norm {
+    ağırlık: TR_Tensor
+    sapma: TR_Tensor
+    TR_func _ileri(x: TR_Tensor) -> TR_Tensor { TR_return TR_layer_norm(x, TR_weight: TR_self.ağırlık, TR_bias: TR_self.sapma) }
+}
+
+# Çok bakışlı dikkat: özgündeki `MultiHeadAttention`. Ölçek TR_attention'ın 1/√dh'sidir.
+TR_struct _Dikkat {
+    q: TR_Linear
+    k: TR_Linear
+    v: TR_Linear
+    o: TR_Linear
+    bakış: TR_Int
+    # _bakışlar [B, T, boyut]'u [B, T, bakış, bakış boyutu]'na ayırır (15.24).
+    TR_func _bakışlar(x: TR_Tensor) -> TR_Tensor {
+        TR_var ş = x.TR_shape
+        TR_return x.TR_reshape([ş[0], ş[1], TR_self.bakış, ş[2] // TR_self.bakış])
+    }
+    # _öz kodlayıcının özdikkatidir: maske yoktur.
+    TR_func _öz(x: TR_Tensor) -> TR_Tensor {
+        TR_var q = TR_self._bakışlar(TR_self.q.TR_forward(x))
+        TR_var k = TR_self._bakışlar(TR_self.k.TR_forward(x))
+        TR_var v = TR_self._bakışlar(TR_self.v.TR_forward(x))
+        TR_var y = TR_attention(q, k, v, TR_causal: TR_false)
+        TR_return TR_self.o.TR_forward(y.TR_reshape(x.TR_shape))
+    }
+}
+
+# Blok: x + dikkat(norm(x)), + mlp(norm(x)). Çözücünün bloğunda arada çapraz dikkat vardır.
+TR_struct _Blok {
+    dikkat_normu: _Norm
+    dikkat: _Dikkat
+    çapraz_normu: _Norm?
+    çapraz: _Dikkat?
+    mlp_normu: _Norm
+    mlp1: TR_Linear
+    mlp2: TR_Linear
+    # _mlp özgünün `Linear, GELU, Linear`'ıdır; GELU tam biçimdir (15.17).
+    TR_func _mlp(x: TR_Tensor) -> TR_Tensor {
+        TR_return TR_self.mlp2.TR_forward(TR_gelu(TR_self.mlp1.TR_forward(TR_self.mlp_normu._ileri(x)), TR_approximate: TR_false))
+    }
+    TR_func _kodla(x: TR_Tensor) -> TR_Tensor {
+        TR_var y = x + TR_self.dikkat._öz(TR_self.dikkat_normu._ileri(x))
+        TR_return y + TR_self._mlp(y)
+    }
+}
+
+# Kodlayıcı: özgündeki `AudioEncoder`.
+TR_struct _Kodlayıcı {
+    evrişim1: TR_Tensor
+    sapma1: TR_Tensor
+    evrişim2: TR_Tensor
+    sapma2: TR_Tensor
+    konum: TR_Tensor
+    bloklar: TR_List[_Blok]
+    norm: _Norm
+    # _ileri [B, mel, 2 · kaynak] log-Mel'i [B, kaynak, boyut] duruma çevirir.
+    TR_func _ileri(mel: TR_Tensor) -> TR_Tensor {
+        TR_var a = TR_gelu(TR_conv1d(mel, TR_self.evrişim1, TR_self.sapma1, TR_padding: 1), TR_approximate: TR_false)
+        TR_var b = TR_gelu(TR_conv1d(a, TR_self.evrişim2, TR_self.sapma2, TR_stride: 2, TR_padding: 1), TR_approximate: TR_false)
+        TR_var x = b.TR_permute([0, 2, 1]) + TR_self.konum
+        TR_for blok TR_in TR_self.bloklar { x = blok._kodla(x) }
+        TR_return TR_self.norm._ileri(x)
+    }
+}
+
+# Çözücünün ağırlıkları: gömme aynı zamanda çıkış katmanıdır (25.1).
+TR_struct _Çözücü {
+    gömme: TR_Tensor
+    konum: TR_Tensor
+    bloklar: TR_List[_Blok]
+    norm: _Norm
+}
+
+# Whisper: açılmış model. Alanları modele özeldir.
+TR_struct TR_Whisper {
+    _boyutlar: _Boyutlar
+    _üretim: TR_JSON
+    _parçalayıcı: TR_Tokenizer
+    _kodlayıcı: _Kodlayıcı
+    _çözücü: _Çözücü
+    # _kodla bir pencerenin [mel, 2 · kaynak] log-Mel'ini [1, kaynak, boyut] duruma çevirir.
+    TR_func _kodla(mel: TR_Tensor) -> TR_Tensor {
+        TR_return TR_self._kodlayıcı._ileri(mel.TR_reshape([1, mel.TR_shape[0], mel.TR_shape[1]]))
+    }
+}
+
+# _gerekli JSON nesnesinin zorunlu alanını verir.
+TR_func _gerekli(ayar, dosya: TR_String, alan: TR_String) {
+    TR_var v = TR_config_value(ayar, alan, TR_none)
+    TR_if v == TR_none { TR_throw TR_Message("H7088", dosya, alan) }
+    TR_return v
+}
+
+# _sayı config.json'un zorunlu sayısını verir: sıfır ve eksi boyut model kurmaz.
+TR_func _sayı(ayar, alan: TR_String) -> TR_Int {
+    TR_var n = TR_Int(_gerekli(ayar, _AYAR, alan))
+    TR_if n <= 0 { TR_throw TR_Message("H7096", alan, n, "positive") }
+    TR_return n
+}
+
+# _bakış bakış sayısını verir: boyutu bölmeyen sayı bakışlara ayrılamaz.
+TR_func _bakış(ayar, alan: TR_String, boyut: TR_Int) -> TR_Int {
+    TR_var n = _sayı(ayar, alan)
+    TR_if boyut % n != 0 { TR_throw TR_Message("H7096", alan, n, "heads") }
+    TR_return n
+}
+
+# _boyutlar config.json'un kapılarından geçer: desteklenmeyen ayar hatasız yüklenir, yanlış metin üretirdi.
+TR_func _boyutlar(ayar) -> _Boyutlar {
+    TR_var etkinleşme = TR_String(TR_config_value(ayar, "activation_function", "gelu"))
+    TR_if etkinleşme != "gelu" { TR_throw TR_Message("H7096", "activation_function", etkinleşme, "activation") }
+    TR_if TR_Bool(TR_config_value(ayar, "scale_embedding", TR_false)) { TR_throw TR_Message("H7096", "scale_embedding", TR_true, "scale") }
+    TR_var mel = _sayı(ayar, "num_mel_bins")
+    TR_if mel != 80 TR_and mel != 128 { TR_throw TR_Message("H7091", mel) }
+    TR_var boyut = _sayı(ayar, "d_model")
+    TR_return _Boyutlar(boyut: boyut, mel: mel, dağarcık: _sayı(ayar, "vocab_size"),
+        kaynak: _sayı(ayar, "max_source_positions"), hedef: _sayı(ayar, "max_target_positions"),
+        kodlayıcı_katman: _sayı(ayar, "encoder_layers"), kodlayıcı_bakış: _bakış(ayar, "encoder_attention_heads", boyut),
+        kodlayıcı_ara: _sayı(ayar, "encoder_ffn_dim"), çözücü_katman: _sayı(ayar, "decoder_layers"),
+        çözücü_bakış: _bakış(ayar, "decoder_attention_heads", boyut), çözücü_ara: _sayı(ayar, "decoder_ffn_dim"))
+}
+
+# _doğrusal Doğrusal'ı dosyanın [çıkış, giriş] ağırlığından kurar.
+TR_func _doğrusal(a: _Alıcı, ad: TR_String, çıkış: TR_Int, giriş: TR_Int, sapmalı: TR_Bool = TR_true) -> TR_Linear {
+    TR_var k = TR_Linear(1, 1, TR_init_std: 0.0)
+    k.TR_weight = a._al("\(ad).weight", [çıkış, giriş]).TR_transpose()
+    TR_if sapmalı { k.TR_bias = a._al("\(ad).bias", [çıkış]) }
+    TR_return k
+}
+
+TR_func _norm(a: _Alıcı, ad: TR_String, boyut: TR_Int) -> _Norm {
+    TR_return _Norm(ağırlık: a._al("\(ad).weight", [boyut]), sapma: a._al("\(ad).bias", [boyut]))
+}
+
+# _dikkat dört izdüşümü kurar; K'nın sapması yoktur.
+TR_func _dikkat(a: _Alıcı, ad: TR_String, boyut: TR_Int, bakış: TR_Int) -> _Dikkat {
+    TR_return _Dikkat(q: _doğrusal(a, "\(ad).q_proj", boyut, boyut), k: _doğrusal(a, "\(ad).k_proj", boyut, boyut, sapmalı: TR_false),
+        v: _doğrusal(a, "\(ad).v_proj", boyut, boyut), o: _doğrusal(a, "\(ad).out_proj", boyut, boyut), bakış: bakış)
+}
+
+# _blok bir bloğu kurar; çözücünün bloğunda çapraz dikkat de vardır.
+TR_func _blok(a: _Alıcı, ad: TR_String, boyut: TR_Int, bakış: TR_Int, ara: TR_Int, çözücü: TR_Bool) -> _Blok {
+    TR_var çapraz_normu: _Norm? = TR_none
+    TR_var çapraz: _Dikkat? = TR_none
+    TR_if çözücü {
+        çapraz_normu = _norm(a, "\(ad).encoder_attn_layer_norm", boyut)
+        çapraz = _dikkat(a, "\(ad).encoder_attn", boyut, bakış)
+    }
+    TR_return _Blok(dikkat_normu: _norm(a, "\(ad).self_attn_layer_norm", boyut), dikkat: _dikkat(a, "\(ad).self_attn", boyut, bakış),
+        çapraz_normu: çapraz_normu, çapraz: çapraz, mlp_normu: _norm(a, "\(ad).final_layer_norm", boyut),
+        mlp1: _doğrusal(a, "\(ad).fc1", ara, boyut), mlp2: _doğrusal(a, "\(ad).fc2", boyut, ara))
+}
+
+TR_func _kodlayıcı(a: _Alıcı, b: _Boyutlar) -> _Kodlayıcı {
+    TR_var ön = "model.encoder"
+    TR_var bloklar = [_blok(a, "\(ön).layers.\(i)", b.boyut, b.kodlayıcı_bakış, b.kodlayıcı_ara, TR_false) TR_for i TR_in 0..b.kodlayıcı_katman]
+    TR_return _Kodlayıcı(evrişim1: a._al("\(ön).conv1.weight", [b.boyut, b.mel, 3]), sapma1: a._al("\(ön).conv1.bias", [b.boyut]),
+        evrişim2: a._al("\(ön).conv2.weight", [b.boyut, b.boyut, 3]), sapma2: a._al("\(ön).conv2.bias", [b.boyut]),
+        konum: a._al("\(ön).embed_positions.weight", [b.kaynak, b.boyut]), bloklar: bloklar, norm: _norm(a, "\(ön).layer_norm", b.boyut))
+}
+
+TR_func _çözücü(a: _Alıcı, b: _Boyutlar) -> _Çözücü {
+    TR_var ön = "model.decoder"
+    TR_var bloklar = [_blok(a, "\(ön).layers.\(i)", b.boyut, b.çözücü_bakış, b.çözücü_ara, TR_true) TR_for i TR_in 0..b.çözücü_katman]
+    TR_return _Çözücü(gömme: a._al("\(ön).embed_tokens.weight", [b.dağarcık, b.boyut]), konum: a._al("\(ön).embed_positions.weight", [b.hedef, b.boyut]),
+        bloklar: bloklar, norm: _norm(a, "\(ön).layer_norm", b.boyut))
+}
+
+# _dosya klasörde olması gereken dosyanın yolunu verir.
+TR_func _dosya(yol: TR_String, ad: TR_String) -> TR_Path {
+    TR_var p = TR_Path(TR_Path(yol), ad)
+    TR_if TR_not p.TR_exists { TR_throw TR_Message("H7087", yol, ad) }
+    TR_return p
+}
+
+# hazır_whisper klasörü açar (25.1). Önce mimari bakılır: başka bir modelin klasörüne eksik dosya
+# değil, doğru ad söylenir.
+TR_func TR_pretrained_whisper(yol: TR_String) -> TR_Whisper {
+    TR_var ayar = TR_json_parse(TR_read_file(_dosya(yol, _AYAR)))
+    TR_var mimari = TR_String(_gerekli(ayar, _AYAR, "model_type"))
+    TR_if mimari != "whisper" { TR_throw TR_Message("H7089", yol, mimari) }
+    TR_var ağırlıklar = _dosya(yol, _AĞIRLIK)
+    TR_var parçalayıcı = _dosya(yol, _PARÇALAYICI)
+    TR_var üretim = TR_json_parse(TR_read_file(_dosya(yol, _ÜRETİM)))
+    _gerekli(üretim, _ÜRETİM, "suppress_tokens")
+    _gerekli(üretim, _ÜRETİM, "no_timestamps_token_id")
+    TR_var b = _boyutlar(ayar)
+    TR_var a = _Alıcı(tensörler: TR_load_tensors(TR_String(ağırlıklar)), alınan: {})
+    TR_var kodlayıcı = _kodlayıcı(a, b)
+    TR_var çözücü = _çözücü(a, b)
+    a._bitir()
+    TR_return TR_Whisper(_boyutlar: b, _üretim: üretim, _parçalayıcı: TR_load_tokenizer(TR_String(parçalayıcı)), _kodlayıcı: kodlayıcı, _çözücü: çözücü)
+}

@@ -9,6 +9,7 @@ TR ile yazılmış, `trlang` ikilisine gömülü kitaplık. Modüller `TR_kw_imp
 | `tr/training` | [`training.tr`](training.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 | `tr/audio` | [`audio.tr`](audio.tr) | Ses dosyası (WAV okumak ve yazmak, `TR_type_Sound`) ve Whisper'ın girdisi (`TR_fn_whisper_log_mel`) |
+| `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |
 
 Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`, `audio_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
@@ -176,6 +177,15 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Doğruluk:** küçük rastgele Llama ve Qwen3 modellerinde transformers'la en büyük logit farkı ~3·10⁻⁷ (`cmd/trlang/e2e` `TestReadyModelMatchesTransformers`, `tools/hf/`).
 
 `TR_fn_build_pretrained_model(ayar)` yalnızca kurar (ağırlıksız); `TR_fn_map_hugging_face(ağırlıklar, ayar)` yalnızca eşler.
+
+## `tr/whisper`
+
+`TR_fn_pretrained_whisper(klasör)` Hugging Face biçimindeki bir Whisper klasörünü açar ve bir `TR_type_Whisper` verir (dil tanımı 25.1).
+
+- **Dosyalar:** `model.safetensors`, `config.json`, `tokenizer.json`, `generation_config.json`. Önce `config.json`'un `model_type`'ına bakılır: başka bir modelin klasörüne eksik dosya değil, `TR_fn_pretrained_model` önerilir. `TR_fn_pretrained_model`'e Whisper klasörü vermek de hatadır.
+- **Ağırlıklar:** her tensörün adı ve şekli ayardan hesaplanır; dosyada kalan, eksik ya da şekli uymayan tensör adıyla hata verir. Çıkış katmanı gömmeye bağlıdır, K izdüşümünün sapması yoktur. fp16 ve bf16 açılırken float32'ye genişler; başka tür hatadır.
+- **Kapılar:** `num_mel_bins` 80 ya da 128'dir. `activation_function` `gelu` dışında, `scale_embedding` açık, boyut sıfır ya da eksi, bakış sayısı `d_model`'i bölmüyorsa hatadır: model hatasız yüklenir, yanlış metin üretirdi.
+- **Doğruluk:** küçük sentetik modelde Hugging Face kodlayıcısıyla aynı değer (`tests/whisper_model_test.tr`, başvurusu `tests/testdata/whisper/KAYNAK.md`).
 
 ## `tr/audio`
 

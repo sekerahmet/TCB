@@ -1,0 +1,220 @@
+# TR 4
+# Küçük sentetik Whisper açılır, kapılarından geçer, kodlayıcısı Hugging Face'in değerini verir (25.1).
+# Ağırlıklar formülden gelir; başvurunun kaynağı ve lisansı: testdata/whisper/KAYNAK.md.
+
+TR_import "tr/pretrained"
+TR_import "tr/whisper"
+
+TR_const _BOYUT = 8
+TR_const _ARA = 16
+TR_const _KAYNAK = 6
+TR_const _HEDEF = 4
+TR_const _DAĞARCIK = 12
+
+# değerler ağırlığın öğelerini formülden kurar; aynı formül başvuruyu üretti.
+TR_func değerler(tohum: TR_Int, n: TR_Int) -> TR_List[TR_Float] {
+    TR_return [(((i + 1) * 40503 + tohum * 9973) % 65536 - 32768) / 32768.0 * 0.25 TR_for i TR_in 0..n]
+}
+
+TR_func dikkat(ön: TR_String) -> TR_List {
+    TR_var b = [_BOYUT, _BOYUT]
+    TR_return [["\(ön).q_proj.weight", b], ["\(ön).q_proj.bias", [_BOYUT]], ["\(ön).k_proj.weight", b],
+        ["\(ön).v_proj.weight", b], ["\(ön).v_proj.bias", [_BOYUT]], ["\(ön).out_proj.weight", b], ["\(ön).out_proj.bias", [_BOYUT]]]
+}
+
+TR_func norm(ön: TR_String) -> TR_List { TR_return [["\(ön).weight", [_BOYUT]], ["\(ön).bias", [_BOYUT]]] }
+
+TR_func blok(ön: TR_String, çözücü: TR_Bool) -> TR_List {
+    TR_var r = dikkat("\(ön).self_attn") + norm("\(ön).self_attn_layer_norm")
+    TR_if çözücü { r = r + dikkat("\(ön).encoder_attn") + norm("\(ön).encoder_attn_layer_norm") }
+    r = r + [["\(ön).fc1.weight", [_ARA, _BOYUT]], ["\(ön).fc1.bias", [_ARA]], ["\(ön).fc2.weight", [_BOYUT, _ARA]], ["\(ön).fc2.bias", [_BOYUT]]]
+    TR_return r + norm("\(ön).final_layer_norm")
+}
+
+# adlar tensörleri sırayla verir: sıra formülün tohumudur.
+TR_func adlar(mel: TR_Int) -> TR_List {
+    TR_var e = "model.encoder"
+    TR_var d = "model.decoder"
+    TR_var r = [["\(e).conv1.weight", [_BOYUT, mel, 3]], ["\(e).conv1.bias", [_BOYUT]], ["\(e).conv2.weight", [_BOYUT, _BOYUT, 3]],
+        ["\(e).conv2.bias", [_BOYUT]], ["\(e).embed_positions.weight", [_KAYNAK, _BOYUT]]]
+    r = r + blok("\(e).layers.0", TR_false) + blok("\(e).layers.1", TR_false) + norm("\(e).layer_norm")
+    r = r + [["\(d).embed_tokens.weight", [_DAĞARCIK, _BOYUT]], ["\(d).embed_positions.weight", [_HEDEF, _BOYUT]]]
+    TR_return r + blok("\(d).layers.0", TR_true) + norm("\(d).layer_norm")
+}
+
+TR_func ağırlıklar(mel: TR_Int = 80) -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var sonuç: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for tohum, a TR_in adlar(mel) {
+        TR_var n = 1
+        TR_for boy TR_in a[1] { n = n * boy }
+        sonuç[a[0]] = TR_Tensor(değerler(tohum, n)).TR_reshape(a[1])
+    }
+    TR_return sonuç
+}
+
+TR_func ayar() -> TR_Dict[TR_String, TR_Any] {
+    TR_return {"model_type": "whisper", "d_model": _BOYUT, "num_mel_bins": 80, "vocab_size": _DAĞARCIK, "max_source_positions": _KAYNAK,
+        "max_target_positions": _HEDEF, "encoder_layers": 2, "encoder_attention_heads": 2, "encoder_ffn_dim": _ARA, "decoder_layers": 1,
+        "decoder_attention_heads": 2, "decoder_ffn_dim": _ARA, "activation_function": "gelu", "scale_embedding": TR_false}
+}
+
+TR_func üretim() -> TR_Dict[TR_String, TR_Any] { TR_return {"suppress_tokens": [1], "no_timestamps_token_id": 9} }
+
+# klasör verilenlerden Hugging Face biçiminde geçici bir klasör kurar.
+TR_func klasör(a: TR_Dict[TR_String, TR_Any], ü: TR_Dict[TR_String, TR_Any], t: TR_Dict[TR_String, TR_Tensor]) -> TR_String {
+    TR_var k = TR_temp_dir()
+    TR_write_file(TR_Path(k, "config.json"), TR_json_string(a))
+    TR_write_file(TR_Path(k, "generation_config.json"), TR_json_string(ü))
+    TR_copy("data/tokenizer.json", TR_Path(k, "tokenizer.json"))
+    TR_save_tensors(TR_String(TR_Path(k, "model.safetensors")), t)
+    TR_return TR_String(k)
+}
+
+TR_func aç_ayarla(a: TR_Dict[TR_String, TR_Any]) -> TR_String? { TR_return TR_error_code { TR_pretrained_whisper(klasör(a, üretim(), ağırlıklar())) } }
+
+TR_func aç_tensörle(t: TR_Dict[TR_String, TR_Tensor]) -> TR_String? { TR_return TR_error_code { TR_pretrained_whisper(klasör(ayar(), üretim(), t)) } }
+
+# pencere başvurunun log-Mel'inin ilk 2 · kaynak çerçevesidir.
+TR_func pencere() -> TR_Tensor {
+    TR_var düz = TR_from_bytes[TR_Float](TR_read_bytes("testdata/whisper/whisper_log_mel_80.bin"), TR_dtype: "float32", TR_byte_order: "little")
+    TR_return düz.TR_reshape([80, 57]).TR_slice(1, 0, 2 * _KAYNAK)
+}
+
+TR_func başvuru() -> TR_Tensor {
+    TR_var düz = TR_from_bytes[TR_Float](TR_read_bytes("testdata/whisper/kodlayici_cikti.bin"), TR_dtype: "float32", TR_byte_order: "little")
+    TR_return düz.TR_reshape([1, _KAYNAK, _BOYUT])
+}
+
+TR_test "25.1 kodlayıcı Hugging Face'in değerini verir" {
+    TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
+    TR_var y = model._kodla(pencere())
+    TR_assert_equal([1, _KAYNAK, _BOYUT], y.TR_shape)
+    TR_assert_equal("float32", y.TR_dtype)
+    TR_assert(TR_all_close(y, başvuru(), TR_rtol: 1e-5, TR_atol: 1e-5))
+}
+
+TR_test "25.1 başvuruyla kıyas farkı görür" {
+    TR_var t = ağırlıklar()
+    t["model.encoder.layers.1.fc2.weight"] = t["model.encoder.layers.1.fc2.weight"] * 1.01
+    TR_var y = TR_pretrained_whisper(klasör(ayar(), üretim(), t))._kodla(pencere())
+    TR_assert(TR_not TR_all_close(y, başvuru(), TR_rtol: 1e-5, TR_atol: 1e-5))
+}
+
+TR_test "25.1 128 Mel açılır" {
+    TR_var a = ayar()
+    a["num_mel_bins"] = 128
+    TR_var model = TR_pretrained_whisper(klasör(a, üretim(), ağırlıklar(mel: 128)))
+    TR_assert_equal([1, _KAYNAK, _BOYUT], model._kodla(TR_zeros([128, 2 * _KAYNAK])).TR_shape)
+}
+
+TR_test "25.1 16 bitlik ağırlık float32'ye genişler, sonuç aynı" {
+    TR_for tür TR_in ["fp16", "bf16"] {
+        TR_var dar: TR_Dict[TR_String, TR_Tensor] = {}
+        TR_var geniş: TR_Dict[TR_String, TR_Tensor] = {}
+        TR_for ad, t TR_in ağırlıklar() {
+            dar[ad] = t.TR_to_dtype(tür)
+            geniş[ad] = dar[ad].TR_to_dtype("float32")
+        }
+        TR_var y = TR_pretrained_whisper(klasör(ayar(), üretim(), dar))._kodla(pencere())
+        TR_assert_equal("float32", y.TR_dtype)
+        TR_assert_equal(TR_pretrained_whisper(klasör(ayar(), üretim(), geniş))._kodla(pencere()).TR_tolist, y.TR_tolist)
+    }
+}
+
+TR_test "25.1 eksik dosya hatadır, ileti dosyayı söyler" {
+    TR_for ad TR_in ["config.json", "model.safetensors", "tokenizer.json", "generation_config.json"] {
+        TR_var k = klasör(ayar(), üretim(), ağırlıklar())
+        TR_remove(TR_Path(TR_Path(k), ad))
+        TR_assert_equal("H7087", TR_error_code { TR_pretrained_whisper(k) })
+    }
+    TR_assert_equal("H7087", TR_error_code { TR_pretrained_whisper("data/böyle_bir_klasör_yok") })
+}
+
+TR_test "25.1 eksik alan hatadır" {
+    TR_for alan TR_in ["model_type", "d_model", "num_mel_bins", "vocab_size", "max_source_positions", "max_target_positions", "encoder_layers",
+        "encoder_attention_heads", "encoder_ffn_dim", "decoder_layers", "decoder_attention_heads", "decoder_ffn_dim"] {
+            TR_var a = ayar()
+            a.TR_remove(alan)
+            TR_assert_equal("H7088", aç_ayarla(a))
+        }
+    TR_for alan TR_in ["suppress_tokens", "no_timestamps_token_id"] {
+        TR_var ü = üretim()
+        ü.TR_remove(alan)
+        TR_assert_equal("H7088", TR_error_code { TR_pretrained_whisper(klasör(ayar(), ü, ağırlıklar())) })
+    }
+}
+
+TR_test "25.1 başka mimari hatadır, ileti TR_pretrained_model'i önerir" {
+    TR_var a = ayar()
+    a["model_type"] = "llama"
+    TR_assert_equal("H7089", aç_ayarla(a))
+    TR_assert_equal("H7089", TR_error_code { TR_pretrained_whisper("data/hf_tiny") })
+    TR_assert(TR_pretrained_model("data/hf_tiny").TR_blocks.TR_length > 0)
+}
+
+TR_test "25.1 TR_pretrained_model'e Whisper klasörü hatadır, ileti bu adı önerir" {
+    TR_var k = klasör(ayar(), üretim(), ağırlıklar())
+    TR_assert_equal("H7090", TR_error_code { TR_pretrained_model(k) })
+    TR_assert_equal([1, _KAYNAK, _BOYUT], TR_pretrained_whisper(k)._kodla(pencere()).TR_shape)
+}
+
+TR_test "25.1 num_mel_bins 80 ve 128 dışında hatadır" {
+    TR_for mel TR_in [79, 81, 127, 129, 1] {
+        TR_var a = ayar()
+        a["num_mel_bins"] = mel
+        TR_assert_equal("H7091", aç_ayarla(a))
+    }
+}
+
+TR_test "25.1 bilinmeyen tensör hatadır: çıkış katmanı ve K'nın sapması dahil" {
+    TR_for ad TR_in ["proj_out.weight", "model.encoder.layers.0.self_attn.k_proj.bias", "model.encoder.layers.2.fc1.bias", "ek"] {
+        TR_var t = ağırlıklar()
+        t[ad] = TR_zeros([_BOYUT])
+        TR_assert_equal("H7092", aç_tensörle(t))
+    }
+}
+
+TR_test "25.1 eksik tensör hatadır" {
+    TR_for a TR_in adlar(80) {
+        TR_var t = ağırlıklar()
+        t.TR_remove(a[0])
+        TR_assert_equal("H7093", aç_tensörle(t))
+    }
+}
+
+TR_test "25.1 ondalık olmayan ve 64 bitlik ağırlık hatadır" {
+    TR_var ad = "model.decoder.layer_norm.bias"
+    TR_var t = ağırlıklar()
+    t[ad] = TR_Tensor[TR_Int]([1, 2, 3, 4, 5, 6, 7, 8])
+    TR_assert_equal("H7094", aç_tensörle(t))
+    t[ad] = t["model.decoder.layer_norm.weight"].TR_to_dtype("float64")
+    TR_assert_equal("H7094", aç_tensörle(t))
+}
+
+TR_test "25.1 ayara uymayan şekil hatadır" {
+    TR_var t = ağırlıklar()
+    t["model.encoder.embed_positions.weight"] = TR_zeros([_KAYNAK + 1, _BOYUT])
+    TR_assert_equal("H7095", aç_tensörle(t))
+    TR_var u = ağırlıklar()
+    u["model.decoder.embed_tokens.weight"] = TR_zeros([_DAĞARCIK])
+    TR_assert_equal("H7095", aç_tensörle(u))
+}
+
+TR_test "25.1 desteklenmeyen ayar ve boyut hatadır" {
+    TR_var a = ayar()
+    a["activation_function"] = "relu"
+    TR_assert_equal("H7096", aç_ayarla(a))
+    TR_var b = ayar()
+    b["scale_embedding"] = TR_true
+    TR_assert_equal("H7096", aç_ayarla(b))
+    TR_var c = ayar()
+    c["encoder_attention_heads"] = 3
+    TR_assert_equal("H7096", aç_ayarla(c))
+    TR_for alan TR_in ["d_model", "encoder_attention_heads", "encoder_layers", "vocab_size"] {
+        TR_for n TR_in [0, -1] {
+            TR_var d = ayar()
+            d[alan] = n
+            TR_assert_equal("H7096", aç_ayarla(d))
+        }
+    }
+}

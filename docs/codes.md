@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 624 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 147 fonksiyon, 11 sabit, 72 metot, 104 özellik, 156 adlı argüman.
+Toplam 626 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 48 tip, 148 fonksiyon, 11 sabit, 72 metot, 104 özellik, 156 adlı argüman.
 
 ## İçindekiler
 
@@ -1157,6 +1157,10 @@ tr: değişken t: Tip = Tip(42); yazdır(t == Tam, t, Tip(t), Tip([1, 2]) == Lis
 ```
 
 İlişkili: `TR_Int`, `TR_Float`, `TR_String`
+
+#### `TR_Whisper` (`TR_type_Whisper`, `Whisper`)
+
+
 
 ## Yerleşikler
 
@@ -2761,6 +2765,12 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 #### `TR_pretrained_model(...)` (`TR_fn_pretrained_model`, `hazır_model`)
 
     hazır_model()
+
+
+
+#### `TR_pretrained_whisper(...)` (`TR_fn_pretrained_whisper`, `hazır_whisper`)
+
+    hazır_whisper()
 
 
 
