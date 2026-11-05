@@ -407,7 +407,11 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 		case segText:
 			b.WriteString(s.text)
 		case segNumber:
-			fmt.Fprint(b, number)
+			if l, ok := number.(Localized); ok {
+				b.WriteString(l.MessageText(c.Language))
+			} else {
+				fmt.Fprint(b, number)
+			}
 		case segArg:
 			a := args[s.arg]
 			text, coded := c.codedText(a)

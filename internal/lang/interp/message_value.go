@@ -49,6 +49,17 @@ func (m *MessageVal) Error() *messages.Error {
 	return messages.New(m.Code, m.params()...)
 }
 
+// Count is the value as a {name, plural, ...} number; nil when it is not a number.
+func (s shown) Count() any {
+	switch n := s.v.(type) {
+	case *IntVal:
+		return n.Val
+	case *FloatVal:
+		return n.Val
+	}
+	return nil
+}
+
 // params are the values as message parameters; each is written in the message's language.
 func (m *MessageVal) params() []any {
 	out := make([]any, len(m.Args))

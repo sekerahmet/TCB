@@ -46,6 +46,25 @@ type keyed struct{ key string }
 func (k keyed) MessageText(string) string { return "gösterilen" }
 func (k keyed) SelectKey() string         { return k.key }
 
+// counted Counted'dır: dalı sayısı seçer, # gösterdiği metni yazar.
+type counted struct{ n any }
+
+func (c counted) MessageText(string) string { return "gösterilen" }
+func (c counted) Count() any                { return c.n }
+
+// Counted değerinde dalı sayısı seçer, sayı olmayan değer `other` dalındadır; # değerin metnidir.
+func TestPluralByCount(t *testing.T) {
+	c := mustCatalog(t, "en", `"n"`, "{n, plural, =0 {none} one {# item} other {# items}}")
+	for _, d := range []struct {
+		n    any
+		want string
+	}{{int64(0), "none"}, {int64(1), "gösterilen item"}, {int64(2), "gösterilen items"}, {1.5, "gösterilen items"}, {nil, "gösterilen items"}} {
+		if got := c.render(H0001, []any{counted{d.n}}); got != d.want {
+			t.Errorf("%v: %q, %q bekleniyordu", d.n, got, d.want)
+		}
+	}
+}
+
 // Selector değerinde dalı anahtar seçer, metni değil; boş anahtar `empty` dalını seçer.
 func TestSelectByKey(t *testing.T) {
 	c := mustCatalog(t, "tr", `"kind"`, "{kind, select, dir {klasör} empty {yok} other {{kind}}}")

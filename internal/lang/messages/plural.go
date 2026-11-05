@@ -20,6 +20,9 @@ func isExact(key string) bool {
 // pluralKey değerin dalını seçer: önce "=N" tam eşleşme, sonra dilin CLDR kategorisi, yoksa
 // "other". Sayı olmayan değer "other"dır.
 func (c *Catalog) pluralKey(branches map[string][]segment, v any) string {
+	if n, ok := v.(Counted); ok {
+		v = n.Count()
+	}
 	text, ok := exactText(v)
 	if !ok {
 		return "other"

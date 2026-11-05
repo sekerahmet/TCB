@@ -28,6 +28,13 @@ type Selector interface {
 	SelectKey() string
 }
 
+// Counted is a parameter value that stands for a number in {name, plural, ...}: Count gives it as
+// a Go number, nil when it is not one. The # of the branch still writes the value's own text, so
+// a TR 1.0 is not written as 1.
+type Counted interface {
+	Count() any
+}
+
 // New returns the message code with its parameter values as an error.
 func New(c Code, args ...any) *Error { return &Error{Code: c, Args: args} }
 
