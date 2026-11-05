@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"math/bits"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -43,6 +44,29 @@ type Value struct {
 	Data any
 }
 
+// Uint tek tam sayı değeridir; tam sayı olmayan ya da eksi değerde ok yanlıştır.
+func (v Value) Uint() (n uint64, ok bool) {
+	switch x := v.Data.(type) {
+	case uint8:
+		return uint64(x), true
+	case uint16:
+		return uint64(x), true
+	case uint32:
+		return uint64(x), true
+	case uint64:
+		return x, true
+	case int8:
+		return uint64(x), x >= 0
+	case int16:
+		return uint64(x), x >= 0
+	case int32:
+		return uint64(x), x >= 0
+	case int64:
+		return uint64(x), x >= 0
+	}
+	return 0, false
+}
+
 // Tensor dosyadaki bir tensörün kaydıdır.
 type Tensor struct {
 	Name   string
@@ -71,9 +95,11 @@ type File struct {
 }
 
 // Decode size bayt uzunluğundaki dosyanın başlığını r'den çözer ve denetler; r tensör
-// kayıtlarının sonunda (HeaderEnd) kalır, küçük okumalar yaptığı için tamponlu olmalıdır.
+// kayıtlarının sonunda (HeaderEnd) kalır, küçük okumalar yaptığı için tamponlu olmalıdır. Akış
+// size'dan uzun olsa da çözücü size'ı aşmaz: kalan bayt eksiye inseydi boy kapıları açılırdı
+// (boyu 0 görünen dosya, okunurken büyüyen dosya).
 func Decode(r io.Reader, size int64) (*File, error) {
-	d := &decoder{r: r, remaining: size}
+	d := &decoder{r: io.LimitReader(r, size), remaining: size}
 	tensors, keys, err := d.header()
 	if err != nil {
 		return nil, err
@@ -103,6 +129,18 @@ func Decode(r io.Reader, size int64) (*File, error) {
 	return f, nil
 }
 
+// messageLimit iletiye yazılan ad ve anahtarın en büyük bayt boyudur: dosya 32 MB'lık ad
+// bildirebilir, ileti onu taşımaz.
+const messageLimit = 64
+
+// Clip adı iletiye sığacak boya kırpar.
+func Clip(s string) string {
+	if len(s) <= messageLimit {
+		return s
+	}
+	return strings.ToValidUTF8(s[:messageLimit], "") + "…"
+}
+
 // header sihirli baytları, sürümü ve sayıları denetler: tensör ve anahtar sayısını verir.
 func (d *decoder) header() (tensors, keys uint64, err error) {
 	var magic [4]byte
@@ -118,7 +156,7 @@ func (d *decoder) header() (tensors, keys uint64, err error) {
 	}
 	if v != version {
 		// Ters uçlu dosyada sürüm küçük uçlu okununca alt 16 bit sıfır olur (gguf.cpp:506).
-		if v&0xFFFF == 0 {
+		if v != 0 && v&0xFFFF == 0 {
 			return 0, 0, messages.New(messages.H6656, bits.ReverseBytes32(v), "big")
 		}
 		return 0, 0, messages.New(messages.H6656, v, "little")
@@ -152,7 +190,7 @@ func (d *decoder) keyValue(f *File) error {
 		return d.err
 	}
 	if _, dup := f.Values[key]; dup {
-		return messages.New(messages.H6664, "key", key)
+		return messages.New(messages.H6664, "key", Clip(key))
 	}
 	v, err := d.value(key)
 	if err != nil {
@@ -186,7 +224,7 @@ func (d *decoder) tensor(seen map[string]bool) (Tensor, error) {
 		return Tensor{}, d.err
 	}
 	if len(name) == 0 || len(name) > maxTensorName {
-		return Tensor{}, messages.New(messages.H6666, name, len(name))
+		return Tensor{}, messages.New(messages.H6666, Clip(name), len(name))
 	}
 	if seen[name] {
 		return Tensor{}, messages.New(messages.H6664, "tensor", name)

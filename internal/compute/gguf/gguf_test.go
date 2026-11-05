@@ -4,10 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"io"
 	"math"
 	"runtime"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
+	"testing/iotest"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/compute/gguf"
 	"github.com/sekerahmet/TCB/internal/compute/gguf/gguftest"
@@ -16,6 +22,70 @@ import (
 
 func decode(data []byte) (*gguf.File, error) {
 	return gguf.Decode(bufio.NewReader(bytes.NewReader(data)), int64(len(data)))
+}
+
+// TestDecodeHoldsToSize: akış bildirilen boydan uzun olsa da çözücü boyu aşmaz; boy kapıları kalan
+// baytla sınanır, eksiye inseydi dev dizi ayrılırdı (DENETİM 133).
+func TestDecodeHoldsToSize(t *testing.T) {
+	file := gguftest.AppendString(gguftest.Header(3, 0, 1), "k")
+	file = binary.LittleEndian.AppendUint32(file, uint32(gguf.Array))
+	file = binary.LittleEndian.AppendUint32(file, uint32(gguf.Uint8))
+	file = binary.LittleEndian.AppendUint64(file, 1<<50)
+	file = append(file, make([]byte, 1<<10)...)
+	for _, c := range []struct {
+		name string
+		size int64
+		code messages.Code
+	}{
+		{"boy sıfır", 0, messages.H6658},
+		{"boy eksi", -1, messages.H6658},
+		{"boy başlığın ortasında", 10, messages.H6658},
+		{"boy dizi boyunun ortasında", int64(len(file)) - 1<<10 - 4, messages.H6658},
+		{"boy dizi boyunun hemen sonunda", int64(len(file)) - 1<<10, messages.H6659},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := gguf.Decode(bufio.NewReader(bytes.NewReader(file)), c.size)
+			if !messages.Has(err, c.code) {
+				t.Errorf("hata %v; %s olmalı", err, c.code)
+			}
+		})
+	}
+}
+
+// TestDecodeReportsReadErrors: akışın hatası dosyanın bitmesi sayılmaz, ileti yeri ve hatayı söyler.
+func TestDecodeReportsReadErrors(t *testing.T) {
+	data := (&gguftest.Builder{}).KV("a", uint32(1)).Bytes()
+	broken := io.MultiReader(bytes.NewReader(data[:30]), iotest.ErrReader(errors.New("disk bozuk")))
+	_, err := gguf.Decode(broken, int64(len(data)))
+	if !messages.Has(err, messages.H6677) || !strings.Contains(err.Error(), "disk bozuk") {
+		t.Errorf("hata %v", err)
+	}
+}
+
+// TestVersionMessageSaysByteOrderOnlyWhenKnown: sürüm 0'ın bayt sırası bilinmez, ters uçlu sürüm 3
+// bilinir.
+func TestVersionMessageSaysByteOrderOnlyWhenKnown(t *testing.T) {
+	for _, c := range []struct {
+		version uint32
+		big     bool
+	}{{0, false}, {2, false}, {0x03000000, true}} {
+		_, err := decode(gguftest.Header(c.version, 0, 0))
+		if got := strings.Contains(err.Error(), "büyük uçlu"); !messages.Has(err, messages.H6656) || got != c.big {
+			t.Errorf("sürüm %#x: %v", c.version, err)
+		}
+	}
+}
+
+// TestLongNamesAreClippedInMessages: dosyanın dev adı iletiye girmez.
+func TestLongNamesAreClippedInMessages(t *testing.T) {
+	long := strings.Repeat("ş", 1<<16)
+	_, err := decode(gguftest.AppendTensor(gguftest.Header(3, 1, 0), long, []uint64{1}, 0, 0))
+	if !messages.Has(err, messages.H6666) || len(err.Error()) > 512 {
+		t.Errorf("%d baytlık ileti", len(err.Error()))
+	}
+	if got := gguf.Clip(long); !utf8.ValidString(got) || len(got) > 70 {
+		t.Errorf("kırpılmış ad %q", got)
+	}
 }
 
 func TestDecodeReadsKeysAndTensors(t *testing.T) {
@@ -67,25 +137,32 @@ func TestDecodeHonoursAlignment(t *testing.T) {
 	}
 }
 
-// TestDecodeAcceptsEveryKnownType: okunmayan türlerin de boyu bilinir; üstveri ve parçalayıcı
-// bütün dosyanın düzenini denetler.
+// TestDecodeAcceptsEveryKnownType: ggml'in bütün türleri numarası, adı ve bloğuyla (llama.cpp
+// cd959bae, ggml.h ve ggml-common.h): tablo elle yazılıdır, tek sayı kayarsa dosyanın düzeni yanlış
+// okunur.
 func TestDecodeAcceptsEveryKnownType(t *testing.T) {
 	for _, c := range []struct {
-		kind  gguf.TensorType
-		name  string
-		dim   uint64
-		bytes int
+		kind         gguf.TensorType
+		name         string
+		block, bytes int
 	}{
-		{gguf.TypeQ8_0, "Q8_0", 32, 34}, {gguf.TypeQ4_0, "Q4_0", 32, 18}, {gguf.TypeQ5_0, "Q5_0", 64, 44},
-		{gguf.TypeQ4_K, "Q4_K", 256, 144}, {gguf.TypeQ6_K, "Q6_K", 512, 420}, {gguf.TypeBF16, "BF16", 3, 6},
+		{0, "F32", 1, 4}, {1, "F16", 1, 2}, {2, "Q4_0", 32, 18}, {3, "Q4_1", 32, 20}, {6, "Q5_0", 32, 22},
+		{7, "Q5_1", 32, 24}, {8, "Q8_0", 32, 34}, {9, "Q8_1", 32, 36}, {10, "Q2_K", 256, 84},
+		{11, "Q3_K", 256, 110}, {12, "Q4_K", 256, 144}, {13, "Q5_K", 256, 176}, {14, "Q6_K", 256, 210},
+		{15, "Q8_K", 256, 292}, {16, "IQ2_XXS", 256, 66}, {17, "IQ2_XS", 256, 74}, {18, "IQ3_XXS", 256, 98},
+		{19, "IQ1_S", 256, 50}, {20, "IQ4_NL", 32, 18}, {21, "IQ3_S", 256, 110}, {22, "IQ2_S", 256, 82},
+		{23, "IQ4_XS", 256, 136}, {24, "I8", 1, 1}, {25, "I16", 1, 2}, {26, "I32", 1, 4}, {27, "I64", 1, 8},
+		{28, "F64", 1, 8}, {29, "IQ1_M", 256, 56}, {30, "BF16", 1, 2}, {34, "TQ1_0", 256, 54},
+		{35, "TQ2_0", 256, 66}, {39, "MXFP4", 32, 17}, {40, "NVFP4", 64, 36}, {41, "Q1_0", 128, 18},
+		{42, "Q2_0", 64, 18}, {43, "F8_E4M3", 1, 1},
 	} {
-		b := (&gguftest.Builder{}).Tensor("w", c.kind, []uint64{c.dim}, make([]byte, c.bytes))
+		b := (&gguftest.Builder{}).Tensor("w", c.kind, []uint64{uint64(c.block) * 2}, make([]byte, c.bytes*2))
 		f, err := decode(b.Bytes())
 		if err != nil {
 			t.Errorf("%s: %v", c.name, err)
 			continue
 		}
-		if got := f.Tensors[0]; got.Type.String() != c.name || got.Size != uint64(c.bytes) {
+		if got := f.Tensors[0]; got.Type.String() != c.name || got.Size != uint64(c.bytes*2) {
 			t.Errorf("%s: %+v", c.name, got)
 		}
 	}
@@ -204,8 +281,30 @@ func TestDecodeTruncatedEverywhere(t *testing.T) {
 	}
 }
 
+// manyKeys n tek baytlık anahtarı olan dosyadır.
+func manyKeys(n int) []byte {
+	out := gguftest.Header(3, 0, uint64(n))
+	for i := range n {
+		out = gguftest.AppendString(out, strconv.Itoa(i))
+		out = binary.LittleEndian.AppendUint32(out, uint32(gguf.Uint8))
+		out = append(out, 0)
+	}
+	return out
+}
+
+// manyTensors n boş tensörü olan dosyadır.
+func manyTensors(n int) []byte {
+	out := gguftest.Header(3, uint64(n), 0)
+	for i := range n {
+		out = gguftest.AppendTensor(out, strconv.Itoa(i), []uint64{0}, 0, 0)
+	}
+	return out
+}
+
 // TestDecodeAllocatesWithinTheFile: küçük dosya büyük boylar bildirince ayırma dosyayla
-// orantılı kalır (15.46, 15.55). Bildirilen boya güvenilseydi her biri gigabaytlar isterdi.
+// orantılı kalır (15.46, 15.55). Bildirilen boya güvenilseydi her biri gigabaytlar isterdi. Dosya
+// boyunun altında değildir: en küçük anahtar ve tensör kaydı dosyada 13 ve 25 bayt, bellekte
+// eşleme ve başlıklarla yüzlerce bayt tutar (sabit kat).
 func TestDecodeAllocatesWithinTheFile(t *testing.T) {
 	le := binary.LittleEndian
 	filler := make([]byte, 1<<20)
@@ -221,13 +320,15 @@ func TestDecodeAllocatesWithinTheFile(t *testing.T) {
 		name string
 		data []byte
 		// bound dosya baytı başına izin verilen ayırmadır: metin dizisinin Go başlığı öğe
-		// başına 16 bayt, dosyadaki en küçük öğe 8 bayttır.
+		// başına 16 bayt, dosyadaki en küçük öğe 8 bayttır; kayıtlar çok sayıda küçük ayırmadır.
 		bound uint64
 	}{
 		{"yalan uint8 dizisi", array(gguf.Uint8, 1<<50), 1},
 		{"tam boy uint8 dizisi", array(gguf.Uint8, 1<<20), 3},
 		{"tam boy metin dizisi", array(gguf.String, 1<<17), 3},
 		{"yalan metin", le.AppendUint64(gguftest.AppendString(gguftest.Header(3, 0, 1), "k"), 1<<50), 1},
+		{"çok sayıda anahtar", manyKeys(100_000), 24},
+		{"çok sayıda boş tensör", manyTensors(100_000), 24},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			var before, after runtime.MemStats

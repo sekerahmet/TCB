@@ -1,6 +1,7 @@
 package ml
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"math"
@@ -69,6 +70,15 @@ func TestGGUFRejects(t *testing.T) {
 		{"Q8_0 henüz yok", (&gguftest.Builder{}).Tensor("w", gguf.TypeQ8_0, []uint64{32}, make([]byte, 34)).Bytes(), messages.H6674},
 		{"Q5_0", (&gguftest.Builder{}).Tensor("blk.0.attn_q.weight", gguf.TypeQ5_0, []uint64{32}, make([]byte, 22)).Bytes(), messages.H6674},
 		{"bölünmüş", (&gguftest.Builder{}).KV("split.count", uint16(3)).Bytes(), messages.H6675},
+		{"bölünmüş uint8", (&gguftest.Builder{}).KV("split.count", uint8(2)).Bytes(), messages.H6675},
+		{"bölünmüş uint32", (&gguftest.Builder{}).KV("split.count", uint32(2)).Bytes(), messages.H6675},
+		{"bölünmüş uint64", (&gguftest.Builder{}).KV("split.count", uint64(2)).Bytes(), messages.H6675},
+		{"bölünmüş int16", (&gguftest.Builder{}).KV("split.count", int16(2)).Bytes(), messages.H6675},
+		{"bölünmüş int32", (&gguftest.Builder{}).KV("split.count", int32(2)).Bytes(), messages.H6675},
+		{"bölünmüş int64", (&gguftest.Builder{}).KV("split.count", int64(2)).Bytes(), messages.H6675},
+		{"parça sayısı metin", (&gguftest.Builder{}).KV("split.count", "2").Bytes(), messages.H6693},
+		{"parça sayısı eksi", (&gguftest.Builder{}).KV("split.count", int32(-2)).Bytes(), messages.H6693},
+		{"parça sayısı ondalık", (&gguftest.Builder{}).KV("split.count", float32(2)).Bytes(), messages.H6693},
 		{"sıfır eksenle dev şekil", (&gguftest.Builder{}).Tensor("w", gguf.TypeF32, []uint64{0, 1 << 40}, nil).Bytes(), messages.H6649},
 		{"kesik GGUF", []byte("GGUF"), messages.H6658},
 	}
@@ -78,6 +88,21 @@ func TestGGUFRejects(t *testing.T) {
 				t.Errorf("hata %v; %s olmalı", err, c.code)
 			}
 		})
+	}
+}
+
+// TestGGUFDataShorterThanTheStatedSize: boy akıştan büyükse veri okuması hatayı tensörün adıyla söyler.
+func TestGGUFDataShorterThanTheStatedSize(t *testing.T) {
+	data := (&gguftest.Builder{}).Tensor("w", gguf.TypeF32, []uint64{64}, make([]byte, 256)).Bytes()
+	cut := bufio.NewReader(bytes.NewReader(data[:len(data)-100]))
+	if _, err := decodeGGUF(cut, int64(len(data))); !messages.Has(err, messages.H6653) {
+		t.Errorf("hata %v", err)
+	}
+	padded := (&gguftest.Builder{}).Tensor("a", gguf.TypeF32, []uint64{1}, make([]byte, 4)).
+		Tensor("w", gguf.TypeF32, []uint64{64}, make([]byte, 256)).Bytes()
+	gap := bufio.NewReader(bytes.NewReader(padded[:len(padded)-256-10]))
+	if _, err := decodeGGUF(gap, int64(len(padded))); !messages.Has(err, messages.H6653) {
+		t.Errorf("hata %v", err)
 	}
 }
 
@@ -107,7 +132,8 @@ func TestGGUFThroughLoadTensors(t *testing.T) {
 }
 
 // FuzzGGUFDecode: GGUF dosyası güvenilmeyen girdidir (indirilen model). Çözücü hiçbir baytta
-// çökmemeli, dosya boyunu aşan ayırma yapmamalı; kabul ettiği her dosyadan tensör kurulabilmelidir.
+// çökmemeli, kabul ettiği her dosyadan tensör kurulabilmelidir ve öğe sayısı dosyayla orantılı
+// kalmalıdır. Ayırmanın ölçüsü bu testte değil, TestDecodeAllocatesWithinTheFile'dadır.
 // Normal `go test` yalnızca tohumları koşar; derin arama için:
 //
 //	go test ./internal/stdlib/ml -run '^$' -fuzz FuzzGGUFDecode -fuzztime 5m

@@ -1272,7 +1272,7 @@ const (
 	H6650 Code = 6650 // safetensors başlığında {length} baytlık bir tensör adı var (en fazla {limit} bayt)
 	H6651 Code = 6651 // safetensors başlığından sonra fazladan JSON verisi var
 	H6652 Code = 6652 // safetensors tensörü {name|q}: dtype, shape ve data_offsets (iki sayı) alanları gerekli
-	H6653 Code = 6653 // safetensors tensörü {name|q} okunamadı: {error}
+	H6653 Code = 6653 // tensör {name|q} okunamadı: {error}
 	H6654 Code = 6654 // safetensors tensörü {name|q}: bilinmeyen alan {field|q} (alanlar tam olarak dtype, shape ve data_offsets yazılır)
 	H6655 Code = 6655 // safetensors tensörü {name|q}: {field} alanı yanlış türde (dtype metin; shape ve data_offsets 0 ya da pozitif tam sayılardan oluşan dizi olmalı)
 	H6656 Code = 6656 // GGUF sürümü {version} okunamıyor{order, select, big { (dosya büyük uçlu)} other {}}: yalnız küçük uçlu sürüm 3 okunur
@@ -1294,7 +1294,7 @@ const (
 	H6672 Code = 6672 // GGUF tensörü {name|q}: kayma {offset}, {expected} olmalı
 	H6673 Code = 6673 // GGUF tensörü {name|q}: verisi {end}. bayta kadar sürüyor, dosya {size} bayt
 	H6674 Code = 6674 // GGUF tensörü {name|q}: {type} türü okunamıyor (bu TR sürümü F32, F16 ve BF16 okuyabilir)
-	H6675 Code = 6675 // bölünmüş GGUF dosyası okunmaz ({count} parça): parçaları önce tek dosyada birleştirin
+	H6675 Code = 6675 // bölünmüş GGUF dosyası okunmaz ({count} parça): parçaları önce tek dosyada birleştirin: `llama-gguf-split --merge`
 	H6676 Code = 6676 // GGUF dosyası değil: dosya {magic|q} ile başlamalı
 	H6677 Code = 6677 // GGUF dosyası {offset}. baytta okunamadı: {error}
 	H6678 Code = 6678 // GGUF parçalayıcısı {model|q} okunmuyor: `tokenizer.ggml.model` `gpt2` olmalı
@@ -1305,6 +1305,7 @@ const (
 	H6683 Code = 6683 // GGUF parçalayıcısı: {key|q} kimliği {id} sözlükte yok (parça sayısı {tokens})
 	H6684 Code = 6684 // GGUF parçalayıcısı: {token|q} parçası iki kez geçiyor
 	H6685 Code = 6685 // GGUF anahtarı {key|q}: {value} değeri {@JSON} değerine sığmıyor
+	H6693 Code = 6693 // GGUF anahtarı {key|q} eksi olmayan bir tam sayı olmalıdır
 	H6700 Code = 6700 // bu tensör ({shape}) bir işlemin sonucu; gradyan yalnızca {requiresGradArg}: {trueValue} ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici ({adamWFn}, {sgdFn}) kullanın ya da yeni değeri {noGradFn} {{ }} içinde hesaplayıp {example} ile yeniden oluşturun
 	H6701 Code = 6701 // tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: {shape})
 	H6702 Code = 6702 // tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için {expFn}({logFn}(t) * u) kullanın

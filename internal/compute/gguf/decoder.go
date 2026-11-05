@@ -82,7 +82,7 @@ func (d *decoder) value(key string) (Value, error) {
 	}
 	t := ValueType(kind)
 	if t >= valueTypeCount {
-		return Value{}, messages.New(messages.H6660, key, t.String())
+		return Value{}, messages.New(messages.H6660, Clip(key), t.String())
 	}
 	if t == Array {
 		return d.array(key)
@@ -108,7 +108,7 @@ func (d *decoder) scalar(key string, t ValueType) (any, error) {
 		return nil, d.err
 	}
 	if t == Bool && p[0] > 1 {
-		return nil, messages.New(messages.H6662, key, p[0])
+		return nil, messages.New(messages.H6662, Clip(key), p[0])
 	}
 	return fixedValue(t, p), nil
 }
@@ -148,10 +148,10 @@ func (d *decoder) array(key string) (Value, error) {
 	}
 	elem := ValueType(kind)
 	if elem >= valueTypeCount {
-		return Value{}, messages.New(messages.H6660, key, elem.String())
+		return Value{}, messages.New(messages.H6660, Clip(key), elem.String())
 	}
 	if elem == Array {
-		return Value{}, messages.New(messages.H6661, key)
+		return Value{}, messages.New(messages.H6661, Clip(key))
 	}
 	n, ok := d.u64("value")
 	if !ok {

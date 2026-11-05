@@ -125,7 +125,7 @@ func writeMetadataValue(out *bytes.Buffer, key string, data any) error {
 		out.WriteString(strconv.FormatInt(v.Int(), 10))
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if v.Uint() > math.MaxInt64 {
-			return messages.New(messages.H6685, key, v.Uint())
+			return messages.New(messages.H6685, gguf.Clip(key), v.Uint())
 		}
 		out.WriteString(strconv.FormatUint(v.Uint(), 10))
 	default:
@@ -138,7 +138,7 @@ func writeMetadataValue(out *bytes.Buffer, key string, data any) error {
 // llama.cpp'nin gördüğüyle aynı bittedir), yazımı ondalık kalır (3.7a: 2.0 TR_Float'tur).
 func writeMetadataFloat(out *bytes.Buffer, key string, x float64) error {
 	if math.IsNaN(x) || math.IsInf(x, 0) {
-		return messages.New(messages.H6685, key, x)
+		return messages.New(messages.H6685, gguf.Clip(key), x)
 	}
 	s := strconv.FormatFloat(x, 'g', -1, 64)
 	out.WriteString(s)

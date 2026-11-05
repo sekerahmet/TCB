@@ -1300,6 +1300,7 @@
 "H6683": { "param": ["key", "id", "tokens"] },
 "H6684": { "param": ["token"] },
 "H6685": { "param": ["key", "value"], "slots": {"JSON": "TR_type_JSON"} },
+"H6693": { "param": ["key"] },
 "H6700": { "param": ["shape", "requiresGradArg", "trueValue", "adamWFn", "sgdFn", "noGradFn", "example"] },
 "H6701": { "param": ["shape"] },
 "H6702": { "param": ["expFn", "logFn"] },

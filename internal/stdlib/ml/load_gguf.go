@@ -30,7 +30,11 @@ func decodeGGUF(r *bufio.Reader, size int64) ([]fileEntry, error) {
 		return nil, err
 	}
 	if v, ok := f.Values[ggufSplitKey]; ok {
-		if n, ok := v.Data.(uint16); ok && n > 1 {
+		n, isCount := v.Uint()
+		if !isCount {
+			return nil, messages.New(messages.H6693, ggufSplitKey)
+		}
+		if n > 1 {
 			return nil, messages.New(messages.H6675, n)
 		}
 	}
