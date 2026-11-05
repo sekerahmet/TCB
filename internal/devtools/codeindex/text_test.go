@@ -162,7 +162,7 @@ func TestGitTrackedListsOnlyTrackedFiles(t *testing.T) {
 func TestListFilesKeepsTwoRules(t *testing.T) {
 	dir := t.TempDir()
 	for name, text := range map[string]string{"lib/a.tr": "TR_func a() -> TR_Int {\n    TR_return 1\n}\n", "lib/new.tr": "y",
-		"scratch/deneme.tr": "TR_func deneme_fonk() -> TR_Int {\n    TR_return 1\n}\n", "lib/testdata/f.tr": "w", "docs/d.md": "m",
+		"scratch/deneme.tr": "TR_func deneme_fonk() -> TR_Int {\n    TR_return 1\n}\n", "lib/testdata/f.tr": "w", "tests/negative/testdata/g.tr": "w", "docs/d.md": "m",
 		".gitignore": "scratch/\n"} {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755); err != nil {
 			t.Fatal(err)
@@ -173,7 +173,7 @@ func TestListFilesKeepsTwoRules(t *testing.T) {
 	}
 	tr := func(rel string) bool { return strings.HasSuffix(rel, ".tr") }
 	for _, set := range []FileSet{TrackedFiles, AllFiles} {
-		if got := strings.Join(ListFiles(dir, nil, DefaultSkipDirs, set, tr), " "); got != "lib/a.tr lib/new.tr scratch/deneme.tr" {
+		if got := strings.Join(ListFiles(dir, nil, DefaultSkipDirs, set, tr), " "); got != "lib/a.tr lib/new.tr scratch/deneme.tr tests/negative/testdata/g.tr" {
 			t.Errorf("without git, set %d walks: %q", set, got)
 		}
 	}
@@ -190,9 +190,9 @@ func TestListFilesKeepsTwoRules(t *testing.T) {
 		dirs []string
 		want string
 	}{
-		{TrackedFiles, nil, "lib/a.tr"},                          // depo aracı: yalnızca izlenen
-		{AllFiles, nil, "lib/a.tr lib/new.tr scratch/deneme.tr"}, // kullanıcı aracı: yok sayılan klasör dahil
-		{AllFiles, []string{"scratch"}, "scratch/deneme.tr"},     // dirs süzer
+		{TrackedFiles, nil, "lib/a.tr"}, // depo aracı: yalnızca izlenen
+		{AllFiles, nil, "lib/a.tr lib/new.tr scratch/deneme.tr tests/negative/testdata/g.tr"}, // kullanıcı aracı: yok sayılan klasör dahil
+		{AllFiles, []string{"scratch"}, "scratch/deneme.tr"},                                  // dirs süzer
 		{AllFiles, []string{"docs"}, ""},
 	} {
 		if got := strings.Join(ListFiles(dir, c.dirs, DefaultSkipDirs, c.set, tr), " "); got != c.want {
