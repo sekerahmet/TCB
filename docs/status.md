@@ -753,7 +753,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.6d
 
 - **Mevcut durum:**
-  - tensörle indeks var, okumada: `t[idx]` satırları kopyalar, türev izlenir, eksi indeks de sınır dışıdır (H6694) [test: `tests/tensor_test.tr`, `TestTakeRows`]; maskeyle indeks yok: `t[m]` H6707; atamada `t[idx] = d` H6707;
+  - tensörle indeks var, okumada: `t[idx]` satırları kopyalar, türev izlenir, eksi indeks de sınır dışıdır (H6694) [test: `tests/tensor_test.tr`, `TestTakeRows`]; maskeyle indeks yok: `t[m]`, `t[m] = d` H6707; `t[idx] = d` ve `t[idx] += d` H7042, ileti döngüyü önerir [test: `TestTensorIndexWriteSuggestionRuns`];
   - bileşik atama (`+=`, `-=`, `*=`, `/=`, `**=`) tensörü yerinde değiştiriyor: paylaşan adlar görüyor, hassasiyet hedefin, yayın yalnız sağda (H6958), deponun sürümü artıyor; indeksli hedef görünüm üstünde yerinde [test: TestCompoundAssignInPlace, TestCompoundAssignDTypeShapeOverlap, TestCompoundAssignGradRules; GPU'da TestGPUInPlaceCompoundAssign]. `//=`, `%=` ve bit işleçli bileşik atama tensörde hata (cinsli tensörle gelir);
   - atamada ve bileşik atamada örtüşen kaynak önce kopyalanıyor [test: TestCompoundAssignDTypeShapeOverlap];
   - türevin üç yazma kuralı atamada ve `TR_write_slice`'ta uygulanıyor, kipe bağlı (türevsiz bloktan çağrılan fonksiyon da kipte; türevsiz kipte okunan görünüm tabanını biliyor): yaprağa ve görünümüne kipin dışında H6716, ara sonuca kipte de H6955, türev izlemeyen hedefe kipin dışında türev izleyen değer H6956 [test: TestWriteRulesForGradients]; depoda kırılan yer yok [ölçüldü: `tests` ve `lib` klasörlerinin TR testleri, örnekler];

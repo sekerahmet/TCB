@@ -1,0 +1,5 @@
+# TR 4
+# TEST 15.6d tensörle indekse bileşik atama bugün çalışma hatasıdır (H7042): t[idx] kopyadır, yazı sessizce kaybolurdu
+TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0])
+t[TR_Tensor([0, 2])] += 1.0 # RUN-ERROR H7042
+TR_print(t)

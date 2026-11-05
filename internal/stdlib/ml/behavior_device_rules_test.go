@@ -6,6 +6,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/compute/gpu"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Kural (dil tanımı 15.40): farklı cihazlardaki tensörlerle indeksle atama sessizce kopyalamaz;
@@ -47,5 +48,24 @@ TR_no_grad {
 	want := "[0.0, 6.0] [0.0, 3.0]\n[0.0, 8.0] [0.0, 4.0]\n[0.0, 12.0] [0.0, 6.0]\n"
 	if out != want {
 		t.Fatalf("çıktı:\n%s\nbeklenen:\n%s", out, want)
+	}
+}
+
+// Kural (dil tanımı 15.6d): tensörle indekse yazma kartta da H7042'dir; hedef kopya kalır, t değişmez.
+// Önerilen döngü kartta yazar.
+func TestTensorIndexWriteOnDevice(t *testing.T) {
+	gpu.RegisterSimulator()
+	defer tensor.SetDefaultDevice(tensor.CPU)
+
+	const prelude = `TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0]).TR_to_device("gpu")
+TR_var idx = TR_Tensor([1, 3])
+TR_var d = TR_Tensor([5.0, 6.0]).TR_to_device("gpu")
+`
+	_, err := run(t, prelude+"t[idx] = d")
+	if err == nil || !messages.Has(err, messages.H7042) {
+		t.Fatalf("kartta t[idx] = d: %v, H7042 bekleniyordu", err)
+	}
+	if got := mustRun(t, prelude+suggestedSpelling(t, err.Error())+"\nTR_print(t.TR_tolist, t.TR_device)"); got != "[1.0, 5.0, 3.0, 6.0] gpu\n" {
+		t.Errorf("kartta önerilen döngü: %q", got)
 	}
 }
