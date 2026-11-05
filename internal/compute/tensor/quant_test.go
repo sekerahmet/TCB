@@ -14,9 +14,12 @@ const quantTestBlocks = 512
 
 // quantBlocks altın değerlerin girdisidir: sabit tohumlu üreteçle bayt doldurulur, ölçeklerin NaN
 // ve sonsuz olanı sonluya çekilir. Üreteç llama.cpp tarafındaki C koşumuyla aynıdır.
-func quantBlocks(dt DType, seed uint32) []byte {
+func quantBlocks(dt DType, seed uint32) []byte { return randomQuant(dt, seed, quantTestBlocks) }
+
+// randomQuant blocks bloğu üretir.
+func randomQuant(dt DType, seed uint32, blocks int) []byte {
 	_, size := dt.QuantBlock()
-	raw := make([]byte, quantTestBlocks*size)
+	raw := make([]byte, blocks*size)
 	state := seed
 	for i := range raw {
 		state = state*1664525 + 1013904223
@@ -27,7 +30,7 @@ func quantBlocks(dt DType, seed uint32) []byte {
 			le.LittleEndian.PutUint16(p, v&^0x4000)
 		}
 	}
-	for b := range quantTestBlocks {
+	for b := range blocks {
 		block := raw[b*size : (b+1)*size]
 		switch dt {
 		case Q8:

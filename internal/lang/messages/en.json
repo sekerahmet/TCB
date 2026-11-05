@@ -1309,6 +1309,8 @@
 "H6692": "the last axis of a \"{dtype}\" tensor must be a multiple of the {block}-element block, its length is {length} (15.51)",
 "H6693": "the GGUF key {key|q} must be a non-negative integer",
 "H6694": "the tensor index {index} is outside [0, {rows}) (15.6d)",
+"H6695": "a \"{dtype}\" weight is not multiplied as `x @ w` (15.53): the blocks are on the last axis and the product runs along it; write `x @ w.{#transpose}()`",
+"H6696": "a tensor that tracks gradients cannot be multiplied by a \"{dtype}\" weight: there is no backward pass in this version (15.53); multiply without gradients: `{#no_grad} {{ x @ w.TR_transpose() }}`",
 "H6700": "this tensor ({shape}) is the result of an operation; a gradient is only kept on tensors created with {requiresGradArg}: {trueValue}. To update a weight use an optimizer ({adamWFn}, {sgdFn}) or compute the new value inside {noGradFn} {{ }} and recreate it with {example}",
 "H6701": "the table view can only be used for 1- and 2-dimensional tensors (this tensor: {shape})",
 "H6702": "in the tensor '**' operation the exponent must be a number (t ** 2); for an element-wise power use {expFn}({logFn}(t) * u)",

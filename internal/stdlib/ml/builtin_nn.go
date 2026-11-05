@@ -34,7 +34,7 @@ func intIndices(fn any, v interp.Value) ([]int, []int, error) {
 	return nil, nil, messages.New(messages.H6300, fn, typeName(v))
 }
 
-func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func embedding(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := codes.NameRef(codes.FnEmbeddingLookup)
 	if len(args) != 2 {
 		return nil, messages.New(messages.H6301, fn, len(args))
@@ -85,6 +85,10 @@ func embedding(_ *interp.VM, args []interp.Value, named map[string]interp.Value)
 	})
 	if err != nil {
 		return nil, err
+	}
+	if mixed := mixedDType(m); table.t.DType().IsQuantized() && mixed != tensor.Float32 {
+		// Satırlar hesap hassasiyetine açılır (15.53): `@`'nin blok kuralı.
+		return New(r.Cast(mixed)), nil
 	}
 	return New(r), nil
 }

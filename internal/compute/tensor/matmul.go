@@ -17,7 +17,12 @@ import (
 func MatMul(a, b *Tensor) *Tensor { return MatMulOut(a, b, MatMulType(a, b)) }
 
 // MatMulType MatMul'ün çıktı türüdür: türler aynıysa o tür, değilse float32.
-func MatMulType(a, b *Tensor) DType { return resultDType(a.dtyp, b.dtyp) }
+func MatMulType(a, b *Tensor) DType {
+	if b.dtyp.IsQuantized() {
+		return a.dtyp // nicemlenmiş ağırlıkta sonuç x'in hassasiyetindedir (15.53)
+	}
+	return resultDType(a.dtyp, b.dtyp)
+}
 
 // MatMulOut çıktı türü açıkça verilen matris çarpımı (karışık hassasiyet: ör.
 // bfloat16 girdiler, float32 çıktı). Arka uç iç toplamayı en az float32'de
@@ -33,6 +38,9 @@ func MatMulOut(a, b *Tensor, outType DType) *Tensor {
 // okunmamalıdır: k.Run (izinler alınmışsa, kilitsiz) ya da k.RunLocked.
 func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	be := sameDevice("matmul", a, b)
+	if b.dtyp.IsQuantized() {
+		CheckQuantWeight(a, b)
+	}
 	if len(a.shape) < 2 || len(b.shape) < 2 {
 		panic(messages.New(messages.H3050, a.shape, b.shape))
 	}
@@ -60,7 +68,7 @@ func MatMulKernel(a, b *Tensor, outType DType) (*Tensor, *Kernel) {
 	// Sayaç hazırlıkta başlar (düğüm işlemin adını kayıtta ondan alır), çarpım bitince durur.
 	sy := counterStart(be, OpKindMatMul).start()
 	av := a.contigView()
-	bv, tb := b.contigView2DTransposed()
+	bv, tb := b.rightView()
 	// Bitişik kopyalar geri yönde de okunur; geri yön bitince (türev izlenmiyorsa hemen) iade edilir.
 	ra, rb := copyRelease(a, av), copyRelease(b, bv)
 	release := func() { ra(); rb() }
@@ -128,6 +136,15 @@ func matMulGrad(be Backend, batch, M, N, K int, av, bv View, tb bool, ad, bd DTy
 
 // MatMul yöntem biçimi.
 func (t *Tensor) MatMul(o *Tensor) *Tensor { return MatMul(t, o) }
+
+// rightView çarpımın sağ işlenenidir: nicemlenmiş ağırlık her zaman deposuyla, devrik bayrağıyla
+// verilir (tek satırlı ağırlıkta [K, 1] görünümü bitişik görünür, adımlar yine devriktir).
+func (t *Tensor) rightView() (View, bool) {
+	if t.dtyp.IsQuantized() {
+		return View{S: t.storage, Offset: t.offset, Shape: []int{t.shape[1], t.shape[0]}, Strides: []int{t.shape[0], 1}}, true
+	}
+	return t.contigView2DTransposed()
+}
 
 // contigView2DTransposed sağ taraf için görünümü verir: bitişik bir [N, K] matrisin devriği olan
 // [K, N] görünümse (adımlar [1, K]) depolamayı kopyasız, devrik bayrağıyla (true) verir; değilse

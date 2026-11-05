@@ -186,6 +186,17 @@ func checkNotQuantized(types ...DType) {
 	}
 }
 
+// CheckQuantWeight x @ w'nin nicemlenmiş sağ işlenenini denetler (15.53): w [N, K] deposunun
+// devriğidir; geri yön yoktur, x türev izliyorsa çarpım hatadır.
+func CheckQuantWeight(x, w *Tensor) {
+	if len(w.shape) != 2 || w.strides[0] != 1 {
+		panic(messages.New(messages.H6695, w.dtyp.Name()))
+	}
+	if GradEnabled() && x.RequiresGrad() {
+		panic(messages.New(messages.H6696, w.dtyp.Name()))
+	}
+}
+
 // refuseTransposed nicemlenmiş devrik görünümün okuma dışı işlemlerini durdurur (15.53).
 func (t *Tensor) refuseTransposed() {
 	if !t.IsContiguous() {

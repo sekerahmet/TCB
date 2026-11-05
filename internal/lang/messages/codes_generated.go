@@ -1314,6 +1314,8 @@ const (
 	H6692 Code = 6692 // "{dtype}" tensörün son ekseni {block} öğelik bloğun katı olmalıdır, uzunluğu {length} (15.51)
 	H6693 Code = 6693 // GGUF anahtarı {key|q} eksi olmayan bir tam sayı olmalıdır
 	H6694 Code = 6694 // tensör indeksi {index}, [0, {rows}) dışında (15.6d)
+	H6695 Code = 6695 // "{dtype}" ağırlık `x @ w` diye çarpılmaz (15.53): bloklar son eksendedir, çarpım o eksen boyunca yapılır; doğrusu `x @ w.{#transpose}()`
+	H6696 Code = 6696 // türev izleyen tensör "{dtype}" ağırlıkla çarpılamaz: bu sürümde geri yön yok (15.53); çarpımı türevsiz yapın: `{#no_grad} {{ x @ w.TR_transpose() }}`
 	H6700 Code = 6700 // bu tensör ({shape}) bir işlemin sonucu; gradyan yalnızca {requiresGradArg}: {trueValue} ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici ({adamWFn}, {sgdFn}) kullanın ya da yeni değeri {noGradFn} {{ }} içinde hesaplayıp {example} ile yeniden oluşturun
 	H6701 Code = 6701 // tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: {shape})
 	H6702 Code = 6702 // tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için {expFn}({logFn}(t) * u) kullanın

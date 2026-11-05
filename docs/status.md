@@ -1019,8 +1019,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.53
 
-- **Mevcut durum:** ilk eksende indeks, dilim, tensörle indeks, `.TR_transpose()`, yazdırma (yalnız gösterilen blokların açılmasıyla) ve `.TR_to_device("cpu")` var; başka her işlem H6687, devrik görünümde H6688 [test: `TestQuantRefusesEverythingElse`, `tests/tensor_nicemli_test.tr`]. `Cast` açmaz: `TR_mixed_precision` bloğu ağırlığı sessizce açamaz. GPU'ya taşıma ve GPU'da kurma H6689. `TR_save_tensors` H6687 (15.55).
-- **Yapılacaklar:** CPU'da (AVX2, ARM NEON) ve GPU'da blok blok açan çarpım ve gömme çekirdekleri; geri yönün ikinci çekirdeği; 2. kilometre taşının hız ölçütü; TR testi ve Go testi (CPU ve GPU, açılmış hesapla karşılaştırma). Nicemleme farkında eğitim (QAT) Sonraya.
+- **Mevcut durum:** `x @ w.TR_transpose()` ve `TR_embedding_lookup` CPU'da var: tek satırda AVX2 ve F16C çekirdeği blokları yazmaçta açar, "aç + `dotF32`" ile bit bit aynı [test: `TestQuantDotMatchesOpenedDot`]; çok satırda 256 satırlık parçalar açılır, bütün ağırlık açılmaz [test: `TestQuantMatMulMatchesOpened`]. AVX2 ya da F16C yoksa ve ARM'de Go eşi. Türev izleyen girdi H6696: geri yön `g @ w` yok; `x @ w` H6695; `TR_linear_cross_entropy` H6687. İlk eksende indeks, dilim, tensörle indeks, `.TR_transpose()`, yazdırma (yalnız gösterilen blokların açılmasıyla) ve `.TR_to_device("cpu")` var; başka her işlem H6687, devrik görünümde H6688 [test: `TestQuantRefusesEverythingElse`, `tests/tensor_nicemli_test.tr`]. `Cast` açmaz: `TR_mixed_precision` bloğu ağırlığı sessizce açamaz. GPU'ya taşıma ve GPU'da kurma H6689. `TR_save_tensors` H6687 (15.55).
+- **Yapılacaklar:** ARM NEON ve GPU çekirdekleri; geri yönün ikinci çekirdeği; `TR_linear_cross_entropy`; 2. kilometre taşının hız ölçütü. Nicemleme farkında eğitim (QAT) Sonraya.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** devrik görünümün izinli kullanımları; fp8'in ilk eksen kuralı (T3).
 
 ### 15.54

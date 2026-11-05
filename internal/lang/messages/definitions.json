@@ -1309,6 +1309,8 @@
 "H6692": { "param": ["dtype", "length", "block"] },
 "H6693": { "param": ["key"] },
 "H6694": { "param": ["index", "rows"] },
+"H6695": { "param": ["dtype"], "slots": {"transpose": "TR_mem_transpose"} },
+"H6696": { "param": ["dtype"], "slots": {"no_grad": "TR_fn_no_grad"} },
 "H6700": { "param": ["shape", "requiresGradArg", "trueValue", "adamWFn", "sgdFn", "noGradFn", "example"] },
 "H6701": { "param": ["shape"] },
 "H6702": { "param": ["expFn", "logFn"] },
