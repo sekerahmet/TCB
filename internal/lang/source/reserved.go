@@ -10,8 +10,8 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 )
 
-// reservedNames is the gate of 2.3a and 17: a name the user defines does not start with TR_, even
-// when it is a valid identity. TR_func TR_print in a module would otherwise replace the builtin in
+// reservedNames is the one gate of 2.3a and 17: a name the user defines does not start with TR_,
+// even when it is a valid identity. TR_func TR_print in a module would otherwise replace the builtin in
 // the importing file without a word. The lexer stops a TR_ name it cannot resolve; a name it can
 // resolve has the code of its place, and only the tree says the place defines it. The library
 // defines its own names (17.1), so Prepare does not ask for its files.
@@ -60,16 +60,28 @@ type reservedGate struct {
 	methods map[*ast.FunctionLiteral]bool
 }
 
-// definition checks the name of a struct, enum or interface and of an enum's states. Its methods
-// are visited as functions: they are remembered here, so that they are not read as functions of
-// the file.
+// definition checks the name of a struct, enum or interface and its members. Its methods are
+// visited as functions: they are remembered here, so that they are not read as functions of the
+// file. A struct alone holds the two members the language calls (17): the constructor and the
+// TR_next() of iteration (5.7).
 func (g *reservedGate) definition(s *ast.StructStatement) {
 	g.name(s.NameToken)
+	g.fields(s.Fields)
 	for _, v := range s.Variants {
 		g.name(v.NameToken)
+		g.fields(v.Fields)
 	}
 	for _, m := range s.Methods {
 		g.methods[m] = true
+		if code := m.NameToken.Code; s.Kind != ast.KindStruct || code != codes.CtxInit && code != codes.MemNext {
+			g.name(m.NameToken)
+		}
+	}
+}
+
+func (g *reservedGate) fields(fields []ast.StructField) {
+	for _, f := range fields {
+		g.name(f.NameToken)
 	}
 }
 

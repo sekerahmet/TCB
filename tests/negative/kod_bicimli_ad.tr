@@ -13,3 +13,7 @@ TR_interface TR_Yok { # ERROR H0004
     TR_func a() -> TR_Int
 }
 TR_func f(TR_yok: TR_Int) { } # ERROR H0004
+TR_struct K {
+    TR_yok: TR_Int # ERROR H0004
+}
+TR_enum E { A(TR_yok: TR_Int) } # ERROR H0004

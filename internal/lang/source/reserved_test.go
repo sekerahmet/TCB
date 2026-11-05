@@ -24,6 +24,14 @@ var reservedDefinitions = []struct{ name, code string }{
 	{"TR_abs", "TR_func f() {\n    TR_var TR_abs = 1\n}\n"},
 	{"TR_abs", "TR_import \"tr/layers\" TR_as TR_abs\n"},
 	{"TR_max", "TR_var s = \"\\(TR_func TR_max() { })\"\n"},
+	{"TR_weight", "TR_struct K {\n    TR_weight: TR_Int\n}\n"},
+	{"TR_next", "TR_struct K {\n    TR_next: TR_Int = 1\n}\n"},
+	{"TR_forward", "TR_struct K {\n    TR_func TR_forward() { }\n}\n"},
+	{"TR_length", "TR_interface I {\n    TR_func TR_length() -> TR_Int\n}\n"},
+	{"TR_next", "TR_interface I {\n    TR_func TR_next() -> TR_Int?\n}\n"},
+	{"TR_forward", "TR_enum E {\n    A\n    TR_func TR_forward() { }\n}\n"},
+	{"TR_next", "TR_enum E {\n    A\n    TR_func TR_next() -> TR_Int? { TR_return TR_none }\n}\n"},
+	{"TR_x", "TR_enum E { A(TR_x: TR_Int) }\n"},
 }
 
 // Kural (2.3a): kullanıcının adı TR_ ile başlamaz, geçerli bir kimlik olsa da. Kapı sözdizimi
@@ -45,6 +53,15 @@ func TestReservedNamesStopEveryDefinition(t *testing.T) {
 				t.Errorf("%q: düzeltme yok: %v", c.code, r.Errors[0])
 			}
 		}
+	}
+}
+
+// Kural (17): kullanıcının yapısında dilin çağırdığı iki üye kodla yazılır: kurucu ve dolaşmanın
+// TR_next()'i. Dışlarında kod yoktur; yukarıdaki tablo öbür yerlerini sınar.
+func TestAStructHoldsTheMembersTheLanguageCalls(t *testing.T) {
+	code := "TR_struct S {\n    n: TR_Int = 0\n    TR_func TR_init() { }\n    TR_func TR_next() -> TR_Int? { TR_return TR_none }\n}\n"
+	if r := Prepare(code, Options{Body: true}); r.Stage != "" {
+		t.Errorf("TR_init ve TR_next yapıda yazılır: %v", r.Errors)
 	}
 }
 
