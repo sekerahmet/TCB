@@ -64,6 +64,7 @@ func (p *Parser) interpolation(text lexer.Token, curValue []rune, begin, end int
 	subProg := subParser.ParseProgram()
 	p.underscore = p.underscore || subParser.underscore
 	p.ifWithoutElse = p.ifWithoutElse || subParser.ifWithoutElse
+	p.funcKeywords = p.funcKeywords || subParser.funcKeywords
 	if subParser.depthExceeded {
 		if !p.depthExceeded {
 			p.errors = append(p.errors, subParser.errors[len(subParser.errors)-1])

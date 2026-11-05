@@ -25,7 +25,7 @@ var reservedDefinitions = []struct{ name, code string }{
 	{"TR_lr", "TR_struct K {\n    TR_func TR_init(TR_lr: TR_Int) { }\n}\n"},
 	{"TR_abs", "TR_func f() {\n    TR_var TR_abs = 1\n}\n"},
 	{"TR_abs", "TR_import \"tr/layers\" TR_as TR_abs\n"},
-	{"TR_max", "TR_var s = \"\\(TR_func TR_max() { })\"\n"},
+	{"TR_max", "TR_var s = \"\\(((x) => { TR_var TR_max = x })(1))\"\n"},
 	{"TR_weight", "TR_struct K {\n    TR_weight: TR_Int\n}\n"},
 	{"TR_next", "TR_struct K {\n    TR_next: TR_Int = 1\n}\n"},
 	{"TR_forward", "TR_struct K {\n    TR_func TR_forward() { }\n}\n"},
@@ -129,6 +129,15 @@ func TestAStructHoldsTheMembersTheLanguageCalls(t *testing.T) {
 	code := "TR_struct S {\n    n: TR_Int = 0\n    TR_func TR_init() { }\n    TR_func TR_next() -> TR_Int? { TR_return TR_none }\n}\n"
 	if r := Prepare(code, Options{Body: true}); r.Stage != "" {
 		t.Errorf("TR_init ve TR_next yapıda yazılır: %v", r.Errors)
+	}
+}
+
+// Kural (6.6): metin içindeki TR_func ifade yerindedir: tanım değildir, hata sözdizimindedir ve adın
+// kimlik olmasına bağlı değildir.
+func TestAFunctionInATextIsNoDefinition(t *testing.T) {
+	r := Prepare("TR_var s = \"\\(TR_func TR_max() { })\"\n", Options{Body: true, TypeCheck: true})
+	if r.Stage != StageSyntax || len(r.Errors) != 1 || !messages.Has(r.Errors[0], messages.H0269) {
+		t.Errorf("H0269 bekleniyordu: %q %v", r.Stage, r.Errors)
 	}
 }
 
