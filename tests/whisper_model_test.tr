@@ -2,11 +2,13 @@
 # Küçük sentetik Whisper açılır, kapılarından geçer, kodlayıcısı Hugging Face'in değerini verir (25.1).
 # Ağırlıklar formülden gelir; başvurunun kaynağı ve lisansı: testdata/whisper/KAYNAK.md.
 
+TR_import "tr/audio"
 TR_import "tr/pretrained"
 TR_import "tr/whisper"
 
 TR_const _BOYUT = 8
 TR_const _ARA = 16
+TR_const _ÇÖZÜCÜ_ARA = 32
 TR_const _KAYNAK = 6
 TR_const _HEDEF = 4
 TR_const _DAĞARCIK = 12
@@ -21,7 +23,7 @@ TR_func değerler(tohum: TR_Int, n: TR_Int, ölçek: TR_Float) -> TR_List[TR_Flo
 # büyük girdide ayrılır.
 TR_func ölçek(ad: TR_String, büyük: TR_Bool) -> TR_Float {
     TR_if ad.TR_ends_with("q_proj.weight") TR_or ad.TR_ends_with("k_proj.weight") { TR_return 1.0 }
-    TR_if büyük TR_and (ad.TR_ends_with("conv1.weight") TR_or ad.TR_ends_with("conv2.weight") TR_or ad.TR_ends_with("fc1.weight")) { TR_return 2.0 }
+    TR_if büyük TR_and (ad.TR_ends_with("conv1.weight") TR_or ad.TR_ends_with("conv2.weight") TR_or ad.TR_ends_with("fc1.weight") TR_or ad.TR_ends_with("embed_tokens.weight")) { TR_return 2.0 }
     TR_return 0.25
 }
 
@@ -40,29 +42,31 @@ TR_func dikkat(ön: TR_String) -> TR_List[Ad] {
 
 TR_func norm(ön: TR_String) -> TR_List[Ad] { TR_return [Ad(ad: "\(ön).weight", şekil: [_BOYUT]), Ad(ad: "\(ön).bias", şekil: [_BOYUT])] }
 
-TR_func blok(ön: TR_String, çözücü: TR_Bool) -> TR_List[Ad] {
+TR_func blok(ön: TR_String, çözücü: TR_Bool, ara: TR_Int) -> TR_List[Ad] {
     TR_var r = dikkat("\(ön).self_attn") + norm("\(ön).self_attn_layer_norm")
     TR_if çözücü { r = r + dikkat("\(ön).encoder_attn") + norm("\(ön).encoder_attn_layer_norm") }
-    r = r + [Ad(ad: "\(ön).fc1.weight", şekil: [_ARA, _BOYUT]), Ad(ad: "\(ön).fc1.bias", şekil: [_ARA]),
-        Ad(ad: "\(ön).fc2.weight", şekil: [_BOYUT, _ARA]), Ad(ad: "\(ön).fc2.bias", şekil: [_BOYUT])]
+    r = r + [Ad(ad: "\(ön).fc1.weight", şekil: [ara, _BOYUT]), Ad(ad: "\(ön).fc1.bias", şekil: [ara]),
+        Ad(ad: "\(ön).fc2.weight", şekil: [_BOYUT, ara]), Ad(ad: "\(ön).fc2.bias", şekil: [_BOYUT])]
     TR_return r + norm("\(ön).final_layer_norm")
 }
 
 # adlar tensörleri sırayla verir: sıra formülün tohumudur.
-TR_func adlar(mel: TR_Int) -> TR_List[Ad] {
+TR_func adlar(mel: TR_Int, ara: TR_Int = _ARA, kaynak: TR_Int = _KAYNAK, hedef: TR_Int = _HEDEF, dağarcık: TR_Int = _DAĞARCIK) -> TR_List[Ad] {
     TR_var e = "model.encoder"
     TR_var d = "model.decoder"
     TR_var r = [Ad(ad: "\(e).conv1.weight", şekil: [_BOYUT, mel, 3]), Ad(ad: "\(e).conv1.bias", şekil: [_BOYUT]),
         Ad(ad: "\(e).conv2.weight", şekil: [_BOYUT, _BOYUT, 3]), Ad(ad: "\(e).conv2.bias", şekil: [_BOYUT]),
-        Ad(ad: "\(e).embed_positions.weight", şekil: [_KAYNAK, _BOYUT])]
-    r = r + blok("\(e).layers.0", TR_false) + blok("\(e).layers.1", TR_false) + norm("\(e).layer_norm")
-    r = r + [Ad(ad: "\(d).embed_tokens.weight", şekil: [_DAĞARCIK, _BOYUT]), Ad(ad: "\(d).embed_positions.weight", şekil: [_HEDEF, _BOYUT])]
-    TR_return r + blok("\(d).layers.0", TR_true) + norm("\(d).layer_norm")
+        Ad(ad: "\(e).embed_positions.weight", şekil: [kaynak, _BOYUT])]
+    r = r + blok("\(e).layers.0", TR_false, ara) + blok("\(e).layers.1", TR_false, ara) + norm("\(e).layer_norm")
+    r = r + [Ad(ad: "\(d).embed_tokens.weight", şekil: [dağarcık, _BOYUT]), Ad(ad: "\(d).embed_positions.weight", şekil: [hedef, _BOYUT])]
+    TR_return r + blok("\(d).layers.0", TR_true, _ÇÖZÜCÜ_ARA) + blok("\(d).layers.1", TR_true, _ÇÖZÜCÜ_ARA) + norm("\(d).layer_norm")
 }
 
-TR_func ağırlıklar(mel: TR_Int = 80, büyük: TR_Bool = TR_false) -> TR_Dict[TR_String, TR_Tensor] {
+TR_func ağırlıklar(mel: TR_Int = 80, büyük: TR_Bool = TR_false, tensörler: TR_List[Ad]? = TR_none) -> TR_Dict[TR_String, TR_Tensor] {
     TR_var sonuç: TR_Dict[TR_String, TR_Tensor] = {}
-    TR_for tohum, a TR_in adlar(mel) {
+    TR_var liste = adlar(mel)
+    TR_if tensörler != TR_none { liste = tensörler }
+    TR_for tohum, a TR_in liste {
         TR_var n = 1
         TR_for boy TR_in a.şekil { n = n * boy }
         sonuç[a.ad] = TR_Tensor(değerler(tohum, n, ölçek(a.ad, büyük))).TR_reshape(a.şekil)
@@ -73,8 +77,8 @@ TR_func ağırlıklar(mel: TR_Int = 80, büyük: TR_Bool = TR_false) -> TR_Dict[
 # ayar config.json'un alanlarıdır; değerler JSON metni olarak tutulur.
 TR_func ayar() -> TR_Dict[TR_String, TR_String] {
     TR_return {"model_type": `"whisper"`, "d_model": "\(_BOYUT)", "num_mel_bins": "80", "vocab_size": "\(_DAĞARCIK)", "max_source_positions": "\(_KAYNAK)",
-        "max_target_positions": "\(_HEDEF)", "encoder_layers": "2", "encoder_attention_heads": "2", "encoder_ffn_dim": "\(_ARA)", "decoder_layers": "1",
-        "decoder_attention_heads": "2", "decoder_ffn_dim": "\(_ARA)", "activation_function": `"gelu"`, "scale_embedding": "false"}
+        "max_target_positions": "\(_HEDEF)", "encoder_layers": "2", "encoder_attention_heads": "2", "encoder_ffn_dim": "\(_ARA)", "decoder_layers": "2",
+        "decoder_attention_heads": "4", "decoder_ffn_dim": "\(_ÇÖZÜCÜ_ARA)", "activation_function": `"gelu"`, "scale_embedding": "false"}
 }
 
 TR_func üretim() -> TR_Dict[TR_String, TR_String] { TR_return {"suppress_tokens": "[1]", "no_timestamps_token_id": "9"} }
@@ -139,7 +143,8 @@ TR_test "25.1 yanlış boyda pencere hatadır" {
 # logitler başvurunun [dört parça, dağarcık] logitleridir.
 TR_func logitler(ad: TR_String = "cozucu_logit") -> TR_Tensor { TR_return oku(ad).TR_reshape([1, _HEDEF, _DAĞARCIK]) }
 
-# yakın kıyasın sınırıdır: GELU ve K bozmaları bunu aşar, tabanın farkı onda birinin altındadır.
+# yakın kıyasın sınırıdır: GELU ve K bozmaları bunu aşar; tabanın farkı büyük kodlayıcıda sınırın
+# 0,41'idir.
 TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool { TR_return TR_all_close(a, b, TR_rtol: 1e-6, TR_atol: 1e-6) }
 
 TR_test "25.1 çözücü Hugging Face'in logitini verir" {
@@ -161,6 +166,18 @@ TR_test "25.1 önbellekli adımlar tek geçişle aynı" {
     TR_assert(yakın(TR_concat([ilk, son], TR_dim: 1), logitler()))
     TR_var ayrı = model._başlat(kodlanmış)
     TR_assert_equal(ilk.TR_tolist, model._çöz([1, 5, 3], ayrı).TR_tolist)
+    TR_var ikili = model._başlat(kodlanmış)
+    TR_var baş = model._çöz([1, 5], ikili)
+    TR_assert(yakın(TR_concat([baş, model._çöz([3, 7], ikili)], TR_dim: 1), logitler()))
+}
+
+TR_test "25.6 konum sınırı aşılınca hata, önbellek bozulmaz" {
+    TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
+    TR_var bellek = model._başlat(model._kodla(pencere()))
+    TR_assert_equal("H6720", TR_error_code { model._çöz([1, 5, 3, 7, 2], bellek) })
+    TR_var ilk = model._çöz([1, 5, 3], bellek)
+    TR_assert_equal("H6720", TR_error_code { model._çöz([7, 2], bellek) })
+    TR_assert(yakın(TR_concat([ilk, model._çöz([7], bellek)], TR_dim: 1), logitler()))
 }
 
 TR_test "25.1 çözücünün kıyası farkı görür" {
@@ -301,4 +318,212 @@ TR_test "25.1 desteklenmeyen ayar ve boyut hatadır" {
             TR_assert_equal("H7096", aç_ayarla(d))
         }
     }
+}
+
+# Çeviri modeli: özgün `transcribe`'ın koştuğu küçük model. Kimlikler parçalayıcının sırasıdır.
+TR_const _ÇEVİRİ_ARA = 32
+TR_const _ÇEVİRİ_KAYNAK = 1500
+TR_const _ÇEVİRİ_HEDEF = 24
+TR_const _METİN = "Ġabcdefghijklmnopqrstuvwxyz.,?!'"
+TR_const _ÖZEL = ["<|endoftext|>", "<|startoftranscript|>", "<|en|>", "<|tr|>", "<|translate|>", "<|transcribe|>", "<|startoflm|>", "<|startofprev|>", "<|nospeech|>", "<|notimestamps|>"]
+TR_const _EOT = 32
+TR_const _DAMGA = 42
+TR_const _DAMGA_SAYISI = 128
+TR_const _ÇEVİRİ_DAĞARCIK = 170
+
+TR_func çeviri_ayarı() -> TR_Dict[TR_String, TR_String] {
+    TR_var a = ayar()
+    a["vocab_size"] = "\(_ÇEVİRİ_DAĞARCIK)"
+    a["max_source_positions"] = "\(_ÇEVİRİ_KAYNAK)"
+    a["max_target_positions"] = "\(_ÇEVİRİ_HEDEF)"
+    a["encoder_ffn_dim"] = "\(_ÇEVİRİ_ARA)"
+    a["decoder_ffn_dim"] = "\(_ÇEVİRİ_ARA)"
+    TR_return a
+}
+
+TR_func çeviri_üretimi() -> TR_Dict[TR_String, TR_String] {
+    TR_return {"suppress_tokens": "[5, 9, 33, 36, 37, 38, 39, 40]", "no_timestamps_token_id": "41", "lang_to_id": "{\"<|en|>\": 34, \"<|tr|>\": 35}"}
+}
+
+# damga_adı damganın parça adıdır: <|0.00|>, <|0.02|>, ...
+TR_func damga_adı(i: TR_Int) -> TR_String {
+    TR_var yüzde = i * 2 % 100
+    TR_var sıfır = TR_if yüzde < 10 { "0" } TR_else { "" }
+    TR_return "<|\(i * 2 // 100).\(sıfır)\(yüzde)|>"
+}
+
+# parçalayıcı_metni küçük parçalayıcının tokenizer.json'udur.
+TR_func parçalayıcı_metni() -> TR_String {
+    TR_var sözlük: TR_List[TR_String] = []
+    TR_var eklenen: TR_List[TR_String] = []
+    TR_for i, c TR_in _METİN {
+        TR_var kaçış = c
+        sözlük.TR_append("\"\(kaçış)\": \(i)")
+    }
+    TR_var adlar_listesi = _ÖZEL + [damga_adı(i) TR_for i TR_in 0.._DAMGA_SAYISI]
+    TR_for i, ad TR_in adlar_listesi {
+        TR_var kimlik = _EOT + i
+        TR_var özel = TR_if i < _ÖZEL.TR_length { "true" } TR_else { "false" }
+        sözlük.TR_append("\"\(ad)\": \(kimlik)")
+        eklenen.TR_append("{\"id\": \(kimlik), \"content\": \"\(ad)\", \"single_word\": false, \"lstrip\": false, \"rstrip\": false, \"normalized\": false, \"special\": \(özel)}")
+    }
+    TR_var ön = "{\"type\": \"ByteLevel\", \"add_prefix_space\": false, \"trim_offsets\": true, \"use_regex\": false}"
+    TR_var çözücü = "{\"type\": \"ByteLevel\", \"add_prefix_space\": true, \"trim_offsets\": true, \"use_regex\": true}"
+    TR_var model = "{\"type\": \"BPE\", \"dropout\": null, \"unk_token\": null, \"continuing_subword_prefix\": null, \"end_of_word_suffix\": null, \"fuse_unk\": false, \"byte_fallback\": false, \"ignore_merges\": false, \"vocab\": {\(sözlük.TR_join(", "))}, \"merges\": []}"
+    TR_return "{\"version\": \"1.0\", \"truncation\": null, \"padding\": null, \"added_tokens\": [\(eklenen.TR_join(", "))], \"normalizer\": null, \"pre_tokenizer\": \(ön), \"post_processor\": null, \"decoder\": \(çözücü), \"model\": \(model)}"
+}
+
+TR_func çeviri_ağırlıkları() -> TR_Dict[TR_String, TR_Tensor] {
+    TR_return ağırlıklar(büyük: TR_true, tensörler: adlar(80, ara: _ÇEVİRİ_ARA, kaynak: _ÇEVİRİ_KAYNAK, hedef: _ÇEVİRİ_HEDEF, dağarcık: _ÇEVİRİ_DAĞARCIK))
+}
+
+TR_func çeviri_klasörü(t: TR_Dict[TR_String, TR_Tensor], ü: TR_Dict[TR_String, TR_String]) -> TR_String {
+    TR_var k = klasör(çeviri_ayarı(), ü, t)
+    TR_write_file(TR_Path(TR_Path(k), "tokenizer.json"), parçalayıcı_metni())
+    TR_return k
+}
+
+TR_func çeviri_modeli() -> TR_Whisper { TR_return TR_pretrained_whisper(çeviri_klasörü(çeviri_ağırlıkları(), çeviri_üretimi())) }
+
+# sessiz_modeli sessizlik parçasını son normun sapmasına çevirir: olasılığı her pencerede büyür.
+TR_func sessiz_modeli(çarpan: TR_Float) -> TR_Whisper {
+    TR_var t = çeviri_ağırlıkları()
+    TR_var ad = "model.decoder.embed_tokens.weight"
+    TR_var e = t[ad] * çarpan
+    TR_var satır = (t["model.decoder.layer_norm.bias"] * 600.0).TR_reshape([1, _BOYUT])
+    t[ad] = TR_concat([e.TR_slice(0, 0, 40), satır, e.TR_slice(0, 41, _ÇEVİRİ_DAĞARCIK)], TR_dim: 0)
+    TR_return TR_pretrained_whisper(çeviri_klasörü(t, çeviri_üretimi()))
+}
+
+# ses formülden gelir: yarım saniye sessizlik, yarım saniye gürültü.
+TR_func ses_kur(n: TR_Int) -> TR_Sound {
+    TR_var örnekler = [((i * i + 7 * i) % 7919 / 7919.0 - 0.5) * 0.25 * ((i // 8000) % 2) TR_for i TR_in 0..n]
+    TR_return TR_Sound(TR_samples: TR_Tensor([örnekler]), TR_sample_rate: 16000)
+}
+
+TR_func özgün() -> TR_JSON { TR_return TR_json_parse(TR_read_file("testdata/whisper/kucuk_cevriyazi.json")) }
+
+# özgünle_aynı sonucu özgün `transcribe`'ın kaydıyla kıyaslar: parçalar, zamanlar, metinler.
+TR_func özgünle_aynı(r: TR_Transcription, ö: TR_JSON) {
+    TR_assert_equal(ö["segments"].TR_length, r.TR_segments.TR_length)
+    TR_for i, k TR_in r.TR_segments {
+        TR_var s = ö["segments"][i]
+        TR_assert_equal([TR_Int(p) TR_for p TR_in s["tokens"]], k._parçalar)
+        TR_assert_equal(TR_Float(s["start"]), k.TR_start)
+        TR_assert_equal(TR_Float(s["end"]), k.TR_end)
+        TR_assert_equal(TR_String(s["text"]), k.TR_text)
+    }
+    TR_assert_equal(TR_String(ö["text"]), r.TR_text)
+}
+
+TR_test "25.2 kısa ses özgünle aynı" {
+    TR_var r = çeviri_modeli().TR_transcribe(ses_kur(8000), TR_language: "en")
+    özgünle_aynı(r, özgün()["kisa"])
+    TR_assert_equal("en", r.TR_language)
+}
+
+TR_test "25.7 uzun ses özgünle aynı" {
+    TR_var r = çeviri_modeli().TR_transcribe(ses_kur(16000 * 40), TR_language: "tr")
+    özgünle_aynı(r, özgün()["uzun"])
+    TR_assert_equal("tr", r.TR_language)
+}
+
+TR_test "25.8 sessiz pencere atlanır, ortalama yüksekse atlanmaz" {
+    özgünle_aynı(sessiz_modeli(1.0).TR_transcribe(ses_kur(8000), TR_language: "en"), özgün()["sessiz"])
+    özgünle_aynı(sessiz_modeli(64.0).TR_transcribe(ses_kur(8000), TR_language: "en"), özgün()["keskin"])
+}
+
+TR_test "25.5 süzgeçler özgünle aynı kimlikleri bırakır" {
+    TR_var model = çeviri_modeli()
+    TR_var s = model._süzgeç()
+    TR_for durum TR_in özgün()["suzgec"] {
+        TR_var ölç = TR_Float(durum["olcek"])
+        TR_var liste = değerler(TR_Int(durum["tohum"]), _ÇEVİRİ_DAĞARCIK, ölç)
+        TR_var ham = TR_Tensor(liste).TR_tolist # float32'ye yuvarlanmış değerler
+        TR_if ölç > 1.0 { ham[2] = ham[2] + 30.0 }
+        TR_var l = TR_Tensor(ham)
+        TR_var x = s._süz(l, [TR_Int(p) TR_for p TR_in durum["dizi"]]).TR_tolist
+        TR_var kalan = [i TR_for i TR_in 0..x.TR_length TR_if x[i] != TR_Float("-inf")]
+        TR_assert_equal([TR_Int(p) TR_for p TR_in durum["kalan"]], kalan)
+    }
+}
+
+TR_test "25.3 dil küçük harfli kısa koddur" {
+    TR_var model = çeviri_modeli()
+    TR_for dil TR_in ["turkish", "TR", "xx", ""] {
+        TR_assert_equal("H7098", TR_error_code { model.TR_transcribe(ses_kur(800), TR_language: dil) })
+    }
+}
+
+TR_test "25.3 tek dilli modelde yalnız en geçerli, dil ve görev parçası girmez" {
+    TR_var ü = çeviri_üretimi()
+    ü.TR_remove("lang_to_id")
+    TR_var model = TR_pretrained_whisper(çeviri_klasörü(çeviri_ağırlıkları(), ü))
+    TR_assert_equal("H7098", TR_error_code { model.TR_transcribe(ses_kur(800), TR_language: "tr") })
+    TR_assert_equal([33], model._başlangıç("en", model._süzgeç()))
+    TR_assert_equal([33, 35, 37], çeviri_modeli()._başlangıç("tr", çeviri_modeli()._süzgeç()))
+    model.TR_transcribe(ses_kur(800), TR_language: "en")
+}
+
+TR_test "25.4 aynı model ve aynı ses aynı metni verir" {
+    TR_var model = çeviri_modeli()
+    TR_var a = model.TR_transcribe(ses_kur(16000 * 3), TR_language: "tr")
+    TR_var b = model.TR_transcribe(ses_kur(16000 * 3), TR_language: "tr")
+    TR_assert_equal(a.TR_text, b.TR_text)
+    TR_assert_equal(a.TR_segments.TR_length, b.TR_segments.TR_length)
+}
+
+TR_test "25.6 pencere özgünle aynı: parçalar, ortalama, sessizlik, bağlam" {
+    TR_var model = çeviri_modeli()
+    TR_var s = model._süzgeç()
+    TR_var log_mel = TR_whisper_log_mel(ses_kur(16000 * 40), TR_n_mels: 80)
+    TR_for d TR_in özgün()["pencere"] {
+        TR_var önceki = [TR_Int(p) TR_for p TR_in d["onceki"]]
+        TR_var r = model._pencere(model._dilim(log_mel, TR_Int(d["seek"]), TR_Int(d["boy"])), model._başlangıç("en", s), önceki, s)
+        TR_assert_equal([TR_Int(p) TR_for p TR_in d["tokens"]], r.parçalar)
+        TR_assert(TR_abs(r.ortalama - TR_Float(d["ortalama"])) < 1e-4)
+        TR_assert(TR_abs(r.sessizlik - TR_Float(d["sessizlik"])) < 1e-5)
+    }
+}
+
+TR_test "25.7 pencere başı ve kesitler özgünle aynı: betikli parçalar" {
+    TR_var model = çeviri_modeli()
+    TR_var s = model._süzgeç()
+    TR_var b = özgün()["betik"]
+    TR_var kayıt = TR_Int(b["kare"])
+    TR_var seek = 0
+    TR_var parçalar: TR_List[TR_Int] = []
+    TR_var kesitler: TR_List[TR_Segment] = []
+    TR_var adımlar = b["adim"]
+    TR_for i TR_in 0..adımlar.TR_length {
+        TR_var a = adımlar[i]
+        TR_assert_equal([TR_Int(p) TR_for p TR_in b["onceki"][i]], parçalar)
+        TR_var boy = TR_min(3000, kayıt - seek)
+        seek = model._işle([TR_Int(p) TR_for p TR_in a[0]], TR_Float(a[1]), TR_Float(a[2]), seek, boy, s, parçalar, kesitler)
+    }
+    TR_var ö = b["segments"]
+    TR_for i TR_in 0..kesitler.TR_length {
+        TR_var x = ö[i]
+        TR_assert_equal(TR_Float(x["start"]), kesitler[i].TR_start)
+        TR_assert_equal(TR_Float(x["end"]), kesitler[i].TR_end)
+        TR_assert_equal(TR_String(x["text"]), kesitler[i].TR_text)
+        TR_assert_equal([TR_Int(p) TR_for p TR_in x["tokens"]], kesitler[i]._parçalar)
+    }
+}
+
+TR_test "25.4 dış 16 bit blokta da aynı parçalar" {
+    TR_var model = çeviri_modeli()
+    TR_var ses = ses_kur(16000 * 3)
+    TR_var blokta = TR_mixed_precision("bf16") { model.TR_transcribe(ses, TR_language: "tr") }
+    TR_var bloksuz = model.TR_transcribe(ses, TR_language: "tr")
+    TR_assert_equal(bloksuz.TR_segments.TR_length, blokta.TR_segments.TR_length)
+    TR_for i TR_in 0..bloksuz.TR_segments.TR_length {
+        TR_assert_equal(bloksuz.TR_segments[i]._parçalar, blokta.TR_segments[i]._parçalar)
+    }
+    TR_assert_equal(bloksuz.TR_text, blokta.TR_text)
+}
+
+TR_test "25.3 parçalayıcıda özel parça yoksa hata" {
+    TR_var model = TR_pretrained_whisper(klasör(çeviri_ayarı(), çeviri_üretimi(), çeviri_ağırlıkları()))
+    TR_assert_equal("H7099", TR_error_code { model.TR_transcribe(ses_kur(800), TR_language: "en") })
 }

@@ -185,6 +185,7 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Dosyalar:** `model.safetensors`, `config.json`, `tokenizer.json`, `generation_config.json`. Önce `config.json`'un `model_type`'ına bakılır: başka bir modelin klasörüne eksik dosya değil, `TR_fn_pretrained_model` önerilir. `TR_fn_pretrained_model`'e Whisper klasörü vermek de hatadır.
 - **Ağırlıklar:** her tensörün adı ve şekli ayardan hesaplanır; dosyada kalan, eksik ya da şekli uymayan tensör adıyla hata verir. Çıkış katmanı gömmeye bağlıdır, K izdüşümünün sapması yoktur. fp16 ve bf16 açılırken float32'ye genişler; başka tür hatadır.
 - **Kapılar:** `num_mel_bins` 80 ya da 128'dir. `activation_function` `gelu` dışında, `scale_embedding` açık, boyut sıfır ya da eksi, bakış sayısı `d_model`'i bölmüyorsa hatadır: model hatasız yüklenir, yanlış metin üretirdi.
+- **Çevirme:** `model.TR_mem_transcribe(ses, TR_arg_language: "tr")` bir `TR_type_Transcription` verir; özgün `transcribe`'ı `temperature=0.0`, `beam_size=None`, `fp16=False` ile izler. Gövde float32 bloğundadır: dış 16 bit blok sonucu değiştirmez.
 - **Doğruluk:** küçük sentetik modelde Hugging Face kodlayıcısı ve çözücüsüyle aynı değer (`tests/whisper_model_test.tr`, başvurusu `tests/testdata/whisper/KAYNAK.md`).
 
 ## `tr/audio`

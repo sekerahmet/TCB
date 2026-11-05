@@ -382,6 +382,29 @@ TR_struct TR_Whisper {
     TR_func _metin(parçalar: TR_List[TR_Int], sınır: TR_Int) -> TR_String {
         TR_return TR_self._parçalayıcı.TR_decode([p TR_for p TR_in parçalar TR_if p < sınır], TR_special_tokens: TR_true)
     }
+    # _dilim log-Mel'in pencereye düşen çerçevelerini verir; kısa pencere sıfırla dolar (özgündeki
+    # `pad_or_trim`), log-Mel'in kendi dolgusu kullanılmaz.
+    TR_func _dilim(log_mel: TR_Tensor, seek: TR_Int, boy: TR_Int) -> TR_Tensor {
+        TR_var pencere = 2 * TR_self._boyutlar.kaynak
+        TR_var dilim = log_mel.TR_slice(1, seek, seek + boy)
+        TR_if boy == pencere { TR_return dilim }
+        TR_return TR_concat([dilim, TR_zeros([log_mel.TR_shape[0], pencere - boy])], TR_dim: 1)
+    }
+    # _işle çözülmüş pencereyi kesitlere ve parçalara ekler, pencere başının yeni yerini verir (25.7, 25.8).
+    TR_func _işle(r: TR_List[TR_Int], ortalama: TR_Float, sessizlik: TR_Float, seek: TR_Int, boy: TR_Int, s: _Süzgeç, parçalar: TR_List[TR_Int], kesitler: TR_List[TR_Segment]) -> TR_Int {
+        TR_if sessizlik > _SESSİZLİK TR_and ortalama <= _LOG_OLASILIK { TR_return seek + boy }
+        TR_var b = s._böl(r, seek, boy)
+        TR_for k TR_in b.kesitler {
+            TR_var metin = TR_self._metin(k.parçalar, s.eot)
+            TR_if k.baş == k.son TR_or metin.TR_strip() == "" {
+                kesitler.TR_append(TR_Segment(k.baş, k.son, "", []))
+            } TR_else {
+                kesitler.TR_append(TR_Segment(k.baş, k.son, metin, k.parçalar))
+                TR_for p TR_in k.parçalar { parçalar.TR_append(p) }
+            }
+        }
+        TR_return seek + b.ilerleme
+    }
     # _çevir sesi pencere pencere çözer (25.7).
     TR_func _çevir(ses: TR_Sound, dil: TR_String) -> TR_Transcription {
         TR_var s = TR_self._süzgeç()
@@ -394,29 +417,14 @@ TR_struct TR_Whisper {
         TR_var kesitler: TR_List[TR_Segment] = []
         TR_for seek < kayıt {
             TR_var boy = TR_min(pencere, kayıt - seek)
-            TR_var dilim = log_mel.TR_slice(1, seek, seek + boy)
-            TR_if boy < pencere { dilim = TR_concat([dilim, TR_zeros([log_mel.TR_shape[0], pencere - boy])], TR_dim: 1) }
-            TR_var r = TR_self._pencere(dilim, başlangıç, parçalar, s)
-            TR_if r.sessizlik > _SESSİZLİK TR_and r.ortalama <= _LOG_OLASILIK {
-                seek = seek + boy
-                TR_continue
-            }
-            TR_var b = s._böl(r.parçalar, seek, boy)
-            TR_for k TR_in b.kesitler {
-                TR_var metin = TR_self._metin(k.parçalar, s.eot)
-                TR_if k.baş == k.son TR_or metin.TR_strip() == "" {
-                    kesitler.TR_append(TR_Segment(k.baş, k.son, "", []))
-                } TR_else {
-                    kesitler.TR_append(TR_Segment(k.baş, k.son, metin, k.parçalar))
-                    parçalar = parçalar + k.parçalar
-                }
-            }
-            seek = seek + b.ilerleme
+            TR_var r = TR_self._pencere(TR_self._dilim(log_mel, seek, boy), başlangıç, parçalar, s)
+            seek = TR_self._işle(r.parçalar, r.ortalama, r.sessizlik, seek, boy, s, parçalar, kesitler)
         }
         TR_return TR_Transcription(TR_self._metin(parçalar, s.damga), kesitler, dil)
     }
-    # yazıya_çevir sesi yazıya çevirir (25.2). Hesap float32'dedir (25.1): karışık hassasiyet bloğu
-    # burada kapanır, özgün ölçüt `fp16=False`'tır.
+    # yazıya_çevir sesi yazıya çevirir (25.2). Dış 16 bit blokta logit yuvarlanır, metin hatasız
+    # değişirdi: aynı ses aynı metni versin diye gövde float32 bloğundadır (15.4, 25.4). Alt adımlar
+    # çağıranın bloğunu izler.
     TR_func TR_transcribe(ses: TR_Sound, TR_language: TR_String) -> TR_Transcription {
         TR_return TR_mixed_precision("float32") { TR_self._çevir(ses, TR_language) }
     }

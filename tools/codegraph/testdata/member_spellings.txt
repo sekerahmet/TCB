@@ -271,6 +271,7 @@ Yer.TR_ctx_init	not_found	4	-
 _parçalayıcı.TR_decode	ok	0	name:TR_mem_decode
 _parçalayıcı.TR_encode	ok	0	name:TR_mem_encode
 _parçalayıcı.TR_token_id	ok	0	name:TR_mem_token_id
+_ÖZEL.TR_length	ok	0	name:TR_mem_length
 a.TR_append	ok	0	name:TR_mem_append
 a.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 a.TR_device	ok	0	name:TR_mem_device
@@ -297,10 +298,12 @@ a.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
 a.TR_remove	ok	0	name:TR_mem_remove
 a.TR_reshape	ok	0	name:TR_mem_reshape
 a.TR_sampler	ok	0	name:TR_mem_sampler
+a.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
 a.TR_shape	ok	0	name:TR_mem_shape
 a.TR_slice	ok	0	name:TR_mem_slice
 a.TR_state	ok	0	name:TR_mem_state
 a.TR_step	ok	0	name:TR_mem_step
+a.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 a.TR_to_device	ok	0	name:TR_mem_to_device
 a.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 a.TR_tolist	ok	0	name:TR_mem_tolist
@@ -319,6 +322,7 @@ adamw.TR_step	ok	0	name:TR_mem_step
 adlar.TR_contains	ok	0	name:TR_mem_contains
 adlar.TR_keys	ok	0	name:TR_mem_keys
 adlar.TR_length	ok	0	name:TR_mem_length
+adımlar.TR_length	ok	0	name:TR_mem_length
 akış.TR_finish	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_finish
 akış.TR_step	ok	0	name:TR_mem_step
 alanlar.TR_append	ok	0	name:TR_mem_append
@@ -377,11 +381,13 @@ b.TR_read_float	ok	0	name:TR_mem_read_float
 b.TR_read_int	ok	0	name:TR_mem_read_int
 b.TR_reshape	ok	0	name:TR_mem_reshape
 b.TR_sampler	ok	0	name:TR_mem_sampler
+b.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
 b.TR_skip	ok	0	name:TR_mem_skip
 b.TR_slice	ok	0	name:TR_mem_slice
 b.TR_spike_count	ok	0	tr:field:lib/training.tr:TR_type_SpikeGuard.TR_mem_spike_count
 b.TR_state	ok	0	name:TR_mem_state
 b.TR_step	ok	0	name:TR_mem_step
+b.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 b.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 b.TR_token_id	ok	0	name:TR_mem_token_id
 b.TR_tolist	ok	0	name:TR_mem_tolist
@@ -416,6 +422,10 @@ blok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_m
 blok.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 blok_değeri.TR_tolist	ok	0	name:TR_mem_tolist
 bloklar.TR_length	ok	0	name:TR_mem_length
+bloksuz.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
+bloksuz.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
+blokta.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
+blokta.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 boş.TR_grad	ok	0	name:TR_mem_grad
 boş.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
 boş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
@@ -529,12 +539,15 @@ e.TR_q_norm	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_norm
 e.TR_remove	ok	0	name:TR_mem_remove
 e.TR_reshape	ok	0	name:TR_mem_reshape
 e.TR_shape	ok	0	name:TR_mem_shape
+e.TR_slice	ok	0	name:TR_mem_slice
 e.TR_sort	ok	0	name:TR_mem_sort
 e.TR_suppressed	ok	0	name:TR_mem_suppressed
 e.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 e.TR_tolist	ok	0	name:TR_mem_tolist
 e.TR_value	ok	0	name:TR_mem_value
 e.TR_wait	ok	0	name:TR_mem_wait
+eklenen.TR_append	ok	0	name:TR_mem_append
+eklenen.TR_join	ok	0	name:TR_mem_join
 elle.TR_tolist	ok	0	name:TR_mem_tolist
 es.TR_append	ok	0	name:TR_mem_append
 es.TR_contains	ok	0	name:TR_mem_contains
@@ -754,6 +767,7 @@ kb.TR_tolist	ok	0	name:TR_mem_tolist
 kesin.TR_tolist	ok	0	name:TR_mem_tolist
 kesintisiz.TR_state	ok	0	name:TR_mem_state
 kesitler.TR_append	ok	0	name:TR_mem_append
+kesitler.TR_length	ok	0	name:TR_mem_length
 kimlikler.TR_append	ok	0	name:TR_mem_append
 kimlikler.TR_length	ok	0	name:TR_mem_length
 kişi.TR_get	ok	0	name:TR_mem_get
@@ -906,6 +920,7 @@ model.TR_mem_generate	not_found	4	-
 model.TR_mem_hidden_states	not_found	4	-
 model.TR_mem_logits	not_found	4	-
 model.TR_mem_single_step	not_found	4	-
+model.TR_mem_transcribe	not_found	4	-
 model.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 model.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
 model.TR_transcribe	ok	0	tr:method:lib/whisper.tr:TR_type_Whisper.TR_mem_transcribe
@@ -1057,6 +1072,7 @@ p.TR_vocab_size	ok	0	name:TR_mem_vocab_size
 p.TR_wait	ok	0	name:TR_mem_wait
 p.TR_write	ambiguous	3	spec:18.17,spec:21.2,spec:21.5	tr_index:not_found:4
 parça.TR_length	ok	0	name:TR_mem_length
+parçalar.TR_append	ok	0	name:TR_mem_append
 parçalar.TR_length	ok	0	name:TR_mem_length
 parçalı.TR_contains	ok	0	name:TR_mem_contains
 pencere.TR_append	ok	0	name:TR_mem_append
@@ -1077,8 +1093,11 @@ q.TR_transpose	ok	0	name:TR_mem_transpose
 q2.TR_grad	ok	0	name:TR_mem_grad
 r.TR_device	ok	0	name:TR_mem_device
 r.TR_dtype	ok	0	name:TR_mem_dtype
+r.TR_language	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_language
 r.TR_remove_at	ok	0	name:TR_mem_remove_at
+r.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
 r.TR_slice	ok	0	name:TR_mem_slice
+r.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 r.TR_tolist	ok	0	name:TR_mem_tolist
 return_mismatches.TR_append	ok	0	name:TR_mem_append
 rng.TR_length	ok	0	name:TR_mem_length
@@ -1179,6 +1198,8 @@ sonuçlar.TR_contains	ok	0	name:TR_mem_contains
 sonuçlar.TR_length	ok	0	name:TR_mem_length
 sönümlü.TR_append	ok	0	name:TR_mem_append
 sönümsüz.TR_append	ok	0	name:TR_mem_append
+sözlük.TR_append	ok	0	name:TR_mem_append
+sözlük.TR_join	ok	0	name:TR_mem_join
 sürdürülen.TR_load_state	ok	0	name:TR_mem_load_state
 süreler.TR_append	ok	0	name:TR_mem_append
 süreler.TR_length	ok	0	name:TR_mem_length
