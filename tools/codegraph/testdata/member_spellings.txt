@@ -755,6 +755,7 @@ kn.TR_update	ok	0	name:TR_mem_update
 kn2.TR_resume_step	ok	0	name:TR_mem_resume_step
 kn2.TR_rollback	ok	0	name:TR_mem_rollback
 kn2.TR_update	ok	0	name:TR_mem_update
+konum.TR_dtype	ok	0	name:TR_mem_dtype
 konum.TR_slice	ok	0	name:TR_mem_slice
 kopya.TR_append	ok	0	name:TR_mem_append
 kopya.TR_get	ok	0	name:TR_mem_get

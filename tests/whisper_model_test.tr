@@ -17,8 +17,11 @@ TR_func değerler(tohum: TR_Int, n: TR_Int, ölçek: TR_Float) -> TR_List[TR_Flo
 }
 
 # ölçek Q ve K'yı büyütür: küçük ağırlıkta dikkat düzdür, K ve önbellek yanlışı logitte görünmez.
-TR_func ölçek(ad: TR_String) -> TR_Float {
+# büyük model evrişimi ve ilk MLP katmanını da büyütür: GELU'nun tam biçimiyle tanh biçimi ancak
+# büyük girdide ayrılır.
+TR_func ölçek(ad: TR_String, büyük: TR_Bool) -> TR_Float {
     TR_if ad.TR_ends_with("q_proj.weight") TR_or ad.TR_ends_with("k_proj.weight") { TR_return 1.0 }
+    TR_if büyük TR_and (ad.TR_ends_with("conv1.weight") TR_or ad.TR_ends_with("conv2.weight") TR_or ad.TR_ends_with("fc1.weight")) { TR_return 2.0 }
     TR_return 0.25
 }
 
@@ -57,12 +60,12 @@ TR_func adlar(mel: TR_Int) -> TR_List[Ad] {
     TR_return r + blok("\(d).layers.0", TR_true) + norm("\(d).layer_norm")
 }
 
-TR_func ağırlıklar(mel: TR_Int = 80) -> TR_Dict[TR_String, TR_Tensor] {
+TR_func ağırlıklar(mel: TR_Int = 80, büyük: TR_Bool = TR_false) -> TR_Dict[TR_String, TR_Tensor] {
     TR_var sonuç: TR_Dict[TR_String, TR_Tensor] = {}
     TR_for tohum, a TR_in adlar(mel) {
         TR_var n = 1
         TR_for boy TR_in a.şekil { n = n * boy }
-        sonuç[a.ad] = TR_Tensor(değerler(tohum, n, ölçek(a.ad))).TR_reshape(a.şekil)
+        sonuç[a.ad] = TR_Tensor(değerler(tohum, n, ölçek(a.ad, büyük))).TR_reshape(a.şekil)
     }
     TR_return sonuç
 }
@@ -103,26 +106,41 @@ TR_func pencere() -> TR_Tensor {
     TR_return düz.TR_reshape([80, 57]).TR_slice(1, 0, 2 * _KAYNAK)
 }
 
-TR_func başvuru() -> TR_Tensor {
-    TR_var düz = TR_from_bytes[TR_Float](TR_read_bytes("testdata/whisper/kodlayici_cikti.bin"), TR_dtype: "float32", TR_byte_order: "little")
-    TR_return düz.TR_reshape([1, _KAYNAK, _BOYUT])
+TR_func oku(ad: TR_String) -> TR_Tensor {
+    TR_return TR_from_bytes[TR_Float](TR_read_bytes("testdata/whisper/\(ad).bin"), TR_dtype: "float32", TR_byte_order: "little")
 }
+
+TR_func başvuru(ad: TR_String = "kodlayici_cikti") -> TR_Tensor { TR_return oku(ad).TR_reshape([1, _KAYNAK, _BOYUT]) }
 
 TR_test "25.1 kodlayıcı Hugging Face'in değerini verir" {
     TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
     TR_var y = model._kodla(pencere())
     TR_assert_equal([1, _KAYNAK, _BOYUT], y.TR_shape)
     TR_assert_equal("float32", y.TR_dtype)
-    TR_assert(TR_all_close(y, başvuru(), TR_rtol: 1e-5, TR_atol: 1e-5))
+    TR_assert(yakın(y, başvuru()))
+}
+
+TR_test "25.1 büyük ağırlıkta kodlayıcı ve çözücü Hugging Face'in değerini verir" {
+    TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar(büyük: TR_true)))
+    TR_var y = model._kodla(pencere())
+    TR_assert(yakın(y, başvuru("kodlayici_cikti_buyuk")))
+    TR_assert(yakın(model._çöz([1, 5, 3, 7], model._başlat(y)), logitler("cozucu_logit_buyuk")))
+}
+
+TR_test "25.1 yanlış boyda pencere hatadır" {
+    TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
+    TR_for çerçeve TR_in [1, 2, 3, 10, 11, 13, 14] {
+        TR_assert_equal("H7097", TR_error_code { model._kodla(TR_zeros([80, çerçeve])) })
+    }
+    TR_assert_equal("H7097", TR_error_code { model._kodla(TR_zeros([128, 2 * _KAYNAK])) })
+    TR_assert_equal("H7097", TR_error_code { model._kodla(TR_zeros([80])) })
 }
 
 # logitler başvurunun [dört parça, dağarcık] logitleridir.
-TR_func logitler() -> TR_Tensor {
-    TR_var düz = TR_from_bytes[TR_Float](TR_read_bytes("testdata/whisper/cozucu_logit.bin"), TR_dtype: "float32", TR_byte_order: "little")
-    TR_return düz.TR_reshape([1, _HEDEF, _DAĞARCIK])
-}
+TR_func logitler(ad: TR_String = "cozucu_logit") -> TR_Tensor { TR_return oku(ad).TR_reshape([1, _HEDEF, _DAĞARCIK]) }
 
-TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool { TR_return TR_all_close(a, b, TR_rtol: 1e-5, TR_atol: 1e-5) }
+# yakın kıyasın sınırıdır: GELU ve K bozmaları bunu aşar, tabanın farkı onda birinin altındadır.
+TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool { TR_return TR_all_close(a, b, TR_rtol: 1e-6, TR_atol: 1e-6) }
 
 TR_test "25.1 çözücü Hugging Face'in logitini verir" {
     TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
@@ -158,7 +176,7 @@ TR_test "25.1 başvuruyla kıyas farkı görür" {
     TR_var t = ağırlıklar()
     t["model.encoder.layers.1.fc2.weight"] = t["model.encoder.layers.1.fc2.weight"] * 1.01
     TR_var y = TR_pretrained_whisper(klasör(ayar(), üretim(), t))._kodla(pencere())
-    TR_assert(TR_not TR_all_close(y, başvuru(), TR_rtol: 1e-5, TR_atol: 1e-5))
+    TR_assert(TR_not yakın(y, başvuru()))
 }
 
 TR_test "25.1 128 Mel açılır" {
@@ -176,7 +194,9 @@ TR_test "25.1 16 bitlik ağırlık float32'ye genişler, sonuç aynı" {
             dar[ad] = t.TR_to_dtype(tür)
             geniş[ad] = dar[ad].TR_to_dtype("float32")
         }
-        TR_var y = TR_pretrained_whisper(klasör(ayar(), üretim(), dar))._kodla(pencere())
+        TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), dar))
+        TR_assert_equal("float32", model._kodlayıcı.konum.TR_dtype)
+        TR_var y = model._kodla(pencere())
         TR_assert_equal("float32", y.TR_dtype)
         TR_assert_equal(TR_pretrained_whisper(klasör(ayar(), üretim(), geniş))._kodla(pencere()).TR_tolist, y.TR_tolist)
     }
@@ -271,6 +291,9 @@ TR_test "25.1 desteklenmeyen ayar ve boyut hatadır" {
     TR_var c = ayar()
     c["encoder_attention_heads"] = "3"
     TR_assert_equal("H7096", aç_ayarla(c))
+    TR_var e = ayar()
+    e["decoder_attention_heads"] = "3"
+    TR_assert_equal("H7096", aç_ayarla(e))
     TR_for alan TR_in ["d_model", "encoder_attention_heads", "encoder_layers", "vocab_size"] {
         TR_for n TR_in [0, -1] {
             TR_var d = ayar()

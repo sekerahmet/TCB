@@ -177,7 +177,11 @@ TR_struct TR_Whisper {
     _çözücü: _Çözücü
     # _kodla bir pencerenin [mel, 2 · kaynak] log-Mel'ini [1, kaynak, boyut] duruma çevirir.
     TR_func _kodla(mel: TR_Tensor) -> TR_Tensor {
-        TR_return TR_self._kodlayıcı._ileri(mel.TR_reshape([1, mel.TR_shape[0], mel.TR_shape[1]]))
+        # Kısa pencere hatasız yanlış verirdi: evrişim tek çerçeve bırakır, konum ona yayınlanır.
+        TR_var b = TR_self._boyutlar
+        TR_var şekil = [b.mel, 2 * b.kaynak]
+        TR_if mel.TR_shape != şekil { TR_throw TR_Message("H7097", mel.TR_shape, şekil) }
+        TR_return TR_self._kodlayıcı._ileri(mel.TR_reshape([1, b.mel, 2 * b.kaynak]))
     }
     # _başlat kodlayıcı çıktısından bir pencerenin çözme belleğini kurar.
     TR_func _başlat(kodlanmış: TR_Tensor) -> _Bellek { TR_return TR_self._çözücü._başlat(kodlanmış) }
