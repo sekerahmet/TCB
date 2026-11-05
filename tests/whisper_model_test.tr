@@ -385,15 +385,18 @@ TR_func çeviri_klasörü(t: TR_Dict[TR_String, TR_Tensor], ü: TR_Dict[TR_Strin
 
 TR_func çeviri_modeli() -> TR_Whisper { TR_return TR_pretrained_whisper(çeviri_klasörü(çeviri_ağırlıkları(), çeviri_üretimi())) }
 
-# sessiz_modeli sessizlik parçasını son normun sapmasına çevirir: olasılığı her pencerede büyür.
-TR_func sessiz_modeli(çarpan: TR_Float) -> TR_Whisper {
+# satırlı_model bir parçanın gömmesini son normun sapmasına çevirir: olasılığı her pencerede büyür.
+TR_func satırlı_model(yer: TR_Int, katsayı: TR_Float, çarpan: TR_Float) -> TR_Whisper {
     TR_var t = çeviri_ağırlıkları()
     TR_var ad = "model.decoder.embed_tokens.weight"
     TR_var e = t[ad] * çarpan
-    TR_var satır = (t["model.decoder.layer_norm.bias"] * 600.0).TR_reshape([1, _BOYUT])
-    t[ad] = TR_concat([e.TR_slice(0, 0, 40), satır, e.TR_slice(0, 41, _ÇEVİRİ_DAĞARCIK)], TR_dim: 0)
+    TR_var satır = (t["model.decoder.layer_norm.bias"] * katsayı).TR_reshape([1, _BOYUT])
+    t[ad] = TR_concat([e.TR_slice(0, 0, yer), satır, e.TR_slice(0, yer + 1, _ÇEVİRİ_DAĞARCIK)], TR_dim: 0)
     TR_return TR_pretrained_whisper(çeviri_klasörü(t, çeviri_üretimi()))
 }
+
+# sessiz_modeli sessizlik parçasını büyütür.
+TR_func sessiz_modeli(çarpan: TR_Float) -> TR_Whisper { TR_return satırlı_model(40, 600.0, çarpan) }
 
 # ses formülden gelir: yarım saniye sessizlik, yarım saniye gürültü.
 TR_func ses_kur(n: TR_Int) -> TR_Sound {
@@ -440,7 +443,8 @@ TR_test "25.5 süzgeçler özgünle aynı kimlikleri bırakır" {
         TR_var ölç = TR_Float(durum["olcek"])
         TR_var liste = değerler(TR_Int(durum["tohum"]), _ÇEVİRİ_DAĞARCIK, ölç)
         TR_var ham = TR_Tensor(liste).TR_tolist # float32'ye yuvarlanmış değerler
-        TR_if ölç > 1.0 { ham[2] = ham[2] + 30.0 }
+        TR_var yüksek = TR_Int(durum["yuksek"])
+        TR_if yüksek >= 0 { ham[yüksek] = ham[yüksek] + 30.0 }
         TR_var l = TR_Tensor(ham)
         TR_var x = s._süz(l, [TR_Int(p) TR_for p TR_in durum["dizi"]]).TR_tolist
         TR_var kalan = [i TR_for i TR_in 0..x.TR_length TR_if x[i] != TR_Float("-inf")]
@@ -486,6 +490,18 @@ TR_test "25.6 pencere özgünle aynı: parçalar, ortalama, sessizlik, bağlam" 
     }
 }
 
+TR_test "25.8 ortalamaya metin sonu da girer" {
+    TR_var log_mel = TR_whisper_log_mel(ses_kur(16000 * 40), TR_n_mels: 80)
+    TR_for d TR_in özgün()["bitis"] {
+        TR_var model = satırlı_model(32, TR_Float(d["katsayi"]), 1.0)
+        TR_var s = model._süzgeç()
+        TR_var r = model._pencere(model._dilim(log_mel, 0, 1000), model._başlangıç("en", s), [], s)
+        TR_assert_equal([TR_Int(p) TR_for p TR_in d["tokens"]], r.parçalar)
+        TR_assert(TR_abs(r.ortalama - TR_Float(d["ortalama"])) < 1e-4)
+        TR_assert(TR_abs(r.sessizlik - TR_Float(d["sessizlik"])) < 1e-5)
+    }
+}
+
 TR_test "25.7 pencere başı ve kesitler özgünle aynı: betikli parçalar" {
     TR_var model = çeviri_modeli()
     TR_var s = model._süzgeç()
@@ -498,17 +514,10 @@ TR_test "25.7 pencere başı ve kesitler özgünle aynı: betikli parçalar" {
     TR_for i TR_in 0..adımlar.TR_length {
         TR_var a = adımlar[i]
         TR_assert_equal([TR_Int(p) TR_for p TR_in b["onceki"][i]], parçalar)
-        TR_var boy = TR_min(3000, kayıt - seek)
-        seek = model._işle([TR_Int(p) TR_for p TR_in a[0]], TR_Float(a[1]), TR_Float(a[2]), seek, boy, s, parçalar, kesitler)
+        seek = model._işle([TR_Int(p) TR_for p TR_in a[0]], TR_Float(a[1]), TR_Float(a[2]), seek, model._kalan(seek, kayıt), s, parçalar, kesitler)
     }
-    TR_var ö = b["segments"]
-    TR_for i TR_in 0..kesitler.TR_length {
-        TR_var x = ö[i]
-        TR_assert_equal(TR_Float(x["start"]), kesitler[i].TR_start)
-        TR_assert_equal(TR_Float(x["end"]), kesitler[i].TR_end)
-        TR_assert_equal(TR_String(x["text"]), kesitler[i].TR_text)
-        TR_assert_equal([TR_Int(p) TR_for p TR_in x["tokens"]], kesitler[i]._parçalar)
-    }
+    TR_assert(seek >= kayıt)
+    özgünle_aynı(model._çevriyazı(parçalar, kesitler, s, "en"), b)
 }
 
 TR_test "25.4 dış 16 bit blokta da aynı parçalar" {
