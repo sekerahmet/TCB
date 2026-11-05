@@ -1,0 +1,4 @@
+# TR 4
+# TEST 2.3a TR_test bağlamının dışında hatadır: ileti kimliği ve yazımını söyler, görünüm adı sızmaz. Dosya burada: TR_test geçen dosyayı test taraması koşmaya çalışır (12.1)
+TR_print(TR_test) # ERROR H7017
+TR_test # ERROR H7017
