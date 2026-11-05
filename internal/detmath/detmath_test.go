@@ -7,11 +7,13 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
 	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -65,29 +67,105 @@ func TestNoFusedInstructions(t *testing.T) {
 	}
 }
 
-// Kural (13.1, 4.3): sayı yerleşikleri bu paketin fonksiyonlarını çağırır; Go'nun math paketindeki
-// karşılıkları ml ve interp'te kullanılmaz. Fonksiyon değeri olarak verilmesi de sayılır.
+// machineFree math paketinden sonucu makineden bağımsız olan adlardır. Liste bilerek dar: yalnız
+// kullanılan ve Go kaynağından tek tek bakılmış adlar. Yeni ad gerekçesiyle eklenir.
+var machineFree = map[string]bool{
+	// Bit işlemi, yuvarlama yok.
+	"Abs": true, "Copysign": true, "Signbit": true, "Float32bits": true, "Float32frombits": true,
+	"Inf": true, "NaN": true, "IsInf": true, "IsNaN": true,
+	// Sonuç tam sayıya kesin yuvarlanır, ara hesap yok.
+	"Ceil": true, "Floor": true, "Round": true, "RoundToEven": true, "Trunc": true,
+	// Girdilerden birini seçer. arm64'ün komutu NaN'ın yükünü başka verebilir; sayı NaN'ları tek değerdir.
+	"Max": true, "Min": true,
+	// IEEE 754 doğru yuvarlanmış sonucu şart koşar.
+	"Sqrt": true,
+	// Sonuç tam: Mod'un çıkarması yuvarlamaz, Ldexp yalnız üsse yazar (alt normalde tek yuvarlama).
+	"Mod": true, "Ldexp": true,
+	// Sabitler.
+	"MaxInt": true, "MaxInt64": true, "MinInt64": true, "Pi": true, "Sqrt2": true,
+}
+
+// Kural (13.1, 4.3): sayı yerleşikleri bu paketin fonksiyonlarını çağırır; internal/stdlib ve
+// internal/lang math paketinden yalnız machineFree'deki adları kullanır, listede olmayan ad düşer.
+// Fonksiyon değeri olarak verilmesi de sayılır. Tensör yolu (internal/compute) 15'indir.
 func TestCallersUseThisPackage(t *testing.T) {
-	banned := map[string]bool{}
 	for _, f := range functions {
-		banned[f.name] = true
-	}
-	for _, dir := range []string{"../stdlib/ml", "../lang/interp"} {
-		files, err := reporoot.Glob(filepath.Join(dir, "*.go"))
-		if err != nil || len(files) == 0 {
-			t.Fatalf("%s: Go dosyası yok: %v", dir, err)
-		}
-		for _, file := range files {
-			if strings.HasSuffix(file, "_test.go") {
-				continue
-			}
-			for _, use := range mathUses(t, file) {
-				if banned[use.name] {
-					t.Errorf("%s: math.%s yerine detmath.%s", use.at, use.name, use.name)
-				}
-			}
+		if machineFree[f.name] {
+			t.Errorf("%s hem bu pakette hem listede", f.name)
 		}
 	}
+	count := 0
+	for _, dir := range []string{"../stdlib", "../lang"} {
+		err := reporoot.WalkDir(dir, func(file string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() && entry.Name() == "testdata" {
+				return filepath.SkipDir
+			}
+			if entry.IsDir() || !strings.HasSuffix(file, ".go") || strings.HasSuffix(file, "_test.go") {
+				return nil
+			}
+			count++
+			for _, use := range machineBoundUses(t, file) {
+				t.Errorf("%s: math.%s izin listesinde yok: sonucu makineye bağlıysa bu pakete eklenir", use.at, use.name)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if count < 100 {
+		t.Fatalf("yalnız %d Go dosyası bulundu", count)
+	}
+}
+
+// Listede olmayan ad, başka adla ve noktayla içe aktarma ve fonksiyon değeri düşer.
+func TestUnlistedMathNameFails(t *testing.T) {
+	for _, c := range []struct {
+		name, code string
+		want       []string
+	}{
+		{"çağrı", `import "math"
+var a, b = math.Exp2(1), math.Hypot(3, 4)`, []string{"Exp2", "Hypot"}},
+		{"bu paketin adı", `import "math"
+var a = math.Exp(1)`, []string{"Exp"}},
+		{"fonksiyon değeri", `import "math"
+var f = math.Cbrt`, []string{"Cbrt"}},
+		{"başka ad", `import m "math"
+var a = m.Erf(1)`, []string{"Erf"}},
+		{"nokta", `import . "math"
+var a = Gamma(1)`, []string{"*"}},
+		{"izinli", `import "math"
+var a = math.Sqrt(math.Abs(-1))`, nil},
+		{"içe aktarmıyor", `var math struct{ Exp int }
+var a = math.Exp`, nil},
+	} {
+		file := filepath.Join(t.TempDir(), "x.go")
+		if err := os.WriteFile(file, []byte("package x\n"+c.code+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, use := range machineBoundUses(t, file) {
+			got = append(got, use.name)
+		}
+		if !slices.Equal(got, c.want) {
+			t.Errorf("%s: %v, beklenen %v", c.name, got, c.want)
+		}
+	}
+}
+
+// machineBoundUses dosyanın machineFree dışında kullandığı math adlarıdır.
+func machineBoundUses(t *testing.T, file string) []mathUse {
+	t.Helper()
+	var out []mathUse
+	for _, use := range mathUses(t, file) {
+		if !machineFree[use.name] {
+			out = append(out, use)
+		}
+	}
+	return out
 }
 
 type mathUse struct {
@@ -96,6 +174,7 @@ type mathUse struct {
 }
 
 // mathUses dosyanın math paketinden kullandığı adları verir; içe aktarma başka adla da olabilir.
+// Noktayla içe aktarmada adlar ayırt edilemez, "*" adıyla bir kullanım sayılır.
 func mathUses(t *testing.T, file string) []mathUse {
 	t.Helper()
 	fset := token.NewFileSet()
@@ -104,15 +183,18 @@ func mathUses(t *testing.T, file string) []mathUse {
 		t.Fatal(err)
 	}
 	local := ""
+	var uses []mathUse
 	for _, spec := range tree.Imports {
 		if spec.Path.Value == `"math"` {
 			local = "math"
 			if spec.Name != nil {
 				local = spec.Name.Name
 			}
+			if local == "." {
+				uses = append(uses, mathUse{fset.Position(spec.Pos()), "*"})
+			}
 		}
 	}
-	var uses []mathUse
 	ast.Inspect(tree, func(n ast.Node) bool {
 		if sel, ok := n.(*ast.SelectorExpr); ok {
 			if id, ok := sel.X.(*ast.Ident); ok && id.Name == local {

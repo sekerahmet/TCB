@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -71,7 +72,7 @@ func formatNumber(f float64) string {
 	}
 	a := math.Abs(f)
 	if a >= 1e-3 && a < 1e5 {
-		digits := max(0, 2-int(math.Floor(math.Log10(a))))
+		digits := max(0, 2-int(math.Floor(detmath.Log10(a))))
 		s := strconv.FormatFloat(f, 'f', digits, 64)
 		if strings.Contains(s, ".") {
 			s = strings.TrimRight(strings.TrimRight(s, "0"), ".")

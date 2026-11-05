@@ -8,4 +8,4 @@ Tam yuvarlanmayan 18 matematik fonksiyonunun her makinede (x86, ARM64; Windows, 
 - Her ondalık çarpım açık `float64()` dönüşümüyle yuvarlanır: dönüşüm çarpmanın toplamayla birleşmesini engeller. Yeni kodda da böyledir.
 - Tam yuvarlanan fonksiyonlar (`Sqrt`, `Floor`, `Ceil`, `Abs`, `Mod`, `Frexp`, `Ldexp`) `math`'tan kullanılır.
 
-Denetim: `TestNoFusedInstructions` (`GOAMD64=v3` ve `GOOS=linux GOARCH=arm64` derlemesinde birleşik komut sayısı 0), `TestGoldenBits`, `TestGoldenBitsOnV3`, `TestSameBitsAsGoWithoutFusion`.
+Denetim: `TestNoFusedInstructions` (`GOAMD64=v3` ve `GOOS=linux GOARCH=arm64` derlemesinde birleşik komut sayısı 0), `TestGoldenBits`, `TestGoldenBitsOnV3`, `TestSameBitsAsGoWithoutFusion`, `TestCallersUseThisPackage` ve `TestUnlistedMathNameFails` (`internal/stdlib` ve `internal/lang` `math`'tan yalnız sonucu makineden bağımsız adları kullanır).

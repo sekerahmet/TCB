@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/detmath"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -269,7 +270,7 @@ func (c *Progress) measureRate(now time.Time) {
 	if c.rate == 0 {
 		c.rate = instant
 	} else {
-		a := 1 - math.Exp(-dt/rateWindow)
+		a := 1 - detmath.Exp(-dt/rateWindow)
 		c.rate += a * (instant - c.rate)
 	}
 	c.rateStep, c.rateTime = c.step, now
