@@ -81,6 +81,7 @@ func registerConstructors(v *interp.VM) {
 	registerExtremes(v)
 	registerBytes(v)
 	registerFourier(v)
+	registerLogSumExp(v)
 	wrap(v, codes.FnMelFilterbank, newBuiltin(melBuiltin))
 
 	// --- Görünüm ---

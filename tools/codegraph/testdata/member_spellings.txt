@@ -633,6 +633,8 @@ i32.TR_dtype	ok	0	name:TR_mem_dtype
 i32.TR_tolist	ok	0	name:TR_mem_tolist
 i64.TR_sequential	ok	0	name:TR_mem_sequential
 idx.TR_reshape	ok	0	name:TR_mem_reshape
+iki.TR_shape	ok	0	name:TR_mem_shape
+iki.TR_tolist	ok	0	name:TR_mem_tolist
 iki_satır.TR_split	ok	0	name:TR_mem_split
 ileri.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 ileri.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
@@ -742,6 +744,7 @@ kn2.TR_rollback	ok	0	name:TR_mem_rollback
 kn2.TR_update	ok	0	name:TR_mem_update
 kopya.TR_append	ok	0	name:TR_mem_append
 kopya.TR_get	ok	0	name:TR_mem_get
+kopya.TR_grad	ok	0	name:TR_mem_grad
 kopya.TR_keys	ok	0	name:TR_mem_keys
 kopya.TR_length	ok	0	name:TR_mem_length
 kopya.TR_remove	ok	0	name:TR_mem_remove

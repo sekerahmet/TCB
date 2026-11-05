@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 618 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 145 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
+Toplam 619 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 146 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
 
 ## İçindekiler
 
@@ -2388,6 +2388,25 @@ tr: yazdır(log_softmax(Tensör([1.0, 2.0, 3.0])).değer)
 
 İlişkili: `TR_softmax(...)`, `TR_cross_entropy(...)`
 
+#### `TR_logsumexp(...)` (`TR_fn_logsumexp`, `log_toplam_üs`)
+
+    log_toplam_üs(Tensör, eksen: Tam | Liste = yok, boyutu_koru: Mantık = yanlış) → Tensör
+
+log(Σ exp(t))'yi taşmadan hesaplar: en büyük öğe çıkarılır. Eksen verilmezse bütün öğeler, verilirse o eksen ya da eksen listesi indirgenir; türev izler. Bütün öğeleri -sonsuz olan satır ve boş satır -sonsuzdur. Yalnızca ondalık tensörde çalışır.
+
+```tr
+TR_print(TR_logsumexp(TR_Tensor([[0.0, 0.0], [1.0, 2.0]]), TR_dim: 1).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: print(logsumexp(Tensor([[0.0, 0.0], [1.0, 2.0]]), dim: 1).tolist)
+tr: yazdır(log_toplam_üs(Tensör([[0.0, 0.0], [1.0, 2.0]]), eksen: 1).değer)
+```
+
+İlişkili: `TR_log_softmax(...)`, `TR_sum(...)`
+
 #### `TR_lr_schedule(...)` (`TR_fn_lr_schedule`, `öğrenme_oranı_planı`)
 
     öğrenme_oranı_planı()
@@ -3889,7 +3908,7 @@ en: print(sum(Tensor([[1, 2], [3, 4]]), dim: 0).tolist)
 tr: yazdır(toplam(Tensör([[1, 2], [3, 4]]), eksen: 0).değer)
 ```
 
-Kullananlar: `TR_argmax(...)`, `TR_argsort(...)`, `TR_concat(...)`, `TR_cumsum(...)`, `TR_log_softmax(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_softmax(...)`, `TR_sum(...)`, `TR_topk(...)`, `TR_write_slice(...)`, `.TR_split(...)` · İlişkili: `TR_keepdim:`
+Kullananlar: `TR_argmax(...)`, `TR_argsort(...)`, `TR_concat(...)`, `TR_cumsum(...)`, `TR_log_softmax(...)`, `TR_logsumexp(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_softmax(...)`, `TR_sum(...)`, `TR_topk(...)`, `TR_write_slice(...)`, `.TR_split(...)` · İlişkili: `TR_keepdim:`
 
 #### `TR_dry_run:` (`TR_arg_dry_run`, `prova`)
 
@@ -4148,7 +4167,7 @@ en: print(sum(Tensor([[1, 2], [3, 4]]), dim: -1, keepdim: true).shape)
 tr: yazdır(toplam(Tensör([[1, 2], [3, 4]]), eksen: -1, boyutu_koru: doğru).şekil)
 ```
 
-Kullananlar: `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_sum(...)` · İlişkili: `TR_dim:`
+Kullananlar: `TR_logsumexp(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, `TR_sum(...)` · İlişkili: `TR_dim:`
 
 #### `TR_key:` (`TR_arg_key`, `anahtar`)
 

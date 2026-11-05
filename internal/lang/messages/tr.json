@@ -1480,6 +1480,8 @@
 "H7078": "{fn}: uzunluk {given}: {case, select, reflect {yansıtma dolgusu için {limit}'den uzun olmalıdır (23.3)} short {çerçeve boyu {limit}'den kısa (23.3)} other {dönüşüm boyu {limit}'den uzun, sessizce kesilmez (23.1); dilimleyin: `x.{#slice}(-1, 0, {limit})`}}",
 "H7079": "{fn}: {given}: {case, select, pad_given {dolgu eklenmiyor, dolgu kipi verilmez (23.3)} range {frekans aralığı 0 ≤ en düşük < en yüksek ≤ hız / 2 olmalıdır (23.4)} empty_filter {bu sıradaki süzgeç hiçbir frekans kutusuna düşmüyor, boş süzgeç olmaz (23.4); dönüşüm boyunu büyütün ya da süzgeç sayısını küçültün} rate {örnekleme hızı 16000 olmalıdır (23.6); yeniden örnekleyin: `ffmpeg -nostdin -i girdi -ar 16000 -c:a pcm_s16le çıktı.wav`} channels {tek kanal gerekir, sessizce tek kanala indirilmez (23.6); ilk kanal ya da ortalama: } other {örneği olmayan ses olmaz: dolgu onu sessizce sessizliğe çevirirdi (23.6)}}{fix}{second}",
 "H7080": "{path|q}: bozuk WAV dosyası (22.4): `data`'dan sonra parça adı yerinde `{chunk}` var. Dosya kesik olabilir; boruya yazılmış dosyanın boyu bilinmez, sesi dosyaya yazın",
+"H7081": "{fn}: {given}: {case, select, float {ondalık tensör gerekir (15.18); çevirin} gpu {bu cihazda henüz yok, CPU'ya sessizce düşmez (15.41); taşıyın} other {aynı eksen iki kez verilmiş (15.18); bir kez yazın}}: `{fix}`",
+"H7082": "{fn}: eksen listesi boş (15.18); bütün öğeler için ekseni yazmayın: `{fix}`",
 "H7100": "kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})",
 "H7101": "kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)",
 "H7102": "kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi",

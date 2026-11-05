@@ -1480,6 +1480,8 @@
 "H7078": { "param": ["fn", "given", "limit", "case"], "slots": {"slice": "TR_mem_slice"} },
 "H7079": { "param": ["fn", "case", "given", "fix", "second"] },
 "H7080": { "param": ["path", "chunk"] },
+"H7081": { "param": ["fn", "given", "case", "fix"] },
+"H7082": { "param": ["fn", "fix"] },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },

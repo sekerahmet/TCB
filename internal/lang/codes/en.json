@@ -127,6 +127,7 @@
   "TR_fn_load_parameters": { "name": "load_parameters" },
   "TR_fn_load_tensors": { "name": "load_tensors" },
   "TR_fn_load_tokenizer": { "name": "load_tokenizer" },
+  "TR_fn_logsumexp": { "name": "logsumexp" },
   "TR_fn_lr_schedule": { "name": "lr_schedule" },
   "TR_fn_make_dir": { "name": "make_dir" },
   "TR_fn_map_hugging_face": { "name": "map_hugging_face" },
