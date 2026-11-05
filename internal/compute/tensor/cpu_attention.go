@@ -110,16 +110,21 @@ func sized(b []float32, n int) []float32 {
 
 // gemmSingle tek iş parçacıklı C += op(A)·op(B): op(A)(i, k) = a[i*ais + k*aks],
 // op(B)(k, j) = b[k*bks + j*bjs], C(i, j) = c[i*ldc + j]. Matris çarpımının
-// paketleme ve mikro çekirdeklerini kullanır (bkz. cpu_carpim.go).
+// paketleme ve mikro çekirdeklerini kullanır (bkz. cpu_carpim.go). B'nin satırları bitişik ve
+// paneller tamsa, az satırda B paketlenmeden okunur: paket ancak çok satırda kendini öder, sonuç aynıdır.
 func gemmSingle(M, N, K int, a []float32, ais, axisN int, b []float32, bks, bjs int, c []float32, ldc int, tb *attnBuf) {
 	if M == 0 || N == 0 || K == 0 {
 		return
 	}
 	np := (N + nr - 1) / nr
-	tb.bp = sized(tb.bp, np*K*nr)
-	bp := tb.bp
-	for jp := 0; jp < np; jp++ {
-		packBPanel(b, bks, bjs, K, N, jp, bp[jp*K*nr:(jp+1)*K*nr])
+	unpacked := directB && bjs == 1 && N%nr == 0 && M <= mr
+	var bp []float32
+	if !unpacked {
+		tb.bp = sized(tb.bp, np*K*nr)
+		bp = tb.bp
+		for jp := 0; jp < np; jp++ {
+			packBPanel(b, bks, bjs, K, N, jp, bp[jp*K*nr:(jp+1)*K*nr])
+		}
 	}
 	direct := directA && np < 12
 	kcMax := min(K, kcBlock)
@@ -143,17 +148,23 @@ func gemmSingle(M, N, K int, a []float32, ais, axisN int, b []float32, bks, bjs 
 		for jp := 0; jp < np; jp++ {
 			j0 := jp * nr
 			nn := min(nr, N-j0)
-			bpan := bp[jp*K*nr+p0*nr : jp*K*nr+(p0+kb)*nr]
+			var bpan []float32
+			ldb := nr
+			if unpacked {
+				bpan, ldb = b[p0*bks+j0:], bks
+			} else {
+				bpan = bp[jp*K*nr+p0*nr : jp*K*nr+(p0+kb)*nr]
+			}
 			for ip := 0; ip*mr < M; ip++ {
 				mm := min(mr, M-ip*mr)
 				cBlock := c[(ip*mr)*ldc+j0:]
 				switch {
 				case ip < whole:
-					microA(kb, a[(ip*mr)*ais+p0*axisN:], ais, axisN, bpan, cBlock, ldc, mm, nn)
+					microAB(kb, a[(ip*mr)*ais+p0*axisN:], ais, axisN, bpan, ldb, cBlock, ldc, mm, nn)
 				case direct:
-					microKernel(kb, ap[:kb*mr], bpan, cBlock, ldc, mm, nn)
+					microAB(kb, ap[:kb*mr], 1, mr, bpan, ldb, cBlock, ldc, mm, nn)
 				default:
-					microKernel(kb, ap[ip*kb*mr:(ip+1)*kb*mr], bpan, cBlock, ldc, mm, nn)
+					microAB(kb, ap[ip*kb*mr:(ip+1)*kb*mr], 1, mr, bpan, ldb, cBlock, ldc, mm, nn)
 				}
 			}
 		}
@@ -218,6 +229,54 @@ func (p *AttentionParams) expMasked(seg, md []float32, floorV, i, jStart int) {
 	}
 }
 
+// AttentionSeqMajor (SeqMajorAttender) türev izlenmezken doğru verir: ileri yol dilin düzenini satır
+// adımıyla okur, üretimde K ve V her adımda kopyalanmaz. Geri yol bakış öndedir. Değerler ve toplama
+// sırası aynıdır, sonuç bit bit aynıdır.
+func (cpuBackend) AttentionSeqMajor(_, _, _ View, _ bool, _ AttentionParams) bool {
+	return !GradEnabled()
+}
+
+// rowStart (b, h) bakışının i. satırının başıdır; d satır uzunluğudur.
+func (p *AttentionParams) rowStart(b, h, i, d int) int {
+	if p.SeqMajor {
+		return ((b*p.Tq+i)*p.H + h) * d
+	}
+	return ((b*p.H+h)*p.Tq + i) * d
+}
+
+// kvStart k/v bakışının ilk satırının başıdır.
+func (p *AttentionParams) kvStart(b, h, d int) int {
+	if p.SeqMajor {
+		return (b*p.Tk*p.Hkv + h) * d
+	}
+	return (b*p.Hkv + h) * p.Tk * d
+}
+
+// rowStep ardışık konumların adımıdır: bakış sayısı n, satır uzunluğu d.
+func (p *AttentionParams) rowStep(n, d int) int {
+	if p.SeqMajor {
+		return n * d
+	}
+	return d
+}
+
+// attnFinish m satırın sonucunu yazar: O/payda ve logsumexp. ob'nin satır adımı oRow'dur.
+func attnFinish(ob, O, enb, denom, lsb []float32, m, Dv, oRow int) {
+	for r := 0; r < m; r++ {
+		or := ob[r*oRow : r*oRow+Dv]
+		if denom[r] == 0 {
+			clear(or)
+			lsb[r] = negInf
+			continue
+		}
+		inverse := 1 / denom[r]
+		for d, x := range O[r*Dv : (r+1)*Dv] {
+			or[d] = x * inverse
+		}
+		lsb[r] = enb[r] + log32(denom[r])
+	}
+}
+
 func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p AttentionParams) Storage {
 	qd, kd, vd := cd(q.S)[q.Offset:], cd(k.S)[k.Offset:], cd(v.S)[v.Offset:]
 	od := cd(out)
@@ -231,6 +290,17 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 		return lse
 	}
 	group := p.H / p.Hkv
+	// Tek sorguda bir k/v bakışını paylaşan bakışlar bir birimin satırlarıdır: K ve V bir kez okunur.
+	// Her satırın toplamı kendi içindedir, sonuç ayrı birimlerdeki ile bit bit aynıdır.
+	shared := p.Tq == 1 && group > 1 && md == nil
+	if shared {
+		unit = p.Batch * p.Hkv
+	}
+	qRow, kRow := p.rowStep(p.H, p.Dh), p.rowStep(p.Hkv, p.Dh)
+	vRow, oRow := p.rowStep(p.Hkv, p.Dv), p.rowStep(p.H, p.Dv)
+	if shared {
+		qRow, oRow = p.Dh, p.Dv
+	}
 	W := attnWorkerCount(attnJob(&p))
 	buffers := make([]*attnBuf, max(W, 1))
 	scale := p.Scale
@@ -245,20 +315,23 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 		// uzatmaz.
 		bh, ib := u%(p.Batch*p.H), nqb-1-u/(p.Batch*p.H)
 		b, h := bh/p.H, bh%p.H
-		kvh := b*p.Hkv + h/group
 		i0 := ib * bq
-		m := min(bq, p.Tq-i0)
-		qb := qd[(bh*p.Tq+i0)*p.Dh : (bh*p.Tq+i0+m)*p.Dh]
-		kb := kd[kvh*p.Tk*p.Dh : (kvh+1)*p.Tk*p.Dh]
-		vb := vd[kvh*p.Tk*p.Dv : (kvh+1)*p.Tk*p.Dv]
-		ob := od[(bh*p.Tq+i0)*p.Dv : (bh*p.Tq+i0+m)*p.Dv]
+		m, pos := min(bq, p.Tq-i0), 1 // pos: satırın konum adımı
+		if shared {
+			b, h = u/p.Hkv, u%p.Hkv*group
+			bh, i0, m, pos = b*p.H+h, 0, group, 0
+		}
+		qb := qd[p.rowStart(b, h, i0, p.Dh):]
+		kb := kd[p.kvStart(b, h/group, p.Dh):]
+		vb := vd[p.kvStart(b, h/group, p.Dv):]
+		ob := od[p.rowStart(b, h, i0, p.Dv):]
 		lsb := ld[bh*p.Tq+i0 : bh*p.Tq+i0+m]
 		floorV := 0
 		if md != nil {
 			floorV = p.MaskBase + p.MaskOffsets[bh]
 		}
 		jlo, wholeHi := p.Limits(i0)
-		wholeLo, jhi := p.Limits(i0 + m - 1)
+		wholeLo, jhi := p.Limits(i0 + (m-1)*pos)
 
 		tb.o = sized(tb.o, m*p.Dv)
 		O := tb.o
@@ -275,7 +348,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 			tb.s = sized(tb.s, m*n)
 			S := tb.s
 			clear(S)
-			gemmSingle(m, n, p.Dh, qb, p.Dh, 1, kb[j0*p.Dh:], 1, p.Dh, S, n, tb)
+			gemmSingle(m, n, p.Dh, qb, qRow, 1, kb[j0*kRow:], 1, kRow, S, n, tb)
 			partial := j0 < wholeLo || j0+n > wholeHi || md != nil
 			empty := true
 			for r := 0; r < m; r++ {
@@ -283,7 +356,7 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 				// Üstel yalnızca bakılabilen [a, c) sütunlarında hesaplanır; dışı 0.
 				a, c := 0, n
 				if partial {
-					a, c = p.blockRange(i0+r, j0, n)
+					a, c = p.blockRange(i0+r*pos, j0, n)
 				}
 				seg := row[a:c]
 				// en NaN'ı korur: NaN puanlı satır NaN verir, maskeli satırla karışmaz.
@@ -341,22 +414,10 @@ func (cpuBackend) f32Attention(out Storage, q, k, v View, mask Storage, p Attent
 				denom[r] += totalSum
 			}
 			if !empty {
-				gemmSingle(m, p.Dv, n, S, n, 1, vb[j0*p.Dv:], p.Dv, 1, O, p.Dv, tb)
+				gemmSingle(m, p.Dv, n, S, n, 1, vb[j0*vRow:], vRow, 1, O, p.Dv, tb)
 			}
 		}
-		for r := 0; r < m; r++ {
-			or := ob[r*p.Dv : (r+1)*p.Dv]
-			if denom[r] == 0 {
-				clear(or)
-				lsb[r] = negInf
-				continue
-			}
-			inverse := 1 / denom[r]
-			for d, x := range O[r*p.Dv : (r+1)*p.Dv] {
-				or[d] = x * inverse
-			}
-			lsb[r] = enb[r] + log32(denom[r])
-		}
+		attnFinish(ob, O, enb, denom, lsb, m, p.Dv, oRow)
 	})
 	for _, tb := range buffers {
 		if tb != nil {
