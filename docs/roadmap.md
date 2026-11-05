@@ -251,7 +251,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 - Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir.
 - Nicemli ağırlık hazır dosyadan gelir: yayımlanmış GGUF okunur; Jarvis için ön koşul budur, kendimiz nicemlemek sonraki fazlarda (Ahmet, 2026-11-04). Türler (araştırma ve DENETİM istek 118): `Q8_0`, `Q4_K`, `Q6_K`; `Q4_0` sonra, `Q4_1` eklenmez. GGUF okuyucu, üstveri ve parçalayıcı aynı adımda (15.55, 16.1).
 
-**2026-11-04'te gelen:** CPU'da 16 bit: Qwen3 bf16 3,8 → 12,0 parça/sn, artık float32'den hızlı; hazır model yükleme Qwen3 bf16 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB (AMD EPYC, [`measurements.md`](measurements.md)). llama.cpp ve transformers kıyası bu düzeltmelerden sonra alınmadı.
+**2026-11-04'te gelen:** CPU'da 16 bit: Qwen3 bf16 3,8 → 12,0 parça/sn, artık float32'den hızlı; hazır model yükleme Qwen3 bf16 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB (AMD EPYC, [`measurements.md`](measurements.md)). Aynı makinede 2026-11-05 kıyası (8 iş parçacığı): üretimde TR bf16 transformers'ın 2,6–2,8 katı, llama.cpp f16'nın 0,30–0,41 katı; prompt işlemede transformers'ın yarısı, 16 bit kazandırmıyor.
 
 **Son ölçüm** (2026-11-03, main `51b75f0a`, Colab G4 ve CPU High-RAM; ayrıntı ve kaynak [`measurements.md`](measurements.md)):
 - **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüş de kapandı (2026-11-04, `measurements.md`): 2026-10-23'teki Qwen3 bf16 +%7,2; 2026-11-02'deki bf16 Qwen3 +%3,7, SmolLM2 +%7,2. Oranlar yeniden ölçülmedi.

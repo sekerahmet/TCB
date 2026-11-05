@@ -35,7 +35,41 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 | SmolLM2 | fp16 | 4,8 | 33,4 |
 | SmolLM2 | float32 | 24,3 | 25,4 |
 
-Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 bf16 tepe bellek 12,0 → 9,6 GB. DENETİM ayrı makinede sentetik modelle 2,74 → 13,83, tepe 17,95 → 9,89 GB [ölçüldü: istek 121, Windows]. llama.cpp ve transformers kıyası bu düzeltmeden sonra alınmadı; Xeon'da uçtan uca sıradaki ölçümde. `BenchmarkSpeedSumAxis0` AMD'de +%26: kodun yerleşimi, kaydırınca tersine dönüyor, Intel'de fark yok (D, Ö3).
+Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 bf16 tepe bellek 12,0 → 9,6 GB. DENETİM ayrı makinede sentetik modelle 2,74 → 13,83, tepe 17,95 → 9,89 GB [ölçüldü: istek 121, Windows]. llama.cpp ve transformers kıyası aşağıda.
+
+**CPU kıyası** (2026-11-05 07:54–08:47 TSS, main `8a3925c9`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı; torch 2.15.0+cpu, transformers 5.22.1, llama.cpp `8bed7cfb`; dört tur, kopya kollu, kol başına 16 örnek; ortanca, parantezde birinci ve üçüncü çeyrek) [ölçüldü: Colab, betik `h1k_kosu2.sh`, kayıt `olcumler/h1k2`]:
+
+Üretim, parça/sn:
+
+| Model | TR float32 | TR bf16 | transformers | llama.cpp f32 | llama.cpp f16 |
+| :-- | --: | --: | --: | --: | --: |
+| SmolLM2-135M | 26,8 (24,1–27,8) | 39,3 (29,0–40,4) | 13,9 (12,8–14,9) | 73,6 (42,2–80,8) | 130,4 (110,2–135,3) |
+| Qwen3-0.6B | 8,7 (7,6–8,8) | 13,7 (13,0–13,9) | 5,3 (5,2–5,5) | 19,7 (17,2–22,0) | 33,7 (25,1–39,1) |
+
+Prompt işleme, 512 parça, parça/sn:
+
+| Model | TR float32 | TR bf16 | transformers | llama.cpp f32 | llama.cpp f16 |
+| :-- | --: | --: | --: | --: | --: |
+| SmolLM2-135M | 403 (372–413) | 378 (326–403) | 755 (535–805) | 788 (620–852) | 1014 (596–1065) |
+| Qwen3-0.6B | 132 (118–133) | 127 (121–130) | 243 (212–250) | 214 (175–224) | 282 (248–304) |
+
+Nicemli taban, yalnız llama.cpp, parça/sn:
+
+| Model, dosya | Üretim | Prompt işleme |
+| :-- | --: | --: |
+| Qwen3-0.6B Q8_0, `Qwen3-0.6B-Q8_0.gguf` | 50,7 (42,7–52,4) | 215 (203–225) |
+| SmolLM2-360M Q8_0, `smollm2-360m-instruct-q8_0.gguf` | 79,1 (59,0–85,3) | 322 (272–336) |
+| Qwen3-4B Q4_K_M, `Qwen3-4B-Q4_K_M.gguf` | 12,5 (11,6–13,8) | 45 (44–47) |
+
+Oranlar, ortancaların oranı, parantezde üçüncü çeyreklerin oranı [hesap: aynı tablolar]:
+
+| Oran | SmolLM2 üretim | Qwen3 üretim | SmolLM2 prompt | Qwen3 prompt |
+| :-- | --: | --: | --: | --: |
+| TR bf16 / TR float32 | 1,47 (1,46) | 1,57 (1,58) | 0,94 (0,97) | 0,96 (0,97) |
+| TR float32 / llama.cpp f32 | 0,36 (0,34) | 0,44 (0,40) | 0,51 (0,48) | 0,62 (0,60) |
+| TR bf16 / llama.cpp f16 | 0,30 (0,30) | 0,41 (0,36) | 0,37 (0,38) | 0,45 (0,43) |
+| TR float32 / transformers | 1,92 (1,86) | 1,64 (1,60) | 0,53 (0,51) | 0,54 (0,53) |
+| TR bf16 / transformers | 2,82 (2,71) | 2,58 (2,52) | 0,50 (0,50) | 0,52 (0,52) |
 
 **Hazır model yükleme** (2026-11-04 20:05–20:11, `5b554d72` ↔ `da03aa62`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı, 50 GB; altı tur, kol sırası dönüşümlü, ilk tur atıldı, ortanca; her koşu ayrı süreç, dosyalar diskin önbelleğinde). "kur" `TR_build_pretrained_model`, "oku" `TR_load_tensors`, "eşle" `TR_map_hugging_face`, "yükle" `TR_load_parameters`; süre ms, tepe GB. "taban" model kurmadan yalnız oku ve eşle:
 
@@ -152,7 +186,7 @@ Birim parça/sn. Aynı koşuda main'e göre Qwen3 bf16 +%7,2, float32 +%6,3; Smo
 
 ## Eski (yeniden ölçülecek)
 
-- 2026-11-03'ün CPU kıyas tablolarındaki bf16 sütunları: 2026-11-04'te tek satırlık çarpım değişti, yeni sayılar yukarıda "CPU'da üretim, 16 bit" tablosunda; llama.cpp ve transformers kıyası yeniden alınınca bu satır silinir.
+- 2026-11-03'ün CPU kıyas tablolarının AMD EPYC satırları: 2026-11-05'te yeniden ölçüldü ("CPU kıyası"); Xeon ve 48 iş parçacıklı kıyas 16 bitlik çarpımdan sonra alınmadı.
 
 2026-10-22'nin üretim hızları, 2026-11-01/02'nin eğitim hızı, 2026-11-01'in dil kıyası ile karakter modeli ve L4 kart sınamasının 2026-11-02/03'teki beş adımı (938, 923,5, 962, 880,5, 888 ms; Kol A eşitliğinden önce) 2026-11-03'te yeniden ölçüldü (yukarıda); eski sayılar arşivde (`docs/archive/roadmap-2026-10-27.md` Evre 5) ve Colab defterinde kalır.
 
