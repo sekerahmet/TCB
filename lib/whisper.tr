@@ -395,11 +395,11 @@ TR_struct TR_Whisper {
         TR_if sessizlik > _SESSİZLİK TR_and ortalama <= _LOG_OLASILIK { TR_return seek + boy }
         TR_var b = s._böl(r, seek, boy)
         TR_for k TR_in b.kesitler {
-            TR_var metin = TR_self._metin(k.parçalar, s.eot)
-            TR_if k.baş == k.son TR_or metin.TR_strip() == "" {
+            TR_var yazı = TR_self._metin(k.parçalar, s.eot)
+            TR_if k.baş == k.son TR_or yazı.TR_strip() == "" {
                 kesitler.TR_append(TR_Segment(k.baş, k.son, "", []))
             } TR_else {
-                kesitler.TR_append(TR_Segment(k.baş, k.son, metin, k.parçalar))
+                kesitler.TR_append(TR_Segment(k.baş, k.son, yazı, k.parçalar))
                 TR_for p TR_in k.parçalar { parçalar.TR_append(p) }
             }
         }

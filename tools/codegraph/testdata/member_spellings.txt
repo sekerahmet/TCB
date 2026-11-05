@@ -889,7 +889,6 @@ member_log.TR_append	ok	0	name:TR_mem_append
 member_log.TR_join	ok	0	name:TR_mem_join
 mesaj.TR_contains	ok	0	name:TR_mem_contains
 mesajlar.TR_append	ok	0	name:TR_mem_append
-metin.TR_strip	not_found	4	-
 metinler.TR_append	ok	0	name:TR_mem_append
 meyveler.TR_append	ok	0	name:TR_mem_append
 meyveler.TR_length	ok	0	name:TR_mem_length
@@ -1352,6 +1351,7 @@ yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
 yavaş.TR_wait	ok	0	name:TR_mem_wait
 yazı.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
+yazı.TR_strip	ok	0	name:TR_mem_strip
 yazı.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 yazıcı.TR_close	ok	0	name:TR_mem_close
 yeni.TR_last	ok	0	name:TR_mem_last
