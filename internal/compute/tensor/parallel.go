@@ -75,6 +75,18 @@ const returningWorker = 3
 // yavaşlattı (12,5 ms).
 const poolWait = 50 * time.Microsecond
 
+// poolHold, dönen işçilerin poolWait'ten sonra da beklediği son andır (poolEpoch'tan nanosaniye).
+// Üretimde çarpımlar arasında dikkat ve normlar yüzlerce µs sürer: işçi uyursa bir sonraki çarpım
+// uyandırmayı bekler, bu sanal makinede çarpımın kendisi kadardır. Yalnız holdWorkers uzatır: eğitim
+// ve öbür işler poolWait'te kalır, çöp toplayıcı duraklamaları değişmez.
+var (
+	poolEpoch = time.Now()
+	poolHold  atomic.Int64
+)
+
+// holdWorkers dönen işçileri d süresince uyutmaz.
+func holdWorkers(d time.Duration) { poolHold.Store(int64(time.Since(poolEpoch) + d)) }
+
 // workers kullanılabilecek en çok işçi sayısı (GOMAXPROCS; çağıran dahil). Başka görevlerle
 // işlemci paylaşan kilitsiz bir çekirdek çalışırken yarısı (S-kilit; DENETİM istek 64, Ş4):
 // uyanan görevin gorutini boş işlemci bulsun. GOMAXPROCS − 1 yetmedi (ölçüm: s-kilit-devir.md).
@@ -200,7 +212,7 @@ func (i *worker) wait(no int, last uint64, shouldReturn bool) *task {
 						return g
 					}
 				}
-				if k&15 == 15 && time.Since(begin) > poolWait {
+				if k&15 == 15 && time.Since(begin) > poolWait && int64(time.Since(poolEpoch)) > poolHold.Load() {
 					break
 				}
 				cpuPause()

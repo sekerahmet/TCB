@@ -3,6 +3,7 @@ package tensor
 import (
 	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -115,6 +116,47 @@ func TestQuantMatMulDependsOnlyOnShape(t *testing.T) {
 	row := New(randomData(r, 512), 1, 512)
 	part := MatMul(row, w.Slice(0, 10, 20).T()).Data()
 	sameFloatBits(t, "satır dilimi", part, MatMul(row, w.T()).Data()[10:20])
+}
+
+// TestQuantMatMulIndependentOfWorkers (15.22a): sonuç işçi sayısından bağımsızdır, tek ve çok satırda.
+func TestQuantMatMulIndependentOfWorkers(t *testing.T) {
+	prev := runtime.GOMAXPROCS(0)
+	defer runtime.GOMAXPROCS(prev)
+	r := rand.New(rand.NewSource(9))
+	for dt := range quantDotShapes {
+		elems, _ := dt.QuantBlock()
+		for _, c := range [][3]int{{1, 700, 512}, {1, 2*quantTileRows + 3, 1024}, {7, quantTileRows + 40, 512}, {130, 300, 256}} {
+			M, N, K := c[0], c[1], c[2]
+			w := FromQuantized(dt, smallScaleQuant(dt, uint32(N), N*K/elems), N, K)
+			x := New(randomData(r, M*K), M, K)
+			runtime.GOMAXPROCS(1)
+			want := MatMul(x, w.T()).Data()
+			for _, n := range []int{2, 3, 8} {
+				runtime.GOMAXPROCS(n)
+				sameFloatBits(t, dt.Name(), MatMul(x, w.T()).Data(), want)
+			}
+		}
+	}
+}
+
+// TestQuantMatMulPooledBuffersKeepNoData: çok satırlı çarpımın tamponları havuzdandır; büyük şekilden
+// sonra küçüğü, küçükten sonra büyüğü ilk koşudaki bitleri verir, eski veri okunmaz.
+func TestQuantMatMulPooledBuffersKeepNoData(t *testing.T) {
+	r := rand.New(rand.NewSource(10))
+	shapes := [][3]int{{3, 70, 256}, {40, quantTileRows + 9, 512}, {2, 5, 256}}
+	run := func(c [3]int, x *Tensor) []float32 {
+		w := FromQuantized(Q4K, smallScaleQuant(Q4K, uint32(c[1]), c[1]*c[2]/kBlock), c[1], c[2])
+		return MatMul(x, w.T()).Data()
+	}
+	xs := make([]*Tensor, len(shapes))
+	first := make([][]float32, len(shapes))
+	for i, c := range shapes {
+		xs[i] = New(randomData(r, c[0]*c[2]), c[0], c[2])
+		first[i] = run(c, xs[i])
+	}
+	for _, i := range []int{1, 0, 2, 1, 2, 0} {
+		sameFloatBits(t, "art arda", run(shapes[i], xs[i]), first[i])
+	}
 }
 
 // TestQuantMatMulKeepsLeftPrecision: sonuç x'in hassasiyetindedir (15.53), ağırlık değişmez.

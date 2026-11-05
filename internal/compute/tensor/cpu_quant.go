@@ -1,5 +1,7 @@
 package tensor
 
+import "time"
+
 // Nicemlenmiş ağırlıkla çarpım ve gömme (15.53). Sağ işlenen [N, K] deposudur, bloklar K boyuncadır;
 // etkinleştirme nicemlenmez, biriktirme float32'dedir. Bütün ağırlık hiç açılmaz: tek satırda
 // çekirdek blokları yazmaçta açar, çok satırda satır parçaları sırayla tampona açılır.
@@ -8,6 +10,11 @@ package tensor
 // sırası yalnız şekle bağlı kalır. Tampon en çok K·256 float32'dir: Qwen3-4B'nin en geniş
 // ağırlığında (K = 9728) 10 MB [hesap].
 const quantTileRows = 256
+
+// quantHold tek satırlı çarpımdan sonra işçilerin uyumadan beklediği süredir: üretimde sıradaki
+// çarpım bundan önce gelir. 2026-11-05 ölçümü (EPYC 7B12, Qwen3-0.6B Q8_0, ms/parça, ortanca):
+// 50 µs'de 37,5; 300'de 32,5; 500'de 31,6; 1000'de 31,1; 2000'de 30,8.
+const quantHold = time.Millisecond
 
 // quantRowBytes K öğelik bir ağırlık satırının baytıdır.
 func quantRowBytes(dt DType, K int) int {
@@ -46,8 +53,12 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	}
 	rowBytes := quantRowBytes(dt, K)
 	rows := min(quantTileRows, N)
-	tile := make([]float32, rows*K)
-	part := make([]float32, M*rows)
+	// Tamponlar havuzdandır: her çarpımda ayrılsalar 128 konumluk geçişte 900 MB çöp olurlardı.
+	// tile her turda yazılır, part sıfırlanır: önceki çağrının verisi okunmaz.
+	tp, pp := takePack(&packPoolB, rows*K), takePack(&packPoolA, M*rows)
+	defer packPoolB.Put(tp)
+	defer packPoolA.Put(pp)
+	tile, part := *tp, *pp
 	for n0 := 0; n0 < N; n0 += rows {
 		t := min(rows, N-n0)
 		parallelFor(t, K, func(lo, hi int) {
@@ -76,6 +87,7 @@ func quantGemv(N, K int, a []float32, w []byte, dt DType, c []float32) {
 			c[n] += quantDot(dt, a, w[n*rowBytes:(n+1)*rowBytes], s)
 		}
 	})
+	holdWorkers(quantHold)
 }
 
 // quantEmbedding idx satırlarını float32'ye açar (15.53): yalnız seçilen satırların blokları.

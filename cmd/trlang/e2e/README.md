@@ -14,6 +14,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_colab_cells_test.go`: `tools/gpu/COLAB.md` hücrelerindeki satır içi Python'un ve GPU betiklerinin sözdizimi (Colab'a gitmeden önce)
 - `behavior_trt_python_test.go`: TR tensör dosyasının (.trt) Python'da yazılıp TR'de okunması ve tersi (`tools/gpu/trt_io.py`)
 - `behavior_ready_gguf_test.go`: GGUF dosyasından kurulan modelin safetensors ve açılmış ağırlıkla aynı logitleri vermesi; satır sırası, üstveri varsayılanları ve yükleme kapıları (dosyalar Go ile kurulur).
+- `behavior_gguf_workers_test.go`: GGUF modelinin logitleri işçi sayısından bağımsız.
 - `behavior_gguf_rope_freqs_test.go`: `rope_freqs.weight` bölenlerinin tablosunun llama.cpp formülüyle aynı olması, tensörün isteğe bağlı oluşu ve kullanılamayan bölenlerin yükleme hatası olması (dosyalar Go ile kurulur; `TR_GGUF_LLAMA32` verilirse tablo gerçek Llama 3.2 dosyasıyla da kıyaslanır)
 - `behavior_ready_model_test.go`: `tr/pretrained` ile yüklenen Hugging Face biçimindeki küçük Llama ve Qwen3 modellerinin transformers'la aynı logitleri vermesi (transformers varsa)
 - `behavior_target_model_stability_test.go`: hedef modelin eğitiminin bir NaN'de son kontrol noktasına dönüp toplu işleri atlayarak sürmesi, kontrol noktası yoksa açık hatayla durması (Evre 3 bitiş ölçütü)

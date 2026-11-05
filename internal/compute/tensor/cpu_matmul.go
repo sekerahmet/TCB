@@ -217,9 +217,13 @@ func packBPanel(b []float32, bks, bjs, K, N, jp int, dst []float32) {
 			o := k*bks + j0
 			copy(dst[k*nr:k*nr+nr], b[o:o+nr])
 		}
-	case nn >= nr && bks == 1:
-		// Devrik B: her sütun bellekte bitişik.
-		for c := 0; c < nr; c++ {
+	case bks == 1:
+		// Devrik B: her sütun bellekte bitişik. Son panelin eksik sütunları sıfırdır (dikkatte anahtar
+		// sayısı çoğunlukla nr'nin katı değildir, bu panel her adımda paketlenir).
+		if nn < nr {
+			clear(dst[:K*nr])
+		}
+		for c := 0; c < min(nn, nr); c++ {
 			o := (j0 + c) * bjs
 			for k, v := range b[o : o+K] {
 				dst[k*nr+c] = v

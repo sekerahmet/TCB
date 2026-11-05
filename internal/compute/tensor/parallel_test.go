@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // Paralel çekirdek yollarının doğruluk ve belirlenimcilik testleri. Boyutlar,
@@ -325,6 +326,31 @@ func TestWorkerCount(t *testing.T) {
 // Bulgu 10: işçi goroutine'inde (ya da çağıranın parçasında) oluşan panik kurtarılıp
 // çağırana taşınır; işçiler yarım işi sonraki çağrılarla eşzamanlı yürütmeye devam etmez ve
 // havuz kullanılabilir kalır. İç içe (geçici goroutine'li) yolda da aynı.
+// TestHeldWorkersSleepAfterwards: holdWorkers işçileri süresince uyutmaz, süre bitince hepsi uyur:
+// üretim bittikten sonra çekirdek yakılmaz.
+func TestHeldWorkersSleepAfterwards(t *testing.T) {
+	prev := runtime.GOMAXPROCS(4)
+	defer runtime.GOMAXPROCS(prev)
+	distribute(4, 64, func(_, _ int) { time.Sleep(time.Millisecond) })
+	holdWorkers(20 * time.Millisecond)
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		awake := 0
+		pool.mu.Lock()
+		for _, i := range pool.workers {
+			if !i.sleeping.Load() {
+				awake++
+			}
+		}
+		pool.mu.Unlock()
+		if awake == 0 {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("işçiler uyumadı")
+}
+
 func TestWorkerPanicReachesCaller(t *testing.T) {
 	if workers() < 2 {
 		t.Skip("tek işlemci")

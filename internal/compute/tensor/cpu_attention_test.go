@@ -59,3 +59,74 @@ func TestAttentionIndependentOfWorkers(t *testing.T) {
 		}
 	}
 }
+
+// attnDecodeCases üretim adımı ve kısa promptun şekilleridir: tek ve iki toplu eleman, blok sınırının
+// iki yanı, GQA ve pencere.
+var attnDecodeCases = []struct {
+	B, H, Hkv, Tq, Tk, Dh, window int
+}{
+	{1, 16, 8, 1, 9, 128, 0}, {1, 16, 8, 1, 20, 128, 0}, {1, 16, 8, 1, 100, 128, 0}, {1, 16, 8, 1, 64, 128, 0}, {1, 16, 8, 1, 65, 128, 0}, {2, 4, 2, 1, 33, 32, 0},
+	{1, 8, 1, 1, 130, 64, 0}, {1, 6, 2, 1, 70, 16, 5}, {1, 4, 4, 1, 40, 16, 0}, {1, 4, 2, 5, 40, 16, 0}, {2, 4, 2, 70, 70, 16, 9},
+}
+
+// TestDecodeAttentionUsesWorkers: kısa bağlamda da tek sorgunun dikkati işçilere dağılır.
+func TestDecodeAttentionUsesWorkers(t *testing.T) {
+	prev := runtime.GOMAXPROCS(8)
+	defer runtime.GOMAXPROCS(prev)
+	p := AttentionParams{Batch: 1, H: 16, Tq: 1, Tk: 20, Dh: 128, Dv: 128}
+	if w := workerCount(attnJob(&p), attnDecodeMin, gemmBigJob); w < 2 {
+		t.Fatalf("20 konumda %d katılımcı", w)
+	}
+}
+
+// TestAttentionWithoutGradMatchesCopied: türevsiz yol K ve V'yi yerinde okur, tek sorguda bakışlar birlikte
+// gezilir; sonuç kopyalı yolla bit bit aynıdır, işçi sayısından bağımsızdır. K ve V önbelleğin dilimidir.
+func TestAttentionWithoutGradMatchesCopied(t *testing.T) {
+	prev := runtime.GOMAXPROCS(0)
+	defer runtime.GOMAXPROCS(prev)
+	for _, c := range attnDecodeCases {
+		rng := rand.New(rand.NewSource(int64(c.Tk)))
+		q := Randn(rng, c.B, c.Tq, c.H, c.Dh)
+		buffer := Randn(rng, c.B, c.Tk+7, c.Hkv, c.Dh)
+		other := Randn(rng, c.B, c.Tk+7, c.Hkv, c.Dh)
+		k, v := buffer.Slice(1, 0, c.Tk), other.Slice(1, 0, c.Tk)
+		opt := AttentionOptions{Causal: true, Window: c.window}
+		runtime.GOMAXPROCS(1)
+		want := Attention(q, k, v, opt).Data()
+		for _, n := range []int{1, 2, 3, 8} {
+			runtime.GOMAXPROCS(n)
+			var got *Tensor
+			NoGrad(func() { got = Attention(q, k, v, opt) })
+			sameFloatBits(t, "türevsiz", got.Data(), want)
+		}
+	}
+}
+
+// TestAttentionSharedHeadsMatchSeparate: tek sorguda K ve V'yi paylaşan bakışların çıktısı, her bakışa kendi
+// kopyası verilmiş dikkatle bit bit aynıdır.
+func TestAttentionSharedHeadsMatchSeparate(t *testing.T) {
+	const H, Hkv, Dh = 8, 2, 64
+	for _, Tk := range []int{1, 15, 16, 64, 65, 100} {
+		rng := rand.New(rand.NewSource(int64(Tk)))
+		q := Randn(rng, 1, 1, H, Dh)
+		k, v := Randn(rng, 1, Tk, Hkv, Dh), Randn(rng, 1, Tk, Hkv, Dh)
+		spread := func(x *Tensor) *Tensor {
+			d := x.Data()
+			out := make([]float32, 0, Tk*H*Dh)
+			for j := range Tk {
+				for h := range H {
+					kv := h / (H / Hkv)
+					out = append(out, d[(j*Hkv+kv)*Dh:(j*Hkv+kv+1)*Dh]...)
+				}
+			}
+			return New(out, 1, Tk, H, Dh)
+		}
+		opt := AttentionOptions{Causal: true}
+		var shared, separate *Tensor
+		NoGrad(func() {
+			shared = Attention(q, k, v, opt)
+			separate = Attention(q, spread(k), spread(v), opt)
+		})
+		sameFloatBits(t, "paylaşılan", shared.Data(), separate.Data())
+	}
+}
