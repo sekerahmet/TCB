@@ -85,7 +85,7 @@ TR_test "22.4 WAVE_FORMAT_EXTENSIBLE: alt biçim PCM ya da ondalık" {
     TR_assert_equal([[0.25]], oku(wav(parça("fmt ", geniş_fmt(3, 1, 16000, 32, 32)) + parça("data", veri))).TR_samples.TR_tolist)
 }
 
-TR_test "22.4 başka parçalar atlanır; başlık 44 bayt varsayılmaz, RIFF boyu okunmaz" {
+TR_test "22.4 başka parçalar atlanır; başlık 44 bayt varsayılmaz" {
     TR_var uzun = parça("LIST", TR_Bytes("abc")) + parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("fact", u32(4)) + parça("data", dört_örnek()) + parça("LIST", TR_Bytes("xy"))
     TR_assert_equal([1, 4], oku(wav(uzun)).TR_samples.TR_shape)
     TR_var boy_bozuk = TR_Bytes("RIFF") + u32(7) + mono(dört_örnek())[8..52]
