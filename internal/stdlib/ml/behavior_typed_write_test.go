@@ -50,6 +50,10 @@ TR_var x = TR_Tensor([5, 6])
 	if !messages.Has(err, messages.H3115) {
 		t.Fatalf("TR_load_parameters: %v, H3115 bekleniyordu", err)
 	}
+	// messages.Has ve TR_error_code sarılmış iletinin içindeki kodu da bulur: sarma ayrıca sınanır.
+	if messages.Has(err, messages.H2000) {
+		t.Errorf("TR_load_parameters kodlu hatayı H2000'e sarıyor: %v", err)
+	}
 	fix := suggestedSpelling(t, err.Error())
 	if got := mustRun(t, param+`TR_load_parameters(m, {"w": `+fix+`})`+"\n"+`TR_print(m["w"].TR_tolist)`); got != "[5.0, 6.0]\n" {
 		t.Errorf("TR_load_parameters, %s: %q", fix, got)
