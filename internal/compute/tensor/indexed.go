@@ -58,7 +58,12 @@ func EmbeddingAt(w, idx *Tensor) *Tensor {
 	}
 	sameDevice("EmbeddingAt", w, idx)
 	D := w.shape[1]
-	out := emptyOf(isEmbedding, w.be, append(copyInts(idx.shape), D), w.dtyp)
+	outType := w.dtyp
+	if w.dtyp.IsQuantized() {
+		w.refuseTransposed()
+		outType = Float32 // seçilen satırlar açılır (15.53)
+	}
+	out := emptyOf(isEmbedding, w.be, append(copyInts(idx.shape), D), outType)
 	if idx.Numel() > 0 && D > 0 {
 		gateEmbeddingAt(indexReader("EmbeddingAt", w), out.storage, w.view(), idx.view(), D)
 	}

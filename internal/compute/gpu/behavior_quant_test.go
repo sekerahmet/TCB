@@ -298,6 +298,42 @@ func TestQuantGemmAccumulates(t *testing.T) {
 	}
 }
 
+// Gömme seçilen satırları kartta açar; değer CPU'nunkiyle bit bit aynıdır (15.53).
+func TestQuantEmbeddingOnTheCard(t *testing.T) {
+	rng := rand.New(rand.NewSource(13))
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		host, card := quantWeights(t, rng, dt, 6, 2*elems)
+		idx := []int{5, 0, 3, 3, 1, 2}
+		want := tensor.Embedding(host, idx, 2, 3)
+		got := tensor.Embedding(card, idx, 2, 3)
+		if got.DType() != tensor.Float32 || got.Device() != gpuDevice || got.Dim() != 3 {
+			t.Fatalf("%v: tür %v, cihaz %v, şekil %v", dt, got.DType(), got.Device(), got.Shape())
+		}
+		sameFloatBits(t, dt.Name(), got.Data(), want.Data())
+		if rows := tensor.Embedding(card.Slice(0, 1, 4), []int{2}); rows.Numel() != 2*elems {
+			t.Fatalf("%v: dilim %v", dt, rows.Shape())
+		} else {
+			sameFloatBits(t, dt.Name()+" dilim", rows.Data(), tensor.Embedding(host, []int{3}).Data())
+		}
+		for _, it := range []*tensor.Tensor{tensor.NewOn(gpuDevice, []float32{5, 0}, 2), tensor.Int64sOn(gpuDevice, tensor.Int64, []int64{5, 0}, 2)} {
+			at := tensor.EmbeddingAt(card, it)
+			sameFloatBits(t, dt.Name()+" cihaz indeksi", at.Data(), tensor.Embedding(host, []int{5, 0}).Data())
+		}
+		if n := tensor.Embedding(card, nil, 0).Numel(); n != 0 {
+			t.Errorf("%v: boş indeks %d öğe", dt, n)
+		}
+		func() {
+			defer func() {
+				if err, _ := recover().(error); !messages.Has(err, messages.H3043) {
+					t.Errorf("%v: hata %v; H3043 olmalı", dt, err)
+				}
+			}()
+			tensor.Embedding(card, []int{6})
+		}()
+	}
+}
+
 // Boş toplam float çarpımıyla aynıdır; türev izleyen girdi kartta da H6696'dır.
 func TestQuantGemvEdges(t *testing.T) {
 	var empty *tensor.Tensor

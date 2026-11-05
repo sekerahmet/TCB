@@ -65,7 +65,7 @@ func embedding(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 		if err != nil {
 			return nil, err
 		}
-		return New(r), nil
+		return quantRowsValue(m, table.t, r), nil
 	}
 	idx, ish, err := intIndices(fn, args[1])
 	if err != nil {
@@ -86,11 +86,16 @@ func embedding(m *interp.VM, args []interp.Value, named map[string]interp.Value)
 	if err != nil {
 		return nil, err
 	}
-	if mixed := mixedDType(m); table.t.DType().IsQuantized() && mixed != tensor.Float32 {
-		// Satırlar hesap hassasiyetine açılır (15.53): `@`'nin blok kuralı.
-		return New(r.Cast(mixed)), nil
+	return quantRowsValue(m, table.t, r), nil
+}
+
+// quantRowsValue gömmenin sonucudur: nicemlenmiş tablonun satırları hesap hassasiyetine açılır
+// (15.53): `@`'nin blok kuralı.
+func quantRowsValue(m *interp.VM, table, r *tensor.Tensor) *TensorValue {
+	if mixed := mixedDType(m); table.DType().IsQuantized() && mixed != tensor.Float32 {
+		return New(r.Cast(mixed))
 	}
-	return New(r), nil
+	return New(r)
 }
 
 func crossEntropy(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
