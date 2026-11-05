@@ -163,7 +163,7 @@ func TestAFunctionAfterADotKeepsItsValue(t *testing.T) {
 		}
 		seen++
 		err := identityError(codes.PlaceMember, s).Error()
-		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") && s != "TR_custom_grad" && s != "TR_mel_filterbank" {
+		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") && s != "TR_custom_grad" && s != "TR_mel_filterbank" && s != "TR_write_file" {
 			t.Errorf("x.%s: %s; öneri x'i ilk argüman yazmalı", s, err)
 		}
 	}
@@ -175,11 +175,15 @@ func TestAFunctionAfterADotKeepsItsValue(t *testing.T) {
 		t.Errorf("x.TR_custom_grad: %v; want H0029, TR_custom_grad(...)", err)
 	}
 	for s, want := range map[string]string{
-		"TR_move": "TR_move(x, y)", "TR_copy": "TR_copy(x, y)", "TR_write_file": "TR_write_file(x, y)",
+		"TR_move": "TR_move(x, y)", "TR_copy": "TR_copy(x, y)",
 		"TR_sum": "TR_sum(x)", "TR_print": "TR_print(x)", "TR_list_dir": "TR_list_dir(x)",
 	} {
 		if err := identityError(codes.PlaceMember, s); !messages.Has(err, messages.H7016) || !strings.Contains(err.Error(), want) {
 			t.Errorf("x.%s: %v; want H7016, %s", s, err, want)
 		}
+	}
+	// Yol da içerik de metin olabilir: ileti noktadan önceki değeri yola koymaz.
+	if err := identityError(codes.PlaceMember, "TR_write_file"); !messages.Has(err, messages.H0301) || !strings.Contains(err.Error(), "TR_write_file(y, x)") {
+		t.Errorf("TR_write_file after a dot: %v; want H0301, TR_write_file(y, x)", err)
 	}
 }

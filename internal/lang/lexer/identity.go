@@ -455,6 +455,11 @@ func wrongPlace(written, place codes.Place, k codes.Code) error {
 	if written != codes.PlaceMember {
 		return messages.New(messages.H0029, s, s+"(...)")
 	}
+	if k == codes.FnWriteFile {
+		// Yol da içerik de metin olabilir: noktadan önceki değer yola konursa içeriğin kendisi adında
+		// dosya yazılır, hata vermez. İleti iki argümanın ne olduğunu söyler.
+		return messages.New(messages.H0301, s)
+	}
 	call := calledOnReceiver(k)
 	if !strings.HasPrefix(call, s+"(x") {
 		return messages.New(messages.H0029, s, call)

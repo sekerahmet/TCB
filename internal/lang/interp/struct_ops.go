@@ -10,6 +10,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/hint"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -140,11 +141,13 @@ func structMember(inst *StructInstanceVal, e *ast.MemberExpression) (Value, erro
 		}, nil
 	}
 	// '?.' yalnız yokluğu açar (4.8): var olan nesnede olmayan alan '.' ile aynı hatadır (7.5)
-	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, e.Property, memberHint(inst.Def, e.Property)))
+	written := resolveMember(e.Property).written(e.Property)
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H2468, inst.Def.Name, written, memberHint(inst.Def, e.Property)))
 }
 
 // memberHint yapıda olmayan bir üyenin ipucudur (7.5): adı 2.3a'nın uzaklığıyla en yakın alan ya da
-// metot; yakın ad yoksa alanı yapıya tipiyle eklemek.
+// metot; yakın ad yoksa alanı yapıya tipiyle eklemek. Kimlik alan olamaz (2.3a, 17): kimlikle yazılan
+// üyede ad öneksiz adla aranır, eklenecek alan da odur.
 func memberHint(def *StructDefVal, prop string) *messages.Error {
 	names := make([]string, 0, len(def.Fields)+len(def.Methods))
 	for _, f := range def.Fields {
@@ -154,8 +157,19 @@ func memberHint(def *StructDefVal, prop string) *messages.Error {
 		names = append(names, name)
 	}
 	slices.Sort(names)
-	if h := hint.ClosestSuggestion(prop, names, nil); h != nil {
+	written := resolveMember(prop).written(prop)
+	field := prop
+	if written != prop {
+		field = lexer.UserName(written)
+		if slices.Contains(names, field) {
+			return messages.New(messages.H2923, written, def.Name, field)
+		}
+	}
+	if h := hint.ClosestSuggestion(field, names, nil); h != nil {
 		return h
+	}
+	if written != prop {
+		return messages.New(messages.H2922, written, def.Name, field)
 	}
 	return messages.New(messages.H2754, prop, def.Name)
 }
@@ -215,7 +229,8 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 		if _, meth := inst.Def.Methods[prop]; meth {
 			return messages.At(line, 0, messages.New(messages.H2404, prop, inst.Def.Name))
 		}
-		return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, prop, memberHint(inst.Def, prop)))
+		written := resolveMember(prop).written(prop)
+		return messages.At(line, 0, messages.New(messages.H2405, inst.Def.Name, written, memberHint(inst.Def, prop)))
 	}
 	if cur == nil {
 		cur = Null

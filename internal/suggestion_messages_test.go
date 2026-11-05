@@ -164,6 +164,14 @@ var suggestionResultCases = []suggestionResultCase{
 	// 2.3a: noktadan önceki değer ilk argüman olur; yol değerinde öneri dosyayı taşır.
 	{messages.H7016, "TR_var x = \"a.txt\"\nTR_var y = \"b.txt\"\nTR_write_file(x, \"v\")\nx.TR_move(y)", "TR_move(x, y)",
 		"TR_var x = \"a.txt\"\nTR_var y = \"b.txt\"\nTR_write_file(x, \"v\")\nTR_move(x, y)\nTR_print(TR_read_file(y))", "v\n"},
+	// 7.5, 2.3a: kimlik yapının alanı olamaz; öneri öneksiz addır.
+	{messages.H2922, "TR_struct K { a: TR_Int }\nTR_var k = K(1); k.TR_weight = 2", "weight: TR_Int",
+		"TR_struct K { a: TR_Int, weight: TR_Int }\nTR_var k = K(1, 0)\nk.weight = 2\nTR_print(k.weight)", "2\n"},
+	{messages.H2923, "TR_struct K { weight: TR_Int }\nTR_var k = K(1); k.TR_weight = 2", ".weight",
+		"TR_struct K { weight: TR_Int }\nTR_var k = K(1)\nk.weight = 2\nTR_print(k.weight)", "2\n"},
+	// 2.3a: metin alıcıda yol ve içerik karışmaz; öneri izlenince verilen yola içerik yazılır.
+	{messages.H0301, "TR_var x = \"v\"\nTR_var y = \"a.txt\"\nx." + "TR_write_file(y)", "TR_write_file(y, x)",
+		"TR_var x = \"v\"\nTR_var y = \"a.txt\"\nTR_write_file(y, x)\nTR_print(TR_read_file(y))", "v\n"},
 	// 19.6: kayıttaki adım tam değerli olmalıdır; ileti yuvarlamayı önerir, kırpmaz.
 	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": 3.5})", "TR_round(...)",
 		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_round(3.5)})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":4\"))", "true\n"},
@@ -317,11 +325,18 @@ func TestAFileFunctionAfterADotLeavesTheFile(t *testing.T) {
 	if err := os.WriteFile("a", []byte("veri"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"TR_move", "TR_copy", "TR_write_file"} {
+	for f, want := range map[string]struct {
+		code messages.Code
+		call string
+	}{
+		"TR_move":       {messages.H7016, "`TR_move(x, y)`"},
+		"TR_copy":       {messages.H7016, "`TR_copy(x, y)`"},
+		"TR_write_file": {messages.H0301, "`TR_write_file(y, x)`"},
+	} {
 		wrong := "TR_var d = {\"a\": 1}\nd." + f + "(\"a\", \"b\")"
-		matched := firstWithCode(collectProgramDiagnostics(wrong), messages.H7016)
-		if matched == nil || !strings.Contains(matched.Error(), "`"+f+"(x, y)`") {
-			t.Fatalf("%s: H7016 ve %s(x, y) bekleniyordu: %v", f, f, matched)
+		matched := firstWithCode(collectProgramDiagnostics(wrong), want.code)
+		if matched == nil || !strings.Contains(matched.Error(), want.call) {
+			t.Fatalf("%s: %s ve %s bekleniyordu: %v", f, want.code, want.call, matched)
 		}
 		if diags, _ := runProgram("TR_var d = {\"a\": 1}\n" + f + "(d, \"a\")"); len(diags) == 0 {
 			t.Errorf("%s: sözlük argümanı hata vermedi", f)

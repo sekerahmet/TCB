@@ -2,6 +2,7 @@ package interp
 
 import (
 	"github.com/sekerahmet/TCB/internal/lang/ast"
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -61,7 +62,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 				if def, ok := enumOf(obj); ok { // 7.7: enum_ops.go
 					return v.callVariant(def, mem, argCode, env, line)
 				}
-				fnVal, err := v.memberValue(obj, mem, u)
+				fnVal, err := v.calledMember(obj, mem, u)
 				if err != nil {
 					return nil, err
 				}
@@ -175,8 +176,19 @@ func (c *compiler) namedCallee(k *compilerScope, e *ast.CallExpression, fun expr
 		if def, ok := enumOf(obj); ok { // 7.7: enum_ops.go
 			return v.variantCallee(def, mem), nil
 		}
-		return v.memberValue(obj, mem, u)
+		return v.calledMember(obj, mem, u)
 	}
+}
+
+// calledMember x.üye(...) çağrısının üye değeridir. Sözlükte çağrılan dil üyesi anahtar okumak değildir:
+// köşeli parantez önerisi (H2648) çağrıyı kurtarmaz, hata denetimdekidir (13.11).
+func (v *VM) calledMember(obj Value, mem *ast.MemberExpression, u memberInfo) (Value, error) {
+	fnVal, err := v.memberValue(obj, mem, u)
+	if u.codeVal != codes.None && messages.Has(err, messages.H2648) {
+		hint := memberTypesHint(u.codeVal, mem.Property)
+		return nil, messages.At(mem.Line(), 0, messages.New(messages.H2474, obj.Type(), u.written(mem.Property), hint))
+	}
+	return fnVal, err
 }
 
 // namedArgs derlenmiş adlı argümanlardır (ad: değer).

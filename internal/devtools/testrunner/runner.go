@@ -94,7 +94,7 @@ func holdsTests(f string) bool {
 }
 
 // Run hedeflerdeki tüm test dosyalarını ve onların aktardığı modüllerin testlerini (12.1) çalıştırır,
-// raporu out'a yazar ve özeti döndürür. Her dosya bir kez, kendi makinesinde koşar. TestFiles'ın
+// raporu out'a yazar ve özeti döndürür. Her dosya bir kez koşar, her testi kendi makinesinde. TestFiles'ın
 // reddettiği hedef varsa hiçbir test çalışmaz.
 func Run(targets []string, out io.Writer) (Summary, error) {
 	files, err := TestFiles(targets)
@@ -136,9 +136,9 @@ func RunFile(fpath string, out io.Writer) Summary {
 	return summary
 }
 
-// runFile tek bir dosyanın test bloklarını çalıştırır, aktardığı modül dosyalarını da verir. Önce dosya normal biçimde
-// yüklenir (test blokları atlanarak üst düzey tanımlar oluşur); ardından her test, bu
-// tanımların üzerinde açılan yeni bir kapsamda tek tek çalışır. Bir testin kalması ya da
+// runFile tek bir dosyanın test bloklarını çalıştırır, aktardığı modül dosyalarını da verir. Her test
+// kendi makinesinde çalışır (12.5): dosya normal biçimde yüklenir (test blokları atlanarak üst düzey
+// tanımlar oluşur), test bu tanımların üzerinde açılan yeni bir kapsamda koşar. Bir testin kalması ya da
 // hata vermesi diğerlerini durdurmaz. En dışında testi olmayan dosya koşuyu düşürür (H8503).
 func runFile(fpath string, out io.Writer) (Summary, []string) {
 	summary := Summary{File: 1}
@@ -188,20 +188,22 @@ func runFile(fpath string, out io.Writer) (Summary, []string) {
 		return summary, nil
 	}
 
-	machine := interp.New()
-	machine.Out = out
-	machine.Err = out // eşzamanlı görev hataları da raporda görünür
-	machine.SourceFile = fpath
-	machine.SourceCode = text
-	if _, err := machine.Run(prog); err != nil {
+	machine, err := loadMachine(fpath, text, prog, out)
+	if err != nil {
 		writeLoadFailure(out, err, text)
 		summary.Unloadable++
 		return summary, modules
 	}
 
-	for _, t := range tests {
+	for i, t := range tests {
 		summary.Total++
-		if err := machine.RunTest(t); err != nil {
+		if i > 0 {
+			machine, err = loadMachine(fpath, text, prog, out)
+		}
+		if err == nil {
+			err = machine.RunTest(t)
+		}
+		if err != nil {
 			summary.Failed++
 			writeTestFailure(out, t, err, text)
 			continue
@@ -210,6 +212,18 @@ func runFile(fpath string, out io.Writer) (Summary, []string) {
 		fmt.Fprintf(out, "  ✓ %s\n", t.Name)
 	}
 	return summary, modules
+}
+
+// loadMachine dosyayı yeni bir makinede yükler: en dıştaki tanımlar, aktarılan modüller ve paylaşılan
+// üreteç başlangıç durumundadır, bir önceki testin değiştirdiği hiçbir şey görünmez (12.5).
+func loadMachine(fpath, text string, prog *ast.Program, out io.Writer) (*interp.VM, error) {
+	machine := interp.New()
+	machine.Out = out
+	machine.Err = out // eşzamanlı görev hataları da raporda görünür
+	machine.SourceFile = fpath
+	machine.SourceCode = text
+	_, err := machine.Run(prog)
+	return machine, err
 }
 
 // writeTestFailure başarısız testin satırını raporlar: konumsuz hataya (ör. TR_throw) testin satırı

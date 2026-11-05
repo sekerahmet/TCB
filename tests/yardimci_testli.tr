@@ -9,3 +9,8 @@ TR_test "12.1 aktarılan modülün testi kendi makinesinde koşar" {
 }
 
 TR_var testli_bitti = TR_true
+
+TR_func testli_artır() -> TR_Int {
+    testli_sayaç = testli_sayaç + 1
+    TR_return testli_sayaç
+}

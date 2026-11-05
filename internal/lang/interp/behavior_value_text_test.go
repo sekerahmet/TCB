@@ -191,6 +191,18 @@ TR_try { f() } TR_catch e { TR_print(e, e.TR_suppressed) }
 // da) hatadır ve gösterilen iletisi köşeli parantezli yazımı verir; yakalanan hatanın değeri iletinin
 // kodu ve anahtarıdır (8.3).
 func TestDictKeysAreTextNotMembers(t *testing.T) {
+	// Çağrılan dil üyesi anahtar okumak değildir: köşeli parantez önerilmez, hata denetimdekidir (13.11).
+	for _, member := range []string{"TR_pop()", "TR_remove_at(0)", "TR_pop(k: 1)"} {
+		code := "TR_var a: TR_Any = {\"a\": 1}\nTR_print(a." + member + ")\n"
+		shown := shownError(t, code, "en")
+		if !strings.Contains(shown, "is a method of List") || strings.Contains(shown, "[\"") {
+			t.Errorf("%s: iletinin üyenin tipini söylemesi gerekiyordu: %q", member, shown)
+		}
+		caught := "TR_var a: TR_Any = {\"a\": 1}\nTR_print(TR_error_code { a." + member + " })\n"
+		if out := runCoded(t, caught, nil); out != "H2474\n" {
+			t.Errorf("%s: H2474 bekleniyordu: %q", member, out)
+		}
+	}
 	out := runCoded(t, "TR_var cfg = {\"step\": 1}\ncfg[\"step\"] += 1\nTR_print(cfg, cfg[\"step\"], cfg.TR_keys())\nTR_try { TR_print(cfg.TR_step) } TR_catch e { TR_print(e) }\n", nil)
 	if want := "{\"step\": 2} 2 [\"step\"]\nMessage(\"H2648\", \"step\")\n"; out != want {
 		t.Errorf("sözlük anahtarı metin olmalı, noktayla okuma hata vermeli:\n%s", out)

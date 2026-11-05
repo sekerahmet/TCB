@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -64,13 +65,15 @@ func (l *Lexer) addReserved(line, col int, lit string) {
 // UserName is the name a message suggests for lit, a name that starts with TR_: the name without
 // the prefix, with its case (TR_PI2 → PI2, TR_Foo → Foo, TR_sum → sum), so that it keeps the style of
 // its place (2.3b). A lower-case tr_ would come back as TR_ in a constant's style warning. "" when
-// what is left is no name (TR_, TR__, TR_1): the message then suggests nothing.
+// what is left is no name (TR_, TR__, TR_1, a digit or a mark of any script first) or looks like an
+// identity (2.1a): the message then suggests nothing.
 func UserName(lit string) string {
 	name := lit
 	for strings.HasPrefix(name, codes.IdentityPrefix) {
 		name = strings.TrimPrefix(name, codes.IdentityPrefix)
 	}
-	if strings.Trim(name, "_") == "" || name[0] >= '0' && name[0] <= '9' {
+	first, _ := utf8.DecodeRuneInString(name)
+	if strings.Trim(name, "_") == "" || !isLetter(first) || identityLookalike(nfc(name)) {
 		return ""
 	}
 	return name

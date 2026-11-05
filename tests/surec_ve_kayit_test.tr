@@ -69,6 +69,7 @@ TR_test "19.4 gizli adlı seçeneğin değeri insanın göreceği çıktıda mas
 }
 
 TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler" {
+    ayar()
     TR_var dosya_yolu = "\(TR_temp_dir())/kayit/egitim.jsonl"
     TR_var g = TR_Logger(dosya_yolu)
     TR_assert_equal(TR_Logger, TR_Type(g))
