@@ -246,7 +246,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 
 **Bitiş ölçütü:**
 - Bir dil modeli (Llama ya da Qwen3 ailesi), bir görüntü modeli ve bir ses modeli (Whisper gibi konuşma tanıma) hazır ağırlıklarıyla çalışır ve özgün uygulamayla aynı sonucu verir.
-- Hız aynı model, aynı hassasiyet ve aynı makinede ölçülür: GPU'da PyTorch ve llama.cpp'ye, CPU'da PyTorch CPU ve llama.cpp'ye karşı. Hedef oran ilk ölçümden sonra buraya yazılır.
+- Hız aynı model, aynı hassasiyet ve aynı makinede ölçülür: GPU'da PyTorch ve llama.cpp'ye, CPU'da PyTorch CPU ve llama.cpp'ye karşı. Kartta llama.cpp'ye karşı hedef üretimde 0,75, prompt'ta 0,5 (Ahmet, 2026-11-05); öbür hedefler ilk ölçümden sonra yazılır.
 - CPU'da hem x86 hem ARM64 işlemcide çalışır.
 - Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir.
 - Nicemli ağırlık hazır dosyadan gelir: yayımlanmış GGUF okunur; Jarvis için ön koşul budur, kendimiz nicemlemek sonraki fazlarda (Ahmet, 2026-11-04). Türler (araştırma ve DENETİM istek 118): `Q8_0`, `Q4_K`, `Q6_K`; `Q4_0` sonra, `Q4_1` eklenmez. GGUF okuyucu, üstveri ve parçalayıcı aynı adımda (15.55, 16.1).
