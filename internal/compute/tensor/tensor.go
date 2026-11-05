@@ -298,6 +298,9 @@ func (t *Tensor) RequiresGrad() bool { return t.n.wants() }
 // SetRequiresGrad yaprak tensör için gradyan izlemeyi açar/kapatır; zincirleme
 // kullanım için tensörün kendisini döndürür.
 func (t *Tensor) SetRequiresGrad(b bool) *Tensor {
+	if b && t.dtyp.IsQuantized() {
+		panic(messages.New(messages.H6690, t.dtyp.Name()))
+	}
 	if !t.IsLeaf() && !b {
 		panic(messages.New(messages.H3067))
 	}
@@ -488,6 +491,9 @@ func (t *Tensor) ZeroGrad() {
 func (t *Tensor) To(dev Device) *Tensor {
 	if t.Device() == dev {
 		return t
+	}
+	if t.dtyp.IsQuantized() {
+		panic(messages.New(messages.H6689, t.dtyp.Name(), dev))
 	}
 	target := BackendFor(dev)
 	if t.dtyp.IsTyped() {

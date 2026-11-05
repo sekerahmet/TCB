@@ -17,10 +17,10 @@ import (
 // ggufSplitKey bölünmüş dosyanın parça sayısı anahtarıdır.
 const ggufSplitKey = "split.count"
 
-// ggufDTypes okunan türlerin TR karşılıklarıdır; H6674'ün metni bu listeyi sayar. Nicemli türler
-// depo geldiğinde buraya girer.
+// ggufDTypes okunan türlerin TR karşılıklarıdır; H6674'ün metni bu listeyi sayar. Q4_0 ("q4")
+// henüz yoktur.
 var ggufDTypes = map[gguf.TensorType]tensor.DType{gguf.TypeF32: tensor.Float32, gguf.TypeF16: tensor.Float16,
-	gguf.TypeBF16: tensor.BFloat16}
+	gguf.TypeBF16: tensor.BFloat16, gguf.TypeQ8_0: tensor.Q8, gguf.TypeQ4_K: tensor.Q4K, gguf.TypeQ6_K: tensor.Q6K}
 
 // decodeGGUF boyutu size bayt olan GGUF dosyasını r'den çözer; bütün denetimler veri
 // okunmadan yapılır, tensörler dosyadaki sırayla döner.
@@ -51,6 +51,9 @@ func decodeGGUF(r *bufio.Reader, size int64) ([]fileEntry, error) {
 			return nil, messages.New(messages.H6653, t.Name, err)
 		}
 		g, err := readGGUFTensor(r, t)
+		if messages.Has(err, messages.H6686) {
+			return nil, err
+		}
 		if err != nil {
 			return nil, messages.New(messages.H6653, t.Name, err)
 		}
@@ -82,9 +85,18 @@ func readGGUFTensor(r io.Reader, t gguf.Tensor) (fileEntry, error) {
 		count *= int(d)
 	}
 	var err error
-	if dtype == tensor.Float32 {
+	switch {
+	case dtype.IsQuantized():
+		// Dosyanın bitleriyle gelir, açılmaz (15.55); sıfır ölçek geçerlidir.
+		g.raw = make([]byte, t.Size)
+		if _, err = io.ReadFull(r, g.raw); err == nil {
+			if b := tensor.CheckQuantScales(dtype, g.raw); b >= 0 {
+				return g, messages.New(messages.H6686, t.Name, b)
+			}
+		}
+	case dtype == tensor.Float32:
 		g.data, err = readValues(r, count)
-	} else {
+	default:
 		g.bits, err = readBits16(r, count)
 	}
 	return g, err

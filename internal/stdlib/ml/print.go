@@ -142,14 +142,19 @@ func (d *TensorValue) cellTexts(sh []int, shorten bool, lang *codes.Language) []
 		}
 	default:
 		cells := make([]float64, len(flat))
-		if shorten && t.DType().IsFloat() {
-			// Büyük tensörün bütün verisi kopyalanmaz: yalnız gösterilecek hücreler okunur.
+		if quantized := t.DType().IsQuantized(); quantized || shorten && t.DType().IsFloat() {
+			// Büyük tensörün bütün verisi kopyalanmaz: yalnız gösterilecek hücreler okunur;
+			// nicemlenmiş tensörde o hücrelerin blokları açılır (15.53).
 			idx := make([]int, len(sh))
 			for i, o := range flat {
 				for a := range sh {
 					idx[a] = o / steps[a] % sh[a]
 				}
-				cells[i] = float64(t.At(idx...))
+				if quantized {
+					cells[i] = float64(t.OpenAt(idx...))
+				} else {
+					cells[i] = float64(t.At(idx...))
+				}
 			}
 		} else {
 			vals := t.Float64s()

@@ -87,11 +87,9 @@ const (
 	BFloat16
 	// Float16 IEEE 754 yarım hassasiyet: 5 bit üs, 10 bit anlamlı kısım.
 	Float16
-	// Q8 nicemlenmiş saklama için ayrılmıştır (ölçek ayrı tutulur, 15.51); henüz hiçbir
-	// arka uç hesap desteği sunmaz.
+	// Q8 GGUF Q8_0'ın blokları (15.51, quant.go): 32 öğe, 34 bayt.
 	Q8
-	// Q4 4 bitlik paketli nicemlenmiş saklama (bir baytta iki eleman, 15.51); henüz hiçbir
-	// arka uç hesap desteği sunmaz.
+	// Q4 GGUF Q4_0'ın adıdır (15.51); deposu henüz yoktur.
 	Q4
 	// Float64 64 bitlik kayan nokta ("float64", TR_Float).
 	Float64
@@ -105,6 +103,10 @@ const (
 	UInt8
 	// Bool TR_Bool: öğe başına bir bayt (0 ya da 1).
 	Bool
+	// Q4K GGUF Q4_K'nın blokları (15.51, quant.go): 256 öğe, 144 bayt; salt okunur.
+	Q4K
+	// Q6K GGUF Q6_K'nın blokları (15.51, quant.go): 256 öğe, 210 bayt; salt okunur.
+	Q6K
 )
 
 // ElemKind tensörün öğe cinsi (15.1): TR_Float, TR_Int ya da TR_Bool.
@@ -139,6 +141,10 @@ func (d DType) String() string {
 		return "q8"
 	case Q4:
 		return "q4"
+	case Q4K:
+		return "q4_k"
+	case Q6K:
+		return "q6_k"
 	}
 	if n, ok := typedNames[d]; ok {
 		return n
@@ -163,14 +169,15 @@ func (d DType) Name() string {
 	return d.String()
 }
 
-// Bits bir elemanın bit sayısı.
+// Bits bir elemanın bit sayısı; bloklu nicemlenmiş türde öğe başına tam bit yoktur, boy
+// StorageBytes'tandır.
 func (d DType) Bits() int {
 	switch d {
 	case Float32, Int32, UInt32:
 		return 32
 	case BFloat16, Float16, Int16, UInt16:
 		return 16
-	case Q8, Int8, UInt8, Bool:
+	case Int8, UInt8, Bool:
 		return 8
 	case Q4:
 		return 4
@@ -222,8 +229,14 @@ func (d DType) Fits(v int64) bool {
 	return v >= lo && v <= hi
 }
 
-// StorageBytes n elemanın bu türde kapladığı bayt (paketli türler yukarı yuvarlanır).
-func (d DType) StorageBytes(n int) int { return (n*d.Bits() + 7) / 8 }
+// StorageBytes n elemanın bu türde kapladığı bayt (paketli türler yukarı yuvarlanır, bloklu türler
+// tam bloğa).
+func (d DType) StorageBytes(n int) int {
+	if elems, size := d.QuantBlock(); elems > 0 {
+		return (n + elems - 1) / elems * size
+	}
+	return (n*d.Bits() + 7) / 8
+}
 
 // Storage bir cihazdaki düz bellek bloğu (Len eleman, DType türünde). Her
 // depolamanın, içeriği yerinde her değiştirildiğinde artan bir sürüm sayacı ve

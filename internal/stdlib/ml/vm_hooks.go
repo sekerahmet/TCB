@@ -294,6 +294,9 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 		}
 		return d.view(r), nil
 	}
+	if it, ok := idx.(*TensorValue); ok && it.t.Elem() == tensor.ElemInt {
+		return d.indexByTensor(it)
+	}
 	i, ok := intNumber(idx)
 	if !ok {
 		return nil, messages.New(messages.H6707, interp.ValInt, idx.Type())
@@ -315,6 +318,21 @@ func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
 		return nil, err
 	}
 	return d.view(r), nil
+}
+
+// indexByTensor t[idx]'tir (15.6d): idx ilk eksenden satırları seçer, veri kopyalanır, türev izlenir.
+// Kırpma yoktur: eksi indeks de sınır dışıdır.
+func (d *TensorValue) indexByTensor(idx *TensorValue) (interp.Value, error) {
+	ints := idx.t.Int64s()
+	rows := make([]int, len(ints))
+	for i, v := range ints {
+		rows[i] = int(v)
+	}
+	r, err := safe(func() *tensor.Tensor { return tensor.TakeRows(d.t, rows, idx.t.Shape()) })
+	if err != nil {
+		return nil, err
+	}
+	return New(r), nil
 }
 
 // view t'nin bir görünümünü (indeks, dilim, döngü öğesi) sarar; görünüm cinsi korur.
@@ -437,6 +455,9 @@ func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
 //   - türev izleyen ara sonuca yerinde yazmak türevsiz kipte de hatadır (H6955);
 //   - türev izlemeyen hedefe kipin dışında türev izleyen değer yazmak hatadır (H6956).
 func checkWrite(dst, src *tensor.Tensor, whole bool) error {
+	if dst.DType().IsQuantized() {
+		return messages.New(messages.H6957, dst.DType().Name())
+	}
 	tracked, leaf := dst.GradTarget()
 	switch {
 	case tracked && leaf:

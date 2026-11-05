@@ -150,6 +150,9 @@ func rawBackend(be Backend, dt DType) RawBackend {
 
 // PrecisionError cihazın bu işlemi bu türde yapamadığını söyleyen hassasiyet hatası (15.48).
 func PrecisionError(dt DType, dev Device) *messages.Error {
+	if dt.IsQuantized() {
+		return messages.New(messages.H6687, dt.Name())
+	}
 	if dev.Kind == KindGPU {
 		return messages.New(messages.H6969, dt.Name(), dev.String())
 	}
@@ -269,6 +272,10 @@ func typed(op TypedOp, dt DType, outShape []int, ins ...*Tensor) (*Tensor, *Elem
 	for _, x := range ins[1:] {
 		sameDevice("typed", ins[0], x)
 	}
+	checkNotQuantized(dt)
+	for _, x := range ins {
+		checkNotQuantized(x.dtyp)
+	}
 	out := zerosOf(isCreate, be, outShape, dt)
 	views := make([]View, len(ins))
 	for i, x := range ins {
@@ -336,6 +343,9 @@ func SignTyped(t *Tensor) *Tensor {
 func Convert(t *Tensor, dt DType) (*Tensor, *ElemFault) {
 	if t.dtyp == dt {
 		return t, nil
+	}
+	if t.dtyp.IsQuantized() && (dt.IsFloat() || dt == Float64) {
+		return t.Open(dt), nil
 	}
 	if t.dtyp.IsFloat() && dt.IsFloat() {
 		return t.Cast(dt), nil

@@ -37,7 +37,7 @@ func (s *cpuStorage) Len() int {
 	if s.dtyp == Float32 {
 		return len(s.d)
 	}
-	if s.dtyp.IsTyped() {
+	if s.dtyp.IsTyped() || s.dtyp.IsQuantized() {
 		return s.n
 	}
 	return len(s.h)
@@ -239,8 +239,8 @@ func (g *temp) readD(s Storage) Storage {
 var finish0 = func() {}
 
 // checkComputeFloat ondalık hesap çekirdeğine hesap ondalığı olmayan bir depolama gelince
-// hassasiyet hatası verir (15.48): ham bayt türleri (float64, TR_Int, TR_Bool) bu
-// çekirdeklerde hesaplanmaz, sessizce float32 sayılmaz.
+// hassasiyet hatası verir (15.48, 15.53): ham bayt türleri (float64, TR_Int, TR_Bool) ve
+// nicemlenmiş türler bu çekirdeklerde hesaplanmaz, sessizce float32 sayılmaz.
 func checkComputeFloat(dt DType) {
 	if !dt.IsFloat() {
 		panic(typedComputeError(dt))

@@ -54,7 +54,7 @@ func poolFor(k poolKey, create bool) *sync.Pool {
 }
 
 func cpuCheckDType(dt DType) {
-	if !dt.IsFloat() && !dt.IsTyped() {
+	if !dt.IsFloat() && !dt.IsTyped() && !dt.IsQuantized() {
 		panic(messages.New(messages.H3025, dt))
 	}
 }
@@ -72,6 +72,14 @@ func (cpuBackend) allocate(n int, dt DType, reset bool) Storage {
 	checkElem(n, dt)
 	if dt.IsTyped() {
 		return newTypedStorage(n, dt)
+	}
+	if dt.IsQuantized() {
+		// Hiçbir çekirdek nicemlenmiş çıktı yazmaz: içeriği belirsiz depo işlemin kendisi hatalıdır
+		// (q + q, 15.53). Sıfırlı depo TR_zeros'undur (15.2).
+		if !reset {
+			panic(typedComputeError(dt))
+		}
+		return newQuantStorage(dt, n)
 	}
 	if n >= poolMin {
 		if h := poolFor(poolKey{dt, n}, false); h != nil {
@@ -102,7 +110,7 @@ func (cpuBackend) allocate(n int, dt DType, reset bool) Storage {
 // hiçbir görünümün bakmadığını güvence eder.
 func (cpuBackend) Release(s Storage) {
 	c, ok := s.(*cpuStorage)
-	if !ok || c.Len() < poolMin || c.dtyp.IsTyped() {
+	if !ok || c.Len() < poolMin || c.dtyp.IsTyped() || c.dtyp.IsQuantized() {
 		return
 	}
 	if c.release {
@@ -138,6 +146,7 @@ func (cpuBackend) ToHost(src View) []float32 {
 }
 
 func (b cpuBackend) Copy(dst Storage, dstOff int, src View) {
+	checkNotQuantized(dst.DType(), src.DType())
 	n := src.Numel()
 	c := cpuStore(dst)
 	if c.dtyp.IsTyped() || src.DType().IsTyped() {
@@ -184,6 +193,7 @@ func copyRows[E float32 | uint16](d, k []E, dst, src View) {
 }
 
 func (cpuBackend) CopyStrided(dst, src View) {
+	checkNotQuantized(dst.DType(), src.DType())
 	if dst.DType().IsTyped() || src.DType().IsTyped() {
 		copyTyped(dst, src)
 		return

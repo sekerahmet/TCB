@@ -150,7 +150,7 @@ func checkInPlaceDType(dt tensor.DType) error {
 	if dt.IsTyped() {
 		return nil
 	}
-	return messages.New(messages.H6957, dt.String())
+	return messages.New(messages.H6957, dt.Name())
 }
 
 var (

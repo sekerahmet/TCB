@@ -67,7 +67,7 @@ func TestGGUFRejects(t *testing.T) {
 		data []byte
 		code messages.Code
 	}{
-		{"Q8_0 henüz yok", (&gguftest.Builder{}).Tensor("w", gguf.TypeQ8_0, []uint64{32}, make([]byte, 34)).Bytes(), messages.H6674},
+		{"Q4_0 henüz yok", (&gguftest.Builder{}).Tensor("w", gguf.TypeQ4_0, []uint64{32}, make([]byte, 18)).Bytes(), messages.H6674},
 		{"Q5_0", (&gguftest.Builder{}).Tensor("blk.0.attn_q.weight", gguf.TypeQ5_0, []uint64{32}, make([]byte, 22)).Bytes(), messages.H6674},
 		{"bölünmüş", (&gguftest.Builder{}).KV("split.count", uint16(3)).Bytes(), messages.H6675},
 		{"bölünmüş uint8", (&gguftest.Builder{}).KV("split.count", uint8(2)).Bytes(), messages.H6675},
