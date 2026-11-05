@@ -40,6 +40,22 @@ func TestPlural(t *testing.T) {
 	}
 }
 
+// keyed Selector'dır: gösterdiği metin dile bağlıdır, dalı kendi anahtarı seçer.
+type keyed struct{ key string }
+
+func (k keyed) MessageText(string) string { return "gösterilen" }
+func (k keyed) SelectKey() string         { return k.key }
+
+// Selector değerinde dalı anahtar seçer, metni değil; boş anahtar `empty` dalını seçer.
+func TestSelectByKey(t *testing.T) {
+	c := mustCatalog(t, "tr", `"kind"`, "{kind, select, dir {klasör} empty {yok} other {{kind}}}")
+	for key, want := range map[string]string{"dir": "klasör", "": "yok", "x": "gösterilen"} {
+		if got := c.render(H0001, []any{keyed{key}}); got != want {
+			t.Errorf("%q: %q, %q bekleniyordu", key, got, want)
+		}
+	}
+}
+
 // select bir metin değerine göre dal seçer; bilinmeyen değer "other" dalına düşer.
 func TestSelect(t *testing.T) {
 	c := mustCatalog(t, "tr", `"kind", "path"`, "{path|q} {kind, select, dir {bir klasör} other {bir dosya}}")

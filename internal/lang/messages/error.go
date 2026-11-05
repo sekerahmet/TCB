@@ -21,6 +21,13 @@ type Localized interface {
 	MessageText(lang string) string
 }
 
+// Selector is a parameter value that chooses a {name, select, ...} branch by its own key, not by
+// its text: a TR value carries the key the program wrote, and the text it shows depends on the
+// language.
+type Selector interface {
+	SelectKey() string
+}
+
 // New returns the message code with its parameter values as an error.
 func New(c Code, args ...any) *Error { return &Error{Code: c, Args: args} }
 

@@ -28,6 +28,76 @@ func TestMessageThrown(t *testing.T) {
 	}
 }
 
+// TR'den atılan iletinin seçimi de değerin kendi anahtarına bakar: sarılı değer hep `other` dalına
+// düşüyordu. Kitaplığın 20 dalı ve H7061: TR'den atılanın metni Go'dan kurulanla aynıdır.
+func TestMessageSelectFromTR(t *testing.T) {
+	cases := [][]string{
+		{"H7061", "s.wav", "pcm", "8"}, {"H7061", "s.wav", "float", "8"}, {"H7061", "s.wav", "compressed", "8"},
+		{"H7061", "s.wav", "valid", "8"}, {"H7061", "s.wav", "bilinmeyen", "8"},
+		{"H7062", "s.wav", "riff"}, {"H7062", "s.wav", "wave"},
+		{"H7063", "s.wav", "no_fmt"}, {"H7063", "s.wav", "no_data"}, {"H7063", "s.wav", "data_first"},
+		{"H7063", "s.wav", "two_fmt"}, {"H7063", "s.wav", "two_data"},
+		{"H7072", "shape", "[4]"}, {"H7072", "channels", "[0, 4]"}, {"H7072", "rate", "0"},
+		{"H7079", "f", "rate", "8000", "", ""}, {"H7079", "f", "channels", "[2, 4]", "a", "b"}, {"H7079", "f", "empty", "[1, 0]", "", ""},
+		{"H6940", "model", "x", "y"}, {"H6940", "gguf", "x", "y"}, {"H6941", "model"}, {"H6941", "gguf"},
+		{"H6942", "model", "x"}, {"H6942", "gguf", "x"}, {"H6943", "model", "x"}, {"H6943", "gguf", "x"},
+		{"H6944", "model", "x"}, {"H6944", "gguf", "x"}, {"H6945", "model", "x"}, {"H6945", "gguf", "x"},
+		{"H6946", "model", "x"}, {"H6946", "gguf", "x"},
+		{"H7096", "n_mels", "0", "positive"}, {"H7096", "d_model", "6", "heads"},
+		{"H7096", "activation_function", "relu", "activation"}, {"H7096", "scale_embedding", "true", "scale"},
+		{"H7098", "tr", "mono"}, {"H7098", "de", "unknown"},
+	}
+	seen := map[string]string{}
+	for _, c := range cases {
+		code, err := messages.Parse(c[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		call := `"` + strings.Join(c, `", "`) + `"`
+		args := make([]any, len(c)-1)
+		for i, a := range c[1:] {
+			args[i] = a
+		}
+		_, _, thrown := runTROut(t, "TR_throw TR_Message("+call+")")
+		for _, lang := range []string{"tr", "en"} {
+			want := messages.TextIn(lang, code, args...)
+			if got := messages.ErrorIn(thrown, lang); !strings.Contains(got, want) {
+				t.Errorf("%s, %s: %q, %q bekleniyordu", call, lang, got, want)
+			}
+			if other, ok := seen[lang+want]; ok {
+				t.Errorf("%s ile %s aynı metni veriyor: %q", call, other, want)
+			}
+			seen[lang+want] = call
+		}
+	}
+}
+
+// Metnin içeriği: seçim gerçekten yazılı dala gider (TR'den atılanla Go'dan kurulan birlikte
+// bozulsa yukarıdaki test görmezdi).
+func TestMessageSelectBranchText(t *testing.T) {
+	cases := []struct{ call, want string }{
+		{`"H7098", "tr", "mono"`, "tek dillidir"},
+		{`"H7062", "s.wav", "riff"`, "`RIFF` yok"},
+		{`"H7063", "s.wav", "no_fmt"`, "`fmt ` parçası yok"},
+		{`"H7072", "channels", "[0, 4]"`, "en az bir kanalı"},
+		{`"H7079", "f", "rate", "8000", "", ""`, "16000 olmalıdır"},
+		{`"H7096", "d_model", "6", "heads"`, "`d_model`'i bölmelidir"},
+		{`"H7096", "activation_function", "relu", "activation"`, "Whisper GELU kullanır"},
+		{`"H7096", "scale_embedding", "true", "scale"`, "gömme ölçeklenmez"},
+		{`"H6941", "gguf"`, "hazır_gguf"},
+		{`"H7061", "s.wav", "valid", "8"`, "geçerli bit sayısı"},
+	}
+	for _, c := range cases {
+		_, _, err := runTROut(t, "TR_throw TR_Message("+c.call+")")
+		if got := messages.ErrorIn(err, "tr"); !strings.Contains(got, c.want) {
+			t.Errorf("%s: %q, içinde %q bekleniyordu", c.call, got, c.want)
+		}
+	}
+	if got := Shown(&IntVal{Val: 5}).(messages.Selector).SelectKey(); got != "5" {
+		t.Errorf("sayının seçim anahtarı %q", got)
+	}
+}
+
 // doğrula(koşul, ileti(…)) koşul yanlışken iletiyi kendi koduyla fırlatır (H2456'ya sarmaz).
 func TestMessageAssert(t *testing.T) {
 	_, _, err := runTROut(t, "TR_assert(1 > 2, TR_Message(\"H6903\", 5))")

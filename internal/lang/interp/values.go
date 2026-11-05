@@ -87,6 +87,15 @@ func (s shown) MessageText(lang string) string {
 	return valueText(s.v, l)
 }
 
+// SelectKey is the branch key of a {name, select, ...}: the program's own text for a text value,
+// the canonical text for the others, the same in every language.
+func (s shown) SelectKey() string {
+	if t, ok := s.v.(*StringVal); ok {
+		return t.Val
+	}
+	return s.v.Inspect()
+}
+
 // TypeName is the ValueType of a type-name code from the dictionary (type); engines get the
 // names of their own types with it.
 func TypeName(k codes.Code) ValueType {
