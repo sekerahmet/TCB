@@ -1453,6 +1453,7 @@ const (
 	H7030 Code = 7030 // bu işlem GPU'da henüz yok: "{dtype}" tensörü "float64" hassasiyetine açmak (15.41); önce CPU'ya taşıyın: `t.{#to_device}("cpu").{#to_dtype}("float64")`
 	H7040 Code = 7040 // {@pretrained_gguf}: {weight|q} tensörünün türü {dtype}: frekans bölenleri float32, fp16 ya da bf16 olmalı
 	H7041 Code = 7041 // {@pretrained_gguf}: {weight|q} tensörünün {index} konumundaki böleni {value}: bölen sonlu ve sıfırdan büyük olmalı, her konumun açısı float32 sınırında kalmalı
+	H7042 Code = 7042 // tensörle indekse yazma henüz yok: `t[idx]` bir kopyadır, `t[idx] {op}= d` kopyaya yazardı ve `t` değişmezdi. Öğeleri döngüyle yazın: `{#for} {form, select, whole {i} other {k, i}} {#in} idx.{#reshape}([-1]) {{ t[i] {op}= {form, select, whole {d} each {d.{#reshape}([-1] + t[0].{#shape})[k]} other {{#Tensor}(d).{#reshape}([-1] + t[0].{#shape})[k]}} }}`
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

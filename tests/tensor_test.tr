@@ -1803,6 +1803,22 @@ TR_test "15.6d tensörle indeks satırları seçer, kopyadır, türev izlenir" {
     TR_assert_equal("H6707", TR_error_code { t[TR_Tensor([0.0])] })
 }
 
+TR_test "15.6d tensörle indekse yazma hata verir, öğeler döngüyle yazılır" {
+    TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0])
+    TR_var idx = TR_Tensor[TR_Int]([1, 3])
+    TR_assert_equal("H7042", TR_error_code { t[idx] = 5.0 })
+    TR_assert_equal("H7042", TR_error_code { t[idx] += 1.0 })
+    TR_assert_equal([1.0, 2.0, 3.0, 4.0], t.TR_tolist)
+    TR_for i TR_in idx.TR_reshape([-1]) { t[i] = 5.0 }
+    TR_assert_equal([1.0, 5.0, 3.0, 5.0], t.TR_tolist)
+    TR_var sayaç = TR_Tensor([0.0, 0.0, 0.0])
+    TR_for i TR_in TR_Tensor[TR_Int]([0, 0, 0]).TR_reshape([-1]) { sayaç[i] += 1 }
+    TR_assert_equal([3.0, 0.0, 0.0], sayaç.TR_tolist)
+    TR_assert_equal("H6694", TR_error_code { t[TR_Tensor[TR_Int]([-1])] = 5.0 })
+    TR_assert_equal("H6707", TR_error_code { t[t > 2.0] = 0.0 })
+    TR_assert_equal("H6707", TR_error_code { t[t > 2.0] += 1.0 })
+}
+
 TR_test "15.6d tensör indeksi hata verir, dilim kırpar, .dilim hata verir" {
     TR_var t = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0])
     TR_assert_equal(5.0, t[-1].TR_tolist)

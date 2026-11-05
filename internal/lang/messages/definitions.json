@@ -1448,6 +1448,7 @@
 "H7030": { "param": ["dtype"], "slots": {"to_device": "TR_mem_to_device", "to_dtype": "TR_mem_to_dtype"} },
 "H7040": { "param": ["weight", "dtype"], "slots": {"pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7041": { "param": ["weight", "index", "value"], "slots": {"pretrained_gguf": "TR_fn_pretrained_gguf"} },
+"H7042": { "param": ["op", "form"], "slots": {"for": "TR_kw_for", "in": "TR_kw_in", "reshape": "TR_mem_reshape", "shape": "TR_mem_shape", "Tensor": "TR_type_Tensor"} },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },

@@ -373,7 +373,7 @@ func (d *TensorValue) IterItem(i int) (interp.Value, error) {
 // görünümüne atamadır). Değer bir sayıysa hedefin tüm elemanlarına yazılır; liste ya da
 // tensörse şekli hedefin şekliyle aynı olmalıdır. Veri yerinde değişir: bu tensörü kullanmış,
 // henüz geri yayılmamış bir hesap çizgesi varsa geri yayılım hata verir. Türevin yazma
-// kuralları checkWrite'tadır.
+// kuralları checkWrite'tadır. Tensörle indeks kopya verir, ona yazılmaz (tensorIndexWrite).
 func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	if err := checkWrite(d.t, valueTensor(value), false); err != nil {
 		return err
@@ -395,6 +395,9 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 	})
 	if err != nil {
 		return err
+	}
+	if _, ok := idx.(*TensorValue); ok {
+		return tensorIndexWrite("", value, target)
 	}
 	sh := target.Shape()
 	var src *tensor.Tensor
@@ -433,6 +436,27 @@ func (d *TensorValue) SetIndex(idx, value interp.Value) error {
 		return true
 	})
 	return err
+}
+
+// tensorIndexWrite t[idx] = d ve t[idx] op= d'nin hatasıdır (H7042; atamada op boştur). t[idx] kopya
+// verir (15.6d): yazı kopyaya gider, t değişmezdi. İndeks denetimi önce geçer, öneri döngüsünün
+// sondan saydığı eksi indeks H6694 kalır. target t[idx]'in kopyasıdır: d onun şeklindeyse her
+// indekse kendi parçası, değilse (sayı, bir satır) aynı d yazılır.
+func tensorIndexWrite(op string, value interp.Value, target *tensor.Tensor) error {
+	form := "whole"
+	sh := tensor.ShapeText(target.Shape())
+	switch v := value.(type) {
+	case *TensorValue:
+		if tensor.ShapeText(v.t.Shape()) == sh {
+			form = "each"
+		}
+	case *interp.ListVal:
+		src, err := toTensorOn(messages.New(messages.H6130), value, target)
+		if err == nil && tensor.ShapeText(src.Shape()) == sh {
+			form = "list"
+		}
+	}
+	return messages.New(messages.H7042, op, form)
 }
 
 // assignSource atanan tensörü hedefin hassasiyetine getirir (15.6d): cinsli hedefte ya da

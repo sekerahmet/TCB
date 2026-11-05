@@ -610,6 +610,7 @@ i.TR_tolist	ok	0	name:TR_mem_tolist
 i32.TR_dtype	ok	0	name:TR_mem_dtype
 i32.TR_tolist	ok	0	name:TR_mem_tolist
 i64.TR_sequential	ok	0	name:TR_mem_sequential
+idx.TR_reshape	ok	0	name:TR_mem_reshape
 iki_satır.TR_split	ok	0	name:TR_mem_split
 ileri.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 ileri.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
@@ -1052,6 +1053,7 @@ satır.TR_append	ok	0	name:TR_mem_append
 satırlar.TR_append	ok	0	name:TR_mem_append
 satırlar.TR_length	ok	0	name:TR_mem_length
 satırlar.TR_slice	ok	0	name:TR_mem_slice
+sayaç.TR_tolist	ok	0	name:TR_mem_tolist
 sayılar.TR_filter	ok	0	name:TR_mem_filter
 sayılar.TR_first	ok	0	name:TR_mem_first
 sayılar.TR_get	ok	0	name:TR_mem_get

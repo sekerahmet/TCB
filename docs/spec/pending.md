@@ -45,6 +45,8 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **15.6d, zincirde tensörle indeks (2026-11-05, kritik adayı, T1, DENETİM istek 172):** `t[idx][0] = 9.0` kopyaya yazıp sessizce kayboluyor; NumPy ve PyTorch da öyle. Cümle: indeks hedefinin zincirinde tensörle indeks ara adım olamaz; `TR_var c = t[idx]; c[0] = 9.0` geçerli kalır. Tur 4 metniyle yazılır.
+- **15.6d, tensörle indekse yazma (2026-11-05, T1, DENETİM istek 168):** madde yazmanın veriyi yerinde değiştirdiğini söylüyor, motor H7042 ve H6707 veriyor; kural doğru, uygulama geride. Aynı satırın "liste değer hatadır"ı tutmuyor: `t[0..2] = [8.0, 9.0]` hatasız yazıyor. "hedefe yayınlanabilmelidir" de: `t[0..2] = TR_Tensor([7.0])` H6719.
 - **15.6d, tensörle indekste eksi indeks (2026-11-05, H2):** `t[i]` eksi indeksi sondan sayar, `t[idx]` için bir şey demiyor; uygulama H6694. Tek cümle yeter.
 - **15.53, nicemli tensör yazma (2026-11-05, H2):** liste `TR_save_tensors`'ı izinli sayıyor, uygulama H6687; TR biçiminde nicemli tür kodları karara bağlı.
 - **13.10, anahtar fonksiyonlu `TR_max`, `TR_min` (2026-11-05, D1 test komutu):** madde anahtar fonksiyonlu biçimi anıyor, motorda yok: `TR_max([1.0, TR_nan, 2.0], (x) => x)` argüman hatası [ölçüldü: D1, DENETİM istek 142]. Ya biçim yazılır ya cümle kalkar; 13.1 liste ya da iki ve daha çok değer diyor, cümleyi kaldırmak yetebilir.

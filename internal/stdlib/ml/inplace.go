@@ -56,6 +56,9 @@ func (d *TensorValue) AccumulateIndex(m *interp.VM, line int, op string, idx int
 		return true, err
 	}
 	defer view.Release() // görünüm başlığı bu işlemin ara değeridir
+	if _, ok := idx.(*TensorValue); ok {
+		return true, tensorIndexWrite(op, rhs, view.t)
+	}
 	return true, applyInPlace(view.t, op, rhs)
 }
 

@@ -1448,6 +1448,7 @@
 "H7030": "this operation is not yet on the GPU: opening a \"{dtype}\" tensor to \"float64\" (15.41); move it to the CPU first: `t.{#to_device}(\"cpu\").{#to_dtype}(\"float64\")`",
 "H7040": "{@pretrained_gguf}: the type of the tensor {weight|q} is {dtype}: frequency divisors must be float32, fp16 or bf16",
 "H7041": "{@pretrained_gguf}: the divisor at index {index} of the tensor {weight|q} is {value}: a divisor must be finite and above zero, and the angle of every position must fit float32",
+"H7042": "writing through a tensor index does not exist yet: `t[idx]` is a copy, so `t[idx] {op}= d` would write to the copy and leave `t` unchanged. Write the items in a loop: `{#for} {form, select, whole {i} other {k, i}} {#in} idx.{#reshape}([-1]) {{ t[i] {op}= {form, select, whole {d} each {d.{#reshape}([-1] + t[0].{#shape})[k]} other {{#Tensor}(d).{#reshape}([-1] + t[0].{#shape})[k]}} }}`",
 "H7100": "the size of the copy differs from the source's; the source was not deleted ({path|q})",
 "H7101": "the source has {count} links or special files; it cannot be moved to another disk (first copy it and make the links by hand)",
 "H7102": "the copy differs from the source (the file count or total size does not match); the source was not deleted",

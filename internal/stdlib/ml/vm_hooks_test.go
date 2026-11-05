@@ -204,3 +204,88 @@ TR_print(w.TR_tolist, havuz.TR_tolist, kv.TR_tolist)`)
 		t.Fatalf("türevsiz kipte yazmalar %q, beklenen %q", out, want)
 	}
 }
+
+// suggestedSpelling iletinin son ters tırnaklı yazımıdır: kullanıcının kopyalayacağı öneri.
+func suggestedSpelling(t *testing.T, text string) string {
+	t.Helper()
+	parts := strings.Split(text, "`")
+	if len(parts) < 3 {
+		t.Fatalf("iletide ters tırnaklı öneri yok: %q", text)
+	}
+	return parts[len(parts)-2]
+}
+
+// 15.6d: t[idx] kopya verir; ona yazmak sessizce hiçbir şey yapmazdı. Yazma H7042'dir, t olduğu gibi
+// kalır ve iletinin önerdiği döngü, kopyalanınca, kuralın istediği sonucu verir.
+func TestTensorIndexWriteSuggestionRuns(t *testing.T) {
+	const rows = `TR_Tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])`
+	const flat = `TR_Tensor([1.0, 2.0, 3.0, 4.0])`
+	cases := []struct{ t, idx, d, op, want string }{
+		{flat, `TR_Tensor([1, 3])`, `5.0`, "=", "[1.0, 5.0, 3.0, 5.0]"},
+		{flat, `TR_Tensor([1, 3])`, `TR_Tensor([5.0, 6.0])`, "=", "[1.0, 5.0, 3.0, 6.0]"},
+		{flat, `TR_Tensor([1, 3])`, `TR_Tensor(5.0)`, "=", "[1.0, 5.0, 3.0, 5.0]"},
+		{flat, `TR_Tensor([1, 3])`, `[5.0, 6.0]`, "=", "[1.0, 5.0, 3.0, 6.0]"},
+		{flat, `TR_Tensor(1)`, `5.0`, "=", "[1.0, 5.0, 3.0, 4.0]"},
+		{flat, `TR_Tensor(1)`, `TR_Tensor(5.0)`, "=", "[1.0, 5.0, 3.0, 4.0]"},
+		{flat, `TR_Tensor[TR_Int]([])`, `5.0`, "=", "[1.0, 2.0, 3.0, 4.0]"},
+		{rows, `TR_Tensor([0, 2])`, `TR_Tensor([7.0, 8.0])`, "=", "[[7.0, 8.0], [3.0, 4.0], [7.0, 8.0]]"},
+		{rows, `TR_Tensor([0, 2])`, `[7.0, 8.0]`, "=", "[[7.0, 8.0], [3.0, 4.0], [7.0, 8.0]]"},
+		{rows, `TR_Tensor([2, 0])`, `TR_Tensor([[7.0, 8.0], [9.0, 0.0]])`, "=", "[[9.0, 0.0], [3.0, 4.0], [7.0, 8.0]]"},
+		{rows, `TR_Tensor([2, 0])`, `[[7.0, 8.0], [9.0, 0.0]]`, "=", "[[9.0, 0.0], [3.0, 4.0], [7.0, 8.0]]"},
+		{rows, `TR_Tensor([[0, 2]])`, `0.0`, "=", "[[0.0, 0.0], [3.0, 4.0], [0.0, 0.0]]"},
+		{rows, `TR_Tensor([[0, 2]])`, `TR_Tensor([[[7.0, 8.0], [9.0, 0.0]]])`, "=", "[[7.0, 8.0], [3.0, 4.0], [9.0, 0.0]]"},
+		{`TR_Tensor([0.0, 0.0, 0.0])`, `TR_Tensor([0, 0, 0])`, `1.0`, "+=", "[3.0, 0.0, 0.0]"},
+		{`TR_Tensor([0.0, 0.0, 0.0])`, `TR_Tensor([0, 2, 0])`, `TR_Tensor([1.0, 2.0, 3.0])`, "+=", "[4.0, 0.0, 2.0]"},
+		{flat, `TR_Tensor([1, 3])`, `1.0`, "-=", "[1.0, 1.0, 3.0, 3.0]"},
+		{rows, `TR_Tensor([0, 2])`, `TR_Tensor([1.0, 2.0])`, "*=", "[[1.0, 4.0], [3.0, 4.0], [5.0, 12.0]]"},
+		{`TR_Tensor[TR_Int]([1, 2, 3])`, `TR_Tensor([0, 2])`, `5`, "=", "[5, 2, 5]"},
+		{`TR_Tensor[TR_Int]([1, 2, 3])`, `TR_Tensor([0, 2])`, `TR_Tensor[TR_Int]([5, 6])`, "*=", "[5, 2, 18]"},
+		{`TR_Tensor([1.0, 2.0], TR_dtype: "bf16")`, `TR_Tensor([1])`, `5.0`, "=", "[1.0, 5.0]"},
+	}
+	for _, c := range cases {
+		prelude := "TR_var t = " + c.t + "\nTR_var idx = " + c.idx + "\nTR_var d = " + c.d + "\n"
+		wrong := prelude + "t[idx] " + c.op + " d\n"
+		_, err := run(t, wrong)
+		if err == nil || !messages.Has(err, messages.H7042) {
+			t.Errorf("%s:\n  hata: %v, H7042 bekleniyordu", wrong, err)
+			continue
+		}
+		spelling := suggestedSpelling(t, err.Error())
+		if strings.Contains(spelling, "=") && !strings.Contains(spelling, " "+c.op+" ") {
+			t.Errorf("%s: öneri işleci taşımıyor: %q", wrong, spelling)
+		}
+		kept := mustRun(t, prelude+"TR_var kod = TR_error_code { t[idx] "+c.op+" d }\nTR_print(kod, t.TR_tolist == "+c.t+".TR_tolist)")
+		if kept != "H7042 true\n" {
+			t.Errorf("%s: t değişti ya da hata başka: %q", wrong, kept)
+		}
+		got := mustRun(t, prelude+spelling+"\nTR_print(t.TR_tolist)")
+		if got != c.want+"\n" {
+			t.Errorf("%s:\n  öneri: %s\n  çıktı: %q\n  beklenen: %s", wrong, spelling, got, c.want)
+		}
+	}
+}
+
+// Öbür hatalar H7042'den önce gelir: eksi indeks tensörle indekste sınır dışıdır (öneri döngüsü
+// sondan sayardı), türev kuralı ve indeksin türü olduğu gibi kalır. Maske yolu H6707'dir, sessiz değildir.
+func TestTensorIndexWriteKeepsTheOtherErrors(t *testing.T) {
+	const flat = `TR_var t = TR_Tensor([1.0, 2.0, 3.0])
+`
+	const leaf = `TR_var t = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+`
+	var cases []codeCase
+	for _, op := range []string{"=", "+="} {
+		cases = append(cases,
+			codeCase{flat + "t[TR_Tensor([-1])] " + op + " 1.0", messages.H6694},
+			codeCase{flat + "t[TR_Tensor([3])] " + op + " 1.0", messages.H6694},
+			codeCase{flat + "t[TR_Tensor([9223372036854775807])] " + op + " 1.0", messages.H6694},
+			codeCase{flat + "t[TR_Tensor([0.0])] " + op + " 1.0", messages.H6707},
+			codeCase{flat + "t[t > 1.0] " + op + " 1.0", messages.H6707},
+			codeCase{"TR_var t = TR_Tensor(1.0)\nt[TR_Tensor([0])] " + op + " 1.0", messages.H6704},
+			codeCase{leaf + "t[TR_Tensor([0])] " + op + " 1.0", messages.H6716},
+			codeCase{leaf + "TR_var h = t * 2.0\nh[TR_Tensor([0])] " + op + " 1.0", messages.H6955},
+			codeCase{leaf + "TR_no_grad { t[TR_Tensor([0])] " + op + " 1.0 }", messages.H7042},
+			codeCase{flat + "TR_var v = t[0..2]\nv[TR_Tensor([0])] " + op + " 1.0", messages.H7042},
+		)
+	}
+	expectCodes(t, append(cases, codeCase{flat + "TR_print(t[t > 1.0])", messages.H6707}))
+}
