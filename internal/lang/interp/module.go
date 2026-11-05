@@ -184,9 +184,9 @@ func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 // and parses the module. Since a module runs under the importer's global scope (11.1), genelAdlar
 // count as defined in the module, and a name defined nowhere else is an undefined-name error
 // (5.14); dinamik says the global names are not fully known (then undefined names are not
-// reported).
-func CheckModule(text string, globalNames []string, dynamic bool) *source.Result {
-	return source.Prepare(text, source.Options{Module: true, TypeCheck: true,
+// reported). filePath tells the library's own file from a user's (LibraryFileName).
+func CheckModule(filePath, text string, globalNames []string, dynamic bool) *source.Result {
+	return source.Prepare(text, source.Options{Module: true, TypeCheck: true, Library: LibraryFileName(filePath, text),
 		InGlobalScope: true, GlobalNames: globalNames, GlobalDynamic: dynamic})
 }
 
@@ -338,7 +338,8 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
 	// adları görür; yerleşikler de oradadır. Tip denetimi çalışmadan önce yapılmıştır
 	// (CheckImportedModules, 1.3); burada yalnız ayrıştırılır, ikinci bir denetim yolu yoktur.
-	ms := source.Prepare(dest.Code, source.Options{Module: true, InGlobalScope: true, GlobalNames: v.GlobalEnv.scope.nameList})
+	ms := source.Prepare(dest.Code, source.Options{Module: true, InGlobalScope: true, GlobalNames: v.GlobalEnv.scope.nameList,
+		Library: LibraryFileName(dest.Path, dest.Code)})
 	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
 	if ms.Stage != "" {
 		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}

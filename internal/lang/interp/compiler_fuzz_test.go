@@ -36,7 +36,7 @@ func FuzzCompileSource(f *testing.F) {
 		if len(codeVal) > 64<<10 {
 			return
 		}
-		_ = CheckModule(codeVal, nil, true)
+		_ = CheckModule("", codeVal, nil, true)
 		p := parser.New(bodyLexer(codeVal))
 		prog := p.ParseProgram()
 		if len(p.Errors()) > 0 {

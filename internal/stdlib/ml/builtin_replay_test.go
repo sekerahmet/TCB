@@ -15,6 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
+	"github.com/sekerahmet/TCB/lib"
 )
 
 // replayStep KV önbelleği gibi kullanılan bir adım: indeksle gömme seçer, konuma yazar,
@@ -424,7 +425,9 @@ TR_no_grad {
 	if out != "true true\n" {
 		t.Fatalf("ofsetli maske: %q", out)
 	}
-	out = mustRun(t, `TR_import "../../../lib/layers.tr"
+	interp.SetLibrary(lib.Files)
+	defer interp.SetLibrary(nil)
+	out = mustRun(t, `TR_import "tr/layers"
 TR_default_device("gpu")
 TR_var m = TR_GPT(12, TR_context: 6, TR_embed_dim: 8, TR_num_layers: 2, TR_num_heads: 2, TR_ple_dim: 4, TR_seed: 5)
 TR_print(m.TR_generate([1, 2], 4, TR_temperature: 0, TR_cuda_graph: TR_true) == m.TR_generate([1, 2], 4, TR_temperature: 0, TR_cuda_graph: TR_false))`)

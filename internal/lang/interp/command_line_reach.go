@@ -187,7 +187,7 @@ func (s *reachScan) importModule(unit any, im *ast.ImportStatement) {
 		s.found = true
 		return
 	}
-	r := source.Prepare(string(data), source.Options{Module: true})
+	r := source.Prepare(string(data), source.Options{Module: true, Library: LibraryFileName(resolved, string(data))})
 	if r.Stage != "" || r.Program == nil {
 		s.found = true
 		return
