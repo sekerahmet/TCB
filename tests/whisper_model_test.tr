@@ -12,8 +12,14 @@ TR_const _HEDEF = 4
 TR_const _DAĞARCIK = 12
 
 # değerler ağırlığın öğelerini formülden kurar; aynı formül başvuruyu üretti.
-TR_func değerler(tohum: TR_Int, n: TR_Int) -> TR_List[TR_Float] {
-    TR_return [(((i + 1) * 40503 + tohum * 9973) % 65536 - 32768) / 32768.0 * 0.25 TR_for i TR_in 0..n]
+TR_func değerler(tohum: TR_Int, n: TR_Int, ölçek: TR_Float) -> TR_List[TR_Float] {
+    TR_return [(((i + 1) * 40503 + tohum * 9973) % 65536 - 32768) / 32768.0 * ölçek TR_for i TR_in 0..n]
+}
+
+# ölçek Q ve K'yı büyütür: küçük ağırlıkta dikkat düzdür, K ve önbellek yanlışı logitte görünmez.
+TR_func ölçek(ad: TR_String) -> TR_Float {
+    TR_if ad.TR_ends_with("q_proj.weight") TR_or ad.TR_ends_with("k_proj.weight") { TR_return 1.0 }
+    TR_return 0.25
 }
 
 # Bir tensörün adı ve şekli.
@@ -56,7 +62,7 @@ TR_func ağırlıklar(mel: TR_Int = 80) -> TR_Dict[TR_String, TR_Tensor] {
     TR_for tohum, a TR_in adlar(mel) {
         TR_var n = 1
         TR_for boy TR_in a.şekil { n = n * boy }
-        sonuç[a.ad] = TR_Tensor(değerler(tohum, n)).TR_reshape(a.şekil)
+        sonuç[a.ad] = TR_Tensor(değerler(tohum, n, ölçek(a.ad))).TR_reshape(a.şekil)
     }
     TR_return sonuç
 }
@@ -108,6 +114,44 @@ TR_test "25.1 kodlayıcı Hugging Face'in değerini verir" {
     TR_assert_equal([1, _KAYNAK, _BOYUT], y.TR_shape)
     TR_assert_equal("float32", y.TR_dtype)
     TR_assert(TR_all_close(y, başvuru(), TR_rtol: 1e-5, TR_atol: 1e-5))
+}
+
+# logitler başvurunun [dört parça, dağarcık] logitleridir.
+TR_func logitler() -> TR_Tensor {
+    TR_var düz = TR_from_bytes[TR_Float](TR_read_bytes("testdata/whisper/cozucu_logit.bin"), TR_dtype: "float32", TR_byte_order: "little")
+    TR_return düz.TR_reshape([1, _HEDEF, _DAĞARCIK])
+}
+
+TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool { TR_return TR_all_close(a, b, TR_rtol: 1e-5, TR_atol: 1e-5) }
+
+TR_test "25.1 çözücü Hugging Face'in logitini verir" {
+    TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
+    TR_var bellek = model._başlat(model._kodla(pencere()))
+    TR_var y = model._çöz([1, 5, 3, 7], bellek)
+    TR_assert_equal([1, _HEDEF, _DAĞARCIK], y.TR_shape)
+    TR_assert(yakın(y, logitler()))
+}
+
+TR_test "25.1 önbellekli adımlar tek geçişle aynı" {
+    TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), ağırlıklar()))
+    TR_var kodlanmış = model._kodla(pencere())
+    TR_var bellek = model._başlat(kodlanmış)
+    TR_var ilk = model._çöz([1, 5, 3], bellek)
+    TR_var son = model._çöz([7], bellek)
+    TR_assert_equal([1, 3, _DAĞARCIK], ilk.TR_shape)
+    TR_assert_equal([1, 1, _DAĞARCIK], son.TR_shape)
+    TR_assert(yakın(TR_concat([ilk, son], TR_dim: 1), logitler()))
+    TR_var ayrı = model._başlat(kodlanmış)
+    TR_assert_equal(ilk.TR_tolist, model._çöz([1, 5, 3], ayrı).TR_tolist)
+}
+
+TR_test "25.1 çözücünün kıyası farkı görür" {
+    TR_for ad TR_in ["model.decoder.layers.0.encoder_attn.k_proj.weight", "model.decoder.layers.0.self_attn.k_proj.weight"] {
+        TR_var t = ağırlıklar()
+        t[ad] = t[ad] * 1.5
+        TR_var model = TR_pretrained_whisper(klasör(ayar(), üretim(), t))
+        TR_assert(TR_not yakın(model._çöz([1, 5, 3, 7], model._başlat(model._kodla(pencere()))), logitler()))
+    }
 }
 
 TR_test "25.1 başvuruyla kıyas farkı görür" {
