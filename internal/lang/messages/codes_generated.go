@@ -1469,14 +1469,14 @@ const (
 	H7065 Code = 7065 // {path|q}: bozuk WAV dosyası (22.4): kanal sayısı {channels}, örnekleme hızı {rate}; ikisi de pozitif olmalı
 	H7066 Code = 7066 // {path|q}: bozuk WAV dosyası (22.4): blok hizası {align}, {channels} kanal ve {bytes} baytlık örnekle tutmuyor
 	H7067 Code = 7067 // {path|q}: bozuk WAV dosyası (22.4): `{chunk}` parçası {size} bayt diyor, dosyada {rest} bayt kalmış. Dosya kesik olabilir; boruya yazılmış dosyanın boyu bilinmez, sesi dosyaya yazın
-	H7068 Code = 7068 // {path|q}: bozuk WAV dosyası (22.4): `data` parçasının boyu 0. Boruya yazılmış dosyanın boyu bilinmez, sesi dosyaya yazın
+	H7068 Code = 7068 // {path|q}: bozuk WAV dosyası (22.4): `data` parçasının boyu 0: dosyada ses yok
 	H7069 Code = 7069 // {path|q}: bozuk WAV dosyası (22.4): `data` boyu {size}, {frame} baytlık karenin katı değil
 	H7070 Code = 7070 // {path|q}: bozuk WAV dosyası (22.4): sonda {rest} baytlık kesik parça var
 	H7071 Code = 7071 // {path|q}: {channel}. kanalın {index}. örneği {value}: NaN ve sonsuz örnek okunmaz (22.4)
-	H7072 Code = 7072 // {case, select, shape {örnekler iki boyutlu olmalıdır: şekli [kanal, örnek], {given} verildi} other {örnekleme hızı pozitif olmalıdır, {given} verildi}} (22.4)
+	H7072 Code = 7072 // {case, select, shape {örnekler iki boyutlu olmalıdır: şekli [kanal, örnek], {given} verildi} channels {sesin en az bir kanalı olmalıdır: şekli [kanal, örnek], {given} verildi} other {örnekleme hızı pozitif olmalıdır, {given} verildi}} (22.4)
 	H7073 Code = 7073 // boş ses yazılmaz: şekli {shape} (22.4); böyle bir dosya geri okunamazdı
 	H7074 Code = 7074 // {channel}. kanalın {index}. örneği {value}: [-1, 1] dışındaki örnek yazılmaz, taşan ses sessizce kırpılmaz (22.4); kırpmak için örnekleri `{#clamp}(x, {#min}: -1.0, {#max}: 1.0)` ile sınırlayın
-	H7075 Code = 7075 // {channel}. kanalın {index}. örneği NaN: yazılmaz (22.4); NaN yukarıdaki bir hesabın bozulduğunu gösterir, önce onu düzeltin
+	H7075 Code = 7075 // {channel}. kanalın {index}. örneği {value}: yazılmaz (22.4); bu değer yukarıdaki bir hesabın bozulduğunu gösterir, önce onu düzeltin
 	H7076 Code = 7076 // {fn}: {given}: {case, select, float {ondalık tensör gerekir (23.1); çevirin} scalar {son ekseni olan tensör gerekir (23.1); eksen ekleyin} gpu {bu cihazda henüz yok, CPU'ya sessizce düşmez (23.5); taşıyın} other {pencere `n` uzunlukta tek boyutlu ondalık tensör olmalıdır (23.3); şöyle kurun}}: `{fix}`
 	H7077 Code = 7077 // {fn}: {name} {valid} olur, {given} verildi ({rule})
 	H7078 Code = 7078 // {fn}: uzunluk {given}: {case, select, reflect {yansıtma dolgusu için {limit}'den uzun olmalıdır (23.3)} short {çerçeve boyu {limit}'den kısa (23.3)} other {dönüşüm boyu {limit}'den uzun, sessizce kesilmez (23.1); dilimleyin: `x.{#slice}(-1, 0, {limit})`}}

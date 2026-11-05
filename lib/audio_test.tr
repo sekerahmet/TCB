@@ -121,6 +121,12 @@ TR_test "22.4 fmt ya da data yok, sıra yanlış ya da iki kez" {
     TR_assert(hata_metni(wav(veri)).TR_contains("data_first"))
 }
 
+TR_test "22.4 WAVE_FORMAT_EXTENSIBLE: geçerli bit sayısı örnek boyuna eşit ya da 0" {
+    TR_var veri = parça("data", dört_örnek())
+    TR_assert_equal([1, 4], oku(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 16, 0)) + veri)).TR_samples.TR_shape)
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 16, 12)) + veri)))
+}
+
 TR_test "22.4 fmt kısa: 16 bayttan, WAVE_FORMAT_EXTENSIBLE'da 40 bayttan" {
     TR_assert_equal("H7064", hata_kodu(wav(parça("fmt ", TR_Bytes([1, 0, 1, 0])) + parça("data", dört_örnek()))))
     TR_var kısa = fmt_içeriği(65534, 1, 16000, 16) + u16(0)
@@ -154,9 +160,28 @@ TR_test "22.4 data boyu 0 ya da kare boyunun katı değil" {
     TR_assert_equal("H7069", hata_kodu(wav(fmt + parça("data", TR_Bytes([1, 0, 2])))))
 }
 
+TR_test "22.4 zarfın arkasındaki kuyruk parça sayılmaz: ID3v1, sıfır dolgu" {
+    TR_var ses = mono(dört_örnek())
+    TR_var id3 = TR_Bytes("TAG") + TR_Bytes([0] * 125)
+    TR_for kuyruk TR_in [id3, TR_Bytes([0, 0, 0]), TR_Bytes([0] * 16), TR_Bytes("LIS"), TR_Bytes([1])] {
+        TR_assert_equal([1, 4], oku(ses + kuyruk).TR_samples.TR_shape)
+    }
+}
+
+TR_test "22.4 RIFF boyu bozuk, parçaları sağlam dosya geçer" {
+    TR_var parçalar = parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", dört_örnek())
+    TR_var fazla = TR_Bytes("RIFF") + u32(12 + parçalar.TR_length) + TR_Bytes("WAVE") + parçalar
+    TR_var sıfır = TR_Bytes("RIFF") + u32(0) + TR_Bytes("WAVE") + parçalar
+    TR_assert_equal([1, 4], oku(fazla).TR_samples.TR_shape)
+    TR_assert_equal([1, 4], oku(sıfır).TR_samples.TR_shape)
+}
+
 TR_test "22.4 data'dan sonraki kesik parça hatadır" {
-    TR_assert_equal("H7070", hata_kodu(mono(dört_örnek()) + TR_Bytes("LIS")))
-    TR_assert_equal("H7070", hata_kodu(mono(dört_örnek()) + TR_Bytes([1])))
+    TR_var parçalar = parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", dört_örnek())
+    TR_var zarf = TR_Bytes("RIFF") + u32(4 + parçalar.TR_length + 3) + TR_Bytes("WAVE") + parçalar
+    TR_assert_equal("H7070", hata_kodu(zarf + TR_Bytes("LIS")))
+    TR_var geniş = TR_Bytes("RIFF") + u32(4 + parçalar.TR_length + 8) + TR_Bytes("WAVE") + parçalar
+    TR_assert_equal("H7067", hata_kodu(geniş + TR_Bytes("LIST") + u32(9)))
 }
 
 TR_test "22.4 desteklenmeyen biçim ffmpeg iletisini verir" {
@@ -196,6 +221,7 @@ TR_test "22.4 TR_Sound kurulur; şekil ve hız denetlenir" {
     TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_Tensor([0.5]), TR_sample_rate: 8000) })
     TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 0) })
     TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: -1) })
+    TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_zeros([0, 100]), TR_sample_rate: 8000) })
 }
 
 TR_test "22.4 yazma: 32767 ile çarpılır, en yakın tam sayıya yuvarlanır; bir gidiş dönüş" {
@@ -226,13 +252,12 @@ TR_test "22.4 iki kanal kare kare yazılır" {
 TR_test "22.4 yazma hataları: boş ses, taşan örnek, NaN; öneri kopyalanınca çalışır" {
     TR_var yol = TR_String(TR_Path(TR_temp_dir(), "hata.wav"))
     TR_assert_equal("H7073", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: TR_zeros([1, 0]), TR_sample_rate: 8000)) })
-    TR_assert_equal("H7073", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: TR_zeros([0, 3]), TR_sample_rate: 8000)) })
     TR_var taşan = TR_Tensor([[0.5, 1.5, -2.0]])
     TR_assert_equal("H7074", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: taşan, TR_sample_rate: 8000)) })
     TR_var nan = TR_Tensor([[0.5, TR_Float("nan")]])
     TR_assert_equal("H7075", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: nan, TR_sample_rate: 8000)) })
     TR_var sonsuz = TR_Tensor([[TR_Float("inf")]])
-    TR_assert_equal("H7074", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: sonsuz, TR_sample_rate: 8000)) })
+    TR_assert_equal("H7075", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: sonsuz, TR_sample_rate: 8000)) })
     TR_write_wav(yol, TR_Sound(TR_samples: TR_clamp(taşan, TR_min: -1.0, TR_max: 1.0), TR_sample_rate: 8000))
     TR_assert_equal([1, 3], TR_read_wav(yol).TR_samples.TR_shape)
 }

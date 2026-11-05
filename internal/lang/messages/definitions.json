@@ -1471,7 +1471,7 @@
 "H7072": { "param": ["case", "given"] },
 "H7073": { "param": ["shape"] },
 "H7074": { "param": ["channel", "index", "value"], "slots": {"clamp": "TR_fn_clamp", "min": "TR_arg_min", "max": "TR_arg_max"} },
-"H7075": { "param": ["channel", "index"] },
+"H7075": { "param": ["channel", "index", "value"] },
 "H7076": { "param": ["fn", "given", "case", "fix"] },
 "H7077": { "param": ["fn", "name", "valid", "given", "rule"] },
 "H7078": { "param": ["fn", "given", "limit", "case"], "slots": {"slice": "TR_mem_slice"} },

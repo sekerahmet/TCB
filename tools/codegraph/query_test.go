@@ -472,17 +472,17 @@ func TestDescribeShowsCandidateNoteEvenOnAClosure(t *testing.T) {
 // Kural (DENETİM istek 58 K2, Ş2): TR'de karşılığı olmayan noktalı üye yazımı yalnız dil tanımı (spec:) düğümüne
 // inebilir; Go, belge ya da başlık düğümlerine inmez.
 func TestUnresolvedMemberSpellingKeepsOnlySpecCandidates(t *testing.T) {
-	toBytes := "t." + "TR_to_bytes"
+	narrow := "t." + "TR_narrow"
 	ix := newIndex(&Graph{
 		Module: "example.com/m",
 		Nodes: []Node{
 			{ID: "spec:15.27a", Kind: kindSpec, Name: "15.27a", Detail: "`x.TR_detach()` tensörü çizgeden ayırır"},
-			{ID: "spec:22.2", Kind: kindSpec, Name: "22.2", Detail: "`" + toBytes + "()` ham baytları döner"},
-			{ID: "go:func:example.com/m.TestBytes", Kind: kindFunc, Name: "m.TestBytes", Doc: "checks " + toBytes + "() and TR_mem_embedding.TR_mem_table"},
-			{ID: "heading:docs/a.md#h", Kind: kindHeading, Name: toBytes + " ve TR_mem_embedding.TR_mem_table", Detail: "docs/a.md h2"},
+			{ID: "spec:15.1", Kind: kindSpec, Name: "15.1", Detail: "`" + narrow + "()` kopyasız görünüm verir"},
+			{ID: "go:func:example.com/m.TestNarrow", Kind: kindFunc, Name: "m.TestNarrow", Doc: "checks " + narrow + "() and TR_mem_embedding.TR_mem_table"},
+			{ID: "heading:docs/a.md#h", Kind: kindHeading, Name: narrow + " ve TR_mem_embedding.TR_mem_table", Detail: "docs/a.md h2"},
 		},
 	})
-	for q, want := range map[string]string{"x.TR_detach": "spec:15.27a", toBytes: "spec:22.2"} {
+	for q, want := range map[string]string{"x.TR_detach": "spec:15.27a", narrow: "spec:15.1"} {
 		got := ix.lookup(q)
 		if len(got) != 1 || got[0].ID != want {
 			t.Errorf("lookup(%q) = %v, want [%s]", q, got, want)

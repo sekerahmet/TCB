@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -60,6 +61,7 @@ func FuzzReadWav(f *testing.F) {
 	f.Add(wavSeed(1, 1, 16000, 16, []byte{0, 0}, []byte("LIST\x03\x00\x00\x00abc\x00")...))
 	f.Add(wavSeed(1, 1, 16000, 24, []byte{0, 0, 0}))
 	f.Add([]byte("RIFF\xff\xff\xff\xffWAVE"))
+	f.Add(append(wavSeed(1, 1, 16000, 16, []byte{0, 0, 0, 64}), []byte("TAG\x00\x00")...))
 	interp.SetLibrary(lib.Files)
 	path := filepath.Join(f.TempDir(), "ses.wav")
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -87,7 +89,6 @@ func TestWavMessagesGiveTheFix(t *testing.T) {
 	}{
 		{messages.TextIn("tr", messages.H7061, "a.wav", "pcm", "24 bit"), "`ffmpeg -nostdin -i girdi -c:a pcm_s16le çıktı.wav`"},
 		{messages.TextIn("tr", messages.H7067, "a.wav", "data", 8, 2), "sesi dosyaya yazın"},
-		{messages.TextIn("tr", messages.H7068, "a.wav"), "sesi dosyaya yazın"},
 		{messages.TextIn("tr", messages.H7074, 0, 3, 1.5), "`TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`"},
 	}
 	for _, c := range cases {
@@ -95,7 +96,12 @@ func TestWavMessagesGiveTheFix(t *testing.T) {
 			t.Errorf("%q içinde %q yok", c.text, c.want)
 		}
 	}
-	if text := messages.TextIn("tr", messages.H7075, 0, 3); strings.Contains(text, "TR_clamp") {
-		t.Errorf("NaN iletisi kırpmayı önermemeli: %s", text)
+	for _, value := range []float64{math.NaN(), math.Inf(1)} {
+		if text := messages.TextIn("tr", messages.H7075, 0, 3, value); strings.Contains(text, "TR_clamp") {
+			t.Errorf("NaN ve sonsuz iletisi kırpmayı önermemeli: %s", text)
+		}
+	}
+	if text := messages.TextIn("tr", messages.H7068, "a.wav"); strings.Contains(text, "dosyaya yazın") {
+		t.Errorf("boy 0 boru belirtisi değil: %s", text)
 	}
 }
