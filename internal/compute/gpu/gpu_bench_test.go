@@ -441,7 +441,7 @@ func TestQuantGemvBandwidth(t *testing.T) {
 	const copied = 1 << 28
 	from, to := g.storageOf(g.Alloc(copied, tensor.Float32)), g.storageOf(g.Alloc(copied, tensor.Float32))
 	mark := tensor.NewOn(gpuDevice, []float32{0}, 1)
-	sec := timed(20, func() *tensor.Tensor { g.dCopy(to, 0, from, 0, copied); return mark })
+	sec := timed(20, func() *tensor.Tensor { g.dCopy(to, 0, from, 0, copied); return mark.Clone() }) // Clone gölgesiz: Data kartı bekler
 	fmt.Printf("BANT|kopya|%.0f\n", 2*float64(4*copied)/sec/1e9)
 	rng := rand.New(rand.NewSource(1))
 	for _, dt := range quantTypes {
