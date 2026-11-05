@@ -299,6 +299,7 @@ Kurallar: [`docs/spec/06_fonksiyonlar.md`](spec/06_fonksiyonlar.md). Taslak: met
 
 ### 6.6
 
+- **Yapılacaklar (D, Ö3; sahip D1; DENETİM istek 163):** metin içi `TR_func` dışta `TR_func` yoksa H0269 almıyor: `funcKeywords` alt ayrıştırıcıdan üste taşınmıyor [kanıtlı: `interpolation.go:65-66`]. Tek satırlık düzeltme denendi, H0269 verdi [ölçüldü: DENETİM 163].
 - **Mevcut durum (Kol A teslim 2b, 2026-11-04):** beklenen dönüş tipi bilinmeyen blok gövdesinde karışık dönüş, bitmeyen yol ve `TR_return TR_none` denetim hatası (H1145); yerleşiğin argümanı da girer, `T?` dönen fonksiyon tipi yazılmış yerde karışım geçerli [test: `TestArrowBlockWithAValueEndsEveryPath`, `TestArrowBlockWithAKnownReturnMayMix`, `TestArrowBlockGivenToABuiltinEndsEveryPath`, `tests/negative/ok_blok_donus.tr`]. Adı üzerinden gelen yokluk görülmüyor: `TR_var n = TR_none`, `(x: TR_Bool) => { TR_return n }` geçiyor [ölçüldü: 2b].
 - **Mevcut durum:** fonksiyon ifadesinin tek yazımı `(x) => ...`: parantezsiz ok, adsız `TR_func`, ifade yerinde `TR_func` tanımı ve `lambda` sözdizimi hatası, iletiler oku öneriyor; `(_) => 0` çalışıyor, `_` okunamıyor. Beklenen tip yokken (tipi açıklanmamış değişkenin ilk değeri, doğrudan ya da liste, sözlük, demet değişmezinde) tipsiz parametre denetim hatası (H1111); denetleyici yerleşik imzalarını bilmediği için her çağrı argümanı, tipli değişken ve dönüş beklenen tipi olan yer sayılıyor, parametrenin tipi oradan çıkarılmıyor (`TR_Any` kalıyor) [ölçüldü: `TestUntypedFunctionExpressionParameter`, dal `claude/charming-pasteur-q1vsvo`]. Blok gövdesinin eksik dönüşü 6.2'de.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01 ve 16c7d0ef):** parametre tipinin beklenen tipten çıkarımı ve beklenen tipin denetimi (yerleşik ve kitaplık imzalarıyla, 13.9); denetleyicinin testi.
@@ -678,7 +679,6 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 ## 15. Tensörler ve otomatik türev
 
 Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-29'da altı parçada (A–F) CLAUDE.md'den türetilerek yeniden yazıldı. Metin DENETİM'den (A–F, birleşme, commit öncesi), kararlar Gemini'nin taslak okumalarından (AB, ABC, TÜM) ve üç koşusundan geçti (Koşu 1 `4afda971`, Koşu 2 `70a1e6fe`, Koşu 3 `0edb6f20`; DENETİM doğruladı); aşağıda bugünkü motorun kurallardan ayrıldığı yerler ve göç.
-
 
 **En büyük göç kalemleri** [ölçüldü: DENETİM, main `8b115692`]:
 1. tam sayı değişmezli tensörler: 91 yer (`tests/` 77, `examples/` 11, `lib/` 3), çalışırken 20 dosyada 158 kurulum (15.1–15.3);
@@ -1117,7 +1117,7 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): an
 ### 17.1
 
 - **Mevcut durum (2026-11-05; B, Ö0 kapandı; DENETİM istek 155 Ş1, 158):** kullanıcının dosyasında `TR_` ile başlayan ad hiçbir tanımda yazılmıyor, geçerli kimlik de olsa: H0004. Kapı `source.Prepare`'de, ayrıştırmadan sonra; modül, kabuk ve hata ayıklayıcı da ondan geçiyor. Yapıda yalnız `TR_init` ve `TR_next` metodu serbest. Kitaplık metniyle ayrılıyor (`interp.LibraryFileName`), yolundan değil [test: `TestReservedNamesStopEveryDefinition`, `TestAModuleCannotReplaceABuiltin`, `tests/negative/kod_tanimi.tr`, `tests/negative/kod_uye.tr`].
-- **Yapılacaklar:** Kullanıcı yapısının `TR_next` ile dolaşılması bugün çalışmıyor ("Sayaç tipi üzerinde döngü kurulamaz") [ölçüldü: DENETİM]; 5.7 uygulanınca TR testi.
+- **Yapılacaklar:** kullanıcı yapısının `TR_next` ile dolaşılması 5.7'nin satırında (E, Ö3).
 
 ### 17.2
 
@@ -1237,7 +1237,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
-- **Yapılacaklar (D, Ö3; sahip D1; DENETİM istek 163):** metin içi `TR_func` dışta `TR_func` yoksa H0269 almıyor: `funcKeywords` alt ayrıştırıcıdan üste taşınmıyor [kanıtlı: `interpolation.go:65-66`]. Tek satırlık düzeltme denendi, H0269 verdi [ölçüldü: DENETİM 163].
+- **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 165 Ş2):** H0004 önerisi her zaman geçerli ad vermiyor: rakam, birleşen işaret ya da Kiril harfle kalan ad yazılınca H0140, H0030 veriyor [ölçüldü: DENETİM 165]. Sebep `lexer/reserved.go:73`.
+
 - **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 163 N2):** H2754'ün önerisi yapıya kodlu alan eklemeyi söylüyor: yazımı artık H0004, önerisi çalışmıyor.
 - **Yapılacaklar (F, Ö3; sahip D1; DENETİM istek 163 N1):** `trrun.go:26`'nın `Parse`'ı `StageType`'ı görmüyor: Go testinin metni H0004'lü olsa da çalışır. Yalnız test takımı.
 
