@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 617 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 144 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
+Toplam 618 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 145 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
 
 ## İçindekiler
 
@@ -3412,6 +3412,12 @@ tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).de�
 ```
 
 İlişkili: `TR_if`
+
+#### `TR_whisper_log_mel(...)` (`TR_fn_whisper_log_mel`, `whisper_log_mel`)
+
+    whisper_log_mel()
+
+
 
 #### `TR_write_file(...)` (`TR_fn_write_file`, `dosya_yaz`)
 

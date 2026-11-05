@@ -35,6 +35,8 @@ TR_print((g ** 2 + s ** 2).TR_shape)
 # Mel süzgeçleri güç izgesini kulağın ölçeğine çevirir; Whisper'ın girdisi bunun logaritmasıdır.
 TR_var süzgeç = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 80, TR_norm: "slaney", TR_mel_scale: "slaney", TR_f_min: 0.0, TR_f_max: 8000.0)
 TR_print(süzgeç.TR_shape)
+TR_var mel = TR_whisper_log_mel(ses, TR_n_mels: 80)
+TR_print(mel.TR_shape)
 
 # --- Kendin dene ---
 # 1. TR_Bytes([1, 2, 3]) baytlarını "uint16" olarak okumayı dene: ileti ne öneriyor?

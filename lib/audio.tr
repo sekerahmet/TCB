@@ -15,6 +15,10 @@ TR_const _PARÇA_BAŞI = 8
 TR_const _PCM = 1
 TR_const _ONDALIK = 3
 TR_const _GENİŞ = 65534
+TR_const _WHISPER_HIZI = 16000
+TR_const _WHISPER_FFT = 400
+TR_const _WHISPER_ADIMI = 160
+TR_const _WHISPER_DOLGUSU = 480000
 
 # Ses: örnekler [kanal, örnek] şekilli ondalık tensör, örnekleme hızı saniyedeki örnek sayısıdır.
 TR_struct TR_Sound {
@@ -220,4 +224,36 @@ TR_func TR_write_wav(yol: TR_String, ses: TR_Sound) {
     TR_var başlık = TR_Bytes("RIFF") + _yaz32(36 + veri.TR_length) + TR_Bytes("WAVEfmt ") + _yaz32(16) + _yaz16(_PCM) + _yaz16(kanal)
     başlık = başlık + _yaz32(ses.TR_sample_rate) + _yaz32(ses.TR_sample_rate * kanal * 2) + _yaz16(kanal * 2) + _yaz16(16)
     TR_write_file(yol, başlık + TR_Bytes("data") + _yaz32(veri.TR_length) + veri)
+}
+
+# _whisper_sesi Whisper'ın tek kanallı örneklerini verir: denetim sırası 23.6'nınkidir.
+TR_func _whisper_sesi(ses: TR_Sound) -> TR_Tensor[TR_Float] {
+    _ses_şekli(ses.TR_samples)
+    TR_var ad = "TR_whisper_log_mel"
+    TR_if ses.TR_sample_rate != _WHISPER_HIZI { TR_throw TR_Message("H7079", ad, "rate", ses.TR_sample_rate, "", "") }
+    TR_var şekil = ses.TR_samples.TR_shape
+    TR_if şekil[0] > 1 {
+        TR_var ilk = "`TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: ses.TR_sample_rate)`"
+        TR_var ortalama = "; `TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: ses.TR_sample_rate)`"
+        TR_throw TR_Message("H7079", ad, "channels", şekil, ilk, ortalama)
+    }
+    TR_if şekil[0] == 0 TR_or şekil[1] == 0 { TR_throw TR_Message("H7079", ad, "empty", şekil, "", "") }
+    TR_return ses.TR_samples[0]
+}
+
+# whisper_log_mel Whisper'ın `transcribe`'ının log-Mel'ini bir kaydın tamamı için verir (23.6):
+# [m, örnek // 160 + 3000]. Alt sınır kaydın tamamından alınır.
+TR_func TR_whisper_log_mel(ses: TR_Sound, TR_n_mels: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var örnekler = _whisper_sesi(ses)
+    TR_var x = TR_concat([örnekler, TR_zeros([_WHISPER_DOLGUSU])])
+    TR_var pencere = TR_hann_window(_WHISPER_FFT, TR_periodic: TR_true)
+    TR_var gerçek, sanal = TR_stft(x, _WHISPER_FFT, TR_hop_length: _WHISPER_ADIMI, TR_window: pencere, TR_center: TR_true, TR_pad_mode: "reflect")
+    TR_var çerçeve = gerçek.TR_shape[1] - 1
+    TR_var g = gerçek.TR_slice(1, 0, çerçeve)
+    TR_var s = sanal.TR_slice(1, 0, çerçeve)
+    TR_var güç = g ** 2 + s ** 2
+    TR_var süzgeç = TR_mel_filterbank(TR_sample_rate: _WHISPER_HIZI, TR_n_fft: _WHISPER_FFT, TR_n_mels: TR_n_mels, TR_norm: "slaney", TR_mel_scale: "slaney")
+    TR_var log = TR_log10(TR_clamp(süzgeç @ güç, TR_min: 1e-10))
+    TR_var sınırlı = TR_maximum(log, TR_max(log) - 8.0)
+    TR_return (sınırlı + 4.0) / 4.0
 }

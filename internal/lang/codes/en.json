@@ -186,6 +186,7 @@
   "TR_fn_topk": { "name": "topk" },
   "TR_fn_wait_all": { "name": "wait_all" },
   "TR_fn_where": { "name": "where" },
+  "TR_fn_whisper_log_mel": { "name": "whisper_log_mel" },
   "TR_fn_write_file": { "name": "write_file" },
   "TR_fn_write_slice": { "name": "write_slice" },
   "TR_fn_write_wav": { "name": "write_wav" },
