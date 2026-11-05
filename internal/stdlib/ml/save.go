@@ -95,18 +95,6 @@ func newFileEntry(ad string, t *tensor.Tensor) fileEntry {
 	return g
 }
 
-// values girdinin hesap ondalığı değerleridir: 16 bitlikte kayıpsız açılır.
-func (g fileEntry) values() []float32 {
-	if g.bits == nil {
-		return g.data
-	}
-	out := make([]float32, len(g.bits))
-	for i, h := range g.bits {
-		out[i] = tensor.FromBits16(g.dtype, h)
-	}
-	return out
-}
-
 // tensor dosyadan okunan girdinin tensörüdür (varsayılan cihazda).
 func (g fileEntry) tensor() *tensor.Tensor {
 	switch {

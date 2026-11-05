@@ -275,6 +275,45 @@ func TestTensorFileRejectsTypeWithoutCode(t *testing.T) {
 	}
 }
 
+// WalkTensorFile 16 bitlik girdiyi açmadan verir: Veri boştur, değerler isteyene Values'la açılır.
+// Neden: açılmış kopya öğe başına dört bayttı, kontrol noktası dosyayı üç kez gezer.
+func TestWalkTensorFileLeavesSixteenBitUnopened(t *testing.T) {
+	bits := []uint16{0x3F80, 0x7F81, 0xC000}
+	var file bytes.Buffer
+	y := NewTensorWriter(&file, 2)
+	if err := y.WriteBits("h", []int{3}, tensor.BFloat16, bits); err != nil {
+		t.Fatal(err)
+	}
+	if err := y.Write("f", []int{2}, tensor.Float32, []float32{1.5, -2}); err != nil {
+		t.Fatal(err)
+	}
+	if err := y.Finish(); err != nil {
+		t.Fatal(err)
+	}
+	seen := 0
+	err := WalkTensorFile(bytes.NewReader(file.Bytes()), int64(file.Len()), func(g TensorEntry) error {
+		seen++
+		switch g.Ad {
+		case "h":
+			if g.Veri != nil || !slices.Equal(g.Bits, bits) {
+				t.Errorf("16 bitlik girdi: Veri %v, Bits %x", g.Veri, g.Bits)
+			}
+			got := g.Values()
+			if got[0] != 1 || got[2] != -2 || !math.IsNaN(float64(got[1])) {
+				t.Errorf("16 bitlik değerler %v", got)
+			}
+		case "f":
+			if g.Bits != nil || !slices.Equal(g.Values(), []float32{1.5, -2}) {
+				t.Errorf("float32 girdi: Bits %x, değerler %v", g.Bits, g.Values())
+			}
+		}
+		return nil
+	})
+	if err != nil || seen != 2 {
+		t.Fatalf("%d girdi, hata %v", seen, err)
+	}
+}
+
 // Kural (15.47a): gidiş dönüşte veri bit bit aynıdır; 16 bitlik NaN'ın yükü ve sinyal biti de
 // kalır. Görünüm mantıksal sırayla yazılır, iki biçimde de.
 func TestSaveTensorsKeepSixteenBitNaNs(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -90,6 +91,43 @@ TR_save_tensors(%q, model)
 				t.Errorf("sürdürülen bitler %x, beklenen %x", got, c.values)
 			}
 		})
+	}
+}
+
+// TestSixteenBitStateEntryKeepsItsValue: iyileştirici durumu noktaya float32 yazılır; 16 bitlik bir
+// durum girdisi (elle yazılmış nokta) sessizce boş kalmaz, değeri float32 duruma açılır.
+func TestSixteenBitStateEntryKeepsItsValue(t *testing.T) {
+	runDir := filepath.Join(t.TempDir(), "run")
+	program := func(tail string) string {
+		return fmt.Sprintf(`
+TR_var w = TR_Tensor([1.0, 2.0, 3.0], TR_requires_grad: TR_true)
+TR_var op = TR_AdamW([w])
+TR_var kn = TR_Checkpoint(%q, {"w": w, "op": op})
+`, trPath(runDir)) + tail
+	}
+	if out, err := run(t, program(`
+TR_backward(TR_sum(w * w))
+op.TR_step()
+kn.TR_update(1)
+kn.TR_save()
+`)); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	step := filepath.Join(runDir, "checkpoints", "step_0000000001")
+	if out, err := run(t, fmt.Sprintf(`
+TR_var y = TR_load_tensors(%[1]q)
+y["op/m.0"] = TR_Tensor([0.5, -1.5, 2.0], TR_dtype: "bf16")
+TR_save_tensors(%[1]q, y)
+`, trPath(filepath.Join(step, "tensors.trt")))); err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	resignCheckpoint(t, step, 1)
+	out, err := run(t, program(`TR_print(op.TR_state["m.0"].TR_dtype, op.TR_state["m.0"].TR_tolist)`))
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	if want := "float32 [0.5, -1.5, 2.0]"; !strings.Contains(out, want) {
+		t.Errorf("durum %q, beklenen %q", out, want)
 	}
 }
 

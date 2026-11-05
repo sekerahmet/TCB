@@ -998,7 +998,6 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
 - **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM].
 - **Mevcut durum (C, Ö2; T1, 2026-11-05; DENETİM istek 134, 145):** kartta da bütün 65 536 desen, iki türde, bitleriyle kalıyor: yükleme, indirme, `.TR_to_device`'ın iki yönü, dilim, devrik ve kontrol noktası float32'den geçmiyor; `.TR_to_device` türevi koruyor [test: `TestSixteenBitViewsOnTheCardKeepBits`, `TestGPUSixteenBitFileKeepsItsBits`, `TestGPUCheckpointKeepsSixteenBitParameters`].
-- **Yapılacaklar (D, Ö3; sahip T1, kart işiyle; DENETİM istek 134 N2, 142 N3):** 16 bitlik okumada `Veri` kopyası boşa açılıyor; `TensorEntry.Bits` yorumsuz.
 
 ### 15.49
 
