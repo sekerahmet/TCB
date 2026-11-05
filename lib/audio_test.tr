@@ -196,6 +196,12 @@ TR_test "22.4 RIFF boyu 0, data, LIST, ID3v1: ses tam gelir" {
     TR_assert_equal([0.0, 0.5, -0.5, -1.0], ses.TR_samples[0].TR_tolist)
 }
 
+TR_test "22.4 zarf içindeki sıfır dolgu da kuyruktur" {
+    TR_var fmt = parça("fmt ", fmt_içeriği(1, 1, 16000, 16))
+    TR_var veri = parça("data", TR_Bytes([1, 0] * 4))
+    TR_assert_equal([1, 4], oku(wav(fmt + veri + TR_Bytes([0] * 16))).TR_samples.TR_shape)
+}
+
 TR_test "22.4 uzun sıfır dolgu da kuyruktur" {
     TR_assert_equal([1, 4], oku(mono(dört_örnek()) + TR_Bytes([0] * 10000)).TR_samples.TR_shape)
     TR_assert_equal("H7067", hata_kodu(mono(dört_örnek()) + TR_Bytes("LIST") + u32(99999) + TR_Bytes([0] * 10000)))

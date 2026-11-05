@@ -208,7 +208,14 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
             TR_if _boş_kuyruk(b, konum, son_dolu) { TR_break }
         }
         TR_var ad = b[konum..konum + 4]
-        TR_if veri >= 0 TR_and TR_not _yazılabilir_ad(ad) { TR_throw TR_Message("H7080", yol, _parça_adı(ad)) }
+        TR_if veri >= 0 TR_and TR_not _yazılabilir_ad(ad) {
+            TR_if son_dolu == TR_none { son_dolu = _son_dolu(b) }
+            TR_if konum > son_dolu {
+                bitiş = konum
+                TR_break
+            }
+            TR_throw TR_Message("H7080", yol, _parça_adı(ad))
+        }
         TR_var boy = _u32(b, konum + 4)
         TR_var kalan = b.TR_length - konum - _PARÇA_BAŞI
         TR_if boy > kalan { TR_throw TR_Message("H7067", yol, _parça_adı(ad), boy, kalan) }
