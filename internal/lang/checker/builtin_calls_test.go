@@ -50,7 +50,7 @@ func TestMissingMember(t *testing.T) {
 		{"TR_print((0..3).TR_sort())", "`.TR_sort` TR_List tipinin metodudur"},
 		{"TR_var t: TR_Tensor = TR_Tensor([1.0])\nTR_print(t.TR_sort())", "`.TR_sort` TR_List tipinin metodudur"},
 		{"TR_var l = [1]\nTR_print(\"a\".TR_join(1))", "`.TR_join` TR_List tipinin metodudur"}, // argüman liste değil: yer değiştirme yok
-		{"TR_var s = \"a\"\nTR_print(s.TR_pop())", `"TR_pop"`}, // üyenin adı kimlikle, görünüm adıyla değil (DENETİM istek 125 N2)
+		{"TR_var s = \"a\"\nTR_print(s.TR_pop())", `"TR_pop"`},                                 // üyenin adı kimlikle, görünüm adıyla değil (DENETİM istek 125 N2)
 	}
 	for _, tc := range cases {
 		errs := checkFileErrs(t, tc.source)

@@ -45,9 +45,9 @@ func TestRemoveOnAListOfUnknownType(t *testing.T) {
 // Neden: "sil", "sondan_çıkar" iletide görünüyor, kopyalanınca H2474 veriyordu (DENETİM istek 125 N2, N4).
 func TestAMemberErrorWritesTheIdentity(t *testing.T) {
 	for _, c := range []struct{ program, want string }{
-		{"TR_var s: TR_Any = \"a\"\nTR_print(s.TR_remove(\"x\"))", "\"TR_remove\""},
-		{"TR_var s: TR_Any = \"a\"\nTR_print(s.TR_pop())", "\"TR_pop\""},
-		{"TR_var l: TR_Any = [1]\nTR_print(l.TR_remove(0))", "\"TR_remove\""},
+		{"TR_var s = \"a\"\nTR_print(s.TR_remove(\"x\"))", "\"TR_remove\""},
+		{"TR_var s = \"a\"\nTR_print(s.TR_pop())", "\"TR_pop\""},
+		{"TR_var l = [1]\nTR_print(l.TR_remove(0))", "\"TR_remove\""},
 	} {
 		_, err := runTR(t, c.program)
 		if err == nil || !strings.Contains(err.Error(), c.want) {

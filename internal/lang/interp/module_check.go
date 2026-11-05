@@ -22,9 +22,18 @@ import (
 // denetler. İlk hatayı döndürür: denetim hatası için *ModuleError (aktar satırı ve modülün
 // hataları), bulunamayan ya da okunamayan modül için o hatanın kendisi.
 func CheckImportedModules(mainFile string, prog *ast.Program) error {
+	_, err := ImportedModuleFiles(mainFile, prog)
+	return err
+}
+
+// ImportedModuleFiles CheckImportedModules'ün denetimini yapar ve denetlediği modül dosyalarını, dolaylı
+// aktarılanlarla, aktarım sırasıyla verir: aktarılan modülün testleri de koşar (12.1). Dilin gömülü
+// kitaplığı dosya değildir, listede yoktur.
+func ImportedModuleFiles(mainFile string, prog *ast.Program) ([]string, error) {
 	names, dynamic := checker.TopLevelNames(prog)
 	c := &moduleChecker{mainFile: mainFile, names: names, dynamic: dynamic, seen: map[string]bool{}}
-	return c.check(nil, mainFile, prog)
+	err := c.check(nil, mainFile, prog)
+	return c.files, err
 }
 
 // moduleChecker bir denetimin durumudur.
@@ -33,6 +42,7 @@ type moduleChecker struct {
 	names    []string
 	dynamic  bool
 	seen     map[string]bool
+	files    []string // denetlenen modül dosyaları, aktarım sırasıyla
 }
 
 // check importerin (nil: ana program) prog'unun aktardığı modülleri denetler.
@@ -79,6 +89,7 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 		return messages.At(im.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, err, searched))
 	}
 	c.seen[abs] = true
+	c.files = append(c.files, resolved)
 	checked := CheckModule(string(data), c.names, c.dynamic)
 	modSource := &Source{Path: resolved, Name: shownPath(resolved), Code: checked.Text}
 	if checked.Stage != "" {

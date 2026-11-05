@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -385,7 +386,7 @@ func TestEveryRuleHasATest(t *testing.T) {
 	// Olumsuz fikstürün '# TEST 2.6 ...' satırı da tests/ altındaki bir TR testidir
 	// (TestNegativeFixtures).
 	files, _ := reporoot.Glob(reporoot.Path("tests/*_test.tr"))
-	fixtures, _ := reporoot.Glob(reporoot.Path("tests/negative/*.tr"))
+	fixtures := negativeFixtures()
 	withTests := map[string]bool{}
 	for _, d := range append(files, fixtures...) {
 		data, err := os.ReadFile(d)
@@ -393,7 +394,7 @@ func TestEveryRuleHasATest(t *testing.T) {
 			t.Fatal(err)
 		}
 		re := testRe
-		if filepath.Base(filepath.Dir(d)) == "negative" {
+		if slices.Contains(fixtures, d) {
 			re = fixtureTestRe
 		}
 		for _, m := range re.FindAllStringSubmatch(string(data), -1) {

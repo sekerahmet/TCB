@@ -1809,7 +1809,7 @@ const (
 	H8406 Code = 8406 // AST farklı
 	H8500 Code = 8500 // {total} test, {passed} geçti, {failed} kaldı{unloadable, plural, =0 {} other {, # dosya yüklenemedi}}
 	H8502 Code = 8502 // {target} bulunamadı
-	H8503 Code = 8503 // {target} içinde *_test.tr dosyası bulunamadı
+	H8503 Code = 8503 // {target} içinde test bulunamadı: test dosyası `{#test}` bloğu içerir
 	H8504 Code = 8504 // uyarılar:
 	H8505 Code = 8505 // {stage, select, syntax {Sözdizimi} other {Tip denetimi}} hataları nedeniyle testler çalıştırılamadı:
 	H8506 Code = 8506 // (bu dosyada test bloğu yok)
@@ -1830,7 +1830,7 @@ const (
 	H8615 Code = 8615 // trlang {command} <dosya.tr>	Etkileşimli TR Hata Ayıklayıcısını başlatır
 	H8616 Code = 8616 // trlang {command} [{json}] <dosya.tr>	Sözdizimi ve akıllı tip kontrolü yapar ({json}: standart çıktıya satır başına bir JSON kaydı)
 	H8617 Code = 8617 // trlang {command} <dosya.tr>	.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür
-	H8618 Code = 8618 // trlang {command} [dosya.tr|klasör]...	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
+	H8618 Code = 8618 // trlang {command} [dosya.tr|klasör]...	Test bloklarını çalıştırır (klasörde test bloğu içeren bütün .tr dosyaları)
 	H8619 Code = 8619 // trlang {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
 	H8622 Code = 8622 // trlang {command} <dosya.tr> [{lang} tr]	Dosyayı bir yazım dilinde gösterir (kodlu dosya da)
 	H8623 Code = 8623 // trlang {command} - [{lang} tr]	Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)

@@ -6,7 +6,26 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
+
+// HasTestBlock metinde adıyla yazılmış bir TR_test var mı: test dosyası odur (12.1). Sözcük birimleriyle
+// okunur: yorum ve metin sayılmaz, sözdizimi hatalı dosyanın testi de görünür ve dosya "yüklenemedi"
+// olur, sessizce atlanmaz.
+func HasTestBlock(text string) bool {
+	parts, _ := Split(text)
+	l := lexer.NewBody(parts.Body, true)
+	for {
+		switch tok := l.NextToken(); {
+		case tok.Type == lexer.TokEOF:
+			return false
+		case tok.Code == codes.CtxTest && l.NextToken().Type == lexer.TokString:
+			return true
+		}
+	}
+}
 
 // WalkFiles komut satırı hedefinin (dosya ya da klasör) suffix ile biten dosyalarını sıralı
 // toplar. Dosya hedefi olduğu gibi döner. Klasörde gizli klasörler (.git, .claude) ile

@@ -229,9 +229,14 @@ type FixtureDiag struct {
 
 func (d FixtureDiag) String() string { return fmt.Sprintf("%d: %s %s", d.Line, d.Kind, d.Code) }
 
-// IsNegativeFixture yol bir negatif fikstür (.tr) dosyası mı (negative/*.tr).
+// IsNegativeFixture yol bir negatif fikstür (.tr) dosyası mı: negative/*.tr, ya da TR_test içerdiği için
+// test taramasından saklanan negative/testdata/*.tr.
 func IsNegativeFixture(rel string) bool {
-	return path.Base(path.Dir(rel)) == "negative" && strings.HasSuffix(rel, ".tr")
+	dir := path.Dir(rel)
+	if path.Base(dir) == "testdata" {
+		dir = path.Dir(dir)
+	}
+	return path.Base(dir) == "negative" && strings.HasSuffix(rel, ".tr")
 }
 
 // FixtureLabels negatif fikstürün satır sonu etiketlerini (`# ERROR H1234`, `# WARNING H1012`,

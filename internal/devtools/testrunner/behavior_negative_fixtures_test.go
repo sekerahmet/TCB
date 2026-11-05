@@ -19,7 +19,8 @@ import (
 	"github.com/sekerahmet/TCB/lib"
 )
 
-// Olumsuz fikstürler (tests/negative/*.tr) bilerek hatalı dosyalardır. Beklenti dosyanın içinde,
+// Olumsuz fikstürler (tests/negative/*.tr; TR_test içerenler test taramasına girmesin diye
+// tests/negative/testdata/*.tr) bilerek hatalı dosyalardır. Beklenti dosyanın içinde,
 // hatalı satırın sonunda yorumla yazılır: `# ERROR H1106` denetimin (sözdizimi ya da tip) o satırda
 // verdiği hata, `# WARNING H1012` uyarı, `# RUN-ERROR H2478` denetimden geçen dosyanın çalışırken
 // o satırda verdiği hata; bir satırda birden çok kod boşlukla yazılır (codeindex.FixtureLabels). Her
@@ -53,7 +54,7 @@ func fixtureDiags(kind string, errs []error) []codeindex.FixtureDiag {
 // hatasız geçer, sonra çalıştırılır: hata o satırda gelir ve hatadan önce hiçbir çıktı yazılmaz
 // (hatalı modülün hiçbir satırı çalışmaz).
 func TestNegativeFixtures(t *testing.T) {
-	fixtures, _ := reporoot.Glob(reporoot.Path("tests/negative/*.tr"))
+	fixtures := negativeFixtures()
 	if len(fixtures) == 0 {
 		t.Fatal("tests/negative/ altında fikstür bulunamadı")
 	}
@@ -106,6 +107,13 @@ func TestNegativeFixtures(t *testing.T) {
 			t.Errorf("%s:\n  beklenen: %v\n  alınan:   %v", name, want, got)
 		}
 	}
+}
+
+// negativeFixtures bütün olumsuz fikstürlerdir.
+func negativeFixtures() []string {
+	fixtures, _ := reporoot.Glob(reporoot.Path("tests/negative/*.tr"))
+	hidden, _ := reporoot.Glob(reporoot.Path("tests/negative/testdata/*.tr"))
+	return append(fixtures, hidden...)
 }
 
 // importedFixtures fikstürlerin aktardığı fikstürlerin adlarıdır (TR_import "tip_hatali_modul").

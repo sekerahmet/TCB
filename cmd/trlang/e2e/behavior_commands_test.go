@@ -147,7 +147,7 @@ func TestTestCommand(t *testing.T) {
 
 	testkit.Wait(t, tr(t, dir, "test", "gecen"), 0, []string{"toplama"}, nil)
 	testkit.Wait(t, tr(t, dir, "test", "kalan"), 1, []string{"yanlış"}, nil)
-	// Hedefsiz: bulunulan klasördeki tüm *_test.tr dosyaları (biri kalıyor).
+	// Hedefsiz: bulunulan klasördeki bütün test dosyaları (biri kalıyor).
 	testkit.Wait(t, tr(t, dir, "test"), 1, []string{"toplama", "yanlış"}, nil)
 	testkit.Wait(t, tr(t, dir, "test", "olmayan"), 1, nil, []string{"Hata:"})
 	// Birden çok hedef: ikincinin kalan testi komutu düşürür, olmayan hedef hatadır (DENETİM istek 125 N1).
@@ -155,6 +155,9 @@ func TestTestCommand(t *testing.T) {
 	testkit.Wait(t, tr(t, dir, "test", gecen, kalan), 1, []string{"toplama", "yanlış", "2 test, 1 geçti, 1 kaldı"}, nil)
 	testkit.Wait(t, tr(t, dir, "test", gecen, "olmayan"), 1, nil, []string{"Hata:", "olmayan"})
 	testkit.Wait(t, tr(t, dir, "test", gecen, "--olmayan"), 2, nil, []string{"--olmayan"})
+	// Test bloğu olmayan dosya, yanında testli dosya olsa da hatadır (DENETİM istek 132 Ş1).
+	bos := writeTR(t, dir, "bos/testsiz.tr", "TR_func f() -> TR_Int {\n    TR_return 1\n}\n")
+	testkit.Wait(t, tr(t, dir, "test", gecen, bos), 1, nil, []string{"Hata:", "içinde test bulunamadı"})
 }
 
 func TestFormat(t *testing.T) {

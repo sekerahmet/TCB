@@ -1,5 +1,5 @@
 // Package testrunner 'trlang test' komutunun çekirdeğidir: .tr dosyalarındaki
-// test "ad" { ... } bloklarını bulur, her birini yalıtılmış bir kapsamda çalıştırır
+// TR_test "ad" { ... } bloklarını bulur, her birini yalıtılmış bir kapsamda çalıştırır
 // ve sonuçları Türkçe olarak raporlar.
 //
 // Layer: developer tools (internal/devtools); dil, motor ve hesap katmanlarını içe aktarabilir.
@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 
 	_ "github.com/sekerahmet/TCB/internal/devtools/debugger" // koddaki kesme_noktası hata ayıklayıcıyı açar
 	"github.com/sekerahmet/TCB/internal/lang/ast"
@@ -44,19 +47,24 @@ func (o Summary) String() string {
 	return messages.Text(messages.H8500, o.Total, o.Passed, o.Failed, o.Unloadable)
 }
 
-// TestFiles hedeflere göre çalıştırılacak dosyaları, hedeflerin verildiği sırayla bulur. Hedef bir
-// dosyaysa yalnızca odur; klasörse altındaki (alt klasörler dahil) tüm *_test.tr dosyaları sıralı
-// döner. Olmayan hedef (H8502) ve test dosyası bulunmayan klasör (H8503) hatadır: hedeflerden
-// biri koşmadan sonuç "geçti" görünmesin.
+// fixtureDir taramanın inmediği klasörün adıdır: bilerek hatalı dosyalar orada durur (Go'nun kuralı).
+// Dosya ya da klasör olarak açıkça verilirse koşar.
+const fixtureDir = "testdata"
+
+// TestFiles hedeflere göre çalıştırılacak dosyaları, hedeflerin verildiği sırayla bulur. Test dosyası
+// TR_test içeren dosyadır, adı ne olursa olsun (12.1). Klasörde testsiz dosya olağandır, atlanır;
+// verilen dosyada test yoksa ya da klasörün toplamında hiç test yoksa H8503, olmayan hedef H8502:
+// hedeflerden biri koşmadan sonuç "geçti" görünmesin.
 func TestFiles(targets []string) ([]string, error) {
 	var files []string
 	for _, target := range targets {
-		found, err := source.WalkFiles(target, "_test.tr", func(target string, _ error) error {
+		found, err := source.WalkFiles(target, ".tr", func(target string, _ error) error {
 			return messages.New(messages.H8502, target)
 		}, nil)
 		if err != nil {
 			return nil, err
 		}
+		found = slices.DeleteFunc(found, func(f string) bool { return inFixtureDir(target, f) || !holdsTests(f) })
 		if len(found) == 0 {
 			return nil, messages.New(messages.H8503, target)
 		}
@@ -65,16 +73,37 @@ func TestFiles(targets []string) ([]string, error) {
 	return files, nil
 }
 
-// Run hedeflerdeki tüm test dosyalarını çalıştırır, raporu out'a yazar ve özeti döndürür. Hedeflerden
-// biri bulunamazsa hiçbir test çalışmaz.
+// inFixtureDir f, hedefin altında fixtureDir adlı bir klasörde mi.
+func inFixtureDir(target, f string) bool {
+	rel, err := filepath.Rel(target, f)
+	return err == nil && slices.Contains(strings.Split(filepath.ToSlash(filepath.Dir(rel)), "/"), fixtureDir)
+}
+
+// holdsTests dosyada test bloğu var mı. Okunamayan dosya elenmez: RunFile hatasını raporlar.
+func holdsTests(f string) bool {
+	data, err := os.ReadFile(f)
+	return err != nil || source.HasTestBlock(string(data))
+}
+
+// Run hedeflerdeki tüm test dosyalarını ve onların aktardığı modüllerin testlerini (12.1) çalıştırır,
+// raporu out'a yazar ve özeti döndürür. Her dosya bir kez, kendi makinesinde koşar. Hedeflerden biri
+// geçersizse hiçbir test çalışmaz.
 func Run(targets []string, out io.Writer) (Summary, error) {
 	files, err := TestFiles(targets)
 	if err != nil {
 		return Summary{}, err
 	}
 	var total Summary
-	for _, d := range files {
-		total.add(RunFile(d, out))
+	done := map[string]bool{}
+	for len(files) > 0 {
+		f := files[0]
+		files = files[1:]
+		if key := fileKey(f); !done[key] {
+			done[key] = true
+			summary, modules := runFile(f, out)
+			total.add(summary)
+			files = append(slices.DeleteFunc(modules, func(m string) bool { return !holdsTests(m) }), files...)
+		}
 	}
 	fmt.Fprintln(out)
 	if total.OK() {
@@ -85,11 +114,25 @@ func Run(targets []string, out io.Writer) (Summary, error) {
 	return total, nil
 }
 
-// RunFile tek bir dosyanın test bloklarını çalıştırır. Önce dosya normal biçimde
+// fileKey aynı dosyanın iki yazımını birleştirir (alt\\a.tr, alt/a.tr, ./alt/a.tr).
+func fileKey(f string) string {
+	if abs, err := filepath.Abs(f); err == nil {
+		return abs
+	}
+	return filepath.Clean(f)
+}
+
+// RunFile tek bir dosyanın test bloklarını çalıştırır.
+func RunFile(fpath string, out io.Writer) Summary {
+	summary, _ := runFile(fpath, out)
+	return summary
+}
+
+// runFile tek bir dosyanın test bloklarını çalıştırır, aktardığı modül dosyalarını da verir. Önce dosya normal biçimde
 // yüklenir (test blokları atlanarak üst düzey tanımlar oluşur); ardından her test, bu
 // tanımların üzerinde açılan yeni bir kapsamda tek tek çalışır. Bir testin kalması ya da
 // hata vermesi diğerlerini durdurmaz.
-func RunFile(fpath string, out io.Writer) Summary {
+func runFile(fpath string, out io.Writer) (Summary, []string) {
 	summary := Summary{File: 1}
 	fmt.Fprintf(out, "📄 %s\n", fpath)
 
@@ -97,7 +140,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 	if err != nil {
 		fmt.Fprintf(out, "  ✗ %v\n", turkish.FileError("", fpath, messages.H2100, err))
 		summary.Unloadable++
-		return summary
+		return summary, nil
 	}
 	ready := source.Prepare(string(data), source.Options{TypeCheck: true, Library: interp.LibraryFileName(fpath, string(data))})
 	text, prog := ready.Text, ready.Program
@@ -114,7 +157,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 			writeError(out, e, text)
 		}
 		summary.Unloadable++
-		return summary
+		return summary, nil
 	}
 
 	var tests []*ast.TestStatement
@@ -125,14 +168,15 @@ func RunFile(fpath string, out io.Writer) Summary {
 	}
 	if len(tests) == 0 {
 		fmt.Fprintln(out, "  "+messages.Text(messages.H8506))
-		return summary
+		return summary, nil
 	}
 
 	// Aktarılan modüller de testler yüklenmeden önce denetlenir (1.3).
-	if err := interp.CheckImportedModules(fpath, prog); err != nil {
+	modules, err := interp.ImportedModuleFiles(fpath, prog)
+	if err != nil {
 		writeLoadFailure(out, err, text)
 		summary.Unloadable++
-		return summary
+		return summary, nil
 	}
 
 	machine := interp.New()
@@ -143,7 +187,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 	if _, err := machine.Run(prog); err != nil {
 		writeLoadFailure(out, err, text)
 		summary.Unloadable++
-		return summary
+		return summary, modules
 	}
 
 	for _, t := range tests {
@@ -156,7 +200,7 @@ func RunFile(fpath string, out io.Writer) Summary {
 		summary.Passed++
 		fmt.Fprintf(out, "  ✓ %s\n", t.Name)
 	}
-	return summary
+	return summary, modules
 }
 
 // writeTestFailure başarısız testin satırını raporlar: konumsuz hataya (ör. TR_throw) testin satırı

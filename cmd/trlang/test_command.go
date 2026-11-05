@@ -8,8 +8,8 @@ import (
 )
 
 // testCommand 'trlang test [dosya.tr | klasör]...' komutudur. Verilen bütün hedefler çalışır; hedef
-// verilmezse bulunulan klasördeki (alt klasörler dahil) tüm *_test.tr dosyaları. Bir test bile
-// kalırsa çıkış kodu 1'dir.
+// verilmezse bulunulan klasördeki (alt klasörler dahil) TR_test içeren bütün .tr dosyaları (12.1). Bir
+// test bile kalırsa çıkış kodu 1'dir.
 // Çıkmadan önce motorların açık kaynakları kapatılır ve geçici klasörler silinir (motor.Kapat).
 func testCommand(args []string) {
 	targets := fileArguments(codes.NameRef(codes.CmdTest), args, nil, nil)

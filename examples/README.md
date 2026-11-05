@@ -107,7 +107,7 @@ Kendi denemeleriniz için kökte bir `scratch/` klasörü açıp örnekleri oray
 | `run` | Programı çalıştırır (komut adı yazılmadan verilen dosya da çalışır) | `trlang run examples/tr/07_donguler.tr` |
 | `check` | Çalıştırmadan sözdizimi ve tip denetimi | `trlang check examples/tr/13_matematik.tr` |
 | `build` | Programı yorumlayıcıyla birlikte tek çalıştırılabilir dosyaya paketler | `trlang build examples/tr/18_moduller.tr` |
-| `test` | Dosyadaki ya da klasördeki `*_test.tr` testlerini koşar | `trlang test examples/tr/17_testler_test.tr` |
+| `test` | Dosyadaki ya da klasördeki `TR_test` bloklarını koşar | `trlang test examples/tr/17_testler_test.tr` |
 | `format` | Dosyaları standart biçime getirir | `trlang format examples/tr/09_listeler.tr` |
 | `show` | Kodlu dosyayı değiştirmeden bir yazım dilinde yazar | `trlang show examples/tr/01_merhaba.tr --lang en` |
 | `debug` | Programı terminal hata ayıklayıcısında başlatır | `trlang debug examples/tr/42_hata_ayiklama.tr` |
