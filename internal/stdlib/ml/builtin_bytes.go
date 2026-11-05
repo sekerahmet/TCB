@@ -86,7 +86,7 @@ func tensorFormat(fn codes.Ref, named map[string]interp.Value, kind codes.Code) 
 func precision(fn any, named map[string]interp.Value) (byteFormat, error) {
 	v, given := bind.GetNamed(named, nameDType)
 	if !given {
-		return byteFormat{}, messages.New(messages.H7052, fn)
+		return byteFormat{}, messages.New(messages.H7052, fn, nameDType, "22.1")
 	}
 	dt, name, err := anyDType(fn, v)
 	if err != nil {

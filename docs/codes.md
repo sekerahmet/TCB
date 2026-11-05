@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 604 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 140 fonksiyon, 11 sabit, 72 metot, 104 özellik, 143 adlı argüman.
+Toplam 611 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 143 fonksiyon, 11 sabit, 72 metot, 104 özellik, 147 adlı argüman.
 
 ## İçindekiler
 
@@ -2028,6 +2028,25 @@ tr: durdurmayı_üstlen()
 
 İlişkili: `TR_stop_requested(...)`, `TR_exit(...)`
 
+#### `TR_hann_window(...)` (`TR_fn_hann_window`, `hann_penceresi`)
+
+    hann_penceresi(Tam, periyodik: Mantık = yok) → Tensör
+
+n uzunlukta Hann penceresi verir; periyodik: doğru STFT'nin penceresidir. Hesap float64'tedir, sonuç float32'dir.
+
+```tr
+TR_print(TR_hann_window(4, TR_periodic: TR_true).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: print(hann_window(4, periodic: true).tolist)
+tr: yazdır(hann_penceresi(4, periyodik: doğru).değer)
+```
+
+İlişkili: `TR_stft(...)`
+
 #### `TR_has_rope_scaling(...)` (`TR_fn_has_rope_scaling`, `rope_ölçekleme_var_mı`)
 
     rope_ölçekleme_var_mı()
@@ -2865,6 +2884,25 @@ tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.
 
 İlişkili: `TR_fuse(...)`
 
+#### `TR_rfft(...)` (`TR_fn_rfft`, `gerçek_fourier`)
+
+    gerçek_fourier(Tensör, n: Tam = yok) → Fonksiyon
+
+Gerçek sinyalin Fourier dönüşümünü son eksen boyunca hesaplar, (gerçek, sanal) demeti verir; son ekseni n // 2 + 1'dir. Kısa sinyal sıfırla dolar, uzun sinyal hatadır, ölçek yoktur.
+
+```tr
+TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0])); TR_print(g.TR_tolist, s.TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(g.tolist, s.tolist)
+tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(g.değer, s.değer)
+```
+
+İlişkili: `TR_stft(...)`
+
 #### `TR_rms_norm(...)` (`TR_fn_rms_norm`, `rms_normu`)
 
     rms_normu(Tensör | Liste, [Tensör | Liste | YokTipi], epsilon: Tam | Ondalık = 1e-05, ağırlık: Tensör | Liste | YokTipi = yok, tür: Metin = yok) → Tensör
@@ -3135,6 +3173,25 @@ tr: yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 ```
 
 İlişkili: `TR_mean(...)`
+
+#### `TR_stft(...)` (`TR_fn_stft`, `kısa_fourier`)
+
+    kısa_fourier(Tensör, Tam, adım_boyu: Tam = yok, pencere: Tensör = yok, ortala: Mantık = doğru, dolgu_kipi: Metin = yok) → Fonksiyon
+
+Kısa süreli Fourier dönüşümüdür: sinyali n uzunluklu çerçevelere böler, her birini pencereyle çarpıp dönüştürür; sonuç (gerçek, sanal) ve şekli [..., n // 2 + 1, çerçeve]'dir.
+
+```tr
+TR_var g, s = TR_stft(TR_zeros([16]), 8, TR_hop_length: 4, TR_window: TR_hann_window(8, TR_periodic: TR_true), TR_center: TR_true, TR_pad_mode: "reflect"); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(zeros([16]), 8, hop_length: 4, window: hann_window(8, periodic: true), center: true, pad_mode: "reflect"); print(g.shape)
+tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 4, pencere: hann_penceresi(8, periyodik: doğru), ortala: doğru, dolgu_kipi: "reflect"); yazdır(g.şekil)
+```
+
+İlişkili: `TR_rfft(...)`, `TR_hann_window(...)`
 
 #### `TR_stop_requested(...)` (`TR_fn_stop_requested`, `durdurma_istendi`)
 
@@ -3704,6 +3761,23 @@ tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden:
 
 Kullananlar: `TR_Error` · İlişkili: `TR_Error`, `.TR_cause`
 
+#### `TR_center:` (`TR_arg_center`, `ortala`)
+
+Doğruysa sinyalin iki ucuna n // 2 örnek dolgu eklenir, çerçeve kendi örneğine ortalanır. Varsayılan doğrudur.
+
+```tr
+TR_var g, s = TR_stft(TR_zeros([16]), 8, TR_hop_length: 4, TR_window: TR_ones([8]), TR_center: TR_false); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(zeros([16]), 8, hop_length: 4, window: ones([8]), center: false); print(g.shape)
+tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 4, pencere: birler([8]), ortala: yanlış); yazdır(g.şekil)
+```
+
+Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_pad_mode:`
+
 #### `TR_config:` (`TR_arg_config`, `ayar`)
 
 
@@ -3950,6 +4024,23 @@ Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_backward:`
 
 
 
+#### `TR_hop_length:` (`TR_arg_hop_length`, `adım_boyu`)
+
+Art arda iki çerçevenin başları arasındaki örnek sayısıdır; zorunludur.
+
+```tr
+TR_var g, s = TR_stft(TR_zeros([16]), 8, TR_hop_length: 2, TR_window: TR_ones([8]), TR_center: TR_false); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(zeros([16]), 8, hop_length: 2, window: ones([8]), center: false); print(g.shape)
+tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 2, pencere: birler([8]), ortala: yanlış); yazdır(g.şekil)
+```
+
+Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`
+
 #### `TR_in_features:` (`TR_arg_in_features`, `giriş_boyutu`)
 
 
@@ -4179,6 +4270,8 @@ Kullananlar: `TR_SGD(...)`
 
 
 
+Kullananlar: `TR_rfft(...)`
+
 #### `TR_name:` (`TR_arg_name`, `ad`)
 
 
@@ -4273,6 +4366,23 @@ tr: dosya_yaz("kaynak.txt", "yeni"); dosya_yaz("hedef.txt", "eski"); kopyala("ka
 
 Kullananlar: `TR_copy(...)`, `TR_move(...)` · İlişkili: `TR_copy(...)`, `TR_move(...)`
 
+#### `TR_pad_mode:` (`TR_arg_pad_mode`, `dolgu_kipi`)
+
+Ortalamanın dolgusudur: "reflect" ya da "constant". Ortalama açıkken zorunludur, kapalıyken verilmez.
+
+```tr
+TR_var g, s = TR_stft(TR_ones([16]), 8, TR_hop_length: 4, TR_window: TR_ones([8]), TR_pad_mode: "constant"); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(ones([16]), 8, hop_length: 4, window: ones([8]), pad_mode: "constant"); print(g.shape)
+tr: değişken g, s = kısa_fourier(birler([16]), 8, adım_boyu: 4, pencere: birler([8]), dolgu_kipi: "constant"); yazdır(g.şekil)
+```
+
+Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_center:`
+
 #### `TR_pair:` (`TR_arg_pair`, `ikinci`)
 
 kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır.
@@ -4301,6 +4411,23 @@ Kullananlar: `.TR_encode(...)`
 #### `TR_patterns:` (`TR_arg_patterns`, `desenler`)
 
 
+
+#### `TR_periodic:` (`TR_arg_periodic`, `periyodik`)
+
+Doğruysa pencere periyodiktir (STFT, Whisper), yanlışsa simetriktir; zorunludur.
+
+```tr
+TR_print(TR_hann_window(3, TR_periodic: TR_false).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: print(hann_window(3, periodic: false).tolist)
+tr: yazdır(hann_penceresi(3, periyodik: yanlış).değer)
+```
+
+Kullananlar: `TR_hann_window(...)` · İlişkili: `TR_hann_window(...)`
 
 #### `TR_ple_context:` (`TR_arg_ple_context`, `ple_bağlamı`)
 
@@ -4675,7 +4802,7 @@ en: var q = randn([6, 4], seed: 2); print(attention(q, q, q, window: 2).shape)
 tr: değişken q = rastgele_normal([6, 4], tohum: 2); yazdır(dikkat(q, q, q, pencere: 2).şekil)
 ```
 
-Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`
+Kullananlar: `TR_attention(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
 
 #### `TR_windows:` (`TR_arg_windows`, `pencereler`)
 

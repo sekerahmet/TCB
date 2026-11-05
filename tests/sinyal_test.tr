@@ -1,0 +1,159 @@
+# TR 4
+# Fourier dönüşümü, pencere ve STFT (23.1–23.3).
+
+# yakın iki listenin öğe öğe farkını sınar.
+TR_func yakın(a: TR_Tensor, b: TR_Tensor, pay: TR_Float = 0.00001) -> TR_Bool {
+    TR_return TR_all_close(a, b, TR_rtol: pay, TR_atol: pay)
+}
+
+# doğrudan Σ x[k]·e^(−2πi·j·k/n) toplamıdır: dönüşümün tanımı.
+TR_func doğrudan(x: TR_List[TR_Float], n: TR_Int) -> (TR_Tensor, TR_Tensor) {
+    TR_var gerçek: TR_List[TR_Float] = []
+    TR_var sanal: TR_List[TR_Float] = []
+    TR_for j TR_in 0..(n // 2 + 1) {
+        TR_var a = 0.0
+        TR_var b = 0.0
+        TR_for k TR_in 0..x.TR_length {
+            TR_var açı = 2.0 * TR_pi * j * k / n
+            a = a + x[k] * TR_cos(açı)
+            b = b - x[k] * TR_sin(açı)
+        }
+        gerçek.TR_append(a)
+        sanal.TR_append(b)
+    }
+    TR_return (TR_Tensor(gerçek), TR_Tensor(sanal))
+}
+
+TR_test "sinyal 23.1: örnek: çeyrek periyotta katsayılar ve sıfırlar tamdır" {
+    TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0]))
+    TR_assert_equal([0.0, 2.0, 0.0], g.TR_tolist)
+    TR_assert_equal([0.0, 0.0, 0.0], s.TR_tolist)
+    TR_var g8, s8 = TR_rfft(TR_Tensor([0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0]))
+    TR_assert_equal([0.0, 0.0, 0.0, 0.0, 0.0], g8.TR_tolist)
+    TR_assert_equal([0.0, 0.0, -4.0, 0.0, 0.0], s8.TR_tolist)
+}
+
+TR_test "sinyal 23.1: her uzunlukta tanımın toplamını verir: 2, 3, 5, 7 ve büyük asal çarpanlar" {
+    TR_for n TR_in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 21, 30, 67, 134, 100, 127] {
+        TR_var x: TR_List[TR_Float] = []
+        TR_for i TR_in 0..n { x.TR_append(TR_sin(i * 1.7) + 0.25 * TR_cos(i * 0.3)) }
+        TR_var g, s = TR_rfft(TR_Tensor(x))
+        TR_var dg, ds = doğrudan(x, n)
+        TR_assert_equal([n // 2 + 1], g.TR_shape)
+        TR_assert(yakın(g, dg, 0.0001), "n=\(n)")
+        TR_assert(yakın(s, ds, 0.0001), "n=\(n)")
+    }
+}
+
+TR_test "sinyal 23.1: TR_n: kısa sinyali sıfırla doldurur, uzunu hata verir; öneri kopyalanınca çalışır" {
+    TR_var x = TR_Tensor([1.0, 2.0, 3.0])
+    TR_var g, s = TR_rfft(x, TR_n: 8)
+    TR_assert_equal([5], g.TR_shape)
+    TR_var dolu, _ = TR_rfft(TR_Tensor([1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+    TR_assert(TR_equal(g, dolu))
+    TR_assert_equal("H7078", TR_error_code { TR_rfft(x, TR_n: 2) })
+    TR_var kısa, _ = TR_rfft(x.TR_slice(-1, 0, 2), TR_n: 2)
+    TR_assert_equal([3.0, -1.0], kısa.TR_tolist)
+}
+
+TR_test "sinyal 23.1: baştaki eksenler toplu eksendir" {
+    TR_var x = TR_Tensor([[1.0, 0.0, -1.0, 0.0], [1.0, 1.0, 1.0, 1.0]])
+    TR_var g, s = TR_rfft(x)
+    TR_assert_equal([2, 3], g.TR_shape)
+    TR_assert_equal([[0.0, 2.0, 0.0], [4.0, 0.0, 0.0]], g.TR_tolist)
+    TR_var y = TR_ones([2, 3, 4])
+    TR_var g3, _ = TR_rfft(y)
+    TR_assert_equal([2, 3, 3], g3.TR_shape)
+}
+
+TR_test "sinyal 23.1: float64 float64'te, 16 bit float32'de hesaplanır" {
+    TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0], TR_dtype: "float64"))
+    TR_assert_equal("float64", g.TR_dtype)
+    TR_assert_equal("float64", s.TR_dtype)
+    TR_var h, _ = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0], TR_dtype: "bf16"))
+    TR_assert_equal("float32", h.TR_dtype)
+}
+
+TR_test "sinyal 23.1: yanlış girdiler adıyla hata verir; öneri kopyalanınca çalışır" {
+    TR_assert_equal("H7076", TR_error_code { TR_rfft(TR_Tensor([1, 2])) })
+    TR_var _g, _s = TR_rfft(TR_Tensor[TR_Float](TR_Tensor([1, 2])))
+    TR_assert_equal("H7076", TR_error_code { TR_rfft(TR_Tensor(1.0)) })
+    TR_assert_equal("H5530", TR_error_code { TR_rfft(TR_Tensor([1.0]), TR_n: 0) })
+    TR_assert_equal("H5530", TR_error_code { TR_rfft(TR_Tensor([1.0]), TR_n: -1) })
+    TR_assert_equal("H5530", TR_error_code { TR_rfft(TR_zeros([0])) })
+    TR_var boş, _ = TR_rfft(TR_zeros([0]), TR_n: 4)
+    TR_assert_equal([0.0, 0.0, 0.0], boş.TR_tolist)
+}
+
+TR_test "sinyal 23.2: Hann penceresi: periyodik ve simetrik" {
+    TR_assert(yakın(TR_Tensor([0.0, 0.5, 1.0, 0.5]), TR_hann_window(4, TR_periodic: TR_true)))
+    TR_assert(yakın(TR_Tensor([0.0, 0.75, 0.75, 0.0]), TR_hann_window(4, TR_periodic: TR_false)))
+    TR_assert_equal([1.0], TR_hann_window(1, TR_periodic: TR_true).TR_tolist)
+    TR_assert_equal([1.0], TR_hann_window(1, TR_periodic: TR_false).TR_tolist)
+    TR_assert_equal("float32", TR_hann_window(8, TR_periodic: TR_true).TR_dtype)
+    TR_assert_equal(TR_false, TR_hann_window(8, TR_periodic: TR_true).TR_requires_grad)
+    TR_assert_equal("H7052", TR_error_code { TR_hann_window(4) })
+    TR_assert_equal("H5530", TR_error_code { TR_hann_window(0, TR_periodic: TR_true) })
+}
+
+TR_test "sinyal 23.3: çerçeve sayısı ve şekil" {
+    TR_var w = TR_ones([4])
+    TR_var g, s = TR_stft(TR_zeros([10]), 4, TR_hop_length: 2, TR_window: w, TR_center: TR_false)
+    TR_assert_equal([3, 4], g.TR_shape)
+    TR_var g2, s2 = TR_stft(TR_zeros([10]), 4, TR_hop_length: 3, TR_window: w, TR_center: TR_false)
+    TR_assert_equal([3, 3], g2.TR_shape)
+    TR_var o, _ = TR_stft(TR_zeros([10]), 4, TR_hop_length: 2, TR_window: w, TR_pad_mode: "reflect")
+    TR_assert_equal([3, 6], o.TR_shape)
+    TR_var k, _ = TR_stft(TR_zeros([2, 10]), 4, TR_hop_length: 2, TR_window: w, TR_pad_mode: "constant")
+    TR_assert_equal([2, 3, 6], k.TR_shape)
+}
+
+TR_test "sinyal 23.3: çerçeve pencereyle çarpılıp dönüştürülür" {
+    TR_var x = TR_Tensor([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    TR_var w = TR_Tensor([0.5, 1.0, 1.0, 0.5])
+    TR_var g, s = TR_stft(x, 4, TR_hop_length: 2, TR_window: w, TR_center: TR_false)
+    TR_var ilk_g, ilk_s = TR_rfft(x.TR_slice(0, 0, 4) * w)
+    TR_var son_g, son_s = TR_rfft(x.TR_slice(0, 2, 6) * w)
+    TR_assert(TR_equal(ilk_g, g.TR_slice(1, 0, 1).TR_reshape([3])))
+    TR_assert(TR_equal(ilk_s, s.TR_slice(1, 0, 1).TR_reshape([3])))
+    TR_assert(TR_equal(son_g, g.TR_slice(1, 1, 2).TR_reshape([3])))
+    TR_assert(TR_equal(son_s, s.TR_slice(1, 1, 2).TR_reshape([3])))
+}
+
+TR_test "sinyal 23.3: yansıtma ve sıfır dolgusu" {
+    TR_var w = TR_ones([4])
+    TR_var x = TR_Tensor([1.0, 2.0, 3.0, 4.0])
+    TR_var y, _ = TR_stft(x, 4, TR_hop_length: 4, TR_window: w, TR_pad_mode: "reflect")
+    TR_var yansıma, _ = TR_rfft(TR_Tensor([3.0, 2.0, 1.0, 2.0]))
+    TR_assert(TR_equal(yansıma, y.TR_slice(1, 0, 1).TR_reshape([3])))
+    TR_var son, _ = TR_rfft(TR_Tensor([3.0, 4.0, 3.0, 2.0]))
+    TR_assert(TR_equal(son, y.TR_slice(1, 1, 2).TR_reshape([3])))
+    TR_var c, _ = TR_stft(x, 4, TR_hop_length: 4, TR_window: w, TR_pad_mode: "constant")
+    TR_var sıfır, _ = TR_rfft(TR_Tensor([0.0, 0.0, 1.0, 2.0]))
+    TR_assert(TR_equal(sıfır, c.TR_slice(1, 0, 1).TR_reshape([3])))
+}
+
+TR_test "sinyal 23.3: yanlış ayarlar adıyla hata verir" {
+    TR_var w = TR_ones([4])
+    TR_var x = TR_zeros([10])
+    TR_assert_equal("H7052", TR_error_code { TR_stft(x, 4, TR_window: w, TR_center: TR_false) })
+    TR_assert_equal("H7052", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_center: TR_false) })
+    TR_assert_equal("H7052", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: w) })
+    TR_assert_equal("H5530", TR_error_code { TR_stft(x, 4, TR_hop_length: 0, TR_window: w, TR_center: TR_false) })
+    TR_assert_equal("H5530", TR_error_code { TR_stft(x, 0, TR_hop_length: 1, TR_window: w, TR_center: TR_false) })
+    TR_assert_equal("H7076", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: TR_ones([3]), TR_center: TR_false) })
+    TR_assert_equal("H7076", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: TR_ones([2, 2]), TR_center: TR_false) })
+    TR_assert_equal("H7076", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: TR_Tensor([1, 1, 1, 1]), TR_center: TR_false) })
+    TR_assert_equal("H7077", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: w, TR_pad_mode: "zero") })
+    TR_assert_equal("H7079", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: w, TR_center: TR_false, TR_pad_mode: "reflect") })
+    TR_assert_equal("H7078", TR_error_code { TR_stft(TR_zeros([2]), 4, TR_hop_length: 2, TR_window: w, TR_pad_mode: "reflect") })
+    TR_assert_equal("H7078", TR_error_code { TR_stft(TR_zeros([3]), 4, TR_hop_length: 2, TR_window: w, TR_center: TR_false) })
+}
+
+TR_test "sinyal 23.1, 23.3: türev isteyen girdi açık hata verir; türevsiz blokta çalışır" {
+    TR_var x = TR_Tensor([1.0, 2.0, 3.0, 4.0], TR_requires_grad: TR_true)
+    TR_assert_equal("H7076", TR_error_code { TR_rfft(x) })
+    TR_assert_equal("H7076", TR_error_code { TR_stft(x, 4, TR_hop_length: 2, TR_window: TR_ones([4]), TR_center: TR_false) })
+    TR_var g = TR_no_grad { TR_rfft(x) }
+    TR_assert_equal([3], g.0.TR_shape)
+}

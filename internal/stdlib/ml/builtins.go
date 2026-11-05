@@ -80,6 +80,7 @@ func registerConstructors(v *interp.VM) {
 	registerWhole(v) // type_args.go
 	registerExtremes(v)
 	registerBytes(v)
+	registerFourier(v)
 
 	// --- Görünüm ---
 	wrap(v, codes.FnConcat, newBuiltin(concatBuiltin)) // model_araclari.go

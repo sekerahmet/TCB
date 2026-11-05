@@ -23,6 +23,15 @@ TR_write_wav(TR_String(yol), TR_Sound(TR_samples: TR_Tensor([[0.0, 0.5, -0.5]]),
 TR_var ses = TR_read_wav(TR_String(yol))
 TR_print(ses.TR_sample_rate, ses.TR_samples.TR_shape)
 
+# Fourier dönüşümü sesi frekanslara ayırır; sonuç (gerçek, sanal) demetidir. STFT aynı işi kısa
+# pencerelerle yapar: konuşma modelleri sesi böyle görür.
+TR_var dalga = TR_Tensor([1.0, 0.0, -1.0, 0.0])
+TR_var gerçek, sanal = TR_rfft(dalga, TR_n: 8)
+TR_print(gerçek.TR_shape, sanal.TR_shape)
+TR_var pencere = TR_hann_window(4, TR_periodic: TR_true)
+TR_var g, s = TR_stft(ses.TR_samples[0], 4, TR_hop_length: 2, TR_window: pencere, TR_center: TR_true, TR_pad_mode: "reflect")
+TR_print((g ** 2 + s ** 2).TR_shape)
+
 # --- Kendin dene ---
 # 1. TR_Bytes([1, 2, 3]) baytlarını "uint16" olarak okumayı dene: ileti ne öneriyor?
 # 2. 300 sayısını "uint8" olarak yazmayı dene.

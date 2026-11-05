@@ -545,6 +545,7 @@ genel.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_
 geniş.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 geo.TR_Linear	not_found	4	-
 geri.TR_append	ok	0	name:TR_mem_append
+gerçek.TR_shape	ok	0	name:TR_mem_shape
 gerçek.TR_tolist	ok	0	name:TR_mem_tolist
 geçmiş.TR_append	ok	0	name:TR_mem_append
 girdi.TR_shape	ok	0	name:TR_mem_shape
@@ -1047,6 +1048,7 @@ sabit_t.TR_grad	ok	0	name:TR_mem_grad
 sabit_çıktı.TR_append	ok	0	name:TR_mem_append
 sabit_önbellek.TR_advance	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_advance
 sabit_önbellek.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
+sanal.TR_shape	ok	0	name:TR_mem_shape
 sanal.TR_tolist	ok	0	name:TR_mem_tolist
 satir.TR_append	ok	0	name:TR_mem_append
 satır.TR_append	ok	0	name:TR_mem_append

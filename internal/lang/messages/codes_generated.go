@@ -1453,7 +1453,7 @@ const (
 	H7017 Code = 7017 // '{name}' burada yazılmaz, yazımı: `{example}`
 	H7050 Code = 7050 // {fn}: yalnız ondalık tensör alır, {given} verildi (15.18a); tam sayı ve mantık tensöründe `{#equal}(a, b)` yazılır
 	H7051 Code = 7051 // {fn}: öğe cinsi zorunludur (22.1): `{call}[{#Float}](b, {#dtype}: "float32", {#byte_order}: "little")` gibi yazın
-	H7052 Code = 7052 // {fn}: `{#dtype}:` zorunludur (22.1): baytların hassasiyetini yazın, ör. `{#dtype}: "float32"`
+	H7052 Code = 7052 // {fn}: `{name}:` zorunludur ({rule})
 	H7053 Code = 7053 // {fn}: "{dtype}" nicemlenmiş saklama hassasiyetidir, baytlardan kurulmaz (22.1); nicemlenmiş tensör dosyadan gelir (15.55)
 	H7054 Code = 7054 // {fn}: "{dtype}" {kind} hassasiyetidir, bu işlem {given} hassasiyeti ister (22.3); `{call}` yazın
 	H7055 Code = 7055 // {fn}: "{dtype}" çok baytlıdır, bayt sırası zorunludur (22.1): `{#byte_order}: "little"` ya da `{#byte_order}: "big"`; makinenin kendi sırası diye bir seçenek yoktur
@@ -1465,7 +1465,7 @@ const (
 	H7061 Code = 7061 // {path|q}: {case, select, pcm {tam sayı PCM} float {ondalık ses} compressed {sıkıştırılmış ses} valid {geçerli bit sayısı örnek boyundan farklı ses} other {desteklenmeyen dosya}} ({value}) okunmuyor (22.4); 16 bite çevirin: `ffmpeg -nostdin -i girdi -c:a pcm_s16le çıktı.wav`
 	H7062 Code = 7062 // {path|q}: WAV dosyası değil (22.4): {case, select, riff {başında `RIFF` yok} other {`WAVE` yok}}
 	H7063 Code = 7063 // {path|q}: bozuk WAV dosyası (22.4): {case, select, no_fmt {`fmt ` parçası yok} no_data {`data` parçası yok} data_first {`data` `fmt `'ten önce geliyor} two_fmt {iki `fmt ` parçası var} other {iki `data` parçası var}}
-	H7064 Code = 7064 // {path|q}: bozuk WAV dosyası (22.4): `fmt ` parçası {size} bayt, en az {least} olmalı
+	H7064 Code = 7064 // {path|q}: bozuk WAV dosyası (22.4): fmt parçası {size} bayt, en az {least} olmalı
 	H7065 Code = 7065 // {path|q}: bozuk WAV dosyası (22.4): kanal sayısı {channels}, örnekleme hızı {rate}; ikisi de pozitif olmalı
 	H7066 Code = 7066 // {path|q}: bozuk WAV dosyası (22.4): blok hizası {align}, {channels} kanal ve {bytes} baytlık örnekle tutmuyor
 	H7067 Code = 7067 // {path|q}: bozuk WAV dosyası (22.4): `{chunk}` parçası {size} bayt diyor, dosyada {rest} bayt kalmış. Dosya kesik olabilir; boruya yazılmış dosyanın boyu bilinmez, sesi dosyaya yazın
@@ -1477,6 +1477,10 @@ const (
 	H7073 Code = 7073 // boş ses yazılmaz: şekli {shape} (22.4); böyle bir dosya geri okunamazdı
 	H7074 Code = 7074 // {channel}. kanalın {index}. örneği {value}: [-1, 1] dışındaki örnek yazılmaz, taşan ses sessizce kırpılmaz (22.4); kırpmak için örnekleri `{#clamp}(x, {#min}: -1.0, {#max}: 1.0)` ile sınırlayın
 	H7075 Code = 7075 // {channel}. kanalın {index}. örneği NaN: yazılmaz (22.4); NaN yukarıdaki bir hesabın bozulduğunu gösterir, önce onu düzeltin
+	H7076 Code = 7076 // {fn}: {given}: {case, select, float {ondalık tensör gerekir (23.1); çevirin} scalar {son ekseni olan tensör gerekir (23.1); eksen ekleyin} gpu {bu cihazda henüz yok, CPU'ya sessizce düşmez (23.5); taşıyın} window {pencere `n` uzunlukta tek boyutlu ondalık tensör olmalıdır (23.3); şöyle kurun} other {türev bu işlemde henüz yok, sonuç sessizce kopmaz; türev gerekmiyorsa bloğa alın}}: `{fix}`
+	H7077 Code = 7077 // {fn}: {name} {valid} olur, {given} verildi ({rule})
+	H7078 Code = 7078 // {fn}: uzunluk {given}: {case, select, reflect {yansıtma dolgusu için {limit}'den uzun olmalıdır (23.3)} short {çerçeve boyu {limit}'den kısa (23.3)} other {dönüşüm boyu {limit}'den uzun, sessizce kesilmez (23.1); dilimleyin: `x.{#slice}(-1, 0, {limit})`}}
+	H7079 Code = 7079 // {fn}: {given}: {case, select, pad_given {dolgu eklenmiyor, dolgu kipi verilmez (23.3)} other {}}{fix}{second}
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

@@ -1339,7 +1339,7 @@ Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
 
 ### 23.1–23.6
 
-- **Mevcut durum:** uygulanmadı; `TR_rfft`, `TR_stft`, `TR_mel_filterbank` kimlikleri ve `tr/audio` kitaplığı yok [ölçüldü: main `705b721b`, `internal/lang/codes/tr.json`].
+- **Mevcut durum (S1, 2026-11-05):** 23.1–23.3 var, CPU'da: `TR_rfft` (karışık taban, büyük asal çarpanda Bluestein), `TR_hann_window`, `TR_stft`; işçi sayısından bağımsız aynı bitler; GPU'da ve türev isteyen girdide H7076 [test: `tests/sinyal_test.tr`, `TestStftSameBitsForAnyWorkerCount`, `TestPlanMatchesTheDefinition`].
 - **Yapılacaklar:** uygulama Jarvis'in sırasıyla, konuşmayı yazıya çevirmekle. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.5); o gelene kadar GPU'da hata. 22.4'ün `TR_Sound` kuruluşu da 23.6'nın iletisi için gerekir.
 
 ## 24. Sohbet biçimi
