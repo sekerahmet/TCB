@@ -39,14 +39,16 @@
    - **Uygulama (`96` boşluksuz/yorumsuz üretim satırı, `< 100` tavan):** `test_paths.go:33,236,293,360`, `test_paths_param.go:80`, `gocode.go:155`, `data_coverage_test.go:22` (`maxUncoveredData = 8`), `testdata/uncovered_data.txt`, `gaps.md:57`, `README.md:614` ve `TestBareReadCallsAndSlashTailComments` (`[test: tools/codegraph/test_paths_param_test.go]`).
 5. **Madde 1 (`788cdb2c6bc1bcfe7f95e96ca6542aeeccfeb19b`, 10:20 +03):**
    - **Sözcük ve düğüm sayımı (`testdata/planning_questions.txt`):** `251` benzersiz sözcük `TestPlanningQuestionsAreAnswered` testinden `names_in_exam` (`INFERRED`) kenarıyla `251` düğüme bağlandı (`96` `func`, `46` `method`, `41` `file`, `21` `name`, `9` `doc`, `8` `field`, `8` `var`, `6` `type`, `5` `tr_method`, `3` `message`, `3` `tr_struct`, `2` `const`, `1` `tr_field`, `1` `tr_func`, `1` `tr_param`). En çok bağlananlar: `TR_mem_map` (`x8`), `layers.TR_type_Linear.TR_mem_forward` (`x5`), `codes.Language.Name` (`x4`), `TR_fn_print` (`x4`), `TR_mem_shape` (`x4`), `lib/layers.tr` (`x4`), `lib/layers_test.tr` (`x4`), `lib/pretrained_test.tr` (`x4`).
-   - **Uygulama (`exam_links.go` `135` boşluksuz/yorumsuz satır, tüm `.go` farkıyla toplam `149 <= 150` üretim satırı):** `exam_links.go`, `fresh.go:25`, `graph.go:25,79`, `main.go:180`, `query.go:385`, `query_path.go:68`, `query_tests.go:252,261,263,290`, `query_file_tests.go:67`, `diffmap.go:79,104`, `changed.go:310`, `testdata/extractor_digest.txt` (`revision 87` / `digest c53962552039e66a`), `gaps.md`, `README.md:274` ve `TestEveryNodeTheExamNamesIsLinkedFromTheExam` + `TestExamSelectionOnModifyRenameDeleteAndStamp` (`[test: tools/codegraph/exam_links_test.go]`).
+   - **Uygulama (`exam_links.go` `135` boşluksuz/yorumsuz satır, tüm `.go` farkıyla toplam `149 <= 150` üretim satırı):** `exam_links.go`, `fresh.go:25`, `graph.go:25,79`, `main.go:180`, `query.go:385`, `query_path.go:68`, `query_tests.go:252,261,263,290`, `query_file_tests.go:67`, `diffmap.go:79,104`, `changed.go:310`, `testdata/extractor_digest.txt` (`revision 87` / `digest c53962552039e66a`), `gaps.md`, `README.md:41,169` ve `TestEveryNodeTheExamNamesIsLinkedFromTheExam` + `TestExamSelectionOnModifyRenameDeleteAndStamp` (`[test: tools/codegraph/exam_links_test.go]`).
 6. **"Sonra" (bedel) ölçümleri ve 7 bitti ölçütü komutu (10:50–11:10 +03, canlı doğrulandı):**
    - **`codegraph build` (sonra, temiz birleştirme ağacı):** `31647 nodes, 235894 edges (165578 EXTRACTED, 70316 INFERRED) in 6.1s` (duvar `6239 ms`).
    - **`cites` ve `names_in_exam`:** `cites` `604 → 601` (`-6` sahte yol kuyruğu yorum kenarı silindi, `+3` yeni koruyan test dosyasından gerçek anma eklendi); `names_in_exam` `0 → 251`.
    - **`1805` izlenen dosyada `tests-for`:** `261` değişti (`1544` aynı; `126` dosya `<- exam questions that name it` kazandı, `tools/codegraph/README.md` `TestReadmeGraphSizeIsCurrent` kazandı).
    - **5 aralık (`changed --go-tests` satır sayıları):** `1290 → 1291`, `47 → 47`, `905 → 906`, `670 → 670`, `306 → 310` (mevcut testlerde `+0`; tüm artışlar bu dalda eklenen yeni koruyan testlerden).
    - **Son 60 commit:** `4` commit `tools/codegraph TestPlanningQuestionsAreAnswered` kazandı (`01d168e6..6535ac87`, `6c1291d2..5d880530`, `52d58950..d1af3110`, `62b5e07f..8e58eb05`).
-   - **Bitti ölçütü 1–7:** Tamamı koşuldu; temiz birleştirme ağacında `go test -short -timeout 1200s ./tools/codegraph/... ./tools/edithook/...` (`211.294s` ve `0.060s`, çıkış `0`) ve `git clone --depth 1` kopyasında 4 koruyan test (`8.546s`, çıkış `0`) geçti; ham dalda `TestEveryTrackedDataFileHasATestOrAReason` beklendiği gibi yalnız `UZAK3_DURUM.md`'yi görüyor (`UZAK_YONERGE_3.md:13`).
+   - **Bitti ölçütü 1–7:** Tamamı koşuldu; temiz birleştirme ağacında `go test -short -timeout 1200s ./tools/codegraph/... ./tools/edithook/...` (`211.294s` ve `0.060s`, çıkış `0`) ve `git clone --depth 1` kopyasında 4 koruyan test (`8.546s`, çıkış `0`) geçti; ham dalda `TestEveryTrackedDataFileHasATestOrAReason` beklendiği gibi yalnız `UZAK3_DURUM.md` ve `UZAK3_RAPORU.md` dosyalarını görür (`UZAK_YONERGE_3.md:13`).
+7. **Rapor yazımı ve kendi kontrolüm (11:12–11:20 +03):**
+   - `UZAK3_RAPORU.md` Türkçe olarak yazıldı; `14` birebir `[kanıtlı: ...]` alıntısının tamamı `grep -F` ve satır içi karakter karşılaştırmasıyla, `UZAK3_RAPORU.md` içindeki `51` ve `UZAK3_DURUM.md` içindeki `39` `dosya:satır` başvurusunun tamamı kaynak dosyaları yeniden açılarak doğrulandı (`1` alıntıda baştaki `-` işareti `grep -F` uyumu için kaldırıldı, `1` satır numarası `README.md:274` → `README.md:41,169` olarak düzeltildi, `0` silindi).
 
 ## Bulgular ve kanıtlar
 
@@ -54,13 +56,13 @@
   1. `go` ikilisi sanal makinede öntanımlı kurulu değildi (`[ölçüldü: which go, çıkış 1]`); kullanıcı alanına `go1.26.10` kuruldu.
   2. Başlangıç klonunda `remote.origin.fetch` yalnız `+refs/heads/main:refs/remotes/origin/main` idi ve depo sığ klondu (`200` commit, `git rev-parse --is-shallow-repository` → `true`); `yonerge` dalı için refspec genişletildi. Sığ klon nedeniyle `TestPlanningQuestionsAreAnswered` geçmiş gerektiren `7` soruyu (`79`, `85`, `180`, `193`, `194`, `241`, `290`) tasarlandığı gibi atlıyor (`skipped, the clone has no history`).
   3. `/usr/bin/time` ikilisi kurulu değil (`[ölçüldü: which time, çıkış 1]`).
-  4. `TestEveryTrackedDataFileHasATestOrAReason` dal kökündeki izlenen `UZAK3_DURUM.md` dosyasını görüyor (`UZAK_YONERGE_3.md:13` uyarınca beklendiği gibi teste dokunulmadı).
-  5. Uzak sanal makine üç kez (`09:14 +03`, `10:16 +03`, `10:49 +03`) kısa süreliğine gRPC bağlantısını kesip yeniden bağlandı ve `run_command` akışının ~`300s` tavanı var (`generic::deadline_exceeded`).
+  4. `TestEveryTrackedDataFileHasATestOrAReason` dal kökündeki izlenen `UZAK3_DURUM.md` ve `UZAK3_RAPORU.md` dosyalarını görüyor (`UZAK_YONERGE_3.md:13` uyarınca beklendiği gibi teste dokunulmadı).
+  5. Uzak sanal makine dört kez (`09:14 +03`, `10:16 +03`, `10:49 +03`, `11:18 +03`) kısa süreliğine duraklayıp yeniden başladı ve `run_command` akışının ~`300s` tavanı var (`generic::deadline_exceeded`).
 
 ## Kalan adımlar
 
-1. `UZAK3_RAPORU.md` taslağının yazılması, tüm alıntıların (`grep -F`) ve `dosya:satır` referanslarının kendi kontrolü, son durum kaydı, `Kendi incelemem bitti.` satırının eklenmesi ve son push.
+- Yok (tamamlandı).
 
 ## Emin olmadıklarım
 
-- Henüz yok.
+- Yok.
