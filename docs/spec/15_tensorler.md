@@ -652,7 +652,7 @@ Sınır: tablo özel değerler içindir. float32'nin ucundaki büyük sonlu say�
 - Grup boyu adın parçasıdır ("q4z128"): başka grup boyu başka bir hassasiyettir; tablodakiler dışında nicemlenmiş hassasiyet yoktur.
 - "q4_k" ve "q6_k" salt okunurdur: dosyadan gelir (15.55), TR üretmez. Yayımlanmış 4 bitlik modellerin türleridir; `Q4_0` dosyaları da çıkış katmanını başka türde saklar.
 - `.TR_dtype` adı verir; `.TR_shape` mantıksal şekli verir (`[N, K]`), deponun bayt düzeni görünmez.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi (`tests/tensor_nicemli_test.tr`: "q8", "q4_k", "q6_k"); Go: `TestQuantStorageSizes`, `TestQuantShapeGate`; "q4", "q4z128", "fp8" uygulanınca TR testi.
 
 **15.52** Nicemlemek ve açmak `.TR_to_dtype` iledir (15.3):
 - `t.TR_to_dtype("q8")` float32, bf16, fp16 ya da float64 tensörü nicemler. "q4_k" ve "q6_k"ye nicemleme çalışma hatasıdır (15.51).
@@ -674,7 +674,7 @@ Sınır: tablo özel değerler içindir. float32'nin ucundaki büyük sonlu say�
   - "q4_k" ve "q6_k" parçalardan kurulmaz: ölçekleri iki düzeylidir, `TR_scale`'e sığmaz; çalışma hatası, ileti `TR_load_tensors`'u söyler.
   - Şekiller uymazsa çalışma hatası, ileti beklenen şekilleri söyler. Sıra değiştiren gruplar (GPTQ'nun `g_idx`'i, `desc_act`) desteklenmez: ileti bunu söyler.
 - Nicemlemeye geçiş türevlenmez: türev izleyen tensörü nicemlemek çalışma hatasıdır, ileti `.TR_detach()`'ı ya da türevsiz kipi önerir. Nicemlenmiş tensör hiçbir zaman türev izlemez (`TR_requires_grad: TR_true` hata).
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi (`tests/tensor_nicemli_test.tr`: açmak ve H6691); Go: `TestDequantMatchesLlamaCpp` (altın değerler gerçek C kodundan), `TestDequantToOtherPrecisions`; nicemleme ve `TR_quantized` uygulanınca TR testi.
 
 **15.53** Nicemlenmiş tensörün girdiği işlemler **açıkça sayılıdır**:
 - `x @ w.TR_transpose()` (`x @ w` yazana ileti doğru yazımı verir): sağ işlenen, `[N, K]` deposu nicemlenmiş bir ağırlığın `.TR_transpose()` görünümüdür; bloklar çarpımın indirgeme ekseni `K` boyuncadır. `x` float32, bf16 ya da fp16'dır; açma çekirdeğin içinde, blok blok yapılır, biriktirme float32'dedir, sonuç `x`'in hassasiyetindedir (`TR_mixed_precision` bloğunda blok türü, 15.4).
@@ -685,10 +685,10 @@ Sınır: tablo özel değerler içindir. float32'nin ucundaki büyük sonlu say�
 - **Türev:** `x @ w.TR_transpose()`'da gradyan `x`'e akar, nicemlenmiş ağırlığa akmaz (ağırlık donmuştur); geri yön `g @ w`'yi ikinci bir çekirdekle hesaplar. Nicemlenmiş tabanın üstüne eğitilen düşük sıralı bağdaştırıcı böyle yazılır: `x @ w.TR_transpose() + (x @ A) @ B`.
 - **Belirlenimcilik:** 15.22a. Cihazlar arasında açılmış değerler kesin aynıdır; çarpımın toplamı 15.41'in sınırındadır.
 - "fp8" ağırlıkla TR etkinleştirmeyi nicemlemeden, açılmış ağırlıkla çarpar. Hugging Face'in FP8 modelleri etkinleştirmeyi de çalışırken nicemler; sonuç onlarınkinden yuvarlama farkıyla ayrılır, özgün uygulamayla bit bit aynı değildir. GGUF türleri için de böyledir: llama.cpp etkinleştirmeyi `Q8_0` ya da `Q8_K`'ya nicemler, TR nicemlemez; ağırlıklar aynı, çarpımın sonucu yuvarlama farkıyla ayrılır.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi ve Go testi (CPU ve GPU, açılmış hesapla karşılaştırma).
+- *Test:* TR testi (`tests/tensor_nicemli_test.tr`); Go: `TestQuantDotMatchesOpenedDot`, `TestQuantMatMulMatchesOpened`, `TestQuantEmbedding`, `TestQuantRefusesEverythingElse`; GPU ve geri yön uygulanınca Go testi (açılmış hesapla karşılaştırma).
 
 **15.54** Nicemlenmiş tensöre yerinde yazılmaz: atama, bileşik atama, `.TR_fill` ve `TR_write_slice` çalışma hatasıdır (yazma bir bloğun ölçeğini değiştirirdi); ileti açıp yazmayı ve yeniden nicemlemeyi söyler. Kopyası `TR_Tensor(q)` aynı hassasiyette yeni bir depodur. Yükleme (20.6, 20.11, 20.14) yerinde yazma değildir: nicemlenmiş yaprağın deposuna, aynı belleğe, bütün olarak yazar (kodlar, ölçekler ve sıfırlar birlikte, aynı hassasiyet ve şekille; görünümler ve `TR_replay` kaydı geçerli kalır); hassasiyet ya da şekil farklıysa hatadır.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* TR testi (`tests/tensor_nicemli_test.tr`: yerinde yazma ve kopya); yükleme uygulanınca TR testi.
 
 **15.55** Dosyalar:
 - TR biçimi (15.46) nicemlenmiş tensörü kendi hassasiyetinde, kodları ve ölçekleriyle saklar; yüklenen tensör aynı hassasiyettedir. Her nicemlenmiş hassasiyetin kendi tür kodu vardır; sürüm 2'dir (15.46).
@@ -704,4 +704,4 @@ Sınır: tablo özel değerler içindir. float32'nin ucundaki büyük sonlu say�
 - `TR_load_metadata(yol)` GGUF dosyasının üstverisini `TR_JSON` olarak verir; `tokenizer.ggml.` ile başlayan anahtarlar girmez (16.1). `tokenizer.chat_template` metin olarak gelir, kod olarak çalıştırılmaz. GGUF olmayan dosya ve `TR_JSON`'un tam sayısına sığmayan değer çalışma hatasıdır.
 - **Kitaplık (`tr/pretrained`):** `TR_pretrained_gguf(yol)` modeli tek GGUF dosyasından kurar: boyutlar üstveriden gelir, `TR_weight_dtype` parametresi yoktur. `TR_pretrained_model`'e `.gguf` yolu vermek hatadır, ileti bu adı önerir. `TR_pretrained_model`'in kapıları burada da geçerlidir: desteklenmeyen mimari (H6940), eşlenmeyen ya da eksik tensör ve `attention.sliding_window` anahtarı (H6944) yükleme hatasıdır. GGUF modeli birleşik katmansız kurulur: nicemlenmiş `TR_concat` hatadır, `Q4_K_M`'de `attn_k` ile `attn_v` ayrı türde olabilir. Her parametrenin türü dosyadaki tensörün türüdür; nicemlenmiş ağırlık `[N, K]` kalır, katman `x @ w.TR_transpose()` çarpar. `llama` mimarisinde dönüştürücü `attn_q` ve `attn_k`'nın satırlarını yeniden sıralar; kitaplık yüklerken tensörle indeksle geri alır: yapılmazsa model hatasız yüklenir, yanlış metin üretir. RoPE ölçekli dosya desteklenene kadar yükleme hatasıdır (H6943): `rope_freqs.weight` tensörü varsa, mimarinin `rope.scaling.type` anahtarı "none" dışındaysa ya da `rope.scaling.factor` veya `rope.scale_linear` 0 ve 1 dışındaysa. Ölçek uygulanmazsa model hatasız yüklenir, yanlış metin üretir.
 - `TR_save_tensors` `.safetensors`'a nicemlenmiş tensör yazmaz: çalışma hatası, ileti `.TR_to_dtype("float32")` ile açmayı (15.52) ya da TR biçimini önerir.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi.
+- *Test:* Go: `TestGGUFLoadsFloatTensors`, `TestGGUFLoadsQuantizedTensors`, `TestGGUFQuantRejects`, `TestGGUFRejects`, `TestLoadMetadataGivesJSON`, `TestDecodeRejects`, `TestDecodeHoldsToSize`, `FuzzGGUFDecode`; uçtan uca: `TestGGUFModelMatchesSafetensors`, `TestGGUFQuantizedModelMatchesOpened`, `TestGGUFModelGates`, `TestGGUFModelDefaults`; TR biçiminin nicemlenmiş kodları uygulanınca TR testi.

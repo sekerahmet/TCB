@@ -164,6 +164,7 @@
   "TR_fn_ple_gelu": { "name": "ple_gelu", "family": "kitaplık: tr/layers", "description": "" },
   "TR_fn_ple_mix": { "name": "ple_karışımı", "family": "kitaplık: tr/layers", "description": "" },
   "TR_fn_ple_mix_fused": { "name": "ple_karışımı_kaynaşık", "family": "kitaplık: tr/layers", "description": "" },
+  "TR_fn_pretrained_gguf": { "name": "hazır_gguf", "family": "kitaplık: tr/pretrained", "description": "" },
   "TR_fn_pretrained_model": { "name": "hazır_model", "family": "kitaplık: tr/pretrained", "description": "" },
   "TR_fn_print": { "name": "yazdır", "family": "giriş ve çıkış", "description": "Değerleri aralarına boşluk koyarak tek satırda yazar, değer vermez; argümansız çağrı boş satır yazar." },
   "TR_fn_randn": { "name": "rastgele_normal", "family": "tensör oluşturma", "description": "Ortalaması 0, standart sapması 1 olan normal dağılımdan rastgele sayılarla dolu bir tensör oluşturur. Aynı tam sayı tohum her çalıştırmada aynı değerleri verir; şekil liste olarak verilir." },

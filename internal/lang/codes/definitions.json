@@ -164,6 +164,7 @@
   "TR_fn_ple_gelu": { "kind": "function", "module": "tr/layers" },
   "TR_fn_ple_mix": { "kind": "function", "module": "tr/layers" },
   "TR_fn_ple_mix_fused": { "kind": "function", "module": "tr/layers" },
+  "TR_fn_pretrained_gguf": { "kind": "function", "module": "tr/pretrained" },
   "TR_fn_pretrained_model": { "kind": "function", "module": "tr/pretrained" },
   "TR_fn_print": { "kind": "function", "params": ["TR_Any*"], "returns": "TR_NoneType", "related": ["TR_fn_input"], "example": "TR_print(\"Toplam:\", 2 + 3)" },
   "TR_fn_randn": { "kind": "function", "params": ["TR_List"], "named": [["TR_arg_requires_grad", "TR_Bool", false], ["TR_arg_dtype", "TR_String", "float32"], ["TR_arg_seed", "TR_Int"]], "returns": "TR_Tensor", "related": ["TR_fn_zeros"], "example": "TR_print(TR_randn([2, 3], TR_seed: 42).TR_shape)" },

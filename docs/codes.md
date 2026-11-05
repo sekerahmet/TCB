@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 584 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 131 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
+Toplam 585 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 132 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -2555,6 +2555,12 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 #### `TR_ple_mix_fused(...)` (`TR_fn_ple_mix_fused`, `ple_karışımı_kaynaşık`)
 
     ple_karışımı_kaynaşık()
+
+
+
+#### `TR_pretrained_gguf(...)` (`TR_fn_pretrained_gguf`, `hazır_gguf`)
+
+    hazır_gguf()
 
 
 

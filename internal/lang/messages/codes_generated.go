@@ -1316,6 +1316,9 @@ const (
 	H6694 Code = 6694 // tensör indeksi {index}, [0, {rows}) dışında (15.6d)
 	H6695 Code = 6695 // "{dtype}" ağırlık `x @ w` diye çarpılmaz (15.53): bloklar son eksendedir, çarpım o eksen boyunca yapılır; doğrusu `x @ w.{#transpose}()`
 	H6696 Code = 6696 // türev izleyen tensör "{dtype}" ağırlıkla çarpılamaz: bu sürümde geri yön yok (15.53); çarpımı türevsiz yapın: `{#no_grad} {{ x @ w.TR_transpose() }}`
+	H6697 Code = 6697 // {@pretrained_gguf}: {weight|q} tensörü dosyada yok
+	H6698 Code = 6698 // {@pretrained_gguf}: {weight|q} tensörünün şekli {given}, üstveriye göre {expected} olmalı
+	H6699 Code = 6699 // {@pretrained_gguf}: {key|q} anahtarı dosyada yok
 	H6700 Code = 6700 // bu tensör ({shape}) bir işlemin sonucu; gradyan yalnızca {requiresGradArg}: {trueValue} ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici ({adamWFn}, {sgdFn}) kullanın ya da yeni değeri {noGradFn} {{ }} içinde hesaplayıp {example} ile yeniden oluşturun
 	H6701 Code = 6701 // tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: {shape})
 	H6702 Code = 6702 // tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için {expFn}({logFn}(t) * u) kullanın
@@ -1379,13 +1382,13 @@ const (
 	H6931 Code = 6931 // {@SpikeGuard}: {@threshold} sonlu ve pozitif olmalıdır, {given} verildi
 	H6932 Code = 6932 // {@Run}: {@num_steps} en az 1 olan bir tam sayı olmalıdır, {given} verildi
 	H6933 Code = 6933 // {@Run} provası: {file|q} yazılmadı ({folder|q})
-	H6940 Code = 6940 // {@pretrained_model}: {architecture|q} mimarisi desteklenmiyor (desteklenenler: {supported|list})
-	H6941 Code = 6941 // {@pretrained_model}: sapmalı dikkat ya da MLP katmanları desteklenmiyor
-	H6942 Code = 6942 // {@pretrained_model}: {activation|q} etkinleştirmesi desteklenmiyor (silu bekleniyordu)
-	H6943 Code = 6943 // {@pretrained_model}: RoPE ölçekleme (rope_scaling) desteklenmiyor
-	H6944 Code = 6944 // {@pretrained_model}: kayan pencereli dikkat (use_sliding_window) henüz desteklenmiyor
-	H6945 Code = 6945 // {@pretrained_model}: tanınmayan ağırlık {weight|q}
-	H6946 Code = 6946 // {@pretrained_model}: {target|q} için iki parçadan biri eksik
+	H6940 Code = 6940 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisi desteklenmiyor (desteklenenler: {supported|list})
+	H6941 Code = 6941 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: sapmalı dikkat ya da MLP katmanları desteklenmiyor
+	H6942 Code = 6942 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {activation|q} etkinleştirmesi desteklenmiyor (silu bekleniyordu)
+	H6943 Code = 6943 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: RoPE ölçekleme ({key|q}) desteklenmiyor
+	H6944 Code = 6944 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: kayan pencereli dikkat ({key|q}) henüz desteklenmiyor
+	H6945 Code = 6945 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: tanınmayan ağırlık {weight|q}
+	H6946 Code = 6946 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {target|q} için iki parçadan biri eksik
 	H6950 Code = 6950 // {fn}: {name|q} tensörü nicemlenmiş ({dtype}); safetensors'ta nicemlenmiş tür yok: TR biçimiyle kaydedin, yolu `.trt` ile bitirin
 	H6951 Code = 6951 // {fn}: {name|q} safetensors başlığının ayrılmış anahtarıdır, tensör adı olamaz; tensöre başka bir ad verin
 	H6952 Code = 6952 // {file}: "rng" alanı (paylaşılan rastgele üretecin durumu) yok: nokta bu TR'den eski bir sürümle yazılmış ve bu sürümle yüklenmez. Eğitimi yeni bir koşu klasörüyle baştan başlatın ya da noktayı yazan TR sürümüyle sürdürün
@@ -1431,6 +1434,7 @@ const (
 	H6993 Code = 6993 // {fn}: {name|q} modelinin kaydı bozuk: donmuş diye kaydedilen {param|q} modelin bir parametresi değil (20.4)
 	H6994 Code = 6994 // Uyarı ({file, select, main {satır {line}} other {{file}, satır {line}}}): türevsiz kipte 16 bitlik ({dtype}) bir parametreye bileşik atama ({op}=) yapılıyor (15.34): parametrenin hassasiyetinden küçük güncellemeler sessizce yutulur. float32 bir ana kopya tutun, güncellemeyi onda yapın ve parametreye yazın: `p[0..p.{#shape}[0]] = ana`. Bu uyarı her yer için bir kez gösterilir.
 	H6995 Code = 6995 // {fn}: {order}. tensör ({shape}) bir parametre değil: türev izlemek için hiç kurulmadı (15.33, 15.34), bu yüzden sessizce eğitilmeden kalırdı. Onu {example} ile kurun ya da önce `.{#requires_grad} = {#true}` atayın
+	H6996 Code = 6996 // {@pretrained_model} klasör alır; GGUF dosyası başka adla yüklenir: `{#pretrained_gguf}("{path}")`
 	H7000 Code = 7000 // {fn}: JSON metni ({text}) bekler, {given} verildi
 	H7001 Code = 7001 // JSON çözümleme hatası: {error}
 	H7003 Code = 7003 // {fn}: {path|q} bir klasör; CSV dosyasının yolunu verin
