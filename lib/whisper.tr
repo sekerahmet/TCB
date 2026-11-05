@@ -405,21 +405,26 @@ TR_struct TR_Whisper {
         }
         TR_return seek + b.ilerleme
     }
+    # _kalan pencereye düşen kayıt çerçeveleridir: son pencere kısa kalabilir (25.7).
+    TR_func _kalan(seek: TR_Int, kayıt: TR_Int) -> TR_Int { TR_return TR_min(2 * TR_self._boyutlar.kaynak, kayıt - seek) }
     # _çevir sesi pencere pencere çözer (25.7).
     TR_func _çevir(ses: TR_Sound, dil: TR_String) -> TR_Transcription {
         TR_var s = TR_self._süzgeç()
         TR_var başlangıç = TR_self._başlangıç(dil, s)
-        TR_var pencere = 2 * TR_self._boyutlar.kaynak
         TR_var log_mel = TR_whisper_log_mel(ses, TR_n_mels: TR_self._boyutlar.mel)
         TR_var kayıt = log_mel.TR_shape[1] - _DOLGU
         TR_var seek = 0
         TR_var parçalar: TR_List[TR_Int] = []
         TR_var kesitler: TR_List[TR_Segment] = []
         TR_for seek < kayıt {
-            TR_var boy = TR_min(pencere, kayıt - seek)
+            TR_var boy = TR_self._kalan(seek, kayıt)
             TR_var r = TR_self._pencere(TR_self._dilim(log_mel, seek, boy), başlangıç, parçalar, s)
             seek = TR_self._işle(r.parçalar, r.ortalama, r.sessizlik, seek, boy, s, parçalar, kesitler)
         }
+        TR_return TR_self._çevriyazı(parçalar, kesitler, s, dil)
+    }
+    # _çevriyazı pencerelerin sonucunu toplar: damgalar üst metne girmez, özel parçalar girer (25.2).
+    TR_func _çevriyazı(parçalar: TR_List[TR_Int], kesitler: TR_List[TR_Segment], s: _Süzgeç, dil: TR_String) -> TR_Transcription {
         TR_return TR_Transcription(TR_self._metin(parçalar, s.damga), kesitler, dil)
     }
     # yazıya_çevir sesi yazıya çevirir (25.2). Dış 16 bit blokta logit yuvarlanır, metin hatasız

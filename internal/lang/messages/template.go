@@ -431,17 +431,27 @@ func (c *Catalog) write(b *strings.Builder, code Code, segs []segment, args []an
 		case segPlural:
 			c.write(b, code, s.branches[c.pluralKey(s.branches, args[s.arg])], args, args[s.arg])
 		case segSelect:
-			key := fmt.Sprint(args[s.arg])
-			if key == "" {
-				key = "empty" // boş değer `empty` dalını seçer (isteğe bağlı parça)
-			}
-			branch, ok := s.branches[key]
+			branch, ok := s.branches[selectKey(args[s.arg])]
 			if !ok {
 				branch = s.branches["other"]
 			}
 			c.write(b, code, branch, args, number)
 		}
 	}
+}
+
+// selectKey seçim dalının anahtarıdır; boş değer `empty` dalını seçer (isteğe bağlı parça).
+func selectKey(a any) string {
+	var key string
+	if s, ok := a.(Selector); ok {
+		key = s.SelectKey()
+	} else {
+		key = fmt.Sprint(a)
+	}
+	if key == "" {
+		return "empty"
+	}
+	return key
 }
 
 // writeSlot ad yuvasını ({@ad}) iletinin dilindeki adıyla, kod yuvasını ({#ad}) programdaki
