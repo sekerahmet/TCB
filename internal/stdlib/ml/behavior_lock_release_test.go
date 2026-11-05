@@ -306,7 +306,10 @@ func TestCompositeBuiltinShowsNoHalfUpdatedParameters(t *testing.T) {
 	var waits atomic.Int64
 	tensor.GateWaited = func() { waits.Add(1) }
 	defer func() { tensor.GateWaited = nil }()
-	out := mustRun(t, `TR_var w1 = TR_zeros([4], TR_requires_grad: TR_true)
+	// Çakışmanın kurulması zamana bağlı: CI'ın Windows makinesinde 30 adım bir kez hiç çakışmadı
+	// (`95241c69`; aynı commit kontrol dalında geçti). Kural her turda sınanır; tur yalnız çakışma
+	// görülene kadar yinelenir, beş turda hiç görülmezse sınama yine düşer.
+	const program = `TR_var w1 = TR_zeros([4], TR_requires_grad: TR_true)
 TR_var w2 = TR_zeros([768, 768], TR_requires_grad: TR_true)
 TR_var x = TR_randn([768, 768], TR_seed: 1)
 TR_var op = TR_SGD([w1, w2], TR_lr: 1.0)
@@ -327,9 +330,11 @@ TR_for i TR_in 0..30 {
 }
 dur = TR_true
 TR_wait_all()
-TR_print(tutarsız, yoklama > 0, w1[0].TR_tolist == w2[0][0].TR_tolist)`)
-	if out != "0 true true\n" {
-		t.Fatalf("bileşik yerleşik sürerken yarım güncellenmiş parametre görüldü (tutarsız, yoklandı, sonda eşit): %s", out)
+TR_print(tutarsız, yoklama > 0, w1[0].TR_tolist == w2[0][0].TR_tolist)`
+	for try := 0; try < 5 && waits.Load() == 0; try++ {
+		if out := mustRun(t, program); out != "0 true true\n" {
+			t.Fatalf("bileşik yerleşik sürerken yarım güncellenmiş parametre görüldü (tutarsız, yoklandı, sonda eşit): %s", out)
+		}
 	}
 	if waits.Load() == 0 {
 		t.Fatal("adım kilitsiz çarpımın okuduğu parametreyi hiç beklemedi: sınama çakışmayı kurmadı")
