@@ -150,3 +150,32 @@ func checkClassedSample(t *testing.T, k codes.Code, src, want string) {
 		t.Errorf("%s: önerilen yazım (%q) hatasız okunmalı: %v", k.Class(), fixed, l2.Errors())
 	}
 }
+
+// Kural (2.3a, DENETİM istek 112 Y1): noktadan sonra yazılan fonksiyonun önerisi noktadan önceki
+// değeri atmaz: yalnız nokta silinirse argümanlar değer yerine aynı adlı dosyaya ya da başka bir
+// nesneye gider. Argüman almayan fonksiyonda yazılacak değer yoktur.
+func TestAFunctionAfterADotKeepsItsValue(t *testing.T) {
+	seen := 0
+	for _, s := range codes.SpellingsAt(codes.PlaceOther) {
+		k, _ := codes.FromSpelling(codes.PlaceOther, s)
+		if _, member := codes.FromSpelling(codes.PlaceMember, s); member || k.Class() != codes.ClassFunction {
+			continue
+		}
+		seen++
+		err := identityError(codes.PlaceMember, s).Error()
+		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") {
+			t.Errorf("x.%s: %s; öneri x'i ilk argüman yazmalı", s, err)
+		}
+	}
+	if seen < 100 {
+		t.Errorf("%d fonksiyon tarandı, bu kadar az olamaz", seen)
+	}
+	for s, want := range map[string]string{
+		"TR_move": "TR_move(x, y)", "TR_copy": "TR_copy(x, y)", "TR_write_file": "TR_write_file(x, y)",
+		"TR_sum": "TR_sum(x)", "TR_print": "TR_print(x)", "TR_list_dir": "TR_list_dir(x)",
+	} {
+		if err := identityError(codes.PlaceMember, s); !messages.Has(err, messages.H7016) || !strings.Contains(err.Error(), want) {
+			t.Errorf("x.%s: %v; want H7016, %s", s, err, want)
+		}
+	}
+}

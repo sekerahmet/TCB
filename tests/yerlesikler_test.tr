@@ -499,6 +499,9 @@ TR_test "13.4 .TR_remove sözlükten siler, aynı adlı dosyaya dokunmaz" {
     TR_assert_equal(1, d.TR_remove(TR_String(yol)) ?? 0)
     TR_assert_equal(0, d.TR_length)
     TR_assert_equal("değerli", TR_read_file(yol))
+    # Anahtar yoksa da dosya durur
+    TR_assert_equal(TR_none, d.TR_remove(TR_String(yol)))
+    TR_assert_equal("değerli", TR_read_file(yol))
 }
 
 TR_test "13.3 .TR_pop son öğeyi çıkarıp verir, boş listede hatadır" {

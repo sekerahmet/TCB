@@ -32,6 +32,9 @@ var suggestionCases = []suggestionCase{
 	{messages.H0032, "TR_var x: TR_Float = .5", ".5", "0.5"},
 	{messages.H0027, "TR_var x: TR_List[TR_Int] = [1, 2]\nTR_var y: TR_Int = TR_length", "TR_length", "x.TR_length"},
 	{messages.H0029, "TR_var x: TR_Int = 1\nTR_var y: TR_Bool = x.TR_true", "x.TR_true", "TR_true"},
+	{messages.H0029, "TR_var x: TR_Int = 1\nTR_var y: TR_Int = x.TR_time_ms()", "x.TR_time_ms()", "TR_time_ms()"},
+	{messages.H7016, "TR_var x = [1, 2]\nTR_print(x.TR_sum())", "x.TR_sum()", "TR_sum(x)"},
+	{messages.H7016, "TR_var x = [1, 2]\nTR_var y = [1, 2]\nx.TR_assert_equal(y)", "x.TR_assert_equal(y)", "TR_assert_equal(x, y)"},
 	{messages.H0037, "TR_var x: TR_type_Int = 1", "TR_type_Int", "TR_Int"},
 	{messages.H0037, "TR_var x: TR_List[TR_Int] = [1, 2]\nTR_var y: TR_Int = x.TR_mem_length", ".TR_mem_length", ".TR_length"},
 	{messages.H0037, "TR_kw_var x: TR_Int = 1", "TR_kw_var", "TR_var"},
@@ -149,6 +152,9 @@ var suggestionResultCases = []suggestionResultCase{
 	// 13.4: .TR_remove sözlüğün metodudur; listede öğe konumuyla çıkar, dosya silen işlev önerilmez.
 	{messages.H2535, "TR_var l = [1, 2]\nTR_var i = 0\nTR_print(l.TR_remove(i))", "l.TR_remove_at(i)",
 		"TR_var l = [1, 2]\nTR_var i = 0\nTR_print(l.TR_remove_at(i), l)", "1 [2]\n"},
+	// 2.3a: noktadan önceki değer ilk argüman olur; yol değerinde öneri dosyayı taşır.
+	{messages.H7016, "TR_var x = \"a.txt\"\nTR_var y = \"b.txt\"\nTR_write_file(x, \"v\")\nx.TR_move(y)", "TR_move(x, y)",
+		"TR_var x = \"a.txt\"\nTR_var y = \"b.txt\"\nTR_write_file(x, \"v\")\nTR_move(x, y)\nTR_print(TR_read_file(y))", "v\n"},
 	// 19.6: kayıttaki adım tam değerli olmalıdır; ileti yuvarlamayı önerir, kırpmaz.
 	{messages.H7013, "TR_var g = TR_Logger(TR_Path(TR_temp_dir(), \"a.jsonl\"))\ng.TR_append({\"step\": 3.5})", "TR_round(...)",
 		"TR_var y = TR_Path(TR_temp_dir(), \"a.jsonl\")\nTR_var g = TR_Logger(y)\ng.TR_append({\"step\": TR_round(3.5)})\nTR_print(TR_read_file(y).TR_contains(\"\\\"step\\\":4\"))", "true\n"},
@@ -293,6 +299,31 @@ func TestMessageSuggestionsRunCleanly(t *testing.T) {
 		}
 	})
 	checkSuggestionCoverage(t, tested)
+}
+
+// Kural (2.3a, DENETİM istek 112 Y1): sözlükte noktadan sonra yazılan dosya işlevinin önerisi sözlüğü
+// argümanda tutar, çağrı hata verir: aynı adlı dosya taşınmaz, kopyalanmaz.
+func TestAFileFunctionAfterADotLeavesTheFile(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile("a", []byte("veri"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"TR_move", "TR_copy"} {
+		wrong := "TR_var d = {\"a\": 1}\nd." + f + "(\"a\", \"b\")"
+		matched := firstWithCode(collectProgramDiagnostics(wrong), messages.H7016)
+		if matched == nil || !strings.Contains(matched.Error(), "`"+f+"(x, y)`") {
+			t.Fatalf("%s: H7016 ve %s(x, y) bekleniyordu: %v", f, f, matched)
+		}
+		if diags, _ := runProgram("TR_var d = {\"a\": 1}\n" + f + "(d, \"a\")"); len(diags) == 0 {
+			t.Errorf("%s: sözlük argümanı hata vermedi", f)
+		}
+		if data, err := os.ReadFile("a"); err != nil || string(data) != "veri" {
+			t.Errorf("%s: dosya değişti: %q, %v", f, data, err)
+		}
+		if _, err := os.Stat("b"); err == nil {
+			t.Errorf("%s: b dosyası oluştu", f)
+		}
+	}
 }
 
 func verifySuggestionCase(t *testing.T, tc suggestionCase) {
