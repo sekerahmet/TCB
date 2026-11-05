@@ -288,7 +288,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     1. yerel metin sohbeti;
     2. dosyadan ses ve Whisper (2026-11-05: WAV, log-Mel, `TR_conv1d`, model açma, kodlayıcı, çözücü ve `TR_transcribe` main'de, parçalar özgünle bire bir; hız ve `large-v3` sürüyor);
     3. ses üretimi ve canlı ses (Ahmet, 2026-11-05: Jarvis ilk aşamada kişisel kullanım, ticari olmayan lisanslı Türkçe ses kabul; ilk doğrulama modeli MMS-TTS, ağırlık depoya girmez; gerekenlerin başlıcası ters evrişim ve `TR_gather`, listeyi 26 çıkarır);
-       Sıra (2026-11-05): önce `TR_run_process` ve `TR_spawn_process`, çünkü 21 yazılı ve denetlenmiş, 26 ve canlı ses raporu henüz yok; mikrofon `TR_spawn_process` ister. Sonra bölüm 26 taslağı, ters evrişim, `TR_gather`, MMS-TTS; dosyaya ses üretmek 21'e bağlı değil, sahipler ayrıysa iki zincir birlikte gider.
+       Sıra (2026-11-05, DENETİM 196): birbirine bağlı olmayan üç zincir. Dış süreç: `TR_run_process` hemen, `TR_spawn_process` tampon kararından sonra. Konuşma algılama: Silero VAD, yeni yerleşik istemez, 21'e ve 26'ya bağlı değil. Ses üretimi: bölüm 26, ters evrişim, `TR_gather`, MMS-TTS. Whisper'ın hız ölçüsü kötü çıkarsa önce hız. Söz kesme ilk sürümün önkoşulu değil.
     4. söz kesme (görev iptali, kilidin hızlı devri);
     5. belgeler ve hafıza;
     6. yerli ses giriş ve çıkışı ile CPU nicemleme.
