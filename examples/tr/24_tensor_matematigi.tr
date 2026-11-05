@@ -31,6 +31,13 @@ TR_var m = TR_Tensor([[1.0, 2.0], [3.0, 4.0]])
 TR_print(TR_sum(m, TR_dim: -1).TR_shape, TR_sum(m, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
 TR_print(TR_sum(m, TR_dim: 0).TR_tolist, TR_mean(m, TR_dim: -1).TR_tolist)
 
+# öğe öğe en büyük ve en küçük iki tensörü (ya da tensörle sayıyı) karşılaştırır; hepsi yakın
+# ondalık tensörleri bir payla karşılaştırır: yuvarlama farkı eşitliği bozmaz.
+TR_var a = TR_Tensor([1.0, 5.0, -2.0])
+TR_var b = TR_Tensor([3.0, 2.0, -2.0])
+TR_print(TR_maximum(a, b).TR_tolist, TR_minimum(a, 0.0).TR_tolist)
+TR_print(TR_all_close(a, a + 0.0000001), TR_all_close(a, b, TR_rtol: 0.1, TR_atol: 3.0))
+
 # --- Kendin dene ---
 # 1. tensör([[1.0, 2.0], [3.0, 4.0]]) için softmax'ı satır boyunca hesapla ve her satırın toplamının 1 olduğunu göster.
 # 2. m - ortalama(m, eksen: -1, boyutu_koru: doğru) ile satır ortalamasını çıkar (yayınlama).
