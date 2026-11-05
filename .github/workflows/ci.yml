@@ -15,7 +15,7 @@ on:
   push:
     # Birleşik denetim dalları GPU'da tam denetimden geçer; aynı kod main'e gidince burada koşar.
     branches-ignore:
-      - "kontrol/birlesik-*"
+      - "kontrol/**"
   pull_request:
 
 permissions:
