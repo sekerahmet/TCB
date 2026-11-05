@@ -132,8 +132,6 @@ TR_test "15.18a varsayılan paylar daha az hassas işlenenindir" {
 TR_test "15.18a yalnız ondalık tensör alır; öneri kopyalanınca çalışır" {
     TR_assert_equal("H7050", TR_error_code { TR_all_close(TR_Tensor([1, 2]), TR_Tensor([1, 2])) })
     TR_assert(TR_equal(TR_Tensor([1, 2]), TR_Tensor([1, 2])))
-    TR_var sayı: TR_Any = 1.0
-    TR_assert_equal("H6979", TR_error_code { TR_all_close(TR_Tensor([1.0]), sayı) })
-    TR_var yanlış: TR_Any = "a"
-    TR_assert_equal("H6517", TR_error_code { TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.0]), TR_rtol: yanlış) })
+    TR_assert_equal("H6979", TR_error_code { TR_all_close(TR_Tensor([1.0]), 1.0) })
+    TR_assert_equal("H6517", TR_error_code { TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.0]), TR_rtol: "a") })
 }
