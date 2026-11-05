@@ -273,10 +273,7 @@ func (t *Tensor) Open(dt DType) *Tensor {
 func (t *Tensor) dequantize(dt DType) *Tensor {
 	out := emptyOf(isCast, t.be, t.shape, Float32)
 	if opener, ok := t.be.(QuantOpener); ok {
-		if unlockedOps.Load() != 0 {
-			gate([]Storage{out.storage}, []Storage{t.storage})
-		}
-		opener.OpenQuant(out.storage, t.view())
+		gateOpenQuant(opener, out.storage, t.view())
 		return out
 	}
 	s := cpuStore(t.storage)

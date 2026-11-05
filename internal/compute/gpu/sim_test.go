@@ -218,8 +218,8 @@ func limitPlace(err error) string {
 
 func TestUnsupported(t *testing.T) {
 	g := gpuBackend()
-	if err := testkit.PanicError(func() { g.Alloc(4, tensor.Q8) }); !messages.Has(err, messages.H4050) {
-		t.Fatalf("int8 mesajı: %v", err)
+	if err := testkit.PanicError(func() { g.Alloc(4, tensor.Q4) }); !messages.Has(err, messages.H4050) {
+		t.Fatalf("q4 mesajı: %v", err)
 	}
 	a := tensor.NewOn(tensor.CPU, []float32{1, 2}, 2)
 	b := tensor.NewOn(gpuDevice, []float32{1, 2}, 2)
