@@ -213,3 +213,47 @@ TR_test "10.4 görev değişkenleri döngü turuna aittir" {
     TR_wait_all()
     TR_assert_equal([1, 2, 3], görülen.TR_sort())
 }
+
+# bitişik t'nin aynı değerli bitişik kopyasıdır.
+TR_func bitişik(t: TR_Tensor) -> TR_Tensor { TR_return TR_Tensor(t.TR_tolist) }
+
+TR_test "10.2 kilitsiz çarpım kopyalı işlenenle kilitlenmez: sağ işlenen" {
+    TR_var a = TR_randn([1, 3000, 240], TR_seed: 1)
+    TR_var b = TR_randn([1, 384, 240], TR_seed: 2).TR_permute([0, 2, 1])
+    TR_var y = a @ b
+    TR_assert_equal([1, 3000, 384], y.TR_shape)
+    TR_assert(TR_all_close(y, a @ bitişik(b), TR_rtol: 1e-6, TR_atol: 1e-6))
+}
+
+TR_test "10.2 kilitsiz çarpım kopyalı işlenenle kilitlenmez: sol işlenen" {
+    TR_var a = TR_randn([240, 3000], TR_seed: 3).TR_transpose()
+    TR_var b = TR_randn([240, 384], TR_seed: 4)
+    TR_assert(TR_all_close(a @ b, bitişik(a) @ b, TR_rtol: 1e-6, TR_atol: 1e-6))
+}
+
+TR_test "10.2 kilitsiz çarpım küçük boyutta da aynı" {
+    TR_var a = TR_Tensor([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]])
+    TR_var b = TR_Tensor([[[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [2.0, 0.0]]]).TR_permute([0, 2, 1])
+    TR_assert_equal([[[1.0, 2.0, 3.0, 2.0], [3.0, 4.0, 7.0, 6.0], [5.0, 6.0, 11.0, 10.0]]], (a @ b).TR_tolist)
+}
+
+TR_test "10.2 Whisper boyutunda türevsiz evrişim kilitlenmez" {
+    TR_var x = TR_randn([1, 80, 3000], TR_seed: 5)
+    TR_var w = TR_randn([384, 80, 3], TR_seed: 6)
+    TR_var y = TR_conv1d(x, w, TR_none, TR_padding: 1)
+    TR_var türevli = TR_conv1d(TR_Tensor(x, TR_requires_grad: TR_true), w, TR_none, TR_padding: 1)
+    TR_assert_equal(türevli.TR_tolist, y.TR_tolist)
+    TR_var v = TR_randn([384, 384, 3], TR_seed: 7)
+    TR_assert_equal([1, 384, 1500], TR_conv1d(y, v, TR_none, TR_stride: 2, TR_padding: 1).TR_shape)
+}
+
+TR_test "10.2 dikkat kopyalı işlenenle kilitlenmez" {
+    TR_var q = TR_randn([1, 6, 1500, 64], TR_seed: 8).TR_permute([0, 2, 1, 3])
+    TR_var y = TR_attention(q, q, q, TR_causal: TR_false)
+    TR_assert_equal([1, 1500, 6, 64], y.TR_shape)
+    TR_var d = bitişik(q)
+    TR_assert(TR_all_close(y, TR_attention(d, d, d, TR_causal: TR_false), TR_rtol: 1e-5, TR_atol: 1e-5))
+    TR_var küçük = TR_randn([1, 2, 3, 4], TR_seed: 9).TR_permute([0, 2, 1, 3])
+    TR_var k = bitişik(küçük)
+    TR_assert(TR_all_close(TR_attention(küçük, küçük, küçük, TR_causal: TR_false), TR_attention(k, k, k, TR_causal: TR_false), TR_rtol: 1e-6, TR_atol: 1e-6))
+}
