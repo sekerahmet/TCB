@@ -46,7 +46,13 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 	if nd > 0 {
 		row = sh[nd-1]
 	}
-	res := make([]float32, total)
+	c := cpuStore(out)
+	// Çıktı girdilerden biri değilse satırlar doğrudan ona yazılır: sonuç için ikinci tampon, prompt
+	// işlemede katman başına onlarca megabayt çöp demektir.
+	res := c.d
+	if add || c.dtyp != Float32 || aliases(ins, out) {
+		res = make([]float32, total)
+	}
 	idx := make([]int, nd)
 	for o := 0; o < total; o += row {
 		l := fuseLine{base: idx, axis: nd - 1, step: 1, n: row}
@@ -61,7 +67,6 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 			idx[d] = 0
 		}
 	}
-	c := cpuStore(out)
 	if add {
 		old := make([]float32, total)
 		if c.dtyp == Float32 {
@@ -73,11 +78,21 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 			res[i] += old[i]
 		}
 	}
-	if c.dtyp == Float32 {
-		copy(c.d, res)
-	} else {
+	if c.dtyp != Float32 {
 		narrow(c.h, res, c.dtyp)
+	} else if &res[0] != &c.d[0] {
+		copy(c.d, res)
 	}
+}
+
+// aliases s'nin girdilerden birinin deposu olduğunu söyler.
+func aliases(ins []View, s Storage) bool {
+	for _, v := range ins {
+		if v.S == s {
+			return true
+		}
+	}
+	return false
 }
 
 // fuseEval değerlendirmenin durumudur. Çizgiler onun iki yığınındadır: küçük ve kısa ömürlü çok dilim

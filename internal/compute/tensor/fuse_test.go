@@ -137,6 +137,16 @@ func TestFusedStackKeepsNoData(t *testing.T) {
 	}
 }
 
+// TestFusedOutputMayBeAnInput: çıktı bir girdinin deposuysa satırlar önce ayrı tampona yazılır: ters
+// sıralı görünüm, yazılan satırı okumaz.
+func TestFusedOutputMayBeAnInput(t *testing.T) {
+	x := New([]float32{1, 2, 3, 4, 5, 6}, 3, 2)
+	reversed := View{S: x.storage, Shape: x.shape, Strides: []int{-2, 1}, Offset: 4}
+	node := &FuseNode{Kind: FuseInput, Shape: x.shape, DType: Float32}
+	cpuBackend{}.RunFused(node, x.storage, []View{reversed}, false)
+	sameFloatBits(t, "ters", x.Data(), []float32{5, 6, 3, 4, 1, 2})
+}
+
 // TestFusedIndependentOfWorkers (15.22a): sonuç işçi sayısından bağımsızdır.
 func TestFusedIndependentOfWorkers(t *testing.T) {
 	prev := runtime.GOMAXPROCS(0)
