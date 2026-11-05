@@ -542,6 +542,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 - **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 125 N1):** test komutuna iki dosya verilince yalnız ilki koşuyordu, ikincinin kalan testi bile geçmiş görünüyordu ("1 test, 1 geçti", çıkış 0). Artık verilen bütün dosya ve klasörler koşuyor, biri düşerse çıkış 1; olmayan hedef hata, hiçbir test koşmuyor; ilk dosyadan sonraki seçenek de sessizce atlanmıyor [test: `TestEveryTargetRuns`, `TestAMissingTargetStopsTheRun`, `TestTestCommand`].
 - **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 81, 132 Ş1):** test dosyası `TR_test` içeren dosya: klasör taraması bütün `.tr`'lere bakıyor, `testdata` adlı klasöre inmiyor; aktarılan modülün testleri de koşuyor, her dosya bir kez, kendi makinesinde. Test bloğu olmayan verilen dosya, yanında testli dosya olsa da, ve testi olmayan klasör H8503; hiçbir test koşmuyor. Eskiden testli modül ve aktarılan modülün kalan testi koşmadan "1 test, 1 geçti", çıkış 0 veriyordu [test: `TestDirScan`, `TestImportedModuleTestsRun`, `TestATargetWithoutTestsIsAnError`, `TestFixtureDirIsOnlyRunWhenGiven`].
 - **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 138 Ş1):** adı `_test.tr` ile biten dosya taramadan elenmiyor. Sözcük birimlerinden testi görünmeyen bozuk dosya (kapanmayan metin, adsız `TR_test`, kimliksiz yazım) "yüklenemedi", çıkış 1; `c131d68e`'de klasörde elenip ✅, çıkış 0 veriyordu. Testi olmayan böyle dosya raporda H8503, çıkış 1, klasörde de; yanındaki testler koşmuş olur. Düz adlı dosya da aynı (139 Ş2): `TR_test` sözcüğü ardındaki yazıma bakılmadan sayılıyor, sözcükleri bozuk dosyada ham metin aranıyor, dosya "yüklenemedi" [test: `TestABrokenNamedTestFileIsNotDropped`, `TestANamedTestFileWithoutTestsFailsTheRun`, `TestHasTestBlock`].
+- **Mevcut durum (sınır, iş yok; DENETİM istek 141 N1, 142 Ş3):** düz adlı dosyada kimliksiz yazılan test taramada görünmüyor, dosya test sayılmaz. Kimliksiz yazım kod değildir: 12.1 `TR_test`'e bakar.
 - **Yapılacaklar:** testin hangi cihazda koştuğu ve cihazlar arası tolerans 15'in E parçasında.
 - **Gemini Koşu 7 (2026-10-29), uygulanacak:** test dosyası tanımı (göç işi bitti: en dışta deyim içeren dosya kalmadı, 4a1 ilk dilim) [ölçüldü: main `85a19c36`, iki dosyanın denetimi].
 
@@ -550,7 +551,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 - **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 138 Ş2):** `TR_test` en dışta değilse (`TR_if`, fonksiyon, başka test) denetim hatası, H7015; eskiden test koşmadan "✅ 0 test", çıkış 0 veriyordu [test: `TestATestIsOnlyAtTheTopLevel`, `TestANestedTestFailsTheRun`, `tests/negative/testdata/test_ic_ice.tr`].
 - **Mevcut durum:** aynı dosyada aynı adlı iki test ikisi de çalışıyor [ölçüldü: main `e6392066`].
 - **Yapılacaklar:** sözdizimi hatası ve olumsuz fikstür.
-- **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 141 N1, N3):** `TR_test` yanlış yerde bilinmeyen ad iletisini veriyor, 2.3a'nın kimlik önerisi yok. Düz adlı dosyada kimliksiz yazılan test taramada görünmüyor: 12.1 kimlikle yazılan `TR_test`'e bakar, dosya test sayılmaz.
+- **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 141 N3):** `TR_test` yanlış yerde bilinmeyen ad iletisini veriyor, 2.3a'nın kimlik önerisi yok.
 
 ### 12.3
 
@@ -997,6 +998,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
 - **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM]. Kartta bu söz NaN'da tutmuyor (aşağıdaki satır).
 - **Yapılacaklar (C, Ö2; sahip T1, H2 birleştikten sonra; `internal/compute/tensor`, `internal/compute/gpu`):** kart 15.47a'nın "bit bit aynıdır" sözünü NaN'da bozuyor; 16 bitlik yükleme ve indirme ham bitle yapılacak, kalıcı kart testi 65 536 desenle. Kartta yükleyip `TR_save_tensors` ile yazınca bf16'da 254 NaN deseninin 126'sı (sinyal NaN'ları: sessiz bit ekleniyor, işaret ve yük kalıyor), fp16'da 2 046 NaN deseninin 2 045'i değişiyor (hepsi `0x7FFF`); NaN olmayan hiçbir desen değişmiyor [ölçüldü: DENETİM istek 134, G4, RTX PRO 6000]. Kayıp yüklemede: `FromBits16On`, `FromHost` ve `copyKernel`'den geçiyor; `Bits16s` de float32'den geçtiği için düzeltme iki yönlü [kanıtlı: `typed.go:187`, `:198`]. `FromHost`'un ham 16 bit yolu yok, `Backend` da değişir. `TestSixteenBitTensorKeepsItsBits` kartlı makinede de CPU'da koşuyor.
+- **Yapılacaklar (D, Ö3; sahip T1, kart işiyle; DENETİM istek 134 N2, 142 N3):** 16 bitlik okumada `Veri` kopyası boşa açılıyor; `TensorEntry.Bits` yorumsuz.
 
 ### 15.49
 
