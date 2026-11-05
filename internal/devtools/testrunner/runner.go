@@ -51,8 +51,8 @@ func (o Summary) String() string {
 // Dosya ya da klasör olarak açıkça verilirse koşar.
 const fixtureDir = "testdata"
 
-// testSuffix test dosyası olduğunu adıyla söyleyen dosyanın sonudur: böyle dosya sözcük birimlerinden
-// okunamasa da elenmez, sonucunu runFile verir.
+// testSuffix test dosyası olduğunu adıyla söyleyen dosyanın sonudur: böyle dosya TR_test yazmasa da
+// (kimliksiz test "ad", testi silinmiş dosya) elenmez, sonucunu runFile verir.
 const testSuffix = "_test.tr"
 
 // TestFiles hedeflere göre çalıştırılacak dosyaları, hedeflerin verildiği sırayla bulur. Test dosyası
@@ -84,7 +84,7 @@ func inFixtureDir(target, f string) bool {
 }
 
 // holdsTests dosya koşulacak mı. Okunamayan dosya ve adı test dosyası diyen dosya elenmez: bozuksa
-// "yüklenemedi", testi yoksa H8503 olur; HasTestBlock bozuk dosyanın testini her zaman göremez.
+// "yüklenemedi", testi yoksa H8503 olur.
 func holdsTests(f string) bool {
 	if strings.HasSuffix(filepath.Base(f), testSuffix) {
 		return true

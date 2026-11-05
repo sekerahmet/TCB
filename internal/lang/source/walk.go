@@ -11,18 +11,20 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 )
 
-// HasTestBlock metinde adıyla yazılmış bir TR_test var mı: test dosyası odur (12.1). Sözcük birimleriyle
-// okunur: yorum ve metin sayılmaz, sözcükleri bozmayan sözdizimi hatasında testler görünür. Kapanmayan
-// metin ve adsız TR_test görünmez: "yok" cevabı dosyanın testsiz olduğunu kanıtlamaz.
+// HasTestBlock metinde TR_test yazılmış mı: test dosyası odur (12.1). Ardındaki yazıma bakılmaz, adsız
+// TR_test de sayılır: dosya "yüklenemedi" olur, sessizce atlanmaz. Sözcük birimleriyle okunur: yorum ve
+// metin sayılmaz; ama sözcükleri bozuk dosyada (kapanmayan metin) birimler güvenilmez, orada ham metin
+// aranır. Başlığı bozuk dosyanın gövdesi yine okunur.
 func HasTestBlock(text string) bool {
 	parts, _ := Split(text)
 	l := lexer.NewBody(parts.Body, true)
 	for {
-		switch tok := l.NextToken(); {
-		case tok.Type == lexer.TokEOF:
-			return false
-		case tok.Code == codes.CtxTest && l.NextToken().Type == lexer.TokString:
+		tok := l.NextToken()
+		if tok.Code == codes.CtxTest {
 			return true
+		}
+		if tok.Type == lexer.TokEOF {
+			return len(l.Errs()) > 0 && strings.Contains(text, codes.Spelling(codes.CtxTest))
 		}
 	}
 }

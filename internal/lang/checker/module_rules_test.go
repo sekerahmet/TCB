@@ -87,6 +87,7 @@ func TestATestIsOnlyAtTheTopLevel(t *testing.T) {
 		"fonksiyon değeri": "TR_var f = () => {\n" + test + "}\n",
 		"yapı yöntemi":     "TR_struct N {\n    x: TR_Int = 0\n    TR_func g() {\n" + test + "}\n}\n",
 		"başka test":       "TR_test \"dis\" {\n" + test + "}\n",
+		"yanında test":     "TR_func f() {\n" + test + "}\nTR_test \"a\" {\n    TR_assert(TR_true)\n}\n",
 		"deneme":           "TR_test \"dis\" {\n    TR_try {\n" + test + "} TR_catch e {\n}\n}\n",
 	} {
 		t.Run(name, func(t *testing.T) {

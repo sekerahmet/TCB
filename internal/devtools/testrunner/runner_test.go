@@ -269,9 +269,10 @@ func TestANamedTestFileWithoutTestsFailsTheRun(t *testing.T) {
 // koşu düşer (12.2, DENETİM istek 138 Ş2).
 func TestANestedTestFailsTheRun(t *testing.T) {
 	for name, text := range map[string]string{
-		"koşul":     "TR_if TR_true {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
-		"fonksiyon": "TR_func f() {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
-		"test":      "TR_test \"dis\" {\n    TR_test \"ic\" { TR_assert(TR_false) }\n}\n",
+		"koşul":        "TR_if TR_true {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
+		"fonksiyon":    "TR_func f() {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
+		"test":         "TR_test \"dis\" {\n    TR_test \"ic\" { TR_assert(TR_false) }\n}\n",
+		"yanında test": "TR_func f() {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\nTR_test \"a\" { TR_assert(TR_true) }\n",
 	} {
 		for _, file := range []string{"ic_test.tr", "ic.tr"} {
 			root := t.TempDir()
@@ -284,9 +285,9 @@ func TestANestedTestFailsTheRun(t *testing.T) {
 	}
 }
 
-// Kural: sözcük birimlerinden testi görünmeyen bozuk _test.tr klasörden kaybolmaz, "yüklenemedi" olur;
-// yanındaki geçen test sonucu ✅ yapmaz (DENETİM istek 138 Ş1'in altı yazımı). Açıkça verilince de
-// "test bulunamadı" değil yükleme hatası söylenir.
+// Kural: bozuk test dosyası klasörden kaybolmaz, "yüklenemedi" olur; yanındaki geçen test sonucu ✅ yapmaz
+// (DENETİM istek 138 Ş1'in altı yazımı). Açıkça verilince de "test bulunamadı" değil yükleme hatası
+// söylenir. TR_test yazan dosyanın adı önemsizdir (139 Ş2); kimliksiz yazımda dosyayı yalnız adı tutar.
 func TestABrokenNamedTestFileIsNotDropped(t *testing.T) {
 	kalan := "TR_test \"kalan\" { TR_assert(TR_false) }\n"
 	for name, text := range map[string]string{
@@ -297,17 +298,22 @@ func TestABrokenNamedTestFileIsNotDropped(t *testing.T) {
 		"ad metin değil":         "TR_test nm { TR_assert(TR_false) }\n",
 		"kimliksiz yazım":        "test \"kalan\" { TR_assert(TR_false) }\n",
 	} {
-		root := t.TempDir()
-		writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
-		broken := writeTR(t, root, "k_test.tr", text)
-		for _, target := range []string{root, broken} {
-			var out bytes.Buffer
-			summary, err := Run([]string{target}, &out)
-			if err != nil || summary.OK() || summary.Unloadable != 1 {
-				t.Errorf("%s, %s: yüklenemedi olmalı: %+v, %v\n%s", name, target, summary, err, out.String())
+		for _, file := range []string{"k_test.tr", "k.tr"} {
+			if file == "k.tr" && name == "kimliksiz yazım" {
+				continue
 			}
-			if strings.Contains(out.String(), messages.Text(messages.H8503, broken)) {
-				t.Errorf("%s, %s: bozuk dosya testsiz denmemeli:\n%s", name, target, out.String())
+			root := t.TempDir()
+			writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+			broken := writeTR(t, root, file, text)
+			for _, target := range []string{root, broken} {
+				var out bytes.Buffer
+				summary, err := Run([]string{target}, &out)
+				if err != nil || summary.OK() || summary.Unloadable != 1 {
+					t.Errorf("%s, %s: yüklenemedi olmalı: %+v, %v\n%s", name, target, summary, err, out.String())
+				}
+				if strings.Contains(out.String(), messages.Text(messages.H8503, broken)) {
+					t.Errorf("%s, %s: bozuk dosya testsiz denmemeli:\n%s", name, target, out.String())
+				}
 			}
 		}
 	}
