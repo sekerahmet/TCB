@@ -8,9 +8,12 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 
 **12.1** `TR_test "ad" { ... }` bir test tanımlar. `TR_cmd_test` dosyanın testlerini yazıldıkları sırayla çalıştırır; dosya normal çalıştırıldığında test blokları atlanır.
 - **Test dosyası** `TR_test` içeren dosyadır; en dışında yalnız tanımlar bulunur (12.5, 1.1). Test bloğu bir modülde de bulunabilir (aktarılan modül testleriyle birlikte sınanır). En dışında deyim çalıştıran bir program `TR_test` içermez: sınanacak fonksiyonlar bir modüldedir, program o modülü aktarıp çalıştırır, test dosyası da aktarıp sınar.
+- `TR_cmd_test`'e klasör verilirse altındaki test dosyaları koşar; adı `_test.tr` ile biten dosya hiç atlanmaz, bozuksa yüklenemedi diye kalır. Tarama `testdata` adlı klasöre inmez; klasör açıkça verilirse koşar.
+- Açıkça verilen dosyada test yoksa hatadır, yanında testli dosya olsa bile. Klasörde testsiz dosya olağandır; klasörün toplamında hiç test yoksa hatadır.
 - *Test:* TR testi.
 
 **12.2** `TR_test` yalnız bir deyimin başında ve ardından bir metin gelince test başlatır; başka bir yerde yazılırsa sözdizimi hatasıdır (2.3a).
+- `TR_test` yalnız dosyanın en dışında yazılır: `TR_if`, fonksiyon ya da başka bir test içinde denetim hatasıdır.
 - **Aynı dosyada aynı adlı iki test** sözdizimi hatasıdır; ileti iki satırı da gösterir.
 - *Test:* TR testi; aynı adlı testlerin hatası uygulanınca olumsuz fikstür.
 

@@ -7,7 +7,11 @@ Kurallar: [`12_testler.md`](../12_testler.md). Bu dosya her kuralın emsalini (b
 - *Emsal:* Swift Testing'in `@Test("ad")`'ı ve Zig'in `test "ad" { ... }` bloğu testi adıyla birlikte dilin içinde tanımlar [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* ajan kodunu ve testini aynı dilde yazar; test bloğu modülde ya da test dosyasında, program modülü aktarır (Python'un modül ile `__main__` ayrımı gibi). Zig'in "test kipinde en dış deyimler atlanır" yolu alınmadı: aynı dosya iki kipte ayrı anlam taşırdı, sabit olmayan ilk değeri (`TR_var model = kur()`) olan dosyada hangi tanımın kurulacağı belirsiz kalırdı (Gemini Koşu 7).
 
+- *Gerekçe (klasör taraması, 2026-11-05, DENETİM istek 132, 138):* test komutu koşmadığı testi geçmiş göstermemeli. Rehber "adı `_test.tr` ile biten" diyordu, 12.1 `TR_test` içeren dosya diyor: tanım 12.1'dir. `testdata` Go'nun bildik kuralı; `negative` gibi yalnız bu depoya özgü ad kullanıcının aynı adlı klasörünü sessizce atlardı.
+
 ### 12.2
+
+- *Gerekçe (en dış, 2026-11-05, DENETİM istek 138 Ş2):* iç içe test ayrıştırılıyor ama koşmuyordu: `✅ 0 test`, çıkış 0. Hata, sessizce atlamaktan iyidir.
 
 - *Emsal:* Python'da aynı adlı iki test metodunun ikincisi birincisini gizler ve ilk test hiç çalışmaz [ölçüldü: DENETİM 12-1, Python 3.12 `unittest`].
 - *Gerekçe:* kopyalayıp yapıştırırken test adını değiştirmeyi unutmak ajanın ve insanın sık hatasıdır; sonuç ya bir testin hiç çalışmaması ya da raporda hangisinin kaldığının belirsizliğidir. Sözdizimi hatası bunu yazılırken gösterir. Bugün iki aynı adlı test ikisi de çalışıyor [ölçüldü].
