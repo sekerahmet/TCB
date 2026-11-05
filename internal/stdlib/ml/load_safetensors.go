@@ -13,6 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf"
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -38,14 +39,16 @@ var safetensorsDTypes = map[string]tensor.DType{"F32": tensor.Float32, "BF16": t
 	"U32": tensor.UInt32, "U16": tensor.UInt16, "U8": tensor.UInt8, "BOOL": tensor.Bool}
 
 // decodeTensorFile dosyanın biçimini uzantıdan değil içerikten tanır: TRTENSOR ile başlıyorsa
-// TR biçimi, 9. baytı { ise (başlık boyundan sonra JSON başlık; belirtim: "MUST begin with a {")
-// safetensors; ikisi de değilse ikisini de anan bir hata.
+// TR biçimi, GGUF ile başlıyorsa GGUF, 9. baytı { ise (başlık boyundan sonra JSON başlık;
+// belirtim: "MUST begin with a {") safetensors; hiçbiri değilse üçünü de anan bir hata.
 func decodeTensorFile(f io.Reader, size int64) ([]fileEntry, error) {
 	br := bufio.NewReaderSize(f, 1<<16)
 	p, _ := br.Peek(9)
 	switch {
 	case len(p) >= len(fileMagic) && string(p[:len(fileMagic)]) == fileMagic:
 		return decodeFile(br, size)
+	case len(p) >= len(gguf.Magic) && string(p[:len(gguf.Magic)]) == gguf.Magic:
+		return decodeGGUF(br, size)
 	case len(p) == 9 && p[8] == '{':
 		return decodeSafetensors(br, size)
 	}
