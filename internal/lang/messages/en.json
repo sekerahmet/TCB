@@ -1443,6 +1443,7 @@
 "H7013": "{fn}: the record's 'step' value must be a whole number, {given} given (readers compare steps); to round it write `{#round}(...)`, for a text `{#Int}(...)`, if it is a metric give it another name",
 "H7014": "the module {path|q} has no name {name|q}; a module value is not a dict, only the top-level names of the module are read{hint}",
 "H7015": "`{#test}` is written only at the top level of a file: the test {name|q} would never run here; move the block to the top level",
+"H7030": "this operation is not yet on the GPU: opening a \"{dtype}\" tensor to \"float64\" (15.41); move it to the CPU first: `t.{#to_device}(\"cpu\").{#to_dtype}(\"float64\")`",
 "H7100": "the size of the copy differs from the source's; the source was not deleted ({path|q})",
 "H7101": "the source has {count} links or special files; it cannot be moved to another disk (first copy it and make the links by hand)",
 "H7102": "the copy differs from the source (the file count or total size does not match); the source was not deleted",

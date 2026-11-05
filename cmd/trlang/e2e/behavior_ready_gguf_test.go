@@ -381,6 +381,45 @@ TR_if TR_not TR_devices().TR_contains("gpu") {
 }
 `
 
+// ggufCardFloat64 kartta float64'e açmayı ve H7030'un önerdiği yazımı koşar; son satır yakalanmaz,
+// ileti hata çıkışına yazılır.
+const ggufCardFloat64 = `TR_import "tr/pretrained"
+TR_var arg = TR_command_line({"file": ""})
+TR_if TR_not TR_devices().TR_contains("gpu") {
+    TR_print("kart yok")
+} TR_else {
+    TR_default_device("cpu")
+    TR_var kesin = TR_pretrained_gguf(arg["file"]).TR_embedding.TR_table.TR_to_dtype("float64")
+    TR_default_device("gpu")
+    TR_var t = TR_pretrained_gguf(arg["file"]).TR_embedding.TR_table
+    TR_print(t.TR_to_dtype("bf16").TR_device, t.TR_to_dtype("fp16").TR_device)
+    TR_var açılan = t.TR_to_device("cpu").TR_to_dtype("float64")
+    TR_print(açılan.TR_device, açılan.TR_dtype, açılan.TR_tolist == kesin.TR_tolist)
+    t.TR_to_dtype("float64")
+}
+`
+
+// Kural (15.41, 15.53): kartta 16 bitlik hedef kartta kalır; float64 hata verir, sessizce CPU'ya
+// düşmez. İletinin önerdiği yazım programda olduğu gibi durur ve CPU'nun kesin değerini verir.
+func TestGGUFOpenToFloat64OnTheCard(t *testing.T) {
+	c := quantizedConfigs[0]
+	dir := t.TempDir()
+	writeTR(t, dir, "kart.tr", ggufCardFloat64)
+	file, _ := c.writeQuantized(t, dir)
+	s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "kart.tr"), "--file", file)
+	lines := strings.Split(strings.TrimSpace(s.Stdout), "\n")
+	if lines[0] == "kart yok" {
+		t.Skip("kart yok")
+	}
+	if s.Code == 0 || len(lines) != 2 || lines[0] != "gpu gpu" || lines[1] != "cpu float64 true" {
+		t.Fatalf("TR çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
+	}
+	const spelling = `t.TR_to_device("cpu").TR_to_dtype("float64")`
+	if !strings.Contains(s.Stderr, "H7030") || !strings.Contains(s.Stderr, spelling) || !strings.Contains(ggufCardFloat64, spelling) {
+		t.Errorf("ileti öneriyi yazmıyor:\n%s", s.Stderr)
+	}
+}
+
 // Kural (15.53): TR_default_device("gpu") altında TR_pretrained_gguf ağırlığı kartta nicemli kurar;
 // çok satır, tek satır ve TR_replay kaydı CPU'nun logitlerini ve parçalarını verir. Kartsız makinede
 // atlanır (GPU tam denetimi koşar).

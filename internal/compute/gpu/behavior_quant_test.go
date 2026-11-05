@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"math"
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
@@ -160,21 +161,55 @@ func TestQuantOpenQ4KBothScalesSpecial(t *testing.T) {
 	sameFloatBits(t, "q4_k", card.Open(tensor.Float32).Data(), host.Open(tensor.Float32).Data())
 }
 
-// Öbür hedefler de CPU'nun bitlerini verir: 16 bitlikte ve float64'te açmak aynı yoldandır.
+// 16 bitlik hedef kartta kalır, CPU'ya inmez: dile ulaşan her ölçek deseninde (NaN ve sonsuz dosyada
+// durur, 15.55) bitleri CPU'nunkidir.
 func TestQuantOpenToOtherPrecisions(t *testing.T) {
 	rng := rand.New(rand.NewSource(4))
+	var patterns []uint16
+	for _, s := range scalePatterns() {
+		if s&0x7C00 != 0x7C00 {
+			patterns = append(patterns, s)
+		}
+	}
+	for _, dt := range quantTypes {
+		elems, size := dt.QuantBlock()
+		for _, at := range quantScaleOffsets(dt) {
+			raw := quantBlockBytes(rng, dt, len(patterns))
+			for b, s := range patterns {
+				binary.LittleEndian.PutUint16(raw[b*size+at:], s)
+			}
+			host, card := quantBoth(t, dt, raw, len(patterns), elems)
+			for _, to := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+				got, want := card.Open(to), host.Open(to)
+				if got.Device() != gpuDevice {
+					t.Errorf("%v → %v: cihaz %v", dt, to, got.Device())
+				}
+				sameBits(t, dt.Name(), to, got.Bits16s(), want.Bits16s())
+			}
+		}
+	}
+}
+
+// float64'e açmak kartta yoktur, sessizce CPU'ya düşmez (15.41); iletinin önerdiği yol CPU'nun
+// kesin değerini verir.
+func TestQuantOpenToFloat64OnTheCardIsRefused(t *testing.T) {
+	rng := rand.New(rand.NewSource(8))
 	for _, dt := range quantTypes {
 		elems, _ := dt.QuantBlock()
-		raw := quantBlockBytes(rng, dt, 8)
-		host, card := quantBoth(t, dt, raw, 4, 2*elems)
-		for _, to := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
-			got, want := card.Open(to), host.Open(to)
-			if got.Device() != gpuDevice {
-				t.Errorf("%v → %v: cihaz %v", dt, to, got.Device())
-			}
-			sameBits(t, dt.Name(), to, got.Bits16s(), want.Bits16s())
-		}
-		if got, want := card.Open(tensor.Float64).To(tensor.CPU).Raw(), host.Open(tensor.Float64).Raw(); !bytes.Equal(got, want) {
+		host, card := quantBoth(t, dt, quantBlockBytes(rng, dt, 8), 4, 2*elems)
+		func() {
+			defer func() {
+				err, _ := recover().(error)
+				if !messages.Has(err, messages.H7030) {
+					t.Fatalf("%v: hata %v; H7030 olmalı", dt, err)
+				}
+				if text := err.Error(); !strings.Contains(text, `.TR_to_device("cpu").TR_to_dtype("float64")`) {
+					t.Errorf("%v: ileti öneriyi yazmıyor: %s", dt, text)
+				}
+			}()
+			card.Open(tensor.Float64)
+		}()
+		if got, want := card.To(tensor.CPU).Open(tensor.Float64).Raw(), host.Open(tensor.Float64).Raw(); !bytes.Equal(got, want) {
 			t.Errorf("%v → float64: bitler ayrıldı", dt)
 		}
 	}

@@ -256,35 +256,32 @@ func (t *Tensor) quantRowSlice(axis, step int) {
 // (TR_mixed_precision bloğu) ağırlığı sessizce açmasın (15.53).
 func (t *Tensor) Open(dt DType) *Tensor {
 	t.refuseTransposed()
-	if t.Device().Kind != KindCPU && dt != Float32 {
-		// 16 bitlik ve float64 hedefin yuvarlaması CPU'nun yolundan geçer: kartın dönüşümü NaN'ın
-		// bitlerini korumaz (15.47a), açılan değer cihazlar arasında aynı kalmalıdır (15.53).
-		return t.To(CPU).Open(dt).To(t.Device())
-	}
 	if dt == Float64 {
+		if t.Device().Kind != KindCPU {
+			panic(messages.New(messages.H7030, t.dtyp.Name())) // CPU'ya sessizce düşmez (15.41)
+		}
 		return t.dequantize64()
 	}
 	return t.dequantize(dt)
 }
 
 // dequantize tensörü dt hassasiyetine açar (15.52): bitişik görünüm blok blok float32'ye açılır, bf16
-// ve fp16 sonra hedefe yuvarlanır. Devrik görünüm açılmaz, ileti devriği geri almayı söyler
-// (15.53). Nicemlenmiş tensör türev izlemez: sonuç yapraktır.
+// ve fp16 sonra hedefe yuvarlanır: kartta da aynı yuvarlama, sonlu ölçekte bitleri CPU'nunkidir.
+// NaN ölçeğin bitlerini kartın dönüşümü korumaz (15.47a); o ölçek dile ulaşmaz (CheckQuantScales).
+// Devrik görünüm açılmaz, ileti devriği geri almayı söyler (15.53). Nicemlenmiş tensör türev
+// izlemez: sonuç yapraktır.
 func (t *Tensor) dequantize(dt DType) *Tensor {
 	out := emptyOf(isCast, t.be, t.shape, Float32)
 	if opener, ok := t.be.(QuantOpener); ok {
 		gateOpenQuant(opener, out.storage, t.view())
-		return out
-	}
-	s := cpuStore(t.storage)
-	elems, size := s.dtyp.QuantBlock()
-	blocks := quantBytes(s, t.offset, t.Numel())
-	y := cd(out.storage)
-	parallelFor(len(blocks)/size, elems*4, func(lo, hi int) {
-		dequantBlocks(s.dtyp, y[lo*elems:hi*elems], blocks[lo*size:hi*size])
-	})
-	if dt == Float32 {
-		return out
+	} else {
+		s := cpuStore(t.storage)
+		elems, size := s.dtyp.QuantBlock()
+		blocks := quantBytes(s, t.offset, t.Numel())
+		y := cd(out.storage)
+		parallelFor(len(blocks)/size, elems*4, func(lo, hi int) {
+			dequantBlocks(s.dtyp, y[lo*elems:hi*elems], blocks[lo*size:hi*size])
+		})
 	}
 	return out.Cast(dt)
 }

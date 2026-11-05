@@ -1448,6 +1448,7 @@ const (
 	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)`, metinse `{#Int}(...)` yazın, ölçüyse ona başka bir ad verin
 	H7014 Code = 7014 // {path|q} modülünde {name|q} adı yok; modül değeri bir sözlük değildir, yalnız modülün en dış adları okunur{hint}
 	H7015 Code = 7015 // `{#test}` yalnız dosyanın en dışında yazılır: {name|q} testi burada hiç koşmazdı; bloğu en dışa taşıyın
+	H7030 Code = 7030 // bu işlem GPU'da henüz yok: "{dtype}" tensörü "float64" hassasiyetine açmak (15.41); önce CPU'ya taşıyın: `t.{#to_device}("cpu").{#to_dtype}("float64")`
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
