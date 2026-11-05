@@ -31,6 +31,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | adım | TR_arg_step, TR_dbg_step, TR_mem_step | ayrı alan: TR_dbg_step hata ayıklayıcıda bir adım ilerler; TR_arg_step (tamamlanan adım sayısı) ile TR_mem_step (`op.TR_step()`, PyTorch `optimizer.step()`) aynı anlamda eğitim adımıdır |
 | devam | TR_dbg_continue, TR_kw_continue | aynı anlam: sürdürmek (döngünün sonraki turu; hata ayıklayıcıda programı sürdürmek) |
 | değiştir | TR_dbg_set, TR_mem_replace | ayrı alan: TR_dbg_set hata ayıklayıcıda bir değişkenin değerini değiştirir; TR_mem_replace metinde parçayı değiştirir |
+| dil | TR_arg_language, TR_mem_language, TR_opt_lang | ayrı alan: TR_opt_lang komut satırında kodun gösterileceği insan dilini seçer; TR_arg_language ile TR_mem_language konuşmanın dilidir (`model.TR_transcribe(ses, TR_language: "tr")`, `r.TR_language`) |
 | durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `TR_cmd_index`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
 | günlük | TR_arg_log, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı `TR_Logger(...)`'ın açtığı günlüğü alır; `TR_Run`'ın günlük alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |

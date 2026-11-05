@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 626 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 48 tip, 148 fonksiyon, 11 sabit, 72 metot, 104 özellik, 156 adlı argüman.
+Toplam 635 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 50 tip, 148 fonksiyon, 11 sabit, 73 metot, 109 özellik, 157 adlı argüman.
 
 ## İçindekiler
 
@@ -1023,6 +1023,10 @@ tr: değişken ö = VeriKümesi("tests/data/numbers").örnekleyici(toplu: 2, ba�
 
 Üyeleri: `.TR_load_state(...)`, `.TR_next(...)`, `.TR_skip(...)`, `.TR_state` · İlişkili: `.TR_sampler(...)`, `TR_SequentialReader`
 
+#### `TR_Segment` (`TR_type_Segment`, `Kesit`)
+
+
+
 #### `TR_SequentialReader` (`TR_type_SequentialReader`, `SıralıOkuyucu`)
 
 Veri kümesini pencereler hâlinde sırayla okuyan okuyucunun tipidir; veri bitince .sonraki() yok verir.
@@ -1136,6 +1140,10 @@ tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(T
 ```
 
 Üyeleri: `.TR_batch_decode(...)`, `.TR_decode(...)`, `.TR_encode(...)`, `.TR_token_id(...)`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
+
+#### `TR_Transcription` (`TR_type_Transcription`, `Çevriyazı`)
+
+
 
 #### `TR_TransformerBlock` (`TR_type_TransformerBlock`, `TransformerBloğu`)
 
@@ -4223,6 +4231,10 @@ Kullananlar: `TR_logsumexp(...)`, `TR_max(...)`, `TR_mean(...)`, `TR_min(...)`, 
 
 
 
+#### `TR_language:` (`TR_arg_language`, `dil`)
+
+
+
 #### `TR_layer_idx:` (`TR_arg_layer_idx`, `katman_no`)
 
 
@@ -5386,6 +5398,10 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").kodla("Merhaba d�
 
 İlişkili: `.TR_decode(...)`
 
+#### `.TR_end` (`TR_mem_end`, `bitiş`)
+
+
+
 #### `.TR_ends_with(...)` (`TR_mem_ends_with`, `biter`)
 
     Metin.biter(Metin) → Mantık
@@ -5701,6 +5717,10 @@ tr: yazdır({"ad": "Ali", "puan": 30}.anahtarlar())
 
 
 #### `.TR_kv_proj` (`TR_mem_kv_proj`, `kv_katmanı`)
+
+
+
+#### `.TR_language` (`TR_mem_language`, `dil`)
 
 
 
@@ -6316,6 +6336,10 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 
 
 
+#### `.TR_segments` (`TR_mem_segments`, `kesitler`)
+
+
+
 #### `.TR_sequential(...)` (`TR_mem_sequential`, `sıralı`)
 
     VeriKümesi.sıralı([Tam], [Tam], toplu: Tam, bağlam: Tam) → SıralıOkuyucu
@@ -6467,6 +6491,10 @@ tr: yazdır("a,b,c".böl(","), Tensör([1, 2, 3, 4]).böl(2)[0].değer)
 
 İlişkili: `.TR_join(...)`, `TR_concat(...)`
 
+#### `.TR_start` (`TR_mem_start`, `başlangıç`)
+
+
+
 #### `.TR_starts_with(...)` (`TR_mem_starts_with`, `başlar`)
 
     Metin.başlar(Metin) → Mantık
@@ -6612,6 +6640,10 @@ tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlat�
 
 
 
+#### `.TR_text` (`TR_mem_text`, `metin`)
+
+
+
 #### `.TR_threshold` (`TR_mem_threshold`, `eşik`)
 
 
@@ -6708,6 +6740,10 @@ Görünümü:
 en: print(Tensor([[1, 2], [3, 4]]).tolist)
 tr: yazdır(Tensör([[1, 2], [3, 4]]).değer)
 ```
+
+#### `.TR_transcribe(...)` (`TR_mem_transcribe`, `yazıya_çevir`)
+
+
 
 #### `.TR_transpose(...)` (`TR_mem_transpose`, `devrik`)
 

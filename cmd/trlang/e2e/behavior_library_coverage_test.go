@@ -21,6 +21,9 @@ import (
 // uncoveredLibraryNames, örneği henüz olmayan ya da örnek gerektirmeyen kitaplık adlarıdır ve gerekçesiyle durur.
 // Liste yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredLibraryNames = map[string]string{
+	"whisper.Kesit":                    "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",
+	"whisper.Çevriyazı":                "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",
+	"whisper.yazıya_çevir()":           "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",
 	"whisper.hazır_whisper":            "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",
 	"pretrained.hazır_gguf":            "GGUF dosyası ister, depoda yok; TestGGUFModelMatchesSafetensors dosyasını Go ile kurar",
 	"layers.göm()":                     "iç yardımcı metot: GPT.gizli_temsil ve tek_adım ortak gövdesi",

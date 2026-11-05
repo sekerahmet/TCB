@@ -4,6 +4,7 @@
 *.npy binary
 *.trt binary
 *.safetensors binary
+*.bin binary
 
 # Kodlu .tr dosyalarında farkı Türkçe göstermek için "tr" fark sürücüsü. Sürücüyü her kişi kendi
 # git ayarında tanımlar: git config --global diff.tr.textconv "trlang show" (docs/guide/01_baslangic.md,

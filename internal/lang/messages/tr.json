@@ -1497,6 +1497,8 @@
 "H7095": "{@pretrained_whisper}: {weight|q} tensörünün şekli {given}, `config.json`'a göre {expected} olmalıdır",
 "H7096": "{@pretrained_whisper}: `config.json`'da {field|q} {given} olamaz: {case, select, activation {Whisper GELU kullanır} scale {gömme ölçeklenmez} heads {bakış sayısı `d_model`'i bölmelidir} other {boyutlar sıfırdan büyüktür}}",
 "H7097": "Whisper penceresinin şekli {given}, modele göre {expected} olmalıdır: 30 saniyelik log-Mel",
+"H7098": "{@transcribe}: {given|q} {case, select, mono {yazılamaz: bu model tek dillidir, yalnız `\"en\"` geçerlidir} other {bu modelin dili değil; dil küçük harfli kısa kodla yazılır, örneğin `\"tr\"` ya da `\"en\"`}} (25.3)",
+"H7099": "{@transcribe}: `tokenizer.json`'da {token|q} parçası yok",
 "H7100": "kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})",
 "H7101": "kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)",
 "H7102": "kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi",

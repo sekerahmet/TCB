@@ -1497,6 +1497,8 @@
 "H7095": "{@pretrained_whisper}: tensor {weight|q} has shape {given}, by `config.json` it must be {expected}",
 "H7096": "{@pretrained_whisper}: {field|q} in `config.json` cannot be {given}: {case, select, activation {Whisper uses GELU} scale {the embedding is not scaled} heads {the head count must divide `d_model`} other {sizes are greater than zero}}",
 "H7097": "The Whisper window has shape {given}, by the model it must be {expected}: a log-Mel of 30 seconds",
+"H7098": "{@transcribe}: {given|q} {case, select, mono {is not allowed: this model has one language, only `\"en\"` is valid} other {is not a language of this model; a language is a lower case short code such as `\"tr\"` or `\"en\"`}} (25.3)",
+"H7099": "{@transcribe}: `tokenizer.json` has no {token|q} token",
 "H7100": "the size of the copy differs from the source's; the source was not deleted ({path|q})",
 "H7101": "the source has {count} links or special files; it cannot be moved to another disk (first copy it and make the links by hand)",
 "H7102": "the copy differs from the source (the file count or total size does not match); the source was not deleted",

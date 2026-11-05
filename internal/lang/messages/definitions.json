@@ -1497,6 +1497,8 @@
 "H7095": { "param": ["weight", "given", "expected"], "slots": {"pretrained_whisper": "TR_fn_pretrained_whisper"} },
 "H7096": { "param": ["field", "given", "case"], "slots": {"pretrained_whisper": "TR_fn_pretrained_whisper"} },
 "H7097": { "param": ["given", "expected"] },
+"H7098": { "param": ["given", "case"], "slots": {"transcribe": "TR_mem_transcribe"} },
+"H7099": { "param": ["token"], "slots": {"transcribe": "TR_mem_transcribe"} },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },
