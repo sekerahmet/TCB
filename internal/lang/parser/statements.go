@@ -491,7 +491,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 		p.nextToken() // 'olarak'
 		p.role(p.curToken(), RoleAs)
 		if p.expectPeek(lexer.TokIdent) {
-			stmt.Alias = p.curToken().Literal
+			stmt.Alias, stmt.AliasToken = p.curToken().Literal, p.curToken()
 		}
 	}
 	p.skipSemicolon()

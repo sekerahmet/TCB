@@ -39,7 +39,8 @@ type Options struct {
 	// line. A file needs the header (2.1).
 	Body bool
 	// Library is the embedded library's file name when the text is that file ("layers.tr";
-	// interp.LibraryFileName): its places that wait for 4c give no diagnostic (6.1, 7.1).
+	// interp.LibraryFileName): its places that wait for 4c give no diagnostic (6.1, 7.1), and it
+	// defines its own TR_ names (17.1).
 	Library string
 }
 
@@ -85,6 +86,19 @@ func Prepare(text string, s Options) *Result {
 	if errs := p.Errs(); len(errs) > 0 {
 		r.Stage, r.Errors = StageSyntax, limitErrors(byPosition(errs))
 		return r
+	}
+	// The gate stands before the type check and does not depend on it: a module is read here at run
+	// time without one (2.3a, 17).
+	if s.Library == "" {
+		if errs := reservedNames(r.Program); len(errs) > 0 {
+			r.Stage, r.Errors = StageType, limitErrors(byPosition(errs))
+			if s.Checker != nil {
+				// The shell counts a shared checker's cumulative errors under StageType; these are
+				// this line's alone, and a second one would not be counted as new: the line would run.
+				r.Stage = StageSyntax
+			}
+			return r
+		}
 	}
 	if !s.TypeCheck {
 		return r

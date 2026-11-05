@@ -16,6 +16,7 @@ func TestParseFirstExpressionSeparatesOutcomes(t *testing.T) {
 		{"1 +", exprSyntaxError},
 		{"", exprSyntaxError},
 		{"TR_var a = 1", exprNotExpression},
+		{"TR_func TR_print() { }", exprSyntaxError},
 	} {
 		if _, got := parseFirstExpression(c.text); got != c.want {
 			t.Errorf("parseFirstExpression(%q) = %d, beklenen %d", c.text, got, c.want)

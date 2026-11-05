@@ -8,7 +8,7 @@ A.TR_transpose	ambiguous	3	name:TR_mem_transpose[H8878],tr:struct:tests/negative
 Blok.TR_ctx_init	ok	0	tr:method:tools/gpu/measurement_model.tr:Blok.TR_ctx_init
 Dikkat.TR_ctx_init	not_found	4	-
 Doğrusal.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
-Doğrusal.TR_map	ambiguous	3	name:TR_mem_map[H8878],tr:struct:lib/layers.tr:TR_type_Linear[H8877]
+Doğrusal.TR_map	ambiguous	3	name:TR_mem_map[H8878],tr:struct:lib/layers.tr:TR_type_Linear[H8877],tr:struct:tests/negative/kod_tanimi.tr:TR_type_Linear[H8877]
 E.TR_device	ok	0	name:TR_mem_device
 E.TR_transpose	ok	0	name:TR_mem_transpose
 G.TR_shape	ok	0	name:TR_mem_shape
@@ -17,12 +17,12 @@ G.TR_transpose	ok	0	name:TR_mem_transpose
 GPT.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 GPT.TR_map	ambiguous	3	name:TR_mem_map[H8878],tr:struct:lib/layers.tr:TR_type_GPT[H8877]
 I.TR_slice	ok	0	name:TR_mem_slice
-K.TR_transpose	ok	0	name:TR_mem_transpose
+K.TR_transpose	ambiguous	3	name:TR_mem_transpose[H8878],tr:struct:tests/negative/kod_tanimi.tr:K[H8877]
 KOŞU.TR_exists	ok	0	name:TR_mem_exists
 Kare.TR_ctx_init	not_found	4	-
 L.TR_reverse	ok	0	name:TR_mem_reverse
 Linear.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
-Linear.TR_map	ambiguous	3	name:TR_mem_map[H8878],tr:struct:lib/layers.tr:TR_type_Linear[H8877]
+Linear.TR_map	ambiguous	3	name:TR_mem_map[H8878],tr:struct:lib/layers.tr:TR_type_Linear[H8877],tr:struct:tests/negative/kod_tanimi.tr:TR_type_Linear[H8877]
 M.TR_tolist	ok	0	name:TR_mem_tolist
 Model.TR_GPT	not_found	4	-
 Model.TR_append	ambiguous	3	name:TR_mem_append[H8878],tr:struct:tools/gpu/measurement_model.tr:Model[H8877]
@@ -647,6 +647,7 @@ k.TR_keys	ok	0	name:TR_mem_keys
 k.TR_length	ok	0	name:TR_mem_length
 k.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
 k.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
+k.TR_pi	not_found	4	-
 k.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
 k.TR_remove	ok	0	name:TR_mem_remove
 k.TR_remove_at	ok	0	name:TR_mem_remove_at

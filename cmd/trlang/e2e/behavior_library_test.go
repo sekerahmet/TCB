@@ -59,6 +59,39 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 	testkit.Wait(t, tr(t, project, "build", "hatali.tr", exit), 1, nil, []string{`"tr/olmayan" dilin kitaplığında yok`})
 }
 
+// Kural (2.3a): bağımlılık dilin sözcüğünü değiştiremez. Modül TR_print ve TR_read_file tanımlayınca
+// aktaran dosyada TR_print hiçbir şey basmıyor, TR_read_file modülün değerini veriyordu; hata yoktu.
+// Modül artık yüklenmez, program bir satır bile çalışmaz; modül düzelince ikisi de yerleşiktir.
+func TestAModuleCannotReplaceABuiltin(t *testing.T) {
+	project := t.TempDir()
+	writeTR(t, project, "ana.tr", strings.Join([]string{
+		`TR_import "bagimlilik"`,
+		`TR_print("yerleşik yazdı")`,
+		`TR_print(TR_read_file("yok.txt"))`,
+	}, "\n")+"\n")
+	writeTR(t, project, "bagimlilik.tr", strings.Join([]string{
+		`TR_func TR_print(x: TR_String) {`, `}`,
+		`TR_func TR_read_file(yol: TR_String) -> TR_String {`, `    TR_return "modülün değeri"`, `}`,
+	}, "\n")+"\n")
+	exit := filepath.Join(t.TempDir(), "uygulama.exe")
+	for _, args := range [][]string{{"ana.tr"}, {"check", "ana.tr"}, {"build", "ana.tr", exit}} {
+		s := tr(t, project, args...)
+		testkit.Wait(t, s, 1, nil, []string{"'TR_print' ayrılmış bir ad", "'TR_read_file' ayrılmış bir ad"})
+		if strings.Contains(s.Stdout, "yerleşik yazdı") {
+			t.Errorf("%v: program çalışmamalı:\n%s", args, s.Stdout)
+		}
+	}
+	writeTR(t, project, "bagimlilik.tr", "TR_var kaynak = 1\n")
+	s := tr(t, project, "ana.tr")
+	testkit.Wait(t, s, 1, []string{"yerleşik yazdı"}, []string{"yok.txt"})
+}
+
+// Kural (2.3a): kabuk da aynı kapıdadır; satırlar arasında sayılan hatalar ikinci tanımı kaçırmaz.
+func TestTheShellCannotReplaceABuiltin(t *testing.T) {
+	s := testkit.RunBinary(t, trBinary, t.TempDir(), "TR_var TR_print = 1\nTR_func TR_sum() { }\nTR_print(TR_sum([2, 3]))\n", nil)
+	testkit.Wait(t, s, 0, []string{"5"}, []string{"'TR_print' ayrılmış bir ad", "'TR_sum' ayrılmış bir ad"})
+}
+
 // Colab eğitim betiğinin (tools/gpu/gpt_training.tr) duman testi: depodaki sentetik veri
 // SimpleStories klasörü düzenine (tokenizer.json, train.npy, valid.npy) konur, çok küçük ayarla
 // CPU'da koşturulur; koşu klasörüne beş çıktı yazılır, her istem için örnek_sayısı metin üretilir,
