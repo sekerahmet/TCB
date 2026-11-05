@@ -67,6 +67,7 @@ var FunctionArgCodes = map[codes.Code]argCodes{
 	codes.FnSin:         {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnSinh:        {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnSqrt:        {messages.H2423, []codes.Code{}},
+	codes.FnStd:         {messages.H2423, []codes.Code{}},
 	codes.FnTan:         {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnTanh:        {messages.H6103, []codes.Code{codes.TypeList}},
 	codes.FnTopk:        {messages.H6203, []codes.Code{codes.TypeBool, codes.TypeDict, codes.TypeFloat, codes.TypeList, codes.TypeNoneType, codes.TypeString, codes.TypeTensor}},
