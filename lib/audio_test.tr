@@ -170,8 +170,8 @@ TR_test "22.4 desteklenmeyen biçim ffmpeg iletisini verir" {
     TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", geniş_fmt(7, 1, 16000, 16, 16)) + veri)))
     TR_assert_equal("H7061", hata_kodu(TR_Bytes("RIFX") + u32(4) + TR_Bytes("WAVE")))
     TR_assert_equal("H7061", hata_kodu(TR_Bytes("RF64") + u32(4) + TR_Bytes("WAVE")))
-    TR_var metin = hata_metni(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 32, 24)) + veri))
-    TR_assert(metin.TR_contains("24/32 bit"))
+    TR_var ileti = hata_metni(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 32, 24)) + veri))
+    TR_assert(ileti.TR_contains("24/32 bit"))
 }
 
 TR_test "22.4 biçim önce denetlenir: öbür sebepler ffmpeg iletisinin önüne geçmez" {

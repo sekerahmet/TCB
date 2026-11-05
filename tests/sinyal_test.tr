@@ -10,7 +10,7 @@ TR_func yakın(a: TR_Tensor, b: TR_Tensor, pay: TR_Float = 0.00001) -> TR_Bool {
 TR_func doğrudan(x: TR_List[TR_Float], n: TR_Int) -> (TR_Tensor, TR_Tensor) {
     TR_var gerçek: TR_List[TR_Float] = []
     TR_var sanal: TR_List[TR_Float] = []
-    TR_for j TR_in 0..(n // 2 + 1) {
+    TR_for j TR_in 0.. (n // 2 + 1) {
         TR_var a = 0.0
         TR_var b = 0.0
         TR_for k TR_in 0..x.TR_length {
