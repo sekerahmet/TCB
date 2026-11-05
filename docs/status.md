@@ -1227,6 +1227,11 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
+- **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 156 N1):** `TR_Any` tutan sözlükte `.TR_pop()` ve `.TR_remove_at()` çalışırken H2648 ile yanlış yazım öneriyor, denetim H2474 veriyor [ölçüldü: D1, `1f6d8348`]. Düzeltmesi ayrı küçük commit.
+- **Yapılacaklar (F1, Ö3; sahip D1; DENETİM istek 156 N2):** metin alıcıda `.TR_write_file` önerisi alıcıyı yol yapıyor: izlenince metnin kendisi adında dosya yazılır [ölçüldü: DENETİM 156].
+- **Yapılacaklar (F, Ö3; sahip TCB, toplu karar):** görünüm adı iletiye sızıyor, `TR_std(1)`'in iletisi de öyle; `CallName`, `CallNameRef`, `CallPrefix` çağrısı 99 satır [ölçüldü: D1, `git grep -c`].
+- **Yapılacaklar (E, Ö3; sahip TCB):** `TestProfileSamplingLine` Windows'ta bir kez 0 örnek aldı, yeniden koşunca geçti [ölçüldü: D1, CI koşusu 42000223057]. Sebebi bilinmiyor.
+
 - **Mevcut durum (2026-11-04; C, Ö2):** `TestBaseThatIsNotOneCommitStops` ortak öneki depodan arıyor, süre sınırı var: sabit `da0457c5` yalnız yerel depoda belirsizdi, taze tam klonda gerçek ön denetimi başlatıp takılıyordu [ölçüldü: D1; DENETİM istek 104, üç klon]. `TestPreCheckGoStepsSkipTheCache` ön denetimin Go adımlarını koruyor (DENETİM istek 110 W2).
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 
