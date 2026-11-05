@@ -370,7 +370,7 @@ TR_struct TR_Whisper {
             }
             TR_var x = s._süz(l.TR_slice(1, T - 1, T).TR_reshape([boy]), örnek)
             TR_var seçilen = TR_argmax(x).TR_tolist
-            toplam = toplam + TR_log_softmax(x).TR_tolist[seçilen]
+            toplam = toplam + TR_log_softmax(x)[seçilen].TR_tolist
             TR_if seçilen == s.eot { TR_break }
             örnek.TR_append(seçilen)
             TR_if ilk.TR_length + örnek.TR_length > bağlam { TR_break }
