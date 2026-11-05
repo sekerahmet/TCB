@@ -1386,5 +1386,4 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md). Yazıld
 ### 25.1–25.9
 
 - **Mevcut durum (S1, 2026-11-05):** `TR_pretrained_whisper` ve 25.1'in kapıları var, kodlayıcı çalışıyor; `lib/whisper.tr`. Whisper-tiny'de özgünle en büyük fark 6,99e-4, ortalama 1,41e-6; float64 doğrusuna TR 4,19e-4, özgün 4,77e-4 uzak [ölçüldü: S1, G4 CPU, tek ses]. Ölçüt `TR_rtol: 1e-3`, `TR_atol: 1e-3`, ortalama mutlak fark 1e-5'in altında (TCB). Çözücü ve `TR_transcribe` yok.
-- **Mevcut durum:** uygulanmadı; `tr/whisper` kitaplığı yok; girdi `TR_whisper_log_mel` var (23.6).
 - **Yapılacaklar (E, Ö3; sahip S1):** dilim dilim, DENETİM istek 178'den geçen yönergeyle.
