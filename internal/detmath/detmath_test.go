@@ -73,6 +73,7 @@ func TestNoFusedInstructions(t *testing.T) {
 var machineFree = map[string]bool{
 	// Bit işlemi, yuvarlama yok.
 	"Abs": true, "Copysign": true, "Signbit": true, "Float32bits": true, "Float32frombits": true,
+	"Float64bits": true, "Float64frombits": true,
 	"Inf": true, "NaN": true, "IsInf": true, "IsNaN": true,
 	// Sonuç tam sayıya kesin yuvarlanır, ara hesap yok.
 	"Ceil": true, "Floor": true, "Round": true, "RoundToEven": true, "Trunc": true,

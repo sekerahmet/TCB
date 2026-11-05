@@ -231,5 +231,6 @@ func nearFloats(x, y, rtol, atol float64) bool {
 	if math.IsInf(x, 0) || math.IsInf(y, 0) {
 		return x == y
 	}
-	return math.Abs(x-y) <= atol+rtol*max(math.Abs(x), math.Abs(y))
+	scaled := float64(rtol * max(math.Abs(x), math.Abs(y))) // açık yuvarlama: FMA makineye bağlı sonuç verir
+	return math.Abs(x-y) <= atol+scaled
 }

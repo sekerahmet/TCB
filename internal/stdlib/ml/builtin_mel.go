@@ -61,7 +61,7 @@ func melPoints(m int, fMin, fMax float64, htk bool) []float64 {
 	step := (hi - lo) / float64(m+1)
 	out := make([]float64, m+2)
 	for i := range out {
-		out[i] = melToHz(float64(i)*step+lo, htk)
+		out[i] = melToHz(float64(float64(i)*step)+lo, htk) // açık yuvarlama: FMA makineye bağlı sonuç verir
 	}
 	out[m+1] = melToHz(hi, htk)
 	return out
