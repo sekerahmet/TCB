@@ -25,7 +25,7 @@ func (g *backend) FromRaw(raw []byte, dt tensor.DType) tensor.Storage {
 	g.enter()
 	defer g.exit()
 	g.noCapture(messages.H4066)
-	n := len(raw) / dtypeSize(dt)
+	n := rawElems(raw, dt)
 	d := g.allocate(n, dt, false)
 	if len(raw) > 0 {
 		g.loadHost(d, unsafe.Pointer(&raw[0]), len(raw))
@@ -43,6 +43,9 @@ func (g *backend) ToRaw(src tensor.View) []byte {
 	defer g.exit()
 	g.noCapture(messages.H4065)
 	d := g.storageOf(src.S)
+	if d.dtype.IsQuantized() {
+		return g.quantToRaw(d, src)
+	}
 	n, size := src.Numel(), dtypeSize(d.dtype)
 	out := make([]byte, n*size)
 	if n == 0 {

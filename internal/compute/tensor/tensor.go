@@ -494,7 +494,7 @@ func (t *Tensor) To(dev Device) *Tensor {
 		return t
 	}
 	if t.dtyp.IsQuantized() {
-		panic(messages.New(messages.H6689, t.dtyp.Name(), dev))
+		return t.quantTo(dev)
 	}
 	target := BackendFor(dev)
 	if t.dtyp.IsTyped() {

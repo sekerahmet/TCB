@@ -1308,7 +1308,6 @@ const (
 	H6686 Code = 6686 // GGUF tensörü {name|q}: {block}. bloğun ölçeği NaN ya da sonsuz (15.55)
 	H6687 Code = 6687 // bu işlem "{dtype}" tensörde yapılamaz (15.53): nicemlenmiş tensör yalnız sayılı işlemlerde kullanılır, sessizce açılmaz; açmak için `t.{#to_dtype}("float32")`
 	H6688 Code = 6688 // "{dtype}" tensörün devrik görünümü yalnız `@`'nin sağ işleneni olur ve okunur (15.53): önce görünümü geri alın: `w.{#transpose}()`
-	H6689 Code = 6689 // "{dtype}" tensör {device} cihazında olamaz: bu sürümde nicemlenmiş tensör yalnız CPU'dadır; kurmadan önce `{#default_device}("cpu")`
 	H6690 Code = 6690 // "{dtype}" tensör türev izlemez (15.52): ağırlık donmuştur; eğitmek için açın: `t.{#to_dtype}("float32")`
 	H6691 Code = 6691 // {fn}: "{dtype}" hassasiyetine nicemleme bu sürümde yok: nicemlenmiş tensör dosyadan gelir (15.55)
 	H6692 Code = 6692 // "{dtype}" tensörün son ekseni {block} öğelik bloğun katı olmalıdır, uzunluğu {length} (15.51)

@@ -41,11 +41,8 @@ func (d DType) QuantBlock() (elems, size int) {
 	return 0, 0
 }
 
-// checkQuantShape kurulacak nicemlenmiş tensörün cihazını ve son eksenini denetler (15.51).
-func checkQuantShape(be Backend, dt DType, shape []int) {
-	if be.Device().Kind != KindCPU {
-		panic(messages.New(messages.H6689, dt.Name(), be.Device()))
-	}
+// checkQuantShape kurulacak nicemlenmiş tensörün son eksenini denetler (15.51).
+func checkQuantShape(dt DType, shape []int) {
 	elems, _ := dt.QuantBlock()
 	if len(shape) == 0 {
 		panic(messages.New(messages.H6692, dt.Name(), 0, elems))
@@ -59,13 +56,46 @@ func checkQuantShape(be Backend, dt DType, shape []int) {
 // Son eksen bloğun katı olmalıdır; ölçekler CheckQuantScales'tan geçmiş olmalıdır.
 func FromQuantized(dt DType, raw []byte, shape ...int) *Tensor {
 	be := defaultBackend()
-	checkQuantShape(be, dt, shape)
+	checkQuantShape(dt, shape)
 	n := allocSizeOn(be, isCreate, shape, dt)
 	elems, size := dt.QuantBlock()
 	if len(raw) != n/elems*size {
 		panic(messages.New(messages.H3035, len(raw)/size*elems, shape))
 	}
-	return fromStorage(be, &cpuStorage{dtyp: dt, raw: raw, n: n}, shape)
+	return fromStorage(be, quantStorage(be, dt, raw, n), shape)
+}
+
+// quantStorage n öğelik bloklardan be'de depo kurar: CPU'da raw'ın kendisi depodur (çağıran bırakır),
+// öbür arka uçlara bayt bayt gider, bloklar açılmaz.
+func quantStorage(be Backend, dt DType, raw []byte, n int) Storage {
+	if be.Device().Kind == KindCPU {
+		return &cpuStorage{dtyp: dt, raw: raw, n: n}
+	}
+	return rawBackend(be, dt).FromRaw(raw, dt)
+}
+
+// quantRaw [offset, offset+n) öğelerinin bloklarıdır; aralık blok sınırındadır. CPU'da deponun
+// kendisidir (çağıran yazmaz), kartta indirilen kopyadır.
+func (t *Tensor) quantRaw(offset, n int) []byte {
+	if s, ok := t.storage.(*cpuStorage); ok {
+		return quantBytes(s, offset, n)
+	}
+	return gateToRaw(rawBackend(t.be, t.dtyp), View{S: t.storage, Offset: offset, Shape: []int{n}, Strides: []int{1}})
+}
+
+// quantTo tensörü dev'e taşır (15.53): bloklar ham baytlarıyla gider, bit bit döner; devrik görünüm
+// taşınmaz. Nicemlenmiş tensör türev izlemez.
+func (t *Tensor) quantTo(dev Device) *Tensor {
+	t.refuseTransposed()
+	target := BackendFor(dev)
+	n := allocSizeOn(target, isCopy, t.shape, t.dtyp)
+	return fromStorage(target, quantStorage(target, t.dtyp, t.quantRaw(t.offset, n), n), t.shape)
+}
+
+// QuantOpener nicemlenmiş görünümü float32'ye açan arka uç yüzüdür: açılan değer CPU'nunkiyle bit
+// bit aynıdır (15.53). CPU kendi yolunu tensör katmanında yürütür.
+type QuantOpener interface {
+	OpenQuant(out Storage, src View)
 }
 
 // CheckQuantScales ilk NaN ya da sonsuz ölçekli bloğun indeksini verir, yoksa -1 (15.55).
@@ -225,6 +255,12 @@ func (t *Tensor) quantRowSlice(axis, step int) {
 // Open nicemlenmiş tensörü açar: .TR_to_dtype'ın tek yoludur. Cast açmaz: hesabın iç dönüşümleri
 // (TR_mixed_precision bloğu) ağırlığı sessizce açmasın (15.53).
 func (t *Tensor) Open(dt DType) *Tensor {
+	t.refuseTransposed()
+	if t.Device().Kind != KindCPU && dt != Float32 {
+		// 16 bitlik ve float64 hedefin yuvarlaması CPU'nun yolundan geçer: kartın dönüşümü NaN'ın
+		// bitlerini korumaz (15.47a), açılan değer cihazlar arasında aynı kalmalıdır (15.53).
+		return t.To(CPU).Open(dt).To(t.Device())
+	}
 	if dt == Float64 {
 		return t.dequantize64()
 	}
@@ -235,9 +271,15 @@ func (t *Tensor) Open(dt DType) *Tensor {
 // ve fp16 sonra hedefe yuvarlanır. Devrik görünüm açılmaz, ileti devriği geri almayı söyler
 // (15.53). Nicemlenmiş tensör türev izlemez: sonuç yapraktır.
 func (t *Tensor) dequantize(dt DType) *Tensor {
-	t.refuseTransposed()
-	s := cpuStore(t.storage)
 	out := emptyOf(isCast, t.be, t.shape, Float32)
+	if opener, ok := t.be.(QuantOpener); ok {
+		if unlockedOps.Load() != 0 {
+			gate([]Storage{out.storage}, []Storage{t.storage})
+		}
+		opener.OpenQuant(out.storage, t.view())
+		return out
+	}
+	s := cpuStore(t.storage)
 	elems, size := s.dtyp.QuantBlock()
 	blocks := quantBytes(s, t.offset, t.Numel())
 	y := cd(out.storage)
@@ -253,7 +295,6 @@ func (t *Tensor) dequantize(dt DType) *Tensor {
 // dequantize64 değerleri float64'te açar (15.52: float64'te kesindir). Kodlar ve ölçekler float32'de
 // zaten kesin çarpılır; "q4_k"nin çıkarması burada yuvarlanmaz.
 func (t *Tensor) dequantize64() *Tensor {
-	t.refuseTransposed()
 	s := cpuStore(t.storage)
 	out := emptyOf(isCast, t.be, t.shape, Float64)
 	y := cpuStore(out.storage).raw
@@ -301,41 +342,41 @@ func dequantQ4K64(y []float64, b []byte) {
 // OpenAt idx'teki öğenin açılmış değeridir; yalnız o öğenin bloğu açılır (yazdırma, 15.53: büyük
 // ağırlığın bütünü açılmaz). Devrik görünümü de okur: adımlar öğeyi depoda bulur.
 func (t *Tensor) OpenAt(idx ...int) float32 {
-	s := cpuStore(t.storage)
 	at := t.offset
 	for i, x := range idx {
 		at += x * t.strides[i]
 	}
-	elems, size := s.dtyp.QuantBlock()
+	elems, _ := t.dtyp.QuantBlock()
 	var block [kBlock]float32
-	b := at / elems
-	dequantBlocks(s.dtyp, block[:elems], s.raw[b*size:(b+1)*size])
-	return block[at%elems]
+	first := at / elems * elems
+	dequantBlocks(t.dtyp, block[:elems], t.quantRaw(first, elems))
+	return block[at-first]
 }
 
 // quantCopy aynı hassasiyette yeni bir depodur (15.54): kodlar ve ölçekler kopyalanır.
 func (t *Tensor) quantCopy(is opKind) *Tensor {
 	t.refuseTransposed()
 	allocSizeOn(t.be, is, t.shape, t.dtyp)
-	s := cpuStore(t.storage)
-	raw := bytes.Clone(quantBytes(s, t.offset, t.Numel()))
-	return fromStorage(t.be, &cpuStorage{dtyp: t.dtyp, raw: raw, n: t.Numel()}, t.shape)
+	raw := t.quantRaw(t.offset, t.Numel())
+	if t.be.Device().Kind == KindCPU {
+		raw = bytes.Clone(raw)
+	}
+	return fromStorage(t.be, quantStorage(t.be, t.dtyp, raw, t.Numel()), t.shape)
 }
 
 // quantRows ilk eksenin idx satırlarını sırayla kopyalar (15.53, tensörle indeks): bloklar bölünmez,
 // kodlar ve ölçekler değişmez. Sınır dışı indeks çağıranın denetimindedir.
 func (t *Tensor) quantRows(idx, shape []int) *Tensor {
 	t.quantRowSlice(0, 1)
-	s := cpuStore(t.storage)
-	elems, size := s.dtyp.QuantBlock()
+	elems, size := t.dtyp.QuantBlock()
 	rowBytes := t.Numel() / max(t.shape[0], 1) / elems * size
 	n := allocSizeOn(t.be, isCopy, shape, t.dtyp)
-	out := newQuantStorage(s.dtyp, n)
-	base := t.offset / elems * size
+	src := t.quantRaw(t.offset, t.Numel())
+	out := make([]byte, n/elems*size)
 	for i, r := range idx {
-		copy(out.raw[i*rowBytes:(i+1)*rowBytes], s.raw[base+r*rowBytes:base+(r+1)*rowBytes])
+		copy(out[i*rowBytes:(i+1)*rowBytes], src[r*rowBytes:(r+1)*rowBytes])
 	}
-	return fromStorage(t.be, out, shape)
+	return fromStorage(t.be, quantStorage(t.be, t.dtyp, out, n), shape)
 }
 
 // newQuantStorage n öğelik sıfırlı depodur: bütün ölçekler ve kodlar 0, değeri 0 ("q6_k"de

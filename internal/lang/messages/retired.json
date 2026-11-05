@@ -219,6 +219,10 @@
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"
  },
+ "H6689": {
+  "commit": "claude/h1-gguf-kart",
+  "reason": "deleted: a quantized tensor lives on the card too (15.53)"
+ },
  "H6805": {
   "commit": "ab7f634",
   "reason": "deleted: messages: one code per meaning, coded reasons kept, safe generator comments"

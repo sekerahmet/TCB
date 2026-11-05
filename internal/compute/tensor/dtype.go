@@ -65,7 +65,7 @@ func NewOf(dt DType, data []float32, shape ...int) *Tensor {
 func ZerosOf(dt DType, shape ...int) *Tensor {
 	be := defaultBackend()
 	if dt.IsQuantized() {
-		checkQuantShape(be, dt, shape)
+		checkQuantShape(dt, shape)
 	}
 	return zerosOf(isCreate, be, shape, dt)
 }

@@ -33,6 +33,9 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	ix := append([]int(nil), idx...)
 	if w.dtyp.IsQuantized() {
 		// Seçilen satırlar açılır (15.53); ağırlık donmuştur, türev izlenmez.
+		if w.be.Device().Kind != KindCPU {
+			panic(PrecisionError(w.dtyp, w.be.Device()))
+		}
 		out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), Float32)
 		s := cpuStore(w.storage)
 		quantEmbedding(cd(out.storage), quantBytes(s, w.offset, V*D), s.dtyp, ix, D)

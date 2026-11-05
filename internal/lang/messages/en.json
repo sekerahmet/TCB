@@ -1303,7 +1303,6 @@
 "H6686": "GGUF tensor {name|q}: the scale of block {block} is NaN or infinite (15.55)",
 "H6687": "this operation cannot be done on a \"{dtype}\" tensor (15.53): a quantized tensor takes part only in the listed operations and is not opened silently; to open it use `t.{#to_dtype}(\"float32\")`",
 "H6688": "the transposed view of a \"{dtype}\" tensor is only the right operand of `@` and can be read (15.53): undo the view first: `w.{#transpose}()`",
-"H6689": "a \"{dtype}\" tensor cannot be on device {device}: in this version quantized tensors live only on the CPU; before making one use `{#default_device}(\"cpu\")`",
 "H6690": "a \"{dtype}\" tensor does not track gradients (15.52): the weight is frozen; to train it, open it: `t.{#to_dtype}(\"float32\")`",
 "H6691": "{fn}: quantizing to \"{dtype}\" does not exist in this version: quantized tensors come from files (15.55)",
 "H6692": "the last axis of a \"{dtype}\" tensor must be a multiple of the {block}-element block, its length is {length} (15.51)",
