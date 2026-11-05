@@ -40,7 +40,7 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 		`TR_print("şekil \(d.TR_forward(TR_ones([1, 3])).TR_shape) \(YEREL)")`,
 	}, "\n")+"\n")
 	writeTR(t, project, "yerel.tr", "TR_var YEREL = \"yerel modül\"\n")
-	writeTR(t, project, "tr/layers.tr", "TR_var TR_Linear = TR_none\n")
+	writeTR(t, project, "tr/layers.tr", "TR_var doğrusal = TR_none\n")
 	expected := "şekil [1, 2] yerel modül"
 	testkit.Wait(t, tr(t, project, "ana.tr"), 0, []string{expected}, nil)
 
@@ -51,7 +51,7 @@ func TestLibraryModuleCheckAndBuild(t *testing.T) {
 		t.Errorf("kitaplık modülü pakete gömülmemeli:\n%s", s.Stdout)
 	}
 	other := t.TempDir()
-	writeTR(t, other, "tr/layers.tr", "TR_var TR_Linear = TR_none\n")
+	writeTR(t, other, "tr/layers.tr", "TR_var doğrusal = TR_none\n")
 	testkit.Wait(t, testkit.RunBinary(t, exit, other, "", nil), 0, []string{expected}, nil)
 
 	writeTR(t, project, "hatali.tr", "TR_import \"tr/olmayan\"\n")

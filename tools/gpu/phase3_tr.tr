@@ -43,7 +43,7 @@ TR_func adım_at(adım: TR_Int) -> TR_Float {
     iyileştirici.TR_zero_grad()
     TR_var kayıp = TR_none
     TR_mixed_precision(HASSASIYET) {
-        kayıp = TR_cross_entropy(model.TR_forward(xy[0]), xy[1])
+        kayıp = TR_cross_entropy(model.ileri(xy[0]), xy[1])
     }
     TR_backward(kayıp)
     TR_clip_grad(ağırlıklar, TR_max: 1.0)

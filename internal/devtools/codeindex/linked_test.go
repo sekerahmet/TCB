@@ -16,17 +16,17 @@ const linkedSource = `TR_struct Dikkat {
 }
 
 TR_struct Blok {
-    TR_attention: Dikkat
+    dikkat: Dikkat
     TR_func TR_init(boyut: TR_Int, baş: TR_Int) {
-        TR_self.TR_attention = Dikkat(boyut, baş)
+        TR_self.dikkat = Dikkat(boyut, baş)
     }
 }
 
 TR_struct Model {
-    TR_config: TR_Dict[TR_String, TR_Int]
+    ayar: TR_Dict[TR_String, TR_Int]
     blok: Blok
     TR_func TR_init(boyut: TR_Int, baş: TR_Int = 2) {
-        TR_self.TR_config = {"embed_dim": boyut, "baş": baş}
+        TR_self.ayar = {"embed_dim": boyut, "baş": baş}
         TR_self.blok = Blok(boyut, baş: baş)
     }
 }
@@ -63,7 +63,7 @@ func TestRenameShowsLinkedDeclarationsAndDictKeys(t *testing.T) {
 		}
 	}
 	dictKey := false
-	key := srcAt(t, linkedSource, "TR_self.TR_config = {", "baş", 1) // {"embed_dim": boyut, "baş": baş} içindeki anahtar
+	key := srcAt(t, linkedSource, "TR_self.ayar = {", "baş", 1) // {"embed_dim": boyut, "baş": baş} içindeki anahtar
 	for _, c := range res.Likely {
 		if fmt.Sprintf("%d:%d", c.Pos.Line, c.Pos.Col) == key {
 			dictKey = c.Where == WhereString

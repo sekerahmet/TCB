@@ -247,8 +247,8 @@ codegraph who-uses edithook.testsFor --by-package | contains: users by package (
 codegraph callees edithook.testsFor | contains: calls 1 distinct function in 1 package: | not: 1 distinct functions | not: 1 packages | src: codegraph-1 madde 6, 2026-10-30 (callees tekil/çoğul uyumu)
 
 # codegraph-2: gaps.md'den altı açık tanımlı eksik (2026-11-02)
-codegraph query Model.TR_forward | contains: measurement_model.Model.TR_mem_forward [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (kullanıcı tipiyle nitelenmiş üye yazımı)
-codegraph query model.TR_forward | contains: measurement_model.Model.TR_mem_forward [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (harfsiz kullanıcı tipiyle nitelenmiş üye yazımı)
+codegraph query Model.ileri | contains: measurement_model.Model.ileri [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (kullanıcı tipiyle nitelenmiş üye yazımı)
+codegraph query model.ileri | contains: measurement_model.Model.ileri [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (harfsiz kullanıcı tipiyle nitelenmiş üye yazımı)
 codegraph query TR_Linear.TR_forward | contains: layers.TR_type_Linear.TR_mem_forward [tr_method] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (kodlu tip adıyla nitelenmiş üye yazımı)
 codegraph query l.TR_map | contains: TR_mem_map [name] | not: not found | src: codegraph-2 madde 1, 2026-11-02 (alıcı adı ne olursa olsun üye yazımı ad koduna çözülür)
 trlang index definition l.TR_map | contains: TR_mem_map | not: bulunamadı | src: codegraph-2 madde 1, 2026-11-02 (iki araçta tek üye yazımı kuralı)

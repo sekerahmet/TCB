@@ -167,16 +167,16 @@ TR_test "yalnız bir test" {
 }
 
 func TestAmbiguousAndNotFound(t *testing.T) {
-	r := buildSource(t, "TR_struct A {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func TR_forward() -> TR_Int {\n        TR_return 2\n    }\n}\n")
-	res := r.Definition("ileri", QueryOptions{})
+	r := buildSource(t, "TR_struct A {\n    TR_func koş() -> TR_Int {\n        TR_return 1\n    }\n}\nTR_struct B {\n    TR_func koş() -> TR_Int {\n        TR_return 2\n    }\n}\n")
+	res := r.Definition("koş", QueryOptions{})
 	if res.Status != StatusAmbiguous || len(res.Candidates) != 2 || ExitCode(res.Status) != ExitAmbiguous {
 		t.Fatalf("%+v", res)
 	}
-	miss := r.Definition("ilerı", QueryOptions{})
+	miss := r.Definition("koşu", QueryOptions{})
 	if miss.Status != StatusNotFound || len(miss.DidYouMean) == 0 {
 		t.Fatalf("a near miss gets suggestions: %+v", miss)
 	}
-	if !strings.Contains(Text(miss), messages.Text(messages.H8783)) || !strings.Contains(Text(res), messages.Text(messages.H8780, "ileri", 2)) {
+	if !strings.Contains(Text(miss), messages.Text(messages.H8783)) || !strings.Contains(Text(res), messages.Text(messages.H8780, "koş", 2)) {
 		t.Error("text output for the two non-ok statuses")
 	}
 }
