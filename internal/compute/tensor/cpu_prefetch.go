@@ -6,8 +6,9 @@ import (
 )
 
 // Ürünler arası önden getirme. Üretimde tek satırlı çarpımlar hep aynı sırayla gelir, araları norm
-// ve dikkatle geçer; bellek yolu o aralıkta boştur, dönen işçiler boşa bekler. Burada her ağırlığın
-// ardından hangisinin geldiği öğrenilir, çarpım bitince dönen işçiler sıradakini önbelleğe çağırır.
+// ve dikkatle geçer, dönen işçiler o aralıkta bekler. Burada her ağırlığın ardından hangisinin
+// geldiği öğrenilir, çarpım bitince dönen işçiler sıradakini önbelleğe çağırır. Kısa çarpımı bunun
+// hızlandırdığı henüz bir varsayımdır; sabitler de tahmindir.
 //
 // Yalnız adres tutulur: tablo ağırlığı canlı tutmaz. Ağırlık serbest kaldıysa önden getirme
 // yönergesi hata vermez, bellek okunmaz; sonuca hiçbir yerde girmez, bitler değişmez.

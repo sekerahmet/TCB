@@ -60,9 +60,8 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 	}
 }
 
-// fuseChunk bir parçanın eleman sayısı, fuseCost bir elemanın göreli maliyetidir: üretimde rope ve
-// swiglu bir eleman için 12-20 ns harcar, eleman işlerinin birkaç katı [ölçüldü: H2, parca.txt].
-// Parça sınırları yalnız boya bağlıdır, işçi sayısına ve zamanlamaya değil.
+// fuseChunk bir parçanın eleman sayısı, fuseCost bir elemanın göreli maliyetidir. İkisi de tahmindir,
+// ölçülmedi. Parça sınırları yalnız boya bağlıdır, işçi sayısına ve zamanlamaya değil.
 var fuseChunk = 512
 
 const fuseCost = 8
