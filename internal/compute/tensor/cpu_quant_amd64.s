@@ -90,8 +90,53 @@ TEXT ·sdotq4k(SB), NOSPLIT, $0-36
 	JZ           q4son
 
 q4blok:
-	ADDQ $16, DI
-	MOVQ $4, BX
+	MOVWLZX      (DI), AX
+	VMOVD        AX, X5
+	MOVWLZX      2(DI), AX
+	VMOVD        AX, X6
+	VCVTPH2PS    X5, X5
+	VCVTPH2PS    X6, X6
+	VBROADCASTSS X5, Y5
+	VBROADCASTSS X6, Y6
+	MOVL         4(DI), R8
+	MOVL         8(DI), R9
+	MOVL         12(DI), R10
+	MOVL         R8, AX
+	ANDL         $0x3f3f3f3f, AX
+	MOVL         R10, BX
+	ANDL         $0x0f0f0f0f, BX
+	SHRL         $6, R8
+	ANDL         $0x03030303, R8
+	SHLL         $4, R8
+	ORL          R8, BX
+	SHLQ         $32, BX
+	ORQ          BX, AX
+	VMOVQ        AX, X7
+	MOVL         R9, AX
+	ANDL         $0x3f3f3f3f, AX
+	SHRL         $4, R10
+	ANDL         $0x0f0f0f0f, R10
+	SHRL         $6, R9
+	ANDL         $0x03030303, R9
+	SHLL         $4, R9
+	ORL          R9, R10
+	SHLQ         $32, R10
+	ORQ          R10, AX
+	VMOVQ        AX, X8
+	VPMOVZXBD    X7, Y7
+	VPMOVZXBD    X8, Y8
+	VCVTDQ2PS    Y7, Y7
+	VCVTDQ2PS    Y8, Y8
+	VMULPS       Y5, Y7, Y7
+	VMULPS       Y6, Y8, Y8
+	VUNPCKLPS    Y8, Y7, Y9
+	VUNPCKHPS    Y8, Y7, Y10
+	VMOVUPS      X9, (DX)
+	VMOVUPS      X10, 16(DX)
+	VEXTRACTF128 $1, Y9, 32(DX)
+	VEXTRACTF128 $1, Y10, 48(DX)
+	ADDQ         $16, DI
+	MOVQ         $4, BX
 
 q4grup:
 	VBROADCASTSS (DX), Y10
@@ -174,8 +219,20 @@ TEXT ·sdotq6k(SB), NOSPLIT, $0-36
 	JZ           q6son
 
 q6blok:
-	LEAQ 128(DI), R8
-	MOVQ $2, BX
+	MOVWLZX      208(DI), AX
+	VMOVD        AX, X7
+	VCVTPH2PS    X7, X7
+	VBROADCASTSS X7, Y7
+	VPMOVSXBD    192(DI), Y8
+	VPMOVSXBD    200(DI), Y9
+	VCVTDQ2PS    Y8, Y8
+	VCVTDQ2PS    Y9, Y9
+	VMULPS       Y7, Y8, Y8
+	VMULPS       Y7, Y9, Y9
+	VMOVUPS      Y8, (DX)
+	VMOVUPS      Y9, 32(DX)
+	LEAQ         128(DI), R8
+	MOVQ         $2, BX
 
 q6yari:
 	Q6LANE(0, 0, 0, 128, 256, 384, Y0)
