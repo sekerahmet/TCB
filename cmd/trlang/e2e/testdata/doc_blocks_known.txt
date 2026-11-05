@@ -5,7 +5,7 @@ docs/spec/21_dis_programlar.md:18
 docs/spec/21_dis_programlar.md:34
 docs/spec/22_bayt_ve_sayi.md:17
 docs/spec/22_bayt_ve_sayi.md:37
-docs/spec/22_bayt_ve_sayi.md:57
+docs/spec/22_bayt_ve_sayi.md:59
 # 23 (2026-11-02): bölüm yazıldı, kimlikleri henüz yok; uygulama Jarvis'in sırasıyla.
 docs/spec/23_sinyal_ve_spektrum.md:19
 docs/spec/23_sinyal_ve_spektrum.md:47

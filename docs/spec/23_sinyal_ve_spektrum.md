@@ -78,7 +78,7 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 
 **23.6** `TR_whisper_log_mel(ses, TR_n_mels: m)` `tr/audio` kitaplığındadır (22.4, 11.6). OpenAI Whisper'ın `transcribe`'ının kullandığı log-Mel'i bir kaydın tamamı için verir: `[m, örnek // 160 + 3000]` şekilli bir `TR_Tensor[TR_Float]`. Kaydın kendi çerçeveleri ilk `örnek // 160`'tır; gerisi 30 saniyelik dolgununkilerdir.
 - `ses` bir `TR_Sound`'dur (22.4). Denetim sırası: örnekler iki boyutlu değilse hata (alanlar kurulduktan sonra atanmış olabilir, 7.5); sonra hız; sonra kanal.
-  - `.TR_sample_rate` 16000 değilse hatadır; ileti yeniden örneklemeyi önerir: `TR_run_process("ffmpeg", ["-nostdin", "-i", girdi, "-ar", "16000", "-c:a", "pcm_s16le", çıktı])` (21.1).
+  - `.TR_sample_rate` 16000 değilse hatadır; ileti yeniden örneklemenin kabuk yazımını önerir: `ffmpeg -nostdin -i girdi -ar 16000 -c:a pcm_s16le çıktı.wav`.
   - Birden çok kanal hatadır; sessizce tek kanala indirilmez. İleti iki açık yazımı önerir: ilk kanal `TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: ses.TR_sample_rate)`, ortalama `TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: ses.TR_sample_rate)`.
 - `TR_n_mels:` zorunludur: modelin `config.json`'undaki `num_mel_bins` (large-v3'te 128, öncekilerde 80).
 - **Sıra** özgün uygulamanınkidir:
@@ -99,4 +99,4 @@ TR_var mel = TR_whisper_log_mel(ses, TR_n_mels: 80)
 TR_print(mel.TR_shape) # [80, örnek // 160 + 3000]
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: sabit bir sınav sesinde (`jfk.wav`) özgün uygulamanın log-Mel'iyle `TR_all_close(..., TR_rtol: 1e-4, TR_atol: 1e-4)`. Aynı cihaz türünde açgözlü çözmenin parçaları özgün uygulamanınkiyle birebir aynıdır; bu bir doğruluk testidir, cihazlar arası bir söz değildir (15.22a).
+- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: sentetik bir sınav sesinde özgün uygulamanın log-Mel'iyle (Whisper `v20250625`, `padding=N_SAMPLES`) `TR_all_close(..., TR_rtol: 1e-4, TR_atol: 1e-4)`. Whisper'ın `tests/jfk.flac`'ı 16 kHz 16 bit WAV'a çevrilip aynı sınırla ayrıca kıyaslanır. Aynı cihaz türünde açgözlü çözmenin parçaları özgün uygulamanınkiyle birebir aynıdır; bu bir doğruluk testidir, cihazlar arası bir söz değildir (15.22a).
