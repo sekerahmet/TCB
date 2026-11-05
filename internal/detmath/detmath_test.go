@@ -22,37 +22,38 @@ import (
 
 const (
 	pkgPath    = "github.com/sekerahmet/TCB/internal/detmath"
-	interpPath = "github.com/sekerahmet/TCB/internal/lang/interp"
-	mlPath     = "github.com/sekerahmet/TCB/internal/stdlib/ml"
+	stdlibTree = "github.com/sekerahmet/TCB/internal/stdlib/..."
+	langTree   = "github.com/sekerahmet/TCB/internal/lang/..."
 )
 
 // fused birleşik komuttur: amd64'te VFMADD231SD ve benzerleri, arm64'te FMADDD ve benzerleri.
 var fused = regexp.MustCompile(`\s(VFN?M(ADD|SUB)\d+[A-Z]*S[DS]|FN?M(ADD|SUB)[DS])\s`)
 
-// Kural (13.1): bu paketin ve sayı yerleşiklerini yazan iki paketin hiçbir fonksiyonunda birleşik
-// komut yoktur. Örneklemsizdir: çapraz derlemenin komutları sayılır, makine istemez. Bir çarpımın
+// Kural (13.1): bu paketin, internal/stdlib ve internal/lang'in hiçbir fonksiyonunda birleşik komut
+// yoktur. Örneklemsizdir: çapraz derlemenin komutları sayılır, makine istemez. Bir çarpımın
 // float64() dönüşümü unutulursa düşer.
 func TestNoFusedInstructions(t *testing.T) {
 	for _, target := range [][]string{
 		{"GOOS=linux", "GOARCH=amd64", "GOAMD64=v3"},
 		{"GOOS=linux", "GOARCH=arm64"},
 	} {
-		cmd := exec.Command("go", "build", "-gcflags="+pkgPath+"=-S", "-gcflags="+interpPath+"=-S",
-			"-gcflags="+mlPath+"=-S", "-o", os.DevNull, mlPath)
+		cmd := exec.Command("go", "build", "-gcflags="+pkgPath+"=-S", "-gcflags="+stdlibTree+"=-S",
+			"-gcflags="+langTree+"=-S", "-o", os.DevNull, stdlibTree, langTree)
 		cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 		cmd.Env = append(cmd.Env, target...)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("%v: %v\n%s", target, err, out)
 		}
-		for _, symbol := range []string{"detmath.Exp STEXT", "interp.NewInt STEXT", "ml.gelu64 STEXT"} {
-			if !strings.Contains(string(out), symbol) {
+		listing := string(out)
+		for _, symbol := range []string{"detmath.Exp STEXT", "interp.NewInt STEXT", "ml.gelu64 STEXT", "logging.(*Progress).measureRate STEXT"} {
+			if !strings.Contains(listing, symbol) {
 				t.Fatalf("%v: derleme çıktısında %q yok", target, symbol)
 			}
 		}
 		count := 0
 		function := ""
-		for line := range strings.SplitSeq(string(out), "\n") {
+		for line := range strings.SplitSeq(listing, "\n") {
 			if name, _, ok := strings.Cut(line, " STEXT"); ok {
 				function = name
 			}

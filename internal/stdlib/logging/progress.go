@@ -271,7 +271,7 @@ func (c *Progress) measureRate(now time.Time) {
 		c.rate = instant
 	} else {
 		a := 1 - detmath.Exp(-dt/rateWindow)
-		c.rate += a * (instant - c.rate)
+		c.rate += float64(a * (instant - c.rate)) // float64(): çarpım toplamayla birleşmez
 	}
 	c.rateStep, c.rateTime = c.step, now
 }
