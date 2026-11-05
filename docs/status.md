@@ -721,8 +721,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.4
 
-- **Mevcut durum:** yeni görevler float32 ile başlıyor; tensörde `TR_std` H2423 veriyor [ölçüldü]. `TR_logsumexp` CPU'da var, blok içinde float32 verir (S1, 2026-11-05).
+- **Mevcut durum:** yeni görevler float32 ile başlıyor; tensörde `TR_std` H2423 veriyor [ölçüldü]. `TR_logsumexp` CPU'da var, blok içinde float32 verir (S1, 2026-11-05); `float64` girdi blok dışında çalışıyor, `bf16` bloğunda H6960 veriyor, `TR_sum` aynı blokta `float64` kalıyor [ölçüldü: DENETİM 186 N1].
 - **Yapılacaklar:** yeni görevin açıldığı yerin hesap türünü ve türevsiz kipini alması; `TR_std` ve `TR_cumsum`'ın blok kuralı.
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM istek 186 N1, 192):** `float64` girdili `TR_logsumexp` blokta `TR_sum` gibi `float64` kalır; `highPrecision` her türü float32'ye çeviriyor, ileti "yapılamaz" diyor.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_cumsum` 16 bitlik girdiyi blokta float32'ye açar.
 
 ### 15.5
@@ -803,8 +804,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.18
 
-- **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin ve `TR_argmax` sonucunun toplamı "int64" tensör [ölçüldü: Gemini 4, DENETİM 166]; maskenin ortalaması float32 [ölçüldü: DENETİM 170]. `TR_std` tensörde H2423 veriyor, `TR_logsumexp` yok [ölçüldü]. `TR_max` ve `TR_min` NaN dışındaki sayılarda −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
-- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, `TR_logsumexp`, liste eksen; TR testleri.
+- **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin ve `TR_argmax` sonucunun toplamı "int64" tensör [ölçüldü: Gemini 4, DENETİM 166]; maskenin ortalaması float32 [ölçüldü: DENETİM 170]. `TR_std` tensörde H2423 veriyor [ölçüldü]; `TR_logsumexp` CPU'da var, GPU'da yok (15.4). `TR_max` ve `TR_min` NaN dışındaki sayılarda −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
+- **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:242`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, GPU'da `TR_logsumexp`, liste eksen; TR testleri.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş eksen ile boş tensörün ayrımı, boş tensör listesinde hata, `TR_std`'nin sıfır sapmadaki türevi 0.
 
 ### 15.18a
@@ -854,7 +855,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.22b
 
 - **Mevcut durum:** tensörde uygulandı: `TR_topk`, `TR_argsort`, `TR_max`, `TR_min` ve `TR_argmax` −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. Listede `[0.0, -0.0].TR_sort()` `[-0.0, 0.0]` veriyor, `TR_max([-0.0, 0.0])` 0.0 [ölçüldü: Gemini 4, DENETİM 166].
-- **Yapılacaklar:** `TR_argmin`, `TR_maximum`, `TR_minimum` gelince aynı sıra.
+- **Yapılacaklar:** `TR_argmin` gelince aynı sıra.
 
 ### 15.23
 
@@ -1010,8 +1011,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.50
 
-- **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da `TR_false`, `TR_where` ondalık NaN koşulunu H6207 ile reddediyor, `TR_max` ve `TR_min` −0.0 < 0.0 kullanıyor [ölçüldü: Gemini 4, DENETİM 166]. `TR_logsumexp`, `TR_maximum` ve `TR_minimum` yok.
-- **Yapılacaklar (C, Ö2; ölçüm status'un):** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
+- **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da `TR_false`, `TR_where` ondalık NaN koşulunu H6207 ile reddediyor, `TR_max` ve `TR_min` −0.0 < 0.0 kullanıyor [ölçüldü: Gemini 4, DENETİM 166]. `TR_logsumexp`'in türevi çok büyük öğede sapıyor: `[1e7, 1e7]`'de 0.3679, 0.3679, doğrusu 0.5, 0.5; PyTorch 2.14 aynı sayıları veriyor [ölçüldü: DENETİM 186 N3, 192].
+- **Yapılacaklar (C, Ö2; ölçüm status'un; `TR_logsumexp` türevi sahip T1):** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir), aynı aileden `TR_logsumexp`'in türevi (`m` ile logaritmayı ayrı tutmak, koşulmadı); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN; iki cihazda aynı olduğunu sınayan test.
 
 ### 15.51
@@ -1385,6 +1386,5 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md). Yazıld
 
 ### 25.1–25.9
 
-- **Mevcut durum (S1, 2026-11-05):** `TR_pretrained_whisper` ve 25.1'in kapıları var, kodlayıcı çalışıyor; `lib/whisper.tr`. Whisper-tiny'de özgünle en büyük fark 6,99e-4, ortalama 1,41e-6; float64 doğrusuna TR 4,19e-4, özgün 4,77e-4 uzak [ölçüldü: S1, G4 CPU, tek ses]. Ölçüt `TR_rtol: 1e-3`, `TR_atol: 1e-3`, ortalama mutlak fark 1e-5'in altında (TCB). Çözücü ve `TR_transcribe` yok.
-- **Mevcut durum:** uygulanmadı; `tr/whisper` kitaplığı yok; girdi `TR_whisper_log_mel` var (23.6).
+- **Mevcut durum (S1, 2026-11-05):** `TR_pretrained_whisper` ve 25.1'in kapıları var, kodlayıcı çalışıyor; `lib/whisper.tr`. Whisper-tiny'de özgünle en büyük fark 6,99e-4, ortalama 1,41e-6; float64 doğrusuna TR 4,19e-4, özgün 4,77e-4 uzak [ölçüldü: S1, G4 CPU, tek ses]. Ölçüt `TR_rtol: 1e-3`, `TR_atol: 1e-3`, ortalama mutlak fark 1e-5'in altında (TCB). Çözücü de var: tek adım logitinde en büyük fark 2,86e-5, dört konumda en olası parça özgünle aynı, float64 doğrusuna TR 1,97e-5, özgün 2,31e-5 uzak [ölçüldü: S1, G4 CPU, tek ses]; ölçüt `TR_rtol: 1e-4`, `TR_atol: 1e-4`, ortalama 1e-5 altı, en olası parça aynı. `TR_transcribe` yok.
 - **Yapılacaklar (E, Ö3; sahip S1):** dilim dilim, DENETİM istek 178'den geçen yönergeyle.
