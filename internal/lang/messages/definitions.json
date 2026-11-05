@@ -1555,6 +1555,7 @@
 "H7152": { "param": [] },
 "H7153": { "param": ["fn", "path", "place"] },
 "H7154": { "param": ["fn", "path", "open", "type", "close"] },
+"H7155": { "param": ["key", "value"], "slots": {"pretrained_gguf": "TR_fn_pretrained_gguf"} },
 "H7200": { "param": ["error", "command", "help"] },
 "H7201": { "param": ["index", "size"] },
 "H7202": { "param": ["name"] },

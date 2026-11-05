@@ -216,8 +216,12 @@ TR_func _gguf_gerekli(üst: TR_JSON, anahtar: TR_String) -> TR_JSON {
 
 # _gguf_kapıları safetensors yolunun kapılarıdır: config.json'a baktıkları için burada kendiliğinden
 # geçmezler. RoPE ölçeği uygulanmazsa model hatasız yüklenir, yanlış metin üretir. Bulunan anahtar
-# iletide yazılır; llama.cpp'de ölçek 0 ve 1 etkisizdir.
+# iletide yazılır; llama.cpp'de ölçek 0 ve 1 etkisizdir. Bağlam yoksa 2048'dir; 0 ve eksi, tabloyu
+# boş kurar, hata uzaktaki bir çarpımda çıkardı.
 TR_func _gguf_kapıları(üst: TR_JSON, mimari: TR_String) {
+    TR_var uzunluk = "\(mimari).context_length"
+    TR_var bağlam = TR_Int(TR_config_value(üst, uzunluk, 2048))
+    TR_if bağlam < 1 { TR_throw TR_Message("H7155", uzunluk, bağlam) }
     TR_var pencere = "\(mimari).attention.sliding_window"
     TR_if TR_config_value(üst, pencere, TR_none) != TR_none { TR_throw TR_Message("H6944", "gguf", pencere) }
     TR_var çeşit = "\(mimari).rope.scaling.type"

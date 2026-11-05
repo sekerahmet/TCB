@@ -1560,6 +1560,7 @@ const (
 	H7152 Code = 7152 // programın (ya da modülün) klasörü ya da onun bir üst klasörü
 	H7153 Code = 7153 // {fn}: {path|q} {place}; TR bunu silmez
 	H7154 Code = 7154 // {fn}: {path|q} içindeki {open|q} bu programda bir {type} ile okunuyor; önce okuyucuyu kapatın (x.{close}()) ya da dosyayı sonuna kadar okuyun
+	H7155 Code = 7155 // {@pretrained_gguf}: dosyada {key|q} {value} yazıyor; bağlam uzunluğu pozitif olmazsa modelin konumu olmaz: dosya hatalı, modeli yeniden indirin
 	H7200 Code = 7200 // Hata: {error} Seçenekler için: {command} {help}
 	H7201 Code = 7201 // {index}. argüman çok uzun ({size} bayt; en çok 1 MB)
 	H7202 Code = 7202 // '--{name}' iki kez verildi

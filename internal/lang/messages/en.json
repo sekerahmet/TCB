@@ -1555,6 +1555,7 @@
 "H7152": "the folder of the program (or module) or a parent of it",
 "H7153": "{fn}: {path|q} is {place}; TR does not delete it",
 "H7154": "{fn}: {open|q} in {path|q} is being read in this program with a {type}; first close the reader (x.{close}()) or read the file to the end",
+"H7155": "{@pretrained_gguf}: the file gives {key|q} as {value}; a model has no positions without a positive context length: the file is faulty, download the model again",
 "H7200": "Error: {error} For options: {command} {help}",
 "H7201": "argument {index} is too long ({size} bytes; at most 1 MB)",
 "H7202": "'--{name}' was given twice",
