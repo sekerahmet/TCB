@@ -500,8 +500,9 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 			return m.f(y, obj, args, line)
 		}}, nil
 	}
-	if _, ok := obj.(*DictVal); ok {
-		// Anahtar yalnız köşeli parantezle okunur (3.7); nokta yalnız üyeleri verir.
+	if _, ok := obj.(*DictVal); ok && u.codeVal != codes.MemPop && u.codeVal != codes.MemRemoveAt {
+		// Anahtar yalnız köşeli parantezle okunur (3.7); nokta yalnız üyeleri verir. Listenin çıkaran
+		// metotları sözlükte denetimdeki hatadır (13.11): `["pop"]` önerisi başka bir değere giderdi.
 		return nil, messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
 	}
 

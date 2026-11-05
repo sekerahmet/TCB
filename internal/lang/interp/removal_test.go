@@ -41,8 +41,8 @@ func TestRemoveOnAListOfUnknownType(t *testing.T) {
 	}
 }
 
-// Kural (13.4, DENETİM istek 112 Y1): çıkarma kabın işidir, aynı adlı dosya durur. Anahtar yoksa
-// TR_none'dur, listede .TR_remove hatadır.
+// Kural (13.3, 13.4, DENETİM istek 112 Y1): çıkarma kabın işidir, aynı adlı dosya durur. Anahtar
+// yoksa TR_none'dur; listede .TR_remove, sözlükte .TR_pop ve .TR_remove_at denetimdeki hatadır.
 func TestRemovalLeavesTheFileOfTheSameName(t *testing.T) {
 	t.Chdir(t.TempDir())
 	names := []string{"k", "0"}
@@ -57,7 +57,10 @@ func TestRemovalLeavesTheFileOfTheSameName(t *testing.T) {
 	}{
 		{program: "TR_var d = {\"k\": 1}\nTR_print(d.TR_remove(\"k\"), d.TR_length)", want: "1 0\n"},
 		{program: "TR_var d = {\"m\": 1}\nTR_print(d.TR_remove(\"k\"), d.TR_length)", want: "none 1\n"},
+		{program: "TR_var l = [\"k\", \"0\"]\nTR_print(l.TR_pop(), l.TR_remove_at(0), l.TR_length)", want: "0 k 0\n"},
 		{program: "[1, 2].TR_remove(0)", code: messages.H2535},
+		{program: "{\"k\": 1}.TR_remove_at(0)", code: messages.H2474},
+		{program: "{\"k\": 1}.TR_pop()", code: messages.H2474},
 	} {
 		got, _, err := runTROut(t, c.program)
 		if c.code != 0 && !messages.Has(err, c.code) || c.code == 0 && (err != nil || got != c.want) {
