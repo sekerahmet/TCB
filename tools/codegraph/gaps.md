@@ -48,6 +48,8 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
+- **Yeni yerleşik kodu ekleyince dokunulacak yerler görünmüyor (2026-11-05, S1).** `TestExamplesCoverNames`, `TestEveryCodeHasDescription`, `TestEveryRuleHasATest`, `TestDottedMemberSpellingsGolden`, `identityExceptions`: S1'in dört G4'ü ayrı ayrı bunlara gitti. İstenen: bir kod adı verilince bu denetimleri listeleyen sorgu. Tasarım ister.
+- **`tests-for` zayıf kanıtla kaçan kıyas (2026-11-05, H2).** `tests-for fuse_cpu.go` kıyasları göstermiyor; `-bench` adları için sorgu yok. H2 hangi kıyası koşacağını elle buldu.
 - `tests-for lib/audio.tr` 35 test listeliyor, `run:` satırı vermiyor; doğrusu `trlang test lib/audio_test.tr` [ölçüldü: S1 teslimi, 2026-11-05]. Gömülü `lib.Files` kullanan Go testinin `TR_import` metni `<- tests (` yerine "tests that read it among other files"e düşüyor. Yeni float64 hesapta `TestNoFusedInstructions` önerilmiyor; FMA'yı ancak tam denetim gösterdi.
 - `changed --go-tests` 616 satır veriyor, "bu dosya türü değişince hep koşulması gerekenler" seçilemiyor: `tr.json` değişince `TestCodeSlotsResolveToIdentities`, yeni test metninde `TestDottedMemberSpellingsGolden` [ölçüldü: T1 teslimi, iki G4 bu yüzden düştü, 2026-11-05].
 - `changed --go-tests` sahnedeki farkı görmüyor: yönerge "commit'ten önce bak" diyor, liste commit'ten sonra doluyor [ölçüldü: D1 teslimi, 2026-11-05]. `--staged` ya da `--worktree` gibi bir seçenek; T1 de istedi (DENETİM istek 161 N3).

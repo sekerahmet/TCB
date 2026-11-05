@@ -202,6 +202,15 @@ TR_test "22.4 zarf içindeki sıfır dolgu da kuyruktur" {
     TR_assert_equal([1, 4], oku(wav(fmt + veri + TR_Bytes([0] * 16))).TR_samples.TR_shape)
 }
 
+TR_test "22.4 zarf içinde 8 bayttan kısa sıfır dolgu da kuyruktur, sıfır olmayan kuyruk hatadır" {
+    TR_var parçalar = parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", dört_örnek())
+    TR_for n TR_in [1, 4, 7] {
+        TR_assert_equal([1, 4], oku(wav(parçalar + TR_Bytes([0] * n))).TR_samples.TR_shape)
+    }
+    TR_assert_equal("H7070", hata_kodu(wav(parçalar + TR_Bytes([0, 0, 0, 1]))))
+    TR_assert_equal("H7070", hata_kodu(wav(parçalar + TR_Bytes("LIST") + TR_Bytes([4, 0, 0]))))
+}
+
 TR_test "22.4 uzun sıfır dolgu da kuyruktur" {
     TR_assert_equal([1, 4], oku(mono(dört_örnek()) + TR_Bytes([0] * 10000)).TR_samples.TR_shape)
     TR_assert_equal("H7067", hata_kodu(mono(dört_örnek()) + TR_Bytes("LIST") + u32(99999) + TR_Bytes([0] * 10000)))

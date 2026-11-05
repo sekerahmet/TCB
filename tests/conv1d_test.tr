@@ -1,0 +1,101 @@
+# TR 4
+# TR_conv1d (15.23c): şekil, dört adlı argüman, türev ve hatalar. Başvurunun kaynağı:
+# testdata/conv1d/KAYNAK.md.
+
+TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool {
+    TR_return TR_all_close(a, b, TR_rtol: 1e-5, TR_atol: 1e-5)
+}
+
+# kesit başvuru dosyasının a. öğesinden başlayan parçayı şekle sokar.
+TR_func kesit(d: TR_Tensor, a: TR_Int, şekil: TR_List[TR_Int]) -> TR_Tensor {
+    TR_var n = 1
+    TR_for s TR_in şekil { n = n * s }
+    TR_return d.TR_slice(0, a, a + n).TR_reshape(şekil)
+}
+
+TR_func başvuru() -> TR_Tensor {
+    TR_return TR_from_bytes[TR_Float](TR_read_bytes("testdata/conv1d/conv1d_pytorch.bin"), TR_dtype: "float32", TR_byte_order: "little")
+}
+
+TR_test "15.23c evrişim_1b: elle hesaplanan değer" {
+    TR_var x = TR_Tensor([[[1.0, 2.0, 3.0, 4.0, 5.0]]])
+    TR_var w = TR_Tensor([[[1.0, 0.0, -1.0]]])
+    TR_assert_equal([[[-2.0, -2.0, -2.0]]], TR_conv1d(x, w, TR_none).TR_tolist)
+    TR_assert_equal([[[8.0, 8.0, 8.0, 8.0, 14.0]]], TR_conv1d(x, w, TR_Tensor([10.0]), TR_padding: 1).TR_tolist)
+    TR_assert_equal([[[-3.0, -4.0, 3.0]]], TR_conv1d(x, w, TR_none, TR_stride: 2, TR_padding: 2, TR_dilation: 2).TR_tolist)
+}
+
+TR_test "15.23c evrişim_1b: dört adlı argüman birlikte PyTorch'la aynı, türevler dahil" {
+    TR_var d = başvuru()
+    TR_var x = TR_Tensor(kesit(d, 0, [2, 4, 9]).TR_tolist, TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor(kesit(d, 72, [6, 2, 3]).TR_tolist, TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor(kesit(d, 108, [6]).TR_tolist, TR_requires_grad: TR_true)
+    TR_var y = TR_conv1d(x, w, b, TR_stride: 2, TR_padding: 2, TR_dilation: 2, TR_num_groups: 2)
+    TR_assert_equal([2, 6, 5], y.TR_shape)
+    TR_assert(yakın(y, kesit(d, 174, [2, 6, 5])))
+    TR_backward(TR_sum(y * kesit(d, 114, [2, 6, 5])))
+    TR_assert(yakın(x.TR_grad, kesit(d, 234, [2, 4, 9])))
+    TR_assert(yakın(w.TR_grad, kesit(d, 306, [6, 2, 3])))
+    TR_assert(yakın(b.TR_grad, kesit(d, 342, [6])))
+}
+
+TR_test "15.23c evrişim_1b: başvuruyla kıyas farkı görür" {
+    TR_var d = başvuru()
+    TR_var y = TR_conv1d(kesit(d, 0, [2, 4, 9]), kesit(d, 72, [6, 2, 3]), TR_none, TR_stride: 2, TR_padding: 2, TR_dilation: 2, TR_num_groups: 2)
+    TR_assert(TR_not yakın(y, kesit(d, 174, [2, 6, 5])))
+}
+
+TR_test "15.23c evrişim_1b: boş eksenler" {
+    TR_var w = TR_ones([1, 1, 3])
+    TR_assert_equal([0, 1, 3], TR_conv1d(TR_zeros([0, 1, 5]), w, TR_none).TR_shape)
+    TR_assert_equal([1, 0, 3], TR_conv1d(TR_zeros([1, 1, 5]), TR_zeros([0, 1, 3]), TR_none).TR_shape)
+    TR_assert_equal([[[2.0, 2.0]]], TR_conv1d(TR_zeros([1, 0, 4]), TR_zeros([1, 0, 3]), TR_Tensor([2.0])).TR_tolist)
+    TR_assert_equal([1, 1, 2], TR_conv1d(TR_zeros([1, 1, 0]), w, TR_none, TR_padding: 2).TR_shape)
+}
+
+TR_test "15.23c evrişim_1b: hassasiyet @ gibidir" {
+    TR_var x = TR_Tensor([[[1.0, 2.0, 3.0]]], TR_dtype: "bf16")
+    TR_var w = TR_Tensor([[[1.0]]], TR_dtype: "bf16")
+    TR_assert_equal("bf16", TR_conv1d(x, w, TR_none).TR_dtype)
+    TR_assert_equal("float32", TR_conv1d(x, TR_Tensor([[[1.0]]]), TR_none).TR_dtype)
+    TR_var blok = TR_mixed_precision("bf16") { TR_conv1d(TR_ones([1, 1, 4]), TR_ones([1, 1, 2]), TR_Tensor([1.0])) }
+    TR_assert_equal("bf16", blok.TR_dtype)
+    TR_assert_equal([[[3.0, 3.0, 3.0]]], blok.TR_to_dtype("float32").TR_tolist)
+    TR_assert_equal("H6960", TR_error_code { TR_conv1d(TR_Tensor([[[1.0]]], TR_dtype: "float64"), TR_Tensor([[[1.0]]], TR_dtype: "float64"), TR_none) })
+}
+
+TR_test "15.23c evrişim_1b: 16 bitlik girdide türev" {
+    TR_var x = TR_Tensor([[[1.0, 2.0, 3.0]]], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_conv1d(x, TR_Tensor([[[1.0, 1.0]]], TR_dtype: "bf16"), TR_none).TR_to_dtype("float32")))
+    TR_assert_equal([[[1.0, 2.0, 1.0]]], x.TR_grad.TR_to_dtype("float32").TR_tolist)
+}
+
+TR_test "15.23c evrişim_1b: şekil uymazsa ileti doğru yazımı verir" {
+    TR_var w = TR_ones([1, 1, 3])
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([5]), w, TR_none) })
+    TR_assert_equal([1, 1, 3], TR_conv1d(TR_ones([5]).TR_reshape([1, 1, 5]), w, TR_none).TR_shape)
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 5]), w, TR_none) })
+    TR_assert_equal([1, 1, 3], TR_conv1d(TR_ones([1, 5]).TR_reshape([1, 1, 5]), w, TR_none).TR_shape)
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 3]), TR_none) })
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 0]), TR_none) })
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 4, 5]), TR_ones([6, 2, 3]), TR_none) })
+    TR_assert_equal([1, 6, 3], TR_conv1d(TR_ones([1, 4, 5]), TR_ones([6, 2, 3]), TR_none, TR_num_groups: 2).TR_shape)
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 3, 5]), TR_ones([6, 1, 3]), TR_none, TR_num_groups: 2) })
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 9]), TR_none) })
+    TR_assert_equal([1, 1, 1], TR_conv1d(TR_ones([1, 1, 5]), TR_ones([1, 1, 9]), TR_none, TR_padding: 2).TR_shape)
+    TR_assert_equal("H7083", TR_error_code { TR_conv1d(TR_ones([1, 1, 5]), w, TR_none, TR_dilation: 4000000000000000000) })
+}
+
+TR_test "15.23c evrişim_1b: sapma ve argüman hataları" {
+    TR_var x = TR_ones([1, 1, 5])
+    TR_var w = TR_ones([2, 1, 3])
+    TR_assert_equal("H7084", TR_error_code { TR_conv1d(x, w, TR_ones([3])) })
+    TR_assert_equal([1, 2, 3], TR_conv1d(x, w, TR_zeros([2])).TR_shape)
+    TR_assert_equal("H7081", TR_error_code { TR_conv1d(TR_Tensor([[[1, 2]]]), w, TR_none) })
+    TR_assert_equal("H7081", TR_error_code { TR_conv1d(x, TR_Tensor([[[1]]]), TR_none) })
+    TR_assert_equal("H5530", TR_error_code { TR_conv1d(x, w, TR_none, TR_stride: 0) })
+    TR_assert_equal("H5530", TR_error_code { TR_conv1d(x, w, TR_none, TR_dilation: -1) })
+    TR_assert_equal("H5530", TR_error_code { TR_conv1d(x, w, TR_none, TR_num_groups: 0) })
+    TR_assert_equal("H7085", TR_error_code { TR_conv1d(x, w, TR_none, TR_padding: -1) })
+    TR_assert_equal("H3084", TR_error_code { TR_conv1d(x, w, TR_none, TR_padding: 4000000000000000000) })
+}

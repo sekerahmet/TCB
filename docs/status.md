@@ -718,8 +718,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.4
 
-- **Mevcut durum:** yeni görevler float32 ile başlıyor; `TR_logsumexp` yok, tensörde `TR_std` H2423 veriyor [ölçüldü].
-- **Yapılacaklar:** yeni görevin açıldığı yerin hesap türünü ve türevsiz kipini alması; `TR_logsumexp`, `TR_std` ve `TR_cumsum`'ın blok kuralı.
+- **Mevcut durum:** yeni görevler float32 ile başlıyor; tensörde `TR_std` H2423 veriyor [ölçüldü]. `TR_logsumexp` CPU'da var, blok içinde float32 verir (S1, 2026-11-05).
+- **Yapılacaklar:** yeni görevin açıldığı yerin hesap türünü ve türevsiz kipini alması; `TR_std` ve `TR_cumsum`'ın blok kuralı.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_cumsum` 16 bitlik girdiyi blokta float32'ye açar.
 
 ### 15.5
@@ -871,7 +871,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.23c
 
 - **Mevcut durum:** evrişim yok; kitaplık yalnız dil modellerinin katmanlarını taşıyor [ölçüldü: `lib/layers.tr`].
-- **Yapılacaklar:** `TR_conv1d`, `TR_conv2d`; TR testi. Gösterim adları onaylı (Ahmet, 2026-10-29).
+- **Mevcut durum (S1, 2026-11-05):** `TR_conv1d` CPU'da, dört adlı argüman ve türevle. PyTorch'la ileri sonuç ve girdi gradyanı 1e-5 içinde; Whisper boyutunda ağırlık gradyanı en çok 5,04e-4 ayrılıyor, değer 234 büyüklüğünde, TR float64 doğrusuna 8,59e-5, PyTorch 4,9e-4 uzak [ölçüldü: S1, yerel PyTorch].
+- **Yapılacaklar:** `TR_conv2d`; TR testi. Gösterim adları onaylı (Ahmet, 2026-10-29).
 
 ### 15.23d
 

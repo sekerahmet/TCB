@@ -65,6 +65,7 @@ TR_LANG=en trlang examples/tr/01_merhaba.tr   # aynı program, iletiler İngiliz
 | 48 | [`48_egitim_kosusu.tr`](tr/48_egitim_kosusu.tr) | Eğitim koşusu: kayıt işlerini kitaplığa bırakmak (`TR_type_Run`: klasör, günlük, çubuk, kontrol noktası, ağırlıklar önce) ve uzun koşudan önce prova (`TR_arg_dry_run`) |
 | 49 | [`49_programin_sonu.tr`](tr/49_programin_sonu.tr) | Programın sonu: `TR_exit` ile kendi çıkış kodu, `TR_handle_stop` ve `TR_stop_requested` ile Ctrl+C'yi programın kendisinin karşılaması |
 | 50 | [`50_bayt_ve_ses.tr`](tr/50_bayt_ve_ses.tr) | Bayt ve ses: baytlardan sayı okumak, ses dosyası |
+| 51 | [`51_evrisim.tr`](tr/51_evrisim.tr) | Evrişim: `TR_conv1d`, `TR_logsumexp` |
 
 **Hata örnekleri.** [`examples/tr/hatalar/`](tr/hatalar/) sık yapılan hataları tek tek gösterir: her dosya bir hatayı bilerek yapar, yorumunda iletinin kodunu, nedenini ve düzeltilmiş hâlini yazar (çıkış kodu 1).
 

@@ -210,10 +210,7 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
         TR_var ad = b[konum..konum + 4]
         TR_if veri >= 0 TR_and TR_not _yazılabilir_ad(ad) {
             TR_if son_dolu == TR_none { son_dolu = _son_dolu(b) }
-            TR_if konum > son_dolu {
-                bitiş = konum
-                TR_break
-            }
+            TR_if konum > son_dolu { TR_break }
             TR_throw TR_Message("H7080", yol, _parça_adı(ad))
         }
         TR_var boy = _u32(b, konum + 4)
@@ -234,7 +231,7 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
     }
     TR_if biçim == TR_none { TR_throw TR_Message("H7063", yol, "no_fmt") }
     TR_if veri < 0 { TR_throw TR_Message("H7063", yol, "no_data") }
-    TR_if konum < bitiş { TR_throw TR_Message("H7070", yol, bitiş - konum) }
+    TR_if konum < bitiş TR_and konum <= _son_dolu(b) { TR_throw TR_Message("H7070", yol, bitiş - konum) }
     TR_var çerçeve = biçim.kanal * biçim.örnek_baytı
     TR_if veri_boyu == 0 { TR_throw TR_Message("H7068", yol) }
     TR_if veri_boyu % çerçeve != 0 { TR_throw TR_Message("H7069", yol, veri_boyu, çerçeve) }

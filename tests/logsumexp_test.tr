@@ -1,0 +1,92 @@
+# TR 4
+# TR_logsumexp (15.18): değer, özel değerler, türev ve hatalar.
+
+TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool {
+    TR_return TR_all_close(a, b, TR_rtol: 1e-6, TR_atol: 1e-6)
+}
+
+TR_test "15.18 log_toplam_üs: eksenli ve eksensiz değer" {
+    TR_var x = TR_Tensor([[0.0, 0.0], [1.0, 2.0]])
+    TR_assert(yakın(TR_logsumexp(x, TR_dim: 1), TR_Tensor([0.6931472, 2.3132617])))
+    TR_assert(yakın(TR_logsumexp(x, TR_dim: -1), TR_Tensor([0.6931472, 2.3132617])))
+    TR_assert(yakın(TR_logsumexp(x, TR_dim: 0), TR_Tensor([1.3132617, 2.126928])))
+    TR_assert(yakın(TR_logsumexp(x), TR_Tensor(2.4938116)))
+    TR_assert_equal([], TR_logsumexp(x).TR_shape)
+}
+
+TR_test "15.18 log_toplam_üs: büyük ve küçük öğede taşmaz" {
+    TR_assert(yakın(TR_logsumexp(TR_Tensor([1000.0, 1000.0])), TR_Tensor(1000.6931)))
+    TR_assert(yakın(TR_logsumexp(TR_Tensor([-1000.0, -1000.0])), TR_Tensor(-999.3069)))
+}
+
+TR_test "15.18 log_toplam_üs: eksen listesi ve boyutu_koru" {
+    TR_var x = TR_Tensor([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3]).TR_reshape([2, 3, 4])
+    TR_var iki = TR_logsumexp(x, TR_dim: [0, 2])
+    TR_assert_equal([3], iki.TR_shape)
+    TR_assert(yakın(iki, TR_logsumexp(TR_logsumexp(x, TR_dim: 2), TR_dim: 0)))
+    TR_assert_equal(iki.TR_tolist, TR_logsumexp(x, TR_dim: [2, -3]).TR_tolist)
+    TR_assert_equal([2, 1, 1], TR_logsumexp(x, TR_dim: [1, 2], TR_keepdim: TR_true).TR_shape)
+    TR_assert_equal([1, 1, 1], TR_logsumexp(x, TR_keepdim: TR_true).TR_shape)
+    TR_assert_equal([2, 3, 1], TR_logsumexp(x, TR_dim: -1, TR_keepdim: TR_true).TR_shape)
+}
+
+TR_test "15.18 log_toplam_üs: özel değerler" {
+    TR_assert_equal(-TR_inf, TR_logsumexp(TR_Tensor([-TR_inf, -TR_inf])).TR_item())
+    TR_assert_equal(TR_inf, TR_logsumexp(TR_Tensor([TR_inf, 1.0])).TR_item())
+    TR_assert_equal("nan", TR_String(TR_logsumexp(TR_Tensor([1.0, TR_nan])).TR_item()))
+    TR_assert_equal("nan", TR_String(TR_logsumexp(TR_Tensor([TR_inf, TR_nan])).TR_item()))
+    TR_assert_equal("nan", TR_String(TR_logsumexp(TR_Tensor([TR_nan, TR_inf])).TR_item()))
+    TR_assert(yakın(TR_logsumexp(TR_Tensor([-TR_inf, 0.0])), TR_Tensor(0.0)))
+}
+
+TR_test "15.18 log_toplam_üs: boş satır −sonsuzdur, indirgenmeyen boş eksen boş sonuç verir" {
+    TR_assert_equal(-TR_inf, TR_logsumexp(TR_zeros([0, 4])).TR_item())
+    TR_assert_equal([-TR_inf, -TR_inf, -TR_inf, -TR_inf], TR_logsumexp(TR_zeros([0, 4]), TR_dim: 0).TR_tolist)
+    TR_assert_equal([0], TR_logsumexp(TR_zeros([0, 4]), TR_dim: 1).TR_shape)
+}
+
+TR_test "15.18 log_toplam_üs: türev softmax'tır" {
+    TR_var değer = [[1.0, 2.0, 3.0], [0.5, 0.5, -1.0]]
+    TR_var x = TR_Tensor(değer, TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_logsumexp(x, TR_dim: 1)))
+    TR_assert(yakın(x.TR_grad, TR_softmax(TR_Tensor(değer), TR_dim: 1)))
+}
+
+TR_test "15.18 log_toplam_üs: eksenler karışıkken türev yerini bulur" {
+    TR_var değer = [[[1.0, 2.0], [3.0, 4.0]], [[0.0, -1.0], [5.0, 0.5]]]
+    TR_var x = TR_Tensor(değer, TR_requires_grad: TR_true)
+    TR_var ağırlık = TR_Tensor([1.0, 3.0])
+    TR_backward(TR_sum(TR_logsumexp(x, TR_dim: [0, 2]) * ağırlık))
+    TR_var kopya = TR_Tensor(değer, TR_requires_grad: TR_true)
+    TR_var iç = TR_logsumexp(kopya, TR_dim: 2)
+    TR_backward(TR_sum(TR_logsumexp(iç, TR_dim: 0) * ağırlık))
+    TR_assert(yakın(x.TR_grad, kopya.TR_grad))
+}
+
+TR_test "15.18 log_toplam_üs: özel değerlerde türev" {
+    TR_var x = TR_Tensor([[-TR_inf, -TR_inf], [TR_inf, TR_inf], [1.0, TR_inf]], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_logsumexp(x, TR_dim: 1) * TR_Tensor([2.0, 3.0, 5.0])))
+    TR_assert_equal([[0.0, 0.0], [3.0, 0.0], [0.0, 5.0]], x.TR_grad.TR_tolist)
+}
+
+TR_test "15.18 log_toplam_üs: hassasiyet" {
+    TR_var ince = TR_Tensor([1.0, 2.0], TR_dtype: "float64")
+    TR_assert_equal("float64", TR_logsumexp(ince).TR_dtype)
+    TR_assert(TR_abs(TR_logsumexp(ince).TR_item() - 2.313261687518223) < 1e-14)
+    TR_assert_equal("bf16", TR_logsumexp(TR_Tensor([1.0, 2.0], TR_dtype: "bf16")).TR_dtype)
+    TR_var blok = TR_mixed_precision("bf16") { TR_logsumexp(TR_Tensor([1.0, 2.0], TR_dtype: "bf16")).TR_dtype }
+    TR_assert_equal("float32", blok)
+}
+
+TR_test "15.18 log_toplam_üs: hatalar" {
+    TR_assert_equal("H7081", TR_error_code { TR_logsumexp(TR_Tensor([1, 2])) })
+    TR_assert_equal("H7081", TR_error_code { TR_logsumexp(TR_Tensor([1.0]) > 0.0) })
+    TR_assert_equal("H7081", TR_error_code { TR_logsumexp(TR_zeros([2, 2]), TR_dim: [0, -2]) })
+    TR_assert_equal([2], TR_logsumexp(TR_zeros([2, 2]), TR_dim: [0]).TR_shape)
+    TR_assert_equal("H7086", TR_error_code { TR_logsumexp(TR_zeros([2, 2]), 0) })
+    TR_assert_equal([2], TR_logsumexp(TR_zeros([2, 2]), TR_dim: 0).TR_shape)
+    TR_var boş: TR_List[TR_Int] = []
+    TR_assert_equal("H7082", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: boş) })
+    TR_assert_equal("H6016", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: 1) })
+    TR_assert_equal("H6016", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: [1]) })
+}
