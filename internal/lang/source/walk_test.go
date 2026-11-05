@@ -8,6 +8,34 @@ import (
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
+// Kural: TR_test yazılan dosya test dosyasıdır, ardından ne gelirse gelsin; yorumdaki, metindeki ve ad
+// olarak kullanılan test sayılmaz, sözcükleri bozuk dosyada ham metin aranır (12.1, DENETİM
+// istek 139 Ş2).
+func TestHasTestBlock(t *testing.T) {
+	for text, want := range map[string]bool{
+		Header + "\nTR_test \"a\" { }\n":                  true,
+		"TR_test \"başlıksız\" { }\n":                     true,
+		Header + "\nTR_var = \nTR_test \"kırık\" {\n":     true,
+		Header + "\n# TR_test \"yorum\"\n":                false,
+		Header + "\nTR_var s = \"TR_test\"\n":             false,
+		Header + "\nTR_var test = 1\nTR_print(test)\n":    false,
+		Header + "\nTR_print(TR_test)\n":                  true,
+		Header + "\nTR_test { }\n":                        true,
+		Header + "\nTR_test nm { }\n":                     true,
+		Header + "\nTR_var s = \"açık\nTR_test \"a\" {\n": true,
+		Header + "\nTR_var s = `açık\nTR_test \"a\" {\n":  true,
+		Header + "\n\"\"\"\nTR_test \"a\" {\n":            true,
+		Header + "\nTR_var s = \"açık\n":                  false,
+		"# TR 3\nTR_test \"a\" { }\n":                     true,
+		Header + "\n":                                     false,
+		"":                                                false,
+	} {
+		if got := HasTestBlock(text); got != want {
+			t.Errorf("%q: %v, want %v", text, got, want)
+		}
+	}
+}
+
 // Kural: WalkFiles dosya hedefini olduğu gibi verir; klasörde yalnızca sonek uyanları, sıralı,
 // gizli klasörler ve node_modules dışında toplar; hedef yoksa çağıranın hatasını döndürür.
 // Neden: testrunner.TestFiles ve cmd/trlang.trFiles aynı yürüyüşü ayrı ayrı yazıyordu.

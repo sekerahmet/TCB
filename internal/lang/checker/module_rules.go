@@ -45,6 +45,25 @@ func HasTests(prog *ast.Program) bool {
 	return false
 }
 
+// checkTestPlaces reports a TR_test that is not at the top level of the file (12.2, H7015): TR_cmd_test
+// collects the top-level ones, so one in a TR_if, a function or another test would never run and
+// the run would look passed.
+func (c *Checker) checkTestPlaces(prog *ast.Program) {
+	report := func(n any) bool {
+		if t, ok := n.(*ast.TestStatement); ok {
+			c.addErrorAt(t, messages.New(messages.H7015, t.Name))
+		}
+		return true
+	}
+	for _, stmt := range prog.Statements {
+		if t, ok := stmt.(*ast.TestStatement); ok {
+			ast.Walk(t.Body, report)
+		} else {
+			ast.Walk(stmt, report)
+		}
+	}
+}
+
 // fileSelect is the messages' select key for the file's kind.
 func (c *Checker) fileSelect() string {
 	if c.fileKind == TestFile {

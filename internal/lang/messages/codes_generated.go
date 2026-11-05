@@ -1402,6 +1402,8 @@ const (
 	H7011 Code = 7011 // JSON nesnesinde {key|q} anahtarı iki kez yazılmış (satır {line}, sütun {column} ve satır {line2}, sütun {column2}); bir nesnede her anahtar bir kez geçer
 	H7012 Code = 7012 // sözlüğün {key} anahtarı metin değil ({type}); JSON'da anahtar metindir, geri okununca anahtarın tipi değişirdi: anahtarları `{#String}` ile metne çevirip yeni bir sözlüğe koyun: sözlük `d` ise `{#var} m = {{}}`, sonra `{#for} k, v {#in} d {{ m[{#String}(k)] = v }}`
 	H7013 Code = 7013 // {fn}: kaydın 'step' değeri tam sayı olmalı, {given} verildi (okuyucular adımları karşılaştırır); yuvarlamak için `{#round}(...)`, metinse `{#Int}(...)` yazın, ölçüyse ona başka bir ad verin
+	H7014 Code = 7014 // {path|q} modülünde {name|q} adı yok; modül değeri bir sözlük değildir, yalnız modülün en dış adları okunur{hint}
+	H7015 Code = 7015 // `{#test}` yalnız dosyanın en dışında yazılır: {name|q} testi burada hiç koşmazdı; bloğu en dışa taşıyın
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
@@ -1808,10 +1810,9 @@ const (
 	H8406 Code = 8406 // AST farklı
 	H8500 Code = 8500 // {total} test, {passed} geçti, {failed} kaldı{unloadable, plural, =0 {} other {, # dosya yüklenemedi}}
 	H8502 Code = 8502 // {target} bulunamadı
-	H8503 Code = 8503 // {target} içinde *_test.tr dosyası bulunamadı
+	H8503 Code = 8503 // {target} içinde test bulunamadı: test dosyası `{#test}` bloğu içerir
 	H8504 Code = 8504 // uyarılar:
 	H8505 Code = 8505 // {stage, select, syntax {Sözdizimi} other {Tip denetimi}} hataları nedeniyle testler çalıştırılamadı:
-	H8506 Code = 8506 // (bu dosyada test bloğu yok)
 	H8507 Code = 8507 // dosyanın üst düzey kodu hata verdi, testler çalıştırılamadı:
 	H8601 Code = 8601 // Gömülü uygulama okunamadı: {error}
 	H8602 Code = 8602 // '{given}' TR'de bir komut değil; 'trlang {command}' yazmak mı istediniz?
@@ -1829,7 +1830,7 @@ const (
 	H8615 Code = 8615 // trlang {command} <dosya.tr>	Etkileşimli TR Hata Ayıklayıcısını başlatır
 	H8616 Code = 8616 // trlang {command} [{json}] <dosya.tr>	Sözdizimi ve akıllı tip kontrolü yapar ({json}: standart çıktıya satır başına bir JSON kaydı)
 	H8617 Code = 8617 // trlang {command} <dosya.tr>	.tr dosyasını (aktardığı modüllerle) tek başına çalışan bağımsız .exe dosyasına dönüştürür
-	H8618 Code = 8618 // trlang {command} [dosya.tr|klasör]	Test bloklarını çalıştırır (klasörde tüm *_test.tr dosyaları)
+	H8618 Code = 8618 // trlang {command} [dosya.tr|klasör]...	Test bloklarını çalıştırır (klasörde test bloğu içeren bütün .tr dosyaları)
 	H8619 Code = 8619 // trlang {command} [{check}] <dosya.tr|klasör>	Kodu standart biçime getirir ({check}: yalnızca denetler)
 	H8622 Code = 8622 // trlang {command} <dosya.tr> [{lang} tr]	Dosyayı bir yazım dilinde gösterir (kodlu dosya da)
 	H8623 Code = 8623 // trlang {command} - [{lang} tr]	Metni standart girişten okur, gösterimini çıkışa yazar (düzenleyiciler için)

@@ -81,14 +81,15 @@ func (v *VM) Builtin(kd codes.Code) *BuiltinVal {
 	return b
 }
 
-// removedMemberHint Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da
-// yabancı adı için ipucunu döndürür.
+// removedMemberHint Metin, Liste ve Sözlük üyelerinden birinin ASCII biçimi ya da yabancı adı için
+// ipucunu döndürür. Program bir dosyadır, dili yoktur (2.1): öneri kimliğin yazımıdır (TR_pop), görünüm
+// adı dosyada çalışmaz.
 func removedMemberHint(name string) *messages.Error {
 	k, ok := codes.Suggest(codes.NamespaceMember, name, coreMember)
 	if !ok {
 		return nil
 	}
-	return hint.NotInTRHint(name, codes.NameRef(k))
+	return hint.NotInTRHint(name, codes.WordRef(k, nil))
 }
 
 // suggests err'in (ya da içindeki kodlu bir iletinin) değerlerinde k'nin adı (codes.Ref) var mı:
@@ -133,5 +134,5 @@ func memberSuggestionError(pg PropertyGetter, obj Value, prop string, err error)
 	if _, e := pg.GetProperty(k, codes.Name(k)); e != nil {
 		return err
 	}
-	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.NameRef(k)))
+	return messages.New(messages.H2428, obj.Type(), prop, hint.NotInTRHint(prop, codes.WordRef(k, nil)))
 }

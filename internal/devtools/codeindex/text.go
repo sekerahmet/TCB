@@ -334,13 +334,13 @@ func ListFiles(root string, dirs []string, skip map[string]bool, set FileSet, ke
 			if err != nil {
 				return nil
 			}
+			r, _ := filepath.Rel(root, p)
 			if d.IsDir() {
-				if p != root && skip[d.Name()] {
+				if p != root && skip[d.Name()] && !IsNegativeFixture(filepath.ToSlash(r)+"/a.tr") {
 					return filepath.SkipDir
 				}
 				return nil
 			}
-			r, _ := filepath.Rel(root, p)
 			rels = append(rels, filepath.ToSlash(r))
 			return nil
 		})
@@ -356,8 +356,12 @@ func ListFiles(root string, dirs []string, skip map[string]bool, set FileSet, ke
 	return out
 }
 
-// underSkipped yolun klasörlerinden biri skip'te mi.
+// underSkipped yolun klasörlerinden biri skip'te mi. Negatif fikstür sayılır: negative/testdata'daki
+// fikstür yalnız test taramasından saklanır, beklediği iletiye bağlı kalır.
 func underSkipped(rel string, skip map[string]bool) bool {
+	if IsNegativeFixture(rel) {
+		return false
+	}
 	parts := strings.Split(rel, "/")
 	for _, part := range parts[:len(parts)-1] {
 		if skip[part] {

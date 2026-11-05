@@ -6357,7 +6357,7 @@ trlang show eğit.tr
 
 #### TR_cmd_test `test`
 
-Bir dosyadaki ya da klasördeki *_test.tr testlerini koşar.
+Dosyalardaki ve klasörlerdeki TR_test bloklarını koşar.
 
 ```tr
 trlang test tests

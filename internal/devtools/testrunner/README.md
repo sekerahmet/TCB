@@ -8,6 +8,10 @@ birini yalıtılmış bir kapsamda çalıştırır ve sonucu etkin dilde (`TR_LA
 **Testler birbirinden yalıtılmıştır.** Her test kendi kapsamında çalışır; birinin tanımladığı
 ad ya da yarıda kalan bir görev ötekini etkilemez. Denetim: `TestRunFile`, `TestDeferRunsAfterTasks`.
 
+**Verilen hedef kaybolmaz.** Verilen bütün dosya ve klasörler koşar, sonuç hepsinindir; olmayan hedef, test bloğu olmayan dosya ve testi olmayan klasör hatadır ve hiçbir test koşmaz. Denetim: `TestEveryTargetRuns`, `TestAMissingTargetStopsTheRun`, `TestATargetWithoutTestsIsAnError`.
+
+**Test dosyasını adı değil `TR_test` yapar (12.1).** Klasör taraması bütün `.tr` dosyalarına bakar, `testdata` adlı klasöre inmez; aktarılan modülün testleri de koşar. Her dosya bir kez, kendi makinesinde koşar. `TR_test` yazan dosya, ardındaki yazıma bakılmadan test dosyasıdır; sözcükleri bozuk dosyada ham metin aranır, dosya "yüklenemedi" olur. Adı `_test.tr` ile biten dosya hiç elenmez. En dışında testi olmayan dosya koşuyu düşürür (H8503). Denetim: `TestDirScan`, `TestImportedModuleTestsRun`, `TestAFileRunsOnce`, `TestFixtureDirIsOnlyRunWhenGiven`, `TestABrokenNamedTestFileIsNotDropped`, `TestANamedTestFileWithoutTestsFailsTheRun`.
+
 **Yüklenemeyen dosya kaybolmaz.** Sözdizimi, tip ya da üst düzey hata yüzünden testleri
 çalıştırılamayan dosya ayrıca sayılır ve raporlanır; başarılı sayılmaz. Denetim: `TestUnloadableFile`.
 

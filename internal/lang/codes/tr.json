@@ -538,7 +538,7 @@
   "TR_cmd_profile": { "name": "profil", "family": "trlang komutu", "description": "Biten ya da süren bir eğitimin profil raporunu yazar." },
   "TR_cmd_run": { "name": "çalıştır", "family": "trlang komutu", "description": "Bir TR programını çalıştırır; komut adı yazılmadan verilen dosya da çalıştırılır." },
   "TR_cmd_show": { "name": "göster", "family": "trlang komutu", "description": "Kodlu dosyayı değiştirmeden etkin yazım dilinde yazar." },
-  "TR_cmd_test": { "family": "trlang komutu", "description": "Bir dosyadaki ya da klasördeki *_test.tr testlerini koşar." },
+  "TR_cmd_test": { "family": "trlang komutu", "description": "Dosyalardaki ve klasörlerdeki TR_test bloklarını koşar." },
   "TR_cmd_version": { "name": "sürüm", "family": "trlang komutu", "description": "TR'nin sürümünü yazar." },
   "TR_cmd_watch": { "name": "izle", "family": "trlang komutu", "description": "Çalışan bir eğitimin canlı profil tablosunu gösterir." },
   "TR_sub_definition": { "name": "tanım", "family": "dizin alt komutu", "description": "Bir adın tanımını gösterir: nerede, imzası, belge yorumu, üyeleri (trlang index altında)." },

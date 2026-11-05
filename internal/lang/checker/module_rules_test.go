@@ -74,6 +74,38 @@ func TestModuleFirstValuesAreConstant(t *testing.T) {
 	}
 }
 
+// Kural (12.2): TR_test yalnız dosyanın en dışında yazılır; başka yerde denetim hatasıdır, ileti testin
+// adını söyler. Neden: TR_cmd_test yalnız en dıştakini toplar, içerideki test koşmadan "geçti" görünüyordu
+// (DENETİM istek 138 Ş2).
+func TestATestIsOnlyAtTheTopLevel(t *testing.T) {
+	test := "TR_test \"ic\" { TR_assert(TR_false) }\n"
+	for name, text := range map[string]string{
+		"koşul":            "TR_if TR_true {\n" + test + "}\n",
+		"koşulun değil":    "TR_if TR_false {\n} TR_else {\n" + test + "}\n",
+		"döngü":            "TR_for i TR_in [1] {\n" + test + "}\n",
+		"fonksiyon":        "TR_func f() {\n" + test + "}\n",
+		"fonksiyon değeri": "TR_var f = () => {\n" + test + "}\n",
+		"yapı yöntemi":     "TR_struct N {\n    x: TR_Int = 0\n    TR_func g() {\n" + test + "}\n}\n",
+		"başka test":       "TR_test \"dis\" {\n" + test + "}\n",
+		"yanında test":     "TR_func f() {\n" + test + "}\nTR_test \"a\" {\n    TR_assert(TR_true)\n}\n",
+		"deneme":           "TR_test \"dis\" {\n    TR_try {\n" + test + "} TR_catch e {\n}\n}\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			r := source.Prepare(text, source.Options{TypeCheck: true, Body: true})
+			if len(r.Errors) != 1 || !messages.Has(r.Errors[0], messages.H7015) {
+				t.Fatalf("yalnız H7015 bekleniyordu: %v\n%s", r.Errors, text)
+			}
+			want := 1 + strings.Count(text[:strings.Index(text, "TR_test \"ic\"")], "\n")
+			if line, _, _ := messages.Pos(r.Errors[0]); line != want || !strings.Contains(r.Errors[0].Error(), `"ic"`) {
+				t.Errorf("satır %d ve testin adı bekleniyordu: %d, %v", want, line, r.Errors[0])
+			}
+		})
+	}
+	if got := moduleCodes(t, "TR_test \"a\" {\n    TR_assert(TR_true)\n}\nTR_test \"b\" {\n    TR_assert(TR_true)\n}\n", false); len(got) != 0 {
+		t.Errorf("en dıştaki iki test geçerli: %v", got)
+	}
+}
+
 // Kural (1.1, 12.1): modülün ve test dosyasının (TR_test içeren dosya) en dışında yalnız tanım
 // bulunur; başka deyim H1107'dir. Modül de test bloğu tutabilir; test bloğu olmayan program serbesttir.
 func TestModuleTopLevelHoldsOnlyDefinitions(t *testing.T) {

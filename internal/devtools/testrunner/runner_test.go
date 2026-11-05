@@ -109,27 +109,234 @@ func TestDirScan(t *testing.T) {
 	root := t.TempDir()
 	writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
 	writeTR(t, root, "alt/b_test.tr", `TR_test "b" { TR_assert_equal("x", "x") }`)
-	writeTR(t, root, "yardimci.tr", `TR_test "çalışmamalı" { TR_assert(TR_false) }`)
-	writeTR(t, root, ".gizli/c_test.tr", `TR_test "gizli" { TR_assert(TR_false) }`)
+	writeTR(t, root, "yardimci.tr", `TR_test "c" { TR_assert(TR_true) }`) // test dosyasını adı değil TR_test yapar (12.1)
+	writeTR(t, root, "testsiz.tr", `TR_func f() -> TR_Int { TR_return 1 }`)
+	writeTR(t, root, ".gizli/d_test.tr", `TR_test "gizli" { TR_assert(TR_false) }`)
+	writeTR(t, root, "alt/testdata/e_test.tr", `TR_test "fikstür" { TR_assert(TR_false) }`)
 
 	var out bytes.Buffer
-	summary, err := Run(root, &out)
+	summary, err := Run([]string{root}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.Total != 2 || summary.Passed != 2 || summary.File != 2 || !summary.OK() {
+	if summary.Total != 3 || summary.Passed != 3 || summary.File != 3 || !summary.OK() {
 		t.Fatalf("özet yanlış: %+v\n%s", summary, out.String())
 	}
-	if !strings.Contains(out.String(), "✅ 2 test, 2 geçti, 0 kaldı") {
+	if !strings.Contains(out.String(), "✅ 3 test, 3 geçti, 0 kaldı") {
 		t.Errorf("özet satırı yok:\n%s", out.String())
 	}
 }
 
+// Kural: verilen bütün hedefler koşar, sonuç hepsinindir.
+// Neden: iki dosya verilince yalnız ilki koşuyor, ikincinin kalan testi geçmiş görünüyordu (DENETİM istek 125 N1).
+func TestEveryTargetRuns(t *testing.T) {
+	root := t.TempDir()
+	passing := writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	failing := writeTR(t, root, "b_test.tr", `TR_test "b" { TR_assert(TR_false) }`)
+	folder := filepath.Join(root, "alt")
+	writeTR(t, root, "alt/c_test.tr", `TR_test "c" { TR_assert(TR_true) }`)
+
+	for _, targets := range [][]string{{passing, failing}, {failing, passing}} {
+		var out bytes.Buffer
+		summary, err := Run(targets, &out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if summary.File != 2 || summary.Total != 2 || summary.Failed != 1 || summary.OK() {
+			t.Fatalf("%v: ikinci dosya da koşmalı ve sonuç düşmeli: %+v\n%s", targets, summary, out.String())
+		}
+		if !strings.Contains(out.String(), "❌ 2 test, 1 geçti, 1 kaldı") {
+			t.Errorf("%v: özet satırı yok:\n%s", targets, out.String())
+		}
+	}
+
+	var out bytes.Buffer
+	summary, err := Run([]string{passing, folder}, &out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.File != 2 || summary.Passed != 2 || !summary.OK() {
+		t.Fatalf("dosya ve klasör birlikte koşmalı: %+v\n%s", summary, out.String())
+	}
+}
+
+// Kural: hedeflerden biri olmayan dosya ya da testsiz klasörse hatadır ve hiçbir test koşmaz.
+// Neden: öbür hedefler geçince koşmayan hedef görünmeden çıkış 0 oluyordu.
+func TestAMissingTargetStopsTheRun(t *testing.T) {
+	root := t.TempDir()
+	passing := writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	cases := []struct {
+		target string
+		code   messages.Code
+	}{
+		{filepath.Join(root, "yok.tr"), messages.H8502},
+		{t.TempDir(), messages.H8503},
+	}
+	for _, c := range cases {
+		for _, targets := range [][]string{{passing, c.target}, {c.target, passing}} {
+			var out bytes.Buffer
+			if _, err := Run(targets, &out); !messages.Has(err, c.code) {
+				t.Fatalf("%v: %v vermeli: %v", targets, c.code, err)
+			}
+			if out.Len() != 0 {
+				t.Fatalf("%v: hiçbir test koşmamalı:\n%s", targets, out.String())
+			}
+		}
+	}
+}
+
+// Kural: adı ne olursa olsun TR_test içeren dosya test dosyasıdır; aktarılan modülün testleri de koşar,
+// dolaylı aktarılanınki de, her dosya bir kez ve kendi makinesinde (12.1).
+// Neden: adı _test.tr ile bitmeyen modülün ve aktarılan modülün kalan testi koşmadan geçmiş görünüyordu
+// (DENETİM istek 81).
+func TestImportedModuleTestsRun(t *testing.T) {
+	root := t.TempDir()
+	main := writeTR(t, root, "a_test.tr", "TR_import \"ara\"\nTR_import \"modul\"\nTR_test \"a\" { TR_assert_equal(0, n) }")
+	writeTR(t, root, "ara.tr", "TR_import \"derin\"\nTR_func f() -> TR_Int { TR_return 1 }")
+	writeTR(t, root, "derin.tr", `TR_test "c" { TR_assert(TR_true) }`)
+	module := writeTR(t, root, "modul.tr", "TR_var n = 0\nTR_test \"b\" { n = 5; TR_assert_equal(5, n) }")
+	for _, targets := range [][]string{{main}, {root}, {main, module}, {module, main}, {main, main}} {
+		var out bytes.Buffer
+		summary, err := Run(targets, &out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if summary.File != 3 || summary.Total != 3 || summary.Passed != 3 {
+			t.Fatalf("%v: üç dosya, üç test bekleniyordu: %+v\n%s", targets, summary, out.String())
+		}
+	}
+	writeTR(t, root, "derin.tr", `TR_test "kalan" { TR_assert(TR_false) }`)
+	var out bytes.Buffer
+	if summary, err := Run([]string{main}, &out); err != nil || summary.Failed != 1 || summary.OK() {
+		t.Fatalf("aktarılan modülün kalan testi sonucu düşürmeli: %+v, %v\n%s", summary, err, out.String())
+	}
+}
+
+// Kural: aynı dosya hedeflerde iki kez yazılsa da bir kez koşar (12.1).
+func TestAFileRunsOnce(t *testing.T) {
+	root := t.TempDir()
+	file := writeTR(t, root, "alt/a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	var out bytes.Buffer
+	other := filepath.Dir(file) + string(filepath.Separator) + "." + string(filepath.Separator) + filepath.Base(file)
+	summary, err := Run([]string{file, root, other}, &out)
+	if err != nil || summary.File != 1 || summary.Total != 1 {
+		t.Fatalf("bir kez koşmalı: %+v, %v\n%s", summary, err, out.String())
+	}
+}
+
+// Kural: açıkça verilen dosyada test yoksa hatadır, yanında testli dosya olsa bile; klasörde testsiz
+// dosya olağandır, klasörün toplamında hiç test yoksa hatadır (DENETİM istek 132 Ş1).
+// Neden: test bloğu olmayan dosya "0 test" ile ya da yanındakinin sonucuyla geçmiş görünüyordu.
+func TestATargetWithoutTestsIsAnError(t *testing.T) {
+	root := t.TempDir()
+	passing := writeTR(t, root, "a/a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	plain := writeTR(t, root, "b/duz.tr", `TR_func f() -> TR_Int { TR_return 1 } # TR_test "yorum"`)
+	text := writeTR(t, root, "c/metin.tr", "TR_var s = \"TR_test \\\"x\\\"\"")
+	for _, targets := range [][]string{{plain}, {text}, {passing, plain}, {plain, passing}, {filepath.Dir(plain)}, {passing, filepath.Dir(text)}} {
+		var out bytes.Buffer
+		if _, err := Run(targets, &out); !messages.Has(err, messages.H8503) {
+			t.Fatalf("%v: H8503 vermeli: %v", targets, err)
+		}
+		if out.Len() != 0 {
+			t.Fatalf("%v: hiçbir test koşmamalı:\n%s", targets, out.String())
+		}
+	}
+	var out bytes.Buffer
+	if summary, err := Run([]string{root}, &out); err != nil || summary.File != 1 || !summary.OK() {
+		t.Fatalf("klasörde testsiz dosya olağandır: %+v, %v\n%s", summary, err, out.String())
+	}
+}
+
+// Kural: adı _test.tr ile biten dosya hiç elenmez; testi yoksa koşu düşer (H8503), klasörde de, tek
+// başına da, yanında geçen test olsa da (DENETİM istek 138 Ş1, Ş2).
+func TestANamedTestFileWithoutTestsFailsTheRun(t *testing.T) {
+	root := t.TempDir()
+	passing := writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	empty := writeTR(t, root, "bos_test.tr", `TR_func f() -> TR_Int { TR_return 1 } # TR_test "yorum"`)
+	for _, targets := range [][]string{{empty}, {passing, empty}, {empty, passing}, {root}} {
+		var out bytes.Buffer
+		summary, err := Run(targets, &out)
+		if err != nil || summary.OK() || summary.Unloadable != 1 {
+			t.Fatalf("%v: koşu düşmeliydi: %+v, %v\n%s", targets, summary, err, out.String())
+		}
+		if want := messages.Text(messages.H8503, empty); !strings.Contains(out.String(), want) {
+			t.Fatalf("%v: %q yazılmalı:\n%s", targets, want, out.String())
+		}
+	}
+}
+
+// Kural: en dışta olmayan test koşmadan geçmiş görünmez: dosya denetimden geçemez, adı ne olursa olsun
+// koşu düşer (12.2, DENETİM istek 138 Ş2).
+func TestANestedTestFailsTheRun(t *testing.T) {
+	for name, text := range map[string]string{
+		"koşul":        "TR_if TR_true {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
+		"fonksiyon":    "TR_func f() {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
+		"test":         "TR_test \"dis\" {\n    TR_test \"ic\" { TR_assert(TR_false) }\n}\n",
+		"yanında test": "TR_func f() {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\nTR_test \"a\" { TR_assert(TR_true) }\n",
+	} {
+		for _, file := range []string{"ic_test.tr", "ic.tr"} {
+			root := t.TempDir()
+			writeTR(t, root, file, text)
+			var out bytes.Buffer
+			if summary, err := Run([]string{root}, &out); err != nil || summary.OK() || summary.Unloadable != 1 || summary.Total != 0 {
+				t.Errorf("%s, %s: koşu düşmeliydi: %+v, %v\n%s", name, file, summary, err, out.String())
+			}
+		}
+	}
+}
+
+// Kural: bozuk test dosyası klasörden kaybolmaz, "yüklenemedi" olur; yanındaki geçen test sonucu ✅ yapmaz
+// (DENETİM istek 138 Ş1'in altı yazımı). Açıkça verilince de "test bulunamadı" değil yükleme hatası
+// söylenir. TR_test yazan dosyanın adı önemsizdir (139 Ş2); kimliksiz yazımda dosyayı yalnız adı tutar.
+func TestABrokenNamedTestFileIsNotDropped(t *testing.T) {
+	kalan := "TR_test \"kalan\" { TR_assert(TR_false) }\n"
+	for name, text := range map[string]string{
+		"kapanmayan metin":       "TR_var s = \"kapanmayan\n" + kalan,
+		"kapanmayan ters tırnak": "TR_var s = `kapanmayan\n" + kalan,
+		"üç tırnak":              "\"\"\"\n" + kalan,
+		"adsız test":             "TR_test { TR_assert(TR_false) }\n",
+		"ad metin değil":         "TR_test nm { TR_assert(TR_false) }\n",
+		"kimliksiz yazım":        "test \"kalan\" { TR_assert(TR_false) }\n",
+	} {
+		for _, file := range []string{"k_test.tr", "k.tr"} {
+			if file == "k.tr" && name == "kimliksiz yazım" {
+				continue
+			}
+			root := t.TempDir()
+			writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+			broken := writeTR(t, root, file, text)
+			for _, target := range []string{root, broken} {
+				var out bytes.Buffer
+				summary, err := Run([]string{target}, &out)
+				if err != nil || summary.OK() || summary.Unloadable != 1 {
+					t.Errorf("%s, %s: yüklenemedi olmalı: %+v, %v\n%s", name, target, summary, err, out.String())
+				}
+				if strings.Contains(out.String(), messages.Text(messages.H8503, broken)) {
+					t.Errorf("%s, %s: bozuk dosya testsiz denmemeli:\n%s", name, target, out.String())
+				}
+			}
+		}
+	}
+}
+
+// Kural: tarama testdata adlı klasöre inmez; açıkça verilen testdata koşar (bilerek hatalı dosyalar orada).
+func TestFixtureDirIsOnlyRunWhenGiven(t *testing.T) {
+	root := t.TempDir()
+	writeTR(t, root, "a_test.tr", `TR_test "a" { TR_assert(TR_true) }`)
+	fixture := writeTR(t, root, "testdata/b_test.tr", `TR_test "b" { TR_assert(TR_false) }`)
+	for target, failed := range map[string]int{root: 0, filepath.Dir(fixture): 1, fixture: 1} {
+		var out bytes.Buffer
+		if summary, err := Run([]string{target}, &out); err != nil || summary.Failed != failed {
+			t.Fatalf("%s: %d kalan bekleniyordu: %+v, %v\n%s", target, failed, summary, err, out.String())
+		}
+	}
+}
+
 func TestEmptyDirErrors(t *testing.T) {
-	if _, err := Run(t.TempDir(), &bytes.Buffer{}); !messages.Has(err, messages.H8503) {
+	if _, err := Run([]string{t.TempDir()}, &bytes.Buffer{}); !messages.Has(err, messages.H8503) {
 		t.Fatalf("test dosyası olmayan klasör H8503 vermeli: %v", err)
 	}
-	if _, err := Run(filepath.Join(t.TempDir(), "yok"), &bytes.Buffer{}); !messages.Has(err, messages.H8502) {
+	if _, err := Run([]string{filepath.Join(t.TempDir(), "yok")}, &bytes.Buffer{}); !messages.Has(err, messages.H8502) {
 		t.Fatalf("olmayan hedef H8502 vermeli: %v", err)
 	}
 }
@@ -140,7 +347,7 @@ func TestUnloadableFile(t *testing.T) {
 	writeTR(t, root, "ustduzey_test.tr", "TR_throw \"yükleme hatası\"\nTR_test \"b\" { TR_assert(TR_true) }\n")
 	writeTR(t, root, "iyi_test.tr", "TR_test \"c\" { TR_assert(TR_true) }\n")
 	var out bytes.Buffer
-	summary, err := Run(root, &out)
+	summary, err := Run([]string{root}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}

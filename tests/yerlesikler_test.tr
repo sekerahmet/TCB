@@ -365,6 +365,19 @@ TR_test "13.1 TR_mean, TR_std ve TR_median yalnız liste alır; TR_max ve TR_min
     TR_assert_equal((1, 2), TR_max([(1, 2)]))
 }
 
+TR_test "13.1 toplama yapan yerleşikler listede NaN varsa NaN verir, nerede olursa olsun" {
+    TR_for l TR_in [[1.0, 2.0, TR_nan], [1.0, TR_nan, 2.0], [TR_nan, 1.0, 2.0], [TR_inf, TR_nan, -TR_inf]] {
+        TR_assert_equal("nan", TR_String(TR_sum(l)))
+        TR_assert_equal("nan", TR_String(TR_mean(l)))
+        TR_assert_equal("nan", TR_String(TR_std(l)))
+        TR_assert_equal("nan", TR_String(TR_median(l)))
+        TR_assert_equal("nan", TR_String(TR_min(l)))
+        TR_assert_equal("nan", TR_String(TR_max(l)))
+    }
+    TR_assert_equal("nan", TR_String(TR_min(1.0, TR_nan)))
+    TR_assert_equal("nan", TR_String(TR_max(TR_nan, 1.0)))
+}
+
 TR_test "13.1 TR_median listede NaN varsa NaN verir, nerede olursa olsun" {
     TR_assert_equal("nan", TR_String(TR_median([1.0, 2.0, TR_nan])))
     TR_assert_equal("nan", TR_String(TR_median([1.0, TR_nan, 2.0])))

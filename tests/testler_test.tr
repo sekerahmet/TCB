@@ -39,5 +39,5 @@ TR_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar gör
 TR_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
     TR_func iç() -> TR_Int { TR_return 7 }
     TR_assert_equal(7, iç())
-    # Olumsuz fikstür: tests/negative/test_govdesi_sonuc.tr
+    # Olumsuz fikstür: tests/negative/testdata/test_govdesi_sonuc.tr
 }

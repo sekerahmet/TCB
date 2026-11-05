@@ -191,6 +191,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.errors = append(c.errors, c.nameErrors...)
 	c.checkSkeletons(prog)
 	c.checkTopLevel(prog)
+	c.checkTestPlaces(prog)
 	c.checkSignatures(prog)
 	c.checkValuePlaces(prog)
 	sortByLine(c.errors[start:])

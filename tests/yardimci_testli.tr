@@ -1,11 +1,11 @@
 # TR 4
-# testler_test.tr (12.1) tarafından aktarılan yardımcı modül: içindeki test bloğu normal
-# çalıştırmada atlanmalıdır.
+# testler_test.tr (12.1) tarafından aktarılan yardımcı modül: içindeki test bloğu modülü aktaran
+# programda çalışmaz, trlang test onu bu dosyanın kendi makinesinde koşar.
 TR_var testli_sayaç = 0
 
-TR_test "çalıştırılmamalı" {
+TR_test "12.1 aktarılan modülün testi kendi makinesinde koşar" {
     testli_sayaç = 99
-    TR_throw "normal çalıştırmada test blokları atlanır"
+    TR_assert_equal(99, testli_sayaç)
 }
 
 TR_var testli_bitti = TR_true
