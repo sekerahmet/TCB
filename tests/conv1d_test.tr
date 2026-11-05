@@ -99,3 +99,15 @@ TR_test "15.23c evrişim_1b: sapma ve argüman hataları" {
     TR_assert_equal("H7085", TR_error_code { TR_conv1d(x, w, TR_none, TR_padding: -1) })
     TR_assert_equal("H3084", TR_error_code { TR_conv1d(x, w, TR_none, TR_padding: 4000000000000000000) })
 }
+
+TR_test "15.23c evrişim_1b: blokta türev girdiye, ağırlığa ve sapmaya gider" {
+    TR_var x = TR_Tensor([[[1.0, 2.0, 3.0, 4.0]]], TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor([[[1.0, 0.5]]], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([0.25], TR_requires_grad: TR_true)
+    TR_var y = TR_mixed_precision("bf16") { TR_conv1d(x, w, b) }
+    TR_assert_equal("bf16", y.TR_dtype)
+    TR_backward(TR_sum(y.TR_to_dtype("float32")))
+    TR_assert_equal([[[1.0, 1.5, 1.5, 0.5]]], x.TR_grad.TR_tolist)
+    TR_assert_equal([[[6.0, 9.0]]], w.TR_grad.TR_tolist)
+    TR_assert_equal([3.0], b.TR_grad.TR_tolist)
+}

@@ -90,3 +90,29 @@ TR_test "15.18 log_toplam_üs: hatalar" {
     TR_assert_equal("H6016", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: 1) })
     TR_assert_equal("H6016", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: [1]) })
 }
+
+# eksenli_x [2, 3, 4] şeklindedir: eksen sırası kendi tersi olmayan izin verir.
+TR_func eksenli_x() -> TR_Tensor {
+    TR_return TR_Tensor(TR_Tensor([((i * 7) % 11) * 0.25 TR_for i TR_in 0..24]).TR_reshape([2, 3, 4]), TR_requires_grad: TR_true)
+}
+
+TR_test "15.18 log_toplam_üs: türev her eksende softmax'tır" {
+    TR_for eksen TR_in [0, 1, 2] {
+        TR_var x = eksenli_x()
+        TR_backward(TR_sum(TR_logsumexp(x, TR_dim: eksen)))
+        TR_assert(yakın(x.TR_grad, TR_softmax(x, TR_dim: eksen)))
+    }
+}
+
+TR_test "15.18 log_toplam_üs: türev eksen listesinde de softmax'tır" {
+    TR_var x = eksenli_x()
+    TR_backward(TR_sum(TR_logsumexp(x, TR_dim: [1, 2])))
+    TR_var düz = TR_softmax(x.TR_reshape([2, 12]), TR_dim: 1)
+    TR_assert(yakın(x.TR_grad, düz.TR_reshape([2, 3, 4])))
+}
+
+TR_test "15.18 log_toplam_üs: 16 bitlik girdinin türevi kendi türüne yuvarlanır" {
+    TR_var x = TR_Tensor([1.0, 2.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_backward(TR_logsumexp(x).TR_to_dtype("float32"))
+    TR_assert_equal([0.26953125, 0.73046875], x.TR_grad.TR_tolist)
+}
