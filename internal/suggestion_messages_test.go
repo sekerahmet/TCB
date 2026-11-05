@@ -306,13 +306,13 @@ func TestMessageSuggestionsRunCleanly(t *testing.T) {
 }
 
 // Kural (2.3a, DENETİM istek 112 Y1): sözlükte noktadan sonra yazılan dosya işlevinin önerisi sözlüğü
-// argümanda tutar, çağrı hata verir: aynı adlı dosya taşınmaz, kopyalanmaz.
+// argümanda tutar, çağrı hata verir: aynı adlı dosya taşınmaz, kopyalanmaz, üstüne yazılmaz.
 func TestAFileFunctionAfterADotLeavesTheFile(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := os.WriteFile("a", []byte("veri"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"TR_move", "TR_copy"} {
+	for _, f := range []string{"TR_move", "TR_copy", "TR_write_file"} {
 		wrong := "TR_var d = {\"a\": 1}\nd." + f + "(\"a\", \"b\")"
 		matched := firstWithCode(collectProgramDiagnostics(wrong), messages.H7016)
 		if matched == nil || !strings.Contains(matched.Error(), "`"+f+"(x, y)`") {
