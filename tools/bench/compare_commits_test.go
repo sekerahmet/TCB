@@ -2,6 +2,7 @@
 package bench
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -52,6 +53,131 @@ func TestCompareCommitsVerdict(t *testing.T) {
 				t.Errorf("verdict %q lacks %q", out, c.want)
 			}
 		})
+	}
+}
+
+// A gate that finds no benchmark says so: a misspelled name must not pass as "no regression".
+func TestCompareCommitsNoBenchmark(t *testing.T) {
+	dir := t.TempDir()
+	empty := samples(t, dir, "empty.txt")
+	full := samples(t, dir, "full.txt", 100, 101, 102, 103)
+	for _, files := range [][]string{{empty, empty, empty}, {full, empty, full}, {full, full, empty}} {
+		cmd := exec.Command(python(t), append([]string{"-I", "compare_commits.py", "--verdict"}, files...)...)
+		out, err := cmd.CombinedOutput()
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) || exit.ExitCode() != 2 || !strings.Contains(string(out), "kıyas bulunamadı") {
+			t.Errorf("%v: %v\n%s", files, err, out)
+		}
+	}
+}
+
+// gateRepo builds a two-commit module in a temporary repository: each commit's benchmark sleeps for
+// the given milliseconds. Work is the symbol whose alignment the gate reports.
+func gateRepo(t *testing.T, baseMs, headMs int) string {
+	t.Helper()
+	dir := t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@example.com"}, args...)...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	write := func(ms int) {
+		t.Helper()
+		src := fmt.Sprintf(`package p
+
+import (
+	"testing"
+	"time"
+)
+
+//go:noinline
+func Work() { time.Sleep(%d * time.Millisecond) }
+
+func BenchmarkStep(b *testing.B) {
+	for range b.N {
+		Work()
+	}
+}
+`, ms)
+		if err := os.WriteFile(filepath.Join(dir, "p", "p_test.go"), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir, "p"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module gate\n\ngo 1.26\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git("init", "-q")
+	write(baseMs)
+	git("add", ".")
+	git("commit", "-q", "-m", "base")
+	git("tag", "base")
+	write(headMs)
+	git("add", ".")
+	git("commit", "-q", "-m", "head")
+	git("tag", "head")
+	return dir
+}
+
+// runGate runs the whole gate on gateRepo's two commits.
+func runGate(t *testing.T, dir string, args ...string) (string, error) {
+	t.Helper()
+	script, err := filepath.Abs("compare_commits.py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := append([]string{"-I", script, "--base", "base", "--head", "head", "--package", "p", "--symbol", "Work",
+		"--rounds", "3", "--count", "2", "--benchtime", "3x", "--out", filepath.Join(dir, "out")}, args...)
+	cmd := exec.Command(python(t), all...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// The whole gate: both sides are built with the alignment flag and land aligned, the arms take turns
+// in rotation, a real slowdown exits with 1, a misspelled benchmark with 2.
+func TestCompareCommitsEndToEnd(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not found")
+	}
+	dir := gateRepo(t, 1, 40)
+	out, err := runGate(t, dir, "--bench", "BenchmarkStep")
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != 1 {
+		t.Fatalf("slowdown: %v\n%s", err, out)
+	}
+	for _, want := range []string{
+		"base derlendi: -ldflags=-funcalign=64",
+		"head derlendi: -ldflags=-funcalign=64",
+		"base@64 Work:", "head@64 Work:",
+		", gerçek\n",
+	} {
+		if !strings.Contains(strings.ReplaceAll(out, "\r\n", "\n"), want) {
+			t.Errorf("output lacks %q:\n%s", want, out)
+		}
+	}
+	if got := strings.Count(out, "64'e göre 0"); got != 2 {
+		t.Errorf("%d aligned arms; 2 expected:\n%s", got, out)
+	}
+	var first []string
+	for _, line := range strings.Split(out, "\n") {
+		if f := strings.Fields(line); len(f) == 4 && f[0] == "tur" {
+			if len(first) == int(f[1][0]-'0') {
+				first = append(first, f[2])
+			}
+		}
+	}
+	if len(first) != 3 || first[0] == first[1] || first[1] == first[2] {
+		t.Errorf("rounds start with %v; the turn must rotate", first)
+	}
+	out, err = runGate(t, dir, "--bench", "BenchmarkNoSuch")
+	if !errors.As(err, &exit) || exit.ExitCode() != 2 {
+		t.Errorf("misspelled benchmark: %v\n%s", err, out)
 	}
 }
 

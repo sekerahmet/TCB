@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """İki commit'in Go kıyasını gerileme kapısı olarak karşılaştırır.
 
-Aynı kod, fonksiyonun bellekteki hizası değişince yüzde 6-10 oynayabilir (BF16TrainStep, widenSpan:
-docs/measurements.md). Bu yüzden iki taraf da -funcalign=64 ile derlenir: fark kodun farkı olur,
-o commit'in yerleşiminin farkı olmaz. Bayrak yalnız kıyas içindir; kullanıcının derlemesini bağlamaz.
+Fonksiyonun bellekteki hizası kıyası oynatabilir: BF16TrainStep bir koşuda (h3k12) 6-10 puan oynadı,
+sonraki koşuda (h1k1) tekrarlanmadı, kod da değişmişti; etki kanıtlı değil. Yine de iki taraf
+-funcalign=64 ile derlenir: fark o commit'in yerleşiminden gelmesin. Bayrak yalnız kıyas içindir;
+kullanıcının derlemesini bağlamaz.
 
 Üç kol nöbetleşe koşar: taban, tabanın kopyası (aynı ikili), dal. Fark ancak kopyanın farkının
-dışındaysa ve iki kolun çeyrekleri ayrıksa gerçek sayılır. Gerçek yavaşlamada çıkış kodu 1.
+dışındaysa ve iki kolun çeyrekleri ayrıksa gerçek sayılır. Çıkış kodu: gerçek yavaşlamada 1, kıyas
+bulunmayınca 2 (ad yanlış yazılınca kapı "gerileme yok" demesin).
 
   python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF16TrainStep
   python tools/bench/compare_commits.py --verdict taban.txt dal.txt kopya.txt
@@ -67,10 +69,11 @@ def show_arm(arm, samples, reference):
 
 def build(commit, flags, target, package, work):
     """commit'in kıyas ikilisini kurar; koşulacağı paket klasörünü döndürür."""
-    tree = os.path.join(work, 'tree_' + commit)
+    tree = os.path.join(work, 'tree_' + commit.replace('/', '_'))
     if not os.path.isdir(tree):
         subprocess.run(['git', 'worktree', 'add', '-q', '--detach', tree, commit], check=True)
     subprocess.run(['go', 'test', '-c', *flags, '-o', target, './' + package], cwd=tree, check=True)
+    print('%s derlendi: %s' % (commit, ' '.join(flags) or 'bayraksız'))
     return os.path.join(tree, package)
 
 
@@ -107,7 +110,7 @@ def run_arms(args, arms):
         for i in range(len(names)):
             arm = names[(i + rnd) % len(names)]
             binary, cwd = arms[arm]
-            cmd = [binary, '-test.run', 'XXX', '-test.bench', args.bench, '-test.count', str(args.count)]
+            cmd = [binary, '-test.run', 'XXX', '-test.bench', args.bench, '-test.count', str(args.count), '-test.benchtime', args.benchtime]
             out = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=args.timeout)
             if out.returncode:
                 sys.exit('%s düştü (%d):\n%s' % (arm, out.returncode, out.stdout + out.stderr))
@@ -130,6 +133,8 @@ def compare(args):
             if name.startswith('tree_'):
                 subprocess.run(['git', 'worktree', 'remove', '--force', os.path.join(work, name)], check=False)
         shutil.rmtree(work, ignore_errors=True)
+    if not samples['base@64']:
+        return no_benchmark(args.bench)
     slower = False
     for name in sorted(samples['base@64']):
         print(name)
@@ -143,11 +148,18 @@ def compare(args):
     return 1 if slower else 0
 
 
+def no_benchmark(what):
+    print('kıyas bulunamadı: %s' % what, file=sys.stderr)
+    return 2
+
+
 def verdict_of_files(paths):
     loaded = []
     for path in paths:
         with open(path, encoding='utf-8') as f:
             loaded.append(parse(f))
+    if not all(loaded):
+        return no_benchmark(' '.join(paths))
     slower = False
     for name in sorted(loaded[0]):
         slower |= report(name, loaded[0][name], loaded[1][name], loaded[2][name])
@@ -156,6 +168,7 @@ def verdict_of_files(paths):
 
 def main():
     sys.stdout.reconfigure(encoding='utf-8')  # -I, PYTHONIOENCODING'i görmez
+    sys.stderr.reconfigure(encoding='utf-8')
     p = argparse.ArgumentParser(description='İki commit\'in Go kıyası: hizalı kollar, kopya kolu, nöbetleşe.')
     p.add_argument('--base', help='taban commit')
     p.add_argument('--head', help='dal commit')
@@ -164,6 +177,7 @@ def main():
     p.add_argument('--symbol', help='adresi yazılacak fonksiyon (ör. widenSpan)')
     p.add_argument('--rounds', type=int, default=6, help='tur sayısı')
     p.add_argument('--count', type=int, default=5, help='turda tekrar')
+    p.add_argument('--benchtime', default='1s', help='-test.benchtime')
     p.add_argument('--timeout', type=int, default=300, help='bir koşunun saniye sınırı')
     p.add_argument('--out', default='compare_commits_out', help='ham çıktı klasörü')
     p.add_argument('--plain', action='store_true', help='hizasız kolları da koş')
