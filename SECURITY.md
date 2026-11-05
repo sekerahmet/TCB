@@ -17,7 +17,8 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 | Girdi | Okuyan | Korumalar |
 | :-- | :-- | :-- |
 | `.trt` tensör dosyaları | `TR_fn_load_tensors` | biçim ve sürüm denetimi, sağlama toplamı, tensör başına eleman sınırı, fiziksel bellek sınırı ([kılavuz §4.C](docs/guide/04_yapay_zeka_ve_veri.md#c-tensörler-ve-otomatik-türev), [dil tanımı 15.46 ve 15.42](docs/spec/15_tensorler.md)) |
-| Kontrol noktaları (`<koşu>/checkpoints/`) | `TR_type_Checkpoint` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `TR_fn_load_tensors` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzNoktaDosyalari` |
+| `.gguf` model dosyaları | `TR_fn_load_tensors`, `TR_fn_load_metadata`, `TR_fn_load_tokenizer` | sürüm ve bayt sırası denetimi; anahtar ve tensör sayıları, metin ve dizi boyları, hizalama, kaymalar ve boyutlar taşma denetimli hesaplanır, denetimler ayırmadan önce yapılır, bildirilen veri dosyada olmalıdır; yinelenen anahtar ve tensör adı, iç içe dizi, ikinin kuvveti olmayan hizalama hatadır; nicemlenmiş tensörde NaN ya da sonsuz ölçek yükleme hatasıdır; parçalayıcıda tür dizisi zorunludur, parça, puan ve tür dizilerinin boyları eşit, özel kimlikler sözlükte olmalıdır, bilinmeyen ön ayırıcı etiketi hatadır; `tokenizer.chat_template` metindir, çalıştırılmaz ([dil tanımı 15.55](docs/spec/15_tensorler.md), [16.1](docs/spec/16_veri_parcalayici.md)); bulanıklaştırma: `FuzzGGUFDecode`, `FuzzGGUFTokenizer` |
+| Kontrol noktaları (`<koşu>/checkpoints/`) | `TR_type_Checkpoint` | JSON dosyalarında boy sınırı (64 KB / 64 MB) ve katı çözüm, biçim sürümü, adımın klasör adı ve dosyalar arasında tutması, her dosyanın SHA-256 özeti, tensör dosyasının bütün `TR_fn_load_tensors` sınırları; biçimde yalnızca veri var (kod, nesne kurma, yol çözme yok); bozuk nokta açık hata, önceki nokta önerilir ([dil tanımı §20](docs/spec/20_kontrol_noktasi.md)); bulanıklaştırma: `FuzzCheckpointFiles` |
 | `.npy` veri dosyaları | `TR_type_Dataset` | başlık boyu sınırı, tür ve şekil denetimi |
 | `tokenizer.json` parçalayıcı dosyaları | `TR_fn_load_tokenizer` | düzenli ifadeler adım bütçesiyle çalışır, üstel geri izlemeye açık ve çok derin iç içe desenler yüklenmez ([kılavuz §4.D](docs/guide/04_yapay_zeka_ve_veri.md)) |
 | CSV ve JSON metinleri | `TR_fn_read_csv`, `TR_fn_parse_csv`, `TR_fn_json_parse` | biçim hataları açık hata verir |
@@ -34,10 +35,10 @@ TR, bir yapay zekâ modeli geliştiricisinin başkasından aldığı dosyaları 
 
 ## Bulanıklaştırma testleri
 
-Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde `Fuzz` ile başlayan testler: tensör dosyası, `.npy` başlığı, parçalayıcı ve düzenli ifadeler, CSV, JSON, gömülü paket, hata ayıklama iletileri, sözcük çözümleyici, derleyici, biçimlendirici). Sıradan `go test` yalnızca kayıtlı girdileri koşar; otomatik sınama her hafta her hedefi rastgele girdiyle ayrıca koşar (`.github/workflows/fuzz.yml`). Yerelde tek bir hedef:
+Yukarıdaki her girdinin bir bulanıklaştırma testi vardır (`go test` içinde `Fuzz` ile başlayan testler: tensör dosyası, GGUF dosyası, `.npy` başlığı, parçalayıcı ve düzenli ifadeler, CSV, JSON, gömülü paket, hata ayıklama iletileri, sözcük çözümleyici, derleyici, biçimlendirici). Sıradan `go test` yalnızca kayıtlı girdileri koşar; otomatik sınama her hafta her hedefi rastgele girdiyle ayrıca koşar (`.github/workflows/fuzz.yml`). Yerelde tek bir hedef:
 
 ```sh
-bash tools/fuzz.sh 30s '^FuzzTensorKaydiCoz$'
+bash tools/fuzz.sh 30s '^FuzzTensorFileDecode$'
 ```
 
 ## Bağımlılık ve araç zinciri açıkları

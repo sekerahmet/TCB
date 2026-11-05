@@ -1,7 +1,7 @@
 // Package tokenize dil modelleri için metin <-> token kimliği dönüşümünü
 // yapan genel amaçlı bir parçalayıcıdır (tokenizer). Yaygın "tokenizer.json"
-// biçimindeki dosyaları okur; kodlama ve çözme sonuçları, dosyayı üreten
-// başvuru uygulamasıyla birebir aynı olacak biçimde yazılmıştır.
+// biçimindeki dosyaları ve GGUF dosyasının parçalayıcısını (gguf.go) okur; kodlama ve çözme
+// sonuçları, dosyayı üreten başvuru uygulamasıyla birebir aynı olacak biçimde yazılmıştır.
 //
 // Parçalayıcı bağımsız bileşenlerin zinciridir (bkz. bilesenler.go):
 // normalleştirici, ön bölücü, model, son işleyici ve çözücü. Her bileşen
@@ -26,9 +26,11 @@ package tokenize
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"sort"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -94,8 +96,21 @@ func (p *Tokenizer) encodeBudget(byteVal int) *reBudget {
 // DefaultCacheCapacity sözcük önbelleğinin varsayılan girdi sayısıdır.
 const DefaultCacheCapacity = 1 << 17
 
-// Load verilen yoldaki tokenizer.json dosyasını okur.
+// Load verilen yoldaki parçalayıcıyı okur; biçim içerikten anlaşılır: GGUF ile başlayan dosya
+// üstverisinden (16.1), öbürü tokenizer.json. GGUF'ta dosyanın kendisi belleğe alınmaz.
 func Load(path string) (*Tokenizer, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, messages.New(messages.H5272, err)
+	}
+	defer f.Close()
+	head := make([]byte, len(gguf.Magic))
+	if _, err := io.ReadFull(f, head); err == nil && string(head) == gguf.Magic {
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return nil, messages.New(messages.H5272, err)
+		}
+		return loadGGUF(f)
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, messages.New(messages.H5272, err)

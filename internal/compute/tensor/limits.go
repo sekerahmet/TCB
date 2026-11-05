@@ -15,6 +15,9 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		panic(messages.New(messages.H3041, w.shape))
 	}
 	V, D := w.shape[0], w.shape[1]
+	if w.dtyp.IsQuantized() {
+		w.refuseTransposed()
+	}
 	sy := counterStart(w.be, OpKindEmbedding).start()
 	if len(shape) == 0 {
 		shape = []int{len(idx)}
@@ -28,6 +31,14 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		}
 	}
 	ix := append([]int(nil), idx...)
+	if w.dtyp.IsQuantized() {
+		// Seçilen satırlar açılır (15.53); ağırlık donmuştur, türev izlenmez.
+		out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), Float32)
+		s := cpuStore(w.storage)
+		quantEmbedding(cd(out.storage), quantBytes(s, w.offset, V*D), s.dtyp, ix, D)
+		sy.finish()
+		return out
+	}
 	out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), w.dtyp)
 	gateEmbedding(w.be, out.storage, w.view(), ix, D)
 	r := track(out, "embedding", []*Tensor{w}, func(o *node) {

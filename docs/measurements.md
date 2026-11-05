@@ -37,6 +37,23 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 
 Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 bf16 tepe bellek 12,0 → 9,6 GB. DENETİM ayrı makinede sentetik modelle 2,74 → 13,83, tepe 17,95 → 9,89 GB [ölçüldü: istek 121, Windows]. llama.cpp ve transformers kıyası aşağıda.
 
+**GGUF kıyası** (2026-11-05, TR `fbb5a77d`, llama.cpp `8bed7cfb` `b12124`, BLAS yok, Colab CPU: Intel Xeon 2.20 GHz, 8 iş parçacığı; aynı koşu, kopya kollu, `llama-bench -r 5`; ortanca, parantezde üçüncü çeyrek) [ölçüldü: Colab, betik `h2k_kosu2.sh`, kayıt `olcumler/h2k2`]:
+
+| Model | İş | TR | llama.cpp | Oran |
+| :-- | :-- | --: | --: | --: |
+| Qwen3-0.6B `Q8_0` | üretim | 15,57 (16,12) | 41,22 (42,79) | 0,378 |
+| Qwen3-0.6B `Q8_0` | prompt 512 | 80,40 (80,77) | 145,57 (149,72) | 0,552 |
+| SmolLM2-360M `Q8_0` | üretim | 20,75 (21,35) | 65,91 (67,45) | 0,315 |
+| SmolLM2-360M `Q8_0` | prompt 512 | 111,20 (112,47) | 208,80 (210,17) | 0,533 |
+| Qwen3-4B `Q4_K_M` | üretim | 2,35 (2,39) | 8,45 (8,69) | 0,278 |
+| Qwen3-4B `Q4_K_M` | prompt 512 | 14,53 (14,57) | 28,38 (28,78) | 0,512 |
+
+Birim parça/sn. llama.cpp'nin beş örneğinin biri çoğu turda iki kat yavaş; `-p 0` ile ayrı koşuda oran 0,333.
+
+Üretimin ayrışımı, Qwen3-0.6B `Q8_0` (TR `845dda66`, aynı makine, üç kol aynı koşuda, altı tur) [ölçüldü: kayıt `olcumler/h2k4`]: TR üretim 63,5 ms/parça, yalnız 197 matrisin çarpımı 33,9, llama.cpp bütün iş 21,2. Çarpım dışı 29,6 ms [hesap]: dikkat yaklaşık 10, kaynaştırılmış işlemler yaklaşık 9, kalan yaklaşık 9 [hesap: profil].
+
+Tepe bellek, üretim 2 parça (TR `3fdde953`, AMD EPYC 7B12) [ölçüldü: kayıt `olcumler/h2k3`]: Qwen3-0.6B `Q8_0` dosyanın 1,67 katı, SmolLM2-360M `Q8_0` 1,71, Qwen3-4B `Q4_K_M` 1,31; yükleme 423, 239, 1 264 ms.
+
 **CPU kıyası** (2026-11-05 07:54–08:47 TSS, main `8a3925c9`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı; torch 2.15.0+cpu, transformers 5.22.1 float32, llama.cpp `8bed7cfb`; dört tur, kopya kollu, kol başına 16 örnek; ortanca, parantezde birinci ve üçüncü çeyrek) [ölçüldü: Colab, betik `h1k_kosu2.sh`, kayıt `olcumler/h1k2`]:
 
 Üretim, parça/sn:

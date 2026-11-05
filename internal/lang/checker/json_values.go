@@ -15,8 +15,9 @@ import (
 // JSONReturns are builtins whose value is a TR_JSON value (3.7a): the engine's TR_Type gives the JSON
 // kind, never TR_JSON, so stdlib.TestJSONReturnsAreJSONValues checks that the value is a JSON value.
 var JSONReturns = map[codes.Code]string{
-	codes.FnJsonParse: "3.7a, 13.8: parsing gives a structured value",
-	codes.TypeJSON:    "3.7a: the type call converts its argument",
+	codes.FnJsonParse:    "3.7a, 13.8: parsing gives a structured value",
+	codes.FnLoadMetadata: "15.55: GGUF metadata is structured",
+	codes.TypeJSON:       "3.7a: the type call converts its argument",
 }
 
 // jsonCallType k yerleşiğinin çağrısının TR_JSON'a bağlı tipidir: TR_JSON veren yerleşikte TR_JSON,

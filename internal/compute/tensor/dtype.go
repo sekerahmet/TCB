@@ -63,7 +63,11 @@ func NewOf(dt DType, data []float32, shape ...int) *Tensor {
 
 // ZerosOf dt türünde sıfırlarla dolu tensör.
 func ZerosOf(dt DType, shape ...int) *Tensor {
-	return zerosOf(isCreate, defaultBackend(), shape, dt)
+	be := defaultBackend()
+	if dt.IsQuantized() {
+		checkQuantShape(be, dt, shape)
+	}
+	return zerosOf(isCreate, be, shape, dt)
 }
 
 // Cast tensörün dt türüne dönüştürülmüş bitişik bir kopyasını verir (en
@@ -75,6 +79,9 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 	}
 	if !dt.IsFloat() {
 		panic(messages.New(messages.H3036, dt))
+	}
+	if t.dtyp.IsQuantized() {
+		panic(typedComputeError(t.dtyp)) // sessizce açılmaz (15.53): tek yol Open'dır
 	}
 	if t.sym != nil {
 		return symCast(t, dt)

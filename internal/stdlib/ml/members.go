@@ -143,6 +143,9 @@ func (d *TensorValue) valueList() (interp.Value, error) {
 			return nil, err
 		}
 	}
+	if dt := d.t.DType(); dt.IsQuantized() {
+		return nil, tensor.PrecisionError(dt, d.t.Device())
+	}
 	return d.nestedList(), nil
 }
 

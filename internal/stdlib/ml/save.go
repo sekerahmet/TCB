@@ -110,6 +110,8 @@ func (g fileEntry) values() []float32 {
 // tensor dosyadan okunan girdinin tensörüdür (varsayılan cihazda).
 func (g fileEntry) tensor() *tensor.Tensor {
 	switch {
+	case g.dtype.IsQuantized():
+		return tensor.FromQuantized(g.dtype, g.raw, g.shape...)
 	case g.dtype.IsTyped():
 		return tensor.FromRawOn(tensor.DefaultDevice(), g.dtype, g.raw, g.shape...)
 	case g.bits != nil:
@@ -122,6 +124,9 @@ func (g fileEntry) tensor() *tensor.Tensor {
 
 // count girdinin öğe sayısı.
 func (g fileEntry) count() int {
+	if elems, size := g.dtype.QuantBlock(); elems > 0 {
+		return len(g.raw) / size * elems
+	}
 	if g.dtype.IsTyped() {
 		return len(g.raw) / (g.dtype.Bits() / 8)
 	}

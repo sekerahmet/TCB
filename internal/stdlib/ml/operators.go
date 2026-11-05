@@ -206,6 +206,12 @@ func matmulDType(m *interp.VM, a, b *tensor.Tensor, mixed tensor.DType) (*tensor
 	if err := checkDevice(messages.New(messages.H6124), a, b); err != nil {
 		return nil, err
 	}
+	if b.DType().IsQuantized() {
+		// Şekil denetiminden önce: `x @ w` şekli uysa da uymasa da aynı ileti doğru yazımı verir.
+		if _, err := safe(func() *tensor.Tensor { tensor.CheckQuantWeight(a, b); return b }); err != nil {
+			return nil, err
+		}
+	}
 	K := as[len(as)-1]
 	var bK int
 	if len(bs) == 1 {
@@ -237,9 +243,12 @@ func matmulDType(m *interp.VM, a, b *tensor.Tensor, mixed tensor.DType) (*tensor
 			y = y.Unsqueeze(1)
 		}
 		var r *tensor.Tensor
-		if mixed != tensor.Float32 {
+		switch {
+		case mixed != tensor.Float32 && y.DType().IsQuantized():
+			r = matMulOn(m, x.CastShared(mixed), y, mixed) // ağırlık çekirdekte açılır (15.53)
+		case mixed != tensor.Float32:
 			r = matMulOn(m, x.CastShared(mixed), y.CastShared(mixed), mixed)
-		} else {
+		default:
 			r = matMulOn(m, x, y, tensor.MatMulType(x, y))
 		}
 		if len(bs) == 1 {

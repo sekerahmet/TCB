@@ -6,6 +6,8 @@ kendi düzenli ifade motoru.
 
 ## Standartlar
 
+**GGUF'ta ikinci kurucu yok.** GGUF dosyasında `tokenizer.json` yoktur; `FromGGUF` etiketten bellekte onun parçasını kurar ve `Parse`'tan geçirir: NFC, `ignore_merges` ve özel parçalar aynı yolda çözülür. Kalıplar modellerin kendi `tokenizer.json`'undandır, ölçüt modelin parçalayıcısıdır; llama.cpp'nin parçalayıcısı değil. Denetim: `TestGGUFQwen2TagBringsNFC`, `TestGGUFQwen2TagNeedsQwenArchitecture`, `TestGGUFDigitsFollowTheTag`, `TestGGUFLlamaBPEIgnoresMerges`, `TestGGUFBosAndEos`, `TestGGUFAddedTokens`, `TestGGUFQwen2SpecialNames`, `TestGGUFRejects`, `FuzzGGUFTokenizer`.
+
 **Başvuruyla birebir.** Kodlama ve çözme, başvuru uygulamasının ürettiği altın çıktılarla
 birebir aynıdır; desteklenmeyen bir bileşen sessizce yok sayılmaz, hata verir. Denetim: `TestSyntheticTokenizers`, `TestComponents`, `TestUnsupportedConfig`.
 

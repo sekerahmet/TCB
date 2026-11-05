@@ -113,6 +113,9 @@ func (d *TensorValue) toDType(_ *interp.VM, args []interp.Value, named map[strin
 	if dt == d.t.DType() {
 		return d, nil
 	}
+	if dt.IsQuantized() {
+		return nil, messages.New(messages.H6691, fn, name)
+	}
 	r, err := convertKind(fn, d.t, dt)
 	if err != nil {
 		return nil, err
@@ -209,6 +212,7 @@ var kindDTypeNames = map[string]tensor.DType{
 	"int64":   tensor.Int64, "int32": tensor.Int32, "int16": tensor.Int16, "int8": tensor.Int8,
 	"uint32": tensor.UInt32, "uint16": tensor.UInt16, "uint8": tensor.UInt8,
 	"bool": tensor.Bool,
+	"q8":   tensor.Q8, "q4_k": tensor.Q4K, "q6_k": tensor.Q6K,
 }
 
 // kindOf hassasiyetin öğe cinsi (TR_Float, TR_Int ya da TR_Bool'un kodu).
@@ -233,6 +237,10 @@ func constructorDType(fn codes.Ref, named map[string]interp.Value, kind codes.Co
 	dt, name, err := anyDType(fn, v)
 	if err != nil {
 		return 0, err
+	}
+	if dt.IsQuantized() && fn.Code != codes.FnZeros {
+		// Yalnız TR_zeros float bellek ayırmadan sıfır kurar (15.2); değerden nicemleme yoktur.
+		return 0, messages.New(messages.H6691, fn, name)
 	}
 	if k := kindOf(dt); k != kind {
 		return 0, messages.New(messages.H6976, fn, name, codes.NameRef(k), codes.NameRef(kind),

@@ -57,6 +57,7 @@ func Register(v *interp.VM) {
 	wrap(v, codes.FnArgmax, newBuiltin(argMax))
 	wrap(v, codes.FnSaveTensors, newBuiltin(tensorSave))
 	wrap(v, codes.FnLoadTensors, newBuiltin(tensorLoad))
+	wrap(v, codes.FnLoadMetadata, newBuiltin(metadataLoad))
 	wrap(v, codes.FnLoadParameters, newBuiltin(loadParamsBuiltin)) // parametreler.go
 }
 

@@ -21,6 +21,7 @@ import (
 // uncoveredLibraryNames, örneği henüz olmayan ya da örnek gerektirmeyen kitaplık adlarıdır ve gerekçesiyle durur.
 // Liste yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredLibraryNames = map[string]string{
+	"pretrained.hazır_gguf":            "GGUF dosyası ister, depoda yok; TestGGUFModelMatchesSafetensors dosyasını Go ile kurar",
 	"layers.göm()":                     "iç yardımcı metot: GPT.gizli_temsil ve tek_adım ortak gövdesi",
 	"layers.blokları_işle()":           "iç yardımcı metot: GPT.gizli_temsil ve tek_adım ortak gövdesi",
 	"layers.tampon_ekle()":             "iç yardımcı metot: KVÖnbellek.ekle'nin anahtar ve değer tamponları için ortak gövdesi",

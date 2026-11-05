@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 583 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 130 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
+Toplam 585 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 132 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
 
 ## İçindekiler
 
@@ -2118,6 +2118,25 @@ tr: klasör_oluştur("liste/alt"); dosya_yaz("liste/a.npy", "1"); dosya_yaz("lis
 
 İlişkili: `TR_Path`, `TR_make_dir(...)`
 
+#### `TR_load_metadata(...)` (`TR_fn_load_metadata`, `üstveri_yükle`)
+
+    üstveri_yükle(Metin | Yol) → JSON
+
+GGUF dosyasının üstverisini JSON olarak verir; parçalayıcının `tokenizer.ggml.` anahtarları girmez. `tokenizer.chat_template` metindir, kod olarak çalıştırılmaz. Tensör verisi okunmaz.
+
+```tr
+TR_write_file("bos.gguf", TR_Bytes([71, 71, 85, 70, 3, 0, 0, 0] + [0] * 16)); TR_var m = TR_load_metadata("bos.gguf"); TR_print(m.TR_keys())
+```
+
+Görünümü:
+
+```text
+en: write_file("bos.gguf", Bytes([71, 71, 85, 70, 3, 0, 0, 0] + [0] * 16)); var m = load_metadata("bos.gguf"); print(m.keys())
+tr: dosya_yaz("bos.gguf", Baytlar([71, 71, 85, 70, 3, 0, 0, 0] + [0] * 16)); değişken m = üstveri_yükle("bos.gguf"); yazdır(m.anahtarlar())
+```
+
+İlişkili: `TR_load_tensors(...)`, `TR_load_tokenizer(...)`
+
 #### `TR_load_parameters(...)` (`TR_fn_load_parameters`, `parametreleri_yükle`)
 
     parametreleri_yükle(Nesne | Liste | Sözlük | Tensör, Sözlük) → Tam
@@ -2141,7 +2160,7 @@ tr: değişken m = {"w": Tensör([1.0, 2.0], türev_izle: doğru)}; tensör_kayd
 
     tensör_yükle(Metin, türev_izle: Mantık = yanlış) → Sözlük
 
-tensör_kaydet ile yazılmış dosyayı ya da safetensors dosyasını (Hugging Face, PyTorch; biçim içerikten anlaşılır) ad → tensör sözlüğü olarak, dosyadaki sırayla okur; tensörler kaydedildikleri türdedir (F32, BF16, F16). Bozuk, eksik ya da başka türden dosya açık bir hatayla reddedilir.
+tensör_kaydet ile yazılmış dosyayı, safetensors dosyasını (Hugging Face, PyTorch) ya da GGUF dosyasını (biçim içerikten anlaşılır) ad → tensör sözlüğü olarak, dosyadaki sırayla okur; tensörler kaydedildikleri türdedir (F32, BF16, F16). Bozuk, eksik ya da başka türden dosya açık bir hatayla reddedilir.
 
 ```tr
 TR_save_tensors("a.trt", {"w": TR_Tensor([1.0])}); TR_print(TR_load_tensors("a.trt", TR_requires_grad: TR_true)["w"].TR_grad)
@@ -2160,7 +2179,7 @@ tr: tensör_kaydet("a.trt", {"w": Tensör([1.0])}); yazdır(tensör_yükle("a.tr
 
     parçalayıcı_yükle(Metin) → Parçalayıcı
 
-tokenizer.json biçimindeki bir parçalayıcı dosyasını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
+tokenizer.json biçimindeki bir parçalayıcı dosyasını ya da GGUF dosyasının parçalayıcısını yükler ve Parçalayıcı nesnesi döndürür. Adlı argüman almaz; klasör yolu verilirse hata verir.
 
 ```tr
 TR_var p = TR_load_tokenizer("tests/data/tokenizer.json"); TR_print(p)
@@ -2536,6 +2555,12 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 #### `TR_ple_mix_fused(...)` (`TR_fn_ple_mix_fused`, `ple_karışımı_kaynaşık`)
 
     ple_karışımı_kaynaşık()
+
+
+
+#### `TR_pretrained_gguf(...)` (`TR_fn_pretrained_gguf`, `hazır_gguf`)
+
+    hazır_gguf()
 
 
 

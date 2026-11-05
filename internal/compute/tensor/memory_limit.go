@@ -152,6 +152,15 @@ func elemCount(shape []int) (n int, overflow bool) {
 
 // sigar n elemanlık dt türü ayırmanın sınır içinde olup olmadığı (n ≥ 0).
 func sigar(n int, dt DType) bool {
+	if elems, size := dt.QuantBlock(); elems > 0 {
+		// Bloklu türde öğe başına tam bit yoktur: blok sayısı çarpı blok baytı.
+		blocks := uint64(n) / uint64(elems)
+		if n%elems != 0 {
+			blocks++
+		}
+		hi, lo := bits.Mul64(blocks, uint64(size))
+		return hi == 0 && lo <= uint64(allocLimit())
+	}
 	eb := uint64(dt.Bits())
 	if eb == 0 {
 		eb = 32
@@ -221,7 +230,15 @@ const (
 // hatalarıyla aynı biçimdedir.
 func SizeError(n int, dt DType, limit int64, place string) *messages.Error {
 	return messages.New(messages.H3083,
-		numberText(float64(n)), dt, ByteSize(float64(n)*float64(max(dt.Bits(), 1))/8), place, ByteSize(float64(limit)))
+		numberText(float64(n)), dt, ByteSize(sizeOf(float64(n), dt)), place, ByteSize(float64(limit)))
+}
+
+// sizeOf n öğenin bayt boyudur (iletinin sayısı; n taşmış olabilir, bu yüzden ondalık).
+func sizeOf(n float64, dt DType) float64 {
+	if elems, size := dt.QuantBlock(); elems > 0 {
+		return n / float64(elems) * float64(size)
+	}
+	return n * float64(max(dt.Bits(), 1)) / 8
 }
 
 // limitErrorAt sınırı aşan ayırmanın hatasını, sınır ve yer (PlaceHost, PlaceGPU) verilerek
@@ -231,7 +248,7 @@ func limitErrorAt(is opKind, shape []int, dt DType, overflow bool, limit int64, 
 	for _, d := range shape {
 		elemFn *= float64(d)
 	}
-	byteN := elemFn * float64(max(dt.Bits(), 1)) / 8
+	byteN := sizeOf(elemFn, dt)
 	hint := ""
 	if is.broadcasted() {
 		hint = "broadcast" // iletinin `hint` dalını seçer

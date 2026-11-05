@@ -64,6 +64,10 @@ func equalBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Val
 		return nil, messages.New(messages.H6979, fn, "tensor", typeName(args[0]))
 	case !bOK:
 		return nil, messages.New(messages.H6979, fn, "tensor", typeName(args[1]))
+	case a.t.DType().IsQuantized():
+		return nil, messages.New(messages.H6687, a.t.DType().Name()) // şekil farkı kapıyı atlatmaz (15.53)
+	case b.t.DType().IsQuantized():
+		return nil, messages.New(messages.H6687, b.t.DType().Name())
 	case a.t.Elem() != b.t.Elem():
 		return nil, kindMismatch(fn, a.t.DType(), b.t.DType())
 	}

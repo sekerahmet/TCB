@@ -67,6 +67,7 @@ func handOffGrad(t, out *node) {
 // eksen grubu depoda düzenli adımlıysa (ör. boyut 1 eksen ekleme/silme, düzenli
 // adımlı bir ekseni bölme). Aksi halde önce Contiguous ile kopyalanır.
 func (t *Tensor) Reshape(shape ...int) *Tensor {
+	t.refuseQuantView()
 	sh := copyInts(shape)
 	n := t.Numel()
 	unknown := -1
@@ -184,6 +185,7 @@ func (t *Tensor) Flatten() *Tensor { return t.Reshape(-1) }
 
 // Unsqueeze verilen konuma uzunluğu 1 olan bir eksen ekler (kopyasız görünüm).
 func (t *Tensor) Unsqueeze(axis int) *Tensor {
+	t.refuseQuantView()
 	nd := len(t.shape) + 1
 	if axis < 0 {
 		axis += nd
@@ -213,6 +215,9 @@ func (t *Tensor) Unsqueeze(axis int) *Tensor {
 
 // Squeeze uzunluğu 1 olan ekseni kaldırır (kopyasız görünüm).
 func (t *Tensor) Squeeze(axis int) *Tensor {
+	if t.dtyp.IsQuantized() && (axis != 0 || !t.IsContiguous()) {
+		t.refuseQuantView() // ilk eksende indeks bu yoldan geçer (15.53); gerisi görünüm kapısıdır
+	}
 	axis = normAxis(axis, len(t.shape))
 	if t.shape[axis] != 1 {
 		panic(messages.New(messages.H3078, axis, t.shape))
@@ -231,8 +236,14 @@ func (t *Tensor) Squeeze(axis int) *Tensor {
 	return reshaped(t, sh, st)
 }
 
-// Permute eksenleri verilen sıraya dizer (kopyasız).
+// Permute eksenleri verilen sıraya dizer (kopyasız). Nicemlenmiş tensörde yoktur (15.53).
 func (t *Tensor) Permute(dims ...int) *Tensor {
+	t.refuseQuantView()
+	return t.permute(dims...)
+}
+
+// permute Permute'un kapısız yoludur: nicemlenmiş tensörün devriği de buradan geçer.
+func (t *Tensor) permute(dims ...int) *Tensor {
 	sy := counterStart(t.be, OpKindView).start()
 	nd := len(t.shape)
 	if len(dims) != nd {
@@ -274,7 +285,10 @@ func (t *Tensor) Transpose(a, b int) *Tensor {
 		dims[i] = i
 	}
 	dims[a], dims[b] = dims[b], dims[a]
-	return t.Permute(dims...)
+	if t.dtyp.IsQuantized() && nd != 2 {
+		t.refuseQuantView() // devrik yalnız [N, K] ağırlıktadır: çarpımın sağ işleneni (15.53)
+	}
+	return t.permute(dims...)
 }
 
 // T 2 boyutlu tensörün devriği (son iki eksenin yer değiştirmesi).
@@ -300,6 +314,9 @@ func (t *Tensor) SliceStep(axis, start, end, step int) *Tensor {
 	n := t.shape[axis]
 	if step <= 0 {
 		panic(messages.New(messages.H3082))
+	}
+	if t.dtyp.IsQuantized() {
+		t.quantRowSlice(axis, step)
 	}
 	if start < 0 {
 		start += n
@@ -348,6 +365,9 @@ func (t *Tensor) Clone() *Tensor { return t.copyAs("clone") }
 
 // copyAs verinin bitişik kopyasını op adlı çizge düğümüyle üretir.
 func (t *Tensor) copyAs(op string) *Tensor {
+	if t.dtyp.IsQuantized() {
+		return t.quantCopy(isCopy)
+	}
 	sy := counterStart(t.be, OpKindCopy).start()
 	out := emptyOf(isCopy, t.be, t.shape, t.dtyp)
 	gateCopy(t.be, out.storage, 0, t.view())

@@ -754,13 +754,13 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.6d
 
 - **Mevcut durum:**
-  - tensörle ve maskeyle indeks yok: `t[idx]` ve `t[m]` H6707 veriyor ("tensör indeksi sayı ya da aralık olmalıdır") [ölçüldü];
+  - tensörle indeks var, okumada: `t[idx]` satırları kopyalar, türev izlenir, eksi indeks de sınır dışıdır (H6694) [test: `tests/tensor_test.tr`, `TestTakeRows`]; maskeyle indeks yok: `t[m]` H6707; atamada `t[idx] = d` H6707;
   - bileşik atama (`+=`, `-=`, `*=`, `/=`, `**=`) tensörü yerinde değiştiriyor: paylaşan adlar görüyor, hassasiyet hedefin, yayın yalnız sağda (H6958), deponun sürümü artıyor; indeksli hedef görünüm üstünde yerinde [test: TestCompoundAssignInPlace, TestCompoundAssignDTypeShapeOverlap, TestCompoundAssignGradRules; GPU'da TestGPUInPlaceCompoundAssign]. `//=`, `%=` ve bit işleçli bileşik atama tensörde hata (cinsli tensörle gelir);
   - atamada ve bileşik atamada örtüşen kaynak önce kopyalanıyor [test: TestCompoundAssignDTypeShapeOverlap];
   - türevin üç yazma kuralı atamada ve `TR_write_slice`'ta uygulanıyor, kipe bağlı (türevsiz bloktan çağrılan fonksiyon da kipte; türevsiz kipte okunan görünüm tabanını biliyor): yaprağa ve görünümüne kipin dışında H6716, ara sonuca kipte de H6955, türev izlemeyen hedefe kipin dışında türev izleyen değer H6956 [test: TestWriteRulesForGradients]; depoda kırılan yer yok [ölçüldü: `tests` ve `lib` klasörlerinin TR testleri, örnekler];
   - `.TR_select`, `.TR_unsqueeze` ve `.TR_fill` yok; `.TR_slice` 31 yerde kullanılıyor [ölçüldü: grep]; `m[:, None, :]` en az 4 yerde `m.TR_reshape([B, 1, T])` diye yazılıyor [ölçüldü: DENETİM].
 - **Yapılacaklar:**
-  - tensörle ve maskeyle indeks, `.TR_select`, `.TR_unsqueeze`, `.TR_fill` (üçü de türevin yazma kurallarıyla), tensörle indekste biriktirme, `//=` ve `%=` (cinsli tensörle); TR testi;
+  - tensörle indekse atama, maskeyle indeks, `.TR_select`, `.TR_unsqueeze`, `.TR_fill` (üçü de türevin yazma kurallarıyla), tensörle indekste biriktirme, `//=` ve `%=` (cinsli tensörle); TR testi;
   - kitaplığın `TR_Tensor(TR_no_grad(...), TR_requires_grad: TR_true)` dolambacı (lib/layers.tr:20) yaprağın tanımıyla sadeleşir;
   - indeksli hedefte yerinde olmayan bir biriktirme (index_add türü) yok; açık soru;
   - liste değeri cinsli hedefe atanınca (`t[0..2] = [1, 2]`) H6966 veriyor; 15.6d'nin önerdiği `TR_Tensor(...)` yazımını öneren ileti değil (T1 dilim 2, DENETİM istek 49 Y3) [ölçüldü: DENETİM istek 57].
@@ -1013,37 +1013,38 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.51
 
-- **Mevcut durum:** nicemleme yok. Motorda `Int8` ("ölçek ayrı tutulur") ve `Int4` ("bir baytta iki eleman") türleri ayrılmış, "henüz hiçbir arka uç hesap desteği sunmaz" [kanıtlı: internal/compute/tensor/device.go:89-94]. Yol haritasının 2. kilometre taşı: "Ağırlık 16 bit ve nicemlenmiş (8 ve 4 bit) olarak yüklenir"; bugün "nicemleme ... yok" [kanıtlı: `docs/roadmap.md`].
-- **Yapılacaklar:** önce GGUF'un türleri ("q8", "q4_k", "q6_k"; sahip H1, 2. kilometre taşı); sonra "q4", "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
+- **Mevcut durum:** "q8", "q4_k", "q6_k" var: depo GGUF'un blokları, `.TR_dtype` adı, `.TR_shape` mantıksal şekli verir [test: `tests/tensor_nicemli_test.tr`, `TestQuantStorageSizes`]. "q4", "q4z128", "fp8" yok: ad bilinmeyen hassasiyet hatası verir.
+- **Yapılacaklar:** "q4", "q4z128", "fp8"; TR testi. Başka grup boyları, `Q4_1`, NF4 ve 2–3 bit Sonraya.
 
 ### 15.52
 
-- **Mevcut durum:** uygulanmadı. Hugging Face'in `weight_scale_inv`'inin çarpılan ölçek olduğu bir hipotezdir [hipotez: DENETİM F2].
-- **Yapılacaklar:** `.TR_to_dtype` ile nicemleme ve açma (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar); yeni kimlikler `TR_quantized` (gösterim adı "nicemlenmiş") ve `TR_zero_point` ("sıfır_noktası"), onaylı; NaN ve aralık denetimleri 15.6'nın bekleyen işlemlerinde; `weight_scale_inv`'in anlamını gerçek bir FP8 modeliyle doğrulamak; TR testi. Sıra değiştiren gruplar (GPTQ `desc_act`, `g_idx`) Sonraya.
+- **Mevcut durum:** açmak var: `.TR_to_dtype` "float32", "bf16", "fp16", "float64"; llama.cpp'nin `dequantize_row_*`'uyla bit bit [test: `TestDequantMatchesLlamaCpp`, altın değerler gerçek C kodundan]. Nicemleme yok: `.TR_to_dtype("q8")` ve değerden kurma H6691. Hugging Face'in `weight_scale_inv`'inin çarpılan ölçek olduğu bir hipotezdir [hipotez: DENETİM F2].
+- **Yapılacaklar:** `.TR_to_dtype` ile nicemleme (llama.cpp ile bit bit, CPU ve GPU'da aynı kodlar); yeni kimlikler `TR_quantized` (gösterim adı "nicemlenmiş") ve `TR_zero_point` ("sıfır_noktası"), onaylı; NaN ve aralık denetimleri 15.6'nın bekleyen işlemlerinde; `weight_scale_inv`'in anlamını gerçek bir FP8 modeliyle doğrulamak; TR testi. Sıra değiştiren gruplar (GPTQ `desc_act`, `g_idx`) Sonraya.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** q4'ün sıfır bloğu −0.0 ölçek ve 8 kodla llama.cpp ile bit bit (baytlarla test); q4z128'in RTN formülü; fp8'in kısmi son bloğu (T3). **Açık karar:** GPTQ/AWQ ölçeği bf16 kalsın mı (dosya biçimi).
 - **Yapılacaklar (A, Ö1; sahip H1, nicemleme uygulanırken; DENETİM istek 118 B1):** fp16 ölçeği sonsuza giden blok nicemleme hatası: yazılmazsa öğeler sonlu olsa da açılan değer NaN olur ("q8" `amax` 8 321 040'tan, "q4" 524 160'tan başlar) [ölçüldü: DENETİM, llama.cpp'nin kodu]. Bugün kimse etkilenmiyor, 15.52 uygulanmadı. `1 / d` sonsuzsa sıfır blok gibi kodlama da aynı dilimde (D, Ö3).
 
 ### 15.53
 
-- **Mevcut durum:** uygulanmadı.
-- **Yapılacaklar:** CPU'da (AVX2, ARM NEON) ve GPU'da blok blok açan çarpım ve gömme çekirdekleri; geri yönün ikinci çekirdeği; 2. kilometre taşının hız ölçütü; TR testi ve Go testi (CPU ve GPU, açılmış hesapla karşılaştırma). Nicemleme farkında eğitim (QAT) Sonraya.
+- **Mevcut durum:** `x @ w.TR_transpose()` ve `TR_embedding_lookup` CPU'da var: tek satırda AVX2 ve F16C çekirdeği blokları yazmaçta açar, "aç + `dotF32`" ile bit bit aynı [test: `TestQuantDotMatchesOpenedDot`]; çok satırda 256 satırlık parçalar açılır, bütün ağırlık açılmaz [test: `TestQuantMatMulMatchesOpened`]. AVX2 ya da F16C yoksa ve ARM'de Go eşi. Türev izleyen girdi H6696: geri yön `g @ w` yok; `x @ w` H6695; `TR_linear_cross_entropy` H6687. İlk eksende indeks, dilim, tensörle indeks, `.TR_transpose()`, yazdırma (yalnız gösterilen blokların açılmasıyla) ve `.TR_to_device("cpu")` var; başka her işlem H6687, devrik görünümde H6688 [test: `TestQuantRefusesEverythingElse`, `tests/tensor_nicemli_test.tr`]. `Cast` açmaz: `TR_mixed_precision` bloğu ağırlığı sessizce açamaz. GPU'ya taşıma ve GPU'da kurma H6689. `TR_save_tensors` H6687 (15.55).
+- **Yapılacaklar (C, Ö2; sahip H1; DENETİM istek 140 Ş3):** prompt işlemede süreç tepesi dosyanın 2,91 katı: `Qwen3-4B-Q4_K_M`'de `TR_forward`, 128 konum, 6 930 MiB, dosya 2 381 MiB; aynısı `GOGC=25` ile 3 179 MiB, üretimde 1,31 kat [ölçüldü: DENETİM, `ru_maxrss`]. Kopya değil: ağırlık Go öbeğinde, çöp sınırı onunla iki katına çıkıyor, çok satırlı çarpımın tamponları çöp üretiyor [hipotez: profil çıkmadı]. Çare `quantGemm`'in tamponu havuzdan ya da ağırlık yüklenince `GOMEMLIMIT`, sonra aynı ölçü. 8 GB'lık makinede 4B prompt işleme sınırda [hesap].
+- **Yapılacaklar:** ARM NEON ve GPU çekirdekleri; geri yönün ikinci çekirdeği; `TR_linear_cross_entropy`; 2. kilometre taşının hız ölçütü. Nicemleme farkında eğitim (QAT) Sonraya.
 - **Gemini 15/2 (2026-10-29), uygulanacak:** devrik görünümün izinli kullanımları; fp8'in ilk eksen kuralı (T3).
 
 ### 15.54
 
-- **Mevcut durum:** uygulanmadı.
-- **Yapılacaklar:** yerinde yazma hataları; yüklemenin (20.6, 20.11, 20.14) aynı belleğe bütün olarak yazması; TR testi.
+- **Mevcut durum:** atama ve bileşik atama, `TR_write_slice` H6957; `TR_Tensor(q)` aynı hassasiyette yeni depo [test: `tests/tensor_nicemli_test.tr`]. `.TR_fill` dilde yok (15.6d).
+- **Yapılacaklar:** yüklemenin (20.6, 20.11, 20.14) aynı belleğe bütün olarak yazması; TR testi.
 
 ### 15.55
 
 - **Mevcut durum (yükleme, T1, 2026-11-04):** `TR_pretrained_model` rastgele sayı çekmiyor: `TR_GPT`'nin `TR_init_std: 0.0`'ı sıfır ağırlık kurar, varsayılan yolda aynı tohum aynı modeli verir [test: `lib/layers_test.tr`, `lib/pretrained_test.tr`]. 16 bitlik safetensors tensöre dosyanın bitleriyle geçiyor [test: `TestSafetensorsKeepSixteenBitValues`]; `TR_zeros` kendi türünde kuruluyor; aynı 16 bitlik türde adımlı kopya bitleri taşıyor, sinyal NaN'ı depoda ve dosyada korunuyor (15.47a) [test: `TestSixteenBitStridedCopyKeepsBits`]. `TR_Tensor(16 bitlik tensör)` de bitleriyle kopyalıyor (C, Ö2): float32'ye açılmıyor, sinyal NaN'ı depoda bozulmuyor [test: `TestTensorFromSixteenBitTensorKeepsBits`]. Qwen3 bf16 yükleme 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB [ölçüldü: `docs/measurements.md`]. Ağırlığı kopyalamadan bağlamak yapılmadı: `TR_load_parameters` kopyalar, bağlamak ya yeni ad ya davranış değişikliği ister.
 - **Mevcut durum:** uygulanmadı; safetensors'ta `F8_E4M3` okunmuyor [kanıtlı: bugünkü 15.47'nin metni].
-- **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları; `F8_E4M3` okuma; `.safetensors`'a nicemlenmiş tensör yazma hatası (H6950 bugün yalnız TR biçimini öneriyor; `.TR_to_dtype("float32")` önerisi 15.52 uygulanınca, öneri tablosunda koşulabilsin diye); kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi. GGUF okuma Sonraya (yol haritası, "Paylaşmak").
-- **Yapılacaklar (A, Ö1; sahip H1, GGUF dilimi; DENETİM istek 119 Ş-A, Ş-B):** GGUF okuyucu; `tr/pretrained`'in GGUF yolu birleşik katmansız, tensör başına türle; `llama`'da `attn_q`, `attn_k` satır sırası geri alınır, yoksa sessizce yanlış metin [hipotez: uygulama yok]. Test: küçük bir Llama modelinde bf16 GGUF ile safetensors önce tensör tensör aynı bit, sonra logit yakın. Yeni kimlikler `TR_load_metadata` (gösterim adı `üstveri_yükle`), `TR_pretrained_gguf` (`hazır_gguf`). `TR_merged_kv`'nin kazancı bu yolda yok. Llama 3.1 ve 3.2 GGUF'unda RoPE ölçeği ayrı bir tensörde (15.55) [ölçüldü: DENETİM istek 123 Ş1, başlık]: uygulanana kadar H6943; Qwen3 ve SmolLM2 ilk adımda.
-- **Yapılacaklar (A, Ö1; sahip H1, GGUF dilimi; DENETİM istek 124 Ş1, Ş2):** RoPE ölçekli dosyanın anahtarları da H6943 (15.55): YaRN'lı `qwen3` dosyası tensörsüz geliyor, ölçeksiz çalışırsa yanlış metin üretir [hipotez: uygulama yok]. `qwen2` etiketi NFC getirir (16.1). Test: elle üretilmiş iki dosya; birleşik karakterli metin, rakam dizisi ve `<think>` ile `tokenizer.json` aynı kimlikler.
+- **Yapılacaklar:** TR biçiminde nicemlenmiş tür kodları: bugün iki biçime de yazmak H6687, ileti açmayı söyler; kod gelince `.safetensors` iletisi TR biçimini de önerir; GGUF `Q4_0`'ı ("q4") H6674; `F8_E4M3` okuma; kitaplığın (`tr/pretrained`) GPTQ, AWQ ve FP8 parçalarını birleştirmesi; TR testi.
+- **Mevcut durum (GGUF):** `TR_pretrained_gguf` tek dosyadan `qwen3` ve `llama` modelini kurar: birleşik katmansız, tensör başına türle; `llama`'da `attn_q`, `attn_k` satır sırası tensörle indeksle geri alınır; `TR_pretrained_model`'in kapıları H6940, H6943 (dört ölçek koşulu ve bakış boyutundan farklı `rope.dimension_count`, bulunan anahtar ya da tensörle), H6944, H6945 ve eksik tensör H6697 [test: `TestGGUFModelMatchesSafetensors`, `TestGGUFModelGates`]. Model küçük boyutlarla kurulur, alanlar dosyanın tensörleriyle değişir: tam boyutlu float32 sıfırlar ayrılmaz [kanıtlı: `lib/pretrained.tr`].
+- **Mevcut durum (A, Ö1 kapandı; DENETİM istek 119 Ş-A, Ş-B, 140):** satır sırasının dış kanıtı var: `convert_hf_to_gguf.py`'nin bf16 dosyasıyla SmolLM2-135M'de 270 tensör tutuyor, logit farkı 0 [ölçüldü: H2]; DENETİM aynı işi 272 tensörde yaptı [ölçüldü: DENETİM istek 140]. Llama 3.1 ve 3.2 GGUF'unda RoPE ölçeği ayrı bir tensörde (15.55) [ölçüldü: DENETİM istek 123 Ş1, başlık]: uygulanana kadar H6943.
 - **Yapılacaklar (E, Ö3; sahip H1; DENETİM istek 124 N1):** `llama-bpe` etiketi bu dilimde ölçülmüyor: kapsamdaki modellerin hiçbiri taşımıyor; Llama 3 dilimiyle ölçülür.
 - **Yapılacaklar (D, Ö3; sahip H1, hız kuyruğu; H1 CPU kıyası):** prompt işlemede TR transformers'ın 0,50–0,54 katı, 16 bit float32'den hızlı değil (0,94 ve 0,96) [ölçüldü: H1, AMD EPYC]. Çok satırlı çarpımda ağırlık hâlâ float32 tampona açılıyor [kanıtlı: `Gemm`]; sebep bu mu [hipotez: profil çıkmadı].
-- **Yapılacaklar (C, Ö2; sahip H1; DENETİM istek 129 N2):** GGUF modeli önce float32 sıfırlarla kurulursa Windows'ta bellek taahhüdü tutulur: Qwen3-4B'de 16 GB [hesap], Colab'ın tepe ölçüsü bunu göstermez.
+- **Yapılacaklar (D, Ö2; sahip H1; H2 devri):** GGUF üretimi llama.cpp'nin 0,28–0,38 katı, eşik 0,5 [ölçüldü: H2, Xeon, `measurements.md`]. Qwen3-0.6B `Q8_0`'da parça başına 63,5 ms'nin 33,9'u çarpım, 29,6'sı çarpım dışı; llama.cpp'nin bütün parçası 21,2 ms [ölçüldü: H2, aynı koşu]. 0,5 için çarpım dışı 8,5 ms'ye inmeli [hesap]. Çekirdekler boş bekliyor: kullanım %309/800 [ölçüldü: H2]. Sıra: dikkat ve kaynaştırılmış işlerin iş dağıtımı, sonra `sdotq8` bellek mi hesap mı sınırlı, etkinleştirme nicemleme (15.53) ancak bu ölçüden sonra.
 
 ## 16. Veri ve parçalayıcı
 

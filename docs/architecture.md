@@ -176,6 +176,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | :-- | :-- |
 | `tensor` | n boyutlu tensör, görünümler, otomatik türev, `Backend` arayüzü, CPU arka ucu (AVX2/FMA kernelleri, Go başvuruları), iyileştiriciler, bellek sınırı, tensör sayaçları |
 | `gpu` | NVIDIA arka ucu: sürücü bağlama, Go içinden üretilen PTX kernelleri, bellek havuzu, PTX benzetimi |
+| `gguf` | GGUF sürüm 3 başlığı: üstveri ve tensör kayıtları; `ml` ve `tokenizer` ortak okur |
 | `dataload` | `.npy` parçaları, `meta.json`, yerel önbellek, örnekleyici, sıralı okuyucu, önden yükleyici |
 | `tokenize` | `tokenizer.json` parçalayıcıları: BPE, WordPiece, Unigram, normalleştirme, ön bölme, kendi düzenli ifade motoru |
 

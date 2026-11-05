@@ -28,6 +28,8 @@ var uncoveredNames = map[string]string{
 	// TR_print(TR_Float("inf"))); kodlu metinde geçemezler. Kodlar iç (sınıflı) yazımladır.
 	"TR_val_inf": "değer adı (inf), kaynakta sözcük değil",
 	"TR_val_nan": "değer adı (nan), kaynakta sözcük değil",
+	// GGUF dosyası ister: depoya GGUF girmez, testler dosyalarını Go ile kurar (15.55).
+	"TR_fn_load_metadata": "GGUF dosyası ister, depoda yok",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

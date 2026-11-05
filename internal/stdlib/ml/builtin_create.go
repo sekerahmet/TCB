@@ -133,7 +133,7 @@ func shapedConstructor(kd codes.Code, create func(m *interp.VM, sh []int, named 
 			return nil, err
 		}
 		var t *tensor.Tensor
-		if kd == codes.FnZeros && dt.IsFloat() {
+		if kd == codes.FnZeros && (dt.IsFloat() || dt.IsQuantized()) {
 			// Doğrudan kendi türünde: dönüşüm yok, bellek ilk yazılana dek dokunulmamış kalır.
 			if t, err = safe(func() *tensor.Tensor { return tensor.ZerosOf(dt, sh...) }); err != nil {
 				return nil, err
