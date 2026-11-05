@@ -94,7 +94,7 @@ func HannWindow(n int, periodic bool, tr Trig) *Tensor {
 		c, _ := unitRoot(tr, k, d)
 		out[k] = float32(0.5 - 0.5*c)
 	}
-	return NewOn(CPU, out, n)
+	return New(out, n)
 }
 
 // StftOptions TR_stft'nin ayarlarıdır (23.3).

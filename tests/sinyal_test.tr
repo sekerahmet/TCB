@@ -157,3 +157,49 @@ TR_test "sinyal 23.1, 23.3: türev isteyen girdi açık hata verir; türevsiz bl
     TR_var g = TR_no_grad { TR_rfft(x) }
     TR_assert_equal([3], g.0.TR_shape)
 }
+
+TR_func süzgeçler(m: TR_Int = 40) -> TR_Tensor {
+    TR_return TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: m, TR_norm: "slaney", TR_mel_scale: "slaney")
+}
+
+TR_test "sinyal 23.4: şekil, üçgen süzgeçler ve slaney'in alanı" {
+    TR_var f = süzgeçler()
+    TR_assert_equal([40, 201], f.TR_shape)
+    TR_assert_equal("float32", f.TR_dtype)
+    TR_assert(TR_min(f).TR_item() == 0.0)
+    TR_var yalın = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 40, TR_norm: TR_none, TR_mel_scale: "slaney")
+    TR_assert(TR_max(yalın).TR_item() <= 1.0)
+    TR_assert_equal(TR_false, yalın.TR_requires_grad)
+    TR_var htk = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 40, TR_norm: "slaney", TR_mel_scale: "htk")
+    TR_assert_equal(TR_false, TR_equal(f, htk))
+}
+
+TR_test "sinyal 23.4: frekans sınırları" {
+    TR_var ana = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "htk", TR_f_min: 1000.0, TR_f_max: 4000)
+    TR_assert_equal(0.0, TR_sum(ana.TR_slice(1, 0, 25)).TR_item())
+    TR_assert_equal(0.0, TR_sum(ana.TR_slice(1, 101, 201)).TR_item())
+    TR_assert(TR_sum(ana.TR_slice(1, 25, 101)).TR_item() > 0.0)
+}
+
+TR_test "sinyal 23.4: yanlış ayarlar adıyla hata verir" {
+    TR_assert_equal("H7052", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_mel_scale: "slaney") })
+    TR_assert_equal("H7052", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none) })
+    TR_assert_equal("H7052", TR_error_code { TR_mel_filterbank(TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney") })
+    TR_assert_equal("H7077", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: "alan", TR_mel_scale: "slaney") })
+    TR_assert_equal("H7077", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "bark") })
+    TR_assert_equal("H5530", TR_error_code { TR_mel_filterbank(TR_sample_rate: 0, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney") })
+    TR_assert_equal("H5530", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 0, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney") })
+    TR_assert_equal("H5530", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 0, TR_norm: TR_none, TR_mel_scale: "slaney") })
+    TR_assert_equal("H7079", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney", TR_f_min: -1.0) })
+    TR_assert_equal("H7079", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney", TR_f_max: 9000.0) })
+    TR_assert_equal("H7079", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney", TR_f_min: 500.0, TR_f_max: 500.0) })
+    TR_assert_equal("H7079", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: TR_none, TR_mel_scale: "slaney", TR_f_min: TR_Float("nan")) })
+}
+
+TR_test "sinyal 23.4: boş süzgeç hatadır; ileti boyutu önerir, öneri çalışır" {
+    TR_assert_equal("H7079", TR_error_code { TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 16, TR_n_mels: 128, TR_norm: "slaney", TR_mel_scale: "slaney") })
+    TR_var büyük = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 2048, TR_n_mels: 128, TR_norm: "slaney", TR_mel_scale: "slaney")
+    TR_assert_equal([128, 1025], büyük.TR_shape)
+    TR_var küçük = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 16, TR_n_mels: 4, TR_norm: "slaney", TR_mel_scale: "slaney")
+    TR_assert_equal([4, 9], küçük.TR_shape)
+}

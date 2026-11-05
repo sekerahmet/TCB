@@ -17,6 +17,9 @@ func ElemSize(dt DType) int {
 	return elemBytes(dt)
 }
 
+// CheckSize shape'in bellek sınırını aşmadığını denetler; aşarsa sınırın iletisi gelir.
+func CheckSize(shape []int, dt DType) { allocSizeOn(BackendFor(DefaultDevice()), isCreate, shape, dt) }
+
 // FromBytesOn raw'ı dt öğeleri olarak okuyup tek boyutlu tensör kurar. raw'ın uzunluğu öğe boyunun
 // katıdır; big büyük uçlu okumadır.
 func FromBytesOn(dev Device, dt DType, raw []byte, big bool) *Tensor {

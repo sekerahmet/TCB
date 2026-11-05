@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 611 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 143 fonksiyon, 11 sabit, 72 metot, 104 özellik, 147 adlı argüman.
+Toplam 617 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 144 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
 
 ## İçindekiler
 
@@ -2495,6 +2495,25 @@ tr: yazdır(ortanca([3, 1, 4, 2]))
 
 İlişkili: `TR_mean(...)`
 
+#### `TR_mel_filterbank(...)` (`TR_fn_mel_filterbank`, `mel_süzgeçleri`)
+
+    mel_süzgeçleri(örnekleme_hızı: Tam = yok, fft_boyu: Tam = yok, mel_sayısı: Tam = yok, norm: Metin | YokTipi = yok, mel_ölçeği: Metin = yok, en_düşük_frekans: Tam | Ondalık = 0, en_yüksek_frekans: Tam | Ondalık = yok) → Tensör
+
+[mel_sayısı, fft_boyu // 2 + 1] şekilli üçgen süzgeçler verir; süzgeç @ güç güç izgesini Mel izgesine çevirir. Formül librosa'nın filters.mel'idir; hesap float64'tedir. Boş süzgeç hatadır.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 80, TR_norm: "slaney", TR_mel_scale: "slaney").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 80, norm: "slaney", mel_scale: "slaney").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 80, norm: "slaney", mel_ölçeği: "slaney").şekil)
+```
+
+İlişkili: `TR_stft(...)`
+
 #### `TR_min(...)` (`TR_fn_min`, `min`)
 
     min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
@@ -3950,6 +3969,40 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 
 Kullananlar: `TR_Checkpoint` · İlişkili: `TR_keep:`
 
+#### `TR_f_max:` (`TR_arg_f_max`, `en_yüksek_frekans`)
+
+Süzgeçlerin en yüksek frekansıdır; varsayılan örnekleme hızının yarısıdır.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 4, TR_norm: TR_none, TR_mel_scale: "htk", TR_f_max: 4000.0).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 4, norm: none, mel_scale: "htk", f_max: 4000.0).shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 4, norm: yok, mel_ölçeği: "htk", en_yüksek_frekans: 4000.0).şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_f_min:`, `TR_mel_filterbank(...)`
+
+#### `TR_f_min:` (`TR_arg_f_min`, `en_düşük_frekans`)
+
+Süzgeçlerin en düşük frekansıdır; varsayılan 0.0'dır.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 4, TR_norm: TR_none, TR_mel_scale: "htk", TR_f_min: 100.0).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 4, norm: none, mel_scale: "htk", f_min: 100.0).shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 4, norm: yok, mel_ölçeği: "htk", en_düşük_frekans: 100.0).şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_f_max:`, `TR_mel_filterbank(...)`
+
 #### `TR_fallback:` (`TR_arg_fallback`, `yedek`)
 
 
@@ -4200,6 +4253,23 @@ Kullananlar: `TR_clamp(...)`, `TR_clip_grad(...)` · İlişkili: `TR_min:`
 
 
 
+#### `TR_mel_scale:` (`TR_arg_mel_scale`, `mel_ölçeği`)
+
+Mel ölçeğidir: "slaney" ya da "htk"; zorunludur.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 4, TR_norm: "slaney", TR_mel_scale: "htk").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 4, norm: "slaney", mel_scale: "htk").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 4, norm: "slaney", mel_ölçeği: "htk").şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
+
 #### `TR_merged:` (`TR_arg_merged`, `birleşik`)
 
 
@@ -4272,6 +4342,40 @@ Kullananlar: `TR_SGD(...)`
 
 Kullananlar: `TR_rfft(...)`
 
+#### `TR_n_fft:` (`TR_arg_n_fft`, `fft_boyu`)
+
+Süzgeçlerin bağlandığı dönüşümün boyudur; zorunludur.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 512, TR_n_mels: 4, TR_norm: "slaney", TR_mel_scale: "slaney").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 512, n_mels: 4, norm: "slaney", mel_scale: "slaney").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 512, mel_sayısı: 4, norm: "slaney", mel_ölçeği: "slaney").şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
+
+#### `TR_n_mels:` (`TR_arg_n_mels`, `mel_sayısı`)
+
+Süzgeç sayısıdır; zorunludur.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: "slaney", TR_mel_scale: "slaney").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 8, norm: "slaney", mel_scale: "slaney").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 8, norm: "slaney", mel_ölçeği: "slaney").şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
+
 #### `TR_name:` (`TR_arg_name`, `ad`)
 
 
@@ -4304,6 +4408,8 @@ Kullananlar: `TR_parameters(...)`
 #### `TR_norm:` (`TR_arg_norm`, `norm`)
 
 
+
+Kullananlar: `TR_mel_filterbank(...)`
 
 #### `TR_normuon:` (`TR_arg_normuon`, `normuon`)
 
@@ -4532,6 +4638,8 @@ Kullananlar: `TR_all_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
 #### `TR_sample_rate:` (`TR_arg_sample_rate`, `örnekleme_hızı`)
 
 
+
+Kullananlar: `TR_mel_filterbank(...)`
 
 #### `TR_samples:` (`TR_arg_samples`, `örnekler`)
 
