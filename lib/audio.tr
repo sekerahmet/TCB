@@ -200,6 +200,14 @@ TR_func _tam_örnek(örnekler: TR_Tensor[TR_Float]) -> TR_Tensor[TR_Int] {
     TR_return TR_Tensor[TR_Int](TR_where(tek_yarım, r - 1.0, r), TR_dtype: "int16")
 }
 
+TR_func _yaz16(n: TR_Int) -> TR_Bytes {
+    TR_return TR_int_to_bytes(n, TR_dtype: "uint16", TR_byte_order: "little")
+}
+
+TR_func _yaz32(n: TR_Int) -> TR_Bytes {
+    TR_return TR_int_to_bytes(n, TR_dtype: "uint32", TR_byte_order: "little")
+}
+
 # wav_yaz sesi 16 bit tam sayı PCM olarak yazar (22.4).
 TR_func TR_write_wav(yol: TR_String, ses: TR_Sound) {
     _ses_şekli(ses.TR_samples)
@@ -209,9 +217,7 @@ TR_func TR_write_wav(yol: TR_String, ses: TR_Sound) {
     TR_if kanal == 0 TR_or boy == 0 { TR_throw TR_Message("H7073", ses.TR_samples.TR_shape) }
     _yazılabilir_denetle(ses.TR_samples)
     TR_var veri = _tam_örnek(ses.TR_samples).TR_transpose().TR_to_bytes(TR_byte_order: "little")
-    TR_func u16(n: TR_Int) -> TR_Bytes { TR_return TR_int_to_bytes(n, TR_dtype: "uint16", TR_byte_order: "little") }
-    TR_func u32(n: TR_Int) -> TR_Bytes { TR_return TR_int_to_bytes(n, TR_dtype: "uint32", TR_byte_order: "little") }
-    TR_var başlık = TR_Bytes("RIFF") + u32(36 + veri.TR_length) + TR_Bytes("WAVEfmt ") + u32(16) + u16(_PCM) + u16(kanal)
-    başlık = başlık + u32(ses.TR_sample_rate) + u32(ses.TR_sample_rate * kanal * 2) + u16(kanal * 2) + u16(16)
-    TR_write_file(yol, başlık + TR_Bytes("data") + u32(veri.TR_length) + veri)
+    TR_var başlık = TR_Bytes("RIFF") + _yaz32(36 + veri.TR_length) + TR_Bytes("WAVEfmt ") + _yaz32(16) + _yaz16(_PCM) + _yaz16(kanal)
+    başlık = başlık + _yaz32(ses.TR_sample_rate) + _yaz32(ses.TR_sample_rate * kanal * 2) + _yaz16(kanal * 2) + _yaz16(16)
+    TR_write_file(yol, başlık + TR_Bytes("data") + _yaz32(veri.TR_length) + veri)
 }

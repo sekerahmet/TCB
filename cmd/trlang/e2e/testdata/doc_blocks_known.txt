@@ -1,17 +1,9 @@
 # Dil tanımının henüz uygulanmamış kurallarını gösteren kod blokları (TestDocTRCodeBlocks): belge:satır.
 # Kuralı uygulayan katman kendi satırlarını siler; liste yalnızca küçülür (-update).
-# 21 ve 22 (2026-11-02): bölümler yazıldı, kimlikleri henüz yok; uygulama Jarvis'in sırasıyla.
+docs/spec/16_veri_parcalayici.md:38
 docs/spec/21_dis_programlar.md:18
 docs/spec/21_dis_programlar.md:34
-docs/spec/22_bayt_ve_sayi.md:17
-docs/spec/22_bayt_ve_sayi.md:37
-docs/spec/22_bayt_ve_sayi.md:59
-# 23 (2026-11-02): bölüm yazıldı, kimlikleri henüz yok; uygulama Jarvis'in sırasıyla.
-docs/spec/23_sinyal_ve_spektrum.md:19
-docs/spec/23_sinyal_ve_spektrum.md:47
 docs/spec/23_sinyal_ve_spektrum.md:95
-# 24 ve 16.3a (2026-11-02): yazıldı, kimlikleri henüz yok.
-docs/spec/16_veri_parcalayici.md:38
 docs/spec/24_sohbet_bicimi.md:18
 docs/spec/24_sohbet_bicimi.md:39
 docs/spec/24_sohbet_bicimi.md:57
