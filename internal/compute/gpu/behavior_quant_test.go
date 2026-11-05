@@ -424,11 +424,12 @@ func TestQuantRefusesEverythingElseOnTheCard(t *testing.T) {
 	rng := rand.New(rand.NewSource(6))
 	raw := quantBlockBytes(rng, tensor.Q8, 4)
 	var q func() *tensor.Tensor
-	var f *tensor.Tensor
+	var f, oneRow *tensor.Tensor
 	onCard(t, func() {
 		card := tensor.FromQuantized(tensor.Q8, bytes.Clone(raw), 2, 64)
 		q = func() *tensor.Tensor { return card }
 		f = tensor.New(make([]float32, 128), 2, 64)
+		oneRow = tensor.FromQuantized(tensor.Q6K, quantBlockBytes(rng, tensor.Q6K, 1), 1, 256)
 	})
 	left := f.Reshape(64, 2)
 	for _, c := range []struct {
@@ -450,6 +451,7 @@ func TestQuantRefusesEverythingElseOnTheCard(t *testing.T) {
 		{"eksen sırası", messages.H6687, func() { q().Permute(1, 0) }},
 		{"son eksende dilim", messages.H6687, func() { q().Slice(1, 0, 32) }},
 		{"adımlı dilim", messages.H6687, func() { q().SliceStep(0, 0, 2, 2) }},
+		{"tek eksende dilim", messages.H6687, func() { q().Slice(0, 1, 2).Squeeze(0).Slice(0, 0, 32) }},
 		{"float32'ye kopya", messages.H6687, func() { f.CopyFrom(q()) }},
 		{"q'ya kopya", messages.H6687, func() { q().CopyFrom(f) }},
 		{"sessiz açma", messages.H6687, func() { q().Cast(tensor.Float32) }},
@@ -460,6 +462,10 @@ func TestQuantRefusesEverythingElseOnTheCard(t *testing.T) {
 		{"devrik şekil", messages.H6688, func() { q().T().Reshape(128) }},
 		{"devrik taşınmaz", messages.H6688, func() { q().T().To(tensor.CPU) }},
 		{"tek satırın devriği açılmaz", messages.H6688, func() { q().Slice(0, 0, 1).T().Open(tensor.Float32) }},
+		{"tek satırın devriğinde dilim", messages.H6688, func() { q().Slice(0, 0, 1).T().Slice(0, 3, 5) }},
+		{"tek satırın devriğinde gömme", messages.H6688, func() { tensor.Embedding(q().Slice(0, 0, 1).T(), []int{3}) }},
+		{"tek satırın devriğinden satır", messages.H6688, func() { tensor.TakeRows(q().Slice(0, 0, 1).T(), []int{3}, []int{1}) }},
+		{"tek satırlı tensörün devriği", messages.H6688, func() { oneRow.T().Open(tensor.Float32) }},
 		{"türev", messages.H6690, func() { q().SetRequiresGrad(true) }},
 	} {
 		t.Run(c.name, func(t *testing.T) {
