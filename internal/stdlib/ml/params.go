@@ -220,6 +220,9 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 		}
 		return true
 	}); err != nil {
+		if e, coded := panicReason(err).(*messages.Error); coded {
+			return nil, e
+		}
 		return nil, messages.New(messages.H2000, fn, panicReason(err))
 	}
 	return interp.NewInt(int64(len(names))), nil

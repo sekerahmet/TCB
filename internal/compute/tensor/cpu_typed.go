@@ -90,7 +90,7 @@ func copyTyped(dst, src View) {
 		case src.DType().IsFloat():
 			panic(typedComputeError(dst.DType()))
 		}
-		panic(messages.Internal("typed copy between " + dst.DType().String() + " and " + src.DType().String()))
+		panic(typedCopyError(dst.DType(), src.DType()))
 	}
 	d, k := cpuStore(dst.S), cpuStore(src.S)
 	eb := elemBytes(d.dtyp)
@@ -104,6 +104,26 @@ func copyTyped(dst, src View) {
 			copy(d.raw[(h+i*hs)*eb:(h+i*hs+1)*eb], k.raw[(q+i*qs)*eb:(q+i*qs+1)*eb])
 		}
 	})
+}
+
+// typedCopyError iki cinsli türün arasındaki yazmanın hatasıdır: yazma dönüştürmez (15.3); ileti
+// kaynağın dönüşümünü önerir. İkisi de ondalık hesap türü değildir (copyTyped).
+func typedCopyError(dst, src DType) *messages.Error {
+	number := func(dt DType) string {
+		if dt.Elem() == ElemInt {
+			return "int"
+		}
+		return "float"
+	}
+	switch {
+	case dst.Elem() == ElemBool:
+		return messages.New(messages.H3112, dst.Name(), src.Name(), number(src))
+	case src.Elem() == ElemBool:
+		return messages.New(messages.H3113, dst.Name(), src.Name(), number(dst))
+	case dst.Elem() == ElemInt:
+		return messages.New(messages.H3114, dst.Name(), src.Name())
+	}
+	return messages.New(messages.H3115, dst.Name(), src.Name())
 }
 
 // FillRaw depolamanın bütün öğelerini elem'in (bir öğenin ham baytları) değeriyle doldurur.

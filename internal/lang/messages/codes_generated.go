@@ -638,6 +638,10 @@ const (
 	H3109 Code = 3109 // kaynaştırılan fonksiyonda türev isteyen {shape} şekilli girdi {out} şekline yayınlanıyor; gradyanı indirgeme gerektirdiğinden kaynaştırılamaz
 	H3110 Code = 3110 // kaynaştırılan fonksiyonda {from} → {to} yeniden şekillendirmesi kaynaştırılamaz; yalnızca boyu 1 eksen eklenip çıkarılabilir
 	H3111 Code = 3111 // {fn}: {src} şeklindeki kaynak {dst} şeklindeki hedefin {axis}. eksenindeki dilime yazılamaz (öbür eksenler aynı olmalı, eksende kaynak hedeften uzun olmamalı)
+	H3112 Code = 3112 // {dst} tensöre {src} tensörden yazılamaz: yazma cinsi değiştirmez (15.3); `x` kaynağından maske kurun: `x != {kind, select, int {0} other {0.0}}`
+	H3113 Code = 3113 // {dst} tensöre {src} tensörden yazılamaz: yazma cinsi değiştirmez (15.3); `x` maskesinden sayı kurun: `{#where}(x, {kind, select, int {1, 0} other {1.0, 0.0}}).{#to_dtype}("{dst}")`
+	H3114 Code = 3114 // {dst} tensöre {src} tensörden yazılamaz: yazma dönüştürmez (15.3); `x` kaynağını dönüştürün: `{#Tensor}[{#Int}](x, {#dtype}: "{dst}")`
+	H3115 Code = 3115 // {dst} tensöre {src} tensörden yazılamaz: yazma dönüştürmez (15.3); `x` kaynağını dönüştürün: `{#Tensor}[{#Float}](x, {#dtype}: "{dst}")`
 	H4000 Code = 4000 // LoadLibraryExW bulunamadı: {error}
 	H4001 Code = 4001 // NVIDIA sürücüsü ({library}) yüklenemedi: {error}
 	H4002 Code = 4002 // bu TR derlemesinde GPU desteği yok (işletim sistemi desteklenmiyor ya da ikili GPU'suz derlendi)
