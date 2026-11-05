@@ -37,7 +37,7 @@ Bu belge yalnız motorun en son hâliyle yapılmış ölçümleri tutar; son gö
 
 Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 bf16 tepe bellek 12,0 → 9,6 GB. DENETİM ayrı makinede sentetik modelle 2,74 → 13,83, tepe 17,95 → 9,89 GB [ölçüldü: istek 121, Windows]. llama.cpp ve transformers kıyası aşağıda.
 
-**CPU kıyası** (2026-11-05 07:54–08:47 TSS, main `8a3925c9`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı; torch 2.15.0+cpu, transformers 5.22.1, llama.cpp `8bed7cfb`; dört tur, kopya kollu, kol başına 16 örnek; ortanca, parantezde birinci ve üçüncü çeyrek) [ölçüldü: Colab, betik `h1k_kosu2.sh`, kayıt `olcumler/h1k2`]:
+**CPU kıyası** (2026-11-05 07:54–08:47 TSS, main `8a3925c9`, Colab CPU High-RAM: AMD EPYC 7B12, 8 iş parçacığı; torch 2.15.0+cpu, transformers 5.22.1 float32, llama.cpp `8bed7cfb`; dört tur, kopya kollu, kol başına 16 örnek; ortanca, parantezde birinci ve üçüncü çeyrek) [ölçüldü: Colab, betik `h1k_kosu2.sh`, kayıt `olcumler/h1k2`]:
 
 Üretim, parça/sn:
 
@@ -186,13 +186,15 @@ Birim parça/sn. Aynı koşuda main'e göre Qwen3 bf16 +%7,2, float32 +%6,3; Smo
 
 ## Eski (yeniden ölçülecek)
 
-- 2026-11-03'ün CPU kıyas tablolarının AMD EPYC satırları: 2026-11-05'te yeniden ölçüldü ("CPU kıyası"); Xeon ve 48 iş parçacıklı kıyas 16 bitlik çarpımdan sonra alınmadı.
+- 2026-11-03'ün CPU kıyas tabloları (Xeon, 8 iş parçacığı; EPYC 9B45, 48 iş parçacığı): 16 bitlik çarpımdan önce; bu makinelerde yeniden ölçülmedi. Yeni kıyas başka makinede ("CPU kıyası", AMD EPYC 7B12), oranlar karşılaştırılmaz: Xeon'da TR transformers'tan yavaştı.
 
 2026-10-22'nin üretim hızları, 2026-11-01/02'nin eğitim hızı, 2026-11-01'in dil kıyası ile karakter modeli ve L4 kart sınamasının 2026-11-02/03'teki beş adımı (938, 923,5, 962, 880,5, 888 ms; Kol A eşitliğinden önce) 2026-11-03'te yeniden ölçüldü (yukarıda); eski sayılar arşivde (`docs/archive/roadmap-2026-10-27.md` Evre 5) ve Colab defterinde kalır.
 
 Motora bağlı olmayan ölçümler (ör. Jarvis tabanı: llama.cpp ve Whisper'ın kendi süreleri, 2026-11-01) eskimez; TR'yi ölçmedikleri için bu belgede yer almazlar.
 
 ## Sıradaki ölçümler
+
+- Xeon'da CPU kıyası: aynı betik (`h1k_kosu2.sh`); TR ile transformers'ın yönü işlemciye bağlı, sebep ölçülmedi. transformers bf16 ölçülmedi.
 
 1. GPU üretiminin 2026-11-02 gerilemesi (`4080e1d4..2061d924`, cinsli tensör dalı): suçlu commit ve düzeltmeden önce ve sonra aynı koşuda ABAB (hız kolu).
 2. Kol B teslim 1'den sonra üretim ve eğitimin G4'te yeniden ölçümü: yukarıdaki "güncel sayılıyor" varsayımını doğrular (G4 onayla; 1. ile aynı koşuda).
