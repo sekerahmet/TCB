@@ -106,9 +106,11 @@ func logSumExpBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	if err != nil {
 		return nil, err
 	}
-	t, err := highPrecision(m, d.t) // karışık hassasiyet bloğunda float32 verir (15.4)
-	if err != nil {
-		return nil, err
+	t := d.t
+	if !t.DType().IsTyped() { // float64 blokta da float64 kalır, TR_sum gibi
+		if t, err = highPrecision(m, t); err != nil { // bloğun 16 bitlik girdisi float32 verir (15.4)
+			return nil, err
+		}
 	}
 	r, err := safe(func() *tensor.Tensor { return tensor.LogSumExp(t, axes, keep) })
 	if err != nil {

@@ -134,7 +134,7 @@ func trackLse(t, out *Tensor, y []float32, p lsePlan) *Tensor {
 	})[0]
 }
 
-// lseGrad girdinin gradyanıdır: ∂y/∂x[i] = exp(x[i] − y). Sonuç −sonsuzsa türev 0, +sonsuzsa bütün
+// lseGrad girdinin gradyanıdır: ∂y/∂x[i] = exp(x[i] − m) / Σ exp(x − m). Sonuç −sonsuzsa türev 0, +sonsuzsa bütün
 // türev ilk +sonsuz öğeye gider (15.18).
 func lseGrad(sx *Tensor, y []float32, g *Tensor, p lsePlan, dt DType) *Tensor {
 	x, gy := p.read(sx).Data(), g.Data()
@@ -154,15 +154,22 @@ func lseGrad(sx *Tensor, y []float32, g *Tensor, p lsePlan, dt DType) *Tensor {
 	return r
 }
 
-// lseRowGrad bir satırın gradyanını yazar.
+// lseRowGrad bir satırın gradyanını yazar. Üsler en büyük öğeden hesaplanır: y yuvarlanmıştır ve
+// büyük öğede log Σ'yı yutar, exp(x[i] − y) [1e7, 1e7]'de 0,5 yerine 0,3679 verirdi.
 func lseRowGrad(dx, x []float32, y, g float32) {
 	switch {
 	case math.IsInf(float64(y), -1):
 	case math.IsInf(float64(y), 1):
 		dx[slices.Index(x, y)] = g
 	default:
+		m, _ := lseHead(x)
 		for i, v := range x {
-			dx[i] = g * expf32(v-y)
+			dx[i] = v - m
+		}
+		expVec(dx, dx)
+		sum := total64(dx)
+		for i, e := range dx {
+			dx[i] = g * float32(float64(e)/sum)
 		}
 	}
 }
