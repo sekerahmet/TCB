@@ -98,6 +98,34 @@ func TestMessageSelectBranchText(t *testing.T) {
 	}
 }
 
+// Çoğul dalı TR değerinin sayısına göre seçilir, # değerin kendi metnini yazar: sayı olmayan
+// değer `other` dalındadır, bellek adresi yazılmaz. Çoğul dalı yalnız İngilizce metinlerde var.
+func TestMessagePluralFromTR(t *testing.T) {
+	cases := []struct{ call, want string }{
+		{`"H6911", 1, 2`, "(1 element)"},
+		{`"H6911", 3, 2`, "(3 elements)"},
+		{`"H6911", 0, 2`, "(0 elements)"},
+		{`"H6911", -1, 2`, "(-1 element)"},
+		{`"H6911", 4611686018427387904, 2`, "(4611686018427387904 elements)"},
+		{`"H6911", 2.5, 2`, "(2.5 elements)"},
+		{`"H6911", 1.0, 2`, "(1.0 elements)"},
+		{`"H6911", "abc", 2`, "(abc elements)"},
+		{`"H6911", "1", 2`, "(1 elements)"},
+		{`"H6911", TR_true, 2`, "(true elements)"},
+		{`"H6911", [1, 2], 2`, "([1, 2] elements)"},
+		{`"H6909", 1, 8`, ": 1 position needed"},
+		{`"H6909", 5, 8`, ": 5 positions needed"},
+		{`"H6912", 1, 8`, ": 1 position exceed"},
+		{`"H6912", 5, 8`, ": 5 positions exceed"},
+	}
+	for _, c := range cases {
+		_, _, err := runTROut(t, "TR_throw TR_Message("+c.call+")")
+		if got := messages.ErrorIn(err, "en"); !strings.Contains(got, c.want) {
+			t.Errorf("%s: %q, içinde %q bekleniyordu", c.call, got, c.want)
+		}
+	}
+}
+
 // doğrula(koşul, ileti(…)) koşul yanlışken iletiyi kendi koduyla fırlatır (H2456'ya sarmaz).
 func TestMessageAssert(t *testing.T) {
 	_, _, err := runTROut(t, "TR_assert(1 > 2, TR_Message(\"H6903\", 5))")

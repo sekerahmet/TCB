@@ -398,6 +398,18 @@ TR_func satırlı_model(yer: TR_Int, katsayı: TR_Float, çarpan: TR_Float) -> T
 # sessiz_modeli sessizlik parçasını büyütür.
 TR_func sessiz_modeli(çarpan: TR_Float) -> TR_Whisper { TR_return satırlı_model(40, 600.0, çarpan) }
 
+# ekli_model son normun sapmasını satırlara ekler: satırlar birlikte yükselir, aralarını konum seçer.
+TR_func ekli_model(yerler: TR_List[TR_Int], katsayı: TR_Float) -> TR_Whisper {
+    TR_var t = çeviri_ağırlıkları()
+    TR_var ad = "model.decoder.embed_tokens.weight"
+    TR_var ek = (t["model.decoder.layer_norm.bias"] * katsayı).TR_reshape([1, _BOYUT])
+    TR_for yer TR_in yerler {
+        TR_var e = t[ad]
+        t[ad] = TR_concat([e.TR_slice(0, 0, yer), e.TR_slice(0, yer, yer + 1) + ek, e.TR_slice(0, yer + 1, _ÇEVİRİ_DAĞARCIK)], TR_dim: 0)
+    }
+    TR_return TR_pretrained_whisper(çeviri_klasörü(t, çeviri_üretimi()))
+}
+
 # ses formülden gelir: yarım saniye sessizlik, yarım saniye gürültü.
 TR_func ses_kur(n: TR_Int) -> TR_Sound {
     TR_var örnekler = [((i * i + 7 * i) % 7919 / 7919.0 - 0.5) * 0.25 * ((i // 8000) % 2) TR_for i TR_in 0..n]
@@ -434,6 +446,15 @@ TR_test "25.7 uzun ses özgünle aynı" {
 TR_test "25.8 sessiz pencere atlanır, ortalama yüksekse atlanmaz" {
     özgünle_aynı(sessiz_modeli(1.0).TR_transcribe(ses_kur(8000), TR_language: "en"), özgün()["sessiz"])
     özgünle_aynı(sessiz_modeli(64.0).TR_transcribe(ses_kur(8000), TR_language: "en"), özgün()["keskin"])
+}
+
+# Tek damga 0.00'dır: kesit pencerenin sonunda biter, son pencere kısadır, kesit sesin sonunda biter.
+TR_test "25.7 damgasız kısa son pencere sesin sonunda biter" {
+    özgünle_aynı(ekli_model([2, 32, 42], 15.0).TR_transcribe(ses_kur(16000 * 40), TR_language: "en"), özgün()["damgasiz"])
+}
+
+TR_test "25.2 seçilen özel parça üst metne girer, kesit metnine girmez" {
+    özgünle_aynı(ekli_model([11, 34], 20.0).TR_transcribe(ses_kur(8000), TR_language: "en"), özgün()["ozel"])
 }
 
 TR_test "25.5 süzgeçler özgünle aynı kimlikleri bırakır" {
