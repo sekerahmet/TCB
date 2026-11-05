@@ -3,11 +3,12 @@
 - **Başlama saati:** 2026-11-05 08:13 +03 (2026-11-04 21:13 -08)
 - **Dal:** `gemini/uzak-3`
 - **Taban (`main`):** `25e76eae782f857178f9c685af47c86d08dad5ec`
-- **Sıkıştırma:** 4 kez:
+- **Sıkıştırma:** 5 kez:
   1. `2026-11-05 08:31 +03` (`05:31 UTC`), 2. adımdan (taban ölçümleri) sonra, Madde 2 düzenleme öncesi `tests-for` `run:` koşusu sürerken.
   2. `2026-11-05 08:53 +03` (`05:53 UTC`), 3. adımdan (Madde 2 tamamlanıp push edildikten) sonra, Madde 3 okuması ve sayımı sırasında (Madde 3 düzenlemelerine henüz başlanmamışken). Yönerge (`origin/yonerge:UZAK_YONERGE_3.md`), `UZAK3_DURUM.md`, `tools/codegraph/gaps.md` ve `git status`/`git log` yeniden açılıp okundu.
   3. `2026-11-05 09:18 +03` (`06:18 UTC`), 4. adımın (Madde 3, `594bbe7`) yerel commit'inden hemen sonra, `UZAK3_DURUM.md` güncellenip push edilmeden önce. Yönerge (`origin/yonerge:UZAK_YONERGE_3.md`), `UZAK3_DURUM.md`, `tools/codegraph/gaps.md` ve `git status`/`git log` yeniden açılıp okundu.
   4. `2026-11-05 09:36 +03` (`06:36 UTC`), Madde 3 durum push'undan (`730191f`) ve Madde 1 ön incelemesi + `tests-for` sorgusundan (`task-554`) sonra, Madde 1 düzenlemelerine henüz başlanmamışken. Yönerge (`origin/yonerge:UZAK_YONERGE_3.md`), `UZAK3_DURUM.md`, `tools/codegraph/gaps.md` ve `git status`/`git log` yeniden açılıp okundu.
+  5. `2026-11-05 09:59 +03` (`06:59 UTC`), Madde 1 taslak kodlaması (`tools/codegraph/exam_links.go` ve 9 bağlı dosyada commit edilmemiş çalışma ağacı değişiklikleri) sırasında, satır sadeleştirmesi ve Madde 1 test koşusundan önce. Yönerge (`origin/yonerge:UZAK_YONERGE_3.md`), `UZAK3_DURUM.md`, `tools/codegraph/gaps.md`, `tools/codegraph/exam_links.go`, `git diff`, `git status` ve `git log` yeniden açılıp okundu.
 
 ## Biten adımlar
 
