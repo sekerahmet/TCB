@@ -30,6 +30,7 @@ type pathRef struct {
 	embed bool     // //go:embed kalıbı: paketin klasörüne göredir, "/" aranmaz
 	cite  bool     // test dosyasının yorumunda ya da bir dizenin içinde anılan yol: `cites` kenarı (okuma değil)
 	root  bool     // yalnızca depo kökünden çözülür; "/" aranmaz (`reporoot.Path("README.md")`, yol listesindeki kök adı)
+	local bool     // test okuma çağrısındaki çıplak dosya adı: yalnızca çağıran testin paket klasöründen çözülür
 	with  []string // root ve dolu: listedeki "/" içeren yollar; biri kökten çözülmezse çıplak ad bağlanmaz (pathList)
 }
 
@@ -230,6 +231,18 @@ var pathWord = regexp.MustCompile(`[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+`)
 // fileWord yorumdaki çıplak dosya adıdır (`layout_test.go`, `README.md`): yalnızca yorumun dosyasının klasöründe aranır.
 var fileWord = regexp.MustCompile(`[A-Za-z0-9_\-]+(?:\.[A-Za-z0-9_\-]+)*\.[A-Za-z][A-Za-z0-9]*`)
 
+// commentFileWords yorumdaki çıplak dosya adlarını verir; "/" karakterinden hemen sonra gelen eşleşmeyi (yol kuyruğu:
+// `examples/README.md`) atar. İki `//` satırına bölünen yolda alt satırın başındaki `main.go` çıplak kalır.
+func commentFileWords(text string) []string {
+	var out []string
+	for _, idx := range fileWord.FindAllStringIndex(text, -1) {
+		if idx[0] == 0 || text[idx[0]-1] != '/' {
+			out = append(out, text[idx[0]:idx[1]])
+		}
+	}
+	return out
+}
+
 // citeRefs bir test dosyasının yorumlarında ve dize sabitlerinin içinde geçen yolları anma olarak kaydeder: testin
 // kuralı bir belgeden gelir (`// Kod düzeni standardı (docs/development.md)`, `t.Errorf("...; docs/development.md")`) ya
 // da bir dosyayı adıyla anar, ama onu okumaz. tests-for'da okuyan testlerden ayrı, "cites" grubunda görünür; anma
@@ -277,7 +290,7 @@ func (x *goExtractor) citeRefs(fc *fileCtx, f *ast.File) {
 	add := func(owners []string, pos token.Pos, text string, comment bool) {
 		words := pathWord.FindAllString(text, -1)
 		if comment {
-			words = append(words, fileWord.FindAllString(text, -1)...)
+			words = append(words, commentFileWords(text)...)
 		}
 		for _, m := range words {
 			m = strings.TrimRight(m, ".-")
@@ -344,6 +357,16 @@ func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
 			continue // listenin yolları depoda yok: fikstür
 		}
 		tests := reach.testsReaching(r.owner)
+		if r.local {
+			for _, t := range tests {
+				for _, n := range resolvePattern(path.Join(reach.pkgOf(t), r.text), byFile, targets) {
+					if n.File != r.file {
+						b.addEdge(t, n.ID, edgeTests, inferred, r.file, r.line)
+					}
+				}
+			}
+			continue
+		}
 		pats := []string{path.Join(r.dir, r.text)}
 		switch {
 		case r.root:

@@ -64,6 +64,7 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 	ix.printSizes(w, file)
 	fmt.Fprintf(w, "  declarations in this file: %d\n", decls)
 	ix.printFileTests(w, file, s, limit)
+	ix.printGoFileExams(w, file, ts, s)
 	ix.printScans(w, file.File, limit)
 	ix.printTypeQueries(w, file.File, limit)
 	tests := map[string]bool{}

@@ -382,7 +382,7 @@ func (ix *index) whoUsesHeader(w io.Writer, n *Node) []*Edge {
 	var uses []*Edge
 	for _, e := range ix.in[n.ID] {
 		switch e.Kind {
-		case edgeContains:
+		case edgeContains, edgeNamesInExam:
 		case edgeDenotes: // kodun Go sabiti: kullanım değil, ama "kim kullanıyor"un sonraki sorusu
 			fmt.Fprintf(w, "  Go constant: %s (who-uses it for its users)\n", describe(ix.byID[e.From]))
 		default:

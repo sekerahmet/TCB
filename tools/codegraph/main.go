@@ -131,14 +131,21 @@ func runBuild(args []string, stdout, stderr io.Writer) int {
 }
 
 // buildGraph bütün çıkarıcıları sırayla çalıştırır. Sıra önemlidir: Markdown bağlantıları Go
-// düğümlerine, kurallar test işlevlerine bağlanır.
-func buildGraph(root string) (*Graph, error) {
+// düğümlerine, kurallar test işlevlerine bağlanır. Çıkarıcılardan biri paniklerse (ör. yarım
+// düzenlenmiş gömülü ileti dosyasında messages.load) panik tek satırlık hataya çevrilir: refresh eski
+// grafiği korur, build ve boş grafik tek satırla çıkar.
+func buildGraph(root string) (g *Graph, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			g, err = nil, fmt.Errorf("%s", firstLine(fmt.Errorf("%v", r)))
+		}
+	}()
 	stamp, _ := sourceStamp(root) // build başlamadan alınır: sürerken değişen dosya sonra yeniden kurdurur
 	m, err := load(root)
 	if err != nil {
 		return nil, err
 	}
-	g := buildGraphFrom(root, m)
+	g = buildGraphFrom(root, m)
 	g.Stamp = stamp
 	return g, nil
 }
@@ -170,6 +177,7 @@ func buildGraphFromWithRules(root string, m *module, typeRules []typeQueryRule) 
 	linkSnippets(b, idx, reach, os.DirFS(filepath.Join(root, "lib")))
 	linkCheckerTests(b, idx, reach)
 	linkTypeQueries(b, typeRules)
+	linkExam(root, b)
 	return b.graph()
 }
 

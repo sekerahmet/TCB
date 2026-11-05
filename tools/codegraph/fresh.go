@@ -22,7 +22,7 @@ var stampExts = map[string]bool{".go": true, ".json": true, ".md": true, ".tr": 
 
 // stamped dosyanın içeriği imzaya girer mi.
 func stamped(p string) bool {
-	return stampExts[strings.ToLower(filepath.Ext(p))] || filepath.Base(p) == "go.mod"
+	return stampExts[strings.ToLower(filepath.Ext(p))] || filepath.Base(p) == "go.mod" || filepath.ToSlash(p) == examFile
 }
 
 // gitOut root'ta git çalıştırır.
