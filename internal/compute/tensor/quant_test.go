@@ -356,7 +356,6 @@ func TestQuantRefusesEverythingElse(t *testing.T) {
 			FromQuantized(Q6K, quantBlocks(Q6K, 1)[:q6kBytes], 1, 256).T().Open(Float32)
 		}},
 		{"türev", messages.H6690, func() { q().SetRequiresGrad(true) }},
-		{"GPU", messages.H6689, func() { q().To(Device{Kind: KindGPU}) }},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			defer func() {

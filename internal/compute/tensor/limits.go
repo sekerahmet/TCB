@@ -34,8 +34,11 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 	if w.dtyp.IsQuantized() {
 		// Seçilen satırlar açılır (15.53); ağırlık donmuştur, türev izlenmez.
 		out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), Float32)
-		s := cpuStore(w.storage)
-		quantEmbedding(cd(out.storage), quantBytes(s, w.offset, V*D), s.dtyp, ix, D)
+		if s, ok := w.storage.(*cpuStorage); ok {
+			quantEmbedding(cd(out.storage), quantBytes(s, w.offset, V*D), s.dtyp, ix, D)
+		} else {
+			gateEmbedding(w.be, out.storage, w.view(), ix, D)
+		}
 		sy.finish()
 		return out
 	}

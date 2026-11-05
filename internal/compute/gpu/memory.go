@@ -97,7 +97,7 @@ func (g *backend) storageOf(s tensor.Storage) *storage {
 // addressOf görünümün ilk elemanının cihaz adresi.
 func (g *backend) addressOf(v tensor.View) uint64 {
 	d := g.storageOf(v.S)
-	return d.addr + uint64(v.Offset*dtypeSize(d.dtype))
+	return d.addr + storageBytes(v.Offset, d.dtype)
 }
 
 // pool boyut sınıflı serbest blok listeleri ve bellek sayaçları (bayt).
@@ -260,14 +260,14 @@ func (t cleanupInfo) back() {
 
 // allocate n elemanlı dt türünde depolama verir; sifirla doğruysa içerik sıfırdır.
 func (g *backend) allocate(n int, dt tensor.DType, reset bool) *storage {
-	if !dt.IsFloat() && !dt.IsTyped() {
+	if !dt.IsFloat() && !dt.IsTyped() && !dt.IsQuantized() {
 		none(messages.H4050, dt.String())
 	}
 	if n < 0 {
 		panic(internalf("negative element count %d", n))
 	}
-	byteN := uint64(n) * uint64(dtypeSize(dt))
-	if dt.IsTyped() {
+	byteN := storageBytes(n, dt)
+	if dt.IsTyped() || dt.IsQuantized() {
 		byteN = (byteN + 3) &^ 3 // ham bayt türleri 4 bayta yuvarlanır: sıfırlama 32 bitliktir
 	}
 	if byteN > g.sr.totalMemory() {
@@ -321,8 +321,8 @@ func (g *backend) reset(d *storage) {
 	switch {
 	case d.dtype == tensor.Float32:
 		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, uint64(d.n)))
-	case d.dtype.IsTyped():
-		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, uint64((d.n*dtypeSize(d.dtype)+3)/4)))
+	case d.dtype.IsTyped() || d.dtype.IsQuantized():
+		g.try_("cuMemsetD32Async", g.sr.fill32(d.addr, 0, (storageBytes(d.n, d.dtype)+3)/4))
 	default:
 		g.try_("cuMemsetD16Async", g.sr.fill16(d.addr, 0, uint64(d.n)))
 	}

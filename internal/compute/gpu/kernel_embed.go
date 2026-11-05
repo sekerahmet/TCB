@@ -18,7 +18,7 @@ import (
 const embedBlock = 128
 
 // embedKernel out[r, :] = w[idx[r], :]; satır başına blok. Tablo kendi türünde (16 bitlik
-// tablo float32'ye açılmadan) okunur. at doğruysa indeks cihazdaki bir tensördendir
+// tablo float32'ye açılmadan, nicemlenmiş tablonun yalnız seçilen blokları) okunur. at doğruysa indeks cihazdaki bir tensördendir
 // (float32 tam sayı değerli; kayıt içindeki gömme, tensor.EmbeddingAt): [0, V−1]'e kırpılır.
 func embedKernel(dt tensor.DType, at bool, it tensor.DType) func() *emitter {
 	return func() *emitter { return genEmbed(dt, at, it) }
@@ -54,9 +54,17 @@ func genEmbed(dt tensor.DType, at bool, it tensor.DType) *emitter {
 		ks, hs := k.r(), k.r()
 		k.e("add.s32", ks, source, j)
 		k.e("add.s32", hs, target, j)
-		k.store(tensor.Float32, k.address(out, hs, 4), k.load(dt, k.address(w, ks, dtypeSize(dt))))
+		k.store(tensor.Float32, k.address(out, hs, 4), k.tableValue(dt, w, ks))
 	})
 	return k
+}
+
+// tableValue tablonun ks. öğesidir: nicemlenmiş tabloda yalnız o öğenin bloğu okunur (15.53).
+func (k *emitter) tableValue(dt tensor.DType, w, ks reg) reg {
+	if dt.IsQuantized() {
+		return k.quantElem(dt, w, ks)
+	}
+	return k.load(dt, k.address(w, ks, dtypeSize(dt)))
 }
 
 // indexAt i'ye adresteki indeksi [0, n−1]'e kırpılmış yazar: float32 indeks sıfıra doğru

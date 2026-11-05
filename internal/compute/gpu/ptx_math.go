@@ -257,6 +257,15 @@ func dtypeSize(dt tensor.DType) int {
 	return 2
 }
 
+// storageBytes n öğenin depodaki baytıdır; nicemlenmiş türde n blok sınırındadır.
+func storageBytes(n int, dt tensor.DType) uint64 {
+	if dt.IsQuantized() {
+		elems, size := dt.QuantBlock()
+		return uint64(n/elems) * uint64(size)
+	}
+	return uint64(n) * uint64(dtypeSize(dt))
+}
+
 // load adresteki dt türündeki elemanı float32 olarak yükler.
 func (k *emitter) load(dt tensor.DType, addr reg) reg {
 	if !dt.IsFloat() {

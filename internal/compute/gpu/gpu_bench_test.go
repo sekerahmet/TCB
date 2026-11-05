@@ -408,3 +408,71 @@ func BenchmarkIDBatchToHost(b *testing.B) {
 		})
 	}
 }
+
+// TestQuantGemvBandwidth tek satırlık nicemli çarpımın okuduğu bayt ÷ süresini kartın kopya bandıyla
+// yan yana yazar (yalnızca gerçek GPU'da ve TR_GPU_QUANT_BENCH=1 iken). Satırlar
+//
+//	BANT|kopya|GB/sn
+//	TABAN|tür|ms
+//	NICEM|tür|N|K|MB|sıcak ms|sıcak GB/sn|soğuk ms|soğuk GB/sn
+//
+// biçimindedir. Kopya bandı okuma artı yazmadır, tampon önceden ayrılır. Taban tek blokluk çarpımın
+// süresidir: baytın değil çağrının bedeli. Sıcak aynı ağırlığı üst üste okur, küçük ağırlık L2'de
+// kalır; soğuk 512 MiB'lik bir halkayı döner, modelin her parçada okuduğu gibi. Boylar Qwen3-0.6B ve
+// Qwen3-4B'nin ağırlıklarıdır.
+func TestQuantGemvBandwidth(t *testing.T) {
+	if os.Getenv("TR_GPU_QUANT_BENCH") != "1" || inSim() {
+		t.Skip("yalnızca gerçek GPU'da ve TR_GPU_QUANT_BENCH=1 ile")
+	}
+	timed := func(reps int, f func() *tensor.Tensor) float64 {
+		for range 5 {
+			f()
+		}
+		f().Data()
+		start := time.Now()
+		var last *tensor.Tensor
+		for range reps {
+			last = f()
+		}
+		last.Data()
+		return time.Since(start).Seconds() / float64(reps)
+	}
+	g := gpuBackend()
+	const copied = 1 << 28
+	from, to := g.storageOf(g.Alloc(copied, tensor.Float32)), g.storageOf(g.Alloc(copied, tensor.Float32))
+	mark := tensor.NewOn(gpuDevice, []float32{0}, 1)
+	sec := timed(20, func() *tensor.Tensor { g.dCopy(to, 0, from, 0, copied); return mark.Clone() }) // Clone gölgesiz: Data kartı bekler
+	fmt.Printf("BANT|kopya|%.0f\n", 2*float64(4*copied)/sec/1e9)
+	rng := rand.New(rand.NewSource(1))
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		_, tiny := quantWeights(t, rng, dt, 8, elems)
+		x := twin(random(rng, elems, 1), false, 1, elems)[1]
+		floor := timed(200, func() *tensor.Tensor { return tensor.MatMul(x, tiny.T()) })
+		fmt.Printf("TABAN|%s|%.4f\n", dt.Name(), floor*1e3)
+		for _, c := range [][2]int{{3072, 1024}, {1024, 3072}, {151936, 1024}, {9728, 2560}, {2560, 9728}, {151936, 2560}} {
+			reportQuantGemv(t, rng, dt, c[0], c[1], timed)
+		}
+	}
+}
+
+// reportQuantGemv bir boyun NICEM satırını yazar: sıcak tek ağırlık, soğuk 512 MiB'lik halka.
+func reportQuantGemv(t *testing.T, rng *rand.Rand, dt tensor.DType, N, K int, timed func(int, func() *tensor.Tensor) float64) {
+	t.Helper()
+	elems, _ := dt.QuantBlock()
+	raw := quantBlockBytes(rng, dt, N*K/elems)
+	bytesRead := float64(len(raw))
+	ring := make([]*tensor.Tensor, max(int(float64(512<<20)/bytesRead), 2))
+	for i := range ring {
+		_, card := quantBoth(t, dt, raw, N, K)
+		ring[i] = card.T()
+	}
+	x := twin(random(rng, K, 1), false, 1, K)[1]
+	warm := timed(50, func() *tensor.Tensor { return tensor.MatMul(x, ring[0]) })
+	next := 0
+	cold := timed(max(50, 2*len(ring)), func() *tensor.Tensor {
+		next = (next + 1) % len(ring)
+		return tensor.MatMul(x, ring[next])
+	})
+	fmt.Printf("NICEM|%s|%d|%d|%.1f|%.4f|%.0f|%.4f|%.0f\n", dt.Name(), N, K, bytesRead/1e6, warm*1e3, bytesRead/warm/1e9, cold*1e3, bytesRead/cold/1e9)
+}

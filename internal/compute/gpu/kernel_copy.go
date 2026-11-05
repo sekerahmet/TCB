@@ -81,6 +81,7 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 	}
 	checkSize(n)
 	hd, kd := g.storageOf(target.S), g.storageOf(source.S)
+	g.refuseQuantCopy(hd, kd)
 	if !add && (hd.dtype.IsTyped() || kd.dtype.IsTyped()) {
 		g.copyTyped(target, source, hd, kd)
 		return

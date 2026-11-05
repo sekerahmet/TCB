@@ -317,6 +317,13 @@ func gateEmbeddingAt(be IndexReader, out Storage, w View, idx View, D int) {
 	be.EmbeddingAt(out, w, idx, D)
 }
 
+func gateOpenQuant(be QuantOpener, out Storage, src View) {
+	if unlockedOps.Load() != 0 {
+		gate([]Storage{out}, []Storage{src.S})
+	}
+	be.OpenQuant(out, src)
+}
+
 func gateUpdateSliceAt(be IndexReader, dst View, src View, start View, outer int, Td int, Ts int, inner int) {
 	if unlockedOps.Load() != 0 {
 		gate([]Storage{dst.S}, []Storage{src.S, start.S})

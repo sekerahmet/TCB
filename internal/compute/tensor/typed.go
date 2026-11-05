@@ -251,8 +251,13 @@ func Float64sOn(dev Device, vals []float64, shape ...int) *Tensor {
 	return FromRawOn(dev, Float64, raw, shape...)
 }
 
-// Raw tensörün öğelerini mantıksal sırayla ham bayt olarak verir (yalnız ham bayt türleri).
+// Raw tensörün öğelerini mantıksal sırayla ham bayt olarak verir (ham bayt türleri); nicemlenmiş
+// türde bloklardır, devrik görünümde H6688.
 func (t *Tensor) Raw() []byte {
+	if t.dtyp.IsQuantized() {
+		t.refuseTransposed()
+		return slices.Clone(t.quantRaw(t.offset, t.Numel()))
+	}
 	if !t.dtyp.IsTyped() {
 		panic(messages.Internal("Raw on " + t.dtyp.String()))
 	}

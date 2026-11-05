@@ -1308,7 +1308,6 @@ const (
 	H6686 Code = 6686 // GGUF tensörü {name|q}: {block}. bloğun ölçeği NaN ya da sonsuz (15.55)
 	H6687 Code = 6687 // bu işlem "{dtype}" tensörde yapılamaz (15.53): nicemlenmiş tensör yalnız sayılı işlemlerde kullanılır, sessizce açılmaz; açmak için `t.{#to_dtype}("float32")`
 	H6688 Code = 6688 // "{dtype}" tensörün devrik görünümü yalnız `@`'nin sağ işleneni olur ve okunur (15.53): önce görünümü geri alın: `w.{#transpose}()`
-	H6689 Code = 6689 // "{dtype}" tensör {device} cihazında olamaz: bu sürümde nicemlenmiş tensör yalnız CPU'dadır; kurmadan önce `{#default_device}("cpu")`
 	H6690 Code = 6690 // "{dtype}" tensör türev izlemez (15.52): ağırlık donmuştur; eğitmek için açın: `t.{#to_dtype}("float32")`
 	H6691 Code = 6691 // {fn}: "{dtype}" hassasiyetine nicemleme bu sürümde yok: nicemlenmiş tensör dosyadan gelir (15.55)
 	H6692 Code = 6692 // "{dtype}" tensörün son ekseni {block} öğelik bloğun katı olmalıdır, uzunluğu {length} (15.51)
@@ -1451,6 +1450,7 @@ const (
 	H7015 Code = 7015 // `{#test}` yalnız dosyanın en dışında yazılır: {name|q} testi burada hiç koşmazdı; bloğu en dışa taşıyın
 	H7016 Code = 7016 // '{name}' metot değil, fonksiyondur: `{example}` (`x`, noktadan önceki değerdir)
 	H7017 Code = 7017 // '{name}' burada yazılmaz, yazımı: `{example}`
+	H7030 Code = 7030 // bu işlem GPU'da henüz yok: "{dtype}" tensörü "float64" hassasiyetine açmak (15.41); önce CPU'ya taşıyın: `t.{#to_device}("cpu").{#to_dtype}("float64")`
 	H7040 Code = 7040 // {@pretrained_gguf}: {weight|q} tensörünün türü {dtype}: frekans bölenleri float32, fp16 ya da bf16 olmalı
 	H7041 Code = 7041 // {@pretrained_gguf}: {weight|q} tensörünün {index} konumundaki böleni {value}: bölen sonlu ve sıfırdan büyük olmalı, her konumun açısı float32 sınırında kalmalı
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})

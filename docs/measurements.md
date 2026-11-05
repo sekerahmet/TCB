@@ -48,6 +48,19 @@ Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 
 | Qwen3-4B `Q4_K_M` | üretim | 2,35 (2,39) | 8,45 (8,69) | 0,278 |
 | Qwen3-4B `Q4_K_M` | prompt 512 | 14,53 (14,57) | 28,38 (28,78) | 0,512 |
 
+**GGUF kartta** (2026-11-05, G4, NVIDIA RTX PRO 6000 Blackwell Server Edition, sm_120, 188 SM; TR `66f6d21e`, llama.cpp `8bed7cfb`, `llama-bench -ngl 99 -r 5 -p 512 -n 100 -o json`; aynı koşu, dört tur, kopya kollu; parça/sn, ortanca, parantezde üçüncü çeyrek) [ölçüldü: H1, `h1g3/ozet.txt`]:
+
+| Model | İş | TR | llama.cpp | Oran |
+| :-- | :-- | --: | --: | --: |
+| Qwen3-0.6B `Q8_0` | üretim, 2–101. parça | 403,3 (413,7) | 783,1 (783,2) | 0,515 |
+| Qwen3-0.6B `Q8_0` | üretim, 102–201. parça | 307,8 (313,5) | 783,1 (783,2) | 0,393 |
+| Qwen3-0.6B `Q8_0` | prompt 512 | 22 309,5 (22 358,1) | 56 545,8 (56 741,5) | 0,395 |
+| Qwen3-4B `Q4_K_M` | üretim, 2–101. parça | 216,9 (222,7) | 346,6 (346,8) | 0,626 |
+| Qwen3-4B `Q4_K_M` | üretim, 102–201. parça | 175,9 (179,3) | 346,6 (346,8) | 0,507 |
+| Qwen3-4B `Q4_K_M` | prompt 512 | 4 758,4 (4 762,8) | 20 402,8 (20 433,4) | 0,233 |
+
+Kartın ölçülen bandı 1457 GB/sn. Tek satır çekirdeğinde 151936'lı kafa şekilleri banda ulaşıyor (soğukta 1314–1485 GB/sn); FFN şekilleri 869–1151 GB/sn, bandın %60–79'u. `q4_k`'nın 1,8 MB'lık iki şekli soğukta dörtte birin altında (287, 339 GB/sn): 4,6 µs çağrı tabanı yüzünden, ağırlık 2,2 MB'tan küçükse eşik tutmuyor [hesap]. Tepe kart belleği dosyanın 1,08–1,19 katı, kısa prompt [ölçüldü: H1, `h1g1`].
+
 Birim parça/sn. llama.cpp'nin beş örneğinin biri çoğu turda iki kat yavaş; `-p 0` ile ayrı koşuda oran 0,333.
 
 Üretimin ayrışımı, Qwen3-0.6B `Q8_0` (TR `845dda66`, aynı işlemci türü, ayrı oturum; üç kol aynı koşuda, altı tur) [ölçüldü: kayıt `olcumler/h2k4`]: TR üretim 63,5 ms/parça, yalnız 197 matrisin çarpımı 33,9, llama.cpp bütün iş 21,2. Çarpım dışı 29,6 ms [hesap]: dikkat yaklaşık 10, kaynaştırılmış işlemler yaklaşık 9, kalan yaklaşık 9 [hesap: profil].

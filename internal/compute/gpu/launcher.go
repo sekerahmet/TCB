@@ -115,7 +115,7 @@ func (p *paramWriter) indicator(d *storage, offset int, c int) *paramWriter {
 	if p.capture != nil {
 		p.capture.hold(d)
 	}
-	addr := d.addr + uint64(offset*dtypeSize(d.dtype))
+	addr := d.addr + storageBytes(offset, d.dtype)
 	if c == pWrite {
 		p.writer = append(p.writer, d)
 	}

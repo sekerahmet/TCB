@@ -124,6 +124,10 @@ func (g *backend) Alloc(n int, dt tensor.DType) tensor.Storage {
 // AllocUninit (tensor.UninitAllocator) içeriği belirsiz depolama; her elemanı yazılacak
 // çıktılar içindir.
 func (g *backend) AllocUninit(n int, dt tensor.DType) tensor.Storage {
+	if dt.IsQuantized() {
+		// Hiçbir çekirdek nicemlenmiş çıktı yazmaz: işlemin kendisi hatalıdır (q + q, 15.53).
+		panic(tensor.PrecisionError(dt, g.dev))
+	}
 	g.enter()
 	defer g.exit()
 	return g.allocate(n, dt, false)

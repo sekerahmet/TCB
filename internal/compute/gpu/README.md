@@ -62,6 +62,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_norm_reference_test.go`: normların ileri sonucu ve gradyanlarının CPU'da ve GPU'da float64 referansa göre doğruluğu
 - `behavior_reduce_accuracy_test.go`: indirgemenin her yolunun float64 referansa göre doğruluğu ve özel değerler (sonsuz, NaN, -0)
 - `behavior_sixteen_bit_bits_test.go`: 16 bitlik tensörün bütün bit desenlerinin karta gidip gelmesi, dilim ve devrikte değişmemesi; `To`'nun türevi koruması
+- `behavior_quant_test.go`: nicemlenmiş tensörün karta gidip gelmesi, kartta açılan değerin CPU'nunkiyle bit bit aynı olması, sayılı olmayan işlemlerin kartta da hata vermesi
 - `behavior_special_values_test.go`: ±0, ±∞ ve NaN girdide bütün işlemlerin (ileri ve türev) CPU ile aynılığı ve dil tanımı 15.50'nin tablosu
 - `behavior_attention_nan_test.go`: puanı NaN bir sorgu satırı bakmadığı anahtarlara NaN sızdırmaz (dikkat geri yönü, skaler ve tensör çekirdekli yol; dil tanımı 15.24)
 - `behavior_grad_parity_test.go`: gradyan kapısının GPU ayağı: başka testte GPU-CPU gradyan karşılaştırması olmayan türevli işlemler (tür dönüşümü, cihaz aktarımı, kopya, dış işlem)
