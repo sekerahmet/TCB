@@ -44,6 +44,9 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **13.10, anahtar fonksiyonlu `TR_max` (2026-11-05, D1 test komutu):** madde anahtar fonksiyonlu biçimi anıyor, motorda yok: `TR_max([1.0, TR_nan, 2.0], (x) => x)` argüman hatası.
+- **15.22a, 15.47a, 20.17, 16 bitlik NaN (2026-11-05, T1; DENETİM istek 134):** 15.22a sayı ile tensör farkını anmıyor; kart 16 bitlik NaN'ın bitini yükleme ve indirmede kaybediyor, söz ya daraltılır ya `tensor/*`'da düzelir (sahip T1, H2'den sonra).
+- **12.1, kimliksiz yazım (2026-11-05, D1):** düz adlı dosyada kimliksiz `test "a"` taramada görünmez; kod yalnız kimlikle yazıldığı için cümle gerekmiyor olabilir.
 - **13.3 ve 13.4, çıkarmanın sınırı (2026-11-04, D1 Kol A 13 teslim 4; DENETİM istek 125 N6):** `.TR_remove_at(i)` sınır dışı indeksi söylemiyor, motor H2534 veriyor; `.TR_remove`'un anahtar tipi yazmıyor, `.TR_get` gibi davranıyor.
 - **6.6, değişkenden gelen yokluk (2026-11-04, D1 Kol A 13 teslim 2b):** madde `TR_return TR_none` yazımını söylüyor; `TR_var n = TR_none` sonrası `TR_return n` geçiyor, `none` veriyor [ölçüldü: D1]. 4b'nin daraltmasıyla birlikte bakılır.
 - **6.2 ve 6.6, iç `TR_match` (2026-11-04, D1 Kol A 13 teslim 2b):** motor metinden geniş: bütün kolları fırlatan iç `TR_match` de değer vermeyen dal sayılmaz; kod kaldı, metin turda.
