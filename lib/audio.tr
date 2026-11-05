@@ -143,6 +143,11 @@ TR_func _ham_örnekler(yol: TR_String, ham: TR_Bytes, biçim: _Biçim) -> TR_Ten
     TR_return (TR_Tensor[TR_Float](tam) / 32768.0).TR_reshape([ham.TR_length // 2 // kare, kare]).TR_transpose()
 }
 
+# _parça_adı iletideki addır: dosyanın baytları metin olmayabilir.
+TR_func _parça_adı(ad: TR_Bytes) -> TR_String {
+    TR_try { TR_return TR_String(ad) } TR_catch _hata { TR_return "\(ad)" }
+}
+
 # wav_oku bir WAV dosyasını okur (22.4).
 TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
     TR_var b = TR_read_bytes(yol)
@@ -162,7 +167,7 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
         TR_var ad = b[konum..konum + 4]
         TR_var boy = _u32(b, konum + 4)
         TR_var kalan = b.TR_length - konum - _PARÇA_BAŞI
-        TR_if boy > kalan { TR_throw TR_Message("H7067", yol, TR_String(ad), boy, kalan) }
+        TR_if boy > kalan { TR_throw TR_Message("H7067", yol, _parça_adı(ad), boy, kalan) }
         TR_if ad == TR_Bytes("fmt ") {
             TR_if biçim != TR_none { TR_throw TR_Message("H7063", yol, "two_fmt") }
             TR_if veri >= 0 { TR_throw TR_Message("H7063", yol, "data_first") }
@@ -238,7 +243,7 @@ TR_func _whisper_sesi(ses: TR_Sound) -> TR_Tensor[TR_Float] {
         TR_throw TR_Message("H7079", ad, "channels", şekil, ilk, ortalama)
     }
     TR_if şekil[0] == 0 TR_or şekil[1] == 0 { TR_throw TR_Message("H7079", ad, "empty", şekil, "", "") }
-    TR_return ses.TR_samples[0]
+    TR_return ses.TR_samples[0].TR_to_dtype("float32")
 }
 
 # whisper_log_mel Whisper'ın `transcribe`'ının log-Mel'ini bir kaydın tamamı için verir (23.6):

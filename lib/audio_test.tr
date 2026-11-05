@@ -143,6 +143,10 @@ TR_test "22.4 parça boyu dosyada kalandan büyük: sessizce kısa ses olmaz, il
     TR_assert_equal("H7067", hata_kodu(wav(TR_Bytes("LIST") + u32(100) + TR_Bytes("ab"))))
 }
 
+TR_test "22.4 parçanın adı metin olmayabilir: ileti yine boyu söyler" {
+    TR_assert_equal("H7067", hata_kodu(wav(TR_Bytes([255, 254, 0, 200]) + u32(100))))
+}
+
 TR_test "22.4 data boyu 0 ya da kare boyunun katı değil" {
     TR_var fmt = parça("fmt ", fmt_içeriği(1, 2, 16000, 16))
     TR_assert_equal("H7068", hata_kodu(wav(fmt + parça("data", TR_Bytes([])))))
@@ -274,6 +278,14 @@ TR_test "23.6 denetim sırası: şekil, hız, kanal, boş ses" {
     TR_var atanmış = TR_Sound(TR_samples: TR_zeros([1, 4]), TR_sample_rate: 8000)
     atanmış.TR_samples = TR_zeros([4])
     TR_assert_equal("H7072", TR_error_code { TR_whisper_log_mel(atanmış, TR_n_mels: 80) })
+}
+
+TR_test "23.6 başka hassasiyetteki örnekler float32'de hesaplanır" {
+    TR_var ince = TR_Sound(TR_samples: TR_Tensor([[0.5, -0.5, 0.25]], TR_dtype: "float64"), TR_sample_rate: 16000)
+    TR_var kaba = TR_Sound(TR_samples: TR_Tensor([[0.5, -0.5, 0.25]], TR_dtype: "bf16"), TR_sample_rate: 16000)
+    TR_var düz = TR_Sound(TR_samples: TR_Tensor([[0.5, -0.5, 0.25]]), TR_sample_rate: 16000)
+    TR_assert(TR_equal(TR_whisper_log_mel(düz, TR_n_mels: 80), TR_whisper_log_mel(ince, TR_n_mels: 80)))
+    TR_assert(TR_equal(TR_whisper_log_mel(düz, TR_n_mels: 80), TR_whisper_log_mel(kaba, TR_n_mels: 80)))
 }
 
 TR_test "23.6 iletinin iki yazımı kopyalanınca çalışır" {
