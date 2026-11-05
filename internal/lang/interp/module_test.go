@@ -230,6 +230,23 @@ func TestModuleValueIsNotIndexed(t *testing.T) {
 // Kural (11.3): modül değerinin adı modülün değişkeninin bugünkü değerini verir: modülün kendi
 // fonksiyonu değişkenini değiştirince her takma ad yeni değeri görür (eskiden yüklemedeki kopyayı
 // veriyordu: m.say() iki kez çağrılınca m.sayac 0'dı). H2901'in önerdiği yol böyle doğru sonuç verir.
+// Kural: modülde olmayan ad hatadır, ileti en yakın adı önerir; öneri kopyalanınca çalışır (11.2).
+// Neden: m.yok hatasız yok veriyordu, yazım yanlışı programda sessizce ilerliyordu (DENETİM istek 81 Ş2).
+func TestAMissingModuleNameSuggestsTheClosest(t *testing.T) {
+	module := map[string]string{"m.tr": "TR_func kare(x: TR_Int) -> TR_Int { TR_return x * x }\n"}
+	files := func(body string) map[string]string {
+		return map[string]string{"m.tr": module["m.tr"], "ana.tr": "TR_import \"m\" TR_as m\n" + body}
+	}
+	_, err := runWithModules(t, t.TempDir(), files("TR_print(m.karee(2))\n"))
+	if !messages.Has(err, messages.H7014) || !strings.Contains(err.Error(), "'kare'") {
+		t.Fatalf("H7014 ve en yakın ad bekleniyordu: %v", err)
+	}
+	out, err := runWithModules(t, t.TempDir(), files("TR_print(m.kare(2))\n"))
+	if err != nil || out != "4\n" {
+		t.Fatalf("öneri çalışmalı: %q, %v", out, err)
+	}
+}
+
 func TestModuleValueReadsTheModulesVariable(t *testing.T) {
 	module := "TR_var sayac = 0\nTR_func say() {\n    sayac += 1\n}\nTR_func oku() -> TR_Int {\n    TR_return sayac\n}\n"
 	main := "TR_import \"m\" TR_as m\nTR_import \"m\" TR_as n\nm.say()\nm.say()\nTR_print(m.sayac, n.sayac, m.oku())\n"

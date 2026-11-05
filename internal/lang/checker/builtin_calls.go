@@ -168,7 +168,7 @@ func (c *Checker) checkPropertyCall(e *ast.CallExpression, sig codes.Signature) 
 // alıcıyla argümanın yerini değiştirir: " ".TR_join(l) → l.TR_join(" ").
 func (c *Checker) reportMissingMember(e *ast.CallExpression, m *ast.MemberExpression, k codes.Code, def codes.Definition, objType string, argTypes []string) {
 	if k == codes.MemRemove && shapeOf(objType).base == typeList {
-		c.addErrorAt(e, messages.New(messages.H2535, c.typeArg(objType), m.Property)) // listede öğe konumuyla çıkar (13.3)
+		c.addErrorAt(e, messages.New(messages.H2535, c.typeArg(objType), c.word(k))) // listede öğe konumuyla çıkar (13.3)
 		return
 	}
 	swap := ""
@@ -187,7 +187,7 @@ func (c *Checker) reportMissingMember(e *ast.CallExpression, m *ast.MemberExpres
 	for _, t := range def.Types() {
 		types = append(types, c.typeArg(codes.Name(t)))
 	}
-	c.addErrorAt(e, messages.New(messages.H2474, c.typeArg(objType), m.Property,
+	c.addErrorAt(e, messages.New(messages.H2474, c.typeArg(objType), c.word(k),
 		messages.New(messages.H1117, c.word(k), types, swap)))
 }
 

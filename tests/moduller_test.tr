@@ -36,6 +36,20 @@ TR_test "11.2 olarak ile modül tek bir değer olarak bağlanır; adlarına nokt
     TR_assert_equal("H2904", TR_error_code { ym_kopya["PI"] })
 }
 
+TR_test "11.2 modül değeri bir sözlük değildir: olmayan ad ve sözlüğün üyeleri hatadır" {
+    TR_assert_equal("H7014", TR_error_code { TR_print(özel.olmayan) })
+    TR_assert_equal("H7014", TR_error_code { özel.olmayan() })
+    TR_assert_equal("H7014", TR_error_code { özel.TR_remove("dış_hesap") })
+    # Tipi bilinmeyen kopyada da: modülün adı silinmez, modül değişmez.
+    TR_var kopya = özel
+    TR_assert_equal("H7014", TR_error_code { kopya.TR_remove("dış_hesap") })
+    TR_assert_equal("H7014", TR_error_code { TR_print(kopya.TR_length) })
+    TR_assert_equal("H7014", TR_error_code { TR_print(kopya.TR_keys()) })
+    TR_assert_equal("H7014", TR_error_code { TR_print(kopya.TR_get("dış_hesap")) })
+    TR_assert_equal(7, özel.dış_hesap(2))
+    TR_assert_equal(7, kopya.dış_hesap(2))
+}
+
 TR_test "11.3 modül değerinin adı modülün değişkenini okur, yüklemedeki kopyasını değil" {
     # Modülün kendi fonksiyonu değişkenini değiştirince modül değeri de yeni değeri verir.
     TR_var sayı = ym.modülde_say()

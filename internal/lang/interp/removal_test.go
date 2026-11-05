@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +41,21 @@ func TestRemoveOnAListOfUnknownType(t *testing.T) {
 }
 
 // Kural (13.4): silinen anahtardan iz kalmaz: paylaşılan tablo silinenlerle büyümez.
+// Kural: üyenin hata iletisi kimlikle yazılan adı kimliğiyle gösterir, görünüm adı dosyada çalışmaz.
+// Neden: "sil", "sondan_çıkar" iletide görünüyor, kopyalanınca H2474 veriyordu (DENETİM istek 125 N2, N4).
+func TestAMemberErrorWritesTheIdentity(t *testing.T) {
+	for _, c := range []struct{ program, want string }{
+		{"TR_var s: TR_Any = \"a\"\nTR_print(s.TR_remove(\"x\"))", "\"TR_remove\""},
+		{"TR_var s: TR_Any = \"a\"\nTR_print(s.TR_pop())", "\"TR_pop\""},
+		{"TR_var l: TR_Any = [1]\nTR_print(l.TR_remove(0))", "\"TR_remove\""},
+	} {
+		_, err := runTR(t, c.program)
+		if err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%q: %s bekleniyordu: %v", c.program, c.want, err)
+		}
+	}
+}
+
 func TestRemovedKeyLeavesNothing(t *testing.T) {
 	d := &DictVal{Pairs: map[string]Value{}}
 	d.SetValue(NewInt(1), NewInt(10))

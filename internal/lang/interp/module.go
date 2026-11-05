@@ -10,6 +10,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
+	"github.com/sekerahmet/TCB/internal/lang/hint"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
@@ -392,6 +393,27 @@ func moduleIndexError(d *DictVal, left ast.Expression, idx Value) error {
 		name = s.Val
 	}
 	return messages.New(messages.H2904, module, name)
+}
+
+// moduleMember modül değerinin m.ad okumasıdır (11.2). Modül değeri bir sözlük değildir: sözlüğün
+// üyeleri yoktur, yalnız modülün dışa aktardığı adlar okunur. Olmayan ad hatadır; denetleyici modülün
+// adlarını bugün bilmediği için (4b) çalışma anında. m?.ad öbür değerlerdeki gibi yok verir. İleti
+// kimlikle yazılan adı kimliğiyle gösterir: takma addan sonra okunan kimlik üye olmayabilir (TR_remove).
+func (d *DictVal) moduleMember(e *ast.MemberExpression, u memberInfo) (Value, error) {
+	if key, ok := u.moduleKey(d, e.Property); ok {
+		return moduleName(d, key), nil
+	}
+	if err := d.privateNameError(e.Property); err != nil {
+		return nil, messages.At(e.Line(), 0, err)
+	}
+	if e.Safe {
+		return Null, nil
+	}
+	name := e.Property
+	if k := e.NameToken.Code; k != codes.None {
+		name = codes.Spelling(k)
+	}
+	return nil, messages.At(e.Line(), 0, messages.New(messages.H7014, d.module.path, name, hint.ClosestSuggestion(e.Property, d.Order, nil)))
 }
 
 // moduleName modül değerinin adının bugünkü değeridir (11.3): modülün kendi fonksiyonu en dış

@@ -142,6 +142,15 @@ func (u memberInfo) keyName(prop string) string {
 	return prop
 }
 
+// written üyenin iletide yazılan adıdır: kimlikle yazılmış üyede kimliği (TR_pop; program bir dosyadır,
+// dili yoktur, 2.1), öbür adlarda adın kendisi.
+func (u memberInfo) written(prop string) string {
+	if u.codeVal != codes.None {
+		return codes.Spelling(u.codeVal)
+	}
+	return prop
+}
+
 // resolveMember adı derleme anında çözer.
 func resolveMember(name string) memberInfo {
 	u := memberInfo{codeVal: codes.MemberCode(name)}
@@ -173,12 +182,15 @@ func findMethod(obj Value, cm *coreMethod) *builtinMethod {
 	if cm == nil {
 		return nil
 	}
-	switch obj.(type) {
+	switch v := obj.(type) {
 	case *StringVal:
 		return cm.text
 	case *ListVal:
 		return cm.listVal
 	case *DictVal:
+		if v.module != nil {
+			return nil // modül değeri bir sözlük değildir (11.2)
+		}
 		return cm.dictVal
 	case *RangeVal:
 		return cm.rangeVal
@@ -488,18 +500,9 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 			return m.f(y, obj, args, line)
 		}}, nil
 	}
-	if d, ok := obj.(*DictVal); ok {
-		if d.module == nil {
-			// Anahtar yalnız köşeli parantezle okunur (3.7); nokta yalnız üyeleri verir.
-			return nil, messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
-		}
-		if key, ok := u.moduleKey(d, prop); ok {
-			return moduleName(d, key), nil
-		}
-		if err := d.privateNameError(prop); err != nil {
-			return nil, messages.At(line, 0, err)
-		}
-		return Null, nil
+	if _, ok := obj.(*DictVal); ok {
+		// Anahtar yalnız köşeli parantezle okunur (3.7); nokta yalnız üyeleri verir.
+		return nil, messages.At(line, 0, messages.New(messages.H2648, u.keyName(prop)))
 	}
 
 	if safe {
@@ -511,9 +514,9 @@ func (v *VM) evalBuiltinMember(obj Value, prop string, u memberInfo, safe bool, 
 	}
 	if _, list := obj.(*ListVal); list && prop == codes.Name(codes.MemRemove) {
 		// .TR_remove sözlüğün metodudur; denetimdeki hata (13.11).
-		return nil, messages.At(line, 0, messages.New(messages.H2535, obj.Type(), prop))
+		return nil, messages.At(line, 0, messages.New(messages.H2535, obj.Type(), u.written(prop)))
 	}
-	return nil, messages.At(line, 0, messages.New(messages.H2474, obj.Type(), prop, removedMemberHint(prop)))
+	return nil, messages.At(line, 0, messages.New(messages.H2474, obj.Type(), u.written(prop), removedMemberHint(prop)))
 }
 
 // listReduce liste.indirge([başlangıç], fonksiyon) metodunun gövdesidir. Fonksiyon son

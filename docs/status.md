@@ -505,8 +505,8 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 ### 11.2
 
 - **Mevcut durum:** köşeli ayraçla okuma ve atama (`m["PI"]`, `m["PI"] = 9`) takma adda denetimde, çalışma anının koduyla (H2904), ileti `m.PI`'yi öneriyor; indeks ad gibi yazılmış bir metin değilse (`m[k]`) ve tipi bilinmeyen kopyada çalışma anında [ölçüldü: `TestModuleValueRules`, `tests/negative/modul_koseli_ayrac.tr`, `tests/moduller_test.tr`'nin 11.2 testi].
-- **Mevcut durum:** `TR_as` bir `TR_Dict` bağlıyor; modülde olmayan bir ad (m.yok) denetimden geçiyor ve çalışırken `TR_none` veriyor [ölçüldü: main `a9a1ba14`].
-- **Yapılacaklar (A; denetim kısmı Ö1, 4a5; çalışma anında olmayan adın `TR_none`'u Ö0; DENETİM istek 81 Ş2):** modül değeri; adların tipi denetimde; köşeli ayraçla erişim (çalışma anının kodu H2904), olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
+- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 81 Ş2, 125 N4):** modülde olmayan ad (`m.x`) denetimden geçiyor (D, aşağıda), çalışırken `TR_none` yerine H7014 veriyor, ileti modülün en yakın adını öneriyor. Sözlüğün üyeleri de aynı hata: `TR_var k = m` ile `k.TR_remove("f")` modülün adını siliyor, sonraki `m.f` hatasız `TR_none` veriyordu [ölçüldü: `25e76eae`]; `k.TR_keys()`, `k.TR_get(...)`, `k.TR_length` de sözlük gibi okunuyordu [test: `tests/moduller_test.tr`'nin 11.2 testi, `TestAMissingModuleNameSuggestsTheClosest`].
+- **Yapılacaklar (D, Ö1, 4a5; DENETİM istek 81 Ş2):** modül değeri; adların tipi denetimde; köşeli ayraçla erişim (çalışma anının kodu H2904), olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı.
 
 ### 11.3
 

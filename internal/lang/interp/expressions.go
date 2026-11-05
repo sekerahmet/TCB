@@ -174,7 +174,12 @@ func (v *VM) memberValue(obj Value, e *ast.MemberExpression, u memberInfo) (Valu
 		if ValueType(inst.Def.Name) != ValNull {
 			return structMember(inst, e)
 		}
-	case *DictVal, *ListVal, *StringVal, *RangeVal:
+	case *DictVal:
+		if inst.module != nil {
+			return inst.moduleMember(e, u)
+		}
+		return v.evalBuiltinMember(obj, e.Property, u, e.Safe, e.Line())
+	case *ListVal, *StringVal, *RangeVal:
 		return v.evalBuiltinMember(obj, e.Property, u, e.Safe, e.Line())
 	}
 
