@@ -19,7 +19,7 @@ TR_test "eşitlik" {
 - `TR_assert(koşul, [mesaj])`: koşul yanlışsa test kalır.
 - `TR_assert_equal(beklenen, gerçek, [mesaj])`: değerler `==` anlamında eşit değilse ikisini de tipiyle gösterir.
 - `TR_test` yalnızca deyim başında ve ardından bir metin gelince test başlatır; `TR_var test = 5` gibi kullanımlar çalışmaya devam eder.
-- Önce dosyanın kendisi çalışıp üst düzey tanımları oluşturur; sonra her test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Kalan ya da hata veren test diğerlerini durdurmaz. (Üst düzey bir değişkene atama yapan test, sonrakilerin gördüğü değeri değiştirir.)
+- Her test kendi temiz durumunda başlar: dosya ve aktardığı modüller her test için yeniden yüklenir, paylaşılan rastgele üreteç başlangıç durumundadır; test bu tanımların üzerinde **yeni bir kapsamda** çalışır. Bir testin en dıştaki bir değişkene atadığı değer ya da çektiği rastgele sayı sonraki testi etkilemez. Kalan ya da hata veren test diğerlerini durdurmaz.
 
 ```text
 > trlang test .

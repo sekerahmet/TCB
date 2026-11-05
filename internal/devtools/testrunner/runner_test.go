@@ -73,6 +73,52 @@ func TestRunFile(t *testing.T) {
 // Testin başlattığı eşzamanlı görevdeki hata (başarısız doğrulama dahil) testi kaldırır (10.1);
 // eskiden yalnızca rapora yazılıyor, test geçmiş görünüyordu (Go'da başka goroutine'den t.Error
 // testi kaldırır). Hata, görevi başlatan testte kalır; sonraki teste taşmaz.
+// Her test programın başlangıç durumunda başlar (12.5): iki test aynı gövdeyle yazılır, ikisi de
+// geçmeli, ikisinin çektiği sayı aynı olmalı. Sonuç sıraya bağlı değildir.
+func TestEveryTestRebuildsTheProgram(t *testing.T) {
+	dir := t.TempDir()
+	writeTR(t, dir, "durumlu.tr", `TR_var sayac = 0
+TR_func artir() -> TR_Int {
+    sayac = sayac + 1
+    TR_return sayac
+}
+`)
+	const body = ` {
+    TR_assert_equal(1, sayac_artir())
+    TR_assert_equal(1, durumlu.artir())
+    liste.TR_append(2)
+    TR_assert_equal(2, liste.TR_length)
+    d["b"] = 2
+    TR_assert_equal(2, d.TR_length)
+    TR_print(TR_randn([2]))
+}
+`
+	fpath := writeTR(t, dir, "yeniden_test.tr", `TR_import "durumlu" TR_as durumlu
+TR_var sayac = 0
+TR_var liste = [1]
+TR_var d = {"a": 1}
+TR_func sayac_artir() -> TR_Int {
+    sayac = sayac + 1
+    TR_return sayac
+}
+TR_test "birinci"`+body+`TR_test "ikinci"`+body)
+	var out bytes.Buffer
+	summary := RunFile(fpath, &out)
+	text := out.String()
+	if summary.Total != 2 || summary.Passed != 2 {
+		t.Fatalf("testler birbirini etkiledi: %+v\n%s", summary, text)
+	}
+	var draws []string
+	for _, line := range strings.Split(text, "\n") {
+		if strings.Contains(line, "[") {
+			draws = append(draws, strings.TrimSpace(line))
+		}
+	}
+	if len(draws) != 2 || draws[0] != draws[1] {
+		t.Fatalf("iki test aynı sayıları çekmeli: %q\n%s", draws, text)
+	}
+}
+
 func TestTaskErrorFailsTest(t *testing.T) {
 	fpath := writeTR(t, t.TempDir(), "gorev_test.tr", `TR_test "görevde başarısız doğrulama" {
     TR_async {

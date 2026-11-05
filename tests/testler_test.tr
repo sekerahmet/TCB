@@ -4,6 +4,13 @@ TR_import "yardimci_testli"
 
 TR_var test = "test sıradan bir ad olarak da kullanılabilir"
 TR_var genel_değer = 42
+TR_var genel_sayaç = 0
+TR_var liste = [1]
+
+TR_func genel_artır() -> TR_Int {
+    genel_sayaç = genel_sayaç + 1
+    TR_return genel_sayaç
+}
 
 TR_test "12.1 test bloğu adıyla birlikte tanımlanır; normal çalıştırmada atlanır" {
     # Modül normal biçimde çalıştırılır: içindeki test bloğu atlanır (çalışsaydı sayaç değişir
@@ -34,6 +41,29 @@ TR_test "12.5 her test yeni bir kapsamda çalışır; üst düzey tanımlar gör
     TR_var yerel = 1
     TR_assert_equal(1, yerel)
     TR_assert_equal(42, genel_değer)
+}
+
+# İki test aynı gövdeyle yazıldı: biri öbürünün değiştirdiğini görseydi ikincisi kalırdı.
+TR_test "12.5 en dıştaki tanımlar her test için yeniden kurulur (birinci)" {
+    TR_assert_equal(1, genel_artır())
+    TR_assert_equal(1, testli_artır())
+    liste.TR_append(2)
+    TR_assert_equal(2, liste.TR_length)
+}
+
+TR_test "12.5 en dıştaki tanımlar her test için yeniden kurulur (ikinci)" {
+    TR_assert_equal(1, genel_artır())
+    TR_assert_equal(1, testli_artır())
+    liste.TR_append(2)
+    TR_assert_equal(2, liste.TR_length)
+}
+
+TR_test "12.5 her test paylaşılan üreteci başlangıç durumunda bulur (birinci)" {
+    TR_assert_equal([-1.0469432, -1.7477671], TR_randn([2]).TR_tolist)
+}
+
+TR_test "12.5 her test paylaşılan üreteci başlangıç durumunda bulur (ikinci)" {
+    TR_assert_equal([-1.0469432, -1.7477671], TR_randn([2]).TR_tolist)
 }
 
 TR_test "12.6 test gövdesinde sonuç derleme hatasıdır" {
