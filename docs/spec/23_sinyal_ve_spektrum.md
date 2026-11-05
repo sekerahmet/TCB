@@ -23,7 +23,7 @@ TR_var gerçek, sanal = TR_rfft(x)
 TR_print(gerçek.TR_tolist(), sanal.TR_tolist()) # [0.0, 2.0, 0.0] [0.0, 0.0, 0.0]
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca TR testi (örnekteki tam sıfırlar dahil).
+- *Test:* TR testi (örnekteki tam sıfırlar dahil); Go: `TestPlanMatchesTheDefinition`.
 
 ## Pencere ve STFT
 
@@ -31,7 +31,7 @@ TR_print(gerçek.TR_tolist(), sanal.TR_tolist()) # [0.0, 2.0, 0.0] [0.0, 0.0, 0.
 - `TR_periodic:` zorunludur: PyTorch'un penceresi periyodik, NumPy ve SciPy'ınki simetriktir. STFT'nin ve Whisper'ın penceresi periyodiktir.
 - `n` en az 1'dir; `n = 1`'de pencere `[1.0]`'dır.
 - Hesap float64'tedir, sonuç float32 bir tensördür ve türev izlemez.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi.
 
 **23.3** `TR_stft(x, n, TR_hop_length: h, TR_window: w, TR_center: b, TR_pad_mode: kip)` kısa süreli Fourier dönüşümüdür.
 - Son eksendeki sinyal `n` uzunluklu, `h` adımlı çerçevelere bölünür; her çerçeve pencereyle çarpılıp 23.1 ile dönüştürülür. Sonuç `(gerçek, sanal)`'dır; ikisinin de şekli `[..., n // 2 + 1, çerçeve]`'dir. Baştaki eksenler toplu eksendir: `TR_Sound`'un `[kanal, örnek]`'i (22.4) `[kanal, n // 2 + 1, çerçeve]` olur.
@@ -53,7 +53,7 @@ TR_var gerçek, sanal = TR_stft(x, 400, TR_hop_length: 160, TR_window: pencere, 
 TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi.
 
 ## Mel
 
@@ -65,14 +65,14 @@ TR_var güç = gerçek ** 2 + sanal ** 2 # şekli [201, çerçeve]
 - `TR_f_min:` en düşük frekanstır (varsayılan 0.0), `TR_f_max:` en yüksek frekanstır (varsayılan `r / 2`). `0 ≤ f_min < f_max ≤ r / 2` değilse hata.
 - Formül librosa'nın `filters.mel`'idir (0.11.0). Hesap float64'tedir; sonuç float32'ye bir kez yuvarlanır ve türev izlemez.
 - Hiçbir frekans kutusuna düşmeyen boş süzgeç hatadır; ileti `n`'yi büyütmeyi ya da `m`'yi küçültmeyi önerir.
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go testi: Whisper'ın `mel_filters.npz`'iyle en büyük farkı ölçülür ve sınırı testte yazılır.
+- *Test:* TR testi; Go: `TestMelFiltersMatchWhisper`: Whisper'ın `mel_filters.npz`'iyle en büyük fark 1e-8'in altında.
 
 ## Belirlenimcilik
 
 **23.5** Bu bölümün işlemleri 15.22a'ya uyar: aynı cihaz türünde aynı girdi ve şekil aynı bitleri verir. Cihaz türleri arasında 15.41'in üçüncü basamağındadır (ondalık indirgeme).
 - GPU'da Fourier dönüşümü TR'nin kendi çekirdeğiyle yapılır; sistemin FFT kitaplığı yüklenmez. Sonuç sistemde kurulu bir kitaplığın sürümüne bağlı olmaz. Çekirdek gelene kadar GPU'daki tensörde 23.1 ve 23.3 hata verir, CPU'ya düşmez (15.41).
 - Toplu verilen seslerin sonucu tek tek hesaplananla aynı bitleri vermeyebilir: şekil değişir (15.22a "aynı şekil").
-- *Test:* gerekmez, henüz uygulanmadı; uygulanınca Go testi: paralel ve GPU çekirdeği seri hesapla karşılaştırılır.
+- *Test:* Go: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`.
 
 ## Whisper'ın girdisi
 
@@ -100,4 +100,4 @@ TR_var mel = TR_whisper_log_mel(ses, TR_n_mels: 80)
 TR_print(mel.TR_shape) # [80, örnek // 160 + 3000]
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: sentetik bir sınav sesinde özgün uygulamanın log-Mel'iyle (Whisper `v20250625`, `padding=N_SAMPLES`) `TR_all_close(..., TR_rtol: 1e-4, TR_atol: 1e-4)`. Whisper'ın `tests/jfk.flac`'ı 16 kHz 16 bit WAV'a çevrilip aynı sınırla ayrıca kıyaslanır. Aynı cihaz türünde açgözlü çözmenin parçaları özgün uygulamanınkiyle birebir aynıdır; bu bir doğruluk testidir, cihazlar arası bir söz değildir (15.22a).
+- *Test:* TR testi (`tests/whisper_girdi_test.tr`): sentetik sınav sesinde özgünle aynı.

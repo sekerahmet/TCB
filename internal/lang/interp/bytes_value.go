@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -107,7 +108,32 @@ func (b *BytesVal) GetProperty(kd codes.Code, name string) (Value, error) {
 			return Null, nil
 		}}, nil
 	}
+	if member := bytesMember(kd); member != nil {
+		return member(b), nil
+	}
 	return nil, messages.New(messages.H2428, ValBytes, name, messages.New(messages.H2659))
+}
+
+// bytesMembers üst katmanın TR_Bytes üyeleridir (22.3): hassasiyetleri tensör çekirdeği bilir.
+var bytesMembers struct {
+	mu sync.RWMutex
+	m  map[codes.Code]func(*BytesVal) *BuiltinVal
+}
+
+// RegisterBytesMember kd üyesini TR_Bytes'a bağlar.
+func RegisterBytesMember(kd codes.Code, fn func(*BytesVal) *BuiltinVal) {
+	bytesMembers.mu.Lock()
+	defer bytesMembers.mu.Unlock()
+	if bytesMembers.m == nil {
+		bytesMembers.m = map[codes.Code]func(*BytesVal) *BuiltinVal{}
+	}
+	bytesMembers.m[kd] = fn
+}
+
+func bytesMember(kd codes.Code) func(*BytesVal) *BuiltinVal {
+	bytesMembers.mu.RLock()
+	defer bytesMembers.mu.RUnlock()
+	return bytesMembers.m[kd]
 }
 
 // Operator is '+' (two Bytes joined) and '*' (Bytes repeated by an Int; zero or less gives empty

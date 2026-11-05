@@ -109,6 +109,9 @@ func probeReturns(t *testing.T, k, ret codes.Code) string {
 			return f.Token.Code == k
 		case *ast.MemberExpression:
 			return f.NameToken.Code == k
+		case *ast.IndexExpression: // tip argümanlı çağrı: TR_from_bytes[TR_Int](...)
+			left, ok := f.Left.(*ast.Identifier)
+			return ok && left.Token.Code == k
 		}
 		return false
 	})

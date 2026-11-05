@@ -8,8 +8,9 @@ TR ile yazılmış, `trlang` ikilisine gömülü kitaplık. Modüller `TR_kw_imp
 | `tr/optimizers` | [`optimizers.tr`](optimizers.tr) | Muon, NorMuon, parametre grupları, öğrenme oranı planı |
 | `tr/training` | [`training.tr`](training.tr) | Uzun eğitimin güvenliği: koşunun kayıt işleri (`TR_type_Run`, prova) ve kayıp ile gradyan normu sıçrama bekçisi |
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
+| `tr/audio` | [`audio.tr`](audio.tr) | Ses dosyası (WAV okumak ve yazmak, `TR_type_Sound`) ve Whisper'ın girdisi (`TR_fn_whisper_log_mel`) |
 
-Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
+Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`, `audio_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
 ```tr
 # TR 4
@@ -176,3 +177,17 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 
 `TR_fn_build_pretrained_model(ayar)` yalnızca kurar (ağırlıksız); `TR_fn_map_hugging_face(ağırlıklar, ayar)` yalnızca eşler.
 
+## `tr/audio`
+
+Dosyadan ses, Whisper'ın girdisine kadar (dil tanımı [22.4](../docs/spec/22_bayt_ve_sayi.md), [23.6](../docs/spec/23_sinyal_ve_spektrum.md)). Dönüşümün kendisi yerleşiktir (`TR_fn_rfft`, `TR_fn_stft`, `TR_fn_hann_window`, `TR_fn_mel_filterbank`); bu modül dosya biçimini ve Whisper'ın sırasını yazar.
+
+| Ad | Ne yapar | Kurulum |
+| :-- | :-- | :-- |
+| `TR_type_Sound` | `TR_mem_samples` (`[kanal, örnek]` ondalık tensör) ve `TR_mem_sample_rate` | `TR_type_Sound(TR_arg_samples: t, TR_arg_sample_rate: r)` |
+| `TR_fn_read_wav` | 16 bit tam sayı, 32 bit ondalık ve `WAVE_FORMAT_EXTENSIBLE` biçimlerini okur | `TR_fn_read_wav(yol)` |
+| `TR_fn_write_wav` | 16 bit tam sayı PCM yazar; `[-1, 1]` dışı ve NaN örnek hatadır | `TR_fn_write_wav(yol, ses)` |
+| `TR_fn_whisper_log_mel` | Bir kaydın tamamı için log-Mel: `[m, örnek // 160 + 3000]` | `TR_fn_whisper_log_mel(ses, TR_arg_n_mels: 80)` |
+
+**Dış girdi.** Dosya boyu güvenilmez: her parçanın boyu dosyada kalanla açıkça karşılaştırılır, çünkü bayt dilimi sessizce kırpar (3.3). Bozuk dosyanın her sebebi kendi iletisidir (H7061–H7071). Biçim önce denetlenir: desteklenmeyen biçim `ffmpeg` iletisini verir. Bulanıklaştırma hedefi `FuzzReadWav`'dır (`cmd/trlang`).
+
+**Yeniden örnekleme kitaplıkta yoktur.** `ffmpeg -nostdin -i girdi -ar 16000 -c:a pcm_s16le çıktı.wav`.

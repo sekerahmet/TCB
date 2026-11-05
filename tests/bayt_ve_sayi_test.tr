@@ -1,0 +1,121 @@
+# TR 4
+# Bayt ve sayı (22.1–22.3): baytlardan tensör ve sayı okumak, bayta yazmak.
+
+TR_test "22.1 örnek: iki baytlık işaretli sayılar küçük uçlu okunur" {
+    TR_var b = TR_Bytes([1, 0, 255, 255])
+    TR_assert_equal([1, -1], TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal([256, -1], TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "big").TR_tolist)
+    TR_assert_equal("int16", TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "big").TR_dtype)
+}
+
+TR_test "22.1 her hassasiyet kurulur; tek baytlıda bayt sırası gerekmez" {
+    TR_assert_equal([1, 255], TR_from_bytes[TR_Int](TR_Bytes([1, 255]), TR_dtype: "uint8").TR_tolist)
+    TR_assert_equal([1, -1], TR_from_bytes[TR_Int](TR_Bytes([1, 255]), TR_dtype: "int8").TR_tolist)
+    TR_assert_equal([TR_true, TR_false], TR_from_bytes[TR_Bool](TR_Bytes([1, 0]), TR_dtype: "bool").TR_tolist)
+    TR_assert_equal([1.5], TR_from_bytes[TR_Float](TR_Bytes([0, 0, 192, 63]), TR_dtype: "float32", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal([1.5], TR_from_bytes[TR_Float](TR_Bytes([63, 192, 0, 0]), TR_dtype: "float32", TR_byte_order: "big").TR_tolist)
+    TR_assert_equal([1.5], TR_from_bytes[TR_Float](TR_Bytes([0, 0, 0, 0, 0, 0, 248, 63]), TR_dtype: "float64", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal([1.5], TR_from_bytes[TR_Float](TR_Bytes([192, 63]), TR_dtype: "bf16", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal([1.5], TR_from_bytes[TR_Float](TR_Bytes([62, 0]), TR_dtype: "fp16", TR_byte_order: "big").TR_tolist)
+    TR_assert_equal([2147483648], TR_from_bytes[TR_Int](TR_Bytes([0, 0, 0, 128]), TR_dtype: "uint32", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal([-1], TR_from_bytes[TR_Int](TR_Bytes([255, 255, 255, 255, 255, 255, 255, 255]), TR_dtype: "int64", TR_byte_order: "big").TR_tolist)
+}
+
+TR_test "22.1 boş bayt boş tensör verir; konum dilimdir, hizalı olması gerekmez" {
+    TR_assert_equal([0], TR_from_bytes[TR_Float](TR_Bytes([]), TR_dtype: "float32", TR_byte_order: "little").TR_shape)
+    TR_var b = TR_Bytes([9, 1, 0, 2, 0])
+    TR_assert_equal([1, 2], TR_from_bytes[TR_Int](b[1..b.TR_length], TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+}
+
+TR_test "22.1 yanlış kullanım adıyla hata verir" {
+    TR_var b = TR_Bytes([1, 0, 255])
+    TR_assert_equal("H7051", TR_error_code { TR_from_bytes(b) })
+    TR_assert_equal("H7052", TR_error_code { TR_from_bytes[TR_Int](b) })
+    TR_assert_equal("H7055", TR_error_code { TR_from_bytes[TR_Int](b, TR_dtype: "int16") })
+    TR_assert_equal("H7056", TR_error_code { TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "native") })
+    TR_assert_equal("H7057", TR_error_code { TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "little") })
+    TR_assert_equal("H7058", TR_error_code { TR_from_bytes[TR_Bool](TR_Bytes([0, 2]), TR_dtype: "bool") })
+    TR_assert_equal("H7053", TR_error_code { TR_from_bytes[TR_Float](b, TR_dtype: "q8") })
+    TR_assert_equal("H6971", TR_error_code { TR_from_bytes[TR_String](b, TR_dtype: "int16") })
+    TR_assert_equal("H6810", TR_error_code { TR_from_bytes[TR_Int](b, TR_dtype: "yok") })
+}
+
+TR_test "22.1 H7057'nin dilimi kopyalanınca çalışır" {
+    TR_var b = TR_Bytes([1, 0, 255])
+    TR_assert_equal([1], TR_from_bytes[TR_Int](b[0..2], TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+}
+
+TR_test "22.1 değişkenle verilen başka cinsin hassasiyeti çalışırken hatadır" {
+    TR_var ad = "int16"
+    TR_assert_equal("H6976", TR_error_code { TR_from_bytes[TR_Float](TR_Bytes([1, 0]), TR_dtype: ad, TR_byte_order: "little") })
+    TR_assert_equal("H7054", TR_error_code { TR_Bytes([1, 0]).TR_read_float(0, TR_dtype: ad, TR_byte_order: "little") })
+    TR_var mantık = "bool"
+    TR_assert_equal("H7060", TR_error_code { TR_Bytes([1]).TR_read_int(0, TR_dtype: mantık) })
+}
+
+TR_test "22.2 tensör kendi hassasiyetinde, satır sırasıyla yazılır" {
+    TR_assert_equal(TR_Bytes([1, 2]), TR_Tensor([1, 2], TR_dtype: "uint8").TR_to_bytes())
+    TR_assert_equal(TR_Bytes([1, 0, 255, 255]), TR_Tensor([1, -1], TR_dtype: "int16").TR_to_bytes(TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([0, 1, 255, 255]), TR_Tensor([1, -1], TR_dtype: "int16").TR_to_bytes(TR_byte_order: "big"))
+    TR_assert_equal(TR_Bytes([0, 0, 192, 63]), TR_Tensor([1.5]).TR_to_bytes(TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([192, 63]), TR_Tensor([1.5], TR_dtype: "bf16").TR_to_bytes(TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([1, 2, 3, 4]), TR_Tensor([[1, 2], [3, 4]], TR_dtype: "uint8").TR_to_bytes())
+    TR_assert_equal(TR_Bytes([1, 3, 2, 4]), TR_Tensor([[1, 2], [3, 4]], TR_dtype: "uint8").TR_transpose().TR_to_bytes())
+    TR_assert_equal(TR_Bytes([1, 0]), TR_Tensor([TR_true, TR_false]).TR_to_bytes())
+}
+
+TR_test "22.2 gidiş dönüş aynı bitleri verir; sonuç türevlenmez" {
+    TR_for ad TR_in ["float32", "bf16", "fp16"] {
+        TR_var t = TR_Tensor([0.5, -2.0, 0.0], TR_dtype: ad)
+        TR_var b = t.TR_to_bytes(TR_byte_order: "big")
+        TR_assert_equal(t.TR_tolist, TR_from_bytes[TR_Float](b, TR_dtype: ad, TR_byte_order: "big").TR_tolist)
+    }
+    TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_assert_equal(TR_Bytes, TR_Type((w * 2.0).TR_to_bytes(TR_byte_order: "little")))
+    TR_assert_equal("H7055", TR_error_code { TR_Tensor([1.0]).TR_to_bytes() })
+    TR_assert_equal("H7056", TR_error_code { TR_Tensor([1.0]).TR_to_bytes(TR_byte_order: 1) })
+}
+
+TR_test "22.3 tek sayı konumundan okunur" {
+    TR_var b = TR_Bytes([9, 128, 62, 0, 0])
+    TR_assert_equal(16000, b.TR_read_int(1, TR_dtype: "uint32", TR_byte_order: "little"))
+    TR_assert_equal(-128, TR_Bytes([128]).TR_read_int(0, TR_dtype: "int8"))
+    TR_assert_equal(128, TR_Bytes([128]).TR_read_int(0, TR_dtype: "uint8"))
+    TR_assert_equal(-2, TR_Bytes([254, 255]).TR_read_int(0, TR_dtype: "int16", TR_byte_order: "little"))
+    TR_assert_equal(65534, TR_Bytes([255, 254]).TR_read_int(0, TR_dtype: "uint16", TR_byte_order: "big"))
+    TR_assert_equal(4294967295, TR_Bytes([255, 255, 255, 255]).TR_read_int(0, TR_dtype: "uint32", TR_byte_order: "big"))
+    TR_assert_equal(1.5, TR_Bytes([0, 0, 192, 63]).TR_read_float(0, TR_dtype: "float32", TR_byte_order: "little"))
+    TR_assert_equal(1.5, TR_Bytes([62, 0]).TR_read_float(0, TR_dtype: "fp16", TR_byte_order: "big"))
+    TR_assert_equal(1.5, TR_Bytes([192, 63]).TR_read_float(0, TR_dtype: "bf16", TR_byte_order: "little"))
+}
+
+TR_test "22.3 eksi konum, en büyük TR_Int ve taşan aralık hatadır" {
+    TR_var b = TR_Bytes([1, 2, 3, 4])
+    TR_assert_equal("H7059", TR_error_code { b.TR_read_int(-1, TR_dtype: "uint8") })
+    TR_assert_equal("H7059", TR_error_code { b.TR_read_int(9223372036854775807, TR_dtype: "uint16", TR_byte_order: "little") })
+    TR_assert_equal("H7059", TR_error_code { b.TR_read_float(1, TR_dtype: "float32", TR_byte_order: "little") })
+    TR_assert_equal("H7059", TR_error_code { b.TR_read_int(4, TR_dtype: "uint8") })
+    TR_assert_equal("H7059", TR_error_code { TR_Bytes([1]).TR_read_int(0, TR_dtype: "int16", TR_byte_order: "little") })
+    TR_assert_equal("H7059", TR_error_code { TR_Bytes([]).TR_read_int(0, TR_dtype: "uint8") })
+    TR_assert_equal(1027, b.TR_read_int(2, TR_dtype: "uint16", TR_byte_order: "little"))
+}
+
+TR_test "22.3 sayı bayta yazılır; sığmayan tam sayı hatadır, ondalık en yakına yuvarlanır" {
+    TR_assert_equal(TR_Bytes([1, 2]), TR_int_to_bytes(258, TR_dtype: "uint16", TR_byte_order: "big"))
+    TR_assert_equal(TR_Bytes([2, 1]), TR_int_to_bytes(258, TR_dtype: "uint16", TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([255, 255, 255, 255]), TR_int_to_bytes(-1, TR_dtype: "int32", TR_byte_order: "big"))
+    TR_assert_equal(TR_Bytes([200]), TR_int_to_bytes(200, TR_dtype: "uint8"))
+    TR_assert_equal("H6964", TR_error_code { TR_int_to_bytes(300, TR_dtype: "uint8") })
+    TR_assert_equal("H6964", TR_error_code { TR_int_to_bytes(-1, TR_dtype: "uint32", TR_byte_order: "big") })
+    TR_assert_equal(TR_Bytes([0, 0, 192, 63]), TR_float_to_bytes(1.5, TR_dtype: "float32", TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([63, 248, 0, 0, 0, 0, 0, 0]), TR_float_to_bytes(1.5, TR_dtype: "float64", TR_byte_order: "big"))
+    TR_assert_equal(TR_Bytes([0, 60]), TR_float_to_bytes(1, TR_dtype: "fp16", TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([128, 63]), TR_float_to_bytes(1.00001, TR_dtype: "bf16", TR_byte_order: "little"))
+    TR_assert_equal(TR_Bytes([0, 124]), TR_float_to_bytes(70000.0, TR_dtype: "fp16", TR_byte_order: "little"))
+}
+
+TR_test "22.3 float64 16 bite bir kez yuvarlanır: float32'den geçen çift yuvarlama yoktur" {
+    # 1 + 2^-11 + 2^-40: float32'ye yuvarlanınca tam orta nokta olur, oradan fp16 1.0'a inerdi.
+    TR_var x = 1.0 + 0.00048828125 + 0.0000000000009094947017729282
+    TR_assert_equal(TR_Bytes([1, 60]), TR_float_to_bytes(x, TR_dtype: "fp16", TR_byte_order: "little"))
+}

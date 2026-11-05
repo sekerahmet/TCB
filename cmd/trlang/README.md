@@ -6,6 +6,7 @@
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
+- `behavior_read_wav_test.go`: `TR_read_wav`'ın süreç içinde koşulan bulanıklaştırma hedefi ve iletilerin önerileri (22.4)
 - `behavior_repo_tr_files_test.go`: depodaki bütün .tr dosyalarının denetimden hatasız ve uyarısız geçmesi (bilerek uyaran yerler gerekçesiyle `repoWarningAllowed`'da)
 
 ## Standartlar

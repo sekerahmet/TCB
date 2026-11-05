@@ -31,7 +31,7 @@ Program dosyası her x86-64 işlemcide çalışır: matris çarpımı ve vektör
 
 Her komutun tek bir kimlik adı vardır (`run`, `format`, `debug`, `help` ...); gösterim dilindeki ya da Türkçe karaktersiz yazımlar (`çalıştır`, `calistir`, `biçimle`, `hata_ayıkla`, `--help` ...) çalışmaz, hata mesajı asıl komutu önerir (`'çalıştır' TR'de bir komut değil; 'trlang run' yazmak mı istediniz?`). Kısa bayraklar `-h`, `-v`, `-k` simgedir. Kabuktan (REPL) yalnızca `exit` ile çıkılır; `çıkış`, `cikis` ya da `quit` yazılınca kabuk `exit` yazmanızı söyler.
 
-Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `49_programin_sonu.tr`; örnekler kodlu saklanır, `trlang show <örnek> --lang en` İngilizce gösterir; liste ve açıklamalar [`examples/README.md`](../../examples/README.md)'de).
+Öğrenmeye `examples/` klasöründeki numaralı örneklerle başlayın (`examples/tr/01_merhaba.tr` … `50_bayt_ve_ses.tr`; örnekler kodlu saklanır, `trlang show <örnek> --lang en` İngilizce gösterir; liste ve açıklamalar [`examples/README.md`](../../examples/README.md)'de).
 
 ## Kodlu dosyalar: düzenleyici ve git farkları
 

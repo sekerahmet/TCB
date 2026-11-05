@@ -658,7 +658,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **4a2 (ilk dilim):** denetleyici imzaları okuyor: tek tipli dönüş çağrının tipi (`TR_BuiltinFunction` fonksiyon tipi sayılıyor), tipi bilinen alıcıda metodun varlığı (`types`) ve çekirdek metotların argüman sayısı (`params`). Tanımın motorla uyuştuğu sınanıyor: dönüş `TestSingleReturnsMatchEngine` (97 kod doğrulandı; `TR_json_parse` uyuşmuyor: tanım `TR_JSON`, motor `TR_Dict`, 13.8), üye tipleri `TestMemberTypesMatchDefinitions` (`.TR_get`, `.TR_keys`, `.TR_length` `TR_JSON`/`TR_Bytes`'ı eksik yazıyor), sayı `TestMethodCountsMatchDefinitions`.
 - **4a2 (ikinci dilim):** tipler kimlik yazımıyla (`TR_Int`, `TR_List[T]`, `T?`; sınıflı yazım hata) ve dilin tip ayrıştırıcısıyla okunuyor (`parser.ParseTypeText`) [test: `TestDefinitionTypesParse`]. Öğe tipli dönüş yazan üyeler: `.TR_first`, `.TR_last`, `.TR_get` (liste `T?`, sözlük `V?`), `.TR_filter`, `.TR_sort`, `.TR_unique`, `.TR_reverse` (liste `TR_List[T]`, aralık `TR_List[TR_Int]`), `.TR_keys`, `.TR_values`, `.TR_split` (metin); depodaki ilk değerlerden tipi bilinmeyen 626 → 623 [ölçüldü: `TestRepoFirstValueTypes`, `70b8e085` ve bu dilim]. Parametreler ve fonksiyon tipleri henüz öğesiz.
 - **Mevcut durum (4a4, 2026-11-03):** denetleyici fonksiyon parametresinin `A|B|C` tipini imza seçenekleri olarak okuyor (`TR_NoneType` seçeneği isteğe bağlılık); 40 fonksiyonun (13.1 diliminden sonra `TR_write_file`'ın içeriği `TR_String|TR_Bytes`) seçenekleri ve seçenek dışı tipe kodu motorla aynı [test: `TestFunctionParamOptionsMatchEngine`]. Seçenekleri motorla uyuşmayan ya da kodunun parametreleri denetimde doldurulamayan fonksiyonlar denetlenmiyor (`TR_clamp`, `TR_concat`, `TR_argmax` gibi; listesi 4a4'ün DEVİR'inde).
-- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81: öğesiz imza ve tek fonksiyon tipi yüzünden tam sayı tipli değişkene metin ve ondalık giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** imzalar öğe ve fonksiyon tipleriyle; `TR_BuiltinFunction` ve `TR_Any` kalkar; metot parametresinin birleşim seçenekleri; dönüşün seçilen imzadan gelmesi (`TR_abs(1)` `TR_Int`, 4a5). Dönüşün öğe tipinin somut sessiz yanlışı ve sahibi 6.6'da.
+- **Yapılacaklar (A, Ö1, 4a; DENETİM istek 81, 173: öğesiz imza ve tek fonksiyon tipi yüzünden tam sayı tipli değişkene metin ve ondalık giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]; `TR_rfft`, `TR_stft` sonucu `TR_Any`, `TR_var g, s = TR_rfft(x)` sonrası `TR_var y: TR_Int = g` geçiyor [ölçüldü: S1, DENETİM 173]):** imzalar öğe ve fonksiyon tipleriyle; `TR_BuiltinFunction` ve `TR_Any` kalkar; metot parametresinin birleşim seçenekleri; dönüşün seçilen imzadan gelmesi (`TR_abs(1)` `TR_Int`, 4a5). Dönüşün öğe tipinin somut sessiz yanlışı ve sahibi 6.6'da.
 - **Gemini Koşu 6 (2026-10-29), uygulanacak:** yerleşiğin fonksiyon değeri olarak eşleşmesi (isteğe bağlı parametreler boş, adlı argümanlar varsayılanda; varsayılansız adlı argümanda hata). Denetleyicinin işi (4a2).
 
 ### 13.10
@@ -790,9 +790,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.16a
 
-- **Mevcut durum:** `TR_maximum`, `TR_minimum`, tensörde `TR_round` (H2423) ve `TR_is_nan` yok [ölçüldü: main `85a19c36`, `TR_maximum`, `TR_minimum`, `TR_is_nan` bilinmeyen kimlik; `TR_round(t)` H2423]. Tensörde `TR_is_finite` `TR_Tensor[TR_Bool]` veriyor, `TR_fuse` içinde float32 0/1 kalıyor [test: `tests/matematik_test.tr`'nin 15.16a testi, `TestIsFiniteIsABoolMaskOutsideFuse`]. Kartta `TR_sum(TR_is_finite(x))` H6969 veriyor, float32 iken toplanıyordu: mantık tensörünün toplamı GPU'da yok, ileti tensörü CPU'ya taşımayı öneriyor; kıyas maskesi `TR_sum(x > 0.5)` de aynı [ölçüldü: L4, 2b teslimi].
-- **Yapılacaklar:** üçü; TR testi.
-- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_maximum` ve `TR_minimum`'un NaN konumundaki türevi iki işlenene de NaN.
+- **Mevcut durum (S1, 2026-11-05):** `TR_maximum`, `TR_minimum` var: NaN yayılır, ±0 sıralama sırasıyla, türev seçilene, eşitlikte yarı yarıya, NaN konumunda iki tarafa NaN; `TR_fuse` içinde H3107 [test: `tests/tensor_uc_ve_yakin_test.tr`]. Tensörde `TR_round` (H2423) ve `TR_is_nan` yok [ölçüldü: main `85a19c36`, `TR_is_nan` bilinmeyen kimlik; `TR_round(t)` H2423]. Tensörde `TR_is_finite` `TR_Tensor[TR_Bool]` veriyor, `TR_fuse` içinde float32 0/1 kalıyor [test: `tests/matematik_test.tr`'nin 15.16a testi, `TestIsFiniteIsABoolMaskOutsideFuse`]. Kartta `TR_sum(TR_is_finite(x))` H6969 veriyor, float32 iken toplanıyordu: mantık tensörünün toplamı GPU'da yok, ileti tensörü CPU'ya taşımayı öneriyor; kıyas maskesi `TR_sum(x > 0.5)` de aynı [ölçüldü: L4, 2b teslimi].
+- **Yapılacaklar:** tensörde `TR_round`, `TR_is_nan`; TR testi.
 
 ### 15.17
 
@@ -807,9 +806,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.18a
 
+- **Mevcut durum (S1, 2026-11-05):** `TR_all_close` var: hassasiyete göre paylar, `TR_rtol:`, `TR_atol:`, sonsuzun kuralı; ondalık olmayan tensör H7050 [test: `tests/tensor_uc_ve_yakin_test.tr`].
 - **Mevcut durum (T1 dilim 2):** eksensiz `TR_all` ve `TR_equal` var, TR testi `tests/tensor_test.tr`'de [ölçüldü]. `TR_equal` iki tensörü CPU'da karşılaştırır (sonuç zaten konağa okunur); cins farkı H6966, tensör olmayan argüman H6979. Tensör olmayan argümanı denetleyici yakalamıyor, çalışmada hata.
-- **Yapılacaklar:** `TR_any`, `TR_all_close`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; hassasiyete göre toleranslar; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979).
-- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_all_close`'da sonsuzun kuralı.
+- **Yapılacaklar:** `TR_any`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979).
 
 ### 15.19
 
@@ -1351,8 +1350,8 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (
 
 ### 22.1–22.4
 
-- **Mevcut durum:** uygulanmadı; `TR_from_bytes` kimliği ve `tr/audio` kitaplığı yok [ölçüldü: main `ec26382c`, `definitions.json`].
-- **Yapılacaklar:** uygulama Jarvis'in sırasıyla.
+- **Mevcut durum (S1, 2026-11-05):** 22.1–22.3 var: `TR_from_bytes[E]`, `.TR_to_bytes`, `.TR_read_int`, `.TR_read_float`, `TR_int_to_bytes`, `TR_float_to_bytes`; değişmez başka cins hassasiyet denetim hatası [test: `tests/bayt_ve_sayi_test.tr`, `tests/negative/bayt_hassasiyet_cinsi.tr`, `FuzzFromBytes`, `FuzzReadNumber`]. 22.4 var: `tr/audio`, `TR_read_wav`, `TR_write_wav`, `TR_Sound`; bozuk dosya sebebiyle H7061–H7071 ve H7080 [test: `lib/audio_test.tr`, `FuzzReadWav`]. Okumanın bellek tepesi dosyanın yaklaşık 10 katı: 38,4 MB'lık dosyada 395 904 KB [ölçüldü: S1].
+- **Yapılacaklar (F, Ö3; sahip S1):** iletide bayt adı okunmuyor: H7067 metin olmayan parça adını sayı listesi diye gösteriyor [ölçüldü: S1]. Uzun dosyalar için parça parça okuma, önce gerçek ihtiyaç ölçülür.
 
 ## 23. Sinyal ve spektrum
 
@@ -1360,8 +1359,8 @@ Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
 
 ### 23.1–23.6
 
-- **Mevcut durum:** uygulanmadı; `TR_rfft`, `TR_stft`, `TR_mel_filterbank` kimlikleri ve `tr/audio` kitaplığı yok [ölçüldü: main `705b721b`, `internal/lang/codes/tr.json`].
-- **Yapılacaklar:** uygulama Jarvis'in sırasıyla, konuşmayı yazıya çevirmekle. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.5); o gelene kadar GPU'da hata. 22.4'ün `TR_Sound` kuruluşu da 23.6'nın iletisi için gerekir.
+- **Mevcut durum (S1, 2026-11-05):** 23.1–23.3 var, CPU'da: `TR_rfft` (karışık taban, büyük asal çarpanda Bluestein), `TR_hann_window`, `TR_stft`; işçi sayısından bağımsız aynı bitler; türev izler (sayısal türevle kıyas); GPU'da H7076 [test: `tests/sinyal_test.tr`, `TestStftSameBitsForAnyWorkerCount`, `TestPlanMatchesTheDefinition`]. 23.4 `TR_mel_filterbank`, 23.6 `TR_whisper_log_mel` var [test: `tests/sinyal_test.tr`, `lib/audio_test.tr`, `tests/whisper_girdi_test.tr`, `TestMelFiltersMatchWhisper`].
+- **Yapılacaklar (E, Ö3; sahip S1):** `TR_fuse` içinde `TR_maximum` H3107 veriyor, 15.44 izin veriyor [ölçüldü: S1]. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.5); o gelene kadar GPU'da hata.
 
 ## 24. Sohbet biçimi
 

@@ -1,0 +1,43 @@
+# TR 4
+# 50 — Bayt ve ses: ses, algılayıcı paketi ve dosya başlığı sayıları bayt olarak taşır. Baytlardan
+# tensör ve tek sayı okunur; tensör ve sayı bayta yazılır.
+TR_import "tr/audio"
+
+# Çok baytlı sayıda bayt sırası zorunludur: makinenin kendi sırası diye bir seçenek yoktur.
+TR_var b = TR_Bytes([1, 0, 255, 255])
+TR_var sayılar = TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "little")
+TR_print(sayılar.TR_tolist, sayılar.TR_dtype)
+
+# Tensörü yeniden bayta yazmak aynı baytları verir.
+TR_print(sayılar.TR_to_bytes(TR_byte_order: "little") == b)
+
+# Tek sayı konumundan okunur; konum eksi ya da baytların dışındaysa hatadır.
+TR_var başlık = TR_int_to_bytes(16000, TR_dtype: "uint32", TR_byte_order: "little")
+TR_print(başlık.TR_read_int(0, TR_dtype: "uint32", TR_byte_order: "little"))
+TR_var ondalık = TR_float_to_bytes(1.5, TR_dtype: "float32", TR_byte_order: "big")
+TR_print(ondalık.TR_read_float(0, TR_dtype: "float32", TR_byte_order: "big"))
+
+# Ses dosyası tr/audio kitaplığındadır: örnekler [kanal, örnek] şekilli ondalık tensördür.
+TR_var yol = TR_Path(TR_temp_dir(), "deneme.wav")
+TR_write_wav(TR_String(yol), TR_Sound(TR_samples: TR_Tensor([[0.0, 0.5, -0.5]]), TR_sample_rate: 16000))
+TR_var ses = TR_read_wav(TR_String(yol))
+TR_print(ses.TR_sample_rate, ses.TR_samples.TR_shape)
+
+# Fourier dönüşümü sesi frekanslara ayırır; sonuç (gerçek, sanal) demetidir. STFT aynı işi kısa
+# pencerelerle yapar: konuşma modelleri sesi böyle görür.
+TR_var dalga = TR_Tensor([1.0, 0.0, -1.0, 0.0])
+TR_var gerçek, sanal = TR_rfft(dalga, TR_n: 8)
+TR_print(gerçek.TR_shape, sanal.TR_shape)
+TR_var pencere = TR_hann_window(4, TR_periodic: TR_true)
+TR_var g, s = TR_stft(ses.TR_samples[0], 4, TR_hop_length: 2, TR_window: pencere, TR_center: TR_true, TR_pad_mode: "reflect")
+TR_print((g ** 2 + s ** 2).TR_shape)
+
+# Mel süzgeçleri güç izgesini kulağın ölçeğine çevirir; Whisper'ın girdisi bunun logaritmasıdır.
+TR_var süzgeç = TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 80, TR_norm: "slaney", TR_mel_scale: "slaney", TR_f_min: 0.0, TR_f_max: 8000.0)
+TR_print(süzgeç.TR_shape)
+TR_var mel = TR_whisper_log_mel(ses, TR_n_mels: 80)
+TR_print(mel.TR_shape)
+
+# --- Kendin dene ---
+# 1. TR_Bytes([1, 2, 3]) baytlarını "uint16" olarak okumayı dene: ileti ne öneriyor?
+# 2. 300 sayısını "uint8" olarak yazmayı dene.

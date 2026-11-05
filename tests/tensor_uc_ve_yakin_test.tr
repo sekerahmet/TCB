@@ -1,0 +1,137 @@
+# TR 4
+# Öğe öğe en büyük ve en küçük (15.16a) ve yakınlık sınaması (15.18a).
+
+TR_func nan() -> TR_Float {
+    TR_return TR_Float("nan")
+}
+
+TR_func sonsuz() -> TR_Float {
+    TR_return TR_Float("inf")
+}
+
+TR_test "15.16a öğe öğe seçer, yayınlar; sayı tensörün cinsini alır" {
+    TR_assert_equal([3.0, 5.0], TR_maximum(TR_Tensor([1.0, 5.0]), TR_Tensor([3.0, 2.0])).TR_tolist)
+    TR_assert_equal([1.0, 2.0], TR_minimum(TR_Tensor([1.0, 5.0]), TR_Tensor([3.0, 2.0])).TR_tolist)
+    TR_assert_equal([[2.0, 3.0], [4.0, 4.0]], TR_maximum(TR_Tensor([[1.0], [4.0]]), TR_Tensor([[2.0, 3.0]])).TR_tolist)
+    TR_assert_equal([2.0, 5.0], TR_maximum(TR_Tensor([1.0, 5.0]), 2).TR_tolist)
+    TR_assert_equal([1.0, 2.0], TR_minimum(2.0, TR_Tensor([1.0, 5.0])).TR_tolist)
+    TR_assert_equal([1, 3], TR_minimum(TR_Tensor([1, 5]), 3).TR_tolist)
+    TR_assert_equal("int64", TR_maximum(TR_Tensor([1, 2], TR_dtype: "int32"), TR_Tensor([1, 5], TR_dtype: "int64")).TR_dtype)
+    TR_assert_equal([0], TR_maximum(TR_zeros([0]), TR_zeros([0])).TR_shape)
+}
+
+TR_test "15.16a hassasiyet: sayı tensörün hassasiyetini korur, float64 float64'te seçer" {
+    TR_assert_equal("bf16", TR_maximum(TR_Tensor([1.0], TR_dtype: "bf16"), 2.0).TR_dtype)
+    TR_var ince = TR_maximum(TR_Tensor([1.0, 3.0], TR_dtype: "float64"), 2.5)
+    TR_assert_equal("float64", ince.TR_dtype)
+    TR_assert_equal([2.5, 3.0], ince.TR_tolist)
+    TR_assert_equal("uint8", TR_maximum(TR_Tensor([1, 2], TR_dtype: "uint8"), 2).TR_dtype)
+    TR_assert_equal("H6964", TR_error_code { TR_maximum(TR_Tensor([1], TR_dtype: "uint8"), 300) })
+}
+
+TR_test "15.16a ±0 sıralama sırasıyla: argüman sırası sonucu değiştirmez" {
+    TR_var eksi = TR_Tensor([-0.0])
+    TR_var artı = TR_Tensor([0.0])
+    TR_assert_equal("0.0", TR_String(TR_maximum(-0.0, 0.0)))
+    TR_assert_equal("0.0", TR_String(TR_maximum(0.0, -0.0)))
+    TR_assert_equal("-0.0", TR_String(TR_minimum(-0.0, 0.0)))
+    TR_assert_equal("-0.0", TR_String(TR_minimum(0.0, -0.0)))
+    TR_assert_equal("[0.0]", TR_String(TR_maximum(eksi, artı).TR_tolist))
+    TR_assert_equal("[0.0]", TR_String(TR_maximum(artı, eksi).TR_tolist))
+    TR_assert_equal("[-0.0]", TR_String(TR_minimum(eksi, artı).TR_tolist))
+    TR_assert_equal("[-0.0]", TR_String(TR_minimum(artı, eksi).TR_tolist))
+    TR_var geniş = TR_Tensor([-0.0], TR_dtype: "float64")
+    TR_assert_equal("[0.0]", TR_String(TR_maximum(geniş, TR_Tensor([0.0], TR_dtype: "float64")).TR_tolist))
+}
+
+TR_test "15.16a NaN iki yönde de yayılır; sonsuz sıradan bir sayıdır" {
+    TR_var r = TR_maximum(TR_Tensor([nan(), 1.0, nan()]), TR_Tensor([1.0, nan(), nan()]))
+    TR_assert_equal("[nan, nan, nan]", TR_String(r.TR_tolist))
+    TR_assert_equal("[nan, nan]", TR_String(TR_minimum(TR_Tensor([nan(), 1.0]), TR_Tensor([1.0, nan()])).TR_tolist))
+    TR_assert_equal("nan", TR_String(TR_maximum(nan(), 1.0)))
+    TR_assert_equal([sonsuz(), 1.0], TR_maximum(TR_Tensor([sonsuz(), 1.0]), TR_Tensor([1.0, -sonsuz()])).TR_tolist)
+    TR_assert_equal([1.0, -sonsuz()], TR_minimum(TR_Tensor([sonsuz(), 1.0]), TR_Tensor([1.0, -sonsuz()])).TR_tolist)
+}
+
+TR_test "15.16a türev seçilen tarafa gider, eşitlikte yarı yarıya, ±0 eşit sayılmaz" {
+    TR_var a = TR_Tensor([1.0, 3.0, 2.0, 0.0], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([2.0, 1.0, 2.0, -0.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_maximum(a, b)))
+    TR_assert_equal([0.0, 1.0, 0.5, 1.0], a.TR_grad.TR_tolist)
+    TR_assert_equal([1.0, 0.0, 0.5, 0.0], b.TR_grad.TR_tolist)
+    TR_var c = TR_Tensor([1.0, 3.0, 2.0, 0.0], TR_requires_grad: TR_true)
+    TR_var d = TR_Tensor([2.0, 1.0, 2.0, -0.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_minimum(c, d)))
+    TR_assert_equal([1.0, 0.0, 0.5, 0.0], c.TR_grad.TR_tolist)
+    TR_assert_equal([0.0, 1.0, 0.5, 1.0], d.TR_grad.TR_tolist)
+}
+
+TR_test "15.16a NaN olan konumda iki işlenene de NaN türev gider; yayın toplanır" {
+    TR_var a = TR_Tensor([1.0, nan()], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([0.0, 1.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_maximum(a, b)))
+    TR_assert_equal("[1.0, nan]", TR_String(a.TR_grad.TR_tolist))
+    TR_assert_equal("[0.0, nan]", TR_String(b.TR_grad.TR_tolist))
+    TR_var x = TR_Tensor([[1.0, 5.0], [7.0, 2.0]], TR_requires_grad: TR_true)
+    TR_var s = TR_Tensor(3.0, TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_maximum(x, s)))
+    TR_assert_equal([[0.0, 1.0], [1.0, 0.0]], x.TR_grad.TR_tolist)
+    TR_assert_equal(2.0, s.TR_grad.TR_item())
+    TR_var y = TR_Tensor([1.0, 5.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_minimum(y, 3.0)))
+    TR_assert_equal([1.0, 0.0], y.TR_grad.TR_tolist)
+}
+
+TR_test "15.16a seçilmeyen tarafın türevi tam sıfırdır: sonsuz gradyan öbür tarafa sızmaz" {
+    TR_var a = TR_Tensor([2.0], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_maximum(a, b) * sonsuz()))
+    TR_assert_equal([sonsuz()], a.TR_grad.TR_tolist)
+    TR_assert_equal([0.0], b.TR_grad.TR_tolist)
+}
+
+TR_test "15.16a türev sayısal türevle tutar" {
+    TR_grad_check((x) => TR_sum(TR_maximum(x, x * 0.5 + 1.0) ** 2), [TR_Tensor([0.5, 3.0, -2.0], TR_requires_grad: TR_true)], TR_fd_step: 0.001, TR_tol: 0.01)
+}
+
+TR_test "15.16a yanlış işlenenler adıyla hata verir" {
+    TR_assert_equal("H6966", TR_error_code { TR_maximum(TR_Tensor([1, 2]), TR_Tensor([1.0, 2.0])) })
+    TR_assert_equal("H6968", TR_error_code { TR_maximum(TR_Tensor([1, 2]), 1.5) })
+    TR_assert_equal("H6967", TR_error_code { TR_maximum(TR_Tensor([TR_true]), TR_Tensor([TR_false])) })
+    TR_assert_equal("H6104", TR_error_code { TR_maximum(TR_Tensor([1.0]), [1.0]) })
+    TR_assert_equal("H6100", TR_error_code { TR_maximum(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0, 3.0])) })
+}
+
+TR_test "15.18a hepsi yakın: formül simetriktir, yayın yoktur" {
+    TR_assert(TR_all_close(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0000001])))
+    TR_assert(TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.1]), TR_atol: 0.2))
+    TR_assert_equal(TR_false, TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.1])))
+    TR_assert(TR_all_close(TR_Tensor([100.0]), TR_Tensor([101.0]), TR_rtol: 0.02))
+    TR_assert(TR_all_close(TR_Tensor([101.0]), TR_Tensor([100.0]), TR_rtol: 0.0099999, TR_atol: 0))
+    TR_assert_equal(TR_false, TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.0, 1.0])))
+    TR_assert(TR_all_close(TR_zeros([0]), TR_zeros([0])))
+}
+
+TR_test "15.18a sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye" {
+    TR_assert(TR_all_close(TR_Tensor([sonsuz()]), TR_Tensor([sonsuz()])))
+    TR_assert_equal(TR_false, TR_all_close(TR_Tensor([sonsuz()]), TR_Tensor([-sonsuz()])))
+    TR_assert_equal(TR_false, TR_all_close(TR_Tensor([sonsuz()]), TR_Tensor([1.0]), TR_atol: 1e30))
+    TR_assert_equal(TR_false, TR_all_close(TR_Tensor([nan()]), TR_Tensor([nan()])))
+}
+
+TR_test "15.18a varsayılan paylar daha az hassas işlenenindir" {
+    TR_var tam = TR_Tensor([1.0], TR_dtype: "float64")
+    TR_assert_equal(TR_false, TR_all_close(tam, tam + 0.00001))
+    TR_assert(TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.000002])))
+    TR_assert(TR_all_close(tam, TR_Tensor([1.000002])))
+    TR_assert(TR_all_close(TR_Tensor([1.0], TR_dtype: "bf16"), TR_Tensor([1.015625])))
+    TR_assert(TR_all_close(TR_Tensor([1.0], TR_dtype: "fp16"), TR_Tensor([1.0009])))
+    TR_assert_equal(TR_false, TR_all_close(TR_Tensor([1.0], TR_dtype: "fp16"), TR_Tensor([1.015625])))
+}
+
+TR_test "15.18a yalnız ondalık tensör alır; öneri kopyalanınca çalışır" {
+    TR_assert_equal("H7050", TR_error_code { TR_all_close(TR_Tensor([1, 2]), TR_Tensor([1, 2])) })
+    TR_assert(TR_equal(TR_Tensor([1, 2]), TR_Tensor([1, 2])))
+    TR_assert_equal("H6979", TR_error_code { TR_all_close(TR_Tensor([1.0]), 1.0) })
+    TR_assert_equal("H6517", TR_error_code { TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.0]), TR_rtol: "a") })
+}

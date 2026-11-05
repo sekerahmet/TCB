@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 585 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 132 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
+Toplam 618 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 145 fonksiyon, 11 sabit, 72 metot, 104 özellik, 152 adlı argüman.
 
 ## İçindekiler
 
@@ -646,7 +646,7 @@ en: var b = Bytes("şe"); print(b, b.length, b[0], String(b + Bytes([107])))
 tr: değişken b = Baytlar("şe"); yazdır(b, b.uzunluk, b[0], Metin(b + Baytlar([107])))
 ```
 
-İlişkili: `TR_String`
+Üyeleri: `.TR_read_float(...)`, `.TR_read_int(...)` · İlişkili: `TR_String`
 
 #### `TR_CausalAttention` (`TR_type_CausalAttention`, `NedenselDikkat`)
 
@@ -1040,6 +1040,10 @@ tr: değişken s = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam:
 
 Üyeleri: `.TR_load_state(...)`, `.TR_next(...)`, `.TR_skip(...)`, `.TR_state` · İlişkili: `.TR_sequential(...)`, `TR_Sampler`
 
+#### `TR_Sound` (`TR_type_Sound`, `Ses`)
+
+
+
 #### `TR_SpikeGuard` (`TR_type_SpikeGuard`, `SıçramaBekçisi`)
 
 
@@ -1114,7 +1118,7 @@ en: var t: Tensor = Tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad: true); print
 tr: değişken t: Tensör = Tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
 ```
 
-Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_requires_grad`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
+Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_requires_grad`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_bytes(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
 
 #### `TR_Tokenizer` (`TR_type_Tokenizer`, `Parçalayıcı`)
 
@@ -1249,6 +1253,25 @@ Görünümü:
 ```text
 en: print(all(Tensor[Bool]([true, true])), all(Tensor[Bool]([true, false])))
 tr: yazdır(hepsi(Tensör[Mantık]([doğru, doğru])), hepsi(Tensör[Mantık]([doğru, yanlış])))
+```
+
+İlişkili: `TR_equal(...)`
+
+#### `TR_all_close(...)` (`TR_fn_all_close`, `hepsi_yakın`)
+
+    hepsi_yakın(Tensör, Tensör, göreli_pay: Tam | Ondalık = yok, mutlak_pay: Tam | Ondalık = yok) → Mantık
+
+İki ondalık tensörün şekli aynıysa ve her öğede |a - b| ≤ mutlak_pay + göreli_pay · en büyük(|a|, |b|) ise doğru verir. Varsayılan paylar daha az hassas işlenenin hassasiyetindendir. Sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye yakın değildir; yayın yoktur.
+
+```tr
+TR_print(TR_all_close(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0000001])), TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.1]), TR_atol: 0.2))
+```
+
+Görünümü:
+
+```text
+en: print(all_close(Tensor([1.0, 2.0]), Tensor([1.0, 2.0000001])), all_close(Tensor([1.0]), Tensor([1.1]), atol: 0.2))
+tr: yazdır(hepsi_yakın(Tensör([1.0, 2.0]), Tensör([1.0, 2.0000001])), hepsi_yakın(Tensör([1.0]), Tensör([1.1]), mutlak_pay: 0.2))
 ```
 
 İlişkili: `TR_equal(...)`
@@ -1872,6 +1895,25 @@ tr: yazdır(birim_matris(3).değer)
 
 İlişkili: `TR_Tensor`
 
+#### `TR_float_to_bytes(...)` (`TR_fn_float_to_bytes`, `ondalık_baytları`)
+
+    ondalık_baytları(Tam | Ondalık, tür: Metin = yok, bayt_sırası: Metin = yok) → Baytlar
+
+Tek bir ondalık sayıyı verilen hassasiyette ve bayt sırasıyla Bayt'a yazar; sayı hassasiyetin en yakın değerine yuvarlanır.
+
+```tr
+TR_print(TR_float_to_bytes(1.5, TR_dtype: "float32", TR_byte_order: "little").TR_read_float(0, TR_dtype: "float32", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(float_to_bytes(1.5, dtype: "float32", byte_order: "little").read_float(0, dtype: "float32", byte_order: "little"))
+tr: yazdır(ondalık_baytları(1.5, tür: "float32", bayt_sırası: "little").ondalık_oku(0, tür: "float32", bayt_sırası: "little"))
+```
+
+İlişkili: `.TR_read_float(...)`, `TR_int_to_bytes(...)`
+
 #### `TR_floor(...)` (`TR_fn_floor`, `taban`)
 
     taban(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
@@ -1890,6 +1932,25 @@ tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).değer)
 ```
 
 İlişkili: `TR_ceil(...)`, `TR_round(...)`
+
+#### `TR_from_bytes(...)` (`TR_fn_from_bytes`, `baytlardan`)
+
+    baytlardan(Baytlar, tür: Metin = yok, bayt_sırası: Metin = yok) → Tensör
+
+Baytları verilen hassasiyette okuyup tek boyutlu yeni bir tensör kurar; öğe cinsi tip argümanıdır. Çok baytlı hassasiyette bayt_sırası zorunludur. Uzunluk öğe boyunun katı değilse hatadır; baytın bir kısmı dilimle okunur.
+
+```tr
+TR_var b = TR_Bytes([1, 0, 255, 255]); TR_print(TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var b = Bytes([1, 0, 255, 255]); print(from_bytes[Int](b, dtype: "int16", byte_order: "little").tolist)
+tr: değişken b = Baytlar([1, 0, 255, 255]); yazdır(baytlardan[Tam](b, tür: "int16", bayt_sırası: "little").değer)
+```
+
+İlişkili: `.TR_to_bytes(...)`, `.TR_read_int(...)`, `TR_Bytes`
 
 #### `TR_fuse(...)` (`TR_fn_fuse`, `kaynaştır`)
 
@@ -1967,6 +2028,25 @@ tr: durdurmayı_üstlen()
 
 İlişkili: `TR_stop_requested(...)`, `TR_exit(...)`
 
+#### `TR_hann_window(...)` (`TR_fn_hann_window`, `hann_penceresi`)
+
+    hann_penceresi(Tam, periyodik: Mantık = yok) → Tensör
+
+n uzunlukta Hann penceresi verir; periyodik: doğru STFT'nin penceresidir. Hesap float64'tedir, sonuç float32'dir.
+
+```tr
+TR_print(TR_hann_window(4, TR_periodic: TR_true).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: print(hann_window(4, periodic: true).tolist)
+tr: yazdır(hann_penceresi(4, periyodik: doğru).değer)
+```
+
+İlişkili: `TR_stft(...)`
+
 #### `TR_has_rope_scaling(...)` (`TR_fn_has_rope_scaling`, `rope_ölçekleme_var_mı`)
 
     rope_ölçekleme_var_mı()
@@ -1997,6 +2077,25 @@ tr: değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
 ```
 
 İlişkili: `TR_print(...)`
+
+#### `TR_int_to_bytes(...)` (`TR_fn_int_to_bytes`, `tam_sayı_baytları`)
+
+    tam_sayı_baytları(Tam, tür: Metin = yok, bayt_sırası: Metin = yok) → Baytlar
+
+Tek bir tam sayıyı verilen hassasiyette ve bayt sırasıyla Bayt'a yazar; hassasiyete sığmayan değer hatadır.
+
+```tr
+TR_print(TR_int_to_bytes(258, TR_dtype: "uint16", TR_byte_order: "big"))
+```
+
+Görünümü:
+
+```text
+en: print(int_to_bytes(258, dtype: "uint16", byte_order: "big"))
+tr: yazdır(tam_sayı_baytları(258, tür: "uint16", bayt_sırası: "big"))
+```
+
+İlişkili: `.TR_read_int(...)`, `TR_float_to_bytes(...)`
 
 #### `TR_is_finite(...)` (`TR_fn_is_finite`, `sonlu_mu`)
 
@@ -2339,6 +2438,25 @@ tr: yazdır(max([2.0, 1.5]), max(3, 7, 5), max(Tensör([[1, 5], [3, 2]]), eksen:
 
 İlişkili: `TR_min(...)`, `TR_argmax(...)`
 
+#### `TR_maximum(...)` (`TR_fn_maximum`, `öğe_öğe_en_büyük`)
+
+    öğe_öğe_en_büyük(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
+
+İki tensörün ya da tensörle sayının öğe öğe en büyüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır, −0.0 0.0'dan küçük sayılır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya, NaN olan konumda iki tarafa da NaN.
+
+```tr
+TR_print(TR_maximum(TR_Tensor([1.0, 5.0]), TR_Tensor([3.0, 2.0])).TR_tolist, TR_maximum(-0.0, 0.0))
+```
+
+Görünümü:
+
+```text
+en: print(maximum(Tensor([1.0, 5.0]), Tensor([3.0, 2.0])).tolist, maximum(-0.0, 0.0))
+tr: yazdır(öğe_öğe_en_büyük(Tensör([1.0, 5.0]), Tensör([3.0, 2.0])).değer, öğe_öğe_en_büyük(-0.0, 0.0))
+```
+
+İlişkili: `TR_minimum(...)`, `TR_max(...)`, `TR_clamp(...)`
+
 #### `TR_mean(...)` (`TR_fn_mean`, `ortalama`)
 
     ortalama(Liste | Tensör, eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
@@ -2377,6 +2495,25 @@ tr: yazdır(ortanca([3, 1, 4, 2]))
 
 İlişkili: `TR_mean(...)`
 
+#### `TR_mel_filterbank(...)` (`TR_fn_mel_filterbank`, `mel_süzgeçleri`)
+
+    mel_süzgeçleri(örnekleme_hızı: Tam = yok, fft_boyu: Tam = yok, mel_sayısı: Tam = yok, norm: Metin | YokTipi = yok, mel_ölçeği: Metin = yok, en_düşük_frekans: Tam | Ondalık = 0, en_yüksek_frekans: Tam | Ondalık = yok) → Tensör
+
+[mel_sayısı, fft_boyu // 2 + 1] şekilli üçgen süzgeçler verir; süzgeç @ güç güç izgesini Mel izgesine çevirir. Formül librosa'nın filters.mel'idir; hesap float64'tedir. Boş süzgeç hatadır.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 80, TR_norm: "slaney", TR_mel_scale: "slaney").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 80, norm: "slaney", mel_scale: "slaney").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 80, norm: "slaney", mel_ölçeği: "slaney").şekil)
+```
+
+İlişkili: `TR_stft(...)`
+
 #### `TR_min(...)` (`TR_fn_min`, `min`)
 
     min(Liste | Tam | Ondalık | Tensör, [Tam | Ondalık...], eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Tam | Ondalık | Tensör
@@ -2395,6 +2532,25 @@ tr: yazdır(min([3, 1, 2]), min(4, 2.5), min(1, 1.5))
 ```
 
 İlişkili: `TR_max(...)`
+
+#### `TR_minimum(...)` (`TR_fn_minimum`, `öğe_öğe_en_küçük`)
+
+    öğe_öğe_en_küçük(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
+
+İki tensörün ya da tensörle sayının öğe öğe en küçüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır, −0.0 0.0'dan küçük sayılır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya, NaN olan konumda iki tarafa da NaN.
+
+```tr
+TR_print(TR_minimum(TR_Tensor([1.0, 5.0]), 2.0).TR_tolist, TR_minimum(0.0, -0.0))
+```
+
+Görünümü:
+
+```text
+en: print(minimum(Tensor([1.0, 5.0]), 2.0).tolist, minimum(0.0, -0.0))
+tr: yazdır(öğe_öğe_en_küçük(Tensör([1.0, 5.0]), 2.0).değer, öğe_öğe_en_küçük(0.0, -0.0))
+```
+
+İlişkili: `TR_maximum(...)`, `TR_min(...)`, `TR_clamp(...)`
 
 #### `TR_mixed_precision(...)` (`TR_fn_mixed_precision`, `karışık_hassasiyet`)
 
@@ -2684,6 +2840,12 @@ tr: dosya_yaz("satırlar.txt", "bir\niki\n"); döngü satır içinde dosya_satı
 
 İlişkili: `TR_read_file(...)`, `.TR_next(...)`
 
+#### `TR_read_wav(...)` (`TR_fn_read_wav`, `wav_oku`)
+
+    wav_oku()
+
+
+
 #### `TR_relu(...)` (`TR_fn_relu`, `relu`)
 
     relu(Tensör | Tam | Ondalık) → Tensör | Ondalık
@@ -2740,6 +2902,25 @@ tr: değişken f = tekrar_oynat((x) => x * 2); türevsiz { yazdır(f(Tensör([1.
 ```
 
 İlişkili: `TR_fuse(...)`
+
+#### `TR_rfft(...)` (`TR_fn_rfft`, `gerçek_fourier`)
+
+    gerçek_fourier(Tensör, n: Tam = yok) → Herhangi
+
+Gerçek sinyalin Fourier dönüşümünü son eksen boyunca hesaplar, (gerçek, sanal) demeti verir; son ekseni n // 2 + 1'dir. Kısa sinyal sıfırla dolar, uzun sinyal hatadır, ölçek yoktur.
+
+```tr
+TR_var g, s = TR_rfft(TR_Tensor([1.0, 0.0, -1.0, 0.0])); TR_print(g.TR_tolist, s.TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var g, s = rfft(Tensor([1.0, 0.0, -1.0, 0.0])); print(g.tolist, s.tolist)
+tr: değişken g, s = gerçek_fourier(Tensör([1.0, 0.0, -1.0, 0.0])); yazdır(g.değer, s.değer)
+```
+
+İlişkili: `TR_stft(...)`
 
 #### `TR_rms_norm(...)` (`TR_fn_rms_norm`, `rms_normu`)
 
@@ -3012,6 +3193,25 @@ tr: yazdır(standart_sapma([2, 4, 4, 4, 5, 5, 7, 9]))
 
 İlişkili: `TR_mean(...)`
 
+#### `TR_stft(...)` (`TR_fn_stft`, `kısa_fourier`)
+
+    kısa_fourier(Tensör, Tam, adım_boyu: Tam = yok, pencere: Tensör = yok, ortala: Mantık = doğru, dolgu_kipi: Metin = yok) → Herhangi
+
+Kısa süreli Fourier dönüşümüdür: sinyali n uzunluklu çerçevelere böler, her birini pencereyle çarpıp dönüştürür; sonuç (gerçek, sanal) ve şekli [..., n // 2 + 1, çerçeve]'dir.
+
+```tr
+TR_var g, s = TR_stft(TR_zeros([16]), 8, TR_hop_length: 4, TR_window: TR_hann_window(8, TR_periodic: TR_true), TR_center: TR_true, TR_pad_mode: "reflect"); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(zeros([16]), 8, hop_length: 4, window: hann_window(8, periodic: true), center: true, pad_mode: "reflect"); print(g.shape)
+tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 4, pencere: hann_penceresi(8, periyodik: doğru), ortala: doğru, dolgu_kipi: "reflect"); yazdır(g.şekil)
+```
+
+İlişkili: `TR_rfft(...)`, `TR_hann_window(...)`
+
 #### `TR_stop_requested(...)` (`TR_fn_stop_requested`, `durdurma_istendi`)
 
     durdurma_istendi() → Mantık
@@ -3213,6 +3413,12 @@ tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).de�
 
 İlişkili: `TR_if`
 
+#### `TR_whisper_log_mel(...)` (`TR_fn_whisper_log_mel`, `whisper_log_mel`)
+
+    whisper_log_mel()
+
+
+
 #### `TR_write_file(...)` (`TR_fn_write_file`, `dosya_yaz`)
 
     dosya_yaz(Metin | Yol, Metin | Baytlar) → YokTipi
@@ -3250,6 +3456,12 @@ tr: değişken t = sıfırlar([2, 4]); yerine_yaz(t, birler([2, 2]), eksen: 1, b
 ```
 
 İlişkili: `TR_concat(...)`
+
+#### `TR_write_wav(...)` (`TR_fn_write_wav`, `wav_yaz`)
+
+    wav_yaz()
+
+
 
 #### `TR_zero_grads(...)` (`TR_fn_zero_grads`, `gradyanları_sıfırla`)
 
@@ -3392,6 +3604,23 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).değer)
 
 Kullananlar: `TR_gelu(...)` · İlişkili: `TR_gelu(...)`
 
+#### `TR_atol:` (`TR_arg_atol`, `mutlak_pay`)
+
+hepsi_yakın'da izin verilen mutlak farktır; verilmezse işlenenlerin hassasiyetinden gelir.
+
+```tr
+TR_print(TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.1]), TR_atol: 0.2))
+```
+
+Görünümü:
+
+```text
+en: print(all_close(Tensor([1.0]), Tensor([1.1]), atol: 0.2))
+tr: yazdır(hepsi_yakın(Tensör([1.0]), Tensör([1.1]), mutlak_pay: 0.2))
+```
+
+Kullananlar: `TR_all_close(...)` · İlişkili: `TR_rtol:`, `TR_all_close(...)`
+
 #### `TR_backward:` (`TR_arg_backward`, `geri`)
 
 özel_türev'in geri hesabıdır: (saklananlar, g) => ... biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
@@ -3481,6 +3710,23 @@ Kullananlar: `TR_layer_norm(...)` · İlişkili: `TR_weight:`
 
 
 
+#### `TR_byte_order:` (`TR_arg_byte_order`, `bayt_sırası`)
+
+Çok baytlı sayının bayt sırasıdır: "little" ya da "big". Makinenin kendi sırası diye bir seçenek yoktur.
+
+```tr
+TR_print(TR_int_to_bytes(1, TR_dtype: "uint16", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(int_to_bytes(1, dtype: "uint16", byte_order: "little"))
+tr: yazdır(tam_sayı_baytları(1, tür: "uint16", bayt_sırası: "little"))
+```
+
+Kullananlar: `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`, `.TR_to_bytes(...)` · İlişkili: `TR_from_bytes(...)`, `.TR_to_bytes(...)`
+
 #### `TR_cache:` (`TR_arg_cache`, `önbellek`)
 
 veri_kümesi'nin veri dosyalarını kullanmadan önce kopyalayacağı yerel önbellek klasörüdür; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. Tek başına verilemez: kota_gb: zorunludur.
@@ -3539,6 +3785,23 @@ tr: dene { fırlat "okunamadı" } yakala e { yazdır(Hata("yüklenemedi", neden:
 ```
 
 Kullananlar: `TR_Error` · İlişkili: `TR_Error`, `.TR_cause`
+
+#### `TR_center:` (`TR_arg_center`, `ortala`)
+
+Doğruysa sinyalin iki ucuna n // 2 örnek dolgu eklenir, çerçeve kendi örneğine ortalanır. Varsayılan doğrudur.
+
+```tr
+TR_var g, s = TR_stft(TR_zeros([16]), 8, TR_hop_length: 4, TR_window: TR_ones([8]), TR_center: TR_false); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(zeros([16]), 8, hop_length: 4, window: ones([8]), center: false); print(g.shape)
+tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 4, pencere: birler([8]), ortala: yanlış); yazdır(g.şekil)
+```
+
+Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_pad_mode:`
 
 #### `TR_config:` (`TR_arg_config`, `ayar`)
 
@@ -3647,7 +3910,7 @@ en: print(zeros([2, 2], dtype: "fp16").dtype)
 tr: yazdır(sıfırlar([2, 2], tür: "fp16").tür)
 ```
 
-Kullananlar: `TR_Tensor`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`
+Kullananlar: `TR_Tensor`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`
 
 #### `TR_embed_dim:` (`TR_arg_embed_dim`, `boyut`)
 
@@ -3711,6 +3974,40 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 ```
 
 Kullananlar: `TR_Checkpoint` · İlişkili: `TR_keep:`
+
+#### `TR_f_max:` (`TR_arg_f_max`, `en_yüksek_frekans`)
+
+Süzgeçlerin en yüksek frekansıdır; varsayılan örnekleme hızının yarısıdır.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 4, TR_norm: TR_none, TR_mel_scale: "htk", TR_f_max: 4000.0).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 4, norm: none, mel_scale: "htk", f_max: 4000.0).shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 4, norm: yok, mel_ölçeği: "htk", en_yüksek_frekans: 4000.0).şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_f_min:`, `TR_mel_filterbank(...)`
+
+#### `TR_f_min:` (`TR_arg_f_min`, `en_düşük_frekans`)
+
+Süzgeçlerin en düşük frekansıdır; varsayılan 0.0'dır.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 4, TR_norm: TR_none, TR_mel_scale: "htk", TR_f_min: 100.0).TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 4, norm: none, mel_scale: "htk", f_min: 100.0).shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 4, norm: yok, mel_ölçeği: "htk", en_düşük_frekans: 100.0).şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_f_max:`, `TR_mel_filterbank(...)`
 
 #### `TR_fallback:` (`TR_arg_fallback`, `yedek`)
 
@@ -3785,6 +4082,23 @@ Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_backward:`
 #### `TR_history_limit:` (`TR_arg_history_limit`, `geçmiş_sınırı`)
 
 
+
+#### `TR_hop_length:` (`TR_arg_hop_length`, `adım_boyu`)
+
+Art arda iki çerçevenin başları arasındaki örnek sayısıdır; zorunludur.
+
+```tr
+TR_var g, s = TR_stft(TR_zeros([16]), 8, TR_hop_length: 2, TR_window: TR_ones([8]), TR_center: TR_false); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(zeros([16]), 8, hop_length: 2, window: ones([8]), center: false); print(g.shape)
+tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 2, pencere: birler([8]), ortala: yanlış); yazdır(g.şekil)
+```
+
+Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`
 
 #### `TR_in_features:` (`TR_arg_in_features`, `giriş_boyutu`)
 
@@ -3945,6 +4259,23 @@ Kullananlar: `TR_clamp(...)`, `TR_clip_grad(...)` · İlişkili: `TR_min:`
 
 
 
+#### `TR_mel_scale:` (`TR_arg_mel_scale`, `mel_ölçeği`)
+
+Mel ölçeğidir: "slaney" ya da "htk"; zorunludur.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 4, TR_norm: "slaney", TR_mel_scale: "htk").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 4, norm: "slaney", mel_scale: "htk").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 4, norm: "slaney", mel_ölçeği: "htk").şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
+
 #### `TR_merged:` (`TR_arg_merged`, `birleşik`)
 
 
@@ -4015,6 +4346,42 @@ Kullananlar: `TR_SGD(...)`
 
 
 
+Kullananlar: `TR_rfft(...)`
+
+#### `TR_n_fft:` (`TR_arg_n_fft`, `fft_boyu`)
+
+Süzgeçlerin bağlandığı dönüşümün boyudur; zorunludur.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 512, TR_n_mels: 4, TR_norm: "slaney", TR_mel_scale: "slaney").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 512, n_mels: 4, norm: "slaney", mel_scale: "slaney").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 512, mel_sayısı: 4, norm: "slaney", mel_ölçeği: "slaney").şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
+
+#### `TR_n_mels:` (`TR_arg_n_mels`, `mel_sayısı`)
+
+Süzgeç sayısıdır; zorunludur.
+
+```tr
+TR_print(TR_mel_filterbank(TR_sample_rate: 16000, TR_n_fft: 400, TR_n_mels: 8, TR_norm: "slaney", TR_mel_scale: "slaney").TR_shape)
+```
+
+Görünümü:
+
+```text
+en: print(mel_filterbank(sample_rate: 16000, n_fft: 400, n_mels: 8, norm: "slaney", mel_scale: "slaney").shape)
+tr: yazdır(mel_süzgeçleri(örnekleme_hızı: 16000, fft_boyu: 400, mel_sayısı: 8, norm: "slaney", mel_ölçeği: "slaney").şekil)
+```
+
+Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
+
 #### `TR_name:` (`TR_arg_name`, `ad`)
 
 
@@ -4047,6 +4414,8 @@ Kullananlar: `TR_parameters(...)`
 #### `TR_norm:` (`TR_arg_norm`, `norm`)
 
 
+
+Kullananlar: `TR_mel_filterbank(...)`
 
 #### `TR_normuon:` (`TR_arg_normuon`, `normuon`)
 
@@ -4109,6 +4478,23 @@ tr: dosya_yaz("kaynak.txt", "yeni"); dosya_yaz("hedef.txt", "eski"); kopyala("ka
 
 Kullananlar: `TR_copy(...)`, `TR_move(...)` · İlişkili: `TR_copy(...)`, `TR_move(...)`
 
+#### `TR_pad_mode:` (`TR_arg_pad_mode`, `dolgu_kipi`)
+
+Ortalamanın dolgusudur: "reflect" ya da "constant". Ortalama açıkken zorunludur, kapalıyken verilmez.
+
+```tr
+TR_var g, s = TR_stft(TR_ones([16]), 8, TR_hop_length: 4, TR_window: TR_ones([8]), TR_pad_mode: "constant"); TR_print(g.TR_shape)
+```
+
+Görünümü:
+
+```text
+en: var g, s = stft(ones([16]), 8, hop_length: 4, window: ones([8]), pad_mode: "constant"); print(g.shape)
+tr: değişken g, s = kısa_fourier(birler([16]), 8, adım_boyu: 4, pencere: birler([8]), dolgu_kipi: "constant"); yazdır(g.şekil)
+```
+
+Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_center:`
+
 #### `TR_pair:` (`TR_arg_pair`, `ikinci`)
 
 kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır.
@@ -4137,6 +4523,23 @@ Kullananlar: `.TR_encode(...)`
 #### `TR_patterns:` (`TR_arg_patterns`, `desenler`)
 
 
+
+#### `TR_periodic:` (`TR_arg_periodic`, `periyodik`)
+
+Doğruysa pencere periyodiktir (STFT, Whisper), yanlışsa simetriktir; zorunludur.
+
+```tr
+TR_print(TR_hann_window(3, TR_periodic: TR_false).TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: print(hann_window(3, periodic: false).tolist)
+tr: yazdır(hann_penceresi(3, periyodik: yanlış).değer)
+```
+
+Kullananlar: `TR_hann_window(...)` · İlişkili: `TR_hann_window(...)`
 
 #### `TR_ple_context:` (`TR_arg_ple_context`, `ple_bağlamı`)
 
@@ -4218,6 +4621,33 @@ Kullananlar: `TR_Tensor`, `TR_load_tensors(...)`, `TR_ones(...)`, `TR_randn(...)
 
 
 #### `TR_row:` (`TR_arg_row`, `satır`)
+
+
+
+#### `TR_rtol:` (`TR_arg_rtol`, `göreli_pay`)
+
+hepsi_yakın'da izin verilen göreli farktır; verilmezse işlenenlerin hassasiyetinden gelir.
+
+```tr
+TR_print(TR_all_close(TR_Tensor([100.0]), TR_Tensor([101.0]), TR_rtol: 0.02))
+```
+
+Görünümü:
+
+```text
+en: print(all_close(Tensor([100.0]), Tensor([101.0]), rtol: 0.02))
+tr: yazdır(hepsi_yakın(Tensör([100.0]), Tensör([101.0]), göreli_pay: 0.02))
+```
+
+Kullananlar: `TR_all_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
+
+#### `TR_sample_rate:` (`TR_arg_sample_rate`, `örnekleme_hızı`)
+
+
+
+Kullananlar: `TR_mel_filterbank(...)`
+
+#### `TR_samples:` (`TR_arg_samples`, `örnekler`)
 
 
 
@@ -4486,7 +4916,7 @@ en: var q = randn([6, 4], seed: 2); print(attention(q, q, q, window: 2).shape)
 tr: değişken q = rastgele_normal([6, 4], tohum: 2); yazdır(dikkat(q, q, q, pencere: 2).şekil)
 ```
 
-Kullananlar: `TR_attention(...)` · İlişkili: `TR_causal:`
+Kullananlar: `TR_attention(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
 
 #### `TR_windows:` (`TR_arg_windows`, `pencereler`)
 
@@ -5503,6 +5933,44 @@ tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
 
 
 
+#### `.TR_read_float(...)` (`TR_mem_read_float`, `ondalık_oku`)
+
+    Baytlar.ondalık_oku(Tam, tür: Metin = yok, bayt_sırası: Metin = yok) → Ondalık
+
+Verilen konumdaki bayttan başlayarak bir Ondalık okur; eksi konum ya da baytların dışına taşan aralık hatadır.
+
+```tr
+TR_print(TR_Bytes([0, 0, 192, 63]).TR_read_float(0, TR_dtype: "float32", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(Bytes([0, 0, 192, 63]).read_float(0, dtype: "float32", byte_order: "little"))
+tr: yazdır(Baytlar([0, 0, 192, 63]).ondalık_oku(0, tür: "float32", bayt_sırası: "little"))
+```
+
+İlişkili: `.TR_read_int(...)`, `TR_float_to_bytes(...)`
+
+#### `.TR_read_int(...)` (`TR_mem_read_int`, `tam_sayı_oku`)
+
+    Baytlar.tam_sayı_oku(Tam, tür: Metin = yok, bayt_sırası: Metin = yok) → Tam
+
+Verilen konumdaki bayttan başlayarak bir Tam okur; eksi konum ya da baytların dışına taşan aralık hatadır.
+
+```tr
+TR_print(TR_Bytes([0, 1, 2]).TR_read_int(1, TR_dtype: "uint16", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(Bytes([0, 1, 2]).read_int(1, dtype: "uint16", byte_order: "little"))
+tr: yazdır(Baytlar([0, 1, 2]).tam_sayı_oku(1, tür: "uint16", bayt_sırası: "little"))
+```
+
+İlişkili: `.TR_read_float(...)`, `TR_int_to_bytes(...)`
+
 #### `.TR_reduce(...)` (`TR_mem_reduce`, `indirge`)
 
     Liste.indirge([Herhangi], Fonksiyon) → Herhangi
@@ -5682,6 +6150,10 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 
 
 
+#### `.TR_sample_rate` (`TR_mem_sample_rate`, `örnekleme_hızı`)
+
+
+
 #### `.TR_sampler(...)` (`TR_mem_sampler`, `örnekleyici`)
 
     VeriKümesi.örnekleyici([Tam], [Tam], [Tam], toplu: Tam, bağlam: Tam, tohum: Tam = 0) → Örnekleyici
@@ -5700,6 +6172,10 @@ tr: yazdır(VeriKümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4,
 ```
 
 İlişkili: `.TR_sequential(...)`, `.TR_next(...)`
+
+#### `.TR_samples` (`TR_mem_samples`, `örnekler`)
+
+
 
 #### `.TR_save(...)` (`TR_mem_save`, `kaydet`)
 
@@ -6023,6 +6499,25 @@ tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlat�
 #### `.TR_threshold` (`TR_mem_threshold`, `eşik`)
 
 
+
+#### `.TR_to_bytes(...)` (`TR_mem_to_bytes`, `baytlara`)
+
+    Tensör.baytlara(bayt_sırası: Metin = yok) → Baytlar
+
+Tensörün öğelerini kendi hassasiyetinde ve satır sırasıyla Bayt'a yazar. Sonuç türevlenmez; nicemlenmiş tensör önce açılır.
+
+```tr
+TR_print(TR_Tensor([1, 2], TR_dtype: "uint8").TR_to_bytes())
+```
+
+Görünümü:
+
+```text
+en: print(Tensor([1, 2], dtype: "uint8").to_bytes())
+tr: yazdır(Tensör([1, 2], tür: "uint8").baytlara())
+```
+
+İlişkili: `TR_from_bytes(...)`
 
 #### `.TR_to_device(...)` (`TR_mem_to_device`, `cihaza`)
 

@@ -45,6 +45,11 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Olağan
+- **22.1 ve 23.1, örnek (2026-11-05, ara, S1):** `gerçek.TR_tolist()` H2421 veriyor, `t.TR_tolist` liste veriyor; 13, 15, 22, 23 parantezli yazıyor. Motor mu metin mi, karar gerekir.
+- **22.4, yarım değer (2026-11-05, S1):** "en yakın tam sayıya" yarımı söylemiyor; `lib/audio.tr` çifte gidiyor.
+- **15.18a, eksi tolerans (2026-11-05, S1):** söylenmiyor; `TR_rtol: -1.0, TR_atol: 5.0` `TR_true` veriyor.
+- **15.16a ve 15.18, *Test:* cümleleri (2026-11-05, S1):** `TR_maximum`, `TR_minimum`, `TR_all_close` uygulandı, `tests/tensor_uc_ve_yakin_test.tr`; cümleler hâlâ "uygulanınca" diyor.
+- **15.23c, `adım_boyu` (2026-11-05, ara, S1):** görünen ad `TR_hop_length:` ve `TR_stride`'a gidiyor; 15.23c kodlanmadan `TR_stride`'ınki değişmeli.
 - **15.6d, zincirde tensörle indeks (2026-11-05, kritik adayı, T1, DENETİM istek 172):** `t[idx][0] = 9.0` kopyaya yazıp sessizce kayboluyor; NumPy ve PyTorch da öyle. Cümle: indeks hedefinin zincirinde tensörle indeks ara adım olamaz; `TR_var c = t[idx]; c[0] = 9.0` geçerli kalır. Tur 4 metniyle yazılır.
 - **15.6d, tensörle indekse yazma (2026-11-05, T1, DENETİM istek 168):** madde yazmanın veriyi yerinde değiştirdiğini söylüyor, motor H7042 ve H6707 veriyor; kural doğru, uygulama geride. Aynı satırın "liste değer hatadır"ı tutmuyor: `t[0..2] = [8.0, 9.0]` hatasız yazıyor. "hedefe yayınlanabilmelidir" de: `t[0..2] = TR_Tensor([7.0])` H6719.
 - **15.6d, tensörle indekste eksi indeks (2026-11-05, H2):** `t[i]` eksi indeksi sondan sayar, `t[idx]` için bir şey demiyor; uygulama H6694. Tek cümle yeter.

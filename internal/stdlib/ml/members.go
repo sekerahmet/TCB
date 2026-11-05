@@ -28,12 +28,13 @@ const (
 	memberSlice     = codes.MemSlice
 	memberToDevice  = codes.MemToDevice
 	memberToDType   = codes.MemToDtype
+	memberToBytes   = codes.MemToBytes
 	memberItem      = codes.MemItem
 	memberTracking  = codes.MemRequiresGrad
 )
 
 // tensorMemberCodes öneri listesinin sırasıdır.
-var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberSplit, memberItem, memberTracking}
+var tensorMemberCodes = []codes.Code{memberShape, memberDevice, memberDType, memberGrad, memberValue, memberReshape, memberTranspose, memberPermute, memberSlice, memberToDevice, memberToDType, memberToBytes, memberSplit, memberItem, memberTracking}
 
 func isTensorMember(k codes.Code) bool { return slices.Contains(tensorMemberCodes, k) }
 
@@ -48,6 +49,8 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 		return &interp.StringVal{Val: t.DType().Name()}, nil
 	case memberToDType:
 		return d.namedMethod(memberToDType, d.toDType), nil
+	case memberToBytes:
+		return d.namedMethod(memberToBytes, d.toBytes), nil
 	case memberGrad:
 		if d.intermediate {
 			return nil, messages.New(messages.H6700, tensor.ShapeText(t.Shape()), nameRequiresGrad, codes.NameRef(codes.KwTrue), codes.NameRef(codes.FnAdamW), codes.NameRef(codes.FnSGD), codes.NameRef(codes.FnNoGrad), gradExample)

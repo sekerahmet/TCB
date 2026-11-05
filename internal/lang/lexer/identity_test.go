@@ -163,7 +163,7 @@ func TestAFunctionAfterADotKeepsItsValue(t *testing.T) {
 		}
 		seen++
 		err := identityError(codes.PlaceMember, s).Error()
-		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") && s != "TR_custom_grad" {
+		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") && s != "TR_custom_grad" && s != "TR_mel_filterbank" {
 			t.Errorf("x.%s: %s; öneri x'i ilk argüman yazmalı", s, err)
 		}
 	}

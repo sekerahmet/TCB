@@ -19,6 +19,10 @@ aynı sonucu verir; bir arka uç bir işlemi desteklemiyorsa bunu açıkça söy
 **Veri türleri tanımlı kurallarla dönüşür.** 16 bitlik türler (bf16, f16) yuvarlama ve özel
 değerler (NaN, sonsuz) için belirli kurallara uyar. Denetim: `TestBF16ConversionEdges`, `TestF16ConversionEdges`, `TestSixteenBitRounding`.
 
+**Fourier dönüşümü CPU'dadır, arka uç yöntemi yoktur (23.5).** `Rfft` ve `Stft` karışık tabanlı Cooley-Tukey'dir (büyük asal çarpanda Bluestein, `fourier.go`); toplama sırası uzunluktan gelir, satır ve çerçeveler birbirinden bağımsızdır: sonuç işçi sayısına bağlı değildir. Çarpımlar açıkça yuvarlanır, FMA'lı işlemcide de aynı bitler çıkar. GPU'daki tensör H7076 verir, CPU'ya düşmez. Sinüs ve kosinüs çağırandan gelir (`Trig`): `detmath` bu katmanın üstündedir. Denetim: `TestStftSameBitsForAnyWorkerCount`, `TestRfftSameBitsForAnyWorkerCount`, `TestPlanMatchesTheDefinition`, `TestQuarterRootsAreExact`.
+
+**Öğe öğe en büyük ve en küçük var olan işlemlerin birleşimidir (15.16a).** `Maximum` ve `Minimum` yeni çekirdek eklemez; CPU ve GPU aynı yoldan geçer (`extreme.go`). Türev tek düğümdür (`CustomOp`).
+
 ## bf16 toleransları
 
 Gradyan kapısı her kaydı bf16 girdiyle koşar ve çıktı ile gradyanları, bf16'ya yuvarlanmış aynı girdilerle float32 koşuyla karşılaştırır; hata tensörün en büyük mutlak değerine göre ölçülür. Tolerans kayıt başınadır (`behavior_grad_bf16_tolerances_test.go`, `grup/ad` anahtarlı) ve ölçülür: **en büyük ölçülen sapmanın 2 katı, 1e-3'ün katına yukarı yuvarlanır, en az 4e-3** (bir bf16 yuvarlaması, 2⁻⁸). Gerekçe: 2× tohum ve şekil değişkenliğine pay bırakır ama tek bir genel 3e-2 sabitinin sakladığı 5-10 kat boşluğu kapatır; alt sınır, tam çıkan işlemlerde (görünümler, karşılaştırmalar; ölçülen sapma 0) başka hesap sırasıyla çalışan arka ucu gereksiz düşürmesin diye vardır. Kapı her koşuda 4 girdi tohumu dener; ölçüm 32 tohumla yapılır.

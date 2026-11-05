@@ -1,0 +1,309 @@
+# TR 4
+# tr/audio — ses dosyası ve Whisper'ın girdisi (dil tanımı 22.4, 23.6).
+#
+# Kullanım:   aktar "tr/audio"
+#             değişken ses = wav_oku("soru.wav")
+#             yazdır(ses.örnekleme_hızı, ses.örnekler.şekil)
+#
+# Dosyanın parçaları sırayla okunur (`fmt `, `data`; öbürleri atlanır); başlığın 44 bayt olduğu
+# varsayılmaz. Biçim önce denetlenir: desteklenmeyen biçim `ffmpeg` iletisini verir, yapısal
+# sebeplerden birini değil. Bozuk dosya hatadır, sessizce kısa ses olmaz. Dosya boyu dış girdidir:
+# her parçanın boyu dosyada kalanla açıkça karşılaştırılır, çünkü bayt dilimi sessizce kırpar (3.3).
+
+TR_const _RIFF_BAŞI = 12
+TR_const _PARÇA_BAŞI = 8
+TR_const _ID3_BOYU = 128
+TR_const _SIFIR_BLOĞU = 4096
+TR_const _PCM = 1
+TR_const _ONDALIK = 3
+TR_const _GENİŞ = 65534
+TR_const _WHISPER_HIZI = 16000
+TR_const _WHISPER_FFT = 400
+TR_const _WHISPER_ADIMI = 160
+TR_const _WHISPER_DOLGUSU = 480000
+
+# Ses: örnekler [kanal, örnek] şekilli ondalık tensör, örnekleme hızı saniyedeki örnek sayısıdır.
+TR_struct TR_Sound {
+    TR_samples: TR_Tensor[TR_Float]
+    TR_sample_rate: TR_Int
+    TR_func TR_init(TR_samples: TR_Tensor[TR_Float], TR_sample_rate: TR_Int) {
+        _ses_şekli(TR_samples)
+        _ses_hızı(TR_sample_rate)
+        TR_self.TR_samples = TR_samples
+        TR_self.TR_sample_rate = TR_sample_rate
+    }
+}
+
+TR_func _ses_şekli(örnekler: TR_Tensor[TR_Float]) {
+    TR_if örnekler.TR_shape.TR_length != 2 { TR_throw TR_Message("H7072", "shape", örnekler.TR_shape) }
+    TR_if örnekler.TR_shape[0] == 0 { TR_throw TR_Message("H7072", "channels", örnekler.TR_shape) }
+}
+
+TR_func _ses_hızı(hız: TR_Int) {
+    TR_if hız <= 0 { TR_throw TR_Message("H7072", "rate", hız) }
+}
+
+# Dosyanın `fmt ` parçasından okunanlar.
+TR_struct _Biçim {
+    kanal: TR_Int
+    hız: TR_Int
+    örnek_baytı: TR_Int
+    ondalık: TR_Bool
+}
+
+TR_func _u16(b: TR_Bytes, konum: TR_Int) -> TR_Int {
+    TR_return b.TR_read_int(konum, TR_dtype: "uint16", TR_byte_order: "little")
+}
+
+TR_func _u32(b: TR_Bytes, konum: TR_Int) -> TR_Int {
+    TR_return b.TR_read_int(konum, TR_dtype: "uint32", TR_byte_order: "little")
+}
+
+# _sonraki bir parçanın sonundan sonraki parçanın başıdır: tek boylu parçanın dolgu baytı atlanır;
+# dosyanın son parçasında dolgu yoksa hata değildir.
+TR_func _sonraki(b: TR_Bytes, baş: TR_Int, boy: TR_Int) -> TR_Int {
+    TR_var son = baş + _PARÇA_BAŞI + boy
+    TR_if boy % 2 == 1 TR_and son < b.TR_length { TR_return son + 1 }
+    TR_return son
+}
+
+# _ffmpeg_iste desteklenmeyen biçimin iletisidir.
+TR_func _ffmpeg_iste(yol: TR_String, tür: TR_String, ayrıntı: TR_String) {
+    TR_throw TR_Message("H7061", yol, tür, ayrıntı)
+}
+
+# _alt_biçim WAVE_FORMAT_EXTENSIBLE'ın alt biçimidir; bilinen GUID'in sonu değilse 0 verir.
+TR_func _alt_biçim(b: TR_Bytes, fmt: TR_Int) -> TR_Int {
+    TR_var guid = b[fmt + 26..fmt + 40]
+    TR_if guid != TR_Bytes([0, 0, 0, 0, 16, 0, 128, 0, 0, 170, 0, 56, 155, 113]) { TR_return 0 }
+    TR_return _u16(b, fmt + 24)
+}
+
+# _biçim_denetle `fmt ` içeriğini (fmt konumundan boy bayt) okuyup desteklenmeyen biçimi eler.
+TR_func _biçim_denetle(yol: TR_String, b: TR_Bytes, fmt: TR_Int, boy: TR_Int) {
+    TR_var etiket = _u16(b, fmt)
+    TR_var bit = _u16(b, fmt + 14)
+    TR_if etiket == _GENİŞ {
+        TR_if boy < 40 { TR_return }
+        TR_var geçerli = _u16(b, fmt + 18)
+        TR_if geçerli != bit TR_and geçerli != 0 { _ffmpeg_iste(yol, "valid", "\(geçerli)/\(bit) bit") }
+        etiket = _alt_biçim(b, fmt)
+    }
+    TR_if etiket == _PCM {
+        TR_if bit != 16 { _ffmpeg_iste(yol, "pcm", "\(bit) bit") }
+    } TR_else TR_if etiket == _ONDALIK {
+        TR_if bit != 32 { _ffmpeg_iste(yol, "float", "\(bit) bit") }
+    } TR_else {
+        _ffmpeg_iste(yol, "compressed", "\(etiket)")
+    }
+}
+
+# _zarf_sonu `data`'dan sonra kuyruğa bakılan yerdir (22.4): `RIFF` zarfının sonu ya da dosya sonu,
+# önce gelen.
+TR_func _zarf_sonu(b: TR_Bytes) -> TR_Int {
+    TR_var zarf = _PARÇA_BAŞI + _u32(b, 4)
+    TR_if zarf < b.TR_length { TR_return zarf }
+    TR_return b.TR_length
+}
+
+# _son_dolu dosyanın sıfır olmayan son baytının yeridir. Bir kez hesaplanır: her parçada sıfırları
+# saymak süreyi dosya boyunun karesine çıkarırdı.
+TR_func _son_dolu(b: TR_Bytes) -> TR_Int {
+    TR_var son = b.TR_length
+    TR_var sıfır = TR_Bytes([0] * _SIFIR_BLOĞU)
+    TR_for son >= _SIFIR_BLOĞU TR_and b[son - _SIFIR_BLOĞU..son] == sıfır { son = son - _SIFIR_BLOĞU }
+    TR_for son > 0 TR_and b[son - 1] == 0 { son = son - 1 }
+    TR_return son - 1
+}
+
+# _yazılabilir_ad parça adı yazdırılabilir ASCII mi: `data`'dan sonra öyle değilse orası parça değil,
+# boruya yazılmış sesin arkasıdır (22.4).
+TR_func _yazılabilir_ad(ad: TR_Bytes) -> TR_Bool {
+    TR_for i TR_in 0..4 {
+        TR_if ad[i] < 32 TR_or ad[i] > 126 { TR_return TR_false }
+    }
+    TR_return TR_true
+}
+
+# _boş_kuyruk konumdan sonrası ses taşımıyor mu (22.4): hepsi sıfır ya da 128 baytlık ID3v1. Öbür her
+# kuyruk parça gibi okunur: boruya yazılmış dosyada başlık ilk parçada kalır, ses zarfın arkasındadır.
+TR_func _boş_kuyruk(b: TR_Bytes, konum: TR_Int, son_dolu: TR_Int) -> TR_Bool {
+    TR_if konum > son_dolu { TR_return TR_true }
+    TR_return b.TR_length - konum == _ID3_BOYU TR_and b[konum..konum + 3] == TR_Bytes("TAG")
+}
+
+# _biçimi_öne_al dosyanın ilk `fmt ` parçasını yapısal hatalardan önce denetler (22.4): boyları
+# bozuksa durur, yapısal hatayı sonraki yürüyüş verir.
+TR_func _biçimi_öne_al(yol: TR_String, b: TR_Bytes) {
+    TR_var konum = _RIFF_BAŞI
+    TR_for konum + _PARÇA_BAŞI <= b.TR_length {
+        TR_var boy = _u32(b, konum + 4)
+        TR_if boy > b.TR_length - konum - _PARÇA_BAŞI { TR_return }
+        TR_if b[konum..konum + 4] == TR_Bytes("fmt ") {
+            TR_if boy >= 16 { _biçim_denetle(yol, b, konum + _PARÇA_BAŞI, boy) }
+            TR_return
+        }
+        konum = _sonraki(b, konum, boy)
+    }
+}
+
+# _biçim_oku `fmt ` parçasının yapısını denetleyip okur.
+TR_func _biçim_oku(yol: TR_String, b: TR_Bytes, fmt: TR_Int, boy: TR_Int) -> _Biçim {
+    TR_if boy < 16 { TR_throw TR_Message("H7064", yol, boy, 16) }
+    TR_var etiket = _u16(b, fmt)
+    TR_if etiket == _GENİŞ {
+        TR_if boy < 40 { TR_throw TR_Message("H7064", yol, boy, 40) }
+        etiket = _alt_biçim(b, fmt)
+    }
+    TR_var kanal = _u16(b, fmt + 2)
+    TR_var hız = _u32(b, fmt + 4)
+    TR_var hiza = _u16(b, fmt + 12)
+    TR_var örnek_baytı = _u16(b, fmt + 14) // 8
+    TR_if kanal == 0 TR_or hız == 0 { TR_throw TR_Message("H7065", yol, kanal, hız) }
+    TR_if hiza != kanal * örnek_baytı { TR_throw TR_Message("H7066", yol, hiza, kanal, örnek_baytı) }
+    TR_return _Biçim(kanal: kanal, hız: hız, örnek_baytı: örnek_baytı, ondalık: etiket == _ONDALIK)
+}
+
+# _ham_örnekler baytları [kanal, örnek] ondalık tensöre çevirir.
+TR_func _ham_örnekler(yol: TR_String, ham: TR_Bytes, biçim: _Biçim) -> TR_Tensor[TR_Float] {
+    TR_var kare = biçim.kanal
+    TR_if biçim.ondalık {
+        TR_var t = TR_from_bytes[TR_Float](ham, TR_dtype: "float32", TR_byte_order: "little")
+        TR_var sonlu = TR_is_finite(t)
+        TR_if TR_not TR_all(sonlu) {
+            TR_var ilk = TR_argmax(TR_where(sonlu, 0.0, 1.0)).TR_item()
+            TR_throw TR_Message("H7071", yol, ilk % kare, ilk // kare, t[ilk].TR_item())
+        }
+        TR_return t.TR_reshape([ham.TR_length // 4 // kare, kare]).TR_transpose()
+    }
+    TR_var tam = TR_from_bytes[TR_Int](ham, TR_dtype: "int16", TR_byte_order: "little")
+    TR_return (TR_Tensor[TR_Float](tam) / 32768.0).TR_reshape([ham.TR_length // 2 // kare, kare]).TR_transpose()
+}
+
+# _parça_adı iletideki addır: dosyanın baytları metin olmayabilir.
+TR_func _parça_adı(ad: TR_Bytes) -> TR_String {
+    TR_try { TR_return TR_String(ad) } TR_catch _hata { TR_return "\(ad)" }
+}
+
+# wav_oku bir WAV dosyasını okur (22.4).
+TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
+    TR_var b = TR_read_bytes(yol)
+    TR_if b.TR_length >= 4 {
+        TR_var baş = b[0..4]
+        TR_if baş == TR_Bytes("RIFX") { _ffmpeg_iste(yol, "other", "RIFX") }
+        TR_if baş == TR_Bytes("RF64") { _ffmpeg_iste(yol, "other", "RF64") }
+    }
+    TR_if b.TR_length < 4 TR_or b[0..4] != TR_Bytes("RIFF") { TR_throw TR_Message("H7062", yol, "riff") }
+    TR_if b.TR_length < _RIFF_BAŞI TR_or b[8.._RIFF_BAŞI] != TR_Bytes("WAVE") { TR_throw TR_Message("H7062", yol, "wave") }
+    _biçimi_öne_al(yol, b)
+    TR_var biçim: _Biçim? = TR_none
+    TR_var veri = -1
+    TR_var veri_boyu = 0
+    TR_var konum = _RIFF_BAŞI
+    TR_var bitiş = b.TR_length
+    TR_var son_dolu: TR_Int? = TR_none
+    TR_for konum + _PARÇA_BAŞI <= b.TR_length {
+        TR_if veri >= 0 TR_and konum >= bitiş {
+            TR_if son_dolu == TR_none { son_dolu = _son_dolu(b) }
+            TR_if _boş_kuyruk(b, konum, son_dolu) { TR_break }
+        }
+        TR_var ad = b[konum..konum + 4]
+        TR_if veri >= 0 TR_and TR_not _yazılabilir_ad(ad) { TR_throw TR_Message("H7080", yol, _parça_adı(ad)) }
+        TR_var boy = _u32(b, konum + 4)
+        TR_var kalan = b.TR_length - konum - _PARÇA_BAŞI
+        TR_if boy > kalan { TR_throw TR_Message("H7067", yol, _parça_adı(ad), boy, kalan) }
+        TR_if ad == TR_Bytes("fmt ") {
+            TR_if biçim != TR_none { TR_throw TR_Message("H7063", yol, "two_fmt") }
+            TR_if veri >= 0 { TR_throw TR_Message("H7063", yol, "data_first") }
+            biçim = _biçim_oku(yol, b, konum + _PARÇA_BAŞI, boy)
+        } TR_else TR_if ad == TR_Bytes("data") {
+            TR_if veri >= 0 { TR_throw TR_Message("H7063", yol, "two_data") }
+            TR_if biçim == TR_none { TR_throw TR_Message("H7063", yol, "data_first") }
+            veri = konum + _PARÇA_BAŞI
+            veri_boyu = boy
+            bitiş = _zarf_sonu(b)
+        }
+        konum = _sonraki(b, konum, boy)
+    }
+    TR_if biçim == TR_none { TR_throw TR_Message("H7063", yol, "no_fmt") }
+    TR_if veri < 0 { TR_throw TR_Message("H7063", yol, "no_data") }
+    TR_if konum < bitiş { TR_throw TR_Message("H7070", yol, bitiş - konum) }
+    TR_var çerçeve = biçim.kanal * biçim.örnek_baytı
+    TR_if veri_boyu == 0 { TR_throw TR_Message("H7068", yol) }
+    TR_if veri_boyu % çerçeve != 0 { TR_throw TR_Message("H7069", yol, veri_boyu, çerçeve) }
+    TR_return TR_Sound(TR_samples: _ham_örnekler(yol, b[veri..veri + veri_boyu], biçim), TR_sample_rate: biçim.hız)
+}
+
+# _yazılabilir_denetle yazılacak örneklerin hepsini [-1, 1] içinde ister: taşan ses sessizce
+# kırpılmaz (15.49).
+TR_func _yazılabilir_denetle(örnekler: TR_Tensor[TR_Float]) {
+    TR_var içinde = (örnekler >= -1.0) & (örnekler <= 1.0)
+    TR_if TR_all(içinde) { TR_return }
+    TR_var ilk = TR_argmax(TR_where(içinde, 0.0, 1.0).TR_reshape([-1])).TR_item()
+    TR_var boy = örnekler.TR_shape[1]
+    TR_var değer = örnekler[ilk // boy][ilk % boy].TR_item()
+    TR_if TR_not TR_is_finite(değer) { TR_throw TR_Message("H7075", ilk // boy, ilk % boy, değer) }
+    TR_throw TR_Message("H7074", ilk // boy, ilk % boy, değer)
+}
+
+# _tam_örnek ondalık değerleri 32767 ile çarpıp en yakın tam sayıya yuvarlar; yarımda çift olana.
+TR_func _tam_örnek(örnekler: TR_Tensor[TR_Float]) -> TR_Tensor[TR_Int] {
+    TR_var y = örnekler * 32767.0
+    TR_var r = TR_floor(y + 0.5)
+    TR_var tek_yarım = ((r - y) == 0.5) & ((r / 2.0) != TR_floor(r / 2.0))
+    TR_return TR_Tensor[TR_Int](TR_where(tek_yarım, r - 1.0, r), TR_dtype: "int16")
+}
+
+TR_func _yaz16(n: TR_Int) -> TR_Bytes {
+    TR_return TR_int_to_bytes(n, TR_dtype: "uint16", TR_byte_order: "little")
+}
+
+TR_func _yaz32(n: TR_Int) -> TR_Bytes {
+    TR_return TR_int_to_bytes(n, TR_dtype: "uint32", TR_byte_order: "little")
+}
+
+# wav_yaz sesi 16 bit tam sayı PCM olarak yazar (22.4).
+TR_func TR_write_wav(yol: TR_String, ses: TR_Sound) {
+    _ses_şekli(ses.TR_samples)
+    _ses_hızı(ses.TR_sample_rate)
+    TR_var kanal = ses.TR_samples.TR_shape[0]
+    TR_var boy = ses.TR_samples.TR_shape[1]
+    TR_if kanal == 0 TR_or boy == 0 { TR_throw TR_Message("H7073", ses.TR_samples.TR_shape) }
+    _yazılabilir_denetle(ses.TR_samples)
+    TR_var veri = _tam_örnek(ses.TR_samples).TR_transpose().TR_to_bytes(TR_byte_order: "little")
+    TR_var başlık = TR_Bytes("RIFF") + _yaz32(36 + veri.TR_length) + TR_Bytes("WAVEfmt ") + _yaz32(16) + _yaz16(_PCM) + _yaz16(kanal)
+    başlık = başlık + _yaz32(ses.TR_sample_rate) + _yaz32(ses.TR_sample_rate * kanal * 2) + _yaz16(kanal * 2) + _yaz16(16)
+    TR_write_file(yol, başlık + TR_Bytes("data") + _yaz32(veri.TR_length) + veri)
+}
+
+# _whisper_sesi Whisper'ın tek kanallı örneklerini verir: denetim sırası 23.6'da yazılıdır.
+TR_func _whisper_sesi(ses: TR_Sound) -> TR_Tensor[TR_Float] {
+    _ses_şekli(ses.TR_samples)
+    TR_var ad = "TR_whisper_log_mel"
+    TR_if ses.TR_sample_rate != _WHISPER_HIZI { TR_throw TR_Message("H7079", ad, "rate", ses.TR_sample_rate, "", "") }
+    TR_var şekil = ses.TR_samples.TR_shape
+    TR_if şekil[0] > 1 {
+        TR_var ilk = "`TR_Sound(TR_samples: ses.TR_samples.TR_slice(0, 0, 1), TR_sample_rate: ses.TR_sample_rate)`"
+        TR_var ortalama = "; `TR_Sound(TR_samples: TR_mean(ses.TR_samples, TR_dim: 0, TR_keepdim: TR_true), TR_sample_rate: ses.TR_sample_rate)`"
+        TR_throw TR_Message("H7079", ad, "channels", şekil, ilk, ortalama)
+    }
+    TR_if şekil[0] == 0 TR_or şekil[1] == 0 { TR_throw TR_Message("H7079", ad, "empty", şekil, "", "") }
+    TR_return ses.TR_samples[0].TR_to_dtype("float32")
+}
+
+# whisper_log_mel Whisper'ın `transcribe`'ının log-Mel'ini bir kaydın tamamı için verir (23.6):
+# [m, örnek // 160 + 3000]. Alt sınır kaydın tamamından alınır.
+TR_func TR_whisper_log_mel(ses: TR_Sound, TR_n_mels: TR_Int) -> TR_Tensor[TR_Float] {
+    TR_var örnekler = _whisper_sesi(ses)
+    TR_var x = TR_concat([örnekler, TR_zeros([_WHISPER_DOLGUSU])])
+    TR_var pencere = TR_hann_window(_WHISPER_FFT, TR_periodic: TR_true)
+    TR_var gerçek, sanal = TR_stft(x, _WHISPER_FFT, TR_hop_length: _WHISPER_ADIMI, TR_window: pencere, TR_center: TR_true, TR_pad_mode: "reflect")
+    TR_var çerçeve = gerçek.TR_shape[1] - 1
+    TR_var g = gerçek.TR_slice(1, 0, çerçeve)
+    TR_var s = sanal.TR_slice(1, 0, çerçeve)
+    TR_var güç = g ** 2 + s ** 2
+    TR_var süzgeç = TR_mel_filterbank(TR_sample_rate: _WHISPER_HIZI, TR_n_fft: _WHISPER_FFT, TR_n_mels: TR_n_mels, TR_norm: "slaney", TR_mel_scale: "slaney")
+    TR_var log = TR_log10(TR_clamp(süzgeç @ güç, TR_min: 1e-10))
+    TR_var sınırlı = TR_maximum(log, TR_max(log) - 8.0)
+    TR_return (sınırlı + 4.0) / 4.0
+}
