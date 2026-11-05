@@ -50,6 +50,19 @@ Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 
 
 Birim parça/sn. llama.cpp'nin beş örneğinin biri çoğu turda iki kat yavaş; `-p 0` ile ayrı koşuda oran 0,333.
 
+**GGUF kıyası, H2 teslim 2** (2026-11-05, TR `80074c00`, taban `ebca2081`, llama.cpp `8bed7cfb`, Intel Xeon 2.20 GHz, 8 iş parçacığı; aynı koşu, kopya kollu, `-r 5`, boş kollar; parantezde birinci ve üçüncü çeyrek):
+
+| Model | İş | Taban | Dal | llama.cpp | Oran taban → dal (dal Ç3) |
+| :-- | :-- | --: | --: | --: | --: |
+| Qwen3-0.6B `Q8_0` | üretim | 14,12 (13,80–14,35) | 20,57 (19,33–22,43) | 42,21 (23,25–43,95) | 0,334 → 0,487 (0,510) |
+| Qwen3-0.6B `Q8_0` | prompt 512 | 79,82 (78,67–80,89) | 100,30 (98,43–102,08) | 156,93 (131,07–162,68) | 0,509 → 0,639 (0,627) |
+| SmolLM2-360M `Q8_0` | üretim | 18,85 (18,45–19,25) | 28,11 (26,58–29,46) | 64,40 (63,28–65,20) | 0,293 → 0,437 (0,452) |
+| SmolLM2-360M `Q8_0` | prompt 512 | 106,64 (105,22–109,16) | 135,00 (133,15–135,51) | 229,36 (181,19–230,47) | 0,465 → 0,589 (0,588) |
+| Qwen3-4B `Q4_K_M` | üretim | 2,91 (2,85–2,95) | 3,18 (3,01–3,27) | 9,70 (9,59–11,92) | 0,299 → 0,327 (0,274) |
+| Qwen3-4B `Q4_K_M` | prompt 512 | 17,11 (16,83–17,20) | 18,86 (18,57–18,92) | 31,78 (31,12–31,95) | 0,538 → 0,593 (0,592) |
+
+Birim parça/sn. Altı satırda da dal çeyrekleri tabanınkilerden ayrık. 0.6B üretimi 0,5'in altında: aynı işlemcide önceki iki koşu 0,460 ve 0,484.
+
 **GGUF kartta** (2026-11-05, G4, NVIDIA RTX PRO 6000 Blackwell Server Edition, sm_120, 188 SM; TR `66f6d21e`, llama.cpp `8bed7cfb`, `llama-bench -ngl 99 -r 5 -p 512 -n 100 -o json`; aynı koşu, dört tur, kopya kollu; parça/sn, ortanca, parantezde üçüncü çeyrek) [ölçüldü: H1, `h1g3/ozet.txt`]:
 
 | Model | İş | TR | llama.cpp | Oran |
