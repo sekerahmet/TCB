@@ -1446,6 +1446,8 @@
 "H7015": "`{#test}` is written only at the top level of a file: the test {name|q} would never run here; move the block to the top level",
 "H7016": "'{name}' is not a method but a function: `{example}` (`x` is the value before the dot)",
 "H7017": "'{name}' is not written here, it is written: `{example}`",
+"H7040": "{@pretrained_gguf}: the type of the tensor {weight|q} is {dtype}: frequency divisors must be float32, fp16 or bf16",
+"H7041": "{@pretrained_gguf}: the divisor at index {index} of the tensor {weight|q} is {value}: a divisor must be finite and above zero, and the angle of every position must fit float32",
 "H7100": "the size of the copy differs from the source's; the source was not deleted ({path|q})",
 "H7101": "the source has {count} links or special files; it cannot be moved to another disk (first copy it and make the links by hand)",
 "H7102": "the copy differs from the source (the file count or total size does not match); the source was not deleted",

@@ -48,7 +48,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
-- `changed --go-tests` sahnedeki farkı görmüyor: yönerge "commit'ten önce bak" diyor, liste commit'ten sonra doluyor [ölçüldü: D1 teslimi, 2026-11-05]. `--staged` gibi bir seçenek.
+- `changed --go-tests` sahnedeki farkı görmüyor: yönerge "commit'ten önce bak" diyor, liste commit'ten sonra doluyor [ölçüldü: D1 teslimi, 2026-11-05]. `--staged` ya da `--worktree` gibi bir seçenek; T1 de istedi (DENETİM istek 161 N3).
 
 - **codeindex parametre tipini imzada göstermiyor ve alıcı çıkarımında kullanmıyor.** 2026-10-30, 4a1 bulut oturumu, DENETİM doğruladı. İmzada parametre tipi ve dönüş görünmüyor; parametre tipi alıcı çıkarımında kullanılmıyor (`çevre_hesapla(k: Kare)` içinde `k.kenar` ad tahminiyle bağlanıyor). Beklenen: imza tiplerle; tipli parametrenin üyesi tipinden bağlanır. (Tipli ve varsayılanlı parametrenin bozuk imzası, `"kv_baş = : TR_Int? = TR_none"`, 4a1'in ikinci diliminde düzeldi: `params.go` `defaultText` değeri ilk `=`'den sonra okuyor.)
 

@@ -1451,6 +1451,8 @@ const (
 	H7015 Code = 7015 // `{#test}` yalnız dosyanın en dışında yazılır: {name|q} testi burada hiç koşmazdı; bloğu en dışa taşıyın
 	H7016 Code = 7016 // '{name}' metot değil, fonksiyondur: `{example}` (`x`, noktadan önceki değerdir)
 	H7017 Code = 7017 // '{name}' burada yazılmaz, yazımı: `{example}`
+	H7040 Code = 7040 // {@pretrained_gguf}: {weight|q} tensörünün türü {dtype}: frekans bölenleri float32, fp16 ya da bf16 olmalı
+	H7041 Code = 7041 // {@pretrained_gguf}: {weight|q} tensörünün {index} konumundaki böleni {value}: bölen sonlu ve sıfırdan büyük olmalı, her konumun açısı float32 sınırında kalmalı
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi
