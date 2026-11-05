@@ -1,6 +1,7 @@
 package tensor
 
 import (
+	le "encoding/binary"
 	"slices"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -18,9 +19,10 @@ import (
 
 // RawBackend ham baytla depolama kuran ve okuyan arka uç (cinsli tensörlerin taşınması).
 type RawBackend interface {
-	// FromRaw ham baytlardan (küçük uçlu, mantıksal sırayla) dt türünde depolama kurar.
+	// FromRaw ham baytlardan (küçük uçlu, mantıksal sırayla) dt türünde depolama kurar; dt ham bayt
+	// türü ya da 16 bitlik ondalıktır (öğelerin bitleri, fromBits16).
 	FromRaw(raw []byte, dt DType) Storage
-	// ToRaw görünümün öğelerini mantıksal sırayla ham bayt olarak verir.
+	// ToRaw görünümün öğelerini mantıksal sırayla ham bayt olarak verir; 16 bitlik ondalıkta da.
 	ToRaw(src View) []byte
 	// FillRaw bütün öğeleri elem'in (bir öğenin ham baytları) değeri yapar.
 	FillRaw(dst Storage, elem []byte)
@@ -177,32 +179,46 @@ func FromRawOn(dev Device, dt DType, raw []byte, shape ...int) *Tensor {
 }
 
 // FromBits16On 16 bitlik ondalık (bfloat16, float16) tensörü bitlerinden kurar; CPU'da bits'in
-// kendisi depolamadır (çağıran bırakır), float32'ye açılıp yeniden yuvarlanmaz.
+// kendisi depolamadır (çağıran bırakır), hiçbir cihazda float32'ye açılıp yeniden yuvarlanmaz.
 func FromBits16On(dev Device, dt DType, bits []uint16, shape ...int) *Tensor {
 	be := BackendFor(dev)
 	n := allocSizeOn(be, isCreate, shape, dt)
 	if len(bits) != n {
 		panic(messages.New(messages.H3035, len(bits), shape))
 	}
-	if _, cpu := be.(cpuBackend); cpu {
-		return fromStorage(be, &cpuStorage{dtyp: dt, h: bits}, shape)
-	}
-	wide := make([]float32, n)
-	widen16(wide, bits, dt)
-	return fromStorage(be, be.FromHost(wide, dt), shape)
+	return fromStorage(be, fromBits16(be, dt, bits), shape)
 }
 
-// Bits16s 16 bitlik ondalık tensörün öğelerini mantıksal sırayla bit deseni olarak verir: CPU'da
-// depodaki bitlerdir, float32'den geçseydi sinyal NaN'ı susardı. Öbür cihazlar değerden daraltır.
+// fromBits16 bits'ten be'de 16 bitlik depolama kurar: CPU'da bits'in kendisi depolamadır, öbür
+// arka uçlara ham bayt gider; float32'den geçseydi sinyal NaN'ı susardı.
+func fromBits16(be Backend, dt DType, bits []uint16) Storage {
+	if _, cpu := be.(cpuBackend); cpu {
+		return &cpuStorage{dtyp: dt, h: bits}
+	}
+	raw := make([]byte, 2*len(bits))
+	for i, h := range bits {
+		le.LittleEndian.PutUint16(raw[2*i:], h)
+	}
+	return rawBackend(be, dt).FromRaw(raw, dt)
+}
+
+// Bits16s 16 bitlik ondalık tensörün öğelerini mantıksal sırayla bit deseni olarak verir: depodaki
+// bitlerdir, float32'den geçseydi sinyal NaN'ı susardı.
 func (t *Tensor) Bits16s() []uint16 {
 	if t.dtyp != BFloat16 && t.dtyp != Float16 {
 		panic(messages.Internal("Bits16s on " + t.dtyp.String()))
 	}
+	t.mustLive()
+	if t.sym != nil {
+		panic(messages.New(messages.H3107))
+	}
 	if _, cpu := t.be.(cpuBackend); !cpu {
-		d := t.Data()
-		out := make([]uint16, len(d))
-		for i, v := range d {
-			out[i] = narrowOne(v, t.dtyp)
+		sy := counterStart(t.be, OpKindToHost).start()
+		raw := gateToRaw(rawBackend(t.be, t.dtyp), t.view())
+		sy.finish()
+		out := make([]uint16, len(raw)/2)
+		for i := range out {
+			out[i] = le.LittleEndian.Uint16(raw[2*i:])
 		}
 		return out
 	}

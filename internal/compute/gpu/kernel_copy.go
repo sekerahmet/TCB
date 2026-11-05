@@ -26,7 +26,8 @@ func (k *emitter) parse(i reg, nd, nOperand int, meta string) []reg {
 }
 
 // copyKernel hedef (td, adımlı) ← kaynak (ts, adımlı); ekle doğruysa hedef += ölçek·kaynak
-// (toplam float32'de yapılır, 16 bitlik hedefe bir kez yuvarlanır).
+// (toplam float32'de yapılır, 16 bitlik hedefe bir kez yuvarlanır). Öğeler float32'den geçer: aynı
+// türde eklemesiz kopya rawCopyKernel'dir.
 func copyKernel(nd int, ts, td tensor.DType, add bool) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("kopya_%d_%s_%s_%v", nd, ts, td, add))
@@ -90,13 +91,20 @@ func (g *backend) copyStrided(target, source tensor.View, add bool, scaleF float
 	}
 	tensor.NoteImplicit(true, kind, n) // GPU'da süre ölçülmez (Finish gerekmez)
 	sh, st := tensor.MergeAxes(target.Shape, source.Strides, target.Strides)
+	same := !add && kd.dtype == hd.dtype
 	// Aynı tür, iki taraf bitişik: sürücünün cihaz içi kopyası.
-	if !add && kd.dtype == hd.dtype && len(sh) == 1 && st[0][0] == 1 && st[1][0] == 1 {
+	if same && len(sh) == 1 && st[0][0] == 1 && st[1][0] == 1 {
 		g.dCopy(hd, target.Offset, kd, source.Offset, n)
 		return
 	}
 	if len(sh) > maxAxis {
 		none(messages.H4057, len(sh), maxAxis)
+	}
+	// Aynı tür, adımlı: öğeler bitleriyle taşınır; load ve store float32'den geçer, 16 bitlik sinyal
+	// NaN'ı susardı (15.47a).
+	if same {
+		g.launchRawCopy(target, source, hd, kd, n, sh, st)
+		return
 	}
 	meta := append(append(append([]int{}, sh...), st[0]...), st[1]...)
 	c := g.takeKernel(fmt.Sprintf("kopya:%d:%d:%d:%v", len(sh), kd.dtype, hd.dtype, add), copyKernel(len(sh), kd.dtype, hd.dtype, add))

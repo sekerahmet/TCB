@@ -32,8 +32,17 @@ func newTypedStorage(n int, dt DType) *cpuStorage {
 	return &cpuStorage{dtyp: dt, raw: raw, n: n}
 }
 
-// FromRaw ham baytlardan (küçük uçlu, mantıksal sırayla) dt türünde depolama kurar.
+// FromRaw ham baytlardan (küçük uçlu, mantıksal sırayla) dt türünde depolama kurar; 16 bitlik
+// ondalıkta baytlar öğelerin bitleridir.
 func (cpuBackend) FromRaw(raw []byte, dt DType) Storage {
+	if dt == BFloat16 || dt == Float16 {
+		bits := make([]uint16, len(raw)/2)
+		checkElem(len(bits), dt)
+		for i := range bits {
+			bits[i] = le.LittleEndian.Uint16(raw[2*i:])
+		}
+		return &cpuStorage{dtyp: dt, h: bits}
+	}
 	if !dt.IsTyped() {
 		panic(messages.New(messages.H3025, dt))
 	}
@@ -50,6 +59,14 @@ func (cpuBackend) ToRaw(src View) []byte {
 	eb := elemBytes(c.dtyp)
 	n := src.Numel()
 	out := make([]byte, n*eb)
+	if is16(src) {
+		bits := make([]uint16, n)
+		copyRows(bits, c.h, View{Shape: src.Shape, Strides: ContiguousStrides(src.Shape)}, src)
+		for i, h := range bits {
+			le.LittleEndian.PutUint16(out[2*i:], h)
+		}
+		return out
+	}
 	if src.IsContiguous() {
 		copy(out, c.raw[src.Offset*eb:(src.Offset+n)*eb])
 		return out
