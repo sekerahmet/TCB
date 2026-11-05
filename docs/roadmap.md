@@ -253,7 +253,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 
 **2026-11-04'te gelen:** CPU'da 16 bit: Qwen3 bf16 3,8 → 12,0 parça/sn, artık float32'den hızlı; hazır model yükleme Qwen3 bf16 12,5 → 2,4 sn, tepe 8,99 → 4,60 GB (AMD EPYC, [`measurements.md`](measurements.md)). Aynı işlemcide 2026-11-05 kıyası (8 iş parçacığı; Xeon'da yön ters): üretimde TR float32 transformers float32'nin 1,6–1,9 katı, TR bf16 llama.cpp f16'nın 0,30–0,41 katı; prompt işlemede transformers'ın yarısı, 16 bit kazandırmıyor.
 
-**2026-11-05'te gelen:** yayımlanmış GGUF dosyası TR'de çalışıyor: `TR_pretrained_gguf`, `Q8_0`, `Q4_K`, `Q6_K`, `qwen3` ve `llama`. Qwen3-0.6B `Q8_0` greedy metni llama.cpp ile 180 harfte aynı. Üretim llama.cpp'nin 0,28–0,38 katı (Xeon, [`measurements.md`](measurements.md)); 0,5 eşiğinin altında, fark ayrı hız işi: parçanın yarısına yakını çarpım dışında.
+**2026-11-05'te gelen:** yayımlanmış GGUF dosyası TR'de çalışıyor: `TR_pretrained_gguf`, `Q8_0`, `Q4_K`, `Q6_K`, `qwen3` ve `llama`. Qwen3-0.6B `Q8_0`'ın greedy 32 parçası llama.cpp ile aynı metni verdi. Üretim llama.cpp'nin 0,28–0,38 katı (Xeon, [`measurements.md`](measurements.md)); 0,5 eşiğinin altında, fark ayrı hız işi: parçanın yarısına yakını çarpım dışında.
 
 **Son ölçüm** (2026-11-03, main `51b75f0a`, Colab G4 ve CPU High-RAM; ayrıntı ve kaynak [`measurements.md`](measurements.md)):
 - **GPU'da üretim:** transformers'ın en hızlı yolunun 1,18 katı; llama.cpp f32'nin 0,58–0,75, f16'nın 0,5 katı. 2026-10-22'ye göre %7–10 yavaşladı, llama.cpp aynı kaldı: iki düşüş de kapandı (2026-11-04, `measurements.md`): 2026-10-23'teki Qwen3 bf16 +%7,2; 2026-11-02'deki bf16 Qwen3 +%3,7, SmolLM2 +%7,2. Oranlar yeniden ölçülmedi.

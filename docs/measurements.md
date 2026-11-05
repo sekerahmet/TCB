@@ -50,7 +50,7 @@ Logit, metin ve eğitim (4 tür, 3 kip, 300 adım) tabanla bit bit aynı; Qwen3 
 
 Birim parça/sn. llama.cpp'nin beş örneğinin biri çoğu turda iki kat yavaş; `-p 0` ile ayrı koşuda oran 0,333.
 
-Üretimin ayrışımı, Qwen3-0.6B `Q8_0` (TR `845dda66`, aynı makine, üç kol aynı koşuda, altı tur) [ölçüldü: kayıt `olcumler/h2k4`]: TR üretim 63,5 ms/parça, yalnız 197 matrisin çarpımı 33,9, llama.cpp bütün iş 21,2. Çarpım dışı 29,6 ms [hesap]: dikkat yaklaşık 10, kaynaştırılmış işlemler yaklaşık 9, kalan yaklaşık 9 [hesap: profil].
+Üretimin ayrışımı, Qwen3-0.6B `Q8_0` (TR `845dda66`, aynı işlemci türü, ayrı oturum; üç kol aynı koşuda, altı tur) [ölçüldü: kayıt `olcumler/h2k4`]: TR üretim 63,5 ms/parça, yalnız 197 matrisin çarpımı 33,9, llama.cpp bütün iş 21,2. Çarpım dışı 29,6 ms [hesap]: dikkat yaklaşık 10, kaynaştırılmış işlemler yaklaşık 9, kalan yaklaşık 9 [hesap: profil].
 
 Tepe bellek, üretim 2 parça (TR `3fdde953`, AMD EPYC 7B12) [ölçüldü: kayıt `olcumler/h2k3`]: Qwen3-0.6B `Q8_0` dosyanın 1,67 katı, SmolLM2-360M `Q8_0` 1,71, Qwen3-4B `Q4_K_M` 1,31; yükleme 423, 239, 1 264 ms.
 

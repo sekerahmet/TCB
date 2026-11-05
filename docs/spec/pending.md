@@ -45,7 +45,6 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 - **15.6d, tensörle indekste eksi indeks (2026-11-05, H2):** `t[i]` eksi indeksi sondan sayar, `t[idx]` için bir şey demiyor; uygulama H6694. Tek cümle yeter.
-- **15.1, 15.54, `.TR_fill` ve `.TR_narrow` (2026-11-05, H2):** dil tanımında var, sözlükte yok; 15.54'ün ve 15.1'in bu parçaları uygulanamadı.
 - **15.53, nicemli tensör yazma (2026-11-05, H2):** liste `TR_save_tensors`'ı izinli sayıyor, uygulama H6687; TR biçiminde nicemli tür kodları karara bağlı.
 - **13.10, anahtar fonksiyonlu `TR_max`, `TR_min` (2026-11-05, D1 test komutu):** madde anahtar fonksiyonlu biçimi anıyor, motorda yok: `TR_max([1.0, TR_nan, 2.0], (x) => x)` argüman hatası [ölçüldü: D1, DENETİM istek 142]. Ya biçim yazılır ya cümle kalkar; 13.1 liste ya da iki ve daha çok değer diyor, cümleyi kaldırmak yetebilir.
 - **15.22a, 15.47a, 16 bitlik NaN (2026-11-05, T1; DENETİM istek 134, 142):** 15.22a sayı ile tensör farkını anmıyor, cümle gerekmeyebilir. Kart 15.47a'nın bit sözünü NaN'da bozuyor: söz ya daraltılır ya 16 bitlik yükleme ve indirme ham bitle yapılır (status 15.47a; sahip T1, H2'den sonra).
