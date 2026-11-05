@@ -742,7 +742,6 @@ koşu.TR_resume_step	ok	0	tr:field:lib/training.tr:TR_type_Run.TR_mem_resume_ste
 koşu.TR_step_done	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_step_done
 ks.TR_append	ok	0	name:TR_mem_append
 kutular.TR_sort	ok	0	name:TR_mem_sort
-kuyruk.TR_length	ok	0	name:TR_mem_length
 kuyruk.TR_pop	ok	0	name:TR_mem_pop
 kuyruk.TR_remove_at	ok	0	name:TR_mem_remove_at
 kv.TR_tolist	ok	0	name:TR_mem_tolist

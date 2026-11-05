@@ -13,6 +13,7 @@
 TR_const _RIFF_BAŞI = 12
 TR_const _PARÇA_BAŞI = 8
 TR_const _ID3_BOYU = 128
+TR_const _SIFIR_BLOĞU = 4096
 TR_const _PCM = 1
 TR_const _ONDALIK = 3
 TR_const _GENİŞ = 65534
@@ -105,13 +106,21 @@ TR_func _zarf_sonu(b: TR_Bytes) -> TR_Int {
     TR_return b.TR_length
 }
 
-# _boş_kuyruk zarfın arkası ses taşımıyor mu (22.4): hepsi sıfır ya da 128 baytlık ID3v1. Öbür her
+# _son_dolu dosyanın sıfır olmayan son baytının yeridir. Bir kez hesaplanır: her parçada sıfırları
+# saymak süreyi dosya boyunun karesine çıkarırdı.
+TR_func _son_dolu(b: TR_Bytes) -> TR_Int {
+    TR_var son = b.TR_length
+    TR_var sıfır = TR_Bytes([0] * _SIFIR_BLOĞU)
+    TR_for son >= _SIFIR_BLOĞU TR_and b[son - _SIFIR_BLOĞU..son] == sıfır { son = son - _SIFIR_BLOĞU }
+    TR_for son > 0 TR_and b[son - 1] == 0 { son = son - 1 }
+    TR_return son - 1
+}
+
+# _boş_kuyruk konumdan sonrası ses taşımıyor mu (22.4): hepsi sıfır ya da 128 baytlık ID3v1. Öbür her
 # kuyruk parça gibi okunur: boruya yazılmış dosyada başlık ilk parçada kalır, ses zarfın arkasındadır.
-# Dosya başına bir kez çağrılır: her parçada bakmak süreyi dosya boyunun karesine çıkarırdı.
-TR_func _boş_kuyruk(b: TR_Bytes, konum: TR_Int) -> TR_Bool {
-    TR_var kuyruk = b[konum..b.TR_length]
-    TR_if kuyruk.TR_length == _ID3_BOYU TR_and kuyruk[0..3] == TR_Bytes("TAG") { TR_return TR_true }
-    TR_return TR_all(TR_from_bytes[TR_Int](kuyruk, TR_dtype: "uint8", TR_byte_order: "little") == 0)
+TR_func _boş_kuyruk(b: TR_Bytes, konum: TR_Int, son_dolu: TR_Int) -> TR_Bool {
+    TR_if konum > son_dolu { TR_return TR_true }
+    TR_return b.TR_length - konum == _ID3_BOYU TR_and b[konum..konum + 3] == TR_Bytes("TAG")
 }
 
 # _biçimi_öne_al dosyanın ilk `fmt ` parçasını yapısal hatalardan önce denetler (22.4): boyları
@@ -183,12 +192,11 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
     TR_var veri_boyu = 0
     TR_var konum = _RIFF_BAŞI
     TR_var bitiş = b.TR_length
-    TR_var kuyruğa_bakıldı = TR_false
+    TR_var son_dolu: TR_Int? = TR_none
     TR_for konum + _PARÇA_BAŞI <= b.TR_length {
-        TR_if veri >= 0 TR_and TR_not kuyruğa_bakıldı TR_and konum >= bitiş {
-            TR_if _boş_kuyruk(b, konum) { TR_break }
-            kuyruğa_bakıldı = TR_true
-            bitiş = b.TR_length
+        TR_if veri >= 0 TR_and konum >= bitiş {
+            TR_if son_dolu == TR_none { son_dolu = _son_dolu(b) }
+            TR_if _boş_kuyruk(b, konum, son_dolu) { TR_break }
         }
         TR_var ad = b[konum..konum + 4]
         TR_var boy = _u32(b, konum + 4)

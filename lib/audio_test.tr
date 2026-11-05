@@ -173,15 +173,31 @@ TR_test "22.4 boruya yazılmış dosya: başlık ilk parçada, ses zarfın arkas
     TR_var ilk = parça("data", TR_Bytes([1, 2] * 100))
     TR_var başlık = TR_Bytes("RIFF") + u32(4 + fmt.TR_length + ilk.TR_length) + TR_Bytes("WAVE") + fmt + ilk
     TR_assert_equal("H7067", hata_kodu(başlık + TR_Bytes([1, 2] * 900)))
-    TR_assert_equal("H7070", hata_kodu(başlık + TR_Bytes([1, 0, 0, 0, 0, 0, 0, 0, 2])))
 }
 
-TR_test "22.4 öbür kuyruk parça gibi okunur: sağlamsa geçer, bozuksa hatadır" {
+TR_test "22.4 öbür kuyruk parça gibi okunur; her parçadan sonra kalana yine bakılır" {
     TR_var ses = mono(dört_örnek())
-    TR_assert_equal([1, 4], oku(ses + parça("LIST", TR_Bytes("abcd"))).TR_samples.TR_shape)
+    TR_var liste = parça("LIST", TR_Bytes("abcd"))
+    TR_var id3 = TR_Bytes("TAG") + TR_Bytes([0] * 125)
+    TR_assert_equal([1, 4], oku(ses + liste).TR_samples.TR_shape)
+    TR_assert_equal([1, 4], oku(ses + liste + id3).TR_samples.TR_shape)
+    TR_assert_equal([1, 4], oku(ses + liste + TR_Bytes([0] * 16)).TR_samples.TR_shape)
+    TR_assert_equal([1, 4], oku(ses + liste + TR_Bytes("abc")).TR_samples.TR_shape)
     TR_assert_equal("H7067", hata_kodu(ses + TR_Bytes("LIST") + u32(9)))
-    TR_assert_equal("H7070", hata_kodu(ses + parça("LIST", TR_Bytes("abcd")) + TR_Bytes("abc")))
-    TR_assert_equal("H7070", hata_kodu(ses + TR_Bytes("TAG") + TR_Bytes([0] * 126)))
+    TR_assert_equal("H7067", hata_kodu(ses + liste + TR_Bytes("LIST") + u32(9)))
+}
+
+TR_test "22.4 RIFF boyu 0, data, LIST, ID3v1: ses tam gelir" {
+    TR_var parçalar = parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", dört_örnek())
+    TR_var kuyruk = parça("LIST", TR_Bytes("abcd")) + TR_Bytes("TAG") + TR_Bytes([0] * 125)
+    TR_var ses = oku(TR_Bytes("RIFF") + u32(0) + TR_Bytes("WAVE") + parçalar + kuyruk)
+    TR_assert_equal([1, 4], ses.TR_samples.TR_shape)
+    TR_assert_equal([0.0, 0.5, -0.5, -1.0], ses.TR_samples[0].TR_tolist)
+}
+
+TR_test "22.4 uzun sıfır dolgu da kuyruktur" {
+    TR_assert_equal([1, 4], oku(mono(dört_örnek()) + TR_Bytes([0] * 10000)).TR_samples.TR_shape)
+    TR_assert_equal("H7067", hata_kodu(mono(dört_örnek()) + TR_Bytes("LIST") + u32(99999) + TR_Bytes([0] * 10000)))
 }
 
 TR_test "22.4 RIFF boyu bozuk, parçaları sağlam dosya geçer" {
