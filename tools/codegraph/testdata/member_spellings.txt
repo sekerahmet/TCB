@@ -410,6 +410,7 @@ blok.TR_dtype	ok	0	name:TR_mem_dtype
 blok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 blok.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 blok_değeri.TR_tolist	ok	0	name:TR_mem_tolist
+bloklar.TR_length	ok	0	name:TR_mem_length
 boş.TR_grad	ok	0	name:TR_mem_grad
 boş.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
 boş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
@@ -588,6 +589,7 @@ gradyanlar.TR_append	ok	0	name:TR_mem_append
 gruplar.TR_append	ok	0	name:TR_mem_append
 gs.TR_append	ok	0	name:TR_mem_append
 gömme.TR_tolist	ok	0	name:TR_mem_tolist
+gömme.TR_transpose	ok	0	name:TR_mem_transpose
 görev.TR_append	ok	0	name:TR_mem_append
 görev.TR_done	ok	0	name:TR_mem_done
 görev.TR_length	ok	0	name:TR_mem_length
@@ -652,6 +654,8 @@ ileti.TR_ends_with	ok	0	name:TR_mem_ends_with
 iletiler.TR_append	ok	0	name:TR_mem_append
 ilk.TR_code	ok	0	name:TR_mem_code
 ilk.TR_length	ok	0	name:TR_mem_length
+ilk.TR_shape	ok	0	name:TR_mem_shape
+ilk.TR_tolist	ok	0	name:TR_mem_tolist
 ince.TR_dtype	ok	0	name:TR_mem_dtype
 ince.TR_step	ok	0	name:TR_mem_step
 ince.TR_tolist	ok	0	name:TR_mem_tolist
@@ -751,6 +755,8 @@ kn.TR_update	ok	0	name:TR_mem_update
 kn2.TR_resume_step	ok	0	name:TR_mem_resume_step
 kn2.TR_rollback	ok	0	name:TR_mem_rollback
 kn2.TR_update	ok	0	name:TR_mem_update
+konum.TR_dtype	ok	0	name:TR_mem_dtype
+konum.TR_slice	ok	0	name:TR_mem_slice
 kopya.TR_append	ok	0	name:TR_mem_append
 kopya.TR_get	ok	0	name:TR_mem_get
 kopya.TR_grad	ok	0	name:TR_mem_grad
@@ -1145,6 +1151,7 @@ sira.TR_append	ok	0	name:TR_mem_append
 son.TR_append	ok	0	name:TR_mem_append
 son.TR_code	ok	0	name:TR_mem_code
 son.TR_fill	ok	0	spec:15.54	tr_index:not_found:4
+son.TR_shape	ok	0	name:TR_mem_shape
 son.TR_slice	ok	0	name:TR_mem_slice
 son.TR_tolist	ok	0	name:TR_mem_tolist
 son_k.TR_device	ok	0	name:TR_mem_device
@@ -1360,6 +1367,9 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 öbür.TR_append	ok	0	name:TR_mem_append
 ölçülen_ms.TR_append	ok	0	name:TR_mem_append
 ön.TR_tolist	ok	0	name:TR_mem_tolist
+önbellek.TR_advance	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_advance
+önbellek.TR_append	ok	0	name:TR_mem_append
+önbellek.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
 önbellek.TR_shape	ok	0	name:TR_mem_shape
 önce.TR_tolist	ok	0	name:TR_mem_tolist
 öncesi.TR_tolist	ok	0	name:TR_mem_tolist

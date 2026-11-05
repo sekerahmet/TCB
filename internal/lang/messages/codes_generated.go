@@ -1501,6 +1501,7 @@ const (
 	H7094 Code = 7094 // {@pretrained_whisper}: {weight|q} tensörü {dtype|q} türünde; ağırlık float32, fp16 ya da bf16 olmalıdır, nicemli ağırlık açılmaz (25.1)
 	H7095 Code = 7095 // {@pretrained_whisper}: {weight|q} tensörünün şekli {given}, `config.json`'a göre {expected} olmalıdır
 	H7096 Code = 7096 // {@pretrained_whisper}: `config.json`'da {field|q} {given} olamaz: {case, select, activation {Whisper GELU kullanır} scale {gömme ölçeklenmez} heads {bakış sayısı `d_model`'i bölmelidir} other {boyutlar sıfırdan büyüktür}}
+	H7097 Code = 7097 // Whisper penceresinin şekli {given}, modele göre {expected} olmalıdır: 30 saniyelik log-Mel
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

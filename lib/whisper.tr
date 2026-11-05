@@ -5,7 +5,7 @@
 #             değişken model = hazır_whisper("whisper-tiny")
 #
 # Mimari özgün `whisper/model.py`'dir: kodlayıcı iki evrişim, GELU ve öğrenilmiş konumdan sonra ön-norm
-# bloklardan geçer. Ağırlık adları Hugging Face'indir; K izdüşümünün sapması yoktur. Doğrusal katmanın
+# bloklardan geçer; çözücü aynı bloklara çapraz dikkat ekler, K ve V önbellektedir. Ağırlık adları Hugging Face'indir; K izdüşümünün sapması yoktur. Doğrusal katmanın
 # ağırlığı dosyada [çıkış, giriş], TR'nin Doğrusal'ında [giriş, çıkış]'tır: devrilir (lib/README.md).
 # Her tensörün adı ve şekli ayardan hesaplanır: dosyada kalan ya da eksik ad hatadır (25.1).
 
@@ -80,6 +80,22 @@ TR_struct _Dikkat {
         TR_var y = TR_attention(q, k, v, TR_causal: TR_false)
         TR_return TR_self.o.TR_forward(y.TR_reshape(x.TR_shape))
     }
+    # _nedensel çözücünün özdikkatidir: anahtarlar önbelleğe eklenir, sorgu sondan hizalıdır (15.24).
+    TR_func _nedensel(x: TR_Tensor, önbellek: TR_KVCache, katman: TR_Int) -> TR_Tensor {
+        TR_var q = TR_self._bakışlar(TR_self.q.TR_forward(x))
+        TR_var kv = önbellek.TR_append(katman, TR_self._bakışlar(TR_self.k.TR_forward(x)), TR_self._bakışlar(TR_self.v.TR_forward(x)))
+        TR_var y = TR_attention(q, kv[0], kv[1], TR_causal: TR_true)
+        TR_return TR_self.o.TR_forward(y.TR_reshape(x.TR_shape))
+    }
+    # _anahtarlar çapraz dikkatin K ve V'sini kurar: kodlayıcı çıktısı değişmez, pencerede bir kez hesaplanır.
+    TR_func _anahtarlar(kaynak: TR_Tensor) -> TR_List[TR_Tensor] {
+        TR_return [TR_self._bakışlar(TR_self.k.TR_forward(kaynak)), TR_self._bakışlar(TR_self.v.TR_forward(kaynak))]
+    }
+    # _çapraz sorguyu hazır K ve V'ye bakar.
+    TR_func _çapraz(x: TR_Tensor, kv: TR_List[TR_Tensor]) -> TR_Tensor {
+        TR_var y = TR_attention(TR_self._bakışlar(TR_self.q.TR_forward(x)), kv[0], kv[1], TR_causal: TR_false)
+        TR_return TR_self.o.TR_forward(y.TR_reshape(x.TR_shape))
+    }
 }
 
 # Blok: x + dikkat(norm(x)), + mlp(norm(x)). Çözücünün bloğunda arada çapraz dikkat vardır.
@@ -98,6 +114,11 @@ TR_struct _Blok {
     TR_func _kodla(x: TR_Tensor) -> TR_Tensor {
         TR_var y = x + TR_self.dikkat._öz(TR_self.dikkat_normu._ileri(x))
         TR_return y + TR_self._mlp(y)
+    }
+    TR_func _çöz(x: TR_Tensor, önbellek: TR_KVCache, katman: TR_Int, kv: TR_List[TR_Tensor]) -> TR_Tensor {
+        TR_var y = x + TR_self.dikkat._nedensel(TR_self.dikkat_normu._ileri(x), önbellek, katman)
+        TR_var z = y + TR_self.çapraz._çapraz(TR_self.çapraz_normu._ileri(y), kv)
+        TR_return z + TR_self._mlp(z)
     }
 }
 
@@ -120,12 +141,31 @@ TR_struct _Kodlayıcı {
     }
 }
 
-# Çözücünün ağırlıkları: gömme aynı zamanda çıkış katmanıdır (25.1).
+# Bir pencerenin çözme durumu: özdikkatin önbelleği ve blok başına çapraz dikkatin K ve V'si.
+TR_struct _Bellek {
+    önbellek: TR_KVCache
+    çapraz: TR_List[TR_List[TR_Tensor]]
+}
+
+# Çözücü: özgündeki `TextDecoder`. Gömme aynı zamanda çıkış katmanıdır (25.1).
 TR_struct _Çözücü {
     gömme: TR_Tensor
+    çıkış: TR_Tensor
     konum: TR_Tensor
     bloklar: TR_List[_Blok]
     norm: _Norm
+    # _başlat bir pencerenin belleğini kodlayıcı çıktısından kurar.
+    TR_func _başlat(kodlanmış: TR_Tensor) -> _Bellek {
+        TR_return _Bellek(önbellek: TR_KVCache(TR_self.bloklar.TR_length, TR_kind: "büyüyen"), çapraz: [blok.çapraz._anahtarlar(kodlanmış) TR_for blok TR_in TR_self.bloklar])
+    }
+    # _ileri parçaları önbelleğin konumundan sürdürür ve [1, parça, dağarcık] logit verir.
+    TR_func _ileri(parçalar: TR_List[TR_Int], bellek: _Bellek) -> TR_Tensor {
+        TR_var baş = bellek.önbellek.TR_position
+        TR_var x = TR_embedding_lookup(TR_self.gömme, [parçalar]) + TR_self.konum.TR_slice(0, baş, baş + parçalar.TR_length)
+        TR_for i, blok TR_in TR_self.bloklar { x = blok._çöz(x, bellek.önbellek, i, bellek.çapraz[i]) }
+        bellek.önbellek.TR_advance(parçalar.TR_length)
+        TR_return TR_self.norm._ileri(x) @ TR_self.çıkış
+    }
 }
 
 # Whisper: açılmış model. Alanları modele özeldir.
@@ -137,8 +177,16 @@ TR_struct TR_Whisper {
     _çözücü: _Çözücü
     # _kodla bir pencerenin [mel, 2 · kaynak] log-Mel'ini [1, kaynak, boyut] duruma çevirir.
     TR_func _kodla(mel: TR_Tensor) -> TR_Tensor {
-        TR_return TR_self._kodlayıcı._ileri(mel.TR_reshape([1, mel.TR_shape[0], mel.TR_shape[1]]))
+        # Kısa pencere hatasız yanlış verirdi: evrişim tek çerçeve bırakır, konum ona yayınlanır.
+        TR_var b = TR_self._boyutlar
+        TR_var şekil = [b.mel, 2 * b.kaynak]
+        TR_if mel.TR_shape != şekil { TR_throw TR_Message("H7097", mel.TR_shape, şekil) }
+        TR_return TR_self._kodlayıcı._ileri(mel.TR_reshape([1, b.mel, 2 * b.kaynak]))
     }
+    # _başlat kodlayıcı çıktısından bir pencerenin çözme belleğini kurar.
+    TR_func _başlat(kodlanmış: TR_Tensor) -> _Bellek { TR_return TR_self._çözücü._başlat(kodlanmış) }
+    # _çöz parçaları bellekten sürdürür ve logitlerini verir.
+    TR_func _çöz(parçalar: TR_List[TR_Int], bellek: _Bellek) -> TR_Tensor { TR_return TR_self._çözücü._ileri(parçalar, bellek) }
 }
 
 # _gerekli JSON nesnesinin zorunlu alanını verir.
@@ -219,7 +267,8 @@ TR_func _kodlayıcı(a: _Alıcı, b: _Boyutlar) -> _Kodlayıcı {
 TR_func _çözücü(a: _Alıcı, b: _Boyutlar) -> _Çözücü {
     TR_var ön = "model.decoder"
     TR_var bloklar = [_blok(a, "\(ön).layers.\(i)", b.boyut, b.çözücü_bakış, b.çözücü_ara, TR_true) TR_for i TR_in 0..b.çözücü_katman]
-    TR_return _Çözücü(gömme: a._al("\(ön).embed_tokens.weight", [b.dağarcık, b.boyut]), konum: a._al("\(ön).embed_positions.weight", [b.hedef, b.boyut]),
+    TR_var gömme = a._al("\(ön).embed_tokens.weight", [b.dağarcık, b.boyut])
+    TR_return _Çözücü(gömme: gömme, çıkış: gömme.TR_transpose(), konum: a._al("\(ön).embed_positions.weight", [b.hedef, b.boyut]),
         bloklar: bloklar, norm: _norm(a, "\(ön).layer_norm", b.boyut))
 }
 
