@@ -723,7 +723,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** yeni görevler float32 ile başlıyor; tensörde `TR_std` H2423 veriyor [ölçüldü]. `TR_logsumexp` CPU'da var, blok içinde float32 verir (S1, 2026-11-05); `float64` girdi blok dışında çalışıyor, `bf16` bloğunda H6960 veriyor, `TR_sum` aynı blokta `float64` kalıyor [ölçüldü: DENETİM 186 N1].
 - **Yapılacaklar:** yeni görevin açıldığı yerin hesap türünü ve türevsiz kipini alması; `TR_std` ve `TR_cumsum`'ın blok kuralı.
-- **Yapılacaklar (D, Ö3; sahip T1; DENETİM istek 186 N1):** `float64` girdili `TR_logsumexp` blokta `TR_sum` gibi `float64` kalır; `highPrecision` her türü float32'ye çeviriyor.
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM istek 186 N1, 192):** `float64` girdili `TR_logsumexp` blokta `TR_sum` gibi `float64` kalır; `highPrecision` her türü float32'ye çeviriyor, ileti "yapılamaz" diyor.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_cumsum` 16 bitlik girdiyi blokta float32'ye açar.
 
 ### 15.5
@@ -855,7 +855,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 ### 15.22b
 
 - **Mevcut durum:** tensörde uygulandı: `TR_topk`, `TR_argsort`, `TR_max`, `TR_min` ve `TR_argmax` −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. Listede `[0.0, -0.0].TR_sort()` `[-0.0, 0.0]` veriyor, `TR_max([-0.0, 0.0])` 0.0 [ölçüldü: Gemini 4, DENETİM 166].
-- **Yapılacaklar:** `TR_argmin`, `TR_maximum`, `TR_minimum` gelince aynı sıra.
+- **Yapılacaklar:** `TR_argmin` gelince aynı sıra.
 
 ### 15.23
 
@@ -1011,9 +1011,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.50
 
-- **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da `TR_false`, `TR_where` ondalık NaN koşulunu H6207 ile reddediyor, `TR_max` ve `TR_min` −0.0 < 0.0 kullanıyor [ölçüldü: Gemini 4, DENETİM 166]. `TR_maximum` ve `TR_minimum` yok.
-- **Yapılacaklar (D, Ö3; sahip T1; DENETİM istek 186 N3):** `TR_logsumexp`'in türevi çok büyük öğede sapıyor: `[1e7, 1e7]`'de 0.3679, 0.3679, doğrusu 0.5, 0.5; PyTorch 2.14 aynı sayıları veriyor [ölçüldü: DENETİM 186]. Madde türevin hassasiyetine söz vermiyor; çare `m` ile logaritmayı ayrı tutmak [hipotez].
-- **Yapılacaklar (C, Ö2; ölçüm status'un):** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
+- **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da `TR_false`, `TR_where` ondalık NaN koşulunu H6207 ile reddediyor, `TR_max` ve `TR_min` −0.0 < 0.0 kullanıyor [ölçüldü: Gemini 4, DENETİM 166]. `TR_logsumexp`'in türevi çok büyük öğede sapıyor: `[1e7, 1e7]`'de 0.3679, 0.3679, doğrusu 0.5, 0.5; PyTorch 2.14 aynı sayıları veriyor [ölçüldü: DENETİM 186 N3, 192].
+- **Yapılacaklar (C, Ö2; ölçüm status'un):** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir), aynı aileden `TR_logsumexp`'in türevi (`m` ile logaritmayı ayrı tutmak, koşulmadı); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN; iki cihazda aynı olduğunu sınayan test.
 
 ### 15.51

@@ -287,8 +287,8 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
   - Adımlar (Gemini araştırması ve DENETİM, 2026-10-31):
     1. yerel metin sohbeti;
     2. dosyadan ses ve Whisper (2026-11-05: WAV, log-Mel, `TR_conv1d`, model açma, kodlayıcı ve çözücü main'de; `TR_transcribe` sürüyor);
-    3. ses üretimi ve canlı ses (Ahmet, 2026-11-05: Jarvis ilk aşamada kişisel kullanım, ticari olmayan lisanslı Türkçe ses kabul; ilk doğrulama modeli MMS-TTS, ağırlık depoya girmez; gereken ters evrişim ve `TR_gather`);
-       Sıra (2026-11-05): önce `TR_run_process` (21), çünkü canlı sesin ilk sürümü dış programla çalışır ve Jarvis'in Claude bağlantısı da ondan geçer; sonra bölüm 26 taslağı, ters evrişim, `TR_gather`, MMS-TTS.
+    3. ses üretimi ve canlı ses (Ahmet, 2026-11-05: Jarvis ilk aşamada kişisel kullanım, ticari olmayan lisanslı Türkçe ses kabul; ilk doğrulama modeli MMS-TTS, ağırlık depoya girmez; gerekenlerin başlıcası ters evrişim ve `TR_gather`, listeyi 26 çıkarır);
+       Sıra (2026-11-05): önce `TR_run_process` ve `TR_spawn_process`, çünkü 21 yazılı ve denetlenmiş, 26 ve canlı ses raporu henüz yok; mikrofon `TR_spawn_process` ister. Sonra bölüm 26 taslağı, ters evrişim, `TR_gather`, MMS-TTS; dosyaya ses üretmek 21'e bağlı değil, sahipler ayrıysa iki zincir birlikte gider.
     4. söz kesme (görev iptali, kilidin hızlı devri);
     5. belgeler ve hafıza;
     6. yerli ses giriş ve çıkışı ile CPU nicemleme.
