@@ -250,7 +250,7 @@ func (l *Lexer) closesBeforeArrow() bool {
 func (l *Lexer) identity(lit string, line, col int) codes.Code {
 	if l.defines() {
 		// Tanımlanan ad TR_ ile başlıyor: kullanıcı adı olamaz (2.3a), geçerli bir kimlik olsa da.
-		l.addErrorFix(line, col, ReservedName(lit), UserName(lit))
+		l.addReserved(line, col, lit)
 		return codes.None
 	}
 	place, second, fallback := l.placeOf(line)
@@ -279,7 +279,7 @@ func (l *Lexer) identity(lit string, line, col int) codes.Code {
 	if l.definesName(place) {
 		// Tanımlanan ad TR_ ile başlıyor ve kimlik de değil: kullanıcı adı olamaz (2.3a), ileti başka
 		// bir ad önerir. Geçerli kimlikle tanımlananı source.Prepare'in kapısı durdurur.
-		l.addErrorFix(line, col, ReservedName(lit), UserName(lit))
+		l.addReserved(line, col, lit)
 		return codes.None
 	}
 	if l.places.top().open == TokLBrace && l.colonAhead() {
@@ -547,11 +547,6 @@ func abs(n int) int {
 		return -n
 	}
 	return n
-}
-
-// isIdentitySpelling sözcüğün kimlik yazımında olduğudur: TR_ ve en az bir karakter.
-func isIdentitySpelling(lit string) bool {
-	return codes.IsReservedName(lit) && utf8.RuneCountInString(lit) > len(codes.IdentityPrefix)
 }
 
 // codeToken k kodunun sözcük birimidir: metni kodun çözümleyicinin dilindeki adı (programda

@@ -52,20 +52,26 @@ func (l *Lexer) definesName(place codes.Place) bool {
 // ReservedName is the message of a user's name that starts with TR_ (2.3a, 17).
 func ReservedName(lit string) error { return messages.New(messages.H0004, lit, UserName(lit)) }
 
+// addReserved records the message of lit at its place, with UserName as its fix when there is one.
+func (l *Lexer) addReserved(line, col int, lit string) {
+	if name := UserName(lit); name != "" {
+		l.addErrorFix(line, col, ReservedName(lit), name)
+		return
+	}
+	l.addError(line, col, ReservedName(lit))
+}
+
 // UserName is the name a message suggests for lit, a name that starts with TR_: the name without
 // the prefix, with its case (TR_PI2 → PI2, TR_Foo → Foo, TR_sum → sum), so that it keeps the style of
-// its place (2.3b). A lower-case tr_ would come back as TR_ in a constant's style warning. What is
-// left must be a name of its own: TR_1 → x1, TR_ → x.
+// its place (2.3b). A lower-case tr_ would come back as TR_ in a constant's style warning. "" when
+// what is left is no name (TR_, TR__, TR_1): the message then suggests nothing.
 func UserName(lit string) string {
 	name := lit
 	for strings.HasPrefix(name, codes.IdentityPrefix) {
 		name = strings.TrimPrefix(name, codes.IdentityPrefix)
 	}
-	switch {
-	case strings.Trim(name, "_") == "":
-		return "x"
-	case name[0] >= '0' && name[0] <= '9':
-		return "x" + name
+	if strings.Trim(name, "_") == "" || name[0] >= '0' && name[0] <= '9' {
+		return ""
 	}
 	return name
 }

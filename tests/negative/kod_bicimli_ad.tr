@@ -17,3 +17,7 @@ TR_struct K {
     TR_yok: TR_Int # ERROR H0004
 }
 TR_enum E { A(TR_yok: TR_Int) } # ERROR H0004
+TR_var TR_ = 2 # ERROR H0004
+TR_for TR_ TR_in [5] { } # ERROR H0004
+TR_try { TR_throw "x" } TR_catch TR_ { } # ERROR H0004
+TR_var TR_1 = 1 # ERROR H0004

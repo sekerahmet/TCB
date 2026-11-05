@@ -52,7 +52,11 @@ func (c *Checker) checkNameStyle(name string, kind nameKind, at lexer.Token) {
 	switch kind {
 	case kindConst:
 		if strings.ContainsFunc(bare, unicode.IsLower) {
-			suggestion = keepPrefix(name, unreserved(upperSnake(bare)))
+			upper := unreserved(upperSnake(bare))
+			if upper == "" {
+				return // tr_1: büyük harfle TR_1 olurdu, doğru yazımı yoktur
+			}
+			suggestion = keepPrefix(name, upper)
 			warning = messages.New(messages.H1013, name, suggestion)
 		}
 	case kindType:
@@ -109,7 +113,7 @@ func valueNameOK(name string) bool {
 }
 
 // unreserved keeps a suggestion from being a reserved name: the constant tr_x would be TR_X, which
-// 2.3a refuses.
+// 2.3a refuses. "" when no name is left.
 func unreserved(suggestion string) string {
 	if codes.IsReservedName(suggestion) {
 		return lexer.UserName(suggestion)

@@ -43,7 +43,6 @@ func TestNameStyleWarnings(t *testing.T) {
 		{"TR_const en_büyük = 10", messages.H1013, 1, `"EN_BÜYÜK"`},
 		{"TR_const maxCount = 10", messages.H1013, 1, `"MAX_COUNT"`},
 		{"TR_const tr_x = 10", messages.H1013, 1, `"X"`}, // TR_X ayrılmıştır (2.3a)
-		{"TR_const tr_1 = 10", messages.H1013, 1, `"x1"`},
 		{"TR_const _tr_x = 10", messages.H1013, 1, `"_X"`},
 		{"TR_struct önbellek_durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
 		{"TR_struct Önbellek_Durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
@@ -73,6 +72,7 @@ TR_var Wq, dW, W1, QKV = 1, 2, 3, 4
 TR_var X_veri = 1
 TR_var _iç = 1
 TR_var eğer = 1
+TR_const tr_1 = 1
 TR_func hazır_model(B: TR_Int, T: TR_Int) -> TR_Int { TR_return B * T }
 TR_struct GPT { katman: TR_Int = 1 }
 TR_struct SıçramaBekçisi { pencere: TR_Int = 20 }

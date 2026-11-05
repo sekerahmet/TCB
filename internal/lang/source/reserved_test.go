@@ -100,6 +100,29 @@ func TestTheReservedNameSuggestionRuns(t *testing.T) {
 	}
 }
 
+// Kural (2.3a): TR_ tek başına da kullanıcının adı değildir. Kırpılınca geçerli ad kalmayan yazımın
+// iletisi öneri vermez: düzeltme de yoktur, metinde örnek de.
+func TestAPrefixAloneHasNoSuggestion(t *testing.T) {
+	for _, code := range []string{
+		"TR_var TR_ = 2\n", "TR_const TR_ = 2\n", "TR_func TR_() { }\n", "TR_struct TR_ { }\n", "TR_func f(TR_: TR_Int) { }\n",
+		"TR_var a, TR_ = 1, 2\n", "TR_for TR_ TR_in [1] { }\n", "TR_try { } TR_catch TR_ { }\n", "TR_var l = [1 TR_for TR_ TR_in [1]]\n",
+		"TR_var g = (TR_) => 1\n", "TR_var TR_1 = 1\n", "TR_var TR__ = 1\n", "TR_import \"m\" TR_as TR_\n",
+	} {
+		r := Prepare(code, Options{Body: true, TypeCheck: true})
+		if r.Stage == "" || !messages.Has(r.Errors[0], messages.H0004) {
+			t.Errorf("%q: H0004 bekleniyordu: %v", code, r.Errors)
+			continue
+		}
+		e, _ := messages.Find(r.Errors[0])
+		if len(e.Fixes) != 0 || strings.Contains(e.Error(), "(ör.") {
+			t.Errorf("%q: öneri olmamalı: %v %v", code, e, e.Fixes)
+		}
+	}
+	if r := Prepare("TR_var TR_x = 1\n", Options{Body: true}); !strings.Contains(r.Errors[0].Error(), "(ör. x)") {
+		t.Errorf("önerisi olan ad örneğini söyler: %v", r.Errors)
+	}
+}
+
 // Kural (17): kullanıcının yapısında dilin çağırdığı iki üye kodla yazılır: kurucu ve dolaşmanın
 // TR_next()'i. Dışlarında kod yoktur; yukarıdaki tablo öbür yerlerini sınar.
 func TestAStructHoldsTheMembersTheLanguageCalls(t *testing.T) {
