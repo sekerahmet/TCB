@@ -30,10 +30,6 @@ Daha önce kapananlar (codegraph 2, origin/main `4d83182f`, push 2026-11-02 23:4
 
 Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliyor; geliştirici aracının iç tasarımı olduğu için seçimi ana oturum yapar; hiçbiri CODEGRAPH'a yeniden gitmedi):
 
-- **Sınav dosyasının andığı düğüm sınava bağlanmıyor; ön denetim sınavı seçmiyor.** 2026-10-26, MEKANİK bildirdi, DENETİM kritik yaptı. Hâlâ açık [ölçüldü 2026-10-27: `tests-for internal/lang/interp/compiler_expr.go` sınavı vermiyor].
-  - Denenen: sınavın andığı her düğüme düz `tests` kenarı; sınavın kendi cevaplarını bozdu (5 soru: "no tests found", "weak evidence", "first-item").
-  - Seçenekler (CODEGRAPH): (a) yeni kenar türü ya da grup ("exam questions that name it"), `tests-for` ayrı yazar, `changed --go-tests` seçer, doğrudan test sayılmaz; (b) bağ grafiğe girmez, yalnız `changed --go-tests` sorgu anında sınav dosyasını okur. Öneri (a) [CODEGRAPH ilk görüşü]. Kenar ya da grup adı aracın iç adıdır (İngilizce); ana oturum seçer. **Seçim (TCB, 2026-11-03; DENETİM istek 79 katıldı): (a);** (b) `tests-for`'da görünmezdi. Sahip: Gemini, sıranın sonunda, `trlang` birleştikten sonra (ikisi de `planning_exam_test.go`'ya dokunuyor). Denenen kod side-notes'ta (`kol-codegraph-gaps2-exam_links*.txt`).
-
 - **Metinle sürülen dağıtım: DAP istek adı ve JS'in `customRequest`'i işleyicisine bağlanmıyor.** TR üye adı yarısı kapandı (63dab86b: kök 34 takma ad sabitiydi, `memberSkip = codes.MemSkip`). Açık yarı:
   - `TestDAPSecretMasked` `c.request("trTable", ...)` ile sürülüyor; metin protokolle (io.Pipe) gidiyor, dağıtıcı `handlePaused`'a 11 adımda ve arayüz üzerinden ulaşılıyor (zincir sınırı 8).
   - Öneri (CODEGRAPH): "dağıtım anahtarı" kuralı: JSON'dan çözülen bir yapının alanına yapılan dize switch'inde (`switch msg.Command`), aynı pakette ya da bir Go testinin koştuğu JS testinde kolun değerini taşıyan test, kolun çağrılarını sınar. Risk: yaygın sözcüklerde (`evaluate`) yanlış pozitif. **Seçim (TCB, 2026-11-03; DENETİM istek 79 katıldı):** bu kural, yalnız aynı pakette ve bir Go testinin koştuğu JS testinde; yanlış pozitif ölçüsü tasarımın parçası. Sahip: CODEGRAPH.

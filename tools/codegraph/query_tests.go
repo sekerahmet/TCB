@@ -249,6 +249,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	walks, tests, asValue, indirect, viaNames = keepStrongest(own, about, walks, tests, asValue, indirect, viaNames)
 	listed := ix.testsListed(own, about, allTests, walks, asValue, indirect, viaNames)
 	cites := ix.citingTests(n, listed)
+	exam := ix.examEdge(listed, nil, n)
 	rules := ix.docRules(n)
 	var scans []scanHit
 	if n.Kind == kindFile || n.Kind == kindDoc {
@@ -257,8 +258,9 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	found := len(own) + len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
 	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 && len(cites)+len(rules)+len(scans) == 0 {
 		if !ix.printLinkedBinaries(w, n) {
-			fmt.Fprintln(w, "  no tests found"+searchedFor(n))
+			fmt.Fprintln(w, "  no tests found"+map[bool]string{false: searchedFor(n), true: " (only exam questions that name it, below)"}[exam != nil])
 		}
+		ix.printExamEdge(w, exam)
 		ix.printOtherConfigs(w, n, limit)
 		return
 	}
@@ -285,6 +287,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	ix.printSharedSites(w, withOthers, limit)
 	ix.printDocRules(w, rules, limit)
 	ix.printCites(w, cites, limit)
+	ix.printExamEdge(w, exam)
 	if len(scans) > 0 {
 		ix.printScans(w, n.File, limit)
 	}

@@ -65,7 +65,7 @@ func (ix *index) bfs(from, to string, directed, withContains, hubs bool) ([]step
 			}
 		}
 		for _, s := range next {
-			if seen[s.to] || (!withContains && s.e.Kind == edgeContains) || (!hubs && s.to != to && isHub(ix.byID[s.to])) {
+			if seen[s.to] || (!withContains && (s.e.Kind == edgeContains || s.e.Kind == edgeNamesInExam)) || (!hubs && s.to != to && isHub(ix.byID[s.to])) {
 				continue
 			}
 			seen[s.to] = true

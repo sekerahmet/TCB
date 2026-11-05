@@ -177,6 +177,7 @@ func buildGraphFromWithRules(root string, m *module, typeRules []typeQueryRule) 
 	linkSnippets(b, idx, reach, os.DirFS(filepath.Join(root, "lib")))
 	linkCheckerTests(b, idx, reach)
 	linkTypeQueries(b, typeRules)
+	linkExam(root, b)
 	return b.graph()
 }
 

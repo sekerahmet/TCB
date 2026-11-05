@@ -307,6 +307,7 @@ func (ix *index) goTestSelection(ts *touchSet) []goTest {
 	for _, list := range subprocess {
 		nodes = append(nodes, list...)
 	}
+	nodes = append(nodes, ix.examTestsFor(ts)...)
 	seen := map[goTest]bool{}
 	var out []goTest
 	add := func(n *Node) {

@@ -76,6 +76,7 @@ type touchSet struct {
 	codes         map[string]bool  // grafikte düğümü olmayan (yeni ya da silinmiş) kodların kimlikleri
 	unmapped      map[string]int   // düğüme eşlenemeyen değişiklik: dosya -> hunk sayısı
 	unmappedHunks []hunk           // eşlenemeyen Go/belge hunk'ları (dalda yeni bildirimleri adlandırmak için)
+	hunks         []hunk           // bütün fark parçaları (silinen satırlarda sınav sözcüğü aramak için)
 	files         map[string]bool  // dokunulan dosyalar
 }
 
@@ -100,6 +101,7 @@ func (ix *index) spans() map[string][]*Node {
 // numarasına değil, değişen satırlardaki kod anahtarlarına bakılır.
 func (ix *index) touched(hs []hunk, newSide bool) *touchSet {
 	ts := newTouchSet()
+	ts.hunks = hs
 	spans := ix.spans()
 	for _, h := range hs {
 		file := h.file
