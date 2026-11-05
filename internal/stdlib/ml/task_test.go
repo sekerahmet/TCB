@@ -51,7 +51,7 @@ TR_print(deneme > 0, izsiz)`)
 }
 
 // türevsiz bloğu kilidi bırakan bir çağrıdayken (bekle) başka görev türevli çalışır; blok
-// beklemeden dönünce kendi türevsiz durumunu görür; yeni görev türevli başlar.
+// beklemeden dönünce kendi türevsiz durumunu görür; blokta açılan görev bloğun kipini alır (10.4).
 func TestNoGradAwaitTaskIsolation(t *testing.T) {
 	out := mustRun(t, watchedTR+`TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
 TR_var a = []
@@ -71,7 +71,7 @@ b.TR_append(izli(w * 2))
 d["devam"] = TR_true
 TR_wait_all()
 TR_print(a, b)`)
-	if out != "[false, false, true] [true, true]\n" {
+	if out != "[false, false, true] [true, false]\n" {
 		t.Fatalf("türevsiz görev izolasyonu:\n%s", out)
 	}
 }

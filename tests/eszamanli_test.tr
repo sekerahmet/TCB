@@ -257,3 +257,112 @@ TR_test "10.2 dikkat kopyalı işlenenle kilitlenmez" {
     TR_var k = bitişik(küçük)
     TR_assert(TR_all_close(TR_attention(küçük, küçük, küçük, TR_causal: TR_false), TR_attention(k, k, k, TR_causal: TR_false), TR_rtol: 1e-6, TR_atol: 1e-6))
 }
+
+TR_test "10.4 görev açıldığı yerin türevsiz kipini alır: sonucu çizgeye bağlanmaz" {
+    TR_func üçle(x: TR_Tensor) -> TR_Tensor { TR_return x * 3.0 }
+    TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var g: TR_List[TR_Task[TR_Tensor]] = []
+    TR_no_grad { g.TR_append(TR_async üçle(w)) }
+    TR_var y = g[0].TR_wait()
+    TR_assert_equal(TR_false, y.TR_requires_grad)
+    TR_backward(TR_sum(w + y))
+    TR_assert_equal([1.0], w.TR_grad.TR_tolist)
+}
+
+TR_test "10.4 açanın kipinin sonraki değişimi göreve geçmez" {
+    TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var sal = TR_false
+    TR_var kapalıda = TR_true
+    TR_var açıkta = TR_false
+    # Açan türevsiz bloktan çıkar; görev kendi türevsiz kipiyle sürer.
+    TR_var a: TR_List[TR_Task[TR_NoneType]] = []
+    TR_no_grad {
+        a.TR_append(TR_async {
+            TR_for TR_not sal { TR_sleep(0.001) }
+            kapalıda = (w * 3.0).TR_requires_grad
+        })
+    }
+    sal = TR_true
+    TR_wait_all(a)
+    TR_assert_equal(TR_false, kapalıda)
+    # Açan türevsiz bloğa girer; türevli açılan görev türevli sürer.
+    sal = TR_false
+    TR_var b = TR_async {
+        TR_for TR_not sal { TR_sleep(0.001) }
+        açıkta = (w * 3.0).TR_requires_grad
+    }
+    TR_no_grad {
+        sal = TR_true
+        b.TR_wait()
+    }
+    TR_assert(açıkta)
+}
+
+TR_test "10.4 görevin içindeki türevsiz blok açanı etkilemez, görevin kipi blokla bitmez" {
+    TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true)
+    TR_var içeride = TR_false
+    TR_var sal = TR_false
+    TR_var g = TR_async {
+        TR_no_grad {
+            içeride = TR_true
+            TR_for TR_not sal { TR_sleep(0.001) }
+        }
+    }
+    TR_for TR_not içeride { TR_sleep(0.001) }
+    TR_var açanda = (w * 3.0).TR_requires_grad
+    sal = TR_true
+    g.TR_wait()
+    TR_assert(açanda)
+    TR_var bloktan_sonra = TR_true
+    TR_var alt_görevde = TR_true
+    TR_var d: TR_List[TR_Task[TR_NoneType]] = []
+    TR_no_grad {
+        d.TR_append(TR_async {
+            TR_no_grad { TR_var y = w * 3.0 }
+            bloktan_sonra = (w * 3.0).TR_requires_grad
+            TR_var görev = TR_async { alt_görevde = (w * 3.0).TR_requires_grad }
+            görev.TR_wait()
+        })
+    }
+    TR_wait_all(d)
+    TR_assert_equal(TR_false, bloktan_sonra)
+    TR_assert_equal(TR_false, alt_görevde)
+}
+
+TR_test "10.4 görev açıldığı yerin hesap türünü alır, sonraki değişim iki yana da geçmez" {
+    TR_var sal = TR_false
+    TR_var görevde = ""
+    TR_var a: TR_List[TR_Task[TR_NoneType]] = []
+    TR_mixed_precision("bf16") {
+        a.TR_append(TR_async {
+            TR_for TR_not sal { TR_sleep(0.001) }
+            görevde = TR_compute_dtype()
+        })
+    }
+    sal = TR_true
+    TR_wait_all(a)
+    TR_assert_equal("bf16", görevde)
+    sal = TR_false
+    TR_var b = TR_async {
+        TR_for TR_not sal { TR_sleep(0.001) }
+        görevde = TR_compute_dtype()
+    }
+    TR_mixed_precision("bf16") {
+        sal = TR_true
+        b.TR_wait()
+    }
+    TR_assert_equal("float32", görevde)
+    TR_var içeride = TR_false
+    sal = TR_false
+    TR_var h = TR_async {
+        TR_mixed_precision("bf16") {
+            içeride = TR_true
+            TR_for TR_not sal { TR_sleep(0.001) }
+        }
+    }
+    TR_for TR_not içeride { TR_sleep(0.001) }
+    TR_var açanda = TR_compute_dtype()
+    sal = TR_true
+    h.TR_wait()
+    TR_assert_equal("float32", açanda)
+}

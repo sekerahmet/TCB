@@ -28,7 +28,7 @@ import (
 // Blok durumu sürecin değil görevin (VM görünümünün, bkz. interp.(*VM).TaskValue) durumudur:
 // iç içe bloklar yığın gibi önceki türe döner; blok GIL'i bırakan bir çağrıdayken (uyu(),
 // dosya/ağ beklemesi) çalışan başka bir eşzamanlı görev ya da web isteği bloktan etkilenmez.
-// Blok içinde başlatılan bir 'eşzamanlı' görev de kendi (boş) durumuyla başlar.
+// Blok içinde başlatılan görev açıldığı yerin türünü alır (10.4, taskFork); sonra kendi durumudur.
 
 // Dildeki tür adları; sıra .tür'ün döndürdüğü adlarla aynıdır.
 var dtypeNames = []string{"float32", "bf16", "fp16"}

@@ -134,6 +134,9 @@ type vmShared struct {
 	// taskHooks, bir görev kilidi her aldığında çağrılan motor kancalarıdır (bkz.
 	// GorevKancasiEkle). Yalnızca kayıt sırasında (program başlamadan) yazılır.
 	taskHooks []func(*VM)
+	// forkHooks, görev açılırken çağrılan motor kancalarıdır (bkz. AddForkHook). Yalnızca kayıt
+	// sırasında yazılır.
+	forkHooks []func(parent, task *VM)
 
 	// arguments betiğe komut satırında verilen argümanlardır (bkz. program_args.go).
 	arguments []string
@@ -239,7 +242,8 @@ type VM struct {
 
 	// taskValues motorların göreve özel durumudur (ör. tensör motorunun
 	// karışık_hassasiyet bloğu); bkz. GorevDegeri. Çağrı yığını gibi yalnızca görevin
-	// kendi goroutine'i okur ve yazar; yeni görevler (NewTaskVM) boş başlar.
+	// kendi goroutine'i okur ve yazar; yeni görev (NewTaskVM) boş başlar, açanın durumundan
+	// yalnız motorun kancasının (AddForkHook) verdiğini alır.
 	taskValues map[any]any
 
 	// interruptThrown bu görevin kesilme paniğini attığını söyler: yığın çözülürken çalışan
@@ -328,8 +332,20 @@ func New() *VM {
 func (v *VM) NewTaskVM() *VM {
 	// Görev başlatıldığı yerin dosyasında ve aktarım zincirinde başlar (modül yüklenirken
 	// başlatılan görev o modülü aktarırsa bu döngüdür, beklemek kilitlenirdi).
-	return &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
+	task := &VM{vmShared: v.vmShared, CallStack: v.StackSnapshot(), asyncTask: true,
 		source: v.source, loading: slices.Clip(v.loading)}
+	for _, f := range v.forkHooks {
+		f(v, task)
+	}
+	return task
+}
+
+// AddForkHook adds a hook that runs when a task is opened, on the opener's goroutine, before the
+// task starts: an engine copies what the task takes from where it was opened (10.4). The task
+// then keeps its own copy: a later change in the opener does not reach it. Call it only during
+// engine registration (before the program starts).
+func (v *VM) AddForkHook(f func(parent, task *VM)) {
+	v.forkHooks = append(v.forkHooks, f)
 }
 
 // Blocking runs fn with the interpreter lock released, so other tasks make progress during

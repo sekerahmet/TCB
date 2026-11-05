@@ -11,8 +11,7 @@ import (
 // bağlam etkindir. Yorumlayıcı kilidini (GIL) her alan görev kendi bağlamını etkin yapar
 // (taskHook); böylece bir görevin türevsiz { } bloğu (ya da özel_türev'in türevsiz
 // çalışan ileri/geri hesabı) kilidi devrettiğinde aynı anda çalışan başka görevin işlemleri
-// çizge dışında kalmaz. Bağlam görev durumunda (interp.GorevDegeri) saklanır; yeni görevler
-// türevli kipte başlar (karışık_hassasiyet gibi blok durumu görevden göreve geçmez).
+// çizge dışında kalmaz. Bağlam görev durumunda (interp.GorevDegeri) saklanır.
 
 // gradKey görev durumunda (interp.GorevDegeri) türev bağlamının anahtarı.
 type gradKey struct{}
@@ -25,6 +24,13 @@ func taskGradContext(m *interp.VM) *tensor.GradContext {
 	c := tensor.NewGradContext()
 	m.SetTaskValue(gradKey{}, c)
 	return c
+}
+
+// taskFork yeni göreve açıldığı yerin türevsiz kipini ve hesap türünü verir (10.4). Görev ikisini
+// kendinde tutar: açanın bloğu bitse de görev kendi kipiyle sürer, görevin bloğu açana geçmez.
+func taskFork(parent, task *interp.VM) {
+	task.SetTaskValue(gradKey{}, taskGradContext(parent).Fork())
+	task.SetTaskValue(mixedKey{}, parent.TaskValue(mixedKey{}))
 }
 
 // taskHook, kilidi alan görevin türev bağlamını çekirdekte etkin yapar.
