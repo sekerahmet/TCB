@@ -265,6 +265,16 @@ func TestTensorIndexWriteSuggestionRuns(t *testing.T) {
 	}
 }
 
+// Önerilen döngü yinelenen indekste ve örtüşen veride kuraldan ayrılır (DENETİM 172): ileti şartını söyler.
+func TestTensorIndexWriteNamesTheConditionOfTheLoop(t *testing.T) {
+	text := messages.TextIn("en", messages.H7042, "+", "whole")
+	for _, word := range []string{"no repeated item", "neither `d` nor `idx` shares data with `t`"} {
+		if !strings.Contains(text, word) {
+			t.Errorf("iletide %q yok: %s", word, text)
+		}
+	}
+}
+
 // Öbür hatalar H7042'den önce gelir: eksi indeks tensörle indekste sınır dışıdır (öneri döngüsü
 // sondan sayardı), türev kuralı ve indeksin türü olduğu gibi kalır. Maske yolu H6707'dir, sessiz değildir.
 func TestTensorIndexWriteKeepsTheOtherErrors(t *testing.T) {

@@ -18,6 +18,7 @@ import (
 func Register(v *interp.VM) {
 	// Türevsiz kip görev başınadır (gorev.go).
 	v.AddTaskHook(taskHook)
+	v.AddForkHook(taskFork)
 
 	registerConstructors(v)
 	registerMath(v)

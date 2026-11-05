@@ -23,7 +23,7 @@ import (
 //     kendi penceresinin sonundan sonraysa tur kaçmıştır. Pencereler sabit takvimdedir: geç kalan
 //     döngü sonraki pencereleri atlamaz, onlara yetişmeye çalışır.
 //
-// Yalnız yükün başı ile sonu arasındaki uyanışlar ve turlar sayılır. Bu dosya bugün ölçer ve
+// Yalnız yükle kesişen uyanışlar ve turlar sayılır (lockProbe.inLoad). Bu dosya bugün ölçer ve
 // sayıları yazar (go test -v); bitiş ölçütü (en büyük bekleme ≤ 10 ms, kaçan tur 0) kilidi
 // bırakan yerleşikler gelince sınır olur.
 
@@ -61,14 +61,38 @@ func (p *lockProbe) add(at time.Time, d, over time.Duration) {
 	p.mu.Unlock()
 }
 
-// inLoad yük penceresindeki ölçümlerdir: bekleme ve uyku aşımı.
+// inLoad yükle kesişen ölçümlerdir: bekleme ve uyku aşımı. Yükten hemen önce uyanıp bekleyişi yüke
+// taşan ölçüm de sayılır: yük kilidi tek deyimde tutuyorsa (kartta eşitleme) görevin bütün yükü
+// kuyrukta geçirdiği tek ölçüm odur, en kötüsüdür.
 func (p *lockProbe) inLoad() (waits, overs []time.Duration) {
 	for i, at := range p.at {
-		if !at.Before(p.from) && !at.After(p.to) {
+		if !at.After(p.to) && !at.Add(p.waits[i]).Before(p.from) {
 			waits, overs = append(waits, p.waits[i]), append(overs, p.overs[i])
 		}
 	}
 	return waits, overs
+}
+
+// outside yükün dışındaki ölçümleri anlatır: sayıları, yükün başından önceki son ölçümün ve yükün
+// sonundan sonraki ilk ölçümün yüke uzaklığı. Yükte ölçüm çıkmazsa sebebi bundan okunur.
+func (p *lockProbe) outside() string {
+	before, after := time.Duration(-1), time.Duration(-1)
+	n := 0
+	for _, at := range p.at {
+		switch {
+		case at.Before(p.from):
+			n++
+			if d := p.from.Sub(at); before < 0 || d < before {
+				before = d
+			}
+		case at.After(p.to):
+			n++
+			if d := at.Sub(p.to); after < 0 || d < after {
+				after = d
+			}
+		}
+	}
+	return fmt.Sprintf("yükün dışında %d ölçüm, en yakınları başından %s önce, sonundan %s sonra", n, ms(before), ms(after))
 }
 
 // lockWork bir yüktür: count kez size×size `@`, device'ta.
@@ -170,6 +194,21 @@ func TestOtherTasksRunDuringLongTensorWork(t *testing.T) {
 	}
 }
 
+// Yük kilidi tek deyimde tutarken gözcü yükün başından hemen önce uyanırsa bütün yükü kuyrukta
+// geçirir; bu ölçüm yüke sayılır. Yükten önce biten ve yükten sonra başlayan ölçüm sayılmaz.
+func TestLockProbeCountsTheWaitThatCrossesTheLoad(t *testing.T) {
+	from := time.Now()
+	p := &lockProbe{from: from, to: from.Add(100 * time.Millisecond)}
+	p.add(from.Add(-10*time.Millisecond), 5*time.Millisecond, 0) // yükten önce bitti
+	p.add(from.Add(-time.Millisecond), 101*time.Millisecond, 0)  // yükün başını kesti
+	p.add(from.Add(50*time.Millisecond), time.Millisecond, 0)    // yükün içinde
+	p.add(from.Add(150*time.Millisecond), time.Millisecond, 0)   // yükten sonra
+	waits, _ := p.inLoad()
+	if want := []time.Duration{101 * time.Millisecond, time.Millisecond}; !slices.Equal(waits, want) {
+		t.Errorf("yükle kesişen beklemeler %v, beklenen %v", waits, want)
+	}
+}
+
 // longCall tek çağrısı uzun sayılan `@`'ın en kısa süresidir (bitiş ölçütü: "en az 30 ms").
 const longCall = 30 * time.Millisecond
 
@@ -219,7 +258,7 @@ func reportLockWaits(t *testing.T, w lockWork) {
 				t.Logf("%s: yük %s sürdü, gözcünün uykusundan kısa; ölçüm yok", w, ms(load))
 				return
 			}
-			t.Fatalf("%s: yük %s sürdü, gözcü yük sırasında hiç uyanmadı", w, ms(load))
+			t.Fatalf("%s: yük %s sürdü, gözcü yük sırasında hiç uyanmadı; %s", w, ms(load), p.outside())
 		}
 		med, p99, worst := waitStats(waits)
 		_, _, overWorst := waitStats(overs)

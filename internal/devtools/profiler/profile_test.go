@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -134,24 +135,34 @@ func TestProfileMsPerStepFromStepBoundary(t *testing.T) {
 	}
 }
 
-// Örnekleme yalnızca istenince açılır; sıcak döngünün satırını bulur.
+// Örnekleme yalnızca istenince açılır; sıcak döngünün satırını bulur. Örnekleyici kendi
+// goroutine'indedir: işlemci doluyken 20 ms'lik program bitene dek ona sıra gelmeyebilir
+// (GOMAXPROCS=1'de 200 koşunun 5'inde 0 örnek). Az örnekle program uzar; 25,6 milyon turluk
+// programda da örnek gelmiyorsa örnekleme bozuktur.
 func TestProfileSamplingLine(t *testing.T) {
-	code := `TR_var s = 0
-TR_for i TR_in 0..400000 {
-    s += i % 7
+	const enough = 5
+	for turns := 400000; ; turns *= 4 {
+		code := fmt.Sprintf(`TR_var s = 0
+TR_for i TR_in 0..%d {
+    s += i %% 7
 }
 TR_print(s)
-`
-	g, m := run(t, code, Options{SampleLines: true})
-	if m.Debugger == nil {
-		t.Fatal("örnekleme açıkken yuva boş")
-	}
-	o := g.Sampling
-	if o == nil || len(o.Lines) == 0 {
-		t.Fatalf("örnek yok: %+v", o)
-	}
-	if s := o.Lines[0]; s.Line != 3 || s.Text != "s += i % 7" || s.File != "egit.tr" {
-		t.Errorf("en sıcak satır %+v; beklenen 3. satır (döngünün gövdesi)", s)
+`, turns)
+		g, m := run(t, code, Options{SampleLines: true})
+		if m.Debugger == nil {
+			t.Fatal("örnekleme açıkken yuva boş")
+		}
+		o := g.Sampling
+		if o == nil || o.Samples < enough {
+			if turns < 25600000 {
+				continue
+			}
+			t.Fatalf("%d turda %d örnekten az: %+v", turns, enough, o)
+		}
+		if s := o.Lines[0]; s.Line != 3 || s.Text != "s += i % 7" || s.File != "egit.tr" {
+			t.Errorf("en sıcak satır %+v; beklenen 3. satır (döngünün gövdesi)", s)
+		}
+		return
 	}
 }
 

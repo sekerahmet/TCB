@@ -46,6 +46,8 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_grad_clip_version_test.go`: `TR_fn_clip_grad`'ın gradyan sürümünü CPU ve GPU'da aynı kuralla artırması (katı kipin hatasında artırmaması)
 - `behavior_fused_comparison_grad_test.go`: `TR_fuse` içindeki karşılaştırma ve `TR_fn_is_finite`'in türev izlememesi
 - `behavior_safetensors_order_test.go`: aynı ofsette boş ve dolu tensörlü geçerli safetensors dosyasının okunması
+- `behavior_typed_write_test.go`: cinsli türler arasındaki yazmanın kodlu hatası ve iletinin önerisinin sonucu (15.3; `TR_write_slice`, `TR_load_parameters`); `TR_load_parameters`'ın yazmadan önceki tür denetiminin kopyanın kararıyla aynılığı (20.11)
+- `behavior_gguf_gate_test.go`: GGUF kapısının bağlam uzunluğu denetimi (15.55; `TR_pretrained_gguf`)
 - `behavior_lock_release_test.go`: uzun tensör işi (`@`) sürerken 5 ms'de bir uyanan görevin kilidi geri alma süresi ve 100 Hz döngünün kaçan turu, tekdüze saatle (10.2; ölçmek için `go test ./internal/stdlib/ml -run TestOtherTasksRunDuringLongTensorWork -v -count=20`)
 - `behavior_lock_threshold_test.go`: kilidi bırakma eşiklerinin (öğe öğe 2^23, adım 2^20) dayanağı; her işlem ve boyda doğrudan ve kilit bırakılarak süre, tek görevde ve başka görev canlıyken (10.2; ölçmek için `go test ./internal/stdlib/ml -run TestUnlockThresholdCost -v`)
 - `behavior_callback_lock_test.go`: TR koduna geri çağrılar (`ApplyFunction`) yalnız `applyFunction`'dan, kilit tutularak yapılır; kilitsiz bölgeden yapılan geri çağrı kilidi geri alır (10.2, S-kilit adım 4)

@@ -11,7 +11,9 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/compute/tensor"
+	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit/trrun"
 )
 
 func TestTensorSaveLoad(t *testing.T) {
@@ -227,5 +229,55 @@ TR_print(t.TR_dtype, t.TR_tolist)`)
 		if wantOut := c.dtype + " " + c.list + "\n"; out != wantOut {
 			t.Errorf("kod %d okundu: %q, beklenen %q", c.code, out, wantOut)
 		}
+	}
+}
+
+// saveRace kaydetmenin kilidi bıraktığı anı yakalar: görev bekle()'de kilitsiz durur, kaydet()
+// onu kilidi tutarak uyandırır; görev sırasını kilit bırakılınca alır ve son'a yazar. Önce büyük
+// girdi gelir: kopya kilit dışına kayarsa görevin yazması son'un kopyasından önce olur.
+const saveRace = `TR_var son = TR_Tensor([0.0])
+TR_var d = {"ilk": TR_randn([4194304], TR_seed: 1), "son": son}
+TR_var g = TR_async {
+    bekle()
+    son += 1.0
+}
+kaydet(yol, d)
+g.TR_wait()
+TR_print(son.TR_tolist)
+TR_print(TR_load_tensors(yol)["son"].TR_tolist)
+`
+
+// Kural (10.3, DENETİM 166 Ş3): TR_save_tensors verinin kopyasını kilidi tutarken alır, kilidi
+// dosyaya yazarken bırakır. Kilit bırakılınca çalışan görevin yazması dosyaya girmez.
+func TestSaveCopiesBeforeReleasingTheLock(t *testing.T) {
+	for _, name := range []string{"a.tensors", "a.safetensors"} {
+		t.Run(name, func(t *testing.T) {
+			var out bytes.Buffer
+			m := interp.New()
+			m.Out = &out
+			parked, wake := make(chan struct{}), make(chan struct{})
+			hook := func(fn interp.BuiltinFunc) *interp.BuiltinVal { return &interp.BuiltinVal{Name: "kanca", Fn: fn} }
+			m.GlobalEnv.Define("yol", &interp.StringVal{Val: filepath.Join(t.TempDir(), name)}, true)
+			m.GlobalEnv.Define("bekle", hook(func(y *interp.VM, _ []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+				y.Blocking(func() {
+					close(parked)
+					<-wake
+				})
+				return interp.Null, nil
+			}), true)
+			m.GlobalEnv.Define("kaydet", hook(func(y *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+				y.Blocking(func() { <-parked })
+				close(wake)
+				return tensorSave(y, args, named)
+			}), true)
+			_, err := m.Run(trrun.Parse(t, saveRace))
+			m.WaitAsync()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := out.String(), "[1.0]\n[0.0]\n"; got != want {
+				t.Errorf("bellekteki ve dosyadaki son: %q, beklenen %q", got, want)
+			}
+		})
 	}
 }

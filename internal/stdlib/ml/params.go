@@ -161,8 +161,20 @@ func CheckParamShapes(fn any, names []string, found []*TensorValue, src map[stri
 	return messages.New(messages.H6531, fn, srcName, len(extra), extra[0])
 }
 
-// CopyInto kaynağın değerlerini p'ye yerinde yazar: kaynak p'nin cihazına taşınır, türü
-// farklıysa dönüştürülür (şekiller aynı olmalıdır). İşlem çizgeye kaydedilmez; p'nin sürüm
+// checkParamTypes her parametreye kaynağındaki tensörün yazılabildiğini yazmadan önce denetler: ilk
+// yazılamayan tür kopyanın vereceği hatadır; hiçbir şey yazılmaz, model yarım yüklenmiş kalmaz.
+func checkParamTypes(names []string, found []*TensorValue, src map[string]*tensor.Tensor) error {
+	for i, ad := range names {
+		p := found[i].t
+		if e := tensor.CopyTypeError(p.DType(), src[ad].DType(), p.Device()); e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+// CopyInto kaynağın değerlerini p'ye yerinde yazar: kaynak p'nin cihazına taşınır, ondalık hesap
+// türleri arasında dönüştürülür (şekiller aynı olmalıdır). İşlem çizgeye kaydedilmez; p'nin sürüm
 // sayacı artar (p'yi kullanmış eski bir çizgeden geri yayılım hata verir, 15.27). İyileştirici
 // p'nin kendisini tuttuğu için güncellemeler yüklenen değerlerle sürer. Çekirdek panikleri
 // (cihaz belleği) çağıranın kurtarıcısına gider.
@@ -214,13 +226,25 @@ func loadParamsBuiltin(_ *interp.VM, args []interp.Value, named map[string]inter
 	if err := CheckParamShapes(fn, names, found, shapes, messages.New(messages.H6533)); err != nil {
 		return nil, err
 	}
+	if err := checkParamTypes(names, found, src); err != nil {
+		return nil, err
+	}
 	if _, err := safe(func() bool {
 		for i, ad := range names {
 			CopyInto(found[i].t, src[ad])
 		}
 		return true
 	}); err != nil {
-		return nil, messages.New(messages.H2000, fn, panicReason(err))
+		return nil, loadFailure(fn, err)
 	}
 	return interp.NewInt(int64(len(names))), nil
+}
+
+// loadFailure yazma sırasındaki paniğin hatasıdır (cihaz belleği): kodlu hata olduğu gibi kalır,
+// kodsuz neden fn'in adıyla yazılır.
+func loadFailure(fn any, err error) error {
+	if e, coded := panicReason(err).(*messages.Error); coded {
+		return e
+	}
+	return messages.New(messages.H2000, fn, panicReason(err))
 }

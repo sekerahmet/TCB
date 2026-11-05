@@ -83,14 +83,7 @@ func (cpuBackend) ToRaw(src View) []byte {
 // copyTyped dst görünümüne src'nin öğelerini aynı türde yazar (src yayınlanmış olabilir).
 func copyTyped(dst, src View) {
 	if dst.DType() != src.DType() {
-		// Cinsli tensör ondalık bir hesaba giriyor (ör. dikkatin maskesi): 15.48'in hatası.
-		switch {
-		case dst.DType().IsFloat():
-			panic(typedComputeError(src.DType()))
-		case src.DType().IsFloat():
-			panic(typedComputeError(dst.DType()))
-		}
-		panic(messages.Internal("typed copy between " + dst.DType().String() + " and " + src.DType().String()))
+		panic(CopyTypeError(dst.DType(), src.DType(), CPU))
 	}
 	d, k := cpuStore(dst.S), cpuStore(src.S)
 	eb := elemBytes(d.dtyp)
@@ -104,6 +97,49 @@ func copyTyped(dst, src View) {
 			copy(d.raw[(h+i*hs)*eb:(h+i*hs+1)*eb], k.raw[(q+i*qs)*eb:(q+i*qs+1)*eb])
 		}
 	})
+}
+
+// CopyTypeError dev cihazında dst türüne src türünden yazmanın hatasıdır; yazılabiliyorsa nil. Birden
+// çok tensör yazan çağıran (TR_load_parameters) kopyanın vereceği hatayı yazmadan önce buradan alır.
+func CopyTypeError(dst, src DType, dev Device) *messages.Error {
+	for _, dt := range []DType{dst, src} {
+		if dt.IsQuantized() {
+			return PrecisionError(dt, dev)
+		}
+	}
+	if dst == src || !dst.IsTyped() && !src.IsTyped() {
+		return nil
+	}
+	// Cinsli tensör ondalık bir hesaba giriyor (ör. dikkatin maskesi): 15.48'in hatası.
+	switch {
+	case dev.Kind == KindGPU:
+		return PrecisionError(src, dev)
+	case dst.IsFloat():
+		return typedComputeError(src)
+	case src.IsFloat():
+		return typedComputeError(dst)
+	}
+	return typedCopyError(dst, src)
+}
+
+// typedCopyError iki cinsli türün arasındaki yazmanın hatasıdır: yazma dönüştürmez (15.3); ileti
+// kaynağın dönüşümünü önerir. İkisi de ondalık hesap türü değildir (CopyTypeError).
+func typedCopyError(dst, src DType) *messages.Error {
+	number := func(dt DType) string {
+		if dt.Elem() == ElemInt {
+			return "int"
+		}
+		return "float"
+	}
+	switch {
+	case dst.Elem() == ElemBool:
+		return messages.New(messages.H3112, dst.Name(), src.Name(), number(src))
+	case src.Elem() == ElemBool:
+		return messages.New(messages.H3113, dst.Name(), src.Name(), number(dst))
+	case dst.Elem() == ElemInt:
+		return messages.New(messages.H3114, dst.Name(), src.Name())
+	}
+	return messages.New(messages.H3115, dst.Name(), src.Name())
 }
 
 // FillRaw depolamanın bütün öğelerini elem'in (bir öğenin ham baytları) değeriyle doldurur.

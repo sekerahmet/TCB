@@ -25,6 +25,16 @@ type GradContext struct {
 // NewGradContext türevli kipte yeni bir bağlam üretir.
 func NewGradContext() *GradContext { return &GradContext{} }
 
+// Fork c'nin o anki kipini taşıyan yeni bir bağlam üretir: yalnız kip kopyalanır, iki bağlamın
+// sonraki değişimleri birbirine geçmez.
+func (c *GradContext) Fork() *GradContext {
+	n := &GradContext{}
+	if c.closed.Load() > 0 {
+		n.closed.Store(1)
+	}
+	return n
+}
+
 // Enabled bağlamın türevli kipte olup olmadığı.
 func (c *GradContext) Enabled() bool { return c.closed.Load() == 0 }
 
