@@ -393,6 +393,7 @@ TR_if TR_not TR_devices().TR_contains("gpu") {
     TR_default_device("gpu")
     TR_var t = TR_pretrained_gguf(arg["file"]).TR_embedding.TR_table
     TR_print(t.TR_to_dtype("bf16").TR_device, t.TR_to_dtype("fp16").TR_device)
+    TR_print(TR_error_code { t.TR_to_dtype("float64") })
     TR_var açılan = t.TR_to_device("cpu").TR_to_dtype("float64")
     TR_print(açılan.TR_device, açılan.TR_dtype, açılan.TR_tolist == kesin.TR_tolist)
     t.TR_to_dtype("float64")
@@ -411,11 +412,11 @@ func TestGGUFOpenToFloat64OnTheCard(t *testing.T) {
 	if lines[0] == "kart yok" {
 		t.Skip("kart yok")
 	}
-	if s.Code == 0 || len(lines) != 2 || lines[0] != "gpu gpu" || lines[1] != "cpu float64 true" {
+	if s.Code == 0 || len(lines) != 3 || lines[0] != "gpu gpu" || lines[1] != "H7030" || lines[2] != "cpu float64 true" {
 		t.Fatalf("TR çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 	const spelling = `t.TR_to_device("cpu").TR_to_dtype("float64")`
-	if !strings.Contains(s.Stderr, "H7030") || !strings.Contains(s.Stderr, spelling) || !strings.Contains(ggufCardFloat64, spelling) {
+	if !strings.Contains(s.Stderr, spelling) || !strings.Contains(ggufCardFloat64, spelling) {
 		t.Errorf("ileti öneriyi yazmıyor:\n%s", s.Stderr)
 	}
 }
