@@ -48,7 +48,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
-- **Yeni yerleşik kodu ekleyince dokunulacak yerler görünmüyor (2026-11-05, S1).** `TestExamplesCoverNames`, `TestEveryCodeHasDescription`, `TestEveryRuleHasATest`, `TestDottedMemberSpellingsGolden`, `identityExceptions`: S1'in dört G4'ü ayrı ayrı bunlara gitti. İstenen: bir kod adı verilince bu denetimleri listeleyen sorgu. Tasarım ister.
+- **Yeni yerleşik kodu ekleyince dokunulacak yerler görünmüyor (2026-11-05, S1).** `TestExamplesCoverNames`, `TestEveryCodeHasDescription`, `TestEveryRuleHasATest`: S1'in üç G4'ü ayrı ayrı bunlara düştü; `TestDottedMemberSpellingsGolden` ve `identityExceptions` da aynı listede. İstenen: bir kod adı verilince bu denetimleri listeleyen sorgu. Tasarım ister.
 - **`tests-for fuse_cpu.go` yolu asıl sınayanları zayıf kanıta atıyor (2026-11-05, H2).** Doğrudan test 1 görünüyor; `TestFusedForwardMatchesUnfusedBits` gibi testler "weak evidence, 6 steps" altında. Ek talep: "bu commit hangi kıyasları oynatır" sorusu; `-bench` adları `tests-for`'da yok.
 - `tests-for lib/audio.tr` 35 test listeliyor, `run:` satırı vermiyor; doğrusu `trlang test lib/audio_test.tr` [ölçüldü: S1 teslimi, 2026-11-05]. Gömülü `lib.Files` kullanan Go testinin `TR_import` metni `<- tests (` yerine "tests that read it among other files"e düşüyor. Yeni float64 hesapta `TestNoFusedInstructions` önerilmiyor; FMA'yı ancak tam denetim gösterdi.
 - `changed --go-tests` 616 satır veriyor, "bu dosya türü değişince hep koşulması gerekenler" seçilemiyor: `tr.json` değişince `TestCodeSlotsResolveToIdentities`, yeni test metninde `TestDottedMemberSpellingsGolden` [ölçüldü: T1 teslimi, iki G4 bu yüzden düştü, 2026-11-05].

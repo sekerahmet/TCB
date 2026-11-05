@@ -870,8 +870,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.23c
 
-- **Mevcut durum:** evrişim yok; kitaplık yalnız dil modellerinin katmanlarını taşıyor [ölçüldü: `lib/layers.tr`].
-- **Mevcut durum (S1, 2026-11-05):** `TR_conv1d` CPU'da, dört adlı argüman ve türevle. PyTorch'la ileri sonuç ve girdi gradyanı 1e-5 içinde; Whisper boyutunda ağırlık gradyanı en çok 5,04e-4 ayrılıyor, değer 234 büyüklüğünde, TR float64 doğrusuna 8,59e-5, PyTorch 4,9e-4 uzak [ölçüldü: S1, yerel PyTorch].
+- **Mevcut durum (S1, 2026-11-05):** `TR_conv1d` CPU'da, dört adlı argüman ve türevle. PyTorch'la ileri sonuç ve girdi gradyanı 1e-5 içinde; Whisper boyutunda ağırlık gradyanı tek tohumda en çok 5,04e-4 ayrılıyor; en büyük öğe 234, TR float64 doğrusuna 8,59e-5, PyTorch 4,9e-4 uzak [ölçüldü: S1, yerel PyTorch]. Ölçüt: mutlak sınır en büyük gradyan öğesinin 1e-5 katı (TCB kararı, DENETİM 186); öğe öğe göreli sınırı float64 doğrusu bile geçmiyor.
 - **Yapılacaklar:** `TR_conv2d`; TR testi. Gösterim adları onaylı (Ahmet, 2026-10-29).
 
 ### 15.23d
