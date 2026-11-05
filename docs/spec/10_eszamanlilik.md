@@ -29,7 +29,7 @@ Bir model hizmeti aynı anda birden çok isteğe cevap verir, bir ajan birden ç
 - *Test:* TR testi.
 
 **10.4** Görev başlatıldığı kapsamı yakalar; döngünün içinde başlatılan her görev o turun değişkenlerini görür (5.12). Görevin içinde tanımlanan ad görevin kapsamındadır. Görev açıldığı yerin türevsiz kipini ve `TR_mixed_precision` türünü de alır (15.4, 15.27); açıldıktan sonra açanın kipinin değişmesi ona geçmez.
-- *Test:* TR testi; kipin ve hesap türünün mirası uygulanınca TR testi.
+- *Test:* TR testi.
 
 **10.5** `TR_wait_all()` başlatılmış bütün görevlerin bitmesini bekler. `TR_wait_all(görevler)` verilen görevleri bekler ve sonuçlarını **verildikleri sırayla** bir liste olarak verir (`TR_List[T]`). `T` `TR_NoneType`'sa değer vermez (3.5).
 - Görevlerden biri hatayla bittiyse öbürleri de beklenir ve **verilen sırada ilk hatalı görevin** hatası fırlar; bitme zamanı hangi hatanın fırladığını değiştirmez. Öbür hatalı görevlerin hataları, verilen sırayla, fırlayan hatanın `e.TR_suppressed` listesine eklenir (9.4 gibi); hiçbir hata kaybolmaz. Aynı görev listede birden çok kez verilirse hatası bir kez sayılır.

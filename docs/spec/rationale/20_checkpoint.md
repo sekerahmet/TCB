@@ -54,6 +54,8 @@ Kurallar: [`20_kontrol_noktasi.md`](../20_kontrol_noktasi.md). Bu dosya her kura
 
 ### 20.11
 
+- *Gerekçe (tür, 2026-11-06, DENETİM istek 206):* hatayı yakalayan program yarım yazılmış modelle sürüyordu: ilk parametre yazılıyor, ikincinin türü hata veriyordu. Şekil gibi tür de yazmadan önce denetlenir.
+
 - *Emsal:* PyTorch'un `load_state_dict`'i: adlar ve şekiller tutmalı, varsayılan olarak eksik ve fazla anahtar hatadır [kanıtsız: bu tur açılmadı].
 - *Gerekçe:* amaç "hazır bir modeli ince ayarla uyarlamak"ı ister; hazır ağırlıklar bu yolla yüklenir. Cins farkı hata, hassasiyet farkı çevrilir: kimlik tamponu ondalığa sessizce dönmesin (15.1).
 

@@ -46,7 +46,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 - Kalan ya da hata veren test öbürlerini durdurmaz.
 - Test bir görev gibi biter (10.9): gövdesi bitince önce başlattığı görevleri bekler, sonra `TR_defer` çalışır (9.1). Hatayla bittiyse (`TR_assert`, yakalanmayan hata, 1.12'nin `TR_exit`'i) bitmemiş görevleri önce iptal edilir, durmaları beklenir, sonra `TR_defer` çalışır.
 - **Her test paylaşılan rastgele üreteci programın başlangıç durumunda (20.17) başlar:** tohumsuz rastgelelik bir testin sonucunu öbür testlere ve sıraya bağlamaz. Testin görevleri aynı üreteçten çekerse 10.8'in sınırı geçerlidir.
-- *Test:* TR testi, olumsuz fikstür; en dıştaki deyimin hatası, tanımların yeniden kurulması ve üretecin durumu uygulanınca TR testi.
+- *Test:* TR testi, olumsuz fikstür.
 
 **12.6** Test gövdesinde, gövdedeki bir fonksiyonun dışında yazılan `TR_return` sözdizimi hatasıdır: test her zaman sonuna kadar çalışır, bir doğrulamayı atlayıp sessizce geçmez. Döngü dışındaki `TR_break` ve `TR_continue` da hatadır (5.13).
 - *Test:* TR testi, olumsuz fikstür.
