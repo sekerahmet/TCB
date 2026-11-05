@@ -3,6 +3,7 @@ package tensor
 import (
 	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -115,6 +116,37 @@ func TestFusedForwardMatchesUnfusedBits(t *testing.T) {
 		f, u := runFusedFn(ple, pi), ple(pi)
 		sameBits(t, "ple "+dt.String(), f[0], u[0])
 		sameBits(t, "ple e "+dt.String(), f[1], u[1])
+	}
+}
+
+// TestFusedStackKeepsNoData: değerlendirmenin yığını çağrılar arasında yaşar; değişik şekiller art arda,
+// geri yön dahil, kaynaşmamışla aynı bitleri verir. Yığından taşan büyük satır da öyle.
+func TestFusedStackKeepsNoData(t *testing.T) {
+	rng := rand.New(rand.NewSource(11))
+	long, short := Randn(rng, 2, 3, 4096), Randn(rng, 3, 4, 12)
+	for range 3 {
+		for _, x := range []*Tensor{short, long, short} {
+			sameBits(t, "swiglu", runFusedFn(swiglu, []*Tensor{x})[0], swiglu([]*Tensor{x})[0])
+			a, b := x.Detach().SetRequiresGrad(true), x.Detach().SetRequiresGrad(true)
+			runFusedFn(swiglu, []*Tensor{a})[0].SumAll().Backward()
+			swiglu([]*Tensor{b})[0].SumAll().Backward()
+			closeTo(t, "gradyan", a.Grad(), b.Grad(), 1e-5)
+		}
+		ins := fuseInputs(Float32, false)
+		sameBits(t, "rope", runFusedFn(rope, ins)[0], rope(ins)[0])
+	}
+}
+
+// TestFusedIndependentOfWorkers (15.22a): sonuç işçi sayısından bağımsızdır.
+func TestFusedIndependentOfWorkers(t *testing.T) {
+	prev := runtime.GOMAXPROCS(0)
+	defer runtime.GOMAXPROCS(prev)
+	ins := fuseInputs(Float32, false)
+	runtime.GOMAXPROCS(1)
+	want := runFusedFn(rope, ins)[0]
+	for _, n := range []int{2, 3, 8} {
+		runtime.GOMAXPROCS(n)
+		sameBits(t, "rope", runFusedFn(rope, ins)[0], want)
 	}
 }
 

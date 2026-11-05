@@ -46,8 +46,12 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 	}
 	rowBytes := quantRowBytes(dt, K)
 	rows := min(quantTileRows, N)
-	tile := make([]float32, rows*K)
-	part := make([]float32, M*rows)
+	// Tamponlar havuzdandır: her çarpımda ayrılsalar 128 konumluk geçişte 900 MB çöp olurlardı.
+	// tile her turda yazılır, part sıfırlanır: önceki çağrının verisi okunmaz.
+	tp, pp := takePack(&packPoolB, rows*K), takePack(&packPoolA, M*rows)
+	defer packPoolB.Put(tp)
+	defer packPoolA.Put(pp)
+	tile, part := *tp, *pp
 	for n0 := 0; n0 < N; n0 += rows {
 		t := min(rows, N-n0)
 		parallelFor(t, K, func(lo, hi int) {
