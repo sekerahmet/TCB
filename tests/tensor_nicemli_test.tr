@@ -2,6 +2,13 @@
 # docs/spec/15_tensorler.md 15.51–15.55 — nicemlenmiş tensörler. Dosyadan gelen değerler Go testlerindedir
 # (internal/stdlib/ml/load_gguf_test.go): depoya GGUF dosyası girmez.
 
+TR_test "15.51 hassasiyet adı düzeni, şekil mantıksal şekildir" {
+    TR_assert_equal("q8", TR_zeros([2, 32], TR_dtype: "q8").TR_dtype)
+    TR_assert_equal([2, 32], TR_zeros([2, 32], TR_dtype: "q8").TR_shape)
+    TR_assert_equal("H6692", TR_error_code { TR_zeros([31], TR_dtype: "q8") })
+    TR_assert_equal("H6810", TR_error_code { TR_zeros([32], TR_dtype: "q9") })
+}
+
 TR_test "15.2 TR_zeros float bellek ayırmadan sıfır nicemlenmiş tensör kurar" {
     TR_var q = TR_zeros([2, 64], TR_dtype: "q8")
     TR_assert_equal("q8", q.TR_dtype)
