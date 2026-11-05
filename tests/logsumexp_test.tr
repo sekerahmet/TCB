@@ -82,6 +82,9 @@ TR_test "15.18 log_toplam_üs: hatalar" {
     TR_assert_equal("H7081", TR_error_code { TR_logsumexp(TR_Tensor([1, 2])) })
     TR_assert_equal("H7081", TR_error_code { TR_logsumexp(TR_Tensor([1.0]) > 0.0) })
     TR_assert_equal("H7081", TR_error_code { TR_logsumexp(TR_zeros([2, 2]), TR_dim: [0, -2]) })
+    TR_assert_equal([2], TR_logsumexp(TR_zeros([2, 2]), TR_dim: [0]).TR_shape)
+    TR_assert_equal("H7086", TR_error_code { TR_logsumexp(TR_zeros([2, 2]), 0) })
+    TR_assert_equal([2], TR_logsumexp(TR_zeros([2, 2]), TR_dim: 0).TR_shape)
     TR_var boş: TR_List[TR_Int] = []
     TR_assert_equal("H7082", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: boş) })
     TR_assert_equal("H6016", TR_error_code { TR_logsumexp(TR_zeros([2]), TR_dim: 1) })

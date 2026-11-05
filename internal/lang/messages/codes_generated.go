@@ -1490,6 +1490,7 @@ const (
 	H7083 Code = 7083 // {fn}: girdi {x}, ağırlık {w}, {groups} grup: {case, select, rank {girdi [B, Cin, L], ağırlık [Cout, Cin / grup_sayısı, K] şeklinde olmalıdır (15.23c)} channels {ağırlığın ikinci ekseni bir grubun girdi kanalı sayısı olmalıdır (15.23c)} groups {grup sayısı girdi ve çıkış kanal sayısını bölmelidir (15.23c)} other {çekirdek dolgulu girdiden büyük (15.23c)}}{fix}
 	H7084 Code = 7084 // {fn}: sapma {b}, {cout} çıkış kanalı için [{cout}] ya da yok olmalıdır (15.23c): `{fix}`
 	H7085 Code = 7085 // {fn}: {name} sıfır ya da pozitif bir tam sayı olmalıdır, {given} verildi (15.23c)
+	H7086 Code = 7086 // {fn}: eksen yalnız adla verilir (15.18): `{fix}`
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

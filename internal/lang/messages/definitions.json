@@ -1485,6 +1485,7 @@
 "H7083": { "param": ["fn", "x", "w", "case", "groups", "fix"] },
 "H7084": { "param": ["fn", "b", "cout", "fix"] },
 "H7085": { "param": ["fn", "name", "given"] },
+"H7086": { "param": ["fn", "fix"] },
 "H7100": { "param": ["path"] },
 "H7101": { "param": ["count"] },
 "H7102": { "param": [] },

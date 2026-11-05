@@ -84,6 +84,10 @@ func logSumExpBuiltin(m *interp.VM, args []interp.Value, named map[string]interp
 	if err := bind.CheckNamed(fn.Called(), named, nameAxis, nameKeepDim); err != nil {
 		return nil, err
 	}
+	if len(args) == 2 {
+		e, _ := intNumber(args[1]) // sayı değilse ilk eksen önerilir
+		return nil, messages.New(messages.H7086, fn, fmt.Sprintf("%s(x, %s: %d)", codes.Spelling(kd), codes.Spelling(codes.ArgDim), e))
+	}
 	if len(args) != 1 {
 		return nil, interp.ArgCountError(kd, 1, len(args))
 	}

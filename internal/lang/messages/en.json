@@ -1485,6 +1485,7 @@
 "H7083": "{fn}: input {x}, weight {w}, {groups} groups: {case, select, rank {the input must be [B, Cin, L] and the weight [Cout, Cin / num_groups, K] (15.23c)} channels {the second axis of the weight must be the input channel count of one group (15.23c)} groups {the group count must divide the input and output channel counts (15.23c)} other {the kernel is larger than the padded input (15.23c)}}{fix}",
 "H7084": "{fn}: bias {b} must be [{cout}] for {cout} output channels, or none (15.23c): `{fix}`",
 "H7085": "{fn}: {name} must be zero or a positive integer, {given} was given (15.23c)",
+"H7086": "{fn}: the axis is given only by name (15.18): `{fix}`",
 "H7100": "the size of the copy differs from the source's; the source was not deleted ({path|q})",
 "H7101": "the source has {count} links or special files; it cannot be moved to another disk (first copy it and make the links by hand)",
 "H7102": "the copy differs from the source (the file count or total size does not match); the source was not deleted",
