@@ -8,14 +8,14 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 
 **12.1** `TR_test "ad" { ... }` bir test tanımlar. `TR_cmd_test` dosyanın testlerini yazıldıkları sırayla çalıştırır; dosya normal çalıştırıldığında test blokları atlanır.
 - **Test dosyası** `TR_test` içeren dosyadır; en dışında yalnız tanımlar bulunur (12.5, 1.1). Test bloğu bir modülde de bulunabilir (aktarılan modül testleriyle birlikte sınanır). En dışında deyim çalıştıran bir program `TR_test` içermez: sınanacak fonksiyonlar bir modüldedir, program o modülü aktarıp çalıştırır, test dosyası da aktarıp sınar.
-- `TR_cmd_test`'e klasör verilirse altındaki test dosyaları koşar; adı `_test.tr` ile biten dosya hiç atlanmaz, bozuksa yüklenemedi diye kalır. Tarama `testdata` adlı klasöre inmez; klasör açıkça verilirse koşar.
-- Açıkça verilen dosyada test yoksa hatadır, yanında testli dosya olsa bile. Klasörde testsiz dosya olağandır; klasörün toplamında hiç test yoksa hatadır.
-- *Test:* TR testi.
+- `TR_cmd_test`'e klasör verilirse altındaki test dosyaları koşar. `TR_test` sözcüğü geçen dosya ve adı `_test.tr` ile biten dosya hiç atlanmaz: bozuksa yüklenemedi, testi yoksa hata sayılır. Tarama `testdata` adlı klasöre, gizli klasörlere ve `node_modules`'e inmez; klasör açıkça verilirse koşar.
+- Açıkça verilen dosyada test yoksa hatadır, yanında testli dosya olsa bile. Klasörde adı `_test.tr` ile bitmeyen testsiz dosya olağandır; klasörün toplamında hiç test yoksa hatadır.
+- *Test:* TR testi; tarama Go: `internal/devtools/testrunner`'ın testleri.
 
-**12.2** `TR_test` yalnız bir deyimin başında ve ardından bir metin gelince test başlatır; başka bir yerde yazılırsa sözdizimi hatasıdır (2.3a).
-- `TR_test` yalnız dosyanın en dışında yazılır: `TR_if`, fonksiyon ya da başka bir test içinde denetim hatasıdır.
+**12.2** `TR_test` bir deyimin başında ve ardından bir metin gelince test tanımıdır; başka yerde hatadır (2.3a).
+- Tanım yalnız dosyanın en dışında olur: `TR_if`, fonksiyon ya da başka bir test içinde denetim hatasıdır.
 - **Aynı dosyada aynı adlı iki test** sözdizimi hatasıdır; ileti iki satırı da gösterir.
-- *Test:* TR testi; aynı adlı testlerin hatası uygulanınca olumsuz fikstür.
+- *Test:* TR testi; aynı adlı testlerin hatası ve en dış kuralı uygulanınca olumsuz fikstür.
 
 **12.3** `TR_assert(koşul, mesaj)` koşul yanlışsa bir hata fırlatır; `mesaj` isteğe bağlıdır.
 - Koşul `TR_Bool`'dur (3.10). Tensör koşul olamaz, 0 boyutlu tensör de: `TR_assert(t == u)` denetim hatasıdır; ileti `TR_assert_equal(t, u)`'yu, `TR_all(...)`'ı, 0 boyutluda `.TR_item()`'ı ya da `TR_assert_close`'u önerir (15.5).
