@@ -83,14 +83,7 @@ func (cpuBackend) ToRaw(src View) []byte {
 // copyTyped dst görünümüne src'nin öğelerini aynı türde yazar (src yayınlanmış olabilir).
 func copyTyped(dst, src View) {
 	if dst.DType() != src.DType() {
-		// Cinsli tensör ondalık bir hesaba giriyor (ör. dikkatin maskesi): 15.48'in hatası.
-		switch {
-		case dst.DType().IsFloat():
-			panic(typedComputeError(src.DType()))
-		case src.DType().IsFloat():
-			panic(typedComputeError(dst.DType()))
-		}
-		panic(typedCopyError(dst.DType(), src.DType()))
+		panic(CopyTypeError(dst.DType(), src.DType(), CPU))
 	}
 	d, k := cpuStore(dst.S), cpuStore(src.S)
 	eb := elemBytes(d.dtyp)
@@ -106,8 +99,31 @@ func copyTyped(dst, src View) {
 	})
 }
 
+// CopyTypeError dev cihazında dst türüne src türünden yazmanın hatasıdır; yazılabiliyorsa nil. Birden
+// çok tensör yazan çağıran (TR_load_parameters) kopyanın vereceği hatayı yazmadan önce buradan alır.
+func CopyTypeError(dst, src DType, dev Device) *messages.Error {
+	for _, dt := range []DType{dst, src} {
+		if dt.IsQuantized() {
+			return PrecisionError(dt, dev)
+		}
+	}
+	if dst == src || !dst.IsTyped() && !src.IsTyped() {
+		return nil
+	}
+	// Cinsli tensör ondalık bir hesaba giriyor (ör. dikkatin maskesi): 15.48'in hatası.
+	switch {
+	case dev.Kind == KindGPU:
+		return PrecisionError(src, dev)
+	case dst.IsFloat():
+		return typedComputeError(src)
+	case src.IsFloat():
+		return typedComputeError(dst)
+	}
+	return typedCopyError(dst, src)
+}
+
 // typedCopyError iki cinsli türün arasındaki yazmanın hatasıdır: yazma dönüştürmez (15.3); ileti
-// kaynağın dönüşümünü önerir. İkisi de ondalık hesap türü değildir (copyTyped).
+// kaynağın dönüşümünü önerir. İkisi de ondalık hesap türü değildir (CopyTypeError).
 func typedCopyError(dst, src DType) *messages.Error {
 	number := func(dt DType) string {
 		if dt.Elem() == ElemInt {

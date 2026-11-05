@@ -293,6 +293,27 @@ TR_test "20.11 parametreleri_yükle var olan parametrelere yerinde yazar" {
     TR_assert_equal("H2423", TR_error_code { TR_load_parameters(model, [1]) })
 }
 
+TR_test "20.11 türü yazılamayan tensör varsa hiçbir şey yazılmaz" {
+    TR_var m32 = {"a": TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true), "b": TR_Tensor([0.0, 0.0], TR_requires_grad: TR_true)}
+    TR_var m64 = {"a": TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true), "b": TR_Tensor([0.0, 0.0], TR_dtype: "float64", TR_requires_grad: TR_true)}
+    TR_var yeni = TR_Tensor([7.0, 8.0])
+    TR_var kayıp = TR_sum(m32["a"] * m32["a"])
+    TR_assert_equal("H6960", TR_error_code { TR_load_parameters(m32, {"a": yeni, "b": TR_Tensor([5, 6])}) })
+    TR_assert_equal("H6960", TR_error_code { TR_load_parameters(m32, {"a": yeni, "b": TR_Tensor([TR_true, TR_false])}) })
+    TR_assert_equal("H6960", TR_error_code { TR_load_parameters(m32, {"a": yeni, "b": TR_Tensor([5.0, 6.0], TR_dtype: "float64")}) })
+    TR_assert_equal("H6960", TR_error_code { TR_load_parameters(m64, {"a": yeni, "b": TR_Tensor([5.0, 6.0])}) })
+    TR_assert_equal("H3115", TR_error_code { TR_load_parameters(m64, {"a": yeni, "b": TR_Tensor([5, 6])}) })
+    TR_assert_equal([1.0, 2.0], m32["a"].TR_tolist)
+    TR_assert_equal([1.0, 2.0], m64["a"].TR_tolist)
+    # Sürüm de artmadı: yüklemeden önce kurulan çizge geri yayılır (15.27).
+    TR_backward(kayıp)
+    TR_assert_equal([2.0, 4.0], m32["a"].TR_grad.TR_tolist)
+    # Ondalık hesap türleri arasındaki yazma sürer.
+    TR_assert_equal(2, TR_load_parameters(m32, {"a": yeni, "b": TR_Tensor([5.0, 6.0], TR_dtype: "bf16")}))
+    TR_assert_equal([7.0, 8.0], m32["a"].TR_tolist)
+    TR_assert_equal([5.0, 6.0], m32["b"].TR_tolist)
+}
+
 TR_test "20.12 iyileştiricinin durumu alınıp aynı parametrelerle kurulmuş iyileştiriciye yüklenir" {
     TR_var w = param([3], 1)
     TR_var op = TR_AdamW([w], TR_lr: 0.1)
