@@ -1471,7 +1471,7 @@ const (
 	H7067 Code = 7067 // {path|q}: bozuk WAV dosyası (22.4): `{chunk}` parçası {size} bayt diyor, dosyada {rest} bayt kalmış. Dosya kesik olabilir; boruya yazılmış dosyanın boyu bilinmez, sesi dosyaya yazın
 	H7068 Code = 7068 // {path|q}: bozuk WAV dosyası (22.4): `data` parçasının boyu 0: dosyada ses yok
 	H7069 Code = 7069 // {path|q}: bozuk WAV dosyası (22.4): `data` boyu {size}, {frame} baytlık karenin katı değil
-	H7070 Code = 7070 // {path|q}: bozuk WAV dosyası (22.4): sonda {rest} baytlık kesik parça var
+	H7070 Code = 7070 // {path|q}: bozuk WAV dosyası (22.4): sonda {rest} baytlık kesik parça var. Dosya bozuk olabilir; boruya yazılmış dosyada ses başlığın söylediği yerde bitmez, sesi dosyaya yazın
 	H7071 Code = 7071 // {path|q}: {channel}. kanalın {index}. örneği {value}: NaN ve sonsuz örnek okunmaz (22.4)
 	H7072 Code = 7072 // {case, select, shape {örnekler iki boyutlu olmalıdır: şekli [kanal, örnek], {given} verildi} channels {sesin en az bir kanalı olmalıdır: şekli [kanal, örnek], {given} verildi} other {örnekleme hızı pozitif olmalıdır, {given} verildi}} (22.4)
 	H7073 Code = 7073 // boş ses yazılmaz: şekli {shape} (22.4); böyle bir dosya geri okunamazdı

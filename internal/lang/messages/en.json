@@ -1466,7 +1466,7 @@
 "H7067": "{path|q}: broken WAV file (22.4): the `{chunk}` chunk says {size} bytes, {rest} are left in the file. The file may be cut; the size of a file written to a pipe is unknown, write the sound to a file",
 "H7068": "{path|q}: broken WAV file (22.4): the size of the `data` chunk is 0: the file holds no sound",
 "H7069": "{path|q}: broken WAV file (22.4): the `data` size {size} is not a multiple of the {frame}-byte frame",
-"H7070": "{path|q}: broken WAV file (22.4): a cut chunk of {rest} bytes at the end",
+"H7070": "{path|q}: broken WAV file (22.4): a cut chunk of {rest} bytes at the end. The file may be broken; in a file written to a pipe the sound does not end where the header says, write the sound to a file",
 "H7071": "{path|q}: sample {index} of channel {channel} is {value}: NaN and infinite samples are not read (22.4)",
 "H7072": "{case, select, shape {the samples must be two-dimensional: shape [channel, sample], got {given}} channels {a sound has at least one channel: shape [channel, sample], got {given}} other {the sample rate must be positive, got {given}}} (22.4)",
 "H7073": "an empty sound is not written: shape {shape} (22.4); such a file could not be read back",

@@ -160,12 +160,28 @@ TR_test "22.4 data boyu 0 ya da kare boyunun katı değil" {
     TR_assert_equal("H7069", hata_kodu(wav(fmt + parça("data", TR_Bytes([1, 0, 2])))))
 }
 
-TR_test "22.4 zarfın arkasındaki kuyruk parça sayılmaz: ID3v1, sıfır dolgu" {
+TR_test "22.4 boş kuyruk ses sayılmaz: ID3v1, sıfır dolgu, 8 bayttan kısa" {
     TR_var ses = mono(dört_örnek())
     TR_var id3 = TR_Bytes("TAG") + TR_Bytes([0] * 125)
     TR_for kuyruk TR_in [id3, TR_Bytes([0, 0, 0]), TR_Bytes([0] * 16), TR_Bytes("LIS"), TR_Bytes([1])] {
         TR_assert_equal([1, 4], oku(ses + kuyruk).TR_samples.TR_shape)
     }
+}
+
+TR_test "22.4 boruya yazılmış dosya: başlık ilk parçada, ses zarfın arkasında; sessizce kısalmaz" {
+    TR_var fmt = parça("fmt ", fmt_içeriği(1, 1, 16000, 16))
+    TR_var ilk = parça("data", TR_Bytes([1, 2] * 100))
+    TR_var başlık = TR_Bytes("RIFF") + u32(4 + fmt.TR_length + ilk.TR_length) + TR_Bytes("WAVE") + fmt + ilk
+    TR_assert_equal("H7067", hata_kodu(başlık + TR_Bytes([1, 2] * 900)))
+    TR_assert_equal("H7070", hata_kodu(başlık + TR_Bytes([1, 0, 0, 0, 0, 0, 0, 0, 2])))
+}
+
+TR_test "22.4 öbür kuyruk parça gibi okunur: sağlamsa geçer, bozuksa hatadır" {
+    TR_var ses = mono(dört_örnek())
+    TR_assert_equal([1, 4], oku(ses + parça("LIST", TR_Bytes("abcd"))).TR_samples.TR_shape)
+    TR_assert_equal("H7067", hata_kodu(ses + TR_Bytes("LIST") + u32(9)))
+    TR_assert_equal("H7070", hata_kodu(ses + parça("LIST", TR_Bytes("abcd")) + TR_Bytes("abc")))
+    TR_assert_equal("H7070", hata_kodu(ses + TR_Bytes("TAG") + TR_Bytes([0] * 126)))
 }
 
 TR_test "22.4 RIFF boyu bozuk, parçaları sağlam dosya geçer" {

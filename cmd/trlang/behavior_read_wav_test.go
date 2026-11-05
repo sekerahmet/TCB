@@ -62,6 +62,7 @@ func FuzzReadWav(f *testing.F) {
 	f.Add(wavSeed(1, 1, 16000, 24, []byte{0, 0, 0}))
 	f.Add([]byte("RIFF\xff\xff\xff\xffWAVE"))
 	f.Add(append(wavSeed(1, 1, 16000, 16, []byte{0, 0, 0, 64}), []byte("TAG\x00\x00")...))
+	f.Add(append(wavSeed(1, 1, 16000, 16, []byte{0, 0, 0, 64}), []byte{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}...))
 	interp.SetLibrary(lib.Files)
 	path := filepath.Join(f.TempDir(), "ses.wav")
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -89,6 +90,7 @@ func TestWavMessagesGiveTheFix(t *testing.T) {
 	}{
 		{messages.TextIn("tr", messages.H7061, "a.wav", "pcm", "24 bit"), "`ffmpeg -nostdin -i girdi -c:a pcm_s16le çıktı.wav`"},
 		{messages.TextIn("tr", messages.H7067, "a.wav", "data", 8, 2), "sesi dosyaya yazın"},
+		{messages.TextIn("tr", messages.H7070, "a.wav", 3), "sesi dosyaya yazın"},
 		{messages.TextIn("tr", messages.H7074, 0, 3, 1.5), "`TR_clamp(x, TR_min: -1.0, TR_max: 1.0)`"},
 	}
 	for _, c := range cases {

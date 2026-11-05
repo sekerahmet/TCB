@@ -12,6 +12,7 @@
 
 TR_const _RIFF_BAŞI = 12
 TR_const _PARÇA_BAŞI = 8
+TR_const _ID3_BOYU = 128
 TR_const _PCM = 1
 TR_const _ONDALIK = 3
 TR_const _GENİŞ = 65534
@@ -96,12 +97,21 @@ TR_func _biçim_denetle(yol: TR_String, b: TR_Bytes, fmt: TR_Int, boy: TR_Int) {
     }
 }
 
-# _zarf_sonu `data`'dan sonra taramanın durduğu yerdir (22.4): `RIFF` zarfının sonu ya da dosya sonu,
-# önce gelen. Arkadaki kuyruk parça sayılmaz.
+# _zarf_sonu `data`'dan sonra kuyruğa bakılan yerdir (22.4): `RIFF` zarfının sonu ya da dosya sonu,
+# önce gelen.
 TR_func _zarf_sonu(b: TR_Bytes) -> TR_Int {
     TR_var zarf = _PARÇA_BAŞI + _u32(b, 4)
     TR_if zarf < b.TR_length { TR_return zarf }
     TR_return b.TR_length
+}
+
+# _boş_kuyruk zarfın arkası ses taşımıyor mu (22.4): hepsi sıfır ya da 128 baytlık ID3v1. Öbür her
+# kuyruk parça gibi okunur: boruya yazılmış dosyada başlık ilk parçada kalır, ses zarfın arkasındadır.
+# Dosya başına bir kez çağrılır: her parçada bakmak süreyi dosya boyunun karesine çıkarırdı.
+TR_func _boş_kuyruk(b: TR_Bytes, konum: TR_Int) -> TR_Bool {
+    TR_var kuyruk = b[konum..b.TR_length]
+    TR_if kuyruk.TR_length == _ID3_BOYU TR_and kuyruk[0..3] == TR_Bytes("TAG") { TR_return TR_true }
+    TR_return TR_all(TR_from_bytes[TR_Int](kuyruk, TR_dtype: "uint8", TR_byte_order: "little") == 0)
 }
 
 # _biçimi_öne_al dosyanın ilk `fmt ` parçasını yapısal hatalardan önce denetler (22.4): boyları
@@ -172,8 +182,14 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
     TR_var veri = -1
     TR_var veri_boyu = 0
     TR_var konum = _RIFF_BAŞI
-    TR_var sınır = b.TR_length
-    TR_for konum + _PARÇA_BAŞI <= sınır {
+    TR_var bitiş = b.TR_length
+    TR_var kuyruğa_bakıldı = TR_false
+    TR_for konum + _PARÇA_BAŞI <= b.TR_length {
+        TR_if veri >= 0 TR_and TR_not kuyruğa_bakıldı TR_and konum >= bitiş {
+            TR_if _boş_kuyruk(b, konum) { TR_break }
+            kuyruğa_bakıldı = TR_true
+            bitiş = b.TR_length
+        }
         TR_var ad = b[konum..konum + 4]
         TR_var boy = _u32(b, konum + 4)
         TR_var kalan = b.TR_length - konum - _PARÇA_BAŞI
@@ -187,13 +203,13 @@ TR_func TR_read_wav(yol: TR_String) -> TR_Sound {
             TR_if biçim == TR_none { TR_throw TR_Message("H7063", yol, "data_first") }
             veri = konum + _PARÇA_BAŞI
             veri_boyu = boy
-            sınır = _zarf_sonu(b)
+            bitiş = _zarf_sonu(b)
         }
         konum = _sonraki(b, konum, boy)
     }
     TR_if biçim == TR_none { TR_throw TR_Message("H7063", yol, "no_fmt") }
     TR_if veri < 0 { TR_throw TR_Message("H7063", yol, "no_data") }
-    TR_if konum < sınır { TR_throw TR_Message("H7070", yol, sınır - konum) }
+    TR_if konum < bitiş { TR_throw TR_Message("H7070", yol, bitiş - konum) }
     TR_var çerçeve = biçim.kanal * biçim.örnek_baytı
     TR_if veri_boyu == 0 { TR_throw TR_Message("H7068", yol) }
     TR_if veri_boyu % çerçeve != 0 { TR_throw TR_Message("H7069", yol, veri_boyu, çerçeve) }

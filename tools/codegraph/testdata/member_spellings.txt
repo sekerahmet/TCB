@@ -529,6 +529,7 @@ fiyatlar.TR_get	ok	0	name:TR_mem_get
 fiyatlar.TR_keys	ok	0	name:TR_mem_keys
 fiyatlar.TR_length	ok	0	name:TR_mem_length
 fiyatlar.TR_values	ok	0	name:TR_mem_values
+fmt.TR_length	ok	0	name:TR_mem_length
 foo.TR_GPT	not_found	4	-
 foo.TR_Linear	not_found	4	-
 fs.TR_append	ok	0	name:TR_mem_append
@@ -630,6 +631,7 @@ ileti.TR_contains	ok	0	name:TR_mem_contains
 ileti.TR_ends_with	ok	0	name:TR_mem_ends_with
 iletiler.TR_append	ok	0	name:TR_mem_append
 ilk.TR_code	ok	0	name:TR_mem_code
+ilk.TR_length	ok	0	name:TR_mem_length
 ince.TR_dtype	ok	0	name:TR_mem_dtype
 ince.TR_step	ok	0	name:TR_mem_step
 ince.TR_tolist	ok	0	name:TR_mem_tolist
@@ -740,6 +742,7 @@ koşu.TR_resume_step	ok	0	tr:field:lib/training.tr:TR_type_Run.TR_mem_resume_ste
 koşu.TR_step_done	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_step_done
 ks.TR_append	ok	0	name:TR_mem_append
 kutular.TR_sort	ok	0	name:TR_mem_sort
+kuyruk.TR_length	ok	0	name:TR_mem_length
 kuyruk.TR_pop	ok	0	name:TR_mem_pop
 kuyruk.TR_remove_at	ok	0	name:TR_mem_remove_at
 kv.TR_tolist	ok	0	name:TR_mem_tolist
