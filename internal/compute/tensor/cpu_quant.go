@@ -37,6 +37,9 @@ func dotQuantGo(dt DType, x []float32, w []byte, s *quantScratch) float32 {
 
 // quantGemm c[m, n] += Σ_k a[m, k]·aç(w)[n, k]'dir (a [M, K], w [N, K] deposu, c [M, N]).
 func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
+	if K == 0 {
+		return // boş toplam: c olduğu gibi kalır, float çarpımıyla aynı
+	}
 	if M == 1 {
 		quantGemv(N, K, a, w, dt, c)
 		return

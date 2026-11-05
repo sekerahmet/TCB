@@ -1385,7 +1385,7 @@ const (
 	H6940 Code = 6940 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisi desteklenmiyor (desteklenenler: {supported|list})
 	H6941 Code = 6941 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: sapmalı dikkat ya da MLP katmanları desteklenmiyor
 	H6942 Code = 6942 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {activation|q} etkinleştirmesi desteklenmiyor (silu bekleniyordu)
-	H6943 Code = 6943 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: RoPE ölçekleme ({key|q}) desteklenmiyor
+	H6943 Code = 6943 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: desteklenmeyen RoPE ayarı ({key|q})
 	H6944 Code = 6944 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: kayan pencereli dikkat ({key|q}) henüz desteklenmiyor
 	H6945 Code = 6945 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: tanınmayan ağırlık {weight|q}
 	H6946 Code = 6946 // {via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {target|q} için iki parçadan biri eksik

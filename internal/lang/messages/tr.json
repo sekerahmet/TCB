@@ -1380,7 +1380,7 @@
 "H6940": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {architecture|q} mimarisi desteklenmiyor (desteklenenler: {supported|list})",
 "H6941": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: sapmalı dikkat ya da MLP katmanları desteklenmiyor",
 "H6942": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {activation|q} etkinleştirmesi desteklenmiyor (silu bekleniyordu)",
-"H6943": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: RoPE ölçekleme ({key|q}) desteklenmiyor",
+"H6943": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: desteklenmeyen RoPE ayarı ({key|q})",
 "H6944": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: kayan pencereli dikkat ({key|q}) henüz desteklenmiyor",
 "H6945": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: tanınmayan ağırlık {weight|q}",
 "H6946": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: {target|q} için iki parçadan biri eksik",

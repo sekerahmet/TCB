@@ -170,8 +170,11 @@ TR_func TR_pretrained_gguf(yol: TR_String) -> TR_GPT {
     TR_var bakış = TR_Int(_gguf_gerekli(üst, "\(mimari).attention.head_count"))
     TR_var kv = TR_Int(TR_config_value(üst, "\(mimari).attention.head_count_kv", bakış))
     TR_var bb = TR_Int(TR_config_value(üst, "\(mimari).attention.key_length", TR_Int(boyut // bakış)))
+    # RoPE bütün bakış boyutuna uygulanır: dosya daha azını isterse model hatasız kurulur, yanlış metin üretir.
+    TR_var dönen = "\(mimari).rope.dimension_count"
+    TR_if TR_Int(TR_config_value(üst, dönen, bb)) != bb { TR_throw TR_Message("H6943", "gguf", dönen) }
     TR_var ara = TR_Int(_gguf_gerekli(üst, "\(mimari).feed_forward_length"))
-    TR_var eps = TR_Float(TR_config_value(üst, "\(mimari).attention.layer_norm_rms_epsilon", 0.000001))
+    TR_var eps = TR_Float(_gguf_gerekli(üst, "\(mimari).attention.layer_norm_rms_epsilon"))
     TR_var katman = TR_Int(_gguf_gerekli(üst, "\(mimari).block_count"))
     TR_var tensörler = TR_load_tensors(yol)
     TR_if tensörler.TR_contains("rope_freqs.weight") { TR_throw TR_Message("H6943", "gguf", "rope_freqs.weight") }

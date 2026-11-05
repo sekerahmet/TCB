@@ -149,6 +149,37 @@ func TestQuantEmbedding(t *testing.T) {
 	}
 }
 
+// TestQuantMatMulOneRowWeight tek satır diliminin devriğini çarpar: görünüm yalnız sağ işlenen olarak
+// okunur, satırın ofseti korunur.
+func TestQuantMatMulOneRowWeight(t *testing.T) {
+	q := FromQuantized(Q8, quantBlocks(Q8, 1)[:6*q8Bytes], 3, 64)
+	x := make([]float32, 64)
+	for i := range x {
+		x[i] = float32(i%5) - 2
+	}
+	row := q.Slice(0, 1, 2)
+	want := MatMul(New(x, 1, 64), row.Open(Float32).T()).Data()[0]
+	if got := MatMul(New(x, 1, 64), row.T()).Data(); len(got) != 1 || got[0] != want {
+		t.Errorf("sonuç %v; beklenen %v", got, want)
+	}
+}
+
+// TestQuantMatMulEmptySum boş toplamdır (K = 0): float çarpımı gibi sıfır verir.
+func TestQuantMatMulEmptySum(t *testing.T) {
+	w := FromQuantized(Q8, nil, 3, 0)
+	for _, m := range []int{1, 2} {
+		got := MatMul(New(nil, m, 0), w.T())
+		if s := got.Shape(); len(s) != 2 || s[0] != m || s[1] != 3 {
+			t.Fatalf("M = %d: şekil %v", m, s)
+		}
+		for i, v := range got.Data() {
+			if v != 0 {
+				t.Errorf("M = %d: öğe %d = %v", m, i, v)
+			}
+		}
+	}
+}
+
 func TestQuantMatMulRefuses(t *testing.T) {
 	w := func() *Tensor { return ZerosOf(Q8, 2, 64) }
 	x := func() *Tensor { return New(make([]float32, 64), 1, 64) }

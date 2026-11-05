@@ -72,6 +72,10 @@ func kindCall(m *interp.VM, fn codes.Ref, k, kind codes.Code, base interp.Builti
 	rest := withoutNamed(named, nameRequiresGrad)
 	var t *tensor.Tensor
 	src, isTensor := a[0].(*TensorValue)
+	if isTensor && src.t.DType().IsQuantized() && dt != src.t.DType() {
+		// Kurucu sessizce açmaz (15.53): tek yol .TR_to_dtype'tır.
+		return nil, messages.New(messages.H6687, src.t.DType().Name())
+	}
 	if k == codes.TypeTensor && len(a) == 1 && isTensor && kindOf(src.t.DType()) != kind {
 		// Cins dönüşümü (15.3) doğrudan cihazdadır, ara kopya yok: TR_replay kaydında konağa okumaz.
 		if err := bind.CheckNamed(fn.Called(), named, nameRequiresGrad, nameDType); err != nil {

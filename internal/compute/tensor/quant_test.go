@@ -348,6 +348,13 @@ func TestQuantRefusesEverythingElse(t *testing.T) {
 		{"devrik kopya", messages.H6688, func() { q().T().Clone() }},
 		{"devrikten satır", messages.H6688, func() { TakeRows(q().T(), []int{0}, []int{1}) }},
 		{"devrik şekil", messages.H6688, func() { q().T().Reshape(128) }},
+		{"tek satırın devriği açılmaz", messages.H6688, func() { q().Slice(0, 0, 1).T().Open(Float32) }},
+		{"tek satırın devriğinde dilim", messages.H6688, func() { q().Slice(0, 0, 1).T().Slice(0, 3, 5) }},
+		{"tek satırın devriğinde gömme", messages.H6688, func() { Embedding(q().Slice(0, 0, 1).T(), []int{3}) }},
+		{"tek satırın devriğinden satır", messages.H6688, func() { TakeRows(q().Slice(0, 0, 1).T(), []int{3}, []int{1}) }},
+		{"tek satırlı tensörün devriği", messages.H6688, func() {
+			FromQuantized(Q6K, quantBlocks(Q6K, 1)[:q6kBytes], 1, 256).T().Open(Float32)
+		}},
 		{"türev", messages.H6690, func() { q().SetRequiresGrad(true) }},
 		{"GPU", messages.H6689, func() { q().To(Device{Kind: KindGPU}) }},
 	} {

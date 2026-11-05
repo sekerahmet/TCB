@@ -408,12 +408,16 @@ func TestGGUFModelGates(t *testing.T) {
 			b.KV("qwen3.rope.scaling.type", "yarn").KV("qwen3.rope.scaling.factor", float32(4)).
 				KV("qwen3.rope.scaling.original_context_length", uint32(32768))
 		})},
+		{"RoPE bakış boyutundan az", "H6943", "qwen3.rope.dimension_count", full(kv("qwen3.rope.dimension_count", uint32(8)))},
 		{"kayan pencere", "H6944", "qwen3.attention.sliding_window", full(kv("qwen3.attention.sliding_window", uint32(4096)))},
 		{"sapma", "H6945", "blk.0.attn_q.bias", full(row("blk.0.attn_q.bias", []uint64{64}))},
 		{"fazla katman", "H6945", "blk.2.attn_norm.weight", full(row("blk.2.attn_norm.weight", []uint64{64}))},
 		{"eksik tensör", "H6697", "blk.1.ffn_up.weight", without("blk.1.ffn_up.weight")},
 		{"eksik gömme", "H6697", "token_embd.weight", without("token_embd.weight")},
 		{"eksik anahtar", "H6699", "qwen3.block_count", (&gguftest.Builder{}).KV("general.architecture", "qwen3").
+			KV("qwen3.embedding_length", uint32(64)).KV("qwen3.attention.head_count", uint32(4)).KV("qwen3.feed_forward_length", uint32(96)).
+			KV("qwen3.attention.layer_norm_rms_epsilon", float32(1e-5)).Bytes()},
+		{"eps yok", "H6699", "qwen3.attention.layer_norm_rms_epsilon", (&gguftest.Builder{}).KV("general.architecture", "qwen3").
 			KV("qwen3.embedding_length", uint32(64)).KV("qwen3.attention.head_count", uint32(4)).KV("qwen3.feed_forward_length", uint32(96)).Bytes()},
 	}
 	dir := t.TempDir()
@@ -438,7 +442,8 @@ func TestGGUFModelGates(t *testing.T) {
 	}
 	// Etkisiz ölçekler kabul edilir: "none", 0 ve 1 (llama.cpp'de etkisiz).
 	writeBytes(t, filepath.Join(dir, "ok.gguf"), full(func(b *gguftest.Builder) {
-		b.KV("qwen3.rope.scaling.type", "none").KV("qwen3.rope.scaling.factor", float32(1)).KV("qwen3.rope.scale_linear", float32(0))
+		b.KV("qwen3.rope.scaling.type", "none").KV("qwen3.rope.scaling.factor", float32(1)).KV("qwen3.rope.scale_linear", float32(0)).
+			KV("qwen3.rope.dimension_count", uint32(16))
 	}))
 	writeTR(t, dir, "ok.tr", "TR_import \"tr/pretrained\"\nTR_print(TR_pretrained_gguf(\"ok.gguf\").TR_config[\"katman\"])\n")
 	if s := testkit.RunBinary(t, trBinary, dir, "", nil, filepath.Join(dir, "ok.tr")); strings.TrimSpace(s.Stdout) != "2" {
@@ -452,7 +457,8 @@ func TestGGUFModelDefaults(t *testing.T) {
 	c := tinyConfig{arch: "llama", vocab: 48, dim: 64, ff: 96, layers: 1, heads: 4, kv: 4, headDim: 16, context: 32, tied: true}
 	w := c.randomWeights(4)
 	b := (&gguftest.Builder{}).KV("general.architecture", "llama").KV("llama.block_count", uint32(1)).KV("llama.embedding_length", uint32(64)).
-		KV("llama.feed_forward_length", uint32(96)).KV("llama.attention.head_count", uint32(4))
+		KV("llama.feed_forward_length", uint32(96)).KV("llama.attention.head_count", uint32(4)).
+		KV("llama.attention.layer_norm_rms_epsilon", float32(1e-5))
 	for _, name := range sortedNames(c.names()) {
 		b.Tensor(name, gguf.TypeF32, ggufDims(w[name].shape), floatBytes(w[name].data))
 	}

@@ -1380,7 +1380,7 @@
 "H6940": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: architecture {architecture|q} is not supported (supported: {supported|list})",
 "H6941": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: attention or MLP layers with bias are not supported",
 "H6942": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: activation {activation|q} is not supported (silu was expected)",
-"H6943": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: RoPE scaling ({key|q}) is not supported",
+"H6943": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: unsupported RoPE setting ({key|q})",
 "H6944": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: sliding window attention ({key|q}) is not supported yet",
 "H6945": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: unrecognized weight {weight|q}",
 "H6946": "{via, select, gguf {{@pretrained_gguf}} other {{@pretrained_model}}}: one of the two parts of {target|q} is missing",

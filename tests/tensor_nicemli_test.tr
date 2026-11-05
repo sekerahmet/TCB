@@ -62,6 +62,21 @@ TR_test "15.53 devrik görünüm yalnız okunur" {
     TR_assert_equal("H6688", TR_error_code { TR_Tensor(v) })
 }
 
+TR_test "15.53 tek satırın devriği de devriktir" {
+    TR_var s = TR_zeros([1, 64], TR_dtype: "q8").TR_transpose()
+    TR_var d = TR_zeros([3, 64], TR_dtype: "q8")[0..1].TR_transpose()
+    TR_for v TR_in [s, d] {
+        TR_assert_equal("H6688", TR_error_code { v.TR_to_dtype("float32") })
+        TR_assert_equal("H6688", TR_error_code { v[3..5] })
+        TR_assert_equal("H6688", TR_error_code { v[3] })
+        TR_assert_equal("H6688", TR_error_code { v[TR_Tensor[TR_Int]([3, 4])] })
+        TR_assert_equal("H6688", TR_error_code { TR_embedding_lookup(v, 3) })
+        TR_assert_equal("H6688", TR_error_code { TR_ones([1, 2]) @ v[3..5] })
+        TR_assert_equal([1, 1], (TR_ones([1, 64]) @ v).TR_shape)
+        TR_assert(TR_String(v).TR_contains("q8"))
+    }
+}
+
 TR_test "15.53 başka her işlem hatadır, ileti açmayı söyler" {
     TR_var q = TR_zeros([2, 64], TR_dtype: "q8")
     TR_var f = TR_zeros([2, 64])
@@ -82,6 +97,10 @@ TR_test "15.53 başka her işlem hatadır, ileti açmayı söyler" {
     TR_assert_equal("H6687", TR_error_code { q.TR_tolist })
     TR_assert_equal("H6687", TR_error_code { q[0].TR_tolist })
     TR_assert_equal("H6687", TR_error_code { TR_Tensor[TR_Int](q) })
+    TR_assert_equal("H6687", TR_error_code { TR_Tensor[TR_Float](q) })
+    TR_assert_equal("H6687", TR_error_code { TR_equal(q, f) })
+    TR_assert_equal("H6687", TR_error_code { TR_equal(q.TR_transpose(), f) })
+    TR_assert_equal("H6687", TR_error_code { TR_equal(f, q.TR_transpose()) })
     TR_assert_equal("H6687", TR_error_code { q.TR_reshape([64, 2]) })
     TR_assert_equal("H6687", TR_error_code { q.TR_permute([1, 0]) })
     TR_assert_equal("H6687", TR_error_code { q.TR_slice(1, 0, 32) })
@@ -97,6 +116,8 @@ TR_test "15.53 çarpım ve gömme" {
     TR_assert_equal("bf16", (x.TR_to_dtype("bf16") @ q.TR_transpose()).TR_dtype)
     TR_assert_equal([3], (TR_ones([64]) @ q.TR_transpose()).TR_shape)
     TR_assert_equal(0.0, TR_sum(x @ q.TR_transpose()).TR_item())
+    TR_assert_equal([2, 3], (TR_zeros([2, 0]) @ TR_zeros([3, 0], TR_dtype: "q8").TR_transpose()).TR_shape)
+    TR_assert_equal(0.0, TR_sum(TR_zeros([1, 0]) @ TR_zeros([3, 0], TR_dtype: "q8").TR_transpose()).TR_item())
     TR_assert_equal("H6695", TR_error_code { x @ q })
     TR_assert_equal("H6695", TR_error_code { TR_ones([2, 3]) @ q })
     TR_assert_equal("H6696", TR_error_code { TR_ones([2, 64], TR_requires_grad: TR_true) @ q.TR_transpose() })

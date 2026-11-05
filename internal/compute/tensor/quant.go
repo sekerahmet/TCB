@@ -197,9 +197,10 @@ func CheckQuantWeight(x, w *Tensor) {
 	}
 }
 
-// refuseTransposed nicemlenmiş devrik görünümün okuma dışı işlemlerini durdurur (15.53).
+// refuseTransposed nicemlenmiş devrik görünümün okuma dışı işlemlerini durdurur (15.53). Ölçüt son
+// eksenin adımıdır: [1, K]'nın devriği [K, 1] bitişik görünür, öğe ofseti ise bloğa bölünmez.
 func (t *Tensor) refuseTransposed() {
-	if !t.IsContiguous() {
+	if !t.IsContiguous() || t.strides[len(t.strides)-1] != 1 {
 		panic(messages.New(messages.H6688, t.dtyp.Name()))
 	}
 }
