@@ -2411,7 +2411,7 @@ tr: yazdır(log_softmax(Tensör([1.0, 2.0, 3.0])).değer)
 
     log_toplam_üs(Tensör, eksen: Tam | Liste = yok, boyutu_koru: Mantık = yanlış) → Tensör
 
-log(Σ exp(t))'yi taşmadan hesaplar: en büyük öğe çıkarılır. Eksen verilmezse bütün öğeler, verilirse o eksen ya da eksen listesi indirgenir; türev izler. Bütün öğeleri -sonsuz olan satır ve boş satır -sonsuzdur. Yalnızca ondalık tensörde çalışır.
+log(Σ exp(t))'yi taşmadan hesaplar: en büyük öğe çıkarılır. Eksen verilmezse bütün öğeler, verilirse o eksen ya da eksen listesi indirgenir; türev izler. Yalnızca ondalık tensörde çalışır, boş satırın sonucu -sonsuzdur.
 
 ```tr
 TR_print(TR_logsumexp(TR_Tensor([[0.0, 0.0], [1.0, 2.0]]), TR_dim: 1).TR_tolist)
