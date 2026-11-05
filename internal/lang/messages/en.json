@@ -2,7 +2,7 @@
 "H0001": "'{name}' is not a known identity: the language's words are written as TR_ and the identity's name (e.g. TR_print), and user names do not start with TR_",
 "H0002": "The '$' escape cannot directly follow a name or a number; put a space or an operator before it",
 "H0003": "the source contains a NUL (U+0000) character; text files do not contain it, the file may be corrupt",
-"H0004": "'{name}' is a reserved name: names starting with 'TR_' are the identities of the language and its library; choose another name (e.g. {lower})",
+"H0004": "'{name}' is a reserved name: names starting with 'TR_' are the identities of the language and its library; choose another name (e.g. {suggestion})",
 "H0007": "unclosed raw string: the string that starts with ` was not closed before the end of the file",
 "H0008": "unknown escape sequence {escape} (known ones: \\n \\t \\r \\\" \\\\ \\u{{...}}; interpolation \\(...)); to write a backslash as it is, use a raw string (`C:\\data`, `\\d+`) or double the backslash (\"\\\\\")",
 "H0009": "the '\\(' interpolation in the string is not closed: an interpolation ends with its matching ')' on the same line",

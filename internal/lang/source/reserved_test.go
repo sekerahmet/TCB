@@ -1,9 +1,11 @@
 package source
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -52,6 +54,48 @@ func TestReservedNamesStopEveryDefinition(t *testing.T) {
 			if !ok || len(e.Fixes) != 1 {
 				t.Errorf("%q: düzeltme yok: %v", c.code, r.Errors[0])
 			}
+		}
+	}
+}
+
+// Kural (2.3a, 2.3b): H0004'ün önerisi kopyalanınca çalışır: bir sonraki denetim onu ne hata ne de
+// yazılış uyarısıyla H0004'e geri götürür. Bütün kimlikler için: tanıdık bir ad (sum, print, if)
+// tanımlanınca o yerde sıradan addır.
+func TestTheReservedNameSuggestionRuns(t *testing.T) {
+	for _, k := range codes.Codes() {
+		spelling := codes.Spelling(k)
+		for _, place := range []string{"TR_var %s = 1\n", "TR_func %s() { }\n", "TR_func f(%s: TR_Int) { }\n"} {
+			first := Prepare(fmt.Sprintf(place, spelling), Options{Body: true, TypeCheck: true})
+			if len(first.Errors) == 0 {
+				continue // kimlik o yerde tanım değildir (TR_if)
+			}
+			e, ok := messages.Find(first.Errors[0])
+			if !ok || !messages.Has(e, messages.H0004) {
+				continue
+			}
+			fixed := Prepare(fmt.Sprintf(place, e.Fixes[0].Replacement), Options{Body: true, TypeCheck: true})
+			if fixed.Stage != "" {
+				t.Errorf("%s: önerisi %q çalışmıyor: %v", spelling, e.Fixes[0].Replacement, fixed.Errors)
+			}
+			for _, w := range fixed.Warnings { // TR_Int → Int yerin yazılışına uymayabilir, H0004'e dönmez
+				if e, ok := messages.Find(w); ok && len(e.Fixes) > 0 && codes.IsReservedName(e.Fixes[0].Replacement) {
+					t.Errorf("%s: uyarının önerisi ayrılmış bir ad: %v", spelling, w)
+				}
+			}
+		}
+	}
+	for _, c := range []struct{ code, name string }{
+		{"TR_const TR_PI2 = 6.28\n", "PI2"},
+		{"TR_struct TR_Foo { }\n", "Foo"},
+		{"TR_func TR_sum() { }\n", "sum"},
+	} {
+		r := Prepare(c.code, Options{Body: true, TypeCheck: true})
+		fixed := strings.Replace(c.code, "TR_"+c.name, c.name, 1)
+		if e, ok := messages.Find(r.Errors[0]); !ok || e.Fixes[0].Replacement != c.name {
+			t.Errorf("%q: önerisi %s olmalı: %v", c.code, c.name, r.Errors)
+		}
+		if s := Prepare(fixed, Options{Body: true, TypeCheck: true}); s.Stage != "" || len(s.Warnings) != 0 {
+			t.Errorf("%q: %v %v", fixed, s.Errors, s.Warnings)
 		}
 	}
 }

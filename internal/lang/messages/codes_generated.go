@@ -7,7 +7,7 @@ const (
 	H0001 Code = 1    // '{name}' bilinen bir kimlik değil: dilin sözcükleri TR_ ve kimliğin adıyla yazılır (ör. TR_print), kullanıcının adları TR_ ile başlamaz
 	H0002 Code = 2    // '$' kaçışı bir adın ya da sayının hemen ardından yazılamaz; önüne bir boşluk ya da işleç koyun
 	H0003 Code = 3    // kaynakta NUL (U+0000) karakteri var; metin dosyalarında bulunmaz, dosya bozuk olabilir
-	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {lower})
+	H0004 Code = 4    // '{name}' ayrılmış bir ad: 'TR_' ile başlayan adlar dilin ve kitaplığının kimlikleri içindir; başka bir ad seçin (ör. {suggestion})
 	H0007 Code = 7    // kapatılmamış ham metin: ` ile başlayan metin dosya sonuna kadar kapanmadı
 	H0008 Code = 8    // bilinmeyen kaçış dizisi {escape} (bilinenler: \n \t \r \" \\ \u{{...}}; yerleştirme \(...)); ters bölüyü olduğu gibi yazmak için ham metin (`C:\veri`, `\d+`) kullanın ya da ters bölüyü ikileyin ("\\")
 	H0009 Code = 9    // metindeki '\(' yerleştirmesi kapatılmamış: yerleştirme aynı satırda eşi olan ')' ile biter

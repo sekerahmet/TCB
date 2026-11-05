@@ -28,6 +28,10 @@ type suggestionCase struct {
 
 var suggestionCases = []suggestionCase{
 	{messages.H0018, "TR_var x: TR_Int = 0X1F", "0X1F", "0x1F"},
+	{messages.H0004, "TR_const TR_PI2 = 6.28", "TR_PI2", "PI2"},
+	{messages.H0004, "TR_struct TR_Foo { x: TR_Int = 0 }", "TR_Foo", "Foo"},
+	{messages.H0004, "TR_func TR_sum(x: TR_Int) -> TR_Int { TR_return x }", "TR_sum", "sum"},
+	{messages.H0004, "TR_var TR_yok = 1", "TR_yok", "yok"},
 	{messages.H0026, "TR_pritn(1)", "TR_pritn", "TR_print"},
 	{messages.H0032, "TR_var x: TR_Float = .5", ".5", "0.5"},
 	{messages.H0027, "TR_var x: TR_List[TR_Int] = [1, 2]\nTR_var y: TR_Int = TR_length", "TR_length", "x.TR_length"},
@@ -46,6 +50,7 @@ var suggestionCases = []suggestionCase{
 	{messages.H1007, "TR_var a: ondalik = 1.5", "ondalik", "TR_Float"},
 	{messages.H1012, "TR_var öğrenciSayısı: TR_Int = 1", "öğrenciSayısı", "öğrenci_sayısı"},
 	{messages.H1013, "TR_const en_büyük = 10", "en_büyük", "EN_BÜYÜK"},
+	{messages.H1013, "TR_const tr_x = 10", "tr_x", "X"},
 	{messages.H1014, "TR_struct önbellek_durumu { x: TR_Int = 0 }", "önbellek_durumu", "ÖnbellekDurumu"},
 	{messages.H1015, "TR_var ADIM: TR_Int = 300", "ADIM", "adım"},
 	{messages.H1026, "TR_var a, b, c = (1, 2)", "TR_var a, b, c = (1, 2)", "TR_var a, b = (1, 2)"},

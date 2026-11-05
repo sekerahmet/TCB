@@ -42,6 +42,9 @@ func TestNameStyleWarnings(t *testing.T) {
 		{"TR_struct Nokta { SolKenar: TR_Int = 0 }", messages.H1012, 1, `"sol_kenar"`},
 		{"TR_const en_büyük = 10", messages.H1013, 1, `"EN_BÜYÜK"`},
 		{"TR_const maxCount = 10", messages.H1013, 1, `"MAX_COUNT"`},
+		{"TR_const tr_x = 10", messages.H1013, 1, `"X"`}, // TR_X ayrılmıştır (2.3a)
+		{"TR_const tr_1 = 10", messages.H1013, 1, `"x1"`},
+		{"TR_const _tr_x = 10", messages.H1013, 1, `"_X"`},
 		{"TR_struct önbellek_durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
 		{"TR_struct Önbellek_Durumu { }", messages.H1014, 1, `"ÖnbellekDurumu"`},
 		{"TR_var ADIM = 300", messages.H1015, 1, `"adım"`},
