@@ -508,7 +508,7 @@ selected_tests() {
 		fail "codegraph changed --go-tests çalışmadı"
 		return
 	}
-	grep -A5 '^warning: codegraph does not build' "$errfile"
+	grep -A5 -E '^warning: codegraph does not build|rebuild failed' "$errfile"
 	rm -f "$errfile"
 	local -A full=() seen=()
 	local dirs=() names=()
