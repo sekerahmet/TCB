@@ -21,6 +21,14 @@ var optionSamples = map[codes.Code]string{
 	codes.TypeNoneType: "TR_none",
 }
 
+// sampleFor k'ya verilecek typ örneğidir: tek öğenin örneklem sapması yoktur (TR_std, H2620).
+func sampleFor(k, typ codes.Code) string {
+	if k == codes.FnStd && typ == codes.TypeList {
+		return "[1, 2]"
+	}
+	return optionSamples[typ]
+}
+
 // Kural (13.9, 13.11; 4a4): denetleyici checker.FunctionArgCodes'taki yerleşik fonksiyonların konumlu
 // argümanını tanımın seçeneklerine göre denetler (TR_Int|TR_Float|TR_Tensor üç imzadır) ve seçenek
 // dışı tipi çalışma anının koduyla yakalar. Bu yüzden her denetlenen fonksiyonda, her denetlenen
@@ -51,14 +59,14 @@ func probeOptions(t *testing.T, k codes.Code, sig codes.Signature) string {
 	last := -1
 	for i, p := range sig.Params {
 		if opts, ok := checker.ParamOptions(p); ok {
-			base[i], last = optionSamples[opts[0]], i
+			base[i], last = sampleFor(k, opts[0]), i
 		}
 	}
 	// Denetlenen parametreden önceki denetlenmeyen parametre (TR_write_file'ın TR_String|TR_Path
 	// yolu) ilk seçeneğinin örneğini alır: çağrı konumlu argümanlarla kurulur.
 	for i := 0; i < last; i++ {
 		if base[i] == "" && len(sig.Params[i].Types) > 0 {
-			base[i] = optionSamples[sig.Params[i].Types[0]]
+			base[i] = sampleFor(k, sig.Params[i].Types[0])
 		}
 	}
 	if code := probeCall(t, k, base, -1, ""); code != "none" {
@@ -71,7 +79,7 @@ func probeOptions(t *testing.T, k codes.Code, sig codes.Signature) string {
 			continue
 		}
 		for _, typ := range checker.ProbedTypes {
-			code := probeCall(t, k, base, i, optionSamples[typ])
+			code := probeCall(t, k, base, i, sampleFor(k, typ))
 			want, decided := checker.ArgTypeCode(k, typ)
 			var good bool
 			switch {

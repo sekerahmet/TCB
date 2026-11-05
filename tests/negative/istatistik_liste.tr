@@ -3,3 +3,6 @@
 TR_print(TR_mean(1)) # ERROR H2423
 TR_print(TR_median(1.5)) # ERROR H2423
 TR_print(TR_median(TR_Tensor([1.0]))) # ERROR H2423
+# TEST 13.1 TR_std'ye liste olmayan argüman da denetim hatasıdır; öneri yok, tek öğeli liste de hatadır
+TR_print(TR_std(1)) # ERROR H2423
+TR_print(TR_std(TR_Tensor([1.0]))) # ERROR H2423

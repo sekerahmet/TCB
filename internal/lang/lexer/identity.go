@@ -394,7 +394,7 @@ func identityError(place codes.Place, lit string) error {
 			continue
 		}
 		if k, ok := codes.FromSpelling(other, lit); ok {
-			return wrongPlace(other, k)
+			return wrongPlace(place, other, k)
 		}
 	}
 	// Başka bir dilin tanıdık adı TR_ ile yazılmış olabilir: TR_def → TR_func, TR_None → TR_none,
@@ -460,8 +460,9 @@ func placedSpelling(place codes.Place, s string) string {
 	return s
 }
 
-// wrongPlace başka bir yerin (place) kodu olan k'nin doğru yazımını anlatan iletidir.
-func wrongPlace(place codes.Place, k codes.Code) error {
+// wrongPlace written'ta yazılmış, başka bir yerin (place) kodu olan k'nin doğru yazımını anlatan
+// iletidir.
+func wrongPlace(written, place codes.Place, k codes.Code) error {
 	s := codes.Spelling(k)
 	switch place {
 	case codes.PlaceMember:
@@ -469,10 +470,52 @@ func wrongPlace(place codes.Place, k codes.Code) error {
 	case codes.PlaceArg:
 		return messages.New(messages.H0028, s, "f("+s+": ...)")
 	}
-	if k.Class() == codes.ClassFunction {
+	if k.Class() == codes.ClassContextual {
+		return messages.New(messages.H7017, s, ContextualWriting(k))
+	}
+	if k.Class() != codes.ClassFunction {
+		return messages.New(messages.H0029, s, s)
+	}
+	if written != codes.PlaceMember {
 		return messages.New(messages.H0029, s, s+"(...)")
 	}
-	return messages.New(messages.H0029, s, s)
+	call := calledOnReceiver(k)
+	if !strings.HasPrefix(call, s+"(x") {
+		return messages.New(messages.H0029, s, call)
+	}
+	return messages.New(messages.H7016, s, call)
+}
+
+// ContextualWriting bağlamsal sözcük k'nin kopyalanınca çalışan yazımıdır (2.3a, H7017): sözcüğün
+// tek başına yeri yoktur, yazımı bağlamıyla verilir.
+func ContextualWriting(k codes.Code) string {
+	switch k {
+	case codes.CtxTest:
+		return codes.Spelling(k) + ` "ad" { }`
+	case codes.CtxAs:
+		return codes.Spelling(codes.KwImport) + ` "tr/layers" ` + codes.Spelling(k) + " ad"
+	}
+	return codes.Spelling(codes.KwStruct) + " S { " + codes.Spelling(codes.KwFunc) + " " + codes.Spelling(k) + "() { } }"
+}
+
+// calledOnReceiver noktadan sonra yazılmış fonksiyon k'nin yazımıdır: noktadan önceki değer (x) ilk
+// argüman olur. Değer yazımda kalmalıdır: d.TR_move("a", "b")'den yalnız nokta silinirse sözlük
+// değil, aynı adlı dosya taşınır (DENETİM istek 112 Y1'in TR_remove'daki hatası). Konumlu argüman
+// almayan fonksiyonda değerin yeri yoktur; kitaplık fonksiyonunun imzası definitions.json'da yazmaz.
+func calledOnReceiver(k codes.Code) string {
+	s := codes.Spelling(k)
+	if k.IsLibrary() {
+		return s + "(x, ...)"
+	}
+	t, _ := codes.DefinitionOf(k)
+	minN, maxN := t.Signature.PositionalCounts()
+	if maxN == 0 && len(t.Signature.Named) > 0 {
+		return s + "(...)"
+	}
+	if maxN == 0 {
+		return s + "()"
+	}
+	return s + "(" + strings.Join([]string{"x", "y", "z"}[:min(max(minN, 1), 3)], ", ") + ")"
 }
 
 // nearestSpelling place'teki yazımlardan lit'e en yakın olandır (2.3a): uzaklık TR_'den sonraki

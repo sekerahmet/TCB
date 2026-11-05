@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -37,6 +38,37 @@ func TestRemoveOnAListOfUnknownType(t *testing.T) {
 	_, err := New().Run(mustParseProgram(t, "[1, 2].TR_remove(0)\n"))
 	if !messages.Has(err, messages.H2535) {
 		t.Errorf("hata = %v, want H2535", err)
+	}
+}
+
+// Kural (13.3, 13.4, DENETİM istek 112 Y1): çıkarma kabın işidir, aynı adlı dosya durur. Anahtar
+// yoksa TR_none'dur, listede .TR_remove hatadır.
+func TestRemovalLeavesTheFileOfTheSameName(t *testing.T) {
+	t.Chdir(t.TempDir())
+	names := []string{"k", "0"}
+	for _, name := range names {
+		if err := os.WriteFile(name, []byte("veri"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, c := range []struct {
+		program, want string
+		code          messages.Code
+	}{
+		{program: "TR_var d = {\"k\": 1}\nTR_print(d.TR_remove(\"k\"), d.TR_length)", want: "1 0\n"},
+		{program: "TR_var d = {\"m\": 1}\nTR_print(d.TR_remove(\"k\"), d.TR_length)", want: "none 1\n"},
+		{program: "TR_var l = [\"k\", \"0\"]\nTR_print(l.TR_pop(), l.TR_remove_at(0), l.TR_length)", want: "0 k 0\n"},
+		{program: "[1, 2].TR_remove(0)", code: messages.H2535},
+	} {
+		got, _, err := runTROut(t, c.program)
+		if c.code != 0 && !messages.Has(err, c.code) || c.code == 0 && (err != nil || got != c.want) {
+			t.Errorf("%q: %q, %v; want %q, %v", c.program, got, err, c.want, c.code)
+		}
+		for _, name := range names {
+			if data, err := os.ReadFile(name); err != nil || string(data) != "veri" {
+				t.Fatalf("%q: %s dosyası değişti: %q, %v", c.program, name, data, err)
+			}
+		}
 	}
 }
 
