@@ -265,6 +265,25 @@ func TestANamedTestFileWithoutTestsFailsTheRun(t *testing.T) {
 	}
 }
 
+// Kural: en dışta olmayan test koşmadan geçmiş görünmez: dosya denetimden geçemez, adı ne olursa olsun
+// koşu düşer (12.2, DENETİM istek 138 Ş2).
+func TestANestedTestFailsTheRun(t *testing.T) {
+	for name, text := range map[string]string{
+		"koşul":     "TR_if TR_true {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
+		"fonksiyon": "TR_func f() {\n    TR_test \"kalan\" { TR_assert(TR_false) }\n}\n",
+		"test":      "TR_test \"dis\" {\n    TR_test \"ic\" { TR_assert(TR_false) }\n}\n",
+	} {
+		for _, file := range []string{"ic_test.tr", "ic.tr"} {
+			root := t.TempDir()
+			writeTR(t, root, file, text)
+			var out bytes.Buffer
+			if summary, err := Run([]string{root}, &out); err != nil || summary.OK() || summary.Unloadable != 1 || summary.Total != 0 {
+				t.Errorf("%s, %s: koşu düşmeliydi: %+v, %v\n%s", name, file, summary, err, out.String())
+			}
+		}
+	}
+}
+
 // Kural: sözcük birimlerinden testi görünmeyen bozuk _test.tr klasörden kaybolmaz, "yüklenemedi" olur;
 // yanındaki geçen test sonucu ✅ yapmaz (DENETİM istek 138 Ş1'in altı yazımı). Açıkça verilince de
 // "test bulunamadı" değil yükleme hatası söylenir.

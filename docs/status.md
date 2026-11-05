@@ -547,6 +547,7 @@ Kurallar: [`docs/spec/12_testler.md`](spec/12_testler.md). Taslak (2026-10-29): 
 
 ### 12.2
 
+- **Mevcut durum (2026-11-05; A, Ö0 kapandı; DENETİM istek 138 Ş2):** `TR_test` en dışta değilse (`TR_if`, fonksiyon, başka test) denetim hatası, H7015; eskiden test koşmadan "✅ 0 test", çıkış 0 veriyordu [test: `TestATestIsOnlyAtTheTopLevel`, `TestANestedTestFailsTheRun`, `tests/negative/testdata/test_ic_ice.tr`].
 - **Mevcut durum:** aynı dosyada aynı adlı iki test ikisi de çalışıyor [ölçüldü: main `e6392066`].
 - **Yapılacaklar:** sözdizimi hatası ve olumsuz fikstür.
 

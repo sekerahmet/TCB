@@ -12,7 +12,7 @@ Ajan yazdığı kodu testle doğrular. Bu bölüm testin nasıl yazıldığını
 
 **12.2** `TR_test` yalnız bir deyimin başında ve ardından bir metin gelince test başlatır; başka bir yerde yazılırsa sözdizimi hatasıdır (2.3a).
 - **Aynı dosyada aynı adlı iki test** sözdizimi hatasıdır; ileti iki satırı da gösterir.
-- *Test:* TR testi; aynı adlı testlerin hatası uygulanınca olumsuz fikstür.
+- *Test:* TR testi; `tests/negative/testdata/test_ic_ice.tr` en dışta olmayan `TR_test`'in hatası; aynı adlı testlerin hatası uygulanınca olumsuz fikstür.
 
 **12.3** `TR_assert(koşul, mesaj)` koşul yanlışsa bir hata fırlatır; `mesaj` isteğe bağlıdır.
 - Koşul `TR_Bool`'dur (3.10). Tensör koşul olamaz, 0 boyutlu tensör de: `TR_assert(t == u)` denetim hatasıdır; ileti `TR_assert_equal(t, u)`'yu, `TR_all(...)`'ı, 0 boyutluda `.TR_item()`'ı ya da `TR_assert_close`'u önerir (15.5).

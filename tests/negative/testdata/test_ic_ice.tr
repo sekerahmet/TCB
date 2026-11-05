@@ -1,0 +1,18 @@
+# TR 4
+# TEST 12.2 TR_test yalnız dosyanın en dışında yazılır: içerideki test koşmadan geçmiş görünürdü
+TR_func f() {
+    TR_test "fonksiyonda" { # ERROR H7015
+        TR_assert(TR_false)
+    }
+    TR_if TR_true {
+        TR_test "koşulda" { # ERROR H7015
+            TR_assert(TR_false)
+        }
+    }
+}
+
+TR_test "dış" {
+    TR_test "içeride" { # ERROR H7015
+        TR_assert(TR_false)
+    }
+}
