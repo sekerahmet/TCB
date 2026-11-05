@@ -9,7 +9,8 @@ import (
 )
 
 // ============================================================================
-// Cinsli tensör (15.1): float64, TR_Int ve TR_Bool depolaması (tensor.RawBackend)
+// Cinsli tensör (15.1): float64, TR_Int ve TR_Bool depolaması (tensor.RawBackend); 16 bitlik
+// ondalıklar da bitlerini bu yolla taşır (15.47a)
 // ============================================================================
 //
 // Ham bayt türleri cihazda öğe başına hassasiyetin genişliğinde durur (mantık bir bayt).
@@ -17,8 +18,9 @@ import (
 // dilimde GPU'da yalnız adım 8'in yolları vardır (typed_ops.go); öbür işlemler 15.48'in
 // hassasiyet hatasıdır.
 
-// FromRaw ham baytlardan dt türünde depolama kurar. Küçük depolamalar float32'ninki gibi konak
-// gölgesini tutar (FromHost): veri kümesinin TR_Int kimlik toplu işleri konağa eşzamanlamasız okunur.
+// FromRaw ham baytlardan dt türünde depolama kurar; dt 16 bitlik ondalık da olabilir: bitler
+// float32'den geçmeden yüklenir. Küçük cinsli depolamalar float32'ninki gibi konak gölgesini tutar
+// (FromHost): veri kümesinin TR_Int kimlik toplu işleri konağa eşzamanlamasız okunur.
 func (g *backend) FromRaw(raw []byte, dt tensor.DType) tensor.Storage {
 	g.enter()
 	defer g.exit()
@@ -27,14 +29,15 @@ func (g *backend) FromRaw(raw []byte, dt tensor.DType) tensor.Storage {
 	d := g.allocate(n, dt, false)
 	if len(raw) > 0 {
 		g.loadHost(d, unsafe.Pointer(&raw[0]), len(raw))
-		if n <= shadowLimit {
+		if n <= shadowLimit && dt.IsTyped() {
 			d.raw = append([]byte(nil), raw...)
 		}
 	}
 	return d
 }
 
-// ToRaw görünümün öğelerini mantıksal sırayla ham bayt olarak konağa kopyalar.
+// ToRaw görünümün öğelerini mantıksal sırayla ham bayt olarak konağa kopyalar (16 bitlik ondalıkta da:
+// adımlı görünüm kendi türünde bitişiğe kopyalanır, bitler değişmez).
 func (g *backend) ToRaw(src tensor.View) []byte {
 	g.enter()
 	defer g.exit()
@@ -116,6 +119,12 @@ func (g *backend) copyTyped(target, source tensor.View, hd, kd *storage) {
 	if len(sh) > maxAxis {
 		none(messages.H4057, len(sh), maxAxis)
 	}
+	g.launchRawCopy(target, source, hd, kd, n, sh, st)
+}
+
+// launchRawCopy aynı türden iki görünüm arasında öğeleri bitleriyle taşıyan çekirdeği başlatır; sh ve
+// st birleştirilmiş eksenlerdir.
+func (g *backend) launchRawCopy(target, source tensor.View, hd, kd *storage, n int, sh []int, st [][]int) {
 	size := dtypeSize(hd.dtype)
 	meta := append(append(append([]int{}, sh...), st[0]...), st[1]...)
 	c := g.takeKernel(fmt.Sprintf("ham_kopya:%d:%d", len(sh), size), rawCopyKernel(len(sh), size))

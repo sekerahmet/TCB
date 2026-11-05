@@ -996,9 +996,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum (T1 dilim 2):** `.safetensors` yolu her cinsi (F32, BF16, F16, F64, I64, I32, I16, I8, U32, U16, U8, BOOL) hizaya göre yazıyor; Python `safetensors` (torch) ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip, bu makinede torch 2.14 ile koştu].
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
-- **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM]. Kartta bu söz NaN'da tutmuyor (aşağıdaki satır).
-- **Yapılacaklar (C, Ö2; sahip T1, H2 birleştikten sonra; `internal/compute/tensor`, `internal/compute/gpu`):** kart 15.47a'nın "bit bit aynıdır" sözünü NaN'da bozuyor; 16 bitlik yükleme ve indirme ham bitle yapılacak, kalıcı kart testi 65 536 desenle. Kartta yükleyip `TR_save_tensors` ile yazınca bf16'da 254 NaN deseninin 126'sı (sinyal NaN'ları: sessiz bit ekleniyor, işaret ve yük kalıyor), fp16'da 2 046 NaN deseninin 2 045'i değişiyor (hepsi `0x7FFF`); NaN olmayan hiçbir desen değişmiyor [ölçüldü: DENETİM istek 134, G4, RTX PRO 6000]. Kayıp yüklemede: `FromBits16On`, `FromHost` ve `copyKernel`'den geçiyor; `Bits16s` de float32'den geçtiği için düzeltme iki yönlü [kanıtlı: `typed.go:187`, `:198`]. `FromHost`'un ham 16 bit yolu yok, `Backend` da değişir. `TestSixteenBitTensorKeepsItsBits` kartlı makinede de CPU'da koşuyor.
-- **Yapılacaklar (D, Ö3; sahip T1, kart işiyle; DENETİM istek 134 N2, 142 N3):** 16 bitlik okumada `Veri` kopyası boşa açılıyor; `TensorEntry.Bits` yorumsuz.
+- **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM].
+- **Mevcut durum (C, Ö2; T1, 2026-11-05; DENETİM istek 134, 145):** kartta da bütün 65 536 desen, iki türde, bitleriyle kalıyor: yükleme, indirme, `.TR_to_device`'ın iki yönü, dilim, devrik ve kontrol noktası float32'den geçmiyor; `.TR_to_device` türevi koruyor [test: `TestSixteenBitViewsOnTheCardKeepBits`, `TestGPUSixteenBitFileKeepsItsBits`, `TestGPUCheckpointKeepsSixteenBitParameters`].
 
 ### 15.49
 
@@ -1262,7 +1261,7 @@ Dil tanımında bölümü olmayan işler: A, B ve C (DENETİM istek 76) ve küç
 Yol haritasının açık işlerinden DENETİM'in C saydıkları (istek 76, 2. bakış; taban `f6c22ae8`).
 
 - **Yapılacaklar (C, Ö2, Kol B; ölçülmedi):** küçük işaretçili yığınla dönen döngüde çöp toplama turunun tik arasına alınması ölçülecek (roadmap "Bölümü olmayan işler"); 100 Hz döngü Jarvis'in ön koşulu [tahmin: DENETİM].
-- **Yapılacaklar (C, Ö2; ölçüldü: D1 13.1c ön denetimi ve roadmap "Araç işleri"):** kararsız testler. Bilinen: `TestTheLockIsHandedOffInTimeAfterStatementsSlowDown` (10.2'de); öbürleri sayılıp her biri kendi maddesine yazılacak.
+- **Yapılacaklar (C, Ö2; ölçüldü: D1 13.1c ön denetimi ve roadmap "Araç işleri"):** kararsız testler. Bilinen: `TestTheLockIsHandedOffInTimeAfterStatementsSlowDown` (10.2'de); `TestOtherTasksRunDuringLongTensorWork`, G4'te bir kez "gözcü yük sırasında hiç uyanmadı" (T1, `99f1348f`; sonraki iki koşuda geçti, neden bilinmiyor); öbürleri sayılıp her biri kendi maddesine yazılacak.
 - **Yapılacaklar (C adayı, ölçülmedi):** hata ayıklayıcıda F5 ile `TR_input()` çalışmıyor (roadmap "Araç işleri"): asılı kalıyorsa C, açık hata veriyorsa E [hipotez: DENETİM]. Önce ölçülecek.
 - **Yapılacaklar (C adayı, ölçülmedi):** eğitimde artan adım süresi, sızıntı olabilir (roadmap 2. kilometre taşı); sızıntıysa uzun eğitim kesilir [hipotez: DENETİM]. Önce ölçülecek; Ahmet'in kararını bekleyen eğitim hızı adaylarıyla birlikte.
 

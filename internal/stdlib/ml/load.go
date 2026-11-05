@@ -99,15 +99,28 @@ func walkFile(f io.Reader, dim int64, each func(fileEntry) error) error {
 	return k.checksum()
 }
 
-// TensorEntry tensör dosyasındaki bir girdidir: ad, şekil, veri türü ve (16 bitlik
-// türlerde kayıpsız açılmış) değerler.
+// TensorEntry tensör dosyasındaki bir girdidir: ad, şekil, veri türü ve türüne göre tek bir veri
+// alanı. Hesap ondalığının değeri her türde Values'tur.
 type TensorEntry struct {
 	Ad    string
 	Sekil []int
 	Tur   tensor.DType
-	Veri  []float32
-	Ham   []byte // cinsli türlerde (float64, TR_Int, TR_Bool) ham baytlar; Veri boştur
-	Bits  []uint16
+	Veri  []float32 // float32 girdinin değerleri; öbür türlerde boştur
+	Ham   []byte    // cinsli türlerde (float64, TR_Int, TR_Bool) ham baytlar
+	Bits  []uint16  // 16 bitlik ondalıklarda dosyanın bitleri, açılmadan (sinyal NaN'ı susmaz)
+}
+
+// Values girdinin hesap ondalığı değerleridir: 16 bitlikte kayıpsız açılır. Açmak isteyene bırakılır:
+// çoğu okuyucu bitlere bakar, her girdide öğe başına dört bayt boşa ayrılırdı.
+func (g TensorEntry) Values() []float32 {
+	if g.Bits == nil {
+		return g.Veri
+	}
+	out := make([]float32, len(g.Bits))
+	for i, h := range g.Bits {
+		out[i] = tensor.FromBits16(g.Tur, h)
+	}
+	return out
 }
 
 // WalkTensorFile tensör_kaydet biçimindeki bir dosyayı (boyut bayt) r'den sırayla çözer
@@ -117,7 +130,7 @@ type TensorEntry struct {
 // noktası dosyayı önce yalnızca denetler, sonra yükler). Hata dosya biçimi hatasıdır.
 func WalkTensorFile(r io.Reader, dim int64, each func(TensorEntry) error) error {
 	return walkFile(r, dim, func(g fileEntry) error {
-		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.values(), Ham: g.raw, Bits: g.bits})
+		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.data, Ham: g.raw, Bits: g.bits})
 	})
 }
 

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
 // Bulgu 3: bitişik olmayan tensörde Squeeze/Unsqueeze ve uygun Reshape'ler veriyi
@@ -196,6 +197,32 @@ func TestSixteenBitStridedCopyKeepsBits(t *testing.T) {
 		own := x.Clone()
 		own.CopyFrom(own.T())
 		same("aynı depolama", own)
+	}
+}
+
+// Ham bayt yüzü 16 bitlik ondalıkta öğelerin bitleridir: bütün desenler gider gelir, adımlı görünüm
+// de mantıksal sırayla okunur. Öbür hesap ondalığı bu yüzden geçmez.
+func TestRawFacesKeepSixteenBitPatterns(t *testing.T) {
+	be := cpuBackend{}
+	raw := make([]byte, 2<<16)
+	for i := range 1 << 16 {
+		raw[2*i], raw[2*i+1] = byte(i), byte(i>>8)
+	}
+	for _, dt := range []DType{BFloat16, Float16} {
+		s := be.FromRaw(raw, dt)
+		if !slices.Equal(be.ToRaw(View{S: s, Shape: []int{1 << 16}, Strides: []int{1}}), raw) {
+			t.Errorf("%v: bitişik bitler değişti", dt)
+		}
+		// 256×256'nın ilk sütunu: i. öğe 256·i desenidir.
+		col := be.ToRaw(View{S: s, Shape: []int{256}, Strides: []int{256}})
+		for i := range 256 {
+			if col[2*i] != 0 || int(col[2*i+1]) != i {
+				t.Fatalf("%v sütun %d. öğe: %x", dt, i, col[2*i:2*i+2])
+			}
+		}
+	}
+	if err := testkit.PanicError(func() { be.FromRaw(make([]byte, 4), Float32) }); !messages.Has(err, messages.H3025) {
+		t.Errorf("float32 ham bayt değildir: %v", err)
 	}
 }
 

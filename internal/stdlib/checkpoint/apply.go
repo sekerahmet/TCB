@@ -138,7 +138,7 @@ func (kn *Checkpoint) readStates(o *loadedCkpt) (map[string]map[string]*tensor.T
 	}
 	err := kn.walk(o, func(objectName, tensorName string, g ml.TensorEntry) {
 		if d, ok := states[objectName]; ok {
-			d[tensorName] = tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...)
+			d[tensorName] = tensor.NewOn(tensor.CPU, g.Values(), g.Sekil...) // iyileştirici durumu float32'dir
 		}
 	})
 	return states, err

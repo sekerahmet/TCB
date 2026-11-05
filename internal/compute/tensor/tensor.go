@@ -487,7 +487,8 @@ func (t *Tensor) ZeroGrad() {
 
 // To tensörü verilen cihaza taşır. Aynı cihazdaysa kendisini döndürür; aksi
 // halde veriyi kopyalar (türevlenebilir: gradyan kaynak cihaza geri taşınır).
-// Aktarım konak üzerinden yapılır (cihazlar arası doğrudan kopya yoktur).
+// Aktarım konak üzerinden yapılır (cihazlar arası doğrudan kopya yoktur); 16 bitlik
+// ondalık bitleriyle gider, float32'den geçmez (15.47a).
 func (t *Tensor) To(dev Device) *Tensor {
 	if t.Device() == dev {
 		return t
@@ -501,7 +502,13 @@ func (t *Tensor) To(dev Device) *Tensor {
 		return fromStorage(target, rawBackend(target, t.dtyp).FromRaw(t.Raw(), t.dtyp), t.shape)
 	}
 	sy := counterStart(target, OpKindToDevice).start()
-	out := fromStorage(target, target.FromHost(gateToHost(t.be, t.view()), t.dtyp), t.shape)
+	var moved Storage
+	if t.dtyp == BFloat16 || t.dtyp == Float16 {
+		moved = fromBits16(target, t.dtyp, t.Bits16s())
+	} else {
+		moved = target.FromHost(gateToHost(t.be, t.view()), t.dtyp)
+	}
+	out := fromStorage(target, moved, t.shape)
 	src := t.be
 	r := trackPass(out, "to", t, func(o *node) {
 		in := o.parents[0]
