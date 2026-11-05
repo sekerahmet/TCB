@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 597 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 138 fonksiyon, 11 sabit, 72 metot, 102 özellik, 141 adlı argüman.
+Toplam 604 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 47 tip, 140 fonksiyon, 11 sabit, 72 metot, 104 özellik, 143 adlı argüman.
 
 ## İçindekiler
 
@@ -1039,6 +1039,10 @@ tr: değişken s = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam:
 ```
 
 Üyeleri: `.TR_load_state(...)`, `.TR_next(...)`, `.TR_skip(...)`, `.TR_state` · İlişkili: `.TR_sequential(...)`, `TR_Sampler`
+
+#### `TR_Sound` (`TR_type_Sound`, `Ses`)
+
+
 
 #### `TR_SpikeGuard` (`TR_type_SpikeGuard`, `SıçramaBekçisi`)
 
@@ -2798,6 +2802,12 @@ tr: dosya_yaz("satırlar.txt", "bir\niki\n"); döngü satır içinde dosya_satı
 
 İlişkili: `TR_read_file(...)`, `.TR_next(...)`
 
+#### `TR_read_wav(...)` (`TR_fn_read_wav`, `wav_oku`)
+
+    wav_oku()
+
+
+
 #### `TR_relu(...)` (`TR_fn_relu`, `relu`)
 
     relu(Tensör | Tam | Ondalık) → Tensör | Ondalık
@@ -3364,6 +3374,12 @@ tr: değişken t = sıfırlar([2, 4]); yerine_yaz(t, birler([2, 2]), eksen: 1, b
 ```
 
 İlişkili: `TR_concat(...)`
+
+#### `TR_write_wav(...)` (`TR_fn_write_wav`, `wav_yaz`)
+
+    wav_yaz()
+
+
 
 #### `TR_zero_grads(...)` (`TR_fn_zero_grads`, `gradyanları_sıfırla`)
 
@@ -4385,6 +4401,14 @@ tr: yazdır(hepsi_yakın(Tensör([100.0]), Tensör([101.0]), göreli_pay: 0.02))
 ```
 
 Kullananlar: `TR_all_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
+
+#### `TR_sample_rate:` (`TR_arg_sample_rate`, `örnekleme_hızı`)
+
+
+
+#### `TR_samples:` (`TR_arg_samples`, `örnekler`)
+
+
 
 #### `TR_scale:` (`TR_arg_scale`, `ölçek`)
 
@@ -5885,6 +5909,10 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 
 
 
+#### `.TR_sample_rate` (`TR_mem_sample_rate`, `örnekleme_hızı`)
+
+
+
 #### `.TR_sampler(...)` (`TR_mem_sampler`, `örnekleyici`)
 
     VeriKümesi.örnekleyici([Tam], [Tam], [Tam], toplu: Tam, bağlam: Tam, tohum: Tam = 0) → Örnekleyici
@@ -5903,6 +5931,10 @@ tr: yazdır(VeriKümesi("tests/data/numbers").örnekleyici(toplu: 2, bağlam: 4,
 ```
 
 İlişkili: `.TR_sequential(...)`, `.TR_next(...)`
+
+#### `.TR_samples` (`TR_mem_samples`, `örnekler`)
+
+
 
 #### `.TR_save(...)` (`TR_mem_save`, `kaydet`)
 

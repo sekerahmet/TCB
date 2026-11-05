@@ -1,5 +1,5 @@
 # TR 4
-# TEST 22.1 ve 22.3 değişmezle yazılan başka cinsin hassasiyeti denetim hatasıdır (tests/bayt_ve_sayi_test.tr)
+# TEST 13.11 denetim çalışma anının kodunu kullanır: 22.1 ve 22.3'te değişmez başka cins hassasiyet (tests/bayt_ve_sayi_test.tr)
 TR_var b = TR_Bytes([1, 0])
 TR_print(TR_from_bytes[TR_Float](b, TR_dtype: "int16", TR_byte_order: "little")) # ERROR H6976
 TR_print(b.TR_read_int(0, TR_dtype: "float32", TR_byte_order: "little")) # ERROR H7054

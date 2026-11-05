@@ -1,0 +1,249 @@
+# TR 4
+# tr/audio testleri: WAV okuma ve yazma (22.4). Bozuk dosyaların her biri bellekte kurulur, kendi
+# iletisiyle hata verir. Koşturma: trlang test lib
+TR_import "tr/audio"
+
+TR_func u16(n: TR_Int) -> TR_Bytes { TR_return TR_int_to_bytes(n, TR_dtype: "uint16", TR_byte_order: "little") }
+TR_func u32(n: TR_Int) -> TR_Bytes { TR_return TR_int_to_bytes(n, TR_dtype: "uint32", TR_byte_order: "little") }
+
+# parça RIFF parçasını kurar: tek boyda dolgu baytı eklenir.
+TR_func parça(ad: TR_String, içerik: TR_Bytes, dolgu: TR_Bool = TR_true) -> TR_Bytes {
+    TR_var p = TR_Bytes(ad) + u32(içerik.TR_length) + içerik
+    TR_if dolgu TR_and içerik.TR_length % 2 == 1 { TR_return p + TR_Bytes([0]) }
+    TR_return p
+}
+
+# fmt_içeriği PCM ya da ondalık biçimin 16 baytıdır.
+TR_func fmt_içeriği(etiket: TR_Int, kanal: TR_Int, hız: TR_Int, bit: TR_Int) -> TR_Bytes {
+    TR_var hiza = kanal * bit // 8
+    TR_return u16(etiket) + u16(kanal) + u32(hız) + u32(hız * hiza) + u16(hiza) + u16(bit)
+}
+
+# geniş_fmt WAVE_FORMAT_EXTENSIBLE'ın 40 baytıdır.
+TR_func geniş_fmt(alt: TR_Int, kanal: TR_Int, hız: TR_Int, bit: TR_Int, geçerli: TR_Int) -> TR_Bytes {
+    TR_var başı = fmt_içeriği(65534, kanal, hız, bit)
+    TR_var guid = TR_Bytes([0, 0, 0, 0, 16, 0, 128, 0, 0, 170, 0, 56, 155, 113])
+    TR_return başı + u16(22) + u16(geçerli) + u32(3) + u16(alt) + guid
+}
+
+TR_func wav(parçalar: TR_Bytes) -> TR_Bytes {
+    TR_return TR_Bytes("RIFF") + u32(4 + parçalar.TR_length) + TR_Bytes("WAVE") + parçalar
+}
+
+TR_func dört_örnek() -> TR_Bytes { TR_return TR_Bytes([0, 0, 0, 64, 0, 192, 0, 128]) }
+
+TR_func mono(veri: TR_Bytes) -> TR_Bytes {
+    TR_return wav(parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", veri))
+}
+
+# yaz baytları geçici bir dosyaya yazar ve yolunu verir.
+TR_func yaz(b: TR_Bytes) -> TR_String {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "ses.wav"))
+    TR_write_file(yol, b)
+    TR_return yol
+}
+
+TR_func oku(b: TR_Bytes) -> TR_Sound { TR_return TR_read_wav(yaz(b)) }
+
+# hata_kodu okumanın kodunu verir.
+TR_func hata_kodu(b: TR_Bytes) -> TR_String? {
+    TR_var yol = yaz(b)
+    TR_return TR_error_code { TR_read_wav(yol) }
+}
+
+# hata_metni okumanın iletisini verir.
+TR_func hata_metni(b: TR_Bytes) -> TR_String {
+    TR_var yol = yaz(b)
+    TR_try { TR_read_wav(yol) } TR_catch e { TR_return TR_String(e) }
+    TR_return ""
+}
+
+TR_test "22.4 16 bit PCM 32768'e bölünür: [-1, 1) aralığında, şekli [kanal, örnek]" {
+    TR_var s = oku(mono(dört_örnek()))
+    TR_assert_equal(16000, s.TR_sample_rate)
+    TR_assert_equal([1, 4], s.TR_samples.TR_shape)
+    TR_assert_equal([[0.0, 0.5, -0.5, -1.0]], s.TR_samples.TR_tolist)
+    TR_assert_equal("float32", s.TR_samples.TR_dtype)
+}
+
+TR_test "22.4 iki kanal: kareler ayrılır" {
+    TR_var veri = TR_Bytes([0, 64, 0, 192, 0, 32, 0, 224])
+    TR_var s = oku(wav(parça("fmt ", fmt_içeriği(1, 2, 8000, 16)) + parça("data", veri)))
+    TR_assert_equal([[0.5, 0.25], [-0.5, -0.25]], s.TR_samples.TR_tolist)
+    TR_assert_equal([0.5, 0.25], s.TR_samples[0].TR_tolist)
+}
+
+TR_test "22.4 32 bit ondalık dosyadaki değerdir; aralık dışı sonlu değer olduğu gibi gelir" {
+    TR_var veri = TR_float_to_bytes(0.25, TR_dtype: "float32", TR_byte_order: "little") + TR_float_to_bytes(3.5, TR_dtype: "float32", TR_byte_order: "little")
+    TR_var s = oku(wav(parça("fmt ", fmt_içeriği(3, 1, 16000, 32)) + parça("data", veri)))
+    TR_assert_equal([[0.25, 3.5]], s.TR_samples.TR_tolist)
+}
+
+TR_test "22.4 WAVE_FORMAT_EXTENSIBLE: alt biçim PCM ya da ondalık" {
+    TR_assert_equal([[0.0, 0.5, -0.5, -1.0]], oku(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 16, 16)) + parça("data", dört_örnek()))).TR_samples.TR_tolist)
+    TR_var veri = TR_float_to_bytes(0.25, TR_dtype: "float32", TR_byte_order: "little")
+    TR_assert_equal([[0.25]], oku(wav(parça("fmt ", geniş_fmt(3, 1, 16000, 32, 32)) + parça("data", veri))).TR_samples.TR_tolist)
+}
+
+TR_test "22.4 başka parçalar atlanır; başlık 44 bayt varsayılmaz, RIFF boyu okunmaz" {
+    TR_var uzun = parça("LIST", TR_Bytes("abc")) + parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("fact", u32(4)) + parça("data", dört_örnek()) + parça("LIST", TR_Bytes("xy"))
+    TR_assert_equal([1, 4], oku(wav(uzun)).TR_samples.TR_shape)
+    TR_var boy_bozuk = TR_Bytes("RIFF") + u32(7) + mono(dört_örnek())[8..52]
+    TR_assert_equal([1, 4], oku(boy_bozuk).TR_samples.TR_shape)
+}
+
+TR_test "22.4 tek boylu parçanın dolgusu atlanır; son parçada yoksa hata değildir" {
+    TR_var b = parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", dört_örnek()) + parça("LIST", TR_Bytes("abc"), dolgu: TR_false)
+    TR_assert_equal([1, 4], oku(wav(b)).TR_samples.TR_shape)
+    TR_var dolgulu = parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + parça("data", dört_örnek()) + parça("LIST", TR_Bytes("abc"))
+    TR_assert_equal([1, 4], oku(wav(dolgulu)).TR_samples.TR_shape)
+}
+
+TR_test "22.4 RIFF ya da WAVE yok" {
+    TR_assert_equal("H7062", hata_kodu(TR_Bytes([])))
+    TR_assert_equal("H7062", hata_kodu(TR_Bytes("RIF")))
+    TR_assert_equal("H7062", hata_kodu(TR_Bytes("OggS") + u32(0) + TR_Bytes("WAVE")))
+    TR_assert_equal("H7062", hata_kodu(TR_Bytes("RIFF") + u32(0)))
+    TR_assert_equal("H7062", hata_kodu(TR_Bytes("RIFF") + u32(0) + TR_Bytes("AVI ")))
+}
+
+TR_test "22.4 fmt ya da data yok, sıra yanlış ya da iki kez" {
+    TR_var fmt = parça("fmt ", fmt_içeriği(1, 1, 16000, 16))
+    TR_var veri = parça("data", dört_örnek())
+    TR_assert_equal("H7063", hata_kodu(wav(veri)))
+    TR_assert_equal("H7063", hata_kodu(wav(fmt)))
+    TR_assert_equal("H7063", hata_kodu(wav(TR_Bytes([]))))
+    TR_assert_equal("H7063", hata_kodu(wav(veri + fmt)))
+    TR_assert_equal("H7063", hata_kodu(wav(fmt + fmt + veri)))
+    TR_assert_equal("H7063", hata_kodu(wav(fmt + veri + veri)))
+    TR_assert_equal("H7063", hata_kodu(wav(fmt + veri + fmt)))
+    TR_assert(hata_metni(wav(fmt)).TR_contains("no_data"))
+    TR_assert(hata_metni(wav(veri)).TR_contains("data_first"))
+}
+
+TR_test "22.4 fmt kısa: 16 bayttan, WAVE_FORMAT_EXTENSIBLE'da 40 bayttan" {
+    TR_assert_equal("H7064", hata_kodu(wav(parça("fmt ", TR_Bytes([1, 0, 1, 0])) + parça("data", dört_örnek()))))
+    TR_var kısa = fmt_içeriği(65534, 1, 16000, 16) + u16(0)
+    TR_assert_equal("H7064", hata_kodu(wav(parça("fmt ", kısa) + parça("data", dört_örnek()))))
+}
+
+TR_test "22.4 kanal sayısı ya da örnekleme hızı 0; blok hizası tutmuyor" {
+    TR_var veri = parça("data", dört_örnek())
+    TR_assert_equal("H7065", hata_kodu(wav(parça("fmt ", fmt_içeriği(1, 0, 16000, 16)) + veri)))
+    TR_assert_equal("H7065", hata_kodu(wav(parça("fmt ", fmt_içeriği(1, 1, 0, 16)) + veri)))
+    TR_var yanlış = u16(1) + u16(2) + u32(16000) + u32(64000) + u16(3) + u16(16)
+    TR_assert_equal("H7066", hata_kodu(wav(parça("fmt ", yanlış) + veri)))
+}
+
+TR_test "22.4 parça boyu dosyada kalandan büyük: sessizce kısa ses olmaz, ileti dosyayı önerir" {
+    TR_var tam = mono(dört_örnek())
+    TR_assert_equal("H7067", hata_kodu(tam[0..tam.TR_length - 2]))
+    TR_var boru = TR_Bytes("RIFF") + u32(4294967295) + TR_Bytes("WAVE") + parça("fmt ", fmt_içeriği(1, 1, 16000, 16)) + TR_Bytes("data") + u32(4294967295) + dört_örnek()
+    TR_assert_equal("H7067", hata_kodu(boru))
+    TR_assert_equal("H7067", hata_kodu(wav(TR_Bytes("LIST") + u32(100) + TR_Bytes("ab"))))
+}
+
+TR_test "22.4 data boyu 0 ya da kare boyunun katı değil" {
+    TR_var fmt = parça("fmt ", fmt_içeriği(1, 2, 16000, 16))
+    TR_assert_equal("H7068", hata_kodu(wav(fmt + parça("data", TR_Bytes([])))))
+    TR_assert_equal("H7069", hata_kodu(wav(fmt + parça("data", TR_Bytes([1, 0])))))
+    TR_assert_equal("H7069", hata_kodu(wav(fmt + parça("data", TR_Bytes([1, 0, 2])))))
+}
+
+TR_test "22.4 data'dan sonraki kesik parça hatadır" {
+    TR_assert_equal("H7070", hata_kodu(mono(dört_örnek()) + TR_Bytes("LIS")))
+    TR_assert_equal("H7070", hata_kodu(mono(dört_örnek()) + TR_Bytes([1])))
+}
+
+TR_test "22.4 desteklenmeyen biçim ffmpeg iletisini verir" {
+    TR_var veri = parça("data", TR_Bytes([0, 0, 0, 0, 0, 0]))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", fmt_içeriği(1, 1, 16000, 8)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", fmt_içeriği(1, 1, 16000, 24)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", fmt_içeriği(1, 1, 16000, 32)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", fmt_içeriği(3, 1, 16000, 64)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", fmt_içeriği(85, 1, 16000, 16)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 32, 24)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", geniş_fmt(7, 1, 16000, 16, 16)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(TR_Bytes("RIFX") + u32(4) + TR_Bytes("WAVE")))
+    TR_assert_equal("H7061", hata_kodu(TR_Bytes("RF64") + u32(4) + TR_Bytes("WAVE")))
+    TR_var metin = hata_metni(wav(parça("fmt ", geniş_fmt(1, 1, 16000, 32, 24)) + veri))
+    TR_assert(metin.TR_contains("24/32 bit"))
+}
+
+TR_test "22.4 biçim önce denetlenir: öbür sebepler ffmpeg iletisinin önüne geçmez" {
+    TR_var veri = parça("data", TR_Bytes([0, 0, 0]))
+    TR_var fmt = parça("fmt ", fmt_içeriği(1, 1, 16000, 24))
+    TR_assert_equal("H7061", hata_kodu(wav(veri + fmt)))
+    TR_assert_equal("H7061", hata_kodu(wav(parça("fmt ", fmt_içeriği(1, 0, 0, 24)) + veri)))
+    TR_assert_equal("H7061", hata_kodu(wav(fmt + TR_Bytes("data") + u32(4294967295))))
+}
+
+TR_test "22.4 32 bit ondalıkta NaN ve sonsuz hatadır; ileti kanalı ve indeksi söyler" {
+    TR_var f = (x: TR_Float) => TR_float_to_bytes(x, TR_dtype: "float32", TR_byte_order: "little")
+    TR_var fmt = parça("fmt ", fmt_içeriği(3, 2, 16000, 32))
+    TR_assert_equal("H7071", hata_kodu(wav(fmt + parça("data", f(0.0) + f(0.5) + f(0.5) + f(TR_Float("nan"))))))
+    TR_assert_equal("H7071", hata_kodu(wav(fmt + parça("data", f(TR_Float("inf")) + f(0.5)))))
+    TR_assert(hata_metni(wav(fmt + parça("data", f(0.0) + f(0.5) + f(0.5) + f(TR_Float("nan"))))).TR_contains(", 1, 1, "))
+}
+
+TR_test "22.4 TR_Sound kurulur; şekil ve hız denetlenir" {
+    TR_var s = TR_Sound(TR_samples: TR_Tensor([[0.5, -0.5]]), TR_sample_rate: 8000)
+    TR_assert_equal(8000, s.TR_sample_rate)
+    TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_Tensor([0.5]), TR_sample_rate: 8000) })
+    TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 0) })
+    TR_assert_equal("H7072", TR_error_code { TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: -1) })
+}
+
+TR_test "22.4 yazma: 32767 ile çarpılır, en yakın tam sayıya yuvarlanır; bir gidiş dönüş" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "çıkış.wav"))
+    TR_write_wav(yol, TR_Sound(TR_samples: TR_Tensor([[1.0, -1.0, 0.0, 0.5]]), TR_sample_rate: 22050))
+    TR_var b = TR_read_bytes(yol)
+    TR_assert_equal(44 + 8, b.TR_length)
+    TR_assert_equal(TR_Bytes("RIFF"), b[0..4])
+    TR_assert_equal(44, b.TR_read_int(4, TR_dtype: "uint32", TR_byte_order: "little"))
+    TR_assert_equal(22050, b.TR_read_int(24, TR_dtype: "uint32", TR_byte_order: "little"))
+    TR_assert_equal([32767, -32767, 0, 16384], TR_from_bytes[TR_Int](b[44..52], TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal(22050, TR_read_wav(yol).TR_sample_rate)
+}
+
+TR_test "22.4 okunup yeniden yazılan dosyanın bazı örnekleri bir birim değişir" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "kopya.wav"))
+    TR_write_wav(yol, oku(mono(TR_Bytes([255, 127, 1, 0]))))
+    TR_assert_equal([32766, 1], TR_from_bytes[TR_Int](TR_read_bytes(yol)[44..48], TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+}
+
+TR_test "22.4 iki kanal kare kare yazılır" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "iki.wav"))
+    TR_write_wav(yol, TR_Sound(TR_samples: TR_Tensor([[1.0, 0.0], [0.0, -1.0]]), TR_sample_rate: 8000))
+    TR_assert_equal([32767, 0, 0, -32767], TR_from_bytes[TR_Int](TR_read_bytes(yol)[44..52], TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+    TR_assert_equal([2, 2], TR_read_wav(yol).TR_samples.TR_shape)
+}
+
+TR_test "22.4 yazma hataları: boş ses, taşan örnek, NaN; öneri kopyalanınca çalışır" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "hata.wav"))
+    TR_assert_equal("H7073", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: TR_zeros([1, 0]), TR_sample_rate: 8000)) })
+    TR_assert_equal("H7073", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: TR_zeros([0, 3]), TR_sample_rate: 8000)) })
+    TR_var taşan = TR_Tensor([[0.5, 1.5, -2.0]])
+    TR_assert_equal("H7074", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: taşan, TR_sample_rate: 8000)) })
+    TR_var nan = TR_Tensor([[0.5, TR_Float("nan")]])
+    TR_assert_equal("H7075", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: nan, TR_sample_rate: 8000)) })
+    TR_var sonsuz = TR_Tensor([[TR_Float("inf")]])
+    TR_assert_equal("H7074", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: sonsuz, TR_sample_rate: 8000)) })
+    TR_write_wav(yol, TR_Sound(TR_samples: TR_clamp(taşan, TR_min: -1.0, TR_max: 1.0), TR_sample_rate: 8000))
+    TR_assert_equal([1, 3], TR_read_wav(yol).TR_samples.TR_shape)
+}
+
+TR_test "22.4 alanlar kurulduktan sonra atanmış sesi yazma yeniden denetler" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "atanmış.wav"))
+    TR_var s = TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 8000)
+    s.TR_samples = TR_Tensor([0.5])
+    TR_assert_equal("H7072", TR_error_code { TR_write_wav(yol, s) })
+    s.TR_samples = TR_Tensor([[0.5]])
+    s.TR_sample_rate = 0
+    TR_assert_equal("H7072", TR_error_code { TR_write_wav(yol, s) })
+}
+
+TR_test "22.4 başlığa sığmayan değerler hatadır" {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "büyük.wav"))
+    TR_assert_equal("H6964", TR_error_code { TR_write_wav(yol, TR_Sound(TR_samples: TR_Tensor([[0.5]]), TR_sample_rate: 4294967296)) })
+}

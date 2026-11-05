@@ -1330,7 +1330,7 @@ Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (
 
 ### 22.1–22.4
 
-- **Mevcut durum (S1, 2026-11-05):** 22.1–22.3 var: `TR_from_bytes[E]`, `.TR_to_bytes`, `.TR_read_int`, `.TR_read_float`, `TR_int_to_bytes`, `TR_float_to_bytes`; değişmez başka cins hassasiyet denetim hatası [test: `tests/bayt_ve_sayi_test.tr`, `tests/negative/bayt_hassasiyet_cinsi.tr`, `FuzzFromBytes`, `FuzzReadNumber`]. `tr/audio` yok [ölçüldü: `lib/`].
+- **Mevcut durum (S1, 2026-11-05):** 22.1–22.3 var: `TR_from_bytes[E]`, `.TR_to_bytes`, `.TR_read_int`, `.TR_read_float`, `TR_int_to_bytes`, `TR_float_to_bytes`; değişmez başka cins hassasiyet denetim hatası [test: `tests/bayt_ve_sayi_test.tr`, `tests/negative/bayt_hassasiyet_cinsi.tr`, `FuzzFromBytes`, `FuzzReadNumber`]. 22.4 var: `tr/audio`, `TR_read_wav`, `TR_write_wav`, `TR_Sound`; bozuk dosya sebebiyle H7061–H7071 [test: `lib/audio_test.tr`, `FuzzReadWav`].
 - **Yapılacaklar:** uygulama Jarvis'in sırasıyla.
 
 ## 23. Sinyal ve spektrum
