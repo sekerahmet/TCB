@@ -159,9 +159,18 @@ func (kn *Checkpoint) writeParams(o *loadedCkpt) error {
 	}
 	return kn.walk(o, func(objectName, tensorName string, g ml.TensorEntry) {
 		if p, ok := models[objectName][tensorName]; ok {
-			ml.CopyInto(p.Tensor(), tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...))
+			ml.CopyInto(p.Tensor(), entryTensor(g))
 		}
 	})
+}
+
+// entryTensor parametre girdisinin konaktaki tensörüdür. 16 bitlik girdi dosyanın bitleriyle kurulur:
+// float32'den geçseydi sinyal NaN'ı susardı (20.17).
+func entryTensor(g ml.TensorEntry) *tensor.Tensor {
+	if g.Bits != nil {
+		return tensor.FromBits16On(tensor.CPU, g.Tur, g.Bits, g.Sekil...)
+	}
+	return tensor.NewOn(tensor.CPU, g.Veri, g.Sekil...)
 }
 
 // walk tensör dosyasının girdilerini sırayla f'ye verir; çekirdek panikleri hataya çevrilir.

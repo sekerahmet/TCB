@@ -213,7 +213,7 @@ func writeEntries(f io.Writer, inputs []fileEntry) error {
 		case g.dtype.IsTyped():
 			err = y.WriteRaw(g.ad, g.shape, g.dtype, g.raw)
 		case g.bits != nil:
-			err = y.writeBits(g.ad, g.shape, g.dtype, g.bits)
+			err = y.WriteBits(g.ad, g.shape, g.dtype, g.bits)
 		default:
 			err = y.Write(g.ad, g.shape, g.dtype, g.data)
 		}
@@ -266,8 +266,8 @@ func (y *TensorWriter) Write(ad string, shape []int, dtype tensor.DType, data []
 	return y.failure
 }
 
-// writeBits 16 bitlik bir girdiyi bitleriyle yazar.
-func (y *TensorWriter) writeBits(ad string, shape []int, dtype tensor.DType, bits []uint16) error {
+// WriteBits 16 bitlik bir girdiyi bitleriyle yazar.
+func (y *TensorWriter) WriteBits(ad string, shape []int, dtype tensor.DType, bits []uint16) error {
 	if err := y.entryHeader(ad, shape, dtype); err != nil {
 		return err
 	}

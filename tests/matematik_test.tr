@@ -312,6 +312,13 @@ TR_test "13.1 TR_log alt normal sayıda da doğrudur" {
     TR_assert_equal(-744.4400719213812, TR_log(5e-324))
 }
 
+TR_test "13.1 TR_exp taşma sınırına kadar sonludur" {
+    TR_assert_equal(1.7928227943945155e+308, TR_exp(709.78))
+    TR_assert_equal(8.964113971972578e+307, TR_sinh(709.78))
+    TR_assert_equal(8.964113971972578e+307, TR_cosh(709.78))
+    TR_assert_equal(TR_inf, TR_exp(709.79))
+}
+
 TR_test "13.7 sonlu_mu: NaN ve sonsuzda yanlış, öbür sayılarda doğru" {
     TR_assert(TR_is_finite(7))
     TR_assert(TR_is_finite(-2.5))

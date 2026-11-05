@@ -7,7 +7,7 @@ günlüğünü ve düz değerlerini bir koşu klasörüne yazar ve kaldığı ye
 
 **Sürdürme kesintisizle aynıdır.** Kesilip sürdürülen bir eğitim, hiç kesilmemiş eğitimle
 aynı sonucu verir; testler iki koşuyu doğrudan karşılaştırır.
-Denetim: `TestResumedSameAsUninterrupted`; ayrı süreçlerde `cmd/trlang/e2e` `TestCheckpointResumeBitExact`.
+Denetim: `TestResumedSameAsUninterrupted`, `TestSixteenBitTensorKeepsItsBits`, `TestBitsChangeOnlySignalingNaNs`; ayrı süreçlerde `cmd/trlang/e2e` `TestCheckpointResumeBitExact`.
 
 **Yazım atomiktir.** Bir nokta önce geçici bir klasöre yazılır, sonra yerine konur; yarım
 kalan bir yazım eski noktaları bozmaz ve sonraki açılışta temizlenir. Yazılamayan bir nokta
@@ -39,6 +39,7 @@ Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`)
 - `behavior_stop_request_test.go`: durdurma isteğinin kontrol noktasındaki yolu (`TR_stop_requested` ile aynı istek): ikinci güncellemeden önce gelen isteğin ertelenmemesi, ertelenen isteğin `.TR_update`/`.TR_save` ile bir kez karşılanması, üstlenen programda yalnız kaydetmesi, erteleme süresinin dolması, bitişte ek kayıt yapılmaması
 - `behavior_stateful_test.go`: durumlu motor tiplerinin (`StateDict` + `PrepareState`) `Stateful` arayüzünü derleme anında denetlemesi
 - `behavior_shared_containers_test.go`: düz değerde aynı iç kaba birden çok yerden bağ varken yüklemenin ve `TR_mem_rollback`'ün kayıttaki değerleri ezmeden ve belirlenimci yazması
+- `behavior_sixteen_bit_test.go`: 16 bitlik tensörün bitleri, sinyal NaN'ı dahil, noktaya yazılır ve sürdürmede geri gelir; disk biçimi değişmez.
 - `behavior_corrupt_states_test.go`: bozuk iyileştirici ve okuyucu durumlarının uyumsuzluk değil bozukluk sayılıp önceki noktayı önermesi
 - `behavior_sampler_window_test.go`: örnekleyici durumunda grubun pencere sayısını aşan konumun reddi
 - `behavior_format_names_test.go`: noktanın dosya ve klasör adlarının, JSON anahtarlarının, nesne türlerinin ve iyileştirici durumu tensör adlarının dilden bağımsız İngilizce tanımlayıcı, iyileştiricinin adının kod olması
