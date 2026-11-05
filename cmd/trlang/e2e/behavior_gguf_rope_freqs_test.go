@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -73,13 +74,36 @@ func runRope(t *testing.T, dir, program string) string {
 func TestGGUFRopeFreqsMatchLlamaCpp(t *testing.T) {
 	dir := t.TempDir()
 	writeBytes(t, filepath.Join(dir, "m.gguf"), ropeFile(ropeConfig, divisorTensor(llama32Divisors)))
-	positions := []int{1, 31, 1024, 8191}
-	out := runRope(t, dir, `TR_var m = TR_pretrained_gguf("m.gguf")
+	checkRopeTable(t, runRope(t, dir, ropeTableProgram("m.gguf")))
+}
+
+// Kural (15.55): aynı kıyas gerçek dosyada: TR_GGUF_LLAMA32, `Llama-3.2-1B-Instruct`'ın bir GGUF'unun
+// yoludur. Dosya depoda yok, yol verilmezse test atlanır; Colab kıyası yolu verir.
+func TestGGUFRopeFreqsRealFile(t *testing.T) {
+	path := os.Getenv("TR_GGUF_LLAMA32")
+	if path == "" {
+		t.Skip("TR_GGUF_LLAMA32 ayarlı değil")
+	}
+	checkRopeTable(t, runRope(t, t.TempDir(), ropeTableProgram(path)))
+}
+
+// ropeTablePositions llama.cpp kıyasının konumlarıdır.
+var ropeTablePositions = []int{1, 31, 1024, 8191}
+
+// ropeTableProgram dosyanın tablosundan kıyas konumlarının satırlarını yazar.
+func ropeTableProgram(file string) string {
+	return "TR_var m = TR_pretrained_gguf(" + strconv.Quote(file) + `)
 TR_for p TR_in [1, 31, 1024, 8191] {
     TR_print(m.TR_cos_table[p].TR_tolist)
     TR_print(m.TR_sin_table[p].TR_tolist)
 }
-`)
+`
+}
+
+// checkRopeTable ropeTableProgram'ın çıktısını llama.cpp'nin formülüyle ve bölensiz tabloyla karşılaştırır.
+func checkRopeTable(t *testing.T, out string) {
+	t.Helper()
+	positions := ropeTablePositions
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if len(lines) != 2*len(positions) {
 		t.Fatalf("%d satır: %s", len(lines), out)
