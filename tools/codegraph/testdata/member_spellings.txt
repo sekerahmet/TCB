@@ -747,6 +747,7 @@ m.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_
 m.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 m.TR_get	ok	0	name:TR_mem_get
 m.TR_hidden_states	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_hidden_states
+m.TR_keys	ok	0	name:TR_mem_keys
 m.TR_length	ok	0	name:TR_mem_length
 m.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 m.TR_logits	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_logits

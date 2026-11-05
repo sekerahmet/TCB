@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/gguf/gguftest"
 	"github.com/sekerahmet/TCB/internal/compute/tokenize"
 	"github.com/sekerahmet/TCB/internal/devtools/debugger"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -281,6 +282,39 @@ func captureStderr(t *testing.T, f func()) string {
 
 // Düzenli ifade adım sınırı aşılırsa yarım sonuç yerine yol gösterici bir hata oluşur;
 // riskli desen uyarısı standart hataya dosya başına bir kez yazılır.
+// TestLoadTokenizerFromGGUF: TR_load_tokenizer GGUF dosyasını içerikten tanır (16.1); etiket
+// bilinmiyorsa ileti etiketi söyler.
+func TestLoadTokenizerFromGGUF(t *testing.T) {
+	tokens := make([]string, 0, 256)
+	for c := '!'; c <= '~'; c++ {
+		tokens = append(tokens, string(c))
+	}
+	file := func(pre string) string {
+		b := (&gguftest.Builder{}).KV("general.architecture", "llama").KV("tokenizer.ggml.model", "gpt2").
+			KV("tokenizer.ggml.pre", pre).KV("tokenizer.ggml.tokens", tokens).KV("tokenizer.ggml.merges", []string{})
+		path := filepath.Join(t.TempDir(), "m.gguf")
+		if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return filepath.ToSlash(path)
+	}
+	m, err := run(t, `TR_var p = TR_load_tokenizer("`+file("smollm")+`")
+TR_var k = p.TR_encode("ab")
+TR_var n = p.TR_vocab_size`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := al(t, m, "n").Inspect(); got != "94" {
+		t.Errorf("dağarcık %s", got)
+	}
+	if got := al(t, m, "k").Inspect(); got != "[64, 65]" {
+		t.Errorf("kimlikler %s", got)
+	}
+	if _, err := run(t, `TR_load_tokenizer("`+file("gpt-4o")+`")`); !messages.Has(err, messages.H6679) {
+		t.Errorf("bilinmeyen etiket: %v", err)
+	}
+}
+
 func TestStepLimitAndWarning(t *testing.T) {
 	path := riskyTokenizer(t)
 	bad := strings.Repeat("a", 40)

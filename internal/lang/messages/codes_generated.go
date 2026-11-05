@@ -1297,6 +1297,14 @@ const (
 	H6675 Code = 6675 // bölünmüş GGUF dosyası okunmaz ({count} parça): parçaları önce tek dosyada birleştirin
 	H6676 Code = 6676 // GGUF dosyası değil: dosya {magic|q} ile başlamalı
 	H6677 Code = 6677 // GGUF dosyası {offset}. baytta okunamadı: {error}
+	H6678 Code = 6678 // GGUF parçalayıcısı {model|q} okunmuyor: `tokenizer.ggml.model` `gpt2` olmalı
+	H6679 Code = 6679 // GGUF ön ayırıcı etiketi {tag|q} bilinmiyor (bilinenler `qwen2`, `llama-bpe` ve `smollm`): başka ön ayırıcıyla sessizce başka parçalar çıkardı
+	H6680 Code = 6680 // GGUF ön ayırıcı etiketi {tag|q} yalnız `qwen2` ve `qwen3` mimarisinde okunur, bu dosyanın mimarisi {architecture|q}: etiket normalleştirmeyi garanti etmiyor
+	H6681 Code = 6681 // GGUF parçalayıcısı: {key|q} anahtarı eksik ya da yanlış türde
+	H6682 Code = 6682 // GGUF parçalayıcısı: {key|q} {count} öğe tutuyor, parça sayısı {tokens}
+	H6683 Code = 6683 // GGUF parçalayıcısı: {key|q} kimliği {id} sözlükte yok (parça sayısı {tokens})
+	H6684 Code = 6684 // GGUF parçalayıcısı: {token|q} parçası iki kez geçiyor
+	H6685 Code = 6685 // GGUF anahtarı {key|q}: {value} değeri {@JSON} değerine sığmıyor
 	H6700 Code = 6700 // bu tensör ({shape}) bir işlemin sonucu; gradyan yalnızca {requiresGradArg}: {trueValue} ile oluşturulan tensörlerde tutulur. Ağırlığı güncellemek için bir iyileştirici ({adamWFn}, {sgdFn}) kullanın ya da yeni değeri {noGradFn} {{ }} içinde hesaplayıp {example} ile yeniden oluşturun
 	H6701 Code = 6701 // tablo görünümü yalnızca 1 ve 2 boyutlu tensörler için kullanılabilir (bu tensör: {shape})
 	H6702 Code = 6702 // tensör '**' işleminde üs bir sayı olmalıdır (t ** 2); eleman bazlı üs için {expFn}({logFn}(t) * u) kullanın

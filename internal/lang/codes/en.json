@@ -117,6 +117,7 @@
   "TR_fn_layer_windows": { "name": "layer_windows" },
   "TR_fn_linear_cross_entropy": { "name": "linear_cross_entropy" },
   "TR_fn_list_dir": { "name": "list_dir" },
+  "TR_fn_load_metadata": { "name": "load_metadata" },
   "TR_fn_load_parameters": { "name": "load_parameters" },
   "TR_fn_load_tensors": { "name": "load_tensors" },
   "TR_fn_load_tokenizer": { "name": "load_tokenizer" },
