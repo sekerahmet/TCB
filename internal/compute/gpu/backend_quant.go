@@ -38,6 +38,46 @@ func (g *backend) refuseQuantCopy(ds ...*storage) {
 	}
 }
 
+// quantGemm c (+)= a·aç(w)ᵀ'dir: a [M, K], b [N, K] deposu (15.53). a float32'ye okunur, hesap
+// float32'dedir, 16 bitlik c'ye bir kez yuvarlanır; CPU'nun Gemm'iyle aynı düzen.
+func (g *backend) quantGemm(M, N, K int, a, b tensor.View, c tensor.Storage, over bool) {
+	gt := g.temp()
+	defer gt.finish()
+	cd, last := gt.write(c, !over)
+	defer last()
+	if M == 0 || N == 0 {
+		return
+	}
+	if K == 0 {
+		if over {
+			g.reset(cd) // boş toplam: float çarpımıyla aynı
+		}
+		return
+	}
+	checkSize(M * N)
+	checkSize(N * K)
+	av := gt.read(a)
+	if M != 1 {
+		panic(tensor.PrecisionError(g.storageOf(b.S).dtype, g.dev))
+	}
+	g.quantGemv(gt, N, K, av, b, cd, over)
+}
+
+// quantGemv M = 1 çarpımıdır; çekirdek etkinleştirmeyi 16 baytlık okur, hizasız görünüm kopyalanır.
+func (g *backend) quantGemv(gt *temp, N, K int, a, b tensor.View, c *storage, over bool) {
+	ad, bd := g.storageOf(a.S), g.storageOf(b.S)
+	offset := a.Offset
+	if align(g.addressOf(a)) < 16 {
+		tmp := gt.buffer(K, false)
+		g.dCopy(tmp, 0, ad, offset, K)
+		ad, offset = tmp, 0
+	}
+	elems, _ := bd.dtype.QuantBlock()
+	pull := g.takeKernel(fmt.Sprintf("nicem_gemv:%s:%v", bd.dtype, over), quantGemvKernel(bd.dtype, over))
+	g.launch(pull, [3]uint32{blocks(N, quantWarps), 1, 1}, [3]uint32{32 * quantWarps, 1, 1},
+		g.param().read(ad, offset).read(bd, b.Offset).write(c, 0).u32(N).u32(K/elems))
+}
+
 // OpenQuant (tensor.QuantOpener) bitişik nicemlenmiş görünümü float32 out'a açar.
 func (g *backend) OpenQuant(out tensor.Storage, src tensor.View) {
 	g.enter()

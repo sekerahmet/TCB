@@ -16,6 +16,9 @@ import (
 
 var quantTypes = []tensor.DType{tensor.Q8, tensor.Q4K, tensor.Q6K}
 
+// quantRowCounts çarpımın sınanan satır sayılarıdır.
+var quantRowCounts = []int{1}
+
 // quantBlockBytes rastgele bloklar; ölçekler sonlu, küçük.
 func quantBlockBytes(rng *rand.Rand, dt tensor.DType, blocks int) []byte {
 	_, size := dt.QuantBlock()
@@ -190,6 +193,129 @@ func TestQuantOpenAtOnTheCard(t *testing.T) {
 			}
 		}
 	}
+}
+
+// quantWeights rastgele ağırlık ve aynı ağırlığın iki cihazdaki hali; K elems'in katıdır.
+func quantWeights(t *testing.T, rng *rand.Rand, dt tensor.DType, N, K int) (host, card *tensor.Tensor) {
+	t.Helper()
+	elems, _ := dt.QuantBlock()
+	return quantBoth(t, dt, quantBlockBytes(rng, dt, N*K/elems), N, K)
+}
+
+// Tek satırlık çarpım açılmış hesapla aynıdır (15.41'in toleransıyla): aynı açılmış ağırlık, aynı
+// etkinleştirme, CPU'nun float32 çarpımı. N warp sınırını, K tek blok ve şeritleri aşmayan boyu da
+// geçer.
+func TestQuantGemvMatchesOpened(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		for _, c := range [][2]int{{1, elems}, {7, elems}, {9, 3 * elems}, {16, 5 * elems}, {33, 11 * elems}} {
+			N, K := c[0], c[1]
+			host, card := quantWeights(t, rng, dt, N, K)
+			x := twin(random(rng, K, 1), false, 1, K)
+			want := tensor.MatMul(x[0], host.Open(tensor.Float32).T()).Data()
+			got := tensor.MatMul(x[1], card.T())
+			if got.Device() != gpuDevice {
+				t.Fatalf("%v: cihaz %v", dt, got.Device())
+			}
+			checkDiff(t, dt.Name(), got.Data(), want, 1e-5*math.Sqrt(float64(K)))
+			// CPU'nun kendi çekirdeğiyle de aynı sınırda.
+			checkDiff(t, dt.Name()+" CPU", got.Data(), tensor.MatMul(x[0], host.T()).Data(), 1e-5*math.Sqrt(float64(K)))
+		}
+	}
+}
+
+// 15.22a: aynı kartta aynı program aynı biti verir; atomik toplama yoktur.
+func TestQuantGemvIsDeterministic(t *testing.T) {
+	rng := rand.New(rand.NewSource(8))
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		K := 4 * elems
+		_, card := quantWeights(t, rng, dt, 40, K)
+		x := twin(random(rng, K, 1), false, 1, K)[1]
+		first := tensor.MatMul(x, card.T()).Data()
+		for range 3 {
+			sameFloatBits(t, dt.Name(), tensor.MatMul(x, card.T()).Data(), first)
+		}
+	}
+}
+
+// Sonuç x'in hassasiyetindedir (15.53); öndeki eksenler satıra katlanır; dilim ağırlık blok sınırından
+// okunur; ofsetli görünüm hizasız olabilir.
+func TestQuantGemvShapesAndPrecisions(t *testing.T) {
+	rng := rand.New(rand.NewSource(9))
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		N, K := 6, 2*elems
+		host, card := quantWeights(t, rng, dt, N, K)
+		tol := 1e-5 * math.Sqrt(float64(K))
+		data := random(rng, K+1, 1)
+		x := twin(data[:K], false, 1, K)
+		for _, p := range []tensor.DType{tensor.BFloat16, tensor.Float16} {
+			got := tensor.MatMul(x[1].Cast(p), card.T())
+			if got.DType() != p {
+				t.Fatalf("%v: sonuç %v, x %v", dt, got.DType(), p)
+			}
+			checkDiff(t, dt.Name()+" 16 bit", got.Cast(tensor.Float32).Data(), tensor.MatMul(x[0].Cast(p), host.T()).Cast(tensor.Float32).Data(), 1e-2)
+		}
+		folded := tensor.MatMul(x[1].Reshape(1, 1, K), card.T())
+		if s := folded.Shape(); len(s) != 3 || s[2] != N {
+			t.Fatalf("%v: şekil %v", dt, s)
+		}
+		checkDiff(t, dt.Name()+" katlanmış", folded.Data(), tensor.MatMul(x[0], host.T()).Data(), tol)
+		rows := tensor.MatMul(x[1], card.Slice(0, 2, 5).T())
+		checkDiff(t, dt.Name()+" dilim", rows.Data(), tensor.MatMul(x[0], host.Slice(0, 2, 5).T()).Data(), tol)
+		shifted := twin(data, false, K+1)
+		got := tensor.MatMul(shifted[1].Slice(0, 1, K+1).Reshape(1, K), card.T())
+		checkDiff(t, dt.Name()+" hizasız", got.Data(), tensor.MatMul(shifted[0].Slice(0, 1, K+1).Reshape(1, K), host.T()).Data(), tol)
+	}
+}
+
+// Gemm c'ye ekler, GemmSet üzerine yazar: iki yol da açılmış hesapla aynıdır.
+func TestQuantGemmAccumulates(t *testing.T) {
+	rng := rand.New(rand.NewSource(11))
+	g := gpuBackend()
+	for _, dt := range quantTypes {
+		elems, _ := dt.QuantBlock()
+		for _, M := range quantRowCounts {
+			N, K := 5, 2*elems
+			raw := quantBlockBytes(rng, dt, N*K/elems)
+			xs, base := random(rng, M*K, 1), random(rng, M*N, 1)
+			as, ws, cs := g.FromHost(xs, tensor.Float32), g.FromRaw(raw, dt), g.FromHost(base, tensor.Float32)
+			w := tensor.View{S: ws, Shape: []int{N, K}, Strides: []int{K, 1}}
+			a := tensor.View{S: as, Shape: []int{M, K}, Strides: []int{K, 1}}
+			g.Gemm(1, M, N, K, a, false, w, true, cs)
+			host := tensor.FromQuantized(dt, raw, N, K)
+			want := tensor.MatMul(tensor.NewOn(tensor.CPU, xs, M, K), host.Open(tensor.Float32).T()).Data()
+			for i := range want {
+				want[i] += base[i]
+			}
+			checkDiff(t, dt.Name(), fromDevice(g, cs), want, 1e-5*math.Sqrt(float64(K)))
+			for _, s := range []tensor.Storage{as, ws, cs} {
+				g.Release(s)
+			}
+		}
+	}
+}
+
+// Boş toplam float çarpımıyla aynıdır; türev izleyen girdi kartta da H6696'dır.
+func TestQuantGemvEdges(t *testing.T) {
+	var empty *tensor.Tensor
+	onCard(t, func() { empty = tensor.FromQuantized(tensor.Q8, nil, 3, 0) })
+	x := tensor.NewOn(gpuDevice, nil, 1, 0)
+	if got := tensor.MatMul(x, empty.T()).Data(); len(got) != 3 || got[0] != 0 || got[2] != 0 {
+		t.Errorf("boş toplam: %v", got)
+	}
+	rng := rand.New(rand.NewSource(10))
+	_, card := quantWeights(t, rng, tensor.Q8, 2, 32)
+	func() {
+		defer func() {
+			if err, _ := recover().(error); !messages.Has(err, messages.H6696) {
+				t.Errorf("hata %v; H6696 olmalı", err)
+			}
+		}()
+		tensor.MatMul(tensor.NewOn(gpuDevice, make([]float32, 32), 1, 32).SetRequiresGrad(true), card.T())
+	}()
 }
 
 // tensor paketinin TestQuantRefusesEverythingElse tablosunun kartta koşan eşi: nicemli bayt

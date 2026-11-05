@@ -408,3 +408,44 @@ func BenchmarkIDBatchToHost(b *testing.B) {
 		})
 	}
 }
+
+// TestQuantGemvBandwidth tek satırlık nicemli çarpımın okuduğu bayt ÷ süresini kartın kopya bandıyla
+// yan yana yazar (yalnızca gerçek GPU'da ve TR_GPU_QUANT_BENCH=1 iken). Satırlar
+//
+//	NICEM|tür|N|K|MB|ms|GB/sn
+//	BANT|kopya|GB/sn
+//
+// biçimindedir; kopya bandı okuma artı yazmadır. Boylar Qwen3-0.6B ve Qwen3-4B'nin ağırlıklarıdır.
+func TestQuantGemvBandwidth(t *testing.T) {
+	if os.Getenv("TR_GPU_QUANT_BENCH") != "1" || inSim() {
+		t.Skip("yalnızca gerçek GPU'da ve TR_GPU_QUANT_BENCH=1 ile")
+	}
+	timed := func(reps int, f func() *tensor.Tensor) float64 {
+		for range 5 {
+			f()
+		}
+		f().Data()
+		start := time.Now()
+		var last *tensor.Tensor
+		for range reps {
+			last = f()
+		}
+		last.Data()
+		return time.Since(start).Seconds() / float64(reps)
+	}
+	big := tensor.NewOn(gpuDevice, make([]float32, 1<<28), 1<<28)
+	copied := timed(20, big.Clone)
+	fmt.Printf("BANT|kopya|%.0f\n", 2*float64(4<<28)/copied/1e9)
+	rng := rand.New(rand.NewSource(1))
+	for _, dt := range quantTypes {
+		for _, c := range [][2]int{{3072, 1024}, {1024, 3072}, {151936, 1024}, {9728, 2560}, {2560, 9728}, {151936, 2560}} {
+			N, K := c[0], c[1]
+			_, card := quantWeights(t, rng, dt, N, K)
+			x := twin(random(rng, K, 1), false, 1, K)[1]
+			w := card.T()
+			sec := timed(50, func() *tensor.Tensor { return tensor.MatMul(x, w) })
+			bytesRead := float64(storageBytes(N*K, dt))
+			fmt.Printf("NICEM|%s|%d|%d|%.1f|%.4f|%.0f\n", dt.Name(), N, K, bytesRead/1e6, sec*1e3, bytesRead/sec/1e9)
+		}
+	}
+}

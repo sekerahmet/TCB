@@ -136,6 +136,10 @@ func (g *backend) GemmSet(batch, M, N, K int, a tensor.View, transA bool, b tens
 }
 
 func (g *backend) gemmOuter(batch, M, N, K int, a tensor.View, transA bool, b tensor.View, transB bool, c tensor.Storage, over bool) {
+	if g.storageOf(b.S).dtype.IsQuantized() {
+		g.quantGemm(M, N, K, a, b, c, over)
+		return
+	}
 	// 16 bitlik C, girdilerle aynı türdeyse kitaplık onu doğrudan yazar (float32 ara tampon
 	// ve iki kopya yok).
 	if cd := g.storageOf(c); cd.dtype != tensor.Float32 && g.gemm16(batch, M, N, K, a, transA, b, transB, cd, over) {

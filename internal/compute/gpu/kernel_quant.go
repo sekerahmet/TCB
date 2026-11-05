@@ -22,6 +22,13 @@ const (
 	nanDefault  = 0xFFC00000
 )
 
+// Blok boyları (ggml-common.h; tensor.DType.QuantBlock'la aynı).
+const (
+	q8BlockBytes  = 34
+	q4kBlockBytes = 144
+	q6kBlockBytes = 210
+)
+
 // quantOpenKernel cikti[i] = aç(w)[i]; w bitişik bloklardır.
 func quantOpenKernel(dt tensor.DType) func() *emitter {
 	return func() *emitter {
