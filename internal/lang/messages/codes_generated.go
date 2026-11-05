@@ -1452,6 +1452,16 @@ const (
 	H7016 Code = 7016 // '{name}' metot değil, fonksiyondur: `{example}` (`x`, noktadan önceki değerdir)
 	H7017 Code = 7017 // '{name}' burada yazılmaz, yazımı: `{example}`
 	H7050 Code = 7050 // {fn}: yalnız ondalık tensör alır, {given} verildi (15.18a); tam sayı ve mantık tensöründe `{#equal}(a, b)` yazılır
+	H7051 Code = 7051 // {fn}: öğe cinsi zorunludur (22.1): `{call}[{#Float}](b, {#dtype}: "float32", {#byte_order}: "little")` gibi yazın
+	H7052 Code = 7052 // {fn}: `{#dtype}:` zorunludur (22.1): baytların hassasiyetini yazın, ör. `{#dtype}: "float32"`
+	H7053 Code = 7053 // {fn}: "{dtype}" nicemlenmiş saklama hassasiyetidir, baytlardan kurulmaz (22.1); nicemlenmiş tensör dosyadan gelir (15.55)
+	H7054 Code = 7054 // {fn}: "{dtype}" {kind} hassasiyetidir, bu işlem {given} hassasiyeti ister (22.3); `{call}` yazın
+	H7055 Code = 7055 // {fn}: "{dtype}" çok baytlıdır, bayt sırası zorunludur (22.1): `{#byte_order}: "little"` ya da `{#byte_order}: "big"`; makinenin kendi sırası diye bir seçenek yoktur
+	H7056 Code = 7056 // {fn}: bayt sırası `{#byte_order}: "little"` ya da `{#byte_order}: "big"` olur, {given} verildi (22.1)
+	H7057 Code = 7057 // {fn}: {length} bayt {size} baytlık öğelere bölünmüyor (22.1): sonda {rest} bayt artıyor, artık bayt sessizce atılmaz; eksiksiz öğeleri dilimle alın: `b[0..{whole}]`
+	H7058 Code = 7058 // {fn}: {index} konumundaki bayt {value}: "bool"da yalnız 0 ve 1 olur (22.1)
+	H7059 Code = 7059 // {fn}: {position} konumundan {size} bayt okunamaz: baytların uzunluğu {length}{case, select, negative {, konum eksi olamaz} other {}} (22.3)
+	H7060 Code = 7060 // {fn}: "bool" tek sayı hassasiyeti değildir (22.3): tam sayı ya da ondalık bir hassasiyet verin
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

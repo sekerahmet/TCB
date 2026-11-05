@@ -1,0 +1,21 @@
+# TR 4
+# Bayt ve sayı: ses, algılayıcı paketi ve dosya başlığı sayıları bayt olarak taşır. Baytlardan
+# tensör ve tek sayı okunur; tensör ve sayı bayta yazılır.
+
+# Çok baytlı sayıda bayt sırası zorunludur: makinenin kendi sırası diye bir seçenek yoktur.
+TR_var b = TR_Bytes([1, 0, 255, 255])
+TR_var sayılar = TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "little")
+TR_print(sayılar.TR_tolist, sayılar.TR_dtype)
+
+# Tensörü yeniden bayta yazmak aynı baytları verir.
+TR_print(sayılar.TR_to_bytes(TR_byte_order: "little") == b)
+
+# Tek sayı konumundan okunur; konum eksi ya da baytların dışındaysa hatadır.
+TR_var başlık = TR_int_to_bytes(16000, TR_dtype: "uint32", TR_byte_order: "little")
+TR_print(başlık.TR_read_int(0, TR_dtype: "uint32", TR_byte_order: "little"))
+TR_var ondalık = TR_float_to_bytes(1.5, TR_dtype: "float32", TR_byte_order: "big")
+TR_print(ondalık.TR_read_float(0, TR_dtype: "float32", TR_byte_order: "big"))
+
+# --- Kendin dene ---
+# 1. TR_Bytes([1, 2, 3]) baytlarını "uint16" olarak okumayı dene: ileti ne öneriyor?
+# 2. 300 sayısını "uint8" olarak yazmayı dene.

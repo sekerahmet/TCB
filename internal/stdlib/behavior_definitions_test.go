@@ -212,6 +212,9 @@ func TestNamedArgsMatchDefinitions(t *testing.T) {
 			switch f := c.Function.(type) {
 			case *ast.Identifier:
 				return tn.Kind == codes.KindFunction && f.Value == id
+			case *ast.IndexExpression: // tip argümanlı çağrı: TR_from_bytes[TR_Int](...)
+				left, ok := f.Left.(*ast.Identifier)
+				return ok && tn.Kind == codes.KindFunction && left.Value == id
 			case *ast.MemberExpression:
 				return tn.Kind == codes.KindMethod && f.Property == id
 			}

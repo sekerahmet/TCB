@@ -79,6 +79,7 @@ func registerConstructors(v *interp.VM) {
 	registerTypeArgs(v, tensorFn)
 	registerWhole(v) // type_args.go
 	registerExtremes(v)
+	registerBytes(v)
 
 	// --- Görünüm ---
 	wrap(v, codes.FnConcat, newBuiltin(concatBuiltin)) // model_araclari.go

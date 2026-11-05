@@ -464,6 +464,7 @@ func (c *Checker) comparisonType(e *ast.InfixExpression, left, right string) str
 // inferCall çağrının argümanlarını denetler ve tipini verir; argümanlar kapının tahmini için
 // kaydedilir (signatures.go).
 func (c *Checker) inferCall(e *ast.CallExpression) string {
+	c.checkByteDType(e)
 	var info TypeInfo
 	var found bool
 	ident, isIdent := e.Function.(*ast.Identifier)

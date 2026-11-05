@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 590 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 135 fonksiyon, 11 sabit, 69 metot, 102 özellik, 140 adlı argüman.
+Toplam 597 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 138 fonksiyon, 11 sabit, 72 metot, 102 özellik, 141 adlı argüman.
 
 ## İçindekiler
 
@@ -646,7 +646,7 @@ en: var b = Bytes("şe"); print(b, b.length, b[0], String(b + Bytes([107])))
 tr: değişken b = Baytlar("şe"); yazdır(b, b.uzunluk, b[0], Metin(b + Baytlar([107])))
 ```
 
-İlişkili: `TR_String`
+Üyeleri: `.TR_read_float(...)`, `.TR_read_int(...)` · İlişkili: `TR_String`
 
 #### `TR_CausalAttention` (`TR_type_CausalAttention`, `NedenselDikkat`)
 
@@ -1114,7 +1114,7 @@ en: var t: Tensor = Tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad: true); print
 tr: değişken t: Tensör = Tensör([[1.0, 2.0], [3.0, 4.0]], türev_izle: doğru); yazdır(Tip(t), t.şekil, t.tür)
 ```
 
-Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_requires_grad`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
+Üyeleri: `.TR_device`, `.TR_dtype`, `.TR_grad`, `.TR_item(...)`, `.TR_permute(...)`, `.TR_requires_grad`, `.TR_reshape(...)`, `.TR_shape`, `.TR_slice(...)`, `.TR_split(...)`, `.TR_to_bytes(...)`, `.TR_to_device(...)`, `.TR_to_dtype(...)`, `.TR_tolist`, `.TR_transpose(...)` · İlişkili: `TR_zeros(...)`, `TR_ones(...)`, `TR_randn(...)`
 
 #### `TR_Tokenizer` (`TR_type_Tokenizer`, `Parçalayıcı`)
 
@@ -1891,6 +1891,25 @@ tr: yazdır(birim_matris(3).değer)
 
 İlişkili: `TR_Tensor`
 
+#### `TR_float_to_bytes(...)` (`TR_fn_float_to_bytes`, `ondalık_baytları`)
+
+    ondalık_baytları(Tam | Ondalık, tür: Metin = yok, bayt_sırası: Metin = yok) → Baytlar
+
+Tek bir ondalık sayıyı verilen hassasiyette ve bayt sırasıyla Bayt'a yazar; sayı hassasiyetin en yakın değerine yuvarlanır.
+
+```tr
+TR_print(TR_float_to_bytes(1.5, TR_dtype: "float32", TR_byte_order: "little").TR_read_float(0, TR_dtype: "float32", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(float_to_bytes(1.5, dtype: "float32", byte_order: "little").read_float(0, dtype: "float32", byte_order: "little"))
+tr: yazdır(ondalık_baytları(1.5, tür: "float32", bayt_sırası: "little").ondalık_oku(0, tür: "float32", bayt_sırası: "little"))
+```
+
+İlişkili: `.TR_read_float(...)`, `TR_int_to_bytes(...)`
+
 #### `TR_floor(...)` (`TR_fn_floor`, `taban`)
 
     taban(Tam | Ondalık | Tensör) → Tam | Ondalık | Tensör
@@ -1909,6 +1928,25 @@ tr: yazdır(taban(3.7), taban(-2), taban(Tensör([-1.5, 2.5])).değer)
 ```
 
 İlişkili: `TR_ceil(...)`, `TR_round(...)`
+
+#### `TR_from_bytes(...)` (`TR_fn_from_bytes`, `baytlardan`)
+
+    baytlardan(Baytlar, tür: Metin = yok, bayt_sırası: Metin = yok) → Tensör
+
+Baytları verilen hassasiyette okuyup tek boyutlu yeni bir tensör kurar; öğe cinsi tip argümanıdır. Çok baytlı hassasiyette bayt_sırası zorunludur. Uzunluk öğe boyunun katı değilse hatadır; baytın bir kısmı dilimle okunur.
+
+```tr
+TR_var b = TR_Bytes([1, 0, 255, 255]); TR_print(TR_from_bytes[TR_Int](b, TR_dtype: "int16", TR_byte_order: "little").TR_tolist)
+```
+
+Görünümü:
+
+```text
+en: var b = Bytes([1, 0, 255, 255]); print(from_bytes[Int](b, dtype: "int16", byte_order: "little").tolist)
+tr: değişken b = Baytlar([1, 0, 255, 255]); yazdır(baytlardan[Tam](b, tür: "int16", bayt_sırası: "little").değer)
+```
+
+İlişkili: `.TR_to_bytes(...)`, `.TR_read_int(...)`, `TR_Bytes`
 
 #### `TR_fuse(...)` (`TR_fn_fuse`, `kaynaştır`)
 
@@ -2016,6 +2054,25 @@ tr: değişken ad = girdi("Adınız: "); yazdır("Merhaba " + ad)
 ```
 
 İlişkili: `TR_print(...)`
+
+#### `TR_int_to_bytes(...)` (`TR_fn_int_to_bytes`, `tam_sayı_baytları`)
+
+    tam_sayı_baytları(Tam, tür: Metin = yok, bayt_sırası: Metin = yok) → Baytlar
+
+Tek bir tam sayıyı verilen hassasiyette ve bayt sırasıyla Bayt'a yazar; hassasiyete sığmayan değer hatadır.
+
+```tr
+TR_print(TR_int_to_bytes(258, TR_dtype: "uint16", TR_byte_order: "big"))
+```
+
+Görünümü:
+
+```text
+en: print(int_to_bytes(258, dtype: "uint16", byte_order: "big"))
+tr: yazdır(tam_sayı_baytları(258, tür: "uint16", bayt_sırası: "big"))
+```
+
+İlişkili: `.TR_read_int(...)`, `TR_float_to_bytes(...)`
 
 #### `TR_is_finite(...)` (`TR_fn_is_finite`, `sonlu_mu`)
 
@@ -3555,6 +3612,23 @@ Kullananlar: `TR_layer_norm(...)` · İlişkili: `TR_weight:`
 
 
 
+#### `TR_byte_order:` (`TR_arg_byte_order`, `bayt_sırası`)
+
+Çok baytlı sayının bayt sırasıdır: "little" ya da "big". Makinenin kendi sırası diye bir seçenek yoktur.
+
+```tr
+TR_print(TR_int_to_bytes(1, TR_dtype: "uint16", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(int_to_bytes(1, dtype: "uint16", byte_order: "little"))
+tr: yazdır(tam_sayı_baytları(1, tür: "uint16", bayt_sırası: "little"))
+```
+
+Kullananlar: `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`, `.TR_to_bytes(...)` · İlişkili: `TR_from_bytes(...)`, `.TR_to_bytes(...)`
+
 #### `TR_cache:` (`TR_arg_cache`, `önbellek`)
 
 veri_kümesi'nin veri dosyalarını kullanmadan önce kopyalayacağı yerel önbellek klasörüdür; kota dolunca en uzun süredir kullanılmayan kopyalar silinir. Tek başına verilemez: kota_gb: zorunludur.
@@ -3721,7 +3795,7 @@ en: print(zeros([2, 2], dtype: "fp16").dtype)
 tr: yazdır(sıfırlar([2, 2], tür: "fp16").tür)
 ```
 
-Kullananlar: `TR_Tensor`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`
+Kullananlar: `TR_Tensor`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`
 
 #### `TR_embed_dim:` (`TR_arg_embed_dim`, `boyut`)
 
@@ -5594,6 +5668,44 @@ tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
 
 
 
+#### `.TR_read_float(...)` (`TR_mem_read_float`, `ondalık_oku`)
+
+    Baytlar.ondalık_oku(Tam, tür: Metin = yok, bayt_sırası: Metin = yok) → Ondalık
+
+Verilen konumdaki bayttan başlayarak bir Ondalık okur; eksi konum ya da baytların dışına taşan aralık hatadır.
+
+```tr
+TR_print(TR_Bytes([0, 0, 192, 63]).TR_read_float(0, TR_dtype: "float32", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(Bytes([0, 0, 192, 63]).read_float(0, dtype: "float32", byte_order: "little"))
+tr: yazdır(Baytlar([0, 0, 192, 63]).ondalık_oku(0, tür: "float32", bayt_sırası: "little"))
+```
+
+İlişkili: `.TR_read_int(...)`, `TR_float_to_bytes(...)`
+
+#### `.TR_read_int(...)` (`TR_mem_read_int`, `tam_sayı_oku`)
+
+    Baytlar.tam_sayı_oku(Tam, tür: Metin = yok, bayt_sırası: Metin = yok) → Tam
+
+Verilen konumdaki bayttan başlayarak bir Tam okur; eksi konum ya da baytların dışına taşan aralık hatadır.
+
+```tr
+TR_print(TR_Bytes([0, 1, 2]).TR_read_int(1, TR_dtype: "uint16", TR_byte_order: "little"))
+```
+
+Görünümü:
+
+```text
+en: print(Bytes([0, 1, 2]).read_int(1, dtype: "uint16", byte_order: "little"))
+tr: yazdır(Baytlar([0, 1, 2]).tam_sayı_oku(1, tür: "uint16", bayt_sırası: "little"))
+```
+
+İlişkili: `.TR_read_float(...)`, `TR_int_to_bytes(...)`
+
 #### `.TR_reduce(...)` (`TR_mem_reduce`, `indirge`)
 
     Liste.indirge([Herhangi], Fonksiyon) → Herhangi
@@ -6114,6 +6226,25 @@ tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlat�
 #### `.TR_threshold` (`TR_mem_threshold`, `eşik`)
 
 
+
+#### `.TR_to_bytes(...)` (`TR_mem_to_bytes`, `baytlara`)
+
+    Tensör.baytlara(bayt_sırası: Metin = yok) → Baytlar
+
+Tensörün öğelerini kendi hassasiyetinde ve satır sırasıyla Bayt'a yazar. Sonuç türevlenmez; nicemlenmiş tensör önce açılır.
+
+```tr
+TR_print(TR_Tensor([1, 2], TR_dtype: "uint8").TR_to_bytes())
+```
+
+Görünümü:
+
+```text
+en: print(Tensor([1, 2], dtype: "uint8").to_bytes())
+tr: yazdır(Tensör([1, 2], tür: "uint8").baytlara())
+```
+
+İlişkili: `TR_from_bytes(...)`
 
 #### `.TR_to_device(...)` (`TR_mem_to_device`, `cihaza`)
 
