@@ -3,9 +3,10 @@
 - **Başlama saati:** 2026-11-05 08:13 +03 (2026-11-04 21:13 -08)
 - **Dal:** `gemini/uzak-3`
 - **Taban (`main`):** `25e76eae782f857178f9c685af47c86d08dad5ec`
-- **Sıkıştırma:** 2 kez:
+- **Sıkıştırma:** 3 kez:
   1. `2026-11-05 08:31 +03` (`05:31 UTC`), 2. adımdan (taban ölçümleri) sonra, Madde 2 düzenleme öncesi `tests-for` `run:` koşusu sürerken.
   2. `2026-11-05 08:53 +03` (`05:53 UTC`), 3. adımdan (Madde 2 tamamlanıp push edildikten) sonra, Madde 3 okuması ve sayımı sırasında (Madde 3 düzenlemelerine henüz başlanmamışken). Yönerge (`origin/yonerge:UZAK_YONERGE_3.md`), `UZAK3_DURUM.md`, `tools/codegraph/gaps.md` ve `git status`/`git log` yeniden açılıp okundu.
+  3. `2026-11-05 09:18 +03` (`06:18 UTC`), 4. adımın (Madde 3, `594bbe7`) yerel commit'inden hemen sonra, `UZAK3_DURUM.md` güncellenip push edilmeden önce. Yönerge (`origin/yonerge:UZAK_YONERGE_3.md`), `UZAK3_DURUM.md`, `tools/codegraph/gaps.md` ve `git status`/`git log` yeniden açılıp okundu.
 
 ## Biten adımlar
 
@@ -31,6 +32,15 @@
    - `tools/codegraph/main_query_test.go` içine `TestUndefinedMessageSlotKeepsStaleGraphAndExitsOnBuild` eklendi: gömülü `internal/lang/messages/tr.json`'a tanımsız yuva enjekte edilmiş ikiliyle (1) eski grafik + `tests-for` → çıkış `0`, tek satır `warning: rebuild failed`, eski grafikten cevap; (2) `build` → sıfır dışı çıkış, tek satır hata; (3) grafik yokken `tests-for` → sıfır dışı çıkış, tek satır hata doğrulandı (`[test: tools/codegraph/main_query_test.go]`).
    - Gerçek `internal/lang/messages/tr.json` üzerinde geçici `{#tanimsiz}` ile canlı doğrulama yapıldı ve hemen `git checkout --` ile geri alındı (`[ölçüldü: go run ./tools/codegraph tests-for internal/lang/messages/tr.json, çıkış 0, stderr 1 satır uyarı, stdout cevap]`).
    - Kapanan madde `tools/codegraph/gaps.md` içinden silindi; `dups --changed main` `0` aday, `gofmt` boş.
+4. **Madde 3 (`594bbe7`, 09:17 +03):**
+   - **Sınıf sayımı (depodaki tüm `*_test.go` dosyaları):** Dosya okuma çağrılarına verilen çıplak argümanlar toplam `35` (`6` somut dizgi, `0` sabit, `0` yerel değişken, `29` yardımcı parametresi; üretim `.go` dosyalarında `0`):
+     - Paket klasöründe izlenen var olan dosya: **1** (`tools/codegraph/graph_test.go:265`, `os.ReadFile("README.md")` → `tools/codegraph/README.md`).
+     - Klasör okuyan `reporoot.ReadDir(".")`: **3** (`internal/compute/tensor/gate_calls_test.go:99`, `internal/devtools/debugger/behavior_dap_wire_names_test.go:18`, `tools/codegraph/extractor_digest_test.go:34`; `.` dosya olmadığı için bağlanmaz).
+     - İzlenmeyen geçici/sözdizimi dizgisi: **2** (`internal/testkit/testkit_test.go:34` `parser.ParseFile(..., "p.go", src, ...)` ve `tools/edithook/codegraph_test.go:37` `os.Stat("broken")`).
+     - Sabit, yerel değişken ve yardımcı parametresinden paket klasöründe var olan izlenen dosyaya çözülen çıplak ad: **0**.
+   - **Yorumlarda `'/'` sonrası sahte `cites` sayımı:** `4` yorum satırında `6` sahte `cites` kenarı elendi (`cmd/trlang/e2e/behavior_examples_coverage_test.go:22`, `cmd/trlang/e2e/behavior_examples_test.go:163`, `internal/stdlib/ml/behavior_grad_composite_test.go:20`, `tools/codegraph/codes_test.go:106`).
+   - **Uygulama (`96` boşluksuz/yorumsuz üretim satırı, `< 100` tavan):** `test_paths.go` içinde `pathRef.local` (yalnız çağıran testin paket klasöründen çözer, kökten denemez, `prod: false`) ve `commentFileWords` (`idx[0] > 0 && text[idx[0]-1] == '/'` eler); `test_paths_param.go` içinde `resolveTestBareReads` / `bareReadArg` / `concreteExprStrings`; `gocode.go` içinde çağrı; `extractorRevision` `85 → 86` ve `testdata/extractor_digest.txt` güncellendi; `tools/codegraph/README.md` artık kapsandığı için `testdata/uncovered_data.txt`'ten çıkarıldı ve `maxUncoveredData` `9 → 8` indirildi; `gaps.md` ve `README.md` güncellendi.
+   - **Koruyan test ve doğrulama:** `TestBareReadCallsAndSlashTailComments` (`[test: tools/codegraph/test_paths_param_test.go]`), `go run ./tools/codegraph tests-for tools/codegraph/README.md` → `codegraph.TestReadmeGraphSizeIsCurrent [func] at tools/codegraph/graph_test.go:265  [INFERRED]`, ilgili testler, `dups --changed main` (`0` aday), `spec-refs` (`0` not) ve `gofmt` geçti.
 
 ## Bulgular ve kanıtlar
 
@@ -39,12 +49,12 @@
   2. Başlangıç klonunda `remote.origin.fetch` yalnız `+refs/heads/main:refs/remotes/origin/main` idi ve depo sığ klondu (`200` commit, `git rev-parse --is-shallow-repository` → `true`); `yonerge` dalı için refspec genişletildi.
   3. `/usr/bin/time` ikilisi kurulu değil (`[ölçüldü: which time, çıkış 1]`).
   4. `TestEveryTrackedDataFileHasATestOrAReason` dal kökündeki izlenen `UZAK3_DURUM.md` dosyasını görüyor (`UZAK_YONERGE_3.md:13` uyarınca beklendiği gibi teste dokunulmadı).
+  5. `2026-11-05 09:14 +03` civarında uzak sanal makine kısa süreliğine durakladı (`uVM is in STOPPED state`) ve otomatik uyandı; `/home/antigravity` ve kurulu Go araç zinciri korundu.
 
 ## Kalan adımlar
 
-1. **Madde 3:** Test dosyasında okuma çağrısına verilen çıplak adın paket klasörüne bağlanması ve `fileWord` içinde `/` sonrasının elenmesi; koruyan test; `gaps.md` güncellemesi; ayrı commit ve durum push.
-2. **Madde 1:** Planlama sınavının andığı düğümlerin ayrı kenar/grup ile bağlanması, `fresh.go` damgası, `changed` silinen satır sözcük eşleşmesi; koruyan testler; `extractorRevision` / `extractor_digest.txt`; `gaps.md` güncellemesi; ayrı commit ve durum push.
-3. "Sonra" ölçümleri, bitti ölçütü komutlarının tamamı (temiz `--depth 1` klonu dahil), `UZAK3_RAPORU.md`, kendi kontrolüm ve son push.
+1. **Madde 1:** Planlama sınavının andığı düğümlerin ayrı kenar/grup ile bağlanması (`TestPlanningQuestionsAreAnswered`), `fresh.go` damgası (`examFile`), `changed --go-tests` silinen satır sözcük eşleşmesi; koruyan testler; `extractorRevision` / `extractor_digest.txt`; `gaps.md` ve `README.md` güncellemesi; ayrı commit ve durum push.
+2. "Sonra" ölçümleri, bitti ölçütü komutlarının tamamı (temiz `--depth 1` klonu dahil), `UZAK3_RAPORU.md`, kendi kontrolüm ve son push.
 
 ## Emin olmadıklarım
 
