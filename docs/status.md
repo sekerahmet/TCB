@@ -1339,7 +1339,7 @@ Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
 
 ### 23.1–23.6
 
-- **Mevcut durum (S1, 2026-11-05):** 23.1–23.3 var, CPU'da: `TR_rfft` (karışık taban, büyük asal çarpanda Bluestein), `TR_hann_window`, `TR_stft`; işçi sayısından bağımsız aynı bitler; türev izler (sayısal türevle kıyas); GPU'da H7076 [test: `tests/sinyal_test.tr`, `TestStftSameBitsForAnyWorkerCount`, `TestPlanMatchesTheDefinition`]. 23.4 `TR_mel_filterbank`, 23.6 `TR_whisper_log_mel` var [test: `tests/sinyal_test.tr`, `lib/audio_test.tr`].
+- **Mevcut durum (S1, 2026-11-05):** 23.1–23.3 var, CPU'da: `TR_rfft` (karışık taban, büyük asal çarpanda Bluestein), `TR_hann_window`, `TR_stft`; işçi sayısından bağımsız aynı bitler; türev izler (sayısal türevle kıyas); GPU'da H7076 [test: `tests/sinyal_test.tr`, `TestStftSameBitsForAnyWorkerCount`, `TestPlanMatchesTheDefinition`]. 23.4 `TR_mel_filterbank`, 23.6 `TR_whisper_log_mel` var [test: `tests/sinyal_test.tr`, `lib/audio_test.tr`, `tests/whisper_girdi_test.tr`, `TestMelFiltersMatchWhisper`].
 - **Yapılacaklar:** uygulama Jarvis'in sırasıyla, konuşmayı yazıya çevirmekle. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.5); o gelene kadar GPU'da hata. 22.4'ün `TR_Sound` kuruluşu da 23.6'nın iletisi için gerekir.
 
 ## 24. Sohbet biçimi
