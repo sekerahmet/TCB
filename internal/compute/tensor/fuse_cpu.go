@@ -30,21 +30,9 @@ func (l fuseLine) at(ev *fuseEval, t int) []int {
 
 // RunFused (Fuser) out = node'un değeri (add: out += değer); ins[k] k. girdinin görünümü.
 func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
-	ev := fuseEvals.Get().(*fuseEval)
-	ev.ins, ev.fTop, ev.iTop = ins, 0, 0
-	defer func() {
-		ev.ins = nil
-		fuseEvals.Put(ev)
-	}()
-	sh := node.Shape
-	nd := len(sh)
-	total := NumelOf(sh)
+	total := NumelOf(node.Shape)
 	if total == 0 {
 		return
-	}
-	row := 1
-	if nd > 0 {
-		row = sh[nd-1]
 	}
 	c := cpuStore(out)
 	// Çıktı girdilerden biri değilse satırlar doğrudan ona yazılır: sonuç için ikinci tampon, prompt
@@ -53,20 +41,7 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 	if add || c.dtyp != Float32 || aliases(ins, out) {
 		res = make([]float32, total)
 	}
-	idx := make([]int, nd)
-	for o := 0; o < total; o += row {
-		l := fuseLine{base: idx, axis: nd - 1, step: 1, n: row}
-		if nd == 0 {
-			l.axis = -1
-		}
-		ev.evalInto(res[o:o+row], node, l)
-		for d := nd - 2; d >= 0; d-- {
-			if idx[d]++; idx[d] < sh[d] {
-				break
-			}
-			idx[d] = 0
-		}
-	}
+	fuseParts(res, node, ins)
 	if add {
 		old := make([]float32, total)
 		if c.dtyp == Float32 {
@@ -82,6 +57,61 @@ func (cpuBackend) RunFused(node *FuseNode, out Storage, ins []View, add bool) {
 		narrow(c.h, res, c.dtyp)
 	} else if &res[0] != &c.d[0] {
 		copy(c.d, res)
+	}
+}
+
+// fuseChunk bir parçanın eleman sayısı, fuseCost bir elemanın göreli maliyetidir: üretimde rope ve
+// swiglu bir eleman için 12-20 ns harcar, eleman işlerinin birkaç katı [ölçüldü: H2, parca.txt].
+// Parça sınırları yalnız boya bağlıdır, işçi sayısına ve zamanlamaya değil.
+var fuseChunk = 512
+
+const fuseCost = 8
+
+// fuseParts res = node'un değeri. Parçalar işçilere dağılır; bir satır iki parçaya düşebilir: tek
+// satırlı swiglu ancak böyle bölünür. Eleman işlevleri konumdan bağımsızdır, bitler değişmez
+// [test: TestFusedChunksKeepBits].
+func fuseParts(res []float32, node *FuseNode, ins []View) {
+	total := len(res)
+	parts := (total + fuseChunk - 1) / fuseChunk
+	w := workerCount(total*fuseCost, fuseChunk*fuseCost, elemBigJob)
+	distribute(w, parts, func(_, c int) {
+		fuseRange(res, node, ins, c*fuseChunk, min((c+1)*fuseChunk, total))
+	})
+}
+
+// fuseRange res[lo:hi]'yi satır satır hesaplar.
+func fuseRange(res []float32, node *FuseNode, ins []View, lo, hi int) {
+	ev := fuseEvals.Get().(*fuseEval)
+	ev.ins, ev.fTop, ev.iTop = ins, 0, 0
+	defer func() {
+		ev.ins = nil
+		fuseEvals.Put(ev)
+	}()
+	sh := node.Shape
+	nd := len(sh)
+	idx := ev.takeInts(nd)
+	for d, o := nd-1, lo; d >= 0; d-- {
+		idx[d] = o % sh[d]
+		o /= sh[d]
+	}
+	for o := lo; o < hi; {
+		n := hi - o
+		l := fuseLine{base: idx, axis: -1, n: 1}
+		if nd > 0 {
+			n = min(n, sh[nd-1]-idx[nd-1])
+			l.axis, l.step, l.n = nd-1, 1, n
+		}
+		ev.evalInto(res[o:o+n], node, l)
+		o += n
+		if nd > 0 {
+			idx[nd-1] = 0
+		}
+		for d := nd - 2; d >= 0; d-- {
+			if idx[d]++; idx[d] < sh[d] {
+				break
+			}
+			idx[d] = 0
+		}
 	}
 }
 
