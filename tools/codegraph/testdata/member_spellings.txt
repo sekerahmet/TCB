@@ -675,6 +675,7 @@ k.TR_batch_decode	ok	0	name:TR_mem_batch_decode
 k.TR_contains	ok	0	name:TR_mem_contains
 k.TR_decode	ok	0	name:TR_mem_decode
 k.TR_dtype	ok	0	name:TR_mem_dtype
+k.TR_end	ambiguous	3	spec:25.1,spec:25.2,spec:25.7	tr_index:not_found:4
 k.TR_exists	ok	0	name:TR_mem_exists
 k.TR_forward	ok	0	tr:method:tests/negative/kod_uye.tr:K.TR_mem_forward
 k.TR_get	ok	0	name:TR_mem_get
@@ -694,6 +695,8 @@ k.TR_sequential	ok	0	name:TR_mem_sequential
 k.TR_shape	ok	0	name:TR_mem_shape
 k.TR_size	ok	0	name:TR_mem_size
 k.TR_slice	ok	0	name:TR_mem_slice
+k.TR_start	ambiguous	3	spec:25.1,spec:25.2,spec:25.7	tr_index:not_found:4
+k.TR_text	ambiguous	3	spec:25.1,spec:25.2	tr_index:not_found:4
 k.TR_tolist	ok	0	name:TR_mem_tolist
 k.TR_transpose	ok	0	name:TR_mem_transpose
 k.TR_update	ok	0	name:TR_mem_update
@@ -869,6 +872,7 @@ model.TR_mem_logits	not_found	4	-
 model.TR_mem_single_step	not_found	4	-
 model.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 model.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
+model.TR_transcribe	ok	0	spec:25.2	tr_index:not_found:4
 n.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 n.TR_groups	ambiguous	3	tr:field:lib/optimizers.tr:TR_type_Muon.TR_mem_groups,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_groups
 n.TR_keys	ok	0	name:TR_mem_keys
@@ -1283,6 +1287,8 @@ yakalanan.TR_contains	ok	0	name:TR_mem_contains
 yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
 yavaş.TR_wait	ok	0	name:TR_mem_wait
+yazı.TR_segments	ambiguous	3	spec:25.1,spec:25.2	tr_index:not_found:4
+yazı.TR_text	ambiguous	3	spec:25.1,spec:25.2	tr_index:not_found:4
 yazıcı.TR_close	ok	0	name:TR_mem_close
 yeni.TR_last	ok	0	name:TR_mem_last
 yeni.TR_length	ok	0	name:TR_mem_length

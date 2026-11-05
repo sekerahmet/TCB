@@ -1374,3 +1374,12 @@ Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı
 - **Mevcut durum:** uygulanmadı; `tr/chat` kitaplığı yok [ölçüldü: main `705b721b`, `lib/`].
 - **Yapılacaklar:** 16.2'nin `TR_false` kapatması (ön koşul) 2026-11-03'te birleşti (T1, teslim 1); sıradaki `tr/chat` ve Qwen3 biçimi, transformers'la altın testlerle.
 - **Yapılacaklar (Jarvis B kararı, `lib/layers.tr`):** `TR_generate`'in `TR_eos`'u `TR_List[TR_Int] = []` olur, çünkü modeller birden çok durdurma parçası taşır: Qwen3-0.6B `[151645, 151643]`, Llama-3.1-8B-Instruct `[128001, 128008, 128009]` [kaynak: DENETİM istek 42, `generation_config.json`]. Çağıranların göçüyle: `lib/layers_test.tr`, `examples/tr/46_hazir_model_ve_uretim.tr`, `tools/gpu/ss_exam.tr`, `docs/guide/10_hazir_katmanlarla_gpt.md` [ölçüldü: DENETİM istek 43]. T1'in alanı.
+
+## 25. Konuşmayı yazıya çevirme
+
+Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md). Yazıldı (2026-11-05): ana oturum Gemini Whisper raporundan yazdı; alıntıları DENETİM istek 175, metni istek 177 okudu.
+
+### 25.1–25.9
+
+- **Mevcut durum:** uygulanmadı; `tr/whisper` kitaplığı yok; girdi `TR_whisper_log_mel` var (23.6).
+- **Yapılacaklar (E, Ö3; sahip S1):** dilim dilim, DENETİM istek 178'den geçen yönergeyle.

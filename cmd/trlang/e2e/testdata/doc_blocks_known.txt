@@ -7,3 +7,4 @@ docs/spec/24_sohbet_bicimi.md:18
 docs/spec/24_sohbet_bicimi.md:39
 docs/spec/24_sohbet_bicimi.md:57
 docs/spec/24_sohbet_bicimi.md:79
+docs/spec/25_konusma_tanima.md:18
