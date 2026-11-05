@@ -1,4 +1,4 @@
-# Sürekli tümleştirme: her gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
+# Sürekli tümleştirme: gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
 # (tools/full_check.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
 # kip seçimi vardır (betiğin --kip argümanı; kiplerin ne yaptığı betiğin başında yazar).
 #
@@ -13,6 +13,9 @@ name: CI
 
 on:
   push:
+    # Birleşik denetim dalları GPU'da tam denetimden geçer; aynı kod main'e gidince burada koşar.
+    branches-ignore:
+      - "kontrol/birlesik-*"
   pull_request:
 
 permissions:
