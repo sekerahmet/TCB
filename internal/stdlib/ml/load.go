@@ -107,6 +107,7 @@ type TensorEntry struct {
 	Tur   tensor.DType
 	Veri  []float32
 	Ham   []byte // cinsli türlerde (float64, TR_Int, TR_Bool) ham baytlar; Veri boştur
+	Bits  []uint16
 }
 
 // WalkTensorFile tensör_kaydet biçimindeki bir dosyayı (boyut bayt) r'den sırayla çözer
@@ -116,7 +117,7 @@ type TensorEntry struct {
 // noktası dosyayı önce yalnızca denetler, sonra yükler). Hata dosya biçimi hatasıdır.
 func WalkTensorFile(r io.Reader, dim int64, each func(TensorEntry) error) error {
 	return walkFile(r, dim, func(g fileEntry) error {
-		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.values(), Ham: g.raw})
+		return each(TensorEntry{Ad: g.ad, Sekil: g.shape, Tur: g.dtype, Veri: g.values(), Ham: g.raw, Bits: g.bits})
 	})
 }
 

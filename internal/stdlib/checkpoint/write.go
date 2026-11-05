@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -166,11 +167,18 @@ func (kn *Checkpoint) writeCkpt(name string, state []byte, plan []tensorPlan) (e
 	return nil
 }
 
-// writeTensors planı tensör dosyası biçiminde yazar; her tensör yazılırken konağa iner.
+// writeTensors planı tensör dosyası biçiminde yazar; her tensör yazılırken konağa iner. 16 bitlik
+// tensör bitleriyle yazılır: float32'den geçseydi sinyal NaN'ı susardı (20.17).
 func writeTensors(w io.Writer, plan []tensorPlan) error {
 	y := ml.NewTensorWriter(w, len(plan))
 	for _, p := range plan {
-		if err := y.Write(p.name, p.t.Shape(), p.t.DType(), p.t.Data()); err != nil {
+		var err error
+		if dt := p.t.DType(); dt == tensor.BFloat16 || dt == tensor.Float16 {
+			err = y.WriteBits(p.name, p.t.Shape(), dt, p.t.Bits16s())
+		} else {
+			err = y.Write(p.name, p.t.Shape(), dt, p.t.Data())
+		}
+		if err != nil {
 			return err
 		}
 	}

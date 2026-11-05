@@ -991,7 +991,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum (T1 dilim 2):** `.safetensors` yolu her cinsi (F32, BF16, F16, F64, I64, I32, I16, I8, U32, U16, U8, BOOL) hizaya göre yazıyor; Python `safetensors` (torch) ile iki yönde bit bit aynı [test: TestSafetensorsPythonRoundTrip, bu makinede torch 2.14 ile koştu].
 - **Mevcut durum (`__metadata__`):** bu adlı tensörü yazmak çalışma hatası H6951 [test: TestSafetensorsWriteRejects].
-- **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM]. GPU'daki tensör değerden daraltılıyor, kart yerelde sınanmadı. Kontrol noktası float32'den geçiyor: susturuyor.
+- **Mevcut durum (A, Ö1; T1, 2026-11-04; DENETİM istek 117 Ş1):** `TR_save_tensors` 16 bitlik tensörü bitleriyle yazıyor, iki biçim de bitleriyle okuyor: sinyal NaN'ı susmuyor, 15.47a'nın "bit bit aynıdır" sözü bu desende de tutuyor [test: `TestSaveTensorsKeepSixteenBitNaNs`]. Önce bf16 `0x7F81` kaydedince `0x7FC1`, fp16 `0x7C01` kaydedince `0x7E01` oluyordu [ölçüldü: DENETİM]. GPU'daki tensör değerden daraltılıyor, kart yerelde sınanmadı. Kontrol noktası 20.17'nin satırında.
 
 ### 15.49
 
@@ -1286,7 +1286,7 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.12, 20.13
 
-- **Mevcut durum:** `TR_load_state`'in mantık değeri dönüşü 13.10'un status'unda. Kontrol noktası cinsli tensör yazmıyor: Go'daki kontrol noktası paketi `TensorWriter.Write`'ı ondalık veriyle çağırıyor, bu yüzden `op.TR_state`'in "step"i ondalık tensör; `TR_Int` için `WriteRaw` ve `ml.TensorEntry.Ham` T1 dilim 2'den beri hazır, paket bağlanmadı (T1 bulgu 11) [kanıtlı: DENETİM istek 57, kontrol noktasının `write.go:173`'ü `p.t.Data()` yazıyor]; karışık cinsli `TR_Dict[TR_String, TR_AnyTensor]` yok (15'in yan değişikliği, uygulanmadı).
+- **Mevcut durum:** `TR_load_state`'in mantık değeri dönüşü 13.10'un status'unda. Kontrol noktası cinsli tensör yazmıyor: Go'daki kontrol noktası paketi `TensorWriter.Write`'ı ondalık veriyle çağırıyor, bu yüzden `op.TR_state`'in "step"i ondalık tensör; `TR_Int` için `WriteRaw` ve `ml.TensorEntry.Ham` T1 dilim 2'den beri hazır, paket bağlanmadı (T1 bulgu 11) [kanıtlı: DENETİM istek 57, kontrol noktasının `writeTensors`'ı 16 bitlik olmayanı `p.t.Data()` ile yazıyor]; karışık cinsli `TR_Dict[TR_String, TR_AnyTensor]` yok (15'in yan değişikliği, uygulanmadı).
 
 ### 20.16
 
@@ -1298,7 +1298,8 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 - **Yapılacaklar (C, Ö2, 15.45 ile; ölçüm status'un):** `TR_dropout` (15.23d) geldiğinde aynı üreteçten çekmesi.
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte; bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde]. "rng"'nin "pcg:" öneki ve bilinmeyen önekin yükleme hatası (H6953) T1'de geldi [test: checkpoint behavior_security_test.go].
 - **Yapılacaklar (T1 birleşmesi, 2026-11-01):** 20.17'nin Test satırındaki TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir; bugün yalnız Go testlerinde [ölçüldü: `git grep 54520000000000002017`].
-- **Yapılacaklar (C, Ö2; sahip T1, çağrı yerlerinden sonra; DENETİM istek 122 N2):** kontrol noktası 16 bitlik tensörü float32'den geçiriyor: sinyal NaN'ı orada susuyor [kanıtlı: T1, kod; ölçülmedi]. `TR_save_tensors` bitleriyle yazıyor; GPU'daki tensör değerden daraltıldığı için orada da susuyor [kanıtlı: T1; kartta koşulmadı].
+- **Mevcut durum (C, Ö2; T1, 2026-11-05; DENETİM istek 122 N2):** kontrol noktası 16 bitlik tensörü bitleriyle yazıyor, sürdürmede bitleriyle kuruyor: sinyal NaN'ı CPU'da susmuyor. Önce bf16 `0x7F81` sürdürünce `0x7FC1`, fp16 `0x7C01` sürdürünce `0x7E01` oluyordu [ölçüldü: T1]. Disk biçimi ve sürüm aynı: bütün desenlerde ayrılan yalnız sinyal NaN'ları, bf16'da 126, fp16'da 1022 [test: `TestSixteenBitTensorKeepsItsBits`, `TestBitsChangeOnlySignalingNaNs`].
+- **Yapılacaklar (C, Ö2; sahip T1):** GPU'daki tensör değerden daraltılıyor, orada susuyor [kanıtlı: `Bits16s`, `FromBits16On`; kartta koşulmadı].
 
 ### 20.14
 
