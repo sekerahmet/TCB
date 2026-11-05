@@ -163,12 +163,16 @@ func TestAFunctionAfterADotKeepsItsValue(t *testing.T) {
 		}
 		seen++
 		err := identityError(codes.PlaceMember, s).Error()
-		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") {
+		if !strings.Contains(err, s+"(x") && !strings.HasSuffix(err, s+"()") && s != "TR_custom_grad" {
 			t.Errorf("x.%s: %s; öneri x'i ilk argüman yazmalı", s, err)
 		}
 	}
 	if seen < 100 {
 		t.Errorf("%d fonksiyon tarandı, bu kadar az olamaz", seen)
+	}
+	// Yalnız adlı argüman alan fonksiyonda boş çağrı çalışmaz, değerin de yeri yoktur.
+	if err := identityError(codes.PlaceMember, "TR_custom_grad"); !messages.Has(err, messages.H0029) || !strings.HasSuffix(err.Error(), "TR_custom_grad(...)") {
+		t.Errorf("x.TR_custom_grad: %v; want H0029, TR_custom_grad(...)", err)
 	}
 	for s, want := range map[string]string{
 		"TR_move": "TR_move(x, y)", "TR_copy": "TR_copy(x, y)", "TR_write_file": "TR_write_file(x, y)",

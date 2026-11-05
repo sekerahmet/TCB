@@ -480,7 +480,7 @@ func wrongPlace(written, place codes.Place, k codes.Code) error {
 		return messages.New(messages.H0029, s, s+"(...)")
 	}
 	call := calledOnReceiver(k)
-	if call == s+"()" {
+	if !strings.HasPrefix(call, s+"(x") {
 		return messages.New(messages.H0029, s, call)
 	}
 	return messages.New(messages.H7016, s, call)
@@ -500,8 +500,8 @@ func ContextualWriting(k codes.Code) string {
 
 // calledOnReceiver noktadan sonra yazılmış fonksiyon k'nin yazımıdır: noktadan önceki değer (x) ilk
 // argüman olur. Değer yazımda kalmalıdır: d.TR_move("a", "b")'den yalnız nokta silinirse sözlük
-// değil, aynı adlı dosya taşınır (DENETİM istek 112 Y1'in TR_remove'daki hatası). Argüman almayan
-// fonksiyonda yazılacak değer yoktur; kitaplık fonksiyonunun imzası definitions.json'da yazmaz.
+// değil, aynı adlı dosya taşınır (DENETİM istek 112 Y1'in TR_remove'daki hatası). Konumlu argüman
+// almayan fonksiyonda değerin yeri yoktur; kitaplık fonksiyonunun imzası definitions.json'da yazmaz.
 func calledOnReceiver(k codes.Code) string {
 	s := codes.Spelling(k)
 	if k.IsLibrary() {
@@ -509,6 +509,9 @@ func calledOnReceiver(k codes.Code) string {
 	}
 	t, _ := codes.DefinitionOf(k)
 	minN, maxN := t.Signature.PositionalCounts()
+	if maxN == 0 && len(t.Signature.Named) > 0 {
+		return s + "(...)"
+	}
 	if maxN == 0 {
 		return s + "()"
 	}
