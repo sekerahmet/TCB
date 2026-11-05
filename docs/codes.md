@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 585 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 132 fonksiyon, 11 sabit, 69 metot, 102 özellik, 138 adlı argüman.
+Toplam 590 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 46 tip, 135 fonksiyon, 11 sabit, 69 metot, 102 özellik, 140 adlı argüman.
 
 ## İçindekiler
 
@@ -1253,6 +1253,25 @@ tr: yazdır(hepsi(Tensör[Mantık]([doğru, doğru])), hepsi(Tensör[Mantık]([d
 
 İlişkili: `TR_equal(...)`
 
+#### `TR_all_close(...)` (`TR_fn_all_close`, `hepsi_yakın`)
+
+    hepsi_yakın(Tensör, Tensör, göreli_pay: Tam | Ondalık = yok, mutlak_pay: Tam | Ondalık = yok) → Mantık
+
+İki ondalık tensörün şekli aynıysa ve her öğede |a - b| ≤ mutlak_pay + göreli_pay · en büyük(|a|, |b|) ise doğru verir. Varsayılan paylar daha az hassas işlenenin hassasiyetindendir. Sonsuz yalnız aynı işaretli sonsuza yakındır, NaN hiçbir şeye yakın değildir; yayın yoktur.
+
+```tr
+TR_print(TR_all_close(TR_Tensor([1.0, 2.0]), TR_Tensor([1.0, 2.0000001])), TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.1]), TR_atol: 0.2))
+```
+
+Görünümü:
+
+```text
+en: print(all_close(Tensor([1.0, 2.0]), Tensor([1.0, 2.0000001])), all_close(Tensor([1.0]), Tensor([1.1]), atol: 0.2))
+tr: yazdır(hepsi_yakın(Tensör([1.0, 2.0]), Tensör([1.0, 2.0000001])), hepsi_yakın(Tensör([1.0]), Tensör([1.1]), mutlak_pay: 0.2))
+```
+
+İlişkili: `TR_equal(...)`
+
 #### `TR_any_pattern_matches(...)` (`TR_fn_any_pattern_matches`, `bir_desen_uyar_mı`)
 
     bir_desen_uyar_mı()
@@ -2339,6 +2358,25 @@ tr: yazdır(max([2.0, 1.5]), max(3, 7, 5), max(Tensör([[1, 5], [3, 2]]), eksen:
 
 İlişkili: `TR_min(...)`, `TR_argmax(...)`
 
+#### `TR_maximum(...)` (`TR_fn_maximum`, `öğe_öğe_en_büyük`)
+
+    öğe_öğe_en_büyük(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
+
+İki tensörün ya da tensörle sayının öğe öğe en büyüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır, −0.0 0.0'dan küçük sayılır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya, NaN olan konumda iki tarafa da NaN.
+
+```tr
+TR_print(TR_maximum(TR_Tensor([1.0, 5.0]), TR_Tensor([3.0, 2.0])).TR_tolist, TR_maximum(-0.0, 0.0))
+```
+
+Görünümü:
+
+```text
+en: print(maximum(Tensor([1.0, 5.0]), Tensor([3.0, 2.0])).tolist, maximum(-0.0, 0.0))
+tr: yazdır(öğe_öğe_en_büyük(Tensör([1.0, 5.0]), Tensör([3.0, 2.0])).değer, öğe_öğe_en_büyük(-0.0, 0.0))
+```
+
+İlişkili: `TR_minimum(...)`, `TR_max(...)`, `TR_clamp(...)`
+
 #### `TR_mean(...)` (`TR_fn_mean`, `ortalama`)
 
     ortalama(Liste | Tensör, eksen: Tam = yok, boyutu_koru: Mantık = yanlış) → Ondalık | Tensör
@@ -2395,6 +2433,25 @@ tr: yazdır(min([3, 1, 2]), min(4, 2.5), min(1, 1.5))
 ```
 
 İlişkili: `TR_max(...)`
+
+#### `TR_minimum(...)` (`TR_fn_minimum`, `öğe_öğe_en_küçük`)
+
+    öğe_öğe_en_küçük(Tensör | Tam | Ondalık, Tensör | Tam | Ondalık) → Tensör | Tam | Ondalık
+
+İki tensörün ya da tensörle sayının öğe öğe en küçüğünü verir; yayınlar, cins aynı olmalıdır. NaN yayılır, −0.0 0.0'dan küçük sayılır. Türev seçilen tarafa gider; tam eşitlikte yarı yarıya, NaN olan konumda iki tarafa da NaN.
+
+```tr
+TR_print(TR_minimum(TR_Tensor([1.0, 5.0]), 2.0).TR_tolist, TR_minimum(0.0, -0.0))
+```
+
+Görünümü:
+
+```text
+en: print(minimum(Tensor([1.0, 5.0]), 2.0).tolist, minimum(0.0, -0.0))
+tr: yazdır(öğe_öğe_en_küçük(Tensör([1.0, 5.0]), 2.0).değer, öğe_öğe_en_küçük(0.0, -0.0))
+```
+
+İlişkili: `TR_maximum(...)`, `TR_min(...)`, `TR_clamp(...)`
 
 #### `TR_mixed_precision(...)` (`TR_fn_mixed_precision`, `karışık_hassasiyet`)
 
@@ -3392,6 +3449,23 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).değer)
 
 Kullananlar: `TR_gelu(...)` · İlişkili: `TR_gelu(...)`
 
+#### `TR_atol:` (`TR_arg_atol`, `mutlak_pay`)
+
+hepsi_yakın'da izin verilen mutlak farktır; verilmezse işlenenlerin hassasiyetinden gelir.
+
+```tr
+TR_print(TR_all_close(TR_Tensor([1.0]), TR_Tensor([1.1]), TR_atol: 0.2))
+```
+
+Görünümü:
+
+```text
+en: print(all_close(Tensor([1.0]), Tensor([1.1]), atol: 0.2))
+tr: yazdır(hepsi_yakın(Tensör([1.0]), Tensör([1.1]), mutlak_pay: 0.2))
+```
+
+Kullananlar: `TR_all_close(...)` · İlişkili: `TR_rtol:`, `TR_all_close(...)`
+
 #### `TR_backward:` (`TR_arg_backward`, `geri`)
 
 özel_türev'in geri hesabıdır: (saklananlar, g) => ... biçiminde iki parametre alır ve her konumlu girdi için girdiyle aynı şekilde bir gradyan ya da yok döndürür.
@@ -4220,6 +4294,23 @@ Kullananlar: `TR_Tensor`, `TR_load_tensors(...)`, `TR_ones(...)`, `TR_randn(...)
 #### `TR_row:` (`TR_arg_row`, `satır`)
 
 
+
+#### `TR_rtol:` (`TR_arg_rtol`, `göreli_pay`)
+
+hepsi_yakın'da izin verilen göreli farktır; verilmezse işlenenlerin hassasiyetinden gelir.
+
+```tr
+TR_print(TR_all_close(TR_Tensor([100.0]), TR_Tensor([101.0]), TR_rtol: 0.02))
+```
+
+Görünümü:
+
+```text
+en: print(all_close(Tensor([100.0]), Tensor([101.0]), rtol: 0.02))
+tr: yazdır(hepsi_yakın(Tensör([100.0]), Tensör([101.0]), göreli_pay: 0.02))
+```
+
+Kullananlar: `TR_all_close(...)` · İlişkili: `TR_atol:`, `TR_all_close(...)`
 
 #### `TR_scale:` (`TR_arg_scale`, `ölçek`)
 

@@ -1451,6 +1451,7 @@ const (
 	H7015 Code = 7015 // `{#test}` yalnız dosyanın en dışında yazılır: {name|q} testi burada hiç koşmazdı; bloğu en dışa taşıyın
 	H7016 Code = 7016 // '{name}' metot değil, fonksiyondur: `{example}` (`x`, noktadan önceki değerdir)
 	H7017 Code = 7017 // '{name}' burada yazılmaz, yazımı: `{example}`
+	H7050 Code = 7050 // {fn}: yalnız ondalık tensör alır, {given} verildi (15.18a); tam sayı ve mantık tensöründe `{#equal}(a, b)` yazılır
 	H7100 Code = 7100 // kopyanın boyutu kaynağınkiyle aynı değil; kaynak silinmedi ({path|q})
 	H7101 Code = 7101 // kaynakta {count} bağlantı ya da özel dosya var; başka bir diske taşınamaz (önce kopyalayıp bağlantıları elle kurun)
 	H7102 Code = 7102 // kopya kaynakla aynı değil (dosya sayısı ya da toplam boyut tutmuyor); kaynak silinmedi

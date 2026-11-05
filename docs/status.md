@@ -788,9 +788,8 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.16a
 
-- **Mevcut durum:** `TR_maximum`, `TR_minimum`, tensörde `TR_round` (H2423) ve `TR_is_nan` yok [ölçüldü: main `85a19c36`, `TR_maximum`, `TR_minimum`, `TR_is_nan` bilinmeyen kimlik; `TR_round(t)` H2423]. Tensörde `TR_is_finite` `TR_Tensor[TR_Bool]` veriyor, `TR_fuse` içinde float32 0/1 kalıyor [test: `tests/matematik_test.tr`'nin 15.16a testi, `TestIsFiniteIsABoolMaskOutsideFuse`]. Kartta `TR_sum(TR_is_finite(x))` H6969 veriyor, float32 iken toplanıyordu: mantık tensörünün toplamı GPU'da yok, ileti tensörü CPU'ya taşımayı öneriyor; kıyas maskesi `TR_sum(x > 0.5)` de aynı [ölçüldü: L4, 2b teslimi].
-- **Yapılacaklar:** üçü; TR testi.
-- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_maximum` ve `TR_minimum`'un NaN konumundaki türevi iki işlenene de NaN.
+- **Mevcut durum (S1, 2026-11-05):** `TR_maximum`, `TR_minimum` var: NaN yayılır, ±0 sıralama sırasıyla, türev seçilene, eşitlikte yarı yarıya, NaN konumunda iki tarafa NaN; `TR_fuse` içinde H3107 [test: `tests/tensor_uc_ve_yakin_test.tr`]. Tensörde `TR_round` (H2423) ve `TR_is_nan` yok [ölçüldü: main `85a19c36`, `TR_is_nan` bilinmeyen kimlik; `TR_round(t)` H2423]. Tensörde `TR_is_finite` `TR_Tensor[TR_Bool]` veriyor, `TR_fuse` içinde float32 0/1 kalıyor [test: `tests/matematik_test.tr`'nin 15.16a testi, `TestIsFiniteIsABoolMaskOutsideFuse`]. Kartta `TR_sum(TR_is_finite(x))` H6969 veriyor, float32 iken toplanıyordu: mantık tensörünün toplamı GPU'da yok, ileti tensörü CPU'ya taşımayı öneriyor; kıyas maskesi `TR_sum(x > 0.5)` de aynı [ölçüldü: L4, 2b teslimi].
+- **Yapılacaklar:** tensörde `TR_round`, `TR_is_nan`; TR testi.
 
 ### 15.17
 
@@ -805,9 +804,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.18a
 
+- **Mevcut durum (S1, 2026-11-05):** `TR_all_close` var: hassasiyete göre paylar, `TR_rtol:`, `TR_atol:`, sonsuzun kuralı; ondalık olmayan tensör H7050 [test: `tests/tensor_uc_ve_yakin_test.tr`].
 - **Mevcut durum (T1 dilim 2):** eksensiz `TR_all` ve `TR_equal` var, TR testi `tests/tensor_test.tr`'de [ölçüldü]. `TR_equal` iki tensörü CPU'da karşılaştırır (sonuç zaten konağa okunur); cins farkı H6966, tensör olmayan argüman H6979. Tensör olmayan argümanı denetleyici yakalamıyor, çalışmada hata.
-- **Yapılacaklar:** `TR_any`, `TR_all_close`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; hassasiyete göre toleranslar; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979).
-- **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_all_close`'da sonsuzun kuralı.
+- **Yapılacaklar:** `TR_any`, eksenli `TR_all`/`TR_any` ve `TR_keepdim:`; ondalık ya da tam sayı tensörün denetim hatası (bugün çalışmada H6979).
 
 ### 15.19
 
