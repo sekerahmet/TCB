@@ -12,7 +12,17 @@ If you can only read web pages, read the raw links under "Where to look" and wri
 
 ## Install
 
-You need Go 1.25 or newer. No cgo, no CUDA toolkit. `go.mod` asks for toolchain 1.26.10 and Go downloads it by itself.
+The fastest way is the prebuilt binary, no Go needed. On x86-64 Linux:
+
+```bash
+curl -L -o trlang https://github.com/sekerahmet/TCB/releases/download/v0.1.0/trlang-linux-amd64
+chmod +x trlang
+sha256sum trlang   # 45a58140c84b17b2f4aaf5f12bad2d6d95a2022c55e0af9d93da7972a7be106f
+```
+
+If you cannot run it where you saved it, copy it to `/tmp`. For Windows, the same release has `trlang-windows-amd64.exe`: https://github.com/sekerahmet/TCB/releases/tag/v0.1.0
+
+The binary can be behind `main`. To build from source, you need Go 1.25 or newer. No cgo, no CUDA toolkit. `go.mod` asks for toolchain 1.26.10 and Go downloads it by itself.
 
 ```bash
 git clone https://github.com/sekerahmet/TCB
@@ -22,7 +32,7 @@ go build -o trlang ./cmd/trlang
 
 On Windows, build `trlang.exe`.
 
-If the toolchain download is blocked, build with the Go you have (1.25 or newer). The Go module proxy must still be reachable. If you cannot run a binary where you built it, copy it to `/tmp`.
+If the toolchain download is blocked, build with the Go you have (1.25 or newer). The Go module proxy must still be reachable.
 
 ```bash
 GOTOOLCHAIN=local go build -o trlang ./cmd/trlang
