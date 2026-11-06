@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-1yndOc8FrlMe14w6y4blta8qlxMlx5JPrwZltQxW8GM='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-qQ9HMHh+cV4His/FGA2ipXSbrhMs/klXzvGE5fKo4ow='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -1802,7 +1802,8 @@ body.focus .left, body.focus .right { display: none; }
     } catch {
       return null;
     }
-    const plain = url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== "" &&
+    // Belirteç yalnız sayfayı sunan kapıya gider: başka bir yerel süreç `source` ile onu alamaz.
+    const plain = url.origin === location.origin && url.protocol === "http:" && url.hostname === "127.0.0.1" && url.port !== "" &&
       url.username === "" && url.password === "" && url.pathname === "/" && url.search === "" && url.hash === "";
     return plain ? url.origin : null;
   }

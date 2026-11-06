@@ -9,7 +9,7 @@ assistantLanguages.en = {
   "conn_reconnecting": "Connection lost. Trying again (attempt {attempt}).",
   "conn_auth": "The server needs a token.",
   "conn_forbidden": "The server refused this page.",
-  "conn_rejected": "No connection: this source is not accepted: {source}. Only http://127.0.0.1:<port> is, and only when TR serves the page.",
+  "conn_rejected": "No connection: this source is not accepted: {source}. Only the http://127.0.0.1:<port> that serves this page is.",
   "conn_mismatch": "No connection: this screen speaks version {want}, the server version {got}. Update the screen and reload.",
   "label_connection": "Connection",
   "label_model": "Model",

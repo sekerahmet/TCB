@@ -15,7 +15,7 @@ TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla
 
 `index.html`'i tarayıcıda açın. Sahte akış kendi başlar. Üstteki **Sahte sahne** seçicisi sözleşmenin bütün durumlarını oynatır: onay, süre dolması, bağlantı kopması, sunucunun yeniden başlaması, uzun çıktı, kötü niyetli metin.
 
-Gerçek kaynağa bağlanmak için `?source=http://127.0.0.1:<kapı>` verilir. Yalnız bu biçim kabul edilir ve sayfayı TR sunmalıdır; `file://` yalnız sahte kipte çalışır (`contract.md`, "Kaynak").
+Gerçek kaynağa bağlanmak için `?source=http://127.0.0.1:<kapı>` verilir. Yalnız bu biçim ve sayfayı sunan kapı kabul edilir, sayfayı da TR sunmalıdır; `file://` yalnız sahte kipte çalışır (`contract.md`, "Kaynak").
 
 ## Yapı
 

@@ -20,7 +20,8 @@ Bütün örnekler uydurmadır.
 Ekran kaynağını `source` parametresinden alır: `index.html?source=http://127.0.0.1:8123`.
 
 - Parametre yoksa sahte akış çalışır ve üstte "sahte kip" sürekli yazılıdır.
-- Kabul edilen tek biçim `http://127.0.0.1:<kapı>`: kullanıcı adı, yol, sorgu ve parça olmaz. `localhost`, başka adres ve `https` reddedilir; `connect-src` de yalnız bunu açar.
+- Kabul edilen tek biçim `http://127.0.0.1:<kapı>`: kullanıcı adı, yol, sorgu ve parça olmaz. `localhost`, başka adres ve `https` reddedilir.
+- Kapı sayfayı sunan kapıdır: `source`'un kökü sayfanın köküyle aynı olmalı, başka kapı reddedilir. Yoksa bir bağlantı kullanıcının girdiği belirteci aynı makinedeki başka bir sürece gönderirdi. Sayfanın `connect-src`'u yerel adresle sınırlıdır, `GET /` üstbilgisi onu sayfanın kendi kapısına daraltır ("Güvenlik").
 - Reddedilen kaynakta ekran sahte akışa düşmez: bağlantı yok der ve reddedilen kaynağı gösterir.
 - `file://` ile açılan sayfa yalnız sahte kipte çalışır (`Origin` `null` olur, sunucu ona izin vermez). Gerçek kipte sayfayı TR sunar.
 
@@ -265,9 +266,11 @@ Herhangi bir web sitesi kullanıcının tarayıcısından `127.0.0.1`'e istek at
 - **`Content-Type`:** `POST /command` yalnız `application/json` kabul eder. Düz form ön uçuş isteği olmadan gönderilebildiği için öbürleri `415`.
 - **CORS yok:** sunucu `Access-Control-Allow-*` göndermez, `OPTIONS` kabul etmez.
 - **Sunulan dosyalar:** yalnız ekran ve sayfanın listelediği dil dosyaları, `Content-Type: text/javascript`. Sayfanın politikası betiği `/lang/` altından kabul eder; başka betik sunulmaz.
-- **Gizli değer:** olaylar tele çıkmadan aynı süzgeçten geçer (dil tanımı 19.4): model metni, araç çıktısı ve onay argümanı dahil. Argüman süzüldüyse kart `***` gösterir; ekran gerçek değeri hiç almaz.
+- **Gizli değer:** olaylar tele çıkmadan aynı süzgeçten geçer (dil tanımı 19.4): model metni, araç çıktısı, onay argümanı, `error.values`, `snapshot` ve kullanıcının sözü dahil. Argüman süzüldüyse kart `***` gösterir; ekran gerçek değeri hiç almaz.
+  - **Parçalı akış:** olay başına süzgeç iki `append` parçasına bölünen değeri görmez. Sunucu akışta metnin sonundan en uzun gizli değer kadarını geri tutar; geri tutulanı yeni parçayla birlikte süzer, `turn_end`'den önce de kalanını süzüp gönderir.
+  - **Sıra:** süzme kesmeden önce yapılır (64 KiB ve 1 MiB sınırı). Önce kesilirse değerin başı kalır, süzgeç onu tanımaz ve tele çıkar.
 - **Boyut:** olay en çok 1 MiB, araç çıktısı ve onay argümanı 64 KiB, komut gövdesi 64 KiB. Sunucu kesince söyler; sessiz kesme yok.
-- **Çerçeve:** `frame-ancestors` meta etiketinde çalışmaz; sunucu `GET /` cevabında üstbilgiyle gönderir: `Content-Security-Policy: frame-ancestors 'none'`. Sayfa başka bir sitenin içinde açılıp tıklatılamaz.
+- **Çerçeve ve bağlantı:** `frame-ancestors` meta etiketinde çalışmaz; sunucu `GET /` cevabında üstbilgiyle gönderir: `Content-Security-Policy: frame-ancestors 'none'; connect-src 'self'`. Sayfa başka bir sitenin içinde açılıp tıklatılamaz. Üstbilgi ile meta etiketi birlikte geçerlidir, bu yüzden sayfa yalnız kendi kapısına bağlanabilir.
 - **Önbellek:** `GET /`, `/lang/` ve `/events` `Cache-Control: no-store`, ayrıca `X-Content-Type-Options: nosniff`.
 - **Onay:** karar sunucudadır. Ekranın gönderdiği cevap yalnız bir istektir; süre, `approval_id` ve geri alınamaz işin kendisi sunucuda denetlenir. Onaylanmayan araç hiç çalışmaz.
 
