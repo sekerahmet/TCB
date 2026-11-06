@@ -1,0 +1,30 @@
+# TR 4
+# 52 — Türkçe sözcük: ekli bir sözcüğün sözlük biçimini bulmak. Metin aramasında ekli ve eksiz biçim
+# böyle eşleşir. Önceki örneklerden yapıları ve eşlemeyi kullanır.
+#
+# Kendin dene: kendi cümlenin sözcüklerini TR_lemma'dan geçir, aynı köke giden sözcükleri say.
+
+TR_import "tr/turkish"
+
+# Ekler ve ses olayları geri alınır; fiilin sözlük biçimi köktür.
+TR_print(TR_lemma("kitaplarımızdan"))
+TR_print(TR_lemma("gidiyorum"))
+TR_print(TR_lemma("burnum"))
+
+# Çözüm türü, ekleri ve sözlükte olup olmadığını da söyler.
+TR_var çözüm: TR_WordAnalysis = TR_analyze_word("kitabımızda")
+TR_print(çözüm.TR_lemma, çözüm.TR_suffixes, çözüm.TR_known)
+TR_var tür = TR_match çözüm.TR_word_kind {
+    TR_WordKind.TR_Noun => "ad"
+    TR_WordKind.TR_Verb => "fiil"
+    TR_WordKind.TR_UnknownKind => "bilinmiyor"
+}
+TR_print(tür)
+
+# Sözlükte olmayan sözcükten yalnız güvenli çekim eki soyulur: arama yine eşleşir.
+TR_print(TR_lemma("blokzincirde"), TR_analyze_word("blokzincirde").TR_known)
+
+# Kendi sözlüğünü kuran bulucu yeni sözcüğü tanır.
+TR_var bulucu = TR_Lemmatizer()
+bulucu.TR_add_lemma("blokzincir", TR_WordKind.TR_Noun)
+TR_print(bulucu.TR_lemma("blokzincirimizden"), bulucu.TR_analyze_word("blokzincirde").TR_known)

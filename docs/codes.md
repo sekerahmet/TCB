@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 659 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 53 tip, 151 fonksiyon, 11 sabit, 82 metot, 109 özellik, 166 adlı argüman.
+Toplam 675 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 56 tip, 153 fonksiyon, 11 sabit, 85 metot, 115 özellik, 168 adlı argüman.
 
 ## İçindekiler
 
@@ -800,6 +800,10 @@ tr: değişken j = json_çöz(`{"ad": "Ali", "yaş": 30}`); yazdır(Tip(j["yaş"
 
 
 
+#### `TR_Lemmatizer` (`TR_type_Lemmatizer`, `KökBulucu`)
+
+
+
 #### `TR_LineReader` (`TR_type_LineReader`, `SatırOkuyucu`)
 
 dosya_satırları(...) ile açılan, dosyayı akışla satır satır okuyan okuyucunun tipidir; döngü ile gezilir ya da .sonraki() ile sıradaki satır alınır, dosya bitince yok verir; .kapat() dosyayı sonuna kadar okumadan bırakır.
@@ -1195,6 +1199,14 @@ tr: değişken t: Tip = Tip(42); yazdır(t == Tam, t, Tip(t), Tip([1, 2]) == Lis
 
 
 
+#### `TR_WordAnalysis` (`TR_type_WordAnalysis`, `SözcükÇözümü`)
+
+
+
+#### `TR_WordKind` (`TR_type_WordKind`, `SözcükTürü`)
+
+
+
 ## Yerleşikler
 
 ### Yerleşik fonksiyonlar
@@ -1312,6 +1324,12 @@ tr: yazdır(hepsi_yakın(Tensör([1.0, 2.0]), Tensör([1.0, 2.0000001])), hepsi_
 ```
 
 İlişkili: `TR_equal(...)`
+
+#### `TR_analyze_word(...)` (`TR_fn_analyze_word`, `sözcük_çözümle`)
+
+    sözcük_çözümle()
+
+
 
 #### `TR_any_pattern_matches(...)` (`TR_fn_any_pattern_matches`, `bir_desen_uyar_mı`)
 
@@ -2232,6 +2250,12 @@ tr: yazdır(katman_normu(Tensör([[1.0, 2.0, 3.0]]), ağırlık: birler([3]), sa
 #### `TR_layer_windows(...)` (`TR_fn_layer_windows`, `katman_pencereleri`)
 
     katman_pencereleri()
+
+
+
+#### `TR_lemma(...)` (`TR_fn_lemma`, `kök_bul`)
+
+    kök_bul()
 
 
 
@@ -5207,6 +5231,14 @@ Kullananlar: `TR_attention(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
 
 
 
+#### `TR_word:` (`TR_arg_word`, `sözcük`)
+
+
+
+#### `TR_word_kind:` (`TR_arg_word_kind`, `sözcük_türü`)
+
+
+
 #### `TR_x:` (`TR_arg_x`, `x`)
 
 
@@ -5214,6 +5246,18 @@ Kullananlar: `TR_attention(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
 ## Metot ve özellikler (x.ad)
 
 ### Metot ve özellikler
+
+#### `.TR_Noun` (`TR_mem_Noun`, `İsim`)
+
+
+
+#### `.TR_UnknownKind` (`TR_mem_UnknownKind`, `BilinmeyenTür`)
+
+
+
+#### `.TR_Verb` (`TR_mem_Verb`, `Fiil`)
+
+
 
 #### `.TR_absolute` (`TR_mem_absolute`, `mutlak`)
 
@@ -5244,7 +5288,15 @@ tr: yazdır(Yol("a.txt").mutlak.dosya_adı)
 
 
 
+#### `.TR_add_lemma(...)` (`TR_mem_add_lemma`, `kök_ekle`)
+
+
+
 #### `.TR_advance(...)` (`TR_mem_advance`, `ilerle`)
+
+
+
+#### `.TR_analyze_word(...)` (`TR_mem_analyze_word`, `sözcük_çözümle`)
 
 
 
@@ -5918,6 +5970,10 @@ tr: yazdır({"ad": "Ali", "puan": 30}.anahtarlar())
 
 
 
+#### `.TR_known` (`TR_mem_known`, `sözlükte`)
+
+
+
 #### `.TR_kv_proj` (`TR_mem_kv_proj`, `kv_katmanı`)
 
 
@@ -5946,6 +6002,10 @@ tr: yazdır([5, 6, 7].son)
 İlişkili: `.TR_first`
 
 #### `.TR_last_step` (`TR_mem_last_step`, `son_adım`)
+
+
+
+#### `.TR_lemma(...)` (`TR_mem_lemma`, `kök`)
 
 
 
@@ -6869,6 +6929,10 @@ en: print("  merhaba  ".strip())
 tr: yazdır("  merhaba  ".kırp())
 ```
 
+#### `.TR_suffixes` (`TR_mem_suffixes`, `ekler`)
+
+
+
 #### `.TR_suppressed` (`TR_mem_suppressed`, `bastırılanlar`)
 
     Hata.bastırılanlar → Liste
@@ -7174,6 +7238,10 @@ tr: değişken g = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
 
 
 #### `.TR_window` (`TR_mem_window`, `pencere`)
+
+
+
+#### `.TR_word_kind` (`TR_mem_word_kind`, `sözcük_türü`)
 
 
 

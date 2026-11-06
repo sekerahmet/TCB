@@ -1,0 +1,241 @@
+# TR 4
+# Türkçe sözlük biçimi bulucu (26). Sözcükler bu dosya için seçildi: her ses olayı ve ek sınıfı ayrı sınanır.
+
+TR_import "tr/turkish"
+
+TR_func hepsi(çiftler: TR_List[(TR_String, TR_String)]) {
+    TR_for ç TR_in çiftler { TR_assert_equal(ç.1, TR_lemma(ç.0), ç.0) }
+}
+
+# Tablo testi önce koşar: başka test tabloyu kurmadan bakar.
+TR_test "26.4 tablolar ilk çağrıda bir kez kurulur" {
+    TR_var b = TR_Lemmatizer()
+    TR_assert_equal(0, b._kurulum_sayısı())
+    TR_lemma("kitabı")
+    TR_assert_equal(1, b._kurulum_sayısı())
+    TR_lemma("defteri")
+    b.TR_lemma("kalemi")
+    TR_Lemmatizer().TR_analyze_word("silgiyi")
+    TR_assert_equal(1, b._kurulum_sayısı())
+}
+
+TR_test "26.1 ad çekimi: çoğul, iyelik, durum sırasıyla soyulur" {
+    hepsi([("evler", "ev"), ("evimiz", "ev"), ("evlerden", "ev"), ("evlerimizin", "ev"), ("masalarımıza", "masa"), ("arabasıyla", "araba"), ("köylerinde", "köy")])
+}
+
+TR_test "26.1 ek eylem ve -ki" {
+    hepsi([("evdeyim", "ev"), ("öğrenciydi", "öğrenci"), ("hastaymış", "hasta"), ("doktordur", "doktor"), ("masadaki", "masa"), ("masanınki", "masa"), ("okulundakiler", "okul"), ("yarınki", "yarın")])
+}
+
+TR_test "26.1 ünsüz yumuşaması: p, ç, t, k, nk, g" {
+    hepsi([("dolabım", "dolap"), ("ağacımız", "ağaç"), ("kilidi", "kilit"), ("ayağı", "ayak"), ("ahengi", "ahenk"), ("kataloğa", "katalog")])
+}
+
+TR_test "26.1 yumuşamayan kök olduğu gibi kalır" {
+    hepsi([("topa", "top"), ("suçu", "suç"), ("otu", "ot"), ("eki", "ek"), ("sanatı", "sanat")])
+    # Korunan kök yumuşamış biçimle eşleşmez: `tobu` `top`un çekimi değildir.
+    TR_assert_equal("tobu", TR_lemma("tobu"))
+    TR_assert_equal(TR_false, TR_analyze_word("tobu").TR_known)
+}
+
+TR_test "26.1 ünlü düşmesi, yumuşamayla birlikte de" {
+    hepsi([("nehrin", "nehir"), ("oğlum", "oğul"), ("alnı", "alın"), ("sabrı", "sabır"), ("kaybı", "kayıp"), ("kutbun", "kutup"), ("avcumuz", "avuç")])
+}
+
+TR_test "26.1 ikizleşme, yumuşamayla birlikte de" {
+    hepsi([("zammı", "zam"), ("hattın", "hat"), ("şıkkı", "şık"), ("reddi", "ret"), ("tıbbın", "tıp")])
+}
+
+TR_test "26.1 ince ek alan alıntı ad, aynı yazılışlı kalın ek alan ad" {
+    hepsi([("saatler", "saat"), ("kalbimiz", "kalp"), ("gollerde", "gol"), ("harfi", "harf"), ("halden", "hal"), ("hali", "hal"), ("adı", "ad")])
+}
+
+TR_test "26.1 kaynaştırma ve düzensiz çekim" {
+    hepsi([("suyundan", "su"), ("neyi", "ne"), ("sana", "sen"), ("onlara", "o"), ("bunlardan", "bu"), ("bizimki", "biz")])
+}
+
+TR_test "26.1 fiil çekimi: zaman, kip, kişi" {
+    hepsi([("geliyorum", "gel"), ("geldi", "gel"), ("gelmiş", "gel"), ("yapacaksınız", "yap"), ("bakarız", "bak"), ("gelsek", "gel"), ("gelmeliyiz", "gel"), ("okudunuz", "oku"), ("koşarım", "koş")])
+}
+
+TR_test "26.1 olumsuzluk ve yeterlilik" {
+    hepsi([("gelmiyorum", "gel"), ("gelmez", "gel"), ("gelemedi", "gel"), ("gelebilirim", "gel"), ("gelemeyebilirim", "gel"), ("okumadı", "oku")])
+}
+
+TR_test "26.1 fiilimsi ve zarf fiil" {
+    hepsi([("okumaktan", "oku"), ("okuyan", "oku"), ("yazdığımız", "yaz"), ("okuyunca", "oku"), ("gelince", "gel"), ("alınca", "al"), ("gelerek", "gel"), ("gelip", "gel"), ("gelmeden", "gel"), ("yazacağımız", "yaz")])
+}
+
+TR_test "26.1 fiilde yumuşama ve daralma" {
+    hepsi([("gidiyor", "git"), ("gidince", "git"), ("edecek", "et"), ("tadarak", "tat"), ("kaydediyorum", "kaydet"), ("başlıyor", "başla"), ("söylüyor", "söyle"), ("diyerek", "de"), ("yiyip", "ye")])
+}
+
+TR_test "26.1 yumuşayan fiil ünlü önünde sert kalmaz" {
+    TR_assert_equal(TR_false, TR_analyze_word("gitiyor").TR_known)
+    TR_assert_equal(TR_false, TR_analyze_word("etiyor").TR_known)
+}
+
+TR_test "26.1 yapım eki sözlükteki sözcükten sökülmez, sözlükte olmayandan sökülür" {
+    hepsi([("öğretmen", "öğretmen"), ("öğretmenler", "öğretmen"), ("gözlük", "gözlük"), ("gözlüğüm", "gözlük"), ("renkli", "renk"), ("kitaplığım", "kitap"), ("güzellik", "güzel")])
+}
+
+TR_test "26.1 eşitlik eki ad köküne yine bağlanır" {
+    hepsi([("insanca", "insan"), ("kitapça", "kitap")])
+}
+
+TR_test "26.1 ad ve fiil biçimi aynıysa ad önce gelir" {
+    TR_assert_equal("yemek", TR_lemma("yemek"))
+    TR_assert_equal("WordKind.Noun", TR_String(TR_analyze_word("yemek").TR_word_kind))
+}
+
+TR_test "26.1 küçük harfe Türkçe çevrilir" {
+    hepsi([("ISI", "ısı"), ("Isı", "ısı"), ("KIŞA", "kış"), ("İŞİ", "iş"), ("Çocuklar", "çocuk"), ("ÖĞRETMENİ", "öğretmen")])
+}
+
+TR_test "26.1 düzeltme işareti kalkar, iki yazım aynı biçimi verir" {
+    hepsi([("kâğıdı", "kağıt"), ("kağıdı", "kağıt"), ("kâr", "kar"), ("hâlinde", "hal"), ("halinde", "hal"), ("ilâcı", "ilaç"), ("ilacı", "ilaç")])
+}
+
+TR_test "26.1 kenardaki noktalama kırpılır" {
+    hepsi([("kitabı.", "kitap"), ("(evler)", "ev"), ("  evde  ", "ev"), ("\"kitaplar\",", "kitap"), ("'evler'", "ev")])
+}
+
+TR_test "26.1 kesme işareti ekin yerini söyler" {
+    hepsi([("Ankara'dan", "ankara"), ("Ali'nin", "ali"), ("Türkiye’nin", "türkiye"), ("TBMM'ye", "tbmm"), ("2024'te", "2024")])
+    TR_var a = TR_analyze_word("Kitap'ta")
+    TR_assert_equal(["ta"], a.TR_suffixes)
+    TR_assert_equal(TR_true, a.TR_known)
+    TR_assert_equal(TR_false, TR_analyze_word("Ankara'dan").TR_known)
+}
+
+TR_test "26.1 sözcük olmayan girdi" {
+    hepsi([("", ""), ("   ", ""), ("...", ""), ("123", "123"), ("e", "e")])
+    TR_var a = TR_analyze_word("")
+    TR_assert_equal(TR_String(TR_WordKind.TR_UnknownKind), TR_String(a.TR_word_kind))
+    TR_assert_equal([], a.TR_suffixes)
+    TR_assert_equal(TR_false, a.TR_known)
+}
+
+TR_test "26.1 üst üste binen ekler dallanmayı büyütmez" {
+    TR_var s = "ama"
+    TR_for _ TR_in 0..8 { s = s + s }
+    TR_assert_equal(s, TR_lemma(s))
+    TR_assert_equal("amamamamamamamamamamamamamamamamamamamamamamamamamamama", TR_lemma("amamamamamamamamamamamamamamamamamamamamamamamamamamama"))
+}
+
+TR_test "26.2 çözüm türü, ekleri ve sözlükte oluşu verir" {
+    TR_var a = TR_analyze_word("kitaplarımızdan")
+    TR_assert_equal("kitap", a.TR_lemma)
+    TR_assert_equal(TR_String(TR_WordKind.TR_Noun), TR_String(a.TR_word_kind))
+    TR_assert_equal(["lar", "ımız", "dan"], a.TR_suffixes)
+    TR_assert_equal(TR_true, a.TR_known)
+    TR_var f = TR_analyze_word("gidiyorum")
+    TR_assert_equal("git", f.TR_lemma)
+    TR_assert_equal(TR_String(TR_WordKind.TR_Verb), TR_String(f.TR_word_kind))
+    TR_assert_equal(["iyor", "um"], f.TR_suffixes)
+    TR_assert_equal([], TR_analyze_word("kitap").TR_suffixes)
+}
+
+TR_test "26.2 tür eşlemede ve eşitlikte kullanılır" {
+    TR_var t = TR_match TR_analyze_word("geldi").TR_word_kind {
+        TR_WordKind.TR_Noun => "ad"
+        TR_WordKind.TR_Verb => "fiil"
+        TR_WordKind.TR_UnknownKind => "bilinmiyor"
+    }
+    TR_assert_equal("fiil", t)
+    TR_assert(TR_analyze_word("ev").TR_word_kind == TR_WordKind.TR_Noun)
+}
+
+TR_test "26.2 sözlük dışı sözcükte yalnız güvenli çekim eki soyulur" {
+    TR_for ç TR_in [("blokzincirde", "blokzincir", "de"), ("podkastlardan", "podkast", "dan"), ("morzeklerin", "morzek", "ler")] {
+        TR_var a = TR_analyze_word(ç.0)
+        TR_assert_equal(ç.1, a.TR_lemma, ç.0)
+        TR_assert_equal(TR_false, a.TR_known, ç.0)
+        TR_assert(a.TR_suffixes.TR_contains(ç.2), ç.0)
+    }
+    TR_assert_equal(TR_String(TR_WordKind.TR_UnknownKind), TR_String(TR_analyze_word("blokzincirde").TR_word_kind))
+}
+
+TR_test "26.2 aramada ekli ve eksiz biçim eşleşir" {
+    TR_assert_equal(TR_lemma("blokzincir"), TR_lemma("blokzincirde"))
+    TR_assert_equal(TR_lemma("blokzincirler"), TR_lemma("blokzincir"))
+}
+
+TR_test "26.2 soyulacak güvenli ek yoksa küçültülmüş girdi döner, kısa kök üretilmez" {
+    hepsi([("Xyzqw", "xyzqw"), ("Blokzincir", "blokzincir"), ("Morzeki", "morzeki"), ("Morzeka", "morzeka")])
+    TR_assert_equal([], TR_analyze_word("Xyzqw").TR_suffixes)
+    TR_assert_equal(TR_String(TR_WordKind.TR_UnknownKind), TR_String(TR_analyze_word("Xyzqw").TR_word_kind))
+}
+
+TR_test "26.2 Türkçede olmayan son ünsüz çifti kök üretmez" {
+    TR_assert_equal("morzkbda", TR_lemma("morzkbda"))
+    TR_assert_equal([], TR_analyze_word("morzkbda").TR_suffixes)
+}
+
+TR_test "26.2 sözlük dışı fiil kesin bir ekle kabul edilir" {
+    TR_var a = TR_analyze_word("tweetliyorum")
+    TR_assert_equal("tweetli", a.TR_lemma)
+    TR_assert_equal(TR_String(TR_WordKind.TR_Verb), TR_String(a.TR_word_kind))
+    TR_assert_equal(TR_false, a.TR_known)
+    # Geniş zaman `-r` kesin değildir: `sensör` `sensö` olmaz.
+    TR_assert_equal("sensör", TR_lemma("sensör"))
+}
+
+TR_test "26.2 sözlük dışı adda ğ çok heceli kökte k'ye döner" {
+    TR_assert_equal("fırıldak", TR_lemma("fırıldağım"))
+    TR_var a = TR_analyze_word("tiktokağım")
+    TR_assert_equal("tiktokak", a.TR_lemma)
+    TR_assert_equal(TR_false, a.TR_known)
+}
+
+TR_test "26.3 kullanıcı sözlüğü adı ve fiili tanır" {
+    TR_var b = TR_Lemmatizer()
+    TR_assert_equal(TR_false, b.TR_analyze_word("morzekimizden").TR_known)
+    b.TR_add_lemma("morzek", TR_WordKind.TR_Noun)
+    TR_var a = b.TR_analyze_word("morzekimizden")
+    TR_assert_equal("morzek", a.TR_lemma)
+    TR_assert_equal(TR_true, a.TR_known)
+    TR_assert_equal(["imiz", "den"], a.TR_suffixes)
+    TR_assert_equal(TR_false, b.TR_analyze_word("morzekledik").TR_known)
+    b.TR_add_lemma("morzekle", TR_WordKind.TR_Verb)
+    TR_var f = b.TR_analyze_word("morzekledik")
+    TR_assert_equal("morzekle", f.TR_lemma)
+    TR_assert_equal(TR_String(TR_WordKind.TR_Verb), TR_String(f.TR_word_kind))
+    TR_assert_equal(TR_true, f.TR_known)
+}
+
+TR_test "26.3 kullanıcı sözlüğü ötekine ve varsayılana sızmaz" {
+    TR_var b = TR_Lemmatizer()
+    b.TR_add_lemma("morzek", TR_WordKind.TR_Noun)
+    TR_assert_equal(TR_false, TR_Lemmatizer().TR_analyze_word("morzek").TR_known)
+    TR_assert_equal(TR_false, TR_analyze_word("morzek").TR_known)
+}
+
+TR_test "26.3 yerleşik sözlük kullanıcı sözlüğünde de geçerlidir" {
+    TR_var b = TR_Lemmatizer()
+    TR_assert_equal("kitap", b.TR_lemma("kitabı"))
+    TR_assert_equal("git", TR_analyze_word(TR_word: "gidiyorum").TR_lemma)
+    TR_assert_equal("git", b.TR_lemma(TR_word: "gidiyorum"))
+}
+
+TR_test "26.3 eklenen sözcük küçültülür, kırpılır" {
+    TR_var b = TR_Lemmatizer()
+    b.TR_add_lemma(" IZGIRA. ", TR_word_kind: TR_WordKind.TR_Noun)
+    TR_assert_equal("ızgıra", b.TR_lemma("ızgıralar"))
+}
+
+TR_test "26.3 boş sözcük ve bilinmeyen tür hatadır; ileti önerisi çalışır" {
+    TR_var b = TR_Lemmatizer()
+    TR_assert_equal("H7540", TR_error_code { b.TR_add_lemma("", TR_WordKind.TR_Noun) })
+    TR_assert_equal("H7540", TR_error_code { b.TR_add_lemma(" ... ", TR_WordKind.TR_Verb) })
+    TR_assert_equal("H7541", TR_error_code { b.TR_add_lemma("morzek", TR_WordKind.TR_UnknownKind) })
+    TR_assert(TR_error_code { b.TR_add_lemma("morzek", TR_WordKind.TR_Noun) } == TR_none)
+    TR_assert(TR_error_code { b.TR_add_lemma("morzek", TR_WordKind.TR_Verb) } == TR_none)
+}
+
+TR_test "26.4 aynı sözcük aynı sonucu verir" {
+    TR_var ilk = TR_analyze_word("evlerimizdekilerden")
+    TR_var ikinci = TR_Lemmatizer().TR_analyze_word("evlerimizdekilerden")
+    TR_assert_equal(ilk.TR_lemma, ikinci.TR_lemma)
+    TR_assert_equal(ilk.TR_suffixes, ikinci.TR_suffixes)
+}

@@ -1751,6 +1751,8 @@ const (
 	H7537 Code = 7537 // {@splitter}: {which, select, start {{@start_threshold}} end {{@end_threshold}} pre_roll {{@pre_roll}} silence {{@silence}} other {{@max_speech}}} {given}, {which, select, start {eşik 0 ile 1 arasındadır} end {eşik 0 ile 1 arasındadır} other {süre sıfırdan büyük, sonlu bir saniye sayısıdır}} (25.12)
 	H7538 Code = 7538 // {@splitter}: bitiş eşiği {given}, başlangıç eşiği {start} değerinden büyük; bitiş başlangıcı geçmez: `{#end_threshold}: {start}` (25.12)
 	H7539 Code = 7539 // {@splitter}: üst sınır {given}, {frames} çerçevedir, baş tamponuna ve sessizliğe yetmez: `{#max_speech}: 29.0` (25.12)
+	H7540 Code = 7540 // {@add_lemma}: {given|q} sözcük değil, boş ya da yalnız noktalama; sözlüğe eklenecek kökü verin (26.3)
+	H7541 Code = 7541 // {@add_lemma}: {given|q} için tür bilinmeli: `{#WordKind}.{#Noun}` ya da `{#WordKind}.{#Verb}` (26.3)
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

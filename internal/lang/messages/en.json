@@ -1746,6 +1746,8 @@
 "H7537": "{@splitter}: {which, select, start {{@start_threshold}} end {{@end_threshold}} pre_roll {{@pre_roll}} silence {{@silence}} other {{@max_speech}}} is {given}, {which, select, start {a threshold is between 0 and 1} end {a threshold is between 0 and 1} other {a duration is a finite number of seconds above zero}} (25.12)",
 "H7538": "{@splitter}: the end threshold {given} is greater than the start threshold {start}; the end is not above the start: `{#end_threshold}: {start}` (25.12)",
 "H7539": "{@splitter}: the upper limit {given} is {frames} frames and leaves no room for the pre-roll and the silence: `{#max_speech}: 29.0` (25.12)",
+"H7540": "{@add_lemma}: {given|q} is not a word, it is empty or only punctuation; give the root to add (26.3)",
+"H7541": "{@add_lemma}: {given|q} needs a known kind: `{#WordKind}.{#Noun}` or `{#WordKind}.{#Verb}` (26.3)",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
 "H7902": "{fn} takes no parameter named '{given}' (it takes no named arguments)",
