@@ -36,6 +36,9 @@ func TestAgentsPageProgramRuns(t *testing.T) {
 	if last := strings.TrimSpace(lines[len(lines)-1]); last == "" {
 		t.Fatalf("program metin üretmedi:\n%s", output)
 	}
+	if !strings.Contains(string(output), "loaded 21") {
+		t.Fatalf("model yüklenmedi:\n%s", output)
+	}
 	if _, err := os.Stat(filepath.Join(dir, "model.safetensors")); err != nil {
 		t.Fatalf("model kaydedilmedi: %v", err)
 	}

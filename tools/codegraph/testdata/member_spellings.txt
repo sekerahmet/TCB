@@ -453,6 +453,8 @@ cevap.TR_keys	ok	0	name:TR_mem_keys
 cevap.TR_length	ok	0	name:TR_mem_length
 cfg.TR_keys	ok	0	name:TR_mem_keys
 cfg.TR_step	ok	0	name:TR_mem_step
+chars.TR_append	ok	0	name:TR_mem_append
+chars.TR_length	ok	0	name:TR_mem_length
 cift.TR_last	ok	0	name:TR_mem_last
 cift.TR_length	ok	0	name:TR_mem_length
 cikti.TR_transpose	ok	0	name:TR_mem_transpose
@@ -497,6 +499,7 @@ d.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:f
 d.TR_window	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_window
 d2.TR_keys	ok	0	name:TR_mem_keys
 d2.TR_length	ok	0	name:TR_mem_length
+data.TR_append	ok	0	name:TR_mem_append
 devamlar.TR_length	ok	0	name:TR_mem_length
 değerler.TR_sort	ok	0	name:TR_mem_sort
 dikkat.TR_k_norm	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_k_norm
@@ -592,6 +595,7 @@ g2.TR_shape	ok	0	name:TR_mem_shape
 g3.TR_shape	ok	0	name:TR_mem_shape
 g8.TR_tolist	ok	0	name:TR_mem_tolist
 genel.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
+generated.TR_map	ok	0	name:TR_mem_map
 geniş.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 geo.TR_Linear	not_found	4	-
 geri.TR_append	ok	0	name:TR_mem_append
@@ -663,6 +667,7 @@ i.TR_tolist	ok	0	name:TR_mem_tolist
 i32.TR_dtype	ok	0	name:TR_mem_dtype
 i32.TR_tolist	ok	0	name:TR_mem_tolist
 i64.TR_sequential	ok	0	name:TR_mem_sequential
+ids.TR_contains	ok	0	name:TR_mem_contains
 idx.TR_reshape	ok	0	name:TR_mem_reshape
 iki.TR_shape	ok	0	name:TR_mem_shape
 iki.TR_tolist	ok	0	name:TR_mem_tolist
@@ -682,6 +687,7 @@ ince.TR_dtype	ok	0	name:TR_mem_dtype
 ince.TR_step	ok	0	name:TR_mem_step
 ince.TR_tolist	ok	0	name:TR_mem_tolist
 indeksler.TR_append	ok	0	name:TR_mem_append
+inputs.TR_append	ok	0	name:TR_mem_append
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
 ix2.TR_tolist	ok	0	name:TR_mem_tolist
@@ -845,6 +851,7 @@ ll.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 ll.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 log_mel.TR_shape	ok	0	name:TR_mem_shape
 log_mel.TR_slice	ok	0	name:TR_mem_slice
+loss.TR_tolist	ok	0	name:TR_mem_tolist
 lp.TR_slice	ok	0	name:TR_mem_slice
 m.TR_append	ok	0	name:TR_mem_append
 m.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
@@ -1026,6 +1033,8 @@ opb.TR_step	ok	0	name:TR_mem_step
 opb.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 opt.TR_step	ok	0	name:TR_mem_step
 opt.TR_zero_grad	ok	0	name:TR_mem_zero_grad
+optimizer.TR_step	ok	0	name:TR_mem_step
+optimizer.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 oturumlar.TR_remove	ok	0	name:TR_mem_remove
 ouv.TR_step	ok	0	name:TR_mem_step
 ouv.TR_zero_grad	ok	0	name:TR_mem_zero_grad
@@ -1097,6 +1106,7 @@ r.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
 r.TR_slice	ok	0	name:TR_mem_slice
 r.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 r.TR_tolist	ok	0	name:TR_mem_tolist
+restored.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 return_mismatches.TR_append	ok	0	name:TR_mem_append
 rng.TR_length	ok	0	name:TR_mem_length
 rng.TR_starts_with	ok	0	name:TR_mem_starts_with
@@ -1230,6 +1240,7 @@ tablo.TR_transpose	ok	0	name:TR_mem_transpose
 tam.TR_length	ok	0	name:TR_mem_length
 tam.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 tam_y.TR_dtype	ok	0	name:TR_mem_dtype
+targets.TR_append	ok	0	name:TR_mem_append
 tek.TR_contains	ok	0	name:TR_mem_contains
 tek.TR_dtype	ok	0	name:TR_mem_dtype
 tek.TR_tolist	ok	0	name:TR_mem_tolist

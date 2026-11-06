@@ -88,7 +88,7 @@ TR_for step TR_in 0..60 {
 # Save by name, then load into a model built with another seed.
 TR_save_tensors("model.safetensors", TR_parameters(model, TR_named: TR_true))
 TR_var restored = TR_GPT(chars.TR_length, TR_context: CONTEXT, TR_embed_dim: 32, TR_num_layers: 2, TR_num_heads: 4, TR_seed: 2)
-TR_load_parameters(restored, TR_load_tensors("model.safetensors"))
+TR_print("loaded", TR_load_parameters(restored, TR_load_tensors("model.safetensors")))
 
 TR_var generated = restored.TR_generate(data[0..8], 30, TR_temperature: 0.0, TR_seed: 1)
 TR_print(generated.TR_map((i) => chars[i]).TR_join(""))
