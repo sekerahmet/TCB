@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -52,6 +53,21 @@ func TestLongTextMethodsReleaseTheLock(t *testing.T) {
 		}
 		if got := takes(small+"TR_var r = "+call+"\n") - takes(small); got != 0 {
 			t.Errorf("küçük metinde %s kilidi %d kez bıraktı, 0 beklenirdi", call, got)
+		}
+	}
+}
+
+// Kural (13.10): .TR_append değer döndürmez; listeyi yerinde değiştirir. Tipi bilinen yazımda dönüşün
+// kullanılması H1143'tür (TestNoValueCallInAValuePlace); burada tipi bilinmeyen alıcının motordaki yolu
+// sınanır: tek argümanlı hızlı yol ve çok argümanlı yöntem aynı sonucu verir.
+func TestAppendGivesNoValue(t *testing.T) {
+	for call, want := range map[string]string{"l.TR_append(2)": "[none, 2]", "l.TR_append(2, 3)": "[none, 3]"} {
+		_, val, err := runTRWithin(t, 5*time.Second, "TR_var l = [1]\nTR_var result = ["+call+", l.TR_length]")
+		if err != nil {
+			t.Fatalf("%s: %v", call, err)
+		}
+		if val.Inspect() != want {
+			t.Errorf("%s: %s bekleniyordu, %s alındı", call, want, val.Inspect())
 		}
 	}
 }
