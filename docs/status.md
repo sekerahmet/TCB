@@ -1340,10 +1340,10 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıld
 
 ### 21.1–21.8
 
-- **Mevcut durum (S1, 2026-11-06):** `TR_run_process` var: 21.1, 21.3–21.8 ve `TR_input:`, `TR_env:`, `TR_timeout:`, `TR_exit_codes:`; Windows'ta iş nesnesi ve Ctrl+Break, Unix'te süreç grubu [test: `internal/stdlib/process`, `cmd/trlang/e2e`]. `ffmpeg` 9.0.2 ile 21.1'in örneği Windows'ta koştu: 2 saniyelik mp3 32 000 örnek [ölçüldü: TCB]. `TR_spawn_process` ve `TR_Process` yok: 21.2 tampon kararını bekliyor.
+- **Mevcut durum (S1, 2026-11-06):** `TR_run_process` var: 21.1, 21.3–21.8 ve `TR_input:`, `TR_env:`, `TR_timeout:`, `TR_exit_codes:`; Windows'ta iş nesnesi ve Ctrl+Break, Unix'te süreç grubu [test: `internal/stdlib/process`, `cmd/trlang/e2e`]. `ffmpeg` 9.0.2 ile 21.1'in örneği Windows'ta koştu: 2 saniyelik mp3 32 000 örnek [ölçüldü: TCB, `aaf3078f`'den önceki `78c97d72` ikilisi, yerel]. `TR_spawn_process` ve `TR_Process` yok: 21.2 tampon kararını bekliyor.
 - **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; DENETİM 226 Ş2):** Unix'te `trlang test` ve kabukta durdurma isteği yakalanmıyor; süreç grubundaki dış program TR ölünce kalır [hipotez: kod okuma, `catchStop` yalnız `runProgram`'da].
-- **Yapılacaklar (F1, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
-- **Yapılacaklar (D, Ö3; sahip S1, 21.2 dilimi; S1 Bulgu 2):** standart çıktı sınırsız, 21.1 tamamını istiyor; üst sınır tampon kararında sorulur.
+- **Yapılacaklar (D, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
+- **Yapılacaklar (E, Ö3; sahip S1, 21.2 dilimi; S1 Bulgu 2):** standart çıktı sınırsız, 21.1 tamamını istiyor; üst sınır tampon kararında sorulur.
 - **Sınır (DENETİM 226 N1, N4):** `AUTH` sözcüğü `SSH_AUTH_SOCK`'u da süzer, `git push` ajana ulaşamaz, ileti `TR_env:` yazımını verir [ölçüldü]. `/dev/tty` okuyan program `TR_timeout:` olmadan dönmeyebilir [hipotez].
 
 ## 22. Bayt ve sayı

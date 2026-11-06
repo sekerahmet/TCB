@@ -18,13 +18,12 @@ const helperEnv = "TR_PROCESS_HELPER"
 
 func TestMain(m *testing.M) {
 	if os.Getenv(helperEnv) != "" {
-		helperMain(os.Args[1:])
-		return
+		helperMain(os.Args[1:]) // süreci bitirir, buraya dönmez
 	}
 	os.Exit(m.Run())
 }
 
-// helperMain ilk argümanın söylediğini yapar.
+// helperMain ilk argümanın söylediğini yapar ve süreci bitirir.
 func helperMain(args []string) {
 	switch args[0] {
 	case "args": // argümanları JSON olarak yazar
@@ -46,6 +45,7 @@ func helperMain(args []string) {
 	default:
 		helperExtra(args)
 	}
+	os.Exit(0)
 }
 
 // helperExtra hataya ve durdurmaya bakan testlerin programlarıdır.
