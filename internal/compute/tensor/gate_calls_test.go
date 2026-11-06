@@ -115,7 +115,8 @@ func checkTensorPackage(t *testing.T) (*token.FileSet, []*ast.File, *types.Info,
 		}
 		files = append(files, f)
 	}
-	info := &types.Info{Selections: map[*ast.SelectorExpr]*types.Selection{}, Types: map[ast.Expr]types.TypeAndValue{}}
+	info := &types.Info{Selections: map[*ast.SelectorExpr]*types.Selection{}, Types: map[ast.Expr]types.TypeAndValue{},
+		Defs: map[*ast.Ident]types.Object{}, Uses: map[*ast.Ident]types.Object{}}
 	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil)}
 	pkg, err := conf.Check("github.com/sekerahmet/TCB/internal/compute/tensor", fset, files, info)
 	if err != nil {

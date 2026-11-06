@@ -105,9 +105,9 @@ func decodeSafetensors(r io.Reader, size int64) ([]fileEntry, error) {
 		case dt.IsTyped():
 			g.raw, err = readRaw(r, dt, count)
 		case dt.Bits() == 16:
-			g.bits, err = readBits16(r, count)
+			err = g.readBits(r, count)
 		default:
-			g.data, err = readValues(r, count)
+			err = g.readFloats(r, count)
 		}
 		if err != nil {
 			return nil, messages.New(messages.H6653, e.name, err)
@@ -349,6 +349,28 @@ func readRaw(r io.Reader, dt tensor.DType, n int) ([]byte, error) {
 		}
 	}
 	return raw, nil
+}
+
+// readBits n adet 16 bitlik ondalığı okur: büyük tensör öbek dışı bloğa, dosyanın baytlarıyla.
+func (g *fileEntry) readBits(r io.Reader, n int) (err error) {
+	if g.block = tensor.NewHostBlock(n * 2); g.block == nil {
+		g.bits, err = readBits16(r, n)
+		return err
+	}
+	g.bits = g.block.Uint16s()
+	_, err = io.ReadFull(r, g.block.Bytes())
+	return err
+}
+
+// readFloats n adet float32'yi okur: büyük tensör öbek dışı bloğa, dosyanın baytlarıyla.
+func (g *fileEntry) readFloats(r io.Reader, n int) (err error) {
+	if g.block = tensor.NewHostBlock(n * 4); g.block == nil {
+		g.data, err = readValues(r, n)
+		return err
+	}
+	g.data = g.block.Float32s()
+	_, err = io.ReadFull(r, g.block.Bytes())
+	return err
 }
 
 // readBits16 n adet 16 bitlik ondalığı dosyadaki bitleriyle okur.

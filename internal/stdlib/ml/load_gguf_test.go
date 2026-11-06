@@ -271,3 +271,50 @@ func TestGGUFQuantEntryIsRaw(t *testing.T) {
 		t.Errorf("tensör %v %v", got.DType(), got.Shape())
 	}
 }
+
+// Kural (15.53): dosyanın büyük tensörü öbek dışı bloğa gelir, değerleri ve bitleri öbekteki yolla
+// aynıdır; küçük tensör öbekte kalır. GGUF'un üç yolu: nicemli, float32, 16 bit.
+func TestGGUFLargeTensorsGoToBlocks(t *testing.T) {
+	needBlocks(t)
+	values := bigFloats()
+	bits := make([]uint16, 1<<20)
+	wide := make([]byte, 2*len(bits))
+	for i := range bits {
+		bits[i] = uint16(i)*2 + 0x3C00 | 1
+		wide[2*i], wide[2*i+1] = byte(bits[i]), byte(bits[i]>>8)
+	}
+	const rows, cols = 1024, 1024
+	quant := make([]byte, rows*cols/32*34)
+	for at := 0; at < len(quant); at += 34 {
+		quant[at+1] = 0x3C // ölçek 1
+		for j := 2; j < 34; j++ {
+			quant[at+j] = byte(at + j)
+		}
+	}
+	b := (&gguftest.Builder{}).KV("general.architecture", "qwen3")
+	b.Tensor("q", gguf.TypeQ8_0, []uint64{cols, rows}, quant)
+	b.Tensor("f", gguf.TypeF32, []uint64{uint64(len(values))}, float32Bytes(values...))
+	b.Tensor("h", gguf.TypeF16, []uint64{uint64(len(bits))}, wide)
+	b.Tensor("norm", gguf.TypeF32, []uint64{4}, float32Bytes(1, 2, 3, 4))
+	entries, err := decodeGGUFBytes(b.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, inBlock := range []bool{true, true, true, false} {
+		if (entries[i].block != nil) != inBlock {
+			t.Errorf("%s: blokta %v, %v olmalıydı", entries[i].ad, entries[i].block != nil, inBlock)
+		}
+	}
+	if q := entries[0].tensor(); !slices.Equal(q.Raw(), quant) || !slices.Equal(q.Shape(), []int{rows, cols}) {
+		t.Errorf("q: baytlar ya da şekil farklı %v", q.Shape())
+	}
+	if f := entries[1].tensor(); !slices.Equal(f.Data(), values) {
+		t.Error("f: değerler farklı")
+	}
+	if h := entries[2].tensor(); h.DType() != tensor.Float16 || !slices.Equal(h.Bits16s(), bits) {
+		t.Errorf("h: %v", h.DType())
+	}
+	if n := entries[3].tensor(); !slices.Equal(n.Data(), []float32{1, 2, 3, 4}) {
+		t.Errorf("norm: %v", n.Data())
+	}
+}

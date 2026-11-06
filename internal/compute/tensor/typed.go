@@ -2,6 +2,7 @@ package tensor
 
 import (
 	le "encoding/binary"
+	"runtime"
 	"slices"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -228,6 +229,7 @@ func (t *Tensor) Bits16s() []uint16 {
 	}
 	out := make([]uint16, src.Numel())
 	copyRows(out, cpuStore(src.S).h, View{Shape: src.Shape, Strides: ContiguousStrides(src.Shape)}, src)
+	runtime.KeepAlive(t)
 	return out
 }
 
@@ -256,6 +258,7 @@ func Float64sOn(dev Device, vals []float64, shape ...int) *Tensor {
 func (t *Tensor) Raw() []byte {
 	if t.dtyp.IsQuantized() {
 		t.refuseTransposed()
+		defer runtime.KeepAlive(t)
 		return slices.Clone(t.quantRaw(t.offset, t.Numel()))
 	}
 	if !t.dtyp.IsTyped() {

@@ -24,11 +24,12 @@ import (
 type cpuStorage struct {
 	VersionCounter
 	dtyp    DType
-	d       []float32 // Float32
-	h       []uint16  // BFloat16, Float16
-	raw     []byte    // ham bayt türleri (DType.IsTyped; cpu_typed.go)
-	n       int       // ham bayt türlerinde öğe sayısı
-	release bool      // havuza iade edildi (yeniden ayrılana kadar kullanılmamalı)
+	d       []float32  // Float32
+	h       []uint16   // BFloat16, Float16
+	raw     []byte     // ham bayt türleri (DType.IsTyped; cpu_typed.go)
+	n       int        // ham bayt türlerinde öğe sayısı
+	release bool       // havuza iade edildi (yeniden ayrılana kadar kullanılmamalı)
+	block   *HostBlock // dilimler öbek dışındaysa onların sahibi (host_block.go)
 }
 
 func (s *cpuStorage) Device() Device { return CPU }

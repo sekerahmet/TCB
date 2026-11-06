@@ -87,11 +87,19 @@ func (t *Tensor) Cast(dt DType) *Tensor {
 		return symCast(t, dt)
 	}
 	sy := counterStart(t.be, OpKindCast).start()
-	out := emptyOf(isCast, t.be, t.shape, dt)
+	out := t.castTarget(dt)
 	gateCopy(t.be, out.storage, 0, t.view())
 	r := trackPass(out, "cast", t, func(o *node) { handOffGrad(o.parents[0], o) })
 	sy.finish()
 	return r
+}
+
+// castTarget Cast'in boş sonucudur: blokta duran ağırlığın çevrilmişi de blokta durur.
+func (t *Tensor) castTarget(dt DType) *Tensor {
+	if s := t.hostTarget(dt, allocSizeOn(t.be, isCast, t.shape, dt)); s != nil {
+		return fromStorage(t.be, s, t.shape)
+	}
+	return emptyOf(isCast, t.be, t.shape, dt)
 }
 
 // castMemo bir ara sonucun saklanan dönüşümü ve o andaki depolama sürümleri. Dönüşüm zayıf
