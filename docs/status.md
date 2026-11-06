@@ -1262,6 +1262,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
+- **Yapılacaklar (D, Ö3; sahip D1; DENETİM 244):** tipi bilinen liste öğesi demetse `l[0][0]` denetimde değil çalışma anında hata veriyor; ileti `l[0].0`'ı öneriyor [ölçüldü: `74d38399`]. Madde 3.6a.
+- **Yapılacaklar (D, Ö3; sahip D1; `AGENTS.md` denemesi):** kitaplığın `.TR_loss`'u parametre tipi yazmıyor, hedef olarak liste verilince denetim değil çalışma anı yakalıyor; `lib/README.md`'nin örneği bu yüzden koşmuyordu, düzeldi [ölçüldü: `74d38399`].
 - **Yapılacaklar (D, Ö3; sahip TCB; DENETİM 224 N1):** metin kapısı Windows'ta koşuyor; `TestDocLinks` Linux yolunda harf büyüklüğü farkını görmez, hedef tam harfle karşılaştırılabilir. 83 gönderimde 0 kez oldu [ölçüldü: DENETİM 224], sonraki tam denetim yakalar [hipotez].
 - **Mevcut durum (2026-11-06; DENETİM 228, 230):** asistanın ekranı `tools/assistant/`'ta: tek sayfa, ayrı dil dosyaları, sahte olay akışı, `contract.md` sözleşmesi; TR'de HTTP sunucusu yok, gerçek TR sunucusuyla konuşmadı. Yalnız Chromium tabanlı tarayıcıda denendi [ölçüldü: ekran oturumu].
 - **Yapılacaklar (C, Ö2; sahip ekran dilimi; DENETİM 230 N1):** onay kartında iki aldatma yolu: argümanın gerçek kısmı boş satırlarla görünmeyen yere itilebilir, U+E0000 etiket karakterleri görünür kılınmıyor [kanıtlı: kod; koşulmadı]. HTTP bölümü yazılırken belirteç teslimi ayrıca tartılır.

@@ -21,7 +21,7 @@ TR_import "tr/optimizers"
 TR_var model = TR_GPT(1000, TR_context: 64, TR_embed_dim: 64, TR_num_layers: 2, TR_num_heads: 4)
 TR_var op = TR_MuonAndAdamW(model) # gizli 2B ağırlıklar Muon, öbürleri AdamW
 TR_var giriş = [[1, 2, 3, 4]]
-TR_var hedef = [[2, 3, 4, 5]]
+TR_var hedef = TR_Tensor([[2, 3, 4, 5]])
 TR_for adım TR_in 0..10 {
     op.TR_set_multiplier(TR_lr_schedule(adım, 10, TR_warmup: 2))
     op.TR_zero_grad()
