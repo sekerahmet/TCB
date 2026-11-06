@@ -416,7 +416,7 @@ type Backend interface {
 	// Clamp out (bitişik) = x'in [lo, hi] aralığına sınırlanmışı; NaN korunur (sınır
 	// verilmeyen yan ±sonsuzdur).
 	Clamp(out Storage, x View, lo, hi float32)
-	// ClampGrad gx += g·[lo ≤ x ≤ hi].
+	// ClampGrad gx += g·[lo ≤ x ≤ hi]; x NaN'sa gx NaN olur.
 	ClampGrad(gx, g Storage, x View, lo, hi float32)
 	// Where out (outShape, bitişik) = c ≠ 0 ise a, değilse b (üçü de yayınlamalı; NaN
 	// koşul doğru sayılır).

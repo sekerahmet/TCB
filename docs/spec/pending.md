@@ -53,6 +53,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 
+- **15.16, `TR_relu`'nun yukarıdan gelen NaN'ı (2026-11-06, DENETİM 234):** `TR_clamp`, `TR_where`, `TR_maximum` seçilmeyen dala NaN geçirmez (15.15), `TR_relu` `g * 0` ile geçirir: `TR_sqrt(TR_relu(-1))` NaN verir. Gürültülü, sessiz değil.
 - **19.4, çıktı listesi (2026-11-06, ekran, DENETİM 228 Ş5):** "insanın göreceği çıktılarda" listesinde ekran ve olay akışı yok; `tools/assistant/contract.md`'nin gizli değer maddesi buna dayanıyor. HTTP bölümü yazılırken listeye eklenir.
 - **21.4, `TR_exit_codes: []` (2026-11-06, S1, TCB kararı):** program başlamadan H7508; kural yazmıyor [test: `TestExitCodesAreChecked`].
 - **21.1, torun boruyu tutuyor (2026-11-06, S1, TCB kararı):** program normal bitip torun boruyu tutarsa 2 saniye sonra okunan çıktı verilir, torun öldürülmez, sonucu programın çıkış kodu belirler [test: `TestGrandchildHoldingThePipeDoesNotBlock`].

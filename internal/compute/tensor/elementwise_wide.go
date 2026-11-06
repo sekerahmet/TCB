@@ -60,7 +60,7 @@ func (t *Tensor) Abs() *Tensor { return unary(t, OpAbs, 0) }
 
 // Clamp her elemanı [lo, hi] aralığına sınırlar; sınırın yalnızca biri isteniyorsa diğeri
 // ±sonsuz verilir. NaN eleman NaN kalır. Türev aralığın içinde (sınırlar dahil) 1, dışında
-// 0'dır. lo > hi ya da NaN sınır hatadır.
+// 0, NaN'da NaN'dır. lo > hi ya da NaN sınır hatadır.
 func (t *Tensor) Clamp(lo, hi float32) *Tensor {
 	if lo != lo || hi != hi || lo > hi {
 		panic(messages.New(messages.H3040, lo, hi))
