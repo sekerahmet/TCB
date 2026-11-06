@@ -44,7 +44,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 4, 5 | dil | dil tanımı 19.2 `TR_command_line` yapı alır diyor, motor sözlük istiyor; `check` yakalamıyor, ileti doğru yazımı göstermiyor | E, Ö3 | status'ta; `AGENTS.md` uyarıyor |
 | 4 | belge | kurulumda beş engel: eski Go, toolchain, vekil 502, `noexec` klasör, modül indirme | yok | `AGENTS.md`'de; hazır ikili kararı Ahmet'te |
 | 4 | fikir | uygulanan yerleşikler listesi; metin benzerliği yerleşiği | yok | açık |
-| 5 | dil | yakalanan hatanın metni kullanıcıya `Message("H2132")` diye görünüyor; program okunur ileti yazamıyor | sınıflanacak | açık |
+| 5 | dil tasarımı | yakalanan hatanın metni kullanıcıya `Message("H2132")` diye görünüyor; yazılı kural (8.3), program okunur ileti yazamıyor | yok | pending'de |
 | 5 | belge | `.TR_split(" ")` satır sonunda bölmez; ajan bunu bir hata ayıklama turunda buldu, başvuru bağımsız `.TR_split()`'i söylemiyordu | yok | düzeldi |
 | 5 | belge | ajan logaritma ve metin dilimi yok sandı; ikisi de var, tek sayfa başvuruda yoktu; `**`'ın üst klasörü kapsadığı da yazmıyordu | yok | düzeldi |
 | 5 | belge | başvuru `TR_String(e)` için "hatanın metnidir" diyordu, çalışma hatasında kodu veriyor | yok | düzeldi |

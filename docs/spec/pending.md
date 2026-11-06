@@ -52,6 +52,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 
+- **8.3, okunur hata metni (2026-11-06, TCB, ajan denemesi 5):** yakalanan çalışma hatasının metni iletinin kodunu veriyor; program kullanıcıya okunur ileti yazamıyor, ajan kendi cümlesini yazdı.
 - **13.2, karakter sınıfı (2026-11-06, TCB, ajan denemesi 3):** bir karakterin harf, rakam ya da boşluk olduğunu soran yerleşik yok; metni sözcüklere bölen ajan büyük ve küçük hâli karşılaştırarak dolandı, bu yol büyük harfi olmayan yazılarda yanlış sonuç verir.
 - **15.16, `TR_relu`'nun yukarıdan gelen NaN'ı (2026-11-06, DENETİM 234):** `TR_clamp`, `TR_where`, `TR_maximum` seçilmeyen dala NaN geçirmez (15.15), `TR_relu` `g * 0` ile geçirir: `x = -1`'de `TR_sqrt(TR_relu(x))`'in türevi NaN. Gürültülü, sessiz değil.
 - **19.4, çıktı listesi (2026-11-06, ekran, DENETİM 228 Ş5):** "insanın göreceği çıktılarda" listesinde ekran ve olay akışı yok; `tools/assistant/contract.md`'nin gizli değer maddesi buna dayanıyor. HTTP bölümü yazılırken listeye eklenir.
