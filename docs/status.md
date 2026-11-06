@@ -1020,7 +1020,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da `TR_false`, `TR_where` ondalık NaN koşulunu H6207 ile reddediyor, `TR_max` ve `TR_min` −0.0 < 0.0 kullanıyor [ölçüldü: Gemini 4, DENETİM 166].
 - **Yapılacaklar (C, Ö2; ölçüm status'un):** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
-- **Mevcut durum (2026-11-06; A, Ö0 kapandı; DENETİM 219, 234):** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN; float32, bf16, fp16 ve `TR_fuse` içinde `TR_relu`, CPU ve GPU benzeticisi [test: `tests/nan_turevi_test.tr`, `TestSpecialValuesSameOnBothDevices`].
+- **Mevcut durum (2026-11-06; A, Ö0 kapandı; DENETİM 219, 234):** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN [test: float32 iki cihazda, CPU'da bf16 ve `TR_fuse` içinde `TR_relu`: `tests/nan_turevi_test.tr`, `TestSpecialValuesSameOnBothDevices`; ölçüldü: GPU benzeticisinde bf16 ve fp16, T1'in geçici denemesi].
 
 ### 15.51
 
@@ -1190,7 +1190,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.1
 
-- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** kök ve UNC öneki korunuyor [ölçüldü: DENETİM]. **Gemini Koşu 5 (2026-10-29), uygulanacak:** `..` ile tabandan kaçış hatası (bugün `TR_Path("veri", "../../gizli/x.json")` tabandan çıkıyor [ölçüldü: DENETİM]).
+- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** kök ve UNC öneki korunuyor [ölçüldü: DENETİM].
 - **Mevcut durum (2026-11-06; B, Ö0 kapandı; DENETİM 219, 229, 237):** ilk parçadan sonrakilerin birleşip temizlenmiş hali ilk parçanın dışına çıkamaz, H7510; mutlak parça denetimi de bu biçime iniyor (H7139) [test: `tests/dosya_ve_yol_test.tr`, `internal/stdlib/files/path_test.go`].
 - **Yapılacaklar (B, Ö1, asistan araçları dilimi; sahip TCB tasarım, D1 uygulama; DENETİM 229 N1, N2, 230):** `TR_Path`'in denetiminden geçmeyen yollar: tek parçada birleştirilen metin (`TR_Path("veri/\(ad)")`, `TR_Path("veri/" + ad)`, `../x`'te `x` veriyor [ölçüldü: DENETİM 229]), metin yol alan yerleşikler (`TR_write_file("veri/\(ad)", ...)` [kanıtlı: 18.4; koşulmadı]), bağlantı üzerinden çıkış (temizleme metin üstünde [kanıtlı: 18.1; denenmedi]). Kural bunlara izin veriyor; modelin verdiği dosya adı için asistan araçları yazılırken tartılır.
 - **Yapılacaklar (D, Ö3; sahip D1; DENETİM 229 N2):** Windows aygıt adı (`NUL`, `CON.txt`) parça olarak hatasız [ölçüldü: DENETİM 229], kural yazmıyor; Unix'te `C:/x` parçası hata vermiyor, 18.1 koşulsuz diyor [kanıtlı: `path.go`; koşulmadı].

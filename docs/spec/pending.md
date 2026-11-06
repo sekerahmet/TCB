@@ -44,7 +44,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 ## Ara
 - **15.24, cinsi bilinmeyen maske (2026-11-03, T1 Kol B teslim 1; DENETİM istek 80 Ş-t1):** "0/1 sayı tensörü denetim hatasıdır"; denetleyici tensörün cinsini tutmuyor, dokuz yazımın sekizi çalışma anında, hiçbiri denetimde yakalanıyor (H6985). Cümle: "denetleyici cinsini bilmiyorsa çalışma hatasıdır, ileti aynıdır".
 - **15.23a, kayıttaki bayrak (2026-11-03, T1 Kol B teslim 1):** iki denetim "15.6'nın bekleyen işlemleri" diyor; cihaz içi bayrak henüz yok, hedef konağa okunarak denetleniyor (sessiz değil). 15.6 ile gelir.
-- **4.5, kendini içeren kap (2026-11-03, D1 Kol A devri):** 7.6 döngü hatasını (H2771) yapı için yazıyor; kendini içeren liste ve sözlük de kurulabiliyor (`TR_List[TR_Any]`, `l.TR_append(l)`) ve motor artık onlarda da H2771 veriyor. 4.5'e cümle: "kendine varan kap (liste, sözlük) da karşılaştırılamaz, çalışma hatasıdır (7.6'daki gibi)".
+- **4.5, kendini içeren kap (2026-11-03, D1 Kol A devri):** 7.6 döngü hatasını (H2771) yapı için yazıyor; kendini içeren liste ve sözlük de kurulabiliyor (karışık değişmez `[1, "a"]`, `l.TR_append(l)`; 4a5'te yeniden yazılır) ve motor artık onlarda da H2771 veriyor. 4.5'e cümle: "kendine varan kap (liste, sözlük) da karşılaştırılamaz, çalışma hatasıdır (7.6'daki gibi)".
 - **13.1, `TR_Int`'in eksi basamağı (2026-11-03, D1 13.1c):** "girdinin tipini verir" yazıyor, kesinliği yazmıyor; uygulama kesin yuvarlıyor (`TR_round(1234567890123456789, -2)` → `1234567890123456800`; `float64` üzerinden `…768` verirdi). Öneri: "`TR_Int` kesin yuvarlanır (3.1)".
 
 
@@ -53,7 +53,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 
-- **15.16, `TR_relu`'nun yukarıdan gelen NaN'ı (2026-11-06, DENETİM 234):** `TR_clamp`, `TR_where`, `TR_maximum` seçilmeyen dala NaN geçirmez (15.15), `TR_relu` `g * 0` ile geçirir: `TR_sqrt(TR_relu(-1))` NaN verir. Gürültülü, sessiz değil.
+- **15.16, `TR_relu`'nun yukarıdan gelen NaN'ı (2026-11-06, DENETİM 234):** `TR_clamp`, `TR_where`, `TR_maximum` seçilmeyen dala NaN geçirmez (15.15), `TR_relu` `g * 0` ile geçirir: `x = -1`'de `TR_sqrt(TR_relu(x))`'in türevi NaN. Gürültülü, sessiz değil.
 - **19.4, çıktı listesi (2026-11-06, ekran, DENETİM 228 Ş5):** "insanın göreceği çıktılarda" listesinde ekran ve olay akışı yok; `tools/assistant/contract.md`'nin gizli değer maddesi buna dayanıyor. HTTP bölümü yazılırken listeye eklenir.
 - **21.4, `TR_exit_codes: []` (2026-11-06, S1, TCB kararı):** program başlamadan H7508; kural yazmıyor [test: `TestExitCodesAreChecked`].
 - **21.1, torun boruyu tutuyor (2026-11-06, S1, TCB kararı):** program normal bitip torun boruyu tutarsa 2 saniye sonra okunan çıktı verilir, torun öldürülmez, sonucu programın çıkış kodu belirler [test: `TestGrandchildHoldingThePipeDoesNotBlock`].
