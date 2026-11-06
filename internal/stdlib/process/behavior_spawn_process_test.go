@@ -53,8 +53,8 @@ func pattern(n int) []byte {
 	return b
 }
 
-// program kodu koşar: son değer, hata çıktısı, hata, çıkış kodu.
-func program(t *testing.T, code string) (interp.Value, string, error, int) {
+// program kodu koşar: son değer, hata çıktısı, çıkış kodu, hata.
+func program(t *testing.T, code string) (interp.Value, string, int, error) {
 	t.Helper()
 	m := interp.New()
 	var errs bytes.Buffer
@@ -65,7 +65,7 @@ func program(t *testing.T, code string) (interp.Value, string, error, int) {
 		t.Fatalf("sözdizimi: %v", p.Errors())
 	}
 	v, err := m.Run(prog)
-	return v, errs.String(), err, m.End(err).Code
+	return v, errs.String(), m.End(err).Code, err
 }
 
 // joined TR listesindeki baytları birleştirir.
@@ -95,7 +95,7 @@ TR_for {
 // olmaz (21.2).
 func TestBackpressureKeepsEveryByte(t *testing.T) {
 	n := 5 * process.OutputBuffer
-	v, _, err, _ := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["pattern", "`+strconv.Itoa(n)+`"])
+	v, _, _, err := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["pattern", "`+strconv.Itoa(n)+`"])
 TR_var parçalar = []
 TR_for {
     TR_var parça = p.TR_read(262144)
@@ -118,7 +118,7 @@ parçalar`)
 func TestOutputOutlivesTheProgram(t *testing.T) {
 	for _, arg := range []string{"", ", TR_buffer_bytes: " + strconv.Itoa(2*process.OutputBuffer)} {
 		n := process.OutputBuffer + 2048
-		v, _, err, _ := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["pattern", "`+strconv.Itoa(n)+`"]`+arg+`)
+		v, _, _, err := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["pattern", "`+strconv.Itoa(n)+`"]`+arg+`)
 TR_for { TR_if p.TR_done() { TR_break }
     TR_sleep(0.01) }
 TR_sleep(2.5)
@@ -135,7 +135,7 @@ TR_sleep(2.5)
 // TR hesap yaparken okuyucu sürer: boru dolmaz, program biter, bayt kaybolmaz (21.2).
 func TestReaderRunsWhileTRComputes(t *testing.T) {
 	n := 200000 // bu boy iki sistemin borusundan da büyüktür: okuyucu olmasa program bitmezdi
-	v, _, err, _ := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["pattern", "`+strconv.Itoa(n)+`"])
+	v, _, _, err := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["pattern", "`+strconv.Itoa(n)+`"])
 TR_var tur = 0
 TR_for {
     tur = tur + 1
@@ -154,7 +154,7 @@ TR_for {
 // TR_try ile görülür, program 0 koduyla biter (21.2).
 func TestOverflowStopsTheProgramAndSticks(t *testing.T) {
 	prog := helperProgram(t)
-	v, errs, err, code := program(t, `TR_var p = TR_spawn_process(`+prog+`, ["endless"], TR_buffer_bytes: 1000)
+	v, errs, code, err := program(t, `TR_var p = TR_spawn_process(`+prog+`, ["endless"], TR_buffer_bytes: 1000)
 TR_for { TR_if p.TR_done() { TR_break }
     TR_sleep(0.01) }
 TR_var görülen = TR_error_code { p.TR_read(1) }
@@ -170,7 +170,7 @@ p.TR_cancel()
 
 // Hiç görülmeyen taşma program biterken yazılır, program 1 koduyla biter; iletide yazım vardır (21.2).
 func TestUnseenOverflowIsWrittenAtTheEnd(t *testing.T) {
-	_, errs, err, code := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["endless"], TR_buffer_bytes: 1000)
+	_, errs, code, err := program(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["endless"], TR_buffer_bytes: 1000)
 TR_for { TR_if p.TR_done() { TR_break }
     TR_sleep(0.01) }
 p.TR_cancel()`)
@@ -379,7 +379,7 @@ TR_var kod = p.TR_wait()
 func TestProgramEndStopsAndReports(t *testing.T) {
 	prog := helperProgram(t)
 	beat := t.TempDir() + "/atım"
-	_, errs, err, code := program(t, `TR_spawn_process(`+prog+`, ["beat", `+tr(beat)+`, "100000"])
+	_, errs, code, err := program(t, `TR_spawn_process(`+prog+`, ["beat", `+tr(beat)+`, "100000"])
 TR_sleep(0.2)`)
 	if err != nil || errs != "" || code != 0 {
 		t.Errorf("durdurulan yazılmamalı: %v, %q, kod %d", err, errs, code)
@@ -396,13 +396,13 @@ TR_sleep(0.2)
 			t.Errorf("%s: program durmalıydı", end)
 		}
 	}
-	_, errs, err, code = program(t, `TR_var p = TR_spawn_process(`+prog+`, ["exit", "3"])
+	_, errs, code, err = program(t, `TR_var p = TR_spawn_process(`+prog+`, ["exit", "3"])
 TR_for { TR_if p.TR_done() { TR_break }
     TR_sleep(0.01) }`)
 	if err != nil || code != 1 || !strings.Contains(errs, "3") {
 		t.Errorf("hata %v, kod %d, çıktı %q", err, code, errs)
 	}
-	_, errs, err, code = program(t, `TR_var p = TR_spawn_process(`+prog+`, ["exit", "3"])
+	_, errs, code, err = program(t, `TR_var p = TR_spawn_process(`+prog+`, ["exit", "3"])
 TR_error_code { p.TR_wait() }`)
 	if err != nil || errs != "" || code != 0 {
 		t.Errorf("beklenen program yazılmamalı: %v, %q, kod %d", err, errs, code)

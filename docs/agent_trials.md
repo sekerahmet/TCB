@@ -33,7 +33,13 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 1 | olumlu | koşamayan ajan yalnız okuyarak hatasız program yazdı; başvuruda olmayan dosya ve girdi adlarını da doğru buldu | yok | hangi dosyaları okuduğu sorulacak |
 | 1, 2 | olumlu | ajan koşmadığını açıkça söyledi, çıktı uydurmadı | yok | |
 | 1 | belge | tek sayfa başvuruda dosya ve klasör işleri yok; ajan 18. bölümü aramak zorunda kaldı | yok | düzeldi |
-| 3 | dil | `docs/spec/13_yerlesikler.md` 13.2'deki `.TR_lines()` ve `.TR_index_of()` motorda yok; denetim tanımıyor, status bilmiyordu | D, Ö3 | status'ta |
+| 3 | dil | `docs/spec/13_yerlesikler.md` 13.2'deki `.TR_lines()` ve `.TR_index_of()` motorda yok; 52 onaylı ad böyle bekliyor, ajan dil tanımından var sanıyor | D, Ö3 | status'ta |
+| 3 | belge | kurulum beş deneme sürdü: `go.mod`'un `toolchain` satırı Go indirmeye kalkıyor, `AGENTS.md` bunu söylemiyordu | yok | düzeldi; hazır ikili kararı Ahmet'te |
+| 3 | belge | başvuru "dilin kuralı" diyordu, dil tanımıyla metin metotlarında ayrışıyordu | yok | düzeldi |
+| 3 | dil tasarımı | harf, rakam, boşluk soran yerleşik yok; dolaylı yol büyük harfi olmayan yazılarda yanlış | yok | pending'de |
+| 3 | belge | örnek yorumlarında eski görünüm adları (`klasörü_listele`, `yol()`, `komut_satırı()`, `aktar`); kod temiz, yorum ajanı yanıltabilir | yok | açık |
+| 3 | belge | örnek başlıkları `trlang dosya`, `AGENTS.md` `trlang run dosya` diyor; ikisi de çalışıyor | yok | açık |
+| 3 | olumlu | "tahmin etmeden önce örneklerde ara" cümlesi işe yaradı: ajan adları örneklerden buldu | yok | |
 | 1 | belge | ajan bir kimlik sayfası önerdi: imza, tipler, örnek, sık yanlış, uygulama durumu tek yerde, üretilmiş | yok | açık |
 | 1 | fikir | metin işleme ve arama modülü: bölme, kök, TF-IDF, kosinüs, vektör indeksi | yok | açık |
 | 1 | fikir | aynı işi Python, Go ve TR ile yazdırıp hata, düzeltme ve token ölçmek | yok | açık |

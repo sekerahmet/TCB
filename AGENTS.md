@@ -12,7 +12,7 @@ If you can only read web pages, read the raw links under "Where to look" and wri
 
 ## Install
 
-You need Go 1.25 or newer. No cgo, no CUDA toolkit.
+You need Go 1.25 or newer. No cgo, no CUDA toolkit. `go.mod` asks for toolchain 1.26.10 and Go downloads it by itself.
 
 ```bash
 git clone https://github.com/sekerahmet/TCB
@@ -20,7 +20,7 @@ cd TCB
 go build -o trlang ./cmd/trlang
 ```
 
-On Windows, build `trlang.exe`.
+On Windows, build `trlang.exe`. If the toolchain download is blocked, build with the Go you have: `GOTOOLCHAIN=local go build -o trlang ./cmd/trlang`.
 
 The command is `trlang`. Never type `tr`: on Linux that is another program and it does nothing useful, silently.
 
@@ -101,7 +101,7 @@ Comments in the examples are in Turkish. The code in them runs as it is from the
 | You want | Read |
 | :-- | :-- |
 | The language in one page | [`docs/agent_reference.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/agent_reference.md) |
-| The full rules | [`docs/spec/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/spec/README.md) |
+| The full rules, including names that are not implemented yet | [`docs/spec/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/spec/README.md) |
 | The library: layers, optimizers, training, audio | [`lib/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/lib/README.md) |
 | Files and folders | [`docs/spec/18_dosya_ve_yol.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/spec/18_dosya_ve_yol.md) |
 | A guide from the first step | [`docs/guide/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/guide/README.md) |

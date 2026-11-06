@@ -2,7 +2,7 @@
 
 TR, yapay zekâ işleri için statik tipli bir dildir. Bütün dil sözcükleri `TR_` ile başlayan kimliklerdir. Yanlış yazım çoğunlukla program çalışmadan önce hata verir ve ileti doğrusunu söyler.
 
-Bu belge dilin kuralıdır; araç bazılarını henüz denetlemez, geçirmesi kuralı kaldırmaz. Kurulum, komutlar ve çalışan bir eğitim programı: [`AGENTS.md`](../AGENTS.md).
+Bu belge bugün çalışan dili anlatır. Kuralların tam metni [`docs/spec`](spec/README.md)'tedir; orada yazıp henüz uygulanmamış adlar da vardır, araç onları tanımaz. Buradaki kuralların bazılarını araç henüz denetlemez, geçirmesi kuralı kaldırmaz. Kurulum, komutlar ve çalışan bir eğitim programı: [`AGENTS.md`](../AGENTS.md).
 
 ## Dosya, komutlar ve iletiler
 - İlk satır tam olarak `# TR 4` (önünde bir `#!` satırı olabilir). Kod yalnız `TR_` kimlikleriyle yazılır; görünüm (`trlang show`) yalnız okunur, çalışmaz.
@@ -195,7 +195,7 @@ TR_var n = TR_try { oku() } TR_catch e {
 - **Dosya:** `TR_read_file(yol)` metni verir, `TR_write_file(yol, metin)` yazar. `TR_read_lines(yol)` satır satır okur: `TR_for satır TR_in TR_read_lines(yol) { }`.
 - **Yol:** `TR_Path("klasör", "a.txt")` yolu birleştirir, `yol.TR_is_file` dosya mı diye sorar, `TR_String(yol)` metnini verir. `TR_make_dir(yol)` klasör kurar.
 - **Klasör:** `TR_list_dir(klasör, "**/*.txt")` kalıba uyanları `TR_Path` listesi olarak verir; `**` alt klasörlere de iner.
-- **Komut satırı:** `TR_var ayar = TR_command_line({"adet": 5, "soru": ""})` argümanları varsayılanlarıyla okur: `trlang run a.tr --adet 3`, `ayar["adet"]`. `TR_input("soru: ")` bir satır okur.
+- **Komut satırı:** `TR_var ayar = TR_command_line({"adet": 5, "soru": ""})` argümanları varsayılanlarıyla okur: `trlang run a.tr --adet 3`, `ayar["adet"]`. `TR_input("soru: ")` bir satır okur, `TR_env("AD")` ortam değişkenini verir.
 
 ## Başka dillerden gelen sık yanlışlar
 | Yazılan | TR'de |
