@@ -88,16 +88,20 @@ func readGGUFTensor(r io.Reader, t gguf.Tensor) (fileEntry, error) {
 	switch {
 	case dtype.IsQuantized():
 		// Dosyanın bitleriyle gelir, açılmaz (15.55); sıfır ölçek geçerlidir.
-		g.raw = make([]byte, t.Size)
+		if g.block = tensor.NewHostBlock(int(t.Size)); g.block != nil {
+			g.raw = g.block.Bytes()
+		} else {
+			g.raw = make([]byte, t.Size)
+		}
 		if _, err = io.ReadFull(r, g.raw); err == nil {
 			if b := tensor.CheckQuantScales(dtype, g.raw); b >= 0 {
 				return g, messages.New(messages.H6686, t.Name, b)
 			}
 		}
 	case dtype == tensor.Float32:
-		g.data, err = readValues(r, count)
+		err = g.readFloats(r, count)
 	default:
-		g.bits, err = readBits16(r, count)
+		err = g.readBits(r, count)
 	}
 	return g, err
 }

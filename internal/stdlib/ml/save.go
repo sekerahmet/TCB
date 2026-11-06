@@ -79,6 +79,8 @@ type fileEntry struct {
 	data  []float32 // float32 tensörün değerleri
 	raw   []byte    // cinsli türlerde (float64, TR_Int, TR_Bool) küçük uçlu ham baytlar
 	bits  []uint16  // 16 bitlik ondalıklar: tensörün ve dosyanın bitleri, açılmadan
+
+	block *tensor.HostBlock // data, raw ya da bits öbek dışındaysa sahipleri (15.53)
 }
 
 // newFileEntry tensörün verisini konağa alır: hesap ondalığı değer, öbürü ham bayt olarak.
@@ -98,6 +100,8 @@ func newFileEntry(ad string, t *tensor.Tensor) fileEntry {
 // tensor dosyadan okunan girdinin tensörüdür (varsayılan cihazda).
 func (g fileEntry) tensor() *tensor.Tensor {
 	switch {
+	case g.block != nil:
+		return tensor.FromHostBlock(g.block, g.dtype, g.shape...)
 	case g.dtype.IsQuantized():
 		return tensor.FromQuantized(g.dtype, g.raw, g.shape...)
 	case g.dtype.IsTyped():

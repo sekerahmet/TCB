@@ -3,6 +3,7 @@ package tensor
 import (
 	"bytes"
 	le "encoding/binary"
+	"runtime"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -89,6 +90,7 @@ func (t *Tensor) quantTo(dev Device) *Tensor {
 	t.refuseTransposed()
 	target := BackendFor(dev)
 	n := allocSizeOn(target, isCopy, t.shape, t.dtyp)
+	defer runtime.KeepAlive(t)
 	return fromStorage(target, quantStorage(target, t.dtyp, t.quantRaw(t.offset, n), n), t.shape)
 }
 
@@ -282,6 +284,7 @@ func (t *Tensor) dequantize(dt DType) *Tensor {
 		parallelFor(len(blocks)/size, elems*4, func(lo, hi int) {
 			dequantBlocks(s.dtyp, y[lo*elems:hi*elems], blocks[lo*size:hi*size])
 		})
+		runtime.KeepAlive(t)
 	}
 	return out.Cast(dt)
 }
@@ -289,6 +292,7 @@ func (t *Tensor) dequantize(dt DType) *Tensor {
 // dequantize64 değerleri float64'te açar (15.52: float64'te kesindir). Kodlar ve ölçekler float32'de
 // zaten kesin çarpılır; "q4_k"nin çıkarması burada yuvarlanmaz.
 func (t *Tensor) dequantize64() *Tensor {
+	defer runtime.KeepAlive(t)
 	s := cpuStore(t.storage)
 	out := emptyOf(isCast, t.be, t.shape, Float64)
 	y := cpuStore(out.storage).raw
@@ -344,12 +348,14 @@ func (t *Tensor) OpenAt(idx ...int) float32 {
 	var block [kBlock]float32
 	first := at / elems * elems
 	dequantBlocks(t.dtyp, block[:elems], t.quantRaw(first, elems))
+	runtime.KeepAlive(t)
 	return block[at-first]
 }
 
 // quantCopy aynı hassasiyette yeni bir depodur (15.54): kodlar ve ölçekler kopyalanır.
 func (t *Tensor) quantCopy(is opKind) *Tensor {
 	t.refuseTransposed()
+	defer runtime.KeepAlive(t)
 	allocSizeOn(t.be, is, t.shape, t.dtyp)
 	raw := t.quantRaw(t.offset, t.Numel())
 	if t.be.Device().Kind == KindCPU {
@@ -365,11 +371,19 @@ func (t *Tensor) quantRows(idx, shape []int) *Tensor {
 	elems, size := t.dtyp.QuantBlock()
 	rowBytes := t.Numel() / max(t.shape[0], 1) / elems * size
 	n := allocSizeOn(t.be, isCopy, shape, t.dtyp)
+	defer runtime.KeepAlive(t)
 	src := t.quantRaw(t.offset, t.Numel())
-	out := make([]byte, n/elems*size)
-	for i, r := range idx {
-		copy(out[i*rowBytes:(i+1)*rowBytes], src[r*rowBytes:(r+1)*rowBytes])
+	pick := func(out []byte) {
+		for i, r := range idx {
+			copy(out[i*rowBytes:(i+1)*rowBytes], src[r*rowBytes:(r+1)*rowBytes])
+		}
 	}
+	if s := t.hostTarget(t.dtyp, n); s != nil {
+		pick(s.raw)
+		return fromStorage(t.be, s, shape)
+	}
+	out := make([]byte, n/elems*size)
+	pick(out)
 	return fromStorage(t.be, quantStorage(t.be, t.dtyp, out, n), shape)
 }
 

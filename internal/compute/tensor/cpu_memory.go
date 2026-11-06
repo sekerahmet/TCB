@@ -110,7 +110,7 @@ func (cpuBackend) allocate(n int, dt DType, reset bool) Storage {
 // hiçbir görünümün bakmadığını güvence eder.
 func (cpuBackend) Release(s Storage) {
 	c, ok := s.(*cpuStorage)
-	if !ok || c.Len() < poolMin || c.dtyp.IsTyped() || c.dtyp.IsQuantized() {
+	if !ok || c.Len() < poolMin || c.dtyp.IsTyped() || c.dtyp.IsQuantized() || c.block != nil {
 		return
 	}
 	if c.release {

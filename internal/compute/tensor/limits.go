@@ -1,6 +1,8 @@
 package tensor
 
 import (
+	"runtime"
+
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
@@ -36,6 +38,7 @@ func Embedding(w *Tensor, idx []int, shape ...int) *Tensor {
 		out := emptyOf(isEmbedding, w.be, append(copyInts(shape), D), Float32)
 		if s, ok := w.storage.(*cpuStorage); ok {
 			quantEmbedding(cd(out.storage), quantBytes(s, w.offset, V*D), s.dtyp, ix, D)
+			runtime.KeepAlive(w)
 		} else {
 			gateEmbedding(w.be, out.storage, w.view(), ix, D)
 		}

@@ -3,12 +3,16 @@ package ml
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/sekerahmet/TCB/internal/compute/tensor"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -126,4 +130,53 @@ func FuzzSafetensorsDecode(f *testing.F) {
 			g.tensor()
 		}
 	})
+}
+
+// bigFloats blok eşiğinin üstünde bir float32 dizisidir.
+func bigFloats() []float32 {
+	v := make([]float32, 1<<19)
+	for i := range v {
+		v[i] = float32(i%1009) - 500.5
+	}
+	return v
+}
+
+// needBlocks bu platformda öbek dışı blok yoksa testi atlar.
+func needBlocks(t *testing.T) {
+	t.Helper()
+	if tensor.NewHostBlock(1<<20) == nil {
+		t.Skip("bu platformda öbek dışı blok yok")
+	}
+}
+
+// Safetensors'ın iki yolu: Whisper'ın float32'si ve 16 bitlik dosyalar. Girdi bırakılınca tensör
+// bloğu tutar: yükleyicinin dilimi değil, depo sahibidir.
+func TestSafetensorsLargeTensorsGoToBlocks(t *testing.T) {
+	needBlocks(t)
+	values := bigFloats()
+	bits := make([]uint16, 1<<20)
+	for i := range bits {
+		bits[i] = uint16(i) | 0x7F81 // sinyal NaN desenleri dosyanın bitleriyle gelmeli
+	}
+	f, h := f32Bytes(values...), u16Bytes(bits...)
+	header := fmt.Sprintf(`{"f":{"dtype":"F32","shape":[%d],"data_offsets":[0,%d]},"h":{"dtype":"BF16","shape":[%d],"data_offsets":[%d,%d]}}`,
+		len(values), len(f), len(bits), len(f), len(f)+len(h))
+	file := safetensorsBytes(header, append(f, h...))
+	entries, err := decodeGGUFBytes(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entries[0].block == nil || entries[1].block == nil {
+		t.Fatal("tensörler blokta değil")
+	}
+	a, b := entries[0].tensor(), entries[1].tensor()
+	entries = nil
+	runtime.GC()
+	runtime.GC()
+	if !slices.Equal(a.Data(), values) {
+		t.Error("float32 değerleri farklı")
+	}
+	if b.DType() != tensor.BFloat16 || !slices.Equal(b.Bits16s(), bits) {
+		t.Errorf("16 bitlik desen farklı: %v", b.DType())
+	}
 }
