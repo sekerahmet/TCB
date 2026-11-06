@@ -153,7 +153,7 @@ Bu belge bugün çalışan dili anlatır. Kuralların tam metni [`docs/spec`](sp
   - `e.TR_code`: çalışma hatasında iletinin kodu (`"H2470"` gibi, metin), kodu olmayan hatada `TR_none`.
   - `e.TR_value`: fırlatılan değer. Yalnız `TR_match` deseniyle ya da `TR_Type` sınamasıyla açılır.
   - `e.TR_cause` (`TR_Error?`), `e.TR_suppressed` (`TR_List[TR_Error]`).
-  - `TR_String(e)` hatanın metnidir. Hatayı metnine göre ayırma, koduna ya da değerine göre ayır.
+  - `TR_String(e)` fırlatılan değerin metnidir: düz metinde metnin kendisi, çalışma hatasında `Message("H2132")` gibi kodu. Okunur ileti gerekiyorsa programın kendisi yazar. Hatayı metnine göre ayırma, koduna ya da değerine göre ayır.
 - **Çalışma hataları da yakalanır:** sıfıra bölme, olmayan anahtar, tutmayan JSON açması.
 - **Durumlu tiple ayırma:**
 ```tr
@@ -179,9 +179,9 @@ TR_var n = TR_try { oku() } TR_catch e {
   - Blok adları çalıştığı andaki değerleriyle okur; bloktan `TR_return` ile çıkılmaz.
 
 ## Sık yerleşikler
-- **Genel:** `TR_print(a, b)` (değerleri boşlukla yazar), `TR_abs`, `TR_floor` ve `TR_ceil` (`TR_Float` verir), `TR_round(x)`, `TR_round(x, basamak)`, `TR_sqrt`, `TR_min`, `TR_max`, `TR_sum(l)`, `TR_mean(l)`, `TR_json_parse(m)`, `TR_json_string(j)`, `TR_time_ms()`, `TR_sleep(saniye)`, `TR_exit(kod)`.
+- **Genel:** `TR_print(a, b)` (değerleri boşlukla yazar), `TR_abs`, `TR_floor` ve `TR_ceil` (`TR_Float` verir), `TR_round(x)`, `TR_round(x, basamak)`, `TR_sqrt`, `TR_log`, `TR_exp`, `TR_min`, `TR_max`, `TR_sum(l)`, `TR_mean(l)`, `TR_json_parse(m)`, `TR_json_string(j)`, `TR_time_ms()`, `TR_sleep(saniye)`, `TR_exit(kod)`.
 - **Yuvarlama:** `TR_round(x)` bir `TR_Int` verir, `TR_round(x, basamak)` girdinin tipini. Yarım çifte gider, yazılan ondalığa göre: `TR_round(2.5)` = 2, `TR_round(3.5)` = 4, `TR_round(0.125, 2)` = 0.12, `TR_round(2.675, 2)` = 2.68.
-- **Metin:** `.TR_length`, `.TR_lower()`, `.TR_upper()`, `.TR_strip()`, `.TR_split()` (boşluk, sekme ve satır sonunda böler), `.TR_split(ayırıcı)`, `.TR_replace(a, b)`, `.TR_starts_with(m)`, `.TR_ends_with(m)`, `.TR_contains(m)`, `.TR_get(i)`.
+- **Metin:** `m[0..3]` dilimdir, `.TR_length`, `.TR_lower()`, `.TR_upper()`, `.TR_strip()`, `.TR_split()` (boşluk, sekme ve satır sonunda böler), `.TR_split(ayırıcı)`, `.TR_replace(a, b)`, `.TR_starts_with(m)`, `.TR_ends_with(m)`, `.TR_contains(m)`, `.TR_get(i)`.
 - **Liste:**
   - `.TR_length`, `.TR_append(x)`, `.TR_contains(x)`.
   - `.TR_map(f)`, `.TR_filter(f)`, `.TR_reduce(başlangıç, (a, x) => ...)`.
@@ -194,7 +194,7 @@ TR_var n = TR_try { oku() } TR_catch e {
 ## Dosya, klasör ve komut satırı
 - **Dosya:** `TR_read_file(yol)` metni verir, `TR_write_file(yol, metin)` yazar. `TR_read_lines(yol)` satır satır okur: `TR_for satır TR_in TR_read_lines(yol) { }`.
 - **Yol:** `TR_Path("klasör", "a.txt")` yolu birleştirir, `yol.TR_is_file` dosya mı diye sorar, `TR_String(yol)` metnini verir. `TR_make_dir(yol)` klasör kurar.
-- **Klasör:** `TR_list_dir(klasör, "**/*.txt")` kalıba uyanları `TR_Path` listesi olarak verir; `**` alt klasörlere de iner.
+- **Klasör:** `TR_list_dir(klasör, "**/*.txt")` kalıba uyanları `TR_Path` listesi olarak verir; `**` sıfır ya da çok klasördür, klasörün kendisindeki dosyalar da gelir.
 - **Komut satırı:** `TR_var ayar = TR_command_line({"adet": 5, "soru": ""})` argümanları varsayılanlarıyla okur: `trlang run a.tr --adet 3`, `ayar["adet"]`. `TR_input("soru: ")` bir satır okur, `TR_env("AD")` ortam değişkenini verir.
 
 ## Başka dillerden gelen sık yanlışlar

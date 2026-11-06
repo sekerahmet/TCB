@@ -46,6 +46,10 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 4 | fikir | uygulanan yerleşikler listesi; metin benzerliği yerleşiği | yok | açık |
 | 5 | dil | yakalanan hatanın metni kullanıcıya `Message("H2132")` diye görünüyor; program okunur ileti yazamıyor | sınıflanacak | açık |
 | 5 | belge | `.TR_split(" ")` satır sonunda bölmez; ajan bunu bir hata ayıklama turunda buldu, başvuru bağımsız `.TR_split()`'i söylemiyordu | yok | düzeldi |
+| 5 | belge | ajan logaritma ve metin dilimi yok sandı; ikisi de var, tek sayfa başvuruda yoktu; `**`'ın üst klasörü kapsadığı da yazmıyordu | yok | düzeldi |
+| 5 | belge | başvuru `TR_String(e)` için "hatanın metnidir" diyordu, çalışma hatasında kodu veriyor | yok | düzeldi |
+| 5 | dil | denetim yerleşiklerin argüman tipini sınamıyor; yanlış argüman çalışma anında düşüyor | A, Ö1 | status'ta, 4a5 |
+| 5 | yöntem | ajan "ad kuralını araç denetlemiyor" dedi; denetliyor, uyarı veriyor: ajan cevabı ölçülmeden yazılmaz | yok | |
 | 5 | olumlu | ajan sonucu Python ile bağımsız doğruladı, puanlar aynı çıktı; TR'nin hatası çıkmadı | yok | |
 | 3 | olumlu | "tahmin etmeden önce örneklerde ara" cümlesi işe yaradı: ajan adları örneklerden buldu | yok | |
 | 1 | belge | ajan bir kimlik sayfası önerdi: imza, tipler, örnek, sık yanlış, uygulama durumu tek yerde, üretilmiş | yok | açık |
