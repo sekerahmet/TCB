@@ -79,7 +79,7 @@ func parseLanguage(text string) (string, map[string]string, error) {
 // languageNames dil klasöründeki dosyalardır.
 func languageNames(t *testing.T) []string {
 	t.Helper()
-	entries, err := os.ReadDir(reporoot.Path(languageDir))
+	entries, err := reporoot.ReadDir(reporoot.Path(languageDir))
 	if err != nil {
 		t.Fatal(err)
 	}
