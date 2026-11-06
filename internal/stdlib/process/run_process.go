@@ -34,12 +34,13 @@ const stopGrace = 2 * time.Second
 
 // runCall bir program_çalıştır çağrısının okunmuş argümanlarıdır.
 type runCall struct {
-	name  string // iletilerde programın adı: verilen ad ya da yol
-	path  string // çalışacak dosya
-	args  []string
-	input *interp.BytesVal // yoksa girdi boş aygıttır (21.1)
-	codes []int            // kabul edilen çıkış kodları (21.4)
-	env   []string         // programın ortamı (21.6)
+	name   string // iletilerde programın adı: verilen ad ya da yol
+	byPath bool   // program yol olarak verildi
+	path   string // çalışacak dosya
+	args   []string
+	input  *interp.BytesVal // yoksa girdi boş aygıttır (21.1)
+	codes  []int            // kabul edilen çıkış kodları (21.4)
+	env    []string         // programın ortamı (21.6)
 	// filtered ortamdan süzülen gizli adlardır; başarısız bitişin iletisi söyler (21.6).
 	filtered []string
 	limit    interp.Value  // TR_timeout: değeri; yoksa nil (21.5)
@@ -89,7 +90,7 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 		return nil, err
 	}
 	if out.over.Load() {
-		return nil, messages.New(messages.H7527, fn, call.name, out.limit, listText(call.args))
+		return nil, messages.New(messages.H7527, fn, call.name, out.limit, call.programText(), listText(call.args))
 	}
 	if j.timedOut.Load() {
 		return nil, messages.New(messages.H2921, fn, interp.Shown(call.limit), line)
@@ -218,7 +219,16 @@ func readProgramCall(m *interp.VM, code codes.Code, args []interp.Value, named m
 	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
 		return nil, err
 	}
+	_, call.byPath = args[0].(interp.PathValuer)
 	return call, nil
+}
+
+// programText programın önerideki yazımıdır: yol olarak verilen yine yol yazılır (21.3).
+func (c *runCall) programText() string {
+	if c.byPath {
+		return codes.Spelling(codes.TypePath) + "(" + strconv.Quote(c.name) + ")"
+	}
+	return strconv.Quote(c.name)
 }
 
 // listText argümanların önerideki yazımıdır.

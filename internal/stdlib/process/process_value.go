@@ -120,7 +120,7 @@ func (p *Process) overflowError() error {
 }
 
 func (p *Process) overflowMessage() error {
-	return messages.New(messages.H7522, interp.CallPrefix(codes.FnSpawnProcess), p.call.name, p.buffer, listText(p.call.args))
+	return messages.New(messages.H7522, interp.CallPrefix(codes.FnSpawnProcess), p.call.name, p.buffer, p.call.programText(), listText(p.call.args))
 }
 
 // stopError TR'nin durdurduğu programı bekleyenin hatasıdır: süre sınırında zaman aşımı, öbür

@@ -131,8 +131,13 @@ func TestRunProcessOutputIsBounded(t *testing.T) {
 	restore := process.SetPhysicalMemory(1 << 20)
 	defer restore()
 	_, err := run(t, `TR_run_process(`+helperProgram(t)+`, ["endless"])`)
-	if !messages.Has(err, messages.H7527) || !strings.Contains(err.Error(), "TR_spawn_process") {
-		t.Errorf("%v", err)
+	if !messages.Has(err, messages.H7527) {
+		t.Fatalf("%v", err)
+	}
+	text := err.Error()
+	code := text[strings.LastIndex(text, "`TR_spawn_process(")+1 : strings.LastIndex(text, "`")]
+	if got, err := run(t, code+`.TR_length`); err != nil || got != "65536" {
+		t.Errorf("%s: %s (%v)", code, got, err)
 	}
 	if got, err := run(t, `TR_run_process(`+helperProgram(t)+`, ["pattern", "1000"]).TR_length`); err != nil || got != "1000" {
 		t.Errorf("sınırın altı: %s (%v)", got, err)

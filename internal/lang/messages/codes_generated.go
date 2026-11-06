@@ -1733,12 +1733,12 @@ const (
 	H7510 Code = 7510 // {fn} {index}. parça {part|q} ilk parçanın dışına çıkıyor (dışarıdan gelen bir ad taban klasörden çıkamasın). İçinde bir ad verin: `{#path}(a, b)` (`a` taban klasör, `b` addır); yukarı çıkmak için üst klasörü isteyin: `{#path}(a).{#parent}`
 	H7520 Code = 7520 // {fn}: `{name}:` pozitif bir {@int} olmalıdır, bayt sayısıdır; {given} verildi
 	H7521 Code = 7521 // {fn}: `{name}: {size}` bu makinenin belleğini aşar ({limit} bayt var)
-	H7522 Code = 7522 // {fn}: {name|q} çıktısı `{#arg}: {limit}` tamponunu aştı: program durduruldu, biriken baytlar atıldı. Okuma yetişmiyor: tamponu büyütün ya da daha sık okuyun; sürdürmek için programı yeniden başlatın: `{#spawn}({name|q}, {args}, {#arg}: {limit})`
+	H7522 Code = 7522 // {fn}: {name|q} çıktısı `{#arg}: {limit}` tamponunu aştı: program durduruldu, biriken baytlar atıldı. Okuma yetişmiyor: tamponu büyütün ya da daha sık okuyun; sürdürmek için programı yeniden başlatın: `{#spawn}({program}, {args}, {#arg}: {limit})`
 	H7523 Code = 7523 // {fn}: {size} bayt `{#arg}: {limit}` tamponundan büyük, bu okuma hiç dolmaz; daha az okuyun ya da tamponu büyütün
 	H7524 Code = 7524 // {fn}: okunacak bayt sayısı pozitif olmalıdır, {given} verildi
 	H7525 Code = 7525 // {fn}: {size} bayt bu makinenin belleğini aşar ({limit} bayt var)
 	H7526 Code = 7526 // {fn}: {name|q} programı bitti, girdisine yazılamaz
-	H7527 Code = 7527 // {fn}: {name|q} çıktısı bellek sınırını ({limit} bayt) aştı, program durduruldu. Büyük çıktı parça parça okunur: `{#spawn}({name|q}, {args}).{#read}(65536)`
+	H7527 Code = 7527 // {fn}: {name|q} çıktısı bellek sınırını ({limit} bayt) aştı, program durduruldu. Büyük çıktı parça parça okunur: `{#spawn}({program}, {args}).{#read}(65536)`
 	H7528 Code = 7528 // {fn}: {name|q} programının girdisi kapatıldı, yazılamaz
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})

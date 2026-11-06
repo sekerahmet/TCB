@@ -184,22 +184,24 @@ func TestOverflowSuggestionRuns(t *testing.T) {
 	dir := t.TempDir()
 	installTool(t, dir, "araç")
 	t.Setenv("PATH", dir)
-	_, err := run(t, `TR_var p = TR_spawn_process("araç", ["endless"], TR_buffer_bytes: 1000)
+	for _, program := range []string{`"araç"`, helperProgram(t)} {
+		_, err := run(t, `TR_var p = TR_spawn_process(`+program+`, ["endless"], TR_buffer_bytes: 1000)
 TR_for { TR_if p.TR_done() { TR_break }
     TR_sleep(0.01) }
 p.TR_wait()`)
-	if !messages.Has(err, messages.H7522) {
-		t.Fatalf("%v", err)
-	}
-	const start = "`"
-	text := err.Error()
-	code := text[strings.LastIndex(text, "`TR_spawn_process(")+1 : strings.LastIndex(text, start)]
-	got, err := run(t, `TR_var p = `+code+`
+		if !messages.Has(err, messages.H7522) {
+			t.Fatalf("%v", err)
+		}
+		const start = "`"
+		text := err.Error()
+		code := text[strings.LastIndex(text, "`TR_spawn_process(")+1 : strings.LastIndex(text, start)]
+		got, err := run(t, `TR_var p = `+code+`
 TR_var parça = p.TR_read(10)
 p.TR_cancel()
 parça.TR_length`)
-	if err != nil || got != "10" {
-		t.Errorf("%s: %s (%v)", code, got, err)
+		if err != nil || got != "10" {
+			t.Errorf("%s: %s (%v)", code, got, err)
+		}
 	}
 }
 
