@@ -38,6 +38,9 @@ type runCall struct {
 	args  []string
 	input *interp.BytesVal // yoksa girdi boş aygıttır (21.1)
 	codes []int            // kabul edilen çıkış kodları (21.4)
+	env   []string         // programın ortamı (21.6)
+	// filtered ortamdan süzülen gizli adlardır; başarısız bitişin iletisi söyler (21.6).
+	filtered []string
 }
 
 // runProcess program_çalıştır(program, argümanlar) yerleşiğidir.
@@ -46,13 +49,13 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	if err := bind.CheckNamed(fn, named, nameInput, nameEnv, nameTimeout, nameExitCodes); err != nil {
 		return nil, err
 	}
-	call, err := readRunCall(fn, args, named)
+	call, err := readRunCall(m, fn, args, named)
 	if err != nil {
 		return nil, err
 	}
 	var out bytes.Buffer
 	// exec.Command kullanılmaz: yolu yeniden arar (21.3, program_lookup.go).
-	c := &exec.Cmd{Path: call.path, Args: append([]string{call.path}, call.args...)}
+	c := &exec.Cmd{Path: call.path, Args: append([]string{call.path}, call.args...), Env: call.env}
 	if call.input != nil {
 		c.Stdin = bytes.NewReader(call.input.Data())
 	}
@@ -86,7 +89,7 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 // endError biten programın hatasıdır: sinyalle ölmek ya da kabul edilmeyen kod (21.4).
 func (r *runCall) endError(fn any, state *os.ProcessState, stderr string) error {
 	if signal, killed := exitSignal(state); killed {
-		return messages.New(messages.H7504, fn, r.name, signal, stderr)
+		return messages.New(messages.H7504, fn, r.name, signal, stderr, filteredHint(r.filtered))
 	}
 	code := state.ExitCode()
 	if slices.Contains(r.codes, code) {
@@ -96,7 +99,7 @@ func (r *runCall) endError(fn any, state *os.ProcessState, stderr string) error 
 	for _, c := range append(slices.Clone(r.codes), code) {
 		accepted = append(accepted, strconv.Itoa(c))
 	}
-	return messages.New(messages.H7503, fn, r.name, code, "["+strings.Join(accepted, ", ")+"]", stderr)
+	return messages.New(messages.H7503, fn, r.name, code, "["+strings.Join(accepted, ", ")+"]", stderr, filteredHint(r.filtered))
 }
 
 // exitCodes TR_exit_codes: argümanını okur; verilmezse yalnız 0 kabul edilir (21.4). Boş liste hiçbir
@@ -125,7 +128,7 @@ func exitCodes(fn any, named map[string]interp.Value) ([]int, error) {
 }
 
 // readRunCall çağrının argümanlarını okur ve denetler; program başlamadan biter.
-func readRunCall(fn any, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
+func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
 	if len(args) != 2 {
 		return nil, interp.ArgCountError(codes.FnRunProcess, 2, len(args))
 	}
@@ -145,6 +148,9 @@ func readRunCall(fn any, args []interp.Value, named map[string]interp.Value) (*r
 		call.input = b
 	}
 	if call.codes, err = exitCodes(fn, named); err != nil {
+		return nil, err
+	}
+	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
 		return nil, err
 	}
 	return call, nil

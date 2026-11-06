@@ -76,7 +76,7 @@ TR_for {
 - `TR_env:` bir `TR_Dict[TR_String, TR_String]`'dir. Ortama değişken ekler ya da var olanın değerini değiştirir, ortamın geri kalanını silmez.
 - Gizli bir değer gerekiyorsa açıkça verilir: `TR_env: {"HF_TOKEN": anahtar}`.
 - Program başarısız biterse ve ortamdan değişken süzüldüyse ileti süzülen adları (değerlerini değil) ve `TR_env:` yazımını söyler.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestSecretNamedVariablesAreNotPassed`, `TestEnvArgumentAddsAndReplaces`, `TestExplicitSecretReachesTheProgramAndIsMasked`, `TestFailureNamesTheFilteredVariables`, `TestEnvArgumentIsChecked`, `TestEnvNamesIgnoreCaseOnWindows`.
 
 **21.7** Dış programın çıktısı bayttır. Metin olarak okumak `TR_String(b)` iledir (UTF-8, 3.3a); UTF-8 olmayan çıktı orada çalışma hatasıdır, sessizce bozulmaz.
 - *Test:* Go: `TestRunProcessOutputIsBytes`.

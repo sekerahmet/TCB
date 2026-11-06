@@ -28,6 +28,9 @@ Denetim: `TestProgramNameIsSearchedInPath`, `TestRelativePathEntriesAreNotSearch
 **Başarısız bitiş iletide okunur, gizli değer görünmez.** Kabul edilmeyen çıkış kodu çalışma hatasıdır: ad, kod, standart hatanın sonu. Standart hata sınırlı tamponla okunur (`stderrTailLimit`); tampon sınır artı en uzun gizli değer kadar tutar, önce süzülür sonra kesilir, yazdırılamayan bayt iletiye girmez.
 Denetim: `TestExitCodeIsARunError`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestBothOutputsDoNotDeadlock`.
 
+**Dış programa gizli değer kendiliğinden gitmez.** Gizli adlı değişkenler ortamdan süzülür; `TR_env:` ekler ya da değiştirir, gizli adlı değeri süzgece verir. Başarısız bitişte ileti süzülen adları söyler, değerlerini söylemez.
+Denetim: `TestSecretNamedVariablesAreNotPassed`, `TestExplicitSecretReachesTheProgramAndIsMasked`, `TestFailureNamesTheFilteredVariables`, `TestEnvNamesIgnoreCaseOnWindows`.
+
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.

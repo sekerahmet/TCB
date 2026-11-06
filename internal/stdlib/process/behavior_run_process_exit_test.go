@@ -29,7 +29,7 @@ func TestExitCodeIsARunError(t *testing.T) {
 	if err != nil || got != "H7503" {
 		t.Errorf("TR_error_code: %s (%v)", got, err)
 	}
-	if _, err := run(t, `TR_run_process(`+prog+`, ["exit", "1"])`); err == nil || strings.Contains(err.Error(), "\n") {
+	if _, err := run(t, `TR_run_process(`+prog+`, ["exit", "1"], TR_env: {})`); err == nil || strings.Contains(err.Error(), "Standart hata") {
 		t.Errorf("standart hata boşsa başlık da olmaz: %v", err)
 	}
 }

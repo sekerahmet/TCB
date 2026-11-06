@@ -51,6 +51,16 @@ func helperMain(args []string) {
 // helperExtra hataya ve durdurmaya bakan testlerin programlarıdır.
 func helperExtra(args []string) {
 	switch args[0] {
+	case "env": // adları verilen değişkenlerin değerlerini | ile yazar
+		values := make([]string, len(args)-1)
+		for i, name := range args[1:] {
+			v, ok := os.LookupEnv(name)
+			if !ok {
+				v = "<yok>"
+			}
+			values[i] = v
+		}
+		_, _ = os.Stdout.WriteString(strings.Join(values, "|"))
 	case "exit": // kod, sonra standart hataya yazılacak metin
 		if len(args) > 2 {
 			_, _ = os.Stderr.WriteString(args[2])

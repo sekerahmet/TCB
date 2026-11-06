@@ -1722,10 +1722,13 @@ const (
 	H7500 Code = 7500 // {fn}: {name|q} çalıştırılamaz: Windows'ta program dosyası .exe ya da .com ile biter
 	H7501 Code = 7501 // {fn}: {name|q} başlatılamadı: {reason}
 	H7502 Code = 7502 // {fn}: {name|q}: programın adında ya da yolunda boş bayt olamaz
-	H7503 Code = 7503 // {fn}: {name|q} {code} koduyla bitti; bu kod başarı sayılıyorsa `{#codes}: {accepted}` yazın{stderr, select, empty {} other {\nStandart hata çıktısının sonu:\n{stderr}}}
-	H7504 Code = 7504 // {fn}: {name|q} sinyalle öldü ({signal}){stderr, select, empty {} other {\nStandart hata çıktısının sonu:\n{stderr}}}
+	H7503 Code = 7503 // {fn}: {name|q} {code} koduyla bitti; bu kod başarı sayılıyorsa `{#codes}: {accepted}` yazın{stderr, select, empty {} other {\nStandart hata çıktısının sonu:\n{stderr}}}{hint}
+	H7504 Code = 7504 // {fn}: {name|q} sinyalle öldü ({signal}){stderr, select, empty {} other {\nStandart hata çıktısının sonu:\n{stderr}}}{hint}
+	H7505 Code = 7505 // {fn}: `{#env}:` argümanında {name|q} değerinde boş bayt var; ortam değişkeninin değerinde boş bayt olamaz
 	H7506 Code = 7506 // {fn}: {name} {@int} listesi olmalıdır, {given} verildi
+	H7507 Code = 7507 // {fn}: {name} anahtarı ve değeri {@string} olan bir {@dict} olmalıdır, {given} verildi
 	H7508 Code = 7508 // {fn}: boş `{#codes}:` listesi hiçbir bitişi kabul etmez; başarı sayılan kodları yazın: `{#codes}: [0]`
+	H7509 Code = 7509 // \nGizli adlı olduğu için ortamdan süzülen değişkenler: {names}. Programa gerekiyorsa açıkça verilir: `{#arg}: {{{first|q}: {#fn}({first|q})}}`
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)
