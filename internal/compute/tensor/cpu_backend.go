@@ -661,10 +661,13 @@ func unaryGradLoop(op UnOp, p float32, gx, g, x, y []float32) {
 		}
 	case OpRelu:
 		for i, v := range g {
-			if x[i] > 0 {
+			switch xi := x[i]; {
+			case xi > 0:
 				gx[i] += v
-			} else {
-				gx[i] += v * 0 // NaN/sonsuz gradyan yayılımı önceki davranışla aynı
+			case xi != xi:
+				gx[i] += v * xi // NaN'da türev NaN'dır (15.16)
+			default:
+				gx[i] += v * 0 // NaN ya da sonsuz gradyan yayılır
 			}
 		}
 	case OpGelu:

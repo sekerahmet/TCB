@@ -119,10 +119,11 @@ func (k *emitter) unaryGrad(op tensor.UnOp, mode2 string, g, x, y, p reg) reg {
 		k.e("sub.rn.f32", t, float32(1), t)
 		k.e("mul.rn.f32", t, g, t)
 	case tensor.OpRelu:
-		b := k.p()
+		b, nan := k.p(), k.p()
 		k.e("setp.gt.f32", b, x, float32(0))
-		s := k.f()
-		k.e("mul.rn.f32", s, g, float32(0)) // NaN/sonsuz gradyan yayılır
+		k.e("setp.nan.f32", nan, x, x)
+		s := k.pick(nan, x, float32(0)) // NaN'da türev NaN'dır (15.16)
+		k.e("mul.rn.f32", s, g, s)      // NaN ya da sonsuz gradyan yayılır
 		k.e("selp.f32", t, g, s, b)
 	case tensor.OpGelu:
 		k.e("mul.rn.f32", t, g, k.geluGrad(x))

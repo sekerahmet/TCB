@@ -275,6 +275,8 @@ func (cpuBackend) f32ClampGrad(gx, g Storage, x View, lo, hi float32) {
 		for i := a; i < b; i++ {
 			if v := xd[i]; v >= lo && v <= hi {
 				pg[i] += gd[i]
+			} else if v != v {
+				pg[i] += v // NaN'da türev NaN'dır (15.13)
 			}
 		}
 	})
