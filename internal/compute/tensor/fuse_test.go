@@ -160,6 +160,31 @@ func TestFusedIndependentOfWorkers(t *testing.T) {
 	}
 }
 
+// TestFusedChunksKeepBits: parçalar satırın ortasından da geçer, sınır nereye düşerse düşsün sonuç
+// kaynaşmamış yolla bit bit aynıdır. Boylar 8'in katı değil: vektörlü döngülerin kuyruğu da oynar.
+func TestFusedChunksKeepBits(t *testing.T) {
+	prevProcs, prevChunk := runtime.GOMAXPROCS(8), fuseChunk
+	defer func() {
+		runtime.GOMAXPROCS(prevProcs)
+		fuseChunk = prevChunk
+	}()
+	rng := rand.New(rand.NewSource(5))
+	gu := Randn(rng, 3, 1, 202)
+	one := Randn(rng, 1, 1, 6146)
+	x := Randn(rng, 1, 6, 5, 22).Permute(0, 2, 1, 3)
+	rot := []*Tensor{x, Randn(rng, 7, 11), Randn(rng, 7, 11)}
+	pi := []*Tensor{Randn(rng, 3, 67), Randn(rng, 3, 67), Randn(rng, 3, 67)}
+	for _, chunk := range []int{1, 3, 7, 8, 64, 101, 512, 1 << 20} {
+		fuseChunk = chunk
+		sameBits(t, "swiglu", runFusedFn(swiglu, []*Tensor{gu})[0], swiglu([]*Tensor{gu})[0])
+		sameBits(t, "tek satırlı swiglu", runFusedFn(swiglu, []*Tensor{one})[0], swiglu([]*Tensor{one})[0])
+		sameBits(t, "rope", runFusedFn(rope, rot)[0], rope(rot)[0])
+		f, u := runFusedFn(ple, pi), ple(pi)
+		sameBits(t, "ple", f[0], u[0])
+		sameBits(t, "ple e", f[1], u[1])
+	}
+}
+
 // Gradyanlar: kaynaşmış geri yön (float32) kaynaşmamış otomatik türevle aynı sonucu verir.
 func TestFusedGradientsMatchUnfused(t *testing.T) {
 	check := func(name string, fn func([]*Tensor) []*Tensor, mk func() []*Tensor) {
