@@ -490,6 +490,7 @@
   "TR_mem_last": { "kind": "property", "types": ["TR_List"], "returns": "T?", "related": ["TR_mem_first"], "example": "TR_print([5, 6, 7].TR_last)" },
   "TR_mem_last_step": { "kind": "property", "module": "tr/training" },
   "TR_mem_length": { "kind": "property", "types": ["TR_String", "TR_List", "TR_Dict"], "returns": "TR_Int", "familiar": ["len"], "example": "TR_print(\"çay\".TR_length, [1, 2, 3].TR_length, {\"a\": 1}.TR_length)" },
+  "TR_mem_lines": { "kind": "method", "pure": true, "types": ["TR_String"], "returns": "TR_List[TR_String]", "related": ["TR_mem_split", "TR_fn_read_lines"], "familiar": ["splitlines"], "example": "TR_print(\"a\\r\\nb\\n\".TR_lines())" },
   "TR_mem_load_state": { "kind": "method", "types": ["TR_Optimizer", "TR_Sampler", "TR_SequentialReader"], "params": ["TR_Dict"], "returns": "TR_NoneType", "related": ["TR_mem_state"], "example": "TR_var w = TR_Tensor([1.0], TR_requires_grad: TR_true); TR_var op = TR_AdamW([w]); TR_backward(TR_sum(w * 2)); op.TR_step(); TR_var yeni = TR_AdamW([w]); yeni.TR_load_state(op.TR_state); TR_print(op.TR_state.TR_keys())" },
   "TR_mem_logger": { "kind": "property", "module": "tr/training" },
   "TR_mem_logit_layer": { "kind": "property", "module": "tr/layers" },

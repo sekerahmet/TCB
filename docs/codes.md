@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 657 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 53 tip, 151 fonksiyon, 11 sabit, 80 metot, 109 özellik, 166 adlı argüman.
+Toplam 658 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 53 tip, 151 fonksiyon, 11 sabit, 81 metot, 109 özellik, 166 adlı argüman.
 
 ## İçindekiler
 
@@ -1088,7 +1088,7 @@ en: var ad: String = "şeker"; print(Type(ad), ad[-1], String(12) + "a", String(
 tr: değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", Metin([1, 2]))
 ```
 
-Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_length`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
+Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
 
 #### `TR_StructType` (`TR_type_StructType`, `YapıTanımı`)
 
@@ -5947,6 +5947,25 @@ Görünümü:
 en: print("çay".length, [1, 2, 3].length, {"a": 1}.length)
 tr: yazdır("çay".uzunluk, [1, 2, 3].uzunluk, {"a": 1}.uzunluk)
 ```
+
+#### `.TR_lines(...)` (`TR_mem_lines`, `satırlar`)
+
+    Metin.satırlar() → Liste
+
+Metni satırlarına böler: satır sonu \n ya da \r\n, sondaki satır sonundan boş satır çıkmaz. Aynı metni dosyadan okumak aynı satırları verir.
+
+```tr
+TR_print("a\r\nb\n".TR_lines())
+```
+
+Görünümü:
+
+```text
+en: print("a\r\nb\n".lines())
+tr: yazdır("a\r\nb\n".satırlar())
+```
+
+İlişkili: `.TR_split(...)`, `TR_read_lines(...)`
 
 #### `.TR_load_state(...)` (`TR_mem_load_state`, `durumu_yükle`)
 

@@ -490,6 +490,7 @@
   "TR_mem_last": { "name": "son", "family": "Liste", "description": "Listenin son elemanını verir; liste boşsa yok verir. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_last_step": { "name": "son_adım", "family": "kitaplık: tr/training", "description": "" },
   "TR_mem_length": { "name": "uzunluk", "family": "Metin, Liste, Sözlük", "description": "Metnin karakter sayısını, listenin ya da sözlüğün eleman sayısını verir. Parantezsiz yazılan bir özelliktir." },
+  "TR_mem_lines": { "name": "satırlar", "family": "Metin", "description": "Metni satırlarına böler: satır sonu \\n ya da \\r\\n, sondaki satır sonundan boş satır çıkmaz. Aynı metni dosyadan okumak aynı satırları verir." },
   "TR_mem_load_state": { "name": "durumu_yükle", "family": "İyileştirici, Örnekleyici, SıralıOkuyucu", "description": "durum ile alınmış sözlüğü aynı ayarla kurulmuş bir iyileştiriciye ya da okuyucuya yükler, değer vermez; tensörler parametrenin cihazına taşınır. Parametre sayısı ve şekiller, okuyucunun türü, toplu, bağlam, tohum ve veri kümesi aynı olmalıdır, değilse hata verir." },
   "TR_mem_logger": { "name": "günlük", "family": "kitaplık: tr/training", "description": "" },
   "TR_mem_logit_layer": { "name": "logit_katmanı", "family": "kitaplık: tr/layers", "description": "" },

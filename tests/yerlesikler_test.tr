@@ -244,6 +244,23 @@ TR_test "13.2 metin metotları" {
     TR_assert_equal("cba", "abc".TR_reverse())
 }
 
+TR_test "13.2 TR_lines satır sonunda böler, sondaki satır sonundan boş satır vermez; TR_read_lines ile aynı" {
+    TR_assert_equal(["a", "b\rc", ""], "a\r\nb\rc\n\n".TR_lines())
+    TR_assert_equal(0, "".TR_lines().TR_length)
+    TR_assert_equal([""], "\n".TR_lines())
+    TR_assert_equal([""], "\r\n".TR_lines())
+    TR_assert_equal(["", ""], "\n\n".TR_lines())
+    TR_assert_equal(["a"], "a".TR_lines())
+    TR_assert_equal(["a"], "a\n".TR_lines())
+    TR_assert_equal(["ğ", "€"], "ğ\n€".TR_lines())
+    TR_assert_equal(["\u{feff}a"], "\u{feff}a\n".TR_lines()) # metin değerdir, BOM atılmaz
+    TR_var y = TR_Path(TR_temp_dir(), "s.txt")
+    TR_for m TR_in ["a\r\nb\rc\n\n", "", "\n", "\r\n", "\n\n", "a", "a\n", "a\r", "\r", "\r\r\n", "a\r\r\nb"] {
+        TR_write_file(y, m)
+        TR_assert_equal([s TR_for s TR_in TR_read_lines(y)], m.TR_lines())
+    }
+}
+
 TR_test "13.3 liste metotları" {
     TR_var l = [3, 1, 2, 2]
     TR_assert_equal([1, 2, 2, 3], l.TR_sort())

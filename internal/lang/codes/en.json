@@ -438,6 +438,7 @@
   "TR_mem_last": { "name": "last" },
   "TR_mem_last_step": { "name": "last_step" },
   "TR_mem_length": { "name": "length" },
+  "TR_mem_lines": { "name": "lines" },
   "TR_mem_load_state": { "name": "load_state" },
   "TR_mem_logger": { "name": "logger" },
   "TR_mem_logit_layer": { "name": "logit_layer" },

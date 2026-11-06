@@ -898,6 +898,7 @@ m.TR_get	ok	0	name:TR_mem_get
 m.TR_hidden_states	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_hidden_states
 m.TR_keys	ok	0	name:TR_mem_keys
 m.TR_length	ok	0	name:TR_mem_length
+m.TR_lines	ok	0	name:TR_mem_lines
 m.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 m.TR_logits	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_logits
 m.TR_loss	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_loss
