@@ -15,6 +15,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | :-- | :-- | :-- | :-- | :-- |
 | 0 | 2026-11-06 | TCB, yabancı ajan gibi | küçük metin modeli: eğit, kaydet, yükle, üret | koştu, üç takılma |
 | 0b | 2026-11-06 | DENETİM, başvurudan | JSON kayıtlarını ayıklayan program | ilk denemede koştu; başvuruda dört yanlış cümle |
+| 1 | 2026-11-06 | ChatGPT, ücretsiz plan | klasördeki metinlerde paragraf arama | ajan koşamadı ve bunu söyledi; TCB olduğu gibi koştu: `check` temiz, ilk denemede çalıştı, sıralama doğru |
 
 ## Bulgular
 
@@ -27,3 +28,5 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 0b | belge | eski başvuruda dört cümle motorda yanlıştı: JSON türlerinin yazımı, tip parametresi, tanım sırası, atama uyarısı | yok | düzeldi |
 | 0b | belge | öğeye atama başvuruda yoktu | yok | düzeldi |
 | 0b | dil | bir listedeki demete `l[0][0]` denetimde değil çalışma anında hata veriyor | D, Ö3 | status'ta |
+| 1 | olumlu | koşamayan ajan yalnız okuyarak hatasız program yazdı; başvuruda olmayan dosya ve girdi adlarını da doğru buldu | yok | hangi dosyaları okuduğu sorulacak |
+| 1 | olumlu | ajan koşmadığını açıkça söyledi, çıktı uydurmadı | yok | |
