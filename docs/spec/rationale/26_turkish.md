@@ -6,7 +6,7 @@ Kaynak: ajan denemelerindeki Gemini kök bulucusu ve Zemberek `master-dictionary
 
 ### 26.1
 
-- *Ad:* sözcük `lemma`dır: ölçü sözlük maddesidir, yapım eki sökülmez.
+- *Emsal:* sözcük `lemma`dır: ölçü sözlük maddesidir, yapım eki sökülmez.
 
 | Emsal | Ad | Ne yapar |
 | :-- | :-- | :-- |
@@ -26,8 +26,10 @@ Kaynak: ajan denemelerindeki Gemini kök bulucusu ve Zemberek `master-dictionary
 
 ### 26.3
 
+- *Emsal:* araştırılmadı; arayüz ajan denemelerindeki kullanıcı sözlüğünden geliyor (Arena).
 - *Gerekçe:* Gemini'nin `yapım_ekleri` seçeneği ve `metin_kökleri` çıkarıldı, arayüz küçük kalsın. Kullanıcı sözlüğü alan adı içindir; ek sözcük ünlü düşmesi ve yumuşama işareti taşımaz.
 
 ### 26.4
 
+- *Emsal:* yok: 11.1'in sonucudur.
 - *Gerekçe:* modülün en dışı kod koşturmaz (11.1). Sözlük 23 bin ad ve 3 bin fiildir.
