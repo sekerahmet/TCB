@@ -33,11 +33,12 @@ Sınıflar ve öncelikler TCB'nin taslağıyla DENETİM'in hükmünden (istek 61
 7. Test koşucusu (araç için A): 12.1'in modüldeki testleri ve 12.5'in en dıştaki tanımları.
 8. 11.1'in modül yükleyicisi (A ve B).
 9. 10.4: görevin türevsiz kipi ve hesap türü (küçük; Kol A ya da Kol B).
+10. 18.1'in tabandan kaçışı (B; D1) ve 15.50'nin `TR_relu` NaN türevi (A; T1), DENETİM 219.
 Sonra Ö2: `==`'nin derinlik sınırı (4.5) ve 8.5'in 41 yolu.
 
 **Ö1, dilimlerin kesin listeleri:** 4a4 (birleşti 2026-11-03, `ab95122f`; kalanları 4a5 ve D/F etiketli): 3.6, 3.7, 4.5, 4.10, 3.6a. 4a5: 11.8, 13.8, 6.9 ve 7.7 (ya da 4c), 1.2, 3.13, 5.5; argümanın, alanın, dönüşün, varsayılanın ve açılan adın tipi (DENETİM istek 68, 75): 6.1, 6.3, 6.4, 6.5, 6.6, 7.2, 7.8, 8.1, 7.6 (ya da 4c). 4b: 3.5, 6.2, 5.12, 5.6, 7.4. 4c: 3.14. Kol A, 13.1c'den sonraki dilim (Ö0 4. madde ile): 8.5'in işletim sistemi hatası (13.1 onsuz birleşti, DENETİM istek 75). Kol B: 20.11, 15.27a, 15.33, 15.45.
 
-**Gemini'nin bağımsız taraması** (DENETİM istek 63–67; taban `30b44b01`): teslim 1 (bölüm 1–5) DENETİM'den geçti, üç yeni A (1.2, 3.13, 5.5) [ölçüldü: DENETİM istek 67]; teslim 2 (6–9) geçti (istek 68, 75); teslim 3 (10–13) geçti: 26 program tabanda birebir, iki satır main'de kapanmış (13.1'in −0.0'ı ve `TR_std`, `TR_max`, `TR_round` parçaları), A'lar 10–13'e etiketle girdi [ölçüldü: DENETİM istek 81]; teslim 4–6 sırada.
+**Gemini'nin bağımsız taraması** (DENETİM istek 63–67; taban `30b44b01`): teslim 1 (bölüm 1–5) DENETİM'den geçti, üç yeni A (1.2, 3.13, 5.5) [ölçüldü: DENETİM istek 67]; teslim 2 (6–9) geçti (istek 68, 75); teslim 3 (10–13) geçti: 26 program tabanda birebir, iki satır main'de kapanmış (13.1'in −0.0'ı ve `TR_std`, `TR_max`, `TR_round` parçaları), A'lar 10–13'e etiketle girdi [ölçüldü: DENETİM istek 81]; teslim 4–6 koşmayacak: taban eski, status etiketlendiği için bağımsızlık bitti; aynı satırları uzak 5 main ucunda ölçer (DENETİM 219).
 
 **Sınır:** tarama "Yapılacaklar"ın hepsini, "Mevcut durum"dan risk sözcüğü geçen cümleleri okudu; sözcüksüz anlatılan bir sessiz yanlış kaçmış olabilir. 16.6 ve 18.9'un (kesilen yazma) sessiz olup olmadığı ölçülmedi.
 
@@ -623,7 +624,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 
 - **Mevcut durum:** `TR_reduce(0, (a, x) => a + x)` çalışıyor; başa yazılan ve tek parametreli fonksiyon hata, iletiler (H2475, H2476) ok yazımını öneriyor [ölçüldü: main `85a19c36`, `l.TR_reduce((a, x) => a + x, 0)` ve `l.TR_reduce(0, (a) => a)` iletileri; `tests/fonksiyonlar_test.tr:143`, `tests/yerlesikler_test.tr:204` kodları sınıyor].
 - **Mevcut durum (Kol A teslim 2a, 5. adım, 2026-11-04):** başlangıçsız `TR_reduce` boş listede H2637 veriyor, ileti başlangıçlı yazımı öneriyor, öneri çalışıyor [test: yerlesikler_test "13.6", `TestMessageSuggestionsRunCleanly`]. Göç: başlangıçsız çağrı `.tr`'de 2 test satırı, biri boş listede `TR_none`'ı sabitliyordu, H2637'ye çevrildi [ölçüldü: `git grep`].
-- **Yapılacaklar (A, Ö0; sahip D1, uzak 5'in ölçüsünden sonra; DENETİM istek 81, 184: `.TR_append`'in dönüşü başka öğe tipli listeye giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]):** iletilerin metnini sınayan test (kodlar sınanıyor, metinler `internal/suggestion_messages_test.go` tablosunda yok); `.TR_append`'in değer döndürmemesi (bugün listenin kendisi).
+- **Yapılacaklar (A, Ö0; sahip D1; DENETİM istek 81, 184, 219: `.TR_append`'in dönüşü `TR_Any` üstünden başka öğe tipli listeye giriyor, tipi bilinen yazımda H1143 geliyor [ölçüldü: önem taraması teslim 3, `30b44b01`, main `51b75f0a`, DENETİM 219]):** iletilerin metnini sınayan test (kodlar sınanıyor, metinler `internal/suggestion_messages_test.go` tablosunda yok); `.TR_append`'in değer döndürmemesi (bugün listenin kendisi).
 
 ### 13.7
 
@@ -1006,6 +1007,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **Mevcut durum:** float32'nin ucundaki büyük sonlu sayılarda CPU float64'te biriktirdiği için sonlu, GPU float32'de biriktirdiği için sonsuz sonuç verebiliyor (normlarda x², toplamın kendisi 3,4e38'i aşınca). Karşılaştırma NaN'da `TR_false`, `TR_where` ondalık NaN koşulunu H6207 ile reddediyor, `TR_max` ve `TR_min` −0.0 < 0.0 kullanıyor [ölçüldü: Gemini 4, DENETİM 166].
 - **Yapılacaklar (C, Ö2; ölçüm status'un):** sayısal doğruluk kapısı (eski yol haritasının Evre 4, madde 8; bugünkü durumu ölçülmedi): her türevli işlemin CPU ve GPU sonucunun float64 referansa karşı testi ve işlem başına hata sınırı (normlar ve toplamlar için var: `TestNormsMatchFloat64Reference`, `TestSumsMatchFloat64Reference`), GPU bf16 sapma tablosu, `TR_log10` ve `TR_atan2` türevinde alt normal yerine 0, çapraz entropinin çok büyük logitte lse − x ile hassasiyet kaybı ((m − x) + log Σ sırası düzeltir); `TR_logsumexp`, `TR_maximum`/`TR_minimum` satırları ve `TR_max`/`TR_min`'in sıralama sırası (15.22b); TR testi.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_relu`, `TR_clamp`, `TR_maximum` ve `TR_minimum`'un NaN girdideki türevi NaN; iki cihazda aynı olduğunu sınayan test.
+- **Yapılacaklar (A, Ö0; sahip T1; DENETİM 219):** `TR_relu`'nun NaN'daki türevi 0.0 çıkıyor, kural NaN; `TR_clamp` da 0.0, `TR_maximum` doğru [ölçüldü: DENETİM 219, `TR_relu` ve `TR_maximum` TCB yeniden, `0c073984`]. Yanlış gradyan, eğitim yolu.
 
 ### 15.51
 
@@ -1175,6 +1177,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 ### 18.1
 
 - **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** kök ve UNC öneki korunuyor [ölçüldü: DENETİM]. **Gemini Koşu 5 (2026-10-29), uygulanacak:** `..` ile tabandan kaçış hatası (bugün `TR_Path("veri", "../../gizli/x.json")` tabandan çıkıyor [ölçüldü: DENETİM]).
+- **Yapılacaklar (B, Ö0; sahip D1; DENETİM 219):** tabandan kaçış hatası yok: `TR_Path` hatasız `../disari.txt` veriyor, `TR_write_file` dosyayı tabanın dışına yazıyor [ölçüldü: DENETİM 219, TCB yeniden, `0c073984`]. Dosya adı modelden gelirse dış girdidir.
 
 ### 18.5
 
@@ -1215,6 +1218,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
 - **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** büyük harf dizisinin sonunda bölme (`HFToken`) [kanıtlı: DENETİM, `process.go:84-86`]. Çoğullar ve Türkçe çoğullar uygulanacak.
+- **Yapılacaklar (B, Ö1; sahip S1, `TR_run_process` diliminde; DENETİM 219):** çoğul adlar süzülmüyor: `API_KEY` maskeleniyor, `API_KEYS`, `X_PASSWORDS` değeri açık yazılıyor [ölçüldü: DENETİM 219, TCB yeniden, `0c073984`]. Kural çoğulları sayıyor (19.4).
 
 ### 19.5, 19.7
 
