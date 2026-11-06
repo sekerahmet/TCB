@@ -52,6 +52,9 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 
+- **2.1a, `ı` ve `i` (2026-11-06, TCB, ajan denemesi 7):** benzerlik iskeleti ikisini aynı sayıyor; gerçek sözcük çiftleri aynı kapsamda yazılamıyor: `kır` ve `kir`, `ılık` ve `ilik` denetim hatası veriyor [ölçüldü]. `kol` ve `köl`, `sac` ve `saç` geçiyor. Güvenlik gerekçesiyle dil eşitliği turda tartılır.
+- **3.6a, 6.1, sondaki virgül (2026-11-06, TCB, ajan denemesi 7):** çok satırlı çağrı, liste ve sözlükte geçerli; parametre listesinde ve demette sözdizimi hatası [ölçüldü]. Ajan bir dosyada 15 hata aldı [ajan sözü]. Önerim: ikisinde de geçerli olsun; `(x,)` hata kalır, demet en az iki öğelidir (3.6a).
+- **13, metin yerleşikleri (2026-11-06, TCB, ajan denemesi 7):** `.TR_strip(karakterler)`, karakterin kod noktasını veren ve kod noktasından karakter veren yerleşik yok [ölçüldü]; küme tipi yok. 13.2'nin karakter sınıfı satırıyla birlikte tartılır.
 - **8.3, okunur hata metni (2026-11-06, TCB, ajan denemesi 5):** yakalanan çalışma hatasının metni iletinin kodunu veriyor; program kullanıcıya okunur ileti yazamıyor, ajan kendi cümlesini yazdı.
 - **13.2, karakter sınıfı (2026-11-06, TCB, ajan denemesi 3):** bir karakterin harf, rakam ya da boşluk olduğunu soran yerleşik yok; metni sözcüklere bölen ajan büyük ve küçük hâli karşılaştırarak dolandı, bu yol büyük harfi olmayan yazılarda yanlış sonuç verir.
 - **15.16, `TR_relu`'nun yukarıdan gelen NaN'ı (2026-11-06, DENETİM 234):** `TR_clamp`, `TR_where`, `TR_maximum` seçilmeyen dala NaN geçirmez (15.15), `TR_relu` `g * 0` ile geçirir: `x = -1`'de `TR_sqrt(TR_relu(x))`'in türevi NaN. Gürültülü, sessiz değil.

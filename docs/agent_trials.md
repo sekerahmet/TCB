@@ -96,6 +96,13 @@ Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci 
 | 7 | dil | biçim denetimi yalnız "biçimlenmeli" diyor; ajanın denemesinde sebep büyük ihtimalle satır sonuydu, çok öğeli satır değil | F, Ö3 | status'ta |
 | 7 | fikir | ajan Türkçe küçük harfi kendi yazdı: `.TR_lower()` dile bağlı değil, `"ISI"` `isi` oluyor [ölçüldü]; metin işleme modülüne girer | yok | açık |
 | 7 | olumlu | büyük sözcük listesini çok satırlı ham metinle yazıp kümeye çevirdi; biçimleyiciyle çarpışmadı | yok | |
+| 7 | olumlu | ajan 2.700 satırı tip hatası almadan yazdı; aldığı derleyici hataları sondaki virgül ve benzer addı [ajan sözü] | yok | |
+| 7 | dil tasarımı | sondaki virgül çağrıda geçerli, parametre listesinde ve demette hata [ölçüldü]; ileti virgülü değil sonraki sözcüğü gösteriyor | yok | pending'de |
+| 7 | dil tasarımı | 2.1a `ı` ile `i`'yi aynı sayıyor: `kır` ve `kir` birlikte yazılamıyor [ölçüldü] | yok | pending'de |
+| 7 | dil tasarımı | `.TR_strip(karakterler)`, kod noktası yerleşikleri ve küme tipi yok [ölçüldü] | yok | pending'de |
+| 7 | dil | yaygın yardım bayrağı çıkış kodu 2 veriyor [ölçüldü] | F, Ö3 | status'ta |
+| 7 | belge | başvuruda modül yoktu: `TR_import`, `_` ile özel ad, tembel tablo kalıbı | yok | düzeldi |
+| 7 | yöntem | ajan "biçimleyici her anahtarı ayrı satıra açmak istedi" dedi; aynı kalıp LF ile temiz geçti, biçimleyici satırı değiştirmedi [ölçüldü]: ajan sözü ölçülmeden yazılmaz | yok | |
 | 8 | belge | `lib/README.md` kod adıyla yazıyor, ajan `TR_kw_import` yazdı; ileti doğrusunu söyledi | yok | düzeldi: giriş cümlesi, önek notu |
 | 8 | belge | sık yanlışlar tablosunda `and`, `or`, `not` yoktu | yok | düzeldi |
 | 8 | belge | başvuruda test yerleşikleri yoktu; `TR_assert_equal`'ın mesaj aldığı yazmıyordu | yok | düzeldi |

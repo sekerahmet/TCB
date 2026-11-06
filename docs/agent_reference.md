@@ -109,6 +109,11 @@ Bu belge bugün çalışan dili anlatır. Kuralların tam metni [`docs/spec`](sp
   - Değişken tanımından önce kullanılamaz.
   - Fonksiyon ve tip tanımı, onu çalıştıran satırdan önce gelir: tanımları dosyanın başına yaz. Fonksiyon gövdesi sonraki tanımları görür. Bir fonksiyonu çağıran satır, fonksiyonun kullandığı değişkenlerden sonra gelmelidir.
 
+## Modüller
+- `TR_import "yol"` başka bir `.tr` dosyasının en dış adlarını getirir; yol aktaran dosyanın klasörüne göredir. `TR_import "tr/layers"` kitaplıktandır. `TR_import "./kok" TR_as k` ile adlar `k.kok_bul(...)` olur.
+- `_` ile başlayan ad modülün dışına çıkmaz.
+- Program dosyası baştan sona koşar. Aktarılan modülün en dışında yalnız tanımlar ve sabit ilk değerler vardır, kod koşmaz. Büyük bir tabloyu bir kez kurmak için: `TR_var _tablo: T? = TR_none` ve onu ilk çağrıda dolduran bir fonksiyon.
+
 ## Fonksiyonlar
 - **Tanım:** `TR_func f(x: TR_Int, k: TR_Float = 2.0) -> TR_Float { TR_return x * k }`.
   - Her parametrenin tipi yazılır; varsayılanlı parametreler sondadır.
