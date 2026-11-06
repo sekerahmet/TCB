@@ -18,6 +18,35 @@ func TestSecretNamedVariablesAreNotPassed(t *testing.T) {
 	}
 }
 
+// Çoğul gizli adlar da süzülür; ad ile değere birlikte bakılır: sayı ve mantık değeri gizli sayılmaz,
+// programa gider (21.6, 19.4).
+func TestSecretFilterLooksAtNameAndValue(t *testing.T) {
+	prog := helperProgram(t)
+	t.Setenv("TR_DENEME_API_KEYS", "sk_coguldegerim1234")
+	t.Setenv("TR_DENEME_MAX_TOKENS", "4096")
+	t.Setenv("TR_DENEME_AUTH", "doğru")
+	t.Setenv("TR_DENEME_TOKENS", "hf_coguldegerim1234")
+	got, err := run(t, `TR_String(TR_run_process(`+prog+`, ["env", "TR_DENEME_API_KEYS", "TR_DENEME_MAX_TOKENS", "TR_DENEME_AUTH", "TR_DENEME_TOKENS"]))`)
+	if err != nil || got != "<yok>|4096|doğru|<yok>" {
+		t.Errorf("%s (%v)", got, err)
+	}
+	_, err = run(t, `TR_run_process(`+prog+`, ["exit", "1"])`)
+	if err == nil || !strings.Contains(err.Error(), "TR_DENEME_TOKENS") || strings.Contains(err.Error(), "TR_DENEME_MAX_TOKENS") {
+		t.Errorf("ileti yalnız süzülenleri söylemeli: %v", err)
+	}
+}
+
+// Çoğul gizli adın değeri TR_print'te görünmez (19.4).
+func TestPluralSecretNamesAreMasked(t *testing.T) {
+	for _, name := range []string{"API_KEYS", "MY_TOKENS", "HF_ANAHTARLAR", "X_SECRETS", "X_PASSWORDS"} {
+		t.Setenv(name, "cokgizlidegerim123")
+		_, m, err := commandLine(t, `TR_env("`+name+`")`)
+		if err != nil || m.Mask("cokgizlidegerim123") != "***" {
+			t.Errorf("%s: %q (%v)", name, m.Mask("cokgizlidegerim123"), err)
+		}
+	}
+}
+
 // TR_env: ekler ya da değiştirir, geri kalanı silmez (21.6).
 func TestEnvArgumentAddsAndReplaces(t *testing.T) {
 	prog := helperProgram(t)

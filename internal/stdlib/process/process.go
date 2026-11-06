@@ -87,16 +87,17 @@ func Register(v *interp.VM) *State {
 
 // secretWords adın sözcüklerinden biri bunlardan biriyse değer gizli sayılır (ASCII,
 // büyük harf; sözcükler karşılaştırmadan önce ASCII'ye çevrilip büyütülür: şifresi →
-// SIFRESI). Eşleşme TAM SÖZCÜKLE yapılır: TOKENIZER, MAX_TOKENS, KEYBOARD, PASSAGE,
-// BYPASS gizli değildir. Bitişik yazılan yaygın bileşikler (APIKEY, AUTHTOKEN) ayrıca
-// listededir.
+// SIFRESI). Eşleşme TAM SÖZCÜKLE yapılır: TOKENIZER, KEYBOARD, PASSAGE, BYPASS gizli değildir.
+// Çoğullar listededir (19.4): MAX_TOKENS'ın adı gizlidir, sayı değeri gizli sayılmaz
+// (isNumberOrBool). Bitişik yazılan yaygın bileşikler (APIKEY, AUTHTOKEN) ayrıca listededir.
 var secretWords = map[string]bool{
-	"TOKEN": true, "KEY": true, "SECRET": true, "PASSWORD": true, "PASSWD": true, "PASS": true,
-	"PASSPHRASE": true, "AUTH": true, "CREDENTIAL": true, "CREDENTIALS": true, "PRIVATE": true,
+	"TOKEN": true, "TOKENS": true, "KEY": true, "KEYS": true, "SECRET": true, "SECRETS": true,
+	"PASSWORD": true, "PASSWORDS": true, "PASSWD": true, "PASS": true, "PASSPHRASE": true,
+	"PASSPHRASES": true, "AUTH": true, "CREDENTIAL": true, "CREDENTIALS": true, "PRIVATE": true,
 	"APIKEY": true, "ACCESSKEY": true, "SECRETKEY": true, "PRIVATEKEY": true, "AUTHTOKEN": true,
 	"ACCESSTOKEN": true, "APITOKEN": true,
-	"GIZLI": true, "SIFRE": true, "SIFRESI": true, "PAROLA": true, "PAROLASI": true,
-	"ANAHTAR": true, "ANAHTARI": true,
+	"GIZLI": true, "SIFRE": true, "SIFRESI": true, "SIFRELER": true, "PAROLA": true, "PAROLASI": true,
+	"PAROLALAR": true, "ANAHTAR": true, "ANAHTARI": true, "ANAHTARLAR": true,
 }
 
 // IsSecretName bir ortam değişkeninin ya da komut satırı seçeneğinin adı değerinin gizli

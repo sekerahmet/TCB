@@ -24,7 +24,7 @@ func programEnv(m *interp.VM, fn any, named map[string]interp.Value) (env, filte
 	env = make([]string, 0, len(given))
 	for _, entry := range os.Environ() {
 		name := envEntryName(entry)
-		if !IsSecretName(name) {
+		if !secretEntry(name, entry) {
 			env = append(env, entry)
 		} else if !slices.ContainsFunc(given, func(g [2]string) bool { return sameEnvName(g[0], name) }) {
 			filtered = append(filtered, name)
@@ -70,6 +70,12 @@ func givenEnv(fn any, named map[string]interp.Value) ([][2]string, error) {
 		out = append(out, [2]string{key.Val, value.Val})
 	}
 	return out, nil
+}
+
+// secretEntry girdinin aktarılmayacağını söyler: ad ile değere birlikte bakılır, gizli adlı değişkenin
+// yalnız sayı ya da mantık olan değeri gizli sayılmaz (19.4): MAX_TOKENS=4096 programa gider.
+func secretEntry(name, entry string) bool {
+	return IsSecretName(name) && !isNumberOrBool(entry[min(len(name)+1, len(entry)):])
 }
 
 // envEntryName AD=değer girdisinin adıdır. Windows'un sürücü klasörü girdileri (=C:=C:\x) '=' ile başlar.

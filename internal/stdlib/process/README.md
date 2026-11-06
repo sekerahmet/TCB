@@ -28,7 +28,7 @@ Denetim: `TestProgramNameIsSearchedInPath`, `TestRelativePathEntriesAreNotSearch
 **Başarısız bitiş iletide okunur, gizli değer görünmez.** Kabul edilmeyen çıkış kodu çalışma hatasıdır: ad, kod, standart hatanın sonu. Standart hata sınırlı tamponla okunur (`stderrTailLimit`); tampon sınır artı en uzun gizli değer kadar tutar, önce süzülür sonra kesilir, yazdırılamayan bayt iletiye girmez.
 Denetim: `TestExitCodeIsARunError`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestBothOutputsDoNotDeadlock`.
 
-**Dış programa gizli değer kendiliğinden gitmez.** Gizli adlı değişkenler ortamdan süzülür; `TR_env:` ekler ya da değiştirir, gizli adlı değeri süzgece verir. Başarısız bitişte ileti süzülen adları söyler, değerlerini söylemez.
+**Dış programa gizli değer kendiliğinden gitmez.** Gizli adlı değişkenler ortamdan süzülür, yalnız sayı ya da mantık olan değer gider (`MAX_TOKENS=4096`, 19.4); `TR_env:` ekler ya da değiştirir, gizli adlı değeri süzgece verir. Başarısız bitişte ileti süzülen adları söyler, değerlerini söylemez.
 Denetim: `TestSecretNamedVariablesAreNotPassed`, `TestExplicitSecretReachesTheProgramAndIsMasked`, `TestFailureNamesTheFilteredVariables`, `TestEnvNamesIgnoreCaseOnWindows`.
 
 **Durdurma tek yoldur, kilit tutmaz.** Süre sınırı, iptal ve durdurma programı aynı yolla durdurur (`job.stop`): nazik istek, 2 saniye, öldürme; istek ve öldürme başlattığı süreçlere de gider (Unix'te süreç grubu, Windows'ta `KILL_ON_JOB_CLOSE` iş nesnesi ve Ctrl+Break). Durdurma `interp.AwaitExternal`'ın kilit bırakılmış bölümündedir: yığın ancak program durunca çözülür.

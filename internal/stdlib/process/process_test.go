@@ -9,19 +9,22 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
-// Gizli ad kuralı: ad sözcüklere bölünür ve sözcükler tam eşlenir; TOKENIZER, MAX_TOKENS
-// gibi yapay zekâ işinde sık geçen adlar gizli sayılmaz.
+// Gizli ad kuralı (19.4): ad sözcüklere bölünür ve sözcükler tam eşlenir; TOKENIZER gibi yapay zekâ
+// işinde sık geçen adlar gizli sayılmaz. Çoğullar sayılır: MAX_TOKENS'ın adı gizlidir, sayı değeri
+// gizli değildir (TestIsNumberOrBool).
 func TestIsSecretName(t *testing.T) {
 	secret := []string{
 		"HF_TOKEN", "OPENAI_API_KEY", "apiKey", "APIKey", "api-key", "db_şifresi", "GIZLI_ANAHTAR",
 		"GİZLİ_ANAHTAR", "veritabanı.parola", "PASSWORD", "db_pass", "AWS_SECRET_ACCESS_KEY",
 		"githubAuthToken", "AUTHTOKEN", "api_anahtarı", "private_key", "token", "Şifre",
 		"GOOGLE_APPLICATION_CREDENTIALS",
+		"API_KEYS", "MY_TOKENS", "HF_ANAHTARLAR", "X_SECRETS", "X_PASSWORDS", "PASSPHRASES", "db_şifreler",
+		"parolalar", "max_tokens", "tokens", "keys",
 	}
 	negated := []string{
-		"TOKENIZER_PATH", "tokenizer", "max_tokens", "KEYBOARD_LAYOUT",
+		"TOKENIZER_PATH", "tokenizer", "KEYBOARD_LAYOUT",
 		"PASSAGE_DIR", "BYPASS", "XAUTHORITY", "MONKEY", "öğrenme_oranı", "adım", "VERİ_KLASÖRÜ",
-		"tokens", "keys", "", "_",
+		"monkeys", "", "_",
 	}
 	for _, name := range secret {
 		if !IsSecretName(name) {
