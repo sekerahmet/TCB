@@ -29,7 +29,9 @@ func catchStop(machine *interp.VM) {
 		// 1.7 "hemen" der: exitCleanup işleri (profilin son raporu, geçici klasörler) bilerek
 		// çalıştırılmaz, takılan bir temizlik ikinci isteği de bekletirdi. Biten süreç gömülü
 		// uygulamanın geçici klasörünü bırakmış olabilir; ilk istekten sonra normal yoldan
-		// çıkılsaydı finishProgram temizliği yapardı.
+		// çıkılsaydı finishProgram temizliği yapardı. Dış programların süreç grupları yine de önce
+		// öldürülür (21.5).
+		machine.HardStop()
 		endBySignal(signalNumber(second))
 	}()
 }

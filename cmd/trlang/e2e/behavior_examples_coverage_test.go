@@ -30,6 +30,12 @@ var uncoveredNames = map[string]string{
 	"TR_val_nan": "değer adı (nan), kaynakta sözcük değil",
 	// GGUF dosyası ister: depoya GGUF girmez, testler dosyalarını Go ile kurar (15.55).
 	"TR_fn_load_metadata": "GGUF dosyası ister, depoda yok",
+	// Örnek dış programa bağlıdır: her makinede bulunan bir program yok. Go testleri kendi ikililerini
+	// dış program yapar (internal/stdlib/process).
+	"TR_fn_run_process": "dış program ister",
+	"TR_arg_input":      "dış program ister",
+	"TR_arg_env":        "dış program ister",
+	"TR_arg_exit_codes": "dış program ister",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

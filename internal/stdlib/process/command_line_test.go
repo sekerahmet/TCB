@@ -222,6 +222,7 @@ func TestCommandLineSecretLeaks(t *testing.T) {
 		secret string
 	}{
 		{[]string{"--api_key", "GIZLI"}, "GIZLI"},
+		{[]string{"--max_tokens", "GIZLI"}, "GIZLI"},
 		{[]string{"--api_key=GIZLI"}, "GIZLI"},
 		{[]string{"--api_key", "uzungizlideger"}, "uzungizlideger"},
 		{[]string{"--hf_token=GIZLI"}, "GIZLI"},
@@ -239,11 +240,12 @@ func TestCommandLineSecretLeaks(t *testing.T) {
 			t.Errorf("%v: gizli değer %q kullanım hatasında görünmemeli: %v", d.arg, d.secret, err)
 		}
 	}
-	for _, arg := range [][]string{{"--adım", "GIZLI"}, {"--max_tokens", "GIZLI"}} {
-		_, _, err := commandLine(t, code, arg...)
-		if c, ok := interp.IsExitRequest(err); !ok || c.Code != 2 || !strings.Contains(c.Message, `"GIZLI"`) {
-			t.Errorf("%v: gizli olmayan seçeneğin değeri kullanım hatasında yazılmalı: %v", arg, err)
-		}
+	if _, _, err := commandLine(t, code, "--adım", "GIZLI"); err == nil || !strings.Contains(err.Error(), `"GIZLI"`) {
+		t.Errorf("gizli olmayan seçeneğin değeri kullanım hatasında yazılmalı: %v", err)
+	}
+	// Sayı değeri gizli sayılmaz (19.4): gizli adlı seçenekte de yazılır, kullanıcı yanlışını görür.
+	if _, _, err := commandLine(t, code, "--max_tokens", "1.5"); err == nil || !strings.Contains(err.Error(), "1.5") {
+		t.Errorf("sayı değeri kullanım hatasında yazılmalı: %v", err)
 	}
 	// Gizli olmayan mantık seçeneğinden sonraki argüman gizlenmez: kullanıcı neyi yanlış yazdığını görür.
 	if _, _, err := commandLine(t, code, "--hızlı", "GIZLI"); err == nil || !strings.Contains(err.Error(), "GIZLI") {

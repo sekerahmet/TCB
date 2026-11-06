@@ -1,6 +1,7 @@
 // Package process, programın içinde çalıştığı süreçle ilgili TR yerleşiklerini içerir:
 // ortam değişkenini okuyan ortam_değişkeni (TR_fn_env) ve betiğin komut satırı seçeneklerini
-// tanımlayıp dolduran komut_satırı (TR_fn_command_line). Adı (Türkçe kuralla) gizli bir sözcük içeren
+// tanımlayıp dolduran komut_satırı (TR_fn_command_line) ve dış programı çalıştıran program_çalıştır
+// (TR_fn_run_process). Adı (Türkçe kuralla) gizli bir sözcük içeren
 // ortam değişkenlerinin ve seçeneklerin değerleri yorumlayıcının gizli değer süzgecine
 // verilir (interp.VM.AddSecret): insanın göreceği çıktılarda *** olarak görünürler.
 //
@@ -28,6 +29,35 @@ type State struct {
 	mu       sync.Mutex
 	called   bool
 	settings *interp.DictVal
+	// jobs bu programın çalışan dış programlarıdır: kayıt VM başınadır, TR_cmd_test altında öbür
+	// testlerin programına dokunulmaz (1.7, 1.12).
+	jobs map[*job]struct{}
+}
+
+// track çalışan dış programı kaydeder.
+func (d *State) track(j *job) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.jobs == nil {
+		d.jobs = map[*job]struct{}{}
+	}
+	d.jobs[j] = struct{}{}
+}
+
+// untrack biten dış programı kayıttan siler; grubun kaynakları ondan sonra bırakılır.
+func (d *State) untrack(j *job) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.jobs, j)
+}
+
+// killJobs çalışan bütün dış programların gruplarını öldürür: TR hemen biterken (1.7, 21.5).
+func (d *State) killJobs() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for j := range d.jobs {
+		j.kill()
+	}
 }
 
 // Settings komut_satırı'nın döndürdüğü sözlüktür; komut_satırı çağrılmadıysa nil. Dönen
@@ -50,21 +80,24 @@ func Register(v *interp.VM) *State {
 	d := &State{}
 	v.RegisterNoNamed(codes.FnEnv, envVar)
 	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
+	v.RegisterBuiltinCode(codes.FnRunProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnRunProcess), d.runProcess))
+	v.AddHardStop(d.killJobs)
 	return d
 }
 
 // secretWords adın sözcüklerinden biri bunlardan biriyse değer gizli sayılır (ASCII,
 // büyük harf; sözcükler karşılaştırmadan önce ASCII'ye çevrilip büyütülür: şifresi →
-// SIFRESI). Eşleşme TAM SÖZCÜKLE yapılır: TOKENIZER, MAX_TOKENS, KEYBOARD, PASSAGE,
-// BYPASS gizli değildir. Bitişik yazılan yaygın bileşikler (APIKEY, AUTHTOKEN) ayrıca
-// listededir.
+// SIFRESI). Eşleşme TAM SÖZCÜKLE yapılır: TOKENIZER, KEYBOARD, PASSAGE, BYPASS gizli değildir.
+// Çoğullar listededir (19.4): MAX_TOKENS'ın adı gizlidir, sayı değeri gizli sayılmaz
+// (isNumberOrBool). Bitişik yazılan yaygın bileşikler (APIKEY, AUTHTOKEN) ayrıca listededir.
 var secretWords = map[string]bool{
-	"TOKEN": true, "KEY": true, "SECRET": true, "PASSWORD": true, "PASSWD": true, "PASS": true,
-	"PASSPHRASE": true, "AUTH": true, "CREDENTIAL": true, "CREDENTIALS": true, "PRIVATE": true,
+	"TOKEN": true, "TOKENS": true, "KEY": true, "KEYS": true, "SECRET": true, "SECRETS": true,
+	"PASSWORD": true, "PASSWORDS": true, "PASSWD": true, "PASS": true, "PASSPHRASE": true,
+	"PASSPHRASES": true, "AUTH": true, "CREDENTIAL": true, "CREDENTIALS": true, "PRIVATE": true,
 	"APIKEY": true, "ACCESSKEY": true, "SECRETKEY": true, "PRIVATEKEY": true, "AUTHTOKEN": true,
 	"ACCESSTOKEN": true, "APITOKEN": true,
-	"GIZLI": true, "SIFRE": true, "SIFRESI": true, "PAROLA": true, "PAROLASI": true,
-	"ANAHTAR": true, "ANAHTARI": true,
+	"GIZLI": true, "SIFRE": true, "SIFRESI": true, "SIFRELER": true, "PAROLA": true, "PAROLASI": true,
+	"PAROLALAR": true, "ANAHTAR": true, "ANAHTARI": true, "ANAHTARLAR": true,
 }
 
 // IsSecretName bir ortam değişkeninin ya da komut satırı seçeneğinin adı değerinin gizli

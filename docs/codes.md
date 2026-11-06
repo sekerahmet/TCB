@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 635 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 50 tip, 148 fonksiyon, 11 sabit, 73 metot, 109 özellik, 157 adlı argüman.
+Toplam 639 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 50 tip, 149 fonksiyon, 11 sabit, 73 metot, 109 özellik, 160 adlı argüman.
 
 ## İçindekiler
 
@@ -3028,6 +3028,25 @@ tr: yazdır(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1234, -2))
 
 İlişkili: `TR_Int`
 
+#### `TR_run_process(...)` (`TR_fn_run_process`, `program_çalıştır`)
+
+    program_çalıştır(Metin | Yol, Liste, girdi: Baytlar = yok, ortam: Sözlük = yok, süre_sınırı: Tam | Ondalık = yok, çıkış_kodları: Liste = yok) → Baytlar
+
+Bir dış programı çalıştırır, bitmesini bekler ve standart çıktısını Baytlar olarak verir. Kabuk yoktur: her liste öğesi programa tek argüman olarak, değiştirilmeden gider. Beklerken yorumlayıcı kilidi bırakılır.
+
+```tr
+TR_print(TR_run_process("go", ["version"]).TR_length > 0)
+```
+
+Görünümü:
+
+```text
+en: print(run_process("go", ["version"]).length > 0)
+tr: yazdır(program_çalıştır("go", ["version"]).uzunluk > 0)
+```
+
+İlişkili: `TR_env(...)` (`TR_fn_env`), `TR_input:`, `TR_env:` (`TR_arg_env`), `TR_timeout:`, `TR_exit_codes:`
+
 #### `TR_sample(...)` (`TR_fn_sample`, `örnekle`)
 
     örnekle(Tensör, sıcaklık: Tam | Ondalık = 1, en_iyi_k: Tam = 0, tohum: Tam | YokTipi = yok) → Tensör
@@ -3993,6 +4012,23 @@ Kullananlar: `TR_Tensor`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_in
 
 
 
+#### `TR_env:` (`TR_arg_env`, `ortam`)
+
+Dış programın ortamına değişken ekler ya da var olanın değerini değiştirir; ortamın geri kalanı kalır. Gizli adlı değişkenler aktarılmaz, gerekiyorsa burada açıkça verilir.
+
+```tr
+TR_print(TR_run_process("go", ["version"], TR_env: {"TR_ORNEK": "1"}).TR_length > 0)
+```
+
+Görünümü:
+
+```text
+en: print(run_process("go", ["version"], env: {"TR_ORNEK": "1"}).length > 0)
+tr: yazdır(program_çalıştır("go", ["version"], ortam: {"TR_ORNEK": "1"}).uzunluk > 0)
+```
+
+Kullananlar: `TR_run_process(...)` · İlişkili: `TR_run_process(...)`, `TR_env(...)`
+
 #### `TR_eos:` (`TR_arg_eos`, `eos`)
 
 
@@ -4047,6 +4083,23 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken kn = KontrolN
 ```
 
 Kullananlar: `TR_Checkpoint` · İlişkili: `TR_keep:`
+
+#### `TR_exit_codes:` (`TR_arg_exit_codes`, `çıkış_kodları`)
+
+Başarı sayılan çıkış kodları; verilmezse yalnız 0. Listede olmayan kodla biten program çalışma hatası verir.
+
+```tr
+TR_print(TR_run_process("go", ["tanimsiz"], TR_exit_codes: [0, 2]).TR_length)
+```
+
+Görünümü:
+
+```text
+en: print(run_process("go", ["tanimsiz"], exit_codes: [0, 2]).length)
+tr: yazdır(program_çalıştır("go", ["tanimsiz"], çıkış_kodları: [0, 2]).uzunluk)
+```
+
+Kullananlar: `TR_run_process(...)` · İlişkili: `TR_run_process(...)`
 
 #### `TR_f_max:` (`TR_arg_f_max`, `en_yüksek_frekans`)
 
@@ -4180,6 +4233,23 @@ Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`
 #### `TR_init_std:` (`TR_arg_init_std`, `başlatma_sapması`)
 
 
+
+#### `TR_input:` (`TR_arg_input`, `girdi`)
+
+Dış programın standart girdisi (Baytlar). Verilmezse girdi boş aygıttır: okuyan program hemen dosya sonu alır.
+
+```tr
+TR_print(TR_run_process("go", ["version"], TR_input: TR_Bytes([104, 105])).TR_length > 0)
+```
+
+Görünümü:
+
+```text
+en: print(run_process("go", ["version"], input: Bytes([104, 105])).length > 0)
+tr: yazdır(program_çalıştır("go", ["version"], girdi: Baytlar([104, 105])).uzunluk > 0)
+```
+
+Kullananlar: `TR_run_process(...)` · İlişkili: `TR_run_process(...)`
 
 #### `TR_intermediate_dim:` (`TR_arg_intermediate_dim`, `ara_boyut`)
 
@@ -4902,7 +4972,7 @@ Kullananlar: `TR_sample(...)` · İlişkili: `TR_top_k:`
 
 #### `TR_timeout:` (`TR_arg_timeout`, `süre_sınırı`)
 
-bekle(süre_sınırı: saniye): görev o sürede bitmezse iptal edilir, durması beklenir ve zaman aşımı hatası fırlar.
+bekle(süre_sınırı: saniye): görev o sürede bitmezse iptal edilir, durması beklenir ve zaman aşımı hatası fırlar. program_çalıştır(süre_sınırı: saniye): program o sürede bitmezse durdurulur, aynı hata fırlar.
 
 ```tr
 TR_var g = TR_async { TR_sleep(10) }; TR_print(TR_error_code { g.TR_wait(TR_timeout: 0.01) }, g.TR_done())
@@ -4915,7 +4985,7 @@ en: var g = async { sleep(10) }; print(error_code { g.wait(timeout: 0.01) }, g.d
 tr: değişken g = eşzamanlı { uyu(10) }; yazdır(hata_kodu { g.bekle(süre_sınırı: 0.01) }, g.bitti_mi())
 ```
 
-Kullananlar: `.TR_wait(...)` · İlişkili: `.TR_wait(...)`, `.TR_cancel(...)`
+Kullananlar: `TR_run_process(...)`, `.TR_wait(...)` · İlişkili: `.TR_wait(...)`, `.TR_cancel(...)`, `TR_run_process(...)`
 
 #### `TR_token_id:` (`TR_arg_token_id`, `kimlik`)
 

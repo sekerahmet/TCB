@@ -139,6 +139,19 @@ func (v *VM) HandleStop() {
 	}
 }
 
+// AddHardStop, süreç hemen biterken (1.7) çalışacak bir iş ekler: nazik yol işlemediğinde motorun
+// geride bırakacağını bitirir. Yalnız motor kaydı sırasında çağrılır (program başlamadan).
+func (v *VM) AddHardStop(f func()) { v.hardStops = append(v.hardStops, f) }
+
+// HardStop süreç hemen bitmeden önce çağrılır (1.7): ertelenen işler çalışmaz, yalnız motorların
+// işleri çalışır (21.5: dış programların süreç grupları öldürülür). Beklemez, herhangi bir
+// goroutine'den çağrılabilir. Kayıt VM başınadır: başka VM'nin işine dokunmaz.
+func (v *VM) HardStop() {
+	for _, f := range v.hardStops {
+		f()
+	}
+}
+
 // SetInteractive VM'nin etkileşimli kabukta olduğunu bildirir: VM birden çok Run ile sürer, bu
 // yüzden yakalanmayan hatayla biten bir satır görevleri durdurmaz (1.9 programlar içindir). Run'dan
 // önce çağrılır.
@@ -305,6 +318,35 @@ func (v *VM) Abandonable(work func()) error {
 // verir (1.6).
 func (v *VM) AwaitNew(fn any, work func()) error {
 	return v.await(fn, work, true)
+}
+
+// AwaitExternal, dış bir işin bitmesini (ready) yorumlayıcı kilidi bırakılarak bekler: süren bir
+// işi bitiren yerleşik içindir, üstlenilmiş programa gelen istek onu kesmez (1.6, 21.5). Uygulanan
+// bir durdurma ya da görevin iptali gelirse stop çağrılır ve ready kapanana kadar beklenir; stop
+// da kilit bırakılmışken çalışır ve dış iş durmadan yığın çözülmez (1.5). stop ready'yi kapatmayı
+// sağlamalıdır. Temizlik işinde bekleme kesilmez (wakeChannels). İş kendiliğinden bittiyse nil
+// döner; durdurulduysa görev burada yığını çözer.
+func (v *VM) AwaitExternal(ready <-chan struct{}, stop func()) error {
+	applied, _, cancelled := v.wakeChannels(false)
+	stopped := false
+	v.Blocking(func() {
+		select {
+		case <-ready:
+		case <-applied:
+			stopped = true
+		case <-cancelled:
+			stopped = true
+		}
+		if stopped {
+			stop()
+			<-ready
+		}
+	})
+	if !stopped {
+		return nil
+	}
+	v.checkInterrupt() // kilit devri yolu atmadıysa (Exclusive) burada atılır
+	return ErrInterrupted
 }
 
 func (v *VM) await(fn any, work func(), forNew bool) error {

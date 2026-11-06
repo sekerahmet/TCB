@@ -156,6 +156,7 @@ type vmShared struct {
 	stopChan      chan struct{}
 	stopChanSent  bool // stopChan kapandı (stopMu altında)
 	stopWindows   []func() (time.Duration, bool)
+	hardStops     []func() // HardStop'un işleri
 	stopTimer     *time.Timer
 	finishing     atomic.Bool
 	// interactive etkileşimli kabukta açıktır: VM birden çok Run ile sürer, hatayla biten satır
@@ -252,6 +253,8 @@ type VM struct {
 	// orada beklemeler bırakılmaz ve durdurma hatası vermez (1.5, 1.6).
 	interruptThrown bool
 	cleanupDepth    int
+	// builtinLine son yerleşik çağrısının satırıdır (BuiltinLine).
+	builtinLine int
 	// unwindErrors yığın panikle çözülürken (durdurma 1.5, iptal 10.9) çalışan ertelenen işlerin
 	// hatalarıdır: çerçevenin dönüş değeri atıldığından burada birikir, programın, testin ya da
 	// görevin hatasına eklenir (9.4; takeUnwindErrors).
@@ -366,6 +369,10 @@ func (v *VM) Blocking(fn func()) {
 	}()
 	fn()
 }
+
+// BuiltinLine is the line of the builtin call running on this task: a builtin reads it before it
+// calls anything back, for a message that names its call's line.
+func (v *VM) BuiltinLine() int { return v.builtinLine }
 
 // HoldsLock reports whether this task holds the interpreter lock (false inside Blocking).
 func (v *VM) HoldsLock() bool { return v.holdsGIL }

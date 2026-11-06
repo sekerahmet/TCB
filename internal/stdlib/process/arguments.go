@@ -248,9 +248,9 @@ func parseValue(s *option, value string, valued bool) (interp.Value, error) {
 }
 
 // errorValue kullanım hatasında gösterilecek argüman değeridir: gizli adlı seçeneğin değeri
-// uzunluğuna bakılmadan iletiye konmaz (19.4, 19.10).
+// uzunluğuna bakılmadan iletiye konmaz (19.10); yalnız sayı ya da mantık değeri gizli sayılmaz (19.4).
 func errorValue(s *option, value string) string {
-	if s.secret || IsSecretName(s.name) {
+	if (s.secret || IsSecretName(s.name)) && !isNumberOrBool(value) {
 		return interp.SecretMask
 	}
 	return shorten(value)

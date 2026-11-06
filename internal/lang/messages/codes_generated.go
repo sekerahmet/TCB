@@ -529,7 +529,7 @@ const (
 	H2918 Code = 2918 // {fn} görevin kendi içinde çağrılamaz: görev kendi durmasını bekleyemez, sonsuza dek beklerdi (satır {line|loc} başlatılan görev). Görevin sonucunu görevin dışında bekleyin: `{#var} g = {#async} f(x)`, sonra `g.{#wait}()`
 	H2919 Code = 2919 // {fn} bir görev listesi alır; listenin [{index}] öğesi görev değil, {given} verildi: görev `{#async} f(x)` ile başlatılır
 	H2920 Code = 2920 // görev iptal edildi (satır {line|loc} başlatılan)
-	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): görev iptal edildi ve durdu (satır {line|loc} başlatılan)
+	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): iş durduruldu (satır {line|loc} başlatılan)
 	H2922 Code = 2922 // ; `{written}` dilin kimliğidir, {struct} yapısının alanı olamaz: alanı `{field}: {#Int}` diye ekleyin, `.{field}` ile kullanın
 	H2923 Code = 2923 // ; `{written}` dilin kimliğidir, {struct} yapısının bu üyesi `.{field}` diye yazılır
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz
@@ -1709,6 +1709,26 @@ const (
 	H7485 Code = 7485 // Uyarı: {error} ({count}/{max}; eğitim sürüyor, sonraki {method}'de yeniden denenecek). {last}
 	H7486 Code = 7486 // {fn}: {dir|q} içinde dönülecek bir kontrol noktası yok; önce {save}() ya da {update}(adım) ile kaydedin
 	H7487 Code = 7487 // Son kontrol noktasına dönüldü: adım {step} ({dir}/{name})
+	H7490 Code = 7490 // {fn}: argüman listesinin {order}. öğesi bir yol; yol argümanı metin olarak yazılır: `{#string}({value})`
+	H7491 Code = 7491 // {fn}: argüman listesinin {order}. öğesi {@string} olmalıdır, {given} verildi
+	H7492 Code = 7492 // {fn}: argüman listesinin {order}. öğesinde boş bayt var; dış programa boş bayt içeren argüman verilemez
+	H7493 Code = 7493 // {fn}: {name} {@bytes} olmalıdır, {given} verildi
+	H7494 Code = 7494 // {fn}: program adında yol ayırıcısı olamaz ({name|q}); dosyanın kendisi yol olarak verilir: `{#run}({#path}({name|q}), [])`
+	H7495 Code = 7495 // {fn}: {name|q}: program adı {suffix|q} ile bitemez, aynı kod her işletim sisteminde çalışsın diye uzantısız yazılır: `{#run}({stem|q}, [])`
+	H7496 Code = 7496 // {fn}: {name|q} bir toplu iş dosyası: argümanları güvenle kaçırılamaz, ad ya da yol olarak çalıştırılamaz. Açık yazımı `{#run}("cmd", ["/c", {name|q}])`; bu yolda argümanlar cmd.exe'nin kurallarıyla yorumlanır, dışarıdan gelen bir argümanı böyle vermeyin
+	H7497 Code = 7497 // {fn}: {name|q} programı PATH'te bulunamadı
+	H7498 Code = 7498 // {fn}: {name|q} programı PATH'te bulunamadı; argümanlar listeye ayrılır: `{#run}({first|q}, {rest})`
+	H7499 Code = 7499 // {fn}: {name|q} dosyası bulunamadı
+	H7500 Code = 7500 // {fn}: {name|q} çalıştırılamaz: Windows'ta program dosyası .exe ya da .com ile biter
+	H7501 Code = 7501 // {fn}: {name|q} başlatılamadı: {reason}
+	H7502 Code = 7502 // {fn}: {name|q}: programın adında ya da yolunda boş bayt olamaz
+	H7503 Code = 7503 // {fn}: {name|q} {code} koduyla bitti; bu kod başarı sayılıyorsa `{#codes}: {accepted}` yazın{stderr, select, empty {} other {\nStandart hata çıktısının sonu:\n{stderr}}}{hint}
+	H7504 Code = 7504 // {fn}: {name|q} sinyalle öldü ({signal}){stderr, select, empty {} other {\nStandart hata çıktısının sonu:\n{stderr}}}{hint}
+	H7505 Code = 7505 // {fn}: `{#env}:` argümanında {name|q} değerinde boş bayt var; ortam değişkeninin değerinde boş bayt olamaz
+	H7506 Code = 7506 // {fn}: {name} {@int} listesi olmalıdır, {given} verildi
+	H7507 Code = 7507 // {fn}: {name} anahtarı ve değeri {@string} olan bir {@dict} olmalıdır, {given} verildi
+	H7508 Code = 7508 // {fn}: boş `{#codes}:` listesi hiçbir bitişi kabul etmez; başarı sayılan kodları yazın: `{#codes}: [0]`
+	H7509 Code = 7509 // \nGizli adlı olduğu için ortamdan süzülen değişkenler: {names}. Programa gerekiyorsa açıkça verilir: `{#arg}: {{{first|q}: {#fn}({first|q})}}`
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

@@ -21,7 +21,7 @@ TR_var ham = TR_run_process("ffmpeg", ["-nostdin", "-i", "soru.mp3", "-f", "s16l
 TR_var ses = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](ham, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi (olumsuz fikstür `tests/negative/program_argumani_yol.tr`); Go: `TestRunProcessOutputIsBytes`, `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessInput`, `TestRunProcessArgumentListErrors`, `TestRunProcessPathSuggestionRuns`, `TestRunProcessCallErrors`, `TestRunProcessReleasesTheLock`, `TestProcessArgumentListHoldsNoPath`.
 
 **21.2** `TR_spawn_process(program, argümanlar)` programı başlatır ve beklemeden bir `TR_Process` verir. Programın standart girdisi ve standart çıktısı TR programına bağlıdır. `program` ve `argümanlar` 21.1'deki gibidir; adlı argümanlar `TR_env:` ve `TR_exit_codes:`'tır.
 - `p.TR_read(n)` tam `n` bayt okur ve `TR_Bytes` verir. Program çıktısını kapattıysa (dosya sonu) kalanı verir, kalan da yoksa boş `TR_Bytes` verir. Okuma `n` bayt gelene kadar bekler, yani `n` gecikmedir: 16 kHz tek kanallı "int16" seste 1024 bayt 32 ms'dir.
@@ -51,7 +51,7 @@ TR_for {
 - Windows'ta yalnız `.exe` ve `.com` dosyaları aranır. Ad `.exe`, `.com`, `.bat` ya da `.cmd` ile bitemez: `"ffmpeg.exe"` hatadır ve ileti `"ffmpeg"`'i önerir, böylece aynı kod her işletim sisteminde çalışır. Başka noktalı adlar (`"python3.11"`) program adıdır.
 - Windows'ta `.bat` ve `.cmd` dosyaları ad ya da yol olarak çalıştırılamaz: bunların argümanları güvenle kaçırılamaz. İleti açık yazımı verir (`TR_run_process("cmd", ["/c", "npm.cmd", ...])`) ve bu yolda argümanların `cmd.exe`'nin kurallarıyla yorumlandığını, dışarıdan gelen bir argümanın böyle verilmemesi gerektiğini söyler.
 - Bulunamayan programın iletisi adı söyler. Ad boşluk içeriyorsa ileti argümanların listeye ayrılmasını önerir: `TR_run_process("ffmpeg", ["-i", "a.wav"])`.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestProgramNameIsSearchedInPath`, `TestProgramNameHoldsNoSeparator`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestRelativePathEntriesAreNotSearched`, `TestProgramNameCannotEndInAnExtension`, `TestDottedProgramNameIsAName`, `TestWindowsRunsOnlyExeAndCom`, `TestWindowsBatchFilesAreRefused`, `TestBatchSuggestionRuns`, `TestMissingProgramMessages`.
 
 **21.4** Programın çıkış kodu `TR_exit_codes:`'ta değilse (varsayılan `[0]`) çağrı çalışma hatasıyla biter. `TR_spawn_process`'te hata `p.TR_wait()`'ten gelir.
 - İleti programın adını, çıkış kodunu ve standart hata çıktısının sonunu taşır. Gizli değerler orada da 19.4'teki gibi görünmez.
@@ -61,7 +61,7 @@ TR_for {
   - program biterken ve durdurmada (1.5) durdurulan süreç hata olarak yazılmaz, 10.6'da iptal edilen görev gibi.
 - Standart hata çıktısı arka planda okunur, iki çıktı birbirini kilitlemez. Program başarıyla biterse standart hata çıktısı atılır.
 - Bazı programlar başarıyı başka kodlarla bildirir: `grep` eşleşme bulamayınca 1 döner. Kabul edilen kodlar açıkça yazılır: `TR_exit_codes: [0, 1]`. Hangi kodla bittiğini bilmesi gereken program kabul ettiği kodları `TR_exit_codes:`'a yazar ve hangisi olduğunu `p.TR_wait()`'in sonucundan alır: `TR_spawn_process("grep", ["-q", "hata", "günlük.txt"], TR_exit_codes: [0, 1]).TR_wait() == 0`.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestSignalName`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`.
 
 **21.5** İptal (10.9), süre sınırı (10.7), `p.TR_cancel()` ve durdurma (1.5) programı aynı yolla durdurur:
 - Önce nazik bir istek gider: Unix'te SIGTERM, Windows'ta Ctrl+Break olayı.
@@ -70,18 +70,18 @@ TR_for {
 - Uçbirimde basılan Ctrl+C önce TR programına gelir, dış programa gelmez. TR programı durursa dış program da bu kurala göre durur (1.5). Durdurmayı üstlenen programda (1.6) dış program, TR programı durana kadar sürer. 1.6'nın sınıflarıyla: `p.TR_read` yeni bir şey bekler, istekten sonra "durdurma istendi" hatasıyla döner; `p.TR_write`, `p.TR_wait` ve `TR_run_process` süren bir işi bitirir, sürer.
 - TR hemen biterken (1.7) önce süreç gruplarını öldürür. TR'nin kendisi öldürülür ya da çökerse Unix'te gruptaki süreçler kalabilir; Windows'ta iş nesnesi onları da kapatır.
 - Bekleyen `TR_read`, `TR_write` ve `TR_wait` program durunca hemen döner: iptalde iptal hatasıyla, süre sınırında zaman aşımı hatasıyla.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestTimeoutStopsTheProgram`, `TestTimeoutIsCheckedLikeTaskWait`, `TestProgramEndingInTimeIsNotATimeout`, `TestNiceRequestComesFirst`, `TestStubbornProgramIsKilled`, `TestNoConsoleUsesTheKillPath`, `TestGrandchildStopsWithTheProgram`, `TestStopUnwindsAfterTheProgramStopped`, `TestHandledStopLetsTheCallFinish`, `TestDeferralExpiringDuringTheCallStopsIt`, `TestCancelStopsTheCallEvenWhenStopIsHandled`, `TestCallInADeferIsNotAbandoned`, `TestTimeoutWorksInADefer`, `TestStoppingDoesNotHoldTheLock`, `TestGrandchildHoldingThePipeDoesNotBlock`, `TestEscapedGrandchildDoesNotBlockTheStop`, `TestHardStopReachesOnlyItsOwnProgram`, `TestStopRequestStopsTheExternalProgram`, `TestSecondRequestKillsTheExternalProgram`, `TestUncaughtErrorStopsTheExternalProgram`, `TestExitStopsTheExternalProgram`, `TestProgramEndWaitsForTheExternalProgram`, `TestExitInATestLeavesTheExternalProgram`.
 
 **21.6** Dış program TR programının ortamını alır, ama 19.4'e göre gizli adlı değişkenler aktarılmaz.
 - `TR_env:` bir `TR_Dict[TR_String, TR_String]`'dir. Ortama değişken ekler ya da var olanın değerini değiştirir, ortamın geri kalanını silmez.
 - Gizli bir değer gerekiyorsa açıkça verilir: `TR_env: {"HF_TOKEN": anahtar}`.
 - Program başarısız biterse ve ortamdan değişken süzüldüyse ileti süzülen adları (değerlerini değil) ve `TR_env:` yazımını söyler.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestSecretNamedVariablesAreNotPassed`, `TestSecretFilterLooksAtNameAndValue`, `TestEnvArgumentAddsAndReplaces`, `TestExplicitSecretReachesTheProgramAndIsMasked`, `TestFailureNamesTheFilteredVariables`, `TestEnvArgumentIsChecked`, `TestEnvNamesIgnoreCaseOnWindows`.
 
 **21.7** Dış programın çıktısı bayttır. Metin olarak okumak `TR_String(b)` iledir (UTF-8, 3.3a); UTF-8 olmayan çıktı orada çalışma hatasıdır, sessizce bozulmaz.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestRunProcessOutputIsBytes`.
 
 **21.8** TR argümanları ve ortamı 21.1 ve 21.6'da yazılanın dışında değiştirmez. Dış programın sonucu ise kendi sürümüne bağlıdır: aynı sonuç ancak aynı sürümle alınır.
 - `-` ile başlayan bir dosya adı programın kendi kuralıyla yazılır: `["--", ad]` ya da `["./" + ad]`. TR argümanı kendisi değiştirmez.
 - Kontrol noktası (20) dış süreci kaydetmez: kaldığı yerden süren program dış programı yeniden başlatır.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestRunProcessArgumentsAreUnchanged`.

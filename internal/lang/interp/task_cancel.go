@@ -99,7 +99,7 @@ func (t *TaskVal) cancelError(y *VM, err error) error {
 // The task's own error and its defers' errors join the timeout error's TR_suppressed in order, as
 // in 10.5: none is lost (timeoutError).
 func (t *TaskVal) waitFor(y *VM, limit Value) (Value, error) {
-	d, err := seconds(codes.MemWait, limit)
+	d, err := Seconds(codes.MemWait, limit)
 	if err != nil {
 		return nil, err
 	}
