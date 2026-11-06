@@ -128,7 +128,8 @@ func (cpuBackend) Release(s Storage) {
 	c.release = true
 	h := poolFor(poolKey{c.dtyp, c.Len()}, true)
 	if c.Len()*c.dtyp.Bits()/8 >= poolWeakBytes {
-		h.Put(weak.Make(c))
+		w := weak.Make(c)
+		h.Put(&w)
 		return
 	}
 	h.Put(c)
@@ -140,7 +141,7 @@ func poolTake(h *sync.Pool) *cpuStorage {
 		switch v := h.Get().(type) {
 		case *cpuStorage:
 			return v
-		case weak.Pointer[cpuStorage]:
+		case *weak.Pointer[cpuStorage]:
 			if s := v.Value(); s != nil {
 				return s
 			}
