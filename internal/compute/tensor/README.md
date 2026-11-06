@@ -139,6 +139,7 @@ Yeniden ölçmek (CPU, tablo basar): `TR_MEASURE_BF16=1 go test ./internal/compu
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`). Birden çok dosyayı kesen davranış testleri:
 
 - `behavior_forward_test.go`: her işlemin ileri değerleri elle hesaplanmış sonuçlara karşı
+- `behavior_unary_position_test.go`: tekli işlemlerin konumdan bağımsızlığı: bütün dilim ve kesilmiş dilimler aynı bit
 - `behavior_end_to_end_test.go`: küçük modellerin CPU arka ucunda uçtan uca eğitimi
 - `behavior_grad_coverage_test.go`: gradyan kapısının kapsam denetimi: `BinOp`/`UnOp` üyeleri ve `track` çağrılarından çıkan her türevli işlemin float64 sonlu fark + bf16 tolerans kaydı (`gradSpec`) ve çalıştıran testi var; eksik ya da fazla kayıt testi düşürür; her kaydın `bf16Tolerances` girdisi de zorunludur
 - `behavior_grad_bf16_measure_test.go`: bf16 toleransı ölçümü (`TR_MEASURE_BF16`); tabloyu basar ya da `behavior_grad_bf16_tolerances_test.go`'yu yeniden yazar
