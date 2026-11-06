@@ -381,7 +381,7 @@ func (p *Parser) removedSpellingHints() {
 	forLine := 0 // son döngü sözcüğünün satırı: orada 'x in l' karşılaştırma değil, döngü başlığıdır
 	for i := 0; i < len(p.tokens); i++ {
 		t := p.tokens[i]
-		if t.Type == lexer.TokFor {
+		if t.Type == lexer.TokFor || t.Type == lexer.TokIdent && t.Literal == hint.ForeignFor {
 			forLine = t.Line
 		}
 		if t.Type != lexer.TokIdent || !badLine[t.Line] {

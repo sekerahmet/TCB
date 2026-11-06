@@ -119,6 +119,12 @@ func ForeignOperator(words ...string) *messages.Error {
 	return nil
 }
 
+// ForeignFor is the loop word of other languages: on its line 'in' is a loop's head, no comparison.
+const ForeignFor = "for"
+
+// LoopInHint is the hint for 'in' in a loop's head: ForeignOperator's membership would not run there.
+func LoopInHint() *messages.Error { return messages.New(messages.H1021, codes.Spelling(codes.KwIn)) }
+
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
 // candidate closest to name; nil when none is close enough. A name of the language (an identity,
 // TR_print) is matched by its spelling in lang, the language name was written in, and

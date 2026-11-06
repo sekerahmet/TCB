@@ -215,6 +215,7 @@ func (d *nameChecker) statements(stmts []ast.Statement, k *nameScope) {
 	for i, st := range stmts {
 		if d.bindings == nil {
 			d.noteOperator(stmts, i)
+			d.noteLoop(stmts, i)
 		}
 		d.statement(st, k)
 		if d.bindings == nil {
