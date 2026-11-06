@@ -33,6 +33,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | değiştir | TR_dbg_set, TR_mem_replace | ayrı alan: TR_dbg_set hata ayıklayıcıda bir değişkenin değerini değiştirir; TR_mem_replace metinde parçayı değiştirir |
 | dil | TR_arg_language, TR_mem_language, TR_opt_lang | ayrı alan: TR_opt_lang komut satırında kodun gösterileceği insan dilini seçer; TR_arg_language ile TR_mem_language konuşmanın dilidir (`model.TR_transcribe(ses, TR_language: "tr")`, `r.TR_language`) |
 | durum | TR_mem_state, TR_opt_status | ayrı alan: TR_opt_status `TR_cmd_index`'in dizin durumu; TR_mem_state iyileştiricinin sürdürme durumu |
+| girdi | TR_arg_input, TR_fn_input | aynı anlam: programın okuduğu girdi (`TR_input(istem)` uçbirimden satır okur, `TR_input:` dış programın standart girdisini verir) |
 | günlük | TR_arg_log, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı `TR_Logger(...)`'ın açtığı günlüğü alır; `TR_Run`'ın günlük alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
 | kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--check` seçeneği aynı denetimi yapar |

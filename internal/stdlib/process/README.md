@@ -1,7 +1,7 @@
 # process
 
-Programın içinde çalıştığı süreçle ilgili TR yerleşikleri: ortam değişkenleri ve betiğin komut
-satırı seçenekleri (`TR_fn_command_line`).
+Programın içinde çalıştığı süreçle ilgili TR yerleşikleri: ortam değişkenleri, betiğin komut
+satırı seçenekleri (`TR_fn_command_line`) ve dış programlar (`TR_fn_run_process`, bölüm 21).
 
 ## Standartlar
 
@@ -16,6 +16,11 @@ Denetim: `TestCommandLineUsageErrors`, `TestParseErrorCodes`.
 **Sayılar dilin yazımıyla okunur.** Komut satırındaki sayılar TR'nin sayı yazımına uyar;
 kısmen sayı olan bir değer sessizce kırpılmaz, hatadır.
 Denetim: `TestNumberParsing`, `TestIsNumberOrBool`.
+
+**Dış program kabuksuz çalışır.** Her liste öğesi programa tek argüman olarak, değiştirilmeden gider;
+çıktı bayt bayt gelir, beklerken kilit bırakılır. Testler `sh` ve `cmd` varsaymaz: test ikilisi kendi
+kendinin dış programıdır (`helperMain`), her işletim sisteminde aynı program koşar.
+Denetim: `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessOutputIsBytes`, `TestRunProcessInput`, `TestRunProcessReleasesTheLock`.
 
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.

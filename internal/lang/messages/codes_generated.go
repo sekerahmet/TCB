@@ -1709,6 +1709,11 @@ const (
 	H7485 Code = 7485 // Uyarı: {error} ({count}/{max}; eğitim sürüyor, sonraki {method}'de yeniden denenecek). {last}
 	H7486 Code = 7486 // {fn}: {dir|q} içinde dönülecek bir kontrol noktası yok; önce {save}() ya da {update}(adım) ile kaydedin
 	H7487 Code = 7487 // Son kontrol noktasına dönüldü: adım {step} ({dir}/{name})
+	H7490 Code = 7490 // {fn}: argüman listesinin {order}. öğesi bir yol; yol argümanı metin olarak yazılır: `{#string}({value})`
+	H7491 Code = 7491 // {fn}: argüman listesinin {order}. öğesi {@string} olmalıdır, {given} verildi
+	H7492 Code = 7492 // {fn}: argüman listesinin {order}. öğesinde boş bayt var; dış programa boş bayt içeren argüman verilemez
+	H7493 Code = 7493 // {fn}: {name} {@bytes} olmalıdır, {given} verildi
+	H7501 Code = 7501 // {fn}: {name|q} başlatılamadı: {reason}
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

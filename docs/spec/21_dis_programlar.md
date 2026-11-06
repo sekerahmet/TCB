@@ -21,7 +21,7 @@ TR_var ham = TR_run_process("ffmpeg", ["-nostdin", "-i", "soru.mp3", "-f", "s16l
 TR_var ses = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](ham, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi (olumsuz fikstür `tests/negative/program_argumani_yol.tr`); Go: `TestRunProcessOutputIsBytes`, `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessInput`, `TestRunProcessArgumentListErrors`, `TestRunProcessPathSuggestionRuns`, `TestRunProcessCallErrors`, `TestRunProcessReleasesTheLock`, `TestProcessArgumentListHoldsNoPath`.
 
 **21.2** `TR_spawn_process(program, argümanlar)` programı başlatır ve beklemeden bir `TR_Process` verir. Programın standart girdisi ve standart çıktısı TR programına bağlıdır. `program` ve `argümanlar` 21.1'deki gibidir; adlı argümanlar `TR_env:` ve `TR_exit_codes:`'tır.
 - `p.TR_read(n)` tam `n` bayt okur ve `TR_Bytes` verir. Program çıktısını kapattıysa (dosya sonu) kalanı verir, kalan da yoksa boş `TR_Bytes` verir. Okuma `n` bayt gelene kadar bekler, yani `n` gecikmedir: 16 kHz tek kanallı "int16" seste 1024 bayt 32 ms'dir.
@@ -79,9 +79,9 @@ TR_for {
 - *Test:* gerekmez, henüz uygulanmadı.
 
 **21.7** Dış programın çıktısı bayttır. Metin olarak okumak `TR_String(b)` iledir (UTF-8, 3.3a); UTF-8 olmayan çıktı orada çalışma hatasıdır, sessizce bozulmaz.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestRunProcessOutputIsBytes`.
 
 **21.8** TR argümanları ve ortamı 21.1 ve 21.6'da yazılanın dışında değiştirmez. Dış programın sonucu ise kendi sürümüne bağlıdır: aynı sonuç ancak aynı sürümle alınır.
 - `-` ile başlayan bir dosya adı programın kendi kuralıyla yazılır: `["--", ad]` ya da `["./" + ad]`. TR argümanı kendisi değiştirmez.
 - Kontrol noktası (20) dış süreci kaydetmez: kaldığı yerden süren program dış programı yeniden başlatır.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestRunProcessArgumentsAreUnchanged`.

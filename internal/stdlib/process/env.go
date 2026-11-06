@@ -11,7 +11,7 @@ import (
 
 // envVar ortam_değişkeni(ad) yerleşiğidir: değişkenin değeri (Metin) ya da
 // tanımsızsa yok. Bütün ortamı listeleyen ya da ortamı değiştiren bir ad bilerek yoktur
-// (yanlışlıkla döküm olmasın; TR alt süreç açmaz). Adı gizli bir sözcük içeren
+// (yanlışlıkla döküm olmasın; dış programın ortamı TR_env: ile verilir, 21.6). Adı gizli bir sözcük içeren
 // değişkenin değeri gizli değer süzgecine kaydedilir.
 func envVar(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 	if len(args) != 1 {

@@ -1,6 +1,7 @@
 // Package process, programın içinde çalıştığı süreçle ilgili TR yerleşiklerini içerir:
 // ortam değişkenini okuyan ortam_değişkeni (TR_fn_env) ve betiğin komut satırı seçeneklerini
-// tanımlayıp dolduran komut_satırı (TR_fn_command_line). Adı (Türkçe kuralla) gizli bir sözcük içeren
+// tanımlayıp dolduran komut_satırı (TR_fn_command_line) ve dış programı çalıştıran program_çalıştır
+// (TR_fn_run_process). Adı (Türkçe kuralla) gizli bir sözcük içeren
 // ortam değişkenlerinin ve seçeneklerin değerleri yorumlayıcının gizli değer süzgecine
 // verilir (interp.VM.AddSecret): insanın göreceği çıktılarda *** olarak görünürler.
 //
@@ -50,6 +51,7 @@ func Register(v *interp.VM) *State {
 	d := &State{}
 	v.RegisterNoNamed(codes.FnEnv, envVar)
 	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
+	v.RegisterBuiltinCode(codes.FnRunProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnRunProcess), runProcess))
 	return d
 }
 

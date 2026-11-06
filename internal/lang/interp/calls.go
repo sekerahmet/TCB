@@ -162,6 +162,7 @@ func (v *VM) callBuiltin(fn *BuiltinVal, args []Value, named map[string]Value, l
 		escapeAll(args, named)
 	}
 	newOp()
+	v.builtinLine = line
 	res, err := fn.Fn(v, args, named)
 	if err != nil {
 		return nil, lineSuffix(line, err)
@@ -205,6 +206,7 @@ func (v *VM) apply(fnVal Value, args []Value, named map[string]Value, line int) 
 		if fn.NoNamedArgs && len(named) > 0 {
 			return nil, lineSuffix(line, NoNamedArgsError(fn.Name, named))
 		}
+		v.builtinLine = line
 		res, err := fn.Fn(v, args, named)
 		if err != nil {
 			return nil, lineSuffix(line, err)

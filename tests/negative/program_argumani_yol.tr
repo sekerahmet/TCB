@@ -1,0 +1,3 @@
+# TR 4
+# TEST 21.1 argüman listesine yol konmaz, yol metin olarak yazılır
+TR_var ham = TR_run_process("ffmpeg", ["-i", TR_Path("ses.wav")]) # ERROR H7490

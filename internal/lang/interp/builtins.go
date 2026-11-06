@@ -293,7 +293,7 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	if _, ok := ToFloat(args[0]); !ok {
 		return nil, ArgTypeError(codes.FnSleep, 1, args[0], numberTypes...)
 	}
-	d, err := seconds(codes.FnSleep, args[0])
+	d, err := Seconds(codes.FnSleep, args[0])
 	if err != nil {
 		return nil, err
 	}
@@ -305,10 +305,10 @@ func sleepBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
 	return Null, nil
 }
 
-// seconds is a duration given in seconds (uyu, bekle'nin süre_sınırı): a value that is not a number,
+// Seconds is a duration given in seconds (uyu, bekle'nin süre_sınırı, program_çalıştır): a value that is not a number,
 // a negative or NaN one is H2433, one beyond maxSleepSeconds H2434. A negative, NaN or huge
 // duration used to return at once without an error (the conversion to time.Duration overflows).
-func seconds(fn codes.Code, v Value) (time.Duration, error) {
+func Seconds(fn codes.Code, v Value) (time.Duration, error) {
 	pick, ok := ToFloat(v)
 	if !ok || math.IsNaN(pick) || pick < 0 {
 		return 0, messages.New(messages.H2433, CallPrefix(fn), Shown(v))
