@@ -1,4 +1,5 @@
-# Sürekli tümleştirme: gönderimde ve çekme isteğinde Windows ve Linux üzerinde tam denetim
+# Sürekli tümleştirme: gönderimde (yalnız belge değişen gönderim hariç, aşağıda) ve çekme
+# isteğinde Windows ve Linux üzerinde tam denetim
 # (tools/full_check.sh) çalışır. "Bitti"nin tek tanımı o betiktir; burada yalnızca kurulum ve
 # kip seçimi vardır (betiğin --kip argümanı; kiplerin ne yaptığı betiğin başında yazar).
 #
@@ -16,6 +17,11 @@ on:
     # Birleşik denetim dalları GPU'da tam denetimden geçer; aynı kod main'e gidince burada koşar.
     branches-ignore:
       - "kontrol/**"
+    # Yalnız belge değişen gönderimde koşmaz: metin testleri gönderimden önce yerelde koşar,
+    # kaçanı sonraki kod gönderimi yakalar. Tek bir başka dosya varsa koşar.
+    paths-ignore:
+      - "docs/**/*.md"
+      - "tools/codegraph/gaps.md"
   pull_request:
 
 permissions:

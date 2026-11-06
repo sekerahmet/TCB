@@ -62,7 +62,7 @@ Ana dal herkese açıktır; ona yalnızca bütün kapılardan geçmiş iş gider
 
 | İş neye dokunuyor | Sıra |
 | :-- | :-- |
-| Yalnızca belge | Sonraki kod gönderimine eklenir; ayrı tam denetim koşulmaz. |
+| Yalnızca belge (`docs/**/*.md`, `tools/codegraph/gaps.md`) | Metni tarayan testler → ana dala gönderim. Tam denetim ve otomatik sınama (CI) koşmaz; kaçan hata sonraki kod gönderiminde görünür. |
 | CPU tarafı (dil, standart kitaplık, araçlar, iletiler) | İş sırasında değişen paketlerin testleri → tam denetim → ana dala gönderim → otomatik sınama (CI) izlenir. |
 | GPU arka ucu ya da onu kullanan hesap yolu (`internal/compute/gpu`, tensörün GPU'ya giden yolları, GPU'da koşan `lib/*.tr`) | Değişen yerin testleri (Go paketi: `go test ./paket/...`, GPU kodu benzeticide; `lib/*.tr`: `trlang test lib` ve ilgili e2e testi) → **yan dala** gönderim (`git push origin main:refs/heads/gpu-dogrulama`) → o dalla kart sınaması ([`tools/gpu/card_check.sh`](../tools/gpu/card_check.sh): GPU testleri, dil tanımı testleri, hız; kayıtlı; Colab'da [`COLAB.md`](../tools/gpu/COLAB.md) §2), tek kartta (iş olgunlaşınca ve gerekirse iki kartta: L4 ve G4) → geçerse tam denetim → ana dala gönderim, yan dal silinir → CI izlenir. |
 | Hıza dokunan iş | Yukarıdaki sıraya ek olarak önce ve sonra ölçüm (aşağıda); GPU hızı Colab'da aynı kartta ölçülür. |
