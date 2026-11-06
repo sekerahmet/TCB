@@ -277,7 +277,7 @@ func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.
 }
 
 // enumStateCodes kitaplıktaki durumlu tipin durumlarıdır: codeindex durumları indekslemiyor, kodun kullanım kenarı
-// yok (gaps.md, T1 kök). İndeks durumları görünce bu liste silinir.
+// yok (T1 kök). İndeks durumları görünce bu liste silinir.
 var enumStateCodes = map[string]bool{"TR_mem_Noun": true, "TR_mem_UnknownKind": true, "TR_mem_Verb": true}
 
 // memberSpellingExceptions depodaki .tr dosyalarında yazılmış ama dilde üye ya da kitaplık bildirimi karşılığı
