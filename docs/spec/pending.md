@@ -11,11 +11,11 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
+- **21.2, süreç tamponu (2026-11-06, TCB, DENETİM 233):** kilit dışı tek okuyucu; `TR_buffer_bytes:` verilmezse geri basınç, verilirse dolunca süreç durur ve yapışkan hata. Metin S1'in `TR_spawn_process` diliminde 21.2'ye girer.
 - **4.5, derinlik sınırı (2026-11-05, A, DENETİM istek 184):** `==` derinlik sınırında sessizce yanlış veriyor (status 4.5). Yön: iç içelik sınırı yoktur, gezinti açık yığınla yazılır, döngülü değerde H2771. Metin dört şeyi söylemeli: iki gezinti de (`walk`, `valuesEqual`) sınırsız olur ve iki geçiş kalır, yoksa `[1, f] == [2, f]` yanlışa döner; `ValuesEqual` ve `Equaler` bool döndürür, döngü kuramayan yerde yalnız sınır kalkar; çift yolu kümesi büyük halkalarda belleği bitirir [hesap: DENETİM 184], öneri taraf başına küme, iki taraf da kendine varınca H2771, bu 7.6'yı genişletir; hız ölçüsü tek kısa Colab koşusu. Test: üç yol ve aynı alt nesneyi iki alanda tutan değerde H2771 çıkmaması.
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 
-- **21.2, süreç tamponu (2026-11-06, TCB, DENETİM 233):** kilit dışı tek okuyucu; `TR_buffer_bytes:` verilmezse geri basınç, verilirse dolunca süreç durur ve yapışkan hata. Metin S1'in `TR_spawn_process` diliminde 21.2'ye girer.
 **Tur 1 bitti (2026-11-01):** 2026-10-28'in 24 geçici kararı ve dört bulgu Gemini'nin araştırmasından (`TUR1_RAPORU.md`, 23 kabul, 5 değiştir) ve DENETİM'in kaynak denetiminden (14/14 alıntı birebir) geçti. Kabul edilenler ve yazılanlar (3.7a karşılaştırması, 18.2'nin örneği, 6.3'ün gerekçesi; 2026-11-01 20:1x'te 3.6a ile 5.3 ve 6.3'ün demet açması, 3.14'ün kaçış ve bayt dizisi şablonu) bu listeden silindi; 8.5 ve 16.5 uygulama işi olarak status'a geçti. Kalan 13.8 aşağıda.
 
 **Tur 2 bitti (2026-11-01):** beş kritik geçici satır (10.2'nin ikisi, 15.47a, 20.5 ve 20.17, 3.14 ve 8.3) ve yedi olağan bulgu Gemini'nin araştırmasından (`TUR2_RAPORU.md`: 4 kabul, 6 öneri kabul, 20.5/20.17 değiştir, 8.5 öneri değiştir) ve DENETİM'in kaynak denetiminden (`kol-denetim-tur2-rapor-sonuc.md`: yerel 13/13, dış 16/16 alıntı birebir; 20.5'i genişletti) geçti; kararlar dil tanımına yazıldı, satırlar silindi, uygulama işleri status'ta. Kalan 13.8 aşağıda.
