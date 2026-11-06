@@ -95,3 +95,4 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 - **S1, 2026-11-06:** kodu olan ama hiçbir `.tr` dosyasında geçmeyen üyede codegraph `name:` kimliği verirken `trlang index` `not_found` veriyor; `TestDottedMemberSpellingsGolden` bu farkta düştü.
 - **D1, 2026-11-06:** `tests-for` bir kataloğa yeni ad eklerken değişecek yerleri (`examples`, altın dosya, `identityExceptions`) tek listede versin; `TestExamplesCoverNames` önceden görünürdü.
 - **D1 ipucu, 2026-11-06:** `tests-for` `run:` satırında `-run`'sız komut öneriyor, kanca onu durduruyor; önerilen komut koşulabilir olsun. Depo testleri izlenmeyen dosyayı görmüyor; `tests-for` bunu söylesin.
+- **T1 kök, 2026-11-06:** `internal/devtools/codeindex` `TR_enum` durumlarını indekslemiyor, `TestEveryMemberSpellingInRepoTRFilesResolves` için üç istisna yazıldı. Tipin Türkçe görünüm adı alıcı olunca yazım çözülmüyor, ileti neden söylemiyor. Veri dosyası için `tests-for` `run:` satırı versin.

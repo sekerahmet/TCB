@@ -57,7 +57,7 @@ Beş programın kendisi, iki liste, 120 sözcük, tam eşleşme (2026-11-06). İ
 | GLM | 610 kök | 47 | 24 | 71 |
 | Grok | yalnız ünlü düşmesi listesi, koşmadan yazıldı | 21 | 22 | 43 |
 
-Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, GLM 5, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü çoğunlukla uydurmuyor, sözcüğü geri veriyor (46 yanlışın 44'ü); arama işinde bu daha güvenli. Birleştirme denendi: Gemini'nin kuralları ve Zemberek kökleri 59 ve 55, toplam 114; bu sayı iki liste görüldükten sonra kuruldu, gerileme tabanıdır, başarı ölçüsü değil. `tr/turkish` işi bu birleşimi alıyor.
+Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, GLM 5, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü çoğunlukla uydurmuyor, sözcüğü geri veriyor (46 yanlışın 44'ü); arama işinde bu daha güvenli. Birleştirme denendi: Gemini'nin kuralları ve Zemberek kökleri 59 ve 55, toplam 114; bu sayı iki liste görüldükten sonra kuruldu, gerileme tabanıdır, başarı ölçüsü değil. `tr/turkish` bu birleşimden yazıldı: eski iki listede 59 ve 58; görülmemiş üçüncü listede 57/60 [ölçüldü: DENETİM 264].
 
 ## Bulgular
 

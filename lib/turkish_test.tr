@@ -106,6 +106,7 @@ TR_test "26.1 kesme işareti ekin yerini söyler" {
     TR_assert_equal(["ta"], a.TR_suffixes)
     TR_assert_equal(TR_true, a.TR_known)
     TR_assert_equal(TR_false, TR_analyze_word("Ankara'dan").TR_known)
+    TR_assert_equal(TR_WordKind.TR_Noun, TR_analyze_word("Ankara'dan").TR_word_kind)
 }
 
 TR_test "26.1 sözcük olmayan girdi" {

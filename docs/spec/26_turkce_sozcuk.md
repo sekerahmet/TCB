@@ -26,7 +26,7 @@ TR_print(bulucu.TR_analyze_word("blokzincirde").TR_known)
 
 **26.2** `TR_analyze_word(sözcük)` bir `TR_WordAnalysis` verir. Alanlar:
 - `TR_lemma`: 26.1'in sonucu;
-- `TR_word_kind`: `TR_WordKind`, durumlu tiptir (7.7): `TR_Noun`, `TR_Verb`, `TR_UnknownKind`. Fiil dışı sözlük maddesi `TR_Noun`'dur;
+- `TR_word_kind`: `TR_WordKind`, durumlu tiptir (7.7): `TR_Noun`, `TR_Verb`, `TR_UnknownKind`. Fiil dışı sözlük maddesi `TR_Noun`'dur; kesme işaretli sözcük sözlükte olmasa da `TR_Noun`'dur, özel addır;
 - `TR_suffixes`: sözcüğün ekleri, soldan sağa, `TR_List[TR_String]`;
 - `TR_known`: sözlük biçimi sözlükteyse doğru.
 
