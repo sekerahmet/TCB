@@ -145,6 +145,17 @@ func TestProgramNameCannotEndInAnExtension(t *testing.T) {
 	if _, err := run(t, `TR_run_process("ffmpeg", ["args"])`); err != nil {
 		t.Errorf("öneri çalışmadı: %v", err)
 	}
+	// Küçük harfe çevirince bayt sayısı değişen adlar: öneri adın tamamını taşır.
+	for name, stem := range map[string]string{
+		"İşlem.exe":                      "İşlem",
+		"KİŞİ.EXE":                       "KİŞİ",
+		strings.Repeat("Ⱥ", 10) + ".exe": strings.Repeat("Ⱥ", 10),
+	} {
+		_, err := run(t, `TR_run_process("`+name+`", [])`)
+		if !messages.Has(err, messages.H7495) || !strings.Contains(err.Error(), `TR_run_process("`+stem+`", [])`) {
+			t.Errorf("%s: öneri %q olmalıydı: %v", name, stem, err)
+		}
+	}
 	want := messages.H7495
 	if windows {
 		want = messages.H7496

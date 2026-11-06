@@ -97,7 +97,7 @@ func TestKilledBySignal(t *testing.T) {
 		t.Skip("sinyal Unix'te")
 	}
 	_, err := run(t, `TR_run_process(`+helperProgram(t)+`, ["kill-self"])`)
-	if !messages.Has(err, messages.H7504) || !strings.Contains(err.Error(), "killed") {
+	if !messages.Has(err, messages.H7504) || !strings.Contains(err.Error(), "SIGKILL") {
 		t.Errorf("%v", err)
 	}
 	if _, err := run(t, `TR_run_process(`+helperProgram(t)+`, ["kill-self"], TR_exit_codes: [0, -1])`); !messages.Has(err, messages.H7504) {

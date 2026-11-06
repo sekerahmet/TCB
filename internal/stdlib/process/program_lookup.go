@@ -80,15 +80,15 @@ func checkNameSuffix(fn any, name string) error {
 	if onWindows {
 		trimmed = strings.TrimRight(name, " .")
 	}
-	lower := strings.ToLower(trimmed)
 	for _, suffix := range slices.Concat(programSuffixes, batchSuffixes) {
-		stem, found := strings.CutSuffix(lower, suffix)
+		// Kesme yeri asıl metinden: küçük harfe çevirmek baytları değiştirir (İ, Ⱥ).
+		cut := len(trimmed) - len(suffix)
 		switch {
-		case !found || stem == "":
+		case cut <= 0 || !strings.EqualFold(trimmed[cut:], suffix):
 		case onWindows && slices.Contains(batchSuffixes, suffix):
 			return messages.New(messages.H7496, fn, trimmed)
 		default:
-			return messages.New(messages.H7495, fn, name, trimmed[len(stem):], trimmed[:len(stem)])
+			return messages.New(messages.H7495, fn, name, trimmed[cut:], trimmed[:cut])
 		}
 	}
 	return nil

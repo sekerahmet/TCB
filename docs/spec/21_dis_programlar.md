@@ -61,7 +61,7 @@ TR_for {
   - program biterken ve durdurmada (1.5) durdurulan süreç hata olarak yazılmaz, 10.6'da iptal edilen görev gibi.
 - Standart hata çıktısı arka planda okunur, iki çıktı birbirini kilitlemez. Program başarıyla biterse standart hata çıktısı atılır.
 - Bazı programlar başarıyı başka kodlarla bildirir: `grep` eşleşme bulamayınca 1 döner. Kabul edilen kodlar açıkça yazılır: `TR_exit_codes: [0, 1]`. Hangi kodla bittiğini bilmesi gereken program kabul ettiği kodları `TR_exit_codes:`'a yazar ve hangisi olduğunu `p.TR_wait()`'in sonucundan alır: `TR_spawn_process("grep", ["-q", "hata", "günlük.txt"], TR_exit_codes: [0, 1]).TR_wait() == 0`.
-- *Test:* Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`.
+- *Test:* Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestSignalName`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`.
 
 **21.5** İptal (10.9), süre sınırı (10.7), `p.TR_cancel()` ve durdurma (1.5) programı aynı yolla durdurur:
 - Önce nazik bir istek gider: Unix'te SIGTERM, Windows'ta Ctrl+Break olayı.
