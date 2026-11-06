@@ -147,6 +147,17 @@ Colab'ın hazır PyTorch'u (2.11) ile oranlar aynıydı (0,94 / 1,07 / 0,87 / 1,
 hızlı değildir: sanal çekirdek çiftleri bir fiziksel çekirdeği paylaşır ve bu boyda model için eşgüdüm
 yükü kazancı aşar.
 
+## Gerileme kapısı
+
+[`compare_commits.py`](compare_commits.py) iki commit'in Go kıyasını karşılaştırır. Fonksiyonun hizası kıyası oynatabilir: `BF16TrainStep` bir koşuda (`h3k12`) 6–10 puan oynadı, sonraki koşuda (`h1k1`) tekrarlanmadı, kod da değişmişti; etki kanıtlı değil. Yine de iki taraf `-ldflags=-funcalign=64` ile derlenir; bayrak kullanıcının derlemesini bağlamaz. Taban, tabanın kopyası ve dal nöbetleşe koşar. Fark ancak kopyanın farkının dışındaysa ve iki kolun çeyrekleri ayrıksa gerçek sayılır. Çıkış kodu: gerçek yavaşlamada 1, kıyas bulunmayınca 2.
+
+Kuralın eşiği koşunun gürültüsüne bağlıdır: `h1k1`'de yaklaşık %9–11'in altındaki gerileme "gerçek" çıkmazdı. Kapının sessizliği "gerileme yok" demek değildir.
+
+```
+python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF16TrainStep --symbol widenSpan
+python tools/bench/compare_commits.py --base <commit> --head <commit> --bench BF16TrainStep --plain   # hizasız kollar da
+```
+
 ## CPU temel ölçümü
 
 [`cpu_baseline.sh`](cpu_baseline.sh) karakter modelini (1, 2, 4, 8 iş parçacığı), dil kıyasını ve tensör
