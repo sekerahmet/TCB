@@ -3,6 +3,7 @@ package tensor
 import (
 	"go/ast"
 	"go/types"
+	"math"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
@@ -147,6 +148,77 @@ func TestHostBlockCastStaysOffTheHeap(t *testing.T) {
 	}
 	if s := Zeros(hostSize).Cast(BFloat16).storage.(*cpuStorage); s.block != nil {
 		t.Fatal("öbekteki tensörün kopyası bloğa gitti")
+	}
+}
+
+// withHostLimits bütçeyi test boyunca verilen sınırlara indirir.
+func withHostLimits(t *testing.T, blocks, address int64) {
+	t.Helper()
+	old := hostLimits
+	hostLimits.blocks = func() int64 { return blocks }
+	hostLimits.address = address
+	t.Cleanup(func() { hostLimits = old })
+}
+
+// Bütçe dolunca yeni blok verilmez; çevirme öbekte sürer, değerler aynı kalır (DENETİM 236: blokta
+// duran tensörün her Cast'i geri gelmeyen adres harcıyordu).
+func TestHostBlockBudgetEndsInTheHeap(t *testing.T) {
+	b := needBlock(t, hostSize*2)
+	bits := b.Uint16s()
+	for i := range bits {
+		bits[i] = f32ToBF16(float32(i % 251))
+	}
+	src := FromHostBlock(b, BFloat16, hostSize)
+	want := src.Cast(Float32).Data()
+	blocks, address := hostMemory.blocks.Load(), hostMemory.address.Load()
+	cases := []struct {
+		name            string
+		blocks, address int64
+	}{
+		{"blok sayısı", blocks, hostAddressSpace},
+		{"adres", math.MaxInt64, address + hostSize*4 - 1},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			withHostLimits(t, c.blocks, c.address)
+			if NewHostBlock(hostSize*4) != nil {
+				t.Fatal("bütçe dolu, blok verildi")
+			}
+			got := src.Cast(Float32)
+			if got.storage.(*cpuStorage).block != nil {
+				t.Fatal("bütçe dolu, çevirme bloğa gitti")
+			}
+			if !slices.Equal(got.Data(), want) {
+				t.Fatal("öbekteki çevirmenin değerleri farklı")
+			}
+		})
+	}
+	withHostLimits(t, hostMemory.blocks.Load()+1, hostAddressSpace)
+	spent := hostMemory.address.Load()
+	if NewHostBlock(hostSize*4) == nil {
+		t.Fatal("bütçede yer varken blok verilmedi")
+	}
+	if got := hostMemory.address.Load() - spent; got != hostSize*4 {
+		t.Fatalf("harcanan adres %d, beklenen %d", got, hostSize*4)
+	}
+	if NewHostBlock(hostSize*4) != nil {
+		t.Fatal("son yer harcandı, blok verildi")
+	}
+}
+
+// Sınır işletim sisteminden gelir, yarısı Go'ya kalır; dosya okunamazsa çekirdek varsayılanı sayılır.
+func TestHostBlockLimitComesFromTheSystem(t *testing.T) {
+	needBlock(t, hostSize*2)
+	if hostLimits.blocks() <= 0 {
+		t.Fatalf("blok sınırı %d", hostLimits.blocks())
+	}
+	if hostLimits.address != hostAddressSpace/2 {
+		t.Fatalf("adres sınırı %d", hostLimits.address)
+	}
+	for text, want := range map[string]int64{"262144\n": 262144, "65530": 65530, "": hostDefaultMaps, "yok": hostDefaultMaps, "-1": hostDefaultMaps} {
+		if got := hostMapCount(text); got != want {
+			t.Fatalf("%q: %d, beklenen %d", text, got, want)
+		}
 	}
 }
 
