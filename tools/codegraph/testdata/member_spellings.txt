@@ -342,6 +342,7 @@ ana.TR_cancel	ok	0	name:TR_mem_cancel
 ana.TR_slice	ok	0	name:TR_mem_slice
 ana.TR_wait	ok	0	name:TR_mem_wait
 anahtarlar.TR_append	ok	0	name:TR_mem_append
+and.TR_append	ok	0	name:TR_mem_append
 ara.TR_grad	ok	0	name:TR_mem_grad
 ara.TR_to_device	ok	0	name:TR_mem_to_device
 atanmış.TR_samples	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_samples

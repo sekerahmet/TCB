@@ -1,0 +1,10 @@
+# TR 4
+# TEST 2.3a başka dillerin mantık sözcükleri sözdizimi hatasıdır, ipucu kimliği söyler
+TR_var a = TR_true
+TR_if a and a { # ERROR H0140 H0164
+    TR_print(1)
+}
+TR_if not a { # ERROR H0140 H0164
+    TR_print(2)
+}
+TR_print(a or a) # ERROR H0140 H0164

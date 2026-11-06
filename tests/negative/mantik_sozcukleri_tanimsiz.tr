@@ -1,0 +1,9 @@
+# TR 4
+# TEST 2.8 sözcük tanımsız ad okununca satırda yalnız tanımsız ad hatası kalır
+TR_var a = TR_true
+TR_var b = a and a # ERROR H1106
+TR_var c = not a # ERROR H1106
+TR_var l = [1]
+TR_var d = a not in l # ERROR H1106
+TR_var e = a is not b # ERROR H1106
+TR_print(b, c, d, e)

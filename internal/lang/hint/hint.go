@@ -9,6 +9,7 @@ package hint
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -86,6 +87,9 @@ func NameSuggestion(name string, visible []string, lang *codes.Language) *messag
 		if k, ok := codes.FamiliarCode(name); ok && k == codes.TypeRange {
 			return messages.New(messages.H0243) // range(n): aralık 0..n yazılır, tip çağrılmaz (3.8)
 		}
+		if o := ForeignOperator(name); o != nil {
+			return o
+		}
 		if s, ok := codes.SuggestIdentity(name); ok {
 			return messages.New(messages.H1021, s)
 		}
@@ -97,6 +101,22 @@ func NameSuggestion(name string, visible []string, lang *codes.Language) *messag
 		return i
 	}
 	return ClosestSuggestion(name, visible, lang)
+}
+
+// ForeignOperator returns the hint for a comparison written with the words of another language
+// (x in l, x not in l, x is not 1); nil when words are no such comparison. TR_in and TR_not are not
+// the answer here: TR_in only belongs to a loop's head, so the hint gives the whole spelling.
+func ForeignOperator(words ...string) *messages.Error {
+	contains := "l." + codes.Spelling(codes.MemContains) + "(x)"
+	switch strings.Join(words, " ") {
+	case "in":
+		return messages.New(messages.H0302, "x in l", contains)
+	case "not in":
+		return messages.New(messages.H0302, "x not in l", codes.Spelling(codes.KwNot)+" "+contains)
+	case "is not":
+		return messages.New(messages.H0302, "x is not 1", "x != 1")
+	}
+	return nil
 }
 
 // ClosestSuggestion returns the "Bunu mu demek istediniz?" suggestion (H1104) for the
@@ -170,6 +190,12 @@ func findType(lang *codes.Language, text string) (codes.Code, bool) {
 // (without the position prefix; H1106).
 func UndefinedNameError(name string, visible []string, lang *codes.Language) *messages.Error {
 	return messages.New(messages.H1106, name, NameSuggestion(name, visible, lang))
+}
+
+// UndefinedOperatorError is H1106 for a name that is a word of a comparison of another language;
+// operator is ForeignOperator's hint for the comparison.
+func UndefinedOperatorError(name string, operator *messages.Error) *messages.Error {
+	return messages.New(messages.H1106, name, operator)
 }
 
 // suggestionArg is, for each hint message, the index of the parameter that holds the name it

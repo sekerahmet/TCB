@@ -89,6 +89,10 @@ func (k *nameScope) visible() []string {
 type nameChecker struct {
 	c    *Checker
 	decl map[string]bool // aynı ad için tek hata (ilk geçtiği yer)
+	// undefined tanımsız çıkan adlardır, her geçtiği yerde; operators başka dilin karşılaştırmasının
+	// sözcükleri ve ipucudur (foreign_operators.go).
+	undefined map[*ast.Identifier]bool
+	operators map[*ast.Identifier]*messages.Error
 	// floorDivRight '//' işlecinin sağ yanındaki adlardır: tanımsızsa ileti '#'i önerir (4.9).
 	floorDivRight map[*ast.Identifier]bool
 	// dictKeys sözlük değişmezinin ad olarak yazılmış anahtarlarıdır: tanımsızsa ileti metin
@@ -149,7 +153,8 @@ func (c *Checker) checkNames(prog *ast.Program) {
 	if c.globalNames == nil {
 		c.globalNames = newNameScope(nil)
 	}
-	d := &nameChecker{c: c, decl: map[string]bool{}, lang: codes.Active(), treeLang: codes.Active()}
+	d := &nameChecker{c: c, decl: map[string]bool{}, lang: codes.Active(), treeLang: codes.Active(),
+		undefined: map[*ast.Identifier]bool{}, operators: map[*ast.Identifier]*messages.Error{}}
 	d.statements(prog.Statements, c.globalNames)
 }
 
@@ -207,8 +212,14 @@ func (d *nameChecker) statements(stmts []ast.Statement, k *nameScope) {
 	if d.bindings != nil {
 		d.codeDeclarations(stmts, k)
 	}
-	for _, st := range stmts {
+	for i, st := range stmts {
+		if d.bindings == nil {
+			d.noteOperator(stmts, i)
+		}
 		d.statement(st, k)
+		if d.bindings == nil {
+			d.quietAfterUndefined(stmts, i)
+		}
 	}
 }
 
@@ -387,11 +398,18 @@ func (d *nameChecker) expression(e ast.Expression, k *nameScope) {
 
 // name, okunan ya da atanan bir adın görünür olduğunu denetler.
 func (d *nameChecker) name(id *ast.Identifier, k *nameScope) {
-	if d.memberName(id, k) || k.isKnown(id.Value) || d.decl[id.Value] {
+	if d.memberName(id, k) || k.isKnown(id.Value) {
+		return
+	}
+	d.undefined[id] = true
+	if d.decl[id.Value] {
 		return
 	}
 	d.decl[id.Value] = true
 	var err error = hint.UndefinedNameError(id.Value, k.visible(), d.c.language())
+	if o := d.operators[id]; o != nil {
+		err = hint.UndefinedOperatorError(id.Value, o)
+	}
 	if d.floorDivRight[id] {
 		err = messages.New(messages.H1018, id.Value)
 	}
