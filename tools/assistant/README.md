@@ -1,12 +1,13 @@
 # Asistan ekranı
 
-TR'de yazılacak yerel asistanın ekranı ve TR'yle konuşacağı sözleşme. Ekran incedir: tek HTML dosyası, düz JavaScript, derleme yok, dışarıdan hiçbir şey yüklemez. TR'ye HTTP ile bağlanır; pencere çizmek TR'nin işi değildir.
+TR'de yazılacak yerel asistanın ekranı ve TR'yle konuşacağı sözleşme. Ekran incedir: tek sayfa ve dil dosyaları, düz JavaScript, derleme yok, dışarıdan hiçbir şey yüklemez. TR'ye HTTP ile bağlanır; pencere çizmek TR'nin işi değildir.
 
 TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla** çalışır ve bunu üstte sürekli yazar. Ekrandaki her şey uydurmadır. Yer geçicidir: asistanın TR kodu gelince taşınır.
 
 ## Dosyalar
 
-- `index.html`: ekran. Biçim, sözlük, kod ve sahte akış bu tek dosyada.
+- `index.html`: ekran. Biçim, kod ve sahte akış bu tek dosyada.
+- `lang/<kod>.js`: çeviriler, her dile bir dosya. Yalnız metin taşır.
 - `contract.md`: ekranın TR'den beklediği her şey. Asıl değer budur; HTTP bölümü yazılırken tartılır.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
 
@@ -26,14 +27,25 @@ Gerçek kaynağa bağlanmak için `?source=http://127.0.0.1:<kapı>` verilir. Ya
 
 ## Dil eklemek
 
-Ekranda dil ayrıcalığı yok; varsayılan tarayıcının dilidir, eşleşme yoksa sözlükteki ilk dil, seçim hatırlanır. Dil eklemek yalnız veridir:
+Ekranda dil ayrıcalığı yok; varsayılan tarayıcının dilidir, eşleşme yoksa listedeki ilk dil, seçim hatırlanır. Dil eklemek yeni dosya ve tek satırdır, ekran kodu değişmez:
 
-1. `index.html`'deki `dictionary` bloğuna dil koduyla yeni bir nesne ekleyin. Anahtarlar öbür dillerle aynı olmalı, `{ad}` boşlukları da.
-2. `language_name` dilin kendi adıdır, `direction` `ltr` ya da `rtl`'dir.
+1. `lang/en.js`'i `lang/<kod>.js` adıyla kopyalayıp çevirin. Anahtarlar öbür dillerle aynı olmalı, `{ad}` boşlukları da. `language_name` dilin kendi adıdır, `direction` `ltr` ya da `rtl`'dir.
+2. `index.html`'in sonundaki dil listesine satırını ekleyin: `<script src="lang/<kod>.js"></script>`.
 
-Dil seçicisi kendini sözlükten kurar. Sayılar, boyutlar ve süreler `Intl` ile dile göre yazılır. Biçim mantıksal özelliklerle yazıldığı için sağdan sola yazılan dil düzeni kendiliğinden çevirir; metin uzunluğu sabit genişliğe bağlı değildir. HTML'in içine yazı yazılmaz, `<title>` dahil.
+Dosya tek bir atamadır: `assistantLanguages.<kod> = {...};`, sağı geçerli JSON ve yalnız metin. Yorum da giremez; test dosyayı JSON olarak okur, kod taşıyamaz. Biçim `.json` değil `.js`'dir, çünkü `file://`'de `fetch` çalışmaz, `<script src>` çalışır.
 
-Sözlüğe eklenen dil CSP özetini değiştirmez: JSON bloğu çalıştırılmaz.
+Dil seçicisi kendini yüklenen dillerden kurar. Sayılar, boyutlar ve süreler `Intl` ile dile göre yazılır. Biçim mantıksal özelliklerle yazıldığı için sağdan sola yazılan dil düzeni kendiliğinden çevirir; metin uzunluğu sabit genişliğe bağlı değildir. HTML'in içine yazı yazılmaz, `<title>` dahil.
+
+Dil dosyası CSP özetini değiştirmez: politika onları `/lang/` yolundan tanır.
+
+## Betik politikası
+
+Tek bir meta politika bu işi yapamıyor. `file://`'de `'self'` ve `file:` bütün yerel betikleri geçirir, yolla sınırlamak ve `integrity` ise dil dosyalarını da keser. Bu yüzden iki aşama var:
+
+1. Sayfanın politikası ana betiği özetiyle, dil dosyalarını `/lang/` yolundan ya da `file:`'dan kabul eder.
+2. Ekran başlarken `script-src 'none'` taşıyan ikinci bir politika ekler (`sealScripts`). Politikalar birlikte geçerlidir: bundan sonra hiçbir betik yüklenemez.
+
+Güvenilmez metin ancak ikinci aşamadan sonra gelir; o ana kadar yüklenenler dosyadaki yazılı satırlardır.
 
 ## Değiştirmek
 
@@ -53,4 +65,4 @@ Davranış tarayıcıda sahnelerle gezilir: konsolda hata olmamalı, 1280 ve 800
 
 ## Testler
 
-- `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; dillerde aynı anahtarlar ve boşluklar var, her hata kodunun her dilde karşılığı var.
+- `behavior_screen_test.go`: `innerHTML` yok, dış adres yok, CSP var ve özetleri tutuyor, boyut 150 KB altı, görünmez karakter yok; sözleşmedeki her olay, komut ve durum ekranda ve sahte akışta; bütün dil dosyalarında aynı anahtarlar ve boşluklar var, her hata kodunun karşılığı var, dil dosyasında kod yok, dil listesi dosyalarla aynı.

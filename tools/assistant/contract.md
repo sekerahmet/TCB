@@ -8,7 +8,7 @@ Bütün örnekler uydurmadır.
 
 ## Genel
 
-- **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi).
+- **Uçlar:** `GET /events` (server-sent events), `POST /command`, `GET /` (ekranın kendisi), `GET /lang/<kod>.js` (ekranın dil dosyaları).
 - **Biçim:** JSON, UTF-8.
 - **Sürüm:** her olayda ve her komutta `v` alanı. Bugün `1`. Ekran başka bir sürüm görürse olayı işlemez, `protocol_mismatch` gösterir ve komut göndermez.
 - **Bilinmeyen alan** yok sayılır. **Bilinmeyen olay türü** yok sayılır: yeni olay eski ekranı kırmaz.
@@ -264,10 +264,11 @@ Herhangi bir web sitesi kullanıcının tarayıcısından `127.0.0.1`'e istek at
 - **Kimlik:** `/events` ve `/command` `Authorization: Bearer <belirteç>` ister. TR açılırken rastgele belirteç üretir ve yalnız kendisini çalıştıran kullanıcının görebileceği yere yazar. Ekran kullanıcıdan alır, yalnız bellekte tutar, diske yazmaz. Belirteç URL'de olmaz: adres geçmişe ve günlüklere düşer. Sayfada da olmaz: sayfayı kimlik sormadan sunan uç herkese açıktır.
 - **`Content-Type`:** `POST /command` yalnız `application/json` kabul eder. Düz form ön uçuş isteği olmadan gönderilebildiği için öbürleri `415`.
 - **CORS yok:** sunucu `Access-Control-Allow-*` göndermez, `OPTIONS` kabul etmez.
+- **Sunulan dosyalar:** yalnız ekran ve sayfanın listelediği dil dosyaları, `Content-Type: text/javascript`. Sayfanın politikası betiği `/lang/` altından kabul eder; başka betik sunulmaz.
 - **Gizli değer:** olaylar tele çıkmadan aynı süzgeçten geçer (dil tanımı 19.4): model metni, araç çıktısı ve onay argümanı dahil. Argüman süzüldüyse kart `***` gösterir; ekran gerçek değeri hiç almaz.
 - **Boyut:** olay en çok 1 MiB, araç çıktısı ve onay argümanı 64 KiB, komut gövdesi 64 KiB. Sunucu kesince söyler; sessiz kesme yok.
 - **Çerçeve:** `frame-ancestors` meta etiketinde çalışmaz; sunucu `GET /` cevabında üstbilgiyle gönderir: `Content-Security-Policy: frame-ancestors 'none'`. Sayfa başka bir sitenin içinde açılıp tıklatılamaz.
-- **Önbellek:** `GET /` ve `/events` `Cache-Control: no-store`, ayrıca `X-Content-Type-Options: nosniff`.
+- **Önbellek:** `GET /`, `/lang/` ve `/events` `Cache-Control: no-store`, ayrıca `X-Content-Type-Options: nosniff`.
 - **Onay:** karar sunucudadır. Ekranın gönderdiği cevap yalnız bir istektir; süre, `approval_id` ve geri alınamaz işin kendisi sunucuda denetlenir. Onaylanmayan araç hiç çalışmaz.
 
 ## Emsaller

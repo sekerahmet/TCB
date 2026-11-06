@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MF6fqqxLYQROSYLNF1Bd57cjbCt/P2da54kexX5AAw0='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src http://127.0.0.1:*/lang/ file: 'sha256-1yndOc8FrlMe14w6y4blta8qlxMlx5JPrwZltQxW8GM='; style-src 'sha256-v3zH39miZ2wxoUq8szE97+KOAXSehayv6VW/n9jyQkI='; connect-src http://127.0.0.1:*; base-uri 'none'; form-action 'none'">
 <title></title>
 <style>
 :root {
@@ -541,310 +541,6 @@ body.focus .left, body.focus .right { display: none; }
   </div>
 </aside>
 
-<script type="application/json" id="dictionary">
-{
-  "en": {
-    "language_name": "English",
-    "direction": "ltr",
-    "language_label": "Language",
-    "banner_mock": "MOCK MODE: everything on this screen is made up; it is not connected to TR.",
-    "conn_connecting": "Connecting…",
-    "conn_mock": "Mock source",
-    "conn_open": "Connected",
-    "conn_reconnecting": "Connection lost. Trying again (attempt {attempt}).",
-    "conn_auth": "The server needs a token.",
-    "conn_forbidden": "The server refused this page.",
-    "conn_rejected": "No connection: this source is not accepted: {source}. Only http://127.0.0.1:<port> is, and only when TR serves the page.",
-    "conn_mismatch": "No connection: this screen speaks version {want}, the server version {got}. Update the screen and reload.",
-    "label_connection": "Connection",
-    "label_model": "Model",
-    "model_unknown": "unknown",
-    "state_idle": "Waiting",
-    "state_loading": "Loading",
-    "state_loading_progress": "Loading {percent}",
-    "state_listening": "Listening",
-    "state_thinking": "Thinking",
-    "state_speaking": "Speaking",
-    "state_error": "Error",
-    "state_offline": "No connection",
-    "button_mic": "Microphone",
-    "button_tools": "Tools",
-    "button_focus": "Focus",
-    "button_focus_exit": "Leave focus",
-    "toggle_on": "on",
-    "toggle_off": "off",
-    "search_title": "Search",
-    "search_placeholder": "Search the conversation",
-    "search_count": "{shown} of {total} rows",
-    "metrics_title": "Measures",
-    "metric_memory": "Memory",
-    "metric_tps": "Tokens/s",
-    "metric_first_token": "First token",
-    "calls_title": "Recent tool calls",
-    "calls_empty": "No tool calls yet.",
-    "tools_title": "Tools",
-    "tools_empty": "The server reported no tools.",
-    "tool_irreversible": "asks for approval",
-    "stream_label": "Conversation",
-    "stream_empty": "No conversation yet.",
-    "speaker_user": "You",
-    "source_voice": "voice",
-    "rows_dropped": "{count} older rows were removed from this screen.",
-    "text_cut": "The text stops here on this screen: {count} more characters were not shown.",
-    "composer_placeholder": "Write a message",
-    "button_send": "Send",
-    "button_stop": "Stop",
-    "jump_latest": "Go to latest",
-    "reason_stopped": "Stopped.",
-    "reason_error": "The turn ended with an error.",
-    "result_running": "running",
-    "result_waiting": "waiting for approval",
-    "result_ok": "done",
-    "result_error": "failed",
-    "result_denied": "denied",
-    "result_stopped": "stopped",
-    "duration_value": "{duration_ms}",
-    "tool_output": "Output",
-    "tool_truncated": "Output cut by the server: {shown_bytes} of {total_bytes}.",
-    "tool_display_cut": "Only the start of the output is shown here.",
-    "approvals_label": "Approvals waiting",
-    "approval_title": "Approval needed: this cannot be undone",
-    "approval_tool": "Tool",
-    "approval_args": "Actual argument",
-    "approval_truncated": "Argument cut: {shown_bytes} of {total_bytes} shown. The tool receives all of it.",
-    "approval_time_left": "{seconds} s left",
-    "approval_time_up": "Time is up",
-    "approval_approve": "Approve",
-    "approval_deny": "Cancel",
-    "approval_sent": "Sent. Waiting for the server.",
-    "approval_offline": "No connection: the answer cannot be sent. This card stays until the server decides.",
-    "approval_closed_approved": "Approved: {tool}",
-    "approval_closed_denied": "Cancelled: {tool}",
-    "approval_closed_other_approved": "Approved in another tab: {tool}",
-    "approval_closed_other_denied": "Cancelled in another tab: {tool}",
-    "approval_closed_expired": "Approval timed out, nothing was done: {tool}",
-    "approval_closed_stopped": "Approval closed by stop, nothing was done: {tool}",
-    "approval_lost": "The server restarted; this approval no longer counts and nothing was approved: {tool}",
-    "token_label": "Token",
-    "token_send": "Connect",
-    "token_hint": "TR shows the token when it starts. It stays in this tab's memory only.",
-    "unit_tokens_per_second": "{value}/s",
-    "error_unknown": "Unknown error: {code}",
-    "error_bad_request": "The server did not understand the request.",
-    "error_unsupported_version": "The server does not support version {version}.",
-    "error_unknown_command": "The server does not know this command: {type}",
-    "error_unknown_approval": "There is no open approval with this id: {approval_id}",
-    "error_already_answered": "This approval was already answered.",
-    "error_approval_expired": "The answer came after the time ran out.",
-    "error_turn_busy": "A turn is still running. Wait for it or stop it.",
-    "error_text_too_long": "The text is too long; the limit is {limit_bytes}.",
-    "error_mic_unavailable": "The microphone could not be opened.",
-    "error_model_load_failed": "The model could not be loaded: {model}",
-    "error_out_of_memory": "Not enough memory: {needed_bytes} needed.",
-    "error_tool_failed": "The tool failed: {tool}",
-    "error_tool_timeout": "The tool ran past its limit of {limit_ms}: {tool}",
-    "error_internal": "The server hit an internal error.",
-    "error_unauthorized": "The token is missing or wrong.",
-    "error_forbidden_origin": "The server does not accept this page's address.",
-    "error_unsupported_media_type": "The server accepts only JSON.",
-    "error_body_too_large": "The request is too large; the limit is {limit_bytes}.",
-    "error_connection_lost": "The connection was lost; the command was not delivered.",
-    "error_source_rejected": "This source is not accepted: {source}",
-    "error_protocol_mismatch": "This screen speaks version {want}, the server version {got}.",
-    "error_event_too_large": "An event over {limit_bytes} was refused.",
-    "error_bad_event": "An unreadable event was skipped.",
-    "scene_label": "Mock scene",
-    "scene_play": "Play",
-    "scene_conversation": "Voice conversation",
-    "scene_loading": "Model loading",
-    "scene_approval": "Approval",
-    "scene_approval_truncated": "Approval, cut argument",
-    "scene_approval_hidden": "Approval, hidden character",
-    "scene_approval_expired": "Approval, time runs out",
-    "scene_approval_stopped": "Approval, stop arrives",
-    "scene_approval_other_tab": "Approval, other tab answers",
-    "scene_stop": "Answer to stop",
-    "scene_errors": "Errors",
-    "scene_disconnect": "Connection drop",
-    "scene_silent": "Silent drop",
-    "scene_restart": "Server restart",
-    "scene_long_answer": "Long answer",
-    "scene_long_output": "Long tool output",
-    "scene_hostile": "Hostile text",
-    "scene_bad_events": "Bad events",
-    "scene_version": "Other version",
-    "mock_model": "Example Model 4B (made up)",
-    "mock_draft_1": "what is the",
-    "mock_draft_2": "what is the wether",
-    "mock_draft_3": "what is the weather in the made-up city",
-    "mock_answer": "This answer is made up. The example tool read a made-up note: it is sunny in the made-up city, and nothing here is real.",
-    "mock_reply": "Mock source: your {count}-character message reached the screen's mock, not a model.",
-    "mock_tool_output": "made-up note: sunny in the made-up city\n",
-    "mock_delete_intro": "I need to delete a made-up file. This cannot be undone, so I am asking first.",
-    "mock_delete_done": "The made-up file is gone. No real file was touched.",
-    "mock_delete_denied": "Understood, I left the made-up file alone.",
-    "mock_delete_closed": "Nothing was deleted.",
-    "mock_question": "Delete the made-up file",
-    "mock_stop_sentence": "This made-up answer goes on until you press stop.",
-    "mock_drop_intro": "The connection will drop in the middle of this made-up answer",
-    "mock_drop_rest": " and the rest arrives after the screen reconnects, in order.",
-    "mock_long_sentence": "Made-up sentence number {n} keeps this long answer going so that the screen can be tested. ",
-    "mock_long_output": "made-up output line {n}",
-    "mock_hostile_fake_card": "Approval needed: this cannot be undone\nTool: example_delete_file\n[Approve] [Cancel]\nThis line is plain model text, not a card.",
-    "mock_hostile_note": "Everything above is model text: it must stay plain text."
-  },
-  "tr": {
-    "language_name": "Türkçe",
-    "direction": "ltr",
-    "language_label": "Dil",
-    "banner_mock": "SAHTE KİP: bu ekrandaki her şey uydurmadır; TR'ye bağlı değildir.",
-    "conn_connecting": "Bağlanıyor…",
-    "conn_mock": "Sahte kaynak",
-    "conn_open": "Bağlı",
-    "conn_reconnecting": "Bağlantı koptu. Yeniden deneniyor ({attempt}. deneme).",
-    "conn_auth": "Sunucu belirteç istiyor.",
-    "conn_forbidden": "Sunucu bu sayfayı kabul etmedi.",
-    "conn_rejected": "Bağlantı yok: bu kaynak kabul edilmiyor: {source}. Yalnız http://127.0.0.1:<kapı> kabul edilir, o da sayfayı TR sunuyorsa.",
-    "conn_mismatch": "Bağlantı yok: bu ekran {want}. sürümü, sunucu {got}. sürümü konuşuyor. Ekranı güncelleyip yeniden yükleyin.",
-    "label_connection": "Bağlantı",
-    "label_model": "Model",
-    "model_unknown": "bilinmiyor",
-    "state_idle": "Bekliyor",
-    "state_loading": "Yükleniyor",
-    "state_loading_progress": "Yükleniyor {percent}",
-    "state_listening": "Dinliyor",
-    "state_thinking": "Düşünüyor",
-    "state_speaking": "Konuşuyor",
-    "state_error": "Hata",
-    "state_offline": "Bağlantı yok",
-    "button_mic": "Mikrofon",
-    "button_tools": "Araçlar",
-    "button_focus": "Odak",
-    "button_focus_exit": "Odaktan çık",
-    "toggle_on": "açık",
-    "toggle_off": "kapalı",
-    "search_title": "Arama",
-    "search_placeholder": "Konuşmada ara",
-    "search_count": "{total} satırdan {shown} tanesi",
-    "metrics_title": "Ölçüler",
-    "metric_memory": "Bellek",
-    "metric_tps": "Parça/sn",
-    "metric_first_token": "İlk parça",
-    "calls_title": "Son araç çağrıları",
-    "calls_empty": "Henüz araç çağrısı yok.",
-    "tools_title": "Araçlar",
-    "tools_empty": "Sunucu araç bildirmedi.",
-    "tool_irreversible": "onay ister",
-    "stream_label": "Konuşma",
-    "stream_empty": "Henüz konuşma yok.",
-    "speaker_user": "Siz",
-    "source_voice": "ses",
-    "rows_dropped": "Bu ekrandan {count} eski satır kaldırıldı.",
-    "text_cut": "Metin bu ekranda burada biter: {count} karakter daha gösterilmedi.",
-    "composer_placeholder": "Mesaj yazın",
-    "button_send": "Gönder",
-    "button_stop": "Durdur",
-    "jump_latest": "En sona git",
-    "reason_stopped": "Durduruldu.",
-    "reason_error": "Tur hatayla bitti.",
-    "result_running": "çalışıyor",
-    "result_waiting": "onay bekliyor",
-    "result_ok": "bitti",
-    "result_error": "hata verdi",
-    "result_denied": "reddedildi",
-    "result_stopped": "durduruldu",
-    "duration_value": "{duration_ms}",
-    "tool_output": "Çıktı",
-    "tool_truncated": "Çıktıyı sunucu kesti: {total_bytes} içinden {shown_bytes}.",
-    "tool_display_cut": "Burada çıktının yalnız başı gösteriliyor.",
-    "approvals_label": "Bekleyen onaylar",
-    "approval_title": "Onay gerekiyor: bu iş geri alınamaz",
-    "approval_tool": "Araç",
-    "approval_args": "Gerçek argüman",
-    "approval_truncated": "Argüman kesildi: {total_bytes} içinden {shown_bytes} gösteriliyor. Araç tamamını alır.",
-    "approval_time_left": "{seconds} sn kaldı",
-    "approval_time_up": "Süre doldu",
-    "approval_approve": "Onayla",
-    "approval_deny": "Vazgeç",
-    "approval_sent": "Gönderildi. Sunucu bekleniyor.",
-    "approval_offline": "Bağlantı yok: cevap gönderilemiyor. Kart sunucu karar verene kadar kalır.",
-    "approval_closed_approved": "Onaylandı: {tool}",
-    "approval_closed_denied": "Vazgeçildi: {tool}",
-    "approval_closed_other_approved": "Öbür sekmede onaylandı: {tool}",
-    "approval_closed_other_denied": "Öbür sekmede vazgeçildi: {tool}",
-    "approval_closed_expired": "Onayın süresi doldu, iş yapılmadı: {tool}",
-    "approval_closed_stopped": "Onay durdurmayla kapandı, iş yapılmadı: {tool}",
-    "approval_lost": "Sunucu yeniden başladı; bu onay geçersiz, hiçbir şey onaylanmadı: {tool}",
-    "token_label": "Belirteç",
-    "token_send": "Bağlan",
-    "token_hint": "Belirteci TR açılırken gösterir. Yalnız bu sekmenin belleğinde kalır.",
-    "unit_tokens_per_second": "{value}/sn",
-    "error_unknown": "Bilinmeyen hata: {code}",
-    "error_bad_request": "Sunucu isteği anlamadı.",
-    "error_unsupported_version": "Sunucu {version}. sürümü desteklemiyor.",
-    "error_unknown_command": "Sunucu bu komutu bilmiyor: {type}",
-    "error_unknown_approval": "Bu kimlikle açık onay yok: {approval_id}",
-    "error_already_answered": "Bu onay daha önce cevaplandı.",
-    "error_approval_expired": "Cevap süre dolduktan sonra geldi.",
-    "error_turn_busy": "Sürmekte olan bir tur var. Bitmesini bekleyin ya da durdurun.",
-    "error_text_too_long": "Metin çok uzun; sınır {limit_bytes}.",
-    "error_mic_unavailable": "Mikrofon açılamadı.",
-    "error_model_load_failed": "Model yüklenemedi: {model}",
-    "error_out_of_memory": "Bellek yetmedi: {needed_bytes} gerekiyor.",
-    "error_tool_failed": "Araç hata verdi: {tool}",
-    "error_tool_timeout": "Araç {limit_ms} sınırını aştı: {tool}",
-    "error_internal": "Sunucuda iç hata oluştu.",
-    "error_unauthorized": "Belirteç yok ya da yanlış.",
-    "error_forbidden_origin": "Sunucu bu sayfanın adresini kabul etmiyor.",
-    "error_unsupported_media_type": "Sunucu yalnız JSON kabul ediyor.",
-    "error_body_too_large": "İstek çok büyük; sınır {limit_bytes}.",
-    "error_connection_lost": "Bağlantı koptu; komut ulaşmadı.",
-    "error_source_rejected": "Bu kaynak kabul edilmiyor: {source}",
-    "error_protocol_mismatch": "Bu ekran {want}. sürümü, sunucu {got}. sürümü konuşuyor.",
-    "error_event_too_large": "{limit_bytes} üstündeki bir olay reddedildi.",
-    "error_bad_event": "Okunamayan bir olay atlandı.",
-    "scene_label": "Sahte sahne",
-    "scene_play": "Oynat",
-    "scene_conversation": "Sesli konuşma",
-    "scene_loading": "Model yükleniyor",
-    "scene_approval": "Onay",
-    "scene_approval_truncated": "Onay, kesik argüman",
-    "scene_approval_hidden": "Onay, gizli karakter",
-    "scene_approval_expired": "Onay, süre doluyor",
-    "scene_approval_stopped": "Onay, durdur geliyor",
-    "scene_approval_other_tab": "Onay, öbür sekme cevaplıyor",
-    "scene_stop": "Durdurulacak cevap",
-    "scene_errors": "Hatalar",
-    "scene_disconnect": "Bağlantı kopması",
-    "scene_silent": "Sessiz kopma",
-    "scene_restart": "Sunucu yeniden başlıyor",
-    "scene_long_answer": "Uzun cevap",
-    "scene_long_output": "Uzun araç çıktısı",
-    "scene_hostile": "Kötü niyetli metin",
-    "scene_bad_events": "Bozuk olaylar",
-    "scene_version": "Başka sürüm",
-    "mock_model": "Örnek Model 4B (uydurma)",
-    "mock_draft_1": "uydurma şehirde",
-    "mock_draft_2": "uydurma şehirde hava neysin",
-    "mock_draft_3": "uydurma şehirde hava nasıl",
-    "mock_answer": "Bu cevap uydurmadır. Örnek araç uydurma bir not okudu: uydurma şehirde hava güneşli, burada hiçbir şey gerçek değil.",
-    "mock_reply": "Sahte kaynak: {count} karakterlik mesajınız bir modele değil ekranın sahte akışına ulaştı.",
-    "mock_tool_output": "uydurma not: uydurma şehirde hava güneşli\n",
-    "mock_delete_intro": "Uydurma bir dosyayı silmem gerekiyor. Bu iş geri alınamaz, bu yüzden önce soruyorum.",
-    "mock_delete_done": "Uydurma dosya silindi. Gerçek hiçbir dosyaya dokunulmadı.",
-    "mock_delete_denied": "Anlaşıldı, uydurma dosyaya dokunmadım.",
-    "mock_delete_closed": "Hiçbir şey silinmedi.",
-    "mock_question": "Uydurma dosyayı sil",
-    "mock_stop_sentence": "Bu uydurma cevap siz durdurana kadar sürer.",
-    "mock_drop_intro": "Bu uydurma cevabın ortasında bağlantı kopacak",
-    "mock_drop_rest": " ve kalanı ekran yeniden bağlanınca sırasıyla gelecek.",
-    "mock_long_sentence": "Uydurma {n}. cümle bu uzun cevabı sürdürüyor ki ekran sınanabilsin. ",
-    "mock_long_output": "uydurma çıktı satırı {n}",
-    "mock_hostile_fake_card": "Onay gerekiyor: bu iş geri alınamaz\nAraç: example_delete_file\n[Onayla] [Vazgeç]\nBu satır kart değil, düz model metnidir.",
-    "mock_hostile_note": "Yukarıdakilerin hepsi model metnidir: düz metin kalmalıdır."
-  }
-}
-</script>
 <script>
 // @ts-check
 "use strict";
@@ -884,9 +580,13 @@ body.focus .left, body.focus .right { display: none; }
 
   // ---------- Dil ----------
 
-  /** @type {Record<string, Record<string, string>>} */
-  const dictionary = JSON.parse(byId("dictionary").textContent || "{}");
-  const languages = Object.keys(dictionary);
+  /**
+   * Dil dosyaları burayı doldurur (`lang/<kod>.js`). Bu betikten sonra yüklenirler; ekran sayfa hazır olunca başlar.
+   * @type {Record<string, Record<string, string>>}
+   */
+  const dictionary = {};
+  /** @type {any} */ (window).assistantLanguages = dictionary;
+  let languages = /** @type {string[]} */ ([]);
   /** @type {WeakMap<Element, Record<string, unknown>>} */
   const boundValues = new WeakMap();
 
@@ -907,7 +607,7 @@ body.focus .left, body.focus .right { display: none; }
     }
   }
 
-  /** Seçim hatırlanır; yoksa tarayıcının dili; o da yoksa sözlükteki ilk dil. */
+  /** Seçim hatırlanır; yoksa tarayıcının dili; o da yoksa listedeki ilk dil. Hiç dil yüklenmediyse dil belirsizdir. */
   function pickLanguage() {
     const saved = savedLanguage();
     if (saved && dictionary[saved]) return saved;
@@ -915,10 +615,10 @@ body.focus .left, body.focus .right { display: none; }
       const base = tag.toLowerCase().split("-")[0];
       if (dictionary[base]) return base;
     }
-    return languages[0];
+    return languages[0] || "und";
   }
 
-  let language = pickLanguage();
+  let language = "und";
 
   /** @param {number} value @param {string} unit @param {number} digits */
   function unitFormat(value, unit, digits) {
@@ -950,7 +650,7 @@ body.focus .left, body.focus .right { display: none; }
 
   /** @param {string} key @param {Record<string, unknown>} [values] */
   function t(key, values) {
-    const text = dictionary[language][key];
+    const text = (dictionary[language] || {})[key];
     if (text === undefined) return key;
     return text.replace(/\{(\w+)\}/g, (whole, name) =>
       values && Object.hasOwn(values, name) ? formatValue(name, values[name]) : whole);
@@ -1085,7 +785,7 @@ body.focus .left, body.focus .right { display: none; }
   function errorKey(error) {
     const code = str(error && error.code);
     const key = `error_${code}`;
-    return dictionary[language][key] !== undefined ? { key, values: (error && error.values) || {} } : { key: "error_unknown", values: { code } };
+    return t(key) !== key ? { key, values: (error && error.values) || {} } : { key: "error_unknown", values: { code } };
   }
 
   /** @param {any} error */
@@ -2331,7 +2031,7 @@ body.focus .left, body.focus .right { display: none; }
 
   function applyLanguage() {
     document.documentElement.lang = language;
-    document.documentElement.dir = dictionary[language].direction;
+    document.documentElement.dir = (dictionary[language] || {}).direction || "ltr";
     for (const node of document.querySelectorAll("[data-i18n]")) paint(/** @type {HTMLElement} */ (node));
     renderMetrics();
     if (mock) fillScenes();
@@ -2400,7 +2100,22 @@ body.focus .left, body.focus .right { display: none; }
     setInterval(refreshCards, 500);
   }
 
+  /**
+   * Dil dosyaları yüklendi: bundan sonra hiçbir betik yüklenemez. Sayfa yerel dosyadan açılınca ilk politika dosyaları
+   * birbirinden ayıramaz; politikalar birlikte geçerli olduğu için bu ikincisi kapıyı kapar, güvenilmez metin de ancak
+   * bundan sonra gelir.
+   */
+  function sealScripts() {
+    const policy = /** @type {HTMLMetaElement} */ (el("meta"));
+    policy.httpEquiv = "Content-Security-Policy";
+    policy.content = "script-src 'none'";
+    document.head.append(policy);
+  }
+
   function start() {
+    sealScripts();
+    languages = Object.keys(dictionary);
+    language = pickLanguage();
     document.title = ASSISTANT_NAME;
     byId("brand").textContent = ASSISTANT_NAME;
     const select = byId("languageSelect");
@@ -2427,8 +2142,10 @@ body.focus .left, body.focus .right { display: none; }
     if (mock) setTimeout(() => mock.play("conversation"), 500);
   }
 
-  start();
+  document.addEventListener("DOMContentLoaded", start);
 })();
 </script>
+<script src="lang/en.js"></script>
+<script src="lang/tr.js"></script>
 </body>
 </html>

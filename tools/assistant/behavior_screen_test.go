@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"os"
 	"regexp"
 	"sort"
@@ -20,6 +21,7 @@ const (
 	screenPath   = "tools/assistant/index.html"
 	contractPath = "tools/assistant/contract.md"
 	readmePath   = "tools/assistant/README.md"
+	languageDir  = "tools/assistant/lang"
 
 	maxScreenBytes = 150 * 1024
 	testFileName   = "behavior_screen_test.go"
@@ -58,12 +60,48 @@ func markup(t *testing.T) string {
 	return strip.ReplaceAllString(readFile(t, screenPath), "")
 }
 
+// languageFile bir dil dosyasının tek biçimidir: tek atama, sağında tek nesne.
+var languageFile = regexp.MustCompile(`(?s)^assistantLanguages\.([a-z]{2,3}) = (\{.*\});\n$`)
+
+// parseLanguage dil dosyasını JSON olarak okur: yalnız metin taşıyan bir nesneden başkası geçmez, içine kod giremez.
+func parseLanguage(text string) (string, map[string]string, error) {
+	m := languageFile.FindStringSubmatch(text)
+	if m == nil {
+		return "", nil, errors.New("a language file is one assignment: assistantLanguages.<code> = {...};")
+	}
+	var table map[string]string
+	if err := json.Unmarshal([]byte(m[2]), &table); err != nil {
+		return "", nil, err
+	}
+	return m[1], table, nil
+}
+
+// languageNames dil klasöründeki dosyalardır.
+func languageNames(t *testing.T) []string {
+	t.Helper()
+	entries, err := os.ReadDir(reporoot.Path(languageDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	return names
+}
+
 func dictionary(t *testing.T) map[string]map[string]string {
 	t.Helper()
-	body := capture(t, `(?s)<script type="application/json" id="dictionary">(.*?)</script>`, readFile(t, screenPath))
-	var languages map[string]map[string]string
-	if err := json.Unmarshal([]byte(body), &languages); err != nil {
-		t.Fatalf("dictionary is not valid JSON: %v", err)
+	languages := map[string]map[string]string{}
+	for _, name := range languageNames(t) {
+		code, table, err := parseLanguage(readFile(t, languageDir+"/"+name))
+		if err != nil {
+			t.Fatalf("%s/%s: %v", languageDir, name, err)
+		}
+		if code+".js" != name {
+			t.Errorf("%s/%s fills assistantLanguages.%s", languageDir, name, code)
+		}
+		languages[code] = table
 	}
 	return languages
 }
@@ -89,8 +127,12 @@ func matches(pattern, text string) []string {
 }
 
 func TestScreenStaysSmall(t *testing.T) {
-	if n := len(readFile(t, screenPath)); n >= maxScreenBytes {
-		t.Errorf("%s is %d bytes, limit %d", screenPath, n, maxScreenBytes)
+	n := len(readFile(t, screenPath))
+	for _, name := range languageNames(t) {
+		n += len(readFile(t, languageDir+"/"+name))
+	}
+	if n >= maxScreenBytes {
+		t.Errorf("the screen and its language files are %d bytes, limit %d", n, maxScreenBytes)
 	}
 }
 
@@ -149,7 +191,7 @@ func TestScreenPolicy(t *testing.T) {
 	}
 	for _, want := range []string{
 		"default-src 'none'",
-		"script-src " + sum(script(t)),
+		"script-src http://127.0.0.1:*/lang/ file: " + sum(script(t)),
 		"style-src " + sum(style(t)),
 		"connect-src http://127.0.0.1:*",
 		"base-uri 'none'",
@@ -170,13 +212,72 @@ func TestScreenPolicy(t *testing.T) {
 	if n := len(matches(`(<script>)`, html)); n != 1 {
 		t.Errorf("want one inline script, got %d: only one hash is allowed", n)
 	}
+	// `file:` yerel dosyaları ayıramaz: ekran başlarken bütün betikler kapanır, güvenilmez metin ancak ondan sonra gelir.
+	code := script(t)
+	seal := strings.Index(code, "sealScripts();")
+	if !strings.Contains(code, `policy.content = "script-src 'none'";`) || seal < 0 || seal > strings.LastIndex(code, "client.connect();") {
+		t.Errorf("the screen must close script loading before it connects")
+	}
+}
+
+// Dil listesi sayfadaki <script src> satırlarıdır: dil dosyaları ve yalnız onlar. Ana betik önce gelir, sözlüğü o kurar.
+func TestLanguageFilesAreTheOnlyOtherScripts(t *testing.T) {
+	html := readFile(t, screenPath)
+	listed := map[string]bool{}
+	for _, tag := range matches(`(<script[^>]+>)`, html) {
+		name, ok := strings.CutPrefix(tag, `<script src="lang/`)
+		name, closed := strings.CutSuffix(name, `">`)
+		if !ok || !closed {
+			t.Errorf("only language files may be loaded: %s", tag)
+		}
+		listed[name] = true
+		if strings.Index(html, tag) < strings.Index(html, "<script>") {
+			t.Errorf("%s comes before the inline script that sets up the dictionary", tag)
+		}
+	}
+	names := languageNames(t)
+	if len(names) != len(listed) {
+		t.Errorf("%s has %v, the page lists %v", languageDir, names, listed)
+	}
+	for _, name := range names {
+		if !listed[name] {
+			t.Errorf("%s/%s is not in the language list of %s", languageDir, name, screenPath)
+		}
+	}
+}
+
+// Dil dosyası kod taşımaz: JSON olarak okunmayan her şey düşer.
+func TestLanguageFilesHoldNoCode(t *testing.T) {
+	for _, text := range []string{
+		"assistantLanguages.tr = {\"a\": alert(1)};\n",
+		"assistantLanguages.tr = {\"a\": `b`};\n",
+		"assistantLanguages.tr = {\"a\": \"b\"};\nalert(1);\n",
+		"alert(1);\nassistantLanguages.tr = {\"a\": \"b\"};\n",
+		"assistantLanguages.tr = {\"a\": {\"b\": \"c\"}};\n",
+		"assistantLanguages.tr = {\"a\": 1};\n",
+		"assistantLanguages.tr = (() => ({}))();\n",
+		"window.other = {\"a\": \"b\"};\n",
+	} {
+		if _, _, err := parseLanguage(text); err == nil {
+			t.Errorf("accepted as a language file: %s", text)
+		}
+	}
+	if len(dictionary(t)) < 2 {
+		t.Errorf("want at least two language files")
+	}
 }
 
 // Görünmez karakter koda yazılmaz, kaçışıyla yazılır: okuyan onu göremez, ekran da onu kötü metinde yakalamaya çalışıyor.
 func TestScreenHasNoHiddenCharacters(t *testing.T) {
 	hidden := regexp.MustCompile("[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]")
-	if m := hidden.FindString(readFile(t, screenPath)); m != "" {
-		t.Errorf("%s contains U+%04X; write it as an escape", screenPath, []rune(m)[0])
+	files := []string{screenPath}
+	for _, name := range languageNames(t) {
+		files = append(files, languageDir+"/"+name)
+	}
+	for _, file := range files {
+		if m := hidden.FindString(readFile(t, file)); m != "" {
+			t.Errorf("%s contains U+%04X; write it as an escape", file, []rune(m)[0])
+		}
 	}
 }
 
@@ -186,6 +287,11 @@ func TestScreenNameIsOneConstant(t *testing.T) {
 	name := capture(t, `const ASSISTANT_NAME = "([^"]+)";`, html)
 	if n := strings.Count(html, name); n != 1 {
 		t.Errorf("the name %q appears %d times; it lives only in ASSISTANT_NAME", name, n)
+	}
+	for _, language := range languageNames(t) {
+		if strings.Contains(readFile(t, languageDir+"/"+language), name) {
+			t.Errorf("the name %q is in %s; it lives only in ASSISTANT_NAME", name, language)
+		}
 	}
 }
 
