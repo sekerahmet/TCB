@@ -26,27 +26,28 @@ var (
 )
 
 // findProgram programın iletilerdeki adını ve çalışacak dosyanın mutlak yolunu verir.
-func findProgram(fn any, v interp.Value) (name, path string, err error) {
+func findProgram(code codes.Code, v interp.Value) (name, path string, err error) {
 	switch x := v.(type) {
 	case *interp.StringVal:
-		path, err = findName(fn, x.Val)
+		path, err = findName(code, x.Val)
 		return x.Val, path, err
 	case interp.PathValuer:
-		path, err = checkFile(fn, x.FilePath())
+		path, err = checkFile(code, x.FilePath())
 		return x.FilePath(), path, err
 	}
-	return "", "", interp.ArgTypeError(codes.FnRunProcess, 1, v, codes.TypeString, codes.TypePath)
+	return "", "", interp.ArgTypeError(code, 1, v, codes.TypeString, codes.TypePath)
 }
 
 // findName adı PATH'in mutlak girdilerinde arar; çalışma klasörü aranmaz.
-func findName(fn any, name string) (string, error) {
+func findName(code codes.Code, name string) (string, error) {
+	fn := interp.CallPrefix(code)
 	if strings.IndexByte(name, 0) >= 0 {
 		return "", messages.New(messages.H7502, fn, name)
 	}
 	if strings.ContainsAny(name, `/\`) {
-		return "", messages.New(messages.H7494, fn, name)
+		return "", messages.New(messages.H7494, fn, name, codes.Spelling(code))
 	}
-	if err := checkNameSuffix(fn, name); err != nil {
+	if err := checkNameSuffix(code, name); err != nil {
 		return "", err
 	}
 	dirs := filepath.SplitList(os.Getenv("PATH"))
@@ -59,23 +60,20 @@ func findName(fn any, name string) (string, error) {
 		}
 		if onWindows {
 			if batch, ok := batchIn(dirs, name); ok {
-				return "", messages.New(messages.H7496, fn, batch)
+				return "", messages.New(messages.H7496, fn, batch, codes.Spelling(code))
 			}
 		}
 	}
 	if words := strings.Fields(name); len(words) > 1 {
-		rest := &interp.ListVal{Elements: make([]interp.Value, len(words)-1)}
-		for i, w := range words[1:] {
-			rest.Elements[i] = &interp.StringVal{Val: w}
-		}
-		return "", messages.New(messages.H7498, fn, name, words[0], rest.Inspect())
+		return "", messages.New(messages.H7498, fn, name, words[0], listText(words[1:]), codes.Spelling(code))
 	}
 	return "", messages.New(messages.H7497, fn, name)
 }
 
 // checkNameSuffix adın sonunu denetler: .exe, .com, .bat ya da .cmd ile biten ad her işletim sisteminde
 // hatadır, aynı kod hepsinde çalışsın (21.3). Harf ayrılmaz; Windows sondaki boşluk ve noktayı atar.
-func checkNameSuffix(fn any, name string) error {
+func checkNameSuffix(code codes.Code, name string) error {
+	fn := interp.CallPrefix(code)
 	trimmed := name
 	if onWindows {
 		trimmed = strings.TrimRight(name, " .")
@@ -86,9 +84,9 @@ func checkNameSuffix(fn any, name string) error {
 		switch {
 		case cut <= 0 || !strings.EqualFold(trimmed[cut:], suffix):
 		case onWindows && slices.Contains(batchSuffixes, suffix):
-			return messages.New(messages.H7496, fn, trimmed)
+			return messages.New(messages.H7496, fn, trimmed, codes.Spelling(code))
 		default:
-			return messages.New(messages.H7495, fn, name, trimmed[cut:], trimmed[:cut])
+			return messages.New(messages.H7495, fn, name, trimmed[cut:], trimmed[:cut], codes.Spelling(code))
 		}
 	}
 	return nil
@@ -128,7 +126,8 @@ func isFile(p string) bool {
 }
 
 // checkFile yolu denetler ve mutlak yapar: göreli yol çalışma klasörüne göredir (21.3).
-func checkFile(fn any, given string) (string, error) {
+func checkFile(code codes.Code, given string) (string, error) {
+	fn := interp.CallPrefix(code)
 	if strings.IndexByte(given, 0) >= 0 {
 		return "", messages.New(messages.H7502, fn, given)
 	}
@@ -140,7 +139,7 @@ func checkFile(fn any, given string) (string, error) {
 		return "", messages.New(messages.H7501, fn, given, err)
 	}
 	if onWindows {
-		if err := checkWindowsFile(fn, given, abs); err != nil {
+		if err := checkWindowsFile(code, given, abs); err != nil {
 			return "", err
 		}
 	}
@@ -154,7 +153,8 @@ func checkFile(fn any, given string) (string, error) {
 // boşluk ve noktayı atar, CreateProcess hello.bat␠ yolunu toplu iş olarak çalıştırır. Ad bu yüzden önce
 // arındırılır, harf ayrılmaz, yalnız .exe ve .com geçer ve dosya tam adıyla var olmalıdır. İki noktalı
 // ad bir veri akışıdır (hello.bat:.exe), program dosyası değildir.
-func checkWindowsFile(fn any, given, abs string) error {
+func checkWindowsFile(code codes.Code, given, abs string) error {
+	fn := interp.CallPrefix(code)
 	base := filepath.Base(given)
 	trimmed := strings.TrimRight(base, " .")
 	suffix := strings.ToLower(filepath.Ext(trimmed))
@@ -162,7 +162,7 @@ func checkWindowsFile(fn any, given, abs string) error {
 	case strings.ContainsRune(trimmed, ':'):
 		return messages.New(messages.H7500, fn, given)
 	case slices.Contains(batchSuffixes, suffix):
-		return messages.New(messages.H7496, fn, given)
+		return messages.New(messages.H7496, fn, given, codes.Spelling(code))
 	case slices.Contains(programSuffixes, suffix):
 		if trimmed != base {
 			return messages.New(messages.H7499, fn, given)
@@ -171,7 +171,7 @@ func checkWindowsFile(fn any, given, abs string) error {
 	}
 	for _, s := range batchSuffixes {
 		if isFile(abs + s) {
-			return messages.New(messages.H7496, fn, given+s)
+			return messages.New(messages.H7496, fn, given+s, codes.Spelling(code))
 		}
 	}
 	return messages.New(messages.H7500, fn, given)

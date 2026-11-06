@@ -33,10 +33,16 @@ var uncoveredNames = map[string]string{
 	"TR_fn_load_metadata": "GGUF dosyası ister, depoda yok",
 	// Örnek dış programa bağlıdır: her makinede bulunan bir program yok. Go testleri kendi ikililerini
 	// dış program yapar (internal/stdlib/process).
-	"TR_fn_run_process": "dış program ister",
-	"TR_arg_input":      "dış program ister",
-	"TR_arg_env":        "dış program ister",
-	"TR_arg_exit_codes": "dış program ister",
+	"TR_fn_run_process":   "dış program ister",
+	"TR_arg_input":        "dış program ister",
+	"TR_arg_env":          "dış program ister",
+	"TR_arg_exit_codes":   "dış program ister",
+	"TR_fn_spawn_process": "dış program ister",
+	"TR_arg_buffer_bytes": "dış program ister",
+	"TR_mem_read":         "dış program ister",
+	"TR_mem_write":        "dış program ister",
+	"TR_mem_close_stdin":  "dış program ister",
+	"TR_type_Process":     "dış program ister",
 }
 
 // exampleTexts bütün örnek .tr dosyalarını (examples/tr, alt klasörleriyle) verir.

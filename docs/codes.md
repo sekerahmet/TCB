@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 639 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 50 tip, 149 fonksiyon, 11 sabit, 73 metot, 109 özellik, 160 adlı argüman.
+Toplam 645 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 51 tip, 150 fonksiyon, 11 sabit, 76 metot, 109 özellik, 161 adlı argüman.
 
 ## İçindekiler
 
@@ -959,6 +959,23 @@ tr: değişken y = Yol("veri", "./eğitim/../derlem.txt"); yazdır(Tip(y) == Yol
 ```
 
 Üyeleri: `.TR_absolute`, `.TR_exists`, `.TR_extension`, `.TR_is_dir`, `.TR_is_file`, `.TR_name`, `.TR_parent`, `.TR_size`, `.TR_stem` · İlişkili: `TR_list_dir(...)`
+
+#### `TR_Process` (`TR_type_Process`, `Süreç`)
+
+Başlatılmış bir dış program: çıktısı okunur, girdisine yazılır, beklenir ya da durdurulur.
+
+```tr
+TR_var p = TR_spawn_process("go", ["version"]); TR_print(p.TR_wait())
+```
+
+Görünümü:
+
+```text
+en: var p = spawn_process("go", ["version"]); print(p.wait())
+tr: değişken p = program_başlat("go", ["version"]); yazdır(p.bekle())
+```
+
+Üyeleri: `.TR_cancel(...)`, `.TR_close_stdin(...)`, `.TR_done(...)`, `.TR_read(...)`, `.TR_wait(...)`, `.TR_write(...)` · İlişkili: `TR_spawn_process(...)`, `.TR_read(...)`, `.TR_write(...)`, `.TR_close_stdin(...)`, `.TR_wait(...)`, `.TR_done(...)`, `.TR_cancel(...)`
 
 #### `TR_Progress` (`TR_type_Progress`, `İlerleme`)
 
@@ -3224,6 +3241,25 @@ tr: yazdır(softmax(Tensör([[1.0, 2.0, 3.0]]), eksen: -1).değer)
 
 İlişkili: `TR_log_softmax(...)`, `TR_sample(...)`
 
+#### `TR_spawn_process(...)` (`TR_fn_spawn_process`, `program_başlat`)
+
+    program_başlat(Metin | Yol, Liste, ortam: Sözlük = yok, çıkış_kodları: Liste = yok, tampon_baytı: Tam = yok) → Süreç
+
+Bir dış programı başlatır ve beklemeden Süreç verir. Program sürerken baytları okunur ve yazılır; programın çıktısını kilit dışında bir okuyucu sürekli alır.
+
+```tr
+TR_var p = TR_spawn_process("go", ["version"]); TR_print(p.TR_read(2).TR_length); p.TR_wait()
+```
+
+Görünümü:
+
+```text
+en: var p = spawn_process("go", ["version"]); print(p.read(2).length); p.wait()
+tr: değişken p = program_başlat("go", ["version"]); yazdır(p.oku(2).uzunluk); p.bekle()
+```
+
+İlişkili: `TR_run_process(...)`, `TR_Process`, `TR_buffer_bytes:`
+
 #### `TR_sqrt(...)` (`TR_fn_sqrt`, `karekök`)
 
     karekök(Tam | Ondalık | Tensör) → Ondalık | Tensör
@@ -3781,6 +3817,23 @@ tr: yazdır(katman_normu(Tensör([[1.0, 3.0]]), sapma: Tensör([0.5, 0.5])).değ
 
 Kullananlar: `TR_layer_norm(...)` · İlişkili: `TR_weight:`
 
+#### `TR_buffer_bytes:` (`TR_arg_buffer_bytes`, `tampon_baytı`)
+
+Canlı kaynak için çıktı tamponunun bayt sınırı. Verilmezse tampon dolunca program bekler; verilirse tampon taşınca program durdurulur, taşma hatası kurulur.
+
+```tr
+TR_var p = TR_spawn_process("go", ["version"], TR_buffer_bytes: 65536); TR_print(p.TR_wait())
+```
+
+Görünümü:
+
+```text
+en: var p = spawn_process("go", ["version"], buffer_bytes: 65536); print(p.wait())
+tr: değişken p = program_başlat("go", ["version"], tampon_baytı: 65536); yazdır(p.bekle())
+```
+
+Kullananlar: `TR_spawn_process(...)` · İlişkili: `TR_spawn_process(...)`, `.TR_read(...)`
+
 #### `TR_buffers:` (`TR_arg_buffers`, `tamponlar`)
 
 
@@ -4027,7 +4080,7 @@ en: print(run_process("go", ["version"], env: {"TR_ORNEK": "1"}).length > 0)
 tr: yazdır(program_çalıştır("go", ["version"], ortam: {"TR_ORNEK": "1"}).uzunluk > 0)
 ```
 
-Kullananlar: `TR_run_process(...)` · İlişkili: `TR_run_process(...)`, `TR_env(...)`
+Kullananlar: `TR_run_process(...)`, `TR_spawn_process(...)` · İlişkili: `TR_run_process(...)`, `TR_spawn_process(...)`, `TR_env(...)`
 
 #### `TR_eos:` (`TR_arg_eos`, `eos`)
 
@@ -4099,7 +4152,7 @@ en: print(run_process("go", ["tanimsiz"], exit_codes: [0, 2]).length)
 tr: yazdır(program_çalıştır("go", ["tanimsiz"], çıkış_kodları: [0, 2]).uzunluk)
 ```
 
-Kullananlar: `TR_run_process(...)` · İlişkili: `TR_run_process(...)`
+Kullananlar: `TR_run_process(...)`, `TR_spawn_process(...)` · İlişkili: `TR_run_process(...)`, `TR_spawn_process(...)`
 
 #### `TR_f_max:` (`TR_arg_f_max`, `en_yüksek_frekans`)
 
@@ -5235,8 +5288,9 @@ tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p
 #### `.TR_cancel(...)` (`TR_mem_cancel`, `iptal_et`)
 
     Görev.iptal_et() → YokTipi
+    Süreç.iptal_et() → YokTipi
 
-Görevi iptal eder: görev bir sonraki güvenli noktada durur, başlattığı görevler de iptal edilir, ertelenen işleri çalışır. Görevi bekleyen iptal hatası alır. Bitmiş görevde etkisi yoktur.
+Görevi iptal eder: görev bir sonraki güvenli noktada durur, başlattığı görevler de iptal edilir, ertelenen işleri çalışır, bekleyen iptal hatası alır. Süreçte programı durdurur. Bitmiş görevde ve süreçte etkisi yoktur.
 
 ```tr
 TR_var g = TR_async { TR_sleep(10) }; g.TR_cancel(); TR_print(TR_error_code { g.TR_wait() }, g.TR_done())
@@ -5296,6 +5350,25 @@ tr: dosya_yaz("kapat.txt", "a\nb"); değişken o = dosya_satırları("kapat.txt"
 ```
 
 İlişkili: `.TR_next(...)`, `TR_read_lines(...)`
+
+#### `.TR_close_stdin(...)` (`TR_mem_close_stdin`, `girdiyi_kapat`)
+
+    Süreç.girdiyi_kapat() → YokTipi
+
+Programın girdisini kapatır: program dosya sonu alır.
+
+```tr
+TR_var p = TR_spawn_process("gofmt", []); p.TR_write(TR_Bytes("package a\n")); p.TR_close_stdin(); TR_print(p.TR_read(9).TR_length); p.TR_wait()
+```
+
+Görünümü:
+
+```text
+en: var p = spawn_process("gofmt", []); p.write(Bytes("package a\n")); p.close_stdin(); print(p.read(9).length); p.wait()
+tr: değişken p = program_başlat("gofmt", []); p.yaz(Baytlar("package a\n")); p.girdiyi_kapat(); yazdır(p.oku(9).uzunluk); p.bekle()
+```
+
+İlişkili: `.TR_write(...)`, `.TR_wait(...)`
 
 #### `.TR_code` (`TR_mem_code`, `kod`)
 
@@ -5394,8 +5467,9 @@ tr: yazdır(Tensör([1, 2]).cihaz)
 #### `.TR_done(...)` (`TR_mem_done`, `bitti_mi`)
 
     Görev.bitti_mi() → Mantık
+    Süreç.bitti_mi() → Mantık
 
-Görev bittiyse (sonuçla, hatayla ya da iptalle) doğru verir; beklemez.
+Görev ya da program bittiyse (sonuçla, hatayla ya da iptalle) doğru verir; beklemez.
 
 ```tr
 TR_var g = TR_async TR_sum([1, 2]); g.TR_wait(); TR_print(g.TR_done())
@@ -6138,6 +6212,25 @@ tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
 #### `.TR_q_proj` (`TR_mem_q_proj`, `sorgu_katmanı`)
 
 
+
+#### `.TR_read(...)` (`TR_mem_read`, `oku`)
+
+    Süreç.oku(Tam) → Baytlar
+
+Programın çıktısından tam n bayt okur; dosya sonunda kalanı, kalan da yoksa boş Baytlar verir. Okuma n bayt gelene kadar bekler.
+
+```tr
+TR_var p = TR_spawn_process("go", ["version"]); TR_print(p.TR_read(2).TR_length); p.TR_wait()
+```
+
+Görünümü:
+
+```text
+en: var p = spawn_process("go", ["version"]); print(p.read(2).length); p.wait()
+tr: değişken p = program_başlat("go", ["version"]); yazdır(p.oku(2).uzunluk); p.bekle()
+```
+
+İlişkili: `TR_spawn_process(...)`, `.TR_write(...)`, `TR_buffer_bytes:`
 
 #### `.TR_read_float(...)` (`TR_mem_read_float`, `ondalık_oku`)
 
@@ -6965,9 +7058,10 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu
 
 #### `.TR_wait(...)` (`TR_mem_wait`, `bekle`)
 
+    Süreç.bekle(süre_sınırı: Tam | Ondalık = yok) → Tam
     Görev.bekle(süre_sınırı: Tam | Ondalık = yok) → Herhangi
 
-Görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı fırlatır. Beklerken yorumlayıcı kilidini bırakır.
+Görev bitene kadar bekler ve sonucunu verir; görev hatayla bittiyse o hatayı fırlatır. Süreçte girdiyi kapatır, program bitene kadar bekler ve çıkış kodunu verir. Beklerken yorumlayıcı kilidini bırakır.
 
 ```tr
 TR_var g = TR_async TR_sum([1, 2]); TR_print(g.TR_wait())
@@ -6993,6 +7087,25 @@ tr: değişken g = eşzamanlı toplam([1, 2]); yazdır(g.bekle())
 #### `.TR_window` (`TR_mem_window`, `pencere`)
 
 
+
+#### `.TR_write(...)` (`TR_mem_write`, `yaz`)
+
+    Süreç.yaz(Baytlar) → YokTipi
+
+Baytların hepsini programın girdisine yazar; program okumuyorsa bekler.
+
+```tr
+TR_var p = TR_spawn_process("gofmt", []); p.TR_write(TR_Bytes("package a\n")); p.TR_close_stdin(); TR_print(p.TR_read(9).TR_length); p.TR_wait()
+```
+
+Görünümü:
+
+```text
+en: var p = spawn_process("gofmt", []); p.write(Bytes("package a\n")); p.close_stdin(); print(p.read(9).length); p.wait()
+tr: değişken p = program_başlat("gofmt", []); p.yaz(Baytlar("package a\n")); p.girdiyi_kapat(); yazdır(p.oku(9).uzunluk); p.bekle()
+```
+
+İlişkili: `.TR_read(...)`, `.TR_close_stdin(...)`
 
 #### `.TR_zero_grad(...)` (`TR_mem_zero_grad`, `sıfırla`)
 

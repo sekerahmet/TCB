@@ -1,7 +1,7 @@
 # process
 
 Programın içinde çalıştığı süreçle ilgili TR yerleşikleri: ortam değişkenleri, betiğin komut
-satırı seçenekleri (`TR_fn_command_line`) ve dış programlar (`TR_fn_run_process`, bölüm 21).
+satırı seçenekleri (`TR_fn_command_line`) ve dış programlar (`TR_fn_run_process`, `TR_fn_spawn_process`, bölüm 21).
 
 ## Standartlar
 
@@ -41,9 +41,13 @@ Denetim: `TestHardStopReachesOnlyItsOwnProgram`; ayrı süreçte `cmd/trlang/e2e
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.
 
+**Akışlı çıktıda bayt kaybolmaz.** Çıktıyı kilit dışında tek bir okuyucu alır; `TR_buffer_bytes:` yalnız dolunca ne olacağını seçer: program bekler ya da durdurulur ve hata kurulur. Sessizce veri atılmaz.
+Denetim: `TestBackpressureKeepsEveryByte`, `TestOutputOutlivesTheProgram`, `TestOverflowStopsTheProgramAndSticks`, `TestPendingReadOfTheBufferSizeIsNoOverflow`.
+
 ## Testler
 
 - `behavior_run_process_stop_test.go`: `TR_run_process`'in durdurulması (21.5) ve torun süreçler.
 - `behavior_run_process_exit_test.go`: `TR_run_process`'in çıkış kodu ve standart hata iletisi (21.4).
+- `behavior_spawn_process_test.go`: `TR_spawn_process`, `TR_Process` ve okuyucu (21.2).
 - `behavior_helper_unix_test.go`: test ikilisinin dış program olarak Unix'te yaptığı iş.
 - `behavior_helper_windows_test.go`: aynı iş, Windows'ta.

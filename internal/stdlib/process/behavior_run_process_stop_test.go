@@ -69,7 +69,7 @@ func helperStop(args []string) {
 		time.Sleep(time.Duration(n * float64(time.Second)))
 		writeMark(args[1])
 	default:
-		panic("bilinmeyen yardımcı: " + args[0])
+		helperSpawn(args)
 	}
 }
 

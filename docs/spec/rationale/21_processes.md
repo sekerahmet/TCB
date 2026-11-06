@@ -26,6 +26,17 @@ Karşılaştırma:
 
 - *Emsal:* Python `run`/`Popen`, Go `Output`/`Start`, Rust `output`/`spawn` aynı ayrımı yapar [rapordan]. Tam `n` bayt okumak Go'nun `io.ReadFull`'u ve Rust'ın `read_exact`'idir [rapordan]. Rust'ta `Child` düşünce süreç yaşamaya devam eder [rapordan: doc.rust-lang.org/std/process/struct.Child.html]. *Bunu almadık.*
 - *Gerekçe:* sonucun tipi argümanın değerinden çıkamaz (13.10): toplu çağrı bayt, akışlı çağrı süreç verir; iki ayrı ad gerekir. Tam `n` bayt okumak, okunan parçanın her zaman bütün örneklerden oluşmasını sağlar: yarım örnek 22.1'de hata olur, akışın bir bayt kaymasıyla sesin gürültüye dönmesi görünür olur. Gecikmenin `n` olduğu kuralda yazılıdır, çünkü Jarvis'in ses etkinliği algılaması küçük çerçevelerle çalışır [hipotez: Silero VAD 16 kHz'de 512 örnek; belge açılmadı]. Program biterken süreçlerin durdurulması, mikrofonu ya da hoparlörü tutan yetim bir sürecin kalmamasıdır. Beklenmemiş sürecin hatasının yazılması 10.6'nın "görevin hatası kaybolmaz" kuralıyla aynı gerekçededir.
+- *Tampon (DENETİM 233):* kilit dışı okuyucu her zaman vardır, argüman yalnız dolunca ne olacağını seçer. Boru Windows'ta 4096, Linux'ta 65 536 bayttır; aynı programın payı sistemden sisteme 16 kat değişmesin diye iç tampon vardır. Varsayılan geri basınçtır: dört emsalde de öyle. Taşmada süreç sürdürülmez: atılan baytların sınırı örnek sınırına denk gelmeyebilir, bir bayt kayma sesi gürültüye çevirir; eski veriyi önce vermek de bayat sesi canlı diye işletir. Node `maxBuffer` aşılınca süreci sonlandırır: doğrudan emsal.
+
+| | Varsayılan | Sınır ve dolma | Kaynak |
+| :-- | :-- | :-- | :-- |
+| Go | OS borusu; okunmazsa program bekler | `WaitDelay` boruyu kapatır; okuma `Wait`'ten önce bitmeli | [ölçüldü: 4096; kanıtlı: `exec.go:1078`, `:283-302`, go1.26.10] |
+| Python | `stdout=PIPE`; "will deadlock" uyarısı | `communicate` sınırsız: "do not use ... large or unlimited"; `pipesize` yalnız Linux | [kanıtlı: docs.python.org, 3.15.2] |
+| Rust | `Stdio::piped`; "may end up waiting" | `wait` stdin'i kapatır (`TR_wait` gibi); `wait_with_output` sınırsız | [kanıtlı: doc.rust-lang.org, 1.99.1] |
+| Node | "the subprocess blocks"; akış `highWaterMark`'ta durur | `exec`, `spawnSync` `maxBuffer` 1 MiB: "the child process is terminated" | [kanıtlı: nodejs.org, v26.13.0] |
+| `ffmpeg` dshow | iç `rtbufsize` 3 041 280 bayt, dolunca çerçeve atar, sürer | `AV_LOG_ERROR`, %62'den başlayarak; çıkış kodu değişmez [hipotez: kod akışı] | [kanıtlı: `dshow.c`, `options_table.h`, n8.1.3] |
+| `arecord` | taşmayı stderr'e yazar, sürer | `--fatal-errors` çıkar; hız uyarısı `!quiet_mode` altında | [kanıtlı: `aplay.c`, v1.2.16] |
+| `sox` | `--buffer` 8192 | sürücüde taşma ve `waveaudio`: bulamadım | [kanıtlı: Debian man, 14.4.2+git; Sınırlar] |
 
 ### 21.3
 

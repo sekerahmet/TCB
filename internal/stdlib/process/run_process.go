@@ -137,15 +137,8 @@ func exitCodes(fn any, named map[string]interp.Value) ([]int, error) {
 
 // readRunCall çağrının argümanlarını okur ve denetler; program başlamadan biter.
 func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
-	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.FnRunProcess, 2, len(args))
-	}
-	call := &runCall{}
-	var err error
-	if call.name, call.path, err = findProgram(fn, args[0]); err != nil {
-		return nil, err
-	}
-	if call.args, err = programArguments(fn, args[1]); err != nil {
+	call, err := readProgramCall(m, codes.FnRunProcess, args, named)
+	if err != nil {
 		return nil, err
 	}
 	if v, ok := bind.GetNamed(named, nameInput); ok {
@@ -154,12 +147,6 @@ func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]int
 			return nil, messages.New(messages.H7493, fn, nameInput, v.Type())
 		}
 		call.input = b
-	}
-	if call.codes, err = exitCodes(fn, named); err != nil {
-		return nil, err
-	}
-	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
-		return nil, err
 	}
 	if v, ok := bind.GetNamed(named, nameTimeout); ok {
 		if call.wait, err = interp.Seconds(codes.FnRunProcess, v); err != nil {
@@ -170,12 +157,45 @@ func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]int
 	return call, nil
 }
 
+// readProgramCall iki çağrının ortak argümanlarını okur: program, argümanlar, çıkış kodları, ortam.
+func readProgramCall(m *interp.VM, code codes.Code, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
+	if len(args) != 2 {
+		return nil, interp.ArgCountError(code, 2, len(args))
+	}
+	fn := interp.CallPrefix(code)
+	call := &runCall{}
+	var err error
+	if call.name, call.path, err = findProgram(code, args[0]); err != nil {
+		return nil, err
+	}
+	if call.args, err = programArguments(code, args[1]); err != nil {
+		return nil, err
+	}
+	if call.codes, err = exitCodes(fn, named); err != nil {
+		return nil, err
+	}
+	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
+		return nil, err
+	}
+	return call, nil
+}
+
+// listText argümanların önerideki yazımıdır.
+func listText(items []string) string {
+	list := &interp.ListVal{Elements: make([]interp.Value, len(items))}
+	for i, s := range items {
+		list.Elements[i] = &interp.StringVal{Val: s}
+	}
+	return list.Inspect()
+}
+
 // programArguments argüman listesini okur. Listede yol olması denetim hatasıdır (21.1); tipi
 // bilinmeyen listede aynı kod çalışma anında gelir.
-func programArguments(fn any, v interp.Value) ([]string, error) {
+func programArguments(code codes.Code, v interp.Value) ([]string, error) {
+	fn := interp.CallPrefix(code)
 	list, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.FnRunProcess, 2, v, codes.TypeList)
+		return nil, interp.ArgTypeError(code, 2, v, codes.TypeList)
 	}
 	out := make([]string, len(list.Elements))
 	for i, e := range list.Elements {

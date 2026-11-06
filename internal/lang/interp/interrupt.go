@@ -152,6 +152,34 @@ func (v *VM) HardStop() {
 	}
 }
 
+// EndError is an error nobody saw, written when the program or the test ends; Line is where the work
+// started (10.6).
+type EndError struct {
+	Line int
+	Err  error
+}
+
+// AddEndWork, program ya da test biterken çalışacak bir iş ekler (21.2): kilit bırakılarak çalışır,
+// verdiği hatalar görev hataları gibi yazılır. Yalnız motor kaydı sırasında çağrılır. Etkileşimli
+// kabukta çalışmaz: orada her satır ayrı bir Run'dır, program sürer.
+func (v *VM) AddEndWork(f func() []EndError) { v.endWork = append(v.endWork, f) }
+
+// runEndWork ertelenen işlerden sonra çalışır; bu bir temizlik işidir, istek onu kesmez.
+func (v *VM) runEndWork() {
+	if v.interactive {
+		return
+	}
+	v.cleanupDepth++
+	defer func() { v.cleanupDepth-- }()
+	for _, f := range v.endWork {
+		var errs []EndError
+		v.Blocking(func() { errs = f() })
+		for _, e := range errs {
+			v.reportAsyncError(e.Line, e.Err)
+		}
+	}
+}
+
 // SetInteractive VM'nin etkileşimli kabukta olduğunu bildirir: VM birden çok Run ile sürer, bu
 // yüzden yakalanmayan hatayla biten bir satır görevleri durdurmaz (1.9 programlar içindir). Run'dan
 // önce çağrılır.
@@ -327,13 +355,31 @@ func (v *VM) AwaitNew(fn any, work func()) error {
 // sağlamalıdır. Temizlik işinde bekleme kesilmez (wakeChannels). İş kendiliğinden bittiyse nil
 // döner; durdurulduysa görev burada yığını çözer.
 func (v *VM) AwaitExternal(ready <-chan struct{}, stop func()) error {
-	applied, _, cancelled := v.wakeChannels(false)
-	stopped := false
+	return v.awaitExternal(nil, ready, stop, false)
+}
+
+// AwaitExternalNew AwaitExternal gibi bekler, ama yeni bir şey bekleyen yerleşik içindir (p.TR_read):
+// üstlenilmiş programda istek gelince ya da gelmişken fn adıyla "durdurma istendi" hatası verir, dış
+// iş sürer (1.6, 21.5).
+func (v *VM) AwaitExternalNew(fn any, ready <-chan struct{}, stop func()) error {
+	return v.awaitExternal(fn, ready, stop, true)
+}
+
+func (v *VM) awaitExternal(fn any, ready <-chan struct{}, stop func(), forNew bool) error {
+	if forNew {
+		if err := v.stopWaitError(fn); err != nil {
+			return err
+		}
+	}
+	applied, requested, cancelled := v.wakeChannels(forNew)
+	stopped, asked := false, false
 	v.Blocking(func() {
 		select {
 		case <-ready:
 		case <-applied:
 			stopped = true
+		case <-requested:
+			asked = true
 		case <-cancelled:
 			stopped = true
 		}
@@ -342,6 +388,9 @@ func (v *VM) AwaitExternal(ready <-chan struct{}, stop func()) error {
 			<-ready
 		}
 	})
+	if asked {
+		return v.stopWaitError(fn)
+	}
 	if !stopped {
 		return nil
 	}

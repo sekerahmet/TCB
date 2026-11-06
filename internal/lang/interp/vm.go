@@ -157,8 +157,10 @@ type vmShared struct {
 	stopChanSent  bool // stopChan kapandı (stopMu altında)
 	stopWindows   []func() (time.Duration, bool)
 	hardStops     []func() // HardStop'un işleri
-	stopTimer     *time.Timer
-	finishing     atomic.Bool
+	// endWork motorların program ya da test biterken yaptığı işlerdir (AddEndWork).
+	endWork   []func() []EndError
+	stopTimer *time.Timer
+	finishing atomic.Bool
 	// interactive etkileşimli kabukta açıktır: VM birden çok Run ile sürer, hatayla biten satır
 	// görevleri durdurmaz (bkz. SetInteractive).
 	interactive bool
