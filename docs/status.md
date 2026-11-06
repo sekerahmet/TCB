@@ -1262,6 +1262,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
+- **Yapılacaklar (D, Ö3; sahip TCB; DENETİM 224 N1):** metin kapısı Windows'ta koşuyor; `TestDocLinks` Linux yolunda harf büyüklüğü farkını görmez, hedef tam harfle karşılaştırılabilir. 83 gönderimde 0 kez oldu [ölçüldü: DENETİM 224], sonraki tam denetim yakalar [hipotez].
 - **Mevcut durum (2026-11-06; DENETİM 228, 230):** asistanın ekranı `tools/assistant/`'ta: tek sayfa, ayrı dil dosyaları, sahte olay akışı, `contract.md` sözleşmesi; TR'de HTTP sunucusu yok, gerçek TR sunucusuyla konuşmadı. Yalnız Chromium tabanlı tarayıcıda denendi [ölçüldü: ekran oturumu].
 - **Yapılacaklar (C, Ö2; sahip ekran dilimi; DENETİM 230 N1):** onay kartında iki aldatma yolu: argümanın gerçek kısmı boş satırlarla görünmeyen yere itilebilir, U+E0000 etiket karakterleri görünür kılınmıyor [kanıtlı: kod; koşulmadı]. HTTP bölümü yazılırken belirteç teslimi ayrıca tartılır.
 - **Yapılacaklar (C, Ö2; sahip T1; DENETİM istek 208):** `CopyTypeError`'ın kart kolunu hiçbir test çağırmıyor; CPU testi de `copyTyped` aynı fonksiyonu çağırdığı için cinsli çiftlerde kendini sınıyor. Sanal kartta 225 çiftin 225'i `CopyInto` ile aynı [ölçüldü: DENETİM 208]; kalıcı test `TestTypedPathsOnGPU` kalıbında.
