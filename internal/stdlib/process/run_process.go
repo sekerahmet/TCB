@@ -41,11 +41,14 @@ type runCall struct {
 	env   []string         // programın ortamı (21.6)
 	// filtered ortamdan süzülen gizli adlardır; başarısız bitişin iletisi söyler (21.6).
 	filtered []string
+	limit    interp.Value  // TR_timeout: değeri; yoksa nil (21.5)
+	wait     time.Duration // limit'in süresi
 }
 
 // runProcess program_çalıştır(program, argümanlar) yerleşiğidir.
 func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.FnRunProcess)
+	line := m.BuiltinLine()
 	if err := bind.CheckNamed(fn, named, nameInput, nameEnv, nameTimeout, nameExitCodes); err != nil {
 		return nil, err
 	}
@@ -63,22 +66,25 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	tail := &stderrTail{longest: m.LongestSecret}
 	c.Stderr = tail // ayrı okunur: iki çıktı birbirini kilitlemez (21.4)
 	c.WaitDelay = stopGrace
-	if err := c.Start(); err != nil {
+	j, err := startJob(c)
+	if err != nil {
 		return nil, messages.New(messages.H7501, fn, call.name, err)
 	}
-	var waitErr error
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		waitErr = c.Wait()
-	}()
-	if err := m.AwaitExternal(done, func() { _ = c.Process.Kill() }); err != nil {
+	defer j.release()
+	if call.limit != nil {
+		timer := time.AfterFunc(call.wait, func() { j.stopFor(&j.timedOut) })
+		defer timer.Stop()
+	}
+	if err := m.AwaitExternal(j.done, j.stop); err != nil {
 		return nil, err
+	}
+	if j.timedOut.Load() {
+		return nil, messages.New(messages.H2921, fn, interp.Shown(call.limit), line)
 	}
 	// Boruyu tutan torun programın sonucunu değiştirmez: okunan çıktı verilir, sonucu çıkış kodu
 	// belirler (exec.ErrWaitDelay).
 	if c.ProcessState == nil {
-		return nil, messages.New(messages.H7501, fn, call.name, waitErr)
+		return nil, messages.New(messages.H7501, fn, call.name, j.waitErr)
 	}
 	if err := call.endError(fn, c.ProcessState, tail.text(m.Mask)); err != nil {
 		return nil, err
@@ -152,6 +158,12 @@ func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]int
 	}
 	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
 		return nil, err
+	}
+	if v, ok := bind.GetNamed(named, nameTimeout); ok {
+		if call.wait, err = interp.Seconds(codes.FnRunProcess, v); err != nil {
+			return nil, err
+		}
+		call.limit = v
 	}
 	return call, nil
 }

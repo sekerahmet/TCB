@@ -31,12 +31,16 @@ Denetim: `TestExitCodeIsARunError`, `TestStderrTailMasksBeforeCutting`, `TestStd
 **Dış programa gizli değer kendiliğinden gitmez.** Gizli adlı değişkenler ortamdan süzülür; `TR_env:` ekler ya da değiştirir, gizli adlı değeri süzgece verir. Başarısız bitişte ileti süzülen adları söyler, değerlerini söylemez.
 Denetim: `TestSecretNamedVariablesAreNotPassed`, `TestExplicitSecretReachesTheProgramAndIsMasked`, `TestFailureNamesTheFilteredVariables`, `TestEnvNamesIgnoreCaseOnWindows`.
 
+**Durdurma tek yoldur, kilit tutmaz.** Süre sınırı, iptal ve durdurma programı aynı yolla durdurur (`job.stop`): nazik istek, 2 saniye, öldürme; istek ve öldürme başlattığı süreçlere de gider (Unix'te süreç grubu, Windows'ta `KILL_ON_JOB_CLOSE` iş nesnesi ve Ctrl+Break). Durdurma `interp.AwaitExternal`'ın kilit bırakılmış bölümündedir: yığın ancak program durunca çözülür.
+Denetim: `TestStopUnwindsAfterTheProgramStopped`, `TestGrandchildStopsWithTheProgram`, `TestStoppingDoesNotHoldTheLock`, `TestHandledStopLetsTheCallFinish`, `TestNoConsoleUsesTheKillPath`.
+
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.
 
 ## Testler
 
+- `behavior_run_process_stop_test.go`: `TR_run_process`'in durdurulması (21.5) ve torun süreçler.
 - `behavior_run_process_exit_test.go`: `TR_run_process`'in çıkış kodu ve standart hata iletisi (21.4).
 - `behavior_helper_unix_test.go`: test ikilisinin dış program olarak Unix'te yaptığı iş.
 - `behavior_helper_windows_test.go`: aynı iş, Windows'ta.

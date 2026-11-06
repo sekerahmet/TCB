@@ -529,7 +529,7 @@ const (
 	H2918 Code = 2918 // {fn} görevin kendi içinde çağrılamaz: görev kendi durmasını bekleyemez, sonsuza dek beklerdi (satır {line|loc} başlatılan görev). Görevin sonucunu görevin dışında bekleyin: `{#var} g = {#async} f(x)`, sonra `g.{#wait}()`
 	H2919 Code = 2919 // {fn} bir görev listesi alır; listenin [{index}] öğesi görev değil, {given} verildi: görev `{#async} f(x)` ile başlatılır
 	H2920 Code = 2920 // görev iptal edildi (satır {line|loc} başlatılan)
-	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): görev iptal edildi ve durdu (satır {line|loc} başlatılan)
+	H2921 Code = 2921 // {fn} süre sınırı doldu ({value} saniye): iş durduruldu (satır {line|loc} başlatılan)
 	H2922 Code = 2922 // ; `{written}` dilin kimliğidir, {struct} yapısının alanı olamaz: alanı `{field}: {#Int}` diye ekleyin, `.{field}` ile kullanın
 	H2923 Code = 2923 // ; `{written}` dilin kimliğidir, {struct} yapısının bu üyesi `.{field}` diye yazılır
 	H3001 Code = 3001 // {dev} arka ucunun dikkat blok boyutları ayarlanamaz

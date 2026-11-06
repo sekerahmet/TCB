@@ -524,7 +524,7 @@
 "H2918": "{fn} cannot be called inside the task itself: a task cannot wait for its own stop, it would wait forever (the task started at line {line|loc}). Wait for the task's result outside the task: `{#var} g = {#async} f(x)`, then `g.{#wait}()`",
 "H2919": "{fn} takes a list of tasks; the list's element [{index}] is not a task, {given} given: a task is started with `{#async} f(x)`",
 "H2920": "the task was cancelled (started at line {line|loc})",
-"H2921": "{fn} timed out ({value} seconds): the task was cancelled and has stopped (started at line {line|loc})",
+"H2921": "{fn} timed out ({value} seconds): the work was stopped (started at line {line|loc})",
 "H2922": "; `{written}` is an identity of the language and cannot be a field of {struct}: add the field as `{field}: {#Int}` and use `.{field}`",
 "H2923": "; `{written}` is an identity of the language: this member of {struct} is written `.{field}`",
 "H3001": "the attention block sizes of the {dev} backend cannot be set",

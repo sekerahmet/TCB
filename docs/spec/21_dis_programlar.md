@@ -70,7 +70,7 @@ TR_for {
 - Uçbirimde basılan Ctrl+C önce TR programına gelir, dış programa gelmez. TR programı durursa dış program da bu kurala göre durur (1.5). Durdurmayı üstlenen programda (1.6) dış program, TR programı durana kadar sürer. 1.6'nın sınıflarıyla: `p.TR_read` yeni bir şey bekler, istekten sonra "durdurma istendi" hatasıyla döner; `p.TR_write`, `p.TR_wait` ve `TR_run_process` süren bir işi bitirir, sürer.
 - TR hemen biterken (1.7) önce süreç gruplarını öldürür. TR'nin kendisi öldürülür ya da çökerse Unix'te gruptaki süreçler kalabilir; Windows'ta iş nesnesi onları da kapatır.
 - Bekleyen `TR_read`, `TR_write` ve `TR_wait` program durunca hemen döner: iptalde iptal hatasıyla, süre sınırında zaman aşımı hatasıyla.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestTimeoutStopsTheProgram`, `TestTimeoutIsCheckedLikeTaskWait`, `TestProgramEndingInTimeIsNotATimeout`, `TestNiceRequestComesFirst`, `TestStubbornProgramIsKilled`, `TestNoConsoleUsesTheKillPath`, `TestGrandchildStopsWithTheProgram`, `TestStopUnwindsAfterTheProgramStopped`, `TestHandledStopLetsTheCallFinish`, `TestDeferralExpiringDuringTheCallStopsIt`, `TestCancelStopsTheCallEvenWhenStopIsHandled`, `TestCallInADeferIsNotAbandoned`, `TestTimeoutWorksInADefer`, `TestStoppingDoesNotHoldTheLock`, `TestGrandchildHoldingThePipeDoesNotBlock`, `TestEscapedGrandchildDoesNotBlockTheStop`.
 
 **21.6** Dış program TR programının ortamını alır, ama 19.4'e göre gizli adlı değişkenler aktarılmaz.
 - `TR_env:` bir `TR_Dict[TR_String, TR_String]`'dir. Ortama değişken ekler ya da var olanın değerini değiştirir, ortamın geri kalanını silmez.

@@ -79,7 +79,7 @@ func helperExtra(args []string) {
 		_, _ = os.Stderr.Write([]byte("\x1b[31mhata\x07\xff\r\nsatır\n"))
 		os.Exit(1)
 	default:
-		panic("bilinmeyen yardımcı: " + args[0])
+		helperStop(args)
 	}
 }
 
