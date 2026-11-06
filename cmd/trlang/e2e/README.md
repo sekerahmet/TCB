@@ -6,6 +6,7 @@
 
 Birim testleri sınadıkları dosyanın adını taşır (`x_test.go` → `x.go`); bu klasörde üretim kodu olmadığından hepsi davranış testidir. Birden çok dosyayı kesen davranış testleri:
 
+- `behavior_agents_page_test.go`: AGENTS.md'nin eğitim programını çalıştırır.
 - `behavior_arguments_test.go`: betiğe ve derlenmiş uygulamaya komut satırı argümanlarının iletilmesi; argüman verilip okunmayan programın kullanım hatası (çıkış 2), yalnız `-h`, başlatıcı argümanlarının (`--ros-args`, `--local-rank`) ayrılması
 - `behavior_exit_test.go`: `TR_exit` ve çıkış kodları (ertele, yakala, görev, aralık, ertelenen işin ve görevin hatası), `trlang`'ın kullanım hatasının 2 olması, çalışmadan önce modüllerin tek yoldan denetlenmesi
 - `behavior_external_program_test.go`: dış programın TR programıyla birlikte bitmesi: hata, `TR_exit`, durdurma ve hemen bitişte durur, normal bitişte beklenir, `TR_cmd_test` altında `TR_exit` durdurmaz; dış program yine `trlang`'dır.
