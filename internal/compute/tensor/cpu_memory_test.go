@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"runtime"
 	"runtime/debug"
+	"slices"
+	"sync"
 	"testing"
 	"weak"
 )
@@ -126,5 +128,88 @@ func TestPoolHoldsLargeStoragesWeakly(t *testing.T) {
 	}
 	if got := b.allocUninit(big, Float32).(*cpuStorage); len(got.d) != big {
 		t.Fatalf("yeni ayırma %d öğe", len(got.d))
+	}
+}
+
+// Toplama sürerken havuzdan alınan büyük depo başka işçiyle paylaşılmaz, Alloc'un verdiği sıfırlıdır;
+// -race yarışı da görür (DENETİM 223 N1).
+func TestPoolLargeStoragesSurviveCollections(t *testing.T) {
+	const big, workers, turns = poolWeakBytes/4 + 1, 8, 200
+	stop := make(chan struct{})
+	var gc sync.WaitGroup
+	gc.Add(1)
+	go func() {
+		defer gc.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				runtime.GC()
+			}
+		}
+	}()
+	var wg sync.WaitGroup
+	for w := range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			b := cpuBackend{}
+			mark := float32(w + 1)
+			for i := range turns {
+				s := b.Alloc(big, Float32).(*cpuStorage)
+				if i%2 == 1 {
+					b.Release(s)
+					s = b.allocUninit(big, Float32).(*cpuStorage)
+				} else if s.d[0] != 0 || s.d[big-1] != 0 {
+					t.Errorf("Alloc sıfırlı değil: %v %v", s.d[0], s.d[big-1])
+					return
+				}
+				s.d[0], s.d[big-1] = mark, mark
+				runtime.Gosched()
+				if s.d[0] != mark || s.d[big-1] != mark {
+					t.Errorf("depo başka işçiye de verildi: %v %v, %v olmalıydı", s.d[0], s.d[big-1], mark)
+					return
+				}
+				b.Release(s)
+			}
+		}()
+	}
+	wg.Wait()
+	close(stop)
+	gc.Wait()
+}
+
+// Havuzun yeni mi eski mi depo verdiği sonucu değiştirmez: ileri ve geri, araya toplama girse de bit
+// bit aynıdır (DENETİM 223 N1).
+func TestPoolCollectionsKeepTheBits(t *testing.T) {
+	step := func(collect bool) ([]float32, []float32) {
+		const m, k = 512, 1024
+		x, w := make([]float32, m*k), make([]float32, k*k)
+		for i := range x {
+			x[i] = float32(i%13) - 6
+		}
+		for i := range w {
+			w[i] = float32(i%7)/64 - 0.05
+		}
+		a, b := New(x, m, k), New(w, k, k)
+		b.SetRequiresGrad(true)
+		if collect {
+			runtime.GC()
+		}
+		y := a.MatMul(b).MatMul(b)
+		if collect {
+			runtime.GC()
+			runtime.GC()
+		}
+		y.Sum(0, false).Sum(0, false).Backward()
+		return y.Data(), b.Grad().Data()
+	}
+	y0, g0 := step(false)
+	for _, collect := range []bool{true, false, true} {
+		y, g := step(collect)
+		if !slices.Equal(y, y0) || !slices.Equal(g, g0) {
+			t.Fatalf("toplama %v: sonuç değişti", collect)
+		}
 	}
 }

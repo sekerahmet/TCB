@@ -16,9 +16,11 @@ import (
 const poolMin = 1 << 12
 
 // poolWeakBytes bundan büyük depo havuzda zayıf başvuruyla durur: toplamalar arasında yeniden kullanılır,
-// ama toplayıcı onu canlı saymaz. sync.Pool'un tuttuğu boş tampon canlı sayılınca hedef onun 3 katı
-// büyüyordu: 4B modelinde 2048 konumda canlının gerçeği 210–286 MiB, havuzla 1 477 MiB [ölçüldü:
-// art arda zorlanan toplamalar]. Küçük depolar eskisi gibidir: üretimin tensörleri bu sınırın altındadır.
+// ama toplayıcı onu canlı saymaz. Hedef canlının gcTarget'la verilen katıdır; havuz o katı değil, neyin
+// canlı sayıldığını değiştirir: sync.Pool'un tuttuğu boş tampon canlı sayılıyordu. 4B modelinde 2048
+// konumda gerçek canlı 210–286 MiB, havuzla 1 477 MiB [ölçüldü: art arda zorlanan toplamalar]. Tek satırlı
+// üretimin tensörleri sınırın altındadır, eskisi gibi; prompt'un büyük ara sonuçları üstündedir: toplamadan
+// sonra havuzdan gelmez, yeniden ayrılırlar.
 const poolWeakBytes = 1 << 20
 
 type poolKey struct {
