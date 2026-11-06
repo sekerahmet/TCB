@@ -139,6 +139,19 @@ func (v *VM) HandleStop() {
 	}
 }
 
+// AddHardStop, süreç hemen biterken (1.7) çalışacak bir iş ekler: nazik yol işlemediğinde motorun
+// geride bırakacağını bitirir. Yalnız motor kaydı sırasında çağrılır (program başlamadan).
+func (v *VM) AddHardStop(f func()) { v.hardStops = append(v.hardStops, f) }
+
+// HardStop süreç hemen bitmeden önce çağrılır (1.7): ertelenen işler çalışmaz, yalnız motorların
+// işleri çalışır (21.5: dış programların süreç grupları öldürülür). Beklemez, herhangi bir
+// goroutine'den çağrılabilir. Kayıt VM başınadır: başka VM'nin işine dokunmaz.
+func (v *VM) HardStop() {
+	for _, f := range v.hardStops {
+		f()
+	}
+}
+
 // SetInteractive VM'nin etkileşimli kabukta olduğunu bildirir: VM birden çok Run ile sürer, bu
 // yüzden yakalanmayan hatayla biten bir satır görevleri durdurmaz (1.9 programlar içindir). Run'dan
 // önce çağrılır.

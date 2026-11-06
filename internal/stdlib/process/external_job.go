@@ -69,6 +69,12 @@ func (j *job) stopFor(mark *atomic.Bool) {
 	<-j.done
 }
 
+// kill grubu beklemeden öldürür: TR hemen biterken (1.7).
+func (j *job) kill() {
+	j.stopping.Store(true)
+	j.group.kill()
+}
+
 // release çağrı biterken çalışır (Go defer'inde). Süren programı durdurur: yığın panikle çözülse de
 // geride yetim süreç kalmaz. Sonra grubun kaynakları bırakılır; program kendiliğinden bittiyse torunu
 // öldürülmez.

@@ -34,6 +34,9 @@ Denetim: `TestSecretNamedVariablesAreNotPassed`, `TestExplicitSecretReachesThePr
 **Durdurma tek yoldur, kilit tutmaz.** Süre sınırı, iptal ve durdurma programı aynı yolla durdurur (`job.stop`): nazik istek, 2 saniye, öldürme; istek ve öldürme başlattığı süreçlere de gider (Unix'te süreç grubu, Windows'ta `KILL_ON_JOB_CLOSE` iş nesnesi ve Ctrl+Break). Durdurma `interp.AwaitExternal`'ın kilit bırakılmış bölümündedir: yığın ancak program durunca çözülür.
 Denetim: `TestStopUnwindsAfterTheProgramStopped`, `TestGrandchildStopsWithTheProgram`, `TestStoppingDoesNotHoldTheLock`, `TestHandledStopLetsTheCallFinish`, `TestNoConsoleUsesTheKillPath`.
 
+**Geride yetim süreç kalmaz.** Normal bitişte görevdeki çağrı beklenir; hata, `TR_exit` ve durdurma görevleri durdurur, çağrı programı durdurur. Hemen bitişte (1.7) `State`'in kaydındaki gruplar öldürülür (`interp.VM.HardStop`); kayıt VM başınadır.
+Denetim: `TestHardStopReachesOnlyItsOwnProgram`; ayrı süreçte `cmd/trlang/e2e` `TestSecondRequestKillsTheExternalProgram`, `TestUncaughtErrorStopsTheExternalProgram`, `TestExitStopsTheExternalProgram`, `TestProgramEndWaitsForTheExternalProgram`, `TestExitInATestLeavesTheExternalProgram`.
+
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.

@@ -46,7 +46,7 @@ type runCall struct {
 }
 
 // runProcess program_çalıştır(program, argümanlar) yerleşiğidir.
-func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	fn := interp.CallPrefix(codes.FnRunProcess)
 	line := m.BuiltinLine()
 	if err := bind.CheckNamed(fn, named, nameInput, nameEnv, nameTimeout, nameExitCodes); err != nil {
@@ -71,6 +71,8 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, messages.New(messages.H7501, fn, call.name, err)
 	}
 	defer j.release()
+	d.track(j)
+	defer d.untrack(j)
 	if call.limit != nil {
 		timer := time.AfterFunc(call.wait, func() { j.stopFor(&j.timedOut) })
 		defer timer.Stop()

@@ -477,3 +477,21 @@ func TestEscapedGrandchildDoesNotBlockTheStop(t *testing.T) {
 	}
 	await(t, "torun bitti", func() bool { return size(beat) >= 300 })
 }
+
+// Süreç kaydı VM başınadır: bir programın hemen bitişi öbür VM'nin programını durdurmaz (1.7, 1.12).
+func TestHardStopReachesOnlyItsOwnProgram(t *testing.T) {
+	prog := helperProgram(t)
+	dir := t.TempDir()
+	own, other := filepath.Join(dir, "atım1"), filepath.Join(dir, "atım2")
+	first, end1 := startProgram(t, `TR_run_process(`+prog+`, ["beat", `+tr(own)+`, "2000"])`)
+	second, end2 := startProgram(t, `TR_run_process(`+prog+`, ["beat", `+tr(other)+`, "2000"])`)
+	await(t, "programlar atıyor", func() bool { return size(own) > 0 && size(other) > 0 })
+	first.HardStop()
+	await(t, "program bitti", func() bool { return !stillBeating(own) })
+	if !stillBeating(other) {
+		t.Error("öbür VM'nin programı durdu")
+	}
+	second.RequestStop(2)
+	_ = finished(t, end1)
+	_ = finished(t, end2)
+}

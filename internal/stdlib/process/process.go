@@ -29,6 +29,35 @@ type State struct {
 	mu       sync.Mutex
 	called   bool
 	settings *interp.DictVal
+	// jobs bu programın çalışan dış programlarıdır: kayıt VM başınadır, TR_cmd_test altında öbür
+	// testlerin programına dokunulmaz (1.7, 1.12).
+	jobs map[*job]struct{}
+}
+
+// track çalışan dış programı kaydeder.
+func (d *State) track(j *job) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.jobs == nil {
+		d.jobs = map[*job]struct{}{}
+	}
+	d.jobs[j] = struct{}{}
+}
+
+// untrack biten dış programı kayıttan siler; grubun kaynakları ondan sonra bırakılır.
+func (d *State) untrack(j *job) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	delete(d.jobs, j)
+}
+
+// killJobs çalışan bütün dış programların gruplarını öldürür: TR hemen biterken (1.7, 21.5).
+func (d *State) killJobs() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for j := range d.jobs {
+		j.kill()
+	}
 }
 
 // Settings komut_satırı'nın döndürdüğü sözlüktür; komut_satırı çağrılmadıysa nil. Dönen
@@ -51,7 +80,8 @@ func Register(v *interp.VM) *State {
 	d := &State{}
 	v.RegisterNoNamed(codes.FnEnv, envVar)
 	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
-	v.RegisterBuiltinCode(codes.FnRunProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnRunProcess), runProcess))
+	v.RegisterBuiltinCode(codes.FnRunProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnRunProcess), d.runProcess))
+	v.AddHardStop(d.killJobs)
 	return d
 }
 

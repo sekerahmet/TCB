@@ -177,7 +177,7 @@ func TestRunProcessPathSuggestionRuns(t *testing.T) {
 
 // Yanlış çağrılar program başlamadan hatadır.
 func TestRunProcessCallErrors(t *testing.T) {
-	for _, code := range []string{`TR_run_process("a")`, `TR_run_process(1, [])`, `TR_run_process("a", "b")`, `TR_run_process("a", [], TR_dim: 1)`} {
+	for _, code := range []string{`TR_run_process("a")`, `TR_run_process(1, [])`, `TR_run_process("a", "b")`, `TR_run_process("a", [], TR_dim: 1)`, `TR_run_process(TR_Path("."), [])`} {
 		if _, _, err := commandLine(t, code); err == nil {
 			t.Errorf("%s: hata bekleniyordu", code)
 		}
