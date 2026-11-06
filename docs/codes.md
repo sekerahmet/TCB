@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 639 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 50 tip, 149 fonksiyon, 11 sabit, 73 metot, 109 özellik, 160 adlı argüman.
+Toplam 651 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 52 tip, 150 fonksiyon, 11 sabit, 77 metot, 109 özellik, 165 adlı argüman.
 
 ## İçindekiler
 
@@ -1048,6 +1048,10 @@ tr: değişken s = VeriKümesi("tests/data/numbers").sıralı(toplu: 2, bağlam:
 
 
 
+#### `TR_SpeechSplitter` (`TR_type_SpeechSplitter`, `KonuşmaKesici`)
+
+
+
 #### `TR_SpikeGuard` (`TR_type_SpikeGuard`, `SıçramaBekçisi`)
 
 
@@ -1165,6 +1169,10 @@ tr: değişken t: Tip = Tip(42); yazdır(t == Tam, t, Tip(t), Tip([1, 2]) == Lis
 ```
 
 İlişkili: `TR_Int`, `TR_Float`, `TR_String`
+
+#### `TR_VoiceDetector` (`TR_type_VoiceDetector`, `SesAlgılayıcı`)
+
+
 
 #### `TR_Whisper` (`TR_type_Whisper`, `Whisper`)
 
@@ -2776,6 +2784,12 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 
 
 
+#### `TR_pretrained_vad(...)` (`TR_fn_pretrained_vad`, `hazır_vad`)
+
+    hazır_vad()
+
+
+
 #### `TR_pretrained_whisper(...)` (`TR_fn_pretrained_whisper`, `hazır_whisper`)
 
     hazır_whisper()
@@ -4012,6 +4026,10 @@ Kullananlar: `TR_Tensor`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_in
 
 
 
+#### `TR_end_threshold:` (`TR_arg_end_threshold`, `bitiş_eşiği`)
+
+
+
 #### `TR_env:` (`TR_arg_env`, `ortam`)
 
 Dış programın ortamına değişken ekler ya da var olanın değerini değiştirir; ortamın geri kalanı kalır. Gizli adlı değişkenler aktarılmaz, gerekiyorsa burada açıkça verilir.
@@ -4406,6 +4424,10 @@ Kullananlar: `TR_clamp(...)`, `TR_clip_grad(...)` · İlişkili: `TR_min:`
 
 
 
+#### `TR_max_speech:` (`TR_arg_max_speech`, `en_uzun_konuşma`)
+
+
+
 #### `TR_mel_scale:` (`TR_arg_mel_scale`, `mel_ölçeği`)
 
 Mel ölçeğidir: "slaney" ya da "htk"; zorunludur.
@@ -4738,6 +4760,10 @@ Kullananlar: `TR_hann_window(...)` · İlişkili: `TR_hann_window(...)`
 
 
 
+#### `TR_pre_roll:` (`TR_arg_pre_roll`, `baş_tamponu`)
+
+
+
 #### `TR_prompt:` (`TR_arg_prompt`, `istem`)
 
 
@@ -4861,6 +4887,10 @@ Kullananlar: `TR_randn(...)`, `TR_sample(...)`, `.TR_sampler(...)`
 
 
 
+#### `TR_silence:` (`TR_arg_silence`, `sessizlik`)
+
+
+
 #### `TR_sin_table:` (`TR_arg_sin_table`, `sin_tablosu`)
 
 
@@ -4906,6 +4936,10 @@ tr: değişken t = sıfırlar([3]); yerine_yaz(t, birler([1]), eksen: 0, başlan
 ```
 
 Kullananlar: `TR_write_slice(...)` · İlişkili: `TR_write_slice(...)`
+
+#### `TR_start_threshold:` (`TR_arg_start_threshold`, `başlangıç_eşiği`)
+
+
 
 #### `TR_step:` (`TR_arg_step`, `adım`)
 
@@ -5591,6 +5625,10 @@ tr: yazdır([5, 6, 7].ilk)
 
 İlişkili: `.TR_last`
 
+#### `.TR_flush(...)` (`TR_mem_flush`, `boşalt`)
+
+
+
 #### `.TR_folder` (`TR_mem_folder`, `klasör`)
 
 
@@ -6127,7 +6165,15 @@ tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
 
 
 
+#### `.TR_probability(...)` (`TR_mem_probability`, `olasılık`)
+
+
+
 #### `.TR_proj` (`TR_mem_proj`, `izdüşüm_katmanı`)
+
+
+
+#### `.TR_push(...)` (`TR_mem_push`, `besle`)
 
 
 
@@ -6269,6 +6315,10 @@ tr: değişken w = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(topl
 ```
 
 İlişkili: `TR_requires_grad:`, `TR_parameters(...)`
+
+#### `.TR_reset_state(...)` (`TR_mem_reset_state`, `durumu_sıfırla`)
+
+
 
 #### `.TR_reshape(...)` (`TR_mem_reshape`, `şekillendir`)
 

@@ -1368,7 +1368,7 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıld
 - **Yapılacaklar (D, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
 - **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; S1 Bulgu 2, DENETİM 233 N2):** `TR_run_process`'in standart çıktısı 3.6'nın büyüme denetiminden geçmiyor [kanıtlı: DENETİM 233, süreç paketi]; bitmeyen çıktıda ileti yerine Go çökmesi beklenir [hipotez: koşulmadı]. 21.2'nin tampon argümanını almaz; sınırlı yazıcı aynı bellek sınırını sayar, programı durdurur, hatayı ana yolda verir.
 - **Yapılacaklar (A, Ö1, yerli ses girişi; roadmap, yerel sesli asistan 6. adım; DENETİM 233):** dış süreçten okunan seste kaynak kendi içinde veri atarsa TR görmez: `ffmpeg` dshow ve `arecord` taşmada sürer [kanıtlı: DENETİM 233, kaynak kod]. 21.2'nin sözü "TR aldığı baytı kaybetmez"dir, "mikrofon kaybetmez" değil.
-- **Sınır (DENETİM 226 N1, N4):** `AUTH` sözcüğü `SSH_AUTH_SOCK`'u da süzer, `git push` ajana ulaşamaz, ileti `TR_env:` yazımını verir [ölçüldü]. `/dev/tty` okuyan program `TR_timeout:` olmadan dönmeyebilir [hipotez].
+- **Sınır (DENETİM 226 N1, N4):** `AUTH` sözcüğü `SSH_AUTH_SOCK`'u da süzer, git push ajana ulaşamaz, ileti `TR_env:` yazımını verir [ölçüldü]. `/dev/tty` okuyan program `TR_timeout:` olmadan dönmeyebilir [hipotez].
 
 ## 22. Bayt ve sayı
 
