@@ -57,6 +57,19 @@ func (v *VM) AddSecret(value string) bool {
 	return true
 }
 
+// LongestSecret is the length in bytes of the longest registered secret value (0 when there is
+// none): a bounded buffer that may be cut keeps this much more, so that no secret is cut before it
+// is masked.
+func (v *VM) LongestSecret() int {
+	v.isSecret.Lock()
+	defer v.isSecret.Unlock()
+	longest := 0
+	for _, s := range v.secrets {
+		longest = max(longest, len(s))
+	}
+	return longest
+}
+
 // HasSecrets reports whether any secret value is registered. Places where scanning the whole
 // output is costly (e.g. debug messages) check this first.
 func (v *VM) HasSecrets() bool { return v.mask.Load() != nil }

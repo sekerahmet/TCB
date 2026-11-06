@@ -25,6 +25,15 @@ Denetim: `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessOutputIsBytes`, `
 **Program yalnız izin verilen yerden bulunur.** Ad, `PATH`'in mutlak girdilerinde aranır; çalışma klasörü ve göreli girdi aranmaz, yol mutlak yapılır. `exec.LookPath` ve `exec.Command` kullanılmaz: ikisi de bu sınırları tutmuyor (DENETİM 217). Windows'ta son yol izin listesiyle sınanır, `.bat` ve `.cmd` hiçbir yazımla çalışmaz.
 Denetim: `TestProgramNameIsSearchedInPath`, `TestRelativePathEntriesAreNotSearched`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestWindowsBatchFilesAreRefused`.
 
+**Başarısız bitiş iletide okunur, gizli değer görünmez.** Kabul edilmeyen çıkış kodu çalışma hatasıdır: ad, kod, standart hatanın sonu. Standart hata sınırlı tamponla okunur (`stderrTailLimit`); tampon sınır artı en uzun gizli değer kadar tutar, önce süzülür sonra kesilir, yazdırılamayan bayt iletiye girmez.
+Denetim: `TestExitCodeIsARunError`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestBothOutputsDoNotDeadlock`.
+
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.
+
+## Testler
+
+- `behavior_run_process_exit_test.go`: `TR_run_process`'in çıkış kodu ve standart hata iletisi (21.4).
+- `behavior_helper_unix_test.go`: test ikilisinin dış program olarak Unix'te yaptığı iş.
+- `behavior_helper_windows_test.go`: aynı iş, Windows'ta.

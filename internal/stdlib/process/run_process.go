@@ -2,9 +2,12 @@ package process
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
@@ -24,12 +27,17 @@ var (
 	nameExitCodes = bind.NamedArg(codes.ArgExitCodes)
 )
 
+// stopGrace programın nazik istekten sonra durmak için aldığı süredir (21.5); program bittikten sonra
+// boruyu tutan torun da bu kadar beklenir.
+const stopGrace = 2 * time.Second
+
 // runCall bir program_çalıştır çağrısının okunmuş argümanlarıdır.
 type runCall struct {
 	name  string // iletilerde programın adı: verilen ad ya da yol
 	path  string // çalışacak dosya
 	args  []string
 	input *interp.BytesVal // yoksa girdi boş aygıttır (21.1)
+	codes []int            // kabul edilen çıkış kodları (21.4)
 }
 
 // runProcess program_çalıştır(program, argümanlar) yerleşiğidir.
@@ -49,6 +57,9 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		c.Stdin = bytes.NewReader(call.input.Data())
 	}
 	c.Stdout = &out
+	tail := &stderrTail{longest: m.LongestSecret}
+	c.Stderr = tail // ayrı okunur: iki çıktı birbirini kilitlemez (21.4)
+	c.WaitDelay = stopGrace
 	if err := c.Start(); err != nil {
 		return nil, messages.New(messages.H7501, fn, call.name, err)
 	}
@@ -61,10 +72,56 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 	if err := m.AwaitExternal(done, func() { _ = c.Process.Kill() }); err != nil {
 		return nil, err
 	}
-	if waitErr != nil {
+	// Boruyu tutan torun programın sonucunu değiştirmez: okunan çıktı verilir, sonucu çıkış kodu
+	// belirler (exec.ErrWaitDelay).
+	if c.ProcessState == nil {
 		return nil, messages.New(messages.H7501, fn, call.name, waitErr)
 	}
+	if err := call.endError(fn, c.ProcessState, tail.text(m.Mask)); err != nil {
+		return nil, err
+	}
 	return interp.NewBytes(out.Bytes()), nil
+}
+
+// endError biten programın hatasıdır: sinyalle ölmek ya da kabul edilmeyen kod (21.4).
+func (r *runCall) endError(fn any, state *os.ProcessState, stderr string) error {
+	if signal, killed := exitSignal(state); killed {
+		return messages.New(messages.H7504, fn, r.name, signal, stderr)
+	}
+	code := state.ExitCode()
+	if slices.Contains(r.codes, code) {
+		return nil
+	}
+	accepted := make([]string, 0, len(r.codes)+1)
+	for _, c := range append(slices.Clone(r.codes), code) {
+		accepted = append(accepted, strconv.Itoa(c))
+	}
+	return messages.New(messages.H7503, fn, r.name, code, "["+strings.Join(accepted, ", ")+"]", stderr)
+}
+
+// exitCodes TR_exit_codes: argümanını okur; verilmezse yalnız 0 kabul edilir (21.4). Boş liste hiçbir
+// bitişi kabul etmez: yazım hatasıdır, program başlamaz.
+func exitCodes(fn any, named map[string]interp.Value) ([]int, error) {
+	v, ok := bind.GetNamed(named, nameExitCodes)
+	if !ok {
+		return []int{0}, nil
+	}
+	list, ok := v.(*interp.ListVal)
+	if !ok {
+		return nil, messages.New(messages.H7506, fn, nameExitCodes, v.Type())
+	}
+	if len(list.Elements) == 0 {
+		return nil, messages.New(messages.H7508, fn)
+	}
+	out := make([]int, len(list.Elements))
+	for i, e := range list.Elements {
+		n, ok := bind.Int(e)
+		if !ok {
+			return nil, messages.New(messages.H7506, fn, nameExitCodes, e.Type())
+		}
+		out[i] = int(n)
+	}
+	return out, nil
 }
 
 // readRunCall çağrının argümanlarını okur ve denetler; program başlamadan biter.
@@ -86,6 +143,9 @@ func readRunCall(fn any, args []interp.Value, named map[string]interp.Value) (*r
 			return nil, messages.New(messages.H7493, fn, nameInput, v.Type())
 		}
 		call.input = b
+	}
+	if call.codes, err = exitCodes(fn, named); err != nil {
+		return nil, err
 	}
 	return call, nil
 }

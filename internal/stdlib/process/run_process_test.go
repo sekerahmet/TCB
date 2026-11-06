@@ -48,8 +48,30 @@ func helperMain(args []string) {
 	}
 }
 
-// helperExtra öbür test dosyalarının programlarıdır.
-func helperExtra(args []string) { panic("bilinmeyen yardımcı: " + args[0]) }
+// helperExtra hataya ve durdurmaya bakan testlerin programlarıdır.
+func helperExtra(args []string) {
+	switch args[0] {
+	case "exit": // kod, sonra standart hataya yazılacak metin
+		if len(args) > 2 {
+			_, _ = os.Stderr.WriteString(args[2])
+		}
+		n, _ := strconv.Atoi(args[1])
+		os.Exit(n)
+	case "flood": // iki çıktıya birden, parça parça büyük yazar
+		chunk := strings.Repeat("x", 1<<16)
+		for range 64 {
+			_, _ = os.Stdout.WriteString(chunk)
+			_, _ = os.Stderr.WriteString(chunk)
+		}
+	case "kill-self": // kendini sinyalle öldürür
+		killSelf()
+	case "raw-stderr": // denetim karakterli ve geçersiz baytlar
+		_, _ = os.Stderr.Write([]byte("\x1b[31mhata\x07\xff\r\nsatır\n"))
+		os.Exit(1)
+	default:
+		panic("bilinmeyen yardımcı: " + args[0])
+	}
+}
 
 // helperProgram test ikilisini programın adı olarak TR metnine yazar ve onu dış program yapar.
 func helperProgram(t *testing.T) string {

@@ -78,3 +78,17 @@ func TestSecretFilter(t *testing.T) {
 		t.Errorf("hata çıktısı maskelenmeli: %q", got)
 	}
 }
+
+// En uzun gizli değerin boyu bayt olarak verilir; süzgece girmeyen kısa değer sayılmaz.
+func TestLongestSecret(t *testing.T) {
+	v := New()
+	if got := v.LongestSecret(); got != 0 {
+		t.Errorf("süzgeç boşken %d", got)
+	}
+	v.AddSecret("kısa")
+	v.AddSecret("uzun_değer")
+	v.AddSecret("altı_harf")
+	if got, want := v.LongestSecret(), len("uzun_değer"); got != want {
+		t.Errorf("%d, beklenen %d", got, want)
+	}
+}
