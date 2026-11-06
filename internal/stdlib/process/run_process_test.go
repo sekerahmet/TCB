@@ -37,6 +37,9 @@ func helperMain(args []string) {
 		_, _ = os.Stdout.Write(append(b, '\r', '\n'))
 	case "cat": // girdiyi çıktıya kopyalar
 		_, _ = io.Copy(os.Stdout, os.Stdin)
+	case "self": // kendi yolunu yazar
+		exe, _ := os.Executable()
+		_, _ = os.Stdout.WriteString(exe)
 	case "sleep": // verilen saniye kadar uyur
 		n, _ := strconv.ParseFloat(args[1], 64)
 		time.Sleep(time.Duration(n * float64(time.Second)))

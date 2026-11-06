@@ -43,7 +43,8 @@ func runProcess(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		return nil, err
 	}
 	var out bytes.Buffer
-	c := exec.Command(call.path, call.args...)
+	// exec.Command kullanılmaz: yolu yeniden arar (21.3, program_lookup.go).
+	c := &exec.Cmd{Path: call.path, Args: append([]string{call.path}, call.args...)}
 	if call.input != nil {
 		c.Stdin = bytes.NewReader(call.input.Data())
 	}
@@ -87,21 +88,6 @@ func readRunCall(fn any, args []interp.Value, named map[string]interp.Value) (*r
 		call.input = b
 	}
 	return call, nil
-}
-
-// findProgram programın adını ve çalışacak dosyasını verir.
-func findProgram(fn any, v interp.Value) (name, path string, err error) {
-	switch x := v.(type) {
-	case *interp.StringVal:
-		path, err = exec.LookPath(x.Val)
-		if err != nil {
-			return "", "", messages.New(messages.H7501, fn, x.Val, err)
-		}
-		return x.Val, path, nil
-	case interp.PathValuer:
-		return x.FilePath(), x.FilePath(), nil
-	}
-	return "", "", interp.ArgTypeError(codes.FnRunProcess, 1, v, codes.TypeString, codes.TypePath)
 }
 
 // programArguments argüman listesini okur. Listede yol olması denetim hatasıdır (21.1); tipi

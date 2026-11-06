@@ -51,7 +51,7 @@ TR_for {
 - Windows'ta yalnız `.exe` ve `.com` dosyaları aranır. Ad `.exe`, `.com`, `.bat` ya da `.cmd` ile bitemez: `"ffmpeg.exe"` hatadır ve ileti `"ffmpeg"`'i önerir, böylece aynı kod her işletim sisteminde çalışır. Başka noktalı adlar (`"python3.11"`) program adıdır.
 - Windows'ta `.bat` ve `.cmd` dosyaları ad ya da yol olarak çalıştırılamaz: bunların argümanları güvenle kaçırılamaz. İleti açık yazımı verir (`TR_run_process("cmd", ["/c", "npm.cmd", ...])`) ve bu yolda argümanların `cmd.exe`'nin kurallarıyla yorumlandığını, dışarıdan gelen bir argümanın böyle verilmemesi gerektiğini söyler.
 - Bulunamayan programın iletisi adı söyler. Ad boşluk içeriyorsa ileti argümanların listeye ayrılmasını önerir: `TR_run_process("ffmpeg", ["-i", "a.wav"])`.
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* Go: `TestProgramNameIsSearchedInPath`, `TestProgramNameHoldsNoSeparator`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestRelativePathEntriesAreNotSearched`, `TestProgramNameCannotEndInAnExtension`, `TestDottedProgramNameIsAName`, `TestWindowsRunsOnlyExeAndCom`, `TestWindowsBatchFilesAreRefused`, `TestBatchSuggestionRuns`, `TestMissingProgramMessages`.
 
 **21.4** Programın çıkış kodu `TR_exit_codes:`'ta değilse (varsayılan `[0]`) çağrı çalışma hatasıyla biter. `TR_spawn_process`'te hata `p.TR_wait()`'ten gelir.
 - İleti programın adını, çıkış kodunu ve standart hata çıktısının sonunu taşır. Gizli değerler orada da 19.4'teki gibi görünmez.

@@ -22,6 +22,9 @@ Denetim: `TestNumberParsing`, `TestIsNumberOrBool`.
 kendinin dış programıdır (`helperMain`), her işletim sisteminde aynı program koşar.
 Denetim: `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessOutputIsBytes`, `TestRunProcessInput`, `TestRunProcessReleasesTheLock`.
 
+**Program yalnız izin verilen yerden bulunur.** Ad, `PATH`'in mutlak girdilerinde aranır; çalışma klasörü ve göreli girdi aranmaz, yol mutlak yapılır. `exec.LookPath` ve `exec.Command` kullanılmaz: ikisi de bu sınırları tutmuyor (DENETİM 217). Windows'ta son yol izin listesiyle sınanır, `.bat` ve `.cmd` hiçbir yazımla çalışmaz.
+Denetim: `TestProgramNameIsSearchedInPath`, `TestRelativePathEntriesAreNotSearched`, `TestProgramPathIsRelativeToTheWorkingDirectory`, `TestWindowsBatchFilesAreRefused`.
+
 **Kullanım hatası temiz çıkar.** Yanlış bir seçenek ya da `--help` programı açıklayıcı bir
 iletiyle ve tanımlı bir çıkış koduyla bitirir; çökme ya da yığın dökümü olmaz.
 Denetim: `TestCommandLineHelp`, `TestCommandLineUsageErrors`, `TestExitRequestNotCaught`; ayrı süreçte `cmd/trlang/e2e` `TestCommandLineOptions`.
