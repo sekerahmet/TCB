@@ -28,6 +28,25 @@ func (d *nameChecker) noteOperator(stmts []ast.Statement, i int) {
 	}
 }
 
+// noteLoop i'deki deyim yalın 'for' ise aynı satırdaki 'in' döngü başlığıdır, karşılaştırma değil:
+// 'for x in l {' deyimlere ayrılır, 'in' üyelik değil döngünün sözcüğünü önerir.
+func (d *nameChecker) noteLoop(stmts []ast.Statement, i int) {
+	loop := bareName(stmts[i])
+	if loop == nil || loop.Value != hint.ForeignFor || d.c.language() != nil {
+		return
+	}
+	for _, st := range stmts[i+1:] {
+		w := leadingName(st)
+		if w == nil || w.Line() != loop.Line() {
+			return
+		}
+		if hint.ForeignOperator(w.Value) != nil {
+			d.operators[w] = hint.LoopInHint()
+			return
+		}
+	}
+}
+
 // quietAfterUndefined i'deki deyimin değeri tanımsız bir adın kendisiyse deyimi ve aynı satırda
 // ardından gelen ifade deyimini etkisiz değer denetiminden çıkarır (2.8): 'a and a'da hata 'and'in
 // tanımsız olmasıdır, ondan kalan 'and' ve 'a' deyimleri, 'TR_var c = not a'da kalan 'a' ayrı bir hata

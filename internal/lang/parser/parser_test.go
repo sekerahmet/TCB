@@ -222,7 +222,7 @@ func TestForeignComparisonHints(t *testing.T) {
 	if text := strings.Join(parseErrors("TR_print(a not\nin l)"), "\n"); strings.Contains(text, "TR_not l.") {
 		t.Errorf("ayrı satırdaki sözcükler karşılaştırma değildir: %s", text)
 	}
-	for _, code := range []string{"TR_for x in l { }", "TR_var l = [y TR_for y in m]"} {
+	for _, code := range []string{"TR_for x in l { }", "TR_var l = [y TR_for y in m]", "for x in l:\n    TR_print(x)", "TR_var m = [y for y in l]"} {
 		if text := strings.Join(parseErrors(code), "\n"); strings.Contains(text, "contains") {
 			t.Errorf("%s: döngüde üyelik önerilmemeli: %s", code, text)
 		}

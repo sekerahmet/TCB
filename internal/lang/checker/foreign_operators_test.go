@@ -71,6 +71,17 @@ func TestForeignComparisonSuggestsItsWholeSpelling(t *testing.T) {
 	}
 }
 
+// Kural (kopyalanınca çalışır): yalın 'for' satırında 'in' döngü başlığıdır; üyelik değil TR_in önerilir.
+func TestBareForKeepsTheLoopWord(t *testing.T) {
+	for _, head := range []string{"for x in l {", "for i in range(3) {"} {
+		errs, _ := checkErrs(t, "TR_var l = [1]\n"+head+"\n    TR_print(1)\n}")
+		got := strings.Join(errs, "\n")
+		if !strings.Contains(got, "'TR_in'") || strings.Contains(got, "TR_contains") {
+			t.Errorf("%s: TR_in önerilmeli, üyelik önerilmemeli: %s", head, got)
+		}
+	}
+}
+
 // Kural: sözcükler ayrı satırdaysa karşılaştırma değildir, ad kendi ipucunu alır.
 func TestForeignComparisonIsOnOneLine(t *testing.T) {
 	errs, _ := checkErrs(t, "not\nin")
