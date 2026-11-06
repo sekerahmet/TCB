@@ -1729,6 +1729,7 @@ const (
 	H7507 Code = 7507 // {fn}: {name} anahtarı ve değeri {@string} olan bir {@dict} olmalıdır, {given} verildi
 	H7508 Code = 7508 // {fn}: boş `{#codes}:` listesi hiçbir bitişi kabul etmez; başarı sayılan kodları yazın: `{#codes}: [0]`
 	H7509 Code = 7509 // \nGizli adlı olduğu için ortamdan süzülen değişkenler: {names}. Programa gerekiyorsa açıkça verilir: `{#arg}: {{{first|q}: {#fn}({first|q})}}`
+	H7510 Code = 7510 // {fn} {index}. parça {part|q} ilk parçanın dışına çıkıyor (dışarıdan gelen bir ad taban klasörden çıkamasın). İçinde bir ad verin: `{#path}(a, b)` (`a` taban klasör, `b` addır); yukarı çıkmak için üst klasörü isteyin: `{#path}(a).{#parent}`
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

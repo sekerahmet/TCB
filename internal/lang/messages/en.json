@@ -1724,6 +1724,7 @@
 "H7507": "{fn}: {name} must be a {@dict} whose keys and values are {@string}, {given} given",
 "H7508": "{fn}: an empty `{#codes}:` list accepts no ending; write the codes that count as success: `{#codes}: [0]`",
 "H7509": "\nVariables filtered from the environment because their names are secret: {names}. If the program needs one, it is given explicitly: `{#arg}: {{{first|q}: {#fn}({first|q})}}`",
+"H7510": "{fn}: part {index}, {part|q}, climbs out of the first part (so that a name from outside cannot leave the base folder). Give a name inside it: `{#path}(a, b)` (`a` is the base folder, `b` the name); to go up, ask for the parent: `{#path}(a).{#parent}`",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",
 "H7902": "{fn} takes no parameter named '{given}' (it takes no named arguments)",
