@@ -72,10 +72,9 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.5
 
-- **Mevcut durum:** hesap çekirdeğinin (CPU) ortasında bırakma yok, süren hesap biter; ağ yerleşiği yok; TR alt süreç açmıyor (19.1).
+- **Mevcut durum:** hesap çekirdeğinin (CPU) ortasında bırakma yok, süren hesap biter; ağ yerleşiği yok. Dış programa istek 21.5'teki gibi gider, `TR_run_process` durur, program sonra biter [test: `TestStopRequestStopsTheExternalProgram`, `TestSecondRequestKillsTheExternalProgram`].
 - **Yapılacaklar:**
   - Bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır; CPU çekirdeğinin ortasında bırakma.
-  - TR alt süreç açmaya başlarsa (19.1) bu madde ona göre genişler: istek alt sürece, kendisi zaten almadıysa iletilir.
 
 ### 1.9
 
@@ -1217,8 +1216,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ### 19.4
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
-- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** büyük harf dizisinin sonunda bölme (`HFToken`) [kanıtlı: DENETİM, `process.go:84-86`]. Çoğullar ve Türkçe çoğullar uygulanacak.
-- **Yapılacaklar (B, Ö1; sahip S1, `TR_run_process` diliminde; DENETİM 219):** çoğul adlar süzülmüyor: `API_KEY` maskeleniyor, `API_KEYS`, `X_PASSWORDS` değeri açık yazılıyor [ölçüldü: DENETİM 219, TCB yeniden, `0c073984`]. Kural çoğulları sayıyor (19.4).
+- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** büyük harf dizisinin sonunda bölme (`HFToken`) [kanıtlı: DENETİM, `process.go:84-86`]. Çoğullar ve Türkçe çoğullar süzülüyor; süzgeç değere de bakar, sayı değeri gizli sayılmaz [test: `TestIsSecretName`].
 
 ### 19.5, 19.7
 
@@ -1342,8 +1340,11 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıld
 
 ### 21.1–21.8
 
-- **Mevcut durum:** uygulanmadı; `TR_run_process` ve `TR_spawn_process` kimlikleri yok [ölçüldü: main `ec26382c`, `definitions.json`].
-- **Yapılacaklar:** uygulama Jarvis'in sırasıyla; 1.5'in alt süreç Go testi bununla.
+- **Mevcut durum (S1, 2026-11-06):** `TR_run_process` var: 21.1, 21.3–21.8 ve `TR_input:`, `TR_env:`, `TR_timeout:`, `TR_exit_codes:`; Windows'ta iş nesnesi ve Ctrl+Break, Unix'te süreç grubu [test: `internal/stdlib/process`, `cmd/trlang/e2e`]. `ffmpeg` 9.0.2 ile 21.1'in örneği Windows'ta koştu: 2 saniyelik mp3 32 000 örnek [ölçüldü: TCB]. `TR_spawn_process` ve `TR_Process` yok: 21.2 tampon kararını bekliyor.
+- **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; DENETİM 226 Ş2):** Unix'te `trlang test` ve kabukta durdurma isteği yakalanmıyor; süreç grubundaki dış program TR ölünce kalır [hipotez: kod okuma, `catchStop` yalnız `runProgram`'da].
+- **Yapılacaklar (F1, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
+- **Yapılacaklar (D, Ö3; sahip S1, 21.2 dilimi; S1 Bulgu 2):** standart çıktı sınırsız, 21.1 tamamını istiyor; üst sınır tampon kararında sorulur.
+- **Sınır (DENETİM 226 N1, N4):** `AUTH` sözcüğü `SSH_AUTH_SOCK`'u da süzer, `git push` ajana ulaşamaz, ileti `TR_env:` yazımını verir [ölçüldü]. `/dev/tty` okuyan program `TR_timeout:` olmadan dönmeyebilir [hipotez].
 
 ## 22. Bayt ve sayı
 

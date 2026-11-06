@@ -71,6 +71,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
+- **`changed --go-tests` süre söylemiyor (S1, 2026-11-06).** `tools/codegraph`'ın seçilen 31 testi 206 sn sürdü [ölçüldü]; "şu seçim tahminen şu kadar, şu test tek başına dakikadan uzun" sorulabilmeli.
 - **"Bu değişiklik hangi altın dosyaları oynatır" sorusu yok.** 2026-11-05, H2. `tests-for --all` `TestPlanningQuestionsAreAnswered` ile `TestDottedMemberSpellingsGolden`'ı gömülü kitaplığı okuyan onlarca satırın arasında listeliyor; ikisi G4'te düştü. Altın dosyalar test listesinden ayrı sorulabilmeli; `tests-for` kod bloğundaki metinlerin hangi altın dosyaya düşeceğini de söylesin, commit'ten önce görülür (D1 küçük, 2026-11-06).
 - **Yakalanan hatanın adını metin gibi kullanan yerler (istek, 2026-11-01, D1'in ikinci dilimi):** `TR_catch`'in bağladığı adın blok içinde metin gibi kullanıldığı yerler (`"..." + h`, `h == "..."`, `h.TR_contains`, `TR_append(h)`), `.tr` dosyalarında ve Go testlerindeki TR programlarında; örnek `codegraph catch-uses --as-text`. Dilimin göç sayımını geçici bir Python betiği yaptı (143 satır); sessiz anlam değişikliğinde yeniden gerekecek (`d1-dilim2-devir.md`, Codegraph).
 - **Alanı kim yazıyor (istek, 2026-11-02, D1'in ikinci dilimi):** "bu alanı hangi tip tutuyor ve kim yazıyor" (ör. `gilSince` → `vmShared`, yazanlar); `who-uses` alan düzeyinde okuyanı yazandan ayırsa taşımanın güvenli olduğu tek komutla görülürdü; bugün grep'le (`d1-dilim2-ek5-devir.md`, Codegraph).

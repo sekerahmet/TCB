@@ -159,7 +159,7 @@ Yorumlayıcının motorlara sunduğu ortak hizmetler:
 | `dataset` | `TR_Dataset`, örnekleyici ve sıralı okuyucu yerleşikleri (`compute/dataload` üzerine) |
 | `formats` | JSON ve CSV yerleşikleri |
 | `files` | `TR_Path` tipi ve çağrısı, listeleme, klasör oluşturma, silme, kopyalama, taşıma, `TR_read_lines`; silme korumaları, bağlantı izlememe |
-| `process` | `TR_env` ve `TR_command_line` (seçenekler, `--help`, kullanım hatası); gizli adların süzgece kaydı |
+| `process` | `TR_env`, `TR_command_line` (seçenekler, `--help`, kullanım hatası) ve `TR_run_process` (dış program, 21); gizli adların süzgece kaydı |
 | `logging` | Eğitim günlüğü (JSON satırları) ve ilerleme çubuğu; adım sınırı kancası; sayı ve süre yazımı |
 | `checkpoint` | Kontrol noktası: eğitimin bütün durumunun koşu klasörüne atomik çok dosyalı kaydı, doğrulanarak yüklenmesi ve kaldığı yerden devam |
 | `gpuprobe` | GPU'da dil düzeyinde eğitimin sınamaları (yalnızca testler; kartsız makinede PTX benzeticisinde koşar) |

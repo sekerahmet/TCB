@@ -48,7 +48,14 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 
+- **19.4 ve 19.10, `max_tokens` (2026-11-06, ara, S1, DENETİM 226 Ş3):** örnek listesi kuralla çelişiyordu: `TOKEN(S)` onu gizli yapıyor, sayı değerini 19.4'ün sonraki satırı çözüyor. Metin düzeldi.
+
 ## Olağan
+
+- **21.4, `TR_exit_codes: []` (2026-11-06, S1, TCB kararı):** program başlamadan H7508; kural yazmıyor [test: `TestExitCodesAreChecked`].
+- **21.1, torun boruyu tutuyor (2026-11-06, S1, TCB kararı):** program normal bitip torun boruyu tutarsa 2 saniye sonra okunan çıktı verilir, torun öldürülmez, sonucu programın çıkış kodu belirler [test: `TestGrandchildHoldingThePipeDoesNotBlock`].
+- **21.3, `PATH` kaynağı (2026-11-06, S1, DENETİM 226):** program TR'nin kendi ortamından aranır, `TR_env:`'den değil; madde susuyor.
+- **21.5, lider durunca grup (2026-11-06, S1, DENETİM 226):** lider nazik istekten sonra biterse grup hemen öldürülür, boruyu tutmayan torunun 2 saniyesi yok; madde yalnız programın süresini yazıyor.
 - **15.53, etkinleştirme nicemleme (2026-11-06, Ahmet ve TCB):** 15.53 bugünkü davranışıyla kalır, metni şimdi değişmez: varsayılan yol budur, sade ve doğrulaması kolay. Kapalı bir kapı değil: kullanıcının seçtiği yaklaşıklık dilin doğruluğuna dokunmaz. Seçenek ölçüye bağlı: H1 bit değiştirmeyen işleri bitirince `Q4_K`'da tek çekirdekle deneme; hız kazancı ve kalite bedeli ölçülür. Anlamlıysa 15.53'e açık seçim eklenir, değilse bu satır kapanır. Değişecek yerler DENETİM 209'da.
 - **22.1 ve 23.1, örnek (2026-11-05, ara, S1):** `gerçek.TR_tolist()` H2421 veriyor, `t.TR_tolist` liste veriyor; 13, 15, 22, 23 parantezli yazıyor. Motor mu metin mi, karar gerekir.
 - **22.4, yarım değer (2026-11-05, S1):** "en yakın tam sayıya" yarımı söylemiyor; `lib/audio.tr` çifte gidiyor.
