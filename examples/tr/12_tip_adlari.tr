@@ -27,9 +27,8 @@ TR_var sayılar: TR_List[TR_Int] = [1, 2, 3]
 TR_print(hazır, boş, sayılar)
 
 # Her tipten değer alan yalnız dilin yerleşikleridir (yazdır, Metin, tip); kendi fonksiyonun
-# her parametrenin tipini yazar. Herhangi genel bir tiptir, tip yerine yazılmaz (3.11): hiçbir
-# değerin tipi o değildir.
-TR_print(TR_String(5), TR_String("beş"), TR_String([1, 2]), TR_Type(5) == TR_Any)
+# her parametrenin tipini yazar: her değeri tutan genel bir tip yoktur (3.7a).
+TR_print(TR_String(5), TR_String("beş"), TR_String([1, 2]), TR_Type(5) == TR_Int)
 
 # tip() sonucunun kendi tipi de Tip'tir ve bir değişkende saklanabilir.
 TR_var t: TR_Type = TR_Type(42)

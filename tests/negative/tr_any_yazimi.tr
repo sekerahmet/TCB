@@ -1,0 +1,3 @@
+# TR 4
+# TEST 3.7a genel tip yok: TR_Any değer olarak da yazılmaz; tip yazımının yerleri TestWrittenAnyIsAnError'da
+TR_print(TR_Type(5) == TR_Any) # ERROR H1147

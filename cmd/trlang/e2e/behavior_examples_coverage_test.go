@@ -26,8 +26,9 @@ import (
 var uncoveredNames = map[string]string{
 	// Değer adları kaynakta sözcük olarak yazılmaz, yalnızca metinde görünür (3.2:
 	// TR_print(TR_Float("inf"))); kodlu metinde geçemezler. Kodlar iç (sınıflı) yazımladır.
-	"TR_val_inf": "değer adı (inf), kaynakta sözcük değil",
-	"TR_val_nan": "değer adı (nan), kaynakta sözcük değil",
+	"TR_val_inf":  "değer adı (inf), kaynakta sözcük değil",
+	"TR_val_nan":  "değer adı (nan), kaynakta sözcük değil",
+	"TR_type_Any": "denetleyicinin iç tipi, program metninde yazılmaz",
 	// GGUF dosyası ister: depoya GGUF girmez, testler dosyalarını Go ile kurar (15.55).
 	"TR_fn_load_metadata": "GGUF dosyası ister, depoda yok",
 	// Örnek dış programa bağlıdır: her makinede bulunan bir program yok. Go testleri kendi ikililerini

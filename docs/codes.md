@@ -584,17 +584,17 @@ tr: yazdır(nan, nan == nan)
 
 #### `TR_Any` (`TR_type_Any`, `Herhangi`)
 
-Tip denetleyicisinin tipi bilinmeyen değerler için kullandığı tiptir; Herhangi açıklamalı bir ada her değer verilebilir.
+Tip denetleyicisinin tipi bilinmeyen değerler için içeride kullandığı tiptir. Program metninde yazılmaz: her değeri tutan genel bir tip yoktur (3.7a).
 
 ```tr
-TR_print(TR_Any, TR_Type(TR_Any) == TR_Type, TR_String(5), TR_String("beş"))
+TR_print(TR_Type(5) == TR_Int, TR_String(5), TR_String("beş"))
 ```
 
 Görünümü:
 
 ```text
-en: print(Any, Type(Any) == Type, String(5), String("beş"))
-tr: yazdır(Herhangi, Tip(Herhangi) == Tip, Metin(5), Metin("beş"))
+en: print(Type(5) == Int, String(5), String("beş"))
+tr: yazdır(Tip(5) == Tam, Metin(5), Metin("beş"))
 ```
 
 #### `TR_Bool` (`TR_type_Bool`, `Mantık`)

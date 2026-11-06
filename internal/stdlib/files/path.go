@@ -55,6 +55,21 @@ func isAbsPart(p string) bool {
 	return runtime.GOOS == "windows" && (strings.HasPrefix(p, `\`) || filepath.VolumeName(p) != "")
 }
 
+// checkRest ilk parçadan sonraki parçaların kuralıdır (18.1): dışarıdan gelen ad taban klasörü ne
+// değiştirir ne dışına çıkar. Denetim temizlenmiş birikime yapılır: b/../C:/x ham haliyle göreli, a/../../x
+// ham haliyle içeride görünür. Go, temizlenince sürücüye dönüşecek yolun önüne ./ koyar; o önek atılır.
+// Birikim bir kez .. ile başlarsa sonraki parça onu geri getiremez: ilk kaçan parça hatanın yeridir.
+func checkRest(fn codes.Ref, index int, part, rest string) error {
+	cleaned := clean(rest)
+	if isAbsPart(part) || isAbsPart(strings.TrimPrefix(cleaned, "./")) {
+		return messages.New(messages.H7139, fn, index, part)
+	}
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return messages.New(messages.H7510, fn, index, part)
+	}
+	return nil
+}
+
 // pathBuiltin yol(...) yerleşiğidir: parçaları birleştirip temizler.
 func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	if len(args) == 0 {
@@ -62,6 +77,7 @@ func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 	}
 	fn := interp.CallPrefix(codes.TypePath)
 	parts := make([]string, len(args))
+	rest := "" // ilk parçadan sonrakilerin birleşip temizlenmiş hali
 	for i, a := range args {
 		p, ok, err := interp.PathArg(fn, a)
 		if !ok {
@@ -73,10 +89,13 @@ func pathBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 		if p == "" {
 			return nil, messages.New(messages.H7138, fn, i+1)
 		}
-		if i > 0 && isAbsPart(p) {
-			return nil, messages.New(messages.H7139, fn, i+1, p)
-		}
 		parts[i] = filepath.FromSlash(p)
+		if i > 0 {
+			rest = filepath.Join(rest, parts[i])
+			if err := checkRest(fn, i+1, p, rest); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return NewPath(filepath.Join(parts...)), nil
 }

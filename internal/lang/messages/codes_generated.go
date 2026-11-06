@@ -199,6 +199,7 @@ const (
 	H1144 Code = 1144 // `.{#map}` sonuçları toplar, ona verilen fonksiyon değer döndürmüyor (3.5): sonuç gerekmiyorsa, liste `l`, fonksiyon `f` ise döngü yazın: `{#for} x {#in} l {{ f(x) }}`
 	H1145 Code = 1145 // dönüş tipi bilinmeyen fonksiyon ifadesinde yollar karışık ya da `{#return} {#none}` yazılmış (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)
 	H1146 Code = 1146 // ; tek sayıyı listeye alın: `{writing}`
+	H1147 Code = 1147 // `{#any}` yazılamaz: her değeri tutan genel bir tip yoktur (3.7a). Değerin somut tipini yazın: `{#var} x: {#int} = 5`; yapısı önceden bilinmeyen veri için: `{#var} g: {#json} = {{"k": 1}}`
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
@@ -1729,6 +1730,7 @@ const (
 	H7507 Code = 7507 // {fn}: {name} anahtarı ve değeri {@string} olan bir {@dict} olmalıdır, {given} verildi
 	H7508 Code = 7508 // {fn}: boş `{#codes}:` listesi hiçbir bitişi kabul etmez; başarı sayılan kodları yazın: `{#codes}: [0]`
 	H7509 Code = 7509 // \nGizli adlı olduğu için ortamdan süzülen değişkenler: {names}. Programa gerekiyorsa açıkça verilir: `{#arg}: {{{first|q}: {#fn}({first|q})}}`
+	H7510 Code = 7510 // {fn} {index}. parça {part|q} ilk parçanın dışına çıkıyor (dışarıdan gelen bir ad taban klasörden çıkamasın). İçinde bir ad verin: `{#path}(a, b)` (`a` taban klasör, `b` addır); yukarı çıkmak için üst klasörü isteyin: `{#path}(a).{#parent}`
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

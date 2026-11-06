@@ -193,12 +193,12 @@ TR_try { f() } TR_catch e { TR_print(e, e.TR_suppressed) }
 func TestDictKeysAreTextNotMembers(t *testing.T) {
 	// Çağrılan dil üyesi anahtar okumak değildir: köşeli parantez önerilmez, hata denetimdekidir (13.11).
 	for _, member := range []string{"TR_pop()", "TR_remove_at(0)", "TR_pop(k: 1)"} {
-		code := "TR_var a: TR_Any = {\"a\": 1}\nTR_print(a." + member + ")\n"
+		code := "TR_var a = {\"a\": 1}\nTR_print(a." + member + ")\n"
 		shown := shownError(t, code, "en")
 		if !strings.Contains(shown, "is a method of List") || strings.Contains(shown, "[\"") {
 			t.Errorf("%s: iletinin üyenin tipini söylemesi gerekiyordu: %q", member, shown)
 		}
-		caught := "TR_var a: TR_Any = {\"a\": 1}\nTR_print(TR_error_code { a." + member + " })\n"
+		caught := "TR_var a = {\"a\": 1}\nTR_print(TR_error_code { a." + member + " })\n"
 		if out := runCoded(t, caught, nil); out != "H2474\n" {
 			t.Errorf("%s: H2474 bekleniyordu: %q", member, out)
 		}

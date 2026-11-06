@@ -157,8 +157,7 @@ func TestRunProcessArgumentListErrors(t *testing.T) {
 	}{
 		{`TR_var y = TR_Path("a.txt")
 TR_run_process(` + prog + `, ["-i", y])`, messages.H7490},
-		{`TR_var l: TR_List[TR_Any] = ["a", 1]
-TR_run_process(` + prog + `, l)`, messages.H7491},
+		{`TR_run_process(` + prog + `, ["a", 1])`, messages.H7491},
 		{`TR_run_process(` + prog + `, ["a\u{0}b"])`, messages.H7492},
 	} {
 		if _, _, err := commandLine(t, d.code); !messages.Has(err, d.want) {

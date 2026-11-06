@@ -16,7 +16,7 @@ func TestPathCleaned(t *testing.T) {
 		`TR_Path("veri", "eğitim", "a.npy")`: "veri/eğitim/a.npy",
 		`TR_Path("veri/", "./a.npy")`:        "veri/a.npy",
 		`TR_Path(".")`:                       ".",
-		`TR_Path("a", "..")`:                 ".",
+		`TR_Path("a/..")`:                    ".",
 		`TR_Path("..", "a")`:                 "../a",
 		`TR_Path(TR_Path("veri"), "a")`:      "veri/a",
 		`TR_Path("a//b")`:                    "a/b",
@@ -70,6 +70,7 @@ func TestPathMembers(t *testing.T) {
 
 func TestPathErrors(t *testing.T) {
 	errContains(t, `TR_Path("a", "/etc")`, `Yol() 2. parça "/etc" mutlak bir yol`)
+	errContains(t, `TR_Path("a", "b", "/etc")`, `Yol() 3. parça "/etc" mutlak bir yol`)
 	errHas(t, `TR_Path("a", "")`, messages.H7138)
 	errContains(t, `TR_Path("")`, "1. parça boş metin")
 	errContains(t, `TR_Path()`, "Yol()")
@@ -79,6 +80,42 @@ func TestPathErrors(t *testing.T) {
 		errHas(t, `TR_Path("a", "C:\\x")`, messages.H7139)
 		errHas(t, `TR_Path("a", "C:x")`, messages.H7139)
 		errHas(t, `TR_Path("a", "\\\\sunucu\\pay")`, messages.H7139)
+	}
+}
+
+// Kural (18.1): ilk parçadan sonraki parçalar temizlendiğinde ilk parçanın dışına çıkamaz; denetim
+// ham parçaya değil birleşip temizlenmiş haline yapılır. Ters bölü Windows'ta ayırıcı, Unix'te ad.
+func TestPathRestStaysInsideTheFirstPart(t *testing.T) {
+	for _, code := range []string{
+		`TR_Path("veri", "../x")`, `TR_Path("veri", "../../x")`, `TR_Path("veri", "a/../../x")`,
+		`TR_Path("veri/alt", "../x")`, `TR_Path(".", "../x")`, `TR_Path("veri", "a", "../../../x")`,
+		`TR_Path(TR_Path("veri"), TR_Path("../x"))`, `TR_Path("a", "..")`, `TR_Path("/", "../x")`,
+		`TR_Path("C:/", "../x")`, `TR_Path("//sunucu/pay", "../x")`, `TR_Path("C:", "../x")`,
+		`TR_Path("veri", "a", "..", "..")`,
+	} {
+		errHas(t, code, messages.H7510)
+	}
+	errContains(t, `TR_Path("veri", "a", "../../x")`, `3. parça "../../x" ilk parçanın dışına çıkıyor`)
+	for code, want := range map[string]string{
+		`TR_Path("veri", "a/..")`: "veri", `TR_Path("../veri", "x")`: "../veri/x", `TR_Path("a/..")`: ".",
+		`TR_Path("veri", "..a")`: "veri/..a", `TR_Path("veri", "...")`: "veri/...", `TR_Path("veri", "a", "..", "b")`: "veri/b",
+		// H7510'un iki önerisi: kopyalanınca çalışır.
+		`TR_var a = "veri/alt"; TR_var b = "x"; TR_Path(a, b)`: "veri/alt/x",
+		`TR_var a = "veri/alt"; TR_Path(a).TR_parent`:          "veri",
+	} {
+		if got := mustRunTR(t, code); got != want {
+			t.Errorf("%s = %q, %q bekleniyordu", code, got, want)
+		}
+	}
+	if runtime.GOOS == "windows" {
+		errHas(t, `TR_Path("veri", "..\\x")`, messages.H7510)
+		errHas(t, `TR_Path("veri", "b/../C:/x")`, messages.H7139)
+		errHas(t, `TR_Path(".", "b/../C:/x")`, messages.H7139)
+		errHas(t, `TR_Path("veri", "b", "../C:/x")`, messages.H7139)
+		return
+	}
+	if got := mustRunTR(t, `TR_Path("veri", "..\\x")`); got != `veri/..\x` {
+		t.Errorf("Unix'te ters bölü adın parçasıdır: %q", got)
 	}
 }
 

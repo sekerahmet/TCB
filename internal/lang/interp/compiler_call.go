@@ -42,7 +42,7 @@ func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 						}
 						writeToList(l, nil, av) // eklenen kaçar, liste değil (15.43)
 						l.Elements = append(l.Elements, av)
-						return l, nil
+						return Null, nil // değer döndürmez (13.10), çok argümanlı yolla aynı
 					}
 					// Metin/Liste/Sözlük metotları alıcıyı ve argümanları başka listelere
 					// koyabilir: sahip liste ve argümanlar kaçar (ownership.go).

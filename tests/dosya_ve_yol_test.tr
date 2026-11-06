@@ -9,7 +9,7 @@ TR_test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve bo�
     TR_assert_equal("a/c", TR_String(TR_Path("a/./b/../c")))
     TR_assert_equal("veri/eğitim/a.npy", TR_String(TR_Path("veri", "eğitim", "a.npy")))
     TR_assert_equal("veri/a", TR_String(TR_Path(TR_Path("veri/"), "a")))
-    TR_assert_equal(".", TR_String(TR_Path("a", "..")))
+    TR_assert_equal(".", TR_String(TR_Path("a/..")))
     TR_assert_equal(TR_Path, TR_Type(TR_Path("a")))
     TR_assert_equal("x/y", "\(TR_Path("x", "y"))")
     TR_assert_equal(`["a/b"]`, TR_json_string([TR_Path("a/b")]))
@@ -17,6 +17,14 @@ TR_test "18.1 yol parçaları birleştirip temizler; mutlak ikinci parça ve bo�
     TR_assert(TR_Path("a") != "a")
     TR_assert_equal("H7139", TR_error_code { TR_Path("veri", "/etc/passwd") })
     TR_assert_equal("H7138", TR_error_code { TR_Path("a", "") })
+    TR_assert_equal("H7510", TR_error_code { TR_Path("a", "..") })
+    TR_assert_equal("H7510", TR_error_code { TR_Path("veri", "../x") })
+    TR_assert_equal("H7510", TR_error_code { TR_Path("veri", "a/../../x") })
+    TR_assert_equal("H7510", TR_error_code { TR_Path("veri", "a", "../../../x") })
+    TR_assert_equal("H7510", TR_error_code { TR_Path(TR_Path("veri"), TR_Path("../x")) })
+    TR_assert_equal("H7510", TR_error_code { TR_Path("/", "../x") })
+    TR_assert_equal("veri", TR_String(TR_Path("veri", "a/..")))
+    TR_assert_equal("../veri/x", TR_String(TR_Path("../veri", "x")))
     TR_assert_equal("H2489", TR_error_code { TR_Path("C:\tokenizer.json") })
 }
 
