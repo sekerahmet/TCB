@@ -1733,6 +1733,7 @@
 "H7524": "{fn}: the number of bytes to read must be positive, {given} was given",
 "H7525": "{fn}: {size} bytes exceeds this machine's memory ({limit} bytes)",
 "H7526": "{fn}: the program {name|q} has ended, its input cannot be written",
+"H7527": "{fn}: the output of {name|q} went over the memory limit ({limit} bytes), the program was stopped. Large output is read piece by piece: `{#spawn}({name|q}, {args}).{#read}(65536)`",
 "H7528": "{fn}: the input of the program {name|q} is closed, it cannot be written",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",
 "H7901": "{fn} takes no parameter named '{given}' (valid names: {names})",

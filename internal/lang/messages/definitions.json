@@ -1733,6 +1733,7 @@
 "H7524": { "param": ["fn", "given"] },
 "H7525": { "param": ["fn", "size", "limit"] },
 "H7526": { "param": ["fn", "name"] },
+"H7527": { "param": ["fn", "name", "limit", "args"], "slots": {"spawn": "TR_fn_spawn_process", "read": "TR_mem_read"} },
 "H7528": { "param": ["fn", "name"] },
 "H7900": { "param": ["fn", "given", "suggestion"] },
 "H7901": { "param": ["fn", "given", "names"] },

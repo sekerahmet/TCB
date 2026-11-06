@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -56,13 +57,13 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	if err != nil {
 		return nil, err
 	}
-	var out bytes.Buffer
+	out := newBoundedOutput()
 	// exec.Command kullanılmaz: yolu yeniden arar (21.3, program_lookup.go).
 	c := &exec.Cmd{Path: call.path, Args: append([]string{call.path}, call.args...), Env: call.env}
 	if call.input != nil {
 		c.Stdin = bytes.NewReader(call.input.Data())
 	}
-	c.Stdout = &out
+	c.Stdout = out
 	tail := &stderrTail{longest: m.LongestSecret}
 	c.Stderr = tail // ayrı okunur: iki çıktı birbirini kilitlemez (21.4)
 	c.WaitDelay = stopGrace
@@ -73,12 +74,22 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	defer j.release()
 	d.track(j)
 	defer d.untrack(j)
+	go func() {
+		select {
+		case <-out.exceeded:
+			j.stop()
+		case <-j.done:
+		}
+	}()
 	if call.limit != nil {
 		timer := time.AfterFunc(call.wait, func() { j.stopFor(&j.timedOut) })
 		defer timer.Stop()
 	}
 	if err := m.AwaitExternal(j.done, j.stop); err != nil {
 		return nil, err
+	}
+	if out.over.Load() {
+		return nil, messages.New(messages.H7527, fn, call.name, out.limit, listText(call.args))
 	}
 	if j.timedOut.Load() {
 		return nil, messages.New(messages.H2921, fn, interp.Shown(call.limit), line)
@@ -91,7 +102,37 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	if err := call.endError(fn, c.ProcessState, tail.text(m.Mask)); err != nil {
 		return nil, err
 	}
-	return interp.NewBytes(out.Bytes()), nil
+	return interp.NewBytes(out.buf.Bytes()), nil
+}
+
+// boundedOutput TR_run_process'in standart çıktısıdır (21.1): bütün çıktı belleğe alınır, ama sınırı
+// aşan çıktı Go'nun ölümcül bellek hatası olmadan biter. Sınır aşılınca program durdurulur, hata ana
+// yolda verilir; yazan goroutine panik yapmaz. Sınır belleğin yarısıdır: tampon büyürken eskisi ile
+// yenisi birlikte durur.
+type boundedOutput struct {
+	buf      bytes.Buffer
+	limit    int64 // 0 ise bellek bilinmiyor
+	over     atomic.Bool
+	exceeded chan struct{}
+}
+
+func newBoundedOutput() *boundedOutput {
+	limit, _ := memoryLimit()
+	return &boundedOutput{limit: limit / 2, exceeded: make(chan struct{})}
+}
+
+// Write baytları tutar; sınır aşıldıysa atar, program durana kadar boruyu boşaltır.
+func (o *boundedOutput) Write(b []byte) (int, error) {
+	if o.over.Load() {
+		return len(b), nil
+	}
+	if o.limit > 0 && int64(o.buf.Len()+len(b)) > o.limit {
+		o.over.Store(true)
+		o.buf = bytes.Buffer{}
+		close(o.exceeded)
+		return len(b), nil
+	}
+	return o.buf.Write(b)
 }
 
 // endError biten programın hatasıdır: sinyalle ölmek ya da kabul edilmeyen kod (21.4).

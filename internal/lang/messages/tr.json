@@ -1733,6 +1733,7 @@
 "H7524": "{fn}: okunacak bayt sayısı pozitif olmalıdır, {given} verildi",
 "H7525": "{fn}: {size} bayt bu makinenin belleğini aşar ({limit} bayt var)",
 "H7526": "{fn}: {name|q} programı bitti, girdisine yazılamaz",
+"H7527": "{fn}: {name|q} çıktısı bellek sınırını ({limit} bayt) aştı, program durduruldu. Büyük çıktı parça parça okunur: `{#spawn}({name|q}, {args}).{#read}(65536)`",
 "H7528": "{fn}: {name|q} programının girdisi kapatıldı, yazılamaz",
 "H7900": "{fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?",
 "H7901": "{fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})",

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
+	"github.com/sekerahmet/TCB/internal/stdlib/process"
 )
 
 // Kabul edilmeyen çıkış kodu çalışma hatasıdır: ileti adı, kodu ve standart hatanın sonunu taşır,
@@ -122,5 +123,18 @@ func TestBothOutputsDoNotDeadlock(t *testing.T) {
 	}
 	if err != nil || got != "4194304" {
 		t.Errorf("%s (%v)", got, err)
+	}
+}
+
+// Belleği aşan çıktı programı durdurur, hata çöküş değil iletidir; ileti akışlı çağrıyı önerir (21.1).
+func TestRunProcessOutputIsBounded(t *testing.T) {
+	restore := process.SetPhysicalMemory(1 << 20)
+	defer restore()
+	_, err := run(t, `TR_run_process(`+helperProgram(t)+`, ["endless"])`)
+	if !messages.Has(err, messages.H7527) || !strings.Contains(err.Error(), "TR_spawn_process") {
+		t.Errorf("%v", err)
+	}
+	if got, err := run(t, `TR_run_process(`+helperProgram(t)+`, ["pattern", "1000"]).TR_length`); err != nil || got != "1000" {
+		t.Errorf("sınırın altı: %s (%v)", got, err)
 	}
 }
