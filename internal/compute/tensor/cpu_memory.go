@@ -3,6 +3,7 @@ package tensor
 import (
 	"math"
 	"sync"
+	"weak"
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -13,6 +14,12 @@ import (
 
 // poolMin bundan küçük depolamalar havuza alınmaz (küçük ayırmalar ucuzdur).
 const poolMin = 1 << 12
+
+// poolWeakBytes bundan büyük depo havuzda zayıf başvuruyla durur: toplamalar arasında yeniden kullanılır,
+// ama toplayıcı onu canlı saymaz. sync.Pool'un tuttuğu boş tampon canlı sayılınca hedef onun 3 katı
+// büyüyordu: 4B modelinde 2048 konumda canlının gerçeği 210–286 MiB, havuzla 1 477 MiB [ölçüldü:
+// art arda zorlanan toplamalar]. Küçük depolar eskisi gibidir: üretimin tensörleri bu sınırın altındadır.
+const poolWeakBytes = 1 << 20
 
 type poolKey struct {
 	dtyp DType
@@ -83,7 +90,7 @@ func (cpuBackend) allocate(n int, dt DType, reset bool) Storage {
 	}
 	if n >= poolMin {
 		if h := poolFor(poolKey{dt, n}, false); h != nil {
-			if s, ok := h.Get().(*cpuStorage); ok {
+			if s := poolTake(h); s != nil {
 				s.release = false
 				if !reset {
 					return s
@@ -117,7 +124,28 @@ func (cpuBackend) Release(s Storage) {
 		panic(messages.Internal("storage returned to the pool twice"))
 	}
 	c.release = true
-	poolFor(poolKey{c.dtyp, c.Len()}, true).Put(c)
+	h := poolFor(poolKey{c.dtyp, c.Len()}, true)
+	if c.Len()*c.dtyp.Bits()/8 >= poolWeakBytes {
+		h.Put(weak.Make(c))
+		return
+	}
+	h.Put(c)
+}
+
+// poolTake havuzdan depo alır; toplamada giden zayıf girdiler atlanır.
+func poolTake(h *sync.Pool) *cpuStorage {
+	for {
+		switch v := h.Get().(type) {
+		case *cpuStorage:
+			return v
+		case weak.Pointer[cpuStorage]:
+			if s := v.Value(); s != nil {
+				return s
+			}
+		default:
+			return nil
+		}
+	}
 }
 
 func (cpuBackend) FromHost(data []float32, dt DType) Storage {

@@ -3,7 +3,10 @@ package tensor
 import (
 	"math"
 	"math/rand"
+	"runtime"
+	"runtime/debug"
 	"testing"
+	"weak"
 )
 
 // Geri yayılımda iade edilen ara gradyanlar havuzdan yeniden kullanıldığında
@@ -90,5 +93,38 @@ func TestEmptyAllocPoolGarbage(t *testing.T) {
 		}
 		got := is.f().Data()
 		near(t, is.ad, got, want, 0)
+	}
+}
+
+// Kural (15.53): büyük depo toplamalar arasında havuzdan yeniden gelir, ama toplayıcı onu canlı saymaz:
+// boş tampon canlı sayılınca hedef onun 3 katı büyüyordu. sync.Pool iş parçacığı değişirse boş dönebilir,
+// yeniden kullanım birkaç denemeyle sınanır.
+func TestPoolHoldsLargeStoragesWeakly(t *testing.T) {
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	b := cpuBackend{}
+	const big = poolWeakBytes/4 + 1
+	s := b.Alloc(big, Float32)
+	reused := false
+	for range 100 {
+		b.Release(s)
+		got := b.allocUninit(big, Float32)
+		reused = got == s
+		s = got
+		if reused {
+			break
+		}
+	}
+	if !reused {
+		t.Fatal("toplama olmadan büyük depo havuzdan gelmedi")
+	}
+	b.Release(s)
+	gone := weak.Make(s.(*cpuStorage))
+	s = nil
+	runtime.GC()
+	if gone.Value() != nil {
+		t.Fatal("havuz büyük depoyu toplamadan geçirdi: canlı sayılır, hedef büyür")
+	}
+	if got := b.allocUninit(big, Float32).(*cpuStorage); len(got.d) != big {
+		t.Fatalf("yeni ayırma %d öğe", len(got.d))
 	}
 }
