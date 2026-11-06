@@ -142,6 +142,7 @@ Kurallar: [`docs/spec/03_tipler.md`](spec/03_tipler.md). Taslak: metin DENETİM'
 - **Mevcut durum (4a4, 2026-11-03):** tensör tutan demetin `==`/`!=`'si tensör öğenin listesinde ya da sözlüğünde (iç içe de) olsa da çalışma anında H2777 [test: `tests/tipler_test.tr`'nin "3.6a == öğe öğedir" testi, satır 196–198].
 - **Yapılacaklar (D ve F1, Ö3; ölçüm 4a4 DEVİR):** tipi bilinen demette tensör bir listenin ya da sözlüğün içindeyse (`([t], 1) == ([t], 1)`) denetim yakalamıyor, çalışma anı H2777 veriyor (`checker/tuple_comparison.go`'nun `tensorElement`'i yalnız doğrudan ve iç içe demeti görüyor); H2777'nin önerisi (tensör öğeyi `.TR_tolist` ile listeye çevirip karşılaştırmak) tensör listede, sözlükte ya da iç içe demette olunca çalışmıyor.
 - **Yapılacaklar:** `TR_json_parse[T]` (13.8) motorda yok, demet tipli alanın diziden kurulması onunla gelir.
+- **Yapılacaklar (D, Ö3; sahip D1; DENETİM 244):** tipi bilinen liste öğesi demetse `l[0][0]` denetimde değil çalışma anında hata veriyor; ileti `l[0].0`'ı öneriyor [ölçüldü: `74d38399`].
 
 ### 3.7
 
@@ -1262,8 +1263,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
-- **Yapılacaklar (D, Ö3; sahip D1; DENETİM 244):** tipi bilinen liste öğesi demetse `l[0][0]` denetimde değil çalışma anında hata veriyor; ileti `l[0].0`'ı öneriyor [ölçüldü: `74d38399`]. Madde 3.6a.
-- **Yapılacaklar (D, Ö3; sahip D1; `AGENTS.md` denemesi):** kitaplığın `.TR_loss`'u parametre tipi yazmıyor, hedef olarak liste verilince denetim değil çalışma anı yakalıyor; `lib/README.md`'nin örneği bu yüzden koşmuyordu, düzeldi [ölçüldü: `74d38399`].
+- **Yapılacaklar (D, Ö3; sahip D1; `AGENTS.md` denemesi):** kitaplığın `.TR_loss`'u parametre tipi yazmıyor, hedef olarak liste verilince denetim değil çalışma anı yakalıyor; `lib/README.md`'nin örneği bu yüzden koşmuyordu, düzeldi [ölçüldü: `74d38399`]. Tip yazmak da tek başına yakalamıyor [ölçüldü: DENETİM 246]: argümanın metotta parametre tipine göre denetimi 4a5'in A satırına bağlı.
+- **Yapılacaklar (F, Ö3; sahip D1; DENETİM 246):** modeli kaydetmek için var olmayan bir ad yazılınca ileti ters işi, `TR_load_parameters`'ı öneriyor; doğrusu `TR_save_tensors(yol, TR_parameters(m, TR_named: TR_true))`.
 - **Yapılacaklar (D, Ö3; sahip TCB; DENETİM 224 N1):** metin kapısı Windows'ta koşuyor; `TestDocLinks` Linux yolunda harf büyüklüğü farkını görmez, hedef tam harfle karşılaştırılabilir. 83 gönderimde 0 kez oldu [ölçüldü: DENETİM 224], sonraki tam denetim yakalar [hipotez].
 - **Mevcut durum (2026-11-06; DENETİM 228, 230):** asistanın ekranı `tools/assistant/`'ta: tek sayfa, ayrı dil dosyaları, sahte olay akışı, `contract.md` sözleşmesi; TR'de HTTP sunucusu yok, gerçek TR sunucusuyla konuşmadı. Yalnız Chromium tabanlı tarayıcıda denendi [ölçüldü: ekran oturumu].
 - **Yapılacaklar (C, Ö2; sahip ekran dilimi; DENETİM 230 N1):** onay kartında iki aldatma yolu: argümanın gerçek kısmı boş satırlarla görünmeyen yere itilebilir, U+E0000 etiket karakterleri görünür kılınmıyor [kanıtlı: kod; koşulmadı]. HTTP bölümü yazılırken belirteç teslimi ayrıca tartılır.

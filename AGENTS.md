@@ -20,6 +20,8 @@ cd TCB
 go build -o trlang ./cmd/trlang
 ```
 
+On Windows, build `trlang.exe`.
+
 The command is `trlang`. Never type `tr`: on Linux that is another program and it does nothing useful, silently.
 
 ## Commands
@@ -29,7 +31,7 @@ TR_LANG=en ./trlang check --json program.tr   # check without running; one JSON 
 TR_LANG=en ./trlang run program.tr            # check and run
 ```
 
-`TR_LANG=en` gives messages in English. Exit code 0 means no errors. Messages say what is wrong and usually give the correct spelling: read them and follow them.
+`TR_LANG=en` gives messages in English. Exit code 0 means no errors. Messages say what is wrong and usually give the correct spelling: read them and follow them. A clean `check` does not mean every rule held: the tool does not check all of them yet, and the reference below is the rule.
 
 ## Writing a program
 
@@ -94,7 +96,7 @@ TR_print(generated.TR_map((i) => chars[i]).TR_join(""))
 
 ## Where to look
 
-Comments in the examples are in Turkish. The code in them runs as it is. The links are raw files, so they work without a clone; in a clone, the same path is on disk.
+Comments in the examples are in Turkish. The code in them runs as it is from the repository root. The links are raw files, so they work without a clone; in a clone, the same path is on disk.
 
 | You want | Read |
 | :-- | :-- |

@@ -30,12 +30,12 @@ import (
 const generatedDoc = "docs/codes.md"
 
 // belgeListesi depodaki belgelerdir (depo köküne göre, bölü çizgisiyle): kökteki README,
-// SECURITY ve CONTRIBUTING, docs/ altındaki bütün .md dosyaları, kitaplığın, örneklerin, eklentinin ve
+// AGENTS, SECURITY ve CONTRIBUTING, docs/ altındaki bütün .md dosyaları, kitaplığın, örneklerin, eklentinin ve
 // kıyas setinin README'leri, sözlük isteği konu şablonu. Yeni bir
 // belge docs/ altına eklendiğinde kendiliğinden denetime girer.
 func belgeListesi(t *testing.T) []string {
 	t.Helper()
-	list := []string{"README.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md", "examples/README.md",
+	list := []string{"README.md", "AGENTS.md", "SECURITY.md", "CONTRIBUTING.md", "lib/README.md", "examples/README.md",
 		"editors/vscode/README.md", "tools/bench/README.md", ".github/ISSUE_TEMPLATE/name_request.md"}
 	for _, pattern := range []string{"docs/*.md", "docs/*/*.md"} {
 		d, err := reporoot.Glob(reporoot.Path(pattern))
