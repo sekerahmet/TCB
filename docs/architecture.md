@@ -19,7 +19,7 @@ Ok "içe aktarabilir" demektir. Kural `internal/layers_test.go` ile denetlenir (
 | :-- | :-- | :-- |
 | `internal/lang/**` | Kaynak metinden çalışan programa; kod listesi, iletiler | yalnızca `internal/lang/**` (iç sırasına göre, aşağıda), `internal/sysmem` ve `internal/detmath` |
 | `internal/compute/**` | Tensör, otomatik türev, CPU ve GPU, veri hattı, parçalayıcı | `internal/compute/**`, ileti kataloğu `internal/lang/messages` ve `internal/sysmem` |
-| `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/detmath` |
+| `internal/stdlib/**` | Dili hesap çekirdeğine ve dış dünyaya bağlayan yerleşikler | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/detmath`, `internal/sysmem` |
 | `internal/devtools/**` | Hata ayıklayıcı, profilci, biçimlendirici, test koşucusu | `internal/lang`, `internal/compute`, `internal/stdlib`, `internal/devtools` |
 | `cmd/trlang` | `trlang` komutu | hepsi (`internal/reporoot` dışında) |
 | `internal/sysmem` | Makinenin fiziksel belleği sorgusu | hiçbiri |

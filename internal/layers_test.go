@@ -30,7 +30,7 @@ var layers = []struct {
 }{
 	{"internal/compute/", []string{"internal/compute/", "internal/lang/messages", "internal/sysmem"}},
 	{"internal/lang/", []string{"internal/lang/", "internal/sysmem", "internal/detmath"}},
-	{"internal/stdlib/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/detmath"}},
+	{"internal/stdlib/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/detmath", "internal/sysmem"}},
 	{"internal/devtools/", []string{"internal/lang/", "internal/compute/", "internal/stdlib/", "internal/devtools/"}},
 	{"internal/testkit/trrun", []string{"internal/lang/"}}, // TR programı çalıştıran test yardımcıları; yalnızca testler kullanır
 	{"internal/testkit", []string{"internal/reporoot"}},    // ortak test yardımcıları (yalnızca reporoot); yalnızca testler kullanır
