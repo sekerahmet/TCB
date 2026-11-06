@@ -15,11 +15,11 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | :-- | :-- | :-- | :-- | :-- |
 | 0 | 2026-11-06 | TCB, yabancı ajan gibi | küçük metin modeli: eğit, kaydet, yükle, üret | koştu, üç takılma |
 | 0b | 2026-11-06 | DENETİM, başvurudan | JSON kayıtlarını ayıklayan program | ilk denemede koştu; başvuruda dört yanlış cümle |
-| 1 | 2026-11-06 | ChatGPT, ücretsiz plan | klasördeki metinlerde paragraf arama | ajan koşamadı ve bunu söyledi; TCB olduğu gibi koştu: `check` temiz, ilk denemede çalıştı, sıralama doğru |
-| 2 | 2026-11-06 | Kimi, instant | aynı iş | ajan koşamadı ve bunu söyledi; TCB olduğu gibi koştu: `check` temiz, ilk denemede çalıştı; TF-IDF ve kosinüs, komut satırı argümanları, hata yakalama |
-| 3 | 2026-11-06 | Claude | aynı iş | ajan depoyu klonladı, `trlang` derledi, koştu; TCB de olduğu gibi koştu: temiz, BM25 ve kaba Türkçe kök |
-| 4 | 2026-11-06 | Grok | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
-| 5 | 2026-11-06 | GLM flash | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
+| 1 | 2026-11-06 | ChatGPT, ücretsiz | klasördeki metinlerde paragraf arama | ajan koşamadı ve bunu söyledi; TCB olduğu gibi koştu: `check` temiz, ilk denemede çalıştı, sıralama doğru |
+| 2 | 2026-11-06 | Kimi instant, ücretsiz | aynı iş | ajan koşamadı ve bunu söyledi; TCB olduğu gibi koştu: `check` temiz, ilk denemede çalıştı; TF-IDF ve kosinüs, komut satırı argümanları, hata yakalama |
+| 3 | 2026-11-06 | Claude, ücretli üst model | aynı iş | ajan depoyu klonladı, `trlang` derledi, koştu; TCB de olduğu gibi koştu: temiz, BM25 ve kaba Türkçe kök |
+| 4 | 2026-11-06 | Grok, ücretsiz | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
+| 5 | 2026-11-06 | GLM flash, ücretsiz | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
 
 ## Yarış
 
@@ -34,6 +34,8 @@ Beş programın kendisi, aynı 30 paragraf ve 18 soruyla (2026-11-06). Soruları
 | Grok | Jaccard | 6 | 2 | 1 ilk, 2 ilk üç | 9 | 10 |
 
 Türkçe aramada yöntemden çok kök fark açıyor: GLM de BM25 kullandı, kök almadığı için geride kaldı. Başka sözcükle sorulan soruda hepsi zayıf; bunun yolu gömme modeli.
+
+Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un önde olması dilin değil modelin katkısı olabilir. Hedef için asıl kanıt ücretsiz modellerin de tek sayfadan çalışan TR yazmasıdır.
 
 ## Bulgular
 
