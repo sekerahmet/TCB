@@ -613,7 +613,7 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). Taslak, 7. tu
 - **Mevcut durum (Kol A teslim 2a, 3. adım, 2026-11-04):** ayırıcısız `.TR_split()` Unicode boşluk dizilerine bölüyor, boş öğe vermiyor; boşluk tanımı `.TR_strip()`'inki (`unicode.IsSpace`). Göç: `.tr`'de 0, Go testinde 1 yer, sonucu değişmiyor [test: yerlesikler_test "13.2 ayırıcısız TR_split"].
 - **Mevcut durum:** harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
 - **Mevcut durum (Kol A teslim 2a, 4. adım, 2026-11-04):** `.TR_split("")` H2635, `.TR_replace("", y)` H2636 veriyor, değişkenle gelen boş metinde de; iletiler karakterleri alan yazımı öneriyor, öneriler çalışıyor [test: yerlesikler_test "13.2 boş ayırıcı", `TestMessageSuggestionsRunCleanly`]. Göç: `.tr`'de değişken ayırıcı 2 yer, ikisi de boş olamaz [ölçüldü: `git grep`].
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** negatif indeks; `.TR_index_of` metinde henüz yok.
+- **Gemini Koşu 6 (2026-10-29), uygulanacak:** negatif indeks.
 
 ### 13.3
 
@@ -1264,7 +1264,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ## Bölümü olmayan işler
 
 - **Yapılacaklar (test, Ö3; sahip TCB; DENETİM 251 N2):** `TestLanguageSpecTestsPass` her koşuda 284 geçici klasör bırakıyor [ölçüldü: DENETİM 251].
-- **Yapılacaklar (E, Ö3; sahip D1; ajan denemesi 3):** dil tanımının adları motordan önde: testin istisna listesinde 52 onaylı yeni ad bekliyor [ölçüldü: `behavior_language_spec_test.go`], yazınca sözdizimi hatası geliyor; bazılarının maddesi *Test:* satırında "TR testi" diyor, 13.2 gibi. Dil tanımını okuyan ajan bunları var sanıyor: üç ajan buna çarptı [ölçüldü: `docs/agent_trials.md`]. 19.2 de yapı diyor, motor sözlük istiyor; denetim geçiriyor, çalışma anı düşüyor. Ajanın göreceği yerde "henüz yok" yazılsın; maddenin *Test:* satırı doğrulansın.
+- **Yapılacaklar (E, Ö3; sahip D1; ajan denemesi 3):** dil tanımının adları motordan önde: testin istisna listesinde 50 onaylı yeni ad bekliyor [ölçüldü: `behavior_language_spec_test.go`; `.TR_lines()` ve `.TR_index_of` birleşik 50'de yapıldı], yazınca sözdizimi hatası geliyor; bazılarının maddesi *Test:* satırında "TR testi" diyor, 13.2 gibi. Dil tanımını okuyan ajan bunları var sanıyor: üç ajan buna çarptı [ölçüldü: `docs/agent_trials.md`]. 19.2 de yapı diyor, motor sözlük istiyor; denetim geçiriyor, çalışma anı düşüyor. Ajanın göreceği yerde "henüz yok" yazılsın; maddenin *Test:* satırı doğrulansın.
+- **Yapılacaklar (D, Ö3; sahip D1; D1 ajan1 devri):** 15. bölüm tensör içeren listede `.TR_contains`, `.TR_unique` ve `.TR_index_of`'u denetim hatası yazıyor, motor hata vermiyor; arama değere göre doğru cevap veriyor, sessiz yanlış görülmedi [ölçüldü: `[t].TR_contains(u)`, aynı değerde doğru, farklı değerde ve boyda yanlış]. Sıradaki adım: 4a5 ile aynı dilimde denetim hatası.
 - **Yapılacaklar (D, Ö3; sahip D1; `AGENTS.md` denemesi):** kitaplığın `.TR_loss`'u parametre tipi yazmıyor, hedef olarak liste verilince denetim değil çalışma anı yakalıyor; `lib/README.md`'nin örneği bu yüzden koşmuyordu, düzeldi [ölçüldü: `74d38399`]. Tip yazmak da tek başına yakalamıyor [ölçüldü: DENETİM 246]: argümanın metotta parametre tipine göre denetimi 4a5'in A satırına bağlı.
 - **Yapılacaklar (F, Ö3; sahip D1; DENETİM 246):** modeli kaydetmek için var olmayan bir ad yazılınca ileti ters işi, `TR_load_parameters`'ı öneriyor; doğrusu `TR_save_tensors(yol, TR_parameters(m, TR_named: TR_true))`.
 - **Yapılacaklar (D, Ö3; sahip TCB; DENETİM 224 N1):** metin kapısı Windows'ta koşuyor; `TestDocLinks` Linux yolunda harf büyüklüğü farkını görmez, hedef tam harfle karşılaştırılabilir. 83 gönderimde 0 kez oldu [ölçüldü: DENETİM 224], sonraki tam denetim yakalar [hipotez].
@@ -1296,7 +1297,7 @@ Dil tanımında bölümü olmayan işler: A, B ve C (DENETİM istek 76) ve küç
 
 - **Mevcut durum:** komut satırı aracının adı `trlang` (`cmd/trlang`, `codes.ProgramName`); göç birleşti (2026-11-03, `7659aa0c`, `fa877f38`, `b71bef0e`; Gemini Kodlama2'nin işi, araç main'de yeniden koşuldu; DENETİM istek 86, 87). `TestNoOldCommandName` eski adı alt komut, dosya, şablon, `.exe`, yol, paket yolu ve ters tırnaklı ekli yalın biçimde yasaklıyor.
 - **Yapılacaklar (F1, Ö3; DENETİM istek 87 Ş1):** yalın `trlang` yerine eski ad yedi yerde daha kalıyor (dil tanımı 15, mimari belgesi, kılavuz 11, kodların README'si, codegraph README'sinin üç İngilizce yeri: `:154`, `:537`, `:554`; codegraph 3'ün birleşmesinden sonra da duruyor, DENETİM istek 88 N4). Testin altıncı biçimi sözcük listesiyle dar; kural ters dönmeli: ters tırnaklı her yalın eski ad hatadır, istisna dil kodu kalıbı ve izin listesidir.
-- **Ajan deneyinin zor-3'ü** bu göçten sonra (yol haritası).
+- **Ajan deneyinin zor-3'ü** yerine gerçek kullanım provası geldi ([`agent_trials.md`](agent_trials.md), yol haritası).
 
 ### Denetim katmanlarının gözden geçirmesi
 

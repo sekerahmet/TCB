@@ -8,6 +8,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 - Sorular cevaptan sonra aynı oturumda sorulur, baştan yazılmaz: ajan onlara göre davranmasın.
 - Her bulgunun denemesi, başlığı ve durumu yazılır. Başlıklar: belge, dil, dil tasarımı, fikir, yöntem, olumlu.
 - Dil ve dil tasarımı bulgularının sınıfı [`status.md`](status.md)'dekilerdir; belge bulgusu sınıf almaz, hemen düzelir.
+- Ajanın ortamı sonucu değiştirir, üçe ayrılır: kod koşamayan sohbet (1, 2), sohbetin kendi kısıtlı makinesi (3, 4, 5), kullanıcının bilgisayarı (7, 8). Aynı ajan her işte koşmayabilir: Grok 4'te koştu, 6'da koşmadı. Kullanıcının bilgisayarındaki deneme Go'suz kurulumu ölçmez.
 
 ## Denemeler
 
@@ -20,10 +21,13 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 3 | 2026-11-06 | Claude, ücretli üst model | aynı iş | ajan depoyu klonladı, `trlang` derledi, koştu; TCB de olduğu gibi koştu: temiz, BM25 ve kaba Türkçe kök |
 | 4 | 2026-11-06 | Grok, ücretsiz | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
 | 5 | 2026-11-06 | GLM flash, ücretsiz | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
+| 6 | 2026-11-06 | Grok, ücretsiz | Türkçe kök bulan kitaplık, kendi testleriyle | ajan koşmadı ve bunu yazdı; TCB koştu: 11 testin 9'u geçti |
+| 7 | 2026-11-06 | Gemini argon high, Antigravity | aynı iş | sürüyor; ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, kök sözlüğü ve ek çözümleyicisi yazıyor |
+| 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | sürüyor; ajan kullanıcının bilgisayarında koşuyor, sözlük ve sıklık listesi kullanıyor |
 
 ## Yarış
 
-Beş programın kendisi, aynı 30 paragraf ve 18 soruyla (2026-11-06). Soruları ve metinleri TCB yazdı, ölçü koşudan önce yazıldı; küçük bir küme, yön gösterir, kesin sıralama değil. Grok'unkine kendi bildirdiği iki düzeltme yapıldı, öbürleri olduğu gibi. Beşi de hatasız koştu [ölçüldü].
+Beş programın kendisi, aynı 30 paragraf ve 18 soruyla (2026-11-06). Soruları ve metinleri TCB programları gördükten sonra yazdı, ölçü koşudan önce yazıldı; küçük bir küme, yön gösterir, kesin sıralama değil. Grok'unkine kendi bildirdiği iki düzeltme yapıldı, öbürleri olduğu gibi. Beşi de hatasız koştu [ölçüldü].
 
 | Program | Yöntem | Aynı sözcük (6) | Başka ekli (6) | Başka sözcükle (6) | İlk sıra | İlk üç |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -35,7 +39,9 @@ Beş programın kendisi, aynı 30 paragraf ve 18 soruyla (2026-11-06). Soruları
 
 Türkçe aramada yöntemden çok kök fark açıyor: GLM de BM25 kullandı, kök almadığı için geride kaldı. Başka sözcükle sorulan soruda hepsi zayıf; bunun yolu gömme modeli.
 
-Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un önde olması dilin değil modelin katkısı olabilir. Hedef için asıl kanıt ücretsiz modellerin de tek sayfadan çalışan TR yazmasıdır.
+Aynı 18 soruda yalnız kök değiştirilince de tuttu (DENETİM 255): Claude kök kapalı 10 ilk, 10 ilk üç, yani GLM'in sayıları; ilk 5 harf kökle GLM ve Kimi 13 ve 16, Grok 12 ve 16, ChatGPT 12 ve 15 [ölçüldü]. Kökün bedeli de var: GLM, Kimi ve Claude'da başka sözcükle sorulan soruda ilk sıra 2'den 1'e düşüyor, ilk üç 2'den 4'e çıkıyor [ölçüldü]. Beş harf bu kümeye bağlı, sabit değil: Claude'da 3 ile 8 arası ilk sıra 11–13, ilk üç 13–16 [ölçüldü].
+
+Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un önde olması dilin değil modelin katkısı olabilir; katkı programın gücü değil, kök almayı düşünmek. Hedef için asıl kanıt ücretsiz modellerin de `AGENTS.md`'den başlayıp çalışan TR yazmasıdır: ikisi koşamadan, Grok iki düzeltmeyle, GLM kendi hata ayıklamasıyla.
 
 ## Bulgular
 
@@ -51,7 +57,7 @@ Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un ö
 | 1 | olumlu | koşamayan ajan yalnız okuyarak hatasız program yazdı; başvuruda olmayan dosya ve girdi adlarını da doğru buldu | yok | hangi dosyaları okuduğu sorulacak |
 | 1, 2 | olumlu | ajan koşmadığını açıkça söyledi, çıktı uydurmadı | yok | |
 | 1 | belge | tek sayfa başvuruda dosya ve klasör işleri yok; ajan 18. bölümü aramak zorunda kaldı | yok | düzeldi |
-| 3 | dil | `docs/spec/13_yerlesikler.md` 13.2'deki `.TR_lines()` ve `.TR_index_of()` motorda yok; 52 onaylı ad böyle bekliyor, ajan dil tanımından var sanıyor; Grok da çarptı | E, Ö3 | status'ta |
+| 3 | dil | `docs/spec/13_yerlesikler.md` 13.2'deki `.TR_lines()` ve `.TR_index_of()` motorda yok; onaylı adlar böyle bekliyor, ajan dil tanımından var sanıyor; Grok da çarptı | E, Ö3 | iki ad yapıldı; 50 ad status'ta |
 | 3 | belge | kurulum beş deneme sürdü: `go.mod`'un `toolchain` satırı Go indirmeye kalkıyor, `AGENTS.md` bunu söylemiyordu | yok | düzeldi: hazır ikili `v0.1.0` |
 | 3 | belge | başvuru "dilin kuralı" diyordu, dil tanımıyla metin metotlarında ayrışıyordu | yok | düzeldi |
 | 3 | dil tasarımı | harf, rakam, boşluk soran yerleşik yok; dolaylı yol büyük harfi olmayan yazılarda yanlış | yok | pending'de |
