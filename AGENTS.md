@@ -20,7 +20,13 @@ cd TCB
 go build -o trlang ./cmd/trlang
 ```
 
-On Windows, build `trlang.exe`. If the toolchain download is blocked, build with the Go you have: `GOTOOLCHAIN=local go build -o trlang ./cmd/trlang`.
+On Windows, build `trlang.exe`.
+
+If the toolchain download is blocked, build with the Go you have (1.25 or newer). The Go module proxy must still be reachable. If you cannot run a binary where you built it, copy it to `/tmp`.
+
+```bash
+GOTOOLCHAIN=local go build -o trlang ./cmd/trlang
+```
 
 The command is `trlang`. Never type `tr`: on Linux that is another program and it does nothing useful, silently.
 
@@ -41,6 +47,7 @@ TR_LANG=en ./trlang run program.tr            # check and run
 - Use `TR_var x = 1`, `TR_func f(a: TR_Int) -> TR_Int { TR_return a }`, `TR_if c { } TR_else { }`, `TR_for x TR_in l { }`.
 - Named arguments use `:`, as in `f(k: 3)`. Strings use double quotes, and `"\(x)"` inserts a value.
 - Your own names must not start with `TR_`.
+- `TR_command_line` takes a dictionary today, not a struct. If the rules name something the tool does not know, it is not implemented yet: follow the tool and the examples.
 
 ## Train, save, load, generate
 
