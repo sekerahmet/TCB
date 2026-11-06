@@ -1,0 +1,28 @@
+# TR 4
+# docs/spec/21_dis_programlar.md §21 — Dış programlar
+# Testler `sh` ve `cmd` varsaymaz. Her makinede bulunan tek dış program Go'nun aracıdır: gofmt girdisini
+# biçimleyip yazar. Durdurma, taşma ve torun süreçler Go testleriyle sınanır (internal/stdlib/process).
+
+TR_test "21.2 program_başlat: girdi yazılır, kapatılınca program biter, çıktı okunur" {
+    TR_var p = TR_spawn_process("gofmt", [])
+    p.TR_write(TR_Bytes("package a\n"))
+    p.TR_close_stdin()
+    TR_assert_equal("package a\n", TR_String(p.TR_read(100)))
+    TR_assert_equal(0, p.TR_read(100).TR_length)
+    TR_assert_equal(0, p.TR_wait())
+    TR_assert(p.TR_done())
+}
+
+TR_test "21.2 program_başlat: tampon baytı verilse de aynı okunur" {
+    TR_var p = TR_spawn_process("gofmt", [], TR_buffer_bytes: 64)
+    p.TR_write(TR_Bytes("package a\n"))
+    TR_assert_equal(0, p.TR_wait())
+    TR_assert_equal("package a\n", TR_String(p.TR_read(64)))
+}
+
+TR_test "21.4 program_başlat: kabul edilmeyen kod beklemede hatadır" {
+    TR_var p = TR_spawn_process("gofmt", ["-tanimsiz"], TR_exit_codes: [0, 2])
+    TR_assert_equal(2, p.TR_wait())
+    TR_var q = TR_spawn_process("gofmt", ["-tanimsiz"])
+    TR_assert_equal("H7503", TR_error_code { q.TR_wait() })
+}

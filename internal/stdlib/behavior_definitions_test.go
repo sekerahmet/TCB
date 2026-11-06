@@ -282,6 +282,7 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeJSON, `TR_JSON({"a": [1, 2]})`}, {codes.TypeJSON, `TR_JSON([1, 2])`}, {codes.TypeJSON, `TR_JSON("abc")`},
 		{codes.TypeBytes, `TR_Bytes("ab")`}, {codes.TypeNoneType, `TR_none`}, {codes.TypeMessage, `TR_Message("H6903", -1)`}, {codes.TypeError, `TR_Error("x")`},
 		{codes.TypeTask, `TR_async TR_sum([1, 2])`},
+		{codes.TypeProcess, `TR_spawn_process("go", ["version"])`},
 		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}
 	t.Cleanup(logging.CloseAll)

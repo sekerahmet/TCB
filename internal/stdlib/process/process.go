@@ -32,6 +32,8 @@ type State struct {
 	// jobs bu programın çalışan dış programlarıdır: kayıt VM başınadır, TR_cmd_test altında öbür
 	// testlerin programına dokunulmaz (1.7, 1.12).
 	jobs map[*job]struct{}
+	// processes program sonu için tutulan süreçlerdir: durdurulacak ya da hatası yazılacak (21.2).
+	processes map[*Process]struct{}
 }
 
 // track çalışan dış programı kaydeder.
@@ -81,6 +83,8 @@ func Register(v *interp.VM) *State {
 	v.RegisterNoNamed(codes.FnEnv, envVar)
 	v.RegisterBuiltinCode(codes.FnCommandLine, bind.SafeBuiltin(interp.CallPrefix(codes.FnCommandLine), d.commandLine))
 	v.RegisterBuiltinCode(codes.FnRunProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnRunProcess), d.runProcess))
+	v.RegisterBuiltinCode(codes.FnSpawnProcess, bind.SafeBuiltin(interp.CallPrefix(codes.FnSpawnProcess), d.spawnProcess))
+	v.AddEndWork(func() []interp.EndError { return d.endProcesses(v) })
 	v.AddHardStop(d.killJobs)
 	return d
 }

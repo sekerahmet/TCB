@@ -185,6 +185,7 @@ func (v *VM) holdTaskError(t *TaskVal, err error) {
 // task started on, as reportAsyncError writes them (10.6): the program then ends with code 1, a
 // test fails. A task waited for later (a TR_defer's g.TR_wait()) is not written.
 func (v *VM) reportUnwaitedTasks() {
+	v.runEndWork()
 	v.taskErrorsMu.Lock()
 	held := v.heldTasks
 	v.heldTasks = nil

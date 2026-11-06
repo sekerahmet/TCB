@@ -23,27 +23,40 @@ TR_var ses = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](ham, TR_dtype: "int16", T
 
 - *Test:* TR testi (olumsuz fikstür `tests/negative/program_argumani_yol.tr`); Go: `TestRunProcessOutputIsBytes`, `TestRunProcessArgumentsAreUnchanged`, `TestRunProcessInput`, `TestRunProcessArgumentListErrors`, `TestRunProcessPathSuggestionRuns`, `TestRunProcessCallErrors`, `TestRunProcessReleasesTheLock`, `TestProcessArgumentListHoldsNoPath`.
 
-**21.2** `TR_spawn_process(program, argümanlar)` programı başlatır ve beklemeden bir `TR_Process` verir. Programın standart girdisi ve standart çıktısı TR programına bağlıdır. `program` ve `argümanlar` 21.1'deki gibidir; adlı argümanlar `TR_env:` ve `TR_exit_codes:`'tır.
+**21.2** `TR_spawn_process(program, argümanlar)` programı başlatır ve beklemeden bir `TR_Process` verir. Programın standart girdisi ve standart çıktısı TR programına bağlıdır. `program` ve `argümanlar` 21.1'deki gibidir; adlı argümanlar `TR_env:`, `TR_exit_codes:`, `TR_buffer_bytes:`'tır.
 - `p.TR_read(n)` tam `n` bayt okur ve `TR_Bytes` verir. Program çıktısını kapattıysa (dosya sonu) kalanı verir, kalan da yoksa boş `TR_Bytes` verir. Okuma `n` bayt gelene kadar bekler, yani `n` gecikmedir: 16 kHz tek kanallı "int16" seste 1024 bayt 32 ms'dir.
 - `p.TR_write(b)` bir `TR_Bytes`'ın hepsini programın girdisine yazar; program okumuyorsa bekler. `p.TR_close_stdin()` girdiyi kapatır, program dosya sonu alır.
 - `p.TR_wait()` girdiyi kapatır, programın bitmesini bekler ve çıkış kodunu `TR_Int` olarak verir (21.4). `p.TR_wait(TR_timeout: saniye)` 10.7'deki gibidir. `p.TR_done()` programın bitip bitmediğini söyler, beklemez.
 - `p.TR_cancel()` programı 21.5'teki gibi durdurur; bitmiş programda etkisi yoktur.
 - `TR_read`, `TR_write` ve `TR_wait` beklerken kilidi bırakır (10.3). İptal, durdurma ve süre sınırı bu beklemeleri de bitirir (21.5).
 - Program biterken (hatayla ya da durdurmayla da) hâlâ süren bütün süreçler 21.5'teki gibi durdurulur: geride yetim süreç kalmaz (TR'nin kendisi öldürülür ya da çökerse 21.5'in sınırı geçerlidir). Hiç beklenmemiş bir süreç kabul edilmeyen bir kodla kendiliğinden bittiyse hatası program biterken yazılır ve program 1 koduyla biter (10.6 gibi). TR'nin durdurduğu sürecin durması hata olarak yazılmaz (21.4).
+- Programın çıktısını kilit dışında bir okuyucu sürekli alır: tampon dolana kadar boru dolmaz, TR kodu hesap yaparken veri beklemez. `p.TR_read` bu okuyucunun tamponundan okur.
+- `TR_buffer_bytes:` verilmezse tampon dolunca okuyucu durur, boru dolar, program bekler: hiçbir bayt kaybolmaz. Dosya çözen, araç çalıştıran iş budur.
+- `TR_buffer_bytes: b` canlı kaynak içindir: pozitif `TR_Int`, bayt; başka değer hatadır. Ön ayırma yapılmaz; `b` makinenin belleğini aşarsa çağrı hatasıdır. Tampon `b` bayta varıp yeni bayt gelirse program 21.5'teki gibi durdurulur, biriken baytlar atılır ve taşma hatası kurulur. Sessizce veri atılmaz, eskinin üstüne yazılmaz; süreç sürdürülmez, çünkü atılan baytın sınırı örnek sınırına denk gelmeyebilir. Toparlanma yeni bir `TR_spawn_process`'tir.
+- Taşma hatası programın çıkışından ayrıdır: bundan sonraki her `p.TR_read` ve `p.TR_wait` aynı hatayı verir. `TR_try` ile yakalanırsa görülmüş sayılır. Hiç görülmezse program biterken yazılır ve program 1 koduyla biter (10.6 gibi). `p.TR_cancel()` hatayı silmez. 21.2 ve 21.4'ün "TR'nin durdurduğu sürecin durması hata olarak yazılmaz" cümlesi bunu kapsamaz.
+- `TR_buffer_bytes:` verilmişken tampondan büyük `p.TR_read` çağrı hatasıdır: hiç dolmaz.
+- Okuma döngüsü boş `p.TR_read` ile biter. `p.TR_done()` doğruyken tamponda veri olabilir; `p.TR_read` `p.TR_wait`'ten sonra da kalanı verir.
+- Bitmiş programa `p.TR_write` çalışma hatasıdır. İki görevin `p.TR_read`'i sıraya girer, `n` bayt bölünmez.
+- Çıktısı okunmayan program tampon dolunca bekler, `p.TR_wait` de onu bekler: yazma ve okuma iki görevde yapılır ya da `p.TR_wait(TR_timeout: saniye)` kullanılır.
+- TR aldığı baytı kaybetmez; kaynak kendi içinde kaybedebilir, TR bunu görmez.
 
 ```tr
 # TR 4
-TR_var mikrofon = TR_spawn_process("arecord", ["-q", "-f", "S16_LE", "-r", "16000", "-c", "1", "-t", "raw"])
+# Windows: "-f", "dshow", "-i", "audio=<aygıt>"; Linux: "-f", "alsa", "-i", "default"
+TR_var mikrofon = TR_spawn_process("ffmpeg", ["-nostdin", "-loglevel", "error", "-f", "alsa", "-i", "default", "-f", "s16le", "-ac", "1", "-ar", "16000", "-"], TR_buffer_bytes: 1920000) # 60 saniye
 TR_defer { mikrofon.TR_cancel() }
 TR_for {
     TR_var parça = mikrofon.TR_read(1024) # 512 örnek: 32 ms
-    TR_if parça.TR_length < 1024 { TR_break }
+    TR_if parça.TR_length < 1024 {
+        mikrofon.TR_wait()
+        TR_break
+    }
     TR_var örnekler = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
     TR_print(örnekler.TR_shape)
 }
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi: `tests/dis_program_test.tr`; Go: `TestBackpressureKeepsEveryByte`, `TestOutputOutlivesTheProgram`, `TestReaderRunsWhileTRComputes`, `TestOverflowStopsTheProgramAndSticks`, `TestUnseenOverflowIsWrittenAtTheEnd`, `TestOverflowSuggestionRuns`, `TestOutputOverflowsPastTheLimit`, `TestPendingReadOfTheBufferSizeIsNoOverflow`, `TestNoOverflowOnceTheProgramEnded`, `TestReadSizeAgainstTheBuffer`, `TestReadGivesExactlyNThenTheRest`, `TestWriteAndCloseStdin`, `TestTwoTasksReadWholePieces`, `TestOutputServesReadsInOrder`, `TestUnreadProgramStopsWithAWaitLimit`, `TestBufferBytesIsChecked`, `TestGrandchildDoesNotHangTheProcess`, `TestProgramEndStopsAndReports`, `TestProcessValue`, `TestProcessArgumentListHoldsNoPath`.
 
 **21.3** Ad olarak verilen program `PATH`'te aranır.
 - Ad bir yol ayırıcısı (`/` ya da `\`) içeremez. Dosyanın kendisi bir `TR_Path` ile verilir; göreli yol çalışma klasörüne göredir.
@@ -61,7 +74,7 @@ TR_for {
   - program biterken ve durdurmada (1.5) durdurulan süreç hata olarak yazılmaz, 10.6'da iptal edilen görev gibi.
 - Standart hata çıktısı arka planda okunur, iki çıktı birbirini kilitlemez. Program başarıyla biterse standart hata çıktısı atılır.
 - Bazı programlar başarıyı başka kodlarla bildirir: `grep` eşleşme bulamayınca 1 döner. Kabul edilen kodlar açıkça yazılır: `TR_exit_codes: [0, 1]`. Hangi kodla bittiğini bilmesi gereken program kabul ettiği kodları `TR_exit_codes:`'a yazar ve hangisi olduğunu `p.TR_wait()`'in sonucundan alır: `TR_spawn_process("grep", ["-q", "hata", "günlük.txt"], TR_exit_codes: [0, 1]).TR_wait() == 0`.
-- *Test:* Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestSignalName`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`.
+- *Test:* TR testi: `tests/dis_program_test.tr`; Go: `TestExitCodeIsARunError`, `TestAcceptedExitCodes`, `TestExitCodesAreChecked`, `TestStderrInTheMessageIsMasked`, `TestStderrInTheMessageIsPrintable`, `TestKilledBySignal`, `TestSignalName`, `TestBothOutputsDoNotDeadlock`, `TestStderrTailIsBounded`, `TestStderrTailMasksBeforeCutting`, `TestStderrTailPrintable`, `TestStderrTailKeepsWholeRunes`.
 
 **21.5** İptal (10.9), süre sınırı (10.7), `p.TR_cancel()` ve durdurma (1.5) programı aynı yolla durdurur:
 - Önce nazik bir istek gider: Unix'te SIGTERM, Windows'ta Ctrl+Break olayı.
@@ -70,7 +83,7 @@ TR_for {
 - Uçbirimde basılan Ctrl+C önce TR programına gelir, dış programa gelmez. TR programı durursa dış program da bu kurala göre durur (1.5). Durdurmayı üstlenen programda (1.6) dış program, TR programı durana kadar sürer. 1.6'nın sınıflarıyla: `p.TR_read` yeni bir şey bekler, istekten sonra "durdurma istendi" hatasıyla döner; `p.TR_write`, `p.TR_wait` ve `TR_run_process` süren bir işi bitirir, sürer.
 - TR hemen biterken (1.7) önce süreç gruplarını öldürür. TR'nin kendisi öldürülür ya da çökerse Unix'te gruptaki süreçler kalabilir; Windows'ta iş nesnesi onları da kapatır.
 - Bekleyen `TR_read`, `TR_write` ve `TR_wait` program durunca hemen döner: iptalde iptal hatasıyla, süre sınırında zaman aşımı hatasıyla.
-- *Test:* Go: `TestTimeoutStopsTheProgram`, `TestTimeoutIsCheckedLikeTaskWait`, `TestProgramEndingInTimeIsNotATimeout`, `TestNiceRequestComesFirst`, `TestStubbornProgramIsKilled`, `TestNoConsoleUsesTheKillPath`, `TestGrandchildStopsWithTheProgram`, `TestStopUnwindsAfterTheProgramStopped`, `TestHandledStopLetsTheCallFinish`, `TestDeferralExpiringDuringTheCallStopsIt`, `TestCancelStopsTheCallEvenWhenStopIsHandled`, `TestCallInADeferIsNotAbandoned`, `TestTimeoutWorksInADefer`, `TestStoppingDoesNotHoldTheLock`, `TestGrandchildHoldingThePipeDoesNotBlock`, `TestEscapedGrandchildDoesNotBlockTheStop`, `TestHardStopReachesOnlyItsOwnProgram`, `TestStopRequestStopsTheExternalProgram`, `TestSecondRequestKillsTheExternalProgram`, `TestUncaughtErrorStopsTheExternalProgram`, `TestExitStopsTheExternalProgram`, `TestProgramEndWaitsForTheExternalProgram`, `TestExitInATestLeavesTheExternalProgram`.
+- *Test:* Go: `TestTimeoutStopsTheProgram`, `TestTimeoutIsCheckedLikeTaskWait`, `TestProgramEndingInTimeIsNotATimeout`, `TestNiceRequestComesFirst`, `TestStubbornProgramIsKilled`, `TestNoConsoleUsesTheKillPath`, `TestGrandchildStopsWithTheProgram`, `TestStopUnwindsAfterTheProgramStopped`, `TestHandledStopLetsTheCallFinish`, `TestDeferralExpiringDuringTheCallStopsIt`, `TestCancelStopsTheCallEvenWhenStopIsHandled`, `TestCallInADeferIsNotAbandoned`, `TestTimeoutWorksInADefer`, `TestStoppingDoesNotHoldTheLock`, `TestGrandchildHoldingThePipeDoesNotBlock`, `TestEscapedGrandchildDoesNotBlockTheStop`, `TestHardStopReachesOnlyItsOwnProgram`, `TestStopRequestStopsTheExternalProgram`, `TestSecondRequestKillsTheExternalProgram`, `TestUncaughtErrorStopsTheExternalProgram`, `TestExitStopsTheExternalProgram`, `TestProgramEndWaitsForTheExternalProgram`, `TestExitInATestLeavesTheExternalProgram`, `TestPendingReadEndsWithTheProgram`, `TestStopEndsThePendingRead`, `TestHandledStopLeavesTheReadBytes`.
 
 **21.6** Dış program TR programının ortamını alır, ama 19.4'e göre gizli adlı değişkenler aktarılmaz.
 - `TR_env:` bir `TR_Dict[TR_String, TR_String]`'dir. Ortama değişken ekler ya da var olanın değerini değiştirir, ortamın geri kalanını silmez.

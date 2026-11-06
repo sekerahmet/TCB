@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/sekerahmet/TCB/internal/lang/codes"
@@ -33,12 +34,13 @@ const stopGrace = 2 * time.Second
 
 // runCall bir program_çalıştır çağrısının okunmuş argümanlarıdır.
 type runCall struct {
-	name  string // iletilerde programın adı: verilen ad ya da yol
-	path  string // çalışacak dosya
-	args  []string
-	input *interp.BytesVal // yoksa girdi boş aygıttır (21.1)
-	codes []int            // kabul edilen çıkış kodları (21.4)
-	env   []string         // programın ortamı (21.6)
+	name   string // iletilerde programın adı: verilen ad ya da yol
+	byPath bool   // program yol olarak verildi
+	path   string // çalışacak dosya
+	args   []string
+	input  *interp.BytesVal // yoksa girdi boş aygıttır (21.1)
+	codes  []int            // kabul edilen çıkış kodları (21.4)
+	env    []string         // programın ortamı (21.6)
 	// filtered ortamdan süzülen gizli adlardır; başarısız bitişin iletisi söyler (21.6).
 	filtered []string
 	limit    interp.Value  // TR_timeout: değeri; yoksa nil (21.5)
@@ -56,13 +58,13 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	if err != nil {
 		return nil, err
 	}
-	var out bytes.Buffer
+	out := newBoundedOutput()
 	// exec.Command kullanılmaz: yolu yeniden arar (21.3, program_lookup.go).
 	c := &exec.Cmd{Path: call.path, Args: append([]string{call.path}, call.args...), Env: call.env}
 	if call.input != nil {
 		c.Stdin = bytes.NewReader(call.input.Data())
 	}
-	c.Stdout = &out
+	c.Stdout = out
 	tail := &stderrTail{longest: m.LongestSecret}
 	c.Stderr = tail // ayrı okunur: iki çıktı birbirini kilitlemez (21.4)
 	c.WaitDelay = stopGrace
@@ -73,12 +75,22 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	defer j.release()
 	d.track(j)
 	defer d.untrack(j)
+	go func() {
+		select {
+		case <-out.exceeded:
+			j.stop()
+		case <-j.done:
+		}
+	}()
 	if call.limit != nil {
 		timer := time.AfterFunc(call.wait, func() { j.stopFor(&j.timedOut) })
 		defer timer.Stop()
 	}
 	if err := m.AwaitExternal(j.done, j.stop); err != nil {
 		return nil, err
+	}
+	if out.over.Load() {
+		return nil, messages.New(messages.H7527, fn, call.name, out.limit, call.programText(), listText(call.args))
 	}
 	if j.timedOut.Load() {
 		return nil, messages.New(messages.H2921, fn, interp.Shown(call.limit), line)
@@ -91,7 +103,37 @@ func (d *State) runProcess(m *interp.VM, args []interp.Value, named map[string]i
 	if err := call.endError(fn, c.ProcessState, tail.text(m.Mask)); err != nil {
 		return nil, err
 	}
-	return interp.NewBytes(out.Bytes()), nil
+	return interp.NewBytes(out.buf.Bytes()), nil
+}
+
+// boundedOutput TR_run_process'in standart çıktısıdır (21.1): bütün çıktı belleğe alınır, ama sınırı
+// aşan çıktı Go'nun ölümcül bellek hatası olmadan biter. Sınır aşılınca program durdurulur, hata ana
+// yolda verilir; yazan goroutine panik yapmaz. Sınır belleğin yarısıdır: tampon büyürken eskisi ile
+// yenisi birlikte durur.
+type boundedOutput struct {
+	buf      bytes.Buffer
+	limit    int64 // 0 ise bellek bilinmiyor
+	over     atomic.Bool
+	exceeded chan struct{}
+}
+
+func newBoundedOutput() *boundedOutput {
+	limit, _ := memoryLimit()
+	return &boundedOutput{limit: limit / 2, exceeded: make(chan struct{})}
+}
+
+// Write baytları tutar; sınır aşıldıysa atar, program durana kadar boruyu boşaltır.
+func (o *boundedOutput) Write(b []byte) (int, error) {
+	if o.over.Load() {
+		return len(b), nil
+	}
+	if o.limit > 0 && int64(o.buf.Len()+len(b)) > o.limit {
+		o.over.Store(true)
+		o.buf = bytes.Buffer{}
+		close(o.exceeded)
+		return len(b), nil
+	}
+	return o.buf.Write(b)
 }
 
 // endError biten programın hatasıdır: sinyalle ölmek ya da kabul edilmeyen kod (21.4).
@@ -137,15 +179,8 @@ func exitCodes(fn any, named map[string]interp.Value) ([]int, error) {
 
 // readRunCall çağrının argümanlarını okur ve denetler; program başlamadan biter.
 func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
-	if len(args) != 2 {
-		return nil, interp.ArgCountError(codes.FnRunProcess, 2, len(args))
-	}
-	call := &runCall{}
-	var err error
-	if call.name, call.path, err = findProgram(fn, args[0]); err != nil {
-		return nil, err
-	}
-	if call.args, err = programArguments(fn, args[1]); err != nil {
+	call, err := readProgramCall(m, codes.FnRunProcess, args, named)
+	if err != nil {
 		return nil, err
 	}
 	if v, ok := bind.GetNamed(named, nameInput); ok {
@@ -154,12 +189,6 @@ func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]int
 			return nil, messages.New(messages.H7493, fn, nameInput, v.Type())
 		}
 		call.input = b
-	}
-	if call.codes, err = exitCodes(fn, named); err != nil {
-		return nil, err
-	}
-	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
-		return nil, err
 	}
 	if v, ok := bind.GetNamed(named, nameTimeout); ok {
 		if call.wait, err = interp.Seconds(codes.FnRunProcess, v); err != nil {
@@ -170,12 +199,54 @@ func readRunCall(m *interp.VM, fn any, args []interp.Value, named map[string]int
 	return call, nil
 }
 
+// readProgramCall iki çağrının ortak argümanlarını okur: program, argümanlar, çıkış kodları, ortam.
+func readProgramCall(m *interp.VM, code codes.Code, args []interp.Value, named map[string]interp.Value) (*runCall, error) {
+	if len(args) != 2 {
+		return nil, interp.ArgCountError(code, 2, len(args))
+	}
+	fn := interp.CallPrefix(code)
+	call := &runCall{}
+	var err error
+	if call.name, call.path, err = findProgram(code, args[0]); err != nil {
+		return nil, err
+	}
+	if call.args, err = programArguments(code, args[1]); err != nil {
+		return nil, err
+	}
+	if call.codes, err = exitCodes(fn, named); err != nil {
+		return nil, err
+	}
+	if call.env, call.filtered, err = programEnv(m, fn, named); err != nil {
+		return nil, err
+	}
+	_, call.byPath = args[0].(interp.PathValuer)
+	return call, nil
+}
+
+// programText programın önerideki yazımıdır: yol olarak verilen yine yol yazılır (21.3).
+func (c *runCall) programText() string {
+	if c.byPath {
+		return codes.Spelling(codes.TypePath) + "(" + strconv.Quote(c.name) + ")"
+	}
+	return strconv.Quote(c.name)
+}
+
+// listText argümanların önerideki yazımıdır.
+func listText(items []string) string {
+	list := &interp.ListVal{Elements: make([]interp.Value, len(items))}
+	for i, s := range items {
+		list.Elements[i] = &interp.StringVal{Val: s}
+	}
+	return list.Inspect()
+}
+
 // programArguments argüman listesini okur. Listede yol olması denetim hatasıdır (21.1); tipi
 // bilinmeyen listede aynı kod çalışma anında gelir.
-func programArguments(fn any, v interp.Value) ([]string, error) {
+func programArguments(code codes.Code, v interp.Value) ([]string, error) {
+	fn := interp.CallPrefix(code)
 	list, ok := v.(*interp.ListVal)
 	if !ok {
-		return nil, interp.ArgTypeError(codes.FnRunProcess, 2, v, codes.TypeList)
+		return nil, interp.ArgTypeError(code, 2, v, codes.TypeList)
 	}
 	out := make([]string, len(list.Elements))
 	for i, e := range list.Elements {

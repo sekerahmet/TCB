@@ -61,8 +61,8 @@ func TestSpecItemsAreNodesWithReferenceEdges(t *testing.T) {
 func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
 	detachX := "x." + "TR_detach"
 	detachY := "y." + "TR_detach"
-	readP := "p." + "TR_read"
-	readS := "akış." + "TR_read"
+	streamP := "p." + "TR_decode_stream"
+	streamS := "akış." + "TR_decode_stream"
 	katmanLin := "katman." + "TR_Linear"
 	optNSA := "opt." + "TR_NS_A"
 	optLin := "opt." + "TR_Linear"
@@ -72,7 +72,7 @@ func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
 		"app/app.go":              "package app\n",
 		"docs/spec/02_sozcuk.md":  "**2.9** Göç notu: eski metinde `" + detachX + "()` geçer.\n",
 		"docs/spec/15_tensor.md":  "**15.27a** `" + detachX + "()` tensörü çizgeden ayırır.\n",
-		"docs/spec/21_surec.md":   "**21.2** Akış okuma:\n\n```" + "tr\n# TR 4\n" + readP + "()\n```\n",
+		"docs/spec/21_surec.md":   "**21.2** Akış okuma:\n\n```" + "tr\n# TR 4\n" + streamP + "()\n```\n",
 		"lib/layers.tr":           "# TR 4\nTR_struct TR_Linear {\n    TR_weight: TR_Int = 1\n}\n",
 		"lib/optimizers.tr":       "# TR 4\nTR_const TR_NS_A = 3.4445\n",
 		"examples/helpers/geo.tr": "# TR 4\nTR_struct Kare {\n    kenar: TR_Int = 1\n}\n",
@@ -90,14 +90,14 @@ func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
 		return out
 	}
 	for q, want := range map[string]string{
-		katmanLin:    "tr:struct:lib/layers.tr:TR_type_Linear",
-		optNSA:       "tr:const:lib/optimizers.tr:TR_const_NS_A",
-		detachX:      "spec:15.27a",
-		detachY:      "spec:15.27a",
-		".TR_detach": "spec:15.27a",
-		readP:        "spec:21.2",
-		readS:        "spec:21.2",
-		".TR_read":   "spec:21.2",
+		katmanLin:           "tr:struct:lib/layers.tr:TR_type_Linear",
+		optNSA:              "tr:const:lib/optimizers.tr:TR_const_NS_A",
+		detachX:             "spec:15.27a",
+		detachY:             "spec:15.27a",
+		".TR_detach":        "spec:15.27a",
+		streamP:             "spec:21.2",
+		streamS:             "spec:21.2",
+		".TR_decode_stream": "spec:21.2",
 	} {
 		got := ids(ix.lookup(q))
 		if len(got) != 1 || got[0] != want {
