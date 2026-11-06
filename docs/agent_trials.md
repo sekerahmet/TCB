@@ -23,7 +23,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 5 | 2026-11-06 | GLM flash, ücretsiz | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
 | 6 | 2026-11-06 | Grok, ücretsiz | Türkçe kök bulan kitaplık, kendi testleriyle | ajan koşmadı ve bunu yazdı; TCB koştu: 11 testin 9'u geçti |
 | 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | sürüyor; ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, kök sözlüğü ve ek çözümleyicisi yazıyor |
-| 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
+| 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; ekrana göre 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
 
 ## Yarış
 
@@ -82,4 +82,13 @@ Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un ö
 | 7 | dil | biçim denetimi yalnız "biçimlenmeli" diyor; ajanın denemesinde sebep büyük ihtimalle satır sonuydu, çok öğeli satır değil | F, Ö3 | status'ta |
 | 7 | fikir | ajan Türkçe küçük harfi kendi yazdı: `.TR_lower()` dile bağlı değil, `"ISI"` `isi` oluyor [ölçüldü]; metin işleme modülüne girer | yok | açık |
 | 7 | olumlu | büyük sözcük listesini çok satırlı ham metinle yazıp kümeye çevirdi; biçimleyiciyle çarpışmadı | yok | |
-| 8 | olumlu | çok dosyalı kitaplık, `TR_import`, yapı, durum makinesi, ikili arama: 30 bin satırlık veri dosyasıyla kendi testleri 1 saniyenin altında [ölçüldü] | yok | |
+| 8 | belge | `lib/README.md` kod adıyla yazıyor, ajan `TR_kw_import` yazdı; ileti doğrusunu söyledi | yok | düzeldi: giriş cümlesi, önek notu |
+| 8 | belge | sık yanlışlar tablosunda `and`, `or`, `not` yoktu | yok | düzeldi |
+| 8 | belge | başvuruda test yerleşikleri yoktu; `TR_assert_equal`'ın mesaj aldığı yazmıyordu | yok | düzeldi |
+| 8 | dil | yalın `and`, `or`, `not` sözdizimi hatası doğru yazımı söylemiyor; ajan 14 hata aldı | F1, Ö3 | status'ta |
+| 8 | fikir | modülün en dışı kod koşturmuyor (11.1) ve küme tipi yok; ajan 26.650 kök için sıralı liste ve ikili arama yazdı; ileti doğru yolu gösteriyor | yok | açık |
+| 8 | yöntem | ajanın anlatımına göre algoritma önce Python'da 30'dan fazla kez düzeltilmiş, sonra TR'ye taşınmış; üretici silindi, doğrulanmadı | yok | |
+| 8 | belge | ajan "modül kod koşturmaz" kuralından veri hazırlamayı TR'de yapılamaz sandı; program dosyası koşar. Kabuk ve hata ayıklayıcıyı denemedi, `AGENTS.md` söylemiyordu | yok | düzeldi |
+| 8 | dil tasarımı | ajanın sözü: deneme hızı için Python'u seçti, her denemede tip yazmak yavaşlatacaktı; taşırken üç hata çıktı. Ölçülmedi: dilin deneme hızı bir soru olarak açık | yok | açık |
+| 8 | belge | ajan Windows'ta hazır ikiliyi indiremedi, kaynaktan derledi; ajanın ortamından olabilir | yok | ölçülmedi |
+| 8 | olumlu | çok dosyalı kitaplık, `TR_import`, yapı, durum makinesi, ikili arama: 30 bin satırlık veri dosyasıyla kendi testleri yaklaşık 1 saniye [ölçüldü] | yok | |

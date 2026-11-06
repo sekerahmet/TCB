@@ -1,6 +1,8 @@
 # TR standart kitaplığı
 
-TR ile yazılmış, `trlang` ikilisine gömülü kitaplık. Modüller `TR_kw_import "tr/..."` ile alınır (dil tanımı [11.6](../docs/spec/11_moduller.md)): `tr/` öneki dilin kendi kitaplığına ayrılmıştır, diskteki dosyalar onu gölgeleyemez; kitaplık `TR_cmd_build` ile üretilen uygulamaya da girer. Go tarafı tek bir gömme dosyasıdır (`embedded.go`); kitaplığın kodu bu klasördeki `.tr` dosyalarıdır, okunur ve kopyalanıp değiştirilebilir.
+TR ile yazılmış, `trlang` ikilisine gömülü kitaplık. Modüller `TR_import "tr/..."` ile alınır (dil tanımı [11.6](../docs/spec/11_moduller.md)): `tr/` öneki dilin kendi kitaplığına ayrılmıştır, diskteki dosyalar onu gölgeleyemez; kitaplık `TR_cmd_build` ile üretilen uygulamaya da girer. Go tarafı tek bir gömme dosyasıdır (`embedded.go`); kitaplığın kodu bu klasördeki `.tr` dosyalarıdır, okunur ve kopyalanıp değiştirilebilir.
+
+Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_parameters`, `TR_mem_forward`, `TR_arg_seed`, `TR_kw_none`). Programda önek yazılmaz: `TR_GPT`, `TR_parameters`, `TR_forward`, `TR_seed`, `TR_none`.
 
 | Modül | Dosya | İçerik |
 | :-- | :-- | :-- |

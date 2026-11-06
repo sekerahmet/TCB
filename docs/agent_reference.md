@@ -181,7 +181,7 @@ TR_var n = TR_try { oku() } TR_catch e {
 ## Sık yerleşikler
 - **Genel:** `TR_print(a, b)` (değerleri boşlukla yazar), `TR_abs`, `TR_floor` ve `TR_ceil` (`TR_Float` verir), `TR_round(x)`, `TR_round(x, basamak)`, `TR_sqrt`, `TR_log`, `TR_exp`, `TR_min`, `TR_max`, `TR_sum(l)`, `TR_mean(l)`, `TR_json_parse(m)`, `TR_json_string(j)`, `TR_time_ms()`, `TR_sleep(saniye)`, `TR_exit(kod)`.
 - **Yuvarlama:** `TR_round(x)` bir `TR_Int` verir, `TR_round(x, basamak)` girdinin tipini. Yarım çifte gider, yazılan ondalığa göre: `TR_round(2.5)` = 2, `TR_round(3.5)` = 4, `TR_round(0.125, 2)` = 0.12, `TR_round(2.675, 2)` = 2.68.
-- **Metin:** `m[0..3]` dilimdir, `.TR_length`, `.TR_lower()`, `.TR_upper()`, `.TR_strip()`, `.TR_split()` (boşluk, sekme ve satır sonunda böler), `.TR_split(ayırıcı)`, `.TR_replace(a, b)`, `.TR_starts_with(m)`, `.TR_ends_with(m)`, `.TR_contains(m)`, `.TR_index_of(m)` (`TR_Int?`, bayt değil karakter sırası), `.TR_lines()` (`TR_read_lines` gibi böler), `.TR_get(i)`.
+- **Metin:** `m[0..3]` dilimdir, `.TR_length`, `.TR_lower()`, `.TR_upper()` (dile bağlı değil: `"I"` `i` olur, Türkçe için önce `.TR_replace` gerekir), `.TR_strip()`, `.TR_split()` (boşluk, sekme ve satır sonunda böler), `.TR_split(ayırıcı)`, `.TR_replace(a, b)`, `.TR_starts_with(m)`, `.TR_ends_with(m)`, `.TR_contains(m)`, `.TR_index_of(m)` (`TR_Int?`, bayt değil karakter sırası), `.TR_lines()` (`TR_read_lines` gibi böler), `.TR_get(i)`.
 - **Liste:**
   - `.TR_length`, `.TR_append(x)`, `.TR_contains(x)`, `.TR_index_of(x)` (`TR_Int?`).
   - `.TR_map(f)`, `.TR_filter(f)`, `.TR_reduce(başlangıç, (a, x) => ...)`.
@@ -190,6 +190,8 @@ TR_var n = TR_try { oku() } TR_catch e {
   - `.TR_join(ayırıcı)`, `.TR_unique()`.
   - `.TR_first`, `.TR_last` ve `.TR_get(i)` isteğe bağlı değer verir. `l[i]` sınır dışında çalışma hatasıdır; negatif indeks sondan sayar.
 - **Sözlük:** `d[k]` (olmayan anahtar çalışma hatasıdır), `d.TR_get(k)` (`V?`), `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_length`.
+
+- **Test:** `TR_test "ad" { }` dosyanın en dışında yazılır. İçinde `TR_assert(koşul, mesaj)` ve `TR_assert_equal(beklenen, gerçek, mesaj)`; mesaj isteğe bağlıdır. Hatayı sınamak: `TR_assert_equal("H7221", TR_error_code { ... })`.
 
 ## Dosya, klasör ve komut satırı
 - **Dosya:** `TR_read_file(yol)` metni verir, `TR_write_file(yol, metin)` yazar. `TR_read_lines(yol)` satır satır okur: `TR_for satır TR_in TR_read_lines(yol) { }`.
@@ -205,6 +207,7 @@ TR_var n = TR_try { oku() } TR_catch e {
 | `x = 5` (yeni ad), `x := 5` | `TR_var x = 5` |
 | `if l:` / `TR_if l { }` | `TR_if l.TR_length > 0 { }` |
 | `x in l` | `l.TR_contains(x)` |
+| `a and b`, `a or b`, `not a` | `a TR_and b`, `a TR_or b`, `TR_not a` |
 | `a if c else b` | `TR_if c { a } TR_else { b }` |
 | `f(k=2)` | `f(k: 2)` |
 | `"a" + str(n)`, f-string | `"a\(n)"` |

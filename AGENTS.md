@@ -15,12 +15,12 @@ If you can only read web pages, read the raw links under "Where to look" and wri
 The fastest way is the prebuilt binary, no Go needed. On x86-64 Linux (CPU only):
 
 ```bash
-curl -L -o trlang https://github.com/sekerahmet/TCB/releases/download/v0.1.0/trlang-linux-amd64
+curl -L -o trlang https://github.com/sekerahmet/TCB/releases/download/v0.2.0/trlang-linux-amd64
 chmod +x trlang
-sha256sum trlang   # 45a58140c84b17b2f4aaf5f12bad2d6d95a2022c55e0af9d93da7972a7be106f
+sha256sum trlang   # cf0cac08b85962ebc3b37dab8d312ff6b4286eba51642ee4531f83b7acf8cabe
 ```
 
-If you cannot run it where you saved it, copy it to `/tmp`. For Windows, the same release has `trlang-windows-amd64.exe`: https://github.com/sekerahmet/TCB/releases/tag/v0.1.0
+If you cannot run it where you saved it, copy it to `/tmp`. For Windows, the same release has `trlang-windows-amd64.exe`: https://github.com/sekerahmet/TCB/releases/tag/v0.2.0
 
 The binary can be behind `main`. To build from source, you need Go 1.25 or newer. No cgo, no CUDA toolkit. `go.mod` asks for toolchain 1.26.10 and Go downloads it by itself.
 
@@ -46,8 +46,10 @@ The command is `trlang`. Never type `tr`: on Linux that is another program and i
 TR_LANG=en ./trlang check --json program.tr   # check without running; one JSON record per message
 TR_LANG=en ./trlang run program.tr            # check and run
 TR_LANG=en ./trlang test program_test.tr      # run the TR_test blocks
-./trlang format --check program.tr            # is the file in the standard form?
+TR_LANG=en ./trlang format --check program.tr # is the file in the standard form?
 ```
+
+`trlang` alone opens an interactive shell, `trlang debug program.tr` a debugger. A program file runs from top to bottom, so data preparation can be written in TR too; only a module's top level runs no code.
 
 `TR_LANG=en` gives messages in English. Exit code 0 means no errors. Messages say what is wrong and usually give the correct spelling: read them and follow them. A clean `check` does not mean every rule held: the tool does not check all of them yet, and the reference below is the rule.
 
@@ -131,3 +133,5 @@ Comments in the examples are in Turkish. The code in them runs as it is from the
 | Running a published model | [`examples/tr/46_hazir_model_ve_uretim.tr`](https://raw.githubusercontent.com/sekerahmet/TCB/main/examples/tr/46_hazir_model_ve_uretim.tr) |
 
 All examples: https://github.com/sekerahmet/TCB/tree/main/examples/tr. Search them for a name before you guess it: there is one spelling for each thing.
+
+`lib/README.md` prints names with a class prefix, such as `TR_type_GPT` and `TR_fn_parameters`. In a program, leave the prefix out: `TR_GPT`, `TR_parameters`.
