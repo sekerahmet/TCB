@@ -194,6 +194,7 @@
 "H1144": "`.{#map}` collects results, but the function given to it returns no value (3.5): if you need no results, write a loop, for a list `l` and a function `f`: `{#for} x {#in} l {{ f(x) }}`",
 "H1145": "the paths are mixed or `{#return} {#none}` is written in a function expression whose return type is not known (6.2, 6.6): either every path ends with a value (`{#return} 0`) or no path returns one (`{#return}`)",
 "H1146": "; put the single number in a list: `{writing}`",
+"H1147": "`{#any}` cannot be written: no type holds every value (3.7a). Write the concrete type of the value: `{#var} x: {#int} = 5`; for data of unknown shape: `{#var} g: {#json} = {{\"k\": 1}}`",
 "H2000": "{fn}: {error}",
 "H2001": "Line {line}: {error}",
 "H2002": "{importer}, line {line}: the module {module|q} could not be loaded because of {kind, select, syntax {syntax} other {type-check}} errors",

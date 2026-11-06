@@ -194,6 +194,7 @@
 "H1144": "`.{#map}` sonuçları toplar, ona verilen fonksiyon değer döndürmüyor (3.5): sonuç gerekmiyorsa, liste `l`, fonksiyon `f` ise döngü yazın: `{#for} x {#in} l {{ f(x) }}`",
 "H1145": "dönüş tipi bilinmeyen fonksiyon ifadesinde yollar karışık ya da `{#return} {#none}` yazılmış (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)",
 "H1146": "; tek sayıyı listeye alın: `{writing}`",
+"H1147": "`{#any}` yazılamaz: her değeri tutan genel bir tip yoktur (3.7a). Değerin somut tipini yazın: `{#var} x: {#int} = 5`; yapısı önceden bilinmeyen veri için: `{#var} g: {#json} = {{\"k\": 1}}`",
 "H2000": "{fn}: {error}",
 "H2001": "Satır {line}: {error}",
 "H2002": "{importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi",

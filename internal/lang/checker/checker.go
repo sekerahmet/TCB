@@ -194,6 +194,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.checkTestPlaces(prog)
 	c.checkSignatures(prog)
 	c.checkValuePlaces(prog)
+	c.checkWrittenAny(prog)
 	sortByLine(c.errors[start:])
 }
 

@@ -40,6 +40,11 @@ alan, ilk değeri bir fonksiyonun sonucu yapan yazımı dosyadaki metinden kurar
 `TestModuleFirstValuesAreConstant`, `TestModuleRuleMessages`, `TestRepoModulesHoldOnlyDefinitions`,
 `TestModuleRuleSuggestionRuns` (interp).
 
+**`TR_Any` denetleyicinin iç tipidir, program metninde yazılmaz (3.7a).** Tipi bilinmeyen değerin içerideki
+adıdır, her değeri tutan bir tip değildir: yazıldığı her yer (tip yazımının her yeri, değer olarak da) H1147'dir
+(`written_any.go`). Denetim: `TestWrittenAnyIsAnError`, `TestWrittenAnySuggestionsRun`, olumsuz fikstür
+`tests/negative/tr_any_yazimi.tr`.
+
 **Yerel değişkenin tipi ilk değerinden çıkar ve değişmez (1.2, 3.13).** Açıklamasız `TR_var`'ın
 tipi ilk değerinin çıkarılan tipidir; sonraki atama ona uyar (H1005: `TR_var toplam = 0` sonra
 `toplam += 0.5` hatadır, ondalık değişkene tam sayı atamak değildir). Tipi çıkarılamayan ilk değer,
