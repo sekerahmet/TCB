@@ -436,6 +436,7 @@ blokta.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_seg
 blokta.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 boylar.TR_append	ok	0	name:TR_mem_append
 boş.TR_grad	ok	0	name:TR_mem_grad
+boş.TR_index_of	ok	0	name:TR_mem_index_of
 boş.TR_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_position
 boş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 boş.TR_step_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_step_position
@@ -849,6 +850,7 @@ l.TR_filter	ok	0	name:TR_mem_filter
 l.TR_first	ok	0	name:TR_mem_first
 l.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 l.TR_get	ok	0	name:TR_mem_get
+l.TR_index_of	ok	0	name:TR_mem_index_of
 l.TR_join	ok	0	name:TR_mem_join
 l.TR_last	ok	0	name:TR_mem_last
 l.TR_length	ok	0	name:TR_mem_length
@@ -928,6 +930,7 @@ mesaj.TR_contains	ok	0	name:TR_mem_contains
 mesajlar.TR_append	ok	0	name:TR_mem_append
 metinler.TR_append	ok	0	name:TR_mem_append
 meyveler.TR_append	ok	0	name:TR_mem_append
+meyveler.TR_index_of	ok	0	name:TR_mem_index_of
 meyveler.TR_length	ok	0	name:TR_mem_length
 mikrofon.TR_cancel	ok	0	name:TR_mem_cancel
 mikrofon.TR_read	ok	0	name:TR_mem_read

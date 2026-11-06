@@ -13,7 +13,7 @@ TR_print(meyveler, meyveler.TR_length)
 TR_print(meyveler[0], meyveler[2], meyveler[-1])
 meyveler[1] = "erik" # elemanı değiştir
 meyveler.TR_append("muz") # sona ekle
-TR_print(meyveler)
+TR_print(meyveler, meyveler.TR_index_of("muz")) # bulunamazsa TR_none
 
 # Liste bir döngüyle gezilir.
 TR_for meyve TR_in meyveler {

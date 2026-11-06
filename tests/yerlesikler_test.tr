@@ -261,6 +261,30 @@ TR_test "13.2 TR_lines satır sonunda böler, sondaki satır sonundan boş satı
     }
 }
 
+TR_test "13.2 TR_index_of ilk konumu kod noktasıyla verir, bulunamazsa TR_none" {
+    TR_assert_equal(1, "ğa".TR_index_of("a"))
+    TR_assert_equal(1, "€a".TR_index_of("a"))
+    TR_assert_equal(1, "😀a".TR_index_of("a"))
+    TR_assert_equal(2, "abcabc".TR_index_of("c"))
+    TR_assert_equal(1, "abcabc".TR_index_of("bc"))
+    TR_assert_equal(0, "abc".TR_index_of(""))
+    TR_assert_equal(0, "".TR_index_of(""))
+    TR_assert_equal(99, "abc".TR_index_of("z") ?? 99)
+    TR_assert_equal(99, "".TR_index_of("a") ?? 99)
+    TR_assert("abc".TR_index_of("z") == TR_none)
+}
+
+TR_test "13.3 TR_index_of ilk konumu 4.5'in eşitliğiyle verir, bulunamazsa TR_none" {
+    TR_assert_equal(1, [10, 20, 20].TR_index_of(20))
+    TR_assert_equal(0, [1.0].TR_index_of(1))
+    TR_assert_equal(1, [[1], [2]].TR_index_of([2]))
+    TR_assert_equal(0, ["a"].TR_index_of("a"))
+    TR_var boş: TR_List[TR_Int] = []
+    TR_assert_equal(99, boş.TR_index_of(1) ?? 99)
+    TR_assert_equal(99, [1].TR_index_of(2) ?? 99)
+    TR_assert_equal(99, [TR_Float("nan")].TR_index_of(TR_Float("nan")) ?? 99)
+}
+
 TR_test "13.3 liste metotları" {
     TR_var l = [3, 1, 2, 2]
     TR_assert_equal([1, 2, 2, 3], l.TR_sort())

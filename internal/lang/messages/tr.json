@@ -189,7 +189,7 @@
 "H1139": "{list} listesinin öğeleri başvuruyla paylaşılır (3.6): `*` ile yinelenince her satır aynı öğe olur, birini değiştirmek hepsini değiştirir (4.10); {suggestion, select, empty {her satırı ayrı kurun, örneğin bir üreteçle} other {her satırı ayrı kurun: `{suggestion}`}}",
 "H1140": "{container} sözlüğünün anahtarları {key} tipindedir: {given} tipinde anahtarla okunmaz ve yazılmaz (3.7)",
 "H1141": "'{op}' aynı tipten iki değeri karşılaştırır (4.5): {left} ile {right} ayrı tiplerdir, sonuç hep aynı olurdu",
-"H1142": "{container} listesinin öğeleri {elem} tipindedir: {given} tipinde bir değer onda bulunmaz, sonuç hep `{#false}` olurdu (3.6, 13.10){conversion, select, empty {} other {; öğe tipine çevirin: `{conversion}`}}",
+"H1142": "{container} listesinin öğeleri {elem} tipindedir: {given} tipinde bir değer onda bulunmaz, arama onu hiç bulamazdı (3.6, 13.10){conversion, select, empty {} other {; öğe tipine çevirin: `{conversion}`}}",
 "H1143": "`{call}` değer vermez, değer yerinde kullanılamaz (3.5): çağrıyı kendi satırında deyim olarak yazın: `{call}`",
 "H1144": "`.{#map}` sonuçları toplar, ona verilen fonksiyon değer döndürmüyor (3.5): sonuç gerekmiyorsa, liste `l`, fonksiyon `f` ise döngü yazın: `{#for} x {#in} l {{ f(x) }}`",
 "H1145": "dönüş tipi bilinmeyen fonksiyon ifadesinde yollar karışık ya da `{#return} {#none}` yazılmış (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)",

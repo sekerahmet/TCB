@@ -423,6 +423,7 @@
   "TR_mem_hidden_states": { "name": "hidden_states" },
   "TR_mem_history_length": { "name": "history_length" },
   "TR_mem_history_limit": { "name": "history_limit" },
+  "TR_mem_index_of": { "name": "index_of" },
   "TR_mem_input_norm": { "name": "input_norm" },
   "TR_mem_is_dir": { "name": "is_dir" },
   "TR_mem_is_file": { "name": "is_file" },

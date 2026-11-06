@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 658 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 53 tip, 151 fonksiyon, 11 sabit, 81 metot, 109 özellik, 166 adlı argüman.
+Toplam 659 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 53 tip, 151 fonksiyon, 11 sabit, 82 metot, 109 özellik, 166 adlı argüman.
 
 ## İçindekiler
 
@@ -836,7 +836,7 @@ en: var l: List[Int] = [1, 2, 3]; print(Type(l), l[-1])
 tr: değişken l: Liste[Tam] = [1, 2, 3]; yazdır(Tip(l), l[-1])
 ```
 
-Üyeleri: `.TR_append(...)`, `.TR_contains(...)`, `.TR_filter(...)`, `.TR_first`, `.TR_get(...)`, `.TR_join(...)`, `.TR_last`, `.TR_length`, `.TR_map(...)`, `.TR_pop(...)`, `.TR_reduce(...)`, `.TR_remove_at(...)`, `.TR_reverse(...)`, `.TR_sort(...)`, `.TR_unique(...)`
+Üyeleri: `.TR_append(...)`, `.TR_contains(...)`, `.TR_filter(...)`, `.TR_first`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_join(...)`, `.TR_last`, `.TR_length`, `.TR_map(...)`, `.TR_pop(...)`, `.TR_reduce(...)`, `.TR_remove_at(...)`, `.TR_reverse(...)`, `.TR_sort(...)`, `.TR_unique(...)`
 
 #### `TR_Logger` (`TR_type_Logger`, `Günlük`)
 
@@ -1088,7 +1088,7 @@ en: var ad: String = "şeker"; print(Type(ad), ad[-1], String(12) + "a", String(
 tr: değişken ad: Metin = "şeker"; yazdır(Tip(ad), ad[-1], Metin(12) + "a", Metin([1, 2]))
 ```
 
-Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
+Üyeleri: `.TR_contains(...)`, `.TR_ends_with(...)`, `.TR_get(...)`, `.TR_index_of(...)`, `.TR_length`, `.TR_lines(...)`, `.TR_lower(...)`, `.TR_replace(...)`, `.TR_reverse(...)`, `.TR_split(...)`, `.TR_starts_with(...)`, `.TR_strip(...)`, `.TR_upper(...)` · İlişkili: `TR_Int`, `TR_Float`
 
 #### `TR_StructType` (`TR_type_StructType`, `YapıTanımı`)
 
@@ -5782,6 +5782,26 @@ tr: değişken x = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(topl
 #### `.TR_history_limit` (`TR_mem_history_limit`, `geçmiş_sınırı`)
 
 
+
+#### `.TR_index_of(...)` (`TR_mem_index_of`, `konumu`)
+
+    Liste.konumu(Herhangi) → Tam
+    Metin.konumu(Metin) → Tam
+
+Metinde alt metnin, listede değerin (== ile) ilk konumunu verir; bulunamazsa yok verir. Metinde konum karakter sayısıdır, bayt değil.
+
+```tr
+TR_print("merhaba".TR_index_of("ha"), [10, 20].TR_index_of(20), [10].TR_index_of(30) ?? -1)
+```
+
+Görünümü:
+
+```text
+en: print("merhaba".index_of("ha"), [10, 20].index_of(20), [10].index_of(30) ?? -1)
+tr: yazdır("merhaba".konumu("ha"), [10, 20].konumu(20), [10].konumu(30) ?? -1)
+```
+
+İlişkili: `.TR_contains(...)`, `.TR_get(...)`
 
 #### `.TR_input_norm` (`TR_mem_input_norm`, `norm1`)
 
