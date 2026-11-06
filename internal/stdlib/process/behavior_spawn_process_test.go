@@ -429,18 +429,20 @@ TR_try {
 	}
 }
 
-// Durdurma bekleyen okumayı bitirir, program durmadan yığın çözülmez (1.5, 21.5).
+// Durdurma iki kipte de bekleyen okumayı bitirir, program durmadan yığın çözülmez (1.5, 21.5).
 func TestStopEndsThePendingRead(t *testing.T) {
-	beat := filepath.Join(t.TempDir(), "atım")
-	m, end := startProgram(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["beat", `+tr(beat)+`, "100000"])
+	for _, arg := range []string{"", ", TR_buffer_bytes: 1000"} {
+		beat := filepath.Join(t.TempDir(), "atım")
+		m, end := startProgram(t, `TR_var p = TR_spawn_process(`+helperProgram(t)+`, ["beat", `+tr(beat)+`, "100000"]`+arg+`)
 p.TR_read(10)`)
-	await(t, "program başladı", func() bool { return size(beat) > 0 })
-	m.RequestStop(2)
-	if err := finished(t, end); !errors.Is(err, interp.ErrInterrupted) {
-		t.Errorf("%v", err)
-	}
-	if stillBeating(beat) {
-		t.Error("program durmalıydı")
+		await(t, "program başladı", func() bool { return size(beat) > 0 })
+		m.RequestStop(2)
+		if err := finished(t, end); !errors.Is(err, interp.ErrInterrupted) {
+			t.Errorf("%q: %v", arg, err)
+		}
+		if stillBeating(beat) {
+			t.Errorf("%q: program durmalıydı", arg)
+		}
 	}
 }
 
