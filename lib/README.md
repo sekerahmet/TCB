@@ -12,6 +12,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 | `tr/audio` | [`audio.tr`](audio.tr) | Ses dosyası (WAV okumak ve yazmak, `TR_type_Sound`) ve Whisper'ın girdisi (`TR_fn_whisper_log_mel`) |
 | `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |
+| `tr/turkish` | [`turkish.tr`](turkish.tr) | Türkçe sözcüğün sözlük biçimi (`TR_fn_lemma`), türü ve ekleri (`TR_fn_analyze_word`); kendi sözlüğü olan bulucu (`TR_type_Lemmatizer`) |
 | `tr/vad` | [`vad.tr`](vad.tr) | Silero VAD ile konuşma olasılığı (`TR_type_VoiceDetector`) ve sürekli sesten konuşma kesitleri (`TR_type_SpeechSplitter`) |
 
 Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`, `audio_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
@@ -190,6 +191,13 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Kapılar:** `num_mel_bins` 80 ya da 128'dir. `activation_function` `gelu` dışında, `scale_embedding` açık, boyut sıfır ya da eksi, bakış sayısı `d_model`'i bölmüyorsa hatadır: model hatasız yüklenir, yanlış metin üretirdi.
 - **Çevirme:** `model.TR_mem_transcribe(ses, TR_arg_language: "tr")` bir `TR_type_Transcription` verir; özgün `transcribe`'ı `temperature=0.0`, `beam_size=None`, `fp16=False` ile izler. Gövde float32 bloğundadır: dış 16 bit blok sonucu değiştirmez.
 - **Doğruluk:** küçük sentetik modelde Hugging Face kodlayıcısı ve çözücüsüyle aynı değer (`tests/whisper_model_test.tr`, başvurusu `tests/testdata/whisper/KAYNAK.md`).
+
+## `tr/turkish`
+
+`TR_fn_lemma(sözcük)` sözlük biçimini, `TR_fn_analyze_word(sözcük)` bir `TR_type_WordAnalysis` verir (dil tanımı 26): `TR_mem_lemma`, `TR_mem_word_kind`, `TR_mem_suffixes`, `TR_mem_known`. Kendi sözlüğü için `TR_type_Lemmatizer()` ve `.TR_mem_add_lemma(sözcük, tür)`.
+
+- **Veri:** sözcük listeleri Zemberek `master-dictionary.dict`'ten üretildi; kaynak, commit, telif ve üretim yolu `turkish.tr`'nin başındadır.
+- **Yükleme:** sözlük ilk çağrıda bir kez kurulur.
 
 ## `tr/vad`
 

@@ -276,7 +276,10 @@ func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.
 // memberSpellingExceptions depodaki .tr dosyalarında yazılmış ama dilde üye ya da kitaplık bildirimi karşılığı
 // gerçekten bulunmayan `<alıcı>.TR_<ad>` yazımlarıdır; her istisna gerekçesiyle yazılır.
 var memberSpellingExceptions = map[string]string{
-	"l.TR_print": "tests/negative/kimlik_yeri.tr:4 (# ERROR H0029): TR_fn_print genel yerleşiktir, nokta sonrasında üye yeri hatasını sınar",
+	"l.TR_print":                 "tests/negative/kimlik_yeri.tr:4 (# ERROR H0029): TR_fn_print genel yerleşiktir, nokta sonrasında üye yeri hatasını sınar",
+	"TR_WordKind.TR_Noun":        "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
+	"TR_WordKind.TR_UnknownKind": "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
+	"TR_WordKind.TR_Verb":        "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
 }
 
 // Kural (DENETİM istek 48, 55): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) zincir başı ve rakamla

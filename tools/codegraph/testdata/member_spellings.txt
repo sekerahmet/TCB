@@ -51,6 +51,9 @@ TR_SpikeGuard.TR_exceeds	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_me
 TR_SpikeGuard.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
 TR_String.TR_split	ok	0	name:TR_mem_split
 TR_Tensor.TR_zeros	not_found	4	-
+TR_WordKind.TR_Noun	not_found	4	-
+TR_WordKind.TR_UnknownKind	not_found	4	-
+TR_WordKind.TR_Verb	not_found	4	-
 TR_absolute.TR_is_dir	ok	0	name:TR_mem_is_dir
 TR_absolute.TR_name	ok	0	name:TR_mem_name
 TR_absolute.TR_parent	ok	0	name:TR_mem_parent
@@ -134,6 +137,7 @@ TR_self.TR_Linear	not_found	4	-
 TR_self.TR_adamw	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_adamw
 TR_self.TR_adamw_lr	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_adamw_lr
 TR_self.TR_adamw_no_decay	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_adamw_no_decay
+TR_self.TR_analyze_word	ok	0	tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_analyze_word
 TR_self.TR_append	ok	0	name:TR_mem_append
 TR_self.TR_append_buffer	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_append_buffer
 TR_self.TR_attention	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_attention
@@ -268,6 +272,12 @@ X.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 X.TR_transpose	ok	0	name:TR_mem_transpose
 Y.TR_transpose	ok	0	name:TR_mem_transpose
 Yer.TR_ctx_init	not_found	4	-
+_DAR_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
+_FİİL_ÜNLÜ_DÜŞENLER.TR_contains	ok	0	name:TR_mem_contains
+_KALIN_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
+_KENAR.TR_contains	ok	0	name:TR_mem_contains
+_SERT_ÜNSÜZLER.TR_contains	ok	0	name:TR_mem_contains
+_YOR_SONLARI.TR_split	ok	0	name:TR_mem_split
 _d.TR_probability	ok	0	tr:method:lib/vad.tr:TR_type_VoiceDetector.TR_mem_probability
 _h.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 _olasılıklar.TR_append	ok	0	name:TR_mem_append
@@ -276,8 +286,11 @@ _parçalayıcı.TR_decode	ok	0	name:TR_mem_decode
 _parçalayıcı.TR_encode	ok	0	name:TR_mem_encode
 _parçalayıcı.TR_token_id	ok	0	name:TR_mem_token_id
 _ÖZEL.TR_length	ok	0	name:TR_mem_length
+_ÖZEL_ÇEKİMLER.TR_contains	ok	0	name:TR_mem_contains
+_ÜNLÜLER.TR_contains	ok	0	name:TR_mem_contains
 _çerçeveler.TR_append	ok	0	name:TR_mem_append
 _çerçeveler.TR_length	ok	0	name:TR_mem_length
+_İKİZLEŞENLER.TR_split	ok	0	name:TR_mem_split
 a.TR_append	ok	0	name:TR_mem_append
 a.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 a.TR_device	ok	0	name:TR_mem_device
@@ -293,6 +306,8 @@ a.TR_get	ok	0	name:TR_mem_get
 a.TR_grad	ok	0	name:TR_mem_grad
 a.TR_k_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_k_proj
 a.TR_keys	ok	0	name:TR_mem_keys
+a.TR_known	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_known
+a.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 a.TR_length	ok	0	name:TR_mem_length
 a.TR_loss	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_loss
 a.TR_map	ok	0	name:TR_mem_map
@@ -310,6 +325,7 @@ a.TR_shape	ok	0	name:TR_mem_shape
 a.TR_slice	ok	0	name:TR_mem_slice
 a.TR_state	ok	0	name:TR_mem_state
 a.TR_step	ok	0	name:TR_mem_step
+a.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 a.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 a.TR_to_device	ok	0	name:TR_mem_to_device
 a.TR_to_dtype	ok	0	name:TR_mem_to_dtype
@@ -318,6 +334,7 @@ a.TR_transpose	ok	0	name:TR_mem_transpose
 a.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
 a.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
 a.TR_wait	ok	0	name:TR_mem_wait
+a.TR_word_kind	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_word_kind
 a.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 a1.TR_grad	ok	0	name:TR_mem_grad
 a2.TR_grad	ok	0	name:TR_mem_grad
@@ -327,10 +344,13 @@ ad.TR_split	ok	0	name:TR_mem_split
 ad.TR_starts_with	ok	0	name:TR_mem_starts_with
 adamw.TR_state	ok	0	name:TR_mem_state
 adamw.TR_step	ok	0	name:TR_mem_step
+adaylar.TR_append	ok	0	name:TR_mem_append
+adaylar.TR_length	ok	0	name:TR_mem_length
 adlar.TR_contains	ok	0	name:TR_mem_contains
 adlar.TR_keys	ok	0	name:TR_mem_keys
 adlar.TR_length	ok	0	name:TR_mem_length
 adımlar.TR_length	ok	0	name:TR_mem_length
+ak.TR_length	ok	0	name:TR_mem_length
 akış.TR_finish	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_finish
 akış.TR_step	ok	0	name:TR_mem_step
 alanlar.TR_append	ok	0	name:TR_mem_append
@@ -354,6 +374,8 @@ açılan.TR_device	ok	0	name:TR_mem_device
 açılan.TR_dtype	ok	0	name:TR_mem_dtype
 açılan.TR_tolist	ok	0	name:TR_mem_tolist
 ağırlıklar.TR_append	ok	0	name:TR_mem_append
+b.TR_add_lemma	ok	0	tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_add_lemma
+b.TR_analyze_word	ok	0	tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_analyze_word
 b.TR_append	ok	0	name:TR_mem_append
 b.TR_attention	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_attention
 b.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
@@ -375,6 +397,7 @@ b.TR_history_length	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_his
 b.TR_input_norm	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_input_norm
 b.TR_k_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_k_proj
 b.TR_kv_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_kv_proj
+b.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 b.TR_length	ok	0	name:TR_mem_length
 b.TR_mem_tolist	not_found	4	-
 b.TR_next	ok	0	name:TR_mem_next
@@ -404,6 +427,7 @@ b.TR_wait	ok	0	name:TR_mem_wait
 b.TR_zero_grad	ok	0	name:TR_mem_zero_grad
 b1.TR_grad	ok	0	name:TR_mem_grad
 b2.TR_grad	ok	0	name:TR_mem_grad
+bakılacak.TR_append	ok	0	name:TR_mem_append
 bastırılan.TR_append	ok	0	name:TR_mem_append
 baytlar.TR_length	ok	0	name:TR_mem_length
 bağlam.TR_append	ok	0	name:TR_mem_append
@@ -425,6 +449,7 @@ biten.TR_cancel	ok	0	name:TR_mem_cancel
 biten.TR_wait	ok	0	name:TR_mem_wait
 bitenler.TR_append	ok	0	name:TR_mem_append
 bitenler.TR_length	ok	0	name:TR_mem_length
+bk.TR_length	ok	0	name:TR_mem_length
 blok.TR_dtype	ok	0	name:TR_mem_dtype
 blok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 blok.TR_to_dtype	ok	0	name:TR_mem_to_dtype
@@ -442,6 +467,9 @@ boş.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 boş.TR_step_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_step_position
 boş.TR_tolist	ok	0	name:TR_mem_tolist
 boşluk.TR_append	ok	0	name:TR_mem_append
+bulucu.TR_add_lemma	ok	0	tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_add_lemma
+bulucu.TR_analyze_word	ok	0	tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_analyze_word
+bulucu.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 bölen.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 bölen.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 bölen.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
@@ -552,7 +580,9 @@ e.TR_Run	not_found	4	-
 e.TR_append	ok	0	name:TR_mem_append
 e.TR_cause	ok	0	name:TR_mem_cause
 e.TR_code	ok	0	name:TR_mem_code
+e.TR_contains	ok	0	name:TR_mem_contains
 e.TR_keys	ok	0	name:TR_mem_keys
+e.TR_length	ok	0	name:TR_mem_length
 e.TR_message	not_found	4	-
 e.TR_pop	ok	0	name:TR_mem_pop
 e.TR_q_norm	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_norm
@@ -561,13 +591,18 @@ e.TR_reshape	ok	0	name:TR_mem_reshape
 e.TR_shape	ok	0	name:TR_mem_shape
 e.TR_slice	ok	0	name:TR_mem_slice
 e.TR_sort	ok	0	name:TR_mem_sort
+e.TR_starts_with	ok	0	name:TR_mem_starts_with
 e.TR_suppressed	ok	0	name:TR_mem_suppressed
 e.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 e.TR_tolist	ok	0	name:TR_mem_tolist
 e.TR_value	ok	0	name:TR_mem_value
 e.TR_wait	ok	0	name:TR_mem_wait
+ek_fiiller.TR_contains	ok	0	name:TR_mem_contains
+ek_isimler.TR_contains	ok	0	name:TR_mem_contains
 eklenen.TR_append	ok	0	name:TR_mem_append
 eklenen.TR_join	ok	0	name:TR_mem_join
+ekler.TR_length	ok	0	name:TR_mem_length
+ekler_ters.TR_length	ok	0	name:TR_mem_length
 elle.TR_tolist	ok	0	name:TR_mem_tolist
 es.TR_append	ok	0	name:TR_mem_append
 es.TR_contains	ok	0	name:TR_mem_contains
@@ -579,8 +614,14 @@ eğitim_verisi.TR_sampler	ok	0	name:TR_mem_sampler
 f.TR_cause	ok	0	name:TR_mem_cause
 f.TR_code	ok	0	name:TR_mem_code
 f.TR_dtype	ok	0	name:TR_mem_dtype
+f.TR_known	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_known
+f.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
+f.TR_length	ok	0	name:TR_mem_length
 f.TR_shape	ok	0	name:TR_mem_shape
+f.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 f.TR_tolist	ok	0	name:TR_mem_tolist
+f.TR_word_kind	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_word_kind
+fiiller.TR_contains	ok	0	name:TR_mem_contains
 fiyatlar.TR_contains	ok	0	name:TR_mem_contains
 fiyatlar.TR_get	ok	0	name:TR_mem_get
 fiyatlar.TR_keys	ok	0	name:TR_mem_keys
@@ -597,9 +638,11 @@ g.TR_close	ok	0	name:TR_mem_close
 g.TR_code	ok	0	name:TR_mem_code
 g.TR_done	ok	0	name:TR_mem_done
 g.TR_dtype	ok	0	name:TR_mem_dtype
+g.TR_ends_with	ok	0	name:TR_mem_ends_with
 g.TR_fill	ok	0	spec:15.54	tr_index:not_found:4
 g.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 g.TR_grad	ok	0	name:TR_mem_grad
+g.TR_length	ok	0	name:TR_mem_length
 g.TR_remove	ok	0	name:TR_mem_remove
 g.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 g.TR_reshape	ok	0	name:TR_mem_reshape
@@ -640,13 +683,16 @@ görev.TR_wait	ok	0	name:TR_mem_wait
 görülen.TR_append	ok	0	name:TR_mem_append
 görülen.TR_sort	ok	0	name:TR_mem_sort
 görünüm.TR_requires_grad	ok	0	name:TR_mem_requires_grad
+gövde.TR_ends_with	ok	0	name:TR_mem_ends_with
 gövde.TR_grad	ok	0	name:TR_mem_grad
+gövde.TR_length	ok	0	name:TR_mem_length
 gövde.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 gövde.TR_tolist	ok	0	name:TR_mem_tolist
 gövde2.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 gövde2.TR_tolist	ok	0	name:TR_mem_tolist
 güncellemeler.TR_append	ok	0	name:TR_mem_append
 günlük_metni.TR_contains	ok	0	name:TR_mem_contains
+güvenli_ekler.TR_contains	ok	0	name:TR_mem_contains
 h.TR_cause	ok	0	name:TR_mem_cause
 h.TR_code	ok	0	name:TR_mem_code
 h.TR_contains	ok	0	name:TR_mem_contains
@@ -663,6 +709,7 @@ h.TR_wait	ok	0	name:TR_mem_wait
 ham.TR_filter	ok	0	name:TR_mem_filter
 ham.TR_length	ok	0	name:TR_mem_length
 ham.TR_unique	ok	0	name:TR_mem_unique
+harf.TR_length	ok	0	name:TR_mem_length
 harf_no.TR_contains	ok	0	name:TR_mem_contains
 harfler.TR_append	ok	0	name:TR_mem_append
 harfler.TR_length	ok	0	name:TR_mem_length
@@ -691,6 +738,9 @@ idx.TR_reshape	ok	0	name:TR_mem_reshape
 iki.TR_shape	ok	0	name:TR_mem_shape
 iki.TR_tolist	ok	0	name:TR_mem_tolist
 iki_satır.TR_split	ok	0	name:TR_mem_split
+ikinci.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
+ikinci.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
+ikizler.TR_contains	ok	0	name:TR_mem_contains
 ileri.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 ileri.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 ileri.TR_length	ok	0	name:TR_mem_length
@@ -699,14 +749,18 @@ ileti.TR_contains	ok	0	name:TR_mem_contains
 ileti.TR_ends_with	ok	0	name:TR_mem_ends_with
 iletiler.TR_append	ok	0	name:TR_mem_append
 ilk.TR_code	ok	0	name:TR_mem_code
+ilk.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 ilk.TR_length	ok	0	name:TR_mem_length
 ilk.TR_shape	ok	0	name:TR_mem_shape
+ilk.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
 ilk.TR_tolist	ok	0	name:TR_mem_tolist
 ince.TR_dtype	ok	0	name:TR_mem_dtype
 ince.TR_step	ok	0	name:TR_mem_step
 ince.TR_tolist	ok	0	name:TR_mem_tolist
+ince_ek_alanlar.TR_contains	ok	0	name:TR_mem_contains
 indeksler.TR_append	ok	0	name:TR_mem_append
 inputs.TR_append	ok	0	name:TR_mem_append
+isimler.TR_contains	ok	0	name:TR_mem_contains
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
 ix2.TR_tolist	ok	0	name:TR_mem_tolist
@@ -804,6 +858,7 @@ kesit.TR_shape	ok	0	name:TR_mem_shape
 kesit.TR_tolist	ok	0	name:TR_mem_tolist
 kesitler.TR_append	ok	0	name:TR_mem_append
 kesitler.TR_length	ok	0	name:TR_mem_length
+ki_önleri.TR_contains	ok	0	name:TR_mem_contains
 kimlikler.TR_append	ok	0	name:TR_mem_append
 kimlikler.TR_length	ok	0	name:TR_mem_length
 kişi.TR_get	ok	0	name:TR_mem_get
@@ -825,6 +880,7 @@ kopya.TR_length	ok	0	name:TR_mem_length
 kopya.TR_remove	ok	0	name:TR_mem_remove
 kopya.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 kopya.TR_tolist	ok	0	name:TR_mem_tolist
+korunanlar.TR_contains	ok	0	name:TR_mem_contains
 koşu.TR_evaluated	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_evaluated
 koşu.TR_finish	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_finish
 koşu.TR_folder	ok	0	tr:field:lib/training.tr:TR_type_Run.TR_mem_folder
@@ -838,9 +894,11 @@ kutular.TR_sort	ok	0	name:TR_mem_sort
 kuyruk.TR_pop	ok	0	name:TR_mem_pop
 kuyruk.TR_remove_at	ok	0	name:TR_mem_remove_at
 kv.TR_tolist	ok	0	name:TR_mem_tolist
+kök.TR_length	ok	0	name:TR_mem_length
 küme.TR_mem_sampler	not_found	4	-
 küme.TR_sampler	ok	0	name:TR_mem_sampler
 küme.TR_sequential	ok	0	name:TR_mem_sequential
+küçük.TR_length	ok	0	name:TR_mem_length
 küçük.TR_shape	ok	0	name:TR_mem_shape
 kısa.TR_tolist	ok	0	name:TR_mem_tolist
 l.TR_append	ok	0	name:TR_mem_append
@@ -1030,6 +1088,8 @@ od.TR_step	ok	0	name:TR_mem_step
 okuyucu.TR_close	ok	0	name:TR_mem_close
 okuyucu.TR_next	ok	0	name:TR_mem_next
 olay.TR_starts_with	ok	0	name:TR_mem_starts_with
+olaylar.TR_contains	ok	0	name:TR_mem_contains
+olaylar.TR_length	ok	0	name:TR_mem_length
 ondalık.TR_read_float	ok	0	name:TR_mem_read_float
 op.TR_adamw	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_adamw
 op.TR_adamw_no_decay	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_adamw_no_decay
@@ -1220,6 +1280,7 @@ sayım.TR_length	ok	0	name:TR_mem_length
 sb.TR_append	ok	0	name:TR_mem_append
 sentetik.TR_append	ok	0	name:TR_mem_append
 serbest.TR_tolist	ok	0	name:TR_mem_tolist
+sert_fiiller.TR_contains	ok	0	name:TR_mem_contains
 ses.TR_sample_rate	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_sample_rate
 ses.TR_samples	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_samples
 ses.TR_shape	ok	0	name:TR_mem_shape
@@ -1241,6 +1302,7 @@ son.TR_slice	ok	0	name:TR_mem_slice
 son.TR_tolist	ok	0	name:TR_mem_tolist
 son_k.TR_device	ok	0	name:TR_mem_device
 son_x.TR_device	ok	0	name:TR_mem_device
+son_çiftler.TR_contains	ok	0	name:TR_mem_contains
 sondalar.TR_append	ok	0	name:TR_mem_append
 sonuclar.TR_append	ok	0	name:TR_mem_append
 sonuç.TR_append	ok	0	name:TR_mem_append
@@ -1249,6 +1311,8 @@ sonuçlar.TR_contains	ok	0	name:TR_mem_contains
 sonuçlar.TR_length	ok	0	name:TR_mem_length
 sönümlü.TR_append	ok	0	name:TR_mem_append
 sönümsüz.TR_append	ok	0	name:TR_mem_append
+sözcük.TR_ends_with	ok	0	name:TR_mem_ends_with
+sözcük.TR_length	ok	0	name:TR_mem_length
 sözlük.TR_append	ok	0	name:TR_mem_append
 sözlük.TR_join	ok	0	name:TR_mem_join
 sürdürülen.TR_load_state	ok	0	name:TR_mem_load_state
@@ -1389,6 +1453,7 @@ y.TR_dtype	ok	0	name:TR_mem_dtype
 y.TR_extension	ok	0	name:TR_mem_extension
 y.TR_grad	ok	0	name:TR_mem_grad
 y.TR_keys	ok	0	name:TR_mem_keys
+y.TR_length	ok	0	name:TR_mem_length
 y.TR_name	ok	0	name:TR_mem_name
 y.TR_parent	ok	0	name:TR_mem_parent
 y.TR_permute	ok	0	name:TR_mem_permute
@@ -1396,6 +1461,7 @@ y.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 y.TR_reshape	ok	0	name:TR_mem_reshape
 y.TR_shape	ok	0	name:TR_mem_shape
 y.TR_slice	ok	0	name:TR_mem_slice
+y.TR_starts_with	ok	0	name:TR_mem_starts_with
 y.TR_stem	ok	0	name:TR_mem_stem
 y.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 y.TR_tolist	ok	0	name:TR_mem_tolist
@@ -1406,10 +1472,15 @@ yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
 yarım.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 yavaş.TR_wait	ok	0	name:TR_mem_wait
+yazı.TR_length	ok	0	name:TR_mem_length
+yazı.TR_replace	ok	0	name:TR_mem_replace
 yazı.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
+yazı.TR_split	ok	0	name:TR_mem_split
 yazı.TR_strip	ok	0	name:TR_mem_strip
 yazı.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 yazıcı.TR_close	ok	0	name:TR_mem_close
+yazım.TR_length	ok	0	name:TR_mem_length
+yazım.TR_starts_with	ok	0	name:TR_mem_starts_with
 yeni.TR_last	ok	0	name:TR_mem_last
 yeni.TR_length	ok	0	name:TR_mem_length
 yeni.TR_load_state	ok	0	name:TR_mem_load_state
@@ -1424,6 +1495,7 @@ yok.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 yok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 yok.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 yol.TR_is_file	ok	0	name:TR_mem_is_file
+yumuşak_fiiller.TR_contains	ok	0	name:TR_mem_contains
 yükleme_kaydı.TR_append	ok	0	name:TR_mem_append
 yüklenen.TR_keys	ok	0	name:TR_mem_keys
 z.TR_grad	ok	0	name:TR_mem_grad
@@ -1434,6 +1506,10 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 çiftler.TR_append	ok	0	name:TR_mem_append
 çubuk.TR_stop	ok	0	name:TR_mem_stop
 çubuk.TR_update	ok	0	name:TR_mem_update
+çözüm.TR_known	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_known
+çözüm.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
+çözüm.TR_suffixes	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_suffixes
+çözüm.TR_word_kind	ok	0	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_word_kind
 çıktı.TR_append	ok	0	name:TR_mem_append
 çıktı.TR_shape	ok	0	name:TR_mem_shape
 çıktı.TR_tolist	ok	0	name:TR_mem_tolist
@@ -1459,6 +1535,7 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 öb.TR_next	ok	0	name:TR_mem_next
 öbür.TR_append	ok	0	name:TR_mem_append
 ölçülen_ms.TR_append	ok	0	name:TR_mem_append
+ön.TR_length	ok	0	name:TR_mem_length
 ön.TR_tolist	ok	0	name:TR_mem_tolist
 önbellek.TR_advance	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_advance
 önbellek.TR_append	ok	0	name:TR_mem_append
@@ -1478,6 +1555,8 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 örnekler.TR_skip	ok	0	name:TR_mem_skip
 özel.TR_remove	ok	0	name:TR_mem_remove
 ü.TR_remove	ok	0	name:TR_mem_remove
+ünlü_düşenler.TR_contains	ok	0	name:TR_mem_contains
+ünlüler.TR_append	ok	0	name:TR_mem_append
 üretilen.TR_append	ok	0	name:TR_mem_append
 ürünler.TR_append	ok	0	name:TR_mem_append
 ürünler.TR_length	ok	0	name:TR_mem_length
