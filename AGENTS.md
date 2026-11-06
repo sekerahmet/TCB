@@ -103,6 +103,7 @@ Comments in the examples are in Turkish. The code in them runs as it is from the
 | The language in one page | [`docs/agent_reference.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/agent_reference.md) |
 | The full rules | [`docs/spec/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/spec/README.md) |
 | The library: layers, optimizers, training, audio | [`lib/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/lib/README.md) |
+| Files and folders | [`docs/spec/18_dosya_ve_yol.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/spec/18_dosya_ve_yol.md) |
 | A guide from the first step | [`docs/guide/README.md`](https://raw.githubusercontent.com/sekerahmet/TCB/main/docs/guide/README.md) |
 | A model written by hand | [`examples/tr/36_karakter_modeli.tr`](https://raw.githubusercontent.com/sekerahmet/TCB/main/examples/tr/36_karakter_modeli.tr) |
 | A model from the library, with checkpoints | [`examples/tr/41_gpt.tr`](https://raw.githubusercontent.com/sekerahmet/TCB/main/examples/tr/41_gpt.tr) |

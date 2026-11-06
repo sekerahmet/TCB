@@ -1,0 +1,608 @@
+# TR 4
+# Konuşma algılama (25.10–25.17). Silero'nun dosyası depoda yok, şekilleri sabittir: iki model kurulur.
+# Formül modeli PyTorch'un değerini verir, başvurunun kaynağı: testdata/vad/KAYNAK.md.
+# Kanal modeli tek kanal sürer: olasılık çerçevenin genliğinden gelir, her dal seçilebilir.
+
+TR_import "tr/audio"
+TR_import "tr/vad"
+
+TR_const _SESSİZ = 0.0 # kanal modelinde olasılık 0,119
+TR_const _ARA = 0.3 # 0,426: varsayılan iki eşiğin arası
+TR_const _KONUŞMA = 1.0 # 0,864
+TR_const _BOY = 512
+
+# Bir tensörün adı, şekli ve formül modelindeki ölçeği.
+TR_struct Ad {
+    ad: TR_String
+    şekil: TR_List[TR_Int]
+    ölçek: TR_Float
+}
+
+TR_func adlar() -> TR_List[Ad] {
+    TR_return [Ad(ad: "stft_conv.weight", şekil: [258, 1, 256], ölçek: 0.0625), Ad(ad: "conv1.weight", şekil: [128, 129, 3], ölçek: 0.0625), Ad(ad: "conv1.bias", şekil: [128], ölçek: 0.015625),
+        Ad(ad: "conv2.weight", şekil: [64, 128, 3], ölçek: 0.0625), Ad(ad: "conv2.bias", şekil: [64], ölçek: 0.015625), Ad(ad: "conv3.weight", şekil: [64, 64, 3], ölçek: 0.125), Ad(ad: "conv3.bias", şekil: [64], ölçek: 0.015625),
+        Ad(ad: "conv4.weight", şekil: [128, 64, 3], ölçek: 0.125), Ad(ad: "conv4.bias", şekil: [128], ölçek: 0.015625), Ad(ad: "lstm_cell.weight_ih", şekil: [512, 128], ölçek: 0.125), Ad(ad: "lstm_cell.weight_hh", şekil: [512, 128], ölçek: 0.25),
+        Ad(ad: "lstm_cell.bias_ih", şekil: [512], ölçek: 0.125), Ad(ad: "lstm_cell.bias_hh", şekil: [512], ölçek: 0.125), Ad(ad: "final_conv.weight", şekil: [1, 128, 1], ölçek: 1.0), Ad(ad: "final_conv.bias", şekil: [1], ölçek: 0.25)]
+}
+
+# değerler öğeleri formülden kurar; aynı formül başvuruyu üretti.
+TR_func değerler(tohum: TR_Int, n: TR_Int, ölçek: TR_Float) -> TR_Tensor {
+    TR_return TR_Tensor([(((i + 1) * 40503 + tohum * 9973) % 65536 - 32768) / 32768.0 * ölçek TR_for i TR_in 0..n])
+}
+
+TR_func öğe_sayısı(şekil: TR_List[TR_Int]) -> TR_Int {
+    TR_var n = 1
+    TR_for b TR_in şekil { n = n * b }
+    TR_return n
+}
+
+TR_func ağırlıklar() -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var t: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for i, a TR_in adlar() { t[a.ad] = değerler(i + 1, öğe_sayısı(a.şekil), a.ölçek).TR_reshape(a.şekil) }
+    TR_return t
+}
+
+# dosya tensörleri geçici bir safetensors dosyasına yazar.
+TR_func dosya(t: TR_Dict[TR_String, TR_Tensor]) -> TR_String {
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "vad.safetensors"))
+    TR_save_tensors(yol, t)
+    TR_return yol
+}
+
+TR_func formül_modeli() -> TR_VoiceDetector { TR_return TR_pretrained_vad(dosya(ağırlıklar())) }
+
+# formül_çerçevesi başvurudaki i. çerçevedir: genlik sessize yakından büyüğe değişir.
+TR_func formül_çerçevesi(i: TR_Int) -> TR_Tensor { TR_return değerler(100 + i, _BOY, [0.02, 0.25, 1.0, 0.5, 0.05, 0.75][i % 6]) }
+
+TR_func başvuru() -> TR_List[TR_Float] {
+    TR_return TR_from_bytes[TR_Float](TR_read_bytes("testdata/vad/kucuk_olasilik.bin"), TR_dtype: "float32", TR_byte_order: "little").TR_tolist
+}
+
+# tek bir öğesi dolu tensör.
+TR_func tek(şekil: TR_List[TR_Int], yer: TR_Int, değer: TR_Float) -> TR_Tensor {
+    TR_var t = TR_zeros([öğe_sayısı(şekil)])
+    TR_write_slice(t, TR_Tensor([değer]), TR_start: yer)
+    TR_return t.TR_reshape(şekil)
+}
+
+# kanal_ağırlıkları tek kanal süren modeldir. STFT'nin ilk kanalı 256 örneğin ortalamasıdır; üçüncü
+# evrişimin sağ dokunuşu çerçevenin 192–447. örneklerini okur: bağlam ve ilk örnek olasılığa girmez,
+# çerçeve sıra numarasını ilk örneğinde taşıyabilir. Giriş ve çıkış kapısı açık, unutma kapısı kapalıdır.
+TR_func kanal_ağırlıkları() -> TR_Dict[TR_String, TR_Tensor] {
+    TR_var t: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for a TR_in adlar() { t[a.ad] = TR_zeros(a.şekil) }
+    t["stft_conv.weight"] = TR_concat([TR_ones([1, 1, 256]) / 256.0, TR_zeros([257, 1, 256])], TR_dim: 0)
+    t["conv1.weight"] = tek([128, 129, 3], 1, 1.0)
+    t["conv2.weight"] = tek([64, 128, 3], 1, 1.0)
+    t["conv3.weight"] = tek([64, 64, 3], 2, 1.0)
+    t["conv4.weight"] = tek([128, 64, 3], 1, 1.0)
+    t["lstm_cell.weight_ih"] = tek([512, 128], 256 * 128, 1.0)
+    t["lstm_cell.bias_ih"] = tek([512], 0, 20.0) + tek([512], 128, -20.0) + tek([512], 384, 20.0)
+    t["final_conv.weight"] = tek([1, 128, 1], 0, 6.0)
+    t["final_conv.bias"] = TR_Tensor([-2.0])
+    TR_return t
+}
+
+TR_func kanal_modeli() -> TR_VoiceDetector { TR_return TR_pretrained_vad(dosya(kanal_ağırlıkları())) }
+
+# çerçeve verilen genlikte, sıra numarasını ilk örneğinde taşıyan 512 örnektir.
+TR_func çerçeve(sıra: TR_Int, genlik: TR_Float) -> TR_Tensor {
+    TR_return TR_concat([TR_Tensor([sıra * 1.0]), TR_ones([_BOY - 1]) * genlik])
+}
+
+# sıralar bir kesitin çerçeve numaralarını verir.
+TR_func sıralar(kesit: TR_Tensor) -> TR_List[TR_Int] {
+    TR_var l = kesit.TR_tolist
+    TR_return [TR_Int(l[i * _BOY]) TR_for i TR_in 0..kesit.TR_shape[0] // _BOY]
+}
+
+# Beslemenin sonucu: verilen kesitler çerçeve numaralarıyla, her kesit verilirken beslenmiş çerçeve sayısı.
+TR_struct Akış {
+    kesici: TR_SpeechSplitter
+    sıra: TR_Int
+    kesitler: TR_List[TR_List[TR_Int]]
+    verildi: TR_List[TR_Int]
+    TR_func al(k: TR_Tensor?) {
+        TR_if k != TR_none {
+            TR_self.kesitler.TR_append(sıralar(k))
+            TR_self.verildi.TR_append(TR_self.sıra)
+        }
+    }
+    TR_func besle(genlik: TR_Float, kaç: TR_Int) {
+        TR_for _ TR_in 0..kaç {
+            TR_var k = TR_self.kesici.TR_push(çerçeve(TR_self.sıra, genlik))
+            TR_self.sıra = TR_self.sıra + 1
+            TR_self.al(k)
+        }
+    }
+    TR_func bitir() { TR_self.al(TR_self.kesici.TR_flush()) }
+}
+
+TR_func akış(k: TR_SpeechSplitter) -> Akış { TR_return Akış(kesici: k, sıra: 0, kesitler: [], verildi: []) }
+
+TR_func aralık(baş: TR_Int, son: TR_Int) -> TR_List[TR_Int] { TR_return [i TR_for i TR_in baş..son] }
+
+TR_func yakın(a: TR_Float, b: TR_Float) -> TR_Bool { TR_return TR_abs(a - b) < 1.0e-5 }
+
+TR_test "25.10 TR_pretrained_vad 15 tensörü adla denetler" {
+    TR_assert_equal(15, adlar().TR_length)
+    TR_for a TR_in adlar() {
+        TR_var t = kanal_ağırlıkları()
+        t.TR_remove(a.ad)
+        TR_assert_equal("H7530", TR_error_code { TR_pretrained_vad(dosya(t)) })
+    }
+}
+
+TR_test "25.10 bilinmeyen tensör, yanlış şekil ve yanlış tür hatadır" {
+    TR_var fazla = kanal_ağırlıkları()
+    fazla["ek"] = TR_zeros([1])
+    TR_assert_equal("H7531", TR_error_code { TR_pretrained_vad(dosya(fazla)) })
+    TR_var şekil = kanal_ağırlıkları()
+    şekil["conv1.bias"] = TR_zeros([127])
+    TR_assert_equal("H7532", TR_error_code { TR_pretrained_vad(dosya(şekil)) })
+    TR_var tür = kanal_ağırlıkları()
+    tür["conv1.bias"] = TR_zeros([128]).TR_to_dtype("bf16")
+    TR_assert_equal("H7532", TR_error_code { TR_pretrained_vad(dosya(tür)) })
+}
+
+TR_test "25.10 ileti tensörün adını söyler, olmayan dosya hatadır" {
+    TR_var t = kanal_ağırlıkları()
+    t.TR_remove("conv3.bias")
+    TR_var yol = dosya(t)
+    TR_try { TR_pretrained_vad(yol) } TR_catch e { TR_assert(TR_String(e).TR_contains("conv3.bias")) }
+    TR_assert(TR_error_code { TR_pretrained_vad("olmayan.safetensors") } != TR_none)
+}
+
+TR_test "25.11 TR_probability PyTorch'un değerini verir, durum çağrılar arasında kalır" {
+    TR_var d = formül_modeli()
+    TR_for i, beklenen TR_in başvuru() { TR_assert(yakın(beklenen, d.TR_probability(formül_çerçevesi(i))), "\(i). çerçeve") }
+}
+
+TR_test "25.11 TR_reset_state LSTM'i ve bağlamı sıfırlar" {
+    TR_var d = formül_modeli()
+    TR_var ilk = d.TR_probability(formül_çerçevesi(0))
+    TR_var sonraki = d.TR_probability(formül_çerçevesi(0))
+    TR_assert(TR_not yakın(ilk, sonraki))
+    d.TR_reset_state()
+    TR_assert_equal(ilk, d.TR_probability(formül_çerçevesi(0)))
+}
+
+TR_test "25.11 başka girdi hatadır ve durum değişmez" {
+    TR_var d = formül_modeli()
+    TR_var b = başvuru()
+    TR_var nan = TR_concat([TR_Tensor([TR_nan]), TR_zeros([_BOY - 1])])
+    TR_var sonsuz = TR_concat([TR_zeros([_BOY - 1]), TR_Tensor([TR_Float("inf")])])
+    TR_for i TR_in 0..b.TR_length {
+        TR_assert_equal("H7533", TR_error_code { d.TR_probability(TR_zeros([_BOY - 1])) })
+        TR_assert_equal("H7533", TR_error_code { d.TR_probability(TR_zeros([_BOY + 1])) })
+        TR_assert_equal("H7533", TR_error_code { d.TR_probability(TR_zeros([1, _BOY])) })
+        TR_assert_equal("H7533", TR_error_code { d.TR_probability(TR_zeros([0])) })
+        TR_assert_equal("H7534", TR_error_code { d.TR_probability(TR_zeros([_BOY]).TR_to_dtype("bf16")) })
+        TR_assert_equal("H7534", TR_error_code { d.TR_probability(TR_Tensor[TR_Int]([0 TR_for _ TR_in 0.._BOY])) })
+        TR_assert_equal("H7536", TR_error_code { d.TR_probability(nan) })
+        TR_assert_equal("H7536", TR_error_code { d.TR_probability(sonsuz) })
+        TR_assert_equal("H7536", TR_error_code { d.TR_probability(TR_ones([_BOY]) * 1.0e30) })
+        TR_assert(yakın(b[i], d.TR_probability(formül_çerçevesi(i))), "\(i). çerçeve")
+    }
+}
+
+TR_test "25.11 iletinin önerdiği yazımlar çalışır" {
+    TR_var d = kanal_modeli()
+    TR_var ses = TR_zeros([2000])
+    TR_assert_equal("H7533", TR_error_code { d.TR_probability(ses) })
+    TR_assert(d.TR_probability(ses.TR_slice(0, 0, 512)) < 0.2)
+    TR_var yarım = TR_zeros([_BOY]).TR_to_dtype("bf16")
+    TR_assert(d.TR_probability(yarım.TR_to_dtype("float32")) < 0.2)
+    TR_var bozuk = TR_ones([_BOY]) * TR_nan
+    TR_assert_equal(TR_false, TR_all(TR_is_finite(bozuk)))
+}
+
+TR_test "25.11 aralık denetlenmez: ölçeklenmemiş örnek hata vermez" {
+    TR_assert(kanal_modeli().TR_probability(TR_ones([_BOY]) * 32767.0) > 0.0)
+}
+
+TR_test "25.11 yalnız CPU'da çalışır" {
+    TR_if TR_devices().TR_contains("gpu") {
+        TR_var d = kanal_modeli()
+        TR_var kartta = TR_zeros([_BOY]).TR_to_device("gpu")
+        TR_assert_equal("H7535", TR_error_code { d.TR_probability(kartta) })
+        TR_assert(d.TR_probability(kartta.TR_to_device("cpu")) < 0.2)
+        TR_default_device("gpu")
+        TR_var d2 = kanal_modeli()
+        TR_var p = d2.TR_probability(TR_zeros([_BOY]).TR_to_device("cpu"))
+        TR_default_device("cpu")
+        TR_assert(p < 0.2)
+    }
+}
+
+TR_test "25.11 türevli girdi durumu türeve bağlamaz" {
+    TR_var d = formül_modeli()
+    TR_var x = TR_Tensor(formül_çerçevesi(0).TR_tolist, TR_requires_grad: TR_true)
+    TR_var ilk = d.TR_probability(x)
+    TR_assert_equal(TR_false, d._h.TR_requires_grad)
+    d.TR_reset_state()
+    TR_assert_equal(ilk, d.TR_probability(formül_çerçevesi(0)))
+    TR_var k = TR_SpeechSplitter(kanal_modeli())
+    TR_var g = TR_Tensor(çerçeve(0, _KONUŞMA).TR_tolist, TR_requires_grad: TR_true)
+    k.TR_push(g)
+    TR_assert_equal(TR_false, k.TR_flush().TR_requires_grad)
+}
+
+TR_test "25.12 varsayılan bitiş eşiği başlangıçtan türer" {
+    TR_var d = kanal_modeli()
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.3) } == TR_none)
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.1) } == TR_none)
+    # 0,42 başlangıçta ara çerçeve konuşmadır, bitiş 0,27'dir: sessiz çerçeve yine sayılır.
+    TR_var a = akış(TR_SpeechSplitter(d, TR_start_threshold: 0.42, TR_pre_roll: 0.032, TR_silence: 0.064))
+    a.besle(_ARA, 1)
+    a.besle(_SESSİZ, 2)
+    TR_assert_equal([[0, 1, 2]], a.kesitler)
+    # 0,1 başlangıçta bitiş 0,01'dir: 0,119 başlangıcı geçer, hiçbir çerçeve sessiz değildir.
+    TR_var b = akış(TR_SpeechSplitter(d, TR_start_threshold: 0.1, TR_pre_roll: 0.032, TR_silence: 0.032))
+    b.besle(_SESSİZ, 5)
+    TR_assert_equal([], b.kesitler)
+}
+
+TR_test "25.12 türeyen bitiş eşiği başlangıcı geçmez: küçük başlangıç hata vermez" {
+    TR_var d = kanal_modeli()
+    TR_assert_equal(0.005, TR_SpeechSplitter(d, TR_start_threshold: 0.005)._bitiş)
+    TR_assert_equal(0.0, TR_SpeechSplitter(d, TR_start_threshold: 0.0)._bitiş)
+    TR_assert_equal(0.01, TR_SpeechSplitter(d, TR_start_threshold: 0.01)._bitiş)
+    TR_assert_equal(0.01, TR_SpeechSplitter(d, TR_start_threshold: 0.1)._bitiş)
+}
+
+TR_test "25.12 eşik 0–1 dışında ya da bitiş başlangıçtan büyükse hata" {
+    TR_var d = kanal_modeli()
+    TR_for v TR_in [-0.1, 1.5, TR_nan] {
+        TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: v) })
+        TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_end_threshold: v) })
+    }
+    TR_assert_equal("H7538", TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.4, TR_end_threshold: 0.6) })
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.4, TR_end_threshold: 0.4) } == TR_none)
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.0, TR_end_threshold: 0.0) } == TR_none)
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 1.0) } == TR_none)
+}
+
+TR_test "25.12 süre sıfır, eksi ya da sonlu değilse hata" {
+    TR_var d = kanal_modeli()
+    TR_for v TR_in [0.0, -1.0, TR_nan, TR_Float("inf")] {
+        TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_pre_roll: v) })
+        TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_silence: v) })
+        TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_max_speech: v) })
+    }
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_silence: 1.0e300) } != TR_none)
+}
+
+TR_test "25.12 üst sınır baş tamponu artı sessizlikten küçükse hata; öneri çalışır" {
+    TR_var d = kanal_modeli()
+    # 10 + 19 çerçeve 0,928 saniyedir.
+    TR_assert_equal("H7539", TR_error_code { TR_SpeechSplitter(d, TR_max_speech: 0.9) })
+    TR_assert_equal("H7539", TR_error_code { TR_SpeechSplitter(d, TR_max_speech: 0.92) })
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_max_speech: 0.928) } == TR_none)
+    TR_assert_equal("H7539", TR_error_code { TR_SpeechSplitter(d, TR_pre_roll: 0.001, TR_silence: 0.001, TR_max_speech: 0.002) })
+    TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_max_speech: 29.0) } == TR_none)
+}
+
+TR_test "25.13 başlangıç p >= eşik, sessizlik p < bitiş: eşitlik ayrılır" {
+    TR_var d = kanal_modeli()
+    TR_var p = d.TR_probability(çerçeve(0, _ARA))
+    TR_var eşit = akış(TR_SpeechSplitter(d, TR_start_threshold: p, TR_end_threshold: p, TR_pre_roll: 0.032, TR_silence: 0.032))
+    eşit.besle(_ARA, 3)
+    eşit.bitir()
+    TR_assert_equal([[0, 1, 2]], eşit.kesitler)
+    TR_var bitiş = akış(TR_SpeechSplitter(d, TR_end_threshold: p, TR_pre_roll: 0.032, TR_silence: 0.032))
+    bitiş.besle(_KONUŞMA, 1)
+    bitiş.besle(_ARA, 3)
+    TR_assert_equal([], bitiş.kesitler)
+    bitiş.bitir()
+    TR_assert_equal([[0, 1, 2, 3]], bitiş.kesitler)
+    TR_var üst = akış(TR_SpeechSplitter(d, TR_start_threshold: 0.9, TR_end_threshold: p, TR_pre_roll: 0.032, TR_silence: 0.032))
+    üst.besle(_ARA, 3)
+    üst.bitir()
+    TR_assert_equal([], üst.kesitler)
+}
+
+TR_test "25.13 iki eşik arası çerçeve sessizlik sayacını sıfırlamaz, saymaz da" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.128))
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 3)
+    a.besle(_ARA, 5)
+    TR_assert_equal([], a.kesitler)
+    a.besle(_SESSİZ, 1)
+    TR_assert_equal([aralık(0, 10)], a.kesitler)
+}
+
+TR_test "25.13 yalnız p >= başlangıç sessizlik sayacını sıfırlar" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.128))
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 3)
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 3)
+    TR_assert_equal([], a.kesitler)
+    a.besle(_SESSİZ, 1)
+    TR_assert_equal([aralık(0, 9)], a.kesitler)
+}
+
+TR_test "25.13 yuvarlama: sessizlik ve baş tamponu yukarı, üst sınır aşağı" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli()))
+    a.besle(_SESSİZ, 15)
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 18)
+    TR_assert_equal([], a.kesitler)
+    a.besle(_SESSİZ, 1)
+    # 0,32 sn 10 çerçeve; 0,6 sn 19 çerçeve.
+    TR_assert_equal([aralık(5, 35)], a.kesitler)
+    TR_var b = akış(TR_SpeechSplitter(kanal_modeli()))
+    b.besle(_KONUŞMA, 905)
+    TR_assert_equal([], b.kesitler)
+    b.besle(_KONUŞMA, 1)
+    TR_assert_equal([aralık(0, 906)], b.kesitler)
+    TR_var c = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.033, TR_silence: 0.033, TR_max_speech: 0.159))
+    c.besle(_SESSİZ, 3)
+    c.besle(_KONUŞMA, 1)
+    TR_assert_equal([], c.kesitler)
+    c.besle(_SESSİZ, 1)
+    # Baş tamponu 2, üst sınır 4 çerçevedir: yuvarlama tersine dönse kesit başka yerde biterdi.
+    TR_assert_equal([[1, 2, 3, 4]], c.kesitler)
+}
+
+TR_test "25.13 TR_push kesit bitmediyse TR_none verir" {
+    TR_var k = TR_SpeechSplitter(kanal_modeli())
+    TR_assert(k.TR_push(çerçeve(0, _SESSİZ)) == TR_none)
+    TR_assert(k.TR_push(çerçeve(1, _KONUŞMA)) == TR_none)
+}
+
+TR_test "25.13 bozuk çerçeve kesitleyiciyi değiştirmez" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.064))
+    a.besle(_KONUŞMA, 2)
+    TR_var nan = TR_ones([_BOY]) * TR_nan
+    TR_assert_equal("H7536", TR_error_code { a.kesici.TR_push(nan) })
+    TR_assert_equal("H7533", TR_error_code { a.kesici.TR_push(TR_zeros([3])) })
+    a.besle(_SESSİZ, 2)
+    TR_assert_equal([aralık(0, 4)], a.kesitler)
+}
+
+TR_test "25.14 kesitin başına baş tamponu eklenir, bitiş sessizliği kesitte kalır" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.096))
+    a.besle(_SESSİZ, 6)
+    a.besle(_KONUŞMA, 2)
+    a.besle(_SESSİZ, 3)
+    TR_assert_equal([aralık(4, 11)], a.kesitler)
+}
+
+TR_test "25.14 tek çerçevelik konuşma baş tamponu, çerçeve ve sessizliktir" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli()))
+    a.besle(_SESSİZ, 10)
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 19)
+    TR_assert_equal(1, a.kesitler.TR_length)
+    TR_assert_equal(30, a.kesitler[0].TR_length)
+}
+
+TR_test "25.14 kesit bitince baş tamponu boşalır: örnek iki kesite girmez" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.128, TR_silence: 0.064))
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 2)
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 2)
+    TR_assert_equal([[0, 1, 2], [3, 4, 5]], a.kesitler)
+}
+
+TR_test "25.14 akışın başında tampon doluncaya kadar ne varsa eklenir" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.32, TR_silence: 0.032))
+    a.besle(_SESSİZ, 2)
+    a.besle(_KONUŞMA, 1)
+    a.besle(_SESSİZ, 1)
+    TR_assert_equal([[0, 1, 2, 3]], a.kesitler)
+}
+
+TR_test "25.14 çerçeve kopyalanır: aynı tensör yeniden doldurulabilir" {
+    TR_var k = TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.032)
+    TR_var tampon = çerçeve(7, _KONUŞMA)
+    k.TR_push(tampon)
+    TR_write_slice(tampon, TR_Tensor([9.0]), TR_start: 0)
+    TR_assert_equal([7], sıralar(k.TR_flush()))
+}
+
+TR_test "25.14 kesit Whisper'ın girdisine gider" {
+    TR_var a = TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.032)
+    a.TR_push(çerçeve(0, _KONUŞMA))
+    TR_var kesit = a.TR_push(çerçeve(1, _SESSİZ))
+    TR_var ses = TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), 16000)
+    TR_assert_equal([80, 1024 // 160 + 3000], TR_whisper_log_mel(ses, TR_n_mels: 80).TR_shape)
+}
+
+TR_test "25.15 üst sınır baş tamponunu da sayar, duraklama yoksa sınırda kesilir" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.064, TR_max_speech: 0.32))
+    a.besle(_SESSİZ, 3)
+    a.besle(_KONUŞMA, 7)
+    TR_assert_equal([], a.kesitler)
+    a.besle(_KONUŞMA, 1)
+    TR_assert_equal([aralık(1, 11)], a.kesitler)
+    a.besle(_KONUŞMA, 9)
+    TR_assert_equal(1, a.kesitler.TR_length)
+    a.besle(_KONUŞMA, 1)
+    TR_assert_equal([aralık(1, 11), aralık(11, 21)], a.kesitler)
+}
+
+TR_test "25.15 en son duraklamanın ortasından bölünür, süren kesit kalanla devam eder" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.32, TR_max_speech: 0.64))
+    a.besle(_KONUŞMA, 2)
+    a.besle(_SESSİZ, 4)
+    a.besle(_KONUŞMA, 2)
+    a.besle(_SESSİZ, 6)
+    a.besle(_KONUŞMA, 6)
+    # Sınır 20 çerçeve; son duraklama 8–13, ortası 11.
+    TR_assert_equal([aralık(0, 11)], a.kesitler)
+    a.bitir()
+    TR_assert_equal([aralık(0, 11), aralık(11, 20)], a.kesitler)
+}
+
+TR_test "25.15 98 ms'den kısa duraklamada bölünmez, ara çerçeve duraklamayı keser" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.288, TR_max_speech: 0.32))
+    a.besle(_KONUŞMA, 2)
+    a.besle(_SESSİZ, 3)
+    a.besle(_KONUŞMA, 5)
+    TR_assert_equal([aralık(0, 10)], a.kesitler)
+    TR_var b = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.288, TR_max_speech: 0.32))
+    b.besle(_KONUŞMA, 1)
+    b.besle(_SESSİZ, 2)
+    b.besle(_ARA, 1)
+    b.besle(_SESSİZ, 2)
+    b.besle(_KONUŞMA, 4)
+    TR_assert_equal([aralık(0, 10)], b.kesitler)
+    # Dört çerçeve 128 ms'dir: 98 ms'yi geçen en kısa duraklama.
+    TR_var c = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.288, TR_max_speech: 0.32))
+    c.besle(_KONUŞMA, 2)
+    c.besle(_SESSİZ, 4)
+    c.besle(_KONUŞMA, 4)
+    TR_assert_equal([aralık(0, 4)], c.kesitler)
+}
+
+TR_test "25.15 baş tamponundaki duraklamada bölünmez: sessiz kesit verilmez" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.16, TR_silence: 0.32, TR_max_speech: 0.48))
+    a.besle(_SESSİZ, 5)
+    a.besle(_KONUŞMA, 10)
+    TR_assert_equal([aralık(0, 15)], a.kesitler)
+}
+
+TR_test "25.15 kalan konuşmasızsa kesit bölünmez: sınırda biter, tetik kapanır" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32, TR_max_speech: 0.48))
+    a.besle(_KONUŞMA, 7)
+    a.besle(_SESSİZ, 8)
+    # Sınır 15 çerçeve; duraklama 7–15, ortası 11, ama kalanda konuşma yok.
+    TR_assert_equal([aralık(0, 15)], a.kesitler)
+    a.besle(_SESSİZ, 40)
+    TR_assert_equal(1, a.kesitler.TR_length)
+    a.bitir()
+    TR_assert_equal(1, a.kesitler.TR_length)
+    # Kesit bitince baş tamponu boşalır: sonraki kesit konuşmayla başlar.
+    TR_var b = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32, TR_max_speech: 0.48))
+    b.besle(_KONUŞMA, 7)
+    b.besle(_SESSİZ, 8)
+    b.besle(_KONUŞMA, 1)
+    b.bitir()
+    TR_assert_equal([aralık(0, 15), [15]], b.kesitler)
+}
+
+TR_test "25.15 duraklamadan sonra zayıf süren konuşma düşmez" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32, TR_max_speech: 1.28))
+    a.besle(_KONUŞMA, 3)
+    a.besle(_SESSİZ, 6)
+    a.besle(_ARA, 31)
+    # Sınır 40 çerçeve; duraklama 3–9, kalanda yalnız ara çerçeve var.
+    TR_assert_equal([aralık(0, 40)], a.kesitler)
+    # Tetik kapalıdır: ara çerçeve açmaz.
+    a.besle(_ARA, 5)
+    a.bitir()
+    TR_assert_equal(1, a.kesitler.TR_length)
+}
+
+TR_test "25.15 sınırda bitiş sessizliği doluyorsa kesit bölünmez" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.032, TR_silence: 0.16, TR_max_speech: 0.32))
+    a.besle(_KONUŞMA, 5)
+    a.besle(_SESSİZ, 5)
+    TR_assert_equal([aralık(0, 10)], a.kesitler)
+}
+
+TR_test "25.15 30 saniyelik üst sınır tek Whisper penceresine sığar" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_max_speech: 30.0))
+    a.besle(_KONUŞMA, 937)
+    TR_assert_equal(1, a.kesitler.TR_length)
+    TR_assert(a.kesitler[0].TR_length * _BOY <= 30 * 16000)
+}
+
+TR_test "25.16 TR_flush süren kesiti verir, kesitleyici boşalır" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32))
+    a.besle(_SESSİZ, 3)
+    a.besle(_KONUŞMA, 2)
+    a.besle(_SESSİZ, 1)
+    a.bitir()
+    TR_assert_equal([aralık(1, 6)], a.kesitler)
+    TR_assert(a.kesici.TR_flush() == TR_none)
+    a.besle(_KONUŞMA, 1)
+    a.bitir()
+    TR_assert_equal([aralık(1, 6), [6]], a.kesitler)
+}
+
+TR_test "25.16 süren kesit yoksa TR_flush TR_none verir, baş tamponu boşalır" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.032))
+    TR_assert(a.kesici.TR_flush() == TR_none)
+    a.besle(_SESSİZ, 4)
+    TR_assert(a.kesici.TR_flush() == TR_none)
+    a.besle(_KONUŞMA, 1)
+    a.bitir()
+    TR_assert_equal([[4]], a.kesitler)
+}
+
+TR_test "25.16 TR_flush dedektör durumunu sıfırlamaz" {
+    TR_var d = formül_modeli()
+    TR_var k = TR_SpeechSplitter(d, TR_start_threshold: 0.99, TR_end_threshold: 0.01)
+    TR_var b = başvuru()
+    TR_for i TR_in 0..6 { k.TR_push(formül_çerçevesi(i)) }
+    k.TR_flush()
+    TR_assert(yakın(b[6], d.TR_probability(formül_çerçevesi(6))))
+}
+
+# karışık tohumdan genlik dizisi kurar: kısa ve uzun koşular, üç bölge.
+TR_func karışık(tohum: TR_Int, n: TR_Int) -> TR_List[TR_Float] {
+    TR_var r: TR_List[TR_Float] = []
+    TR_var s = tohum
+    TR_for r.TR_length < n {
+        s = (s * 1103515245 + 12345) % 2147483648
+        TR_var g = [_SESSİZ, _ARA, _KONUŞMA][(s // 65536) % 3]
+        TR_for _ TR_in 0..1 + (s // 1024) % 9 { r.TR_append(g) }
+    }
+    TR_return r
+}
+
+TR_func koş(d: TR_VoiceDetector, genlikler: TR_List[TR_Float]) -> Akış {
+    TR_var a = akış(TR_SpeechSplitter(d, TR_pre_roll: 0.128, TR_silence: 0.256, TR_max_speech: 1.28))
+    TR_for g TR_in genlikler { a.besle(g, 1) }
+    a.bitir()
+    TR_return a
+}
+
+TR_test "25.17 özellik: kesitlerin birleşimi girdinin sıralı alt dizisidir, örnek iki kez geçmez, tetik açıkken örnek düşmez" {
+    TR_var d = kanal_modeli()
+    TR_for tohum TR_in 1..7 {
+        TR_var g = karışık(tohum, 300)
+        TR_var a = koş(d, g)
+        TR_var kesitler = a.kesitler
+        TR_assert(kesitler.TR_length > 1, "\(tohum). tohum")
+        TR_var önceki = -1
+        TR_for k TR_in kesitler {
+            TR_assert(k.TR_length * 32 <= 1280)
+            TR_var konuşma = TR_false
+            TR_for i, s TR_in k {
+                TR_assert(s > önceki, "\(s) sırası bozuk")
+                TR_assert(i == 0 TR_or s == önceki + 1, "\(s) öncesinde örnek düştü")
+                önceki = s
+                TR_if g[s] == _KONUŞMA { konuşma = TR_true }
+            }
+            TR_assert(konuşma, "sessiz kesit")
+        }
+        TR_var içinde: TR_Dict[TR_Int, TR_Bool] = {}
+        TR_for k TR_in kesitler {
+            TR_for s TR_in k { içinde[s] = TR_true }
+        }
+        TR_for s, v TR_in g {
+            TR_assert(v != _KONUŞMA TR_or içinde.TR_contains(s), "\(s) konuşma çerçevesi düştü")
+        }
+        # Kesit verilene kadar tetik açıktır: sonundan verildiği çerçeveye kadar, ara ve sessiz çerçeve de bir kesittedir.
+        TR_for j, k TR_in kesitler {
+            TR_for s TR_in k[k.TR_length - 1]..a.verildi[j] {
+                TR_assert(içinde.TR_contains(s), "\(tohum). tohum: tetik açıkken \(s) düştü")
+            }
+        }
+    }
+}
+
+TR_test "25.17 aynı model ve aynı örnekler aynı kesitleri verir" {
+    TR_var g = karışık(11, 200)
+    TR_assert_equal(koş(kanal_modeli(), g).kesitler, koş(kanal_modeli(), g).kesitler)
+    TR_var d = formül_modeli()
+    TR_var ilk = [d.TR_probability(formül_çerçevesi(i)) TR_for i TR_in 0..6]
+    d.TR_reset_state()
+    TR_assert_equal(ilk, [d.TR_probability(formül_çerçevesi(i)) TR_for i TR_in 0..6])
+}

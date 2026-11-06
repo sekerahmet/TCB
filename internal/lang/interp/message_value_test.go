@@ -46,6 +46,7 @@ func TestMessageSelectFromTR(t *testing.T) {
 		{"H7096", "n_mels", "0", "positive"}, {"H7096", "d_model", "6", "heads"},
 		{"H7096", "activation_function", "relu", "activation"}, {"H7096", "scale_embedding", "true", "scale"},
 		{"H7098", "tr", "mono"}, {"H7098", "de", "unknown"},
+		{"H7537", "start", "2"}, {"H7537", "end", "2"}, {"H7537", "pre_roll", "0"}, {"H7537", "silence", "0"}, {"H7537", "max_speech", "0"},
 	}
 	seen := map[string]string{}
 	for _, c := range cases {

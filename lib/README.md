@@ -10,6 +10,7 @@ TR ile yazılmış, `trlang` ikilisine gömülü kitaplık. Modüller `TR_kw_imp
 | `tr/pretrained` | [`pretrained.tr`](pretrained.tr) | Hugging Face biçimindeki hazır modelleri (Llama, Qwen3) GPT'ye yüklemek |
 | `tr/audio` | [`audio.tr`](audio.tr) | Ses dosyası (WAV okumak ve yazmak, `TR_type_Sound`) ve Whisper'ın girdisi (`TR_fn_whisper_log_mel`) |
 | `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |
+| `tr/vad` | [`vad.tr`](vad.tr) | Silero VAD ile konuşma olasılığı (`TR_type_VoiceDetector`) ve sürekli sesten konuşma kesitleri (`TR_type_SpeechSplitter`) |
 
 Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`, `audio_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
@@ -187,6 +188,15 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Kapılar:** `num_mel_bins` 80 ya da 128'dir. `activation_function` `gelu` dışında, `scale_embedding` açık, boyut sıfır ya da eksi, bakış sayısı `d_model`'i bölmüyorsa hatadır: model hatasız yüklenir, yanlış metin üretirdi.
 - **Çevirme:** `model.TR_mem_transcribe(ses, TR_arg_language: "tr")` bir `TR_type_Transcription` verir; özgün `transcribe`'ı `temperature=0.0`, `beam_size=None`, `fp16=False` ile izler. Gövde float32 bloğundadır: dış 16 bit blok sonucu değiştirmez.
 - **Doğruluk:** küçük sentetik modelde Hugging Face kodlayıcısı ve çözücüsüyle aynı değer (`tests/whisper_model_test.tr`, başvurusu `tests/testdata/whisper/KAYNAK.md`).
+
+## `tr/vad`
+
+`TR_fn_pretrained_vad(yol)` Silero VAD v6.2.3'ün `silero_vad_16k.safetensors` dosyasını açar ve bir `TR_type_VoiceDetector` verir (dil tanımı 25.10–25.17). Dosya depoda değildir.
+
+- **Ağırlıklar:** 15 tensör adla denetlenir; eksik, bilinmeyen, şekli ya da türü uymayan tensör adıyla hata verir.
+- **Olasılık:** `d.TR_mem_probability(x)` 16 kHz'te 512 örnek alır, hesap CPU'dadır. LSTM durumu ve son 64 örnek çağrılar arasında kalır, `d.TR_mem_reset_state()` sıfırlar. Bozuk çerçeve hatadır, durum değişmez.
+- **Kesit:** `TR_type_SpeechSplitter(d)` kesitleyicidir; `k.TR_mem_push(x)` kesit bittiyse tensör, bitmediyse `TR_none` verir, `k.TR_mem_flush()` süren kesiti alır. Kesit Whisper'a `TR_type_Sound` olarak verilir.
+- **Doğruluk:** formülden kurulan ağırlıklarda PyTorch'un değeri, elle kurulmuş tek kanallı modelde her kural (`tests/vad_test.tr`, başvurusu `tests/testdata/vad/KAYNAK.md`).
 
 ## `tr/audio`
 

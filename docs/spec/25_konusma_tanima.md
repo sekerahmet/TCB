@@ -1,6 +1,6 @@
 # 25. Konuşmayı yazıya çevirme
 
-Bu bölüm yayımlanmış bir Whisper modelini açmayı ve bir sesi yazıya çevirmeyi yazar. Girdi 22.4'ün `TR_Sound`'u, log-Mel 23.6'da yazılıdır. Ölçüt özgün `transcribe`'dır: `temperature=0.0`, `beam_size=None`, `fp16=False`.
+Bu bölüm yayımlanmış bir Whisper modelini açmayı, bir sesi yazıya çevirmeyi ve sürekli gelen sesten konuşma kesitleri çıkarmayı yazar. Girdi 22.4'ün `TR_Sound`'u, log-Mel 23.6'da yazılıdır. Çevirmenin ölçütü özgün `transcribe`'dır: `temperature=0.0`, `beam_size=None`, `fp16=False`. Konuşma algılamanın modeli Silero VAD v6.2.3'tür.
 
 Emsal ve gerekçe: [`rationale/25_speech.md`](rationale/25_speech.md).
 
@@ -77,3 +77,70 @@ TR_for k TR_in yazı.TR_segments { TR_print(k.TR_start, k.TR_end, k.TR_text) }
 
 **25.9** İlk uygulama CPU'dadır; kartta 15.41'in hatasını verir. Yeni yerleşikler yalnız `TR_conv1d` (15.23c) ve `TR_logsumexp`'tir (15.18); öbürü `.tr`'dir.
 - *Test:* gerekmez: kartın hatası 15.41'in testindedir, öbürü 25.1–25.8'in testleridir.
+
+## Konuşma algılama
+
+Örnekler 16 kHz, tek kanal ve `[-1, 1]` aralığındadır; aralık denetlenmez: ölçeklenmemiş örnek hata vermez, olasılık yine gelir. Çerçeve 512 örnektir: 32 ms. Kesit konuşma çerçevelerini ve çevresini tutan 1 boyutlu `TR_Tensor`'dür; Whisper'a `TR_Sound` olarak verilir.
+
+**25.10** `TR_pretrained_vad(yol)` `tr/vad` kitaplığındadır ve bir `TR_VoiceDetector` verir. Yol tek bir safetensors dosyasıdır: `silero_vad_16k.safetensors`. Yeni yerleşik yoktur, model `.tr`'dir.
+- Dosyada 15 tensör vardır, adları ve şekilleri sabittir, türleri `float32`'dir.
+- Eksik ya da bilinmeyen tensör, şekli ya da türü uymayan tensör hatadır; ileti tensörün adını söyler.
+- *Test:* TR testi.
+
+```tr
+# TR 4
+TR_import "tr/audio"
+TR_import "tr/vad"
+TR_import "tr/whisper"
+TR_var model = TR_pretrained_whisper("whisper-tiny")
+TR_var kesici = TR_SpeechSplitter(TR_pretrained_vad("silero_vad_16k.safetensors"))
+TR_var ses = TR_read_wav("kayıt.wav").TR_samples
+TR_for i TR_in 0..ses.TR_shape[1] // 512 {
+    TR_var kesit = kesici.TR_push(ses.TR_slice(1, i * 512, (i + 1) * 512).TR_reshape([512]))
+    TR_if kesit != TR_none {
+        TR_var parça = TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), 16000)
+        TR_print(model.TR_transcribe(parça, TR_language: "tr").TR_text)
+    }
+}
+```
+
+**25.11** `d.TR_probability(x)` 1 boyutlu, `float32`, 512 öğeli, sonlu bir `TR_Tensor` alır ve konuşma olasılığını `TR_Float` verir.
+- Başka girdi hatadır ve durum değişmez: tek NaN çerçeve LSTM'i kalıcı bozar, sonraki bütün olasılıklar NaN olurdu. Örnekler sonlu olup hesap taşarsa da böyledir.
+- Yalnız CPU'da çalışır: varsayılan cihaz ne olursa olsun model CPU'dadır, kartta duran örnekler hatadır.
+- Durum (LSTM ve son 64 örnek) çağrılar arasında kalır. `d.TR_reset_state()` ikisini sıfırlar: yeni bir akış başlar.
+- Girdi türev izliyorsa durum türeve bağlanmaz.
+- *Test:* TR testi.
+
+**25.12** `TR_SpeechSplitter(d)` bir kesitleyici verir. Adlı argümanlar, süreler saniye `TR_Float`:
+- `TR_start_threshold: 0.5`;
+- `TR_end_threshold:` verilmezse `min(başlangıç, max(başlangıç - 0.15, 0.01))`;
+- `TR_pre_roll: 0.32`, `TR_silence: 0.6`, `TR_max_speech: 29.0`.
+
+Eşik 0–1 dışında, bitiş eşiği başlangıçtan büyük, süre sıfır, eksi ya da sonlu değilse hatadır. Çerçeveye yuvarlanmış üst sınır, baş tamponu artı sessizlikten küçükse de hatadır (25.13).
+- *Test:* TR testi.
+
+**25.13** `k.TR_push(x)` 512 örnek alır; bir kesit bittiyse onu `TR_Tensor` olarak, bitmediyse `TR_none` verir. Örnekler 25.11'den geçer; hata varsa kesitleyici de değişmez.
+- **Tetik:** `p >= başlangıç` tetiği açar.
+- **Sessizlik sayacı:** `p < bitiş` çerçevelerini sayar; iki eşik arası çerçeve saymaz, sıfırlamaz da. Yalnız `p >= başlangıç` sıfırlar. Sayaç sessizliğe varınca kesit biter.
+- **Yuvarlama:** sessizlik ve baş tamponu çerçeveye yukarı, üst sınır aşağı yuvarlanır: 0,32 sn 10, 0,6 sn 19, 29 sn 906 çerçeve.
+- *Test:* TR testi.
+
+**25.14** Kesitin başına baş tamponu eklenir, bitiş sessizliği kesitte kalır.
+- Tetik kapalıyken baş tamponundan eskisi düşer; tetik açıkken örnek düşmez.
+- Kesit bitince baş tamponu boşalır: bir örnek iki kesite girmez.
+- En kısa konuşma kuralı yoktur: tek çerçevelik konuşma da kesittir.
+- Çerçeve kopyalanır: çağıran aynı tensörü yeniden doldurabilir.
+- *Test:* TR testi.
+
+**25.15** Üst sınır kesitin bütün boyunu sayar, baş tamponu dahil. `TR_max_speech` 30 saniyeyi geçmezse kesit tek Whisper penceresine sığar.
+- Sınıra varınca kesit, ilk konuşma çerçevesinden sonraki en son duraklamanın ortasından bölünür. Duraklama en az 98 ms, yani en az 4 ardışık `p < bitiş` çerçevesidir; ortası baştan `boy // 2` çerçeve sonrasıdır.
+- Duraklama yoksa kesit sınırda kesilir.
+- Kalanda `p >= başlangıç` çerçevesi varsa kesit kalanla sürer. Yoksa kesit bölünmez: sınırda biter, tetik kapanır.
+- Sessizlik sayacının dolduğu çerçeve sınıra denk gelirse kesit bölünmeden biter.
+- *Test:* TR testi.
+
+**25.16** `k.TR_flush()` süren kesiti verir; süren kesit yoksa ya da kesitte konuşma çerçevesi yoksa `TR_none`. Sonra kesitleyici boştur, baş tamponu dahil. Dedektör durumu sıfırlanmaz: o `d.TR_reset_state()`'tir.
+- *Test:* TR testi.
+
+**25.17** Aynı model ve aynı örnekler aynı kesitleri verir (15.22a): işçi sayısına ve zamana bağlı değildir.
+- *Test:* TR testi.

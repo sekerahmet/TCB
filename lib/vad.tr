@@ -1,0 +1,260 @@
+# TR 4
+# tr/vad: Silero VAD ile konuşma algılama ve konuşma kesitleri (dil tanımı 25.10–25.17).
+#
+# Kullanım:   aktar "tr/vad"
+#             değişken algılayıcı = hazır_vad("silero_vad_16k.safetensors")
+#             değişken kesici = KonuşmaKesici(algılayıcı)
+#             değişken kesit = kesici.besle(örnekler)   # 512 örnek; kesit bittiyse tensör, bitmediyse yok
+#
+# Mimari Silero VAD v6.2.3'ün `tinygrad_model.py`'sidir (MIT; kaynak: tests/testdata/vad/KAYNAK.md):
+# 64 örnek bağlam, 512 yeni örnek, sağdan 64 örnek yansıtma; STFT evrişimi, büyüklük, dört evrişim,
+# tek adımlık LSTM hücresi ve çıkış. Üç adımlı evrişim 640 örneği tek zaman adımına indirir: zaman
+# üstünde dönen bir LSTM yoktur. Ağırlıklar dosyada olduğu gibi alınır, yalnız LSTM'inkiler devrilir.
+
+TR_const _ÇERÇEVE = 512
+TR_const _BAĞLAM = 64
+TR_const _KANAL = 129 # STFT'nin frekans sayısı
+TR_const _ADIM = 128 # STFT'nin adımı
+TR_const _GİZLİ = 128 # LSTM hücresinin boyu
+TR_const _ÇERÇEVE_HIZI = 31.25 # saniyedeki çerçeve: 16000 / 512
+TR_const _DURAKLAMA = 4 # üst sınırda aranan duraklama: 98 ms, çerçeveye yukarı (25.15)
+
+# _şekiller dosyanın 15 tensörünü verir: fazlası ya da eksiği hatadır (25.10).
+TR_func _şekiller() -> TR_Dict[TR_String, TR_List[TR_Int]] {
+    TR_return {"stft_conv.weight": [258, 1, 256], "conv1.weight": [128, _KANAL, 3], "conv1.bias": [128], "conv2.weight": [64, 128, 3], "conv2.bias": [64],
+        "conv3.weight": [64, 64, 3], "conv3.bias": [64], "conv4.weight": [128, 64, 3], "conv4.bias": [128],
+        "lstm_cell.weight_ih": [4 * _GİZLİ, _GİZLİ], "lstm_cell.weight_hh": [4 * _GİZLİ, _GİZLİ], "lstm_cell.bias_ih": [4 * _GİZLİ], "lstm_cell.bias_hh": [4 * _GİZLİ],
+        "final_conv.weight": [1, _GİZLİ, 1], "final_conv.bias": [1]}
+}
+
+# _cpu tensörü CPU'ya alır: varsayılan cihaz ne olursa olsun hesap CPU'dadır (25.11).
+TR_func _cpu(t: TR_Tensor) -> TR_Tensor { TR_return t.TR_to_device("cpu") }
+
+# Bir LSTM adımının sonucu: durum ancak olasılık sonlu çıkarsa yazılır (25.11).
+TR_struct _Adım {
+    girdi: TR_Tensor
+    h: TR_Tensor
+    c: TR_Tensor
+    olasılık: TR_Float
+}
+
+# SesAlgılayıcı: açılmış model ve akışın durumu. Alanları modele özeldir.
+TR_struct TR_VoiceDetector {
+    _stft: TR_Tensor
+    _evrişimler: TR_List[TR_Tensor]
+    _sapmalar: TR_List[TR_Tensor]
+    _giriş: TR_Tensor
+    _geri: TR_Tensor
+    _kapı_sapması: TR_Tensor
+    _çıkış: TR_Tensor
+    _çıkış_sapması: TR_Tensor
+    _yansıma: TR_Tensor[TR_Int]
+    _bağlam: TR_Tensor
+    _h: TR_Tensor
+    _c: TR_Tensor
+    # _denetle başka girdiyi durum değişmeden reddeder (25.11).
+    TR_func _denetle(örnekler: TR_Tensor) {
+        TR_if örnekler.TR_shape != [_ÇERÇEVE] { TR_throw TR_Message("H7533", örnekler.TR_shape) }
+        TR_if örnekler.TR_dtype != "float32" { TR_throw TR_Message("H7534", örnekler.TR_dtype) }
+        TR_if örnekler.TR_device != "cpu" { TR_throw TR_Message("H7535", örnekler.TR_device) }
+        TR_if TR_not TR_all(TR_is_finite(örnekler)) { TR_throw TR_Message("H7536") }
+    }
+    # _evrişim bir evrişim ve ReLU'dur.
+    TR_func _evrişim(x: TR_Tensor, i: TR_Int, adım: TR_Int) -> TR_Tensor {
+        TR_return TR_relu(TR_conv1d(x, TR_self._evrişimler[i], TR_self._sapmalar[i], TR_stride: adım, TR_padding: 1))
+    }
+    # _ileri bir çerçeveyi yeni duruma ve olasılığa çevirir; alanlara yazmaz.
+    TR_func _ileri(örnekler: TR_Tensor) -> _Adım {
+        TR_var girdi = TR_concat([TR_self._bağlam, örnekler])
+        TR_var dolgulu = TR_concat([girdi, girdi[TR_self._yansıma]])
+        TR_var s = TR_conv1d(dolgulu.TR_reshape([1, 1, dolgulu.TR_shape[0]]), TR_self._stft, TR_none, TR_stride: _ADIM)
+        TR_var gerçek = s.TR_slice(1, 0, _KANAL)
+        TR_var sanal = s.TR_slice(1, _KANAL, 2 * _KANAL)
+        TR_var x = TR_self._evrişim(TR_sqrt(gerçek * gerçek + sanal * sanal), 0, 1)
+        x = TR_self._evrişim(TR_self._evrişim(x, 1, 2), 2, 2)
+        x = TR_self._evrişim(x, 3, 1).TR_reshape([1, _GİZLİ])
+        # Kapıların sırası PyTorch'un `LSTMCell`'idir: giriş, unutma, aday, çıkış.
+        TR_var k = (x @ TR_self._giriş + TR_self._h @ TR_self._geri + TR_self._kapı_sapması).TR_split(4)
+        TR_var c = TR_sigmoid(k[1]) * TR_self._c + TR_sigmoid(k[0]) * TR_tanh(k[2])
+        TR_var h = TR_sigmoid(k[3]) * TR_tanh(c)
+        TR_var p = TR_sigmoid(TR_relu(h) @ TR_self._çıkış + TR_self._çıkış_sapması).TR_item()
+        TR_return _Adım(girdi: girdi, h: h, c: c, olasılık: p)
+    }
+    # olasılık 512 örneğin konuşma olasılığını verir; durum çağrılar arasında kalır (25.11).
+    TR_func TR_probability(örnekler: TR_Tensor) -> TR_Float {
+        TR_self._denetle(örnekler)
+        TR_var a = TR_self._ileri(TR_no_grad(örnekler))
+        # Çok büyük sonlu örnek hesapta taşar; NaN'lı durum dedektörü kalıcı sağır ederdi.
+        TR_if TR_not (TR_all(TR_is_finite(a.h)) TR_and TR_all(TR_is_finite(a.c)) TR_and TR_is_finite(a.olasılık)) { TR_throw TR_Message("H7536") }
+        TR_self._bağlam = a.girdi.TR_slice(0, _ÇERÇEVE, _ÇERÇEVE + _BAĞLAM)
+        TR_self._h = a.h
+        TR_self._c = a.c
+        TR_return a.olasılık
+    }
+    # durumu_sıfırla LSTM'i ve bağlamı sıfırlar: yeni bir akış başlar.
+    TR_func TR_reset_state() {
+        TR_self._bağlam = _cpu(TR_zeros([_BAĞLAM]))
+        TR_self._h = _cpu(TR_zeros([1, _GİZLİ]))
+        TR_self._c = _cpu(TR_zeros([1, _GİZLİ]))
+    }
+}
+
+# _al tensörü CPU'da verir.
+TR_func _al(t: TR_Dict[TR_String, TR_Tensor], ad: TR_String) -> TR_Tensor {
+    TR_return _cpu(t[ad])
+}
+
+# hazır_vad tek safetensors dosyasını açar (25.10).
+TR_func TR_pretrained_vad(yol: TR_String) -> TR_VoiceDetector {
+    TR_var t = TR_load_tensors(yol)
+    TR_var şekiller = _şekiller()
+    TR_for ad, şekil TR_in şekiller {
+        TR_if TR_not t.TR_contains(ad) { TR_throw TR_Message("H7530", ad) }
+        TR_if t[ad].TR_dtype != "float32" { TR_throw TR_Message("H7532", ad, t[ad].TR_dtype, "float32") }
+        TR_if t[ad].TR_shape != şekil { TR_throw TR_Message("H7532", ad, t[ad].TR_shape, şekil) }
+    }
+    TR_for ad, _ TR_in t {
+        TR_if TR_not şekiller.TR_contains(ad) { TR_throw TR_Message("H7531", ad) }
+    }
+    # Yansıtma sondan bir önceki örnekten başlar: `F.pad(x, (0, 64), "reflect")`.
+    TR_var son = _ÇERÇEVE + _BAĞLAM - 2
+    TR_return TR_VoiceDetector(_stft: _al(t, "stft_conv.weight"),
+        _evrişimler: [_al(t, "conv\(i).weight") TR_for i TR_in 1..5], _sapmalar: [_al(t, "conv\(i).bias") TR_for i TR_in 1..5],
+        _giriş: _al(t, "lstm_cell.weight_ih").TR_transpose(), _geri: _al(t, "lstm_cell.weight_hh").TR_transpose(),
+        _kapı_sapması: _al(t, "lstm_cell.bias_ih") + _al(t, "lstm_cell.bias_hh"),
+        _çıkış: _al(t, "final_conv.weight").TR_reshape([_GİZLİ, 1]), _çıkış_sapması: _al(t, "final_conv.bias"),
+        _yansıma: _cpu(TR_Tensor[TR_Int]([son - i TR_for i TR_in 0.._BAĞLAM])),
+        _bağlam: _cpu(TR_zeros([_BAĞLAM])), _h: _cpu(TR_zeros([1, _GİZLİ])), _c: _cpu(TR_zeros([1, _GİZLİ])))
+}
+
+# _eşik eşiği denetler: NaN karşılaştırmada yanlıştır, olumsuzu da yakalar.
+TR_func _eşik(ad: TR_String, v: TR_Float) {
+    TR_if TR_not (v >= 0.0 TR_and v <= 1.0) { TR_throw TR_Message("H7537", ad, v) }
+}
+
+# _süre süreyi denetler.
+TR_func _süre(ad: TR_String, v: TR_Float) {
+    TR_if TR_not (v > 0.0 TR_and TR_is_finite(v)) { TR_throw TR_Message("H7537", ad, v) }
+}
+
+# KonuşmaKesici: çerçeveleri tetik kapalıyken baş tamponunda, açıkken süren kesitte tutar (25.12).
+TR_struct TR_SpeechSplitter {
+    _d: TR_VoiceDetector
+    _başlangıç: TR_Float
+    _bitiş: TR_Float
+    _ön: TR_Int
+    _sessizlik: TR_Int
+    _sınır: TR_Int
+    _tetik: TR_Bool
+    _sessiz: TR_Int
+    _çerçeveler: TR_List[TR_Tensor]
+    _olasılıklar: TR_List[TR_Float]
+    TR_func TR_init(d: TR_VoiceDetector, TR_start_threshold: TR_Float = 0.5, TR_end_threshold: TR_Float? = TR_none, TR_pre_roll: TR_Float = 0.32, TR_silence: TR_Float = 0.6, TR_max_speech: TR_Float = 29.0) {
+        _eşik("start", TR_start_threshold)
+        TR_var bitiş = TR_min(TR_start_threshold, TR_max(TR_start_threshold - 0.15, 0.01))
+        TR_if TR_end_threshold != TR_none {
+            bitiş = TR_end_threshold
+            _eşik("end", bitiş)
+        }
+        TR_if bitiş > TR_start_threshold { TR_throw TR_Message("H7538", bitiş, TR_start_threshold) }
+        _süre("pre_roll", TR_pre_roll)
+        _süre("silence", TR_silence)
+        _süre("max_speech", TR_max_speech)
+        TR_self._ön = TR_Int(TR_ceil(TR_pre_roll * _ÇERÇEVE_HIZI))
+        TR_self._sessizlik = TR_Int(TR_ceil(TR_silence * _ÇERÇEVE_HIZI))
+        TR_self._sınır = TR_Int(TR_floor(TR_max_speech * _ÇERÇEVE_HIZI))
+        TR_if TR_self._sınır < TR_self._ön + TR_self._sessizlik { TR_throw TR_Message("H7539", TR_max_speech, TR_self._sınır) }
+        TR_self._d = d
+        TR_self._başlangıç = TR_start_threshold
+        TR_self._bitiş = bitiş
+        TR_self._boşalt()
+    }
+    # _boşalt kesitleyiciyi başa alır; dedektör durumu kalır (25.16).
+    TR_func _boşalt() {
+        TR_self._tetik = TR_false
+        TR_self._sessiz = 0
+        TR_self._çerçeveler = []
+        TR_self._olasılıklar = []
+    }
+    # _kırp baş tamponunun eskisini düşürür.
+    TR_func _kırp() {
+        TR_var fazla = TR_self._çerçeveler.TR_length - TR_self._ön
+        TR_if fazla > 0 {
+            TR_self._çerçeveler = TR_self._çerçeveler[fazla..TR_self._çerçeveler.TR_length]
+            TR_self._olasılıklar = TR_self._olasılıklar[fazla..TR_self._olasılıklar.TR_length]
+        }
+    }
+    # _bitir süren kesiti verir, kesitleyiciyi boşaltır.
+    TR_func _bitir() -> TR_Tensor {
+        TR_var kesit = TR_concat(TR_self._çerçeveler)
+        TR_self._boşalt()
+        TR_return kesit
+    }
+    # _bölme_yeri en son duraklamanın ortasını verir; duraklama yoksa kesitin boyunu (25.15).
+    # Duraklama ilk konuşma çerçevesinden sonra aranır: baş tamponunda bölmek sessiz kesit verirdi.
+    TR_func _bölme_yeri() -> TR_Int {
+        TR_var n = TR_self._olasılıklar.TR_length
+        TR_var yer = n
+        TR_var konuşuldu = TR_false
+        TR_var boy = 0
+        TR_for i TR_in 0..n + 1 {
+            TR_var sessiz = i < n TR_and TR_self._olasılıklar[i] < TR_self._bitiş
+            TR_if sessiz TR_and konuşuldu {
+                boy = boy + 1
+            } TR_else {
+                TR_if boy >= _DURAKLAMA { yer = i - boy + boy // 2 }
+                boy = 0
+            }
+            TR_if i < n TR_and TR_self._olasılıklar[i] >= TR_self._başlangıç { konuşuldu = TR_true }
+        }
+        TR_return yer
+    }
+    # _böl üst sınırdaki kesiti böler; kalanda konuşma yoksa bölmez: kesit sınırda biter, tetik kapanır (25.15).
+    TR_func _böl() -> TR_Tensor {
+        TR_var yer = TR_self._bölme_yeri()
+        TR_var n = TR_self._çerçeveler.TR_length
+        TR_var konuşma = TR_false
+        TR_for p TR_in TR_self._olasılıklar[yer..n] {
+            TR_if p >= TR_self._başlangıç { konuşma = TR_true }
+        }
+        TR_if TR_not konuşma { TR_return TR_self._bitir() }
+        TR_var kesit = TR_concat(TR_self._çerçeveler[0..yer])
+        TR_self._çerçeveler = TR_self._çerçeveler[yer..n]
+        TR_self._olasılıklar = TR_self._olasılıklar[yer..n]
+        TR_return kesit
+    }
+    # _ilerle bir çerçeveyi olasılığıyla işler (25.13).
+    TR_func _ilerle(çerçeve: TR_Tensor, p: TR_Float) -> TR_Tensor? {
+        TR_self._çerçeveler.TR_append(çerçeve)
+        TR_self._olasılıklar.TR_append(p)
+        TR_if TR_not TR_self._tetik {
+            TR_if p < TR_self._başlangıç {
+                TR_self._kırp()
+                TR_return TR_none
+            }
+            TR_self._tetik = TR_true
+        }
+        TR_if p >= TR_self._başlangıç {
+            TR_self._sessiz = 0
+        } TR_else TR_if p < TR_self._bitiş {
+            TR_self._sessiz = TR_self._sessiz + 1
+        }
+        TR_if TR_self._sessiz >= TR_self._sessizlik { TR_return TR_self._bitir() }
+        TR_if TR_self._çerçeveler.TR_length >= TR_self._sınır { TR_return TR_self._böl() }
+        TR_return TR_none
+    }
+    # besle 512 örnek alır; kesit bittiyse tensör, bitmediyse yok verir (25.13). Çerçeve kopyalanır:
+    # çağıran aynı tensörü yeniden doldurabilir.
+    TR_func TR_push(örnekler: TR_Tensor) -> TR_Tensor? {
+        TR_var p = TR_self._d.TR_probability(örnekler)
+        TR_return TR_self._ilerle(TR_concat([TR_no_grad(örnekler)]), p)
+    }
+    # boşalt süren kesiti verir, yoksa yok; sonra kesitleyici boştur (25.16).
+    TR_func TR_flush() -> TR_Tensor? {
+        TR_if TR_not TR_self._tetik {
+            TR_self._boşalt()
+            TR_return TR_none
+        }
+        TR_return TR_self._bitir()
+    }
+}

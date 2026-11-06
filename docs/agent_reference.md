@@ -191,6 +191,12 @@ TR_var n = TR_try { oku() } TR_catch e {
   - `.TR_first`, `.TR_last` ve `.TR_get(i)` isteğe bağlı değer verir. `l[i]` sınır dışında çalışma hatasıdır; negatif indeks sondan sayar.
 - **Sözlük:** `d[k]` (olmayan anahtar çalışma hatasıdır), `d.TR_get(k)` (`V?`), `.TR_keys()`, `.TR_values()`, `.TR_contains(k)`, `.TR_length`.
 
+## Dosya, klasör ve komut satırı
+- **Dosya:** `TR_read_file(yol)` metni verir, `TR_write_file(yol, metin)` yazar. `TR_read_lines(yol)` satır satır okur: `TR_for satır TR_in TR_read_lines(yol) { }`.
+- **Yol:** `TR_Path("klasör", "a.txt")` yolu birleştirir, `yol.TR_is_file` dosya mı diye sorar, `TR_String(yol)` metnini verir. `TR_make_dir(yol)` klasör kurar.
+- **Klasör:** `TR_list_dir(klasör, "**/*.txt")` kalıba uyanları `TR_Path` listesi olarak verir; `**` alt klasörlere de iner.
+- **Komut satırı:** `TR_var ayar = TR_command_line({"adet": 5, "soru": ""})` argümanları varsayılanlarıyla okur: `trlang run a.tr --adet 3`, `ayar["adet"]`. `TR_input("soru: ")` bir satır okur.
+
 ## Başka dillerden gelen sık yanlışlar
 | Yazılan | TR'de |
 | :-- | :-- |

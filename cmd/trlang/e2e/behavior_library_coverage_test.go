@@ -21,6 +21,13 @@ import (
 // uncoveredLibraryNames, örneği henüz olmayan ya da örnek gerektirmeyen kitaplık adlarıdır ve gerekçesiyle durur.
 // Liste yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredLibraryNames = map[string]string{
+	"vad.SesAlgılayıcı":                "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
+	"vad.KonuşmaKesici":                "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
+	"vad.hazır_vad":                    "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
+	"vad.olasılık()":                   "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
+	"vad.durumu_sıfırla()":             "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
+	"vad.besle()":                      "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
+	"vad.boşalt()":                     "yayımlanmış model ister, depoda yok; tests/vad_test.tr elle kurulmuş ağırlıkla sınar",
 	"whisper.Kesit":                    "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",
 	"whisper.Çevriyazı":                "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",
 	"whisper.yazıya_çevir()":           "yayımlanmış model ister, depoda yok; tests/whisper_model_test.tr küçük sentetik modelle sınar",

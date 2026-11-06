@@ -11,7 +11,6 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
-- **21.2, süreç tamponu (2026-11-06, TCB, DENETİM 233):** kilit dışı tek okuyucu; `TR_buffer_bytes:` verilmezse geri basınç, verilirse dolunca süreç durur ve yapışkan hata. Metin S1'in `TR_spawn_process` diliminde 21.2'ye girer.
 - **4.5, derinlik sınırı (2026-11-05, A, DENETİM istek 184):** `==` derinlik sınırında sessizce yanlış veriyor (status 4.5). Yön: iç içelik sınırı yoktur, gezinti açık yığınla yazılır, döngülü değerde H2771. Metin dört şeyi söylemeli: iki gezinti de (`walk`, `valuesEqual`) sınırsız olur ve iki geçiş kalır, yoksa `[1, f] == [2, f]` yanlışa döner; `ValuesEqual` ve `Equaler` bool döndürür, döngü kuramayan yerde yalnız sınır kalkar; çift yolu kümesi büyük halkalarda belleği bitirir [hesap: DENETİM 184], öneri taraf başına küme, iki taraf da kendine varınca H2771, bu 7.6'yı genişletir; hız ölçüsü tek kısa Colab koşusu. Test: üç yol ve aynı alt nesneyi iki alanda tutan değerde H2771 çıkmaması.
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
