@@ -138,6 +138,24 @@ var suggestionCases = []suggestionCase{
 	{messages.H1145, "TR_var h = (x: TR_Bool) => {\n    TR_return TR_none\n}\nh(TR_true)", "TR_return TR_none", "TR_return"},
 	{messages.H1143, "TR_func f() { TR_print(1) }\nTR_var y = f()\nTR_print(2)", "TR_var y = f()", "f()"},
 	{messages.H1139, "TR_var m = [[0] * 3] * 3\nm[0][0] = 1\nTR_print(m)", "[[0] * 3] * 3", "[[0] * 3 TR_for _ TR_in 0..3]"},
+	// Başka dillerin mantık sözcükleri, hangi yolda yakalanırsa yakalansın: sözdizimi hatası (H0164) ya
+	// da tanımsız ad (H1106). Türkçe yazım aynı ipucunu alır, hiçbir dilin ayrıcalığı yoktur.
+	{messages.H0164, "TR_var a = TR_true\nTR_var b = TR_false\nTR_if a and b { TR_print(1) }", "and", "TR_and"},
+	{messages.H0164, "TR_var a = TR_false\nTR_if not a { TR_print(1) }", "not", "TR_not"},
+	{messages.H0164, "TR_var a = TR_true\nTR_print(a or a)", "or", "TR_or"},
+	{messages.H0164, "TR_var a = TR_true\nTR_var b = TR_false\nTR_var d = {\"k\": a or b}\nTR_print(d)", "or", "TR_or"},
+	{messages.H0164, "TR_var a = TR_true\nTR_var b = TR_false\nTR_if a ve b { TR_print(1) }", "ve", "TR_and"},
+	{messages.H0164, "TR_var a = TR_true\nTR_print(a veya a)", "veya", "TR_or"},
+	{messages.H1106, "TR_var a = TR_true\nTR_var b = a and a\nTR_print(b)", "and", "TR_and"},
+	{messages.H1106, "TR_var a = TR_false\nTR_var c = not a\nTR_print(c)", "not", "TR_not"},
+	{messages.H1106, "TR_var a = TR_false\nTR_var c = değil a\nTR_print(c)", "değil", "TR_not"},
+	// Karşılaştırmalar bütün olarak yazımını alır; iki yol da.
+	{messages.H0302, "TR_var l = [1]\nTR_var x = 2\nTR_var c = x not in l\nTR_print(c)", "x not in l", "TR_not l.TR_contains(x)"},
+	{messages.H0302, "TR_var l = [1]\nTR_var x = 2\nTR_if x not in l { TR_print(1) }", "x not in l", "TR_not l.TR_contains(x)"},
+	{messages.H0302, "TR_var x = 2\nTR_var c = x is not 1\nTR_print(c)", "x is not 1", "x != 1"},
+	{messages.H0302, "TR_var x = 2\nTR_if x is not 1 { TR_print(1) }", "x is not 1", "x != 1"},
+	{messages.H0302, "TR_var l = [1]\nTR_var x = 1\nTR_var c = x in [1]\nTR_print(c)", "x in [1]", "l.TR_contains(x)"},
+	{messages.H0302, "TR_var l = [1]\nTR_var x = 1\nTR_if x in l { TR_print(1) }", "x in l", "l.TR_contains(x)"},
 }
 
 // suggestionResultCase önerinin sonucunu da okur: hatalı program iletiyi verir, ileti suggestion'ı

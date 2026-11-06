@@ -198,6 +198,37 @@ func TestPrecedenceTableShape(t *testing.T) {
 	}
 }
 
+// Kural (kopyalanınca çalışır): hatalı satırdaki başka dilin karşılaştırması bütün olarak yazımını
+// alır, sözcükleri tek başına TR_not ya da TR_in önermez. Döngü satırında 'in' karşılaştırma değildir:
+// üyelik önerilmez.
+func TestForeignComparisonHints(t *testing.T) {
+	for code, want := range map[string]string{
+		"TR_if x not in l { }":                      "TR_not l.TR_contains(x)",
+		"TR_if x is not 1 { }":                      "x != 1",
+		"TR_if x is not (1) { }":                    "x != 1",
+		"TR_if x in l { }":                          "l.TR_contains(x)",
+		"TR_if a and x not in l { }":                "TR_not l.TR_contains(x)",
+		"TR_print(x not in l)":                      "TR_not l.TR_contains(x)",
+		"TR_for y TR_in l { TR_if x not in l { } }": "TR_not l.TR_contains(x)",
+	} {
+		text := strings.Join(parseErrors(code), "\n")
+		if !strings.Contains(text, want) {
+			t.Errorf("%s: %q önerilmeli: %s", code, want, text)
+		}
+		if strings.Contains(text, "'not' TR'de") {
+			t.Errorf("%s: 'not' tek başına ipucu almamalı: %s", code, text)
+		}
+	}
+	if text := strings.Join(parseErrors("TR_print(a not\nin l)"), "\n"); strings.Contains(text, "TR_not l.") {
+		t.Errorf("ayrı satırdaki sözcükler karşılaştırma değildir: %s", text)
+	}
+	for _, code := range []string{"TR_for x in l { }", "TR_var l = [y TR_for y in m]"} {
+		if text := strings.Join(parseErrors(code), "\n"); strings.Contains(text, "contains") {
+			t.Errorf("%s: döngüde üyelik önerilmemeli: %s", code, text)
+		}
+	}
+}
+
 // Başka dillerin işleçleri (4.9) sözdizimi hatasıdır, hata işlecin kendisindedir; ifadenin
 // ardındaki TR_in de (Python'un üyelik sınaması). Döngü ve liste üretecindeki TR_in hata değildir.
 func TestForeignOperatorsAreErrors(t *testing.T) {

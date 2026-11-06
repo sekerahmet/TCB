@@ -12,9 +12,9 @@ import (
 // bölünmüş bir formülün kopan parçasıdır; uyarı geçilebileceği için hatadır (Go da yalnız çağrıyı
 // deyim olarak kabul eder). Değeri kullanılan bir bloğun son ifadesi (blockValues) bloğun
 // değeridir; deyim olarak yazılan eğer ve eşle, fonksiyon tanımı ve kabuk satırı (interactive)
-// sayılmaz.
+// sayılmaz. Tanımsız ad hatasının bıraktığı deyimler (undefinedLeft) de sayılmaz.
 func (c *Checker) checkUnusedValue(s *ast.ExpressionStatement) {
-	if c.interactive || c.blockValues[s] || s.Expression == nil {
+	if c.interactive || c.blockValues[s] || c.undefinedLeft[s] || s.Expression == nil {
 		return
 	}
 	switch s.Expression.(type) {

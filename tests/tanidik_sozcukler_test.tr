@@ -1,0 +1,49 @@
+# TR 4
+# docs/spec/02_sozcuk_yapisi.md §2.3a — Başka dillerin sözcükleri programın adı olabilir
+
+TR_func and(x: TR_Int) -> TR_Int {
+    TR_return x
+}
+
+TR_func or() -> TR_Int {
+    TR_return 2
+}
+
+TR_func g() -> TR_Int {
+    TR_return 3
+}
+
+TR_test "2.3a sözcük değişken adıdır" {
+    TR_var and = 1
+    TR_print(and)
+    TR_assert_equal(1, and)
+}
+
+TR_test "2.3a sözcük satırda çağrıyla yeni deyimi başlatır" {
+    TR_var q = 1 and(2)
+    TR_assert_equal(1, q)
+    TR_var not = 5
+    TR_var c = not g()
+    TR_assert_equal(5, c)
+    TR_print(1) or()
+}
+
+TR_test "2.3a sözcük satırda atamayla ve üyeyle yeni deyimi başlatır" {
+    TR_var or = 1
+    TR_var c = 2 or = 3
+    TR_assert_equal(2, c)
+    TR_assert_equal(3, or)
+    TR_var and = [1]
+    TR_var e = 2 and.TR_append(3)
+    TR_assert_equal(2, e)
+    TR_assert_equal([1, 3], and)
+}
+
+TR_test "2.3a Türkçe sözcük de programın adıdır" {
+    TR_var ve = 1
+    TR_var d = 2 ve = 3
+    TR_assert_equal(2, d)
+    TR_assert_equal(3, ve)
+    TR_var değil = 4
+    TR_assert_equal(4, değil)
+}

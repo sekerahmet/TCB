@@ -78,6 +78,9 @@ type Checker struct {
 	// ifade deyiminin ifadesidir (eğer deyimi olarak yazılan eğer).
 	blockValues   map[*ast.ExpressionStatement]bool
 	statementExpr ast.Expression
+	// undefinedLeft tanımsız adın kendisi ve aynı satırda ardından gelen ifade deyimleridir:
+	// tanımsız ad hatası asıl sorunu söyler, etkisiz sayılmazlar (foreign_operators.go).
+	undefinedLeft map[*ast.ExpressionStatement]bool
 	// blockTypes değeri kullanılan bloğun son ifadesinin tipidir (block_values.go).
 	blockTypes map[*ast.ExpressionStatement]string
 	// İçinde bulunulan fonksiyonun bildirilmiş dönüş tipi ("" = fonksiyon dışı veya tipsiz)
@@ -184,10 +187,12 @@ func (c *Checker) check(prog *ast.Program) {
 	c.facts = signatureFacts{}
 	c.noValue, c.expectedReturns = map[ast.Expression]bool{}, map[*ast.FunctionLiteral]bool{}
 	c.noteAssigned(prog)
-	c.checkStatements(prog.Statements)
-	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir.
+	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir; önce aranır, çünkü
+	// tanımsız adın olduğu satırda etkisiz değer hatası susar (undefinedLeft).
 	c.nameErrors = c.nameErrors[:0]
+	c.undefinedLeft = map[*ast.ExpressionStatement]bool{}
 	c.checkNames(prog)
+	c.checkStatements(prog.Statements)
 	c.errors = append(c.errors, c.nameErrors...)
 	c.checkSkeletons(prog)
 	c.checkTopLevel(prog)

@@ -128,6 +128,39 @@ func TestLibraryCodeGetsNoSpellingHint(t *testing.T) {
 	}
 }
 
+// Kural (kopyalanınca çalışır): başka dilin karşılaştırması bütün olarak yazımını alır; dosyanın
+// önerisidir (lang nil), bir dilde yazılan satırda sözcükler o dilin adlarıyla geçerlidir.
+func TestForeignOperatorSpelling(t *testing.T) {
+	for _, d := range []struct {
+		words []string
+		want  string
+	}{
+		{[]string{"in"}, "'l.TR_contains(x)'"},
+		{[]string{"not", "in"}, "'TR_not l.TR_contains(x)'"},
+		{[]string{"is", "not"}, "'x != 1'"},
+	} {
+		h := ForeignOperator(d.words...)
+		if h == nil || !messages.Has(h, messages.H0302) || !strings.Contains(h.Error(), d.want) {
+			t.Errorf("ForeignOperator(%q) = %v, beklenen %s", d.words, h, d.want)
+		}
+	}
+	for _, words := range [][]string{{"not"}, {"is"}, {"and"}, {"in", "not"}, {"not", "is"}, {"x"}} {
+		if h := ForeignOperator(words...); h != nil {
+			t.Errorf("ForeignOperator(%q) = %v, ipucu olmamalı", words, h)
+		}
+	}
+	if got := NameSuggestion("in", nil, nil); !messages.Has(got, messages.H0302) {
+		t.Errorf("dosyada 'in' üyeliği önermeli: %v", got)
+	}
+	tr, err := codes.LoadLanguage("tr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := NameSuggestion("in", nil, tr); got != nil && messages.Has(got, messages.H0302) {
+		t.Errorf("yazılan satırda kimlikli öneri olmamalı: %v", got)
+	}
+}
+
 // Kural (3.8, 3.12): başka dilin range(n)'i tip çağrısını değil aralık yazımını önerir (0..n,
 // TR_List(0..n)); öbür tanıdık adlar TR_ yazımlarını (str → TR_String).
 func TestRangeSuggestsTheRangeSpelling(t *testing.T) {

@@ -378,12 +378,35 @@ func (p *Parser) removedSpellingHints() {
 			badLine[line] = true // H0258 'def'in TR yazımını kendisi söyler
 		}
 	}
-	for _, t := range p.tokens {
+	forLine := 0 // son döngü sözcüğünün satırı: orada 'x in l' karşılaştırma değil, döngü başlığıdır
+	for i := 0; i < len(p.tokens); i++ {
+		t := p.tokens[i]
+		if t.Type == lexer.TokFor {
+			forLine = t.Line
+		}
 		if t.Type != lexer.TokIdent || !badLine[t.Line] {
 			continue
 		}
-		if i := hint.KeywordSpellingHint(t.Literal, nil); i != nil {
-			p.errors = append(p.errors, messages.At(t.Line, t.Column, messages.New(messages.H0164, i)))
+		h, words := p.spellingHint(i, forLine == t.Line)
+		if h != nil {
+			p.errors = append(p.errors, messages.At(t.Line, t.Column, messages.New(messages.H0164, h)))
+		}
+		i += words - 1
+	}
+}
+
+// spellingHint i'deki adın ipucu ve ipucunun kapsadığı sözcük sayısıdır: 'not in' ve 'is not' iki
+// sözcükle tek karşılaştırmadır, 'not'un tek başına ipucu orada yanlış olur. loop, adın bir döngü
+// satırında olduğudur.
+func (p *Parser) spellingHint(i int, loop bool) (*messages.Error, int) {
+	t := p.tokens[i]
+	if i+1 < len(p.tokens) && p.tokens[i+1].Type == lexer.TokIdent && p.tokens[i+1].Line == t.Line {
+		if o := hint.ForeignOperator(t.Literal, p.tokens[i+1].Literal); o != nil {
+			return o, 2
 		}
 	}
+	if o := hint.ForeignOperator(t.Literal); o != nil && !loop {
+		return o, 1
+	}
+	return hint.KeywordSpellingHint(t.Literal, nil), 1
 }

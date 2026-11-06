@@ -135,6 +135,7 @@
 "H0299": "ertelenen bloktan '{keyword}' ile çıkılmaz: ertelenen iş kapsamın sonucunu değiştirmez ve bloğun sonuna dek çalışır; bloğun bir kısmını atlamak için onu koşula alın: `{#defer} {{ {#if} x > 0 {{ {#print}(x) }} }}`",
 "H0300": "`{#defer}` yalnız blokla yazılır, çağrı yazımı yoktur: `{#defer} {{ {call} }}`",
 "H0301": "'{name}' metot değil, fonksiyondur ve önce yol yazılır: `{name}(y, x)` (`y` yol, `x` içeriktir)",
+"H0302": " ('{written}' TR'de yok; yerine '{example}' yazılır)",
 "H1001": "Tip uyuşmazlığı — {name|q} değişkeni {declared|q} tipinde tanımlandı ancak {given|q} tipinde değer atandı{hint}",
 "H1002": "Sabit hatası — {name|q} bir sabittir ('{keyword}') ve değeri değiştirilemez",
 "H1003": "Dönüş tipi uyuşmazlığı — fonksiyon {expected|q} döndürmeli ancak {given|q} tipinde değer döndürülüyor{hint}",
