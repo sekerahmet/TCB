@@ -27,7 +27,7 @@ import (
 // test koşucusu ve hata ayıklama sunucusu da bu ikilinin içinde çalıştığından onu görür.
 func init() { interp.SetLibrary(lib.Files) }
 
-const Version = "0.1.0"
+const Version = "0.2.0"
 
 // gcTarget çöp toplayıcının varsayılan hedefi (yığın, canlı belleğin bu yüzdesi kadar
 // büyüyünce toplama başlar; Go'nun varsayılanı 100). Eğitimde her adım çok sayıda

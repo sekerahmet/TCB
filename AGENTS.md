@@ -45,6 +45,8 @@ The command is `trlang`. Never type `tr`: on Linux that is another program and i
 ```bash
 TR_LANG=en ./trlang check --json program.tr   # check without running; one JSON record per message
 TR_LANG=en ./trlang run program.tr            # check and run
+TR_LANG=en ./trlang test program_test.tr      # run the TR_test blocks
+./trlang format --check program.tr            # is the file in the standard form?
 ```
 
 `TR_LANG=en` gives messages in English. Exit code 0 means no errors. Messages say what is wrong and usually give the correct spelling: read them and follow them. A clean `check` does not mean every rule held: the tool does not check all of them yet, and the reference below is the rule.

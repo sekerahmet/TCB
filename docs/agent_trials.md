@@ -22,8 +22,8 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 4 | 2026-11-06 | Grok, ücretsiz | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
 | 5 | 2026-11-06 | GLM flash, ücretsiz | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
 | 6 | 2026-11-06 | Grok, ücretsiz | Türkçe kök bulan kitaplık, kendi testleriyle | ajan koşmadı ve bunu yazdı; TCB koştu: 11 testin 9'u geçti |
-| 7 | 2026-11-06 | Gemini argon high, Antigravity | aynı iş | sürüyor; ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, kök sözlüğü ve ek çözümleyicisi yazıyor |
-| 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | sürüyor; ajan kullanıcının bilgisayarında koşuyor, sözlük ve sıklık listesi kullanıyor |
+| 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | sürüyor; ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, kök sözlüğü ve ek çözümleyicisi yazıyor |
+| 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
 
 ## Yarış
 
@@ -78,3 +78,8 @@ Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un ö
 | 1 | fikir | metin işleme ve arama modülü: bölme, kök, TF-IDF, kosinüs, vektör indeksi | yok | açık |
 | 1 | fikir | aynı işi Python, Go ve TR ile yazdırıp hata, düzeltme ve token ölçmek | yok | açık |
 | 1 | yöntem | ajanın "ne okudum" cevabı kendi içinde tutarsız, kanıt sayılmaz; hesabın belleği de cevaba girdi | yok | sonraki denemede belleksiz oturum |
+| 7, 8 | belge | `AGENTS.md` ve başvuru `trlang test` ile `trlang format`'ı söylemiyordu; istem test isterken ajan komutu kılavuzdan buldu | yok | düzeldi |
+| 7 | dil | biçim denetimi yalnız "biçimlenmeli" diyor; ajanın denemesinde sebep büyük ihtimalle satır sonuydu, çok öğeli satır değil | F, Ö3 | status'ta |
+| 7 | fikir | ajan Türkçe küçük harfi kendi yazdı: `.TR_lower()` dile bağlı değil, `"ISI"` `isi` oluyor [ölçüldü]; metin işleme modülüne girer | yok | açık |
+| 7 | olumlu | büyük sözcük listesini çok satırlı ham metinle yazıp kümeye çevirdi; biçimleyiciyle çarpışmadı | yok | |
+| 8 | olumlu | çok dosyalı kitaplık, `TR_import`, yapı, durum makinesi, ikili arama: 30 bin satırlık veri dosyasıyla kendi testleri 1 saniyenin altında [ölçüldü] | yok | |

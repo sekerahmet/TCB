@@ -9,7 +9,7 @@ Bu belge bugün çalışan dili anlatır. Kuralların tam metni [`docs/spec`](sp
 - Yorum `#` ile başlar. `//` tam bölme işlecidir; `/* */` yoktur.
 - Program en dıştan yukarıdan aşağı çalışır; `main` yoktur. Erken çıkış `TR_exit(kod)` ile olur; en dışta `TR_return` yazılmaz.
 - Deyimler satır sonuyla ya da `;` ile ayrılır. Satırı bölmek için işleç satır sonunda kalır ya da parantez açılır. Satır başında `.` ve `?.` önceki satırı sürdürür.
-- **Komutlar:** `trlang check dosya.tr` (çalıştırmadan sözdizimi ve tip denetimi), `trlang check --json dosya.tr` (JSON kayıtları), `trlang run dosya.tr` (denetler ve çalıştırır). İleti dili `TR_LANG=en` ortam değişkeniyle seçilir; program çıktısı dilden bağımsızdır.
+- **Komutlar:** `trlang check dosya.tr` (çalıştırmadan sözdizimi ve tip denetimi), `trlang check --json dosya.tr` (JSON kayıtları), `trlang run dosya.tr` (denetler ve çalıştırır), `trlang test dosya_test.tr` (`TR_test` bloklarını koşar), `trlang format dosya.tr` (standart biçim; `--check` yalnız sorar). İleti dili `TR_LANG=en` ortam değişkeniyle seçilir; program çıktısı dilden bağımsızdır.
 - **İletileri okuma:** Sözdizimi, denetim ve çalışma hataları çıkış kodu 1 ile biter; her ileti konumunu (`dosya:satır:sütun`), `H...` ileti kodunu, hatanın nedenini ve varsa önerilen düzeltmeyi (yakın `TR_` kimliği, doğru yazım ya da TR karşılığı) yazar. `trlang check --json dosya.tr` satır başına `code`, `severity`, `file`, `start`, `end`, `message`, `related`, `fixes` alanlarını verir.
 
 ## Kimlikler ve adlar
