@@ -21,6 +21,20 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 4 | 2026-11-06 | Grok | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
 | 5 | 2026-11-06 | GLM flash | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
 
+## Yarış
+
+Beş programın kendisi, aynı 30 paragraf ve 18 soruyla (2026-11-06). Soruları ve metinleri TCB yazdı, ölçü koşudan önce yazıldı; küçük bir küme, yön gösterir, kesin sıralama değil. Grok'unkine kendi bildirdiği iki düzeltme yapıldı, öbürleri olduğu gibi. Beşi de hatasız koştu [ölçüldü].
+
+| Program | Yöntem | Aynı sözcük (6) | Başka ekli (6) | Başka sözcükle (6) | İlk sıra | İlk üç |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| Claude | BM25, ilk 5 harf kök | 6 | 6 | 1 ilk, 4 ilk üç | 13 | 16 |
+| Kimi | TF-IDF, kosinüs | 6 | 3 | 2 | 11 | 11 |
+| ChatGPT | eşleşme × nadirlik | 6 | 2 | 2 | 10 | 10 |
+| GLM | BM25 benzeri | 6 | 2 | 2 | 10 | 10 |
+| Grok | Jaccard | 6 | 2 | 1 ilk, 2 ilk üç | 9 | 10 |
+
+Türkçe aramada yöntemden çok kök fark açıyor: GLM de BM25 kullandı, kök almadığı için geride kaldı. Başka sözcükle sorulan soruda hepsi zayıf; bunun yolu gömme modeli.
+
 ## Bulgular
 
 | Deneme | Başlık | Bulgu | Sınıf | Durum |

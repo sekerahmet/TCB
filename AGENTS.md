@@ -12,7 +12,7 @@ If you can only read web pages, read the raw links under "Where to look" and wri
 
 ## Install
 
-The fastest way is the prebuilt binary, no Go needed. On x86-64 Linux:
+The fastest way is the prebuilt binary, no Go needed. On x86-64 Linux (CPU only):
 
 ```bash
 curl -L -o trlang https://github.com/sekerahmet/TCB/releases/download/v0.1.0/trlang-linux-amd64
