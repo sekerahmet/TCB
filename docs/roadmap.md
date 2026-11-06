@@ -170,7 +170,7 @@ Kodlama modelleri TR'yi doğru yazıyor mu, yanlış yazınca hata gürültülü
     - Araçsız tek denemede iki sessiz yanlış TR kuralından çıktı (grok-4.5-search, Qwen 3.8 Max), ikisi de değeri atılan `.TR_sort()`. Bu, "sessiz yanlış 0" eşiğini bozdu. Aynı alışkanlık DeepSeek'te de var, orada çıktıyı etkilemiyor.
     - 4a2 bu kalıbı denetim hatası yaptı (13.10, H1115).
     - Öbür iki sessiz yanlış programın mantığından (Python'da da aynı).
-  - **Gerçek kullanım provası (2026-11-06):** zor-3 yerine yabancı ajan tek insan cümlesiyle `AGENTS.md`'den başlıyor; hazır ikili `v0.1.0` yayımlandı. Ajanlar ve kayıt: [`agent_trials.md`](agent_trials.md). Sıradaki istemler bize gereken şeyler: Türkçe kök bulucu, okuma hazırlığı. Zor-3'ün konuları (demet, `T?`, durumlu tip, `TR_match`, JSON, hata anları) ve sessiz yanlış eşiği provada henüz ölçülmedi: sonraki istemlerde aranır.
+  - **Gerçek kullanım provası (2026-11-06):** zor-3 yerine yabancı ajan tek insan cümlesiyle `AGENTS.md`'den başlıyor; hazır ikili `v0.2.0` yayımlandı. Ajanlar ve kayıt: [`agent_trials.md`](agent_trials.md). Sıradaki istemler bize gereken şeyler: Türkçe kök bulucu, okuma hazırlığı. Zor-3'ün konuları (demet, `T?`, durumlu tip, `TR_match`, JSON, hata anları) ve sessiz yanlış eşiği provada henüz ölçülmedi: sonraki istemlerde aranır.
 - **Önekin bedeli:** kimlikle yazılan kod, İngilizce görünümden %22 fazla parça tutuyor; Türkçe görünümden %8 az [ölçüldü: DENETİM, 2026-11-01, Qwen3'ün `tokenizer.json`'u; 40 örnek ve üç kitaplık dosyası, yalnız program satırları, 1870 satır]. Dil kararını değiştirmez; ajanın bağlam bedeli olarak izlenir.
 
 ## Araç işleri

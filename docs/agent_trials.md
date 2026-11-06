@@ -22,8 +22,9 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 4 | 2026-11-06 | Grok, ücretsiz | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
 | 5 | 2026-11-06 | GLM flash, ücretsiz | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
 | 6 | 2026-11-06 | Grok, ücretsiz | Türkçe kök bulan kitaplık, kendi testleriyle | ajan koşmadı ve bunu yazdı; TCB koştu: 11 testin 9'u geçti |
-| 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | sürüyor; ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, kök sözlüğü ve ek çözümleyicisi yazıyor |
+| 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, elle 1.848 sözcüklük sözlük ve ek çözümleyicisi yazdı; TCB koştu: 10 testin 10'u geçti |
 | 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; ekrana göre 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
+| 9 | 2026-11-06 | Arena AI, bilinmeyen model | aynı iş | ajan `trlang` derledi, klasörde ikili var; TCB koştu: 18 testin 18'i geçti; bilmediği kökte sözcüğü olduğu gibi veriyor |
 
 ## Yarış
 
@@ -42,6 +43,19 @@ Türkçe aramada yöntemden çok kök fark açıyor: GLM de BM25 kullandı, kök
 Aynı 18 soruda yalnız kök değiştirilince de tuttu (DENETİM 255): Claude kök kapalı 10 ilk, 10 ilk üç, yani GLM'in sayıları; ilk 5 harf kökle GLM ve Kimi 13 ve 16, Grok 12 ve 16, ChatGPT 12 ve 15 [ölçüldü]. Kökün bedeli de var: GLM, Kimi ve Claude'da başka sözcükle sorulan soruda ilk sıra 2'den 1'e düşüyor, ilk üç 2'den 4'e çıkıyor [ölçüldü]. Beş harf bu kümeye bağlı, sabit değil: Claude'da 3 ile 8 arası ilk sıra 11–13, ilk üç 13–16 [ölçüldü].
 
 Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un önde olması dilin değil modelin katkısı olabilir; katkı programın gücü değil, kök almayı düşünmek. Hedef için asıl kanıt ücretsiz modellerin de `AGENTS.md`'den başlayıp çalışan TR yazmasıdır: ikisi koşamadan, Grok iki düzeltmeyle, GLM kendi hata ayıklamasıyla.
+
+## Kök yarışı
+
+Dört programın kendisi, iki liste, 120 sözcük, tam eşleşme (2026-11-06). İlk liste programlar koşulmadan sabitlendi; ikincisi programlar görüldükten sonra, nadir sözcüğü ve aşırı uyumu sınamak için yazıldı. Listeler depoda değil. Küçük bir küme, yön gösterir.
+
+| Program | Sözlük | Liste 1 (60) | Liste 2 (60) | Toplam (120) |
+| :-- | :-- | :-- | :-- | :-- |
+| Gemini | elle 1.848 sözcük, kural tabloları | 59 | 53 | 112 |
+| DeepSeek | Zemberek'ten 26.650 kök | 52 | 54 | 106 |
+| Arena | küçük, genişletilebilir | 49 | 25 | 74 |
+| Grok | yalnız ünlü düşmesi listesi, koşmadan yazıldı | 21 | 22 | 43 |
+
+Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü uydurmuyor, sözcüğü geri veriyor; arama işinde bu daha güvenli. Sonuç doğrudan bir yön gösteriyor: Gemini'nin kuralları ve büyük bir sözlük birlikte denenmedi.
 
 ## Bulgular
 
