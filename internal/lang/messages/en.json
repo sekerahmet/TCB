@@ -1733,7 +1733,7 @@
 "H7534": "{@probability}: the samples are {given|q}, they must be float32: `samples.{#to_dtype}(\"float32\")` (25.11)",
 "H7535": "{@probability}: the samples are on {given|q}, speech detection runs only on the CPU: `samples.{#to_device}(\"cpu\")` (25.11)",
 "H7536": "{@probability}: the frame is not finite or too large, the state did not change; check it first: `{#all}({#is_finite}(samples))` (25.11)",
-"H7537": "{@splitter}: {name} is {given}, {case, select, threshold {a threshold is between 0 and 1} other {a duration is a finite number of seconds above zero}} (25.12)",
+"H7537": "{@splitter}: {which, select, start {{@start_threshold}} end {{@end_threshold}} pre_roll {{@pre_roll}} silence {{@silence}} other {{@max_speech}}} is {given}, {which, select, start {a threshold is between 0 and 1} end {a threshold is between 0 and 1} other {a duration is a finite number of seconds above zero}} (25.12)",
 "H7538": "{@splitter}: the end threshold {given} is greater than the start threshold {start}; the end is not above the start: `{#end_threshold}: {start}` (25.12)",
 "H7539": "{@splitter}: the upper limit {given} is {frames} frames and leaves no room for the pre-roll and the silence: `{#max_speech}: 29.0` (25.12)",
 "H7900": "{fn} takes no parameter named '{given}'. Did you mean '{suggestion}'?",

@@ -1738,7 +1738,7 @@ const (
 	H7534 Code = 7534 // {@probability}: örnekler {given|q} türünde, float32 olmalıdır: `örnekler.{#to_dtype}("float32")` (25.11)
 	H7535 Code = 7535 // {@probability}: örnekler {given|q} cihazında, konuşma algılama yalnız CPU'da çalışır: `örnekler.{#to_device}("cpu")` (25.11)
 	H7536 Code = 7536 // {@probability}: çerçeve sonlu değil ya da çok büyük, durum değişmedi; önce bakın: `{#all}({#is_finite}(örnekler))` (25.11)
-	H7537 Code = 7537 // {@splitter}: {name} {given}, {case, select, threshold {eşik 0 ile 1 arasındadır} other {süre sıfırdan büyük, sonlu bir saniye sayısıdır}} (25.12)
+	H7537 Code = 7537 // {@splitter}: {which, select, start {{@start_threshold}} end {{@end_threshold}} pre_roll {{@pre_roll}} silence {{@silence}} other {{@max_speech}}} {given}, {which, select, start {eşik 0 ile 1 arasındadır} end {eşik 0 ile 1 arasındadır} other {süre sıfırdan büyük, sonlu bir saniye sayısıdır}} (25.12)
 	H7538 Code = 7538 // {@splitter}: bitiş eşiği {given}, başlangıç eşiği {start} değerinden büyük; bitiş başlangıcı geçmez: `{#end_threshold}: {start}` (25.12)
 	H7539 Code = 7539 // {@splitter}: üst sınır {given}, {frames} çerçevedir, baş tamponuna ve sessizliğe yetmez: `{#max_speech}: 29.0` (25.12)
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?

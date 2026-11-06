@@ -80,7 +80,7 @@ TR_for k TR_in yazı.TR_segments { TR_print(k.TR_start, k.TR_end, k.TR_text) }
 
 ## Konuşma algılama
 
-Örnekler 16 kHz, tek kanal ve `[-1, 1]` aralığındadır. Çerçeve 512 örnektir: 32 ms. Kesit konuşma çerçevelerini ve çevresini tutan 1 boyutlu `TR_Tensor`'dür; Whisper'a `TR_Sound` olarak verilir.
+Örnekler 16 kHz, tek kanal ve `[-1, 1]` aralığındadır; aralık denetlenmez: ölçeklenmemiş örnek hata vermez, olasılık yine gelir. Çerçeve 512 örnektir: 32 ms. Kesit konuşma çerçevelerini ve çevresini tutan 1 boyutlu `TR_Tensor`'dür; Whisper'a `TR_Sound` olarak verilir.
 
 **25.10** `TR_pretrained_vad(yol)` `tr/vad` kitaplığındadır ve bir `TR_VoiceDetector` verir. Yol tek bir safetensors dosyasıdır: `silero_vad_16k.safetensors`. Yeni yerleşik yoktur, model `.tr`'dir.
 - Dosyada 15 tensör vardır, adları ve şekilleri sabittir, türleri `float32`'dir.
@@ -113,7 +113,7 @@ TR_for i TR_in 0..ses.TR_shape[1] // 512 {
 
 **25.12** `TR_SpeechSplitter(d)` bir kesitleyici verir. Adlı argümanlar, süreler saniye `TR_Float`:
 - `TR_start_threshold: 0.5`;
-- `TR_end_threshold:` verilmezse `max(başlangıç - 0.15, 0.01)`;
+- `TR_end_threshold:` verilmezse `min(başlangıç, max(başlangıç - 0.15, 0.01))`;
 - `TR_pre_roll: 0.32`, `TR_silence: 0.6`, `TR_max_speech: 29.0`.
 
 Eşik 0–1 dışında, bitiş eşiği başlangıçtan büyük, süre sıfır, eksi ya da sonlu değilse hatadır. Çerçeveye yuvarlanmış üst sınır, baş tamponu artı sessizlikten küçükse de hatadır (25.13).
@@ -135,7 +135,7 @@ Eşik 0–1 dışında, bitiş eşiği başlangıçtan büyük, süre sıfır, e
 **25.15** Üst sınır kesitin bütün boyunu sayar, baş tamponu dahil. `TR_max_speech` 30 saniyeyi geçmezse kesit tek Whisper penceresine sığar.
 - Sınıra varınca kesit, ilk konuşma çerçevesinden sonraki en son duraklamanın ortasından bölünür. Duraklama en az 98 ms, yani en az 4 ardışık `p < bitiş` çerçevesidir; ortası baştan `boy // 2` çerçeve sonrasıdır.
 - Duraklama yoksa kesit sınırda kesilir.
-- Kalanda `p >= başlangıç` çerçevesi varsa kesit kalanla sürer. Yoksa tetik kapanır, kalan baş tamponuna geçer, sessiz kesit verilmez.
+- Kalanda `p >= başlangıç` çerçevesi varsa kesit kalanla sürer. Yoksa kesit bölünmez: sınırda biter, tetik kapanır.
 - Sessizlik sayacının dolduğu çerçeve sınıra denk gelirse kesit bölünmeden biter.
 - *Test:* TR testi.
 

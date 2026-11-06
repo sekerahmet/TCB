@@ -129,12 +129,12 @@ TR_func TR_pretrained_vad(yol: TR_String) -> TR_VoiceDetector {
 
 # _eşik eşiği denetler: NaN karşılaştırmada yanlıştır, olumsuzu da yakalar.
 TR_func _eşik(ad: TR_String, v: TR_Float) {
-    TR_if TR_not (v >= 0.0 TR_and v <= 1.0) { TR_throw TR_Message("H7537", "threshold", ad, v) }
+    TR_if TR_not (v >= 0.0 TR_and v <= 1.0) { TR_throw TR_Message("H7537", ad, v) }
 }
 
 # _süre süreyi denetler.
 TR_func _süre(ad: TR_String, v: TR_Float) {
-    TR_if TR_not (v > 0.0 TR_and TR_is_finite(v)) { TR_throw TR_Message("H7537", "duration", ad, v) }
+    TR_if TR_not (v > 0.0 TR_and TR_is_finite(v)) { TR_throw TR_Message("H7537", ad, v) }
 }
 
 # KonuşmaKesici: çerçeveleri tetik kapalıyken baş tamponunda, açıkken süren kesitte tutar (25.12).
@@ -150,16 +150,16 @@ TR_struct TR_SpeechSplitter {
     _çerçeveler: TR_List[TR_Tensor]
     _olasılıklar: TR_List[TR_Float]
     TR_func TR_init(d: TR_VoiceDetector, TR_start_threshold: TR_Float = 0.5, TR_end_threshold: TR_Float? = TR_none, TR_pre_roll: TR_Float = 0.32, TR_silence: TR_Float = 0.6, TR_max_speech: TR_Float = 29.0) {
-        _eşik("TR_start_threshold", TR_start_threshold)
-        TR_var bitiş = TR_max(TR_start_threshold - 0.15, 0.01)
+        _eşik("start", TR_start_threshold)
+        TR_var bitiş = TR_min(TR_start_threshold, TR_max(TR_start_threshold - 0.15, 0.01))
         TR_if TR_end_threshold != TR_none {
             bitiş = TR_end_threshold
-            _eşik("TR_end_threshold", bitiş)
+            _eşik("end", bitiş)
         }
         TR_if bitiş > TR_start_threshold { TR_throw TR_Message("H7538", bitiş, TR_start_threshold) }
-        _süre("TR_pre_roll", TR_pre_roll)
-        _süre("TR_silence", TR_silence)
-        _süre("TR_max_speech", TR_max_speech)
+        _süre("pre_roll", TR_pre_roll)
+        _süre("silence", TR_silence)
+        _süre("max_speech", TR_max_speech)
         TR_self._ön = TR_Int(TR_ceil(TR_pre_roll * _ÇERÇEVE_HIZI))
         TR_self._sessizlik = TR_Int(TR_ceil(TR_silence * _ÇERÇEVE_HIZI))
         TR_self._sınır = TR_Int(TR_floor(TR_max_speech * _ÇERÇEVE_HIZI))
@@ -209,21 +209,18 @@ TR_struct TR_SpeechSplitter {
         }
         TR_return yer
     }
-    # _böl üst sınırdaki kesiti böler; kalan konuşmasızsa tetik kapanır, kalan baş tamponuna geçer (25.15).
+    # _böl üst sınırdaki kesiti böler; kalanda konuşma yoksa bölmez: kesit sınırda biter, tetik kapanır (25.15).
     TR_func _böl() -> TR_Tensor {
         TR_var yer = TR_self._bölme_yeri()
         TR_var n = TR_self._çerçeveler.TR_length
+        TR_var konuşma = TR_false
+        TR_for p TR_in TR_self._olasılıklar[yer..n] {
+            TR_if p >= TR_self._başlangıç { konuşma = TR_true }
+        }
+        TR_if TR_not konuşma { TR_return TR_self._bitir() }
         TR_var kesit = TR_concat(TR_self._çerçeveler[0..yer])
         TR_self._çerçeveler = TR_self._çerçeveler[yer..n]
         TR_self._olasılıklar = TR_self._olasılıklar[yer..n]
-        TR_var konuşma = TR_false
-        TR_for p TR_in TR_self._olasılıklar {
-            TR_if p >= TR_self._başlangıç { konuşma = TR_true }
-        }
-        TR_if TR_not konuşma {
-            TR_self._tetik = TR_false
-            TR_self._kırp()
-        }
         TR_return kesit
     }
     # _ilerle bir çerçeveyi olasılığıyla işler (25.13).

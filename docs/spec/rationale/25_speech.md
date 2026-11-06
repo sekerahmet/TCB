@@ -61,19 +61,19 @@ Araştırma: Gemini canlı ses raporu, Soru 3 (2026-11-06). DENETİM yönergeyi 
 
 ### 25.11
 
-- *Emsal:* Silero'nun `model(x, 16000)`'i 512 örnek ister, son 64 örneği bağlam tutar, `reset_states` ikisini sıfırlar [kanıtlı: `silero_vad.jit`'in `forward`'ı]. NaN denetimi emsalde yok.
-- *Gerekçe:* tek NaN çerçeveden sonra sonraki beş temiz çerçevenin hepsi NaN'dır; `nan >= 0.5` ve `nan < 0.35` ikisi de yanlıştır, kesitleyici hatasız sonsuza dek dinlerdi [ölçüldü: DENETİM 240]. `1e20` genlik sonludur ama karesi `float32`'de taşar: durum ancak sonuç sonluysa yazılır. Bir çerçevenin süresi 32 ms olduğu için CPU yeter; ölçü DEVİR'dedir.
+- *Emsal:* Silero'nun `model(x, 16000)`'i 512 örnek ister, son 64 örneği bağlam tutar, `reset_states` ikisini sıfırlar [kanıtlı: `silero_vad.jit`'in `forward`'ı]. NaN ve `[-1, 1]` denetimi emsalde yok.
+- *Gerekçe:* tek NaN çerçeveden sonra sonraki beş temiz çerçevenin hepsi NaN'dır; `nan >= 0.5` ve `nan < 0.35` ikisi de yanlıştır, kesitleyici hatasız sonsuza dek dinlerdi [ölçüldü: DENETİM 240]. `1e20` genlik sonludur ama karesi `float32`'de taşar: durum ancak sonuç sonluysa yazılır. Bir çerçevenin süresi 32 ms olduğu için CPU yeter; ölçü DEVİR'dedir. Aralık denetlenmez: bölü 32768 unutulursa hata yok, olasılık gelir [ölçüldü: DENETİM 245, kanal modeli]; bilinen sınır.
 
 ### 25.12
 
 - *Emsal:* `max(threshold - 0.15, 0.01)` `faster-whisper` `vad.py:95` ve `utils_vad.py:476`. 0,5 iki kaynağın varsayılanıdır.
-- *Gerekçe:* sabit 0,35 varsayılan, `TR_start_threshold: 0.3` yazan kullanıcıya hata verirdi. Yanlış değer sessiz yanlış değil, gecikme ya da fazla kesit üretir: 25.3'ün zorunlu dili buraya uymaz, varsayılan vardır. 0,32 ve 0,6 görüştür: emsal aralıkları 30–400 ms ve 100–2000 ms'dir (`utils_vad.py:596`–`:597`, `vad.py`). 0,32 aralığın üst yarısında: Silero'nun 30 ms'si tek çerçevedir, `faster-whisper`'ın 400 ms'si çevrimdışıdır; 0,6, 100 ms'den altı kat uzun, cümle içi nefesi bölmez, 2000 ms'den 1,4 saniye kısa, canlı yanıtı geciktirmez. 29 saniye türetilmiştir: kesit Whisper'ın 30 saniyelik penceresine sığar (25.7).
+- *Gerekçe:* sabit 0,35 varsayılan, `TR_start_threshold: 0.3` yazan kullanıcıya hata verirdi. Emsalin formülü 0,01'in altındaki başlangıçta bitişi başlangıcın üstüne çıkarır; dış `min` bu geçerli değere de hata verdirmez. Yanlış değer sessiz yanlış değil, gecikme ya da fazla kesit üretir: 25.3'ün zorunlu dili buraya uymaz, varsayılan vardır. 0,32 ve 0,6 görüştür: emsal aralıkları 30–400 ms ve 100–2000 ms'dir (`utils_vad.py:596`–`:597`, `vad.py`). 0,32 aralığın üst yarısında: Silero'nun 30 ms'si tek çerçevedir, `faster-whisper`'ın 400 ms'si çevrimdışıdır; 0,6, 100 ms'den altı kat uzun, cümle içi nefesi bölmez, 2000 ms'den 1,4 saniye kısa, canlı yanıtı geciktirmez. 29 saniye türetilmiştir: kesit Whisper'ın 30 saniyelik penceresine sığar (25.7).
 - Üst sınır çerçeveye yuvarlandıktan sonra denetlenir: makine çerçeveyle çalışır; `TR_pre_roll: 0.001, TR_silence: 0.001, TR_max_speech: 0.002` saniyede geçerdi, sınır 0 çerçeve olurdu.
 
 ### 25.13
 
 - *Emsal:* eşikler `utils_vad.py:666`, `:671`; sıfırlama `:663`. Silero'da sayaç ilk `p < bitiş` çerçevesinden geçen süredir, iki eşik arası çerçeve süreye girer.
-- *Gerekçe:* TR yalnız `p < bitiş` çerçevelerini sayar: "sessizlik" o çerçevedir. Sessizlik 19 çerçevede bir kez yazılıdır, belirsiz bölgede kesit erken bitmez, Türkçe son ünsüzü korunur. Silero'dan uzaklık yalnız iki eşik arası çerçeve varken görülür. 600 / 32 = 18,75 ve 29 000 / 32 = 906,25: sessizlik ve tampon "en az", üst sınır "en çok" okunur.
+- *Gerekçe:* TR yalnız `p < bitiş` çerçevelerini sayar: "sessizlik" o çerçevedir. Sessizlik 19 çerçevede bir kez yazılıdır, belirsiz bölgede kesit erken bitmez. Kesitin kuyruğu iki kuralda da kesittedir: son ünsüz sayaca bağlı değildir. Silero'dan uzaklık en çok 2 çerçevedir, kesit sayısı hiç ayrılmadı [ölçüldü: DENETİM 245; FLEURS tr dev, 338 kayıt, temiz, 20 dB ve 10 dB beyaz gürültü, iki ağırlık, kesitleyicinin Python eşidi]. İki kural yalnız sessiz ve ara çerçeve dönüşümlü gelirse ayrılır: TR'nin bedeli üst sınıra kadar gecikmedir, Silero'nunki zayıf konuşmanın kesilmesidir [hesap: DENETİM 245]; ölçüde ikisi de görülmedi. 600 / 32 = 18,75 ve 29 000 / 32 = 906,25: sessizlik ve tampon "en az", üst sınır "en çok" okunur.
 
 ### 25.14
 
@@ -83,7 +83,7 @@ Araştırma: Gemini canlı ses raporu, Soru 3 (2026-11-06). DENETİM yönergeyi 
 ### 25.15
 
 - *Emsal:* 98 ms `vad.py:80`, `utils_vad.py:295`. Bölme yeri "en son" `faster-whisper`'ın, "en uzun" Silero v6.2.3'ün varsayılanıdır (`utils_vad.py:502`). Kalan konuşmasızsa tetik kapanması `utils_vad.py:508`–`:511`, `vad.py:122`. Sınırda kesme `utils_vad.py:527`.
-- *Gerekçe:* canlı akışta en son duraklama kesiti en uzun tutar, kalan en kısa olur. Emsaller dolguyu sınırdan düşer (`utils_vad.py:467`, `vad.py:74`–`:78`); TR'de sınır bütün boyu sayar, böylece "30 saniyeye sığar" argüman değerinden okunur. Ortadan bölmek duraklamanın iki yanını iki kesite paylaştırır. Baş tamponundaki duraklama sayılmaz: orada bölmek sessiz kesit verirdi.
+- *Gerekçe:* canlı akışta en son duraklama kesiti en uzun tutar, kalan en kısa olur. Emsaller dolguyu sınırdan düşer (`utils_vad.py:467`, `vad.py:74`–`:78`); TR'de sınır bütün boyu sayar, böylece "30 saniyeye sığar" argüman değerinden okunur. Ortadan bölmek duraklamanın iki yanını iki kesite paylaştırır. Baş tamponundaki duraklama sayılmaz: orada bölmek sessiz kesit verirdi. Emsallerde kalan konuşmasızsa tetik kapanır, kalan kesite girmez; TR'de kalan iki eşik arası çerçeve tutabilir, dışarıda bırakmak 25.14'ü bozar: 3 konuşma, 6 sessiz, 31 ara çerçevede, sınır 40'ta 34 çerçeve kaybolurdu [ölçüldü: DENETİM 245]. Kesit sınırda biter: sınırı geçmez, konuşma içerir, örnek düşmez.
 
 ### 25.16
 

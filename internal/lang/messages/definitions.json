@@ -1733,7 +1733,7 @@
 "H7534": { "param": ["given"], "slots": {"probability": "TR_mem_probability", "to_dtype": "TR_mem_to_dtype"} },
 "H7535": { "param": ["given"], "slots": {"probability": "TR_mem_probability", "to_device": "TR_mem_to_device"} },
 "H7536": { "param": [], "slots": {"probability": "TR_mem_probability", "is_finite": "TR_fn_is_finite", "all": "TR_fn_all"} },
-"H7537": { "param": ["case", "name", "given"], "slots": {"splitter": "TR_type_SpeechSplitter"} },
+"H7537": { "param": ["which", "given"], "slots": {"splitter": "TR_type_SpeechSplitter", "start_threshold": "TR_arg_start_threshold", "end_threshold": "TR_arg_end_threshold", "pre_roll": "TR_arg_pre_roll", "silence": "TR_arg_silence", "max_speech": "TR_arg_max_speech"} },
 "H7538": { "param": ["given", "start"], "slots": {"splitter": "TR_type_SpeechSplitter", "end_threshold": "TR_arg_end_threshold"} },
 "H7539": { "param": ["given", "frames"], "slots": {"splitter": "TR_type_SpeechSplitter", "max_speech": "TR_arg_max_speech"} },
 "H7900": { "param": ["fn", "given", "suggestion"] },

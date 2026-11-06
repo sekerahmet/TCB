@@ -96,25 +96,29 @@ TR_func sıralar(kesit: TR_Tensor) -> TR_List[TR_Int] {
     TR_return [TR_Int(l[i * _BOY]) TR_for i TR_in 0..kesit.TR_shape[0] // _BOY]
 }
 
-# Beslemenin sonucu: verilen kesitler çerçeve numaralarıyla.
+# Beslemenin sonucu: verilen kesitler çerçeve numaralarıyla, her kesit verilirken beslenmiş çerçeve sayısı.
 TR_struct Akış {
     kesici: TR_SpeechSplitter
     sıra: TR_Int
     kesitler: TR_List[TR_List[TR_Int]]
+    verildi: TR_List[TR_Int]
+    TR_func al(k: TR_Tensor?) {
+        TR_if k != TR_none {
+            TR_self.kesitler.TR_append(sıralar(k))
+            TR_self.verildi.TR_append(TR_self.sıra)
+        }
+    }
     TR_func besle(genlik: TR_Float, kaç: TR_Int) {
         TR_for _ TR_in 0..kaç {
             TR_var k = TR_self.kesici.TR_push(çerçeve(TR_self.sıra, genlik))
             TR_self.sıra = TR_self.sıra + 1
-            TR_if k != TR_none { TR_self.kesitler.TR_append(sıralar(k)) }
+            TR_self.al(k)
         }
     }
-    TR_func bitir() {
-        TR_var k = TR_self.kesici.TR_flush()
-        TR_if k != TR_none { TR_self.kesitler.TR_append(sıralar(k)) }
-    }
+    TR_func bitir() { TR_self.al(TR_self.kesici.TR_flush()) }
 }
 
-TR_func akış(k: TR_SpeechSplitter) -> Akış { TR_return Akış(kesici: k, sıra: 0, kesitler: []) }
+TR_func akış(k: TR_SpeechSplitter) -> Akış { TR_return Akış(kesici: k, sıra: 0, kesitler: [], verildi: []) }
 
 TR_func aralık(baş: TR_Int, son: TR_Int) -> TR_List[TR_Int] { TR_return [i TR_for i TR_in baş..son] }
 
@@ -193,6 +197,10 @@ TR_test "25.11 iletinin önerdiği yazımlar çalışır" {
     TR_assert_equal(TR_false, TR_all(TR_is_finite(bozuk)))
 }
 
+TR_test "25.11 aralık denetlenmez: ölçeklenmemiş örnek hata vermez" {
+    TR_assert(kanal_modeli().TR_probability(TR_ones([_BOY]) * 32767.0) > 0.0)
+}
+
 TR_test "25.11 yalnız CPU'da çalışır" {
     TR_if TR_devices().TR_contains("gpu") {
         TR_var d = kanal_modeli()
@@ -235,6 +243,14 @@ TR_test "25.12 varsayılan bitiş eşiği başlangıçtan türer" {
     TR_assert_equal([], b.kesitler)
 }
 
+TR_test "25.12 türeyen bitiş eşiği başlangıcı geçmez: küçük başlangıç hata vermez" {
+    TR_var d = kanal_modeli()
+    TR_assert_equal(0.005, TR_SpeechSplitter(d, TR_start_threshold: 0.005)._bitiş)
+    TR_assert_equal(0.0, TR_SpeechSplitter(d, TR_start_threshold: 0.0)._bitiş)
+    TR_assert_equal(0.01, TR_SpeechSplitter(d, TR_start_threshold: 0.01)._bitiş)
+    TR_assert_equal(0.01, TR_SpeechSplitter(d, TR_start_threshold: 0.1)._bitiş)
+}
+
 TR_test "25.12 eşik 0–1 dışında ya da bitiş başlangıçtan büyükse hata" {
     TR_var d = kanal_modeli()
     TR_for v TR_in [-0.1, 1.5, TR_nan] {
@@ -242,7 +258,6 @@ TR_test "25.12 eşik 0–1 dışında ya da bitiş başlangıçtan büyükse hat
         TR_assert_equal("H7537", TR_error_code { TR_SpeechSplitter(d, TR_end_threshold: v) })
     }
     TR_assert_equal("H7538", TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.4, TR_end_threshold: 0.6) })
-    TR_assert_equal("H7538", TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.005) })
     TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.4, TR_end_threshold: 0.4) } == TR_none)
     TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 0.0, TR_end_threshold: 0.0) } == TR_none)
     TR_assert(TR_error_code { TR_SpeechSplitter(d, TR_start_threshold: 1.0) } == TR_none)
@@ -451,22 +466,36 @@ TR_test "25.15 baş tamponundaki duraklamada bölünmez: sessiz kesit verilmez" 
     TR_assert_equal([aralık(0, 15)], a.kesitler)
 }
 
-TR_test "25.15 kalan konuşmasızsa tetik kapanır, kalan baş tamponuna geçer" {
+TR_test "25.15 kalan konuşmasızsa kesit bölünmez: sınırda biter, tetik kapanır" {
     TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32, TR_max_speech: 0.48))
     a.besle(_KONUŞMA, 7)
     a.besle(_SESSİZ, 8)
-    # Sınır 15 çerçeve; duraklama 7–15, ortası 11. Kalanın son ikisi baş tamponudur.
-    TR_assert_equal([aralık(0, 11)], a.kesitler)
+    # Sınır 15 çerçeve; duraklama 7–15, ortası 11, ama kalanda konuşma yok.
+    TR_assert_equal([aralık(0, 15)], a.kesitler)
     a.besle(_SESSİZ, 40)
     TR_assert_equal(1, a.kesitler.TR_length)
     a.bitir()
     TR_assert_equal(1, a.kesitler.TR_length)
+    # Kesit bitince baş tamponu boşalır: sonraki kesit konuşmayla başlar.
     TR_var b = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32, TR_max_speech: 0.48))
     b.besle(_KONUŞMA, 7)
     b.besle(_SESSİZ, 8)
     b.besle(_KONUŞMA, 1)
     b.bitir()
-    TR_assert_equal([aralık(0, 11), aralık(13, 16)], b.kesitler)
+    TR_assert_equal([aralık(0, 15), [15]], b.kesitler)
+}
+
+TR_test "25.15 duraklamadan sonra zayıf süren konuşma düşmez" {
+    TR_var a = akış(TR_SpeechSplitter(kanal_modeli(), TR_pre_roll: 0.064, TR_silence: 0.32, TR_max_speech: 1.28))
+    a.besle(_KONUŞMA, 3)
+    a.besle(_SESSİZ, 6)
+    a.besle(_ARA, 31)
+    # Sınır 40 çerçeve; duraklama 3–9, kalanda yalnız ara çerçeve var.
+    TR_assert_equal([aralık(0, 40)], a.kesitler)
+    # Tetik kapalıdır: ara çerçeve açmaz.
+    a.besle(_ARA, 5)
+    a.bitir()
+    TR_assert_equal(1, a.kesitler.TR_length)
 }
 
 TR_test "25.15 sınırda bitiş sessizliği doluyorsa kesit bölünmez" {
@@ -527,18 +556,19 @@ TR_func karışık(tohum: TR_Int, n: TR_Int) -> TR_List[TR_Float] {
     TR_return r
 }
 
-TR_func koş(d: TR_VoiceDetector, genlikler: TR_List[TR_Float]) -> TR_List[TR_List[TR_Int]] {
+TR_func koş(d: TR_VoiceDetector, genlikler: TR_List[TR_Float]) -> Akış {
     TR_var a = akış(TR_SpeechSplitter(d, TR_pre_roll: 0.128, TR_silence: 0.256, TR_max_speech: 1.28))
     TR_for g TR_in genlikler { a.besle(g, 1) }
     a.bitir()
-    TR_return a.kesitler
+    TR_return a
 }
 
 TR_test "25.17 özellik: kesitlerin birleşimi girdinin sıralı alt dizisidir, örnek iki kez geçmez, tetik açıkken örnek düşmez" {
     TR_var d = kanal_modeli()
     TR_for tohum TR_in 1..7 {
         TR_var g = karışık(tohum, 300)
-        TR_var kesitler = koş(d, g)
+        TR_var a = koş(d, g)
+        TR_var kesitler = a.kesitler
         TR_assert(kesitler.TR_length > 1, "\(tohum). tohum")
         TR_var önceki = -1
         TR_for k TR_in kesitler {
@@ -559,12 +589,18 @@ TR_test "25.17 özellik: kesitlerin birleşimi girdinin sıralı alt dizisidir, 
         TR_for s, v TR_in g {
             TR_assert(v != _KONUŞMA TR_or içinde.TR_contains(s), "\(s) konuşma çerçevesi düştü")
         }
+        # Kesit verilene kadar tetik açıktır: sonundan verildiği çerçeveye kadar, ara ve sessiz çerçeve de bir kesittedir.
+        TR_for j, k TR_in kesitler {
+            TR_for s TR_in k[k.TR_length - 1]..a.verildi[j] {
+                TR_assert(içinde.TR_contains(s), "\(tohum). tohum: tetik açıkken \(s) düştü")
+            }
+        }
     }
 }
 
 TR_test "25.17 aynı model ve aynı örnekler aynı kesitleri verir" {
     TR_var g = karışık(11, 200)
-    TR_assert_equal(koş(kanal_modeli(), g), koş(kanal_modeli(), g))
+    TR_assert_equal(koş(kanal_modeli(), g).kesitler, koş(kanal_modeli(), g).kesitler)
     TR_var d = formül_modeli()
     TR_var ilk = [d.TR_probability(formül_çerçevesi(i)) TR_for i TR_in 0..6]
     d.TR_reset_state()

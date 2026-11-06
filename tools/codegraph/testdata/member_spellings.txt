@@ -1307,6 +1307,7 @@ v2.TR_grad	ok	0	name:TR_mem_grad
 v_ham.TR_reshape	ok	0	name:TR_mem_reshape
 veri.TR_append	ok	0	name:TR_mem_append
 veri.TR_length	ok	0	name:TR_mem_length
+verildi.TR_append	ok	0	name:TR_mem_append
 w.TR_cancel	ok	0	name:TR_mem_cancel
 w.TR_device	ok	0	name:TR_mem_device
 w.TR_dtype	ok	0	name:TR_mem_dtype
