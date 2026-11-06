@@ -94,3 +94,4 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 - **Henüz var olmayan yol için kurallar (istek, 2026-11-06, ekran oturumu):** `tests-for tools/yeni/README.md` gibi yeni bir dosya yolu sorulunca o yolda geçerli depo kuralları dönsün; `TestEveryTrackedDataFileHasATestOrAReason` şartı baştan görünürdü.
 - **S1, 2026-11-06:** kodu olan ama hiçbir `.tr` dosyasında geçmeyen üyede codegraph `name:` kimliği verirken `trlang index` `not_found` veriyor; `TestDottedMemberSpellingsGolden` bu farkta düştü.
 - **D1, 2026-11-06:** `tests-for` bir kataloğa yeni ad eklerken değişecek yerleri (`examples`, altın dosya, `identityExceptions`) tek listede versin; `TestExamplesCoverNames` önceden görünürdü.
+- **D1 ipucu, 2026-11-06:** `tests-for` `run:` satırında `-run`'sız komut öneriyor, kanca onu durduruyor; önerilen komut koşulabilir olsun. Depo testleri izlenmeyen dosyayı görmüyor; `tests-for` bunu söylesin.

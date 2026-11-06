@@ -108,7 +108,7 @@ Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci 
 | 8 | belge | `lib/README.md` kod adıyla yazıyor, ajan `TR_kw_import` yazdı; ileti doğrusunu söyledi | yok | düzeldi: giriş cümlesi, önek notu |
 | 8 | belge | sık yanlışlar tablosunda `and`, `or`, `not` yoktu | yok | düzeldi |
 | 8 | belge | başvuruda test yerleşikleri yoktu; `TR_assert_equal`'ın mesaj aldığı yazmıyordu | yok | düzeldi |
-| 8 | dil | yalın `and`, `or`, `not` sözdizimi hatası doğru yazımı söylemiyor; ajan 14 hata aldı | F1, Ö3 | status'ta |
+| 8 | dil | yalın `and`, `or`, `not` sözdizimi hatası doğru yazımı söylemiyordu; ajanın sözüne göre 14 hata aldı | F1, Ö3 | düzeldi |
 | 8 | fikir | modülün en dışı kod koşturmuyor (11.1) ve küme tipi yok; ajan 26.650 kök için sıralı liste ve ikili arama yazdı; ileti doğru yolu gösteriyor | yok | açık |
 | 8 | yöntem | ajanın anlatımına göre algoritma önce Python'da 30'dan fazla kez düzeltilmiş, sonra TR'ye taşınmış; üretici silindi, doğrulanmadı | yok | |
 | 8 | belge | ajan "modül kod koşturmaz" kuralından veri hazırlamayı TR'de yapılamaz sandı; program dosyası koşar. Kabuk ve hata ayıklayıcıyı denemedi, `AGENTS.md` söylemiyordu | yok | düzeldi |
