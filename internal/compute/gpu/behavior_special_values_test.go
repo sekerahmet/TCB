@@ -322,9 +322,9 @@ func TestSpecialValuesTable(t *testing.T) {
 		{ad: "silu", in: []float32{inf, -inf}, want: []float32{1, 0}, f: (*tensor.Tensor).Silu, grad: true},
 		{ad: "gelu", in: []float32{inf, -inf}, want: []float32{1, 0}, f: (*tensor.Tensor).Gelu, grad: true},
 		{ad: "gelu_tam", in: []float32{inf, -inf}, want: []float32{1, 0}, f: (*tensor.Tensor).GeluExact, grad: true},
-		// Türevler: relu'nun türevi 0'da ve NaN'da 0, mutlak'ınki ±0'da 0 ve NaN'da NaN, tanh'ınki
+		// Türevler: relu'nun türevi 0'da 0 ve NaN'da NaN, mutlak'ınki ±0'da 0 ve NaN'da NaN, tanh'ınki
 		// ±∞'da 0.
-		{ad: "relu", in: []float32{0, n0, nan, 2}, want: []float32{0, 0, 0, 1}, f: (*tensor.Tensor).Relu, grad: true},
+		{ad: "relu", in: []float32{0, n0, nan, 2}, want: []float32{0, 0, nan, 1}, f: (*tensor.Tensor).Relu, grad: true},
 		{ad: "mutlak", in: []float32{0, n0, nan, -2}, want: []float32{0, 0, nan, -1}, f: (*tensor.Tensor).Abs, grad: true},
 		{ad: "tanh", in: []float32{inf, -inf}, want: []float32{0, 0}, f: (*tensor.Tensor).Tanh, grad: true},
 		// Toplam: yalnızca −0'lardan oluşan toplam +0'dır; +∞ ile −∞ NaN.
@@ -347,10 +347,10 @@ func TestSpecialValuesTable(t *testing.T) {
 			f: func(x *tensor.Tensor) *tensor.Tensor { return x.LogSoftmax(1) }},
 		{ad: "softmax", in: []float32{-inf, -inf}, shape: []int{1, 2}, want: []float32{0, 0}, grad: true,
 			f: func(x *tensor.Tensor) *tensor.Tensor { return x.Softmax(1) }},
-		// Sınırlama NaN'ı korur; türevi sınırlar dahil aralıkta 1.
+		// Sınırlama NaN'ı korur; türevi sınırlar dahil aralıkta 1, NaN'da NaN.
 		{ad: "sınırla", in: []float32{nan, -inf, inf, n0}, want: []float32{nan, -1, 1, n0},
 			f: func(x *tensor.Tensor) *tensor.Tensor { return x.Clamp(-1, 1) }},
-		{ad: "sınırla", in: []float32{-1, 1, 0, 2, nan}, want: []float32{1, 1, 1, 0, 0}, grad: true,
+		{ad: "sınırla", in: []float32{-1, 1, 0, 2, nan}, want: []float32{1, 1, 1, 0, nan}, grad: true,
 			f: func(x *tensor.Tensor) *tensor.Tensor { return x.Clamp(-1, 1) }},
 		// Karşılaştırmalar NaN'da 0; koşullu'da NaN koşul doğrudur.
 		{ad: "NaN < 1, NaN >= NaN", in: []float32{nan, nan}, want: []float32{0, 0},

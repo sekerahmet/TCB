@@ -259,8 +259,8 @@ func TestClamp(t *testing.T) {
 	y := x.Clamp(-1, 2)
 	nanSame(t, "clamp", y.Data(), []float32{-1, -1, 0, 1, 2, 2, nan32})
 	y.SumAll().Backward()
-	// Sınırlar dahil içeride 1, dışarıda ve NaN'da 0.
-	nanSame(t, "clamp gradyanı", x.Grad().Data(), []float32{0, 1, 1, 1, 1, 0, 0})
+	// Sınırlar dahil içeride 1, dışarıda 0, NaN'da NaN.
+	nanSame(t, "clamp gradyanı", x.Grad().Data(), []float32{0, 1, 1, 1, 1, 0, nan32})
 	nanSame(t, "clamp alt", New([]float32{-2, 3}, 2).ClampMin(0).Data(), []float32{0, 3})
 	nanSame(t, "clamp üst", New([]float32{-2, 3}, 2).ClampMax(0).Data(), []float32{-2, 0})
 	panicCode(t, "ters sınırlar", messages.H3040, func() { x.Clamp(2, 1) })

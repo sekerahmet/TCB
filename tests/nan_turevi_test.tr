@@ -1,0 +1,73 @@
+# TR 4
+# NaN'lı girdinin türevi NaN'dır: eğitim hatayı görür (15 özel değerler tablosu; 15.13, 15.14, 15.16,
+# 15.16a). Türevi her yerde 0 olan TR_sign, TR_floor, TR_ceil tabloda değildir (15.12).
+
+TR_func girdi() -> TR_Tensor {
+    TR_return TR_Tensor([TR_nan, 1.0, -1.0, 0.0], TR_requires_grad: TR_true)
+}
+
+TR_func türev(x: TR_Tensor, f: (TR_Tensor) -> TR_Tensor) -> TR_List[TR_String] {
+    TR_backward(TR_sum(f(x)))
+    TR_return x.TR_grad.TR_tolist.TR_map((v) => TR_String(v))
+}
+
+TR_test "15.16 TR_relu'nun türevi x > 0'da 1, 0'da 0, NaN'da NaN" {
+    TR_assert_equal(["nan", "1.0", "0.0", "0.0"], türev(girdi(), (x) => TR_relu(x)))
+}
+
+TR_test "15.13 TR_clamp'in türevi aralıkta 1, dışında 0, NaN'da NaN" {
+    TR_assert_equal(["nan", "0.0", "0.0", "1.0"], türev(girdi(), (x) => TR_clamp(x, TR_min: -0.5, TR_max: 0.5)))
+    TR_assert_equal(["nan", "1.0", "0.0", "1.0"], türev(girdi(), (x) => TR_clamp(x, TR_min: -0.5)))
+    TR_assert_equal(["nan", "0.0", "1.0", "1.0"], türev(girdi(), (x) => TR_clamp(x, TR_max: 0.5)))
+}
+
+TR_test "15.13 TR_clamp'in türevi sınırlarda 1" {
+    TR_var x = TR_Tensor([-0.5, 0.5], TR_requires_grad: TR_true)
+    TR_assert_equal(["1.0", "1.0"], türev(x, (t) => TR_clamp(t, TR_min: -0.5, TR_max: 0.5)))
+}
+
+TR_test "15.16 TR_abs'ın türevi NaN'da NaN" {
+    TR_assert_equal(["nan", "1.0", "-1.0", "0.0"], türev(girdi(), (x) => TR_abs(x)))
+}
+
+TR_test "15.16a TR_maximum ve TR_minimum NaN olan konumda iki işlenene de NaN verir" {
+    TR_var a = TR_Tensor([TR_nan, 1.0], TR_requires_grad: TR_true)
+    TR_var b = TR_Tensor([0.0, TR_nan], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_maximum(a, b)))
+    TR_assert_equal(["nan", "nan"], a.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+    TR_assert_equal(["nan", "nan"], b.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+    TR_var c = TR_Tensor([TR_nan, 1.0], TR_requires_grad: TR_true)
+    TR_var d = TR_Tensor([0.0, TR_nan], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_minimum(c, d)))
+    TR_assert_equal(["nan", "nan"], c.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+    TR_assert_equal(["nan", "nan"], d.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+}
+
+TR_test "15 etkinleştirmelerin türevi NaN'da NaN" {
+    TR_assert_equal("nan", türev(girdi(), (x) => TR_silu(x))[0])
+    TR_assert_equal("nan", türev(girdi(), (x) => TR_gelu(x))[0])
+    TR_assert_equal("nan", türev(girdi(), (x) => TR_sigmoid(x))[0])
+    TR_assert_equal("nan", türev(girdi(), (x) => TR_tanh(x))[0])
+}
+
+TR_test "15.14 TR_atan2'nin türevi NaN girdide NaN" {
+    TR_var y = TR_Tensor([TR_nan, 1.0], TR_requires_grad: TR_true)
+    TR_var x = TR_Tensor([1.0, TR_nan], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_atan2(y, x)))
+    TR_assert_equal(["nan", "nan"], y.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+    TR_assert_equal(["nan", "nan"], x.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+}
+
+TR_test "15.6a bf16'da TR_relu ve TR_clamp'in türevi NaN'da NaN" {
+    TR_var a = TR_Tensor([TR_nan, 1.0, -1.0, 0.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_relu(a)))
+    TR_assert_equal(["nan", "1.0", "0.0", "0.0"], a.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+    TR_var b = TR_Tensor([TR_nan, 1.0, -1.0, 0.0], TR_dtype: "bf16", TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_clamp(b, TR_min: -0.5, TR_max: 0.5)))
+    TR_assert_equal(["nan", "0.0", "0.0", "1.0"], b.TR_grad.TR_tolist.TR_map((v) => TR_String(v)))
+}
+
+TR_test "15.44 TR_fuse içinde TR_relu'nun türevi NaN'da NaN" {
+    TR_var f = TR_fuse((x) => TR_relu(x))
+    TR_assert_equal(["nan", "1.0", "0.0", "0.0"], türev(girdi(), f))
+}

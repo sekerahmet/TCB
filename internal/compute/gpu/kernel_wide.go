@@ -131,7 +131,7 @@ func (k *emitter) binaryExpr(op tensor.BinOp, a, b reg) reg {
 }
 
 // clampKernel y = min(max(x, alt), üst) (NaN korunur); turev doğruysa
-// gx += [alt ≤ x ≤ üst]·g.
+// gx += [alt ≤ x ≤ üst]·g, x NaN ise gx NaN olur (15.13).
 func clampKernel(derivative bool) func() *emitter {
 	return func() *emitter {
 		k := newEmitter(fmt.Sprintf("sinirla_%v", derivative))
@@ -158,15 +158,17 @@ func clampKernel(derivative bool) func() *emitter {
 			k.put(last)
 			return k
 		}
-		ic, ic2 := k.p(), k.p()
+		ic, ic2, nan := k.p(), k.p(), k.p()
 		k.e("setp.ge.f32", ic, v, sub)
 		k.e("setp.le.f32", ic2, v, upper)
 		k.e("and.pred", ic, ic, ic2)
+		k.e("setp.nan.f32", nan, v, v)
+		k.e("or.pred", ic, ic, nan)
 		gv := k.load(tensor.Float32, k.address(g, i, 4))
 		ha := k.address(gx, i, 4)
 		old := k.load(tensor.Float32, ha)
 		fresh2 := k.f()
-		k.e("add.rn.f32", fresh2, old, gv)
+		k.e("add.rn.f32", fresh2, old, k.pick(nan, v, gv))
 		k.store(tensor.Float32, ha, k.pick(ic, fresh2, old))
 		k.put(last)
 		return k
