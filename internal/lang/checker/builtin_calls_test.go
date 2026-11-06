@@ -17,6 +17,8 @@ func TestMemberArgCount(t *testing.T) {
 		{`TR_print({"a": 1}.TR_get())`, "`.TR_get(anahtar)`"},
 		{"TR_print((0..3).TR_reverse(1))", "`.TR_reverse()`"},
 		{"[1].TR_append()", "`.TR_append(eleman, ...)`"},
+		{`TR_print("a".TR_index_of())`, "`.TR_index_of(alt)`"},
+		{"TR_print([1].TR_index_of())", "`.TR_index_of(değer)`"},
 	}
 	for _, tc := range cases {
 		_, errs := checkErrs(t, tc.source)

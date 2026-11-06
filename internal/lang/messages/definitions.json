@@ -189,7 +189,7 @@
 "H1139": { "param": ["list", "suggestion"] },
 "H1140": { "param": ["given", "container", "key"] },
 "H1141": { "param": ["op", "left", "right"] },
-"H1142": { "param": ["container", "elem", "given", "conversion"], "slots": {"false": "TR_kw_false"} },
+"H1142": { "param": ["container", "elem", "given", "conversion"] },
 "H1143": { "param": ["call"] },
 "H1144": { "slots": {"map": "TR_mem_map", "for": "TR_kw_for", "in": "TR_kw_in"} },
 "H1145": { "slots": {"return": "TR_kw_return", "none": "TR_kw_none"} },

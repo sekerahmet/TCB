@@ -141,9 +141,12 @@ func (c *Checker) repeatSuggestion(list, count ast.Expression) string {
 	return "[" + elem + " " + codes.Spelling(codes.KwFor) + " _ " + codes.Spelling(codes.KwIn) + " 0.." + n + "]"
 }
 
-// checkContainsArg öğe tipi bilinen listenin .TR_contains'ine verilen değeri denetler (3.6, 13.10:
-// TR_List[T].TR_contains(x: T)): öğe tipinden ayrı tipte (distinctTypes) değer listede hiç bulunmaz
-// ve motor hatasız TR_false verir; denetim hatasıdır, H1142. Sayılar ayrı değildir (4.5:
+// searchesList k, listede 4.5'in eşitliğiyle değer arayan metot mu (13.3).
+func searchesList(k codes.Code) bool { return k == codes.MemContains || k == codes.MemIndexOf }
+
+// checkContainsArg öğe tipi bilinen listenin .TR_contains'ine ve .TR_index_of'una verilen değeri denetler
+// (3.6, 13.10: TR_List[T].TR_contains(x: T)): öğe tipinden ayrı tipte (distinctTypes) değer listede hiç
+// bulunmaz ve motor hatasız TR_false ya da TR_none verir; denetim hatasıdır, H1142. Sayılar ayrı değildir (4.5:
 // [1, 2].TR_contains(1.0) doğru). Değer metinse ve öğe sayıysa ya da tersiyse ileti tip çağrısıyla
 // çevirmeyi önerir (TR_Int("2")). JSON (H1131), TR_none (4.5'in sınırı) ve tipi bilinmeyen değer
 // burada değildir.

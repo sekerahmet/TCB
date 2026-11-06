@@ -299,11 +299,11 @@ func (c *Checker) splice(whole ast.Expression, edits []spliced) string {
 	return out + string(runes[at:])
 }
 
-// checkJSONContains .TR_contains(x)'i JSON'un kuralıyla denetler: listenin öğesiyle x'in
+// checkJSONContains .TR_contains(x)'i ve .TR_index_of(x)'i JSON'un kuralıyla denetler: listenin öğesiyle x'in
 // karşılaştırmasıdır (3.7a).
 func (c *Checker) checkJSONContains(e *ast.CallExpression, objType string, argTypes []string) {
 	m, ok := e.Function.(*ast.MemberExpression)
-	if !ok || m.Safe || m.NameToken.Code != codes.MemContains || len(e.Arguments) != 1 {
+	if !ok || m.Safe || !searchesList(m.NameToken.Code) || len(e.Arguments) != 1 {
 		return
 	}
 	recv := typedItem{objType, m.Object}

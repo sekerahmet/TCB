@@ -202,6 +202,7 @@ func findMethod(obj Value, cm *coreMethod) *builtinMethod {
 // başlatıcısında kurulsalardı başlatma döngüsü oluşurdu.
 func init() {
 	setupStringMethods()
+	setupSearchMethods()
 	setupListMethods()
 	setupDictMethods()
 	setupRemovalMethods()

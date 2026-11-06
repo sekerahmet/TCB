@@ -1,7 +1,7 @@
 # 3. Nokta (`.`) ile Zincirleme Metodlar
 
-- **Metin (`TR_String`):** `.TR_length`, `.TR_upper()` (her dilde aynı basit eşleme, dil tanımı 13.2), `.TR_lower()`, `.TR_strip()`, `.TR_split(ayırıcı)`, `.TR_replace(eski, yeni)`, `.TR_contains(alt)`, `.TR_starts_with(önek)`, `.TR_ends_with(sonek)`, `.TR_reverse()`
-- **Liste (`TR_List`):** `.TR_length`, `.TR_first`, `.TR_last`, `.TR_filter(fn)`, `.TR_map(fn)`, `.TR_reduce([başlangıç], fn)`, `.TR_sort()`, `.TR_reverse()`, `.TR_join([ayırıcı])`, `.TR_unique()`, `.TR_contains(el)`, `.TR_append(el, ...)`, `.TR_pop()`, `.TR_remove_at(i)` (son üçü listeyi yerinde değiştirir)
+- **Metin (`TR_String`):** `.TR_length`, `.TR_upper()` (her dilde aynı basit eşleme, dil tanımı 13.2), `.TR_lower()`, `.TR_strip()`, `.TR_split(ayırıcı)`, `.TR_replace(eski, yeni)`, `.TR_contains(alt)`, `.TR_starts_with(önek)`, `.TR_ends_with(sonek)`, `.TR_reverse()`, `.TR_lines()`, `.TR_index_of(alt)`
+- **Liste (`TR_List`):** `.TR_length`, `.TR_first`, `.TR_last`, `.TR_filter(fn)`, `.TR_map(fn)`, `.TR_reduce([başlangıç], fn)`, `.TR_sort()`, `.TR_reverse()`, `.TR_join([ayırıcı])`, `.TR_unique()`, `.TR_contains(el)`, `.TR_index_of(el)`, `.TR_append(el, ...)`, `.TR_pop()`, `.TR_remove_at(i)` (son üçü listeyi yerinde değiştirir)
 - **Sözlük (`TR_Dict`):** `.TR_length`, `.TR_keys()`, `.TR_values()`, `.TR_contains(anahtar)`, `.TR_remove(anahtar)` (anahtarı yerinde siler, değerini verir)
 
 Her metodun ve yerleşiğin imzası ve örneği [`docs/codes.md`](../codes.md)'dedir. `.TR_length`, `.TR_first`, `.TR_last` özelliktir, parantezsiz yazılır.
