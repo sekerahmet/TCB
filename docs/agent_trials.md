@@ -8,7 +8,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 - Sorular cevaptan sonra aynı oturumda sorulur, baştan yazılmaz: ajan onlara göre davranmasın.
 - Her bulgunun denemesi, başlığı ve durumu yazılır. Başlıklar: belge, dil, dil tasarımı, fikir, yöntem, olumlu.
 - Dil ve dil tasarımı bulgularının sınıfı [`status.md`](status.md)'dekilerdir; belge bulgusu sınıf almaz, hemen düzelir.
-- Ajanın ortamı sonucu değiştirir, üçe ayrılır: kod koşamayan sohbet (1, 2), sohbetin kendi kısıtlı makinesi (3, 4, 5), kullanıcının bilgisayarı (7, 8). Aynı ajan her işte koşmayabilir: Grok 4'te koştu, 6'da koşmadı. Kullanıcının bilgisayarındaki deneme Go'suz kurulumu ölçmez.
+- Ajanın ortamı sonucu değiştirir, üçe ayrılır: kod koşamayan sohbet (1, 2), sohbetin kendi kısıtlı makinesi (3, 4, 5, 9, 10), kullanıcının bilgisayarı (7, 8). Aynı ajan her işte koşmayabilir: Grok 4'te koştu, 6'da koşmadı. Kullanıcının bilgisayarındaki deneme Go'suz kurulumu ölçmez.
 
 ## Denemeler
 
@@ -24,7 +24,8 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 6 | 2026-11-06 | Grok, ücretsiz | Türkçe kök bulan kitaplık, kendi testleriyle | ajan koşmadı ve bunu yazdı; TCB koştu: 11 testin 9'u geçti |
 | 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, elle 1.848 sözcüklük sözlük ve ek çözümleyicisi yazdı; TCB koştu: 10 testin 10'u geçti |
 | 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; ekrana göre 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
-| 9 | 2026-11-06 | Arena AI, bilinmeyen model | aynı iş | ajan `trlang` derledi, klasörde ikili var; TCB koştu: 18 testin 18'i geçti; bilmediği kökte sözcüğü olduğu gibi veriyor |
+| 9 | 2026-11-06 | Arena AI, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; TCB koştu: 18 testin 18'i geçti; bilmediği kökte sözcüğü olduğu gibi veriyor |
+| 10 | 2026-11-06 | GLM, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; 610 köklük sözlük; TCB koştu: 18 testin 18'i geçti |
 
 ## Yarış
 
@@ -46,16 +47,17 @@ Claude ücretli üst modeldi, öbür dördü ücretsiz temel model: Claude'un ö
 
 ## Kök yarışı
 
-Dört programın kendisi, iki liste, 120 sözcük, tam eşleşme (2026-11-06). İlk liste programlar koşulmadan sabitlendi; ikincisi programlar görüldükten sonra, nadir sözcüğü ve aşırı uyumu sınamak için yazıldı. Listeler depoda değil. Küçük bir küme, yön gösterir.
+Beş programın kendisi, iki liste, 120 sözcük, tam eşleşme (2026-11-06). İlk liste programlar koşulmadan sabitlendi; ikincisi programlar görüldükten sonra, nadir sözcüğü ve aşırı uyumu sınamak için yazıldı. Listeler depoda değil. Küçük bir küme, yön gösterir.
 
 | Program | Sözlük | Liste 1 (60) | Liste 2 (60) | Toplam (120) |
 | :-- | :-- | :-- | :-- | :-- |
 | Gemini | elle 1.848 sözcük, kural tabloları | 59 | 53 | 112 |
 | DeepSeek | Zemberek'ten 26.650 kök | 52 | 54 | 106 |
 | Arena | küçük, genişletilebilir | 49 | 25 | 74 |
+| GLM | 610 kök | 47 | 24 | 71 |
 | Grok | yalnız ünlü düşmesi listesi, koşmadan yazıldı | 21 | 22 | 43 |
 
-Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü uydurmuyor, sözcüğü geri veriyor; arama işinde bu daha güvenli. Sonuç doğrudan bir yön gösteriyor: Gemini'nin kuralları ve büyük bir sözlük birlikte denenmedi.
+Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, GLM 5, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü uydurmuyor, sözcüğü geri veriyor; arama işinde bu daha güvenli. Birleştirme denendi: Gemini'nin kuralları ve Zemberek kökleri 59 ve 55, toplam 114; bu sayı iki liste görüldükten sonra kuruldu, gerileme tabanıdır, başarı ölçüsü değil. `tr/turkish` işi bu birleşimi alıyor.
 
 ## Bulgular
 
