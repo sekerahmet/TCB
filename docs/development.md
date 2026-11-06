@@ -8,7 +8,7 @@ Bütün Go kodu `internal/` altındadır ve dört katmana ayrılır: dil çekird
 
 ## Adlar
 
-- **Kök klasörler: küresel standart + TR standardı.** Araçların ya da her geliştiricinin beklediği yerlerde dünyada yaygın ad kullanılır: `bin/` (derleme çıktısı, depoya girmez), `docs/`, `tools/` (bakım betikleri, üreteçler, kıyas), `editors/` (düzenleyici eklentileri), `cmd/`, `internal/`, `.github/`, `README.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`. Dilin kendi içeriğini tutan klasörler de İngilizce adlıdır (`examples/`, `tests/`, `lib/`); içlerindeki `.tr` dosyaları diskte kimlik kodludur, kullanıcı belgeleri (`docs/spec/`, `docs/guide/`) Türkçedir.
+- **Kök klasörler: küresel standart + TR standardı.** Araçların ya da her geliştiricinin beklediği yerlerde dünyada yaygın ad kullanılır: `bin/` (derleme çıktısı, depoya girmez), `docs/`, `tools/` (bakım betikleri, üreteçler, kıyas; `tools/assistant/` asistanın ekranı, geçici yer: asistanın TR kodu gelince onunla taşınır), `editors/` (düzenleyici eklentileri), `cmd/`, `internal/`, `.github/`, `README.md`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`. Dilin kendi içeriğini tutan klasörler de İngilizce adlıdır (`examples/`, `tests/`, `lib/`); içlerindeki `.tr` dosyaları diskte kimlik kodludur, kullanıcı belgeleri (`docs/spec/`, `docs/guide/`) Türkçedir.
 - **Go kodunun kuralları** (İngilizce adlar, Türkçe yorumlar, kullanıcıya görünen adların ve iletilerin kodlara bağlanması, dosya ve fonksiyon boyu, paket belgesi, hatalar, yorumlayıcı kilidi, sınırlar, test dosyası düzeni) ve her kuralı koruyan test: [`internal/README.md`](../internal/README.md). Her kodun ne işe yaradığı ve imzası: [`codes.md`](codes.md).
 
 ## Testler

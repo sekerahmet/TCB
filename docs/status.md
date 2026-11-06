@@ -1259,6 +1259,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 
 ## Bölümü olmayan işler
 
+- **Mevcut durum (2026-11-06; DENETİM 228, 230):** asistanın ekranı `tools/assistant/`'ta: tek sayfa, ayrı dil dosyaları, sahte olay akışı, `contract.md` sözleşmesi; TR'de HTTP sunucusu yok, gerçek TR sunucusuyla konuşmadı. Yalnız Chromium tabanlı tarayıcıda denendi [ölçüldü: ekran oturumu].
+- **Yapılacaklar (C, Ö2; sahip ekran dilimi; DENETİM 230 N1):** onay kartında iki aldatma yolu: argümanın gerçek kısmı boş satırlarla görünmeyen yere itilebilir, U+E0000 etiket karakterleri görünür kılınmıyor [kanıtlı: kod; koşulmadı]. HTTP bölümü yazılırken belirteç teslimi ayrıca tartılır.
 - **Yapılacaklar (C, Ö2; sahip T1; DENETİM istek 208):** `CopyTypeError`'ın kart kolunu hiçbir test çağırmıyor; CPU testi de `copyTyped` aynı fonksiyonu çağırdığı için cinsli çiftlerde kendini sınıyor. Sanal kartta 225 çiftin 225'i `CopyInto` ile aynı [ölçüldü: DENETİM 208]; kalıcı test `TestTypedPathsOnGPU` kalıbında.
 - **Yapılacaklar (C, Ö2; sahip T1; DENETİM istek 207):** erken bırakılan `TR_read_lines` okuyucusu çöp toplayıcıyla kapanıyor: dosya tutamağı toplanana dek açık; aynı programda `TR_write_file` önce H2133, toplanınca hatasız; bir testin okuyucusu sonraki testin silmesini H7125 ile düşürüyor; `GOGC=off`'ta kararsız test 3/3 düştü [ölçüldü: DENETİM 207]. 18.11 çöp toplayıcıyı saymıyor. Çare: koşucu her testten sonra okuyucuları kapatsın; toplayıcı kapanışı için 18.11 tur 4'ün kararı.
 - **Yapılacaklar (D, Ö3; sahip T1; DENETİM istek 206):** `max_position_embeddings` 0 olan safetensors uzaktaki çarpımda H6126 ile düşüyor [ölçüldü: T1]; H7155 yalnız GGUF'un, ayrı kod gerekir.
