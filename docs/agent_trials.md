@@ -22,7 +22,7 @@ Yabancı bir yapay zekâ ajanı bu depoyu yalnız bir insan istemiyle kullanınc
 | 4 | 2026-11-06 | Grok, ücretsiz | aynı iş | ajan Go'yu indirdi, derledi, koştu; iki düzeltmeyle çalıştı: dil tanımının yazdığı iki şey motorda yoktu |
 | 5 | 2026-11-06 | GLM flash, ücretsiz | aynı iş | ajan derledi, altı senaryo koştu, kendi hatasını Python başvurusuyla buldu; çalıştı |
 | 6 | 2026-11-06 | Grok, ücretsiz | Türkçe kök bulan kitaplık, kendi testleriyle | ajan koşmadı ve bunu yazdı; TCB koştu: 11 testin 9'u geçti |
-| 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, elle 1.848 sözcüklük sözlük ve ek çözümleyicisi yazdı; TCB koştu: 10 testin 10'u geçti |
+| 7 | 2026-11-06 | Gemini 4 Argon High, Antigravity | aynı iş | ajan kullanıcının bilgisayarında klonladı, `trlang.exe` derledi; ses kuralları, elle yaklaşık 1.900 sözcüklük sözlük ve ek çözümleyicisi yazdı; TCB koştu: 10 testin 10'u geçti |
 | 8 | 2026-11-06 | DeepSeek-V4.1-Flash, DeepSeek Harness | aynı iş | ajan kullanıcının bilgisayarında derledi, Zemberek sözlüğünden (Apache-2.0) 26.650 kökü TR verisine çevirdi, kitaplığı TR'de yazdı; ekrana göre 25 dakika, 121 adım; TCB koştu: 15 testin 15'i geçti |
 | 9 | 2026-11-06 | Arena AI, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; TCB koştu: 18 testin 18'i geçti; bilmediği kökte sözcüğü olduğu gibi veriyor |
 | 10 | 2026-11-06 | GLM, ücretsiz flash model | aynı iş | ajan kendi Linux makinesinde derledi; 610 köklük sözlük; TCB koştu: 18 testin 18'i geçti |
@@ -51,13 +51,13 @@ Beş programın kendisi, iki liste, 120 sözcük, tam eşleşme (2026-11-06). İ
 
 | Program | Sözlük | Liste 1 (60) | Liste 2 (60) | Toplam (120) |
 | :-- | :-- | :-- | :-- | :-- |
-| Gemini | elle 1.848 sözcük, kural tabloları | 59 | 53 | 112 |
+| Gemini | elle yaklaşık 1.900 sözcük, kural tabloları | 59 | 53 | 112 |
 | DeepSeek | Zemberek'ten 26.650 kök | 52 | 54 | 106 |
 | Arena | küçük, genişletilebilir | 49 | 25 | 74 |
 | GLM | 610 kök | 47 | 24 | 71 |
 | Grok | yalnız ünlü düşmesi listesi, koşmadan yazıldı | 21 | 22 | 43 |
 
-Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, GLM 5, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü uydurmuyor, sözcüğü geri veriyor; arama işinde bu daha güvenli. Birleştirme denendi: Gemini'nin kuralları ve Zemberek kökleri 59 ve 55, toplam 114; bu sayı iki liste görüldükten sonra kuruldu, gerileme tabanıdır, başarı ölçüsü değil. `tr/turkish` işi bu birleşimi alıyor.
+Sayılar [ölçüldü]. Büyük sözlük nadir köklerde kazandırıyor: ikinci listenin 30 nadir ad ve ünlü düşmesi sözcüğünde DeepSeek 30, Gemini 24, GLM 5, Arena 3. Ek ve ses kuralları fiilde kazandırıyor: iki listenin 30 fiilinde Gemini 29, DeepSeek 22, Arena 22. Yanlış türü de önemli: Arena bilmediği kökü çoğunlukla uydurmuyor, sözcüğü geri veriyor (46 yanlışın 44'ü); arama işinde bu daha güvenli. Birleştirme denendi: Gemini'nin kuralları ve Zemberek kökleri 59 ve 55, toplam 114; bu sayı iki liste görüldükten sonra kuruldu, gerileme tabanıdır, başarı ölçüsü değil. `tr/turkish` işi bu birleşimi alıyor.
 
 ## Bulgular
 
