@@ -284,6 +284,8 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 
 - **Yerel sesli asistan, "Jarvis"** (Ahmet, 2026-10-31: "robottan önce bir Jarvis", kabaca eklendi):
   - TR ile yazılmış, yerelde çalışan bir sesli asistan. Robotun "beyin ve ses" kısmı; yayımlanmış modeller kullanılır, tutkal, çalıştırma ve ajan döngüsü TR'de yazılır.
+  - Öncelik (Ahmet, 2026-11-07): önce Jarvis uçtan uca çalışır: dinler, anlar, cevap verir, konuşur. Yeni fikirler de kullanılır; Jarvis'in yolunu kısaltmayan fikir zincir çalıştıktan sonraya kalır.
+  - Fikir, katmanlı uzman yerleşimi (Ahmet, 2026-11-07; github.com/JustVugg/colibri, C, Apache-2.0): uzman karışımlı modelde sık kullanılan uzmanlar hızlı bellekte kalır, kalanı gerektikçe diskten okunur. Yerleşim yalnız hızı değiştirir, sonucu değiştirmez; bu, aynı programın aynı sonucu vermesi ilkesine uyar. TR'de önce uzman karışımı gerekir (15. bölümün sonraya bıraktıkları). Sıra: uzman karışımı ve RAM'e sığan 30B-A3B sınıfı model; aynı makinede colibri'yle hız kıyası; disk akışı ancak RAM yetmezse ya da daha büyük model istenirse. colibri'nin hız sayıları bizde ölçülmedi.
   - Adımlar (Gemini araştırması ve DENETİM, 2026-10-31):
     1. yerel metin sohbeti;
     2. dosyadan ses ve Whisper (2026-11-06: tek `.tr` programı `TR_run_process` ile `ffmpeg`'den dizüstü mikrofonunu kaydetti, Whisper `small` yazıya çevirdi: kaydet ve yaz, canlı değil; 2026-11-05: WAV, log-Mel, `TR_conv1d`, model açma, kodlayıcı, çözücü ve `TR_transcribe` main'de, parçalar özgünle bire bir; `whisper-small` ve `large-v3` de bire bir; CPU hızı ölçüldü, çözücü sıradaki iş);
