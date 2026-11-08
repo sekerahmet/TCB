@@ -1,0 +1,10 @@
+{
+ "tokenizer_class": "VitsTokenizer",
+ "add_blank": true,
+ "normalize": true,
+ "phonemize": false,
+ "is_uroman": false,
+ "language": "tur",
+ "pad_token": "_",
+ "unk_token": "_"
+}

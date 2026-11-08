@@ -1,0 +1,130 @@
+# TR 4
+# Küçük rastgele VITS açılır ve Hugging Face'in değerlerini verir: parça kimlikleri, süreler, dalga biçimi.
+# Model ve başvuru `tools/hf/small_vits.py` ile `tools/hf/vits_reference.py`'den gelir: data/vits_tiny/KAYNAK.md.
+
+TR_import "tr/audio"
+TR_import "tr/pretrained"
+TR_import "tr/vits"
+
+TR_const _MODEL = "data/vits_tiny"
+
+TR_func başvuru(durum: TR_String) -> TR_Dict[TR_String, TR_Tensor] { TR_return TR_load_tensors("\(_MODEL)/reference/iz_\(durum)_f32.safetensors") }
+
+# üret başvurunun iki gürültüsüyle üretir. Sessiz koşuda gürültü sıfırdır (`noise_scale=0`).
+TR_func üret(model: TR_Vits, r: TR_Dict[TR_String, TR_Tensor], çarpan: TR_Float) -> TR_Tensor {
+    TR_var parçalar = r["ids"].TR_tolist
+    TR_var ç = model._üret(parçalar, r["noise_duration"].TR_reshape([1, 2, parçalar.TR_length]) * çarpan, r["noise_prior"] * çarpan, TR_none)
+    TR_assert_equal(r["duration"].TR_tolist, ç.süreler)
+    TR_assert(TR_all_close(ç.log_süre, r["log_duration"], TR_rtol: 1e-5, TR_atol: 1e-5))
+    TR_return ç.dalga
+}
+
+# Ölçek: PyTorch'un bu modelde float32 ile float64 arasındaki farkı 1,1·10⁻⁵ (gürültülü koşu).
+TR_func yakın(a: TR_Tensor, b: TR_Tensor) -> TR_Bool { TR_return TR_all_close(a, b, TR_rtol: 0.0, TR_atol: 1e-4) }
+
+# klasör küçük modelin kopyasını kurar; tensörler değiştirilebilir.
+TR_func klasör(t: TR_Dict[TR_String, TR_Tensor], ayar: TR_String = "config.json") -> TR_String {
+    TR_var k = TR_temp_dir()
+    TR_copy("\(_MODEL)/\(ayar)", TR_Path(k, "config.json"))
+    TR_copy("\(_MODEL)/vocab.json", TR_Path(k, "vocab.json"))
+    TR_copy("\(_MODEL)/tokenizer_config.json", TR_Path(k, "tokenizer_config.json"))
+    TR_save_tensors(TR_String(TR_Path(k, "model.safetensors")), t)
+    TR_return TR_String(k)
+}
+
+TR_test "VITS parçalayıcısı modelin küçük harfini izler: İ iki karakter, I i olur, ünlem atılır" {
+    TR_var model = TR_pretrained_vits(_MODEL)
+    TR_assert_equal([0, 9, 0, 17, 0, 8, 0, 11, 0, 1, 0, 9, 0, 10, 0, 21, 0], model._parçalayıcı._parçala("Işık İz!"))
+    TR_assert_equal([0], model._parçalayıcı._parçala("!"))
+}
+
+TR_test "VITS gürültüsüz Hugging Face'in dalgasını verir" {
+    TR_var r = başvuru("sessiz")
+    TR_var dalga = üret(TR_pretrained_vits(_MODEL), r, 0.0)
+    TR_assert(yakın(dalga, r["waveform"]))
+}
+
+TR_test "VITS gürültülü Hugging Face'in dalgasını verir, spline sınırının dışındaki gürültü dahil" {
+    TR_var r = başvuru("gurultulu")
+    TR_var dalga = üret(TR_pretrained_vits(_MODEL), r, 1.0)
+    TR_assert(yakın(dalga, r["waveform"]))
+}
+
+TR_test "VITS kıyası ağırlıktaki farkı görür" {
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var ad = "decoder.resblocks.1.convs1.0.weight"
+    t[ad] = t[ad] * 1.01
+    TR_var r = başvuru("sessiz")
+    TR_assert(TR_not yakın(üret(TR_pretrained_vits(klasör(t)), r, 0.0), r["waveform"]))
+}
+
+TR_test "VITS sese_çevir 16 kHz ses verir, aynı metin aynı sesi" {
+    TR_var model = TR_pretrained_vits(_MODEL)
+    TR_var a = model.TR_synthesize("İz")
+    TR_assert_equal(16000, a.TR_sample_rate)
+    TR_assert_equal(1, a.TR_samples.TR_shape[0])
+    TR_assert(TR_equal(a.TR_samples, model.TR_synthesize("İz").TR_samples))
+    TR_var yol = TR_String(TR_Path(TR_temp_dir(), "iz.wav"))
+    TR_write_wav(yol, a)
+    TR_assert_equal(a.TR_samples.TR_shape, TR_read_wav(yol).TR_samples.TR_shape)
+}
+
+TR_test "VITS klasör hataları adıyla söylenir" {
+    TR_assert_equal("H7550", TR_error_code { TR_pretrained_vits(TR_String(TR_temp_dir())) })
+    TR_assert_equal("H7552", TR_error_code { TR_pretrained_vits("data/hf_tiny") })
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var fazla = TR_load_tensors("\(_MODEL)/model.safetensors")
+    fazla["decoder.fazladan"] = TR_zeros([1])
+    TR_assert_equal("H7556", TR_error_code { TR_pretrained_vits(klasör(fazla)) })
+    TR_var eksik: TR_Dict[TR_String, TR_Tensor] = {}
+    TR_for ad, v TR_in t {
+        TR_if ad != "decoder.conv_post.weight" { eksik[ad] = v }
+    }
+    TR_assert_equal("H7553", TR_error_code { TR_pretrained_vits(klasör(eksik)) })
+    TR_var yanlış = TR_load_tensors("\(_MODEL)/model.safetensors")
+    yanlış["decoder.conv_post.weight"] = TR_zeros([1, 3, 7])
+    TR_assert_equal("H7555", TR_error_code { TR_pretrained_vits(klasör(yanlış)) })
+}
+
+# ayarlı küçük modelin kopyasını kurar, config.json'da `eski`'yi `yeni` yapar.
+TR_func ayarlı(eski: TR_String, yeni: TR_String) -> TR_String {
+    TR_var k = klasör(TR_load_tensors("\(_MODEL)/model.safetensors"))
+    TR_var yol = TR_String(TR_Path(k, "config.json"))
+    TR_var yazı = TR_read_file(yol)
+    TR_assert(yazı.TR_contains(eski))
+    TR_write_file(yol, yazı.TR_replace(eski, yeni))
+    TR_return k
+}
+
+TR_test "VITS ayarda eksik alanı adıyla söyler" {
+    TR_assert_equal("H7551", TR_error_code { TR_pretrained_vits(ayarlı("\"hidden_size\": 8,", "")) })
+}
+
+TR_test "VITS float32, fp16 ve bf16 dışındaki ağırlığı açmaz" {
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var ad = "decoder.conv_post.weight"
+    t[ad] = t[ad].TR_to_dtype("float64")
+    TR_assert_equal("H7554", TR_error_code { TR_pretrained_vits(klasör(t)) })
+}
+
+# Kapı: kurmadığı ayarı geçirseydi model hatasız ama yanlış ses üretirdi.
+TR_test "VITS kurmadığı ayarı geçirmez: birden çok konuşmacı, olasılıksız süre" {
+    TR_assert_equal("H7557", TR_error_code { TR_pretrained_vits(ayarlı("\"num_speakers\": 1,", "\"num_speakers\": 2,")) })
+    TR_assert_equal("H7557", TR_error_code { TR_pretrained_vits(ayarlı("\"use_stochastic_duration_prediction\": true", "\"use_stochastic_duration_prediction\": false")) })
+}
+
+TR_test "VITS mimari yanlışında öneri çalışır" {
+    TR_var m = TR_pretrained_model("data/hf_tiny")
+    TR_assert(m != TR_none)
+}
+
+TR_test "VITS arka kodlayıcı ve kullanılmayan akışlar adıyla atlanır" {
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var atlanan = 0
+    TR_for ad, _ TR_in t {
+        TR_if ad.TR_starts_with("posterior_encoder.") TR_or ad.TR_starts_with("duration_predictor.post_") TR_or ad.TR_starts_with("duration_predictor.flows.1.") { atlanan += 1 }
+    }
+    TR_assert(atlanan > 0)
+    TR_var model = TR_pretrained_vits(_MODEL)
+    TR_assert_equal(16000, model.TR_synthesize("süt").TR_sample_rate)
+}

@@ -14,6 +14,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/whisper` | [`whisper.tr`](whisper.tr) | Yayımlanmış Whisper modelini Hugging Face klasöründen açmak (`TR_type_Whisper`) |
 | `tr/turkish` | [`turkish.tr`](turkish.tr) | Türkçe sözcüğün sözlük biçimi (`TR_fn_lemma`), türü ve ekleri (`TR_fn_analyze_word`); kendi sözlüğü olan bulucu (`TR_type_Lemmatizer`) |
 | `tr/vad` | [`vad.tr`](vad.tr) | Silero VAD ile konuşma olasılığı (`TR_type_VoiceDetector`) ve sürekli sesten konuşma kesitleri (`TR_type_SpeechSplitter`) |
+| `tr/vits` | [`vits.tr`](vits.tr) | Yayımlanmış VITS (MMS-TTS) modelini Hugging Face klasöründen açmak ve metinden ses üretmek (`TR_type_Vits`) |
 
 Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`, `audio_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
@@ -191,6 +192,18 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Kapılar:** `num_mel_bins` 80 ya da 128'dir. `activation_function` `gelu` dışında, `scale_embedding` açık, boyut sıfır ya da eksi, bakış sayısı `d_model`'i bölmüyorsa hatadır: model hatasız yüklenir, yanlış metin üretirdi.
 - **Çevirme:** `model.TR_mem_transcribe(ses, TR_arg_language: "tr")` bir `TR_type_Transcription` verir; özgün `transcribe`'ı `temperature=0.0`, `beam_size=None`, `fp16=False` ile izler. Gövde float32 bloğundadır: dış 16 bit blok sonucu değiştirmez.
 - **Doğruluk:** küçük sentetik modelde Hugging Face kodlayıcısı ve çözücüsüyle aynı değer (`tests/whisper_model_test.tr`, başvurusu `tests/testdata/whisper/KAYNAK.md`).
+
+## `tr/vits`
+
+`TR_fn_pretrained_vits(klasör)` Hugging Face biçimindeki bir VITS klasörünü (`VitsModel`, MMS-TTS) açar ve bir `TR_type_Vits` verir; `model.TR_mem_synthesize(metin)` bir `TR_type_Sound` verir (tek kanal, `config.json`'un `sampling_rate`'i). Dil tanımında maddesi yoktur (27, yazılacak).
+
+- **Dosyalar:** `config.json`, `model.safetensors`, `vocab.json`, `tokenizer_config.json`. `model_type` `vits` değilse `TR_fn_pretrained_model` önerilir.
+- **Ağırlıklar:** her tensörün adı ve şekli ayardan hesaplanır; eksik, şekli uymayan ya da tanınmayan tensör adıyla hata verir. Ağırlık normu (`weight_g`, `weight_v`) yüklemede `g · v / ‖v‖` olarak birleşir. Çıkarımda kullanılmayanlar adıyla atlanır: `posterior_encoder.`, `duration_predictor.post_` ve ters yönün attığı `duration_predictor.flows.1.`.
+- **Kapılar:** tek konuşmacı, olasılıklı süre öngörücü, `relu`, sapmalı izdüşümler, `depth_separable_channels` 2; `phonemize` ve `is_uroman` kapalı. Başka ayar hatadır: model hatasız yüklenir, yanlış ses üretirdi.
+- **Parçalayıcı:** modelin kuralıdır, Türkçenin değil: sözlükte bulunmayan karakter Python'un `str.lower()`'ıyla küçülür (`İ` → `i` ve U+0307, `I` → `i`), sözlükte olmayan karakter atılır, `add_blank` her karakterin iki yanına 0 kimliğini koyar.
+- **Gürültü:** süre ve öncül gürültüsü sabit tohumdan gelir: aynı metin aynı sesi verir. Ölçek `noise_scale`, `noise_scale_duration`, `speaking_rate`'tir.
+- **Ters evrişim:** girdinin arasına sıfır konur, çevrilmiş çekirdekle `TR_fn_conv1d`. 15.21a'nın seçme işlemi motorda olmadığı için spline'ın seçimi tek-sıcak maske ve `TR_fn_where`'ledir.
+- **Doğruluk:** küçük rastgele modelde Hugging Face'in süreleri bire bir, dalgası 1·10⁻⁴ içinde (`tests/vits_model_test.tr`, başvurusu `tests/data/vits_tiny/KAYNAK.md`). Gerçek model kıyası depoda değil, kaydında.
 
 ## `tr/turkish`
 

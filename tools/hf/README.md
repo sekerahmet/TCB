@@ -19,3 +19,22 @@ rm tests/data/hf_tiny/generation_config.json
 ```
 
 Gerçek model, kişisel veri ya da indirilmiş ağırlık bu klasöre konmaz.
+
+## VITS (`small_vits.py`, `vits_reference.py`)
+
+`vits_reference.py` bir Hugging Face `VitsModel`'i (MMS-TTS) sabit cümlelerde koşar ve `lib/vits.tr`'nin aynısını vermesi gereken her değeri yazar: parça kimlikleri, `ceil`'den önceki ve sonraki süreler, metin kodlayıcının öncülü, iki gürültü tensörü, akıştan sonraki gizli değişken ve dalga biçimi. Her cümle iki kez koşar: gürültüsüz (`noise_scale=0`, `noise_scale_duration=0`) ve modelin gürültüsüyle. İkisi de float32 ve float64'te, aynı gürültüyle koşar: float32'nin float64'ten sapması kıyasın tabanıdır. `VitsModel.forward`'ın iki `randn`'ı kaydedilir ve float64'te yeniden verilir; TR aynı tensörleri dışarıdan alır.
+
+```sh
+python -I tools/hf/vits_reference.py --model facebook/mms-tts-tur --revision SHA --out DIR --wav
+```
+
+`small_vits.py` `tests/data/vits_tiny`'deki küçük modeli kurar: rastgele ağırlıklı (anlamlı ses üretmez), float16, tohum 0. Gerçek modelin düzenini taşır: olasılıklı süre öngörücü ve spline akışları, `add_blank`, `weight_g`/`weight_v` çiftleri. Sözlük bu deponundur, yayımlanmış bir modelden kopyalanmaz. U+0307 kendi parçasıdır: Python'un `str.lower()`'ı `İ`'yi iki karaktere ayırır. Yeniden üretmek için:
+
+```sh
+python -I tools/hf/small_vits.py --out tests/data/vits_tiny
+python -I tools/hf/vits_reference.py --model tests/data/vits_tiny --out tests/data/vits_tiny/reference --sentence "iz=İz" \
+    --tail-noise 6.5 --keep ids,noise_duration,noise_prior,log_duration,duration,waveform --f32-only
+rm tests/data/vits_tiny/reference/meta.json
+```
+
+`--tail-noise 6.5` gürültülü koşunun süre gürültüsüne spline sınırının (5) dışına düşen bir değer koyar: TR testi aralık dışı dalı da görür.
