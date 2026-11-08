@@ -32,12 +32,22 @@
   - `tools/codegraph/query_tests_test.go`: `TestTestsForFollowsPackageFunctionPassedAsCallArgument` koruyan testi eklendi (fikstürde `shape.TestUse` bulunur; `argLeaf` zincire girer; bileşik değerdeki `litLeaf`, değişkene atanan `varLeaf` ve yöntem değeri `box.methodLeaf` zincire girmez).
   - Gerçek örnek doğrulaması: `tensor.lseRow32` artık `tensor.TestLogSumExpSameBitsForAnyWorkerCount` (2 adım, `via tensor.LogSumExp`) ve 15 ad kodu testini veriyor; `tensor.geluExactValue` artık `tensor.TestUnaryOpsIgnorePosition` (3 adım, `via tensor.unaryLoopWide`) veriyor; `interp.sumBuiltin` çıktısı değişmedi (6 `about` + 175 ad kodu testi, `indirect` yok).
 
+- **Adım 3 (büyümeyi ölç) tamamlandı:**
+  - Graf kurulum süresi (3 koşu ortancası): Önce **8.9 s** (`8.8 s`, `9.1 s`, `8.9 s`), Sonra **7.7 s** (`7.7 s`, `8.0 s`, `7.7 s`). Graf boyutu: `35459 nodes, 287482 edges (187223 EXTRACTED, 100259 INFERRED)`, `Via == "arg"` olan `calls` kenarı sayısı: `237`.
+  - `awk 'NR%40==1'` örnek dosyalarında `tests-for --all` izlenen test sayısı (`this file's tests` + `about` + `direct` + `indirect` + `weak evidence`):
+    - En çok büyüyen 3 dosya:
+      1. `internal/compute/tensor/cpu_gemv16.go`: `307 -> 494` (`+187`; `weak evidence: 302 -> 489`). Sebep: `internal/stdlib/ml/builtins.go:30` (`wrap(v, codes.FnLinearCrossEntropy, newBuiltin(linearCrossEntropy))`) ve `internal/stdlib/ml/builtin_conv.go:25` (`wrap(v, codes.FnConv1d, newBuiltin(conv1dBuiltin))`) içinde `newBuiltin`'e, ayrıca `internal/stdlib/engines.go:33` (`interp.AddEngine(ml.Register)`) içinde `interp.AddEngine`'e argüman olarak geçirilen işlevler üzerinden `ml.Register` çağıran testlerin `tensor.gemv16`'ya ulaşması.
+      2. `internal/lang/interp/path_arg.go`: `645 -> 820` (`+175`; `indirect: 109 -> 425`, `weak evidence: 532 -> 391`). Sebep: `internal/stdlib/files/file.go:38-42` (`safe(..., linesBuiltin / pathBuiltin / listBuiltin / makeDirBuiltin / deleteBuiltin)`), `internal/stdlib/dataset/dataset.go:59` (`bind.SafeBuiltin(..., openDataset)`), `internal/stdlib/tokenizer/tokenizer.go:114` (`bind.SafeBuiltin(..., load)`), `internal/stdlib/ml/builtins.go:59-61` (`newBuiltin(tensorSave / tensorLoad / metadataLoad)`) ve `internal/stdlib/engines.go:29-36` (`interp.AddEngine(...)`) yüksek dereceli sarmalayıcılarına argüman olarak geçen yerleşik işlevlerin `interp.PathArg`'ı çağırması.
+      3. `internal/compute/tokenize/model_other.go`: `49 -> 73` (`+24`; `weak evidence: 12 -> 36`). Sebep: `internal/compute/tokenize/model_other.go:16-18` (`RegisterModel("WordPiece", newWordPiece)` vb.) ve `internal/stdlib/tokenizer/tokenizer.go:114` (`bind.SafeBuiltin(interp.CallPrefix(codes.FnLoadTokenizer), load)`) ile `internal/stdlib/engines.go:35` (`interp.AddEngine(tokenizer.Register)`) üzerinden `tokenizer.load -> tokenize.Load -> tokenize.Parse -> tokenize.Model.Vocab -> tokenize.unigram.Vocab` zincirinin bağlanması.
+  - `main`'in son 10 commit'inde `changed --go-tests <commit>~1..<commit>`:
+    - 8 commit'te test ve paket sayısı değişmedi (`ffca754`: 15/4, `336a423`: 15/4, `4ecb9ca`: 15/4, `41eeaec`: 36/8, `a21ad9e`: 31/5, `65ef3e3`: 33/11, `10f57d8`: 34/11, `9126e27`: 811/30).
+    - `d71778e` ve `583a3e2` commit'lerinde `851 test, 39 paket` -> `888 test, 39 paket` (`+37` test, `+0` paket).
+
 ## Kalanlar
-- **Adım 3 (büyümeyi ölç):**
-  - 18 örnek dosyada `tests-for` ve `main`'in son 10 commit'inde `changed --go-tests` sonrası ölçümleri ve en çok büyüyen 3 dosyanın analizi.
 - **Bitti ölçütü ve Rapor (`UZAK7_RAPORU.md`):**
-  - Ön denetim komutları, kendi kontrolüm ve teslim.
+  - Ön denetim komutları, `UZAK7_RAPORU.md` yazımı, kendi kontrolüm ve teslim.
 
 ## Emin Olmadıklarım
 - Henüz yok.
+
 
