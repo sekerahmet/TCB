@@ -111,3 +111,23 @@ func TestRoadmapHoldsNoSectionState(t *testing.T) {
 		}
 	}
 }
+
+var evidenceTag = regexp.MustCompile(`\[(ölçüldü|hesap|kanıtlı|hipotez|tahmin|görüş|test)(:|\])`)
+
+// Kural: yol haritası yönü ve sırayı tutar; ölçü ve bir işin bugünkü durumu status'ta ve
+// measurements.md'de yazılır, burada yalnız bağlantısı (Ahmet, 2026-11-08: "roadmap genel olur
+// yön gösterir. status ise detay olur."). Neden: aynı ölçü iki yerde yazılınca yol haritasındaki
+// kopya eskidi (2026-11-08: sızıntılı relu satırı kaynaştırmadan sonra da eski profili
+// gösteriyordu). Ölçü etiketi ölçünün işaretidir: etiket yoksa ölçü de buraya yazılmamıştır.
+func TestRoadmapCarriesNoMeasurements(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(reporoot.Root(), "docs", "roadmap.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for n, line := range strings.Split(string(data), "\n") {
+		if evidenceTag.MatchString(line) {
+			t.Errorf("docs/roadmap.md:%d: ölçü status'ta ya da measurements.md'de yazılır, yol haritası yalnız bağlantı verir: %s",
+				n+1, strings.TrimSpace(line))
+		}
+	}
+}
