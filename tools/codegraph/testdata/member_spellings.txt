@@ -1421,6 +1421,7 @@ t.TR_item	ok	0	name:TR_mem_item
 t.TR_narrow	ambiguous	3	spec:13.10,spec:15.1,spec:15.2,spec:15.46,spec:15.52	tr_index:not_found:4
 t.TR_pop	ok	0	name:TR_mem_pop
 t.TR_remove	ok	0	name:TR_mem_remove
+t.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 t.TR_reshape	ok	0	name:TR_mem_reshape
 t.TR_shape	ok	0	name:TR_mem_shape
 t.TR_slice	ok	0	name:TR_mem_slice

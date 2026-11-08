@@ -922,13 +922,66 @@ TR_test "15.46 ve 15.47a dosyada her cins ve hassasiyet saklanır; uzantının h
         TR_var y = TR_load_tensors(TR_Path(k, ad), TR_requires_grad: TR_true)
         TR_assert_equal(türler, [y[a].TR_dtype TR_for a TR_in d.TR_keys()], ad)
         TR_assert_equal([[TR_true, TR_false], [255], [1, -2, 16777217], [-7], [300], [-128], [4294967295], [65535], [0.1], [1.5]], [y[a].TR_tolist TR_for a TR_in d.TR_keys()], ad)
-        # TR_requires_grad yalnız hesap ondalığında türevi açar; TR_Int ve TR_Bool türevsiz yüklenir.
+        # TR_requires_grad ondalıkta (float64 dahil) türevi açar; TR_Int ve TR_Bool türevsiz yüklenir.
+        TR_assert_equal([TR_false, TR_true, TR_true], [y["i"].TR_requires_grad, y["f64"].TR_requires_grad, y["f"].TR_requires_grad], ad)
         TR_backward(TR_sum(y["f"] * 2.0))
         TR_assert_equal([2.0], y["f"].TR_grad.TR_tolist, ad)
     }
     # Büyük harfli uzantı da safetensors yazar: geniş türler öne geçer (TR biçimi verilen sırayı tutar).
     TR_assert_equal(["i", "f64", "i32", "u32", "f", "i16", "u16", "m", "u8", "i8"], TR_load_tensors(TR_Path(k, "m.SafeTensors")).TR_keys())
     TR_assert_equal(d.TR_keys(), TR_load_tensors(TR_Path(k, "m.TRT")).TR_keys())
+}
+
+TR_test "15.46 türevi izlenen float64 tensör çizgeye girince H6040 verir; türev sessizce düşmez" {
+    TR_var a = TR_Tensor([1.0, 2.0], TR_dtype: "float64", TR_requires_grad: TR_true)
+    TR_var w = TR_Tensor([3.0, 4.0], TR_requires_grad: TR_true)
+    # float64'te türev yolu yok: float32'de çizgeye kenar ekleyen her işlem açık hatadır.
+    TR_assert_equal("H6040", TR_error_code { a.TR_to_dtype("float32") * w })
+    TR_assert_equal("H6040", TR_error_code { TR_sum(w * 2.0) + TR_sum(a * a).TR_to_dtype("float32") })
+    TR_assert_equal("H6040", TR_error_code { TR_sum(a * a * 3.0) })
+    TR_assert_equal("H6040", TR_error_code { a.TR_to_device("cpu") })
+    TR_assert_equal("H6040", TR_error_code { a[0] })
+    TR_assert_equal("H6040", TR_error_code { a.TR_reshape([2, 1]) })
+    TR_assert_equal("H6040", TR_error_code { -a })
+    TR_assert_equal("H6040", TR_error_code { TR_concat([a, a]) })
+    TR_var m = TR_Tensor([[1.0, 2.0]], TR_dtype: "float64", TR_requires_grad: TR_true)
+    TR_assert_equal("H6040", TR_error_code { m @ TR_Tensor([[1.0], [1.0]], TR_dtype: "float64") })
+    TR_assert_equal("H6040", TR_error_code { TR_grad_check(TR_tanh, [a]) })
+    TR_assert_equal(TR_none, w.TR_grad)
+    # Türevi olmayan işlemler ve okumalar hata vermez: orada türev kaybolmaz.
+    TR_assert_equal([TR_false, TR_true], (a > 1.0).TR_tolist)
+    TR_assert_equal([1, 2], TR_Tensor[TR_Int](a).TR_tolist)
+    TR_assert_equal([1.0, 2.0], a.TR_tolist)
+    TR_assert_equal([2], a.TR_shape)
+    # Türevsiz kipte çizge kurulmaz: hata yok.
+    TR_assert_equal([2.0, 4.0], TR_no_grad { a * 2.0 }.TR_tolist)
+    # Türevi izlenmeyen float64'te bugünkü kurallar sürer: hesap çalışır, @ H6960'tır.
+    TR_var e = TR_Tensor([1.0, 2.0], TR_dtype: "float64")
+    TR_assert_equal(9.0, TR_sum(e * 2.0 + e).TR_item())
+    TR_assert_equal("H6960", TR_error_code { TR_Tensor([[1.0, 2.0]], TR_dtype: "float64") @ TR_Tensor([[1.0], [1.0]], TR_dtype: "float64") })
+    # İyileştirici kurulumu hata vermez; adım bugünkü gibi H6988'dir (gradyan yok).
+    TR_assert_equal("H6988", TR_error_code { TR_AdamW([a]).TR_step() })
+}
+
+TR_test "15.46 H6040'ın önerisi: float32 kopya kurulur ve bir adımda eğitilir" {
+    TR_var k = TR_temp_dir()
+    TR_save_tensors(TR_Path(k, "f64.trt"), {"w": TR_Tensor([1.0, 2.0], TR_dtype: "float64")})
+    TR_var t = TR_load_tensors(TR_Path(k, "f64.trt"), TR_requires_grad: TR_true)["w"]
+    TR_assert_equal(TR_true, t.TR_requires_grad)
+    TR_assert_equal("H6040", TR_error_code { t * 2.0 })
+    # İletinin önerdiği yazım, kopyalandığı gibi:
+    TR_var w = TR_Tensor(TR_no_grad { t.TR_to_dtype("float32") }, TR_requires_grad: TR_true)
+    TR_assert_equal("float32", w.TR_dtype)
+    TR_var op = TR_SGD([w], TR_lr: 0.5)
+    TR_backward(TR_sum(w * TR_Tensor([1.0, 2.0])))
+    TR_assert_equal([1.0, 2.0], w.TR_grad.TR_tolist)
+    op.TR_step()
+    TR_assert_equal([0.5, 1.0], w.TR_tolist)
+    TR_var w2 = TR_Tensor(TR_no_grad { t.TR_to_dtype("float32") }, TR_requires_grad: TR_true)
+    TR_var op2 = TR_AdamW([w2], TR_lr: 0.1)
+    TR_backward(TR_sum(w2 * w2))
+    op2.TR_step()
+    TR_assert(w2.TR_tolist[0] < 1.0 TR_and w2.TR_tolist[1] < 2.0, TR_String(w2.TR_tolist))
 }
 
 TR_test "15.46 tensör dosyası eleman sınırını sıfır uzunluklu eksenlerle aşamaz" {

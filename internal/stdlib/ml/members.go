@@ -99,11 +99,33 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 // method adlı argüman almayan bir tensör metodunun bağlı değeridir; namedMethod adlı
 // argümanlarını kendisi denetleyen bir metodunkidir.
 func (d *TensorValue) method(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: freshResult(fn), NoNamedArgs: true, Pure: true}
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: freshResult(d.float64Guard(kd, fn)), NoNamedArgs: true, Pure: true}
 }
 
 func (d *TensorValue) namedMethod(kd codes.Code, fn interp.BuiltinFunc) *interp.BuiltinVal {
-	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: freshResult(fn), Pure: true}
+	return &interp.BuiltinVal{Name: codes.Name(kd), Fn: freshResult(d.float64Guard(kd, fn)), Pure: true}
+}
+
+// graphMembers float32 tensörde türev çizgesine kenar ekleyen metodlardır (görünümler, taşıma,
+// hassasiyet). Türevi izlenen float64 tensörde türev kipinde H6040 verirler (15.46); .TR_item ve
+// .TR_to_bytes çizge kurmaz.
+var graphMembers = map[codes.Code]bool{
+	memberReshape: true, memberTranspose: true, memberPermute: true, memberSlice: true,
+	memberToDevice: true, memberToDType: true, memberSplit: true,
+}
+
+// float64Guard çizge kuran metodu türevi izlenen float64 tensörde çağrıdan önce durdurur
+// (builtins.go'daki yerleşik denetiminin metot karşılığı).
+func (d *TensorValue) float64Guard(kd codes.Code, fn interp.BuiltinFunc) interp.BuiltinFunc {
+	if !graphMembers[kd] {
+		return fn
+	}
+	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		if err := float64GradError(d); err != nil {
+			return nil, err
+		}
+		return fn(m, args, named)
+	}
 }
 
 // freshResult tensör metodunun sonucunu (yeni görünüm ya da tensör) taze işaretler.

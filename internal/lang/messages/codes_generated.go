@@ -1052,6 +1052,7 @@ const (
 	H6031 Code = 6031 // {randnFn}: {seedArg} tam sayı olmalıdır, {given} verildi
 	H6032 Code = 6032 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor)
 	H6033 Code = 6033 // {fn}: {given} tipi tensöre dönüştürülemez (sayı, mantık değeri, aralık, iç içe liste ya da tensör bekleniyor); metodu çağırmak için parantez ekleyin: {method}()
+	H6040 Code = 6040 // türev izleyen float64 tensör ({shape}) türev çizgesine giremez: float64'te türev yolu henüz yok (15.46), türev sessizce düşerdi. float32 kopyasını eğitin: `{#Tensor}({#no_grad} {{ t.{#to_dtype}("float32") }}, {#requires_grad}: {#true})`
 	H6100 Code = 6100 // {left} ile {right} şekilleri {fn} için yayınlanamaz; sondan {axis}. eksende {leftLen} ≠ {rightLen} (eksenler sağdan hizalanır, eşit ya da 1 olmalı)
 	H6101 Code = 6101 // {fn}(x) 1 parametre bekler, {given} verildi
 	H6102 Code = 6102 // {operation}: tensörler farklı cihazlarda ({leftDevice} ve {rightDevice}); önce .{toDeviceMethod}(...) ile aynı cihaza taşıyın

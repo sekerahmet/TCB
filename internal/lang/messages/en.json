@@ -1047,6 +1047,7 @@
 "H6031": "{randnFn}: {seedArg} must be an integer, {given} given",
 "H6032": "{fn}: type {given} cannot be converted to a tensor (a number, boolean, range, nested list or tensor is expected)",
 "H6033": "{fn}: type {given} cannot be converted to a tensor (a number, boolean, range, nested list or tensor is expected); to call the method add parentheses: {method}()",
+"H6040": "a float64 tensor that tracks gradients ({shape}) cannot enter a gradient graph: float64 has no gradient path yet (15.46), the gradient would be dropped silently. Train a float32 copy: `{#Tensor}({#no_grad} {{ t.{#to_dtype}(\"float32\") }}, {#requires_grad}: {#true})`",
 "H6100": "shapes {left} and {right} cannot be broadcast for {fn}; at axis {axis} from the end, {leftLen} ≠ {rightLen} (axes are aligned from the right and must be equal or 1)",
 "H6101": "{fn}(x) expects 1 parameter, {given} given",
 "H6102": "{operation}: the tensors are on different devices ({leftDevice} and {rightDevice}); first move them to the same device with .{toDeviceMethod}(...)",
