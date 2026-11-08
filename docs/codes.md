@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 675 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 56 tip, 153 fonksiyon, 11 sabit, 85 metot, 115 özellik, 168 adlı argüman.
+Toplam 678 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 57 tip, 154 fonksiyon, 11 sabit, 86 metot, 115 özellik, 168 adlı argüman.
 
 ## İçindekiler
 
@@ -1190,6 +1190,10 @@ tr: değişken t: Tip = Tip(42); yazdır(t == Tam, t, Tip(t), Tip([1, 2]) == Lis
 ```
 
 İlişkili: `TR_Int`, `TR_Float`, `TR_String`
+
+#### `TR_Vits` (`TR_type_Vits`, `Vits`)
+
+
 
 #### `TR_VoiceDetector` (`TR_type_VoiceDetector`, `SesAlgılayıcı`)
 
@@ -2828,6 +2832,12 @@ tr: değişken tablo = csv_çöz("ad,yaş\nAli,30"); yazdır(tablo[1][0], Tam(ta
 #### `TR_pretrained_vad(...)` (`TR_fn_pretrained_vad`, `hazır_vad`)
 
     hazır_vad()
+
+
+
+#### `TR_pretrained_vits(...)` (`TR_fn_pretrained_vits`, `hazır_vits`)
+
+    hazır_vits()
 
 
 
@@ -6951,6 +6961,10 @@ tr: dene { fırlat İleti("H6903", -1) } yakala e { yazdır(e, e.kod, e.fırlat�
 ```
 
 İlişkili: `TR_defer`
+
+#### `.TR_synthesize(...)` (`TR_mem_synthesize`, `sese_çevir`)
+
+
 
 #### `.TR_table` (`TR_mem_table`, `tablo`)
 

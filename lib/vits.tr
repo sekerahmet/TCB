@@ -1,0 +1,683 @@
+# TR 4
+# tr/vits: yayımlanmış bir VITS modelini (Hugging Face `VitsModel`, MMS-TTS) klasöründen açar ve metinden ses üretir.
+#
+# Mimari Hugging Face'in `modeling_vits.py`'sidir, yalnız çıkarım yolu: metin kodlayıcı (göreli konumlu dikkat),
+# olasılıklı süre öngörücünün ters yönü (spline akışları), öncülün süreyle yayılması, akışın ters yönü ve
+# HiFi-GAN çözücü. Tek cümle, tek konuşmacı. Hesap float32'dedir.
+# Ağırlık normu (`weight_g`, `weight_v`) yüklemede birleşir. Çıkarımda kullanılmayan tensörler adıyla atlanır:
+# arka kodlayıcı, süre öngörücünün arka akışları ve ters yönde atılan akış. Dosyada kalan başka ad hatadır.
+
+TR_import "tr/audio"
+TR_import "tr/layers"
+
+TR_const _AYAR = "config.json"
+TR_const _AĞIRLIK = "model.safetensors"
+TR_const _SÖZLÜK = "vocab.json"
+TR_const _PARÇALAYICI = "tokenizer_config.json"
+TR_const _EN_KÜÇÜK = 0.001 # spline'ın en küçük genişliği, yüksekliği ve türevi
+TR_const _GEVŞEK_EĞİM = 0.01 # çözücünün son etkinleşmesi: PyTorch'un leaky_relu varsayılanı
+
+# Python'un `str.lower()`'ının basit eşlemeden ayrıldığı tek Türkçe harf: model bu kimliklerle eğitildi.
+TR_const _KÜÇÜK_HARF = {"İ": "i\u{307}"}
+
+# Dosyanın tensörleri: alınmayan ve atlanmayan ad sonda hatadır.
+TR_struct _Alıcı {
+    tensörler: TR_Dict[TR_String, TR_Tensor]
+    alınan: TR_Dict[TR_String, TR_Bool]
+    TR_func _var(ad: TR_String) -> TR_Bool { TR_return TR_self.tensörler.TR_contains(ad) }
+    # _al tensörü denetler ve float32 olarak verir.
+    TR_func _al(ad: TR_String, şekil: TR_List[TR_Int]) -> TR_Tensor {
+        TR_if TR_not TR_self._var(ad) { TR_throw TR_Message("H7553", ad) }
+        TR_var t = TR_self.tensörler[ad]
+        TR_if TR_not ["float32", "fp16", "bf16"].TR_contains(t.TR_dtype) { TR_throw TR_Message("H7554", ad, t.TR_dtype) }
+        TR_if t.TR_shape != şekil { TR_throw TR_Message("H7555", ad, t.TR_shape, şekil) }
+        TR_self.alınan[ad] = TR_true
+        TR_return t.TR_to_dtype("float32")
+    }
+    # _evrişim bir evrişimin ağırlığını verir; normlu ağırlık `g · v / ‖v‖` olarak birleşir (PyTorch `weight_norm`, eksen 0).
+    TR_func _evrişim(ad: TR_String, şekil: TR_List[TR_Int]) -> TR_Tensor {
+        TR_if TR_not TR_self._var("\(ad).weight_v") { TR_return TR_self._al("\(ad).weight", şekil) }
+        TR_var v = TR_self._al("\(ad).weight_v", şekil)
+        TR_var g = TR_self._al("\(ad).weight_g", [şekil[0], 1, 1])
+        TR_var norm = TR_sqrt(TR_sum(TR_sum(v * v, TR_dim: 2, TR_keepdim: TR_true), TR_dim: 1, TR_keepdim: TR_true))
+        TR_return v * (g / norm)
+    }
+    # _atla çıkarımda kullanılmayan tensörleri adıyla bırakır.
+    TR_func _atla(önekler: TR_List[TR_String]) {
+        TR_for ad, _ TR_in TR_self.tensörler {
+            TR_for ö TR_in önekler {
+                TR_if ad.TR_starts_with(ö) { TR_self.alınan[ad] = TR_true }
+            }
+        }
+    }
+    TR_func _bitir() {
+        TR_for ad, _ TR_in TR_self.tensörler {
+            TR_if TR_not TR_self.alınan.TR_contains(ad) { TR_throw TR_Message("H7556", ad) }
+        }
+    }
+}
+
+# Bir evrişim: ağırlık [çıkış, giriş // grup, çekirdek], sapma ya da yok. Ters evrişimde (`ConvTranspose1d`,
+# `ara` adım) girdinin öğeleri arasına ara − 1 sıfır konur; ağırlık yüklemede çevrilmiştir (`_ters_evrişim`).
+TR_struct _Evrişim {
+    ağırlık: TR_Tensor
+    sapma: TR_Tensor?
+    dolgu: TR_Int
+    genişleme: TR_Int
+    grup: TR_Int
+    ara: TR_Int
+    TR_func _ileri(x: TR_Tensor) -> TR_Tensor {
+        TR_if TR_self.ara > 1 { TR_return TR_self._büyüt(x) }
+        TR_return TR_conv1d(x, TR_self.ağırlık, TR_self.sapma, TR_padding: TR_self.dolgu, TR_dilation: TR_self.genişleme, TR_num_groups: TR_self.grup)
+    }
+    # _büyüt ters evrişimdir; profilde ayrı satırlarda görünür.
+    TR_func _büyüt(x: TR_Tensor) -> TR_Tensor {
+        TR_var s = TR_self.ara
+        TR_var kanal = x.TR_shape[1]
+        TR_var boy = x.TR_shape[2]
+        TR_var sıfır = TR_zeros([1, kanal, boy, s - 1])
+        TR_var araya = TR_concat([x.TR_reshape([1, kanal, boy, 1]), sıfır], TR_dim: -1).TR_reshape([1, kanal, boy * s]).TR_slice(2, 0, (boy - 1) * s + 1)
+        TR_return TR_conv1d(araya, TR_self.ağırlık, TR_self.sapma, TR_padding: TR_self.dolgu)
+    }
+}
+
+# _gevşek PyTorch'un `leaky_relu`'sudur.
+TR_func _gevşek(x: TR_Tensor, eğim: TR_Float) -> TR_Tensor { TR_return TR_where(x >= 0.0, x, x * eğim) }
+
+# _kanal_normu [1, kanal, boy] tensörü kanal ekseninde normlar (`LayerNorm` kanal üstünde).
+TR_func _kanal_normu(x: TR_Tensor, ağırlık: TR_Tensor, sapma: TR_Tensor, eps: TR_Float) -> TR_Tensor {
+    TR_return TR_layer_norm(x.TR_transpose(), TR_weight: ağırlık, TR_bias: sapma, TR_eps: eps).TR_transpose()
+}
+
+# _kanal_ters kanal sırasını çevirir (`torch.flip(x, [1])`).
+TR_func _kanal_ters(x: TR_Tensor) -> TR_Tensor {
+    TR_var n = x.TR_shape[1]
+    TR_var sıra = TR_Tensor[TR_Int]([n - 1 - i TR_for i TR_in 0..n])
+    TR_var boy = x.TR_shape[2]
+    TR_return x.TR_reshape([n, boy])[sıra].TR_reshape([1, n, boy])
+}
+
+# _dolgu son eksenin iki ucuna sıfır ekler.
+TR_func _dolgu(x: TR_Tensor, sol: TR_Int, sağ: TR_Int) -> TR_Tensor {
+    TR_var parçalar: TR_List[TR_Tensor] = []
+    TR_var baş = [x.TR_shape[i] TR_for i TR_in 0..x.TR_shape.TR_length - 1]
+    TR_if sol > 0 { parçalar.TR_append(TR_zeros(baş + [sol])) }
+    parçalar.TR_append(x)
+    TR_if sağ > 0 { parçalar.TR_append(TR_zeros(baş + [sağ])) }
+    TR_return TR_concat(parçalar, TR_dim: -1)
+}
+
+# Göreli konumlu çok bakışlı dikkat (`VitsAttention`): pencere ±p konumda öğrenilmiş K ve V gömmeleri.
+TR_struct _Dikkat {
+    q: TR_Linear
+    k: TR_Linear
+    v: TR_Linear
+    o: TR_Linear
+    göreli_k: TR_Tensor # [2p + 1, bakış boyutu]
+    göreli_v: TR_Tensor
+    bakış: TR_Int
+    pencere: TR_Int
+    # _göreli L uzunluğa göre 2L − 1 göreli gömmeyi verir: uzun dizide sıfırla genişler, kısada kesilir.
+    TR_func _göreli(g: TR_Tensor, boy: TR_Int) -> TR_Tensor {
+        TR_var p = TR_self.pencere
+        TR_var dolgu = TR_max(boy - (p + 1), 0)
+        TR_var t = g
+        TR_if dolgu > 0 { t = _dolgu(g.TR_transpose(), dolgu, dolgu).TR_transpose() }
+        TR_var baş = TR_max((p + 1) - boy, 0)
+        TR_return t.TR_slice(0, baş, baş + 2 * boy - 1)
+    }
+    TR_func _ileri(x: TR_Tensor) -> TR_Tensor {
+        TR_var boy = x.TR_shape[0]
+        TR_var h = TR_self.bakış
+        TR_var d = x.TR_shape[1] // h
+        TR_var ölçek = 1.0 / TR_sqrt(TR_Float(d))
+        TR_var q = (TR_self.q.TR_forward(x) * ölçek).TR_reshape([boy, h, d]).TR_permute([1, 0, 2])
+        TR_var k = TR_self.k.TR_forward(x).TR_reshape([boy, h, d]).TR_permute([1, 0, 2])
+        TR_var v = TR_self.v.TR_forward(x).TR_reshape([boy, h, d]).TR_permute([1, 0, 2])
+        TR_var puan = q @ k.TR_transpose()
+        puan = puan + _mutlak(q @ TR_self._göreli(TR_self.göreli_k, boy).TR_transpose())
+        TR_var olasılık = TR_softmax(puan, TR_dim: -1)
+        TR_var çıkış = olasılık @ v + _bağıl(olasılık) @ TR_self._göreli(TR_self.göreli_v, boy)
+        TR_return TR_self.o.TR_forward(çıkış.TR_permute([1, 0, 2]).TR_reshape([boy, h * d]))
+    }
+}
+
+# _mutlak [h, L, 2L − 1] göreli puanı [h, L, L] mutlak puana çevirir (`_relative_position_to_absolute_position`).
+TR_func _mutlak(x: TR_Tensor) -> TR_Tensor {
+    TR_var h = x.TR_shape[0]
+    TR_var boy = x.TR_shape[1]
+    TR_var düz = _dolgu(_dolgu(x, 0, 1).TR_reshape([h, boy * 2 * boy]), 0, boy - 1)
+    TR_return düz.TR_reshape([h, boy + 1, 2 * boy - 1]).TR_slice(1, 0, boy).TR_slice(2, boy - 1, 2 * boy - 1)
+}
+
+# _bağıl [h, L, L] olasılığı [h, L, 2L − 1] göreli düzene çevirir (`_absolute_position_to_relative_position`).
+TR_func _bağıl(x: TR_Tensor) -> TR_Tensor {
+    TR_var h = x.TR_shape[0]
+    TR_var boy = x.TR_shape[1]
+    TR_var düz = _dolgu(_dolgu(x, 0, boy - 1).TR_reshape([h, boy * (2 * boy - 1)]), boy, 0)
+    TR_return düz.TR_reshape([h, boy, 2 * boy]).TR_slice(2, 1, 2 * boy)
+}
+
+# Kodlayıcı katmanı: dikkat ve evrişimli ileri besleme, ikisinden sonra norm (son norm).
+TR_struct _Katman {
+    dikkat: _Dikkat
+    norm1: TR_List[TR_Tensor]
+    ileri1: _Evrişim
+    ileri2: _Evrişim
+    norm2: TR_List[TR_Tensor]
+    sol: TR_Int
+    sağ: TR_Int
+    eps: TR_Float
+    TR_func _ileri(x: TR_Tensor) -> TR_Tensor {
+        TR_var y = TR_layer_norm(x + TR_self.dikkat._ileri(x), TR_weight: TR_self.norm1[0], TR_bias: TR_self.norm1[1], TR_eps: TR_self.eps)
+        TR_var boy = y.TR_shape[0]
+        TR_var a = _dolgu(y.TR_transpose().TR_reshape([1, y.TR_shape[1], boy]), TR_self.sol, TR_self.sağ)
+        TR_var b = _dolgu(TR_relu(TR_self.ileri1._ileri(a)), TR_self.sol, TR_self.sağ)
+        TR_var f = TR_self.ileri2._ileri(b).TR_reshape([y.TR_shape[1], boy]).TR_transpose()
+        TR_return TR_layer_norm(y + f, TR_weight: TR_self.norm2[0], TR_bias: TR_self.norm2[1], TR_eps: TR_self.eps)
+    }
+}
+
+# Genişlemeli, derinliğine ayrılmış evrişim (`VitsDilatedDepthSeparableConv`); koşul girdiye eklenir.
+TR_struct _AyrıkEvrişim {
+    genişlemeli: TR_List[_Evrişim]
+    noktasal: TR_List[_Evrişim]
+    normlar1: TR_List[TR_List[TR_Tensor]]
+    normlar2: TR_List[TR_List[TR_Tensor]]
+    TR_func _ileri(girdi: TR_Tensor, koşul: TR_Tensor?) -> TR_Tensor {
+        TR_var x = girdi
+        TR_if koşul != TR_none { x = x + koşul }
+        TR_for i TR_in 0..TR_self.genişlemeli.TR_length {
+            TR_var n1 = TR_self.normlar1[i]
+            TR_var n2 = TR_self.normlar2[i]
+            TR_var h = _kanal_normu(TR_self.genişlemeli[i]._ileri(x), n1[0], n1[1], 0.00001)
+            h = TR_gelu(h, TR_approximate: TR_false)
+            h = _kanal_normu(TR_self.noktasal[i]._ileri(h), n2[0], n2[1], 0.00001)
+            x = x + TR_gelu(h, TR_approximate: TR_false)
+        }
+        TR_return x
+    }
+}
+
+# Spline akışı (`VitsConvFlow`), yalnız ters yön: ikinci yarı ilk yarının verdiği parçalı rasyonel ikinci
+# dereceden fonksiyonun tersinden geçer.
+TR_struct _SplineAkışı {
+    ön: _Evrişim
+    ayrık: _AyrıkEvrişim
+    izdüşüm: _Evrişim
+    kutu: TR_Int
+    sınır: TR_Float
+    süzgeç: TR_Int # süre öngörücünün kanal sayısı: genişlik ve yükseklik √süzgeç'e bölünür
+    TR_func _ters(x: TR_Tensor, koşul: TR_Tensor) -> TR_Tensor {
+        TR_var boy = x.TR_shape[2]
+        TR_var b = TR_self.kutu
+        TR_var birinci = x.TR_slice(1, 0, 1)
+        TR_var ikinci = x.TR_slice(1, 1, 2).TR_reshape([boy])
+        TR_var h = TR_self.izdüşüm._ileri(TR_self.ayrık._ileri(TR_self.ön._ileri(birinci), koşul))
+        h = h.TR_reshape([3 * b - 1, boy]).TR_transpose()
+        TR_var bölen = TR_sqrt(TR_Float(TR_self.süzgeç))
+        TR_var yeni = _spline_ters(ikinci, h.TR_slice(1, 0, b) / bölen, h.TR_slice(1, b, 2 * b) / bölen, h.TR_slice(1, 2 * b, 3 * b - 1), TR_self.sınır)
+        TR_return TR_concat([birinci, yeni.TR_reshape([1, 1, boy])], TR_dim: 1)
+    }
+}
+
+# _seç her satırdan `sıra`'nın gösterdiği öğeyi alır: `TR_gather` yerine tek-sıcak seçim (15.21a motorda yok).
+# Seçim çarpımla değil `TR_where`'le yapılır: seçilmeyen öğedeki sonsuz ya da NaN toplama girmez.
+TR_func _seç(t: TR_Tensor, tek_sıcak: TR_Tensor[TR_Bool]) -> TR_Tensor {
+    TR_var n = tek_sıcak.TR_shape[1]
+    TR_return TR_sum(TR_where(tek_sıcak, t.TR_slice(1, 0, n), 0.0), TR_dim: -1)
+}
+
+# _yığılı softmax'lı genişlikleri [−sınır, sınır]'da yığılı kenarlara çevirir; uçlar tam sınırdır.
+TR_func _yığılı(ham: TR_Tensor, sınır: TR_Float) -> TR_Tensor {
+    TR_var b = ham.TR_shape[1]
+    TR_var w = _EN_KÜÇÜK + (1.0 - _EN_KÜÇÜK * b) * TR_softmax(ham, TR_dim: -1)
+    TR_var y = 2.0 * sınır * TR_cumsum(w, TR_dim: -1) - sınır
+    TR_var satır = ham.TR_shape[0]
+    TR_return TR_concat([TR_zeros([satır, 1]) - sınır, y.TR_slice(1, 0, b - 1), TR_zeros([satır, 1]) + sınır], TR_dim: -1)
+}
+
+# _yumuşak PyTorch'un `softplus`'udur: 20'nin üstünde doğrudan x.
+TR_func _yumuşak(x: TR_Tensor) -> TR_Tensor { TR_return TR_where(x > 20.0, x, TR_log1p(TR_exp(TR_clamp(x, TR_max: 20.0)))) }
+
+# _spline_ters `_unconstrained_rational_quadratic_spline`'ın ters yönüdür. Aralık dışı öğe kendisidir;
+# aralık içindekiler hesaplanır, seçim `TR_where`'ledir (aralık dışı öğenin hesabı NaN verebilir).
+TR_func _spline_ters(x: TR_Tensor, ham_w: TR_Tensor, ham_h: TR_Tensor, ham_d: TR_Tensor, sınır: TR_Float) -> TR_Tensor {
+    TR_var satır = x.TR_shape[0]
+    TR_var b = ham_w.TR_shape[1]
+    TR_var içeride = (x >= -sınır) & (x <= sınır)
+    TR_var sabit = TR_log(TR_exp(1.0 - _EN_KÜÇÜK) - 1.0)
+    TR_var uç = TR_zeros([satır, 1]) + sabit
+    TR_var türev = _EN_KÜÇÜK + _yumuşak(TR_concat([uç, ham_d, uç], TR_dim: -1))
+    TR_var yw = _yığılı(ham_w, sınır)
+    TR_var yh = _yığılı(ham_h, sınır)
+    TR_var genişlik = yw.TR_slice(1, 1, b + 1) - yw.TR_slice(1, 0, b)
+    TR_var yükseklik = yh.TR_slice(1, 1, b + 1) - yh.TR_slice(1, 0, b)
+    TR_var kenar = TR_concat([yh.TR_slice(1, 0, b), yh.TR_slice(1, b, b + 1) + 0.000001], TR_dim: -1)
+    TR_var kutu = TR_sum(TR_where(x.TR_reshape([satır, 1]) >= kenar, 1, 0), TR_dim: -1) - 1
+    kutu = TR_clamp(kutu, TR_min: 0, TR_max: b - 1)
+    TR_var sıra = TR_Tensor[TR_Int]([i TR_for i TR_in 0..b]).TR_reshape([1, b])
+    TR_var tek = kutu.TR_reshape([satır, 1]) == sıra
+    TR_var g_w = _seç(yw, tek)
+    TR_var g_bw = _seç(genişlik, tek)
+    TR_var g_h = _seç(yh, tek)
+    TR_var delta = yükseklik / genişlik
+    TR_var g_delta = _seç(delta, tek)
+    TR_var g_d = _seç(türev, tek)
+    TR_var g_d1 = _seç(türev.TR_slice(1, 1, b + 1), tek)
+    TR_var g_bh = _seç(yükseklik, tek)
+    TR_var ara1 = g_d + g_d1 - 2.0 * g_delta
+    TR_var ara2 = x - g_h
+    TR_var ara3 = ara2 * ara1
+    TR_var a = g_bh * (g_delta - g_d) + ara3
+    TR_var bb = g_bh * g_d - ara3
+    TR_var c = -g_delta * ara2
+    TR_var kök = (2.0 * c) / (-bb - TR_sqrt(bb * bb - 4.0 * a * c))
+    TR_return TR_where(içeride, kök * g_bw + g_w, x)
+}
+
+# Öğe öğe öteleme ve ölçek (`VitsElementwiseAffine`), ters yön.
+TR_struct _Öteleme {
+    öteleme: TR_Tensor # [2, 1]
+    log_ölçek: TR_Tensor
+    TR_func _ters(x: TR_Tensor) -> TR_Tensor { TR_return (x - TR_self.öteleme) * TR_exp(-TR_self.log_ölçek) }
+}
+
+# Olasılıklı süre öngörücü (`VitsStochasticDurationPredictor`), ters yön: gürültü akışlardan geçip log süre olur.
+TR_struct _SüreÖngörücü {
+    ön: _Evrişim
+    ayrık: _AyrıkEvrişim
+    izdüşüm: _Evrişim
+    öteleme: _Öteleme
+    akışlar: TR_List[_SplineAkışı] # ters yönde koşanlar, koşma sırasıyla
+    TR_func _ters(gizli: TR_Tensor, gürültü: TR_Tensor) -> TR_Tensor {
+        TR_var koşul = TR_self.izdüşüm._ileri(TR_self.ayrık._ileri(TR_self.ön._ileri(gizli), TR_none))
+        TR_var z = gürültü
+        TR_for akış TR_in TR_self.akışlar { z = akış._ters(_kanal_ters(z), koşul) }
+        z = TR_self.öteleme._ters(_kanal_ters(z))
+        TR_return z.TR_slice(1, 0, 1).TR_reshape([z.TR_shape[2]])
+    }
+}
+
+# WaveNet (`VitsWaveNet`): kapılı etkinleşme, artık ve atlama bağlantıları; koşulsuz.
+TR_struct _WaveNet {
+    girişler: TR_List[_Evrişim]
+    artıklar: TR_List[_Evrişim]
+    kanal: TR_Int
+    TR_func _ileri(girdi: TR_Tensor) -> TR_Tensor {
+        TR_var x = girdi
+        TR_var c = TR_self.kanal
+        TR_var çıkış = TR_zeros(x.TR_shape)
+        TR_var n = TR_self.girişler.TR_length
+        TR_for i TR_in 0..n {
+            TR_var h = TR_self.girişler[i]._ileri(x)
+            TR_var e = TR_tanh(h.TR_slice(1, 0, c)) * TR_sigmoid(h.TR_slice(1, c, 2 * c))
+            TR_var r = TR_self.artıklar[i]._ileri(e)
+            TR_if i < n - 1 {
+                x = x + r.TR_slice(1, 0, c)
+                çıkış = çıkış + r.TR_slice(1, c, 2 * c)
+            } TR_else {
+                çıkış = çıkış + r
+            }
+        }
+        TR_return çıkış
+    }
+}
+
+# Artık bağlaşım katmanı (`VitsResidualCouplingLayer`, yalnız ortalama), ters yön.
+TR_struct _Bağlaşım {
+    ön: _Evrişim
+    wavenet: _WaveNet
+    son: _Evrişim
+    TR_func _ters(x: TR_Tensor) -> TR_Tensor {
+        TR_var yarım = x.TR_shape[1] // 2
+        TR_var birinci = x.TR_slice(1, 0, yarım)
+        TR_var ortalama = TR_self.son._ileri(TR_self.wavenet._ileri(TR_self.ön._ileri(birinci)))
+        TR_return TR_concat([birinci, x.TR_slice(1, yarım, 2 * yarım) - ortalama], TR_dim: 1)
+    }
+}
+
+# HiFi-GAN'ın artık bloğu (`HifiGanResidualBlock`).
+TR_struct _ArtıkBlok {
+    birinciler: TR_List[_Evrişim]
+    ikinciler: TR_List[_Evrişim]
+    eğim: TR_Float
+    TR_func _ileri(girdi: TR_Tensor) -> TR_Tensor {
+        TR_var x = girdi
+        TR_for i TR_in 0..TR_self.birinciler.TR_length {
+            TR_var h = TR_self.birinciler[i]._ileri(_gevşek(x, TR_self.eğim))
+            x = x + TR_self.ikinciler[i]._ileri(_gevşek(h, TR_self.eğim))
+        }
+        TR_return x
+    }
+}
+
+# HiFi-GAN çözücü (`VitsHifiGan`): her aşamada ters evrişimle büyür, artık blokların ortalamasından geçer.
+TR_struct _Çözücü {
+    ön: _Evrişim
+    büyütücüler: TR_List[_Evrişim]
+    bloklar: TR_List[TR_List[_ArtıkBlok]]
+    son: _Evrişim
+    eğim: TR_Float
+    TR_func _ileri(z: TR_Tensor) -> TR_Tensor {
+        TR_var h = TR_self.ön._ileri(z)
+        TR_for i TR_in 0..TR_self.büyütücüler.TR_length {
+            h = TR_self.büyütücüler[i]._ileri(_gevşek(h, TR_self.eğim))
+            TR_var aşama = TR_self.bloklar[i]
+            TR_var toplam = aşama[0]._ileri(h)
+            TR_for j TR_in 1..aşama.TR_length { toplam = toplam + aşama[j]._ileri(h) }
+            h = toplam / TR_Float(aşama.TR_length)
+        }
+        TR_var dalga = TR_tanh(TR_self.son._ileri(_gevşek(h, _GEVŞEK_EĞİM)))
+        TR_return dalga.TR_reshape([dalga.TR_shape[2]])
+    }
+}
+
+# Karakter parçalayıcı (`VitsTokenizer`): `normalize`, `add_blank`; uroman ve fonem yok.
+# Sözlükte bulunan sözcük olduğu gibi kalır, bulunmayan karakter Python'un `str.lower()`'ıyla küçülür:
+# `_KÜÇÜK_HARF` tablosu onun basit eşlemeden ayrıldığı yerdir. Sözlükte olmayan karakter atılır.
+TR_struct _Parçalayıcı {
+    sözlük: TR_Dict[TR_String, TR_Int]
+    sözcükler: TR_List[TR_List[TR_String]] # sözlük sırasıyla, karakterlerine ayrılmış
+    boşluk_ekle: TR_Bool
+    normalle: TR_Bool
+    # _küçült `normalize_text`'tir.
+    TR_func _küçült(harfler: TR_List[TR_String]) -> TR_List[TR_String] {
+        TR_var çıkış: TR_List[TR_String] = []
+        TR_var i = 0
+        TR_var n = harfler.TR_length
+        TR_for i < n {
+            TR_var bulundu = TR_false
+            TR_for s TR_in TR_self.sözcükler {
+                TR_var m = s.TR_length
+                TR_if TR_not bulundu TR_and m > 0 TR_and i + m <= n TR_and harfler[i..i + m] == s {
+                    çıkış = çıkış + s
+                    i = i + m
+                    bulundu = TR_true
+                }
+            }
+            TR_if TR_not bulundu {
+                TR_var c = harfler[i]
+                TR_if _KÜÇÜK_HARF.TR_contains(c) { çıkış = çıkış + [k TR_for k TR_in _KÜÇÜK_HARF[c]] } TR_else { çıkış.TR_append(c.TR_lower()) }
+                i = i + 1
+            }
+        }
+        TR_return çıkış
+    }
+    TR_func _parçala(metin: TR_String) -> TR_List[TR_Int] {
+        TR_var harfler = [c TR_for c TR_in metin]
+        TR_if TR_self.normalle { harfler = TR_self._küçült(harfler) }
+        TR_var kalan = [c TR_for c TR_in harfler TR_if TR_self.sözlük.TR_contains(c)].TR_join("").TR_strip()
+        TR_var kimlikler: TR_List[TR_Int] = []
+        TR_for c TR_in kalan {
+            TR_if TR_self.boşluk_ekle { kimlikler.TR_append(0) }
+            kimlikler.TR_append(TR_self.sözlük[c])
+        }
+        TR_if TR_self.boşluk_ekle { kimlikler.TR_append(0) }
+        TR_return kimlikler
+    }
+}
+
+# Bir üretimin bütün ara değerleri: kıyas ve test içindir.
+TR_struct _Çıktı {
+    parçalar: TR_List[TR_Int]
+    gizli: TR_Tensor # [L, boyut]
+    önce_ortalama: TR_Tensor # [L, akış]
+    önce_log: TR_Tensor
+    log_süre: TR_Tensor # [L]
+    süreler: TR_List[TR_Int]
+    önce_örnek: TR_Tensor # [akış, T]
+    gizli_ses: TR_Tensor # akıştan sonra, [akış, T]
+    dalga: TR_Tensor # [örnek]
+}
+
+# Açılmış VITS modeli.
+TR_struct TR_Vits {
+    _parçalayıcı: _Parçalayıcı
+    _gömme: TR_Tensor
+    _katmanlar: TR_List[_Katman]
+    _izdüşüm: _Evrişim
+    _süre: _SüreÖngörücü
+    _akışlar: TR_List[_Bağlaşım] # ters yönde koşma sırasıyla
+    _çözücü: _Çözücü
+    _boyut: TR_Int
+    _akış_boyu: TR_Int
+    _hız: TR_Float
+    _gürültü: TR_Float
+    _süre_gürültüsü: TR_Float
+    _örnek_hızı: TR_Int
+    # _üret parçalardan sesi üretir. İki gürültü dışarıdan verilir; `süreler` verilirse öngörülen süre yerine kullanılır.
+    TR_func _üret(parçalar: TR_List[TR_Int], süre_gürültüsü: TR_Tensor, önce_gürültüsü: TR_Tensor?, verilen: TR_List[TR_Int]?) -> _Çıktı {
+        TR_var boy = parçalar.TR_length
+        TR_var x = TR_embedding_lookup(TR_self._gömme, TR_Tensor[TR_Int](parçalar)) * TR_sqrt(TR_Float(TR_self._boyut))
+        TR_for k TR_in TR_self._katmanlar { x = k._ileri(x) }
+        TR_var gizli = x.TR_transpose().TR_reshape([1, TR_self._boyut, boy])
+        TR_var f = TR_self._akış_boyu
+        TR_var istat = TR_self._izdüşüm._ileri(gizli).TR_reshape([2 * f, boy]).TR_transpose()
+        TR_var ortalama = istat.TR_slice(1, 0, f)
+        TR_var log_s = istat.TR_slice(1, f, 2 * f)
+        TR_var log_süre = TR_self._süre._ters(gizli, süre_gürültüsü * TR_self._süre_gürültüsü)
+        TR_var süreler: TR_List[TR_Int] = []
+        TR_if verilen != TR_none { süreler = verilen } TR_else { süreler = TR_Tensor[TR_Int](TR_ceil(TR_exp(log_süre) * (1.0 / TR_self._hız))).TR_tolist }
+        TR_var sıra: TR_List[TR_Int] = []
+        TR_for j TR_in 0..boy {
+            TR_for _ TR_in 0..süreler[j] { sıra.TR_append(j) }
+        }
+        TR_var t = TR_max(sıra.TR_length, 1)
+        TR_var m = TR_zeros([1, f])
+        TR_var s = TR_zeros([1, f])
+        TR_if sıra.TR_length > 0 {
+            m = ortalama[TR_Tensor[TR_Int](sıra)]
+            s = log_s[TR_Tensor[TR_Int](sıra)]
+        }
+        TR_var g = TR_randn([f, t], TR_seed: 1)
+        TR_if önce_gürültüsü != TR_none { g = önce_gürültüsü }
+        TR_var önce = m.TR_transpose() + g * TR_exp(s.TR_transpose()) * TR_self._gürültü
+        TR_var z = önce.TR_reshape([1, f, t])
+        TR_for a TR_in TR_self._akışlar { z = a._ters(_kanal_ters(z)) }
+        TR_return _Çıktı(parçalar: parçalar, gizli: x, önce_ortalama: ortalama, önce_log: log_s, log_süre: log_süre, süreler: süreler,
+            önce_örnek: önce, gizli_ses: z.TR_reshape([f, t]), dalga: TR_self._çözücü._ileri(z))
+    }
+    # sese_çevir metni sese çevirir. Gürültü sabit tohumdan gelir: aynı metin aynı sesi verir.
+    TR_func TR_synthesize(metin: TR_String) -> TR_Sound {
+        TR_var parçalar = TR_self._parçalayıcı._parçala(metin)
+        TR_var ç = TR_self._üret(parçalar, TR_randn([1, 2, parçalar.TR_length], TR_seed: 0), TR_none, TR_none)
+        TR_return TR_Sound(TR_samples: ç.dalga.TR_reshape([1, ç.dalga.TR_shape[0]]), TR_sample_rate: TR_self._örnek_hızı)
+    }
+}
+
+# _alan config.json'un zorunlu alanını verir.
+TR_func _alan(ayar: TR_JSON, alan: TR_String) -> TR_JSON {
+    TR_var v = ayar.TR_get(alan)
+    TR_if v == TR_none TR_or TR_Type(v) == TR_NoneType { TR_throw TR_Message("H7551", _AYAR, alan) }
+    TR_return v
+}
+
+TR_func _sayı(ayar: TR_JSON, alan: TR_String) -> TR_Int {
+    TR_var n = TR_Int(_alan(ayar, alan))
+    TR_if n <= 0 { TR_throw TR_Message("H7557", alan, n, "positive") }
+    TR_return n
+}
+
+TR_func _ondalık(ayar: TR_JSON, alan: TR_String) -> TR_Float { TR_return TR_Float(_alan(ayar, alan)) }
+
+TR_func _sayılar(ayar: TR_JSON, alan: TR_String) -> TR_List[TR_Int] { TR_return [TR_Int(e) TR_for e TR_in _alan(ayar, alan)] }
+
+# _desteklenen bu kitaplığın kurmadığı bir ayarı hatasız geçirmez: yanlış ses üretirdi.
+TR_func _desteklenen(ayar: TR_JSON) {
+    TR_if TR_Int(_alan(ayar, "num_speakers")) != 1 { TR_throw TR_Message("H7557", "num_speakers", _alan(ayar, "num_speakers"), "other") }
+    TR_if TR_not TR_Bool(_alan(ayar, "use_stochastic_duration_prediction")) { TR_throw TR_Message("H7557", "use_stochastic_duration_prediction", TR_false, "other") }
+    TR_if TR_String(_alan(ayar, "hidden_act")) != "relu" { TR_throw TR_Message("H7557", "hidden_act", _alan(ayar, "hidden_act"), "other") }
+    TR_if TR_not TR_Bool(_alan(ayar, "use_bias")) { TR_throw TR_Message("H7557", "use_bias", TR_false, "other") }
+    TR_if _sayı(ayar, "depth_separable_channels") != 2 { TR_throw TR_Message("H7557", "depth_separable_channels", _alan(ayar, "depth_separable_channels"), "other") }
+    TR_if _sayı(ayar, "hidden_size") % _sayı(ayar, "num_attention_heads") != 0 { TR_throw TR_Message("H7557", "num_attention_heads", _alan(ayar, "num_attention_heads"), "heads") }
+}
+
+TR_func _evrişim(a: _Alıcı, ad: TR_String, çıkış: TR_Int, giriş: TR_Int, çekirdek: TR_Int, dolgu: TR_Int = 0, genişleme: TR_Int = 1, grup: TR_Int = 1, sapmalı: TR_Bool = TR_true) -> _Evrişim {
+    TR_var sapma: TR_Tensor? = TR_none
+    TR_if sapmalı { sapma = a._al("\(ad).bias", [çıkış]) }
+    TR_return _Evrişim(ağırlık: a._evrişim(ad, [çıkış, giriş // grup, çekirdek]), sapma: sapma, dolgu: dolgu, genişleme: genişleme, grup: grup, ara: 1)
+}
+
+TR_func _doğrusal(a: _Alıcı, ad: TR_String, boyut: TR_Int) -> TR_Linear {
+    TR_var k = TR_Linear(1, 1, TR_init_std: 0.0)
+    k.TR_weight = a._al("\(ad).weight", [boyut, boyut]).TR_transpose()
+    k.TR_bias = a._al("\(ad).bias", [boyut])
+    TR_return k
+}
+
+TR_func _norm(a: _Alıcı, ad: TR_String, boyut: TR_Int) -> TR_List[TR_Tensor] { TR_return [a._al("\(ad).weight", [boyut]), a._al("\(ad).bias", [boyut])] }
+
+TR_func _katman(a: _Alıcı, ad: TR_String, ayar: TR_JSON) -> _Katman {
+    TR_var h = _sayı(ayar, "hidden_size")
+    TR_var bakış = _sayı(ayar, "num_attention_heads")
+    TR_var pencere = _sayı(ayar, "window_size")
+    TR_var ara = _sayı(ayar, "ffn_dim")
+    TR_var k = _sayı(ayar, "ffn_kernel_size")
+    TR_var d = "\(ad).attention"
+    TR_var dikkat = _Dikkat(q: _doğrusal(a, "\(d).q_proj", h), k: _doğrusal(a, "\(d).k_proj", h), v: _doğrusal(a, "\(d).v_proj", h),
+        o: _doğrusal(a, "\(d).out_proj", h), göreli_k: a._al("\(d).emb_rel_k", [1, 2 * pencere + 1, h // bakış]).TR_reshape([2 * pencere + 1, h // bakış]),
+        göreli_v: a._al("\(d).emb_rel_v", [1, 2 * pencere + 1, h // bakış]).TR_reshape([2 * pencere + 1, h // bakış]), bakış: bakış, pencere: pencere)
+    TR_return _Katman(dikkat: dikkat, norm1: _norm(a, "\(ad).layer_norm", h),
+        ileri1: _evrişim(a, "\(ad).feed_forward.conv_1", ara, h, k), ileri2: _evrişim(a, "\(ad).feed_forward.conv_2", h, ara, k),
+        norm2: _norm(a, "\(ad).final_layer_norm", h), sol: (k - 1) // 2, sağ: k // 2, eps: _ondalık(ayar, "layer_norm_eps"))
+}
+
+TR_func _ayrık(a: _Alıcı, ad: TR_String, ayar: TR_JSON) -> _AyrıkEvrişim {
+    TR_var h = _sayı(ayar, "hidden_size")
+    TR_var k = _sayı(ayar, "duration_predictor_kernel_size")
+    TR_var n = _sayı(ayar, "depth_separable_num_layers")
+    TR_var genişlemeli: TR_List[_Evrişim] = []
+    TR_var noktasal: TR_List[_Evrişim] = []
+    TR_var n1: TR_List[TR_List[TR_Tensor]] = []
+    TR_var n2: TR_List[TR_List[TR_Tensor]] = []
+    TR_for i TR_in 0..n {
+        TR_var g = k ** i
+        genişlemeli.TR_append(_evrişim(a, "\(ad).convs_dilated.\(i)", h, h, k, dolgu: (k * g - g) // 2, genişleme: g, grup: h))
+        noktasal.TR_append(_evrişim(a, "\(ad).convs_pointwise.\(i)", h, h, 1))
+        n1.TR_append(_norm(a, "\(ad).norms_1.\(i)", h))
+        n2.TR_append(_norm(a, "\(ad).norms_2.\(i)", h))
+    }
+    TR_return _AyrıkEvrişim(genişlemeli: genişlemeli, noktasal: noktasal, normlar1: n1, normlar2: n2)
+}
+
+# _süre süre öngörücüyü kurar. Ters yön `flows[1]`'i atar (özgündeki "işe yaramaz akış"): ağırlığı adıyla atlanır.
+TR_func _süre(a: _Alıcı, ayar: TR_JSON) -> _SüreÖngörücü {
+    TR_var h = _sayı(ayar, "hidden_size")
+    TR_var b = _sayı(ayar, "duration_predictor_flow_bins")
+    TR_var n = _sayı(ayar, "duration_predictor_num_flows")
+    TR_var ön = "duration_predictor"
+    TR_var akışlar: TR_List[_SplineAkışı] = []
+    TR_var i = n
+    TR_for i >= 2 {
+        TR_var f = "\(ön).flows.\(i)"
+        akışlar.TR_append(_SplineAkışı(ön: _evrişim(a, "\(f).conv_pre", h, 1, 1), ayrık: _ayrık(a, "\(f).conv_dds", ayar),
+            izdüşüm: _evrişim(a, "\(f).conv_proj", 3 * b - 1, h, 1), kutu: b, sınır: _ondalık(ayar, "duration_predictor_tail_bound"), süzgeç: h))
+        i = i - 1
+    }
+    a._atla(["\(ön).flows.1.", "\(ön).post_"])
+    TR_var öteleme = _Öteleme(öteleme: a._al("\(ön).flows.0.translate", [2, 1]), log_ölçek: a._al("\(ön).flows.0.log_scale", [2, 1]))
+    TR_return _SüreÖngörücü(ön: _evrişim(a, "\(ön).conv_pre", h, h, 1), ayrık: _ayrık(a, "\(ön).conv_dds", ayar),
+        izdüşüm: _evrişim(a, "\(ön).conv_proj", h, h, 1), öteleme: öteleme, akışlar: akışlar)
+}
+
+TR_func _wavenet(a: _Alıcı, ad: TR_String, ayar: TR_JSON) -> _WaveNet {
+    TR_var h = _sayı(ayar, "hidden_size")
+    TR_var k = _sayı(ayar, "wavenet_kernel_size")
+    TR_var oran = _sayı(ayar, "wavenet_dilation_rate")
+    TR_var n = _sayı(ayar, "prior_encoder_num_wavenet_layers")
+    TR_var girişler: TR_List[_Evrişim] = []
+    TR_var artıklar: TR_List[_Evrişim] = []
+    TR_for i TR_in 0..n {
+        TR_var g = oran ** i
+        girişler.TR_append(_evrişim(a, "\(ad).in_layers.\(i)", 2 * h, h, k, dolgu: (k * g - g) // 2, genişleme: g))
+        TR_var çıkış = 2 * h
+        TR_if i == n - 1 { çıkış = h }
+        artıklar.TR_append(_evrişim(a, "\(ad).res_skip_layers.\(i)", çıkış, h, 1))
+    }
+    TR_return _WaveNet(girişler: girişler, artıklar: artıklar, kanal: h)
+}
+
+# _ters_evrişim `ConvTranspose1d`'in [giriş, çıkış, K] ağırlığını [çıkış, giriş, K] düzenine ve ters sıraya çevirir.
+TR_func _ters_evrişim(a: _Alıcı, ad: TR_String, giriş: TR_Int, çıkış: TR_Int, k: TR_Int, adım: TR_Int) -> _Evrişim {
+    TR_var w = a._evrişim(ad, [giriş, çıkış, k])
+    TR_var ters = TR_Tensor[TR_Int]([k - 1 - i TR_for i TR_in 0..k])
+    TR_var çevrik = w.TR_permute([2, 0, 1])[ters].TR_permute([2, 1, 0])
+    TR_var dolgu = (k - adım) // 2
+    TR_return _Evrişim(ağırlık: TR_Tensor(çevrik), sapma: a._al("\(ad).bias", [çıkış]), dolgu: k - 1 - dolgu, genişleme: 1, grup: 1, ara: adım)
+}
+
+TR_func _çözücü(a: _Alıcı, ayar: TR_JSON) -> _Çözücü {
+    TR_var ilk = _sayı(ayar, "upsample_initial_channel")
+    TR_var oranlar = _sayılar(ayar, "upsample_rates")
+    TR_var çekirdekler = _sayılar(ayar, "upsample_kernel_sizes")
+    TR_var blok_çekirdekleri = _sayılar(ayar, "resblock_kernel_sizes")
+    TR_var genişlemeler = [[TR_Int(e) TR_for e TR_in l] TR_for l TR_in _alan(ayar, "resblock_dilation_sizes")]
+    TR_var eğim = _ondalık(ayar, "leaky_relu_slope")
+    TR_var büyütücüler: TR_List[_Evrişim] = []
+    TR_var bloklar: TR_List[TR_List[_ArtıkBlok]] = []
+    TR_var kanal = ilk
+    TR_var sıra = 0
+    TR_for i TR_in 0..oranlar.TR_length {
+        TR_var yeni = ilk // (2 ** (i + 1))
+        büyütücüler.TR_append(_ters_evrişim(a, "decoder.upsampler.\(i)", kanal, yeni, çekirdekler[i], oranlar[i]))
+        TR_var aşama: TR_List[_ArtıkBlok] = []
+        TR_for j TR_in 0..blok_çekirdekleri.TR_length {
+            TR_var k = blok_çekirdekleri[j]
+            TR_var r = "decoder.resblocks.\(sıra)"
+            TR_var birinciler = [_evrişim(a, "\(r).convs1.\(m)", yeni, yeni, k, dolgu: (k * genişlemeler[j][m] - genişlemeler[j][m]) // 2, genişleme: genişlemeler[j][m]) TR_for m TR_in 0..genişlemeler[j].TR_length]
+            TR_var ikinciler = [_evrişim(a, "\(r).convs2.\(m)", yeni, yeni, k, dolgu: (k - 1) // 2) TR_for m TR_in 0..genişlemeler[j].TR_length]
+            aşama.TR_append(_ArtıkBlok(birinciler: birinciler, ikinciler: ikinciler, eğim: eğim))
+            sıra = sıra + 1
+        }
+        bloklar.TR_append(aşama)
+        kanal = yeni
+    }
+    TR_return _Çözücü(ön: _evrişim(a, "decoder.conv_pre", ilk, _sayı(ayar, "flow_size"), 7, dolgu: 3), büyütücüler: büyütücüler, bloklar: bloklar,
+        son: _evrişim(a, "decoder.conv_post", 1, kanal, 7, dolgu: 3, sapmalı: TR_false), eğim: eğim)
+}
+
+TR_func _parçalayıcı(yol: TR_String) -> _Parçalayıcı {
+    TR_var ayar = TR_json_parse(TR_read_file(_dosya(yol, _PARÇALAYICI)))
+    TR_if TR_Bool(ayar.TR_get("phonemize") ?? TR_false) { TR_throw TR_Message("H7557", "phonemize", TR_true, "other") }
+    TR_if TR_Bool(ayar.TR_get("is_uroman") ?? TR_false) { TR_throw TR_Message("H7557", "is_uroman", TR_true, "other") }
+    TR_var sözlük: TR_Dict[TR_String, TR_Int] = {}
+    TR_var sözcükler: TR_List[TR_List[TR_String]] = []
+    TR_for k, v TR_in TR_json_parse(TR_read_file(_dosya(yol, _SÖZLÜK))) {
+        sözlük[k] = TR_Int(v)
+        sözcükler.TR_append([c TR_for c TR_in k])
+    }
+    TR_return _Parçalayıcı(sözlük: sözlük, sözcükler: sözcükler, boşluk_ekle: TR_Bool(ayar.TR_get("add_blank") ?? TR_true), normalle: TR_Bool(ayar.TR_get("normalize") ?? TR_true))
+}
+
+TR_func _dosya(yol: TR_String, ad: TR_String) -> TR_Path {
+    TR_var p = TR_Path(TR_Path(yol), ad)
+    TR_if TR_not p.TR_exists { TR_throw TR_Message("H7550", yol, ad) }
+    TR_return p
+}
+
+# hazır_vits klasörü açar: config.json, model.safetensors, vocab.json, tokenizer_config.json.
+TR_func TR_pretrained_vits(yol: TR_String) -> TR_Vits {
+    TR_var ayar = TR_json_parse(TR_read_file(_dosya(yol, _AYAR)))
+    TR_var mimari = TR_String(_alan(ayar, "model_type"))
+    TR_if mimari != "vits" { TR_throw TR_Message("H7552", yol, mimari) }
+    _desteklenen(ayar)
+    TR_var a = _Alıcı(tensörler: TR_load_tensors(TR_String(_dosya(yol, _AĞIRLIK))), alınan: {})
+    a._atla(["posterior_encoder."])
+    TR_var h = _sayı(ayar, "hidden_size")
+    TR_var f = _sayı(ayar, "flow_size")
+    TR_var katmanlar = [_katman(a, "text_encoder.encoder.layers.\(i)", ayar) TR_for i TR_in 0.._sayı(ayar, "num_hidden_layers")]
+    TR_var akışlar: TR_List[_Bağlaşım] = []
+    TR_var i = _sayı(ayar, "prior_encoder_num_flows") - 1
+    TR_for i >= 0 {
+        TR_var ad = "flow.flows.\(i)"
+        akışlar.TR_append(_Bağlaşım(ön: _evrişim(a, "\(ad).conv_pre", h, f // 2, 1), wavenet: _wavenet(a, "\(ad).wavenet", ayar), son: _evrişim(a, "\(ad).conv_post", f // 2, h, 1)))
+        i = i - 1
+    }
+    TR_var model = TR_Vits(_parçalayıcı: _parçalayıcı(yol), _gömme: a._al("text_encoder.embed_tokens.weight", [_sayı(ayar, "vocab_size"), h]),
+        _katmanlar: katmanlar, _izdüşüm: _evrişim(a, "text_encoder.project", 2 * f, h, 1), _süre: _süre(a, ayar), _akışlar: akışlar,
+        _çözücü: _çözücü(a, ayar), _boyut: h, _akış_boyu: f, _hız: _ondalık(ayar, "speaking_rate"), _gürültü: _ondalık(ayar, "noise_scale"),
+        _süre_gürültüsü: _ondalık(ayar, "noise_scale_duration"), _örnek_hızı: _sayı(ayar, "sampling_rate"))
+    a._bitir()
+    TR_return model
+}

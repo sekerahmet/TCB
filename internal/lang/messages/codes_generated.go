@@ -1753,6 +1753,14 @@ const (
 	H7539 Code = 7539 // {@splitter}: üst sınır {given}, {frames} çerçevedir, baş tamponuna ve sessizliğe yetmez: `{#max_speech}: 29.0` (25.12)
 	H7540 Code = 7540 // {@add_lemma}: {given|q} sözcük değil, boş ya da yalnız noktalama; sözlüğe eklenecek kökü verin (26.3)
 	H7541 Code = 7541 // {@add_lemma}: {given|q} için tür bilinmeli: `{#WordKind}.{#Noun}` ya da `{#WordKind}.{#Verb}` (26.3)
+	H7550 Code = 7550 // {@pretrained_vits}: {folder|q} klasöründe {file|q} yok; VITS klasöründe `config.json`, `model.safetensors`, `vocab.json` ve `tokenizer_config.json` bulunur
+	H7551 Code = 7551 // {@pretrained_vits}: {file|q} dosyasında {field|q} alanı yok
+	H7552 Code = 7552 // {@pretrained_vits}: {folder|q} bir VITS klasörü değil, mimarisi {architecture|q}; başka modeller başka adla açılır: `{#pretrained_model}("{folder}")`
+	H7553 Code = 7553 // {@pretrained_vits}: {weight|q} tensörü dosyada yok
+	H7554 Code = 7554 // {@pretrained_vits}: {weight|q} tensörü {dtype|q} türünde; ağırlık float32, fp16 ya da bf16 olmalıdır, nicemli ağırlık açılmaz
+	H7555 Code = 7555 // {@pretrained_vits}: {weight|q} tensörünün şekli {given}, `config.json`'a göre {expected} olmalıdır
+	H7556 Code = 7556 // {@pretrained_vits}: tanınmayan tensör {weight|q}
+	H7557 Code = 7557 // {@pretrained_vits}: {field|q} {given} olamaz: {case, select, positive {boyutlar sıfırdan büyüktür} heads {bakış sayısı `hidden_size`'ı bölmelidir} other {bu kitaplık tek konuşmacılı, olasılıklı süre öngörücülü, karakter parçalayıcılı VITS'i açar}}
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)
