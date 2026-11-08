@@ -52,6 +52,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## İnce ayar
 
+- **Tanımı eksik kodda `tests-for` nedeni boş bir iç hata veriyor (D1, 2026-11-09).** `tr.json`'a yazılıp `definitions.json`'a yazılmamış bir kodla `tests-for internal/lang/codes/tr.json` → "answers about .tr code are missing (tr sources skipped: TR'de bir iç hata oluştu …; lütfen bildirin: code list tr:)" [ölçüldü: TCB, birleşik 60, geçici bir kodla]. Beklenen: hangi kodun tanımı eksik; `go generate ./internal/lang/codes` bunu söylüyor ("… is in the language file but has no definition in definitions.json").
 - **Argüman kenarının işareti ad kodlu tabloyla eziliyor (2026-11-08, TCB, uzak 7 incelemesi).** `keyedImplementations` `Edge.Via`'yı koşulsuz `"name:..."` yapıyor (`gocode_scan.go`); aynı sahip bir işlevi hem argüman olarak geçirip hem ad kodlu tabloya koyarsa argüman kenarı izlenmez, eski "test yok" davranışı döner. Seyrek [hipotez]. Öneri: `Via` iki işareti ayrı tutsun.
 - **Tip ad kodu tablo satırında bağlanmıyor (2026-11-08, Gemini uzak 9; bilerek).** `tests-for interp.bytesCall` → `no tests traced to it`, yalnız zayıf kanıt (142). `{codes.TypeBytes, bytesCall}` satırı uzak 9'un satır kuralına giriyor, ama tip sınıfı kodları (`TR_type_Bytes`) her tip bildiriminde geçtiği için `implementable` (`test_names.go:28`–`:37`) onları bilerek dışarıda bırakıyor. Tip kurucusunun testleri ad kodu yerine kurucu çağrısından bulunmalı; ince ayar, tasarım.
 - **Uzak 8'in iki kuralı fikstürsüz (2026-11-08, DENETİM 293 N2).** Modül dışı işlevin (`math.Floor`) eşleşmede sayılmaması ve metot ifadesiyle işlevin aynı çağrıda durması (`unit`) fikstürde yok; bugünkü davranış bir gün `argCallable` değişince sessizce döner.
@@ -88,6 +89,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
+- **`dups --changed` commit'lenmemiş değişikliği görmüyor (D1, 2026-11-09; yeniden üretilmedi, D1'in ölçüsü).** Kuralın "commit'ten önce `dups --changed main`"i main'in ucundaki temiz olmayan ağaçta `main...main`'e bakıp 0 diyor. Ek talep: çalışma ağacının değişikliklerini de sayan bir seçenek; yoksa kural "commit'ten sonra, birleştirmeden önce" diye yazılır.
 - **"Bu tipin metnini kim üretir" sorusu yok (D1, 2026-11-08).** `query "StructVal String"` → "not found" (çıkış 4) [ölçüldü: TCB, birleşik 59]; aranan `TypeVal.Text`'ti, `grep` ile bulundu. Ad tahmini eksik sayılmaz (README); ek talep: bir değer tipinin metnini (Inspect, Text) üreten metotlar sorulabilsin.
 - **Madde numaralı test adı Test satırı ister, `tests-for` söylemiyor (D1, 2026-11-08).** `tests-for tests/kodlu_saklama_test.tr` `TestEveryRuleHasATest`'i gösteriyor [ölçüldü: TCB], ama "`NN.M …` adlı yeni test o maddenin Test satırını ister" demiyor; D1'in ilk hatası bundan.
 - **Yeni dosyada yerleşim testinin iletisi yanıltıcı (D1, 2026-11-08; yeniden üretilmedi).** `git add`'lenmemiş yeni dosyada `TestSizesMatchTheLayoutTest` "tests-for shows a size line, the layout test does not measure it" diyor; beklenen "dosya izlenmiyor, `git add`".
