@@ -44,7 +44,7 @@ func (d *TensorValue) GetProperty(kd codes.Code, prop string) (interp.Value, err
 	case memberShape:
 		return bind.IntList(t.Shape()), nil
 	case memberDevice:
-		return &interp.StringVal{Val: t.Device().String()}, nil
+		return &interp.StringVal{Val: t.Device().LongName()}, nil // her zaman uzun ad (15.37)
 	case memberDType:
 		return &interp.StringVal{Val: t.DType().Name()}, nil
 	case memberToDType:

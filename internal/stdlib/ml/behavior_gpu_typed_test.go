@@ -35,7 +35,7 @@ TR_var x = TR_ones([1]).TR_to_device("gpu")
 TR_print(c == g, TR_argmax(x, TR_dim: 0).TR_device, (x > 0.0).TR_device)
 TR_for s TR_in g { TR_print(s) }`
 	out := mustRun(t, program)
-	want := "true gpu gpu\nint64 bool\n[1, 0]\n[1, 0]\n[[0, -2], [-3, -1]] float32\n[[false, true], [false, true]]\n[[0.0, 5.0], [0.0, 2.0]] [1, 0]\n[true, false]\n"
+	want := "true gpu:0 gpu:0\nint64 bool\n[1, 0]\n[1, 0]\n[[0, -2], [-3, -1]] float32\n[[false, true], [false, true]]\n[[0.0, 5.0], [0.0, 2.0]] [1, 0]\n[true, false]\n"
 	if out != want {
 		t.Fatalf("GPU'nun cinsli yolları:\n%s\nbeklenen:\n%s", out, want)
 	}

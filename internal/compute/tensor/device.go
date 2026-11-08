@@ -76,6 +76,15 @@ func (d Device) String() string {
 	return fmt.Sprintf("cihaz(%d:%d)", d.Kind, d.Index)
 }
 
+// LongName cihazın uzun adıdır: "cpu", "gpu:0", "gpu:1", ... (.TR_device her zaman bunu verir,
+// 15.37; "gpu" ilk GPU'nun kısa adıdır, String onu yazar).
+func (d Device) LongName() string {
+	if d.Kind == KindGPU {
+		return fmt.Sprintf("gpu:%d", d.Index)
+	}
+	return d.String()
+}
+
 // DType depolamadaki eleman türü (dilin hassasiyeti, 15.1). Öğe cinsi Elem'dir.
 type DType uint8
 

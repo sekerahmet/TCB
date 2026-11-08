@@ -65,7 +65,7 @@ TR_var d = TR_Tensor([5.0, 6.0]).TR_to_device("gpu")
 	if err == nil || !messages.Has(err, messages.H7042) {
 		t.Fatalf("kartta t[idx] = d: %v, H7042 bekleniyordu", err)
 	}
-	if got := mustRun(t, prelude+suggestedSpelling(t, err.Error())+"\nTR_print(t.TR_tolist, t.TR_device)"); got != "[1.0, 5.0, 3.0, 6.0] gpu\n" {
+	if got := mustRun(t, prelude+suggestedSpelling(t, err.Error())+"\nTR_print(t.TR_tolist, t.TR_device)"); got != "[1.0, 5.0, 3.0, 6.0] gpu:0\n" {
 		t.Errorf("kartta önerilen döngü: %q", got)
 	}
 }

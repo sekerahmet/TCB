@@ -84,7 +84,7 @@ func TestGPUTrainingLanguageLevel(t *testing.T) {
 	defer tensor.SetDefaultDevice(tensor.CPU)
 	out := trrun.MustExec(t, gpuTrainingProgram).Out
 	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if len(lines) != 5 || lines[0] != "cpu cpu cpu" || lines[1] != "gpu gpu gpu" {
+	if len(lines) != 5 || lines[0] != "cpu cpu cpu" || lines[1] != "gpu:0 gpu:0 gpu:0" {
 		t.Fatalf("beklenmeyen çıktı:\n%s", out)
 	}
 	for _, s := range lines[2:] {

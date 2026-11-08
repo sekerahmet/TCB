@@ -1751,7 +1751,9 @@ TR_test "15.37 cihazlar: ilk eleman cpu, adlar metin, bilinmeyen ad hata" {
     }
     TR_assert_equal("H2014", TR_error_code { TR_devices(1) })
     TR_if c.TR_contains("gpu") {
-        TR_assert_equal("gpu", TR_Tensor([1.0]).TR_to_device("gpu:0").TR_device)
+        # .TR_device her zaman uzun adı verir; "gpu" ilk GPU'nun kısa adıdır (15.37).
+        TR_assert_equal("gpu:0", TR_Tensor([1.0]).TR_to_device("gpu:0").TR_device)
+        TR_assert_equal("gpu:0", TR_Tensor([1.0]).TR_to_device("gpu").TR_device)
     }
 }
 
@@ -1767,7 +1769,7 @@ TR_test "15.38 varsayılan_cihaz: oluşturucuların cihazı; olmayan cihaz hata,
         TR_var r = TR_randn([2, 2], TR_seed: 1)
         TR_var l = t + [10, 20]
         TR_default_device("cpu")
-        TR_assert_equal(["gpu", "gpu", "gpu"], [t.TR_device, r.TR_device, l.TR_device])
+        TR_assert_equal(["gpu:0", "gpu:0", "gpu:0"], [t.TR_device, r.TR_device, l.TR_device])
         TR_assert_equal([[11.0, 22.0]], l.TR_tolist)
         TR_assert_equal("cpu", TR_Tensor([1.0]).TR_device)
     }

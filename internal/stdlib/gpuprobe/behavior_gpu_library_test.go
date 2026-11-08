@@ -59,7 +59,7 @@ func TestGPULibraryGPT(t *testing.T) {
 	}
 	for block := 0; block < 2; block++ {
 		s := lines[block*5:]
-		if s[0] != "cpu cpu cpu" || s[1] != "gpu gpu gpu" {
+		if s[0] != "cpu cpu cpu" || s[1] != "gpu:0 gpu:0 gpu:0" {
 			t.Fatalf("ağırlıklar ve iyileştirici durumu seçilen cihazda olmalı:\n%s", out)
 		}
 		for _, line := range s[2:5] {

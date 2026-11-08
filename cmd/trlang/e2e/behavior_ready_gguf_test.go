@@ -412,7 +412,7 @@ func TestGGUFOpenToFloat64OnTheCard(t *testing.T) {
 	if lines[0] == "kart yok" {
 		t.Skip("kart yok")
 	}
-	if s.Code == 0 || len(lines) != 3 || lines[0] != "gpu gpu" || lines[1] != "H7030" || lines[2] != "cpu float64 true" {
+	if s.Code == 0 || len(lines) != 3 || lines[0] != "gpu:0 gpu:0" || lines[1] != "H7030" || lines[2] != "cpu float64 true" {
 		t.Fatalf("TR çıkış %d:\n%s\n%s", s.Code, s.Stdout, s.Stderr)
 	}
 	const spelling = `t.TR_to_device("cpu").TR_to_dtype("float64")`
