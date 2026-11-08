@@ -4,7 +4,9 @@
 - **Taban (`main`):** `c151974ecc0ff19e597d0239f5683c5ba906a778`
 - **Başlama saati:** 2026-11-08 18:55:01 UTC+3 (`2026-11-08T07:55:01-08:00`)
 - **Go sürümü:** `go1.27.3 linux/amd64` (`GOTOOLCHAIN=local`)
-- **Bağlam sıkıştırması:** 1 kez — Adım 2-0b sırasında (`7ca1615` commit'inden sonra, 2026-11-08 19:27:48 UTC+3 / `2026-11-08T16:27:48+00:00`). Yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
+- **Bağlam sıkıştırması:** 2 kez:
+  1. Adım 2-0b sırasında (`7ca1615` commit'inden sonra, 2026-11-08 19:27:48 UTC+3 / `2026-11-08T16:27:48+00:00`).
+  2. Adım 2b sırasında (`5e913a9` commit'inden sonra, 2026-11-08 20:02:50 UTC+3 / `2026-11-08T17:02:50+00:00`). Her ikisinde de yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
 
 ## İlerleme
 
@@ -12,8 +14,8 @@
 - [x] Adım 1: Yeniden üretim (4 durumun taban ölçümleri ve `testdata/mod/shape` fikstürü; commit `a5244bc`)
 - [x] Adım 2-0a: `printTestsFor` ve `printLinkedBinaries` kol kararının taşınması (`testsForNode` ve `linkedBinaries`; commit `7ca1615`)
 - [x] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü (commit `8b9f31d`)
-- [x] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer
-- [ ] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı)
+- [x] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer (commit `5e913a9`)
+- [x] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı)
 - [ ] Adım 2c: Yerel değişkenle işlev aktarımı
 - [ ] Adım 2d: `dups --changed` etiketi ve README
 - [ ] Adım 3: Büyüme, "test yok" listesi (`UZAK9_TESTSIZ.txt`), 20'lik örneklem doğrulaması
@@ -83,4 +85,23 @@
   - `tensor.Tensor.Relu`: tabanla aynı (11 test + 2 ölçüm; `unit` çağrısı iki işlevli olduğundan `uses_name` eklenmedi, `registerMath` zaten test edilmiyor).
 - Koruyan testler: `tools/codegraph/query_tests_test.go:419` (`TestTestsForFollowsPackageFunctionPassedAsCallArgument`) ve `tools/codegraph/query_names_test.go:69` (`TestAdjacentNameCodeInCallIsImplementedByArgumentCallable`).
 
+## Adım 2b: Yapı Tablosu Satırı (`noteRowNameImpl`)
 
+- Üretim satırı: `tools/codegraph/gocode_scan.go` `+44 -15` (net `+29`), `tools/codegraph/graph.go` `+1 -1` (`extractorRevision = 93`) -> 60–90 bütçesinin altında/içinde.
+- Depoda kurala uyan (tek ayrı ad kodu + tek işlev değeri) toplam **26 yapı satırı** var (`17` satır `internal/lang/interp/builtins.go:23`–`:39` `coreBuiltins`, `9` satır `internal/lang/interp/type_call.go:37`–`:45` `registerTypeCalls`).
+- Bunların **22'sinde** işlev gövdesinden ad koduna EXTRACTED `uses_name` kenarı zaten var (`15`'i `builtins.go`, `7`'si `type_call.go`; `{codes.TypeBytes, bytesCall}` satırı da `bytesCall` gövdesinde `bytes_value.go:188` satırında `codes.TypeBytes` geçtiği için EXTRACTED `uses_name` kenarına zaten sahipti).
+- **Eklenen 4 yeni INFERRED `uses_name` kenarı (`dosya:satır`):**
+  1. `internal/lang/interp/builtins.go:23`: `interp.printBuiltin -> name:TR_fn_print` (`printBuiltin` için 198 ad kodu testi eklendi)
+  2. `internal/lang/interp/builtins.go:32`: `interp.timeMsBuiltin -> name:TR_fn_time_ms` (`timeMsBuiltin` için 1 ad kodu testi eklendi)
+  3. `internal/lang/interp/type_call.go:43`: `interp.typeCall -> name:TR_type_Type`
+  4. `internal/lang/interp/type_call.go:44`: `interp.jsonCall -> name:TR_type_JSON`
+  - Not: `interp.bytesCall`, `interp.typeCall` ve `interp.jsonCall` birer `ClassType` ad koduna (`TR_type_Bytes`, `TR_type_Type`, `TR_type_JSON`) bağlanır; ancak `implementable(n)` (`tools/codegraph/test_names.go:28`–`:37`) tip adlarını (`ClassType`) bilerek dışarıda bıraktığından `tests-for interp.bytesCall` yine `no tests traced to it` (`weak evidence (142)`) verir; buna karşılık fikstürdeki `shape.runIf` (`TR_kw_if` değil, bekleyin: `TR_kw_if` de `ClassKeyword` olduğu için `tests-for` değil `edgeUsesName` alır!) ve `interp.printBuiltin` / `interp.timeMsBuiltin` (`ClassFunction`) ad kodu testlerini alır.
+- **Bağlanmayan yapı satırları ve nedenleri:**
+  - `{codes.X, wrap(f)}` biçiminde (ad kodu + çağrı ifadesi olan) yapı satırı: **0** satır.
+  - 1 ad kodu + 0 işlev değeri olan (salt üstveri/anahtar sözcük/tip tabloları): **59** satır (`28` `internal/lang/lexer/keywords.go:24`–`:63`, `29` `internal/lang/checker/builtin_args.go:33`–`:75`, `2` `internal/lang/checker/builtin_calls.go:22,210`).
+  - 2+ ad kodu + 0 işlev değeri olan: **9** satır (`3` `internal/lang/checker/builtin_args.go:50,62,73`, `2` `internal/lang/checker/builtin_calls.go:21,23`, `4` `internal/lang/checker/byte_dtypes.go:23`–`:26`).
+  - 2+ işlev değeri ve ad kodu olan yapı satırı: **0** satır.
+- **Ad kodu olmayan işlev tabloları (kapsam dışı):**
+  - Doğrudan işlev dilimi/dizisi/haritası (`[]func(...){...}`, `[N]func(...){...}`, `map[K]func(...){...}`): **4** yer (`internal/devtools/codeindex/library_codes.go:257`, `internal/devtools/codeindex/lookup.go:255`, `internal/compute/gpu/typed_ops.go:148`, `tools/codegraph/query.go:156`).
+  - Ad kodu olmayan yapı tablosunda işlev alanı (`[]struct{...}{{..., fn}}`): **2** satır (`internal/compute/tokenize/pretokenizers.go:28`, `tools/codegraph/dups_exclude.go:28`).
+- Koruyan test: `tools/codegraph/query_names_test.go:195` (`TestTableRowNameCodeIsImplementedByRowCallable`).

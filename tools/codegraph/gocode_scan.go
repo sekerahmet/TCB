@@ -114,6 +114,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		case *ast.CompositeLit:
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
 			x.keyedImplementations(fc, owner, n)
+			x.noteRowNameImpl(fc, n)
 			x.pathList(fc, owner, n)
 			x.noteTextCompare(fc, owner, n)
 		case *ast.CaseClause:
@@ -359,19 +360,64 @@ type argNameImpl struct {
 }
 
 // noteArgNameImpl test dışı bir çağrının argümanlarında ve bir düzey iç çağrı argümanlarında tek ayrı bir ad kodu ile
-// argüman olarak geçen tek bir işlev ya da somut alıcılı metot değeri varsa, işlevden koda INFERRED uses_name kenarı
-// eklemek üzere kaydeder.
+// argüman olarak geçen tek bir işlev ya da somut alıcılı metot değeri/ifadesi varsa, işlevden koda INFERRED uses_name
+// kenarı eklemek üzere kaydeder.
 func (x *goExtractor) noteArgNameImpl(fc *fileCtx, c *ast.CallExpr) {
 	if fc.isTest {
 		return
 	}
+	var exprs []ast.Expr
+	for _, a := range c.Args {
+		exprs = append(exprs, a)
+		if ic, ok := ast.Unparen(a).(*ast.CallExpr); ok {
+			x.noteNameReads(fc, ic)
+			exprs = append(exprs, ic.Args...)
+		}
+	}
+	x.noteSingleCodeFunc(fc, exprs)
+}
+
+// noteRowNameImpl test dışı bir bileşik değerin yapı satırı olan öğelerinde (`[]struct{...}{{codes.X, f}}`,
+// `map[K]struct{...}{k: {codes.X, f}}`, `&T{...}`) tek ayrı ad kodu ve tek işlev değeri varsa kaydeder.
+func (x *goExtractor) noteRowNameImpl(fc *fileCtx, lit *ast.CompositeLit) {
+	if fc.isTest {
+		return
+	}
+	for _, e := range lit.Elts {
+		if kv, ok := e.(*ast.KeyValueExpr); ok {
+			e = kv.Value
+		}
+		e = ast.Unparen(e)
+		if u, ok := e.(*ast.UnaryExpr); ok && u.Op == token.AND {
+			e = ast.Unparen(u.X)
+		}
+		row, ok := e.(*ast.CompositeLit)
+		if !ok {
+			continue
+		}
+		fields := make([]ast.Expr, 0, len(row.Elts))
+		for _, fe := range row.Elts {
+			if kv, ok := fe.(*ast.KeyValueExpr); ok {
+				key, _ := kv.Key.(*ast.Ident)
+				if v, ok := fc.u.Info.Uses[key].(*types.Var); !ok || !v.IsField() {
+					continue
+				}
+				fe = kv.Value
+			}
+			fields = append(fields, fe)
+		}
+		x.noteSingleCodeFunc(fc, fields)
+	}
+}
+
+func (x *goExtractor) noteSingleCodeFunc(fc *fileCtx, exprs []ast.Expr) {
 	var code, fnRef string
 	var fnID *ast.Ident
 	nCodes, nFuncs := 0, 0
-	arg := func(a ast.Expr) {
+	for _, a := range exprs {
 		id := nameIdent(a)
 		if id == nil {
-			return
+			continue
 		}
 		if !x.nameReads[id] {
 			if k := x.codeKey(fc, id); k != "" && k != code {
@@ -383,15 +429,6 @@ func (x *goExtractor) noteArgNameImpl(fc *fileCtx, c *ast.CallExpr) {
 			if ref := x.objectID(fn); ref != "" && ref != fnRef {
 				fnRef, fnID = ref, id
 				nFuncs++
-			}
-		}
-	}
-	for _, a := range c.Args {
-		arg(a)
-		if ic, ok := ast.Unparen(a).(*ast.CallExpr); ok {
-			x.noteNameReads(fc, ic)
-			for _, ia := range ic.Args {
-				arg(ia)
 			}
 		}
 	}
