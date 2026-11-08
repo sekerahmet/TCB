@@ -1,0 +1,13 @@
+{
+  "tokenizer_class": "Qwen2Tokenizer",
+  "eos_token": "<|im_end|>",
+  "pad_token": "<|endoftext|>",
+  "bos_token": null,
+  "unk_token": null,
+  "add_bos_token": false,
+  "add_eos_token": false,
+  "model_max_length": 131072,
+  "clean_up_tokenization_spaces": false,
+  "errors": "replace",
+  "split_special_tokens": false
+}

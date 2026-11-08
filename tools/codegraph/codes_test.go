@@ -278,7 +278,8 @@ func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.
 
 // enumStateCodes kitaplıktaki durumlu tipin durumlarıdır: codeindex durumları indekslemiyor, kodun kullanım kenarı
 // yok (T1 kök). İndeks durumları görünce bu liste silinir.
-var enumStateCodes = map[string]bool{"TR_mem_Noun": true, "TR_mem_UnknownKind": true, "TR_mem_Verb": true}
+var enumStateCodes = map[string]bool{"TR_mem_Noun": true, "TR_mem_UnknownKind": true, "TR_mem_Verb": true,
+	"TR_mem_Assistant": true, "TR_mem_System": true, "TR_mem_Tool": true, "TR_mem_User": true}
 
 // memberSpellingExceptions depodaki .tr dosyalarında yazılmış ama dilde üye ya da kitaplık bildirimi karşılığı
 // gerçekten bulunmayan `<alıcı>.TR_<ad>` yazımlarıdır; her istisna gerekçesiyle yazılır.
@@ -287,6 +288,10 @@ var memberSpellingExceptions = map[string]string{
 	"TR_WordKind.TR_Noun":        "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
 	"TR_WordKind.TR_UnknownKind": "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
 	"TR_WordKind.TR_Verb":        "tr/turkish: kitaplığın ilk durumlu tipi; codeindex durumları indekslemiyor (lib/turkish.tr, TR_WordKind)",
+	"TR_Role.TR_Assistant":       "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
+	"TR_Role.TR_System":          "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
+	"TR_Role.TR_Tool":            "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
+	"TR_Role.TR_User":            "tr/chat: kitaplığın ikinci durumlu tipi; codeindex durumları indekslemiyor (lib/chat.tr, TR_Role)",
 }
 
 // Kural (DENETİM istek 48, 55): depodaki .tr dosyalarında (`lib`, `examples`, `tests`, `tools`) zincir başı ve rakamla

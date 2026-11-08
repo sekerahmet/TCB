@@ -38,3 +38,15 @@ rm tests/data/vits_tiny/reference/meta.json
 ```
 
 `--tail-noise 6.5` gürültülü koşunun süre gürültüsüne spline sınırının (5) dışına düşen bir değer koyar: TR testi aralık dışı dalı da görür.
+
+## Sohbet biçimi (`chat_reference.py`)
+
+`chat_reference.py` iki iş yapar. `--tokenizer-out` Qwen3'ün etiketlerini eklenmiş parça olarak taşıyan küçük bir BPE parçalayıcısı kurar (`tokenizers`, belirlenimci). `--cases-out` betikteki durumları (dil tanımı 24.2'nin *Test:* satırı) verilen parçalayıcı ve şablonla transformers'ın `apply_chat_template(..., tokenize=True)`'inden geçirir; iletileri, argümanları ve kimlikleri yazar. Şablon yayımlanmış Qwen3 parçalayıcısının `tokenizer_config.json`'undan okunur, depoya girmez; karması çıktıdadır. Ağ gerekmez.
+
+```sh
+python -I tools/hf/chat_reference.py --tokenizer-out tests/data/qwen3_chat
+python -I tools/hf/chat_reference.py --tokenizer tests/data/qwen3_chat --template QWEN3/tokenizer_config.json \
+    --cases-out tests/data/qwen3_chat/cases.json
+```
+
+`QWEN3`, Qwen/Qwen3-4B'nin parçalayıcı dosyalarının klasörüdür (revizyonu `tests/data/qwen3_chat/KAYNAK.md`'de). Aynı durumlar gerçek parçalayıcıyla `--tokenizer QWEN3` ile koşar; çıktısı depoya girmez.

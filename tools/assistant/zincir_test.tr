@@ -1,0 +1,73 @@
+# TR 4
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi.
+TR_import "tr/chat"
+TR_import "zincir"
+
+TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer("../../tests/data/qwen3_chat/tokenizer.json") }
+
+TR_test "cevap cümlelere bölünür: nokta, soru, ünlem ve satır sonunda; boş parça atılır" {
+    TR_assert_equal(["Merhaba.", "Nasılsın?", "İyiyim!"], cümleler("Merhaba. Nasılsın? İyiyim!"))
+    TR_assert_equal(["bir", "iki"], cümleler("bir\n\niki"))
+    TR_assert_equal(["noktasız cümle"], cümleler("  noktasız cümle "))
+    TR_assert_equal(0, cümleler("").TR_length)
+    TR_assert_equal(0, cümleler(" . \n").TR_length)
+}
+
+TR_test "rakam satırı: içerikte rakam var mı" {
+    TR_assert(rakamlı("Saat 5."))
+    TR_assert(TR_not rakamlı("Saat beş."))
+    TR_assert(TR_not rakamlı(""))
+}
+
+TR_test "önbellek modelin bağlamını değil zincirin bağlamını ayırır" {
+    TR_var m = TR_GPT(16, TR_context: 64, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 1)
+    TR_var ö = önbellek_kur(m, 8)
+    TR_assert_equal(8, ö.TR_capacity)
+    TR_no_grad { m.TR_hidden_states([[1, 2, 3, 4, 5, 6, 7, 8]], TR_cache: ö) }
+    TR_assert_equal(8, ö.TR_position)
+    TR_assert_equal("H6909", TR_error_code { TR_no_grad { m.TR_hidden_states([[9]], TR_cache: ö) } })
+}
+
+TR_test "cevabın sesi çalınırken diskte, çalındıktan sonra yok" {
+    TR_var sesler = [TR_Sound(TR_zeros([1, 160]), 16000), TR_Sound(TR_zeros([1, 320]), 16000)]
+    TR_var yollar: TR_List[TR_String] = []
+    TR_var varken: TR_List[TR_Bool] = []
+    TR_var önceki_var: TR_List[TR_Bool] = []
+    TR_var t = Tur(sıra: 1, söz_ms: 0)
+    sesleri_çal(sesler, t, TR_time_ms(), (yol) => {
+        TR_if yollar.TR_length > 0 { önceki_var.TR_append(TR_Path(yollar[yollar.TR_length - 1]).TR_exists) }
+        yollar.TR_append(yol)
+        varken.TR_append(TR_Path(yol).TR_exists)
+    })
+    TR_assert_equal([TR_true, TR_true], varken)
+    TR_assert_equal([TR_false], önceki_var) # çalınan cümle bir sonraki çalınmadan silinmiş
+    TR_assert(TR_not TR_Path(yollar[0]).TR_exists)
+    TR_assert(TR_not TR_Path(yollar[0]).TR_parent.TR_exists)
+    TR_assert(t.çalma_ms >= 0)
+}
+
+TR_test "ortak önek iki dizinin baştan aynı kısmıdır" {
+    TR_assert_equal(2, ortak_önek([1, 2, 3], [1, 2, 4, 5]))
+    TR_assert_equal(0, ortak_önek([], [1]))
+    TR_assert_equal(3, ortak_önek([1, 2, 3], [1, 2, 3]))
+}
+
+# İkinci tur: önbellekte ilk turun istemi ve üretilen cevap var. Yeni dizide önceki cevabın boş düşünce bloğu
+# yazılmaz; ortak önek tam önceki asistan başlığının sonunda biter.
+TR_test "önbelleğin ortak öneki önceki asistan başlığının sonunda biter" {
+    TR_var p = parçalayıcı()
+    TR_var geçmiş = [TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: "Kısa cevap ver."), TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba")]
+    TR_var istem = TR_qwen3_format(p, geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+    TR_var cevap_kimlikleri = p.TR_encode("Merhaba! Nasıl yardım edebilirim?", TR_special_tokens: TR_false)
+    TR_var önbellekte = istem + cevap_kimlikleri
+    TR_var cevap, hatalar = TR_qwen3_reply(p, cevap_kimlikleri)
+    TR_assert_equal(0, hatalar.TR_length)
+    geçmiş.TR_append(cevap)
+    geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?"))
+    TR_var yeni = TR_qwen3_format(p, geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+    TR_var ortak = ortak_önek(önbellekte, yeni)
+    TR_assert_equal(beklenen_önek(p, geçmiş, 2), ortak)
+    TR_assert(ortak < istem.TR_length)
+    TR_assert_equal(p.TR_token_id("<think>"), önbellekte[ortak])
+    TR_assert_equal(0, beklenen_önek(p, geçmiş, -1))
+}

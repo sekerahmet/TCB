@@ -15,6 +15,7 @@ Bu sayfadaki adlar sınıf önekiyle yazılmıştır (`TR_type_GPT`, `TR_fn_para
 | `tr/turkish` | [`turkish.tr`](turkish.tr) | Türkçe sözcüğün sözlük biçimi (`TR_fn_lemma`), türü ve ekleri (`TR_fn_analyze_word`); kendi sözlüğü olan bulucu (`TR_type_Lemmatizer`) |
 | `tr/vad` | [`vad.tr`](vad.tr) | Silero VAD ile konuşma olasılığı (`TR_type_VoiceDetector`) ve sürekli sesten konuşma kesitleri (`TR_type_SpeechSplitter`) |
 | `tr/vits` | [`vits.tr`](vits.tr) | Yayımlanmış VITS (MMS-TTS) modelini Hugging Face klasöründen açmak ve metinden ses üretmek (`TR_type_Vits`) |
+| `tr/chat` | [`chat.tr`](chat.tr) | Sohbet iletisi (`TR_type_ChatMessage`, `TR_type_Role`, `TR_type_ToolCall`) ve Qwen3'ün sohbet biçimi (`TR_fn_qwen3_format`, `TR_fn_qwen3_reply`) |
 
 Testler her modülün yanındadır (`layers_test.tr`, `optimizers_test.tr`, `training_test.tr`, `pretrained_test.tr`, `audio_test.tr`) ve `trlang test lib` ile koşar (tam denetimin parçasıdır). Test dosyaları gömülür ama modül olarak aktarılamaz. Kullanım rehberi: [kılavuz §10](../docs/guide/10_hazir_katmanlarla_gpt.md); tam örnek: [`examples/tr/41_gpt.tr`](../examples/tr/41_gpt.tr); GPU'da SimpleStories eğitimi: [`tools/gpu/gpt_training.tr`](../tools/gpu/gpt_training.tr).
 
@@ -204,6 +205,14 @@ Tam örnek: [`examples/tr/44_egitim_kararliligi.tr`](../examples/tr/44_egitim_ka
 - **Gürültü:** süre ve öncül gürültüsü sabit tohumdan gelir: aynı metin aynı sesi verir. Ölçek `noise_scale`, `noise_scale_duration`, `speaking_rate`'tir.
 - **Ters evrişim:** girdinin arasına sıfır konur, çevrilmiş çekirdekle `TR_fn_conv1d`. 15.21a'nın seçme işlemi motorda olmadığı için spline'ın seçimi tek-sıcak maske ve `TR_fn_where`'ledir.
 - **Doğruluk:** küçük rastgele modelde Hugging Face'in süreleri bire bir, dalgası 1·10⁻⁴ içinde (`tests/vits_model_test.tr`, başvurusu `tests/data/vits_tiny/KAYNAK.md`). Gerçek model kıyası depoda değil, kaydında.
+
+## `tr/chat`
+
+Dil tanımı 24.1–24.3. `TR_type_ChatMessage(TR_arg_role: r, TR_arg_content: metin, TR_arg_reasoning: düşünce, TR_arg_tool_calls: çağrılar)` bir iletidir; rol `TR_type_Role`'ün `TR_mem_System`, `TR_mem_User`, `TR_mem_Assistant`, `TR_mem_Tool` durumlarından biridir. `TR_type_ToolCall(TR_arg_name: ad, TR_arg_arguments: json)` argümanları JSON metni olarak taşır.
+
+- **Biçim:** `TR_fn_qwen3_format(p, iletiler, TR_arg_add_generation_prompt: b, TR_arg_enable_thinking: d)` kimlik listesi verir. Modelin Jinja şablonu çalışmaz: Qwen3'ün şablonu TR ile yazılıdır. Etiketler `p.TR_mem_token_id` ile kimlik olarak girer; iki etiket arasındaki metin tek bir `p.TR_mem_encode(metin, TR_arg_special_tokens: TR_false)` çağrısıdır, içerikte yazılan etiket metin kalır. Son sorgu rolle seçilir, içeriğe bakılmaz. `TR_arg_tools:` araçların JSON şemalarıdır (`TR_type_JSON`); şablonun `tojson` yazımıyla (`", "`, `": "`, anahtar sırası) sistem turuna girer.
+- **Cevap:** `TR_fn_qwen3_reply(p, kimlikler)` `(ileti, hatalar)` demeti verir. Bloklar etiket kimliklerinde bölünür; baytlarıyla yazılmış etiket metin kalır. Bozuk blok (bozuk JSON, eksik alan, kapanmamış blok, yersiz düşünce) içerikte olduğu gibi kalır, `hatalar`'a `block <sıra>: <neden>` girer. `TR_arguments` modelin yazdığı JSON metnidir.
+- **Doğruluk:** küçük bir parçalayıcıyla transformers'ın `apply_chat_template` kimlikleriyle birebir (`tests/chat_format_test.tr`, başvurusu `tests/data/qwen3_chat/KAYNAK.md`). Gerçek Qwen3-4B parçalayıcısıyla kıyas depoda değil, kaydında.
 
 ## `tr/turkish`
 
