@@ -136,11 +136,11 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur, her: (TR_Int, TR_In
     # En az bir parça okunur: son konumun logiti gerekir.
     TR_var ortak = 0
     TR_if TR_not z.önbelleksiz { ortak = TR_min(ortak_önek(z.okunan, kimlikler), kimlikler.TR_length - 1) }
-    TR_var ö = önbellek_kur(z.model, z.bağlam)
-    TR_if TR_not z.önbelleksiz TR_and z.önbellek != TR_none {
-        ö = z.önbellek
-        ö.TR_truncate(ortak)
-    }
+    # Korunan önbellek varken yenisi kurulmaz (kurulup kullanılmayan önbellek bellek ayırmaz: sabit tampon ilk
+    # kullanımda ayrılır, lib/layers.tr; yine de boşuna bir nesnedir).
+    TR_var korunan = z.önbellek
+    TR_var ö = TR_if z.önbelleksiz TR_or korunan == TR_none { önbellek_kur(z.model, z.bağlam) } TR_else { korunan }
+    TR_if TR_not z.önbelleksiz TR_and korunan != TR_none { ö.TR_truncate(ortak) }
     z.önbellek = ö
     z.okunan = kimlikler[0..kimlikler.TR_length]
     t.önek = ortak
