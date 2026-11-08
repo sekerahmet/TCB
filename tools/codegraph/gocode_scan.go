@@ -52,7 +52,7 @@ func codeConstKeys(root string) map[string]string {
 	return keys
 }
 
-// viaArg bir çağrının argümanı olarak geçirilen paket düzeyi işlevin calls kenarındaki işaretidir (Edge.Via).
+// viaArg bir çağrının argümanı olarak geçirilen paket düzeyi işlevin ya da somut alıcılı metot değerinin calls kenarındaki işaretidir (Edge.Via).
 const viaArg = "arg"
 
 func markCall(calls map[*ast.Ident]string, n *ast.CallExpr) {
@@ -89,6 +89,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		case *ast.CallExpr:
 			markCall(calls, n)
 			x.noteNameReads(fc, n)
+			x.noteArgNameImpl(fc, n)
 			x.envUse(fc, owner, n)
 			x.pathCall(fc, owner, n)
 			x.buildCall(fc, owner, n)
@@ -317,7 +318,7 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, callKind str
 			conf = extracted
 		}
 		x.b.addEdge(owner, ref, edgeCalls, conf, fc.rel, line)
-		if callKind == viaArg && fn.Type().(*types.Signature).Recv() == nil {
+		if callKind == viaArg && argCallable(fc, fn, stack[len(stack)-2]) {
 			if e := x.b.edges[edgeKey{owner, ref, edgeCalls}]; e.Via == "" {
 				e.Via = viaArg
 			}
@@ -325,23 +326,92 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, callKind str
 		return
 	}
 	if c, isConst := obj.(*types.Const); isConst {
-		alias := x.codeAliases[c.Pkg().Path()+"."+c.Name()]
-		// Ad kodunun kendi paketindeki (test dışı) kullanım tanım tablolarıdır; kullanım sayılmaz. İleti paketi sabitleri
-		// yalnız üretilen dosyada tanımlar; paketin içindeki kullanım (konumlu hata H2004, iç hata H9000) iletiyi üretir.
-		samePkg := c.Pkg().Path() == fc.base && !fc.isTest && fc.base != x.m.Path+"/"+messagesDir
-		switch {
-		case alias != "": // takma sabit kodun kendisidir, tanımlandığı pakette de
-			x.nameUse(owner, alias, id, fc.rel, line)
-		case samePkg:
-		case c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()):
+		if key := x.codeKey(fc, id); key != "" {
+			x.nameUse(owner, key, id, fc.rel, line)
+		} else if c.Pkg().Path() == x.m.Path+"/"+messagesDir && messageConst.MatchString(c.Name()) {
 			x.b.addEdge(owner, "msg:"+c.Name(), edgeUsesMessage, extracted, fc.rel, line)
-		case c.Pkg().Path() == x.m.Path+"/"+codesDir && x.codeKeys[c.Name()] != "":
-			x.nameUse(owner, x.codeKeys[c.Name()], id, fc.rel, line)
 		}
 	}
 	if ref != owner && !selfTypeRef(fc, stack, obj) { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir
 		x.b.addEdge(owner, ref, edgeUses, extracted, fc.rel, line)
 	}
+}
+
+// codeKey tanımlayıcı bir ad kodu sabiti ya da onun takma sabitiyse dil dosyasındaki anahtarını verir (kendi paketindeki
+// test dışı tanım tabloları hariç).
+func (x *goExtractor) codeKey(fc *fileCtx, id *ast.Ident) string {
+	c, ok := fc.u.Info.Uses[id].(*types.Const)
+	if !ok || c.Pkg() == nil {
+		return ""
+	}
+	if alias := x.codeAliases[c.Pkg().Path()+"."+c.Name()]; alias != "" {
+		return alias
+	}
+	if (fc.isTest || c.Pkg().Path() != fc.base) && c.Pkg().Path() == x.m.Path+"/"+codesDir {
+		return x.codeKeys[c.Name()]
+	}
+	return ""
+}
+
+type argNameImpl struct {
+	fn, code, file string
+	line           int
+}
+
+// noteArgNameImpl test dışı bir çağrının argümanlarında ve bir düzey iç çağrı argümanlarında tek ayrı bir ad kodu ile
+// argüman olarak geçen tek bir işlev ya da somut alıcılı metot değeri varsa, işlevden koda INFERRED uses_name kenarı
+// eklemek üzere kaydeder.
+func (x *goExtractor) noteArgNameImpl(fc *fileCtx, c *ast.CallExpr) {
+	if fc.isTest {
+		return
+	}
+	var code, fnRef string
+	var fnID *ast.Ident
+	nCodes, nFuncs := 0, 0
+	arg := func(a ast.Expr) {
+		id := nameIdent(a)
+		if id == nil {
+			return
+		}
+		if !x.nameReads[id] {
+			if k := x.codeKey(fc, id); k != "" && k != code {
+				code = k
+				nCodes++
+			}
+		}
+		if fn, ok := fc.u.Info.Uses[id].(*types.Func); ok && argCallable(fc, fn, ast.Unparen(a)) {
+			if ref := x.objectID(fn); ref != "" && ref != fnRef {
+				fnRef, fnID = ref, id
+				nFuncs++
+			}
+		}
+	}
+	for _, a := range c.Args {
+		arg(a)
+		if ic, ok := ast.Unparen(a).(*ast.CallExpr); ok {
+			x.noteNameReads(fc, ic)
+			for _, ia := range ic.Args {
+				arg(ia)
+			}
+		}
+	}
+	if nCodes == 1 && nFuncs == 1 {
+		x.argImpls = append(x.argImpls, argNameImpl{fn: fnRef, code: "name:" + code, file: fc.rel, line: x.line(fnID.Pos())})
+	}
+}
+
+// argCallable çağrı argümanı olarak geçirilen işlevin ya da somut alıcılı metot değerinin zincire girip girmediğidir.
+func argCallable(fc *fileCtx, fn *types.Func, n ast.Node) bool {
+	sig := fn.Type().(*types.Signature)
+	if sig.Recv() == nil {
+		return true
+	}
+	sel, ok := n.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	s := fc.u.Info.Selections[sel]
+	return s != nil && s.Kind() == types.MethodVal && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())
 }
 
 func selfTypeRef(fc *fileCtx, stack []ast.Node, obj types.Object) bool {

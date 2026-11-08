@@ -163,9 +163,10 @@ func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 	}
 }
 
-// Kural: ad kodu bağı argüman kenarını (viaArg) izlemez. `Register` iki kod kullanır ve `leaf`'i bir çağrıya argüman
-// olarak verir; `leaf` o kodları uygulamaz, kodların testleri `leaf`'in testi sayılmaz. Doğrudan çağıran
-// (`Update` → `Save`) eskisi gibi izlenir (DENETİM 279 Ş1: `interp.PathArg` kayıt işlevlerinden 16 alakasız kod alıyordu).
+// Kural: ad kodu bağı argüman kenarını (viaArg) izlemez. `Register` iki kod kullanır ve `leaf` işlevini ya da `box.step`
+// metot değerini bir çağrıya argüman olarak verir; ikisi de o kodları uygulamaz, kodların testleri onların testi sayılmaz.
+// Doğrudan çağıran (`Update` → `Save`) eskisi gibi izlenir (DENETİM 279 Ş1: `interp.PathArg` kayıt işlevlerinden 16
+// alakasız kod alıyordu).
 func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 	const m = "example.com/m"
 	fn := func(name string) string { return "go:func:" + m + "/app." + name }
@@ -173,6 +174,7 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 		{ID: pkgID(m + "/app"), Kind: kindPackage},
 		{ID: fn("Register"), Kind: kindFunc, Name: "app.Register", File: "app/app.go"},
 		{ID: fn("leaf"), Kind: kindFunc, Name: "app.leaf", File: "app/leaf.go"},
+		{ID: fn("box.step"), Kind: kindMethod, Name: "app.box.step", File: "app/leaf.go"},
 		{ID: fn("Update"), Kind: kindFunc, Name: "app.Update", File: "app/app.go"},
 		{ID: fn("Save"), Kind: kindFunc, Name: "app.Save", File: "app/save.go"},
 		{ID: fn("both"), Kind: kindFunc, Name: "app.both", File: "app/both.go"},
@@ -183,6 +185,7 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 	}, Edges: []Edge{
 		{From: fn("Register"), To: "name:TR_fn_backward", Kind: edgeUsesName},
 		{From: fn("Register"), To: fn("leaf"), Kind: edgeCalls, Confidence: inferred, Via: viaArg},
+		{From: fn("Register"), To: fn("box.step"), Kind: edgeCalls, Confidence: inferred, Via: viaArg},
 		{From: fn("Update"), To: "name:TR_mem_update", Kind: edgeUsesName},
 		{From: fn("Update"), To: fn("Save"), Kind: edgeCalls, Confidence: extracted},
 		// both hem doğrudan çağrılıyor hem argüman: kenar EXTRACTED, işareti viaArg (DENETİM 282 N1).
@@ -199,17 +202,19 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 		sort.Strings(out)
 		return strings.Join(out, ", ")
 	}
-	if got := names(fn("leaf")); got != "" {
-		t.Errorf("a function passed as an argument does not implement its receiver's name codes: got %q, want none", got)
+	for _, target := range []string{"leaf", "box.step"} {
+		if got := names(fn(target)); got != "" {
+			t.Errorf("%s passed as an argument does not implement its receiver's name codes: got %q, want none", target, got)
+		}
+		if callers := ix.callersOf(fn(target)); len(callers) != 1 || callers[0] != fn("Register") {
+			t.Errorf("test reach still follows the argument edge: callers of %s %v", target, callers)
+		}
 	}
 	if got, want := names(fn("Save")), "b_test: güncelle"; got != want {
 		t.Errorf("a direct caller's name codes still count: got %q, want %q", got, want)
 	}
 	if got, want := names(fn("both")), "a_test: geri yayılım"; got != want {
 		t.Errorf("a function also called directly keeps its caller's name codes: got %q, want %q", got, want)
-	}
-	if callers := ix.callersOf(fn("leaf")); len(callers) != 1 || callers[0] != fn("Register") {
-		t.Errorf("test reach still follows the argument edge: callers of leaf %v", callers)
 	}
 }
 
