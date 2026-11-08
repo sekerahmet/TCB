@@ -25,14 +25,19 @@
     - `go run ./tools/codegraph tests-for sumBuiltin`: `<- tests about it (6; ...)` ve `<- tests through the name codes it implements (175; same package first)` (çağrı zinciriyle gelen `<- tests, indirect` grubu yok).
   - Adım 3 için taban ("önce") ölçümleri (graf kurulum süresi ortancası 8.9s: 8.8s, 9.1s, 8.9s; 18 örnek dosya ve son 10 commit) `/tmp/baseline_graph.json` üzerinden alındı.
 
+- **Adım 2 (düzelt) tamamlandı:**
+  - `tools/codegraph/gocode_scan.go`: `const viaArg = "arg"` ve `markCall` eklendi; `*ast.CallExpr.Args` içindeki ifadelerin `nameIdent` tanımlayıcıları `viaArg` olarak işaretlendi ve `use` içinde hedef `*types.Func` paket düzeyi işlevse (`fn.Type().(*types.Signature).Recv() == nil`) `edgeCalls` kenarına `Via = viaArg` (`e.Via == ""` iken) yazıldı.
+  - `tools/codegraph/test_reach.go`: `reachEdge` imzasına `via string` eklendi; `edgeCalls` kolunda `confidence == extracted || via == viaArg || strings.HasPrefix(from, "tr:") && strings.HasPrefix(to, "tr:")` ile argüman olarak geçen paket düzeyi Go işlevleri zincire alındı.
+  - `tools/codegraph/graph.go` (`extractorRevision = 89`) ve `tools/codegraph/testdata/extractor_digest.txt` güncellendi.
+  - `tools/codegraph/query_tests_test.go`: `TestTestsForFollowsPackageFunctionPassedAsCallArgument` koruyan testi eklendi (fikstürde `shape.TestUse` bulunur; `argLeaf` zincire girer; bileşik değerdeki `litLeaf`, değişkene atanan `varLeaf` ve yöntem değeri `box.methodLeaf` zincire girmez).
+  - Gerçek örnek doğrulaması: `tensor.lseRow32` artık `tensor.TestLogSumExpSameBitsForAnyWorkerCount` (2 adım, `via tensor.LogSumExp`) ve 15 ad kodu testini veriyor; `tensor.geluExactValue` artık `tensor.TestUnaryOpsIgnorePosition` (3 adım, `via tensor.unaryLoopWide`) veriyor; `interp.sumBuiltin` çıktısı değişmedi (6 `about` + 175 ad kodu testi, `indirect` yok).
+
 ## Kalanlar
-- **Adım 2 (düzelt):**
-  - Go'da bir çağrının argümanı olarak geçen paket düzeyi işleve giden kenarın test erişim zincirine girmesi sağlanacak (bileşik değerdeki işlev değeri, değişkene atanıp sonra geçirilen işlev değeri ve yöntem değeri hariç kalacak).
-  - Koruyan testler eklenecek (Adım 1 fikstürü `TestUse` veriyor, bileşik değer ve değişken örnekleri eskisi gibi).
 - **Adım 3 (büyümeyi ölç):**
-  - Düzeltme sonrası graf kurulumu ve karşılaştırma tabloları.
+  - 18 örnek dosyada `tests-for` ve `main`'in son 10 commit'inde `changed --go-tests` sonrası ölçümleri ve en çok büyüyen 3 dosyanın analizi.
 - **Bitti ölçütü ve Rapor (`UZAK7_RAPORU.md`):**
   - Ön denetim komutları, kendi kontrolüm ve teslim.
 
 ## Emin Olmadıklarım
 - Henüz yok.
+

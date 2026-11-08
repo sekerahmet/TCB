@@ -498,7 +498,7 @@ all the same question, so there is one function for it (`reachEdge` in `test_rea
 `WalkCallers`, `TestMaxHops`, `TestMaxSteps`, live in `internal/devtools/codeindex/reach.go`, so `TR_cmd_index TR_sub_tested_by`
 answers with the same rule) and one rule: walk from the thing to its callers and users (EXTRACTED calls, type and const
 uses, variable reads and writes, TR-to-TR calls even when INFERRED, since a TR method call on a receiver of unknown
-type is an ordinary call; a Go function value passed around, INFERRED, is not followed), stop at the first test on a
+type is an ordinary call, and a Go package-level function passed as a call argument; other Go function values, INFERRED, are not followed), stop at the first test on a
 chain, cross **at most one package boundary** and take **at most eight steps**.
 
 What a test is, is one rule too (`test_rule.go`): a TR `test` block, or a Go function in a `_test.go` file whose name

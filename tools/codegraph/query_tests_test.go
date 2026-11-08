@@ -410,3 +410,63 @@ func declaresTest(name string) bool {
 	}
 	return false
 }
+
+// Kural: bir çağrının argümanı olarak geçirilen paket düzeyi Go işlevi test erişim zincirine girer (`use() { apply(leaf) }`
+// üzerinden `TestUse`); bileşik değerdeki işlev değeri, değişkene atanıp sonra geçirilen işlev değeri ve yöntem değeri
+// (`x.M` argüman olarak) zincire girmez (eksikler listesi, DENETİM 79).
+func TestTestsForFollowsPackageFunctionPassedAsCallArgument(t *testing.T) {
+	ix := newIndex(fixture(t))
+	for _, id := range []string{fixturePkg + "leaf", "go:file:shape/leaf.go"} {
+		var out strings.Builder
+		ix.printTestsFor(&out, ix.byID[id], 12)
+		if !strings.Contains(out.String(), "shape.TestUse") {
+			t.Errorf("fixture %s must be reached by shape.TestUse:\n%s", id, out.String())
+		}
+	}
+	root := auditModule(t, map[string]string{
+		"p/p.go": `package p
+
+type box struct{}
+
+func (box) methodLeaf() {}
+
+func argLeaf() {}
+func litLeaf() {}
+func varLeaf() {}
+
+func apply(fn func()) { fn() }
+
+func useArg()          { apply(argLeaf) }
+func useLit()          { _ = []func(){litLeaf} }
+func useVar()          { f := varLeaf; apply(f) }
+func useMethod(b box)  { apply(b.methodLeaf) }
+`,
+		"p/p_test.go": `package p
+
+import "testing"
+
+func TestUseArg(t *testing.T)    { useArg() }
+func TestUseLit(t *testing.T)    { useLit() }
+func TestUseVar(t *testing.T)    { useVar() }
+func TestUseMethod(t *testing.T) { useMethod(box{}) }
+`,
+	})
+	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
+		t.Fatalf("build: %d %s", code, errOut)
+	}
+	ask := func(name string) string {
+		code, out, errOut := runCLI("tests-for", name, "--root", root, "--no-rebuild")
+		if code != exitOK {
+			t.Fatalf("tests-for %s: %d %s", name, code, errOut)
+		}
+		return out
+	}
+	if got := ask("p.argLeaf"); !strings.Contains(got, "p.TestUseArg") || !strings.Contains(got, "via p.useArg") {
+		t.Errorf("package-level function argument must reach TestUseArg:\n%s", got)
+	}
+	for _, target := range []string{"p.litLeaf", "p.varLeaf", "box.methodLeaf"} {
+		if got := ask(target); !strings.Contains(got, "no tests found") {
+			t.Errorf("%s must not enter the chain:\n%s", target, got)
+		}
+	}
+}

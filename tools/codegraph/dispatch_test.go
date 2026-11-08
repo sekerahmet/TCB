@@ -48,10 +48,10 @@ func TestDispatchTableIsReadFromTheInterpreter(t *testing.T) {
 // (kod-grafigi-40 onayı, 3. madde).
 func TestImplementedByJoinsTheChainOnlyFromMeasurements(t *testing.T) {
 	to := "go:func:example.com/x/interp.VM.callPrepared"
-	if !reachEdge(edgeImplementedBy, inferred, "tr:func:tools/bench/tr/fib.tr:fib", to) {
+	if !reachEdge(edgeImplementedBy, inferred, "tr:func:tools/bench/tr/fib.tr:fib", to, "") {
 		t.Error("a bench program reaches the interpreter")
 	}
-	if reachEdge(edgeImplementedBy, inferred, "tr:test:lib/layers_test.tr:12", to) || reachEdge(edgeImplementedBy, inferred, "tr:func:lib/layers.tr:f", to) {
+	if reachEdge(edgeImplementedBy, inferred, "tr:test:lib/layers_test.tr:12", to, "") || reachEdge(edgeImplementedBy, inferred, "tr:func:lib/layers.tr:f", to, "") {
 		t.Error("a TR test or library function does not count as a test of the interpreter through implemented_by")
 	}
 }

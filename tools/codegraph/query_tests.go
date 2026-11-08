@@ -202,7 +202,7 @@ func (ix *index) printValueTests(w io.Writer, list []indirectTest, limit int) {
 func (ix *index) callersOf(id string) []string {
 	var out []string
 	for _, e := range ix.in[id] {
-		if reachEdge(e.Kind, e.Confidence, e.From, e.To) {
+		if reachEdge(e.Kind, e.Confidence, e.From, e.To, e.Via) {
 			out = append(out, e.From)
 		}
 	}

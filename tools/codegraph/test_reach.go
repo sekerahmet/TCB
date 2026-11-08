@@ -13,14 +13,15 @@ const (
 	testMaxSteps = codeindex.TestMaxSteps
 )
 
-// reachEdge bir kenarın "çağıran/kullanan" zincirine girip girmediği: kesin (EXTRACTED) çağrı, tür/sabit kullanımı, değişken
-// okuma ve yazma, arayüzden uygulamaya geçiş. Go'da INFERRED çağrı işlevin değer olarak geçirilmesidir ve zincire girmez;
+// reachEdge bir kenarın "çağıran/kullanan" zincirine girip girmediği: kesin (EXTRACTED) çağrı, bir çağrının argümanı olarak
+// geçirilen paket düzeyi Go işlevi (via == viaArg), tür/sabit kullanımı, değişken okuma ve yazma, arayüzden uygulamaya geçiş.
+// Go'da öbür INFERRED çağrılar (bileşik değerdeki işlev, değişkene atanan işlev, yöntem değeri) zincire girmez;
 // TR'de ise alıcı tipi bilinmeyen sıradan metot çağrısıdır (`model.ileri(x)`), bu yüzden iki ucu da TR olan INFERRED
 // çağrı zincire girer (codeindex'in kendi yürüyüşü de bütün TR çağrılarını izler).
-func reachEdge(kind, confidence, from, to string) bool {
+func reachEdge(kind, confidence, from, to, via string) bool {
 	switch kind {
 	case edgeCalls:
-		return confidence == extracted || strings.HasPrefix(from, "tr:") && strings.HasPrefix(to, "tr:")
+		return confidence == extracted || via == viaArg || strings.HasPrefix(from, "tr:") && strings.HasPrefix(to, "tr:")
 	case edgeUses, edgeReadsVar, edgeWritesVar, edgeDispatches:
 		return true
 	case edgeImplementedBy:

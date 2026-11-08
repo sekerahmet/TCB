@@ -22,7 +22,7 @@ const schemaVersion = 1
 // 7: .tr kaynakları etkin yazım dilinden bağımsız okunur (TR_LANG=en grafiği eksik bırakıyordu).
 // 8: sabit, değişken ve alan düğümlerinin bitiş satırı kendi değeriyle biter (öncekiler sonraki bloğun sonuna uzanıyordu).
 // 9: aynı modül hem takma adsız hem takma adla aktarılınca takma ad tanınır (yutuluyordu).
-const extractorRevision = 88
+const extractorRevision = 89
 
 // Düğüm türleri.
 const (
@@ -125,7 +125,8 @@ type Edge struct {
 	Sites      []Site `json:"sites,omitempty"` // alan erişim kenarlarında her erişim yeri
 	// Via implemented_by kenarının dil yapısıdır ("MemberExpression", "operator @"; ilk görülen): who-uses binlerce TR
 	// bildirimini yapının adıyla tek satırda özetler. İşleve giden calls kenarında, işlev bir ad koduyla anahtarlanmış
-	// çiftin değeriyse o kodun düğümüdür ("name:TR_cmd_format"; keyedImplementations).
+	// çiftin değeriyse o kodun düğümüdür ("name:TR_cmd_format"; keyedImplementations), çağrı argümanı olarak geçen
+	// paket düzeyi işlevse "arg"dır (viaArg).
 	Via string `json:"via,omitempty"`
 }
 

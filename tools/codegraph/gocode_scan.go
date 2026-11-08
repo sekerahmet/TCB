@@ -52,10 +52,24 @@ func codeConstKeys(root string) map[string]string {
 	return keys
 }
 
+// viaArg bir çağrının argümanı olarak geçirilen paket düzeyi işlevin calls kenarındaki işaretidir (Edge.Via).
+const viaArg = "arg"
+
+func markCall(calls map[*ast.Ident]string, n *ast.CallExpr) {
+	if id := nameIdent(n.Fun); id != nil {
+		calls[id] = extracted
+	}
+	for _, a := range n.Args {
+		if id := nameIdent(a); id != nil {
+			calls[id] = viaArg
+		}
+	}
+}
+
 // scan root altındaki her tanımlayıcıyı çözer: işlev kullanımı `calls`, ileti kodu sabiti
 // `uses_message`, ad kodu sabiti `uses_name` kenarı olur. Kenar owner'dan çıkar.
 func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
-	callee := map[*ast.Ident]bool{}
+	calls := map[*ast.Ident]string{}
 	modes := map[ast.Expr]string{}
 	closures := map[*ast.FuncLit]string{}
 	writes := map[*ast.Ident]writeTarget{} // yazılan paket değişkenlerinin kök tanımlayıcıları (var_access.go)
@@ -73,9 +87,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		x.noteSnippets(fc, owner, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:
-			if id := nameIdent(n.Fun); id != nil {
-				callee[id] = true
-			}
+			markCall(calls, n)
 			x.noteNameReads(fc, n)
 			x.envUse(fc, owner, n)
 			x.pathCall(fc, owner, n)
@@ -83,7 +95,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 			x.stdlibCall(fc, owner, n)
 			x.noteOptCall(fc, owner, n)
 		case *ast.Ident:
-			x.use(fc, owner, n, callee[n], writes, enclosingClosure(stack, closures), stack)
+			x.use(fc, owner, n, calls[n], writes, enclosingClosure(stack, closures), stack)
 		case *ast.RangeStmt:
 			x.rangeUse(fc, owner, root, n)
 			x.noteRangeStrings(fc, n)
@@ -288,7 +300,7 @@ func (x *goExtractor) codeAliasKeys() map[string]string {
 	return out
 }
 
-func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool, writes map[*ast.Ident]writeTarget, closure string, stack []ast.Node) {
+func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, callKind string, writes map[*ast.Ident]writeTarget, closure string, stack []ast.Node) {
 	obj := fc.u.Info.Uses[id]
 	ref := x.objectID(obj)
 	if ref == "" {
@@ -299,12 +311,17 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, isCall bool,
 		x.varUse(fc, owner, ref, id, writes, closure)
 		return
 	}
-	if _, isFunc := obj.(*types.Func); isFunc {
+	if fn, isFunc := obj.(*types.Func); isFunc {
 		conf := inferred // işlev değeri olarak kullanım: çağrı sonradan olabilir
-		if isCall {
+		if callKind == extracted {
 			conf = extracted
 		}
 		x.b.addEdge(owner, ref, edgeCalls, conf, fc.rel, line)
+		if callKind == viaArg && fn.Type().(*types.Signature).Recv() == nil {
+			if e := x.b.edges[edgeKey{owner, ref, edgeCalls}]; e.Via == "" {
+				e.Via = viaArg
+			}
+		}
 		return
 	}
 	if c, isConst := obj.(*types.Const); isConst {
