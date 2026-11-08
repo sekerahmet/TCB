@@ -56,6 +56,14 @@ func listBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Valu
 			fn, g.unreadableCount, g.firstUnreadable, turkish.FileErrorReason(g.firstUnreadable, g.firstErr))+"\n")
 	}
 	basePath := clean(base)
+	if resolved != filepath.FromSlash(base) {
+		// Göreli klasör çalışma klasöründe değil, okuma sırasının sonraki bir yerinde bulundu:
+		// sonuçlar mutlaktır, değiştiren bir işe verilince başka klasördeki aynı adlı dosyayı
+		// göstermez (18.5).
+		if abs, err := filepath.Abs(resolved); err == nil {
+			basePath = clean(abs)
+		}
+	}
 	paths := make([]string, len(g.found))
 	for i, rel := range g.found {
 		if basePath == "." {

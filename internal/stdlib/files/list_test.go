@@ -55,6 +55,25 @@ func TestListDir(t *testing.T) {
 	errContains(t, `TR_list_dir("v", 5)`, "2. argüman olarak Metin bekler")
 }
 
+// Kural (18.5): göreli klasör çalışma klasöründe bulunmadıysa (programın klasöründe bulunduysa)
+// sonuçlar mutlak yollardır; çalışma klasöründe bulunduysa göreli kalır.
+func TestListDirFoundBesideTheProgramGivesAbsolutePaths(t *testing.T) {
+	work := tmpWork(t)
+	program := t.TempDir()
+	write(t, filepath.Join(program, "veri", "a.txt"), "x")
+	s := runTR(t, program, `TR_list_dir("veri")`)
+	if s.failure != nil {
+		t.Fatal(s.failure)
+	}
+	if got, wants := s.value.Inspect(), "["+forwardPath(filepath.Join(program, "veri", "a.txt"))+"]"; got != wants {
+		t.Errorf("programın klasöründe: %s, %s bekleniyordu", got, wants)
+	}
+	write(t, filepath.Join(work, "veri", "b.txt"), "x")
+	if s := runTR(t, program, `TR_list_dir("veri")`); s.failure != nil || s.value.Inspect() != "[veri/b.txt]" {
+		t.Errorf("çalışma klasöründe: %v %v, [veri/b.txt] bekleniyordu", s.value, s.failure)
+	}
+}
+
 // ** klasör bağlantılarının içine girmez (döngü olmaz); adıyla yazılmış bağlantının içine
 // girilir.
 func TestListDoesNotEnterLinks(t *testing.T) {
