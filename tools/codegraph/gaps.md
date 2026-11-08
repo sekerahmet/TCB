@@ -90,7 +90,7 @@ Açık kalanlar, CODEGRAPH'ın denediği ve önerdiği yollarla (tasarım bekliy
 
 ## Kalan işler (eksik değil, yeni yetenek)
 
-- **`tests-for` bir `.tr` modülünün fonksiyonu için çağıran `TR_test`'i göstermiyor (S1, 2026-11-09; yeniden üretilmedi).** Bugün dosya düzeyinde (`zincir.tr` → `zincir_test`); ek talep: `dinle` gibi bir fonksiyon için hangi test.
+- **`tests-for` bir `.tr` modülünün fonksiyonu için çağıran `TR_test`'i göstermiyor (S1, 2026-11-09; yeniden üretilmedi).** `5f7f6622`'de dosya düzeyinde (`zincir.tr` → `zincir_test`); ek talep: `dinle` gibi bir fonksiyon için hangi test.
 - **`dups --changed` commit'lenmemiş değişikliği görmüyor (D1, 2026-11-09; yeniden üretilmedi, D1'in ölçüsü).** Kuralın "commit'ten önce `dups --changed main`"i main'in ucundaki temiz olmayan ağaçta `main...main`'e bakıp 0 diyor. Ek talep: çalışma ağacının değişikliklerini de sayan bir seçenek; yoksa kural "commit'ten sonra, birleştirmeden önce" diye yazılır.
 - **"Bu tipin metnini kim üretir" sorusu yok (D1, 2026-11-08).** `query "StructVal String"` → "not found" (çıkış 4) [ölçüldü: TCB, birleşik 59]; aranan `TypeVal.Text`'ti, `grep` ile bulundu. Ad tahmini eksik sayılmaz (README); ek talep: bir değer tipinin metnini (Inspect, Text) üreten metotlar sorulabilsin.
 - **Madde numaralı test adı Test satırı ister, `tests-for` söylemiyor (D1, 2026-11-08).** `tests-for tests/kodlu_saklama_test.tr` `TestEveryRuleHasATest`'i gösteriyor [ölçüldü: TCB], ama "`NN.M …` adlı yeni test o maddenin Test satırını ister" demiyor; D1'in ilk hatası bundan.
