@@ -677,6 +677,7 @@ g.TR_append	ok	0	name:TR_mem_append
 g.TR_cancel	ok	0	name:TR_mem_cancel
 g.TR_close	ok	0	name:TR_mem_close
 g.TR_code	ok	0	name:TR_mem_code
+g.TR_device	ok	0	name:TR_mem_device
 g.TR_done	ok	0	name:TR_mem_done
 g.TR_dtype	ok	0	name:TR_mem_dtype
 g.TR_ends_with	ok	0	name:TR_mem_ends_with
@@ -690,6 +691,7 @@ g.TR_reshape	ok	0	name:TR_mem_reshape
 g.TR_shape	ok	0	name:TR_mem_shape
 g.TR_slice	ok	0	name:TR_mem_slice
 g.TR_table	ambiguous	3	tr:field:lib/layers.tr:TR_type_Embedding.TR_mem_table,tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_table
+g.TR_to_device	ok	0	name:TR_mem_to_device
 g.TR_tolist	ok	0	name:TR_mem_tolist
 g.TR_transpose	ok	0	name:TR_mem_transpose
 g.TR_wait	ok	0	name:TR_mem_wait
