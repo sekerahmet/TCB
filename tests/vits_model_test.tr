@@ -86,6 +86,33 @@ TR_test "VITS klasör hataları adıyla söylenir" {
     TR_assert_equal("H7555", TR_error_code { TR_pretrained_vits(klasör(yanlış)) })
 }
 
+# ayarlı küçük modelin kopyasını kurar, config.json'da `eski`'yi `yeni` yapar.
+TR_func ayarlı(eski: TR_String, yeni: TR_String) -> TR_String {
+    TR_var k = klasör(TR_load_tensors("\(_MODEL)/model.safetensors"))
+    TR_var yol = TR_String(TR_Path(k, "config.json"))
+    TR_var metin = TR_read_file(yol)
+    TR_assert(metin.TR_contains(eski))
+    TR_write_file(yol, metin.TR_replace(eski, yeni))
+    TR_return k
+}
+
+TR_test "VITS ayarda eksik alanı adıyla söyler" {
+    TR_assert_equal("H7551", TR_error_code { TR_pretrained_vits(ayarlı("\"hidden_size\": 8,", "")) })
+}
+
+TR_test "VITS float32, fp16 ve bf16 dışındaki ağırlığı açmaz" {
+    TR_var t = TR_load_tensors("\(_MODEL)/model.safetensors")
+    TR_var ad = "decoder.conv_post.weight"
+    t[ad] = t[ad].TR_to_dtype("float64")
+    TR_assert_equal("H7554", TR_error_code { TR_pretrained_vits(klasör(t)) })
+}
+
+# Kapı: kurmadığı ayarı geçirseydi model hatasız ama yanlış ses üretirdi.
+TR_test "VITS kurmadığı ayarı geçirmez: birden çok konuşmacı, olasılıksız süre" {
+    TR_assert_equal("H7557", TR_error_code { TR_pretrained_vits(ayarlı("\"num_speakers\": 1,", "\"num_speakers\": 2,")) })
+    TR_assert_equal("H7557", TR_error_code { TR_pretrained_vits(ayarlı("\"use_stochastic_duration_prediction\": true", "\"use_stochastic_duration_prediction\": false")) })
+}
+
 TR_test "VITS mimari yanlışında öneri çalışır" {
     TR_var m = TR_pretrained_model("data/hf_tiny")
     TR_assert(m != TR_none)

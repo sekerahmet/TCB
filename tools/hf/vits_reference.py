@@ -117,6 +117,38 @@ def tokenize(tok, text):
     return ids, kept, dropped
 
 
+def compare(out, tr_dir):
+    """Reads TR's <case>_tr.safetensors next to the reference and writes compare.json: where the largest
+    hidden difference is (token, channel) and the largest before-ceil duration difference against float32."""
+    from safetensors.torch import load_file
+    with open(os.path.join(out, "meta.json"), encoding="utf-8") as f:
+        meta = json.load(f)
+    rate = meta["config"].get("speaking_rate", 1.0)
+    res = {}
+    for case, c in meta["cases"].items():
+        p32 = load_file(os.path.join(out, f"{case}_f32.safetensors"))
+        tr = load_file(os.path.join(tr_dir, f"{case}_tr.safetensors"))
+        d = (tr["hidden"].double() - p32["hidden"].double()).abs()
+        token, channel = divmod(int(torch.argmax(d)), d.shape[1])
+        b_tr = torch.exp(tr["log_duration"].double()) / rate
+        b_pt = torch.tensor(c["before_ceil_f32"], dtype=torch.float64)
+        db = (b_tr - b_pt).abs()
+        i = int(torch.argmax(db))
+        res[case] = {
+            "hidden_max_abs": float(d.max()), "hidden_token": token, "hidden_channel": channel, "hidden_id": c["ids"][token],
+            "hidden_value_f32": float(p32["hidden"][token, channel]),
+            "before_ceil_max_abs": float(db[i]), "before_ceil_token": i,
+            "before_ceil_f32": float(b_pt[i]), "before_ceil_tr": float(b_tr[i]),
+            "before_ceil_margin": float(torch.min(torch.abs(b_pt - torch.round(b_pt)))),
+        }
+    with open(os.path.join(tr_dir, "compare.json"), "w", encoding="utf-8") as f:
+        json.dump(res, f, ensure_ascii=False, indent=1)
+    for case, r in res.items():
+        sys.stdout.buffer.write((f"{case}: hidden {r['hidden_max_abs']:.2e} at token {r['hidden_token']} (id {r['hidden_id']}) "
+                                 f"channel {r['hidden_channel']} value {r['hidden_value_f32']:.4g}; before_ceil {r['before_ceil_max_abs']:.2e} "
+                                 f"at token {r['before_ceil_token']}, margin {r['before_ceil_margin']:.2e}\n").encode("utf-8"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
@@ -128,7 +160,10 @@ def main():
     ap.add_argument("--tail-noise", type=float, default=None, help="puts this value into the duration noise of the noisy run")
     ap.add_argument("--keep", default="", help="comma separated tensor names to write (default: all)")
     ap.add_argument("--f32-only", action="store_true", help="write only the float32 files (the float64 run still happens)")
+    ap.add_argument("--compare", default=None, help="TR output folder: compare it with the reference already in --out, no model run")
     a = ap.parse_args()
+    if a.compare:
+        return compare(a.out, a.compare)
     import transformers
     from safetensors.torch import save_file
     os.makedirs(a.out, exist_ok=True)
