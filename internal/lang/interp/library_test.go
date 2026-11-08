@@ -8,6 +8,7 @@ import (
 
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
+	"github.com/sekerahmet/TCB/internal/reporoot"
 	"github.com/sekerahmet/TCB/internal/testkit"
 )
 
@@ -154,7 +155,7 @@ func TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase(t *testing.T) 
 	runInDir(t, root)
 	testkit.WritePath(t, filepath.Join(root, "ortak.tr"), source.Header+"\nTR_var kim = \"küçük\"\n")
 	testkit.WritePath(t, filepath.Join(root, "Ortak.tr"), source.Header+"\nTR_var kim = \"büyük\"\n")
-	if names, _ := filepath.Glob(filepath.Join(root, "*.tr")); len(names) == 2 {
+	if names, _ := reporoot.Glob(filepath.Join(root, "*.tr")); len(names) == 2 {
 		out, err := runWithModules(t, root, map[string]string{"ana.tr": "TR_import \"Ortak\" TR_as a\nTR_import \"ortak\" TR_as b\nTR_print(a.kim, b.kim)\n"})
 		if err != nil || out != "büyük küçük\n" {
 			t.Errorf("iki ayrı dosya kendi yazımıyla yüklenmeli: %v\n%q", err, out)
