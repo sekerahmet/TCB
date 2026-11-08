@@ -4,9 +4,10 @@
 - **Taban (`main`):** `c151974ecc0ff19e597d0239f5683c5ba906a778`
 - **Başlama saati:** 2026-11-08 18:55:01 UTC+3 (`2026-11-08T07:55:01-08:00`)
 - **Go sürümü:** `go1.27.3 linux/amd64` (`GOTOOLCHAIN=local`)
-- **Bağlam sıkıştırması:** 2 kez:
+- **Bağlam sıkıştırması:** 3 kez:
   1. Adım 2-0b sırasında (`7ca1615` commit'inden sonra, 2026-11-08 19:27:48 UTC+3 / `2026-11-08T16:27:48+00:00`).
-  2. Adım 2b sırasında (`5e913a9` commit'inden sonra, 2026-11-08 20:02:50 UTC+3 / `2026-11-08T17:02:50+00:00`). Her ikisinde de yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
+  2. Adım 2b sırasında (`5e913a9` commit'inden sonra, 2026-11-08 20:02:50 UTC+3 / `2026-11-08T17:02:50+00:00`).
+  3. Adım 2c'den sonra (`92f1624` commit'inden sonra, 2026-11-08 20:26:05 UTC+3 / `2026-11-08T17:26:05+00:00`). Her üçünde de yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
 
 ## İlerleme
 
@@ -16,8 +17,8 @@
 - [x] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü (commit `8b9f31d`)
 - [x] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer (commit `5e913a9`)
 - [x] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı; commit `f25bc55`)
-- [x] Adım 2c: Yerel değişkenle işlev aktarımı
-- [ ] Adım 2d: `dups --changed` etiketi ve README
+- [x] Adım 2c: Yerel değişkenle işlev aktarımı (commit `92f1624`)
+- [x] Adım 2d: `dups --changed` etiketi ve README
 - [ ] Adım 3: Büyüme, "test yok" listesi (`UZAK9_TESTSIZ.txt`), 20'lik örneklem doğrulaması
 - [ ] Rapor (`UZAK9_RAPORU.md`), bitti ölçütü ve kendi kontrolüm
 
@@ -130,3 +131,11 @@
 - **Kuralın uygulanmadığı değişkenler (test dışı, çağrılan yerel değişkenler):** parametre (`191`), işlev değişmezi `func(...){...}` (`171`; bunlardan `internal/lang/interp/sorting.go:102` `same` hem `isNumber` hem 2 `func_lit` alır), çağrı sonucu / çoklu dönüş (`134`), `range` döngü değişkeni (`36`), yapı alanı (`5`), dizin/harita (`3`), başka yerel değişken (`1`), adres alma `&x` (`0`); yalnız işlev atanıp hiç çağrılmayan (`called=false`): `2` (`internal/stdlib/process/process_value.go:52` `fn`, `tools/edithook/main.go:144` `pattern`).
 - **Kapsam dışı sayılar (test dışı):** paket düzeyi işlev değişkeni `25`, işlev tipli yapı alanı `45`, işlev döndüren işlev/metot `146`.
 - `tensor.dequantQ6K`: `tests, indirect (29)`, `weak evidence (60)`, `measurements, not tests (9)` (tabanda `no tests traced to it`, yalnız 142 ikili bağı vardı).
+
+## Adım 2d: `dups --changed` Etiketi ve README
+
+- Adım 1'in 4. ölçüsünde iki yazım (`--changed main` ve `--changed <dal>`) aynı adayları verdiği için her iki yazım korundu; `changedGoLines` ve `filterChanged` (`tools/codegraph/dups_changed.go:42`, `:69`) kurulan git aralığını (`rng`, ör. `main...HEAD` veya `main...claude/new`) döndürecek şekilde güncellendi ve `runDups` (`tools/codegraph/dups_report.go:152`) `res.Changed`'e ham girdi yerine gerçek git aralığını yazdı.
+- `tools/codegraph/README.md:332`–`:333` satırlarına hem `--changed main` hem `--changed claude/x` örneği eklendi.
+- Üretim satırı: `dups_changed.go` `+11 -11`, `dups_report.go` `+1 -2`, `README.md` `+2 -1` -> toplam `+14 -14` (10–20 bütçesi içinde).
+- Koruyan test: `tools/codegraph/dups_test.go:290` (`TestDupsChangedOnlyReportsWhatTheBranchTouched`) hem `--changed claude/new` (`res.Changed == "main...claude/new"`) hem `--changed main` (`1 duplicate candidate(s) touching main...HEAD` ve `new.go:`) çıktılarını doğrular.
+

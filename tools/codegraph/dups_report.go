@@ -149,11 +149,10 @@ func runDups(args []string, stdout, stderr io.Writer) int {
 	}
 	if o.changed != "" {
 		var cerr error
-		if clusters, cerr = filterChanged(clusters, root, o); cerr != nil {
+		if clusters, res.Changed, cerr = filterChanged(clusters, root, o); cerr != nil {
 			fmt.Fprintln(stderr, "codegraph:", cerr)
 			return exitFail
 		}
-		res.Changed = o.changed
 	}
 	res.Total = len(clusters)
 	if o.limit > 0 && len(clusters) > o.limit {

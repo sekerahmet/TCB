@@ -37,16 +37,16 @@ func changedRange(root, base, ref string) (rng, right, flag string) {
 	return ref + "...HEAD", "HEAD", "--changed"
 }
 
-// changedGoLines --changed değerinin Go dosyalarında çalışma ağacındaki değişen satırlarını verir (aralığın
-// sağ ucu çıkış yapılmış olmalıdır).
-func changedGoLines(root, base, ref string) (changedLines, error) {
+// changedGoLines --changed değerinin Go dosyalarında çalışma ağacındaki değişen satırlarını ve kurulan
+// git aralığını verir (aralığın sağ ucu çıkış yapılmış olmalıdır).
+func changedGoLines(root, base, ref string) (changedLines, string, error) {
 	rng, right, flag := changedRange(root, base, ref)
 	hs, live, err := changeHunks(root, rng, flag)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if !live {
-		return nil, fmt.Errorf("--changed %s: %s is not the checked-out commit; check the branch out first (the line numbers are those of the working tree)", ref, right)
+		return nil, "", fmt.Errorf("--changed %s: %s is not the checked-out commit; check the branch out first (the line numbers are those of the working tree)", ref, right)
 	}
 	out := changedLines{}
 	for _, h := range hs {
@@ -54,7 +54,7 @@ func changedGoLines(root, base, ref string) (changedLines, error) {
 			out[h.file] = append(out[h.file], [2]int{h.newStart, h.newStart + h.newCount - 1})
 		}
 	}
-	return out, nil
+	return out, rng, nil
 }
 
 // touches [from, to] aralığı değişen satırlardan birine dokunuyor mu.
@@ -67,11 +67,11 @@ func (cl changedLines) touches(file string, from, to int) bool {
 	return false
 }
 
-// filterChanged değişen satırlara dokunan kümeleri bırakır ve o konumları işaretler.
-func filterChanged(clusters []*dupCluster, root string, o *dupOpts) ([]*dupCluster, error) {
-	cl, err := changedGoLines(root, o.base, o.changed)
+// filterChanged değişen satırlara dokunan kümeleri bırakır, o konumları işaretler ve kurulan git aralığını verir.
+func filterChanged(clusters []*dupCluster, root string, o *dupOpts) ([]*dupCluster, string, error) {
+	cl, rng, err := changedGoLines(root, o.base, o.changed)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	var out []*dupCluster
 	for _, c := range clusters {
@@ -86,5 +86,5 @@ func filterChanged(clusters []*dupCluster, root string, o *dupOpts) ([]*dupClust
 			out = append(out, c)
 		}
 	}
-	return out, nil
+	return out, rng, nil
 }
