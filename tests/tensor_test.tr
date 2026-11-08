@@ -1210,6 +1210,12 @@ TR_test "15.4 blokta TR_cumsum 16 bitlik girdiyi float32'ye açar, TR_sum gibi" 
     TR_var y = TR_Tensor([256.0, 1.0], TR_requires_grad: TR_true)
     TR_backward(TR_sum(TR_mixed_precision("bf16") { TR_cumsum(y.TR_to_dtype("bf16")) } * TR_Tensor([1.0, 2.0])))
     TR_assert_equal([3.0, 2.0], y.TR_grad.TR_tolist)
+    # Kartta da aynı: açma cihazda yapılır, sonuç kartta kalır.
+    TR_if TR_devices().TR_contains("gpu") {
+        TR_var g = TR_mixed_precision("bf16") { TR_cumsum(x.TR_to_device("gpu")) }
+        TR_assert_equal(["float32", "gpu:0"], [g.TR_dtype, g.TR_device])
+        TR_assert_equal([256.0, 257.0], g.TR_to_device("cpu").TR_tolist)
+    }
 }
 
 TR_test "15.4 normun çıktı türü (tür:) ve hesap_türü()" {
