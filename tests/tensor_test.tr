@@ -1105,6 +1105,23 @@ TR_test "15.4 karışık_hassasiyet: blok değeri, iç içe bloklar, eğitim" {
     TR_assert(TR_abs(kbf - k32) <= 0.1 * k32 + 0.01, "float32 kaybı \(k32), bf16 kaybı \(kbf)")
 }
 
+TR_test "15.4 blokta TR_cumsum 16 bitlik girdiyi float32'ye açar, TR_sum gibi" {
+    TR_var x = TR_Tensor([256.0, 1.0]).TR_to_dtype("bf16")
+    # bf16'da 257 yoktur: açılmasaydı ikinci toplam 256 kalırdı.
+    TR_var r = TR_mixed_precision("bf16") { TR_cumsum(x) }
+    TR_assert_equal("float32", r.TR_dtype)
+    TR_assert_equal([256.0, 257.0], r.TR_tolist)
+    TR_assert_equal(257.0, TR_mixed_precision("bf16") { TR_sum(x) }.TR_item())
+    TR_assert_equal("float32", TR_mixed_precision("fp16") { TR_cumsum(x.TR_to_dtype("fp16")) }.TR_dtype)
+    # Blok dışında ve float64'te tür değişmez.
+    TR_assert_equal("bf16", TR_cumsum(x).TR_dtype)
+    TR_assert_equal("float64", TR_mixed_precision("bf16") { TR_cumsum(TR_Tensor([1.0], TR_dtype: "float64")) }.TR_dtype)
+    # Türev açılmadan geçer: 16 bitlik kopyanın gradyanı float32 ağırlığa ulaşır.
+    TR_var y = TR_Tensor([256.0, 1.0], TR_requires_grad: TR_true)
+    TR_backward(TR_sum(TR_mixed_precision("bf16") { TR_cumsum(y.TR_to_dtype("bf16")) } * TR_Tensor([1.0, 2.0])))
+    TR_assert_equal([3.0, 2.0], y.TR_grad.TR_tolist)
+}
+
 TR_test "15.4 normun çıktı türü (tür:) ve hesap_türü()" {
     TR_assert_equal("float32", TR_compute_dtype())
     TR_assert_equal(["bf16", "fp16", "float32"], [TR_mixed_precision("bf16") { TR_compute_dtype() }, TR_mixed_precision("fp16") { TR_compute_dtype() },
