@@ -9,9 +9,9 @@
 Şablon yayımlanmış Qwen3 parçalayıcısının tokenizer_config.json'undan okunur (--template DOSYA); karması
 çıktıya yazılır. Ağ gerekmez.
 
-  python -I tools/hf/chat_reference.py --tokenizer-out tests/testdata/qwen3_chat
-  python -I tools/hf/chat_reference.py --tokenizer tests/testdata/qwen3_chat \
-      --template tokenizer_config.json --cases-out tests/testdata/qwen3_chat/cases.json
+  python -I tools/hf/chat_reference.py --tokenizer-out tests/data/qwen3_chat
+  python -I tools/hf/chat_reference.py --tokenizer tests/data/qwen3_chat \
+      --template tokenizer_config.json --cases-out tests/data/qwen3_chat/cases.json
 """
 import argparse
 import hashlib

@@ -212,7 +212,7 @@ Dil tanımı 24.1–24.3. `TR_type_ChatMessage(TR_arg_role: r, TR_arg_content: m
 
 - **Biçim:** `TR_fn_qwen3_format(p, iletiler, TR_arg_add_generation_prompt: b, TR_arg_enable_thinking: d)` kimlik listesi verir. Modelin Jinja şablonu çalışmaz: Qwen3'ün şablonu TR ile yazılıdır. Etiketler `p.TR_mem_token_id` ile kimlik olarak girer; iki etiket arasındaki metin tek bir `p.TR_mem_encode(metin, TR_arg_special_tokens: TR_false)` çağrısıdır, içerikte yazılan etiket metin kalır. Son sorgu rolle seçilir, içeriğe bakılmaz. `TR_arg_tools:` araçların JSON şemalarıdır (`TR_type_JSON`); şablonun `tojson` yazımıyla (`", "`, `": "`, anahtar sırası) sistem turuna girer.
 - **Cevap:** `TR_fn_qwen3_reply(p, kimlikler)` `(ileti, hatalar)` demeti verir. Bloklar etiket kimliklerinde bölünür; baytlarıyla yazılmış etiket metin kalır. Bozuk blok (bozuk JSON, eksik alan, kapanmamış blok, yersiz düşünce) içerikte olduğu gibi kalır, `hatalar`'a `block <sıra>: <neden>` girer. `TR_arguments` modelin yazdığı JSON metnidir.
-- **Doğruluk:** küçük bir parçalayıcıyla transformers'ın `apply_chat_template` kimlikleriyle birebir (`tests/chat_format_test.tr`, başvurusu `tests/testdata/qwen3_chat/KAYNAK.md`). Gerçek Qwen3-4B parçalayıcısıyla kıyas depoda değil, kaydında.
+- **Doğruluk:** küçük bir parçalayıcıyla transformers'ın `apply_chat_template` kimlikleriyle birebir (`tests/chat_format_test.tr`, başvurusu `tests/data/qwen3_chat/KAYNAK.md`). Gerçek Qwen3-4B parçalayıcısıyla kıyas depoda değil, kaydında.
 
 ## `tr/turkish`
 

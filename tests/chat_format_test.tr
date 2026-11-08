@@ -1,10 +1,10 @@
 # TR 4
 # tr/chat: Qwen3'ün sohbet biçimi transformers'ın kimliklerini verir, cevap kimliklerden iletiye ayrılır (dil tanımı 24).
-# Parçalayıcı ve durumlar `tools/hf/chat_reference.py`'den gelir: testdata/qwen3_chat/KAYNAK.md.
+# Parçalayıcı ve durumlar `tools/hf/chat_reference.py`'den gelir: data/qwen3_chat/KAYNAK.md.
 
 TR_import "tr/chat"
 
-TR_const _KLASÖR = "testdata/qwen3_chat"
+TR_const _KLASÖR = "data/qwen3_chat"
 
 TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer("\(_KLASÖR)/tokenizer.json") }
 

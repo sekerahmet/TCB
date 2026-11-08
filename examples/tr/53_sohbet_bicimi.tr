@@ -1,13 +1,13 @@
 # TR 4
 # 53 — Sohbet biçimi: iletileri Qwen3'ün eğitildiği parça dizisine çevirmek ve modelin cevabını iletiye
 # ayırmak (`tr/chat`). Modelin Jinja şablonu çalışmaz; biçim TR ile yazılıdır ve etiketler kimlikle girer.
-# Parçalayıcı küçük bir deneme parçalayıcısıdır (tests/testdata/qwen3_chat); gerçek modelde GGUF dosyası verilir.
+# Parçalayıcı küçük bir deneme parçalayıcısıdır (tests/data/qwen3_chat); gerçek modelde GGUF dosyası verilir.
 #
 # Kendin dene: geçmişe bir araç sonucu (TR_Role.TR_Tool) ekle ve biçimin nasıl değiştiğine bak.
 
 TR_import "tr/chat"
 
-TR_var p = TR_load_tokenizer("../../tests/testdata/qwen3_chat/tokenizer.json")
+TR_var p = TR_load_tokenizer("../../tests/data/qwen3_chat/tokenizer.json")
 TR_var geçmiş = [
     TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: "Kısa cevap ver."),
     TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?"),

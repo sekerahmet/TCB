@@ -1,6 +1,6 @@
 # Qwen3 sohbet biçiminin altın testi
 
-`tests/chat_format_test.tr` ve `examples/tr/53_sohbet_bicimi.tr` bu klasörü okur.
+`tests/chat_format_test.tr`, `tools/assistant/zincir_test.tr` ve `examples/tr/53_sohbet_bicimi.tr` bu klasörü okur. Klasör `tests/data`'dadır: tam denetim örnekleri yalnız `examples`, `tests/data` ve `docs`'un kopyasıyla koşar.
 
 - **`tokenizer.json`, `tokenizer_config.json`:** `tools/hf/chat_reference.py --tokenizer-out` ile bu depo için kuruldu: `tokenizers` 0.23.2'nin BPE eğiticisi betikteki küçük bir metinle, 600 parçalık dağarcık. Ön ayırıcı Qwen2'nin deseni ve bayt düzeyi, normalleştirici NFC: Qwen3'ün `tokenizer.json`'u gibi. Qwen3'ün etiketleri eklenmiş parçadır: `<|endoftext|>`, `<|im_start|>`, `<|im_end|>` özel; `<tool_call>`, `</tool_call>`, `<tool_response>`, `</tool_response>`, `<think>`, `</think>` özel değil, yayımlanmış parçalayıcıdaki gibi. Dağarcık ve birleştirmeler bu deponundur, yayımlanmış bir modelden kopyalanmaz. Aynı sürümle yeniden kurmak aynı baytları verir.
 - **`cases.json`:** `tools/hf/chat_reference.py --cases-out`'un bu parçalayıcıyla verdiği durumlar: iletiler, argümanlar ve transformers 5.17.0'ın `apply_chat_template(..., tokenize=True)` kimlikleri. `known_` ile başlayan iki durum dil tanımı 24.2'nin bilinen farklarıdır; TR'nin kimlikleri başkadır, test farkı sınar.

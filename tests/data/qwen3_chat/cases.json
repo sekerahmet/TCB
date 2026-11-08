@@ -3,7 +3,7 @@
   "template_sha256": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8",
   "transformers": "5.17.0",
   "tokenizers": "0.23.2",
-  "tokenizer": "tests/testdata/qwen3_chat"
+  "tokenizer": "tests/data/qwen3_chat"
  },
  "cases": [
   {

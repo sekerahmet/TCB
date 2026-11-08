@@ -8,7 +8,7 @@
 # Modelin dosyasındaki Jinja şablonu çalışmaz: Qwen3'ün şablonu burada TR ile yazılıdır ve dizi kimliklerden
 # kurulur. Etiketler kimlikleriyle girer; iki etiket arasındaki metin, biçimin metni ve iletinin içeriği
 # birlikte, tek bir `p.TR_encode(metin, TR_special_tokens: TR_false)` çağrısıdır: içerikte yazılan etiket
-# metin kalır (16.2). Başvuru Qwen3'ün yayımlanmış şablonudur: tests/testdata/qwen3_chat/KAYNAK.md.
+# metin kalır (16.2). Başvuru Qwen3'ün yayımlanmış şablonudur: tests/data/qwen3_chat/KAYNAK.md.
 
 # Rol: iletinin sahibi. Biçim onu modelin protokol metnine çevirir.
 TR_enum TR_Role {
