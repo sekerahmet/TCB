@@ -82,7 +82,10 @@ TR_struct _Evrişim {
 }
 
 # _gevşek PyTorch'un `leaky_relu`'sudur.
-TR_func _gevşek(x: TR_Tensor, eğim: TR_Float) -> TR_Tensor { TR_return TR_where(x >= 0.0, x, x * eğim) }
+# _gevşek_düz TR_where'siz yazılır: TR_fuse üç girdili seçimi kaynaştırmaz. x >= 0'da x - 0, x < 0'da 0 - (-x)·eğim = x·eğim.
+# Tek ayrım eksi sıfır: +0 verir, PyTorch -0; MMS'te dalga bit bit aynı çıktı (DEVİR, Ş2).
+TR_func _gevşek_düz(x: TR_Tensor, eğim: TR_Float) -> TR_Tensor { TR_return TR_relu(x) - TR_relu(-x) * eğim }
+TR_var _gevşek = TR_fuse(_gevşek_düz)
 
 # _kanal_normu [1, kanal, boy] tensörü kanal ekseninde normlar (`LayerNorm` kanal üstünde).
 TR_func _kanal_normu(x: TR_Tensor, ağırlık: TR_Tensor, sapma: TR_Tensor, eps: TR_Float) -> TR_Tensor {
