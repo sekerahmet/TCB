@@ -126,6 +126,7 @@ func (cpuBackend) Release(s Storage) {
 		panic(messages.Internal("storage returned to the pool twice"))
 	}
 	c.release = true
+	c.clearWriteLock() // yeniden kullanılan depo kopya .TR_reshape'in kilidini taşımaz (15.3)
 	h := poolFor(poolKey{c.dtyp, c.Len()}, true)
 	if c.Len()*c.dtyp.Bits()/8 >= poolWeakBytes {
 		w := weak.Make(c)

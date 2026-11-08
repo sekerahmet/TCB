@@ -65,6 +65,9 @@ func (d *TensorValue) Negate() (interp.Value, error) {
 }
 
 func (d *TensorValue) negate() (interp.Value, error) {
+	if err := float64GradError(d); err != nil {
+		return nil, err // tekli eksi çizgeye kenar ekler (15.46)
+	}
 	if d.t.DType().IsTyped() {
 		var f *tensor.ElemFault
 		r, err := safe(func() (r *tensor.Tensor) { r, f = tensor.Neg(d.t); return })
@@ -98,7 +101,17 @@ func (d *TensorValue) TaskOperator(m *interp.VM, op string, otherVal interp.Valu
 	return res, ok, err
 }
 
+// comparisonOps türev çizgesine kenar eklemeyen ikili işleçlerdir (sonuç mantık tensörü).
+var comparisonOps = map[string]bool{"<": true, ">": true, "<=": true, ">=": true, "==": true, "!=": true}
+
 func (d *TensorValue) taskOperator(m *interp.VM, op string, otherVal interp.Value, onRight bool) (interp.Value, bool, error) {
+	// Aritmetik ve '@' türevi izlenen float64'te H6040 verir, H6960'tan önce (15.46);
+	// karşılaştırma çizge kurmaz.
+	if !comparisonOps[op] {
+		if err := float64GradError(d, otherVal); err != nil {
+			return nil, true, err
+		}
+	}
 	if op != "@" {
 		return d.operator(m, op, otherVal, onRight) // TaskOperator zaten markFresh çağırır
 	}
@@ -279,6 +292,9 @@ func (d *TensorValue) Index(idx interp.Value) (interp.Value, error) {
 }
 
 func (d *TensorValue) index(idx interp.Value) (interp.Value, error) {
+	if err := float64GradError(d); err != nil {
+		return nil, err // indeks görünümü çizgeye kenar ekler (15.46); dolaşma da buradan geçer
+	}
 	sh := d.t.Shape()
 	if len(sh) == 0 {
 		return nil, messages.New(messages.H6704)
@@ -481,6 +497,10 @@ func assignSource(target, src *tensor.Tensor) (*tensor.Tensor, error) {
 func checkWrite(dst, src *tensor.Tensor, whole bool) error {
 	if dst.DType().IsQuantized() {
 		return messages.New(messages.H6957, dst.DType().Name())
+	}
+	if l := dst.WriteLock(); l != nil {
+		// Kopya olan .TR_reshape'in deposu (ya da görünümü), türevsiz kipte de (15.3).
+		return messages.New(messages.H6041, tensor.ShapeText(dst.Shape()), tensor.ShapeText(l.Shape), tensor.ShapeText(l.Strides))
 	}
 	tracked, leaf := dst.GradTarget()
 	switch {

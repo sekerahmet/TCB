@@ -359,8 +359,10 @@ func tensorLoad(m *interp.VM, args []interp.Value, named map[string]interp.Value
 		if err != nil {
 			return nil, err
 		}
-		// Türev yalnız hesap ondalıklarında açılır; TR_Int ve TR_Bool türevsiz kalır (15.46).
-		t.SetRequiresGrad(watch && g.dtype.IsFloat())
+		// Türev nicemlenmemiş TR_Float tensörlerde açılır, float64 dahil; TR_Int, TR_Bool ve
+		// nicemlenmiş tensörler türevsiz kalır (15.46). float64'te türev yolu yok: çizgeye
+		// girince H6040 açık hatadır (tensor.CheckFloat64Grad).
+		t.SetRequiresGrad(watch && (g.dtype.IsFloat() || g.dtype == tensor.Float64))
 		result.Set(g.ad, New(t))
 	}
 	return result, nil

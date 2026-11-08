@@ -49,7 +49,7 @@ func axisTensor(ad codes.Ref, usage string, args []interp.Value, n int, named ma
 
 // cumSumBuiltin birikimli_toplam(t, eksen: -1): şekil korunur, türev izler; tam
 // sayılı tensörün sonucu da tam sayılıdır.
-func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+func cumSumBuiltin(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
 	ad := codes.NameRef(codes.FnCumsum)
 	d, e, err := axisTensor(ad, fmt.Sprintf("%s(t, %s: -1)", ad, nameAxis.TR), args, 1, named)
 	if err != nil {
@@ -64,7 +64,12 @@ func cumSumBuiltin(_ *interp.VM, args []interp.Value, named map[string]interp.Va
 		}
 		return typedResult(ad, "+", r, f)
 	}
-	r, err := safe(func() *tensor.Tensor { return d.t.CumSum(e) })
+	// Karışık hassasiyet bloğunda 16 bitlik girdi float32'ye açılır (15.4), TR_sum gibi.
+	t, err := highPrecision(m, d.t)
+	if err != nil {
+		return nil, err
+	}
+	r, err := safe(func() *tensor.Tensor { return t.CumSum(e) })
 	if err != nil {
 		return nil, err
 	}

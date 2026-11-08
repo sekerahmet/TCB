@@ -183,7 +183,91 @@ func wrap(v *interp.VM, kd codes.Code, setup func(old interp.BuiltinFunc) interp
 	if b := v.Builtin(kd); b != nil {
 		old = b.Fn
 	}
-	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: guarded(setup(old)), Pure: !retaining[kd]})
+	v.DefineBuiltin(kd, &interp.BuiltinVal{Name: codes.Name(kd), Fn: guarded(float64Guard(kd, setup(old))), Pure: !retaining[kd]})
+}
+
+// gradFree float32 girdide de türev çizgesine kenar eklemeyen yerleşiklerdir: türevi izlenen
+// float64 girdiyle H6040 vermezler (15.46; türev orada kaybolmaz). Karşılaştırma ve indeks
+// verenler, kurulum ve dosya işleri, türevsiz kip ve bloklar, fonksiyon alanlar.
+var gradFree = map[codes.Code]bool{
+	codes.FnAll: true, codes.FnAllClose: true, codes.FnEqual: true, codes.FnIsFinite: true,
+	codes.FnArgmax: true, codes.FnArgsort: true, codes.FnSample: true,
+	codes.FnAdamW: true, codes.FnSGD: true, codes.FnClipGrad: true, codes.FnBackward: true, codes.FnParameters: true,
+	codes.FnLoadParameters: true, codes.FnLoadTensors: true, codes.FnLoadMetadata: true, codes.FnSaveTensors: true,
+	codes.FnFloatToBytes: true, codes.FnIntToBytes: true, codes.FnFromBytes: true,
+	codes.FnNoGrad: true, codes.FnMixedPrecision: true, codes.FnComputeDtype: true,
+	codes.FnDefaultDevice: true, codes.FnDevices: true,
+	codes.FnCustomGrad: true, codes.FnFuse: true, codes.FnReplay: true,
+	// Yazma: türevi izlenen kaynağı checkWrite reddeder (H6956).
+	codes.FnWriteSlice: true,
+}
+
+// float64Guard türev kipinde türevi izlenen float64 girdiyle (15.46) çizgeye kenar ekleyecek
+// yerleşiği çalıştırmadan durdurur: float64'te türev yolu yoktur, sonuç çizgeye bağlanmaz ve
+// türev sessizce düşerdi. Denetim işlemden önce yapılır: bu girdide H6040, H6960'tan önce gelir.
+func float64Guard(kd codes.Code, fn interp.BuiltinFunc) interp.BuiltinFunc {
+	if gradFree[kd] {
+		return fn
+	}
+	return func(m *interp.VM, args []interp.Value, named map[string]interp.Value) (interp.Value, error) {
+		if err := float64GradError(args...); err != nil {
+			return nil, err
+		}
+		for _, v := range named {
+			if err := float64GradError(v); err != nil {
+				return nil, err
+			}
+		}
+		return fn(m, args, named)
+	}
+}
+
+// float64GradError türev kipinde değerlerden biri (liste ve demet içinde de) türevi izlenen
+// float64 tensörse H6040'tır; türevsiz kipte (TR_no_grad bloğu) çizge kurulmaz, hata yoktur.
+// İleti türevsiz kopyayı float32'ye çevirip türev izlemeyi açmayı önerir.
+func float64GradError(vals ...interp.Value) error {
+	if !tensor.GradEnabled() {
+		return nil
+	}
+	for _, v := range vals {
+		if t := trackedFloat64(v, 0); t != nil {
+			return messages.New(messages.H6040, tensor.ShapeText(t.Shape()))
+		}
+	}
+	return nil
+}
+
+// trackedFloat64 v'deki (iç içe liste ve demette, en çok dört kat) ilk türevi izlenen float64
+// tensördür; yoksa nil. Sayı listesi taranmaz: ilk öğesi kap ya da tensör olmayan liste atlanır.
+func trackedFloat64(v interp.Value, depth int) *tensor.Tensor {
+	var elems []interp.Value
+	switch x := v.(type) {
+	case *TensorValue:
+		if x.t.DType() == tensor.Float64 && x.t.RequiresGrad() {
+			return x.t
+		}
+		return nil
+	case *interp.ListVal:
+		elems = x.Elements
+	case *interp.TupleVal:
+		elems = x.Elements
+	default:
+		return nil
+	}
+	if depth >= 4 || len(elems) == 0 {
+		return nil
+	}
+	switch elems[0].(type) {
+	case *TensorValue, *interp.ListVal, *interp.TupleVal:
+	default:
+		return nil
+	}
+	for _, e := range elems {
+		if t := trackedFloat64(e, depth+1); t != nil {
+			return t
+		}
+	}
+	return nil
 }
 
 // retaining argümanlarını (ya da onlardan kurduğu değerleri) saklayan veya TR geri

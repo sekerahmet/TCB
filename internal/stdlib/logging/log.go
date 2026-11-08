@@ -8,7 +8,7 @@
 //	{"kind":"start","time":"2026-10-18T14:05:09.123+03:00","version":2,"program":"egit.tr","total":5000,"settings":{"adım":5000}}
 //	{"time":"2026-10-18T14:05:10.004+03:00","step":1,"kayıp":4.12,"rate":11.3}
 //	{"time":"2026-10-18T14:19:12.870+03:00","doğrulama_kaybı":2.48}
-//	{"kind":"resume","time":"...","step":1500}
+//	{"kind":"resume","time":"...","step":1500,"offset":123456}
 //	{"kind":"end","time":"2026-10-18T15:06:12.411+03:00","step":5000,"seconds":3663.3}
 //
 // "kind" taşımayan satırlar ölçü kayıtlarıdır. Biçimin anahtarları ve kayıt türleri dilden
@@ -58,7 +58,7 @@ var (
 
 // Dosya biçiminin (sürüm 2) anahtarları ve kayıt türleri; bkz. paket belgesi. Dilin adları
 // değildir (çevrilmez), bu yüzden tek bir metinde tutulurlar.
-var formatNames = strings.Fields("kind time version program total settings step rate seconds message metrics remaining_seconds done start end resume")
+var formatNames = strings.Fields("kind time version program total settings step rate seconds message metrics remaining_seconds done start end resume offset")
 
 var (
 	keyKind, keyTime, keyVersion, keyProgram          = formatNames[0], formatNames[1], formatNames[2], formatNames[3]
@@ -66,6 +66,7 @@ var (
 	keyDuration, keyMessage, keyMetrics, keyRemaining = formatNames[8], formatNames[9], formatNames[10], formatNames[11]
 	keyDone                                           = formatNames[12]
 	kindStart, kindEnd, kindResume                    = formatNames[13], formatNames[14], formatNames[15]
+	keyOffset                                         = formatNames[16]
 )
 
 // formatVersion günlük dosyası biçiminin sürümüdür (başlangıç kaydında).

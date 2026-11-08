@@ -37,6 +37,15 @@ func ForgetGrads(params []*Tensor) {
 	}
 }
 
+// DropGrad yaprağın gradyanını ve "gradyan eklendi" bilgisini siler: .TR_grad TR_none olur
+// (kontrol noktasının yüklemesi ve geri dönüşü, 20.14; gradyanlar kaydedilmez, 20.3). Daha önce
+// alınmış bir gradyan değeri depoyu tutar, parametreden kopar (Freeze gibi).
+func (t *Tensor) DropGrad() {
+	if t.n != nil {
+		t.n.grad, t.n.added, t.n.stepper = nil, false, nil
+	}
+}
+
 // IsParameter t'nin türev izlemek için kurulmuş ya da açılmış bir yaprak olduğudur (15.33):
 // dondurmak onu parametre olmaktan çıkarmaz (düğümü kalır); hiç türev izlememiş tensörün
 // (tablo, tampon) düğümü yoktur. İşlemin türev izleyen sonucu, geri yayılımdan sonra da, ara
@@ -53,7 +62,5 @@ func (t *Tensor) OwnsStorage() bool {
 // gradyan değeri depoyu tutar, parametreden kopar.
 func (t *Tensor) Freeze() {
 	t.SetRequiresGrad(false)
-	if t.n != nil {
-		t.n.grad, t.n.added, t.n.stepper = nil, false, nil
-	}
+	t.DropGrad()
 }
