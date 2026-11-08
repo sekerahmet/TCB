@@ -175,6 +175,7 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 		{ID: fn("leaf"), Kind: kindFunc, Name: "app.leaf", File: "app/leaf.go"},
 		{ID: fn("Update"), Kind: kindFunc, Name: "app.Update", File: "app/app.go"},
 		{ID: fn("Save"), Kind: kindFunc, Name: "app.Save", File: "app/save.go"},
+		{ID: fn("both"), Kind: kindFunc, Name: "app.both", File: "app/both.go"},
 		{ID: "name:TR_fn_backward", Kind: kindName, Name: "TR_fn_backward"},
 		{ID: "name:TR_mem_update", Kind: kindName, Name: "TR_mem_update"},
 		{ID: "tr:test:tests/a_test.tr:1", Kind: kindTRTest, Name: "a_test: geri yayılım", File: "tests/a_test.tr"},
@@ -184,6 +185,8 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 		{From: fn("Register"), To: fn("leaf"), Kind: edgeCalls, Confidence: inferred, Via: viaArg},
 		{From: fn("Update"), To: "name:TR_mem_update", Kind: edgeUsesName},
 		{From: fn("Update"), To: fn("Save"), Kind: edgeCalls, Confidence: extracted},
+		// both hem doğrudan çağrılıyor hem argüman: kenar EXTRACTED, işareti viaArg (DENETİM 282 N1).
+		{From: fn("Register"), To: fn("both"), Kind: edgeCalls, Confidence: extracted, Via: viaArg},
 		{From: "tr:test:tests/a_test.tr:1", To: "name:TR_fn_backward", Kind: edgeTests},
 		{From: "tr:test:tests/b_test.tr:1", To: "name:TR_mem_update", Kind: edgeTests},
 	}}
@@ -201,6 +204,9 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 	}
 	if got, want := names(fn("Save")), "b_test: güncelle"; got != want {
 		t.Errorf("a direct caller's name codes still count: got %q, want %q", got, want)
+	}
+	if got, want := names(fn("both")), "a_test: geri yayılım"; got != want {
+		t.Errorf("a function also called directly keeps its caller's name codes: got %q, want %q", got, want)
 	}
 	if callers := ix.callersOf(fn("leaf")); len(callers) != 1 || callers[0] != fn("Register") {
 		t.Errorf("test reach still follows the argument edge: callers of leaf %v", callers)
