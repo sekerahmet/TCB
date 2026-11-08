@@ -417,6 +417,7 @@
   "TR_arg_token_ids": { "name": "kimlikler", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_tol": { "name": "tolerans", "family": "adlı argüman: türev_denetle", "description": "türev_denetle'de izin verilen göreli farktır: |analitik - sayısal| ≤ tolerans · max(1, |analitik|, |sayısal|). Pozitif olmalıdır; varsayılan 0.01'dir." },
   "TR_arg_tool_calls": { "name": "araç_çağrıları", "family": "kitaplık: tr/chat", "description": "" },
+  "TR_arg_tools": { "name": "araçlar", "family": "kitaplık: tr/chat", "description": "" },
   "TR_arg_top_k": { "name": "en_iyi_k", "family": "adlı argüman: örnekle", "description": "örnekle'de seçimi en olası k sınıfla sınırlar; 0 (varsayılan) bütün sınıflar demektir. Negatif olmayan bir tam sayı olmalıdır." },
   "TR_arg_u": { "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_updates": { "name": "güncellemeler", "family": "kitaplık: tr/optimizers", "description": "" },

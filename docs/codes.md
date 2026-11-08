@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 699 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 156 fonksiyon, 11 sabit, 86 metot, 124 özellik, 175 adlı argüman.
+Toplam 700 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 156 fonksiyon, 11 sabit, 86 metot, 124 özellik, 176 adlı argüman.
 
 ## İçindekiler
 
@@ -5182,6 +5182,10 @@ tr: türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tol
 Kullananlar: `TR_grad_check(...)` · İlişkili: `TR_fd_step:`
 
 #### `TR_tool_calls:` (`TR_arg_tool_calls`, `araç_çağrıları`)
+
+
+
+#### `TR_tools:` (`TR_arg_tools`, `araçlar`)
 
 
 

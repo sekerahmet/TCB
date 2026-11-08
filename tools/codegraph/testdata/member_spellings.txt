@@ -243,6 +243,7 @@ TR_table.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 TR_table.TR_shape	ok	0	name:TR_mem_shape
 TR_table.TR_transpose	ok	0	name:TR_mem_transpose
 TR_tolist.TR_map	ok	0	name:TR_mem_map
+TR_tools.TR_length	ok	0	name:TR_mem_length
 TR_type_Embedding.TR_mem_forward	ok	0	tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward
 TR_type_GPT.TR_mem_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 TR_type_GPT.TR_mem_embed	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_embed
@@ -603,6 +604,7 @@ doğrulama_kaydı.TR_append	ok	0	name:TR_mem_append
 doğrulama_kümesi.TR_sequential	ok	0	name:TR_mem_sequential
 doğrusal.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
 dur.TR_contains	ok	0	name:TR_mem_contains
+durum.TR_get	ok	0	name:TR_mem_get
 durum.TR_keys	ok	0	name:TR_mem_keys
 döngü.TR_cancel	ok	0	name:TR_mem_cancel
 döngü.TR_wait	ok	0	name:TR_mem_wait
@@ -1258,6 +1260,7 @@ parça.TR_length	ok	0	name:TR_mem_length
 parça.TR_strip	ok	0	name:TR_mem_strip
 parçalar.TR_append	ok	0	name:TR_mem_append
 parçalar.TR_contains	ok	0	name:TR_mem_contains
+parçalar.TR_join	ok	0	name:TR_mem_join
 parçalar.TR_length	ok	0	name:TR_mem_length
 parçalı.TR_contains	ok	0	name:TR_mem_contains
 pencere.TR_append	ok	0	name:TR_mem_append

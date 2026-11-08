@@ -32,10 +32,13 @@ TR_func ileti(j: TR_JSON) -> TR_ChatMessage {
 
 TR_func biçimle(p: TR_Tokenizer, durum: TR_JSON) -> TR_List[TR_Int] {
     TR_var iletiler = [ileti(m) TR_for m TR_in durum["messages"]]
+    TR_var araçlar: TR_List[TR_JSON] = []
+    TR_var a = durum.TR_get("tools")
+    TR_if a != TR_none { araçlar = [t TR_for t TR_in a] }
     TR_if TR_Bool(durum["add_generation_prompt"]) {
-        TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_Bool(durum["enable_thinking"]))
+        TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_Bool(durum["enable_thinking"]), TR_tools: araçlar)
     }
-    TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_false)
+    TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_false, TR_tools: araçlar)
 }
 
 TR_func kimlikler(j: TR_JSON) -> TR_List[TR_Int] { TR_return [TR_Int(k) TR_for k TR_in j] }
@@ -82,6 +85,11 @@ TR_test "24.2 araç çağrısı ve ardışık araç sonuçları, içerikli çağ
     aynı("arac_cagrisi_ve_sonuclari")
     aynı("arac_cagrisi_icerikli")
     aynı("arac_sonucu_sonra_soru")
+}
+
+TR_test "24.2 araç tanımı: ondalık sayılı, denetim karakterli, tırnaklı açıklamalı şema; sistem iletisiyle ve onsuz" {
+    aynı("arac_tanimi_sistemli")
+    aynı("arac_tanimi_sistemsiz")
 }
 
 TR_test "24.2 boşlukla ve satır sonuyla başlayıp biten içerik ve düşünce" {

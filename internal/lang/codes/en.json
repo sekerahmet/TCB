@@ -369,6 +369,7 @@
   "TR_arg_token_ids": { "name": "token_ids" },
   "TR_arg_tol": { "name": "tol" },
   "TR_arg_tool_calls": { "name": "tool_calls" },
+  "TR_arg_tools": { "name": "tools" },
   "TR_arg_top_k": { "name": "top_k" },
   "TR_arg_updates": { "name": "updates" },
   "TR_arg_use_bias": { "name": "use_bias" },

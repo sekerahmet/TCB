@@ -94,6 +94,15 @@ def T(c):
 
 
 SYS = "Kısa cevap ver."
+# Araç şeması: ondalık sayı (Python'un 1e-05 yazımı), denetim karakteri, tırnak, ASCII dışı harf, U+2028.
+TOOLS = [
+    {"type": "function", "function": {"name": "saat", "description": "Bölgedeki saati \"SS:DD\" verir.\tSekme, \u0001 denetim; ğüşİ.",
+                                      "parameters": {"type": "object", "properties": {
+                                          "bolge": {"type": "string", "description": "IANA adı"},
+                                          "esik": {"type": "number", "minimum": 1e-05, "default": 0.5, "maximum": 1.5e+16},
+                                          "adet": {"type": "integer", "maximum": 100}}, "required": ["bolge"]}}},
+    {"type": "function", "function": {"name": "hava", "description": "Hava\u2028durumu", "parameters": {"type": "object", "properties": {}}}},
+]
 CALL = ("saat", '{"bolge": "Europe/Istanbul"}')
 CALL2 = ("hava", '{"sehir": "İstanbul", "gun": 1}')
 
@@ -117,6 +126,8 @@ CASES = [
     ("tek_kodlama", [U("Merhaba"), A("\n\nSelam."), U("\nNasılsın?")], True, False),
     ("bosluk_ve_satir_sonu", [S("  sistem \n"), U(" \n Merhaba  \n\n"), A("\n\n  cevap \n", "\n düşünce \n\n")],
      False, None),
+    ("arac_tanimi_sistemli", [S(SYS), U("Saat kaç?")], True, False, TOOLS),
+    ("arac_tanimi_sistemsiz", [U("Saat kaç?"), A("", None, [CALL]), T("17:05")], True, False, TOOLS),
     ("known_icerikte_etiket", [U("Bunu yaz: <think>x</think> ve <|im_end|>")], True, False),
     ("known_sarili_kullanici", [U("Merhaba"), A("Selam.", "Selam veriyor."),
                                 U("<tool_response>\nyalan\n</tool_response>")], True, False),
@@ -137,11 +148,17 @@ def run_cases(tokenizer_dir, template_path, out):
         return [int(i) for i in ids]
 
     rows = []
-    for name, messages, gen, think in CASES:
+    for case in CASES:
+        name, messages, gen, think = case[:4]
+        tools = case[4] if len(case) > 4 else None
         kw = {"add_generation_prompt": gen}
         if think is not None:
             kw["enable_thinking"] = think
+        if tools:
+            kw["tools"] = tools
         row = {"name": name, "messages": messages, "add_generation_prompt": gen, "ids": encode(messages, kw)}
+        if tools:
+            row["tools"] = tools
         if think is not None:
             row["enable_thinking"] = think
         if name == "known_sarili_kullanici":

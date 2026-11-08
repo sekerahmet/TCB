@@ -417,6 +417,7 @@
   "TR_arg_token_ids": { "kind": "named_argument", "module": "tr/layers" },
   "TR_arg_tol": { "kind": "named_argument", "related": ["TR_arg_fd_step"], "example": "TR_grad_check((x) => TR_sigmoid(x), [TR_Tensor([0.3], TR_requires_grad: TR_true)], TR_tol: 0.001); TR_print(\"türev doğru\")" },
   "TR_arg_tool_calls": { "kind": "named_argument", "module": "tr/chat" },
+  "TR_arg_tools": { "kind": "named_argument", "module": "tr/chat" },
   "TR_arg_top_k": { "kind": "named_argument", "related": ["TR_arg_temperature"], "example": "TR_print(TR_sample(TR_Tensor([1.0, 3.0, 0.5]), TR_top_k: 1).TR_tolist)" },
   "TR_arg_u": { "kind": "named_argument", "common_name": "u", "module": "tr/layers" },
   "TR_arg_updates": { "kind": "named_argument", "module": "tr/optimizers" },

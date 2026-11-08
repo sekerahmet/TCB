@@ -116,12 +116,17 @@ TR_func _son_sorgu(iletiler: TR_List[TR_ChatMessage]) -> TR_Int {
 }
 
 # qwen3_biçimi: iletileri Qwen3'ün biçimiyle kimliklere çevirir (24.2).
-TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_add_generation_prompt: TR_Bool, TR_enable_thinking: TR_Bool? = TR_none) -> TR_List[TR_Int] {
+TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_add_generation_prompt: TR_Bool, TR_enable_thinking: TR_Bool? = TR_none, TR_tools: TR_List[TR_JSON] = []) -> TR_List[TR_Int] {
     TR_if TR_add_generation_prompt TR_and TR_enable_thinking == TR_none { TR_throw TR_Message("H7560") }
     TR_if TR_not TR_add_generation_prompt TR_and TR_enable_thinking != TR_none { TR_throw TR_Message("H7561", TR_enable_thinking) }
     TR_var d = _Dizi(p: p)
     TR_var n = iletiler.TR_length
-    TR_if n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System { _tur(d, "system", iletiler[0].TR_content) }
+    TR_var ilk_sistem = n > 0 TR_and iletiler[0].TR_role == TR_Role.TR_System
+    TR_if TR_tools.TR_length > 0 {
+        _araç_bloğu(d, TR_if ilk_sistem { iletiler[0].TR_content } TR_else { TR_none }, TR_tools)
+    } TR_else TR_if ilk_sistem {
+        _tur(d, "system", iletiler[0].TR_content)
+    }
     TR_var son_sorgu = _son_sorgu(iletiler)
     TR_for i TR_in 0..n {
         TR_var m = iletiler[i]
@@ -145,6 +150,48 @@ TR_func TR_qwen3_format(p: TR_Tokenizer, iletiler: TR_List[TR_ChatMessage], TR_a
         }
     }
     TR_return d._bitir()
+}
+
+# _araç_bloğu: araçlar sistem turunda, ilk sistem iletisiyle birleşir (şablonun `tools` dalı).
+TR_func _araç_bloğu(d: _Dizi, sistem: TR_String?, araçlar: TR_List[TR_JSON]) {
+    d._etiketle(_BAŞ)
+    d._yaz("system\n")
+    TR_if sistem != TR_none { d._yaz("\(sistem)\n\n") }
+    d._yaz("# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>")
+    TR_for a TR_in araçlar { d._yaz("\n\(_json_yaz(a))") }
+    d._yaz("\n</tools>\n\nFor each function call, return a json object with function name and arguments within ")
+    d._etiketle(_ÇAĞRI)
+    d._etiketle(_ÇAĞRI_SONU)
+    d._yaz(" XML tags:\n")
+    d._etiketle(_ÇAĞRI)
+    d._yaz("\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n")
+    d._etiketle(_ÇAĞRI_SONU)
+    d._etiketle(_SON)
+    d._yaz("\n")
+}
+
+# _json_yaz şablonun `tojson`'udur (Python'un `json.dumps(x, ensure_ascii=False)`'ı): ", " ve ": " ayırıcıları,
+# anahtarlar sırasıyla. Sayı ve metin `TR_json_string` ile yazılır; tek fark U+2028 ve U+2029, Python kaçırmaz.
+TR_func _json_yaz(j: TR_JSON) -> TR_String {
+    TR_var t = TR_Type(j)
+    TR_if t == TR_Dict { TR_return "{" + ["\(_json_metni(k)): \(_json_yaz(j[k]))" TR_for k TR_in j].TR_join(", ") + "}" }
+    TR_if t == TR_List { TR_return "[" + [_json_yaz(e) TR_for e TR_in j].TR_join(", ") + "]" }
+    TR_if t == TR_String { TR_return _json_metni(TR_String(j)) }
+    TR_return TR_json_string(j)
+}
+
+TR_func _json_metni(m: TR_String) -> TR_String {
+    TR_var parçalar = ["\""]
+    TR_for h TR_in m {
+        TR_if h == "\u{2028}" TR_or h == "\u{2029}" {
+            parçalar.TR_append(h)
+        } TR_else {
+            TR_var k = TR_json_string(h)
+            parçalar.TR_append(k[1..k.TR_length - 1])
+        }
+    }
+    parçalar.TR_append("\"")
+    TR_return parçalar.TR_join("")
 }
 
 TR_func _tur(d: _Dizi, rol: TR_String, içerik: TR_String) {
