@@ -1070,6 +1070,43 @@ TR_test "15.3 veri türleri: tür seçimi, .tür ve .türe" {
     TR_assert(TR_not TR_String(TR_Tensor([1.0])).TR_contains("float32"))
 }
 
+TR_test "15.3 kopya olan .TR_reshape sonucunun deposu yerinde yazmaya kapalıdır" {
+    TR_var x = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    # Devrik tensörün adımları görünüme izin vermez: sonuç kopyadır, yazılan değer x'e ulaşmazdı.
+    TR_var r = x.TR_transpose().TR_reshape([6])
+    TR_assert_equal("H6041", TR_error_code { r[0] = 9.0 })
+    TR_assert_equal("H6041", TR_error_code { r[1] += 9.0 })
+    TR_assert_equal("H6041", TR_error_code { TR_write_slice(r, TR_Tensor([7.0]), TR_dim: 0, TR_start: 0) })
+    TR_var r2 = x.TR_transpose().TR_reshape([2, 3])
+    TR_assert_equal("H6041", TR_error_code { r2[0][1] = 8.0 })
+    TR_assert_equal("H6041", TR_error_code { r2.TR_slice(0, 0, 1)[0] = 8.0 })
+    TR_assert_equal("H6041", TR_error_code { TR_no_grad { r2[0] = TR_Tensor([0.0, 0.0, 0.0]) } })
+    TR_for satır TR_in r2 {
+        TR_assert_equal("H6041", TR_error_code { satır[0] = 1.0 })
+    }
+    # Okumak serbest; hiçbir şey yazılmadı.
+    TR_assert_equal([1.0, 4.0, 2.0, 5.0, 3.0, 6.0], r.TR_tolist)
+    TR_assert_equal([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], x.TR_tolist)
+    TR_assert_equal(5.0, r[3].TR_item())
+    # İletinin iki yolu: bağımsız kopya yazılabilir; asıl tensöre yazmak x'i değiştirir.
+    r = TR_Tensor(r)
+    r[0] = 9.0
+    TR_assert_equal([9.0, 4.0, 2.0, 5.0, 3.0, 6.0], r.TR_tolist)
+    x[0][0] = 9.0
+    TR_assert_equal(9.0, x[0][0].TR_item())
+    # Görünüm olan .TR_reshape kaynağa yazar.
+    TR_var g = x.TR_reshape([6])
+    g[1] = 7.0
+    TR_assert_equal([[9.0, 7.0, 3.0], [4.0, 5.0, 6.0]], x.TR_tolist)
+    # Kural yalnız .TR_reshape'indir: motorun döndürdüğü kopyalar (yerleşiklerin sonuçları) yazılır.
+    TR_var c = TR_concat([x.TR_transpose(), x.TR_transpose()])
+    c[0][0] = 0.0
+    TR_assert_equal(0.0, c[0][0].TR_item())
+    TR_var t = x.TR_transpose() * 1.0
+    t[0][0] = 0.0
+    TR_assert_equal(0.0, t[0][0].TR_item())
+}
+
 TR_test "15.3 bilinmeyen tür yol gösteren bir hata verir" {
     TR_assert_equal("H6811", TR_error_code { TR_Tensor([1], TR_dtype: "bfloat16") })
     TR_assert_equal("H6811", TR_error_code { TR_zeros([2], TR_dtype: "float16") })

@@ -261,6 +261,8 @@ type Storage interface {
 type VersionCounter struct {
 	v       atomic.Uint64
 	holders atomic.Int64
+	// writeLock nil değilse depo yerinde yazmaya kapalıdır (kopya olan .TR_reshape, 15.3).
+	writeLock atomic.Pointer[WriteLock]
 }
 
 // Hold sahip sayacını bir artırır.

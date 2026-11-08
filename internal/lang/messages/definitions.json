@@ -1048,6 +1048,7 @@
 "H6032": { "param": ["fn", "given"] },
 "H6033": { "param": ["fn", "given", "method"] },
 "H6040": { "param": ["shape"], "slots": {"Tensor": "TR_type_Tensor", "no_grad": "TR_fn_no_grad", "to_dtype": "TR_mem_to_dtype", "requires_grad": "TR_arg_requires_grad", "true": "TR_kw_true"} },
+"H6041": { "param": ["shape", "src", "strides"], "slots": {"reshape": "TR_mem_reshape", "Tensor": "TR_type_Tensor"} },
 "H6100": { "param": ["left", "right", "fn", "axis", "leftLen", "rightLen"] },
 "H6101": { "param": ["fn", "given"] },
 "H6102": { "param": ["operation", "leftDevice", "rightDevice", "toDeviceMethod"] },

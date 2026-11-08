@@ -310,6 +310,10 @@ func (d *TensorValue) reshape(_ *interp.VM, args []interp.Value, _ map[string]in
 	if err != nil {
 		return nil, err
 	}
+	if !r.SharesStorage(d.t) {
+		// Adımlar görünüme izin vermedi, sonuç kopya: deposu yerinde yazmaya kapalıdır (15.3).
+		r.LockWrites(d.t.Shape(), d.t.Strides())
+	}
 	return d.view(r), nil
 }
 

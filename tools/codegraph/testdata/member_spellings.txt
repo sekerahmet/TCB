@@ -1291,6 +1291,7 @@ r.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments
 r.TR_slice	ok	0	name:TR_mem_slice
 r.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_text
 r.TR_tolist	ok	0	name:TR_mem_tolist
+r2.TR_slice	ok	0	name:TR_mem_slice
 restored.TR_generate	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_generate
 return_mismatches.TR_append	ok	0	name:TR_mem_append
 rng.TR_length	ok	0	name:TR_mem_length

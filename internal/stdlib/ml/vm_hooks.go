@@ -498,6 +498,10 @@ func checkWrite(dst, src *tensor.Tensor, whole bool) error {
 	if dst.DType().IsQuantized() {
 		return messages.New(messages.H6957, dst.DType().Name())
 	}
+	if l := dst.WriteLock(); l != nil {
+		// Kopya olan .TR_reshape'in deposu (ya da görünümü), türevsiz kipte de (15.3).
+		return messages.New(messages.H6041, tensor.ShapeText(dst.Shape()), tensor.ShapeText(l.Shape), tensor.ShapeText(l.Strides))
+	}
 	tracked, leaf := dst.GradTarget()
 	switch {
 	case tracked && leaf:
