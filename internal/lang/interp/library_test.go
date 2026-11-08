@@ -45,7 +45,7 @@ func TestTheLibraryLoadsItsOwnNames(t *testing.T) {
 
 // Güvenlik bulgusu O2: göreli 'aktar' çalışma klasöründe aynı adlı bir dosya varken
 // başka klasördeki programın (ya da modülün) yanındaki dosyayı değil onu yüklüyordu. Kural
-// 11.1: önce aktaran dosyanın klasörü, sonra programın klasörü; çalışma klasörüne bakılmaz.
+// 11.1: yalnız aktaran dosyanın klasörü; çalışma klasörüne ve programın klasörüne bakılmaz.
 func TestImportIgnoresWorkingDir(t *testing.T) {
 	root := t.TempDir()
 	execution := filepath.Join(root, "scratch")
@@ -100,6 +100,64 @@ func TestLibraryFileNameIsOnlyTheEmbeddedText(t *testing.T) {
 	} {
 		if got := LibraryFileName(c.path, c.text); got != c.want {
 			t.Errorf("LibraryFileName(%q, %q) = %q, %q bekleniyordu", c.path, c.text, got, c.want)
+		}
+	}
+}
+
+// Kural (11.1): göreli aktarma yolu yalnız aktaran dosyanın klasörüne göre çözülür ve harf büyüklüğü
+// diskteki adla her sistemde aynı olmalıdır. Harf farkında ileti diskteki adı (H2721), aktaranın
+// klasöründe olmayıp programın klasöründe olan dosyada açık yolu (H2722) önerir; iki öneri de
+// kopyalanınca yüklenir. Aynı dosya iki yazımla iki modül örneği olamaz.
+func TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase(t *testing.T) {
+	counter := "TR_var sayaç = 0\nTR_func artır() -> TR_Int {\n    sayaç += 1\n    TR_return sayaç\n}\n"
+	cases := []struct {
+		files      map[string]string
+		code       messages.Code
+		suggestion string
+		fixed      map[string]string
+		want       string
+	}{
+		{map[string]string{"ortak.tr": counter, "ana.tr": "TR_import \"Ortak\" TR_as a\nTR_print(a.artır())\n"},
+			messages.H2721, "TR_import \"ortak\"",
+			map[string]string{"ana.tr": "TR_import \"ortak\" TR_as a\nTR_import \"ortak\" TR_as b\nTR_print(a.artır(), b.artır())\n"}, "1 2\n"},
+		{map[string]string{"ortak.tr": counter, "ana.tr": "TR_import \"ORTAK.tr\" TR_as a\nTR_print(a.artır())\n"},
+			messages.H2721, "TR_import \"ortak.tr\"", nil, ""},
+		{map[string]string{"ortak.tr": counter, "alt/m.tr": "TR_import \"ortak\" TR_as o\nTR_func x() -> TR_Int {\n    TR_return o.artır()\n}\n",
+			"ana.tr": "TR_import \"alt/m\" TR_as m\nTR_print(m.x())\n"},
+			messages.H2722, "TR_import \"../ortak\"",
+			map[string]string{"alt/m.tr": "TR_import \"../ortak\" TR_as o\nTR_func x() -> TR_Int {\n    TR_return o.artır()\n}\n"}, "1\n"},
+		{map[string]string{"Alt/m.tr": "TR_func x() -> TR_Int {\n    TR_return 7\n}\n", "ana.tr": "TR_import \"alt/m\" TR_as m\nTR_print(m.x())\n"},
+			messages.H2721, "TR_import \"Alt/m\"", nil, ""},
+	}
+	for _, tc := range cases {
+		root := t.TempDir()
+		runInDir(t, root)
+		out, err := runWithModules(t, root, tc.files)
+		if !messages.Has(err, tc.code) || !strings.Contains(err.Error(), tc.suggestion) || out != "" {
+			t.Errorf("%q: %s ve %s önerisi bekleniyordu: %v\n%s", tc.files["ana.tr"], tc.code, tc.suggestion, err, out)
+			continue
+		}
+		if tc.fixed == nil {
+			continue
+		}
+		for name, content := range tc.files {
+			if _, replaced := tc.fixed[name]; !replaced {
+				tc.fixed[name] = content
+			}
+		}
+		if out, err := runWithModules(t, root, tc.fixed); err != nil || out != tc.want {
+			t.Errorf("önerilen yazım yüklenmeli: %v\n%q", err, out)
+		}
+	}
+	// Harf büyüklüğüne duyarlı dosya sisteminde iki ayrı dosya varsa yazılan ad kendi dosyasını yükler.
+	root := t.TempDir()
+	runInDir(t, root)
+	testkit.WritePath(t, filepath.Join(root, "ortak.tr"), source.Header+"\nTR_var kim = \"küçük\"\n")
+	testkit.WritePath(t, filepath.Join(root, "Ortak.tr"), source.Header+"\nTR_var kim = \"büyük\"\n")
+	if names, _ := filepath.Glob(filepath.Join(root, "*.tr")); len(names) == 2 {
+		out, err := runWithModules(t, root, map[string]string{"ana.tr": "TR_import \"Ortak\" TR_as a\nTR_import \"ortak\" TR_as b\nTR_print(a.kim, b.kim)\n"})
+		if err != nil || out != "büyük küçük\n" {
+			t.Errorf("iki ayrı dosya kendi yazımıyla yüklenmeli: %v\n%q", err, out)
 		}
 	}
 }

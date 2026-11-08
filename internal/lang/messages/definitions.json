@@ -484,6 +484,8 @@
 "H2710": { "param": ["count"] },
 "H2711": { "param": ["given"] },
 "H2720": { "param": ["fn"], "slots": {"length": "TR_mem_length"} },
+"H2721": { "param": ["disk"], "slots": {"import": "TR_kw_import"} },
+"H2722": { "param": ["path"], "slots": {"import": "TR_kw_import"} },
 "H2723": { "param": ["fn", "path"], "slots": {"logger": "TR_type_Logger", "close": "TR_mem_close"} },
 "H2724": { "param": ["fn", "path", "open"], "slots": {"logger": "TR_type_Logger", "close": "TR_mem_close"} },
 "H2725": { "param": ["fn", "path"], "slots": {"logger": "TR_type_Logger"} },

@@ -80,32 +80,101 @@ func LibraryModules() []string {
 	return nameList
 }
 
-// ResolveModulePath is the SINGLE rule for a relative 'aktar' path (11.1): the path is tried
-// against klasorler in order (first the importing file's directory, then the program's
-// directory) and the first place where the file exists is used; without directories (REPL,
-// a program with no file) it is relative to the working directory. For a program with a file
-// the working directory is not one of the places searched: a module run from another directory
-// must not load a same-named file from the working directory instead of the one next to it.
-// Absolute paths are tried as is. The interpreter, 'trlang build' and 'trlang check' use this
-// function. bakilanlar are the places tried, for the error message.
+// ResolveModulePath is the SINGLE rule for a relative 'aktar' path (11.1): the path is resolved
+// only against the importing file's directory (dirs[0]); the working directory and the program's
+// directory (dirs[1:], FileDirs) are not searched. Without directories (REPL, a program with no
+// file) it is relative to the working directory. The path's letter case must be the name on disk,
+// on every system: a path that differs only in case is not found (one file must not load as two
+// modules). Absolute paths are tried as is. The interpreter, 'trlang build' and 'trlang check' use
+// this function; ModulePathError says why a path was not found. searched are the places tried,
+// for the error message.
 func ResolveModulePath(filePath string, dirs []string) (resolved string, searched []string, ok bool) {
 	if filepath.IsAbs(filePath) {
 		_, err := os.Stat(filePath)
 		return filePath, []string{filePath}, err == nil
 	}
-	if len(dirs) == 0 {
-		dirs = []string{"."}
+	dir := "."
+	if len(dirs) > 0 {
+		dir = dirs[0]
 	}
-	var candidates []string
-	for _, k := range dirs {
-		candidates, searched = addCandidate(candidates, searched, k, filePath)
+	resolved = filepath.Join(dir, filePath)
+	disk, found := diskSpelling(dir, filePath)
+	return resolved, []string{absPath(resolved)}, found && disk == filepath.ToSlash(filePath)
+}
+
+// ModulePathError is why ResolveModulePath did not find the relative 'aktar' path written (as
+// written, with or without .tr) among dirs (11.1): when only the letter case differs from the
+// name on disk the message gives the name on disk (H2721); when the file is not next to the
+// importing file but the program's directory has it, the message gives the explicit path there
+// (H2722, "../ad"); otherwise fs.ErrNotExist. Both suggestions are 'aktar' paths that load.
+func ModulePathError(written string, dirs []string) error {
+	filePath := written
+	if !strings.HasSuffix(filePath, ".tr") {
+		filePath += ".tr"
 	}
-	for _, candidate := range candidates {
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return candidate, searched, true
+	if filepath.IsAbs(filePath) {
+		return fs.ErrNotExist
+	}
+	dir := "."
+	if len(dirs) > 0 {
+		dir = dirs[0]
+	}
+	if disk, found := diskSpelling(dir, filePath); found {
+		return messages.New(messages.H2721, writtenLike(written, disk))
+	}
+	for _, other := range dirs[min(1, len(dirs)):] {
+		if disk, found := diskSpelling(other, filePath); found && absPath(other) != absPath(dir) {
+			if rel, err := filepath.Rel(dir, filepath.Join(other, disk)); err == nil {
+				return messages.New(messages.H2722, writtenLike(written, filepath.ToSlash(rel)))
+			}
 		}
 	}
-	return candidates[0], searched, false
+	return fs.ErrNotExist
+}
+
+// writtenLike path'i yazılan yol gibi yazar: yazılan yolda .tr yoksa öneride de olmaz.
+func writtenLike(written, path string) string {
+	if !strings.HasSuffix(written, ".tr") {
+		return strings.TrimSuffix(path, ".tr")
+	}
+	return path
+}
+
+// diskSpelling rel yolunu dir'den başlayarak bileşen bileşen diskte arar: found yol diskte, harf
+// büyüklüğüne bakılmadan, bir dosyaysa doğrudur; disk yolun diskteki adlarla yazımıdır ("/" ile).
+// Bileşenin aynı yazımı varsa o, yoksa harf büyüklüğüyle ayrılan ilk ad (klasör sırasıyla) alınır.
+func diskSpelling(dir, rel string) (disk string, found bool) {
+	parts := strings.Split(filepath.ToSlash(rel), "/")
+	cur := dir
+	for i, p := range parts {
+		if p == "" || p == "." || p == ".." {
+			cur = filepath.Join(cur, p)
+			continue
+		}
+		entries, err := os.ReadDir(cur)
+		if err != nil {
+			return "", false
+		}
+		name := ""
+		for _, e := range entries {
+			if e.Name() == p {
+				name = p
+				break
+			}
+			if name == "" && strings.EqualFold(e.Name(), p) {
+				name = e.Name()
+			}
+		}
+		if name == "" {
+			return "", false
+		}
+		parts[i] = name
+		cur = filepath.Join(cur, name)
+	}
+	if info, err := os.Stat(cur); err != nil || info.IsDir() {
+		return "", false
+	}
+	return strings.Join(parts, "/"), true
 }
 
 // FileDirs returns the directories of file paths; empty sources and those named "<...>" (with

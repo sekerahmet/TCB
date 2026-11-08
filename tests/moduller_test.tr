@@ -26,7 +26,7 @@ TR_test "5.14 modül kendisini aktaranın adlarını görmez: aynı adlı deği�
     # aktaranda olup modülde olmayan ad denetim hatasıdır: olumsuz fikstür tests/negative/aktaran_adi.tr
 }
 
-TR_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörüne göre çözülür" {
+TR_test "11.1 göreli aktar yalnız aktaran dosyanın klasörüne göre çözülür" {
     TR_assert_equal("alt klasör", sm.sıra_kaynağı) # sub/sira_ortak.tr, tests/sira_ortak.tr değil
     TR_assert_equal("program klasörü", so.kimden)
 }

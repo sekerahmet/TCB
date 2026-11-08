@@ -489,6 +489,8 @@ const (
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
 	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
 	H2720 Code = 2720 // {fn}: boş tensör listesinin toplamı yoktur: şekli, hassasiyeti ve cihazı bilinmez (15.18); liste boş olabilirse önce `l.{#length}` ile bakın
+	H2721 Code = 2721 // yolun harf büyüklüğü diskteki adla aynı değil (her sistemde aynı olmalı, 11.1); diskteki adla yazın: `{#import} "{disk}"`
+	H2722 Code = 2722 // aktaran dosyanın klasöründe yok; göreli yol programın klasörüne bakmaz (11.1), oradaki dosya için açık yolu yazın: `{#import} "{path}"`
 	H2723 Code = 2723 // {fn}: {path|q} bu programda açık bir {@logger} dosyası; önce günlüğü kapatın: `g.{#close}()`
 	H2724 Code = 2724 // {fn}: {path|q} içindeki {open|q} bu programda açık bir {@logger} dosyası; önce günlüğü kapatın: `g.{#close}()`
 	H2725 Code = 2725 // {fn}: günlük kapatıldı; {path|q} dosyasına yeniden yazmak için günlüğü yeniden açın: `{#logger}({path|q})`

@@ -318,8 +318,8 @@ func (v *VM) waitForModule(s *ast.ImportStatement, path, keyStr string, y *modul
 // moduleTarget 'aktar' yolunun gösterdiği modülü bulur (yolu ve gösterilen adı; kaynak yalnızca
 // yüklenirken okunur, bakilanlar okuma hatası içindir). "tr/" önekli yol dilin gömülü
 // kitaplığındandır (11.6); kitaplık modülünün içindeki göreli yol da
-// kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın klasörüne
-// göre aranır (11.1).
+// kitaplıkta çözülür. Öbür göreli yollar yalnız aktaran dosyanın klasörüne göre, diskteki harf
+// büyüklüğüyle çözülür (11.1, ResolveModulePath); bulunamayan yolun hatası nedenini söyler.
 func (v *VM) moduleTarget(s *ast.ImportStatement, path string) (dest *Source, searched []string, err error) {
 	name, inLibrary := LibraryModule(path)
 	if !inLibrary && v.source != nil && v.source.Embedded && !filepath.IsAbs(path) {
@@ -328,7 +328,11 @@ func (v *VM) moduleTarget(s *ast.ImportStatement, path string) (dest *Source, se
 	if inLibrary {
 		return &Source{Path: LibraryPrefix + name, Name: LibraryPrefix + name, Embedded: true}, nil, nil
 	}
-	resolved, searched, _ := ResolveModulePath(path, v.searchDirs())
+	dirs := v.searchDirs()
+	resolved, searched, ok := ResolveModulePath(path, dirs)
+	if !ok {
+		return nil, searched, messages.At(s.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, ModulePathError(s.Path, dirs), searched))
+	}
 	return &Source{Path: resolved, Name: shownPath(resolved)}, searched, nil
 }
 

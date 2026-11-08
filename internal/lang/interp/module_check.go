@@ -72,16 +72,17 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 		}
 		return nil
 	}
-	resolved, searched, ok := ResolveModulePath(path, FileDirs(file, c.mainFile))
+	dirs := FileDirs(file, c.mainFile)
+	resolved, searched, ok := ResolveModulePath(path, dirs)
 	abs := absPath(resolved)
 	if ok && c.seen[abs] {
 		return nil
 	}
+	if !ok {
+		return messages.At(im.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, ModulePathError(im.Path, dirs), searched))
+	}
 	data, err := os.ReadFile(resolved)
-	if !ok || err != nil {
-		if err == nil {
-			err = os.ErrNotExist
-		}
+	if err != nil {
 		return messages.At(im.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, err, searched))
 	}
 	c.seen[abs] = true

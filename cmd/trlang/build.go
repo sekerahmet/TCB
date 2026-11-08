@@ -169,8 +169,8 @@ func importSites(code string) []importSite {
 	}
 }
 
-// resolveModulePath bir 'aktar' yolunu yorumlayıcıyla aynı kuralla (yurut.ModulYolunuCoz) çözer:
-// önce aktaran dosyanın klasörüne, bulunamazsa ana programın klasörüne göre (11.1). aranan,
+// resolveModulePath bir 'aktar' yolunu yorumlayıcıyla aynı kuralla (interp.ResolveModulePath) çözer:
+// yalnız aktaran dosyanın klasörüne göre, diskteki harf büyüklüğüyle (11.1). aranan,
 // failure iletisinde gösterilecek denenmiş yollardır. Dilin kitaplığındaki (tr/ önekli) modüller
 // diskte aranmaz; onları çağıran yurut.KitaplikModulu ile ayırır.
 func resolveModulePath(filePath, importer, mainFile string) (resolved string, wanted []string, ok bool) {
