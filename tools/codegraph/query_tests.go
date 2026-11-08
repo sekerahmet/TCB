@@ -246,67 +246,50 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	if n.Kind == kindFile && isUntracked(ix.root, n.File) {
 		printUntrackedWarning(w, n.File)
 	}
-	own := ix.trFileOwnTests(n)
-	tests, measured := ix.directTestEdges(n)
-	walks := ix.walkEdges(n)
-	asValue, _ := splitMeasurements(ix.valueTests(n), func(t indirectTest) *Node { return t.test })
-	indirect, indirectMeasured := splitMeasurements(ix.indirectTests(n), func(t indirectTest) *Node { return t.test })
-	viaNames, _ := splitMeasurements(ix.testsThroughNames(n), func(t nameTest) *Node { return t.test })
-	subprocess := ix.subprocessTests(n)
-	allTests, allIndirect := tests, indirect // koruduğu kurallar bütün testlerden
-	// Tek sıralama (deneme 8 S1 ve M): önce onu konu edinen testler, sonra doğrudan kullananlar, sonra kısa ve aynı paket
-	// zincirleri, en sonda zayıf kanıt; her test bir kez, en güçlü kanıtının grubunda. Adaylar bütün gruplardır.
-	about := ix.aboutTests(n, append(ix.testsListed(nil, nil, tests, walks, asValue, indirect, viaNames), ix.fixtureTests(n)...))
-	walks, tests, asValue, indirect, viaNames = keepStrongest(own, about, walks, tests, asValue, indirect, viaNames)
-	listed := ix.testsListed(own, about, allTests, walks, asValue, indirect, viaNames)
-	cites := ix.citingTests(n, listed)
-	exam := ix.examEdge(listed, nil, n)
-	rules := ix.docRules(n)
-	var scans []scanHit
-	if n.Kind == kindFile || n.Kind == kindDoc {
-		scans = ix.scansCovering(n.File)
-	}
-	found := len(own) + len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
-	if found == 0 && len(measured) == 0 && len(indirectMeasured) == 0 && len(subprocess) == 0 && len(cites)+len(rules)+len(scans) == 0 {
-		if !ix.printLinkedBinaries(w, n) {
-			fmt.Fprintln(w, "  no tests found"+map[bool]string{false: searchedFor(n), true: " (only exam questions that name it, below)"}[exam != nil])
+	t := ix.testsForNode(n)
+	switch t.branch {
+	case branchWeak, branchExam, branchUntested:
+		if t.branch == branchWeak {
+			printLinkedBinaries(w, t.linked, t.linkedTotal)
+		} else if t.branch == branchExam {
+			fmt.Fprintln(w, "  no tests found (only exam questions that name it, below)")
+		} else {
+			fmt.Fprintln(w, "  no tests found"+searchedFor(n))
 		}
-		ix.printExamEdge(w, exam)
+		ix.printExamEdge(w, t.exam)
 		ix.printOtherConfigs(w, n, limit)
 		return
-	}
-	switch {
-	case found == 0 && len(subprocess) > 0:
+	case branchSubprocess:
 		fmt.Fprintln(w, "  no tests traced to it (only subprocess tests, below)")
-	case found == 0 && len(cites)+len(rules)+len(scans) > 0 && len(measured)+len(indirectMeasured) == 0:
+	case branchRule:
 		fmt.Fprintln(w, "  no tests read it by name (tests that guard its rules, cite it or scan its pattern, below)")
-	case found == 0:
+	case branchMeasured:
 		fmt.Fprintln(w, "  no tests found (only measurements, below)")
 	}
-	printOwnTests(w, own, limit)
-	ix.printAboutTests(w, about, limit)
-	tests, withOthers := ix.splitSharedSites(tests)
+	printOwnTests(w, t.own, limit)
+	ix.printAboutTests(w, t.about, limit)
+	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindFile {
-		ix.printWalks(w, walks, limit) // veri dosyasında bütün listeyi gezenler önce (README)
+		ix.printWalks(w, t.walks, limit) // veri dosyasında bütün listeyi gezenler önce (README)
 	}
 	ix.printGroups(w, "  <-", tests, fromOf, limit, true) // sonra doğrudan testler: bu adı ya da dosyayı kullananlar
 	if n.Kind != kindFile {
-		ix.printWalks(w, walks, limit)
+		ix.printWalks(w, t.walks, limit)
 	}
-	ix.printValueTests(w, asValue, limit)
-	ix.printInferred(w, n, indirect, viaNames, limit)
+	ix.printValueTests(w, t.asValue, limit)
+	ix.printInferred(w, n, t.indirect, t.viaNames, limit)
 	ix.printSharedSites(w, withOthers, limit)
-	ix.printDocRules(w, rules, limit)
-	ix.printCites(w, cites, limit)
-	ix.printExamEdge(w, exam)
-	if len(scans) > 0 {
+	ix.printDocRules(w, t.rules, limit)
+	ix.printCites(w, t.cites, limit)
+	ix.printExamEdge(w, t.exam)
+	if len(t.scans) > 0 {
 		ix.printScans(w, n.File, limit)
 	}
-	printAllSkipNote(w, listed)
-	ix.printSubprocessTests(w, subprocess)
-	ix.printMeasurements(w, measured, indirectMeasured, limit)
-	ix.printGuardedRules(w, own, allTests, allIndirect, limit)
-	ix.printOtherConfigsExcept(w, n, limit, listed)
+	printAllSkipNote(w, t.listed)
+	ix.printSubprocessTests(w, t.subprocess)
+	ix.printMeasurements(w, t.measured, t.indirectMeasured, limit)
+	ix.printGuardedRules(w, t.own, t.allTests, t.allIndirect, limit)
+	ix.printOtherConfigsExcept(w, n, limit, t.listed)
 }
 
 // splitSharedSites dosyaya gelen test kenarlarını ayırır: testin aynı yerden (dosya:satır) başka dosyalara da giden
