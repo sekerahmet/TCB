@@ -123,6 +123,7 @@ TR_new_chunk.TR_shape	ok	0	name:TR_mem_shape
 TR_norm.TR_eps	ambiguous	3	tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_eps,tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_eps,tr:field:lib/optimizers.tr:TR_type_RowRMS.TR_mem_eps
 TR_objects.TR_contains	ok	0	name:TR_mem_contains
 TR_parameters.TR_length	ok	0	name:TR_mem_length
+TR_parent.TR_exists	ok	0	name:TR_mem_exists
 TR_pattern.TR_split	ok	0	name:TR_mem_split
 TR_ple.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_gate_proj,tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_gate_proj
 TR_ple.TR_norm	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_norm,tr:field:lib/layers.tr:TR_type_PLEContext.TR_mem_norm
@@ -1483,6 +1484,7 @@ v.TR_tolist	ok	0	name:TR_mem_tolist
 v.TR_values	ok	0	name:TR_mem_values
 v2.TR_grad	ok	0	name:TR_mem_grad
 v_ham.TR_reshape	ok	0	name:TR_mem_reshape
+varken.TR_append	ok	0	name:TR_mem_append
 veri.TR_append	ok	0	name:TR_mem_append
 veri.TR_length	ok	0	name:TR_mem_length
 verildi.TR_append	ok	0	name:TR_mem_append
@@ -1593,6 +1595,8 @@ yok.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 yok.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 yok.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 yol.TR_is_file	ok	0	name:TR_mem_is_file
+yollar.TR_append	ok	0	name:TR_mem_append
+yollar.TR_length	ok	0	name:TR_mem_length
 yollar.TR_sort	ok	0	name:TR_mem_sort
 yumuşak_fiiller.TR_contains	ok	0	name:TR_mem_contains
 yw.TR_slice	ok	0	name:TR_mem_slice
@@ -1653,6 +1657,7 @@ z.TR_tolist	ok	0	name:TR_mem_tolist
 önce.TR_reshape	ok	0	name:TR_mem_reshape
 önce.TR_tolist	ok	0	name:TR_mem_tolist
 önceki.TR_length	ok	0	name:TR_mem_length
+önceki_var.TR_append	ok	0	name:TR_mem_append
 öncesi.TR_tolist	ok	0	name:TR_mem_tolist
 örnek.TR_append	ok	0	name:TR_mem_append
 örnek.TR_length	ok	0	name:TR_mem_length

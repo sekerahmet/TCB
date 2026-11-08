@@ -1,5 +1,5 @@
 # TR 4
-# Zincirin gerçek modelsiz parçaları: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki (B.4).
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi.
 TR_import "tr/chat"
 TR_import "zincir"
 
@@ -26,6 +26,24 @@ TR_test "önbellek modelin bağlamını değil zincirin bağlamını ayırır" {
     TR_no_grad { m.TR_hidden_states([[1, 2, 3, 4, 5, 6, 7, 8]], TR_cache: ö) }
     TR_assert_equal(8, ö.TR_position)
     TR_assert_equal("H6909", TR_error_code { TR_no_grad { m.TR_hidden_states([[9]], TR_cache: ö) } })
+}
+
+TR_test "cevabın sesi çalınırken diskte, çalındıktan sonra yok" {
+    TR_var sesler = [TR_Sound(TR_zeros([1, 160]), 16000), TR_Sound(TR_zeros([1, 320]), 16000)]
+    TR_var yollar: TR_List[TR_String] = []
+    TR_var varken: TR_List[TR_Bool] = []
+    TR_var önceki_var: TR_List[TR_Bool] = []
+    TR_var t = Tur(sıra: 1, söz_ms: 0)
+    sesleri_çal(sesler, t, TR_time_ms(), (yol) => {
+        TR_if yollar.TR_length > 0 { önceki_var.TR_append(TR_Path(yollar[yollar.TR_length - 1]).TR_exists) }
+        yollar.TR_append(yol)
+        varken.TR_append(TR_Path(yol).TR_exists)
+    })
+    TR_assert_equal([TR_true, TR_true], varken)
+    TR_assert_equal([TR_false], önceki_var) # çalınan cümle bir sonraki çalınmadan silinmiş
+    TR_assert(TR_not TR_Path(yollar[0]).TR_exists)
+    TR_assert(TR_not TR_Path(yollar[0]).TR_parent.TR_exists)
+    TR_assert(t.çalma_ms >= 0)
 }
 
 TR_test "ortak önek iki dizinin baştan aynı kısmıdır" {

@@ -59,10 +59,10 @@ TR_func zincir_kur() -> Zincir {
     TR_return z
 }
 
-# tur_koş: bir tur; hata turu bitirir, kullanıcı iletisi geçmişten çıkar, program sürer.
+# tur_koş: bir tur; hata turu bitirir, kullanıcı iletisi geçmişten çıkar, program sürer. Yazısı boş kesit tur
+# sayılmaz (--en_çok_tur cevaplanan ya da hatayla biten turları sayar).
 TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bool, çal: (TR_List[TR_Sound], Tur, TR_Int) -> TR_NoneType) {
-    z.tur += 1
-    TR_var t = Tur(sıra: z.tur, söz_ms: kesit.TR_shape[0] * 1000 // _HIZ)
+    TR_var t = Tur(sıra: z.tur + 1, söz_ms: kesit.TR_shape[0] * 1000 // _HIZ)
     t.çalma_sonrası = TR_if çalma_sonrası { 1 } TR_else { 0 }
     TR_var uzunluk = z.geçmiş.TR_length
     TR_try {
@@ -71,6 +71,7 @@ TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bo
             TR_print("söz boş: tur yok")
             TR_return
         }
+        z.tur = t.sıra
         TR_var sesler: TR_List[TR_Sound] = []
         TR_for c TR_in cümleler(içerik) {
             sesler.TR_append(z.ses.TR_synthesize(c))
@@ -80,6 +81,7 @@ TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bo
         olcu_yaz(t)
     } TR_catch e {
         TR_print("TUR HATASI:", e)
+        z.tur = t.sıra
         TR_for z.geçmiş.TR_length > uzunluk { z.geçmiş.TR_pop() }
         TR_if z.son_asistan >= z.geçmiş.TR_length { z.son_asistan = -1 }
         z.okunan = [] # önbellek yarıda kalmış olabilir: sonraki tur baştan okur
@@ -122,21 +124,10 @@ TR_func çalıcı_argümanları(yol: TR_String) -> TR_List[TR_String] {
     TR_return argümanlar
 }
 
-# çal: cümleler sırayla çalınır; bir cümle çalarken öbürü beklemez, sesler önceden hazırdır.
+# çal: cümleler sırayla --çalıcı ile çalınır (sesleri_çal; çalınan WAV hemen silinir).
 TR_func çal(sesler: TR_List[TR_Sound], t: Tur, t0: TR_Int) {
-    TR_var klasör = TR_temp_dir()
     TR_var çalıcı = TR_String(ayar["çalıcı"]).TR_split(" ")[0]
-    TR_var başla = TR_time_ms()
-    TR_for i TR_in 0..sesler.TR_length {
-        TR_var yol = TR_String(TR_Path(klasör, "cumle_\(i).wav"))
-        TR_write_wav(yol, sesler[i])
-        TR_if i == 0 {
-            t.çalma_ms = TR_time_ms() - t0
-            başla = TR_time_ms()
-        }
-        TR_run_process(çalıcı, çalıcı_argümanları(yol))
-    }
-    t.çalma_süresi_ms = TR_time_ms() - başla
+    sesleri_çal(sesler, t, t0, (yol) => { TR_run_process(çalıcı, çalıcı_argümanları(yol)) })
 }
 
 TR_func mikrofon_aç(başlangıç: TR_Int) -> TR_Process {

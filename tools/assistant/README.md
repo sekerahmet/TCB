@@ -21,14 +21,15 @@ TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla
 - **Varsayılan yol yoktur:** `--dil_modeli`, `--whisper`, `--vad`, `--ses_modeli` ve kipin girdileri verilmezse program hata verir. Seçeneklerin hepsi `--help`'tedir.
 - **Önbellek** turdan tura korunur: yeni dizi önbellektekiyle ortak önek kadar karşılaştırılır, önbellek oraya kırpılır, yalnız kalan okunur. Önek önceki asistan başlığının sonundan kısa çıkarsa `ÖNEK_KISA` yazılır. Önbellek `--bağlam` parça kadar ayrılır, modelin bütün bağlamı kadar değil (Qwen3-4B'de 40960 parça 11 520 MiB olurdu). Dolacaksa program bunu söyler ve sistem iletisiyle yeni konuşma başlatır. `--önbelleksiz` her turu baştan okur: önbelleğin sınaması.
 - **Ölçü:** her tur bir `OLCU` satırıdır, yalnız sayı: sözün sonundan (VAD kesitinin geldiği an) yazıya, ilk parçaya, cevabın bitmesine, ilk cümlenin sesine ve çalmanın başlamasına kadar ms; çalmanın süresi; kesitin çalmadan hemen sonra açılıp açılmadığı; içerikte rakam olup olmadığı; ortak önek ve yeniden okunan parça. `OLCU_MIKROFON` mikrofonun açılıştan ilk çerçeveye gecikmesidir.
-- **Hata** turu bitirir: ileti ekrana yazılır, kullanıcı iletisi geçmişten çıkar, program sonraki söze geçer.
+- **Hata** turu bitirir: ileti ekrana yazılır, kullanıcı iletisi geçmişten çıkar, program sonraki söze geçer. Yazısı boş kesit tur sayılmaz; `--en_çok_tur` cevaplanan ve hatayla biten turları sayar.
+- **Ses diskte kalmaz:** canlı kipte cevabın her cümlesi geçici bir WAV'a yazılır, çalınır ve hemen silinir; geçici klasör de turun sonunda silinir.
 
 ```bash
 trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevaplar --dil_modeli Qwen3-4B-Q4_K_M.gguf \
     --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 ```
 
-`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki.
+`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki, çalınan sesin silinmesi.
 
 ## Açmak
 

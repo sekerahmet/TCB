@@ -193,6 +193,25 @@ TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur) -> TR_String? {
     TR_return cevap.TR_content
 }
 
+# sesleri_çal: her cümleyi geçici bir WAV'a yazar, çal'a verir ve hemen siler; klasör de sonunda silinir. Cevabın sesi
+# diskte kalmaz: program kesilirse en çok o an çalınan cümle kalır.
+TR_func sesleri_çal(sesler: TR_List[TR_Sound], t: Tur, t0: TR_Int, çal: (TR_String) -> TR_NoneType) {
+    TR_var klasör = TR_temp_dir()
+    TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
+    TR_var başla = TR_time_ms()
+    TR_for i TR_in 0..sesler.TR_length {
+        TR_var yol = TR_String(TR_Path(klasör, "cumle_\(i).wav"))
+        TR_write_wav(yol, sesler[i])
+        TR_if i == 0 {
+            t.çalma_ms = TR_time_ms() - t0
+            başla = TR_time_ms()
+        }
+        çal(yol)
+        TR_remove(yol)
+    }
+    t.çalma_süresi_ms = TR_time_ms() - başla
+}
+
 TR_func birleştir(sesler: TR_List[TR_Sound]) -> TR_Sound {
     TR_return TR_Sound(TR_concat([s.TR_samples TR_for s TR_in sesler], TR_dim: 1), sesler[0].TR_sample_rate)
 }
