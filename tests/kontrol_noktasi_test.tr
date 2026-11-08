@@ -197,11 +197,33 @@ TR_test "20.6 yeniden kurulan kontrol noktası kaldığı yerden kesintisizle ay
 TR_test "20.6 sürdürülen eğitimin günlüğüne devam kaydı yazılır" {
     TR_var k = koşu("devam_günlük")
     eğit(k, 2, "devam_günlük")
+    # Nokta 2. adımın kaydından sonra kaydedildi: günlüğün o anki bayt uzunluğu (19.6, 20.2).
+    TR_var uzunluk = TR_read_bytes("\(k)_devam_günlük.jsonl").TR_length
     eğit(k, 4, "devam_günlük")
     TR_var kayıtlar = TR_read_file("\(k)_devam_günlük.jsonl").TR_strip().TR_split("\n").TR_map((x) => TR_json_parse(x))
     TR_var devamlar = kayıtlar.TR_filter((x) => x.TR_get("kind") == TR_JSON("resume"))
     TR_assert_equal(1, devamlar.TR_length)
     TR_assert_equal(2, TR_Int(devamlar[0]["step"]))
+    TR_assert_equal(uzunluk, TR_Int(devamlar[0]["offset"]))
+}
+
+TR_test "19.6 geri dönüşün devam kaydı noktadaki günlüğün bayt uzunluğunu offset olarak yazar" {
+    TR_var k = koşu("geri_offset")
+    TR_var yol = "\(k)_g.jsonl"
+    TR_var w = param([2], 1)
+    TR_var g = TR_Logger(yol)
+    TR_var kn = TR_Checkpoint(k, {"w": w, "g": g})
+    g.TR_append({"step": 1, "loss": 0.5})
+    kn.TR_update(1)
+    kn.TR_save()
+    TR_var uzunluk = TR_read_bytes(yol).TR_length
+    g.TR_append({"step": 2, "loss": 0.4})
+    TR_assert_equal(1, kn.TR_rollback())
+    g.TR_close()
+    TR_var son = TR_json_parse(TR_read_file(yol).TR_strip().TR_split("\n")[-1])
+    TR_assert_equal(TR_JSON("resume"), son["kind"])
+    TR_assert_equal(1, TR_Int(son["step"]))
+    TR_assert_equal(uzunluk, TR_Int(son["offset"]))
 }
 
 TR_test "20.7 uyumsuz nesneler hata verir ve hiçbir şeyi değiştirmez" {

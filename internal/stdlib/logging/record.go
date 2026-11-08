@@ -353,15 +353,17 @@ func (g *Log) Len() (int64, error) {
 	return b.Size(), nil
 }
 
-// WriteResume kontrol noktasından sürdürülen eğitimin {"kind":"resume","step":N} kaydını yazar.
-// N kaydedilen noktanın tamamlanmış adım sayısıdır. Okuyucu kuralı: bir devam kaydından önce
-// gelen ve adımı N'den büyük olan ölçü kayıtları geçersizdir (kesilmeden önce yazılmış,
-// yeniden hesaplanacak adımlar silinmez; adımı N olan kayıt noktaya dahildir).
-func (g *Log) WriteResume(step int64) error {
+// WriteResume kontrol noktasından sürdürülen eğitimin {"kind":"resume","step":N,"offset":B}
+// kaydını yazar (19.6). N kaydedilen noktanın tamamlanmış adım sayısı, B noktadaki günlüğün bayt
+// uzunluğudur (20.2). Okuyucu kuralı: B ile devam kaydı arasındaki her kayıt geçersizdir; devam
+// kaydından önce gelen ve adımı N'den büyük olan ölçü kayıtları da geçersizdir (kesilmeden önce
+// yazılmış, yeniden hesaplanacak adımlar silinmez; adımı N olan kayıt noktaya dahildir).
+func (g *Log) WriteResume(step, offset int64) error {
 	k := interp.NewDictVal()
 	k.Set(keyKind, &interp.StringVal{Val: kindResume})
 	k.Set(keyTime, timeValue(clock()))
 	k.Set(keyStep, interp.NewInt(step))
+	k.Set(keyOffset, interp.NewInt(offset))
 	return g.write(k)
 }
 

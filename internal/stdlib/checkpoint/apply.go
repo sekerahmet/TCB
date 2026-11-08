@@ -213,7 +213,7 @@ func (kn *Checkpoint) writeLogResume(m *interp.VM, fn any, n *object, o *loadedC
 		m.WriteOutput(m.Err, messages.Text(messages.H7403,
 			fn, n.name, u, o.objects[n.name].record.Length)+"\n")
 	}
-	if err := n.log.WriteResume(o.step); err != nil {
+	if err := n.log.WriteResume(o.step, o.objects[n.name].record.Length); err != nil {
 		m.WriteOutput(m.Err, messages.Text(messages.H7404, fn, n.name, err)+"\n")
 	}
 }

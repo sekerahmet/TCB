@@ -2,6 +2,7 @@ package logging_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -176,13 +177,13 @@ g`)
 	if err != nil || n != int64(len(mustRead(t, path))) {
 		t.Errorf("Uzunluk = %d, %v", n, err)
 	}
-	if err := g.WriteResume(1500); err != nil {
+	if err := g.WriteResume(1500, n); err != nil {
 		t.Fatal(err)
 	}
 	content := string(mustRead(t, path))
 	line := strings.Split(strings.TrimSuffix(content, "\n"), "\n")
 	if len(line) != 5 || line[1] != `{"step":2,"ka` || !strings.HasPrefix(line[2], `{"kind":"start"`) ||
-		!strings.Contains(line[4], `"kind":"resume"`) || !strings.HasSuffix(line[4], `"step":1500}`) {
+		!strings.Contains(line[4], `"kind":"resume"`) || !strings.HasSuffix(line[4], fmt.Sprintf(`"step":1500,"offset":%d}`, n)) {
 		t.Errorf("beklenmeyen günlük:\n%s", content)
 	}
 	// Kapatılan günlüğe yazılınca dosya yeniden açılır.
