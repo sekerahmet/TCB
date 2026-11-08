@@ -3,7 +3,7 @@
 - **Dal:** `gemini/uzak-8`
 - **Taban (`main`):** `47e0984cddfc726ca8e4dc7fdf423af4a1ab67a9`
 - **Başlama saati:** 2026-11-08 16:11:08 UTC+3 (13:11:08 UTC)
-- **Bağlam sıkıştırması:** Yok
+- **Bağlam sıkıştırması:** 2026-11-08 16:27:42 UTC+3 (13:27:42 UTC) — Adım 1 tamamlandıktan (`b34e285`) hemen sonra, Adım 2a düzenlemelerine başlamadan önce gerçekleşti; `CLAUDE.md`, `UZAK_YONERGE_8.md`, `UZAK8_DURUM.md` ve hedef kaynak dosyalar yeniden açıldı.
 
 ## İlerleme
 
