@@ -124,6 +124,81 @@ TR_test "5.4 bileşik atamanın hedefi bir kez hesaplanır" {
     TR_assert_equal([6], l)
 }
 
+TR_test "5.4 bileşik atamada önce hedefin yeri, sonra sağ yan hesaplanır" {
+    TR_var k = 0
+    TR_func sağ(n: TR_Int) -> TR_Int {
+        k = 1
+        TR_return n
+    }
+    # sağ yan indeksi değiştirse de ilk hesaplanan öğe yazılır; on iki işlecin hepsi
+    TR_var l = [8, 8]
+    l[k] += sağ(2)
+    TR_assert_equal([10, 8], l)
+    TR_var sonuçlar = []
+    TR_for i TR_in 0..11 {
+        l = [8, 8]
+        k = 0
+        TR_match i {
+            0 => { l[k] -= sağ(2) }
+            1 => { l[k] *= sağ(2) }
+            2 => { l[k] //= sağ(3) }
+            3 => { l[k] %= sağ(3) }
+            4 => { l[k] **= sağ(2) }
+            5 => { l[k] &= sağ(12) }
+            6 => { l[k] |= sağ(1) }
+            7 => { l[k] ^= sağ(12) }
+            8 => { l[k] <<= sağ(1) }
+            9 => { l[k] >>= sağ(2) }
+            _ => { l[k] += sağ(1) }
+        }
+        sonuçlar += [l]
+    }
+    TR_assert_equal([[6, 8], [16, 8], [2, 8], [2, 8], [64, 8], [8, 8], [9, 8], [4, 8], [16, 8], [2, 8], [9, 8]], sonuçlar)
+    TR_var o = [9.0, 9.0]
+    k = 0
+    TR_func sağ_ondalık(x: TR_Float) -> TR_Float {
+        k = 1
+        TR_return x
+    }
+    o[k] /= sağ_ondalık(2.0)
+    TR_assert_equal([4.5, 9.0], o)
+    # sözlük: anahtar sağ yandan önce
+    TR_var d = {"a": 1, "b": 2}
+    TR_var ad = "a"
+    TR_func sağ_ad() -> TR_Int {
+        ad = "b"
+        TR_return 10
+    }
+    d[ad] += sağ_ad()
+    TR_assert_equal({"a": 11, "b": 2}, d)
+    # alan: alanın sahibi sağ yandan önce
+    TR_struct Kutu { x: TR_Int }
+    TR_var p = Kutu(x: 1)
+    TR_var eski = p
+    TR_func sağ_sahip() -> TR_Int {
+        p = Kutu(x: 100)
+        TR_return 5
+    }
+    p.x += sağ_sahip()
+    TR_assert_equal([6, 100], [eski.x, p.x])
+    # birinci istisna: listede += yerindedir, yer yine önce hesaplanır
+    TR_var iç = [[1], [2]]
+    TR_var ilk = iç[0]
+    k = 0
+    TR_func sağ_liste() -> TR_List[TR_Int] {
+        k = 1
+        TR_return [9]
+    }
+    iç[k] += sağ_liste()
+    TR_assert_equal([[1, 9], [2]], [ilk, iç[1]])
+    # ikinci istisna: tensörde indeksle += yinelenen indeksin her geçişini biriktirir (15.6d)
+    TR_var t = TR_Tensor([0.0, 0.0])
+    k = 0
+    t[k] += sağ_ondalık(1.0)
+    TR_for i TR_in [1, 1, 1] { t[i] += 2.0 }
+    TR_assert_equal([1.0, 6.0], t.TR_tolist)
+}
+
 TR_test "5.5 eğer / değilse eğer / değilse bir ifadedir" {
     TR_func sınıflandır(n: TR_Int) -> TR_String {
         TR_return TR_if n < 0 { "negatif" } TR_else TR_if n == 0 { "sıfır" } TR_else { "pozitif" }
