@@ -50,12 +50,12 @@ TR_func _gerekli(ad: TR_String) -> TR_String {
 
 TR_func zincir_kur() -> Zincir {
     TR_var dil = _gerekli("dil_modeli")
-    TR_var başla = TR_time_ms()
+    TR_var başla = şimdi()
     TR_var z = Zincir(p: TR_load_tokenizer(dil), model: TR_pretrained_gguf(dil), yazıcı: TR_pretrained_whisper(_gerekli("whisper")),
         ses: TR_pretrained_vits(_gerekli("ses_modeli")), sistem: TR_String(ayar["sistem"]), en_çok: TR_Int(ayar["en_çok_parça"]),
         bağlam: TR_Int(ayar["bağlam"]), önbelleksiz: TR_Bool(ayar["önbelleksiz"]))
     z.yeni_konuşma()
-    TR_print("OLCU_YUKLEME ms=\(TR_time_ms() - başla)")
+    TR_print("OLCU_YUKLEME ms=\(şimdi() - başla)")
     TR_return z
 }
 
@@ -75,9 +75,10 @@ TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bo
         TR_var sesler: TR_List[TR_Sound] = []
         TR_for c TR_in cümleler(içerik) {
             sesler.TR_append(z.ses.TR_synthesize(c))
-            TR_if t.ilk_ses_ms < 0 { t.ilk_ses_ms = TR_time_ms() - t0 }
+            TR_if t.ilk_ses_ms < 0 { t.ilk_ses_ms = şimdi() - t0 }
         }
         çal(sesler, t, t0)
+        tur_ölç(z.p, t, t0)
         olcu_yaz(t)
     } TR_catch e {
         TR_print("TUR HATASI:", e)
@@ -107,10 +108,10 @@ TR_func dosya_kipi(z: Zincir) {
             TR_continue
         }
         TR_var hedef = TR_String(TR_Path(çıktı, "\(TR_Path(yol).TR_stem)_cevap.wav"))
-        tur_koş(z, kesit, TR_time_ms(), TR_false, (sesler, t, t0) => {
+        tur_koş(z, kesit, şimdi(), TR_false, (sesler, t, t0) => {
             TR_if sesler.TR_length == 0 { TR_return }
+            t.çalma_ms = şimdi() - t0 # çalınmaya verildiği an: canlı kipte çalma burada başlardı
             TR_var hepsi = birleştir(sesler)
-            t.çalma_ms = t.ilk_ses_ms
             t.çalma_süresi_ms = süre_ms(hepsi)
             TR_write_wav(hedef, hepsi)
         })
@@ -136,7 +137,7 @@ TR_func mikrofon_aç(başlangıç: TR_Int) -> TR_Process {
     TR_var çıkış = ["-f", "s16le", "-ac", "1", "-ar", "\(_HIZ)", "-"]
     TR_if sahte != "" {
         # Gerçek mikrofon gibi: durduğu süredeki ses kaybolur, WAV ilk başlatmadan bu yana geçen süreden açılır.
-        TR_var saniye = TR_Float(TR_time_ms() - başlangıç) / 1000.0
+        TR_var saniye = TR_Float(şimdi() - başlangıç) / 1000.0
         TR_return TR_spawn_process(ffmpeg, ["-nostdin", "-loglevel", "error", "-re", "-ss", "\(saniye)", "-i", sahte] + çıkış, TR_buffer_bytes: _TAMPON)
     }
     TR_var aygıt = _gerekli("aygıt")
@@ -148,9 +149,9 @@ TR_func canlı_kip(z: Zincir) {
     TR_var algılayıcı = TR_pretrained_vad(_gerekli("vad"))
     TR_var kesici = TR_SpeechSplitter(algılayıcı)
     TR_var en_çok_tur = TR_Int(ayar["en_çok_tur"])
-    TR_var başlangıç = TR_time_ms()
+    TR_var başlangıç = şimdi()
     TR_var mikrofon = mikrofon_aç(başlangıç)
-    TR_var açılış = TR_time_ms()
+    TR_var açılış = şimdi()
     TR_var çerçeve = 0 # mikrofonun son açılışından bu yana okunan çerçeve
     TR_var dinlemede = TR_false
     TR_print("DİNLİYORUM")
@@ -161,14 +162,14 @@ TR_func canlı_kip(z: Zincir) {
             TR_break
         }
         TR_if TR_not dinlemede {
-            TR_print("OLCU_MIKROFON tur=\(z.tur) acilis_ms=\(TR_time_ms() - açılış)")
+            TR_print("OLCU_MIKROFON tur=\(z.tur) acilis_ms=\(şimdi() - açılış)")
             dinlemede = TR_true
         }
         çerçeve += 1
         TR_var örnekler = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
         TR_var kesit = kesici.TR_push(örnekler)
         TR_if kesit == TR_none { TR_continue }
-        TR_var t0 = TR_time_ms()
+        TR_var t0 = şimdi()
         mikrofon.TR_cancel()
         TR_var baş_çerçeve = çerçeve - kesit.TR_shape[0] // _ÇERÇEVE
         tur_koş(z, kesit, t0, baş_çerçeve <= _ÇALMA_SONRASI_ÇERÇEVE, (sesler, t, t0) => çal(sesler, t, t0))
@@ -176,7 +177,7 @@ TR_func canlı_kip(z: Zincir) {
         algılayıcı.TR_reset_state()
         TR_print("OLCU_ATILAN tur=\(z.tur) atilan=\(atılan)")
         TR_if en_çok_tur > 0 TR_and z.tur >= en_çok_tur { TR_break }
-        açılış = TR_time_ms()
+        açılış = şimdi()
         mikrofon = mikrofon_aç(başlangıç)
         çerçeve = 0
         dinlemede = TR_false

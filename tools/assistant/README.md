@@ -20,7 +20,7 @@ TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla
 - **Kipler:** `--kip dosya` bir klasördeki WAV'ları sırayla söz olarak okur ve cevapları WAV olarak yazar; `--kip canlı` mikrofonu (`--aygıt`, dshow adı) ya da `--sahte_mikrofon`'u (bir WAV'ı `ffmpeg -re` ile gerçek zaman hızında akıtır; yeniden başlarken ilk başlatmadan bu yana geçen süreden açar) dinler ve `--çalıcı` ile çalar.
 - **Varsayılan yol yoktur:** `--dil_modeli`, `--whisper`, `--vad`, `--ses_modeli` ve kipin girdileri verilmezse program hata verir. Seçeneklerin hepsi `--help`'tedir.
 - **Önbellek** turdan tura korunur: yeni dizi önbellektekiyle ortak önek kadar karşılaştırılır, önbellek oraya kırpılır, yalnız kalan okunur. Önek önceki asistan başlığının sonundan kısa çıkarsa `ÖNEK_KISA` yazılır. Önbellek `--bağlam` parça kadar ayrılır, modelin bütün bağlamı kadar değil (Qwen3-4B'de 40960 parça 11 520 MiB olurdu). Dolacaksa program bunu söyler ve sistem iletisiyle yeni konuşma başlatır. `--önbelleksiz` her turu baştan okur: önbelleğin sınaması.
-- **Ölçü:** her tur bir `OLCU` satırıdır, yalnız sayı: sözün sonundan (VAD kesitinin geldiği an) yazıya, ilk parçaya, cevabın bitmesine, ilk cümlenin sesine ve çalmanın başlamasına kadar ms; çalmanın süresi; kesitin çalmadan hemen sonra açılıp açılmadığı; içerikte rakam olup olmadığı; ortak önek ve yeniden okunan parça. `OLCU_MIKROFON` mikrofonun açılıştan ilk çerçeveye gecikmesidir.
+- **Ölçü:** her tur bir `OLCU` satırıdır, yalnız sayı: VAD kesitinin geldiği andan yazıya, ilk parçaya, ilk cümlenin üretiminin bitmesine (sınırı geldi ya da cevap bitti), cevabın bitmesine, ilk cümlenin sesine ve çalmanın başlamasına (`toplam_ms`; dosya kipinde cümlelerin çalınmaya verildiği an) kadar ms; kullanıcının beklediği süre (`bekleme_ms`: kesitleyicinin sessizliği, 608 ms, artı `toplam_ms`); çalmanın süresi; kesitin çalmadan hemen sonra açılıp açılmadığı; içerikte rakam olup olmadığı; ortak önek ve yeniden okunan parça. `OLCU_MIKROFON` mikrofonun açılıştan ilk çerçeveye gecikmesidir. Bütün damgalar tek saatten alınır (`şimdi`, `zincir.tr`): 13.1'in tekdüze saati (`TR_monotonic_ns`), sistem saati düzeltilince kaymaz.
 - **Hata** turu bitirir: ileti ekrana yazılır, kullanıcı iletisi geçmişten çıkar, program sonraki söze geçer. Yazısı boş kesit tur sayılmaz; `--en_çok_tur` cevaplanan ve hatayla biten turları sayar.
 - **Ses diskte kalmaz:** canlı kipte cevabın her cümlesi geçici bir WAV'a yazılır, çalınır ve hemen silinir; geçici klasör de turun sonunda silinir.
 
@@ -29,7 +29,7 @@ trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevapla
     --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
 ```
 
-`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki, çalınan sesin silinmesi.
+`zincir_test.tr` gerçek modelsiz parçaları sınar: cümlelere bölme, üretilen kimliklerden cümlelerin sınır geldikçe çıkması (cümle akışı), rakam, önbelleğin kapasitesi ve ortak öneki, çalınan sesin silinmesi.
 
 ## Açmak
 

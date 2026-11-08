@@ -13,16 +13,26 @@ TR_import "tr/whisper"
 
 TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
+TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
+# Kesitleyicinin varsayılan sessizliği: TR_silence 0,6 sn, ceil(0,6 × 16000 / 512) = 19 çerçeve × 32 ms (lib/vad.tr).
+# Kesit kullanıcının sözü bittikten bu kadar sonra gelir.
+TR_const _SESSİZLİK_MS = 608
 
-# Tur: bir turun zamanları (söz sonundan ms), sayıları ve sesi.
+# şimdi: zincirin bütün zaman damgalarının saati (ms): 13.1'in tekdüze saati. Geri gitmez, sistem saati düzeltilince
+# kaymaz; başlangıcı belirsizdir, yalnız iki değerin farkı anlamlıdır.
+TR_func şimdi() -> TR_Int { TR_return TR_monotonic_ns() // 1000000 }
+
+# Tur: bir turun zamanları (kesitin geldiği andan ms), sayıları ve sesi.
 TR_struct Tur {
     sıra: TR_Int
     söz_ms: TR_Int
     yazı_ms: TR_Int = -1
     ilk_parça_ms: TR_Int = -1
+    ilk_cümle_ms: TR_Int = -1 # ilk cümlenin üretimi bitti: sınırı geldi ya da cevap bitti
     cevap_ms: TR_Int = -1
     ilk_ses_ms: TR_Int = -1
-    çalma_ms: TR_Int = -1
+    çalma_ms: TR_Int = -1 # ilk cümle çalınmaya başladı (dosya kipinde çalınmaya verildi)
+    bekleme_ms: TR_Int = -1 # kullanıcının beklediği: sözün sonundan çalmanın başlamasına
     çalma_süresi_ms: TR_Int = 0
     çalma_sonrası: TR_Int = 0
     rakam: TR_Int = 0
@@ -32,10 +42,12 @@ TR_struct Tur {
     istem: TR_Int = 0
     üretilen: TR_Int = 0
     yeni_konuşma: TR_Int = 0
+    gövde: TR_List[TR_Int] = [] # üretilen kimlikler, durdurucusuz
+    anlar: TR_List[TR_Int] = [] # her kimliğin seçildiği an
 }
 
 TR_func olcu_yaz(t: Tur) {
-    TR_print("OLCU tur=\(t.sıra) soz_ms=\(t.söz_ms) yazi_ms=\(t.yazı_ms) ilk_parca_ms=\(t.ilk_parça_ms) cevap_ms=\(t.cevap_ms) ilk_ses_ms=\(t.ilk_ses_ms) toplam_ms=\(t.çalma_ms) calma_suresi_ms=\(t.çalma_süresi_ms) calma_sonrasi=\(t.çalma_sonrası) rakam=\(t.rakam) onek=\(t.önek) beklenen_onek=\(t.beklenen_önek) yeniden_okunan=\(t.yeniden_okunan) istem=\(t.istem) uretilen=\(t.üretilen) yeni_konusma=\(t.yeni_konuşma)")
+    TR_print("OLCU tur=\(t.sıra) soz_ms=\(t.söz_ms) yazi_ms=\(t.yazı_ms) ilk_parca_ms=\(t.ilk_parça_ms) ilk_cumle_ms=\(t.ilk_cümle_ms) cevap_ms=\(t.cevap_ms) ilk_ses_ms=\(t.ilk_ses_ms) toplam_ms=\(t.çalma_ms) bekleme_ms=\(t.bekleme_ms) calma_suresi_ms=\(t.çalma_süresi_ms) calma_sonrasi=\(t.çalma_sonrası) rakam=\(t.rakam) onek=\(t.önek) beklenen_onek=\(t.beklenen_önek) yeniden_okunan=\(t.yeniden_okunan) istem=\(t.istem) uretilen=\(t.üretilen) yeni_konusma=\(t.yeni_konuşma)")
 }
 
 # Zincir: modeller, konuşmanın geçmişi ve önbellek.
@@ -86,7 +98,7 @@ TR_func ortak_önek(a: TR_List[TR_Int], b: TR_List[TR_Int]) -> TR_Int {
 TR_struct Üretim {
     kimlikler: TR_List[TR_Int] = []
     farklar: TR_List[TR_Float] = [] # her adımda en iyi iki logitin farkı
-    ilk_an: TR_Int = -1
+    anlar: TR_List[TR_Int] = [] # her kimliğin seçildiği an
 }
 
 TR_func seç(logit: TR_Tensor, ü: Üretim) -> TR_Int {
@@ -118,7 +130,7 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur) -> Üretim {
         TR_var logit = z.model.TR_logits(x.TR_slice(1, kalan.TR_length - 1, kalan.TR_length))[0][0]
         TR_for ü.kimlikler.TR_length < z.en_çok {
             TR_var k = seç(logit, ü)
-            TR_if ü.ilk_an < 0 { ü.ilk_an = TR_time_ms() }
+            ü.anlar.TR_append(şimdi())
             ü.kimlikler.TR_append(k)
             TR_if dur.TR_contains(k) { TR_break }
             logit = z.model.TR_logits(z.model.TR_hidden_states([[k]], TR_cache: ö))[0][0]
@@ -134,13 +146,74 @@ TR_func cümleler(m: TR_String) -> TR_List[TR_String] {
     TR_var parça = ""
     TR_for h TR_in m + "\n" {
         parça += h
-        TR_if ".!?…\n".TR_contains(h) {
+        TR_if _SINIR.TR_contains(h) {
             TR_var s = parça.TR_strip()
             TR_if _sesli(s) { çıktı.TR_append(s) }
             parça = ""
         }
     }
     TR_return çıktı
+}
+
+# CümleAkışı: üretilen kimliklerden cümleleri sınırları geldikçe verir, `cümleler`'in kuralıyla. Her adımda bütün
+# kimlikler baştan çözülür (16.3a'nın akışlı çözmesi motorda yok). `cümleler` yarım metnin sınırsız son parçasını da
+# cümle sayar; bu yüzden son sınırın metindeki yeri (`söylenen`) ayrıca tutulur, sınırsız kuyruk bekler. Sınırdan
+# önceki metin yeni kimliklerle değişmez: değişebilen yalnız sondaki yarım UTF-8 dizisinin U+FFFD'leridir.
+# Etiket kimliği gelirse (düşünce, araç çağrısı) akış durur; kalanı `bitir` cevabın içeriğinden verir.
+TR_struct CümleAkışı {
+    p: TR_Tokenizer
+    etiketler: TR_List[TR_Int]
+    kimlikler: TR_List[TR_Int] = []
+    metin: TR_String = ""
+    söylenen: TR_Int = 0 # metnin verilen kısmının sonu (karakter)
+    verilen: TR_List[TR_String] = []
+    durdu: TR_Bool = TR_false
+
+    TR_func ekle(k: TR_Int) -> TR_List[TR_String] {
+        TR_if TR_self.durdu TR_or TR_self.etiketler.TR_contains(k) {
+            TR_self.durdu = TR_true
+            TR_return []
+        }
+        TR_self.kimlikler.TR_append(k)
+        TR_var önceki = TR_self.metin.TR_length
+        TR_self.metin = TR_self.p.TR_decode(TR_self.kimlikler)
+        # Yarım dizi en çok üç bayttır, her baytı en çok bir U+FFFD: değişen yer önceki metnin son üç karakterindedir.
+        TR_var son = -1
+        TR_for i TR_in TR_max(TR_self.söylenen, önceki - 3)..TR_self.metin.TR_length {
+            TR_if _SINIR.TR_contains(TR_self.metin[i]) { son = i }
+        }
+        TR_if son < 0 { TR_return [] }
+        TR_var yeni = cümleler(TR_self.metin[TR_self.söylenen..son + 1])
+        TR_self.söylenen = son + 1
+        TR_self.verilen += yeni
+        TR_return yeni
+    }
+
+    # bitir: cevabın içeriğinin cümlelerinden henüz verilmemiş olanlar. Verilenler o cümlelerin başı değilse TR_none:
+    # söylenen metin cevaptan ayrılmıştır, kalan söylenmez.
+    TR_func bitir(içerik: TR_String) -> TR_List[TR_String]? {
+        TR_var hepsi = cümleler(içerik)
+        TR_var n = TR_self.verilen.TR_length
+        TR_if n > hepsi.TR_length TR_or hepsi[0..n] != TR_self.verilen { TR_return TR_none }
+        TR_var kalan = hepsi[n..hepsi.TR_length]
+        TR_self.verilen += kalan
+        TR_return kalan
+    }
+}
+
+TR_func cümle_akışı(p: TR_Tokenizer) -> CümleAkışı {
+    TR_return CümleAkışı(p: p, etiketler: [p.TR_token_id(e) TR_for e TR_in ["<think>", "</think>", "<tool_call>", "</tool_call>"]])
+}
+
+# ilk_cümle_anı: kimlikler sırayla akışa verildiğinde ilk cümlenin çıktığı kimliğin anı; hiçbiri cümle vermezse
+# son kimliğin anı (cümle cevabın sonunda biter), kimlik yoksa -1.
+TR_func ilk_cümle_anı(p: TR_Tokenizer, kimlikler: TR_List[TR_Int], anlar: TR_List[TR_Int]) -> TR_Int {
+    TR_var a = cümle_akışı(p)
+    TR_for i TR_in 0..kimlikler.TR_length {
+        TR_if a.ekle(kimlikler[i]).TR_length > 0 { TR_return anlar[i] }
+    }
+    TR_if anlar.TR_length == 0 { TR_return -1 }
+    TR_return anlar[anlar.TR_length - 1]
 }
 
 TR_func _sesli(m: TR_String) -> TR_Bool {
@@ -160,7 +233,7 @@ TR_func rakamlı(m: TR_String) -> TR_Bool {
 # cevapla: söz kesitinden cevabın içeriğine kadar; söz yoksa ya da tur hatayla biterse TR_none.
 TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur) -> TR_String? {
     TR_var yazı = z.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: "tr").TR_text
-    t.yazı_ms = TR_time_ms() - t0
+    t.yazı_ms = şimdi() - t0
     TR_print("SÖZ:", yazı)
     TR_if yazı.TR_strip() == "" { TR_return TR_none }
     z.geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: yazı.TR_strip()))
@@ -175,8 +248,8 @@ TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur) -> TR_String? {
     }
     t.beklenen_önek = beklenen_önek(z.p, z.geçmiş, z.son_asistan)
     TR_var ü = üret(z, kimlikler, t)
-    t.cevap_ms = TR_time_ms() - t0
-    t.ilk_parça_ms = ü.ilk_an - t0
+    t.cevap_ms = şimdi() - t0
+    TR_if ü.anlar.TR_length > 0 { t.ilk_parça_ms = ü.anlar[0] - t0 }
     t.üretilen = ü.kimlikler.TR_length
     TR_if TR_not z.önbelleksiz TR_and t.önek < t.beklenen_önek {
         TR_print("ÖNEK_KISA tur=\(t.sıra) önek=\(t.önek) beklenen=\(t.beklenen_önek)")
@@ -184,6 +257,8 @@ TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur) -> TR_String? {
     z.kimlik_satırları += TR_json_string({"tur": t.sıra, "ids": ü.kimlikler, "farklar": ü.farklar}) + "\n"
     TR_var gövde = ü.kimlikler
     TR_if gövde.TR_length > 0 TR_and gövde[gövde.TR_length - 1] == z.p.TR_token_id("<|im_end|>") { gövde = gövde[0..gövde.TR_length - 1] }
+    t.gövde = gövde
+    t.anlar = ü.anlar
     TR_var cevap, hatalar = TR_qwen3_reply(z.p, gövde)
     TR_for h TR_in hatalar { TR_print("CEVAP HATASI:", h) }
     z.geçmiş.TR_append(cevap)
@@ -198,18 +273,25 @@ TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur) -> TR_String? {
 TR_func sesleri_çal(sesler: TR_List[TR_Sound], t: Tur, t0: TR_Int, çal: (TR_String) -> TR_NoneType) {
     TR_var klasör = TR_temp_dir()
     TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
-    TR_var başla = TR_time_ms()
+    TR_var başla = şimdi()
     TR_for i TR_in 0..sesler.TR_length {
         TR_var yol = TR_String(TR_Path(klasör, "cumle_\(i).wav"))
         TR_write_wav(yol, sesler[i])
         TR_if i == 0 {
-            t.çalma_ms = TR_time_ms() - t0
-            başla = TR_time_ms()
+            başla = şimdi()
+            t.çalma_ms = başla - t0
         }
         çal(yol)
         TR_remove(yol)
     }
-    t.çalma_süresi_ms = TR_time_ms() - başla
+    t.çalma_süresi_ms = şimdi() - başla
+}
+
+# tur_ölç: turun sonunda, çalmadan sonra hesaplanan ölçüler (turun süresine girmez).
+TR_func tur_ölç(p: TR_Tokenizer, t: Tur, t0: TR_Int) {
+    TR_var an = ilk_cümle_anı(p, t.gövde, t.anlar)
+    TR_if an >= 0 { t.ilk_cümle_ms = an - t0 }
+    TR_if t.çalma_ms >= 0 { t.bekleme_ms = _SESSİZLİK_MS + t.çalma_ms }
 }
 
 TR_func birleştir(sesler: TR_List[TR_Sound]) -> TR_Sound {

@@ -1,5 +1,5 @@
 # TR 4
-# Zincirin gerçek modelsiz parçaları: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi.
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi.
 TR_import "tr/chat"
 TR_import "zincir"
 
@@ -11,6 +11,92 @@ TR_test "cevap cümlelere bölünür: nokta, soru, ünlem ve satır sonunda; bo�
     TR_assert_equal(["noktasız cümle"], cümleler("  noktasız cümle "))
     TR_assert_equal(0, cümleler("").TR_length)
     TR_assert_equal(0, cümleler(" . \n").TR_length)
+}
+
+# Qwen3-4B Q4_K_M'nin on soruya verdiği cevaplar (S1 zincir dilimi, dosya ve sahte mikrofon koşularının
+# `--kimlik_dosyası` satırları Qwen3'ün parçalayıcısıyla çözüldü; sorular sentetik ses). Depodaki parçalayıcının
+# dağarcığı küçük: metin onunla yeniden kodlanır, Türkçe harfler ve işaretler baytlara bölünür, akışın yarım
+# UTF-8 yolu da sınanır.
+TR_const _CEVAPLAR = [
+    "Merhaba! Bugünkü durumum iyi. Ne hakkında yardımcı olabilirim?",
+    "Bir haftada 7 gün vardır.",
+    "İstanbul Türkiye'de yer alır.",
+    "Kahvaltıda light bir yemek yiyebilirsin. Örneğin, buzdolabında bir çorba veya salata yiyebilirsin.",
+    "1 saat 60 dakikadır.",
+    "Yağmur yağarken dışarı çıkarsan, bir kablodan veya kablolu bir kıyafet almalısın. Ayrıca, gözlerini korumak için gözlüksüz olmamalısın.",
+    "3 vartı 4, 7 eder.",
+    "İşte bir şaka: \"Ne zaman bir şeyi yapmak istiyorsun, ama yapamıyorsun, o zaman ne yapmalısın? Yapman gerek.\" 😄",
+    "Bir yılda 12 ay vardır.",
+    "Teşekkür ederim, iyi geceler. 😊",
+    "3 vartı 4 eder.",
+    "İşte bir şaka: \"Ne zaman bir şeyi unutursun, onu unutma.\"",
+    "Teşekkür ederim. İyi bir gün dilerim."
+]
+
+TR_func son_sınır(m: TR_String) -> TR_Int {
+    TR_var son = -1
+    TR_for i TR_in 0..m.TR_length {
+        TR_if ".!?…\n".TR_contains(m[i]) { son = i }
+    }
+    TR_return son
+}
+
+# akıt: kimlikleri akışa sırayla verir; her sınır geldiği kimlikte verilmiş olmalı.
+TR_func akıt(a: CümleAkışı, kimlikler: TR_List[TR_Int]) -> TR_List[TR_String] {
+    TR_var akan: TR_List[TR_String] = []
+    TR_for k TR_in kimlikler {
+        akan += a.ekle(k)
+        TR_assert_equal(son_sınır(a.metin) + 1, a.söylenen)
+    }
+    TR_return akan
+}
+
+TR_test "akan cümlelerin birleşimi cevabın içeriğinin cümleleridir" {
+    TR_var p = parçalayıcı()
+    TR_for metin TR_in _CEVAPLAR {
+        TR_var kimlikler = p.TR_encode(metin, TR_special_tokens: TR_false)
+        TR_var a = cümle_akışı(p)
+        TR_var akan = akıt(a, kimlikler)
+        TR_var cevap, hatalar = TR_qwen3_reply(p, kimlikler)
+        TR_assert_equal(0, hatalar.TR_length)
+        TR_var kalan = a.bitir(cevap.TR_content)
+        TR_assert(kalan != TR_none)
+        TR_assert_equal(cümleler(cevap.TR_content), akan + kalan)
+        TR_assert_equal(akan + kalan, a.verilen)
+    }
+}
+
+# "…" bu parçalayıcıda üç bayt kimliğidir: ilk ikisinden sonra metnin sonu U+FFFD'dir, üçüncüsüyle sınır olur.
+TR_test "akış sınırla bitmeyen son parçayı bekletir, cevap bitince verir" {
+    TR_var p = parçalayıcı()
+    TR_var a = cümle_akışı(p)
+    TR_var akan = akıt(a, p.TR_encode("Bir… İki? Üç ve dört", TR_special_tokens: TR_false))
+    TR_assert_equal(["Bir…", "İki?"], akan)
+    TR_assert_equal(["Üç ve dört"], a.bitir("Bir… İki? Üç ve dört"))
+}
+
+TR_test "etiket kimliği akışı durdurur; söylenen cevaptan ayrıldıysa kalan verilmez" {
+    TR_var p = parçalayıcı()
+    TR_var a = cümle_akışı(p)
+    TR_var akan: TR_List[TR_String] = []
+    TR_for k TR_in p.TR_encode("Evet. <tool_call>Hayır.", TR_special_tokens: TR_true) { akan += a.ekle(k) }
+    TR_assert_equal(["Evet."], akan)
+    TR_assert(a.durdu)
+    TR_assert_equal(["Hayır."], a.bitir("Evet. Hayır."))
+    TR_var b = cümle_akışı(p)
+    TR_for k TR_in p.TR_encode("Bir. İki.", TR_special_tokens: TR_false) { b.ekle(k) }
+    TR_assert_equal(TR_none, b.bitir("Başka. İki."))
+}
+
+TR_test "ilk cümlenin anı sınırının geldiği kimliğin anıdır; sınır yoksa son kimliğin" {
+    TR_var p = parçalayıcı()
+    TR_var k = p.TR_encode("Merhaba. Nasılsın?", TR_special_tokens: TR_false)
+    TR_var anlar = [(i + 1) * 10 TR_for i TR_in 0..k.TR_length]
+    TR_var n = p.TR_encode("Merhaba.", TR_special_tokens: TR_false).TR_length
+    TR_assert_equal(n * 10, ilk_cümle_anı(p, k, anlar))
+    TR_var s = p.TR_encode("Merhaba", TR_special_tokens: TR_false)
+    TR_assert_equal(s.TR_length * 10, ilk_cümle_anı(p, s, [(i + 1) * 10 TR_for i TR_in 0..s.TR_length]))
+    TR_assert_equal(-1, ilk_cümle_anı(p, [], []))
 }
 
 TR_test "rakam satırı: içerikte rakam var mı" {
@@ -34,7 +120,7 @@ TR_test "cevabın sesi çalınırken diskte, çalındıktan sonra yok" {
     TR_var varken: TR_List[TR_Bool] = []
     TR_var önceki_var: TR_List[TR_Bool] = []
     TR_var t = Tur(sıra: 1, söz_ms: 0)
-    sesleri_çal(sesler, t, TR_time_ms(), (yol) => {
+    sesleri_çal(sesler, t, şimdi(), (yol) => {
         TR_if yollar.TR_length > 0 { önceki_var.TR_append(TR_Path(yollar[yollar.TR_length - 1]).TR_exists) }
         yollar.TR_append(yol)
         varken.TR_append(TR_Path(yol).TR_exists)
