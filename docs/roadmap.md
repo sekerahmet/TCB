@@ -2,7 +2,7 @@
 
 TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri için bir programlama dili.
 
-**Son ölçüm: 2026-11-01, main `aad41d1e`.** Bu belgenin her satırı depoya karşı ölçülerek yazıldı. Eski yol haritasının ([`docs/archive/roadmap-2026-10-27.md`](archive/roadmap-2026-10-27.md)) her maddesinin akıbeti de ölçüldü: bitti, taşındı, bırakıldı ya da buraya alındı. Arşivden gelip bugünkü durumu yeniden ölçülmemiş işler "(arşiv)" diye işaretlidir: iş kayıtlıdır, bugün hâlâ geçerli olduğu ölçülmemiştir.
+**Son ölçüm: 2026-11-08, main `cf43b3c0`.** O gün belge yön belgesine çevrildi; değişen satırlar depoya, status'a ve `measurements.md`'ye karşı ölçüldü (DENETİM 322), öbürleri 2026-11-01'in ölçümünden. Eski yol haritasının ([`docs/archive/roadmap-2026-10-27.md`](archive/roadmap-2026-10-27.md)) her maddesinin akıbeti de ölçüldü: bitti, taşındı, bırakıldı ya da buraya alındı. Arşivden gelip bugünkü durumu yeniden ölçülmemiş işler "(arşiv)" diye işaretlidir: iş kayıtlıdır, bugün hâlâ geçerli olduğu ölçülmemiştir.
 
 ## Yöntem
 
@@ -13,7 +13,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
 - Her kuralın bugünkü durumu ve yapılacakları [`status.md`](status.md)'dedir; iş testiyle kapanır ve oradan silinir.
 - Bu belge işlerin sırasını, bölümü olmayan işleri ve kilometre taşlarını tutar.
 - **Güncel tutma:** bir karar ya da iş değişince bu belge aynı gün, ölçülerek güncellenir. Sınıfın karar anında yazılması kuralı [status'un "Önem ve öncelik" girişindedir](status.md#önem-ve-öncelik). Eksik ya da yanlış bir satır yanlış yöne götürür; fark geç anlaşılınca boşa iş yapılmış olur.
-- **Yön burada, ayrıntı status'ta** (Ahmet, 2026-11-08: "roadmap genel olur yön gösterir. status ise detay olur."): bu belge ne yapılacağını, nedenini, sırasını ve kimin karar verdiğini yazar. Ölçü, commit, birleşme tarihçesi ve bir işin bugünkü durumu burada yazılmaz: durum ve yapılacaklar [`status.md`](status.md)'de, ölçüler [`measurements.md`](measurements.md)'de; burada yalnız bağlantısı. Neden: aynı bilgi iki yerde durunca biri eskiyordu (2026-11-08: sızıntılı `relu` satırı kaynaştırmadan sonra da eski profili gösteriyordu).
+- **Yön burada, ayrıntı status'ta** (Ahmet, 2026-11-08: "roadmap genel olur yön gösterir. status ise detay olur."): bu belge ne yapılacağını, nedenini, sırasını ve kimin karar verdiğini yazar. Ölçü, commit, birleşme tarihçesi ve bir işin bugünkü durumu burada yazılmaz: durum ve yapılacaklar [`status.md`](status.md)'de, ölçüler [`measurements.md`](measurements.md)'de; burada yalnız bağlantısı. Bitmiş bir iş tek sözcükle ve status bağlantısıyla anılabilir ("bitti, status 10.2"); ayrıntısı yazılmaz. Neden: aynı bilgi iki yerde durunca biri eskiyordu (2026-11-08: sızıntılı `relu` satırı kaynaştırmadan sonra da eski profili gösteriyordu).
 - **Bekçi testler** (`internal/roadmap_test.go`):
   - eski yol haritasının numaralarına gönderme yok;
   - "Son ölçüm"ün commit'i HEAD'in atası;
@@ -24,7 +24,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
 
 ## Durum
 
-- **Dil tanımı:** 20 bölümün hepsi yazıldı (1–13, 15–20; 14 yok). Her bölüm DENETİM'den ve Gemini'nin karar araştırmasından en az bir kez geçti. Bölüm başına kaydı `status.md`'nin bölüm başlarında.
+- **Dil tanımı:** bölümler [`docs/spec/`](spec/README.md)'de; her bölümün denetim durumu `status.md`'nin bölüm başlarında.
 - **Açık denetimler** (sıradaki dil tanımı turunda):
   - Uygulama sırasında verilen kararlar DENETİM'den geçti, ama Gemini'nin karar araştırmasından geçmedi. Liste yalnız `status.md`'de: "Uygulamada verilen, dil tanımı turunda denetlenecek kararlar" bölümü ve bölüm başları. Burada kopyası tutulmaz.
   - Dil tanımının üç turu bitti (2026-11-01, 2026-11-02); sıradaki turun girdisi `docs/spec/pending.md`'dir.
@@ -44,7 +44,7 @@ TR'nin amacı [README](../README.md)'dedir: yapay zekânın bütün işleri içi
     - **4c, genel tipler;**
     - **T2:** sinir ağı ve eğitim;
     - **T3:** hız, dosya ve nicemleme;
-    - **K:** uzun yerleşiklerin kilidi. CPU yolu bitti; sıradaki GPU yolu ve geri yayılımın kilidi (durumu status 10.2'de).
+    - **K:** uzun yerleşiklerin kilidi; durumu ve kalanı status 10.2'de.
 - **Komut adı:** `tr` yerine `trlang` (Ahmet, 2026-10-30): Unix'in `tr`'si aynı adla sessizce başarılı çıkıyor; `trl` Hugging Face TRL'nin komutu. Takma ad yok. Göç bitti, eski ad bir testle yasak (status "Komut adı").
 
 ## Açık dil tasarım soruları
@@ -290,7 +290,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
        Ses klonlama (Ahmet, 2026-11-06 ve 2026-11-08): aday Chatterbox Multilingual (MIT, Türkçe, kısa örnekle klon, çıktıda PerTh filigranı). Klon yalnız kendi ya da izinli sesle; Ahmet'in sesi depoya girmez.
        Kalite: Ahmet MMS-TTS'yi dinledi (2026-11-08): "benzer, kötü değil ama süper de değil"; kalite modelin sınırı, TR'nin değil. Chatterbox'ı dinledi: "aşırı kaliteli ve iyi". Kaliteli ses için aday Chatterbox; Piper'ın Türkçe sesleri yedek aday, denenmedi.
        Karar (TCB): DOST'un canlı sesi MMS'le kalır. Chatterbox dizüstü CPU'sunda gerçek zamandan çok yavaş (ölçüler `measurements.md`'de); TR'ye taşımak ancak iki yarısını (konuşma parçası üreten dil modeli ve dalga çözücüsü) birlikte en az gerçek zamana ulaştıracak bir yol ölçülürse açılır. **Aday (TCB, Ahmet onayladı 2026-11-08):** çözücüyü (S3Gen) hızlandırmak, önce çözücünün içinin profili; ayrıntı status'un "Yazıyı konuşmaya çevirme" başlığında. Canlı olmayan kullanım (önceden seslendirme) ayrı tartılır. Canlı ses için ölçüt en az gerçek zaman, gecikme eşiği gelince yeniden tartılır.
-       Sıra (2026-11-05, DENETİM 196): birbirine bağlı olmayan üç zincir: dış süreç (`TR_run_process`, `TR_spawn_process`), konuşma algılama (Silero VAD, `tr/vad`), ses üretimi (bölüm 27, MMS-TTS); üçü de yapıldı. Hız zincirlerin önüne geçmez: üç zincir olmadan ürün yok, hız onların yerini tutmaz. Söz kesme ilk sürümün önkoşulu değil. İlk sürüm Windows'ta, NVIDIA kartsız bir dizüstünde (Ahmet, 2026-11-05): hız CPU'da aranır.
+       Sıra (2026-11-05, DENETİM 196): birbirine bağlı olmayan üç zincir: dış süreç (`TR_run_process`, `TR_spawn_process`), konuşma algılama (Silero VAD, `tr/vad`), ses üretimi (bölüm 27, MMS-TTS); üçü de yapıldı (status 21, "Bölümü olmayan işler", "Yazıyı konuşmaya çevirme"). Hız zincirlerin önüne geçmez: üç zincir olmadan ürün yok, hız onların yerini tutmaz. Söz kesme ilk sürümün önkoşulu değil. İlk sürüm Windows'ta, NVIDIA kartsız bir dizüstünde (Ahmet, 2026-11-05): hız CPU'da aranır.
        Uçtan uca zincir (S1, birleşik 58): dinler, yazıya çevirir, Qwen3-4B cevaplar, MMS konuşur; `tr/chat` (24.1–24.3) Qwen3'ün biçimini yazıp okuyor. Zincir çalışıyor ama asistan olarak kullanılır değil; durumu ve ölçüleri status'un "Bölümü olmayan işler"inde (asistan zinciri). Whisper'ın ve dil modelinin kalitesi hata değil, model seçimidir. **Önce mimari (Ahmet, 2026-11-08 22:07):** "bence mimari karar sonrası hıza bakmak daha mantıklı. mimari değişirse H1 tekrar bakması gerekmez mi ?". Gemini'nin yerel sesli asistan mimarisi araştırması (DENETİM 318) ve ardından bir tasarım turu önce gelir; H1'in hız dilimi ve S1'in kalite dilimi mimari kararından sonra. TCB'nin notu: istem okumanın sabit bedeli ve modelin Türkçe cevap kalitesi mimariden bağımsız. Mimariden sonraki sıra (S1'in önerisi, TCB kabul, 2026-11-08): (1) dil modeli yalnız yazıyla, aynı altı cümle birkaç adaya, Whisper karışmaz, Ahmet gerekmez; (2) duyma: mikrofon hep açık, daha büyük Whisper (aday `large-v3-turbo`), önce sentetik sesle; (3) Ahmet'le aynı altı cümleyle canlı test (Ahmet 2026-11-08 19:36: "sonuçlar iyi değil"; "düzeltmeler ve kazançlar olunca tekrar bakarız"). Rakam yazıya çevrilmeden MMS onu okuyamıyor (dil tanımı 27).
     4. söz kesme (görev iptali, kilidin hızlı devri);
     5. belgeler ve hafıza; ilk ipucu: beş ajanın arama programı yarışında kök bulan program öne geçti ([`agent_trials.md`](agent_trials.md));
@@ -303,7 +303,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
     - Dil tanımında henüz yazılmamış işler Jarvis'in en uzun yolu:
       - bölümü olmayanlar: canlı ses (ilk sürüm dış programla), gömme; ses üretimi için fonemleştirme. Dış programlar ve bayttan sayı 21 ve 22'de, sohbet biçimi 24'te;
       - 15'in sonraya bıraktıkları: ses üretimi için ters evrişim, ONNX okuma ve ters Fourier dönüşümleri (`irfft`, `istft`; emsali 23'ün gerekçesinde). STFT ve Mel artık 23'te;
-    - 21–24 yazıldı ve DENETİM'den geçti (2026-11-02). Yeni bölüm yazımı, sıradaki dil işi uygulama olana dek durur (Ahmet, 2026-11-02: "mevcutlar bitsin"); önce status'un önem taramasındaki öncelikli işler (status "Önem ve öncelik").
+    - Jarvis'in istediği bölümler (21–25) yazıldı; denetim durumları status'un bölüm başlarında. Yeni bölüm yazımı, sıradaki dil işi uygulama olana dek durur (Ahmet, 2026-11-02: "mevcutlar bitsin"); önce status'un önem taramasındaki öncelikli işler (status "Önem ve öncelik").
     - Bunların araştırması ve dil tanımı yazımı Faz 2'nin koduyla aynı anda başlar; ses üretiminin üç işi de bu karara girer (Ahmet, 2026-11-02). Uygulaması fazların sırasıyla gelir.
   - Bitiş ölçütü ve sıra Ahmet'in kararı. Ölçüt adayları: zincir gecikmesi, dizgecik/s, söz kesme süresi, Türkçe kelime hata oranı, tepe bellek; sayılar dizüstündeki tabandan sonra.
 - **Uyarlamak:** hazır bir modeli ince ayarla kendi işine uyarlamak, uçtan uca. LoRA'yı dil yazabiliyor; ama PEFT düzeninde kayıt, ince ayar örneği ve bitiş ölçütü yok (arşiv).

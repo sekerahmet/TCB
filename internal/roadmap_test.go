@@ -112,7 +112,7 @@ func TestRoadmapHoldsNoSectionState(t *testing.T) {
 	}
 }
 
-var evidenceTag = regexp.MustCompile(`\[(ölçüldü|hesap|kanıtlı|hipotez|tahmin|görüş|test)(:|\])`)
+var evidenceTag = regexp.MustCompile(`(?i)\[(ölçüldü|hesap|kanıtlı|hipotez|tahmin|görüş|test)(:|\])`)
 
 // Kural: yol haritası yönü ve sırayı tutar; ölçü ve bir işin bugünkü durumu status'ta ve
 // measurements.md'de yazılır, burada yalnız bağlantısı (Ahmet, 2026-11-08: "roadmap genel olur
