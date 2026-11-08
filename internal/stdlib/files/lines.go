@@ -79,18 +79,65 @@ func closeEntry(c io.Closer) {
 	}
 }
 
-// openFileError yolun kendisi ya da altındaki bir dosya bu programda bir satır okuyucusuyla
-// açıksa yol gösteren hatayı verir (Windows'ta açık dosya silinemez ve taşınamaz; işlem yarıda
-// kalırdı).
+// openLogs bu programda açık günlüklerin (TR_Logger, 19.5) dosyalarıdır, bağlantıları çözülmüş
+// mutlak yollarıyla: sil ve taşı açık günlüğün dosyasını içeren yola dokunmaz (18.7). Günlük
+// motoru açınca LogOpened, kapatınca LogClosed ile bildirir.
+var openLogs = struct {
+	sync.Mutex
+	m map[any]string
+}{m: map[any]string{}}
+
+// LogOpened key günlüğünün fpath dosyasını açtığını kaydeder.
+func LogOpened(key any, fpath string) {
+	openLogs.Lock()
+	openLogs.m[key] = realPath(fpath)
+	openLogs.Unlock()
+}
+
+// LogClosed key günlüğünün dosyasını kapattığını kaydeder.
+func LogClosed(key any) {
+	openLogs.Lock()
+	delete(openLogs.m, key)
+	openLogs.Unlock()
+}
+
+// openLogInside yolun kendisinde ya da altında açık bir günlüğün dosyası varsa onun yolunu verir.
+func openLogInside(fpath string) string {
+	openLogs.Lock()
+	defer openLogs.Unlock()
+	for _, y := range openLogs.m {
+		if isInside(y, fpath) {
+			return y
+		}
+	}
+	return ""
+}
+
+// openFileError yolun kendisi ya da altındaki bir dosya bu programda bir satır okuyucusuyla ya
+// da bir günlükle açıksa yol gösteren hatayı verir (Windows'ta açık dosya silinemez ve taşınamaz,
+// işlem yarıda kalırdı; öbür sistemlerde günlüğün sonraki kayıtları silinen dosyaya giderdi). İleti
+// okuyucuyu ya da günlüğü kapatmayı önerir (18.7).
 func openFileError(fn any, raw string, real string) error {
 	open := openReaderInside(real)
 	if open == "" {
-		return nil
+		return openLogError(fn, raw, real)
 	}
 	if samePath(open, real) {
 		return messages.New(messages.H7125, fn, raw, LineReaderType, codes.NameRef(codes.MemClose))
 	}
 	return messages.New(messages.H7154, fn, raw, filepath.ToSlash(open), LineReaderType, codes.NameRef(codes.MemClose))
+}
+
+// openLogError openFileError'ın günlük yarısıdır: açık günlüğün dosyası yolda değilse nil.
+func openLogError(fn any, raw string, real string) error {
+	open := openLogInside(real)
+	if open == "" {
+		return nil
+	}
+	if samePath(open, real) {
+		return messages.New(messages.H2723, fn, raw)
+	}
+	return messages.New(messages.H2724, fn, raw, filepath.ToSlash(open))
 }
 
 // CloseAll açık kalmış satır okuyucularının dosyalarını kapatır, ardından geçici_klasör()

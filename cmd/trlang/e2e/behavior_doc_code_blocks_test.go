@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/checker"
+	"github.com/sekerahmet/TCB/internal/lang/ast"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/parser"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -138,7 +138,10 @@ var namePlaceholderRe = regexp.MustCompile(`^[\p{L}_][\p{L}\p{N}_]*$`)
 // olduğunu varsayar. Adın tipi denetleyicinin bilmediği bir tiptir (unknownValue): eğer'in koşulu
 // TR_Bool olmalıdır (3.10), bir sayının yerini tutan ad sayıdır.
 func definePlaceholders(body, code string) string {
-	defined, _ := checker.TopLevelNames(parser.New(source.Parts{Body: code}.Lexer()).ParseProgram())
+	var defined []string // kodun genel kapsamına doğrudan tanımladığı adlar (5.12)
+	for _, st := range parser.New(source.Parts{Body: code}.Lexer()).ParseProgram().Statements {
+		ast.StatementDefinedNames(st, func(name string) { defined = append(defined, name) })
+	}
 	var on strings.Builder
 	seen := map[string]bool{}
 	for _, m := range templateDefaultRe.FindAllStringSubmatch(body, -1) {

@@ -124,6 +124,13 @@ TR_test "18.7 sil dosyayı ya da boş klasörü siler; dolu klasör içindekiler
     TR_assert_equal("H7154", TR_error_code { TR_remove(k, TR_recursive: TR_true) })
     o.TR_close()
     TR_assert_equal(1, TR_remove(TR_Path(k, "s.txt")))
+    # açık günlüğün dosyası da silinmez, her sistemde; ileti günlüğü kapatmayı önerir (19.5)
+    TR_var g = TR_Logger(TR_Path(k, "g.jsonl"))
+    g.TR_append({"a": 1})
+    TR_assert_equal("H2723", TR_error_code { TR_remove(TR_Path(k, "g.jsonl")) })
+    TR_assert_equal("H2724", TR_error_code { TR_remove(k, TR_recursive: TR_true) })
+    g.TR_close()
+    TR_assert_equal(1, TR_remove(TR_Path(k, "g.jsonl")))
 }
 
 TR_test "18.8 sil kökü, çalışma ve program klasörünü ve onların üstlerini silmez" {

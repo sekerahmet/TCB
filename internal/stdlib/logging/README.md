@@ -15,8 +15,11 @@ Denetim: `TestLogFormatNamesAreLanguageIndependent` (adlar ve sürüm), `TestLog
 
 **Kayıt kaybolmaz.** Kayıtlar dosyanın sonuna eklenir; önceki koşu yarım satır bıraktıysa yeni kayıt yeni satırda başlar,
 kontrol noktasından sürdürmede "devam" kaydı düşülür. Program bitince açık günlükler kapanır,
-bitmemiş çubuklar son satırlarını yazar.
-Denetim: `TestLogAppendAndResume`, `TestLogEmptyClose`, `TestCloseAllFinishesBar`.
+bitmemiş çubuklar son satırlarını yazar. `g.TR_close()` günlüğü daha önce kapatır; kapatılmış günlüğe
+yazmak hatadır (19.5). Açık günlüğün dosyası silinmez ve taşınmaz (18.7, `files.LogOpened`): öbür
+sistemlerde sonraki kayıtlar silinen dosyaya gidip kaybolurdu.
+Denetim: `TestLogAppendAndResume`, `TestLogEmptyClose`, `TestCloseAllFinishesBar`; TR testleri `19.5 g.kapat ...`
+ve `18.7 sil ...`.
 
 **Çıktıya göre davranış.** Terminalde çubuk tek satırda canlı çizilir; dosyaya ya da boruya
 giden çıktıda seyrek, düz satırlar yazılır. Çubuk programın kendi çıktısını bozmaz.

@@ -444,7 +444,7 @@
   "TR_mem_capacity": { "name": "kapasite", "family": "kitaplık: tr/layers", "description": "" },
   "TR_mem_cause": { "name": "neden", "family": "Hata", "description": "Hatanın nedeni olan hatadır (Hata(v, neden: e) ile kurulur); yoksa yok. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_checkpoint": { "name": "nokta", "family": "kitaplık: tr/training", "description": "" },
-  "TR_mem_close": { "name": "kapat", "family": "SatırOkuyucu", "description": "Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece silinebilir ve taşınabilir); kapatılmış okuyucudan satır istemek hatadır. Dosyayı bu çağrı kapattıysa doğru, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) yanlış verir; iki kez kapatmak hata değildir." },
+  "TR_mem_close": { "name": "kapat", "family": "SatırOkuyucu, Günlük", "description": "Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece silinebilir ve taşınabilir); kapatılmış okuyucudan satır istemek hatadır. Dosyayı bu çağrı kapattıysa doğru, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) yanlış verir; iki kez kapatmak hata değildir. Günlük'ü program bitmeden kapatır, dosyası silinebilir ve taşınabilir; kapatılmış günlüğe yazmak hatadır, dönüşü okuyucudaki gibidir." },
   "TR_mem_close_stdin": { "name": "girdiyi_kapat", "family": "Süreç", "description": "Programın girdisini kapatır: program dosya sonu alır." },
   "TR_mem_code": { "name": "kod", "family": "Hata", "description": "Hatanın ileti kodudur (\"H6903\" gibi bir Metin); düz metinle ya da durumlu tip değeriyle fırlatılan hatada yok. Parantezsiz yazılan bir özelliktir." },
   "TR_mem_config": { "name": "ayar", "family": "kitaplık: tr/layers", "description": "" },

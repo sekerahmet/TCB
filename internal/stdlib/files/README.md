@@ -20,8 +20,9 @@ Denetim: `TestDeleteProtections`, `TestSystemDirProtection`, `TestDeleteDoesNotF
 konur; başka diske taşımada kaynak ancak kopya doğrulandıktan sonra silinir.
 Denetim: `TestCopyFile`, `TestMoveToOtherDisk`, `TestOverwriteDirWithReadOnlyFile`.
 
-**Açık dosya yol gösterir.** Açık bir okuyucunun dosyası silinmek ya da taşınmak istenirse
-işlem başlamadan, ne yapılacağını söyleyen bir hata verilir.
+**Açık dosya yol gösterir.** Açık bir okuyucunun ya da günlüğün (`TR_Logger`, kaydı `LogOpened`)
+dosyası silinmek ya da taşınmak istenirse işlem başlamadan, ne yapılacağını söyleyen bir hata
+verilir (18.7).
 Denetim: `TestDeleteOpenReader`, `TestMoveOpenReader`, `TestLineReaderClose`.
 
 **Okuyucu sızmaz.** Satır okuyucular bitince, kapatılınca, erişilemez olunca ya da program

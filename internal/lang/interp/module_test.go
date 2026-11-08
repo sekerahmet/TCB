@@ -278,3 +278,31 @@ func TestImportedNameReadsTheModulesVariable(t *testing.T) {
 		}
 	}
 }
+
+// Kural (5.14): bir dosya yalnız kendi adlarını, yerleşikleri ve aktardığı adları görür; kendisini
+// aktaranın adlarını görmez. Denetim modülü aktaranın adları olmadan yapar (H1106); denetimden geçmeden
+// çalışan bir yolda da modülün fonksiyonu aktaranın değişkenini ne okur ne yazar.
+func TestAModuleDoesNotSeeItsImportersNames(t *testing.T) {
+	module := source.Header + "\nTR_func oku() -> TR_Int {\n    TR_return gizli\n}\nTR_func yaz() {\n    gizli = 99\n}\n"
+	root := t.TempDir()
+	runInDir(t, root)
+	testkit.WritePath(t, filepath.Join(root, "mod.tr"), module)
+	prog := parser.New(bodyLexer("TR_import \"mod\"\nTR_var gizli = 7\nTR_print(oku())\n")).ParseProgram()
+	var me *ModuleError
+	if err := CheckImportedModules(filepath.Join(root, "ana.tr"), prog); !errors.As(err, &me) || me.Kind != source.StageType ||
+		len(me.Errors) != 1 || !messages.Has(me.Errors[0], messages.H1106) {
+		t.Errorf("denetim aktaranın adını modülde tanımsız saymalı (H1106): %v", err)
+	}
+	for _, main := range []string{"TR_import \"mod\"\nTR_var gizli = 7\nTR_print(oku())", "TR_import \"mod\"\nTR_var gizli = 7\nyaz()\nTR_print(gizli)"} {
+		out, err := runCodedErr(t, main, map[string]string{"mod.tr": module})
+		if err == nil || !strings.Contains(err.Error(), "'gizli'") || strings.Contains(out, "7") || strings.Contains(out, "99") {
+			t.Errorf("%q: modül aktaranın değişkenini görmemeli: %v\n%s", main, err, out)
+		}
+	}
+	// yerleşikler ve modülün kendi adları görünür kalır
+	out, err := runCodedErr(t, "TR_import \"mod2\" TR_as m\nTR_var gizli = 7\nTR_print(m.oku(), gizli)", map[string]string{
+		"mod2.tr": source.Header + "\nTR_var gizli = 1\nTR_func oku() -> TR_Int {\n    TR_return TR_max([gizli, 2])\n}\n"})
+	if err != nil || out != "2 7\n" {
+		t.Errorf("modül kendi adını ve yerleşiği görmeli: %v\n%q", err, out)
+	}
+}

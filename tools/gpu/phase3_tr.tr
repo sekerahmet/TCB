@@ -33,7 +33,7 @@ TR_for s TR_in 0..8 {
     sentetik.TR_append([tümü.TR_slice(1, 0, T), tümü.TR_slice(1, 1, T + 1)])
 }
 
-TR_var model = Model()
+TR_var model = Model(Boyutlar(B: B, T: T, D: D, H: H, Dh: Dh, FF: FF, katman: KATMAN, V: V))
 TR_var ağırlıklar = TR_parameters(model)
 TR_var iyileştirici = TR_AdamW(ağırlıklar, TR_lr: TR_Float(c["lr"]), TR_weight_decay: 0.0)
 

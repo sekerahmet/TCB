@@ -54,7 +54,7 @@ TR_func toplu_iş(adım: TR_Int) -> TR_List[TR_Tensor[TR_Int]] {
     TR_return sentetik[adım % 8]
 }
 
-TR_var model = Model()
+TR_var model = Model(Boyutlar(B: B, T: T, D: D, H: H, Dh: Dh, FF: FF, katman: KATMAN, V: V))
 TR_var ağırlıklar = TR_parameters(model)
 TR_var sayı = 0
 TR_for w TR_in ağırlıklar { sayı += TR_sum(TR_ones(w.TR_shape)).TR_tolist }

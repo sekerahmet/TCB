@@ -1,0 +1,11 @@
+# TR 4
+# moduller_test.tr'nin 5.14 testinin modülü (kendisi test dosyası değildir): aktaranla aynı adlı bir değişkeni var
+TR_var ortak_ad = "modül"
+
+TR_func ortak_adı_oku() -> TR_String {
+    TR_return ortak_ad
+}
+
+TR_func ortak_adı_yaz(değer: TR_String) {
+    ortak_ad = değer
+}

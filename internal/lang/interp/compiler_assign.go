@@ -67,19 +67,14 @@ func (c *compiler) assignTo(k *compilerScope, target ast.Expression, codeVal uin
 			return v.assignByName(env, t, codeVal, rhs, line)
 		}
 
-	case *ast.IndexExpression:
-		return c.assignToIndex(k, t, codeVal, line)
-
-	case *ast.MemberExpression:
-		object := c.expression(k, t.Object)
-		prop := t.Property
-		u := c.member(prop)
+	case *ast.IndexExpression, *ast.MemberExpression:
+		place, write := c.assignPlace(k, target, codeVal, line)
 		return func(v *VM, env *Environment, rhs Value) error {
-			obj, err := object(v, env)
+			owner, key, err := place(v, env)
 			if err != nil {
 				return err
 			}
-			return v.setMember(obj, prop, u, codeVal, rhs, line)
+			return write(v, owner, key, rhs)
 		}
 	}
 	return func(v *VM, env *Environment, rhs Value) error {
@@ -114,26 +109,48 @@ func (v *VM) assignByName(env *Environment, t *ast.Identifier, codeVal uint8, ri
 	return nil
 }
 
-// assignToIndex A[i] = değer atamasını derler. A[i][j] = değer, A[i] okumasının sonucuna [j] ile
-// atamadır (tensör satırı veriyi paylaşan bir görünümdür; bkz. IndeksAtanabilir). Modül değerine
-// köşeli ayraçla atanmaz (11.2).
-func (c *compiler) assignToIndex(k *compilerScope, t *ast.IndexExpression, codeVal uint8, line int) func(v *VM, env *Environment, rhs Value) error {
-	leftFn := c.expression(k, t.Left)
-	index := c.expression(k, t.Index)
-	return func(v *VM, env *Environment, rhs Value) error {
-		left, err := leftFn(v, env)
-		if err != nil {
-			return err
-		}
-		idx, err := index(v, env)
-		if err != nil {
-			return err
-		}
-		if d, ok := left.(*DictVal); ok {
-			if err := moduleIndexError(d, t.Left, idx); err != nil {
-				return messages.At(line, 0, err)
+// placeFunc atama hedefinin yerini hesaplar: indekste kap ve indeks, alanda alanın sahibi (key nil).
+type placeFunc func(v *VM, env *Environment) (owner, key Value, err error)
+
+// writeFunc yeri hesaplanmış hedefe sağ yanın değerini yazar (bileşik atamada önce işlem yapar).
+type writeFunc func(v *VM, owner, key, rhs Value) error
+
+// assignPlace indeks ve alan hedefinin yerini ve yazmasını ayrı derler: bileşik atamada yer sağ
+// yandan önce, bir kez hesaplanır (5.4). A[i][j] = değer, A[i] okumasının sonucuna [j] ile atamadır
+// (tensör satırı veriyi paylaşan bir görünümdür; bkz. IndeksAtanabilir). Modül değerine köşeli
+// ayraçla atanmaz (11.2). Ad hedefinin yeri yoktur: place nil.
+func (c *compiler) assignPlace(k *compilerScope, target ast.Expression, codeVal uint8, line int) (placeFunc, writeFunc) {
+	switch t := target.(type) {
+	case *ast.IndexExpression:
+		leftFn := c.expression(k, t.Left)
+		index := c.expression(k, t.Index)
+		place := func(v *VM, env *Environment) (Value, Value, error) {
+			left, err := leftFn(v, env)
+			if err != nil {
+				return nil, nil, err
 			}
+			idx, err := index(v, env)
+			return left, idx, err
 		}
-		return v.setIndex(left, idx, codeVal, rhs, line)
+		return place, func(v *VM, left, idx, rhs Value) error {
+			if d, ok := left.(*DictVal); ok {
+				if err := moduleIndexError(d, t.Left, idx); err != nil {
+					return messages.At(line, 0, err)
+				}
+			}
+			return v.setIndex(left, idx, codeVal, rhs, line)
+		}
+	case *ast.MemberExpression:
+		object := c.expression(k, t.Object)
+		prop := t.Property
+		u := c.member(prop)
+		place := func(v *VM, env *Environment) (Value, Value, error) {
+			obj, err := object(v, env)
+			return obj, nil, err
+		}
+		return place, func(v *VM, obj, _, rhs Value) error {
+			return v.setMember(obj, prop, u, codeVal, rhs, line)
+		}
 	}
+	return nil, nil
 }

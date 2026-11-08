@@ -114,13 +114,39 @@ func (c *compiler) assignStatement(k *compilerScope, s *ast.AssignStatement) sta
 	if id, ok := s.Target.(*ast.Identifier); ok && s.Operator == "=" {
 		value = k.placeOfName(id.Value).code(value, s.Line()) // tipi yazılı ada atama (3.13)
 	}
-	dest := c.assignTarget(k, s.Target, opCode(string(s.Operator)), s.Line())
+	codeVal := opCode(string(s.Operator))
+	if codeVal != opAssign {
+		if place, write := c.assignPlace(k, s.Target, codeVal, s.Line()); place != nil {
+			return compoundAtPlace(place, write, value)
+		}
+	}
+	dest := c.assignTarget(k, s.Target, codeVal, s.Line())
 	return func(v *VM, env *Environment) (Value, flowSignal, error) {
 		val, err := value(v, env)
 		if err != nil {
 			return nil, signalNone, err
 		}
 		if err := dest(v, env, val); err != nil {
+			return nil, signalNone, err
+		}
+		return val, signalNone, nil
+	}
+}
+
+// compoundAtPlace bileşik atamayı 5.4'ün sırasıyla yapar: önce hedefin yeri (indeks, alanın
+// sahibi), sonra sağ yan, sonra hedefin değeri okunur, işlem uygulanır ve yazılır. Sağ yan indeksi
+// ya da sahibi değiştirse de yazma ilk hesaplanan yere gider.
+func compoundAtPlace(place placeFunc, write writeFunc, value exprCode) statementCode {
+	return func(v *VM, env *Environment) (Value, flowSignal, error) {
+		owner, key, err := place(v, env)
+		if err != nil {
+			return nil, signalNone, err
+		}
+		val, err := value(v, env)
+		if err != nil {
+			return nil, signalNone, err
+		}
+		if err := write(v, owner, key, val); err != nil {
 			return nil, signalNone, err
 		}
 		return val, signalNone, nil

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
@@ -25,10 +24,10 @@ func TestCheckModuleTellsTheLibraryByItsText(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(data)
-	if r := interp.CheckModule("tr/optimizers.tr", text, nil, true); r.Stage != "" {
+	if r := interp.CheckModule("tr/optimizers.tr", text); r.Stage != "" {
 		t.Errorf("kitaplığın kendi dosyası geçmeli: %v", r.Errors)
 	}
-	if r := interp.CheckModule("kopya.tr", text, nil, true); r.Stage != source.StageType {
+	if r := interp.CheckModule("kopya.tr", text); r.Stage != source.StageType {
 		t.Errorf("başka adlı kopya kitaplık değildir, istisnası yoktur: %q", r.Stage)
 	}
 	if got := interp.LibraryFileName("proje/tr/optimizers.tr", text+" "); got != "" {
@@ -43,8 +42,8 @@ var repoWarningAllowed = map[string]string{}
 // Tanımsız ad denetimi (docs/spec/05_deyimler.md §5.14) dinamik dilde yanlış alarm vermemeli:
 // depodaki bütün .tr dosyaları (testler, örnekler, kıyas programları, kitaplık) hatasız ve uyarısız
 // denetlenir (gölgeleme 2.9a, etkisiz ifade 2.8 ...; bilerek uyaranlar repoWarningAllowed'da). Bilerek
-// hatalı fikstürler (tests/negative/) hariçtir. Başka dosyaların aktardığı modüller, yorumlayıcıdaki
-// gibi aktaranın genel adlarıyla denetlenir (11.1).
+// hatalı fikstürler (tests/negative/) hariçtir. Başka dosyaların aktardığı modüller modül olarak, yalnız
+// kendi adları, yerleşikler ve aktardıklarıyla denetlenir: aktaranın adlarını görmez (5.14).
 func TestRepoTRFilesPassCheck(t *testing.T) {
 	root := reporoot.Root()
 	sources := map[string]string{}
@@ -75,29 +74,16 @@ func TestRepoTRFilesPassCheck(t *testing.T) {
 		t.Fatalf("yalnızca %d .tr dosyası bulundu", len(sources))
 	}
 
-	// Modül → aktaranların genel adları (birleşimi); aktaranlardan biri dinamikse dinamik.
-	type global struct {
-		names   map[string]bool
-		dynamic bool
-	}
-	modules := map[string]*global{}
+	// Başka bir dosyanın aktardığı dosyalar modüldür.
+	modules := map[string]bool{}
 	for filePath, code := range sources {
-		names, dynamic := checker.TopLevelNames(source.Prepare(code, source.Options{Library: interp.LibraryFileName(filePath, code)}).Program)
 		for _, y := range importSites(code) {
 			resolved, _, ok := resolveModulePath(y.filePath, filePath, filePath)
 			if !ok {
 				continue
 			}
 			absolute, _ := filepath.Abs(resolved)
-			g := modules[absolute]
-			if g == nil {
-				g = &global{names: map[string]bool{}}
-				modules[absolute] = g
-			}
-			for _, a := range names {
-				g.names[a] = true
-			}
-			g.dynamic = g.dynamic || dynamic
+			modules[absolute] = true
 		}
 	}
 
@@ -107,12 +93,8 @@ func TestRepoTRFilesPassCheck(t *testing.T) {
 		relative = filepath.ToSlash(relative)
 		absolute, _ := filepath.Abs(filePath)
 		var r *source.Result
-		if g := modules[absolute]; g != nil {
-			var names []string
-			for a := range g.names {
-				names = append(names, a)
-			}
-			r = interp.CheckModule(filePath, code, names, g.dynamic)
+		if modules[absolute] {
+			r = interp.CheckModule(filePath, code)
 		} else {
 			r = source.Prepare(code, source.Options{TypeCheck: true, Library: interp.LibraryFileName(filePath, code)})
 		}

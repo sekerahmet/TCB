@@ -181,13 +181,24 @@ func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 // module (a top-level 'sonuç' is an error) and type-checks it; on errors the result's Stage
 // ("sözdizimi" or "tip denetimi") and Errors are set. 'trlang check', 'trlang build' and
 // CheckImportedModules use this one check before the run (1.3); 'aktar' at run time only reads
-// and parses the module. Since a module runs under the importer's global scope (11.1), genelAdlar
-// count as defined in the module, and a name defined nowhere else is an undefined-name error
-// (5.14); dinamik says the global names are not fully known (then undefined names are not
-// reported). filePath tells the library's own file from a user's (LibraryFileName).
-func CheckModule(filePath, text string, globalNames []string, dynamic bool) *source.Result {
-	return source.Prepare(text, source.Options{Module: true, TypeCheck: true, Library: LibraryFileName(filePath, text),
-		InGlobalScope: true, GlobalNames: globalNames, GlobalDynamic: dynamic})
+// and parses the module. A module sees only its own names, the builtins and what it imports,
+// not its importer's (5.14): a name defined nowhere in it is an undefined-name error. filePath
+// tells the library's own file from a user's (LibraryFileName).
+func CheckModule(filePath, text string) *source.Result {
+	return source.Prepare(text, source.Options{Module: true, TypeCheck: true, Library: LibraryFileName(filePath, text)})
+}
+
+// builtinsOnly genel kapsamın New'in kurduğu adlarını (yerleşikler, tipler, sabitler) yeni bir
+// kapsama kopyalar: modüllerin genel kapsamı (moduleRoot). Kopya kayıt bitince alınır; ana
+// programın sonradan genel kapsama eklediği ya da bir yerleşiği gölgeleyen adı ona girmez.
+func builtinsOnly(g *Environment) *Environment {
+	root := NewEnvironment(nil)
+	for i, name := range g.scope.nameList {
+		if i < len(g.vals) && g.vals[i] != nil {
+			root.Define(name, g.vals[i], g.isConstant(i))
+		}
+	}
+	return root
 }
 
 // moduleLoading yüklenmekte olan bir modüldür; aynı modülü isteyen başka görevler yüklemenin
@@ -306,8 +317,8 @@ func (v *VM) waitForModule(s *ast.ImportStatement, path, keyStr string, y *modul
 // moduleTarget 'aktar' yolunun gösterdiği modülü bulur (yolu ve gösterilen adı; kaynak yalnızca
 // yüklenirken okunur, bakilanlar okuma hatası içindir). "tr/" önekli yol dilin gömülü
 // kitaplığındandır (11.6); kitaplık modülünün içindeki göreli yol da
-// kitaplıkta çözülür. Öbür göreli yollar önce aktaran dosyanın, sonra programın klasörüne
-// göre aranır (11.1).
+// kitaplıkta çözülür. Öbür göreli yollar yalnız aktaran dosyanın klasörüne göre, diskteki harf
+// büyüklüğüyle çözülür (11.1, ResolveModulePath); bulunamayan yolun hatası nedenini söyler.
 func (v *VM) moduleTarget(s *ast.ImportStatement, path string) (dest *Source, searched []string, err error) {
 	name, inLibrary := LibraryModule(path)
 	if !inLibrary && v.source != nil && v.source.Embedded && !filepath.IsAbs(path) {
@@ -316,7 +327,11 @@ func (v *VM) moduleTarget(s *ast.ImportStatement, path string) (dest *Source, se
 	if inLibrary {
 		return &Source{Path: LibraryPrefix + name, Name: LibraryPrefix + name, Embedded: true}, nil, nil
 	}
-	resolved, searched, _ := ResolveModulePath(path, v.searchDirs())
+	dirs := v.searchDirs()
+	resolved, searched, ok := ResolveModulePath(path, dirs)
+	if !ok {
+		return nil, searched, messages.At(s.Line(), 0, ReadError(codes.NameRef(codes.KwImport), path, messages.H2112, ModulePathError(s.Path, dirs), searched))
+	}
 	return &Source{Path: resolved, Name: shownPath(resolved)}, searched, nil
 }
 
@@ -335,10 +350,10 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 		}
 		dest.Code = string(data)
 	}
-	// Modül genel kapsamın altında çalışır: genel kapsamda tanımlı (ya da yuvası ayrılmış)
-	// adları görür; yerleşikler de oradadır. Tip denetimi çalışmadan önce yapılmıştır
+	// Modül yalnız yerleşiklerin kapsamının altında çalışır (moduleRoot): kendi adlarını,
+	// yerleşikleri ve aktardıklarını görür, kendisini aktaranın adlarını görmez (5.14). Tip denetimi çalışmadan önce yapılmıştır
 	// (CheckImportedModules, 1.3); burada yalnız ayrıştırılır, ikinci bir denetim yolu yoktur.
-	ms := source.Prepare(dest.Code, source.Options{Module: true, InGlobalScope: true, GlobalNames: v.GlobalEnv.scope.nameList,
+	ms := source.Prepare(dest.Code, source.Options{Module: true,
 		Library: LibraryFileName(dest.Path, dest.Code)})
 	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
 	if ms.Stage != "" {
@@ -351,12 +366,13 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	v.loading = append(v.loading[:len(v.loading):len(v.loading)], keyStr)
 	defer func() { v.source, v.loading = prev, prevChain }()
 
-	// Modül, genel kapsamın altında kendi kapsamında derlenir
+	// Modül, yerleşiklerin kapsamının altında kendi kapsamında derlenir
 	c := v.newCompiler()
+	c.root = &compilerScope{info: v.moduleRoot.scope, global: v.moduleRoot}
 	modScope := subScope(c.root)
 	modScope.predefine(prog.Statements)
 	modCode := c.statements(modScope, prog.Statements)
-	modEnv := newEnv(v.GlobalEnv, modScope.info)
+	modEnv := newEnv(v.moduleRoot, modScope.info)
 
 	if _, _, err := modCode.run(v, modEnv); err != nil {
 		return nil, v.sourceError(modSource, err)

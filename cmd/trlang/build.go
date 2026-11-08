@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/interp"
 	"github.com/sekerahmet/TCB/internal/lang/lexer"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
@@ -170,8 +169,8 @@ func importSites(code string) []importSite {
 	}
 }
 
-// resolveModulePath bir 'aktar' yolunu yorumlayıcıyla aynı kuralla (yurut.ModulYolunuCoz) çözer:
-// önce aktaran dosyanın klasörüne, bulunamazsa ana programın klasörüne göre (11.1). aranan,
+// resolveModulePath bir 'aktar' yolunu yorumlayıcıyla aynı kuralla (interp.ResolveModulePath) çözer:
+// yalnız aktaran dosyanın klasörüne göre, diskteki harf büyüklüğüyle (11.1). aranan,
 // failure iletisinde gösterilecek denenmiş yollardır. Dilin kitaplığındaki (tr/ önekli) modüller
 // diskte aranmaz; onları çağıran yurut.KitaplikModulu ile ayırır.
 func resolveModulePath(filePath, importer, mainFile string) (resolved string, wanted []string, ok bool) {
@@ -191,11 +190,6 @@ type moduleCollector struct {
 	index    map[string]int // mutlak yol → Moduller içindeki sıra
 	modules  []packageFile
 	mainFile string // ana programın yolu
-	// globalNames ana programın genel kapsama tanımladığı adlardır: modüller genel kapsamın
-	// altında çalışır ve bu adları görür (11.1). globalDynamic, ana programda takma adsız
-	// 'aktar' olduğu için adların tam bilinmediğini söyler.
-	globalNames   []string
-	globalDynamic bool
 }
 
 // collect dosyanın 'aktar' deyimlerini çözer, henüz gömülmemiş modülleri okuyup pakete
@@ -231,7 +225,7 @@ func (t *moduleCollector) collect(file *packageFile, sourcePath string) error {
 		module := packageFile{Name: filepath.ToSlash(resolved), Code: string(content)}
 		// Modül yorumlayıcıdaki 'aktar' ile aynı denetimden geçer (sözdizimi, üst düzey
 		// 'sonuç', tip denetimi).
-		if s := interp.CheckModule(resolved, module.Code, t.globalNames, t.globalDynamic); s.Stage != "" {
+		if s := interp.CheckModule(resolved, module.Code); s.Stage != "" {
 			return &moduleCheckError{filePath: filepath.ToSlash(resolved), code: s.Text, kind: s.Stage, diags: s.Errors}
 		}
 		// Sıra özyinelemeden önce ayrılır; döngüsel aktarımlar böylece aynı sırayı bulur
@@ -268,7 +262,6 @@ func (e *moduleCheckError) MessageText(lang string) string {
 // preparePackage ana programı ve aktardığı tüm modülleri içeren paketi kurar.
 func preparePackage(srcPath, code string) (*pkg, error) {
 	t := &moduleCollector{index: map[string]int{}, mainFile: srcPath}
-	t.globalNames, t.globalDynamic = checker.TopLevelNames(source.Prepare(code, source.Options{Library: interp.LibraryFileName(srcPath, code)}).Program)
 	pk := &pkg{Main: packageFile{Name: filepath.ToSlash(srcPath), Code: code}}
 	if err := t.collect(&pk.Main, srcPath); err != nil {
 		return nil, err

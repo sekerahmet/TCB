@@ -1,0 +1,5 @@
+# TR 4
+# TEST 5.14 bir dosya kendisini aktaranın adlarını görmez: aktaranın değişkeni modülde tanımsızdır (aktaran: aktaran_adi.tr)
+TR_func oku() -> TR_Int {
+    TR_return gizli # ERROR H1106
+}
