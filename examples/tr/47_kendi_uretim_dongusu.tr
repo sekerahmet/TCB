@@ -22,8 +22,9 @@ TR_print("üret:  ", hazır)
 # Elle yazılan döngü. önbellek_kur() boş bir KV önbelleği verir: katman başına anahtar ve değerler orada
 # tutulur, ileri çağrısı yeni parçaları ona ekler ve konumu ilerletir. Başlangıç bir kez işlenir; sonra
 # her adım yalnızca son parçayı verir. ileri, her konum için bir logit [dağarcık] verir: bir sonraki
-# parçayı son konumun logiti belirler.
-TR_var ö = model.TR_build_cache()
+# parçayı son konumun logiti belirler. Kapasite, döngünün tutacağı parça sayısıdır (başlangıç + üretilen):
+# verilmezse sabit önbellek modelin bütün bağlamı kadar yer ayırır; büyük bir modelde bu gigabaytlarcadır.
+TR_var ö = model.TR_build_cache(TR_capacity: başlangıç.TR_length + ADET)
 TR_var çıktı = [k TR_for k TR_in başlangıç]
 TR_no_grad {
     TR_var mantık = model.TR_forward([başlangıç], TR_cache: ö)

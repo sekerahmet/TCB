@@ -37,7 +37,7 @@ func TestGGUFLogitsIndependentOfWorkers(t *testing.T) {
 TR_var m = TR_pretrained_gguf("m.gguf")
 TR_var ids = [(i * 37 + 11) % 512 TR_for i TR_in 0..20]
 TR_print(m.TR_forward(TR_Tensor([ids])).TR_tolist)
-TR_var ö = m.TR_build_cache()
+TR_var ö = m.TR_build_cache(TR_capacity: 32)
 TR_no_grad {
     TR_print(m.TR_forward(TR_Tensor([ids]), TR_cache: ö).TR_tolist)
     TR_for i TR_in 0..6 { TR_print(m.TR_forward(TR_Tensor([[ids[i]]]), TR_cache: ö).TR_tolist) }
