@@ -8,10 +8,7 @@ TR_import "tr/audio"
 TR_import "tr/chat"
 TR_import "tr/pretrained"
 TR_import "tr/vad"
-TR_import "tr/vits"
-TR_import "tr/whisper"
 
-TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
 TR_const _SINIR = ".!?…\n" # cümle sınırı (cümleler'in kuralı)
 # Kesitleyicinin varsayılan sessizliği: TR_silence 0,6 sn, ceil(0,6 × 16000 / 512) = 19 çerçeve × 32 ms (lib/vad.tr).
@@ -52,12 +49,10 @@ TR_func olcu_yaz(t: Tur) {
     TR_print("OLCU tur=\(t.sıra) soz_ms=\(t.söz_ms) yazi_ms=\(t.yazı_ms) ilk_parca_ms=\(t.ilk_parça_ms) ilk_cumle_ms=\(t.ilk_cümle_ms) cevap_ms=\(t.cevap_ms) ilk_ses_ms=\(t.ilk_ses_ms) toplam_ms=\(t.çalma_ms) bekleme_ms=\(t.bekleme_ms) geride_ms=\(t.geride_ms) calma_suresi_ms=\(t.çalma_süresi_ms) calma_sonrasi=\(t.çalma_sonrası) soylenen_fark=\(t.söylenen_fark) rakam=\(t.rakam) onek=\(t.önek) beklenen_onek=\(t.beklenen_önek) yeniden_okunan=\(t.yeniden_okunan) istem=\(t.istem) uretilen=\(t.üretilen) yeni_konusma=\(t.yeni_konuşma)")
 }
 
-# Zincir: modeller, konuşmanın geçmişi ve önbellek.
+# Zincir: dil modeli, konuşmanın geçmişi ve önbellek (yazıya çeviren ve ses modelleri asistan.tr'de).
 TR_struct Zincir {
     p: TR_Tokenizer
     model: TR_GPT
-    yazıcı: TR_Whisper
-    ses: TR_Vits
     sistem: TR_String
     en_çok: TR_Int
     bağlam: TR_Int
@@ -66,6 +61,7 @@ TR_struct Zincir {
     önbellek: TR_KVCache? = TR_none
     okunan: TR_List[TR_Int] = [] # önbellekteki kimlikler
     son_asistan: TR_Int = -1 # geçmişte son tamamlanan asistan iletisinin sırası
+    ısıtılan: TR_Int = 0 # önbelleğe önceden okunan sistem iletisinin parça sayısı (ısıt)
     tur: TR_Int = 0
     kimlik_satırları: TR_String = ""
 
@@ -74,7 +70,32 @@ TR_struct Zincir {
         TR_self.önbellek = önbellek_kur(TR_self.model, TR_self.bağlam)
         TR_self.okunan = []
         TR_self.son_asistan = -1
+        TR_self.ısıtılan = 0
     }
+}
+
+# ısıt: sistem iletisini konuşmanın başında, ilk sözden önce önbelleğe okur; ilk tur yalnız kullanıcının iletisini
+# okur. Sistem iletisinin tek başına biçimi sistem + kullanıcı biçiminin önekidir (24; zincir_test sınar), ortak önek
+# onu bulur. Önbelleksiz kipte bir şey yapmaz. Hata olursa ısıtma yokmuş gibi sürer: önbellek boşaltılır, ilk tur
+# sistem iletisini de okur; sonuç aynı, yalnız yavaş.
+TR_func ısıt(z: Zincir) {
+    TR_var ö = z.önbellek
+    TR_if z.önbelleksiz TR_or ö == TR_none { TR_return }
+    TR_var kimlikler = TR_qwen3_format(z.p, [TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: z.sistem)], TR_add_generation_prompt: TR_false)
+    z.okunan = []
+    z.ısıtılan = 0
+    TR_var başla = şimdi()
+    TR_try {
+        ö.TR_truncate(0)
+        TR_no_grad { z.model.TR_hidden_states([kimlikler], TR_cache: ö) }
+    } TR_catch e {
+        TR_print("ISITMA HATASI:", e)
+        ö.TR_truncate(0)
+        TR_return
+    }
+    z.okunan = kimlikler
+    z.ısıtılan = kimlikler.TR_length
+    TR_print("OLCU_ISITMA ms=\(şimdi() - başla) parca=\(kimlikler.TR_length)")
 }
 
 # Önbellek zincirin bağlamı kadardır. Kapasitesiz kurulan sabit önbellek modelin bütün bağlamını ayırır:
@@ -224,13 +245,10 @@ TR_func rakamlı(m: TR_String) -> TR_Bool {
     TR_return TR_false
 }
 
-# cevapla: söz kesitinden cevabın içeriğine kadar; söz yoksa TR_none. Cevabın cümleleri üretim sürerken, sınırları
+# cevapla: sözün yazısından cevabın içeriğine kadar; yazı boşsa TR_none. Cevabın cümleleri üretim sürerken, sınırları
 # geldikçe `söyle`'ye verilir (cümle akışı); sınırla bitmeyen son parça cevap bitince. Söylenen cümleler cevabın
 # içeriğinin cümlelerinden ayrılırsa kalan söylenmez, fark `OLCU`'ya ve günlüğe yazılır.
-TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur, söyle: (TR_String) -> TR_NoneType) -> TR_String? {
-    TR_var yazı = z.yazıcı.TR_transcribe(TR_Sound(kesit.TR_reshape([1, kesit.TR_shape[0]]), _HIZ), TR_language: "tr").TR_text
-    t.yazı_ms = şimdi() - t0
-    TR_print("SÖZ:", yazı)
+TR_func cevapla(z: Zincir, yazı: TR_String, t0: TR_Int, t: Tur, söyle: (TR_String) -> TR_NoneType) -> TR_String? {
     TR_if yazı.TR_strip() == "" { TR_return TR_none }
     z.geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: yazı.TR_strip()))
     TR_var kimlikler = TR_qwen3_format(z.p, z.geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
@@ -243,6 +261,7 @@ TR_func cevapla(z: Zincir, kesit: TR_Tensor, t0: TR_Int, t: Tur, söyle: (TR_Str
         kimlikler = TR_qwen3_format(z.p, z.geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
     }
     t.beklenen_önek = beklenen_önek(z.p, z.geçmiş, z.son_asistan)
+    TR_if z.son_asistan < 0 { t.beklenen_önek = TR_max(t.beklenen_önek, z.ısıtılan) } # ilk tur: ısıtılan sistem iletisi
     TR_var akış = cümle_akışı(z.p)
     TR_var ü = üret(z, kimlikler, t, (k, an) => {
         TR_var yeni = akış.ekle(k)

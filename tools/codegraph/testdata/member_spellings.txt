@@ -1173,6 +1173,7 @@ ob.TR_set_multiplier	ok	0	tr:method:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_me
 oc.TR_step	ok	0	name:TR_mem_step
 od.TR_step	ok	0	name:TR_mem_step
 okunan.TR_append	ok	0	name:TR_mem_append
+okunan.TR_length	ok	0	name:TR_mem_length
 okuyucu.TR_close	ok	0	name:TR_mem_close
 okuyucu.TR_next	ok	0	name:TR_mem_next
 olay.TR_starts_with	ok	0	name:TR_mem_starts_with
@@ -1584,6 +1585,7 @@ y.TR_transpose	ok	0	name:TR_mem_transpose
 y1.TR_tolist	ok	0	name:TR_mem_tolist
 y2.TR_tolist	ok	0	name:TR_mem_tolist
 yakalanan.TR_contains	ok	0	name:TR_mem_contains
+yalnız.TR_length	ok	0	name:TR_mem_length
 yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
 yarım.TR_to_dtype	ok	0	name:TR_mem_to_dtype

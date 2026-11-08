@@ -1,5 +1,5 @@
 # TR 4
-# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığı, çapa, taşma).
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), sistem iletisinin önceden okunması, cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığı, çapa, taşma).
 TR_import "tr/chat"
 TR_import "zincir"
 
@@ -101,6 +101,69 @@ TR_test "önbellek modelin bağlamını değil zincirin bağlamını ayırır" {
     TR_no_grad { m.TR_hidden_states([[1, 2, 3, 4, 5, 6, 7, 8]], TR_cache: ö) }
     TR_assert_equal(8, ö.TR_position)
     TR_assert_equal("H6909", TR_error_code { TR_no_grad { m.TR_hidden_states([[9]], TR_cache: ö) } })
+}
+
+TR_const _SİSTEM = "Kısa ve Türkçe cevap ver."
+
+# küçük_zincir: depodaki parçalayıcı ve rastgele ağırlıklı küçük bir GPT; sesin modelleri gerekmez.
+TR_func küçük_zincir(bağlam: TR_Int, önbelleksiz: TR_Bool) -> Zincir {
+    TR_var p = parçalayıcı()
+    TR_var m = TR_GPT(p.TR_vocab_size, TR_context: 512, TR_embed_dim: 16, TR_num_layers: 2, TR_num_heads: 2, TR_seed: 7)
+    TR_var z = Zincir(p: p, model: m, sistem: _SİSTEM, en_çok: 8, bağlam: bağlam, önbelleksiz: önbelleksiz)
+    z.yeni_konuşma()
+    TR_return z
+}
+
+TR_func ilk_tur(z: Zincir, t: Tur) -> TR_List[TR_Int] {
+    z.geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba, nasılsın?"))
+    TR_var kimlikler = TR_qwen3_format(z.p, z.geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+    TR_return üret(z, kimlikler, t, (_, _) => {}).kimlikler
+}
+
+TR_test "sistem iletisinin tek başına biçimi sistem ve kullanıcı biçiminin önekidir" {
+    TR_var p = parçalayıcı()
+    TR_var s = TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: _SİSTEM)
+    TR_var yalnız = TR_qwen3_format(p, [s], TR_add_generation_prompt: TR_false)
+    TR_var hepsi = TR_qwen3_format(p, [s, TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba")], TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+    TR_assert(yalnız.TR_length < hepsi.TR_length)
+    TR_assert_equal(yalnız, hepsi[0..yalnız.TR_length])
+}
+
+# Isıtma sistem iletisini ayrı bir ileri geçişte okur: çarpımlar başka şekillidir (bütün istem yerine önce sistem
+# iletisi, sonra kalanı). 15.22a aynı bitleri aynı şekilde söz verir, başka şekilde değil; bu yüzden sınanan şey
+# üretilen kimliklerin önbelleksiz okumayla aynı olmasıdır.
+TR_test "sistem iletisi önceden okununca ilk turun kimlikleri değişmez, ilk tur yalnız kalanı okur" {
+    TR_var sıcak = küçük_zincir(256, TR_false)
+    ısıt(sıcak)
+    TR_assert(sıcak.ısıtılan > 0)
+    TR_assert_equal(sıcak.ısıtılan, sıcak.okunan.TR_length)
+    TR_var ts = Tur(sıra: 1, söz_ms: 0)
+    TR_var soğuk = küçük_zincir(256, TR_false)
+    TR_var tc = Tur(sıra: 1, söz_ms: 0)
+    TR_var yok = küçük_zincir(256, TR_true)
+    ısıt(yok) # önbelleksiz kipte bir şey yapmaz
+    TR_assert_equal(0, yok.ısıtılan)
+    TR_var ty = Tur(sıra: 1, söz_ms: 0)
+    TR_var k = ilk_tur(sıcak, ts)
+    TR_assert_equal(8, k.TR_length)
+    TR_assert_equal(k, ilk_tur(soğuk, tc))
+    TR_assert_equal(k, ilk_tur(yok, ty))
+    TR_assert_equal(sıcak.ısıtılan, ts.önek)
+    TR_assert_equal(ts.istem - sıcak.ısıtılan, ts.yeniden_okunan)
+    TR_assert_equal(0, tc.önek)
+}
+
+TR_test "ısıtmanın hatası programı durdurmaz: önbellek boşalır, ilk tur sistem iletisini de okur" {
+    TR_var z = küçük_zincir(4, TR_false) # önbellek sistem iletisinden kısa: okuma H6909 ile düşer
+    ısıt(z)
+    TR_assert_equal(0, z.ısıtılan)
+    TR_assert_equal(0, z.okunan.TR_length)
+    z.bağlam = 256
+    z.önbellek = önbellek_kur(z.model, z.bağlam)
+    TR_var t = Tur(sıra: 1, söz_ms: 0)
+    TR_var yok = küçük_zincir(256, TR_true)
+    TR_assert_equal(ilk_tur(yok, Tur(sıra: 1, söz_ms: 0)), ilk_tur(z, t))
+    TR_assert_equal(0, t.önek)
 }
 
 # Konuşma: söyle hemen döner (çalma ayrı görevde); her çalma öncekinin bitmesini bekler. Sahte çalıcı bırakılana
