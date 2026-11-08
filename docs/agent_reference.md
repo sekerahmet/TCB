@@ -184,7 +184,7 @@ TR_var n = TR_try { oku() } TR_catch e {
   - Blok adları çalıştığı andaki değerleriyle okur; bloktan `TR_return` ile çıkılmaz.
 
 ## Sık yerleşikler
-- **Genel:** `TR_print(a, b)` (değerleri boşlukla yazar), `TR_abs`, `TR_floor` ve `TR_ceil` (`TR_Float` verir), `TR_round(x)`, `TR_round(x, basamak)`, `TR_sqrt`, `TR_log`, `TR_exp`, `TR_min`, `TR_max`, `TR_sum(l)`, `TR_mean(l)`, `TR_json_parse(m)`, `TR_json_string(j)`, `TR_time_ms()`, `TR_sleep(saniye)`, `TR_exit(kod)`.
+- **Genel:** `TR_print(a, b)` (değerleri boşlukla yazar), `TR_abs`, `TR_floor` ve `TR_ceil` (`TR_Float` verir), `TR_round(x)`, `TR_round(x, basamak)`, `TR_sqrt`, `TR_log`, `TR_exp`, `TR_min`, `TR_max`, `TR_sum(l)`, `TR_mean(l)`, `TR_json_parse(m)`, `TR_json_string(j)`, `TR_time_ms()` (duvar saati: kayıt ve zaman damgası), `TR_monotonic_ns()` (tekdüze saat: süre ölçmek, farkı nanosaniye), `TR_sleep(saniye)`, `TR_exit(kod)`.
 - **Yuvarlama:** `TR_round(x)` bir `TR_Int` verir, `TR_round(x, basamak)` girdinin tipini. Yarım çifte gider, yazılan ondalığa göre: `TR_round(2.5)` = 2, `TR_round(3.5)` = 4, `TR_round(0.125, 2)` = 0.12, `TR_round(2.675, 2)` = 2.68.
 - **Metin:** `m[0..3]` dilimdir, `.TR_length`, `.TR_lower()`, `.TR_upper()` (dile bağlı değil: `"I"` `i` olur, Türkçe için önce `.TR_replace` gerekir), `.TR_strip()`, `.TR_split()` (boşluk, sekme ve satır sonunda böler), `.TR_split(ayırıcı)`, `.TR_replace(a, b)`, `.TR_starts_with(m)`, `.TR_ends_with(m)`, `.TR_contains(m)`, `.TR_index_of(m)` (`TR_Int?`, bayt değil karakter sırası), `.TR_lines()` (`TR_read_lines` gibi böler), `.TR_get(i)`.
 - **Liste:**

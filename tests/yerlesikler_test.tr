@@ -25,6 +25,19 @@ TR_test "13.1 TR_time_ms Unix zamanıdır, milisaniye sayar" {
     TR_assert(fark < 10_000)
 }
 
+TR_test "13.1 TR_monotonic_ns tekdüze saattir: nanosaniye sayar, geri gitmez, argüman almaz" {
+    TR_var ilk = TR_monotonic_ns()
+    TR_var ikinci = TR_monotonic_ns()
+    TR_assert_equal(TR_Int, TR_Type(ilk))
+    TR_assert(ikinci - ilk >= 0)
+    TR_sleep(0.01)
+    # 10 ms nanosaniyede en az 10 000 000 eder; milisaniye ya da mikrosaniye veren saat buna ulaşmaz
+    TR_var fark = TR_monotonic_ns() - ikinci
+    TR_assert(fark >= 10_000_000)
+    TR_assert(fark < 10_000_000_000)
+    TR_assert_equal("H2012", TR_error_code { TR_monotonic_ns(1) })
+}
+
 TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {
     TR_assert_equal(2.0, TR_max([2.0, 1.5]))
     TR_assert_equal(TR_Float, TR_Type(TR_max([2.0, 1.5])))
