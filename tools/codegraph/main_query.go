@@ -25,9 +25,10 @@ type queryOpts struct {
 	undirected     bool   // path: yön yok sayılır (tür, paket ve dosyalardan geçmeden)
 	throughHubs    bool   // path: yön yok sayılır, çok bağlı düğümlerden de geçer
 	goTests        bool   // changed: yalnız koşulacak Go testleri, satır başına "klasör test"
+	asJSON         bool   // untested: JSON çıktı
 }
 
-// runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for,
+// runQuery grafiği okuyan komutları çalıştırır: query, explain, path, who-uses, tests-for, untested,
 // history, changed, callees, calls-into.
 func runQuery(cmd string, args []string, stdout, stderr io.Writer) int {
 	return runQueryOn(nil, cmd, args, stdout, stderr)
@@ -45,7 +46,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.IntVar(&o.limit, "limit", 12, "lines per group")
 	fs.StringVar(&o.root, "root", "", "repository root (default: found from the current directory, see README)")
 	fs.StringVar(&o.base, "base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
-	fs.StringVar(&o.in, "in", "", "callees, calls-into: restrict to a package")
+	fs.StringVar(&o.in, "in", "", "callees, calls-into, untested: restrict to a package or folder")
 	fs.IntVar(&o.min, "min", 2, "calls-into: at least this many distinct functions")
 	fs.BoolVar(&o.tests, "tests", false, "calls-into: count callers in test files too")
 	fs.StringVar(&o.mode, "mode", "", "fields: only read or write accesses")
@@ -54,12 +55,16 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	fs.BoolVar(&o.throughHubs, "through-hubs", false, "path: ignore direction and allow types, packages and files on the way (marked [hub])")
 	fs.BoolVar(&o.byPackage, "by-package", false, "who-uses: summarise the users per package")
 	fs.BoolVar(&o.goTests, "go-tests", false, "changed: print only the Go tests to run, one \"folder TestName\" per line (the pre-check runs them)")
+	fs.BoolVar(&o.asJSON, "json", false, "untested: machine-readable output")
 	if err := fs.Parse(reorderFlags(args)); err != nil {
 		return exitUsage
 	}
 	want := 1
-	if cmd == "path" {
+	switch cmd {
+	case "path":
 		want = 2
+	case "untested":
+		want = 0
 	}
 	if fs.NArg() != want {
 		fmt.Fprintf(stderr, "codegraph %s: expected %d name(s)\n%s", cmd, want, usage)
@@ -119,6 +124,10 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 
 // dispatch adları düğümlere çözer ve komutu çalıştırır.
 func (ix *index) dispatch(cmd string, names []string, o *queryOpts) int {
+	if cmd == "untested" {
+		ix.withTestNotes(o.root)
+		return ix.runUntested(o)
+	}
 	if cmd == "changed" { // adı değil, git revizyonu alır
 		return ix.runChanged(changeOpts{root: o.root, base: o.base, limit: o.limit, goTests: o.goTests}, names[0], o.stdout, o.stderr)
 	}

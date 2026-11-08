@@ -112,6 +112,9 @@ are measurements and stay out), and so do, for `x.go`, the tests of its test fil
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).
 Functions of a package that a test builds and runs as a binary get the "covered by subprocess tests" line (`builds`).
+`untested [--in DIR] [--json] [--limit N|--all]` runs the same seven-branch decision (`testsForNode`) over every non-test
+Go function and method in the graph (`func` and `method`, closures excluded) and prints the counts of `tested`,
+`subprocess`, `rule`, `measured`, `weak`, `exam` and `untested`, followed by the six non-tested groups.
 
 ## Reading an answer
 

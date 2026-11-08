@@ -235,3 +235,54 @@ func (ix *index) importsTransitively(from, to string) bool {
 	}
 	return false
 }
+
+var untestedBranches = []string{branchTested, branchSubprocess, branchRule, branchMeasured, branchWeak, branchExam, branchUntested}
+
+type untestedEntry struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+	File string `json:"file"`
+	Line int    `json:"line"`
+}
+
+// runUntested test dışı her Go işlevini ve metodunu testsForNode'un yedi koluna göre gruplar.
+func (ix *index) runUntested(o *queryOpts) int {
+	counts := map[string]int{}
+	for _, b := range untestedBranches {
+		counts[b] = 0
+	}
+	groups := map[string][]*Node{}
+	total := 0
+	for i := range ix.g.Nodes {
+		n := &ix.g.Nodes[i]
+		if (n.Kind != kindFunc && n.Kind != kindMethod) || inTestFile(n) || !underIn(n.File, o.in) {
+			continue
+		}
+		total++
+		b := ix.testsForNode(n).branch
+		counts[b]++
+		if b != branchTested {
+			groups[b] = append(groups[b], n)
+		}
+	}
+	if o.asJSON {
+		jGroups := map[string][]untestedEntry{}
+		for _, b := range untestedBranches[1:] {
+			for _, n := range groups[b] {
+				jGroups[b] = append(jGroups[b], untestedEntry{Name: n.Name, Kind: n.Kind, File: n.File, Line: n.Line})
+			}
+		}
+		return writeJSON(o.stdout, o.stderr, map[string]any{
+			"schema": "codegraph-untested/1", "total": total, "counts": counts, "groups": jGroups,
+		})
+	}
+	fmt.Fprintf(o.stdout, "%d non-test Go functions and methods: %d tested, %d subprocess, %d rule, %d measured, %d weak, %d exam, %d untested\n",
+		total, counts[branchTested], counts[branchSubprocess], counts[branchRule], counts[branchMeasured], counts[branchWeak], counts[branchExam], counts[branchUntested])
+	for _, b := range append([]string{branchUntested}, untestedBranches[1:len(untestedBranches)-1]...) {
+		if len(groups[b]) > 0 {
+			fmt.Fprintf(o.stdout, "\n%s (%d):\n", b, len(groups[b]))
+			forEachLimited(o.stdout, groups[b], o.limit, "  ", moreHint, describe)
+		}
+	}
+	return exitOK
+}

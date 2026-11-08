@@ -4,14 +4,14 @@
 - **Taban (`main`):** `c151974ecc0ff19e597d0239f5683c5ba906a778`
 - **Başlama saati:** 2026-11-08 18:55:01 UTC+3 (`2026-11-08T07:55:01-08:00`)
 - **Go sürümü:** `go1.27.3 linux/amd64` (`GOTOOLCHAIN=local`)
-- **Bağlam sıkıştırması:** Yok
+- **Bağlam sıkıştırması:** 1 kez — Adım 2-0b sırasında (`7ca1615` commit'inden sonra, 2026-11-08 19:27:48 UTC+3 / `2026-11-08T16:27:48+00:00`). Yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
 
 ## İlerleme
 
 - [x] `CLAUDE.md` ve `UZAK_YONERGE_9.md` okundu, `gemini/uzak-9` dalı açıldı.
 - [x] Adım 1: Yeniden üretim (4 durumun taban ölçümleri ve `testdata/mod/shape` fikstürü; commit `a5244bc`)
-- [x] Adım 2-0a: `printTestsFor` ve `printLinkedBinaries` kol kararının taşınması (`testsForNode` ve `linkedBinaries`)
-- [ ] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü
+- [x] Adım 2-0a: `printTestsFor` ve `printLinkedBinaries` kol kararının taşınması (`testsForNode` ve `linkedBinaries`; commit `7ca1615`)
+- [x] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü
 - [ ] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer
 - [ ] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı)
 - [ ] Adım 2c: Yerel değişkenle işlev aktarımı
@@ -51,3 +51,24 @@
   - `zayıf` (`branchWeak`): `:102` (`codegraph tests-for codeindex.LoadCached`)
   - `sınav` (`branchExam`): `planning_questions.txt`'te yok; birim testi `exam_links_test.go:14` (`TestEveryNodeTheExamNamesIsLinkedFromTheExam`) koşar.
   - `test yok` (`branchUntested`): `planning_questions.txt`'te Linux'ta yok (`:103` `dataload.mmapFile` Linux'ta testlidir); birim testi `query_test.go:75` (`TestTestsFor`, `shape.Orphan`) koşar.
+
+## Adım 2-0b: `untested [--in DIR] [--json]` ve "Önce" Ölçümü
+
+- Üretim satırı: `main.go` `+2 -1`, `main_query.go` `+11 -4`, `query_subprocess.go` `+51 -0` -> toplam `+64 -5` (net `+59`, 40–80 bütçesi içinde).
+- README seçimi: `tools/codegraph/README.md:115`–`:117` satırlarında `tests-for` açıklamasının hemen yanında anlatıldı ("Audits" bölümü graf gerektirmeyen komutlar için olduğundan oraya konulmadı).
+- Koruyan test: `tools/codegraph/subprocess_test.go:77` (`TestUntestedGroupsFunctionsByBranch`) — `tested`, `subprocess`, `measured`, `weak` ve `untested` kollarını hem metin hem `--json` çıktısında doğrular, kapanışları dışarıda bırakır.
+- Koşma süresi (`--no-rebuild`): `1m16.6s` (`76.6s`).
+- Düğüm sayıları ve `6719` ile fark:
+  - Taban (`c151974e`): `git grep '^func '` (test ve `testdata` hariç) `6719`; grafın test dışı `func` (`3298`) + `method` (`3540`) düğümü `6838` (2-0a ve 2-0b'de eklenen 3 işlevle `6841`: `3298` `func` + `3543` `method`).
+  - Farkın nedeni: `6719` `func` bildiriminden `61`'i `IgnoredGoFiles` (`*_windows.go`, `*_other.go`, `*_race.go`) içinde Linux sürümüyle aynı işlev/metot kimliğini paylaşır ve `other_os.go:88`'de tek düğümde birleşir (`6719 - 61 = 6658`); buna karşılık `gocode.go:354`–`:364` arayüz metot bildirimleri için `180` ayrı `kindMethod` düğümü üretir (`6658 + 180 = 6838`).
+  - Test dışı kapanış (`kindClosure`) düğümü: `1549` (testler dahil toplam `3555`); `untested` listesine girmez.
+  - Ölçüm klasörü (`isMeasurement`, `tools/bench/`) işlevleri: `3` (`go.fib`, `go.main`, `go.ms`); listeye girer (`untested` grubunda).
+- `untested` "Önce" ölçümü (2-0b'nin ucu, 6841 düğüm; taban 6838 düğümde `tested` 6311, diğer 6 grup aynı):
+  - `tested`: `6314` (tabanda `6311`)
+  - `subprocess`: `92`
+  - `rule`: `0`
+  - `measured`: `2` (`interp.JSONVal.Operator`, `ml.TensorValue.matmulOp`)
+  - `weak`: `328`
+  - `exam`: `0`
+  - `untested`: `105`
+
