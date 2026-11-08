@@ -15,8 +15,8 @@
 - [x] Adım 2-0a: `printTestsFor` ve `printLinkedBinaries` kol kararının taşınması (`testsForNode` ve `linkedBinaries`; commit `7ca1615`)
 - [x] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü (commit `8b9f31d`)
 - [x] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer (commit `5e913a9`)
-- [x] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı)
-- [ ] Adım 2c: Yerel değişkenle işlev aktarımı
+- [x] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı; commit `f25bc55`)
+- [x] Adım 2c: Yerel değişkenle işlev aktarımı
 - [ ] Adım 2d: `dups --changed` etiketi ve README
 - [ ] Adım 3: Büyüme, "test yok" listesi (`UZAK9_TESTSIZ.txt`), 20'lik örneklem doğrulaması
 - [ ] Rapor (`UZAK9_RAPORU.md`), bitti ölçütü ve kendi kontrolüm
@@ -105,3 +105,28 @@
   - Doğrudan işlev dilimi/dizisi/haritası (`[]func(...){...}`, `[N]func(...){...}`, `map[K]func(...){...}`): **4** yer (`internal/devtools/codeindex/library_codes.go:257`, `internal/devtools/codeindex/lookup.go:255`, `internal/compute/gpu/typed_ops.go:148`, `tools/codegraph/query.go:156`).
   - Ad kodu olmayan yapı tablosunda işlev alanı (`[]struct{...}{{..., fn}}`): **2** satır (`internal/compute/tokenize/pretokenizers.go:28`, `tools/codegraph/dups_exclude.go:28`).
 - Koruyan test: `tools/codegraph/query_names_test.go:195` (`TestTableRowNameCodeIsImplementedByRowCallable`).
+
+## Adım 2c: Yerel Değişkenle İşlev Aktarımı (`viaVar = "var"`)
+
+- Yeni `Edge.Via` sabiti: `viaVar = "var"` (`viaArg = "arg"` ile aynı 3 harfli adlandırma düzeninde; yerel değişken üzerinden aktarımı belirtir). `reachEdge` (`test_reach.go:25`) `via == viaVar` kabul eder; `nameCallersOf` (`query_tests.go:213`, `!throughArgs`) `viaVar`'ı izlemez.
+- Üretim satırı: `gocode_scan.go` `+71 -2`, `test_reach.go` `+4 -3`, `query_tests.go` `+1 -1`, `graph.go` `+1 -1` (`extractorRevision = 94`).
+- **İşaretlenen kenarlar (`via="var"`):**
+  - Test dışı dosyalarda **8 yerel değişken** (7 işlevde) üzerinden **17 `calls` kenarı**:
+    1. `internal/lang/parser/enum.go:56` (`read` in `parser.Parser.parseEnumStatement`, çağrı `:64`): `:56` `parser.structBody.variant`, `:58` `parser.structBody.enumMethod`
+    2. `internal/lang/parser/struct.go:37` (`read` in `parser.Parser.parseStructStatement`, çağrı `:41`): `:37` `parser.structBody.field`, `:39` `parser.structBody.method`
+    3. `internal/stdlib/files/copy.go:106` (`resolve` in `files.moveJob.findSource`, çağrı `:110`): `:106` `interp.VM.ResolvePath`, `:108` `interp.VM.ResolveWritePath`
+    4. `internal/stdlib/files/copy.go:106` (`explain` in `files.moveJob.findSource`, çağrı `:113`): `:106` `interp.ReadError`, `:108` `interp.VM.WriteError`
+    5. `internal/compute/tensor/quant.go:194` (`open` in `tensor.dequantBlocks`, çağrı `:202`): `:194` `tensor.dequantQ8`, `:197` `tensor.dequantQ4K`, `:199` `tensor.dequantQ6K`
+    6. `internal/stdlib/ml/builtin_elementwise.go:57` (`fn` in `ml.registerGelu`, çağrı `:61`): `:57` `tensor.Tensor.Gelu`, `:59` `tensor.Tensor.GeluExact`
+    7. `internal/stdlib/ml/save.go:183` (`write` in `ml.tensorSave`, çağrı `:192`): `:183` `ml.writeToFile`, `:188` `ml.writeSafetensorsFile`
+    8. `internal/stdlib/ml/unlocked.go:69` (`kernel` in `ml.stepOn`, çağrı `:80`): `:72` `tensor.AdamW.StepKernel`, `:74` `tensor.SGD.StepKernel`
+  - Test dosyalarında **9 yerel değişken** (7 işlevde) üzerinden **12 `calls` kenarı** (`cumsum_sort_test.go:202,203`, `reduce_test.go:115,138`, `backend_multi_test.go:35,150`, `gemm_lib_test.go:24,63`, `gpu_test.go:117`).
+  - Toplam: **17 yerel değişken**, **29 `calls` (`via="var"`) kenarı**.
+- **Önlem listeleri (`UZAK_YONERGE_9.md:128`–`:134`):**
+  - **Birden çok işlev atanan değişkenler:** test dışındaki 8 değişkenin tamamı (`enum.go:56`, `struct.go:37`, `copy.go:106` `resolve`, `copy.go:106` `explain`, `quant.go:194` `open`, `builtin_elementwise.go:57` `fn`, `save.go:183` `write`, `unlocked.go:69` `kernel`) ve testlerdeki 3 değişken (`backend_multi_test.go:35,150`, `gpu_test.go:117`).
+  - **Ataması ile çağrısı farklı düğümde (biri kapanışta) olanlar:** 3 değişken (`internal/stdlib/ml/builtin_elementwise.go:57` `fn`, `internal/stdlib/ml/save.go:183` `write`, `internal/stdlib/ml/unlocked.go:69` `kernel`). Not: `714bbaf5`'te `use` (`gocode_scan.go:99,321`) kapanış içindeki `edgeCalls` kenarlarını da doğrudan kapsayan `owner` işlevine bağlar (`edgeContains -> kindClosure` `reachEdge`'de yoktur).
+  - **Değersiz bildirimle (`var x func(...)`) başlayanlar:** kabul edilenlerden test dışında 1 (`internal/stdlib/ml/unlocked.go:69` `var kernel func() *tensor.Kernel`), testlerde 2 (`backend_multi_test.go:35`, `gpu_test.go:117`).
+  - **Kenarda `Via` zaten dolu olduğu için ezilmeyenler:** **0** kenar.
+- **Kuralın uygulanmadığı değişkenler (test dışı, çağrılan yerel değişkenler):** parametre (`191`), işlev değişmezi `func(...){...}` (`171`; bunlardan `internal/lang/interp/sorting.go:102` `same` hem `isNumber` hem 2 `func_lit` alır), çağrı sonucu / çoklu dönüş (`134`), `range` döngü değişkeni (`36`), yapı alanı (`5`), dizin/harita (`3`), başka yerel değişken (`1`), adres alma `&x` (`0`); yalnız işlev atanıp hiç çağrılmayan (`called=false`): `2` (`internal/stdlib/process/process_value.go:52` `fn`, `tools/edithook/main.go:144` `pattern`).
+- **Kapsam dışı sayılar (test dışı):** paket düzeyi işlev değişkeni `25`, işlev tipli yapı alanı `45`, işlev döndüren işlev/metot `146`.
+- `tensor.dequantQ6K`: `tests, indirect (29)`, `weak evidence (60)`, `measurements, not tests (9)` (tabanda `no tests traced to it`, yalnız 142 ikili bağı vardı).

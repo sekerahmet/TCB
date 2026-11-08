@@ -174,6 +174,7 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 		{ID: pkgID(m + "/app"), Kind: kindPackage},
 		{ID: fn("Register"), Kind: kindFunc, Name: "app.Register", File: "app/app.go"},
 		{ID: fn("leaf"), Kind: kindFunc, Name: "app.leaf", File: "app/leaf.go"},
+		{ID: fn("varCall"), Kind: kindFunc, Name: "app.varCall", File: "app/leaf.go"},
 		{ID: fn("box.step"), Kind: kindMethod, Name: "app.box.step", File: "app/leaf.go"},
 		{ID: fn("Update"), Kind: kindFunc, Name: "app.Update", File: "app/app.go"},
 		{ID: fn("Save"), Kind: kindFunc, Name: "app.Save", File: "app/save.go"},
@@ -185,6 +186,7 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 	}, Edges: []Edge{
 		{From: fn("Register"), To: "name:TR_fn_backward", Kind: edgeUsesName},
 		{From: fn("Register"), To: fn("leaf"), Kind: edgeCalls, Confidence: inferred, Via: viaArg},
+		{From: fn("Register"), To: fn("varCall"), Kind: edgeCalls, Confidence: inferred, Via: viaVar},
 		{From: fn("Register"), To: fn("box.step"), Kind: edgeCalls, Confidence: inferred, Via: viaArg},
 		{From: fn("Update"), To: "name:TR_mem_update", Kind: edgeUsesName},
 		{From: fn("Update"), To: fn("Save"), Kind: edgeCalls, Confidence: extracted},
@@ -202,12 +204,12 @@ func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
 		sort.Strings(out)
 		return strings.Join(out, ", ")
 	}
-	for _, target := range []string{"leaf", "box.step"} {
+	for _, target := range []string{"leaf", "varCall", "box.step"} {
 		if got := names(fn(target)); got != "" {
-			t.Errorf("%s passed as an argument does not implement its receiver's name codes: got %q, want none", target, got)
+			t.Errorf("%s passed via %s does not implement its caller's name codes: got %q, want none", target, target, got)
 		}
 		if callers := ix.callersOf(fn(target)); len(callers) != 1 || callers[0] != fn("Register") {
-			t.Errorf("test reach still follows the argument edge: callers of %s %v", target, callers)
+			t.Errorf("test reach still follows the %s edge: callers %v", target, callers)
 		}
 	}
 	if got, want := names(fn("Save")), "b_test: güncelle"; got != want {

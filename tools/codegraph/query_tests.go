@@ -210,7 +210,7 @@ func (ix *index) nameCallersOf(id string) []string { return ix.callers(id, false
 func (ix *index) callers(id string, throughArgs bool) []string {
 	var out []string
 	for _, e := range ix.in[id] {
-		if !throughArgs && e.Via == viaArg && e.Confidence != extracted {
+		if !throughArgs && (e.Via == viaArg || e.Via == viaVar) && e.Confidence != extracted {
 			continue
 		}
 		if reachEdge(e.Kind, e.Confidence, e.From, e.To, e.Via) {
