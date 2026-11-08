@@ -492,7 +492,7 @@ func newTestReach(b *builder, idx *goIndex) *testReach {
 		r.isTest[t.id] = true
 	}
 	for k, e := range b.edges {
-		if reachEdge(k.kind, e.Confidence, k.from, k.to) {
+		if reachEdge(k.kind, e.Confidence, k.from, k.to, e.Via) {
 			r.callers[k.to] = append(r.callers[k.to], k.from)
 		}
 		if v, ok := initReader(k.kind, k.from, k.to); ok {

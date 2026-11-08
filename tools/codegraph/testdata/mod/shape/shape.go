@@ -97,3 +97,7 @@ func Bump(c *Counter, o *Other) func() int {
 
 // Make builds a Counter with a keyed literal.
 func Make() Counter { return Counter{n: 1} }
+
+func apply(fn func()) { fn() }
+
+func use() { apply(leaf) }

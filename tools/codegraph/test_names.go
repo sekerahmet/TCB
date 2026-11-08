@@ -66,7 +66,7 @@ func (ix *index) testsThroughNames(n *Node) []nameTest {
 		}
 	}
 	collect(n.ID, 0)
-	walkCallers(n.ID, ix.callersOf, ix.pkgOf, func(r reached) bool {
+	walkCallers(n.ID, ix.nameCallersOf, ix.pkgOf, func(r reached) bool {
 		if isTestNode(ix.byID[r.ID]) {
 			return false
 		}
