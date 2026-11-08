@@ -1513,6 +1513,7 @@ yalın.TR_requires_grad	ok	0	name:TR_mem_requires_grad
 yan.TR_tolist	ok	0	name:TR_mem_tolist
 yarım.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 yavaş.TR_wait	ok	0	name:TR_mem_wait
+yazı.TR_contains	ok	0	name:TR_mem_contains
 yazı.TR_length	ok	0	name:TR_mem_length
 yazı.TR_replace	ok	0	name:TR_mem_replace
 yazı.TR_segments	ok	0	tr:field:lib/whisper.tr:TR_type_Transcription.TR_mem_segments

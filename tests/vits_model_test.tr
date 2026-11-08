@@ -8,7 +8,7 @@ TR_import "tr/vits"
 
 TR_const _MODEL = "data/vits_tiny"
 
-TR_func başvuru(durum: TR_String) -> TR_Dict[TR_String, TR_Tensor] { TR_return TR_load_tensors("\(_MODEL)/kiyas/iz_\(durum)_f32.safetensors") }
+TR_func başvuru(durum: TR_String) -> TR_Dict[TR_String, TR_Tensor] { TR_return TR_load_tensors("\(_MODEL)/reference/iz_\(durum)_f32.safetensors") }
 
 # üret başvurunun iki gürültüsüyle üretir. Sessiz koşuda gürültü sıfırdır (`noise_scale=0`).
 TR_func üret(model: TR_Vits, r: TR_Dict[TR_String, TR_Tensor], çarpan: TR_Float) -> TR_Tensor {
@@ -90,9 +90,9 @@ TR_test "VITS klasör hataları adıyla söylenir" {
 TR_func ayarlı(eski: TR_String, yeni: TR_String) -> TR_String {
     TR_var k = klasör(TR_load_tensors("\(_MODEL)/model.safetensors"))
     TR_var yol = TR_String(TR_Path(k, "config.json"))
-    TR_var metin = TR_read_file(yol)
-    TR_assert(metin.TR_contains(eski))
-    TR_write_file(yol, metin.TR_replace(eski, yeni))
+    TR_var yazı = TR_read_file(yol)
+    TR_assert(yazı.TR_contains(eski))
+    TR_write_file(yol, yazı.TR_replace(eski, yeni))
     TR_return k
 }
 

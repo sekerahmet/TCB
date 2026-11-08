@@ -32,9 +32,9 @@ python -I tools/hf/vits_reference.py --model facebook/mms-tts-tur --revision SHA
 
 ```sh
 python -I tools/hf/small_vits.py --out tests/data/vits_tiny
-python -I tools/hf/vits_reference.py --model tests/data/vits_tiny --out tests/data/vits_tiny/kiyas --sentence "iz=İz" \
+python -I tools/hf/vits_reference.py --model tests/data/vits_tiny --out tests/data/vits_tiny/reference --sentence "iz=İz" \
     --tail-noise 6.5 --keep ids,noise_duration,noise_prior,log_duration,duration,waveform --f32-only
-rm tests/data/vits_tiny/kiyas/meta.json
+rm tests/data/vits_tiny/reference/meta.json
 ```
 
 `--tail-noise 6.5` gürültülü koşunun süre gürültüsüne spline sınırının (5) dışına düşen bir değer koyar: TR testi aralık dışı dalı da görür.
