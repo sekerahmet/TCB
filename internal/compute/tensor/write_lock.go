@@ -17,6 +17,10 @@ func (c *VersionCounter) LockWrites(l *WriteLock) { c.writeLock.Store(l) }
 // WriteLock deponun yazma kilidi; açıksa nil.
 func (c *VersionCounter) WriteLock() *WriteLock { return c.writeLock.Load() }
 
+// clearWriteLock kilidi kaldırır: havuza iade edilen depo yeniden kullanılınca başka bir
+// tensörün deposudur (bir parametrenin gradyanı gibi), eski kilidi taşımaz.
+func (c *VersionCounter) clearWriteLock() { c.writeLock.Store(nil) }
+
 // writeLocker yazma kilidi tutan depodur (VersionCounter'ı gömen CPU ve GPU depoları).
 type writeLocker interface {
 	LockWrites(l *WriteLock)
