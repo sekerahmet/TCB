@@ -1300,8 +1300,8 @@ Dil tanımında bölümü olmayan işler: A, B ve C (DENETİM istek 76) ve küç
 ### Yazıyı konuşmaya çevirme (dil tanımı 27 yazılınca kendi bölümüne taşınır)
 
 - **Mevcut durum (S1, `097540d4`, 2026-11-08):** `tr/vits`: `TR_pretrained_vits`, `TR_Vits`, `TR_synthesize`, MMS-TTS Türkçe. G4'te altı durumda parça kimlikleri ve süreler PyTorch float32 ile bire bir; SNR TR/PT64 85,0–100,2 dB, PyTorch'un kendi PT32/PT64'ü 88,0–98,9 dB [ölçüldü: S1, G4]. 8 iş parçacığında ses/hesap 1,06–1,08, PyTorch 23–26 [ölçüldü: S1, G4 CPU, üç cümle]. Parçalayıcı modelin dönüşümünü (Python'un küçük harf dönüşümü, `İ` → `i` + U+0307) açık tabloyla izliyor [test: `tests/vits_model_test.tr`].
-- **Mevcut durum (S1, `7d50a167`, hız):** leaky_relu `TR_fuse` içinde `TR_relu(x) - TR_relu(-x) * eğim` olarak kaynaştırıldı, yeni ad gerekmedi. Orta cümlenin hesabı 5,44–5,54 sn'den 1,98 sn'ye indi (2,8 kat), `_gevşek` profilden çıktı; gerçek modelde dalga, süre ve gizli ses eski yolla bit bit aynı. Tek ayrım `-0.0` girişte `+0` [ölçüldü: S1, G4 CPU, 8 iş parçacığı, iki ikili ikişer koşu].
-- **Yapılacaklar (hız; sahip H1 ya da T1):** `TR_where` `TR_fuse`'a girmiyor (H6207); kaynaştırmanın Go kodunda üç girdili düğüm yok [ölçüldü: S1; kanıtlı: S1]. Kalan pay evrişimde (`_ileri` 1,65 sn).
+- **Mevcut durum (S1, `7d50a167`, hız):** leaky_relu `TR_fuse` içinde `TR_relu(x) - TR_relu(-x) * eğim` olarak kaynaştırıldı, yeni ad gerekmedi. Orta cümlenin hesabı 5,44–5,54 sn'den 1,98 sn'ye indi (2,7–2,8 kat), `_gevşek` profilden çıktı; gerçek modelde dalga, süre ve gizli ses eski yolla bit bit aynı. Tek ayrım `-0.0` girişte `+0` [ölçüldü: S1, G4 CPU, 8 iş parçacığı, iki ikili ikişer koşu].
+- **Yapılacaklar (hız; sahip H1 ya da T1):** `TR_where` `TR_fuse`'a girmiyor (H6207); [kaynaştırmanın Go kodunda](../internal/compute/tensor/fuse.go) üç girdili düğüm yok [ölçüldü: S1; kanıtlı: S1]. Kalan pay evrişimde (`_ileri` 1,65 sn).
 
 ### Denetleyicinin üye erişimi
 

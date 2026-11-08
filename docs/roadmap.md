@@ -270,7 +270,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
   - açılış süresi.
 - **Üretim:**
   - KV önbelleği için halka tampon, 8 bitlik KV önbelleği;
-  - hazır istemin önbelleğini saklamak (önek önbelleği): dizüstünde 512 parçalık geçmişle ikinci tur önbellekle 4,1–5,4 sn, önbelleksiz 22,7 sn [ölçüldü: H1, 2026-11-08]; DOST'un her turu önbelleği korumalı;
+  - hazır istemin önbelleğini saklamak (önek önbelleği): dizüstünde 597 parçalık geçmişle ikinci tur önbellekle 4,1–5,4 sn (en az ve en çok, 20 iş parçacığı), önbelleksiz 22,7 sn [ölçüldü: H1, 2026-11-08]; DOST'un her turu önbelleği korumalı;
   - tahminli çözme.
 - **CPU:**
   - birden çok satırlık çarpımda (`M > 1`) 16 bitlik ağırlığı açmadan kullanmak: ön doldurma ve eğitimde bütün matris hâlâ geçici float32 tampona açılıyor (tek satırlık çarpım 2026-11-04'te kapandı);
