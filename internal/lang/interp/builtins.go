@@ -189,8 +189,12 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 	return Null, nil
 }
 
-// timeMsBuiltin zaman_ms() yerleşiğidir.
+// timeMsBuiltin zaman_ms() yerleşiğidir (13.1): duvar saati, Unix zamanı milisaniye; kayıt ve zaman
+// damgası içindir. Argüman almaz; argüman sessizce yok sayılmaz.
 func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 0 {
+		return nil, ArgCountError(codes.FnTimeMs, 0, len(args))
+	}
 	return NewInt(time.Now().UnixMilli()), nil
 }
 

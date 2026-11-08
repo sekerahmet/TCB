@@ -3543,20 +3543,20 @@ tr: değişken k = geçici_klasör(); dosya_yaz(Yol(k, "not.txt"), "x"); yazdır
 
     zaman_ms() → Tam
 
-Şimdiki zamanı 1970'ten bu yana geçen milisaniye olarak Tam verir; süre ölçmek için kullanılır.
+Şimdiki zamanı 1970'ten bu yana geçen milisaniye olarak Tam verir; duvar saatidir: kayıt ve zaman damgası içindir, saat düzeltilince geri gidebilir. Süre ölçmek için tekdüze_ns kullanılır.
 
 ```tr
-TR_var baş = TR_time_ms(); TR_sleep(0.05); TR_print(TR_time_ms() - baş >= 50)
+TR_var damga = TR_time_ms(); TR_print("kayıt", damga, "2020'den sonra mı:", damga > 1_577_836_800_000)
 ```
 
 Görünümü:
 
 ```text
-en: var baş = time_ms(); sleep(0.05); print(time_ms() - baş >= 50)
-tr: değişken baş = zaman_ms(); uyu(0.05); yazdır(zaman_ms() - baş >= 50)
+en: var damga = time_ms(); print("kayıt", damga, "2020'den sonra mı:", damga > 1_577_836_800_000)
+tr: değişken damga = zaman_ms(); yazdır("kayıt", damga, "2020'den sonra mı:", damga > 1_577_836_800_000)
 ```
 
-İlişkili: `TR_sleep(...)`
+İlişkili: `TR_monotonic_ns(...)`, `TR_sleep(...)`
 
 #### `TR_topk(...)` (`TR_fn_topk`, `en_büyük_k`)
 

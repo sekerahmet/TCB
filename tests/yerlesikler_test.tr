@@ -36,6 +36,7 @@ TR_test "13.1 TR_monotonic_ns tekdüze saattir: nanosaniye sayar, geri gitmez, a
     TR_assert(fark >= 10_000_000)
     TR_assert(fark < 10_000_000_000)
     TR_assert_equal("H2012", TR_error_code { TR_monotonic_ns(1) })
+    TR_assert_equal("H2012", TR_error_code { TR_time_ms(1) })
 }
 
 TR_test "13.1 min ve max'ın tipi işlecin tipidir, Tam'ları tam karşılaştırır, sayı olmayanda hata verir" {

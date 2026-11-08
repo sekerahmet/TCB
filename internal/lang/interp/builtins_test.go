@@ -20,15 +20,15 @@ func TestWaitAllTakesNoneOrATaskList(t *testing.T) {
 	}
 }
 
-// Kural (13.1): TR_monotonic_ns argüman almaz; argüman H2012'dir, sessizce yok sayılmaz. Argümansız
-// çağrı TR_Int verir.
+// Kural (13.1): TR_time_ms ve TR_monotonic_ns argüman almaz; argüman H2012'dir, sessizce yok sayılmaz
+// (eskiden TR_time_ms(1) zamanı veriyordu). Argümansız çağrı TR_Int verir.
 func TestClocksTakeNoArguments(t *testing.T) {
-	for _, source := range []string{"TR_print(TR_monotonic_ns(1))", "TR_print(TR_monotonic_ns(1, 2))"} {
+	for _, source := range []string{"TR_print(TR_time_ms(1))", "TR_print(TR_monotonic_ns(1))", "TR_print(TR_monotonic_ns(1, 2))"} {
 		if _, err := runTR(t, source+"\n"); !messages.Has(err, messages.H2012) {
 			t.Errorf("%s: H2012 beklenirdi, gelen %v", source, err)
 		}
 	}
-	for _, source := range []string{"TR_print(TR_Type(TR_monotonic_ns()))"} {
+	for _, source := range []string{"TR_print(TR_Type(TR_time_ms()))", "TR_print(TR_Type(TR_monotonic_ns()))"} {
 		if out, _, err := runTROut(t, source+"\n"); err != nil || out != "Int\n" {
 			t.Errorf("%s: Int beklenirdi, gelen %q, %v", source, out, err)
 		}
