@@ -275,6 +275,7 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
 - **CPU:**
   - birden çok satırlık çarpımda (`M > 1`) 16 bitlik ağırlığı açmadan kullanmak: ön doldurma ve eğitimde bütün matris hâlâ geçici float32 tampona açılıyor (tek satırlık çarpım 2026-11-04'te kapandı);
   - `relu`, `sigmoid`, `silu`'nun vektörlenmesi;
+  - ses üretiminde sızıntılı `relu` (leaky ReLU): MMS-TTS'nin TR yolunda zamanın %65,5'i `TR_where(x >= 0, x, x * eğim)`'de geçiyor. TR 8 iş parçacığında gerçek zamanın 0,93–0,95'inde, PyTorch'tan 22–25 kat yavaş [ölçüldü: S1, 2026-11-08, dizüstü, orta uzunlukta bir cümle]. İki yol var: yeni yerleşik ya da hızlı `TR_where`. Seçim S1'in teslim notundan sonra (TCB, DENETİM'le);
   - üretimde işçi sayısının ölçümü;
   - katman başına çekirdeklerin kaynaştırılması.
 - **Kartlar:** T4 ve H100'de sınama; SM120'nin tensör çekirdeği komutları.
