@@ -101,3 +101,5 @@ func Make() Counter { return Counter{n: 1} }
 func apply(fn func()) { fn() }
 
 func use() { apply(leaf) }
+
+func useMethod(b leafBox) { apply(b.step) }
