@@ -24,6 +24,9 @@
   - **Adım 3 taban ölçümleri (`/tmp/step3_files_before.txt`):**
     - Uçta izlenmeyen Go `INFERRED` `calls` kenarı (`Via != "arg"`): toplam `443` kenar (`223` ayrı hedef), bunların `311`'i metot hedefidir (`kind == "method"`); test dışı dosyalarda `193` kenar (`161` hedef), `132`'si metot hedefidir.
     - 19 örneklem dosyasının (`awk 'NR%40==1'`) taban `tests-for --all` sayıları `/tmp/step3_files_before.txt` dosyasına kaydedildi.
-- [ ] Adım 2a: Metot değeri test erişimine girer (ayrı commit).
+- [x] **Adım 2a: Metot değeri test erişimine girer (ayrı commit, tamamlandı):**
+  - `tools/codegraph/gocode_scan.go` içinde `argCallable` eklendi: paket düzeyi işlev (`sig.Recv() == nil`) ya da somut alıcılı metot değeri (`s.Kind() == types.MethodVal && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())`) çağrı argümanı olarak geçtiğinde `Via = viaArg` işareti alıyor (`extractorRevision = 90`).
+  - `tools/codegraph/testdata/mod/shape/` fikstürüne gömülü somut alan metodu (`embedBox` → `leafBox.step`) ve genel tip metodu (`genBox[int]` → `genBox.genStep`) eklendi.
+  - `TestTestsForFollowsPackageFunctionPassedAsCallArgument` ve `TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument` güncellendi; `go test -short ./tools/codegraph/` ve `dups --changed main` geçti.
 - [ ] Adım 2b: Yanındaki ad kodu, işlevin uygulaması sayılır (ayrı commit).
 - [ ] Adım 3: Büyümeyi ölç ve `UZAK8_RAPORU.md` yaz.

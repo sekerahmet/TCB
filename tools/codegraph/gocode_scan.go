@@ -52,7 +52,7 @@ func codeConstKeys(root string) map[string]string {
 	return keys
 }
 
-// viaArg bir çağrının argümanı olarak geçirilen paket düzeyi işlevin calls kenarındaki işaretidir (Edge.Via).
+// viaArg bir çağrının argümanı olarak geçirilen paket düzeyi işlevin ya da somut alıcılı metot değerinin calls kenarındaki işaretidir (Edge.Via).
 const viaArg = "arg"
 
 func markCall(calls map[*ast.Ident]string, n *ast.CallExpr) {
@@ -317,7 +317,7 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, callKind str
 			conf = extracted
 		}
 		x.b.addEdge(owner, ref, edgeCalls, conf, fc.rel, line)
-		if callKind == viaArg && fn.Type().(*types.Signature).Recv() == nil {
+		if callKind == viaArg && argCallable(fc, fn, stack[len(stack)-2]) {
 			if e := x.b.edges[edgeKey{owner, ref, edgeCalls}]; e.Via == "" {
 				e.Via = viaArg
 			}
@@ -342,6 +342,20 @@ func (x *goExtractor) use(fc *fileCtx, owner string, id *ast.Ident, callKind str
 	if ref != owner && !selfTypeRef(fc, stack, obj) { // bir türün kendi adına başvurusu (özyineli alan) kullanım değildir
 		x.b.addEdge(owner, ref, edgeUses, extracted, fc.rel, line)
 	}
+}
+
+// argCallable çağrı argümanı olarak geçirilen işlevin ya da somut alıcılı metot değerinin zincire girip girmediğidir.
+func argCallable(fc *fileCtx, fn *types.Func, n ast.Node) bool {
+	sig := fn.Type().(*types.Signature)
+	if sig.Recv() == nil {
+		return true
+	}
+	sel, ok := n.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	s := fc.u.Info.Selections[sel]
+	return s != nil && s.Kind() == types.MethodVal && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())
 }
 
 func selfTypeRef(fc *fileCtx, stack []ast.Node, obj types.Object) bool {

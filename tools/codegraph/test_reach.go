@@ -14,8 +14,8 @@ const (
 )
 
 // reachEdge bir kenarın "çağıran/kullanan" zincirine girip girmediği: kesin (EXTRACTED) çağrı, bir çağrının argümanı olarak
-// geçirilen paket düzeyi Go işlevi (via == viaArg), tür/sabit kullanımı, değişken okuma ve yazma, arayüzden uygulamaya geçiş.
-// Go'da öbür INFERRED çağrılar (bileşik değerdeki işlev, değişkene atanan işlev, yöntem değeri) zincire girmez;
+// geçirilen paket düzeyi Go işlevi ya da somut alıcılı metot değeri (via == viaArg), tür/sabit kullanımı, değişken okuma ve yazma, arayüzden uygulamaya geçiş.
+// Go'da öbür INFERRED çağrılar (bileşik değerdeki işlev, değişkene atanan işlev, arayüz metot değeri, metot ifadesi) zincire girmez;
 // TR'de ise alıcı tipi bilinmeyen sıradan metot çağrısıdır (`model.ileri(x)`), bu yüzden iki ucu da TR olan INFERRED
 // çağrı zincire girer (codeindex'in kendi yürüyüşü de bütün TR çağrılarını izler).
 func reachEdge(kind, confidence, from, to, via string) bool {

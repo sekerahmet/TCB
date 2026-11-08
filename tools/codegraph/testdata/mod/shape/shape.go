@@ -103,3 +103,7 @@ func apply(fn func()) { fn() }
 func use() { apply(leaf) }
 
 func useMethod(b leafBox) { apply(b.step) }
+
+func useEmbedded(b embedBox) { apply(b.step) }
+
+func useGeneric(b genBox[int]) { apply(b.genStep) }

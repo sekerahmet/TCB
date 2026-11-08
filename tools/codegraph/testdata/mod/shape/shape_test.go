@@ -24,3 +24,7 @@ func TestReport(t *testing.T) { _ = Report(Square{1}) }
 func TestUse(t *testing.T) { use() }
 
 func TestUseMethod(t *testing.T) { useMethod(leafBox{}) }
+
+func TestUseEmbedded(t *testing.T) { useEmbedded(embedBox{}) }
+
+func TestUseGeneric(t *testing.T) { useGeneric(genBox[int]{}) }
