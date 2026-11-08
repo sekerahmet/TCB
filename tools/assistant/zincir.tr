@@ -33,7 +33,10 @@ TR_struct Tur {
     ilk_ses_ms: TR_Int = -1
     çalma_ms: TR_Int = -1 # ilk cümle çalınmaya başladı (dosya kipinde çalınmaya verildi)
     bekleme_ms: TR_Int = -1 # kullanıcının beklediği: sözün sonundan çalmanın başlamasına
+    geride_ms: TR_Int = 0 # kesit tampondan geç okunduysa (tur sürerken konuşulan söz) geç kalınan süre
     çalma_süresi_ms: TR_Int = 0
+    çalma_başı: TR_Int = -1 # çalma aralığı (saat): ilk çalmanın başı, son çalmanın sonu
+    çalma_sonu: TR_Int = -1
     çalma_sonrası: TR_Int = 0
     rakam: TR_Int = 0
     önek: TR_Int = 0
@@ -47,7 +50,7 @@ TR_struct Tur {
 }
 
 TR_func olcu_yaz(t: Tur) {
-    TR_print("OLCU tur=\(t.sıra) soz_ms=\(t.söz_ms) yazi_ms=\(t.yazı_ms) ilk_parca_ms=\(t.ilk_parça_ms) ilk_cumle_ms=\(t.ilk_cümle_ms) cevap_ms=\(t.cevap_ms) ilk_ses_ms=\(t.ilk_ses_ms) toplam_ms=\(t.çalma_ms) bekleme_ms=\(t.bekleme_ms) calma_suresi_ms=\(t.çalma_süresi_ms) calma_sonrasi=\(t.çalma_sonrası) rakam=\(t.rakam) onek=\(t.önek) beklenen_onek=\(t.beklenen_önek) yeniden_okunan=\(t.yeniden_okunan) istem=\(t.istem) uretilen=\(t.üretilen) yeni_konusma=\(t.yeni_konuşma)")
+    TR_print("OLCU tur=\(t.sıra) soz_ms=\(t.söz_ms) yazi_ms=\(t.yazı_ms) ilk_parca_ms=\(t.ilk_parça_ms) ilk_cumle_ms=\(t.ilk_cümle_ms) cevap_ms=\(t.cevap_ms) ilk_ses_ms=\(t.ilk_ses_ms) toplam_ms=\(t.çalma_ms) bekleme_ms=\(t.bekleme_ms) geride_ms=\(t.geride_ms) calma_suresi_ms=\(t.çalma_süresi_ms) calma_sonrasi=\(t.çalma_sonrası) rakam=\(t.rakam) onek=\(t.önek) beklenen_onek=\(t.beklenen_önek) yeniden_okunan=\(t.yeniden_okunan) istem=\(t.istem) uretilen=\(t.üretilen) yeni_konusma=\(t.yeni_konuşma)")
 }
 
 # Zincir: modeller, konuşmanın geçmişi ve önbellek.
@@ -280,8 +283,10 @@ TR_func sesleri_çal(sesler: TR_List[TR_Sound], t: Tur, t0: TR_Int, çal: (TR_St
         TR_if i == 0 {
             başla = şimdi()
             t.çalma_ms = başla - t0
+            t.çalma_başı = başla
         }
         çal(yol)
+        t.çalma_sonu = şimdi()
         TR_remove(yol)
     }
     t.çalma_süresi_ms = şimdi() - başla
@@ -312,4 +317,118 @@ TR_func kesitle(kesici: TR_SpeechSplitter, örnekler: TR_Tensor) -> TR_Tensor? {
     TR_if son != TR_none { kesitler.TR_append(son) }
     TR_if kesitler.TR_length == 0 { TR_return TR_none }
     TR_return TR_concat(kesitler)
+}
+
+TR_const _ÇERÇEVE_MS = 32 # 512 örnek, 16 kHz
+
+# ÇalmaAralığı: bir turun çalma aralığı (saat, ms): ilk çalmanın başından son çalmanın sonuna; çalma yoksa -1.
+TR_struct ÇalmaAralığı {
+    başı: TR_Int = -1
+    sonu: TR_Int = -1
+}
+
+# Çapa: çerçeve ile saati eşler. Mikrofon gerçek zamanlıdır: açılıştan bu yana k. çerçeve `fark + k × 32 ms`'de
+# biter. Okuma çerçevenin bitişinden önce olamaz; her okumanın `an − k × 32`'si `fark`'ın bir üst sınırıdır, en küçüğü
+# en yakınıdır. Tur sürerken gelen çerçeveler tamponda birikir ve tur bitince hemen okunur: o okumalar geç kalmıştır,
+# çapayı bozmamalıdır.
+TR_struct Çapa {
+    fark: TR_Int? = TR_none # turdan önce kurulan çapa; ilk okumaya kadar yok
+    aday: TR_Int? = TR_none # son turdan bu yana okumaların en küçük farkı
+
+    TR_func oku(k: TR_Int, an: TR_Int) {
+        TR_var f = an - k * _ÇERÇEVE_MS
+        TR_var a = TR_self.aday
+        TR_if a == TR_none TR_or f < a { TR_self.aday = f }
+        TR_if TR_self.fark == TR_none { TR_self.fark = f }
+    }
+
+    # kur: turdan hemen önce. Son turdan bu yana okumaların en küçük farkı eski çapadan en çok bir çerçeve geçse
+    # yeni çapadır (ses kartının saati sistemin saatinden kayar). Daha geçse o okumaların hepsi tampondandır (tur
+    # sürerken konuşulan sözün kesiti, tur bitince okundu): eski çapa kalır.
+    TR_func kur() {
+        TR_var a = TR_self.aday
+        TR_var f = TR_self.fark
+        TR_if a != TR_none TR_and (f == TR_none TR_or a <= f + _ÇERÇEVE_MS) { TR_self.fark = a }
+        TR_self.aday = TR_none
+    }
+
+    # bitiş: k. çerçevenin bittiği an (saat); çapa yoksa -1.
+    TR_func bitiş(k: TR_Int) -> TR_Int {
+        TR_var f = TR_self.fark
+        TR_if f == TR_none { TR_return -1 }
+        TR_return f + k * _ÇERÇEVE_MS
+    }
+}
+
+# Dinleme: canlı kipin döngüsünün parçaları. Mikrofon, kesitleyici, saat ve tur dışarıdan verilir; zincir_test sahte
+# olanlarla sınar.
+TR_struct Dinleme {
+    oku: () -> TR_Tensor? # sıradaki çerçeve; mikrofon bittiyse TR_none; tampon taşarsa hata (21.2)
+    aç: () -> TR_NoneType # mikrofonu yeniden açar
+    it: (TR_Tensor) -> TR_Tensor? # kesitleyiciye bir çerçeve; kesit bittiyse kesit
+    sıfırla: () -> TR_NoneType # kesitleyicinin kalanını atar, dedektörü sıfırlar
+    saat: () -> TR_Int
+    tur: (TR_Tensor, TR_Int, TR_Bool, TR_Int) -> ÇalmaAralığı # kesit, geldiği an, çalmanın hemen ardından mı, geride kalınan ms
+    sürsün: () -> TR_Bool
+    kuyruk_ms: TR_Int # çalmanın sonundan sonra atılan süre (yankı)
+}
+
+# dinle: mikrofon tur boyunca açık kalır; tur sürerken gelen ses 21.2'nin tamponunda birikir, tur bitince okunur.
+# - Çalma aralığına (artı kuyruk) düşen çerçeveler kesitleyiciye verilmez. Aralıktan sonraki ilk çerçevede kesitleyici
+#   ve dedektör sıfırlanır: çalma başlarken süren söz atılır (söz kesme yok). Aralığın dışındaki ses kaybolmaz; çalmadan
+#   önce, hesap sürerken konuşulan söz sonraki turun sözüdür.
+# - Taşma (tur tamponu aştı) okumada gelir: mikrofon yeniden açılır, çapa yeniden kurulur, program sürer.
+TR_func dinle(d: Dinleme) {
+    TR_var çapa = Çapa()
+    TR_var k = 0 # mikrofonun son açılışından bu yana okunan çerçeve
+    TR_var aralıklar: TR_List[ÇalmaAralığı] = []
+    TR_var atlıyor = TR_false
+    TR_var verilen = -1 # son aralıktan sonra kesitleyiciye verilen çerçeve; aralık olmadıysa -1
+    TR_for {
+        TR_var çerçeve: TR_Tensor? = TR_none
+        TR_try {
+            çerçeve = d.oku()
+        } TR_catch e {
+            TR_print("MİKROFON HATASI:", e)
+            d.aç()
+            çapa = Çapa()
+            k = 0
+            atlıyor = TR_false
+            d.sıfırla()
+            TR_continue
+        }
+        TR_if çerçeve == TR_none { TR_break }
+        k += 1
+        çapa.oku(k, d.saat())
+        TR_var son = çapa.bitiş(k)
+        aralıklar = [a TR_for a TR_in aralıklar TR_if a.sonu + d.kuyruk_ms > son - _ÇERÇEVE_MS]
+        TR_if çalmada(aralıklar, son, d.kuyruk_ms) {
+            atlıyor = TR_true
+            TR_continue
+        }
+        TR_if atlıyor {
+            d.sıfırla()
+            atlıyor = TR_false
+            verilen = 0
+        }
+        TR_if verilen >= 0 { verilen += 1 }
+        TR_var kesit = d.it(çerçeve)
+        TR_if kesit == TR_none { TR_continue }
+        çapa.kur()
+        TR_var an = d.saat()
+        # Kesit aralıktan sonraki ilk çerçevede başladıysa (kesitleyicinin ön payı aralığın sonuna dayandı) çalmanın
+        # hemen ardındandır: yankı ya da çalma sırasında başlamış söz.
+        TR_var hemen = verilen >= 0 TR_and verilen - kesit.TR_shape[0] // _ÇERÇEVE <= 0
+        TR_var a = d.tur(kesit, an, hemen, TR_max(0, an - çapa.bitiş(k)))
+        TR_if a.başı >= 0 { aralıklar.TR_append(a) }
+        TR_if TR_not d.sürsün() { TR_break }
+    }
+}
+
+# çalmada: çerçeve (sonu `son`, 32 ms) bir çalma aralığıyla (artı kuyruk) kesişiyor mu.
+TR_func çalmada(aralıklar: TR_List[ÇalmaAralığı], son: TR_Int, kuyruk_ms: TR_Int) -> TR_Bool {
+    TR_for a TR_in aralıklar {
+        TR_if a.başı < son TR_and son - _ÇERÇEVE_MS < a.sonu + kuyruk_ms { TR_return TR_true }
+    }
+    TR_return TR_false
 }

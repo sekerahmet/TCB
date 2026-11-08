@@ -382,6 +382,7 @@ anlar.TR_append	ok	0	name:TR_mem_append
 anlar.TR_length	ok	0	name:TR_mem_length
 ara.TR_grad	ok	0	name:TR_mem_grad
 ara.TR_to_device	ok	0	name:TR_mem_to_device
+aralıklar.TR_append	ok	0	name:TR_mem_append
 argümanlar.TR_append	ok	0	name:TR_mem_append
 artıklar.TR_append	ok	0	name:TR_mem_append
 atanmış.TR_samples	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_samples
@@ -1420,6 +1421,7 @@ sürdürülen.TR_load_state	ok	0	name:TR_mem_load_state
 süreler.TR_append	ok	0	name:TR_mem_append
 süreler.TR_length	ok	0	name:TR_mem_length
 süzgeç.TR_shape	ok	0	name:TR_mem_shape
+sıfırlamalar.TR_append	ok	0	name:TR_mem_append
 sınıflar.TR_tolist	ok	0	name:TR_mem_tolist
 sıra.TR_append	ok	0	name:TR_mem_append
 sıra.TR_length	ok	0	name:TR_mem_length
@@ -1457,10 +1459,12 @@ tek.TR_tolist	ok	0	name:TR_mem_tolist
 tek_sıcak.TR_shape	ok	0	name:TR_mem_shape
 tekler.TR_append	ok	0	name:TR_mem_append
 tensörler.TR_contains	ok	0	name:TR_mem_contains
+tetikler.TR_contains	ok	0	name:TR_mem_contains
 toplu.TR_length	ok	0	name:TR_mem_length
 tr_linear.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
 tr_linear.TR_map	ok	0	name:TR_mem_map
 turlar.TR_append	ok	0	name:TR_mem_append
+turlar.TR_length	ok	0	name:TR_mem_length
 tümü.TR_slice	ok	0	name:TR_mem_slice
 türev.TR_slice	ok	0	name:TR_mem_slice
 türevli.TR_tolist	ok	0	name:TR_mem_tolist
@@ -1500,6 +1504,7 @@ varken.TR_append	ok	0	name:TR_mem_append
 veri.TR_append	ok	0	name:TR_mem_append
 veri.TR_length	ok	0	name:TR_mem_length
 verildi.TR_append	ok	0	name:TR_mem_append
+verilen.TR_append	ok	0	name:TR_mem_append
 verilen.TR_length	ok	0	name:TR_mem_length
 w.TR_cancel	ok	0	name:TR_mem_cancel
 w.TR_device	ok	0	name:TR_mem_device

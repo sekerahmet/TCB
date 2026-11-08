@@ -1,5 +1,5 @@
 # TR 4
-# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi.
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi, dinleme (çalma aralığı, çapa, taşma).
 TR_import "tr/chat"
 TR_import "zincir"
 
@@ -130,6 +130,81 @@ TR_test "cevabın sesi çalınırken diskte, çalındıktan sonra yok" {
     TR_assert(TR_not TR_Path(yollar[0]).TR_exists)
     TR_assert(TR_not TR_Path(yollar[0]).TR_parent.TR_exists)
     TR_assert(t.çalma_ms >= 0)
+}
+
+# Sahte mikrofon: k. çerçeve (değeri k) `gecikme + k × 32` ms'de biter ve ancak o zaman okunabilir; okunmadıkça
+# birikir. Sahte tur 1000 ms hesaplar, 2000 ms çalar. Tetik çerçevelerinde kesitleyici 10 çerçevelik bir kesit verir.
+TR_struct SahteDinleme {
+    sayı: TR_Int
+    tetikler: TR_List[TR_Int]
+    gecikme: TR_Int = 850
+    saat: TR_Int = 0
+    k: TR_Int = 0
+    hata_k: TR_Int = -1 # bu çerçevede bir kez taşma
+    verilen: TR_List[TR_Int] = []
+    sıfırlamalar: TR_List[TR_Int] = [] # sıfırlandığında verilmiş çerçeve sayısı
+    turlar: TR_List[TR_List[TR_Int]] = [] # [t0, hemen, geride]
+    açılış: TR_Int = 0
+    en_çok_tur: TR_Int = 0
+}
+
+TR_func sahte_dinleme(s: SahteDinleme) -> Dinleme {
+    TR_func oku() -> TR_Tensor? {
+        TR_if s.k == s.hata_k {
+            s.hata_k = -1
+            TR_throw "taşma"
+        }
+        TR_if s.k >= s.sayı { TR_return TR_none }
+        s.k += 1
+        s.saat = TR_max(s.saat, s.gecikme + s.k * 32)
+        TR_return TR_ones([512]) * TR_Float(s.k)
+    }
+    TR_func it(ç: TR_Tensor) -> TR_Tensor? {
+        TR_var k = TR_Int(ç[0].TR_item())
+        s.verilen.TR_append(k)
+        TR_if s.tetikler.TR_contains(k) { TR_return TR_zeros([5120]) }
+        TR_return TR_none
+    }
+    TR_func tur(kesit: TR_Tensor, t0: TR_Int, hemen: TR_Bool, geride: TR_Int) -> ÇalmaAralığı {
+        s.turlar.TR_append([t0, TR_if hemen { 1 } TR_else { 0 }, geride])
+        s.saat += 1000
+        TR_var a = ÇalmaAralığı(başı: s.saat, sonu: s.saat + 2000)
+        s.saat += 2000
+        TR_return a
+    }
+    TR_return Dinleme(oku: oku, aç: () => { s.açılış += 1 }, it: it, sıfırla: () => { s.sıfırlamalar.TR_append(s.verilen.TR_length) },
+        saat: () => s.saat, tur: tur, sürsün: () => s.en_çok_tur == 0 TR_or s.turlar.TR_length < s.en_çok_tur, kuyruk_ms: 64)
+}
+
+TR_func aralık_listesi(a: TR_Int, b: TR_Int) -> TR_List[TR_Int] { TR_return [i TR_for i TR_in a..=b] }
+
+# Çerçeve k [818 + 32k, 850 + 32k] ms'dir. 1. tur 20. çerçevede (1490 ms): çalma [2490, 4490], kuyrukla 4554'e
+# kadar: 52–116 atılır. Tur sürerken (hesap, 1490–2490) konuşulan söz 40. çerçevede biter, tampondan 4490'da
+# okunur: çapa değişmez, geride 4490 − 2130 = 2360 ms. 2. turun çalması [5490, 7490]: 146–210 atılır. 211. çerçeve
+# aralıktan sonraki ilk çerçevedir; orada başlayan kesit çalmanın hemen ardındandır.
+TR_test "çalma aralığına düşen ses kesitleyiciye gitmez, aralığın dışındaki ses kaybolmaz" {
+    TR_var s = SahteDinleme(sayı: 230, tetikler: [20, 40, 211])
+    dinle(sahte_dinleme(s))
+    TR_assert_equal(aralık_listesi(1, 51) + aralık_listesi(117, 145) + aralık_listesi(211, 230), s.verilen)
+    TR_assert_equal([51, 80], s.sıfırlamalar)
+    TR_assert_equal([[1490, 0, 0], [4490, 0, 2360], [7602, 1, 0]], s.turlar)
+    TR_assert_equal(0, s.açılış)
+}
+
+TR_test "mikrofonun taşması okumada yakalanır: mikrofon yeniden açılır, dinleme sürer" {
+    TR_var s = SahteDinleme(sayı: 40, tetikler: [30], hata_k: 10)
+    dinle(sahte_dinleme(s))
+    TR_assert_equal(1, s.açılış)
+    TR_assert_equal([10], s.sıfırlamalar)
+    TR_assert_equal(aralık_listesi(1, 40), s.verilen)
+    TR_assert_equal(1, s.turlar.TR_length)
+}
+
+TR_test "dinleme sürsün demeyen turdan sonra biter" {
+    TR_var s = SahteDinleme(sayı: 100, tetikler: [10, 90], en_çok_tur: 1)
+    dinle(sahte_dinleme(s))
+    TR_assert_equal(1, s.turlar.TR_length)
+    TR_assert_equal(aralık_listesi(1, 10), s.verilen)
 }
 
 TR_test "ortak önek iki dizinin baştan aynı kısmıdır" {

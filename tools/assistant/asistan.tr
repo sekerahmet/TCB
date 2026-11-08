@@ -1,6 +1,6 @@
 # TR 4
-# Yerel sesli yardımcının zinciri: dinler, yazıya çevirir, cevap üretir, konuşur. Yarım çift yönlüdür:
-# cevap hazırlanıp çalınırken dinlemez. Her turda aşama süreleri bir `OLCU` satırıdır (yalnız sayı).
+# Yerel sesli yardımcının zinciri: dinler, yazıya çevirir, cevap üretir, konuşur. Yarım çift yönlüdür: mikrofon
+# açık kalır ama çalınırken gelen ses atılır (söz kesme yok). Her turda aşama süreleri bir `OLCU` satırıdır (yalnız sayı).
 #
 # Kipler:
 #   dosya:  --girdi klasöründeki WAV'lar ad sırasıyla söz olarak okunur; cevaplar --çıktı'ya WAV olarak yazılır.
@@ -26,8 +26,11 @@ TR_import "zincir"
 TR_const _HIZ = 16000
 TR_const _ÇERÇEVE = 512
 TR_const _ÇERÇEVE_BAYT = 1024
-TR_const _TAMPON = 1920000 # 60 saniye
-TR_const _ÇALMA_SONRASI_ÇERÇEVE = 10 # 320 ms: kesit bu kadar erken açıldıysa çalma biter bitmez gelmiştir
+# Mikrofonun tamponu bir turun bütün sesini tutar (tur sürerken okunmaz). Turun üst sınırı ~190 sn: yazı 6,5 +
+# istemin okunması 22,7 + 160 parça × 335 ms üretim + 160 × 383 ms ses + 160 × 285 ms çalma (S1 zincir dilimindeki 50
+# turun en kötü değerleri). Dış yükte iki katı: 380 sn, dakikaya yuvarlanınca 7 dakika. 16 kHz 16 bitte 13,4 MB.
+TR_const _TAMPON = 13440000
+TR_const _KUYRUK_MS = 0 # çalmanın sonundan sonra atılan süre (yankı); gerçek hoparlör ve mikrofonla ölçülecek
 TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe cevap ver, bir iki cümleyi geçme. Sayıları rakamla değil yazıyla yaz."
 
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
@@ -61,15 +64,16 @@ TR_func zincir_kur() -> Zincir {
 
 # tur_koş: bir tur; hata turu bitirir, kullanıcı iletisi geçmişten çıkar, program sürer. Yazısı boş kesit tur
 # sayılmaz (--en_çok_tur cevaplanan ya da hatayla biten turları sayar).
-TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bool, çal: (TR_List[TR_Sound], Tur, TR_Int) -> TR_NoneType) {
-    TR_var t = Tur(sıra: z.tur + 1, söz_ms: kesit.TR_shape[0] * 1000 // _HIZ)
+# Çalma aralığını verir (dinle o aralıkta gelen sesi atar); hata çalmanın ortasında geldiyse aralık o ana kadardır.
+TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bool, geride: TR_Int, çal: (TR_List[TR_Sound], Tur, TR_Int) -> TR_NoneType) -> ÇalmaAralığı {
+    TR_var t = Tur(sıra: z.tur + 1, söz_ms: kesit.TR_shape[0] * 1000 // _HIZ, geride_ms: geride)
     t.çalma_sonrası = TR_if çalma_sonrası { 1 } TR_else { 0 }
     TR_var uzunluk = z.geçmiş.TR_length
     TR_try {
         TR_var içerik = cevapla(z, kesit, t0, t)
         TR_if içerik == TR_none {
             TR_print("söz boş: tur yok")
-            TR_return
+            TR_return ÇalmaAralığı()
         }
         z.tur = t.sıra
         TR_var sesler: TR_List[TR_Sound] = []
@@ -87,9 +91,11 @@ TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bo
         TR_if z.son_asistan >= z.geçmiş.TR_length { z.son_asistan = -1 }
         z.okunan = [] # önbellek yarıda kalmış olabilir: sonraki tur baştan okur
         z.önbellek = önbellek_kur(z.model, z.bağlam)
+        TR_if t.çalma_başı >= 0 TR_and t.çalma_sonu < t.çalma_başı { t.çalma_sonu = şimdi() }
     }
     TR_var dosya = TR_String(ayar["kimlik_dosyası"])
     TR_if dosya != "" { TR_write_file(dosya, z.kimlik_satırları) }
+    TR_return ÇalmaAralığı(başı: t.çalma_başı, sonu: t.çalma_sonu)
 }
 
 TR_func dosya_kipi(z: Zincir) {
@@ -108,7 +114,7 @@ TR_func dosya_kipi(z: Zincir) {
             TR_continue
         }
         TR_var hedef = TR_String(TR_Path(çıktı, "\(TR_Path(yol).TR_stem)_cevap.wav"))
-        tur_koş(z, kesit, şimdi(), TR_false, (sesler, t, t0) => {
+        tur_koş(z, kesit, şimdi(), TR_false, 0, (sesler, t, t0) => {
             TR_if sesler.TR_length == 0 { TR_return }
             t.çalma_ms = şimdi() - t0 # çalınmaya verildiği an: canlı kipte çalma burada başlardı
             TR_var hepsi = birleştir(sesler)
@@ -145,44 +151,43 @@ TR_func mikrofon_aç(başlangıç: TR_Int) -> TR_Process {
     TR_return TR_spawn_process(ffmpeg, ["-nostdin", "-loglevel", "error", "-f", "dshow", "-i", aygıt] + çıkış, TR_buffer_bytes: _TAMPON)
 }
 
+# canlı_kip: mikrofon bir kez açılır, yalnız taşmadan sonra yeniden açılır; döngü `dinle`'dedir (zincir.tr).
 TR_func canlı_kip(z: Zincir) {
     TR_var algılayıcı = TR_pretrained_vad(_gerekli("vad"))
     TR_var kesici = TR_SpeechSplitter(algılayıcı)
     TR_var en_çok_tur = TR_Int(ayar["en_çok_tur"])
     TR_var başlangıç = şimdi()
-    TR_var mikrofon = mikrofon_aç(başlangıç)
     TR_var açılış = şimdi()
-    TR_var çerçeve = 0 # mikrofonun son açılışından bu yana okunan çerçeve
+    TR_var mikrofon = mikrofon_aç(başlangıç)
+    TR_defer { mikrofon.TR_cancel() }
     TR_var dinlemede = TR_false
-    TR_print("DİNLİYORUM")
-    TR_for {
+    TR_func oku() -> TR_Tensor? {
         TR_var parça = mikrofon.TR_read(_ÇERÇEVE_BAYT)
         TR_if parça.TR_length < _ÇERÇEVE_BAYT {
             mikrofon.TR_wait()
-            TR_break
+            TR_return TR_none
         }
         TR_if TR_not dinlemede {
             TR_print("OLCU_MIKROFON tur=\(z.tur) acilis_ms=\(şimdi() - açılış)")
             dinlemede = TR_true
         }
-        çerçeve += 1
-        TR_var örnekler = TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
-        TR_var kesit = kesici.TR_push(örnekler)
-        TR_if kesit == TR_none { TR_continue }
-        TR_var t0 = şimdi()
+        TR_return TR_Tensor[TR_Float](TR_from_bytes[TR_Int](parça, TR_dtype: "int16", TR_byte_order: "little")) / 32768.0
+    }
+    TR_func aç() {
         mikrofon.TR_cancel()
-        TR_var baş_çerçeve = çerçeve - kesit.TR_shape[0] // _ÇERÇEVE
-        tur_koş(z, kesit, t0, baş_çerçeve <= _ÇALMA_SONRASI_ÇERÇEVE, (sesler, t, t0) => çal(sesler, t, t0))
+        açılış = şimdi()
+        mikrofon = mikrofon_aç(başlangıç)
+        dinlemede = TR_false
+    }
+    TR_func sıfırla() {
         TR_var atılan = TR_if kesici.TR_flush() != TR_none { 1 } TR_else { 0 }
         algılayıcı.TR_reset_state()
         TR_print("OLCU_ATILAN tur=\(z.tur) atilan=\(atılan)")
-        TR_if en_çok_tur > 0 TR_and z.tur >= en_çok_tur { TR_break }
-        açılış = şimdi()
-        mikrofon = mikrofon_aç(başlangıç)
-        çerçeve = 0
-        dinlemede = TR_false
     }
-    mikrofon.TR_cancel()
+    TR_print("DİNLİYORUM")
+    dinle(Dinleme(oku: oku, aç: aç, it: (ç) => kesici.TR_push(ç), sıfırla: sıfırla, saat: () => şimdi(),
+        tur: (kesit, t0, sonrası, geride) => tur_koş(z, kesit, t0, sonrası, geride, (sesler, t, t0) => çal(sesler, t, t0)),
+        sürsün: () => en_çok_tur == 0 TR_or z.tur < en_çok_tur, kuyruk_ms: _KUYRUK_MS))
 }
 
 TR_var z = zincir_kur()
