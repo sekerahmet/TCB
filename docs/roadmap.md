@@ -270,13 +270,15 @@ Ahmet, 2026-10-27. Hazır modeli çalıştırmak amacın en yaygın işidir; mod
   - açılış süresi.
 - **Üretim:**
   - KV önbelleği için halka tampon, 8 bitlik KV önbelleği;
-  - hazır istemin önbelleğini saklamak (önek önbelleği);
+  - hazır istemin önbelleğini saklamak (önek önbelleği): dizüstünde 512 parçalık geçmişle ikinci tur önbellekle 4,1–5,4 sn, önbelleksiz 22,7 sn [ölçüldü: H1, 2026-11-08]; DOST'un her turu önbelleği korumalı;
   - tahminli çözme.
 - **CPU:**
   - birden çok satırlık çarpımda (`M > 1`) 16 bitlik ağırlığı açmadan kullanmak: ön doldurma ve eğitimde bütün matris hâlâ geçici float32 tampona açılıyor (tek satırlık çarpım 2026-11-04'te kapandı);
   - `relu`, `sigmoid`, `silu`'nun vektörlenmesi;
   - ses üretiminde sızıntılı `relu` (leaky ReLU): MMS-TTS'nin TR yolunda zamanın %65,5'i `TR_where(x >= 0, x, x * eğim)`'de geçiyor [ölçüldü: S1, 2026-11-08, G4 CPU, profil, orta uzunlukta bir cümle]. TR 8 iş parçacığında saniyede 1,06–1,08 saniyelik ses üretiyor, gerçek zamanı ancak geçiyor; PyTorch 22–25 kat hızlı [ölçüldü: S1, G4 CPU, üç cümle, ses/hesap]. Önce `TR_fuse` ile kitaplıkta denenir: kazanç çıkarsa yeni ad gerekmez; çıkmazsa `TR_leaky_relu(x, eğim)`, eğim zorunlu (çerçevelerin varsayılanı 0,01 ile 0,2 arasında ayrışıyor) (TCB, DENETİM 280). 8 iş parçacığının TR'yi yalnız 1,9–2,0 kat hızlandırması `TR_where` yolunun paralel ölçeklenmediğini düşündürüyor [hipotez];
   - üretimde işçi sayısının ölçümü;
+  - dizüstünde istem okuma 4–20 iş parçacığında düz (ortancalar 22,10–23,09 sn), profilde ortalama 5,5 çekirdek çalışıyor [ölçüldü: H1, 2026-11-08]. Sebep paylaşılan kaynak (L3, bellek bandı) ya da güç sınırı olabilir [hipotez]; blok boyu düşük yükte kazandırmadı. Sıradaki ölçü sınırı ayırır: P ve E çekirdeklerine ayrı bağlı koşu, saat ve güç sayacı, bellek bandı;
+  - çok satırlı nicem çarpımında yaklaşık 5 sn sabit bedel ve parça başına 35 ms [hesap: H1, 64 ve 512 parçalık ortancalardan]: yalnız 21 parçalık ileri geçişin profili bedelin içini gösterir. Küçük M için tek satırlık yol bitleri değiştirir, ayrı karar;
   - katman başına çekirdeklerin kaynaştırılması.
 - **Kartlar:** T4 ve H100'de sınama; SM120'nin tensör çekirdeği komutları.
 - **Model seçimi:** bu dizüstü için en uygun açık modeller Gemini'nin araştırmasında (2026-11-01; DENETİM okudu, düzeltmeleriyle). Uzman karışımlı Qwen3-30B-A3B ve yoğun Qwen3-8B öne çıkıyor; uzman karışımı 15. bölümün sonraya bıraktıklarında.
