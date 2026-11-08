@@ -146,7 +146,24 @@ func (kn *Checkpoint) readStates(o *loadedCkpt) (map[string]map[string]*tensor.T
 
 // writeParams tensör dosyasını yeniden, girdi girdi okuyup model parametrelerine yerinde
 // yazar (parametrenin cihazına taşıyarak); büyük modelde bellekte ikinci kopya toplanmaz.
+// Yazılan modellerin tensörlerinin gradyanı silinir (20.14): .TR_grad TR_none olur, sonraki
+// geri yayılım eski gradyanın üstüne eklemez.
 func (kn *Checkpoint) writeParams(o *loadedCkpt) error {
+	if err := kn.writeParamValues(o); err != nil {
+		return err
+	}
+	for _, n := range kn.objects {
+		if n.kind == kindModel {
+			for _, p := range n.params {
+				p.Tensor().DropGrad()
+			}
+		}
+	}
+	return nil
+}
+
+// writeParamValues parametrelerin değerlerini noktadan yazar.
+func (kn *Checkpoint) writeParamValues(o *loadedCkpt) error {
 	models := map[string]map[string]*ml.TensorValue{}
 	for _, n := range kn.objects {
 		if n.kind == kindModel {

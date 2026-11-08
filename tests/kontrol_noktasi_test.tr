@@ -389,6 +389,23 @@ TR_test "20.14 geri_dön en yeni noktayı yerinde yükler ve adımını verir; n
     TR_assert_equal("H2012", TR_error_code { kn.TR_rollback(1) })
 }
 
+TR_test "20.14 geri dönüşte parametrelerin gradyanı TR_none olur, gradyan eklendi bilgisi silinir" {
+    TR_var w = TR_Tensor([1.0, 2.0], TR_requires_grad: TR_true)
+    TR_var op = TR_AdamW([w], TR_lr: 0.1)
+    TR_var kn = TR_Checkpoint(koşu("geri_gradyan"), {"w": w, "op": op})
+    kn.TR_update(1)
+    kn.TR_save()
+    TR_backward(TR_sum(w * 100.0))
+    TR_assert_equal([100.0, 100.0], w.TR_grad.TR_tolist)
+    TR_assert_equal(1, kn.TR_rollback())
+    TR_assert_equal(TR_none, w.TR_grad)
+    # Bilgi de silindi: geri yayılımsız adım hiçbir parametrede gradyan bulmaz (15.34).
+    TR_assert_equal("H6988", TR_error_code { op.TR_step() })
+    # Sonraki geri yayılım eski gradyanın üstüne eklemez.
+    TR_backward(TR_sum(w * 1.0))
+    TR_assert_equal([1.0, 1.0], w.TR_grad.TR_tolist)
+}
+
 TR_test "15.34 kontrol noktasından donmuş sürdürme: nokta donma durumunu kaydeder, sürdürme ve geri dönüş onu kurar" {
     TR_var k = koşu("donmuş")
     # İlk koşu: gövde donmuş, baş eğitiliyor; nokta donma durumunu da kaydeder (20.4).
