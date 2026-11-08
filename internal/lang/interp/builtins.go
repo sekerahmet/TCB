@@ -30,6 +30,7 @@ var coreBuiltins = [...]struct {
 	{codes.FnRound, roundBuiltin},
 	{codes.FnWaitAll, waitAllBuiltin},
 	{codes.FnTimeMs, timeMsBuiltin},
+	{codes.FnMonotonicNs, monotonicNsBuiltin},
 	{codes.FnReadFile, readFileBuiltin},
 	{codes.FnReadBytes, readBytesBuiltin},
 	{codes.FnWriteFile, writeFileBuiltin},
@@ -188,9 +189,24 @@ func waitAllBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) 
 	return Null, nil
 }
 
-// timeMsBuiltin zaman_ms() yerleşiğidir.
+// timeMsBuiltin zaman_ms() yerleşiğidir (13.1): duvar saati, Unix zamanı milisaniye; kayıt ve zaman
+// damgası içindir. Argüman almaz; argüman sessizce yok sayılmaz.
 func timeMsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 0 {
+		return nil, ArgCountError(codes.FnTimeMs, 0, len(args))
+	}
 	return NewInt(time.Now().UnixMilli()), nil
+}
+
+// monotonicNsBuiltin tekdüze_ns() yerleşiğidir (13.1): süre ölçmek ve sabit hızlı döngü için tekdüze
+// saat, nanosaniye. Değer süreç başındaki clockBase'den bu yana geçen süredir (monotonic, gil.go):
+// time.Since tekdüze okumayı kullanır, duvar saatinin düzeltmesinden etkilenmez, geri gitmez.
+// Başlangıç noktası belirsizdir; yalnız iki değerin farkı anlamlıdır.
+func monotonicNsBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	if len(args) != 0 {
+		return nil, ArgCountError(codes.FnMonotonicNs, 0, len(args))
+	}
+	return NewInt(monotonic().Nanoseconds()), nil
 }
 
 // readFileBuiltin dosya_oku() yerleşiğidir: dosyayı metin olarak okur, .gz'i açar (18.12). İçerik

@@ -20,6 +20,21 @@ func TestWaitAllTakesNoneOrATaskList(t *testing.T) {
 	}
 }
 
+// Kural (13.1): TR_time_ms ve TR_monotonic_ns argüman almaz; argüman H2012'dir, sessizce yok sayılmaz
+// (eskiden TR_time_ms(1) zamanı veriyordu). Argümansız çağrı TR_Int verir.
+func TestClocksTakeNoArguments(t *testing.T) {
+	for _, source := range []string{"TR_print(TR_time_ms(1))", "TR_print(TR_monotonic_ns(1))", "TR_print(TR_monotonic_ns(1, 2))"} {
+		if _, err := runTR(t, source+"\n"); !messages.Has(err, messages.H2012) {
+			t.Errorf("%s: H2012 beklenirdi, gelen %v", source, err)
+		}
+	}
+	for _, source := range []string{"TR_print(TR_Type(TR_time_ms()))", "TR_print(TR_Type(TR_monotonic_ns()))"} {
+		if out, _, err := runTROut(t, source+"\n"); err != nil || out != "Int\n" {
+			t.Errorf("%s: Int beklenirdi, gelen %q, %v", source, out, err)
+		}
+	}
+}
+
 // Kural (13.1): TR_read_file geçerli UTF-8 olmayan dosyada hatadır (H2621); ileti çağrının kendi
 // yoluyla TR_read_bytes'ı önerir ve öneri kopyalanınca aynı dosyanın baytlarını okur. İki ayrı yol
 // (biri klasörde) önerinin sabit bir ad değil programın yolu olduğunu sınar. .gz'de açılmış içerik

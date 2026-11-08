@@ -18,6 +18,7 @@ func TestBuiltinReturnTypes(t *testing.T) {
 		"TR_var v = {\"a\": 1}.TR_keys()":    listType(typeString),
 		"TR_var v = TR_Tensor([1.0])":        typeTensor,
 		"TR_var v = TR_time_ms()":            typeInt,
+		"TR_var v = TR_monotonic_ns()":       typeInt,
 		// 13.8: dönüşte yazılı öğe tipi tipe girer
 		"TR_var v = TR_parse_csv(\"1,2\")":       listType(listType(typeString)),
 		"TR_var v = TR_read_csv(\"a.csv\")":      listType(listType(typeString)),

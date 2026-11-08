@@ -153,6 +153,7 @@
   "TR_fn_mel_filterbank": { "name": "mel_filterbank" },
   "TR_fn_minimum": { "name": "minimum" },
   "TR_fn_mixed_precision": { "name": "mixed_precision" },
+  "TR_fn_monotonic_ns": { "name": "monotonic_ns" },
   "TR_fn_move": { "name": "move" },
   "TR_fn_name_matches": { "name": "name_matches" },
   "TR_fn_no_grad": { "name": "no_grad" },

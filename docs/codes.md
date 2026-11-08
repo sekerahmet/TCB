@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 700 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 156 fonksiyon, 11 sabit, 86 metot, 124 özellik, 176 adlı argüman.
+Toplam 701 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 157 fonksiyon, 11 sabit, 86 metot, 124 özellik, 176 adlı argüman.
 
 ## İçindekiler
 
@@ -2686,6 +2686,25 @@ tr: değişken y = karışık_hassasiyet("bf16") { Tensör([[1.0, 2.0]]) @ Tens�
 
 İlişkili: `TR_dtype:`, `TR_compute_dtype(...)`
 
+#### `TR_monotonic_ns(...)` (`TR_fn_monotonic_ns`, `tekdüze_ns`)
+
+    tekdüze_ns() → Tam
+
+Tekdüze saati nanosaniye olarak Tam verir; süre ölçmek ve sabit hızlı döngü için kullanılır. Geri gitmez, sistem saatinden etkilenmez; başlangıç noktası belirsizdir, yalnız iki değerin farkı anlamlıdır.
+
+```tr
+TR_var baş = TR_monotonic_ns(); TR_sleep(0.05); TR_print(TR_monotonic_ns() - baş >= 50_000_000)
+```
+
+Görünümü:
+
+```text
+en: var baş = monotonic_ns(); sleep(0.05); print(monotonic_ns() - baş >= 50_000_000)
+tr: değişken baş = tekdüze_ns(); uyu(0.05); yazdır(tekdüze_ns() - baş >= 50_000_000)
+```
+
+İlişkili: `TR_time_ms(...)`, `TR_sleep(...)`
+
 #### `TR_move(...)` (`TR_fn_move`, `taşı`)
 
     taşı(Metin | Yol, Metin | Yol, üzerine_yaz: Mantık = yanlış) → Yol
@@ -3524,20 +3543,20 @@ tr: değişken k = geçici_klasör(); dosya_yaz(Yol(k, "not.txt"), "x"); yazdır
 
     zaman_ms() → Tam
 
-Şimdiki zamanı 1970'ten bu yana geçen milisaniye olarak Tam verir; süre ölçmek için kullanılır.
+Şimdiki zamanı 1970'ten bu yana geçen milisaniye olarak Tam verir; duvar saatidir: kayıt ve zaman damgası içindir, saat düzeltilince geri gidebilir. Süre ölçmek için tekdüze_ns kullanılır.
 
 ```tr
-TR_var baş = TR_time_ms(); TR_sleep(0.05); TR_print(TR_time_ms() - baş >= 50)
+TR_var damga = TR_time_ms(); TR_print("kayıt", damga, "2020'den sonra mı:", damga > 1_577_836_800_000)
 ```
 
 Görünümü:
 
 ```text
-en: var baş = time_ms(); sleep(0.05); print(time_ms() - baş >= 50)
-tr: değişken baş = zaman_ms(); uyu(0.05); yazdır(zaman_ms() - baş >= 50)
+en: var damga = time_ms(); print("kayıt", damga, "2020'den sonra mı:", damga > 1_577_836_800_000)
+tr: değişken damga = zaman_ms(); yazdır("kayıt", damga, "2020'den sonra mı:", damga > 1_577_836_800_000)
 ```
 
-İlişkili: `TR_sleep(...)`
+İlişkili: `TR_monotonic_ns(...)`, `TR_sleep(...)`
 
 #### `TR_topk(...)` (`TR_fn_topk`, `en_büyük_k`)
 
