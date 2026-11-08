@@ -13,7 +13,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 	"github.com/sekerahmet/TCB/internal/lang/source"
 	"github.com/sekerahmet/TCB/internal/reporoot"
-	_ "github.com/sekerahmet/TCB/internal/stdlib"
+	"github.com/sekerahmet/TCB/internal/stdlib"
 	"github.com/sekerahmet/TCB/lib"
 )
 
@@ -177,6 +177,13 @@ var suggestionResultCases = []suggestionResultCase{
 	// 15.18: boş tensör listesinin toplamı yoktur; ileti önce boyuna bakmayı önerir.
 	{messages.H2720, "TR_var l: TR_List[TR_Tensor] = []\nTR_print(TR_sum(l))", "l.TR_length",
 		"TR_var l: TR_List[TR_Tensor] = []\nTR_if l.TR_length > 0 {\n    TR_print(TR_sum(l))\n}\nTR_print(l.TR_length)", "0\n"},
+	// 18.7, 19.5: açık günlüğün dosyası silinmez, ileti günlüğü kapatmayı önerir; kapatılmış günlük yeniden açılır.
+	{messages.H2723, "TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_append(\"a\")\nTR_print(TR_remove(\"g.jsonl\"))", "g.TR_close()",
+		"TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_append(\"a\")\ng.TR_close()\nTR_print(TR_remove(\"g.jsonl\"))", "1\n"},
+	{messages.H2724, "TR_var g = TR_Logger(\"k/g.jsonl\")\ng.TR_append(\"a\")\nTR_print(TR_remove(\"k\", TR_recursive: TR_true))", "g.TR_close()",
+		"TR_var g = TR_Logger(\"k/g.jsonl\")\ng.TR_append(\"a\")\ng.TR_close()\nTR_print(TR_remove(\"k\", TR_recursive: TR_true))", "1\n"},
+	{messages.H2725, "TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_close()\ng.TR_append(\"a\")", "TR_Logger(\"g.jsonl\")",
+		"TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_close()\ng = TR_Logger(\"g.jsonl\")\ng.TR_append(\"a\")\nTR_print(g.TR_close())", "true\n"},
 	{messages.H2534, "TR_var l = [1, 2]\nTR_print(l.TR_remove_at(5))", "l.TR_length",
 		"TR_var l = [1, 2]\nTR_if 5 < l.TR_length {\n    TR_print(l.TR_remove_at(5))\n}\nTR_print(l.TR_length)", "2\n"},
 	// 13.4: .TR_remove sözlüğün metodudur; listede öğe konumuyla çıkar, dosya silen işlev önerilmez.
@@ -465,6 +472,7 @@ func runProgram(code string) ([]error, string) {
 		out = append(out, err)
 	}
 	vm.WaitAsync()
+	stdlib.Close() // program bitince olduğu gibi: açık okuyucu ve günlük dosyaları kapanır
 	return out, buf.String()
 }
 

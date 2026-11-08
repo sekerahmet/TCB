@@ -857,7 +857,7 @@ en: var g = Logger("kayit/egitim.jsonl"); g.append({"kayıp": 2.31, "doğruluk":
 tr: değişken g = Günlük("kayit/egitim.jsonl"); g.ekle({"kayıp": 2.31, "doğruluk": 0.5}); yazdır(g, Tip(g) == Günlük)
 ```
 
-Üyeleri: `.TR_append(...)` · İlişkili: `.TR_append(...)`, `TR_Progress`
+Üyeleri: `.TR_append(...)`, `.TR_close(...)` · İlişkili: `.TR_append(...)`, `.TR_close(...)`, `TR_Progress`
 
 #### `TR_Message` (`TR_type_Message`, `İleti`)
 
@@ -5421,8 +5421,9 @@ tr: dene { fırlat "okunamadı" } yakala e { dene { fırlat Hata("yüklenemedi",
 #### `.TR_close(...)` (`TR_mem_close`, `kapat`)
 
     SatırOkuyucu.kapat() → Mantık
+    Günlük.kapat() → Mantık
 
-Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece silinebilir ve taşınabilir); kapatılmış okuyucudan satır istemek hatadır. Dosyayı bu çağrı kapattıysa doğru, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) yanlış verir; iki kez kapatmak hata değildir.
+Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece silinebilir ve taşınabilir); kapatılmış okuyucudan satır istemek hatadır. Dosyayı bu çağrı kapattıysa doğru, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) yanlış verir; iki kez kapatmak hata değildir. Günlük'ü program bitmeden kapatır, dosyası silinebilir ve taşınabilir; kapatılmış günlüğe yazmak hatadır, dönüşü okuyucudaki gibidir.
 
 ```tr
 TR_write_file("kapat.txt", "a\nb"); TR_var o = TR_read_lines("kapat.txt"); TR_print(o.TR_next(), o.TR_close(), o.TR_close(), TR_remove("kapat.txt"))

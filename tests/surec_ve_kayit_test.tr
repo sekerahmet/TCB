@@ -94,6 +94,21 @@ TR_test "19.5 günlük .jsonl dosyasına başlangıç kaydı ve kayıtlar ekler"
     TR_assert_equal("start", TR_String(s2[3]["kind"]))
 }
 
+TR_test "19.5 g.kapat günlüğü program bitmeden kapatır; kapatılmış günlüğe yazmak hatadır" {
+    TR_var dosya_yolu = "\(TR_temp_dir())/kapat.jsonl"
+    TR_var g = TR_Logger(dosya_yolu)
+    g.TR_append({"loss": 1.0})
+    TR_assert_equal([TR_true, TR_false], [g.TR_close(), g.TR_close()])
+    TR_assert_equal("H2725", TR_error_code { g.TR_append({"loss": 2.0}) })
+    TR_assert_equal(2, satırlar(dosya_yolu).TR_length)
+    # kayıtsız kapatılan günlüğün de başlangıç kaydı vardır; yeniden açılan günlük sonuna ekler
+    TR_var boş_yol = "\(TR_temp_dir())/bos.jsonl"
+    TR_Logger(boş_yol).TR_close()
+    TR_assert_equal("start", TR_String(satırlar(boş_yol)[0]["kind"]))
+    TR_Logger(dosya_yolu).TR_append({"loss": 3.0})
+    TR_assert_equal(4, satırlar(dosya_yolu).TR_length)
+}
+
 TR_test "19.5 kayıttaki tam değerli adım tam sayı yazılır, ondalık ölçü olduğu gibi kalır" {
     TR_var yol = "\(TR_temp_dir())/adım.jsonl"
     TR_var g = TR_Logger(yol)

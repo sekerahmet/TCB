@@ -15,6 +15,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/lang/turkish"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/bind"
 	"github.com/sekerahmet/TCB/internal/stdlib/common/jsonwrite"
+	"github.com/sekerahmet/TCB/internal/stdlib/files"
 )
 
 // logExt günlük dosyalarının uzantısıdır (JSON satırları).
@@ -36,6 +37,7 @@ type Log struct {
 	start   bool     // başlangıç kaydı yazıldı mı
 	total   int64    // bağlı çubuğun toplamı (başlangıç kaydı için; 0: yok)
 	records int64    // bu açılıştan beri yazılan kayıt sayısı
+	closed  bool     // program .kapat() ile kapattı: sonraki yazma hatadır (19.5)
 }
 
 func (g *Log) Type() interp.ValueType { return LogType }
@@ -64,12 +66,32 @@ func IsLog(v interp.Value) (*Log, bool) {
 }
 
 func (g *Log) GetProperty(kd codes.Code, prop string) (interp.Value, error) {
-	if kd == codes.MemAppend {
+	switch kd {
+	case codes.MemAppend:
 		return bind.CodeMethod(codes.MemAppend, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
 			return g.add(args)
 		}), nil
+	case codes.MemClose:
+		return bind.CodeMethod(codes.MemClose, true, func(m *interp.VM, args []interp.Value, _ map[string]interp.Value) (interp.Value, error) {
+			if len(args) != 0 {
+				return nil, messages.New(messages.H2014, codes.NameRef(codes.MemClose), len(args))
+			}
+			return interp.BoolToVal(g.userClose()), nil
+		}), nil
 	}
-	return nil, bind.MemberError(LogType, prop, []codes.Code{codes.MemAppend})
+	return nil, bind.MemberError(LogType, prop, []codes.Code{codes.MemAppend, codes.MemClose})
+}
+
+// userClose g.kapat() metodudur (19.5, 18.15 gibi): günlüğü program bitmeden kapatır, dosya artık
+// bu programda açık değildir (silinebilir, taşınabilir). Bu çağrı kapattıysa doğru, zaten
+// kapalıysa yanlış verir; sonraki yazma hatadır.
+func (g *Log) userClose() bool {
+	g.mu.Lock()
+	was := g.closed
+	g.closed = true
+	g.mu.Unlock()
+	g.close()
+	return !was
 }
 
 // openLog günlük(yol) yerleşiğidir.
@@ -120,6 +142,7 @@ func (g *Log) open() error {
 	isOpen.Lock()
 	openLogs[g] = struct{}{}
 	isOpen.Unlock()
+	files.LogOpened(g, g.fullPath) // açık günlüğün dosyası silinmez (18.7)
 	return nil
 }
 
@@ -158,6 +181,7 @@ func (g *Log) close() {
 	isOpen.Lock()
 	delete(openLogs, g)
 	isOpen.Unlock()
+	files.LogClosed(g)
 }
 
 // add Günlük.ekle(kayıt) metodudur: Sözlük bir kayıttır, Metin {"mesaj": ...} olur.
@@ -256,6 +280,9 @@ func (g *Log) write(record *interp.DictVal) error {
 	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if g.closed {
+		return messages.New(messages.H2725, interp.CallPrefix(codes.MemAppend), g.path)
+	}
 	if !g.start {
 		head, err := g.line(g.startRecord())
 		if err != nil {
