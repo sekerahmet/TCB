@@ -671,8 +671,8 @@ is the stored, wider graph (docs, rules, messages, tests) for navigation.
 
 ## Time
 
-On this repository (2026-11-04: about 1 200 Go files, 31 000 nodes, 229 000 edges; `TestReadmeGraphSizeIsCurrent`
-fails when one of them drifts by more than a quarter) `build` takes 7-8 s with the built binary and a warm Go build
+On this repository (2026-11-09: about 1 350 Go files, 36 000 nodes, 304 000 edges; `TestReadmeGraphSizeIsCurrent`
+fails when one of them drifts by more than a quarter) `build` took 7-8 s on 2026-11-04 with the built binary and a warm Go build
 cache (Windows; up to about 15 s on a loaded machine), and about 57 s with a cold cache in an older measurement
 (almost all of it compiling the standard library export data that `go list -export` asks for; the module's own
 packages are type-checked from source, not compiled). Query costs are under "Cost" above.
