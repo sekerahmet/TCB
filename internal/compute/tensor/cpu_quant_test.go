@@ -103,6 +103,23 @@ func TestQuantMatMulMatchesOpened(t *testing.T) {
 	}
 }
 
+// TestQuantMatMulSameBitsAsOpened: çok satırlı nicem çarpımı açılmış ağırlıkla float32 çarpımın
+// bitlerini verir: her öğe kcBlock parçalarıyla toplanır, iş bölümü (parça boyu, satır bloğu)
+// toplama sırasını değiştirmez. Şekiller parça sınırını (quantTileRows), kcBlock'u, mr'nin katı
+// olmayan satırı ve uzun satırı (K = 8192) geçer.
+func TestQuantMatMulSameBitsAsOpened(t *testing.T) {
+	r := rand.New(rand.NewSource(11))
+	for dt := range quantDotShapes {
+		elems, _ := dt.QuantBlock()
+		for _, c := range [][3]int{{2, 40, 256}, {50, quantTileRows + 17, 512}, {55, 300, 1024}, {60, 600, 8192}} {
+			M, N, K := c[0], c[1], c[2]
+			w := FromQuantized(dt, smallScaleQuant(dt, uint32(N+K), N*K/elems), N, K)
+			x := New(randomData(r, M*K), M, K)
+			sameFloatBits(t, dt.Name(), MatMul(x, w.T()).Data(), MatMul(x, openedWeight(w).T()).Data())
+		}
+	}
+}
+
 // TestQuantMatMulDependsOnlyOnShape: aynı girdi her koşuda aynı bitleri verir; satır dilimi ağırlığın
 // kendi satırlarını okur.
 func TestQuantMatMulDependsOnlyOnShape(t *testing.T) {
