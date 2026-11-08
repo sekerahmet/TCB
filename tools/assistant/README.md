@@ -10,6 +10,24 @@ TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla
 - `lang/<kod>.js`: çeviriler, her dile bir dosya. Yalnız metin taşır.
 - `contract.md`: ekranın TR'den beklediği her şey. Asıl değer budur; HTTP bölümü yazılırken tartılır.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
+- `asistan.tr`, `zincir.tr`, `zincir_test.tr`: ekransız sesli zincir (aşağıda, "Zincir").
+
+## Zincir
+
+`asistan.tr` dinler, yazıya çevirir, cevap üretir ve konuşur: VAD kesiti (`tr/vad`), Whisper (`tr/whisper`, `TR_language: "tr"`), Qwen3 biçimi (`tr/chat`, düşünmeden), GGUF modeliyle açgözlü üretim (`tr/pretrained`), cevabın ayrılması, cümle cümle ses (`tr/vits`). Ekrana henüz bağlı değildir. Yarım çift yönlüdür: cevap hazırlanıp çalınırken mikrofon durur, çalma bitince yeniden başlar; kesitleyicinin o an verdiği kesit atılır, dedektörün durumu sıfırlanır.
+
+- **Kipler:** `--kip dosya` bir klasördeki WAV'ları sırayla söz olarak okur ve cevapları WAV olarak yazar; `--kip canlı` mikrofonu (`--aygıt`, dshow adı) ya da `--sahte_mikrofon`'u (bir WAV'ı `ffmpeg -re` ile gerçek zaman hızında akıtır; yeniden başlarken ilk başlatmadan bu yana geçen süreden açar) dinler ve `--çalıcı` ile çalar.
+- **Varsayılan yol yoktur:** `--dil_modeli`, `--whisper`, `--vad`, `--ses_modeli` ve kipin girdileri verilmezse program hata verir. Seçeneklerin hepsi `--help`'tedir.
+- **Önbellek** turdan tura korunur: yeni dizi önbellektekiyle ortak önek kadar karşılaştırılır, önbellek oraya kırpılır, yalnız kalan okunur. Önek önceki asistan başlığının sonundan kısa çıkarsa `ÖNEK_KISA` yazılır. Önbellek dolacaksa (`--bağlam`) program bunu söyler ve sistem iletisiyle yeni konuşma başlatır. `--önbelleksiz` her turu baştan okur: önbelleğin sınaması.
+- **Ölçü:** her tur bir `OLCU` satırıdır, yalnız sayı: sözün sonundan (VAD kesitinin geldiği an) yazıya, ilk parçaya, cevabın bitmesine, ilk cümlenin sesine ve çalmanın başlamasına kadar ms; çalmanın süresi; kesitin çalmadan hemen sonra açılıp açılmadığı; içerikte rakam olup olmadığı; ortak önek ve yeniden okunan parça. `OLCU_MIKROFON` mikrofonun açılıştan ilk çerçeveye gecikmesidir.
+- **Hata** turu bitirir: ileti ekrana yazılır, kullanıcı iletisi geçmişten çıkar, program sonraki söze geçer.
+
+```bash
+trlang tools/assistant/asistan.tr --kip dosya --girdi sorular --çıktı cevaplar --dil_modeli Qwen3-4B-Q4_K_M.gguf \
+    --whisper whisper-small --vad silero_vad_16k.safetensors --ses_modeli mms-tts-tur
+```
+
+`zincir_test.tr` modelsiz parçaları sınar: cümlelere bölme, rakam, önbelleğin ortak öneki.
 
 ## Açmak
 
