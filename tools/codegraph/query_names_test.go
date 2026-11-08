@@ -63,15 +63,18 @@ func TestAKeyedNameCodeIsImplementedByItsPairsValue(t *testing.T) {
 
 // Kural: test dışı bir çağrının argümanlarında ve bir düzey iç çağrı argümanlarında tek ayrı bir ad kodu (codes sabiti
 // ya da takma sabiti; codes paketinin işlevine verilenler hariç) ve argüman olarak geçen tek bir işlev ya da somut
-// alıcılı metot değeri varsa, işlevden koda INFERRED uses_name kenarı eklenir; gövdede EXTRACTED kenar varsa yeri
-// korunur; iki ayrı kod, iki işlev ya da test dosyasındaki çağrı bağlanmaz (DENETİM 285, 286).
+// alıcılı metot değeri/ifadesi varsa, işlevden koda INFERRED uses_name kenarı eklenir; gövdede EXTRACTED kenar varsa yeri
+// korunur; iki ayrı kod, iki işlev (`unit` biçimi: metot ifadesi ve işlev aynı çağrıda) ya da test dosyasındaki çağrı
+// bağlanmaz; modül dışı işlev (`math.Floor` gibi) eşleşmede sayılmaz ve düğüm almaz (DENETİM 285, 286 ve 293).
 func TestAdjacentNameCodeInCallIsImplementedByArgumentCallable(t *testing.T) {
 	root := auditModule(t, map[string]string{
 		"internal/lang/codes/tr.json": `{
   "TR_mem_a": { "name": "üye_a", "family": "x" },
   "TR_fn_b":  { "name": "işlev_b", "family": "x" },
   "TR_fn_c":  { "name": "işlev_c", "family": "x" },
-  "TR_fn_d":  { "name": "işlev_d", "family": "x" }
+  "TR_fn_d":  { "name": "işlev_d", "family": "x" },
+  "TR_fn_e":  { "name": "işlev_e", "family": "x" },
+  "TR_fn_f":  { "name": "işlev_f", "family": "x" }
 }
 `,
 		"internal/lang/codes/codes.go": `package codes
@@ -83,36 +86,53 @@ const (
 	FnB  Code = 2 // TR_fn_b: fn_b
 	FnC  Code = 3 // TR_fn_c: fn_c
 	FnD  Code = 4 // TR_fn_d: fn_d
+	FnE  Code = 5 // TR_fn_e: fn_e
+	FnF  Code = 6 // TR_fn_f: fn_f
 )
 
 func Read(c Code) Code { return c }
 `,
 		"app/a_reg.go": `package app
 
-import "example.com/audit/internal/lang/codes"
+import (
+	"math"
+
+	"example.com/audit/internal/lang/codes"
+)
 
 const aliasA = codes.MemA
 
 type box struct{}
 
-func (box) toA() {}
+func (box) toA()      {}
+func (box) exprE()    {}
+func (box) exprUnit() {}
+func (box) exprMath() {}
 
 func fnB() {}
 func fnC() {}
 func fnTwo() {}
 func fnRead() {}
 
-func reg(c codes.Code, f func())       {}
-func wrap(f func()) func()             { return f }
-func safe(c codes.Code, f func()) func() { return f }
-func twoCodes(a, b codes.Code, f func()) {}
-func twoFuncs(c codes.Code, f, g func()) {}
+func reg(c codes.Code, f func())                  {}
+func regExpr(c codes.Code, f func(box))           {}
+func unit(c codes.Code, m func(box), f func())    {}
+func regMath(c codes.Code, f func(float64) float64) {}
+func unitMath(c codes.Code, m func(box), f func(float64) float64) {}
+func wrap(f func()) func()                        { return f }
+func safe(c codes.Code, f func()) func()          { return f }
+func twoCodes(a, b codes.Code, f func())          {}
+func twoFuncs(c codes.Code, f, g func())          {}
 
 func Register(b box) {
 	reg(aliasA, b.toA)
 	reg(codes.FnB, fnB)
 	reg(codes.FnC, safe(codes.FnC, fnC))
 	reg(codes.FnD, wrap(fnBody))
+	regExpr(codes.FnE, box.exprE)
+	unit(codes.FnE, box.exprUnit, fnTwo)
+	regMath(codes.FnE, math.Floor)
+	unitMath(codes.FnF, box.exprMath, math.Floor)
 	twoCodes(codes.FnB, codes.FnC, fnTwo)
 	twoFuncs(codes.FnB, fnB, fnTwo)
 	reg(codes.Read(codes.FnB), fnRead)
@@ -147,16 +167,23 @@ func TestHelperDoesNotImplement(t *testing.T) { reg(codes.FnB, testHelper) }
 		{p + "fnB", "name:TR_fn_b", inferred, "app/a_reg.go"},
 		{p + "fnC", "name:TR_fn_c", inferred, "app/a_reg.go"},
 		{p + "fnBody", "name:TR_fn_d", extracted, "app/z_body.go"},
+		{p + "box.exprE", "name:TR_fn_e", inferred, "app/a_reg.go"},
+		{p + "box.exprMath", "name:TR_fn_f", inferred, "app/a_reg.go"},
 	} {
 		if e := edge(g, w.fn, w.code, edgeUsesName); e == nil || e.Confidence != w.conf || e.File != w.file || e.Count != 1 {
 			t.Errorf("%s -> %s: got %+v, want conf=%s file=%s count=1", w.fn, w.code, e, w.conf, w.file)
 		}
 	}
-	for _, fn := range []string{p + "fnTwo", p + "fnRead", p + "testHelper"} {
+	for _, fn := range []string{p + "fnTwo", p + "fnRead", p + "testHelper", p + "box.exprUnit"} {
 		for _, e := range g.Edges {
 			if e.From == fn && e.Kind == edgeUsesName {
 				t.Errorf("%s must not get a uses_name edge: %+v", fn, e)
 			}
+		}
+	}
+	for _, n := range g.Nodes {
+		if strings.Contains(n.ID, "Floor") || strings.Contains(n.Name, "Floor") {
+			t.Errorf("external module function math.Floor must not get a node: %+v", n)
 		}
 	}
 }

@@ -411,11 +411,11 @@ func declaresTest(name string) bool {
 	return false
 }
 
-// Kural: bir çağrının argümanı olarak geçirilen paket düzeyi Go işlevi ve somut alıcılı metot değeri (gömülü alandan
-// gelen ve genel tipin metodu dahil) test erişim zincirine girer (`use() { apply(leaf) }` üzerinden `TestUse`,
-// `useMethod` ve `useEmbedded` üzerinden `leafBox.step`, `useGeneric` üzerinden `genBox.genStep`); bileşik değerdeki
-// işlev değeri, değişkene atanıp sonra geçirilen işlev/metot değeri, arayüz metot değeri ve metot ifadesi (`T.M`)
-// zincire girmez (eksikler listesi, DENETİM 79 ve 285).
+// Kural: bir çağrının argümanı olarak geçirilen paket düzeyi Go işlevi, somut alıcılı metot değeri (gömülü alandan
+// gelen ve genel tipin metodu dahil) ve somut alıcılı metot ifadesi (`T.M`) test erişim zincirine girer (`use() { apply(leaf) }`
+// üzerinden `TestUse`, `useMethod` ve `useEmbedded` üzerinden `leafBox.step`, `useGeneric` üzerinden `genBox.genStep`,
+// `useExpr` üzerinden `leafBox.exprStep`); bileşik değerdeki işlev değeri, değişkene atanıp sonra geçirilen işlev/metot
+// değeri ve arayüz metot değeri/ifadesi zincire girmez (eksikler listesi, DENETİM 79, 285 ve 293).
 func TestTestsForFollowsPackageFunctionPassedAsCallArgument(t *testing.T) {
 	ix := newIndex(fixture(t))
 	for _, c := range []struct {
@@ -423,9 +423,10 @@ func TestTestsForFollowsPackageFunctionPassedAsCallArgument(t *testing.T) {
 		want []string
 	}{
 		{fixturePkg + "leaf", []string{"shape.TestUse"}},
-		{"go:file:shape/leaf.go", []string{"shape.TestUse", "shape.TestUseMethod", "shape.TestUseEmbedded", "shape.TestUseGeneric"}},
+		{"go:file:shape/leaf.go", []string{"shape.TestUse", "shape.TestUseMethod", "shape.TestUseEmbedded", "shape.TestUseGeneric", "shape.TestUseExpr"}},
 		{fixturePkg + "leafBox.step", []string{"shape.TestUseMethod", "shape.TestUseEmbedded"}},
 		{fixturePkg + "genBox.genStep", []string{"shape.TestUseGeneric"}},
+		{fixturePkg + "leafBox.exprStep", []string{"shape.TestUseExpr", "via shape.useExpr"}},
 	} {
 		var out strings.Builder
 		ix.printTestsFor(&out, ix.byID[c.id], 12)
@@ -454,8 +455,9 @@ func argLeaf() {}
 func litLeaf() {}
 func varLeaf() {}
 
-func apply(fn func())        { fn() }
-func applyMethod(fn func(box)) { fn(box{}) }
+func apply(fn func())           { fn() }
+func applyMethod(fn func(box))  { fn(box{}) }
+func applyIface(fn func(runner)) { fn(impl{}) }
 
 func useArg()             { apply(argLeaf) }
 func useLit()             { _ = []func(){litLeaf} }
@@ -463,7 +465,7 @@ func useVar()             { f := varLeaf; apply(f) }
 func useMethod(b box)     { apply(b.methodLeaf) }
 func useVarMethod(b box)  { f := b.varMethod; apply(f) }
 func useExprMethod()      { applyMethod(box.exprMethod) }
-func useIface(r runner)   { apply(r.run) }
+func useIface(r runner)   { apply(r.run); applyIface(runner.run) }
 `,
 		"p/p_test.go": `package p
 
@@ -494,7 +496,10 @@ func TestUseIface(t *testing.T)      { useIface(impl{}) }
 	if got := ask("box.methodLeaf"); !strings.Contains(got, "p.TestUseMethod") || !strings.Contains(got, "via p.useMethod") {
 		t.Errorf("concrete method value argument must reach TestUseMethod:\n%s", got)
 	}
-	for _, target := range []string{"p.litLeaf", "p.varLeaf", "box.varMethod", "box.exprMethod", "impl.run"} {
+	if got := ask("box.exprMethod"); !strings.Contains(got, "p.TestUseExprMethod") {
+		t.Errorf("concrete method expression argument must reach TestUseExprMethod:\n%s", got)
+	}
+	for _, target := range []string{"p.litLeaf", "p.varLeaf", "box.varMethod", "impl.run"} {
 		if got := ask(target); !strings.Contains(got, "no tests found") {
 			t.Errorf("%s must not enter the chain:\n%s", target, got)
 		}

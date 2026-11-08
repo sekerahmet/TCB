@@ -400,7 +400,7 @@ func (x *goExtractor) noteArgNameImpl(fc *fileCtx, c *ast.CallExpr) {
 	}
 }
 
-// argCallable çağrı argümanı olarak geçirilen işlevin ya da somut alıcılı metot değerinin zincire girip girmediğidir.
+// argCallable çağrı argümanı olarak geçirilen işlevin ya da somut alıcılı metot değerinin/ifadesinin zincire girip girmediğidir.
 func argCallable(fc *fileCtx, fn *types.Func, n ast.Node) bool {
 	sig := fn.Type().(*types.Signature)
 	if sig.Recv() == nil {
@@ -411,7 +411,7 @@ func argCallable(fc *fileCtx, fn *types.Func, n ast.Node) bool {
 		return false
 	}
 	s := fc.u.Info.Selections[sel]
-	return s != nil && s.Kind() == types.MethodVal && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())
+	return s != nil && (s.Kind() == types.MethodVal || s.Kind() == types.MethodExpr) && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())
 }
 
 func selfTypeRef(fc *fileCtx, stack []ast.Node, obj types.Object) bool {

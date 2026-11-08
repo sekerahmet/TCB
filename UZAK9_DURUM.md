@@ -11,8 +11,8 @@
 - [x] `CLAUDE.md` ve `UZAK_YONERGE_9.md` okundu, `gemini/uzak-9` dalı açıldı.
 - [x] Adım 1: Yeniden üretim (4 durumun taban ölçümleri ve `testdata/mod/shape` fikstürü; commit `a5244bc`)
 - [x] Adım 2-0a: `printTestsFor` ve `printLinkedBinaries` kol kararının taşınması (`testsForNode` ve `linkedBinaries`; commit `7ca1615`)
-- [x] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü
-- [ ] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer
+- [x] Adım 2-0b: `untested [--in DIR] [--json]` komutu ve "önce" ölçümü (commit `8b9f31d`)
+- [x] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer
 - [ ] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı)
 - [ ] Adım 2c: Yerel değişkenle işlev aktarımı
 - [ ] Adım 2d: `dups --changed` etiketi ve README
@@ -71,4 +71,16 @@
   - `weak`: `328`
   - `exam`: `0`
   - `untested`: `105`
+
+## Adım 2a: Metot İfadesi (`types.MethodExpr`) Zincire Girer
+
+- Üretim satırı: `tools/codegraph/gocode_scan.go:413` (`+1 -1`, yorumla `+2 -2`), `tools/codegraph/graph.go:25` (`+1 -1`, `extractorRevision = 92`), `tools/codegraph/testdata/extractor_digest.txt` (`+2 -2`) -> üretim kodu değişimi 10 satırın altında.
+- `uses_name` kenar farkı:
+  - **5 yeni INFERRED `uses_name` kenarı:** beklenen 4 `registerRounding` kaydına (`internal/stdlib/ml/builtin_math.go:42`–`:45`: `tensor.Tensor.Floor -> name:TR_fn_floor`, `Ceil -> name:TR_fn_ceil`, `Sign -> name:TR_fn_sign`, `Abs -> name:TR_fn_abs`) ek olarak 5. kenar `internal/stdlib/ml/builtins.go:100` satırındaki `unit(v, codes.FnSqrt, (*tensor.Tensor).Sqrt, nil)` çağrısından geldi (`tensor.Tensor.Sqrt -> name:TR_fn_sqrt`), çünkü 4. argüman işlev değil `nil` olduğundan çağrıda tek ad kodu ve tek işlev değeri vardır.
+  - **18 kalkan INFERRED `uses_name` kenarı:** `internal/stdlib/ml/builtin_math.go:31`–`:41` (11 kayıt: `silu64` ve 10 `detmath.*`) ile `internal/stdlib/ml/builtins.go:96`–`:98`, `:101`–`:104` (7 kayıt: `relu64`, `sigmoid64` ve 5 `detmath.*`) toplam 18 `unit(...)` çağrısı artık iki işlevli oldu ve kenarları kalktı (`detmath.Exp`'in ad kodu testleri `69 + 4 weak`'ten `60 + 4 weak`'e indi).
+  - **65 yeni `calls` (`via=arg`) kenarı** eklendi.
+  - `tensor.Tensor.Floor`: `tests about it (3)`, `tests that use it as a function value (9)`, `tests through the name codes it implements (4)` (toplam 16 test; tabanda yalnız 10 değer testiydi).
+  - `tensor.Tensor.Relu`: tabanla aynı (11 test + 2 ölçüm; `unit` çağrısı iki işlevli olduğundan `uses_name` eklenmedi, `registerMath` zaten test edilmiyor).
+- Koruyan testler: `tools/codegraph/query_tests_test.go:419` (`TestTestsForFollowsPackageFunctionPassedAsCallArgument`) ve `tools/codegraph/query_names_test.go:69` (`TestAdjacentNameCodeInCallIsImplementedByArgumentCallable`).
+
 
