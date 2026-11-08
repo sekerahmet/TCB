@@ -1,0 +1,5 @@
+# TR 4
+TR_import "aktaran_adi_modul" # RUN-ERROR H1106
+# TEST 5.14 modül aktaranın değişkenini görmez; aktaranda tanımlı da olsa denetim hatasıdır, hiçbir satır çalışmaz
+TR_var gizli = 7
+TR_print(oku())

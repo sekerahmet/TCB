@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/sekerahmet/TCB/internal/lang/ast"
-	"github.com/sekerahmet/TCB/internal/lang/checker"
 	"github.com/sekerahmet/TCB/internal/lang/codes"
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
@@ -30,8 +29,7 @@ func CheckImportedModules(mainFile string, prog *ast.Program) error {
 // aktarılanlarla, aktarım sırasıyla verir: aktarılan modülün testleri de koşar (12.1). Dilin gömülü
 // kitaplığı dosya değildir, listede yoktur.
 func ImportedModuleFiles(mainFile string, prog *ast.Program) ([]string, error) {
-	names, dynamic := checker.TopLevelNames(prog)
-	c := &moduleChecker{mainFile: mainFile, names: names, dynamic: dynamic, seen: map[string]bool{}}
+	c := &moduleChecker{mainFile: mainFile, seen: map[string]bool{}}
 	err := c.check(nil, mainFile, prog)
 	return c.files, err
 }
@@ -39,8 +37,6 @@ func ImportedModuleFiles(mainFile string, prog *ast.Program) ([]string, error) {
 // moduleChecker bir denetimin durumudur.
 type moduleChecker struct {
 	mainFile string
-	names    []string
-	dynamic  bool
 	seen     map[string]bool
 	files    []string // denetlenen modül dosyaları, aktarım sırasıyla
 }
@@ -90,7 +86,7 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 	}
 	c.seen[abs] = true
 	c.files = append(c.files, resolved)
-	checked := CheckModule(resolved, string(data), c.names, c.dynamic)
+	checked := CheckModule(resolved, string(data))
 	modSource := &Source{Path: resolved, Name: shownPath(resolved), Code: checked.Text}
 	if checked.Stage != "" {
 		return &ModuleError{Source: modSource, Kind: checked.Stage, Errors: checked.Errors,

@@ -11,9 +11,19 @@ TR_import "yardimci_ozel" TR_as özel
 TR_import "yardimci_ozel"
 TR_import "tr/layers" TR_as k
 TR_import "./tr/layers" TR_as d
+TR_import "yardimci_kapsam" TR_as kapsam
+
+TR_var ortak_ad = "aktaran"
 
 TR_test "11.1 aktar modülün üst düzey adlarını getirir; .tr uzantısı isteğe bağlıdır" {
     TR_assert_equal(9, kare(PI))
+}
+
+TR_test "5.14 modül kendisini aktaranın adlarını görmez: aynı adlı değişkende kendi değişkenini okur ve yazar" {
+    TR_assert_equal("modül", kapsam.ortak_adı_oku())
+    kapsam.ortak_adı_yaz("yeni")
+    TR_assert_equal(["yeni", "aktaran"], [kapsam.ortak_adı_oku(), ortak_ad])
+    # aktaranda olup modülde olmayan ad denetim hatasıdır: olumsuz fikstür tests/negative/aktaran_adi.tr
 }
 
 TR_test "11.1 göreli aktar önce aktaran dosyanın, sonra programın klasörüne göre çözülür" {

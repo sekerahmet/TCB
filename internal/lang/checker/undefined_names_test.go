@@ -152,8 +152,8 @@ func TestUndefinedNameAcrossREPLLines(t *testing.T) {
 	}
 }
 
-// Modül aktaranın genel kapsamının altında çalışır (11.1): genel adlar modülde tanımlıdır;
-// adlar bilinmiyorsa (dinamik) tanımsız ad aranmaz.
+// SetGlobalScope'un dış adları tanımlı sayılır; adlar bilinmiyorsa (dinamik) tanımsız ad aranmaz.
+// Modül dış adsız denetlenir: aktaranın adlarını görmez (5.14, interp.CheckModule).
 func TestUndefinedNameModuleGlobalScope(t *testing.T) {
 	module := "yükleme_kaydı.TR_append(1)\nTR_print(bilinmeyen)"
 	checkModule := func(names []string, dynamic bool) []string {

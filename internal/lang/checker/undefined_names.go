@@ -114,11 +114,10 @@ type nameChecker struct {
 	method *methodNames
 }
 
-// SetGlobalScope is for checking modules: a module runs under the global scope of the
-// program that imports it (11.1) and sees the names there. adlar are that global scope's
-// names; dinamik says the names are not fully known (e.g. the global scope has an 'aktar'
-// with no alias), in which case undefined names are not reported in the module. Call it
-// before CheckProgram.
+// SetGlobalScope opens the checked source's global scope under names defined outside it; dynamic
+// says those names are not fully known, in which case undefined names are not reported. A module
+// is checked with none: it sees only its own names, the builtins and what it imports, not its
+// importer's (5.14). Call it before CheckProgram.
 func (c *Checker) SetGlobalScope(names []string, dynamic bool) {
 	c.globalNames = newGlobalNameScope(names, dynamic)
 }

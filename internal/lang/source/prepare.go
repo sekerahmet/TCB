@@ -29,8 +29,9 @@ type Options struct {
 	// Checker, when set, is used for the type check (the REPL uses the same checker across
 	// lines; Result.Errors and Warnings are then cumulative lists).
 	Checker *checker.Checker
-	// InGlobalScope says the source runs under an importer's global scope (11.1):
-	// GlobalNames are that scope's names, GlobalDynamic says they are not fully known.
+	// InGlobalScope says the source is checked in a global scope of its own (Checker.SetGlobalScope):
+	// GlobalNames are names defined outside it, GlobalDynamic says they are not fully known. A module
+	// gets none: it does not see its importer's names (5.14).
 	InGlobalScope bool
 	GlobalNames   []string
 	GlobalDynamic bool

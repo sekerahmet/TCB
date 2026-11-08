@@ -87,6 +87,10 @@ type vmShared struct {
 	CommandName string
 	isImported  sync.Mutex
 	Imported    map[string]*DictVal
+	// moduleRoot modüllerin genel kapsamıdır: yalnız yerleşikler (New'in sonunda GlobalEnv'den
+	// kopyalanır). Bir dosya kendisini aktaranın adlarını görmez (5.14); ana programın adları
+	// GlobalEnv'de yerleşiklerden sonra gelir, buraya girmez.
+	moduleRoot *Environment
 	// taskErrors, bir test koşarken (RunTest) testin başlattığı görevlerin hatalarını toplar;
 	// test bitince testin hatası olurlar (10.1). nil iken görev hataları Err'e yazılır.
 	taskErrorsMu sync.Mutex
@@ -327,6 +331,7 @@ func New() *VM {
 	v.registerTestBuiltins()
 	v.registerMessageBuiltins()
 	v.registerErrorType()
+	v.moduleRoot = builtinsOnly(env)
 	return v
 }
 
