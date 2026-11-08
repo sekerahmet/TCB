@@ -234,7 +234,7 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 ### 5.4
 
-- **Yapılacaklar (A, Ö0; sahip D1; DENETİM 231):** bileşik atamada hedefin yeri sağ yandan sonra hesaplanıyor: `l[k] += sag()` `sag` içinde `k` değişince yanlış öğeyi yazıyor (`[10, 25]`, doğrusu `[15, 20]`); sözlükte de öyle [ölçüldü: uzak 5, DENETİM 231 yeniden, `a3f6871e`].
+- **Mevcut durum (D1, `c897bf86`; A kapandı):** bileşik atamada hedefin yeri (indeks, alanın sahibi) sağ yandan önce bir kez hesaplanır, yazma o yere gider: `l[k] += sag()` `[15, 20]` verir; on iki işleç, liste, sözlük ve alan [test: TR testi "5.4 bileşik atamada önce hedefin yeri, sonra sağ yan hesaplanır"]. Düz `=`'nin sırası yazılı değil (`pending.md`).
 - **Mevcut durum:** on iki bileşik atama, listede yerinde `+=` ve `*=`, hedefin bir kez hesaplanması, alan hedefi, tanımsız ada atamanın `TR_var`'ı öneren denetim hatası ve sonucun tipi kurala uyuyor: tam sayı değişkende `x /= 2` ve `x += 1.5` denetim hatası (H1005). `/=`'nin iletisi `//=`'yi değil `//`'yi öneriyor. İşlenenlerin tipi `+` ve `+=`'da denetimde (4a2 ikinci dilim): `s += 1` ve `s + 1` (`s` metin) H2609 [ölçüldü: main `85a19c36`, on iki işleç, `l[f()] += 1`, `p.x += 4`, `x /= 2`, `x += 1.5`, `s += 1`; denetim ve çalıştırma; `TestCompoundAssignment`]. Tensörde indeksle biriktirme 15.6d'de.
 - **Yapılacaklar:** `/=` iletisi `//=`'yi önerir.
 
@@ -266,9 +266,9 @@ Kurallar: [`docs/spec/05_deyimler.md`](spec/05_deyimler.md). Taslak: metin DENET
 
 ### 5.14
 
-- **Yapılacaklar (A, Ö0; sahip D1; DENETİM 231):** modül kendisini aktaran dosyanın değişkenini görüyor: okuyor ve yazıyor; modülün kendi aynı adlısı varsa o kazanıyor, ad hiç yoksa denetimden geçip çalışırken hata [ölçüldü: uzak 5, DENETİM 231 yeniden, `a3f6871e`].
+- **Mevcut durum (D1, `9632d4b2`; A kapandı):** modül kendisini aktaranın adlarını görmez: denetimde H1106, çalışırken modül yalnız yerleşikleri görür [test: `TestAModuleDoesNotSeeItsImportersNames`, TR testi "5.14 modül kendisini aktaranın adlarını görmez ...", `tests/negative/aktaran_adi.tr`]. `tools/gpu/measurement_model.tr` boyutları `Boyutlar` yapısıyla alıyor (`6ce33565`).
 - **Mevcut durum:** tanımsız ad çalışmadan önce bulunuyor, ileti en yakın adı öneriyor. Tanımından önce kullanılan değişken, fonksiyon ve yapı denetimden geçiyor, çalışırken "böyle bir ad yok" hatası veriyor; sonra tanımlanan değişkeni okuyan fonksiyon, değişkenden önce çağrılınca da. Modülün en dışı sıraya bağlı: önündeki sabiti okuyan sabit modül çalışırken düşüyor; birbirine döngüyle bağlı iki sabit denetimden geçiyor. Aktarılan modülün fonksiyonu aktaranın en dış adını okuyor: modülde tanımsız ad aktaranda tanımlıyken denetim geçiyor, çağrı aktaranın değerini veriyor; modül tek başına denetlenince aynı ad hata [ölçüldü: tanımsız ad, öne alınmayan değişken, fonksiyon ve yapı, iki modül dosyası; denetim ve çalıştırma]. Takma adsız aktarmadaki tanımsız ad 1.3'te.
-- **Yapılacaklar:** tanımından önce kullanma denetim hatası; fonksiyon ve tip tanımları bloğun her yerinden görünür; fonksiyonu çağıran ya da değer olarak alan ifade, fonksiyonun doğrudan ya da dolaylı kullandığı değişkenlerin tanımından sonra gelir (ileti tanımı yukarı almayı önerir); modülün en dışı sıradan bağımsız, sabitler arasında döngü denetim hatası; dosya aktaranın adlarını görmez, denetimde de çalışırken de; denetleyicinin testi.
+- **Yapılacaklar:** tanımından önce kullanma denetim hatası; fonksiyon ve tip tanımları bloğun her yerinden görünür; fonksiyonu çağıran ya da değer olarak alan ifade, fonksiyonun doğrudan ya da dolaylı kullandığı değişkenlerin tanımından sonra gelir (ileti tanımı yukarı almayı önerir); modülün en dışı sıradan bağımsız, sabitler arasında döngü denetim hatası; denetleyicinin testi.
 
 ## 6. Fonksiyonlar
 
@@ -506,11 +506,10 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md). **Kapandı** (2026-
 
 ### 11.1
 
-- **Yapılacaklar (A, Ö0; sahip D1; DENETİM 231):** Windows'ta `"Ortak"` ve `"ortak"` hatasız yükleniyor ve iki ayrı örnek oluyor (sayaç `1 1`); kural harf büyüklüğünde hata [ölçüldü: uzak 5, DENETİM 231 yeniden, `a3f6871e`].
-- **Yapılacaklar (D, Ö3; sahip D1; DENETİM 231):** alt klasördeki aktarma kendi klasöründe yokken programın klasörüne düşüyor, kural hata [ölçüldü: uzak 5, DENETİM 231]. Dosya programın kendi klasöründe, B değil.
+- **Mevcut durum (D1, `7e7706dc`; A ve D kapandı):** göreli aktarma yalnız aktaranın klasöründe çözülür, harf büyüklüğü her sistemde diskteki adla aynı olmalı: H2721 diskteki adı, H2722 programın klasöründeki dosya için açık yolu önerir [test: `TestARelativeImportUsesOnlyTheImportersFolderAndTheDisksCase`, Windows; Linux tam denetimde].
+- **Yapılacaklar (F, Ö3; sahip D1; DENETİM 281):** `TR_import "ortak.TR"` `ortak.TR.tr`'yi arıyor; ileti doğru yazımı (`"ortak"`) önermiyor [ölçüldü: D1]. Mutlak yolun harf büyüklüğü kuralda yazılı değil (`pending.md`).
 - **Mevcut durum:** modülün en dışındaki deyim denetim hatası (H1107, 1.1); olumsuz fikstür `tests/negative/modul_en_dis.tr` [ölçüldü: `TestModuleTopLevelHoldsOnlyDefinitions`, 4a1 ilk dilim].
 - **Yapılacaklar:** yok (1.1'e bağlı kalanlar 1.1'in maddesinde).
-- **Gemini Koşu 5 (2026-10-29), uygulanacak (A ve B, Ö0; DENETİM istek 81 Ş1):** göreli modül yolunun programın klasörüne yedek yolu kalkar; harf büyüklüğü diskteki adla aynı olmalı. A: Windows'ta harf büyüklüğü ayrı iki yazım aynı dosyayı iki modül örneği olarak yüklüyor, paylaşılan durum bozuluyor; B: aktaranın klasöründe olmayan modül programın klasöründen yükleniyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`].
 
 ### 11.2
 
@@ -700,6 +699,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 - **GPU (T1 dilim 2, adım 8):** cinsli depolama ve taşıma; argmax'in `TR_Int` sonucu cihazda; karşılaştırma (hesap ondalıkları, "int64", mantıkta `==`/`!=`) `TR_Bool` verir; mantıkta `& | ^ ~`; `TR_where` mantık koşulla; "int64" ve mantıktan float32'ye tip çağrısı cihazda; tam sayı içinde `.TR_to_dtype` ve tam sayıya tip çağrısı konakta yapılıp cihaza döner (bekleyen işlem, `TR_replay` kaydında çalışmaz); öbür cinsli işlem H6969 [test: TestTypedPathsOnGPU, TestTypedMaskPathsOnGPU, TestGPUGenerateWithTypedPositions]. Gerçek kart (G4, 2026-11-02) benzetimin geçirdiği iki hatayı yakaladı, ikisi de düzeldi: cinsli çekirdeklerin PTX `.entry` adı geçersizdi (`[`, boşluk; ad `2061d924`'te düzeldi, paket her çekirdeğin adını `f2280246`'dan beri denetliyor, benzetim geçersiz adı `ee5550bc`'den beri reddediyor) ve ham bayt depolamasının konak gölgesi yoktu, kimlik okumaları kuyruğu boşaltıyordu (hedef modelde +%6; `c1bbd329`, G4 ABAB taban 145 ↔ uç 146 ms/adım [ölçüldü]). Düzeltmelerden sonra GPU testlerinin listesi kartta yeniden koşulacak.
 - **Açık küçükler (DENETİM istek 54 ve 56):** cinsli çekirdek bileşimlerinin (`gpuTypedOK`'un açtığı hepsi) ad, benzersizlik ve ayrışma testi; benzetimin `.target` denetimi (`mma.sync`, `cvt.rn.*x2.f32`); Colab'da bir kez ptxas karşılaştırması; `checkKernelNames` yalnız bütün testler geçince basıyor; benzetimde ns/op güvenilmez, `BenchmarkIDBatchToHost`'un ölçütü `eşzamanlama/op`. Veri kümesi kimlikleri float32 kurulup "int64"e çevriliyor (`dataset.go` → `ml.NewInt`): 2²⁴'ün üstündeki kimlik açık hata veriyor, H5536 (E; sessiz bozulma yok [ölçüldü: DENETİM 231]) ve 32K öğe başına ~0,3 ms konak işi var (T1 bulgu 12) [ölçüldü: T1, benzetimde profil; 2²⁴ sınırı kanıtlı: float32'nin anlamlı bitleri].
 - **Yapılacaklar (A, Ö1, 4c; DENETİM 231: `TR_Tensor[TR_Int] = TR_Tensor([1.5])` float32 kuruyor, tipli yerin dokuzuncu yolu [ölçüldü: DENETİM 231]):** öğe cinsli tip (`TR_Tensor[E]`, tip denetimi 4c), `TR_AnyTensor` ve daraltma; GPU'da cinsli tensörün genel çekirdekleri (2b); `TR_replay` kaydında tam sayı tensörünün kopyası ve tam sayı tensörünün sayıyla işlemi (sayı bugün konaktan yükleniyor).
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 278, 280):** CPU'da float64 hesabı 15.1'e göre var olmalı, motorda çoğu işlem yok: `@`, `TR_conv1d`, `TR_exp`, `TR_log`, `TR_tanh`, `TR_sigmoid`, `TR_sqrt`, `TR_gelu`, `TR_relu`, `TR_softmax`, `TR_layer_norm`, `TR_ceil`, `TR_embedding_lookup` H6960 veriyor; çalışanlar `TR_where`, `TR_cumsum`, `TR_sum`, `TR_concat`, `**`, `TR_clamp`, tensör indeksi [ölçüldü: S1, `f64.tr`]. `tests/conv1d_test.tr:64` bu eksikliği bekliyor; uygulanınca ters döner. F1: H6960'ın metni CPU'daki float64'te "bu hesap float32, bf16 ya da fp16 ister" diyerek yanlış kuralı öğretiyor.
 - **Tip yazımı ayrışıyor (Faz 0.6a, 2026-10-29):** `TR_Tensor[E]` ayrıştırılıyor, `TR_Tensor`'a indirgeniyor; `TR_AnyTensor` henüz kod değil [ölçüldü: bulut 0.6a].
 
 ### 15.2
@@ -714,6 +714,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 - **Yapılacaklar (A, Ö0; sahip T1, H1'den sonra; DENETİM 231):** kopya olan `.TR_reshape` sonucuna yerinde yazma hata vermiyor, kural hata; görünüm yolu doğru [ölçüldü: uzak 5, DENETİM 231 yeniden, `a3f6871e`]. `TR_write_slice` ve bileşik atama denenmedi.
 - **Yapılacaklar (E, Ö3; sahip T1; DENETİM 231 N2):** `.TR_fill` kuralda var, kimliği yok [ölçüldü: DENETİM 231].
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 280):** iki argümanlı `.TR_slice(eksen, baş)` H6717 veriyor; 15.3'ün örneği (`x.TR_slice(1, 1)`) kopyalanınca çalışmıyor [ölçüldü: S1].
 - **Mevcut durum:** sürüm motorda var (depo başına sayaç, H3012) [kanıtlı: internal/compute/tensor/device.go:154-156, 166-181, `internal/compute/tensor/autograd.go:169-173, 226-227`]; ama ileti `TR_sigmoid`'in ezilen çıktısına "girdi" diyor [ölçüldü: DENETİM].
 - **Mevcut durum (T1 dilim 2):** `.TR_to_dtype` cinsin bütün hassasiyetlerini alıyor ("int8", "float64" ...; tam sayıda sığma denetimi H6964), başka cinsin hassasiyeti H6977 (ileti tip çağrısını öneriyor). Cins dönüşümü tip çağrısı: `TR_Tensor[TR_Int](t)` sıfıra doğru kesiyor, NaN ve sonsuz H6964; `TR_Tensor[TR_Float](i, TR_dtype: "float64")` hedef hassasiyeti alıyor; mantık ile sayı arasında dönüşüm H6978. Tam sayı taşması H6961 (CPU). `.TR_tolist()` öğe tipli liste veriyor (`TR_List[TR_Int]`) [test: TestTypedConvert, TestTypedIntArith; TR testi "15.3 hassasiyet cinsin içinde değişir"]. Hesap ondalığından float64'e `.TR_to_dtype` türev izlemiyor [ölçüldü].
 - **Yapılacaklar:**
@@ -810,7 +811,9 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.18
 
-- **Yapılacaklar (A, Ö0; sahip D1; DENETİM 231):** boş tensör listesinde `TR_sum` hata yerine tam sayı `0` veriyor; `TR_mean` doğru [ölçüldü: uzak 5, DENETİM 231 yeniden, `a3f6871e`].
+- **Mevcut durum (D1, `6230a472`):** yazılı tipi `TR_List[TR_Tensor]` olan yere (değişken, parametre, dönüş, alan) bağlı boş listenin `TR_sum`'ı H2720 [test: TR testi "15.18 boş tensör listesinin toplamı hatadır; sayı listesininki 0"].
+- **Yapılacaklar (A, Ö0; sahip D1; DENETİM 281 Ş1):** tipi çıkarımla gelen boş tensör listesi işaretsiz, `TR_sum` hâlâ hatasız 0 veriyor: `TR_sum([kayıp(x) TR_for x TR_in parti TR_if x.geçerli])`'de süzgeç her şeyi atarsa [kanıtlı: kod yolu, DENETİM 281; koşulmadı]. Aynı kök: boş `TR_List[TR_Float]`'ın `TR_sum`'ı `0` veriyor, 13 `TR_Float` diyor (`13_yerlesikler.md:8`) [ölçüldü: D1]. Genel çözüm çağrı yerinde denetleyicinin bildiği argüman tipi [önerim: DENETİM 281].
+- **Yapılacaklar (E, Ö3; sahip T1; DENETİM 280):** `TR_dim:` listesi (`TR_sum(x, TR_dim: [1, 2])`) H6106 veriyor [ölçüldü: S1].
 - **Mevcut durum:** eksen `TR_sum`/`TR_mean`'de konumla da veriliyor, `TR_max`/`TR_min`'de verilmiyor (H6205) [ölçüldü]. Maskenin ve `TR_argmax` sonucunun toplamı "int64" tensör [ölçüldü: Gemini 4, DENETİM 166]; maskenin ortalaması float32 [ölçüldü: DENETİM 170]. `TR_std` tensörde H2423 veriyor [ölçüldü]; `TR_logsumexp` CPU'da var, GPU'da yok (15.4). `TR_max` ve `TR_min` NaN dışındaki sayılarda −0.0 < 0.0 kullanıyor, CPU ve GPU'da [test: TestMaxNegativeZeroOrder]. 16 777 217 birin float32 toplamı 16777216.0 (sonuç float32'ye yuvarlanıyor; doğru davranış); bf16 toplamın sonucu bf16 [ölçüldü].
 - **Yapılacaklar:** eksen yalnız adla; göç 3 yer [kanıtlı: `tests/tensor_test.tr:366`, `tools/gpu/ss_exam.tr:59`, `internal/stdlib/ml/builtin_reduce_test.go:86`]: `tests/tensor_test.tr:366`, `tools/gpu/ss_exam.tr:59`, Go dizesi `internal/stdlib/ml/builtin_reduce_test.go:86`. `tools/gpu/ss_exam.tr:58-60` 15.19'un göçüyle birlikte yapılır (`TR_argmax(...) == iş[1]` ve `TR_sum(isabet, TR_dim: 0)`); cinsli sonuç bu satırdaki gizli `TR_Int += TR_Float`'u da düzeltir. Cinsli sonuçlar, "int64" taşma hatası, `TR_std`, GPU'da `TR_logsumexp`, liste eksen; TR testleri.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** boş eksen ile boş tensörün ayrımı, boş tensör listesinde hata, `TR_std`'nin sıfır sapmadaki türevi 0.
@@ -840,7 +843,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Bölüm 2026-10-2
 
 ### 15.21a
 
-- **Mevcut durum:** `TR_gather` yok.
+- **Mevcut durum:** `TR_gather` yok. MMS-TTS'in `.tr` yedeği (tek-sıcak seçim) profilde %0 [ölçüldü: S1, 2026-11-08].
 - **Yapılacaklar:** uygulamak; TR testi. Gösterim adı onaylı (Ahmet, 2026-10-29).
 
 ### 15.22
@@ -1208,8 +1211,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.7
 
-- **Yapılacaklar (Linux'ta A, Ö0 [hipotez: kod ve POSIX silme; koşulmadı]; Windows'ta F1; sahip D1; DENETİM 231):** açık `TR_Logger` silmeye karşı korunmuyor: korumaya kayıtlı değil. Windows'ta işletim sisteminin hatası geliyor, kayıp yok, ama 18.7'nin iletisi değil; Linux'ta sonraki kayıtlar sessizce kaybolur [ölçüldü: uzak 5]. Birlikte: 19.5'in `.TR_close()`'u motorda yok (E; DENETİM 231 N2), iletinin önerisi ona bağlı.
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** `TR_Logger` ile açık dosya da silinmez.
+- **Mevcut durum (D1, `82bf29a6`; A ve F1 kapandı):** açık günlüğün dosyası her sistemde silinmez ve taşınmaz, H2723 ve H2724 `g.TR_close()`'u önerir [test: TR testi "18.7 sil ..."]. Taban Linux'ta sessiz kayıptı: `TR_remove` hatasız sildi, sonraki iki kayıt kayboldu [ölçüldü: D1, G4, `ffca754c`]; dal H2723 verdi, dosya 4 satırla durdu [ölçüldü: D1, G4, `7e7706dc`].
 
 ### 18.9
 
@@ -1244,7 +1246,8 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ### 19.5, 19.7
 
 - **Mevcut durum:** `TR_Logger.TR_append` ve `TR_Progress.TR_update` değer vermiyor [test: `TestNoValueBuiltinsGiveNone`].
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok; `g.TR_close()`.
+- **Mevcut durum (D1, `82bf29a6`):** `g.TR_close()` var (`TR_true`, ikinci kez `TR_false`); kapatılmış günlüğe yazma H2725 [test: TR testi "19.5 g.kapat ..."].
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok.
 
 ### 19.6
 
@@ -1293,6 +1296,12 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 - **Yapılacaklar (F, Ö3; sahip D1, 2b'den sonra):** `TR_command_line` NUL ile başlayan seçenek adını iki kez kodluyor (`internal/stdlib/process`): anahtarın uzunluğu 2 değil 18 [ölçüldü: D1].
 
 Dil tanımında bölümü olmayan işler: A, B ve C (DENETİM istek 76) ve küçük bir D maddesi.
+
+### Yazıyı konuşmaya çevirme (dil tanımı 27 yazılınca kendi bölümüne taşınır)
+
+- **Mevcut durum (S1, `097540d4`, 2026-11-08):** `tr/vits`: `TR_pretrained_vits`, `TR_Vits`, `TR_synthesize` (`hazır_vits`, `Vits`, `sese_çevir`), MMS-TTS Türkçe. G4'te altı durumda parça kimlikleri ve süreler PyTorch float32 ile bire bir; SNR TR/PT64 85,0–100,2 dB, PyTorch'un kendi PT32/PT64'ü 88,0–98,9 dB [ölçüldü: S1, G4]. 8 iş parçacığında ses/hesap 1,06–1,08, PyTorch 23–26 [ölçüldü: S1, G4 CPU, üç cümle]. Parçalayıcı modelin dönüşümünü (Python `str.lower()`, `İ` → `i` + U+0307) açık tabloyla izliyor [test: `tests/vits_model_test.tr`].
+- **Mevcut durum (S1, `7d50a167`, hız):** leaky_relu `TR_fuse` içinde `TR_relu(x) - TR_relu(-x) * eğim` olarak kaynaştırıldı, yeni ad gerekmedi. Orta cümlenin hesabı 5,44–5,54 sn'den 1,98 sn'ye indi (2,8 kat), `_gevşek` profilden çıktı; gerçek modelde dalga, süre ve gizli ses eski yolla bit bit aynı. Tek ayrım `-0.0` girişte `+0` [ölçüldü: S1, G4 CPU, 8 iş parçacığı, iki ikili ikişer koşu].
+- **Yapılacaklar (hız; sahip H1 ya da T1):** `TR_where` `TR_fuse`'a girmiyor (H6207); `fuse.go`'da üç girdili düğüm yok [ölçüldü: S1; kanıtlı: S1]. Kalan pay evrişimde (`_ileri` 1,65 sn).
 
 ### Denetleyicinin üye erişimi
 
