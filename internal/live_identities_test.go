@@ -23,6 +23,7 @@ var deadIdentityAllowed = map[string]map[string]string{
 	"internal/lang/codes/language_test.go":                        {"*": "kod listesinin denetimi: geçersiz ve uydurma kimliklerin örnekleri"},
 	"internal/lang/messages/template_test.go":                     {"*": "ileti kalıbının denetimi: uydurma kimlik örnekleri"},
 	"tools/codegraph/renames_test.go":                             {"*": "yeniden adlandırma geçmişinin uydurma kodları"},
+	"tools/codegraph/query_names_test.go":                         {"*": "geçici fikstür modülünün uydurma ad kodları (TestAdjacentNameCodeInCallIsImplementedByArgumentCallable)"},
 	"internal/devtools/testrunner/behavior_language_spec_test.go": {"TR_fn_str": "program metninde kimlik yerine yazılan sınıflı eski yazımın örneği"},
 	"lib/optimizers.tr":                                           {"TR_mem_ple_table": "parametre yolu deseninin örneği", "TR_mem_embedding_x": "parametre yolu deseninin uymayan örneği"},
 	"lib/optimizers_test.tr":                                      {"TR_mem_ple_table": "parametre yolu deseninin testi", "TR_mem_embedding_x": "parametre yolu deseninin testi"},
