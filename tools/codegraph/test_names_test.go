@@ -163,6 +163,50 @@ func TestNameCodeTestsMustLinkTheFunctionsPackage(t *testing.T) {
 	}
 }
 
+// Kural: ad kodu bağı argüman kenarını (viaArg) izlemez. `Register` iki kod kullanır ve `leaf`'i bir çağrıya argüman
+// olarak verir; `leaf` o kodları uygulamaz, kodların testleri `leaf`'in testi sayılmaz. Doğrudan çağıran
+// (`Update` → `Save`) eskisi gibi izlenir (DENETİM 279 Ş1: `interp.PathArg` kayıt işlevlerinden 16 alakasız kod alıyordu).
+func TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument(t *testing.T) {
+	const m = "example.com/m"
+	fn := func(name string) string { return "go:func:" + m + "/app." + name }
+	g := &Graph{Module: m, Nodes: []Node{
+		{ID: pkgID(m + "/app"), Kind: kindPackage},
+		{ID: fn("Register"), Kind: kindFunc, Name: "app.Register", File: "app/app.go"},
+		{ID: fn("leaf"), Kind: kindFunc, Name: "app.leaf", File: "app/leaf.go"},
+		{ID: fn("Update"), Kind: kindFunc, Name: "app.Update", File: "app/app.go"},
+		{ID: fn("Save"), Kind: kindFunc, Name: "app.Save", File: "app/save.go"},
+		{ID: "name:TR_fn_backward", Kind: kindName, Name: "TR_fn_backward"},
+		{ID: "name:TR_mem_update", Kind: kindName, Name: "TR_mem_update"},
+		{ID: "tr:test:tests/a_test.tr:1", Kind: kindTRTest, Name: "a_test: geri yayılım", File: "tests/a_test.tr"},
+		{ID: "tr:test:tests/b_test.tr:1", Kind: kindTRTest, Name: "b_test: güncelle", File: "tests/b_test.tr"},
+	}, Edges: []Edge{
+		{From: fn("Register"), To: "name:TR_fn_backward", Kind: edgeUsesName},
+		{From: fn("Register"), To: fn("leaf"), Kind: edgeCalls, Confidence: inferred, Via: viaArg},
+		{From: fn("Update"), To: "name:TR_mem_update", Kind: edgeUsesName},
+		{From: fn("Update"), To: fn("Save"), Kind: edgeCalls, Confidence: extracted},
+		{From: "tr:test:tests/a_test.tr:1", To: "name:TR_fn_backward", Kind: edgeTests},
+		{From: "tr:test:tests/b_test.tr:1", To: "name:TR_mem_update", Kind: edgeTests},
+	}}
+	ix := newIndex(g)
+	names := func(id string) string {
+		var out []string
+		for _, nt := range ix.testsThroughNames(ix.byID[id]) {
+			out = append(out, nt.test.Name)
+		}
+		sort.Strings(out)
+		return strings.Join(out, ", ")
+	}
+	if got := names(fn("leaf")); got != "" {
+		t.Errorf("a function passed as an argument does not implement its receiver's name codes: got %q, want none", got)
+	}
+	if got, want := names(fn("Save")), "b_test: güncelle"; got != want {
+		t.Errorf("a direct caller's name codes still count: got %q, want %q", got, want)
+	}
+	if callers := ix.callersOf(fn("leaf")); len(callers) != 1 || callers[0] != fn("Register") {
+		t.Errorf("test reach still follows the argument edge: callers of leaf %v", callers)
+	}
+}
+
 // Kural (parti K2, A): bir Go testi dizesindeki TR koduyla (tablo satırı dahil) X ad kodunu koşuyorsa ve aynı paketteki
 // bir bildirim X'i uyguluyorsa (uses_name), o bildirimin dosyasının tests-for cevabında test "direct"tir (ya da daha
 // güçlü kanıtla, bildirim düzeyindeki gibi, "tests about it" grubundadır). Önceden

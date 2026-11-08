@@ -199,9 +199,20 @@ func (ix *index) printValueTests(w io.Writer, list []indirectTest, limit int) {
 }
 
 // callersOf bir düğümü çağıran ya da kullananlardır (reachEdge kenarları), kimliğe göre sıralı.
-func (ix *index) callersOf(id string) []string {
+func (ix *index) callersOf(id string) []string { return ix.callers(id, true) }
+
+// nameCallersOf ad kodu katmanının yürüyüşüdür: callersOf gibi, ama argüman olarak geçirilen işlevden onu alan
+// işleve (viaArg) geçmez. Alan işlev çoğu kez bir kayıt işlevidir (`ml.Register`) ve paketinin bütün kodlarını
+// kullanır; argüman olan işlev onları uygulamaz (DENETİM 279 Ş1: `interp.PathArg` 16 alakasız kodun 251 testini
+// alıyordu). Test erişimi (callersOf) argümanı izlemeye devam eder.
+func (ix *index) nameCallersOf(id string) []string { return ix.callers(id, false) }
+
+func (ix *index) callers(id string, throughArgs bool) []string {
 	var out []string
 	for _, e := range ix.in[id] {
+		if !throughArgs && e.Via == viaArg && e.Confidence != extracted {
+			continue
+		}
 		if reachEdge(e.Kind, e.Confidence, e.From, e.To, e.Via) {
 			out = append(out, e.From)
 		}
