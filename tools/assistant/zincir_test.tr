@@ -1,5 +1,5 @@
 # TR 4
-# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), çalınan sesin silinmesi, dinleme (çalma aralığı, çapa, taşma).
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, cümle akışı, rakam, önbelleğin kapasitesi ve ortak öneki (B.4), cümlelerin sırayla çalınması ve çalınan sesin silinmesi, dinleme (çalma aralığı, çapa, taşma).
 TR_import "tr/chat"
 TR_import "zincir"
 
@@ -88,17 +88,6 @@ TR_test "etiket kimliği akışı durdurur; söylenen cevaptan ayrıldıysa kala
     TR_assert_equal(TR_none, b.bitir("Başka. İki."))
 }
 
-TR_test "ilk cümlenin anı sınırının geldiği kimliğin anıdır; sınır yoksa son kimliğin" {
-    TR_var p = parçalayıcı()
-    TR_var k = p.TR_encode("Merhaba. Nasılsın?", TR_special_tokens: TR_false)
-    TR_var anlar = [(i + 1) * 10 TR_for i TR_in 0..k.TR_length]
-    TR_var n = p.TR_encode("Merhaba.", TR_special_tokens: TR_false).TR_length
-    TR_assert_equal(n * 10, ilk_cümle_anı(p, k, anlar))
-    TR_var s = p.TR_encode("Merhaba", TR_special_tokens: TR_false)
-    TR_assert_equal(s.TR_length * 10, ilk_cümle_anı(p, s, [(i + 1) * 10 TR_for i TR_in 0..s.TR_length]))
-    TR_assert_equal(-1, ilk_cümle_anı(p, [], []))
-}
-
 TR_test "rakam satırı: içerikte rakam var mı" {
     TR_assert(rakamlı("Saat 5."))
     TR_assert(TR_not rakamlı("Saat beş."))
@@ -114,22 +103,58 @@ TR_test "önbellek modelin bağlamını değil zincirin bağlamını ayırır" {
     TR_assert_equal("H6909", TR_error_code { TR_no_grad { m.TR_hidden_states([[9]], TR_cache: ö) } })
 }
 
+# Konuşma: söyle hemen döner (çalma ayrı görevde); her çalma öncekinin bitmesini bekler. Sahte çalıcı bırakılana
+# kadar bekler, böylece sıra zamana bağlı olmadan sınanır.
+TR_test "cümleler söylendikçe sırayla çalınır, söyle çalmayı beklemez" {
+    TR_var olaylar: TR_List[TR_String] = []
+    TR_var bırak = TR_false
+    TR_var t = Tur(sıra: 1, söz_ms: 0)
+    TR_var k = Konuşma(hazırla: (_, i) => "\(i)", çal: (iş) => {
+        olaylar.TR_append("başla " + iş)
+        TR_for TR_not bırak { TR_sleep(0.001) }
+        olaylar.TR_append("bitti " + iş)
+    }, t: t, t0: şimdi())
+    TR_for _ TR_in 0..3 { k.söyle(TR_Sound(TR_zeros([1, 160]), 16000)) }
+    TR_assert(TR_not olaylar.TR_contains("bitti 0"))
+    TR_assert(t.ilk_ses_ms >= 0)
+    bırak = TR_true
+    k.bitir()
+    TR_assert_equal(["başla 0", "bitti 0", "başla 1", "bitti 1", "başla 2", "bitti 2"], olaylar)
+    TR_assert(t.çalma_ms >= 0 TR_and t.çalma_başı <= t.çalma_sonu)
+    TR_assert_equal(t.çalma_sonu - t.çalma_başı, t.çalma_süresi_ms)
+    k.bitir() # ikinci çağrı bir şey beklemez
+}
+
+TR_test "çalmanın hatası son çalmanın beklenmesinde fırlar" {
+    TR_var k = Konuşma(hazırla: (_, i) => "\(i)", çal: (iş) => {
+        TR_if iş == "1" { TR_throw "çalıcı yok" }
+    }, t: Tur(sıra: 1, söz_ms: 0), t0: şimdi())
+    TR_for _ TR_in 0..3 { k.söyle(TR_Sound(TR_zeros([1, 160]), 16000)) }
+    TR_var hata = ""
+    TR_try { k.bitir() } TR_catch e { hata = "\(e)" }
+    TR_assert(hata.TR_contains("çalıcı yok"))
+}
+
 TR_test "cevabın sesi çalınırken diskte, çalındıktan sonra yok" {
-    TR_var sesler = [TR_Sound(TR_zeros([1, 160]), 16000), TR_Sound(TR_zeros([1, 320]), 16000)]
+    TR_var klasör = TR_temp_dir()
+    TR_defer { TR_remove(klasör, TR_recursive: TR_true) }
     TR_var yollar: TR_List[TR_String] = []
     TR_var varken: TR_List[TR_Bool] = []
     TR_var önceki_var: TR_List[TR_Bool] = []
-    TR_var t = Tur(sıra: 1, söz_ms: 0)
-    sesleri_çal(sesler, t, şimdi(), (yol) => {
+    TR_var k = Konuşma(hazırla: (s, i) => wav_yaz(klasör, s, i), çal: (yol) => wav_çal(yol, (y) => {
         TR_if yollar.TR_length > 0 { önceki_var.TR_append(TR_Path(yollar[yollar.TR_length - 1]).TR_exists) }
-        yollar.TR_append(yol)
-        varken.TR_append(TR_Path(yol).TR_exists)
-    })
+        yollar.TR_append(y)
+        varken.TR_append(TR_Path(y).TR_exists)
+    }), t: Tur(sıra: 1, söz_ms: 0), t0: şimdi())
+    k.söyle(TR_Sound(TR_zeros([1, 160]), 16000))
+    k.söyle(TR_Sound(TR_zeros([1, 320]), 16000))
+    k.bitir()
     TR_assert_equal([TR_true, TR_true], varken)
     TR_assert_equal([TR_false], önceki_var) # çalınan cümle bir sonraki çalınmadan silinmiş
-    TR_assert(TR_not TR_Path(yollar[0]).TR_exists)
-    TR_assert(TR_not TR_Path(yollar[0]).TR_parent.TR_exists)
-    TR_assert(t.çalma_ms >= 0)
+    TR_assert(TR_not TR_Path(yollar[1]).TR_exists)
+    TR_var y = wav_yaz(klasör, TR_Sound(TR_zeros([1, 160]), 16000), 9)
+    TR_try { wav_çal(y, (_) => { TR_throw "çalıcı yok" }) } TR_catch _ {}
+    TR_assert(TR_not TR_Path(y).TR_exists) # hatayla biten çalmada da silinir
 }
 
 # Sahte mikrofon: k. çerçeve (değeri k) `gecikme + k × 32` ms'de biter ve ancak o zaman okunabilir; okunmadıkça
