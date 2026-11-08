@@ -14,14 +14,15 @@ const (
 )
 
 // reachEdge bir kenarın "çağıran/kullanan" zincirine girip girmediği: kesin (EXTRACTED) çağrı, bir çağrının argümanı olarak
-// geçirilen paket düzeyi Go işlevi ya da somut alıcılı metot değeri (via == viaArg), tür/sabit kullanımı, değişken okuma ve yazma, arayüzden uygulamaya geçiş.
-// Go'da öbür INFERRED çağrılar (bileşik değerdeki işlev, değişkene atanan işlev, arayüz metot değeri, metot ifadesi) zincire girmez;
+// geçirilen ya da yalnız işlev değeri atanıp çağrılan yerel değişkene verilen paket düzeyi Go işlevi, somut metot değeri ya da
+// somut metot ifadesi (via == viaArg || via == viaVar), tür/sabit kullanımı, değişken okuma ve yazma, arayüzden uygulamaya geçiş.
+// Go'da öbür INFERRED çağrılar (bileşik değerdeki işlev, çağrılmayan değişkene atanan işlev, arayüz metot değeri/ifadesi) zincire girmez;
 // TR'de ise alıcı tipi bilinmeyen sıradan metot çağrısıdır (`model.ileri(x)`), bu yüzden iki ucu da TR olan INFERRED
 // çağrı zincire girer (codeindex'in kendi yürüyüşü de bütün TR çağrılarını izler).
 func reachEdge(kind, confidence, from, to, via string) bool {
 	switch kind {
 	case edgeCalls:
-		return confidence == extracted || via == viaArg || strings.HasPrefix(from, "tr:") && strings.HasPrefix(to, "tr:")
+		return confidence == extracted || via == viaArg || via == viaVar || strings.HasPrefix(from, "tr:") && strings.HasPrefix(to, "tr:")
 	case edgeUses, edgeReadsVar, edgeWritesVar, edgeDispatches:
 		return true
 	case edgeImplementedBy:

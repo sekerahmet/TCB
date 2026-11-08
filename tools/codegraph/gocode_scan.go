@@ -52,8 +52,12 @@ func codeConstKeys(root string) map[string]string {
 	return keys
 }
 
-// viaArg bir çağrının argümanı olarak geçirilen paket düzeyi işlevin ya da somut alıcılı metot değerinin calls kenarındaki işaretidir (Edge.Via).
-const viaArg = "arg"
+// viaArg ve viaVar, bir çağrının argümanı olarak geçirilen ya da yalnız işlev değeri atanıp çağrılan yerel değişkene
+// verilen paket düzeyi işlevin, somut metot değerinin ya da somut metot ifadesinin calls kenarındaki işaretidir (Edge.Via).
+const (
+	viaArg = "arg"
+	viaVar = "var"
+)
 
 func markCall(calls map[*ast.Ident]string, n *ast.CallExpr) {
 	if id := nameIdent(n.Fun); id != nil {
@@ -74,6 +78,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 	closures := map[*ast.FuncLit]string{}
 	writes := map[*ast.Ident]writeTarget{} // yazılan paket değişkenlerinin kök tanımlayıcıları (var_access.go)
 	atomicAddr := map[*ast.UnaryExpr]bool{}
+	vars := map[*types.Var]*localVar{}
 	var stack []ast.Node
 	x.envStrings(fc, owner, root)
 	ast.Inspect(root, func(n ast.Node) bool {
@@ -84,6 +89,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		stack = append(stack, n)
 		accessModes(modes, n)
 		x.noteVarWrites(fc, writes, atomicAddr, n)
+		x.noteLocalVar(fc, vars, n)
 		x.noteSnippets(fc, owner, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:
@@ -114,6 +120,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		case *ast.CompositeLit:
 			x.literalFields(fc, owner, n, enclosingClosure(stack, closures))
 			x.keyedImplementations(fc, owner, n)
+			x.noteRowNameImpl(fc, n)
 			x.pathList(fc, owner, n)
 			x.noteTextCompare(fc, owner, n)
 		case *ast.CaseClause:
@@ -124,6 +131,13 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		}
 		return true
 	})
+	for _, lv := range vars {
+		for _, ref := range lv.funcs {
+			if e := x.b.edges[edgeKey{owner, ref, edgeCalls}]; lv.defined && !lv.bad && lv.called && e != nil && e.Via == "" {
+				e.Via = viaVar
+			}
+		}
+	}
 }
 
 // enclosingClosure yığındaki en iç func literal'in düğüm kimliğidir (yoksa "").
@@ -359,19 +373,64 @@ type argNameImpl struct {
 }
 
 // noteArgNameImpl test dışı bir çağrının argümanlarında ve bir düzey iç çağrı argümanlarında tek ayrı bir ad kodu ile
-// argüman olarak geçen tek bir işlev ya da somut alıcılı metot değeri varsa, işlevden koda INFERRED uses_name kenarı
-// eklemek üzere kaydeder.
+// argüman olarak geçen tek bir işlev ya da somut alıcılı metot değeri/ifadesi varsa, işlevden koda INFERRED uses_name
+// kenarı eklemek üzere kaydeder.
 func (x *goExtractor) noteArgNameImpl(fc *fileCtx, c *ast.CallExpr) {
 	if fc.isTest {
 		return
 	}
+	var exprs []ast.Expr
+	for _, a := range c.Args {
+		exprs = append(exprs, a)
+		if ic, ok := ast.Unparen(a).(*ast.CallExpr); ok {
+			x.noteNameReads(fc, ic)
+			exprs = append(exprs, ic.Args...)
+		}
+	}
+	x.noteSingleCodeFunc(fc, exprs)
+}
+
+// noteRowNameImpl test dışı bir bileşik değerin yapı satırı olan öğelerinde (`[]struct{...}{{codes.X, f}}`,
+// `map[K]struct{...}{k: {codes.X, f}}`, `&T{...}`) tek ayrı ad kodu ve tek işlev değeri varsa kaydeder.
+func (x *goExtractor) noteRowNameImpl(fc *fileCtx, lit *ast.CompositeLit) {
+	if fc.isTest {
+		return
+	}
+	for _, e := range lit.Elts {
+		if kv, ok := e.(*ast.KeyValueExpr); ok {
+			e = kv.Value
+		}
+		e = ast.Unparen(e)
+		if u, ok := e.(*ast.UnaryExpr); ok && u.Op == token.AND {
+			e = ast.Unparen(u.X)
+		}
+		row, ok := e.(*ast.CompositeLit)
+		if !ok {
+			continue
+		}
+		fields := make([]ast.Expr, 0, len(row.Elts))
+		for _, fe := range row.Elts {
+			if kv, ok := fe.(*ast.KeyValueExpr); ok {
+				key, _ := kv.Key.(*ast.Ident)
+				if v, ok := fc.u.Info.Uses[key].(*types.Var); !ok || !v.IsField() {
+					continue
+				}
+				fe = kv.Value
+			}
+			fields = append(fields, fe)
+		}
+		x.noteSingleCodeFunc(fc, fields)
+	}
+}
+
+func (x *goExtractor) noteSingleCodeFunc(fc *fileCtx, exprs []ast.Expr) {
 	var code, fnRef string
 	var fnID *ast.Ident
 	nCodes, nFuncs := 0, 0
-	arg := func(a ast.Expr) {
+	for _, a := range exprs {
 		id := nameIdent(a)
 		if id == nil {
-			return
+			continue
 		}
 		if !x.nameReads[id] {
 			if k := x.codeKey(fc, id); k != "" && k != code {
@@ -386,21 +445,12 @@ func (x *goExtractor) noteArgNameImpl(fc *fileCtx, c *ast.CallExpr) {
 			}
 		}
 	}
-	for _, a := range c.Args {
-		arg(a)
-		if ic, ok := ast.Unparen(a).(*ast.CallExpr); ok {
-			x.noteNameReads(fc, ic)
-			for _, ia := range ic.Args {
-				arg(ia)
-			}
-		}
-	}
 	if nCodes == 1 && nFuncs == 1 {
 		x.argImpls = append(x.argImpls, argNameImpl{fn: fnRef, code: "name:" + code, file: fc.rel, line: x.line(fnID.Pos())})
 	}
 }
 
-// argCallable çağrı argümanı olarak geçirilen işlevin ya da somut alıcılı metot değerinin zincire girip girmediğidir.
+// argCallable çağrı argümanı olarak geçirilen işlevin ya da somut alıcılı metot değerinin/ifadesinin zincire girip girmediğidir.
 func argCallable(fc *fileCtx, fn *types.Func, n ast.Node) bool {
 	sig := fn.Type().(*types.Signature)
 	if sig.Recv() == nil {
@@ -411,7 +461,63 @@ func argCallable(fc *fileCtx, fn *types.Func, n ast.Node) bool {
 		return false
 	}
 	s := fc.u.Info.Selections[sel]
-	return s != nil && s.Kind() == types.MethodVal && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())
+	return s != nil && (s.Kind() == types.MethodVal || s.Kind() == types.MethodExpr) && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())
+}
+
+type localVar struct {
+	defined, bad, called bool
+	funcs                []string
+}
+
+func (x *goExtractor) noteLocalVar(fc *fileCtx, vars map[*types.Var]*localVar, n ast.Node) {
+	slot := func(e ast.Expr) *localVar {
+		id, _ := ast.Unparen(e).(*ast.Ident)
+		obj := fc.u.Info.Defs[id]
+		if obj == nil {
+			obj = fc.u.Info.Uses[id]
+		}
+		if v, ok := obj.(*types.Var); ok && !v.IsField() && v.Pkg() != nil && v.Parent() != v.Pkg().Scope() {
+			if vars[v] == nil {
+				vars[v] = &localVar{}
+			}
+			vars[v].defined = vars[v].defined || fc.u.Info.Defs[id] == v
+			return vars[v]
+		}
+		return nil
+	}
+	assign := func(i, nLhs int, l ast.Expr, rhs []ast.Expr, okTok bool) {
+		if lv := slot(l); lv != nil && len(rhs) > 0 {
+			r := ast.Unparen(rhs[min(i, len(rhs)-1)])
+			if fn, ok := fc.u.Info.Uses[nameIdent(r)].(*types.Func); ok && okTok && len(rhs) == nLhs && argCallable(fc, fn, r) {
+				if ref := x.objectID(fn); ref != "" {
+					lv.funcs = append(lv.funcs, ref)
+				}
+				return
+			}
+			lv.bad = true
+		}
+	}
+	switch n := n.(type) {
+	case *ast.ValueSpec:
+		for i, id := range n.Names {
+			assign(i, len(n.Names), id, n.Values, true)
+		}
+	case *ast.AssignStmt:
+		for i, l := range n.Lhs {
+			assign(i, len(n.Lhs), l, n.Rhs, n.Tok == token.DEFINE || n.Tok == token.ASSIGN)
+		}
+	case *ast.RangeStmt:
+		assign(0, 0, n.Key, []ast.Expr{n.X}, false)
+		assign(0, 0, n.Value, []ast.Expr{n.X}, false)
+	case *ast.UnaryExpr:
+		if n.Op == token.AND {
+			assign(0, 0, n.X, []ast.Expr{n.X}, false)
+		}
+	case *ast.CallExpr:
+		if lv := slot(n.Fun); lv != nil {
+			lv.called = true
+		}
+	}
 }
 
 func selfTypeRef(fc *fileCtx, stack []ast.Node, obj types.Object) bool {

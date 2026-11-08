@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -70,5 +71,57 @@ func TestOther(t *testing.T) {}
 	}
 	if got := ask("other.Alone"); !strings.Contains(got, "no tests found") {
 		t.Errorf("other is in no binary a test builds:\n%s", got)
+	}
+}
+
+// Kural: `untested` test dışı Go işlevlerini ve metotlarını `tests-for`'un yedi koluna (`tested`, `subprocess`, `rule`,
+// `measured`, `weak`, `exam`, `untested`) göre gruplar; kapanışları ve test dosyalarını dışarıda bırakır.
+func TestUntestedGroupsFunctionsByBranch(t *testing.T) {
+	root := auditModule(t, map[string]string{
+		"app/main.go": "package main\n\nimport \"example.com/audit/lib\"\n\nfunc main() { greet(); lib.Helper() }\n\nfunc greet() { _ = func() {} }\n\nfunc farewell() {}\n",
+		"app/main_test.go": `package main
+
+import (
+	"os/exec"
+	"testing"
+)
+
+func buildApp(t *testing.T) { _ = exec.Command("go", "build", "-o", t.TempDir(), ".").Run() }
+
+func TestBinary(t *testing.T) { buildApp(t) }
+
+func TestGreet(t *testing.T) { greet() }
+`,
+		"lib/lib.go":          "package lib\n\nfunc Helper() {}\n",
+		"other/other.go":      "package other\n\nfunc Alone() {}\n\nfunc Measured() {}\n",
+		"other/other_test.go": "package other\n\nimport \"testing\"\n\nfunc BenchmarkMeasured(b *testing.B) { Measured() }\n",
+	})
+	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
+		t.Fatalf("build: %d %s", code, errOut)
+	}
+	code, out, errOut := runCLI("untested", "--root", root, "--no-rebuild")
+	if code != exitOK {
+		t.Fatalf("untested: %d %s", code, errOut)
+	}
+	if !strings.Contains(out, "6 non-test Go functions and methods: 1 tested, 2 subprocess, 0 rule, 1 measured, 1 weak, 0 exam, 1 untested") {
+		t.Errorf("summary line:\n%s", out)
+	}
+	code, jOut, errOut := runCLI("untested", "--json", "--root", root, "--no-rebuild")
+	if code != exitOK {
+		t.Fatalf("untested --json: %d %s", code, errOut)
+	}
+	var parsed struct {
+		Total  int                        `json:"total"`
+		Counts map[string]int             `json:"counts"`
+		Groups map[string][]untestedEntry `json:"groups"`
+	}
+	if err := json.Unmarshal([]byte(jOut), &parsed); err != nil {
+		t.Fatalf("json: %v\n%s", err, jOut)
+	}
+	if parsed.Total != 6 || parsed.Counts[branchTested] != 1 || len(parsed.Groups[branchUntested]) != 1 || parsed.Groups[branchUntested][0].Name != "other.Alone" ||
+		len(parsed.Groups[branchMeasured]) != 1 || parsed.Groups[branchMeasured][0].Name != "other.Measured" ||
+		len(parsed.Groups[branchWeak]) != 1 || parsed.Groups[branchWeak][0].Name != "lib.Helper" ||
+		len(parsed.Groups[branchSubprocess]) != 2 {
+		t.Errorf("unexpected groups: %+v", parsed)
 	}
 }

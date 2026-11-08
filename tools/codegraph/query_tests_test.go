@@ -411,11 +411,11 @@ func declaresTest(name string) bool {
 	return false
 }
 
-// Kural: bir çağrının argümanı olarak geçirilen paket düzeyi Go işlevi ve somut alıcılı metot değeri (gömülü alandan
-// gelen ve genel tipin metodu dahil) test erişim zincirine girer (`use() { apply(leaf) }` üzerinden `TestUse`,
-// `useMethod` ve `useEmbedded` üzerinden `leafBox.step`, `useGeneric` üzerinden `genBox.genStep`); bileşik değerdeki
-// işlev değeri, değişkene atanıp sonra geçirilen işlev/metot değeri, arayüz metot değeri ve metot ifadesi (`T.M`)
-// zincire girmez (eksikler listesi, DENETİM 79 ve 285).
+// Kural: bir çağrının argümanı olarak geçirilen paket düzeyi Go işlevi, somut alıcılı metot değeri (gömülü alandan
+// gelen ve genel tipin metodu dahil) ve somut alıcılı metot ifadesi (`T.M`) test erişim zincirine girer (`use() { apply(leaf) }`
+// üzerinden `TestUse`, `useMethod` ve `useEmbedded` üzerinden `leafBox.step`, `useGeneric` üzerinden `genBox.genStep`,
+// `useExpr` üzerinden `leafBox.exprStep`); bileşik değerdeki işlev değeri, değişkene atanıp sonra geçirilen işlev/metot
+// değeri ve arayüz metot değeri/ifadesi zincire girmez (eksikler listesi, DENETİM 79, 285 ve 293).
 func TestTestsForFollowsPackageFunctionPassedAsCallArgument(t *testing.T) {
 	ix := newIndex(fixture(t))
 	for _, c := range []struct {
@@ -423,9 +423,11 @@ func TestTestsForFollowsPackageFunctionPassedAsCallArgument(t *testing.T) {
 		want []string
 	}{
 		{fixturePkg + "leaf", []string{"shape.TestUse"}},
-		{"go:file:shape/leaf.go", []string{"shape.TestUse", "shape.TestUseMethod", "shape.TestUseEmbedded", "shape.TestUseGeneric"}},
+		{"go:file:shape/leaf.go", []string{"shape.TestUse", "shape.TestUseMethod", "shape.TestUseEmbedded", "shape.TestUseGeneric", "shape.TestUseExpr", "shape.TestUseVar"}},
 		{fixturePkg + "leafBox.step", []string{"shape.TestUseMethod", "shape.TestUseEmbedded"}},
 		{fixturePkg + "genBox.genStep", []string{"shape.TestUseGeneric"}},
+		{fixturePkg + "leafBox.exprStep", []string{"shape.TestUseExpr", "via shape.useExpr"}},
+		{fixturePkg + "varLeaf", []string{"shape.TestUseVar", "via shape.useVar"}},
 	} {
 		var out strings.Builder
 		ix.printTestsFor(&out, ix.byID[c.id], 12)
@@ -444,26 +446,87 @@ type impl struct{}
 
 func (impl) run() {}
 
-type box struct{}
+type box struct{ fld func() }
 
 func (box) methodLeaf() {}
 func (box) varMethod()  {}
 func (box) exprMethod() {}
+func (box) callMethod() {}
+func (box) callExpr()   {}
 
-func argLeaf() {}
-func litLeaf() {}
-func varLeaf() {}
+func argLeaf()      {}
+func litLeaf()      {}
+func varLeaf()      {}
+func branchA()      {}
+func branchB()      {}
+func multiA()       {}
+func multiB()       {}
+func closureLeaf()  {}
+func bothArgVar()   {}
+func mixedCall()    {}
+func mixedParam()   {}
+func mixedField()   {}
+func mixedLit()     {}
+func addrLeaf()     {}
 
-func apply(fn func())        { fn() }
-func applyMethod(fn func(box)) { fn(box{}) }
+func makeFn() func()             { return nil }
+func apply(fn func())            { fn() }
+func applyMethod(fn func(box))   { fn(box{}) }
+func applyIface(fn func(runner)) { fn(impl{}) }
 
-func useArg()             { apply(argLeaf) }
-func useLit()             { _ = []func(){litLeaf} }
-func useVar()             { f := varLeaf; apply(f) }
-func useMethod(b box)     { apply(b.methodLeaf) }
-func useVarMethod(b box)  { f := b.varMethod; apply(f) }
-func useExprMethod()      { applyMethod(box.exprMethod) }
-func useIface(r runner)   { apply(r.run) }
+func useArg()            { apply(argLeaf) }
+func useLit()            { _ = []func(){litLeaf} }
+func useVar()            { f := varLeaf; apply(f) }
+func useMethod(b box)    { apply(b.methodLeaf) }
+func useVarMethod(b box) { f := b.varMethod; apply(f) }
+func useExprMethod()     { applyMethod(box.exprMethod) }
+func useIface(r runner)  { apply(r.run); applyIface(runner.run); f := r.run; f() }
+
+func useCalledVar(b box, cond bool, pFn func()) {
+	var open func()
+	if cond {
+		open = branchA
+	} else {
+		open = branchB
+	}
+	open()
+
+	ma, mb := multiA, b.callMethod
+	ma()
+	mb()
+
+	var me = box.callExpr
+	me(b)
+
+	var cf func()
+	set := func() { cf = closureLeaf }
+	set()
+	func() { cf() }()
+
+	apply(bothArgVar)
+	bv := bothArgVar
+	bv()
+
+	mc := mixedCall
+	mc = makeFn()
+	mc()
+
+	mp := mixedParam
+	mp = pFn
+	mp()
+
+	mf := mixedField
+	mf = b.fld
+	mf()
+
+	ml := mixedLit
+	ml = func() {}
+	ml()
+
+	al := addrLeaf
+	_ = &al
+	al()
+}
 `,
 		"p/p_test.go": `package p
 
@@ -476,10 +539,21 @@ func TestUseMethod(t *testing.T)     { useMethod(box{}) }
 func TestUseVarMethod(t *testing.T)  { useVarMethod(box{}) }
 func TestUseExprMethod(t *testing.T) { useExprMethod() }
 func TestUseIface(t *testing.T)      { useIface(impl{}) }
+func TestUseCalledVar(t *testing.T)   { useCalledVar(box{}, true, nil) }
 `,
 	})
 	if code, _, errOut := runCLI("build", "--root", root); code != exitOK {
 		t.Fatalf("build: %d %s", code, errOut)
+	}
+	g, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e := edge(g, "go:func:example.com/audit/p.useCalledVar", "go:func:example.com/audit/p.bothArgVar", edgeCalls); e == nil || e.Via != viaArg {
+		t.Errorf("existing Via must not be overwritten by viaVar: got %+v", e)
+	}
+	if e := edge(g, "go:func:example.com/audit/p.useCalledVar", "go:func:example.com/audit/p.branchA", edgeCalls); e == nil || e.Via != viaVar {
+		t.Errorf("called local variable edge must have Via=%q: got %+v", viaVar, e)
 	}
 	ask := func(name string) string {
 		code, out, errOut := runCLI("tests-for", name, "--root", root, "--no-rebuild")
@@ -488,13 +562,26 @@ func TestUseIface(t *testing.T)      { useIface(impl{}) }
 		}
 		return out
 	}
-	if got := ask("p.argLeaf"); !strings.Contains(got, "p.TestUseArg") || !strings.Contains(got, "via p.useArg") {
-		t.Errorf("package-level function argument must reach TestUseArg:\n%s", got)
+	for _, c := range []struct{ target, testName string }{
+		{"p.argLeaf", "p.TestUseArg"},
+		{"box.methodLeaf", "p.TestUseMethod"},
+		{"box.exprMethod", "p.TestUseExprMethod"},
+		{"p.branchA", "p.TestUseCalledVar"},
+		{"p.branchB", "p.TestUseCalledVar"},
+		{"p.multiA", "p.TestUseCalledVar"},
+		{"box.callMethod", "p.TestUseCalledVar"},
+		{"box.callExpr", "p.TestUseCalledVar"},
+		{"p.closureLeaf", "p.TestUseCalledVar"},
+		{"p.bothArgVar", "p.TestUseCalledVar"},
+	} {
+		if got := ask(c.target); !strings.Contains(got, c.testName) {
+			t.Errorf("%s must reach %s:\n%s", c.target, c.testName, got)
+		}
 	}
-	if got := ask("box.methodLeaf"); !strings.Contains(got, "p.TestUseMethod") || !strings.Contains(got, "via p.useMethod") {
-		t.Errorf("concrete method value argument must reach TestUseMethod:\n%s", got)
-	}
-	for _, target := range []string{"p.litLeaf", "p.varLeaf", "box.varMethod", "box.exprMethod", "impl.run"} {
+	for _, target := range []string{
+		"p.litLeaf", "p.varLeaf", "box.varMethod", "impl.run",
+		"p.mixedCall", "p.mixedParam", "p.mixedField", "p.mixedLit", "p.addrLeaf",
+	} {
 		if got := ask(target); !strings.Contains(got, "no tests found") {
 			t.Errorf("%s must not enter the chain:\n%s", target, got)
 		}

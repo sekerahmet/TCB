@@ -11,3 +11,7 @@ type embedBox struct{ leafBox }
 type genBox[T any] struct{}
 
 func (genBox[T]) genStep() {}
+
+func (leafBox) exprStep() {}
+
+func varLeaf() {}

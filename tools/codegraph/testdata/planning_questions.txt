@@ -86,7 +86,7 @@ codegraph changed 99f04289~1..99f04289 | contains: training.TR_type_Run.TR_mem_f
 trlang index tested_by ayar_değeri | contains: lib/pretrained_test.tr | src: bağımsız denetim T3 (trlang index ile tests-for aynı zincir kuralı), 2026-10-23
 
 # Bağımsız denetim: değer olarak geçen işlevler ve alt süreç testleri (Y2, Y5) (2026-10-24)
-codegraph tests-for tensor.Tensor.Ceil | not: no tests found | group: function value => tensor.TestUnaryNoGrad | group: function value => via gpu.wideUnaries | src: bağımsız denetim Y2, 2026-10-24
+codegraph tests-for tensor.Tensor.Ceil | not: no tests found | group: tests about it => tensor.TestUnaryNoGrad | group: function value => tensor.TestUnaryWideEdges | group: function value => via gpu.wideUnaries | src: bağımsız denetim Y2, 2026-10-24
 codegraph tests-for codes.FindOption | group: function value => codes.TestCommandLineNamesInEveryLanguage | src: bağımsız denetim Y2, 2026-10-24
 codegraph tests-for trlang.catchStop | not: no tests found | contains: covered by subprocess tests | contains: cmd/trlang/e2e ( | src: bağımsız denetim Y5, 2026-10-24
 

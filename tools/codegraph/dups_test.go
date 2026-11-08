@@ -297,8 +297,8 @@ func TestDupsChangedOnlyReportsWhatTheBranchTouched(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &res); err != nil {
 		t.Fatal(err)
 	}
-	if res.Total != 1 || len(res.Clusters[0].Locs) != 3 {
-		t.Fatalf("one cluster of the three copies touches the branch: %+v", res)
+	if res.Total != 1 || len(res.Clusters[0].Locs) != 3 || res.Changed != "main...claude/new" {
+		t.Fatalf("one cluster of the three copies touches main...claude/new: %+v", res)
 	}
 	changed := 0
 	for _, l := range res.Clusters[0].Locs {
@@ -311,6 +311,12 @@ func TestDupsChangedOnlyReportsWhatTheBranchTouched(t *testing.T) {
 	}
 	if changed != 1 {
 		t.Errorf("one location is marked changed: %d", changed)
+	}
+	out.Reset()
+	errb.Reset()
+	if code := run([]string{"dups", "--root", root, "--min", "60", "--changed", "main"}, &out, &errb); code != exitOK ||
+		!strings.Contains(out.String(), "1 duplicate candidate(s) touching main...HEAD ") || !strings.Contains(out.String(), "new.go:") {
+		t.Errorf("dups --changed main label and hit: exit %d\n%s%s", code, out.String(), errb.String())
 	}
 	// Kontrol edilmemiş dal: satır numaraları çalışma ağacının olduğundan reddedilir.
 	gitMust(t, root, "checkout", "-q", "main")

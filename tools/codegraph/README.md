@@ -112,6 +112,9 @@ are measurements and stay out), and so do, for `x.go`, the tests of its test fil
 (the call happens later, elsewhere); when its owner is in a test file, `tests-for` lists the tests under "tests that use
 it as a function value": the test itself, or the first tests that read the table or call the helper (chain rule).
 Functions of a package that a test builds and runs as a binary get the "covered by subprocess tests" line (`builds`).
+`untested [--in DIR] [--json] [--limit N|--all]` runs the same seven-branch decision (`testsForNode`) over every non-test
+Go function and method in the graph (`func` and `method`, closures excluded) and prints the counts of `tested`,
+`subprocess`, `rule`, `measured`, `weak`, `exam` and `untested`, followed by the six non-tested groups.
 
 ## Reading an answer
 
@@ -326,7 +329,8 @@ sources directly (no graph needed, no network, no new dependency) and are determ
 
 ```sh
 go run ./tools/codegraph dups                       # candidates in the whole repository
-go run ./tools/codegraph dups --changed claude/x    # only what the branch added or changed (the branch must be checked out)
+go run ./tools/codegraph dups --changed main        # only what the checked-out branch added or changed since main
+go run ./tools/codegraph dups --changed claude/x    # same when claude/x is checked out (compares --base...claude/x)
 go run ./tools/codegraph dups --min 60 --in internal/stdlib --json
 go run ./tools/codegraph similar tokenize.parallel  # the functions most like this one, with a score
 go run ./tools/codegraph dups --list-exclusions     # the deliberate exceptions and why

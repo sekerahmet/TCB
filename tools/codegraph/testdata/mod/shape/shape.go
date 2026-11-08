@@ -107,3 +107,9 @@ func useMethod(b leafBox) { apply(b.step) }
 func useEmbedded(b embedBox) { apply(b.step) }
 
 func useGeneric(b genBox[int]) { apply(b.genStep) }
+
+func applyExpr(fn func(leafBox)) { fn(leafBox{}) }
+
+func useExpr() { applyExpr(leafBox.exprStep) }
+
+func useVar() { fn := varLeaf; fn() }
