@@ -43,11 +43,16 @@
     - 8 commit'te test ve paket sayısı değişmedi (`ffca754`: 15/4, `336a423`: 15/4, `4ecb9ca`: 15/4, `41eeaec`: 36/8, `a21ad9e`: 31/5, `65ef3e3`: 33/11, `10f57d8`: 34/11, `9126e27`: 811/30).
     - `d71778e` ve `583a3e2` commit'lerinde `851 test, 39 paket` -> `888 test, 39 paket` (`+37` test, `+0` paket).
 
+- **Bitti ölçütü ve Rapor (`UZAK7_RAPORU.md`) tamamlandı:**
+  - `gofmt -l tools`: boş (0 satır).
+  - `go test ./tools/codegraph/...`: `TestEveryTrackedDataFileHasATestOrAReason` (beklendiği gibi yalnız `UZAK7_DURUM.md` ve `UZAK7_RAPORU.md` dosyalarını görür) dışındaki tüm testler geçti (`293.435s`).
+  - `go run ./tools/codegraph tests-for --root tools/codegraph/testdata/mod --graph /tmp/mod_graph.json shape/leaf.go`: `shape.TestUse [func] shape/shape_test.go:24  2 steps [INFERRED]` verdi.
+  - `git diff --stat main...HEAD`: yalnız `tools/codegraph/` altındaki dosyaları ve kökteki iki `UZAK7_` dosyasını gösterir.
+  - `UZAK7_RAPORU.md` içindeki 20 birebir alıntı (`grep -F`) ve 23 `dosya:satır` başvurusu kaynaklarından doğrulandı, `Kendi kontrolüm` ve son satır (`Kendi incelemem bitti.`) yazıldı.
+
 ## Kalanlar
-- **Bitti ölçütü ve Rapor (`UZAK7_RAPORU.md`):**
-  - Ön denetim komutları, `UZAK7_RAPORU.md` yazımı, kendi kontrolüm ve teslim.
+- Yok (tamamlandı).
 
 ## Emin Olmadıklarım
-- Henüz yok.
-
+- Yok.
 
