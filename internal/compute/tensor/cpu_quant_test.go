@@ -103,6 +103,43 @@ func TestQuantMatMulMatchesOpened(t *testing.T) {
 	}
 }
 
+// TestQuantMatMulSameBitsAsOpened: çok satırlı nicem çarpımı açılmış ağırlıkla float32 çarpımın
+// bitlerini verir; parça boyu ve satır bloğu toplama sırasını değiştirmez. Şekiller parça sınırını
+// (quantTileRows), kcBlock'u, satır bloğunu ve bufMaxB'nin kestiği parçayı (K = 8192) geçer.
+func TestQuantMatMulSameBitsAsOpened(t *testing.T) {
+	r := rand.New(rand.NewSource(11))
+	for dt := range quantDotShapes {
+		elems, _ := dt.QuantBlock()
+		for _, c := range [][3]int{{2, 40, 256}, {50, quantTileRows + 17, 512}, {quantRowBlock + 7, 300, 1024}, {60, 600, 8192}} {
+			M, N, K := c[0], c[1], c[2]
+			w := FromQuantized(dt, smallScaleQuant(dt, uint32(N+K), N*K/elems), N, K)
+			x := New(randomData(r, M*K), M, K)
+			sameFloatBits(t, dt.Name(), MatMul(x, w.T()).Data(), MatMul(x, openedWeight(w).T()).Data())
+		}
+	}
+}
+
+// TestQuantTileStaysInThePools: parça nr'nin katıdır, N'yi aşmaz; açılan parça ve ara sonuç havuzun
+// sınırında kalır; çok uzun satırda da en az nr satır açılır.
+func TestQuantTileStaysInThePools(t *testing.T) {
+	for _, c := range [][3]int{{512, 2560, 2560}, {512, 2560, 9728}, {597, 9728, 2560}, {4096, 4096, 2560}, {2, 5, 256}, {2, 100, bufMaxB}, {bufMax, 64, 256}} {
+		M, N, K := c[0], c[1], c[2]
+		rows := quantTile(M, N, K)
+		if rows < 1 || rows > N || (rows < N && rows%nr != 0) {
+			t.Fatalf("M %d N %d K %d: %d satır", M, N, K, rows)
+		}
+		if rows > nr && (rows*K > bufMaxB || M*rows > bufMax) {
+			t.Fatalf("M %d N %d K %d: %d satır havuzu aşıyor", M, N, K, rows)
+		}
+	}
+	if got := quantTile(512, 9728, 2560); got != quantTileRows {
+		t.Fatalf("K = 2560: %d satır, beklenen %d", got, quantTileRows)
+	}
+	if got := quantTile(512, 2560, 9728); got != 416 {
+		t.Fatalf("K = 9728: %d satır, beklenen 416", got)
+	}
+}
+
 // TestQuantMatMulDependsOnlyOnShape: aynı girdi her koşuda aynı bitleri verir; satır dilimi ağırlığın
 // kendi satırlarını okur.
 func TestQuantMatMulDependsOnlyOnShape(t *testing.T) {

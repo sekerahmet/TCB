@@ -137,7 +137,10 @@ func (y *bufStack) Put(p *[]float32) {
 
 // gemmTiles çarpımı iş parçalarına böler: katılımcı sayısı W, iş parçası başına satır rb ve
 // B paneli npb, toplu eleman başına satır bloğu tpr, sütun bloğu tpc ve parça sayısı nt.
-func gemmTiles(batch, M, N, K, np int) (W, rb, npb, tpr, tpc, nt int) {
+// minRows sıfır değilse satır bloğu en az odur (mr'ye yuvarlanır, rowB'yi ve M'yi aşmaz); iş
+// yine azsa sütun yönünde bölünür. Bölüm bitleri değiştirmez: her öğe kcBlock parçalarıyla
+// toplanır (sgemm6x16 sıfırdan biriktirip C'ye ekler), sıra yalnız K'ye bağlıdır.
+func gemmTiles(batch, M, N, K, np, minRows int) (W, rb, npb, tpr, tpc, nt int) {
 	is := batch * M * N * K
 	W = workerCount(is, minPerWorker, gemmBigJob)
 	mPad := (M + mr - 1) / mr * mr
@@ -152,6 +155,7 @@ func gemmTiles(batch, M, N, K, np int) (W, rb, npb, tpr, tpc, nt int) {
 		// yönünde de bölünür.
 		rb = (batch*M + W*8 - 1) / (W * 8)
 		rb = (rb + mr - 1) / mr * mr
+		rb = max(rb, (minRows+mr-1)/mr*mr)
 		if rb > rowB {
 			rb = rowB
 		}
@@ -302,11 +306,12 @@ func gemm(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool
 	}
 	for b0 := 0; b0 < batch; b0 += part {
 		n := min(part, batch-b0)
-		gemmPart(n, M, N, K, a[b0*M*K:(b0+n)*M*K], transA, b[b0*K*N:(b0+n)*K*N], transB, c[b0*M*N:(b0+n)*M*N])
+		gemmPart(n, M, N, K, a[b0*M*K:(b0+n)*M*K], transA, b[b0*K*N:(b0+n)*K*N], transB, c[b0*M*N:(b0+n)*M*N], 0)
 	}
 }
 
-func gemmPart(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32) {
+// gemmPart gemm'in bir toplu parçasıdır; minRows iş parçasının en az satırıdır (bkz. gemmTiles).
+func gemmPart(batch, M, N, K int, a []float32, transA bool, b []float32, transB bool, c []float32, minRows int) {
 	ais, axisN := K, 1
 	if transA {
 		ais, axisN = 1, M
@@ -330,7 +335,7 @@ func gemmPart(batch, M, N, K int, a []float32, transA bool, b []float32, transB 
 	}
 	packB(batch, K, N, b, bks, bjs, first, bp)
 
-	W, rb, npb, tpr, tpc, nt := gemmTiles(batch, M, N, K, np)
+	W, rb, npb, tpr, tpc, nt := gemmTiles(batch, M, N, K, np, minRows)
 	kcMax := kcBlock
 	if K < kcMax {
 		kcMax = K
