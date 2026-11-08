@@ -4,10 +4,11 @@
 - **Taban (`main`):** `c151974ecc0ff19e597d0239f5683c5ba906a778`
 - **Başlama saati:** 2026-11-08 18:55:01 UTC+3 (`2026-11-08T07:55:01-08:00`)
 - **Go sürümü:** `go1.27.3 linux/amd64` (`GOTOOLCHAIN=local`)
-- **Bağlam sıkıştırması:** 3 kez:
+- **Bağlam sıkıştırması:** 4 kez:
   1. Adım 2-0b sırasında (`7ca1615` commit'inden sonra, 2026-11-08 19:27:48 UTC+3 / `2026-11-08T16:27:48+00:00`).
   2. Adım 2b sırasında (`5e913a9` commit'inden sonra, 2026-11-08 20:02:50 UTC+3 / `2026-11-08T17:02:50+00:00`).
-  3. Adım 2c'den sonra (`92f1624` commit'inden sonra, 2026-11-08 20:26:05 UTC+3 / `2026-11-08T17:26:05+00:00`). Her üçünde de yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
+  3. Adım 2c'den sonra (`92f1624` commit'inden sonra, 2026-11-08 20:26:05 UTC+3 / `2026-11-08T17:26:05+00:00`).
+  4. Adım 3 sırasında (`f320be4` commit'inden sonra, 2026-11-08 21:02:37 UTC+3 / `2026-11-08T18:02:37+00:00`). Her dördünde de yönerge ve durum dosyası yeniden okundu, `git status` ve `git log` kontrol edildi.
 
 ## İlerleme
 
@@ -18,9 +19,9 @@
 - [x] Adım 2a: Metot ifadesi (`types.MethodExpr`) zincire girer (commit `5e913a9`)
 - [x] Adım 2b: Yapı tablosu satırı (`uses_name` kenarı; commit `f25bc55`)
 - [x] Adım 2c: Yerel değişkenle işlev aktarımı (commit `92f1624`)
-- [x] Adım 2d: `dups --changed` etiketi ve README
-- [ ] Adım 3: Büyüme, "test yok" listesi (`UZAK9_TESTSIZ.txt`), 20'lik örneklem doğrulaması
-- [ ] Rapor (`UZAK9_RAPORU.md`), bitti ölçütü ve kendi kontrolüm
+- [x] Adım 2d: `dups --changed` etiketi ve README (commit `f320be4`)
+- [x] Adım 3: Büyüme, "test yok" listesi (`UZAK9_TESTSIZ.txt`), 20'lik örneklem doğrulaması
+- [x] Rapor (`UZAK9_RAPORU.md`), bitti ölçütü ve kendi kontrolüm
 
 ## Adım 1: Taban Ölçümleri ve Bulgular
 
@@ -45,7 +46,7 @@
 
 - `printTestsFor` (`tools/codegraph/query_tests.go`) ve `printLinkedBinaries` (`tools/codegraph/query_subprocess.go`) içindeki 7 kollu karar `testsForNode` ve `linkedBinaries` işlevlerine ayrıldı.
 - Taşınan/değişen satırlar: `query_tests.go` `+29 -46` (dosya boyu `573` -> `556`, `printTestsFor` `71` -> `54`), `query_subprocess.go` `+90 -10` (dosya boyu `157` -> `237`, `testsForNode` `48/80`). Toplam 56 satır taşındı.
-- Adım 1'in 4 hedefinde ve Adım 3'ün 40'ta bir dosya örnekleminde (26 dosya) `tests-for` çıktısı 2-0a'dan önce ve sonra bayt bayt karşılaştırıldı (`diff -u /tmp/step2_0a_before.txt /tmp/step2_0a_after.txt` farkı boş).
+- Adım 1'in 4 hedefinde ve Adım 3'ün 40'ta bir dosya örnekleminde (19 dosya) `tests-for` çıktısı 2-0a'dan önce ve sonra bayt bayt karşılaştırıldı (`diff -u /tmp/step2_0a_before.txt /tmp/step2_0a_after.txt` farkı boş).
 - Altın dosyada (`tools/codegraph/testdata/planning_questions.txt`) 7 kolun karşılıkları:
   - `testli` (`branchTested`): `:27`, `:28`, `:40`, `:49`, `:52`, `:57`, `:64`, `:67`–`:69`, `:83`, `:84`, `:89`, `:90`, `:114`, `:119`, `:126`, `:139`, `:149`, `:155`–`:157`, `:160`, `:161`, `:186`, `:190`, `:207`, `:208`, `:219`, `:228`, `:244`, `:245`
   - `alt süreç` (`branchSubprocess`): `:91` (`codegraph tests-for trlang.catchStop`)
@@ -96,7 +97,7 @@
   2. `internal/lang/interp/builtins.go:32`: `interp.timeMsBuiltin -> name:TR_fn_time_ms` (`timeMsBuiltin` için 1 ad kodu testi eklendi)
   3. `internal/lang/interp/type_call.go:43`: `interp.typeCall -> name:TR_type_Type`
   4. `internal/lang/interp/type_call.go:44`: `interp.jsonCall -> name:TR_type_JSON`
-  - Not: `interp.bytesCall`, `interp.typeCall` ve `interp.jsonCall` birer `ClassType` ad koduna (`TR_type_Bytes`, `TR_type_Type`, `TR_type_JSON`) bağlanır; ancak `implementable(n)` (`tools/codegraph/test_names.go:28`–`:37`) tip adlarını (`ClassType`) bilerek dışarıda bıraktığından `tests-for interp.bytesCall` yine `no tests traced to it` (`weak evidence (142)`) verir; buna karşılık fikstürdeki `shape.runIf` (`TR_kw_if` değil, bekleyin: `TR_kw_if` de `ClassKeyword` olduğu için `tests-for` değil `edgeUsesName` alır!) ve `interp.printBuiltin` / `interp.timeMsBuiltin` (`ClassFunction`) ad kodu testlerini alır.
+  - Not: `interp.bytesCall`, `interp.typeCall` ve `interp.jsonCall` birer `ClassType` ad koduna (`TR_type_Bytes`, `TR_type_Type`, `TR_type_JSON`) bağlanır; ancak `implementable(n)` (`tools/codegraph/test_names.go:28`–`:37`) tip adlarını (`ClassType`) bilerek dışarıda bıraktığından `tests-for interp.bytesCall` yine `no tests traced to it` (`weak evidence (142)`) verir; buna karşılık `interp.printBuiltin` ve `interp.timeMsBuiltin` (`ClassFunction`) ad kodu testlerini alır.
 - **Bağlanmayan yapı satırları ve nedenleri:**
   - `{codes.X, wrap(f)}` biçiminde (ad kodu + çağrı ifadesi olan) yapı satırı: **0** satır.
   - 1 ad kodu + 0 işlev değeri olan (salt üstveri/anahtar sözcük/tip tabloları): **59** satır (`28` `internal/lang/lexer/keywords.go:24`–`:63`, `29` `internal/lang/checker/builtin_args.go:33`–`:75`, `2` `internal/lang/checker/builtin_calls.go:22,210`).
@@ -138,4 +139,26 @@
 - `tools/codegraph/README.md:332`–`:333` satırlarına hem `--changed main` hem `--changed claude/x` örneği eklendi.
 - Üretim satırı: `dups_changed.go` `+11 -11`, `dups_report.go` `+1 -2`, `README.md` `+2 -1` -> toplam `+14 -14` (10–20 bütçesi içinde).
 - Koruyan test: `tools/codegraph/dups_test.go:290` (`TestDupsChangedOnlyReportsWhatTheBranchTouched`) hem `--changed claude/new` (`res.Changed == "main...claude/new"`) hem `--changed main` (`1 duplicate candidate(s) touching main...HEAD` ve `new.go:`) çıktılarını doğrular.
+
+## Adım 3: Büyüme, `untested` ve 20'lik Örneklem Doğrulaması
+
+- **Graf kurma süresi (sonra):** 3 koşuda `9.5s`, `9.7s`, `9.4s` -> ortanca `9.5s` (önce ortancası `9.5s`; `35905 nodes, 294406 edges (188964 EXTRACTED, 105442 INFERRED)`).
+- **Uçta izlenmeyen Go INFERRED `calls` kenarları:** `357` (önce: `118` test dışı, `239` test) -> `271` (sonra: `74` test dışı, `197` test).
+  - Çağrı argümanı metot ifadeleri: `57` (`56` `SelectorExpr` + `1` `*ast.StarExpr`; `27` test dışı, `30` test) -> `0` (2a ile hepsi `via=arg` oldu).
+  - Değişkene/alana atama: `46` (`28` test dışı, `18` test) -> `17` (`11` test dışı, `6` test; 2c ile `29` kenar `via=var` oldu).
+  - Bileşik değer (konumlu yapı/dilim): `173` (`29` test dışı, `144` test) -> `173`.
+  - Bileşik değer (anahtarlı alan/harita): `65` (`19` test dışı, `46` test) -> `65`.
+  - Ad kodlu anahtarlı tablo (`via=name:...`): `13` (`13` test dışı, `0` test) -> `13`.
+  - `return` deyimi: `3` (`2` test dışı, `1` test) -> `3`.
+- **`untested` karşılaştırması (önce: 2-0b ucu `8b9f31d`, 6841 düğüm; sonra: `HEAD`, 6844 düğüm):**
+  - `tested`: `6314` -> `6311` (2b ve 2c'de eklenen 3 yardımcıdan `noteRowNameImpl` ve `noteLocalVar` `tested`, `noteSingleCodeFunc` 9 adımda kaldığı için `untested`; `weak -> tested` `+9`, `tested -> weak` `-14`)
+  - `subprocess`: `92` -> `92`
+  - `rule`: `0` -> `0`
+  - `measured`: `2` -> `2`
+  - `weak`: `328` -> `333` (`-9` `tested`'a geçti, `+14` 2a'nın kaldırdığı 18 `unit(...)` bağından düştü)
+  - `exam`: `0` -> `0`
+  - `untested`: `105` -> `106` (`+1` `codegraph.goExtractor.noteSingleCodeFunc`)
+- **Tam liste:** `UZAK9_TESTSIZ.txt` (`--all` ile 542 satır) depo köküne yazıldı.
+- **20'lik örneklem (her 5. `untested` işlevi, `#1, #6, ..., #96`):** 11'i "test var ama araç görmüyor" (1'i standart kütüphane `go/types.Importer` arayüzü, 9'u `tools/codegraph` içinde `TestMaxSteps = 8` sınırını aşan 9–11 adımlık iç yardımcılar, 1'i `dupRules` yapı alanındaki işlev değeri), 9'u "gerçekten testsiz" (`edithook.main`, `snippets.main`, `record.defaultOut`, `tools/gen/confusables`'tan 2 işlev ve `tools/trlang_migrate`'ten 4 işlev), 0'ı "emin değilim".
+
 
