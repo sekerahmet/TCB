@@ -17,8 +17,6 @@ import (
 //   - TR_JSON: liste ve sözlük JSON değeri olarak kurulur (3.7a "Kurmak"), içindeki değişmezlerle.
 //     Denetleyici buraya yalnız değişmezi geçirir; tipi bilinmeyen bir kap TR_JSON(x) gibi
 //     kopyalanır, JSON'a giremeyen öğesi çalışma hatasıdır.
-//   - TR_List[TR_Tensor]: liste tensör listesi olarak işaretlenir (ListVal.TensorList); boş listenin
-//     TR_sum'ı hatadır (15.18), sayı listesininki 0.
 //
 // İsteğe bağlı tip (T?) de aynıdır; TR_none olduğu gibi kalır.
 
@@ -26,19 +24,15 @@ import (
 type place uint8
 
 const (
-	placeAny        place = iota // çeviri yok
-	placeFloat                   // TR_Float: tam sayı ondalık olur
-	placeJSON                    // TR_JSON: liste ve sözlük JSON değeri olur
-	placeTensorList              // TR_List[TR_Tensor]: liste tensör listesi olarak işaretlenir
+	placeAny   place = iota // çeviri yok
+	placeFloat              // TR_Float: tam sayı ondalık olur
+	placeJSON               // TR_JSON: liste ve sözlük JSON değeri olur
 )
 
 // placeOf yazılı t tipinin yeridir; tip yazılmadıysa (nil) placeAny.
 func placeOf(t *ast.TypeRef) place {
 	if t == nil || t.Elems != nil || t.Return != nil {
 		return placeAny
-	}
-	if t.Token.Code == codes.TypeList && len(t.Args) == 1 && t.Args[0].Token.Code == codes.TypeTensor {
-		return placeTensorList
 	}
 	switch t.Token.Code {
 	case codes.TypeFloat:
@@ -61,17 +55,9 @@ func (p place) bind(val Value) (Value, error) {
 		case *ListVal, *DictVal:
 			return MakeJSON(val)
 		}
-	case placeTensorList:
-		if l, ok := val.(*ListVal); ok {
-			l.tensors = true
-		}
 	}
 	return val, nil
 }
-
-// TensorList listenin yazılı tipi TR_List[TR_Tensor] olan bir yere bağlandığını söyler: boş listenin
-// tensör listesi olduğu yalnız buradan bilinir (15.18).
-func (l *ListVal) TensorList() bool { return l.tensors }
 
 // code e'nin değerini yerin tipine göre kuran koddur; çeviri yoksa e'nin kendisi. Kurmanın hatası
 // (JSON'a giremeyen öğe) line satırındadır.

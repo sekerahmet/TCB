@@ -3,6 +3,7 @@
 
 TR_import "yardimci_test_araclari"
 TR_import "yardimci_modul" TR_as ym
+TR_import "yardimci_bos_liste" TR_as boş
 
 TR_test "15.1 oluşturma: tensör, sıfırlar, birler, rastgele_normal" {
     TR_var a = TR_Tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
@@ -390,6 +391,24 @@ TR_test "15.18 boş tensör listesinin toplamı hatadır; sayı listesininki 0" 
     TR_assert_equal([4.0, 6.0], TR_sum(kayıplar).TR_tolist)
     TR_var sayılar: TR_List[TR_Int] = []
     TR_assert_equal(0, TR_sum(sayılar))
+}
+
+TR_test "15.18 tipi çıkarımla gelen boş tensör listesinin toplamı da hatadır" {
+    # Süzgeç her öğeyi atınca listenin öğesi kalmaz; öğe tipi denetleyicinin bildiğidir.
+    TR_var kayıplar = [TR_ones([2]) TR_for x TR_in [1, 2, 3] TR_if x > 5]
+    TR_assert_equal("H2720", TR_error_code { TR_sum(kayıplar) })
+    TR_assert_equal("H2477", TR_error_code { TR_mean(kayıplar) })
+    # doğrudan argüman
+    TR_assert_equal("H2720", TR_error_code { TR_sum([TR_ones([2]) TR_for x TR_in [1] TR_if TR_false]) })
+    # fonksiyondan dönen liste
+    TR_func süz(l: TR_List[TR_Tensor]) -> TR_List[TR_Tensor] {
+        TR_return [t TR_for t TR_in l TR_if TR_sum(t).TR_item() > 10.0]
+    }
+    TR_assert_equal("H2720", TR_error_code { TR_sum(süz([TR_ones([2])])) })
+    # modülün içindeki aynı çağrı
+    TR_assert_equal("H2720", boş.boş_kayıpların_hatası())
+    # süzgeç bir öğe bırakınca toplam o tensördür
+    TR_assert_equal([1.0, 1.0], TR_sum([TR_ones([2]) TR_for x TR_in [1, 2, 3] TR_if x > 2]).TR_tolist)
 }
 
 TR_test "15.9 sayı olmayan değer (NaN) yayılır; türevli ve türevsiz yol aynı" {

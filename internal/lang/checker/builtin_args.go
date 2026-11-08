@@ -110,9 +110,29 @@ func OptionAccepts(opts []codes.Code, typ codes.Code) bool {
 	return slices.Contains(opts, typ) || typ == codes.TypeInt && slices.Contains(opts, codes.TypeFloat)
 }
 
+// noteListElem TR_sum ve TR_mean çağrısının liste argümanının bilinen öğe tipini çağrıya yazar
+// (ast.ListElem): boş listenin öğelerinden tipi çıkmaz, çalışma anı onu buradan alır. Boş tensör
+// listesinin toplamı hatadır (15.18). Yazılı tipli yer ile çıkarımla gelen tip aynı yoldan geçer.
+func (c *Checker) noteListElem(e *ast.CallExpression, k codes.Code, argTypes []string) {
+	e.ListElem = ast.ListElemUnknown
+	if k != codes.FnSum && k != codes.FnMean || len(argTypes) != 1 {
+		return
+	}
+	s := shapeOf(argTypes[0])
+	if s.base != typeList || len(s.args) != 1 {
+		return
+	}
+	if s.args[0] == typeTensor {
+		e.ListElem = ast.ListElemTensor
+	}
+}
+
 // checkBuiltinArgs yerleşik fonksiyon çağrısının konumlu argümanlarını seçeneklere göre denetler.
 func (c *Checker) checkBuiltinArgs(e *ast.CallExpression, argTypes []string) {
 	k, recv := c.calledBuiltin(e)
+	if recv == nil {
+		c.noteListElem(e, k, argTypes)
+	}
 	if _, checked := FunctionArgCodes[k]; recv != nil || !checked {
 		return
 	}
