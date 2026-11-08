@@ -11,6 +11,9 @@ import (
 func (c *compiler) call(k *compilerScope, e *ast.CallExpression) exprCode {
 	fun := c.expression(k, e.Function)
 	argCode := c.expressions(k, e.Arguments)
+	if e.ListElem != ast.ListElemUnknown && len(argCode) == 1 {
+		argCode[0] = knownListElem(argCode[0], e.ListElem) // boş listenin öğe tipi (known_list_elem.go)
+	}
 	nargs := len(argCode)
 	line := e.Line()
 

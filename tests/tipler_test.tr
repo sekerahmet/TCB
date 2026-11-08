@@ -1,5 +1,7 @@
 # TR 4
 # docs/spec/03_tipler.md §3 — Tipler ve değerler
+TR_import "tr/layers" TR_as katmanlar
+TR_import "tr/chat" TR_as sohbet
 
 TR_test "3.1 Tam: 64 bit, taşma hata verir" {
     TR_assert_equal(9223372036854775807, 9223372036854775806 + 1)
@@ -668,6 +670,17 @@ TR_test "3.14 tip adının tek yazımı vardır" {
     # Olumsuz fikstür: tests/negative/tip_adi_yazimi.tr
     # Tip çağrılınca çevirir (3.12)
     TR_assert_equal(adet, TR_Int("3"))
+}
+
+TR_test "3.14 kitaplığın tipinin metni kimliğinin adıdır, kullanıcının yapısınınki adıdır" {
+    # Sınıflı kimlik (TR_type_Linear) tipin metnine sızmaz (17.8: program dilden bağımsızdır).
+    TR_assert_equal("Linear", TR_String(TR_Type(katmanlar.TR_Linear(2, 3, TR_seed: 1))))
+    TR_assert_equal("RMSNorm", TR_String(TR_Type(katmanlar.TR_RMSNorm(3))))
+    TR_assert_equal("ChatMessage", TR_String(TR_Type(sohbet.TR_ChatMessage(sohbet.TR_Role.TR_User, "a"))))
+    TR_assert_equal("Role", TR_String(TR_Type(sohbet.TR_Role.TR_User)))
+    TR_assert_equal("[RMSNorm]", TR_String([TR_Type(katmanlar.TR_RMSNorm(3))]))
+    TR_struct Nokta314 { x: TR_Int }
+    TR_assert_equal("Nokta314", TR_String(TR_Type(Nokta314(x: 1))))
 }
 
 TR_test "3.14 liste ve sözlükteki metin tırnaklı ve 2.6'nın kaçışlarıyla yazılır; metin programa geri kopyalanabilir" {

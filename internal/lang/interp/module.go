@@ -351,10 +351,16 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 		dest.Code = string(data)
 	}
 	// Modül yalnız yerleşiklerin kapsamının altında çalışır (moduleRoot): kendi adlarını,
-	// yerleşikleri ve aktardıklarını görür, kendisini aktaranın adlarını görmez (5.14). Tip denetimi çalışmadan önce yapılmıştır
-	// (CheckImportedModules, 1.3); burada yalnız ayrıştırılır, ikinci bir denetim yolu yoktur.
-	ms := source.Prepare(dest.Code, source.Options{Module: true,
-		Library: LibraryFileName(dest.Path, dest.Code)})
+	// yerleşikleri ve aktardıklarını görür, kendisini aktaranın adlarını görmez (5.14). Tip denetimi
+	// çalışmadan önce yapılmıştır (CheckImportedModules, 1.3): metin aynıysa denetlenmiş ağaç kullanılır
+	// (checked_modules.go), değilse yalnız ayrıştırılır; ikinci bir denetim yolu yoktur.
+	ms, checked := (*source.Result)(nil), false
+	if !dest.Embedded {
+		ms, checked = checkedModuleSource(dest.Path, dest.Code)
+	}
+	if !checked {
+		ms = source.Prepare(dest.Code, source.Options{Module: true, Library: LibraryFileName(dest.Path, dest.Code)})
+	}
 	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
 	if ms.Stage != "" {
 		return nil, &ModuleError{Source: modSource, Kind: ms.Stage, Errors: ms.Errors, ModulePath: s.Path, ImportLine: s.Line(), Importer: v.source}

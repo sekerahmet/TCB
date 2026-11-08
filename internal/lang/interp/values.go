@@ -207,9 +207,9 @@ type ListVal struct {
 	own Ownership
 	// removed listeden bugüne dek çıkarılan öğe sayısıdır (iterMark).
 	removed int
-	// tensors liste yazılı tipi TR_List[TR_Tensor] olan bir yere bağlandı (typed_places.go): boşken de
-	// tensör listesidir, TR_sum'ı sayı değil hata verir (15.18).
-	tensors bool
+	// elem boş listenin, denetleyicinin çağrıda bildiği öğe tipidir (known_list_elem.go); yalnız
+	// TR_sum ve TR_mean'in argümanı için kurulan boş listede dolu.
+	elem ast.ListElem
 }
 
 func (l *ListVal) Type() ValueType { return ValList }

@@ -478,6 +478,7 @@ type CallExpression struct {
 	Function  Expression
 	Arguments []Expression
 	NamedArgs []NamedArg
+	ListElem  ListElem // the checker's element type of a reduction's list argument (list_elem.go)
 }
 
 func (ce *CallExpression) expressionNode()      {}

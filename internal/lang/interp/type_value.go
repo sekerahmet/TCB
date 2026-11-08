@@ -33,7 +33,7 @@ func (t *TypeVal) IsTruthy() bool  { return true }
 func (t *TypeVal) Inspect() string { return t.Text(codes.ValueNames()) }
 func (t *TypeVal) Text(lang *codes.Language) string {
 	if t.Struct != nil {
-		return t.Struct.Name
+		return t.Struct.Text(lang) // kitaplığın tipi kimliğinin adıyla (TR_Linear → Linear, 17.8)
 	}
 	if t.Elems != nil {
 		parts := make([]string, len(t.Elems))

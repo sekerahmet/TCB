@@ -12,10 +12,11 @@ import (
 
 // Çalışmadan önce modül denetimi (1.3): programın aktardığı bütün modüller (özyinelemeli)
 // çalışmadan önce ayrıştırılır ve CheckModule ile tip denetiminden geçer; hata varsa hiçbir satır
-// çalışmaz. 'trlang check', 'trlang build' (cmd/trlang) ve çalıştıran her yol aynı CheckModule'ü aynı
-// genel adlarla (ana programın en dış adları) kullanır; yürütme sırasında modül yalnız okunup
-// ayrıştırılır (runModule), ikinci bir denetim yolu yoktur. Dilin gömülü kitaplık modülleri
-// derlemeyle gelir, denetlenmez.
+// çalışmaz. 'trlang check', 'trlang build' (cmd/trlang) ve çalıştıran her yol aynı CheckModule'ü
+// kullanır; modül aktaranın adlarını görmez (5.14). Yürütme sırasında modül denetlenmiş ağacıyla
+// çalışır (checked_modules.go); dosya denetimden sonra değiştiyse yalnız okunup ayrıştırılır
+// (runModule), ikinci bir denetim yolu yoktur. Dilin gömülü kitaplık modülleri derlemeyle gelir,
+// denetlenmez.
 
 // CheckImportedModules mainFile adlı prog'un aktardığı diskteki bütün modülleri çalıştırmadan
 // denetler. İlk hatayı döndürür: denetim hatası için *ModuleError (aktar satırı ve modülün
@@ -93,5 +94,6 @@ func (c *moduleChecker) module(importer *Source, file string, im *ast.ImportStat
 		return &ModuleError{Source: modSource, Kind: checked.Stage, Errors: checked.Errors,
 			ModulePath: im.Path, ImportLine: im.Line(), Importer: importer}
 	}
+	rememberCheckedModule(resolved, string(data), checked)
 	return c.check(modSource, filepath.Clean(resolved), checked.Program)
 }

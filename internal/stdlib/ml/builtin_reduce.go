@@ -255,8 +255,14 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 		return nil, messages.New(messages.H6219, ad, nameAxis, typeName(args[0]), codes.NameRef(codes.TypeTensor))
 	}
 	if l, ok := args[0].(*interp.ListVal); ok && len(args) == 1 {
-		if kd == codes.FnSum && len(l.Elements) == 0 && l.TensorList() {
-			return nil, messages.New(messages.H2720, ad.Called()) // boş tensör listesinin şekli bilinmez (15.18)
+		if kd == codes.FnSum && len(l.Elements) == 0 {
+			// Boş listenin öğe tipi çağrıda denetleyiciden gelir (interp.knownListElem).
+			if l.TensorList() {
+				return nil, messages.New(messages.H2720, ad.Called()) // boş tensör listesinin şekli bilinmez (15.18)
+			}
+			if l.FloatList() {
+				return &interp.FloatVal{Val: 0}, nil // TR_List[TR_Float]'ın toplamı TR_Float'tır (13)
+			}
 		}
 		var hasTensor bool
 		for _, el := range l.Elements {
