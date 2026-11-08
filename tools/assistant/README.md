@@ -11,6 +11,7 @@ TR'de HTTP sunucusu henüz yok, bu yüzden ekran bugün **sahte olay akışıyla
 - `contract.md`: ekranın TR'den beklediği her şey. Asıl değer budur; HTTP bölümü yazılırken tartılır.
 - `behavior_screen_test.go`: aşağıdaki kuralları korur.
 - `asistan.tr`, `zincir.tr`, `zincir_test.tr`: ekransız sesli zincir (aşağıda, "Zincir").
+- `behavior_chain_test.go`: zincirin varsayılan yolu ve aygıtı olmadığını, dosyalarının burada anıldığını sınar.
 
 ## Zincir
 
