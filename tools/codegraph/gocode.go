@@ -57,7 +57,8 @@ type goExtractor struct {
 	strConsts    map[string][]string
 	strConstPkg  map[string]string // sabitin kimliği -> paketinin yolu
 	textCompares []textCompare
-	stdlibUses   []stdlibUse // standart kitaplığın arayüz ve yansımayla kullandığı değerler (stdlib_dispatch.go)
+	stdlibUses   []stdlibUse   // standart kitaplığın arayüz ve yansımayla kullandığı değerler (stdlib_dispatch.go)
+	argImpls     []argNameImpl // çağrı argümanlarındaki (işlev, ad kodu) çiftleri (noteArgNameImpl)
 }
 
 func pkgID(p string) string    { return "go:pkg:" + p }
@@ -146,6 +147,11 @@ func extractGo(m *module, b *builder) *goIndex {
 	x.codeAliases = x.codeAliasKeys()
 	for _, u := range m.Units {
 		x.unit(u)
+	}
+	for _, p := range x.argImpls {
+		if x.b.edges[edgeKey{p.fn, p.code, edgeUsesName}] == nil {
+			x.b.addEdge(p.fn, p.code, edgeUsesName, inferred, p.file, p.line)
+		}
 	}
 	x.resolveFieldUses()
 	x.resolveTextCompares()

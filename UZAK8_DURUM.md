@@ -28,5 +28,8 @@
   - `tools/codegraph/gocode_scan.go` içinde `argCallable` eklendi: paket düzeyi işlev (`sig.Recv() == nil`) ya da somut alıcılı metot değeri (`s.Kind() == types.MethodVal && !types.IsInterface(s.Recv()) && !types.IsInterface(sig.Recv().Type())`) çağrı argümanı olarak geçtiğinde `Via = viaArg` işareti alıyor (`extractorRevision = 90`).
   - `tools/codegraph/testdata/mod/shape/` fikstürüne gömülü somut alan metodu (`embedBox` → `leafBox.step`) ve genel tip metodu (`genBox[int]` → `genBox.genStep`) eklendi.
   - `TestTestsForFollowsPackageFunctionPassedAsCallArgument` ve `TestNameCodeTestsDoNotFollowAFunctionPassedAsAnArgument` güncellendi; `go test -short ./tools/codegraph/` ve `dups --changed main` geçti.
-- [ ] Adım 2b: Yanındaki ad kodu, işlevin uygulaması sayılır (ayrı commit).
+- [x] **Adım 2b: Yanındaki ad kodu, işlevin uygulaması sayılır (ayrı commit, tamamlandı):**
+  - `tools/codegraph/gocode_scan.go` içinde `codeKey` ve `noteArgNameImpl`, `tools/codegraph/gocode.go` içinde `argImpls` boşaltımı eklendi (`extractorRevision = 91`): test dışı bir çağrının argümanlarında ve bir düzey iç çağrı argümanlarında tek ayrı bir ad kodu (`codes` sabiti ya da `codeAliases` takma sabiti; `nameReads` ile okunanlar hariç) ve argüman olarak geçen tek bir işlev/somut metot değeri varsa, hedefte henüz `uses_name` kenarı yoksa işlevden koda `INFERRED` `uses_name` kenarı eklenir.
+  - Depoda `123` çağrı ifadesinden `109` ayrı `(işlev, kod)` çifti bulundu; `40`'ında gövdeden `EXTRACTED` `uses_name` kenarı zaten olduğu için korundu, `69` yeni `INFERRED` `uses_name` kenarı eklendi (`9038` → `9107`).
+  - `TestAdjacentNameCodeInCallIsImplementedByArgumentCallable` eklendi; altın dosya ve planlama sınavı testleri (`TestPlanningQuestionsAreAnswered`, `TestDottedMemberSpellingsGolden`) ve `dups --changed main` geçti.
 - [ ] Adım 3: Büyümeyi ölç ve `UZAK8_RAPORU.md` yaz.
