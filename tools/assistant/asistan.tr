@@ -83,7 +83,7 @@ TR_func tur_koş(z: Zincir, kesit: TR_Tensor, t0: TR_Int, çalma_sonrası: TR_Bo
         TR_for z.geçmiş.TR_length > uzunluk { z.geçmiş.TR_pop() }
         TR_if z.son_asistan >= z.geçmiş.TR_length { z.son_asistan = -1 }
         z.okunan = [] # önbellek yarıda kalmış olabilir: sonraki tur baştan okur
-        z.önbellek = z.model.TR_build_cache()
+        z.önbellek = önbellek_kur(z.model, z.bağlam)
     }
     TR_var dosya = TR_String(ayar["kimlik_dosyası"])
     TR_if dosya != "" { TR_write_file(dosya, z.kimlik_satırları) }

@@ -57,12 +57,15 @@ TR_struct Zincir {
 
     TR_func yeni_konuşma() {
         TR_self.geçmiş = [TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: TR_self.sistem)]
-        TR_self.önbellek = TR_self.model.TR_build_cache()
+        TR_self.önbellek = önbellek_kur(TR_self.model, TR_self.bağlam)
         TR_self.okunan = []
         TR_self.son_asistan = -1
     }
-
 }
+
+# Önbellek zincirin bağlamı kadardır. Kapasitesiz kurulan sabit önbellek modelin bütün bağlamını ayırır:
+# Qwen3-4B'de 40960 parça, 36 katmanda 11 520 MiB.
+TR_func önbellek_kur(model: TR_GPT, bağlam: TR_Int) -> TR_KVCache { TR_return model.TR_build_cache(TR_capacity: bağlam) }
 
 # beklenen_önek: geçmişin `son_asistan` sıradaki asistan iletisinin başlığının bittiği konum (yoksa 0). Önceki
 # turun boş düşünce bloğu yeni dizide yazılmaz; ortak önek en az buraya kadar sürmelidir (B.4).
@@ -97,7 +100,7 @@ TR_func üret(z: Zincir, kimlikler: TR_List[TR_Int], t: Tur) -> Üretim {
     # En az bir parça okunur: son konumun logiti gerekir.
     TR_var ortak = 0
     TR_if TR_not z.önbelleksiz { ortak = TR_min(ortak_önek(z.okunan, kimlikler), kimlikler.TR_length - 1) }
-    TR_var ö = z.model.TR_build_cache()
+    TR_var ö = önbellek_kur(z.model, z.bağlam)
     TR_if TR_not z.önbelleksiz TR_and z.önbellek != TR_none {
         ö = z.önbellek
         ö.TR_truncate(ortak)

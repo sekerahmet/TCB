@@ -1,5 +1,5 @@
 # TR 4
-# Zincirin modelsiz parçaları: cümlelere bölme, rakam, önbelleğin ortak öneki (B.4).
+# Zincirin gerçek modelsiz parçaları: cümlelere bölme, rakam, önbelleğin kapasitesi ve ortak öneki (B.4).
 TR_import "tr/chat"
 TR_import "zincir"
 
@@ -17,6 +17,15 @@ TR_test "rakam satırı: içerikte rakam var mı" {
     TR_assert(rakamlı("Saat 5."))
     TR_assert(TR_not rakamlı("Saat beş."))
     TR_assert(TR_not rakamlı(""))
+}
+
+TR_test "önbellek modelin bağlamını değil zincirin bağlamını ayırır" {
+    TR_var m = TR_GPT(16, TR_context: 64, TR_embed_dim: 8, TR_num_layers: 1, TR_num_heads: 2, TR_seed: 1)
+    TR_var ö = önbellek_kur(m, 8)
+    TR_assert_equal(8, ö.TR_capacity)
+    TR_no_grad { m.TR_hidden_states([[1, 2, 3, 4, 5, 6, 7, 8]], TR_cache: ö) }
+    TR_assert_equal(8, ö.TR_position)
+    TR_assert_equal("H6909", TR_error_code { TR_no_grad { m.TR_hidden_states([[9]], TR_cache: ö) } })
 }
 
 TR_test "ortak önek iki dizinin baştan aynı kısmıdır" {
