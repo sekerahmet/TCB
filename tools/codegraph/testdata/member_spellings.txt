@@ -1039,6 +1039,7 @@ na.TR_append	ok	0	name:TR_mem_append
 nd.TR_keys	ok	0	name:TR_mem_keys
 nf.TR_append	ok	0	name:TR_mem_append
 ng.TR_append	ok	0	name:TR_mem_append
+ng.TR_close	ok	0	name:TR_mem_close
 ng.TR_wait	ok	0	name:TR_mem_wait
 nh.TR_done	ok	0	name:TR_mem_done
 nh.TR_wait	ok	0	name:TR_mem_wait
