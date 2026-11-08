@@ -151,7 +151,7 @@ func analyze(body string, lang *codes.Language) (*analysis, error) {
 	}
 	c := &analysis{lang: lang, input: l.Input(), records: l.Records(), roles: p.Roles(),
 		bindings: map[[2]int]checker.NameBinding{}, prog: prog}
-	bindings, conflicts := checker.NameBindings(prog, l.Language(), lang, nil, false)
+	bindings, conflicts := checker.NameBindings(prog, l.Language(), lang)
 	for _, bg := range bindings {
 		c.bindings[[2]int{bg.Token.Line, bg.Token.Column}] = bg
 	}

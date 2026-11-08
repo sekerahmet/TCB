@@ -29,12 +29,6 @@ type Options struct {
 	// Checker, when set, is used for the type check (the REPL uses the same checker across
 	// lines; Result.Errors and Warnings are then cumulative lists).
 	Checker *checker.Checker
-	// InGlobalScope says the source is checked in a global scope of its own (Checker.SetGlobalScope):
-	// GlobalNames are names defined outside it, GlobalDynamic says they are not fully known. A module
-	// gets none: it does not see its importer's names (5.14).
-	InGlobalScope bool
-	GlobalNames   []string
-	GlobalDynamic bool
 	// Body says the text is a coded body without the header (a shell line, a test's snippet, a
 	// program built in memory): it is read as coded, with identities (17.7), line 1 is its first
 	// line. A file needs the header (2.1).
@@ -107,9 +101,6 @@ func Prepare(text string, s Options) *Result {
 	chk := s.Checker
 	if chk == nil {
 		chk = checker.New()
-	}
-	if s.InGlobalScope {
-		chk.SetGlobalScope(s.GlobalNames, s.GlobalDynamic)
 	}
 	// A module and a test file (a file with TR_test, 12.1) hold only definitions at the top level (1.1).
 	switch {

@@ -152,31 +152,6 @@ func TestUndefinedNameAcrossREPLLines(t *testing.T) {
 	}
 }
 
-// SetGlobalScope'un dış adları tanımlı sayılır; adlar bilinmiyorsa (dinamik) tanımsız ad aranmaz.
-// Modül dış adsız denetlenir: aktaranın adlarını görmez (5.14, interp.CheckModule).
-func TestUndefinedNameModuleGlobalScope(t *testing.T) {
-	module := "yükleme_kaydı.TR_append(1)\nTR_print(bilinmeyen)"
-	checkModule := func(names []string, dynamic bool) []string {
-		c := New()
-		c.SetGlobalScope(names, dynamic)
-		return c.CheckProgram(parser.New(lexer.NewBody(module, true)).ParseModule())
-	}
-	errs := checkModule([]string{"yükleme_kaydı"}, false)
-	if len(errs) != 1 || !strings.Contains(errs[0], "'bilinmeyen'") { // ad, ileti parametresidir
-		t.Fatalf("yalnızca bilinmeyen ad bildirilmeli: %v", errs)
-	}
-	if errs := checkModule(nil, true); len(errs) != 0 {
-		t.Fatalf("dinamik genel kapsamda tanımsız ad aranmamalı: %v", errs)
-	}
-	names, dynamic := TopLevelNames(parser.New(lexer.NewBody("TR_var a = 1\nTR_struct Y { x: TR_Int }\nTR_func f() {}\nTR_import \"m\" TR_as mm\nTR_if TR_true { TR_var iç = 2 }", true)).ParseProgram())
-	if strings.Join(names, ",") != "Y,a,f,mm" || dynamic {
-		t.Fatalf("üst düzey adlar: %v %v", names, dynamic)
-	}
-	if _, dynamic := TopLevelNames(parser.New(lexer.NewBody(`TR_import "m"`, true)).ParseProgram()); !dynamic {
-		t.Fatal("takma adsız aktar adları belirsiz kılmalı")
-	}
-}
-
 // Kural (B11): denetleyicinin tanımsız ad önerisi de adın yazıldığı dosyanın dilini izler: İngilizce
 // dosyada prnt → 'print'.
 func TestUndefinedNameSuggestionFollowsTheFileLanguage(t *testing.T) {

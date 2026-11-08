@@ -185,8 +185,7 @@ func (v *VM) callInSource(fn *FuncVal, fk *funcCode, fnEnv *Environment, self Va
 // not its importer's (5.14): a name defined nowhere in it is an undefined-name error. filePath
 // tells the library's own file from a user's (LibraryFileName).
 func CheckModule(filePath, text string) *source.Result {
-	return source.Prepare(text, source.Options{Module: true, TypeCheck: true, Library: LibraryFileName(filePath, text),
-		InGlobalScope: true})
+	return source.Prepare(text, source.Options{Module: true, TypeCheck: true, Library: LibraryFileName(filePath, text)})
 }
 
 // builtinsOnly genel kapsamın New'in kurduğu adlarını (yerleşikler, tipler, sabitler) yeni bir
@@ -354,7 +353,7 @@ func (v *VM) runModule(s *ast.ImportStatement, path string, dest *Source, keyStr
 	// Modül yalnız yerleşiklerin kapsamının altında çalışır (moduleRoot): kendi adlarını,
 	// yerleşikleri ve aktardıklarını görür, kendisini aktaranın adlarını görmez (5.14). Tip denetimi çalışmadan önce yapılmıştır
 	// (CheckImportedModules, 1.3); burada yalnız ayrıştırılır, ikinci bir denetim yolu yoktur.
-	ms := source.Prepare(dest.Code, source.Options{Module: true, InGlobalScope: true,
+	ms := source.Prepare(dest.Code, source.Options{Module: true,
 		Library: LibraryFileName(dest.Path, dest.Code)})
 	modSource := &Source{Path: dest.Path, Name: dest.Name, Code: ms.Text, Embedded: dest.Embedded}
 	if ms.Stage != "" {

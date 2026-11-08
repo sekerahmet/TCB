@@ -114,38 +114,6 @@ type nameChecker struct {
 	method *methodNames
 }
 
-// SetGlobalScope opens the checked source's global scope under names defined outside it; dynamic
-// says those names are not fully known, in which case undefined names are not reported. A module
-// is checked with none: it sees only its own names, the builtins and what it imports, not its
-// importer's (5.14). Call it before CheckProgram.
-func (c *Checker) SetGlobalScope(names []string, dynamic bool) {
-	c.globalNames = newGlobalNameScope(names, dynamic)
-}
-
-// newGlobalNameScope dil ve çalışma ortamının hazır adlarını (names) taşıyan bir üst kapsamın
-// altında, programın kendi genel kapsamını açar; dynamic adların çalışma anında da eklenebildiğini söyler.
-func newGlobalNameScope(names []string, dynamic bool) *nameScope {
-	parent := newNameScope(nil)
-	for _, a := range names {
-		parent.define(a)
-	}
-	parent.dynamic = dynamic
-	return newNameScope(parent)
-}
-
-// TopLevelNames returns the names the program defines directly in its global scope; dinamik
-// says the names are not fully known because of an 'aktar' with no alias. They are passed to
-// SetGlobalScope when the program's imported modules are checked.
-func TopLevelNames(prog *ast.Program) (names []string, dynamic bool) {
-	k := newNameScope(nil)
-	declare(prog.Statements, k)
-	for a := range k.names {
-		names = append(names, a)
-	}
-	sort.Strings(names)
-	return names, k.dynamic
-}
-
 // checkNames programı tanımsız adlar için denetler. Genel kapsam Checker'da kalıcıdır:
 // etkileşimli kabukta önceki satırların tanımları sonraki satırlarda görünür.
 func (c *Checker) checkNames(prog *ast.Program) {

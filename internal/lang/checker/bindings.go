@@ -47,14 +47,13 @@ type NameBinding struct {
 // needed). cakisanlar holds the user names that, where they appear, would capture dil's name
 // of a value name written as a code in coded source (TR_fn_print) with their own definition (a user
 // variable named 'yazdır' in dil would shadow the builtin 'yazdır'); these names are written
-// with an escape everywhere in the view. genelAdlar and dinamik are as in SetGlobalScope
-// (modules). treeLang is the language the tree's names are written in (the parser's implicit
-// names, 'kendi', the constructor's name): the active language for a coded body, Turkish for
-// a file written in Turkish (lexer.Lexer.Language).
-func NameBindings(prog *ast.Program, treeLang, lang *codes.Language, globalNames []string, dynamic bool) (bindings []NameBinding, conflicts map[string]bool) {
+// with an escape everywhere in the view. treeLang is the language the tree's names are written
+// in (the parser's implicit names, 'kendi', the constructor's name): the active language for a
+// coded body, Turkish for a file written in Turkish (lexer.Lexer.Language).
+func NameBindings(prog *ast.Program, treeLang, lang *codes.Language) (bindings []NameBinding, conflicts map[string]bool) {
 	d := &nameChecker{bindings: &bindings, treeLang: treeLang, lang: lang, conflicts: map[string]bool{},
 		libraryFuncs: map[*ast.FunctionLiteral]bool{}}
-	d.statements(prog.Statements, newGlobalNameScope(globalNames, dynamic))
+	d.statements(prog.Statements, newNameScope(nil))
 	return bindings, d.conflicts
 }
 
