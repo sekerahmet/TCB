@@ -41,7 +41,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 		c.scope = prev
 		if c.knownType(out) {
 			// Öğe tipi ifadenin tipidir (1.2, 3.13): süzgeç her öğeyi atsa da boş listenin tipi bilinir
-			// (15.18'in boş tensör listesi; noteListElem).
+			// (15.18'in boş tensör listesi, 13'ün boş TR_List[TR_Float]'ı; noteListElem).
 			return c.listLiteralType([]string{out}, []ast.Expression{e.Output}), true
 		}
 		return typeList, true

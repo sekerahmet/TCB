@@ -1,6 +1,8 @@
 # TR 4
 # docs/spec/13_yerlesikler.md §13 — Yerleşik fonksiyonlar ve metotlar (seçki)
 
+TR_import "yardimci_bos_liste" TR_as boş
+
 TR_test "13.1 genel yerleşikler" {
     TR_assert_equal(3, [1, 2, 3].TR_length)
     TR_assert_equal(6, TR_sum([1, 2, 3]))
@@ -438,6 +440,18 @@ TR_test "13.1 TR_std örneklem sapmasıdır: n−1'e böler, iki geçişlidir, i
     TR_assert_equal("H2620", TR_error_code { TR_std([1.5]) })
     TR_assert_equal("H2620", TR_error_code { TR_std([5]) })
     TR_assert_equal("H2505", TR_error_code { TR_std([]) })
+}
+
+TR_test "13.1 boş TR_List[TR_Float]'ın toplamı TR_Float'tır: 0.0; boş TR_List[TR_Int]'inki 0" {
+    TR_var yazılı: TR_List[TR_Float] = []
+    TR_assert_equal(TR_Float, TR_Type(TR_sum(yazılı)))
+    TR_assert_equal("0.0", TR_String(TR_sum(yazılı)))
+    TR_var çıkarılan = [x * 0.5 TR_for x TR_in [1, 2, 3] TR_if x > 5]
+    TR_assert_equal("0.0", TR_String(TR_sum(çıkarılan)))
+    TR_assert_equal("0.0", boş.boş_ondalıkların_toplamı())
+    TR_var tamlar: TR_List[TR_Int] = []
+    TR_assert_equal(TR_Int, TR_Type(TR_sum(tamlar)))
+    TR_assert_equal("0", TR_String(TR_sum([x TR_for x TR_in [1, 2] TR_if x > 5])))
 }
 
 TR_test "13.1 ondalık toplam soldan sağa telafilidir (Neumaier); TR_mean ve TR_std aynı toplamı kullanır" {

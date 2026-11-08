@@ -112,7 +112,8 @@ func OptionAccepts(opts []codes.Code, typ codes.Code) bool {
 
 // noteListElem TR_sum ve TR_mean çağrısının liste argümanının bilinen öğe tipini çağrıya yazar
 // (ast.ListElem): boş listenin öğelerinden tipi çıkmaz, çalışma anı onu buradan alır. Boş tensör
-// listesinin toplamı hatadır (15.18). Yazılı tipli yer ile çıkarımla gelen tip aynı yoldan geçer.
+// listesinin toplamı hatadır (15.18), boş TR_List[TR_Float]'ınki 0.0 (13). Yazılı tipli yer ile
+// çıkarımla gelen tip aynı yoldan geçer.
 func (c *Checker) noteListElem(e *ast.CallExpression, k codes.Code, argTypes []string) {
 	e.ListElem = ast.ListElemUnknown
 	if k != codes.FnSum && k != codes.FnMean || len(argTypes) != 1 {
@@ -122,8 +123,11 @@ func (c *Checker) noteListElem(e *ast.CallExpression, k codes.Code, argTypes []s
 	if s.base != typeList || len(s.args) != 1 {
 		return
 	}
-	if s.args[0] == typeTensor {
+	switch s.args[0] {
+	case typeTensor:
 		e.ListElem = ast.ListElemTensor
+	case typeFloat:
+		e.ListElem = ast.ListElemFloat
 	}
 }
 

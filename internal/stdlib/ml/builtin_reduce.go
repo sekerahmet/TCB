@@ -260,6 +260,9 @@ func nonTensorReduce(kd codes.Code, old interp.BuiltinFunc, m *interp.VM, args [
 			if l.TensorList() {
 				return nil, messages.New(messages.H2720, ad.Called()) // boş tensör listesinin şekli bilinmez (15.18)
 			}
+			if l.FloatList() {
+				return &interp.FloatVal{Val: 0}, nil // TR_List[TR_Float]'ın toplamı TR_Float'tır (13)
+			}
 		}
 		var hasTensor bool
 		for _, el := range l.Elements {

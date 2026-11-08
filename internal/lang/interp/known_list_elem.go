@@ -24,3 +24,6 @@ func knownListElem(arg exprCode, elem ast.ListElem) exprCode {
 
 // TensorList denetleyicinin bu boş listeyi tensör listesi bildiğini söyler: toplamı hatadır (15.18).
 func (l *ListVal) TensorList() bool { return l.elem == ast.ListElemTensor }
+
+// FloatList denetleyicinin bu boş listeyi TR_List[TR_Float] bildiğini söyler: toplamı 0.0'dır (13).
+func (l *ListVal) FloatList() bool { return l.elem == ast.ListElemFloat }

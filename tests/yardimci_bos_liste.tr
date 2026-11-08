@@ -1,7 +1,14 @@
 # TR 4
-# tensor_test.tr'nin 15.18 testinin modülü (kendisi test dosyası değildir): boş listenin toplamı modülün içinde de öğe tipini bilir; modül denetlenmiş ağacıyla çalışır.
+# tensor_test.tr'nin 15.18 ve yerlesikler_test.tr'nin 13.1 testlerinin modülü (kendisi test dosyası
+# değildir): boş listenin toplamı modülün içinde de öğe tipini bilir; modül denetlenmiş ağacıyla çalışır.
 
 TR_func boş_kayıpların_hatası() -> TR_String? {
     TR_var kayıplar = [TR_ones([2]) TR_for x TR_in [1, 2, 3] TR_if x > 5]
     TR_return TR_error_code { TR_sum(kayıplar) }
+}
+
+# Dönüş metindir: TR_Float dönüşü tam sayıyı kendisi ondalık yapardı (3.13), toplamın tipi görünmezdi.
+TR_func boş_ondalıkların_toplamı() -> TR_String {
+    TR_var ölçüler = [x * 0.5 TR_for x TR_in [1, 2, 3] TR_if x > 5]
+    TR_return TR_String(TR_sum(ölçüler))
 }
