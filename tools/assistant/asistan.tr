@@ -30,7 +30,11 @@ TR_const _ÇERÇEVE_BAYT = 1024
 # istemin okunması 22,7 + 160 parça × 335 ms üretim + 160 × 383 ms ses + 160 × 285 ms çalma (S1 zincir dilimindeki 50
 # turun en kötü değerleri). Dış yükte iki katı: 380 sn, dakikaya yuvarlanınca 7 dakika. 16 kHz 16 bitte 13,4 MB.
 TR_const _TAMPON = 13440000
-TR_const _KUYRUK_MS = 0 # çalmanın sonundan sonra atılan süre (yankı); gerçek hoparlör ve mikrofonla ölçülecek
+# Çalmanın sonundan (çalıcının çıkışı) sonra atılan süre: 0. Dizüstünün hoparlörü ve mikrofonuyla 10 çalmada
+# çalıcı çıktıktan sonra hiçbir çerçevenin konuşma olasılığı 0,137'yi geçmedi (kesitleyicinin eşiği 0,5); sesin
+# mikrofondaki son yüksek enerjili çerçevesi çalıcı çıkmadan 416–7015 ms önceydi (S1 mimari dilimi, 2026-11-09).
+# Başka bir hoparlör ya da mikrofonda yeniden ölçülür.
+TR_const _KUYRUK_MS = 0
 TR_const _SİSTEM = "Sen yardımsever bir sesli asistansın. Kısa ve Türkçe cevap ver, bir iki cümleyi geçme. Sayıları rakamla değil yazıyla yaz."
 
 TR_var ayar = TR_command_line({"kip": "", "girdi": "", "çıktı": "", "dil_modeli": "", "whisper": "", "vad": "", "ses_modeli": "",
