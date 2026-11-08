@@ -13,8 +13,8 @@ TR_func ağırlık(şekil: TR_List[TR_Int], ölçek: TR_Float) -> TR_Tensor {
     TR_return TR_Tensor(TR_no_grad(TR_randn(şekil, TR_seed: tohum_sayacı) * ölçek), TR_requires_grad: TR_true)
 }
 
-# Boyutlar modelin boyutlarıdır: toplu iş (B), bağlam (T), genişlik (D), dikkat başı (H) ve başın
-# genişliği (Dh), ileri beslemenin genişliği (FF), katman sayısı (katman) ve sözlük (V).
+# Boyutlar modelin boyutlarıdır: toplu iş (B), bağlam (T), genişlik (D), bakış sayısı (H) ve bakışın
+# boyutu (Dh), ileri beslemenin genişliği (FF), katman sayısı (katman) ve sözlük (V).
 TR_struct Boyutlar {
     B: TR_Int
     T: TR_Int
