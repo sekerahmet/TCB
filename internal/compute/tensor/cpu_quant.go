@@ -6,27 +6,10 @@ import "time"
 // etkinleştirme nicemlenmez, biriktirme float32'dedir. Bütün ağırlık hiç açılmaz: tek satırda
 // çekirdek blokları yazmaçta açar, çok satırda satır parçaları sırayla tampona açılır.
 
-// Çok satırlı çarpımın iş bölümü. Parça boyu ve satır bloğu bitleri değiştirmez: her öğe
-// kcBlock parçalarıyla toplanır, sıra yalnız K'ye bağlıdır (bkz. gemmTiles).
-//
-// quantTileRows bir parçada açılan en çok ağırlık satırıdır. Tamponlar havuzda kalsın diye parça
-// ayrıca bufMaxB'yi, M satırlık ara sonuç bufMax'ı aşmaz (quantTile): Qwen3-4B'de 512 parçalık
-// istemde K = 2560'ta 1024, K = 9728'de 416 satır [hesap].
-//
-// quantRowBlock gemm'in bir iş parçasındaki en az satırdır. gemm kendi başına işçi başına sekiz
-// parça ister: M = 512 ve 20 işçide 6 satır; açılan her ağırlık paneli 6 satır için okunur.
-// 48 satırda aynı panel 8 kat çok satıra kullanılır [hesap]. İş azsa sütun yönünde bölünür.
-const (
-	quantTileRows = 1024
-	quantRowBlock = 48
-)
-
-// quantTile [M, K]·[N, K]ᵀ çarpımında bir parçanın ağırlık satırıdır: en çok quantTileRows ve N;
-// açılan parça bufMaxB'yi, ara sonuç bufMax'ı aşmaz; nr'nin katıdır (en az nr).
-func quantTile(M, N, K int) int {
-	rows := min(quantTileRows, bufMaxB/K, bufMax/M) / nr * nr
-	return min(max(rows, nr), N)
-}
+// quantTileRows çok satırlı çarpımın bir parçasında açılan ağırlık satırıdır. Sabittir: toplama
+// sırası yalnız şekle bağlı kalır. Tampon en çok K·256 float32'dir: Qwen3-4B'nin en geniş
+// ağırlığında (K = 9728) 10 MB [hesap].
+const quantTileRows = 256
 
 // quantHold tek satırlı çarpımdan sonra işçilerin uyumadan beklediği süredir: üretimde sıradaki
 // çarpım bundan önce gelir. 2026-11-05 ölçümü (EPYC 7B12, Qwen3-0.6B Q8_0, ms/parça, ortanca):
@@ -69,7 +52,7 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 		return
 	}
 	rowBytes := quantRowBytes(dt, K)
-	rows := quantTile(M, N, K)
+	rows := min(quantTileRows, N)
 	// Tamponlar havuzdandır: her çarpımda ayrılsalar 128 konumluk geçişte 900 MB çöp olurlardı.
 	// tile her turda yazılır, part sıfırlanır: önceki çağrının verisi okunmaz.
 	tp, pp := takePack(&packPoolB, rows*K), takePack(&packPoolA, M*rows)
@@ -82,7 +65,7 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 			dequantBlocks(dt, tile[lo*K:hi*K], w[(n0+lo)*rowBytes:(n0+hi)*rowBytes])
 		})
 		clear(part[:M*t])
-		gemmPart(1, M, t, K, a, false, tile[:t*K], true, part[:M*t], quantRowBlock) // M > 1: gemv yolu yok
+		gemm(1, M, t, K, a, false, tile[:t*K], true, part[:M*t])
 		parallelFor(M, t, func(lo, hi int) {
 			for m := lo; m < hi; m++ {
 				out := c[m*N+n0 : m*N+n0+t]
