@@ -483,6 +483,7 @@
 "H2709": "the tuple has {count} elements but is unpacked into {names} names: {kind, select, extra {remove the extra names} other {write a name for each element, and _ for one that is not needed}} ({example})",
 "H2710": "named arguments and defaults are valid only in a call by the name the function was defined with; a function value is called with all its arguments in order ({count} arguments)",
 "H2711": "a trailing block takes no parameters but was called with {given} {given, plural, one {argument} other {arguments}}; write the function that takes it as an arrow: (x) => ...",
+"H2720": "{fn}: an empty tensor list has no sum: its shape, precision and device are unknown (15.18); if the list may be empty, look at `l.{#length}` first",
 "H2750": "{struct}: the field '{field}' has no default and no value was given for it; pass it as an argument, by position or by name",
 "H2751": "'{struct}.{method}': a struct has no methods of its own; a method is called on an object, {struct}({args}).{method}({margs}), and work that needs no object is written as a function of the file",
 "H2752": "'{struct}.{field}': a field belongs to an object, not to the struct: {struct}({args}).{field}",

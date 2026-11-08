@@ -174,6 +174,9 @@ var suggestionResultCases = []suggestionResultCase{
 	// 13.3: boş listede ve olmayan indekste öğe çıkmaz; ileti önce boyuna bakmayı önerir.
 	{messages.H2533, "TR_var l: TR_List[TR_Int] = []\nTR_print(l.TR_pop())", "l.TR_length",
 		"TR_var l: TR_List[TR_Int] = []\nTR_if l.TR_length > 0 {\n    TR_print(l.TR_pop())\n}\nTR_print(l.TR_length)", "0\n"},
+	// 15.18: boş tensör listesinin toplamı yoktur; ileti önce boyuna bakmayı önerir.
+	{messages.H2720, "TR_var l: TR_List[TR_Tensor] = []\nTR_print(TR_sum(l))", "l.TR_length",
+		"TR_var l: TR_List[TR_Tensor] = []\nTR_if l.TR_length > 0 {\n    TR_print(TR_sum(l))\n}\nTR_print(l.TR_length)", "0\n"},
 	{messages.H2534, "TR_var l = [1, 2]\nTR_print(l.TR_remove_at(5))", "l.TR_length",
 		"TR_var l = [1, 2]\nTR_if 5 < l.TR_length {\n    TR_print(l.TR_remove_at(5))\n}\nTR_print(l.TR_length)", "2\n"},
 	// 13.4: .TR_remove sözlüğün metodudur; listede öğe konumuyla çıkar, dosya silen işlev önerilmez.

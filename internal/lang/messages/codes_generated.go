@@ -488,6 +488,7 @@ const (
 	H2709 Code = 2709 // demetin {count} öğesi var ama {names} ada açılıyor: {kind, select, extra {fazla adı silin} other {her öğeye bir ad yazın, gerekmeyenin yerine _ yazın}} ({example})
 	H2710 Code = 2710 // adlı argüman ve varsayılan yalnız fonksiyonun tanımlandığı adla yapılan çağrıda geçerlidir; bir fonksiyon değeri sırayla ve bütün argümanlarıyla çağrılır ({count} argüman)
 	H2711 Code = 2711 // sondaki blok parametre almaz ama {given} argümanla çağrıldı; argümanı alan fonksiyonu ok ile yazın: (x) => ...
+	H2720 Code = 2720 // {fn}: boş tensör listesinin toplamı yoktur: şekli, hassasiyeti ve cihazı bilinmez (15.18); liste boş olabilirse önce `l.{#length}` ile bakın
 	H2750 Code = 2750 // {struct}: '{field}' alanının varsayılanı yok ve ona değer verilmedi; argüman olarak, sırayla ya da adla verin
 	H2751 Code = 2751 // '{struct}.{method}': yapının kendi metodu yoktur; metot bir nesnede çağrılır, {struct}({args}).{method}({margs}), nesne gerektirmeyen iş dosyanın fonksiyonu olarak yazılır
 	H2752 Code = 2752 // '{struct}.{field}': alan yapının değil nesnenin alanıdır: {struct}({args}).{field}

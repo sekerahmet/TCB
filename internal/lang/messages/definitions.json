@@ -483,6 +483,7 @@
 "H2709": { "param": ["count", "names", "kind", "example"] },
 "H2710": { "param": ["count"] },
 "H2711": { "param": ["given"] },
+"H2720": { "param": ["fn"], "slots": {"length": "TR_mem_length"} },
 "H2750": { "param": ["struct", "field"] },
 "H2751": { "param": ["struct", "method", "args", "margs"] },
 "H2752": { "param": ["struct", "field", "args"] },
