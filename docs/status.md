@@ -1421,8 +1421,8 @@ Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı
 
 ### 24.1–24.4
 
-- **Mevcut durum:** uygulanmadı; `tr/chat` kitaplığı yok [ölçüldü: main `705b721b`, `lib/`].
-- **Yapılacaklar:** 16.2'nin `TR_false` kapatması (ön koşul) 2026-11-03'te birleşti (T1, teslim 1); sıradaki `tr/chat` ve Qwen3 biçimi, transformers'la altın testlerle.
+- **Mevcut durum (S1, 2026-11-08):** `tr/chat` 24.1–24.3'ü uyguluyor, araç şeması (`TR_tools:`) ve 24.4 dışında; `lib/chat.tr`. Küçük parçalayıcıyla 12 durum transformers'ın kimlikleriyle birebir, iki bilinen fark ayrı testte [test: `tests/chat_format_test.tr`]; gerçek Qwen3-4B'de GGUF'tan açılan parçalayıcıyla 12 durumda 558 parça birebir [ölçüldü: S1, dizüstü].
+- **Yapılacaklar:** 24.2'nin `TR_tools:`'u (JSON şemasının Python yazımı) ve 24.4 `TR_read_chat`.
 - **Yapılacaklar (Jarvis B kararı, `lib/layers.tr`):** `TR_generate`'in `TR_eos`'u `TR_List[TR_Int] = []` olur, çünkü modeller birden çok durdurma parçası taşır: Qwen3-0.6B `[151645, 151643]`, Llama-3.1-8B-Instruct `[128001, 128008, 128009]` [kaynak: DENETİM istek 42, `generation_config.json`]. Çağıranların göçüyle: `lib/layers_test.tr`, `examples/tr/46_hazir_model_ve_uretim.tr`, `tools/gpu/ss_exam.tr`, `docs/guide/10_hazir_katmanlarla_gpt.md` [ölçüldü: DENETİM istek 43]. T1'in alanı.
 
 ## 25. Konuşmayı yazıya çevirme

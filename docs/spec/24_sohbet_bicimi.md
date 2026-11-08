@@ -24,7 +24,7 @@ TR_var iletiler = [
 ]
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı.
+- *Test:* TR testi: yapı ve varsayılanlar (`tests/chat_format_test.tr`).
 
 **24.2** `TR_qwen3_format(p, iletiler, TR_add_generation_prompt: b, TR_enable_thinking: d, TR_tools: araçlar)` Qwen3 ailesinin biçimiyle bir `TR_List[TR_Int]` verir; `p` modelin parçalayıcısıdır (16.1).
 - **Kimlikle kurulur.** Biçimin etiketleri (`<|im_start|>`, `<|im_end|>`, `<think>`, `</think>`, `<tool_call>`, `<tool_response>` ve kapanışları) kimlikleriyle girer (`p.TR_token_id`). İki etiket arasındaki bütün metin, biçimin kendi metni ve iletinin içeriği birlikte, tek bir `p.TR_encode(metin, TR_special_tokens: TR_false)` çağrısıyla kodlanır (16.2). İçerikte yazılan bir etiket etiket olmaz, metin olarak kalır. Biçimin kendi metnindeki etiketler de (araç yönergesindeki `<tool_call></tool_call>` örneği) kimlikle girer; eklenmiş parça olmayan yazımlar (`<tools>`) metindir.
@@ -44,7 +44,7 @@ TR_var iletiler = [TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba
 TR_var kimlikler = TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: transformers'ın `apply_chat_template(..., tokenize=True)` kimlikleriyle birebir altın testler; tek tur, çok tur ve düşüncenin silinmesi, `enable_thinking=False`, araç tanımı (ondalık sayılı, denetim karakterli ve tırnaklı açıklamalı bir şemayla), araç çağrısı ve ardışık araç sonuçları, boşlukla başlayıp biten içerik. Bilinen farklar ayrı testtir: içerikte etiket yazımı; içeriği `<tool_response>` ile sarılmış bir `TR_User` iletisi.
+- *Test:* TR testi (`tests/chat_format_test.tr`): transformers'ın `apply_chat_template(..., tokenize=True)` kimlikleriyle birebir altın testler; tek tur, çok tur ve düşüncenin silinmesi, `enable_thinking=False`, araç tanımı (ondalık sayılı, denetim karakterli ve tırnaklı açıklamalı bir şemayla), araç çağrısı ve ardışık araç sonuçları, boşlukla başlayıp biten içerik, sınırda birleşen satır sonu (metnin tek çağrıyla kodlanması); `TR_enable_thinking:`'in iki hatası. Bilinen farklar ayrı testtir: içerikte etiket yazımı; içeriği `<tool_response>` ile sarılmış bir `TR_User` iletisi. Araç şeması (`TR_tools:`) uygulanınca onun durumu eklenir.
 
 **24.3** `TR_qwen3_reply(p, kimlikler)` modelin ürettiği kimlikleri bir asistan iletisine çevirir ve `(ileti, hatalar)` demetini verir: `TR_ChatMessage(TR_role: TR_Role.TR_Assistant, ...)` ve `TR_List[TR_String]`.
 - **Kimliklerden ayrılır.** Bloklar etiket kimliklerinde (`<think>`, `</think>`, `<tool_call>`, `</tool_call>`; `p.TR_token_id`) bölünür, aradaki parçalar `p.TR_decode` ile çözülür (16.3). Baytlarıyla yazılmış bir etiket (güvenilmeyen bir metinden yinelenen `<tool_call>`) `TR_content`'te metin olarak kalır, çağrı olmaz.
@@ -67,7 +67,7 @@ TR_for h TR_in hatalar {
 }
 ```
 
-- *Test:* gerekmez, henüz uygulanmadı. Uygulanınca TR testi: gidiş-dönüş sözü (içerikli, düşünceli, araç çağrılı cevap); kanonik olmayan bir cevap (söz dışında, metin korunur); baytla yazılmış `<tool_call>`; bozuk araç bloğu; kapanmamış düşünce.
+- *Test:* TR testi (`tests/chat_format_test.tr`): gidiş-dönüş sözü (içerikli, düşünceli, araç çağrılı cevap); kanonik olmayan bir cevap (söz dışında, metin korunur); baytla yazılmış `<tool_call>`; bozuk araç bloğu; kapanmamış düşünce.
 
 **24.4** Sohbet derlemi (ince ayar verisi) iletilere ayrıştırılıp biçim fonksiyonuyla kodlanır.
 - `TR_read_chat(metin)` yaygın JSON biçimindeki bir konuşmayı `TR_List[TR_ChatMessage]` olarak okur. `metin` bir ileti listesidir (`[{"role": "user", "content": ...}, ...]`) ya da onu `"messages"` alanında taşıyan bir nesnedir. Asistanda `reasoning_content` ve `tool_calls` okunur.

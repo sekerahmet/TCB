@@ -1767,6 +1767,10 @@ const (
 	H7555 Code = 7555 // {@pretrained_vits}: {weight|q} tensörünün şekli {given}, `config.json`'a göre {expected} olmalıdır
 	H7556 Code = 7556 // {@pretrained_vits}: tanınmayan tensör {weight|q}
 	H7557 Code = 7557 // {@pretrained_vits}: {field|q} {given} olamaz: {case, select, positive {boyutlar sıfırdan büyüktür} heads {bakış sayısı `hidden_size`'ı bölmelidir} other {bu kitaplık tek konuşmacılı, olasılıklı süre öngörücülü, karakter parçalayıcılı VITS'i açar}}
+	H7560 Code = 7560 // {@qwen3_format}: `{#add_generation_prompt}: {#true}` ile modelin düşünüp düşünmeyeceği yazılır: `{#add_generation_prompt}: {#true}, {#enable_thinking}: {#false}` (24.2)
+	H7561 Code = 7561 // {@qwen3_format}: `{#enable_thinking}:` yalnız `{#add_generation_prompt}: {#true}` ile geçerlidir; {given} verildi. Eğitim için biçimlerken kaldırın: `{#add_generation_prompt}: {#false}` (24.2)
+	H7562 Code = 7562 // parçalayıcıda {tag|q} parçası yok: Qwen3'ün sohbet biçimi bir Qwen3 modelinin parçalayıcısını ister (24.2)
+	H7563 Code = 7563 // {@qwen3_reply}: geçerli bir araç çağrısının {field|q} alanı modelin metninde bulunamadı; bu tr/chat'in hatasıdır, lütfen bildirin (24.3)
 	H7900 Code = 7900 // {fn} '{given}' adında bir parametre almaz. Bunu mu demek istediniz: '{suggestion}'?
 	H7901 Code = 7901 // {fn} '{given}' adında bir parametre almaz (geçerli adlar: {names})
 	H7902 Code = 7902 // {fn} '{given}' adında bir parametre almaz (adlı argüman almaz)

@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 678 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 57 tip, 154 fonksiyon, 11 sabit, 86 metot, 115 özellik, 168 adlı argüman.
+Toplam 699 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 156 fonksiyon, 11 sabit, 86 metot, 124 özellik, 175 adlı argüman.
 
 ## İçindekiler
 
@@ -652,6 +652,10 @@ tr: değişken b = Baytlar("şe"); yazdır(b, b.uzunluk, b[0], Metin(b + Baytlar
 
 
 
+#### `TR_ChatMessage` (`TR_type_ChatMessage`, `Sohbetİletisi`)
+
+
+
 #### `TR_Checkpoint` (`TR_type_Checkpoint`, `KontrolNoktası`)
 
 Eğitimin bütün durumunu (modeller, iyileştiriciler, okuyucular, günlükler, düz değerli sözlük ve listeler; anahtarlar veridir) atomik kaydeden ve yeniden başlatılan programı kaldığı adımdan sürdüren nesnenin tipidir. KontrolNoktası(koşu, {...}) koşu klasöründe (noktalar <koşu>/checkpoints/ altına) kurulur; geçerli bir nokta varsa kurulurken yükler ve kaldığı adımı yazar, yoksa boş başlar. .güncelle(adım) adım sınırında aralıkla, .kaydet() hemen kaydeder.
@@ -1019,6 +1023,10 @@ tr: değişken a: Aralık = 1..5; yazdır(Tip(a), Liste(0..5))
 
 Üyeleri: `.TR_reverse(...)`
 
+#### `TR_Role` (`TR_type_Role`, `Rol`)
+
+
+
 #### `TR_RowRMS` (`TR_type_RowRMS`, `SatırRMS`)
 
 
@@ -1165,6 +1173,10 @@ tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(T
 ```
 
 Üyeleri: `.TR_batch_decode(...)`, `.TR_decode(...)`, `.TR_encode(...)`, `.TR_token_id(...)`, `.TR_vocab_size` · İlişkili: `TR_load_tokenizer(...)`
+
+#### `TR_ToolCall` (`TR_type_ToolCall`, `AraçÇağrısı`)
+
+
 
 #### `TR_Transcription` (`TR_type_Transcription`, `Çevriyazı`)
 
@@ -2866,6 +2878,18 @@ tr: yazdır("Toplam:", 2 + 3)
 
 İlişkili: `TR_input(...)`
 
+#### `TR_qwen3_format(...)` (`TR_fn_qwen3_format`, `qwen3_biçimi`)
+
+    qwen3_biçimi()
+
+
+
+#### `TR_qwen3_reply(...)` (`TR_fn_qwen3_reply`, `qwen3_cevabı`)
+
+    qwen3_cevabı()
+
+
+
 #### `TR_randn(...)` (`TR_fn_randn`, `rastgele_normal`)
 
     rastgele_normal(Liste, türev_izle: Mantık = yanlış, tür: Metin = "float32", tohum: Tam) → Tensör
@@ -3746,6 +3770,10 @@ tr: yazdır(pi, sin(pi / 2), cos(pi))
 
 
 
+#### `TR_add_generation_prompt:` (`TR_arg_add_generation_prompt`, `üretim_başlığı_ekle`)
+
+
+
 #### `TR_approximate:` (`TR_arg_approximate`, `yaklaşık`)
 
 gelu'nun hangi biçimde hesaplanacağını seçer: doğru (varsayılan) tanh yaklaşımı, yanlış tam (erf tabanlı) GELU. Mantık olmalıdır.
@@ -3762,6 +3790,10 @@ tr: yazdır(gelu(Tensör([-1.0, 0.0, 1.0]), yaklaşık: yanlış).değer)
 ```
 
 Kullananlar: `TR_gelu(...)` · İlişkili: `TR_gelu(...)`
+
+#### `TR_arguments:` (`TR_arg_arguments`, `argümanlar`)
+
+
 
 #### `TR_atol:` (`TR_arg_atol`, `mutlak_pay`)
 
@@ -3983,6 +4015,10 @@ Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`, `TR_pad_mode:`
 
 
 
+#### `TR_content:` (`TR_arg_content`, `içerik`)
+
+
+
 #### `TR_context:` (`TR_arg_context`, `bağlam`)
 
 Okuyucunun her satırdaki pencere uzunluğudur; girdi ve hedef [toplu, bağlam] şeklinde olur. Zorunludur ve en uzun veri dosyasından kısa olmalıdır.
@@ -4106,6 +4142,10 @@ tr: yazdır(sıfırlar([2, 2], tür: "fp16").tür)
 Kullananlar: `TR_Tensor`, `TR_float_to_bytes(...)`, `TR_from_bytes(...)`, `TR_int_to_bytes(...)`, `TR_layer_norm(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_rms_norm(...)`, `TR_zeros(...)`, `.TR_read_float(...)`, `.TR_read_int(...)`
 
 #### `TR_embed_dim:` (`TR_arg_embed_dim`, `boyut`)
+
+
+
+#### `TR_enable_thinking:` (`TR_arg_enable_thinking`, `düşünmeyi_aç`)
 
 
 
@@ -4876,6 +4916,10 @@ tr: değişken küme = VeriKümesi("tests/data/numbers", önbellek: "onbellek/ve
 
 Kullananlar: `TR_Dataset` · İlişkili: `TR_cache:`
 
+#### `TR_reasoning:` (`TR_arg_reasoning`, `düşünce`)
+
+
+
 #### `TR_recursive:` (`TR_arg_recursive`, `içindekilerle`)
 
 sil'de dolu bir klasörün içindekilerle birlikte silinmesine izin verir; varsayılan yanlıştır (yalnızca boş klasör silinir). İçerideki bağlantıların gösterdiği yerlere dokunulmaz; salt okunur bir dosya varsa hiçbir şey silinmez.
@@ -4909,6 +4953,10 @@ tr: değişken x = Tensör([2.0], türev_izle: doğru); geri_yayılım(toplam(x 
 ```
 
 Kullananlar: `TR_Tensor`, `TR_load_tensors(...)`, `TR_ones(...)`, `TR_randn(...)`, `TR_zeros(...)`
+
+#### `TR_role:` (`TR_arg_role`, `rol`)
+
+
 
 #### `TR_rope_theta:` (`TR_arg_rope_theta`, `rope_tabanı`)
 
@@ -5133,6 +5181,10 @@ tr: türev_denetle((x) => sigmoid(x), [Tensör([0.3], türev_izle: doğru)], tol
 
 Kullananlar: `TR_grad_check(...)` · İlişkili: `TR_fd_step:`
 
+#### `TR_tool_calls:` (`TR_arg_tool_calls`, `araç_çağrıları`)
+
+
+
 #### `TR_top_k:` (`TR_arg_top_k`, `en_iyi_k`)
 
 örnekle'de seçimi en olası k sınıfla sınırlar; 0 (varsayılan) bütün sınıflar demektir. Negatif olmayan bir tam sayı olmalıdır.
@@ -5257,11 +5309,27 @@ Kullananlar: `TR_attention(...)`, `TR_stft(...)` · İlişkili: `TR_causal:`
 
 ### Metot ve özellikler
 
+#### `.TR_Assistant` (`TR_mem_Assistant`, `Asistan`)
+
+
+
 #### `.TR_Noun` (`TR_mem_Noun`, `İsim`)
 
 
 
+#### `.TR_System` (`TR_mem_System`, `Sistem`)
+
+
+
+#### `.TR_Tool` (`TR_mem_Tool`, `Araç`)
+
+
+
 #### `.TR_UnknownKind` (`TR_mem_UnknownKind`, `BilinmeyenTür`)
+
+
+
+#### `.TR_User` (`TR_mem_User`, `Kullanıcı`)
 
 
 
@@ -5331,6 +5399,10 @@ tr: değişken l = [1]; l.ekle(2, 3); yazdır(l)
 İlişkili: `.TR_first`, `.TR_last`
 
 #### `.TR_append_buffer(...)` (`TR_mem_append_buffer`, `tampon_ekle`)
+
+
+
+#### `.TR_arguments` (`TR_mem_arguments`, `argümanlar`)
 
 
 
@@ -5510,6 +5582,10 @@ tr: yazdır("merhaba".içerir("er"), [1, 2].içerir(2), {"a": 1}.içerir("a"))
 ```
 
 İlişkili: `.TR_starts_with(...)`, `.TR_ends_with(...)`
+
+#### `.TR_content` (`TR_mem_content`, `içerik`)
+
+
 
 #### `.TR_context_proj` (`TR_mem_context_proj`, `bağlam_katmanı`)
 
@@ -6426,6 +6502,10 @@ tr: yazdır(Baytlar([0, 1, 2]).tam_sayı_oku(1, tür: "uint16", bayt_sırası: "
 
 İlişkili: `.TR_read_float(...)`, `TR_int_to_bytes(...)`
 
+#### `.TR_reasoning` (`TR_mem_reasoning`, `düşünce`)
+
+
+
 #### `.TR_reduce(...)` (`TR_mem_reduce`, `indirge`)
 
     Liste.indirge([Herhangi], Fonksiyon) → Herhangi
@@ -6581,6 +6661,10 @@ tr: yazdır("kitap".ters_çevir(), [1, 2, 3].ters_çevir(), (0..3).ters_çevir()
 ```
 
 İlişkili: `.TR_sort(...)`
+
+#### `.TR_role` (`TR_mem_role`, `rol`)
+
+
 
 #### `.TR_rollback(...)` (`TR_mem_rollback`, `geri_dön`)
 
@@ -7071,6 +7155,10 @@ Görünümü:
 en: print(Tensor([[1, 2], [3, 4]]).tolist)
 tr: yazdır(Tensör([[1, 2], [3, 4]]).değer)
 ```
+
+#### `.TR_tool_calls` (`TR_mem_tool_calls`, `araç_çağrıları`)
+
+
 
 #### `.TR_transcribe(...)` (`TR_mem_transcribe`, `yazıya_çevir`)
 

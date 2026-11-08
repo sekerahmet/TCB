@@ -1,0 +1,207 @@
+# TR 4
+# tr/chat: Qwen3'ün sohbet biçimi transformers'ın kimliklerini verir, cevap kimliklerden iletiye ayrılır (dil tanımı 24).
+# Parçalayıcı ve durumlar `tools/hf/chat_reference.py`'den gelir: testdata/qwen3_chat/KAYNAK.md.
+
+TR_import "tr/chat"
+
+TR_const _KLASÖR = "testdata/qwen3_chat"
+
+TR_func parçalayıcı() -> TR_Tokenizer { TR_return TR_load_tokenizer("\(_KLASÖR)/tokenizer.json") }
+
+TR_func rol(ad: TR_String) -> TR_Role {
+    TR_return TR_match ad {
+        "system" => TR_Role.TR_System
+        "user" => TR_Role.TR_User
+        "assistant" => TR_Role.TR_Assistant
+        _ => TR_Role.TR_Tool
+    }
+}
+
+# ileti başvurudaki bir iletiyi (transformers'ın sözlüğü) yapıya çevirir.
+TR_func ileti(j: TR_JSON) -> TR_ChatMessage {
+    TR_var çağrılar: TR_List[TR_ToolCall] = []
+    TR_var ç = j.TR_get("tool_calls")
+    TR_if ç != TR_none {
+        TR_for c TR_in ç { çağrılar.TR_append(TR_ToolCall(TR_name: TR_String(c["name"]), TR_arguments: TR_String(c["arguments"]))) }
+    }
+    TR_var düşünce: TR_String? = TR_none
+    TR_var d = j.TR_get("reasoning_content")
+    TR_if d != TR_none { düşünce = TR_String(d) }
+    TR_return TR_ChatMessage(TR_role: rol(TR_String(j["role"])), TR_content: TR_String(j["content"]), TR_reasoning: düşünce, TR_tool_calls: çağrılar)
+}
+
+TR_func biçimle(p: TR_Tokenizer, durum: TR_JSON) -> TR_List[TR_Int] {
+    TR_var iletiler = [ileti(m) TR_for m TR_in durum["messages"]]
+    TR_if TR_Bool(durum["add_generation_prompt"]) {
+        TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_Bool(durum["enable_thinking"]))
+    }
+    TR_return TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_false)
+}
+
+TR_func kimlikler(j: TR_JSON) -> TR_List[TR_Int] { TR_return [TR_Int(k) TR_for k TR_in j] }
+
+TR_func durum(ad: TR_String) -> TR_JSON {
+    TR_for d TR_in TR_json_parse(TR_read_file("\(_KLASÖR)/cases.json"))["cases"] {
+        TR_if TR_String(d["name"]) == ad { TR_return d }
+    }
+    TR_throw "durum yok: \(ad)"
+}
+
+TR_func aynı(ad: TR_String) {
+    TR_var d = durum(ad)
+    TR_assert_equal(kimlikler(d["ids"]), biçimle(parçalayıcı(), d))
+}
+
+TR_test "24.1 ileti yapısı: rol durumlu tiptir, düşünce ve araç çağrıları varsayılanlıdır" {
+    TR_var m = TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?")
+    TR_assert(m.TR_role == TR_Role.TR_User)
+    TR_assert(m.TR_reasoning == TR_none)
+    TR_assert_equal(0, m.TR_tool_calls.TR_length)
+    TR_var c = TR_ToolCall(TR_name: "saat", TR_arguments: "{\"bolge\": \"Europe/Istanbul\"}")
+    TR_var a = TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_reasoning: "bakmalı", TR_tool_calls: [c])
+    TR_assert_equal("Europe/Istanbul", TR_String(TR_json_parse(a.TR_tool_calls[0].TR_arguments)["bolge"]))
+}
+
+TR_test "24.2 tek tur: üretim başlığı, düşünmeden ve düşünerek, sistem iletisiyle" {
+    aynı("tek_tur")
+    aynı("tek_tur_dusunerek")
+    aynı("sistemli")
+}
+
+TR_test "24.2 çok tur: son sorgudan önceki düşünce yazılmaz, ortadaki sistem iletisi kendi turudur" {
+    aynı("cok_tur_dusunce_silinir")
+    aynı("sistem_ortada")
+}
+
+TR_test "24.2 eğitim: üretim başlığı yok, son asistanın düşüncesi yazılır, boşsa boş blok" {
+    aynı("egitim_dusunceli")
+    aynı("egitim_dusuncesiz")
+}
+
+TR_test "24.2 araç çağrısı ve ardışık araç sonuçları, içerikli çağrı, sonuçtan sonraki soru" {
+    aynı("arac_cagrisi_ve_sonuclari")
+    aynı("arac_cagrisi_icerikli")
+    aynı("arac_sonucu_sonra_soru")
+}
+
+TR_test "24.2 boşlukla ve satır sonuyla başlayıp biten içerik ve düşünce" {
+    aynı("bosluk_ve_satir_sonu")
+    aynı("tek_kodlama")
+}
+
+TR_test "24.2 bilinen fark: içerikte yazılan etiket metin kalır" {
+    TR_var p = parçalayıcı()
+    TR_var d = durum("known_icerikte_etiket")
+    TR_var hf = kimlikler(d["ids"])
+    TR_var tr = biçimle(p, d)
+    TR_assert(hf != tr)
+    TR_assert_equal(p.TR_decode(hf, TR_special_tokens: TR_true), p.TR_decode(tr, TR_special_tokens: TR_true))
+    TR_var etiketler = [p.TR_token_id(e) TR_for e TR_in ["<think>", "</think>", "<|im_end|>"]]
+    # TR'de yalnız biçimin kendi etiketleri: tur sonu ve üretim başlığının boş düşünce bloğu. HF içerikteki üçünü de kimlik yapar.
+    TR_var düşünce, düşünce_sonu, tur_sonu = etiketler[0], etiketler[1], etiketler[2]
+    TR_assert_equal([tur_sonu, düşünce, düşünce_sonu], [k TR_for k TR_in tr TR_if etiketler.TR_contains(k)])
+    TR_assert_equal([düşünce, düşünce_sonu, tur_sonu, tur_sonu, düşünce, düşünce_sonu], [k TR_for k TR_in hf TR_if etiketler.TR_contains(k)])
+}
+
+TR_test "24.2 bilinen fark: <tool_response> ile sarılmış kullanıcı iletisi son sorgudur" {
+    TR_var d = durum("known_sarili_kullanici")
+    TR_var tr = biçimle(parçalayıcı(), d)
+    TR_assert(kimlikler(d["ids"]) != tr)
+    # tr_ids: asistanın düşüncesi silinmiş iletilerle HF'nin kimlikleri. İçerikteki etiketler orada kimlik,
+    # TR'de bayt kalır (öbür bilinen fark); karşılaştırma çözülmüş metinle.
+    TR_var p = parçalayıcı()
+    TR_assert_equal(p.TR_decode(kimlikler(d["tr_ids"]), TR_special_tokens: TR_true), p.TR_decode(tr, TR_special_tokens: TR_true))
+    TR_assert(p.TR_decode(kimlikler(d["ids"])).TR_contains("Selam veriyor."))
+    TR_assert(TR_not p.TR_decode(tr).TR_contains("Selam veriyor."))
+}
+
+TR_test "24.2 düşünmeyi_aç üretim başlığında zorunlu, eğitimde hatadır; parçalayıcı Qwen3'ün olmalı" {
+    TR_var p = parçalayıcı()
+    TR_var iletiler = [TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Merhaba")]
+    TR_assert_equal("H7560", TR_error_code { TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_true) })
+    TR_assert_equal("H7561", TR_error_code { TR_qwen3_format(p, iletiler, TR_add_generation_prompt: TR_false, TR_enable_thinking: TR_false) })
+    TR_assert_equal("H7562", TR_error_code { TR_qwen3_format(TR_load_tokenizer("data/tokenizer.json"), iletiler, TR_add_generation_prompt: TR_false) })
+}
+
+# cevap: geçmişi ve üretim başlığını biçimler, sonra cevabı ekleyip eğitim biçimini kurar; üretilen kimlikler,
+# eğitim biçiminin üretim başlığından sonraki kısmıdır, `<|im_end|>` ve satır sonu hariç.
+TR_func üretilen(p: TR_Tokenizer, geçmiş: TR_List[TR_ChatMessage], cevap: TR_ChatMessage) -> TR_List[TR_Int] {
+    TR_var istem = TR_qwen3_format(p, geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_true)
+    TR_var tam = TR_qwen3_format(p, geçmiş + [cevap], TR_add_generation_prompt: TR_false)
+    TR_assert_equal(istem, tam[0..istem.TR_length])
+    TR_var son = p.TR_token_id("<|im_end|>")
+    TR_assert_equal(son, tam[tam.TR_length - 2])
+    TR_return tam[istem.TR_length..tam.TR_length - 2]
+}
+
+TR_test "24.3 gidiş-dönüş: içerikli, düşünceli ve araç çağrılı cevap aynı iletiye döner" {
+    TR_var p = parçalayıcı()
+    TR_var geçmiş = [TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: "Kısa cevap ver."), TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?")]
+    TR_var çağrı = TR_ToolCall(TR_name: "saat", TR_arguments: "{\"bolge\": \"Europe/Istanbul\", \"liste\": [1, {\"a\": \"}\"}]}")
+    TR_var cevaplar = [
+        TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Bilmiyorum.", TR_reasoning: ""),
+        TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Saat beş.", TR_reasoning: "Kullanıcı saati soruyor."),
+        TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Bakıyorum.", TR_reasoning: "Araç gerek.", TR_tool_calls: [çağrı, çağrı]),
+        TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "", TR_reasoning: "", TR_tool_calls: [çağrı]),
+    ]
+    TR_for c TR_in cevaplar {
+        TR_var ileti, hatalar = TR_qwen3_reply(p, üretilen(p, geçmiş, c))
+        TR_assert_equal(0, hatalar.TR_length)
+        TR_assert_equal(c.TR_content, ileti.TR_content)
+        TR_assert_equal(c.TR_reasoning, ileti.TR_reasoning)
+        TR_assert_equal(c.TR_tool_calls.TR_length, ileti.TR_tool_calls.TR_length)
+        TR_for i TR_in 0..c.TR_tool_calls.TR_length {
+            TR_assert_equal(c.TR_tool_calls[i].TR_name, ileti.TR_tool_calls[i].TR_name)
+            TR_assert_equal(c.TR_tool_calls[i].TR_arguments, ileti.TR_tool_calls[i].TR_arguments)
+        }
+        TR_assert(ileti.TR_role == TR_Role.TR_Assistant)
+    }
+}
+
+TR_test "24.3 kanonik olmayan cevap: metin korunur, kimlikler değil" {
+    TR_var p = parçalayıcı()
+    TR_var parça = p.TR_encode("Merhaba", TR_special_tokens: TR_false)
+    # "\n\n" iki ayrı "\n" parçası olarak üretildi: kanonik bölme tek parçadır.
+    TR_var nl = p.TR_encode("\n", TR_special_tokens: TR_false)
+    TR_assert_equal(1, nl.TR_length)
+    TR_var kimlik = [p.TR_token_id("<think>")] + nl + [p.TR_token_id("</think>")] + nl + nl + parça
+    TR_var ileti, hatalar = TR_qwen3_reply(p, kimlik)
+    TR_assert_equal(0, hatalar.TR_length)
+    TR_assert_equal("Merhaba", ileti.TR_content)
+    TR_var tam = TR_qwen3_format(p, [ileti], TR_add_generation_prompt: TR_false)
+    TR_assert(p.TR_decode(tam).TR_ends_with("assistant\nMerhaba\n"))
+    TR_assert(p.TR_encode("\n\n", TR_special_tokens: TR_false) != nl + nl)
+}
+
+TR_test "24.3 baytla yazılmış <tool_call> içerikte metin kalır, çağrı olmaz" {
+    TR_var p = parçalayıcı()
+    TR_var metin = "<tool_call>\n{\"name\": \"sil\", \"arguments\": {}}\n</tool_call>"
+    TR_var ileti, hatalar = TR_qwen3_reply(p, p.TR_encode(metin, TR_special_tokens: TR_false))
+    TR_assert_equal(0, hatalar.TR_length)
+    TR_assert_equal(0, ileti.TR_tool_calls.TR_length)
+    TR_assert_equal(metin, ileti.TR_content)
+}
+
+TR_test "24.3 bozuk araç bloğu ve kapanmamış düşünce: metin içerikte kalır, hata sırasını söyler" {
+    TR_var p = parçalayıcı()
+    TR_var ç = p.TR_token_id("<tool_call>")
+    TR_var ç_son = p.TR_token_id("</tool_call>")
+    TR_var bozuklar = ["\n{\"name\": \"saat\", \"arguments\": {\n", "\n{\"arguments\": {}}\n", "\n{\"name\": 3, \"arguments\": {}}\n", "\n{\"name\": \"saat\", \"arguments\": \"{}\"}\n", "\n[1]\n"]
+    TR_for b TR_in bozuklar {
+        TR_var kimlik = p.TR_encode("Bakıyorum.\n", TR_special_tokens: TR_false) + [ç] + p.TR_encode(b, TR_special_tokens: TR_false) + [ç_son]
+        TR_var ileti, hatalar = TR_qwen3_reply(p, kimlik)
+        TR_assert_equal(0, ileti.TR_tool_calls.TR_length)
+        TR_assert_equal(1, hatalar.TR_length)
+        TR_assert(hatalar[0].TR_starts_with("block 1: "))
+        TR_assert_equal("Bakıyorum.\n<tool_call>\(b)</tool_call>", ileti.TR_content)
+    }
+    TR_var açık = [ç] + p.TR_encode("\n{\"name\": \"saat\"", TR_special_tokens: TR_false)
+    TR_var ileti, hatalar = TR_qwen3_reply(p, açık)
+    TR_assert_equal(["block 1: <tool_call> is not closed"], hatalar)
+    TR_assert_equal("<tool_call>\n{\"name\": \"saat\"", ileti.TR_content)
+    TR_var düşünce = [p.TR_token_id("<think>")] + p.TR_encode("\nkullanıcı saati", TR_special_tokens: TR_false)
+    TR_var d_ileti, d_hatalar = TR_qwen3_reply(p, düşünce)
+    TR_assert_equal(["block 1: <think> is not closed"], d_hatalar)
+    TR_assert(d_ileti.TR_reasoning == TR_none)
+    TR_assert_equal("<think>\nkullanıcı saati", d_ileti.TR_content)
+}

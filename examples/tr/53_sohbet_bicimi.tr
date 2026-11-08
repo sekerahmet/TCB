@@ -1,0 +1,34 @@
+# TR 4
+# 53 — Sohbet biçimi: iletileri Qwen3'ün eğitildiği parça dizisine çevirmek ve modelin cevabını iletiye
+# ayırmak (`tr/chat`). Modelin Jinja şablonu çalışmaz; biçim TR ile yazılıdır ve etiketler kimlikle girer.
+# Parçalayıcı küçük bir deneme parçalayıcısıdır (tests/testdata/qwen3_chat); gerçek modelde GGUF dosyası verilir.
+#
+# Kendin dene: geçmişe bir araç sonucu (TR_Role.TR_Tool) ekle ve biçimin nasıl değiştiğine bak.
+
+TR_import "tr/chat"
+
+TR_var p = TR_load_tokenizer("../../tests/testdata/qwen3_chat/tokenizer.json")
+TR_var geçmiş = [
+    TR_ChatMessage(TR_role: TR_Role.TR_System, TR_content: "Kısa cevap ver."),
+    TR_ChatMessage(TR_role: TR_Role.TR_User, TR_content: "Saat kaç?"),
+]
+
+# Çıkarım: sona asistanın başlığı eklenir; düşünmeyi kapatmak boş bir düşünce bloğu ekler.
+TR_var istem = TR_qwen3_format(p, geçmiş, TR_add_generation_prompt: TR_true, TR_enable_thinking: TR_false)
+TR_print(istem.TR_length, "parça")
+TR_print(p.TR_decode(istem, TR_special_tokens: TR_true))
+
+# Modelin ürettiği kimlikler (burada elle kurulur): bir araç çağrısı.
+TR_var üretilen = p.TR_encode("Bakıyorum.\n", TR_special_tokens: TR_false) + [p.TR_token_id("<tool_call>")] +
+    p.TR_encode("\n{\"name\": \"saat\", \"arguments\": {\"bolge\": \"Europe/Istanbul\"}}\n", TR_special_tokens: TR_false) + [p.TR_token_id("</tool_call>")]
+TR_var cevap, hatalar = TR_qwen3_reply(p, üretilen)
+TR_print(cevap.TR_role == TR_Role.TR_Assistant, cevap.TR_content, cevap.TR_reasoning)
+TR_for ç TR_in cevap.TR_tool_calls { TR_print(ç.TR_name, ç.TR_arguments) }
+TR_print(cevap.TR_tool_calls[0].TR_name == TR_ToolCall(TR_name: "saat", TR_arguments: "{}").TR_name)
+TR_print("hata:", hatalar.TR_length)
+
+# Cevap geçmişe girer, aracın sonucu kendi rolüyle gelir; eğitim biçiminde üretim başlığı yoktur.
+geçmiş.TR_append(cevap)
+geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_Tool, TR_content: "17:05"))
+geçmiş.TR_append(TR_ChatMessage(TR_role: TR_Role.TR_Assistant, TR_content: "Saat on yediyi beş geçiyor.", TR_reasoning: "Araç cevap verdi.", TR_tool_calls: []))
+TR_print(TR_qwen3_format(p, geçmiş, TR_add_generation_prompt: TR_false).TR_length, "parça")

@@ -42,10 +42,10 @@ TR_Linear.TR_map	not_found	4	-
 TR_Logger.TR_append	ok	0	name:TR_mem_append
 TR_Muon.TR_step	ok	0	tr:method:lib/optimizers.tr:TR_type_Muon.TR_mem_step
 TR_Progress.TR_update	ok	0	name:TR_mem_update
-TR_Role.TR_Assistant	ok	0	spec:24.3	tr_index:not_found:4
-TR_Role.TR_System	ok	0	spec:24.1	tr_index:not_found:4
-TR_Role.TR_Tool	ok	0	spec:24.3	tr_index:not_found:4
-TR_Role.TR_User	ambiguous	3	spec:24.1,spec:24.2,spec:24.3	tr_index:not_found:4
+TR_Role.TR_Assistant	not_found	4	-
+TR_Role.TR_System	not_found	4	-
+TR_Role.TR_Tool	not_found	4	-
+TR_Role.TR_User	not_found	4	-
 TR_SUPPORTED_ARCHITECTURES.TR_contains	ok	0	name:TR_mem_contains
 TR_SpikeGuard.TR_exceeds	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_exceeds
 TR_SpikeGuard.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
@@ -140,6 +140,7 @@ TR_self.TR_adamw_no_decay	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.T
 TR_self.TR_analyze_word	ok	0	tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_analyze_word
 TR_self.TR_append	ok	0	name:TR_mem_append
 TR_self.TR_append_buffer	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_append_buffer
+TR_self.TR_arguments	ok	0	tr:field:lib/chat.tr:TR_type_ToolCall.TR_mem_arguments
 TR_self.TR_attention	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBlock.TR_mem_attention
 TR_self.TR_bar	ok	0	tr:field:lib/training.tr:TR_type_Run.TR_mem_bar
 TR_self.TR_beta1	ok	0	tr:field:lib/optimizers.tr:TR_type_NorMuon.TR_mem_beta1
@@ -150,6 +151,7 @@ TR_self.TR_build_cache	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_build_cac
 TR_self.TR_capacity	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_capacity
 TR_self.TR_checkpoint	ok	0	tr:field:lib/training.tr:TR_type_Run.TR_mem_checkpoint
 TR_self.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
+TR_self.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 TR_self.TR_context_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEContext.TR_mem_context_proj
 TR_self.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 TR_self.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
@@ -187,6 +189,7 @@ TR_self.TR_masks	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_masks
 TR_self.TR_momentum	ok	0	tr:field:lib/optimizers.tr:TR_type_Muon.TR_mem_momentum
 TR_self.TR_muon	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_muon
 TR_self.TR_muon_lr	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_muon_lr
+TR_self.TR_name	ok	0	name:TR_mem_name
 TR_self.TR_nesterov	ok	0	tr:field:lib/optimizers.tr:TR_type_Muon.TR_mem_nesterov
 TR_self.TR_norm	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_norm,tr:field:lib/layers.tr:TR_type_PLEContext.TR_mem_norm
 TR_self.TR_norms	ok	0	tr:field:lib/training.tr:TR_type_SpikeGuard.TR_mem_norms
@@ -207,7 +210,9 @@ TR_self.TR_post_attention_norm	ok	0	tr:field:lib/layers.tr:TR_type_TransformerBl
 TR_self.TR_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_proj
 TR_self.TR_q_norm	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_norm
 TR_self.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
+TR_self.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reasoning
 TR_self.TR_resume_step	ok	0	name:TR_mem_resume_step
+TR_self.TR_role	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_role
 TR_self.TR_row_rms	ok	0	tr:field:lib/optimizers.tr:TR_type_MuonAndAdamW.TR_mem_row_rms
 TR_self.TR_run_blocks	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_run_blocks
 TR_self.TR_sample_rate	ok	0	tr:field:lib/audio.tr:TR_type_Sound.TR_mem_sample_rate
@@ -222,6 +227,7 @@ TR_self.TR_step	ok	0	name:TR_mem_step
 TR_self.TR_step_position	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_step_position
 TR_self.TR_table	ambiguous	3	tr:field:lib/layers.tr:TR_type_Embedding.TR_mem_table,tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_table
 TR_self.TR_threshold	ok	0	tr:field:lib/training.tr:TR_type_SpikeGuard.TR_mem_threshold
+TR_self.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 TR_self.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
 TR_self.TR_v_buffers	ok	0	tr:field:lib/layers.tr:TR_type_KVCache.TR_mem_v_buffers
 TR_self.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
@@ -333,6 +339,7 @@ a.TR_text	ambiguous	3	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_text,tr:fie
 a.TR_to_device	ok	0	name:TR_mem_to_device
 a.TR_to_dtype	ok	0	name:TR_mem_to_dtype
 a.TR_tolist	ok	0	name:TR_mem_tolist
+a.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 a.TR_transpose	ok	0	name:TR_mem_transpose
 a.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
 a.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
@@ -490,19 +497,26 @@ büyütücüler.TR_append	ok	0	name:TR_mem_append
 büyütücüler.TR_length	ok	0	name:TR_mem_length
 c.TR_append	ok	0	name:TR_mem_append
 c.TR_contains	ok	0	name:TR_mem_contains
+c.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 c.TR_context_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEContext.TR_mem_context_proj
 c.TR_dtype	ok	0	name:TR_mem_dtype
 c.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
 c.TR_grad	ok	0	name:TR_mem_grad
 c.TR_lower	ok	0	name:TR_mem_lower
 c.TR_pop	ok	0	name:TR_mem_pop
+c.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reasoning
 c.TR_reduce	ok	0	name:TR_mem_reduce
 c.TR_shape	ok	0	name:TR_mem_shape
 c.TR_slice	ok	0	name:TR_mem_slice
 c.TR_tolist	ok	0	name:TR_mem_tolist
+c.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
+cevap.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 cevap.TR_get	ok	0	name:TR_mem_get
 cevap.TR_keys	ok	0	name:TR_mem_keys
 cevap.TR_length	ok	0	name:TR_mem_length
+cevap.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reasoning
+cevap.TR_role	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_role
+cevap.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 cfg.TR_keys	ok	0	name:TR_mem_keys
 cfg.TR_step	ok	0	name:TR_mem_step
 chars.TR_append	ok	0	name:TR_mem_append
@@ -556,6 +570,8 @@ d.TR_window	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_window
 d2.TR_keys	ok	0	name:TR_mem_keys
 d2.TR_length	ok	0	name:TR_mem_length
 d2.TR_probability	ok	0	tr:method:lib/vad.tr:TR_type_VoiceDetector.TR_mem_probability
+d_ileti.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
+d_ileti.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reasoning
 dalga.TR_reshape	ok	0	name:TR_mem_reshape
 dalga.TR_shape	ok	0	name:TR_mem_shape
 data.TR_append	ok	0	name:TR_mem_append
@@ -623,6 +639,7 @@ elle.TR_tolist	ok	0	name:TR_mem_tolist
 es.TR_append	ok	0	name:TR_mem_append
 es.TR_contains	ok	0	name:TR_mem_contains
 es.TR_sort	ok	0	name:TR_mem_sort
+etiketler.TR_contains	ok	0	name:TR_mem_contains
 eğitim.TR_NONFINITE	ok	0	tr:const:lib/training.tr:TR_const_NONFINITE
 eğitim.TR_OK	ok	0	tr:const:lib/training.tr:TR_const_OK
 eğitim.TR_SpikeGuard	ok	0	tr:struct:lib/training.tr:TR_type_SpikeGuard
@@ -739,6 +756,8 @@ harf_no.TR_contains	ok	0	name:TR_mem_contains
 harfler.TR_append	ok	0	name:TR_mem_append
 harfler.TR_length	ok	0	name:TR_mem_length
 hata.TR_code	ok	0	name:TR_mem_code
+hatalar.TR_append	ok	0	name:TR_mem_append
+hatalar.TR_length	ok	0	name:TR_mem_length
 havuz.TR_tolist	ok	0	name:TR_mem_tolist
 hedef.TR_shape	ok	0	name:TR_mem_shape
 hedef.TR_slice	ok	0	name:TR_mem_slice
@@ -771,8 +790,13 @@ ileri.TR_gate_proj	ambiguous	3	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_ga
 ileri.TR_length	ok	0	name:TR_mem_length
 ileri.TR_up_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_up_proj
 ileti.TR_contains	ok	0	name:TR_mem_contains
+ileti.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 ileti.TR_ends_with	ok	0	name:TR_mem_ends_with
+ileti.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reasoning
+ileti.TR_role	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_role
+ileti.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 iletiler.TR_append	ok	0	name:TR_mem_append
+iletiler.TR_length	ok	0	name:TR_mem_length
 ilk.TR_code	ok	0	name:TR_mem_code
 ilk.TR_lemma	ambiguous	3	tr:field:lib/turkish.tr:TR_type_WordAnalysis.TR_mem_lemma,tr:method:lib/turkish.tr:TR_type_Lemmatizer.TR_mem_lemma
 ilk.TR_length	ok	0	name:TR_mem_length
@@ -787,6 +811,7 @@ indeksler.TR_append	ok	0	name:TR_mem_append
 inputs.TR_append	ok	0	name:TR_mem_append
 isimler.TR_contains	ok	0	name:TR_mem_contains
 istat.TR_slice	ok	0	name:TR_mem_slice
+istem.TR_length	ok	0	name:TR_mem_length
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
 ix2.TR_tolist	ok	0	name:TR_mem_tolist
@@ -802,8 +827,10 @@ iz.TR_append	ok	0	name:TR_mem_append
 iz.TR_length	ok	0	name:TR_mem_length
 izlenen.TR_grad	ok	0	name:TR_mem_grad
 izler.TR_append	ok	0	name:TR_mem_append
+iç.TR_strip	ok	0	name:TR_mem_strip
 iç.TR_update	ok	0	name:TR_mem_update
 içerik.TR_contains	ok	0	name:TR_mem_contains
+içerik.TR_ends_with	ok	0	name:TR_mem_ends_with
 içerik.TR_length	ok	0	name:TR_mem_length
 içinde.TR_contains	ok	0	name:TR_mem_contains
 j.TR_get	ok	0	name:TR_mem_get
@@ -975,6 +1002,7 @@ m.TR_blocks	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_blocks
 m.TR_build_cache	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_build_cache
 m.TR_config	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_config
 m.TR_contains	ok	0	name:TR_mem_contains
+m.TR_content	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_content
 m.TR_cos_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_cos_table
 m.TR_dtype	ok	0	name:TR_mem_dtype
 m.TR_embedding	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_embedding
@@ -992,13 +1020,16 @@ m.TR_loss	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_loss
 m.TR_next	ok	0	name:TR_mem_next
 m.TR_permute	ok	0	name:TR_mem_permute
 m.TR_ple_context	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_ple_context
+m.TR_reasoning	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_reasoning
 m.TR_reshape	ok	0	name:TR_mem_reshape
+m.TR_role	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_role
 m.TR_shape	ok	0	name:TR_mem_shape
 m.TR_sin_table	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_sin_table
 m.TR_single_step	ok	0	tr:method:lib/layers.tr:TR_type_GPT.TR_mem_single_step
 m.TR_step	ok	0	name:TR_mem_step
 m.TR_strip	ok	0	name:TR_mem_strip
 m.TR_tolist	ok	0	name:TR_mem_tolist
+m.TR_tool_calls	ok	0	tr:field:lib/chat.tr:TR_type_ChatMessage.TR_mem_tool_calls
 m.TR_transpose	ok	0	name:TR_mem_transpose
 m1.TR_grad	ok	0	name:TR_mem_grad
 m2.TR_grad	ok	0	name:TR_mem_grad
@@ -1078,6 +1109,7 @@ nkn.TR_save	ok	0	name:TR_mem_save
 nkn.TR_update	ok	0	name:TR_mem_update
 nkoşu.TR_evaluated	ok	0	tr:method:lib/training.tr:TR_type_Run.TR_mem_evaluated
 nl.TR_append	ok	0	name:TR_mem_append
+nl.TR_length	ok	0	name:TR_mem_length
 nl.TR_map	ok	0	name:TR_mem_map
 nl.TR_sort	ok	0	name:TR_mem_sort
 nm.TR_append	ok	0	name:TR_mem_append
@@ -1195,6 +1227,7 @@ p.TR_length	ok	0	name:TR_mem_length
 p.TR_logit_layer	ok	0	tr:field:lib/layers.tr:TR_type_GPT.TR_mem_logit_layer
 p.TR_mem_encode	not_found	4	-
 p.TR_mem_shape	not_found	4	-
+p.TR_mem_token_id	not_found	4	-
 p.TR_mem_vocab_size	not_found	4	-
 p.TR_name	ok	0	name:TR_mem_name
 p.TR_proj	ok	0	tr:field:lib/layers.tr:TR_type_PLEBlock.TR_mem_proj
@@ -1549,8 +1582,12 @@ z.TR_reshape	ok	0	name:TR_mem_reshape
 z.TR_shape	ok	0	name:TR_mem_shape
 z.TR_slice	ok	0	name:TR_mem_slice
 z.TR_tolist	ok	0	name:TR_mem_tolist
+ç.TR_arguments	ok	0	tr:field:lib/chat.tr:TR_type_ToolCall.TR_mem_arguments
+ç.TR_name	ok	0	name:TR_mem_name
 ç.TR_stop	ok	0	name:TR_mem_stop
 ç.TR_update	ok	0	name:TR_mem_update
+çağrılar.TR_append	ok	0	name:TR_mem_append
+çağrılar.TR_length	ok	0	name:TR_mem_length
 çiftler.TR_append	ok	0	name:TR_mem_append
 çubuk.TR_stop	ok	0	name:TR_mem_stop
 çubuk.TR_update	ok	0	name:TR_mem_update
