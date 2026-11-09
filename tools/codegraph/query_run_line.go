@@ -24,17 +24,18 @@ const commandLineLimit = 20000
 // runPlan dosyanın koşu satırlarıdır. İki komut gerekir: -run bir `go test`'in bütün paketlerine uygulanır, tek komut
 // dosyanın kendi paketini de süzerdi.
 type runPlan struct {
-	pkg    string   // dosyanın paketi, bütün olarak (-run'sız): grafın göremediği aynı paket testleri de koşar
-	others []string // dosyayı tarayan depo kurallarının ve konu edinen testlerin paketleri (pkg hariç)
-	names  []string // onların adları (-run)
-	golden []string // seçilen altın dosya testleri (-update ile yeniden yazılır)
-	whole  bool     // -run listesi commandLineLimit'i aşıyor: others'ın ağır olmayanları bütün olarak koşar
-	heavy  []string // whole iken others'ın ağır paketleri (heavyTestPackages): yalnız sığan adlarla koşar
-	fit    []string // onların satıra sığan adları
-	cut    int      // satıra sığmayan ad sayısı
-	pkgFit []string // pkg ağırsa (heavyTestPackages) bütün yerine koşan adları: kendi testleri ve cevapta adı geçenler
-	pkgCut int      // onlardan satıra sığmayanların sayısı
-	rest   []goTest // ön denetimin seçiminden komutların koşmadıkları
+	pkg     string   // dosyanın paketi, bütün olarak (-run'sız): grafın göremediği aynı paket testleri de koşar
+	others  []string // dosyayı tarayan depo kurallarının ve konu edinen testlerin paketleri (pkg hariç)
+	names   []string // onların adları (-run)
+	golden  []string // seçilen altın dosya testleri (-update ile yeniden yazılır)
+	whole   bool     // -run listesi commandLineLimit'i aşıyor: others'ın ağır olmayanları bütün olarak koşar
+	heavy   []string // whole iken others'ın ağır paketleri (heavyTestPackages): yalnız sığan adlarla koşar
+	fit     []string // onların satıra sığan adları
+	cut     int      // satıra sığmayan ad sayısı
+	pkgFit  []string // pkg ağırsa (heavyTestPackages) bütün yerine koşan adları: kendi testleri ve cevapta adı geçenler
+	pkgCut  int      // onlardan satıra sığmayanların sayısı
+	trFiles []string // .tr dosyasında cevapta adı geçen TR test dosyaları (`go run ./cmd/trlang test ...`)
+	rest    []goTest // ön denetimin seçiminden komutların koşmadıkları
 }
 
 // runPlanFor koşu satırlarını ön denetimin seçiminden (goTestSelection, `changed --go-tests`) kurar: dosyanın paketi
@@ -47,8 +48,11 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 // runPlanWith runPlanFor'dur; cevapta adı geçen testler (listed) de adlandırılır (query_run_listed.go).
 func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed listedTests) runPlan {
 	var p runPlan
-	if file.Kind == kindFile {
+	switch {
+	case file.Kind == kindFile && strings.HasSuffix(file.File, ".go"):
 		p.pkg = path.Dir(file.File)
+	case file.Kind == kindFile && strings.HasSuffix(file.File, ".tr"):
+		p.trFiles = listed.trFiles // .tr modülünün cevapta adı geçen TR test dosyaları: tek `trlang test` satırı
 	}
 	extra, golden := map[goTest]bool{}, map[string]bool{}
 	add := func(n *Node) {
@@ -204,6 +208,9 @@ func (p runPlan) commands() []string {
 		}
 	default:
 		out = append(out, p.command(p.others, p.names))
+	}
+	if len(p.trFiles) > 0 { // trlang test birden çok hedef alır (cmd/trlang/test_command.go)
+		out = append(out, "go run ./cmd/trlang test "+strings.Join(p.trFiles, " "))
 	}
 	return out
 }

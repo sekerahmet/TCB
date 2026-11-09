@@ -105,3 +105,33 @@ func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) 
 		}
 	}
 }
+
+// Kural: bir .tr modülünün cevabı TR testlerini listeliyorsa onları tek koşulabilir satır koşar:
+// `go run ./cmd/trlang test <dosya1> <dosya2> ...` (gaps: lib/whisper.tr için dolaylı TR testleri listeleniyor, run:
+// satırı yoktu; lib/audio.tr'nin doğrusu `trlang test lib/audio_test.tr`, S1 2026-11-05).
+func TestATRModuleRunLineRunsItsListedTRTestFiles(t *testing.T) {
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	ix.root = root
+	for _, c := range []struct{ file, want string }{
+		{"lib/audio.tr", "lib/audio_test.tr"},
+		{"lib/whisper.tr", "tests/whisper_model_test.tr"},
+	} {
+		var out strings.Builder
+		ix.printTestsFor(&out, ix.byID[trFileID(c.file)], defaultLimit)
+		var tr string
+		for _, cmd := range runLines(out.String()) {
+			if rest, ok := strings.CutPrefix(cmd, "go run ./cmd/trlang test "); ok {
+				tr = " " + rest + " "
+			}
+		}
+		if !strings.Contains(tr, " "+c.want+" ") {
+			t.Errorf("%s: no run: line runs %s:\n%s", c.file, c.want, out.String())
+		}
+		for _, f := range listedIn(out.String()).trFiles {
+			if !strings.Contains(tr, " "+f+" ") {
+				t.Errorf("%s: the answer lists TR tests of %s, the trlang test line does not run it", c.file, f)
+			}
+		}
+	}
+}

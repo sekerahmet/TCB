@@ -261,6 +261,8 @@ func (ix *index) printTestsForBody(w io.Writer, n *Node, limit int) {
 	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindDoc {
 		writeRunPlan(w, func(l listedTests) runPlan { return ix.docRunPlan(n, t, tests, l) })
+	} else if n.Kind == kindFile && strings.HasSuffix(n.File, ".tr") {
+		writeRunPlan(w, func(l listedTests) runPlan { return ix.runPlanWith(n, newTouchSet(), fileTestSet{}, l) })
 	}
 	switch t.branch {
 	case branchWeak, branchExam, branchUntested:
