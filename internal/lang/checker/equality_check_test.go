@@ -46,6 +46,7 @@ func TestUnequatableComparisonIsACheckError(t *testing.T) {
 		{"TR_var a = [f].TR_contains(f)", messages.H1149, 0, nil},
 		{"TR_var a = TR_match [t] {\n    ([t]) => 1\n    _ => 2\n}", messages.H1150, 1, nil},
 		{"TR_var a = TR_match t {\n    (t) => 1\n    _ => 2\n}", messages.H1150, 1, []string{"`TR_if`"}},
+		{"TR_func h(c: C) -> TR_Int {\n    TR_return TR_match c {\n        C.Yok => 1\n        (C.Yok) => 2\n        _ => 3\n    }\n}", messages.H1150, 3, nil},
 	}
 	for _, tc := range cases {
 		singleError(t, defs+tc.src, tc.code, at+tc.off, tc.parts...)

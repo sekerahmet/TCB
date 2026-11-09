@@ -29,6 +29,14 @@ TR_func durum(c: C, i: İş) {
     TR_print(c == C.Yok) # ERROR H1148
     TR_print(i != i) # ERROR H1152
 }
+# Parantezsiz alansız durum durum desenidir, geçer; parantezlisi değer desenidir, == ister (5.6, 7.7)
+TR_func desen(c: C) -> TR_Int {
+    TR_return TR_match c {
+        C.Yok => 0
+        (C.Yok) => 1 # ERROR H1150
+        _ => 2
+    }
+}
 TR_func arayüz(a: Katman, b: Katman) {
     TR_print(a == b) # ERROR H1153
     TR_print([a] == [b]) # ERROR H1153

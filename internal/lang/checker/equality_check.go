@@ -41,9 +41,10 @@ func (c *Checker) checkEquatable(e *ast.InfixExpression, left, right string) boo
 
 // checkEquatablePattern eşlemenin '==' isteyen desenini denetler (5.6): konu ya da desen eşitlenemiyorsa
 // hatadır, tensör de (desen tensörü bütün olarak karşılaştırır). Durum deseni karşılaştırmaz (7.7): durum
-// açan desen (ast.EnumPattern, Cevap.Tamam(x) =>) ve alansız durum (C.Yok =>; TCB'nin kararı, 2026-11-09).
-func (c *Checker) checkEquatablePattern(e *ast.MatchExpression, subject string, pattern ast.Expression, patType string) {
-	if _, opens := pattern.(*ast.EnumPattern); opens || noneLiteral(pattern) || c.bareState(pattern) {
+// açan desen (ast.EnumPattern, Cevap.Tamam(x) =>) ve parantezsiz alansız durum (C.Yok =>; TCB'nin kararı,
+// 2026-11-09). Parantezli (C.Yok) => değer desenidir (5.6). bare desenin parantezsiz yazıldığıdır.
+func (c *Checker) checkEquatablePattern(e *ast.MatchExpression, subject string, pattern ast.Expression, patType string, bare bool) {
+	if _, opens := pattern.(*ast.EnumPattern); opens || noneLiteral(pattern) || bare && c.bareState(pattern) {
 		return
 	}
 	for _, t := range [2]string{subject, patType} {
@@ -110,4 +111,9 @@ func (c *Checker) bareState(pattern ast.Expression) bool {
 		}
 	}
 	return false
+}
+
+// bareAt kolun i. deseninin parantezsiz yazıldığıdır (ast.MatchCase.Bare); bilinmiyorsa yanlış.
+func bareAt(bare []bool, i int) bool {
+	return i < len(bare) && bare[i]
 }

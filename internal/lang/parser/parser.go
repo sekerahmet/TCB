@@ -160,11 +160,14 @@ type Parser struct {
 	funcKeywords bool
 }
 
-// parseMatchPattern bir eşle kolunun desenini okur.
-func (p *Parser) parseMatchPattern() ast.Expression {
+// parseMatchPattern bir eşle kolunun desenini okur ve kola ekler; parantezsiz yazıldıysa Bare'i doğrudur
+// (7.7: parantezsiz alansız durum durum desenidir, parantezlisi değer desenidir, 5.6).
+func (p *Parser) parseMatchPattern(mc *ast.MatchCase) {
 	p.patternMode = true
 	defer func() { p.patternMode = false }()
-	return p.enumPattern(p.curTokenIs(lexer.TokLParen), p.parseExpression(precLowest)) // 7.7: enum.go
+	grouped := p.curTokenIs(lexer.TokLParen)
+	mc.Patterns = append(mc.Patterns, p.enumPattern(grouped, p.parseExpression(precLowest))) // 7.7: enum.go
+	mc.Bare = append(mc.Bare, !grouped)
 }
 
 // parseHeaderExpression bir kontrol yapısının başlık ifadesini (koşul, döngü kaynağı,

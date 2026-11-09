@@ -300,6 +300,21 @@ func TestTensorIndexWriteKeepsTheOtherErrors(t *testing.T) {
 	expectCodes(t, append(cases, codeCase{flat + "TR_print(t[t > 1.0])", messages.H6707}))
 }
 
+// Kural (7.7, 5.6; TCB'nin kararı, 2026-11-09): durum deseni karşılaştırmaz, yalnız durumu sınar; durumun
+// alanı tensör tutsa da geçer: durum açan desen (Cevap.Tamam(x) =>) ve parantezsiz alansız durum
+// (Cevap.Yok =>). Parantezli (Cevap.Yok) => değer desenidir, '==' ister: tensör alanlı konuda hatadır.
+// Gerileme (birleşik 63, 0a8073a4): eşitliğin hatası değere bağlanınca (4.5) iki durum deseni de konunun
+// tensör alanında H2770 veriyordu; 6311e11a'da "tamam" ve "yok" veriyordu.
+func TestAStatePatternDoesNotCompareTheFields(t *testing.T) {
+	const enum = "TR_enum Cevap {\n    Tamam(t: TR_Tensor)\n    Yok\n}\n" +
+		"TR_func ad(c: Cevap) -> TR_String {\n    TR_return TR_match c {\n        Cevap.Yok => \"yok\"\n        Cevap.Tamam(x) => \"tamam\"\n    }\n}\n"
+	out, err := run(t, enum+"TR_print(ad(Cevap.Tamam(TR_Tensor([1.0]))), ad(Cevap.Yok))")
+	if err != nil || out != "tamam yok\n" {
+		t.Fatalf("durum deseni: %q %v", out, err)
+	}
+	expectCodes(t, []codeCase{{enum + "TR_var z = TR_match Cevap.Tamam(TR_Tensor([1.0])) {\n    (Cevap.Yok) => 1\n    _ => 2\n}", messages.H2770}})
+}
+
 // Kural (15.5, 4.5, 12.4): tipi bilinmeyen değerde (denetimin göremediği yerde) motor denetimin kuralını
 // izler: tensör tutan değerin '=='si, .TR_contains, .TR_index_of, .TR_unique ve değer deseni çalışma
 // hatasıdır (H2777; yapı alanında H2770), aranan değer boş listede de. TR_assert_equal ise içteki her

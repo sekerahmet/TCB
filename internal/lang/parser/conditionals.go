@@ -152,12 +152,11 @@ func (p *Parser) parseMatchExpression() ast.Expression {
 		if p.curTokenIs(lexer.TokIdent) && p.curToken().Literal == "_" {
 			mc.IsDefault = true
 		} else {
-			pat := p.parseMatchPattern()
-			mc.Patterns = append(mc.Patterns, pat)
+			p.parseMatchPattern(&mc)
 			for p.peekTokenIs(lexer.TokComma) {
 				p.nextToken() // ','
 				p.nextToken()
-				mc.Patterns = append(mc.Patterns, p.parseMatchPattern())
+				p.parseMatchPattern(&mc)
 			}
 		}
 

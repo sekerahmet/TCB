@@ -412,7 +412,10 @@ func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
 func (ie *IfExpression) Line() int            { return ie.Token.Line }
 
 type MatchCase struct {
-	Patterns  []Expression // values or ranges to match (nil for the default case)
+	Patterns []Expression // values or ranges to match (nil for the default case)
+	// Bare[i] says Patterns[i] was written without parentheses: a bare state (C.Yok =>) tests the
+	// state, a parenthesized one ((C.Yok) =>) is a value pattern (7.7, 5.6).
+	Bare      []bool
 	IsDefault bool
 	Body      *BlockStatement
 	ValueExpr Expression // the one-line '=> expr' form

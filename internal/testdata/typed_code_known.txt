@@ -21,9 +21,9 @@ lib/layers.tr:575 parametre TR_mem_forward.TR_arg_token_ids — GPT.ileri kimlik
 lib/layers.tr:586 parametre TR_mem_loss.TR_arg_targets — hedefler iç içe liste ya da TR_Tensor[TR_Int]
 lib/layers.tr:586 parametre TR_mem_loss.TR_arg_token_ids — kimlikler iç içe liste ya da TR_Tensor[TR_Int]
 lib/optimizers.tr:362 alan TR_type_MuonAndAdamW.TR_mem_muon — TR_Muon ya da TR_NorMuon tutar (normuon: seçeneği); ortak arayüz tanımlanmadı (7.8)
-lib/optimizers_test.tr:167 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
-lib/optimizers_test.tr:367 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
-lib/optimizers_test.tr:367 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
+lib/optimizers_test.tr:195 parametre ters_eğit.kur — iyileştirici kuran fonksiyon: TR_Optimizer ya da TR_MuonAndAdamW döndürür
+lib/optimizers_test.tr:396 dönüş tek_tek_mi — TR_Muon ya da TR_NorMuon döndürür (kur'un sonucu)
+lib/optimizers_test.tr:396 parametre tek_tek_mi.kur — TR_Muon ya da TR_NorMuon kuran fonksiyon
 lib/pretrained.tr:32 dönüş TR_fn_config_value — ayardaki değeri ya da yedeği döndürür: TR_JSON, metin, sayı, mantık ya da yok
 lib/pretrained.tr:32 parametre TR_fn_config_value.TR_arg_config — Hugging Face ayarı: dosyadan TR_JSON, testte karışık değerli sözlük
 lib/pretrained.tr:32 parametre TR_fn_config_value.TR_arg_fallback — yedek değer metin, tam sayı, ondalık, mantık ya da yok
