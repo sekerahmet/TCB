@@ -50,6 +50,9 @@ func (ix *index) runChanged(o changeOpts, ref string, stdout, stderr io.Writer) 
 		printUntrackedWarning(stdout, f)
 	}
 	if o.goTests {
+		if len(hs) == 0 && len(untracked) == 0 && flag != "" && ref != "HEAD" && ref != o.base && isAncestor(o.root, ref, o.base) {
+			fmt.Fprintf(stdout, "%s is an ancestor of %s (git diff %s is empty); for a single commit's change, use `%s~1..%s`\n", ref, o.base, rng, ref, ref)
+		}
 		ix.printGoTests(stdout, main)
 		return exitOK
 	}
@@ -162,6 +165,11 @@ func sameCommit(root, a, b string) bool {
 	x, err1 := gitOut(root, "rev-parse", a+"^{commit}")
 	y, err2 := gitOut(root, "rev-parse", b+"^{commit}")
 	return err1 == nil && err2 == nil && string(x) == string(y)
+}
+
+func isAncestor(root, ancestor, commit string) bool {
+	_, err := gitOut(root, "merge-base", "--is-ancestor", ancestor, commit)
+	return err == nil
 }
 
 func (ix *index) printTouched(w io.Writer, ts *touchSet, limit int) {

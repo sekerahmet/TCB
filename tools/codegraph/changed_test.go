@@ -300,3 +300,25 @@ func TestDupsChangedAndChangedSeeUntrackedGoFile(t *testing.T) {
 		"changed main...claude/untracked: 0 hunks in 1 files",
 		"code (1):\n    dup.u [func] untracked.go:3")
 }
+
+// Kural: `changed --go-tests <c>` komutunda `<c>` ana dalın (`main`) atasıysa ve fark boşsa çıktı sessizce boş
+// kalmaz; `<c>`'nin `main`'in atası olduğunu ve tek commit'in değişikliği için `<c>~1..<c>` yazılacağını söyler.
+func TestChangedGoTestsAncestorCommitExplainsRange(t *testing.T) {
+	root := gitFixture(t)
+	replaceIn(t, filepath.Join(root, "shape", "shape.go"), "return s.Side * s.Side", "return s.Side * s.Side * 1")
+	commitAll(t, root, "second-on-main")
+	ancOut, err := gitOut(root, "rev-parse", "--short", "HEAD~1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	anc := strings.TrimSpace(string(ancOut))
+	graph := buildInto(t, root)
+
+	code, out, errOut := commandIn("changed", root, graph, "--no-rebuild", "--go-tests", anc)
+	if code != exitOK {
+		t.Fatalf("changed --go-tests %s: exit %d: %s", anc, code, errOut)
+	}
+	testkit.MustContain(t, out,
+		anc+" is an ancestor of main",
+		anc+"~1.."+anc)
+}

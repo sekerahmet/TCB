@@ -15,9 +15,9 @@
 - [x] Adım 1: Yeniden üret (1.1–1.6) ve taban ölçümleri (`untested`, graf kurulum süresi)
 - [x] Adım 2a: İzlenmeyen yeni dosya `--changed`'e girer (`2d23efc`)
 - [x] Adım 2b: Modül dışı arayüzün uygulaması (`00f7013`)
-- [x] Adım 2c: Belge dosyasının `run:` satırı
-- [ ] Adım 2d: Eksik tanımlı kodun iletisi
-- [ ] Adım 2e: Atası olan commit
+- [x] Adım 2c: Belge dosyasının `run:` satırı (`5f17dfc`)
+- [x] Adım 2d: Eksik tanımlı kodun iletisi (`e6b22af`)
+- [x] Adım 2e: Atası olan commit
 - [ ] Adım 2f: Uzak 8'in iki kuralının fikstürü
 - [ ] Adım 3: Sonra ölçümleri ve Bitti ölçütü
 - [ ] Rapor (`UZAK10_RAPORU.md`) ve Kendi kontrolüm
@@ -99,3 +99,10 @@
   - `tools/codegraph/main_query.go:118`'deki `w, _, _ = strings.Cut(w, "\n")` kesmesi kaldırıldı; böylece `codes.LoadLanguage("tr")` hatasının ikinci satırındaki ayrıntı (`invalid code "...": not an identity in the code list`) korunuyor. Bu ayrıntı geldiğinde uyarının sonuna `" (in internal/lang/codes/tr.json: add it to definitions.json and run go generate ./internal/lang/codes)"` çaresi ekleniyor; ayrıntı yoksa eski metin olduğu gibi kalıyor.
 - **Üretim satırı:** +2 net satır (`main_query.go`: +3/-1; bütçe 10–25).
 - **Koruyan test:** `tools/codegraph/main_query_test.go:34` (`TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy`).
+
+## Adım 2e: Atası Olan Commit
+
+- **Seçim ve gerekçe:**
+  - `tools/codegraph/changed.go:53`'te `o.goTests` kolunda fark boşsa (`len(hs) == 0 && len(untracked) == 0`), argüman aralık değilse (`flag != ""`) ve `ref` (`HEAD` ya da `o.base` dışında) `o.base`'in atasıysa (`git merge-base --is-ancestor`), sessiz boş çıktı yerine `"%s is an ancestor of %s (git diff %s is empty); for a single commit's change, use \`%s~1..%s\`\n"` iletisi yazılıyor.
+- **Üretim satırı:** +8 net satır (`changed.go`: +8, 7 kod satırı + 1 boş satır; bütçe 5–15).
+- **Koruyan test:** `tools/codegraph/changed_test.go:306` (`TestChangedGoTestsAncestorCommitExplainsRange`).
