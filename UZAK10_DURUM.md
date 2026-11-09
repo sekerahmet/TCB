@@ -91,3 +91,11 @@
   - Testsiz `.md` dosyasında `p.commands()` boş döndüğü için `printRunPlan` hiçbir şey yazmaz.
 - **Üretim satırı:** +26 net satır (`query_run_line.go`: +29/-6, `query_tests.go`: +3; bütçe 20–50).
 - **Koruyan test:** `tools/codegraph/query_run_line_test.go:207` (`TestDocFileRunLineIncludesReadersAndGoldenScans`).
+
+## Adım 2d: Eksik Tanımlı Kodun İletisi
+
+- **Seçim ve gerekçe:**
+  - `internal/lang/codes/gen_codes.go:286`'daki `checkConsistency` dışa açık olmadığı için kullanıcıya danışıldı; kullanıcı yanıtına göre `internal/lang/codes` dosyalarına dokunulmadı ve denetim yeniden yazılmadı.
+  - `tools/codegraph/main_query.go:118`'deki `w, _, _ = strings.Cut(w, "\n")` kesmesi kaldırıldı; böylece `codes.LoadLanguage("tr")` hatasının ikinci satırındaki ayrıntı (`invalid code "...": not an identity in the code list`) korunuyor. Bu ayrıntı geldiğinde uyarının sonuna `" (in internal/lang/codes/tr.json: add it to definitions.json and run go generate ./internal/lang/codes)"` çaresi ekleniyor; ayrıntı yoksa eski metin olduğu gibi kalıyor.
+- **Üretim satırı:** +2 net satır (`main_query.go`: +3/-1; bütçe 10–25).
+- **Koruyan test:** `tools/codegraph/main_query_test.go:34` (`TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy`).
