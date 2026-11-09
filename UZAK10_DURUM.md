@@ -17,8 +17,8 @@
 - [x] Adım 2b: Modül dışı arayüzün uygulaması (`00f7013`)
 - [x] Adım 2c: Belge dosyasının `run:` satırı (`5f17dfc`)
 - [x] Adım 2d: Eksik tanımlı kodun iletisi (`e6b22af`)
-- [x] Adım 2e: Atası olan commit
-- [ ] Adım 2f: Uzak 8'in iki kuralının fikstürü
+- [x] Adım 2e: Atası olan commit (`8455fae`)
+- [x] Adım 2f: Uzak 8'in iki kuralının fikstürü
 - [ ] Adım 3: Sonra ölçümleri ve Bitti ölçütü
 - [ ] Rapor (`UZAK10_RAPORU.md`) ve Kendi kontrolüm
 
@@ -106,3 +106,10 @@
   - `tools/codegraph/changed.go:53`'te `o.goTests` kolunda fark boşsa (`len(hs) == 0 && len(untracked) == 0`), argüman aralık değilse (`flag != ""`) ve `ref` (`HEAD` ya da `o.base` dışında) `o.base`'in atasıysa (`git merge-base --is-ancestor`), sessiz boş çıktı yerine `"%s is an ancestor of %s (git diff %s is empty); for a single commit's change, use \`%s~1..%s\`\n"` iletisi yazılıyor.
 - **Üretim satırı:** +8 net satır (`changed.go`: +8, 7 kod satırı + 1 boş satır; bütçe 5–15).
 - **Koruyan test:** `tools/codegraph/changed_test.go:306` (`TestChangedGoTestsAncestorCommitExplainsRange`).
+
+## Adım 2f: Uzak 8'in İki Kuralının Fikstürü
+
+- **Seçim ve gerekçe:**
+  - `tools/codegraph/query_names_test.go`'da `TestAdjacentNameCodeInCallIsImplementedByArgumentCallable` ve `TestTableRowNameCodeIsImplementedByRowCallable` fikstürlerine `unit(&b, codes.FnE, (*box).ptrUnit, fnUnit)` (`unit(v, codes.X, (*T).M, f)` biçimi: gösterici alıcılı metot ifadesi ve ikinci işlev aynı çağrıda olduğunda ikisine de `uses_name` kenarı eklenmez), `pairMath(codes.FnF, fnMath, math.Floor)` ve `unitMath(&b, codes.FnF, (*box).exprMath, math.Floor)` ile tablo satırı karşılıkları (`unitRow`, `mathRow`) eklendi; `checkNameImplModule` içinde `math.Floor` için düğüm oluşmadığı (`g.Nodes`) iki testte de doğrulandı.
+- **Üretim satırı:** 0 satır (yalnız test; bütçe yalnız test).
+- **Koruyan test:** `tools/codegraph/query_names_test.go:127` (`TestAdjacentNameCodeInCallIsImplementedByArgumentCallable`) ve `:203` (`TestTableRowNameCodeIsImplementedByRowCallable`).
