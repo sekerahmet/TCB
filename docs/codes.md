@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 701 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 157 fonksiyon, 11 sabit, 86 metot, 124 özellik, 176 adlı argüman.
+Toplam 702 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 157 fonksiyon, 11 sabit, 86 metot, 124 özellik, 177 adlı argüman.
 
 ## İçindekiler
 
@@ -3623,7 +3623,7 @@ tr: değişken x = Tensör([-1.0, 2.0, -3.0]); yazdır(koşullu(x > 0, x, 0).de�
 
 #### `TR_write_file(...)` (`TR_fn_write_file`, `dosya_yaz`)
 
-    dosya_yaz(Metin | Yol, Metin | Baytlar) → YokTipi
+    dosya_yaz(Metin | Yol, Metin | Baytlar, yalnız_sahibe: Mantık = yanlış) → YokTipi
 
 Metni UTF-8 olarak, Baytlar'ı bayt bayt dosyaya yazar, değer vermez; başka değer hatadır (metni için önce Metin(x)), var olan dosyanın yerine konur. Yazma atomiktir: içerik önce aynı klasörde geçici bir dosyaya yazılıp diske işlenir, sonra eski dosyanın yerine konur (yarıda kalan yazma eski dosyayı bozmaz). .gz uzantılı yola sıkıştırarak yazar.
 
@@ -3638,7 +3638,7 @@ en: write_file("not.txt", "merhaba"); print(read_file("not.txt"))
 tr: dosya_yaz("not.txt", "merhaba"); yazdır(dosya_oku("not.txt"))
 ```
 
-İlişkili: `TR_read_file(...)`, `TR_read_bytes(...)`
+İlişkili: `TR_read_file(...)`, `TR_read_bytes(...)`, `TR_owner_only:`
 
 #### `TR_write_slice(...)` (`TR_fn_write_slice`, `yerine_yaz`)
 
@@ -4809,6 +4809,23 @@ tr: dosya_yaz("kaynak.txt", "yeni"); dosya_yaz("hedef.txt", "eski"); kopyala("ka
 ```
 
 Kullananlar: `TR_copy(...)`, `TR_move(...)` · İlişkili: `TR_copy(...)`, `TR_move(...)`
+
+#### `TR_owner_only:` (`TR_arg_owner_only`, `yalnız_sahibe`)
+
+dosya_yaz'da doğru verilirse dosya yalnız kullanıcıya açık yazılır: Unix'te 0600, Windows'ta yalnız kullanıcıya ve Administrators'a açık, mirası kapalı bir erişim listesiyle; geçici dosya da baştan böyle açılır, var olan dosyanın izinleri daralır. Gizli bir değeri bu argüman olmadan yazmak hatadır.
+
+```tr
+TR_write_file("anahtar.txt", "gizli metin", TR_owner_only: TR_true); TR_print(TR_read_file("anahtar.txt"))
+```
+
+Görünümü:
+
+```text
+en: write_file("anahtar.txt", "gizli metin", owner_only: true); print(read_file("anahtar.txt"))
+tr: dosya_yaz("anahtar.txt", "gizli metin", yalnız_sahibe: doğru); yazdır(dosya_oku("anahtar.txt"))
+```
+
+Kullananlar: `TR_write_file(...)` · İlişkili: `TR_write_file(...)`
 
 #### `TR_pad_mode:` (`TR_arg_pad_mode`, `dolgu_kipi`)
 

@@ -372,6 +372,7 @@
   "TR_arg_output_dtype": { "name": "çıktı_türü", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_output_init_std": { "name": "çıkış_başlatma_sapması", "family": "kitaplık: tr/layers", "description": "" },
   "TR_arg_overwrite": { "name": "üzerine_yaz", "family": "adlı argüman: dosya", "description": "kopyala ve taşı'da hedef zaten varsa kaynağın onun yerine konmasına izin verir; varsayılan yanlıştır (var olan hedef hatadır). Bir dosya bir klasörün, bir klasör bir dosyanın yerine konmaz." },
+  "TR_arg_owner_only": { "name": "yalnız_sahibe", "family": "adlı argüman: dosya", "description": "dosya_yaz'da doğru verilirse dosya yalnız kullanıcıya açık yazılır: Unix'te 0600, Windows'ta yalnız kullanıcıya ve Administrators'a açık, mirası kapalı bir erişim listesiyle; geçici dosya da baştan böyle açılır, var olan dosyanın izinleri daralır. Gizli bir değeri bu argüman olmadan yazmak hatadır." },
   "TR_arg_pad_mode": { "name": "dolgu_kipi", "family": "adlı argüman: sinyal", "description": "Ortalamanın dolgusudur: \"reflect\" ya da \"constant\". Ortalama açıkken zorunludur, kapalıyken verilmez." },
   "TR_arg_padding": { "name": "dolgu", "family": "adlı argüman: evrişim", "description": "Girdinin iki yanına eklenen sıfırların sayısıdır; varsayılan 0'dır." },
   "TR_arg_pair": { "name": "ikinci", "family": "adlı argüman: parçalayıcı kodla", "description": "kodla'ya ikinci bir metin vererek çift kodlama yapar. Liste kodlanırken aynı uzunlukta bir metin listesi olmalıdır." },

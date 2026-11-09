@@ -46,7 +46,7 @@ TR_print(ayar.adım)
 - En az 6 karakterli gizli değer **insanın göreceği çıktılarda** `***` olarak görünür: `TR_print`'in çıktısı, hata iletileri ve kod çerçevesi, uyarılar, ilerleme çubuğu, günlük dosyası (başlangıç kaydındaki ayarlar dahil), iş durumu dosyası (19.11), yardım çıktısı, hata ayıklayıcının değişken görünümü, düzenleyicinin İzleme Masası ve HTTP sunucusunun olay akışı (28.7).
 - **Veri değişmez:** değişkenin değeri, `TR_json_string` ve dosya yazıcıları (`TR_write_file`, `TR_write_lines`) gerçek değeri taşır; dosyaya yazılan gizli değer `TR_owner_only: TR_true` ister (18.13). Eşleşme maskeyle aynıdır, güvence değildir. Düz HTTP cevabının gövdesi de veridir (28.3).
 - Bu, sızıntıyı azaltır ama güvence değildir: değer dönüştürülünce (dilim, ters çevirme) eşleşme kaybolur. Gizli değer argümanla değil ortam değişkeniyle verilir.
-- *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; belirteç, olay akışı ve `TR_owner_only:` (28) gerekmez, henüz uygulanmadı.
+- *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; `TR_owner_only:` (18.13) `TestWriteFileSecretNeedsOwnerOnly`; belirteç ve olay akışı (28) gerekmez, henüz uygulanmadı.
 
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.

@@ -1773,6 +1773,7 @@
 "H7561": { "param": ["given"], "slots": {"qwen3_format": "TR_fn_qwen3_format", "add_generation_prompt": "TR_arg_add_generation_prompt", "enable_thinking": "TR_arg_enable_thinking", "true": "TR_kw_true", "false": "TR_kw_false"} },
 "H7562": { "param": ["tag"] },
 "H7563": { "param": ["field"], "slots": {"qwen3_reply": "TR_fn_qwen3_reply"} },
+"H7600": { "param": ["fn"], "slots": {"write_file": "TR_fn_write_file", "owner_only": "TR_arg_owner_only", "true": "TR_kw_true"} },
 "H7601": { "param": [] },
 "H7900": { "param": ["fn", "given", "suggestion"] },
 "H7901": { "param": ["fn", "given", "names"] },

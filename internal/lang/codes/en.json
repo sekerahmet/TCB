@@ -324,6 +324,7 @@
   "TR_arg_output_dtype": { "name": "output_dtype" },
   "TR_arg_output_init_std": { "name": "output_init_std" },
   "TR_arg_overwrite": { "name": "overwrite" },
+  "TR_arg_owner_only": { "name": "owner_only" },
   "TR_arg_pad_mode": { "name": "pad_mode" },
   "TR_arg_padding": { "name": "padding" },
   "TR_arg_pair": { "name": "pair" },

@@ -24,6 +24,8 @@ import (
 // uncoveredNames bilerek ya da henüz örneği yazılmamış adlardır ve gerekçesiyle durur. Liste
 // yalnızca küçülür: örneği olan bir ad listede kalırsa test düşer.
 var uncoveredNames = map[string]string{
+	// 28 aşama 1: belirteci dosyaya yazan sunucu örneği aşamanın sonunda gelir, satır o commit'te silinir.
+	"TR_arg_owner_only": "örneği 28'in sunucu örneğinde (aşama 1 sonu)",
 	// Değer adları kaynakta sözcük olarak yazılmaz, yalnızca metinde görünür (3.2:
 	// TR_print(TR_Float("inf"))); kodlu metinde geçemezler. Kodlar iç (sınıflı) yazımladır.
 	"TR_val_inf":  "değer adı (inf), kaynakta sözcük değil",

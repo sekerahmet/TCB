@@ -33,7 +33,6 @@ var coreBuiltins = [...]struct {
 	{codes.FnMonotonicNs, monotonicNsBuiltin},
 	{codes.FnReadFile, readFileBuiltin},
 	{codes.FnReadBytes, readBytesBuiltin},
-	{codes.FnWriteFile, writeFileBuiltin},
 	{codes.FnSleep, sleepBuiltin},
 	{codes.FnExit, exitBuiltin},
 	{codes.FnHandleStop, handleStopBuiltin},
@@ -44,6 +43,7 @@ func (v *VM) registerBuiltins() {
 	for _, k := range coreBuiltins {
 		v.RegisterNoNamed(k.kd, k.fn)
 	}
+	v.RegisterBuiltinCode(codes.FnWriteFile, writeFileBuiltin)
 }
 
 // printBuiltin yazdır() yerleşiğidir.
@@ -268,6 +268,10 @@ func readWhole(y *VM, kd codes.Code, args []Value, read func(string) ([]byte, er
 // yazar; başka değerin metnini yazmaz, H2423 verir (JSON değeri H2623: TR_json_string'i önerir). Yazma
 // atomiktir (bkz. AtomikYaz).
 func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error) {
+	ownerOnly, err := ownerOnlyArg(codes.FnWriteFile, named)
+	if err != nil {
+		return nil, err
+	}
 	if len(args) != 2 {
 		return nil, ArgCountError(codes.FnWriteFile, 2, len(args), messages.Text(messages.H2308))
 	}
@@ -290,8 +294,12 @@ func writeFileBuiltin(y *VM, args []Value, named map[string]Value) (Value, error
 	default:
 		return nil, ArgTypeError(codes.FnWriteFile, 2, args[1], codes.TypeString, codes.TypeBytes)
 	}
+	// Gizli değer (19.4'ün eşiğiyle) yalnız sahibine açık dosyaya yazılır (18.13).
+	if !ownerOnly && y.HasSecrets() && y.Mask(string(content)) != string(content) {
+		return nil, messages.New(messages.H7600, CallPrefix(codes.FnWriteFile))
+	}
 	resolved, _ := y.ResolveWritePath(filePath)
-	y.Blocking(func() { err = WriteFileContent(resolved, content) })
+	y.Blocking(func() { err = WriteFileContent(resolved, content, ownerOnly) })
 	if err != nil {
 		return nil, turkish.FileError(CallPrefix(codes.FnWriteFile), filePath, messages.H2101, err)
 	}
