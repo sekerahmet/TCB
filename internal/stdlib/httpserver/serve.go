@@ -72,7 +72,7 @@ func (st *state) serve(m *interp.VM, args []interp.Value, named map[string]inter
 		return nil, messages.New(messages.H7626, fn, net.JoinHostPort(opt.host, strconv.Itoa(opt.port)))
 	}
 	s := &HTTPServer{
-		handler: args[0], line: m.BuiltinLine(), vm: m, host: m.NewTaskHost(m.BuiltinLine()),
+		handler: args[0], line: m.BuiltinLine(), vm: m, host: m.NewTaskHost(m.BuiltinLine()), ln: ln,
 		local: opt.host == localHost, token: opt.token, port: ln.Addr().(*net.TCPAddr).Port,
 		maxConcurrent: opt.maxConcurrent, maxBody: opt.maxBody, done: make(chan struct{}),
 	}
@@ -185,6 +185,7 @@ type HTTPServer struct {
 	vm            *interp.VM // standart hataya yazmak için
 	host          *interp.TaskHost
 	srv           *http.Server
+	ln            net.Listener // Shutdown, Serve dinleyiciyi kaydetmeden önce gelirse onu kapatmaz
 	local         bool
 	token         string
 	port          int

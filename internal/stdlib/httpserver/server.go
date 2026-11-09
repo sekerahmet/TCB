@@ -67,6 +67,7 @@ func (s *HTTPServer) shutdown(y *interp.VM) bool {
 		if s.srv.Shutdown(ctx) != nil {
 			_ = s.srv.Close()
 		}
+		_ = s.ln.Close() // Serve henüz başlamadıysa dinleyici açık kalırdı: kapanıştan sonra bağlantı kabul edilmez
 	})
 	close(s.done)
 	return true
@@ -76,6 +77,7 @@ func (s *HTTPServer) shutdown(y *interp.VM) bool {
 func (s *HTTPServer) cut() {
 	if s.closing.CompareAndSwap(false, true) {
 		_ = s.srv.Close()
+		_ = s.ln.Close()
 		close(s.done)
 	}
 }
