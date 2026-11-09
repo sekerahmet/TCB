@@ -231,8 +231,32 @@ var pathWord = regexp.MustCompile(`[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+`)
 // fileWord yorumdaki çıplak dosya adıdır (`layout_test.go`, `README.md`): yalnızca yorumun dosyasının klasöründe aranır.
 var fileWord = regexp.MustCompile(`[A-Za-z0-9_\-]+(?:\.[A-Za-z0-9_\-]+)*\.[A-Za-z][A-Za-z0-9]*`)
 
+// splitPathEnd ve splitPathHead iki `//` satırına bölünen yolun iki yarısıdır: üst satırın sonundaki `docs/`, alt satırın
+// başındaki `README.md`.
+var (
+	splitPathEnd  = regexp.MustCompile(`[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)*/$`)
+	splitPathHead = regexp.MustCompile(`^[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)*`)
+)
+
+// joinSplitCommentPath üst satırı (prev) "/" ile biten bir yol parçasıyla biten `//` yorum satırının başındaki kuyruğu
+// birleşik yola katar: joined `docs/README.md`, text kuyruğu çıkarılmış satırdır (kuyruk çıplak dosya adı sayılmaz).
+// Bölünmemiş satırda text değişmez, joined boştur.
+func joinSplitCommentPath(prev, text string) (rest, joined string) {
+	end := splitPathEnd.FindString(strings.TrimRight(prev, " \t"))
+	body, ok := strings.CutPrefix(text, "//")
+	if end == "" || !ok || !strings.HasPrefix(prev, "//") {
+		return text, ""
+	}
+	body = strings.TrimLeft(body, " \t")
+	head := splitPathHead.FindString(body)
+	if head == "" {
+		return text, ""
+	}
+	return "// " + body[len(head):], end + head
+}
+
 // commentFileWords yorumdaki çıplak dosya adlarını verir; "/" karakterinden hemen sonra gelen eşleşmeyi (yol kuyruğu:
-// `examples/README.md`) atar. İki `//` satırına bölünen yolda alt satırın başındaki `main.go` çıplak kalır.
+// `examples/README.md`) atar. İki `//` satırına bölünen yolun kuyruğunu joinSplitCommentPath önceden ayırır.
 func commentFileWords(text string) []string {
 	var out []string
 	for _, idx := range fileWord.FindAllStringIndex(text, -1) {
@@ -300,8 +324,14 @@ func (x *goExtractor) citeRefs(fc *fileCtx, f *ast.File) {
 		}
 	}
 	for _, cg := range f.Comments {
+		prev := ""
 		for _, c := range cg.List {
-			add(ownersAt(c.Pos()), c.Pos(), c.Text, true)
+			text, joined := joinSplitCommentPath(prev, c.Text)
+			if joined != "" {
+				add(ownersAt(c.Pos()), c.Pos(), joined, false)
+			}
+			add(ownersAt(c.Pos()), c.Pos(), text, true)
+			prev = c.Text
 		}
 	}
 	for i, decl := range f.Decls {

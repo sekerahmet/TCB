@@ -522,3 +522,30 @@ func TestTwoLevelOrVar(t *testing.T) {
 		t.Errorf("unexpected edge from variable or two-level helper: %+v", e)
 	}
 }
+
+// Kural: iki `//` satırına bölünen yol (`// ... docs/` ve alt satırda `// README.md`) birleşik yoldur; alt satırın başındaki
+// kuyruk çıplak dosya adı sayılıp yorumun klasöründen çözülmez (gaps, "Yorumda satır sonunda bölünen yolun kuyruğu").
+func TestACommentPathSplitAcrossLinesCitesTheJoinedPath(t *testing.T) {
+	files := map[string]string{
+		"docs/README.md": "# docs\n",
+		"app/README.md":  "# app\n",
+		"app/app.go":     "package app\n",
+		"app/app_test.go": `package app
+
+import "testing"
+
+// Kural docs/
+// README.md icindedir.
+func TestSplitCite(t *testing.T) {}
+`,
+	}
+	g, err := buildGraph(auditModule(t, files))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const test = "go:func:example.com/audit/app.TestSplitCite"
+	if e := edge(g, test, "doc:app/README.md", edgeCites); e != nil {
+		t.Errorf("the tail of a path split across comment lines is not a bare file name: %+v", e)
+	}
+	mustEdge(t, g, test, "doc:docs/README.md", edgeCites, inferred)
+}

@@ -297,3 +297,4 @@ codegraph captures tensor.quantGemmPanels | group: func literal@ => dt tensor.DT
 # Deneme: codegraph A2 (2026-11-09): yanlış eşleşmeler, koşu satırı, ince ayarlar
 codegraph who-uses dataload.mmapFile | contains: dataload.mmapFile [func] at internal/compute/dataload/mmap_other.go | src: codegraph A2 madde 1, 2026-11-09 (dışa kapalı adın kendi paketindeki başka işletim sistemi tanımı eşleşir, DENETİM 358 Ş1)
 codegraph who-uses gguf.String | not: process.exitSignal | not: process.signalName | src: codegraph A2 madde 1, 2026-11-09 (dışa açık ad gguf'u içe aktarmayan dosyadaki .String() çağrısıyla eşleşmez; Windows'ta exit_status_unix.go derlenmez)
+codegraph who-uses internal/lang/checker/library_exceptions.go | group: cites => internal_test.TestTRCodeIsTyped | src: codegraph A2 madde 2, 2026-11-09 (iki // satırına bölünen yol, internal/lang/checker/ ve alt satırda library_exceptions.go, birleşik yolu anar)
