@@ -41,11 +41,12 @@ TR_print(ayar.adım)
 **19.4** Adının bir **sözcüğü** gizli bir sözcük olan ortam değişkeninin ve komut satırı seçeneğinin değeri gizlidir.
 - Ad sözcüklere `_`, `-`, `.`, boşluk gibi ayırıcılardan ve küçükten büyüğe harf geçişlerinden, büyük harf dizisinin sonunda da bölünür (`apiKey` → `api Key`, `HFToken` → `HF Token`, `APIKey` → `API Key`). Sözcükler Türkçe harfler ASCII karşılıklarıyla, harf büyüklüğüne bakmadan, **tam** karşılaştırılır.
 - Gizli sözcükler: `TOKEN(S)`, `KEY(S)`, `SECRET(S)`, `PASSWORD(S)`, `PASSWD`, `PASS`, `PASSPHRASE(S)`, `AUTH`, `CREDENTIAL(S)`, `PRIVATE`, `GİZLİ`, `ŞİFRE(Sİ)`, `ŞİFRELER`, `PAROLA(SI)`, `PAROLALAR`, `ANAHTAR(I)`, `ANAHTARLAR` ve bitişik `APIKEY`, `ACCESSKEY`, `SECRETKEY`, `PRIVATEKEY`, `AUTHTOKEN`, `ACCESSTOKEN`, `APITOKEN`. Kullanıcının adları her dilde olabildiği için her gösterim dilinin dil dosyası (17.4) kendi gizli sözcüklerini taşır; liste dillerle birlikte büyür. Bugün Türkçe ve İngilizce. `HF_TOKEN`, `OPENAI_API_KEY`, `apiKey`, `db_şifresi`, `max_tokens` gizlidir; `TOKENIZER_PATH`, `KEYBOARD_LAYOUT`, `PASSAGE_DIR` değildir.
-- Yalnız sayı ya da mantık değeri olan değer (`--max_tokens 131072`) gizli sayılmaz: maskelemek bütün sayı çıktılarını bozardı.
-- En az 6 karakterli gizli değer **insanın göreceği çıktılarda** `***` olarak görünür: `TR_print`'in çıktısı, hata iletileri ve kod çerçevesi, uyarılar, ilerleme çubuğu, günlük dosyası (başlangıç kaydındaki ayarlar dahil), iş durumu dosyası (19.11), yardım çıktısı, hata ayıklayıcının değişken görünümü ve düzenleyicinin İzleme Masası.
-- **Veri değişmez:** değişkenin değeri, `TR_write_file`, `TR_json_string` gerçek değeri taşır.
+- `TR_secret_token()`'ın değeri ve `TR_token:`'a verilen değer de gizlidir (28.2, 28.2a).
+- Yalnız sayı ya da mantık değeri olan değer (`--max_tokens 131072`) gizli sayılmaz, belirteç dışında (28.2): maskelemek bütün sayı çıktılarını bozardı.
+- En az 6 karakterli gizli değer **insanın göreceği çıktılarda** `***` olarak görünür: `TR_print`'in çıktısı, hata iletileri ve kod çerçevesi, uyarılar, ilerleme çubuğu, günlük dosyası (başlangıç kaydındaki ayarlar dahil), iş durumu dosyası (19.11), yardım çıktısı, hata ayıklayıcının değişken görünümü, düzenleyicinin İzleme Masası ve HTTP sunucusunun olay akışı (28.7).
+- **Veri değişmez:** değişkenin değeri, `TR_json_string` ve dosya yazıcıları (`TR_write_file`, `TR_write_lines`) gerçek değeri taşır; dosyaya yazılan gizli değer `TR_owner_only: TR_true` ister (18.13). Eşleşme maskeyle aynıdır, güvence değildir. Düz HTTP cevabının gövdesi de veridir (28.3).
 - Bu, sızıntıyı azaltır ama güvence değildir: değer dönüştürülünce (dilim, ters çevirme) eşleşme kaybolur. Gizli değer argümanla değil ortam değişkeniyle verilir.
-- *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`.
+- *Test:* TR testi; Go: `TestIsSecretName`, `TestSplitWords`, `TestCommandLineSecretValue`, `TestCommandLineSecretLeaks`; belirteç, olay akışı ve `TR_owner_only:` (28) gerekmez, henüz uygulanmadı.
 
 **19.5** `TR_Logger(yol)` `.jsonl` uzantılı bir eğitim günlüğü açar: her satır tek bir JSON nesnesidir.
 - Yol 18.16'nın değiştiren işler kuralıyla çözülür. Klasörü yoksa oluşturulur; dosya varsa **sonuna eklenir**: yeniden başlatılan eğitim aynı günlüğe yazar.

@@ -1462,3 +1462,12 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md). Yazıld
 ## 26. Türkçe sözcük çözümleme
 
 - **Mevcut durum (2026-11-06; T1, birleşik 55):** `tr/turkish` Türkçe sözcüğün sözlük biçimini buluyor (26): Gemini'nin kuralları, Zemberek kökleri. Görülmemiş 60 sözcükte 57, gerileme tabanı olan 120 sözcükte 117 doğru [ölçüldü: DENETİM 264, TCB]. Ad maddesi önce geldiği için bazı fiil çekimleri ad verir [ölçüldü: T1].
+
+## 28. Ağ: HTTP sunucusu
+
+Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md). Yazıldı (2026-11-09): dört tasarım turu; güvenlik incelemesi ve emsal araştırması Gemini'nin, kararlar DENETİM 320, 329, 330, 338, 346'dan, metin 347'den geçti.
+
+- **Mevcut durum (2026-11-09):** uygulanmadı; `TR_serve_http` sözdizimi hatası verir: "bilinen bir kimlik değil" [ölçüldü: main `f3fabb79`, trlang'ın denetimi]. Yan değişiklikleri de uygulanmadı: 18.13 ve 18.17'nin `TR_owner_only:`'si, 19.4'te belirteç ve olay akışı.
+- **Yapılacaklar (E, Ö3; sahip TCB, kod yönergesi; sırası asistan ekranının planında):** 28.1–28.9 ve yan değişiklikleri tek dilimde; *Test:* satırları uygulanınca TR testine döner. Kod yönergesinden önce bölümün kimlik ve gösterim adları kod listesine.
+- **Yapılacaklar (D, Ö3; sahip TCB, 28'in uygulama dilimiyle; DENETİM 351 Ş2):** 18.13'ün "gizli değeri `TR_owner_only:` olmadan yazmak çağrı hatasıdır" cümlesi motorda yok: `TR_write_file(yol, gizli)` hatasız yazar, dosya sıradan izinle kalır (yazma `WriteAtomic`'ten geçer, geçici dosya `0600` açılıp sonra istenen izne çevrilir) [kanıtlı: DENETİM 346 ve 351, `atomic_write.go`]. Windows erişim listesinde `SYSTEM`'in de olup olmayacağı uygulamada ölçülür [hipotez: DENETİM 351 N5].
+- **Yapılacaklar (sınıfsız: sözleşme; Ö3; sahip ekran kolu, HTTP'nin uygulama dilimiyle):** `tools/assistant/contract.md` olay verisindeki `seq`'i bırakır, ekran SSE'nin `id` satırını okur ve nabızda son kimliği tutar (28.7).

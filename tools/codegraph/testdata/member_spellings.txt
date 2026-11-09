@@ -750,6 +750,7 @@ h.TR_cause	ok	0	name:TR_mem_cause
 h.TR_code	ok	0	name:TR_mem_code
 h.TR_contains	ok	0	name:TR_mem_contains
 h.TR_dtype	ok	0	name:TR_mem_dtype
+h.TR_get	ok	0	name:TR_mem_get
 h.TR_lower	ok	0	name:TR_mem_lower
 h.TR_mem_contains	not_found	4	-
 h.TR_requires_grad	ok	0	name:TR_mem_requires_grad
@@ -829,6 +830,9 @@ indeksler.TR_append	ok	0	name:TR_mem_append
 inputs.TR_append	ok	0	name:TR_mem_append
 isimler.TR_contains	ok	0	name:TR_mem_contains
 istat.TR_slice	ok	0	name:TR_mem_slice
+istek.TR_body	ok	0	spec:28.3	tr_index:not_found:4
+istek.TR_method	ambiguous	3	spec:28.3,spec:28.6	tr_index:not_found:4
+istek.TR_path	not_found	4	-
 istem.TR_length	ok	0	name:TR_mem_length
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
@@ -1309,6 +1313,7 @@ rng.TR_length	ok	0	name:TR_mem_length
 rng.TR_starts_with	ok	0	name:TR_mem_starts_with
 s.TR_append	ok	0	name:TR_mem_append
 s.TR_cancel	ok	0	name:TR_mem_cancel
+s.TR_close	ok	0	name:TR_mem_close
 s.TR_contains	ok	0	name:TR_mem_contains
 s.TR_down_proj	ok	0	tr:field:lib/layers.tr:TR_type_SwiGLU.TR_mem_down_proj
 s.TR_dtype	ok	0	name:TR_mem_dtype
@@ -1323,6 +1328,7 @@ s.TR_length	ok	0	name:TR_mem_length
 s.TR_lower	ok	0	name:TR_mem_lower
 s.TR_next	ok	0	name:TR_mem_next
 s.TR_pop	ok	0	name:TR_mem_pop
+s.TR_port	ok	0	spec:28.1a	tr_index:not_found:4
 s.TR_remove	ok	0	name:TR_mem_remove
 s.TR_replace	ok	0	name:TR_mem_replace
 s.TR_reverse	ok	0	name:TR_mem_reverse

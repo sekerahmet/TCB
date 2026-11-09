@@ -33,3 +33,4 @@ Bu belge TR dilinin kısa tanımıdır. Dilin nasıl olması gerektiğini anlat�
 24. [Sohbet biçimi](24_sohbet_bicimi.md)
 25. [Konuşmayı yazıya çevirme](25_konusma_tanima.md)
 26. [Türkçe sözcük çözümleme](26_turkce_sozcuk.md)
+28. [Ağ: HTTP sunucusu](28_ag.md)
