@@ -60,7 +60,7 @@ func TestATestBeyondTheStepLimitIsCountedNotListed(t *testing.T) {
 		t.Errorf("tested_by of the entry lists the test within the limit: %+v", from.Tests)
 	}
 	text := Text(res)
-	want := messages.Text(messages.H8880, 1, TestMaxSteps, "m.f3", 11)
+	want := messages.Text(messages.H8880, 1, TestMaxSteps, "m.f3", 11, "--all")
 	if !strings.Contains(text, want) {
 		t.Errorf("text lacks the beyond line %q:\n%s", want, text)
 	}
@@ -76,7 +76,7 @@ func TestNoBeyondFieldsWithoutTestsBeyondTheLimit(t *testing.T) {
 	if strings.Contains(string(data), "beyond") {
 		t.Errorf("counts without tests beyond the limit: %s", data)
 	}
-	if strings.Contains(Text(res), messages.Text(messages.H8880, 1, TestMaxSteps, "f1", 9)[:20]) {
+	if strings.Contains(Text(res), messages.Text(messages.H8880, 1, TestMaxSteps, "f1", 9, "--all")[:20]) {
 		t.Errorf("no beyond line: %s", Text(res))
 	}
 }
@@ -89,7 +89,7 @@ func TestTheBeyondLineNamesTheEntryWithTheMostTests(t *testing.T) {
 	}}
 	var b strings.Builder
 	writeBeyond(&b, c)
-	if want := messages.Text(messages.H8881, 5, TestMaxSteps, "m.a", 3, 9, 1); !strings.Contains(b.String(), want) {
+	if want := messages.Text(messages.H8881, 5, TestMaxSteps, "m.a", 3, 9, 1, "--all"); !strings.Contains(b.String(), want) {
 		t.Errorf("got %q, want %q", b.String(), want)
 	}
 }

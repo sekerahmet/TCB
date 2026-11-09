@@ -554,10 +554,11 @@ while the chain stays in the start's folder; a chain that crosses the package bo
   as untested.
 - **Tier 2, the answer:** the lists keep the limit (`tests-for`, `changed --go-tests`, `TR_cmd_index TR_sub_tested_by` and
   `impact`), so what a pre-check runs does not grow. A test beyond the limit is not listed; `tests-for` writes the
-  ones in the target's own test file (`<file>_test.go`) by name and the rest in one line, through the entry with
+  ones in the target's own test file (`<file>_test.go`) by name (weak evidence: such a chain often runs through
+  shared machinery, and the test may not run the target) and the rest in one line, through the entry with
   the most of them: `beyond the 8-step limit, inside its folder: 198 tests reach it, 94 of them through
   codegraph.goExtractor.scan (from 10 steps) and the rest through 5 more entries; ...`. The entry is the node on
-  the chain from which the test is within the limit, so `tests-for <entry>` lists it. `TR_cmd_index TR_sub_tested_by` writes
+  the chain from which the test is within the limit, so `tests-for <entry> --all` lists it. `TR_cmd_index TR_sub_tested_by` writes
   the same line (H8880, H8881) and its JSON counts them (`counts.beyond_limit`, `counts.beyond_entries`, empty
   fields left out); `changed --go-tests`' output for the pre-check does not change.
 

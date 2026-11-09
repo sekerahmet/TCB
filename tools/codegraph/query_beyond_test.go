@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -43,8 +44,8 @@ func TestATestBeyondTheStepLimitMakesAFunctionTestedAndIsSummarized(t *testing.T
 		t.Fatalf("tests-for: %d %s", code, errOut)
 	}
 	for _, want := range []string{
-		"  <- this file's tests beyond the 8-step limit (1; a chain inside its folder, often through shared machinery: read with care):\n    p.TestOwnDeep [func] p/core_test.go:5  11 steps via p.F1  [INFERRED]\n",
-		"  beyond the 8-step limit, inside its folder: 1 more tests reach it through p.F3 (from 11 steps); `tests-for p.F3` lists them\n",
+		"  <- this file's tests beyond the 8-step limit (1; a chain inside its folder, often through shared machinery: they may not run it):\n    p.TestOwnDeep [func] p/core_test.go:5  11 steps via p.F1  [INFERRED]\n",
+		"  beyond the 8-step limit, inside its folder: 1 more tests reach it through p.F3 (from 11 steps); `tests-for p.F3 --all` lists them\n",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("tests-for p.F0 lacks %q:\n%s", want, out)
@@ -95,5 +96,17 @@ func TestTheListsKeepTheStepLimit(t *testing.T) {
 	}
 	if b := ix.beyondLimit(f0, nil); b.total() != 2 || len(b.own) != 1 || b.rest != 1 || b.entries[0].entry.Name != "p.F3" {
 		t.Errorf("beyond the limit: %+v", b)
+	}
+	// TestNoChainIsLongerThanTheStepLimit'in taraması (listedChains) yalnız sınır ötesi grubu dışarıda bırakır: F0'ın
+	// cevabı 11 adım yazar ama listelerde zincir yok; F3'ün listesindeki 8 adım sayılır (DENETİM 366 Ş1).
+	var out strings.Builder
+	ix.printTestsFor(&out, f0, 0)
+	if !strings.Contains(out.String(), "11 steps") || slices.ContainsFunc(listedChains(out.String()), func(s int) bool { return s > testMaxSteps }) {
+		t.Errorf("listedChains of p.F0 skips the beyond group, and only it: %v\n%s", listedChains(out.String()), out.String())
+	}
+	out.Reset()
+	ix.printTestsFor(&out, byName("p.F3"), 0)
+	if !slices.Contains(listedChains(out.String()), testMaxSteps) {
+		t.Errorf("listedChains of p.F3 counts TestFar's 8 steps: %v\n%s", listedChains(out.String()), out.String())
 	}
 }

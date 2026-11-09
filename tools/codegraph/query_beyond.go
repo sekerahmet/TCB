@@ -80,7 +80,7 @@ func (ix *index) beyondLimit(n *Node, listed []*Node) beyondTests {
 // koşmuyor, property_table_test.go'daki koşuyor; tek -run'lı kapsama).
 func printBeyond(w io.Writer, b beyondTests, limit int) {
 	if len(b.own) > 0 {
-		fmt.Fprintf(w, "  <- this file's tests beyond the %d-step limit (%d; a chain inside its folder, often through shared machinery: read with care):\n", testMaxSteps, len(b.own))
+		fmt.Fprintf(w, "  <- this file's tests beyond the %d-step limit (%d; a chain inside its folder, often through shared machinery: they may not run it):\n", testMaxSteps, len(b.own))
 		forEachLimited(w, b.own, limit, "    ", moreHint, func(it indirectTest) string {
 			return fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name)
 		})
@@ -94,10 +94,10 @@ func printBeyond(w io.Writer, b beyondTests, limit int) {
 		more = " more"
 	}
 	if len(b.entries) == 1 {
-		fmt.Fprintf(w, "  beyond the %d-step limit, inside its folder: %d%s tests reach it through %s (from %d steps); `tests-for %s` lists them\n",
+		fmt.Fprintf(w, "  beyond the %d-step limit, inside its folder: %d%s tests reach it through %s (from %d steps); `tests-for %s --all` lists them\n",
 			testMaxSteps, b.rest, more, e.entry.Name, e.steps, e.entry.Name)
 		return
 	}
-	fmt.Fprintf(w, "  beyond the %d-step limit, inside its folder: %d%s tests reach it, %d of them through %s (from %d steps) and the rest through %d more entries; `tests-for %s` lists those %d\n",
+	fmt.Fprintf(w, "  beyond the %d-step limit, inside its folder: %d%s tests reach it, %d of them through %s (from %d steps) and the rest through %d more entries; `tests-for %s --all` lists those %d\n",
 		testMaxSteps, b.rest, more, e.tests, e.entry.Name, e.steps, len(b.entries)-1, e.entry.Name, e.tests)
 }

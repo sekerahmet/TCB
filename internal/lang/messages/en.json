@@ -2168,7 +2168,7 @@
 "H8877": "[if `{recv}` is a type: it has no such member]",
 "H8878": "[if `{recv}` is a value: `x.{member}`]",
 "H8879": "[if `{recv}` is an imported module: it has no such member]",
-"H8880": "beyond the {limit}-step limit, inside its folder: {count} more tests reach it through `{entry}` (from {steps} steps); `trlang index tested_by {entry}` lists them",
-"H8881": "beyond the {limit}-step limit, inside its folder: {count} more tests reach it, {tests} of them through `{entry}` (from {steps} steps) and the rest through {entries} more entries; `trlang index tested_by {entry}` lists those {tests}",
+"H8880": "beyond the {limit}-step limit, inside its folder: {count} more tests reach it through `{entry}` (from {steps} steps); `trlang index tested_by {entry} {all}` lists them",
+"H8881": "beyond the {limit}-step limit, inside its folder: {count} more tests reach it, {tests} of them through `{entry}` (from {steps} steps) and the rest through {entries} more entries; `trlang index tested_by {entry} {all}` lists those {tests}",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

@@ -150,10 +150,10 @@ func writeBeyond(b *strings.Builder, c *Counts) {
 		name = e.Entry.Name
 	}
 	if len(c.BeyondEntries) == 1 {
-		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8880, c.BeyondLimit, TestMaxSteps, name, e.Steps))
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8880, c.BeyondLimit, TestMaxSteps, name, e.Steps, codes.OptionFlag(codes.OptAll)))
 		return
 	}
-	fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8881, c.BeyondLimit, TestMaxSteps, name, e.Tests, e.Steps, len(c.BeyondEntries)-1))
+	fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8881, c.BeyondLimit, TestMaxSteps, name, e.Tests, e.Steps, len(c.BeyondEntries)-1, codes.OptionFlag(codes.OptAll)))
 }
 
 // writeHidden kesilen bir grubun altına kaç satırın gizlendiğini ve sınırın nasıl artırılacağını yazar (hidden > 0 ise).
