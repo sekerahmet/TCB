@@ -184,8 +184,10 @@ TR_test "4.5 fonksiyon içeren kap da karşılaştırılamaz: kabın içinde, .T
             _ => 2
         }
     })
-    # Yoklukla karşılaştırma serbesttir (3.5); iletinin önerisi sonuçları karşılaştırmak
-    TR_assert([f] != [TR_none])
+    # Kabın içindeki fonksiyon, karşısındaki öğe TR_none olsa da hatadır (4.5: fonksiyon içeren liste
+    # karşılaştırılamaz); yoklukla karşılaştırma yalnız değerin kendisi için serbesttir (3.5). İletinin
+    # önerisi sonuçları karşılaştırmak.
+    TR_assert_equal("H2706", TR_error_code { TR_var z = [f] != [TR_none] })
     TR_assert([f(1)] == [1])
 }
 
@@ -202,8 +204,9 @@ TR_test "4.5 aynı kap da öğe öğe karşılaştırılır: TR_nan tutan kap ke
     TR_assert_equal(TR_false, s == s)
     TR_var dm = (1, TR_nan)
     TR_assert_equal(TR_false, dm == dm)
-    # Kendini içeren liste ve sözlüğün H2771'i Go testindedir (TestSelfContainingContainers): böyle kap
-    # yalnız genel öğe tipiyle kurulur, depodaki TR kodunda genel tip yazılmaz.
+    # Kendini içeren liste ve sözlük Go testindedir (TestSelfContainingContainers): böyle kap yalnız
+    # genel öğe tipiyle kurulur, depodaki TR kodunda genel tip yazılmaz. Kendine bağlanan nesne
+    # tests/esitlik_test.tr'de.
 }
 
 TR_test "4.6 ve/veya kısa devre yapar ve Mantık döndürür" {

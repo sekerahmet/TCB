@@ -83,7 +83,7 @@ func TestContainerEquality(t *testing.T) {
 	}
 }
 
-// Kendini içeren kaplar yazdırılırken süreç çökmemeli; karşılaştırılınca (aynı kap da, 7.6) H2771 verir.
+// Kendini içeren kaplar yazdırılırken süreç çökmemeli; karşılaştırılınca (aynı kap da) açılmış ağaçlarıyla (4.5, 7.6).
 func TestSelfContainingContainers(t *testing.T) {
 	out, val, err := runTROut(t, `
 		TR_var l = [1, "a"]
@@ -101,11 +101,10 @@ func TestSelfContainingContainers(t *testing.T) {
 		TR_print(m)
 		TR_var l2 = [1, "a"]
 		l2.TR_append(l2)
-		TR_var result = [TR_error_code { TR_var s = l == l }, TR_error_code { TR_var s = d == d },
-			TR_error_code { TR_var s = l == l2 }, TR_String(l).TR_length]
+		TR_var result = [l == l, d == d, l == l2, n == n, l == [1, "a", l2], TR_String(l).TR_length]
 	`)
 	want := "[1, \"a\", [...]]\n{\"x\": 1, \"ben\": {...}, \"l\": [{...}]}\nD(sonraki: ...)\n[[1, \"a\", [...]], [1, \"a\", [...]]]\n"
-	if err != nil || out != want || val.Inspect() != `["H2771", "H2771", "H2771", 15]` {
+	if err != nil || out != want || val.Inspect() != `[true, true, true, true, true, 15]` {
 		t.Fatalf("beklenmeyen:\n%s\n%v %v", out, val, err)
 	}
 }

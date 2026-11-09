@@ -139,6 +139,10 @@
   "commit": "claude/magical-feynman-mgjmfn",
   "reason": "deleted: interp: several results are a tuple value (3.6a, 6.3), held, passed and put in a list"
  },
+ "H2771": {
+  "commit": "claude/d1-esitlik",
+  "reason": "deleted: interp: '==' compares a value that reaches itself too and ends (4.5, 7.6); the cycle error is gone"
+ },
  "H2776": {
   "commit": "gemini-kucuk-isler-3",
   "reason": "ayrıştırıcıya taşındı: H0298"

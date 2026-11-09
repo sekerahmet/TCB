@@ -247,63 +247,6 @@ func (v *VM) setStructField(inst *StructInstanceVal, prop string, codeVal uint8,
 	return nil
 }
 
-// structsEqual aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (7.6);
-// başka yapının nesnesi ya da başka değer kimlikle karşılaştırılır.
-func structsEqual(x *StructInstanceVal, b Value, nestDepth int) bool {
-	if y, ok := b.(*StructInstanceVal); ok && x.Def == y.Def && x.Variant == y.Variant {
-		fields := x.Def.Fields
-		if x.Variant != nil {
-			fields = x.Variant.Fields
-		}
-		for _, f := range fields {
-			va, okA := x.Fields[f.Name]
-			vb, okB := y.Fields[f.Name]
-			if okA != okB || (okA && !valuesEqual(va, vb, nestDepth+1)) {
-				return false
-			}
-		}
-		return true
-	}
-	return Value(x) == b
-}
-
-// fields aynı yapıdan (durumlu tipte aynı durumdan) iki nesnenin '=='sini structsEqual'dan önce gezer
-// (7.6): fonksiyon ya da tensör tutan alan çalışma hatasıdır (H2770), öbür alan çiftleri gezintiye gider.
-func (w comparison) fields(x, y *StructInstanceVal, nestDepth int) error {
-	label, fields := x.Def.Name, x.Def.Fields
-	if x.Variant != nil {
-		label, fields = variantLabel(x.Def, x.Variant), x.Variant.Fields
-	}
-	if !w.enter(x, y, nestDepth) {
-		return messages.New(messages.H2771, label, plainField(x, y, ""))
-	}
-	defer w.leave(x, y, nestDepth)
-	for _, f := range fields {
-		va, okA := x.Fields[f.Name]
-		vb, okB := y.Fields[f.Name]
-		if !okA || !okB {
-			continue
-		}
-		if va.Type() != ValNull && vb.Type() != ValNull {
-			for _, v := range []Value{va, vb} {
-				kind := ""
-				if isFunction(v) {
-					kind = "function"
-				} else if v.Type() == ValTensor {
-					kind = "tensor"
-				}
-				if kind != "" {
-					return messages.New(messages.H2770, label, f.Name, kind, plainField(x, y, f.Name))
-				}
-			}
-		}
-		if err := w.walk(va, vb, nestDepth+1); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // plainField iletinin önereceği alandır: iki nesnede de sayı, metin ya da mantık değeri tutan ilk alan
 // (except dışında). Durumlu tipin alanı yalnız eşlemeyle okunur (7.7); onda öneri yoktur.
 func plainField(x, y *StructInstanceVal, except string) string {

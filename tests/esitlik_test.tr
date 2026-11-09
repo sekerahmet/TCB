@@ -1,0 +1,120 @@
+# TR 4
+# docs/spec/04_operatorler.md §4.5 — sınırsız ve döngülü karşılaştırma (7.6'nın kendine bağlanan nesnesi)
+# Kendine bağlanan değer burada yapı düğümleriyle kurulur; liste ve sözlükle Go testindedir
+# (TestSelfContainingContainers, TestEqualityHasNoDepthLimit).
+
+TR_struct Halka {
+    x: TR_Float
+    sonraki: Halka? = TR_none
+}
+
+# zincir n düğümlü, döngüsüz bir zincirdir; son düğümün değeri son.
+TR_func zincir(n: TR_Int, son: TR_Float) -> Halka {
+    TR_var ilk = Halka(son)
+    TR_for i TR_in 1..n {
+        ilk = Halka(1.0, ilk)
+    }
+    TR_return ilk
+}
+
+# halka n düğümlü bir döngüdür: her düğümün değeri 1.0, sonuncunun sonrakisi ilki.
+TR_func halka(n: TR_Int) -> Halka {
+    TR_return farklı_halka(n, -1, 1.0)
+}
+
+# farklı_halka halka gibidir, yalnız i. düğümün değeri x.
+TR_func farklı_halka(n: TR_Int, i: TR_Int, x: TR_Float) -> Halka {
+    TR_var ilk = Halka(TR_if i == 0 { x } TR_else { 1.0 })
+    TR_var son = ilk
+    TR_for j TR_in 1..n {
+        TR_var y = Halka(TR_if i == j { x } TR_else { 1.0 })
+        son.sonraki = y
+        son = y
+    }
+    son.sonraki = ilk
+    TR_return ilk
+}
+
+TR_struct Çatal {
+    sol: Çatal? = TR_none
+    sağ: Çatal? = TR_none
+}
+
+# paylaşılan k katlı bir değerdir: her katta iki dal da aynı alt nesnedir.
+TR_func paylaşılan(k: TR_Int) -> Çatal {
+    TR_var p = Çatal()
+    TR_for i TR_in 0..k {
+        p = Çatal(p, p)
+    }
+    TR_return p
+}
+
+TR_test "4.5 iç içelik sınırı yoktur: 11 000 derin iki değer" {
+    TR_assert(zincir(11_000, 2.0) == zincir(11_000, 2.0))
+    TR_assert(zincir(11_000, 2.0) != zincir(11_000, 3.0))
+    TR_assert(zincir(11_000, 2.0) != zincir(11_001, 2.0))
+}
+
+TR_test "4.5 kendine bağlanan değer de karşılaştırılır: açılmış ağaçlar" {
+    TR_assert(halka(9_900) == halka(9_900))
+    # halka boyları ayrı ama her düğüm aynı: açılmış ağaçlar aynı
+    TR_assert(halka(101) == halka(103))
+    TR_var a = halka(101)
+    TR_var b = farklı_halka(103, 2, 2.0)
+    TR_assert(a != b)
+    TR_assert(b != a)
+    # biçimi ayrı ama açılımı eşit: a = [1, a], b = [1, [1, b]]
+    TR_var c = Halka(1.0)
+    c.sonraki = c
+    TR_var d2 = Halka(1.0)
+    TR_var d = Halka(1.0, d2)
+    d2.sonraki = d
+    TR_assert(c == d)
+    TR_assert(c == halka(7))
+    # döngüsüz bir zincir döngüye eşit değil
+    TR_assert(c != zincir(50, 1.0))
+}
+
+TR_struct İkili {
+    a: Halka
+    b: Halka
+}
+
+TR_test "4.5 aynı değer de öğe öğe karşılaştırılır: TR_nan tutan kendine bağlı değer kendisine eşit değil" {
+    TR_var c = Halka(TR_nan)
+    c.sonraki = c
+    TR_assert_equal([TR_false, TR_true], [c == c, c != c])
+    TR_var h = halka(500)
+    TR_assert(h == h)
+    h = farklı_halka(500, 1, TR_nan)
+    TR_assert_equal(TR_false, h == h)
+    TR_assert_equal(TR_false, [h].TR_contains(h))
+    # halka bütçeyi bitirir, TR_nan birleşim-bulun yolunda: orada da kimlik kısa yolu yok
+    TR_var v = İkili(halka(50), Halka(TR_nan))
+    TR_assert_equal(TR_false, v == v)
+    TR_assert(İkili(halka(50), Halka(1.0)) == İkili(halka(3), Halka(1.0)))
+}
+
+TR_test "4.5 aynı alt nesneyi birçok yerde tutan değer" {
+    TR_var x = Halka(1.0)
+    TR_var y = Halka(1.0)
+    TR_var z = Halka(2.0)
+    TR_assert([x, x] == [y, y])
+    TR_assert([x, x] != [y, z])
+    TR_assert([y, z] != [x, x])
+    TR_assert([x, y] == [y, x])
+    # 30 katta 2^30 yol: karşılaştırma yolları değil düğümleri gezer
+    TR_assert(paylaşılan(30) == paylaşılan(30))
+    TR_assert(paylaşılan(30) != paylaşılan(31))
+}
+
+TR_test "4.5 karşılaştırılamayan öğe ilk farktan önce de aranır" {
+    TR_var f = (x: TR_Int) => x
+    TR_assert_equal("H2706", TR_error_code { TR_var z = (1, f) == (2, f) })
+    TR_assert_equal("H2706", TR_error_code { TR_var z = ([1], f) == ([1, 2], f) })
+}
+
+TR_test "4.5 büyük iki halka belleği bitirmeden karşılaştırılır" {
+    # 100 003 ile 100 019 halkada düğüm çifti sayısı ~10^10: karşılaştırma çiftleri değil sınıfları tutar
+    TR_assert(halka(100_003) == halka(100_019))
+}
