@@ -87,7 +87,7 @@ func (ix *index) trByName(q string, kinds []string) (found []*Node, folded bool)
 		if len(picked) == 0 && !codeindex.IdentityQuery(q) {
 			picked = codeindex.QualifiedMatch(len(table), k, func(i int) [][2]string {
 				c := &table[i]
-				if len(kinds) > 0 && !contains(kinds, c.node.Kind) {
+				if len(kinds) > 0 && !contains(kinds, c.node.Kind) || k.Folded && codeindex.IsNegativeFixture(c.node.File) {
 					return nil
 				}
 				return c.qualified
@@ -147,10 +147,15 @@ var knownNonSpecMembers = sync.OnceValue(func() map[string]bool {
 	for _, k := range codes.Codes() {
 		known[codeindex.Fold(k.String())] = true
 		known[strings.ToLower(k.String())] = true
-		if p, ok := codes.PlaceOf(k); ok && (p == codes.PlaceOther || p == codes.PlaceMember) {
+		if p, ok := codes.PlaceOf(k); ok {
 			s := codes.Spelling(k)
-			known[codeindex.Fold(s)] = true
-			known[strings.ToLower(s)] = true
+			switch p {
+			case codes.PlaceMember:
+				known[codeindex.Fold(s)] = true
+				known[strings.ToLower(s)] = true
+			case codes.PlaceOther:
+				known[s] = true
+			}
 		}
 	}
 	return known
@@ -158,7 +163,7 @@ var knownNonSpecMembers = sync.OnceValue(func() map[string]bool {
 
 func isCodedOrNonMember(member string) bool {
 	m := knownNonSpecMembers()
-	return m[codeindex.Fold(member)] || m[strings.ToLower(member)]
+	return m[member] || m[codeindex.Fold(member)] || m[strings.ToLower(member)]
 }
 
 // specMember TR'de henüz kodu olmayan, dil tanımının numaralı maddelerinde (başlıkta ya da gövdede) `.TR_<ad>` olarak

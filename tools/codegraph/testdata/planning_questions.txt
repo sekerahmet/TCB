@@ -311,3 +311,6 @@ codegraph dups --root tools/codegraph/testdata/mod --changed HEAD..HEAD | exit: 
 # uzak-11 A1: noktalı üye yazımları (2026-11-09)
 codegraph query metin.TR_length | exit: 3 | contains: TR_mem_length | contains: [if `metin` is an imported module: it has no such member] | contains: [if `metin` is a value: `x.TR_length`] | src: uzak-11 2b, 2026-11-09 (alıcı bir modülün adıyla aynıysa ve modülde o üye yoksa modül H8879 ve değer H8878 adaylarıyla belirsiz)
 trlang index definition metin.TR_length | exit: 3 | contains: TR_mem_length | contains: [`metin` içe aktarılan modülse: bu üyesi yok] | contains: [`metin` bir değerse: `x.TR_length`] | src: uzak-11 2b, 2026-11-09 (iki araçta modül adıyla aynı alıcı H8879 ve H8878 ile belirsiz)
+codegraph query k.TR_length | exit: 0 | contains: TR_mem_length [name] | not: kod_uye | src: uzak-11 2c, 2026-11-09 (alıcı yalnız harf katlamasıyla eşleşiyorsa negatif fikstürün K yapısına bağlanmaz, genel adaya düşer)
+trlang index definition k.TR_length | exit: 0 | contains: TR_mem_length | not: kod_uye | src: uzak-11 2c, 2026-11-09 (iki araçta k.TR_length negatif fikstüre bağlanmaz)
+codegraph query istek.TR_path | exit: 0 | contains: id: spec:28.3a | not: not found | src: uzak-11 2c, 2026-11-09 (TR_type_Path tip yazımı .TR_path dil tanımı üyesini gizlemez)

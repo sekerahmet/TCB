@@ -225,7 +225,7 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
 		"layers.TR_Linear.TR_forward", "layers.TR_Linear", "layers.TR_GPT", "katman.TR_GPT", "k.TR_Linear", "iyileştirici.TR_lr_schedule", "eğitim.TR_SpikeGuard",
 		"metin.TR_length", "layers.TR_map", "layers.TR_append",
-		"l.TR_map", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
+		"l.TR_map", "k.TR_length", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
 		".TR_map", ".TR_forward", "TR_self.TR_map", "TR_self.TR_forward",
 	} {
 		var gotCG, gotTR []string
@@ -239,6 +239,9 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		slices.Sort(gotTR)
 		if len(gotCG) == 0 || !slices.Equal(gotCG, gotTR) {
 			t.Errorf("query %q: codegraph %v, trlang index %v", q, gotCG, gotTR)
+		}
+		if q == "k.TR_length" && !slices.Equal(gotCG, []string{"name:TR_mem_length"}) {
+			t.Errorf("query %q: got %v, want [name:TR_mem_length]", q, gotCG)
 		}
 	}
 	assertAmbiguousMemberCandidates(t, ix, reader, messages.H8877, []string{

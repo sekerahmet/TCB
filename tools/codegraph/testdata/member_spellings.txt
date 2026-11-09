@@ -39,7 +39,9 @@ TR_KVCache.TR_mask	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_mask
 TR_LineReader.TR_next	ok	0	name:TR_mem_next
 TR_Linear.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
 TR_Linear.TR_map	not_found	4	-
+TR_Logger.TR_append	ok	0	name:TR_mem_append
 TR_Muon.TR_step	ok	0	tr:method:lib/optimizers.tr:TR_type_Muon.TR_mem_step
+TR_Progress.TR_update	ok	0	name:TR_mem_update
 TR_Role.TR_Assistant	not_found	4	-
 TR_Role.TR_System	not_found	4	-
 TR_Role.TR_Tool	not_found	4	-
@@ -832,7 +834,7 @@ isimler.TR_contains	ok	0	name:TR_mem_contains
 istat.TR_slice	ok	0	name:TR_mem_slice
 istek.TR_body	ok	0	spec:28.3	tr_index:not_found:4
 istek.TR_method	ambiguous	3	spec:28.3,spec:28.6	tr_index:not_found:4
-istek.TR_path	not_found	4	-
+istek.TR_path	ok	0	spec:28.3a	tr_index:not_found:4
 istem.TR_length	ok	0	name:TR_mem_length
 istem.TR_strip	ok	0	name:TR_mem_strip
 ix.TR_tolist	ok	0	name:TR_mem_tolist
@@ -871,12 +873,13 @@ k.TR_dtype	ok	0	name:TR_mem_dtype
 k.TR_end	ok	0	tr:field:lib/whisper.tr:TR_type_Segment.TR_mem_end
 k.TR_exists	ok	0	name:TR_mem_exists
 k.TR_flush	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_flush
-k.TR_forward	ok	0	tr:method:tests/negative/kod_uye.tr:K.TR_mem_forward
+k.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward,tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward,tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward,tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward,tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward,tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward,tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward
+k.TR_get	ok	0	name:TR_mem_get
 k.TR_grad	ok	0	name:TR_mem_grad
 k.TR_is_dir	ok	0	name:TR_mem_is_dir
 k.TR_k_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_k_proj
 k.TR_keys	ok	0	name:TR_mem_keys
-k.TR_length	ok	0	tr:method:tests/negative/kod_uye.tr:K.TR_mem_length
+k.TR_length	ok	0	name:TR_mem_length
 k.TR_mem_flush	not_found	4	-
 k.TR_mem_push	not_found	4	-
 k.TR_o_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_o_proj
@@ -884,6 +887,7 @@ k.TR_observe	ok	0	tr:method:lib/training.tr:TR_type_SpikeGuard.TR_mem_observe
 k.TR_pi	not_found	4	-
 k.TR_push	ok	0	tr:method:lib/vad.tr:TR_type_SpeechSplitter.TR_mem_push
 k.TR_q_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_q_proj
+k.TR_remove	ok	0	name:TR_mem_remove
 k.TR_remove_at	ok	0	name:TR_mem_remove_at
 k.TR_sampler	ok	0	name:TR_mem_sampler
 k.TR_sequential	ok	0	name:TR_mem_sequential
@@ -897,7 +901,7 @@ k.TR_transpose	ok	0	name:TR_mem_transpose
 k.TR_update	ok	0	name:TR_mem_update
 k.TR_v_proj	ok	0	tr:field:lib/layers.tr:TR_type_CausalAttention.TR_mem_v_proj
 k.TR_wait	ok	0	name:TR_mem_wait
-k.TR_weight	ok	0	tr:field:tests/negative/kod_uye.tr:K.TR_mem_weight
+k.TR_weight	ambiguous	3	tr:field:lib/layers.tr:TR_type_Linear.TR_mem_weight,tr:field:lib/layers.tr:TR_type_RMSNorm.TR_mem_weight
 k1.TR_sequential	ok	0	name:TR_mem_sequential
 k1.TR_tolist	ok	0	name:TR_mem_tolist
 k2.TR_grad	ok	0	name:TR_mem_grad

@@ -213,13 +213,22 @@ func TestImportAliasResolvesOnlyDeclarationsInItsTargetModule(t *testing.T) {
 `,
 		"examples/helpers/geometri.tr": `TR_struct Kare {
     kenar: TR_Int = 1
+    TR_func alan() -> TR_Int {
+        TR_return TR_self.kenar
+    }
+}
+`,
+		"tests/negative/kod_uye.tr": `TR_struct K {
+    TR_func TR_length() -> TR_Int {
+        TR_return 0
+    }
 }
 `,
 		"examples/a.tr": "TR_import \"tr/layers\" TR_as katman\n" +
 			"TR_import \"tr/optimizers\" TR_as opt\n" +
 			"TR_import \"helpers/geometri\" TR_as geo\n\n" +
 			"TR_var d = " + "katman." + "TR_Linear()\n" +
-			"TR_print(" + "opt." + "TR_NS_A, geo.Kare())\n",
+			"TR_print(" + "opt." + "TR_NS_A, geo.Kare(), [1]." + "TR_length)\n",
 	} {
 		testkit.WriteFile(t, dir, name, string(trText(name, text)))
 	}
@@ -231,6 +240,9 @@ func TestImportAliasResolvesOnlyDeclarationsInItsTargetModule(t *testing.T) {
 	for q, want := range map[string]string{
 		"katman." + "TR_Linear": "struct:lib/layers.tr#TR_type_Linear",
 		"opt." + "TR_NS_A":      "constant:lib/optimizers.tr#TR_const_NS_A",
+		"k." + "TR_length":      "builtin:TR_mem_length",
+		"K." + "TR_length":      "method:tests/negative/kod_uye.tr#K." + "TR_mem_length",
+		"kare.alan":             "method:examples/helpers/geometri.tr#Kare.alan",
 	} {
 		if res := r.Definition(q, QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != want {
 			t.Errorf("Definition(%q) = %s (%+v), want %s", q, res.Status, res.Target, want)

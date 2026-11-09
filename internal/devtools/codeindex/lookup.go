@@ -212,7 +212,7 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			continue // çıplak kimlik kodun kendi düğümüdür (yerleşik ya da kitaplık bildirimi), nitelenmiş bir adın sonu değil
 		}
 		if found := QualifiedMatch(len(nodes), k, func(i int) [][2]string {
-			if kind != "" && string(nodes[i].Kind) != kind || nodes[i].Qualified == "" {
+			if kind != "" && string(nodes[i].Kind) != kind || nodes[i].Qualified == "" || k.Folded && nodes[i].Pos != nil && IsNegativeFixture(nodes[i].Pos.File) {
 				return nil
 			}
 			return r.qualifiedPairs(i)
