@@ -9,54 +9,73 @@ import (
 
 // Eşitliğin iç içelik sınırı yoktur ve kendine bağlanan liste ve sözlükte de biter (4.5, 7.6). Eski sınır
 // (10 000) 11 000 derin iki eşit listede, 9 950 halkalı listede ve 101 ile 103 halkalı iki listede sessizce
-// TR_false veriyordu. TR testleri (tests/esitlik_test.tr) aynısını yapı düğümleriyle sınar; burada genel öğe
-// tipli liste ve sözlük kurulur.
+// TR_false veriyordu. TR testleri (tests/esitlik_test.tr) aynısını yapı düğümleriyle sınar; liste ve sözlük
+// halkası yalnız genel öğe tipiyle kurulur, burada Go'da.
 func TestEqualityHasNoDepthLimit(t *testing.T) {
-	_, val, err := runTROut(t, `
-		TR_func derin(n, son) {
-			TR_var l = [son]
-			TR_for i TR_in 1..n {
-				l = [l]
-			}
-			TR_return l
+	deep := func(n int, last int64) Value {
+		var l Value = &ListVal{Elements: []Value{NewInt(last)}}
+		for range n {
+			l = &ListVal{Elements: []Value{l}}
 		}
-		TR_func halka(n, fark) {
-			TR_var ilk = [1]
-			TR_var son = ilk
-			TR_for i TR_in 1..n {
-				TR_var y = [TR_if i == fark { 2 } TR_else { 1 }]
-				son.TR_append(y)
-				son = y
+		return l
+	}
+	ring := func(n, diff int) *ListVal {
+		first := &ListVal{Elements: []Value{NewInt(1)}}
+		last := first
+		for i := 1; i < n; i++ {
+			v := int64(1)
+			if i == diff {
+				v = 2
 			}
-			son.TR_append(ilk)
-			TR_return ilk
+			y := &ListVal{Elements: []Value{NewInt(v)}}
+			last.Elements = append(last.Elements, y)
+			last = y
 		}
-		TR_func sözlük_halka(n) {
-			TR_var ilk = {"x": 1}
-			TR_var son = ilk
-			TR_for i TR_in 1..n {
-				TR_var y = {"x": 1}
-				son["s"] = y
-				son = y
-			}
-			son["s"] = ilk
-			TR_return ilk
+		last.Elements = append(last.Elements, first)
+		return first
+	}
+	dictRing := func(n int) *DictVal {
+		node := func() *DictVal {
+			return &DictVal{Order: []string{"x"}, Pairs: map[string]Value{"x": NewInt(1)}}
 		}
-		TR_var a = [1]
-		a.TR_append(a)
-		TR_var b = [1, [1]]
-		b[1].TR_append(b)
-		TR_var c = [TR_nan]
-		c.TR_append(c)
-		TR_var result = [
-			derin(11000, 1) == derin(11000, 1), derin(11000, 1) == derin(11000, 2),
-			halka(9950, -1) == halka(9950, -1), halka(101, -1) == halka(103, -1),
-			halka(101, -1) == halka(103, 50), sözlük_halka(101) == sözlük_halka(103),
-			a == b, b == a, c == c, c != c, [a, a] == [b, a]]
-	`)
-	want := `[true, false, true, true, false, true, true, true, false, true, true]`
-	if err != nil || val.Inspect() != want {
-		t.Fatalf("beklenen %s, gelen %v %v", want, val, err)
+		first := node()
+		last := first
+		for i := 1; i < n; i++ {
+			y := node()
+			last.Order, last.Pairs["s"] = append(last.Order, "s"), y
+			last = y
+		}
+		last.Order, last.Pairs["s"] = append(last.Order, "s"), first
+		return first
+	}
+	a := &ListVal{Elements: []Value{NewInt(1)}}
+	a.Elements = append(a.Elements, a)
+	b1 := &ListVal{Elements: []Value{NewInt(1)}}
+	b := &ListVal{Elements: []Value{NewInt(1), b1}}
+	b1.Elements = append(b1.Elements, b)
+	c := &ListVal{Elements: []Value{&FloatVal{Val: math.NaN()}}}
+	c.Elements = append(c.Elements, c)
+	cases := []struct {
+		name string
+		x, y Value
+		want bool
+	}{
+		{"11 000 derin, eşit", deep(11000, 1), deep(11000, 1), true},
+		{"11 000 derin, son öğe ayrı", deep(11000, 1), deep(11000, 2), false},
+		{"9 950 halka", ring(9950, -1), ring(9950, -1), true},
+		{"101 ve 103 halka", ring(101, -1), ring(103, -1), true},
+		{"101 ve 103 halka, bir öğe ayrı", ring(101, -1), ring(103, 50), false},
+		{"101 ve 103 sözlük halkası", dictRing(101), dictRing(103), true},
+		{"a = [1, a], b = [1, [1, b]]", a, b, true},
+		{"b ile a", b, a, true},
+		{"TR_nan tutan kendine bağlı liste kendisiyle", c, c, false},
+		{"[a, a] ile [b, a]", &ListVal{Elements: []Value{a, a}}, &ListVal{Elements: []Value{b, a}}, true},
+	}
+	for _, tc := range cases {
+		got, err := EqualValues(tc.x, tc.y)
+		if err != nil || got != tc.want {
+			t.Errorf("%s: beklenen %v, gelen %v %v", tc.name, tc.want, got, err)
+		}
 	}
 }
 
@@ -64,12 +83,14 @@ func TestEqualityHasNoDepthLimit(t *testing.T) {
 // bağlanan değerde de aranır, karşısındaki öğeye bakılmaz.
 func TestUncomparableMemberIsFoundBeforeTheFirstDifference(t *testing.T) {
 	cases := map[string]messages.Code{
-		`TR_var f = (x) => x; TR_var s = [1, f] == [2, f]`:                                              messages.H2706,
-		`TR_var f = (x) => x; TR_var s = [f] == []`:                                                     messages.H2706,
-		`TR_var f = (x) => x; TR_var s = [1] == [1, [f]]`:                                               messages.H2706,
-		`TR_var f = (x) => x; TR_var l = [1, f]; l.TR_append(l); TR_var s = l == [2]`:                   messages.H2706,
-		`TR_var f = (x) => x; TR_var l = [f]; TR_for i TR_in 0..11000 { l = [l] }; TR_var s = l == [1]`: messages.H2706,
-		`TR_var f = (x) => x; TR_var s = {"a": 1, "f": f} == {"a": 2, "g": 1}`:                          messages.H2706,
+		`TR_var f = (x) => x; TR_var s = [1, f] == [2, f]`:                                                      messages.H2706,
+		`TR_var f = (x) => x; TR_var s = [f] == []`:                                                             messages.H2706,
+		`TR_var f = (x) => x; TR_var s = [1] == [1, [f]]`:                                                       messages.H2706,
+		`TR_var f = (x) => x; TR_var l = [1, f]; l.TR_append(l); TR_var s = l == [2]`:                           messages.H2706,
+		`TR_var f = (x) => x; TR_var l = [f]; TR_for i TR_in 0..11000 { l = [l] }; TR_var s = l == [1]`:         messages.H2706,
+		`TR_var f = (x) => x; TR_var l = [f]; TR_for i TR_in 0..11000 { l = [l] }; TR_var s = l == [1, 2]`:      messages.H2706,
+		`TR_var f = (x) => x; TR_var l = [f]; TR_for i TR_in 0..11000 { l = [l] }; TR_var s = [1, l] == [1, 2]`: messages.H2706,
+		`TR_var f = (x) => x; TR_var s = {"a": 1, "f": f} == {"a": 2, "g": 1}`:                                  messages.H2706,
 	}
 	for code, want := range cases {
 		_, _, err := runTROut(t, code)

@@ -6,12 +6,13 @@ import "github.com/sekerahmet/TCB/internal/lang/ast"
 // iç içelik sınırı yoktur, kendine bağlanan değerde de karşılaştırma biter. Yol Adams ve Dybvig'in
 // (ICFP 2008) ve Chez Scheme'in equal?'inindir (s/5_1.ss): önce bütçeli özyineleme (treeEqual), bütçe
 // biterse açık yığın ve kap düğümleri üstünde birleşim-bul (graphEqual). Chez'in eq? kısa yolu yoktur:
-// aynı değer de öğe öğe karşılaştırılır (TR_nan tutan değer kendisine eşit değil). Hataları önce
-// EqualValues arar (equality.go).
+// aynı değer de öğe öğe karşılaştırılır (TR_nan tutan değer kendisine eşit değil). valuesEqual yalnız
+// sonuçtur (ValuesEqual, Equaler); dilin '=='si hatayı da arayan EqualValues'tur (equality.go).
 
-// equalBudget hızlı kipte gezilen en çok çift sayısıdır: kendine bağlanan değer, çok derin değer ve aynı
-// alt nesneyi birçok yoldan tutan değer bu bütçeyi bitirir, birleşim-bula geçer. Derinlik değil adım
-// sayısıdır: aynı alt nesneyi iki yerde tutan 20 katlı değer derinlik sınırının altında 2²⁰ adım ederdi.
+// equalBudget hızlı kipte gezilen en çok kap çifti sayısıdır (yaprak çiftleri sayılmaz): kendine bağlanan
+// değer, çok derin değer ve aynı alt nesneyi birçok yoldan tutan değer bu bütçeyi bitirir, birleşim-bula
+// geçer. Derinlik değil adım sayısıdır: aynı alt nesneyi iki yerde tutan 20 katlı değer derinlik sınırının
+// altında 2²⁰ adım ederdi.
 const equalBudget = 10000
 
 func ValuesEqual(a, b Value) bool {
@@ -29,13 +30,13 @@ func valuesEqual(a, b Value) bool {
 // treeEqual karşılaştırmanın özyinelemeli yoludur; ok, bütçe bitmeden sonuca varıldığıdır. Bulunan fark
 // açılmış ağaçların gerçek bir farkıdır; doğru sonuç ancak bütün ağaç gezilince verilir.
 func treeEqual(a, b Value, budget *int) (eq, ok bool) {
-	*budget--
-	if *budget < 0 {
-		return false, false
-	}
 	eq, descend := shallowEqual(a, b)
 	if !descend {
 		return eq, true
+	}
+	*budget--
+	if *budget < 0 {
+		return false, false
 	}
 	for i := 0; ; i++ {
 		x, y, st := children(a, b, i, false)
@@ -53,10 +54,12 @@ func treeEqual(a, b Value, budget *int) (eq, ok bool) {
 	}
 }
 
-// eqFrame açık yığında bir kap çiftidir; i sıradaki öğe çiftidir.
+// eqFrame açık yığında bir kap çiftidir; i sıradaki öğe çiftidir, diff eşi olmayan öğe görüldüğüdür
+// (EqualValues'un gezintisi onları sonra tarar).
 type eqFrame struct {
 	a, b Value
 	i    int
+	diff bool
 }
 
 // graphEqual karşılaştırmanın genel yoludur: kap çiftleri açık yığında (Go yığını taşmaz), kap düğümleri

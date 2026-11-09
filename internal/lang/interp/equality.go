@@ -1,14 +1,15 @@
 package interp
 
 import (
-	"slices"
-
 	"github.com/sekerahmet/TCB/internal/lang/messages"
 )
 
 // Dilin eşitliğinin sessiz yanlış verebileceği karşılaştırmaları (3.7a, 4.5, 5.6, 7.6) çalışma hatası yapan
-// denetim: değerlerin kendisi valuesEqual'dadır (value_equality.go). Hatalar sonuçtan önce aranır: sonuç
-// ilk farkta durur, hata ise değerin neresinde olursa olsun hatadır ([1, f] == [2, f] hatadır, 4.5).
+// denetim ve sonucu. Hata sonuçtan önce gelir: sonuç ilk farkta belli olur, ama karşılaştırılamayan öğe
+// değerin neresinde olursa olsun hatadır ([1, f] == [2, f] hatadır, 4.5). Bu yüzden gezinti farkta
+// durmaz; aynı biçimdeki çiftleri bir kez gezer, hatayı ve sonucu birlikte bulur. Biçimi tutmayan alt
+// değerin hatası değere bağlıdır (contentError, equality_members.go). Sonucun kuralı shallowEqual'dadır
+// (value_equality.go).
 
 // EqualValues is the language's equality (4.5) where a wrong answer would be silent: in '==', in
 // .contains and .unique, in a match pattern and in assert_equal. A JSON value compared with a value that
@@ -20,24 +21,251 @@ func EqualValues(a, b Value) (bool, error) {
 	}
 	// Eşitlenemeyen tipin isteğe bağlısı (fonksiyon ve onu içeren değer) TR_none'la karşılaştırılabilir
 	// (4.5); öbür durumda iki değerin içi de aranır, karşısındaki öğeye bakılmaz.
-	if a.Type() != ValNull && b.Type() != ValNull {
-		jsonA, err := contentError(a)
-		if err != nil {
+	if a.Type() == ValNull || b.Type() == ValNull {
+		return valuesEqual(a, b), nil
+	}
+	eq, descend := shallowEqual(a, b)
+	if !descend {
+		if err := contentError(a); err != nil {
 			return false, err
 		}
-		jsonB := false
 		if b != a {
-			if jsonB, err = contentError(b); err != nil {
+			if err := contentError(b); err != nil {
 				return false, err
 			}
 		}
-		if jsonA || jsonB {
-			if err := jsonPairsError(a, b); err != nil {
+		return eq, nil
+	}
+	w := equalWalk{budget: equalBudget, eq: true}
+	if done, err := w.tree(a, b); done || err != nil {
+		return w.eq && err == nil, err
+	}
+	return w.graph(a, b)
+}
+
+// equalWalk EqualValues'un gezintisidir: eq şimdiye dek fark bulunmadığıdır. Önce bütçeli özyineleme (tree;
+// bütçe kap çifti ya da kap başına bir azalır), bütçe biterse baştan açık yığın ve birleşim-bul (graph).
+type equalWalk struct {
+	budget int
+	eq     bool
+	u      unionFind
+	seen   map[Value]bool // genel yolda çifte girmiş ya da taranmış kaplar
+}
+
+// tree a ile b'yi (aynı biçimde iki kap) gezer; done yanlışsa bütçe bitti.
+func (w *equalWalk) tree(a, b Value) (bool, error) {
+	w.budget--
+	if w.budget < 0 {
+		return false, nil
+	}
+	if xl, ok := a.(*ListVal); ok { // sıcak yol: listenin öğeleri doğrudan
+		yl := b.(*ListVal)
+		for i, x := range xl.Elements {
+			if done, err := w.treeChild(x, yl.Elements[i]); !done || err != nil {
+				return done, err
+			}
+		}
+		return true, nil
+	}
+	if err := pairMembersError(a, b); err != nil {
+		return true, err
+	}
+	diff := false
+	for i := 0; ; i++ {
+		x, y, st := children(a, b, i, false)
+		switch st {
+		case childEnd:
+			if diff {
+				return w.unpairedTree(a, b)
+			}
+			return true, nil
+		case childSkip:
+			continue
+		case childDiff:
+			diff, w.eq = true, false
+			continue
+		}
+		if done, err := w.treeChild(x, y); !done || err != nil {
+			return done, err
+		}
+	}
+}
+
+// treeChild bir öğe çiftidir: aynı biçimde iki kapsa çift gezilir, değilse kap olanın içi taranır.
+func (w *equalWalk) treeChild(x, y Value) (bool, error) {
+	descend, scan, err := w.child(x, y)
+	if err != nil {
+		return true, err
+	}
+	if descend {
+		return w.tree(x, y)
+	}
+	if scan {
+		for _, v := range [2]Value{x, y} {
+			if done, err := scanTree(v, &w.budget); !done || err != nil {
+				return done, err
+			}
+		}
+	}
+	return true, nil
+}
+
+func (w *equalWalk) unpairedTree(a, b Value) (bool, error) {
+	for _, v := range unpaired(a, b) {
+		if err := elementError(v); err != nil {
+			return true, err
+		}
+		if done, err := scanTree(v, &w.budget); !done || err != nil {
+			return done, err
+		}
+	}
+	return true, nil
+}
+
+// graph gezintinin genel yoludur: kap çiftleri açık yığında, kap düğümleri birleşim-bulda (graphEqual gibi).
+// Atlanan çiftin (iki düğüm de aynı sınıfta) iki düğümü de daha önce bir çiftte gezilmiştir: öğeleri
+// aranmıştır.
+func (w *equalWalk) graph(a, b Value) (bool, error) {
+	w.eq = true
+	w.u = unionFind{index: map[Value]int32{}}
+	w.seen = map[Value]bool{}
+	w.u.sameOrUnite(a, b)
+	stack := []eqFrame{{a: a, b: b}}
+	for len(stack) > 0 {
+		top := &stack[len(stack)-1]
+		if top.i == 0 {
+			w.seen[top.a], w.seen[top.b] = true, true
+			if err := pairMembersError(top.a, top.b); err != nil {
+				return false, err
+			}
+		}
+		x, y, st := children(top.a, top.b, top.i, false)
+		top.i++
+		switch st {
+		case childEnd:
+			if top.diff {
+				if err := w.unpairedGraph(top.a, top.b); err != nil {
+					return false, err
+				}
+			}
+			stack = stack[:len(stack)-1]
+			continue
+		case childSkip:
+			continue
+		case childDiff:
+			top.diff, w.eq = true, false
+			continue
+		}
+		descend, scan, err := w.child(x, y)
+		if err != nil {
+			return false, err
+		}
+		if descend {
+			if !w.u.sameOrUnite(x, y) {
+				stack = append(stack, eqFrame{a: x, b: y})
+			}
+			continue
+		}
+		if !scan {
+			continue
+		}
+		for _, v := range [2]Value{x, y} {
+			if err := scanGraph(v, w.seen); err != nil {
 				return false, err
 			}
 		}
 	}
-	return valuesEqual(a, b), nil
+	return w.eq, nil
+}
+
+func (w *equalWalk) unpairedGraph(a, b Value) error {
+	for _, v := range unpaired(a, b) {
+		if err := elementError(v); err != nil {
+			return err
+		}
+		if err := scanGraph(v, w.seen); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// child bir öğe çiftinin kendi hatası ve sonucudur: iki öğenin kendi hatası (elementError), JSON ile JSON
+// olmayan (3.7a). descend iki öğenin aynı biçimde kap olduğudur; scan ise birinin kap olup eşiyle aynı
+// biçimde olmadığıdır: çağıran içini tarar.
+func (w *equalWalk) child(x, y Value) (descend, scan bool, err error) {
+	if xi, ok := x.(*IntVal); ok { // sıcak yol: iki Tam
+		if yi, ok := y.(*IntVal); ok {
+			if xi.Val != yi.Val {
+				w.eq = false
+			}
+			return false, false, nil
+		}
+	}
+	if err := elementError(x); err != nil {
+		return false, false, err
+	}
+	if err := elementError(y); err != nil {
+		return false, false, err
+	}
+	if err := jsonPairError(x, y); err != nil {
+		return false, false, err
+	}
+	eq, descend := shallowEqual(x, y)
+	if descend {
+		return true, false, nil
+	}
+	if !eq {
+		w.eq = false
+	}
+	return false, isContainer(x) || isContainer(y), nil
+}
+
+// pairMembersError demet ve nesne çiftinde öğelerin kapa bağlı hatasıdır (H2777, H2770); liste ve sözlükte
+// öğelerin hatasına child bakar.
+func pairMembersError(a, b Value) error {
+	switch a.(type) {
+	case *TupleVal, *StructInstanceVal:
+		if err := memberError(a); err != nil {
+			return err
+		}
+		if b != a {
+			return memberError(b)
+		}
+	}
+	return nil
+}
+
+// unpaired aynı biçimde iki kabın eşi olmayan öğeleridir: bir sözlükte olup öbüründe olmayan anahtarın
+// değeri, yalnız bir nesnede olan alan.
+func unpaired(a, b Value) []Value {
+	var out []Value
+	switch x := a.(type) {
+	case *DictVal:
+		y := b.(*DictVal)
+		for _, k := range x.Order {
+			if _, ok := y.Pairs[k]; !ok {
+				out = append(out, x.Pairs[k])
+			}
+		}
+		for _, k := range y.Order {
+			if _, ok := x.Pairs[k]; !ok {
+				out = append(out, y.Pairs[k])
+			}
+		}
+	case *StructInstanceVal:
+		y := b.(*StructInstanceVal)
+		for _, f := range instanceFields(x) {
+			va, okA := x.Fields[f.Name]
+			vb, okB := y.Fields[f.Name]
+			if okA && !okB {
+				out = append(out, va)
+			} else if okB && !okA {
+				out = append(out, vb)
+			}
+		}
+	}
+	return out
 }
 
 // comparisonError tek bir değer çiftinin hatasıdır: JSON değeri JSON olmayan bir değerle (yokluk dışında),
@@ -58,315 +286,22 @@ func comparisonError(a, b Value) error {
 }
 
 // jsonPairError JSON değerinin JSON olmayan bir değerle (yokluk dışında) karşılaştırılmasının hatasıdır
-// (3.7a).
+// (3.7a). Kabın içinde çift çifte aranır, aynı biçimdeki çiftlerde. Sınırı: genel yolda birleşim-bul
+// x ~ z ve z ~ y'yi birleştirince (x, y)'yi gezmez; z'nin aynı yerinde TR_none varsa o çiftin hatası kaçar.
+// Bütçeyi aşan, paylaşılan ya da kendine bağlanan, genel tipli değerde olur: tipli kodda kabın içinde JSON
+// ile JSON olmayan değer aynı yerde durmaz.
 func jsonPairError(a, b Value) error {
+	_, ja := a.(*JSONVal)
+	_, jb := b.(*JSONVal)
+	if !ja && !jb {
+		return nil
+	}
 	if jsonCompareError("==", a, b) == nil {
 		return nil
 	}
 	j, other := a, b
-	if _, ok := j.(*JSONVal); !ok {
+	if !ja {
 		j, other = b, a
 	}
 	return messages.New(messages.H2705, j.(*JSONVal).kindName(), other.Type())
-}
-
-// memberError kabın kendi öğelerinin hatasıdır (4.5, 7.6, 15.5): fonksiyon ya da hata değeri tutan öğe,
-// fonksiyon ya da tensör tutan alan, tensör tutan demet öğesi. Öğelerin içine contentError iner.
-func memberError(v Value) error {
-	switch x := v.(type) {
-	case *ListVal:
-		for _, e := range x.Elements {
-			if err := elementError(e); err != nil {
-				return err
-			}
-		}
-	case *DictVal:
-		for _, k := range x.Order {
-			if err := elementError(x.Pairs[k]); err != nil {
-				return err
-			}
-		}
-	case *TupleVal:
-		for i, e := range x.Elements {
-			if holdsTensor(e) {
-				return messages.New(messages.H2777, i)
-			}
-			if err := elementError(e); err != nil {
-				return err
-			}
-		}
-	case *StructInstanceVal:
-		return fieldError(x)
-	}
-	return nil
-}
-
-// fieldError fonksiyon ya da tensör tutan alanın hatasıdır (7.6, H2770); iletinin önerisi karşılaştırılabilen
-// bir alandır (plainField).
-func fieldError(x *StructInstanceVal) error {
-	label := x.Def.Name
-	if x.Variant != nil {
-		label = variantLabel(x.Def, x.Variant)
-	}
-	for _, f := range instanceFields(x) {
-		v, ok := x.Fields[f.Name]
-		if !ok {
-			continue
-		}
-		kind := ""
-		if isFunction(v) {
-			kind = "function"
-		} else if v.Type() == ValTensor {
-			kind = "tensor"
-		}
-		if kind != "" {
-			return messages.New(messages.H2770, label, f.Name, kind, plainField(x, x, f.Name))
-		}
-		if err := elementError(v); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// elementError kabın içindeki bir öğenin kendi hatasıdır: fonksiyon (4.5) ya da hata değeri (8.3).
-func elementError(e Value) error {
-	if isFunction(e) {
-		return messages.New(messages.H2706)
-	}
-	if e.Type() == ValError {
-		return messages.New(messages.H2913, "")
-	}
-	return nil
-}
-
-// member kabın i. öğesidir (liste ve demette sıra, sözlükte anahtar sırası, nesnede alan sırası); ok yanlışsa
-// öğeler bitti. Nesnede olmayan alan yokluktur.
-func member(v Value, i int) (Value, bool) {
-	switch x := v.(type) {
-	case *ListVal:
-		if i < len(x.Elements) {
-			return x.Elements[i], true
-		}
-	case *TupleVal:
-		if i < len(x.Elements) {
-			return x.Elements[i], true
-		}
-	case *DictVal:
-		if i < len(x.Order) {
-			return x.Pairs[x.Order[i]], true
-		}
-	case *StructInstanceVal:
-		fields := instanceFields(x)
-		if i < len(fields) {
-			if e, ok := x.Fields[fields[i].Name]; ok {
-				return e, true
-			}
-			return Null, true
-		}
-	}
-	return nil, false
-}
-
-func isContainer(v Value) bool {
-	switch v.(type) {
-	case *ListVal, *TupleVal, *DictVal, *StructInstanceVal:
-		return true
-	}
-	return false
-}
-
-// contentError v'nin içindeki ilk hatadır (memberError), değerin neresinde olursa olsun; hasJSON v'nin
-// içinde bir JSON değeri olduğudur (o zaman çiftler de aranır, jsonPairsError). Önce bütçeli özyineleme,
-// bütçe biterse açık yığın ve ziyaret kümesi: kendine bağlanan değerde de biter, bellek düğüm sayısıyla
-// doğrusaldır.
-func contentError(v Value) (hasJSON bool, err error) {
-	if !isContainer(v) {
-		return false, nil
-	}
-	budget := equalBudget
-	if done, err := scanTree(v, &budget, &hasJSON); done || err != nil {
-		return hasJSON, err
-	}
-	hasJSON = false
-	return scanGraph(v)
-}
-
-func scanTree(v Value, budget *int, hasJSON *bool) (bool, error) {
-	*budget--
-	if *budget < 0 {
-		return false, nil
-	}
-	if _, ok := v.(*JSONVal); ok {
-		*hasJSON = true
-		return true, nil
-	}
-	if !isContainer(v) {
-		return true, nil
-	}
-	if err := memberError(v); err != nil {
-		return true, err
-	}
-	for i := 0; ; i++ {
-		e, ok := member(v, i)
-		if !ok {
-			return true, nil
-		}
-		if done, err := scanTree(e, budget, hasJSON); !done || err != nil {
-			return done, err
-		}
-	}
-}
-
-func scanGraph(root Value) (hasJSON bool, err error) {
-	seen := map[Value]bool{}
-	stack := []Value{root}
-	for len(stack) > 0 {
-		v := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		if _, ok := v.(*JSONVal); ok {
-			hasJSON = true
-			continue
-		}
-		if !isContainer(v) || seen[v] {
-			continue
-		}
-		seen[v] = true
-		if err := memberError(v); err != nil {
-			return hasJSON, err
-		}
-		start := len(stack)
-		for i := 0; ; i++ {
-			e, ok := member(v, i)
-			if !ok {
-				break
-			}
-			if isContainer(e) || e.Type() == ValJSON {
-				stack = append(stack, e)
-			}
-		}
-		slices.Reverse(stack[start:]) // öğe sırasıyla gezilsin
-	}
-	return hasJSON, nil
-}
-
-// jsonPairsError JSON değerinin aynı yerdeki JSON olmayan değerle karşılaştırılmasıdır (3.7a), iki değerin
-// öğe çiftlerinde: aynı boy listeler, aynı boy sözlüklerin ortak anahtarları, aynı yapının ortak alanları,
-// iki demetin ortak öğeleri. Önce bütçeli özyineleme, sonra birleşim-bul (valuesEqual'daki gibi).
-//
-// Sınırı: birleşim-bul x ~ z ve z ~ y'yi birleştirince (x, y)'yi gezmez; z'nin aynı yerinde TR_none varsa o
-// çiftin hatası kaçar. Paylaşılan ya da kendine bağlanan, genel tipli değerde olur: tipli kodda kabın içinde
-// JSON ile JSON olmayan değer aynı yerde durmaz.
-func jsonPairsError(a, b Value) error {
-	budget := equalBudget
-	if done, err := jsonPairsTree(a, b, &budget); done || err != nil {
-		return err
-	}
-	if !jsonShape(a, b) {
-		return nil
-	}
-	u := unionFind{index: map[Value]int32{}}
-	u.sameOrUnite(a, b)
-	stack := []eqFrame{{a: a, b: b}}
-	for len(stack) > 0 {
-		top := &stack[len(stack)-1]
-		x, y, st := children(top.a, top.b, top.i, true)
-		top.i++
-		switch st {
-		case childEnd:
-			stack = stack[:len(stack)-1]
-			continue
-		case childSkip:
-			continue
-		}
-		if err := jsonPairError(x, y); err != nil {
-			return err
-		}
-		if jsonShape(x, y) && !u.sameOrUnite(x, y) {
-			stack = append(stack, eqFrame{a: x, b: y})
-		}
-	}
-	return nil
-}
-
-func jsonPairsTree(a, b Value, budget *int) (bool, error) {
-	*budget--
-	if *budget < 0 {
-		return false, nil
-	}
-	if err := jsonPairError(a, b); err != nil {
-		return true, err
-	}
-	if !jsonShape(a, b) {
-		return true, nil
-	}
-	for i := 0; ; i++ {
-		x, y, st := children(a, b, i, true)
-		switch st {
-		case childEnd:
-			return true, nil
-		case childSkip:
-			continue
-		}
-		if done, err := jsonPairsTree(x, y, budget); !done || err != nil {
-			return done, err
-		}
-	}
-}
-
-// jsonShape iki değerin öğe çiftlerinin JSON için gezildiğidir: aynı boy listeler, aynı boy sözlükler, iki
-// demet, aynı yapıdan aynı durumda iki nesne.
-func jsonShape(a, b Value) bool {
-	switch x := a.(type) {
-	case *ListVal:
-		y, ok := b.(*ListVal)
-		return ok && len(x.Elements) == len(y.Elements)
-	case *DictVal:
-		y, ok := b.(*DictVal)
-		return ok && len(x.Pairs) == len(y.Pairs)
-	case *TupleVal:
-		_, ok := b.(*TupleVal)
-		return ok
-	case *StructInstanceVal:
-		y, ok := b.(*StructInstanceVal)
-		return ok && x.Def == y.Def && x.Variant == y.Variant
-	}
-	return false
-}
-
-// holdsTensor v'nin bir tensör ya da tensör tutan bir liste veya sözlük olduğudur (iç içe de, sınırsız;
-// kendini içeren kapta da biter). Demetin içindeki demeti ve nesneyi contentError ayrıca gezer.
-func holdsTensor(v Value) bool {
-	switch v.(type) {
-	case *ListVal, *DictVal:
-	default:
-		return v.Type() == ValTensor
-	}
-	seen := map[Value]bool{}
-	stack := []Value{v}
-	for len(stack) > 0 {
-		x := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		switch c := x.(type) {
-		case *ListVal:
-			if seen[x] {
-				continue
-			}
-			seen[x] = true
-			stack = append(stack, c.Elements...)
-		case *DictVal:
-			if seen[x] {
-				continue
-			}
-			seen[x] = true
-			for _, k := range c.Order {
-				stack = append(stack, c.Pairs[k])
-			}
-		default:
-			if x.Type() == ValTensor {
-				return true
-			}
-		}
-	}
-	return false
 }
