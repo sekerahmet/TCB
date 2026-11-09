@@ -102,7 +102,9 @@ runs (chapter 28's G4 failed on `e2e.TestDocTRCodeBlocks`, listed and not run). 
 of them to run before a commit is not its choice. A `-run` list longer than 20000 characters (the pre-check's Windows
 limit) runs its light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
 `internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the
-names that fit and a line counting the rest. The `run:` lines are not indented, so they are no item of a group.
+names that fit and a line counting the rest. A file of a heavy package does not get its package whole either: the
+first command names the file's own tests and the package's listed tests, and a line says the package is heavy (the
+full check runs it whole). The `run:` lines are not indented, so they are no item of a group.
 Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,
 TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to

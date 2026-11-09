@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path"
 	"slices"
 	"strings"
 	"testing"
@@ -66,5 +67,41 @@ func TestAHeavyPackageIsNeverRunWholeByTheRunLine(t *testing.T) {
 	printRunPlan(&out, p)
 	if !strings.Contains(out.String(), "more listed tests of tools/codegraph did not fit the command line") {
 		t.Errorf("the answer counts the names that did not fit:\n%s", out.String())
+	}
+}
+
+// Kural: ağır paketteki (heavyTestPackages) bir dosyanın koşu satırı paketini -run'sız önermez (D1 ipucu, 2026-11-06:
+// kanca `go test -short ./tools/codegraph/`'ı durduruyordu): dosyanın kendi testleri ve cevapta adı geçen testleri
+// adlandırılır, satır bunu söyler. Hiçbir `run:` komutu ağır bir paketi bütün olarak koşmaz.
+func TestAFileOfAHeavyPackageNamesItsTestsInsteadOfRunningItWhole(t *testing.T) {
+	root, _, g := repoGraph(t)
+	ix := newIndex(g)
+	ix.root = root
+	for _, c := range []struct{ file, test string }{
+		{"tools/codegraph/query_run_line.go", "TestTheRunLineStaysWithinTheCommandLine"},
+		{"internal/detmath/detmath.go", ""},
+		{"internal/lang/parser/conditionals.go", ""},
+	} {
+		n := ix.byID[fileID(c.file)]
+		if n == nil {
+			t.Fatalf("%s is not in the graph", c.file)
+		}
+		var out strings.Builder
+		ix.printTestsFor(&out, n, defaultLimit)
+		cmds := runLines(out.String())
+		for _, cmd := range cmds {
+			args, _, hasRun := strings.Cut(strings.TrimPrefix(cmd, "go test -short "), " -run ")
+			for _, a := range strings.Fields(args) {
+				if d := strings.Trim(a, "./"); isHeavyPackage(d) && !hasRun {
+					t.Errorf("%s: run: %s runs the heavy package %s whole", c.file, cmd, d)
+				}
+			}
+		}
+		if !strings.Contains(out.String(), "./"+path.Dir(c.file)+"/ is a heavy package: it does not run whole here") {
+			t.Errorf("%s: the answer says the package is heavy:\n%s", c.file, out.String())
+		}
+		if c.test != "" && !runCovers(cmds)(goTest{path.Dir(c.file), c.test}) {
+			t.Errorf("%s: the run line does not name the file's own test %s:\n%q", c.file, c.test, cmds)
+		}
 	}
 }

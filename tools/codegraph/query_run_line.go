@@ -32,6 +32,8 @@ type runPlan struct {
 	heavy  []string // whole iken others'ın ağır paketleri (heavyTestPackages): yalnız sığan adlarla koşar
 	fit    []string // onların satıra sığan adları
 	cut    int      // satıra sığmayan ad sayısı
+	pkgFit []string // pkg ağırsa (heavyTestPackages) bütün yerine koşan adları: kendi testleri ve cevapta adı geçenler
+	pkgCut int      // onlardan satıra sığmayanların sayısı
 	rest   []goTest // ön denetimin seçiminden komutların koşmadıkları
 }
 
@@ -79,10 +81,21 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 	for _, t := range ix.checkerRunnerTests(file, s.all) {
 		add(t)
 	}
+	own := map[string]bool{} // ağır pakette dosyanın paketinin adlandırılan testleri: kendi testleri ve cevapta adı geçenler
+	for _, n := range s.own {
+		if t, ok := goTestOf(n); ok && t.dir == p.pkg {
+			own[t.name] = true
+		}
+	}
 	for _, t := range listed.goTests {
 		if t.dir != p.pkg {
 			extra[t] = true
+		} else {
+			own[t.name] = true
 		}
+	}
+	if isHeavyPackage(p.pkg) {
+		p.pkgFit, p.pkgCut = p.fitNames([]string{p.pkg}, sortedKeys(own))
 	}
 	pkgs, names, heavyNames := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for t := range extra {
@@ -110,7 +123,7 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 func (p runPlan) runs(t goTest) bool {
 	switch {
 	case t.dir == p.pkg:
-		return true
+		return !isHeavyPackage(p.pkg) || slices.Contains(p.pkgFit, t.name)
 	case !slices.Contains(p.others, t.dir):
 		return false
 	case !p.whole:
@@ -173,8 +186,12 @@ func (p runPlan) command(pkgs, names []string) string {
 // commands koşu satırlarının komutlarıdır.
 func (p runPlan) commands() []string {
 	var out []string
-	if p.pkg != "" {
+	switch {
+	case p.pkg == "":
+	case !isHeavyPackage(p.pkg):
 		out = append(out, p.command([]string{p.pkg}, nil))
+	case len(p.pkgFit) > 0: // ağır paket -run'sız önerilmez: kanca durdurur, paketin bütününü tam denetim koşar
+		out = append(out, p.command([]string{p.pkg}, p.pkgFit))
 	}
 	switch {
 	case len(p.others) == 0:
@@ -195,11 +212,18 @@ func (p runPlan) commands() []string {
 // planlama sınavının first-item sorusu en az 4 boşlukla girintili ilk satırı okur); altında koşulmayanların sayısı.
 func printRunPlan(w io.Writer, p runPlan) {
 	cmds := p.commands()
-	if len(cmds) == 0 {
+	if len(cmds) == 0 && !isHeavyPackage(p.pkg) {
 		return
 	}
 	for _, c := range cmds {
 		fmt.Fprintln(w, "run: "+c)
+	}
+	if isHeavyPackage(p.pkg) {
+		fmt.Fprintf(w, "  ./%s/ is a heavy package: it does not run whole here, the run line names %s of it (the full check runs it whole)\n",
+			p.pkg, countOf(len(p.pkgFit), "listed test"))
+	}
+	if p.pkgCut > 0 {
+		fmt.Fprintf(w, "  %s of ./%s/ did not fit the command line; they are in the groups below\n", countOf(p.pkgCut, "more listed test"), p.pkg)
 	}
 	if len(p.golden) > 0 {
 		fmt.Fprintf(w, "  golden files (%s): if they change, rewrite with -update and read the diff\n", strings.Join(p.golden, ", "))
