@@ -238,26 +238,39 @@ func (ix *index) pkgOf(id string) string {
 // sonra adından çıkarılanlar, sonra çağrı zinciriyle dolaylı olanlar (INFERRED, kaç adım
 // uzakta, en yakın önce); koruduğu kurallar en sonda.
 func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
+	body := ix.testsForBody(n)
 	ab, listed := &answerBuffer{}, &answerBuffer{}
-	ix.printTestsForBody(ab, n, limit)
+	body(ab, limit)
 	if listed = ab; limit == 0 { // --all: koşu satırı varsayılan cevapta adı geçenleri adlandırır
 		listed = &answerBuffer{}
-		ix.printTestsForBody(listed, n, defaultLimit)
+		body(listed, defaultLimit) // aynı toplamadan, yalnız sınırı farklı (hız işi, tekrar 1)
 	}
 	flushAnswer(w, ab, listed)
 }
 
-// printTestsForBody printTestsFor'un gövdesidir; koşu satırlarının yerini ayırır (writeRunPlan).
-func (ix *index) printTestsForBody(w io.Writer, n *Node, limit int) {
-	fmt.Fprintln(w, describe(n))
+// testsForBody printTestsFor'un gövdesidir: testleri bir kez toplar, dönen işlev onları verilen sınırla yazar;
+// koşu satırlarının yerini ayırır (writeRunPlan).
+func (ix *index) testsForBody(n *Node) func(io.Writer, int) {
 	if n.Kind == kindFile && strings.HasSuffix(n.File, ".go") {
-		ix.printGoFileTests(w, n, limit)
-		return
+		goFile := ix.goFileTestsBody(n)
+		return func(w io.Writer, limit int) {
+			fmt.Fprintln(w, describe(n))
+			goFile(w, limit)
+		}
 	}
+	t := ix.testsForNode(n)
+	if !t.beyondDone {
+		t.beyond, t.beyondDone = ix.beyondLimit(n, t.listed), true
+	}
+	return func(w io.Writer, limit int) { ix.printNodeTests(w, n, t, limit) }
+}
+
+// printNodeTests Go dosyası dışındaki bir düğümün toplanmış testlerini (testsForNode) yazar.
+func (ix *index) printNodeTests(w io.Writer, n *Node, t nodeTests, limit int) {
+	fmt.Fprintln(w, describe(n))
 	if n.Kind == kindFile && isUntracked(ix.root, n.File) {
 		printUntrackedWarning(w, n.File)
 	}
-	t := ix.testsForNode(n)
 	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindDoc {
 		writeRunPlan(w, func(l listedTests) runPlan { return ix.docRunPlan(n, t, tests, l) })
@@ -294,9 +307,6 @@ func (ix *index) printTestsForBody(w io.Writer, n *Node, limit int) {
 	}
 	ix.printValueTests(w, t.asValue, limit)
 	ix.printInferred(w, n, t.indirect, t.viaNames, limit)
-	if !t.beyondDone {
-		t.beyond = ix.beyondLimit(n, t.listed)
-	}
 	printBeyond(w, t.beyond, limit)
 	ix.printSharedSites(w, withOthers, limit)
 	ix.printDocRules(w, t.rules, limit)

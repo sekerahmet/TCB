@@ -43,11 +43,12 @@ func (ix *index) testDistances(n *Node) map[string]int {
 	return best
 }
 
-// printGoFileTests bir Go dosyasını koruyan testlerdir: dosyadaki bildirimlerin (işlev, metot, tip, değer) testlerinin
+// goFileTestsBody bir Go dosyasını koruyan testlerdir: dosyadaki bildirimlerin (işlev, metot, tip, değer) testlerinin
 // birleşimi, `changed`'in değişen düğümler için yaptığı toplamanın aynısı (testsToRun; alt süreç testleri dahil).
 // "Bir dosyaya dokunmadan önce tests-for <dosya>" kuralı Go dosyasında da cevap alır. Liste eksiltilmez, bildirim
-// düzeyinin gruplarıyla ve sırasıyla yazılır (fileTests).
-func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
+// düzeyinin gruplarıyla ve sırasıyla yazılır (fileTests). Testler bir kez toplanır, dönen işlev onları verilen sınırla
+// yazar (tests-for --all iki sınırla yazar; hız işi, tekrar 1).
+func (ix *index) goFileTestsBody(file *Node) func(io.Writer, int) {
 	ts := ix.fileDecls(file)
 	decls := len(ts.nodes)
 	if sibling := ix.byID[fileID(strings.TrimSuffix(file.File, ".go")+"_test.go")]; !isTestFile(file.File) && sibling != nil {
@@ -57,6 +58,11 @@ func (ix *index) printGoFileTests(w io.Writer, file *Node, limit int) {
 		}
 	}
 	s := ix.fileTests(file, ts)
+	return func(w io.Writer, limit int) { ix.printGoFileTests(w, file, ts, decls, s, limit) }
+}
+
+// printGoFileTests bir Go dosyasının toplanmış testlerini (goFileTestsBody) yazar.
+func (ix *index) printGoFileTests(w io.Writer, file *Node, ts *touchSet, decls int, s fileTestSet, limit int) {
 	if isUntracked(ix.root, file.File) {
 		printUntrackedWarning(w, file.File)
 	}
