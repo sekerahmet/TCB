@@ -305,7 +305,6 @@ func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 		t.Fatal(err)
 	}
 	reader := codeindex.NewReader(idx)
-	re := regexp.MustCompile(`[\p{L}\p{N}_]+\.TR_[\p{L}\p{N}_]+`)
 	seen := map[string]bool{}
 	files := codeindex.ListFiles(root, []string{"lib", "examples", "tests", "tools"}, codeindex.DefaultSkipDirs, codeindex.TrackedFiles, func(rel string) bool {
 		return strings.HasSuffix(rel, ".tr")
@@ -315,20 +314,7 @@ func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		s := string(data)
-		for _, loc := range re.FindAllStringIndex(s, -1) {
-			if loc[0] > 0 && (s[loc[0]-1] == '.' || s[loc[0]-1] == ']' || s[loc[0]-1] == ')') {
-				continue
-			}
-			m := s[loc[0]:loc[1]]
-			recv, _, _ := strings.Cut(m, ".")
-			// `TR_mem_` önekli alıcılar (`TR_mem_embedding.TR_mem_table` gibi 16 yazım) .tr dosyalarında kod olarak değil,
-			// yalnız metin sabitlerinde (ağırlık sözlüğü anahtarları) ve yorumlarda geçer; bulunamadı ve Go'ya inmeme davranışı
-			// testdata/planning_questions.txt ve testdata/member_spellings.txt içinde korunur.
-			if r, _ := utf8.DecodeRuneInString(recv); !unicode.IsDigit(r) && !strings.HasPrefix(recv, "TR_mem_") {
-				seen[m] = true
-			}
-		}
+		addTRFileMemberSpellings(string(data), seen)
 	}
 	if len(seen) < 695 {
 		t.Fatalf("only %d member spellings found in .tr files", len(seen))
@@ -356,6 +342,59 @@ func TestEveryMemberSpellingInRepoTRFilesResolves(t *testing.T) {
 	for q := range memberSpellingExceptions {
 		if !seen[q] {
 			t.Errorf("stale exception %q: no longer appears in .tr files", q)
+		}
+	}
+}
+
+var dottedMemberRe = regexp.MustCompile(`[\p{L}\p{N}_]+\.TR_[\p{L}\p{N}_]+`)
+
+func trimEscapedReceiver(s string, start int, m string) string {
+	bs := 0
+	for i := start - 1; i >= 0 && s[i] == '\\'; i-- {
+		bs++
+	}
+	if bs%2 == 1 && len(m) > 0 && strings.IndexByte("abfnrtv", m[0]) >= 0 {
+		return m[1:]
+	}
+	return m
+}
+
+func addTRFileMemberSpellings(s string, seen map[string]bool) {
+	for _, loc := range dottedMemberRe.FindAllStringIndex(s, -1) {
+		if loc[0] > 0 && (s[loc[0]-1] == '.' || s[loc[0]-1] == ']' || s[loc[0]-1] == ')') {
+			continue
+		}
+		m := trimEscapedReceiver(s, loc[0], s[loc[0]:loc[1]])
+		recv, _, _ := strings.Cut(m, ".")
+		// `TR_mem_` önekli alıcılar (`TR_mem_embedding.TR_mem_table` gibi 16 yazım) .tr dosyalarında kod olarak değil,
+		// yalnız metin sabitlerinde (ağırlık sözlüğü anahtarları) ve yorumlarda geçer; bulunamadı ve Go'ya inmeme davranışı
+		// testdata/planning_questions.txt ve testdata/member_spellings.txt içinde korunur.
+		if r, _ := utf8.DecodeRuneInString(recv); recv != "" && !unicode.IsDigit(r) && !strings.HasPrefix(recv, "TR_mem_") {
+			seen[m] = true
+		}
+	}
+}
+
+func addRepoMemberSpellings(s string, seen map[string]bool) {
+	for _, loc := range dottedMemberRe.FindAllStringIndex(s, -1) {
+		m := trimEscapedReceiver(s, loc[0], s[loc[0]:loc[1]])
+		recv, _, _ := strings.Cut(m, ".")
+		if r, _ := utf8.DecodeRuneInString(recv); recv != "" && !unicode.IsDigit(r) {
+			seen[m] = true
+		}
+	}
+}
+
+func TestMemberSpellingExtractorsSkipLeadingEscape(t *testing.T) {
+	src := `code := "TR_var x = [1]\nx.TR_length\n.TR_sort"`
+	for name, fn := range map[string]func(string, map[string]bool){
+		"trFiles":   addTRFileMemberSpellings,
+		"repoFiles": addRepoMemberSpellings,
+	} {
+		seen := map[string]bool{}
+		fn(src, seen)
+		if got := slices.Sorted(maps.Keys(seen)); !slices.Equal(got, []string{"x.TR_length"}) {
+			t.Errorf("%s: got %v, want [x.TR_length]", name, got)
 		}
 	}
 }
@@ -406,7 +445,6 @@ func candLabel(id, noteCode string) string {
 
 func collectRepoMemberSpellings(t *testing.T, root string) []string {
 	t.Helper()
-	re := regexp.MustCompile(`[\p{L}\p{N}_]+\.TR_[\p{L}\p{N}_]+`)
 	seen := map[string]bool{}
 	files := codeindex.ListFiles(root, nil, codeindex.DefaultSkipDirs, codeindex.TrackedFiles, func(rel string) bool {
 		ext := filepath.Ext(rel)
@@ -417,12 +455,7 @@ func collectRepoMemberSpellings(t *testing.T, root string) []string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, m := range re.FindAllString(string(data), -1) {
-			recv, _, _ := strings.Cut(m, ".")
-			if r, _ := utf8.DecodeRuneInString(recv); !unicode.IsDigit(r) {
-				seen[m] = true
-			}
-		}
+		addRepoMemberSpellings(string(data), seen)
 	}
 	return slices.Sorted(maps.Keys(seen))
 }
