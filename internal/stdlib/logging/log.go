@@ -13,12 +13,12 @@
 //
 // "kind" taşımayan satırlar ölçü kayıtlarıdır. Biçimin anahtarları ve kayıt türleri dilden
 // bağımsız İngilizce tanımlayıcılardır ve çevrilmez (dil tanımı 17.3; TRTENSOR imzası gibi);
-// okuyan araçlar (trlang watch, trlang profile, testkit) bunlara bakar. Ölçülerin ve ayarların adları
+// günlüğü okuyan kod (depoda testkit.ValidLossMetrics) bunlara bakar. Ölçülerin ve ayarların adları
 // programındır, olduğu gibi yazılır.
 // Tanımsız (NaN) ve sonsuz değerler gizlenmez, "NaN", "Infinity", "-Infinity" metni olarak
-// yazılır. Bir "resume" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendinden
-// önce gelen ve adımı ondan büyük olan ölçü kayıtlarını geçersiz kılar (adımı eşit olan kayıt
-// kaydedilen noktaya dahildir).
+// yazılır. Bir "resume" kaydı (kontrol noktasından sürdürme, bkz. Log.WriteResume) kendi
+// offset'i ile kendisi arasındaki her kaydı ve kendinden önce gelen, adımı ondan büyük ölçü
+// kayıtlarını geçersiz kılar (19.6; adımı eşit olan kayıt kaydedilen noktaya dahildir).
 //
 // İlerleme çubuğu standart hataya (VM.Err) yazar: terminalde tek satırda en çok saniyede 10
 // kez yenilenir (yorumlayıcının canlı satır kancasıyla: yazdır ve hata çıktısı çubuğa
