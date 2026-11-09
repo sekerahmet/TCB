@@ -969,28 +969,20 @@ Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md).
 
 ## 18. Dosya ve yol
 
-Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM; kararlar Gemini Koşu 5'ten geçti (DENETİM doğruladı, `d31c9226`). Açık: 18.16'nın göreli yol kuralı. 2. tur (2026-10-29): DENETİM 18-1'in bulgularıyla. Yeni adların gösterim adları onaylandı (2026-10-29): `TR_write_lines` satırları_yaz, `TR_LineWriter` SatırYazıcı, `TR_write` yaz (18.17); `TR_ignore_case` harf_duyarsız (18.5); kodları uygulandıkları gün kayda girer (17.4).
+Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). Açık: 18.16'nın göreli yol kuralı (aşağıda).
 
 ### 18.1
 
-- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** kök ve UNC öneki korunuyor [ölçüldü: DENETİM].
-- **Mevcut durum (2026-11-06; B, Ö0 kapandı; DENETİM 219, 229, 237):** ilk parçadan sonrakilerin birleşip temizlenmiş hali ilk parçanın dışına çıkamaz, H7510; mutlak parça denetimi de bu biçime iniyor (H7139) [test: `tests/dosya_ve_yol_test.tr`, `internal/stdlib/files/path_test.go`].
 - **Yapılacaklar (B, Ö1, asistan araçları dilimi; sahip TCB tasarım, D1 uygulama; DENETİM 229 N1, N2, 230):** `TR_Path`'in denetiminden geçmeyen yollar: tek parçada birleştirilen metin (`TR_Path("veri/\(ad)")`, `TR_Path("veri/" + ad)`, `../x`'te `x` veriyor [ölçüldü: DENETİM 229]), metin yol alan yerleşikler (`TR_write_file("veri/\(ad)", ...)` [kanıtlı: 18.4; koşulmadı]), bağlantı üzerinden çıkış (temizleme metin üstünde [kanıtlı: 18.1; denenmedi]). Kural bunlara izin veriyor; modelin verdiği dosya adı için asistan araçları yazılırken tartılır.
 - **Yapılacaklar (D, Ö3; sahip D1; DENETİM 229 N2):** Windows aygıt adı (`NUL`, `CON.txt`) parça olarak hatasız [ölçüldü: DENETİM 229], kural yazmıyor; Unix'te `C:/x` parçası hata vermiyor, 18.1 koşulsuz diyor [kanıtlı: `path.go`; koşulmadı].
 
 ### 18.5
 
 - **Mevcut durum:** Windows'ta kalıp harf büyüklüğüne bakmıyor: `"*.TXT"` `a.txt`'yi eşliyor [ölçüldü: main `dc4930ca`].
-- **Mevcut durum (D1, birleşik 59):** çalışma klasöründe bulunmayan, programın klasöründe bulunan göreli klasörde `TR_list_dir` mutlak yollar veriyor [test: `TestListDirFoundBesideTheProgramGivesAbsolutePaths`].
 - **Yapılacaklar:** her sistemde harf büyüklüğüne duyarlı eşleme (göç: `internal/stdlib/files/list_test.go`'nun harf büyüklüğüne bakmayan dalı), `TR_ignore_case:`; TR testi.
-
-### 18.7
-
-- **Mevcut durum (D1, `82bf29a6`; A ve F1 kapandı):** açık günlüğün dosyası her sistemde silinmez ve taşınmaz, H2723 ve H2724 `g.TR_close()`'u önerir [test: TR testi "18.7 sil ..."]. Taban Linux'ta sessiz kayıptı: `TR_remove` hatasız sildi, sonraki iki kayıt kayboldu [ölçüldü: D1, G4, `ffca754c`]; dal H2723 verdi, dosya 4 satırla durdu [ölçüldü: D1, G4, `7e7706dc`].
 
 ### 18.9
 
-- **Mevcut durum:** dolu klasörün yerine konması uygulandı (Gemini Koşu 5): eski klasör geçici ada çekiliyor, yenisi yerine konunca siliniyor, yerine koyma olmazsa eski geri konuyor; `TR_copy`'de `TestCopyDir` sınıyor, `TR_move` (18.10) aynı yolu kullanıyor [ölçüldü: main `85a19c36`, `internal/stdlib/files/copy_run.go:60-86`, dolu klasör üstüne kopyalama ve taşıma].
 - **Yapılacaklar (A adayı, diskteki veri; sessiz mi ölçülmedi):** arada kesilince geçici adıyla kalan eski klasörü söyleyen ileti; `TR_move`'un dolu klasörün yerine konmasını sınayan Go testi.
 
 ### 18.11
@@ -999,7 +991,6 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ### 18.16
 
-- **Mevcut durum (Kol A 13 yerleşikler, 1. adım, 2026-11-04):** değiştiren işler (`TR_write_file`, `TR_save_tensors`, `TR_Checkpoint`'in koşu klasörü, `TR_Logger`'ın dosyası, `TR_Dataset`'in `TR_cache:`'i, `TR_make_dir`, `TR_remove`, `TR_move`'un kaynağı ve hedefi, `TR_copy`'nin hedefi) göreli yolu yalnız çalışma klasörüne göre çözüyor (`ResolveWritePath`); okuyanlar okuma sırasıyla. Silinecek ya da taşınacak dosya çalışma klasöründe yok ama okuma sırası onu başka klasörde buluyorsa H2630: dosyayı ve çalışma klasöründen ona giden açık yolu söylüyor, o yol çalışıyor [test: `TestWritersDoNotTouchTheProgramsFile`, `TestWritersResolveOnlyInTheWorkingDirectory`, `TestRunFolderOnlyInTheWorkingDirectory`, `TestLogFileOnlyInTheWorkingDirectory`, `TestCachePathOnlyInTheWorkingDirectory`; dosya_ve_yol_test "18.16 değiştiren işler…"]. Göç: depodaki örnekler, `tests/` ve `lib/` depo kökünden koşunca eski kuralın başka klasör seçeceği yazma çağrısı 0 (4 çağrının dördü yeni 18.16 testinin); 49 örneğin, 418 testin ve 71 kitaplık testinin çıktısı yeni 18.16 testi dışında aynı [ölçüldü: dal `claude/kolA-13-yerlesikler`, geçici sayım ve önceki/sonraki çıktı, `705c16f1` tabanıyla].
 - **Yapılacaklar:** 18.17'nin yazıcıları (`TR_write_lines`, `TR_LineWriter`) `ResolveWritePath`'le; `.TR_exists` okuma sırasıyla bakıyor, `TR_remove` çalışma klasörüne: `TR_if KOŞU.TR_exists { TR_remove(KOŞU) }` başka klasördeki dosyada H2630 veriyor (bakışımsızlık, 18'in kararı; DEVİR'de).
 - **Karar (Gemini Koşu 5'in açık kararı, 13.1a ve 18:113, B Ö1):** değiştiren iş yalnız çalışma klasörüne; okuma üç klasöre. Programın yanına yazan program yolu açıkça kurar. Okumanın da tek kurala inip inmeyeceği açık (TCB'nin dil kararı): o karar `TR_exists` ile `TR_remove`'un farklı dosyayı görmesini ve `TR_absolute`'un modülden çağrılınca modülün dosyasını vermesini de çözer (DENETİM istek 91 N1).
 
@@ -1010,7 +1001,7 @@ Kurallar: [`docs/spec/18_dosya_ve_yol.md`](spec/18_dosya_ve_yol.md). **Kapandı*
 
 ## 19. Süreç ve kayıt
 
-Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapandı** (2026-10-29): ana oturum CLAUDE.md'den türeterek yeniden yazdı, iki tur DENETİM; kararlar Gemini Koşu 5'ten geçti (DENETİM doğruladı, `d31c9226`). Numaralar eski metinle aynı; eski başlıksız "Komut satırında yazım" 19.10, "Görünüm" 19.11 oldu.
+Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ### 19.2
 
@@ -1020,30 +1011,20 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ### 19.4
 
 - **Yapılacaklar:** gizli sözcüklerin Go'dan dil dosyalarına (`tr.json`, `en.json`) taşınması [kanıtlı: DENETİM 19-1].
-- **Gemini Koşu 5 (2026-10-29), motor zaten böyle:** büyük harf dizisinin sonunda bölme (`HFToken`) [kanıtlı: DENETİM, `process.go:84-86`]. Çoğullar ve Türkçe çoğullar süzülüyor; süzgeç değere de bakar, sayı değeri gizli sayılmaz [test: `TestIsSecretName`].
 
 ### 19.5, 19.7
 
-- **Mevcut durum:** `TR_Logger.TR_append` ve `TR_Progress.TR_update` değer vermiyor [test: `TestNoValueBuiltinsGiveNone`].
-- **Mevcut durum (D1, `82bf29a6`):** `g.TR_close()` var (`TR_true`, ikinci kez `TR_false`); kapatılmış günlüğe yazma H2725 [test: TR testi "19.5 g.kapat ..."].
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** başlangıç kaydında `total` yok.
 
 ### 19.6
 
-- **Mevcut durum (T1, birleşik 59):** `resume` kaydı `offset` taşıyor (noktadaki günlüğün bayt uzunluğu), hem `TR_rollback`'te hem yeni süreçte sürdürmede; biçim sürümü 2 kaldı [test: TR testleri "19.6 geri dönüşün devam kaydı…", "20.6 sürdürülen…", `TestLogAppendAndResume`].
-- **Mevcut durum (T1):** günlüğün tek geçerlilik okuyucusu `testkit.ValidLossMetrics` 19.6'nın `offset` kuralını uyguluyor; `offset`'siz ya da satır ortasına düşen devam kaydında test düşer [test: `TestValidLossMetricsDropsEveryRecordAfterTheOffset`, `TestValidLossMetricsRejectsABadOffset`]. `TR_cmd_watch` ve `TR_cmd_profile` günlüğü okumuyor, adımı `logging.SetStepHook` ile alıyor [kanıtlı: devtools/profiler, profile.go:168, `logging.SetStepHook(p.stepBoundary)`].
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** günlüğün kabul ettiği değerler 13.8'in JSON kümesi (`offset` yarısı birleşik 59'da yapıldı).
+- **Gemini Koşu 5 (2026-10-29), uygulanacak:** günlüğün kabul ettiği değerler 13.8'in JSON kümesi.
 
 ### 19.10
 
-- **Mevcut durum:** yardım seçeneği yalnız "--help" ve "-h" (Türkçe "--yardım" bilinmeyen seçenek); "help" ve "h" dışında ad ayrılmış değil; ondalıkta Türkçe "sonsuz" okunmuyor, "inf", "-inf" ve "nan" okunuyor; mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış"); kullanım hatası iletisi gizli adlı seçeneğin değerini uzunluğuna bakmadan iletiye hiç koymuyor (`TestCommandLineSecretLeaks`, `internal/stdlib/process/arguments.go` `errorValue`) [ölçüldü: `TestCommandLineSecretLeaks`, `a93c9e53`; main `85a19c36`, "--help", "--yardım", "--hızlı=doğru", "--üst=sonsuz" ile çalıştırma].
+- **Mevcut durum:** mantık değerinde Türkçe yazım ("doğru", "yanlış") hâlâ okunuyor; yardım varsayılanları kişinin dilinde gösteriyor ("varsayılan: yanlış") [ölçüldü: main `85a19c36`, "--hızlı=doğru" ve "--help" ile çalıştırma].
 - **Yapılacaklar:** mantık değerinde yalnız "true" ve "false" (`internal/stdlib/process/process_test.go`'nun Türkçe mantık değeri çıkar); yardımın varsayılanları komut satırının yazımıyla; Go testleri.
-- **Göç:** yardımın Türkçe adının göçü bitti (depoda yalnız ipucu testi ve iki yorum kaldı) [ölçüldü: main `85a19c36`, `git grep`].
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** yardımda `TR_none` varsayılanı yazılmaz (bugün "(default: none)"). **Açık:** standart hataya yazan yerleşik yok (yol haritası).
-
-### 19.11
-
-- **Mevcut durum (Faz 0.4, 2026-10-30):** iş klasörünün ortam değişkeni "TR_JOB_DIR" (`TR_env_JOB_DIR`); çubuğun dili "TR_LANG"'dan (`TR_env_LANG`) okunuyor [ölçüldü: kod].
 
 ## Bölümü olmayan işler
 

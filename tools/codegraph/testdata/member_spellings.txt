@@ -39,9 +39,7 @@ TR_KVCache.TR_mask	ok	0	tr:method:lib/layers.tr:TR_type_KVCache.TR_mem_mask
 TR_LineReader.TR_next	ok	0	name:TR_mem_next
 TR_Linear.TR_forward	ok	0	tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward
 TR_Linear.TR_map	not_found	4	-
-TR_Logger.TR_append	ok	0	name:TR_mem_append
 TR_Muon.TR_step	ok	0	tr:method:lib/optimizers.tr:TR_type_Muon.TR_mem_step
-TR_Progress.TR_update	ok	0	name:TR_mem_update
 TR_Role.TR_Assistant	not_found	4	-
 TR_Role.TR_System	not_found	4	-
 TR_Role.TR_Tool	not_found	4	-
