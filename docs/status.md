@@ -1091,7 +1091,7 @@ Yol haritasının açık işlerinden DENETİM'in C saydıkları (istek 76, 2. ba
 
 ## 20. Kontrol noktası
 
-Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Taslak (2026-10-29): ana oturum CLAUDE.md'nin "kesilen bir eğitim kaldığı yerden aynı sonuçla sürer" cümlesinden türeterek yeniden yazdı; bölümün çoğu uygulanmış ve testli. Metin DENETİM 20-1'den geçti, bulguları işlendi (`6a525af7`); kararlar Gemini Koşu 1 (`4afda971`), Koşu 4 (`23e7be25`) ve Koşu 2 (20.11, `70a1e6fe`) ile geçti. Kapanış turu yapılmadı.
+Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md).
 
 ### 20.1
 
@@ -1105,11 +1105,10 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 ### 20.4
 
-- **Mevcut durum (Kol B teslim 2b):** nokta her modelin donmuş parametrelerinin adlarını kaydediyor (noktanın durum dosyasında modelin kaydına eklenen donmuş adlar listesi); sürdürme ve geri dönüş aynı kümeyi kuruyor (adı listede olan donar, öbür parametreler türev izler; hiç türev izlememiş durum tensörüne dokunulmaz). Biçim sürümü 4 (TCB kararı): sürüm 3 dosyası okunuyor; donma durumu kaydetmediği için sürdürme ve geri dönüş programın kurduğu donma durumunu değiştirmiyor (Kol B teslim 2c, DENETİM istek 84 Ş1; önce programın dondurduğu parametreyi çözüyordu [ölçüldü: DENETİM]), sürüm 5 ve sonrası H7421; donmuş diye kaydedilen ad modelin parametresi değilse kayıt bozuk (H6993) [test: TR testi "15.34 kontrol noktasından donmuş sürdürme: …", `TestFrozenStateIsSavedAndResumed`, `TestVersionThreeLeavesFrozenStateAlone`, `TestFrozenNameMustBeAParameter`; beş bozma denemesi ve 2c'nin sürüm denetimini kaldıran deneme yakalandı]. Dil tanımının 20'deki "Biçim sürümü 3'tür ve yalnız o okunur" cümlesi bu kararla değişmeli (pending).
+- **Mevcut durum:** biçim sürümü 4 (TCB kararı, Kol B teslim 2b; sürüm 3 dosyası okunuyor); dil tanımının 20'deki "Biçim sürümü 3'tür ve yalnız o okunur" cümlesi bu kararla değişmeli (`pending.md`).
 
 ### 20.11
 
-- **Mevcut durum:** yazılamayan tür H6960 ya da H3112–H3115 verir; `TR_load_parameters` türleri şekillerden sonra, yazmadan önce denetler, tür hatasında hiçbir parametre değişmez [ölçüldü: T1, DENETİM 206; TR testi `tests/kontrol_noktasi_test.tr`].
 - **Yapılacaklar (A, Ö1, Kol B, 15'in A'sıyla; ölçüm status'un):** `TR_AnyTensor` sözlüğü ve parametrenin cinsine daraltma (20.11 hassasiyeti farklıysa çevrilir der; `tests/kontrol_noktasi_test.tr` bugünkü H6960'ı sabitliyor, kural gelince değişir), daraltan hassasiyet dönüşümünde sığmama hatası, nicemlenmiş yaprağa bütün yazma (15.54) (15'in yan değişikliği, uygulanmadı).
 - **Açık (Sonraya, 2. kilometre taşında öne çekilmeli):** hazır `.safetensors` dosyaları tablo (RoPE) taşımaz; "bütün yapraklar sözlükte" kuralıyla yükleme alt yapıya yapılır. LoRA alanlarıyla aynı soru (15.34'ün açığı).
 - **Gemini 15/2 (2026-10-29), uygulanacak:** nicemlenmiş hassasiyet farkı yüklemede hata, sessiz açma yok (T2, 15.54 ile).
@@ -1118,30 +1117,19 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md). Tasla
 
 - **Mevcut durum:** `TR_load_state`'in mantık değeri dönüşü 13.10'un status'unda. Kontrol noktası cinsli tensör yazmıyor: Go'daki kontrol noktası paketi `TensorWriter.Write`'ı ondalık veriyle çağırıyor, bu yüzden `op.TR_state`'in "step"i ondalık tensör; `TR_Int` için `WriteRaw` ve `ml.TensorEntry.Ham` T1 dilim 2'den beri hazır, paket bağlanmadı (T1 bulgu 11) [kanıtlı: DENETİM istek 57, kontrol noktasının `writeTensors`'ı 16 bitlik olmayanı `p.t.Data()` ile yazıyor]; karışık cinsli `TR_Dict[TR_String, TR_AnyTensor]` yok (15'in yan değişikliği, uygulanmadı).
 
-### 20.16
-
-- **Mevcut durum:** nazik durdurmada süreç isteğin sinyaliyle biter (Unix'te sinyalle ölür ya da 128+N, Windows'ta `STATUS_CONTROL_C_EXIT`); ikinci istek süreci hemen bitirir; 1.9'un kuralı uygulanmış [ölçüldü: main `85a19c36`, `TestInterruptGracefulExit` ve `TestSecondInterruptExitsImmediately`; `cmd/trlang/signals_unix.go:27`, `signals_windows.go:27`].
-
 ### 20.17
 
-- **Mevcut durum:** paylaşılan üreteç programa bağlı bir PCG (`math/rand/v2`), `"pcg:00000000000054520000000000002017"` ile başlıyor, durumu kontrol noktasının durum dosyasında `"rng"` alanına yazılıyor ve yüklenince geri konuyor; kesilip sürdürülen eğitim tohumsuz `TR_randn` ve `TR_sample` ile bit bit aynı [test: TestCheckpointResumeBitExact].
 - **Yapılacaklar (C, Ö2, 15.45 ile; ölçüm status'un):** `TR_dropout` (15.23d) geldiğinde aynı üreteçten çekmesi.
 - **Yapılacaklar (dil tanımı turu 2, 2026-11-01):** cihazın sayaçlı üreteci (15.45) gelince durumu "rng_device" alanına (cihazdan duruma eşlem) yazılır ve geri yüklenir, 15.45 ile birlikte; bugün GPU oynatmasında rastgelelik yok [kanıtlı: DENETİM kol-denetim-tur2-rapor-sonuc.md, T1'in ilk dilimi yalnız CPU üretecinde]. "rng"'nin "pcg:" öneki ve bilinmeyen önekin yükleme hatası (H6953) T1'de geldi [test: checkpoint behavior_security_test.go].
 - **Yapılacaklar (T1 birleşmesi, 2026-11-01):** 20.17'nin Test satırındaki TR testi: rastgelelik çekilmeden yazılan ilk noktanın `"rng"`'si `"pcg:00000000000054520000000000002017"`'dir; bugün yalnız Go testlerinde [ölçüldü: `git grep 54520000000000002017`].
-- **Mevcut durum (C, Ö2; T1, 2026-11-05; DENETİM istek 122 N2):** kontrol noktası 16 bitlik tensörü bitleriyle yazıyor, sürdürmede bitleriyle kuruyor: sinyal NaN'ı CPU'da susmuyor. Önce bf16 `0x7F81` sürdürünce `0x7FC1`, fp16 `0x7C01` sürdürünce `0x7E01` oluyordu [ölçüldü: T1]. Disk biçimi ve sürüm aynı: bütün desenlerde ayrılan yalnız sinyal NaN'ları, bf16'da 126, fp16'da 1022 [test: `TestSixteenBitTensorKeepsItsBits`, `TestBitsChangeOnlySignalingNaNs`].
-- **Mevcut durum (kart; T1, 2026-11-05):** kontrol noktası kartın verdiği biti değiştirmiyor: kartta yükleyip `TR_save_tensors` ile yazmak, nokta dosyası ve sürdürme aynı biti veriyor [ölçüldü: G4, RTX PRO 6000, `7691d573`, tür başına dört desen].
-
-### 20.14
-
-- **Mevcut durum (T1, birleşik 59):** noktanın yüklemesi (geri dönüş ve sürdürme) modeldeki bütün tensörlerin `.TR_grad`'ını `TR_none` yapıyor ve "gradyan eklendi" bilgisini siliyor; sonraki `TR_backward` eski gradyanın üstüne eklemiyor. Donma durumunu geri yüklüyor [test: TR testi "20.14 geri dönüşte parametrelerin gradyanı…"; ölçüldü: Gemini 4, DENETİM 166 (donma)].
 
 ## 21. Dış programlar
 
-Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin DENETİM istek 37'den, düzeltmeleri istek 38 ve 39'dan geçti; main'e girdi (2026-11-02).
+Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md).
 
 ### 21.1–21.8
 
-- **Mevcut durum (S1, 2026-11-06):** `TR_run_process` var: 21.1, 21.3–21.8 ve `TR_input:`, `TR_env:`, `TR_timeout:`, `TR_exit_codes:`; Windows'ta iş nesnesi ve Ctrl+Break, Unix'te süreç grubu [test: `internal/stdlib/process`, `cmd/trlang/e2e`]. `ffmpeg` 9.0.2 ile 21.1'in örneği Windows'ta koştu: 2 saniyelik mp3 32 000 örnek [ölçüldü: TCB, `aaf3078f`'den önceki `78c97d72` ikilisi, yerel]. `TR_spawn_process` ve `TR_Process` var (21.2, S1, birleşik 49): Linux'ta bütün süreç paketi, yarış dedektörü ve e2e geçti; `ffmpeg` çıktısı doğrudan çıktıyla bayt bayt aynı, geri basınç, yapışkan taşma, iptal 131 ms, SIGINT ve SIGTERM geçti [ölçüldü: DENETİM 248, G4]. Canlı mikrofon ve `dshow` koşmadı.
+- **Mevcut durum:** canlı mikrofon ve `dshow` yolu sınanmadı [ölçüldü: DENETİM 248, G4].
 - **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; DENETİM 226 Ş2):** Unix'te `trlang test` ve kabukta durdurma isteği yakalanmıyor; süreç grubundaki dış program TR ölünce kalır [hipotez: kod okuma, `catchStop` yalnız `runProgram`'da]. Kabuktan çıkınca yazmayan program kalıyor, `TR_exit(0)` da durdurmuyor [ölçüldü: DENETİM 248, G4]; çıkış yolu `catchStop` değil, aynı dilimde yapılır.
 - **Yapılacaklar (C, Ö2; sahip S1; DENETİM 250):** `TR_run_process`'in çıktı sınırı gerçek bellekte iş görmüyor: G4'te 176 GiB'de `yes` 51,5 sn sonra SIGKILL aldı, ileti yok, tepe 173,55 GiB [ölçüldü: G4]. Sınır küçültülünce ileti geliyor, ama tepe bütün bellek kadar [ölçüldü: G4, beş boy]. Tampon ikiye katlanarak büyüyor, süreç kodunun "eskisi ile yenisi birlikte durur" hesabı yetmiyor [hipotez: tepe sayılarına uyuyor]. Yön: sabit boy parça listesi, birleştirme yalnız başarılı dönüşte; test tepe ayırmayı ölçsün. 21.2'nin torun cümlesine de test bağlanacak: 4 saniye ve sessiz kesilme [ölçüldü: DENETİM 250].
 - **Yapılacaklar (D, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
@@ -1150,57 +1138,52 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md). Yazıld
 
 ## 22. Bayt ve sayı
 
-Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis A'dan (DENETİM istek 36 doğruladı) yazdı; metin DENETİM istek 37'den, düzeltmeleri istek 38 ve 39'dan geçti; main'e girdi (2026-11-02).
+Kurallar: [`docs/spec/22_bayt_ve_sayi.md`](spec/22_bayt_ve_sayi.md).
 
 ### 22.1–22.4
 
-- **Mevcut durum (S1, 2026-11-05):** 22.1–22.3 var: `TR_from_bytes[E]`, `.TR_to_bytes`, `.TR_read_int`, `.TR_read_float`, `TR_int_to_bytes`, `TR_float_to_bytes`; değişmez başka cins hassasiyet denetim hatası [test: `tests/bayt_ve_sayi_test.tr`, `tests/negative/bayt_hassasiyet_cinsi.tr`, `FuzzFromBytes`, `FuzzReadNumber`]. 22.4 var: `tr/audio`, `TR_read_wav`, `TR_write_wav`, `TR_Sound`; bozuk dosya sebebiyle H7061–H7071 ve H7080 [test: `lib/audio_test.tr`, `FuzzReadWav`]. Okumanın bellek tepesi dosyanın yaklaşık 10 katı: 38,4 MB'lık dosyada 395 904 KB [ölçüldü: S1].
+- **Mevcut durum:** WAV okumasının bellek tepesi dosyanın yaklaşık 10 katı: 38,4 MB'lık dosyada 395 904 KB [ölçüldü: S1].
 - **Yapılacaklar (F, Ö3; sahip S1):** iletide bayt adı okunmuyor: H7067 metin olmayan parça adını sayı listesi diye gösteriyor [ölçüldü: S1]. Uzun dosyalar için parça parça okuma, önce gerçek ihtiyaç ölçülür.
 
 ## 23. Sinyal ve spektrum
 
-Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı, istek 43 kararları okudu) yazdı; metin DENETİM istek 44'ten, düzeltmeleri istek 45'ten geçti (2026-11-02).
+Kurallar: [`docs/spec/23_sinyal_ve_spektrum.md`](spec/23_sinyal_ve_spektrum.md).
 
 ### 23.1–23.6
 
-- **Mevcut durum (S1, 2026-11-05):** 23.1–23.3 var, CPU'da: `TR_rfft` (karışık taban, büyük asal çarpanda Bluestein), `TR_hann_window`, `TR_stft`; işçi sayısından bağımsız aynı bitler; türev izler (sayısal türevle kıyas); GPU'da H7076 [test: `tests/sinyal_test.tr`, `TestStftSameBitsForAnyWorkerCount`, `TestPlanMatchesTheDefinition`]. 23.4 `TR_mel_filterbank`, 23.6 `TR_whisper_log_mel` var [test: `tests/sinyal_test.tr`, `lib/audio_test.tr`, `tests/whisper_girdi_test.tr`, `TestMelFiltersMatchWhisper`]. Gerçek konuşmada, `jfk` sesinde Whisper'la en büyük fark 3,1e-5, sınırı aşan öğe 0 [ölçüldü: S1, G4].
 - **Yapılacaklar (E, Ö3; sahip S1):** `TR_fuse` içinde `TR_maximum` H3107 veriyor, 15.44 izin veriyor [ölçüldü: S1]. GPU'da Fourier dönüşümü kendi çekirdeğiyle (23.5); o gelene kadar GPU'da hata.
 
 ## 24. Sohbet biçimi
 
-Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md). Yazıldı (2026-11-02): ana oturum Gemini Jarvis B'den (DENETİM istek 42 doğruladı, istek 43 kararları okudu) yazdı; metin DENETİM istek 44'ten, düzeltmeleri istek 45 ve 46'dan geçti (2026-11-02).
+Kurallar: [`docs/spec/24_sohbet_bicimi.md`](spec/24_sohbet_bicimi.md).
 
 ### 24.1–24.4
 
-- **Mevcut durum (S1, 2026-11-08):** `tr/chat` 24.1–24.3'ü uyguluyor, 24.4 dışında; `lib/chat.tr`. Küçük parçalayıcıyla 14 durum transformers'ın kimlikleriyle birebir, iki bilinen fark ayrı testte [test: `tests/chat_format_test.tr`]; gerçek Qwen3-4B'de GGUF'tan açılan parçalayıcıyla 14 durumda 1191 parça birebir [ölçüldü: S1, dizüstü].
 - **Yapılacaklar:** 24.4 `TR_read_chat`.
 - **Yapılacaklar (Jarvis B kararı, `lib/layers.tr`):** `TR_generate`'in `TR_eos`'u `TR_List[TR_Int] = []` olur, çünkü modeller birden çok durdurma parçası taşır: Qwen3-0.6B `[151645, 151643]`, Llama-3.1-8B-Instruct `[128001, 128008, 128009]` [kaynak: DENETİM istek 42, `generation_config.json`]. Çağıranların göçüyle: `lib/layers_test.tr`, `examples/tr/46_hazir_model_ve_uretim.tr`, `tools/gpu/ss_exam.tr`, `docs/guide/10_hazir_katmanlarla_gpt.md` [ölçüldü: DENETİM istek 43]. T1'in alanı.
 
 ## 25. Konuşmayı yazıya çevirme
 
-Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md). Yazıldı (2026-11-05): ana oturum Gemini Whisper raporundan yazdı; alıntıları DENETİM istek 175, metni istek 177 okudu.
+Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 
 ### 25.1–25.9
 
-- **Mevcut durum (S1, 2026-11-05):** `TR_pretrained_whisper` ve 25.1'in kapıları var, kodlayıcı çalışıyor; `lib/whisper.tr`. Whisper-tiny'de özgünle en büyük fark 6,99e-4, ortalama 1,41e-6; float64 doğrusuna TR 4,19e-4, özgün 4,77e-4 uzak [ölçüldü: S1, G4 CPU, tek ses]. Ölçüt `TR_rtol: 1e-3`, `TR_atol: 1e-3`, ortalama mutlak fark 1e-5'in altında (TCB). Çözücü de var: tek adım logitinde en büyük fark 2,86e-5, dört konumda en olası parça özgünle aynı, float64 doğrusuna TR 1,97e-5, özgün 2,31e-5 uzak [ölçüldü: S1, G4 CPU, tek ses]; ölçüt `TR_rtol: 1e-4`, `TR_atol: 1e-4`, ortalama 1e-5 altı, en olası parça aynı. `TR_transcribe` var: `whisper-tiny` ve `whisper-base`, `jfk`, 81 saniyelik birleşik ses ve bir Türkçe seste parçalar, kesitler, zamanlar ve metin özgünle aynı; `GOMAXPROCS` 1, 2, 3, 8 aynı [ölçüldü: S1, G4 CPU, her biri bir kez]. Ölçüt aynılıktır, doğruluk değil: model Türkçe seste yanlış yazınca TR de aynısını yazar. Dış 16 bit blok metni değiştirmez, gövde float32 bloğunda. `whisper-small` ve `whisper-large-v3` de bire bir; sessizlik ve ortalama değerleri gerçek modelde özgünle 1e-4 içinde, gürültü sesinde pencere iki tarafta da atlanıyor [ölçüldü: S1, G4 CPU]. Hız, 8 iş parçacığı, çevirme süresi: TR özgünün 0,95–1,19 katı, whisper.cpp'nin 2,0–3,9 katı (whisper.cpp ağırlığı float16, TR float32; metin altı çiftin ikisinde aynı, orada 2,26 ve 2,93); 1 iş parçacığında özgünün 1,31–1,60, whisper.cpp'nin 1,20–1,87 katı [ölçüldü: S1, üç tur, sıra dönüşümlü]. `small`'da kodlayıcı 8 iş parçacığında whisper.cpp'nin %11–13 gerisinde, tek iş parçacığında başa baş; çözücü adımı aynı metinde yaklaşık 5 ve 3 kat yavaş [hesap: S1, DENETİM 199; iki ayrı makine]. NVIDIA kartsız bir dizüstünde, 14 iş parçacığı: `small` 16,8 saniyelik Türkçe sesi 4,2 sn, 81 saniyelik sesi 11,8 sn, tepe 4,2 GB; `base` 1,5 ve 4,8 sn [ölçüldü: TCB, üç turun ortancası, turlar arası yayılım %6,7–24,9, prizde, `78aeb8cc`]; `base` Türkçe seste bozuk yazıyor, hızlı yol sayılmaz. Mikrofondan kaydedilen 15,6 saniyelik Türkçe konuşma 2,5 sn'de yazıya döndü [ölçüldü: TCB, tek deneme]; metin doğru [Ahmet; özgünle kıyaslanmadı]. Tepe bellek `small` 4,2 GB, özgün 2,0 GB, whisper.cpp 0,66 GB; sebep çöp hızı, canlı bellek pencereyle büyümüyor, çare 15.53 [ölçüldü: S1].
+- **Mevcut durum:** hız, 8 iş parçacığı, çevirme süresi: TR özgünün 0,95–1,19 katı, whisper.cpp'nin 2,0–3,9 katı [ölçüldü: S1, üç tur, sıra dönüşümlü]; `small`'da çözücü adımı whisper.cpp'den yaklaşık 5 ve 3 kat yavaş [hesap: S1, DENETİM 199]. Tepe bellek `small` 4,2 GB, özgün 2,0 GB, whisper.cpp 0,66 GB; sebep çöp hızı, canlı bellek pencereyle büyümüyor, çare 15.53 [ölçüldü: S1]. Ölçüt özgünle aynılıktır, doğruluk değil (TCB): kodlayıcıda `TR_rtol: 1e-3`, `TR_atol: 1e-3`, çözücüde 1e-4, ortalama mutlak fark 1e-5'in altında.
 - **Yapılacaklar (E, Ö2; sahip H1):** kodlayıcı ve çözücü adımı. Skaler GELU kodlayıcıda (`small`'da %12) [ölçüldü: S1; çağrı payı hesap: DENETİM 202], adımlı kopya ve matris çarpımı çözücüde; whisper.cpp aynı koşuda ölçülür.
 - **Yapılacaklar (E, Ö3; sahip S1):** dilim dilim, DENETİM istek 178'den geçen yönergeyle.
 
 ### 25.10–25.17
 
-- **Mevcut durum (T1, birleşik 49):** `tr/vad`: Silero VAD ileri geçişi ve kesitleyici saf `.tr`. Aynı ağırlıkla TR, JIT'in tabanının 0,99 ve 0,91 katı, kesit sınırları aynı; `TR_push` G4'te ortalama 0,284 ms [ölçüldü: T1]. Kart testi G4'te 40/40 [ölçüldü: DENETİM 250]. Sessizlik sayacı Silero'dan en çok 2 çerçeve ayrılıyor, kesit sayısı ayrılmıyor [ölçüldü: DENETİM 245, FLEURS tr dev]. Gerçek ağırlıkla `TR_transcribe` ve canlı dinleme koşmadı.
-- **Mevcut durum (2026-11-06; E, Ö3 kapandı; TCB):** dağıtılacak model yayımlanan safetensors kalıyor: bilinen metinli tek kayıtta iki ağırlık da 9 parçayı 9 kesite ayırdı, kaçan, bölünen, birleşen ve yanlış tetikleme yok; eşitlikte önceden yazılan kural safetensors der [ölçüldü: dizüstü, tek konuşmacı, tek oda]. Yön gösterir.
-- **Mevcut durum (2026-11-06; canlı dinleme, ilk koşu):** mikrofon, `TR_spawn_process`, Silero VAD ve Whisper small zinciri dizüstünde iki kez koştu. 60,0 saniye ses 60,6 saniyede okundu, aynı sesin dosyadan metniyle karşılaştırıldı, içerik kaybı görülmedi [ölçüldü: ikinci koşu]. 2,1–8,6 saniyelik sözde yazı süresi 2,2–3,9 saniye, 21 saniyelik sözde 6,3 saniye [ölçüldü; aynı makinede başka iş koşuyordu].
 - **Yapılacaklar (hız; sahip H1; canlı dinleme):** kısa sözde de Whisper yaklaşık 2,2 saniyeden aşağı inmiyor [ölçüldü]; sebep tam pencere olabilir [hipotez]. Sıradaki adım: profil.
 - **Yapılacaklar (F, Ö3; sahip T1):** çok büyük sessizlik süresi genel taşma iletisi veriyor (H2484) [ölçüldü: T1, DENETİM 245].
 
 ## 26. Türkçe sözcük çözümleme
 
-- **Mevcut durum (2026-11-06; T1, birleşik 55):** `tr/turkish` Türkçe sözcüğün sözlük biçimini buluyor (26): Gemini'nin kuralları, Zemberek kökleri. Görülmemiş 60 sözcükte 57, gerileme tabanı olan 120 sözcükte 117 doğru [ölçüldü: DENETİM 264, TCB]. Ad maddesi önce geldiği için bazı fiil çekimleri ad verir [ölçüldü: T1].
+- **Mevcut durum (T1, birleşik 55):** ad maddesi önce geldiği için bazı fiil çekimleri ad veriyor [ölçüldü: T1]; görülmemiş 60 sözcükte 57 doğru [ölçüldü: DENETİM 264, TCB].
 
 ## 28. Ağ: HTTP sunucusu
 
-Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md). Yazıldı (2026-11-09): dört tasarım turu; güvenlik incelemesi ve emsal araştırması Gemini'nin, kararlar DENETİM 320, 329, 330, 338, 346'dan, metin 347'den geçti.
+Kurallar: [`docs/spec/28_ag.md`](spec/28_ag.md).
 
 - **Mevcut durum (2026-11-09):** uygulanmadı; `TR_serve_http` sözdizimi hatası verir: "bilinen bir kimlik değil" [ölçüldü: main `f3fabb79`, trlang'ın denetimi]. Yan değişiklikleri de uygulanmadı: 18.13 ve 18.17'nin `TR_owner_only:`'si, 19.4'te belirteç ve olay akışı.
 - **Yapılacaklar (E, Ö3; sahip TCB, kod yönergesi; sırası asistan ekranının planında):** 28.1–28.9 ve yan değişiklikleri iki aşamada (yönerge `yonerge-http-28.md`, DENETİM 356): aşama 1 sunucu, güvenlik, dosya, belirteç, `TR_owner_only:` ve akışsız kapanış; aşama 2 akış, nabız, olay maskesi; *Test:* satırları uygulanınca TR testine döner. Kod yönergesinden önce bölümün kimlik ve gösterim adları kod listesine.
