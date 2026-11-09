@@ -2167,5 +2167,6 @@
 "H8876": "'{given}' 'trlang {command}' için bir alt komut değil; 'trlang {command} {subcommand}' yazmak mı istediniz?",
 "H8877": "[`{recv}` bir tipse: bu üyesi yok]",
 "H8878": "[`{recv}` bir değerse: `x.{member}`]",
+"H8879": "[`{recv}` içe aktarılan modülse: bu üyesi yok]",
 "H9000": "TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}"
 }

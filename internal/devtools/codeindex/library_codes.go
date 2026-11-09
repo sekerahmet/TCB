@@ -46,13 +46,13 @@ func MemberQuery(q string, n int, kindOf func(i int) Kind, names func(i int) [][
 		return "", nil
 	}
 	if recv != "" {
-		if len(QualifiedMatch(n, NameKey{Key: recv}, func(i int) [][2]string {
+		if mods := QualifiedMatch(n, NameKey{Key: recv}, func(i int) [][2]string {
 			if kindOf(i) == KindModule {
 				return names(i)
 			}
 			return nil
-		})) > 0 {
-			return "", nil
+		}); len(mods) > 0 {
+			return "x." + member, mods
 		}
 		if types := QualifiedMatch(n, NameKey{Key: recv}, func(i int) [][2]string {
 			if kindOf(i) == KindStruct {
@@ -86,11 +86,15 @@ func moduleImportAliases(idx *Index) map[string][]string {
 	return byMod
 }
 
-// MemberTypeNote ve MemberValueNote tiple aynı adı taşıyan kodsuz alıcıda (`A.TR_shape`, `Model.TR_append`) belirsiz
-// cevabın iki aday kümesinin ileti kodu (H8877, H8878) ve etkin dildeki etiket metnidir; MemberTypeNoteIn ve
-// MemberValueNoteIn aynı kodların verilen dildeki ("en": codegraph) metnini döner.
+// MemberTypeNote, MemberModuleNote ve MemberValueNote tiple ya da modülle aynı adı taşıyan kodsuz alıcıda
+// (`A.TR_shape`, `Model.TR_append`, `layers.TR_map`) belirsiz cevabın aday kümelerinin ileti kodu (H8877, H8879, H8878)
+// ve etkin dildeki etiket metnidir; *In kardeşleri aynı kodların verilen dildeki ("en": codegraph) metnini döner.
 func MemberTypeNote(recv string) (string, string) {
 	return messages.H8877.String(), messages.Text(messages.H8877, recv)
+}
+
+func MemberModuleNote(recv string) (string, string) {
+	return messages.H8879.String(), messages.Text(messages.H8879, recv)
 }
 
 func MemberValueNote(recv, member string) (string, string) {
@@ -99,6 +103,10 @@ func MemberValueNote(recv, member string) (string, string) {
 
 func MemberTypeNoteIn(lang, recv string) (string, string) {
 	return messages.H8877.String(), messages.TextIn(lang, messages.H8877, recv)
+}
+
+func MemberModuleNoteIn(lang, recv string) (string, string) {
+	return messages.H8879.String(), messages.TextIn(lang, messages.H8879, recv)
 }
 
 func MemberValueNoteIn(lang, recv, member string) (string, string) {

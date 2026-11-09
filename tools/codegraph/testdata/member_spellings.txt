@@ -1006,8 +1006,8 @@ l.TR_unique	ok	0	name:TR_mem_unique
 l2.TR_append	ok	0	name:TR_mem_append
 layers.TR_GPT	ok	0	tr:struct:lib/layers.tr:TR_type_GPT
 layers.TR_Linear	ok	0	tr:struct:lib/layers.tr:TR_type_Linear
-layers.TR_append	not_found	4	-
-layers.TR_map	not_found	4	-
+layers.TR_append	ambiguous	3	name:TR_mem_append[H8878],tr:file:lib/layers.tr[H8879],tr:file:tests/tr/layers.tr[H8879]
+layers.TR_map	ambiguous	3	name:TR_mem_map[H8878],tr:file:lib/layers.tr[H8879],tr:file:tests/tr/layers.tr[H8879]
 layers.TR_type_Linear	ok	0	tr:struct:lib/layers.tr:TR_type_Linear
 liste.TR_append	ok	0	name:TR_mem_append
 liste.TR_filter	ok	0	name:TR_mem_filter
@@ -1068,7 +1068,7 @@ member_log.TR_append	ok	0	name:TR_mem_append
 member_log.TR_join	ok	0	name:TR_mem_join
 mesaj.TR_contains	ok	0	name:TR_mem_contains
 mesajlar.TR_append	ok	0	name:TR_mem_append
-metin.TR_length	not_found	4	-
+metin.TR_length	ambiguous	3	name:TR_mem_length[H8878],tr:file:tools/bench/tr/metin.tr[H8879]
 metinler.TR_append	ok	0	name:TR_mem_append
 meyveler.TR_append	ok	0	name:TR_mem_append
 meyveler.TR_index_of	ok	0	name:TR_mem_index_of

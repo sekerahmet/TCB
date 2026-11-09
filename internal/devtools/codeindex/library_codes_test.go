@@ -125,20 +125,29 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 	if res := r.Definition("model.TR_append", QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_append" {
 		t.Errorf("Definition(\"model.TR_append\") = %+v, want builtin:TR_mem_append", res)
 	}
-	for _, q := range []string{"TR_Linear.TR_map", "layers.TR_map", "Model.TR_GPT", "foo.TR_Linear", "model.TR_Linear", "TR_self.TR_Linear", ".TR_Linear", "x.TR_Linear"} {
+	for _, q := range []string{"TR_Linear.TR_map", "Model.TR_GPT", "foo.TR_Linear", "model.TR_Linear", "TR_self.TR_Linear", ".TR_Linear", "x.TR_Linear"} {
 		if res := r.Definition(q, QueryOptions{}); res.Status != StatusNotFound {
 			t.Errorf("Definition(%q) = %s (%+v), want not_found", q, res.Status, res.Target)
 		}
 	}
-	for _, q := range []string{"A.TR_shape", "Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map"} {
-		recv, member, _ := strings.Cut(q, ".")
-		res := r.Definition(q, QueryOptions{})
+	for _, tc := range []struct {
+		q     string
+		owner messages.Code
+	}{
+		{"A.TR_shape", messages.H8877},
+		{"Model.TR_append", messages.H8877},
+		{"Linear.TR_map", messages.H8877},
+		{"Doğrusal.TR_map", messages.H8877},
+		{"layers.TR_map", messages.H8879},
+	} {
+		recv, member, _ := strings.Cut(tc.q, ".")
+		res := r.Definition(tc.q, QueryOptions{})
 		out := Text(res)
-		wantType, wantVal := messages.Text(messages.H8877, recv), messages.Text(messages.H8878, recv, member)
-		hasType := slices.ContainsFunc(res.Candidates, func(n Node) bool { return n.NoteCode == messages.H8877.String() })
+		wantOwner, wantVal := messages.Text(tc.owner, recv), messages.Text(messages.H8878, recv, member)
+		hasOwner := slices.ContainsFunc(res.Candidates, func(n Node) bool { return n.NoteCode == tc.owner.String() })
 		hasVal := slices.ContainsFunc(res.Candidates, func(n Node) bool { return n.NoteCode == messages.H8878.String() })
-		if res.Status != StatusAmbiguous || !hasType || !hasVal || !strings.Contains(out, wantType) || !strings.Contains(out, wantVal) {
-			t.Errorf("Definition(%q) = %s (%d candidates):\n%s", q, res.Status, len(res.Candidates), out)
+		if res.Status != StatusAmbiguous || !hasOwner || !hasVal || !strings.Contains(out, wantOwner) || !strings.Contains(out, wantVal) {
+			t.Errorf("Definition(%q) = %s (%d candidates):\n%s", tc.q, res.Status, len(res.Candidates), out)
 		}
 	}
 }

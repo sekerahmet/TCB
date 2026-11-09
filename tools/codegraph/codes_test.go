@@ -223,7 +223,8 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		"Linear.TR_forward", "Doğrusal.TR_forward", "doğrusal.TR_forward", "GPT.TR_generate",
 		"model.TR_generate", "a.TR_shape", "A.TR_shape", "A.TR_tolist", "model.TR_append", "tr_linear.TR_map",
 		"Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
-		"layers.TR_Linear.TR_forward", "layers.TR_GPT", "katman.TR_GPT", "k.TR_Linear", "iyileştirici.TR_lr_schedule", "eğitim.TR_SpikeGuard",
+		"layers.TR_Linear.TR_forward", "layers.TR_Linear", "layers.TR_GPT", "katman.TR_GPT", "k.TR_Linear", "iyileştirici.TR_lr_schedule", "eğitim.TR_SpikeGuard",
+		"metin.TR_length", "layers.TR_map", "layers.TR_append",
 		"l.TR_map", "m.TR_forward", "uzun_alici.TR_map", "uzun_alici.TR_forward",
 		".TR_map", ".TR_forward", "TR_self.TR_map", "TR_self.TR_forward",
 	} {
@@ -240,13 +241,16 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 			t.Errorf("query %q: codegraph %v, trlang index %v", q, gotCG, gotTR)
 		}
 	}
-	assertAmbiguousMemberCandidates(t, ix, reader, []string{
+	assertAmbiguousMemberCandidates(t, ix, reader, messages.H8877, []string{
 		"A.TR_shape", "A.TR_tolist", "Model.TR_append", "Linear.TR_map", "Doğrusal.TR_map", "GPT.TR_map",
+	})
+	assertAmbiguousMemberCandidates(t, ix, reader, messages.H8879, []string{
+		"metin.TR_length", "layers.TR_map", "layers.TR_append",
 	})
 	for _, q := range []string{
 		"TR_Linear.TR_map", "A.TR_GPT",
 		"foo.TR_GPT", "model.TR_GPT", "TR_self.TR_GPT", ".TR_GPT", "x.TR_GPT",
-		"layers.TR_map", "layers.TR_append", "layers.TR_Linear.TR_map",
+		"geo.TR_Linear", "layers.TR_Linear.TR_map",
 	} {
 		if got := ix.lookup(q); len(got) != 0 {
 			t.Errorf("codegraph lookup %q: got %v, want not found", q, got)
@@ -257,21 +261,21 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 	}
 }
 
-func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.Reader, queries []string) {
+func assertAmbiguousMemberCandidates(t *testing.T, ix *index, reader *codeindex.Reader, ownerNote messages.Code, queries []string) {
 	t.Helper()
-	typeCode, valCode := messages.H8877.String(), messages.H8878.String()
+	ownerCode, valCode := ownerNote.String(), messages.H8878.String()
 	for _, q := range queries {
 		gotCG := ix.lookup(q)
-		hasTypeCG := slices.ContainsFunc(gotCG, func(n *Node) bool { return n.NoteCode == typeCode && n.Note != "" })
+		hasOwnerCG := slices.ContainsFunc(gotCG, func(n *Node) bool { return n.NoteCode == ownerCode && n.Note != "" })
 		hasValCG := slices.ContainsFunc(gotCG, func(n *Node) bool { return n.NoteCode == valCode && n.Note != "" })
-		if !hasTypeCG || !hasValCG {
-			t.Errorf("codegraph lookup %q: got %d candidates (hasType=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotCG), hasTypeCG, hasValCG, typeCode, valCode)
+		if !hasOwnerCG || !hasValCG {
+			t.Errorf("codegraph lookup %q: got %d candidates (hasOwner=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotCG), hasOwnerCG, hasValCG, ownerCode, valCode)
 		}
 		gotTR := reader.Resolve(q, "")
-		hasTypeTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == typeCode && n.Note != "" })
+		hasOwnerTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == ownerCode && n.Note != "" })
 		hasValTR := slices.ContainsFunc(gotTR, func(n *codeindex.Node) bool { return n.NoteCode == valCode && n.Note != "" })
-		if !hasTypeTR || !hasValTR {
-			t.Errorf("trlang index Resolve %q: got %d candidates (hasType=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotTR), hasTypeTR, hasValTR, typeCode, valCode)
+		if !hasOwnerTR || !hasValTR {
+			t.Errorf("trlang index Resolve %q: got %d candidates (hasOwner=%v, hasVal=%v), want >=1 %s and >=1 %s", q, len(gotTR), hasOwnerTR, hasValTR, ownerCode, valCode)
 		}
 	}
 }

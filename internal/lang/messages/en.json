@@ -2167,5 +2167,6 @@
 "H8876": "'{given}' is not a subcommand of 'trlang {command}'; did you mean to write 'trlang {command} {subcommand}'?",
 "H8877": "[if `{recv}` is a type: it has no such member]",
 "H8878": "[if `{recv}` is a value: `x.{member}`]",
+"H8879": "[if `{recv}` is an imported module: it has no such member]",
 "H9000": "an internal error occurred in TR (not an error in your program); please report it: {detail}"
 }

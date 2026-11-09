@@ -127,7 +127,11 @@ func (ix *index) trMember(q string, kinds []string, table []trName) (found []*No
 	recv, member, _ := strings.Cut(q, ".")
 	for _, i := range types {
 		cp := *table[i].node
-		cp.NoteCode, cp.Note = codeindex.MemberTypeNoteIn("en", recv)
+		if table[i].class == codeindex.ClassModule {
+			cp.NoteCode, cp.Note = codeindex.MemberModuleNoteIn("en", recv)
+		} else {
+			cp.NoteCode, cp.Note = codeindex.MemberTypeNoteIn("en", recv)
+		}
 		found = append(found, &cp)
 	}
 	for _, v := range vals {

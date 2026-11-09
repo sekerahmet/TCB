@@ -307,3 +307,7 @@ codegraph tests-for lib/audio.tr | contains: run: go run ./cmd/trlang test lib/a
 codegraph fields interp.vmShared.gilSince --mode write | exit: 4 | contains: did you mean: | contains: interp.VM.gilSince [field] | src: codegraph A2 madde 9, 2026-11-09 (taşınan alanın eski tam adı yeni yerini önerir; çıkış 4 kalır, DENETİM 358 Ş6)
 codegraph help | contains: "changed HEAD", the diff runs to the working tree | src: codegraph A2 madde 10, 2026-11-09 (changed'in help satırı çalışma ağacını söyler, DENETİM 348 Ş4)
 codegraph dups --root tools/codegraph/testdata/mod --changed HEAD..HEAD | exit: 0 | contains: no changes to scan: HEAD...HEAD adds or changes no Go line | src: codegraph A2 madde 11, 2026-11-09 (değişiklik yokken dups --changed bunu söyler; D1 15.5 devri)
+
+# uzak-11 A1: noktalı üye yazımları (2026-11-09)
+codegraph query metin.TR_length | exit: 3 | contains: TR_mem_length | contains: [if `metin` is an imported module: it has no such member] | contains: [if `metin` is a value: `x.TR_length`] | src: uzak-11 2b, 2026-11-09 (alıcı bir modülün adıyla aynıysa ve modülde o üye yoksa modül H8879 ve değer H8878 adaylarıyla belirsiz)
+trlang index definition metin.TR_length | exit: 3 | contains: TR_mem_length | contains: [`metin` içe aktarılan modülse: bu üyesi yok] | contains: [`metin` bir değerse: `x.TR_length`] | src: uzak-11 2b, 2026-11-09 (iki araçta modül adıyla aynı alıcı H8879 ve H8878 ile belirsiz)
