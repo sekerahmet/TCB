@@ -205,7 +205,7 @@ func TestQuantMatMulPooledBuffersKeepNoData(t *testing.T) {
 		xs[i] = New(randomData(r, c[0]*c[2]), c[0], c[2])
 		first[i] = run(c, xs[i])
 	}
-	for _, i := range []int{1, 0, 2, 1, 2, 0} {
+	for _, i := range []int{1, 0, 2, 3, 4, 3, 1, 4, 2, 0} {
 		sameFloatBits(t, "art arda", run(shapes[i], xs[i]), first[i])
 	}
 }
