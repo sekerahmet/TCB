@@ -36,6 +36,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 ## Olağan
 
+- **8.5 ile 8.6, kodsuz hatanın gösterimi (2026-11-09, DENETİM 361 S1):** 8.5 "düz metin hatanın kodu yoktur" diyor; 8.6 gösterilen hatanın kodu ve iletisiyle bittiğini söylüyor, kodsuz hatayı söylemiyor. Motor yakalanmayan düz metin hatayı H2441 ile gösteriyor (`internal/lang/interp/error_value.go:87`), örnek testi bunu sınıyor [kanıtlı: DENETİM 361]. Turun sorusu: kodsuz hata kodsuz satırla mı, H2441'le mi gösterilir.
 - **28.8 ile 10.9, sunucuyu açan görevin iptali (2026-11-09, DENETİM 356 kapanışı K-N2):** sunucuyu `TR_async` içinde açan görev iptal edilirse ya da gövdesi biterse sunucuya ne olacağını 28.8 de 10.9 da söylemiyor. 10.9 "iptal edilen görevden kimsenin beklemediği görev kalmaz" der; 28.8 yalnız `s.TR_close()`'u, durdurmayı ve program sonunu sayar. Uygulamanın bir adımı buna bağlı değil [hipotez: DENETİM 356]; uygulayıcı karşılaşırsa "Dil tanımına düşenler"e yazar.
 - **5.5 ve 3.6, dalların tipinin iki boşluğu (2026-11-09, DENETİM 344 kapanışı N1, N2):** bütün dallar `TR_none` ise (`TR_if c { TR_none } TR_else { TR_none }`) asıl tip bilinemez, 6.6 bunu hata sayıyor, 5.5 susuyor; bir dal `T`, öbürü `T?` ise (`TR_if c { 1 } TR_else { d.TR_get("a") }`) ne 3.6 ne 5.5 yazıyor.
 - **5.6, ifade olarak `TR_match`'in kol tipi (2026-11-09, TCB, DENETİM 344 Ş1):** 5.5 ve 6.6 `T` ile `TR_none`'ı `T?` yapıyor; 5.6 "bütün kolların tipi aynıdır" diyor. Aynı cümle 5.6'ya yazılır; 5.6 D1'in 15.5 dilimindeki madde, dilim kapanınca.

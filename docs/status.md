@@ -48,7 +48,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md).
 
 ### 1.2
 
-- **Mevcut durum:** depodaki programların 1893 ilk değerinden 622'sinin tipi bilinmiyor (`TR_Any`; yerleşiğin birleşim ve motorla doğrulanmamış dönüşü de) [ölçüldü: `TestRepoFirstValueTypes`]; parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor.
+- **Mevcut durum:** depodaki programların 1893 ilk değerinden 622'sinin tipi bilinmiyor (`TR_Any`; yerleşiğin birleşim ve motorla doğrulanmamış dönüşü de) [ölçüldü: `TestRepoFirstValueTypes`'ın günlüğü, 4a2'nin ikinci dilimi; depo büyüdükçe değişir]; parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** turlarla:
   - çıkarımın kalanı (4a2'nin ikinci dilimi): kitaplık çağrılarının ve birleşim dönüşlü yerleşiklerin dönüşü (bilinmeyen çağrı 461), imzaların öğe tipleri, tipi bilinmeyen işlenenli işleç, kapanış, çoklu tanımın (`TR_var a, b = f()`) öğe tipleri, liste üretecinin sonucu, metot ve kurucu argümanlarının denetimi, kitaplık tiplerinin tanınması;
   - `TR_none` daraltması ve isteğe bağlı değerin açılmamış kullanımı (3.5, 4b);
@@ -349,7 +349,7 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ### 8.5
 
-- **Mevcut durum:** yakalanmayan düz metin hata içte H2441 taşımayı sürdürüyor (`examples/tr/hatalar/12_yakalanmamis_firlat.tr` onu sınıyor).
+- **Mevcut durum:** kural düz metin hatanın kodu yok der; motor yakalanmayan düz metin hatayı H2441 ile gösteriyor (`internal/lang/interp/error_value.go:87`; `examples/tr/hatalar/12_yakalanmamis_firlat.tr` onu sınıyor). 8.6 kodsuz hatanın gösterimini yazmıyor (`pending.md`).
 - **Yapılacaklar:** programın ayırması beklenen hataların kodları kendi maddelerine yazılacak (Gemini Koşu 4, 6, 7).
 - **Yapılacaklar (A, Ö1; DENETİM istek 79 Ş3; ölçüldü: D1 devri, alt ajanın 181 yerlik okuması, D1 altısını, DENETİM dördünü açtı):** programın değerine sistemin metnini koyan 41 yol: `{error}`'a sistem hatasını doğrudan veren 34 yer (compute/dataload 22, compute/gpu 5, devtools/profiler 2, stdlib/ml 2, stdlib kontrol noktası paketi 1, compute/tokenize 1; lang/turkish'inki Kol A'da düzeldi) ve onu kodlu bir iletinin içinde taşıyan 7 yer; çoğu `turkish.FileError`'a çevrilebilir. Eksik dosya bu yollara varmadan `FileError`'dan geçiyor (H2132); ham yollar açılış ya da okumadaki seyrek hatada [hipotez: DENETİM istek 79].
 - **Yapılacaklar (F, Ö3; DENETİM istek 79 Ş3):** cmd/trlang'ın 20 yolu programın değeri değil, komut satırının gösterdiği hata; gösterim makineye göre değişiyor. `trlang` göçünden sonra. H5620'nin `{detail}`'i de aynı yolda olabilir [hipotez: alt ajanın raporu]. Satır listesi D1'in Kol A devrinde.
@@ -403,10 +403,6 @@ Kurallar: [`docs/spec/10_eszamanlilik.md`](spec/10_eszamanlilik.md).
 
 - **Açık:** 1.6'nın "durdurma istendi" hatasının kendi kodu (zaman aşımı ve iptalinki gibi). Adlı ayırma (yeni ad) Sonraya.
 
-### 10.8
-
-- **Mevcut durum:** paylaşılan listeye görevlerden ekleme sırası zamana bağlı ve her koşuda değişken (ör. `0..5` görevinde beş koşuda `[4, 2, 0, 1, 3]`, `[4, 0, 1, 2, 3]`, `[2, 1, 0, 3, 4]` ...) [ölçüldü: `0..5` döngüsünde `TR_async { l.TR_append(i) }` ile ardışık çalıştırma, `b77644dd`].
-
 ### 10.9
 
 - **Yapılacaklar:** testi olmayan üç kısım: durum değiştiren yerleşiğin iptalde bitmesi, alt görevi bekleyen başka görev, `TR_handle_stop`.
@@ -424,10 +420,6 @@ Kurallar: [`docs/spec/11_moduller.md`](spec/11_moduller.md).
 
 - **Mevcut durum:** köşeli ayraçla erişim (H2904) indeks ad gibi yazılmış bir metin değilse (`m[k]`) ve tipi bilinmeyen kopyada çalışma anında [ölçüldü: `TestModuleValueRules`].
 - **Yapılacaklar (D, Ö1, 4a5; DENETİM istek 81 Ş2):** modül değeri; adların tipi denetimde; köşeli ayraçla erişim (çalışma anının kodu H2904), olmayan ad ve modüle özel ad (`m._gizli`, 11.7; bugün çalışma hatası) denetim hatası, en yakın adı öneren ileti; olumsuz fikstür. `tests/moduller_test.tr`'den yalnız sözlüğe özgü doğrulamalar (tip, uzunluk, anahtarlar, köşeli ayraç) çıkarıldı; nokta ile erişim ve modüle özel adın hata kodu kaldı. Modül değeri okurken de sözlük gibi görünüyor: `TR_for a TR_in m` adları dönüyor, `TR_print(m)` ve `TR_String(m)` sözlük yazımı veriyor; salt okuma, sessiz yanlış değil, 11.2 sözlük olmadığını söylüyor [ölçüldü: DENETİM istek 138 N2, `6fa66f5a` ikilisi].
-
-### 11.3
-
-- **Mevcut durum:** modüller program çalışmadan yükleniyor; `TR_import` yalnız dosya başında yazılabilir (H0024, `tests/negative/aktarma_yeri.tr`), görevlerin modül yüklemesi yok [ölçüldü: main `85a19c36`, fonksiyon içinde `TR_import`].
 
 ### 11.5
 
@@ -485,11 +477,6 @@ Kurallar: [`docs/spec/13_yerlesikler.md`](spec/13_yerlesikler.md). 6. ve 7. turu
 - **Yapılacaklar (D, Ö3; sahip D1, denetleyici; D1 tekdüze saat devri, 2026-11-09):** argüman almayan yerleşiğin fazla argümanı denetimde yakalanmıyor, yalnız çalışırken H2012: `TR_print(TR_monotonic_ns(1))` denetimden (`trlang` komutunun denetim kipi) hatasız geçiyor [ölçüldü: TCB, birleşik 60]; `TR_compute_dtype(1)` de [ölçüldü: D1, taban `fbf624ee`]. Tanım dosyasında `"params": []` yazılı; denetleyici argüman sayısını oradan okumuyor [hipotez: D1, kod okunmadı]. Ajan hatayı ancak koşunca görür.
 - **Yapılacaklar (A, Ö1, 4c; öncelik DENETİM istek 97 Ş2'de düzeltildi):** boş tensör listesinin `TR_sum`'ı hata yerine 0 veriyor, tensör tipli değişkene tam sayı giriyor [ölçüldü: önem taraması teslim 3, `30b44b01` ve main `51b75f0a`]. Liste değeri öğe tipini taşımıyor, çalışma anında ayırt edilemez; `TR_sum[TR_Float]([])` da "indekslenemez" hatası veriyor [ölçüldü: DENETİM]. İş `pending.md`'nin 3.11'iyle aynı: parametre denetimden çalışma anına gelmeli.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** `TR_min` ve `TR_max`'ın anahtar fonksiyonlu biçimi sıralama sırasını kullanır; `TR_sum` tensör listesinde boşta hata (15.18).
-
-### 13.2
-
-- **Mevcut durum:** harf dönüşümü basit eşleme: `"ß".TR_upper()` → "ß", `"İSTANBUL".TR_lower().TR_length` 8 [ölçüldü: DENETİM].
-- **Gemini Koşu 6 (2026-10-29), uygulanacak:** negatif indeks.
 
 ### 13.3
 
@@ -914,7 +901,7 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md).
 
 ### 16.7
 
-- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef) [ölçüldü: Gemini 4].
+- **Mevcut durum:** `.TR_next()` iki öğeli liste veriyor (girdi ve hedef), kural demet diyor [ölçüldü: Gemini 4].
 - **Yapılacaklar:** demet dönüşü (3.6a); göç: `.TR_next()`'i `[0]`/`[1]` ile okuyan yerler.
 
 ### 16.8
@@ -1007,7 +994,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md).
 
 ### 19.6
 
-- **Gemini Koşu 5 (2026-10-29), uygulanacak:** günlüğün kabul ettiği değerler 13.8'in JSON kümesi.
+- **Yapılacaklar (Gemini Koşu 5, 2026-10-29):** günlüğün kabul ettiği değerler 13.8'in JSON kümesi.
 
 ### 19.10
 
@@ -1103,10 +1090,6 @@ Kurallar: [`docs/spec/20_kontrol_noktasi.md`](spec/20_kontrol_noktasi.md).
 - **Mevcut durum:** sözlük anahtarlarında eski kodlu anahtar kuralı metinden kalktı (bugün sözdizimi hatası). Tam sayı, mantık ve float64 tensör `TR_Checkpoint`'in kaydında H2629 veriyor [ölçüldü: Gemini 4, DENETİM 166].
 - **Yapılacaklar (E, Ö2; sahip T1; Gemini 4, DENETİM 166):** bu tensörlerin kaydı ve yüklemesi. Hata kurulumda değil ilk kayıtta geliyor, nokta kalmıyor; panikte geçici klasör ve açık dosya kalıyor, Windows'ta ikinci kayıt H2142 veriyor [ölçüldü: DENETİM 166]. Adlar `TR_named_parameters` ile (13.8a).
 
-### 20.4
-
-- **Mevcut durum:** biçim sürümü 4 (TCB kararı, Kol B teslim 2b; sürüm 3 dosyası okunuyor); dil tanımının 20'deki "Biçim sürümü 3'tür ve yalnız o okunur" cümlesi bu kararla değişmeli (`pending.md`).
-
 ### 20.11
 
 - **Yapılacaklar (A, Ö1, Kol B, 15'in A'sıyla; ölçüm status'un):** `TR_AnyTensor` sözlüğü ve parametrenin cinsine daraltma (20.11 hassasiyeti farklıysa çevrilir der; `tests/kontrol_noktasi_test.tr` bugünkü H6960'ı sabitliyor, kural gelince değişir), daraltan hassasiyet dönüşümünde sığmama hatası, nicemlenmiş yaprağa bütün yazma (15.54) (15'in yan değişikliği, uygulanmadı).
@@ -1129,7 +1112,7 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md).
 
 ### 21.1–21.8
 
-- **Mevcut durum:** canlı mikrofon ve `dshow` yolu sınanmadı [ölçüldü: DENETİM 248, G4].
+- **Mevcut durum:** otomatik testte canlı mikrofon ve `dshow` yolu yok.
 - **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; DENETİM 226 Ş2):** Unix'te `trlang test` ve kabukta durdurma isteği yakalanmıyor; süreç grubundaki dış program TR ölünce kalır [hipotez: kod okuma, `catchStop` yalnız `runProgram`'da]. Kabuktan çıkınca yazmayan program kalıyor, `TR_exit(0)` da durdurmuyor [ölçüldü: DENETİM 248, G4]; çıkış yolu `catchStop` değil, aynı dilimde yapılır.
 - **Yapılacaklar (C, Ö2; sahip S1; DENETİM 250):** `TR_run_process`'in çıktı sınırı gerçek bellekte iş görmüyor: G4'te 176 GiB'de `yes` 51,5 sn sonra SIGKILL aldı, ileti yok, tepe 173,55 GiB [ölçüldü: G4]. Sınır küçültülünce ileti geliyor, ama tepe bütün bellek kadar [ölçüldü: G4, beş boy]. Tampon ikiye katlanarak büyüyor, süreç kodunun "eskisi ile yenisi birlikte durur" hesabı yetmiyor [hipotez: tepe sayılarına uyuyor]. Yön: sabit boy parça listesi, birleştirme yalnız başarılı dönüşte; test tepe ayırmayı ölçsün. 21.2'nin torun cümlesine de test bağlanacak: 4 saniye ve sessiz kesilme [ölçüldü: DENETİM 250].
 - **Yapılacaklar (D, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
@@ -1168,7 +1151,7 @@ Kurallar: [`docs/spec/25_konusma_tanima.md`](spec/25_konusma_tanima.md).
 
 ### 25.1–25.9
 
-- **Mevcut durum:** hız, 8 iş parçacığı, çevirme süresi: TR özgünün 0,95–1,19 katı, whisper.cpp'nin 2,0–3,9 katı [ölçüldü: S1, üç tur, sıra dönüşümlü]; `small`'da çözücü adımı whisper.cpp'den yaklaşık 5 ve 3 kat yavaş [hesap: S1, DENETİM 199]. Tepe bellek `small` 4,2 GB, özgün 2,0 GB, whisper.cpp 0,66 GB; sebep çöp hızı, canlı bellek pencereyle büyümüyor, çare 15.53 [ölçüldü: S1]. Ölçüt özgünle aynılıktır, doğruluk değil (TCB): kodlayıcıda `TR_rtol: 1e-3`, `TR_atol: 1e-3`, çözücüde 1e-4, ortalama mutlak fark 1e-5'in altında.
+- **Mevcut durum:** hız, 8 iş parçacığı, çevirme süresi: TR özgünün 0,95–1,19 katı, whisper.cpp'nin 2,0–3,9 katı [ölçüldü: S1, üç tur, sıra dönüşümlü]; tek iş parçacığında özgünün 1,31–1,60, whisper.cpp'nin 1,20–1,87 katı [ölçüldü: S1]; `small`'da kodlayıcı 8 iş parçacığında whisper.cpp'nin %11–13 gerisinde, çözücü adımı yaklaşık 5 ve 3 kat yavaş [hesap: S1, DENETİM 199]. Tepe bellek `small` 4,2 GB, özgün 2,0 GB, whisper.cpp 0,66 GB; sebep çöp hızı, canlı bellek pencereyle büyümüyor, çare 15.53 [ölçüldü: S1]. Ölçüt özgünle aynılıktır, doğruluk değil (TCB): kodlayıcıda `TR_rtol: 1e-3`, `TR_atol: 1e-3`, çözücüde 1e-4, ortalama mutlak fark 1e-5'in altında.
 - **Yapılacaklar (E, Ö2; sahip H1):** kodlayıcı ve çözücü adımı. Skaler GELU kodlayıcıda (`small`'da %12) [ölçüldü: S1; çağrı payı hesap: DENETİM 202], adımlı kopya ve matris çarpımı çözücüde; whisper.cpp aynı koşuda ölçülür.
 - **Yapılacaklar (E, Ö3; sahip S1):** dilim dilim, DENETİM istek 178'den geçen yönergeyle.
 
