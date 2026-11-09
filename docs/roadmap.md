@@ -76,7 +76,7 @@ Kapsam ve kaynak kararları.
 Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi için gereken konular. Her biri kendi bölümü olarak, öbür bölümlerin yöntemiyle yazılır: dokuz iş tartısı, kaynaklı emsal, iki denetim.
 
 **Sunmak ve uzaktaki model:**
-- **Ağ:** HTTP sunucusu ve istemcisi, akışlı cevap (metin üretiminin parça parça gönderilmesi), zaman aşımı ve yeniden deneme. Olmadan "sunmak" ve "uzaktaki modeli kullanmak" yazılamaz. Sunucunun kuralı yazıldı ([28. bölüm](spec/28_ag.md)); uygulaması iki aşamada, durumu [status](status.md)'ta; istemci yazılmadı.
+- **Ağ istemcisi:** HTTP istemcisi, akışlı cevabı (metin üretiminin parça parça gönderilmesi) okumak, zaman aşımı ve yeniden deneme. Olmadan "uzaktaki modeli kullanmak" yazılamaz. (Sunucunun bölümü artık var: [28. bölüm](spec/28_ag.md); uygulaması iki aşamada, durumu [status](status.md)'ta.)
 - **Toplu sunum:** sürekli toplu işleme ve sayfalı KV önbelleği (arşiv).
 - **Hizmet günlüğü:** istek kayıtları (düzeyler, istek kimliği), uzun çalışan programın günlüğünün döndürülmesi. 19'un `TR_Logger`'ı eğitim günlüğüdür.
 - **Belgelerden bilgi bulma:** gömme modeli ve benzerlik araması. CLAUDE.md "belgelerden bilgi bulan sistemler" der; Jarvis araştırması da eksik buldu.
