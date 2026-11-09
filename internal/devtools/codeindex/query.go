@@ -2,7 +2,6 @@ package codeindex
 
 import (
 	"cmp"
-	"path"
 	"sort"
 	"strings"
 
@@ -174,6 +173,13 @@ func (r *Reader) TestedBy(q string, o QueryOptions) *Result {
 	}
 	tests := r.testsOf([]string{n.ID})
 	res.Counts = &Counts{Total: len(tests)}
+	listed := map[string]bool{}
+	for _, u := range tests {
+		if u.In != nil {
+			listed[u.In.ID] = true
+		}
+	}
+	res.Counts.BeyondLimit, res.Counts.BeyondEntries = r.beyondLimit(n.ID, listed)
 	res.Tests, res.Truncated = limit(tests, o.Limit)
 	return res
 }
@@ -196,14 +202,8 @@ func (r *Reader) testsOf(ids []string) []Use {
 		}
 	}
 	// Dolaylı: hedeften çağıranları geriye doğru izle (WalkCallers: codegraph ile aynı kural); ilk teste kadar.
-	pkgOf := func(id string) string {
-		if n := r.byID[id]; n != nil && n.Pos != nil {
-			return path.Dir(n.Pos.File)
-		}
-		return ""
-	}
 	for _, id := range ids {
-		WalkCallers(id, func(n string) []string { return r.callers[n] }, pkgOf, func(rc Reached) bool {
+		WalkCallers(id, r.callersOf, r.pkgOf, func(rc Reached) bool {
 			c := r.byID[rc.ID]
 			if c == nil || c.Kind != KindTest {
 				return c != nil

@@ -2168,5 +2168,7 @@
 "H8877": { "param": ["recv"] },
 "H8878": { "param": ["recv", "member"] },
 "H8879": { "param": ["recv"] },
+"H8880": { "param": ["count", "limit", "entry", "steps"] },
+"H8881": { "param": ["count", "limit", "entry", "tests", "steps", "entries"] },
 "H9000": { "param": ["detail"] }
 }
