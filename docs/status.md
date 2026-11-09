@@ -38,17 +38,17 @@ Uygulamada verilen ve dil tanımı turunda denetlenecek kararlar, dil tanımıyl
 
 ## 1. Program
 
-Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den ve Gemini'nin araştırmasından geçti (2026-10-27). 1.3–1.15 uygulandı (katman 1b, DENETİM'den geçti, 2026-10-28); aşağıda yalnız kalanlar.
+Kurallar: [`docs/spec/01_program.md`](spec/01_program.md).
 
 ### 1.1
 
-- **Mevcut durum:** denetleyici modülde ve test dosyasında (`TR_test` içeren dosya, 12.1) en dıştaki tanım dışı deyimi (H1107) ve `TR_const`/`TR_var`'ın sabit olmayan ilk değerini (H1108) denetim hatası sayıyor; hata modülün satırında, aktaran modül hatasının başlığında; ileti deyimi fonksiyona alan yazımı veriyor ve yazım çalışıyor; fonksiyonların atadığı en dıştaki `TR_var` paylaşılan durum sayılıyor (H1114), ileti onu `TR_var x: T? = TR_none` ile başlatıp bir kez kuran fonksiyonu öneriyor (tip bilinmiyorsa `<tip>`). Depodaki modüller ve test dosyaları kurala uyuyor. Dosyanın tanımlamadığı ad (aktarılan ya da genel) sabit sayılıyor; gömülü kitaplık modülleri aktarılırken denetlenmiyor, kuralları depo testinde denetleniyor [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`, `TestModuleRuleSuggestionRuns`, `TestModuleSharedStateSuggestionRuns`, dal `claude/charming-pasteur-q1vsvo`].
+- **Mevcut durum:** dosyanın tanımlamadığı ad (aktarılan ya da genel) sabit sayılıyor; gömülü kitaplık modülleri aktarılırken denetlenmiyor, kuralları depo testinde denetleniyor [ölçüldü: `TestRepoModulesHoldOnlyDefinitions`].
 - **Yapılacaklar:**
   - Aktarılan adın sabitliği modüller arası tip denetimiyle (4b) bilinir; bugün aktarılan ad sabit sayılıyor.
 
 ### 1.2
 
-- **Mevcut durum:** denetleyici yerel değişkenin tipini ilk değerinden çıkarıyor ve tipi kalıcı (3.13): değişmezler, aritmetik ve önek işleç, karşılaştırma, adıyla çağrılan tipli fonksiyonun ve tipi bilinen yapının metodunun dönüşü, yapı kurucusu, liste ve sözlüğün öğe tipi, demet, isteğe bağlı tip (`T?`, `??`'nin asıl tipi), tipi bilinen yapının alanı ve metotta `TR_self`, değer veren `TR_if`/`TR_match` (dalların ortak tipi), liste/metin/sözlük/tensör indeksi ve dilimi, döngü değişkeni (5.7), yerleşik çağrısının tek tipli dönüşü (4a2: tanım dosyasının `returns`'ü; birleşim ve motorla doğrulanmamış dönüş `TR_Any`), tipi bilinen çekirdek alıcıda (metin, liste, sözlük, aralık) özelliğin değeri ve metodun alıcıdaki dönüşü öğe tipiyle (4a2 ikinci dilim: `[1, 2].TR_length` `TR_Int`, `.TR_first` `T?`, `{"a": 1}.TR_keys()` `TR_List[TR_String]`; 28 üye-alıcı dönüşü motorla doğrulandı [test: `TestMemberValueTypes`, `TestMemberReturnsMatchEngine`]); bilinmeyen `TR_Any` kalıyor. Depodaki programların 1893 ilk değerinden 622'sinin tipi bilinmiyor (4a1'den sonra 1115, ilk dilimden önce 1212) [ölçüldü: `TestRepoFirstValueTypes`, `TestBuiltinReturnTypes`, `TestSingleReturnsMatchEngine`]; tipsiz parametre, alan ve `->`'sız değerli dönüş denetim hatası (6.1, 7.1; kitaplığın 4c'yi bekleyen yerleri istisna), parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor [ölçüldü: `TestRepoFirstValueTypes`, `TestOptionalTypes`, `TestFieldTypes`, `TestIfAndMatchValueTypes`, `TestIndexTypes`, `TestLoopVariableTypes`, dal `claude/charming-pasteur-q1vsvo`].
+- **Mevcut durum:** depodaki programların 1893 ilk değerinden 622'sinin tipi bilinmiyor (`TR_Any`; yerleşiğin birleşim ve motorla doğrulanmamış dönüşü de) [ölçüldü: `TestRepoFirstValueTypes`]; parametre tipleri yalnız adıyla çağrılan fonksiyonun konumlu argümanlarında denetleniyor.
 - **Yapılacaklar (A, Ö1, 4a5; ölçüldü 30b44b01):** turlarla:
   - çıkarımın kalanı (4a2'nin ikinci dilimi): kitaplık çağrılarının ve birleşim dönüşlü yerleşiklerin dönüşü (bilinmeyen çağrı 461), imzaların öğe tipleri, tipi bilinmeyen işlenenli işleç, kapanış, çoklu tanımın (`TR_var a, b = f()`) öğe tipleri, liste üretecinin sonucu, metot ve kurucu argümanlarının denetimi, kitaplık tiplerinin tanınması;
   - `TR_none` daraltması ve isteğe bağlı değerin açılmamış kullanımı (3.5, 4b);
@@ -62,7 +62,7 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ### 1.5
 
-- **Mevcut durum:** hesap çekirdeğinin (CPU) ortasında bırakma yok, süren hesap biter; ağ yerleşiği yok. Dış programa istek 21.5'teki gibi gider, `TR_run_process` ve `TR_spawn_process` durur, program sonra biter [test: `TestStopRequestStopsTheExternalProgram`, `TestSecondRequestKillsTheExternalProgram`].
+- **Mevcut durum:** hesap çekirdeğinin (CPU) ortasında bırakma yok, süren hesap biter.
 - **Yapılacaklar:**
   - Bırakılan hesabın GPU'da başlamış işi beklenir, ertelenen işler sonra çalışır; CPU çekirdeğinin ortasında bırakma.
 
@@ -72,14 +72,11 @@ Kurallar: [`docs/spec/01_program.md`](spec/01_program.md). Kararlar DENETİM'den
 
 ## 2. Sözcük yapısı
 
-Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'den (üç tur) ve Gemini'nin araştırmasından geçti (2026-10-27). 2.1–2.10 uygulandı (katman 1, iki DENETİM turundan geçti, 2026-10-28); aşağıda yalnız kalanlar.
+Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md).
 
 ### 2.1
 
-- **Mevcut durum:**
-  - Rehber ve kök belgelerdeki program metni kimlik yazımına çevrildi (2026-10-29). Kalan sınıflı yazım 17.2'nin "içeride" grubudur: tanım dosyalarının içeriği, eş adlar tablosunun kod sütunu, `code_identities.md`, disk biçimi örnekleri [ölçüldü: main `85a19c36`, belgelerde program sınıflarının sınıflı yazımını arayan git grep].
-  - Üretilen kod listesi (`docs/codes.md`) başlıklarda program yazımını, yanında sınıflı anahtarı yazıyor; örnekleri kimlik yazımıyla, altında her gömülü dilin görünümüyle (tanım dosyasının örnek alanından, 2026-10-29, Faz 0.5).
-  - Satır içi kod (ters tırnak) yalnız dil tanımında ve status'ta denetleniyor; öbür belgelerde yanlış kod gösteren ad (ör. aynı kısa adın başka sınıfı) hiçbir testte düşmüyor.
+- **Mevcut durum:** satır içi kod (ters tırnak) yalnız dil tanımında ve status'ta denetleniyor; öbür belgelerde yanlış kod gösteren ad (ör. aynı kısa adın başka sınıfı) hiçbir testte düşmüyor.
 - **Yapılacaklar:**
   - ters tırnak içindeki adların denetimi `docs/*.md`'ye genişler (üretilen ve donmuş belgeler ile eş adlar tablosunun kod sütunu hariç): program sınıflarının sınıflı yazımı hata, `.TR_x` yalnız üye, `TR_x:` yalnız adlı argüman.
 
@@ -90,7 +87,6 @@ Kurallar: [`docs/spec/02_sozcuk_yapisi.md`](spec/02_sozcuk_yapisi.md). DENETİM'
 
 ### 2.13
 
-- **Mevcut durum:** `TR_cmd_check --json` çalışıyor (katman 2b, DENETİM'den geçti, 2026-10-28): sözcük çözümleyicinin, ayrıştırıcının, denetleyicinin ve komut satırının hataları ve uyarıları başlangıç ve bitiş konumu, en içteki kod, ilgili konum (H1020) ve düzeltmeyle JSON satırları olarak; satır başındaki `//` → `#` ve `0X1F` → `0x1F` uygulanabilir. Metin kipinde denetleyicinin iletileri sütunu da yazıyor [ölçüldü].
 - **Yapılacaklar:** başlık hatasının (H2540) bitişi; ana dosyadaki okunamayan modülün (H2132; olmayan klasör H2131) sütunu ve bitişi [kanıtlı: `internal/lang/turkish/file_error.go:131-133`]; iç içe modülün `TR_import` hatasının dosyası (yorumlayıcıda `ModuleError` sarmalayıcısı); `TR_cmd_check`'te dosyadan sonraki öbür argümanların durumu (1.4); aktarılan modülün uyarıları [ölçüldü: DENETİM].
 
 ### 2.3b
@@ -367,22 +363,15 @@ Kurallar: [`docs/spec/08_hata_yonetimi.md`](spec/08_hata_yonetimi.md).
 
 ## 9. Ertele
 
-Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md). Taslak (2026-10-28): ana oturum yazdı; metin DENETİM'den geçti (`9c511225`); kararlar Gemini Koşu 4'ten geçti (DENETİM doğruladı, `23e7be25`, 2026-10-29). `tests/hatalar_ertele_test.tr` ve `examples/tr/16_ertele.tr` eski kuralı sınıyor (fonksiyona bağlı kapsam, çağrı yazımı, birleşik hata metni); kural uygulanırken yeniden yazılır.
+Kurallar: [`docs/spec/09_ertele.md`](spec/09_ertele.md).
 
 ### 9.1
 
-- **Mevcut durum:** kapsam en yakın blok: dal, döngünün ve koşullu döngünün turu, `TR_try` ve `TR_catch` bloğu, eşleme kolu; iş blok nasıl biterse bitsin (son deyim, `TR_continue`, `TR_break`, `TR_return`, hata) o bloğun sonunda, ters sırayla çalışıyor; ertelenen bloğun içindeki ertele o bloğun sonunda çalışıyor. Eskiden ertele fonksiyona bağlıydı ve ertelenen bloktaki ertele kayboluyordu [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestDeferScopeIsTheNearestBlock`, `TestDeferInsideADeferredBlockRunsAtItsEnd`, `tests/hatalar_ertele_test.tr`'nin 9.1 testleri]. Çağrı yazımı (`TR_defer f(x)`) sözdizimi hatası H0300, ileti çağrıyı bloğa alıyor (`TR_defer { f(x) }`); depodaki bütün çağrı yazımları bloğa göçtü [ölçüldü: aynı dal, `TestDeferIsWrittenOnlyWithABlock`, `tests/negative/ertele_cagri.tr`, `git grep -n 'TR_defer [^{]'`].
 - **Yapılacaklar:** bir bloğun son deyimi olan `TR_defer`'in denetim hatası (denetleyici).
-
-### 9.3
-
-- **Mevcut durum:** blok çalıştığı anda okuyor (`TR_defer { TR_print(x) }` sonra `x = 2` → 2); ertelenen bloktan `TR_return`, `TR_break` ve `TR_continue` sözdizimi hatası (H0299), ileti `TR_return`'ü önermiyor; bloğun içindeki döngüde `TR_break`/`TR_continue`, içindeki fonksiyonda `TR_return` geçerli [ölçüldü: dal `claude/d1-dilim1-bf7baf`, `TestDeferredBlockIsAnExitBoundary`, `tests/negative/ertele_cikis.tr`].
 
 ### 9.4
 
-- **Mevcut durum:** kapsamın hatası, kapsam hatasız bittiyse ilk ertelenen işin hatası korunuyor; ertelenen işlerin öbür hataları çalışma sırasıyla `e.TR_suppressed`'de; eskiden yakalanan metinde birleşiyordu ("govde hatasi; error in defer as well: ...") [ölçüldü: dal `claude/d1-dilim2-c89bbc`, `tests/hatalar_ertele_test.tr`'nin 9.4 testi (gövde hatası ve iki ertele hatası; hatasız kapsamda iki ertele hatası), `TestCaughtErrorTypesAreErrorValues`].
 - **Yapılacaklar:** yakalanmayan hatada bastırılanların kodu ve iletisiyle gösterilmesi (8.6); gösterilen metin bugün birleşik.
-- **Mevcut durum (D1 dilim 3, 2026-11-02):** yığın durdurma (1.5) ya da iptalle (10.9) çözülürken de blokların ertelenen işleri çalışıyor (önceden yalnız fonksiyonun, görevin ve programın ertelenenleri çalışıyordu, bloğunki atlanıyordu); çözülürken ertelenen işin hatası `TR_catch` ile yakalanmıyor ama kaybolmuyor: durdurmada programın hatalarına eklenip yazılıyor (çıkış kodu 1), iptalde bekleyenin aldığı iptal hatasının `TR_suppressed`'inde (önceden ikisi de sessizce atılıyordu) [test: `TestDefersKeepTheirErrorsWhileUnwinding`].
 
 ## 10. Eşzamanlılık
 
