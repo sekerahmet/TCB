@@ -1112,7 +1112,7 @@ Kurallar: [`docs/spec/21_dis_programlar.md`](spec/21_dis_programlar.md).
 
 ### 21.1–21.8
 
-- **Mevcut durum:** otomatik testte canlı mikrofon ve `dshow` yolu yok.
+- **Mevcut durum:** otomatik testte canlı mikrofon ve `dshow` yolu yok [ölçüldü: `git grep -l dshow`: yalnız `tools/assistant` ve belgeler, test dosyası yok].
 - **Yapılacaklar (C, Ö2; sahip S1, 21.2 dilimi; DENETİM 226 Ş2):** Unix'te `trlang test` ve kabukta durdurma isteği yakalanmıyor; süreç grubundaki dış program TR ölünce kalır [hipotez: kod okuma, `catchStop` yalnız `runProgram`'da]. Kabuktan çıkınca yazmayan program kalıyor, `TR_exit(0)` da durdurmuyor [ölçüldü: DENETİM 248, G4]; çıkış yolu `catchStop` değil, aynı dilimde yapılır.
 - **Yapılacaklar (C, Ö2; sahip S1; DENETİM 250):** `TR_run_process`'in çıktı sınırı gerçek bellekte iş görmüyor: G4'te 176 GiB'de `yes` 51,5 sn sonra SIGKILL aldı, ileti yok, tepe 173,55 GiB [ölçüldü: G4]. Sınır küçültülünce ileti geliyor, ama tepe bütün bellek kadar [ölçüldü: G4, beş boy]. Tampon ikiye katlanarak büyüyor, süreç kodunun "eskisi ile yenisi birlikte durur" hesabı yetmiyor [hipotez: tepe sayılarına uyuyor]. Yön: sabit boy parça listesi, birleştirme yalnız başarılı dönüşte; test tepe ayırmayı ölçsün. 21.2'nin torun cümlesine de test bağlanacak: 4 saniye ve sessiz kesilme [ölçüldü: DENETİM 250].
 - **Yapılacaklar (D, Ö3; sahip D1; S1 Bulgu 1):** denetleyici `TR_Path` öğesini yalnız yazıldığı yerde görüyor; adla gelen yol çalışma anında H7490 alıyor, program başlamaz. `TR_Path` çekirdek tip değil.
