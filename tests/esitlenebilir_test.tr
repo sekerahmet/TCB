@@ -1,0 +1,74 @@
+# TR 4
+# docs/spec/15_tensorler.md §15.5 — eşitlenebilirlik: geçen karşılaştırmalar. Eşitlenemeyen değerin
+# '=='si, değer deseni ve .TR_contains/.TR_index_of/.TR_unique denetim hatasıdır:
+# tests/negative/esitlenemeyen.tr.
+
+TR_struct Kutu {
+    t: TR_Tensor
+    n: TR_Int
+}
+
+TR_enum Cevap {
+    Tamam(t: TR_Tensor)
+    Hata(m: TR_String)
+    Yok
+}
+
+TR_func ad(c: Cevap) -> TR_String {
+    TR_return TR_match c {
+        Cevap.Yok => "yok"
+        Cevap.Tamam(x) => "tamam"
+        Cevap.Hata(m) => m
+    }
+}
+
+TR_test "15.5 isteğe bağlı değer TR_none değişmeziyle karşılaştırılır, tensör tutsa da (3.5)" {
+    TR_var t = TR_Tensor([1.0])
+    TR_var g: TR_Tensor? = t
+    TR_var h: TR_Tensor? = TR_none
+    TR_assert(g != TR_none TR_and h == TR_none TR_and TR_none != g)
+    TR_var k: Kutu? = Kutu(t, 1)
+    TR_assert(k != TR_none)
+}
+
+TR_test "15.5 iki tensörün eşitliği TR_equal'dır; '==' öğe öğedir" {
+    TR_var t = TR_Tensor([1.0, 2.0])
+    TR_var u = TR_Tensor([1.0, 3.0])
+    TR_assert(TR_equal(t, t) TR_and TR_not TR_equal(t, u))
+    TR_assert_equal([TR_true, TR_false], (t == u).TR_tolist)
+}
+
+TR_test "15.5 durum açan desen tensörü bağlar, karşılaştırmaz (7.7)" {
+    TR_var t = TR_Tensor([1.0])
+    TR_var c = Cevap.Tamam(t)
+    TR_var sonuç = TR_match c {
+        Cevap.Tamam(x) => TR_equal(x, t)
+        _ => TR_false
+    }
+    TR_assert(sonuç)
+    # Alansız durumun deseni de yalnız durumu sınar: konunun öbür durumundaki tensör karşılaştırılmaz
+    TR_assert_equal(["tamam", "yok", "h"], [ad(c), ad(Cevap.Yok), ad(Cevap.Hata("h"))])
+}
+
+TR_test "15.5 demet ve yapı parça parça karşılaştırılır: tensör TR_equal ile, öbür öğe '==' ile" {
+    TR_var p = (TR_Tensor([1.0]), 1)
+    TR_var q = (TR_Tensor([1.0]), 2)
+    TR_assert(TR_not (TR_equal(p.0, q.0) TR_and p.1 == q.1))
+    TR_var a = Kutu(TR_Tensor([1.0]), 1)
+    TR_var b = Kutu(TR_Tensor([1.0]), 1)
+    TR_assert(TR_equal(a.t, b.t) TR_and a.n == b.n)
+}
+
+TR_test "12.4 TR_assert_equal içteki tensörü TR_equal'ın anlamıyla karşılaştırır" {
+    TR_var t = TR_Tensor([1.0, 2.0])
+    TR_var u = TR_Tensor([1.0, 2.0])
+    TR_assert_equal([t], [u])
+    TR_assert_equal((t, 1), (u, 1))
+    TR_assert_equal(Kutu(t, 1), Kutu(u, 1))
+    TR_assert_equal("H2458", TR_error_code { TR_assert_equal([t], [TR_Tensor([1.0, 3.0])]) })
+    TR_assert_equal("H2458", TR_error_code { TR_assert_equal([t], [TR_Tensor([1.0, 2.0, 0.0])]) })
+    # Aynı nesne de öğe öğe: NaN tutan tensör kendisine eşit değildir, TR_equal gibi (4.5)
+    TR_var n = TR_Tensor([TR_nan])
+    TR_assert(TR_not TR_equal(n, n))
+    TR_assert_equal("H2458", TR_error_code { TR_assert_equal([n], [n]) })
+}

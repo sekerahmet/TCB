@@ -98,8 +98,8 @@ func TestUncomparableMemberIsFoundBeforeTheFirstDifference(t *testing.T) {
 			t.Errorf("%s: beklenen %v, gelen %v (%v)", code, want, got, err)
 		}
 	}
-	// Değerin kendisi TR_none'la karşılaştırılabilir (4.5, 3.5): içinde fonksiyon olsa da. Demetin tensör
-	// araması (H2777, holdsTensor) kendini içeren listede de biter.
+	// Değerin kendisi TR_none'la karşılaştırılabilir (4.5, 3.5): içinde fonksiyon olsa da. Kendini içeren
+	// listeyi tutan demetin karşılaştırması da biter.
 	_, val, err := runTROut(t, `TR_var f = (x) => x; TR_var l = [1]; l.TR_append(l)
 		TR_var result = [[f] == TR_none, TR_none == [f], f == TR_none, (l, 1) == (l, 1)]`)
 	if err != nil || val.Inspect() != `[false, false, false, true]` {

@@ -14,8 +14,24 @@ import (
 // EqualValues is the language's equality (4.5) where a wrong answer would be silent: in '==', in
 // .contains and .unique, in a match pattern and in assert_equal. A JSON value compared with a value that
 // is not JSON (3.7a) and a function (4.5) are errors there, also inside a list, a dictionary, a tuple or
-// an object; a value that reaches itself is compared too (7.6).
-func EqualValues(a, b Value) (bool, error) {
+// an object; a value that reaches itself is compared too (7.6). A tensor is an error there, at the top and
+// inside a value (15.5); AssertEqualValues compares it.
+func EqualValues(a, b Value) (bool, error) { return equalValues(a, b, tensorIsError) }
+
+// AssertEqualValues is TR_assert_equal's equality (12.4): EqualValues, but every tensor pair, at the top or
+// inside a value, is compared with TR_equal's meaning (shape and every element). A function is an error.
+func AssertEqualValues(a, b Value) (bool, error) { return equalValues(a, b, tensorByValue) }
+
+// tensorRule tensörün eşitlikteki yeridir: '==', .TR_contains, desen (tensorIsError) ya da
+// TR_assert_equal (tensorByValue). Gezinti ikisinde aynıdır; yalnız tensör öğesinde ayrılır.
+type tensorRule bool
+
+const (
+	tensorIsError tensorRule = false
+	tensorByValue tensorRule = true
+)
+
+func equalValues(a, b Value, tensors tensorRule) (bool, error) {
 	if err := comparisonError(a, b); err != nil {
 		return false, err
 	}
@@ -24,19 +40,25 @@ func EqualValues(a, b Value) (bool, error) {
 	if a.Type() == ValNull || b.Type() == ValNull {
 		return valuesEqual(a, b), nil
 	}
+	if err := elementError(a, tensors); err != nil {
+		return false, err
+	}
+	if err := elementError(b, tensors); err != nil {
+		return false, err
+	}
 	eq, descend := shallowEqual(a, b)
 	if !descend {
-		if err := contentError(a); err != nil {
+		if err := contentError(a, tensors); err != nil {
 			return false, err
 		}
 		if b != a {
-			if err := contentError(b); err != nil {
+			if err := contentError(b, tensors); err != nil {
 				return false, err
 			}
 		}
 		return eq, nil
 	}
-	w := equalWalk{budget: equalBudget, eq: true}
+	w := equalWalk{budget: equalBudget, eq: true, tensors: tensors}
 	if done, err := w.tree(a, b); done || err != nil {
 		return w.eq && err == nil, err
 	}
@@ -46,10 +68,11 @@ func EqualValues(a, b Value) (bool, error) {
 // equalWalk EqualValues'un gezintisidir: eq şimdiye dek fark bulunmadığıdır. Önce bütçeli özyineleme (tree;
 // bütçe kap çifti ya da kap başına bir azalır), bütçe biterse baştan açık yığın ve birleşim-bul (graph).
 type equalWalk struct {
-	budget int
-	eq     bool
-	u      unionFind
-	seen   map[Value]bool // genel yolda çifte girmiş ya da taranmış kaplar
+	budget  int
+	eq      bool
+	u       unionFind
+	seen    map[Value]bool // genel yolda çifte girmiş ya da taranmış kaplar
+	tensors tensorRule
 }
 
 // tree a ile b'yi (aynı biçimde iki kap) gezer; done yanlışsa bütçe bitti.
@@ -67,7 +90,7 @@ func (w *equalWalk) tree(a, b Value) (bool, error) {
 		}
 		return true, nil
 	}
-	if err := pairMembersError(a, b); err != nil {
+	if err := pairMembersError(a, b, w.tensors); err != nil {
 		return true, err
 	}
 	diff := false
@@ -102,7 +125,7 @@ func (w *equalWalk) treeChild(x, y Value) (bool, error) {
 	}
 	if scan {
 		for _, v := range [2]Value{x, y} {
-			if done, err := scanTree(v, &w.budget); !done || err != nil {
+			if done, err := scanTree(v, &w.budget, w.tensors); !done || err != nil {
 				return done, err
 			}
 		}
@@ -112,10 +135,10 @@ func (w *equalWalk) treeChild(x, y Value) (bool, error) {
 
 func (w *equalWalk) unpairedTree(a, b Value) (bool, error) {
 	for _, v := range unpaired(a, b) {
-		if err := elementError(v); err != nil {
+		if err := elementError(v, w.tensors); err != nil {
 			return true, err
 		}
-		if done, err := scanTree(v, &w.budget); !done || err != nil {
+		if done, err := scanTree(v, &w.budget, w.tensors); !done || err != nil {
 			return done, err
 		}
 	}
@@ -135,7 +158,7 @@ func (w *equalWalk) graph(a, b Value) (bool, error) {
 		top := &stack[len(stack)-1]
 		if top.i == 0 {
 			w.seen[top.a], w.seen[top.b] = true, true
-			if err := pairMembersError(top.a, top.b); err != nil {
+			if err := pairMembersError(top.a, top.b, w.tensors); err != nil {
 				return false, err
 			}
 		}
@@ -170,7 +193,7 @@ func (w *equalWalk) graph(a, b Value) (bool, error) {
 			continue
 		}
 		for _, v := range [2]Value{x, y} {
-			if err := scanGraph(v, w.seen); err != nil {
+			if err := scanGraph(v, w.seen, w.tensors); err != nil {
 				return false, err
 			}
 		}
@@ -180,10 +203,10 @@ func (w *equalWalk) graph(a, b Value) (bool, error) {
 
 func (w *equalWalk) unpairedGraph(a, b Value) error {
 	for _, v := range unpaired(a, b) {
-		if err := elementError(v); err != nil {
+		if err := elementError(v, w.tensors); err != nil {
 			return err
 		}
-		if err := scanGraph(v, w.seen); err != nil {
+		if err := scanGraph(v, w.seen, w.tensors); err != nil {
 			return err
 		}
 	}
@@ -202,10 +225,10 @@ func (w *equalWalk) child(x, y Value) (descend, scan bool, err error) {
 			return false, false, nil
 		}
 	}
-	if err := elementError(x); err != nil {
+	if err := elementError(x, w.tensors); err != nil {
 		return false, false, err
 	}
-	if err := elementError(y); err != nil {
+	if err := elementError(y, w.tensors); err != nil {
 		return false, false, err
 	}
 	if err := jsonPairError(x, y); err != nil {
@@ -221,16 +244,16 @@ func (w *equalWalk) child(x, y Value) (descend, scan bool, err error) {
 	return false, isContainer(x) || isContainer(y), nil
 }
 
-// pairMembersError demet ve nesne çiftinde öğelerin kapa bağlı hatasıdır (H2777, H2770); liste ve sözlükte
+// pairMembersError demet ve nesne çiftinde öğelerin hatasıdır (H2777, H2770); liste ve sözlükte
 // öğelerin hatasına child bakar.
-func pairMembersError(a, b Value) error {
+func pairMembersError(a, b Value, tensors tensorRule) error {
 	switch a.(type) {
 	case *TupleVal, *StructInstanceVal:
-		if err := memberError(a); err != nil {
+		if err := memberError(a, tensors); err != nil {
 			return err
 		}
 		if b != a {
-			return memberError(b)
+			return memberError(b, tensors)
 		}
 	}
 	return nil

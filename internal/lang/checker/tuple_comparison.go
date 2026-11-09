@@ -6,44 +6,24 @@ import (
 )
 
 // Demetin uzunluğu ve öğeleri tipindedir (3.6a, 4.4, 15.5): tipi bilinen iki demetin karşılaştırması
-// çalışmadan önce denetlenir, çalışma anının koduyla (13.11). '==' ve '!='de tensör tutan öğe H2777;
-// '<', '>', '<=', '>='de sıralanamayan öğe çifti (iki sayı, iki metin ya da iki demet değil) H2772.
-// Kurallar çalışma anının tuple_ops.go'suyla aynı sırayla yürür: öğeler ortak uzunluğa kadar, iç içe
-// demetlerde içteki öğenin indeksiyle. Tipi bilinmeyen ya da isteğe bağlı öğe denetlenmez.
+// çalışmadan önce denetlenir, çalışma anının koduyla (13.11): '<', '>', '<=', '>='de sıralanamayan öğe
+// çifti (iki sayı, iki metin ya da iki demet değil) H2772. Kural çalışma anının tuple_ops.go'suyla aynı
+// sırayla yürür: öğeler ortak uzunluğa kadar, iç içe demetlerde içteki öğenin indeksiyle. Tipi bilinmeyen
+// ya da isteğe bağlı öğe denetlenmez. '==' ve '!='de tensör tutan öğe eşitlenebilirliğin kuralıdır
+// (equality_check.go, H1148).
 
-// checkTupleComparison iki yanı da tipi bilinen demet olan karşılaştırmayı denetler.
+// checkTupleComparison iki yanı da tipi bilinen demet olan sıralama karşılaştırmasını denetler.
 func (c *Checker) checkTupleComparison(e *ast.InfixExpression, left, right string) {
 	l, r := shapeOf(left), shapeOf(right)
 	if l.elems == nil || r.elems == nil || l.optional || r.optional {
 		return
 	}
 	switch e.Operator {
-	case "==", "!=":
-		if i, ok := tensorElement(l.elems, r.elems); ok {
-			c.addErrorAt(e, messages.New(messages.H2777, i))
-		}
 	case "<", ">", "<=", ">=":
 		if i, a, b, ok := unorderedElement(l.elems, r.elems); ok {
 			c.addErrorAt(e, messages.New(messages.H2772, string(e.Operator), i, c.typeArg(a), c.typeArg(b)))
 		}
 	}
-}
-
-// tensorElement iki demetin ortak öğelerinde tensör tutan ilk öğenin indeksidir (iç içe demette
-// içtekinin indeksi).
-func tensorElement(x, y []string) (int, bool) {
-	for i := 0; i < min(len(x), len(y)); i++ {
-		if x[i] == typeTensor || y[i] == typeTensor {
-			return i, true
-		}
-		a, b := shapeOf(x[i]), shapeOf(y[i])
-		if a.elems != nil && b.elems != nil && !a.optional && !b.optional {
-			if j, ok := tensorElement(a.elems, b.elems); ok {
-				return j, true
-			}
-		}
-	}
-	return 0, false
 }
 
 // unorderedElement 4.4'ün sıralayamadığı ilk öğe çiftidir: indeksi ve iki yanın tipi.

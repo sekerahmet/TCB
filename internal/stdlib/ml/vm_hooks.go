@@ -16,7 +16,7 @@ import (
 // şekiller oluşturulurken (sıfırlar, şekillendir) zaten engellenir.
 func (d *TensorValue) PlainValue() interp.Value { return d.nestedList() }
 
-// Equal iki tensörün şekli ve tüm elemanları aynıysa doğrudur ('==' ve '!='). 0 boyutlu
+// Equal iki tensörün şekli ve tüm elemanları aynıysa doğrudur (TR_assert_equal, 12.4). 0 boyutlu
 // tensör, değeri (.değer ile aynı biçimde okunan) sayıya eşittir: m[1][0] == 7.0. Diğer
 // değerlerle eşit değildir.
 func (d *TensorValue) Equal(otherVal interp.Value) bool {
@@ -30,9 +30,7 @@ func (d *TensorValue) Equal(otherVal interp.Value) bool {
 		}
 		return false
 	}
-	if d == o || d.t == o.t {
-		return true
-	}
+	// Aynı nesne de öğe öğe: NaN tutan tensör kendisine eşit değildir, TR_equal'daki gibi (4.5, 12.4).
 	a, b := d.t.Shape(), o.t.Shape()
 	if len(a) != len(b) {
 		return false

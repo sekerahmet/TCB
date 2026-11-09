@@ -54,6 +54,7 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 	type statusCode struct {
 		defaultVal bool
 		patterns   []exprCode
+		states     []bool // states[i]: i. desen parantezsiz bir üye (C.Yok =>): alansız durumda durum sınaması
 		bodyBlock  statementCode
 		value      exprCode
 	}
@@ -65,7 +66,7 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 			caseList[i] = statusCode{patterns: []exprCode{pat}, bodyBlock: body, value: value}
 			continue
 		}
-		d := statusCode{defaultVal: mc.IsDefault, patterns: c.expressions(k, mc.Patterns)}
+		d := statusCode{defaultVal: mc.IsDefault, patterns: c.expressions(k, mc.Patterns), states: bareMembers(mc)}
 		if mc.Body != nil {
 			d.bodyBlock = c.blockStatement(k, mc.Body)
 		}
@@ -82,12 +83,12 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 		for _, d := range caseList {
 			matched := d.defaultVal
 			if !matched {
-				for _, pat := range d.patterns {
+				for j, pat := range d.patterns {
 					patVal, err := pat(v, env)
 					if err != nil {
 						return nil, signalNone, err
 					}
-					ok, err := patternMatches(subj, patVal)
+					ok, err := patternMatches(subj, patVal, j < len(d.states) && d.states[j])
 					if err != nil {
 						return nil, signalNone, messages.At(line, 0, err)
 					}
@@ -114,8 +115,20 @@ func (c *compiler) matchExpr(k *compilerScope, e *ast.MatchExpression) statement
 }
 
 // patternMatches 'eşle' deseninin konuya uyup uymadığını söyler (aralık desenleri dahil); desen konuyla
-// '==' ile karşılaştırılır (5.6), JSON ve fonksiyon karşılaştırmasının hatası da onunkidir.
-func patternMatches(subj, patVal Value) (bool, error) {
+// '==' ile karşılaştırılır (5.6), JSON ve fonksiyon karşılaştırmasının hatası da onunkidir. Durum deseni
+// karşılaştırmaz, yalnız durumu sınar, alan tensör ya da fonksiyon tutsa da (7.7, 15.5): durum açan
+// desen (Cevap.Tamam(x) =>) alanları bağlar; parantezsiz alansız durum (C.Yok =>, state) konunun o durumda
+// olup olmadığıdır. Alansız durumun değeri tektir, '=='si de durumun aynı olmasıdır: sonuç değişmez, yalnız
+// konunun öbür durumlarının alanı karşılaştırılmaz (TCB'nin kararı, 2026-11-09). Parantezli (C.Yok) =>
+// değer desenidir, '==' ile karşılaştırılır (5.6).
+func patternMatches(subj, patVal Value, state bool) (bool, error) {
+	if p, ok := patVal.(*enumPatternVal); ok {
+		return p.Equal(subj), nil
+	}
+	if p, ok := patVal.(*StructInstanceVal); ok && state && p.Variant != nil && len(p.Variant.Fields) == 0 {
+		s, ok := subj.(*StructInstanceVal)
+		return ok && s.Def == p.Def && s.Variant == p.Variant, nil
+	}
 	if rng, ok := patVal.(*RangeVal); ok {
 		if iv, ok := subj.(*IntVal); ok {
 			if rng.Inclusive && iv.Val >= rng.Start && iv.Val <= rng.End {
@@ -149,4 +162,14 @@ func (c *compiler) armValue(k *compilerScope, e ast.Expression) exprCode {
 		armEnv.closeEnv()
 		return val, err
 	}
+}
+
+// bareMembers kolun her deseni için parantezsiz bir üye (C.Yok) olup olmadığıdır (ast.MatchCase.Bare).
+func bareMembers(mc ast.MatchCase) []bool {
+	out := make([]bool, len(mc.Patterns))
+	for i, p := range mc.Patterns {
+		_, member := p.(*ast.MemberExpression)
+		out[i] = member && i < len(mc.Bare) && mc.Bare[i]
+	}
+	return out
 }

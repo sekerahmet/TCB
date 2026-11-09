@@ -42,7 +42,7 @@ func (v *VM) registerTestBuiltins() {
 		if err := typeTextError("==", args[0], args[1]); err != nil {
 			return nil, err
 		}
-		eq, err := EqualValues(args[0], args[1])
+		eq, err := AssertEqualValues(args[0], args[1]) // içteki tensör TR_equal'ın anlamıyla (12.4)
 		if err != nil {
 			return nil, err
 		}

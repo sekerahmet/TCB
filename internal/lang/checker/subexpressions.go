@@ -81,6 +81,7 @@ func (c *Checker) inferNested(expr ast.Expression) (string, bool) {
 // checkStruct yapının alan varsayılanlarını ve metot gövdelerini denetler.
 func (c *Checker) checkStruct(s *ast.StructStatement) {
 	c.defineStruct(s)
+	c.noteTypeDef(s)
 	for _, f := range s.Fields {
 		c.expect(f.Type, f.DefaultValue)
 		c.noteDefault(f.DefaultValue, c.inferExpression(f.DefaultValue))

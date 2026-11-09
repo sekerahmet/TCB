@@ -1,0 +1,73 @@
+# TR 4
+# TEST 15.5 tensör, fonksiyon ve arayüz ile onları tutan değer eşitlenemez (4.5, 7.6–7.8, 13.10): == ve != (tensör H1148, isteğe bağlı tensör H1151, fonksiyon H1152, arayüz H1153), == isteyen değer deseni (H1150, 5.6) ve .TR_contains, .TR_index_of, .TR_unique (H1149, 13.3) denetim hatasıdır; isteğe bağlı değer yalnız TR_none değişmeziyle karşılaştırılır (3.5)
+TR_struct Kutu {
+    t: TR_Tensor
+}
+TR_struct Halka {
+    s: Halka?
+    k: Kutu
+}
+TR_struct Fonk {
+    f: (TR_Int) -> TR_Int
+}
+TR_enum C {
+    Var(t: TR_Tensor)
+    Yok
+}
+TR_enum İş {
+    Bekle(f: (TR_Int) -> TR_Int)
+    Bitti
+}
+TR_interface Katman {
+    TR_func ileri(x: TR_Tensor) -> TR_Tensor
+}
+TR_func f(x: TR_Int) -> TR_Int {
+    TR_return x
+}
+TR_func durum(c: C, i: İş) {
+    TR_print(c == c) # ERROR H1148
+    TR_print(c == C.Yok) # ERROR H1148
+    TR_print(i != i) # ERROR H1152
+}
+# Parantezsiz alansız durum durum desenidir, geçer; parantezlisi değer desenidir, == ister (5.6, 7.7)
+TR_func desen(c: C) -> TR_Int {
+    TR_return TR_match c {
+        C.Yok => 0
+        (C.Yok) => 1 # ERROR H1150
+        _ => 2
+    }
+}
+TR_func arayüz(a: Katman, b: Katman) {
+    TR_print(a == b) # ERROR H1153
+    TR_print([a] == [b]) # ERROR H1153
+}
+TR_var t = TR_Tensor([1.0, 2.0])
+TR_var l = [t]
+TR_print([t] == [t]) # ERROR H1148
+TR_print([[t]] != [[t]]) # ERROR H1148
+TR_print(([t], 1) == ([t], 1)) # ERROR H1148
+TR_print({"x": t} == {"x": t}) # ERROR H1148
+TR_print(Kutu(t) == Kutu(t)) # ERROR H1148
+TR_var h1 = Halka(TR_none, Kutu(t))
+TR_print(h1 == h1) # ERROR H1148
+TR_var g: TR_Tensor? = t
+TR_var h: TR_Tensor? = TR_none
+TR_var n = TR_none
+TR_print(g == h) # ERROR H1151
+TR_print(g == t) # ERROR H1151
+TR_print(g == n) # ERROR H1151
+TR_print(l.TR_contains(t)) # ERROR H1149
+TR_print(l.TR_index_of(t)) # ERROR H1149
+TR_print(l.TR_unique()) # ERROR H1149
+TR_print([1].TR_contains(f)) # ERROR H1149
+TR_var d = TR_match l {
+    ([t]) => 1 # ERROR H1150
+    _ => 0
+}
+TR_print([f] == [f]) # ERROR H1152
+TR_print(f == f) # ERROR H1152
+TR_print((f, 1) == (f, 1)) # ERROR H1152
+TR_print(Fonk(f) == Fonk(f)) # ERROR H1152
+TR_var fl: TR_List[((TR_Int) -> TR_Int)?] = [TR_none]
+TR_print(fl == fl) # ERROR H1152
+TR_print(d)

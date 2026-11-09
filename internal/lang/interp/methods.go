@@ -371,6 +371,9 @@ func setupListMethods() {
 		return &StringVal{Val: strings.Join(parts, sep)}, nil
 	})
 	addMethod(typeList, codes.MemContains, signature{1, 1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		if err := uncomparableError(args[0]); err != nil {
+			return nil, err // boş listede de (4.5, 15.5)
+		}
 		for _, el := range inst.(*ListVal).Elements {
 			eq, err := EqualValues(el, args[0])
 			if err != nil {
@@ -385,6 +388,9 @@ func setupListMethods() {
 	addMethod(typeList, codes.MemUnique, signature{}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
 		var unique []Value
 		for _, el := range inst.(*ListVal).Elements {
+			if err := uncomparableError(el); err != nil {
+				return nil, err // tek öğeli listede de (4.5, 15.5)
+			}
 			exists := false
 			for _, u := range unique {
 				eq, err := EqualValues(el, u)

@@ -105,6 +105,8 @@ type Checker struct {
 	// structs denetlenen programın yapılarıdır (ad → tanım): kurucunun ve metodun çağrısının tipi
 	// için (local_types.go).
 	structs map[string]*ast.StructStatement
+	// typeDefs programın yapı, durumlu tip ve arayüz tanımlarıdır: eşitlenebilirlik için (equatable.go).
+	typeDefs map[string]*ast.StructStatement
 	// facts kapının (6.1, 7.1; signatures.go) son CheckProgram'da topladıklarıdır; libraryFile
 	// denetlenen gömülü kitaplık dosyasının adıdır ("": kitaplık değil), exceptionsUsed kullanılan
 	// istisnaları tutar (library_exceptions.go).
@@ -187,6 +189,7 @@ func (c *Checker) check(prog *ast.Program) {
 	c.facts = signatureFacts{}
 	c.noValue, c.expectedReturns = map[ast.Expression]bool{}, map[*ast.FunctionLiteral]bool{}
 	c.noteAssigned(prog)
+	c.noteTypeDefs(prog)
 	// Tanımsız adlar (5.14) tip hatalarıyla birlikte, satır sırasıyla bildirilir; önce aranır, çünkü
 	// tanımsız adın olduğu satırda etkisiz değer hatası susar (undefinedLeft).
 	c.nameErrors = c.nameErrors[:0]
@@ -460,7 +463,9 @@ func (c *Checker) inferExpression(expr ast.Expression) string {
 func (c *Checker) comparisonType(e *ast.InfixExpression, left, right string) string {
 	c.checkJSONComparison(e, left, right)  // 3.7a (json_comparison.go)
 	c.checkTupleComparison(e, left, right) // 3.6a, 4.4, 15.5 (tuple_comparison.go)
-	c.checkEqualityTypes(e, left, right)   // 4.5 (equality_types.go)
+	if !c.checkEquatable(e, left, right) { // 4.5, 15.5 (equality_check.go)
+		c.checkEqualityTypes(e, left, right) // 4.5 (equality_types.go)
+	}
 	if left != typeNull && right != typeNull && (baseType(left) == typeTensor || baseType(right) == typeTensor) {
 		return typeTensor
 	}
@@ -506,8 +511,9 @@ func (c *Checker) inferCall(e *ast.CallExpression) string {
 	if isMember {
 		c.checkCollectedFunction(e, objType) // 3.5 (value_places.go)
 		c.checkMemberCall(e, objType, argTypes)
-		c.checkJSONContains(e, objType, argTypes) // 3.7a (json_comparison.go)
-		c.checkDictKeyArg(e, objType, argTypes)   // 3.7 (dict_keys.go)
+		c.checkJSONContains(e, objType, argTypes)    // 3.7a (json_comparison.go)
+		c.checkEquatableSearch(e, objType, argTypes) // 13.3, 15.5 (equality_check.go)
+		c.checkDictKeyArg(e, objType, argTypes)      // 3.7 (dict_keys.go)
 	} else {
 		c.checkBuiltinArgs(e, argTypes)      // 13.9, 13.11 (builtin_args.go)
 		c.checkProcessArguments(e, argTypes) // 21.1 (process_args.go)

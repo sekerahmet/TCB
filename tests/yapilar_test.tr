@@ -174,16 +174,22 @@ TR_test "7.6 fonksiyon alanı tutan nesneler karşılaştırılamaz" {
         ad: TR_String
         t: TR_Tensor
     }
-    TR_assert(Kutu("a") == Kutu("a"))
-    TR_assert_equal("H2770", TR_error_code { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) })
+    # Tipi bilinen nesnede denetim hatasıdır, alan TR_none olsa da (H1148, tests/negative/esitlenemeyen.tr);
+    # burada tipi bilinmeyen değerin çalışma hatası: [v, 0][0] değerin tipini bilinmez kılar. Çalışırken
+    # hata değere bağlıdır: alanı TR_none olan nesne karşılaştırılır.
+    TR_assert([Kutu("a"), 0][0] == [Kutu("a"), 0][0])
+    TR_var a = [Kutu("a", (x) => x), 0][0]
+    TR_var b = [Kutu("a", (x) => x + 1), 0][0]
+    TR_assert_equal("H2770", TR_error_code { TR_var s = a == b })
     # listenin içinde de
-    TR_assert_equal("H2770", TR_error_code { TR_var s = [Kutu("a", (x) => x)] == [Kutu("a", (x) => x + 1)] })
+    TR_assert_equal("H2770", TR_error_code { TR_var s = [a] == [b] })
     TR_var ileti = ""
-    TR_try { TR_var s = Kutu("a", (x) => x) == Kutu("a", (x) => x) } TR_catch e { ileti = TR_String(e) }
+    TR_try { TR_var s = a == b } TR_catch e { ileti = TR_String(e) }
     # İleti karşılaştırılabilen alanı (ad) önerir: a.ad == b.ad.
     TR_assert(ileti.TR_ends_with(`"ad")`), ileti)
     # tensörün '=='si öğe öğedir; tensör alanı da karşılaştırılamaz
-    TR_assert_equal("H2770", TR_error_code { TR_var s = TensörKutusu("a", TR_zeros([2])) == TensörKutusu("a", TR_zeros([2])) })
+    TR_var ta = [TensörKutusu("a", TR_zeros([2])), 0][0]
+    TR_assert_equal("H2770", TR_error_code { TR_var s = ta == [TensörKutusu("a", TR_zeros([2])), 0][0] })
 }
 
 TR_test "7.6 aynı nesne de alanlarıyla karşılaştırılır; durumlu tipte de (7.7)" {
@@ -198,10 +204,11 @@ TR_test "7.6 aynı nesne de alanlarıyla karşılaştırılır; durumlu tipte de
     TR_struct Ölçü {
         değer: TR_Float
     }
-    TR_var k = Kutu("a", (x) => x)
+    # Tipi bilinmeyen değerin çalışma hatası (tipi bilinende H1148, tests/negative/esitlenemeyen.tr)
+    TR_var k = [Kutu("a", (x) => x), 0][0]
     TR_assert_equal("H2770", TR_error_code { TR_var s = k == k })
     TR_assert_equal("H2770", TR_error_code { TR_var s = [k].TR_contains(k) })
-    TR_var tk = TensörKutusu("a", TR_zeros([2]))
+    TR_var tk = [TensörKutusu("a", TR_zeros([2])), 0][0]
     TR_assert_equal("H2770", TR_error_code { TR_var s = tk == tk })
     TR_assert_equal("H2770", TR_error_code {
         TR_var s = TR_match tk {

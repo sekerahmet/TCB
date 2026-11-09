@@ -292,4 +292,4 @@ codegraph changed --root untracked --go-tests HEAD | contains: untracked: shape/
 # Deneme: gaps.md'nin gözden geçirmesi (2026-11-09): yan oturumların istediği ama var olan sorular
 codegraph fields gilSince --mode write | contains: interp.VM.gilSince [field] | contains: interp.VM.acquireGIL | src: gaps gözden geçirmesi, 2026-11-09 (D1'in "alanı kim yazıyor" isteği; alan vmShared'den VM'e taşınmıştı)
 codegraph package-state --in internal/compute/tensor | contains: tensor.packPoolB | contains: gemmPart | contains: quantGemm | src: gaps gözden geçirmesi, 2026-11-09 (H1'in "havuzu başka kim kullanıyor" isteği)
-codegraph captures tensor.quantGemmPanels | contains: func literal@ | src: gaps gözden geçirmesi, 2026-11-09 (T1'in "kapanıştan okunan adlar" isteği, Go yarısı)
+codegraph captures tensor.quantGemmPanels | contains: func literal@ | src: gaps gözden geçirmesi, 2026-11-09 (yalnız Go fonksiyon ifadeleri; T1'in .tr fonksiyonları için isteği açık, DENETİM 348)
