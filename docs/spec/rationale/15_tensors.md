@@ -114,6 +114,7 @@ Kurallar: [`15_tensorler.md`](../15_tensorler.md). Bu dosya her kuralın emsalin
   - Yinelenen indeks [ölçüldü ve kanıtlı: DENETİM, `torch==2.14`]: PyTorch'ta `c[idx] += 1` → `[1, 0, 0]`, `index_add_` → `[3, 0, 0]`; `index_put_`'un belgesi: "If accumulate is False, the behavior is undefined if indices contain duplicate elements". PyTorch'un `x[idx] += 1`'i yinelenenleri kaybeder; `index_add_` ve `index_put_(accumulate=True)` biriktirir.
   - Örtüşme: NumPy'ın kuralı; kaynak önce kopyalanır [ölçüldü: DENETİM, `[1, 1, 2, 3]`].
   - Bileşik atama: PyTorch'ta `TR_var q = p; p -= ...` karşılığında `q` de değişir [ölçüldü: DENETİM, 2.14]; paylaşımın tuzağı (`kalıntı`) PyTorch'ta da aynıdır.
+  - Kopyaya yazmak: NumPy'da ve PyTorch'ta `t[idx][0] = 9.0` hatasız geçer ve yazılan değer kaybolur [ölçüldü: DENETİM istek 172]. *Almadık:* bu sessiz kayıp. TR'de de 2026-11-09'da aynıydı [ölçüldü: TCB, `0a8073a4`]. Ajan bir kopyaya yazdığını göremez, yanlış sessizdir; adsız kopyaya yerinde yazmanın tek sonucu kayıp olduğundan bu yazım yasaklanır, ad verilen kopya serbest kalır (2026-11-09, TCB, kritik; turda denetlenecek).
   - Yaprak: PyTorch'un `is_leaf` kuralıyla aynıdır.
   - Türevsiz hedefe türevli değer: PyTorch hedefi çizgeye katar.
 - *Gerekçe:*
