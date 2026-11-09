@@ -128,7 +128,7 @@ func (ix *index) extractedDirectTests(nodes []*Node) map[string]bool {
 // fileTests dosyanın testlerini toplar ve sıralar. Konu edinen testler her bildirim için bildirim düzeyindeki gibi
 // seçilir (aboutTests, adaylar o bildirimin testleri); her test bir kez, ilk grubunda.
 func (ix *index) fileTests(file *Node, ts *touchSet) fileTestSet {
-	all, subprocess := ix.testsToRun(ts)
+	all, subprocess, each := ix.testsToRunEach(ts)
 	for id, d := range ix.testDistances(file) {
 		if old, ok := all[id]; !ok || d < old {
 			all[id] = d
@@ -147,7 +147,7 @@ func (ix *index) fileTests(file *Node, ts *touchSet) fileTestSet {
 	shown := map[string]bool{}
 	for _, d := range decls {
 		var cands []*Node
-		for id := range ix.testDistances(d) {
+		for id := range each[d.ID] { // testsToRunEach'in uzaklıkları: ikinci bir testDistances yok
 			cands = append(cands, ix.byID[id])
 		}
 		sort.Slice(cands, func(i, j int) bool { return cands[i].ID < cands[j].ID })
