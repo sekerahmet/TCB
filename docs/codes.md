@@ -8,7 +8,7 @@ Dilin kullanıcıya görünen her adı sabit bir **koda** bağlıdır (bkz. `doc
 
 **Değer dönüştüren ya da değere soru soran iş metottur** (`liste.sırala()`, `metin.uzunluk`); **matematik ve tensör işi fonksiyondur** (`toplam(liste)`, `relu(x)`).
 
-Toplam 702 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 60 tip, 157 fonksiyon, 11 sabit, 86 metot, 124 özellik, 177 adlı argüman.
+Toplam 727 kod: 28 anahtar kelime, 3 bağlamsal sözcük, 2 değer adı, 64 tip, 159 fonksiyon, 11 sabit, 86 metot, 131 özellik, 189 adlı argüman.
 
 ## İçindekiler
 
@@ -766,6 +766,40 @@ tr: değişken f: (Tam) -> Tam = (x) => x * 2; yazdır(Tip(f), f(3))
 
 
 
+#### `TR_HTTPServer` (`TR_type_HTTPServer`, `HTTPSunucusu`)
+
+http_sun'un verdiği açık HTTP sunucusu: kapı_numarası gerçek kapıyı verir, bekle sunucu kapanana kadar bekler, kapat sunucuyu kapatır. Program bitince açık sunucu kapanır.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(f); TR_print(TR_Type(s) == TR_HTTPServer, s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(f); print(Type(s) == HTTPServer, s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(f); yazdır(Tip(s) == HTTPSunucusu, s.kapat())
+```
+
+Üyeleri: `.TR_close(...)`, `.TR_port`, `.TR_wait(...)` · İlişkili: `TR_serve_http(...)`, `.TR_port`, `.TR_wait(...)`, `.TR_close(...)`
+
+#### `TR_Headers` (`TR_type_Headers`, `Başlıklar`)
+
+İsteğin ya da cevabın başlıkları: ad harf büyüklüğüne bakmadan bulunur (h["Content-Type"] ile h["content-type"] aynı), aynı başlığın değerleri virgülle birleşir. Olmayan başlığı h[ad] ile okumak hatadır; varsa_al(ad) yok verir.
+
+```tr
+TR_var h = TR_Request(TR_headers: {"X-Ad": "a"}).TR_headers; TR_print(TR_Type(h) == TR_Headers, h["x-ad"], h.TR_get("yok") ?? "-")
+```
+
+Görünümü:
+
+```text
+en: var h = Request(headers: {"X-Ad": "a"}).headers; print(Type(h) == Headers, h["x-ad"], h.get("yok") ?? "-")
+tr: değişken h = HTTPİsteği(başlıklar: {"X-Ad": "a"}).başlıklar; yazdır(Tip(h) == Başlıklar, h["x-ad"], h.varsa_al("yok") ?? "-")
+```
+
+Üyeleri: `.TR_get(...)` · İlişkili: `.TR_headers`, `.TR_get(...)`, `TR_Request`
+
 #### `TR_Int` (`TR_type_Int`, `Tam`)
 
 64 bit işaretli tam sayı tipidir; sınırı aşan işlem sessizce sarmak yerine taşma hatası verir. Tam(x) değeri Tam'a çevirir (3.12): Ondalık'ın kesirli kısmını atar, metni programdaki yazımla okur ("42", "-1_000"); çevrilemeyen değer hatadır.
@@ -1022,6 +1056,40 @@ tr: değişken a: Aralık = 1..5; yazdır(Tip(a), Liste(0..5))
 ```
 
 Üyeleri: `.TR_reverse(...)`
+
+#### `TR_Request` (`TR_type_Request`, `HTTPİsteği`)
+
+İşleyiciye verilen HTTP isteği: yöntem, yol (sorgusuz, yüzde kodlaması çözülmüş), sorgu, başlıklar ve gövde (Baytlar). HEAD isteğinde işleyici "GET" görür. Testte adlı argümanlarla kurulur, işleyici ağsız sınanır.
+
+```tr
+TR_var i = TR_Request(TR_method: "POST", TR_path: "/komut", TR_body: TR_Bytes("a")); TR_print(i.TR_method, i.TR_path, TR_String(i.TR_body))
+```
+
+Görünümü:
+
+```text
+en: var i = Request(method: "POST", path: "/komut", body: Bytes("a")); print(i.method, i.path, String(i.body))
+tr: değişken i = HTTPİsteği(yöntem: "POST", yol: "/komut", gövde: Baytlar("a")); yazdır(i.yöntem, i.yol, Metin(i.gövde))
+```
+
+Üyeleri: `.TR_body`, `.TR_headers`, `.TR_method`, `.TR_path`, `.TR_query` · İlişkili: `TR_serve_http(...)`, `TR_Response`, `.TR_method`, `.TR_path`, `.TR_query`, `.TR_headers`, `.TR_body`
+
+#### `TR_Response` (`TR_type_Response`, `HTTPCevabı`)
+
+İşleyicinin cevabı bir değerdir: durum_kodu (200–599, varsayılan 200), gövde (Metin text/plain, Baytlar octet-stream) ya da json (application/json) ve başlıklar. Okunur üyeleri durum_kodu, gövde (ağa gidecek Baytlar) ve başlıklardır (varsayılan Content-Type dahil).
+
+```tr
+TR_var c = TR_Response(TR_status: 201, TR_json: {"tamam": TR_true}); TR_print(c.TR_status, c.TR_headers["Content-Type"], TR_String(c.TR_body))
+```
+
+Görünümü:
+
+```text
+en: var c = Response(status: 201, json: {"tamam": true}); print(c.status, c.headers["Content-Type"], String(c.body))
+tr: değişken c = HTTPCevabı(durum_kodu: 201, json: {"tamam": doğru}); yazdır(c.durum_kodu, c.başlıklar["Content-Type"], Metin(c.gövde))
+```
+
+Üyeleri: `.TR_body`, `.TR_headers`, `.TR_status` · İlişkili: `TR_serve_http(...)`, `TR_Request`, `.TR_status`, `.TR_body`, `.TR_headers`
 
 #### `TR_Role` (`TR_type_Role`, `Rol`)
 
@@ -3193,6 +3261,44 @@ tr: tensör_kaydet("agirliklar.trt", {"w": Tensör([[1.0, 2.0]]), "b": Tensör([
 
 İlişkili: `TR_load_tensors(...)`, `TR_parameters(...)`
 
+#### `TR_secret_token(...)` (`TR_fn_secret_token`, `gizli_belirteç`)
+
+    gizli_belirteç() → Metin
+
+İşletim sisteminin güvenli rastgele kaynağından 32 baytlık bir belirteç üretir, URL'de güvenli taban 64 ile Metin olarak verir (43 karakter). Değeri gizlidir: insanın göreceği çıktılarda *** görünür; dosyaya yalnız_sahibe: doğru ile yazılır.
+
+```tr
+TR_var b = TR_secret_token(); TR_print(b.TR_length, b)
+```
+
+Görünümü:
+
+```text
+en: var b = secret_token(); print(b.length, b)
+tr: değişken b = gizli_belirteç(); yazdır(b.uzunluk, b)
+```
+
+İlişkili: `TR_serve_http(...)`, `TR_token:`, `TR_owner_only:`
+
+#### `TR_serve_http(...)` (`TR_fn_serve_http`, `http_sun`)
+
+    http_sun(Fonksiyon | YerleşikFonksiyon, adres: Metin = "127.0.0.1", kapı_numarası: Tam = 0, belirteç: Metin = yok, en_çok_eşzamanlı: Tam = yok, en_çok_gövde_baytı: Tam = 1.048576e+06) → HTTPSunucusu
+
+Bir HTTP sunucusu açar ve beklemeden HTTPSunucusu verir; işleyici her istek için ayrı bir görevde çağrılır. Varsayılan adres 127.0.0.1'dir; başka adres belirteç ister. Başka bir siteden tarayıcıyla gelen istek, belirteçsiz istek, geçersiz yol, büyük gövde ve sınırı aşan istek işleyiciye ulaşmaz.
+
+```tr
+TR_func cevapla(i: TR_Request) -> TR_Response { TR_return TR_Response(TR_body: "merhaba") }; TR_var s = TR_serve_http(cevapla, TR_port: 0); TR_print(s.TR_port > 0, s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func cevapla(i: Request) -> Response { return Response(body: "merhaba") }; var s = serve_http(cevapla, port: 0); print(s.port > 0, s.close())
+tr: fonksiyon cevapla(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı(gövde: "merhaba") }; değişken s = http_sun(cevapla, kapı_numarası: 0); yazdır(s.kapı_numarası > 0, s.kapat())
+```
+
+İlişkili: `TR_HTTPServer`, `TR_Request`, `TR_Response`, `TR_secret_token(...)`
+
 #### `TR_shape_groups(...)` (`TR_fn_shape_groups`, `şekil_grupları`)
 
     şekil_grupları()
@@ -3916,6 +4022,23 @@ tr: yazdır(katman_normu(Tensör([[1.0, 3.0]]), sapma: Tensör([0.5, 0.5])).değ
 
 Kullananlar: `TR_layer_norm(...)` · İlişkili: `TR_weight:`
 
+#### `TR_body:` (`TR_arg_body`, `gövde`)
+
+HTTPİsteği'nde isteğin gövdesi (Baytlar), HTTPCevabı'nda cevabın gövdesi: Metin UTF-8 ve text/plain, Baytlar application/octet-stream gider.
+
+```tr
+TR_print(TR_String(TR_Response(TR_body: "merhaba").TR_body))
+```
+
+Görünümü:
+
+```text
+en: print(String(Response(body: "merhaba").body))
+tr: yazdır(Metin(HTTPCevabı(gövde: "merhaba").gövde))
+```
+
+Kullananlar: `TR_Request`, `TR_Response` · İlişkili: `TR_Request`, `TR_Response`, `.TR_body`
+
 #### `TR_buffer_bytes:` (`TR_arg_buffer_bytes`, `tampon_baytı`)
 
 Canlı kaynak için çıktı tamponunun bayt sınırı. Verilmezse tampon dolunca program bekler; verilirse tampon taşınca program durdurulur, taşma hatası kurulur.
@@ -4365,6 +4488,23 @@ Kullananlar: `TR_custom_grad(...)` · İlişkili: `TR_backward:`
 
 
 
+#### `TR_headers:` (`TR_arg_headers`, `başlıklar`)
+
+Metin anahtarlı, Metin değerli başlık sözlüğü. Geçersiz ad, harf büyüklüğü farklı aynı ad ve satır sonu ya da denetim karakteri taşıyan değer hatadır; verilen content-type varsayılanı ezer.
+
+```tr
+TR_print(TR_Response(TR_headers: {"Cache-Control": "no-store"}).TR_headers["cache-control"])
+```
+
+Görünümü:
+
+```text
+en: print(Response(headers: {"Cache-Control": "no-store"}).headers["cache-control"])
+tr: yazdır(HTTPCevabı(başlıklar: {"Cache-Control": "no-store"}).başlıklar["cache-control"])
+```
+
+Kullananlar: `TR_Request`, `TR_Response` · İlişkili: `TR_Request`, `TR_Response`, `.TR_headers`
+
 #### `TR_history:` (`TR_arg_history`, `geçmiş`)
 
 
@@ -4389,6 +4529,23 @@ tr: değişken g, s = kısa_fourier(sıfırlar([16]), 8, adım_boyu: 2, pencere:
 ```
 
 Kullananlar: `TR_stft(...)` · İlişkili: `TR_stft(...)`
+
+#### `TR_host:` (`TR_arg_host`, `adres`)
+
+Sunucunun dinlediği IP adresi; varsayılan 127.0.0.1 (yalnız bu bilgisayar). Başka adres belirteç ister; localhost ve öbür döngü adresleri hatadır.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_print(TR_error_code { TR_serve_http(f, TR_host: "localhost") })
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; print(error_code { serve_http(f, host: "localhost") })
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; yazdır(hata_kodu { http_sun(f, adres: "localhost") })
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_token:`
 
 #### `TR_in_features:` (`TR_arg_in_features`, `giriş_boyutu`)
 
@@ -4418,6 +4575,23 @@ Kullananlar: `TR_run_process(...)` · İlişkili: `TR_run_process(...)`
 #### `TR_intermediate_dim:` (`TR_arg_intermediate_dim`, `ara_boyut`)
 
 
+
+#### `TR_json:` (`TR_arg_json`, `json`)
+
+Değeri 13.8 ile JSON olarak yazar, Content-Type application/json olur. JSON cevabın tek yazımıdır; gövde ile birlikte verilmez.
+
+```tr
+TR_print(TR_Response(TR_json: [1, 2]).TR_headers["Content-Type"])
+```
+
+Görünümü:
+
+```text
+en: print(Response(json: [1, 2]).headers["Content-Type"])
+tr: yazdır(HTTPCevabı(json: [1, 2]).başlıklar["Content-Type"])
+```
+
+Kullananlar: `TR_Response` · İlişkili: `TR_Response`
 
 #### `TR_k:` (`TR_arg_k`, `k`)
 
@@ -4566,6 +4740,40 @@ tr: değişken w = Tensör([3.0, 4.0], türev_izle: doğru); geri_yayılım(topl
 
 Kullananlar: `TR_clamp(...)`, `TR_clip_grad(...)` · İlişkili: `TR_min:`
 
+#### `TR_max_body_bytes:` (`TR_arg_max_body_bytes`, `en_çok_gövde_baytı`)
+
+İstek gövdesinin bayt sınırı (pozitif Tam, varsayılan 1 048 576); aşan istek 413 alır, işleyici çağrılmaz.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_max_body_bytes: 4096); TR_print(s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, max_body_bytes: 4096); print(s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, en_çok_gövde_baytı: 4096); yazdır(s.kapat())
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`
+
+#### `TR_max_concurrent:` (`TR_arg_max_concurrent`, `en_çok_eşzamanlı`)
+
+Aynı anda işlenen en çok istek (pozitif Tam); sınır doluyken gelen istek beklemeden 503 alır. Varsayılan sınırsız.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_max_concurrent: 4); TR_print(s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, max_concurrent: 4); print(s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, en_çok_eşzamanlı: 4); yazdır(s.kapat())
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`
+
 #### `TR_max_new_tokens:` (`TR_arg_max_new_tokens`, `en_fazla_yeni_parça`)
 
 
@@ -4602,6 +4810,23 @@ Kullananlar: `TR_mel_filterbank(...)` · İlişkili: `TR_mel_filterbank(...)`
 #### `TR_merged_kv:` (`TR_arg_merged_kv`, `birleşik_kv`)
 
 
+
+#### `TR_method:` (`TR_arg_method`, `yöntem`)
+
+İsteğin yöntemi; geçerli bir HTTP yöntem adı olmalıdır, "HEAD" kabul edilmez (işleyici HEAD'de "GET" görür). Varsayılan "GET".
+
+```tr
+TR_print(TR_Request(TR_method: "DELETE").TR_method)
+```
+
+Görünümü:
+
+```text
+en: print(Request(method: "DELETE").method)
+tr: yazdır(HTTPİsteği(yöntem: "DELETE").yöntem)
+```
+
+Kullananlar: `TR_Request` · İlişkili: `TR_Request`, `.TR_method`
 
 #### `TR_metrics:` (`TR_arg_metrics`, `ölçüler`)
 
@@ -4825,7 +5050,7 @@ en: write_file("anahtar.txt", "gizli metin", owner_only: true); print(read_file(
 tr: dosya_yaz("anahtar.txt", "gizli metin", yalnız_sahibe: doğru); yazdır(dosya_oku("anahtar.txt"))
 ```
 
-Kullananlar: `TR_write_file(...)` · İlişkili: `TR_write_file(...)`
+Kullananlar: `TR_write_file(...)` · İlişkili: `TR_write_file(...)`, `TR_secret_token(...)`
 
 #### `TR_pad_mode:` (`TR_arg_pad_mode`, `dolgu_kipi`)
 
@@ -4882,6 +5107,23 @@ Kullananlar: `.TR_encode(...)`
 
 
 
+#### `TR_path:` (`TR_arg_path`, `yol`)
+
+İsteğin çözülmüş yolu; varsayılan "/".
+
+```tr
+TR_print(TR_Request(TR_path: "/a b").TR_path)
+```
+
+Görünümü:
+
+```text
+en: print(Request(path: "/a b").path)
+tr: yazdır(HTTPİsteği(yol: "/a b").yol)
+```
+
+Kullananlar: `TR_Request` · İlişkili: `TR_Request`, `.TR_path`
+
 #### `TR_pattern:` (`TR_arg_pattern`, `desen`)
 
 
@@ -4919,6 +5161,23 @@ Kullananlar: `TR_hann_window(...)` · İlişkili: `TR_hann_window(...)`
 
 
 
+#### `TR_port:` (`TR_arg_port`, `kapı_numarası`)
+
+Sunucunun kapısı (0–65535); verilmezse ya da 0 ise kapıyı işletim sistemi seçer. Kullanılan kapı hatadır.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_port: 0); TR_print(s.TR_port > 0, s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, port: 0); print(s.port > 0, s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, kapı_numarası: 0); yazdır(s.kapı_numarası > 0, s.kapat())
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `.TR_port`
+
 #### `TR_position:` (`TR_arg_position`, `konum`)
 
 
@@ -4934,6 +5193,23 @@ Kullananlar: `TR_hann_window(...)` · İlişkili: `TR_hann_window(...)`
 #### `TR_qk_norm:` (`TR_arg_qk_norm`, `qk_normu`)
 
 
+
+#### `TR_query:` (`TR_arg_query`, `sorgu`)
+
+İsteğin sorgusu: Metin anahtarlı, Metin listesi değerli sözlük.
+
+```tr
+TR_print(TR_Request(TR_query: {"ad": ["a"]}).TR_query)
+```
+
+Görünümü:
+
+```text
+en: print(Request(query: {"ad": ["a"]}).query)
+tr: yazdır(HTTPİsteği(sorgu: {"ad": ["a"]}).sorgu)
+```
+
+Kullananlar: `TR_Request` · İlişkili: `TR_Request`, `.TR_query`
 
 #### `TR_quota_gb:` (`TR_arg_quota_gb`, `kota_gb`)
 
@@ -5112,6 +5388,23 @@ Kullananlar: `TR_write_slice(...)` · İlişkili: `TR_write_slice(...)`
 
 
 
+#### `TR_status:` (`TR_arg_status`, `durum_kodu`)
+
+Cevabın durum kodu, 200–599; varsayılan 200.
+
+```tr
+TR_print(TR_Response(TR_status: 503).TR_status)
+```
+
+Görünümü:
+
+```text
+en: print(Response(status: 503).status)
+tr: yazdır(HTTPCevabı(durum_kodu: 503).durum_kodu)
+```
+
+Kullananlar: `TR_Response` · İlişkili: `TR_Response`, `.TR_status`
+
 #### `TR_step:` (`TR_arg_step`, `adım`)
 
 İlerleme.güncelle'de tamamlanan eğitim adımı sayısıdır (kaldığı yerden sürdürmek için; 0 ya da pozitif Tam).
@@ -5191,6 +5484,23 @@ tr: değişken g = eşzamanlı { uyu(10) }; yazdır(hata_kodu { g.bekle(süre_s�
 ```
 
 Kullananlar: `TR_run_process(...)`, `.TR_wait(...)` · İlişkili: `.TR_wait(...)`, `.TR_cancel(...)`, `TR_run_process(...)`
+
+#### `TR_token:` (`TR_arg_token`, `belirteç`)
+
+Her istekte Authorization: Bearer <belirteç> başlığıyla sabit sürede karşılaştırılan belirteç; eksik ya da yanlışsa 401. En az 16 karakter, yalnız harf, rakam, _ ve -; gizli_belirteç() böyle bir belirteç üretir. Değeri gizlidir.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f, TR_token: TR_secret_token()); TR_print(s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f, token: secret_token()); print(s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f, belirteç: gizli_belirteç()); yazdır(s.kapat())
+```
+
+Kullananlar: `TR_serve_http(...)` · İlişkili: `TR_serve_http(...)`, `TR_secret_token(...)`, `TR_host:`
 
 #### `TR_token_id:` (`TR_arg_token_id`, `kimlik`)
 
@@ -5489,6 +5799,26 @@ tr: değişken p = parçalayıcı_yükle("tests/data/tokenizer.json"); yazdır(p
 
 
 
+#### `.TR_body` (`TR_mem_body`, `gövde`)
+
+    HTTPİsteği.gövde → Baytlar
+    HTTPCevabı.gövde → Baytlar
+
+İsteğin gövdesi ya da cevabın ağa gidecek gövdesi, Baytlar olarak; metni için Metin(x.gövde).
+
+```tr
+TR_print(TR_String(TR_Response(TR_body: "tamam").TR_body), TR_Request(TR_body: TR_Bytes("a")).TR_body)
+```
+
+Görünümü:
+
+```text
+en: print(String(Response(body: "tamam").body), Request(body: Bytes("a")).body)
+tr: yazdır(Metin(HTTPCevabı(gövde: "tamam").gövde), HTTPİsteği(gövde: Baytlar("a")).gövde)
+```
+
+İlişkili: `TR_body:`, `TR_Request`, `TR_Response`
+
 #### `.TR_build_cache(...)` (`TR_mem_build_cache`, `önbellek_kur`)
 
 
@@ -5544,6 +5874,7 @@ tr: dene { fırlat "okunamadı" } yakala e { dene { fırlat Hata("yüklenemedi",
 
     SatırOkuyucu.kapat() → Mantık
     Günlük.kapat() → Mantık
+    HTTPSunucusu.kapat() → Mantık
 
 Okuyucunun dosyasını bırakır (sonuna kadar okunmamış dosya böylece silinebilir ve taşınabilir); kapatılmış okuyucudan satır istemek hatadır. Dosyayı bu çağrı kapattıysa doğru, zaten kapalıysa (sonuna kadar okunduysa ya da önceden kapatıldıysa) yanlış verir; iki kez kapatmak hata değildir. Günlük'ü program bitmeden kapatır, dosyası silinebilir ve taşınabilir; kapatılmış günlüğe yazmak hatadır, dönüşü okuyucudaki gibidir.
 
@@ -5905,6 +6236,7 @@ tr: yazdır([5, 6, 7].ilk)
 #### `.TR_get(...)` (`TR_mem_get`, `varsa_al`)
 
     Sözlük.varsa_al(Herhangi) → Herhangi
+    Başlıklar.varsa_al(Metin) → Metin
     Liste.varsa_al(Tam) → Herhangi
     Metin.varsa_al(Tam) → Metin | YokTipi
 
@@ -5949,6 +6281,26 @@ tr: değişken x = Tensör([1.0, 2.0], türev_izle: doğru); geri_yayılım(topl
 #### `.TR_head_dim` (`TR_mem_head_dim`, `bakış_boyutu`)
 
 
+
+#### `.TR_headers` (`TR_mem_headers`, `başlıklar`)
+
+    HTTPİsteği.başlıklar → Başlıklar
+    HTTPCevabı.başlıklar → Başlıklar
+
+İsteğin ya da cevabın Başlıklar'ı; cevapta varsayılan Content-Type da içindedir.
+
+```tr
+TR_print(TR_Request(TR_headers: {"Content-Type": "text/plain"}).TR_headers["content-type"])
+```
+
+Görünümü:
+
+```text
+en: print(Request(headers: {"Content-Type": "text/plain"}).headers["content-type"])
+tr: yazdır(HTTPİsteği(başlıklar: {"Content-Type": "text/plain"}).başlıklar["content-type"])
+```
+
+İlişkili: `TR_Headers`, `TR_headers:`
 
 #### `.TR_hidden_states(...)` (`TR_mem_hidden_states`, `gizli_temsil`)
 
@@ -6284,6 +6636,25 @@ tr: yazdır([1, 2, 3].haritala((x) => x * 10))
 
 
 
+#### `.TR_method` (`TR_mem_method`, `yöntem`)
+
+    HTTPİsteği.yöntem → Metin
+
+İsteğin yöntemi ("GET", "POST" ...); HEAD isteğinde "GET".
+
+```tr
+TR_print(TR_Request(TR_method: "POST").TR_method)
+```
+
+Görünümü:
+
+```text
+en: print(Request(method: "POST").method)
+tr: yazdır(HTTPİsteği(yöntem: "POST").yöntem)
+```
+
+İlişkili: `TR_method:`, `.TR_path`
+
 #### `.TR_momentum` (`TR_mem_momentum`, `momentum`)
 
 
@@ -6403,6 +6774,25 @@ tr: yazdır(Yol("veri/eğitim/a.npy").üst_klasör)
 
 İlişkili: `.TR_name`
 
+#### `.TR_path` (`TR_mem_path`, `yol`)
+
+    HTTPİsteği.yol → Metin
+
+İsteğin sorgusuz yolu, yüzde kodlaması çözülmüş Metin: /a%20b?x=1 isteğinin yolu "/a b".
+
+```tr
+TR_print(TR_Request(TR_path: "/saglik").TR_path)
+```
+
+Görünümü:
+
+```text
+en: print(Request(path: "/saglik").path)
+tr: yazdır(HTTPİsteği(yol: "/saglik").yol)
+```
+
+İlişkili: `TR_path:`, `.TR_method`
+
 #### `.TR_permute(...)` (`TR_mem_permute`, `eksenleri_sırala`)
 
     Tensör.eksenleri_sırala(Liste | Tam, [Tam...]) → Tensör
@@ -6453,6 +6843,25 @@ tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
 
 İlişkili: `.TR_append(...)`, `.TR_remove_at(...)`
 
+#### `.TR_port` (`TR_mem_port`, `kapı_numarası`)
+
+    HTTPSunucusu.kapı_numarası → Tam
+
+Sunucunun dinlediği gerçek kapı; kapı_numarası: 0 verildiyse işletim sisteminin seçtiği kapı.
+
+```tr
+TR_func f(i: TR_Request) -> TR_Response { TR_return TR_Response() }; TR_var s = TR_serve_http(f); TR_print(s.TR_port > 0, s.TR_close())
+```
+
+Görünümü:
+
+```text
+en: func f(i: Request) -> Response { return Response() }; var s = serve_http(f); print(s.port > 0, s.close())
+tr: fonksiyon f(i: HTTPİsteği) -> HTTPCevabı { sonuç HTTPCevabı() }; değişken s = http_sun(f); yazdır(s.kapı_numarası > 0, s.kapat())
+```
+
+İlişkili: `TR_port:`, `TR_serve_http(...)`
+
 #### `.TR_position` (`TR_mem_position`, `konum`)
 
 
@@ -6484,6 +6893,25 @@ tr: değişken l = [1, 2, 3]; yazdır(l.sondan_çıkar(), l)
 #### `.TR_q_proj` (`TR_mem_q_proj`, `sorgu_katmanı`)
 
 
+
+#### `.TR_query` (`TR_mem_query`, `sorgu`)
+
+    HTTPİsteği.sorgu → Sözlük
+
+İsteğin sorgusu: her anahtarın değerleri geliş sırasıyla bir Metin listesi.
+
+```tr
+TR_print(TR_Request(TR_query: {"x": ["1", "2"]}).TR_query["x"])
+```
+
+Görünümü:
+
+```text
+en: print(Request(query: {"x": ["1", "2"]}).query["x"])
+tr: yazdır(HTTPİsteği(sorgu: {"x": ["1", "2"]}).sorgu["x"])
+```
+
+İlişkili: `TR_query:`, `.TR_path`
 
 #### `.TR_read(...)` (`TR_mem_read`, `oku`)
 
@@ -6982,6 +7410,25 @@ tr: değişken w = Tensör([1.0], türev_izle: doğru); değişken op = AdamW([w
 
 İlişkili: `.TR_load_state(...)`, `TR_Checkpoint`
 
+#### `.TR_status` (`TR_mem_status`, `durum_kodu`)
+
+    HTTPCevabı.durum_kodu → Tam
+
+Cevabın HTTP durum kodu.
+
+```tr
+TR_print(TR_Response(TR_status: 404).TR_status)
+```
+
+Görünümü:
+
+```text
+en: print(Response(status: 404).status)
+tr: yazdır(HTTPCevabı(durum_kodu: 404).durum_kodu)
+```
+
+İlişkili: `TR_status:`, `TR_Response`
+
 #### `.TR_stem` (`TR_mem_stem`, `uzantısız_ad`)
 
     Yol.uzantısız_ad → Metin
@@ -7354,6 +7801,7 @@ tr: yazdır(parçalayıcı_yükle("tests/data/tokenizer.json").dağarcık_boyutu
 
 #### `.TR_wait(...)` (`TR_mem_wait`, `bekle`)
 
+    HTTPSunucusu.bekle() → YokTipi
     Süreç.bekle(süre_sınırı: Tam | Ondalık = yok) → Tam
     Görev.bekle(süre_sınırı: Tam | Ondalık = yok) → Herhangi
 

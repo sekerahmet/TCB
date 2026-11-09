@@ -19,6 +19,7 @@ import (
 	"github.com/sekerahmet/TCB/internal/stdlib/dataset"
 	"github.com/sekerahmet/TCB/internal/stdlib/files"
 	"github.com/sekerahmet/TCB/internal/stdlib/formats"
+	"github.com/sekerahmet/TCB/internal/stdlib/httpserver"
 	"github.com/sekerahmet/TCB/internal/stdlib/logging"
 	"github.com/sekerahmet/TCB/internal/stdlib/ml"
 	"github.com/sekerahmet/TCB/internal/stdlib/process"
@@ -41,14 +42,17 @@ func init() {
 		logging.Register(v, s)
 		checkpoint.Register(v, s)
 	})
+	// HTTP sunucusu (28): istek ve cevap değerleri, dosya sunmak, belirteç.
+	interp.AddEngine(httpserver.Register)
 }
 
-// Close motorların program boyunca açık kalmış kaynaklarını (veri kümesi okuyucuları,
+// Close motorların program boyunca açık kalmış kaynaklarını (HTTP sunucuları, veri kümesi okuyucuları,
 // önden yükleme gorutinleri, önbellekler, satır okuyucularının ve günlüklerin dosyaları) kapatır,
 // bitmemiş ilerleme çubuklarını bitirir ve geçici_klasör() ile oluşturulan klasörleri siler
 // (dosyalar kapandıktan sonra). Program bitince çağrılır; takılan bir okumada en çok birkaç
 // saniye bekler. Birden çok kez çağrılabilir.
 func Close() {
+	httpserver.CloseAll()
 	logging.CloseAll()
 	dataset.CloseAll(3 * time.Second)
 	files.CloseAll()

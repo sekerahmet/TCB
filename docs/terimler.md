@@ -36,6 +36,7 @@ Dilin kendi içinde farklı işe aynı ad verilmez: tensörleri uç uca ekleyen 
 | girdi | TR_arg_input, TR_fn_input | aynı anlam: programın okuduğu girdi (`TR_input(istem)` uçbirimden satır okur, `TR_input:` dış programın standart girdisini verir) |
 | günlük | TR_arg_log, TR_mem_logger | aynı anlam: TR_arg_log adlı argümanı `TR_Logger(...)`'ın açtığı günlüğü alır; `TR_Run`'ın günlük alanı (TR_mem_logger) o günlüktür |
 | izle | TR_cmd_watch, TR_dbg_watch | aynı anlam: izlemeye almak (`TR_cmd_watch` bir koşuyu, hata ayıklayıcı bir ifadeyi) |
+| json | TR_arg_json, TR_opt_json | ayrı alan: TR_opt_json `trlang` komutlarının makinenin okuyacağı çıktı seçeneğidir (`--json`); TR_arg_json `TR_Response`'un JSON gövdesidir (28.3). İkisi de ortak addır, dilden bağımsız. |
 | kontrol | TR_cmd_check, TR_opt_check | aynı anlam: `TR_cmd_check` komutu ve `--check` seçeneği aynı denetimi yapar |
 | kök | TR_mem_lemma, TR_opt_root | ayrı alan: TR_opt_root komut satırında proje kökünü verir; TR_mem_lemma sözcüğün sözlük biçimidir |
 | mutlak | TR_fn_abs, TR_mem_absolute | aynı anlam: göreli olmayan (mutlak değer, mutlak yol; Python `abs` ve `Path.absolute`) |

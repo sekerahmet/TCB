@@ -1,0 +1,35 @@
+# TR 4
+# 54 — HTTP sunucusu: bir modeli hizmet olarak açmanın iskeleti (28). İşleyici bir fonksiyondur: isteği
+# alır, cevabı döndürür; yönlendirme TR_match'tir. Önce işleyici ağsız sınanır, sonra sunucu açılıp
+# kapanır. Sunucu 127.0.0.1'e bağlıdır: yalnız bu bilgisayardan bağlanılır, başka bir sitenin tarayıcı
+# üzerinden attığı istek işleyiciye ulaşmaz.
+#
+# Kendin dene: s.TR_close() yerine s.TR_wait() yaz, programı çalıştır, tarayıcıda yazdırılan adresi aç
+# (adresin sonuna /saglik ekle); Ctrl+C sunucuyu kapatır.
+
+TR_func cevapla(istek: TR_Request) -> TR_Response {
+    TR_match (istek.TR_method, istek.TR_path) {
+        ("GET", "/saglik") => { TR_return TR_Response(TR_body: "tamam") }
+        ("POST", "/uzunluk") => {
+            TR_var metin = TR_String(istek.TR_body)
+            TR_return TR_Response(TR_json: {"karakter": metin.TR_length, "dil": istek.TR_query.TR_get("dil") ?? ["tr"]})
+        }
+        _ => { TR_return TR_Response(TR_status: 404, TR_body: "yok", TR_headers: {"Cache-Control": "no-store"}) }
+    }
+}
+
+# İşleyici sıradan bir fonksiyondur: ağ olmadan sınanır.
+TR_var c = cevapla(TR_Request(TR_method: "POST", TR_path: "/uzunluk", TR_query: {"dil": ["en"]}, TR_body: TR_Bytes("merhaba")))
+TR_print(c.TR_status, c.TR_headers["Content-Type"], TR_String(c.TR_body), TR_Type(c.TR_headers) == TR_Headers)
+TR_print(cevapla(TR_Request(TR_path: "/yok")).TR_status)
+
+# Belirteç: işletim sisteminin rastgele kaynağından; terminale yazılmaz, yalnız size açık bir dosyaya gider.
+TR_var belirteç = TR_secret_token()
+TR_var dosya = TR_Path(TR_temp_dir(), "belirtec.txt")
+TR_write_file(dosya, belirteç, TR_owner_only: TR_true)
+TR_print("belirteç dosyada:", TR_read_file(dosya).TR_length, "karakter; görünüşü:", belirteç)
+
+# Sunucu: kapıyı işletim sistemi seçer; her istek Authorization: Bearer <belirteç> ister.
+TR_var s = TR_serve_http(cevapla, TR_host: "127.0.0.1", TR_port: 0, TR_token: belirteç, TR_max_concurrent: 8, TR_max_body_bytes: 65536)
+TR_print("adres hazır:", s.TR_port > 0, TR_Type(s) == TR_HTTPServer)
+TR_print("kapandı:", s.TR_close())
