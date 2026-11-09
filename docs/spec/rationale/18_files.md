@@ -59,6 +59,7 @@ Kurallar: [`18_dosya_ve_yol.md`](../18_dosya_ve_yol.md). Bu dosya her kuralın e
 - *Gerekçe:* veriyi hazırlamak bellekten büyük metinle çalışır; akışla okumak bunun önkoşuludur. Satır sonunun atılması ajanın en sık `strip` unutmasını kaldırır.
 
 - *Gerekçe (geçersiz UTF-8, 2026-11-04, DENETİM istek 97):* `ab\xff` içeren dosyada `TR_read_file` hata verirken `TR_read_lines` bozuk baytı `TR_String`'e sokuyordu; `TR_Bytes(s)` `[97, 98, 255]` verdi [ölçüldü: DENETİM, `cb162b61`]. Bu okuyucular veri hattının girişidir: bozuk metin parçalayıcıya sessizce gider. Akış dosyanın sonuna kadar okunmadan doğrulanamaz, bu yüzden hata satır açılırken ve numarasıyla verilir. `TR_read_csv` bütün listeyi verdiği için kuralı 13.8'dedir.
+- *Gerekçe (hatadan sonra, Tur 5, 2026-11-09; DENETİM 352, 353):* geçersiz UTF-8 hatası o satıra özgüdür, satırın sonu bulunmuştur: hata yakalanırsa okuyucu sıradaki satırla sürer. 64 MB'ı aşan satırda satırın sonu bulunmadan okuma durur; okuyucu kapanır ve sonraki istek hatadır. `TR_none` verseydi hatayı yakalayan döngü dosyanın bittiğini sanar, kalan satırları sessizce atlardı. *Emsal:* Rust'ın `Lines`'ı satır başına hata verir, Go'nun `bufio.Scanner`'ı ilk hatada durur ve `Err()` ile söyler (Gemini, Tur 5 raporu) [kanıtsız: TCB bu tur açmadı].
 
 ### 18.12
 
