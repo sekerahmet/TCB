@@ -43,7 +43,7 @@ func TestATestBeyondTheStepLimitMakesAFunctionTestedAndIsSummarized(t *testing.T
 		t.Fatalf("tests-for: %d %s", code, errOut)
 	}
 	for _, want := range []string{
-		"  <- this file's tests beyond the 8-step limit (1; a chain inside its folder):\n    p.TestOwnDeep [func] p/core_test.go:5  11 steps via p.F1  [INFERRED]\n",
+		"  <- this file's tests beyond the 8-step limit (1; a chain inside its folder, often through shared machinery: read with care):\n    p.TestOwnDeep [func] p/core_test.go:5  11 steps via p.F1  [INFERRED]\n",
 		"  beyond the 8-step limit, inside its folder: 1 more tests reach it through p.F3 (from 11 steps); `tests-for p.F3` lists them\n",
 	} {
 		if !strings.Contains(out, want) {

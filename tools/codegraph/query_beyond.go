@@ -75,10 +75,12 @@ func (ix *index) beyondLimit(n *Node, listed []*Node) beyondTests {
 }
 
 // printBeyond sınır ötesi testleri yazar: kendi test dosyasındakiler adıyla (koşu satırı onları da adlandırır), kalanı
-// tek satırda en çok testli girişle; girişten sorulan tests-for onları sınır içinde listeler.
+// tek satırda en çok testli girişle; girişten sorulan tests-for onları sınır içinde listeler. Adlı grup zayıf kanıttır:
+// uzun zincir çoğu kez ortak bir ayrıştırıcıdan geçer (B1a (c): tokenize.reProps'un regex_test.go'daki testleri onu
+// koşmuyor, property_table_test.go'daki koşuyor; tek -run'lı kapsama).
 func printBeyond(w io.Writer, b beyondTests, limit int) {
 	if len(b.own) > 0 {
-		fmt.Fprintf(w, "  <- this file's tests beyond the %d-step limit (%d; a chain inside its folder):\n", testMaxSteps, len(b.own))
+		fmt.Fprintf(w, "  <- this file's tests beyond the %d-step limit (%d; a chain inside its folder, often through shared machinery: read with care):\n", testMaxSteps, len(b.own))
 		forEachLimited(w, b.own, limit, "    ", moreHint, func(it indirectTest) string {
 			return fmt.Sprintf("%s  %d steps via %s  [INFERRED]", describe(it.test), it.steps, it.via.Name)
 		})
