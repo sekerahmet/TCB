@@ -30,7 +30,7 @@ Model.TR_ctx_init	ok	0	tr:method:tools/gpu/measurement_model.tr:Model.TR_ctx_ini
 Model.TR_forward	ambiguous	3	tr:method:lib/layers.tr:TR_type_CausalAttention.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_Embedding.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_GPT.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_Linear.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_PLEBlock.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_PLEContext.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_RMSNorm.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_SwiGLU.TR_mem_forward[H8878],tr:method:lib/layers.tr:TR_type_TransformerBlock.TR_mem_forward[H8878],tr:struct:tools/gpu/measurement_model.tr:Model[H8877]
 T.TR_tolist	ok	0	name:TR_mem_tolist
 TR_AdamW.TR_step	ok	0	name:TR_mem_step
-TR_AnyTensor.TR_narrow	ambiguous	3	spec:13.10,spec:15.1,spec:15.2,spec:15.46,spec:15.52	tr_index:not_found:4
+TR_AnyTensor.TR_narrow	ambiguous	3	spec:13.10,spec:15.1,spec:15.2,spec:15.46,spec:15.52,spec:15.6d	tr_index:not_found:4
 TR_BLOCK_NAMES.TR_contains	ok	0	name:TR_mem_contains
 TR_G_muon.TR_dtype	ok	0	name:TR_mem_dtype
 TR_G_muon.TR_shape	ok	0	name:TR_mem_shape
@@ -1434,7 +1434,7 @@ t.TR_device	ok	0	name:TR_mem_device
 t.TR_dtype	ok	0	name:TR_mem_dtype
 t.TR_grad	ok	0	name:TR_mem_grad
 t.TR_item	ok	0	name:TR_mem_item
-t.TR_narrow	ambiguous	3	spec:13.10,spec:15.1,spec:15.2,spec:15.46,spec:15.52	tr_index:not_found:4
+t.TR_narrow	ambiguous	3	spec:13.10,spec:15.1,spec:15.2,spec:15.46,spec:15.52,spec:15.6d	tr_index:not_found:4
 t.TR_pop	ok	0	name:TR_mem_pop
 t.TR_remove	ok	0	name:TR_mem_remove
 t.TR_requires_grad	ok	0	name:TR_mem_requires_grad
