@@ -185,7 +185,7 @@ Dilin kuralı değil; kodlama modellerinin ve insanların dili rahat kullanması
   - düzenleme kancası kabuktan (Python, sed) yapılan düzenlemeyi görmez;
   - bilgi listesinin hangi testleri öne alacağı;
   - kancaların kendi bedeli (her çağrıda derleme).
-- **Codegraph** ([`tools/codegraph`](../tools/codegraph/README.md); eksikleri [`gaps.md`](../tools/codegraph/gaps.md)): doğruluk, boşa düşen tam denetim ve token için üç faz (Ahmet ve TCB, 2026-11-09): A dar düzeltmeler (A1 üye yazımı, A2 yanlış eşleşme ve koşu satırı; bitti, [`gaps.md`](../tools/codegraph/gaps.md)'nin "Son kapananlar"ı); B "commit'ten önce şunu koş" listesi ve yanlış "test yok" (B1a, B1b, B1c); C yeni yetenekler, A ve B'nin ölçüsünden sonra yeniden sıralanır.
+- **Codegraph** ([`tools/codegraph`](../tools/codegraph/README.md); eksikleri [`gaps.md`](../tools/codegraph/gaps.md)): doğruluk, boşa düşen tam denetim ve token için üç faz (Ahmet ve TCB, 2026-11-09): A dar düzeltmeler (A1 üye yazımı, A2 yanlış eşleşme ve koşu satırı; bitti, [`gaps.md`](../tools/codegraph/gaps.md)'nin "Son kapananlar"ı); B "commit'ten önce şunu koş" listesi ve yanlış "test yok" (B1a ve hız işi bitti, gaps'in "Son kapananlar"ı ve status'un codegraph süre satırı; sırada B1b, B1c); C yeni yetenekler, A ve B'nin ölçüsünden sonra yeniden sıralanır.
 - **Geliştirici araçları** (arşiv):
   - **dil sunucusu:** eklentide bugün yalnız tamamlama var; tanıma gitme, kullanımlar, yeniden adlandırma ve öbürleri;
   - **hata ayıklayıcı:**
