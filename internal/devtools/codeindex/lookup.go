@@ -161,6 +161,29 @@ func builtinNames(idx *Index) map[string][]string {
 	return names
 }
 
+var catalogCodes = sync.OnceValue(func() [2]map[string][]string {
+	exact := map[string][]string{}
+	for _, k := range codes.Codes() {
+		if k.IsLibrary() {
+			continue
+		}
+		code := k.String()
+		for _, s := range BuiltinNames(k) {
+			if !slices.Contains(exact[s], code) {
+				exact[s] = append(exact[s], code)
+			}
+		}
+	}
+	return [2]map[string][]string{exact, foldNames(exact)}
+})
+
+// CatalogCodeNames kod kataloğunda k ile eşleşen yerleşik ad kodlarını verir; hiçbir .tr dosyasında geçmeyen kodlu ad
+// ve üye yazımı iki araçta da bu tablodan kimliğine çözülür.
+func CatalogCodeNames(k NameKey) []string {
+	cat := catalogCodes()
+	return idsFor(k, cat[0], cat[1])
+}
+
 // Resolve bir sorgu metnini düğümlere çözer; ilk eşleşme veren basamaktaki bütün düğümleri döner
 // (birden çoksa belirsizdir). Basamaklar: "dosya.tr:satır:sütun" konumu; kimlik; çıplak ad (PickByName: modül yolu ya
 // da adı `katman`, `tr/layers`; bildirilmiş kısa ad, dilin öğesi olan bildirimde (Node.Code) kodu ve her yazım
@@ -209,6 +232,15 @@ func (r *Reader) Resolve(q, kind string) []*Node {
 			return at(found)
 		}
 		if IdentityQuery(q) {
+			if kind == "" || kind == string(KindBuiltin) {
+				if list := CatalogCodeNames(k); len(list) > 0 {
+					out := make([]*Node, len(list))
+					for i, c := range list {
+						out[i] = &Node{ID: NodeID(KindBuiltin, "", c), Kind: KindBuiltin, Name: c}
+					}
+					return out
+				}
+			}
 			continue // çıplak kimlik kodun kendi düğümüdür (yerleşik ya da kitaplık bildirimi), nitelenmiş bir adın sonu değil
 		}
 		if found := QualifiedMatch(len(nodes), k, func(i int) [][2]string {

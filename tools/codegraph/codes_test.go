@@ -201,18 +201,29 @@ func TestEverySpelledNameResolvesToItsCodeOrLibraryDeclaration(t *testing.T) {
 		}
 		for _, q := range codeindex.SpelledNames(k) {
 			checked++
-			var got []string
+			var gotCG, gotTR []string
 			for _, n := range ix.lookup(q) {
-				got = append(got, n.ID)
+				gotCG = append(gotCG, n.ID)
 			}
-			slices.Sort(got)
-			if !slices.Equal(got, want) {
-				t.Errorf("query %q (for %s): got %v, want %v", q, k, got, want)
+			for _, n := range reader.Resolve(q, "") {
+				gotTR = append(gotTR, graphID(*n))
+			}
+			slices.Sort(gotCG)
+			slices.Sort(gotTR)
+			if !slices.Equal(gotCG, want) || !slices.Equal(gotTR, want) {
+				t.Errorf("query %q (for %s): codegraph %v, trlang index %v, want %v", q, k, gotCG, gotTR, want)
 			}
 		}
 	}
 	if checked < 200 {
 		t.Errorf("only %d spelled names checked", checked)
+	}
+	emptyReader := codeindex.NewReader(&codeindex.Index{})
+	for q, want := range map[string]string{"x.TR_length": "name:TR_mem_length", "l." + "TR_slice": "name:TR_mem_slice"} {
+		cg, tr := ix.lookup(q), emptyReader.Resolve(q, "")
+		if len(cg) != 1 || cg[0].ID != want || len(tr) != 1 || graphID(*tr[0]) != want {
+			t.Errorf("empty index %q: codegraph %+v, trlang index %+v, want %s", q, cg, tr, want)
+		}
 	}
 	for _, q := range []string{
 		"x.TR_map", "x.TR_forward",

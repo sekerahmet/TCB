@@ -130,6 +130,13 @@ func TestALibraryNameIsFoundByItsCodeAndByItsNameInEveryLanguage(t *testing.T) {
 			t.Errorf("Definition(%q) = %+v, want builtin:TR_mem_map", q, res)
 		}
 	}
+	for _, r := range []*Reader{r, NewReader(&Index{})} {
+		for _, q := range []string{"l." + "TR_slice", "x." + "TR_slice", ".TR_slice"} {
+			if res := r.Definition(q, QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_slice" {
+				t.Errorf("Definition(%q) = %+v, want builtin:TR_mem_slice", q, res)
+			}
+		}
+	}
 	if res := r.Definition("model.TR_append", QueryOptions{}); res.Status != StatusOK || res.Target == nil || res.Target.ID != "builtin:TR_mem_append" {
 		t.Errorf("Definition(\"model.TR_append\") = %+v, want builtin:TR_mem_append", res)
 	}
