@@ -43,6 +43,7 @@ var globList = map[string]bool{"GlobFiles": true}
 // pathCall çağrının bütün argümanları dize sabitiyse onları birleştirip tek yol olarak kaydeder ve argüman
 // sabitlerini tek başına yol saymaz.
 func (x *goExtractor) pathCall(fc *fileCtx, owner string, call *ast.CallExpr) {
+	x.noteParamRootJoin(fc, call)
 	id := nameIdent(call.Fun)
 	if id == nil || !pathCallNames[id.Name] || len(call.Args) == 0 {
 		return
@@ -117,6 +118,11 @@ func (x *goExtractor) rootPathCall(fc *fileCtx, call *ast.CallExpr) bool {
 // noteRangeStrings dize sabiti listesi üzerinde dönen döngünün değer değişkenine listenin değerlerini bağlar.
 func (x *goExtractor) noteRangeStrings(fc *fileCtx, rs *ast.RangeStmt) {
 	id, ok := rs.Value.(*ast.Ident)
+	if over, isID := rs.X.(*ast.Ident); ok && isID && fc.u.Info.Defs[id] != nil {
+		if v, isVar := fc.u.Info.Uses[over].(*types.Var); isVar && v.Parent() == v.Pkg().Scope() {
+			x.rangeOver[fc.u.Info.Defs[id]] = v
+		}
+	}
 	lit, isLit := rs.X.(*ast.CompositeLit)
 	if !ok || !isLit || fc.u.Info.Defs[id] == nil {
 		return
@@ -387,6 +393,10 @@ func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
 			continue // listenin yolları depoda yok: fikstür
 		}
 		tests := reach.testsReaching(r.owner)
+		rooted := r.prod && idx.rootedArg[r.owner] // çağıranın köküne Join edilen sabit: testler fikstürü okur
+		if rooted {
+			tests = nil
+		}
 		if r.local {
 			for _, t := range tests {
 				for _, n := range resolvePattern(path.Join(reach.pkgOf(t), r.text), byFile, targets) {
@@ -425,7 +435,7 @@ func linkTestPaths(b *builder, idx *goIndex, reach *testReach) {
 				for _, t := range tests {
 					b.addEdge(t, n.ID, edgeTests, inferred, r.file, r.line)
 				}
-				if r.prod && !isTest[r.owner] {
+				if r.prod && !isTest[r.owner] && !rooted {
 					for _, rg := range walkersOf(r.owner, idx.walks, reach, b) {
 						for _, t := range reach.testsReaching(rg.owner) {
 							b.addEdge(t, n.ID, edgeWalks, inferred, rg.file, rg.line)

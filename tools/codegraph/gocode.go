@@ -22,6 +22,7 @@ type goIndex struct {
 	byName     map[string][]*testFunc
 	dirFiles   map[string]bool     // dosya düğümü olan göreli yollar
 	pathRefs   []pathRef           // dosya yolu sabitleri ve gömme yönergeleri (test_paths.go)
+	rootedArg  map[string]bool     // parametre köküne Join edilen yol sabitlerinin kimlikleri (test_paths_param.go)
 	snip       *snippetState       // Go test dizelerindeki TR metinleri (tr_snippets.go)
 	walks      *walkState          // liste gezintisi ve sözlük araması kayıtları (walks.go)
 	envSets    map[string][]envSet // işlev -> koyduğu ortam değişkenleri (env_names.go)
@@ -52,6 +53,9 @@ type goExtractor struct {
 	// rangeVals dize sabiti listesi üzerinde dönen döngü değişkenleri ve alabildikleri değerlerdir
 	// (`for _, p := range []string{"docs/*.md", ...}`; test_paths.go: pathCall).
 	rangeVals map[types.Object][]string
+	// rangeOver paket düzeyi bir değişken üzerinde dönen döngünün değer değişkeninden o değişkenedir
+	// (`for _, rel := range identityMaps`; test_paths_param.go: noteParamRootJoin).
+	rangeOver map[types.Object]types.Object
 	// strConsts dışa açık dize sabitlerinin değerden kimliğe tablosu, textCompares değerin metinle anıldığı yerler
 	// (value_compares.go).
 	strConsts    map[string][]string
@@ -141,8 +145,8 @@ func extractGo(m *module, b *builder) *goIndex {
 	x := &goExtractor{m: m, b: b, idx: &goIndex{
 		pkgSyms: map[string]map[string]string{}, inTestFile: map[string]bool{}, snip: newSnippetState(),
 		walks: newWalkState(), byName: map[string][]*testFunc{}, dirFiles: map[string]bool{}, envSets: map[string][]envSet{},
-		scans: newScanState(), checker: newCheckerState(),
-	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{},
+		scans: newScanState(), checker: newCheckerState(), rootedArg: map[string]bool{},
+	}, fieldAt: map[string]string{}, env: envCodes(m.Root), codeKeys: codeConstKeys(m.Root), consumed: map[*ast.BasicLit]bool{}, nameReads: map[*ast.Ident]bool{}, rangeVals: map[types.Object][]string{}, rangeOver: map[types.Object]types.Object{},
 		strConsts: map[string][]string{}, strConstPkg: map[string]string{}}
 	x.codeAliases = x.codeAliasKeys()
 	for _, u := range m.Units {
