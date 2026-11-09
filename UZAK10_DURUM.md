@@ -3,10 +3,11 @@
 - **Dal:** `gemini/uzak-10`
 - **Taban commit:** `6311e11acdfb1cad05521aede8b76ceced563769`
 - **Başlama saati:** `2026-11-09 11:03:34 +0300` (`2026-11-09 08:03:34 UTC`)
-- **Bağlam sıkıştırması:** 3 kez:
+- **Bağlam sıkıştırması:** 4 kez:
   1. `2026-11-09 11:29:34 +0300` (`2026-11-09 08:29:34 UTC`), Adım 1 tamamlandıktan sonra, Adım 2a'ya başlamadan önce; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
   2. `2026-11-09 12:04:29 +0300` (`2026-11-09 09:04:29 UTC`), Adım 2b çalışması sırasında (uVM duraklatılıp yeniden başlatıldı); `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
   3. `2026-11-09 12:35:19 +0300` (`2026-11-09 09:35:19 UTC`), Adım 2c düzenlemesi sırasında; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
+  4. `2026-11-09 13:13:12 +0300` (`2026-11-09 10:13:12 UTC`), Adım 3 ve Bitti ölçütü komutları koşulduktan sonra, `UZAK10_RAPORU.md` yazılmadan hemen önce; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu ve tüm sayılar ile `dosya:satır` kaynakları doğrulandı.
 
 ## İlerleme
 
@@ -18,9 +19,9 @@
 - [x] Adım 2c: Belge dosyasının `run:` satırı (`5f17dfc`)
 - [x] Adım 2d: Eksik tanımlı kodun iletisi (`e6b22af`)
 - [x] Adım 2e: Atası olan commit (`8455fae`)
-- [x] Adım 2f: Uzak 8'in iki kuralının fikstürü
-- [ ] Adım 3: Sonra ölçümleri ve Bitti ölçütü
-- [ ] Rapor (`UZAK10_RAPORU.md`) ve Kendi kontrolüm
+- [x] Adım 2f: Uzak 8'in iki kuralının fikstürü (`cdc9afe`)
+- [x] Adım 3: Sonra ölçümleri ve Bitti ölçütü
+- [x] Rapor (`UZAK10_RAPORU.md`) ve Kendi kontrolüm
 
 ## Adım 1 Bulguları ve Taban Ölçümleri
 
@@ -48,7 +49,7 @@
 - **1.5 Atası olan commit:**
   - `go run ./tools/codegraph changed --go-tests dcbe037` (`dcbe037` `main~1` atası) → 0 satır, sessiz boş çıktı (`exit=0`).
 - **1.6 Uzak 8'in iki kuralı fikstürsüz:**
-  - `tools/codegraph/query_names_test.go:127-197`'de Uzak 9 (`5e913a9`) `unit(codes.FnE, box.exprUnit, fnTwo)`, `regMath(codes.FnE, math.Floor)` ve `unitMath(codes.FnF, box.exprMath, math.Floor)` eklemiş; ancak gösterici alıcılı metot ifadesiyle `unit(v, codes.X, (*T).M, f)` (ayrı `f` ve alıcı argümanı `v` ile), modül dışı işlevin paket işleviyle birlikte (`fnMath, math.Floor`) ve tablo satırında (`noteRowNameImpl`) davranışı fikstürde sabitlenmemiş.
+  - `tools/codegraph/query_names_test.go:132-200`'de Uzak 9 (`5e913a9`) `unitVal(codes.FnE, box.exprUnit, fnTwo)`, `regMath(codes.FnE, math.Floor)` ve `unitMath(&b, codes.FnF, (*box).exprMath, math.Floor)` öncesi yalnız değer alıcılı metot ifadesini ve tek argümanlı `math.Floor` çağrısını sınamıştı; gösterici alıcılı metot ifadesiyle `unit(&b, codes.FnE, (*box).ptrUnit, fnUnit)` (`unit(v, codes.X, (*T).M, f)` biçimi), modül dışı işlevin paket işleviyle birlikte (`pairMath(codes.FnF, fnMath, math.Floor)`) ve tablo satırında (`noteRowNameImpl`) davranışı fikstürde sabitlenmemişti.
 
 ## Adım 2a: İzlenmeyen Yeni Dosya `--changed`'e Girer
 
@@ -61,7 +62,7 @@
 
 ## Adım 2b: Modül Dışı Arayüzün Uygulaması (Dur ve Sor Eşiği)
 
-- **Uygulama (`tools/codegraph/stdlib_dispatch.go`, `gocode_scan.go`, `test_reach.go`, ~55 üretim satırı):**
+- **Uygulama (`tools/codegraph/stdlib_dispatch.go`, `gocode_scan.go`, `test_reach.go`, `graph.go`):**
   - Yapı alanı (`CompositeLit`), çağrı argümanı (`CallExpr`, açık tip dönüşümleri hariç) ve atama (`AssignStmt`, `_` olmayan `ValueSpec`) yerlerinde modülün somut tiplerinin modül dışı adlı ve boş olmayan arayüz yerine verildiği noktalar `stdlib_calls` (`INFERRED`) kenarı olarak kaydedildi; `return` ifadeleri dışarıda bırakıldı. `test_reach.go:26` `reachEdge`'e `edgeStdlibCalls` eklendi.
   - `goload.importerFunc.Import` için `goload.Load` (`internal/devtools/goload/goload.go:117`, `m.check(..., imp, ...)`) ve `goload.Module.checkTests` (`internal/devtools/goload/goload.go:187`, `m.check(..., withTests, ...)`) üzerinden 2 kenar kuruluyor (`check` içinde `:218`'deki `types.Config{Importer: imp}`'de `imp` zaten `types.Importer` arayüz tipindedir).
 - **Kenar sayıları ve "Dur ve sor" eşiği:**
@@ -69,14 +70,14 @@
   - **Seçenek A (`error` dahil edildiğinde; `named.Obj().Pkg() == nil` evren kapsamındaki `error` arayüzü sayılırsa):**
     - Toplam `stdlib_calls`: **279** (**+269 eklenen kenar**, > 200 eşiği).
     - Arayüz dağılımı (eklenen 269 kenar):
-      - `error`: **230** kenar (%85.5 > 1/4 eşiği; `messages.Error.Error`: 210, `messages.PosError.Error`: 16, `turkish.Reason.Error`: 2, `tokenize.StepLimitError.Error`: 1, `interp.thrownError.Error`: 1 — `c.addErrorAt(..., messages.New(...))`, `recordOf(messages.New(...))`, `err = messages.New(...)` vb. çağrı argümanı ve atamalardan).
+      - `error`: **230** kenar (%85.5 > 1/4 eşiği; `messages.Error.Error`: 210, `messages.PosError.Error`: 16, `turkish.Reason.Error`: 2, `tokenize.StepLimitError.Error`: 1, `interp.thrownError.Error`: 1).
       - `testing.TB`: **22** kenar (`testkit.recorder`: 16, `testkit.panickingTB`: 4, `testkit.fatalRecorder`: 2).
       - `io.Writer`: **14** kenar (`testkit.TeeWriter.Write`: 10, `process.stderrTail.Write`: 2, `debugger.dapOutput.Write`: 1, `process.boundedOutput.Write`: 1).
       - `go/types.Importer`: **2** kenar (`goload.importerFunc.Import`, `goload.go:117` ve `goload.go:187`).
       - `io.Reader`: **1** kenar (`debugger.dapNoStdin.Read`, `dap_launch.go:65`).
       - `fmt.Stringer`: **0** kenar.
   - **Seçenek B (`error` dışarıda bırakıldığında — kuraldaki `"modülün içe aldığı bir paketin (standart kitaplık dahil) adlı arayüzünü sağlıyorsa"` lafzına göre `named.Obj().Pkg() != nil && !x.inModule(named.Obj().Pkg().Path())` koşuluyla evren kapsamındaki `error` hariç tutulduğunda):**
-    - Toplam eklenen kenar: **39** (< 200 eşiği; `testing.TB`: 22, `io.Writer`: 14, `go/types.Importer`: 2, `io.Reader`: 1).
+    - Toplam eklenen kenar: **39** (< 200 eşiği; `testing.TB`: 22, `io.Writer`: 14, `go/types.Importer`: 2, `io.Reader`: 1; tabandaki 1 `error` kenarı kaldırıldığı için net `stdlib_calls` 10 → 48).
     - `error` + `fmt.Stringer` eklenen kenar: **0 / 39 (%0 < 1/4)**.
   - **Kullanıcı kararı:** Seçenek B onaylandı (`error` dışarıda bırakıldı; +39 kenar).
   - **Üretim satırı:** +67 net satır (`stdlib_dispatch.go`: +89/-23, `gocode_scan.go`: +1, `test_reach.go`: +1/-1, `graph.go`: +1/-1; bütçe 40–90).
@@ -95,7 +96,7 @@
 ## Adım 2d: Eksik Tanımlı Kodun İletisi
 
 - **Seçim ve gerekçe:**
-  - `internal/lang/codes/gen_codes.go:286`'daki `checkConsistency` dışa açık olmadığı için kullanıcıya danışıldı; kullanıcı yanıtına göre `internal/lang/codes` dosyalarına dokunulmadı ve denetim yeniden yazılmadı.
+  - `internal/lang/codes/definition_check.go:13`'teki `CheckDefinitions(d *Language)` dışa açıktır ancak `*Language` alır; oysa `codes.LoadLanguage("tr")` daha JSON anahtarlarını okurken `codes.Parse` (`internal/lang/codes/code.go:128`) içinde `tables.byIdentity` tablosunda bulunmayan kodda hata döndürdüğü için `*Language` oluşturulamaz. Kullanıcıya danışıldı; kullanıcı yanıtına göre `internal/lang/codes` dosyalarına dokunulmadı ve denetim yeniden yazılmadı.
   - `tools/codegraph/main_query.go:118`'deki `w, _, _ = strings.Cut(w, "\n")` kesmesi kaldırıldı; böylece `codes.LoadLanguage("tr")` hatasının ikinci satırındaki ayrıntı (`invalid code "...": not an identity in the code list`) korunuyor. Bu ayrıntı geldiğinde uyarının sonuna `" (in internal/lang/codes/tr.json: add it to definitions.json and run go generate ./internal/lang/codes)"` çaresi ekleniyor; ayrıntı yoksa eski metin olduğu gibi kalıyor.
 - **Üretim satırı:** +2 net satır (`main_query.go`: +3/-1; bütçe 10–25).
 - **Koruyan test:** `tools/codegraph/main_query_test.go:34` (`TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy`).
@@ -110,6 +111,18 @@
 ## Adım 2f: Uzak 8'in İki Kuralının Fikstürü
 
 - **Seçim ve gerekçe:**
-  - `tools/codegraph/query_names_test.go`'da `TestAdjacentNameCodeInCallIsImplementedByArgumentCallable` ve `TestTableRowNameCodeIsImplementedByRowCallable` fikstürlerine `unit(&b, codes.FnE, (*box).ptrUnit, fnUnit)` (`unit(v, codes.X, (*T).M, f)` biçimi: gösterici alıcılı metot ifadesi ve ikinci işlev aynı çağrıda olduğunda ikisine de `uses_name` kenarı eklenmez), `pairMath(codes.FnF, fnMath, math.Floor)` ve `unitMath(&b, codes.FnF, (*box).exprMath, math.Floor)` ile tablo satırı karşılıkları (`unitRow`, `mathRow`) eklendi; `checkNameImplModule` içinde `math.Floor` için düğüm oluşmadığı (`g.Nodes`) iki testte de doğrulandı.
+  - `tools/codegraph/query_names_test.go`'da `TestAdjacentNameCodeInCallIsImplementedByArgumentCallable` (`:132`) ve `TestTableRowNameCodeIsImplementedByRowCallable` (`:212`) fikstürlerine `unit(&b, codes.FnE, (*box).ptrUnit, fnUnit)` (`unit(v, codes.X, (*T).M, f)` biçimi: gösterici alıcılı metot ifadesi ve ikinci işlev aynı çağrıda olduğunda ikisine de `uses_name` kenarı eklenmez), `pairMath(codes.FnF, fnMath, math.Floor)` ve `unitMath(&b, codes.FnF, (*box).exprMath, math.Floor)` ile tablo satırı karşılıkları (`unitRow`, `mathRow`) eklendi; `checkNameImplModule` (`:66`) içinde `math.Floor` için düğüm oluşmadığı (`g.Nodes`) iki testte de doğrulandı.
 - **Üretim satırı:** 0 satır (yalnız test; bütçe yalnız test).
-- **Koruyan test:** `tools/codegraph/query_names_test.go:127` (`TestAdjacentNameCodeInCallIsImplementedByArgumentCallable`) ve `:203` (`TestTableRowNameCodeIsImplementedByRowCallable`).
+- **Koruyan test:** `tools/codegraph/query_names_test.go:132` (`TestAdjacentNameCodeInCallIsImplementedByArgumentCallable`) ve `:212` (`TestTableRowNameCodeIsImplementedByRowCallable`).
+
+## Adım 3: Sonra Ölçümleri ve Bitti Ölçütü
+
+- **Graf ve kurulum süresi (Sonra, `cdc9afe`):**
+  - `codegraph: 36487 nodes, 306876 edges (191545 EXTRACTED, 115331 INFERRED)`
+  - 3 koşu: `9.3s`, `9.3s`, `9.4s` (ortanca `9.3s`).
+- **`untested` grupları (Sonra):**
+  - `main`'in 6864 işlevinde (`--root /tmp/tcb-main`): `6864 non-test Go functions and methods: 6344 tested, 92 subprocess, 0 rule, 2 measured, 321 weak, 0 exam, 105 untested`
+  - `HEAD` (`cdc9afe`, 6869 işlev): `6869 non-test Go functions and methods: 6348 tested, 92 subprocess, 0 rule, 2 measured, 321 weak, 0 exam, 106 untested`
+  - `tested` grubuna geçen 12 mevcut metot: `goload.importerFunc.Import` (`untested` → `tested`), `checkpoint.counter.Write`, `debugger.dapOutput.Write`, `ml.pcgSource.Int63`, `ml.pcgSource.Seed`, `process.boundedOutput.Write`, `profiler.dropOnError.Write`, `testkit.TeeWriter.Write`, `tokenize.candidateHeap.Less`, `tokenize.candidateHeap.Pop`, `tokenize.candidateHeap.Push`, `tokenize.candidateHeap.Swap` (`weak` → `tested`).
+- **Bitti ölçütü 8 komut koşuldu ve doğrulandı** (`TestEveryTrackedDataFileHasATestOrAReason` dışında tüm testler geçti).
+
