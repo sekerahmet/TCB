@@ -30,6 +30,7 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 
 
 ## Ara
+- **28.3, okunan cevap üyelerinin tipi (2026-11-09, HTTP aşama 1 sorusu; TCB kararı):** madde `TR_Response`'un okunan üyelerinin tipini söylemiyor. Karar: `.TR_status` `TR_Int`; `.TR_body` her zaman `TR_Bytes` (ağa gidecek baytlar; `TR_json:`'da kodlanmış JSON, metinde UTF-8; isteğin gövdesiyle aynı tip); `.TR_headers` `TR_Headers`, varsayılan `Content-Type` içinde, sunucunun yazarken eklediği `nosniff` dışında. Neden: ajan gövdenin tipini cevabın nasıl kurulduğuna göre tahmin etmesin. Metin HTTP dalı kapanınca 28.3'e (açık dal bu maddeyi uyguluyor).
 - **15.24, cinsi bilinmeyen maske (2026-11-03, T1 Kol B teslim 1; DENETİM istek 80 Ş-t1):** "0/1 sayı tensörü denetim hatasıdır"; denetleyici tensörün cinsini tutmuyor, dokuz yazımın sekizi çalışma anında, hiçbiri denetimde yakalanıyor (H6985). Cümle: "denetleyici cinsini bilmiyorsa çalışma hatasıdır, ileti aynıdır".
 - **15.23a, kayıttaki bayrak (2026-11-03, T1 Kol B teslim 1):** iki denetim "15.6'nın bekleyen işlemleri" diyor; cihaz içi bayrak henüz yok, hedef konağa okunarak denetleniyor (sessiz değil). 15.6 ile gelir.
 
