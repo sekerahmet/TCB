@@ -107,13 +107,15 @@ func TestQuantMatMulMatchesOpened(t *testing.T) {
 // bitlerini verir: her öğe kcBlock parçalarıyla toplanır, iş bölümü (parça boyu, satır bloğu)
 // toplama sırasını değiştirmez. Şekiller parça sınırını (quantTileRows), kcBlock'u, mr'nin katı
 // olmayan satırı ve uzun satırı (K = 8192) geçer; panel yolunun (quantGemmPanels) sınırını, parça yoluna
-// geçen ilk satırı ve kcBlock'un katı olmayan K'yi (yalnız Q8'in 32'lik bloğunda) de.
+// geçen ilk satırı ve kcBlock'un katı olmayan K'yi (yalnız Q8'in 32'lik bloğunda) de; uzun satır ve
+// yarım blok parça yolunda da (M > quantPanelMaxM) sınanır (DENETİM 336).
 func TestQuantMatMulSameBitsAsOpened(t *testing.T) {
 	r := rand.New(rand.NewSource(11))
 	for dt := range quantDotShapes {
 		elems, _ := dt.QuantBlock()
 		for _, c := range [][3]int{{2, 40, 256}, {50, quantTileRows + 17, 512}, {55, 300, 1024}, {60, 600, 8192},
-			{quantPanelMaxM, 40, 256}, {quantPanelMaxM + 1, quantTileRows + 17, 512}, {9, 33, 800}} {
+			{quantPanelMaxM, 40, 256}, {quantPanelMaxM + 1, quantTileRows + 17, 512}, {9, 33, 800},
+			{quantPanelMaxM + 1, 600, 8192}, {quantPanelMaxM + 1, 33, 800}} {
 			M, N, K := c[0], c[1], c[2]
 			if K%elems != 0 {
 				continue
@@ -134,7 +136,8 @@ func TestQuantPanelsKeepTheirOwnPool(t *testing.T) {
 	w := FromQuantized(Q4K, smallScaleQuant(Q4K, 7, N*K/256), N, K)
 	x := New(randomData(r, M*K), M, K)
 	// Yığınlar boşaltılır (paketin testleri koşut değildir): çarpımdan sonra gemm'inkilerde tampon olmamalı.
-	for _, y := range []*bufStack{&packPoolA, &packPoolB} {
+	// quantPanelPool da boşaltılır: yoksa paketin önceki testleri onu doldurur, sondaki denetim boş kalır.
+	for _, y := range []*bufStack{&packPoolA, &packPoolB, &quantPanelPool} {
 		y.mu.Lock()
 		y.t, y.total = nil, 0
 		y.mu.Unlock()
@@ -187,10 +190,11 @@ func TestQuantMatMulIndependentOfWorkers(t *testing.T) {
 }
 
 // TestQuantMatMulPooledBuffersKeepNoData: çok satırlı çarpımın tamponları havuzdandır; büyük şekilden
-// sonra küçüğü, küçükten sonra büyüğü ilk koşudaki bitleri verir, eski veri okunmaz.
+// sonra küçüğü, küçükten sonra büyüğü ilk koşudaki bitleri verir, eski veri okunmaz. Şekiller iki yolu da
+// geçer: panel yolu (M ≤ quantPanelMaxM) ve parça yolu.
 func TestQuantMatMulPooledBuffersKeepNoData(t *testing.T) {
 	r := rand.New(rand.NewSource(10))
-	shapes := [][3]int{{3, 70, 256}, {40, quantTileRows + 9, 512}, {2, 5, 256}}
+	shapes := [][3]int{{3, 70, 256}, {40, quantTileRows + 9, 512}, {2, 5, 256}, {quantPanelMaxM + 3, quantTileRows + 9, 512}, {quantPanelMaxM + 1, 70, 256}}
 	run := func(c [3]int, x *Tensor) []float32 {
 		w := FromQuantized(Q4K, smallScaleQuant(Q4K, uint32(c[1]), c[1]*c[2]/kBlock), c[1], c[2])
 		return MatMul(x, w.T()).Data()
