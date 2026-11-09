@@ -177,6 +177,20 @@ var suggestionResultCases = []suggestionResultCase{
 	// 15.18: boş tensör listesinin toplamı yoktur; ileti önce boyuna bakmayı önerir.
 	{messages.H2720, "TR_var l: TR_List[TR_Tensor] = []\nTR_print(TR_sum(l))", "l.TR_length",
 		"TR_var l: TR_List[TR_Tensor] = []\nTR_if l.TR_length > 0 {\n    TR_print(TR_sum(l))\n}\nTR_print(l.TR_length)", "0\n"},
+	// 15.5, 3.6a, 7.6: tensör tutan demetin ve yapının '=='si denetim hatasıdır; ileti parça parça yazımı önerir
+	// (tensör TR_equal ile, öbür öğe '==' ile). Tensörler eşitken ve değilken.
+	{messages.H1148, "TR_var p = (TR_Tensor([1.0]), 1)\nTR_var q = (TR_Tensor([1.0]), 1)\nTR_print(p == q)",
+		"TR_equal(p.0, q.0) TR_and p.1 == q.1",
+		"TR_var p = (TR_Tensor([1.0]), 1)\nTR_var q = (TR_Tensor([1.0]), 1)\nTR_print(TR_equal(p.0, q.0) TR_and p.1 == q.1)", "true\n"},
+	{messages.H1148, "TR_var p = (TR_Tensor([1.0]), 1)\nTR_var q = (TR_Tensor([2.0]), 1)\nTR_print(p != q)",
+		"TR_equal(p.0, q.0) TR_and p.1 == q.1",
+		"TR_var p = (TR_Tensor([1.0]), 1)\nTR_var q = (TR_Tensor([2.0]), 1)\nTR_print(TR_equal(p.0, q.0) TR_and p.1 == q.1)", "false\n"},
+	{messages.H1148, "TR_struct K {\n    t: TR_Tensor\n    n: TR_Int\n}\nTR_var a = K(TR_Tensor([1.0]), 1)\nTR_var b = K(TR_Tensor([1.0]), 1)\nTR_print(a == b)",
+		"TR_equal(a.t, b.t) TR_and a.n == b.n",
+		"TR_struct K {\n    t: TR_Tensor\n    n: TR_Int\n}\nTR_var a = K(TR_Tensor([1.0]), 1)\nTR_var b = K(TR_Tensor([1.0]), 1)\nTR_print(TR_equal(a.t, b.t) TR_and a.n == b.n)", "true\n"},
+	{messages.H1148, "TR_struct K {\n    t: TR_Tensor\n    n: TR_Int\n}\nTR_var a = K(TR_Tensor([1.0]), 1)\nTR_var b = K(TR_Tensor([1.0, 2.0]), 1)\nTR_print(a == b)",
+		"TR_equal(a.t, b.t) TR_and a.n == b.n",
+		"TR_struct K {\n    t: TR_Tensor\n    n: TR_Int\n}\nTR_var a = K(TR_Tensor([1.0]), 1)\nTR_var b = K(TR_Tensor([1.0, 2.0]), 1)\nTR_print(TR_equal(a.t, b.t) TR_and a.n == b.n)", "false\n"},
 	// 18.7, 19.5: açık günlüğün dosyası silinmez, ileti günlüğü kapatmayı önerir; kapatılmış günlük yeniden açılır.
 	{messages.H2723, "TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_append(\"a\")\nTR_print(TR_remove(\"g.jsonl\"))", "g.TR_close()",
 		"TR_var g = TR_Logger(\"g.jsonl\")\ng.TR_append(\"a\")\ng.TR_close()\nTR_print(TR_remove(\"g.jsonl\"))", "1\n"},

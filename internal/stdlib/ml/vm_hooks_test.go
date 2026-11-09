@@ -299,3 +299,44 @@ func TestTensorIndexWriteKeepsTheOtherErrors(t *testing.T) {
 	}
 	expectCodes(t, append(cases, codeCase{flat + "TR_print(t[t > 1.0])", messages.H6707}))
 }
+
+// Kural (15.5, 4.5, 12.4): tipi bilinmeyen değerde (denetimin göremediği yerde) motor denetimin kuralını
+// izler: tensör tutan değerin '=='si, .TR_contains, .TR_index_of, .TR_unique ve değer deseni çalışma
+// hatasıdır (H2777; yapı alanında H2770), aranan değer boş listede de. TR_assert_equal ise içteki her
+// tensör çiftini TR_equal'ın anlamıyla (şekil ve bütün öğeler) karşılaştırır: [t] ile [u] eşitse geçer,
+// değilse ikisini göstererek kalır. Bu 12.4'ün TCB'deki okumasıdır (2026-11-09); metnin açıklaması
+// pending'in 12.4 satırında turdadır, tur başka bir okuma seçerse bu test onunla değişir. Fonksiyon
+// TR_assert_equal'da da hatadır. Aynı nesne de öğe öğe: NaN tutan tensör kendisine eşit değildir.
+func TestTensorInsideAValueIsAnErrorExceptInAssertEqual(t *testing.T) {
+	const x = "TR_var t = TR_Tensor([1.0])\n"
+	expectCodes(t, []codeCase{
+		{x + "TR_var z = [t] == [t]", messages.H2777},
+		{x + "TR_var z = [[t]] != [[t]]", messages.H2777},
+		{x + "TR_var z = {\"k\": t} == {\"k\": t}", messages.H2777},
+		{x + "TR_var z = (t, 1) == (t, 1)", messages.H2777},
+		{x + "TR_var z = ([t], 1) == ([t], 2)", messages.H2777},
+		{x + "TR_var z = [t].TR_contains(t)", messages.H2777},
+		{x + "TR_var z = [1].TR_contains(t)", messages.H2777},
+		{x + "TR_var z = [].TR_index_of([t])", messages.H2777},
+		{x + "TR_var z = [t].TR_unique()", messages.H2777},
+		{x + "TR_var z = TR_match [t] {\n    ([t]) => 1\n    _ => 2\n}", messages.H2777},
+		{x + "TR_var z = TR_match t {\n    (t) => 1\n    _ => 2\n}", messages.H2777},
+		{x + "TR_struct K {\n    t: TR_Tensor\n}\nTR_var z = K(t) == K(t)", messages.H2770},
+		{x + "TR_assert_equal([t], [TR_Tensor([2.0])])", messages.H2458},
+		{x + "TR_assert_equal([t], [TR_Tensor([1.0, 1.0])])", messages.H2458},
+		{"TR_var n = TR_Tensor([TR_nan])\nTR_assert_equal([n], [n])", messages.H2458},
+		{"TR_var n = TR_Tensor([TR_nan])\nTR_assert_equal(n, n)", messages.H2458},
+		{"TR_var f = (x) => x\nTR_assert_equal([f], [f])", messages.H2706},
+	})
+	for _, code := range []string{
+		x + "TR_var u = TR_Tensor([1.0])\nTR_assert_equal([t], [u])\nTR_assert_equal(t, u)",
+		x + "TR_var u = TR_Tensor([1.0])\nTR_assert_equal({\"k\": (t, [t])}, {\"k\": (u, [u])})",
+		x + "TR_struct K {\n    t: TR_Tensor\n}\nTR_assert_equal(K(t), K(TR_Tensor([1.0])))",
+		x + "TR_var l = [t]\nl.TR_append(l)\nTR_var m = [TR_Tensor([1.0])]\nm.TR_append(m)\nTR_assert_equal(l, m)",
+		x + "TR_var g = [t, 0][0]\nTR_assert(g != TR_none TR_and [1].TR_contains(TR_none) == TR_false)",
+	} {
+		if out, err := run(t, code); err != nil {
+			t.Errorf("%s:\n  hata beklenmiyordu: %v %s", code, err, out)
+		}
+	}
+}

@@ -191,13 +191,13 @@ TR_test "3.6a == öğe öğedir; öğeleri sıralanabilen demet sözlük sıras�
     TR_var tensörlü = [(TR_Tensor([1.0]), 1), 1][0]
     TR_assert_equal("H2772", TR_error_code { listeli < (1, [2]) })
     TR_assert_equal("H2493", TR_error_code { [(1, 2), 3].TR_sort() })
-    TR_assert_equal("H2777", TR_error_code { tensörlü == (TR_Tensor([1.0]), 1) })
+    TR_assert_equal("H2777", TR_error_code { tensörlü == tensörlü })
     # Tensör öğenin listesinde ya da sözlüğünde olsa da
     TR_var listede = [([TR_Tensor([1.0])], 1), 1][0]
     TR_var sözlükte = [({"k": TR_Tensor([1.0])}, 1), 1][0]
     TR_assert_equal("H2777", TR_error_code { listede == listede })
     TR_assert_equal("H2777", TR_error_code { sözlükte != sözlükte })
-    TR_assert_equal("H2777", TR_error_code { (1, [[TR_Tensor([1.0])]]) == [(1, []), 1][0] })
+    TR_assert_equal("H2777", TR_error_code { [(1, [[TR_Tensor([1.0])]]), 1][0] == [(1, []), 1][0] })
 }
 
 TR_test "3.6a öğeleri anahtar olabilen demet sözlük anahtarıdır" {

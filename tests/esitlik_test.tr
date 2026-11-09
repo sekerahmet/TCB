@@ -95,6 +95,20 @@ TR_test "4.5 aynı değer de öğe öğe karşılaştırılır: TR_nan tutan ken
     TR_assert(İkili(halka(50), Halka(1.0)) == İkili(halka(3), Halka(1.0)))
 }
 
+TR_test "4.5 kendine bağlanan değer .TR_unique, .TR_index_of, .TR_contains ve TR_assert_equal'da da karşılaştırılır (13.3, 12.4)" {
+    TR_var l = [halka(101), halka(103), farklı_halka(103, 2, 2.0)]
+    TR_assert_equal(2, l.TR_unique().TR_length)
+    TR_assert_equal(2, l.TR_index_of(farklı_halka(103, 2, 2.0)) ?? -1)
+    TR_assert(l.TR_contains(halka(9)))
+    TR_assert_equal(halka(101), halka(103))
+    TR_assert_equal("H2458", TR_error_code { TR_assert_equal(halka(101), farklı_halka(103, 2, 2.0)) })
+    # TR_nan tutan kendine bağlı değer kendisine eşit değil: her biri kalır, bulunmaz
+    TR_var h = farklı_halka(50, 1, TR_nan)
+    TR_assert_equal(2, [h, h].TR_unique().TR_length)
+    TR_assert_equal(TR_none, [h].TR_index_of(h))
+    TR_assert_equal("H2458", TR_error_code { TR_assert_equal(h, h) })
+}
+
 TR_test "4.5 aynı alt nesneyi birçok yerde tutan değer" {
     TR_var x = Halka(1.0)
     TR_var y = Halka(1.0)
@@ -109,7 +123,9 @@ TR_test "4.5 aynı alt nesneyi birçok yerde tutan değer" {
 }
 
 TR_test "4.5 karşılaştırılamayan öğe ilk farktan önce de aranır" {
-    TR_var f = (x: TR_Int) => x
+    # Tipi bilinen değerde denetim hatasıdır (H1148, tests/negative/esitlenemeyen.tr); burada tipi
+    # bilinmeyen değerin çalışma hatası: [v, 0][0] değerin tipini bilinmez kılar.
+    TR_var f = [(x: TR_Int) => x, 0][0]
     TR_assert_equal("H2706", TR_error_code { TR_var z = (1, f) == (2, f) })
     TR_assert_equal("H2706", TR_error_code { TR_var z = ([1], f) == ([1, 2], f) })
 }

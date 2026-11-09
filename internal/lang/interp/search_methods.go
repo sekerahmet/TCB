@@ -31,6 +31,9 @@ func setupSearchMethods() {
 		return NewInt(int64(at)), nil
 	})
 	addMethod(typeList, codes.MemIndexOf, signature{1, 1, nil}, func(y *VM, inst Value, args []Value, line int) (Value, error) {
+		if err := uncomparableError(args[0]); err != nil {
+			return nil, err // boş listede de (4.5, 15.5)
+		}
 		for i, el := range inst.(*ListVal).Elements {
 			eq, err := EqualValues(el, args[0]) // .TR_contains'in eşitliği (4.5)
 			if err != nil {

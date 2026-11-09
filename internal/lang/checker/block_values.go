@@ -154,7 +154,9 @@ func (c *Checker) inferMatch(e *ast.MatchExpression, used bool) string {
 	subject := c.inferExpression(e.Subject)
 	for _, mc := range e.Cases {
 		for _, p := range mc.Patterns {
-			c.checkJSONPatterns(e, subject, p, c.inferExpression(p)) // 3.7a (json_comparison.go)
+			pt := c.inferExpression(p)
+			c.checkJSONPatterns(e, subject, p, pt)     // 3.7a (json_comparison.go)
+			c.checkEquatablePattern(e, subject, p, pt) // 5.6, 15.5 (equality_check.go)
 		}
 		if mc.Body != nil {
 			c.markBlockValue(mc.Body, used)

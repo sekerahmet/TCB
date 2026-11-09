@@ -1,11 +1,11 @@
 # TR 4
-# TEST 3.6a demetin uzunluğu ve öğeleri tipindedir: tipi bilinen demette sınır dışı indeks (H2774), tensör tutan demetin == ve != karşılaştırması (H2777, 15.5) ve sıralanamayan öğeli demetin <, >, <=, >= karşılaştırması (H2772, 4.4) denetim hatasıdır
+# TEST 3.6a demetin uzunluğu ve öğeleri tipindedir: tipi bilinen demette sınır dışı indeks (H2774), tensör tutan demetin == ve != karşılaştırması (H1148, 15.5) ve sıralanamayan öğeli demetin <, >, <=, >= karşılaştırması (H2772, 4.4) denetim hatasıdır
 TR_var t = ((1, 2), "b")
 TR_var a = t.2 # ERROR H2774
 TR_var b = t.0.2 # ERROR H2774
 TR_var x = TR_Tensor([1.0])
-TR_var c = (x, 1) == (x, 1) # ERROR H2777
-TR_var d = (1, (2, x)) != (1, (2, x)) # ERROR H2777
+TR_var c = (x, 1) == (x, 1) # ERROR H1148
+TR_var d = (1, (2, x)) != (1, (2, x)) # ERROR H1148
 TR_var e = (1, [1]) < (1, [2]) # ERROR H2772
 TR_var f = (1.0, TR_true) >= (1.0, TR_false) # ERROR H2772
 TR_var g = (1, "a") <= (1, 2) # ERROR H2772

@@ -201,6 +201,12 @@ const (
 	H1145 Code = 1145 // dönüş tipi bilinmeyen fonksiyon ifadesinde yollar karışık ya da `{#return} {#none}` yazılmış (6.2, 6.6): ya her yol değerle bitsin (`{#return} 0`) ya da hiçbir yol değer döndürmesin (`{#return}`)
 	H1146 Code = 1146 // ; tek sayıyı listeye alın: `{writing}`
 	H1147 Code = 1147 // `{#any}` yazılamaz: her değeri tutan genel bir tip yoktur (3.7a). Değerin somut tipini yazın: `{#var} x: {#int} = 5`; yapısı önceden bilinmeyen veri için: `{#var} g: {#json} = {{"k": 1}}`
+	H1148 Code = 1148 // '{op}' {type} değerlerini karşılaştıramaz: tensör ve tensör tutan değer eşitlenemez, tensörün =='si öğe öğedir (15.5); {how, select, fix {parça parça karşılaştırın} states {durumu eşlemeyle açıp alanlarını karşılaştırın} other {öğelerini tek tek karşılaştırın}}, tensörü `{#equal}(a, b)` ile{suggestion, select, empty {} other {: `{suggestion}`}}
+	H1149 Code = 1149 // `.{#contains}`, `.{#index_of}` ve `.{#unique}` eşitlenebilir öğe ister (13.10): {type} listesinde {part, select, value {aranan değer} other {öğeler}} {what, select, tensor {tensör tutuyor (15.5)} function {fonksiyon tutuyor (4.5)} other {arayüz değeri tutuyor (7.8)}}; öğeleri tek tek karşılaştıran bir `{#for}` döngüsü yazın: tensörü `{#equal}(a, b)` ile, fonksiyonun sonucunu, arayüzde asıl değerin alanlarını
+	H1150 Code = 1150 // eşleme deseni konuyla '==' ile karşılaştırılır (5.6), {type} değerleri karşılaştırılamaz: {what, select, tensor {tensör tutuyor (15.5)} function {fonksiyon tutuyor (4.5)} other {arayüz değeri tutuyor (7.8)}}; deseni `{#if}` ile bir sınamaya çevirin: tensörü `{#equal}(a, b)` ile, fonksiyonun sonucunu, arayüzde asıl değerin alanlarını karşılaştırın; durum açan desen alanını bağlar, karşılaştırmaz, geçerlidir (7.7)
+	H1151 Code = 1151 // '{op}' {type} değerini yalnız `{#none}` değişmeziyle karşılaştırır: tensör tutan değer eşitlenemez, isteğe bağlısı da (3.5, 15.5); ikisini önce `{#none}`'la sınayıp açın, sonra tensörü `{#equal}(a, b)` ile karşılaştırın
+	H1152 Code = 1152 // '{op}' {type} değerlerini karşılaştıramaz: fonksiyon ve fonksiyon tutan değer eşitlenemez, görünüşü aynı iki fonksiyon da eşit sayılmaz (4.5); fonksiyonların sonuçlarını karşılaştırın: f(x) == g(x)
+	H1153 Code = 1153 // '{op}' {type} değerlerini karşılaştıramaz: arayüz değeri ve onu tutan değer karşılaştırılamaz (7.8); asıl değerlerin alanlarını karşılaştırın
 	H2000 Code = 2000 // {fn}: {error}
 	H2001 Code = 2001 // Satır {line}: {error}
 	H2002 Code = 2002 // {importer}, Satır {line}: {module|q} modülü {kind, select, syntax {sözdizimi} other {tip denetimi}} hataları nedeniyle yüklenemedi
@@ -518,7 +524,7 @@ const (
 	H2773 Code = 2773 // demet ancak bütün öğeleri anahtar olabiliyorsa sözlük anahtarıdır: {index}. öğe olamaz ({why})
 	H2774 Code = 2774 // demetin {count} öğesi var: .{index} yok; öğeleri .0'dan .{last}'e kadardır
 	H2775 Code = 2775 // '.{index}' demetin öğesini okur, ama değer bir {type}{kind, select, list {: listenin öğesi [{index}] ile okunur} other {}}
-	H2777 Code = 2777 // '==' tensör tutan demetleri karşılaştıramaz ({index}. öğe): tensörün =='si öğe öğedir (15.5); tensörlerin değerlerini `a.{index}.{#tolist} == b.{index}.{#tolist}` ile karşılaştırın
+	H2777 Code = 2777 // '==' tensör tutan değeri karşılaştıramaz: tensör ve tensör tutan değer eşitlenemez, tensörün =='si öğe öğedir (15.5); iki tensörü `{#equal}(a, b)` ile, tensör tutan değeri öğe öğe karşılaştırın
 	H2778 Code = 2778 // {type} demeti köşeli parantezle indekslenemez (3.6a): {kind, select, const {demetin öğesi noktayla okunur: {example}} same {demetin öğesi yalnız sabit sayıyla okunur; listeye koyun: {example}} other {demetin öğesi yalnız sabit sayıyla okunur; açın: {example}}}
 	H2900 Code = 2900 // `.{#sort}(f)`'in `f`'si tek parametre alır (öğe) ve öğenin sıralama anahtarını verir; {count} parametreli fonksiyon verildi, karşılaştırıcı anahtar değildir; azalan sıra eksi anahtarla yazılır: `l.{#sort}((x) => -x)`, alana göre sıra alanla: `l.{#sort}((x) => x.puan)`
 	H2901 Code = 2901 // '{name}' modülün en dış adıdır; aktaran dosyadan ona atanmaz (modül değeri her aktaranda aynıdır): modülün en dışındaki değişken yalnız modülün kendi kodundan, onun fonksiyonlarıyla değişir; değiştiren bir fonksiyonu modüle yazıp onu çağırın. Değerin içi değişebilir: alanına atamak ya da listesine eklemek geçerlidir
