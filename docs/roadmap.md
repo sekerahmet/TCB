@@ -126,7 +126,7 @@ Her biri gelince 15'in yöntemiyle yazılır.
   - ONNX ve GGUF'a dışa verme (15.47a); GGUF okuma 2. kilometre taşına geçti;
   - ONNX okuma (Piper ve Silero ağırlıkları);
   - PEFT bağdaştırıcı dosyasını okuma ve yazma (LoRA'nın hazır araçlarla paylaşılması).
-- **Başka hızlandırıcılar:** AMD (ROCm), Apple, gömülü NPU; cihaz adları 15.37'nin kuralıyla.
+- **Başka hızlandırıcılar:** AMD (ROCm), Apple, gömülü NPU, en sonda Google TPU (Ahmet, 2026-11-10; tek tek işlem değil, bütün hesabı XLA derleyicisine grafik olarak verir; aday iş büyük ölçekte eğitim); cihaz adları 15.37'nin kuralıyla.
 - **Türev:**
   - etkinleştirme kaydı (`TR_recompute`);
   - ikinci türev ve `retain_graph` (15'in gerekçesi buraya gönderiyor);
