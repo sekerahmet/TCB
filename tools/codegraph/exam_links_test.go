@@ -152,3 +152,24 @@ func TestExamSelectionOnModifyRenameDeleteAndStamp(t *testing.T) {
 		t.Errorf("editing %s did not change sourceStamp", examFile)
 	}
 }
+
+// Kural: sınav kenarı (names_in_exam) başlığa ve pakete gitmez. Başlık metni ve paket yolu sınavın sözcüğüyle çakışır
+// (`codegraph path internal/stdlib/ml internal/compute/gpu` iki paketin yolunu yazar), ama sınav onları sınamaz (gaps,
+// "`examNodeKeys`'in süzgeci testsiz": tür süzgeci kaldırılınca iki koruyan test de geçiyordu).
+func TestExamLinksSkipHeadingsAndPackages(t *testing.T) {
+	for _, n := range []*Node{{Kind: kindHeading, Name: "Kurulum", File: "README.md"}, {Kind: kindPackage, Name: "internal/compute/gpu"}} {
+		if keys := examNodeKeys(n); keys != nil {
+			t.Errorf("a %s is not an exam key: %q", n.Kind, keys)
+		}
+	}
+	_, _, g := repoGraph(t)
+	kinds := map[string]string{}
+	for i := range g.Nodes {
+		kinds[g.Nodes[i].ID] = g.Nodes[i].Kind
+	}
+	for _, e := range g.Edges {
+		if k := kinds[e.To]; e.Kind == edgeNamesInExam && (k == kindHeading || k == kindPackage) {
+			t.Errorf("names_in_exam reaches a %s: %s (%s:%d)", k, e.To, e.File, e.Line)
+		}
+	}
+}
