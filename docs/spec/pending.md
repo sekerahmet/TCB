@@ -11,7 +11,7 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
-- **4.5, derinlik sınırı (2026-11-05, A, DENETİM istek 184):** `==` derinlik sınırında sessizce yanlış veriyor (status 4.5). Yön: iç içelik sınırı yoktur, gezinti açık yığınla yazılır, döngülü değerde H2771. Metin dört şeyi söylemeli: iki gezinti de (`walk`, `valuesEqual`) sınırsız olur ve iki geçiş kalır, yoksa `[1, f] == [2, f]` yanlışa döner; `ValuesEqual` ve `Equaler` bool döndürür, döngü kuramayan yerde yalnız sınır kalkar; çift yolu kümesi büyük halkalarda belleği bitirir [hesap: DENETİM 184], öneri taraf başına küme, iki taraf da kendine varınca H2771, bu 7.6'yı genişletir; hız ölçüsü tek kısa Colab koşusu. Test: üç yol ve aynı alt nesneyi iki alanda tutan değerde H2771 çıkmaması.
+Yok.
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 
@@ -38,12 +38,12 @@ Dokuz iş tartısının kararlarından bir kısmı 2026-10-28'de uygulanmamışt
 - **13.1, tam sayı listesinde `TR_mean`, `TR_std` ve `TR_median` (2026-11-04, A, DENETİM istek 97 Ş5, 98 K1, K2):** sonuç kesin değerin en yakın `TR_Float`'ı, bir kez yuvarlanır, yarım çifte gider. Uygulandı.
 - **18.11 ve 13.8, satır ve CSV okuyucusunda geçersiz UTF-8 (2026-11-04, A, DENETİM istek 97 Ş5, 98 K3):** hata; hatadan sonra `.TR_next()`'in ne yapacağı yazılı değil, turda: motor sıradaki satırla sürüyor, yakalanan hatadan sonra "dosya bitti" demez. Uygulandı.
 - **12.1, 12.2, test komutu (2026-11-05, A, D1; DENETİM istek 132, 138):** klasör taraması, `testdata`, testsiz hedef hatası; `TR_test` yalnız en dışta.
+- **4.5 ve 7.6, sınırsız ve döngülü eşitlik (2026-11-09, A, TCB kararı, geçici; sessiz yanlış; DENETİM istek 79, 184):** iç içelik sınırı kalktı; kendine bağlanan değer de karşılaştırılır, açılmış ağaçları aynıysa eşittir; karşılaştırılamayan öğe ilk farktan önce de aranır. 7.6'nın döngüdeki çalışma hatası (H2771) `==`'den kalktı. DENETİM 184'ün "iki taraf da kendine varınca H2771" önerisi yerine bu: ebeveynine bağlı iki ağaç da karşılaştırılabilsin. 2026-11-03'ün "kendini içeren kap" satırı buna katıldı. R7RS'in sözü ve Adams-Dybvig'in künyesi DENETİM 333'te doğrulandı (iki şartı işlendi: aynı değer de öğe öğe, düğümlerde bu maddenin kuralı). Turda: makalenin yöntemi ve birleşim-bulun hız bedeli (D1'in tek kısa Colab koşusu). Uygulama D1.
 - **15.51, 15.52, 15.53, 15.55, 16.1, GGUF okuma (2026-11-04, A ve D, Ahmet'in kararı; Gemini `GGUF_RAPORU.md`, DENETİM istek 118):** salt okunur "q4_k", "q6_k"; `TR_load_tensors` ve `TR_load_tokenizer` GGUF okur; yeni ad `TR_load_metadata`; `1 / d` sonsuzsa sıfır blok gibi kodlama (D, Ö3); fp16 ölçek sonsuzsa nicemleme hatası (A, Ö1). Uygulama H1. Ek (2026-11-05, A, DENETİM istek 124 Ş1, Ş2, Ş5): yeni ad `TR_pretrained_gguf`; RoPE ölçek anahtarları da H6943; `qwen2` etiketi NFC getirir, yalnız Qwen mimarisinde; safetensors kapıları GGUF'ta da (DENETİM istek 129 Ş1, Ş2); `qwen2`'de altı parça özel değil, tür dizisi zorunlu, bölünmüş dosya kuralı tensöre daraldı (136).
 
 ## Ara
 - **15.24, cinsi bilinmeyen maske (2026-11-03, T1 Kol B teslim 1; DENETİM istek 80 Ş-t1):** "0/1 sayı tensörü denetim hatasıdır"; denetleyici tensörün cinsini tutmuyor, dokuz yazımın sekizi çalışma anında, hiçbiri denetimde yakalanıyor (H6985). Cümle: "denetleyici cinsini bilmiyorsa çalışma hatasıdır, ileti aynıdır".
 - **15.23a, kayıttaki bayrak (2026-11-03, T1 Kol B teslim 1):** iki denetim "15.6'nın bekleyen işlemleri" diyor; cihaz içi bayrak henüz yok, hedef konağa okunarak denetleniyor (sessiz değil). 15.6 ile gelir.
-- **4.5, kendini içeren kap (2026-11-03, D1 Kol A devri):** 7.6 döngü hatasını (H2771) yapı için yazıyor; kendini içeren liste ve sözlük de kurulabiliyor (karışık değişmez `[1, "a"]`, `l.TR_append(l)`; 4a5'te yeniden yazılır) ve motor artık onlarda da H2771 veriyor. 4.5'e cümle: "kendine varan kap (liste, sözlük) da karşılaştırılamaz, çalışma hatasıdır (7.6'daki gibi)".
 - **13.1, `TR_Int`'in eksi basamağı (2026-11-03, D1 13.1c):** "girdinin tipini verir" yazıyor, kesinliği yazmıyor; uygulama kesin yuvarlıyor (`TR_round(1234567890123456789, -2)` → `1234567890123456800`; `float64` üzerinden `…768` verirdi). Öneri: "`TR_Int` kesin yuvarlanır (3.1)".
 
 

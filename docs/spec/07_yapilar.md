@@ -39,7 +39,7 @@ TR_print(p.uzaklık(), p)   # çıktı: 5.0 Nokta(x: 3.0, y: 4.0)
 **7.6** Yapı nesnesi listeler gibi başvuruyla paylaşılır (3.6): `TR_var q = p` aynı nesnedir, `q.x = 9` `p.x`'i de değiştirir; bu yüzden 4.10'un yineleme kuralına girer.
 - `==` aynı yapıdan iki nesneyi alanlarıyla, tanım sırasıyla karşılaştırır (4.5). Alanlarından biri karşılaştırılamayan yapı karşılaştırılamaz, denetim hatasıdır: fonksiyon alanı ve tensör alanı (tensörün `==`'si öğe öğedir, 15.5) böyledir.
 - Metni kurma yazımıdır: "Nokta(x: 3.0, y: 4.0)"; alanlar 3.14'teki gibi yazılır.
-- Nesne kendine bağlanabilir (ağaçta ebeveyn, çift yönlü bağlantı). Metin, yazılmakta olan bir nesneye yeniden varınca orada "..." yazar. `==` karşılaştırılmakta olan bir nesne çiftine yeniden varırsa çalışma hatasıdır.
+- Nesne kendine bağlanabilir (ağaçta ebeveyn, çift yönlü bağlantı). Metin, yazılmakta olan bir nesneye yeniden varınca orada "..." yazar. `==` kendine bağlanan nesneleri de karşılaştırır ve biter (4.5).
 - `TR_Type(p)` yapının kendisidir (`TR_Type(p) == Nokta`); yapının metni adıdır.
 - *Test:* TR testi; fonksiyon ya da tensör alanlı yapının denetimi uygulanınca denetleyicinin testi.
 
