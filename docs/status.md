@@ -972,59 +972,37 @@ Kurallar: [`docs/spec/16_veri_parcalayici.md`](spec/16_veri_parcalayici.md).
 
 ## 17. Kodlar
 
-Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md). Taslak (2026-10-29): ana oturum yeniden yazdı (Ahmet: "17 şimdi düzeltsen ? sürekli kafanı karıştıracak"); 2. turda madde madde CLAUDE.md'den yeniden tartıldı (görünüm yalnız okunur); 3. turda DENETİM'in 1. turunun görünümden bağımsız bulguları, 4. turda 17-2'nin bulguları alındı (`0f1d6029`); kararlar Gemini Koşu 6'dan geçti (DENETİM doğruladı, `c784c47a`). Kapanış turu yapılmadı. 4a'dan önce gelir, çünkü 4a kod kaydına yeni kodlar ekler.
+Kurallar: [`docs/spec/17_kodlar.md`](spec/17_kodlar.md).
 
 ### 17.1
 
-- **Mevcut durum (2026-11-05; B, Ö0 kapandı; DENETİM istek 155 Ş1, 158):** kullanıcının dosyasında `TR_` ile başlayan ad hiçbir tanımda yazılmıyor, geçerli kimlik de olsa: H0004. Kapı `source.Prepare`'de, ayrıştırmadan sonra; modül, kabuk ve hata ayıklayıcı da ondan geçiyor. Yapıda yalnız `TR_init` ve `TR_next` metodu serbest. Kitaplık metniyle ayrılıyor (`interp.LibraryFileName`), yolundan değil [test: `TestReservedNamesStopEveryDefinition`, `TestAModuleCannotReplaceABuiltin`, `tests/negative/kod_tanimi.tr`, `tests/negative/kod_uye.tr`].
 - **Yapılacaklar:** kullanıcı yapısının `TR_next` ile dolaşılması 5.7'nin satırında (E, Ö3).
-
-### 17.2
-
-- **Mevcut durum:** program metninde kısa yazım, içeride sınıflı kimlik uygulanmış (katman 1). 59 kısa ad birden çok sınıfta, hepsi yerle ayrılıyor; aynı yerde çakışan yok, `TestNoTwoIdentitiesShareASpellingInAPlace` sınıyor [ölçüldü: main `85a19c36`, `definitions.json` anahtarları sayıldı ve test koşuldu].
-
-### 17.3
-
-- **Mevcut durum (Gemini Koşu 6, 2026-10-29):** kitaplık parametresinin (`PlaceArg`) ve yapı alanının/metodunun (`PlaceMember`) yeri sözcük çözümleyicide uygulanmış (`internal/lang/lexer/identity.go:169-176`); fonksiyon gövdesinde `paramInScope` önce çevreleyen fonksiyonun `TR_` parametresine bakar (`identity.go:285-293, 328-349`), görünüm (internal/lang/source/show.go:149) ve kod dizini (`internal/devtools/codeindex/read.go:49`, `bind.go:20-24, 135-153`) aynı sözcük çözümleyiciyle kitaplık gövdesinde kapsama göre seçer (`lib/optimizers.tr:423, 428`'deki `TR_min` parametresi "TR_arg_min" olarak çözülür: görünümde "en_az", dizinde `TR_lr_schedule`'ın "TR_arg_min" parametresi) [ölçüldü: `TR_cmd_show` ve `TR_cmd_index` `TR_sub_references`, `b77644dd`].
 
 ### 17.4
 
 - **Mevcut durum:** 564 kodun 245'i kitaplık kodu; kitaplık kodlarının hiçbirinin açıklaması ve örneği yok, `TestEveryCodeHasDescription` onları atlıyor ("madde 15 adım 3c") [ölçüldü: main `85a19c36`, `definitions.json` ve `tr.json` sayımı].
 - **Yapılacaklar:** kitaplık kodlarının açıklaması ve örneği; atlama kalkar. Dil tanımına giren ama uygulanmamış adlar (13'ün ve 15'in yeni adları) uygulandıkları commit'te tanım ve dil dosyalarına girer.
-- **Mevcut durum (Faz 0.5, 2026-10-29):** 319 örnek kimlik yazımıyla tanım dosyasında (`definitions.json`, `example`); dil dosyaları örnek taşımaz, ayrıştırıcısı alanı reddeder. Taşıma bir betikle, o günkü kodlayıcıyla yapıldı (elle değil). `TestExamplesRun` program örneklerini (265) kimlik okuyucusuyla (`lexer.NewBody`) okuyup denetler ve çalıştırır; komut satırı örnekleri (54: komut, alt komut, seçenek, ortam değişkeni, kabuk ve hata ayıklayıcı komutu) kimliğin adıyla yazılı ve program olarak sınanmaz [ölçüldü: main `85a19c36`, `definitions.json` sayımı]. `docs/codes.md` örneği kimlik yazımıyla ve her gömülü dilin görünümüyle gösterir.
+- **Mevcut durum:** komut satırı örnekleri (54: komut, alt komut, seçenek, ortam değişkeni, kabuk ve hata ayıklayıcı komutu) program olarak sınanmıyor [ölçüldü: main `85a19c36`, `definitions.json` sayımı].
 - **Yapılacaklar:** komut satırı örneklerinin sınanması (komut satırı adları 17.9'un girdisiyle, Faz 0.4).
 
 ### 17.5
 
-- **Mevcut durum:** ad alanında çakışma dil dosyası yüklenirken reddediliyor (`TestClashesCaught`). Türkçe harfsiz biçim kuralı kalktı (17.7). Alışkanlık adının gösterim adıyla çakışması artık hata değil, o alışkanlık adı atlanıyor (`language.go:122-131`, `:193-195`) [ölçüldü: main `85a19c36`, kod okuma]. Dayanağı kalmayan ASCII denetimi ve öneri yolu (`AcceptASCII`, `language.go:32-39`, `TestASCIIFormsDoNotClash`) kalkacak.
-- **Mevcut durum:** `TR_assert_equal`'ın Türkçe adı "eşit_olmalı" oldu (2026-10-29, önceki ad soru gibi okunuyordu).
+- **Mevcut durum:** dayanağı kalmayan ASCII denetimi ve öneri yolu (`AcceptASCII`, `language.go:32-39`, `TestASCIIFormsDoNotClash`) duruyor; kalkacak.
 
 ### 17.7
 
-- **Mevcut durum (Faz 0.5, 2026-10-29):** görünümden geri kodlama kalktı: kodlama komutu (tr kodla; kaydı silindi, iletileri `retired.json`'da), `internal/lang/source`'un kodlayıcısı (`Encode`, `EncodeIn`, `TextLexer`, `TextLexerWithNames`), gösterimin geri kodlama denetimi, tek seferlik çevirici `tools/migrate` [ölçüldü: `git grep`]. Yaklaşık kodlama da onunla kalktı. `internal/lang/source` 1 870 satırdan 1 454 satıra indi (testler dahil) [ölçüldü: wc -l, main `85a19c36`].
-- **Görünüm:** `TR_cmd_show` görünümü yazar (`source.Show`); görünüm başlıklı dosya (`# TR 4 view=tr`) çalıştırılınca ve denetlenince ileti (H2541) kodlu dosyayı çalıştırmayı söyler; başlıksız dosyanın iletisi (H2540) başlığı ve kimlik yazımını söyler, kodlamayı önermez. Görünüm dilin sözcüğüyle aynı yazılan kullanıcı adını `$ad` diye işaretliyor (kural değil, 17.7).
-- **Kabuk ve hata ayıklayıcı:** kabuk satırı ve hata ayıklayıcının ifadesi (koşul, izleme, değerlendirme) kimlik yazımıyla okunuyor; Türkçe adıyla yazılan yazdırma çağrısı tanımsız ad hatası veriyor [ölçüldü: Go testi]. Kabuğun ve hata ayıklayıcının komut adları (`TR_repl_exit`, `TR_dbg_eval`) 17.9'un işi (Faz 0.4).
-- **Düzenleyici:** VS Code eklentisi dosyayı kimlikleriyle açıp kaydediyor; görünümü yanda salt okunur açıyor (`view.js`); görünümde düzenleme ve kayıt (`coded_*.js`) kalktı.
+- **Görünüm:** görünüm dilin sözcüğüyle aynı yazılan kullanıcı adını `$ad` diye işaretliyor (kural değil, 17.7).
 - **Kalan:** sözcük çözümleyicinin bir yazım dilinde okuma kipi (`lexer.NewBodyIn`'in kodsuz kipi, onu izleyen `$` kaçışı, `WrittenIn`, denetleyicinin `SetFileLanguage`'ı) üretimde çağrılmıyor, yalnız Go testlerinde kullanılıyor [ölçüldü: `git grep`, main `85a19c36`, test dosyalarında 20 satır]; kaldırılması ayrı bir iş.
-- **Testler:** `TestShowTranslatesOnlyTheLanguageWords` (yalnız görünüm: satırlar, yerleştirmenin çevrilmesi, kullanıcı adının kalması), `TestViewHeader` ve `TestShowCommand` (görünümün çalışmaması), `TestTypedLineIsReadWithIdentities`, `TestCLIExpressionIsWrittenWithIdentities`, `TestHeaderlessFileDoesNotRun`.
 - **Yeniden kurulacak:** Faz 0.5'te iki atlanmış sınav silindi; öncülleri bir yazım dilinde yazılmış dosyaydı (dosyanın dili 2.1'de kalktı). Görüntü sınavı (`TestDisplayExam`): kişiye görünen her yüzey okuyanın dilinde. Ad çakışması sınavı (`TestNameClashExam`): başka bir dilin sözcüğü kullanıcının adı olunca ya hata ya aynı sonuç. 17 yeniden yazılınca kodlu dosyalar ve görünümle baştan kurulur.
 
 ### 17.8
 
-- **Mevcut durum (D1, birleşik 59):** değerin metni dilden bağımsız ("true", "none", "List", "<builtin print>"); kitaplık tipinin metni kimliğin adı ("Linear", "Role", "ChatMessage", "RMSNorm"), kullanıcı yapısınınki kendi adı [test: TR testi "3.14 kitaplığın tipinin metni kimliğinin adıdır, kullanıcının yapısınınki adıdır"; ölçüldü: D1].
 - **Mevcut durum (kitaplığın sözlük anahtarları):** `TR_GPT`'nin `.TR_config` sözlüğünün anahtarları Türkçe ve İngilizce karışık ("dağarcık", "bağlam", "katman", "tohum" ... ile "embed_dim", "num_heads") [ölçüldü: `lib/layers.tr:500-503`, main `aad41d1e`]. Değer metni dilden bağımsız olmalı. Sözlük kayda giderse anahtarlar diske Türkçe yazılır.
 - **Yapılacaklar:** anahtarlar kimlik adlarıyla, parametre adının kendisi ("vocab_size", "context" ...), ya da sözlük yerine bir yapı; göç: `.TR_config`'i okuyan yerler; TR testi.
 
-### 17.9
-
-- **Mevcut durum (Faz 0.4, 2026-10-30):** komut satırı girdisi ("cmd", "sub", "opt", "repl", "dbg", "env") yalnız kimliğin adını kabul ediyor ("tr run", "tr index definition", "--lang", "exit", "step", "TR_LANG"); gösterim dilindeki ad hata veriyor ve kimliğin adını öneriyor (komut H8602 `cmd/tr/main.go:81`, `cmd/tr/options.go:84`; alt komut H8876 cmd/tr/index.go:50; seçenek H8674 `cmd/tr/options.go:59` ve program seçeneği H7209 `internal/stdlib/process/arguments.go:206`; ortam değişkeni H8875 `internal/lang/codes/environment.go:52`) [test: `internal/lang/codes/language_test.go`, `cmd/tr/e2e/behavior_commands_test.go`]; yardım ve iletiler yazılacak kimlik adını ve kişinin dilindeki açıklamayı gösteriyor; depodaki yazımlar (commit `ca471b63`'te 192 dosya; önceki "186 dosya" sayısı depoda bulunmayan `eski_denetimler/faz0_4_betik.py`'den geldiği için doğrulanamıyor) kimlik adına göç ettirildi [ölçüldü: git show --stat `ca471b63`, main `c39e0b56`].
-
 ### 17.10
 
-- **Mevcut durum:**
-  - dil tanımının bölümleri program metnini kısa kimlik yazımıyla anlatıyor; sınıflı yazım yalnız komut adlarında (`TR_cmd_run`), disk biçiminin değerinde (17.8'in kontrol noktası örneği) ve 17'nin kendi kural anlatımında kalıyor [ölçüldü: main `85a19c36`, `docs/spec/*.md`'de sınıflı kimlik sayımı]; öbür belgeler 2.1'in satırında;
-  - 14. bölüm silindi; başka bölümlerde eski 17'yi anlatan yer kalmadı; 19:56'nın göndermesi (dosya biçimi çevrilmez, "17.3") 17.8 olmalı [ölçüldü: main `85a19c36`, `docs/spec/19_surec_ve_kayit.md`].
-- **Yapılacaklar:** `docs/spec/19_surec_ve_kayit.md:56`'nın 17 göndermesi.
+- **Yapılacaklar:** `docs/spec/19_surec_ve_kayit.md:57`'nin "(17.3)" göndermesi 17.8 olmalı (dosya biçimi çevrilmez) [ölçüldü: `grep -n`, 2026-11-09].
 
 ## 18. Dosya ve yol
 
