@@ -659,7 +659,7 @@ Kurallar: [`docs/spec/15_tensorler.md`](spec/15_tensorler.md). Aşağıda bugün
 
 ### 15.5
 
-- **Mevcut durum:** `TR_fuse` kaydında karşılaştırma 0/1 ondalık maskedir, `==`/`!=` orada H3107 (kaynaşmış çekirdekte mantık cinsi yok). Tensörün metni kurma yazımı değil: dört basamaklı (`[2.0000]`) ve bütün öğeler yazılıyor [ölçüldü]; kural metni kurma yazımı sayıyor (`Tensor([[1.5, 2.0], …])`), "bütün öğeler"in fark olup olmadığı belirsiz [hipotez: DENETİM 360].
+- **Mevcut durum:** `TR_fuse` kaydında karşılaştırma 0/1 ondalık maskedir, `==`/`!=` orada H3107 (kaynaşmış çekirdekte mantık cinsi yok). Tensörün metni kurma yazımı değil: dört basamaklı (`[2.0000]`) ve bütün öğeler yazılıyor [ölçüldü]; kural metni kurma yazımı sayıyor (15.5'in örneği), "bütün öğeler"in fark olup olmadığı belirsiz [hipotez: DENETİM 360].
 - **Yapılacaklar (A, Ö1; DENETİM istek 100 N1):** kaynaştır kaydında `TR_Bool` maske: fuse içinde karşılaştırma ve `TR_is_finite` `float32` kalıyor, `(t > 1.5) * t` fuse içinde çalışıyor, dışında hata veriyor, 15.44'ün "bit bit aynı" sözüne aykırı [ölçüldü: DENETİM, `c15dc932`]; eşitlenemeyen değerlerin denetim hatası, metin.
 - **Gemini Koşu 3 (2026-10-29), uygulanacak:** gösterimde cinsin varsayılanı dışındaki hassasiyet.
 - **Yapılacaklar (E, Ö3; sahip D1, sonraki eşitlik dilimi; D1 15.5 devri Bulgu 2):** kitaplığın ve aktarılan modülün tipleri denetleyiciye bilinmeyen addır (`equatable.go`'nun `typeDefs`'i yalnız denetlenen programın kendi tanımlarından dolar): tensör alanlı böyle bir tipin (`TR_Sound`) `==`'si denetimden geçer, çalışırken H2770 verir [hipotez: aktarmalı program kurulmadı]. Sıradaki adım: ölç; doğruysa aktarılan modülün tanımları `typeDefs`'e.
