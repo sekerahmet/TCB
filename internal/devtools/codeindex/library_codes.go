@@ -34,7 +34,8 @@ func IdentityQuery(q string) bool {
 }
 
 // MemberQuery sorgu `<alıcı>.TR_<ad>` ya da `.TR_<ad>` biçimli bir yazımıysa `x.TR_<ad>` karşılığını verir; değilse boş
-// döner. Alıcı tam harfle bilinen bir modül ya da kodlu tip adıysa boş döner ("bulunamadı"). Alıcı kodsuz bir ad olup
+// döner. Alıcı bilinen bir modülün adıysa (`metin`), `x.TR_<ad>` hedefiyle birlikte o modül düğümlerinin indislerini
+// döndürür (H8879). Alıcı tam harfle kodlu bir tip adıysa boş döner ("bulunamadı"). Alıcı kodsuz bir ad olup
 // bilinen bir tipin adıysa (`A.TR_shape`, `Model.TR_append`, `Linear.TR_map`, `GPT.TR_map`), `x.TR_<ad>` hedefiyle
 // birlikte o tip düğümlerinin indislerini döndürür; `x.TR_<ad>` bir şey bulursa cevap tip ve değer adaylarıyla
 // belirsizdir (çıkış 3), bulmazsa "bulunamadı" kalır (çıkış 4). Takma adla sorulan kitaplık bildirimleri
@@ -87,7 +88,7 @@ func moduleImportAliases(idx *Index) map[string][]string {
 }
 
 // MemberTypeNote, MemberModuleNote ve MemberValueNote tiple ya da modülle aynı adı taşıyan kodsuz alıcıda
-// (`A.TR_shape`, `Model.TR_append`, `layers.TR_map`) belirsiz cevabın aday kümelerinin ileti kodu (H8877, H8879, H8878)
+// (`A` alıcısıyla `TR_shape`, `Model` alıcısıyla `TR_append`, `layers` alıcısıyla `TR_map`) belirsiz cevabın aday kümelerinin ileti kodu (H8877, H8879, H8878)
 // ve etkin dildeki etiket metnidir; *In kardeşleri aynı kodların verilen dildeki ("en": codegraph) metnini döner.
 func MemberTypeNote(recv string) (string, string) {
 	return messages.H8877.String(), messages.Text(messages.H8877, recv)
