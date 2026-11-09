@@ -1,0 +1,115 @@
+# TR 4
+# docs/spec/28_ag.md §28 — HTTP sunucusu (aşama 1: akışsız)
+# İşleyici ağsız, sıradan bir fonksiyon olarak sınanır (28.3); sunucu TR_port: 0 ile açılıp kapanır.
+# Gerçek bağlantıyla sınananlar (geldiği yerin, belirtecin, yolun, gövdenin ve eşzamanlılığın denetimi,
+# 500, HEAD, kapanışın iptali) Go testleridir: internal/stdlib/httpserver.
+
+TR_func cevapla(istek: TR_Request) -> TR_Response {
+    TR_match (istek.TR_method, istek.TR_path) {
+        ("GET", "/saglik") => { TR_return TR_Response(TR_body: "tamam") }
+        ("POST", "/komut") => { TR_return TR_Response(TR_status: 201, TR_json: {"uzunluk": istek.TR_body.TR_length}) }
+        _ => { TR_return TR_Response(TR_status: 404) }
+    }
+}
+
+TR_test "28.1 http_sun beklemeden sunucu verir, kapı işletim sisteminin seçtiğidir" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_assert_equal(TR_HTTPServer, TR_Type(s))
+    TR_assert(s.TR_port > 0)
+    TR_var t = TR_serve_http(cevapla, TR_port: 0)
+    TR_assert(t.TR_port != s.TR_port)
+    TR_assert_equal([TR_true, TR_false], [s.TR_close(), s.TR_close()])
+    TR_assert_equal(TR_true, t.TR_close())
+}
+
+TR_test "28.1 bekle sunucu kapanınca döner, değer vermez" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_var g = TR_async {
+        TR_sleep(0.05)
+        s.TR_close()
+    }
+    s.TR_wait()
+    g.TR_wait()
+    TR_assert_equal(TR_false, s.TR_close())
+}
+
+TR_test "28.9 kullanılan kapı çağrı hatasıdır, sunucu açılmaz (28.1)" {
+    TR_var s = TR_serve_http(cevapla)
+    TR_assert_equal("H7625", TR_error_code { TR_serve_http(cevapla, TR_port: s.TR_port) })
+    TR_assert_equal("H7627", TR_error_code { TR_serve_http(cevapla, TR_port: 70000) })
+    s.TR_close()
+}
+
+TR_test "28.2 adres ayrıştırılmış hâliyle denetlenir, dış adres belirteç ister" {
+    TR_assert_equal("H7621", TR_error_code { TR_serve_http(cevapla, TR_host: "localhost") })
+    TR_assert_equal("H7621", TR_error_code { TR_serve_http(cevapla, TR_host: "[::1]") })
+    TR_assert_equal("H7621", TR_error_code { TR_serve_http(cevapla, TR_host: "127.0.0.2") })
+    TR_assert_equal("H7622", TR_error_code { TR_serve_http(cevapla, TR_host: "sunucu.example") })
+    TR_assert_equal("H7623", TR_error_code { TR_serve_http(cevapla, TR_host: "0.0.0.0") })
+    TR_assert_equal("H7624", TR_error_code { TR_serve_http(cevapla, TR_token: "kisa") })
+    TR_assert_equal("H7624", TR_error_code { TR_serve_http(cevapla, TR_token: "on altı karakterli boşluklu") })
+    TR_var s = TR_serve_http(cevapla, TR_token: TR_secret_token())
+    TR_assert(s.TR_close())
+}
+
+TR_test "28.2a gizli_belirteç 43 karakterlik gizli bir değerdir, dosyaya yalnız sahibine yazılır" {
+    TR_var b = TR_secret_token()
+    TR_assert_equal(43, b.TR_length)
+    TR_assert(b != TR_secret_token())
+    TR_var yol = TR_Path(TR_temp_dir(), "belirtec.txt")
+    TR_assert_equal("H7600", TR_error_code { TR_write_file(yol, b) })
+    TR_write_file(yol, b, TR_owner_only: TR_true)
+    TR_assert_equal(b, TR_read_file(yol))
+}
+
+TR_test "28.3 istek ağsız kurulur, HEAD kurulmaz, başlıklar harf büyüklüğüne bakmaz" {
+    TR_var i = TR_Request(TR_method: "POST", TR_path: "/komut", TR_query: {"x": ["1", "2"]}, TR_headers: {"X-Ad": "a"}, TR_body: TR_Bytes("abc"))
+    TR_assert_equal(["POST", "/komut", ["1", "2"], "a", "a"], [i.TR_method, i.TR_path, i.TR_query["x"], i.TR_headers["x-ad"], i.TR_headers["X-AD"]])
+    TR_assert_equal(TR_none, i.TR_headers.TR_get("Yok"))
+    TR_assert_equal("H7603", TR_error_code { i.TR_headers["Yok"] })
+    TR_assert_equal("H7605", TR_error_code { TR_Request(TR_method: "HEAD") })
+    TR_assert_equal("H7606", TR_error_code { TR_Request(TR_method: "G T") })
+    TR_assert_equal(["GET", "/", {}], [TR_Request().TR_method, TR_Request().TR_path, TR_Request().TR_query])
+}
+
+TR_test "28.3 cevap bir değerdir; Go'nun sessizce değiştirdiği cevap hatadır" {
+    TR_var c = cevapla(TR_Request(TR_path: "/saglik"))
+    TR_assert_equal([200, "tamam", "text/plain; charset=utf-8"], [c.TR_status, TR_String(c.TR_body), c.TR_headers["Content-Type"]])
+    TR_var j = cevapla(TR_Request(TR_method: "POST", TR_path: "/komut", TR_body: TR_Bytes("abc")))
+    TR_assert_equal([201, "{\"uzunluk\":3}", "application/json"], [j.TR_status, TR_String(j.TR_body), j.TR_headers["content-type"]])
+    TR_assert_equal("application/octet-stream", TR_Response(TR_body: TR_Bytes([1])).TR_headers["Content-Type"])
+    TR_assert_equal("text/html", TR_Response(TR_body: "<p>", TR_headers: {"content-type": "text/html"}).TR_headers["Content-Type"])
+    TR_assert_equal("H7607", TR_error_code { TR_Response(TR_status: 101) })
+    TR_assert_equal("H7608", TR_error_code { TR_Response(TR_body: "a", TR_json: 1) })
+    TR_assert_equal("H7609", TR_error_code { TR_Response(TR_headers: {"Kötü Ad": "x"}) })
+    TR_assert_equal("H7610", TR_error_code { TR_Response(TR_headers: {"X-A": "1", "x-a": "2"}) })
+    TR_assert_equal("H7611", TR_error_code { TR_Response(TR_headers: {"X-A": "a\nb"}) })
+}
+
+TR_test "28.6 yönlendirme işleyicinin TR_match'idir" {
+    TR_assert_equal(404, cevapla(TR_Request(TR_path: "/yok")).TR_status)
+    TR_assert_equal(404, cevapla(TR_Request(TR_method: "DELETE", TR_path: "/saglik")).TR_status)
+}
+
+TR_test "28.4 en_çok_eşzamanlı pozitif bir tam sayıdır" {
+    TR_assert_equal("H7628", TR_error_code { TR_serve_http(cevapla, TR_max_concurrent: 0) })
+}
+
+TR_test "28.5 en_çok_gövde_baytı pozitif bir tam sayıdır" {
+    TR_assert_equal("H7628", TR_error_code { TR_serve_http(cevapla, TR_max_body_bytes: -1) })
+    TR_var s = TR_serve_http(cevapla, TR_max_concurrent: 2, TR_max_body_bytes: 4096)
+    TR_assert(s.TR_close())
+}
+
+TR_test "28.3a dosya_cevabı kökün içindeki dosyayı verir, öbür yolları 404 yapar" {
+    TR_var kök = TR_temp_dir()
+    TR_make_dir(TR_Path(kök, "lang"))
+    TR_write_file(TR_Path(kök, "index.html"), "<p>")
+    TR_write_file(TR_Path(TR_Path(kök, "lang"), "tr.js"), "x")
+    TR_var c = TR_file_response(kök, "/index.html")
+    TR_assert_equal([200, "<p>", "text/html; charset=utf-8"], [c.TR_status, TR_String(c.TR_body), c.TR_headers["Content-Type"]])
+    TR_assert_equal("text/javascript; charset=utf-8", TR_file_response(kök, "/lang/tr.js").TR_headers["Content-Type"])
+    TR_for istenen TR_in ["/", "/lang", "/Index.html", "/con", "/CON .js", "/index.html.", "/a:b", "/../index.html", "/yok.txt"] {
+        TR_assert_equal(404, TR_file_response(kök, istenen).TR_status)
+    }
+}

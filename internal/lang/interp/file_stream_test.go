@@ -88,7 +88,7 @@ func TestWriteAtomicSymlinkDifferentDirs(t *testing.T) {
 func TestGzipHelpers(t *testing.T) {
 	k := t.TempDir()
 	filePath := filepath.Join(k, "a.TXT.GZ")
-	if err := WriteFileContent(filePath, []byte("merhaba")); err != nil {
+	if err := WriteFileContent(filePath, []byte("merhaba"), false); err != nil {
 		t.Fatal(err)
 	}
 	if b, err := ReadFileContent(filePath); err != nil || string(b) != "merhaba" {

@@ -22,7 +22,15 @@ import (
 //
 // Errors carry the target path (so the file error message explains the user's path, not the
 // temporary file's).
-func WriteAtomic(filePath string, write func(w io.Writer) error) (err error) {
+func WriteAtomic(filePath string, write func(w io.Writer) error) error {
+	return WriteAtomicOwner(filePath, false, write)
+}
+
+// WriteAtomicOwner is WriteAtomic; with ownerOnly the file is open only to the user (18.13): 0600
+// on Unix, on Windows an access list for the user and Administrators with inheritance off. The
+// temporary file is restricted before any content goes into it; an existing file's permissions
+// narrow, since the temporary file takes its place.
+func WriteAtomicOwner(filePath string, ownerOnly bool, write func(w io.Writer) error) (err error) {
 	dest, mod, err := atomicTarget(filePath)
 	if err != nil {
 		return err
@@ -41,6 +49,12 @@ func WriteAtomic(filePath string, write func(w io.Writer) error) (err error) {
 			os.Remove(temp)
 		}
 	}()
+	if ownerOnly {
+		if err = restrictToOwner(temp); err != nil {
+			return pathError("chmod", filePath, err)
+		}
+		mod = 0o600
+	}
 	if err = write(f); err != nil {
 		return err
 	}

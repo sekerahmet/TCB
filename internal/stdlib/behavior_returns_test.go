@@ -72,6 +72,11 @@ func TestNoValueBuiltinsGiveNone(t *testing.T) {
 		if def.Example == "" || k.IsLibrary() || !givesNoValue(def) {
 			continue
 		}
+		// TR_wait'in örneği Görev'dedir (değer verir); HTTPSunucusu'nunki (28.1) değer vermez, örnekte
+		// görünmez: denetleyici onu değer yerinde reddeder (3.5), TR testi "28.1 bekle sunucu kapanınca döner" sınar.
+		if k == codes.MemWait {
+			continue
+		}
 		switch got := probeReturns(t, k, codes.TypeNoneType); got {
 		case "":
 			verified++

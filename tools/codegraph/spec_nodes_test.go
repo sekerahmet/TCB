@@ -63,7 +63,8 @@ func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
 	detachY := "y." + "TR_detach"
 	streamP := "p." + "TR_decode_stream"
 	streamS := "akış." + "TR_decode_stream"
-	reqPath := "istek." + "TR_path"
+	// Dil tanımında geçip kod listesine hiç girmeyecek bir yazım (15.2: "Ayrı bir TR_arange yoktur").
+	arangeT := "t." + "TR_arange"
 	katmanLin := "katman." + "TR_Linear"
 	optNSA := "opt." + "TR_NS_A"
 	optLin := "opt." + "TR_Linear"
@@ -72,9 +73,8 @@ func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
 	g, err := buildGraph(auditModule(t, map[string]string{
 		"app/app.go":              "package app\n",
 		"docs/spec/02_sozcuk.md":  "**2.9** Göç notu: eski metinde `" + detachX + "()` geçer.\n",
-		"docs/spec/15_tensor.md":  "**15.27a** `" + detachX + "()` tensörü çizgeden ayırır.\n",
+		"docs/spec/15_tensor.md":  "**15.2** Ayrı bir `" + arangeT + "()` yoktur.\n\n**15.27a** `" + detachX + "()` tensörü çizgeden ayırır.\n",
 		"docs/spec/21_surec.md":   "**21.2** Akış okuma:\n\n```" + "tr\n# TR 4\n" + streamP + "()\n```\n",
-		"docs/spec/28_ag.md":      "**28.3a** İstek yolu `" + reqPath + "` alanıdır.\n",
 		"lib/layers.tr":           "# TR 4\nTR_struct TR_Linear {\n    TR_weight: TR_Int = 1\n}\n",
 		"lib/optimizers.tr":       "# TR 4\nTR_const TR_NS_A = 3.4445\n",
 		"examples/helpers/geo.tr": "# TR 4\nTR_struct Kare {\n    kenar: TR_Int = 1\n}\n",
@@ -100,7 +100,7 @@ func TestSpecMemberAliasesAndModuleScopedImportAliases(t *testing.T) {
 		streamP:             "spec:21.2",
 		streamS:             "spec:21.2",
 		".TR_decode_stream": "spec:21.2",
-		reqPath:             "spec:28.3a",
+		arangeT:             "spec:15.2",
 	} {
 		got := ids(ix.lookup(q))
 		if len(got) != 1 || got[0] != want {

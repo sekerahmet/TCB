@@ -126,8 +126,8 @@ func ReadFileContent(filePath string) ([]byte, error) {
 
 // WriteFileContent writes content to a file atomically (see WriteAtomic); for a .gz path the
 // content is compressed.
-func WriteFileContent(filePath string, payload []byte) error {
-	return WriteAtomic(filePath, func(w io.Writer) error {
+func WriteFileContent(filePath string, payload []byte, ownerOnly bool) error {
+	return WriteAtomicOwner(filePath, ownerOnly, func(w io.Writer) error {
 		if !IsGzip(filePath) {
 			_, err := w.Write(payload)
 			return err

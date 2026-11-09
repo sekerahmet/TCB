@@ -283,6 +283,8 @@ func TestMemberTypesMatchDefinitions(t *testing.T) {
 		{codes.TypeBytes, `TR_Bytes("ab")`}, {codes.TypeNoneType, `TR_none`}, {codes.TypeMessage, `TR_Message("H6903", -1)`}, {codes.TypeError, `TR_Error("x")`},
 		{codes.TypeTask, `TR_async TR_sum([1, 2])`},
 		{codes.TypeProcess, `TR_spawn_process("go", ["version"])`},
+		{codes.TypeRequest, `TR_Request()`}, {codes.TypeResponse, `TR_Response()`}, {codes.TypeHTTPServer, `TR_serve_http(TR_print)`},
+		{codes.TypeHeaders, `TR_Request().TR_headers`},
 		{codes.TypeType, `TR_Int`}, {codes.TypeObject, `UyeOrnegi(1)`}, {codes.TypeStructType, `UyeOrnegi`},
 	}
 	t.Cleanup(logging.CloseAll)

@@ -57,7 +57,7 @@ codegraph query source.Header | contains: carries no language | src: deneme 5, 2
 codegraph tests-for source.Split | not: no tests found | src: deneme 5, 2026-10-23
 codegraph query interp.Value.Inspect | group: -> dispatches_to => checkpoint.Checkpoint.Inspect | group: -> dispatches_to => dataset.Dataset.Inspect | src: deneme 5, 2026-10-23
 codegraph query TR_fn_print | group: registered or used in Go => interp.printBuiltin | src: deneme 5, 2026-10-23
-codegraph query TR_type_String | group: registered or used in Go => interp.stringCall | src: deneme 5, 2026-10-23
+codegraph query TR_type_String --all | group: registered or used in Go => interp.stringCall | src: deneme 5, 2026-10-23
 codegraph query interp.VM.runModule | contains: interp.Source. | src: deneme 5, 2026-10-23
 codegraph query interp.compiler | group: fields ( => interp.compiler.root | group: fields ( => interp.compiler.source | group: fields ( => interp.compiler.blocks | src: deneme 5, 2026-10-23
 codegraph who-uses 17.7 --all | contains: internal/lang/codes/start.go | src: deneme 5, 2026-10-23; katman 1, 2026-10-28 (sözcük çözümleyici dosyanın dilini artık anmıyor)
@@ -313,7 +313,7 @@ codegraph query metin.TR_length | exit: 3 | contains: TR_mem_length | contains: 
 trlang index definition metin.TR_length | exit: 3 | contains: TR_mem_length | contains: [`metin` içe aktarılan modülse: bu üyesi yok] | contains: [`metin` bir değerse: `x.TR_length`] | src: uzak-11 2b, 2026-11-09 (iki araçta modül adıyla aynı alıcı H8879 ve H8878 ile belirsiz)
 codegraph query k.TR_length | exit: 0 | contains: TR_mem_length [name] | not: kod_uye | src: uzak-11 2c, 2026-11-09 (alıcı yalnız harf katlamasıyla eşleşiyorsa negatif fikstürün K yapısına bağlanmaz, genel adaya düşer)
 trlang index definition k.TR_length | exit: 0 | contains: TR_mem_length | not: kod_uye | src: uzak-11 2c, 2026-11-09 (iki araçta k.TR_length negatif fikstüre bağlanmaz)
-codegraph query istek.TR_path | exit: 0 | contains: id: spec:28.3a | not: not found | src: uzak-11 2c, 2026-11-09 (TR_type_Path tip yazımı .TR_path dil tanımı üyesini gizlemez)
+codegraph query istek.TR_path | exit: 0 | contains: id: name:TR_mem_path | not: id: name:TR_type_Path | src: uzak-11 2c, 2026-11-09 (TR_type_Path tip yazımı .TR_path üyesini gizlemez); 2026-11-10, http-28 aşama 1: 28.3 TR_mem_path'i koda ekledi; yalnız dil tanımındaki üyenin yolu spec_nodes_test'in sahte modülünde sınanıyor
 codegraph query TR_Role.TR_User | exit: 0 | contains: chat.TR_type_Role.TR_mem_User [tr_field] | not: not found | src: uzak-11 2d, 2026-11-09 (durumlu tipin durumları alan düğümü olarak indekslenir)
 trlang index definition Rol.Kullanıcı | exit: 0 | contains: chat.Rol.Kullanıcı | not: bulunamadı | src: uzak-11 2d, 2026-11-09 (durumlu tipin Türkçe görünüm adı alıcı olunca da çözülür)
 codegraph query TR_arg_env | exit: 0 | contains: TR_arg_env [name] | not: not found | src: uzak-11 2e, 2026-11-09 (.tr dosyasında geçmeyen katalog kodu her iki araçta da kimliğine çözülür)

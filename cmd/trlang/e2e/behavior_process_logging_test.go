@@ -47,7 +47,8 @@ TR_print("adım=\(ayar["adım"]) oran=\(ayar["oran"]) hızlı=\(ayar["hızlı"])
 }
 
 // Gizli değerler: gizli adlı ortam değişkeninin ve seçeneğin değeri yazdır'da, hata
-// mesajında ve günlükte *** olur; dosyaya yazılan veri (dosya_yaz) değişmez.
+// mesajında ve günlükte *** olur; dosyaya yazılan veri (dosya_yaz) değişmez, dosya yalnız sahibine
+// açık yazılır (18.13: gizli değer TR_owner_only: ister).
 func TestSecretValuesMaskedInOutput(t *testing.T) {
 	dir := t.TempDir()
 	writeTR(t, dir, "g.tr", `TR_var ayar = TR_command_line({"api_key": ""})
@@ -55,7 +56,7 @@ TR_var belirteç = TR_env("HF_TOKEN")
 TR_print("belirteç:", belirteç, "anahtar:", ayar["api_key"])
 TR_var g = TR_Logger("kayit/g.jsonl")
 g.TR_append({"belirteç": belirteç})
-TR_write_file("veri.txt", belirteç)
+TR_write_file("veri.txt", belirteç, TR_owner_only: TR_true)
 TR_throw "bozuk: " + ayar["api_key"]
 `)
 	s := testkit.RunBinary(t, trBinary, dir, "", []string{"HF_TOKEN=hf_cokgizli123"}, "g.tr", "--api_key", "sk-anahtar-456")
