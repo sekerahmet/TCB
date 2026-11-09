@@ -13,7 +13,7 @@
 - [x] `gemini/uzak-10` dalı `main` (`6311e11acdfb1cad05521aede8b76ceced563769`) ucundan açıldı ve `UZAK10_DURUM.md` oluşturuldu.
 - [x] Adım 1: Yeniden üret (1.1–1.6) ve taban ölçümleri (`untested`, graf kurulum süresi)
 - [x] Adım 2a: İzlenmeyen yeni dosya `--changed`'e girer (`2d23efc`)
-- [ ] Adım 2b: Modül dışı arayüzün uygulaması
+- [x] Adım 2b: Modül dışı arayüzün uygulaması
 - [ ] Adım 2c: Belge dosyasının `run:` satırı
 - [ ] Adım 2d: Eksik tanımlı kodun iletisi
 - [ ] Adım 2e: Atası olan commit
@@ -77,5 +77,8 @@
   - **Seçenek B (`error` dışarıda bırakıldığında — kuraldaki `"modülün içe aldığı bir paketin (standart kitaplık dahil) adlı arayüzünü sağlıyorsa"` lafzına göre `named.Obj().Pkg() != nil && !x.inModule(named.Obj().Pkg().Path())` koşuluyla evren kapsamındaki `error` hariç tutulduğunda):**
     - Toplam eklenen kenar: **39** (< 200 eşiği; `testing.TB`: 22, `io.Writer`: 14, `go/types.Importer`: 2, `io.Reader`: 1).
     - `error` + `fmt.Stringer` eklenen kenar: **0 / 39 (%0 < 1/4)**.
-  - Yönergedeki bağlayıcı kural gereği commit'ten önce kullanıcıya soruluyor.
+  - **Kullanıcı kararı:** Seçenek B onaylandı (`error` dışarıda bırakıldı; +39 kenar).
+  - **Üretim satırı:** +67 net satır (`stdlib_dispatch.go`: +89/-23, `gocode_scan.go`: +1, `test_reach.go`: +1/-1, `graph.go`: +1/-1; bütçe 40–90).
+  - **Koruyan test:** `tools/codegraph/implementations_test.go:241` (`TestExternalInterfaceFieldLinksOnlyImplementedMethodsToTests`).
+
 

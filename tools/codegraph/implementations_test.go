@@ -204,3 +204,61 @@ func TestDispatchesMatchMethodSetsOnTheRepository(t *testing.T) {
 		t.Errorf("promoted %d; missing dispatches_to (%d): %v", promoted, len(misses), misses)
 	}
 }
+
+var externalIfaceFiles = map[string]string{
+	"loader/loader.go": `package loader
+
+import "go/types"
+
+type fnImporter func(path string) (*types.Package, error)
+
+func (f fnImporter) Import(path string) (*types.Package, error) { return f(path) }
+func (f fnImporter) Extra() string                              { return "" }
+
+type unusedImporter struct{}
+
+func (unusedImporter) Import(path string) (*types.Package, error) { return nil, nil }
+
+func unusedReturn() types.Importer { return unusedImporter{} }
+
+func LoadPkg() *types.Config {
+	imp := fnImporter(func(path string) (*types.Package, error) { return nil, nil })
+	_ = types.Importer(unusedImporter{})
+	return &types.Config{Importer: imp}
+}
+`,
+	"loader/loader_test.go": `package loader
+
+import "testing"
+
+func TestLoadPkg(t *testing.T) { _ = LoadPkg() }
+`,
+}
+
+// Kural: modülün somut bir tipi, modülün içe aldığı bir paketin adlı arayüzünü sağlıyorsa ve değeri o arayüz alanına
+// veriliyorsa yalnız arayüzün yöntem kümesindeki metotları teste bağlanır; değeri arayüz yerine verilmeyen (ya da yalnız
+// return / açık dönüşümde geçen) ikinci bir tip bağlanmaz.
+func TestExternalInterfaceFieldLinksOnlyImplementedMethodsToTests(t *testing.T) {
+	root := auditModule(t, externalIfaceFiles)
+	var out, errb strings.Builder
+	if code := run([]string{"build", "--root", root}, &out, &errb); code != exitOK {
+		t.Fatalf("build: %d %s", code, errb.String())
+	}
+	ask := func(target string) string {
+		out.Reset()
+		errb.Reset()
+		if code := run([]string{"tests-for", target, "--root", root, "--no-rebuild"}, &out, &errb); code != exitOK {
+			t.Fatalf("tests-for %s: %d %s", target, code, errb.String())
+		}
+		return out.String()
+	}
+	if got := ask("loader.fnImporter.Import"); !strings.Contains(got, "loader.TestLoadPkg") {
+		t.Errorf("fnImporter.Import should be linked to TestLoadPkg:\n%s", got)
+	}
+	if got := ask("loader.fnImporter.Extra"); !strings.Contains(got, "no tests found") {
+		t.Errorf("fnImporter.Extra is not in types.Importer method set:\n%s", got)
+	}
+	if got := ask("loader.unusedImporter.Import"); !strings.Contains(got, "no tests found") {
+		t.Errorf("unusedImporter.Import is never passed to an interface slot (return/conversion excluded):\n%s", got)
+	}
+}
