@@ -34,6 +34,24 @@ Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `-
 group, default 12) and `--all`, before or after the names. Output is short plain text; edges tagged
 `[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` is another name for `query`.
 
+## Which command answers which question
+
+Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the sections below give the details. Before asking for a new capability, try the closest command here and keep the line of its answer that shows what is missing.
+
+| question | command |
+| :-- | :-- |
+| which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) |
+| the Go tests of my uncommitted change | `changed HEAD --go-tests` (with `HEAD` as the tip the working tree is included) |
+| who reads or writes this field | `fields <Type.field> --mode write` (or `read`); every field of a type: `fields <Type>` |
+| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) |
+| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) |
+| what this function calls | `callees <function>` |
+| who uses this | `who-uses <name>` |
+| is there a path from A to B | `path <A> <B>` (`--undirected`) |
+| when and in which commit this file or function changed | `history <function\|type\|file>` (not for a field: ask its type or its file) |
+| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
+| is there something like this | `similar <function>`, `dups --in <folder>` |
+
 ## Staying fresh
 
 Nobody has to remember `build`. `build` writes a `stamp` into `graph.json`: a digest of the tree's content, not of

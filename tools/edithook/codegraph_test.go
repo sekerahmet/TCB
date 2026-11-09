@@ -131,7 +131,7 @@ func TestABrokenTreeFallsBackToTheLastBuiltCodegraph(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := testsFor(target{root, "a.go"})
-	if !strings.HasPrefix(got, "answer: tests-for a.go") || strings.Contains(got, "warning") {
+	if !strings.HasPrefix(got, "answer: tests-for a.go") || strings.Contains(got, "warning") || !strings.HasSuffix(got, "\n"+commandTableLine) {
 		t.Fatalf("derlenen ağaçta cevap uyarısız gelmeli:\n%s", got)
 	}
 
