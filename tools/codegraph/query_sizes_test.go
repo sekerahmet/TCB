@@ -61,6 +61,16 @@ func layoutWalk(t *testing.T, root string) map[string][]byte {
 // kapsamını o test dosyasının paket düzeyi listesinden okur; liste başka pakete taşınırsa kapsam bilinmez olur.
 var sizeRoots = []string{"cmd", "internal", "lib", "tools"}
 
+// untrackedOrUnmeasured düzen testinin ölçmediği ama boyut satırı alan dosyanın iletisidir: git'in izlemediği yeni dosyada
+// sebep codegraph değil, dosyanın eklenmemesidir (gaps, "Yeni dosyada yerleşim testinin iletisi yanıltıcı": D1
+// 2026-11-08'de "the layout test does not measure it" yeni dosyada iki aracın ayrıldığını sandırdı).
+func untrackedOrUnmeasured(root, rel string) string {
+	if isUntracked(root, rel) {
+		return fmt.Sprintf("%s: the file is not tracked by git; the layout test walks tracked files only (run `git add %s`)", rel, rel)
+	}
+	return fmt.Sprintf("%s: tests-for shows a size line, the layout test does not measure it", rel)
+}
+
 // Kural: boyut satırının kapsamı ve değeri düzen testininkidir. Düzen testinin ölçtüğü her Go dosyası (yolu codegraph'tan
 // bağımsız yürünür: layoutWalk) boyut satırı alır, dosya kuralıyla; test dışıysa fonksiyon kuralıyla da. Dosya boyu, test
 // dışı dosyalarda her func bildiriminin boyu ve adı düzen testinin hesabıyla (layoutrules.FileLines, FuncLines, FuncName)
@@ -120,7 +130,7 @@ func TestSizesMatchTheLayoutTest(t *testing.T) {
 			continue
 		}
 		if _, _, _, tests := ix.fileSizes(file); len(tests) > 0 {
-			t.Errorf("%s: tests-for shows a size line, the layout test does not measure it", file.File)
+			t.Error(untrackedOrUnmeasured(root, file.File))
 		}
 	}
 	if len(walked) < 1000 || funcs < 3000 {
@@ -232,5 +242,17 @@ func TestSizeLineReadsFunctionsFromDiskWhenBuildIsBrokenAndReportsStaleOnSyntaxE
 	wantStale := "size (TestLayoutFileSize, TestLayoutFuncSize): file 3/600; functions: stale (syntax error: cannot parse file)"
 	if !strings.Contains(out.String(), wantStale) {
 		t.Errorf("syntax error did not report stale function sizes %q:\n%s", wantStale, out.String())
+	}
+}
+
+// Kural: düzen testinin ölçmediği dosyanın iletisi git'in izlemediği yeni dosyada `git add` der, izlenen dosyada iki
+// aracın ayrıldığını söyler (gaps, "Yeni dosyada yerleşim testinin iletisi yanıltıcı").
+func TestAnUntrackedFileIsToldToBeAddedNotUnmeasured(t *testing.T) {
+	root, _ := untrackedGitFixture(t)
+	if got := untrackedOrUnmeasured(root, "shape/untracked.go"); !strings.Contains(got, "not tracked by git") || !strings.Contains(got, "git add shape/untracked.go") {
+		t.Errorf("untracked file: %s", got)
+	}
+	if got := untrackedOrUnmeasured(root, "shape/shape.go"); !strings.Contains(got, "the layout test does not measure it") {
+		t.Errorf("tracked file: %s", got)
 	}
 }
