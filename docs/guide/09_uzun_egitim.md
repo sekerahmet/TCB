@@ -31,7 +31,7 @@ kn.TR_save()
 
 **Kaldığı yerden devam.** Aynı komutu yeniden çalıştırın. Program başta `Kaldığı yerden devam: adım 1500 (runs/deneme1/checkpoints/step_0000001500)` yazar; `kn.TR_resume_step` 1500 olur, döngü oradan başlar. Eğitimi uzatmak için `--step` değerini artırmanız yeter (ayarlardaki fark yalnızca bir not olarak yazılır). Modeli, iyileştiriciyi ya da okuyucunun ayarlarını değiştirdiyseniz program yükleme yapmadan, neyin farklı olduğunu söyleyen bir hatayla durur: baştan başlamak için `runs/deneme1/checkpoints` klasörünü silin ya da yeni bir koşu klasörü verin.
 
-**Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"kind":"resume","step":1500}` kaydı yazar (günlüğün ve kontrol noktasının anahtarları dilden bağımsız İngilizce adlardır, 17.8). Bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir; kayıp eğrisi çizen araçlar bu kuralı uygular.
+**Günlük.** `metrics.jsonl` silinmez ve kesilmez: sürdürülen eğitim araya `{"kind":"resume","step":1500,"offset":123456}` kaydı yazar (günlüğün ve kontrol noktasının anahtarları dilden bağımsız İngilizce adlardır, 17.8). `offset`, noktanın kaydedildiği andaki günlüğün bayt uzunluğudur. Günlüğü kendiniz okuyorsanız (19.6): `offset` ile bu kayıt arasındaki her kayıt, adımı olsun olmasın, geçersizdir; bu kayıttan önce gelen ve adımı 1500'den büyük olan ölçüler de (kesilmeden önce yazılmış, sonra yeniden hesaplanan adımlar) geçersizdir. Adımı 1500 olan ölçü geçerlidir.
 
 **Koşu klasörü.** Her eğitim kendi klasörüne yazar; kontrol noktaları onun `checkpoints/` alt klasöründedir, öbür dosyalarınıza dokunulmaz. Önerilen düzen:
 

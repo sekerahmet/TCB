@@ -1251,7 +1251,7 @@ Kurallar: [`docs/spec/19_surec_ve_kayit.md`](spec/19_surec_ve_kayit.md). **Kapan
 ### 19.6
 
 - **Mevcut durum (T1, birleşik 59):** `resume` kaydı `offset` taşıyor (noktadaki günlüğün bayt uzunluğu), hem `TR_rollback`'te hem yeni süreçte sürdürmede; biçim sürümü 2 kaldı [test: TR testleri "19.6 geri dönüşün devam kaydı…", "20.6 sürdürülen…", `TestLogAppendAndResume`].
-- **Yapılacaklar (C, Ö2; sahip T1, küçük iş; T1 devri):** okuyan araçlar (`internal/testkit/runlog.go:46`, `TR_cmd_watch`, `TR_cmd_profile`) yalnız adım kuralını uyguluyor; 19.6'nın "`offset` ile `resume` arasındaki her kayıt geçersizdir" kuralını uygulamıyor [kanıtlı: `runlog.go:46`–`:47`]. Adım kuralı geri alınmış bir kaydı (adımsız ya da daha küçük adımlı) geçiriyorsa okuyucuda sessiz yanlıştır ve sınıf A olur [hipotez: ölçülmedi, DENETİM 319]; önce ölçü.
+- **Mevcut durum (T1):** günlüğün tek okuyucusu `testkit.ValidLossMetrics` 19.6'nın `offset` kuralını uyguluyor; `offset`'siz ya da satır ortasına düşen devam kaydında test düşer [test: `TestValidLossMetricsDropsEveryRecordAfterTheOffset`, `TestValidLossMetricsRejectsABadOffset`]. `TR_cmd_watch` ve `TR_cmd_profile` günlüğü okumuyor, adımı `logging.SetStepHook` ile alıyor [kanıtlı: `internal/devtools/profiler/profile.go:168`].
 - **Gemini Koşu 5 (2026-10-29), uygulanacak:** günlüğün kabul ettiği değerler 13.8'in JSON kümesi (`offset` yarısı birleşik 59'da yapıldı).
 
 ### 19.10
