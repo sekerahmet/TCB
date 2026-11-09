@@ -231,10 +231,18 @@ func printLimited(w io.Writer, list []string, limit int, indent string) {
 // testsToRun değişen düğümleri sınayan testlerdir: test kimliği -> en kısa uzaklık (0: doğrudan; tests-for ile aynı
 // toplama: doğrudan, gezen, zincir, ad kodu) ve ikiliyi derleyip koşan alt süreç testleri (klasör -> testler).
 func (ix *index) testsToRun(ts *touchSet) (best map[string]int, subprocess map[string][]*Node) {
-	best, subprocess = map[string]int{}, map[string][]*Node{}
+	best, subprocess, _ = ix.testsToRunEach(ts)
+	return best, subprocess
+}
+
+// testsToRunEach testsToRun'dur; düğüm başına uzaklıkları da verir (each: düğüm kimliği -> testDistances). fileTests
+// bildirimlerin adaylarını ondan alır, yeniden hesaplamaz (hız işi, tekrar 3).
+func (ix *index) testsToRunEach(ts *touchSet) (best map[string]int, subprocess map[string][]*Node, each map[string]map[string]int) {
+	best, subprocess, each = map[string]int{}, map[string][]*Node{}, map[string]map[string]int{}
 	pkgs := map[string]bool{}
 	for _, n := range ts.nodes {
-		for id, d := range ix.testDistances(n) {
+		each[n.ID] = ix.testDistances(n)
+		for id, d := range each[n.ID] {
 			if old, ok := best[id]; !ok || d < old {
 				best[id] = d
 			}
@@ -246,7 +254,7 @@ func (ix *index) testsToRun(ts *touchSet) (best map[string]int, subprocess map[s
 			}
 		}
 	}
-	return best, subprocess
+	return best, subprocess, each
 }
 
 // printGoTests koşulacak Go testlerini satır başına "klasör TestAdı" olarak yazar (sıralı, tekrarsız): değişen
@@ -293,6 +301,12 @@ func goTestOf(n *Node) (goTest, bool) {
 // koşu satırı (runPlanFor) aynı seçimden yazılır: koşmadığını sayar, ikinci bir seçim yolu yoktur.
 func (ix *index) goTestSelection(ts *touchSet) []goTest {
 	best, subprocess := ix.testsToRun(ts)
+	return ix.goTestSelectionFrom(ts, best, subprocess)
+}
+
+// goTestSelectionFrom goTestSelection'dır, testsToRun(ts)'in sonucu verilmiş olarak (best'in yalnız anahtarları
+// kullanılır). tests-for <Go dosyası> onu fileTests'ten alır, yeniden hesaplamaz (hız işi, tekrar 2).
+func (ix *index) goTestSelectionFrom(ts *touchSet, best map[string]int, subprocess map[string][]*Node) []goTest {
 	nodes := ownTests(ts)
 	for id := range best {
 		nodes = append(nodes, ix.byID[id])

@@ -115,7 +115,11 @@ func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed lis
 	}
 	sel := newTouchSet()
 	sel.nodes, sel.files = ts.nodes, map[string]bool{file.File: true}
-	for _, t := range ix.goTestSelection(sel) {
+	selection := ix.goTestSelection
+	if s.all != nil { // fileTests'ten: all, testsToRun(ts)'in anahtarlarıyla dosyanın kendi testlerinin birleşimi; dosyanınkileri seçim zaten ekler
+		selection = func(sel *touchSet) []goTest { return ix.goTestSelectionFrom(sel, s.all, s.subprocess) }
+	}
+	for _, t := range selection(sel) {
 		if !p.runs(t) {
 			p.rest = append(p.rest, t)
 		}
