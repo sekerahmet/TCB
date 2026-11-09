@@ -247,6 +247,10 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 		printUntrackedWarning(w, n.File)
 	}
 	t := ix.testsForNode(n)
+	tests, withOthers := ix.splitSharedSites(t.tests)
+	if n.Kind == kindDoc {
+		printRunPlan(w, ix.docRunPlan(n, t, tests))
+	}
 	switch t.branch {
 	case branchWeak, branchExam, branchUntested:
 		if t.branch == branchWeak {
@@ -268,7 +272,6 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	}
 	printOwnTests(w, t.own, limit)
 	ix.printAboutTests(w, t.about, limit)
-	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindFile {
 		ix.printWalks(w, t.walks, limit) // veri dosyasında bütün listeyi gezenler önce (README)
 	}

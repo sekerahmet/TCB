@@ -3,9 +3,10 @@
 - **Dal:** `gemini/uzak-10`
 - **Taban commit:** `6311e11acdfb1cad05521aede8b76ceced563769`
 - **Başlama saati:** `2026-11-09 11:03:34 +0300` (`2026-11-09 08:03:34 UTC`)
-- **Bağlam sıkıştırması:** 2 kez:
+- **Bağlam sıkıştırması:** 3 kez:
   1. `2026-11-09 11:29:34 +0300` (`2026-11-09 08:29:34 UTC`), Adım 1 tamamlandıktan sonra, Adım 2a'ya başlamadan önce; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
   2. `2026-11-09 12:04:29 +0300` (`2026-11-09 09:04:29 UTC`), Adım 2b çalışması sırasında (uVM duraklatılıp yeniden başlatıldı); `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
+  3. `2026-11-09 12:35:19 +0300` (`2026-11-09 09:35:19 UTC`), Adım 2c düzenlemesi sırasında; `CLAUDE.md`, `UZAK_YONERGE_10.md` ve `UZAK10_DURUM.md` yeniden okundu.
 
 ## İlerleme
 
@@ -13,8 +14,8 @@
 - [x] `gemini/uzak-10` dalı `main` (`6311e11acdfb1cad05521aede8b76ceced563769`) ucundan açıldı ve `UZAK10_DURUM.md` oluşturuldu.
 - [x] Adım 1: Yeniden üret (1.1–1.6) ve taban ölçümleri (`untested`, graf kurulum süresi)
 - [x] Adım 2a: İzlenmeyen yeni dosya `--changed`'e girer (`2d23efc`)
-- [x] Adım 2b: Modül dışı arayüzün uygulaması
-- [ ] Adım 2c: Belge dosyasının `run:` satırı
+- [x] Adım 2b: Modül dışı arayüzün uygulaması (`00f7013`)
+- [x] Adım 2c: Belge dosyasının `run:` satırı
 - [ ] Adım 2d: Eksik tanımlı kodun iletisi
 - [ ] Adım 2e: Atası olan commit
 - [ ] Adım 2f: Uzak 8'in iki kuralının fikstürü
@@ -81,4 +82,12 @@
   - **Üretim satırı:** +67 net satır (`stdlib_dispatch.go`: +89/-23, `gocode_scan.go`: +1, `test_reach.go`: +1/-1, `graph.go`: +1/-1; bütçe 40–90).
   - **Koruyan test:** `tools/codegraph/implementations_test.go:241` (`TestExternalInterfaceFieldLinksOnlyImplementedMethodsToTests`).
 
+## Adım 2c: Belge Dosyasının `run:` Satırı
 
+- **Seçim ve gerekçe:**
+  - `tools/codegraph/query_run_line.go`'da `runPlanFor` içinde `file.Kind == kindFile` olduğunda `p.pkg = path.Dir(file.File)` kurulurken `kindDoc` (`.md`) dosyası için `p.pkg` boş bırakıldı (belge klasörü `-run`'sız koşulacak bir Go paketi değildir).
+  - `docRunPlan` (`tools/codegraph/query_run_line.go:90`), belgeyi adıyla okuyan (`splitSharedSites`'tan gelen `tests`) ve konu edinen (`t.about`) testleri `runPlanFor`'a geçirir; `runPlanFor` bunları `scansCovering(file.File)` (`TestDottedMemberSpellingsGolden` dahil) ile birleştirir ve `goTestSelection`'daki geri kalan testleri (`TestDocLinks`, `TestDocTRCodeBlocks`, `TestTRCodeIsTyped` gibi ortak kalıpla okuyanlar) `p.rest`'te sayar.
+  - Seçilen testler arasında adı `"Golden"` ile biten altın dosya testi varsa (`p.golden`), `printRunPlan` `run:` satırının hemen altına `"  golden files (%s): if they change, rewrite with -update and read the diff"` satırını yazar.
+  - Testsiz `.md` dosyasında `p.commands()` boş döndüğü için `printRunPlan` hiçbir şey yazmaz.
+- **Üretim satırı:** +26 net satır (`query_run_line.go`: +29/-6, `query_tests.go`: +3; bütçe 20–50).
+- **Koruyan test:** `tools/codegraph/query_run_line_test.go:207` (`TestDocFileRunLineIncludesReadersAndGoldenScans`).
