@@ -96,8 +96,13 @@ graph cannot see), then one `go test -short` with `-run '^(...)$'` over the pack
 scans the file and of the Go tests about it (plus, for files in the type checker, the Go tests that run programs through it), including the Go runner (`testrunner.TestNegativeFixtures`) of any negative `.tr` fixture about it (two commands: `-run` applies to every package of one `go test`). The lines
 are written from the pre-check's own selection (`goTestSelection`, the function of `changed --go-tests`), and the line
 below them counts what they leave out (they are among the groups below): "not run by these commands: N more Go tests in M packages; before committing,
-`bash tools/full_check.sh --kip=on` (in the background) runs them all". A `-run` list longer than 20000 characters (the
-pre-check's Windows limit) runs its packages whole. The `run:` lines are not indented, so they are no item of a group.
+`bash tools/full_check.sh --kip=on` (in the background) runs them all". Every Go test the default answer lists (at 12
+lines per group; `--all` names the same ones) is named by a `run:` line: an answer does not list a test no `run:` line
+runs (chapter 28's G4 failed on `e2e.TestDocTRCodeBlocks`, listed and not run). The run line only names tests; which
+of them to run before a commit is not its choice. A `-run` list longer than 20000 characters (the pre-check's Windows
+limit) runs its light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
+`internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the
+names that fit and a line counting the rest. The `run:` lines are not indented, so they are no item of a group.
 Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,
 TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to

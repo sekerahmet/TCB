@@ -238,6 +238,17 @@ func (ix *index) pkgOf(id string) string {
 // sonra adından çıkarılanlar, sonra çağrı zinciriyle dolaylı olanlar (INFERRED, kaç adım
 // uzakta, en yakın önce); koruduğu kurallar en sonda.
 func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
+	ab, listed := &answerBuffer{}, &answerBuffer{}
+	ix.printTestsForBody(ab, n, limit)
+	if listed = ab; limit == 0 { // --all: koşu satırı varsayılan cevapta adı geçenleri adlandırır
+		listed = &answerBuffer{}
+		ix.printTestsForBody(listed, n, defaultLimit)
+	}
+	flushAnswer(w, ab, listed)
+}
+
+// printTestsForBody printTestsFor'un gövdesidir; koşu satırlarının yerini ayırır (writeRunPlan).
+func (ix *index) printTestsForBody(w io.Writer, n *Node, limit int) {
 	fmt.Fprintln(w, describe(n))
 	if n.Kind == kindFile && strings.HasSuffix(n.File, ".go") {
 		ix.printGoFileTests(w, n, limit)
@@ -249,7 +260,7 @@ func (ix *index) printTestsFor(w io.Writer, n *Node, limit int) {
 	t := ix.testsForNode(n)
 	tests, withOthers := ix.splitSharedSites(t.tests)
 	if n.Kind == kindDoc {
-		printRunPlan(w, ix.docRunPlan(n, t, tests))
+		writeRunPlan(w, func(l listedTests) runPlan { return ix.docRunPlan(n, t, tests, l) })
 	}
 	switch t.branch {
 	case branchWeak, branchExam, branchUntested:

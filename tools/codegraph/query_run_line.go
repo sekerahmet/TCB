@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -27,14 +28,22 @@ type runPlan struct {
 	others []string // dosyayı tarayan depo kurallarının ve konu edinen testlerin paketleri (pkg hariç)
 	names  []string // onların adları (-run)
 	golden []string // seçilen altın dosya testleri (-update ile yeniden yazılır)
-	whole  bool     // -run listesi commandLineLimit'i aşıyor: others bütün olarak koşar
-	rest   []goTest // ön denetimin seçiminden iki komutun koşmadıkları
+	whole  bool     // -run listesi commandLineLimit'i aşıyor: others'ın ağır olmayanları bütün olarak koşar
+	heavy  []string // whole iken others'ın ağır paketleri (heavyTestPackages): yalnız sığan adlarla koşar
+	fit    []string // onların satıra sığan adları
+	cut    int      // satıra sığmayan ad sayısı
+	rest   []goTest // ön denetimin seçiminden komutların koşmadıkları
 }
 
 // runPlanFor koşu satırlarını ön denetimin seçiminden (goTestSelection, `changed --go-tests`) kurar: dosyanın paketi
 // bütün olarak; dosyayı tarayan bütün depo kuralları (scansCovering); dosyanın bir bildirimini konu edinen (about) ve
 // tip denetleyicisi dosyalarında denetleyiciden program geçiren (checkerRunnerTests) Go testleri. Seçimin geri kalanı rest'tir.
 func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
+	return ix.runPlanWith(file, ts, s, listedTests{})
+}
+
+// runPlanWith runPlanFor'dur; cevapta adı geçen testler (listed) de adlandırılır (query_run_listed.go).
+func (ix *index) runPlanWith(file *Node, ts *touchSet, s fileTestSet, listed listedTests) runPlan {
 	var p runPlan
 	if file.Kind == kindFile {
 		p.pkg = path.Dir(file.File)
@@ -70,29 +79,55 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 	for _, t := range ix.checkerRunnerTests(file, s.all) {
 		add(t)
 	}
-	pkgs, names := map[string]bool{}, map[string]bool{}
+	for _, t := range listed.goTests {
+		if t.dir != p.pkg {
+			extra[t] = true
+		}
+	}
+	pkgs, names, heavyNames := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for t := range extra {
 		pkgs[t.dir], names[t.name] = true, true
+		if isHeavyPackage(t.dir) {
+			heavyNames[t.name] = true
+		}
 	}
 	p.others, p.names, p.golden = sortedKeys(pkgs), sortedKeys(names), sortedKeys(golden)
-	p.whole = len(p.command(p.others, p.names)) > commandLineLimit
+	if p.whole = len(p.command(p.others, p.names)) > commandLineLimit; p.whole {
+		p.heavy = slices.DeleteFunc(slices.Clone(p.others), func(d string) bool { return !isHeavyPackage(d) })
+		p.fit, p.cut = p.fitNames(p.heavy, sortedKeys(heavyNames))
+	}
 	sel := newTouchSet()
 	sel.nodes, sel.files = ts.nodes, map[string]bool{file.File: true}
 	for _, t := range ix.goTestSelection(sel) {
-		if t.dir != p.pkg && !(pkgs[t.dir] && (p.whole || names[t.name])) {
+		if !p.runs(t) {
 			p.rest = append(p.rest, t)
 		}
 	}
 	return p
 }
 
+// runs koşu satırlarından biri t'yi koşuyor mu.
+func (p runPlan) runs(t goTest) bool {
+	switch {
+	case t.dir == p.pkg:
+		return true
+	case !slices.Contains(p.others, t.dir):
+		return false
+	case !p.whole:
+		return slices.Contains(p.names, t.name)
+	case isHeavyPackage(t.dir):
+		return slices.Contains(p.fit, t.name)
+	}
+	return true
+}
+
 // docRunPlan bir belge dosyasını (.md) adıyla okuyan ve tarayan testlerden koşu satırını kurar.
-func (ix *index) docRunPlan(doc *Node, t nodeTests, byName []*Edge) runPlan {
+func (ix *index) docRunPlan(doc *Node, t nodeTests, byName []*Edge, listed listedTests) runPlan {
 	own := make([]*Node, 0, len(byName))
 	for _, e := range byName {
 		own = append(own, ix.byID[e.From])
 	}
-	return ix.runPlanFor(doc, newTouchSet(), fileTestSet{own: own, about: t.about})
+	return ix.runPlanWith(doc, newTouchSet(), fileTestSet{own: own, about: t.about}, listed)
 }
 
 func sortedKeys(m map[string]bool) []string {
@@ -144,7 +179,12 @@ func (p runPlan) commands() []string {
 	switch {
 	case len(p.others) == 0:
 	case p.whole:
-		out = append(out, p.command(p.others, nil))
+		if light := slices.DeleteFunc(slices.Clone(p.others), isHeavyPackage); len(light) > 0 {
+			out = append(out, p.command(light, nil))
+		}
+		if len(p.heavy) > 0 && len(p.fit) > 0 {
+			out = append(out, p.command(p.heavy, p.fit))
+		}
 	default:
 		out = append(out, p.command(p.others, p.names))
 	}
@@ -166,6 +206,10 @@ func printRunPlan(w io.Writer, p runPlan) {
 	}
 	if p.whole {
 		fmt.Fprintf(w, "  the second command runs its packages whole: its -run list is longer than %d characters (the Windows command line)\n", commandLineLimit)
+	}
+	if p.cut > 0 {
+		fmt.Fprintf(w, "  %s of %s did not fit the command line (heavy packages do not run whole here); they are in the groups below\n",
+			countOf(p.cut, "more listed test"), strings.Join(p.heavy, ", "))
 	}
 	if len(p.rest) == 0 {
 		fmt.Fprintln(w, "  these commands run every Go test the pre-check selects for this file")

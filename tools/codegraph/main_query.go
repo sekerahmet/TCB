@@ -43,7 +43,7 @@ func runQueryOn(loaded *Graph, cmd string, args []string, stdout, stderr io.Writ
 	all := fs.Bool("all", false, "no line limit")
 	noRebuild := fs.Bool("no-rebuild", false, "use the graph as it is, even when the sources changed")
 	o := &queryOpts{stdin: os.Stdin, stdout: stdout, stderr: stderr}
-	fs.IntVar(&o.limit, "limit", 12, "lines per group")
+	fs.IntVar(&o.limit, "limit", defaultLimit, "lines per group")
 	fs.StringVar(&o.root, "root", "", "repository root (default: found from the current directory, see README)")
 	fs.StringVar(&o.base, "base", "main", "changed: the branch a branch name is compared with (git diff base...branch)")
 	fs.StringVar(&o.in, "in", "", "callees, calls-into, untested: restrict to a package or folder")

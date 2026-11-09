@@ -2,6 +2,7 @@ package main
 
 import (
 	"path"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -82,26 +83,31 @@ func TestTheRunLineCoversThePackageTheScansAndTheTestsAboutIt(t *testing.T) {
 	}
 }
 
-// runCovers koşu satırının komutlarını metinden okur: ilk komutun paketi bütün olarak, ikincinin paketlerinde -run
-// listesindeki adlar (listesi yoksa bütün paketler).
+// runCovers koşu satırlarının `go test` komutlarını metinden okur: her komutun paketlerinde -run listesindeki adlar,
+// listesi yoksa paketlerin bütünü.
 func runCovers(cmds []string) func(goTest) bool {
-	pkgs, names := map[string]bool{}, map[string]bool{}
-	whole := map[string]bool{strings.TrimSuffix(strings.TrimPrefix(cmds[0], "go test -short ./"), "/"): true}
-	if len(cmds) > 1 {
-		args, run, _ := strings.Cut(strings.TrimPrefix(cmds[1], "go test -short "), " -run ")
+	type command struct{ pkgs, names map[string]bool }
+	var all []command
+	for _, c := range cmds {
+		args, run, _ := strings.Cut(strings.TrimPrefix(c, "go test -short "), " -run ")
+		if args == c {
+			continue // go test olmayan satır (trlang test)
+		}
+		k := command{pkgs: map[string]bool{}}
 		for _, a := range strings.Fields(args) {
-			pkgs[strings.TrimSuffix(strings.TrimPrefix(a, "./"), "/")] = true
+			k.pkgs[strings.TrimSuffix(strings.TrimPrefix(a, "./"), "/")] = true
 		}
-		for _, n := range strings.Split(strings.TrimSuffix(strings.TrimPrefix(run, "'^("), ")$'"), "|") {
-			names[n] = true
-		}
-		if run == "" {
-			for d := range pkgs {
-				whole[d] = true
+		if run != "" {
+			k.names = map[string]bool{}
+			for _, n := range strings.Split(strings.TrimSuffix(strings.TrimPrefix(run, "'^("), ")$'"), "|") {
+				k.names[n] = true
 			}
 		}
+		all = append(all, k)
 	}
-	return func(gt goTest) bool { return whole[gt.dir] || pkgs[gt.dir] && names[gt.name] }
+	return func(gt goTest) bool {
+		return slices.ContainsFunc(all, func(k command) bool { return k.pkgs[gt.dir] && (k.names == nil || k.names[gt.name]) })
+	}
 }
 
 // Kural: koşu satırı Windows komut satırını aşmaz: -run listesi commandLineLimit'i geçince ikinci komut paketleri
