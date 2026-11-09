@@ -115,10 +115,7 @@ func loadGraph(path string, o *queryOpts, noRebuild bool) (*Graph, int) {
 	}
 	for _, w := range g.Warnings {
 		if strings.HasPrefix(w, trSkipped) { // Go cevapları tam; .tr kodu ve TR bağları yok
-			if strings.Contains(w, "not an identity in the code list") {
-				w += " (in internal/lang/codes/tr.json: add it to definitions.json and run go generate ./internal/lang/codes)"
-			}
-			fmt.Fprintf(o.stderr, "codegraph: warning: answers about .tr code are missing (%s)\n", w)
+			fmt.Fprintf(o.stderr, "codegraph: warning: answers about .tr code are missing (%s)\n", trSkippedDetail(w))
 		}
 	}
 	return g, exitOK
@@ -268,4 +265,17 @@ func reorderFlags(args []string) []string {
 		}
 	}
 	return append(flags, names...)
+}
+
+// trSkippedDetail uyarıyı tek satıra indirir. Dil dosyasında tanımsız bir kod varsa iç hata
+// başlığı ("lütfen bildirin") düşer: eksik olan TR'nin değil, geliştiricinin tanımıdır; uyarı kodu
+// ve çaresini söyler.
+func trSkippedDetail(w string) string {
+	const missing, invalid = "not an identity in the code list", "invalid code "
+	if i := strings.Index(w, invalid); i >= 0 && strings.Contains(w, missing) {
+		code, _, _ := strings.Cut(w[i+len(invalid):], ":")
+		return code + " is in internal/lang/codes/tr.json but not in definitions.json: add it to definitions.json and run go generate ./internal/lang/codes"
+	}
+	w, _, _ = strings.Cut(w, "\n")
+	return w
 }

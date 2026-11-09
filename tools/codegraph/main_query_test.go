@@ -54,10 +54,15 @@ func TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy(t *testing.T) {
 	testkit.Wait(t, answer, exitOK, []string{"shape.TestDescribe"}, []string{
 		"answers about .tr code are missing",
 		tempCode,
-		"not an identity in the code list",
-		"internal/lang/codes/tr.json",
+		"internal/lang/codes/tr.json but not in definitions.json",
 		"add it to definitions.json and run go generate ./internal/lang/codes",
 	})
+	// Eksik olan geliştiricinin tanımıdır: iç hata başlığı ("TR'nin hatası, bildirin") yoktur.
+	for _, bad := range []string{"lütfen bildirin", "TR'nin hatası"} {
+		if strings.Contains(answer.Stderr, bad) {
+			t.Errorf("warning still carries the internal error header %q:\n%s", bad, answer.Stderr)
+		}
+	}
 }
 
 // Kural: gömülü ileti dosyasında tanımsız yuva varken (messages.load sync.Once içinde panikler) var olan
