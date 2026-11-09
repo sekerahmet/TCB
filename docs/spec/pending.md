@@ -11,7 +11,8 @@ Dil tanımı (`docs/spec/NN_*.md`) ve gerekçesi (`docs/spec/rationale/`) projen
 
 ## Kritik, metin bekliyor
 
-Yok.
+- **28.7, nabzın biçimi (2026-11-09, TCB kararı, DENETİM 356 Ş1; işi durduran):** madde "adı ve verisi 28'in turunda" diyordu, karar bu listede yoktu. Karar: aralık 15 sn; istek akışında (`TR_stream_response`) varsayılan nabız SSE yorumu (`:`), `TR_heartbeat: v` verilince yalnız `data:` satırlı olay; yayın akışında (`TR_EventBroadcast`) varsayılan veri olayı `{"type": "heartbeat"}`, `TR_heartbeat:` değiştirir. Neden: OpenAI uyumlu istemci adsız her olayı parça sayar, istek akışında veri olayı sahte parça olurdu [ölçüldü: DENETİM 356, openai-python `_streaming.py`]. Metin TCB'nin 28 kimlik commit'inde (`TR_heartbeat` kimliğiyle), uygulamanın 2. aşamasından önce.
+- **19.4 ile 28.7, parçalara bölünen gizli değer (2026-11-09, DENETİM 356 Ş4; güvenlik):** olay akışının maskesi olay başınadır; modelin metni `append` parçalarıyla gidince iki parçaya bölünen gizli değer maskeden kaçar. Ekranın sözleşmesi geri tutmayı programa veriyor (`tools/assistant/contract.md`, "Parçalı akış"), ama bir TR programına en uzun gizli değerin boyunu veren araç yok (`VM.LongestSecret` yalnız Go'da). Karar TCB'nin, DENETİM'le, 28'in uygulamasının 2. aşamasından önce.
 
 ## Geçici kararlar (dil tanımına yazıldı, turda denetlenecek)
 
