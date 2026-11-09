@@ -15,7 +15,7 @@ func TestHelpSaysChangedHeadReadsTheWorkingTree(t *testing.T) {
 	}
 	for _, line := range strings.Split(out.String(), "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "changed <") {
-			if !strings.Contains(line, "`changed HEAD`, the diff runs to the working tree") {
+			if !strings.Contains(line, `"changed HEAD", the diff runs to the working tree`) {
 				t.Errorf("the changed line does not say the working tree is included:\n%s", line)
 			}
 			return
