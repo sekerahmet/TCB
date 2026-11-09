@@ -34,6 +34,8 @@ func (ix *index) suggest(q string, kinds []string) []*Node {
 		}
 		if s := nameScore(n, lq, maxD); s >= 0 {
 			found = append(found, suggestion{n, s})
+		} else if movedMember(n, lq) {
+			found = append(found, suggestion{n, 1})
 		}
 	}
 	sort.SliceStable(found, func(i, j int) bool {
@@ -79,6 +81,19 @@ func nameScore(n *Node, lq string, maxD int) int {
 		}
 	}
 	return best
+}
+
+// movedMember lq bir üyenin katlanmış tam adıysa (`interp.vmshared.gilsince`) n aynı paketteki aynı kısa adlı üye mi:
+// alan ya da metot başka bir tipe taşınınca eski tam ad yeniye düzenleme uzaklığıyla yakın düşmez (gaps, "Taşınan
+// alanın eski tam adı öneri vermiyor": `fields interp.vmShared.gilSince` düz "not found" veriyordu).
+func movedMember(n *Node, lq string) bool {
+	pkg, _, ok := strings.Cut(lq, ".")
+	tail := lq[strings.LastIndex(lq, ".")+1:]
+	if !ok || strings.Count(lq, ".") < 2 || strings.Count(n.Name, ".") < 2 {
+		return false
+	}
+	ln := codeindex.Fold(n.Name)
+	return strings.HasPrefix(ln, pkg+".") && strings.HasSuffix(ln, "."+tail)
 }
 
 // printSuggestions "did you mean" listesini yazar (varsa): en yakın altısı, kalanı öbür çıktılar gibi "... N more"

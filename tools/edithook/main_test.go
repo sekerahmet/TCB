@@ -97,7 +97,7 @@ func TestFirstEditShowsTheRunLineAndTheSizeLine(t *testing.T) {
 	root := reporoot.Root()
 	got := testsFor(target{root, "internal/lang/interp/compiler_assign.go"})
 	lines := strings.Split(got, "\n")
-	if len(lines) > maxLines+2 { // bayat uyarısı ve "... more lines" satırı
+	if len(lines) > maxLines+3 { // bayat uyarısı, "... more lines" satırı ve soru → komut tablosunun yeri
 		t.Fatalf("%d lines shown, at most %d:\n%s", len(lines), maxLines, got)
 	}
 	if !strings.Contains(got, "\nrun: go test -short ./internal/lang/interp/\n") || !strings.Contains(got, "TestLayoutFuncSize|") ||
@@ -299,5 +299,24 @@ func TestLocateTrackedFilesOnly(t *testing.T) {
 	}
 	if _, ok := locate(filepath.Join(t.TempDir(), "x.go")); ok {
 		t.Fatal("depo dışı dosya geçmeli")
+	}
+}
+
+// Kural: cevabın altındaki satır README'de var olan bir bölümü gösterir: soru → komut tablosu (gaps, "Düzenleme
+// kancasının çıktısı soru → komut tablosunu göstermiyor"; yan oturumlar var olan komutları bilmeden istek yazıyordu).
+func TestTheAnswerPointsToTheCommandTable(t *testing.T) {
+	file, section, ok := strings.Cut(strings.TrimPrefix(commandTableLine, "which command answers which question: "), ", ")
+	if !ok {
+		t.Fatalf("the line names a file and a section: %q", commandTableLine)
+	}
+	data, err := os.ReadFile(reporoot.Path(file))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if heading := "\n## " + strings.Trim(section, `"`) + "\n"; !strings.Contains(string(data), heading) {
+		t.Errorf("%s has no section %q", file, heading)
+	}
+	if !strings.Contains(string(data), "| `tests-for <file") || !strings.Contains(string(data), "| `untested --in <folder>`") {
+		t.Errorf("the section holds the question → command table")
 	}
 }

@@ -152,3 +152,46 @@ func TestExamSelectionOnModifyRenameDeleteAndStamp(t *testing.T) {
 		t.Errorf("editing %s did not change sourceStamp", examFile)
 	}
 }
+
+// Kural: sınav kenarı (names_in_exam) başlığa ve pakete gitmez. Başlık metni ve paket yolu sınavın sözcüğüyle çakışır
+// (`codegraph path internal/stdlib/ml internal/compute/gpu` iki paketin yolunu yazar), ama sınav onları sınamaz (gaps,
+// "`examNodeKeys`'in süzgeci testsiz": tür süzgeci kaldırılınca iki koruyan test de geçiyordu).
+func TestExamLinksSkipHeadingsAndPackages(t *testing.T) {
+	for _, n := range []*Node{{Kind: kindHeading, Name: "Kurulum", File: "README.md"}, {Kind: kindPackage, Name: "internal/compute/gpu"}} {
+		if keys := examNodeKeys(n); keys != nil {
+			t.Errorf("a %s is not an exam key: %q", n.Kind, keys)
+		}
+	}
+	_, _, g := repoGraph(t)
+	kinds := map[string]string{}
+	for i := range g.Nodes {
+		kinds[g.Nodes[i].ID] = g.Nodes[i].Kind
+	}
+	for _, e := range g.Edges {
+		if k := kinds[e.To]; e.Kind == edgeNamesInExam && (k == kindHeading || k == kindPackage) {
+			t.Errorf("names_in_exam reaches a %s: %s (%s:%d)", k, e.To, e.File, e.Line)
+		}
+	}
+}
+
+// Kural: silinen satırdaki sözcük karışık harfli mi diye bakılırken ilk harf rune olarak kesilir (gaps, "`çok` sınavı
+// seçiyor": `tok[1:]` bayt kesiyordu, ilk harfi ASCII dışı olan küçük harfli sözcük karışık harfli sayılıyordu).
+func TestADeletedLowercaseWordWithANonASCIIFirstLetterIsNoExamWord(t *testing.T) {
+	root := t.TempDir()
+	testkit.WriteFile(t, root, examFile, "codegraph query çok fooBar | contains: x | src: fixture, 2026-11-09\n")
+	ix := newIndex(&Graph{})
+	ix.root = root
+	for _, c := range []struct {
+		line string
+		want bool
+	}{
+		{"-\tx := çok", false},
+		{"-\ty := fooBar", true},
+	} {
+		ts := newTouchSet()
+		ts.hunks = []hunk{{file: "app/app.go", changedLines: []string{c.line}}}
+		if got := ix.deletedHunkNamesExam(ts); got != c.want {
+			t.Errorf("deleted line %q selects the exam: %v, want %v", c.line, got, c.want)
+		}
+	}
+}

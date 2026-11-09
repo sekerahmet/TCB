@@ -286,3 +286,43 @@ func TestReadmeGraphSizeIsCurrent(t *testing.T) {
 		}
 	}
 }
+
+// Kural: "arg" işareti (viaArg) yalnız INFERRED çağrı kenarında kalır: doğrudan da çağrılan işlevin EXTRACTED kenarında
+// anlamsızdır, kurulumun sonunda silinir (gaps, "19 EXTRACTED kenar da `via: "arg"` taşıyor"; 6a289d84'te 27 EXTRACTED,
+// 361 INFERRED, DENETİM 358 Ş4). Yalnız argüman olan işlevin INFERRED kenarı işaretini korur; okuyan taraf değişmez.
+func TestAnExtractedCallCarriesNoArgMark(t *testing.T) {
+	g, err := buildGraph(auditModule(t, map[string]string{"app/app.go": `package app
+
+func leaf()  {}
+func other() {}
+
+func apply(fn func()) { fn() }
+
+func both() { leaf(); apply(leaf) }
+
+func argOnly() { apply(other) }
+`}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const app = "go:func:example.com/audit/app."
+	if e := edge(g, app+"both", app+"leaf", edgeCalls); e == nil || e.Confidence != extracted || e.Via != "" {
+		t.Errorf("both -> leaf is a direct call, EXTRACTED without a via mark: %+v", e)
+	}
+	if e := edge(g, app+"argOnly", app+"other", edgeCalls); e == nil || e.Confidence != inferred || e.Via != viaArg {
+		t.Errorf("argOnly -> other only passes it, INFERRED with via arg: %+v", e)
+	}
+	_, _, repo := repoGraph(t)
+	inferredArg := 0
+	for _, e := range repo.Edges {
+		switch {
+		case e.Via == viaArg && e.Confidence == extracted:
+			t.Errorf("an EXTRACTED edge keeps via arg: %s -> %s", e.From, e.To)
+		case e.Via == viaArg:
+			inferredArg++
+		}
+	}
+	if inferredArg < 300 {
+		t.Errorf("only %d INFERRED edges with via arg in the repository graph (361 at 6a289d84)", inferredArg)
+	}
+}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"go/parser"
+	"go/token"
 	"io"
 	"os"
 	"path/filepath"
@@ -38,6 +40,10 @@ func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigM
 		if err != nil || !strings.Contains(string(data), name) {
 			continue
 		}
+		word, ok := ix.otherConfigWord(n, f.Name, data, name)
+		if !ok {
+			continue
+		}
 		config = strings.TrimPrefix(f.Detail, otherConfigDetail)
 		type decl struct {
 			line int
@@ -51,7 +57,7 @@ func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigM
 		}
 		sort.Slice(decls, func(a, b int) bool { return decls[a].line < decls[b].line })
 		for no, line := range strings.Split(string(data), "\n") {
-			if !hasWord(line, name) || strings.HasPrefix(strings.TrimSpace(line), "//") {
+			if !hasWord(line, word) || strings.HasPrefix(strings.TrimSpace(line), "//") {
 				continue // yorum satırı kullanım değildir
 			}
 			m := otherConfigMention{file: f.Name, line: no + 1}
@@ -64,6 +70,44 @@ func (ix *index) otherConfigMentions(n *Node) (config string, out []otherConfigM
 		}
 	}
 	return config, out
+}
+
+// otherConfigWord n'nin derlenmeyen file dosyasında aranacak yazımıdır. Ad kendi paketinin dosyasında kısa adıyla geçer;
+// başka paketin dosyasında yalnız dışa açık ad geçebilir ve yalnız dosya n'nin paketini içe aktarıyorsa: paket düzeyi
+// bildirim niteleyicisiyle (`paket.Ad`, takma adla da), üye (alan, metot) kısa adıyla. ok false ise n o dosyada geçemez
+// (DENETİM 358 Ş1: Linux'ta impact.load, sysmem'deki memState.load alanıyla eşleşiyordu).
+func (ix *index) otherConfigWord(n *Node, file string, data []byte, name string) (word string, ok bool) {
+	home := ix.filePackage(n.File)
+	if n.File == "" || home == "" || ix.filePackage(file) == home {
+		return name, true
+	}
+	if !token.IsExported(name) {
+		return "", false
+	}
+	f, err := parser.ParseFile(token.NewFileSet(), file, data, parser.ImportsOnly)
+	if err != nil {
+		return "", false
+	}
+	for local, p := range packageImports(f) {
+		if p != home {
+			continue
+		}
+		if local == "." || strings.Count(n.Name, ".") > 1 {
+			return name, true // nokta ile içe aktarma ya da üye: niteleyici paket adı değildir
+		}
+		return local + "." + name, true
+	}
+	return "", false
+}
+
+// filePackage dosyanın Go paketinin yoludur (grafikte paketi dosyayı içerir); bilinmiyorsa boş.
+func (ix *index) filePackage(file string) string {
+	for _, e := range ix.in[fileID(file)] {
+		if e.Kind == edgeContains && strings.HasPrefix(e.From, "go:pkg:") {
+			return strings.TrimPrefix(e.From, "go:pkg:")
+		}
+	}
+	return ""
 }
 
 // printOtherConfigs sorulan adın derlenmeyen dosyalarda geçtiği yerleri bildirime göre tek satırda yazar (testler

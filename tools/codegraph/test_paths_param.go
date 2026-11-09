@@ -9,6 +9,34 @@ import (
 	"strings"
 )
 
+// noteParamRootJoin test dışı kodda `filepath.Join(kök, ..., sabit)` çağrısının kökü işlevin parametresiyse (çağıran verir;
+// testlerde geçici fikstür kökü) yol sabitini o köke göre okunmuş sayar: sabite ulaşan testler depodaki dosyayı okumaz
+// (gaps, "`tests-for planning_questions.txt` sınav testini varsayılan çıktıda göstermiyor": parseExamWords(root) sınav
+// dosyasını buildGraph'ın kökünden okuyor, buildGraph'a ulaşan 172 test okuyucu sayılıyordu).
+func (x *goExtractor) noteParamRootJoin(fc *fileCtx, call *ast.CallExpr) {
+	if fc.isTest || len(call.Args) < 2 || !isStdJoinCall(fc, call) {
+		return
+	}
+	root, _ := ast.Unparen(call.Args[0]).(*ast.Ident)
+	if v, ok := fc.u.Info.Uses[root].(*types.Var); root == nil || !ok || v.Kind() != types.ParamVar {
+		return
+	}
+	for _, a := range call.Args[1:] {
+		id, ok := unwrapDirExpr(a).(*ast.Ident)
+		if !ok {
+			continue
+		}
+		switch obj := fc.u.Info.Uses[id].(type) {
+		case *types.Const:
+			x.idx.rootedArg[x.objectID(obj)] = true
+		case *types.Var: // paket düzeyi yol listesi üzerinde dönen değişken (`for _, rel := range identityMaps`)
+			if over := x.rangeOver[obj]; over != nil {
+				x.idx.rootedArg[x.objectID(over)] = true
+			}
+		}
+	}
+}
+
 type paramPathHelper struct {
 	obj      types.Object
 	paramIdx int

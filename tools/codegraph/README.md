@@ -34,6 +34,24 @@ Flags: `build --root DIR --out FILE --warnings`; queries take `--graph FILE`, `-
 group, default 12) and `--all`, before or after the names. Output is short plain text; edges tagged
 `[INFERRED]` are guesses, unmarked ones are `EXTRACTED`. `explain` is another name for `query`.
 
+## Which command answers which question
+
+Every command is `go run ./tools/codegraph <command>`; `codegraph help` and the sections below give the details. Before asking for a new capability, try the closest command here and keep the line of its answer that shows what is missing.
+
+| question | command |
+| :-- | :-- |
+| which tests check this, and how do I run them | `tests-for <file\|function\|type>` (the `run:` lines) |
+| the Go tests of my uncommitted change | `changed HEAD --go-tests` (with `HEAD` as the tip the working tree is included) |
+| who reads or writes this field | `fields <Type.field> --mode write` (or `read`); every field of a type: `fields <Type>` |
+| who writes this package variable or pool | `package-state --in <folder>` (read from the state to the function: to ask "which state does this function use", look for the function's name in the answer; only direct writers count, a use through a helper does not show) |
+| which variables the function literals (`func(...) {...}`) inside a Go function capture | `captures <function>` (not the function's own free names; not for `.tr` functions) |
+| what this function calls | `callees <function>` |
+| who uses this | `who-uses <name>` |
+| is there a path from A to B | `path <A> <B>` (`--undirected`) |
+| when and in which commit this file or function changed | `history <function\|type\|file>` (not for a field: ask its type or its file) |
+| functions without tests | `untested --in <folder>`: a list of candidates; it can say "no tests" wrongly (chain limit, function value edges): before deleting or writing a test, check with `tests-for <function>` and the callers |
+| is there something like this | `similar <function>`, `dups --in <folder>` |
+
 ## Staying fresh
 
 Nobody has to remember `build`. `build` writes a `stamp` into `graph.json`: a digest of the tree's content, not of
@@ -96,8 +114,17 @@ graph cannot see), then one `go test -short` with `-run '^(...)$'` over the pack
 scans the file and of the Go tests about it (plus, for files in the type checker, the Go tests that run programs through it), including the Go runner (`testrunner.TestNegativeFixtures`) of any negative `.tr` fixture about it (two commands: `-run` applies to every package of one `go test`). The lines
 are written from the pre-check's own selection (`goTestSelection`, the function of `changed --go-tests`), and the line
 below them counts what they leave out (they are among the groups below): "not run by these commands: N more Go tests in M packages; before committing,
-`bash tools/full_check.sh --kip=on` (in the background) runs them all". A `-run` list longer than 20000 characters (the
-pre-check's Windows limit) runs its packages whole. The `run:` lines are not indented, so they are no item of a group.
+`bash tools/full_check.sh --kip=on` (in the background) runs them all". Every Go test the default answer lists (at 12
+lines per group; `--all` names the same ones) is named by a `run:` line: an answer does not list a test no `run:` line
+runs (chapter 28's G4 failed on `e2e.TestDocTRCodeBlocks`, listed and not run). The run line only names tests; which
+of them to run before a commit is not its choice. A `-run` list longer than 20000 characters (the pre-check's Windows
+limit) runs its light packages whole; a heavy package (`heavyTestPackages`: `cmd/trlang/e2e`, `internal/compute/gpu`,
+`internal/detmath`, `internal/lang/parser`, `tools/codegraph`, which this machine does not run without `-run`) gets the
+names that fit and a line counting the rest. A file of a heavy package does not get its package whole either: the
+first command names the file's own tests and the package's listed tests, and a line says the package is heavy (the
+full check runs it whole). A `.tr` module gets the same `go test` line for the Go checks that scan it and one
+`run: go run ./cmd/trlang test <file> <file> ...` over the TR test files its answer lists (`trlang test` takes several
+targets). The `run:` lines are not indented, so they are no item of a group.
 Under them the size line, when `TestLayoutFileSize` or `TestLayoutFuncSize` scans the file: "size (TestLayoutFileSize,
 TestLayoutFuncSize): file 129/600; functions at >=90% of their limit: compiler.assignTo 80/80 (split before adding)";
 over the limit first, then nearest; an exception's limit is its ceiling plus the fix margin; the file limit applies to

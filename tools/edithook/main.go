@@ -316,7 +316,11 @@ func locate(path string) (target, bool) {
 	return target{filepath.Clean(strings.TrimSpace(string(top))), strings.TrimSpace(string(rel))}, true
 }
 
-// testsFor codegraph'a dosyayı koruyan testleri ve kuralları sorar; cevabın ilk maxLines satırı.
+// commandTableLine cevabın altındaki tek satırdır: var olan komutları bilmeden istek yazılıyordu (dokuz istek; gaps,
+// "Düzenleme kancasının çıktısı soru → komut tablosunu göstermiyor").
+const commandTableLine = `which command answers which question: tools/codegraph/README.md, "Which command answers which question"`
+
+// testsFor codegraph'a dosyayı koruyan testleri ve kuralları sorar; cevabın ilk maxLines satırı ve tablonun yeri.
 // Araç bu ağaçla derlenmiyorsa cevap son derlenen sürümündür ve başında bunu söyler (codegraph.go).
 func testsFor(t target) string {
 	cmd, stale, err := codegraph(t.root, "tests-for", t.rel)
@@ -336,5 +340,5 @@ func testsFor(t target) string {
 		text += fmt.Sprintf("\n(codegraph: %v; an ambiguous or missing answer is not evidence: check with grep, "+
 			"tools/codegraph/README.md, Reading an answer)", err)
 	}
-	return text
+	return text + "\n" + commandTableLine
 }
