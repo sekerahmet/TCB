@@ -293,6 +293,12 @@ func goTestOf(n *Node) (goTest, bool) {
 // koşu satırı (runPlanFor) aynı seçimden yazılır: koşmadığını sayar, ikinci bir seçim yolu yoktur.
 func (ix *index) goTestSelection(ts *touchSet) []goTest {
 	best, subprocess := ix.testsToRun(ts)
+	return ix.goTestSelectionFrom(ts, best, subprocess)
+}
+
+// goTestSelectionFrom goTestSelection'dır, testsToRun(ts)'in sonucu verilmiş olarak (best'in yalnız anahtarları
+// kullanılır). tests-for <Go dosyası> onu fileTests'ten alır, yeniden hesaplamaz (hız işi, tekrar 2).
+func (ix *index) goTestSelectionFrom(ts *touchSet, best map[string]int, subprocess map[string][]*Node) []goTest {
 	nodes := ownTests(ts)
 	for id := range best {
 		nodes = append(nodes, ix.byID[id])
