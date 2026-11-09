@@ -4,7 +4,8 @@ import "time"
 
 // Nicemlenmiş ağırlıkla çarpım ve gömme (15.53). Sağ işlenen [N, K] deposudur, bloklar K boyuncadır;
 // etkinleştirme nicemlenmez, biriktirme float32'dedir. Bütün ağırlık hiç açılmaz: tek satırda
-// çekirdek blokları yazmaçta açar, çok satırda satır parçaları sırayla tampona açılır.
+// çekirdek blokları yazmaçta açar, az satırda (quantPanelMaxM) her iş nr satırı mikro çekirdeğin
+// paneline açar, daha çok satırda satır parçaları sırayla tampona açılır.
 
 // quantTileRows çok satırlı çarpımın bir parçasında açılan ağırlık satırıdır. Sabittir: toplama
 // sırası yalnız şekle bağlı kalır. Tampon en çok K·256 float32'dir: Qwen3-4B'nin en geniş
@@ -51,6 +52,10 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 		quantGemv(N, K, a, w, dt, c)
 		return
 	}
+	if M <= quantPanelMaxM {
+		quantGemmPanels(M, N, K, a, w, dt, c)
+		return
+	}
 	rowBytes := quantRowBytes(dt, K)
 	rows := min(quantTileRows, N)
 	// Tamponlar havuzdandır: her çarpımda ayrılsalar 128 konumluk geçişte 900 MB çöp olurlardı.
@@ -75,6 +80,70 @@ func quantGemm(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
 			}
 		})
 	}
+}
+
+// quantPanelMaxM bu kadar satıra kadar çok satırlı çarpım quantGemmPanels'tedir. Sınır gemm'in en
+// büyük satır bloğudur (rowB); paketli A en geniş ağırlıkta (K = 9728) 96 × 9728 float32, packPoolA'nın
+// sakladığı boyun (bufMax) altında kalır [hesap]; tamponlar quantPanelPool'dadır.
+const quantPanelMaxM = rowB
+
+// quantPanelPool quantGemmPanels'in tamponlarıdır (paketli A; panel, satır ve çıktı parçası tek
+// tamponda). Ortak packPoolA ve packPoolB'den alınsalar yığınların toplam sınırını (bufTotalMax)
+// doldururlardı; parça yolunun 16 MB'lık tamponları o zaman geri konmaz, her çarpımda yeniden ayrılırdı.
+// Ortak yığınla 630 satırlık okumada tepe özel bellek tabanınkinden ~3,9 GiB yüksekti (H1 sabit bedel).
+var quantPanelPool = bufStack{largest: bufMax}
+
+// quantGemmPanels az satırlı çarpımdır (sohbet turunun yeni parçaları). Parça yolunda (quantGemm) her
+// 256 satırlık ağırlık önce tampona açılıyor, sonra gemm onu sütun sütun panellere yeniden yazıyor ve
+// A'yı her parçada yeniden paketliyordu; 21 satırlık okumada süre bu kopyalarda geçiyordu (H1 sabit
+// bedel, profil). Burada her iş nr ağırlık satırını doğrudan packBPanel'in devrik düzenine (K×nr) açar,
+// A bir kez packA'nın düzeninde paketlenir. Mikro çekirdek her kc bloğunda gemmPart'ın çağrısıyla aynı
+// girdiyi alır ve sıfırlanmış bir tampona biriktirir, tampon sonra c'ye eklenir: toplama sırası parça
+// yolununkiyle aynıdır, bitler değişmez (TestQuantMatMulSameBitsAsOpened).
+func quantGemmPanels(M, N, K int, a []float32, w []byte, dt DType, c []float32) {
+	rowBytes := quantRowBytes(dt, K)
+	mPad := (M + mr - 1) / mr * mr
+	apBuf := takePack(&quantPanelPool, mPad*K)
+	defer quantPanelPool.Put(apBuf)
+	ap := *apBuf
+	// kc bloğu p0'ın panelleri ap[p0*mPad:]'dedir: önceki blokların hepsi kcBlock derinliğindedir.
+	for p0 := 0; p0 < K; p0 += kcBlock {
+		kb := min(kcBlock, K-p0)
+		packA(a, K, 1, 0, M, p0, kb, ap[p0*mPad:p0*mPad+mPad*kb])
+	}
+	np := (N + nr - 1) / nr
+	parallelFor(np, K*(nr+mPad), func(lo, hi int) {
+		bb := takePack(&quantPanelPool, K*nr+K+mPad*nr)
+		defer quantPanelPool.Put(bb)
+		pan, row, part := (*bb)[:K*nr], (*bb)[K*nr:K*nr+K], (*bb)[K*nr+K:K*nr+K+mPad*nr]
+		for jp := lo; jp < hi; jp++ {
+			j0 := jp * nr
+			nn := min(nr, N-j0)
+			if nn < nr {
+				clear(pan) // eksik sütunlar sıfırdır (packBPanel gibi)
+			}
+			for col := 0; col < nn; col++ {
+				dequantBlocks(dt, row, w[(j0+col)*rowBytes:(j0+col+1)*rowBytes])
+				for k, v := range row {
+					pan[k*nr+col] = v
+				}
+			}
+			clear(part)
+			for p0 := 0; p0 < K; p0 += kcBlock {
+				kb := min(kcBlock, K-p0)
+				blk := ap[p0*mPad:]
+				for ip := 0; ip*mr < M; ip++ {
+					microKernel(kb, blk[ip*kb*mr:(ip+1)*kb*mr], pan[p0*nr:(p0+kb)*nr], part[ip*mr*nr:], nr, min(mr, M-ip*mr), nn)
+				}
+			}
+			for m := 0; m < M; m++ {
+				out := c[m*N+j0 : m*N+j0+nn]
+				for j, v := range part[m*nr : m*nr+nn] {
+					out[j] += v
+				}
+			}
+		}
+	})
 }
 
 // quantGemv tek satırlık çarpımdır: her çıktı bir ağırlık satırının nokta çarpımıdır, sırası
