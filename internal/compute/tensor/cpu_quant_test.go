@@ -106,13 +106,18 @@ func TestQuantMatMulMatchesOpened(t *testing.T) {
 // TestQuantMatMulSameBitsAsOpened: çok satırlı nicem çarpımı açılmış ağırlıkla float32 çarpımın
 // bitlerini verir: her öğe kcBlock parçalarıyla toplanır, iş bölümü (parça boyu, satır bloğu)
 // toplama sırasını değiştirmez. Şekiller parça sınırını (quantTileRows), kcBlock'u, mr'nin katı
-// olmayan satırı ve uzun satırı (K = 8192) geçer.
+// olmayan satırı ve uzun satırı (K = 8192) geçer; panel yolunun (quantGemmPanels) sınırını, parça yoluna
+// geçen ilk satırı ve kcBlock'un katı olmayan K'yi (yalnız Q8'in 32'lik bloğunda) de.
 func TestQuantMatMulSameBitsAsOpened(t *testing.T) {
 	r := rand.New(rand.NewSource(11))
 	for dt := range quantDotShapes {
 		elems, _ := dt.QuantBlock()
-		for _, c := range [][3]int{{2, 40, 256}, {50, quantTileRows + 17, 512}, {55, 300, 1024}, {60, 600, 8192}} {
+		for _, c := range [][3]int{{2, 40, 256}, {50, quantTileRows + 17, 512}, {55, 300, 1024}, {60, 600, 8192},
+			{quantPanelMaxM, 40, 256}, {quantPanelMaxM + 1, quantTileRows + 17, 512}, {9, 33, 800}} {
 			M, N, K := c[0], c[1], c[2]
+			if K%elems != 0 {
+				continue
+			}
 			w := FromQuantized(dt, smallScaleQuant(dt, uint32(N+K), N*K/elems), N, K)
 			x := New(randomData(r, M*K), M, K)
 			sameFloatBits(t, dt.Name(), MatMul(x, w.T()).Data(), MatMul(x, openedWeight(w).T()).Data())
