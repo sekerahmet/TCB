@@ -76,7 +76,7 @@ Kapsam ve kaynak kararları.
 Dil tanımında hiç bölümü olmayan, ama amacın bir işinin yazılabilmesi için gereken konular. Her biri kendi bölümü olarak, öbür bölümlerin yöntemiyle yazılır: dokuz iş tartısı, kaynaklı emsal, iki denetim.
 
 **Sunmak ve uzaktaki model:**
-- **Ağ:** HTTP sunucusu ve istemcisi, akışlı cevap (metin üretiminin parça parça gönderilmesi), zaman aşımı ve yeniden deneme. Olmadan "sunmak" ve "uzaktaki modeli kullanmak" yazılamaz.
+- **Ağ:** HTTP sunucusu ve istemcisi, akışlı cevap (metin üretiminin parça parça gönderilmesi), zaman aşımı ve yeniden deneme. Olmadan "sunmak" ve "uzaktaki modeli kullanmak" yazılamaz. Sunucunun kuralı yazıldı ([28. bölüm](spec/28_ag.md)); uygulaması iki aşamada, durumu [status](status.md)'ta; istemci yazılmadı.
 - **Toplu sunum:** sürekli toplu işleme ve sayfalı KV önbelleği (arşiv).
 - **Hizmet günlüğü:** istek kayıtları (düzeyler, istek kimliği), uzun çalışan programın günlüğünün döndürülmesi. 19'un `TR_Logger`'ı eğitim günlüğüdür.
 - **Belgelerden bilgi bulma:** gömme modeli ve benzerlik araması. CLAUDE.md "belgelerden bilgi bulan sistemler" der; Jarvis araştırması da eksik buldu.
@@ -185,6 +185,7 @@ Dilin kuralı değil; kodlama modellerinin ve insanların dili rahat kullanması
   - düzenleme kancası kabuktan (Python, sed) yapılan düzenlemeyi görmez;
   - bilgi listesinin hangi testleri öne alacağı;
   - kancaların kendi bedeli (her çağrıda derleme).
+- **Codegraph** ([`tools/codegraph`](../tools/codegraph/README.md); eksikleri [`gaps.md`](../tools/codegraph/gaps.md)): doğruluk, boşa düşen tam denetim ve token için üç faz (Ahmet ve TCB, 2026-11-09): A dar düzeltmeler (A1 üye yazımı, A2 yanlış eşleşme ve koşu satırı); B "commit'ten önce şunu koş" listesi ve yanlış "test yok" (B1a, B1b, B1c); C yeni yetenekler, A ve B'nin ölçüsünden sonra yeniden sıralanır.
 - **Geliştirici araçları** (arşiv):
   - **dil sunucusu:** eklentide bugün yalnız tamamlama var; tanıma gitme, kullanımlar, yeniden adlandırma ve öbürleri;
   - **hata ayıklayıcı:**
