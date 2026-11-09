@@ -289,3 +289,7 @@ codegraph tests-for --root untracked shape/untracked.go | before: untracked: sha
 codegraph tests-for --root untracked shape/shape.go | not: untracked: | contains: run: go test -short ./shape/ | src: codegraph-2 madde 6, 2026-11-02 (izlenen dosyada izlenmeyen uyarısı çıkmaz)
 codegraph changed --root untracked --go-tests HEAD | contains: untracked: shape/untracked.go | contains: repository-wide checks do not see it | contains: git add shape/untracked.go | contains: shape TestDescribe | src: codegraph-2 madde 6, 2026-11-02 (changed --go-tests izlenmeyen değişen dosyayı aynı uyarıyla söyler)
 
+# Deneme: gaps.md'nin gözden geçirmesi (2026-11-09): yan oturumların istediği ama var olan sorular
+codegraph fields gilSince --mode write | contains: interp.VM.gilSince [field] | contains: interp.VM.acquireGIL | src: gaps gözden geçirmesi, 2026-11-09 (D1'in "alanı kim yazıyor" isteği; alan vmShared'den VM'e taşınmıştı)
+codegraph package-state --in internal/compute/tensor | contains: tensor.packPoolB | contains: gemmPart | contains: quantGemm | src: gaps gözden geçirmesi, 2026-11-09 (H1'in "havuzu başka kim kullanıyor" isteği)
+codegraph captures tensor.quantGemmPanels | contains: func literal@ | src: gaps gözden geçirmesi, 2026-11-09 (T1'in "kapanıştan okunan adlar" isteği, Go yarısı)
