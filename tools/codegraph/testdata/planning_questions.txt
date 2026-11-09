@@ -293,3 +293,7 @@ codegraph changed --root untracked --go-tests HEAD | contains: untracked: shape/
 codegraph fields gilSince --mode write | contains: interp.VM.gilSince [field] | contains: interp.VM.acquireGIL | not: interp.VM.clockExpired | src: gaps gözden geçirmesi, 2026-11-09 (D1'in "alanı kim yazıyor" isteği; alan vmShared'den VM'e taşınmıştı; clockExpired yalnız okur, DENETİM 349)
 codegraph package-state --in internal/compute/tensor | contains: @{internal/compute/tensor/cpu_matmul.go#packPoolB = }  written by gemmPart (address taken), quantGemm (address taken) | src: gaps gözden geçirmesi, 2026-11-09 (H1'in "havuzu başka kim kullanıyor" isteği; yazanlar packPoolB'nin satırında, DENETİM 349)
 codegraph captures tensor.quantGemmPanels | group: func literal@ => dt tensor.DType | src: gaps gözden geçirmesi, 2026-11-09 (captures'ın var olduğu: Go işlev değişmezinin yakaladıkları; T1'in .tr fonksiyonları için isteği açık, DENETİM 348, 349)
+
+# Deneme: codegraph A2 (2026-11-09): yanlış eşleşmeler, koşu satırı, ince ayarlar
+codegraph who-uses dataload.mmapFile | contains: dataload.mmapFile [func] at internal/compute/dataload/mmap_other.go | src: codegraph A2 madde 1, 2026-11-09 (dışa kapalı adın kendi paketindeki başka işletim sistemi tanımı eşleşir, DENETİM 358 Ş1)
+codegraph who-uses gguf.String | not: process.exitSignal | not: process.signalName | src: codegraph A2 madde 1, 2026-11-09 (dışa açık ad gguf'u içe aktarmayan dosyadaki .String() çağrısıyla eşleşmez; Windows'ta exit_status_unix.go derlenmez)
