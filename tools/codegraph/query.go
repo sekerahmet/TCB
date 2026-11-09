@@ -25,6 +25,8 @@ type index struct {
 	trNames    []trName                   // çıplak adla çözülen TR düğümleri (trNameTable; tembel)
 	folded     []foldedNode               // düğümlerin katlanmış adları (nodeFolds; tembel)
 	linked     map[string]map[string]bool // paket -> ikilisine giren paketler (inTestBinary; tembel)
+	callerMemo map[callersKey][]string    // çağıranlar (callers; tembel, index_cache.go)
+	pkgMemo    map[string]string          // düğüm -> paket klasörü (pkgOf; tembel)
 }
 
 func newIndex(g *Graph) *index {

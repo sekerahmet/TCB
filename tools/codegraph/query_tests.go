@@ -207,7 +207,8 @@ func (ix *index) callersOf(id string) []string { return ix.callers(id, true) }
 // alıyordu). Test erişimi (callersOf) argümanı izlemeye devam eder.
 func (ix *index) nameCallersOf(id string) []string { return ix.callers(id, false) }
 
-func (ix *index) callers(id string, throughArgs bool) []string {
+// buildCallers çağıranları kenarlardan kurar (önbelleksiz; callers onu bir kez çağırır).
+func (ix *index) buildCallers(id string, throughArgs bool) []string {
 	var out []string
 	for _, e := range ix.in[id] {
 		if !throughArgs && (e.Via == viaArg || e.Via == viaVar) && e.Confidence != extracted {
@@ -226,8 +227,8 @@ func (ix *index) callers(id string, throughArgs bool) []string {
 	return out
 }
 
-// pkgOf düğümün paket klasörüdür.
-func (ix *index) pkgOf(id string) string {
+// buildPkgOf düğümün paket klasörüdür (önbelleksiz; pkgOf onu düğüm başına bir kez çağırır).
+func (ix *index) buildPkgOf(id string) string {
 	if n := ix.byID[id]; n != nil {
 		return path.Dir(n.File)
 	}
