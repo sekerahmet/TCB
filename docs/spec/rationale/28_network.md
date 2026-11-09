@@ -164,7 +164,9 @@ Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
   - **MCP:** SSE `id` ve sürdürme (`transports.mdx:154`–`:155`).
   - **Olay kimliği verinin dışında:** MCP, Go `r3labs/sse` (`v2.10.0`, `event_log.go:21`; `http.go:88`, `:99`), `sse-starlette` (`v2.2.1`, `event.py:39`) ve axum (`sse.rs:328`, `:450`) kimliği yalnız `id` satırına yazar; `fetch` tabanlı ayrıştırıcı her olayın `id`'sini ayrı okur (`Azure/fetch-event-source` `v2.0.1`, `parse.ts:151`–`:152`, `:180`). Veriye kimlik koyan emsal bulunmadı.
   - **Go:** `Shutdown` uzun bağlantıyı bekler (`src/net/http/server.go:3150`–`:3153`); devralınmış bağlantıyı beklemez (`:3162`).
-  - **Rust axum:** SSE nabzı (`axum/src/response/sse.rs:23`: `KeepAlive::default()`).
+  - **Rust axum:** SSE nabzı (`axum/src/response/sse.rs:23`: `KeepAlive::default()`); `KeepAlive::new()`'in `max_interval`'ı 15 saniye, varsayılan nabız yorum satırı.
+  - **sse-starlette:** `DEFAULT_PING_INTERVAL = 15`, nabız yorum satırı.
+  - **openai-python:** `_streaming.py` adsız her olayın verisini bir parça sayar [ölçüldü: DENETİM 356].
   - **Süzme:** GitHub Actions Runner gizli değerleri kaçışlı biçimleriyle maskeler (`HostContext.cs:108`–`:109`); Jupyter yalnız günlükte (`log.py:20`); tower-http yalnız başlık işaretler.
 - *Gerekçe:*
   - İki kip iki ayrı kullanıcıdan gelir: "Sunmak"ın istek başına akışında istemci koparsa üretim durur; ekranın yayın akışında bir sekme koparsa üretim sürer, sekme kaldığı yerden yeniden bağlanır. Tek kip ikisinden birini bozar.
@@ -172,6 +174,7 @@ Go satırları `go1.26.10`'dandır (TR'nin derlendiği sürüm).
   - Olay akışı 19.4'ün insanın göreceği çıktılarındandır: maskeyi `.TR_send_event` yapar, çünkü gizli değerleri yalnız çalışma anı bilir (19.1 ortamı listeletmez). Maske JSON'a çevrilmeden önce uygulanır; sonra `\"` ve `\uXXXX` kaçışı eşleşmeyi bozardı. Düz `TR_Response` gövdesi veridir, maskelenmez.
   - `TR_snapshot:` dinleyici açılırken işleyicinin içinde çağrılır: anlık görüntü ile kimlik arasında olay kaybolmaz ve süresi 28.4'ün sınırına girer.
   - Nabız kimliksizdir: ekranın ayrıştırıcısı son kimliği tutar, yeniden bağlanmada `Last-Event-ID` doğru kalır.
+  - Nabzın biçimi kipe göre ayrıdır. "Sunmak"ın yaygın biçimi istek akışıdır ve OpenAI uyumlu istemci adsız her olayı bir parça sayar; orada veri olayı olan nabız her 15 saniyede sahte bir parça olurdu. Yorum satırını her SSE istemcisi atlar (axum ve sse-starlette'in varsayılanı). Ekranın tarayıcı kodu yorumu göremez; ekran yayın akışını kullanır, orada nabız veri olayıdır ve sözleşmenin biçimi `TR_heartbeat:` ile verilir. Aralık emsallerle aynı, 15 saniye.
 
 ### 28.8
 
