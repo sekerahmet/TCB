@@ -68,42 +68,105 @@ type stdlibUse struct {
 	methods           []*types.Func // formats ve stdlib_calls: çağrılan metotlar
 }
 
-// stdlibCall bir çağrının standart kitaplığa ya da ileti paketine verdiği modül değerlerini rolleriyle kaydeder.
+// stdlibCall bir çağrının standart kitaplığa, ileti paketine ya da modül dışı adlı arayüz parametresine verdiği modül
+// değerlerini rolleriyle kaydeder; açık tip dönüşümleri (`error(x)`, `io.Writer(w)`) çağrı değildir.
 func (x *goExtractor) stdlibCall(fc *fileCtx, owner string, call *ast.CallExpr) {
-	id := nameIdent(call.Fun)
-	fn, ok := fc.u.Info.Uses[id].(*types.Func)
-	if !ok || fn.Pkg() == nil || x.inModule(fn.Pkg().Path()) && !x.formattingCallee(fn) {
+	if typeExprType(fc.u.Info, call.Fun) != nil {
 		return
 	}
-	sig := fn.Type().(*types.Signature)
+	obj := fc.u.Info.Uses[nameIdent(call.Fun)]
+	if obj == nil {
+		return
+	}
+	sig, ok := obj.Type().(*types.Signature)
+	if !ok {
+		return
+	}
+	fn, _ := obj.(*types.Func)
 	for i, arg := range call.Args {
 		pt := paramType(sig, i, call.Ellipsis.IsValid())
 		if pt == nil {
 			continue
 		}
-		it, isIface := pt.Underlying().(*types.Interface)
-		if !isIface {
-			continue
-		}
-		t := x.argType(fc, arg)
-		if t == nil || !x.moduleNamed(t) {
-			continue
-		}
-		use := stdlibUse{owner: owner, file: fc.rel, line: x.line(arg.Pos()), target: t}
-		switch {
-		case it.Empty() && x.formattingCallee(fn):
-			use.kind, use.methods = edgeFormats, namedMethods(t, formatMethods)
-		case it.Empty() && encodingCallee(fn):
-			use.kind, use.methods = edgeEncodes, namedMethods(t, encodeMethods)
-		case !it.Empty() && !x.inModule(fn.Pkg().Path()):
-			use.kind = edgeStdlibCalls
-			for k := 0; k < it.NumMethods(); k++ {
-				use.methods = append(use.methods, namedMethods(t, []string{it.Method(k).Name()})...)
+		if it, isIface := pt.Underlying().(*types.Interface); isIface && it.Empty() && fn != nil && fn.Pkg() != nil {
+			if t := x.argType(fc, arg); t != nil && x.moduleNamed(t) {
+				switch {
+				case x.formattingCallee(fn):
+					x.stdlibUses = append(x.stdlibUses, stdlibUse{owner: owner, kind: edgeFormats, file: fc.rel, line: x.line(arg.Pos()), target: t, methods: namedMethods(t, formatMethods)})
+				case encodingCallee(fn):
+					x.stdlibUses = append(x.stdlibUses, stdlibUse{owner: owner, kind: edgeEncodes, file: fc.rel, line: x.line(arg.Pos()), target: t, methods: namedMethods(t, encodeMethods)})
+				}
 			}
-		default:
 			continue
 		}
-		x.stdlibUses = append(x.stdlibUses, use)
+		x.externalIfaceSlot(fc, owner, pt, arg)
+	}
+}
+
+// externalIfaceSlot modülün somut bir tipinin değeri, modül dışı adlı ve boş olmayan bir arayüz (slot) yerine
+// verildiğinde, somut tipin yalnız o arayüzün yöntem kümesindeki metotlarını stdlib_calls olarak kaydeder.
+func (x *goExtractor) externalIfaceSlot(fc *fileCtx, owner string, slot types.Type, val ast.Expr) {
+	if slot == nil || val == nil {
+		return
+	}
+	named, ok := types.Unalias(slot).(*types.Named)
+	if !ok || named.Obj().Pkg() == nil || x.inModule(named.Obj().Pkg().Path()) {
+		return
+	}
+	it, isIface := named.Underlying().(*types.Interface)
+	if !isIface || it.Empty() {
+		return
+	}
+	t := x.argType(fc, val)
+	if t == nil || !x.moduleNamed(t) || types.IsInterface(derefType(t)) {
+		return
+	}
+	var names []string
+	for k := 0; k < it.NumMethods(); k++ {
+		names = append(names, it.Method(k).Name())
+	}
+	if methods := namedMethods(t, names); len(methods) > 0 {
+		x.stdlibUses = append(x.stdlibUses, stdlibUse{
+			owner: owner, kind: edgeStdlibCalls, file: fc.rel, line: x.line(val.Pos()), target: t, methods: methods,
+		})
+	}
+}
+
+// externalIfaceNode yapı alanı ve atama yerlerindeki modül dışı arayüz geçişlerini kaydeder.
+func (x *goExtractor) externalIfaceNode(fc *fileCtx, owner string, n ast.Node) {
+	switch n := n.(type) {
+	case *ast.CompositeLit:
+		var st *types.Struct
+		if lt := derefType(typeExprType(fc.u.Info, n.Type)); lt != nil {
+			st, _ = lt.Underlying().(*types.Struct)
+		}
+		for i, e := range n.Elts {
+			if kv, ok := e.(*ast.KeyValueExpr); ok {
+				if id, ok := kv.Key.(*ast.Ident); ok {
+					if v, ok := fc.u.Info.Uses[id].(*types.Var); ok && v.IsField() {
+						x.externalIfaceSlot(fc, owner, v.Type(), kv.Value)
+					}
+				}
+			} else if st != nil && i < st.NumFields() {
+				x.externalIfaceSlot(fc, owner, st.Field(i).Type(), e)
+			}
+		}
+	case *ast.AssignStmt:
+		if n.Tok == token.ASSIGN || n.Tok == token.DEFINE {
+			for i, lhs := range n.Lhs {
+				if i < len(n.Rhs) {
+					x.externalIfaceSlot(fc, owner, x.argType(fc, lhs), n.Rhs[i])
+				}
+			}
+		}
+	case *ast.ValueSpec:
+		if slot := typeExprType(fc.u.Info, n.Type); slot != nil {
+			for i, v := range n.Values {
+				if i < len(n.Names) && n.Names[i].Name != "_" {
+					x.externalIfaceSlot(fc, owner, slot, v)
+				}
+			}
+		}
 	}
 }
 
@@ -268,6 +331,9 @@ func (x *goExtractor) argType(fc *fileCtx, e ast.Expr) types.Type {
 
 // typeExprType bir tip ifadesinin (T, pkg.T, *T, []T) tipidir; tip değilse nil.
 func typeExprType(info *types.Info, e ast.Expr) types.Type {
+	if e == nil {
+		return nil
+	}
 	switch e := ast.Unparen(e).(type) {
 	case *ast.StarExpr:
 		if t := typeExprType(info, e.X); t != nil {

@@ -26,6 +26,7 @@ type runPlan struct {
 	pkg    string   // dosyanın paketi, bütün olarak (-run'sız): grafın göremediği aynı paket testleri de koşar
 	others []string // dosyayı tarayan depo kurallarının ve konu edinen testlerin paketleri (pkg hariç)
 	names  []string // onların adları (-run)
+	golden []string // seçilen altın dosya testleri (-update ile yeniden yazılır)
 	whole  bool     // -run listesi commandLineLimit'i aşıyor: others bütün olarak koşar
 	rest   []goTest // ön denetimin seçiminden iki komutun koşmadıkları
 }
@@ -34,14 +35,20 @@ type runPlan struct {
 // bütün olarak; dosyayı tarayan bütün depo kuralları (scansCovering); dosyanın bir bildirimini konu edinen (about) ve
 // tip denetleyicisi dosyalarında denetleyiciden program geçiren (checkerRunnerTests) Go testleri. Seçimin geri kalanı rest'tir.
 func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
-	p := runPlan{pkg: path.Dir(file.File)}
-	extra := map[goTest]bool{}
+	var p runPlan
+	if file.Kind == kindFile {
+		p.pkg = path.Dir(file.File)
+	}
+	extra, golden := map[goTest]bool{}, map[string]bool{}
 	add := func(n *Node) {
 		if n == nil {
 			return
 		}
 		if t, ok := goTestOf(n); ok && t.dir != p.pkg {
 			extra[t] = true
+			if strings.HasSuffix(t.name, "Golden") {
+				golden[t.name] = true
+			}
 		}
 		for _, r := range ix.fixtureRunners(n) {
 			if t, ok := goTestOf(r); ok && t.dir != p.pkg {
@@ -54,6 +61,9 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 			add(t)
 		}
 	}
+	for _, t := range s.own {
+		add(t)
+	}
 	for _, a := range s.about {
 		add(a.test)
 	}
@@ -64,7 +74,7 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 	for t := range extra {
 		pkgs[t.dir], names[t.name] = true, true
 	}
-	p.others, p.names = sortedKeys(pkgs), sortedKeys(names)
+	p.others, p.names, p.golden = sortedKeys(pkgs), sortedKeys(names), sortedKeys(golden)
 	p.whole = len(p.command(p.others, p.names)) > commandLineLimit
 	sel := newTouchSet()
 	sel.nodes, sel.files = ts.nodes, map[string]bool{file.File: true}
@@ -74,6 +84,15 @@ func (ix *index) runPlanFor(file *Node, ts *touchSet, s fileTestSet) runPlan {
 		}
 	}
 	return p
+}
+
+// docRunPlan bir belge dosyasını (.md) adıyla okuyan ve tarayan testlerden koşu satırını kurar.
+func (ix *index) docRunPlan(doc *Node, t nodeTests, byName []*Edge) runPlan {
+	own := make([]*Node, 0, len(byName))
+	for _, e := range byName {
+		own = append(own, ix.byID[e.From])
+	}
+	return ix.runPlanFor(doc, newTouchSet(), fileTestSet{own: own, about: t.about})
 }
 
 func sortedKeys(m map[string]bool) []string {
@@ -118,7 +137,10 @@ func (p runPlan) command(pkgs, names []string) string {
 
 // commands koşu satırlarının komutlarıdır.
 func (p runPlan) commands() []string {
-	out := []string{p.command([]string{p.pkg}, nil)}
+	var out []string
+	if p.pkg != "" {
+		out = append(out, p.command([]string{p.pkg}, nil))
+	}
 	switch {
 	case len(p.others) == 0:
 	case p.whole:
@@ -132,8 +154,15 @@ func (p runPlan) commands() []string {
 // printRunPlan koşu satırlarını girintisiz `run:` başlığıyla, dosya satırının hemen altına yazar (öğe satırı değildir:
 // planlama sınavının first-item sorusu en az 4 boşlukla girintili ilk satırı okur); altında koşulmayanların sayısı.
 func printRunPlan(w io.Writer, p runPlan) {
-	for _, c := range p.commands() {
+	cmds := p.commands()
+	if len(cmds) == 0 {
+		return
+	}
+	for _, c := range cmds {
 		fmt.Fprintln(w, "run: "+c)
+	}
+	if len(p.golden) > 0 {
+		fmt.Fprintf(w, "  golden files (%s): if they change, rewrite with -update and read the diff\n", strings.Join(p.golden, ", "))
 	}
 	if p.whole {
 		fmt.Fprintf(w, "  the second command runs its packages whole: its -run list is longer than %d characters (the Windows command line)\n", commandLineLimit)

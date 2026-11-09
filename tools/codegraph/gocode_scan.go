@@ -90,6 +90,7 @@ func (x *goExtractor) scan(fc *fileCtx, owner string, root ast.Node) {
 		accessModes(modes, n)
 		x.noteVarWrites(fc, writes, atomicAddr, n)
 		x.noteLocalVar(fc, vars, n)
+		x.externalIfaceNode(fc, owner, n)
 		x.noteSnippets(fc, owner, n)
 		switch n := n.(type) {
 		case *ast.CallExpr:

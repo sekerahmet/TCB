@@ -200,3 +200,45 @@ func TestUntrackedFileWarningInTestsForAndChangedGoTests(t *testing.T) {
 		t.Errorf("after git add, changed --go-tests must not warn: exit %d\n%s%s", code, out, errOut)
 	}
 }
+
+// Kural: belge dosyası (.md) için tests-for dosyayı adıyla okuyan ve tarayan testlerden bir `run:` satırı kurar
+// (TestReviewedSectionsWriteIdentities ve TestDottedMemberSpellingsGolden dahil) ve altın dosya testi seçildiğinde
+// `-update` notunu yazar; testsiz bir `.md` dosyasında `run:` satırı yoktur.
+func TestDocFileRunLineIncludesReadersAndGoldenScans(t *testing.T) {
+	_, _, g := repoGraph(t)
+	ix := newIndex(g)
+	doc := ix.byID["doc:docs/status.md"]
+	if doc == nil {
+		t.Fatal("doc:docs/status.md not found")
+	}
+	var out strings.Builder
+	ix.printTestsFor(&out, doc, 12)
+	got := out.String()
+	if !strings.Contains(got, "\nrun: go test -short ") ||
+		!strings.Contains(got, "TestReviewedSectionsWriteIdentities") ||
+		!strings.Contains(got, "TestDottedMemberSpellingsGolden") {
+		t.Errorf("tests-for docs/status.md must print a run: line with TestReviewedSectionsWriteIdentities and TestDottedMemberSpellingsGolden:\n%s", got)
+	}
+	if !strings.Contains(got, "golden files (TestDottedMemberSpellingsGolden): if they change, rewrite with -update and read the diff") {
+		t.Errorf("tests-for docs/status.md must explain -update for golden tests:\n%s", got)
+	}
+
+	root := auditModule(t, map[string]string{
+		"p/p.go":        "package p\n",
+		"docs/empty.md": "# Başlık\n",
+	})
+	fg, err := buildGraph(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fix := newIndex(fg)
+	untestedDoc := fix.byID["doc:docs/empty.md"]
+	if untestedDoc == nil {
+		t.Fatal("doc:docs/empty.md not found")
+	}
+	out.Reset()
+	fix.printTestsFor(&out, untestedDoc, 12)
+	if strings.Contains(out.String(), "run:") {
+		t.Errorf("untested .md file must not have a run: line:\n%s", out.String())
+	}
+}

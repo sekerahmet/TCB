@@ -29,6 +29,37 @@ func TestABrokenLanguageFileLeavesTheGoAnswers(t *testing.T) {
 	testkit.Wait(t, answer, exitOK, []string{"shape.TestDescribe"}, []string{"answers about .tr code are missing", "language list tr"})
 }
 
+// Kural: dil dosyasında (internal/lang/codes/tr.json) definitions.json'da olmayan geçici bir kod varken
+// trSkipped uyarısı iç hata başlığında kesilmez; eksik kodun adını, dosyasını ve çaresini söyler.
+func TestMissingCodeDefinitionInLanguageFileNamesCodeAndRemedy(t *testing.T) {
+	repoRoot, err := resolveRoot("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(repoRoot, "internal", "lang", "codes", "tr.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempCode := "TR_fn_" + "temp_missing_def"
+	withTemp := strings.Replace(string(raw), `"TR_kw_if": {`, `"`+tempCode+`": {"name": "gecici_deneme"},`+"\n  "+`"TR_kw_if": {`, 1)
+	if withTemp == string(raw) {
+		t.Fatal("TR_kw_if not found in internal/lang/codes/tr.json")
+	}
+	exe := testkit.BuildWithFile(t, "./tools/codegraph", "internal/lang/codes/tr.json", withTemp)
+	root := t.TempDir()
+	testkit.CopyDir(t, filepath.Join("testdata", "mod"), root)
+	testkit.WritePath(t, filepath.Join(root, "internal", "lang", "codes", "tr.json"), withTemp)
+
+	answer := testkit.RunBinary(t, exe, root, "", nil, "tests-for", "--root", root, "shape/shape.go")
+	testkit.Wait(t, answer, exitOK, []string{"shape.TestDescribe"}, []string{
+		"answers about .tr code are missing",
+		tempCode,
+		"not an identity in the code list",
+		"internal/lang/codes/tr.json",
+		"add it to definitions.json and run go generate ./internal/lang/codes",
+	})
+}
+
 // Kural: gömülü ileti dosyasında tanımsız yuva varken (messages.load sync.Once içinde panikler) var olan
 // grafikle sorulan tests-for tek satır uyarı yazar, eski grafikle cevabı verir ve çıkış 0 döner; build ya da
 // grafik yokken tek satır hata yazar ve sıfır dışı çıkar.

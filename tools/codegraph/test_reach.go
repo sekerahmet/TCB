@@ -23,7 +23,7 @@ func reachEdge(kind, confidence, from, to, via string) bool {
 	switch kind {
 	case edgeCalls:
 		return confidence == extracted || via == viaArg || via == viaVar || strings.HasPrefix(from, "tr:") && strings.HasPrefix(to, "tr:")
-	case edgeUses, edgeReadsVar, edgeWritesVar, edgeDispatches:
+	case edgeUses, edgeReadsVar, edgeWritesVar, edgeDispatches, edgeStdlibCalls:
 		return true
 	case edgeImplementedBy:
 		// Yalnızca ölçüm programlarından (tools/bench): her TR testi çağrı ve işleç kullanır, hepsini yorumlayıcının

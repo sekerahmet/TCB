@@ -270,3 +270,55 @@ func TestChangedRebuildsGraphFromOlderExtractor(t *testing.T) {
 		t.Errorf("an older graph must be rebuilt: exit %d\nout: %s\nerr: %s", code, out, errOut)
 	}
 }
+
+// Kural: git add edilmemiş yeni bir .go dosyasındaki kopya `dups --changed`'de `[changed]` olarak yakalanır ve
+// başlık etiketi izlenmeyen dosya sayısını söyler; aynı fikstürde `changed` yeni dosyanın işlevini değişen düğüm
+// olarak bir kez sayar (changeHunks değişmediği için hunk sayısı 0, değişen kod sayısı 1 kalır).
+func TestDupsChangedAndChangedSeeUntrackedGoFile(t *testing.T) {
+	root := branchWithCopy(t)
+	gitMust(t, root, "checkout", "-q", "main")
+	testkit.WriteFile(t, root, "go.mod", "module example.com/dup\n\ngo 1.25\n")
+	commitAll(t, root, "go.mod")
+	gitMust(t, root, "checkout", "-q", "-b", "claude/untracked", "main")
+	testkit.WriteFile(t, root, "untracked.go", strings.TrimPrefix(loopSource("u", "int"), "src:"))
+
+	var so, se bytes.Buffer
+	if code := run([]string{"dups", "--root", root, "--min", "60", "--changed", "main"}, &so, &se); code != exitOK {
+		t.Fatalf("dups: exit %d: %s", code, se.String())
+	}
+	testkit.MustContain(t, so.String(),
+		"1 duplicate candidate(s) touching main...main + 1 untracked file (1 shown;",
+		"untracked.go:3-78  u  [changed]")
+
+	graph := buildInto(t, root)
+	code, out, errOut := commandIn("changed", root, graph, "--no-rebuild", "claude/untracked")
+	if code != exitOK {
+		t.Fatalf("changed: exit %d: %s", code, errOut)
+	}
+	testkit.MustContain(t, out,
+		"untracked: untracked.go is not tracked by git",
+		"changed main...claude/untracked: 0 hunks in 1 files",
+		"code (1):\n    dup.u [func] untracked.go:3")
+}
+
+// Kural: `changed --go-tests <c>` komutunda `<c>` ana dalın (`main`) atasıysa ve fark boşsa çıktı sessizce boş
+// kalmaz; `<c>`'nin `main`'in atası olduğunu ve tek commit'in değişikliği için `<c>~1..<c>` yazılacağını söyler.
+func TestChangedGoTestsAncestorCommitExplainsRange(t *testing.T) {
+	root := gitFixture(t)
+	replaceIn(t, filepath.Join(root, "shape", "shape.go"), "return s.Side * s.Side", "return s.Side * s.Side * 1")
+	commitAll(t, root, "second-on-main")
+	ancOut, err := gitOut(root, "rev-parse", "--short", "HEAD~1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	anc := strings.TrimSpace(string(ancOut))
+	graph := buildInto(t, root)
+
+	code, out, errOut := commandIn("changed", root, graph, "--no-rebuild", "--go-tests", anc)
+	if code != exitOK {
+		t.Fatalf("changed --go-tests %s: exit %d: %s", anc, code, errOut)
+	}
+	testkit.MustContain(t, out,
+		anc+" is an ancestor of main",
+		anc+"~1.."+anc)
+}

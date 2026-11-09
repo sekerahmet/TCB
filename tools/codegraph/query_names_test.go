@@ -116,16 +116,21 @@ func fnBody() { _ = codes.FnD }
 			}
 		}
 	}
+	for _, n := range g.Nodes {
+		if strings.Contains(n.ID, "Floor") || strings.Contains(n.Name, "Floor") {
+			t.Errorf("external module function math.Floor must not get a node: %+v", n)
+		}
+	}
 	return g
 }
 
 // Kural: test dışı bir çağrının argümanlarında ve bir düzey iç çağrı argümanlarında tek ayrı bir ad kodu (`codes.X` sabiti
 // ya da takma sabiti; codes paketinin işlevine verilenler hariç) ve argüman olarak geçen tek bir işlev ya da somut
 // alıcılı metot değeri/ifadesi varsa, işlevden koda INFERRED uses_name kenarı eklenir; gövdede EXTRACTED kenar varsa yeri
-// korunur; iki ayrı kod, iki işlev (`unit` biçimi: metot ifadesi ve işlev aynı çağrıda) ya da test dosyasındaki çağrı
-// bağlanmaz; modül dışı işlev (`math.Floor` gibi) eşleşmede sayılmaz ve düğüm almaz (DENETİM 285, 286 ve 293).
+// korunur; iki ayrı kod, iki işlev (`unit(v, codes.X, (*T).M, f)` biçimi: metot ifadesi ve işlev aynı çağrıda) ya da test
+// dosyasındaki çağrı bağlanmaz; modül dışı işlev (`math.Floor` gibi) eşleşmede sayılmaz ve düğüm almaz (DENETİM 285, 286 ve 293).
 func TestAdjacentNameCodeInCallIsImplementedByArgumentCallable(t *testing.T) {
-	g := checkNameImplModule(t, `package app
+	checkNameImplModule(t, `package app
 
 import (
 	"math"
@@ -137,25 +142,30 @@ const aliasA = codes.MemA
 
 type box struct{}
 
-func (box) toA()      {}
-func (box) exprE()    {}
-func (box) exprUnit() {}
-func (box) exprMath() {}
+func (box) toA()       {}
+func (box) exprE()     {}
+func (box) exprUnit()  {}
+func (*box) ptrUnit()  {}
+func (*box) exprMath() {}
 
-func fnB() {}
-func fnC() {}
-func fnTwo() {}
+func fnB()    {}
+func fnC()    {}
+func fnTwo()  {}
+func fnUnit() {}
+func fnMath() {}
 func fnRead() {}
 
-func reg(c codes.Code, f func())                  {}
-func regExpr(c codes.Code, f func(box))           {}
-func unit(c codes.Code, m func(box), f func())    {}
-func regMath(c codes.Code, f func(float64) float64) {}
-func unitMath(c codes.Code, m func(box), f func(float64) float64) {}
-func wrap(f func()) func()                        { return f }
-func safe(c codes.Code, f func()) func()          { return f }
-func twoCodes(a, b codes.Code, f func())          {}
-func twoFuncs(c codes.Code, f, g func())          {}
+func reg(c codes.Code, f func())                                         {}
+func regExpr(c codes.Code, f func(box))                                  {}
+func unit(v *box, c codes.Code, m func(*box), f func())                  {}
+func unitVal(c codes.Code, m func(box), f func())                        {}
+func regMath(c codes.Code, f func(float64) float64)                      {}
+func pairMath(c codes.Code, f func(), m func(float64) float64)           {}
+func unitMath(v *box, c codes.Code, m func(*box), f func(float64) float64) {}
+func wrap(f func()) func()                                               { return f }
+func safe(c codes.Code, f func()) func()                                 { return f }
+func twoCodes(a, b codes.Code, f func())                                 {}
+func twoFuncs(c codes.Code, f, g func())                                 {}
 
 func Register(b box) {
 	reg(aliasA, b.toA)
@@ -163,9 +173,11 @@ func Register(b box) {
 	reg(codes.FnC, safe(codes.FnC, fnC))
 	reg(codes.FnD, wrap(fnBody))
 	regExpr(codes.FnE, box.exprE)
-	unit(codes.FnE, box.exprUnit, fnTwo)
+	unit(&b, codes.FnE, (*box).ptrUnit, fnUnit)
+	unitVal(codes.FnE, box.exprUnit, fnTwo)
 	regMath(codes.FnE, math.Floor)
-	unitMath(codes.FnF, box.exprMath, math.Floor)
+	pairMath(codes.FnF, fnMath, math.Floor)
+	unitMath(&b, codes.FnF, (*box).exprMath, math.Floor)
 	twoCodes(codes.FnB, codes.FnC, fnTwo)
 	twoFuncs(codes.FnB, fnB, fnTwo)
 	reg(codes.Read(codes.FnB), fnRead)
@@ -187,33 +199,36 @@ func TestHelperDoesNotImplement(t *testing.T) { reg(codes.FnB, testHelper) }
 		{"fnC", "name:TR_fn_c", inferred, "app/a_reg.go"},
 		{"fnBody", "name:TR_fn_d", extracted, "app/z_body.go"},
 		{"box.exprE", "name:TR_fn_e", inferred, "app/a_reg.go"},
+		{"fnMath", "name:TR_fn_f", inferred, "app/a_reg.go"},
 		{"box.exprMath", "name:TR_fn_f", inferred, "app/a_reg.go"},
-	}, []string{"fnTwo", "fnRead", "testHelper", "box.exprUnit"})
-	for _, n := range g.Nodes {
-		if strings.Contains(n.ID, "Floor") || strings.Contains(n.Name, "Floor") {
-			t.Errorf("external module function math.Floor must not get a node: %+v", n)
-		}
-	}
+	}, []string{"fnTwo", "fnUnit", "fnRead", "testHelper", "box.exprUnit", "box.ptrUnit"})
 }
 
 // Kural: test dışı bir bileşik değerin yapı satırı olan öğelerinde (`[]struct{...}{{codes.X, f}}`, `{k: codes.X, fn: f}`,
 // `map[K]struct{...}{k: {codes.X, f}}`, `&T{...}`) tek ayrı ad kodu ve tek işlev değeri (paket işlevi, somut metot değeri
 // ya da metot ifadesi) varsa, işlevden koda INFERRED uses_name kenarı eklenir; harita çifti (`codes.X: f`), çağrı içeren
-// alan (`{codes.X, wrap(f)}`), iki kodlu/iki işlevli satır ve test dosyası bağlanmaz (Adım 2b).
+// alan (`{codes.X, wrap(f)}`), iki kodlu/iki işlevli (`(*T).M` ve `f`) satır ve test dosyası bağlanmaz; modül dışı işlev
+// (`math.Floor`) eşleşmede sayılmaz ve düğüm almaz (Adım 2b ve 2f).
 func TestTableRowNameCodeIsImplementedByRowCallable(t *testing.T) {
 	mustEdge(t, fixture(t), fixturePkg+"runIf", "name:TR_kw_if", edgeUsesName, inferred)
 	checkNameImplModule(t, `package app
 
-import "example.com/audit/internal/lang/codes"
+import (
+	"math"
+
+	"example.com/audit/internal/lang/codes"
+)
 
 type box struct{}
 
-func (box) toA()   {}
-func (box) exprE() {}
+func (box) toA()      {}
+func (box) exprE()    {}
+func (*box) ptrUnit() {}
 
 func rowPos()     {}
 func rowKeyed()   {}
 func rowPtr()     {}
+func rowMath()    {}
 func rowWrapped() {}
 func rowTwo()     {}
 func mapFn()      {}
@@ -233,6 +248,18 @@ type twoCodeRow struct {
 type twoFuncRow struct {
 	k    codes.Code
 	f, g func()
+}
+
+type unitRow struct {
+	k codes.Code
+	m func(*box)
+	f func()
+}
+
+type mathRow struct {
+	k  codes.Code
+	fn func()
+	m  func(float64) float64
 }
 
 func Tables(b box) {
@@ -256,6 +283,8 @@ func Tables(b box) {
 	}
 	_ = []twoCodeRow{{codes.FnB, codes.FnC, rowTwo}}
 	_ = []twoFuncRow{{codes.FnB, rowPos, rowTwo}}
+	_ = []unitRow{{codes.FnE, (*box).ptrUnit, rowTwo}}
+	_ = []mathRow{{codes.FnF, rowMath, math.Floor}}
 	_ = map[codes.Code]func(){codes.FnB: mapFn}
 }
 `, `package app
@@ -276,7 +305,8 @@ func TestRowInTestFileSkipped(t *testing.T) {
 		{"rowKeyed", "name:TR_fn_c", inferred, "app/a_reg.go"},
 		{"fnBody", "name:TR_fn_d", extracted, "app/z_body.go"},
 		{"rowPtr", "name:TR_fn_f", inferred, "app/a_reg.go"},
+		{"rowMath", "name:TR_fn_f", inferred, "app/a_reg.go"},
 		{"box.toA", "name:TR_mem_a", inferred, "app/a_reg.go"},
 		{"box.exprE", "name:TR_fn_e", inferred, "app/a_reg.go"},
-	}, []string{"rowWrapped", "rowTwo", "mapFn", "testRowFn"})
+	}, []string{"rowWrapped", "rowTwo", "mapFn", "testRowFn", "box.ptrUnit"})
 }
