@@ -62,6 +62,10 @@ type Counts struct {
 	Tests   int          `json:"tests,omitempty"`   // etki: etkilenen testler
 	Certain int          `json:"certain,omitempty"` // yeniden adlandırma: kesin değişiklikler
 	Likely  int          `json:"likely,omitempty"`  // yeniden adlandırma: olası değişiklikler
+	// tested_by: listede olmayan, yalnız paket içi zincirle adım sınırının (TestMaxSteps) ötesinde ulaşılan testler ve
+	// girişleri, en çok testli giriş önce (beyond.go). Liste ve Total bunları saymaz.
+	BeyondLimit   int           `json:"beyond_limit,omitempty"`
+	BeyondEntries []BeyondEntry `json:"beyond_entries,omitempty"`
 }
 
 // Affected `impact` sorgusunun sonucudur: değişirse etkilenenler.

@@ -267,14 +267,39 @@ func TestATestOfTheNameCodesAFileImplementsIsDirect(t *testing.T) {
 	}
 }
 
-// Kural: tests-for'un zincir sınırı bir: "up to 8 steps" diyen cevap 8 adımdan uzun zincir göstermez. Ad kodu üzerinden
-// gelen testte koddan teste geçiş de bir adımdır (eksikler listesi, ince ayar, DENETİM 2026-10-26: 17_testler_test,
-// deyimler_test 5.10-5.12 ve TestReaderStateResumesSameBatches 9 adımla listeleniyordu). Planlama sınavının hedef kümesinde
-// (her TR işlevi, kullanılan her ad kodu, internal/stdlib'in her işlevi) ve her Go dosyasında her "N steps" ≤ testMaxSteps.
+// listedChains tests-for çıktısındaki listelerin zincir boylarıdır. Sınır ötesi grup (B1a kademe 2) bilerek 8'den uzun
+// zincir yazar ve sayılmaz: "this file's tests beyond the" başlığı, altındaki girintili satırlar ve "beyond the 8-step
+// limit, inside its folder:" satırı (DENETİM 366 Ş1).
+func listedChains(out string) []int {
+	steps := regexp.MustCompile(`(\d+) steps`)
+	beyondLine := "  beyond the " + strconv.Itoa(testMaxSteps) + "-step limit, inside its folder:"
+	var got []int
+	inBeyond := false
+	for _, l := range strings.Split(out, "\n") {
+		if strings.HasPrefix(l, "  <- this file's tests beyond the ") {
+			inBeyond = true
+			continue
+		}
+		if inBeyond && strings.HasPrefix(l, "    ") || strings.HasPrefix(l, beyondLine) {
+			continue
+		}
+		inBeyond = false
+		for _, m := range steps.FindAllStringSubmatch(l, -1) {
+			s, _ := strconv.Atoi(m[1])
+			got = append(got, s)
+		}
+	}
+	return got
+}
+
+// Kural: tests-for'un zincir sınırı bir: listeler 8 adımdan uzun zincir göstermez; sınırın ötesi yalnız kendi grubunda
+// (listedChains). Ad kodu üzerinden gelen testte koddan teste geçiş de bir adımdır (eksikler listesi, ince ayar, DENETİM
+// 2026-10-26: 17_testler_test, deyimler_test 5.10-5.12 ve TestReaderStateResumesSameBatches 9 adımla listeleniyordu).
+// Planlama sınavının hedef kümesinde (her TR işlevi, kullanılan her ad kodu, internal/stdlib'in her işlevi) ve her Go
+// dosyasında listelerdeki her "N steps" ≤ testMaxSteps.
 func TestNoChainIsLongerThanTheStepLimit(t *testing.T) {
 	_, _, g := repoGraph(t)
 	ix := newIndex(g)
-	steps := regexp.MustCompile(`(\d+) steps`)
 	checked, bad := 0, 0
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
@@ -288,9 +313,9 @@ func TestNoChainIsLongerThanTheStepLimit(t *testing.T) {
 		}
 		var out strings.Builder
 		ix.printTestsFor(&out, n, 0)
-		for _, m := range steps.FindAllStringSubmatch(out.String(), -1) {
+		for _, s := range listedChains(out.String()) {
 			checked++
-			if s, _ := strconv.Atoi(m[1]); s > testMaxSteps && bad < 10 {
+			if s > testMaxSteps && bad < 10 {
 				bad++
 				t.Errorf("tests-for %s lists a %d-step chain; the limit is %d", n.Name, s, testMaxSteps)
 			}

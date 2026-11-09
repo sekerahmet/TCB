@@ -294,6 +294,10 @@ func (ix *index) printTestsForBody(w io.Writer, n *Node, limit int) {
 	}
 	ix.printValueTests(w, t.asValue, limit)
 	ix.printInferred(w, n, t.indirect, t.viaNames, limit)
+	if !t.beyondDone {
+		t.beyond = ix.beyondLimit(n, t.listed)
+	}
+	printBeyond(w, t.beyond, limit)
 	ix.printSharedSites(w, withOthers, limit)
 	ix.printDocRules(w, t.rules, limit)
 	ix.printCites(w, t.cites, limit)

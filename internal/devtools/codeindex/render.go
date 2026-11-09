@@ -107,6 +107,7 @@ func Text(r *Result) string {
 		writeUses(&b, messages.H8785, r.Users, r.Counts, messages.H8792)
 	case CommandTestedBy:
 		writeUses(&b, messages.H8786, r.Tests, r.Counts, messages.H8793)
+		writeBeyond(&b, r.Counts)
 	case CommandImpact:
 		writeImpact(&b, r)
 	}
@@ -135,6 +136,24 @@ func writeImpact(b *strings.Builder, r *Result) {
 		}
 		writeHidden(b, all-len(a.Tests))
 	}
+}
+
+// writeBeyond adım sınırının ötesindeki testlerin tek satırıdır (Counts.BeyondLimit): en çok testli giriş adıyla, öbür
+// girişler sayıyla; girişten sorulan tested_by onları sınır içinde listeler.
+func writeBeyond(b *strings.Builder, c *Counts) {
+	if c == nil || c.BeyondLimit == 0 || len(c.BeyondEntries) == 0 {
+		return
+	}
+	e := c.BeyondEntries[0]
+	name := e.Entry.Qualified
+	if name == "" {
+		name = e.Entry.Name
+	}
+	if len(c.BeyondEntries) == 1 {
+		fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8880, c.BeyondLimit, TestMaxSteps, name, e.Steps, codes.OptionFlag(codes.OptAll)))
+		return
+	}
+	fmt.Fprintf(b, "  %s\n", messages.Text(messages.H8881, c.BeyondLimit, TestMaxSteps, name, e.Tests, e.Steps, len(c.BeyondEntries)-1, codes.OptionFlag(codes.OptAll)))
 }
 
 // writeHidden kesilen bir grubun altına kaç satırın gizlendiğini ve sınırın nasıl artırılacağını yazar (hidden > 0 ise).

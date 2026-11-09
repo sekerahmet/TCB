@@ -8,29 +8,50 @@ package codeindex
 // sınayan test ya aynı pakette bir yardımcıdan (sınır geçmez, iç zincir uzun olabilir: yükleyici → ayrıştırıcı → kayıt →
 // erişimci → test 5 adım) ya da onu doğrudan çağıran başka bir paketten gelir (bir sınır). Yalnızca adım sayısıyla
 // sınırlansaydı ortak bir işleve kadar yüzlerce test "korur" görünürdü (7 adımda tr.json için 209 test).
+//
+// İki kademe (codegraph B1a, K1): listeler (tested_by, impact, tests-for, changed --go-tests) WalkCallers'ın sınırıyla
+// kurulur. WalkCallersBeyond aynı yürüyüşü paketin içinde adım sınırı olmadan sürdürür; sınırın ötesinde bulunan testler
+// listeye girmez, cevapta tek satırda toplanır ve codegraph'ın `untested`'ı bir işlevin testli olup olmadığına bununla
+// karar verir. Neden: 8 adımı geçen paket içi zincirler gerçekten koşuyordu (codegraph'ın 51 "test yok"unun 49'u, tek
+// `-run`'lı kapsamayla 49/49); sınırı kaldırmak ise her listeyi şişirirdi (300 işlevde ortanca 16 testten 41'e).
 const (
 	TestMaxHops  = 1
 	TestMaxSteps = 8
 )
 
-// Reached yürüyüşte ulaşılan bir düğümdür: kaç adımda ve başlangıçtan sonraki ilk düğüm (Via).
+// Reached yürüyüşte ulaşılan bir düğümdür: kaç adımda ve başlangıçtan sonraki ilk düğüm (Via). Entry yalnız
+// WalkCallersBeyond'da ve Steps > TestMaxSteps iken dolar: düğümün zincirinde, ondan bu düğüme en çok TestMaxSteps adım
+// kalan, başlangıca en yakın düğüm (Steps - TestMaxSteps adımda). Ondan sorulan liste bu düğümü sınır içinde bulur.
 type Reached struct {
 	ID    string
 	Steps int
 	Via   string
+	Entry string
 }
 
 // WalkCallers start'tan çağıranlara doğru genişlik öncelikli yürür (callers: bir düğümün çağıranları, sıralı verilmeli ki
 // sonuç belirleyici olsun; pkgOf: düğümün paketi ya da klasörü). Her ulaşılan düğüm için visit çağrılır; false dönerse o
 // düğümün ötesine geçilmez (örn. bir test). Paket sınırı geçişleri TestMaxHops, adımlar TestMaxSteps ile sınırlıdır.
 func WalkCallers(start string, callers func(string) []string, pkgOf func(string) string, visit func(Reached) bool) {
+	walkCallers(start, callers, pkgOf, visit, false)
+}
+
+// WalkCallersBeyond WalkCallers'tır, yalnız start'ın paketinde kalan kol adım sınırı olmadan sürer; paket sınırını geçen
+// kol WalkCallers'ın sınırlarındadır (toplam en çok TestMaxSteps adım, en çok TestMaxHops sınır). İlk TestMaxSteps katta
+// WalkCallers'la aynı düğümleri aynı Steps ve Via ile aynı sırada verir; ötesindekiler start'ın paketindedir ve Entry taşır.
+func WalkCallersBeyond(start string, callers func(string) []string, pkgOf func(string) string, visit func(Reached) bool) {
+	walkCallers(start, callers, pkgOf, visit, true)
+}
+
+func walkCallers(start string, callers func(string) []string, pkgOf func(string) string, visit func(Reached) bool, beyond bool) {
 	type state struct {
 		Reached
 		hops int
 	}
 	seen := map[string]bool{start: true}
-	frontier := []state{{Reached{start, 0, ""}, 0}}
-	for steps := 0; steps < TestMaxSteps && len(frontier) > 0; steps++ {
+	parent := map[string]string{}
+	frontier := []state{{Reached{ID: start}, 0}}
+	for steps := 0; len(frontier) > 0 && (beyond || steps < TestMaxSteps); steps++ {
 		var next []state
 		for _, st := range frontier {
 			for _, c := range callers(st.ID) {
@@ -38,7 +59,7 @@ func WalkCallers(start string, callers func(string) []string, pkgOf func(string)
 				if pkgOf(c) != pkgOf(st.ID) {
 					hops++
 				}
-				if hops > TestMaxHops || seen[c] {
+				if hops > TestMaxHops || seen[c] || hops > 0 && steps >= TestMaxSteps {
 					continue
 				}
 				seen[c] = true
@@ -46,7 +67,16 @@ func WalkCallers(start string, callers func(string) []string, pkgOf func(string)
 				if steps == 0 {
 					via = c
 				}
-				r := Reached{c, steps + 1, via}
+				r := Reached{ID: c, Steps: steps + 1, Via: via}
+				if beyond {
+					parent[c] = st.ID
+					if r.Steps > TestMaxSteps {
+						r.Entry = c
+						for range TestMaxSteps {
+							r.Entry = parent[r.Entry]
+						}
+					}
+				}
 				if visit(r) {
 					next = append(next, state{r, hops})
 				}

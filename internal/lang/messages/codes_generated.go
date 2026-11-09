@@ -2173,5 +2173,7 @@ const (
 	H8877 Code = 8877 // [`{recv}` bir tipse: bu üyesi yok]
 	H8878 Code = 8878 // [`{recv}` bir değerse: `x.{member}`]
 	H8879 Code = 8879 // [`{recv}` içe aktarılan modülse: bu üyesi yok]
+	H8880 Code = 8880 // {limit} adım sınırının ötesinde, klasörünün içinde: {count} test daha ona `{entry}` üzerinden ulaşıyor ({steps} adımdan başlayarak); `trlang index tested_by {entry} {all}` onları listeler
+	H8881 Code = 8881 // {limit} adım sınırının ötesinde, klasörünün içinde: {count} test daha ona ulaşıyor; {tests} tanesi `{entry}` üzerinden ({steps} adımdan başlayarak), kalanı {entries} giriş daha üzerinden; `trlang index tested_by {entry} {all}` o {tests} testi listeler
 	H9000 Code = 9000 // TR'de bir iç hata oluştu (bu sizin programınızın değil, TR'nin hatası); lütfen bildirin: {detail}
 )

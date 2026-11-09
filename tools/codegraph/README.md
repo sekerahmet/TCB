@@ -545,6 +545,23 @@ the tests that guard something come from its own package or from a package that 
 not usable (7 steps gave 209 tests for `tr.json`); the older limits (3 steps for path constants, 4 for indirect
 tests) cut the honest inner chains. The old two places now call the one function.
 
+**Beyond the step limit, two tiers.** An inner chain can still be longer than eight steps: 49 of the 51 functions
+`untested --in tools/codegraph` called untested were 9–11 steps from tests through the one `extractGo` hub, and one
+`-run` per test file ran all 49 (B0's measure, K1). `WalkCallersBeyond` (same file) walks on without a step limit
+while the chain stays in the start's folder; a chain that crosses the package boundary keeps the eight steps.
+
+- **Tier 1, the decision:** `untested` calls a function tested when such a test exists, so it is no longer listed
+  as untested.
+- **Tier 2, the answer:** the lists keep the limit (`tests-for`, `changed --go-tests`, `TR_cmd_index TR_sub_tested_by` and
+  `impact`), so what a pre-check runs does not grow. A test beyond the limit is not listed; `tests-for` writes the
+  ones in the target's own test file (`<file>_test.go`) by name (weak evidence: such a chain often runs through
+  shared machinery, and the test may not run the target) and the rest in one line, through the entry with
+  the most of them: `beyond the 8-step limit, inside its folder: 198 tests reach it, 94 of them through
+  codegraph.goExtractor.scan (from 10 steps) and the rest through 5 more entries; ...`. The entry is the node on
+  the chain from which the test is within the limit, so `tests-for <entry> --all` lists it. `TR_cmd_index TR_sub_tested_by` writes
+  the same line (H8880, H8881) and its JSON counts them (`counts.beyond_limit`, `counts.beyond_entries`, empty
+  fields left out); `changed --go-tests`' output for the pre-check does not change.
+
 ## Tests written in TR (`tests/*.tr`, TR code inside Go test strings)
 
 Behaviour is tested with TR code, and a test that the graph cannot see leaves `tests-for` empty. Three

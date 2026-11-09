@@ -117,6 +117,8 @@ type nodeTests struct {
 	scans                  []scanHit
 	linked                 []string
 	linkedTotal            int
+	beyond                 beyondTests // sınır ötesi testler (query_beyond.go); beyondDone değilse kurulmadı
+	beyondDone             bool
 }
 
 // testsForNode n'yi sınayan test gruplarını toplar ve yedi koldan hangisine düştüğünü belirler.
@@ -148,6 +150,10 @@ func (ix *index) testsForNode(n *Node) nodeTests {
 		subprocess: subprocess, cites: cites, exam: exam, rules: rules, scans: scans,
 	}
 	found := len(own) + len(about) + len(tests) + len(walks) + len(asValue) + len(indirect) + len(viaNames)
+	if found == 0 { // kademe 1: sınırın ötesinde klasör içi zincirle ulaşan test de "testli" demektir
+		t.beyond, t.beyondDone = ix.beyondLimit(n, listed), true
+		found = t.beyond.total()
+	}
 	switch {
 	case found > 0:
 		t.branch = branchTested
