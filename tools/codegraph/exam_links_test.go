@@ -173,3 +173,25 @@ func TestExamLinksSkipHeadingsAndPackages(t *testing.T) {
 		}
 	}
 }
+
+// Kural: silinen satırdaki sözcük karışık harfli mi diye bakılırken ilk harf rune olarak kesilir (gaps, "`çok` sınavı
+// seçiyor": `tok[1:]` bayt kesiyordu, ilk harfi ASCII dışı olan küçük harfli sözcük karışık harfli sayılıyordu).
+func TestADeletedLowercaseWordWithANonASCIIFirstLetterIsNoExamWord(t *testing.T) {
+	root := t.TempDir()
+	testkit.WriteFile(t, root, examFile, "codegraph query çok fooBar | contains: x | src: fixture, 2026-11-09\n")
+	ix := newIndex(&Graph{})
+	ix.root = root
+	for _, c := range []struct {
+		line string
+		want bool
+	}{
+		{"-\tx := çok", false},
+		{"-\ty := fooBar", true},
+	} {
+		ts := newTouchSet()
+		ts.hunks = []hunk{{file: "app/app.go", changedLines: []string{c.line}}}
+		if got := ix.deletedHunkNamesExam(ts); got != c.want {
+			t.Errorf("deleted line %q selects the exam: %v, want %v", c.line, got, c.want)
+		}
+	}
+}

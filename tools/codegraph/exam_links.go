@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 // Planlama sınavı (testdata/planning_questions.txt) soruları metin olarak taşır; sınavı koşan test andığı işlevleri
@@ -118,6 +119,13 @@ func (ix *index) examTestsFor(ts *touchSet) []*Node {
 	return nil
 }
 
+// mixedCaseTail sözcüğün ilk harfinden sonrasında büyük harf var mı; ilk harf rune olarak kesilir (`çok`'un ilk baytı
+// kesilince kalan geçersiz UTF-8 ToLower'da değişiyor, sözcük karışık harfli sayılıyordu).
+func mixedCaseTail(tok string) bool {
+	_, n := utf8.DecodeRuneInString(tok)
+	return tok[n:] != strings.ToLower(tok[n:])
+}
+
 // deletedHunkNamesExam farkın silinen satırlarında ya da eski dosya yolunda grafikte olmayan bir sınav sözcüğü arar.
 func (ix *index) deletedHunkNamesExam(ts *touchSet) bool {
 	words := map[string]bool{}
@@ -141,7 +149,7 @@ func (ix *index) deletedHunkNamesExam(ts *touchSet) bool {
 			if strings.HasPrefix(l, "-") && !strings.HasSuffix(h.file, ".md") {
 				toks := examIdent.FindAllString(l[1:], -1)
 				for i, tok := range toks {
-					if (examSymRe.MatchString(tok) || len(tok) >= 3 && tok[1:] != strings.ToLower(tok[1:])) && words[tok] ||
+					if (examSymRe.MatchString(tok) || len(tok) >= 3 && mixedCaseTail(tok)) && words[tok] ||
 						words[pkg+"."+tok] ||
 						slices.ContainsFunc(toks[i+1:], func(b string) bool { return words[tok+"."+b] || words[pkg+"."+tok+"."+b] }) ||
 						slices.ContainsFunc(types, func(n *Node) bool {
